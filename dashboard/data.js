@@ -1,0 +1,266 @@
+/* ============================================================
+   SolarFlow — Installation Workload Dashboard
+   Mock data, modeled on the user's real "Solar Command Center"
+   (Google-Sheets "Job Tracker"). Attached to window.SF
+   ============================================================ */
+(function () {
+  // ---- 8 stages of the install workflow (from the requested flow) ----
+  const STAGES = [
+    { key: "design",   th: "ออกแบบ",            en: "Design",         color: "#7C5CFC", soft: "#EEE9FF" },
+    { key: "takeoff",  th: "ถอดของ",            en: "BOM Takeoff",    color: "#3B82F6", soft: "#E5EFFF" },
+    { key: "order",    th: "สั่งของ",            en: "Order",          color: "#06B6D4", soft: "#DEF6FB" },
+    { key: "waiting",  th: "รอของ",             en: "Awaiting Parts", color: "#F59E0B", soft: "#FEF1D8" },
+    { key: "install",  th: "ดำเนินงานติดตั้ง",   en: "Installing",     color: "#84CC16", soft: "#ECF8D4" },
+    { key: "done",     th: "เสร็จสิ้น",          en: "Completed",      color: "#10B981", soft: "#D6F5E6" },
+  ];
+  const STAGE_INDEX = Object.fromEntries(STAGES.map((s, i) => [s.key, i]));
+
+  // ---- Material checklist components (from the real table) ----
+  const MATERIALS = [
+    { key: "panel",     th: "แผงโซล่า",    en: "Panels" },
+    { key: "inverter",  th: "อินเวอร์เตอร์", en: "Inverter" },
+    { key: "structure", th: "โครงสร้างยึดแผง", en: "Solar Mounting" },
+    { key: "wiring",    th: "สายไฟ",       en: "Wiring" },
+    { key: "battery",   th: "แบตเตอรี่",    en: "Battery" },
+    { key: "backup",    th: "ระบบ Backup", en: "Backup (EPS)" },
+    { key: "birdnet",   th: "ตาข่ายกันนก", en: "Bird Net" },
+  ];
+  // material status: ready ✅ / waiting ⏳ / none ❌ / na ➖
+  const MAT_STATUS = {
+    ready:   { th: "ครบ",     icon: "✅", color: "#10B981", soft: "#D6F5E6" },
+    waiting: { th: "รอของ",   icon: "⏳", color: "#F59E0B", soft: "#FEF1D8" },
+    none:    { th: "ยังไม่สั่ง", icon: "❌", color: "#EF4444", soft: "#FDE2E2" },
+    na:      { th: "ไม่ใช้",   icon: "➖", color: "#94A3B8", soft: "#EEF1F5" },
+  };
+
+  // ---- Technicians (install crews) ----
+  const TECHS = [
+    { id: "t1", name: "สมชาย ตั้งใจ",   nick: "ชาย",   color: "#10B981", role: "หัวหน้าทีม A" },
+    { id: "t2", name: "ธนากร พลังงาน",  nick: "กร",    color: "#3B82F6", role: "หัวหน้าทีม B" },
+    { id: "t3", name: "วีระ แสงทอง",    nick: "วี",    color: "#F59E0B", role: "ช่างไฟ" },
+    { id: "t4", name: "ปกรณ์ ศรีสุข",   nick: "กฤษ",   color: "#7C5CFC", role: "ช่างติดตั้ง" },
+    { id: "t5", name: "อนันต์ ไพศาล",   nick: "นันต์", color: "#EF4444", role: "ช่างติดตั้ง" },
+  ];
+  const TECH_BY_ID = Object.fromEntries(TECHS.map((t) => [t.id, t]));
+
+  const BRANDS = ["ATMOCE", "Huawei"];
+  const TYPES = [
+    { key: "home",    th: "งานบ้าน",     color: "#F59E0B" },
+    { key: "project", th: "งานโครงการ",  color: "#7C5CFC" },
+  ];
+
+  // helper to build the 8-stage timeline history
+  function hist(currentKey, problemHere) {
+    const ci = STAGE_INDEX[currentKey];
+    const base = new Date("2026-05-16");
+    return STAGES.map((s, i) => {
+      const d = new Date(base);
+      d.setDate(base.getDate() + i * 2);
+      let status = "pending";
+      if (i < ci) status = "done";
+      else if (i === ci) status = "current";
+      return { key: s.key, status, blocked: problemHere && i === ci, date: i <= ci ? d.toISOString().slice(0, 10) : null };
+    });
+  }
+
+  function mats(obj) {
+    // fill missing with 'none'
+    const out = {};
+    MATERIALS.forEach((m) => { out[m.key] = obj[m.key] || "none"; });
+    return out;
+  }
+
+  // ---- Jobs / Customers ----  (gps normalized 0..1 for stylized map)
+  const RAW = [
+    {
+      code: "SF-2401", name: "คุณวิชัย เจริญพร", phone: "086-111-2233", type: "home",
+      address: "บ้านเดี่ยว ม.บุราสิริ ลาดพร้าว 71", province: "กรุงเทพฯ", gps: [0.55, 0.46],
+      map: "https://maps.app.goo.gl/x1", brand: "ATMOCE", kw: 10.2, panels: 18,
+      battery: true, batSize: "14 kWh", connect: "ต่อ 1:2", backup: true, birdnet: true,
+      stage: "install", deadline: "2026-06-08", tech: "t1", problem: null,
+      mat: { panel: "ready", inverter: "ready", structure: "ready", wiring: "ready", battery: "ready", backup: "ready", birdnet: "ready" },
+      note: "ติดตั้งบนหลังคา metal sheet ทิศใต้ ระบบ Backup ครอบทั้งบ้าน",
+    },
+    {
+      code: "SF-2402", name: "คุณสุดารัตน์ มีสุข", phone: "089-222-3344", type: "home",
+      address: "ทาวน์โฮม โครงการเดอะคอนเนค รังสิต", province: "ปทุมธานี", gps: [0.58, 0.34],
+      map: "https://maps.app.goo.gl/x2", brand: "Huawei", kw: 5.0, panels: 9,
+      battery: false, batSize: "ไม่มี", connect: "-", backup: false, birdnet: true,
+      stage: "waiting", deadline: "2026-06-12", tech: "t2",
+      problem: "รออินเวอร์เตอร์ Huawei SUN2000 5KTL ของขาดสต็อก คาดเข้า 10 มิ.ย.",
+      mat: { panel: "ready", inverter: "waiting", structure: "ready", wiring: "waiting", battery: "na", backup: "na", birdnet: "none" },
+      note: "",
+    },
+    {
+      code: "SF-2403", name: "บจก. กรีนเทค โซลูชั่น", phone: "02-555-7788", type: "project",
+      address: "โรงงาน นิคมฯ บางปู ซ.12", province: "สมุทรปราการ", gps: [0.6, 0.6],
+      map: "https://maps.app.goo.gl/x3", brand: "Huawei", kw: 125.0, panels: 220,
+      battery: false, batSize: "ไม่มี", connect: "-", backup: false, birdnet: false,
+      stage: "order", deadline: "2026-06-20", tech: "t1", problem: null,
+      mat: { panel: "waiting", inverter: "none", structure: "waiting", wiring: "none", battery: "na", backup: "na", birdnet: "na" },
+      note: "งานโครงการใหญ่ ต้องขออนุญาต กฟภ. ก่อนติดตั้ง",
+    },
+    {
+      code: "SF-2404", name: "คุณอนุชา ทองดี", phone: "081-333-4455", type: "home",
+      address: "บ้านเดี่ยว 2 ชั้น ต.สันทราย", province: "เชียงใหม่", gps: [0.32, 0.12],
+      map: "https://maps.app.goo.gl/x4", brand: "ATMOCE", kw: 8.0, panels: 14,
+      battery: true, batSize: "21 kWh", connect: "ต่อ 1:1", backup: true, birdnet: false,
+      stage: "design", deadline: "2026-06-25", tech: "t3", problem: null,
+      mat: { panel: "none", inverter: "none", structure: "none", wiring: "none", battery: "none", backup: "none", birdnet: "na" },
+      note: "ลูกค้าขอแบบ 3D ก่อนเซ็นสัญญา",
+    },
+    {
+      code: "SF-2405", name: "คุณมานพ ศรีวิไล", phone: "088-444-5566", type: "home",
+      address: "บ้านสวน ต.บางพระ", province: "ชลบุรี", gps: [0.64, 0.52],
+      map: "https://maps.app.goo.gl/x5", brand: "ATMOCE", kw: 6.4, panels: 12,
+      battery: true, batSize: "28 kWh", connect: "ต่อ 1:2", backup: true, birdnet: true,
+      stage: "install", deadline: "2026-06-10", tech: "t4", problem: null,
+      mat: { panel: "ready", inverter: "ready", structure: "ready", wiring: "waiting", battery: "ready", backup: "ready", birdnet: "waiting" },
+      note: "พื้นที่ไฟตก ใช้แบตเตอรี่สำรองขนาดใหญ่",
+    },
+    {
+      code: "SF-2406", name: "คุณพิมพ์ใจ รุ่งเรือง", phone: "090-555-6677", type: "home",
+      address: "บ้านเดี่ยว ไอดีโอ สุขุมวิท 93", province: "กรุงเทพฯ", gps: [0.56, 0.47],
+      map: "https://maps.app.goo.gl/x6", brand: "Huawei", kw: 3.0, panels: 6,
+      battery: false, batSize: "ไม่มี", connect: "-", backup: false, birdnet: false,
+      stage: "done", deadline: "2026-05-30", tech: "t2", problem: null,
+      mat: { panel: "ready", inverter: "ready", structure: "ready", wiring: "ready", battery: "na", backup: "na", birdnet: "na" },
+      note: "ส่งมอบงานเรียบร้อย รับประกัน 25 ปี",
+    },
+    {
+      code: "SF-2407", name: "คุณเอกพงษ์ บุญมาก", phone: "091-666-7788", type: "project",
+      address: "โกดังสินค้า ถ.เพชรเกษม กม.34", province: "นครปฐม", gps: [0.48, 0.5],
+      map: "https://maps.app.goo.gl/x7", brand: "Huawei", kw: 50.0, panels: 88,
+      battery: false, batSize: "ไม่มี", connect: "-", backup: false, birdnet: false,
+      stage: "takeoff", deadline: "2026-06-28", tech: "t1", problem: null,
+      mat: { panel: "none", inverter: "none", structure: "none", wiring: "none", battery: "na", backup: "na", birdnet: "na" },
+      note: "",
+    },
+    {
+      code: "SF-2408", name: "คุณนภา จันทร์เพ็ญ", phone: "092-777-8899", type: "home",
+      address: "บ้านเดี่ยว ม.ภัสสร บางบัวทอง", province: "นนทบุรี", gps: [0.52, 0.4],
+      map: "https://maps.app.goo.gl/x8", brand: "ATMOCE", kw: 5.5, panels: 10,
+      battery: true, batSize: "7 kWh", connect: "ต่อ 1:1", backup: false, birdnet: true,
+      stage: "install", deadline: "2026-06-07", tech: "t3",
+      problem: "หลังคาบางส่วนผุ ต้องเสริมโครงก่อนติดตั้ง — รอลูกค้าตัดสินใจ",
+      mat: { panel: "ready", inverter: "ready", structure: "waiting", wiring: "ready", battery: "ready", backup: "na", birdnet: "ready" },
+      note: "",
+    },
+    {
+      code: "SF-2409", name: "คุณสมหญิง รักดี", phone: "093-888-9900", type: "home",
+      address: "บ้านเดี่ยว ต.หนองปรือ", province: "ชลบุรี", gps: [0.65, 0.53],
+      map: "https://maps.app.goo.gl/x9", brand: "Huawei", kw: 5.0, panels: 9,
+      battery: false, batSize: "ไม่มี", connect: "-", backup: false, birdnet: false,
+      stage: "install", deadline: "2026-06-09", tech: "t4", problem: null,
+      mat: { panel: "ready", inverter: "ready", structure: "ready", wiring: "ready", battery: "na", backup: "na", birdnet: "na" },
+      note: "วัสดุครบ พร้อมส่งทีมพรุ่งนี้",
+    },
+    {
+      code: "SF-2410", name: "คุณธีรพล มั่นคง", phone: "094-999-0011", type: "project",
+      address: "อาคารพาณิชย์ 4 ชั้น ถ.นิมมาน", province: "เชียงใหม่", gps: [0.31, 0.13],
+      map: "https://maps.app.goo.gl/x10", brand: "ATMOCE", kw: 15.0, panels: 26,
+      battery: true, batSize: "35 kWh", connect: "ต่อ 1:2", backup: true, birdnet: false,
+      stage: "waiting", deadline: "2026-06-15", tech: "t5",
+      problem: "รอแบตเตอรี่ ATMOCE 35kWh ส่งจากคลังเชียงใหม่",
+      mat: { panel: "ready", inverter: "ready", structure: "waiting", wiring: "ready", battery: "waiting", backup: "ready", birdnet: "na" },
+      note: "",
+    },
+    {
+      code: "SF-2411", name: "คุณกัญญา แสนสุข", phone: "095-000-1122", type: "home",
+      address: "บ้านเดี่ยว ม.การ์เด้นโฮม", province: "ขอนแก่น", gps: [0.5, 0.28],
+      map: "https://maps.app.goo.gl/x11", brand: "ATMOCE", kw: 5.0, panels: 9,
+      battery: true, batSize: "7 kWh", connect: "ต่อ 1:1", backup: false, birdnet: true,
+      stage: "order", deadline: "2026-06-22", tech: "t3", problem: null,
+      mat: { panel: "waiting", inverter: "none", structure: "none", wiring: "none", battery: "none", backup: "na", birdnet: "none" },
+      note: "",
+    },
+    {
+      code: "SF-2412", name: "คุณวรเทพ ใจกล้า", phone: "096-111-2244", type: "project",
+      address: "รีสอร์ท ต.อ่าวนาง", province: "กระบี่", gps: [0.34, 0.86],
+      map: "https://maps.app.goo.gl/x12", brand: "ATMOCE", kw: 30.0, panels: 52,
+      battery: true, batSize: "35 kWh", connect: "ต่อ 1:2", backup: true, birdnet: false,
+      stage: "design", deadline: "2026-07-02", tech: "t1", problem: null,
+      mat: { panel: "none", inverter: "none", structure: "none", wiring: "none", battery: "none", backup: "none", birdnet: "na" },
+      note: "งานชายทะเล ต้องใช้วัสดุกันการกัดกร่อนสูง",
+    },
+    {
+      code: "SF-2413", name: "คุณรัตนา พูนผล", phone: "097-222-3355", type: "home",
+      address: "บ้านเดี่ยว ต.บางแก้ว", province: "สมุทรปราการ", gps: [0.59, 0.58],
+      map: "https://maps.app.goo.gl/x13", brand: "Huawei", kw: 5.0, panels: 9,
+      battery: false, batSize: "ไม่มี", connect: "-", backup: false, birdnet: false,
+      stage: "done", deadline: "2026-05-26", tech: "t2", problem: null,
+      mat: { panel: "ready", inverter: "ready", structure: "ready", wiring: "ready", battery: "na", backup: "na", birdnet: "na" },
+      note: "",
+    },
+    {
+      code: "SF-2414", name: "คุณชัยวัฒน์ เกียรติยศ", phone: "098-333-4466", type: "home",
+      address: "บ้านหรู ม.เพรสทีจ บางนา", province: "กรุงเทพฯ", gps: [0.58, 0.5],
+      map: "https://maps.app.goo.gl/x14", brand: "ATMOCE", kw: 12.0, panels: 20,
+      battery: true, batSize: "28 kWh", connect: "ต่อ 1:2", backup: true, birdnet: true,
+      stage: "install", deadline: "2026-06-08", tech: "t5", problem: null,
+      mat: { panel: "ready", inverter: "ready", structure: "ready", wiring: "ready", battery: "ready", backup: "ready", birdnet: "ready" },
+      note: "ติดตั้งระบบ Backup ครอบทั้งบ้าน",
+    },
+    {
+      code: "SF-2415", name: "คุณสุพรรณี ดวงดี", phone: "099-444-5577", type: "home",
+      address: "ทาวน์โฮม ต.คลองหนึ่ง", province: "ปทุมธานี", gps: [0.57, 0.35],
+      map: "https://maps.app.goo.gl/x15", brand: "Huawei", kw: 3.0, panels: 6,
+      battery: false, batSize: "ไม่มี", connect: "-", backup: false, birdnet: false,
+      stage: "install", deadline: "2026-06-11", tech: "t4", problem: null,
+      mat: { panel: "ready", inverter: "ready", structure: "ready", wiring: "waiting", battery: "na", backup: "na", birdnet: "na" },
+      note: "",
+    },
+    {
+      code: "SF-2416", name: "บจก. ฟาร์มสุข เกษตร", phone: "044-555-6688", type: "project",
+      address: "ฟาร์มเลี้ยงไก่ ต.ปากช่อง", province: "นครราชสีมา", gps: [0.52, 0.32],
+      map: "https://maps.app.goo.gl/x16", brand: "ATMOCE", kw: 40.0, panels: 70,
+      battery: true, batSize: "35 kWh", connect: "ต่อ 1:2", backup: true, birdnet: false,
+      stage: "takeoff", deadline: "2026-06-05", tech: "t3",
+      problem: "เกินกำหนดถอดของ — รอ BOM อนุมัติจากวิศวกร",
+      mat: { panel: "none", inverter: "none", structure: "none", wiring: "none", battery: "none", backup: "none", birdnet: "na" },
+      note: "สูบน้ำ + ระบบให้อาหารอัตโนมัติ",
+    },
+  ];
+
+  // ---- derive computed fields from a raw record (re-run after every edit) ----
+  const TODAY = new Date("2026-06-07");
+  function deriveJob(j) {
+    // remap any retired stage keys (e.g. old countin/countout) to a valid one
+    if (STAGE_INDEX[j.stage] == null) j = Object.assign({}, j, { stage: "install" });
+    const matObj = mats(j.mat || {});
+    const matVals = MATERIALS.map((m) => matObj[m.key]).filter((v) => v !== "na");
+    const matReadyCount = matVals.filter((v) => v === "ready").length;
+    const matReady = matVals.length > 0 && matReadyCount === matVals.length;
+    const dl = j.deadline ? new Date(j.deadline) : null;
+    const delayed = j.stage !== "done" && dl && dl.getTime() < TODAY.getTime();
+    const stageIdx = STAGE_INDEX[j.stage] != null ? STAGE_INDEX[j.stage] : 0;
+    return Object.assign({}, j, {
+      id: j.id || j.code,
+      mat: matObj,
+      timeline: hist(j.stage, !!j.problem),
+      matReady, matReadyPct: Math.round((matReadyCount / Math.max(matVals.length, 1)) * 100),
+      delayed: !!delayed, stageIdx,
+      progressPct: Math.round(((stageIdx + (j.stage === "done" ? 1 : 0)) / STAGES.length) * 100),
+    });
+  }
+
+  const SEED = RAW.map((j) => Object.assign({ id: j.code }, j));
+  const JOBS = SEED.map(deriveJob);
+
+  window.SF = {
+    STAGES, STAGE_INDEX, MATERIALS, MAT_STATUS, TECHS, TECH_BY_ID, BRANDS, TYPES,
+    SEED, JOBS, deriveJob, TODAY: TODAY.toISOString().slice(0, 10),
+    PROVINCE_LATLNG: {
+      "กรุงเทพฯ":     [13.7563, 100.5018],
+      "ปทุมธานี":     [14.0208, 100.5250],
+      "นนทบุรี":      [13.8591, 100.5217],
+      "สมุทรปราการ":  [13.5991, 100.5998],
+      "นครปฐม":       [13.8199, 100.0621],
+      "ชลบุรี":       [13.3611, 100.9847],
+      "เชียงใหม่":    [18.7883,  98.9853],
+      "ขอนแก่น":      [16.4419, 102.8360],
+      "นครราชสีมา":   [14.9799, 102.0978],
+      "กระบี่":       [ 8.0863,  98.9063],
+    },
+  };
+})();

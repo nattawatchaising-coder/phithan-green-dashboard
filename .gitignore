@@ -1,0 +1,17 @@
+# ไม่ต้องส่ง design source ขึ้น Git
+design_bundle/
+
+# logs / temp
+*.log
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Node (เผื่ออนาคต migrate เป็น Vite)
+node_modules/
+dist/
+.env
+.env.local

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PHITHAN GREEN — ระบบติดตามงานติดตั้งโซล่าเซลล์</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Sora:wght@600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
+<style>
+:root {
+  --sans: 'IBM Plex Sans Thai', sans-serif;
+  --display: 'Sora', 'IBM Plex Sans Thai', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+  --bg: #EEF3EF; --surface: #FFFFFF; --surface2: #F5F9F6; --surface3: #E9F0EB;
+  --border: #E3EAE5; --border-strong: #CFDAD3;
+  --text-1: #15211A; --text-2: #55645B; --text-3: #93A399;
+  --shadow-sm: 0 1px 2px rgba(20,40,28,.04), 0 1px 3px rgba(20,40,28,.05);
+  --primary: #22A35B; --primary-dark: #14663A; --primary-soft: #E1F5E8; --primary-bright: #35B76D;
+  --sidebar-w: 250px;
+}
+[data-theme="dark"] {
+  --bg: #0A0F0B; --surface: #111A13; --surface2: #16201A; --surface3: #1F2C24;
+  --border: rgba(255,255,255,.08); --border-strong: rgba(255,255,255,.15);
+  --text-1: #ECF3EE; --text-2: #9DB0A4; --text-3: #647568;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
+}
+[data-cardstyle="flat"] { --shadow-sm: none; }
+[data-density="compact"] { --sidebar-w: 230px; }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text-1); font-size: 14px; -webkit-font-smoothing: antialiased; overflow: hidden; }
+#root { height: 100vh; }
+button { font-family: inherit; }
+input, select, textarea { font-family: inherit; }
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 9px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-3); background-clip: padding-box; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ---------- layout ---------- */
+.app-root { display: flex; height: 100vh; overflow: hidden; }
+.app-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.app-content { flex: 1; overflow: auto; padding: 22px 26px; }
+[data-density="compact"] .app-content { padding: 16px 18px; }
+
+/* ---------- sidebar ---------- */
+.sidebar { width: var(--sidebar-w); flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; transition: width .2s; }
+.sidebar[data-mode="icons"] { width: 76px; align-items: center; }
+.sidebar-brand { display: flex; align-items: center; gap: 12px; padding: 18px 20px; border-bottom: 1px solid var(--border); min-height: 73px; }
+.sidebar[data-mode="icons"] .sidebar-brand { padding: 18px 0; justify-content: center; }
+.brand-mark { height: 40px; width: auto; background: #fff; padding: 4px 6px; border-radius: 10px; box-shadow: var(--shadow-sm); flex-shrink: 0; }
+.brand-name { font-family: var(--display); font-size: 15px; font-weight: 800; letter-spacing: .01em; color: var(--primary-dark); line-height: 1.1; white-space: nowrap; }
+.brand-sub { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+.sidebar-nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.sidebar[data-mode="icons"] .sidebar-nav { width: 100%; align-items: center; }
+.nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 13px; border-radius: 11px; border: none; background: none;
+  cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--text-2); width: 100%; text-align: left; position: relative; transition: background .15s, color .15s; white-space: nowrap; }
+.sidebar[data-mode="icons"] .nav-item { width: 48px; height: 48px; justify-content: center; padding: 0; }
+.nav-item:hover { background: var(--surface2); color: var(--text-1); }
+.nav-item.active { background: var(--primary-soft); color: var(--primary-dark); }
+.nav-badge { margin-left: auto; background: #EF4444; color: #fff; font-size: 11px; font-weight: 700; min-width: 20px; height: 20px;
+  border-radius: 99px; display: grid; place-items: center; padding: 0 6px; }
+
+.sidebar-foot { padding: 14px 12px; border-top: 1px solid var(--border); width: 100%; }
+.role-label { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); padding: 0 4px 9px; }
+.role-switch { display: flex; flex-direction: column; gap: 3px; }
+.role-switch.icons { align-items: center; }
+.role-btn { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 10px; border: none; background: none;
+  cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--text-2); width: 100%; text-align: left; transition: all .15s; white-space: nowrap; }
+.role-switch.icons .role-btn { width: 44px; height: 44px; justify-content: center; padding: 0; }
+.role-btn:hover { background: var(--surface2); }
+.role-btn.active { background: var(--primary); color: #fff; }
+
+/* ---------- header ---------- */
+.app-header { padding: 18px 26px 0; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+[data-density="compact"] .app-header { padding: 12px 18px 0; }
+.header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.page-title { font-size: 23px; font-weight: 700; color: var(--text-1); letter-spacing: -.01em; white-space: nowrap; }
+.page-sub { font-size: 13px; color: var(--text-2); margin-top: 3px; }
+.page-sub strong { color: var(--text-1); font-weight: 700; }
+.clear-chip { border: none; background: var(--surface3); color: var(--text-2); font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; cursor: pointer; margin-left: 4px; font-family: inherit; }
+
+.header-actions { display: flex; align-items: center; gap: 12px; }
+.search-box { display: flex; align-items: center; gap: 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 11px; padding: 9px 13px; width: 280px; }
+.search-box input { border: none; background: none; outline: none; font-size: 13.5px; color: var(--text-1); width: 100%; }
+.search-box input::placeholder { color: var(--text-3); }
+.btn-add { display: flex; align-items: center; gap: 7px; background: var(--primary); color: #fff; border: none; padding: 10px 18px;
+  border-radius: 11px; font-size: 13.5px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 8px rgba(34,163,91,.25); transition: transform .12s, box-shadow .12s; white-space: nowrap; }
+.btn-add:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(34,163,91,.35); }
+
+.header-filters { display: flex; align-items: center; gap: 12px; padding: 14px 0; flex-wrap: wrap; }
+.delay-toggle { display: flex; align-items: center; gap: 7px; background: var(--surface); border: 1px solid var(--border-strong); color: var(--text-2);
+  padding: 7px 14px; border-radius: 10px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all .15s; white-space: nowrap; }
+.delay-toggle:hover { border-color: #EF4444; }
+.delay-toggle.on { background: #EF4444; border-color: #EF4444; color: #fff; }
+.ghost-btn { display: flex; align-items: center; gap: 6px; background: none; border: 1px solid var(--border); color: var(--text-3);
+  padding: 7px 13px; border-radius: 10px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all .15s; white-space: nowrap; }
+.ghost-btn:hover { background: var(--surface2); color: var(--text-2); }
+
+@media (max-width: 1080px) {
+  .search-box { width: 190px; }
+}
+@media (max-width: 860px) {
+  .sidebar { position: fixed; z-index: 60; height: 100vh; box-shadow: 6px 0 24px rgba(0,0,0,.1); transform: translateX(0); }
+  .app-content [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+}
+
+/* templated thumbnail for bundler */
+</style>
+<template id="__bundler_thumbnail">
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+<rect width="100" height="100" fill="#22A35B"/>
+<path d="M38 22 L30 52 H44 L40 78 L62 44 H48 L54 22 Z" fill="#fff"/>
+</svg>
+</template>
+</head>
+<body style="font-family: &quot;IBM Plex Sans Thai&quot;">
+<div id="root"></div>
+
+<!-- Firebase SDK (compat v9) — โหลดก่อน firebase-config.js -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<!-- Firebase config — แก้ค่าใน firebase-config.js เพื่อเปิดใช้ Cloud DB -->
+<script src="firebase-config.js"></script>
+
+<!-- data (plain JS) -->
+<script src="dashboard/data.js"></script>
+<script src="dashboard/data-stock.js"></script>
+
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- app modules (Babel) -->
+<script type="text/babel" src="dashboard/tweaks-panel.jsx"></script>
+<script type="text/babel" src="dashboard/components.jsx"></script>
+<script type="text/babel" src="dashboard/store.jsx"></script>
+<script type="text/babel" src="dashboard/drawer.jsx"></script>
+<script type="text/babel" src="dashboard/views-overview.jsx"></script>
+<script type="text/babel" src="dashboard/views-board.jsx"></script>
+<script type="text/babel" src="dashboard/views-table.jsx"></script>
+<script type="text/babel" src="dashboard/views-calendar.jsx"></script>
+<script type="text/babel" src="dashboard/views-stock.jsx"></script>
+<script type="text/babel" src="dashboard/form.jsx"></script>
+<script type="text/babel" src="dashboard/app.jsx"></script>
+</body>
+</html>
