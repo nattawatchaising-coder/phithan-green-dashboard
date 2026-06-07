@@ -81,8 +81,6 @@ function App() {
 
   React.useEffect(() => { applyTheme(t); }, [t]);
 
-  if (store.loading || stock.loading) return <LoadingScreen />;
-
   const jobs = store.jobs;
   const filtered = React.useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -100,6 +98,8 @@ function App() {
     });
   }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, role]);
 
+  const loading = store.loading || stock.loading;
+
   const openJob = (j) => setSelected(j.id);
   const selectedJob = jobs.find((j) => j.id === selected) || null;
 
@@ -109,6 +109,8 @@ function App() {
   const goKpi = (key) => { setQuickFilter(key); setStageFilter(null); setTypeFilter("all"); setDelayedOnly(false); setView("table"); };
 
   const navTo = (v) => { setView(v); if (v !== "table") { setStageFilter(null); setQuickFilter(null); } };
+
+  if (loading) return <LoadingScreen />;
 
   return (
     <div className="app-root">
