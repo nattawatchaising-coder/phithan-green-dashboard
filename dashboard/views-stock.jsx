@@ -89,7 +89,8 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser }) {
           </div>
         </div>
         <div className="header-filters">
-          <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: isMobile ? 6 : 7, flexWrap: isMobile ? "nowrap" : "wrap", alignItems: "center",
+            overflowX: isMobile ? "auto" : "visible", WebkitOverflowScrolling: "touch", paddingBottom: isMobile ? 2 : 0 }}>
             <CatChip active={cat === "all"} onClick={() => setCat("all")} label="ทั้งหมด" color="var(--text-2)" />
             {SF.STOCK_CATS.map((c) => <CatChip key={c.key} active={cat === c.key} onClick={() => setCat(c.key)} label={c.th} color={c.color} />)}
           </div>
@@ -195,10 +196,11 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser }) {
 }
 
 function CatChip({ active, onClick, label, color }) {
+  const mob = window.matchMedia("(max-width: 860px)").matches;
   return (
-    <button onClick={onClick} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 13px", borderRadius: 99,
+    <button onClick={onClick} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: mob ? "5px 11px" : "6px 13px", borderRadius: 99,
       border: "1px solid " + (active ? color : "var(--border-strong)"), background: active ? color + "16" : "var(--surface)",
-      color: active ? color : "var(--text-2)", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+      color: active ? color : "var(--text-2)", fontSize: mob ? 11.5 : 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0 }}>
       {label}
     </button>
   );
