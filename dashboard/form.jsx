@@ -275,8 +275,7 @@ function TechManager({ store, onClose }) {
           ))}
         </div>
 
-        <div style={{ padding: "14px 22px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", gap: 10 }}>
-          <button onClick={store.resetTechs} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 14px", borderRadius: 11, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-3)", fontWeight: 600, fontFamily: "inherit", fontSize: 12.5, cursor: "pointer" }}><Icon name="history" size={14} /> คืนค่าเริ่มต้น</button>
+        <div style={{ padding: "14px 22px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10 }}>
           <button onClick={() => setEditing(store.blankTech())} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 18px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}><Icon name="plus" size={16} color="#fff" sw={2.4} /> เพิ่มช่าง</button>
         </div>
       </div>
@@ -364,8 +363,7 @@ function BrandManager({ store, onClose }) {
           ))}
         </div>
 
-        <div style={{ padding: "14px 22px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", gap: 10 }}>
-          <button onClick={store.resetBrands} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 14px", borderRadius: 11, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-3)", fontWeight: 600, fontFamily: "inherit", fontSize: 12.5, cursor: "pointer" }}><Icon name="history" size={14} /> คืนค่าเริ่มต้น</button>
+        <div style={{ padding: "14px 22px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10 }}>
           <button onClick={() => setEditing({ rec: { name: "", battery: true }, origName: null })} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 18px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}><Icon name="plus" size={16} color="#fff" sw={2.4} /> เพิ่มแบรนด์ / รุ่น</button>
         </div>
       </div>
