@@ -48,17 +48,14 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1280 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 920 }}>
           <thead>
             <tr style={{ borderBottom: "1px solid var(--border)" }}>
               {th("ลูกค้า", "name")}
               {th("ประเภท", "type", true)}
               {th("แบรนด์ / สเปก", "brand")}
               {th("ขนาด", "kw", true)}
-              {SF.MATERIALS.map((m) => (
-                <th key={m.key} style={{ padding: "12px 8px", fontSize: 10, fontWeight: 700, letterSpacing: ".03em", textTransform: "uppercase",
-                  color: "var(--text-3)", textAlign: "center", whiteSpace: "nowrap", background: "var(--surface2)" }}>{m.th}</th>
-              ))}
+              {th("ความพร้อมวัสดุ", "matReadyPct", true)}
               {th("ขั้นตอน", "stage", true)}
               {th("กำหนดเสร็จ", "deadline", true)}
               {th("จัดการ", null, true)}
@@ -91,15 +88,13 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
                   <div style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>{j.kw} kW</div>
                   <div style={{ fontSize: 11, color: "var(--text-3)" }}>{j.panels} แผง</div>
                 </td>
-                {/* materials */}
-                {SF.MATERIALS.map((m) => (
-                  <td key={m.key} style={{ padding: "11px 6px", textAlign: "center" }}>
-                    <MatCell status={j.mat[m.key]} onCycle={() => {
-                      const cur = MAT_CYCLE.indexOf(j.mat[m.key]);
-                      onSetMat(j.id, m.key, MAT_CYCLE[(cur + 1) % MAT_CYCLE.length]);
-                    }} />
-                  </td>
-                ))}
+                {/* material readiness — ยุบจาก 7 คอลัมน์เป็นจุดสรุป + % (แก้รายชิ้นได้ใน drawer/ฟอร์ม) */}
+                <td style={{ padding: "11px 12px", textAlign: "center" }}>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    <MatDots mat={j.mat} />
+                    <span style={{ fontSize: 12.5, fontWeight: 700, fontFamily: "var(--mono)", color: j.matReady ? "var(--primary-dark)" : "var(--text-3)" }}>{j.matReadyPct}%</span>
+                  </div>
+                </td>
                 {/* stage */}
                 <td style={{ padding: "11px 12px", textAlign: "center" }}>
                   <select value={j.stage} onChange={(e) => onSetStage(j.id, e.target.value)}
