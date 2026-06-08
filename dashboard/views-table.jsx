@@ -154,23 +154,25 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
 
 /* ── แท็บแยกสถานะงาน: กำลังดำเนินการ / เสร็จแล้ว / ทั้งหมด ── */
 function StatusTabs({ tab, setTab, counts }) {
+  const mob = window.matchMedia("(max-width: 860px)").matches;
   const opts = [
     { key: "active", label: "กำลังดำเนินการ", n: counts.active },
     { key: "done",   label: "เสร็จแล้ว",      n: counts.done },
     { key: "all",    label: "ทั้งหมด",        n: counts.all },
   ];
   return (
-    <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+    <div style={{ display: "flex", gap: mob ? 6 : 8, marginBottom: 14, flexWrap: "nowrap" }}>
       {opts.map((o) => {
         const active = tab === o.key;
         return (
           <button key={o.key} onClick={() => setTab(o.key)}
-            style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 14px", borderRadius: 99,
+            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: mob ? 5 : 7,
+              padding: mob ? "8px 8px" : "8px 14px", borderRadius: 99, flex: mob ? "1 1 0" : "0 0 auto", minWidth: 0,
               border: "1px solid " + (active ? "var(--primary)" : "var(--border-strong)"),
               background: active ? "var(--primary-soft)" : "var(--surface)",
-              color: active ? "var(--primary-dark)" : "var(--text-2)", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-            {o.label}
-            <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, minWidth: 20, textAlign: "center", padding: "1px 6px", borderRadius: 99,
+              color: active ? "var(--primary-dark)" : "var(--text-2)", fontWeight: 600, fontSize: mob ? 12 : 13, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{o.label}</span>
+            <span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 700, minWidth: 18, textAlign: "center", padding: "1px 5px", borderRadius: 99, flexShrink: 0,
               background: active ? "var(--primary)" : "var(--surface3)", color: active ? "#fff" : "var(--text-3)" }}>{o.n}</span>
           </button>
         );
