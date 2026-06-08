@@ -67,9 +67,9 @@
         return {
           key: s.key, status,
           blocked: problemHere && i === ci,
-          date: stored.date || (i <= ci ? ymd(TODAY) : null),
+          date: stored.date || null,        // ใช้วันที่ที่บันทึกจริงเท่านั้น (ไม่เดาเป็นวันนี้)
           at: stored.at || null,            // เวลาจริงเต็ม (ถ้ามี)
-          recorded: !!stored.recorded,      // true = บันทึกจริง, false = ประมาณ
+          recorded: !!stored.recorded,      // true = บันทึกจริง, false = ยังไม่บันทึก
         };
       });
     }

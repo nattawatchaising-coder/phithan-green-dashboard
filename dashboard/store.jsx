@@ -149,31 +149,51 @@ function useJobStore() {
     }
   }, []);
 
+  /* เปลี่ยนงานไปยัง stage ใดก็ได้ (เลื่อนหน้า/ถอยหลัง/ข้ามขั้น) แล้วบันทึกเวลาจริง
+     ใช้ร่วมกันทั้ง: drag การ์ดในบอร์ด, dropdown ในตาราง, และปุ่มเลื่อนขั้นใน drawer */
+  const setStage = React.useCallback((id, targetKey) => {
+    const job = (rawRef.current || []).find((j) => j.id === id);
+    if (!job) return;
+    const stages    = window.SF.STAGES;
+    const targetIdx = window.SF.STAGE_INDEX[targetKey];
+    if (targetIdx == null || job.stage === targetKey) return; // ไม่เปลี่ยน → ไม่ทำอะไร
+    const curIdx = window.SF.STAGE_INDEX[job.stage];
+    const now    = new Date();
+    const today  = window.SF.TODAY;             // วันที่จริง (YYYY-MM-DD)
+    const at     = now.toISOString();           // เวลาจริงเต็ม (วัน + เวลา)
+
+    const prevHist = job.hist || stages.map((s, i) => ({
+      key: s.key, status: i < curIdx ? "done" : i === curIdx ? "current" : "pending",
+      date: i <= curIdx ? today : null, at: null, recorded: false, blocked: false,
+    }));
+    const newHist = stages.map((s, i) => {
+      const h = prevHist[i] || { key: s.key };
+      if (i < targetIdx) {
+        // ขั้นก่อนหน้า target = เสร็จแล้ว · คงเวลาเดิมที่เคยบันทึกไว้
+        // ขั้นที่ "ข้าม" (ไม่เคยทำจริง) จะไม่ใส่เวลาปลอม — ปล่อยว่างไว้
+        return { ...h, key: s.key, status: "done", date: h.date || null, at: h.at || null, recorded: !!h.at, blocked: false };
+      }
+      if (i === targetIdx) {
+        // ขั้นปัจจุบันใหม่ · ถ้าเคยมาขั้นนี้แล้ว = คงเวลาเดิม (ความจำเก่า ไม่เขียนทับ)
+        // ถ้ายังไม่เคยมา = บันทึกเวลาจริงตอนนี้
+        const seen = !!h.at;
+        return { ...h, key: s.key, status: "current", date: seen ? h.date : today, at: seen ? h.at : at, recorded: true, blocked: false };
+      }
+      // ขั้นถัดไป = ยังไม่ถึง · เก็บเวลาเดิมไว้เป็นความจำ (ไม่ลบ) เปลี่ยนแค่สถานะ
+      return { ...h, key: s.key, status: "pending", recorded: false, blocked: false };
+    });
+
+    patch(id, { stage: targetKey, problem: targetKey === "done" ? null : (job.problem || null), hist: newHist });
+  }, [patch]);
+
+  // เลื่อนขั้นถัดไป (ปุ่มใน drawer) — ใช้ logic เดียวกับ setStage
   const advance = React.useCallback((id) => {
     const job = (rawRef.current || []).find((j) => j.id === id);
     if (!job) return;
     const idx     = window.SF.STAGE_INDEX[job.stage];
     const nextIdx = Math.min(idx + 1, window.SF.STAGES.length - 1);
-    const next    = window.SF.STAGES[nextIdx].key;
-    const now     = new Date();
-    const today   = window.SF.TODAY;            // วันที่จริง (YYYY-MM-DD)
-    const at      = now.toISOString();          // เวลาจริงเต็ม (วัน + เวลา)
-
-    // อัพเดท hist: บันทึกวัน+เวลาจริงสำหรับ stage ที่เพิ่งถูก advance
-    const stages   = window.SF.STAGES;
-    const prevHist = job.hist || stages.map((s, i) => ({
-      key: s.key, status: i < idx ? "done" : i === idx ? "current" : "pending",
-      date: i <= idx ? today : null, at: null, recorded: false, blocked: false,
-    }));
-    const newHist = prevHist.map((h, i) => {
-      // stage ที่เพิ่งเลื่อนมา — บันทึกวัน+เวลาจริง ทำเครื่องหมายว่าเป็นข้อมูลจริง
-      if (i === nextIdx) return { ...h, status: "current", date: today, at, recorded: true, blocked: false };
-      if (i > nextIdx)  return { ...h, status: "pending",  date: null, at: null, recorded: false };
-      return h; // stage ก่อนหน้า — คงวัน+เวลาเดิมไว้
-    });
-
-    patch(id, { stage: next, problem: next === "done" ? null : (job.problem || null), hist: newHist });
-  }, [patch]);
+    setStage(id, window.SF.STAGES[nextIdx].key);
+  }, [setStage]);
 
   const setMat = React.useCallback((id, matKey, status) => {
     if (_FB()) {
@@ -196,7 +216,7 @@ function useJobStore() {
 
   return {
     raw: raw || [], jobs, loading,
-    upsert, patch, remove, advance, setMat, resetDB,
+    upsert, patch, remove, advance, setStage, setMat, resetDB,
     blank: () => blankJob(rawRef.current || []),
   };
 }

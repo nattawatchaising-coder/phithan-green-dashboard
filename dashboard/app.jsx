@@ -157,10 +157,10 @@ function App() {
 
         <div className="app-content" style={view === "board" || view === "map" ? { display: "flex", flexDirection: "column", minHeight: 0 } : {}}>
           {view === "overview" && <OverviewView jobs={filtered} onOpen={openJob} onStage={goStage} onKpi={goKpi} />}
-          {view === "board" && <KanbanView jobs={filtered} onOpen={openJob} onMoveStage={(id, s) => store.patch(id, { stage: s })} />}
+          {view === "board" && <KanbanView jobs={filtered} onOpen={openJob} onMoveStage={(id, s) => store.setStage(id, s)} />}
           {view === "table" && <TableView jobs={filtered} onOpen={openJob}
             onEdit={(j) => setForm({ job: store.raw.find((r) => r.id === j.id), isNew: false })}
-            onDelete={onDelete} onSetMat={store.setMat} onSetStage={(id, s) => store.patch(id, { stage: s })} />}
+            onDelete={onDelete} onSetMat={store.setMat} onSetStage={(id, s) => store.setStage(id, s)} />}
           {view === "calendar" && <CalendarView jobs={filtered} onOpen={openJob} />}
           {view === "map" && <MapView jobs={filtered} onOpen={openJob} />}
         </div>
