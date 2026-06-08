@@ -11,31 +11,33 @@ const STOCK_COLORS = { out: "#EF4444", low: "#F59E0B", ok: "#22A35B" };
 
 function StockKpi({ label, value, unit, icon, accent, sub, active, onClick }) {
   const [hov, setHov] = React.useState(false);
+  const mob = window.matchMedia("(max-width: 860px)").matches;
   return (
     <div onClick={onClick} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{ background: active ? accent + "0e" : "var(--surface)",
         border: "1px solid " + (active || hov ? accent : "var(--border)"),
-        borderRadius: 16, padding: 18,
+        borderRadius: mob ? 14 : 16, padding: mob ? 14 : 18,
         boxShadow: active ? "0 0 0 3px " + accent + "22" : hov ? "0 4px 12px rgba(0,0,0,.08)" : "var(--shadow-sm)",
         position: "relative", overflow: "hidden", cursor: onClick ? "pointer" : "default",
         transform: hov && onClick ? "translateY(-2px)" : "none",
         transition: "transform .14s, border-color .14s, box-shadow .14s, background .14s" }}>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: accent }} />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-2)", whiteSpace: "nowrap" }}>{label}</span>
-        <span style={{ width: 32, height: 32, borderRadius: 9, background: accent + "16", display: "grid", placeItems: "center" }}><Icon name={icon} size={16} color={accent} /></span>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+        <span style={{ fontSize: mob ? 11 : 12, fontWeight: 600, color: "var(--text-2)", whiteSpace: mob ? "normal" : "nowrap", lineHeight: 1.3 }}>{label}</span>
+        <span style={{ width: mob ? 28 : 32, height: mob ? 28 : 32, borderRadius: mob ? 8 : 9, background: accent + "16", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name={icon} size={mob ? 15 : 16} color={accent} /></span>
       </div>
-      <div style={{ marginTop: 12, display: "flex", alignItems: "baseline", gap: 6 }}>
-        <span style={{ fontFamily: "var(--display)", fontSize: 30, fontWeight: 700, color: "var(--text-1)", lineHeight: 1 }}>{value}</span>
-        {unit && <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-3)" }}>{unit}</span>}
+      <div style={{ marginTop: mob ? 10 : 12, display: "flex", alignItems: "baseline", gap: 6 }}>
+        <span style={{ fontFamily: "var(--display)", fontSize: mob ? 24 : 30, fontWeight: 700, color: "var(--text-1)", lineHeight: 1 }}>{value}</span>
+        {unit && <span style={{ fontSize: mob ? 12 : 13, fontWeight: 600, color: "var(--text-3)" }}>{unit}</span>}
       </div>
-      {sub && <div style={{ marginTop: 7, fontSize: 11.5, color: "var(--text-3)" }}>{sub}</div>}
+      {sub && <div style={{ marginTop: 7, fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sub}</div>}
     </div>
   );
 }
 
 function StockView({ stock, onResetAll, onMenuOpen }) {
   const SF = window.SF;
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [cat, setCat] = React.useState("all");
   const [kpiFilter, setKpiFilter] = React.useState(null); // null | 'low' | 'in' | 'out'
   const [search, setSearch] = React.useState("");
@@ -98,7 +100,7 @@ function StockView({ stock, onResetAll, onMenuOpen }) {
       </header>
 
       <div className="app-content">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 18 }}>
+        <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 18 }}>
           <StockKpi label="รายการทั้งหมด" value={items.length} unit="ชนิด" icon="box" accent="#3B82F6" sub="ชนิดอุปกรณ์ในคลัง" active={kpiFilter===null} onClick={() => setKpiFilter(null)} />
           <StockKpi label="ใกล้หมด / ต่ำกว่าขั้นต่ำ" value={lowCount} unit="รายการ" icon="alert" accent="#F59E0B" sub="ควรสั่งเพิ่ม" active={kpiFilter==="low"} onClick={() => setKpiFilter(f => f==="low" ? null : "low")} />
           <StockKpi label="รับเข้าเดือนนี้" value={inMonth} unit="ชิ้น" icon="arrowRight" accent="#22A35B" sub={inItemIds.size + " รายการ"} active={kpiFilter==="in"} onClick={() => setKpiFilter(f => f==="in" ? null : "in")} />
@@ -106,7 +108,11 @@ function StockView({ stock, onResetAll, onMenuOpen }) {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1.65fr 1fr", gap: 18, alignItems: "start" }}>
-          {/* stock table */}
+          {/* stock list — มือถือ: card list, เดสก์ท็อป: ตาราง */}
+          {isMobile ? (
+            <StockCardList items={filtered} onMove={setMoveItem}
+              onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
+          ) : (
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
@@ -156,6 +162,7 @@ function StockView({ stock, onResetAll, onMenuOpen }) {
               </table>
             </div>
           </div>
+          )}
 
           {/* ledger */}
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, boxShadow: "var(--shadow-sm)" }}>
@@ -199,21 +206,80 @@ function CatChip({ active, onClick, label, color }) {
   );
 }
 
+/* ── Mobile stock — card list แทนตาราง ── */
+function StockCardList({ items, onMove, onEdit, onRemove }) {
+  const SF = window.SF;
+  if (items.length === 0) {
+    return <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 14 }}>ไม่พบรายการอุปกรณ์</div>;
+  }
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {items.map((it) => {
+        const c = SF.STOCK_CAT_BY[it.cat] || SF.STOCK_CATS[SF.STOCK_CATS.length - 1];
+        const st = lowState(it);
+        return (
+          <div key={it.id} style={{ background: st === "out" ? "#FEF6F6" : "var(--surface)",
+            border: "1px solid " + (st === "out" ? "#FBD3D3" : "var(--border)"), borderRadius: 14, padding: 13,
+            borderLeft: "3px solid " + STOCK_COLORS[st], boxShadow: "var(--shadow-sm)" }}>
+            {/* หัว: ชื่อ + SKU + หมวด */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.25 }}>{it.name}</div>
+                <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>{it.sku || "—"}</div>
+              </div>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: c.color,
+                background: c.color + "16", padding: "3px 9px", borderRadius: 99, whiteSpace: "nowrap", flexShrink: 0 }}>
+                <span style={{ width: 7, height: 7, borderRadius: 99, background: c.color }} />{c.th}
+              </span>
+            </div>
+
+            {/* คงเหลือ + ขั้นต่ำ + ที่จัดเก็บ */}
+            <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginTop: 10, flexWrap: "wrap" }}>
+              <span style={{ display: "inline-flex", alignItems: "baseline", gap: 4 }}>
+                <span style={{ fontFamily: "var(--display)", fontSize: 22, fontWeight: 700, color: STOCK_COLORS[st], lineHeight: 1 }}>{it.qty.toLocaleString()}</span>
+                <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{it.unit}</span>
+                {st !== "ok" && <span style={{ fontSize: 10, fontWeight: 700, color: STOCK_COLORS[st], marginLeft: 2 }}>{st === "out" ? "⚠ หมด" : "⚠ ใกล้หมด"}</span>}
+              </span>
+              <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>ขั้นต่ำ <span style={{ fontFamily: "var(--mono)", color: "var(--text-2)" }}>{it.min.toLocaleString()}</span></span>
+              {it.loc && <span style={{ fontSize: 11.5, color: "var(--text-3)" }}><Icon name="pin" size={11} style={{ verticalAlign: -1 }} /> {it.loc}</span>}
+            </div>
+
+            {/* ปุ่ม */}
+            <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 12, paddingTop: 11, borderTop: "1px solid var(--border)" }}>
+              <button onClick={() => onMove({ item: it, type: "in" })}
+                style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4, background: "#22A35B16", border: "none",
+                  color: "#1d854b", fontWeight: 700, fontSize: 12.5, padding: "9px 10px", borderRadius: 9, cursor: "pointer", fontFamily: "inherit" }}>+ รับเข้า</button>
+              <button onClick={() => onMove({ item: it, type: "out" })}
+                style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4, background: "#7C5CFC16", border: "none",
+                  color: "#6645e0", fontWeight: 700, fontSize: 12.5, padding: "9px 10px", borderRadius: 9, cursor: "pointer", fontFamily: "inherit" }}>− เบิกออก</button>
+              <button onClick={() => onEdit(it)} title="แก้ไข" aria-label="แก้ไข"
+                style={{ flexShrink: 0, background: "#3B82F614", border: "none", color: "#3B82F6", width: 38, height: 38, borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={16} /></button>
+              <button onClick={() => { if (confirm("ลบ \"" + it.name + "\" ?")) onRemove(it.id); }} title="ลบ" aria-label="ลบ"
+                style={{ flexShrink: 0, background: "#EF444414", border: "none", color: "#EF4444", width: 38, height: 38, borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={16} /></button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function MoveModal({ info, onSave, onClose }) {
   const isIn = info.type === "in";
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [qty, setQty] = React.useState("");
   const [ref, setRef] = React.useState("");
   const [note, setNote] = React.useState("");
   const accent = isIn ? "#22A35B" : "#7C5CFC";
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.4)", backdropFilter: "blur(3px)", zIndex: 100, display: "grid", placeItems: "center", padding: 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: 18, width: "min(440px,100%)", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
-        <div style={{ padding: "18px 22px", background: accent, color: "#fff" }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.4)", backdropFilter: "blur(3px)", zIndex: 100, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(440px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+        <div style={{ padding: "18px 22px", background: accent, color: "#fff", flexShrink: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 600, opacity: .9 }}>{isIn ? "รับเข้าคลัง" : "เบิกออกหน้างาน"}</div>
           <div style={{ fontSize: 18, fontWeight: 700, marginTop: 2 }}>{info.item.name}</div>
           <div style={{ fontSize: 12.5, opacity: .85, marginTop: 3 }}>คงเหลือปัจจุบัน {info.item.qty.toLocaleString()} {info.item.unit}</div>
         </div>
-        <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 14, overflowY: "auto" }}>
           <Field label={"จำนวน (" + info.item.unit + ")"} required>
             <input type="number" autoFocus value={qty} onChange={(e) => setQty(e.target.value)} style={inputStyle} placeholder="0" />
           </Field>
@@ -224,10 +290,10 @@ function MoveModal({ info, onSave, onClose }) {
             <input value={note} onChange={(e) => setNote(e.target.value)} style={inputStyle} />
           </Field>
         </div>
-        <div style={{ padding: "14px 22px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10 }}>
-          <button onClick={onClose} style={{ padding: "10px 18px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
+        <div style={{ padding: "14px 22px", paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10, flexShrink: 0 }}>
+          <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 18px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
           <button onClick={() => { if (!(parseInt(qty) > 0)) { alert("กรุณากรอกจำนวน"); return; } onSave(qty, ref, note); }}
-            style={{ padding: "10px 22px", borderRadius: 11, border: "none", background: accent, color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>
+            style={{ flex: isMobile ? 1 : "none", padding: "11px 22px", borderRadius: 11, border: "none", background: accent, color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>
             {isIn ? "+ รับเข้า" : "− เบิกออก"}
           </button>
         </div>
@@ -238,16 +304,17 @@ function MoveModal({ info, onSave, onClose }) {
 
 function ItemModal({ initial, isNew, onSave, onClose }) {
   const SF = window.SF;
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [f, setF] = React.useState(() => Object.assign({}, initial));
   const set = (k, v) => setF((p) => Object.assign({}, p, { [k]: v }));
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.4)", backdropFilter: "blur(3px)", zIndex: 100, display: "grid", placeItems: "center", padding: 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: 18, width: "min(560px,100%)", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
-        <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.4)", backdropFilter: "blur(3px)", zIndex: 100, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(560px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+        <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
           <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>{isNew ? "เพิ่มรายการอุปกรณ์" : "แก้ไขรายการ"}</h2>
           <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
         </div>
-        <div style={{ padding: 22, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <div style={{ padding: 22, display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14, overflowY: "auto" }}>
           <div style={{ gridColumn: "1 / -1" }}><Field label="ชื่ออุปกรณ์" required><input style={inputStyle} value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="เช่น แผงโซล่า Longi 550W" /></Field></div>
           <Field label="รหัสสินค้า (SKU)"><input style={inputStyle} value={f.sku} onChange={(e) => set("sku", e.target.value)} placeholder="PNL-LR550" /></Field>
           <Field label="หมวดหมู่">
@@ -260,10 +327,10 @@ function ItemModal({ initial, isNew, onSave, onClose }) {
           <Field label="ขั้นต่ำ (แจ้งเตือน)"><input type="number" style={inputStyle} value={f.min} onChange={(e) => set("min", parseInt(e.target.value) || 0)} /></Field>
           <Field label="ที่จัดเก็บ"><input style={inputStyle} value={f.loc} onChange={(e) => set("loc", e.target.value)} placeholder="คลัง A-01" /></Field>
         </div>
-        <div style={{ padding: "14px 22px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10 }}>
-          <button onClick={onClose} style={{ padding: "10px 18px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
+        <div style={{ padding: "14px 22px", paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10, flexShrink: 0 }}>
+          <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 18px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
           <button onClick={() => { if (!f.name.trim()) { alert("กรุณากรอกชื่ออุปกรณ์"); return; } onSave(f); }}
-            style={{ padding: "10px 22px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>บันทึก</button>
+            style={{ flex: isMobile ? 1 : "none", padding: "11px 22px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>บันทึก</button>
         </div>
       </div>
     </div>
