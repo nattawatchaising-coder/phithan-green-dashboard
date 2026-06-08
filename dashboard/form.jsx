@@ -3,7 +3,10 @@
    ============================================================ */
 
 function Field({ label, required, children, span }) {
-  const gc = span === true ? "1 / -1" : (typeof span === "number" ? "span " + span : "auto");
+  // บนมือถือ: span ที่เป็นตัวเลขในกริด 1 คอลัมน์จะสร้าง implicit column เกิน → บังคับเต็มแถวแทน
+  const mob = window.matchMedia("(max-width: 860px)").matches;
+  const gc = span === true ? "1 / -1"
+    : (typeof span === "number" ? (mob ? "1 / -1" : "span " + span) : "auto");
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 5, gridColumn: gc }}>
       <label style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>
@@ -19,6 +22,18 @@ const inputStyle = {
   fontFamily: "inherit", fontSize: 13.5, padding: "9px 11px", borderRadius: 10, outline: "none", width: "100%",
 };
 
+/* responsive helper — matchMedia-based (re-renders on breakpoint change) */
+function useFormMobile(bp = 860) {
+  const mq = React.useMemo(() => window.matchMedia(`(max-width: ${bp}px)`), [bp]);
+  const [m, setM] = React.useState(mq.matches);
+  React.useEffect(() => {
+    const fn = (e) => setM(e.matches);
+    mq.addEventListener("change", fn);
+    return () => mq.removeEventListener("change", fn);
+  }, [mq]);
+  return m;
+}
+
 function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrands }) {
   const SF = window.SF;
   const [f, setF] = React.useState(() => JSON.parse(JSON.stringify(initial)));
@@ -26,6 +41,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
   const setMat = (k, v) => setF((p) => Object.assign({}, p, { mat: Object.assign({}, p.mat, { [k]: v }) }));
   const brandInfo = (SF.BRAND_BY_NAME || {})[f.brand];
   const noBattery = brandInfo ? !brandInfo.battery : false;
+  const isMobile = useFormMobile();
 
   React.useEffect(() => {
     if (noBattery && f.battery) { set("battery", false); set("batSize", "ไม่มี"); }
@@ -42,8 +58,9 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.4)", backdropFilter: "blur(3px)",
-      zIndex: 100, display: "grid", placeItems: "center", padding: 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: 20, width: "min(820px, 100%)", maxHeight: "92dvh",
+      zIndex: 100, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 20,
+        width: isMobile ? "100%" : "min(820px, 100%)", maxHeight: isMobile ? "94dvh" : "92dvh",
         display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
         {/* header */}
         <div style={{ padding: "18px 24px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -62,10 +79,10 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
         </div>
 
         {/* body */}
-        <div style={{ overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 18 }}>
+        <div style={{ overflowY: "auto", padding: isMobile ? 14 : 24, display: "flex", flexDirection: "column", gap: isMobile ? 14 : 18 }}>
           {/* customer */}
           <Section title="ข้อมูลลูกค้า" icon="user">
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: isMobile ? 12 : 14 }}>
               <Field label="ชื่อลูกค้า" required><input style={inputStyle} value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="คุณ..." /></Field>
               <Field label="เบอร์โทร"><input style={inputStyle} value={f.phone} onChange={(e) => set("phone", e.target.value)} placeholder="08x-xxx-xxxx" /></Field>
               <Field label="ประเภทงาน">
@@ -109,8 +126,8 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
 
           {/* system spec */}
           <Section title="สเปกระบบ" icon="sun">
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 14 }}>
-              <Field label="แบรนด์ / รุ่นที่ติดตั้ง">
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr 1fr", gap: isMobile ? 12 : 14 }}>
+              <Field label="แบรนด์ / รุ่นที่ติดตั้ง" span={isMobile ? 2 : undefined}>
                 <div style={{ display: "flex", gap: 6 }}>
                   <select style={Object.assign({}, inputStyle, { flex: 1, minWidth: 0 })} value={f.brand} onChange={(e) => set("brand", e.target.value)}>
                     {SF.BRANDS.map((b) => <option key={b} value={b}>{b}</option>)}
@@ -128,7 +145,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
                 <ToggleField on={f.birdnet} onChange={(v) => set("birdnet", v)} labelOn="ติดตั้ง" labelOff="ไม่ติด" />
               </Field>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 14, marginTop: 14, opacity: noBattery ? 0.45 : 1, pointerEvents: noBattery ? "none" : "auto" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr 1fr", gap: isMobile ? 12 : 14, marginTop: isMobile ? 12 : 14, opacity: noBattery ? 0.45 : 1, pointerEvents: noBattery ? "none" : "auto" }}>
               <Field label="ระบบแบตเตอรี่">
                 <ToggleField on={f.battery} onChange={(v) => set("battery", v)} labelOn="มีแบต" labelOff="ไม่มี" />
               </Field>
@@ -155,7 +172,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
 
           {/* materials */}
           <Section title="สถานะวัสดุ" icon="box">
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 12 }}>
               {SF.MATERIALS.map((m) => (
                 <Field key={m.key} label={m.th}>
                   <select style={inputStyle} value={f.mat[m.key]} onChange={(e) => setMat(m.key, e.target.value)}>
@@ -168,7 +185,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
 
           {/* workflow */}
           <Section title="สถานะงาน & ปัญหา" icon="flow">
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 12 : 14 }}>
               <Field label="ขั้นตอนปัจจุบัน">
                 <select style={inputStyle} value={f.stage} onChange={(e) => set("stage", e.target.value)}>
                   {SF.STAGES.map((s, i) => <option key={s.key} value={s.key}>{i + 1}. {s.th}</option>)}
@@ -186,9 +203,9 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
         </div>
 
         {/* footer */}
-        <div style={{ padding: "16px 24px", paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10 }}>
-          <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
-          <button onClick={save} style={{ padding: "10px 24px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }}>
+        <div style={{ padding: isMobile ? "14px 16px" : "16px 24px", paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10 }}>
+          <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 20px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
+          <button onClick={save} style={{ flex: isMobile ? 1 : "none", padding: "11px 24px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
             <Icon name="check" size={16} color="#fff" sw={2.5} /> บันทึกข้อมูล
           </button>
         </div>
@@ -198,8 +215,9 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
 }
 
 function Section({ title, icon, children }) {
+  const mob = window.matchMedia("(max-width: 860px)").matches;
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 18 }}>
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: mob ? 14 : 18 }}>
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 14, display: "flex", alignItems: "center", gap: 7 }}>
         <Icon name={icon} size={14} color="var(--primary)" /> {title}
       </div>
