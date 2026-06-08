@@ -64,11 +64,14 @@ function Stat({ icon, text, accent }) {
 
 function KanbanView({ jobs, onOpen, onMoveStage }) {
   const SF = window.SF;
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [drag, setDrag] = React.useState(null);
   const [over, setOver] = React.useState(null);
 
   const onDragStart = (e, job) => { setDrag(job.id); e.dataTransfer.effectAllowed = "move"; };
   const onDrop = (stageKey) => { if (drag) onMoveStage(drag, stageKey); setDrag(null); setOver(null); };
+
+  if (isMobile) return <KanbanMobile jobs={jobs} onOpen={onOpen} />;
 
   return (
     <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 12, minHeight: 0, flex: 1 }}>
@@ -107,4 +110,49 @@ function KanbanView({ jobs, onOpen, onMoveStage }) {
   );
 }
 
-Object.assign(window, { KanbanView, KanbanCard });
+/* ── Mobile board — accordion แนวตั้ง แตะหัวขั้นเพื่อพับ/ขยาย ── */
+function KanbanMobile({ jobs, onOpen }) {
+  const SF = window.SF;
+  const [collapsed, setCollapsed] = React.useState({}); // stageKey -> true=พับ
+  const noop = () => {};
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {SF.STAGES.map((s) => {
+        const col = jobs.filter((j) => j.stage === s.key);
+        // ค่าเริ่มต้น: ขั้นที่มีงานให้ขยาย, ขั้นว่างพับ
+        const isOpen = collapsed[s.key] !== undefined ? !collapsed[s.key] : col.length > 0;
+        const problems = col.filter((j) => j.problem || j.delayed).length;
+        return (
+          <div key={s.key} style={{ borderRadius: 14, background: "var(--surface2)", border: "1px solid var(--border)", overflow: "hidden" }}>
+            <button onClick={() => setCollapsed((c) => ({ ...c, [s.key]: isOpen }))}
+              style={{ width: "100%", padding: "13px 14px", display: "flex", alignItems: "center", justifyContent: "space-between",
+                gap: 8, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+                borderBottom: isOpen ? "1px solid var(--border)" : "none" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
+                <span style={{ width: 10, height: 10, borderRadius: 99, background: s.color, flexShrink: 0 }} />
+                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{s.th}</span>
+                {problems > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", background: "#FDE2E2", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>{problems}⚠</span>}
+              </span>
+              <span style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                <span style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 600, color: s.color, background: s.soft,
+                  minWidth: 24, height: 24, borderRadius: 99, display: "grid", placeItems: "center", padding: "0 7px" }}>{col.length}</span>
+                <Icon name="chevronDown" size={17} color="var(--text-3)"
+                  style={{ transform: isOpen ? "none" : "rotate(-90deg)", transition: "transform .18s" }} />
+              </span>
+            </button>
+            {isOpen && (
+              <div style={{ padding: 11, display: "flex", flexDirection: "column", gap: 10 }}>
+                {col.map((j) => <KanbanCard key={j.id} job={j} onOpen={onOpen} onDragStart={noop} dragging={false} />)}
+                {col.length === 0 && (
+                  <div style={{ padding: "16px 0", textAlign: "center", fontSize: 12, color: "var(--text-3)" }}>ไม่มีงานในขั้นนี้</div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+Object.assign(window, { KanbanView, KanbanCard, KanbanMobile });

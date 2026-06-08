@@ -19,6 +19,7 @@ function MatCell({ status, onCycle }) {
 
 function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
   const SF = window.SF;
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [sort, setSort] = React.useState({ key: "code", dir: 1 });
   const sorted = React.useMemo(() => {
     const arr = jobs.slice();
@@ -32,6 +33,8 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
     });
     return arr;
   }, [jobs, sort]);
+
+  if (isMobile) return <TableMobile jobs={sorted} sort={sort} setSort={setSort} onOpen={onOpen} onEdit={onEdit} onDelete={onDelete} onSetStage={onSetStage} />;
 
   const th = (label, key, center) => (
     <th onClick={key ? () => setSort((s) => ({ key, dir: s.key === key ? -s.dir : 1 })) : undefined}
@@ -129,9 +132,105 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
   );
 }
 
+/* ── Mobile database — card list แทนตาราง 13 คอลัมน์ ── */
+function TableMobile({ jobs, sort, setSort, onOpen, onEdit, onDelete, onSetStage }) {
+  const SF = window.SF;
+  const SORTS = [
+    { key: "code", th: "รหัสงาน" },
+    { key: "name", th: "ชื่อลูกค้า" },
+    { key: "stage", th: "ขั้นตอน" },
+    { key: "kw", th: "ขนาด (kW)" },
+    { key: "deadline", th: "กำหนดเสร็จ" },
+  ];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {/* แถบเรียงลำดับ */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "2px 2px 0" }}>
+        <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", flexShrink: 0 }}>เรียงตาม</span>
+        <select value={sort.key} onChange={(e) => setSort((s) => ({ key: e.target.value, dir: s.dir }))}
+          style={{ flex: 1, fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, color: "var(--text-1)",
+            background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 10px", outline: "none" }}>
+          {SORTS.map((o) => <option key={o.key} value={o.key}>{o.th}</option>)}
+        </select>
+        <button onClick={() => setSort((s) => ({ key: s.key, dir: -s.dir }))} title="สลับทิศ"
+          style={{ flexShrink: 0, width: 36, height: 36, borderRadius: 9, border: "1px solid var(--border-strong)",
+            background: "var(--surface)", cursor: "pointer", color: "var(--text-2)", fontWeight: 700, fontSize: 15 }}>
+          {sort.dir > 0 ? "↑" : "↓"}
+        </button>
+      </div>
+
+      {jobs.length === 0 && (
+        <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 14 }}>ไม่พบข้อมูลงานที่ตรงกับการค้นหา</div>
+      )}
+
+      {jobs.map((j) => {
+        const s = stageOf(j.stage);
+        return (
+          <div key={j.id} style={{ background: j.delayed ? "#FEF7F7" : "var(--surface)",
+            border: "1px solid " + (j.delayed ? "#FBD3D3" : "var(--border)"), borderRadius: 14, padding: 13,
+            borderLeft: "3px solid " + (j.delayed ? "#EF4444" : s.color), boxShadow: "var(--shadow-sm)" }}>
+            {/* หัว: รหัส + ประเภท + ปุ่มจัดการ */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+              <button onClick={() => onOpen(j)} style={{ textAlign: "left", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0, flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 3 }}>
+                  <span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, color: "var(--text-3)" }}>{j.code}</span>
+                  <TypeBadge type={j.type} />
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.25 }}>{j.name}</div>
+              </button>
+              <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                <button onClick={() => onEdit(j)} title="แก้ไข" style={actionBtn("#3B82F6")}><Icon name="settings" size={15} /></button>
+                <button onClick={() => onDelete(j)} title="ลบ" style={actionBtn("#EF4444")}><Icon name="x" size={15} /></button>
+              </div>
+            </div>
+
+            {/* ติดต่อ */}
+            <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 6, display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <span><Icon name="phone" size={11} style={{ verticalAlign: -1 }} /> {j.phone}</span>
+              <span style={{ color: "var(--primary-dark)", fontWeight: 600 }}><Icon name="pin" size={11} style={{ verticalAlign: -1 }} /> {j.province}</span>
+            </div>
+
+            {/* สเปก */}
+            <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: 7, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+              <span style={{ fontWeight: 600, color: "var(--text-1)" }}>{j.brand}</span>
+              <span style={{ color: "var(--text-3)" }}>·</span>
+              <span style={{ fontFamily: "var(--mono)", fontWeight: 600 }}>{j.kw} kW</span>
+              <span style={{ color: "var(--text-3)" }}>· {j.panels} แผง</span>
+              {j.battery && <span style={{ color: "var(--primary-dark)", fontWeight: 600 }}>· 🔋 {j.batSize}</span>}
+              {j.backup && <span style={{ color: "var(--primary-dark)", fontWeight: 600 }}>· Backup</span>}
+            </div>
+
+            {/* ตัวคั่น */}
+            <div style={{ height: 1, background: "var(--border)", margin: "11px 0 10px" }} />
+
+            {/* ท้าย: ขั้นตอน (select) + วัสดุ% + กำหนดเสร็จ */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+              <select value={j.stage} onChange={(e) => onSetStage(j.id, e.target.value)}
+                style={{ fontFamily: "inherit", fontSize: 12, fontWeight: 600, color: s.color,
+                  background: s.soft, border: "1px solid " + s.color + "33", borderRadius: 8,
+                  padding: "6px 9px", cursor: "pointer", outline: "none" }}>
+                {SF.STAGES.map((st) => <option key={st.key} value={st.key}>{st.th}</option>)}
+              </select>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <MatDots mat={j.mat} />
+                <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "var(--mono)", color: j.matReady ? "var(--primary-dark)" : "var(--text-3)" }}>{j.matReadyPct}%</span>
+              </span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontFamily: "var(--mono)", fontWeight: 600,
+                color: j.delayed ? "#EF4444" : "var(--text-2)" }}>
+                <Icon name="calendar" size={12} color={j.delayed ? "#EF4444" : "var(--text-3)"} />
+                {thDate(j.deadline, true)}{j.delayed && " ⚠"}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function actionBtn(color) {
   return { background: color + "14", border: "none", color, width: 30, height: 30, borderRadius: 8,
     cursor: "pointer", margin: "0 2px", display: "inline-grid", placeItems: "center", verticalAlign: "middle" };
 }
 
-Object.assign(window, { TableView });
+Object.assign(window, { TableView, TableMobile });
