@@ -67,6 +67,10 @@ function blankJob(raw) {
     stage: "design", deadline: window.SF.TODAY, tech: "t1", problem: null,
     mat: { panel: "none", inverter: "none", structure: "none", wiring: "none",
            battery: "none", backup: "none", birdnet: "none" },
+    hist: window.SF.STAGES.map((s, i) => ({
+      key: s.key, status: i === 0 ? "current" : "pending",
+      date: i === 0 ? window.SF.TODAY : null, blocked: false,
+    })),
     note: "",
   };
 }
@@ -146,9 +150,24 @@ function useJobStore() {
   const advance = React.useCallback((id) => {
     const job = (rawRef.current || []).find((j) => j.id === id);
     if (!job) return;
-    const idx  = window.SF.STAGE_INDEX[job.stage];
-    const next = window.SF.STAGES[Math.min(idx + 1, window.SF.STAGES.length - 1)].key;
-    patch(id, { stage: next, problem: next === "done" ? null : job.problem });
+    const idx     = window.SF.STAGE_INDEX[job.stage];
+    const nextIdx = Math.min(idx + 1, window.SF.STAGES.length - 1);
+    const next    = window.SF.STAGES[nextIdx].key;
+    const today   = window.SF.TODAY; // วันที่จริงที่ advance stage
+
+    // อัพเดท hist: บันทึกวันที่จริงสำหรับ stage ที่เพิ่งถูก advance
+    const stages   = window.SF.STAGES;
+    const prevHist = job.hist || stages.map((s, i) => ({
+      key: s.key, status: i < idx ? "done" : i === idx ? "current" : "pending",
+      date: i <= idx ? today : null, blocked: false,
+    }));
+    const newHist = prevHist.map((h, i) => {
+      if (i === nextIdx) return { ...h, status: "current", date: today, blocked: false };
+      if (i > nextIdx)  return { ...h, status: "pending",  date: null };
+      return h; // stage ก่อนหน้า — คงวันที่เดิมไว้
+    });
+
+    patch(id, { stage: next, problem: next === "done" ? null : job.problem, hist: newHist });
   }, [patch]);
 
   const setMat = React.useCallback((id, matKey, status) => {

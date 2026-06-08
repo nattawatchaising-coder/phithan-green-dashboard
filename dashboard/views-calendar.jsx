@@ -34,7 +34,8 @@ function CalendarView({ jobs, onOpen }) {
         </div>
       </div>
       <FlowLegend />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}>
+      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", margin: "0 -4px", padding: "0 4px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, minWidth: 490 }}>
         {window.TH_DAYS.map((d, i) => (
           <div key={d} style={{ textAlign: "center", fontSize: 11.5, fontWeight: 700, color: i === 0 || i === 6 ? "#EF4444aa" : "var(--text-3)", paddingBottom: 4 }}>{d}</div>
         ))}
@@ -71,6 +72,7 @@ function CalendarView({ jobs, onOpen }) {
             </div>
           );
         })}
+      </div>
       </div>
     </div>
   );

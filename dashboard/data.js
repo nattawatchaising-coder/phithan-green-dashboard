@@ -50,16 +50,33 @@
   ];
 
   // helper to build the 8-stage timeline history
-  function hist(currentKey, problemHere) {
+  // storedHist = dates previously saved by the user's actual stage advances
+  function hist(currentKey, problemHere, storedHist) {
     const ci = STAGE_INDEX[currentKey];
-    const base = new Date("2026-05-16");
+    // If we have stored dates (from real advances), use them
+    if (storedHist && storedHist.length >= STAGES.length) {
+      return STAGES.map((s, i) => {
+        const stored = storedHist[i] || {};
+        let status = "pending";
+        if (i < ci) status = "done";
+        else if (i === ci) status = "current";
+        return {
+          key: s.key, status,
+          blocked: problemHere && i === ci,
+          date: stored.date || (i <= ci ? [TODAY.getFullYear(), String(TODAY.getMonth()+1).padStart(2,"0"), String(TODAY.getDate()).padStart(2,"0")].join("-") : null)
+        };
+      });
+    }
+    // Fallback: estimate dates backwards from today so they look realistic
+    const base = new Date(TODAY);
+    base.setDate(base.getDate() - (ci * 3)); // work backwards so current stage = today-ish
     return STAGES.map((s, i) => {
       const d = new Date(base);
-      d.setDate(base.getDate() + i * 2);
+      d.setDate(base.getDate() + i * 3);
       let status = "pending";
       if (i < ci) status = "done";
       else if (i === ci) status = "current";
-      return { key: s.key, status, blocked: problemHere && i === ci, date: i <= ci ? d.toISOString().slice(0, 10) : null };
+      return { key: s.key, status, blocked: problemHere && i === ci, date: i <= ci ? [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-") : null };
     });
   }
 
@@ -223,7 +240,7 @@
   ];
 
   // ---- derive computed fields from a raw record (re-run after every edit) ----
-  const TODAY = new Date("2026-06-07");
+  const TODAY = new Date(); // ใช้วันที่จริงของระบบ (local timezone)
   function deriveJob(j) {
     // remap any retired stage keys (e.g. old countin/countout) to a valid one
     if (STAGE_INDEX[j.stage] == null) j = Object.assign({}, j, { stage: "install" });
@@ -237,7 +254,7 @@
     return Object.assign({}, j, {
       id: j.id || j.code,
       mat: matObj,
-      timeline: hist(j.stage, !!j.problem),
+      timeline: hist(j.stage, !!j.problem, j.hist),
       matReady, matReadyPct: Math.round((matReadyCount / Math.max(matVals.length, 1)) * 100),
       delayed: !!delayed, stageIdx,
       progressPct: Math.round(((stageIdx + (j.stage === "done" ? 1 : 0)) / STAGES.length) * 100),
@@ -249,7 +266,9 @@
 
   window.SF = {
     STAGES, STAGE_INDEX, MATERIALS, MAT_STATUS, TECHS, TECH_BY_ID, BRANDS, TYPES,
-    SEED, JOBS, deriveJob, TODAY: TODAY.toISOString().slice(0, 10),
+    SEED, JOBS, deriveJob,
+    // ใช้ local date string เพื่อหลีกเลี่ยง UTC offset (ไทย UTC+7 ทำให้ toISOString() ได้วันเมื่อวาน)
+    TODAY: [TODAY.getFullYear(), String(TODAY.getMonth()+1).padStart(2,"0"), String(TODAY.getDate()).padStart(2,"0")].join("-"),
     PROVINCE_LATLNG: {
       "กรุงเทพฯ":     [13.7563, 100.5018],
       "ปทุมธานี":     [14.0208, 100.5250],
