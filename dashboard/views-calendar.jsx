@@ -259,6 +259,7 @@ function NavBtn({ dir, onClick }) {
 }
 
 function MapView({ jobs, onOpen }) {
+  const isMobile = useMobileCal();
   const mapDiv = React.useRef(null);
   const mapObj = React.useRef(null);
   const layer = React.useRef(null);
@@ -320,8 +321,15 @@ function MapView({ jobs, onOpen }) {
     setTimeout(() => map.invalidateSize(), 120);
   }, [jobs, latlngOf, onOpen]);
 
+  // breakpoint เปลี่ยน (เดสก์ท็อป↔มือถือ) → map สูงเปลี่ยน ต้อง recalc ขนาด
+  React.useEffect(() => {
+    if (mapObj.current) setTimeout(() => mapObj.current.invalidateSize(), 220);
+  }, [isMobile]);
+
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: 18, flex: 1, minHeight: 0 }}>
+    <div style={isMobile
+      ? { display: "flex", flexDirection: "column", gap: 14 }
+      : { display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: 18, flex: 1, minHeight: 0 }}>
       {/* real map */}
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 18, boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column" }}>
         <PanelTitle icon="map" iconColor="var(--primary)" title="แผนที่ตำแหน่งงานติดตั้ง" sub="แผนที่จริง · เลื่อน/ซูมได้ · คลิกหมุดเพื่อดูงาน" />
@@ -335,12 +343,15 @@ function MapView({ jobs, onOpen }) {
             <span style={{ width: 9, height: 9, borderRadius: 99, background: "#EF4444" }} /> ติดปัญหา
           </span>
         </div>
-        <div ref={mapDiv} style={{ flex: 1, minHeight: 460, borderRadius: 14, overflow: "hidden", marginTop: 10, border: "1px solid var(--border)", zIndex: 0 }} />
+        <div ref={mapDiv} style={{ flex: isMobile ? "none" : 1, height: isMobile ? 320 : "auto",
+          minHeight: isMobile ? 320 : 460, borderRadius: 14, overflow: "hidden", marginTop: 10, border: "1px solid var(--border)", zIndex: 0 }} />
       </div>
       {/* province list */}
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 18, boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column", minHeight: 0 }}>
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 18, boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column", minHeight: isMobile ? "auto" : 0 }}>
         <PanelTitle icon="pin" title="งานแยกตามจังหวัด" sub={"แตะจังหวัดเพื่อโฟกัสบนแผนที่ · " + byProvince.length + " จังหวัด"} />
-        <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10, overflowY: "auto", flex: 1, minHeight: 0 }}>
+        <div style={isMobile
+          ? { marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }
+          : { marginTop: 14, display: "flex", flexDirection: "column", gap: 10, overflowY: "auto", flex: 1, minHeight: 0 }}>
           {byProvince.map(([prov, list]) => {
             const open = openProv === prov;
             const problems = list.filter((j) => j.problem || j.delayed).length;
