@@ -106,8 +106,80 @@ input, select, textarea { font-family: inherit; }
 @media (max-width: 1080px) {
   .search-box { width: 190px; }
 }
+
+/* On desktop: always show sidebar regardless of React inline-style transform */
+@media (min-width: 861px) {
+  .sidebar { transform: none !important; box-shadow: none !important; }
+}
+
+/* ---------- hamburger button (hidden on desktop) ---------- */
+.hamburger {
+  display: none; align-items: center; justify-content: center;
+  width: 38px; height: 38px; border: none; background: var(--surface2);
+  border-radius: 10px; cursor: pointer; flex-shrink: 0; color: var(--text-2);
+  transition: background .15s;
+}
+.hamburger:hover { background: var(--surface3); }
+
+/* close button inside sidebar (hidden on desktop) */
+.sidebar-close-btn {
+  display: none; align-items: center; justify-content: center;
+  position: absolute; top: 16px; right: 14px;
+  width: 28px; height: 28px; border: none; background: var(--surface2);
+  border-radius: 8px; cursor: pointer; color: var(--text-2); flex-shrink: 0;
+  transition: background .15s;
+}
+.sidebar-close-btn:hover { background: var(--surface3); }
+
+/* sidebar overlay backdrop */
+.sidebar-overlay {
+  position: fixed; inset: 0; z-index: 70;
+  background: rgba(0,0,0,.42);
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  animation: ovFadeIn .2s ease;
+}
+@keyframes ovFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
 @media (max-width: 860px) {
-  .sidebar { position: fixed; z-index: 60; height: 100vh; box-shadow: 6px 0 24px rgba(0,0,0,.1); transform: translateX(0); }
+  /* Sidebar: hidden by default, slides in with .sidebar--open */
+  .sidebar {
+    position: fixed; z-index: 80; height: 100%;
+    transform: translateX(-100%);
+    transition: transform .26s cubic-bezier(.4,0,.2,1);
+    box-shadow: none;
+  }
+  .sidebar.sidebar--open {
+    transform: translateX(0);
+    box-shadow: 6px 0 36px rgba(0,0,0,.22);
+  }
+
+  /* Show mobile-only elements */
+  .hamburger { display: flex; }
+  .sidebar-close-btn { display: flex; }
+
+  /* Sidebar needs relative positioning for close button */
+  .sidebar { position: fixed; }
+  .sidebar-brand { position: relative; padding-right: 50px; }
+
+  /* Header: compact */
+  .app-header { padding: 12px 16px 0; }
+  [data-density="compact"] .app-header { padding: 10px 12px 0; }
+  .header-top { gap: 8px; flex-wrap: nowrap; align-items: center; }
+  .page-title { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
+  .page-sub { display: none; }
+  .header-actions { gap: 8px; flex: 1; justify-content: flex-end; }
+  .search-box { width: 0; min-width: 0; flex: 1; max-width: 200px; padding: 7px 10px; }
+  .btn-add span { display: none; }
+  .btn-add { padding: 10px 12px; min-width: 38px; border-radius: 10px; }
+  .header-filters { padding: 10px 0; gap: 7px; }
+  .ghost-btn { display: none; }
+  .delay-toggle { padding: 6px 10px; font-size: 12px; }
+
+  /* Content padding */
+  .app-content { padding: 12px 12px; }
+  [data-density="compact"] .app-content { padding: 10px 10px; }
+
+  /* Force 1-col grids */
   .app-content [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
 }
 
@@ -138,17 +210,17 @@ input, select, textarea { font-family: inherit; }
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
-<!-- app modules (Babel) -->
-<script type="text/babel" src="dashboard/tweaks-panel.jsx"></script>
-<script type="text/babel" src="dashboard/components.jsx"></script>
-<script type="text/babel" src="dashboard/store.jsx"></script>
-<script type="text/babel" src="dashboard/drawer.jsx"></script>
-<script type="text/babel" src="dashboard/views-overview.jsx"></script>
-<script type="text/babel" src="dashboard/views-board.jsx"></script>
-<script type="text/babel" src="dashboard/views-table.jsx"></script>
-<script type="text/babel" src="dashboard/views-calendar.jsx"></script>
-<script type="text/babel" src="dashboard/views-stock.jsx"></script>
-<script type="text/babel" src="dashboard/form.jsx"></script>
-<script type="text/babel" src="dashboard/app.jsx"></script>
+<!-- app modules (Babel) — ?v= prevents browser from serving stale compiled cache -->
+<script type="text/babel" src="dashboard/tweaks-panel.jsx?v=2"></script>
+<script type="text/babel" src="dashboard/components.jsx?v=2"></script>
+<script type="text/babel" src="dashboard/store.jsx?v=2"></script>
+<script type="text/babel" src="dashboard/drawer.jsx?v=2"></script>
+<script type="text/babel" src="dashboard/views-overview.jsx?v=2"></script>
+<script type="text/babel" src="dashboard/views-board.jsx?v=2"></script>
+<script type="text/babel" src="dashboard/views-table.jsx?v=2"></script>
+<script type="text/babel" src="dashboard/views-calendar.jsx?v=2"></script>
+<script type="text/babel" src="dashboard/views-stock.jsx?v=2"></script>
+<script type="text/babel" src="dashboard/form.jsx?v=2"></script>
+<script type="text/babel" src="dashboard/app.jsx?v=2"></script>
 </body>
 </html>

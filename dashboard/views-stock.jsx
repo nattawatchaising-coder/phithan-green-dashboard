@@ -34,7 +34,7 @@ function StockKpi({ label, value, unit, icon, accent, sub, active, onClick }) {
   );
 }
 
-function StockView({ stock, onResetAll }) {
+function StockView({ stock, onResetAll, onMenuOpen }) {
   const SF = window.SF;
   const [cat, setCat] = React.useState("all");
   const [kpiFilter, setKpiFilter] = React.useState(null); // null | 'low' | 'in' | 'out'
@@ -63,7 +63,10 @@ function StockView({ stock, onResetAll }) {
     <React.Fragment>
       <header className="app-header">
         <div className="header-top">
-          <div>
+          <button className="hamburger" onClick={onMenuOpen} aria-label="เปิดเมนู">
+            <Icon name="menu" size={18} color="var(--text-2)" />
+          </button>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <h1 className="page-title">คลังสินค้า / สต็อก</h1>
             <p className="page-sub">อุปกรณ์ติดตั้ง <strong>{filtered.length}</strong> จาก {items.length} รายการ
               {kpiFilter && <span> · <span style={{ color: "#F59E0B", fontWeight: 700 }}>กรอง: {

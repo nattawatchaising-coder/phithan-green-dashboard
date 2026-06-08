@@ -43,6 +43,19 @@ function applyTheme(t) {
   root.style.setProperty("--primary-bright", a.bright);
 }
 
+/* ── responsive helper — uses matchMedia so it works even when resize events
+   are suppressed (e.g. in preview/test environments) ── */
+function useIsMobile(bp = 860) {
+  const mq = React.useMemo(() => window.matchMedia(`(max-width: ${bp}px)`), [bp]);
+  const [m, setM] = React.useState(mq.matches);
+  React.useEffect(() => {
+    const fn = (e) => setM(e.matches);
+    mq.addEventListener("change", fn);
+    return () => mq.removeEventListener("change", fn);
+  }, [mq]);
+  return m;
+}
+
 function LoadingScreen() {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
@@ -78,6 +91,11 @@ function App() {
   const [form, setForm] = React.useState(null); // {job, isNew}
   const [techMgr, setTechMgr] = React.useState(false);
   const [brandMgr, setBrandMgr] = React.useState(false);
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const isMobile = useIsMobile(); // force App re-render when mobile↔desktop breakpoint changes
+
+  // Auto-close sidebar when resizing to desktop
+  React.useEffect(() => { if (!isMobile) setSidebarOpen(false); }, [isMobile]);
 
   React.useEffect(() => { applyTheme(t); }, [t]);
 
@@ -100,6 +118,7 @@ function App() {
 
   const loading = store.loading || stock.loading;
 
+  const closeSidebar = () => setSidebarOpen(false);
   const openJob = (j) => setSelected(j.id);
   const selectedJob = jobs.find((j) => j.id === selected) || null;
 
@@ -108,16 +127,22 @@ function App() {
   const goStage = (key) => { setStageFilter(key); setQuickFilter(null); setView("table"); };
   const goKpi = (key) => { setQuickFilter(key); setStageFilter(null); setTypeFilter("all"); setDelayedOnly(false); setView("table"); };
 
-  const navTo = (v) => { setView(v); if (v !== "table") { setStageFilter(null); setQuickFilter(null); } };
+  const navTo = (v) => {
+    setView(v);
+    if (v !== "table") { setStageFilter(null); setQuickFilter(null); }
+    closeSidebar();
+  };
 
   if (loading) return <LoadingScreen />;
 
   return (
     <div className="app-root">
-      <Sidebar view={view} onNav={navTo} role={role} onRole={setRole} jobs={jobs} stock={stock} t={t} />
+      {sidebarOpen && <div className="sidebar-overlay" onClick={closeSidebar} />}
+      <Sidebar view={view} onNav={navTo} role={role} onRole={setRole} jobs={jobs} stock={stock} t={t}
+        open={sidebarOpen} onClose={closeSidebar} />
       <main className="app-main">
         {view === "stock" ? (
-          <StockView stock={stock} onResetAll={stock.resetStock} />
+          <StockView stock={stock} onResetAll={stock.resetStock} onMenuOpen={() => setSidebarOpen(true)} />
         ) : (
         <React.Fragment>
         <Header view={view} role={role} count={filtered.length} total={jobs.length}
@@ -127,7 +152,8 @@ function App() {
           stageFilter={stageFilter} setStageFilter={setStageFilter}
           quickFilter={quickFilter} setQuickFilter={setQuickFilter}
           onAdd={() => setForm({ job: store.blank(), isNew: true })}
-          onReset={store.resetDB} />
+          onReset={store.resetDB}
+          onMenuOpen={() => setSidebarOpen(true)} />
 
         <div className="app-content" style={view === "board" || view === "map" ? { display: "flex", flexDirection: "column", minHeight: 0 } : {}}>
           {view === "overview" && <OverviewView jobs={filtered} onOpen={openJob} onStage={goStage} onKpi={goKpi} />}
@@ -163,12 +189,21 @@ function App() {
   );
 }
 
-function Sidebar({ view, onNav, role, onRole, jobs, stock, t }) {
+function Sidebar({ view, onNav, role, onRole, jobs, stock, t, open, onClose }) {
   const icons = t.sidebar === "icons";
+  // Read media query synchronously every render — avoids stale state when
+  // the preview or device loads at one size then displays at another.
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const delayed = jobs.filter((j) => j.delayed).length;
   const lowStock = stock.items.filter((it) => it.qty <= it.min).length;
+  // On mobile: slide in/out via transform; on desktop: no inline style → always visible in flex flow
+  const sidebarStyle = isMobile
+    ? { transform: open ? "translateX(0)" : "translateX(-100%)",
+        boxShadow: open ? "6px 0 36px rgba(0,0,0,.22)" : "none" }
+    : {};
   return (
-    <aside className="sidebar" data-mode={icons ? "icons" : "full"}>
+    <aside className="sidebar" data-mode={icons ? "icons" : "full"}
+      style={sidebarStyle}>
       <div className="sidebar-brand">
         <img src="dashboard/assets/phithan-mark.png" alt="PHITHAN GREEN" className="brand-mark" />
         {!icons && (
@@ -177,6 +212,9 @@ function Sidebar({ view, onNav, role, onRole, jobs, stock, t }) {
             <div className="brand-sub">ระบบติดตามงานติดตั้ง</div>
           </div>
         )}
+        <button className="sidebar-close-btn" onClick={onClose} title="ปิดเมนู" aria-label="ปิดเมนู">
+          <Icon name="x" size={15} color="var(--text-2)" />
+        </button>
       </div>
 
       <nav className="sidebar-nav">
@@ -212,13 +250,16 @@ function Sidebar({ view, onNav, role, onRole, jobs, stock, t }) {
   );
 }
 
-function Header({ view, role, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, quickFilter, setQuickFilter, onAdd, onReset }) {
+function Header({ view, role, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, quickFilter, setQuickFilter, onAdd, onReset, onMenuOpen }) {
   const nav = NAV.find((n) => n.key === view);
   const QUICK_LABELS = { active: "กำลังดำเนินการ", delayed: "ล่าช้า", ready: "อุปกรณ์พร้อมติดตั้ง", battery: "มีแบตเตอรี่" };
   return (
     <header className="app-header">
       <div className="header-top">
-        <div>
+        <button className="hamburger" onClick={onMenuOpen} aria-label="เปิดเมนู">
+          <Icon name="menu" size={18} color="var(--text-2)" />
+        </button>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <h1 className="page-title">{nav.th}</h1>
           <p className="page-sub">
             แสดง <strong>{count}</strong> จาก {total} งาน
@@ -230,7 +271,7 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
         <div className="header-actions">
           <div className="search-box">
             <Icon name="search" size={16} color="var(--text-3)" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหาลูกค้า / รหัส / จังหวัด..." />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหา..." />
           </div>
           <button className="btn-add" onClick={onAdd}>
             <Icon name="plus" size={17} color="#fff" sw={2.4} /><span>เพิ่มงาน</span>
@@ -239,7 +280,7 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
       </div>
       <div className="header-filters">
         <Segmented value={typeFilter} onChange={setTypeFilter}
-          options={[{ value: "all", label: "ทั้งหมด" }, { value: "home", label: "งานบ้าน" }, { value: "project", label: "งานโครงการ" }]} />
+          options={[{ value: "all", label: "ทั้งหมด" }, { value: "home", label: "งานบ้าน" }, { value: "project", label: "โครงการ" }]} />
         <button className={"delay-toggle" + (delayedOnly ? " on" : "")} onClick={() => setDelayedOnly((v) => !v)}>
           <Icon name="alert" size={15} color={delayedOnly ? "#fff" : "#EF4444"} />
           เฉพาะงานล่าช้า
