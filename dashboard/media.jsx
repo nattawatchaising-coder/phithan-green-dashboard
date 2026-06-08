@@ -161,25 +161,25 @@ function JobPhotos({ media, currentUser, canManage }) {
           style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.9)", zIndex: 130,
             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <img src={cur.dataUrl} alt={cur.caption || ""} onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: "100%", maxHeight: "76vh", borderRadius: 10, objectFit: "contain" }} />
+            style={{ maxWidth: "100%", maxHeight: "68vh", borderRadius: 10, objectFit: "contain" }} />
 
-          {n > 1 && (
-            <React.Fragment>
-              <button onClick={(e) => { e.stopPropagation(); prev(); }} aria-label="ก่อนหน้า"
-                style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 44, height: 44, borderRadius: 99,
-                  border: "none", background: "rgba(255,255,255,.18)", color: "#fff", fontSize: 26, lineHeight: 1, cursor: "pointer", display: "grid", placeItems: "center" }}>‹</button>
-              <button onClick={(e) => { e.stopPropagation(); next(); }} aria-label="ถัดไป"
-                style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", width: 44, height: 44, borderRadius: 99,
-                  border: "none", background: "rgba(255,255,255,.18)", color: "#fff", fontSize: 26, lineHeight: 1, cursor: "pointer", display: "grid", placeItems: "center" }}>›</button>
-            </React.Fragment>
-          )}
-
-          <div style={{ marginTop: 12, color: "#fff", fontSize: 12.5, textAlign: "center", opacity: 0.9 }}>
-            {cur.caption ? cur.caption + " · " : ""}โดย {cur.byName} · {thDateTime ? thDateTime(cur.at) : ""}
-            {n > 1 && <span style={{ opacity: 0.7 }}> · {lbIndex + 1}/{n}</span>}
+          {/* ปุ่มควบคุมด้านล่าง: ก่อนหน้า · ตำแหน่ง · ถัดไป */}
+          <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 16, display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+            {n > 1 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+                <button onClick={prev} aria-label="ก่อนหน้า"
+                  style={{ width: 48, height: 48, borderRadius: 99, border: "none", background: "rgba(255,255,255,.18)", color: "#fff", fontSize: 28, lineHeight: 1, cursor: "pointer", display: "grid", placeItems: "center" }}>‹</button>
+                <span style={{ color: "#fff", fontFamily: "var(--mono)", fontSize: 14, fontWeight: 600, minWidth: 52, textAlign: "center" }}>{lbIndex + 1} / {n}</span>
+                <button onClick={next} aria-label="ถัดไป"
+                  style={{ width: 48, height: 48, borderRadius: 99, border: "none", background: "rgba(255,255,255,.18)", color: "#fff", fontSize: 28, lineHeight: 1, cursor: "pointer", display: "grid", placeItems: "center" }}>›</button>
+              </div>
+            )}
+            <div style={{ color: "#fff", fontSize: 12.5, textAlign: "center", opacity: 0.85 }}>
+              {cur.caption ? cur.caption + " · " : ""}โดย {cur.byName} · {thDateTime ? thDateTime(cur.at) : ""}
+            </div>
+            <button onClick={() => setLbIndex(null)} style={{ padding: "8px 20px", borderRadius: 10, border: "1px solid rgba(255,255,255,.4)",
+              background: "transparent", color: "#fff", fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>ปิด</button>
           </div>
-          <button onClick={() => setLbIndex(null)} style={{ marginTop: 14, padding: "8px 18px", borderRadius: 10, border: "1px solid rgba(255,255,255,.4)",
-            background: "transparent", color: "#fff", fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>ปิด</button>
         </div>
       )}
     </div>
