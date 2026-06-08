@@ -40,7 +40,13 @@ function FlowTimeline({ job }) {
                 {step.blocked && <span style={{ fontSize: 10.5, fontWeight: 700, color: "#EF4444",
                   background: "#FDE2E2", padding: "2px 8px", borderRadius: 99 }}>⚠ ติดปัญหา</span>}
               </div>
-              {step.date && <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: 3 }}>{thDate(step.date, true)}</div>}
+              {(step.at || step.date) && (isDone || isCurrent) && (
+                // เวลาจริงที่กดเลื่อนเข้า stage นี้ (วัน + เวลา)
+                <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: 3, display: "flex", alignItems: "center", gap: 5 }}>
+                  <Icon name="check" size={12} color={s.color} sw={2.5} />
+                  {step.at ? thDateTime(step.at) : thDate(step.date, true)}
+                </div>
+              )}
               {step.blocked && job.problem && (
                 <div style={{ marginTop: 8, padding: "10px 12px", background: "#FEF2F2", border: "1px solid #FECACA",
                   borderRadius: 10, fontSize: 12.5, color: "#B91C1C", lineHeight: 1.5 }}>{job.problem}</div>

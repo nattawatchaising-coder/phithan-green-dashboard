@@ -49,11 +49,15 @@
     { key: "project", th: "งานโครงการ",  color: "#7C5CFC" },
   ];
 
+  const ymd = (d) => [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-");
+  // parse "YYYY-MM-DD" เป็นวันที่ local (เลี่ยง UTC offset)
+  const parseDateLocal = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+
   // helper to build the 8-stage timeline history
-  // storedHist = dates previously saved by the user's actual stage advances
+  // storedHist = วัน+เวลาจริงที่ user เคยกดเลื่อน stage (มี recorded:true / at:timestamp)
   function hist(currentKey, problemHere, storedHist) {
     const ci = STAGE_INDEX[currentKey];
-    // If we have stored dates (from real advances), use them
+    // ถ้ามี stored hist (จากการเลื่อน stage จริง) — ใช้วัน+เวลาจริง
     if (storedHist && storedHist.length >= STAGES.length) {
       return STAGES.map((s, i) => {
         const stored = storedHist[i] || {};
@@ -63,20 +67,24 @@
         return {
           key: s.key, status,
           blocked: problemHere && i === ci,
-          date: stored.date || (i <= ci ? [TODAY.getFullYear(), String(TODAY.getMonth()+1).padStart(2,"0"), String(TODAY.getDate()).padStart(2,"0")].join("-") : null)
+          date: stored.date || (i <= ci ? ymd(TODAY) : null),
+          at: stored.at || null,            // เวลาจริงเต็ม (ถ้ามี)
+          recorded: !!stored.recorded,      // true = บันทึกจริง, false = ประมาณ
         };
       });
     }
-    // Fallback: estimate dates backwards from today so they look realistic
+    // ข้อมูลตัวอย่าง: สร้างวัน+เวลาย้อนหลังจากวันนี้ ให้ดูเป็นเวลาที่บันทึกจริง
     const base = new Date(TODAY);
-    base.setDate(base.getDate() - (ci * 3)); // work backwards so current stage = today-ish
+    base.setDate(base.getDate() - (ci * 3));
     return STAGES.map((s, i) => {
       const d = new Date(base);
       d.setDate(base.getDate() + i * 3);
+      d.setHours(9 + (i % 7), (i * 13) % 60, 0, 0); // เวลาทำงานสมจริง
       let status = "pending";
       if (i < ci) status = "done";
       else if (i === ci) status = "current";
-      return { key: s.key, status, blocked: problemHere && i === ci, date: i <= ci ? [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-") : null };
+      const recorded = i <= ci;
+      return { key: s.key, status, blocked: problemHere && i === ci, date: recorded ? ymd(d) : null, at: recorded ? d.toISOString() : null };
     });
   }
 
@@ -248,8 +256,10 @@
     const matVals = MATERIALS.map((m) => matObj[m.key]).filter((v) => v !== "na");
     const matReadyCount = matVals.filter((v) => v === "ready").length;
     const matReady = matVals.length > 0 && matReadyCount === matVals.length;
-    const dl = j.deadline ? new Date(j.deadline) : null;
-    const delayed = j.stage !== "done" && dl && dl.getTime() < TODAY.getTime();
+    // งานล่าช้า = ยังไม่เสร็จ และ "กำหนดการเสร็จสิ้น" เลยวันนี้ไปแล้ว (เทียบระดับวัน — ครบกำหนดวันนี้ยังไม่ล่าช้า)
+    const todayMidnight = new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate());
+    const dl = j.deadline ? parseDateLocal(j.deadline) : null;
+    const delayed = j.stage !== "done" && dl && dl.getTime() < todayMidnight.getTime();
     const stageIdx = STAGE_INDEX[j.stage] != null ? STAGE_INDEX[j.stage] : 0;
     return Object.assign({}, j, {
       id: j.id || j.code,

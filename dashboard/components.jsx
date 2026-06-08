@@ -59,6 +59,14 @@ function thDate(s, withYear) {
   const d = parseDate(s);
   return d.getDate() + " " + TH_MONTHS[d.getMonth()] + (withYear ? " " + (d.getFullYear() + 543).toString().slice(-2) : "");
 }
+// แสดงวัน + เวลา จาก ISO timestamp (เช่น "8 มิ.ย. 69 · 14:30 น.")
+function thDateTime(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  const date = d.getDate() + " " + TH_MONTHS[d.getMonth()] + " " + (d.getFullYear() + 543).toString().slice(-2);
+  const time = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  return date + " · " + time + " น.";
+}
 function fmtBaht(n) {
   if (n >= 1000000) return (n / 1000000).toFixed(n % 1000000 === 0 ? 0 : 2) + "M";
   if (n >= 1000) return (n / 1000).toFixed(0) + "k";
@@ -164,4 +172,4 @@ function Segmented({ options, value, onChange }) {
 }
 
 Object.assign(window, { Icon, ICONS, StageBadge, TypeBadge, MatChip, TechAvatar, ProgressBar, MatDots, Segmented,
-  thDate, fmtBaht, stageOf, parseDate, TH_MONTHS, TH_DAYS });
+  thDate, thDateTime, fmtBaht, stageOf, parseDate, TH_MONTHS, TH_DAYS });

@@ -69,7 +69,9 @@ function blankJob(raw) {
            battery: "none", backup: "none", birdnet: "none" },
     hist: window.SF.STAGES.map((s, i) => ({
       key: s.key, status: i === 0 ? "current" : "pending",
-      date: i === 0 ? window.SF.TODAY : null, blocked: false,
+      date: i === 0 ? window.SF.TODAY : null,
+      at: i === 0 ? new Date().toISOString() : null,
+      recorded: i === 0, blocked: false,
     })),
     note: "",
   };
@@ -153,18 +155,21 @@ function useJobStore() {
     const idx     = window.SF.STAGE_INDEX[job.stage];
     const nextIdx = Math.min(idx + 1, window.SF.STAGES.length - 1);
     const next    = window.SF.STAGES[nextIdx].key;
-    const today   = window.SF.TODAY; // วันที่จริงที่ advance stage
+    const now     = new Date();
+    const today   = window.SF.TODAY;            // วันที่จริง (YYYY-MM-DD)
+    const at      = now.toISOString();          // เวลาจริงเต็ม (วัน + เวลา)
 
-    // อัพเดท hist: บันทึกวันที่จริงสำหรับ stage ที่เพิ่งถูก advance
+    // อัพเดท hist: บันทึกวัน+เวลาจริงสำหรับ stage ที่เพิ่งถูก advance
     const stages   = window.SF.STAGES;
     const prevHist = job.hist || stages.map((s, i) => ({
       key: s.key, status: i < idx ? "done" : i === idx ? "current" : "pending",
-      date: i <= idx ? today : null, blocked: false,
+      date: i <= idx ? today : null, at: null, recorded: false, blocked: false,
     }));
     const newHist = prevHist.map((h, i) => {
-      if (i === nextIdx) return { ...h, status: "current", date: today, blocked: false };
-      if (i > nextIdx)  return { ...h, status: "pending",  date: null };
-      return h; // stage ก่อนหน้า — คงวันที่เดิมไว้
+      // stage ที่เพิ่งเลื่อนมา — บันทึกวัน+เวลาจริง ทำเครื่องหมายว่าเป็นข้อมูลจริง
+      if (i === nextIdx) return { ...h, status: "current", date: today, at, recorded: true, blocked: false };
+      if (i > nextIdx)  return { ...h, status: "pending",  date: null, at: null, recorded: false };
+      return h; // stage ก่อนหน้า — คงวัน+เวลาเดิมไว้
     });
 
     patch(id, { stage: next, problem: next === "done" ? null : job.problem, hist: newHist });
