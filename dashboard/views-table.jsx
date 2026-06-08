@@ -21,8 +21,16 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [sort, setSort] = React.useState({ key: "code", dir: 1 });
+  const [tab, setTab] = React.useState("active"); // active | done | all — แยกงานที่เสร็จแล้วออก
+
+  const counts = React.useMemo(() => ({
+    active: jobs.filter((j) => j.stage !== "done").length,
+    done:   jobs.filter((j) => j.stage === "done").length,
+    all:    jobs.length,
+  }), [jobs]);
+
   const sorted = React.useMemo(() => {
-    const arr = jobs.slice();
+    const arr = jobs.filter((j) => tab === "all" ? true : tab === "done" ? j.stage === "done" : j.stage !== "done");
     arr.sort((a, b) => {
       let av, bv;
       if (sort.key === "stage") { av = a.stageIdx; bv = b.stageIdx; }
@@ -32,9 +40,14 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
       return (av > bv ? 1 : av < bv ? -1 : 0) * sort.dir;
     });
     return arr;
-  }, [jobs, sort]);
+  }, [jobs, sort, tab]);
 
-  if (isMobile) return <TableMobile jobs={sorted} sort={sort} setSort={setSort} onOpen={onOpen} onEdit={onEdit} onDelete={onDelete} onSetStage={onSetStage} />;
+  if (isMobile) return (
+    <React.Fragment>
+      <StatusTabs tab={tab} setTab={setTab} counts={counts} />
+      <TableMobile jobs={sorted} sort={sort} setSort={setSort} onOpen={onOpen} onEdit={onEdit} onDelete={onDelete} onSetStage={onSetStage} />
+    </React.Fragment>
+  );
 
   const th = (label, key, center) => {
     const active = key && sort.key === key;
@@ -50,6 +63,8 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
   };
 
   return (
+    <React.Fragment>
+    <StatusTabs tab={tab} setTab={setTab} counts={counts} />
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 920 }}>
@@ -132,6 +147,34 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
           </tbody>
         </table>
       </div>
+    </div>
+    </React.Fragment>
+  );
+}
+
+/* ── แท็บแยกสถานะงาน: กำลังดำเนินการ / เสร็จแล้ว / ทั้งหมด ── */
+function StatusTabs({ tab, setTab, counts }) {
+  const opts = [
+    { key: "active", label: "กำลังดำเนินการ", n: counts.active },
+    { key: "done",   label: "เสร็จแล้ว",      n: counts.done },
+    { key: "all",    label: "ทั้งหมด",        n: counts.all },
+  ];
+  return (
+    <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+      {opts.map((o) => {
+        const active = tab === o.key;
+        return (
+          <button key={o.key} onClick={() => setTab(o.key)}
+            style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 14px", borderRadius: 99,
+              border: "1px solid " + (active ? "var(--primary)" : "var(--border-strong)"),
+              background: active ? "var(--primary-soft)" : "var(--surface)",
+              color: active ? "var(--primary-dark)" : "var(--text-2)", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+            {o.label}
+            <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, minWidth: 20, textAlign: "center", padding: "1px 6px", borderRadius: 99,
+              background: active ? "var(--primary)" : "var(--surface3)", color: active ? "#fff" : "var(--text-3)" }}>{o.n}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
