@@ -224,14 +224,14 @@ function JobComments({ media, currentUser, canManage }) {
       <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
         <textarea value={text} onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); send(); } }}
-          placeholder="พิมพ์ข้อความ / บันทึกงาน... (Ctrl+Enter เพื่อส่ง)" rows={1}
+          placeholder="พิมพ์ข้อความ / บันทึกงาน..." rows={1}
           style={{ flex: 1, resize: "vertical", height: 44, minHeight: 44, boxSizing: "border-box", background: "var(--surface2)", border: "1px solid var(--border-strong)",
             color: "var(--text-1)", fontFamily: "inherit", fontSize: 13.5, lineHeight: 1.4, padding: "11px 12px", borderRadius: 11, outline: "none" }} />
         <button onClick={send} disabled={!text.trim()}
           style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 11, border: "none",
-            background: text.trim() ? "var(--primary)" : "var(--text-3)", color: "#fff", cursor: text.trim() ? "pointer" : "default",
+            background: text.trim() ? "var(--primary)" : "var(--surface3)", cursor: text.trim() ? "pointer" : "default",
             display: "grid", placeItems: "center", transition: "background .15s" }}>
-          <Icon name="arrowRight" size={18} color="#fff" />
+          <Icon name="arrowRight" size={18} color={text.trim() ? "#fff" : "var(--text-3)"} />
         </button>
       </div>
     </div>
