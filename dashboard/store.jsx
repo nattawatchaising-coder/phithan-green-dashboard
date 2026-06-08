@@ -172,7 +172,7 @@ function useJobStore() {
       return h; // stage ก่อนหน้า — คงวัน+เวลาเดิมไว้
     });
 
-    patch(id, { stage: next, problem: next === "done" ? null : job.problem, hist: newHist });
+    patch(id, { stage: next, problem: next === "done" ? null : (job.problem || null), hist: newHist });
   }, [patch]);
 
   const setMat = React.useCallback((id, matKey, status) => {

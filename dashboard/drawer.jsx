@@ -71,12 +71,26 @@ function InfoRow({ label, children }) {
 function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit }) {
   const SF = window.SF;
   const open = !!job;
+
+  /* loading state — กดปุ่มแล้วแสดง "กำลังบันทึก..." ทันที
+     reset เมื่อ Firebase confirm แล้ว (job.stage เปลี่ยน) */
+  const [advancing, setAdvancing] = React.useState(false);
+  React.useEffect(() => { setAdvancing(false); }, [job ? job.stage : null]);
+
+  const handleAdvance = () => {
+    if (advancing) return;
+    setAdvancing(true);
+    onAdvance(job.id);
+    // safety reset: ถ้า Firebase ไม่ตอบใน 6s ให้ปลดล็อกปุ่ม
+    setTimeout(() => setAdvancing(false), 6000);
+  };
   return (
     <React.Fragment>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.34)",
         backdropFilter: "blur(2px)", opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none",
         transition: "opacity .3s", zIndex: 80 }} />
-      <aside style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: "min(540px, 94vw)",
+      <aside style={{ position: "fixed", top: 0, right: 0, width: "min(540px, 94vw)",
+        height: "100dvh", maxHeight: "100dvh",
         background: "var(--bg)", boxShadow: "-20px 0 60px rgba(8,20,14,.18)", zIndex: 90,
         transform: open ? "translateX(0)" : "translateX(100%)", transition: "transform .34s cubic-bezier(.3,.9,.3,1)",
         display: "flex", flexDirection: "column" }}>
@@ -194,8 +208,9 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit }) {
               )}
             </div>
 
-            {/* footer action */}
-            <div style={{ padding: "14px 24px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, flexShrink: 0 }}>
+            {/* footer action — เผื่อ safe-area ด้านล่าง กันแถบเบราว์เซอร์มือถือบังปุ่ม */}
+            <div style={{ padding: "14px 24px", paddingBottom: "calc(14px + env(safe-area-inset-bottom, 0px))",
+              borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, flexShrink: 0 }}>
               <button onClick={onClose} style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: 11, border: "1px solid var(--border-strong)",
                 background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ปิด</button>
               <button onClick={() => onEdit(job.id)} style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: 11, border: "1px solid var(--border-strong)",
@@ -204,10 +219,17 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit }) {
                 <Icon name="settings" size={15} color="var(--text-2)" /> แก้ไขข้อมูล
               </button>
               {job.stage !== "done" && (
-                <button onClick={() => onAdvance(job.id)} style={{ flex: 1, padding: "11px 16px", borderRadius: 11, border: "none",
-                  background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer",
-                  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                  เลื่อนขั้น "{SF.STAGES[Math.min(job.stageIdx + 1, SF.STAGES.length - 1)].th}" <Icon name="arrowRight" size={16} color="#fff" />
+                <button onClick={handleAdvance} disabled={advancing}
+                  style={{ flex: 1, padding: "11px 16px", borderRadius: 11, border: "none",
+                    background: advancing ? "var(--primary-dark)" : "var(--primary)",
+                    color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5,
+                    cursor: advancing ? "default" : "pointer", opacity: advancing ? 0.82 : 1,
+                    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+                    transition: "background .15s, opacity .15s" }}>
+                  {advancing
+                    ? "กำลังบันทึก..."
+                    : <React.Fragment>เลื่อนขั้น "{SF.STAGES[Math.min(job.stageIdx + 1, SF.STAGES.length - 1)].th}" <Icon name="arrowRight" size={16} color="#fff" /></React.Fragment>
+                  }
                 </button>
               )}
             </div>

@@ -43,7 +43,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.4)", backdropFilter: "blur(3px)",
       zIndex: 100, display: "grid", placeItems: "center", padding: 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: 20, width: "min(820px, 100%)", maxHeight: "92vh",
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: 20, width: "min(820px, 100%)", maxHeight: "92dvh",
         display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
         {/* header */}
         <div style={{ padding: "18px 24px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -186,7 +186,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
         </div>
 
         {/* footer */}
-        <div style={{ padding: "16px 24px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10 }}>
+        <div style={{ padding: "16px 24px", paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10 }}>
           <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
           <button onClick={save} style={{ padding: "10px 24px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }}>
             <Icon name="check" size={16} color="#fff" sw={2.5} /> บันทึกข้อมูล
