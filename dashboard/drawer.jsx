@@ -71,6 +71,7 @@ function InfoRow({ label, children }) {
 function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit }) {
   const SF = window.SF;
   const open = !!job;
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
 
   /* loading state — กดปุ่มแล้วแสดง "กำลังบันทึก..." ทันที
      reset เมื่อ Firebase confirm แล้ว (job.stage เปลี่ยน) */
@@ -208,27 +209,40 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit }) {
               )}
             </div>
 
-            {/* footer action — เผื่อ safe-area ด้านล่าง กันแถบเบราว์เซอร์มือถือบังปุ่ม */}
-            <div style={{ padding: "14px 24px", paddingBottom: "calc(14px + env(safe-area-inset-bottom, 0px))",
-              borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, flexShrink: 0 }}>
-              <button onClick={onClose} style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: 11, border: "1px solid var(--border-strong)",
-                background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ปิด</button>
-              <button onClick={() => onEdit(job.id)} style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: 11, border: "1px solid var(--border-strong)",
-                background: "var(--surface)", color: "var(--text-1)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer",
-                display: "inline-flex", alignItems: "center", gap: 7 }}>
-                <Icon name="settings" size={15} color="var(--text-2)" /> แก้ไขข้อมูล
+            {/* footer action — เผื่อ safe-area ด้านล่าง กันแถบเบราว์เซอร์มือถือบังปุ่ม
+               มือถือ: ปุ่ม ปิด/แก้ไข เป็นไอคอนล้วน ให้ปุ่มเลื่อนขั้นกว้างพอแสดงบรรทัดเดียว */}
+            <div style={{ padding: isMobile ? "12px 16px" : "14px 24px", paddingBottom: "calc(" + (isMobile ? 12 : 14) + "px + env(safe-area-inset-bottom, 0px))",
+              borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: isMobile ? 8 : 10, flexShrink: 0 }}>
+              <button onClick={onClose} title="ปิด" aria-label="ปิด"
+                style={{ flex: "0 0 auto", padding: isMobile ? 0 : "11px 16px", width: isMobile ? 42 : "auto", height: isMobile ? 42 : "auto",
+                  borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)",
+                  fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer",
+                  display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                {isMobile ? <Icon name="x" size={18} color="var(--text-2)" /> : "ปิด"}
+              </button>
+              <button onClick={() => onEdit(job.id)} title="แก้ไขข้อมูล" aria-label="แก้ไขข้อมูล"
+                style={{ flex: "0 0 auto", padding: isMobile ? 0 : "11px 16px", width: isMobile ? 42 : "auto", height: isMobile ? 42 : "auto",
+                  borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-1)",
+                  fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer",
+                  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+                <Icon name="settings" size={isMobile ? 17 : 15} color="var(--text-2)" />{!isMobile && " แก้ไขข้อมูล"}
               </button>
               {job.stage !== "done" && (
                 <button onClick={handleAdvance} disabled={advancing}
-                  style={{ flex: 1, padding: "11px 16px", borderRadius: 11, border: "none",
+                  style={{ flex: 1, minWidth: 0, padding: isMobile ? "11px 14px" : "11px 16px", height: isMobile ? 42 : "auto", borderRadius: 11, border: "none",
                     background: advancing ? "var(--primary-dark)" : "var(--primary)",
-                    color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5,
+                    color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: isMobile ? 13 : 13.5,
                     cursor: advancing ? "default" : "pointer", opacity: advancing ? 0.82 : 1,
-                    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+                    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7,
                     transition: "background .15s, opacity .15s" }}>
                   {advancing
                     ? "กำลังบันทึก..."
-                    : <React.Fragment>เลื่อนขั้น "{SF.STAGES[Math.min(job.stageIdx + 1, SF.STAGES.length - 1)].th}" <Icon name="arrowRight" size={16} color="#fff" /></React.Fragment>
+                    : <React.Fragment>
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          เลื่อนขั้น "{SF.STAGES[Math.min(job.stageIdx + 1, SF.STAGES.length - 1)].th}"
+                        </span>
+                        <Icon name="arrowRight" size={16} color="#fff" style={{ flexShrink: 0 }} />
+                      </React.Fragment>
                   }
                 </button>
               )}
