@@ -188,7 +188,8 @@ function LoginScreen({ authStore }) {
 
   return (
     <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      background: "var(--bg)", padding: 20, gap: 22 }}>
+      background: "var(--bg)", gap: 22,
+      padding: "calc(20px + env(safe-area-inset-top, 0px)) 20px calc(20px + env(safe-area-inset-bottom, 0px))" }}>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
         <img src="dashboard/assets/phithan-mark.png" alt="PHITHAN GREEN"
           style={{ height: 56, borderRadius: 14, padding: 8, background: "#fff", boxShadow: "0 4px 18px rgba(34,163,91,.18)" }} />
