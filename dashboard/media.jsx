@@ -73,11 +73,13 @@ function useJobMedia(jobId) {
   return { photos, comments, addPhoto, removePhoto, addComment, removeComment };
 }
 
-/* ── รูปหน้างาน — แกลเลอรี + อัปโหลด + ดูรูปใหญ่ ── */
+/* ── รูปหน้างาน — แถวเดียวเลื่อนแนวนอน + ดูรูปใหญ่ (เลื่อน/ปัดดูได้) ── */
 function JobPhotos({ media, currentUser, canManage }) {
   const [busy, setBusy] = React.useState(false);
-  const [lightbox, setLightbox] = React.useState(null); // dataUrl ที่กำลังดูใหญ่
+  const [lbIndex, setLbIndex] = React.useState(null); // ดัชนีรูปที่กำลังดูใหญ่ (null = ปิด)
   const fileRef = React.useRef(null);
+  const touchX = React.useRef(null);
+  const n = media.photos.length;
 
   const onPick = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -95,12 +97,28 @@ function JobPhotos({ media, currentUser, canManage }) {
   };
 
   const canDelete = (p) => canManage || (currentUser && p.by === currentUser.id);
+  const prev = () => setLbIndex((i) => (i - 1 + n) % n);
+  const next = () => setLbIndex((i) => (i + 1) % n);
+
+  // ลูกศรคีย์บอร์ด / Esc เมื่อเปิดดูรูปใหญ่
+  React.useEffect(() => {
+    if (lbIndex === null) return;
+    const onKey = (e) => {
+      if (e.key === "ArrowLeft") prev();
+      else if (e.key === "ArrowRight") next();
+      else if (e.key === "Escape") setLbIndex(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lbIndex, n]);
+
+  const cur = lbIndex !== null ? media.photos[lbIndex] : null;
 
   return (
     <div style={{ marginBottom: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 6 }}>
-          <Icon name="image" size={14} color="var(--text-2)" /> รูปหน้างาน{media.photos.length > 0 && " · " + media.photos.length}
+          <Icon name="image" size={14} color="var(--text-2)" /> รูปหน้างาน{n > 0 && " · " + n}
         </span>
         <button onClick={() => fileRef.current && fileRef.current.click()} disabled={busy}
           style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9,
@@ -111,23 +129,24 @@ function JobPhotos({ media, currentUser, canManage }) {
         <input ref={fileRef} type="file" accept="image/*" multiple onChange={onPick} style={{ display: "none" }} />
       </div>
 
-      {media.photos.length === 0 ? (
+      {n === 0 ? (
         <div onClick={() => fileRef.current && fileRef.current.click()}
           style={{ padding: "22px 0", textAlign: "center", fontSize: 12.5, color: "var(--text-3)",
             border: "1.5px dashed var(--border-strong)", borderRadius: 12, cursor: "pointer" }}>
           ยังไม่มีรูป · แตะเพื่อเพิ่มรูปหน้างาน
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-          {media.photos.map((p) => (
-            <div key={p.id} style={{ position: "relative", paddingTop: "100%", borderRadius: 10, overflow: "hidden", background: "var(--surface3)" }}>
-              <img src={p.dataUrl} alt={p.caption || "รูปหน้างาน"} onClick={() => setLightbox(p)}
-                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }} />
+        // แถวเดียว เลื่อนแนวนอน
+        <div style={{ display: "flex", gap: 8, overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: 4, margin: "0 -2px", paddingLeft: 2, paddingRight: 2 }}>
+          {media.photos.map((p, idx) => (
+            <div key={p.id} style={{ position: "relative", width: 96, height: 96, flexShrink: 0, borderRadius: 10, overflow: "hidden", background: "var(--surface3)" }}>
+              <img src={p.dataUrl} alt={p.caption || "รูปหน้างาน"} onClick={() => setLbIndex(idx)}
+                style={{ width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }} />
               {canDelete(p) && (
                 <button onClick={() => { if (confirm("ลบรูปนี้?")) media.removePhoto(p.id); }} title="ลบรูป"
-                  style={{ position: "absolute", top: 5, right: 5, width: 24, height: 24, borderRadius: 7, border: "none",
+                  style={{ position: "absolute", top: 4, right: 4, width: 22, height: 22, borderRadius: 6, border: "none",
                     background: "rgba(8,20,14,.55)", color: "#fff", cursor: "pointer", display: "grid", placeItems: "center" }}>
-                  <Icon name="x" size={13} color="#fff" />
+                  <Icon name="x" size={12} color="#fff" />
                 </button>
               )}
             </div>
@@ -135,14 +154,31 @@ function JobPhotos({ media, currentUser, canManage }) {
         </div>
       )}
 
-      {lightbox && (
-        <div onClick={() => setLightbox(null)} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.85)", zIndex: 130,
-          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <img src={lightbox.dataUrl} alt={lightbox.caption || ""} style={{ maxWidth: "100%", maxHeight: "82vh", borderRadius: 10, objectFit: "contain" }} />
+      {cur && (
+        <div onClick={() => setLbIndex(null)}
+          onTouchStart={(e) => { touchX.current = e.touches[0].clientX; }}
+          onTouchEnd={(e) => { if (touchX.current == null || n < 2) return; const dx = e.changedTouches[0].clientX - touchX.current; if (dx > 45) prev(); else if (dx < -45) next(); touchX.current = null; }}
+          style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.9)", zIndex: 130,
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <img src={cur.dataUrl} alt={cur.caption || ""} onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "100%", maxHeight: "76vh", borderRadius: 10, objectFit: "contain" }} />
+
+          {n > 1 && (
+            <React.Fragment>
+              <button onClick={(e) => { e.stopPropagation(); prev(); }} aria-label="ก่อนหน้า"
+                style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 44, height: 44, borderRadius: 99,
+                  border: "none", background: "rgba(255,255,255,.18)", color: "#fff", fontSize: 26, lineHeight: 1, cursor: "pointer", display: "grid", placeItems: "center" }}>‹</button>
+              <button onClick={(e) => { e.stopPropagation(); next(); }} aria-label="ถัดไป"
+                style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", width: 44, height: 44, borderRadius: 99,
+                  border: "none", background: "rgba(255,255,255,.18)", color: "#fff", fontSize: 26, lineHeight: 1, cursor: "pointer", display: "grid", placeItems: "center" }}>›</button>
+            </React.Fragment>
+          )}
+
           <div style={{ marginTop: 12, color: "#fff", fontSize: 12.5, textAlign: "center", opacity: 0.9 }}>
-            {lightbox.caption ? lightbox.caption + " · " : ""}โดย {lightbox.byName} · {thDateTime ? thDateTime(lightbox.at) : ""}
+            {cur.caption ? cur.caption + " · " : ""}โดย {cur.byName} · {thDateTime ? thDateTime(cur.at) : ""}
+            {n > 1 && <span style={{ opacity: 0.7 }}> · {lbIndex + 1}/{n}</span>}
           </div>
-          <button onClick={() => setLightbox(null)} style={{ marginTop: 14, padding: "8px 18px", borderRadius: 10, border: "1px solid rgba(255,255,255,.4)",
+          <button onClick={() => setLbIndex(null)} style={{ marginTop: 14, padding: "8px 18px", borderRadius: 10, border: "1px solid rgba(255,255,255,.4)",
             background: "transparent", color: "#fff", fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>ปิด</button>
         </div>
       )}
