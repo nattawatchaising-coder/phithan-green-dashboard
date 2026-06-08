@@ -139,6 +139,7 @@ input, select, textarea { font-family: inherit; }
   animation: ovFadeIn .2s ease;
 }
 @keyframes ovFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
 @media (max-width: 860px) {
   /* Sidebar: hidden by default, slides in with .sidebar--open */
@@ -181,8 +182,6 @@ input, select, textarea { font-family: inherit; }
 
   /* Force 1-col grids — but NOT the 7-col calendar grid */
   .app-content [style*="grid-template-columns"]:not([style*="repeat(7"]) { grid-template-columns: 1fr !important; }
-  /* Calendar cells: shrink slightly on mobile (scroll handled in component) */
-  .app-content [style*="repeat(7, 1fr)"] > div { min-height: 70px !important; }
   /* Map: stack vertically */
   .app-content [style*="1.7fr 1fr"] { grid-template-columns: 1fr !important; }
 }
@@ -222,7 +221,7 @@ input, select, textarea { font-family: inherit; }
 <script type="text/babel" src="dashboard/views-overview.jsx?v=6"></script>
 <script type="text/babel" src="dashboard/views-board.jsx?v=6"></script>
 <script type="text/babel" src="dashboard/views-table.jsx?v=6"></script>
-<script type="text/babel" src="dashboard/views-calendar.jsx?v=6"></script>
+<script type="text/babel" src="dashboard/views-calendar.jsx?v=8"></script>
 <script type="text/babel" src="dashboard/views-stock.jsx?v=6"></script>
 <script type="text/babel" src="dashboard/form.jsx?v=6"></script>
 <script type="text/babel" src="dashboard/app.jsx?v=6"></script>

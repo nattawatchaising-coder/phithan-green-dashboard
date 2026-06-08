@@ -2,8 +2,25 @@
    SolarFlow — Calendar (appointments) + Map (job locations)
    ============================================================ */
 
+/* responsive helper — matchMedia-based so it re-renders on breakpoint change
+   even when resize events are suppressed (preview/test environments) */
+function useMobileCal(bp = 860) {
+  const mq = React.useMemo(() => window.matchMedia(`(max-width: ${bp}px)`), [bp]);
+  const [m, setM] = React.useState(mq.matches);
+  React.useEffect(() => {
+    const fn = (e) => setM(e.matches);
+    mq.addEventListener("change", fn);
+    return () => mq.removeEventListener("change", fn);
+  }, [mq]);
+  return m;
+}
+
+const TH_MONTH_FULL = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+
 function CalendarView({ jobs, onOpen }) {
+  const isMobile = useMobileCal();
   const [ym, setYm] = React.useState({ y: 2026, m: 5 }); // June 2026 (0-indexed)
+  const [selDay, setSelDay] = React.useState(null); // mobile: วันที่ถูกแตะ → แสดง bottom sheet
   const first = new Date(ym.y, ym.m, 1);
   const startDow = first.getDay();
   const days = new Date(ym.y, ym.m + 1, 0).getDate();
@@ -12,12 +29,17 @@ function CalendarView({ jobs, onOpen }) {
   for (let d = 1; d <= days; d++) cells.push(d);
   while (cells.length % 7 !== 0) cells.push(null);
 
-  const jobsOn = (d) => {
-    const key = ym.y + "-" + String(ym.m + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
-    return jobs.filter((j) => j.deadline === key);
-  };
+  const keyOf = (d) => ym.y + "-" + String(ym.m + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+  const jobsOn = (d) => jobs.filter((j) => j.deadline === keyOf(d));
   const todayKey = window.SF.TODAY;
-  const shift = (delta) => setYm((s) => { const n = new Date(s.y, s.m + delta, 1); return { y: n.getFullYear(), m: n.getMonth() }; });
+  const shift = (delta) => { setSelDay(null); setYm((s) => { const n = new Date(s.y, s.m + delta, 1); return { y: n.getFullYear(), m: n.getMonth() }; }); };
+
+  if (isMobile) {
+    return (
+      <MobileCalendar ym={ym} cells={cells} jobsOn={jobsOn} keyOf={keyOf} todayKey={todayKey}
+        shift={shift} selDay={selDay} setSelDay={setSelDay} onOpen={onOpen} jobs={jobs} />
+    );
+  }
 
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 22, boxShadow: "var(--shadow-sm)" }}>
@@ -74,6 +96,140 @@ function CalendarView({ jobs, onOpen }) {
         })}
       </div>
       </div>
+    </div>
+  );
+}
+
+/* ── Mobile calendar — ทั้งเดือนพอดีจอเดียว (ไม่ต้องเลื่อน)
+   แตะวันที่มีงาน → bottom sheet แสดงรายการงานของวันนั้น ── */
+function MobileCalendar({ ym, cells, jobsOn, keyOf, todayKey, shift, selDay, setSelDay, onOpen, jobs }) {
+  const monthName = TH_MONTH_FULL[ym.m];
+  const monthCount = jobs.filter((j) => j.deadline.startsWith(ym.y + "-" + String(ym.m + 1).padStart(2, "0"))).length;
+  const selList = selDay ? jobsOn(selDay) : [];
+
+  return (
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16,
+      padding: 14, boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column", gap: 10 }}>
+      {/* เดือน + ปุ่มเลื่อนเดือน */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ minWidth: 0 }}>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-1)", margin: 0, whiteSpace: "nowrap" }}>{monthName} {ym.y + 543}</h2>
+          <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{monthCount} นัดในเดือนนี้</span>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+          <NavBtn dir="prev" onClick={() => shift(-1)} />
+          <NavBtn dir="next" onClick={() => shift(1)} />
+        </div>
+      </div>
+
+      {/* หัวคอลัมน์วัน */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4 }}>
+        {window.TH_DAYS.map((d, i) => (
+          <div key={d} style={{ textAlign: "center", fontSize: 10.5, fontWeight: 700,
+            color: i === 0 || i === 6 ? "#EF4444aa" : "var(--text-3)" }}>{d}</div>
+        ))}
+      </div>
+
+      {/* ตารางวัน — compact, ทั้งเดือนพอดีจอ */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4 }}>
+        {cells.map((d, i) => {
+          if (d === null) return <div key={i} />;
+          const list = jobsOn(d);
+          const isToday = keyOf(d) === todayKey;
+          const isSel = d === selDay;
+          const hasDelayed = list.some((j) => j.delayed);
+          const border = isSel ? "2px solid var(--primary)" : "1px solid " + (isToday ? "var(--primary)" : "var(--border)");
+          return (
+            <button key={i} onClick={() => list.length ? setSelDay(isSel ? null : d) : setSelDay(null)}
+              disabled={!list.length}
+              style={{ minHeight: 50, borderRadius: 9, border, fontFamily: "inherit",
+                background: isSel ? "var(--primary-soft)" : isToday ? "var(--primary-soft)" : "var(--surface2)",
+                cursor: list.length ? "pointer" : "default", padding: "5px 0 4px",
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", gap: 3 }}>
+              <span style={{ fontSize: 12.5, fontWeight: isToday || isSel ? 800 : 600,
+                color: isToday || isSel ? "var(--primary-dark)" : "var(--text-2)", lineHeight: 1 }}>{d}</span>
+              {/* จุดบอกจำนวนงาน — สูงสุด 3 จุด แล้วโชว์ตัวเลข */}
+              {list.length > 0 && (
+                <span style={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
+                  {list.slice(0, 3).map((j) => (
+                    <span key={j.id} style={{ width: 5, height: 5, borderRadius: 99,
+                      background: j.delayed ? "#EF4444" : stageOf(j.stage).color }} />
+                  ))}
+                  {list.length > 3 && (
+                    <span style={{ fontSize: 8, fontWeight: 700, color: hasDelayed ? "#EF4444" : "var(--text-3)", lineHeight: 1 }}>+{list.length - 3}</span>
+                  )}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* คำอธิบายสั้น */}
+      <div style={{ fontSize: 10.5, color: "var(--text-3)", textAlign: "center" }}>แตะวันที่มีงานเพื่อดูรายละเอียด</div>
+
+      {/* bottom sheet — รายการงานของวันที่เลือก */}
+      {selDay && (
+        <React.Fragment>
+          <div onClick={() => setSelDay(null)} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.34)",
+            backdropFilter: "blur(2px)", zIndex: 88 }} />
+          <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 89,
+            background: "var(--bg)", borderTopLeftRadius: 20, borderTopRightRadius: 20,
+            boxShadow: "0 -10px 40px rgba(8,20,14,.22)", maxHeight: "62dvh", display: "flex", flexDirection: "column",
+            animation: "sheetUp .26s cubic-bezier(.3,.9,.3,1)" }}>
+            {/* handle */}
+            <div style={{ padding: "10px 0 4px", display: "flex", justifyContent: "center", flexShrink: 0 }}>
+              <span style={{ width: 38, height: 4, borderRadius: 99, background: "var(--border-strong)" }} />
+            </div>
+            {/* header */}
+            <div style={{ padding: "6px 20px 12px", borderBottom: "1px solid var(--border)", display: "flex",
+              justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)" }}>{selDay} {TH_MONTH_FULL[ym.m]} {ym.y + 543}</div>
+                <div style={{ fontSize: 12, color: "var(--text-3)" }}>{selList.length} งานนัดติดตั้ง</div>
+              </div>
+              <button onClick={() => setSelDay(null)} style={{ width: 34, height: 34, borderRadius: 10,
+                border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer",
+                display: "grid", placeItems: "center", color: "var(--text-2)" }}>
+                <Icon name="x" size={17} />
+              </button>
+            </div>
+            {/* list */}
+            <div style={{ overflowY: "auto", padding: "12px 16px",
+              paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 9 }}>
+              {selList.length === 0 && (
+                <div style={{ textAlign: "center", color: "var(--text-3)", fontSize: 13, padding: "20px 0" }}>ไม่มีงานในวันนี้</div>
+              )}
+              {selList.map((j) => {
+                const s = stageOf(j.stage);
+                const c = j.delayed ? "#EF4444" : s.color;
+                return (
+                  <button key={j.id} onClick={() => { setSelDay(null); onOpen(j); }}
+                    style={{ display: "flex", alignItems: "center", gap: 11, padding: "12px 13px", width: "100%", textAlign: "left",
+                      background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit" }}>
+                    <span style={{ width: 4, alignSelf: "stretch", borderRadius: 99, background: c, flexShrink: 0 }} />
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{j.name}</span>
+                        {j.delayed && <span style={{ fontSize: 9.5, fontWeight: 700, color: "#EF4444", background: "#FDE2E2", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>⚠ ล่าช้า</span>}
+                      </span>
+                      <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: "var(--text-3)" }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <span style={{ width: 7, height: 7, borderRadius: 99, background: c }} />
+                          <span style={{ fontWeight: 600, color: c }}>{s.th}</span>
+                        </span>
+                        <span>· {j.kw} kW</span>
+                        <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>· {j.province}</span>
+                      </span>
+                    </span>
+                    <Icon name="chevronRight" size={16} color="var(--text-3)" style={{ flexShrink: 0 }} />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </React.Fragment>
+      )}
     </div>
   );
 }
