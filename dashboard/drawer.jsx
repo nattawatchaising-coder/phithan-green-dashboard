@@ -68,10 +68,11 @@ function InfoRow({ label, children }) {
   );
 }
 
-function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit }) {
+function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage }) {
   const SF = window.SF;
   const open = !!job;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const media = useJobMedia(job ? job.id : null); // รูป + คอมเมนต์ของงานนี้
 
   /* loading state — กดปุ่มแล้วแสดง "กำลังบันทึก..." ทันที
      reset เมื่อ Firebase confirm แล้ว (job.stage เปลี่ยน) */
@@ -201,6 +202,10 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit }) {
                 </div>
                 <FlowTimeline job={job} />
               </div>
+
+              {/* รูปหน้างาน + พูดคุย/บันทึกงาน */}
+              <JobPhotos media={media} currentUser={currentUser} canManage={canManage} />
+              <JobComments media={media} currentUser={currentUser} canManage={canManage} />
 
               {job.note && (
                 <div style={{ padding: "12px 14px", background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: 10, fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.55 }}>
