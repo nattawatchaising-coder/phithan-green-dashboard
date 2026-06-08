@@ -92,10 +92,6 @@ function StockView({ stock, onResetAll, onMenuOpen }) {
             <CatChip active={cat === "all"} onClick={() => setCat("all")} label="ทั้งหมด" color="var(--text-2)" />
             {SF.STOCK_CATS.map((c) => <CatChip key={c.key} active={cat === c.key} onClick={() => setCat(c.key)} label={c.th} color={c.color} />)}
           </div>
-          <div style={{ flex: 1 }} />
-          <button className="ghost-btn" onClick={onResetAll} title="คืนค่าสต็อกตัวอย่าง">
-            <Icon name="history" size={15} color="var(--text-3)" /> รีเซ็ตสต็อก
-          </button>
         </div>
       </header>
 

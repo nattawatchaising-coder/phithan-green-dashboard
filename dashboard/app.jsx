@@ -285,10 +285,6 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
           <Icon name="alert" size={15} color={delayedOnly ? "#fff" : "#EF4444"} />
           เฉพาะงานล่าช้า
         </button>
-        <div style={{ flex: 1 }} />
-        <button className="ghost-btn" onClick={onReset} title="คืนค่าข้อมูลตัวอย่าง">
-          <Icon name="history" size={15} color="var(--text-3)" /> รีเซ็ตข้อมูล
-        </button>
       </div>
     </header>
   );
