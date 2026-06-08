@@ -342,7 +342,14 @@ function UserManager({ authStore, onClose }) {
                 background: (ROLE_INFO[u.role] || ROLE_INFO.tech).color, color: "#fff", fontWeight: 700, fontSize: 14 }}>{(u.name || "?").slice(0, 1)}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{u.name || "(ยังไม่ระบุชื่อ)"}{u.active === false && <span style={{ fontSize: 10.5, color: "#EF4444", fontWeight: 600 }}> · ระงับ</span>}</div>
-                <div style={{ marginTop: 3 }}><RoleBadge role={u.role} />{u.role === "tech" && u.techId && <span style={{ fontSize: 11, color: "var(--text-3)", marginLeft: 6 }}>→ {(window.SF.TECH_BY_ID[u.techId] || {}).name || u.techId}</span>}</div>
+                <div style={{ marginTop: 3, display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                  <span style={{ flexShrink: 0 }}><RoleBadge role={u.role} /></span>
+                  {u.role === "tech" && u.techId && (
+                    <span style={{ fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}>
+                      → {(window.SF.TECH_BY_ID[u.techId] || {}).name || u.techId}
+                    </span>
+                  )}
+                </div>
               </div>
               <button onClick={() => setEditing(Object.assign({}, u))} title="แก้ไข" style={{ background: "#3B82F614", border: "none", color: "#3B82F6", width: 32, height: 32, borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={15} /></button>
               <button onClick={() => { if (u.role === "admin" && users.filter((x) => x.role === "admin").length <= 1) { alert("ต้องมีแอดมินอย่างน้อย 1 คน"); return; } if (confirm("ลบผู้ใช้ \"" + u.name + "\" ?")) authStore.removeUser(u.id); }} title="ลบ" style={{ background: "#EF444414", border: "none", color: "#EF4444", width: 32, height: 32, borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={15} /></button>
