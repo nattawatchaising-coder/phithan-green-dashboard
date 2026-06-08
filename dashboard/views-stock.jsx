@@ -90,22 +90,8 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser }) {
         </div>
         <div className="header-filters">
           {isMobile ? (
-            // มือถือ: dropdown เลือกหมวด (กดเลือกง่าย ไม่ต้องเลื่อน) + จำนวนในแต่ละหมวด
-            <div style={{ position: "relative", width: "100%" }}>
-              <select value={cat} onChange={(e) => setCat(e.target.value)}
-                style={{ width: "100%", fontFamily: "inherit", fontSize: 13.5, fontWeight: 600, color: "var(--text-1)",
-                  background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 10,
-                  padding: "10px 36px 10px 13px", outline: "none", appearance: "none", WebkitAppearance: "none", cursor: "pointer" }}>
-                <option value="all">ทุกหมวดหมู่ ({items.length})</option>
-                {SF.STOCK_CATS.map((c) => {
-                  const n = items.filter((it) => it.cat === c.key).length;
-                  return <option key={c.key} value={c.key}>{c.th} ({n})</option>;
-                })}
-              </select>
-              <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", display: "grid", placeItems: "center" }}>
-                <Icon name="chevronDown" size={16} color="var(--text-3)" />
-              </span>
-            </div>
+            // มือถือ: custom dropdown — จุดสีประจำหมวด + จำนวน + ไฮไลต์หมวดที่เลือก
+            <CatDropdown cat={cat} setCat={setCat} items={items} cats={SF.STOCK_CATS} />
           ) : (
             <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
               <CatChip active={cat === "all"} onClick={() => setCat("all")} label="ทั้งหมด" color="var(--text-2)" />
@@ -278,6 +264,50 @@ function StockCardList({ items, onMove, onEdit, onRemove }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/* ── dropdown เลือกหมวดหมู่ (มือถือ) — ออกแบบเอง ปรับสไตล์ได้ ── */
+function CatDropdown({ cat, setCat, items, cats }) {
+  const [open, setOpen] = React.useState(false);
+  const all = { key: "all", th: "ทุกหมวดหมู่", color: "var(--text-3)" };
+  const list = [all].concat(cats);
+  const cur = list.find((c) => c.key === cat) || all;
+  const countOf = (k) => k === "all" ? items.length : items.filter((it) => it.cat === k).length;
+  return (
+    <div style={{ position: "relative", width: "100%" }}>
+      <button onClick={() => setOpen((v) => !v)}
+        style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, fontFamily: "inherit", fontSize: 13.5, fontWeight: 600,
+          color: "var(--text-1)", background: "var(--surface)", border: "1px solid " + (open ? "var(--primary)" : "var(--border-strong)"),
+          borderRadius: 10, padding: "10px 13px", outline: "none", cursor: "pointer" }}>
+        <span style={{ width: 9, height: 9, borderRadius: 99, background: cur.color, flexShrink: 0 }} />
+        <span>{cur.th}</span>
+        <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", background: "var(--surface3)", padding: "1px 7px", borderRadius: 99 }}>{countOf(cur.key)}</span>
+        <Icon name="chevronDown" size={16} color="var(--text-3)" style={{ marginLeft: "auto", transform: open ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
+      </button>
+      {open && (
+        <React.Fragment>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 60 }} />
+          <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 61, background: "var(--bg)",
+            border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 14px 40px rgba(8,20,14,.2)", maxHeight: "58dvh", overflowY: "auto", padding: 6 }}>
+            {list.map((c) => {
+              const active = c.key === cat;
+              return (
+                <button key={c.key} onClick={() => { setCat(c.key); setOpen(false); }}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 11px", borderRadius: 9, border: "none",
+                    background: active ? "var(--primary-soft)" : "transparent", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                  <span style={{ width: 9, height: 9, borderRadius: 99, background: c.color, flexShrink: 0 }} />
+                  <span style={{ flex: 1, fontSize: 13.5, fontWeight: active ? 700 : 500, color: active ? "var(--primary-dark)" : "var(--text-1)" }}>{c.th}</span>
+                  <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: active ? "var(--primary-dark)" : "var(--text-3)",
+                    background: active ? "var(--surface)" : "var(--surface3)", padding: "1px 7px", borderRadius: 99 }}>{countOf(c.key)}</span>
+                  {active && <Icon name="check" size={15} color="var(--primary)" sw={2.6} />}
+                </button>
+              );
+            })}
+          </div>
+        </React.Fragment>
+      )}
     </div>
   );
 }
