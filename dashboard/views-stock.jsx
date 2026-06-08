@@ -89,11 +89,29 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser }) {
           </div>
         </div>
         <div className="header-filters">
-          <div style={{ display: "flex", gap: isMobile ? 6 : 7, flexWrap: isMobile ? "nowrap" : "wrap", alignItems: "center",
-            overflowX: isMobile ? "auto" : "visible", WebkitOverflowScrolling: "touch", paddingBottom: isMobile ? 2 : 0 }}>
-            <CatChip active={cat === "all"} onClick={() => setCat("all")} label="ทั้งหมด" color="var(--text-2)" />
-            {SF.STOCK_CATS.map((c) => <CatChip key={c.key} active={cat === c.key} onClick={() => setCat(c.key)} label={c.th} color={c.color} />)}
-          </div>
+          {isMobile ? (
+            // มือถือ: dropdown เลือกหมวด (กดเลือกง่าย ไม่ต้องเลื่อน) + จำนวนในแต่ละหมวด
+            <div style={{ position: "relative", width: "100%" }}>
+              <select value={cat} onChange={(e) => setCat(e.target.value)}
+                style={{ width: "100%", fontFamily: "inherit", fontSize: 13.5, fontWeight: 600, color: "var(--text-1)",
+                  background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 10,
+                  padding: "10px 36px 10px 13px", outline: "none", appearance: "none", WebkitAppearance: "none", cursor: "pointer" }}>
+                <option value="all">ทุกหมวดหมู่ ({items.length})</option>
+                {SF.STOCK_CATS.map((c) => {
+                  const n = items.filter((it) => it.cat === c.key).length;
+                  return <option key={c.key} value={c.key}>{c.th} ({n})</option>;
+                })}
+              </select>
+              <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", display: "grid", placeItems: "center" }}>
+                <Icon name="chevronDown" size={16} color="var(--text-3)" />
+              </span>
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
+              <CatChip active={cat === "all"} onClick={() => setCat("all")} label="ทั้งหมด" color="var(--text-2)" />
+              {SF.STOCK_CATS.map((c) => <CatChip key={c.key} active={cat === c.key} onClick={() => setCat(c.key)} label={c.th} color={c.color} />)}
+            </div>
+          )}
         </div>
       </header>
 
