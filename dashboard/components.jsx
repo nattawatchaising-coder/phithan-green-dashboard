@@ -173,5 +173,71 @@ function Segmented({ options, value, onChange }) {
   );
 }
 
-Object.assign(window, { Icon, ICONS, StageBadge, TypeBadge, MatChip, TechAvatar, ProgressBar, MatDots, Segmented,
+/* ── Dropdown — ตัวเลือกแบบกำหนดสไตล์เอง (แทน native select)
+   ใช้ fixed-position สำหรับเมนู เพื่อไม่ให้ถูก modal ที่เลื่อนได้ตัดขอบ
+   options: [{ value, label }] ── */
+function Dropdown({ value, onChange, options, disabled, placeholder, style }) {
+  const [open, setOpen] = React.useState(false);
+  const [rect, setRect] = React.useState(null);
+  const btnRef = React.useRef(null);
+  const cur = (options || []).find((o) => String(o.value) === String(value));
+
+  const openMenu = () => {
+    if (disabled) return;
+    const r = btnRef.current.getBoundingClientRect();
+    setRect({ top: r.bottom + 6, left: r.left, width: r.width });
+    setOpen(true);
+  };
+
+  React.useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    // หน่วงเล็กน้อย กัน scroll-into-view ตอนกดปุ่มไปปิดเมนูทันที
+    const t = setTimeout(() => {
+      window.addEventListener("scroll", close, true);
+      window.addEventListener("resize", close);
+    }, 250);
+    return () => { clearTimeout(t); window.removeEventListener("scroll", close, true); window.removeEventListener("resize", close); };
+  }, [open]);
+
+  return (
+    <React.Fragment>
+      <button type="button" ref={btnRef} onClick={openMenu} disabled={disabled}
+        style={Object.assign({
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, width: "100%",
+          background: "var(--surface2)", border: "1px solid " + (open ? "var(--primary)" : "var(--border-strong)"),
+          color: "var(--text-1)", fontFamily: "inherit", fontSize: 13.5, padding: "9px 11px", borderRadius: 10,
+          outline: "none", cursor: disabled ? "default" : "pointer", textAlign: "left", opacity: disabled ? 0.55 : 1,
+        }, style || {})}>
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {cur ? cur.label : (placeholder || "—")}
+        </span>
+        <Icon name="chevronDown" size={16} color="var(--text-3)" style={{ flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
+      </button>
+      {open && rect && (
+        <React.Fragment>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 200 }} />
+          <div style={{ position: "fixed", top: rect.top, left: rect.left, width: rect.width, zIndex: 201,
+            background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 14px 40px rgba(8,20,14,.22)",
+            maxHeight: 280, overflowY: "auto", padding: 5 }}>
+            {(options || []).map((o) => {
+              const active = String(o.value) === String(value);
+              return (
+                <button type="button" key={String(o.value)} onClick={() => { onChange(o.value); setOpen(false); }}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "10px 11px", borderRadius: 9, border: "none",
+                    background: active ? "var(--primary-soft)" : "transparent", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+                    fontSize: 13.5, fontWeight: active ? 700 : 500, color: active ? "var(--primary-dark)" : "var(--text-1)" }}>
+                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.label}</span>
+                  {active && <Icon name="check" size={15} color="var(--primary)" sw={2.6} />}
+                </button>
+              );
+            })}
+          </div>
+        </React.Fragment>
+      )}
+    </React.Fragment>
+  );
+}
+
+Object.assign(window, { Icon, ICONS, StageBadge, TypeBadge, MatChip, TechAvatar, ProgressBar, MatDots, Segmented, Dropdown,
   thDate, thDateTime, fmtBaht, stageOf, parseDate, TH_MONTHS, TH_DAYS });

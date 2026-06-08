@@ -86,9 +86,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
               <Field label="ชื่อลูกค้า" required><input style={inputStyle} value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="คุณ..." /></Field>
               <Field label="เบอร์โทร"><input style={inputStyle} value={f.phone} onChange={(e) => set("phone", e.target.value)} placeholder="08x-xxx-xxxx" /></Field>
               <Field label="ประเภทงาน">
-                <select style={inputStyle} value={f.type} onChange={(e) => set("type", e.target.value)}>
-                  {SF.TYPES.map((t) => <option key={t.key} value={t.key}>{t.th}</option>)}
-                </select>
+                <Dropdown value={f.type} onChange={(v) => set("type", v)} options={SF.TYPES.map((t) => ({ value: t.key, label: t.th }))} />
               </Field>
               <Field label="ที่อยู่" span={2}><input style={inputStyle} value={f.address} onChange={(e) => set("address", e.target.value)} /></Field>
               <Field label="จังหวัด"><input style={inputStyle} value={f.province} onChange={(e) => set("province", e.target.value)} /></Field>
@@ -129,9 +127,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr 1fr", gap: isMobile ? 12 : 14 }}>
               <Field label="แบรนด์ / รุ่นที่ติดตั้ง" span={isMobile ? 2 : undefined}>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <select style={Object.assign({}, inputStyle, { flex: 1, minWidth: 0 })} value={f.brand} onChange={(e) => set("brand", e.target.value)}>
-                    {SF.BRANDS.map((b) => <option key={b} value={b}>{b}</option>)}
-                  </select>
+                  <Dropdown value={f.brand} onChange={(v) => set("brand", v)} options={SF.BRANDS.map((b) => ({ value: b, label: b }))} style={{ flex: 1, minWidth: 0 }} />
                   <button type="button" onClick={onManageBrands} title="จัดการแบรนด์ / รุ่น"
                     style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 10, border: "1px solid var(--border-strong)",
                       background: "var(--surface2)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
@@ -159,9 +155,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
                 </div>
               </Field>
               <Field label="ระบบ / ออฟติไมเซอร์">
-                <select style={inputStyle} value={f.connect} onChange={(e) => set("connect", e.target.value)}>
-                  {["-","ต่อ 1:1","ต่อ 1:2"].map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
+                <Dropdown value={f.connect} onChange={(v) => set("connect", v)} options={["-","ต่อ 1:1","ต่อ 1:2"].map((s) => ({ value: s, label: s }))} />
               </Field>
               <Field label="ระบบ Backup">
                 <ToggleField on={f.backup} onChange={(v) => set("backup", v)} labelOn="มี" labelOff="ไม่มี" />
@@ -175,9 +169,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 12 }}>
               {SF.MATERIALS.map((m) => (
                 <Field key={m.key} label={m.th}>
-                  <select style={inputStyle} value={f.mat[m.key]} onChange={(e) => setMat(m.key, e.target.value)}>
-                    {Object.entries(SF.MAT_STATUS).map(([k, v]) => <option key={k} value={k}>{v.icon} {v.th}</option>)}
-                  </select>
+                  <Dropdown value={f.mat[m.key]} onChange={(v) => setMat(m.key, v)} options={Object.entries(SF.MAT_STATUS).map(([k, v]) => ({ value: k, label: v.icon + " " + v.th }))} />
                 </Field>
               ))}
             </div>
@@ -187,9 +179,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
           <Section title="สถานะงาน & ปัญหา" icon="flow">
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 12 : 14 }}>
               <Field label="ขั้นตอนปัจจุบัน">
-                <select style={inputStyle} value={f.stage} onChange={(e) => set("stage", e.target.value)}>
-                  {SF.STAGES.map((s, i) => <option key={s.key} value={s.key}>{i + 1}. {s.th}</option>)}
-                </select>
+                <Dropdown value={f.stage} onChange={(v) => set("stage", v)} options={SF.STAGES.map((s, i) => ({ value: s.key, label: (i + 1) + ". " + s.th }))} />
               </Field>
               <Field label="กำหนดเสร็จ / วันนัด"><input type="date" style={inputStyle} value={f.deadline} onChange={(e) => set("deadline", e.target.value)} /></Field>
               <Field label="ปัญหา / สิ่งที่ติด (ถ้ามี)" span>
@@ -304,9 +294,7 @@ function TechEditModal({ initial, colors, onSave, onClose }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <Field label="ชื่อเล่น (ย่อ)"><input style={inputStyle} value={f.nick} onChange={(e) => set("nick", e.target.value)} placeholder="ชาย" /></Field>
             <Field label="ตำแหน่ง">
-              <select style={inputStyle} value={f.role} onChange={(e) => set("role", e.target.value)}>
-                {["หัวหน้าทีม A", "หัวหน้าทีม B", "ช่างไฟ", "ช่างติดตั้ง", "ผู้ช่วยช่าง"].map((r) => <option key={r} value={r}>{r}</option>)}
-              </select>
+              <Dropdown value={f.role} onChange={(v) => set("role", v)} options={["หัวหน้าทีม A", "หัวหน้าทีม B", "ช่างไฟ", "ช่างติดตั้ง", "ผู้ช่วยช่าง"].map((r) => ({ value: r, label: r }))} />
             </Field>
           </div>
           <Field label="สีประจำตัว">
