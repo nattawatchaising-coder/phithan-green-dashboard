@@ -36,14 +36,18 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
 
   if (isMobile) return <TableMobile jobs={sorted} sort={sort} setSort={setSort} onOpen={onOpen} onEdit={onEdit} onDelete={onDelete} onSetStage={onSetStage} />;
 
-  const th = (label, key, center) => (
-    <th onClick={key ? () => setSort((s) => ({ key, dir: s.key === key ? -s.dir : 1 })) : undefined}
-      style={{ padding: "12px 12px", fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase",
-        color: "var(--text-3)", textAlign: center ? "center" : "left", whiteSpace: "nowrap", cursor: key ? "pointer" : "default",
-        userSelect: "none", background: "var(--surface2)" }}>
-      {label}{key && sort.key === key && <span style={{ color: "var(--primary)" }}> {sort.dir > 0 ? "↑" : "↓"}</span>}
-    </th>
-  );
+  const th = (label, key, center) => {
+    const active = key && sort.key === key;
+    return (
+      <th onClick={key ? () => setSort((s) => ({ key, dir: s.key === key ? -s.dir : 1 })) : undefined}
+        style={{ padding: "13px 14px", fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase",
+          color: active ? "var(--primary-dark)" : "var(--text-3)", textAlign: center ? "center" : "left", whiteSpace: "nowrap",
+          cursor: key ? "pointer" : "default", userSelect: "none", background: "var(--surface2)",
+          position: "sticky", top: 0, zIndex: 2, borderBottom: "1px solid var(--border-strong)" }}>
+        {label}{active && <span style={{ color: "var(--primary)" }}> {sort.dir > 0 ? "↑" : "↓"}</span>}
+      </th>
+    );
+  };
 
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
@@ -67,7 +71,7 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
                 onMouseEnter={(e) => { if (!j.delayed) e.currentTarget.style.background = "var(--surface2)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = j.delayed ? "#FEF7F7" : "transparent"; }}>
                 {/* customer */}
-                <td style={{ padding: "11px 12px", minWidth: 190 }}>
+                <td style={{ padding: "13px 14px", minWidth: 190 }}>
                   <button onClick={() => onOpen(j)} style={{ textAlign: "left", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
                     <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>{j.name}</div>
                     <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2, display: "flex", gap: 8, alignItems: "center" }}>
@@ -77,26 +81,31 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
                   </button>
                 </td>
                 {/* type */}
-                <td style={{ padding: "11px 12px", textAlign: "center" }}><TypeBadge type={j.type} /></td>
+                <td style={{ padding: "13px 14px", textAlign: "center" }}><TypeBadge type={j.type} /></td>
                 {/* brand/spec */}
-                <td style={{ padding: "11px 12px" }}>
+                <td style={{ padding: "13px 14px" }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>{j.brand}</div>
                   <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{j.battery ? "🔋 " + j.batSize : "ไม่มีแบต"}{j.backup ? " · Backup" : ""}</div>
                 </td>
                 {/* size */}
-                <td style={{ padding: "11px 12px", textAlign: "center" }}>
+                <td style={{ padding: "13px 14px", textAlign: "center" }}>
                   <div style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>{j.kw} kW</div>
                   <div style={{ fontSize: 11, color: "var(--text-3)" }}>{j.panels} แผง</div>
                 </td>
-                {/* material readiness — ยุบจาก 7 คอลัมน์เป็นจุดสรุป + % (แก้รายชิ้นได้ใน drawer/ฟอร์ม) */}
-                <td style={{ padding: "11px 12px", textAlign: "center" }}>
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                    <MatDots mat={j.mat} />
-                    <span style={{ fontSize: 12.5, fontWeight: 700, fontFamily: "var(--mono)", color: j.matReady ? "var(--primary-dark)" : "var(--text-3)" }}>{j.matReadyPct}%</span>
+                {/* material readiness — แถบความคืบหน้า + % (แก้รายชิ้นได้ใน drawer/ฟอร์ม) */}
+                <td style={{ padding: "13px 14px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                    <span style={{ flex: 1, height: 7, borderRadius: 99, background: "var(--surface3)", overflow: "hidden", minWidth: 56 }}>
+                      <span style={{ display: "block", height: "100%", width: j.matReadyPct + "%",
+                        background: j.matReadyPct >= 100 ? "var(--primary)" : (j.matReadyPct > 0 ? "#F59E0B" : "transparent"),
+                        borderRadius: 99, transition: "width .4s cubic-bezier(.2,.8,.2,1)" }} />
+                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 700, fontFamily: "var(--mono)", minWidth: 36, textAlign: "right",
+                      color: j.matReady ? "var(--primary-dark)" : "var(--text-2)" }}>{j.matReadyPct}%</span>
                   </div>
                 </td>
                 {/* stage */}
-                <td style={{ padding: "11px 12px", textAlign: "center" }}>
+                <td style={{ padding: "13px 14px", textAlign: "center" }}>
                   <select value={j.stage} onChange={(e) => onSetStage(j.id, e.target.value)}
                     style={{ fontFamily: "inherit", fontSize: 11.5, fontWeight: 600, color: stageOf(j.stage).color,
                       background: stageOf(j.stage).soft, border: "1px solid " + stageOf(j.stage).color + "33", borderRadius: 8,
@@ -105,13 +114,13 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
                   </select>
                 </td>
                 {/* deadline */}
-                <td style={{ padding: "11px 12px", textAlign: "center" }}>
+                <td style={{ padding: "13px 14px", textAlign: "center" }}>
                   <div style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 600, color: j.delayed ? "#EF4444" : "var(--text-2)" }}>{thDate(j.deadline, true)}</div>
                   {j.delayed ? <span style={{ fontSize: 10, fontWeight: 700, color: "#EF4444" }}>⚠ ล่าช้า</span>
                     : <span style={{ fontSize: 10, fontWeight: 600, color: "var(--primary-dark)" }}>ปกติ</span>}
                 </td>
                 {/* actions */}
-                <td style={{ padding: "11px 12px", textAlign: "center", whiteSpace: "nowrap" }}>
+                <td style={{ padding: "13px 14px", textAlign: "center", whiteSpace: "nowrap" }}>
                   <button onClick={() => onEdit(j)} title="แก้ไข" style={actionBtn("#3B82F6")}><Icon name="settings" size={15} /></button>
                   <button onClick={() => onDelete(j)} title="ลบ" style={actionBtn("#EF4444")}><Icon name="x" size={15} /></button>
                 </td>
