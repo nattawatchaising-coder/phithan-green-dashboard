@@ -35,9 +35,10 @@ function StockKpi({ label, value, unit, icon, accent, sub, active, onClick }) {
   );
 }
 
-function StockView({ stock, onResetAll, onMenuOpen }) {
+function StockView({ stock, onResetAll, onMenuOpen, currentUser }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const byName = (currentUser && currentUser.name) || "-";
   const [cat, setCat] = React.useState("all");
   const [kpiFilter, setKpiFilter] = React.useState(null); // null | 'low' | 'in' | 'out'
   const [search, setSearch] = React.useState("");
@@ -176,6 +177,7 @@ function StockView({ stock, onResetAll, onMenuOpen }) {
                       <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>
                         {isIn ? "รับเข้า" : "เบิกออก"} <strong style={{ color: isIn ? "#1d854b" : "#6645e0" }}>{m.qty}</strong> · {thDate(m.date)} · <span style={{ fontFamily: "var(--mono)" }}>{m.ref}</span>
                       </div>
+                      {m.by && m.by !== "-" && <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}><Icon name="user" size={10} color="var(--text-3)" /> โดย {m.by}</div>}
                       {m.note && <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2, fontStyle: "italic" }}>{m.note}</div>}
                     </div>
                   </div>
@@ -186,7 +188,7 @@ function StockView({ stock, onResetAll, onMenuOpen }) {
         </div>
       </div>
 
-      {moveItem && <MoveModal info={moveItem} onSave={(qty, ref, note) => { stock.move(moveItem.item.id, moveItem.type, qty, ref, note); setMoveItem(null); }} onClose={() => setMoveItem(null)} />}
+      {moveItem && <MoveModal info={moveItem} byName={byName} onSave={(qty, ref, note) => { stock.move(moveItem.item.id, moveItem.type, qty, ref, note, byName); setMoveItem(null); }} onClose={() => setMoveItem(null)} />}
       {itemForm && <ItemModal initial={itemForm.item} isNew={itemForm.isNew} onSave={(rec) => { stock.upsertItem(rec); setItemForm(null); }} onClose={() => setItemForm(null)} />}
     </React.Fragment>
   );
@@ -260,7 +262,7 @@ function StockCardList({ items, onMove, onEdit, onRemove }) {
   );
 }
 
-function MoveModal({ info, onSave, onClose }) {
+function MoveModal({ info, onSave, onClose, byName }) {
   const isIn = info.type === "in";
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [qty, setQty] = React.useState("");
@@ -285,6 +287,10 @@ function MoveModal({ info, onSave, onClose }) {
           <Field label="หมายเหตุ">
             <input value={note} onChange={(e) => setNote(e.target.value)} style={inputStyle} />
           </Field>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: 10, fontSize: 12.5, color: "var(--text-2)" }}>
+            <Icon name="user" size={14} color="var(--text-3)" />
+            ผู้ทำรายการ: <strong style={{ color: "var(--text-1)" }}>{byName || "-"}</strong>
+          </div>
         </div>
         <div style={{ padding: "14px 22px", paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10, flexShrink: 0 }}>
           <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 18px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>

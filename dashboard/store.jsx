@@ -300,7 +300,7 @@ function useStockStore() {
     else { setItems((prev) => prev.filter((x) => x.id !== id)); }
   }, []);
 
-  const move = React.useCallback((itemId, type, qty, ref, note) => {
+  const move = React.useCallback((itemId, type, qty, ref, note, by) => {
     qty = Math.abs(parseInt(qty) || 0);
     if (!qty) return;
 
@@ -311,7 +311,7 @@ function useStockStore() {
       if (n > maxN) maxN = n;
     });
     const mvId = "MV-" + (maxN + 1);
-    const mv   = { id: mvId, itemId, type, qty, date: window.SF.TODAY, ref: ref || "-", note: note || "" };
+    const mv   = { id: mvId, itemId, type, qty, date: window.SF.TODAY, ref: ref || "-", note: note || "", by: by || "-" };
 
     if (_FB()) {
       // atomic qty update via transaction

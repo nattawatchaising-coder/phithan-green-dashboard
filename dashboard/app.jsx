@@ -79,6 +79,8 @@ function App() {
   const stock = useStockStore();
   const techStore = useTechStore();
   const brandStore = useBrandStore();
+  const auth = useAuthStore();
+  const notif = useNotifStore();
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [view, setView] = React.useState("overview");
   const [search, setSearch] = React.useState("");
@@ -86,13 +88,18 @@ function App() {
   const [stageFilter, setStageFilter] = React.useState(null);
   const [quickFilter, setQuickFilter] = React.useState(null);
   const [delayedOnly, setDelayedOnly] = React.useState(false);
-  const [role, setRole] = React.useState("admin");
   const [selected, setSelected] = React.useState(null);
   const [form, setForm] = React.useState(null); // {job, isNew}
   const [techMgr, setTechMgr] = React.useState(false);
   const [brandMgr, setBrandMgr] = React.useState(false);
+  const [userMgr, setUserMgr] = React.useState(false);
+  const [notifOpen, setNotifOpen] = React.useState(false);
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const isMobile = useIsMobile(); // force App re-render when mobile↔desktop breakpoint changes
+
+  // สิทธิ์/ตัวตนของผู้ใช้ที่ล็อกอินอยู่ (null ถ้ายังไม่ล็อกอิน)
+  const role   = auth.current ? auth.current.role : null;
+  const techId = auth.current ? auth.current.techId : null;
 
   // Auto-close sidebar when resizing to desktop
   React.useEffect(() => { if (!isMobile) setSidebarOpen(false); }, [isMobile]);
@@ -111,19 +118,34 @@ function App() {
       if (quickFilter === "delayed" && !j.delayed) return false;
       if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return false;
       if (quickFilter === "battery" && !j.battery) return false;
-      if (role === "tech" && j.tech !== "t1") return false;
+      if (role === "tech" && j.tech !== techId) return false; // ช่างเห็นเฉพาะงานตัวเอง
       return true;
     });
-  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, role]);
+  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, role, techId]);
 
-  const loading = store.loading || stock.loading;
+  const loading = store.loading || stock.loading || auth.loading;
 
   const closeSidebar = () => setSidebarOpen(false);
   const openJob = (j) => setSelected(j.id);
   const selectedJob = jobs.find((j) => j.id === selected) || null;
 
-  const onSave = (rec) => { store.upsert(rec); setForm(null); };
-  const onDelete = (j) => { if (confirm("ลบงาน \"" + j.name + "\" ?")) store.remove(j.id); };
+  const onSave = (rec) => {
+    const prev = store.raw.find((r) => r.id === rec.id);
+    store.upsert(rec);
+    // แจ้งเตือนช่างเมื่อถูกมอบหมายงาน (ช่างเปลี่ยน หรือเป็นงานใหม่ที่ระบุช่าง)
+    if (rec.tech && (!prev || prev.tech !== rec.tech)) {
+      notif.addNotif({
+        toTechId: rec.tech, type: "assign", jobId: rec.id, jobName: rec.name,
+        title: "ได้รับมอบหมายงานใหม่",
+        body: (rec.name || "งาน") + " · " + (rec.province || "") + " · " + (rec.kw || "") + " kW",
+      });
+    }
+    setForm(null);
+  };
+  const onDelete = (j) => {
+    if (!can(role, "delJob")) { alert("คุณไม่มีสิทธิ์ลบงาน"); return; }
+    if (confirm("ลบงาน \"" + j.name + "\" ?")) store.remove(j.id);
+  };
   const goStage = (key) => { setStageFilter(key); setQuickFilter(null); setView("table"); };
   const goKpi = (key) => { setQuickFilter(key); setStageFilter(null); setTypeFilter("all"); setDelayedOnly(false); setView("table"); };
 
@@ -134,15 +156,27 @@ function App() {
   };
 
   if (loading) return <LoadingScreen />;
+  if (!auth.current) return <LoginScreen authStore={auth} />;
+
+  // แจ้งเตือนของช่างคนนี้ (admin/manager ไม่มี techId → ไม่มีกระดิ่งส่วนตัว)
+  const myNotifs = techId ? notif.notifs.filter((n) => n.toTechId === techId) : [];
+  const unread   = myNotifs.filter((n) => !n.read).length;
+  const openFromNotif = (n) => {
+    notif.markRead(n.id);
+    setNotifOpen(false);
+    if (n.jobId) { setView("table"); setSelected(n.jobId); }
+  };
 
   return (
     <div className="app-root">
       {sidebarOpen && <div className="sidebar-overlay" onClick={closeSidebar} />}
-      <Sidebar view={view} onNav={navTo} role={role} onRole={setRole} jobs={jobs} stock={stock} t={t}
-        open={sidebarOpen} onClose={closeSidebar} />
+      <Sidebar view={view} onNav={navTo} role={role} jobs={jobs} stock={stock} t={t}
+        open={sidebarOpen} onClose={closeSidebar}
+        currentUser={auth.current} onLogout={auth.logout}
+        canManageUsers={can(role, "manageUsers")} onManageUsers={() => { setUserMgr(true); closeSidebar(); }} />
       <main className="app-main">
         {view === "stock" ? (
-          <StockView stock={stock} onResetAll={stock.resetStock} onMenuOpen={() => setSidebarOpen(true)} />
+          <StockView stock={stock} onMenuOpen={() => setSidebarOpen(true)} currentUser={auth.current} />
         ) : (
         <React.Fragment>
         <Header view={view} role={role} count={filtered.length} total={jobs.length}
@@ -152,7 +186,10 @@ function App() {
           stageFilter={stageFilter} setStageFilter={setStageFilter}
           quickFilter={quickFilter} setQuickFilter={setQuickFilter}
           onAdd={() => setForm({ job: store.blank(), isNew: true })}
-          onReset={store.resetDB}
+          canAdd={can(role, "addJob")}
+          showBell={!!techId} unread={unread} notifItems={myNotifs}
+          notifOpen={notifOpen} onBell={() => setNotifOpen((v) => !v)} onCloseNotif={() => setNotifOpen(false)}
+          onOpenNotif={openFromNotif} onMarkAll={() => notif.markAllRead(techId)}
           onMenuOpen={() => setSidebarOpen(true)} />
 
         <div className="app-content" style={view === "board" || view === "map" ? { display: "flex", flexDirection: "column", minHeight: 0 } : {}}>
@@ -173,6 +210,7 @@ function App() {
       {form && <JobForm initial={form.job} isNew={form.isNew} onSave={onSave} onClose={() => setForm(null)} onManageTechs={() => setTechMgr(true)} onManageBrands={() => setBrandMgr(true)} />}
       {techMgr && <TechManager store={techStore} onClose={() => setTechMgr(false)} />}
       {brandMgr && <BrandManager store={brandStore} onClose={() => setBrandMgr(false)} />}
+      {userMgr && can(role, "manageUsers") && <UserManager authStore={auth} onClose={() => setUserMgr(false)} />}
 
       <TweaksPanel>
         <TweakSection label="ธีม / Theme" />
@@ -189,7 +227,7 @@ function App() {
   );
 }
 
-function Sidebar({ view, onNav, role, onRole, jobs, stock, t, open, onClose }) {
+function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, currentUser, onLogout, canManageUsers, onManageUsers }) {
   const icons = t.sidebar === "icons";
   // Read media query synchronously every render — avoids stale state when
   // the preview or device loads at one size then displays at another.
@@ -233,24 +271,41 @@ function Sidebar({ view, onNav, role, onRole, jobs, stock, t, open, onClose }) {
             </button>
           );
         })}
+        {/* เมนูจัดการผู้ใช้ — เฉพาะแอดมิน */}
+        {canManageUsers && (
+          <button onClick={onManageUsers} className="nav-item" title="จัดการผู้ใช้งาน">
+            <Icon name="users" size={19} color="var(--text-2)" />
+            {!icons && <span>จัดการผู้ใช้งาน</span>}
+          </button>
+        )}
       </nav>
 
       <div className="sidebar-foot">
-        {!icons && <div className="role-label">มุมมองผู้ใช้</div>}
-        <div className={"role-switch" + (icons ? " icons" : "")}>
-          {ROLES.map((r) => (
-            <button key={r.key} onClick={() => onRole(r.key)} className={"role-btn" + (role === r.key ? " active" : "")} title={r.th}>
-              <Icon name={r.icon} size={16} color={role === r.key ? "#fff" : "var(--text-2)"} />
-              {!icons && <span>{r.th}</span>}
-            </button>
-          ))}
-        </div>
+        {currentUser && (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: icons ? 0 : "4px 2px 10px", justifyContent: icons ? "center" : "flex-start" }}>
+            <span style={{ width: 36, height: 36, borderRadius: 99, flexShrink: 0, display: "grid", placeItems: "center",
+              background: (ROLE_INFO[currentUser.role] || ROLE_INFO.tech).color, color: "#fff", fontWeight: 700, fontSize: 14 }}>
+              {(currentUser.name || "?").slice(0, 1)}
+            </span>
+            {!icons && (
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{currentUser.name}</div>
+                <div style={{ fontSize: 11, color: "var(--text-3)" }}>{(ROLE_INFO[currentUser.role] || ROLE_INFO.tech).th}</div>
+              </div>
+            )}
+          </div>
+        )}
+        <button onClick={onLogout} className="nav-item" title="ออกจากระบบ"
+          style={{ width: "100%", color: "#EF4444" }}>
+          <Icon name="history" size={18} color="#EF4444" style={{ transform: "scaleX(-1)" }} />
+          {!icons && <span style={{ color: "#EF4444", fontWeight: 600 }}>ออกจากระบบ</span>}
+        </button>
       </div>
     </aside>
   );
 }
 
-function Header({ view, role, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, quickFilter, setQuickFilter, onAdd, onReset, onMenuOpen }) {
+function Header({ view, role, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, quickFilter, setQuickFilter, onAdd, canAdd, showBell, unread, notifItems, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen }) {
   const nav = NAV.find((n) => n.key === view);
   const QUICK_LABELS = { active: "กำลังดำเนินการ", delayed: "ล่าช้า", ready: "อุปกรณ์พร้อมติดตั้ง", battery: "มีแบตเตอรี่" };
   return (
@@ -273,9 +328,25 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
             <Icon name="search" size={16} color="var(--text-3)" />
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหา..." />
           </div>
-          <button className="btn-add" onClick={onAdd}>
-            <Icon name="plus" size={17} color="#fff" sw={2.4} /><span>เพิ่มงาน</span>
-          </button>
+          {showBell && (
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              <button onClick={onBell} aria-label="การแจ้งเตือน"
+                style={{ width: 40, height: 40, borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                  cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", position: "relative" }}>
+                <Icon name="bell" size={18} color="var(--text-2)" />
+                {unread > 0 && (
+                  <span style={{ position: "absolute", top: -5, right: -5, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 99,
+                    background: "#EF4444", color: "#fff", fontSize: 10.5, fontWeight: 700, display: "grid", placeItems: "center", border: "2px solid var(--bg)" }}>{unread}</span>
+                )}
+              </button>
+              {notifOpen && <NotifPanel items={notifItems} onClose={onCloseNotif} onOpenJob={onOpenNotif} onMarkAll={onMarkAll} />}
+            </div>
+          )}
+          {canAdd && (
+            <button className="btn-add" onClick={onAdd}>
+              <Icon name="plus" size={17} color="#fff" sw={2.4} /><span>เพิ่มงาน</span>
+            </button>
+          )}
         </div>
       </div>
       <div className="header-filters">
