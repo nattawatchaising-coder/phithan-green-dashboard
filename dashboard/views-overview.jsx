@@ -3,30 +3,33 @@
    ============================================================ */
 
 function KpiCard({ label, value, unit, icon, accent, sub, alert, onClick }) {
+  const mob = window.matchMedia("(max-width: 860px)").matches;
   return (
     <div onClick={onClick}
-      onMouseEnter={(e) => { if (onClick) { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 10px 26px rgba(20,40,28,.12)"; e.currentTarget.style.borderColor = accent; e.currentTarget.querySelector(".kpi-cta").style.opacity = 1; } }}
-      onMouseLeave={(e) => { if (onClick) { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = alert ? "0 0 0 3px #EF444411" : "var(--shadow-sm)"; e.currentTarget.style.borderColor = alert ? "#FCA5A5" : "var(--border)"; e.currentTarget.querySelector(".kpi-cta").style.opacity = 0; } }}
+      onMouseEnter={(e) => { if (onClick) { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 10px 26px rgba(20,40,28,.12)"; e.currentTarget.style.borderColor = accent; const c = e.currentTarget.querySelector(".kpi-cta"); if (c) c.style.opacity = 1; } }}
+      onMouseLeave={(e) => { if (onClick) { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = alert ? "0 0 0 3px #EF444411" : "var(--shadow-sm)"; e.currentTarget.style.borderColor = alert ? "#FCA5A5" : "var(--border)"; const c = e.currentTarget.querySelector(".kpi-cta"); if (c) c.style.opacity = 0; } }}
       style={{ background: "var(--surface)", border: "1px solid " + (alert ? "#FCA5A5" : "var(--border)"),
-      borderRadius: 16, padding: 20, position: "relative", overflow: "hidden", cursor: onClick ? "pointer" : "default",
+      borderRadius: mob ? 14 : 16, padding: mob ? 14 : 20, position: "relative", overflow: "hidden", cursor: onClick ? "pointer" : "default",
       transition: "transform .14s, box-shadow .14s, border-color .14s",
       boxShadow: alert ? "0 0 0 3px #EF444411" : "var(--shadow-sm)" }}>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: accent }} />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-2)", letterSpacing: ".01em", whiteSpace: "nowrap" }}>{label}</span>
-        <span style={{ width: 34, height: 34, borderRadius: 10, background: accent + "16", display: "grid", placeItems: "center" }}>
-          <Icon name={icon} size={17} color={accent} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+        <span style={{ fontSize: mob ? 11 : 12, fontWeight: 600, color: "var(--text-2)", letterSpacing: ".01em", whiteSpace: mob ? "normal" : "nowrap", lineHeight: 1.3 }}>{label}</span>
+        <span style={{ width: mob ? 28 : 34, height: mob ? 28 : 34, borderRadius: mob ? 8 : 10, background: accent + "16", display: "grid", placeItems: "center", flexShrink: 0 }}>
+          <Icon name={icon} size={mob ? 15 : 17} color={accent} />
         </span>
       </div>
-      <div style={{ marginTop: 14, display: "flex", alignItems: "baseline", gap: 6 }}>
-        <span style={{ fontFamily: "var(--display)", fontSize: 34, fontWeight: 700, color: "var(--text-1)", lineHeight: 1 }}>{value}</span>
-        {unit && <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-3)" }}>{unit}</span>}
+      <div style={{ marginTop: mob ? 10 : 14, display: "flex", alignItems: "baseline", gap: 6 }}>
+        <span style={{ fontFamily: "var(--display)", fontSize: mob ? 26 : 34, fontWeight: 700, color: "var(--text-1)", lineHeight: 1 }}>{value}</span>
+        {unit && <span style={{ fontSize: mob ? 12.5 : 14, fontWeight: 600, color: "var(--text-3)" }}>{unit}</span>}
       </div>
       <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        {sub && <span style={{ fontSize: 12, color: "var(--text-3)" }}>{sub}</span>}
-        <span className="kpi-cta" style={{ opacity: 0, transition: "opacity .14s", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 700, color: accent, whiteSpace: "nowrap" }}>
-          ดูรายการ <Icon name="arrowRight" size={13} color={accent} />
-        </span>
+        {sub && <span style={{ fontSize: mob ? 11 : 12, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sub}</span>}
+        {!mob && (
+          <span className="kpi-cta" style={{ opacity: 0, transition: "opacity .14s", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 700, color: accent, whiteSpace: "nowrap" }}>
+            ดูรายการ <Icon name="arrowRight" size={13} color={accent} />
+          </span>
+        )}
       </div>
     </div>
   );
@@ -41,16 +44,16 @@ function PipelinePanel({ jobs, onStage }) {
       <PanelTitle icon="trend" iconColor="var(--primary)" title="งานแยกตามขั้นตอน" sub="Pipeline · คลิกเพื่อกรอง" />
       <div style={{ display: "flex", flexDirection: "column", gap: 11, marginTop: 18 }}>
         {SF.STAGES.map((s, i) => (
-          <button key={s.key} onClick={() => onStage(s.key)} style={{ display: "grid", gridTemplateColumns: "112px 1fr 34px",
-            alignItems: "center", gap: 12, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit", textAlign: "left" }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 600, color: "var(--text-1)" }}>
+          <button key={s.key} onClick={() => onStage(s.key)} style={{ display: "flex",
+            alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit", textAlign: "left", width: "100%" }}>
+            <span style={{ width: 104, flexShrink: 0, display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 600, color: "var(--text-1)", lineHeight: 1.25 }}>
               <span style={{ width: 8, height: 8, borderRadius: 99, background: s.color, flexShrink: 0 }} />{s.th}
             </span>
-            <span style={{ height: 22, background: "var(--surface3)", borderRadius: 7, overflow: "hidden", display: "block" }}>
+            <span style={{ flex: 1, minWidth: 0, height: 22, background: "var(--surface3)", borderRadius: 7, overflow: "hidden", display: "block" }}>
               <span style={{ display: "block", height: "100%", width: Math.max((counts[i] / max) * 100, counts[i] ? 6 : 0) + "%",
                 background: "linear-gradient(90deg," + s.color + "cc," + s.color + ")", borderRadius: 7, transition: "width .6s cubic-bezier(.2,.8,.2,1)" }} />
             </span>
-            <span style={{ fontFamily: "var(--mono)", fontSize: 14, fontWeight: 600, color: counts[i] ? "var(--text-1)" : "var(--text-3)", textAlign: "right" }}>{counts[i]}</span>
+            <span style={{ width: 28, flexShrink: 0, fontFamily: "var(--mono)", fontSize: 14, fontWeight: 600, color: counts[i] ? "var(--text-1)" : "var(--text-3)", textAlign: "right" }}>{counts[i]}</span>
           </button>
         ))}
       </div>
@@ -151,7 +154,7 @@ function OverviewView({ jobs, onOpen, onStage, onKpi }) {
   const done = jobs.filter((j) => j.stage === "done");
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+      <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
         <KpiCard label="งานกำลังดำเนินการ" value={active.length} unit="งาน" icon="list" accent="#3B82F6" sub={"เสร็จแล้ว " + done.length + " งาน"} onClick={() => onKpi("active")} />
         <KpiCard label="งานล่าช้ากว่ากำหนด" value={delayed.length} unit="งาน" icon="alert" accent="#EF4444" alert={delayed.length > 0} sub="เลยวันนัดติดตั้ง" onClick={() => onKpi("delayed")} />
         <KpiCard label="อุปกรณ์พร้อมติดตั้ง" value={ready.length} unit="งาน" icon="box" accent="var(--primary)" sub="วัสดุครบทุกรายการ" onClick={() => onKpi("ready")} />

@@ -180,8 +180,10 @@ input, select, textarea { font-family: inherit; }
   .app-content { padding: 12px 12px; }
   [data-density="compact"] .app-content { padding: 10px 10px; }
 
-  /* Force 1-col grids — but NOT the 7-col calendar grid */
-  .app-content [style*="grid-template-columns"]:not([style*="repeat(7"]) { grid-template-columns: 1fr !important; }
+  /* Force 1-col grids — but NOT the 7-col calendar grid or the KPI grid */
+  .app-content [style*="grid-template-columns"]:not([style*="repeat(7"]):not(.kpi-grid) { grid-template-columns: 1fr !important; }
+  /* KPI cards: 2 columns on mobile (compact) */
+  .app-content .kpi-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
   /* Map: stack vertically */
   .app-content [style*="1.7fr 1fr"] { grid-template-columns: 1fr !important; }
 }
@@ -218,7 +220,7 @@ input, select, textarea { font-family: inherit; }
 <script type="text/babel" src="dashboard/components.jsx?v=6"></script>
 <script type="text/babel" src="dashboard/store.jsx?v=8"></script>
 <script type="text/babel" src="dashboard/drawer.jsx?v=8"></script>
-<script type="text/babel" src="dashboard/views-overview.jsx?v=6"></script>
+<script type="text/babel" src="dashboard/views-overview.jsx?v=11"></script>
 <script type="text/babel" src="dashboard/views-board.jsx?v=6"></script>
 <script type="text/babel" src="dashboard/views-table.jsx?v=6"></script>
 <script type="text/babel" src="dashboard/views-calendar.jsx?v=9"></script>
