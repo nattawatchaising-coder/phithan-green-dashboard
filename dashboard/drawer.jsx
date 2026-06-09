@@ -61,9 +61,9 @@ function FlowTimeline({ job }) {
 
 function InfoRow({ label, children }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
       <span style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: ".06em", color: "var(--text-3)", textTransform: "uppercase" }}>{label}</span>
-      <span style={{ fontSize: 13.5, fontWeight: 500, color: "var(--text-1)" }}>{children}</span>
+      <span style={{ fontSize: 13.5, fontWeight: 500, color: "var(--text-1)", overflowWrap: "anywhere", wordBreak: "break-word" }}>{children}</span>
     </div>
   );
 }
