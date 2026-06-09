@@ -125,11 +125,13 @@ function JobMaterialUsage({ job, stock, currentUser }) {
   );
 }
 
-function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, stock }) {
+function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, stock, onSaveBOQ }) {
   const SF = window.SF;
   const open = !!job;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const media = useJobMedia(job ? job.id : null); // รูป + คอมเมนต์ของงานนี้
+  const [boqOpen, setBoqOpen] = React.useState(false);
+  React.useEffect(() => { setBoqOpen(false); }, [job ? job.id : null]);
 
   /* loading state — กดปุ่มแล้วแสดง "กำลังบันทึก..." ทันที
      reset เมื่อ Firebase confirm แล้ว (job.stage เปลี่ยน) */
@@ -215,6 +217,18 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   <SpecItem label="ระบบ Backup" value={job.backup ? "Backup ✓" : "ไม่มี"} accent={job.backup} />
                 </div>
               </div>
+
+              {/* ถอดวัสดุ BOQ */}
+              <button onClick={() => setBoqOpen(true)}
+                style={{ width: "100%", marginBottom: 22, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+                  background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                <span style={{ width: 34, height: 34, borderRadius: 9, background: "var(--primary-soft)", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="box" size={17} color="var(--primary-dark)" /></span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ถอดวัสดุ BOQ</span>
+                  <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>{job.boq ? "มีรายการแล้ว · แตะเพื่อแก้ไข / ดาวน์โหลด" : "คำนวณปริมาณวัสดุของงานนี้"}</span>
+                </span>
+                <Icon name="arrowRight" size={16} color="var(--text-3)" />
+              </button>
 
               {/* material checklist */}
               <div style={{ marginBottom: 24 }}>
@@ -316,6 +330,8 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
           </React.Fragment>
         )}
       </aside>
+      {boqOpen && job && <BOQEditor job={job} onClose={() => setBoqOpen(false)}
+        onSave={onSaveBOQ ? (boq) => { onSaveBOQ(job.id, boq); setBoqOpen(false); } : null} />}
     </React.Fragment>
   );
 }
