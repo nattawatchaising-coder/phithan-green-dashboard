@@ -64,7 +64,7 @@ function blankJob(raw) {
     gps: [0.5 + (Math.random() - 0.5) * 0.2, 0.45 + (Math.random() - 0.5) * 0.2],
     map: "", brand: "ATMOCE", kw: 5, panels: 9, phase: "1",
     battery: false, batSize: "ไม่มี", connect: "-", backup: false, birdnet: false,
-    stage: "design", deadline: window.SF.TODAY, tech: "t1", problem: null,
+    stage: "design", startDate: window.SF.TODAY, deadline: window.SF.TODAY, tech: "t1", problem: null,
     mat: { panel: "none", inverter: "none", structure: "none", wiring: "none",
            battery: "none", backup: "none", birdnet: "none" },
     hist: window.SF.STAGES.map((s, i) => ({

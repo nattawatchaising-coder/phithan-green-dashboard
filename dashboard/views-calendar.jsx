@@ -30,7 +30,12 @@ function CalendarView({ jobs, onOpen }) {
   while (cells.length % 7 !== 0) cells.push(null);
 
   const keyOf = (d) => ym.y + "-" + String(ym.m + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
-  const jobsOn = (d) => jobs.filter((j) => j.deadline === keyOf(d));
+  // งานหลายวัน: ปรากฏทุกวันในช่วง [startDate..deadline] (เรียงให้ lane คงที่ข้ามวัน)
+  const jobsOn = (d) => {
+    const k = keyOf(d);
+    return jobs.filter((j) => ((j.startDate || j.deadline) <= k && k <= j.deadline))
+      .sort((a, b) => ((a.startDate || a.deadline).localeCompare(b.startDate || b.deadline)) || (a.id > b.id ? 1 : -1));
+  };
   const todayKey = window.SF.TODAY;
   const shift = (delta) => { setSelDay(null); setYm((s) => { const n = new Date(s.y, s.m + delta, 1); return { y: n.getFullYear(), m: n.getMonth() }; }); };
 
@@ -57,7 +62,7 @@ function CalendarView({ jobs, onOpen }) {
       </div>
       <FlowLegend />
       <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", margin: "0 -4px", padding: "0 4px" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, minWidth: 490 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, minWidth: 490 }}>
         {window.TH_DAYS.map((d, i) => (
           <div key={d} style={{ textAlign: "center", fontSize: 11.5, fontWeight: 700, color: i === 0 || i === 6 ? "#EF4444aa" : "var(--text-3)", paddingBottom: 4 }}>{d}</div>
         ))}
@@ -71,29 +76,32 @@ function CalendarView({ jobs, onOpen }) {
               background: isToday ? "var(--primary-soft)" : "var(--surface2)", padding: 8, display: "flex", flexDirection: "column", gap: 4, overflow: "hidden" }}>
               <span onClick={() => list.length && setSelDay(d)} title={list.length ? "ดูงานทั้งหมดวันนี้" : undefined}
                 style={{ fontSize: 12.5, fontWeight: isToday ? 800 : 600, color: isToday ? "var(--primary-dark)" : "var(--text-2)", alignSelf: "flex-start", cursor: list.length ? "pointer" : "default" }}>{d}</span>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4, overflow: "hidden" }}>
-                {list.slice(0, 2).map((j) => {
+              <div style={{ display: "flex", flexDirection: "column", gap: 3, marginLeft: -8, marginRight: -8, overflow: "hidden" }}>
+                {list.slice(0, 3).map((j) => {
                   const s = stageOf(j.stage);
                   const c = j.delayed ? "#EF4444" : s.color;
+                  const sd = j.startDate || j.deadline;
+                  const isStart = sd === key;
+                  const isEnd = j.deadline === key;
+                  const colIdx = i % 7;
+                  const leftRound = isStart || colIdx === 0;   // ปลายซ้ายของแถบ (วันเริ่ม/ต้นสัปดาห์)
+                  const rightRound = isEnd || colIdx === 6;     // ปลายขวา (วันเสร็จ/ปลายสัปดาห์)
                   return (
                     <button key={j.id} onClick={() => onOpen(j)} title={j.name + " · " + s.th}
-                      style={{ display: "flex", gap: 6, background: s.soft, border: "none", borderRadius: 7,
-                        padding: "4px 6px", cursor: "pointer", fontFamily: "inherit", width: "100%", overflow: "hidden", textAlign: "left" }}>
-                      <span style={{ width: 3, alignSelf: "stretch", borderRadius: 99, background: c, flexShrink: 0 }} />
-                      <span style={{ minWidth: 0, flex: 1 }}>
-                        <span style={{ display: "block", fontSize: 10.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{j.name.replace("คุณ", "")}</span>
-                        <span style={{ display: "flex", alignItems: "center", gap: 3, marginTop: 1 }}>
-                          <span style={{ width: 5, height: 5, borderRadius: 99, background: c, flexShrink: 0 }} />
-                          <span style={{ fontSize: 9.5, fontWeight: 600, color: j.delayed ? "#EF4444" : s.color, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{j.delayed ? "⚠ " + s.th : s.th}</span>
-                        </span>
-                      </span>
+                      style={{ height: 19, display: "flex", alignItems: "center", background: s.soft, border: "none",
+                        borderLeft: leftRound ? "3px solid " + c : "none",
+                        borderTopLeftRadius: leftRound ? 6 : 0, borderBottomLeftRadius: leftRound ? 6 : 0,
+                        borderTopRightRadius: rightRound ? 6 : 0, borderBottomRightRadius: rightRound ? 6 : 0,
+                        marginLeft: leftRound ? 4 : 0, marginRight: rightRound ? 4 : 0,
+                        padding: leftRound ? "0 6px" : "0 6px 0 8px", cursor: "pointer", fontFamily: "inherit", overflow: "hidden", textAlign: "left" }}>
+                      {leftRound && <span style={{ fontSize: 10, fontWeight: 700, color: j.delayed ? "#EF4444" : "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{j.delayed ? "⚠ " : ""}{j.name.replace("คุณ", "")}</span>}
                     </button>
                   );
                 })}
-                {list.length > 2 && (
+                {list.length > 3 && (
                   <button onClick={() => setSelDay(d)}
-                    style={{ fontSize: 10, fontWeight: 600, color: "var(--primary-dark)", paddingLeft: 4, background: "none", border: "none", cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
-                    +{list.length - 2} งาน · ดูทั้งหมด
+                    style={{ fontSize: 10, fontWeight: 600, color: "var(--primary-dark)", paddingLeft: 12, background: "none", border: "none", cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
+                    +{list.length - 3} เพิ่ม
                   </button>
                 )}
               </div>

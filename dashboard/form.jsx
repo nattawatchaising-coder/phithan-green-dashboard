@@ -184,6 +184,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
               <Field label="ขั้นตอนปัจจุบัน">
                 <Dropdown value={f.stage} onChange={(v) => set("stage", v)} options={SF.STAGES.map((s, i) => ({ value: s.key, label: (i + 1) + ". " + s.th }))} />
               </Field>
+              <Field label="วันเริ่มงาน"><input type="date" style={inputStyle} value={f.startDate || f.deadline} onChange={(e) => set("startDate", e.target.value)} /></Field>
               <Field label="กำหนดเสร็จ / วันนัด"><input type="date" style={inputStyle} value={f.deadline} onChange={(e) => set("deadline", e.target.value)} /></Field>
               <Field label="ปัญหา / สิ่งที่ติด (ถ้ามี)" span>
                 <input style={inputStyle} value={f.problem || ""} onChange={(e) => set("problem", e.target.value || null)} placeholder="เช่น รออินเวอร์เตอร์ของขาดสต็อก..." />

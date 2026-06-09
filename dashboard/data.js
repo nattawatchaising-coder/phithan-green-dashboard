@@ -264,6 +264,7 @@
     return Object.assign({}, j, {
       id: j.id || j.code,
       mat: matObj,
+      startDate: j.startDate || j.deadline,   // งานหลายวัน: ไม่ระบุ = วันเดียว (= deadline)
       timeline: hist(j.stage, !!j.problem, j.hist),
       matReady, matReadyPct: Math.round((matReadyCount / Math.max(matVals.length, 1)) * 100),
       delayed: !!delayed, stageIdx,
