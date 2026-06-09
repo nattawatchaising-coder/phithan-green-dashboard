@@ -181,6 +181,7 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style }) {
   const [open, setOpen] = React.useState(false);
   const [rect, setRect] = React.useState(null);
   const btnRef = React.useRef(null);
+  const panelRef = React.useRef(null);
   const cur = (options || []).find((o) => String(o.value) === String(value));
 
   const openMenu = () => {
@@ -192,7 +193,11 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style }) {
 
   React.useEffect(() => {
     if (!open) return;
-    const close = () => setOpen(false);
+    // ปิดเมื่อเลื่อน "นอก" เมนู (เลื่อนพื้นหลัง) แต่ไม่ปิดเมื่อเลื่อนในเมนูเอง
+    const close = (e) => {
+      if (panelRef.current && e && e.target && panelRef.current.contains(e.target)) return;
+      setOpen(false);
+    };
     // หน่วงเล็กน้อย กัน scroll-into-view ตอนกดปุ่มไปปิดเมนูทันที
     const t = setTimeout(() => {
       window.addEventListener("scroll", close, true);
@@ -218,9 +223,9 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style }) {
       {open && rect && (
         <React.Fragment>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 200 }} />
-          <div style={{ position: "fixed", top: rect.top, left: rect.left, width: rect.width, zIndex: 201,
+          <div ref={panelRef} style={{ position: "fixed", top: rect.top, left: rect.left, width: rect.width, zIndex: 201,
             background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 14px 40px rgba(8,20,14,.22)",
-            maxHeight: 280, overflowY: "auto", padding: 5 }}>
+            maxHeight: 280, overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", padding: 5 }}>
             {(options || []).map((o) => {
               const active = String(o.value) === String(value);
               return (

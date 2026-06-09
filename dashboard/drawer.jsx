@@ -100,26 +100,23 @@ function JobMaterialUsage({ jobId, stock }) {
       </div>
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
         {/* header */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 56px 56px 60px", gap: 8, padding: "9px 14px", background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 64px 64px", gap: 8, padding: "9px 14px", background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
           <Cell head color="var(--text-3)">อุปกรณ์</Cell>
           <Cell head color="#6645e0">เบิก</Cell>
           <Cell head color="#0784b8">คืน</Cell>
-          <Cell head color="var(--text-3)">คงค้าง</Cell>
         </div>
         {rows.map((r, i) => (
-          <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 56px 56px 60px", gap: 8, padding: "10px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--border)" : "none", alignItems: "center" }}>
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 64px 64px", gap: 8, padding: "10px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--border)" : "none", alignItems: "center" }}>
             <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-1)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
             <Cell color="#6645e0">{r.out}</Cell>
             <Cell color={r.ret ? "#0784b8" : "var(--text-3)"}>{r.ret || "–"}</Cell>
-            <Cell color={r.net > 0 ? "var(--text-1)" : "var(--text-3)"}>{r.net}</Cell>
           </div>
         ))}
         {/* total */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 56px 56px 60px", gap: 8, padding: "10px 14px", background: "var(--surface2)", borderTop: "1px solid var(--border-strong)", alignItems: "center" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 64px 64px", gap: 8, padding: "10px 14px", background: "var(--surface2)", borderTop: "1px solid var(--border-strong)", alignItems: "center" }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>รวม</span>
           <Cell color="#6645e0">{totOut}</Cell>
           <Cell color={totRet ? "#0784b8" : "var(--text-3)"}>{totRet || "–"}</Cell>
-          <Cell color="var(--text-1)">{totOut - totRet}</Cell>
         </div>
       </div>
     </div>
