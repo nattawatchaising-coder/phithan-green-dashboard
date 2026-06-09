@@ -137,6 +137,9 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
               </Field>
               <Field label="ขนาดระบบ (kW)"><input type="number" step="0.1" style={inputStyle} value={f.kw} onChange={(e) => set("kw", parseFloat(e.target.value) || 0)} /></Field>
               <Field label="จำนวนแผง"><input type="number" style={inputStyle} value={f.panels} onChange={(e) => set("panels", parseInt(e.target.value) || 0)} /></Field>
+              <Field label="ระบบไฟฟ้า">
+                <Dropdown value={f.phase || "1"} onChange={(v) => set("phase", v)} options={[{ value: "1", label: "1 เฟส" }, { value: "3", label: "3 เฟส" }]} />
+              </Field>
               <Field label="ตาข่ายกันนก">
                 <ToggleField on={f.birdnet} onChange={(v) => set("birdnet", v)} labelOn="ติดตั้ง" labelOff="ไม่ติด" />
               </Field>
