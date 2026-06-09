@@ -33,9 +33,10 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
           ⚠ {job.problem}
         </div>
       )}
-      <div style={{ display: "flex", gap: 6, marginBottom: 11 }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 11, flexWrap: "wrap" }}>
         <Stat icon="bolt" text={job.kw + " kW"} />
         <Stat icon="panel" text={job.panels + " แผง"} />
+        <Stat icon="power" text={(job.phase || "1") + " เฟส"} />
         {job.battery && <Stat icon="battery" text={job.batSize} accent />}
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid var(--border)" }}>

@@ -39,6 +39,7 @@ const ICONS = {
   shield: "M12 2 4 5v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V5z",
   image: "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM8.5 10.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM21 16l-5-5L5 21",
   message: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
+  power: "M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10",
 };
 
 function Icon({ name, size = 18, color = "currentColor", fill = "none", sw = 1.75, style }) {
