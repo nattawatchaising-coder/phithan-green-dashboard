@@ -5,8 +5,15 @@
 
 function BOQEditor({ job, onClose, onSave }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
-  const [b, setB] = React.useState(() =>
-    job && job.boq ? Object.assign(window.BOQ.blankBOQ(job), job.boq) : window.BOQ.blankBOQ(job));
+  const [b, setB] = React.useState(() => {
+    const base = job && job.boq ? Object.assign(window.BOQ.blankBOQ(job), job.boq) : window.BOQ.blankBOQ(job);
+    // งานที่ไม่มีแบต/Backup ในฐานข้อมูล → ไม่นำมาคำนวณ
+    if (!job || !job.battery) base.batteryKwh = 0;
+    if (!job || !job.backup) base.backup = false;
+    return base;
+  });
+  const hasBattery = !!(job && job.battery);
+  const hasBackup = !!(job && job.backup);
   const [adv, setAdv] = React.useState(false);
   const set = (k, v) => setB((p) => Object.assign({}, p, { [k]: v }));
   const setSpare = (k, v) => setB((p) => Object.assign({}, p, { sparePct: Object.assign({}, p.sparePct, { [k]: v }) }));
@@ -91,8 +98,8 @@ function BOQEditor({ job, onClose, onSave }) {
               <Field label="ระบบไฟฟ้า"><Dropdown value={b.phase} onChange={(v) => set("phase", v)} options={[{ value: 1, label: "1 เฟส" }, { value: 3, label: "3 เฟส" }]} /></Field>
               <Field label="อัตราไมโคร"><Dropdown value={b.microRatio} onChange={(v) => set("microRatio", v)} options={[{ value: "1:1", label: "1:1 (1 แผง/ตัว)" }, { value: "2:1", label: "2:1 (2 แผง/ตัว)" }]} /></Field>
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="รุ่นแผง"><Dropdown value={b.panelModel} onChange={(v) => set("panelModel", v)} options={opt(window.BOQ.PANELS.map((p) => p.model))} /></Field></div>
-              <Field label="แบตเตอรี่ (kWh)"><input type="number" style={numStyle} value={b.batteryKwh} onChange={(e) => set("batteryKwh", e.target.value)} /></Field>
-              <Field label="ระบบ Backup"><Dropdown value={b.backup} onChange={(v) => set("backup", v)} options={[{ value: true, label: "ติดตั้ง" }, { value: false, label: "ไม่ติดตั้ง" }]} /></Field>
+              {hasBattery && <Field label="แบตเตอรี่ (kWh)"><input type="number" style={numStyle} value={b.batteryKwh} onChange={(e) => set("batteryKwh", e.target.value)} /></Field>}
+              {hasBackup && <Field label="ระบบ Backup"><Dropdown value={b.backup} onChange={(v) => set("backup", v)} options={[{ value: true, label: "ติดตั้ง" }, { value: false, label: "ไม่ติดตั้ง" }]} /></Field>}
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="ประเภทหลังคา"><Dropdown value={b.roof} onChange={(v) => set("roof", v)} options={opt(window.BOQ.ROOF_OPTIONS)} /></Field></div>
             </div>
           </Section>
