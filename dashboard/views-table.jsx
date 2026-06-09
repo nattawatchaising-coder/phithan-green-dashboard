@@ -105,7 +105,8 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
                 {/* size */}
                 <td style={{ padding: "13px 14px", textAlign: "center" }}>
                   <div style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>{j.kw} kW</div>
-                  <div style={{ fontSize: 11, color: "var(--text-3)" }}>{j.panels} แผง · {(j.phase || "1")} เฟส</div>
+                  <div style={{ fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap" }}>{j.panels} แผง</div>
+                  <div style={{ fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap" }}>{(j.phase || "1")} เฟส</div>
                 </td>
                 {/* material readiness — แถบความคืบหน้า + % (แก้รายชิ้นได้ใน drawer/ฟอร์ม) */}
                 <td style={{ padding: "13px 14px" }}>
