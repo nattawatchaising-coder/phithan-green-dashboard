@@ -67,8 +67,8 @@ function CalendarView({ jobs, onOpen }) {
           const key = ym.y + "-" + String(ym.m + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
           const isToday = key === todayKey;
           return (
-            <div key={i} style={{ minHeight: 104, borderRadius: 12, border: "1px solid " + (isToday ? "var(--primary)" : "var(--border)"),
-              background: isToday ? "var(--primary-soft)" : "var(--surface2)", padding: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+            <div key={i} style={{ height: 116, borderRadius: 12, border: "1px solid " + (isToday ? "var(--primary)" : "var(--border)"),
+              background: isToday ? "var(--primary-soft)" : "var(--surface2)", padding: 8, display: "flex", flexDirection: "column", gap: 4, overflow: "hidden" }}>
               <span onClick={() => list.length && setSelDay(d)} title={list.length ? "ดูงานทั้งหมดวันนี้" : undefined}
                 style={{ fontSize: 12.5, fontWeight: isToday ? 800 : 600, color: isToday ? "var(--primary-dark)" : "var(--text-2)", alignSelf: "flex-start", cursor: list.length ? "pointer" : "default" }}>{d}</span>
               <div style={{ display: "flex", flexDirection: "column", gap: 4, overflow: "hidden" }}>
