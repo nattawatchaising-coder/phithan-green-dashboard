@@ -69,7 +69,8 @@ function CalendarView({ jobs, onOpen }) {
           return (
             <div key={i} style={{ minHeight: 104, borderRadius: 12, border: "1px solid " + (isToday ? "var(--primary)" : "var(--border)"),
               background: isToday ? "var(--primary-soft)" : "var(--surface2)", padding: 8, display: "flex", flexDirection: "column", gap: 4 }}>
-              <span style={{ fontSize: 12.5, fontWeight: isToday ? 800 : 600, color: isToday ? "var(--primary-dark)" : "var(--text-2)" }}>{d}</span>
+              <span onClick={() => list.length && setSelDay(d)} title={list.length ? "ดูงานทั้งหมดวันนี้" : undefined}
+                style={{ fontSize: 12.5, fontWeight: isToday ? 800 : 600, color: isToday ? "var(--primary-dark)" : "var(--text-2)", alignSelf: "flex-start", cursor: list.length ? "pointer" : "default" }}>{d}</span>
               <div style={{ display: "flex", flexDirection: "column", gap: 4, overflow: "hidden" }}>
                 {list.slice(0, 2).map((j) => {
                   const s = stageOf(j.stage);
@@ -89,12 +90,65 @@ function CalendarView({ jobs, onOpen }) {
                     </button>
                   );
                 })}
-                {list.length > 2 && <span style={{ fontSize: 10, color: "var(--text-3)", paddingLeft: 4 }}>+{list.length - 2} งาน</span>}
+                {list.length > 2 && (
+                  <button onClick={() => setSelDay(d)}
+                    style={{ fontSize: 10, fontWeight: 600, color: "var(--primary-dark)", paddingLeft: 4, background: "none", border: "none", cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
+                    +{list.length - 2} งาน · ดูทั้งหมด
+                  </button>
+                )}
               </div>
             </div>
           );
         })}
       </div>
+      </div>
+      {selDay && <DayDetailModal day={selDay} ym={ym} jobs={jobsOn(selDay)} onOpen={(j) => { setSelDay(null); onOpen(j); }} onClose={() => setSelDay(null)} />}
+    </div>
+  );
+}
+
+/* ── หน้าต่างแสดงงานทั้งหมดในวันที่เลือก (เดสก์ท็อป) ── */
+function DayDetailModal({ day, ym, jobs, onOpen, onClose }) {
+  const monthName = TH_MONTH_FULL[ym.m];
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.4)", backdropFilter: "blur(3px)", zIndex: 90, display: "grid", placeItems: "center", padding: 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: 18, width: "min(460px, 100%)", maxHeight: "82vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)" }}>{day} {monthName} {ym.y + 543}</div>
+            <div style={{ fontSize: 12, color: "var(--text-3)" }}>{jobs.length} งานนัดติดตั้ง</div>
+          </div>
+          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={17} /></button>
+        </div>
+        <div style={{ overflowY: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 9 }}>
+          {jobs.length === 0 && <div style={{ textAlign: "center", color: "var(--text-3)", fontSize: 13, padding: "20px 0" }}>ไม่มีงานในวันนี้</div>}
+          {jobs.map((j) => {
+            const s = stageOf(j.stage);
+            const c = j.delayed ? "#EF4444" : s.color;
+            return (
+              <button key={j.id} onClick={() => onOpen(j)}
+                style={{ display: "flex", alignItems: "center", gap: 11, padding: "12px 13px", width: "100%", textAlign: "left",
+                  background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit" }}>
+                <span style={{ width: 4, alignSelf: "stretch", borderRadius: 99, background: c, flexShrink: 0 }} />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{j.name}</span>
+                    {j.delayed && <span style={{ fontSize: 9.5, fontWeight: 700, color: "#EF4444", background: "#FDE2E2", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>⚠ ล่าช้า</span>}
+                  </span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: "var(--text-3)" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <span style={{ width: 7, height: 7, borderRadius: 99, background: c }} />
+                      <span style={{ fontWeight: 600, color: c }}>{s.th}</span>
+                    </span>
+                    <span>· {j.kw} kW</span>
+                    <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>· {j.province}</span>
+                  </span>
+                </span>
+                <Icon name="chevronRight" size={16} color="var(--text-3)" style={{ flexShrink: 0 }} />
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
