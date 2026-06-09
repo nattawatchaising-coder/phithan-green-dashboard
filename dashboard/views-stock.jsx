@@ -9,6 +9,13 @@ function lowState(it) {
 }
 const STOCK_COLORS = { out: "#EF4444", low: "#F59E0B", ok: "#22A35B" };
 
+/* ประเภทการเคลื่อนไหวสต็อก: รับเข้า / เบิกออก / คืนของ */
+const MOVE_TYPES = {
+  in:     { key: "in",     label: "รับเข้า",  sym: "+", color: "#1d854b", accent: "#22A35B", bg: "#22A35B16", title: "รับเข้าคลัง",      sub: "เพิ่มสต็อกจากการสั่งซื้อ" },
+  out:    { key: "out",    label: "เบิกออก",  sym: "−", color: "#6645e0", accent: "#7C5CFC", bg: "#7C5CFC16", title: "เบิกออกหน้างาน",   sub: "เลือกงานที่นำไปใช้" },
+  return: { key: "return", label: "คืนของ",  sym: "↩", color: "#0784b8", accent: "#0EA5E9", bg: "#0EA5E916", title: "คืนของเข้าคลัง",   sub: "คืนอุปกรณ์ที่เบิกจากงาน" },
+};
+
 function StockKpi({ label, value, unit, icon, accent, sub, active, onClick }) {
   const [hov, setHov] = React.useState(false);
   const mob = window.matchMedia("(max-width: 860px)").matches;
@@ -35,7 +42,7 @@ function StockKpi({ label, value, unit, icon, accent, sub, active, onClick }) {
   );
 }
 
-function StockView({ stock, onResetAll, onMenuOpen, currentUser }) {
+function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const byName = (currentUser && currentUser.name) || "-";
@@ -153,6 +160,8 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser }) {
                             style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "#22A35B16", border: "none", color: "#1d854b", fontWeight: 700, fontSize: 11.5, padding: "5px 9px", borderRadius: 8, cursor: "pointer", marginRight: 4, fontFamily: "inherit" }}>+ รับ</button>
                           <button onClick={() => setMoveItem({ item: it, type: "out" })} title="เบิกออก"
                             style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "#7C5CFC16", border: "none", color: "#6645e0", fontWeight: 700, fontSize: 11.5, padding: "5px 9px", borderRadius: 8, cursor: "pointer", marginRight: 4, fontFamily: "inherit" }}>− เบิก</button>
+                          <button onClick={() => setMoveItem({ item: it, type: "return" })} title="คืนของ"
+                            style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "#0EA5E916", border: "none", color: "#0784b8", fontWeight: 700, fontSize: 11.5, padding: "5px 9px", borderRadius: 8, cursor: "pointer", marginRight: 4, fontFamily: "inherit" }}>↩ คืน</button>
                           <button onClick={() => setItemForm({ item: it, isNew: false })} title="แก้ไข" style={{ background: "#3B82F614", border: "none", color: "#3B82F6", width: 28, height: 28, borderRadius: 7, cursor: "pointer", verticalAlign: "middle" }}><Icon name="settings" size={14} /></button>
                           <button onClick={() => { if (confirm("ลบ \"" + it.name + "\" ?")) stock.removeItem(it.id); }} title="ลบ" style={{ background: "#EF444414", border: "none", color: "#EF4444", width: 28, height: 28, borderRadius: 7, cursor: "pointer", marginLeft: 4, verticalAlign: "middle" }}><Icon name="x" size={14} /></button>
                         </td>
@@ -172,16 +181,18 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser }) {
             <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8, maxHeight: 560, overflowY: "auto" }}>
               {stock.moves.slice(0, 30).map((m) => {
                 const it = items.find((x) => x.id === m.itemId);
-                const isIn = m.type === "in";
+                const mt = MOVE_TYPES[m.type] || MOVE_TYPES.out;
+                const job = m.jobId && (jobs || []).find((j) => j.id === m.jobId);
                 return (
                   <div key={m.id} style={{ display: "flex", gap: 11, padding: "10px 11px", border: "1px solid var(--border)", borderRadius: 11 }}>
                     <span style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: "grid", placeItems: "center",
-                      background: isIn ? "#22A35B16" : "#7C5CFC16", color: isIn ? "#1d854b" : "#6645e0", fontWeight: 800, fontSize: 15 }}>{isIn ? "+" : "−"}</span>
+                      background: mt.bg, color: mt.color, fontWeight: 800, fontSize: 15 }}>{mt.sym}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it ? it.name : m.itemId}</div>
                       <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>
-                        {isIn ? "รับเข้า" : "เบิกออก"} <strong style={{ color: isIn ? "#1d854b" : "#6645e0" }}>{m.qty}</strong> · {thDate(m.date)} · <span style={{ fontFamily: "var(--mono)" }}>{m.ref}</span>
+                        {mt.label} <strong style={{ color: mt.color }}>{m.qty}</strong> · {thDate(m.date)} · <span style={{ fontFamily: "var(--mono)" }}>{m.ref}</span>
                       </div>
+                      {job && <div style={{ fontSize: 11, color: mt.color, marginTop: 2, display: "flex", alignItems: "center", gap: 4, fontWeight: 600 }}><Icon name="wrench" size={10} color={mt.color} /> {job.name}</div>}
                       {m.by && m.by !== "-" && <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}><Icon name="user" size={10} color="var(--text-3)" /> โดย {m.by}</div>}
                       {m.note && <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2, fontStyle: "italic" }}>{m.note}</div>}
                     </div>
@@ -193,7 +204,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser }) {
         </div>
       </div>
 
-      {moveItem && <MoveModal info={moveItem} byName={byName} onSave={(qty, ref, note) => { stock.move(moveItem.item.id, moveItem.type, qty, ref, note, byName); setMoveItem(null); }} onClose={() => setMoveItem(null)} />}
+      {moveItem && <MoveModal info={moveItem} byName={byName} jobs={jobs || []} onSave={(qty, ref, note, jobId) => { stock.move(moveItem.item.id, moveItem.type, qty, ref, note, byName, jobId); setMoveItem(null); }} onClose={() => setMoveItem(null)} />}
       {itemForm && <ItemModal initial={itemForm.item} isNew={itemForm.isNew} onSave={(rec) => { stock.upsertItem(rec); setItemForm(null); }} onClose={() => setItemForm(null)} />}
     </React.Fragment>
   );
@@ -249,17 +260,24 @@ function StockCardList({ items, onMove, onEdit, onRemove }) {
             </div>
 
             {/* ปุ่ม */}
-            <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 12, paddingTop: 11, borderTop: "1px solid var(--border)" }}>
-              <button onClick={() => onMove({ item: it, type: "in" })}
-                style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4, background: "#22A35B16", border: "none",
-                  color: "#1d854b", fontWeight: 700, fontSize: 12.5, padding: "9px 10px", borderRadius: 9, cursor: "pointer", fontFamily: "inherit" }}>+ รับเข้า</button>
-              <button onClick={() => onMove({ item: it, type: "out" })}
-                style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4, background: "#7C5CFC16", border: "none",
-                  color: "#6645e0", fontWeight: 700, fontSize: 12.5, padding: "9px 10px", borderRadius: 9, cursor: "pointer", fontFamily: "inherit" }}>− เบิกออก</button>
-              <button onClick={() => onEdit(it)} title="แก้ไข" aria-label="แก้ไข"
-                style={{ flexShrink: 0, background: "#3B82F614", border: "none", color: "#3B82F6", width: 38, height: 38, borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={16} /></button>
-              <button onClick={() => { if (confirm("ลบ \"" + it.name + "\" ?")) onRemove(it.id); }} title="ลบ" aria-label="ลบ"
-                style={{ flexShrink: 0, background: "#EF444414", border: "none", color: "#EF4444", width: 38, height: 38, borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={16} /></button>
+            <div style={{ marginTop: 12, paddingTop: 11, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 7 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                <button onClick={() => onMove({ item: it, type: "in" })}
+                  style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3, background: "#22A35B16", border: "none",
+                    color: "#1d854b", fontWeight: 700, fontSize: 12.5, padding: "9px 6px", borderRadius: 9, cursor: "pointer", fontFamily: "inherit" }}>+ รับ</button>
+                <button onClick={() => onMove({ item: it, type: "out" })}
+                  style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3, background: "#7C5CFC16", border: "none",
+                    color: "#6645e0", fontWeight: 700, fontSize: 12.5, padding: "9px 6px", borderRadius: 9, cursor: "pointer", fontFamily: "inherit" }}>− เบิก</button>
+                <button onClick={() => onMove({ item: it, type: "return" })}
+                  style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3, background: "#0EA5E916", border: "none",
+                    color: "#0784b8", fontWeight: 700, fontSize: 12.5, padding: "9px 6px", borderRadius: 9, cursor: "pointer", fontFamily: "inherit" }}>↩ คืน</button>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                <button onClick={() => onEdit(it)} title="แก้ไข" aria-label="แก้ไข"
+                  style={{ flex: 1, background: "#3B82F614", border: "none", color: "#3B82F6", height: 36, borderRadius: 9, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, fontWeight: 600, fontSize: 12.5, fontFamily: "inherit" }}><Icon name="settings" size={15} /> แก้ไข</button>
+                <button onClick={() => { if (confirm("ลบ \"" + it.name + "\" ?")) onRemove(it.id); }} title="ลบ" aria-label="ลบ"
+                  style={{ flexShrink: 0, background: "#EF444414", border: "none", color: "#EF4444", width: 44, height: 36, borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={16} /></button>
+              </div>
             </div>
           </div>
         );
@@ -312,18 +330,42 @@ function CatDropdown({ cat, setCat, items, cats }) {
   );
 }
 
-function MoveModal({ info, onSave, onClose, byName }) {
+function MoveModal({ info, onSave, onClose, byName, jobs }) {
+  const mt = MOVE_TYPES[info.type] || MOVE_TYPES.out;
   const isIn = info.type === "in";
+  const linkJob = !isIn; // เบิกออก / คืนของ ผูกกับงาน
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [qty, setQty] = React.useState("");
   const [ref, setRef] = React.useState("");
   const [note, setNote] = React.useState("");
-  const accent = isIn ? "#22A35B" : "#7C5CFC";
+  const [jobId, setJobId] = React.useState("");
+  const accent = mt.accent;
+
+  // งานที่ยังไม่เสร็จขึ้นก่อน, เรียงตามวันนัด
+  const jobOpts = React.useMemo(() => {
+    const list = (jobs || []).slice().sort((a, b) => {
+      const ad = a.stage === "done" ? 1 : 0, bd = b.stage === "done" ? 1 : 0;
+      if (ad !== bd) return ad - bd;
+      return (b.deadline || "").localeCompare(a.deadline || "");
+    });
+    return [{ value: "", label: "— ไม่ระบุงาน —" }].concat(
+      list.map((j) => ({ value: j.id, label: j.code + " · " + j.name + (j.stage === "done" ? " (เสร็จแล้ว)" : "") }))
+    );
+  }, [jobs]);
+
+  const submit = () => {
+    if (!(parseInt(qty) > 0)) { alert("กรุณากรอกจำนวน"); return; }
+    // ref: งานที่เลือก → ใช้รหัสงาน; รับเข้า → ใช้ค่าที่กรอก (PO)
+    const job = linkJob && (jobs || []).find((j) => j.id === jobId);
+    const finalRef = linkJob ? (job ? job.code : (ref || "-")) : (ref || "-");
+    onSave(qty, finalRef, note, linkJob ? jobId : "");
+  };
+
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.4)", backdropFilter: "blur(3px)", zIndex: 100, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(440px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
         <div style={{ padding: "18px 22px", background: accent, color: "#fff", flexShrink: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, opacity: .9 }}>{isIn ? "รับเข้าคลัง" : "เบิกออกหน้างาน"}</div>
+          <div style={{ fontSize: 13, fontWeight: 600, opacity: .9 }}>{mt.title}</div>
           <div style={{ fontSize: 18, fontWeight: 700, marginTop: 2 }}>{info.item.name}</div>
           <div style={{ fontSize: 12.5, opacity: .85, marginTop: 3 }}>คงเหลือปัจจุบัน {info.item.qty.toLocaleString()} {info.item.unit}</div>
         </div>
@@ -331,9 +373,15 @@ function MoveModal({ info, onSave, onClose, byName }) {
           <Field label={"จำนวน (" + info.item.unit + ")"} required>
             <input type="number" autoFocus value={qty} onChange={(e) => setQty(e.target.value)} style={inputStyle} placeholder="0" />
           </Field>
-          <Field label={isIn ? "อ้างอิง (เลข PO / ผู้ขาย)" : "อ้างอิงงาน (รหัสงาน)"}>
-            <input value={ref} onChange={(e) => setRef(e.target.value)} style={inputStyle} placeholder={isIn ? "เช่น PO-2406" : "เช่น SF-2401"} />
-          </Field>
+          {linkJob ? (
+            <Field label={info.type === "return" ? "งานที่คืนของ" : "งานที่นำไปใช้"}>
+              <Dropdown value={jobId} onChange={setJobId} options={jobOpts} placeholder="— เลือกงาน —" />
+            </Field>
+          ) : (
+            <Field label="อ้างอิง (เลข PO / ผู้ขาย)">
+              <input value={ref} onChange={(e) => setRef(e.target.value)} style={inputStyle} placeholder="เช่น PO-2406" />
+            </Field>
+          )}
           <Field label="หมายเหตุ">
             <input value={note} onChange={(e) => setNote(e.target.value)} style={inputStyle} />
           </Field>
@@ -344,9 +392,9 @@ function MoveModal({ info, onSave, onClose, byName }) {
         </div>
         <div style={{ padding: "14px 22px", paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10, flexShrink: 0 }}>
           <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 18px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
-          <button onClick={() => { if (!(parseInt(qty) > 0)) { alert("กรุณากรอกจำนวน"); return; } onSave(qty, ref, note); }}
+          <button onClick={submit}
             style={{ flex: isMobile ? 1 : "none", padding: "11px 22px", borderRadius: 11, border: "none", background: accent, color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>
-            {isIn ? "+ รับเข้า" : "− เบิกออก"}
+            {mt.sym} {mt.label}
           </button>
         </div>
       </div>

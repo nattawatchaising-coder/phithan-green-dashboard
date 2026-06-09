@@ -311,7 +311,7 @@ function useStockStore() {
     else { setItems((prev) => prev.filter((x) => x.id !== id)); }
   }, []);
 
-  const move = React.useCallback((itemId, type, qty, ref, note, by) => {
+  const move = React.useCallback((itemId, type, qty, ref, note, by, jobId) => {
     qty = Math.abs(parseInt(qty) || 0);
     if (!qty) return;
 
@@ -322,17 +322,19 @@ function useStockStore() {
       if (n > maxN) maxN = n;
     });
     const mvId = "MV-" + (maxN + 1);
-    const mv   = { id: mvId, itemId, type, qty, date: window.SF.TODAY, ref: ref || "-", note: note || "", by: by || "-" };
+    const mv   = { id: mvId, itemId, type, qty, date: window.SF.TODAY, ref: ref || "-", note: note || "", by: by || "-", jobId: jobId || "" };
 
+    // "in" (รับเข้า) และ "return" (คืนของ) เพิ่มสต็อก, "out" (เบิกออก) ลดสต็อก
+    const adds = (type === "in" || type === "return");
     if (_FB()) {
       // atomic qty update via transaction
       _fbTx("stock/" + itemId + "/qty", (cur) =>
-        Math.max(0, (cur || 0) + (type === "in" ? qty : -qty))
+        Math.max(0, (cur || 0) + (adds ? qty : -qty))
       );
       _fbSet("moves/" + mvId, mv);
     } else {
       setItems((prev) => prev.map((x) =>
-        x.id === itemId ? Object.assign({}, x, { qty: Math.max(0, x.qty + (type === "in" ? qty : -qty)) }) : x
+        x.id === itemId ? Object.assign({}, x, { qty: Math.max(0, x.qty + (adds ? qty : -qty)) }) : x
       ));
       setMoves((prev) => [mv, ...prev]);
     }

@@ -68,7 +68,65 @@ function InfoRow({ label, children }) {
   );
 }
 
-function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage }) {
+/* สรุปอุปกรณ์ที่เบิก/คืน ของงานนี้ — รวมจาก stock.moves ที่ jobId ตรงกัน */
+function JobMaterialUsage({ jobId, stock }) {
+  if (!stock) return null;
+  const moves = (stock.moves || []).filter((m) => m.jobId === jobId && (m.type === "out" || m.type === "return"));
+  if (moves.length === 0) return null;
+
+  const byItem = {};
+  moves.forEach((m) => {
+    const g = byItem[m.itemId] || (byItem[m.itemId] = { itemId: m.itemId, out: 0, ret: 0 });
+    if (m.type === "out") g.out += m.qty; else g.ret += m.qty;
+  });
+  const rows = Object.keys(byItem).map((id) => {
+    const g = byItem[id];
+    const it = (stock.items || []).find((x) => x.id === id);
+    return { name: it ? it.name : id, unit: it ? it.unit : "", out: g.out, ret: g.ret, net: g.out - g.ret };
+  }).sort((a, b) => b.net - a.net);
+  const totOut = rows.reduce((s, r) => s + r.out, 0);
+  const totRet = rows.reduce((s, r) => s + r.ret, 0);
+
+  const Cell = ({ children, color, head }) => (
+    <span style={{ fontFamily: "var(--mono)", fontSize: head ? 10 : 13, fontWeight: head ? 700 : 700,
+      color: color || "var(--text-1)", textAlign: "right", letterSpacing: head ? ".04em" : 0, textTransform: head ? "uppercase" : "none" }}>{children}</span>
+  );
+
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+        <Icon name="box" size={14} color="var(--text-2)" /> อุปกรณ์ที่เบิก / คืน
+        <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: 0, textTransform: "none", color: "var(--text-3)", marginLeft: 2 }}>· {rows.length} รายการ</span>
+      </div>
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
+        {/* header */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 56px 56px 60px", gap: 8, padding: "9px 14px", background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
+          <Cell head color="var(--text-3)">อุปกรณ์</Cell>
+          <Cell head color="#6645e0">เบิก</Cell>
+          <Cell head color="#0784b8">คืน</Cell>
+          <Cell head color="var(--text-3)">คงค้าง</Cell>
+        </div>
+        {rows.map((r, i) => (
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 56px 56px 60px", gap: 8, padding: "10px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--border)" : "none", alignItems: "center" }}>
+            <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-1)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
+            <Cell color="#6645e0">{r.out}</Cell>
+            <Cell color={r.ret ? "#0784b8" : "var(--text-3)"}>{r.ret || "–"}</Cell>
+            <Cell color={r.net > 0 ? "var(--text-1)" : "var(--text-3)"}>{r.net}</Cell>
+          </div>
+        ))}
+        {/* total */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 56px 56px 60px", gap: 8, padding: "10px 14px", background: "var(--surface2)", borderTop: "1px solid var(--border-strong)", alignItems: "center" }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>รวม</span>
+          <Cell color="#6645e0">{totOut}</Cell>
+          <Cell color={totRet ? "#0784b8" : "var(--text-3)"}>{totRet || "–"}</Cell>
+          <Cell color="var(--text-1)">{totOut - totRet}</Cell>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, stock }) {
   const SF = window.SF;
   const open = !!job;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -195,6 +253,9 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   })}
                 </div>
               </div>
+
+              {/* อุปกรณ์ที่เบิก/คืน สำหรับงานนี้ */}
+              <JobMaterialUsage jobId={job.id} stock={stock} />
 
               {/* flow timeline */}
               <div style={{ marginBottom: 20 }}>

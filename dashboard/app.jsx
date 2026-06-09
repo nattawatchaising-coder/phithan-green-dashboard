@@ -176,7 +176,7 @@ function App() {
         canManageUsers={can(role, "manageUsers")} onManageUsers={() => { setUserMgr(true); closeSidebar(); }} />
       <main className="app-main">
         {view === "stock" ? (
-          <StockView stock={stock} onMenuOpen={() => setSidebarOpen(true)} currentUser={auth.current} />
+          <StockView stock={stock} onMenuOpen={() => setSidebarOpen(true)} currentUser={auth.current} jobs={jobs} />
         ) : (
         <React.Fragment>
         <Header view={view} role={role} count={filtered.length} total={jobs.length}
@@ -206,7 +206,7 @@ function App() {
       </main>
 
       <DetailDrawer job={selectedJob} onClose={() => setSelected(null)} onAdvance={(id) => store.advance(id)} onSetMat={store.setMat}
-        currentUser={auth.current} canManage={can(role, "delJob")}
+        currentUser={auth.current} canManage={can(role, "delJob")} stock={stock}
         onEdit={(id) => { setSelected(null); setForm({ job: store.raw.find((r) => r.id === id), isNew: false }); }} />
       {form && <JobForm initial={form.job} isNew={form.isNew} onSave={onSave} onClose={() => setForm(null)} onManageTechs={() => setTechMgr(true)} onManageBrands={() => setBrandMgr(true)} />}
       {techMgr && <TechManager store={techStore} onClose={() => setTechMgr(false)} />}
