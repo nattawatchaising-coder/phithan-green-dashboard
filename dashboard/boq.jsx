@@ -13,6 +13,7 @@ function BOQEditor({ job, onClose, onSave }) {
 
   const setRow = (i, k, v) => setB((p) => { const rows = p.rows.slice(); rows[i] = Object.assign({}, rows[i], { [k]: v }); return Object.assign({}, p, { rows }); });
   const addRow = () => setB((p) => Object.assign({}, p, { rows: p.rows.concat([{ panels: 0, count: 1 }]) }));
+  const fillRemaining = (rem) => { if (rem > 0) setB((p) => Object.assign({}, p, { rows: p.rows.concat([{ panels: rem, count: 1 }]) })); };
   const delRow = (i) => setB((p) => Object.assign({}, p, { rows: p.rows.filter((_, j) => j !== i) }));
 
   const setCab = (i, k, v) => setB((p) => { const cs = p.cables.slice(); cs[i] = Object.assign({}, cs[i], { [k]: v }); return Object.assign({}, p, { cables: cs }); });
@@ -20,6 +21,18 @@ function BOQEditor({ job, onClose, onSave }) {
   const delCab = (i) => setB((p) => Object.assign({}, p, { cables: p.cables.filter((_, j) => j !== i) }));
 
   const result = window.BOQ.calcBOQ(b);
+  const remaining = result.meta.panelCount - result.meta.rowsSum; // >0 ขาด, <0 เกิน, 0 ครบ
+
+  // กันพลาด: ถ้าจำนวนแผงในแถวไม่ตรงกับจำนวนแผงรวม ให้ยืนยันก่อน
+  const guardRun = (fn) => {
+    if (remaining !== 0) {
+      const msg = remaining > 0
+        ? ("⚠ ยังวางแผงไม่ครบ — ขาดอีก " + remaining + " แผง (วางแล้ว " + result.meta.rowsSum + "/" + result.meta.panelCount + ")\nปริมาณ Mounting จะไม่ครบ ต้องการดำเนินการต่อหรือไม่?")
+        : ("⚠ วางแผงเกินจำนวน " + (-remaining) + " แผง (วางแล้ว " + result.meta.rowsSum + "/" + result.meta.panelCount + ")\nต้องการดำเนินการต่อหรือไม่?");
+      if (!confirm(msg)) return;
+    }
+    fn();
+  };
 
   const opt = (arr) => arr.map((x) => ({ value: x, label: typeof x === "string" ? x.trim() : x }));
 
@@ -86,8 +99,8 @@ function BOQEditor({ job, onClose, onSave }) {
 
           {/* ── การจัดวางแผง ── */}
           <Section title="การจัดวางแผง (แถว)" icon="grid"
-            right={<span style={{ fontSize: 11.5, fontWeight: 700, color: result.meta.valid ? "var(--primary-dark)" : "#EF4444" }}>
-              {result.meta.valid ? "✓ " : "⚠ "}แผงจากแถว {result.meta.rowsSum} / คำนวณ {result.meta.panelCount}
+            right={<span style={{ fontSize: 11.5, fontWeight: 700, color: remaining === 0 ? "var(--primary-dark)" : "#EF4444" }}>
+              วางแล้ว {result.meta.rowsSum} / {result.meta.panelCount} แผง
             </span>}>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {b.rows.map((r, i) => (
@@ -99,6 +112,24 @@ function BOQEditor({ job, onClose, onSave }) {
               ))}
               <button onClick={addRow} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--primary-soft)", color: "var(--primary-dark)", border: "none", borderRadius: 9, padding: "8px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={14} color="var(--primary-dark)" /> เพิ่มแถว</button>
             </div>
+
+            {/* สถานะวางแผงให้ครบ — กันพลาด */}
+            {remaining === 0 ? (
+              <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 7, padding: "9px 12px", background: "var(--primary-soft)", borderRadius: 10, fontSize: 12.5, fontWeight: 700, color: "var(--primary-dark)" }}>
+                <Icon name="check" size={15} color="var(--primary-dark)" sw={2.6} /> วางแผงครบตามจำนวนแล้ว ({result.meta.panelCount} แผง)
+              </div>
+            ) : remaining > 0 ? (
+              <div style={{ marginTop: 10, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, padding: "9px 12px", background: "#FEF2F2", border: "1px solid #FBD3D3", borderRadius: 10, fontSize: 12.5, fontWeight: 700, color: "#B91C1C" }}>
+                <Icon name="alert" size={15} color="#EF4444" /> ยังขาดอีก {remaining} แผง
+                <button onClick={() => fillRemaining(remaining)} style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, background: "#EF4444", color: "#fff", border: "none", borderRadius: 8, padding: "6px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+                  <Icon name="plus" size={13} color="#fff" /> เพิ่มแถว {remaining} แผง
+                </button>
+              </div>
+            ) : (
+              <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 7, padding: "9px 12px", background: "#FEF9EC", border: "1px solid #FCE4B6", borderRadius: 10, fontSize: 12.5, fontWeight: 700, color: "#B45309" }}>
+                <Icon name="alert" size={15} color="#F59E0B" /> วางเกินจำนวนแผง {-remaining} แผง — ตรวจสอบจำนวนแผง/แถว
+              </div>
+            )}
 
             <button onClick={() => setAdv((v) => !v)} style={{ marginTop: 12, display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", color: "var(--text-2)", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
               <Icon name="settings" size={13} color="var(--text-2)" /> ตั้งค่าขั้นสูง (ราง / ระยะเผื่อ) <Icon name="chevronDown" size={14} color="var(--text-2)" style={{ transform: adv ? "rotate(180deg)" : "none" }} />
@@ -161,8 +192,8 @@ function BOQEditor({ job, onClose, onSave }) {
         {/* footer */}
         <div style={{ padding: "12px 20px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, flexShrink: 0 }}>
           <button onClick={onClose} style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ปิด</button>
-          <button onClick={exportXlsx} style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: 11, border: "1px solid #1d854b", background: "#22A35B14", color: "#1d854b", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="box" size={15} color="#1d854b" /> Excel</button>
-          {onSave && <button onClick={() => onSave(b)} style={{ flex: 1, padding: "11px 22px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>บันทึก BOQ</button>}
+          <button onClick={() => guardRun(exportXlsx)} style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: 11, border: "1px solid #1d854b", background: "#22A35B14", color: "#1d854b", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="box" size={15} color="#1d854b" /> Excel</button>
+          {onSave && <button onClick={() => guardRun(() => onSave(b))} style={{ flex: 1, padding: "11px 22px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>บันทึก BOQ</button>}
         </div>
       </div>
     </div>
