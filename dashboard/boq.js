@@ -67,7 +67,7 @@
   function blankBOQ(job) {
     job = job || {};
     return {
-      kw: +job.kw || 0,
+      panels: +job.panels || 0,
       panelModel: PANELS[0].model,
       phase: String(job.phase) === "3" ? 3 : 1,
       microRatio: "2:1",
@@ -95,7 +95,12 @@
     const endSpare = +b.endSpare || 0;
     const lfeetPerRail = +b.lfeetPerRail || 0;
 
-    const panelCount = Math.round(((+b.kw || 0) * 1000) / panel.wp);
+    // กรอกจำนวนแผงโดยตรง → คำนวณขนาดติดตั้ง (kW) ย้อนกลับ
+    // (รองรับข้อมูลเก่าที่เก็บเป็น kw)
+    const panelCount = (b.panels !== undefined && b.panels !== null && b.panels !== "")
+      ? Math.round(+b.panels || 0)
+      : Math.round(((+b.kw || 0) * 1000) / panel.wp);
+    const kw = Math.round((panelCount * panel.wp / 1000) * 100) / 100;
 
     // ── MOUNTING ต่อแถว (อ้างอิง CAL-MOUNTING) ──
     let railSum = 0, joinerSum = 0, midSum = 0, endSum = 0, lbracketSum = 0, earthlugSum = 0, rowsSum = 0;
@@ -167,7 +172,7 @@
     // CABLE
     groups.push({ group: "CABLE", items: Object.keys(cableAgg).map((t) => ({ name: t, qty: cableAgg[t], unit: "M" })) });
 
-    return { groups, meta: { panelCount, rowsSum, invCount, battCount, valid: rowsSum === panelCount } };
+    return { groups, meta: { panelCount, kw, rowsSum, invCount, battCount, valid: rowsSum === panelCount } };
   }
 
   window.BOQ = { PANELS, MICRO, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, DEFAULT_CABLES, blankBOQ, calcBOQ };

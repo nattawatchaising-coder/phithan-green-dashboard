@@ -30,7 +30,7 @@ function BOQEditor({ job, onClose, onSave }) {
     const aoa = [];
     aoa.push(["บัญชีแสดงรายการปริมาณวัสดุ - Bill of Materials"]);
     aoa.push(["โครงการ", job ? job.name : "", "", "รหัสงาน", job ? job.code : ""]);
-    aoa.push(["ขนาดติดตั้ง", (b.kw || 0) + " kW", "", "วันที่", window.SF.TODAY]);
+    aoa.push(["จำนวนแผง", (result.meta.panelCount || 0) + " แผง", "ขนาดติดตั้ง", (result.meta.kw || 0) + " kW", "วันที่", window.SF.TODAY]);
     aoa.push([]);
     aoa.push(["ลำดับ", "รายการ", "จำนวน", "หน่วย"]);
     let n = 0;
@@ -68,7 +68,13 @@ function BOQEditor({ job, onClose, onSave }) {
           {/* ── ข้อมูลระบบ ── */}
           <Section title="ข้อมูลระบบ" icon="sun">
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr", gap: 12 }}>
-              <Field label="ขนาดติดตั้ง (kW)"><input type="number" style={numStyle} value={b.kw} onChange={(e) => set("kw", e.target.value)} /></Field>
+              <Field label="จำนวนแผง"><input type="number" style={numStyle} value={b.panels} onChange={(e) => set("panels", e.target.value)} /></Field>
+              <Field label="ขนาดติดตั้ง (kW)">
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "flex-end", gap: 4, background: "var(--surface3)", border: "1px solid var(--border)", borderRadius: 10, padding: "9px 11px" }}>
+                  <span style={{ fontFamily: "var(--mono)", fontSize: 15, fontWeight: 700, color: "var(--primary-dark)" }}>{result.meta.kw.toLocaleString()}</span>
+                  <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>kW</span>
+                </div>
+              </Field>
               <Field label="ระบบไฟฟ้า"><Dropdown value={b.phase} onChange={(v) => set("phase", v)} options={[{ value: 1, label: "1 เฟส" }, { value: 3, label: "3 เฟส" }]} /></Field>
               <Field label="อัตราไมโคร"><Dropdown value={b.microRatio} onChange={(v) => set("microRatio", v)} options={[{ value: "1:1", label: "1:1 (1 แผง/ตัว)" }, { value: "2:1", label: "2:1 (2 แผง/ตัว)" }]} /></Field>
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="รุ่นแผง"><Dropdown value={b.panelModel} onChange={(v) => set("panelModel", v)} options={opt(window.BOQ.PANELS.map((p) => p.model))} /></Field></div>
