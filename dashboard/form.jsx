@@ -341,12 +341,11 @@ function BrandManager({ store, onClose }) {
             <div key={b.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12 }}>
               <span style={{ width: 36, height: 36, borderRadius: 10, background: "var(--surface2)", border: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--primary-dark)", flexShrink: 0 }}><Icon name="sun" size={17} color="var(--primary-dark)" /></span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{b.name}</div>
-                <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{b.battery ? "รองรับแบตเตอรี่ / Backup" : "ไม่รองรับแบตเตอรี่ / Backup"}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.name}</div>
+                <div style={{ fontSize: 11.5, color: b.battery ? "var(--primary-dark)" : "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.battery ? "รองรับแบต/Backup" : "ไม่รองรับแบต/Backup"}</div>
               </div>
-              {b.battery && <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--primary-dark)", background: "var(--primary-soft)", padding: "3px 9px", borderRadius: 99 }}>แบต/Backup</span>}
-              <button onClick={() => setEditing({ rec: Object.assign({}, b), origName: b.name })} title="แก้ไข" style={{ background: "#3B82F614", border: "none", color: "#3B82F6", width: 32, height: 32, borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={15} /></button>
-              <button onClick={() => { if (brands.length <= 1) { alert("ต้องมีแบรนด์อย่างน้อย 1 รายการ"); return; } if (confirm("ลบแบรนด์ \"" + b.name + "\" ?\n(งานที่ใช้แบรนด์นี้อยู่จะยังคงค่าเดิมไว้)")) store.remove(b.name); }} title="ลบ" style={{ background: "#EF444414", border: "none", color: "#EF4444", width: 32, height: 32, borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={15} /></button>
+              <button onClick={() => setEditing({ rec: Object.assign({}, b), origName: b.name })} title="แก้ไข" style={{ flexShrink: 0, background: "#3B82F614", border: "none", color: "#3B82F6", width: 32, height: 32, borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={15} /></button>
+              <button onClick={() => { if (brands.length <= 1) { alert("ต้องมีแบรนด์อย่างน้อย 1 รายการ"); return; } if (confirm("ลบแบรนด์ \"" + b.name + "\" ?\n(งานที่ใช้แบรนด์นี้อยู่จะยังคงค่าเดิมไว้)")) store.remove(b.name); }} title="ลบ" style={{ flexShrink: 0, background: "#EF444414", border: "none", color: "#EF4444", width: 32, height: 32, borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={15} /></button>
             </div>
           ))}
         </div>
