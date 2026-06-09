@@ -68,10 +68,11 @@ function InfoRow({ label, children }) {
   );
 }
 
-/* สรุปอุปกรณ์ที่เบิก/คืน ของงานนี้ — รวมจาก stock.moves ที่ jobId ตรงกัน */
-function JobMaterialUsage({ jobId, stock }) {
-  if (!stock) return null;
-  const moves = (stock.moves || []).filter((m) => m.jobId === jobId && (m.type === "out" || m.type === "return"));
+/* สรุปอุปกรณ์ที่เบิก/คืน ของงานนี้ — รวมจาก stock.moves ที่ jobId ตรงกัน + คืนของได้เลย */
+function JobMaterialUsage({ job, stock, currentUser }) {
+  const [retItem, setRetItem] = React.useState(null); // stock item ที่กำลังคืน
+  if (!stock || !job) return null;
+  const moves = (stock.moves || []).filter((m) => m.jobId === job.id && (m.type === "out" || m.type === "return"));
   if (moves.length === 0) return null;
 
   const byItem = {};
@@ -82,13 +83,12 @@ function JobMaterialUsage({ jobId, stock }) {
   const rows = Object.keys(byItem).map((id) => {
     const g = byItem[id];
     const it = (stock.items || []).find((x) => x.id === id);
-    return { name: it ? it.name : id, unit: it ? it.unit : "", out: g.out, ret: g.ret, net: g.out - g.ret };
+    return { item: it, name: it ? it.name : id, unit: it ? it.unit : "", out: g.out, ret: g.ret, net: g.out - g.ret };
   }).sort((a, b) => b.net - a.net);
-  const totOut = rows.reduce((s, r) => s + r.out, 0);
-  const totRet = rows.reduce((s, r) => s + r.ret, 0);
 
+  const byName = (currentUser && currentUser.name) || "-";
   const Cell = ({ children, color, head }) => (
-    <span style={{ fontFamily: "var(--mono)", fontSize: head ? 10 : 13, fontWeight: head ? 700 : 700,
+    <span style={{ fontFamily: "var(--mono)", fontSize: head ? 10 : 13, fontWeight: 700,
       color: color || "var(--text-1)", textAlign: "right", letterSpacing: head ? ".04em" : 0, textTransform: head ? "uppercase" : "none" }}>{children}</span>
   );
 
@@ -100,25 +100,27 @@ function JobMaterialUsage({ jobId, stock }) {
       </div>
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
         {/* header */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 64px 64px", gap: 8, padding: "9px 14px", background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 46px 46px 64px", gap: 8, padding: "9px 14px", background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
           <Cell head color="var(--text-3)">อุปกรณ์</Cell>
           <Cell head color="#6645e0">เบิก</Cell>
           <Cell head color="#0784b8">คืน</Cell>
+          <span />
         </div>
         {rows.map((r, i) => (
-          <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 64px 64px", gap: 8, padding: "10px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--border)" : "none", alignItems: "center" }}>
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 46px 46px 64px", gap: 8, padding: "10px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--border)" : "none", alignItems: "center" }}>
             <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-1)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
             <Cell color="#6645e0">{r.out}</Cell>
             <Cell color={r.ret ? "#0784b8" : "var(--text-3)"}>{r.ret || "–"}</Cell>
+            <button onClick={() => r.item && setRetItem(r.item)} disabled={!r.item} title="คืนของเข้าคลัง"
+              style={{ justifySelf: "end", display: "inline-flex", alignItems: "center", gap: 3, background: r.item ? "#0EA5E916" : "var(--surface2)",
+                border: "none", color: r.item ? "#0784b8" : "var(--text-3)", fontWeight: 700, fontSize: 11.5, padding: "5px 9px", borderRadius: 8,
+                cursor: r.item ? "pointer" : "default", fontFamily: "inherit", whiteSpace: "nowrap" }}>↩ คืน</button>
           </div>
         ))}
-        {/* total */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 64px 64px", gap: 8, padding: "10px 14px", background: "var(--surface2)", borderTop: "1px solid var(--border-strong)", alignItems: "center" }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>รวม</span>
-          <Cell color="#6645e0">{totOut}</Cell>
-          <Cell color={totRet ? "#0784b8" : "var(--text-3)"}>{totRet || "–"}</Cell>
-        </div>
       </div>
+      {retItem && <MoveModal info={{ item: retItem, type: "return" }} byName={byName} lockedJob={job}
+        onSave={(qty, ref, note, jobId) => { stock.move(retItem.id, "return", qty, ref, note, byName, jobId); setRetItem(null); }}
+        onClose={() => setRetItem(null)} />}
     </div>
   );
 }
@@ -252,7 +254,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               </div>
 
               {/* อุปกรณ์ที่เบิก/คืน สำหรับงานนี้ */}
-              <JobMaterialUsage jobId={job.id} stock={stock} />
+              <JobMaterialUsage job={job} stock={stock} currentUser={currentUser} />
 
               {/* flow timeline */}
               <div style={{ marginBottom: 20 }}>

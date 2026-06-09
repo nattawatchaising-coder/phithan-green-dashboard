@@ -330,7 +330,7 @@ function CatDropdown({ cat, setCat, items, cats }) {
   );
 }
 
-function MoveModal({ info, onSave, onClose, byName, jobs }) {
+function MoveModal({ info, onSave, onClose, byName, jobs, lockedJob }) {
   const mt = MOVE_TYPES[info.type] || MOVE_TYPES.out;
   const isIn = info.type === "in";
   const linkJob = !isIn; // เบิกออก / คืนของ ผูกกับงาน
@@ -338,7 +338,7 @@ function MoveModal({ info, onSave, onClose, byName, jobs }) {
   const [qty, setQty] = React.useState("");
   const [ref, setRef] = React.useState("");
   const [note, setNote] = React.useState("");
-  const [jobId, setJobId] = React.useState("");
+  const [jobId, setJobId] = React.useState(lockedJob ? lockedJob.id : "");
   const accent = mt.accent;
 
   // งานที่ยังไม่เสร็จขึ้นก่อน, เรียงตามวันนัด
@@ -356,7 +356,7 @@ function MoveModal({ info, onSave, onClose, byName, jobs }) {
   const submit = () => {
     if (!(parseInt(qty) > 0)) { alert("กรุณากรอกจำนวน"); return; }
     // ref: งานที่เลือก → ใช้รหัสงาน; รับเข้า → ใช้ค่าที่กรอก (PO)
-    const job = linkJob && (jobs || []).find((j) => j.id === jobId);
+    const job = linkJob && (lockedJob || (jobs || []).find((j) => j.id === jobId));
     const finalRef = linkJob ? (job ? job.code : (ref || "-")) : (ref || "-");
     onSave(qty, finalRef, note, linkJob ? jobId : "");
   };
@@ -375,7 +375,15 @@ function MoveModal({ info, onSave, onClose, byName, jobs }) {
           </Field>
           {linkJob ? (
             <Field label={info.type === "return" ? "งานที่คืนของ" : "งานที่นำไปใช้"}>
-              <Dropdown value={jobId} onChange={setJobId} options={jobOpts} placeholder="— เลือกงาน —" />
+              {lockedJob ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10, fontSize: 13.5, color: "var(--text-1)" }}>
+                  <Icon name="wrench" size={14} color={accent} />
+                  <span style={{ fontFamily: "var(--mono)", fontWeight: 700, color: accent }}>{lockedJob.code}</span>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lockedJob.name}</span>
+                </div>
+              ) : (
+                <Dropdown value={jobId} onChange={setJobId} options={jobOpts} placeholder="— เลือกงาน —" />
+              )}
             </Field>
           ) : (
             <Field label="อ้างอิง (เลข PO / ผู้ขาย)">
