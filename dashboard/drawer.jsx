@@ -87,9 +87,9 @@ function JobMaterialUsage({ job, stock, currentUser }) {
   }).sort((a, b) => b.net - a.net);
 
   const byName = (currentUser && currentUser.name) || "-";
-  const Cell = ({ children, color, head }) => (
+  const Cell = ({ children, color, head, left }) => (
     <span style={{ fontFamily: "var(--mono)", fontSize: head ? 10 : 13, fontWeight: 700,
-      color: color || "var(--text-1)", textAlign: "right", letterSpacing: head ? ".04em" : 0, textTransform: head ? "uppercase" : "none" }}>{children}</span>
+      color: color || "var(--text-1)", textAlign: left ? "left" : "right", letterSpacing: head ? ".04em" : 0, textTransform: head ? "uppercase" : "none" }}>{children}</span>
   );
 
   return (
@@ -101,7 +101,7 @@ function JobMaterialUsage({ job, stock, currentUser }) {
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
         {/* header */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 46px 46px 64px", gap: 8, padding: "9px 14px", background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
-          <Cell head color="var(--text-3)">อุปกรณ์</Cell>
+          <Cell head left color="var(--text-3)">อุปกรณ์</Cell>
           <Cell head color="#6645e0">เบิก</Cell>
           <Cell head color="#0784b8">คืน</Cell>
           <span />
