@@ -27,6 +27,12 @@ function BOQEditor({ job, onClose, onSave }) {
   const addCab = () => setB((p) => Object.assign({}, p, { cables: p.cables.concat([{ name: "", type: window.BOQ.CABLE_TYPES[0], length: 0 }]) }));
   const delCab = (i) => setB((p) => Object.assign({}, p, { cables: p.cables.filter((_, j) => j !== i) }));
 
+  // ── ท่อร้อยสาย (RACE WAY) ──
+  const cond = b.conduit || { imc: [], upvc: [], pullbox: [] };
+  const setCond = (kind, i, k, v) => setB((p) => { const c = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit); const a = (c[kind] || []).slice(); a[i] = Object.assign({}, a[i], { [k]: v }); c[kind] = a; return Object.assign({}, p, { conduit: c }); });
+  const addCond = (kind, item) => setB((p) => { const c = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit); c[kind] = (c[kind] || []).concat([item]); return Object.assign({}, p, { conduit: c }); });
+  const delCond = (kind, i) => setB((p) => { const c = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit); c[kind] = (c[kind] || []).filter((_, j) => j !== i); return Object.assign({}, p, { conduit: c }); });
+
   const result = window.BOQ.calcBOQ(b);
   const remaining = result.meta.panelCount - result.meta.rowsSum; // >0 ขาด, <0 เกิน, 0 ครบ
 
@@ -43,7 +49,23 @@ function BOQEditor({ job, onClose, onSave }) {
 
   const opt = (arr) => arr.map((x) => ({ value: x, label: typeof x === "string" ? x.trim() : x }));
 
-  const GROUP_COLOR = { "PV MODULE": "#22A35B", INVERTER: "#7C5CFC", MOUNTING: "#F59E0B", CABLE: "#0EA5E9" };
+  const GROUP_COLOR = { "PV MODULE": "#22A35B", INVERTER: "#7C5CFC", MOUNTING: "#F59E0B", CABLE: "#0EA5E9", "RACE WAY": "#64748B" };
+
+  const ConduitList = ({ kind, label, sizes, valKey, unitText }) => (
+    <div>
+      <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 7 }}>{label}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {(cond[kind] || []).map((x, i) => (
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 78px 36px", gap: 8, alignItems: "center" }}>
+            <Dropdown value={x.size} onChange={(v) => setCond(kind, i, "size", v)} options={opt(sizes)} placeholder="เลือกขนาด" />
+            <input type="number" style={numStyle} value={x[valKey]} placeholder={unitText} onChange={(e) => setCond(kind, i, valKey, e.target.value)} />
+            <button onClick={() => delCond(kind, i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
+          </div>
+        ))}
+        <button onClick={() => addCond(kind, { size: sizes[0], [valKey]: 0 })} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่ม {label}</button>
+      </div>
+    </div>
+  );
 
   const exportXlsx = () => {
     if (!window.XLSX) { alert("ไม่พบไลบรารี Excel (ลองโหลดหน้าใหม่)"); return; }
@@ -169,6 +191,15 @@ function BOQEditor({ job, onClose, onSave }) {
                 </div>
               ))}
               <button onClick={addCab} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--primary-soft)", color: "var(--primary-dark)", border: "none", borderRadius: 9, padding: "8px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={14} color="var(--primary-dark)" /> เพิ่มสาย</button>
+            </div>
+          </Section>
+
+          {/* ── ท่อร้อยสาย (RACE WAY) ── */}
+          <Section title="ท่อร้อยสาย (RACE WAY)" icon="grid">
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <ConduitList kind="imc" label="ท่อ IMC" sizes={window.BOQ.IMC_SIZES} valKey="length" unitText="ม." />
+              <ConduitList kind="upvc" label="ท่อ uPVC" sizes={window.BOQ.UPVC_SIZES} valKey="length" unitText="ม." />
+              <ConduitList kind="pullbox" label="PULL BOX" sizes={window.BOQ.PULLBOX_SIZES} valKey="qty" unitText="ชิ้น" />
             </div>
           </Section>
 

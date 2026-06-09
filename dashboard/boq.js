@@ -62,6 +62,17 @@
     { name: "LAN",             type: "LAN CAT6 ",                   length: 50 },
   ];
 
+  // ── ท่อร้อยสาย (RACE WAY) ──
+  const IMC_SIZES = ['IMC 1"', 'IMC 1-1/4"', 'IMC 1-1/2"', 'IMC 2"', 'IMC 2-1/2"', 'IMC 3"', 'IMC 3-1/2"'];
+  const UPVC_SIZES = [
+    "ท่อขาว uPVC 16mm. (สีขาว)", "ท่อขาว uPVC 20mm. (สีขาว)", "ท่อขาว uPVC 25mm. (สีขาว)", "ท่อขาว uPVC 32mm. (สีขาว)",
+  ];
+  const PULLBOX_SIZES = [
+    "PULL BOX (HDG.) 100x100x100mm.", "PULL BOX (HDG.) 150x150x100mm.", "PULL BOX (HDG.) 150x150x150mm.",
+    "PULL BOX (HDG.) 200x200x100mm.", "PULL BOX (HDG.) 200x200x150mm.", "PULL BOX (HDG.) 200x200x200mm.",
+    "กล่องพักสายไฟ uPVC สีขาว 100x100x50mm.", "กล่องพักสายไฟ uPVC สีขาว 150x150x50mm.",
+  ];
+
   const ROOF_OPTIONS = ROOF_HOOKS.map((r) => r.roof);
 
   function blankBOQ(job) {
@@ -81,6 +92,7 @@
       sparePct: { rail: 5, joiner: 5, endClamp: 10, midClamp: 10, lfeet: 5, ground: 10 },
       rows: [{ panels: +job.panels || 0, count: 1 }],
       cables: DEFAULT_CABLES.map((c) => Object.assign({}, c)),
+      conduit: { imc: [], upvc: [], pullbox: [] },
     };
   }
 
@@ -172,8 +184,24 @@
     // CABLE
     groups.push({ group: "CABLE", items: Object.keys(cableAgg).map((t) => ({ name: t, qty: cableAgg[t], unit: "M" })) });
 
+    // RACE WAY (ท่อร้อยสาย: IMC / uPVC / PULL BOX) — รวมตามชนิด
+    const cond = b.conduit || {};
+    const race = [], rmap = {};
+    const pushAgg = (arr, valKey, unit) => {
+      (arr || []).forEach((x) => {
+        const nm = (x.size || "").trim(), q = +x[valKey] || 0;
+        if (!nm || q <= 0) return;
+        if (!rmap[nm]) { rmap[nm] = { name: nm, qty: 0, unit }; race.push(rmap[nm]); }
+        rmap[nm].qty += q;
+      });
+    };
+    pushAgg(cond.imc, "length", "M");
+    pushAgg(cond.upvc, "length", "M");
+    pushAgg(cond.pullbox, "qty", "ชิ้น");
+    if (race.length) groups.push({ group: "RACE WAY", items: race });
+
     return { groups, meta: { panelCount, kw, rowsSum, invCount, battCount, valid: rowsSum === panelCount } };
   }
 
-  window.BOQ = { PANELS, MICRO, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, DEFAULT_CABLES, blankBOQ, calcBOQ };
+  window.BOQ = { PANELS, MICRO, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, DEFAULT_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, blankBOQ, calcBOQ };
 })();
