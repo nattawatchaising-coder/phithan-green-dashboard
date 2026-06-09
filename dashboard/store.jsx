@@ -92,21 +92,20 @@ function useJobStore() {
   React.useEffect(() => {
     if (!_FB()) return;
     const ref = _fbr("jobs");
-    const handler = ref.on(
-      "value",
-      (snap) => {
-        let arr = _snap2arr(snap);
-        if (!arr) {
-          // ครั้งแรก — seed ข้อมูลตัวอย่างลง Firebase
-          const seed = SF_SEED();
-          ref.set(_toObj(seed));
-          arr = seed;
-        }
-        setRaw(arr);
-        setLoading(false);
-      },
-      () => setLoading(false)      // error → unblock UI
-    );
+    // seed ตัวอย่างเฉพาะครั้งแรกจริง — ตรวจครั้งเดียวตอนเริ่ม (แยกจาก realtime listener)
+    // เพื่อให้ "ลบหมดแล้วไม่เด้งกลับ"
+    ref.once("value").then((snap) => {
+      if (!_snap2arr(snap)) {
+        _fbGet("meta/jobsSeeded").then((m) => {
+          if (!m.val()) { _fbSet("meta/jobsSeeded", true); ref.set(_toObj(SF_SEED())); }
+        });
+      } else { _fbSet("meta/jobsSeeded", true); }
+    });
+    // realtime listener — อัปเดต state อย่างเดียว ไม่ seed
+    const handler = ref.on("value", (snap) => {
+      setRaw(_snap2arr(snap) || []);
+      setLoading(false);
+    }, () => setLoading(false));
     return () => ref.off("value", handler);
   }, []);
 
@@ -256,16 +255,28 @@ function useStockStore() {
     const done = () => { if (iDone && mDone) setLoading(false); };
 
     const iRef = _fbr("stock");
+    // seed ครั้งเดียวตอนเริ่ม (แยกจาก listener) — ลบหมดแล้วไม่เด้งกลับ
+    iRef.once("value").then((snap) => {
+      if (!_snap2arr(snap)) {
+        _fbGet("meta/stockSeeded").then((m) => {
+          if (!m.val()) { _fbSet("meta/stockSeeded", true); iRef.set(_toObj(ISEED())); }
+        });
+      } else { _fbSet("meta/stockSeeded", true); }
+    });
     const iH = iRef.on("value", (snap) => {
-      let arr = _snap2arr(snap);
-      if (!arr) { arr = ISEED(); iRef.set(_toObj(arr)); }
-      setItems(arr); iDone = true; done();
+      setItems(_snap2arr(snap) || []); iDone = true; done();
     }, () => { iDone = true; done(); });
 
     const mRef = _fbr("moves");
+    mRef.once("value").then((snap) => {
+      if (!_snap2arr(snap)) {
+        _fbGet("meta/movesSeeded").then((m) => {
+          if (!m.val()) { _fbSet("meta/movesSeeded", true); mRef.set(_toObj(MSEED())); }
+        });
+      } else { _fbSet("meta/movesSeeded", true); }
+    });
     const mH = mRef.on("value", (snap) => {
-      let arr = _snap2arr(snap);
-      if (!arr) { arr = MSEED(); mRef.set(_toObj(arr)); }
+      const arr = _snap2arr(snap) || [];
       // เรียงใหม่ล่าสุดก่อน (id เป็น MV-ตัวเลข)
       arr.sort((a, b) => {
         const na = parseInt((a.id || "").replace(/\D/g, ""), 10);
