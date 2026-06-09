@@ -105,7 +105,7 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
                 {/* size */}
                 <td style={{ padding: "13px 14px", textAlign: "center" }}>
                   <div style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>{j.kw} kW</div>
-                  <div style={{ fontSize: 11, color: "var(--text-3)" }}>{j.panels} แผง</div>
+                  <div style={{ fontSize: 11, color: "var(--text-3)" }}>{j.panels} แผง · {(j.phase || "1")} เฟส</div>
                 </td>
                 {/* material readiness — แถบความคืบหน้า + % (แก้รายชิ้นได้ใน drawer/ฟอร์ม) */}
                 <td style={{ padding: "13px 14px" }}>
@@ -245,6 +245,7 @@ function TableMobile({ jobs, sort, setSort, onOpen, onEdit, onDelete, onSetStage
               <span style={{ color: "var(--text-3)" }}>·</span>
               <span style={{ fontFamily: "var(--mono)", fontWeight: 600 }}>{j.kw} kW</span>
               <span style={{ color: "var(--text-3)" }}>· {j.panels} แผง</span>
+              <span style={{ color: "var(--text-3)" }}>· {(j.phase || "1")} เฟส</span>
               {j.battery && <span style={{ color: "var(--primary-dark)", fontWeight: 600 }}>· 🔋 {j.batSize}</span>}
               {j.backup && <span style={{ color: "var(--primary-dark)", fontWeight: 600 }}>· Backup</span>}
             </div>
