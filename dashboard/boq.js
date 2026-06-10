@@ -270,5 +270,77 @@
     return { groups, meta: { panelCount, kw, rowsSum, invCount, battCount, valid: rowsSum === panelCount } };
   }
 
-  window.BOQ = { PANELS, MICRO, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, DEFAULT_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, blankBOQ, calcBOQ };
+  // ── ราคา/ต้นทุน ──────────────────────────────────────────
+  // key สำหรับจับคู่ราคา = ชื่อวัสดุ (ตัดส่วนต่อท้าย "(3m/ท่อน)"/"(2.9m/ท่อน)")
+  function matKey(name) {
+    return String(name || "").replace(/\s*\((?:3m|2\.9m)\/ท่อน\)\s*$/, "").trim();
+  }
+
+  // รายการวัสดุทั้งหมดที่ BOQ สร้างได้ — ใช้ในหน้า "ราคาวัสดุ" เพื่อกรอกรหัส+ราคา
+  function catalog() {
+    const list = [];
+    const add = (group, name, unit) => list.push({ group, name: matKey(name), unit });
+    PANELS.forEach((p) => add("PV MODULE", p.model, "PANEL"));
+    MICRO.forEach((m) => add("INVERTER", m.model, "LOT"));
+    add("INVERTER", COMBINER[1], "SET"); add("INVERTER", COMBINER[3], "SET");
+    add("INVERTER", CT[1], "SET"); add("INVERTER", CT[3], "SET");
+    add("INVERTER", BACKUP[1], "SET"); add("INVERTER", BACKUP[3], "SET");
+    add("INVERTER", BATTERY_MODEL, "SET");
+    add("INVERTER", JUNCTION[1], "SET"); add("INVERTER", JUNCTION[3], "SET");
+    add("INVERTER", "1.3 m, Three-terminal AC Cable (MW-025013-A)", "SET");
+    add("INVERTER", "2 m, Two-terminal AC Cable (MW-025020-B0)", "SET");
+    Object.keys(RAIL).forEach((k) => add("MOUNTING", RAIL[k], "SET"));
+    add("MOUNTING", "RAIL SPLICE KIT", "SET");
+    add("MOUNTING", "BOLT&N2 NUT M8 20mm.", "SET");
+    add("MOUNTING", "EARTHING CLIP", "SET");
+    add("MOUNTING", "GROUNDING LUG COPPER LINES", "SET");
+    [...new Set(Object.keys(MID_CLAMP).map((k) => MID_CLAMP[k]))].forEach((v) => add("MOUNTING", v, "SET"));
+    [...new Set(Object.keys(END_CLAMP).map((k) => END_CLAMP[k]))].forEach((v) => add("MOUNTING", v, "SET"));
+    ROOF_HOOKS.forEach((r) => add("MOUNTING", r.model, "SET"));
+    CABLE_TYPES.forEach((t) => add("CABLE", t, "M"));
+    IMC_SIZES.forEach((nm) => {
+      const sz = nm.replace(/^IMC\s*/i, "").trim();
+      add("RACE WAY", nm, "ท่อน");
+      add("RACE WAY", "แคล้มประกับ IMC " + sz, "ตัว");
+      add("RACE WAY", "บุชชิ่ง,ล็อกนัท IMC " + sz, "ตัว");
+      add("RACE WAY", "คอนเนคเตอร์ท่ออ่อนกันน้ำ IMC " + sz, "ตัว");
+      add("RACE WAY", "คุปปิ้ง " + sz, "ตัว");
+      add("RACE WAY", "ท่ออ่อนเหล็กกันน้ำ 30m. " + sz, "กล่อง");
+    });
+    add("RACE WAY", "รางซี C-Channel 20x1200x40x1.0 mm.", "เส้น");
+    UPVC_SIZES.forEach((nm) => {
+      const mm = (nm.match(/(\d+)\s*mm/) || [])[1] || "";
+      const suf = mm + "mm. (สีขาว)";
+      add("RACE WAY", nm, "ท่อน");
+      add("RACE WAY", "ข้อต่อตรง uPVC " + suf, "ตัว");
+      add("RACE WAY", "แคลมป์ก้ามปู uPVC " + suf, "ตัว");
+      add("RACE WAY", "คอนเน็ตเตอร์ uPVC " + suf, "ตัว");
+      add("RACE WAY", "ท่ออ่อนขาว uPVC " + suf, "กล่อง");
+    });
+    PULLBOX_SIZES.forEach((s) => add("RACE WAY", s, "ชิ้น"));
+    add("GROUNDING", 'แท่งกราวด์ชุบทองแดง 5/8" ยาว 2.4 m', "อัน");
+    add("GROUNDING", 'อุปกรณ์เชื่อมสายกราวด์เทอร์โมเวล 2 ทาง 16 sq.mm Rod 5/8"', "อัน");
+    add("GROUNDING", 'อุปกรณ์เชื่อมสายกราวด์เทอร์โมเวล 3 ทาง 16 sq.mm Rod 5/8"', "อัน");
+    add("GROUNDING", "GROUNDTESTBOX-PVC-SEC", "อัน");
+    return list;
+  }
+
+  // ผูกราคาเข้ากับผลลัพธ์ BOQ → คืน groups (มี code/price/total ต่อรายการ) + grandTotal
+  function applyPrices(result, priceMap) {
+    priceMap = priceMap || {};
+    let grand = 0;
+    const groups = (result.groups || []).map((g) => ({
+      group: g.group,
+      items: g.items.map((it) => {
+        const rec = priceMap[matKey(it.name)] || {};
+        const price = +rec.price || 0;
+        const total = price * (it.qty || 0);
+        grand += total;
+        return Object.assign({}, it, { code: rec.code || "", price: price, total: total });
+      }),
+    }));
+    return { groups: groups, grandTotal: grand };
+  }
+
+  window.BOQ = { PANELS, MICRO, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, DEFAULT_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, blankBOQ, calcBOQ, matKey, catalog, applyPrices };
 })();

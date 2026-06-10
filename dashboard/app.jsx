@@ -81,6 +81,7 @@ function App() {
   const brandStore = useBrandStore();
   const auth = useAuthStore();
   const notif = useNotifStore();
+  const priceStore = usePriceStore();
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [view, setView] = React.useState("overview");
   const [search, setSearch] = React.useState("");
@@ -93,6 +94,7 @@ function App() {
   const [techMgr, setTechMgr] = React.useState(false);
   const [brandMgr, setBrandMgr] = React.useState(false);
   const [userMgr, setUserMgr] = React.useState(false);
+  const [priceMgr, setPriceMgr] = React.useState(false);
   const [notifOpen, setNotifOpen] = React.useState(false);
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const isMobile = useIsMobile(); // force App re-render when mobile↔desktop breakpoint changes
@@ -173,7 +175,8 @@ function App() {
       <Sidebar view={view} onNav={navTo} role={role} jobs={jobs} stock={stock} t={t}
         open={sidebarOpen} onClose={closeSidebar}
         currentUser={auth.current} onLogout={auth.logout}
-        canManageUsers={can(role, "manageUsers")} onManageUsers={() => { setUserMgr(true); closeSidebar(); }} />
+        canManageUsers={can(role, "manageUsers")} onManageUsers={() => { setUserMgr(true); closeSidebar(); }}
+        canManagePrices={can(role, "delJob")} onManagePrices={() => { setPriceMgr(true); closeSidebar(); }} />
       <main className="app-main">
         {view === "stock" ? (
           <StockView stock={stock} onMenuOpen={() => setSidebarOpen(true)} currentUser={auth.current} jobs={jobs} />
@@ -208,11 +211,13 @@ function App() {
       <DetailDrawer job={selectedJob} onClose={() => setSelected(null)} onAdvance={(id) => store.advance(id)} onSetMat={store.setMat}
         currentUser={auth.current} canManage={can(role, "delJob")} stock={stock}
         onSaveBOQ={(id, boq) => store.patch(id, { boq })}
+        priceMap={can(role, "delJob") ? priceStore.priceMap : null}
         onEdit={(id) => { setSelected(null); setForm({ job: store.raw.find((r) => r.id === id), isNew: false }); }} />
       {form && <JobForm initial={form.job} isNew={form.isNew} onSave={onSave} onClose={() => setForm(null)} onManageTechs={() => setTechMgr(true)} onManageBrands={() => setBrandMgr(true)} />}
       {techMgr && <TechManager store={techStore} onClose={() => setTechMgr(false)} />}
       {brandMgr && <BrandManager store={brandStore} onClose={() => setBrandMgr(false)} />}
       {userMgr && can(role, "manageUsers") && <UserManager authStore={auth} onClose={() => setUserMgr(false)} />}
+      {priceMgr && can(role, "delJob") && <PriceManager priceStore={priceStore} onClose={() => setPriceMgr(false)} />}
 
       <TweaksPanel>
         <TweakSection label="ธีม / Theme" />
@@ -229,7 +234,7 @@ function App() {
   );
 }
 
-function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, currentUser, onLogout, canManageUsers, onManageUsers }) {
+function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, currentUser, onLogout, canManageUsers, onManageUsers, canManagePrices, onManagePrices }) {
   const icons = t.sidebar === "icons";
   // Read media query synchronously every render — avoids stale state when
   // the preview or device loads at one size then displays at another.
@@ -274,6 +279,12 @@ function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, currentUser
           );
         })}
         {/* เมนูจัดการผู้ใช้ — เฉพาะแอดมิน */}
+        {canManagePrices && (
+          <button onClick={onManagePrices} className="nav-item" title="ราคาวัสดุ">
+            <Icon name="box" size={19} color="var(--text-2)" />
+            {!icons && <span>ราคาวัสดุ</span>}
+          </button>
+        )}
         {canManageUsers && (
           <button onClick={onManageUsers} className="nav-item" title="จัดการผู้ใช้งาน">
             <Icon name="users" size={19} color="var(--text-2)" />

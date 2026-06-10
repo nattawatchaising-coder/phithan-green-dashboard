@@ -3,7 +3,8 @@
    กรอกพารามิเตอร์ → คำนวณรายการวัสดุอัตโนมัติ → บันทึก / ดาวน์โหลด Excel
    ============================================================ */
 
-function BOQEditor({ job, onClose, onSave }) {
+function BOQEditor({ job, onClose, onSave, priceMap }) {
+  const baht = (n) => (Math.round((+n || 0) * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [b, setB] = React.useState(() => {
     const base = job && job.boq ? Object.assign(window.BOQ.blankBOQ(job), job.boq) : window.BOQ.blankBOQ(job);
@@ -41,6 +42,7 @@ function BOQEditor({ job, onClose, onSave }) {
   const csp = Object.assign({}, SPARE_DEF, b.conduitSpare);
 
   const result = window.BOQ.calcBOQ(b);
+  const priced = window.BOQ.applyPrices(result, priceMap || {});
   const remaining = result.meta.panelCount - result.meta.rowsSum; // >0 ขาด, <0 เกิน, 0 ครบ
 
   // กันพลาด: ถ้าจำนวนแผงในแถวไม่ตรงกับจำนวนแผงรวม ให้ยืนยันก่อน
@@ -81,17 +83,19 @@ function BOQEditor({ job, onClose, onSave }) {
     aoa.push(["โครงการ", job ? job.name : "", "", "รหัสงาน", job ? job.code : ""]);
     aoa.push(["จำนวนแผง", (result.meta.panelCount || 0) + " แผง", "ขนาดติดตั้ง", (result.meta.kw || 0) + " kW", "วันที่", window.SF.TODAY]);
     aoa.push([]);
-    aoa.push(["ลำดับ", "รายการ", "จำนวน", "หน่วย"]);
+    const hasPrice = priced.grandTotal > 0;
+    aoa.push(["ลำดับ", "รหัส", "รายการ", "จำนวน", "หน่วย", "ราคา/หน่วย", "ราคารวม"]);
     let n = 0;
-    result.groups.forEach((g) => {
+    priced.groups.forEach((g) => {
       n += 1;
-      aoa.push([n, g.group, "", ""]);
+      aoa.push([n, "", g.group, "", "", "", ""]);
       g.items.forEach((it, k) => {
-        aoa.push([n + "." + (k + 1), it.name, it.qty, it.unit]);
+        aoa.push([n + "." + (k + 1), it.code || "", it.name, it.qty, it.unit, it.price || "", it.total || ""]);
       });
     });
+    if (hasPrice) { aoa.push([]); aoa.push(["", "", "", "", "", "ต้นทุนรวม", priced.grandTotal]); }
     const ws = window.XLSX.utils.aoa_to_sheet(aoa);
-    ws["!cols"] = [{ wch: 8 }, { wch: 52 }, { wch: 10 }, { wch: 8 }];
+    ws["!cols"] = [{ wch: 8 }, { wch: 16 }, { wch: 48 }, { wch: 9 }, { wch: 8 }, { wch: 11 }, { wch: 13 }];
     const wb = window.XLSX.utils.book_new();
     window.XLSX.utils.book_append_sheet(wb, ws, "BOQ");
     const fn = "BOQ_" + (job ? job.code : "job") + ".xlsx";
@@ -245,9 +249,10 @@ function BOQEditor({ job, onClose, onSave }) {
           </Section>
 
           {/* ── ผลลัพธ์ BOQ ── */}
-          <Section title="รายการวัสดุที่ถอดได้" icon="box">
+          <Section title="รายการวัสดุที่ถอดได้" icon="box"
+            right={priced.grandTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>รวม ฿{baht(priced.grandTotal)}</span> : null}>
             <div style={{ border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
-              {result.groups.map((g, gi) => (
+              {priced.groups.map((g, gi) => (
                 <div key={gi}>
                   <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", background: "var(--surface2)", borderTop: gi ? "1px solid var(--border)" : "none" }}>
                     <span style={{ width: 8, height: 8, borderRadius: 99, background: GROUP_COLOR[g.group] || "var(--text-3)" }} />
@@ -256,15 +261,31 @@ function BOQEditor({ job, onClose, onSave }) {
                   {g.items.length === 0 ? (
                     <div style={{ padding: "9px 14px", fontSize: 12, color: "var(--text-3)" }}>—</div>
                   ) : g.items.map((it, ii) => (
-                    <div key={ii} style={{ display: "grid", gridTemplateColumns: "1fr 64px 48px", gap: 8, padding: "9px 14px", borderTop: "1px solid var(--border)", alignItems: "center" }}>
-                      <span style={{ fontSize: 12.5, color: "var(--text-1)" }}>{(it.name || "").trim()}</span>
-                      <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 700, color: "var(--text-1)", textAlign: "right" }}>{(Math.round(it.qty * 100) / 100).toLocaleString()}</span>
-                      <span style={{ fontSize: 11, color: "var(--text-3)", textAlign: "right" }}>{it.unit}</span>
+                    <div key={ii} style={{ display: "grid", gridTemplateColumns: "1fr 56px 84px", gap: 8, padding: "9px 14px", borderTop: "1px solid var(--border)", alignItems: "center" }}>
+                      <span style={{ minWidth: 0 }}>
+                        <span style={{ display: "block", fontSize: 12.5, color: "var(--text-1)" }}>{(it.name || "").trim()}</span>
+                        {it.code ? <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--text-3)" }}>{it.code}</span> : null}
+                      </span>
+                      <span style={{ textAlign: "right" }}>
+                        <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{(Math.round(it.qty * 100) / 100).toLocaleString()}</span>
+                        <span style={{ display: "block", fontSize: 10, color: "var(--text-3)" }}>{it.unit}</span>
+                      </span>
+                      <span style={{ textAlign: "right" }}>
+                        <span style={{ fontFamily: "var(--mono)", fontSize: 12.5, fontWeight: 700, color: it.total > 0 ? "var(--text-1)" : "var(--text-3)" }}>{it.total > 0 ? baht(it.total) : "–"}</span>
+                        {it.price > 0 ? <span style={{ display: "block", fontSize: 9.5, color: "var(--text-3)" }}>@{baht(it.price)}</span> : null}
+                      </span>
                     </div>
                   ))}
                 </div>
               ))}
+              {priced.grandTotal > 0 && (
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 14px", background: "var(--surface2)", borderTop: "2px solid var(--border-strong)" }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)" }}>ต้นทุนรวม</span>
+                  <span style={{ fontFamily: "var(--mono)", fontSize: 15, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(priced.grandTotal)}</span>
+                </div>
+              )}
             </div>
+            <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)" }}>* ราคาดึงจากเมนู "ราคาวัสดุ" — รายการที่ยังไม่ใส่ราคาจะขึ้น "–"</div>
           </Section>
         </div>
 

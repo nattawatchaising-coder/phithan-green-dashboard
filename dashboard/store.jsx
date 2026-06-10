@@ -508,10 +508,47 @@ function useBrandStore() {
 }
 
 /* ================================================================
+   usePriceStore — ฐานราคาวัสดุ BOQ (รหัส + ราคา/หน่วย ต่อชื่อวัสดุ)
+   ================================================================ */
+const SF_PRICE_KEY = "solarflow_prices_v1";
+function _priceKey(name) { return String(name || "").replace(/[.#$\[\]\/]/g, "_"); }
+
+function usePriceStore() {
+  const [priceMap, setMap] = React.useState(_FB() ? {} : () => _lsGet(SF_PRICE_KEY, {}));
+  const [loading, setLoading] = React.useState(_FB());
+
+  React.useEffect(() => {
+    if (!_FB()) { setLoading(false); return; }
+    const ref = _fbr("boqPrices");
+    const h = ref.on("value", (snap) => {
+      const v = snap.val() || {};
+      const m = {};
+      Object.keys(v).forEach((k) => { const r = v[k]; if (r && r.name) m[r.name] = { code: r.code || "", price: +r.price || 0, unit: r.unit || "" }; });
+      setMap(m);
+      setLoading(false);
+    }, () => setLoading(false));
+    return () => ref.off("value", h);
+  }, []);
+
+  React.useEffect(() => { if (!_FB()) _lsSet(SF_PRICE_KEY, priceMap); }, [priceMap]);
+
+  const setPrice = React.useCallback((name, code, price, unit) => {
+    const rec = { name: name, code: code || "", price: +price || 0, unit: unit || "" };
+    if (_FB()) {
+      _fbSet("boqPrices/" + _priceKey(name), rec);
+    } else {
+      setMap((p) => Object.assign({}, p, { [name]: { code: rec.code, price: rec.price, unit: rec.unit } }));
+    }
+  }, []);
+
+  return { priceMap: priceMap || {}, loading, setPrice };
+}
+
+/* ================================================================
    Export to window (same pattern as original)
    ================================================================ */
 Object.assign(window, {
-  useJobStore, useStockStore, useTechStore, useBrandStore,
+  useJobStore, useStockStore, useTechStore, useBrandStore, usePriceStore,
   blankJob, blankItem, blankTech, nextCode,
   SF_STORE_KEY,
 });
