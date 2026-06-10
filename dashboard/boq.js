@@ -92,7 +92,7 @@
       sparePct: { rail: 5, joiner: 5, endClamp: 10, midClamp: 10, lfeet: 5, ground: 10 },
       rows: [{ panels: +job.panels || 0, count: 1 }],
       cables: DEFAULT_CABLES.map((c) => Object.assign({}, c)),
-      conduit: { imc: [], upvc: [], pullbox: [], flexBox: 1 },
+      conduit: { imc: [], upvc: [], pullbox: [], flex: {} },
       conduitSpare: { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10 },
     };
   }
@@ -202,6 +202,7 @@
     const pbCount = Object.keys(pbMap).reduce((s, k) => s + pbMap[k], 0);
 
     const race = [];
+    const flexMap = cond.flex || {};
     // อุปกรณ์ IMC คำนวณ "แยกตามขนาดท่อ" — มีกี่ขนาดก็ได้อุปกรณ์ตามนั้น
     let totalClamp = 0;
     imcSizes.forEach((nm) => {
@@ -212,19 +213,19 @@
       const bushing = cpct(8 + pipes, cs.bushing);        // 8 + จำนวนท่อน
       const connector = cpct(10 + 2 * pbCount, cs.connector); // 10 + 2/PULL BOX
       const coupling = cpct(pipes / 2 + connector, cs.coupling);
+      const flex = (flexMap[nm] != null && flexMap[nm] !== "") ? Math.round(+flexMap[nm] || 0) : 1; // ท่ออ่อน default 1 กล่อง/ขนาด
       totalClamp += clamp;
       race.push({ name: nm + " (3m/ท่อน)", qty: pipes, unit: "ท่อน" });
       race.push({ name: "แคล้มประกับ IMC " + sz, qty: clamp, unit: "ตัว" });
       race.push({ name: "บุชชิ่ง,ล็อกนัท IMC " + sz, qty: bushing, unit: "ตัว" });
       race.push({ name: "คอนเนคเตอร์ท่ออ่อนกันน้ำ IMC " + sz, qty: connector, unit: "ตัว" });
       race.push({ name: "คุปปิ้ง " + sz, qty: coupling, unit: "ตัว" });
+      if (flex > 0) race.push({ name: "ท่ออ่อนเหล็กกันน้ำ 30m. " + sz, qty: flex, unit: "กล่อง" });
     });
     if (imcTotalLen > 0) {
-      // รางซี + ท่ออ่อน เป็นของรวมทั้งงาน (ไม่แยกขนาด)
+      // รางซี เป็นของรวมทั้งงาน (ไม่แยกขนาด)
       const cchannel = cpct((totalClamp * 0.2) / 1.2, cs.cchannel); // 0.2m/แคล้ม, รางยาว 1.2m
       race.push({ name: "รางซี C-Channel 20x1200x40x1.0 mm.", qty: cchannel, unit: "เส้น" });
-      const flexBox = (cond.flexBox != null) ? Math.round(+cond.flexBox || 0) : 1;
-      if (flexBox > 0) race.push({ name: "ท่ออ่อนเหล็กกันน้ำ 30m.", qty: flexBox, unit: "กล่อง" });
     }
     // uPVC (เมตร) + PULL BOX (ชิ้น)
     Object.keys(upvcMap).forEach((nm) => race.push({ name: nm, qty: upvcMap[nm], unit: "M" }));

@@ -32,7 +32,7 @@ function BOQEditor({ job, onClose, onSave }) {
   const setCond = (kind, i, k, v) => setB((p) => { const c = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit); const a = (c[kind] || []).slice(); a[i] = Object.assign({}, a[i], { [k]: v }); c[kind] = a; return Object.assign({}, p, { conduit: c }); });
   const addCond = (kind, item) => setB((p) => { const c = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit); c[kind] = (c[kind] || []).concat([item]); return Object.assign({}, p, { conduit: c }); });
   const delCond = (kind, i) => setB((p) => { const c = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit); c[kind] = (c[kind] || []).filter((_, j) => j !== i); return Object.assign({}, p, { conduit: c }); });
-  const setFlexBox = (v) => setB((p) => { const c = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit, { flexBox: v }); return Object.assign({}, p, { conduit: c }); });
+  const setFlexSize = (size, v) => setB((p) => { const c = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit); c.flex = Object.assign({}, c.flex, { [size]: v }); return Object.assign({}, p, { conduit: c }); });
   const setCSpare = (k, v) => setB((p) => Object.assign({}, p, { conduitSpare: Object.assign({ clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10 }, p.conduitSpare, { [k]: v }) }));
   const [advC, setAdvC] = React.useState(false);
   const csp = b.conduitSpare || { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10 };
@@ -218,7 +218,9 @@ function BOQEditor({ job, onClose, onSave }) {
                 <Field label="% เผื่อ รางซี"><input type="number" style={numStyle} value={csp.cchannel} onChange={(e) => setCSpare("cchannel", e.target.value)} /></Field>
                 <Field label="% เผื่อ คอนเนคเตอร์"><input type="number" style={numStyle} value={csp.connector} onChange={(e) => setCSpare("connector", e.target.value)} /></Field>
                 <Field label="% เผื่อ คุปปิ้ง"><input type="number" style={numStyle} value={csp.coupling} onChange={(e) => setCSpare("coupling", e.target.value)} /></Field>
-                <Field label="ท่ออ่อนเหล็กกันน้ำ 30m (กล่อง)"><input type="number" style={numStyle} value={(b.conduit || {}).flexBox != null ? b.conduit.flexBox : 1} onChange={(e) => setFlexBox(e.target.value)} /></Field>
+                {[...new Set((cond.imc || []).map((x) => (x.size || "").trim()).filter(Boolean))].map((sz) => (
+                  <Field key={sz} label={"ท่ออ่อน " + sz.replace(/^IMC\s*/i, "") + " (กล่อง)"}><input type="number" style={numStyle} value={(cond.flex || {})[sz] != null ? cond.flex[sz] : 1} onChange={(e) => setFlexSize(sz, e.target.value)} /></Field>
+                ))}
               </div>
             )}
           </Section>
