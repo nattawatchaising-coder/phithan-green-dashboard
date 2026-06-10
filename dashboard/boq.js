@@ -92,8 +92,8 @@
       sparePct: { rail: 5, joiner: 5, endClamp: 10, midClamp: 10, lfeet: 5, ground: 10 },
       rows: [{ panels: +job.panels || 0, count: 1 }],
       cables: DEFAULT_CABLES.map((c) => Object.assign({}, c)),
-      conduit: { imc: [], upvc: [], pullbox: [], flex: {} },
-      conduitSpare: { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10 },
+      conduit: { imc: [], upvc: [], pullbox: [], flex: {}, upFlex: {} },
+      conduitSpare: { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10, upStraight: 10, upClamp: 10, upConnector: 10 },
     };
   }
 
@@ -199,7 +199,11 @@
     const pbMap = aggBy(cond.pullbox, "qty");
     const imcSizes = Object.keys(imcMap);
     const imcTotalLen = imcSizes.reduce((s, k) => s + imcMap[k], 0);
-    const pbCount = Object.keys(pbMap).reduce((s, k) => s + pbMap[k], 0);
+    // แยกประเภท PULL BOX: uPVC vs HDG/เหล็ก
+    let pbHdg = 0, pbUpvc = 0;
+    Object.keys(pbMap).forEach((k) => { if (/uPVC/i.test(k)) pbUpvc += pbMap[k]; else pbHdg += pbMap[k]; });
+    const hasBat = (+b.batteryKwh || 0) > 0;
+    const hasBk = !!b.backup;
 
     const race = [];
     const flexMap = cond.flex || {};
@@ -211,7 +215,7 @@
       const pipes = Math.ceil(len / 3);                   // 3m/ท่อน
       const clamp = cpct(len, cs.clamp);                  // 1 ตัว/เมตร
       const bushing = cpct(8 + pipes, cs.bushing);        // 8 + จำนวนท่อน
-      const connector = cpct(10 + 2 * pbCount, cs.connector); // 10 + 2/PULL BOX
+      const connector = cpct(10 + 2 * pbHdg, cs.connector); // 10 + 2/PULL BOX HDG
       const coupling = cpct(pipes / 2 + connector, cs.coupling);
       const flex = (flexMap[nm] != null && flexMap[nm] !== "") ? Math.round(+flexMap[nm] || 0) : 1; // ท่ออ่อน default 1 กล่อง/ขนาด
       totalClamp += clamp;
@@ -227,8 +231,24 @@
       const cchannel = cpct((totalClamp * 0.2) / 1.2, cs.cchannel); // 0.2m/แคล้ม, รางยาว 1.2m
       race.push({ name: "รางซี C-Channel 20x1200x40x1.0 mm.", qty: cchannel, unit: "เส้น" });
     }
-    // uPVC (เมตร) + PULL BOX (ชิ้น)
-    Object.keys(upvcMap).forEach((nm) => race.push({ name: nm, qty: upvcMap[nm], unit: "M" }));
+    // uPVC แยกตามขนาด — ท่อ (2.9m/ท่อน) + อุปกรณ์
+    const upFlexMap = cond.upFlex || {};
+    Object.keys(upvcMap).forEach((nm) => {
+      const len = upvcMap[nm];
+      const mm = (nm.match(/(\d+)\s*mm/) || [])[1] || "";
+      const suf = mm ? (mm + "mm. (สีขาว)") : "";
+      const pipes = Math.ceil(len / 2.9);                 // 2.90m/ท่อน
+      const straight = cpct(pipes + 4, cs.upStraight);    // ข้อต่อตรง = ท่อน + 4
+      const clamp = cpct(len / 0.6, cs.upClamp);          // แคลมป์ก้ามปู ทุก 60cm
+      const connector = cpct(8 + (hasBat ? 4 : 0) + (hasBk ? 4 : 0) + 3 * pbUpvc, cs.upConnector);
+      const flex = (upFlexMap[nm] != null && upFlexMap[nm] !== "") ? Math.round(+upFlexMap[nm] || 0) : 1;
+      race.push({ name: nm + " (2.9m/ท่อน)", qty: pipes, unit: "ท่อน" });
+      race.push({ name: "ข้อต่อตรง uPVC " + suf, qty: straight, unit: "ตัว" });
+      race.push({ name: "แคลมป์ก้ามปู uPVC " + suf, qty: clamp, unit: "ตัว" });
+      race.push({ name: "คอนเน็ตเตอร์ uPVC " + suf, qty: connector, unit: "ตัว" });
+      if (flex > 0) race.push({ name: "ท่ออ่อนขาว uPVC " + suf, qty: flex, unit: "กล่อง" });
+    });
+    // PULL BOX (ชิ้น)
     Object.keys(pbMap).forEach((nm) => race.push({ name: nm, qty: pbMap[nm], unit: "ชิ้น" }));
 
     if (race.length) groups.push({ group: "RACE WAY", items: race });

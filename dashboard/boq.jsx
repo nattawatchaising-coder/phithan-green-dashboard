@@ -33,9 +33,11 @@ function BOQEditor({ job, onClose, onSave }) {
   const addCond = (kind, item) => setB((p) => { const c = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit); c[kind] = (c[kind] || []).concat([item]); return Object.assign({}, p, { conduit: c }); });
   const delCond = (kind, i) => setB((p) => { const c = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit); c[kind] = (c[kind] || []).filter((_, j) => j !== i); return Object.assign({}, p, { conduit: c }); });
   const setFlexSize = (size, v) => setB((p) => { const c = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit); c.flex = Object.assign({}, c.flex, { [size]: v }); return Object.assign({}, p, { conduit: c }); });
-  const setCSpare = (k, v) => setB((p) => Object.assign({}, p, { conduitSpare: Object.assign({ clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10 }, p.conduitSpare, { [k]: v }) }));
+  const setUpFlexSize = (size, v) => setB((p) => { const c = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit); c.upFlex = Object.assign({}, c.upFlex, { [size]: v }); return Object.assign({}, p, { conduit: c }); });
+  const SPARE_DEF = { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10, upStraight: 10, upClamp: 10, upConnector: 10 };
+  const setCSpare = (k, v) => setB((p) => Object.assign({}, p, { conduitSpare: Object.assign({}, SPARE_DEF, p.conduitSpare, { [k]: v }) }));
   const [advC, setAdvC] = React.useState(false);
-  const csp = b.conduitSpare || { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10 };
+  const csp = Object.assign({}, SPARE_DEF, b.conduitSpare);
 
   const result = window.BOQ.calcBOQ(b);
   const remaining = result.meta.panelCount - result.meta.rowsSum; // >0 ขาด, <0 เกิน, 0 ครบ
@@ -219,7 +221,13 @@ function BOQEditor({ job, onClose, onSave }) {
                 <Field label="% เผื่อ คอนเนคเตอร์"><input type="number" style={numStyle} value={csp.connector} onChange={(e) => setCSpare("connector", e.target.value)} /></Field>
                 <Field label="% เผื่อ คุปปิ้ง"><input type="number" style={numStyle} value={csp.coupling} onChange={(e) => setCSpare("coupling", e.target.value)} /></Field>
                 {[...new Set((cond.imc || []).map((x) => (x.size || "").trim()).filter(Boolean))].map((sz) => (
-                  <Field key={sz} label={"ท่ออ่อน " + sz.replace(/^IMC\s*/i, "") + " (กล่อง)"}><input type="number" style={numStyle} value={(cond.flex || {})[sz] != null ? cond.flex[sz] : 1} onChange={(e) => setFlexSize(sz, e.target.value)} /></Field>
+                  <Field key={sz} label={"ท่ออ่อน IMC " + sz.replace(/^IMC\s*/i, "") + " (กล่อง)"}><input type="number" style={numStyle} value={(cond.flex || {})[sz] != null ? cond.flex[sz] : 1} onChange={(e) => setFlexSize(sz, e.target.value)} /></Field>
+                ))}
+                <Field label="% เผื่อ ข้อต่อตรง"><input type="number" style={numStyle} value={csp.upStraight} onChange={(e) => setCSpare("upStraight", e.target.value)} /></Field>
+                <Field label="% เผื่อ แคลมป์ก้ามปู"><input type="number" style={numStyle} value={csp.upClamp} onChange={(e) => setCSpare("upClamp", e.target.value)} /></Field>
+                <Field label="% เผื่อ คอนเน็ตเตอร์ uPVC"><input type="number" style={numStyle} value={csp.upConnector} onChange={(e) => setCSpare("upConnector", e.target.value)} /></Field>
+                {[...new Set((cond.upvc || []).map((x) => (x.size || "").trim()).filter(Boolean))].map((sz) => (
+                  <Field key={sz} label={"ท่ออ่อนขาว " + ((sz.match(/(\d+)\s*mm/) || [])[1] || "") + "mm (กล่อง)"}><input type="number" style={numStyle} value={(cond.upFlex || {})[sz] != null ? cond.upFlex[sz] : 1} onChange={(e) => setUpFlexSize(sz, e.target.value)} /></Field>
                 ))}
               </div>
             )}
