@@ -197,25 +197,32 @@
     const imcMap = aggBy(cond.imc, "length");        // ขนาด → ความยาวรวม (m)
     const upvcMap = aggBy(cond.upvc, "length");
     const pbMap = aggBy(cond.pullbox, "qty");
-    const imcTotalLen = Object.keys(imcMap).reduce((s, k) => s + imcMap[k], 0);
+    const imcSizes = Object.keys(imcMap);
+    const imcTotalLen = imcSizes.reduce((s, k) => s + imcMap[k], 0);
     const pbCount = Object.keys(pbMap).reduce((s, k) => s + pbMap[k], 0);
 
     const race = [];
-    // ท่อ IMC ต่อขนาด → ปัดขึ้นเป็นท่อน (3m/ท่อน)
-    let totalPipes = 0;
-    Object.keys(imcMap).forEach((nm) => { const pcs = Math.ceil(imcMap[nm] / 3); totalPipes += pcs; race.push({ name: nm + " (3m/ท่อน)", qty: pcs, unit: "ท่อน" }); });
-
+    // อุปกรณ์ IMC คำนวณ "แยกตามขนาดท่อ" — มีกี่ขนาดก็ได้อุปกรณ์ตามนั้น
+    let totalClamp = 0;
+    imcSizes.forEach((nm) => {
+      const len = imcMap[nm];
+      const sz = nm.replace(/^IMC\s*/i, "").trim();      // เช่น 1"
+      const pipes = Math.ceil(len / 3);                   // 3m/ท่อน
+      const clamp = cpct(len, cs.clamp);                  // 1 ตัว/เมตร
+      const bushing = cpct(8 + pipes, cs.bushing);        // 8 + จำนวนท่อน
+      const connector = cpct(10 + 2 * pbCount, cs.connector); // 10 + 2/PULL BOX
+      const coupling = cpct(pipes / 2 + connector, cs.coupling);
+      totalClamp += clamp;
+      race.push({ name: nm + " (3m/ท่อน)", qty: pipes, unit: "ท่อน" });
+      race.push({ name: "แคล้มประกับ IMC " + sz, qty: clamp, unit: "ตัว" });
+      race.push({ name: "บุชชิ่ง,ล็อกนัท IMC " + sz, qty: bushing, unit: "ตัว" });
+      race.push({ name: "คอนเนคเตอร์ท่ออ่อนกันน้ำ IMC " + sz, qty: connector, unit: "ตัว" });
+      race.push({ name: "คุปปิ้ง " + sz, qty: coupling, unit: "ตัว" });
+    });
     if (imcTotalLen > 0) {
-      const clamp = cpct(imcTotalLen, cs.clamp);                    // 1 ตัว/เมตร
-      const bushing = cpct(8 + totalPipes, cs.bushing);            // เริ่ม 8 + ตามจำนวนท่อน
-      const cchannel = cpct((clamp * 0.2) / 1.2, cs.cchannel);    // 0.2m/แคล้ม, รางยาว 1.2m
-      const connector = cpct(10 + 2 * pbCount, cs.connector);     // เริ่ม 10 + 2/PULL BOX
-      const coupling = cpct(totalPipes / 2 + connector, cs.coupling);
-      race.push({ name: "แคล้มประกับ IMC", qty: clamp, unit: "ตัว" });
-      race.push({ name: "บุชชิ่ง,ล็อกนัท IMC", qty: bushing, unit: "ตัว" });
+      // รางซี + ท่ออ่อน เป็นของรวมทั้งงาน (ไม่แยกขนาด)
+      const cchannel = cpct((totalClamp * 0.2) / 1.2, cs.cchannel); // 0.2m/แคล้ม, รางยาว 1.2m
       race.push({ name: "รางซี C-Channel 20x1200x40x1.0 mm.", qty: cchannel, unit: "เส้น" });
-      race.push({ name: "คอนเนคเตอร์ท่ออ่อนกันน้ำ IMC", qty: connector, unit: "ตัว" });
-      race.push({ name: 'คุปปิ้ง 1"', qty: coupling, unit: "ตัว" });
       const flexBox = (cond.flexBox != null) ? Math.round(+cond.flexBox || 0) : 1;
       if (flexBox > 0) race.push({ name: "ท่ออ่อนเหล็กกันน้ำ 30m.", qty: flexBox, unit: "กล่อง" });
     }
