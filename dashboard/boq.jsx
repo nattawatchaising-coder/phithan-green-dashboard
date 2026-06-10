@@ -32,6 +32,10 @@ function BOQEditor({ job, onClose, onSave }) {
   const setCond = (kind, i, k, v) => setB((p) => { const c = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit); const a = (c[kind] || []).slice(); a[i] = Object.assign({}, a[i], { [k]: v }); c[kind] = a; return Object.assign({}, p, { conduit: c }); });
   const addCond = (kind, item) => setB((p) => { const c = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit); c[kind] = (c[kind] || []).concat([item]); return Object.assign({}, p, { conduit: c }); });
   const delCond = (kind, i) => setB((p) => { const c = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit); c[kind] = (c[kind] || []).filter((_, j) => j !== i); return Object.assign({}, p, { conduit: c }); });
+  const setFlexBox = (v) => setB((p) => { const c = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit, { flexBox: v }); return Object.assign({}, p, { conduit: c }); });
+  const setCSpare = (k, v) => setB((p) => Object.assign({}, p, { conduitSpare: Object.assign({ clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10 }, p.conduitSpare, { [k]: v }) }));
+  const [advC, setAdvC] = React.useState(false);
+  const csp = b.conduitSpare || { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10 };
 
   const result = window.BOQ.calcBOQ(b);
   const remaining = result.meta.panelCount - result.meta.rowsSum; // >0 ขาด, <0 เกิน, 0 ครบ
@@ -197,10 +201,26 @@ function BOQEditor({ job, onClose, onSave }) {
           {/* ── ท่อร้อยสาย (RACE WAY) ── */}
           <Section title="ท่อร้อยสาย (RACE WAY)" icon="grid">
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <ConduitList kind="imc" label="ท่อ IMC" sizes={window.BOQ.IMC_SIZES} valKey="length" unitText="ม." />
+              <ConduitList kind="imc" label="ท่อ IMC (3m/ท่อน)" sizes={window.BOQ.IMC_SIZES} valKey="length" unitText="ม." />
               <ConduitList kind="upvc" label="ท่อ uPVC" sizes={window.BOQ.UPVC_SIZES} valKey="length" unitText="ม." />
               <ConduitList kind="pullbox" label="PULL BOX" sizes={window.BOQ.PULLBOX_SIZES} valKey="qty" unitText="ชิ้น" />
             </div>
+            <div style={{ marginTop: 12, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
+              * อุปกรณ์ IMC (แคล้มประกับ / บุชชิ่ง,ล็อกนัท / รางซี / คอนเนคเตอร์ / คุปปิ้ง) คำนวณอัตโนมัติจากความยาวท่อ + จำนวน PULL BOX
+            </div>
+            <button onClick={() => setAdvC((v) => !v)} style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", color: "var(--text-2)", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+              <Icon name="settings" size={13} color="var(--text-2)" /> ตั้งค่าอุปกรณ์ IMC (% เผื่อ / ท่ออ่อน) <Icon name="chevronDown" size={14} color="var(--text-2)" style={{ transform: advC ? "rotate(180deg)" : "none" }} />
+            </button>
+            {advC && (
+              <div style={{ marginTop: 10, padding: 12, background: "var(--surface2)", borderRadius: 10, display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: 10 }}>
+                <Field label="% เผื่อ แคล้มประกับ"><input type="number" style={numStyle} value={csp.clamp} onChange={(e) => setCSpare("clamp", e.target.value)} /></Field>
+                <Field label="% เผื่อ บุชชิ่ง/ล็อกนัท"><input type="number" style={numStyle} value={csp.bushing} onChange={(e) => setCSpare("bushing", e.target.value)} /></Field>
+                <Field label="% เผื่อ รางซี"><input type="number" style={numStyle} value={csp.cchannel} onChange={(e) => setCSpare("cchannel", e.target.value)} /></Field>
+                <Field label="% เผื่อ คอนเนคเตอร์"><input type="number" style={numStyle} value={csp.connector} onChange={(e) => setCSpare("connector", e.target.value)} /></Field>
+                <Field label="% เผื่อ คุปปิ้ง"><input type="number" style={numStyle} value={csp.coupling} onChange={(e) => setCSpare("coupling", e.target.value)} /></Field>
+                <Field label="ท่ออ่อนเหล็กกันน้ำ 30m (กล่อง)"><input type="number" style={numStyle} value={(b.conduit || {}).flexBox != null ? b.conduit.flexBox : 1} onChange={(e) => setFlexBox(e.target.value)} /></Field>
+              </div>
+            )}
           </Section>
 
           {/* ── ผลลัพธ์ BOQ ── */}

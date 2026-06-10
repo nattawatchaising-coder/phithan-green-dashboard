@@ -92,7 +92,8 @@
       sparePct: { rail: 5, joiner: 5, endClamp: 10, midClamp: 10, lfeet: 5, ground: 10 },
       rows: [{ panels: +job.panels || 0, count: 1 }],
       cables: DEFAULT_CABLES.map((c) => Object.assign({}, c)),
-      conduit: { imc: [], upvc: [], pullbox: [] },
+      conduit: { imc: [], upvc: [], pullbox: [], flexBox: 1 },
+      conduitSpare: { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10 },
     };
   }
 
@@ -184,20 +185,44 @@
     // CABLE
     groups.push({ group: "CABLE", items: Object.keys(cableAgg).map((t) => ({ name: t, qty: cableAgg[t], unit: "M" })) });
 
-    // RACE WAY (ท่อร้อยสาย: IMC / uPVC / PULL BOX) — รวมตามชนิด
+    // RACE WAY (ท่อร้อยสาย: IMC + อุปกรณ์ / uPVC / PULL BOX)
     const cond = b.conduit || {};
-    const race = [], rmap = {};
-    const pushAgg = (arr, valKey, unit) => {
-      (arr || []).forEach((x) => {
-        const nm = (x.size || "").trim(), q = +x[valKey] || 0;
-        if (!nm || q <= 0) return;
-        if (!rmap[nm]) { rmap[nm] = { name: nm, qty: 0, unit }; race.push(rmap[nm]); }
-        rmap[nm].qty += q;
-      });
+    const cs = b.conduitSpare || {};
+    const cpct = (v, p) => Math.round(v * (1 + (+p || 0) / 100));
+    const aggBy = (arr, valKey) => {
+      const m = {};
+      (arr || []).forEach((x) => { const nm = (x.size || "").trim(), q = +x[valKey] || 0; if (nm && q > 0) m[nm] = (m[nm] || 0) + q; });
+      return m;
     };
-    pushAgg(cond.imc, "length", "M");
-    pushAgg(cond.upvc, "length", "M");
-    pushAgg(cond.pullbox, "qty", "ชิ้น");
+    const imcMap = aggBy(cond.imc, "length");        // ขนาด → ความยาวรวม (m)
+    const upvcMap = aggBy(cond.upvc, "length");
+    const pbMap = aggBy(cond.pullbox, "qty");
+    const imcTotalLen = Object.keys(imcMap).reduce((s, k) => s + imcMap[k], 0);
+    const pbCount = Object.keys(pbMap).reduce((s, k) => s + pbMap[k], 0);
+
+    const race = [];
+    // ท่อ IMC ต่อขนาด → ปัดขึ้นเป็นท่อน (3m/ท่อน)
+    let totalPipes = 0;
+    Object.keys(imcMap).forEach((nm) => { const pcs = Math.ceil(imcMap[nm] / 3); totalPipes += pcs; race.push({ name: nm + " (3m/ท่อน)", qty: pcs, unit: "ท่อน" }); });
+
+    if (imcTotalLen > 0) {
+      const clamp = cpct(imcTotalLen, cs.clamp);                    // 1 ตัว/เมตร
+      const bushing = cpct(8 + totalPipes, cs.bushing);            // เริ่ม 8 + ตามจำนวนท่อน
+      const cchannel = cpct((clamp * 0.2) / 1.2, cs.cchannel);    // 0.2m/แคล้ม, รางยาว 1.2m
+      const connector = cpct(10 + 2 * pbCount, cs.connector);     // เริ่ม 10 + 2/PULL BOX
+      const coupling = cpct(totalPipes / 2 + connector, cs.coupling);
+      race.push({ name: "แคล้มประกับ IMC", qty: clamp, unit: "ตัว" });
+      race.push({ name: "บุชชิ่ง,ล็อกนัท IMC", qty: bushing, unit: "ตัว" });
+      race.push({ name: "รางซี C-Channel 20x1200x40x1.0 mm.", qty: cchannel, unit: "เส้น" });
+      race.push({ name: "คอนเนคเตอร์ท่ออ่อนกันน้ำ IMC", qty: connector, unit: "ตัว" });
+      race.push({ name: 'คุปปิ้ง 1"', qty: coupling, unit: "ตัว" });
+      const flexBox = (cond.flexBox != null) ? Math.round(+cond.flexBox || 0) : 1;
+      if (flexBox > 0) race.push({ name: "ท่ออ่อนเหล็กกันน้ำ 30m.", qty: flexBox, unit: "กล่อง" });
+    }
+    // uPVC (เมตร) + PULL BOX (ชิ้น)
+    Object.keys(upvcMap).forEach((nm) => race.push({ name: nm, qty: upvcMap[nm], unit: "M" }));
+    Object.keys(pbMap).forEach((nm) => race.push({ name: nm, qty: pbMap[nm], unit: "ชิ้น" }));
+
     if (race.length) groups.push({ group: "RACE WAY", items: race });
 
     return { groups, meta: { panelCount, kw, rowsSum, invCount, battCount, valid: rowsSum === panelCount } };
