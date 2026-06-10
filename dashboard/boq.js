@@ -253,6 +253,20 @@
 
     if (race.length) groups.push({ group: "RACE WAY", items: race });
 
+    // GROUNDING (ระบบกราวด์) — ตามขนาดติดตั้ง (kW); ไซต์ใหญ่ตั้งแต่ 30 kW เพิ่มอุปกรณ์
+    if (panelCount > 0) {
+      const big = kw >= 30;
+      const gnd = [
+        { name: 'แท่งกราวด์ชุบทองแดง 5/8" ยาว 2.4 m', qty: big ? 3 : 1, unit: "อัน" },
+        { name: 'อุปกรณ์เชื่อมสายกราวด์เทอร์โมเวล 2 ทาง 16 sq.mm Rod 5/8"', qty: big ? 2 : 1, unit: "อัน" },
+      ];
+      if (big) {
+        gnd.push({ name: 'อุปกรณ์เชื่อมสายกราวด์เทอร์โมเวล 3 ทาง 16 sq.mm Rod 5/8"', qty: 1, unit: "อัน" });
+        gnd.push({ name: "GROUNDTESTBOX-PVC-SEC", qty: 1, unit: "อัน" });
+      }
+      groups.push({ group: "GROUNDING", items: gnd });
+    }
+
     return { groups, meta: { panelCount, kw, rowsSum, invCount, battCount, valid: rowsSum === panelCount } };
   }
 

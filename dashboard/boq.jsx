@@ -56,7 +56,7 @@ function BOQEditor({ job, onClose, onSave }) {
 
   const opt = (arr) => arr.map((x) => ({ value: x, label: typeof x === "string" ? x.trim() : x }));
 
-  const GROUP_COLOR = { "PV MODULE": "#22A35B", INVERTER: "#7C5CFC", MOUNTING: "#F59E0B", CABLE: "#0EA5E9", "RACE WAY": "#64748B" };
+  const GROUP_COLOR = { "PV MODULE": "#22A35B", INVERTER: "#7C5CFC", MOUNTING: "#F59E0B", CABLE: "#0EA5E9", "RACE WAY": "#64748B", GROUNDING: "#A16207" };
 
   const ConduitList = ({ kind, label, sizes, valKey, unitText }) => (
     <div>
