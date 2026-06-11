@@ -146,11 +146,9 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
         </div>
       ) : (
       <div className="app-content">
-        <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 18 }}>
+        <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14, marginBottom: 18 }}>
           <StockKpi label="รายการทั้งหมด" value={items.length} unit="ชนิด" icon="box" accent="#3B82F6" sub="ชนิดอุปกรณ์ในคลัง" active={kpiFilter===null} onClick={() => setKpiFilter(null)} />
           <StockKpi label="ใกล้หมด / ต่ำกว่าขั้นต่ำ" value={lowCount} unit="รายการ" icon="alert" accent="#F59E0B" sub="ควรสั่งเพิ่ม" active={kpiFilter==="low"} onClick={() => setKpiFilter(f => f==="low" ? null : "low")} />
-          <StockKpi label="รับเข้าเดือนนี้" value={inMonth} unit="ชิ้น" icon="arrowRight" accent="#22A35B" sub={inItemIds.size + " รายการ"} active={kpiFilter==="in"} onClick={() => setKpiFilter(f => f==="in" ? null : "in")} />
-          <StockKpi label="เบิกออกเดือนนี้" value={outMonth} unit="ชิ้น" icon="wrench" accent="#7C5CFC" sub={outItemIds.size + " รายการ"} active={kpiFilter==="out"} onClick={() => setKpiFilter(f => f==="out" ? null : "out")} />
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1.65fr 1fr", gap: 18, alignItems: "start" }}>
