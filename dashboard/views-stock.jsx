@@ -49,6 +49,8 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   const [tab, setTab] = React.useState("stock"); // "stock" | "prices"
   const isPrices = tab === "prices" && canManagePrices;
   const [cat, setCat] = React.useState("all");
+  const [catOpen, setCatOpen] = React.useState(() => localStorage.getItem("sf_stock_catopen") !== "0"); // ย่อ/ขยายแถบกรองหมวด
+  const toggleCat = () => setCatOpen((v) => { localStorage.setItem("sf_stock_catopen", v ? "0" : "1"); return !v; });
   const [kpiFilter, setKpiFilter] = React.useState(null); // null | 'low' | 'in' | 'out'
   const [search, setSearch] = React.useState("");
   const [moveItem, setMoveItem] = React.useState(null); // {item, type}
@@ -115,9 +117,21 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
             // มือถือ: custom dropdown — จุดสีประจำหมวด + จำนวน + ไฮไลต์หมวดที่เลือก
             <CatDropdown cat={cat} setCat={setCat} items={items} cats={SF.STOCK_CATS} />
           ) : (
-            <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
-              <CatChip active={cat === "all"} onClick={() => setCat("all")} label="ทั้งหมด" color="var(--text-2)" />
-              {SF.STOCK_CATS.map((c) => <CatChip key={c.key} active={cat === c.key} onClick={() => setCat(c.key)} label={c.th} color={c.color} />)}
+            <div>
+              <button onClick={toggleCat} title={catOpen ? "ซ่อนตัวกรองหมวด" : "แสดงตัวกรองหมวด"}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 13px", borderRadius: 99,
+                  border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)",
+                  fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                <Icon name="filter" size={14} color="var(--text-2)" />
+                หมวดหมู่{cat !== "all" ? ": " + ((SF.STOCK_CAT_BY[cat] || {}).th || "") : ""}
+                <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: catOpen ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
+              </button>
+              {catOpen && (
+                <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center", marginTop: 8 }}>
+                  <CatChip active={cat === "all"} onClick={() => setCat("all")} label="ทั้งหมด" color="var(--text-2)" />
+                  {SF.STOCK_CATS.map((c) => <CatChip key={c.key} active={cat === c.key} onClick={() => setCat(c.key)} label={c.th} color={c.color} />)}
+                </div>
+              )}
             </div>
           ))}
         </div>
