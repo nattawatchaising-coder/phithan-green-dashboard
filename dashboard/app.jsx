@@ -94,7 +94,6 @@ function App() {
   const [techMgr, setTechMgr] = React.useState(false);
   const [brandMgr, setBrandMgr] = React.useState(false);
   const [userMgr, setUserMgr] = React.useState(false);
-  const [priceMgr, setPriceMgr] = React.useState(false);
   const [notifOpen, setNotifOpen] = React.useState(false);
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const isMobile = useIsMobile(); // force App re-render when mobile↔desktop breakpoint changes
@@ -183,11 +182,11 @@ function App() {
       <Sidebar view={view} onNav={navTo} role={role} jobs={jobs} stock={stock} t={t}
         open={sidebarOpen} onClose={closeSidebar}
         currentUser={auth.current} onLogout={auth.logout}
-        canManageUsers={can(role, "manageUsers")} onManageUsers={() => { setUserMgr(true); closeSidebar(); }}
-        canManagePrices={can(role, "delJob")} onManagePrices={() => { setPriceMgr(true); closeSidebar(); }} />
+        canManageUsers={can(role, "manageUsers")} onManageUsers={() => { setUserMgr(true); closeSidebar(); }} />
       <main className="app-main">
         {view === "stock" ? (
-          <StockView stock={stock} onMenuOpen={() => setSidebarOpen(true)} currentUser={auth.current} jobs={jobs} />
+          <StockView stock={stock} onMenuOpen={() => setSidebarOpen(true)} currentUser={auth.current} jobs={jobs}
+            priceStore={priceStore} canManagePrices={can(role, "delJob")} />
         ) : (
         <React.Fragment>
         <Header view={view} role={role} count={filtered.length} total={jobs.length}
@@ -225,7 +224,6 @@ function App() {
       {techMgr && <TechManager store={techStore} onClose={() => setTechMgr(false)} />}
       {brandMgr && <BrandManager store={brandStore} onClose={() => setBrandMgr(false)} />}
       {userMgr && can(role, "manageUsers") && <UserManager authStore={auth} onClose={() => setUserMgr(false)} />}
-      {priceMgr && can(role, "delJob") && <PriceManager priceStore={priceStore} stock={stock} onClose={() => setPriceMgr(false)} />}
 
       <TweaksPanel>
         <TweakSection label="ธีม / Theme" />
@@ -242,7 +240,7 @@ function App() {
   );
 }
 
-function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, currentUser, onLogout, canManageUsers, onManageUsers, canManagePrices, onManagePrices }) {
+function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, currentUser, onLogout, canManageUsers, onManageUsers }) {
   const icons = t.sidebar === "icons";
   // Read media query synchronously every render — avoids stale state when
   // the preview or device loads at one size then displays at another.
@@ -287,12 +285,6 @@ function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, currentUser
           );
         })}
         {/* เมนูจัดการผู้ใช้ — เฉพาะแอดมิน */}
-        {canManagePrices && (
-          <button onClick={onManagePrices} className="nav-item" title="ราคาวัสดุ">
-            <Icon name="box" size={19} color="var(--text-2)" />
-            {!icons && <span>ราคาวัสดุ</span>}
-          </button>
-        )}
         {canManageUsers && (
           <button onClick={onManageUsers} className="nav-item" title="จัดการผู้ใช้งาน">
             <Icon name="users" size={19} color="var(--text-2)" />

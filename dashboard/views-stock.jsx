@@ -42,10 +42,12 @@ function StockKpi({ label, value, unit, icon, accent, sub, active, onClick }) {
   );
 }
 
-function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs }) {
+function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStore, canManagePrices }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const byName = (currentUser && currentUser.name) || "-";
+  const [tab, setTab] = React.useState("stock"); // "stock" | "prices"
+  const isPrices = tab === "prices" && canManagePrices;
   const [cat, setCat] = React.useState("all");
   const [kpiFilter, setKpiFilter] = React.useState(null); // null | 'low' | 'in' | 'out'
   const [search, setSearch] = React.useState("");
@@ -77,14 +79,19 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs }) {
             <Icon name="menu" size={18} color="var(--text-2)" />
           </button>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h1 className="page-title">คลังสินค้า / สต็อก</h1>
+            <h1 className="page-title">{isPrices ? "ราคาวัสดุ (BOQ)" : "คลังสินค้า / สต็อก"}</h1>
+            {isPrices ? (
+              <p className="page-sub">รหัส / ราคา / หน่วย สำหรับคำนวณต้นทุน BOQ</p>
+            ) : (
             <p className="page-sub">อุปกรณ์ติดตั้ง <strong>{filtered.length}</strong> จาก {items.length} รายการ
               {kpiFilter && <span> · <span style={{ color: "#F59E0B", fontWeight: 700 }}>กรอง: {
                 kpiFilter === "low" ? "ใกล้หมด" : kpiFilter === "in" ? "รับเข้าเดือนนี้" : "เบิกออกเดือนนี้"
               }</span> <button onClick={() => setKpiFilter(null)} className="clear-chip">ล้าง ✕</button></span>}
               {!kpiFilter && lowCount > 0 && <span> · <span style={{ color: "#F59E0B", fontWeight: 700 }}>{lowCount} รายการใกล้หมด</span></span>}
             </p>
+            )}
           </div>
+          {!isPrices && (
           <div className="header-actions">
             <div className="search-box">
               <Icon name="search" size={16} color="var(--text-3)" />
@@ -94,9 +101,17 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs }) {
               <Icon name="plus" size={17} color="#fff" sw={2.4} /><span>เพิ่มรายการ</span>
             </button>
           </div>
+          )}
         </div>
         <div className="header-filters">
-          {isMobile ? (
+          {/* แท็บ สต็อก / ราคา BOQ */}
+          {canManagePrices && (
+            <div style={{ display: "flex", gap: 7, alignItems: "center", marginBottom: 10 }}>
+              <CatChip active={tab === "stock"} onClick={() => setTab("stock")} label="สต็อก" color="#3B82F6" />
+              <CatChip active={tab === "prices"} onClick={() => setTab("prices")} label="ราคา BOQ" color="#EC4899" />
+            </div>
+          )}
+          {!isPrices && (isMobile ? (
             // มือถือ: custom dropdown — จุดสีประจำหมวด + จำนวน + ไฮไลต์หมวดที่เลือก
             <CatDropdown cat={cat} setCat={setCat} items={items} cats={SF.STOCK_CATS} />
           ) : (
@@ -104,10 +119,15 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs }) {
               <CatChip active={cat === "all"} onClick={() => setCat("all")} label="ทั้งหมด" color="var(--text-2)" />
               {SF.STOCK_CATS.map((c) => <CatChip key={c.key} active={cat === c.key} onClick={() => setCat(c.key)} label={c.th} color={c.color} />)}
             </div>
-          )}
+          ))}
         </div>
       </header>
 
+      {isPrices ? (
+        <div className="app-content">
+          <PricePanel priceStore={priceStore} stock={stock} />
+        </div>
+      ) : (
       <div className="app-content">
         <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 18 }}>
           <StockKpi label="รายการทั้งหมด" value={items.length} unit="ชนิด" icon="box" accent="#3B82F6" sub="ชนิดอุปกรณ์ในคลัง" active={kpiFilter===null} onClick={() => setKpiFilter(null)} />
@@ -203,6 +223,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs }) {
           </div>
         </div>
       </div>
+      )}
 
       {moveItem && <MoveModal info={moveItem} byName={byName} jobs={jobs || []} onSave={(qty, ref, note, jobId) => { stock.move(moveItem.item.id, moveItem.type, qty, ref, note, byName, jobId); setMoveItem(null); }} onClose={() => setMoveItem(null)} />}
       {itemForm && <ItemModal initial={itemForm.item} isNew={itemForm.isNew} onSave={(rec) => { stock.upsertItem(rec); setItemForm(null); }} onClose={() => setItemForm(null)} />}
