@@ -10,6 +10,7 @@
     { key: "battery",   th: "แบตเตอรี่",       color: "#14B8A6", icon: "battery" },
     { key: "structure", th: "Solar Mounting",    color: "#F59E0B", icon: "box" },
     { key: "wiring",    th: "สายไฟ / ไฟฟ้า",   color: "#EF4444", icon: "flow" },
+    { key: "accessory", th: "Accessories",      color: "#EC4899", icon: "box" },
     { key: "other",     th: "อื่นๆ",            color: "#84CC16", icon: "box" },
   ];
 
