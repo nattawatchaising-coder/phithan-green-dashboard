@@ -31,6 +31,7 @@ function PriceManager({ priceStore, stock, onClose }) {
 
   const set = (name, k, v) => setLocal((p) => Object.assign({}, p, { [name]: Object.assign({}, p[name], { [k]: v }) }));
   const groups = ["all"].concat([...new Set(cat.map((c) => c.group))]);
+  if (!groups.includes("ACCESSORIES")) groups.push("ACCESSORIES"); // แสดงหมวด Accessories เสมอ
 
   // ── ฟอร์มเพิ่มวัสดุเอง ──
   const [nf, setNf] = React.useState({ name: "", code: "", price: "", unit: "" });
