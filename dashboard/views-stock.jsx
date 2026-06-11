@@ -106,34 +106,37 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
           )}
         </div>
         <div className="header-filters">
-          {/* แท็บ สต็อก / ราคา BOQ */}
-          {canManagePrices && (
-            <div style={{ display: "flex", gap: 7, alignItems: "center", marginBottom: 10 }}>
-              <CatChip active={tab === "stock"} onClick={() => setTab("stock")} label="สต็อก" color="#3B82F6" />
-              <CatChip active={tab === "prices"} onClick={() => setTab("prices")} label="ราคา BOQ" color="#EC4899" />
-            </div>
-          )}
-          {!isPrices && (isMobile ? (
-            // มือถือ: custom dropdown — จุดสีประจำหมวด + จำนวน + ไฮไลต์หมวดที่เลือก
-            <CatDropdown cat={cat} setCat={setCat} items={items} cats={SF.STOCK_CATS} />
-          ) : (
-            <div>
+          {/* แถวเดียว: แท็บ (ซ้าย) + ปุ่มย่อ/ขยายหมวด (ขวา) */}
+          <div style={{ display: "flex", gap: 7, alignItems: "center", flexWrap: "wrap" }}>
+            {canManagePrices && (
+              <React.Fragment>
+                <CatChip active={tab === "stock"} onClick={() => setTab("stock")} label="สต็อก" color="#3B82F6" />
+                <CatChip active={tab === "prices"} onClick={() => setTab("prices")} label="ราคา BOQ" color="#EC4899" />
+              </React.Fragment>
+            )}
+            {!isPrices && !isMobile && (
               <button onClick={toggleCat} title={catOpen ? "ซ่อนตัวกรองหมวด" : "แสดงตัวกรองหมวด"}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 13px", borderRadius: 99,
+                style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 13px", borderRadius: 99,
                   border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)",
                   fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
                 <Icon name="filter" size={14} color="var(--text-2)" />
                 หมวดหมู่{cat !== "all" ? ": " + ((SF.STOCK_CAT_BY[cat] || {}).th || "") : ""}
                 <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: catOpen ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
               </button>
-              {catOpen && (
-                <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center", marginTop: 8 }}>
-                  <CatChip active={cat === "all"} onClick={() => setCat("all")} label="ทั้งหมด" color="var(--text-2)" />
-                  {SF.STOCK_CATS.map((c) => <CatChip key={c.key} active={cat === c.key} onClick={() => setCat(c.key)} label={c.th} color={c.color} />)}
-                </div>
-              )}
+            )}
+          </div>
+          {/* มือถือ: dropdown หมวด */}
+          {!isPrices && isMobile && <div style={{ marginTop: 10 }}><CatDropdown cat={cat} setCat={setCat} items={items} cats={SF.STOCK_CATS} /></div>}
+          {/* เดสก์ท็อป: ชิปหมวด — ย่อ/ขยายแบบลื่น (max-height + opacity) */}
+          {!isPrices && !isMobile && (
+            <div style={{ overflow: "hidden", maxHeight: catOpen ? 140 : 0, opacity: catOpen ? 1 : 0,
+              marginTop: catOpen ? 8 : 0, transition: "max-height .24s ease, opacity .2s ease, margin-top .24s ease" }}>
+              <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
+                <CatChip active={cat === "all"} onClick={() => setCat("all")} label="ทั้งหมด" color="var(--text-2)" />
+                {SF.STOCK_CATS.map((c) => <CatChip key={c.key} active={cat === c.key} onClick={() => setCat(c.key)} label={c.th} color={c.color} />)}
+              </div>
             </div>
-          ))}
+          )}
         </div>
       </header>
 
