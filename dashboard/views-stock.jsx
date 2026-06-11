@@ -55,6 +55,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   const [search, setSearch] = React.useState("");
   const [moveItem, setMoveItem] = React.useState(null); // {item, type}
   const [itemForm, setItemForm] = React.useState(null); // {item, isNew}
+  const [movesOpen, setMovesOpen] = React.useState(false); // popup ความเคลื่อนไหว
 
   const items = stock.items;
   const lowCount = items.filter((it) => lowState(it) !== "ok").length;
@@ -146,13 +147,14 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
         </div>
       ) : (
       <div className="app-content">
-        <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14, marginBottom: 18 }}>
+        <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)", gap: 14, marginBottom: 18 }}>
           <StockKpi label="รายการทั้งหมด" value={items.length} unit="ชนิด" icon="box" accent="#3B82F6" sub="ชนิดอุปกรณ์ในคลัง" active={kpiFilter===null} onClick={() => setKpiFilter(null)} />
           <StockKpi label="ใกล้หมด / ต่ำกว่าขั้นต่ำ" value={lowCount} unit="รายการ" icon="alert" accent="#F59E0B" sub="ควรสั่งเพิ่ม" active={kpiFilter==="low"} onClick={() => setKpiFilter(f => f==="low" ? null : "low")} />
+          <StockKpi label="ความเคลื่อนไหวล่าสุด" value={stock.moves.length} unit="รายการ" icon="history" accent="#0EA5E9" sub="แตะดูทั้งหมด" active={movesOpen} onClick={() => setMovesOpen(true)} />
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1.65fr 1fr", gap: 18, alignItems: "start" }}>
-          {/* stock list — มือถือ: card list, เดสก์ท็อป: ตาราง */}
+        <div>
+          {/* stock list — เต็มความกว้าง (มือถือ: card list, เดสก์ท็อป: ตาราง) */}
           {isMobile ? (
             <StockCardList items={filtered} onMove={setMoveItem}
               onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
@@ -209,40 +211,73 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
             </div>
           </div>
           )}
-
-          {/* ledger */}
-          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, boxShadow: "var(--shadow-sm)" }}>
-            <PanelTitle icon="history" title="ความเคลื่อนไหวล่าสุด" sub="รับเข้า / เบิกออก" />
-            <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8, maxHeight: 560, overflowY: "auto" }}>
-              {stock.moves.slice(0, 30).map((m) => {
-                const it = items.find((x) => x.id === m.itemId);
-                const mt = MOVE_TYPES[m.type] || MOVE_TYPES.out;
-                const job = m.jobId && (jobs || []).find((j) => j.id === m.jobId);
-                return (
-                  <div key={m.id} style={{ display: "flex", gap: 11, padding: "10px 11px", border: "1px solid var(--border)", borderRadius: 11 }}>
-                    <span style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: "grid", placeItems: "center",
-                      background: mt.bg, color: mt.color, fontWeight: 800, fontSize: 15 }}>{mt.sym}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it ? it.name : m.itemId}</div>
-                      <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>
-                        {mt.label} <strong style={{ color: mt.color }}>{m.qty}</strong> · {thDate(m.date)} · <span style={{ fontFamily: "var(--mono)" }}>{m.ref}</span>
-                      </div>
-                      {job && <div style={{ fontSize: 11, color: mt.color, marginTop: 2, display: "flex", alignItems: "center", gap: 4, fontWeight: 600 }}><Icon name="wrench" size={10} color={mt.color} /> {job.name}</div>}
-                      {m.by && m.by !== "-" && <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}><Icon name="user" size={10} color="var(--text-3)" /> โดย {m.by}</div>}
-                      {m.note && <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2, fontStyle: "italic" }}>{m.note}</div>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
         </div>
       </div>
       )}
 
       {moveItem && <MoveModal info={moveItem} byName={byName} jobs={jobs || []} onSave={(qty, ref, note, jobId) => { stock.move(moveItem.item.id, moveItem.type, qty, ref, note, byName, jobId); setMoveItem(null); }} onClose={() => setMoveItem(null)} />}
       {itemForm && <ItemModal initial={itemForm.item} isNew={itemForm.isNew} onSave={(rec) => { stock.upsertItem(rec); setItemForm(null); }} onClose={() => setItemForm(null)} />}
+      {movesOpen && <MovesModal moves={stock.moves} items={items} jobs={jobs || []} onClose={() => setMovesOpen(false)} />}
     </React.Fragment>
+  );
+}
+
+/* ── Popup ความเคลื่อนไหว — แสดงทั้งหมดแบบวิวเต็ม ── */
+function MovesModal({ moves, items, jobs, onClose }) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const bdClose = window.useBackdropClose(onClose);
+  const [q, setQ] = React.useState("");
+  const all = moves || [];
+  const list = all.filter((m) => {
+    if (!q) return true;
+    const it = (items || []).find((x) => x.id === m.itemId);
+    const job = m.jobId && (jobs || []).find((j) => j.id === m.jobId);
+    const hay = ((it ? it.name : m.itemId) + " " + (m.ref || "") + " " + (m.by || "") + " " + (job ? job.name : "")).toLowerCase();
+    return hay.includes(q.toLowerCase());
+  });
+  return (
+    <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 110, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(680px,100%)", maxHeight: isMobile ? "92dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", flexShrink: 0 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Icon name="history" size={17} color="var(--text-2)" />
+              <div>
+                <h2 style={{ fontSize: 15.5, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>ความเคลื่อนไหวคลังสินค้า</h2>
+                <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 1 }}>รับเข้า / เบิกออก / คืนของ · ทั้งหมด {all.length} รายการ</div>
+              </div>
+            </div>
+            <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
+          </div>
+          <div className="search-box" style={{ marginTop: 12 }}>
+            <Icon name="search" size={15} color="var(--text-3)" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาอุปกรณ์ / เลขที่ / งาน / ผู้ทำรายการ..." />
+          </div>
+        </div>
+        <div style={{ flex: 1, padding: 16, paddingBottom: isMobile ? "calc(16px + env(safe-area-inset-bottom,0px))" : 16, display: "flex", flexDirection: "column", gap: 8, overflowY: "auto" }}>
+          {list.length === 0 && <div style={{ padding: 30, textAlign: "center", color: "var(--text-3)" }}>{all.length === 0 ? "ยังไม่มีความเคลื่อนไหว" : "ไม่พบรายการ"}</div>}
+          {list.map((m) => {
+            const it = (items || []).find((x) => x.id === m.itemId);
+            const mt = MOVE_TYPES[m.type] || MOVE_TYPES.out;
+            const job = m.jobId && (jobs || []).find((j) => j.id === m.jobId);
+            return (
+              <div key={m.id} style={{ display: "flex", gap: 11, padding: "10px 11px", border: "1px solid var(--border)", borderRadius: 11 }}>
+                <span style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: "grid", placeItems: "center", background: mt.bg, color: mt.color, fontWeight: 800, fontSize: 15 }}>{mt.sym}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it ? it.name : m.itemId}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>
+                    {mt.label} <strong style={{ color: mt.color }}>{m.qty}</strong> · {thDate(m.date)} · <span style={{ fontFamily: "var(--mono)" }}>{m.ref}</span>
+                  </div>
+                  {job && <div style={{ fontSize: 11, color: mt.color, marginTop: 2, display: "flex", alignItems: "center", gap: 4, fontWeight: 600 }}><Icon name="wrench" size={10} color={mt.color} /> {job.name}</div>}
+                  {m.by && m.by !== "-" && <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}><Icon name="user" size={10} color="var(--text-3)" /> โดย {m.by}</div>}
+                  {m.note && <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2, fontStyle: "italic" }}>{m.note}</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }
 
