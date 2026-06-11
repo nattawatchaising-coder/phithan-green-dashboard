@@ -220,17 +220,17 @@
       const coupling = cpct(pipes / 2 + connector, cs.coupling);
       const flex = (flexMap[nm] != null && flexMap[nm] !== "") ? Math.round(+flexMap[nm] || 0) : 1; // ท่ออ่อน default 1 กล่อง/ขนาด
       totalClamp += clamp;
-      race.push({ name: nm + " (3m/ท่อน)", qty: pipes, unit: "ท่อน" });
-      race.push({ name: "แคล้มประกับ IMC " + sz, qty: clamp, unit: "ตัว" });
-      race.push({ name: "บุชชิ่ง,ล็อกนัท IMC " + sz, qty: bushing, unit: "ตัว" });
-      race.push({ name: "คอนเนคเตอร์ท่ออ่อนกันน้ำ IMC " + sz, qty: connector, unit: "ตัว" });
-      race.push({ name: "คุปปิ้ง " + sz, qty: coupling, unit: "ตัว" });
-      if (flex > 0) race.push({ name: "ท่ออ่อนเหล็กกันน้ำ 30m. " + sz, qty: flex, unit: "กล่อง" });
+      race.push({ name: nm + " (3m/ท่อน)", qty: pipes, unit: "pcs" });
+      race.push({ name: "แคล้มประกับ IMC " + sz, qty: clamp, unit: "pcs" });
+      race.push({ name: "บุชชิ่ง,ล็อกนัท IMC " + sz, qty: bushing, unit: "pcs" });
+      race.push({ name: "คอนเนคเตอร์ท่ออ่อนกันน้ำ IMC " + sz, qty: connector, unit: "pcs" });
+      race.push({ name: "คุปปิ้ง " + sz, qty: coupling, unit: "pcs" });
+      if (flex > 0) race.push({ name: "ท่ออ่อนเหล็กกันน้ำ 30m. " + sz, qty: flex, unit: "box" });
     });
     if (imcTotalLen > 0) {
       // รางซี เป็นของรวมทั้งงาน (ไม่แยกขนาด)
       const cchannel = cpct((totalClamp * 0.2) / 1.2, cs.cchannel); // 0.2m/แคล้ม, รางยาว 1.2m
-      race.push({ name: "รางซี C-Channel 20x1200x40x1.0 mm.", qty: cchannel, unit: "เส้น" });
+      race.push({ name: "รางซี C-Channel 20x1200x40x1.0 mm.", qty: cchannel, unit: "pcs" });
     }
     // uPVC แยกตามขนาด — ท่อ (2.9m/ท่อน) + อุปกรณ์
     const upFlexMap = cond.upFlex || {};
@@ -243,14 +243,14 @@
       const clamp = cpct(len / 0.6, cs.upClamp);          // แคลมป์ก้ามปู ทุก 60cm
       const connector = cpct(8 + (hasBat ? 4 : 0) + (hasBk ? 4 : 0) + 3 * pbUpvc, cs.upConnector);
       const flex = (upFlexMap[nm] != null && upFlexMap[nm] !== "") ? Math.round(+upFlexMap[nm] || 0) : 1;
-      race.push({ name: nm + " (2.9m/ท่อน)", qty: pipes, unit: "ท่อน" });
-      race.push({ name: "ข้อต่อตรง uPVC " + suf, qty: straight, unit: "ตัว" });
-      race.push({ name: "แคลมป์ก้ามปู uPVC " + suf, qty: clamp, unit: "ตัว" });
-      race.push({ name: "คอนเน็ตเตอร์ uPVC " + suf, qty: connector, unit: "ตัว" });
-      if (flex > 0) race.push({ name: "ท่ออ่อนขาว uPVC " + suf, qty: flex, unit: "กล่อง" });
+      race.push({ name: nm + " (2.9m/ท่อน)", qty: pipes, unit: "pcs" });
+      race.push({ name: "ข้อต่อตรง uPVC " + suf, qty: straight, unit: "pcs" });
+      race.push({ name: "แคลมป์ก้ามปู uPVC " + suf, qty: clamp, unit: "pcs" });
+      race.push({ name: "คอนเน็ตเตอร์ uPVC " + suf, qty: connector, unit: "pcs" });
+      if (flex > 0) race.push({ name: "ท่ออ่อนขาว uPVC " + suf, qty: flex, unit: "box" });
     });
     // PULL BOX (ชิ้น)
-    Object.keys(pbMap).forEach((nm) => race.push({ name: nm, qty: pbMap[nm], unit: "ชิ้น" }));
+    Object.keys(pbMap).forEach((nm) => race.push({ name: nm, qty: pbMap[nm], unit: "pcs" }));
 
     if (race.length) groups.push({ group: "RACE WAY", items: race });
 
@@ -258,12 +258,12 @@
     if (panelCount > 0) {
       const big = kw >= 30;
       const gnd = [
-        { name: 'แท่งกราวด์ชุบทองแดง 5/8" ยาว 2.4 m', qty: big ? 3 : 1, unit: "อัน" },
-        { name: 'อุปกรณ์เชื่อมสายกราวด์เทอร์โมเวล 2 ทาง 16 sq.mm Rod 5/8"', qty: big ? 2 : 1, unit: "อัน" },
+        { name: 'แท่งกราวด์ชุบทองแดง 5/8" ยาว 2.4 m', qty: big ? 3 : 1, unit: "pcs" },
+        { name: 'อุปกรณ์เชื่อมสายกราวด์เทอร์โมเวล 2 ทาง 16 sq.mm Rod 5/8"', qty: big ? 2 : 1, unit: "pcs" },
       ];
       if (big) {
-        gnd.push({ name: 'อุปกรณ์เชื่อมสายกราวด์เทอร์โมเวล 3 ทาง 16 sq.mm Rod 5/8"', qty: 1, unit: "อัน" });
-        gnd.push({ name: "GROUNDTESTBOX-PVC-SEC", qty: 1, unit: "อัน" });
+        gnd.push({ name: 'อุปกรณ์เชื่อมสายกราวด์เทอร์โมเวล 3 ทาง 16 sq.mm Rod 5/8"', qty: 1, unit: "pcs" });
+        gnd.push({ name: "GROUNDTESTBOX-PVC-SEC", qty: 1, unit: "pcs" });
       }
       groups.push({ group: "GROUNDING", items: gnd });
     }
@@ -306,28 +306,28 @@
     CABLE_TYPES.forEach((t) => add("CABLE", t, "M"));
     IMC_SIZES.forEach((nm) => {
       const sz = nm.replace(/^IMC\s*/i, "").trim();
-      add("RACE WAY", nm, "ท่อน");
-      add("RACE WAY", "แคล้มประกับ IMC " + sz, "ตัว");
-      add("RACE WAY", "บุชชิ่ง,ล็อกนัท IMC " + sz, "ตัว");
-      add("RACE WAY", "คอนเนคเตอร์ท่ออ่อนกันน้ำ IMC " + sz, "ตัว");
-      add("RACE WAY", "คุปปิ้ง " + sz, "ตัว");
-      add("RACE WAY", "ท่ออ่อนเหล็กกันน้ำ 30m. " + sz, "กล่อง");
+      add("RACE WAY", nm, "pcs");
+      add("RACE WAY", "แคล้มประกับ IMC " + sz, "pcs");
+      add("RACE WAY", "บุชชิ่ง,ล็อกนัท IMC " + sz, "pcs");
+      add("RACE WAY", "คอนเนคเตอร์ท่ออ่อนกันน้ำ IMC " + sz, "pcs");
+      add("RACE WAY", "คุปปิ้ง " + sz, "pcs");
+      add("RACE WAY", "ท่ออ่อนเหล็กกันน้ำ 30m. " + sz, "box");
     });
-    add("RACE WAY", "รางซี C-Channel 20x1200x40x1.0 mm.", "เส้น");
+    add("RACE WAY", "รางซี C-Channel 20x1200x40x1.0 mm.", "pcs");
     UPVC_SIZES.forEach((nm) => {
       const mm = (nm.match(/(\d+)\s*mm/) || [])[1] || "";
       const suf = mm + "mm. (สีขาว)";
-      add("RACE WAY", nm, "ท่อน");
-      add("RACE WAY", "ข้อต่อตรง uPVC " + suf, "ตัว");
-      add("RACE WAY", "แคลมป์ก้ามปู uPVC " + suf, "ตัว");
-      add("RACE WAY", "คอนเน็ตเตอร์ uPVC " + suf, "ตัว");
-      add("RACE WAY", "ท่ออ่อนขาว uPVC " + suf, "กล่อง");
+      add("RACE WAY", nm, "pcs");
+      add("RACE WAY", "ข้อต่อตรง uPVC " + suf, "pcs");
+      add("RACE WAY", "แคลมป์ก้ามปู uPVC " + suf, "pcs");
+      add("RACE WAY", "คอนเน็ตเตอร์ uPVC " + suf, "pcs");
+      add("RACE WAY", "ท่ออ่อนขาว uPVC " + suf, "box");
     });
-    PULLBOX_SIZES.forEach((s) => add("RACE WAY", s, "ชิ้น"));
-    add("GROUNDING", 'แท่งกราวด์ชุบทองแดง 5/8" ยาว 2.4 m', "อัน");
-    add("GROUNDING", 'อุปกรณ์เชื่อมสายกราวด์เทอร์โมเวล 2 ทาง 16 sq.mm Rod 5/8"', "อัน");
-    add("GROUNDING", 'อุปกรณ์เชื่อมสายกราวด์เทอร์โมเวล 3 ทาง 16 sq.mm Rod 5/8"', "อัน");
-    add("GROUNDING", "GROUNDTESTBOX-PVC-SEC", "อัน");
+    PULLBOX_SIZES.forEach((s) => add("RACE WAY", s, "pcs"));
+    add("GROUNDING", 'แท่งกราวด์ชุบทองแดง 5/8" ยาว 2.4 m', "pcs");
+    add("GROUNDING", 'อุปกรณ์เชื่อมสายกราวด์เทอร์โมเวล 2 ทาง 16 sq.mm Rod 5/8"', "pcs");
+    add("GROUNDING", 'อุปกรณ์เชื่อมสายกราวด์เทอร์โมเวล 3 ทาง 16 sq.mm Rod 5/8"', "pcs");
+    add("GROUNDING", "GROUNDTESTBOX-PVC-SEC", "pcs");
     return list;
   }
 
