@@ -229,7 +229,7 @@ function blankItem(items) {
     const n = parseInt((it.id || "").replace(/[^0-9]/g, ""), 10);
     if (!isNaN(n) && n > max) max = n;
   });
-  return { id: "IV-" + String(max + 1).padStart(2, "0"), sku: "", name: "", cat: "panel", unit: "ชิ้น", qty: 0, min: 0, loc: "" };
+  return { id: "IV-" + String(max + 1).padStart(2, "0"), sku: "", name: "", cat: "panel", unit: "ชิ้น", qty: 0, min: 0, loc: "", price: 0 };
 }
 
 /* ================================================================

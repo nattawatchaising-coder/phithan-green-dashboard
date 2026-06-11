@@ -127,6 +127,14 @@ function App() {
 
   const loading = store.loading || stock.loading || auth.loading;
 
+  // ราคารวมสำหรับ BOQ = ราคาจากคลังสินค้า (ตามชื่อ) ทับด้วยฐานราคาวัสดุ (boqPrices ชนะ)
+  const effPriceMap = React.useMemo(() => {
+    const m = {};
+    (stock.items || []).forEach((s) => { if (s.name) m[s.name] = { code: s.sku || "", price: +s.price || 0, unit: s.unit || "" }; });
+    Object.keys(priceStore.priceMap).forEach((n) => { m[n] = priceStore.priceMap[n]; });
+    return m;
+  }, [stock.items, priceStore.priceMap]);
+
   const closeSidebar = () => setSidebarOpen(false);
   const openJob = (j) => setSelected(j.id);
   const selectedJob = jobs.find((j) => j.id === selected) || null;
@@ -211,7 +219,7 @@ function App() {
       <DetailDrawer job={selectedJob} onClose={() => setSelected(null)} onAdvance={(id) => store.advance(id)} onSetMat={store.setMat}
         currentUser={auth.current} canManage={can(role, "delJob")} stock={stock}
         onSaveBOQ={(id, boq) => store.patch(id, { boq })}
-        priceMap={can(role, "delJob") ? priceStore.priceMap : null}
+        priceMap={can(role, "delJob") ? effPriceMap : null}
         onEdit={(id) => { setSelected(null); setForm({ job: store.raw.find((r) => r.id === id), isNew: false }); }} />
       {form && <JobForm initial={form.job} isNew={form.isNew} onSave={onSave} onClose={() => setForm(null)} onManageTechs={() => setTechMgr(true)} onManageBrands={() => setBrandMgr(true)} />}
       {techMgr && <TechManager store={techStore} onClose={() => setTechMgr(false)} />}
