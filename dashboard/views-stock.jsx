@@ -330,7 +330,7 @@ function CatDropdown({ cat, setCat, items, cats }) {
   );
 }
 
-function MoveModal({ info, onSave, onClose, byName, jobs, lockedJob }) {
+function MoveModal({ info, onSave, onClose, byName, jobs, lockedJob, maxQty }) {
   const mt = MOVE_TYPES[info.type] || MOVE_TYPES.out;
   const isIn = info.type === "in";
   const linkJob = !isIn; // เบิกออก / คืนของ ผูกกับงาน
@@ -355,6 +355,7 @@ function MoveModal({ info, onSave, onClose, byName, jobs, lockedJob }) {
 
   const submit = () => {
     if (!(parseInt(qty) > 0)) { alert("กรุณากรอกจำนวน"); return; }
+    if (maxQty != null && parseInt(qty) > maxQty) { alert("คืนได้ไม่เกิน " + maxQty + " " + info.item.unit); return; }
     // ref: งานที่เลือก → ใช้รหัสงาน; รับเข้า → ใช้ค่าที่กรอก (PO)
     const job = linkJob && (lockedJob || (jobs || []).find((j) => j.id === jobId));
     const finalRef = linkJob ? (job ? job.code : (ref || "-")) : (ref || "-");
@@ -370,8 +371,8 @@ function MoveModal({ info, onSave, onClose, byName, jobs, lockedJob }) {
           <div style={{ fontSize: 12.5, opacity: .85, marginTop: 3 }}>คงเหลือปัจจุบัน {info.item.qty.toLocaleString()} {info.item.unit}</div>
         </div>
         <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 14, overflowY: "auto" }}>
-          <Field label={"จำนวน (" + info.item.unit + ")"} required>
-            <input type="number" autoFocus value={qty} onChange={(e) => setQty(e.target.value)} style={inputStyle} placeholder="0" />
+          <Field label={"จำนวน (" + info.item.unit + ")" + (maxQty != null ? " · คืนได้ไม่เกิน " + maxQty : "")} required>
+            <input type="number" autoFocus max={maxQty != null ? maxQty : undefined} value={qty} onChange={(e) => setQty(e.target.value)} style={inputStyle} placeholder="0" />
           </Field>
           {linkJob ? (
             <Field label={info.type === "return" ? "งานที่คืนของ" : "งานที่นำไปใช้"}>

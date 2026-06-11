@@ -68,12 +68,12 @@ function InfoRow({ label, children }) {
   );
 }
 
-/* สรุปอุปกรณ์ที่เบิก/คืน ของงานนี้ — รวมจาก stock.moves ที่ jobId ตรงกัน + คืนของได้เลย */
+/* สรุปอุปกรณ์ที่เบิก/คืน ของงานนี้ + เบิกของเข้างาน (ช้อปปิ้ง) + คืน/ยกเลิกการเบิก */
 function JobMaterialUsage({ job, stock, currentUser }) {
-  const [retItem, setRetItem] = React.useState(null); // stock item ที่กำลังคืน
+  const [retRow, setRetRow] = React.useState(null); // {item, net} ที่กำลังคืน
+  const [shopOpen, setShopOpen] = React.useState(false);
   if (!stock || !job) return null;
   const moves = (stock.moves || []).filter((m) => m.jobId === job.id && (m.type === "out" || m.type === "return"));
-  if (moves.length === 0) return null;
 
   const byItem = {};
   moves.forEach((m) => {
@@ -84,7 +84,7 @@ function JobMaterialUsage({ job, stock, currentUser }) {
     const g = byItem[id];
     const it = (stock.items || []).find((x) => x.id === id);
     return { item: it, name: it ? it.name : id, unit: it ? it.unit : "", out: g.out, ret: g.ret, net: g.out - g.ret };
-  }).sort((a, b) => b.net - a.net);
+  }).sort((a, b) => (b.net - a.net) || (b.out - a.out));
 
   const byName = (currentUser && currentUser.name) || "-";
   const Cell = ({ children, color, head, left }) => (
@@ -96,31 +96,121 @@ function JobMaterialUsage({ job, stock, currentUser }) {
     <div style={{ marginBottom: 24 }}>
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
         <Icon name="box" size={14} color="var(--text-2)" /> อุปกรณ์ที่เบิก / คืน
-        <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: 0, textTransform: "none", color: "var(--text-3)", marginLeft: 2 }}>· {rows.length} รายการ</span>
+        {rows.length > 0 && <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: 0, textTransform: "none", color: "var(--text-3)", marginLeft: 2 }}>· {rows.length} รายการ</span>}
       </div>
+
+      {/* ปุ่มเบิกของเข้างาน (ช้อปปิ้ง) */}
+      <button onClick={() => setShopOpen(true)}
+        style={{ width: "100%", marginBottom: rows.length ? 12 : 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "11px 14px",
+          background: "#7C5CFC14", border: "1px dashed #7C5CFC66", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", color: "#6645e0", fontWeight: 700, fontSize: 13.5 }}>
+        <Icon name="box" size={16} color="#6645e0" /> เบิกของเข้างานนี้
+      </button>
+
+      {rows.length > 0 && (
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
-        {/* header */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 46px 46px 64px", gap: 8, padding: "9px 14px", background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 42px 42px 64px", gap: 8, padding: "9px 14px", background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
           <Cell head left color="var(--text-3)">อุปกรณ์</Cell>
           <Cell head color="#6645e0">เบิก</Cell>
           <Cell head color="#0784b8">คืน</Cell>
           <span />
         </div>
-        {rows.map((r, i) => (
-          <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 46px 46px 64px", gap: 8, padding: "10px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--border)" : "none", alignItems: "center" }}>
-            <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-1)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</span>
+        {rows.map((r, i) => {
+          const cancelled = r.out > 0 && r.net <= 0; // คืนครบ = ยกเลิกการเบิก
+          return (
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 42px 42px 64px", gap: 8, padding: "10px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--border)" : "none", alignItems: "center", opacity: cancelled ? .6 : 1 }}>
+            <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-1)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: cancelled ? "line-through" : "none" }}>{r.name}</span>
             <Cell color="#6645e0">{r.out}</Cell>
             <Cell color={r.ret ? "#0784b8" : "var(--text-3)"}>{r.ret || "–"}</Cell>
-            <button onClick={() => r.item && setRetItem(r.item)} disabled={!r.item} title="คืนของเข้าคลัง"
-              style={{ justifySelf: "end", display: "inline-flex", alignItems: "center", gap: 3, background: r.item ? "#0EA5E916" : "var(--surface2)",
-                border: "none", color: r.item ? "#0784b8" : "var(--text-3)", fontWeight: 700, fontSize: 11.5, padding: "5px 9px", borderRadius: 8,
-                cursor: r.item ? "pointer" : "default", fontFamily: "inherit", whiteSpace: "nowrap" }}>↩ คืน</button>
+            {cancelled
+              ? <span style={{ justifySelf: "end", fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", background: "var(--surface2)", padding: "4px 8px", borderRadius: 8, whiteSpace: "nowrap" }}>ยกเลิก</span>
+              : <button onClick={() => r.item && setRetRow(r)} disabled={!r.item} title={"คืนของเข้าคลัง (สูงสุด " + r.net + ")"}
+                  style={{ justifySelf: "end", display: "inline-flex", alignItems: "center", gap: 3, background: r.item ? "#0EA5E916" : "var(--surface2)",
+                    border: "none", color: r.item ? "#0784b8" : "var(--text-3)", fontWeight: 700, fontSize: 11.5, padding: "5px 9px", borderRadius: 8,
+                    cursor: r.item ? "pointer" : "default", fontFamily: "inherit", whiteSpace: "nowrap" }}>↩ คืน</button>}
           </div>
-        ))}
+          );
+        })}
       </div>
-      {retItem && <MoveModal info={{ item: retItem, type: "return" }} byName={byName} lockedJob={job}
-        onSave={(qty, ref, note, jobId) => { stock.move(retItem.id, "return", qty, ref, note, byName, jobId); setRetItem(null); }}
-        onClose={() => setRetItem(null)} />}
+      )}
+
+      {retRow && <MoveModal info={{ item: retRow.item, type: "return" }} byName={byName} lockedJob={job} maxQty={retRow.net}
+        onSave={(qty, ref, note, jobId) => { stock.move(retRow.item.id, "return", qty, ref, note, byName, jobId); setRetRow(null); }}
+        onClose={() => setRetRow(null)} />}
+      {shopOpen && <StockShopModal stock={stock} job={job} byName={byName} onClose={() => setShopOpen(false)} />}
+    </div>
+  );
+}
+
+/* เบิกของเข้างานแบบช้อปปิ้ง — เลือกของจากคลัง ใส่จำนวน แล้วเบิกเข้างานทีเดียว */
+function StockShopModal({ stock, job, byName, onClose }) {
+  const SF = window.SF;
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const [cart, setCart] = React.useState({});
+  const [q, setQ] = React.useState("");
+  const [cat, setCat] = React.useState("all");
+  const items = (stock.items || []).filter((it) => {
+    if (cat !== "all" && it.cat !== cat) return false;
+    if (q && !((it.name + " " + (it.sku || "")).toLowerCase().includes(q.toLowerCase()))) return false;
+    return true;
+  });
+  const setQty = (id, v, max) => setCart((p) => { const n = Math.max(0, Math.min(Math.floor(+v || 0), max)); const c = Object.assign({}, p); if (n > 0) c[id] = n; else delete c[id]; return c; });
+  const cartIds = Object.keys(cart);
+  const totalQty = cartIds.reduce((s, id) => s + cart[id], 0);
+  const confirm = () => {
+    if (!cartIds.length) return;
+    cartIds.forEach((id) => stock.move(id, "out", cart[id], job.code, "", byName, job.id));
+    onClose();
+  };
+  const catOpts = [{ value: "all", label: "ทุกหมวด" }].concat((SF.STOCK_CATS || []).map((c) => ({ value: c.key, label: c.th })));
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 115, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(560px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", flexShrink: 0 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>เบิกของเข้างาน · {job.code}</div>
+              <h2 style={{ fontSize: 16.5, fontWeight: 700, color: "var(--text-1)", margin: "2px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.name}</h2>
+            </div>
+            <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+            <div className="search-box" style={{ flex: 1, minWidth: 150 }}><Icon name="search" size={15} color="var(--text-3)" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาอุปกรณ์ / รหัส..." /></div>
+            <div style={{ minWidth: 140 }}><Dropdown value={cat} onChange={setCat} options={catOpts} /></div>
+          </div>
+        </div>
+
+        <div style={{ flex: 1, overflowY: "auto", padding: "8px 12px" }}>
+          {items.map((it) => {
+            const inCart = cart[it.id] || 0;
+            const max = it.qty;
+            const out = max <= 0;
+            return (
+              <div key={it.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 8px", borderBottom: "1px solid var(--border)" }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.name}</div>
+                  <div style={{ fontSize: 11, color: out ? "#EF4444" : "var(--text-3)", marginTop: 1 }}>{out ? "หมดสต็อก" : "คงเหลือ " + max.toLocaleString() + " " + it.unit}{it.sku ? " · " + it.sku : ""}</div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                  <button onClick={() => setQty(it.id, inCart - 1, max)} disabled={!inCart} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontSize: 17, fontWeight: 700, cursor: inCart ? "pointer" : "default", lineHeight: 1 }}>−</button>
+                  <input type="number" value={inCart || ""} placeholder="0" onChange={(e) => setQty(it.id, e.target.value, max)}
+                    style={{ width: 46, textAlign: "center", padding: "6px 4px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13 }} />
+                  <button onClick={() => setQty(it.id, inCart + 1, max)} disabled={out || inCart >= max} style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: out || inCart >= max ? "var(--surface3)" : "var(--primary)", color: out || inCart >= max ? "var(--text-3)" : "#fff", fontSize: 17, fontWeight: 700, cursor: out || inCart >= max ? "default" : "pointer", lineHeight: 1 }}>+</button>
+                </div>
+              </div>
+            );
+          })}
+          {items.length === 0 && <div style={{ padding: 30, textAlign: "center", color: "var(--text-3)" }}>ไม่พบอุปกรณ์</div>}
+        </div>
+
+        <div style={{ padding: "12px 20px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, flexShrink: 0 }}>
+          <button onClick={onClose} style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ปิด</button>
+          <button onClick={confirm} disabled={!cartIds.length}
+            style={{ flex: 1, padding: "11px 22px", borderRadius: 11, border: "none", background: cartIds.length ? "var(--primary)" : "var(--surface3)", color: cartIds.length ? "#fff" : "var(--text-3)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: cartIds.length ? "pointer" : "default" }}>
+            เบิกเข้างาน{cartIds.length ? " (" + cartIds.length + " รายการ · " + totalQty + " ชิ้น)" : ""}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
