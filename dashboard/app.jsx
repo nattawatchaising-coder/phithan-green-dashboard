@@ -217,7 +217,7 @@ function App() {
       {techMgr && <TechManager store={techStore} onClose={() => setTechMgr(false)} />}
       {brandMgr && <BrandManager store={brandStore} onClose={() => setBrandMgr(false)} />}
       {userMgr && can(role, "manageUsers") && <UserManager authStore={auth} onClose={() => setUserMgr(false)} />}
-      {priceMgr && can(role, "delJob") && <PriceManager priceStore={priceStore} onClose={() => setPriceMgr(false)} />}
+      {priceMgr && can(role, "delJob") && <PriceManager priceStore={priceStore} stock={stock} onClose={() => setPriceMgr(false)} />}
 
       <TweaksPanel>
         <TweakSection label="ธีม / Theme" />

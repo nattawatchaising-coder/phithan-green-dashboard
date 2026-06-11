@@ -523,7 +523,7 @@ function usePriceStore() {
     const h = ref.on("value", (snap) => {
       const v = snap.val() || {};
       const m = {};
-      Object.keys(v).forEach((k) => { const r = v[k]; if (r && r.name) m[r.name] = { code: r.code || "", price: +r.price || 0, unit: r.unit || "" }; });
+      Object.keys(v).forEach((k) => { const r = v[k]; if (r && r.name) m[r.name] = { code: r.code || "", price: +r.price || 0, unit: r.unit || "", group: r.group || "" }; });
       setMap(m);
       setLoading(false);
     }, () => setLoading(false));
@@ -532,16 +532,21 @@ function usePriceStore() {
 
   React.useEffect(() => { if (!_FB()) _lsSet(SF_PRICE_KEY, priceMap); }, [priceMap]);
 
-  const setPrice = React.useCallback((name, code, price, unit) => {
-    const rec = { name: name, code: code || "", price: +price || 0, unit: unit || "" };
+  const setPrice = React.useCallback((name, code, price, unit, group) => {
+    const rec = { name: name, code: code || "", price: +price || 0, unit: unit || "", group: group || "" };
     if (_FB()) {
       _fbSet("boqPrices/" + _priceKey(name), rec);
     } else {
-      setMap((p) => Object.assign({}, p, { [name]: { code: rec.code, price: rec.price, unit: rec.unit } }));
+      setMap((p) => Object.assign({}, p, { [name]: { code: rec.code, price: rec.price, unit: rec.unit, group: rec.group } }));
     }
   }, []);
 
-  return { priceMap: priceMap || {}, loading, setPrice };
+  const removePrice = React.useCallback((name) => {
+    if (_FB()) { _fbRem("boqPrices/" + _priceKey(name)); }
+    else { setMap((p) => { const c = Object.assign({}, p); delete c[name]; return c; }); }
+  }, []);
+
+  return { priceMap: priceMap || {}, loading, setPrice, removePrice };
 }
 
 /* ================================================================

@@ -3,7 +3,7 @@
    กรอกพารามิเตอร์ → คำนวณรายการวัสดุอัตโนมัติ → บันทึก / ดาวน์โหลด Excel
    ============================================================ */
 
-function BOQEditor({ job, onClose, onSave, priceMap }) {
+function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const baht = (n) => (Math.round((+n || 0) * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [b, setB] = React.useState(() => {
@@ -58,7 +58,22 @@ function BOQEditor({ job, onClose, onSave, priceMap }) {
 
   const opt = (arr) => arr.map((x) => ({ value: x, label: typeof x === "string" ? x.trim() : x }));
 
-  const GROUP_COLOR = { "PV MODULE": "#22A35B", INVERTER: "#7C5CFC", MOUNTING: "#F59E0B", CABLE: "#0EA5E9", "RACE WAY": "#64748B", GROUNDING: "#A16207" };
+  const GROUP_COLOR = { "PV MODULE": "#22A35B", INVERTER: "#7C5CFC", MOUNTING: "#F59E0B", CABLE: "#0EA5E9", "RACE WAY": "#64748B", GROUNDING: "#A16207", ACCESSORIES: "#EC4899" };
+
+  // ── Accessories: เพิ่มของ / ดึงจากราคาวัสดุ + คลังสินค้า ──
+  const stockItems = (stock && stock.items) || [];
+  const matInfo = React.useMemo(() => {
+    const m = {};
+    (window.BOQ.catalog() || []).forEach((c) => { m[c.name] = { unit: c.unit }; });
+    stockItems.forEach((s) => { m[s.name] = { unit: s.unit || (m[s.name] && m[s.name].unit) || "", code: s.sku }; });
+    Object.keys(priceMap || {}).forEach((n) => { m[n] = { unit: (priceMap[n].unit || (m[n] && m[n].unit) || ""), code: priceMap[n].code }; });
+    return m;
+  }, [priceMap, stockItems.length]);
+  const matNames = React.useMemo(() => Object.keys(matInfo).sort(), [matInfo]);
+  const accList = b.accessories || [];
+  const setAcc = (i, k, v) => setB((p) => { const a = (p.accessories || []).slice(); a[i] = Object.assign({}, a[i], { [k]: v }); if (k === "name" && matInfo[v]) a[i].unit = matInfo[v].unit || a[i].unit; return Object.assign({}, p, { accessories: a }); });
+  const addAcc = () => setB((p) => Object.assign({}, p, { accessories: (p.accessories || []).concat([{ name: "", qty: 1, unit: "" }]) }));
+  const delAcc = (i) => setB((p) => Object.assign({}, p, { accessories: (p.accessories || []).filter((_, j) => j !== i) }));
 
   const ConduitList = ({ kind, label, sizes, valKey, unitText }) => (
     <div>
@@ -246,6 +261,23 @@ function BOQEditor({ job, onClose, onSave, priceMap }) {
                 ))}
               </div>
             )}
+          </Section>
+
+          {/* ── Accessories ── */}
+          <Section title="Accessories (เพิ่มของ)" icon="box">
+            <datalist id="boq-mat-names">{matNames.map((n) => <option key={n} value={n} />)}</datalist>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {accList.map((a, i) => (
+                <div key={i} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 56px 36px" : "1fr 90px 70px 36px", gap: 8, alignItems: "center" }}>
+                  <input list="boq-mat-names" value={a.name} onChange={(e) => setAcc(i, "name", e.target.value)} placeholder="ชื่อวัสดุ / เลือกจากราคาวัสดุ-คลัง" style={inputStyle} />
+                  <input type="number" style={numStyle} value={a.qty} placeholder="จำนวน" onChange={(e) => setAcc(i, "qty", e.target.value)} />
+                  {!isMobile && <input value={a.unit} onChange={(e) => setAcc(i, "unit", e.target.value)} placeholder="หน่วย" style={inputStyle} />}
+                  <button onClick={() => delAcc(i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
+                </div>
+              ))}
+              <button onClick={addAcc} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--primary-soft)", color: "var(--primary-dark)", border: "none", borderRadius: 9, padding: "8px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={14} color="var(--primary-dark)" /> เพิ่มของ</button>
+            </div>
+            <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)" }}>* พิมพ์ชื่อหรือเลือกจากรายการ (ดึงจากราคาวัสดุ + คลังสินค้า) — ถ้ามีราคาในระบบจะคิดต้นทุนให้</div>
           </Section>
 
           {/* ── ผลลัพธ์ BOQ ── */}

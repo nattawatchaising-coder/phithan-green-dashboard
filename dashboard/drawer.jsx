@@ -330,7 +330,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
           </React.Fragment>
         )}
       </aside>
-      {boqOpen && job && <BOQEditor job={job} onClose={() => setBoqOpen(false)} priceMap={priceMap}
+      {boqOpen && job && <BOQEditor job={job} onClose={() => setBoqOpen(false)} priceMap={priceMap} stock={stock}
         onSave={onSaveBOQ ? (boq) => { onSaveBOQ(job.id, boq); setBoqOpen(false); } : null} />}
     </React.Fragment>
   );

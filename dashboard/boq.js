@@ -94,6 +94,7 @@
       cables: DEFAULT_CABLES.map((c) => Object.assign({}, c)),
       conduit: { imc: [], upvc: [], pullbox: [], flex: {}, upFlex: {} },
       conduitSpare: { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10, upStraight: 10, upClamp: 10, upConnector: 10 },
+      accessories: [],
     };
   }
 
@@ -266,6 +267,11 @@
       }
       groups.push({ group: "GROUNDING", items: gnd });
     }
+
+    // ACCESSORIES (เพิ่มเอง / ดึงจากราคาวัสดุ-คลังสินค้า)
+    const acc = (b.accessories || []).filter((a) => (a.name || "").trim() && (+a.qty || 0) > 0)
+      .map((a) => ({ name: a.name.trim(), qty: +a.qty || 0, unit: a.unit || "" }));
+    if (acc.length) groups.push({ group: "ACCESSORIES", items: acc });
 
     return { groups, meta: { panelCount, kw, rowsSum, invCount, battCount, valid: rowsSum === panelCount } };
   }
