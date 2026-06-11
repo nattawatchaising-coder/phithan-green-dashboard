@@ -26,7 +26,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const delRow = (i) => setB((p) => Object.assign({}, p, { rows: p.rows.filter((_, j) => j !== i) }));
 
   const setCab = (i, k, v) => setB((p) => { const cs = p.cables.slice(); cs[i] = Object.assign({}, cs[i], { [k]: v }); return Object.assign({}, p, { cables: cs }); });
-  const addCab = () => setB((p) => Object.assign({}, p, { cables: p.cables.concat([{ name: "", type: window.BOQ.CABLE_TYPES[0], length: 0 }]) }));
+  const addCab = () => setB((p) => Object.assign({}, p, { cables: p.cables.concat([{ name: "", type: "", length: "" }]) }));
   const delCab = (i) => setB((p) => Object.assign({}, p, { cables: p.cables.filter((_, j) => j !== i) }));
 
   // ── ท่อร้อยสาย (RACE WAY) ──
@@ -228,7 +228,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               {b.cables.map((c, i) => (
                 <div key={i} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 70px 36px" : "120px 1fr 90px 36px", gap: 8, alignItems: "center" }}>
                   {!isMobile && <input style={inputStyle} value={c.name} placeholder="ชื่อจุด" onChange={(e) => setCab(i, "name", e.target.value)} />}
-                  <Dropdown value={c.type} onChange={(v) => setCab(i, "type", v)} options={opt(window.BOQ.CABLE_TYPES)} />
+                  <Dropdown value={c.type} onChange={(v) => setCab(i, "type", v)} options={opt(window.BOQ.CABLE_TYPES)} placeholder="— เลือกสายไฟ —" />
                   <input type="number" style={numStyle} value={c.length} placeholder="ม." onChange={(e) => setCab(i, "length", e.target.value)} />
                   <button onClick={() => delCab(i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
                 </div>

@@ -53,13 +53,13 @@
 
   // สายไฟชุดมาตรฐาน (ค่าเริ่มต้น) — แก้ระยะได้
   const DEFAULT_CABLES = [
-    { name: "MICRO-MICRO",     type: "CV-FD 4Cx4 SQ.MM.",            length: 50 },
-    { name: "MICRO-COMBINER",  type: "VCT 2Cx2.5 SQ.MM.",           length: 100 },
-    { name: "COMBINER-MCB",    type: "CV-FD 4Cx2.5 SQ.MM.",         length: 50 },
-    { name: "COMBINER-BAT.",   type: "CV-FD 1Cx6 SQ.MM.",           length: 50 },
-    { name: "COMBINER-BACKUP", type: "CV-FD 4Cx2.5 SQ.MM.",         length: 70 },
-    { name: "GROUND",          type: "IEC01(THW)1Cx10 SQ.MM. Y/G",  length: 70 },
-    { name: "LAN",             type: "LAN CAT6 ",                   length: 50 },
+    { name: "MICRO-MICRO",     type: "", length: "" },
+    { name: "MICRO-COMBINER",  type: "", length: "" },
+    { name: "COMBINER-MCB",    type: "", length: "" },
+    { name: "COMBINER-BAT.",   type: "", length: "" },
+    { name: "COMBINER-BACKUP", type: "", length: "" },
+    { name: "GROUND",          type: "", length: "" },
+    { name: "LAN",             type: "", length: "" },
   ];
 
   // ── ท่อร้อยสาย (RACE WAY) ──
