@@ -7,7 +7,7 @@
 const PRICE_GROUP_TH = { all: "ทั้งหมด", "PV MODULE": "แผง", INVERTER: "อินเวอร์เตอร์", MOUNTING: "อุปกรณ์ mounting", CABLE: "สายไฟ", "RACE WAY": "ท่อร้อยสาย", GROUNDING: "กราวด์", ACCESSORIES: "Accessories" };
 const PRICE_GROUP_COLOR = { "PV MODULE": "#22A35B", INVERTER: "#7C5CFC", MOUNTING: "#F59E0B", CABLE: "#0EA5E9", "RACE WAY": "#64748B", GROUNDING: "#A16207", ACCESSORIES: "#EC4899" };
 
-function PricePanel({ priceStore, stock }) {
+function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const baseCat = React.useMemo(() => window.BOQ.catalog(), []);
   const catKeys = React.useMemo(() => new Set(baseCat.map((c) => c.name)), [baseCat]);
@@ -19,8 +19,6 @@ function PricePanel({ priceStore, stock }) {
     .map((n) => ({ group: priceStore.priceMap[n].group || "ACCESSORIES", name: n, unit: priceStore.priceMap[n].unit || "", custom: true }));
   const cat = baseCat.concat(custom);
 
-  const [q, setQ] = React.useState("");
-  const [grp, setGrp] = React.useState("all");
   const seeded = React.useRef(false);
   const initLocal = () => { const m = {}; cat.forEach((c) => { const r = priceStore.priceMap[c.name] || {}; m[c.name] = { code: r.code || "", price: r.price != null ? r.price : "" }; }); return m; };
   const [local, setLocal] = React.useState(initLocal);
@@ -31,8 +29,6 @@ function PricePanel({ priceStore, stock }) {
   }, [priceStore.priceMap]);
 
   const set = (name, k, v) => setLocal((p) => Object.assign({}, p, { [name]: Object.assign({}, p[name], { [k]: v }) }));
-  const groups = ["all"].concat([...new Set(cat.map((c) => c.group))]);
-  if (!groups.includes("ACCESSORIES")) groups.push("ACCESSORIES"); // แสดงหมวด Accessories เสมอ
 
   // ── ฟอร์มเพิ่มวัสดุเอง ──
   const [nf, setNf] = React.useState({ name: "", code: "", price: "", unit: "" });
@@ -59,18 +55,9 @@ function PricePanel({ priceStore, stock }) {
 
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column" }}>
-      {/* toolbar: นับ + ค้นหา + หมวด + เพิ่มวัสดุ */}
+      {/* toolbar: นับ + เพิ่มวัสดุ (ค้นหา/หมวด ย้ายไปอยู่บน header) */}
       <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface2)" }}>
         <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 10 }}>ใส่ราคาแล้ว {pricedCount}/{cat.length} รายการ{dirtyCount > 0 && <span style={{ color: "#F59E0B", fontWeight: 700 }}> · ยังไม่บันทึก {dirtyCount}</span>}</div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <div className="search-box" style={{ flex: 1, minWidth: 160 }}>
-            <Icon name="search" size={15} color="var(--text-3)" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาชื่อ / รหัส..." />
-          </div>
-          <div style={{ minWidth: 150 }}>
-            <Dropdown value={grp} onChange={setGrp} options={groups.map((g) => ({ value: g, label: PRICE_GROUP_TH[g] || g }))} />
-          </div>
-        </div>
         {/* เพิ่มวัสดุเอง */}
         <datalist id="pm-stock-names">{stockItems.map((s) => <option key={s.id || s.name} value={s.name} />)}</datalist>
         <div style={{ marginTop: 10, padding: 10, background: "var(--surface)", borderRadius: 10, display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 130px 90px 64px", gap: 8, alignItems: "center" }}>
@@ -120,4 +107,4 @@ function PricePanel({ priceStore, stock }) {
   );
 }
 
-Object.assign(window, { PricePanel });
+Object.assign(window, { PricePanel, PRICE_GROUP_TH, PRICE_GROUP_COLOR });

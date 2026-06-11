@@ -56,6 +56,18 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   const [moveItem, setMoveItem] = React.useState(null); // {item, type}
   const [itemForm, setItemForm] = React.useState(null); // {item, isNew}
   const [movesOpen, setMovesOpen] = React.useState(false); // popup ความเคลื่อนไหว
+  // ── แท็บราคา BOQ: ค้นหา + กรองกลุ่ม (ยกขึ้นมาไว้บน header เหมือนหน้าสต็อก) ──
+  const [priceQ, setPriceQ] = React.useState("");
+  const [priceGrp, setPriceGrp] = React.useState("all");
+  const priceGroups = React.useMemo(() => {
+    try {
+      const gs = ["all"].concat([...new Set(window.BOQ.catalog().map((c) => c.group))]);
+      if (!gs.includes("ACCESSORIES")) gs.push("ACCESSORIES");
+      return gs;
+    } catch (e) { return ["all"]; }
+  }, []);
+  const PG_TH = window.PRICE_GROUP_TH || {};
+  const PG_COLOR = window.PRICE_GROUP_COLOR || {};
 
   const items = stock.items;
   const lowCount = items.filter((it) => lowState(it) !== "ok").length;
@@ -94,17 +106,19 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
             </p>
             )}
           </div>
-          {!isPrices && (
           <div className="header-actions">
             <div className="search-box">
               <Icon name="search" size={16} color="var(--text-3)" />
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหาอุปกรณ์ / รหัส / ที่จัดเก็บ..." />
+              {isPrices
+                ? <input value={priceQ} onChange={(e) => setPriceQ(e.target.value)} placeholder="ค้นหาชื่อ / รหัส..." />
+                : <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหาอุปกรณ์ / รหัส / ที่จัดเก็บ..." />}
             </div>
-            <button className="btn-add" onClick={() => setItemForm({ item: stock.blankItem(), isNew: true })}>
-              <Icon name="plus" size={17} color="#fff" sw={2.4} /><span>เพิ่มรายการ</span>
-            </button>
+            {!isPrices && (
+              <button className="btn-add" onClick={() => setItemForm({ item: stock.blankItem(), isNew: true })}>
+                <Icon name="plus" size={17} color="#fff" sw={2.4} /><span>เพิ่มรายการ</span>
+              </button>
+            )}
           </div>
-          )}
         </div>
         <div className="header-filters">
           {/* แถวเดียว: แท็บ (ซ้าย) + ปุ่มย่อ/ขยายหมวด (ขวา) */}
@@ -115,26 +129,38 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                 <CatChip active={tab === "prices"} onClick={() => setTab("prices")} label="ราคา BOQ" color="#EC4899" />
               </React.Fragment>
             )}
-            {!isPrices && !isMobile && (
+            {!isMobile && (
               <button onClick={toggleCat} title={catOpen ? "ซ่อนตัวกรองหมวด" : "แสดงตัวกรองหมวด"}
                 style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 13px", borderRadius: 99,
                   border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)",
                   fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
                 <Icon name="filter" size={14} color="var(--text-2)" />
-                หมวดหมู่{cat !== "all" ? ": " + ((SF.STOCK_CAT_BY[cat] || {}).th || "") : ""}
+                หมวดหมู่{isPrices
+                  ? (priceGrp !== "all" ? ": " + (PG_TH[priceGrp] || priceGrp) : "")
+                  : (cat !== "all" ? ": " + ((SF.STOCK_CAT_BY[cat] || {}).th || "") : "")}
                 <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: catOpen ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
               </button>
             )}
           </div>
           {/* มือถือ: dropdown หมวด */}
-          {!isPrices && isMobile && <div style={{ marginTop: 10 }}><CatDropdown cat={cat} setCat={setCat} items={items} cats={SF.STOCK_CATS} /></div>}
+          {isMobile && !isPrices && <div style={{ marginTop: 10 }}><CatDropdown cat={cat} setCat={setCat} items={items} cats={SF.STOCK_CATS} /></div>}
+          {isMobile && isPrices && <div style={{ marginTop: 10 }}><Dropdown value={priceGrp} onChange={setPriceGrp} options={priceGroups.map((g) => ({ value: g, label: g === "all" ? "ทั้งหมด" : (PG_TH[g] || g) }))} /></div>}
           {/* เดสก์ท็อป: ชิปหมวด — ย่อ/ขยายแบบลื่น (max-height + opacity) */}
-          {!isPrices && !isMobile && (
+          {!isMobile && (
             <div style={{ overflow: "hidden", maxHeight: catOpen ? 140 : 0, opacity: catOpen ? 1 : 0,
               marginTop: catOpen ? 8 : 0, transition: "max-height .24s ease, opacity .2s ease, margin-top .24s ease" }}>
               <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
-                <CatChip active={cat === "all"} onClick={() => setCat("all")} label="ทั้งหมด" color="var(--text-2)" />
-                {SF.STOCK_CATS.map((c) => <CatChip key={c.key} active={cat === c.key} onClick={() => setCat(c.key)} label={c.th} color={c.color} />)}
+                {isPrices ? (
+                  <React.Fragment>
+                    <CatChip active={priceGrp === "all"} onClick={() => setPriceGrp("all")} label="ทั้งหมด" color="var(--text-2)" />
+                    {priceGroups.filter((g) => g !== "all").map((g) => <CatChip key={g} active={priceGrp === g} onClick={() => setPriceGrp(g)} label={PG_TH[g] || g} color={PG_COLOR[g] || "var(--text-2)"} />)}
+                  </React.Fragment>
+                ) : (
+                  <React.Fragment>
+                    <CatChip active={cat === "all"} onClick={() => setCat("all")} label="ทั้งหมด" color="var(--text-2)" />
+                    {SF.STOCK_CATS.map((c) => <CatChip key={c.key} active={cat === c.key} onClick={() => setCat(c.key)} label={c.th} color={c.color} />)}
+                  </React.Fragment>
+                )}
               </div>
             </div>
           )}
@@ -143,7 +169,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
 
       {isPrices ? (
         <div className="app-content">
-          <PricePanel priceStore={priceStore} stock={stock} />
+          <PricePanel priceStore={priceStore} stock={stock} q={priceQ} grp={priceGrp} />
         </div>
       ) : (
       <div className="app-content">
