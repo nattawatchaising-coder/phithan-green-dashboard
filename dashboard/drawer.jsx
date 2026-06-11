@@ -144,6 +144,7 @@ function JobMaterialUsage({ job, stock, currentUser }) {
 /* เบิกของเข้างานแบบช้อปปิ้ง — เลือกของจากคลัง ใส่จำนวน แล้วเบิกเข้างานทีเดียว */
 function StockShopModal({ stock, job, byName, onClose }) {
   const SF = window.SF;
+  const bdClose = window.useBackdropClose(onClose);
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [cart, setCart] = React.useState({});
   const [q, setQ] = React.useState("");
@@ -164,7 +165,7 @@ function StockShopModal({ stock, job, byName, onClose }) {
   const catOpts = [{ value: "all", label: "ทุกหมวด" }].concat((SF.STOCK_CATS || []).map((c) => ({ value: c.key, label: c.th })));
 
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 115, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
+    <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 115, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(560px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
         <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", flexShrink: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>

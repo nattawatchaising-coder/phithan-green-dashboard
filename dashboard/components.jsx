@@ -245,5 +245,15 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style }) {
   );
 }
 
-Object.assign(window, { Icon, ICONS, StageBadge, TypeBadge, MatChip, TechAvatar, ProgressBar, MatDots, Segmented, Dropdown,
+/* ปิด modal เมื่อคลิก backdrop — แต่ต้อง "กดเริ่ม" บน backdrop จริง ๆ
+   กัน drag-select ในช่องกรอกแล้วปล่อยเมาส์นอกกรอบทำให้ปิดหน้าต่างหลุด */
+function useBackdropClose(onClose) {
+  const down = React.useRef(false);
+  return {
+    onMouseDown: (e) => { down.current = (e.target === e.currentTarget); },
+    onClick: (e) => { const ok = e.target === e.currentTarget && down.current; down.current = false; if (ok) onClose(); },
+  };
+}
+
+Object.assign(window, { Icon, ICONS, StageBadge, TypeBadge, MatChip, TechAvatar, ProgressBar, MatDots, Segmented, Dropdown, useBackdropClose,
   thDate, thDateTime, fmtBaht, stageOf, parseDate, TH_MONTHS, TH_DAYS });
