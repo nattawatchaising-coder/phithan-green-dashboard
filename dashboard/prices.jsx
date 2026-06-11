@@ -30,16 +30,6 @@ function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
 
   const set = (name, k, v) => setLocal((p) => Object.assign({}, p, { [name]: Object.assign({}, p[name], { [k]: v }) }));
 
-  // ── ฟอร์มเพิ่มวัสดุเอง ──
-  const [nf, setNf] = React.useState({ name: "", code: "", price: "", unit: "" });
-  const setNF = (k, v) => setNf((p) => { const n = Object.assign({}, p, { [k]: v }); if (k === "name" && stockByName[v]) { n.code = stockByName[v].sku || n.code; n.unit = stockByName[v].unit || n.unit; } return n; });
-  const addItem = () => {
-    const name = (nf.name || "").trim();
-    if (!name) { alert("กรอกชื่อวัสดุ"); return; }
-    priceStore.setPrice(name, nf.code, nf.price, nf.unit, "ACCESSORIES");
-    setNf({ name: "", code: "", price: "", unit: "" });
-  };
-
   const filtered = cat.filter((c) => {
     if (grp !== "all" && c.group !== grp) return false;
     if (q) { const l = local[c.name] || {}; if (!((c.name + " " + (l.code || "")).toLowerCase().includes(q.toLowerCase()))) return false; }
@@ -55,19 +45,8 @@ function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
 
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column" }}>
-      {/* toolbar: นับ + เพิ่มวัสดุ (ค้นหา/หมวด ย้ายไปอยู่บน header) */}
-      <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface2)" }}>
-        <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 10 }}>ใส่ราคาแล้ว {pricedCount}/{cat.length} รายการ{dirtyCount > 0 && <span style={{ color: "#F59E0B", fontWeight: 700 }}> · ยังไม่บันทึก {dirtyCount}</span>}</div>
-        {/* เพิ่มวัสดุเอง */}
-        <datalist id="pm-stock-names">{stockItems.map((s) => <option key={s.id || s.name} value={s.name} />)}</datalist>
-        <div style={{ marginTop: 10, padding: 10, background: "var(--surface)", borderRadius: 10, display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 130px 90px 64px", gap: 8, alignItems: "center" }}>
-          <input list="pm-stock-names" value={nf.name} onChange={(e) => setNF("name", e.target.value)} placeholder="+ เพิ่มวัสดุ / เลือกจากคลัง" style={Object.assign({}, inStyle, isMobile ? { gridColumn: "1 / -1" } : {})} />
-          <input value={nf.code} onChange={(e) => setNF("code", e.target.value)} placeholder="รหัส" style={inStyle} />
-          <input type="number" value={nf.price} onChange={(e) => setNF("price", e.target.value)} placeholder="ราคา" style={numStyle} />
-          <input value={nf.unit} onChange={(e) => setNF("unit", e.target.value)} placeholder="หน่วย" style={inStyle} />
-          <button onClick={addItem} style={{ gridColumn: isMobile ? "1 / -1" : "auto", padding: "8px 12px", borderRadius: 9, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>+ เพิ่ม</button>
-        </div>
-      </div>
+      {/* toolbar: ตัวนับ (ค้นหา/หมวด/เพิ่มวัสดุ ย้ายไปอยู่บน header) */}
+      <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface2)", fontSize: 11.5, color: "var(--text-3)" }}>ใส่ราคาแล้ว {pricedCount}/{cat.length} รายการ{dirtyCount > 0 && <span style={{ color: "#F59E0B", fontWeight: 700 }}> · ยังไม่บันทึก {dirtyCount}</span>}</div>
 
       {/* list */}
       <div style={{ padding: "8px 12px" }}>
@@ -107,4 +86,48 @@ function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
   );
 }
 
-Object.assign(window, { PricePanel, PRICE_GROUP_TH, PRICE_GROUP_COLOR });
+/* ── Popup เพิ่มวัสดุ (Accessories) — เปิดจากปุ่มบน header ── */
+function AddPriceModal({ priceStore, stock, onClose }) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const bdClose = window.useBackdropClose(onClose);
+  const stockItems = (stock && stock.items) || [];
+  const stockByName = React.useMemo(() => { const m = {}; stockItems.forEach((s) => { m[s.name] = s; }); return m; }, [stockItems]);
+  const [nf, setNf] = React.useState({ name: "", code: "", price: "", unit: "" });
+  const setNF = (k, v) => setNf((p) => { const n = Object.assign({}, p, { [k]: v }); if (k === "name" && stockByName[v]) { n.code = stockByName[v].sku || n.code; n.unit = stockByName[v].unit || n.unit; } return n; });
+  const save = () => {
+    const name = (nf.name || "").trim();
+    if (!name) { alert("กรอกชื่อวัสดุ"); return; }
+    priceStore.setPrice(name, nf.code, nf.price, nf.unit, "ACCESSORIES");
+    onClose();
+  };
+  const inStyle = Object.assign({}, inputStyle, { padding: "10px 12px", fontSize: 13.5 });
+  const label = { fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 5, display: "block" };
+  return (
+    <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 115, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(440px,100%)", maxHeight: isMobile ? "92dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>เพิ่มวัสดุ</h2>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
+        </div>
+        <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14, overflowY: "auto" }}>
+          <datalist id="ap-stock-names">{stockItems.map((s) => <option key={s.id || s.name} value={s.name} />)}</datalist>
+          <div>
+            <label style={label}>ชื่อวัสดุ / เลือกจากคลัง</label>
+            <input list="ap-stock-names" value={nf.name} onChange={(e) => setNF("name", e.target.value)} placeholder="พิมพ์ชื่อ หรือเลือกจากคลัง" style={inStyle} />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div><label style={label}>รหัส</label><input value={nf.code} onChange={(e) => setNF("code", e.target.value)} placeholder="รหัส" style={inStyle} /></div>
+            <div><label style={label}>หน่วย</label><input value={nf.unit} onChange={(e) => setNF("unit", e.target.value)} placeholder="เช่น pcs" style={inStyle} /></div>
+          </div>
+          <div><label style={label}>ราคา (บาท)</label><input type="number" value={nf.price} onChange={(e) => setNF("price", e.target.value)} placeholder="0" style={Object.assign({}, inStyle, { textAlign: "right" })} /></div>
+        </div>
+        <div style={{ padding: "12px 20px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10 }}>
+          <button onClick={onClose} style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
+          <button onClick={save} style={{ flex: 1, padding: "11px 22px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>เพิ่มวัสดุ</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { PricePanel, AddPriceModal, PRICE_GROUP_TH, PRICE_GROUP_COLOR });

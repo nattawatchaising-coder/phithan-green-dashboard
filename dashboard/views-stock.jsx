@@ -59,6 +59,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   // ── แท็บราคา BOQ: ค้นหา + กรองกลุ่ม (ยกขึ้นมาไว้บน header เหมือนหน้าสต็อก) ──
   const [priceQ, setPriceQ] = React.useState("");
   const [priceGrp, setPriceGrp] = React.useState("all");
+  const [addPriceOpen, setAddPriceOpen] = React.useState(false);
   const priceGroups = React.useMemo(() => {
     try {
       const gs = ["all"].concat([...new Set(window.BOQ.catalog().map((c) => c.group))]);
@@ -113,7 +114,11 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                 ? <input value={priceQ} onChange={(e) => setPriceQ(e.target.value)} placeholder="ค้นหาชื่อ / รหัส..." />
                 : <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหาอุปกรณ์ / รหัส / ที่จัดเก็บ..." />}
             </div>
-            {!isPrices && (
+            {isPrices ? (
+              <button className="btn-add" onClick={() => setAddPriceOpen(true)}>
+                <Icon name="plus" size={17} color="#fff" sw={2.4} /><span>เพิ่มวัสดุ</span>
+              </button>
+            ) : (
               <button className="btn-add" onClick={() => setItemForm({ item: stock.blankItem(), isNew: true })}>
                 <Icon name="plus" size={17} color="#fff" sw={2.4} /><span>เพิ่มรายการ</span>
               </button>
@@ -244,6 +249,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
       {moveItem && <MoveModal info={moveItem} byName={byName} jobs={jobs || []} onSave={(qty, ref, note, jobId) => { stock.move(moveItem.item.id, moveItem.type, qty, ref, note, byName, jobId); setMoveItem(null); }} onClose={() => setMoveItem(null)} />}
       {itemForm && <ItemModal initial={itemForm.item} isNew={itemForm.isNew} onSave={(rec) => { stock.upsertItem(rec); setItemForm(null); }} onClose={() => setItemForm(null)} />}
       {movesOpen && <MovesModal moves={stock.moves} items={items} jobs={jobs || []} onClose={() => setMovesOpen(false)} />}
+      {addPriceOpen && <AddPriceModal priceStore={priceStore} stock={stock} onClose={() => setAddPriceOpen(false)} />}
     </React.Fragment>
   );
 }
