@@ -69,10 +69,26 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     Object.keys(priceMap || {}).forEach((n) => { m[n] = { unit: (priceMap[n].unit || (m[n] && m[n].unit) || ""), code: priceMap[n].code }; });
     return m;
   }, [priceMap, stockItems.length]);
-  const matNames = React.useMemo(() => Object.keys(matInfo).sort(), [matInfo]);
+  // จัดวัสดุเป็นหมวดสำหรับเลือกใน Accessories
+  const accCat = React.useMemo(() => {
+    const TH = { "PV MODULE": "แผง", INVERTER: "อินเวอร์เตอร์", MOUNTING: "อุปกรณ์ mounting", CABLE: "สายไฟ", "RACE WAY": "ท่อร้อยสาย", GROUNDING: "กราวด์", ACCESSORIES: "Accessories" };
+    const cat = window.BOQ.catalog() || [];
+    const catKeys = new Set(cat.map((c) => c.name));
+    const byCat = {};
+    const add = (c, n) => { if (!n) return; (byCat[c] = byCat[c] || new Set()).add(n); };
+    cat.forEach((c) => add(TH[c.group] || c.group, c.name));
+    Object.keys(priceMap || {}).forEach((n) => { if (!catKeys.has(n)) add(TH[priceMap[n].group || "ACCESSORIES"] || "Accessories", n); });
+    stockItems.forEach((s) => add("คลังสินค้า", s.name));
+    const order = ["Accessories", "คลังสินค้า", "อุปกรณ์ mounting", "สายไฟ", "ท่อร้อยสาย", "กราวด์", "แผง", "อินเวอร์เตอร์"];
+    const cats = Object.keys(byCat).sort((a, z) => { const ia = order.indexOf(a), iz = order.indexOf(z); return (ia < 0 ? 99 : ia) - (iz < 0 ? 99 : iz); });
+    const map = {}; cats.forEach((c) => { map[c] = [...byCat[c]].sort(); });
+    return { cats, map };
+  }, [priceMap, stockItems.length]);
+
   const accList = b.accessories || [];
   const setAcc = (i, k, v) => setB((p) => { const a = (p.accessories || []).slice(); a[i] = Object.assign({}, a[i], { [k]: v }); if (k === "name" && matInfo[v]) a[i].unit = matInfo[v].unit || a[i].unit; return Object.assign({}, p, { accessories: a }); });
-  const addAcc = () => setB((p) => Object.assign({}, p, { accessories: (p.accessories || []).concat([{ name: "", qty: 1, unit: "" }]) }));
+  const setAccCat = (i, v) => setB((p) => { const a = (p.accessories || []).slice(); a[i] = Object.assign({}, a[i], { cat: v, name: "" }); return Object.assign({}, p, { accessories: a }); });
+  const addAcc = () => setB((p) => Object.assign({}, p, { accessories: (p.accessories || []).concat([{ cat: "", name: "", qty: 1, unit: "" }]) }));
   const delAcc = (i) => setB((p) => Object.assign({}, p, { accessories: (p.accessories || []).filter((_, j) => j !== i) }));
 
   const ConduitList = ({ kind, label, sizes, valKey, unitText }) => (
@@ -265,19 +281,28 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
           {/* ── Accessories ── */}
           <Section title="Accessories (เพิ่มของ)" icon="box">
-            <datalist id="boq-mat-names">{matNames.map((n) => <option key={n} value={n} />)}</datalist>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {accList.map((a, i) => (
-                <div key={i} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 56px 36px" : "1fr 90px 70px 36px", gap: 8, alignItems: "center" }}>
-                  <input list="boq-mat-names" value={a.name} onChange={(e) => setAcc(i, "name", e.target.value)} placeholder="ชื่อวัสดุ / เลือกจากราคาวัสดุ-คลัง" style={inputStyle} />
-                  <input type="number" style={numStyle} value={a.qty} placeholder="จำนวน" onChange={(e) => setAcc(i, "qty", e.target.value)} />
-                  {!isMobile && <input value={a.unit} onChange={(e) => setAcc(i, "unit", e.target.value)} placeholder="หน่วย" style={inputStyle} />}
-                  <button onClick={() => delAcc(i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
-                </div>
-              ))}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {accList.map((a, i) => {
+                const items = a.cat === "พิมพ์เอง" ? [] : (accCat.map[a.cat] || []);
+                return (
+                  <div key={i} style={{ border: "1px solid var(--border)", borderRadius: 11, padding: 9, display: "flex", flexDirection: "column", gap: 7 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 36px", gap: 8, alignItems: "center" }}>
+                      <Dropdown value={a.cat || ""} onChange={(v) => setAccCat(i, v)}
+                        options={[{ value: "", label: "— เลือกหมวด —" }].concat(accCat.cats.map((c) => ({ value: c, label: c }))).concat([{ value: "พิมพ์เอง", label: "✎ พิมพ์เอง" }])} />
+                      <button onClick={() => delAcc(i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 72px", gap: 8, alignItems: "center" }}>
+                      {a.cat === "พิมพ์เอง"
+                        ? <input value={a.name} onChange={(e) => setAcc(i, "name", e.target.value)} placeholder="ชื่อวัสดุ" style={inputStyle} />
+                        : <Dropdown value={a.name || ""} onChange={(v) => setAcc(i, "name", v)} disabled={!a.cat} options={[{ value: "", label: a.cat ? "— เลือกวัสดุ —" : "เลือกหมวดก่อน" }].concat(items.map((n) => ({ value: n, label: n })))} />}
+                      <input type="number" style={numStyle} value={a.qty} placeholder="จำนวน" onChange={(e) => setAcc(i, "qty", e.target.value)} />
+                    </div>
+                  </div>
+                );
+              })}
               <button onClick={addAcc} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--primary-soft)", color: "var(--primary-dark)", border: "none", borderRadius: 9, padding: "8px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={14} color="var(--primary-dark)" /> เพิ่มของ</button>
             </div>
-            <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)" }}>* พิมพ์ชื่อหรือเลือกจากรายการ (ดึงจากราคาวัสดุ + คลังสินค้า) — ถ้ามีราคาในระบบจะคิดต้นทุนให้</div>
+            <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)" }}>* เลือกหมวด → เลือกวัสดุ (จากราคาวัสดุ + คลังสินค้า) หรือ "พิมพ์เอง" — ถ้ามีราคาในระบบจะคิดต้นทุนให้</div>
           </Section>
 
           {/* ── ผลลัพธ์ BOQ ── */}
