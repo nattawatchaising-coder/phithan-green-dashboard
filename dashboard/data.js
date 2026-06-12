@@ -273,6 +273,21 @@
     const dl = effDeadline ? parseDateLocal(effDeadline) : null;
     const delayed = j.stage !== "done" && dl && dl.getTime() < todayMidnight.getTime();
     const stageIdx = STAGE_INDEX[j.stage] != null ? STAGE_INDEX[j.stage] : 0;
+    // ขั้นงานที่เลยกำหนด = ยังไม่เสร็จ + ขั้นนี้ยังไม่ผ่าน (idx >= ขั้นปัจจุบัน) + วันเสร็จที่ตั้งไว้เลยวันนี้
+    const lateStages = [];
+    if (j.stage !== "done") {
+      STAGES.forEach((s, idx) => {
+        if (idx < stageIdx) return; // ผ่านขั้นนี้ไปแล้ว
+        const v = sdates[s.key];
+        const end = v ? (typeof v === "object" ? v.end : v) : null;
+        if (!end) return;
+        const ed = parseDateLocal(end);
+        if (ed && ed.getTime() < todayMidnight.getTime()) {
+          lateStages.push({ key: s.key, th: s.th, en: s.en, color: s.color, end: end,
+            daysLate: Math.round((todayMidnight.getTime() - ed.getTime()) / 86400000) });
+        }
+      });
+    }
     return Object.assign({}, j, {
       id: j.id || j.code,
       mat: matObj,
@@ -281,6 +296,7 @@
       timeline: hist(j.stage, !!j.problem, j.hist),
       matReady, matReadyPct: Math.round((matReadyCount / Math.max(matVals.length, 1)) * 100),
       delayed: !!delayed, stageIdx,
+      lateStages, lateStageCount: lateStages.length,
       progressPct: Math.round(((stageIdx + (j.stage === "done" ? 1 : 0)) / STAGES.length) * 100),
     });
   }

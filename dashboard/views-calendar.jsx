@@ -123,13 +123,17 @@ function CalendarView({ jobs, onOpen }) {
                   if (!ms.length) return null;
                   return (
                     <div style={{ display: "flex", flexDirection: "column", gap: 2, paddingLeft: 8, marginTop: 1 }}>
-                      {ms.slice(0, 2).map((m) => (
-                        <button key={m.job.id + m.stage.key} onClick={() => onOpen(m.job)} title={"เสร็จ" + m.stage.th + " · " + m.job.name}
-                          style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", overflow: "hidden" }}>
-                          <span style={{ width: 12, height: 12, borderRadius: 99, background: m.stage.color, display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="check" size={8} color="#fff" sw={3} /></span>
-                          <span style={{ fontSize: 9.5, fontWeight: 600, color: "var(--text-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.stage.th} · {m.job.name.replace("คุณ", "")}</span>
-                        </button>
-                      ))}
+                      {ms.slice(0, 2).map((m) => {
+                        const lt = (m.job.lateStages || []).some((ls) => ls.key === m.stage.key);
+                        const mc = lt ? "#EF4444" : m.stage.color;
+                        return (
+                          <button key={m.job.id + m.stage.key} onClick={() => onOpen(m.job)} title={(lt ? "เลยกำหนด " : "เสร็จ") + m.stage.th + " · " + m.job.name}
+                            style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", overflow: "hidden" }}>
+                            <span style={{ width: 12, height: 12, borderRadius: 99, background: mc, display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name={lt ? "alert" : "check"} size={8} color="#fff" sw={3} /></span>
+                            <span style={{ fontSize: 9.5, fontWeight: 600, color: lt ? "#EF4444" : "var(--text-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.stage.th} · {m.job.name.replace("คุณ", "")}</span>
+                          </button>
+                        );
+                      })}
                       {ms.length > 2 && <button onClick={() => setSelDay(d)} style={{ fontSize: 9, color: "var(--text-3)", background: "none", border: "none", cursor: "pointer", textAlign: "left", fontFamily: "inherit", paddingLeft: 1 }}>+{ms.length - 2} หมุด</button>}
                     </div>
                   );
@@ -163,16 +167,20 @@ function DayDetailModal({ day, ym, jobs, milestones, onOpen, onClose }) {
           {ms.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 7, paddingBottom: 4, marginBottom: 2, borderBottom: jobs.length ? "1px dashed var(--border)" : "none" }}>
               <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>กำหนดเสร็จขั้นงาน</div>
-              {ms.map((m) => (
-                <button key={m.job.id + m.stage.key} onClick={() => onOpen(m.job)}
-                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 11px", width: "100%", textAlign: "left", background: m.stage.soft, border: "1px solid " + m.stage.color + "55", borderRadius: 11, cursor: "pointer", fontFamily: "inherit" }}>
-                  <span style={{ width: 22, height: 22, borderRadius: 99, background: m.stage.color, display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="check" size={13} color="#fff" sw={3} /></span>
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.job.name}</span>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: m.stage.color }}>เสร็จขั้น: {m.stage.th}</span>
-                  </span>
-                </button>
-              ))}
+              {ms.map((m) => {
+                const lt = (m.job.lateStages || []).find((ls) => ls.key === m.stage.key);
+                const mc = lt ? "#EF4444" : m.stage.color;
+                return (
+                  <button key={m.job.id + m.stage.key} onClick={() => onOpen(m.job)}
+                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 11px", width: "100%", textAlign: "left", background: lt ? "#FEF2F2" : m.stage.soft, border: "1px solid " + (lt ? "#FECACA" : m.stage.color + "55"), borderRadius: 11, cursor: "pointer", fontFamily: "inherit" }}>
+                    <span style={{ width: 22, height: 22, borderRadius: 99, background: mc, display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name={lt ? "alert" : "check"} size={13} color="#fff" sw={3} /></span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.job.name}</span>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: mc }}>{lt ? "เลยกำหนด " + lt.daysLate + " วัน · " : "เสร็จขั้น: "}{m.stage.th}</span>
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           )}
           {jobs.length === 0 && ms.length === 0 && <div style={{ textAlign: "center", color: "var(--text-3)", fontSize: 13, padding: "20px 0" }}>ไม่มีงานในวันนี้</div>}
@@ -319,16 +327,20 @@ function MobileCalendar({ ym, cells, jobsOn, milestonesOn, keyOf, todayKey, shif
               {selMs.length > 0 && (
                 <React.Fragment>
                   <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>กำหนดเสร็จขั้นงาน</div>
-                  {selMs.map((m) => (
-                    <button key={m.job.id + m.stage.key} onClick={() => { setSelDay(null); onOpen(m.job); }}
-                      style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", width: "100%", textAlign: "left", background: m.stage.soft, border: "1px solid " + m.stage.color + "55", borderRadius: 12, cursor: "pointer", fontFamily: "inherit" }}>
-                      <span style={{ width: 22, height: 22, borderRadius: 99, background: m.stage.color, display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="check" size={13} color="#fff" sw={3} /></span>
-                      <span style={{ flex: 1, minWidth: 0 }}>
-                        <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.job.name}</span>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: m.stage.color }}>เสร็จขั้น: {m.stage.th}</span>
-                      </span>
-                    </button>
-                  ))}
+                  {selMs.map((m) => {
+                    const lt = (m.job.lateStages || []).find((ls) => ls.key === m.stage.key);
+                    const mc = lt ? "#EF4444" : m.stage.color;
+                    return (
+                      <button key={m.job.id + m.stage.key} onClick={() => { setSelDay(null); onOpen(m.job); }}
+                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", width: "100%", textAlign: "left", background: lt ? "#FEF2F2" : m.stage.soft, border: "1px solid " + (lt ? "#FECACA" : m.stage.color + "55"), borderRadius: 12, cursor: "pointer", fontFamily: "inherit" }}>
+                        <span style={{ width: 22, height: 22, borderRadius: 99, background: mc, display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name={lt ? "alert" : "check"} size={13} color="#fff" sw={3} /></span>
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.job.name}</span>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: mc }}>{lt ? "เลยกำหนด " + lt.daysLate + " วัน · " : "เสร็จขั้น: "}{m.stage.th}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
                 </React.Fragment>
               )}
               {selList.length === 0 && selMs.length === 0 && (

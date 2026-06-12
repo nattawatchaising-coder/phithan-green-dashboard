@@ -124,6 +124,14 @@ function App() {
     });
   }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, role, techId]);
 
+  // แจ้งเตือนงานล่าช้าตามขั้น (Flow) — คำนวณสด: tech เห็นเฉพาะงานตัวเอง, admin/manager เห็นทุกงาน
+  const lateAlerts = React.useMemo(() => {
+    const scope = role === "tech" ? jobs.filter((j) => j.tech === techId) : jobs;
+    const out = [];
+    scope.forEach((j) => (j.lateStages || []).forEach((ls) => out.push({ jobId: j.id, jobName: j.name, stage: ls })));
+    return out.sort((a, b) => b.stage.daysLate - a.stage.daysLate);
+  }, [jobs, role, techId]);
+
   const loading = store.loading || stock.loading || auth.loading;
 
   // ราคารวมสำหรับ BOQ = ราคาจากคลังสินค้า (ตามชื่อ) ทับด้วยฐานราคาวัสดุ (boqPrices ชนะ)
@@ -170,8 +178,9 @@ function App() {
   // แจ้งเตือนของช่างคนนี้ (admin/manager ไม่มี techId → ไม่มีกระดิ่งส่วนตัว)
   const myNotifs = techId ? notif.notifs.filter((n) => n.toTechId === techId) : [];
   const unread   = myNotifs.filter((n) => !n.read).length;
+  const bellCount = unread + lateAlerts.length;
   const openFromNotif = (n) => {
-    notif.markRead(n.id);
+    if (n.id) notif.markRead(n.id);
     setNotifOpen(false);
     if (n.jobId) { setView("table"); setSelected(n.jobId); }
   };
@@ -197,7 +206,7 @@ function App() {
           quickFilter={quickFilter} setQuickFilter={setQuickFilter}
           onAdd={() => setForm({ job: store.blank(), isNew: true })}
           canAdd={can(role, "addJob")}
-          showBell={!!techId} unread={unread} notifItems={myNotifs}
+          showBell={true} unread={bellCount} notifItems={myNotifs} lateAlerts={lateAlerts}
           notifOpen={notifOpen} onBell={() => setNotifOpen((v) => !v)} onCloseNotif={() => setNotifOpen(false)}
           onOpenNotif={openFromNotif} onMarkAll={() => notif.markAllRead(techId)}
           onMenuOpen={() => setSidebarOpen(true)} />
@@ -318,7 +327,7 @@ function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, currentUser
   );
 }
 
-function Header({ view, role, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, quickFilter, setQuickFilter, onAdd, canAdd, showBell, unread, notifItems, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen }) {
+function Header({ view, role, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, quickFilter, setQuickFilter, onAdd, canAdd, showBell, unread, notifItems, lateAlerts, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen }) {
   const nav = NAV.find((n) => n.key === view);
   const QUICK_LABELS = { active: "กำลังดำเนินการ", delayed: "ล่าช้า", ready: "อุปกรณ์พร้อมติดตั้ง", battery: "มีแบตเตอรี่" };
   return (
@@ -352,7 +361,7 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
                     background: "#EF4444", color: "#fff", fontSize: 10.5, fontWeight: 700, display: "grid", placeItems: "center", border: "2px solid var(--bg)" }}>{unread}</span>
                 )}
               </button>
-              {notifOpen && <NotifPanel items={notifItems} onClose={onCloseNotif} onOpenJob={onOpenNotif} onMarkAll={onMarkAll} />}
+              {notifOpen && <NotifPanel items={notifItems} lateAlerts={lateAlerts} onClose={onCloseNotif} onOpenJob={onOpenNotif} onMarkAll={onMarkAll} />}
             </div>
           )}
           {canAdd && (

@@ -267,8 +267,9 @@ function LoginScreen({ authStore }) {
 /* ================================================================
    NotifPanel — กล่องแจ้งเตือน (dropdown จากกระดิ่ง)
    ================================================================ */
-function NotifPanel({ items, onClose, onOpenJob, onMarkAll }) {
+function NotifPanel({ items, lateAlerts, onClose, onOpenJob, onMarkAll }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const alerts = lateAlerts || [];
   return (
     <React.Fragment>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 95 }} />
@@ -290,7 +291,26 @@ function NotifPanel({ items, onClose, onOpenJob, onMarkAll }) {
         </div>
         <div style={{ overflowY: "auto", padding: 10, display: "flex", flexDirection: "column", gap: 8,
           paddingBottom: isMobile ? "calc(10px + env(safe-area-inset-bottom, 0px))" : 10 }}>
-          {items.length === 0 && <div style={{ padding: "28px 0", textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>ยังไม่มีการแจ้งเตือน</div>}
+          {items.length === 0 && alerts.length === 0 && <div style={{ padding: "28px 0", textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>ยังไม่มีการแจ้งเตือน</div>}
+          {/* งานล่าช้าตามขั้น (Flow) — คำนวณสด */}
+          {alerts.length > 0 && (
+            <React.Fragment>
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "#EF4444", padding: "2px 4px" }}>⚠ งานล่าช้ากว่ากำหนด ({alerts.length})</div>
+              {alerts.map((a, i) => (
+                <button key={a.jobId + a.stage.key + i} onClick={() => onOpenJob({ jobId: a.jobId })}
+                  style={{ display: "flex", gap: 10, padding: "11px 12px", width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "inherit",
+                    background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 11 }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: "grid", placeItems: "center", background: "#EF4444", color: "#fff" }}><Icon name="alert" size={15} color="#fff" /></span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.jobName}</span>
+                    <span style={{ display: "block", fontSize: 12, color: "#B91C1C", marginTop: 2, lineHeight: 1.4 }}>ขั้น "{a.stage.th}" เลยกำหนด {a.stage.daysLate} วัน</span>
+                    <span style={{ display: "block", fontSize: 10.5, color: "var(--text-3)", marginTop: 3 }}>กำหนดเสร็จ {thDate ? thDate(a.stage.end, true) : a.stage.end}</span>
+                  </span>
+                </button>
+              ))}
+              {items.length > 0 && <div style={{ height: 1, background: "var(--border)", margin: "4px 2px" }} />}
+            </React.Fragment>
+          )}
           {items.map((n) => (
             <button key={n.id} onClick={() => onOpenJob(n)}
               style={{ display: "flex", gap: 10, padding: "11px 12px", width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "inherit",
