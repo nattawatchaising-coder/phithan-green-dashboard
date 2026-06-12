@@ -57,7 +57,7 @@ function AgendaView({ jobs, onOpen, calView, setCalView }) {
   const todayKey = SF.TODAY;
   const in7 = addDaysKey(todayKey, 7);
   const techName = (id) => { const t = (SF.TECH_BY_ID || {})[id]; return t ? (t.name || t.nick || "") : ""; };
-  const KIND_TH = { start: "เริ่ม", progress: "กำลังดำเนินการ", end: "ส่งมอบ/เสร็จ" };
+  const KIND_TH = { start: "เริ่ม", progress: "กำลังดำเนินการ", end: "ส่งมอบ/เสร็จ", both: "เริ่ม–เสร็จ" };
   const stageLabel = (s, kind) => KIND_TH[kind] + " · " + s.th;
 
   const overdue = [];
@@ -75,15 +75,21 @@ function AgendaView({ jobs, onOpen, calView, setCalView }) {
       const st = typeof v === "object" ? (v.start || "") : "";
       const en = typeof v === "object" ? (v.end || "") : v;
       const s0 = st || en, e0 = en || st;
+      const sameDay = st && en && st === en; // เริ่ม–เสร็จ วันเดียวกัน → รวมเป็นรายการเดียว
       if (s0 && todayKey >= s0 && todayKey <= e0) {
         let kind;
-        if (s0 !== e0 && todayKey > s0 && todayKey < e0) kind = "progress";
+        if (sameDay) kind = "both";
+        else if (s0 !== e0 && todayKey > s0 && todayKey < e0) kind = "progress";
         else if (todayKey === e0 && en) kind = "end";
         else kind = "start";
         todayEv.push({ job: j, stage: s, kind });
       }
-      if (st && st > todayKey && st <= in7) upcoming.push({ job: j, stage: s, kind: "start", date: st });
-      if (en && en > todayKey && en <= in7) upcoming.push({ job: j, stage: s, kind: "end", date: en });
+      if (sameDay) {
+        if (st > todayKey && st <= in7) upcoming.push({ job: j, stage: s, kind: "both", date: st });
+      } else {
+        if (st && st > todayKey && st <= in7) upcoming.push({ job: j, stage: s, kind: "start", date: st });
+        if (en && en > todayKey && en <= in7) upcoming.push({ job: j, stage: s, kind: "end", date: en });
+      }
     });
   });
   todayEv.sort((a, b) => a.job.name.localeCompare(b.job.name));

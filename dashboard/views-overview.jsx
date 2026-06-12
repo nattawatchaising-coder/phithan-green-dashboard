@@ -148,7 +148,7 @@ function Empty({ text }) {
 
 /* งานที่ต้องทำวันนี้ — ขั้น Flow ที่ today อยู่ในช่วงเริ่ม–เสร็จ */
 function TodayPanel({ tasks, onOpen }) {
-  const KIND = { start: { th: "เริ่มวันนี้", icon: "pin" }, progress: { th: "กำลังดำเนินการ", icon: "wrench" }, end: { th: "ส่งมอบ/เสร็จวันนี้", icon: "check" } };
+  const KIND = { start: { th: "เริ่มวันนี้", icon: "pin" }, progress: { th: "กำลังดำเนินการ", icon: "wrench" }, end: { th: "ส่งมอบ/เสร็จวันนี้", icon: "check" }, both: { th: "เริ่ม–เสร็จวันนี้", icon: "check" } };
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 22, boxShadow: "var(--shadow-sm)" }}>
       <PanelTitle icon="calendar" iconColor="var(--primary)" title="งานที่ต้องทำวันนี้" sub={thDate(window.SF.TODAY, true) + " · " + tasks.length + " รายการ"} />
