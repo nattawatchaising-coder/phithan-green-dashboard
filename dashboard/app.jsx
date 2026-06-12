@@ -449,8 +449,8 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
         </button>
       </div>
       {/* ชิปกรองขั้นงาน — ย่อ/ขยายแบบลื่น (max-height + opacity) */}
-      <div style={{ overflow: "hidden", maxHeight: stageOpen ? 160 : 0, opacity: stageOpen ? 1 : 0,
-        marginTop: stageOpen ? 8 : 0, transition: "max-height .24s ease, opacity .2s ease, margin-top .24s ease" }}>
+      <div style={{ overflow: "hidden", maxHeight: stageOpen ? 180 : 0, opacity: stageOpen ? 1 : 0,
+        paddingBottom: stageOpen ? 14 : 0, transition: "max-height .24s ease, opacity .2s ease, padding-bottom .24s ease" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
           {(() => {
             const SF = window.SF;
