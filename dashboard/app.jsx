@@ -7,7 +7,6 @@ const NAV = [
   { key: "board",    th: "บอร์ดงาน",     en: "Workflow",  icon: "kanban" },
   { key: "table",    th: "ฐานข้อมูลงาน",  en: "Database",  icon: "table" },
   { key: "calendar", th: "ปฏิทินนัด",     en: "Calendar",  icon: "calendar" },
-  { key: "map",      th: "แผนที่งาน",     en: "Map",       icon: "map" },
   { key: "stock",    th: "คลังสินค้า",    en: "Inventory", icon: "box" },
 ];
 
@@ -96,6 +95,7 @@ function App() {
   const [userMgr, setUserMgr] = React.useState(false);
   const [notifOpen, setNotifOpen] = React.useState(false);
   const [briefingOpen, setBriefingOpen] = React.useState(false); // สรุปงานวันนี้ (เปิดครั้งแรกของวัน)
+  const [mapOpen, setMapOpen] = React.useState(false); // แผนที่งาน (popup จากปุ่มใน header)
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const isMobile = useIsMobile(); // force App re-render when mobile↔desktop breakpoint changes
 
@@ -260,19 +260,19 @@ function App() {
           quickFilter={quickFilter} setQuickFilter={setQuickFilter}
           onAdd={() => setForm({ job: store.blank(), isNew: true })}
           canAdd={can(role, "addJob")}
+          onMap={() => setMapOpen(true)}
           showBell={true} unread={bellCount} notifItems={myNotifs} lateAlerts={lateAlerts}
           notifOpen={notifOpen} onBell={() => setNotifOpen((v) => !v)} onCloseNotif={() => setNotifOpen(false)}
           onOpenNotif={openFromNotif} onMarkAll={() => notif.markAllRead(techId)}
           onMenuOpen={() => setSidebarOpen(true)} />
 
-        <div className="app-content" style={view === "board" || view === "map" ? { display: "flex", flexDirection: "column", minHeight: 0 } : {}}>
+        <div className="app-content" style={view === "board" ? { display: "flex", flexDirection: "column", minHeight: 0 } : {}}>
           {view === "overview" && <OverviewView jobs={filtered} todayTasks={todayTasks} onOpen={openJob} onStage={goStage} onKpi={goKpi} />}
           {view === "board" && <KanbanView jobs={filtered} onOpen={openJob} onMoveStage={(id, s) => store.setStage(id, s)} />}
           {view === "table" && <TableView jobs={filtered} onOpen={openJob}
             onEdit={(j) => setForm({ job: store.raw.find((r) => r.id === j.id), isNew: false })}
             onDelete={onDelete} onSetMat={store.setMat} onSetStage={(id, s) => store.setStage(id, s)} />}
           {view === "calendar" && <CalendarView jobs={filtered} onOpen={openJob} />}
-          {view === "map" && <MapView jobs={filtered} onOpen={openJob} />}
         </div>
         </React.Fragment>
         )}
@@ -290,6 +290,7 @@ function App() {
       {briefingOpen && <DailyBriefing lateAlerts={lateAlerts} todayTasks={todayTasks}
         onOpen={(jobId) => { localStorage.setItem("sf_briefing_seen", window.SF.TODAY); setBriefingOpen(false); setView("table"); setSelected(jobId); }}
         onClose={() => { localStorage.setItem("sf_briefing_seen", window.SF.TODAY); setBriefingOpen(false); }} />}
+      {mapOpen && <MapModal jobs={filtered} onOpen={(j) => { setMapOpen(false); openJob(j); }} onClose={() => setMapOpen(false)} />}
 
       <TweaksPanel>
         <TweakSection label="ธีม / Theme" />
@@ -384,7 +385,7 @@ function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, currentUser
   );
 }
 
-function Header({ view, role, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, quickFilter, setQuickFilter, onAdd, canAdd, showBell, unread, notifItems, lateAlerts, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen }) {
+function Header({ view, role, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, quickFilter, setQuickFilter, onAdd, canAdd, onMap, showBell, unread, notifItems, lateAlerts, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen }) {
   const nav = NAV.find((n) => n.key === view);
   const QUICK_LABELS = { active: "กำลังดำเนินการ", delayed: "ล่าช้า", ready: "อุปกรณ์พร้อมติดตั้ง", battery: "มีแบตเตอรี่" };
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -410,6 +411,13 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
             <Icon name="search" size={16} color="var(--text-3)" />
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหา..." />
           </div>
+          {onMap && (
+            <button onClick={onMap} title="แผนที่งาน" aria-label="แผนที่งาน"
+              style={{ width: 40, height: 40, borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
+              <Icon name="map" size={18} color="var(--text-2)" />
+            </button>
+          )}
           {showBell && (
             <div style={{ position: "relative", flexShrink: 0 }}>
               <button onClick={onBell} aria-label="การแจ้งเตือน"
@@ -533,6 +541,34 @@ function DailyBriefing({ lateAlerts, todayTasks, onOpen, onClose }) {
         </div>
         <div style={{ padding: "12px 20px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)" }}>
           <button onClick={onClose} style={{ width: "100%", padding: "12px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>รับทราบ</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* แผนที่งาน — popup เต็มจอ เปิดจากปุ่มใน header */
+function MapModal({ jobs, onOpen, onClose }) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const bdClose = window.useBackdropClose(onClose);
+  return (
+    <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)",
+      zIndex: 95, display: "grid", placeItems: isMobile ? "stretch" : "center", padding: isMobile ? 0 : 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? 0 : 20,
+        width: isMobile ? "100%" : "min(1120px, 100%)", height: isMobile ? "100%" : "88vh",
+        display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+            <span style={{ width: 38, height: 38, borderRadius: 11, background: "var(--primary-soft)", display: "grid", placeItems: "center" }}><Icon name="map" size={19} color="var(--primary-dark)" /></span>
+            <div>
+              <h2 style={{ fontSize: 16.5, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>แผนที่งานติดตั้ง</h2>
+              <span style={{ fontSize: 12, color: "var(--text-3)" }}>{jobs.length} งาน · คลิกหมุดเพื่อดูรายละเอียด</span>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+        </div>
+        <div style={{ flex: 1, minHeight: 0, overflowY: isMobile ? "auto" : "hidden", padding: isMobile ? 14 : 18, display: "flex", flexDirection: "column" }}>
+          <MapView jobs={jobs} onOpen={onOpen} />
         </div>
       </div>
     </div>
