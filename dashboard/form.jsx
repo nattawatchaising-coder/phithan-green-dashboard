@@ -47,6 +47,20 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
     return Object.assign({}, p, { stageDates: Object.assign({}, p.stageDates, { [k]: Object.assign({}, cur, { [which]: v }) }) });
   });
   const stageVal = (k) => { const v = f.stageDates && f.stageDates[k]; if (!v) return { start: "", end: "" }; if (typeof v === "object") return { start: v.start || "", end: v.end || "" }; return { start: "", end: v }; };
+  // กรอกวันเสร็จขั้นนี้ → เติมวันเริ่มของขั้นถัดไปให้ต่อกันอัตโนมัติ (ถ้ายังว่าง)
+  const setStageEnd = (k, idx, v) => setF((p) => {
+    const stages = SF.STAGES;
+    const prev = p.stageDates && p.stageDates[k];
+    const cur = (prev && typeof prev === "object") ? prev : { start: "", end: (typeof prev === "string" ? prev : "") };
+    const sd = Object.assign({}, p.stageDates, { [k]: Object.assign({}, cur, { end: v }) });
+    const nx = stages[idx + 1];
+    if (nx && v) {
+      const nv = sd[nx.key];
+      const ncur = (nv && typeof nv === "object") ? nv : { start: "", end: (typeof nv === "string" ? nv : "") };
+      if (!ncur.start) sd[nx.key] = Object.assign({}, ncur, { start: v });
+    }
+    return Object.assign({}, p, { stageDates: sd });
+  });
   const brandInfo = (SF.BRAND_BY_NAME || {})[f.brand];
   const noBattery = brandInfo ? !brandInfo.battery : false;
   const isMobile = useFormMobile();
@@ -201,21 +215,48 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
             </div>
           </Section>
 
-          {/* per-stage schedule → ขึ้นเป็นหมุดในปฏิทินนัด + ใช้กำหนดวันเริ่ม/เสร็จรวมของงาน */}
+          {/* per-stage schedule → timeline ที่ล็อกตามลำดับ + วันต่อเนื่อง */}
           <Section title="กำหนดการแต่ละขั้น (Flow)" icon="calendar">
-            <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 12 }}>ระบุวันเริ่ม–เสร็จของแต่ละขั้น — วันเสร็จจะขึ้นเป็นหมุดในปฏิทินนัด และระบบจะใช้กำหนดวันเริ่ม/เสร็จรวมของงานอัตโนมัติ</div>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 14 : 16 }}>
+            <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 16, lineHeight: 1.5 }}>
+              ทำเรียงทีละขั้น — กรอก<b style={{ color: "var(--text-2)" }}>วันเสร็จ</b>ของขั้นก่อนหน้าให้ครบ ขั้นถัดไปจึงปลดล็อก · วันเริ่มของขั้นถัดไปจะต่อจากวันเสร็จของขั้นก่อนให้อัตโนมัติ
+            </div>
+            <div style={{ display: "flex", flexDirection: "column" }}>
               {SF.STAGES.map((s, i) => {
                 const sv = stageVal(s.key);
+                const prevEnd = i === 0 ? "" : stageVal(SF.STAGES[i - 1].key).end;
+                const locked = i > 0 && !prevEnd;
+                const done = !!(sv.start && sv.end);
+                const isLast = i === SF.STAGES.length - 1;
                 const cap = { fontSize: 9.5, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 3, display: "block" };
+                const dis = (extra) => Object.assign({}, inputStyle, extra ? { opacity: .5, cursor: "not-allowed", background: "var(--surface)" } : {});
                 return (
-                  <div key={s.key} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>
-                      <span style={{ width: 8, height: 8, borderRadius: 99, background: s.color, flexShrink: 0 }} />{(i + 1) + ". " + s.th} <span style={{ fontWeight: 400, color: "var(--text-3)", fontFamily: "var(--mono)", fontSize: 11 }}>{s.en}</span>
-                    </span>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                      <div><span style={cap}>เริ่ม</span><input type="date" style={inputStyle} value={sv.start} onChange={(e) => setStageField(s.key, "start", e.target.value)} /></div>
-                      <div><span style={cap}>เสร็จ</span><input type="date" style={inputStyle} value={sv.end} onChange={(e) => setStageField(s.key, "end", e.target.value)} /></div>
+                  <div key={s.key} style={{ display: "flex", gap: 12, alignItems: "stretch" }}>
+                    {/* rail */}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0, width: 26 }}>
+                      <span style={{ width: 26, height: 26, borderRadius: 99, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700,
+                        background: done ? s.color : "var(--surface2)", border: "2px solid " + (locked ? "var(--border-strong)" : s.color), color: done ? "#fff" : (locked ? "var(--text-3)" : s.color) }}>
+                        {done ? <Icon name="check" size={13} color="#fff" sw={3} /> : (locked ? <Icon name="lock" size={12} color="var(--text-3)" /> : (i + 1))}
+                      </span>
+                      {!isLast && <span style={{ flex: 1, width: 2, minHeight: 14, background: done ? s.color : "var(--border)", margin: "3px 0" }} />}
+                    </div>
+                    {/* content */}
+                    <div style={{ flex: 1, paddingBottom: isLast ? 0 : 18, opacity: locked ? .55 : 1, transition: "opacity .2s" }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", marginBottom: 7, minHeight: 26 }}>
+                        {s.th} <span style={{ fontWeight: 400, color: "var(--text-3)", fontFamily: "var(--mono)", fontSize: 11 }}>{s.en}</span>
+                        {locked && <span style={{ marginLeft: "auto", fontSize: 10.5, fontWeight: 600, color: "var(--text-3)" }}>กรอกขั้นก่อนให้เสร็จก่อน</span>}
+                      </span>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        <div><span style={cap}>เริ่ม</span>
+                          <input type="date" disabled={locked} min={prevEnd || undefined} max={sv.end || undefined}
+                            style={dis(locked)} value={sv.start}
+                            onChange={(e) => setStageField(s.key, "start", e.target.value)} />
+                        </div>
+                        <div><span style={cap}>เสร็จ</span>
+                          <input type="date" disabled={locked || !sv.start} min={sv.start || prevEnd || undefined}
+                            style={dis(locked || !sv.start)} value={sv.end}
+                            onChange={(e) => setStageEnd(s.key, i, e.target.value)} />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
