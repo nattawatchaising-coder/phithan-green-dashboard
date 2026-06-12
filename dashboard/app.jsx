@@ -385,6 +385,9 @@ function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, currentUser
 function Header({ view, role, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, quickFilter, setQuickFilter, onAdd, canAdd, showBell, unread, notifItems, lateAlerts, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen }) {
   const nav = NAV.find((n) => n.key === view);
   const QUICK_LABELS = { active: "กำลังดำเนินการ", delayed: "ล่าช้า", ready: "อุปกรณ์พร้อมติดตั้ง", battery: "มีแบตเตอรี่" };
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const [stageOpen, setStageOpen] = React.useState(() => localStorage.getItem("sf_stage_filteropen") !== "0");
+  const toggleStage = () => setStageOpen((v) => { localStorage.setItem("sf_stage_filteropen", v ? "0" : "1"); return !v; });
   return (
     <header className="app-header">
       <div className="header-top">
@@ -433,37 +436,52 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
           <Icon name="alert" size={15} color={delayedOnly ? "#fff" : "#EF4444"} />
           เฉพาะงานล่าช้า
         </button>
+        {/* ปุ่มย่อ/ขยายแถบกรองขั้นงาน — สไตล์เดียวกับ "หมวดหมู่" ฝั่งคลัง */}
+        <button onClick={toggleStage} title={stageOpen ? "ซ่อนตัวกรองขั้นงาน" : "แสดงตัวกรองขั้นงาน"}
+          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 13px", borderRadius: 99,
+            border: "1px solid " + (stageFilter ? stageOf(stageFilter).color : "var(--border-strong)"),
+            background: stageFilter ? stageOf(stageFilter).color + "16" : "var(--surface)",
+            color: stageFilter ? stageOf(stageFilter).color : "var(--text-2)",
+            fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+          <Icon name="filter" size={14} color={stageFilter ? stageOf(stageFilter).color : "var(--text-2)"} />
+          ขั้นงาน{stageFilter ? ": " + stageOf(stageFilter).th : ""}
+          <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: stageOpen ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
+        </button>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginTop: 9 }}>
-        {(() => {
-          const SF = window.SF;
-          const chip = (active, color) => ({
-            display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 99,
-            border: "1px solid " + (active ? (color || "var(--primary)") : "var(--border-strong)"),
-            background: active ? (color ? color + "1a" : "var(--primary-soft)") : "var(--surface)",
-            color: active ? (color || "var(--primary-dark)") : "var(--text-2)",
-            fontFamily: "inherit", fontSize: 12, fontWeight: active ? 700 : 600, cursor: "pointer", whiteSpace: "nowrap", transition: ".15s",
-          });
-          const num = (active) => ({ fontSize: 11, fontWeight: 700, opacity: active ? 1 : .65, fontFamily: "var(--mono)" });
-          return (
-            <React.Fragment>
-              <button style={chip(!stageFilter)} onClick={() => setStageFilter(null)}>
-                ทั้งหมด <span style={num(!stageFilter)}>{(stageCounts && stageCounts.__all) || 0}</span>
-              </button>
-              {SF.STAGES.map((s) => {
-                const active = stageFilter === s.key;
-                const n = (stageCounts && stageCounts[s.key]) || 0;
-                return (
-                  <button key={s.key} style={Object.assign(chip(active, s.color), n === 0 && !active ? { opacity: .5 } : {})}
-                    onClick={() => setStageFilter(active ? null : s.key)}>
-                    <span style={{ width: 7, height: 7, borderRadius: 99, background: s.color, flexShrink: 0 }} />
-                    {s.th} <span style={num(active)}>{n}</span>
-                  </button>
-                );
-              })}
-            </React.Fragment>
-          );
-        })()}
+      {/* ชิปกรองขั้นงาน — ย่อ/ขยายแบบลื่น (max-height + opacity) */}
+      <div style={{ overflow: "hidden", maxHeight: stageOpen ? 160 : 0, opacity: stageOpen ? 1 : 0,
+        marginTop: stageOpen ? 8 : 0, transition: "max-height .24s ease, opacity .2s ease, margin-top .24s ease" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+          {(() => {
+            const SF = window.SF;
+            const chip = (active, color) => ({
+              display: "inline-flex", alignItems: "center", gap: 6, padding: isMobile ? "5px 11px" : "6px 13px", borderRadius: 99,
+              border: "1px solid " + (active ? (color || "var(--primary)") : "var(--border-strong)"),
+              background: active ? (color ? color + "16" : "var(--primary-soft)") : "var(--surface)",
+              color: active ? (color || "var(--primary-dark)") : "var(--text-2)",
+              fontFamily: "inherit", fontSize: isMobile ? 11.5 : 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
+            });
+            const num = (active) => ({ fontSize: 11, fontWeight: 700, opacity: active ? 1 : .6, fontFamily: "var(--mono)" });
+            return (
+              <React.Fragment>
+                <button style={chip(!stageFilter)} onClick={() => setStageFilter(null)}>
+                  ทั้งหมด <span style={num(!stageFilter)}>{(stageCounts && stageCounts.__all) || 0}</span>
+                </button>
+                {SF.STAGES.map((s) => {
+                  const active = stageFilter === s.key;
+                  const n = (stageCounts && stageCounts[s.key]) || 0;
+                  return (
+                    <button key={s.key} style={Object.assign(chip(active, s.color), n === 0 && !active ? { opacity: .5 } : {})}
+                      onClick={() => setStageFilter(active ? null : s.key)}>
+                      <span style={{ width: 7, height: 7, borderRadius: 99, background: s.color, flexShrink: 0 }} />
+                      {s.th} <span style={num(active)}>{n}</span>
+                    </button>
+                  );
+                })}
+              </React.Fragment>
+            );
+          })()}
+        </div>
       </div>
     </header>
   );
