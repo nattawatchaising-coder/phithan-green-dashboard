@@ -57,25 +57,37 @@ function AgendaView({ jobs, onOpen, calView, setCalView }) {
   const todayKey = SF.TODAY;
   const in7 = addDaysKey(todayKey, 7);
   const techName = (id) => { const t = (SF.TECH_BY_ID || {})[id]; return t ? (t.name || t.nick || "") : ""; };
-  const stageLabel = (s, kind) => (kind === "start" ? "เริ่ม" : "ส่งมอบ/เสร็จ") + " · " + s.th;
+  const KIND_TH = { start: "เริ่ม", progress: "กำลังดำเนินการ", end: "ส่งมอบ/เสร็จ" };
+  const stageLabel = (s, kind) => KIND_TH[kind] + " · " + s.th;
 
   const overdue = [];
   jobs.forEach((j) => (j.lateStages || []).forEach((ls) => overdue.push({ job: j, stage: ls })));
   overdue.sort((a, b) => b.stage.daysLate - a.stage.daysLate);
 
-  const events = [];
+  // วันนี้ = ขั้นที่ today อยู่ในช่วง [เริ่ม..เสร็จ] (งานหลายวันจะขึ้นทุกวันที่กำลังทำ)
+  const todayEv = [];
+  // 7 วันข้างหน้า = event เริ่ม/เสร็จ ที่จะถึง
+  const upcoming = [];
   jobs.forEach((j) => {
     const sd = j.stageDates || {};
     SF.STAGES.forEach((s) => {
       const v = sd[s.key]; if (!v) return;
-      const st = typeof v === "object" ? v.start : null;
-      const en = typeof v === "object" ? v.end : v;
-      if (st) events.push({ job: j, stage: s, kind: "start", date: st });
-      if (en) events.push({ job: j, stage: s, kind: "end", date: en });
+      const st = typeof v === "object" ? (v.start || "") : "";
+      const en = typeof v === "object" ? (v.end || "") : v;
+      const s0 = st || en, e0 = en || st;
+      if (s0 && todayKey >= s0 && todayKey <= e0) {
+        let kind;
+        if (s0 !== e0 && todayKey > s0 && todayKey < e0) kind = "progress";
+        else if (todayKey === e0 && en) kind = "end";
+        else kind = "start";
+        todayEv.push({ job: j, stage: s, kind });
+      }
+      if (st && st > todayKey && st <= in7) upcoming.push({ job: j, stage: s, kind: "start", date: st });
+      if (en && en > todayKey && en <= in7) upcoming.push({ job: j, stage: s, kind: "end", date: en });
     });
   });
-  const todayEv = events.filter((e) => e.date === todayKey).sort((a, b) => a.job.name.localeCompare(b.job.name));
-  const upcoming = events.filter((e) => e.date > todayKey && e.date <= in7).sort((a, b) => a.date.localeCompare(b.date) || a.job.name.localeCompare(b.job.name));
+  todayEv.sort((a, b) => a.job.name.localeCompare(b.job.name));
+  upcoming.sort((a, b) => a.date.localeCompare(b.date) || a.job.name.localeCompare(b.job.name));
   const empty = overdue.length === 0 && todayEv.length === 0 && upcoming.length === 0;
 
   const SectionHead = ({ icon, color, label, count }) => (

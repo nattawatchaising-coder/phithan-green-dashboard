@@ -133,7 +133,7 @@ function App() {
     return out.sort((a, b) => b.stage.daysLate - a.stage.daysLate);
   }, [jobs, role, techId]);
 
-  // งานที่มีกำหนดวันนี้ (เริ่ม/เสร็จ) — ใช้ในสรุปงานวันนี้
+  // งานที่ต้องทำวันนี้ — today อยู่ในช่วง [เริ่ม..เสร็จ] (งานหลายวันขึ้นทุกวันที่กำลังทำ)
   const todayTasks = React.useMemo(() => {
     const scope = role === "tech" ? jobs.filter((j) => j.tech === techId) : jobs;
     const today = window.SF.TODAY;
@@ -142,10 +142,15 @@ function App() {
       const sd = j.stageDates || {};
       window.SF.STAGES.forEach((s) => {
         const v = sd[s.key]; if (!v) return;
-        const st = typeof v === "object" ? v.start : null;
-        const en = typeof v === "object" ? v.end : v;
-        if (st === today) out.push({ job: j, stage: s, kind: "start" });
-        if (en === today) out.push({ job: j, stage: s, kind: "end" });
+        const st = typeof v === "object" ? (v.start || "") : "";
+        const en = typeof v === "object" ? (v.end || "") : v;
+        const s0 = st || en, e0 = en || st;
+        if (!s0 || today < s0 || today > e0) return;
+        let kind;
+        if (s0 !== e0 && today > s0 && today < e0) kind = "progress";
+        else if (today === e0 && en) kind = "end";
+        else kind = "start";
+        out.push({ job: j, stage: s, kind });
       });
     });
     return out;
@@ -449,7 +454,7 @@ function DailyBriefing({ lateAlerts, todayTasks, onOpen, onClose }) {
           ))}
           {todayTasks.length > 0 && <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--primary-dark)", padding: "6px 2px 2px" }}>📍 กำหนดวันนี้ ({todayTasks.length})</div>}
           {todayTasks.map((e, i) => (
-            <Row key={"t" + i} jobId={e.job.id} color={e.stage.color} title={e.job.name} sub={(e.kind === "start" ? "เริ่ม" : "ส่งมอบ/เสร็จ") + " · " + e.stage.th} />
+            <Row key={"t" + i} jobId={e.job.id} color={e.stage.color} title={e.job.name} sub={({ start: "เริ่ม", progress: "กำลังดำเนินการ", end: "ส่งมอบ/เสร็จ" }[e.kind]) + " · " + e.stage.th} />
           ))}
         </div>
         <div style={{ padding: "12px 20px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)" }}>
