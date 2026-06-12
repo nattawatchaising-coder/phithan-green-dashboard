@@ -351,16 +351,16 @@ function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, currentUser
             </button>
           );
         })}
-        {/* เมนูจัดการผู้ใช้ — เฉพาะแอดมิน */}
+      </nav>
+
+      <div className="sidebar-foot">
+        {/* เมนูจัดการผู้ใช้ — เฉพาะแอดมิน (แยกจากเมนูงาน) */}
         {canManageUsers && (
-          <button onClick={onManageUsers} className="nav-item" title="จัดการผู้ใช้งาน">
+          <button onClick={onManageUsers} className="nav-item" title="จัดการผู้ใช้งาน" style={{ width: "100%" }}>
             <Icon name="users" size={19} color="var(--text-2)" />
             {!icons && <span>จัดการผู้ใช้งาน</span>}
           </button>
         )}
-      </nav>
-
-      <div className="sidebar-foot">
         {currentUser && (
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: icons ? 0 : "4px 2px 10px", justifyContent: icons ? "center" : "flex-start" }}>
             <span style={{ width: 36, height: 36, borderRadius: 99, flexShrink: 0, display: "grid", placeItems: "center",
