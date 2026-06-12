@@ -40,7 +40,13 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
   const [f, setF] = React.useState(() => JSON.parse(JSON.stringify(initial)));
   const set = (k, v) => setF((p) => Object.assign({}, p, { [k]: v }));
   const setMat = (k, v) => setF((p) => Object.assign({}, p, { mat: Object.assign({}, p.mat, { [k]: v }) }));
-  const setStageDate = (k, v) => setF((p) => Object.assign({}, p, { stageDates: Object.assign({}, p.stageDates, { [k]: v }) }));
+  // stageDates[key] = { start, end } — รองรับค่าเก่าที่เป็น string (= วันเสร็จ)
+  const setStageField = (k, which, v) => setF((p) => {
+    const prev = p.stageDates && p.stageDates[k];
+    const cur = (prev && typeof prev === "object") ? prev : { start: "", end: (typeof prev === "string" ? prev : "") };
+    return Object.assign({}, p, { stageDates: Object.assign({}, p.stageDates, { [k]: Object.assign({}, cur, { [which]: v }) }) });
+  });
+  const stageVal = (k) => { const v = f.stageDates && f.stageDates[k]; if (!v) return { start: "", end: "" }; if (typeof v === "object") return { start: v.start || "", end: v.end || "" }; return { start: "", end: v }; };
   const brandInfo = (SF.BRAND_BY_NAME || {})[f.brand];
   const noBattery = brandInfo ? !brandInfo.battery : false;
   const isMobile = useFormMobile();
@@ -183,11 +189,9 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
           {/* workflow */}
           <Section title="สถานะงาน & ปัญหา" icon="flow">
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 12 : 14 }}>
-              <Field label="ขั้นตอนปัจจุบัน">
+              <Field label="ขั้นตอนปัจจุบัน" span>
                 <Dropdown value={f.stage} onChange={(v) => set("stage", v)} options={SF.STAGES.map((s, i) => ({ value: s.key, label: (i + 1) + ". " + s.th }))} />
               </Field>
-              <Field label="วันเริ่มงาน"><input type="date" style={inputStyle} value={f.startDate || f.deadline} onChange={(e) => set("startDate", e.target.value)} /></Field>
-              <Field label="กำหนดเสร็จ / วันนัด"><input type="date" style={inputStyle} value={f.deadline} onChange={(e) => set("deadline", e.target.value)} /></Field>
               <Field label="ปัญหา / สิ่งที่ติด (ถ้ามี)" span>
                 <input style={inputStyle} value={f.problem || ""} onChange={(e) => set("problem", e.target.value || null)} placeholder="เช่น รออินเวอร์เตอร์ของขาดสต็อก..." />
               </Field>
@@ -197,15 +201,25 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
             </div>
           </Section>
 
-          {/* per-stage schedule → ขึ้นเป็นหมุดในปฏิทินนัด */}
+          {/* per-stage schedule → ขึ้นเป็นหมุดในปฏิทินนัด + ใช้กำหนดวันเริ่ม/เสร็จรวมของงาน */}
           <Section title="กำหนดการแต่ละขั้น (Flow)" icon="calendar">
-            <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 10 }}>ระบุวันที่คาดว่าจะเสร็จของแต่ละขั้น — จะไปขึ้นเป็นหมุด (milestone) ในปฏิทินนัด ว่าแต่ละงานเสร็จตอนไหน</div>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: isMobile ? 12 : 14 }}>
-              {SF.STAGES.map((s, i) => (
-                <Field key={s.key} label={(i + 1) + ". " + s.th + " (" + s.en + ")"}>
-                  <input type="date" style={inputStyle} value={(f.stageDates && f.stageDates[s.key]) || ""} onChange={(e) => setStageDate(s.key, e.target.value)} />
-                </Field>
-              ))}
+            <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 12 }}>ระบุวันเริ่ม–เสร็จของแต่ละขั้น — วันเสร็จจะขึ้นเป็นหมุดในปฏิทินนัด และระบบจะใช้กำหนดวันเริ่ม/เสร็จรวมของงานอัตโนมัติ</div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 14 : 16 }}>
+              {SF.STAGES.map((s, i) => {
+                const sv = stageVal(s.key);
+                const cap = { fontSize: 9.5, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 3, display: "block" };
+                return (
+                  <div key={s.key} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>
+                      <span style={{ width: 8, height: 8, borderRadius: 99, background: s.color, flexShrink: 0 }} />{(i + 1) + ". " + s.th} <span style={{ fontWeight: 400, color: "var(--text-3)", fontFamily: "var(--mono)", fontSize: 11 }}>{s.en}</span>
+                    </span>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                      <div><span style={cap}>เริ่ม</span><input type="date" style={inputStyle} value={sv.start} onChange={(e) => setStageField(s.key, "start", e.target.value)} /></div>
+                      <div><span style={cap}>เสร็จ</span><input type="date" style={inputStyle} value={sv.end} onChange={(e) => setStageField(s.key, "end", e.target.value)} /></div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </Section>
         </div>

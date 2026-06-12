@@ -256,15 +256,28 @@
     const matVals = MATERIALS.map((m) => matObj[m.key]).filter((v) => v !== "na");
     const matReadyCount = matVals.filter((v) => v === "ready").length;
     const matReady = matVals.length > 0 && matReadyCount === matVals.length;
+    // กำหนดเริ่ม/เสร็จรวมของงาน — derive จากกำหนดการแต่ละขั้น (stageDates) ถ้ามี
+    // stageDates[key] = { start, end } (รองรับค่าเก่าที่เป็น string = วันเสร็จอย่างเดียว)
+    const sdates = j.stageDates || {};
+    const stageStarts = [], stageEnds = [];
+    STAGES.forEach((s) => {
+      const v = sdates[s.key];
+      if (!v) return;
+      if (typeof v === "object") { if (v.start) stageStarts.push(v.start); if (v.end) stageEnds.push(v.end); }
+      else if (v) stageEnds.push(v);
+    });
+    const effStart = (stageStarts.length ? stageStarts.slice().sort()[0] : null) || j.startDate || j.deadline;
+    const effDeadline = (stageEnds.length ? stageEnds.slice().sort()[stageEnds.length - 1] : null) || j.deadline;
     // งานล่าช้า = ยังไม่เสร็จ และ "กำหนดการเสร็จสิ้น" เลยวันนี้ไปแล้ว (เทียบระดับวัน — ครบกำหนดวันนี้ยังไม่ล่าช้า)
     const todayMidnight = new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate());
-    const dl = j.deadline ? parseDateLocal(j.deadline) : null;
+    const dl = effDeadline ? parseDateLocal(effDeadline) : null;
     const delayed = j.stage !== "done" && dl && dl.getTime() < todayMidnight.getTime();
     const stageIdx = STAGE_INDEX[j.stage] != null ? STAGE_INDEX[j.stage] : 0;
     return Object.assign({}, j, {
       id: j.id || j.code,
       mat: matObj,
-      startDate: j.startDate || j.deadline,   // งานหลายวัน: ไม่ระบุ = วันเดียว (= deadline)
+      startDate: effStart,
+      deadline: effDeadline,
       timeline: hist(j.stage, !!j.problem, j.hist),
       matReady, matReadyPct: Math.round((matReadyCount / Math.max(matVals.length, 1)) * 100),
       delayed: !!delayed, stageIdx,

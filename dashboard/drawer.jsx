@@ -47,11 +47,21 @@ function FlowTimeline({ job }) {
                   {step.at ? thDateTime(step.at) : thDate(step.date, true)}
                 </div>
               )}
-              {job.stageDates && job.stageDates[s.key] && (
-                <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 3, display: "flex", alignItems: "center", gap: 5 }}>
-                  <Icon name="calendar" size={11} color="var(--text-3)" /> กำหนดเสร็จ: {thDate(job.stageDates[s.key], true)}
-                </div>
-              )}
+              {(() => {
+                const v = job.stageDates && job.stageDates[s.key];
+                if (!v) return null;
+                const st = typeof v === "object" ? v.start : null;
+                const en = typeof v === "object" ? v.end : v;
+                if (!st && !en) return null;
+                return (
+                  <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 3, display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+                    <Icon name="calendar" size={11} color="var(--text-3)" />
+                    {st && <span>เริ่ม {thDate(st, true)}</span>}
+                    {st && en && <span>·</span>}
+                    {en && <span>เสร็จ {thDate(en, true)}</span>}
+                  </div>
+                );
+              })()}
               {step.blocked && job.problem && (
                 <div style={{ marginTop: 8, padding: "10px 12px", background: "#FEF2F2", border: "1px solid #FECACA",
                   borderRadius: 10, fontSize: 12.5, color: "#B91C1C", lineHeight: 1.5 }}>{job.problem}</div>

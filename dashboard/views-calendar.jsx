@@ -42,7 +42,11 @@ function CalendarView({ jobs, onOpen }) {
     const out = [];
     jobs.forEach((j) => {
       const sd = j.stageDates || {};
-      window.SF.STAGES.forEach((s) => { if (sd[s.key] === k) out.push({ job: j, stage: s }); });
+      window.SF.STAGES.forEach((s) => {
+        const v = sd[s.key];
+        const end = v ? (typeof v === "object" ? v.end : v) : null; // วันเสร็จของขั้น
+        if (end === k) out.push({ job: j, stage: s });
+      });
     });
     return out;
   };
