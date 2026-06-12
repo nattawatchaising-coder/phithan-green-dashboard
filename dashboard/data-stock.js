@@ -47,4 +47,18 @@
   SF.STOCK_CAT_BY = Object.fromEntries(STOCK_CATS.map((c) => [c.key, c]));
   SF.INVENTORY_SEED = INVENTORY;
   SF.MOVES_SEED = MOVES;
+
+  // ── รหัสวัสดุ (mat code) — auto-gen ตามหมวด, แก้ทับได้ ──
+  SF.MAT_PREFIX = { panel: "PNL", inverter: "INV", battery: "BAT", structure: "MT", wiring: "WIR", accessory: "ACS", other: "GEN" };
+  // กลุ่มราคา BOQ → หมวดคลังสินค้า (เวลา auto-สร้างวัสดุจากหน้าราคา)
+  SF.BOQ_GROUP_TO_CAT = { "PV MODULE": "panel", INVERTER: "inverter", MOUNTING: "structure", CABLE: "wiring", "RACE WAY": "wiring", GROUNDING: "wiring", ACCESSORIES: "accessory" };
+  // สร้างรหัสถัดไปของหมวด เช่น INV-0007 (กันซ้ำกับ used เพิ่มเติมได้)
+  SF.genMatCode = function (cat, items, used) {
+    const pre = SF.MAT_PREFIX[cat] || "GEN";
+    const re = new RegExp("^" + pre + "-(\\d+)$", "i");
+    let max = 0;
+    (items || []).forEach((it) => { const m = re.exec(String(it.sku || "")); if (m) { const n = +m[1]; if (n > max) max = n; } });
+    if (used) used.forEach((c) => { const m = re.exec(String(c || "")); if (m) { const n = +m[1]; if (n > max) max = n; } });
+    return pre + "-" + String(max + 1).padStart(4, "0");
+  };
 })();

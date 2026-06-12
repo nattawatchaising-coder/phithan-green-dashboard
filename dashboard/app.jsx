@@ -188,11 +188,12 @@ function App() {
     setBriefingOpen(true);
   }, [loading, auth.current, lateAlerts.length, todayTasks.length]);
 
-  // ราคารวมสำหรับ BOQ = ราคาจากคลังสินค้า (ตามชื่อ) ทับด้วยฐานราคาวัสดุ (boqPrices ชนะ)
+  // ราคารวมสำหรับ BOQ — คลังสินค้าเป็นต้นทางเดียว (ชนะ); boqPrices เป็น fallback ของเก่า
   const effPriceMap = React.useMemo(() => {
+    const mk = window.BOQ ? window.BOQ.matKey : (x) => x;
     const m = {};
-    (stock.items || []).forEach((s) => { if (s.name) m[s.name] = { code: s.sku || "", price: +s.price || 0, unit: s.unit || "" }; });
-    Object.keys(priceStore.priceMap).forEach((n) => { m[n] = priceStore.priceMap[n]; });
+    Object.keys(priceStore.priceMap).forEach((n) => { m[mk(n)] = priceStore.priceMap[n]; }); // legacy ก่อน
+    (stock.items || []).forEach((s) => { if (s.name) m[mk(s.name)] = { code: s.sku || "", price: +s.price || 0, unit: s.unit || "" }; }); // คลังทับ
     return m;
   }, [stock.items, priceStore.priceMap]);
 

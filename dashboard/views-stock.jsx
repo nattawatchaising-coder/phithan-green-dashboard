@@ -247,7 +247,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
       )}
 
       {moveItem && <MoveModal info={moveItem} byName={byName} jobs={jobs || []} onSave={(qty, ref, note, jobId) => { stock.move(moveItem.item.id, moveItem.type, qty, ref, note, byName, jobId); setMoveItem(null); }} onClose={() => setMoveItem(null)} />}
-      {itemForm && <ItemModal initial={itemForm.item} isNew={itemForm.isNew} onSave={(rec) => { stock.upsertItem(rec); setItemForm(null); }} onClose={() => setItemForm(null)} />}
+      {itemForm && <ItemModal initial={itemForm.item} isNew={itemForm.isNew} items={stock.items} onSave={(rec) => { stock.upsertItem(rec); setItemForm(null); }} onClose={() => setItemForm(null)} />}
       {movesOpen && <MovesModal moves={stock.moves} items={items} jobs={jobs || []} onClose={() => setMovesOpen(false)} />}
       {addPriceOpen && <AddPriceModal priceStore={priceStore} stock={stock} onClose={() => setAddPriceOpen(false)} />}
     </React.Fragment>
@@ -515,12 +515,19 @@ function MoveModal({ info, onSave, onClose, byName, jobs, lockedJob, maxQty }) {
   );
 }
 
-function ItemModal({ initial, isNew, onSave, onClose }) {
+function ItemModal({ initial, isNew, items, onSave, onClose }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const bdClose = window.useBackdropClose(onClose);
   const [f, setF] = React.useState(() => Object.assign({}, initial));
   const set = (k, v) => setF((p) => Object.assign({}, p, { [k]: v }));
+  const suggestCode = SF.genMatCode(f.cat, items || []); // รหัสถัดไปตามหมวด
+  const submitItem = () => {
+    if (!f.name.trim()) { alert("กรุณากรอกชื่ออุปกรณ์"); return; }
+    const rec = Object.assign({}, f);
+    if (!String(rec.sku || "").trim()) rec.sku = suggestCode; // เว้นว่าง → สร้างรหัสอัตโนมัติ
+    onSave(rec);
+  };
   return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.4)", backdropFilter: "blur(3px)", zIndex: 100, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(560px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
@@ -530,7 +537,13 @@ function ItemModal({ initial, isNew, onSave, onClose }) {
         </div>
         <div style={{ padding: 22, display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14, overflowY: "auto" }}>
           <div style={{ gridColumn: "1 / -1" }}><Field label="ชื่ออุปกรณ์" required><input style={inputStyle} value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="เช่น แผงโซล่า Longi 550W" /></Field></div>
-          <Field label="รหัสสินค้า (SKU)"><input style={inputStyle} value={f.sku} onChange={(e) => set("sku", e.target.value)} placeholder="PNL-LR550" /></Field>
+          <Field label="รหัสวัสดุ (mat code)">
+            <div style={{ display: "flex", gap: 6 }}>
+              <input style={Object.assign({}, inputStyle, { flex: 1 })} value={f.sku} onChange={(e) => set("sku", e.target.value)} placeholder={suggestCode + " (อัตโนมัติ)"} />
+              <button type="button" onClick={() => set("sku", suggestCode)} title="สร้างรหัสอัตโนมัติตามหมวด"
+                style={{ flexShrink: 0, padding: "0 12px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface2)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>auto</button>
+            </div>
+          </Field>
           <Field label="หมวดหมู่">
             <select style={inputStyle} value={f.cat} onChange={(e) => set("cat", e.target.value)}>
               {SF.STOCK_CATS.map((c) => <option key={c.key} value={c.key}>{c.th}</option>)}
@@ -544,7 +557,7 @@ function ItemModal({ initial, isNew, onSave, onClose }) {
         </div>
         <div style={{ padding: "14px 22px", paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10, flexShrink: 0 }}>
           <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 18px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
-          <button onClick={() => { if (!f.name.trim()) { alert("กรุณากรอกชื่ออุปกรณ์"); return; } onSave(f); }}
+          <button onClick={submitItem}
             style={{ flex: isMobile ? 1 : "none", padding: "11px 22px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>บันทึก</button>
         </div>
       </div>
