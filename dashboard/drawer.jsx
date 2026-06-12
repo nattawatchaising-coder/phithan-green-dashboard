@@ -157,20 +157,68 @@ function JobMaterialUsage({ job, stock, currentUser }) {
   );
 }
 
-/* เบิกของเข้างานแบบช้อปปิ้ง — เลือกของจากคลัง ใส่จำนวน แล้วเบิกเข้างานทีเดียว */
+/* เบิกของเข้างาน — อ้างอิง BOQ ของงาน (เติมจำนวนให้อัตโนมัติ แก้ได้) + เบิกเพิ่มจากคลัง */
+const _matNorm = (s) => String(s || "").replace(/\s+/g, " ").trim().toLowerCase();
+
 function StockShopModal({ stock, job, byName, onClose }) {
   const SF = window.SF;
   const bdClose = window.useBackdropClose(onClose);
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const allItems = stock.items || [];
+
+  // ดัชนีสต็อกตามชื่อ (จับคู่กับ BOQ ด้วยชื่อวัสดุ) + ตามรหัส
+  const stockByName = React.useMemo(() => {
+    const m = {};
+    allItems.forEach((it) => { m[_matNorm(it.name)] = it; if (it.sku) m["#" + _matNorm(it.sku)] = it; });
+    return m;
+  }, [allItems]);
+
+  // แตก BOQ ของงานเป็นรายการแบน + จับคู่สต็อก
+  const boqLines = React.useMemo(() => {
+    if (!job || !job.boq || !window.BOQ) return [];
+    const b = Object.assign(window.BOQ.blankBOQ(job), job.boq);
+    let res; try { res = window.BOQ.calcBOQ(b); } catch (e) { return []; }
+    const agg = {};
+    (res.groups || []).forEach((g) => (g.items || []).forEach((it) => {
+      const key = window.BOQ.matKey(it.name);
+      const qty = Math.round(+it.qty || 0);
+      if (!key || qty <= 0) return;
+      const k = _matNorm(key);
+      if (agg[k]) agg[k].qty += qty;
+      else agg[k] = { name: key, qty, unit: it.unit, group: g.group, stockItem: stockByName[k] || null };
+    }));
+    return Object.values(agg);
+  }, [job, stockByName]);
+
+  const boqStockIds = React.useMemo(() => new Set(boqLines.filter((l) => l.stockItem).map((l) => l.stockItem.id)), [boqLines]);
+
   const [cart, setCart] = React.useState({});
+  // เติมจำนวนจาก BOQ ให้อัตโนมัติครั้งแรก (จำกัดไม่เกินคงเหลือ) — แก้ +/- ได้
+  const prefilled = React.useRef(false);
+  React.useEffect(() => {
+    if (prefilled.current || boqLines.length === 0) return;
+    prefilled.current = true;
+    const init = {};
+    boqLines.forEach((l) => { if (l.stockItem) { const q = Math.min(l.qty, l.stockItem.qty); if (q > 0) init[l.stockItem.id] = q; } });
+    setCart(init);
+  }, [boqLines]);
+
+  const setQty = (id, v, max) => setCart((p) => { const n = Math.max(0, Math.min(Math.floor(+v || 0), max)); const c = Object.assign({}, p); if (n > 0) c[id] = n; else delete c[id]; return c; });
+
+  // เบิกเพิ่มจากคลัง (ของที่ไม่ได้อยู่ใน BOQ)
   const [q, setQ] = React.useState("");
   const [cat, setCat] = React.useState("all");
-  const items = (stock.items || []).filter((it) => {
+  const extraItems = allItems.filter((it) => {
+    if (boqStockIds.has(it.id)) return false;
     if (cat !== "all" && it.cat !== cat) return false;
-    if (q && !((it.name + " " + (it.sku || "")).toLowerCase().includes(q.toLowerCase()))) return false;
+    if (q && !_matNorm(it.name + " " + (it.sku || "")).includes(_matNorm(q))) return false;
     return true;
   });
-  const setQty = (id, v, max) => setCart((p) => { const n = Math.max(0, Math.min(Math.floor(+v || 0), max)); const c = Object.assign({}, p); if (n > 0) c[id] = n; else delete c[id]; return c; });
+  const extraCats = React.useMemo(() => {
+    const present = new Set(allItems.filter((it) => !boqStockIds.has(it.id)).map((it) => it.cat));
+    return (SF.STOCK_CATS || []).filter((c) => present.has(c.key));
+  }, [allItems, boqStockIds]);
+
   const cartIds = Object.keys(cart);
   const totalQty = cartIds.reduce((s, id) => s + cart[id], 0);
   const confirm = () => {
@@ -178,11 +226,37 @@ function StockShopModal({ stock, job, byName, onClose }) {
     cartIds.forEach((id) => stock.move(id, "out", cart[id], job.code, "", byName, job.id));
     onClose();
   };
-  const catOpts = [{ value: "all", label: "ทุกหมวด" }].concat((SF.STOCK_CATS || []).map((c) => ({ value: c.key, label: c.th })));
+
+  // แถวสเต็ปเปอร์เบิก
+  const Stepper = ({ it, sub }) => {
+    const inCart = cart[it.id] || 0;
+    const max = it.qty;
+    const out = max <= 0;
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 8px", borderBottom: "1px solid var(--border)" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.name}</div>
+          <div style={{ fontSize: 11, color: out ? "#EF4444" : "var(--text-3)", marginTop: 1 }}>{sub}</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          <button onClick={() => setQty(it.id, inCart - 1, max)} disabled={!inCart} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontSize: 17, fontWeight: 700, cursor: inCart ? "pointer" : "default", lineHeight: 1 }}>−</button>
+          <input type="number" value={inCart || ""} placeholder="0" onChange={(e) => setQty(it.id, e.target.value, max)}
+            style={{ width: 46, textAlign: "center", padding: "6px 4px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13 }} />
+          <button onClick={() => setQty(it.id, inCart + 1, max)} disabled={out || inCart >= max} style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: out || inCart >= max ? "var(--surface3)" : "var(--primary)", color: out || inCart >= max ? "var(--text-3)" : "#fff", fontSize: 17, fontWeight: 700, cursor: out || inCart >= max ? "default" : "pointer", lineHeight: 1 }}>+</button>
+        </div>
+      </div>
+    );
+  };
+
+  const SectionHead = ({ children }) => (
+    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", padding: "12px 8px 6px", display: "flex", alignItems: "center", gap: 6 }}>{children}</div>
+  );
+
+  const boqMissing = boqLines.filter((l) => !l.stockItem);
 
   return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 115, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(560px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(580px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
         <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", flexShrink: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
             <div style={{ minWidth: 0 }}>
@@ -191,33 +265,41 @@ function StockShopModal({ stock, job, byName, onClose }) {
             </div>
             <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
           </div>
-          <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-            <div className="search-box" style={{ flex: 1, minWidth: 150 }}><Icon name="search" size={15} color="var(--text-3)" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาอุปกรณ์ / รหัส..." /></div>
-            <div style={{ minWidth: 140 }}><Dropdown value={cat} onChange={setCat} options={catOpts} /></div>
-          </div>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: "8px 12px" }}>
-          {items.map((it) => {
-            const inCart = cart[it.id] || 0;
-            const max = it.qty;
-            const out = max <= 0;
-            return (
-              <div key={it.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 8px", borderBottom: "1px solid var(--border)" }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.name}</div>
-                  <div style={{ fontSize: 11, color: out ? "#EF4444" : "var(--text-3)", marginTop: 1 }}>{out ? "หมดสต็อก" : "คงเหลือ " + max.toLocaleString() + " " + it.unit}{it.sku ? " · " + it.sku : ""}</div>
+        <div style={{ flex: 1, overflowY: "auto", padding: "4px 12px 8px" }}>
+          {/* ── ตาม BOQ ── */}
+          {boqLines.length > 0 && (
+            <React.Fragment>
+              <SectionHead><Icon name="list" size={13} color="var(--primary)" /> ตาม BOQ ของงาน <span style={{ fontWeight: 500, letterSpacing: 0, textTransform: "none", color: "var(--text-3)" }}>· เติมจำนวนให้แล้ว แก้ได้</span></SectionHead>
+              {boqLines.filter((l) => l.stockItem).map((l) => {
+                const it = l.stockItem;
+                const short = l.qty > it.qty;
+                return <Stepper key={"b" + it.id} it={it}
+                  sub={<span>BOQ <b style={{ color: "var(--text-2)" }}>{l.qty}</b> {l.unit} · {it.qty <= 0 ? <span style={{ color: "#EF4444" }}>หมดสต็อก</span> : <span>คงเหลือ {it.qty.toLocaleString()} {it.unit}</span>}{it.sku ? " · " + it.sku : ""}{short && it.qty > 0 ? <span style={{ color: "#F59E0B" }}> · ไม่พอตาม BOQ</span> : ""}</span>} />;
+              })}
+              {boqMissing.length > 0 && (
+                <div style={{ margin: "8px 8px 0", padding: "10px 12px", background: "#FEF9F0", border: "1px dashed #F4C77B", borderRadius: 10, fontSize: 11.5, color: "#92600B", lineHeight: 1.55 }}>
+                  <b>{boqMissing.length} รายการใน BOQ ยังไม่มีในคลัง</b> — เพิ่มวัสดุ + สร้างรหัสในหน้า “คลังสินค้า” เพื่อให้เบิกได้:
+                  <div style={{ marginTop: 4, color: "#7a5208" }}>{boqMissing.slice(0, 6).map((l) => l.name).join(" · ")}{boqMissing.length > 6 ? " …" : ""}</div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                  <button onClick={() => setQty(it.id, inCart - 1, max)} disabled={!inCart} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontSize: 17, fontWeight: 700, cursor: inCart ? "pointer" : "default", lineHeight: 1 }}>−</button>
-                  <input type="number" value={inCart || ""} placeholder="0" onChange={(e) => setQty(it.id, e.target.value, max)}
-                    style={{ width: 46, textAlign: "center", padding: "6px 4px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13 }} />
-                  <button onClick={() => setQty(it.id, inCart + 1, max)} disabled={out || inCart >= max} style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: out || inCart >= max ? "var(--surface3)" : "var(--primary)", color: out || inCart >= max ? "var(--text-3)" : "#fff", fontSize: 17, fontWeight: 700, cursor: out || inCart >= max ? "default" : "pointer", lineHeight: 1 }}>+</button>
-                </div>
-              </div>
-            );
-          })}
-          {items.length === 0 && <div style={{ padding: 30, textAlign: "center", color: "var(--text-3)" }}>ไม่พบอุปกรณ์</div>}
+              )}
+            </React.Fragment>
+          )}
+
+          {/* ── เบิกเพิ่มจากคลัง ── */}
+          <SectionHead><Icon name="box" size={13} color="var(--text-2)" /> เบิกเพิ่มจากคลัง</SectionHead>
+          <div style={{ display: "flex", gap: 8, padding: "2px 8px 8px", flexWrap: "wrap", alignItems: "center" }}>
+            <div className="search-box" style={{ flex: 1, minWidth: 160 }}><Icon name="search" size={15} color="var(--text-3)" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาอุปกรณ์ / รหัส..." /></div>
+          </div>
+          <div style={{ display: "flex", gap: 6, padding: "0 8px 6px", flexWrap: "wrap" }}>
+            <CatChip active={cat === "all"} onClick={() => setCat("all")} label="ทุกหมวด" color="var(--text-2)" />
+            {extraCats.map((c) => <CatChip key={c.key} active={cat === c.key} onClick={() => setCat(c.key)} label={c.th} color={c.color} />)}
+          </div>
+          {extraItems.map((it) => (
+            <Stepper key={"x" + it.id} it={it} sub={<span>{it.qty <= 0 ? <span style={{ color: "#EF4444" }}>หมดสต็อก</span> : "คงเหลือ " + it.qty.toLocaleString() + " " + it.unit}{it.sku ? " · " + it.sku : ""}</span>} />
+          ))}
+          {extraItems.length === 0 && <div style={{ padding: 24, textAlign: "center", color: "var(--text-3)", fontSize: 12.5 }}>ไม่พบอุปกรณ์อื่นในคลัง</div>}
         </div>
 
         <div style={{ padding: "12px 20px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, flexShrink: 0 }}>
