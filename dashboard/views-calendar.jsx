@@ -17,8 +17,118 @@ function useMobileCal(bp = 860) {
 
 const TH_MONTH_FULL = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
 
+/* สลับมุมมอง Agenda ↔ เดือน */
+function CalToggle({ calView, setCalView }) {
+  const opt = (key, label, icon) => (
+    <button onClick={() => setCalView(key)} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 99,
+      border: "1px solid " + (calView === key ? "var(--primary)" : "var(--border-strong)"),
+      background: calView === key ? "var(--primary-soft)" : "var(--surface)", color: calView === key ? "var(--primary-dark)" : "var(--text-2)",
+      fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+      <Icon name={icon} size={14} color={calView === key ? "var(--primary-dark)" : "var(--text-3)"} />{label}
+    </button>
+  );
+  return <div style={{ display: "flex", gap: 7 }}>{opt("agenda", "วันนี้", "list")}{opt("month", "เดือน", "calendar")}</div>;
+}
+
+/* helper: บวกวันแบบ string YYYY-MM-DD */
+function addDaysKey(k, n) { const d = new Date(k + "T00:00:00"); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+
+/* การ์ดรายการใน Agenda */
+function AgendaItem({ job, color, danger, title, sub, onOpen }) {
+  return (
+    <button onClick={() => onOpen(job)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", width: "100%", textAlign: "left",
+      background: danger ? "#FEF2F2" : "var(--surface)", border: "1px solid " + (danger ? "#FECACA" : "var(--border)"), borderRadius: 13, cursor: "pointer", fontFamily: "inherit" }}>
+      <span style={{ width: 38, height: 38, borderRadius: 10, flexShrink: 0, display: "grid", placeItems: "center", background: color, color: "#fff" }}>
+        <Icon name={danger ? "alert" : "wrench"} size={18} color="#fff" />
+      </span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 14, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{job.name}</span>
+        <span style={{ display: "block", fontSize: 12, color: danger ? "#B91C1C" : "var(--text-2)", marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</span>
+        {sub && <span style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{sub}</span>}
+      </span>
+      <Icon name="chevronRight" size={16} color="var(--text-3)" style={{ flexShrink: 0 }} />
+    </button>
+  );
+}
+
+/* มุมมอง Agenda — เลยกำหนด / วันนี้ / 7 วันข้างหน้า */
+function AgendaView({ jobs, onOpen, calView, setCalView }) {
+  const SF = window.SF;
+  const todayKey = SF.TODAY;
+  const in7 = addDaysKey(todayKey, 7);
+  const techName = (id) => { const t = (SF.TECH_BY_ID || {})[id]; return t ? (t.name || t.nick || "") : ""; };
+  const stageLabel = (s, kind) => (kind === "start" ? "เริ่ม" : "ส่งมอบ/เสร็จ") + " · " + s.th;
+
+  const overdue = [];
+  jobs.forEach((j) => (j.lateStages || []).forEach((ls) => overdue.push({ job: j, stage: ls })));
+  overdue.sort((a, b) => b.stage.daysLate - a.stage.daysLate);
+
+  const events = [];
+  jobs.forEach((j) => {
+    const sd = j.stageDates || {};
+    SF.STAGES.forEach((s) => {
+      const v = sd[s.key]; if (!v) return;
+      const st = typeof v === "object" ? v.start : null;
+      const en = typeof v === "object" ? v.end : v;
+      if (st) events.push({ job: j, stage: s, kind: "start", date: st });
+      if (en) events.push({ job: j, stage: s, kind: "end", date: en });
+    });
+  });
+  const todayEv = events.filter((e) => e.date === todayKey).sort((a, b) => a.job.name.localeCompare(b.job.name));
+  const upcoming = events.filter((e) => e.date > todayKey && e.date <= in7).sort((a, b) => a.date.localeCompare(b.date) || a.job.name.localeCompare(b.job.name));
+  const empty = overdue.length === 0 && todayEv.length === 0 && upcoming.length === 0;
+
+  const SectionHead = ({ icon, color, label, count }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "6px 2px 2px" }}>
+      <Icon name={icon} size={15} color={color} />
+      <span style={{ fontSize: 13, fontWeight: 800, color: color }}>{label}</span>
+      <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>({count})</span>
+    </div>
+  );
+
+  return (
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 18, boxShadow: "var(--shadow-sm)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 10, flexWrap: "wrap" }}>
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>งานที่ต้องทำ</h2>
+          <span style={{ fontSize: 12.5, color: "var(--text-3)" }}>วันนี้ {thDate(todayKey, true)}</span>
+        </div>
+        <CalToggle calView={calView} setCalView={setCalView} />
+      </div>
+
+      {empty && (
+        <div style={{ padding: "44px 0", textAlign: "center", color: "var(--text-3)" }}>
+          <div style={{ fontSize: 30, marginBottom: 6 }}>🎉</div>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>วันนี้ไม่มีงานค้าง / ตามกำหนดทุกอย่าง</div>
+        </div>
+      )}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {overdue.length > 0 && <SectionHead icon="alert" color="#EF4444" label="เลยกำหนด" count={overdue.length} />}
+        {overdue.map((o, i) => (
+          <AgendaItem key={"od" + i} job={o.job} color="#EF4444" danger title={'ขั้น "' + o.stage.th + '" เลยกำหนด ' + o.stage.daysLate + " วัน"}
+            sub={"กำหนดเสร็จ " + thDate(o.stage.end, true) + (techName(o.job.tech) ? " · ช่าง " + techName(o.job.tech) : "")} onOpen={onOpen} />
+        ))}
+
+        {todayEv.length > 0 && <SectionHead icon="pin" color="var(--primary-dark)" label="วันนี้" count={todayEv.length} />}
+        {todayEv.map((e, i) => (
+          <AgendaItem key={"td" + i} job={e.job} color={e.stage.color} title={stageLabel(e.stage, e.kind)}
+            sub={(techName(e.job.tech) ? "ช่าง " + techName(e.job.tech) + " · " : "") + e.job.province + " · " + e.job.kw + " kW"} onOpen={onOpen} />
+        ))}
+
+        {upcoming.length > 0 && <SectionHead icon="calendar" color="var(--text-2)" label="7 วันข้างหน้า" count={upcoming.length} />}
+        {upcoming.map((e, i) => (
+          <AgendaItem key={"up" + i} job={e.job} color={e.stage.color} title={stageLabel(e.stage, e.kind)}
+            sub={thDate(e.date, true) + (techName(e.job.tech) ? " · ช่าง " + techName(e.job.tech) : "")} onOpen={onOpen} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function CalendarView({ jobs, onOpen }) {
   const isMobile = useMobileCal();
+  const [calView, setCalView] = React.useState("agenda"); // "agenda" | "month"
   const [ym, setYm] = React.useState({ y: 2026, m: 5 }); // June 2026 (0-indexed)
   const [selDay, setSelDay] = React.useState(null); // mobile: วันที่ถูกแตะ → แสดง bottom sheet
   const first = new Date(ym.y, ym.m, 1);
@@ -53,10 +163,14 @@ function CalendarView({ jobs, onOpen }) {
   const todayKey = window.SF.TODAY;
   const shift = (delta) => { setSelDay(null); setYm((s) => { const n = new Date(s.y, s.m + delta, 1); return { y: n.getFullYear(), m: n.getMonth() }; }); };
 
+  if (calView === "agenda") {
+    return <AgendaView jobs={jobs} onOpen={onOpen} calView={calView} setCalView={setCalView} />;
+  }
+
   if (isMobile) {
     return (
       <MobileCalendar ym={ym} cells={cells} jobsOn={jobsOn} milestonesOn={milestonesOn} keyOf={keyOf} todayKey={todayKey}
-        shift={shift} selDay={selDay} setSelDay={setSelDay} onOpen={onOpen} jobs={jobs} />
+        shift={shift} selDay={selDay} setSelDay={setSelDay} onOpen={onOpen} jobs={jobs} calView={calView} setCalView={setCalView} />
     );
   }
 
@@ -69,7 +183,8 @@ function CalendarView({ jobs, onOpen }) {
           </h2>
           <span style={{ fontSize: 12.5, color: "var(--text-3)" }}>· {jobs.filter((j) => j.deadline.startsWith(ym.y + "-" + String(ym.m + 1).padStart(2, "0"))).length} นัด</span>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <CalToggle calView={calView} setCalView={setCalView} />
           <NavBtn dir="prev" onClick={() => shift(-1)} />
           <NavBtn dir="next" onClick={() => shift(1)} />
         </div>
@@ -85,45 +200,19 @@ function CalendarView({ jobs, onOpen }) {
           const list = jobsOn(d);
           const key = ym.y + "-" + String(ym.m + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
           const isToday = key === todayKey;
+          const hasDay = list.length > 0 || milestonesOn(d).length > 0;
           return (
             <div key={i} style={{ height: 116, borderRadius: 12, border: "1px solid " + (isToday ? "var(--primary)" : "var(--border)"),
               background: isToday ? "var(--primary-soft)" : "var(--surface2)", padding: 8, display: "flex", flexDirection: "column", gap: 4, overflow: "hidden" }}>
-              <span onClick={() => list.length && setSelDay(d)} title={list.length ? "ดูงานทั้งหมดวันนี้" : undefined}
-                style={{ fontSize: 12.5, fontWeight: isToday ? 800 : 600, color: isToday ? "var(--primary-dark)" : "var(--text-2)", alignSelf: "flex-start", cursor: list.length ? "pointer" : "default" }}>{d}</span>
-              <div style={{ display: "flex", flexDirection: "column", gap: 3, marginLeft: -8, marginRight: -8, overflow: "hidden" }}>
-                {list.slice(0, 3).map((j) => {
-                  const s = stageOf(j.stage);
-                  const c = j.delayed ? "#EF4444" : s.color;
-                  const sd = j.startDate || j.deadline;
-                  const isStart = sd === key;
-                  const isEnd = j.deadline === key;
-                  const colIdx = i % 7;
-                  const leftRound = isStart || colIdx === 0;   // ปลายซ้ายของแถบ (วันเริ่ม/ต้นสัปดาห์)
-                  const rightRound = isEnd || colIdx === 6;     // ปลายขวา (วันเสร็จ/ปลายสัปดาห์)
-                  return (
-                    <button key={j.id} onClick={() => onOpen(j)} title={j.name + " · " + s.th}
-                      style={{ height: 19, display: "flex", alignItems: "center", background: s.soft, border: "none",
-                        borderLeft: leftRound ? "3px solid " + c : "none",
-                        borderTopLeftRadius: leftRound ? 6 : 0, borderBottomLeftRadius: leftRound ? 6 : 0,
-                        borderTopRightRadius: rightRound ? 6 : 0, borderBottomRightRadius: rightRound ? 6 : 0,
-                        marginLeft: leftRound ? 4 : 0, marginRight: rightRound ? 4 : 0,
-                        padding: leftRound ? "0 6px" : "0 6px 0 8px", cursor: "pointer", fontFamily: "inherit", overflow: "hidden", textAlign: "left" }}>
-                      {leftRound && <span style={{ fontSize: 10, fontWeight: 700, color: j.delayed ? "#EF4444" : "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{j.delayed ? "⚠ " : ""}{j.name.replace("คุณ", "")}</span>}
-                    </button>
-                  );
-                })}
-                {list.length > 3 && (
-                  <button onClick={() => setSelDay(d)}
-                    style={{ fontSize: 10, fontWeight: 600, color: "var(--primary-dark)", paddingLeft: 12, background: "none", border: "none", cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
-                    +{list.length - 3} เพิ่ม
-                  </button>
-                )}
+              <span onClick={() => hasDay && setSelDay(d)} title={hasDay ? "ดูงานทั้งหมดวันนี้" : undefined}
+                style={{ fontSize: 12.5, fontWeight: isToday ? 800 : 600, color: isToday ? "var(--primary-dark)" : "var(--text-2)", alignSelf: "flex-start", cursor: hasDay ? "pointer" : "default" }}>{d}</span>
+              <div style={{ display: "flex", flexDirection: "column", gap: 3, overflow: "hidden" }}>
                 {(() => {
                   const ms = milestonesOn(d);
                   if (!ms.length) return null;
                   return (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 2, paddingLeft: 8, marginTop: 1 }}>
-                      {ms.slice(0, 2).map((m) => {
+                    <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 1 }}>
+                      {ms.slice(0, 4).map((m) => {
                         const lt = (m.job.lateStages || []).some((ls) => ls.key === m.stage.key);
                         const mc = lt ? "#EF4444" : m.stage.color;
                         return (
@@ -134,7 +223,7 @@ function CalendarView({ jobs, onOpen }) {
                           </button>
                         );
                       })}
-                      {ms.length > 2 && <button onClick={() => setSelDay(d)} style={{ fontSize: 9, color: "var(--text-3)", background: "none", border: "none", cursor: "pointer", textAlign: "left", fontFamily: "inherit", paddingLeft: 1 }}>+{ms.length - 2} หมุด</button>}
+                      {ms.length > 4 && <button onClick={() => setSelDay(d)} style={{ fontSize: 9, color: "var(--text-3)", background: "none", border: "none", cursor: "pointer", textAlign: "left", fontFamily: "inherit", paddingLeft: 1 }}>+{ms.length - 4} หมุด</button>}
                     </div>
                   );
                 })()}
@@ -218,7 +307,7 @@ function DayDetailModal({ day, ym, jobs, milestones, onOpen, onClose }) {
 
 /* ── Mobile calendar — ทั้งเดือนพอดีจอเดียว (ไม่ต้องเลื่อน)
    แตะวันที่มีงาน → bottom sheet แสดงรายการงานของวันนั้น ── */
-function MobileCalendar({ ym, cells, jobsOn, milestonesOn, keyOf, todayKey, shift, selDay, setSelDay, onOpen, jobs }) {
+function MobileCalendar({ ym, cells, jobsOn, milestonesOn, keyOf, todayKey, shift, selDay, setSelDay, onOpen, jobs, calView, setCalView }) {
   const monthName = TH_MONTH_FULL[ym.m];
   const monthCount = jobs.filter((j) => j.deadline.startsWith(ym.y + "-" + String(ym.m + 1).padStart(2, "0"))).length;
   const selList = selDay ? jobsOn(selDay) : [];
@@ -227,6 +316,8 @@ function MobileCalendar({ ym, cells, jobsOn, milestonesOn, keyOf, todayKey, shif
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16,
       padding: 14, boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column", gap: 10 }}>
+      {/* toggle Agenda/เดือน */}
+      <div style={{ display: "flex", justifyContent: "center" }}><CalToggle calView={calView} setCalView={setCalView} /></div>
       {/* เดือน + ปุ่มเลื่อนเดือน */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ minWidth: 0 }}>
@@ -267,24 +358,13 @@ function MobileCalendar({ ym, cells, jobsOn, milestonesOn, keyOf, todayKey, shif
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", gap: 3 }}>
               <span style={{ fontSize: 12.5, fontWeight: isToday || isSel ? 800 : 600,
                 color: isToday || isSel ? "var(--primary-dark)" : "var(--text-2)", lineHeight: 1 }}>{d}</span>
-              {/* จุดบอกจำนวนงาน — สูงสุด 3 จุด แล้วโชว์ตัวเลข */}
-              {list.length > 0 && (
-                <span style={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap", justifyContent: "center", maxWidth: "100%" }}>
-                  {list.slice(0, 3).map((j) => (
-                    <span key={j.id} style={{ width: 5, height: 5, borderRadius: 99,
-                      background: j.delayed ? "#EF4444" : stageOf(j.stage).color }} />
-                  ))}
-                  {list.length > 3 && (
-                    <span style={{ fontSize: 8, fontWeight: 700, color: hasDelayed ? "#EF4444" : "var(--text-3)", lineHeight: 1 }}>+{list.length - 3}</span>
-                  )}
-                </span>
-              )}
-              {/* หมุดกำหนดเสร็จขั้นงาน */}
+              {/* หมุดกำหนดเสร็จขั้นงาน (แดง=เลยกำหนด) */}
               {ms.length > 0 && (
-                <span style={{ display: "flex", gap: 2, alignItems: "center", justifyContent: "center" }}>
-                  {ms.slice(0, 3).map((m, k) => (
-                    <span key={k} style={{ width: 6, height: 6, borderRadius: 2, background: m.stage.color, transform: "rotate(45deg)" }} />
-                  ))}
+                <span style={{ display: "flex", gap: 2, alignItems: "center", justifyContent: "center", flexWrap: "wrap", maxWidth: "100%" }}>
+                  {ms.slice(0, 4).map((m, k) => {
+                    const lt = (m.job.lateStages || []).some((ls) => ls.key === m.stage.key);
+                    return <span key={k} style={{ width: 6, height: 6, borderRadius: 2, background: lt ? "#EF4444" : m.stage.color, transform: "rotate(45deg)" }} />;
+                  })}
                 </span>
               )}
             </button>

@@ -95,6 +95,7 @@ function App() {
   const [brandMgr, setBrandMgr] = React.useState(false);
   const [userMgr, setUserMgr] = React.useState(false);
   const [notifOpen, setNotifOpen] = React.useState(false);
+  const [briefingOpen, setBriefingOpen] = React.useState(false); // สรุปงานวันนี้ (เปิดครั้งแรกของวัน)
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const isMobile = useIsMobile(); // force App re-render when mobile↔desktop breakpoint changes
 
@@ -132,7 +133,34 @@ function App() {
     return out.sort((a, b) => b.stage.daysLate - a.stage.daysLate);
   }, [jobs, role, techId]);
 
+  // งานที่มีกำหนดวันนี้ (เริ่ม/เสร็จ) — ใช้ในสรุปงานวันนี้
+  const todayTasks = React.useMemo(() => {
+    const scope = role === "tech" ? jobs.filter((j) => j.tech === techId) : jobs;
+    const today = window.SF.TODAY;
+    const out = [];
+    scope.forEach((j) => {
+      const sd = j.stageDates || {};
+      window.SF.STAGES.forEach((s) => {
+        const v = sd[s.key]; if (!v) return;
+        const st = typeof v === "object" ? v.start : null;
+        const en = typeof v === "object" ? v.end : v;
+        if (st === today) out.push({ job: j, stage: s, kind: "start" });
+        if (en === today) out.push({ job: j, stage: s, kind: "end" });
+      });
+    });
+    return out;
+  }, [jobs, role, techId]);
+
   const loading = store.loading || stock.loading || auth.loading;
+
+  // เปิดสรุปงานวันนี้ครั้งแรกของวัน (ถ้ามีงานเลยกำหนด หรือมีกำหนดวันนี้)
+  React.useEffect(() => {
+    if (loading || !auth.current) return;
+    const today = window.SF.TODAY;
+    if (localStorage.getItem("sf_briefing_seen") === today) return;
+    if (lateAlerts.length === 0 && todayTasks.length === 0) return;
+    setBriefingOpen(true);
+  }, [loading, auth.current, lateAlerts.length, todayTasks.length]);
 
   // ราคารวมสำหรับ BOQ = ราคาจากคลังสินค้า (ตามชื่อ) ทับด้วยฐานราคาวัสดุ (boqPrices ชนะ)
   const effPriceMap = React.useMemo(() => {
@@ -233,6 +261,9 @@ function App() {
       {techMgr && <TechManager store={techStore} onClose={() => setTechMgr(false)} />}
       {brandMgr && <BrandManager store={brandStore} onClose={() => setBrandMgr(false)} />}
       {userMgr && can(role, "manageUsers") && <UserManager authStore={auth} onClose={() => setUserMgr(false)} />}
+      {briefingOpen && <DailyBriefing lateAlerts={lateAlerts} todayTasks={todayTasks}
+        onOpen={(jobId) => { localStorage.setItem("sf_briefing_seen", window.SF.TODAY); setBriefingOpen(false); setView("table"); setSelected(jobId); }}
+        onClose={() => { localStorage.setItem("sf_briefing_seen", window.SF.TODAY); setBriefingOpen(false); }} />}
 
       <TweaksPanel>
         <TweakSection label="ธีม / Theme" />
@@ -380,6 +411,52 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
         </button>
       </div>
     </header>
+  );
+}
+
+/* สรุปงานวันนี้ — เด้งครั้งแรกของวัน */
+function DailyBriefing({ lateAlerts, todayTasks, onOpen, onClose }) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const today = window.SF.TODAY;
+  const Row = ({ jobId, color, danger, title, sub }) => (
+    <button onClick={() => onOpen(jobId)} style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 12px", width: "100%", textAlign: "left",
+      background: danger ? "#FEF2F2" : "var(--surface)", border: "1px solid " + (danger ? "#FECACA" : "var(--border)"), borderRadius: 12, cursor: "pointer", fontFamily: "inherit" }}>
+      <span style={{ width: 32, height: 32, borderRadius: 9, flexShrink: 0, display: "grid", placeItems: "center", background: color, color: "#fff" }}><Icon name={danger ? "alert" : "wrench"} size={16} color="#fff" /></span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</span>
+        <span style={{ display: "block", fontSize: 11.5, color: danger ? "#B91C1C" : "var(--text-2)", marginTop: 1 }}>{sub}</span>
+      </span>
+      <Icon name="chevronRight" size={15} color="var(--text-3)" style={{ flexShrink: 0 }} />
+    </button>
+  );
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)", zIndex: 120, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(480px,100%)", maxHeight: isMobile ? "90dvh" : "88vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+        <div style={{ padding: "18px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+            <span style={{ width: 38, height: 38, borderRadius: 11, background: "var(--primary-soft)", display: "grid", placeItems: "center" }}><Icon name="bell" size={19} color="var(--primary-dark)" /></span>
+            <div>
+              <h2 style={{ fontSize: 16.5, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>สรุปงานวันนี้</h2>
+              <span style={{ fontSize: 12, color: "var(--text-3)" }}>{thDate(today, true)}</span>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+        </div>
+        <div style={{ overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+          {lateAlerts.length > 0 && <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "#EF4444", padding: "2px 2px" }}>⚠ เลยกำหนด ({lateAlerts.length})</div>}
+          {lateAlerts.map((a, i) => (
+            <Row key={"l" + i} jobId={a.jobId} color="#EF4444" danger title={a.jobName} sub={'ขั้น "' + a.stage.th + '" เลยกำหนด ' + a.stage.daysLate + " วัน"} />
+          ))}
+          {todayTasks.length > 0 && <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--primary-dark)", padding: "6px 2px 2px" }}>📍 กำหนดวันนี้ ({todayTasks.length})</div>}
+          {todayTasks.map((e, i) => (
+            <Row key={"t" + i} jobId={e.job.id} color={e.stage.color} title={e.job.name} sub={(e.kind === "start" ? "เริ่ม" : "ส่งมอบ/เสร็จ") + " · " + e.stage.th} />
+          ))}
+        </div>
+        <div style={{ padding: "12px 20px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)" }}>
+          <button onClick={onClose} style={{ width: "100%", padding: "12px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>รับทราบ</button>
+        </div>
+      </div>
+    </div>
   );
 }
 
