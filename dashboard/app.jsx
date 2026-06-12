@@ -125,6 +125,25 @@ function App() {
     });
   }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, role, techId]);
 
+  // นับงานต่อขั้น (Flow) สำหรับชิปกรอง — ใช้ฟิลเตอร์อื่นทั้งหมดยกเว้น stageFilter เอง
+  const stageCounts = React.useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const c = {}; let all = 0;
+    jobs.forEach((j) => {
+      if (q && !((j.name + j.code + j.province + j.phone + j.brand).toLowerCase().includes(q))) return;
+      if (typeFilter !== "all" && j.type !== typeFilter) return;
+      if (delayedOnly && !j.delayed) return;
+      if (quickFilter === "active" && j.stage === "done") return;
+      if (quickFilter === "delayed" && !j.delayed) return;
+      if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return;
+      if (quickFilter === "battery" && !j.battery) return;
+      if (role === "tech" && j.tech !== techId) return;
+      c[j.stage] = (c[j.stage] || 0) + 1; all++;
+    });
+    c.__all = all;
+    return c;
+  }, [jobs, search, typeFilter, delayedOnly, quickFilter, role, techId]);
+
   // แจ้งเตือนงานล่าช้าตามขั้น (Flow) — คำนวณสด: tech เห็นเฉพาะงานตัวเอง, admin/manager เห็นทุกงาน
   const lateAlerts = React.useMemo(() => {
     const scope = role === "tech" ? jobs.filter((j) => j.tech === techId) : jobs;
@@ -235,7 +254,7 @@ function App() {
           search={search} setSearch={setSearch}
           typeFilter={typeFilter} setTypeFilter={setTypeFilter}
           delayedOnly={delayedOnly} setDelayedOnly={setDelayedOnly}
-          stageFilter={stageFilter} setStageFilter={setStageFilter}
+          stageFilter={stageFilter} setStageFilter={setStageFilter} stageCounts={stageCounts}
           quickFilter={quickFilter} setQuickFilter={setQuickFilter}
           onAdd={() => setForm({ job: store.blank(), isNew: true })}
           canAdd={can(role, "addJob")}
@@ -363,7 +382,7 @@ function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, currentUser
   );
 }
 
-function Header({ view, role, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, quickFilter, setQuickFilter, onAdd, canAdd, showBell, unread, notifItems, lateAlerts, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen }) {
+function Header({ view, role, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, quickFilter, setQuickFilter, onAdd, canAdd, showBell, unread, notifItems, lateAlerts, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen }) {
   const nav = NAV.find((n) => n.key === view);
   const QUICK_LABELS = { active: "กำลังดำเนินการ", delayed: "ล่าช้า", ready: "อุปกรณ์พร้อมติดตั้ง", battery: "มีแบตเตอรี่" };
   return (
@@ -414,6 +433,37 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
           <Icon name="alert" size={15} color={delayedOnly ? "#fff" : "#EF4444"} />
           เฉพาะงานล่าช้า
         </button>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginTop: 9 }}>
+        {(() => {
+          const SF = window.SF;
+          const chip = (active, color) => ({
+            display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 99,
+            border: "1px solid " + (active ? (color || "var(--primary)") : "var(--border-strong)"),
+            background: active ? (color ? color + "1a" : "var(--primary-soft)") : "var(--surface)",
+            color: active ? (color || "var(--primary-dark)") : "var(--text-2)",
+            fontFamily: "inherit", fontSize: 12, fontWeight: active ? 700 : 600, cursor: "pointer", whiteSpace: "nowrap", transition: ".15s",
+          });
+          const num = (active) => ({ fontSize: 11, fontWeight: 700, opacity: active ? 1 : .65, fontFamily: "var(--mono)" });
+          return (
+            <React.Fragment>
+              <button style={chip(!stageFilter)} onClick={() => setStageFilter(null)}>
+                ทั้งหมด <span style={num(!stageFilter)}>{(stageCounts && stageCounts.__all) || 0}</span>
+              </button>
+              {SF.STAGES.map((s) => {
+                const active = stageFilter === s.key;
+                const n = (stageCounts && stageCounts[s.key]) || 0;
+                return (
+                  <button key={s.key} style={Object.assign(chip(active, s.color), n === 0 && !active ? { opacity: .5 } : {})}
+                    onClick={() => setStageFilter(active ? null : s.key)}>
+                    <span style={{ width: 7, height: 7, borderRadius: 99, background: s.color, flexShrink: 0 }} />
+                    {s.th} <span style={num(active)}>{n}</span>
+                  </button>
+                );
+              })}
+            </React.Fragment>
+          );
+        })()}
       </div>
     </header>
   );
