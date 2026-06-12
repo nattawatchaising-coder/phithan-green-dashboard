@@ -264,7 +264,7 @@ function App() {
           onMenuOpen={() => setSidebarOpen(true)} />
 
         <div className="app-content" style={view === "board" || view === "map" ? { display: "flex", flexDirection: "column", minHeight: 0 } : {}}>
-          {view === "overview" && <OverviewView jobs={filtered} onOpen={openJob} onStage={goStage} onKpi={goKpi} />}
+          {view === "overview" && <OverviewView jobs={filtered} todayTasks={todayTasks} onOpen={openJob} onStage={goStage} onKpi={goKpi} />}
           {view === "board" && <KanbanView jobs={filtered} onOpen={openJob} onMoveStage={(id, s) => store.setStage(id, s)} />}
           {view === "table" && <TableView jobs={filtered} onOpen={openJob}
             onEdit={(j) => setForm({ job: store.raw.find((r) => r.id === j.id), isNew: false })}
@@ -436,7 +436,8 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
           <Icon name="alert" size={15} color={delayedOnly ? "#fff" : "#EF4444"} />
           เฉพาะงานล่าช้า
         </button>
-        {/* ปุ่มย่อ/ขยายแถบกรองขั้นงาน — สไตล์เดียวกับ "หมวดหมู่" ฝั่งคลัง */}
+        {/* ปุ่มย่อ/ขยายแถบกรองขั้นงาน — สไตล์เดียวกับ "หมวดหมู่" ฝั่งคลัง (ไม่แสดงบนหน้าภาพรวม) */}
+        {view !== "overview" && (
         <button onClick={toggleStage} title={stageOpen ? "ซ่อนตัวกรองขั้นงาน" : "แสดงตัวกรองขั้นงาน"}
           style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 13px", borderRadius: 99,
             border: "1px solid " + (stageFilter ? stageOf(stageFilter).color : "var(--border-strong)"),
@@ -447,8 +448,10 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
           ขั้นงาน{stageFilter ? ": " + stageOf(stageFilter).th : ""}
           <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: stageOpen ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
         </button>
+        )}
       </div>
-      {/* ชิปกรองขั้นงาน — ย่อ/ขยายแบบลื่น (max-height + opacity) */}
+      {/* ชิปกรองขั้นงาน — ย่อ/ขยายแบบลื่น (max-height + opacity); ซ่อนบนหน้าภาพรวม */}
+      {view !== "overview" && (
       <div style={{ overflow: "hidden", maxHeight: stageOpen ? 180 : 0, opacity: stageOpen ? 1 : 0,
         paddingBottom: stageOpen ? 14 : 0, transition: "max-height .24s ease, opacity .2s ease, padding-bottom .24s ease" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
@@ -483,6 +486,7 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
           })()}
         </div>
       </div>
+      )}
     </header>
   );
 }

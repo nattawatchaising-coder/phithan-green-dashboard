@@ -146,7 +146,36 @@ function Empty({ text }) {
   return <div style={{ padding: "26px 0", textAlign: "center", fontSize: 13, color: "var(--text-3)" }}>{text}</div>;
 }
 
-function OverviewView({ jobs, onOpen, onStage, onKpi }) {
+/* งานที่ต้องทำวันนี้ — ขั้น Flow ที่ today อยู่ในช่วงเริ่ม–เสร็จ */
+function TodayPanel({ tasks, onOpen }) {
+  const KIND = { start: { th: "เริ่มวันนี้", icon: "pin" }, progress: { th: "กำลังดำเนินการ", icon: "wrench" }, end: { th: "ส่งมอบ/เสร็จวันนี้", icon: "check" } };
+  return (
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 22, boxShadow: "var(--shadow-sm)" }}>
+      <PanelTitle icon="calendar" iconColor="var(--primary)" title="งานที่ต้องทำวันนี้" sub={thDate(window.SF.TODAY, true) + " · " + tasks.length + " รายการ"} />
+      {tasks.length === 0 ? <Empty text="วันนี้ไม่มีงานตามกำหนด 🎉" /> : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 10, marginTop: 16 }}>
+          {tasks.map((e, i) => {
+            const k = KIND[e.kind] || KIND.start;
+            return (
+              <button key={i} onClick={() => onOpen(e.job)} style={{ display: "flex", gap: 11, alignItems: "center", padding: "12px 13px", textAlign: "left",
+                background: e.stage.color + "0d", border: "1px solid " + e.stage.color + "33", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", width: "100%" }}>
+                <span style={{ width: 34, height: 34, borderRadius: 9, flexShrink: 0, display: "grid", placeItems: "center", background: e.stage.color, color: "#fff" }}>
+                  <Icon name={k.icon} size={16} color="#fff" />
+                </span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{e.job.name}</span>
+                  <span style={{ display: "block", fontSize: 11.5, color: "var(--text-2)", marginTop: 2 }}>{k.th} · {e.stage.th}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OverviewView({ jobs, todayTasks, onOpen, onStage, onKpi }) {
   const active = jobs.filter((j) => j.stage !== "done");
   const delayed = jobs.filter((j) => j.delayed);
   const ready = active.filter((j) => j.matReady);
@@ -160,6 +189,8 @@ function OverviewView({ jobs, onOpen, onStage, onKpi }) {
         <KpiCard label="อุปกรณ์พร้อมติดตั้ง" value={ready.length} unit="งาน" icon="box" accent="var(--primary)" sub="วัสดุครบทุกรายการ" onClick={() => onKpi("ready")} />
         <KpiCard label="ความจุแบตเตอรี่รวม" value={totalKwh} unit="kWh" icon="battery" accent="#7C5CFC" sub="ระบบ ATMOCE" onClick={() => onKpi("battery")} />
       </div>
+
+      <TodayPanel tasks={todayTasks || []} onOpen={onOpen} />
 
       <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 18 }}>
         <PipelinePanel jobs={jobs} onStage={onStage} />
