@@ -40,6 +40,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
   const [f, setF] = React.useState(() => JSON.parse(JSON.stringify(initial)));
   const set = (k, v) => setF((p) => Object.assign({}, p, { [k]: v }));
   const setMat = (k, v) => setF((p) => Object.assign({}, p, { mat: Object.assign({}, p.mat, { [k]: v }) }));
+  const setStageDate = (k, v) => setF((p) => Object.assign({}, p, { stageDates: Object.assign({}, p.stageDates, { [k]: v }) }));
   const brandInfo = (SF.BRAND_BY_NAME || {})[f.brand];
   const noBattery = brandInfo ? !brandInfo.battery : false;
   const isMobile = useFormMobile();
@@ -193,6 +194,18 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
               <Field label="หมายเหตุ" span>
                 <textarea style={Object.assign({}, inputStyle, { resize: "vertical", minHeight: 56 })} value={f.note} onChange={(e) => set("note", e.target.value)} />
               </Field>
+            </div>
+          </Section>
+
+          {/* per-stage schedule → ขึ้นเป็นหมุดในปฏิทินนัด */}
+          <Section title="กำหนดการแต่ละขั้น (Flow)" icon="calendar">
+            <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 10 }}>ระบุวันที่คาดว่าจะเสร็จของแต่ละขั้น — จะไปขึ้นเป็นหมุด (milestone) ในปฏิทินนัด ว่าแต่ละงานเสร็จตอนไหน</div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: isMobile ? 12 : 14 }}>
+              {SF.STAGES.map((s, i) => (
+                <Field key={s.key} label={(i + 1) + ". " + s.th + " (" + s.en + ")"}>
+                  <input type="date" style={inputStyle} value={(f.stageDates && f.stageDates[s.key]) || ""} onChange={(e) => setStageDate(s.key, e.target.value)} />
+                </Field>
+              ))}
             </div>
           </Section>
         </div>

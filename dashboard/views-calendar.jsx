@@ -36,12 +36,22 @@ function CalendarView({ jobs, onOpen }) {
     return jobs.filter((j) => ((j.startDate || j.deadline) <= k && k <= j.deadline))
       .sort((a, b) => ((a.startDate || a.deadline).localeCompare(b.startDate || b.deadline)) || (a.id > b.id ? 1 : -1));
   };
+  // หมุดกำหนดการเสร็จของแต่ละขั้น (stageDates) ที่ตรงกับวันนั้น
+  const milestonesOn = (d) => {
+    const k = keyOf(d);
+    const out = [];
+    jobs.forEach((j) => {
+      const sd = j.stageDates || {};
+      window.SF.STAGES.forEach((s) => { if (sd[s.key] === k) out.push({ job: j, stage: s }); });
+    });
+    return out;
+  };
   const todayKey = window.SF.TODAY;
   const shift = (delta) => { setSelDay(null); setYm((s) => { const n = new Date(s.y, s.m + delta, 1); return { y: n.getFullYear(), m: n.getMonth() }; }); };
 
   if (isMobile) {
     return (
-      <MobileCalendar ym={ym} cells={cells} jobsOn={jobsOn} keyOf={keyOf} todayKey={todayKey}
+      <MobileCalendar ym={ym} cells={cells} jobsOn={jobsOn} milestonesOn={milestonesOn} keyOf={keyOf} todayKey={todayKey}
         shift={shift} selDay={selDay} setSelDay={setSelDay} onOpen={onOpen} jobs={jobs} />
     );
   }
@@ -104,20 +114,37 @@ function CalendarView({ jobs, onOpen }) {
                     +{list.length - 3} เพิ่ม
                   </button>
                 )}
+                {(() => {
+                  const ms = milestonesOn(d);
+                  if (!ms.length) return null;
+                  return (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2, paddingLeft: 8, marginTop: 1 }}>
+                      {ms.slice(0, 2).map((m) => (
+                        <button key={m.job.id + m.stage.key} onClick={() => onOpen(m.job)} title={"เสร็จ" + m.stage.th + " · " + m.job.name}
+                          style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", overflow: "hidden" }}>
+                          <span style={{ width: 12, height: 12, borderRadius: 99, background: m.stage.color, display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="check" size={8} color="#fff" sw={3} /></span>
+                          <span style={{ fontSize: 9.5, fontWeight: 600, color: "var(--text-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.stage.th} · {m.job.name.replace("คุณ", "")}</span>
+                        </button>
+                      ))}
+                      {ms.length > 2 && <button onClick={() => setSelDay(d)} style={{ fontSize: 9, color: "var(--text-3)", background: "none", border: "none", cursor: "pointer", textAlign: "left", fontFamily: "inherit", paddingLeft: 1 }}>+{ms.length - 2} หมุด</button>}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           );
         })}
       </div>
       </div>
-      {selDay && <DayDetailModal day={selDay} ym={ym} jobs={jobsOn(selDay)} onOpen={(j) => { setSelDay(null); onOpen(j); }} onClose={() => setSelDay(null)} />}
+      {selDay && <DayDetailModal day={selDay} ym={ym} jobs={jobsOn(selDay)} milestones={milestonesOn(selDay)} onOpen={(j) => { setSelDay(null); onOpen(j); }} onClose={() => setSelDay(null)} />}
     </div>
   );
 }
 
 /* ── หน้าต่างแสดงงานทั้งหมดในวันที่เลือก (เดสก์ท็อป) ── */
-function DayDetailModal({ day, ym, jobs, onOpen, onClose }) {
+function DayDetailModal({ day, ym, jobs, milestones, onOpen, onClose }) {
   const monthName = TH_MONTH_FULL[ym.m];
+  const ms = milestones || [];
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.4)", backdropFilter: "blur(3px)", zIndex: 90, display: "grid", placeItems: "center", padding: 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: 18, width: "min(460px, 100%)", maxHeight: "82vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
@@ -129,7 +156,22 @@ function DayDetailModal({ day, ym, jobs, onOpen, onClose }) {
           <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={17} /></button>
         </div>
         <div style={{ overflowY: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 9 }}>
-          {jobs.length === 0 && <div style={{ textAlign: "center", color: "var(--text-3)", fontSize: 13, padding: "20px 0" }}>ไม่มีงานในวันนี้</div>}
+          {ms.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 7, paddingBottom: 4, marginBottom: 2, borderBottom: jobs.length ? "1px dashed var(--border)" : "none" }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>กำหนดเสร็จขั้นงาน</div>
+              {ms.map((m) => (
+                <button key={m.job.id + m.stage.key} onClick={() => onOpen(m.job)}
+                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 11px", width: "100%", textAlign: "left", background: m.stage.soft, border: "1px solid " + m.stage.color + "55", borderRadius: 11, cursor: "pointer", fontFamily: "inherit" }}>
+                  <span style={{ width: 22, height: 22, borderRadius: 99, background: m.stage.color, display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="check" size={13} color="#fff" sw={3} /></span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.job.name}</span>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: m.stage.color }}>เสร็จขั้น: {m.stage.th}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+          {jobs.length === 0 && ms.length === 0 && <div style={{ textAlign: "center", color: "var(--text-3)", fontSize: 13, padding: "20px 0" }}>ไม่มีงานในวันนี้</div>}
           {jobs.map((j) => {
             const s = stageOf(j.stage);
             const c = j.delayed ? "#EF4444" : s.color;
@@ -164,10 +206,11 @@ function DayDetailModal({ day, ym, jobs, onOpen, onClose }) {
 
 /* ── Mobile calendar — ทั้งเดือนพอดีจอเดียว (ไม่ต้องเลื่อน)
    แตะวันที่มีงาน → bottom sheet แสดงรายการงานของวันนั้น ── */
-function MobileCalendar({ ym, cells, jobsOn, keyOf, todayKey, shift, selDay, setSelDay, onOpen, jobs }) {
+function MobileCalendar({ ym, cells, jobsOn, milestonesOn, keyOf, todayKey, shift, selDay, setSelDay, onOpen, jobs }) {
   const monthName = TH_MONTH_FULL[ym.m];
   const monthCount = jobs.filter((j) => j.deadline.startsWith(ym.y + "-" + String(ym.m + 1).padStart(2, "0"))).length;
   const selList = selDay ? jobsOn(selDay) : [];
+  const selMs = selDay ? milestonesOn(selDay) : [];
 
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16,
@@ -197,16 +240,18 @@ function MobileCalendar({ ym, cells, jobsOn, keyOf, todayKey, shift, selDay, set
         {cells.map((d, i) => {
           if (d === null) return <div key={i} />;
           const list = jobsOn(d);
+          const ms = milestonesOn(d);
+          const has = list.length > 0 || ms.length > 0;
           const isToday = keyOf(d) === todayKey;
           const isSel = d === selDay;
           const hasDelayed = list.some((j) => j.delayed);
           const border = isSel ? "2px solid var(--primary)" : "1px solid " + (isToday ? "var(--primary)" : "var(--border)");
           return (
-            <button key={i} onClick={() => list.length ? setSelDay(isSel ? null : d) : setSelDay(null)}
-              disabled={!list.length}
+            <button key={i} onClick={() => has ? setSelDay(isSel ? null : d) : setSelDay(null)}
+              disabled={!has}
               style={{ minHeight: 50, borderRadius: 9, border, fontFamily: "inherit",
                 background: isSel ? "var(--primary-soft)" : isToday ? "var(--primary-soft)" : "var(--surface2)",
-                cursor: list.length ? "pointer" : "default", padding: "5px 0 4px",
+                cursor: has ? "pointer" : "default", padding: "5px 0 4px",
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", gap: 3 }}>
               <span style={{ fontSize: 12.5, fontWeight: isToday || isSel ? 800 : 600,
                 color: isToday || isSel ? "var(--primary-dark)" : "var(--text-2)", lineHeight: 1 }}>{d}</span>
@@ -220,6 +265,14 @@ function MobileCalendar({ ym, cells, jobsOn, keyOf, todayKey, shift, selDay, set
                   {list.length > 3 && (
                     <span style={{ fontSize: 8, fontWeight: 700, color: hasDelayed ? "#EF4444" : "var(--text-3)", lineHeight: 1 }}>+{list.length - 3}</span>
                   )}
+                </span>
+              )}
+              {/* หมุดกำหนดเสร็จขั้นงาน */}
+              {ms.length > 0 && (
+                <span style={{ display: "flex", gap: 2, alignItems: "center", justifyContent: "center" }}>
+                  {ms.slice(0, 3).map((m, k) => (
+                    <span key={k} style={{ width: 6, height: 6, borderRadius: 2, background: m.stage.color, transform: "rotate(45deg)" }} />
+                  ))}
                 </span>
               )}
             </button>
@@ -259,7 +312,22 @@ function MobileCalendar({ ym, cells, jobsOn, keyOf, todayKey, shift, selDay, set
             {/* list */}
             <div style={{ overflowY: "auto", padding: "12px 16px",
               paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 9 }}>
-              {selList.length === 0 && (
+              {selMs.length > 0 && (
+                <React.Fragment>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>กำหนดเสร็จขั้นงาน</div>
+                  {selMs.map((m) => (
+                    <button key={m.job.id + m.stage.key} onClick={() => { setSelDay(null); onOpen(m.job); }}
+                      style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", width: "100%", textAlign: "left", background: m.stage.soft, border: "1px solid " + m.stage.color + "55", borderRadius: 12, cursor: "pointer", fontFamily: "inherit" }}>
+                      <span style={{ width: 22, height: 22, borderRadius: 99, background: m.stage.color, display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="check" size={13} color="#fff" sw={3} /></span>
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.job.name}</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: m.stage.color }}>เสร็จขั้น: {m.stage.th}</span>
+                      </span>
+                    </button>
+                  ))}
+                </React.Fragment>
+              )}
+              {selList.length === 0 && selMs.length === 0 && (
                 <div style={{ textAlign: "center", color: "var(--text-3)", fontSize: 13, padding: "20px 0" }}>ไม่มีงานในวันนี้</div>
               )}
               {selList.map((j) => {
