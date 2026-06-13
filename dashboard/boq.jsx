@@ -48,6 +48,18 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   // อินเวอร์เตอร์ String/Hybrid ที่เลือก (Huawei = มี combiner box)
   const selInv = (window.BOQ.INVERTERS || []).find((x) => x.model === b.inverterModel);
   const isHuawei = !!(selInv && selInv.inputs > 0);
+  // ── กรองรุ่นอินเวอร์เตอร์ตามแบรนด์ของงาน + ตัวเลือกใน BOQ ──
+  const jobBrand = (job && job.brand) || "";
+  const brandInvs = (window.BOQ.INVERTERS || []).filter((x) => !jobBrand || x.model.toLowerCase().indexOf(jobBrand.toLowerCase()) >= 0);
+  const showMicro = !jobBrand || /atmoce/i.test(jobBrand);   // ไมโคร ATMOCE เป็นของแบรนด์ ATMOCE
+  const invOptions = (showMicro ? [{ value: "", label: "ไมโคร ATMOCE (ตามอัตรา)" }] : [])
+    .concat(brandInvs.map((x) => ({ value: x.model, label: x.model + (x.kw ? " · " + x.kw + "kW" : "") })));
+  // แบรนด์ที่ไม่มีไมโคร (เช่น Huawei) แต่ยังไม่ได้เลือกรุ่น → เลือกรุ่นแรกของแบรนด์ให้
+  React.useEffect(() => {
+    const inList = brandInvs.some((x) => x.model === b.inverterModel);
+    if (!showMicro && !inList && brandInvs.length) set("inverterModel", brandInvs[0].model);
+    else if (showMicro && b.inverterModel && !inList) set("inverterModel", "");
+  }, [jobBrand]); // eslint-disable-line
   const maxPvTotal = selInv ? (selInv.maxPv || 0) * result.meta.invCount : 0;
   const pvOver = isHuawei && maxPvTotal > 0 && result.meta.kw > maxPvTotal;
 
@@ -165,8 +177,13 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>kW</span>
                 </div>
               </Field>
-              <Field label="ระบบไฟฟ้า"><Dropdown value={b.phase} onChange={(v) => set("phase", v)} options={[{ value: 1, label: "1 เฟส" }, { value: 3, label: "3 เฟส" }]} /></Field>
-              <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="อินเวอร์เตอร์"><Dropdown value={b.inverterModel || ""} onChange={(v) => set("inverterModel", v)} options={[{ value: "", label: "ไมโคร ATMOCE (ตามอัตรา)" }].concat((window.BOQ.INVERTERS || []).map((x) => ({ value: x.model, label: x.model + (x.kw ? " · " + x.kw + "kW" : "") })))} /></Field></div>
+              <Field label="ระบบไฟฟ้า (ตามงาน)">
+                <div style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--surface3)", border: "1px solid var(--border)", borderRadius: 10, padding: "9px 11px" }}>
+                  <Icon name="lock" size={13} color="var(--text-3)" />
+                  <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-1)" }}>{String(b.phase) === "3" ? "3 เฟส" : "1 เฟส"}</span>
+                </div>
+              </Field>
+              <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label={"อินเวอร์เตอร์" + (jobBrand ? " · " + jobBrand : "")}><Dropdown value={b.inverterModel || ""} onChange={(v) => set("inverterModel", v)} options={invOptions} /></Field></div>
               {!b.inverterModel
                 ? <Field label="อัตราไมโคร"><Dropdown value={b.microRatio} onChange={(v) => set("microRatio", v)} options={[{ value: "1:1", label: "1:1 (1 แผง/ตัว)" }, { value: "2:1", label: "2:1 (2 แผง/ตัว)" }]} /></Field>
                 : <Field label="จำนวนอินเวอร์เตอร์"><div style={{ display: "flex", alignItems: "baseline", justifyContent: "flex-end", gap: 4, background: "var(--surface3)", border: "1px solid var(--border)", borderRadius: 10, padding: "9px 11px" }}><span style={{ fontFamily: "var(--mono)", fontSize: 15, fontWeight: 700, color: "var(--primary-dark)" }}>{result.meta.invCount}</span><span style={{ fontSize: 11.5, color: "var(--text-3)" }}>ตัว</span></div></Field>}
