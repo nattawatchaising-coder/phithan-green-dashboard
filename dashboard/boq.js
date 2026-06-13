@@ -224,9 +224,9 @@
         combItems.push({ name: HW.mc4, qty: totalStr, unit: "ชุด" });
         combItems.push({ name: ph === 3 ? HW.acSpd3 : HW.acSpd1, qty: invCount, unit: "ตัว" });
         combItems.push({ name: rcboName(selInv.outA, ph), qty: invCount, unit: "ตัว" });
-        combItems.push({ name: HW.wireDuct, qty: invCount, unit: "เส้น" });
-        combItems.push({ name: HW.dinRail, qty: invCount, unit: "เส้น" });
-        combItems.push({ name: HW.stopper, qty: invCount * 10, unit: "ตัว" });
+        combItems.push({ name: HW.wireDuct, qty: 1, unit: "เส้น" });   // ในตู้ใบเดียว
+        combItems.push({ name: HW.dinRail, qty: 1, unit: "เส้น" });    // ในตู้ใบเดียว
+        combItems.push({ name: HW.stopper, qty: 10, unit: "ตัว" });    // 10/งาน (flat)
         combItems.push({ name: HW.groundBar, qty: 1, unit: "อัน" });
         // ตู้ไฟเพิ่ม (case by case)
         if (b.hwExtraPanel) {
