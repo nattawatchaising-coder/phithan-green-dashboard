@@ -562,6 +562,22 @@ function ItemModal({ initial, isNew, items, onSave, onClose }) {
           <Field label="ขั้นต่ำ (แจ้งเตือน)"><input type="number" style={inputStyle} value={f.min} onChange={(e) => set("min", parseInt(e.target.value) || 0)} /></Field>
           <Field label="ราคา/หน่วย (บาท)"><input type="number" style={inputStyle} value={f.price != null ? f.price : 0} onChange={(e) => set("price", parseFloat(e.target.value) || 0)} placeholder="0" /></Field>
           <Field label="ที่จัดเก็บ"><input style={inputStyle} value={f.loc} onChange={(e) => set("loc", e.target.value)} placeholder="คลัง A-01" /></Field>
+          {f.cat === "panel" && (
+            <div style={{ gridColumn: "1 / -1", marginTop: 2, padding: 14, background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 10 }}>
+                <Icon name="panel" size={14} color="var(--primary-dark)" /> สเปคแผง (ใช้ช่วยถอด BOQ)
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 12 }}>
+                <Field label="กำลังไฟ (Wp)"><input type="number" style={inputStyle} value={f.wp != null ? f.wp : ""} onChange={(e) => set("wp", parseFloat(e.target.value) || 0)} placeholder="650" /></Field>
+                <Field label="ความหนาเฟรม (mm)"><input type="number" style={inputStyle} value={f.frame != null ? f.frame : ""} onChange={(e) => set("frame", parseFloat(e.target.value) || 0)} placeholder="30 / 35" /></Field>
+                <Field label="ความกว้าง (ม.)"><input type="number" style={inputStyle} value={f.width != null ? f.width : ""} onChange={(e) => set("width", parseFloat(e.target.value) || 0)} placeholder="1.134" /></Field>
+                <Field label="ความยาว (ม.)"><input type="number" style={inputStyle} value={f.length != null ? f.length : ""} onChange={(e) => set("length", parseFloat(e.target.value) || 0)} placeholder="2.382" /></Field>
+              </div>
+              <div style={{ marginTop: 9, fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>
+                ความหนาเฟรม → เลือก MID/END CLAMP KIT (30/35mm) · ความกว้าง → คำนวณความยาว/จำนวนราง · Wp → คำนวณขนาดติดตั้ง (kW)
+              </div>
+            </div>
+          )}
         </div>
         <div style={{ padding: "14px 22px", paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10, flexShrink: 0 }}>
           <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 18px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>

@@ -179,8 +179,8 @@
       { name: "BOLT&N2 NUT M8 20mm.", qty: Math.round(invCount * 2), unit: "SET" },
       { name: "EARTHING CLIP", qty: Math.round(lfeet / 2), unit: "SET" },
       { name: "GROUNDING LUG COPPER LINES", qty: groundlug, unit: "SET" },
-      { name: MID_CLAMP[panel.frame] || "MID CLAME KIT", qty: mid, unit: "SET" },
-      { name: END_CLAMP[panel.frame] || "END CLAMP KIT", qty: end, unit: "SET" },
+      { name: MID_CLAMP[panel.frame] || ("MID CLAME KIT " + panel.frame + "mm."), qty: mid, unit: "SET" },
+      { name: END_CLAMP[panel.frame] || ("END CLAMP KIT " + panel.frame + "mm."), qty: end, unit: "SET" },
       { name: roofHook, qty: lfeet, unit: "SET" },
     ] });
     // CABLE
@@ -300,8 +300,14 @@
     add("MOUNTING", "BOLT&N2 NUT M8 20mm.", "SET");
     add("MOUNTING", "EARTHING CLIP", "SET");
     add("MOUNTING", "GROUNDING LUG COPPER LINES", "SET");
-    [...new Set(Object.keys(MID_CLAMP).map((k) => MID_CLAMP[k]))].forEach((v) => add("MOUNTING", v, "SET"));
-    [...new Set(Object.keys(END_CLAMP).map((k) => END_CLAMP[k]))].forEach((v) => add("MOUNTING", v, "SET"));
+    const midNames = new Set(Object.keys(MID_CLAMP).map((k) => MID_CLAMP[k]));
+    const endNames = new Set(Object.keys(END_CLAMP).map((k) => END_CLAMP[k]));
+    [...new Set(PANELS.map((p) => p.frame))].forEach((fr) => {   // เผื่อแผงที่ตั้งค่าความหนาเอง
+      midNames.add(MID_CLAMP[fr] || ("MID CLAME KIT " + fr + "mm."));
+      endNames.add(END_CLAMP[fr] || ("END CLAMP KIT " + fr + "mm."));
+    });
+    [...midNames].forEach((v) => add("MOUNTING", v, "SET"));
+    [...endNames].forEach((v) => add("MOUNTING", v, "SET"));
     ROOF_HOOKS.forEach((r) => add("MOUNTING", r.model, "SET"));
     CABLE_TYPES.forEach((t) => add("CABLE", t, "M"));
     IMC_SIZES.forEach((nm) => {
@@ -348,5 +354,18 @@
     return { groups: groups, grandTotal: grand };
   }
 
-  window.BOQ = { PANELS, MICRO, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, DEFAULT_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, blankBOQ, calcBOQ, matKey, catalog, applyPrices };
+  // ── ลงทะเบียนสเปคแผงจากคลังสินค้า (merge ตามชื่อรุ่น) ──
+  // ต้องมี wp (วัตต์) + width (ม.) จึงนำมาคำนวณได้; frame (ความหนา mm) → ใช้เลือก clamp
+  function setPanels(list) {
+    (list || []).forEach((p) => {
+      if (!p || !p.model) return;
+      const wp = +p.wp, width = +p.width;
+      if (!(wp > 0) || !(width > 0)) return;
+      const spec = { model: String(p.model).trim(), wp: wp, frame: +p.frame || 30, width: width };
+      const i = PANELS.findIndex((x) => x.model === spec.model);
+      if (i >= 0) PANELS[i] = spec; else PANELS.push(spec);
+    });
+  }
+
+  window.BOQ = { PANELS, MICRO, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, DEFAULT_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, blankBOQ, calcBOQ, matKey, catalog, applyPrices, setPanels };
 })();

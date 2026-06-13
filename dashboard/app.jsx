@@ -197,6 +197,13 @@ function App() {
     return m;
   }, [stock.items, priceStore.priceMap]);
 
+  // ลงทะเบียนสเปคแผงจากคลังสินค้า → ให้ตัวคำนวณ BOQ ใช้ความหนาเฟรม/ความกว้าง
+  React.useEffect(() => {
+    if (!window.BOQ || !window.BOQ.setPanels) return;
+    window.BOQ.setPanels((stock.items || []).filter((s) => s.cat === "panel" && s.name)
+      .map((s) => ({ model: s.name, wp: s.wp, frame: s.frame, width: s.width })));
+  }, [stock.items]);
+
   const closeSidebar = () => setSidebarOpen(false);
   const openJob = (j) => setSelected(j.id);
   const selectedJob = jobs.find((j) => j.id === selected) || null;
