@@ -22,6 +22,41 @@
   // อินเวอร์เตอร์ String/Hybrid (ตั้งสเปคจากคลัง) — setInverters() จะ rebuild อาเรย์นี้
   const INVERTERS = [];
 
+  // ── ชื่อรุ่นอุปกรณ์ Huawei (ต้องตรงกับชื่อในคลังสินค้า เพื่อจับคู่ราคา) ──
+  const HW = {
+    meter1: "Smart Meter DDSU666-H + CT 100A/40mA (1 เฟส)",
+    meter3: "Smart Meter DTSU666-H + CT 100A/40mA (3 เฟส)",
+    dongle: "Smart Dongle-WLAN-FE",
+    cabinet: "AC/DC Combiner Box ตู้หน้ากระจก เบอร์5",
+    dcFuseHolder: "DC FUSE HOLDER",
+    dcFuse: "DC FUSE 16A 1000VDC",
+    dcSpd: "DC SPD 2P 800VDC 20-40KA",
+    dcMcb: "DC MCB 20A 2P 800VDC",
+    acSpd1: "AC SPD 2P Uc275V In20Ka/Imax40Ka",
+    acSpd3: "AC SPD 4P Uc385V In20Ka/Imax40Ka",
+    wireDuct: "WIRE DUCT 40x40mm (ยาว 2 ม.)",
+    dinRail: "DIN RAIL DNR274",
+    stopper: "Stopper เหล็ก รางปีกนก 2 น็อตคู่",
+    groundBar: "Grounding Bus-Bar 8 Slots hole 6mm",
+    mc4: "MC4",
+    lunaC1: "HUAWEI LUNA2000-10KW-C1 (Power Module)",
+    lunaS1: "HUAWEI LUNA2000-S1 (7kWh)",
+    smartguard1: "SmartGuard-63A-S0 (1 เฟส)",
+    smartguard3: "SmartGuard-63A-T0 (3 เฟส)",
+    backupbox1: "Backup Box-B0 (1 เฟส)",
+    backupbox3: "Backup Box-B1 (3 เฟส)",
+    optimizer: "Smart PV Optimizer SUN2000-600W-P",
+    panel1: "ตู้ไฟเพิ่ม 4 pole (1 เฟส)",
+    panel3: "ตู้ไฟเพิ่ม 3 pole (3 เฟส)",
+    mcb2: "MCB 2P (DIN RAIL)",
+    mcb3: "MCB 3P (DIN RAIL)",
+    busbar: "บัสบาร์ทองแดงแท้ + ลูกถ้วย sm-25 125A ยาว 125cm",
+  };
+  const RCBO_SIZES = [16, 20, 25, 32, 40, 50, 63, 100];
+  // เลือกขนาด RCBO จากกระแสออก × 1.25 ปัดขึ้นไปขนาดมาตรฐานถัดไป
+  function rcboAmp(outA) { const v = (+outA || 0) * 1.25; for (let i = 0; i < RCBO_SIZES.length; i++) { if (RCBO_SIZES[i] >= v) return RCBO_SIZES[i]; } return RCBO_SIZES[RCBO_SIZES.length - 1]; }
+  function rcboName(outA, phase) { return "RCBO " + rcboAmp(outA) + "A " + (phase === 3 ? "3P+N" : "2P") + " 100mA"; }
+
   const COMBINER = { 1: "M-Combiner 1P (MC-100)", 3: "M-Combiner 3P (MC-100T)" };
   const CT       = { 1: "CT 250A x1", 3: "CT 250A x3" };
   const BACKUP   = { 1: "M-Backup 1P (MU100-S)", 3: "M-Backup 3P (MU100-T)" };
@@ -88,6 +123,10 @@
       phase: String(job.phase) === "3" ? 3 : 1,
       microRatio: "2:1",
       inverterModel: "",
+      strings: 0,
+      hwBackup: "none",
+      hwOptimizer: false,
+      hwExtraPanel: false,
       batteryKwh: 0,
       backup: !!job.backup,
       roof: "เมทัลชีท",
@@ -151,10 +190,52 @@
     const selInv = b.inverterModel ? INVERTERS.find((x) => x.model === b.inverterModel) : null;
     let invCount, invItems;
     if (selInv) {
-      // String / Hybrid: จำนวนตัว = ปัดขึ้น(kW รวม ÷ kW ต่อตัว) — ไม่มี Combiner/CT/Junction/สาย AC
       invCount = selInv.kw > 0 ? Math.ceil(kw / selInv.kw) : 0;
-      invItems = [{ name: selInv.model, qty: invCount, unit: "ตัว" }];
-      if (battCount > 0) invItems.push({ name: BATTERY_MODEL, qty: battCount, unit: "SET" });
+      if (selInv.inputs > 0) {
+        // ── Huawei (string/hybrid + Combiner Box) ── คิด BOM เต็มชุดตามเฟส + String
+        const ph = selInv.phase === 3 ? 3 : 1;
+        const strPer = Math.min(Math.max(Math.round(+b.strings || selInv.inputs), 1), selInv.inputs);
+        const totalStr = invCount * strPer;
+        invItems = [];
+        invItems.push({ name: selInv.model, qty: invCount, unit: "ตัว" });
+        invItems.push({ name: ph === 3 ? HW.meter3 : HW.meter1, qty: invCount, unit: "ชุด" });
+        invItems.push({ name: HW.dongle, qty: invCount, unit: "ชุด" });
+        invItems.push({ name: HW.cabinet, qty: invCount, unit: "ตู้" });
+        // อุปกรณ์ตาม String
+        invItems.push({ name: HW.dcFuseHolder, qty: totalStr * 2, unit: "ตัว" });
+        invItems.push({ name: HW.dcFuse, qty: totalStr * 2, unit: "ตัว" });
+        invItems.push({ name: HW.dcSpd, qty: totalStr, unit: "ตัว" });
+        invItems.push({ name: HW.dcMcb, qty: totalStr, unit: "ตัว" });
+        invItems.push({ name: HW.mc4, qty: totalStr, unit: "ชุด" });
+        // อุปกรณ์ป้องกัน/ตู้ ต่อ 1 ตู้ (ต่ออินเวอร์เตอร์)
+        invItems.push({ name: ph === 3 ? HW.acSpd3 : HW.acSpd1, qty: invCount, unit: "ตัว" });
+        invItems.push({ name: rcboName(selInv.outA, ph), qty: invCount, unit: "ตัว" });
+        invItems.push({ name: HW.wireDuct, qty: invCount, unit: "เส้น" });
+        invItems.push({ name: HW.dinRail, qty: invCount, unit: "เส้น" });
+        invItems.push({ name: HW.stopper, qty: invCount * 10, unit: "ตัว" });
+        invItems.push({ name: HW.groundBar, qty: invCount, unit: "อัน" });
+        // แบต (ระบบ Hybrid) — LUNA C1 ต่อตัว + S1 ตาม kWh (≤ 3 ต่อ C1)
+        if ((+b.batteryKwh || 0) > 0) {
+          const s1 = Math.min(Math.ceil((+b.batteryKwh || 0) / 7), 3 * invCount);
+          invItems.push({ name: HW.lunaC1, qty: invCount, unit: "ตัว" });
+          invItems.push({ name: HW.lunaS1, qty: s1, unit: "ก้อน" });
+        }
+        // ระบบสำรองไฟ (เลือกอย่างใดอย่างหนึ่ง)
+        if (b.hwBackup === "smartguard") invItems.push({ name: ph === 3 ? HW.smartguard3 : HW.smartguard1, qty: invCount, unit: "ตัว" });
+        else if (b.hwBackup === "backupbox") invItems.push({ name: ph === 3 ? HW.backupbox3 : HW.backupbox1, qty: invCount, unit: "ตัว" });
+        // Optimizer (1:1 ตามจำนวนแผง)
+        if (b.hwOptimizer) invItems.push({ name: HW.optimizer, qty: panelCount, unit: "ตัว" });
+        // ตู้ไฟเพิ่ม (case by case)
+        if (b.hwExtraPanel) {
+          invItems.push({ name: ph === 3 ? HW.panel3 : HW.panel1, qty: 1, unit: "ตู้" });
+          invItems.push({ name: ph === 3 ? HW.mcb3 : HW.mcb2, qty: 2, unit: "ตัว" });
+          if (ph === 3) invItems.push({ name: HW.busbar, qty: 1, unit: "ชุด" });
+        }
+      } else {
+        // String / Hybrid ทั่วไป: จำนวนตัว = ปัดขึ้น(kW รวม ÷ kW ต่อตัว) + แบต
+        invItems = [{ name: selInv.model, qty: invCount, unit: "ตัว" }];
+        if (battCount > 0) invItems.push({ name: BATTERY_MODEL, qty: battCount, unit: "SET" });
+      }
     } else {
       // ไมโคร ATMOCE (ตามอัตราไมโคร) — ชุดเดิม
       const micro = MICRO.find((m) => m.ratio === b.microRatio) || MICRO[1];
@@ -400,7 +481,7 @@
       if (!p || !p.model) return;
       const type = p.type === "string" || p.type === "hybrid" ? p.type : "";
       if (!type) return;
-      out.push({ model: String(p.model).trim(), type: type, kw: +p.kw || 0, phase: +p.phase || 0 });
+      out.push({ model: String(p.model).trim(), type: type, kw: +p.kw || 0, phase: +p.phase || 0, inputs: +p.inputs || 0, maxPv: +p.maxPv || 0, outA: +p.outA || 0 });
     });
     INVERTERS.length = 0;
     out.forEach((x) => INVERTERS.push(x));

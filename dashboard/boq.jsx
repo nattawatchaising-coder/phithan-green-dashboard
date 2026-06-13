@@ -45,6 +45,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const result = window.BOQ.calcBOQ(b);
   const priced = window.BOQ.applyPrices(result, priceMap || {});
   const remaining = result.meta.panelCount - result.meta.rowsSum; // >0 ขาด, <0 เกิน, 0 ครบ
+  // อินเวอร์เตอร์ String/Hybrid ที่เลือก (Huawei = มี combiner box)
+  const selInv = (window.BOQ.INVERTERS || []).find((x) => x.model === b.inverterModel);
+  const isHuawei = !!(selInv && selInv.inputs > 0);
+  const maxPvTotal = selInv ? (selInv.maxPv || 0) * result.meta.invCount : 0;
+  const pvOver = isHuawei && maxPvTotal > 0 && result.meta.kw > maxPvTotal;
 
   // กันพลาด: ถ้าจำนวนแผงในแถวไม่ตรงกับจำนวนแผงรวม ให้ยืนยันก่อน
   const guardRun = (fn) => {
@@ -171,6 +176,40 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="ประเภทหลังคา"><Dropdown value={b.roof} onChange={(v) => set("roof", v)} options={opt(window.BOQ.ROOF_OPTIONS)} /></Field></div>
             </div>
           </Section>
+
+          {/* ── ระบบอินเวอร์เตอร์ Hybrid/On-grid (Huawei) ── */}
+          {isHuawei && (
+            <Section title={"ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + " (" + selInv.model + ")"} icon="bolt">
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: 12 }}>
+                <Field label="จำนวนอินเวอร์เตอร์">
+                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "flex-end", gap: 4, background: "var(--surface3)", border: "1px solid var(--border)", borderRadius: 10, padding: "9px 11px" }}>
+                    <span style={{ fontFamily: "var(--mono)", fontSize: 15, fontWeight: 700, color: "var(--primary-dark)" }}>{result.meta.invCount}</span><span style={{ fontSize: 11.5, color: "var(--text-3)" }}>ตัว</span>
+                  </div>
+                </Field>
+                <Field label={"String ต่อตัว (สูงสุด " + selInv.inputs + ")"}>
+                  <input type="number" style={numStyle} value={b.strings || selInv.inputs} min={1} max={selInv.inputs}
+                    onChange={(e) => set("strings", Math.min(Math.max(parseInt(e.target.value) || 1, 1), selInv.inputs))} />
+                </Field>
+                <Field label="ระบบสำรองไฟ">
+                  <Dropdown value={b.hwBackup || "none"} onChange={(v) => set("hwBackup", v)} options={[
+                    { value: "none", label: "ไม่ติดตั้ง" },
+                    { value: "smartguard", label: "SmartGuard" },
+                    { value: "backupbox", label: "Backup Box" },
+                  ]} />
+                </Field>
+                <Field label="Optimizer (1:1 ต่อแผง)"><Dropdown value={!!b.hwOptimizer} onChange={(v) => set("hwOptimizer", v)} options={[{ value: false, label: "ไม่ใช้" }, { value: true, label: "ใช้" }]} /></Field>
+                <Field label="ตู้ไฟเพิ่ม (case by case)"><Dropdown value={!!b.hwExtraPanel} onChange={(v) => set("hwExtraPanel", v)} options={[{ value: false, label: "ไม่มี" }, { value: true, label: "มี" }]} /></Field>
+              </div>
+              {pvOver && (
+                <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 7, padding: "9px 12px", background: "#FEF2F2", border: "1px solid #FBD3D3", borderRadius: 10, fontSize: 12.5, fontWeight: 700, color: "#B91C1C" }}>
+                  <Icon name="alert" size={15} color="#EF4444" /> กำลังแผง {result.meta.kw} kW เกิน MAX PV รวม {maxPvTotal} kW ({selInv.invCount || result.meta.invCount} ตัว × {selInv.maxPv} kW) — เพิ่มจำนวนอินเวอร์เตอร์หรือลดแผง
+                </div>
+              )}
+              <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
+                * Combiner Box + DC (Fuse/Holder/MCB/MC4) คิดตามจำนวน String · RCBO/SPD/Smart Meter/Backup เลือกตามเฟส ({selInv.phase === 3 ? "3" : "1"} เฟส) · RCBO ขนาดจากกระแสออก × 1.25
+              </div>
+            </Section>
+          )}
 
           {/* ── การจัดวางแผง ── */}
           <Section title="การจัดวางแผง (แถว)" icon="grid"

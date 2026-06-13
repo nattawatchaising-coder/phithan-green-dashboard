@@ -203,7 +203,7 @@ function App() {
     if (window.BOQ.setPanels) window.BOQ.setPanels((stock.items || []).filter((s) => s.cat === "panel" && s.name)
       .map((s) => ({ model: s.name, wp: s.wp, frame: s.frame, width: s.width })));
     if (window.BOQ.setInverters) window.BOQ.setInverters((stock.items || []).filter((s) => s.cat === "inverter" && s.name)
-      .map((s) => ({ model: s.name, type: s.invType, kw: s.invKw, phase: s.invPhase })));
+      .map((s) => ({ model: s.name, type: s.invType, kw: s.invKw, phase: s.invPhase, inputs: s.invInputs, maxPv: s.invMaxPv, outA: s.invOutA })));
   }, [stock.items]);
 
   const closeSidebar = () => setSidebarOpen(false);

@@ -602,6 +602,7 @@ function ItemModal({ initial, isNew, items, onSave, onClose }) {
                 </Field>
                 <Field label="MAX PV (kW)"><input type="number" style={inputStyle} value={f.invMaxPv != null ? f.invMaxPv : ""} onChange={(e) => set("invMaxPv", parseFloat(e.target.value) || 0)} placeholder="7.5 / 15" /></Field>
                 <Field label="String สูงสุด"><input type="number" style={inputStyle} value={f.invInputs != null ? f.invInputs : ""} onChange={(e) => set("invInputs", parseInt(e.target.value) || 0)} placeholder="1 / 2 / 3" /></Field>
+                <Field label="กระแสออก (A)"><input type="number" style={inputStyle} value={f.invOutA != null ? f.invOutA : ""} onChange={(e) => set("invOutA", parseFloat(e.target.value) || 0)} placeholder="25 / 16.9" /></Field>
               </div>
               <div style={{ marginTop: 9, fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>
                 ตั้งเป็น String/Hybrid + kW → เลือกในหน้าถอด BOQ ได้ คิดจำนวนตัว = ปัดขึ้น(kW รวม ÷ kW ต่อตัว) · MAX PV = กำลังแผงสูงสุดที่ใส่ได้ · String สูงสุด = จำนวน input ของ Combiner Box
