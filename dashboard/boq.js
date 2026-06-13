@@ -6,10 +6,13 @@
 (function () {
   // ── ตารางรุ่นแผง: Wp, ความหนาเฟรม(mm), ความกว้างแผงด้านวางราง(m) ──
   // width = ค่าคอลัมน์ L ในชีต DATA (ด้านสั้นที่เรียงชิดกันบนราง)
-  const PANELS = [
+  // สเปคเริ่มต้น (fallback) สำหรับรุ่นที่ระบบรู้จัก — ถ้าคลังยังไม่กรอกสเปคจะใช้ค่านี้
+  const DEFAULT_PANELS = [
     { model: "LONGi Hi-MO X10 650W-LR7-72HVH-650M", wp: 650, frame: 30, width: 1.134 },
     { model: "LONGi Hi-MO X10 720W-LR7-72HVH-720M", wp: 720, frame: 35, width: 1.303 },
   ];
+  // PANELS = รายการแผงที่ใช้งานจริง (สะท้อนคลังสินค้า) — setPanels() จะ rebuild อาเรย์นี้
+  const PANELS = DEFAULT_PANELS.map((p) => Object.assign({}, p));
 
   // ── ไมโครอินเวอร์เตอร์: perInverter = จำนวนแผงต่อ 1 ตัว ──
   const MICRO = [
@@ -354,17 +357,26 @@
     return { groups: groups, grandTotal: grand };
   }
 
-  // ── ลงทะเบียนสเปคแผงจากคลังสินค้า (merge ตามชื่อรุ่น) ──
-  // ต้องมี wp (วัตต์) + width (ม.) จึงนำมาคำนวณได้; frame (ความหนา mm) → ใช้เลือก clamp
+  // ── ลงทะเบียนสเปคแผงจากคลังสินค้า: rebuild ทั้งรายการให้ "ตรงกับคลัง" ──
+  // ลบจากคลัง → หายจากดรอปดาวน์; frame(ความหนา)→clamp, width(ความกว้าง)→ราง, wp→kW
+  // รุ่นที่ยังไม่กรอกสเปคในคลัง จะใช้สเปคเริ่มต้น (DEFAULT_PANELS) แทน ถ้ามี
   function setPanels(list) {
+    const out = [];
     (list || []).forEach((p) => {
       if (!p || !p.model) return;
-      const wp = +p.wp, width = +p.width;
-      if (!(wp > 0) || !(width > 0)) return;
-      const spec = { model: String(p.model).trim(), wp: wp, frame: +p.frame || 30, width: width };
-      const i = PANELS.findIndex((x) => x.model === spec.model);
-      if (i >= 0) PANELS[i] = spec; else PANELS.push(spec);
+      const model = String(p.model).trim();
+      const def = DEFAULT_PANELS.find((d) => d.model === model) || {};
+      out.push({
+        model: model,
+        wp: +p.wp > 0 ? +p.wp : (+def.wp || 0),
+        frame: +p.frame > 0 ? +p.frame : (+def.frame || 30),
+        width: +p.width > 0 ? +p.width : (+def.width || 0),
+      });
     });
+    // คลังยังไม่โหลด/ไม่มีแผง → คงค่าเริ่มต้นไว้ กันดรอปดาวน์ว่าง
+    const next = out.length ? out : DEFAULT_PANELS.map((d) => Object.assign({}, d));
+    PANELS.length = 0;
+    next.forEach((p) => PANELS.push(p));
   }
 
   window.BOQ = { PANELS, MICRO, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, DEFAULT_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, blankBOQ, calcBOQ, matKey, catalog, applyPrices, setPanels };
