@@ -78,6 +78,8 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   const inMonth = stock.moves.filter((m) => m.type === "in" && m.date.startsWith(thisMonth)).reduce((s, m) => s + m.qty, 0);
   const outMonth = stock.moves.filter((m) => m.type === "out" && m.date.startsWith(thisMonth)).reduce((s, m) => s + m.qty, 0);
 
+  // ลำดับหมวด สำหรับจัดกลุ่มเวลาแสดงผล
+  const catOrder = {}; SF.STOCK_CATS.forEach((c, i) => { catOrder[c.key] = i; });
   const filtered = items.filter((it) => {
     if (cat !== "all" && it.cat !== cat) return false;
     if (search && !((it.name + it.sku + it.loc).toLowerCase().includes(search.toLowerCase()))) return false;
@@ -85,6 +87,12 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
     if (kpiFilter === "in" && !inItemIds.has(it.id)) return false;
     if (kpiFilter === "out" && !outItemIds.has(it.id)) return false;
     return true;
+  }).sort((a, b) => {
+    // จัดกลุ่มตามหมวดก่อน แล้วเรียงตามชื่อ (ภาษาไทย) → ของชนิดเดียวกัน เช่น ท่อ/ข้อต่อ มาอยู่ติดกัน
+    const ca = catOrder[a.cat] != null ? catOrder[a.cat] : 99;
+    const cb = catOrder[b.cat] != null ? catOrder[b.cat] : 99;
+    if (ca !== cb) return ca - cb;
+    return String(a.name || "").localeCompare(String(b.name || ""), "th", { numeric: true });
   });
 
   return (
