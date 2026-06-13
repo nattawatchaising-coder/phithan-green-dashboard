@@ -40,6 +40,8 @@ function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
   const isDirty = (c) => { if (!local[c.name]) return false; const r = curOf(c.name); const l = local[c.name]; return (l.code || "") !== (r.code || "") || (+l.price || 0) !== (+r.price || 0); };
   const dirtyCount = cat.filter(isDirty).length;
   const pricedCount = cat.filter((c) => +valOf(c.name).price > 0).length;
+  const newItems = cat.filter((c) => !stockByName[c.name]);
+  const newCount = newItems.length;
 
   // บันทึก → เขียนลง "คลังสินค้า" (ต้นทางเดียว); สร้าง record ใหม่ถ้ายังไม่มี + auto-gen รหัส
   const saveAll = () => {
@@ -60,6 +62,25 @@ function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
         maxId += 1;
         stock.upsertItem({ id: "IV-" + String(maxId).padStart(2, "0"), name: c.name, sku: code, cat: catKey, unit: c.unit || "", qty: 0, min: 0, loc: "", price: +l.price || 0 });
       }
+    });
+    setLocal({});
+  };
+
+  // เพิ่มทุกรายการที่ยังไม่มีในคลัง → สร้าง record (qty 0) + รหัสอัตโนมัติตามหมวด
+  const addAllNew = () => {
+    if (!newCount) return;
+    if (!confirm("เพิ่ม " + newCount + " รายการที่ยังไม่มีในคลังสินค้า\n(จำนวน 0 · สร้างรหัสอัตโนมัติตามหมวด · ราคาที่กรอกไว้จะถูกบันทึกด้วย)")) return;
+    let maxId = 0;
+    stockItems.forEach((it) => { const n = parseInt(String(it.id || "").replace(/\D/g, ""), 10); if (!isNaN(n) && n > maxId) maxId = n; });
+    const usedCodes = stockItems.map((s) => s.sku).filter(Boolean);
+    newItems.forEach((c) => {
+      const l = local[c.name] || {};
+      const catKey = SF.BOQ_GROUP_TO_CAT[c.group] || "other";
+      let code = String(l.code || "").trim();
+      if (!code) code = SF.genMatCode(catKey, stockItems, usedCodes);
+      usedCodes.push(code);
+      maxId += 1;
+      stock.upsertItem({ id: "IV-" + String(maxId).padStart(2, "0"), name: c.name, sku: code, cat: catKey, unit: c.unit || "", qty: 0, min: 0, loc: "", price: +l.price || 0 });
     });
     setLocal({});
   };
@@ -103,7 +124,13 @@ function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
 
       {/* sticky save bar */}
       <div style={{ position: "sticky", bottom: 0, padding: "12px 16px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, alignItems: "center" }}>
-        <div style={{ flex: 1, fontSize: 11.5, color: "var(--text-3)" }}>{dirtyCount > 0 ? <span style={{ color: "#F59E0B", fontWeight: 700 }}>ยังไม่บันทึก {dirtyCount} รายการ</span> : "บันทึกครบแล้ว"}</div>
+        <div style={{ flex: 1, fontSize: 11.5, color: "var(--text-3)" }}>{newCount > 0 ? <span>มี <b style={{ color: "#92600B" }}>{newCount}</b> รายการยังไม่อยู่ในคลัง</span> : (dirtyCount > 0 ? <span style={{ color: "#F59E0B", fontWeight: 700 }}>ยังไม่บันทึก {dirtyCount} รายการ</span> : "บันทึกครบแล้ว")}</div>
+        {newCount > 0 && (
+          <button onClick={addAllNew}
+            style={{ flex: "0 0 auto", padding: "11px 18px", borderRadius: 11, border: "1px solid var(--primary)", background: "var(--surface)", color: "var(--primary-dark)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <Icon name="plus" size={14} /> เพิ่มทั้งหมดลงคลัง ({newCount})
+          </button>
+        )}
         <button onClick={saveAll} disabled={dirtyCount === 0}
           style={{ flex: "0 0 auto", padding: "11px 26px", borderRadius: 11, border: "none", background: dirtyCount ? "var(--primary)" : "var(--surface3)", color: dirtyCount ? "#fff" : "var(--text-3)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: dirtyCount ? "pointer" : "default" }}>
           บันทึกราคา{dirtyCount > 0 ? " (" + dirtyCount + ")" : ""}
