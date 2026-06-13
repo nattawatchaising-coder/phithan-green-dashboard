@@ -64,7 +64,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
   const opt = (arr) => arr.map((x) => ({ value: x, label: typeof x === "string" ? x.trim() : x }));
 
-  const GROUP_COLOR = { "PV MODULE": "#22A35B", INVERTER: "#7C5CFC", MOUNTING: "#F59E0B", CABLE: "#0EA5E9", "RACE WAY": "#64748B", GROUNDING: "#A16207", ACCESSORIES: "#EC4899" };
+  const GROUP_COLOR = { "PV MODULE": "#22A35B", INVERTER: "#7C5CFC", "COMBINER BOX": "#4F46E5", MOUNTING: "#F59E0B", CABLE: "#0EA5E9", "RACE WAY": "#64748B", GROUNDING: "#A16207", ACCESSORIES: "#EC4899" };
 
   // ── Accessories: เพิ่มของ / ดึงจากราคาวัสดุ + คลังสินค้า ──
   const stockItems = (stock && stock.items) || [];

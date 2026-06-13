@@ -432,8 +432,8 @@ function useTechStore() {
    useBrandStore
    ================================================================ */
 const BRAND_SEED = [
-  { name: "ATMOCE", battery: true  },
-  { name: "Huawei", battery: false },
+  { name: "ATMOCE", battery: true },
+  { name: "Huawei", battery: true },
 ];
 
 function syncBrandGlobals(brands) {
