@@ -7,6 +7,7 @@
   const STOCK_CATS = [
     { key: "panel",     th: "แผงโซล่าเซลล์",  color: "#3B82F6", icon: "panel" },
     { key: "inverter",  th: "อินเวอร์เตอร์",   color: "#7C5CFC", icon: "bolt" },
+    { key: "invacc",    th: "อุปกรณ์อินเวอร์เตอร์", color: "#9333EA", icon: "settings" },
     { key: "battery",   th: "แบตเตอรี่",       color: "#14B8A6", icon: "battery" },
     { key: "structure", th: "Solar Mounting",    color: "#F59E0B", icon: "box" },
     { key: "wiring",    th: "สายไฟ / ไฟฟ้า",   color: "#EF4444", icon: "flow" },
@@ -51,7 +52,7 @@
   SF.MOVES_SEED = MOVES;
 
   // ── รหัสวัสดุ (mat code) — auto-gen ตามหมวด, แก้ทับได้ ──
-  SF.MAT_PREFIX = { panel: "PNL", inverter: "INV", battery: "BAT", structure: "MT", wiring: "WIR", conduit: "CDT", grounding: "GND", accessory: "ACS", other: "GEN" };
+  SF.MAT_PREFIX = { panel: "PNL", inverter: "INV", invacc: "INVA", battery: "BAT", structure: "MT", wiring: "WIR", conduit: "CDT", grounding: "GND", accessory: "ACS", other: "GEN" };
   // กลุ่มราคา BOQ → หมวดคลังสินค้า (เวลา auto-สร้างวัสดุจากหน้าราคา)
   SF.BOQ_GROUP_TO_CAT = { "PV MODULE": "panel", INVERTER: "inverter", MOUNTING: "structure", CABLE: "wiring", "RACE WAY": "conduit", GROUNDING: "grounding", ACCESSORIES: "accessory" };
   // สร้างรหัสถัดไปของหมวด เช่น INV-0007 (กันซ้ำกับ used เพิ่มเติมได้)
