@@ -190,7 +190,9 @@
     const selInv = b.inverterModel ? INVERTERS.find((x) => x.model === b.inverterModel) : null;
     let invCount, invItems;
     if (selInv) {
-      invCount = selInv.kw > 0 ? Math.ceil(kw / selInv.kw) : 0;
+      // จำนวนตัว = ปัดขึ้น(กำลังแผงรวม ÷ MAX PV ต่อตัว) — ถ้าไม่ได้ตั้ง MAX PV ใช้ kW ต่อตัวแทน
+      const invSizeBase = selInv.maxPv > 0 ? selInv.maxPv : selInv.kw;
+      invCount = invSizeBase > 0 ? Math.ceil(kw / invSizeBase) : 0;
       if (selInv.inputs > 0) {
         // ── Huawei (string/hybrid + Combiner Box) ── คิด BOM เต็มชุดตามเฟส + String
         const ph = selInv.phase === 3 ? 3 : 1;
