@@ -201,15 +201,18 @@
         // กลุ่ม INVERTER
         invItems = [];
         invItems.push({ name: selInv.model, qty: invCount, unit: "ตัว" });
-        invItems.push({ name: ph === 3 ? HW.meter3 : HW.meter1, qty: invCount, unit: "ชุด" });
-        invItems.push({ name: HW.dongle, qty: invCount, unit: "ชุด" });
+        // ── ระดับระบบ: 1 ชุด/งาน (Smart Meter วัดที่จุดต่อกริด, Dongle 1 ตัว master ที่เหลือพ่วง RS485) ──
+        invItems.push({ name: ph === 3 ? HW.meter3 : HW.meter1, qty: 1, unit: "ชุด" });
+        invItems.push({ name: HW.dongle, qty: 1, unit: "ชุด" });
         if ((+b.batteryKwh || 0) > 0) {
-          const s1 = Math.min(Math.ceil((+b.batteryKwh || 0) / 7), 3 * invCount);
-          invItems.push({ name: HW.lunaC1, qty: invCount, unit: "ตัว" });
+          const s1 = Math.ceil((+b.batteryKwh || 0) / 7);   // แบต S1 ก้อนละ 7 kWh
+          const c1 = Math.ceil(s1 / 3);                      // Power Module 1 ตัว/แสตก (สูงสุด 3 ก้อน)
+          invItems.push({ name: HW.lunaC1, qty: c1, unit: "ตัว" });
           invItems.push({ name: HW.lunaS1, qty: s1, unit: "ก้อน" });
         }
-        if (b.hwBackup === "smartguard") invItems.push({ name: ph === 3 ? HW.smartguard3 : HW.smartguard1, qty: invCount, unit: "ตัว" });
-        else if (b.hwBackup === "backupbox") invItems.push({ name: ph === 3 ? HW.backupbox3 : HW.backupbox1, qty: invCount, unit: "ตัว" });
+        // ระบบสำรองไฟ 1 ชุด/งาน
+        if (b.hwBackup === "smartguard") invItems.push({ name: ph === 3 ? HW.smartguard3 : HW.smartguard1, qty: 1, unit: "ตัว" });
+        else if (b.hwBackup === "backupbox") invItems.push({ name: ph === 3 ? HW.backupbox3 : HW.backupbox1, qty: 1, unit: "ตัว" });
         if (b.hwOptimizer) invItems.push({ name: HW.optimizer, qty: panelCount, unit: "ตัว" });
         // กลุ่ม COMBINER BOX
         combItems = [];
