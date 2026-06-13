@@ -216,7 +216,7 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style }) {
           color: "var(--text-1)", fontFamily: "inherit", fontSize: 13.5, padding: "9px 11px", borderRadius: 10,
           outline: "none", cursor: disabled ? "default" : "pointer", textAlign: "left", opacity: disabled ? 0.55 : 1,
         }, style || {})}>
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {cur ? cur.label : (placeholder || "—")}
         </span>
         <Icon name="chevronDown" size={16} color="var(--text-3)" style={{ flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
