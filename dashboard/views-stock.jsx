@@ -586,7 +586,8 @@ function ItemModal({ initial, isNew, items, onSave, onClose }) {
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: 12 }}>
                 <Field label="ประเภท">
                   <select style={inputStyle} value={f.invType || ""} onChange={(e) => set("invType", e.target.value)}>
-                    <option value="">— ไม่ระบุ (ไมโคร/อุปกรณ์) —</option>
+                    <option value="">— ไม่ระบุ (อุปกรณ์) —</option>
+                    <option value="micro">ไมโคร (Micro)</option>
                     <option value="string">String inverter</option>
                     <option value="hybrid">Hybrid (string + แบต)</option>
                   </select>
