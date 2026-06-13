@@ -48,18 +48,22 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   // อินเวอร์เตอร์ String/Hybrid ที่เลือก (Huawei = มี combiner box)
   const selInv = (window.BOQ.INVERTERS || []).find((x) => x.model === b.inverterModel);
   const isHuawei = !!(selInv && selInv.inputs > 0);
-  // ── กรองรุ่นอินเวอร์เตอร์ตามแบรนด์ของงาน + ตัวเลือกใน BOQ ──
+  // ── กรองรุ่นอินเวอร์เตอร์ตามแบรนด์ + เฟส ของงาน ──
   const jobBrand = (job && job.brand) || "";
-  const brandInvs = (window.BOQ.INVERTERS || []).filter((x) => !jobBrand || x.model.toLowerCase().indexOf(jobBrand.toLowerCase()) >= 0);
+  const jobPhaseNum = String(job && job.phase) === "3" ? 3 : 1;
+  const brandInvs = (window.BOQ.INVERTERS || []).filter((x) =>
+    (!jobBrand || x.model.toLowerCase().indexOf(jobBrand.toLowerCase()) >= 0) &&
+    (!x.phase || x.phase === jobPhaseNum)   // เฉพาะรุ่นที่เฟสตรงกับงาน (รุ่นที่ไม่ระบุเฟส = แสดงทุกเฟส)
+  );
   const showMicro = !jobBrand || /atmoce/i.test(jobBrand);   // ไมโคร ATMOCE เป็นของแบรนด์ ATMOCE
   const invOptions = (showMicro ? [{ value: "", label: "ไมโคร ATMOCE (ตามอัตรา)" }] : [])
     .concat(brandInvs.map((x) => ({ value: x.model, label: x.model + (x.kw ? " · " + x.kw + "kW" : "") })));
-  // แบรนด์ที่ไม่มีไมโคร (เช่น Huawei) แต่ยังไม่ได้เลือกรุ่น → เลือกรุ่นแรกของแบรนด์ให้
+  // แบรนด์ที่ไม่มีไมโคร (เช่น Huawei) / เปลี่ยนเฟส แล้วรุ่นที่เลือกไม่ตรง → เลือกรุ่นแรกที่ตรงให้
   React.useEffect(() => {
     const inList = brandInvs.some((x) => x.model === b.inverterModel);
     if (!showMicro && !inList && brandInvs.length) set("inverterModel", brandInvs[0].model);
     else if (showMicro && b.inverterModel && !inList) set("inverterModel", "");
-  }, [jobBrand]); // eslint-disable-line
+  }, [jobBrand, jobPhaseNum]); // eslint-disable-line
   const maxPvTotal = selInv ? (selInv.maxPv || 0) * result.meta.invCount : 0;
   const pvOver = isHuawei && maxPvTotal > 0 && result.meta.kw > maxPvTotal;
 
