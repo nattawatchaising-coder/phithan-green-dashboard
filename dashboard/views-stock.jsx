@@ -600,9 +600,47 @@ function ItemModal({ initial, isNew, items, onSave, onClose }) {
                     <option value="3">3 เฟส</option>
                   </select>
                 </Field>
+                <Field label="MAX PV (kW)"><input type="number" style={inputStyle} value={f.invMaxPv != null ? f.invMaxPv : ""} onChange={(e) => set("invMaxPv", parseFloat(e.target.value) || 0)} placeholder="7.5 / 15" /></Field>
+                <Field label="String สูงสุด"><input type="number" style={inputStyle} value={f.invInputs != null ? f.invInputs : ""} onChange={(e) => set("invInputs", parseInt(e.target.value) || 0)} placeholder="1 / 2 / 3" /></Field>
               </div>
               <div style={{ marginTop: 9, fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>
-                ตั้งเป็น String/Hybrid + kW → เลือกในหน้าถอด BOQ ได้ คิดจำนวนตัว = ปัดขึ้น(kW รวม ÷ kW ต่อตัว) และไม่รวมชุด Combiner/CT/Junction ของไมโคร ATMOCE
+                ตั้งเป็น String/Hybrid + kW → เลือกในหน้าถอด BOQ ได้ คิดจำนวนตัว = ปัดขึ้น(kW รวม ÷ kW ต่อตัว) · MAX PV = กำลังแผงสูงสุดที่ใส่ได้ · String สูงสุด = จำนวน input ของ Combiner Box
+              </div>
+            </div>
+          )}
+          {f.cat === "electrical" && (
+            <div style={{ gridColumn: "1 / -1", marginTop: 2, padding: 14, background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 10 }}>
+                <Icon name="bolt" size={14} color="#4F46E5" /> สเปคอุปกรณ์ไฟฟ้า (เบรกเกอร์ / ป้องกัน)
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: 12 }}>
+                <Field label="ประเภท">
+                  <select style={inputStyle} value={f.elecType || ""} onChange={(e) => set("elecType", e.target.value)}>
+                    <option value="">— ไม่ระบุ —</option>
+                    <option value="RCBO">RCBO</option>
+                    <option value="MCB">MCB</option>
+                    <option value="MCCB">MCCB</option>
+                    <option value="Fuse">Fuse</option>
+                    <option value="Fuse Holder">Fuse Holder</option>
+                    <option value="SPD">SPD</option>
+                    <option value="Busbar">บัสบาร์</option>
+                    <option value="Other">อื่นๆ</option>
+                  </select>
+                </Field>
+                <Field label="ขั้ว (Pole)">
+                  <select style={inputStyle} value={f.poles || ""} onChange={(e) => set("poles", e.target.value)}>
+                    <option value="">— ไม่ระบุ —</option>
+                    <option value="1P">1P</option>
+                    <option value="2P">2P</option>
+                    <option value="3P">3P</option>
+                    <option value="3P+N">3P+N</option>
+                    <option value="4P">4P</option>
+                  </select>
+                </Field>
+                <Field label="พิกัดกระแส (A)"><input type="number" style={inputStyle} value={f.amp != null ? f.amp : ""} onChange={(e) => set("amp", parseFloat(e.target.value) || 0)} placeholder="16 / 32 / 63" /></Field>
+              </div>
+              <div style={{ marginTop: 9, fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>
+                ระบุประเภท + ขั้ว + แอมป์ → ใช้ช่วยเลือกอุปกรณ์ตอนถอด BOQ (เช่น RCBO เลือกขนาดจาก Max output current × 1.25)
               </div>
             </div>
           )}
