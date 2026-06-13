@@ -216,7 +216,7 @@
         if (b.hwOptimizer) invItems.push({ name: HW.optimizer, qty: panelCount, unit: "ตัว" });
         // กลุ่ม COMBINER BOX
         combItems = [];
-        combItems.push({ name: HW.cabinet, qty: invCount, unit: "ตู้" });
+        combItems.push({ name: HW.cabinet, qty: 1, unit: "ตู้" });
         combItems.push({ name: HW.dcFuseHolder, qty: totalStr * 2, unit: "ตัว" });
         combItems.push({ name: HW.dcFuse, qty: totalStr * 2, unit: "ตัว" });
         combItems.push({ name: HW.dcSpd, qty: totalStr, unit: "ตัว" });
@@ -227,7 +227,7 @@
         combItems.push({ name: HW.wireDuct, qty: invCount, unit: "เส้น" });
         combItems.push({ name: HW.dinRail, qty: invCount, unit: "เส้น" });
         combItems.push({ name: HW.stopper, qty: invCount * 10, unit: "ตัว" });
-        combItems.push({ name: HW.groundBar, qty: invCount, unit: "อัน" });
+        combItems.push({ name: HW.groundBar, qty: 1, unit: "อัน" });
         // ตู้ไฟเพิ่ม (case by case)
         if (b.hwExtraPanel) {
           combItems.push({ name: ph === 3 ? HW.panel3 : HW.panel1, qty: 1, unit: "ตู้" });
