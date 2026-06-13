@@ -100,15 +100,18 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   }, [priceMap, stockItems.length]);
   // จัดวัสดุเป็นหมวดสำหรับเลือกใน Accessories
   const accCat = React.useMemo(() => {
-    const TH = { "PV MODULE": "แผง", INVERTER: "อินเวอร์เตอร์", MOUNTING: "อุปกรณ์ mounting", CABLE: "สายไฟ", "RACE WAY": "ท่อร้อยสาย", GROUNDING: "กราวด์", ACCESSORIES: "Accessories" };
+    const SF = window.SF;
+    const g2cat = SF.BOQ_GROUP_TO_CAT || {};
+    // หมวด BOQ → key คลัง → ชื่อไทยของหมวดคลัง (ใช้ taxonomy เดียวกับคลังสินค้า ครบทุกหมวด)
+    const catTh = (key) => (SF.STOCK_CAT_BY[key] ? SF.STOCK_CAT_BY[key].th : "อื่นๆ");
     const cat = window.BOQ.catalog() || [];
     const catKeys = new Set(cat.map((c) => c.name));
     const byCat = {};
     const add = (c, n) => { if (!n) return; (byCat[c] = byCat[c] || new Set()).add(n); };
-    cat.forEach((c) => add(TH[c.group] || c.group, c.name));
-    Object.keys(priceMap || {}).forEach((n) => { if (!catKeys.has(n)) add(TH[priceMap[n].group || "ACCESSORIES"] || "Accessories", n); });
-    stockItems.forEach((s) => add("คลังสินค้า", s.name));
-    const order = ["Accessories", "คลังสินค้า", "อุปกรณ์ mounting", "สายไฟ", "ท่อร้อยสาย", "กราวด์", "แผง", "อินเวอร์เตอร์"];
+    cat.forEach((c) => add(catTh(g2cat[c.group] || "accessory"), c.name));
+    Object.keys(priceMap || {}).forEach((n) => { if (!catKeys.has(n)) add(catTh(g2cat[priceMap[n].group] || "accessory"), n); });
+    stockItems.forEach((s) => add(catTh(s.cat), s.name));
+    const order = (SF.STOCK_CATS || []).map((c) => c.th);
     const cats = Object.keys(byCat).sort((a, z) => { const ia = order.indexOf(a), iz = order.indexOf(z); return (ia < 0 ? 99 : ia) - (iz < 0 ? 99 : iz); });
     const map = {}; cats.forEach((c) => { map[c] = [...byCat[c]].sort(); });
     return { cats, map };
