@@ -197,11 +197,13 @@ function App() {
     return m;
   }, [stock.items, priceStore.priceMap]);
 
-  // ลงทะเบียนสเปคแผงจากคลังสินค้า → ให้ตัวคำนวณ BOQ ใช้ความหนาเฟรม/ความกว้าง
+  // ลงทะเบียนสเปคแผง + อินเวอร์เตอร์จากคลังสินค้า → ให้ตัวคำนวณ BOQ ใช้
   React.useEffect(() => {
-    if (!window.BOQ || !window.BOQ.setPanels) return;
-    window.BOQ.setPanels((stock.items || []).filter((s) => s.cat === "panel" && s.name)
+    if (!window.BOQ) return;
+    if (window.BOQ.setPanels) window.BOQ.setPanels((stock.items || []).filter((s) => s.cat === "panel" && s.name)
       .map((s) => ({ model: s.name, wp: s.wp, frame: s.frame, width: s.width })));
+    if (window.BOQ.setInverters) window.BOQ.setInverters((stock.items || []).filter((s) => s.cat === "inverter" && s.name)
+      .map((s) => ({ model: s.name, type: s.invType, kw: s.invKw, phase: s.invPhase })));
   }, [stock.items]);
 
   const closeSidebar = () => setSidebarOpen(false);

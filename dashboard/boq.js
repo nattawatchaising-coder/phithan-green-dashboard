@@ -19,6 +19,8 @@
     { ratio: "1:1", model: "ATMOCE Micro-inverter 500Watt 1:1", perInverter: 1 },
     { ratio: "2:1", model: "ATMOCE Micro-inverter 1250Watt 2:1 ", perInverter: 2 },
   ];
+  // อินเวอร์เตอร์ String/Hybrid (ตั้งสเปคจากคลัง) — setInverters() จะ rebuild อาเรย์นี้
+  const INVERTERS = [];
 
   const COMBINER = { 1: "M-Combiner 1P (MC-100)", 3: "M-Combiner 3P (MC-100T)" };
   const CT       = { 1: "CT 250A x1", 3: "CT 250A x3" };
@@ -85,6 +87,7 @@
       panelModel: PANELS[0].model,
       phase: String(job.phase) === "3" ? 3 : 1,
       microRatio: "2:1",
+      inverterModel: "",
       batteryKwh: 0,
       backup: !!job.backup,
       roof: "เมทัลชีท",
@@ -144,9 +147,29 @@
     const groundlug = pct(earthlugSum, sp.ground);
 
     // ── INVERTER ──
-    const micro = MICRO.find((m) => m.ratio === b.microRatio) || MICRO[1];
-    const invCount = micro.perInverter ? panelCount / micro.perInverter : panelCount;
     const battCount = Math.round((+b.batteryKwh || 0) / BATTERY_UNIT_KWH);
+    const selInv = b.inverterModel ? INVERTERS.find((x) => x.model === b.inverterModel) : null;
+    let invCount, invItems;
+    if (selInv) {
+      // String / Hybrid: จำนวนตัว = ปัดขึ้น(kW รวม ÷ kW ต่อตัว) — ไม่มี Combiner/CT/Junction/สาย AC
+      invCount = selInv.kw > 0 ? Math.ceil(kw / selInv.kw) : 0;
+      invItems = [{ name: selInv.model, qty: invCount, unit: "ตัว" }];
+      if (battCount > 0) invItems.push({ name: BATTERY_MODEL, qty: battCount, unit: "SET" });
+    } else {
+      // ไมโคร ATMOCE (ตามอัตราไมโคร) — ชุดเดิม
+      const micro = MICRO.find((m) => m.ratio === b.microRatio) || MICRO[1];
+      invCount = micro.perInverter ? panelCount / micro.perInverter : panelCount;
+      invItems = [
+        { name: micro.model, qty: invCount, unit: "LOT" },
+        { name: COMBINER[phase], qty: 1, unit: "SET" },
+        { name: CT[phase], qty: 1, unit: "SET" },
+      ];
+      if (b.backup) invItems.push({ name: BACKUP[phase], qty: 1, unit: "SET" });
+      if (battCount > 0) invItems.push({ name: BATTERY_MODEL, qty: battCount, unit: "SET" });
+      invItems.push({ name: JUNCTION[phase], qty: 1, unit: "SET" });
+      invItems.push({ name: "1.3 m, Three-terminal AC Cable (MW-025013-A)", qty: invCount, unit: "SET" });
+      invItems.push({ name: "2 m, Two-terminal AC Cable (MW-025020-B0)", qty: Math.max(invCount - 3, 0), unit: "SET" });
+    }
 
     // ── CABLE: รวมตามชนิดสาย ──
     const cableAgg = {};
@@ -163,17 +186,7 @@
       { name: panel.model, qty: panelCount, unit: "PANEL" },
     ] });
     // INVERTER
-    const inv = [
-      { name: micro.model, qty: invCount, unit: "LOT" },
-      { name: COMBINER[phase], qty: 1, unit: "SET" },
-      { name: CT[phase], qty: 1, unit: "SET" },
-    ];
-    if (b.backup) inv.push({ name: BACKUP[phase], qty: 1, unit: "SET" });
-    if (battCount > 0) inv.push({ name: BATTERY_MODEL, qty: battCount, unit: "SET" });
-    inv.push({ name: JUNCTION[phase], qty: 1, unit: "SET" });
-    inv.push({ name: "1.3 m, Three-terminal AC Cable (MW-025013-A)", qty: invCount, unit: "SET" });
-    inv.push({ name: "2 m, Two-terminal AC Cable (MW-025020-B0)", qty: Math.max(invCount - 3, 0), unit: "SET" });
-    groups.push({ group: "INVERTER", items: inv });
+    groups.push({ group: "INVERTER", items: invItems });
     // MOUNTING
     const roofHook = (ROOF_HOOKS.find((r) => r.roof === b.roof) || ROOF_HOOKS[0]).model;
     groups.push({ group: "MOUNTING", items: [
@@ -379,5 +392,19 @@
     next.forEach((p) => PANELS.push(p));
   }
 
-  window.BOQ = { PANELS, MICRO, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, DEFAULT_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, blankBOQ, calcBOQ, matKey, catalog, applyPrices, setPanels };
+  // ── ทะเบียนอินเวอร์เตอร์ String/Hybrid จากคลังสินค้า (ไมโคร ATMOCE เป็นค่าเริ่มต้นแยก) ──
+  // เฉพาะรายการที่ตั้ง type = string/hybrid + kW ต่อตัว เท่านั้นที่นำมาเลือกใน BOQ
+  function setInverters(list) {
+    const out = [];
+    (list || []).forEach((p) => {
+      if (!p || !p.model) return;
+      const type = p.type === "string" || p.type === "hybrid" ? p.type : "";
+      if (!type) return;
+      out.push({ model: String(p.model).trim(), type: type, kw: +p.kw || 0, phase: +p.phase || 0 });
+    });
+    INVERTERS.length = 0;
+    out.forEach((x) => INVERTERS.push(x));
+  }
+
+  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, DEFAULT_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, blankBOQ, calcBOQ, matKey, catalog, applyPrices, setPanels, setInverters };
 })();

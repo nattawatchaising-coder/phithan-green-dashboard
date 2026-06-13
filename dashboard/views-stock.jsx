@@ -578,6 +578,33 @@ function ItemModal({ initial, isNew, items, onSave, onClose }) {
               </div>
             </div>
           )}
+          {f.cat === "inverter" && (
+            <div style={{ gridColumn: "1 / -1", marginTop: 2, padding: 14, background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 10 }}>
+                <Icon name="bolt" size={14} color="var(--primary-dark)" /> สเปคอินเวอร์เตอร์ (ใช้ช่วยถอด BOQ)
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: 12 }}>
+                <Field label="ประเภท">
+                  <select style={inputStyle} value={f.invType || ""} onChange={(e) => set("invType", e.target.value)}>
+                    <option value="">— ไม่ระบุ (ไมโคร/อุปกรณ์) —</option>
+                    <option value="string">String inverter</option>
+                    <option value="hybrid">Hybrid (string + แบต)</option>
+                  </select>
+                </Field>
+                <Field label="kW ต่อตัว"><input type="number" style={inputStyle} value={f.invKw != null ? f.invKw : ""} onChange={(e) => set("invKw", parseFloat(e.target.value) || 0)} placeholder="5 / 10" /></Field>
+                <Field label="เฟส">
+                  <select style={inputStyle} value={f.invPhase != null ? f.invPhase : ""} onChange={(e) => set("invPhase", e.target.value === "" ? "" : (parseInt(e.target.value) || 0))}>
+                    <option value="">ไม่ระบุ</option>
+                    <option value="1">1 เฟส</option>
+                    <option value="3">3 เฟส</option>
+                  </select>
+                </Field>
+              </div>
+              <div style={{ marginTop: 9, fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>
+                ตั้งเป็น String/Hybrid + kW → เลือกในหน้าถอด BOQ ได้ คิดจำนวนตัว = ปัดขึ้น(kW รวม ÷ kW ต่อตัว) และไม่รวมชุด Combiner/CT/Junction ของไมโคร ATMOCE
+              </div>
+            </div>
+          )}
         </div>
         <div style={{ padding: "14px 22px", paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10, flexShrink: 0 }}>
           <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 18px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
