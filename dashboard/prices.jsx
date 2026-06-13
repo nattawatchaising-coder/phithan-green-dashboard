@@ -7,7 +7,7 @@
 const PRICE_GROUP_TH = { all: "ทั้งหมด", "PV MODULE": "แผง", INVERTER: "อินเวอร์เตอร์", MOUNTING: "อุปกรณ์ mounting", CABLE: "สายไฟ", "RACE WAY": "ท่อร้อยสาย", GROUNDING: "กราวด์", ACCESSORIES: "Accessories" };
 const PRICE_GROUP_COLOR = { "PV MODULE": "#22A35B", INVERTER: "#7C5CFC", MOUNTING: "#F59E0B", CABLE: "#0EA5E9", "RACE WAY": "#64748B", GROUNDING: "#A16207", ACCESSORIES: "#EC4899" };
 
-const CAT_TO_GROUP = { panel: "PV MODULE", inverter: "INVERTER", battery: "INVERTER", structure: "MOUNTING", wiring: "CABLE", accessory: "ACCESSORIES", other: "ACCESSORIES" };
+const CAT_TO_GROUP = { panel: "PV MODULE", inverter: "INVERTER", battery: "INVERTER", structure: "MOUNTING", wiring: "CABLE", conduit: "RACE WAY", grounding: "GROUNDING", accessory: "ACCESSORIES", other: "ACCESSORIES" };
 
 function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
   const SF = window.SF;

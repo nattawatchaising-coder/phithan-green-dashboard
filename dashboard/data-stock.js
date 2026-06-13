@@ -10,6 +10,8 @@
     { key: "battery",   th: "แบตเตอรี่",       color: "#14B8A6", icon: "battery" },
     { key: "structure", th: "Solar Mounting",    color: "#F59E0B", icon: "box" },
     { key: "wiring",    th: "สายไฟ / ไฟฟ้า",   color: "#EF4444", icon: "flow" },
+    { key: "conduit",   th: "ท่อร้อยสาย",       color: "#0EA5E9", icon: "menu" },
+    { key: "grounding", th: "กราวด์ / กันดูด",  color: "#A16207", icon: "shield" },
     { key: "accessory", th: "Accessories",      color: "#EC4899", icon: "box" },
     { key: "other",     th: "อื่นๆ",            color: "#84CC16", icon: "box" },
   ];
@@ -49,9 +51,9 @@
   SF.MOVES_SEED = MOVES;
 
   // ── รหัสวัสดุ (mat code) — auto-gen ตามหมวด, แก้ทับได้ ──
-  SF.MAT_PREFIX = { panel: "PNL", inverter: "INV", battery: "BAT", structure: "MT", wiring: "WIR", accessory: "ACS", other: "GEN" };
+  SF.MAT_PREFIX = { panel: "PNL", inverter: "INV", battery: "BAT", structure: "MT", wiring: "WIR", conduit: "CDT", grounding: "GND", accessory: "ACS", other: "GEN" };
   // กลุ่มราคา BOQ → หมวดคลังสินค้า (เวลา auto-สร้างวัสดุจากหน้าราคา)
-  SF.BOQ_GROUP_TO_CAT = { "PV MODULE": "panel", INVERTER: "inverter", MOUNTING: "structure", CABLE: "wiring", "RACE WAY": "wiring", GROUNDING: "wiring", ACCESSORIES: "accessory" };
+  SF.BOQ_GROUP_TO_CAT = { "PV MODULE": "panel", INVERTER: "inverter", MOUNTING: "structure", CABLE: "wiring", "RACE WAY": "conduit", GROUNDING: "grounding", ACCESSORIES: "accessory" };
   // สร้างรหัสถัดไปของหมวด เช่น INV-0007 (กันซ้ำกับ used เพิ่มเติมได้)
   SF.genMatCode = function (cat, items, used) {
     const pre = SF.MAT_PREFIX[cat] || "GEN";
