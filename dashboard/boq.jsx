@@ -9,9 +9,16 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [b, setB] = React.useState(() => {
     const base = job && job.boq ? Object.assign(window.BOQ.blankBOQ(job), job.boq) : window.BOQ.blankBOQ(job);
-    // งานที่ไม่มีแบต/Backup ในฐานข้อมูล → ไม่นำมาคำนวณ
-    if (!job || !job.battery) base.batteryKwh = 0;
-    if (!job || !job.backup) base.backup = false;
+    // สเปคหลักดึงจากข้อมูลงานเสมอ (ฐานข้อมูลเป็นตัวตั้ง) — แบต/Backup/ออฟติไมเซอร์/จำนวนแผง
+    if (job) {
+      if (job.panels != null && job.panels !== "") base.panels = job.panels;
+      base.batteryKwh = job.battery ? (parseFloat(job.batSize) || 0) : 0;
+      base.backup = !!job.backup;
+      base.hwOptimizer = !!(job.connect && job.connect !== "-" && job.connect !== "ไม่มี");
+      // งานมี Backup → ตั้งระบบสำรองไฟของ Huawei ให้ (เริ่มที่ Backup Box เปลี่ยนเป็น SmartGuard ได้)
+      if (job.backup && (!base.hwBackup || base.hwBackup === "none")) base.hwBackup = "backupbox";
+      else if (!job.backup) base.hwBackup = "none";
+    }
     return base;
   });
   const hasBattery = !!(job && job.battery);
