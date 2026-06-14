@@ -115,25 +115,76 @@ function DispatchView({ appts, jobs, techs, store, onMenuOpen, onOpenJob }) {
     return cols;
   }, [dayAppts, techs]);
 
-  const summary = APPT_STATUS.map((s) => ({ s, n: dayAppts.filter((a) => a.status === s.key).length })).filter((x) => x.n > 0);
+  const [mode, setMode] = React.useState("day"); // day = บอร์ดรายวัน, all = ทุกนัด
+  const allConflicts = React.useMemo(() => apptConflicts(appts || []), [appts]);
+  const techById = React.useMemo(() => Object.fromEntries((techs || []).map((t) => [t.id, t])), [techs]);
+  const scopeAppts = mode === "day" ? dayAppts : (appts || []);
+  const summary = APPT_STATUS.map((s) => ({ s, n: scopeAppts.filter((a) => a.status === s.key).length })).filter((x) => x.n > 0);
+  const conflictScope = mode === "day" ? conflicts : allConflicts;
+  // โหมด "ทั้งหมด" — จัดกลุ่มทุกนัดตามวันที่ เรียงเวลา
+  const allGroups = React.useMemo(() => {
+    const m = {};
+    (appts || []).forEach((a) => { const k = a.start ? _ymdLocal(a.start) : "ไม่ระบุวัน"; (m[k] = m[k] || []).push(a); });
+    return Object.keys(m).sort().map((k) => ({ day: k, items: m[k].slice().sort((x, y) => new Date(x.start || 0) - new Date(y.start || 0)) }));
+  }, [appts]);
 
   return (
     <React.Fragment>
       <SchedHeader icon="calendar" title="จัดตารางสำรวจ" onMenuOpen={onMenuOpen}
-        sub={<span>{dayAppts.length} นัด · {conflicts.size > 0 ? <span style={{ color: "#EF4444", fontWeight: 700 }}>⚠ ซ้อนทับ {conflicts.size / 2 | 0} คู่</span> : "ไม่มีเวลาซ้อนทับ"}</span>}
-        right={<button onClick={() => setEdit(Object.assign(blankAppt(), { start: _composeISO(day, "09:00"), end: _composeISO(day, "11:00") }))} className="btn-add"><Icon name="plus" size={17} color="#fff" sw={2.4} /><span>นัดสำรวจ</span></button>} />
+        sub={<span>{scopeAppts.length} นัด{mode === "day" ? " (วันนี้)" : " (ทั้งหมด)"} · {conflictScope.size > 0 ? <span style={{ color: "#EF4444", fontWeight: 700 }}>⚠ ซ้อนทับ {conflictScope.size / 2 | 0} คู่</span> : "ไม่มีเวลาซ้อนทับ"}</span>}
+        right={<button onClick={() => setEdit(Object.assign(blankAppt(), { start: _composeISO(mode === "day" ? day : _ymdLocal(new Date()), "09:00"), end: _composeISO(mode === "day" ? day : _ymdLocal(new Date()), "11:00") }))} className="btn-add"><Icon name="plus" size={17} color="#fff" sw={2.4} /><span>นัดสำรวจ</span></button>} />
       <div className="app-content">
-        {/* ตัวเลือกวัน */}
+        {/* สลับมุมมอง รายวัน / ทั้งหมด */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-          <button onClick={() => setDay((d) => _addDays(d, -1))} style={navBtn}><Icon name="chevronRight" size={16} color="var(--text-2)" style={{ transform: "scaleX(-1)" }} /></button>
-          <button onClick={() => setDay(_ymdLocal(new Date()))} style={{ ...navBtn, width: "auto", padding: "0 14px", fontWeight: 700, fontSize: 13 }}>วันนี้</button>
-          <button onClick={() => setDay((d) => _addDays(d, 1))} style={navBtn}><Icon name="chevronRight" size={16} color="var(--text-2)" /></button>
-          <span style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)", marginLeft: 4 }}>{thDate(day, true)}</span>
+          <Segmented value={mode} onChange={setMode} options={[{ value: "day", label: "รายวัน", icon: "calendar" }, { value: "all", label: "ทั้งหมด", icon: "list" }]} />
+          {mode === "day" && <React.Fragment>
+            <button onClick={() => setDay((d) => _addDays(d, -1))} style={navBtn}><Icon name="chevronRight" size={16} color="var(--text-2)" style={{ transform: "scaleX(-1)" }} /></button>
+            <button onClick={() => setDay(_ymdLocal(new Date()))} style={{ ...navBtn, width: "auto", padding: "0 14px", fontWeight: 700, fontSize: 13 }}>วันนี้</button>
+            <button onClick={() => setDay((d) => _addDays(d, 1))} style={navBtn}><Icon name="chevronRight" size={16} color="var(--text-2)" /></button>
+            <span style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)", marginLeft: 4 }}>{thDate(day, true)}</span>
+          </React.Fragment>}
           <span style={{ flex: 1 }} />
           {summary.map(({ s, n }) => <span key={s.key} style={{ fontSize: 11.5, fontWeight: 700, color: s.color, background: s.color + "16", padding: "4px 10px", borderRadius: 99 }}>{s.th} {n}</span>)}
         </div>
 
-        {dayAppts.length === 0 ? (
+        {mode === "all" ? (
+          allGroups.length === 0 ? (
+            <div style={{ padding: 48, textAlign: "center", color: "var(--text-3)", fontSize: 14, background: "var(--surface)", border: "1px dashed var(--border-strong)", borderRadius: 16 }}>
+              ยังไม่มีนัดสำรวจในระบบ · กด “นัดสำรวจ” เพื่อจ่ายงานให้วิศวกร
+            </div>
+          ) : allGroups.map((g) => (
+            <div key={g.day} style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 9 }}>{g.day === "ไม่ระบุวัน" ? g.day : thDate(g.day, true)} ({g.items.length})</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {g.items.map((a) => {
+                  const stt = APPT_STATUS_BY[a.status] || APPT_STATUS_BY.scheduled;
+                  const t = techById[a.engineerId];
+                  const clash = allConflicts.has(a.id);
+                  return (
+                    <button key={a.id} onClick={() => setEdit(Object.assign({}, a))}
+                      style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%", padding: 13, borderRadius: 13,
+                        background: "var(--surface)", border: "1px solid " + (clash ? "#EF4444" : "var(--border)"), boxShadow: clash ? "0 0 0 3px #EF444418" : "var(--shadow-sm)", display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                        <span style={{ fontFamily: "var(--mono)", fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{_hm(a.start)}–{_hm(a.end)}</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: stt.color, background: stt.color + "16", padding: "2px 8px", borderRadius: 99 }}>{stt.th}</span>
+                          <Icon name="chevronRight" size={14} color="var(--text-3)" />
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{a.jobName || "—"}</div>
+                      <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{a.jobCode}{a.province ? " · " + a.province : ""}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-2)", marginTop: 1 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: 99, background: (t && t.color) || "#94A3B8", flexShrink: 0 }} />
+                        {t ? t.name : "ยังไม่มอบหมาย"}
+                      </div>
+                      {clash && <div style={{ fontSize: 10.5, fontWeight: 700, color: "#EF4444" }}>⚠ เวลาซ้อนทับกับนัดอื่นของวิศวกรคนนี้</div>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))
+        ) : dayAppts.length === 0 ? (
           <div style={{ padding: 48, textAlign: "center", color: "var(--text-3)", fontSize: 14, background: "var(--surface)", border: "1px dashed var(--border-strong)", borderRadius: 16 }}>
             ยังไม่มีนัดสำรวจในวันนี้ · กด “นัดสำรวจ” เพื่อจ่ายงานให้วิศวกร
           </div>
