@@ -378,7 +378,12 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                 <InfoRow label="เบอร์โทร">
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="phone" size={13} color="var(--text-3)" />{job.phone}</span>
                 </InfoRow>
-                <InfoRow label="วันนัดติดตั้ง">{thDate(job.deadline, true)}</InfoRow>
+                <InfoRow label="วันนัดติดตั้ง">{(() => {
+                  // วันนัดติดตั้ง = วัน "เริ่ม" ของขั้นติดตั้ง (ไม่ใช่วันเสร็จ/กำหนดส่งงานรวม)
+                  const v = job.stageDates && job.stageDates.install;
+                  const d = v ? (typeof v === "object" ? (v.start || v.end) : v) : job.deadline;
+                  return thDate(d, true);
+                })()}</InfoRow>
                 <div style={{ gridColumn: "1 / -1" }}>
                   <InfoRow label="ที่อยู่ / พิกัด">
                     {job.address}, {job.province}{"  "}
