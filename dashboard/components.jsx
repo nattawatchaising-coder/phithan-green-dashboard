@@ -178,9 +178,11 @@ function Segmented({ options, value, onChange }) {
 /* ── Dropdown — ตัวเลือกแบบกำหนดสไตล์เอง (แทน native select)
    ใช้ fixed-position สำหรับเมนู เพื่อไม่ให้ถูก modal ที่เลื่อนได้ตัดขอบ
    options: [{ value, label }] ── */
-function Dropdown({ value, onChange, options, disabled, placeholder, style }) {
+function Dropdown({ value, onChange, options, disabled, placeholder, style, addable, onAdd }) {
   const [open, setOpen] = React.useState(false);
   const [rect, setRect] = React.useState(null);
+  const [adding, setAdding] = React.useState(false);
+  const [addText, setAddText] = React.useState("");
   const btnRef = React.useRef(null);
   const panelRef = React.useRef(null);
   const cur = (options || []).find((o) => String(o.value) === String(value));
@@ -190,6 +192,13 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style }) {
     const r = btnRef.current.getBoundingClientRect();
     setRect({ top: r.bottom + 6, left: r.left, width: r.width });
     setOpen(true);
+  };
+  const submitAdd = () => {
+    const v = (addText || "").trim();
+    if (!v) { setAdding(false); return; }
+    if (onAdd) onAdd(v);
+    onChange(v);
+    setAddText(""); setAdding(false); setOpen(false);
   };
 
   React.useEffect(() => {
@@ -206,6 +215,8 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style }) {
     }, 250);
     return () => { clearTimeout(t); window.removeEventListener("scroll", close, true); window.removeEventListener("resize", close); };
   }, [open]);
+
+  React.useEffect(() => { if (!open) { setAdding(false); setAddText(""); } }, [open]);
 
   return (
     <React.Fragment>
@@ -239,6 +250,21 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style }) {
                 </button>
               );
             })}
+            {addable && (adding ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 7px", marginTop: 2, borderTop: "1px solid var(--border)" }}>
+                <input autoFocus value={addText} placeholder="ชื่อตัวเลือกใหม่"
+                  onChange={(e) => setAddText(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); submitAdd(); } else if (e.key === "Escape") { setAdding(false); setAddText(""); } }}
+                  style={{ flex: 1, minWidth: 0, background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13, padding: "8px 9px", borderRadius: 8, outline: "none" }} />
+                <button type="button" onClick={submitAdd} title="เพิ่ม" style={{ flexShrink: 0, display: "grid", placeItems: "center", width: 32, height: 32, background: "var(--primary)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}><Icon name="check" size={15} color="#fff" sw={2.6} /></button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setAdding(true)}
+                style={{ width: "100%", display: "flex", alignItems: "center", gap: 7, padding: "10px 11px", borderRadius: 9, border: "none", marginTop: 2, borderTop: "1px solid var(--border)",
+                  background: "transparent", cursor: "pointer", fontFamily: "inherit", textAlign: "left", fontSize: 13, fontWeight: 700, color: "var(--primary-dark)" }}>
+                <Icon name="plus" size={14} color="var(--primary-dark)" /> เพิ่มตัวเลือกใหม่
+              </button>
+            ))}
           </div>
         </React.Fragment>
       )}

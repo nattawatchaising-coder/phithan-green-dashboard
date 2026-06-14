@@ -36,6 +36,19 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const addCab = () => setB((p) => Object.assign({}, p, { cables: p.cables.concat([{ name: "", type: "", length: "" }]) }));
   const delCab = (i) => setB((p) => Object.assign({}, p, { cables: p.cables.filter((_, j) => j !== i) }));
 
+  // ชื่อจุดเดินสาย: ตัวเลือกตั้งต้น + ที่ผู้ใช้เพิ่มเอง (เก็บใน localStorage ใช้ซ้ำได้)
+  const CABLE_PT_KEY = "boq_cable_points_v1";
+  const [customPts, setCustomPts] = React.useState(() => { try { return JSON.parse(localStorage.getItem(CABLE_PT_KEY) || "[]"); } catch (e) { return []; } });
+  const addCablePt = (name) => {
+    const v = (name || "").trim(); if (!v) return;
+    setCustomPts((p) => { if (p.indexOf(v) >= 0 || (window.BOQ.CABLE_POINTS || []).indexOf(v) >= 0) return p; const next = p.concat([v]); try { localStorage.setItem(CABLE_PT_KEY, JSON.stringify(next)); } catch (e) {} return next; });
+  };
+  const cablePtOptions = React.useMemo(() => {
+    const used = (b.cables || []).map((c) => c.name).filter(Boolean);
+    const all = [...new Set((window.BOQ.CABLE_POINTS || []).concat(customPts).concat(used))];
+    return all.map((n) => ({ value: n, label: n }));
+  }, [customPts, b.cables]);
+
   // ── ท่อร้อยสาย (RACE WAY) ──
   const cond = b.conduit || { imc: [], upvc: [], pullbox: [] };
   const setCond = (kind, i, k, v) => setB((p) => { const c = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit); const a = (c[kind] || []).slice(); a[i] = Object.assign({}, a[i], { [k]: v }); c[kind] = a; return Object.assign({}, p, { conduit: c }); });
@@ -299,8 +312,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           <Section title="สายไฟ" icon="power">
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {b.cables.map((c, i) => (
-                <div key={i} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 70px 36px" : "120px 1fr 90px 36px", gap: 8, alignItems: "center" }}>
-                  {!isMobile && <input style={inputStyle} value={c.name} placeholder="ชื่อจุด" onChange={(e) => setCab(i, "name", e.target.value)} />}
+                <div key={i} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 70px 36px" : "minmax(150px,1fr) minmax(0,1.3fr) 90px 36px", gap: 8, alignItems: "center" }}>
+                  {!isMobile && <Dropdown value={c.name || ""} onChange={(v) => setCab(i, "name", v)} options={cablePtOptions} placeholder="— เลือกจุด —" addable onAdd={addCablePt} />}
                   <Dropdown value={c.type} onChange={(v) => setCab(i, "type", v)} options={opt(window.BOQ.CABLE_TYPES)} placeholder="— เลือกสายไฟ —" />
                   <input type="number" style={numStyle} value={c.length} placeholder="ม." onChange={(e) => setCab(i, "length", e.target.value)} />
                   <button onClick={() => delCab(i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>

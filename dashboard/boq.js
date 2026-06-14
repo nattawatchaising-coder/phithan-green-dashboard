@@ -101,6 +101,8 @@
     { name: "GROUND",          type: "", length: "" },
     { name: "LAN",             type: "", length: "" },
   ];
+  // ชื่อจุดเดินสาย (ตัวเลือกตั้งต้น) — เพิ่มเองได้ในหน้า BOQ
+  const CABLE_POINTS = DEFAULT_CABLES.map((c) => c.name);
 
   // ── ท่อร้อยสาย (RACE WAY) ──
   const IMC_SIZES = ['IMC 1"', 'IMC 1-1/4"', 'IMC 1-1/2"', 'IMC 2"', 'IMC 2-1/2"', 'IMC 3"', 'IMC 3-1/2"'];
@@ -492,5 +494,5 @@
     out.forEach((x) => INVERTERS.push(x));
   }
 
-  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, DEFAULT_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, blankBOQ, calcBOQ, matKey, catalog, applyPrices, setPanels, setInverters };
+  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_POINTS, DEFAULT_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, blankBOQ, calcBOQ, matKey, catalog, applyPrices, setPanels, setInverters };
 })();
