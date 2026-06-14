@@ -159,6 +159,8 @@
     const st = (b && b.struct) || {};
     const out = [];
     const sp = (v, pct) => Math.ceil(v * (1 + (+pct || 0) / 100));
+    // ชื่อขายึด L FEET ตามประเภทหลังคาที่เลือก — ใช้เป็นชื่อ "ชุดยึด WALKWAY" ด้วย
+    const roofHookModel = (ROOF_HOOKS.find((r) => r.roof === (b && b.roof)) || ROOF_HOOKS[0]).model;
     // % เผื่อที่ผู้ใช้กำหนด (ค่า default ถ้าไม่ได้ตั้ง)
     const ladSp = +(st.ladderSpare != null ? st.ladderSpare : 5);
     const wlkSp = +(st.walkwaySpare != null ? st.walkwaySpare : 10);
@@ -207,8 +209,8 @@
       if (fT) it.push({ name: "WALKWAY JOINER", qty: fT, unit: "ตัว" });
       if (hT) it.push({ name: END_CLAMP[thk] || ("END CLAMP KIT " + thk + "mm."), qty: sp(hT, wlkSp), unit: "ชุด" });
       if (mT) it.push({ name: "RAIL 4.2 M", qty: sp(mT, wlkSp), unit: "เส้น" });
-      // รวม T-HEAD + L-BRACKET + SELF DRILLING ROOFING SCREW เป็นชุดยึดเดียว (คงจำนวนเดิม ไม่บวกซ้ำ)
-      if (hT) it.push({ name: "T-HEAD + L-BRACKET + SELF DRILLING ROOFING SCREW", qty: sp(hT, wlkSp), unit: "ชุด" });
+      // ชื่อชุดยึด WALKWAY ตรงกับ L FEET ที่เลือกไว้ใน MOUNTING (เปลี่ยนตามประเภทหลังคา)
+      if (hT) it.push({ name: roofHookModel, qty: sp(hT, wlkSp), unit: "SET" });
       (st.walkwayExtra || []).filter((x) => (x.name || "").trim() && +x.qty > 0).forEach((x) => it.push({ name: x.name.trim(), qty: +x.qty, unit: x.unit || "" }));
       if (it.length) out.push({ group: "WALKWAY", items: it });
     }
