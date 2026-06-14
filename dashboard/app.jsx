@@ -282,7 +282,9 @@ function App() {
           {view === "table" && <TableView jobs={filtered} onOpen={openJob}
             onEdit={(j) => setForm({ job: store.raw.find((r) => r.id === j.id), isNew: false })}
             onDelete={onDelete} onSetMat={store.setMat} onSetStage={(id, s) => store.setStage(id, s)} />}
-          {view === "calendar" && <CalendarView jobs={filtered} onOpen={openJob} />}
+          {view === "calendar" && <CalendarView jobs={filtered} onOpen={openJob}
+            canAdd={can(role, "addJob")}
+            onAddOnDate={(key) => setForm({ job: Object.assign(store.blank(), { startDate: key, deadline: key }), isNew: true })} />}
         </div>
         </React.Fragment>
         )}

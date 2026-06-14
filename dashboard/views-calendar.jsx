@@ -144,11 +144,15 @@ function AgendaView({ jobs, onOpen, calView, setCalView }) {
   );
 }
 
-function CalendarView({ jobs, onOpen }) {
+function CalendarView({ jobs, onOpen, onAddOnDate, canAdd }) {
   const isMobile = useMobileCal();
   const [calView, setCalView] = React.useState("agenda"); // "agenda" | "month"
   const [ym, setYm] = React.useState({ y: 2026, m: 5 }); // June 2026 (0-indexed)
-  const [selDay, setSelDay] = React.useState(null); // mobile: วันที่ถูกแตะ → แสดง bottom sheet
+  // วันที่เลือก — เดสก์ท็อปแสดงในแถบข้าง, มือถือแสดง bottom sheet. ตั้งต้น = วันนี้ ถ้าอยู่ในเดือนนี้
+  const [selDay, setSelDay] = React.useState(() => {
+    const t = new Date(window.SF.TODAY + "T00:00:00");
+    return (t.getFullYear() === 2026 && t.getMonth() === 5) ? t.getDate() : null;
+  });
   const first = new Date(ym.y, ym.m, 1);
   const startDow = first.getDay();
   const days = new Date(ym.y, ym.m + 1, 0).getDate();
@@ -192,133 +196,170 @@ function CalendarView({ jobs, onOpen }) {
     );
   }
 
-  return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 22, boxShadow: "var(--shadow-sm)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <h2 style={{ fontSize: 19, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>
-            {["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"][ym.m]} {ym.y + 543}
-          </h2>
-          <span style={{ fontSize: 12.5, color: "var(--text-3)" }}>· {jobs.filter((j) => j.deadline.startsWith(ym.y + "-" + String(ym.m + 1).padStart(2, "0"))).length} นัด</span>
-        </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <CalToggle calView={calView} setCalView={setCalView} />
-          <NavBtn dir="prev" onClick={() => shift(-1)} />
-          <NavBtn dir="next" onClick={() => shift(1)} />
-        </div>
-      </div>
-      <FlowLegend />
-      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", margin: "0 -4px", padding: "0 4px" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, minWidth: 490 }}>
-        {window.TH_DAYS.map((d, i) => (
-          <div key={d} style={{ textAlign: "center", fontSize: 11.5, fontWeight: 700, color: i === 0 || i === 6 ? "#EF4444aa" : "var(--text-3)", paddingBottom: 4 }}>{d}</div>
-        ))}
-        {cells.map((d, i) => {
-          if (d === null) return <div key={i} />;
-          const list = jobsOn(d);
-          const key = ym.y + "-" + String(ym.m + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
-          const isToday = key === todayKey;
-          const hasDay = list.length > 0 || milestonesOn(d).length > 0;
-          return (
-            <div key={i} style={{ height: 116, borderRadius: 12, border: "1px solid " + (isToday ? "var(--primary)" : "var(--border)"),
-              background: isToday ? "var(--primary-soft)" : "var(--surface2)", padding: 8, display: "flex", flexDirection: "column", gap: 4, overflow: "hidden" }}>
-              <span onClick={() => hasDay && setSelDay(d)} title={hasDay ? "ดูงานทั้งหมดวันนี้" : undefined}
-                style={{ fontSize: 12.5, fontWeight: isToday ? 800 : 600, color: isToday ? "var(--primary-dark)" : "var(--text-2)", alignSelf: "flex-start", cursor: hasDay ? "pointer" : "default" }}>{d}</span>
-              <div style={{ display: "flex", flexDirection: "column", gap: 3, overflow: "hidden" }}>
-                {(() => {
-                  const ms = milestonesOn(d);
-                  if (!ms.length) return null;
-                  return (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 1 }}>
-                      {ms.slice(0, 4).map((m) => {
-                        const lt = (m.job.lateStages || []).some((ls) => ls.key === m.stage.key);
-                        const mc = lt ? "#EF4444" : m.stage.color;
-                        return (
-                          <button key={m.job.id + m.stage.key} onClick={() => onOpen(m.job)} title={(lt ? "เลยกำหนด " : "เสร็จ") + m.stage.th + " · " + m.job.name}
-                            style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", overflow: "hidden" }}>
-                            <span style={{ width: 12, height: 12, borderRadius: 99, background: mc, display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name={lt ? "alert" : "check"} size={8} color="#fff" sw={3} /></span>
-                            <span style={{ fontSize: 9.5, fontWeight: 600, color: lt ? "#EF4444" : "var(--text-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.stage.th} · {m.job.name.replace("คุณ", "")}</span>
-                          </button>
-                        );
-                      })}
-                      {ms.length > 4 && <button onClick={() => setSelDay(d)} style={{ fontSize: 9, color: "var(--text-3)", background: "none", border: "none", cursor: "pointer", textAlign: "left", fontFamily: "inherit", paddingLeft: 1 }}>+{ms.length - 4} หมุด</button>}
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      </div>
-      {selDay && <DayDetailModal day={selDay} ym={ym} jobs={jobsOn(selDay)} milestones={milestonesOn(selDay)} onOpen={(j) => { setSelDay(null); onOpen(j); }} onClose={() => setSelDay(null)} />}
-    </div>
-  );
-}
+  const monthKey = ym.y + "-" + String(ym.m + 1).padStart(2, "0");
+  const monthCount = jobs.filter((j) => j.deadline.startsWith(monthKey)).length;
 
-/* ── หน้าต่างแสดงงานทั้งหมดในวันที่เลือก (เดสก์ท็อป) ── */
-function DayDetailModal({ day, ym, jobs, milestones, onOpen, onClose }) {
-  const monthName = TH_MONTH_FULL[ym.m];
-  const ms = milestones || [];
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.4)", backdropFilter: "blur(3px)", zIndex: 90, display: "grid", placeItems: "center", padding: 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: 18, width: "min(460px, 100%)", maxHeight: "82vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)" }}>{day} {monthName} {ym.y + 543}</div>
-            <div style={{ fontSize: 12, color: "var(--text-3)" }}>{jobs.length} งานนัดติดตั้ง</div>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 372px", gap: 18, alignItems: "start" }}>
+      {/* ── ซ้าย: ปฏิทินเดือน ── */}
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 22, boxShadow: "var(--shadow-sm)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <h2 style={{ fontSize: 19, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>{TH_MONTH_FULL[ym.m]} {ym.y + 543}</h2>
+            <span style={{ fontSize: 12.5, color: "var(--text-3)" }}>· {monthCount} นัด</span>
           </div>
-          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={17} /></button>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <CalToggle calView={calView} setCalView={setCalView} />
+            <NavBtn dir="prev" onClick={() => shift(-1)} />
+            <NavBtn dir="next" onClick={() => shift(1)} />
+          </div>
         </div>
-        <div style={{ overflowY: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 9 }}>
-          {ms.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 7, paddingBottom: 4, marginBottom: 2, borderBottom: jobs.length ? "1px dashed var(--border)" : "none" }}>
-              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>กำหนดเสร็จขั้นงาน</div>
-              {ms.map((m) => {
-                const lt = (m.job.lateStages || []).find((ls) => ls.key === m.stage.key);
-                const mc = lt ? "#EF4444" : m.stage.color;
-                return (
-                  <button key={m.job.id + m.stage.key} onClick={() => onOpen(m.job)}
-                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 11px", width: "100%", textAlign: "left", background: lt ? "#FEF2F2" : m.stage.soft, border: "1px solid " + (lt ? "#FECACA" : m.stage.color + "55"), borderRadius: 11, cursor: "pointer", fontFamily: "inherit" }}>
-                    <span style={{ width: 22, height: 22, borderRadius: 99, background: mc, display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name={lt ? "alert" : "check"} size={13} color="#fff" sw={3} /></span>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.job.name}</span>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: mc }}>{lt ? "เลยกำหนด " + lt.daysLate + " วัน · " : "เสร็จขั้น: "}{m.stage.th}</span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          {jobs.length === 0 && ms.length === 0 && <div style={{ textAlign: "center", color: "var(--text-3)", fontSize: 13, padding: "20px 0" }}>ไม่มีงานในวันนี้</div>}
-          {jobs.map((j) => {
-            const s = stageOf(j.stage);
-            const c = j.delayed ? "#EF4444" : s.color;
+        <FlowLegend />
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", margin: "0 -4px", padding: "0 4px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, minWidth: 490 }}>
+          {window.TH_DAYS.map((d, i) => (
+            <div key={d} style={{ textAlign: "center", fontSize: 11.5, fontWeight: 700, color: i === 0 || i === 6 ? "#EF4444aa" : "var(--text-3)", paddingBottom: 4 }}>{d}</div>
+          ))}
+          {cells.map((d, i) => {
+            if (d === null) return <div key={i} />;
+            const key = keyOf(d);
+            const isToday = key === todayKey;
+            const isSel = d === selDay;
+            const ms = milestonesOn(d);
+            const list = jobsOn(d);
+            const hasDelayed = list.some((j) => j.delayed) || ms.some((m) => (m.job.lateStages || []).some((ls) => ls.key === m.stage.key));
             return (
-              <button key={j.id} onClick={() => onOpen(j)}
-                style={{ display: "flex", alignItems: "center", gap: 11, padding: "12px 13px", width: "100%", textAlign: "left",
-                  background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit" }}>
-                <span style={{ width: 4, alignSelf: "stretch", borderRadius: 99, background: c, flexShrink: 0 }} />
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{j.name}</span>
-                    {j.delayed && <span style={{ fontSize: 9.5, fontWeight: 700, color: "#EF4444", background: "#FDE2E2", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>⚠ ล่าช้า</span>}
-                  </span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: "var(--text-3)" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      <span style={{ width: 7, height: 7, borderRadius: 99, background: c }} />
-                      <span style={{ fontWeight: 600, color: c }}>{s.th}</span>
-                    </span>
-                    <span>· {j.kw} kW</span>
-                    <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>· {j.province}</span>
-                  </span>
+              <button key={i} onClick={() => setSelDay(d)} title="เลือกวันเพื่อดูรายละเอียด"
+                style={{ height: 116, borderRadius: 12, textAlign: "left", fontFamily: "inherit", cursor: "pointer",
+                  border: isSel ? "2px solid var(--primary)" : "1px solid " + (isToday ? "var(--primary)" : "var(--border)"),
+                  background: isSel || isToday ? "var(--primary-soft)" : "var(--surface2)", padding: 8,
+                  display: "flex", flexDirection: "column", gap: 4, overflow: "hidden" }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 5, alignSelf: "stretch" }}>
+                  <span style={{ fontSize: 12.5, fontWeight: isToday || isSel ? 800 : 600, color: isToday || isSel ? "var(--primary-dark)" : "var(--text-2)" }}>{d}</span>
+                  {hasDelayed && <span style={{ width: 6, height: 6, borderRadius: 99, background: "#EF4444", marginLeft: "auto" }} />}
                 </span>
-                <Icon name="chevronRight" size={16} color="var(--text-3)" style={{ flexShrink: 0 }} />
+                <div style={{ display: "flex", flexDirection: "column", gap: 3, overflow: "hidden" }}>
+                  {ms.slice(0, 4).map((m) => {
+                    const lt = (m.job.lateStages || []).some((ls) => ls.key === m.stage.key);
+                    const mc = lt ? "#EF4444" : m.stage.color;
+                    return (
+                      <span key={m.job.id + m.stage.key} title={(lt ? "เลยกำหนด " : "เสร็จ") + m.stage.th + " · " + m.job.name}
+                        style={{ display: "flex", alignItems: "center", gap: 4, background: (lt ? "#EF4444" : m.stage.color) + "1f", borderRadius: 6, padding: "2px 5px", overflow: "hidden" }}>
+                        <span style={{ width: 7, height: 7, borderRadius: 99, background: mc, flexShrink: 0 }} />
+                        <span style={{ fontSize: 9.5, fontWeight: 600, color: lt ? "#EF4444" : "var(--text-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.job.name.replace("คุณ", "")}</span>
+                      </span>
+                    );
+                  })}
+                  {ms.length > 4 && <span style={{ fontSize: 9, color: "var(--text-3)", paddingLeft: 1 }}>+{ms.length - 4} หมุด</span>}
+                </div>
               </button>
             );
           })}
         </div>
+        </div>
       </div>
+
+      {/* ── ขวา: แถบสรุปรายวัน ── */}
+      <DaySidebar day={selDay} ym={ym} jobs={selDay ? jobsOn(selDay) : []} milestones={selDay ? milestonesOn(selDay) : []}
+        todayKey={todayKey} keyOf={keyOf} onOpen={onOpen} canAdd={canAdd} onAddOnDate={onAddOnDate} />
+    </div>
+  );
+}
+
+/* ── แถบสรุปรายวัน (เดสก์ท็อป) — เลือกวันจากปฏิทินแล้วแสดงรายการนัด + เพิ่ม/แก้ ── */
+function DaySidebar({ day, ym, jobs, milestones, todayKey, keyOf, onOpen, canAdd, onAddOnDate }) {
+  const ms = milestones || [];
+  const list = jobs || [];
+  const isToday = day != null && keyOf(day) === todayKey;
+  const total = list.length + ms.length;
+
+  return (
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 18, boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column", gap: 14, position: "sticky", top: 12 }}>
+      {day == null ? (
+        <div style={{ padding: "48px 8px", textAlign: "center", color: "var(--text-3)" }}>
+          <Icon name="calendar" size={26} color="var(--text-3)" />
+          <div style={{ fontSize: 13.5, fontWeight: 600, marginTop: 8 }}>เลือกวันบนปฏิทิน</div>
+          <div style={{ fontSize: 12, marginTop: 2 }}>เพื่อดูรายละเอียดนัดของวันนั้น</div>
+        </div>
+      ) : (
+        <React.Fragment>
+          {/* header */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                <div style={{ fontSize: 17, fontWeight: 800, color: "var(--text-1)" }}>{day} {TH_MONTH_FULL[ym.m]} {ym.y + 543}</div>
+                {isToday && <span style={{ fontSize: 9.5, fontWeight: 800, color: "var(--primary-dark)", background: "var(--primary-soft)", padding: "2px 7px", borderRadius: 99 }}>วันนี้</span>}
+              </div>
+              <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 1 }}>{total} รายการ</div>
+            </div>
+            {canAdd && onAddOnDate && (
+              <button onClick={() => onAddOnDate(keyOf(day))} title="เพิ่มนัดวันนี้"
+                style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, background: "var(--primary)", color: "#fff", border: "none", borderRadius: 9, padding: "8px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+                <Icon name="plus" size={14} color="#fff" /> เพิ่มนัด
+              </button>
+            )}
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 9, maxHeight: "62vh", overflowY: "auto", margin: "0 -4px", padding: "0 4px" }}>
+            {total === 0 && (
+              <div style={{ textAlign: "center", color: "var(--text-3)", fontSize: 13, padding: "26px 0" }}>
+                ยังไม่มีนัดในวันนี้{canAdd && onAddOnDate ? " — กด “เพิ่มนัด”" : ""}
+              </div>
+            )}
+
+            {ms.length > 0 && (
+              <React.Fragment>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>กำหนดเสร็จขั้นงาน</div>
+                {ms.map((m) => {
+                  const lt = (m.job.lateStages || []).find((ls) => ls.key === m.stage.key);
+                  const mc = lt ? "#EF4444" : m.stage.color;
+                  return (
+                    <button key={m.job.id + m.stage.key} onClick={() => onOpen(m.job)}
+                      style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 11px", width: "100%", textAlign: "left", background: lt ? "#FEF2F2" : m.stage.soft, border: "1px solid " + (lt ? "#FECACA" : m.stage.color + "55"), borderRadius: 11, cursor: "pointer", fontFamily: "inherit" }}>
+                      <span style={{ width: 22, height: 22, borderRadius: 99, background: mc, display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name={lt ? "alert" : "check"} size={13} color="#fff" sw={3} /></span>
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.job.name}</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: mc }}>{lt ? "เลยกำหนด " + lt.daysLate + " วัน · " : "เสร็จขั้น: "}{m.stage.th}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </React.Fragment>
+            )}
+
+            {list.length > 0 && (
+              <React.Fragment>
+                {ms.length > 0 && <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", marginTop: 2 }}>นัดติดตั้ง</div>}
+                {list.map((j) => {
+                  const s = stageOf(j.stage);
+                  const c = j.delayed ? "#EF4444" : s.color;
+                  return (
+                    <button key={j.id} onClick={() => onOpen(j)}
+                      style={{ display: "flex", alignItems: "center", gap: 11, padding: "12px 13px", width: "100%", textAlign: "left", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit" }}>
+                      <span style={{ width: 4, alignSelf: "stretch", borderRadius: 99, background: c, flexShrink: 0 }} />
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{j.name}</span>
+                          {j.delayed && <span style={{ fontSize: 9.5, fontWeight: 700, color: "#EF4444", background: "#FDE2E2", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>⚠ ล่าช้า</span>}
+                        </span>
+                        <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: "var(--text-3)" }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            <span style={{ width: 7, height: 7, borderRadius: 99, background: c }} />
+                            <span style={{ fontWeight: 600, color: c }}>{s.th}</span>
+                          </span>
+                          <span>· {j.kw} kW</span>
+                          <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>· {j.province}</span>
+                        </span>
+                      </span>
+                      <Icon name="chevronRight" size={16} color="var(--text-3)" style={{ flexShrink: 0 }} />
+                    </button>
+                  );
+                })}
+              </React.Fragment>
+            )}
+          </div>
+        </React.Fragment>
+      )}
     </div>
   );
 }
