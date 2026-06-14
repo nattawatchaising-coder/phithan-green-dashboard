@@ -64,6 +64,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const setStruct = (kind, i, k, v) => setB((p) => { const s = Object.assign({}, STRUCT_DEF, p.struct); const a = (s[kind] || []).slice(); a[i] = Object.assign({}, a[i], { [k]: v }); s[kind] = a; return Object.assign({}, p, { struct: s }); });
   const addStruct = (kind, item) => setB((p) => { const s = Object.assign({}, STRUCT_DEF, p.struct); s[kind] = (s[kind] || []).concat([item]); return Object.assign({}, p, { struct: s }); });
   const delStruct = (kind, i) => setB((p) => { const s = Object.assign({}, STRUCT_DEF, p.struct); s[kind] = (s[kind] || []).filter((_, j) => j !== i); return Object.assign({}, p, { struct: s }); });
+  const setStructVal = (k, v) => setB((p) => Object.assign({}, p, { struct: Object.assign({}, STRUCT_DEF, p.struct, { [k]: v }) }));
   const [advS, setAdvS] = React.useState(false);
   const [advC, setAdvC] = React.useState(false);
   const [advU, setAdvU] = React.useState(false);
@@ -170,11 +171,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   );
 
   // บล็อกกรอกงานโครงสร้าง (LADDER/WALKWAY/GUARD RAIL) — แต่ละ "จุด/แนว" = 1 แถว
-  const StructBlock = ({ kind, label, color, addLabel, cols, blank }) => (
+  const StructBlock = ({ kind, label, color, addLabel, cols, blank, extra }) => (
     <div style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 12, background: "var(--surface2)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 9 }}>
         <span style={{ width: 9, height: 9, borderRadius: 3, background: color }} />
         <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>{label}</span>
+        {extra && <span style={{ marginLeft: "auto" }}>{extra}</span>}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
         {(st[kind] || []).map((x, i) => (
@@ -416,7 +418,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 <StructBlock kind="ladder" label="LADDER (บันไดลิง)" color="#0D9488" addLabel="เพิ่มจุด"
                   cols={[{ k: "h", ph: "ความสูง (m)" }]} blank={{ h: "" }} />
                 <StructBlock kind="walkway" label="WALKWAY" color="#D97706" addLabel="เพิ่มแนว"
-                  cols={[{ k: "len", ph: "ความยาวแนว (m)" }]} blank={{ len: "" }} />
+                  cols={[{ k: "len", ph: "ความยาวแนว (m)" }]} blank={{ len: "" }}
+                  extra={<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>END CLAMP</span>
+                    <span style={{ width: 96 }}><Dropdown value={st.walkwayThk || 35} onChange={(v) => setStructVal("walkwayThk", +v)} options={[{ value: 30, label: "30mm." }, { value: 35, label: "35mm." }]} /></span>
+                  </span>} />
                 <StructBlock kind="guardrail" label="GUARD RAIL" color="#DB2777" addLabel="เพิ่มจุด"
                   cols={[{ k: "len", ph: "ความยาว layout (m)" }, { k: "corners", ph: "จำนวนมุม" }]} blank={{ len: "", corners: "" }} />
               </div>

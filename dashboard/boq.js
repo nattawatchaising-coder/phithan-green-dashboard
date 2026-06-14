@@ -142,7 +142,7 @@
       conduit: { imc: [], upvc: [], pullbox: [], flex: {}, upFlex: {} },
       conduitSpare: { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10, upStraight: 10, upClamp: 10, upConnector: 10 },
       // งานเพิ่มเติม (Input) — โครงสร้างบนหลังคา ถอดวัสดุตามสูตร (ว่าง = ไม่ใช้/ไม่ถอด)
-      struct: { ladder: [], walkway: [], guardrail: [] },
+      struct: { ladder: [], walkway: [], walkwayThk: 35, guardrail: [] },
       accessories: [],
     };
   }
@@ -190,14 +190,14 @@
         dT += D; fT += F; hT += H; mT += M;
       });
       const sp = (v, pct) => Math.ceil(v * (1 + pct / 100));
+      const thk = +(st.walkwayThk) || 35;                               // ความหนา walkway → ขนาด END CLAMP KIT
       const it = [];
       if (dT) it.push({ name: "WALKWAY", qty: dT, unit: "แผ่น" });
       if (fT) it.push({ name: "WALKWAY JOINER", qty: fT, unit: "ตัว" });
-      if (hT) it.push({ name: "END CLAMP (L-BRACKET)", qty: sp(hT, 10), unit: "ตัว" });
+      if (hT) it.push({ name: END_CLAMP[thk] || ("END CLAMP KIT " + thk + "mm."), qty: sp(hT, 10), unit: "ชุด" });
       if (mT) it.push({ name: "RAIL 4.2 M", qty: sp(mT, 5), unit: "เส้น" });
-      if (hT) it.push({ name: "T-HEAD", qty: sp(hT, 5), unit: "ตัว" });
-      if (hT) it.push({ name: "L-BRACKET", qty: sp(hT, 5), unit: "ตัว" });
-      if (hT) it.push({ name: "SELF DRILLING ROOFING SCREW", qty: sp(hT, 5), unit: "ตัว" });
+      // รวม T-HEAD + L-BRACKET + SELF DRILLING ROOFING SCREW เป็นชุดยึดเดียว (คงจำนวนเดิม ไม่บวกซ้ำ)
+      if (hT) it.push({ name: "T-HEAD + L-BRACKET + SELF DRILLING ROOFING SCREW", qty: sp(hT, 5), unit: "ชุด" });
       if (it.length) out.push({ group: "WALKWAY", items: it });
     }
 
