@@ -130,6 +130,16 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     return { cats, map };
   }, [priceMap, stockItems.length]);
 
+  // ชนิดสายไฟ: ดึงจากคลังสินค้าหมวด "สายไฟ / ไฟฟ้า" (wiring) — ไม่มีของในคลังจึง fallback รายการตั้งต้น
+  const cableTypeOptions = React.useMemo(() => {
+    const fromStock = stockItems.filter((s) => s.cat === "wiring").map((s) => s.name);
+    const used = (b.cables || []).map((c) => c.type).filter(Boolean);
+    const base = fromStock.length ? fromStock : (window.BOQ.CABLE_TYPES || []);
+    return [...new Set(base.concat(used))]
+      .sort((a, z) => String(a).localeCompare(String(z), "th", { numeric: true }))
+      .map((n) => ({ value: n, label: n }));
+  }, [stockItems.length, b.cables]);
+
   const accList = b.accessories || [];
   const setAcc = (i, k, v) => setB((p) => { const a = (p.accessories || []).slice(); a[i] = Object.assign({}, a[i], { [k]: v }); if (k === "name" && matInfo[v]) a[i].unit = matInfo[v].unit || a[i].unit; return Object.assign({}, p, { accessories: a }); });
   const setAccCat = (i, v) => setB((p) => { const a = (p.accessories || []).slice(); a[i] = Object.assign({}, a[i], { cat: v, name: "" }); return Object.assign({}, p, { accessories: a }); });
@@ -314,7 +324,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               {b.cables.map((c, i) => (
                 <div key={i} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 70px 36px" : "minmax(150px,1fr) minmax(0,1.3fr) 90px 36px", gap: 8, alignItems: "center" }}>
                   {!isMobile && <Dropdown value={c.name || ""} onChange={(v) => setCab(i, "name", v)} options={cablePtOptions} placeholder="— เลือกจุด —" addable onAdd={addCablePt} />}
-                  <Dropdown value={c.type} onChange={(v) => setCab(i, "type", v)} options={opt(window.BOQ.CABLE_TYPES)} placeholder="— เลือกสายไฟ —" />
+                  <Dropdown value={c.type} onChange={(v) => setCab(i, "type", v)} options={cableTypeOptions} placeholder="— เลือกสายไฟ —" />
                   <input type="number" style={numStyle} value={c.length} placeholder="ม." onChange={(e) => setCab(i, "length", e.target.value)} />
                   <button onClick={() => delCab(i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
                 </div>
