@@ -72,6 +72,8 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
 
   const items = stock.items;
   const lowCount = items.filter((it) => lowState(it) !== "ok").length;
+  // จำนวนรายการต่อหมวด — ใช้แสดงตัวเลข + ซ่อนหมวดที่ว่างในแถบชิป (ลดความรก)
+  const catCount = React.useMemo(() => { const m = {}; items.forEach((it) => { m[it.cat] = (m[it.cat] || 0) + 1; }); return m; }, [items]);
   const thisMonth = SF.TODAY.slice(0, 7);
   const inItemIds = new Set(stock.moves.filter((m) => m.type === "in" && m.date.startsWith(thisMonth)).map((m) => m.itemId));
   const outItemIds = new Set(stock.moves.filter((m) => m.type === "out" && m.date.startsWith(thisMonth)).map((m) => m.itemId));
@@ -160,9 +162,9 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
           {isMobile && isPrices && <div style={{ marginTop: 10 }}><Dropdown value={priceGrp} onChange={setPriceGrp} options={priceGroups.map((g) => ({ value: g, label: g === "all" ? "ทั้งหมด" : (PG_TH[g] || g) }))} /></div>}
           {/* เดสก์ท็อป: ชิปหมวด — ย่อ/ขยายแบบลื่น (max-height + opacity) */}
           {!isMobile && (
-            <div style={{ overflow: "hidden", maxHeight: catOpen ? 140 : 0, opacity: catOpen ? 1 : 0,
+            <div style={{ overflow: "hidden", maxHeight: catOpen ? 48 : 0, opacity: catOpen ? 1 : 0,
               marginTop: catOpen ? 8 : 0, transition: "max-height .24s ease, opacity .2s ease, margin-top .24s ease" }}>
-              <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
+              <div className="cat-chip-row" style={{ display: "flex", gap: 7, flexWrap: "nowrap", alignItems: "center", overflowX: "auto", paddingBottom: 4 }}>
                 {isPrices ? (
                   <React.Fragment>
                     <CatChip active={priceGrp === "all"} onClick={() => setPriceGrp("all")} label="ทั้งหมด" color="var(--text-2)" />
@@ -170,8 +172,8 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                   </React.Fragment>
                 ) : (
                   <React.Fragment>
-                    <CatChip active={cat === "all"} onClick={() => setCat("all")} label="ทั้งหมด" color="var(--text-2)" />
-                    {SF.STOCK_CATS.map((c) => <CatChip key={c.key} active={cat === c.key} onClick={() => setCat(c.key)} label={c.th} color={c.color} />)}
+                    <CatChip active={cat === "all"} onClick={() => setCat("all")} label="ทั้งหมด" color="var(--text-2)" count={items.length} />
+                    {SF.STOCK_CATS.filter((c) => cat === c.key || catCount[c.key]).map((c) => <CatChip key={c.key} active={cat === c.key} onClick={() => setCat(c.key)} label={c.th} color={c.color} count={catCount[c.key] || 0} />)}
                   </React.Fragment>
                 )}
               </div>
@@ -321,13 +323,15 @@ function MovesModal({ moves, items, jobs, onClose }) {
   );
 }
 
-function CatChip({ active, onClick, label, color }) {
+function CatChip({ active, onClick, label, color, count }) {
   const mob = window.matchMedia("(max-width: 860px)").matches;
   return (
     <button onClick={onClick} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: mob ? "5px 11px" : "6px 13px", borderRadius: 99,
       border: "1px solid " + (active ? color : "var(--border-strong)"), background: active ? color + "16" : "var(--surface)",
       color: active ? color : "var(--text-2)", fontSize: mob ? 11.5 : 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0 }}>
       {label}
+      {count != null && <span style={{ fontSize: mob ? 10 : 10.5, fontWeight: 700, lineHeight: 1.5, color: active ? color : "var(--text-3)",
+        background: active ? color + "22" : "var(--surface3)", borderRadius: 99, padding: "0 6px", minWidth: 17, textAlign: "center" }}>{count}</span>}
     </button>
   );
 }

@@ -45,6 +45,10 @@ input, select, textarea { font-family: inherit; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-3); background-clip: padding-box; }
 ::-webkit-scrollbar-track { background: transparent; }
 
+/* แถบชิปหมวดหมู่ (คลังสินค้า) — เลื่อนแนวนอนบรรทัดเดียว สกอลล์บาร์บาง */
+.cat-chip-row { scrollbar-width: thin; }
+.cat-chip-row::-webkit-scrollbar { height: 6px; }
+
 /* ---------- layout ---------- */
 .app-root { display: flex; height: 100dvh; overflow: hidden; }
 .app-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
@@ -234,7 +238,7 @@ input, select, textarea { font-family: inherit; }
 <script type="text/babel" src="dashboard/views-board.jsx?v=12"></script>
 <script type="text/babel" src="dashboard/views-table.jsx?v=18"></script>
 <script type="text/babel" src="dashboard/views-calendar.jsx?v=20"></script>
-<script type="text/babel" src="dashboard/views-stock.jsx?v=39"></script>
+<script type="text/babel" src="dashboard/views-stock.jsx?v=40"></script>
 <script type="text/babel" src="dashboard/form.jsx?v=20"></script>
 <script type="text/babel" src="dashboard/auth.jsx?v=5"></script>
 <script type="text/babel" src="dashboard/app.jsx?v=38"></script>
