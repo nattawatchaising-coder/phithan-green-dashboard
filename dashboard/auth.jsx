@@ -39,7 +39,7 @@ const ROLE_INFO = {
 const PERMS = {
   admin:   { viewAll: true,  addJob: true,  editJob: true, delJob: true,  stock: true, manageUsers: true,  dispatch: true,  doSurvey: true  },
   manager: { viewAll: true,  addJob: true,  editJob: true, delJob: true,  stock: true, manageUsers: false, dispatch: true,  doSurvey: false },
-  tech:    { viewAll: false, addJob: false, editJob: true, delJob: false, stock: true, manageUsers: false, dispatch: false, doSurvey: false },
+  tech:    { viewAll: false, addJob: false, editJob: true, delJob: false, stock: true, manageUsers: false, dispatch: false, doSurvey: true  },
   survey:  { viewAll: false, addJob: false, editJob: false, delJob: false, stock: false, manageUsers: false, dispatch: false, doSurvey: true  },
 };
 function can(role, action) { return !!(PERMS[role] && PERMS[role][action]); }

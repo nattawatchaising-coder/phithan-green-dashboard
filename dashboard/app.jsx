@@ -9,7 +9,7 @@ const NAV = [
   { key: "table",      th: "ฐานข้อมูลงาน",     en: "Database",      icon: "table",    roles: OFFICE },
   { key: "survey",     th: "สถานะสำรวจ",       en: "Survey Status", icon: "list",     roles: ["admin", "manager"] },
   { key: "dispatch",   th: "จัดตารางสำรวจ",    en: "Dispatch",      icon: "calendar", roles: ["admin", "manager"] },
-  { key: "myschedule", th: "ตารางงานของฉัน",   en: "My Schedule",   icon: "list",     roles: ["survey"] },
+  { key: "myschedule", th: "ตารางงานของฉัน",   en: "My Schedule",   icon: "list",     roles: ["survey", "tech"] },
   { key: "calendar",   th: "ปฏิทินนัด",        en: "Calendar",      icon: "calendar", roles: OFFICE },
   { key: "stock",      th: "คลังสินค้า",       en: "Inventory",     icon: "box",      roles: OFFICE },
 ];
