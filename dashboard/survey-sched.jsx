@@ -393,25 +393,28 @@ function ApptCard({ a, job, onStatus, onOpenSurvey }) {
   );
 }
 
-/* ── การ์ดงานในไปป์ไลน์ (ออกแบบ/ถอดของ/ติดตั้ง ฯลฯ) ที่มอบหมายให้คนนี้ ── */
-function JobTaskCard({ job, stage, start, end, onOpen }) {
-  const color = stage.color || "#64748B";
+/* ── การ์ดงานในไปป์ไลน์ (ออกแบบ/ถอดของ/ติดตั้ง ฯลฯ) ที่มอบหมายให้คนนี้ ──
+   stages = งานหลายขั้นที่นัดวันเดียวกันของงานนี้ (รวมในการ์ดเดียว) */
+function JobTaskCard({ job, stages, day, onOpen }) {
+  const list = (stages && stages.length) ? stages : [{ th: job.stage, en: "", color: "#64748B" }];
+  const color = list[0].color || "#64748B";
   const mapHref = job.map ? job.map : (job.address ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent((job.address || "") + " " + (job.province || "")) : null);
-  const d = (v) => thDate(_ymdLocal(new Date(v)), true);
-  const dateStr = start && end ? (start === end ? d(start) : d(start) + " – " + d(end)) : (end ? d(end) : (start ? d(start) : "ไม่ระบุวัน"));
+  const dateStr = day ? thDate(day, true) : "ไม่ระบุวัน";
   return (
     <button onClick={() => onOpen && onOpen(job)} style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "4px solid " + color, borderRadius: 14, boxShadow: "var(--shadow-sm)", padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 7, minWidth: 0 }}>
-          <span style={{ width: 9, height: 9, borderRadius: 99, background: color, flexShrink: 0 }} />
-          <span style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{stage.th}</span>
-          {stage.en && <span style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--mono)" }}>{stage.en}</span>}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap", minWidth: 0 }}>
+          {list.map((s) => (
+            <span key={s.key || s.th} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px", borderRadius: 99, background: (s.color || "#64748B") + "16", color: s.color || "#64748B", fontSize: 12, fontWeight: 800, whiteSpace: "nowrap" }}>
+              <span style={{ width: 7, height: 7, borderRadius: 99, background: s.color || "#64748B" }} />{s.th}
+            </span>
+          ))}
         </span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11.5, fontWeight: 700, color: "var(--primary-dark)", flexShrink: 0 }}>เปิดงาน <Icon name="chevronRight" size={14} color="var(--primary-dark)" /></span>
       </div>
       <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)" }}>{job.name}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-2)" }}>
-        <Icon name="clock" size={13} color="var(--text-3)" />{dateStr}
+        <Icon name="clock" size={13} color="var(--text-3)" />{dateStr}{list.length > 1 ? " · " + list.length + " งาน" : ""}
         {typeof job.progressPct === "number" && <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, color: "var(--text-3)", fontFamily: "var(--mono)" }}>{job.progressPct}%</span>}
       </div>
       <div style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "flex-start", gap: 6 }}>
@@ -442,12 +445,20 @@ function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey, o
     });
     (jobs || []).forEach((j) => {
       if (j.tech !== techId || j.stage === "done") return;
-      const stage = (SF.STAGES || []).find((s) => s.key === j.stage) || { th: j.stage, en: "", color: "#64748B" };
-      const sd = j.stageDates && j.stageDates[j.stage];
-      const start = sd && typeof sd === "object" ? (sd.start || "") : "";
-      const end = sd ? (typeof sd === "object" ? (sd.end || "") : sd) : "";
-      const d0 = start || end || j.startDate || j.deadline || "";
-      out.push({ type: "job", key: "j-" + j.id, job: j, stage: stage, start: start, end: end, day: d0 ? _ymdLocal(new Date(d0)) : "", ts: d0 ? new Date(d0).getTime() : 0 });
+      const STAGES = SF.STAGES || [];
+      const cur = Math.max(0, STAGES.findIndex((s) => s.key === j.stage));
+      const curStage = STAGES[cur] || { key: j.stage, th: j.stage, en: "", color: "#64748B" };
+      const dateOf = (key) => { const v = j.stageDates && j.stageDates[key]; if (!v) return ""; return typeof v === "object" ? (v.start || v.end || "") : v; };
+      const anchor = dateOf(curStage.key) || j.startDate || j.deadline || "";
+      const anchorDay = anchor ? _ymdLocal(new Date(anchor)) : "";
+      // ขั้นปัจจุบัน + ขั้นถัดไปที่ "นัดวันเดียวกัน" → รวมเป็นการ์ดเดียวหลายงาน
+      const stages = STAGES.filter((s, i) => {
+        if (i < cur) return false;
+        if (s.key === curStage.key) return true;
+        const dd = dateOf(s.key);
+        return dd && anchorDay && _ymdLocal(new Date(dd)) === anchorDay;
+      });
+      out.push({ type: "job", key: "j-" + j.id, job: j, stages: stages.length ? stages : [curStage], day: anchorDay, ts: anchor ? new Date(anchor).getTime() : 0 });
     });
     return out.sort((x, y) => x.ts - y.ts);
   }, [appts, jobs, techId]);
@@ -467,7 +478,7 @@ function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey, o
 
   const renderCard = (it) => it.type === "survey"
     ? <ApptCard key={it.key} a={it.a} job={jobsById[it.a.projectId]} onStatus={onStatus} onOpenSurvey={onOpenSurvey} />
-    : <JobTaskCard key={it.key} job={it.job} stage={it.stage} start={it.start} end={it.end} onOpen={onOpen} />;
+    : <JobTaskCard key={it.key} job={it.job} stages={it.stages} day={it.day} onOpen={onOpen} />;
 
   return (
     <React.Fragment>
