@@ -142,7 +142,13 @@
       conduit: { imc: [], upvc: [], pullbox: [], flex: {}, upFlex: {} },
       conduitSpare: { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10, upStraight: 10, upClamp: 10, upConnector: 10 },
       // งานเพิ่มเติม (Input) — โครงสร้างบนหลังคา ถอดวัสดุตามสูตร (ว่าง = ไม่ใช้/ไม่ถอด)
-      struct: { ladder: [], walkway: [], walkwayThk: 35, guardrail: [] },
+      // งานเพิ่มเติม (Input) — โครงสร้างบนหลังคา ถอดวัสดุตามสูตร (ว่าง = ไม่ใช้/ไม่ถอด)
+      struct: {
+        ladder: [], walkway: [], walkwayThk: 35, guardrail: [],
+        ladderSpare: 5, walkwaySpare: 10, guardrailSpare: 5,
+        ladderExtra: [], walkwayExtra: [], guardrailExtra: [],
+      },
+      jobType: (job && job.type) || "",
       accessories: [],
     };
   }
@@ -152,6 +158,11 @@
   function calcStructures(b) {
     const st = (b && b.struct) || {};
     const out = [];
+    const sp = (v, pct) => Math.ceil(v * (1 + (+pct || 0) / 100));
+    // % เผื่อที่ผู้ใช้กำหนด (ค่า default ถ้าไม่ได้ตั้ง)
+    const ladSp = +(st.ladderSpare != null ? st.ladderSpare : 5);
+    const wlkSp = +(st.walkwaySpare != null ? st.walkwaySpare : 10);
+    const grlSp = +(st.guardrailSpare != null ? st.guardrailSpare : 5);
 
     // LADDER (บันไดลิง) — ต่อจุด: ความสูง h (m)
     const lad = (st.ladder || []).filter((p) => (+p.h || 0) > 0);
@@ -170,11 +181,12 @@
       });
       const roundPcs = Math.ceil(roundLen / 6);
       const it = [];
-      if (boxF) it.push({ name: 'เหล็กกล่องดำ 2"x2"', qty: boxF + 1, unit: "เส้น" });
-      if (roundPcs) it.push({ name: 'เหล็กกลมดำ 1"', qty: roundPcs + 1, unit: "เส้น" });
-      if (flatPcs) it.push({ name: "เหล็กแบน 32 มม.", qty: flatPcs + 1, unit: "เส้น" });
-      if (plate) it.push({ name: 'แผ่นเพลท 4"x4"', qty: plate + 2, unit: "แผ่น" });
-      if (anchor) it.push({ name: 'พุ๊กเหล็ก 3/8"', qty: anchor + 5, unit: "ตัว" });
+      if (boxF) it.push({ name: 'เหล็กกล่องดำ 2"x2"', qty: sp(boxF + 1, ladSp), unit: "เส้น" });
+      if (roundPcs) it.push({ name: 'เหล็กกลมดำ 1"', qty: sp(roundPcs + 1, ladSp), unit: "เส้น" });
+      if (flatPcs) it.push({ name: "เหล็กแบน 32 มม.", qty: sp(flatPcs + 1, ladSp), unit: "เส้น" });
+      if (plate) it.push({ name: 'แผ่นเพลท 4"x4"', qty: sp(plate + 2, ladSp), unit: "แผ่น" });
+      if (anchor) it.push({ name: 'พุ๊กเหล็ก 3/8"', qty: sp(anchor + 5, ladSp), unit: "ตัว" });
+      (st.ladderExtra || []).filter((x) => (x.name || "").trim() && +x.qty > 0).forEach((x) => it.push({ name: x.name.trim(), qty: +x.qty, unit: x.unit || "" }));
       if (it.length) out.push({ group: "LADDER (บันไดลิง)", items: it });
     }
 
@@ -189,15 +201,15 @@
         const M = Math.ceil((D * (3 * 1.5)) / 4.2);             // RAIL (3 จุด × 1.5m ÷ 4.2m)
         dT += D; fT += F; hT += H; mT += M;
       });
-      const sp = (v, pct) => Math.ceil(v * (1 + pct / 100));
       const thk = +(st.walkwayThk) || 35;                               // ความหนา walkway → ขนาด END CLAMP KIT
       const it = [];
       if (dT) it.push({ name: "WALKWAY", qty: dT, unit: "แผ่น" });
       if (fT) it.push({ name: "WALKWAY JOINER", qty: fT, unit: "ตัว" });
-      if (hT) it.push({ name: END_CLAMP[thk] || ("END CLAMP KIT " + thk + "mm."), qty: sp(hT, 10), unit: "ชุด" });
-      if (mT) it.push({ name: "RAIL 4.2 M", qty: sp(mT, 5), unit: "เส้น" });
+      if (hT) it.push({ name: END_CLAMP[thk] || ("END CLAMP KIT " + thk + "mm."), qty: sp(hT, wlkSp), unit: "ชุด" });
+      if (mT) it.push({ name: "RAIL 4.2 M", qty: sp(mT, wlkSp), unit: "เส้น" });
       // รวม T-HEAD + L-BRACKET + SELF DRILLING ROOFING SCREW เป็นชุดยึดเดียว (คงจำนวนเดิม ไม่บวกซ้ำ)
-      if (hT) it.push({ name: "T-HEAD + L-BRACKET + SELF DRILLING ROOFING SCREW", qty: sp(hT, 5), unit: "ชุด" });
+      if (hT) it.push({ name: "T-HEAD + L-BRACKET + SELF DRILLING ROOFING SCREW", qty: sp(hT, wlkSp), unit: "ชุด" });
+      (st.walkwayExtra || []).filter((x) => (x.name || "").trim() && +x.qty > 0).forEach((x) => it.push({ name: x.name.trim(), qty: +x.qty, unit: x.unit || "" }));
       if (it.length) out.push({ group: "WALKWAY", items: it });
     }
 
@@ -212,11 +224,12 @@
         const L = D * 4; turnb += L; clip += L * 2; sleeve += L;
       });
       const it = [];
-      if (angle) it.push({ name: "เหล็กฉาก 40x40 มม. หนา 4 มม.", qty: angle + 1, unit: "เส้น" });
-      if (sling) it.push({ name: "สลิงสแตนเลส 6 มม.", qty: sling + 10, unit: "ม." });
-      if (turnb) it.push({ name: "เกลียวเร่งสแตนเลส 8 มม.", qty: turnb + 4, unit: "ตัว" });
-      if (clip) it.push({ name: "กิ๊บสลิงสแตนเลส 6 มม.", qty: clip + 4, unit: "ตัว" });
-      if (sleeve) it.push({ name: "ปลอกอลูมิเนียม 6 มม.", qty: sleeve + 4, unit: "ตัว" });
+      if (angle) it.push({ name: "เหล็กฉาก 40x40 มม. หนา 4 มม.", qty: sp(angle + 1, grlSp), unit: "เส้น" });
+      if (sling) it.push({ name: "สลิงสแตนเลส 6 มม.", qty: sp(sling + 10, grlSp), unit: "ม." });
+      if (turnb) it.push({ name: "เกลียวเร่งสแตนเลส 8 มม.", qty: sp(turnb + 4, grlSp), unit: "ตัว" });
+      if (clip) it.push({ name: "กิ๊บสลิงสแตนเลส 6 มม.", qty: sp(clip + 4, grlSp), unit: "ตัว" });
+      if (sleeve) it.push({ name: "ปลอกอลูมิเนียม 6 มม.", qty: sp(sleeve + 4, grlSp), unit: "ตัว" });
+      (st.guardrailExtra || []).filter((x) => (x.name || "").trim() && +x.qty > 0).forEach((x) => it.push({ name: x.name.trim(), qty: +x.qty, unit: x.unit || "" }));
       if (it.length) out.push({ group: "GUARD RAIL", items: it });
     }
 
@@ -450,8 +463,8 @@
       groups.push({ group: "GROUNDING", items: gnd });
     }
 
-    // งานเพิ่มเติม (Input) — LADDER / WALKWAY / GUARD RAIL
-    calcStructures(b).forEach((g) => groups.push(g));
+    // งานเพิ่มเติม (Input) — LADDER / WALKWAY / GUARD RAIL (งานโครงการเท่านั้น ไม่นับงานบ้าน)
+    if ((b.jobType || "") !== "home") calcStructures(b).forEach((g) => groups.push(g));
 
     // ACCESSORIES (เพิ่มเอง / ดึงจากราคาวัสดุ-คลังสินค้า)
     const acc = (b.accessories || []).filter((a) => (a.name || "").trim() && (+a.qty || 0) > 0)

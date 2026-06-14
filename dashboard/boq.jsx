@@ -18,6 +18,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       // งานมี Backup → ตั้งระบบสำรองไฟของ Huawei ให้ (เริ่มที่ Backup Box เปลี่ยนเป็น SmartGuard ได้)
       if (job.backup && (!base.hwBackup || base.hwBackup === "none")) base.hwBackup = "backupbox";
       else if (!job.backup) base.hwBackup = "none";
+      base.jobType = job.type || "";  // สะท้อน type ปัจจุบันของงานเสมอ
     }
     return base;
   });
@@ -59,14 +60,18 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const SPARE_DEF = { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10, upStraight: 10, upClamp: 10, upConnector: 10 };
   const setCSpare = (k, v) => setB((p) => Object.assign({}, p, { conduitSpare: Object.assign({}, SPARE_DEF, p.conduitSpare, { [k]: v }) }));
   // งานเพิ่มเติม (Input) — โครงสร้างบนหลังคา
-  const STRUCT_DEF = { ladder: [], walkway: [], guardrail: [] };
+  const STRUCT_DEF = { ladder: [], walkway: [], walkwayThk: 35, guardrail: [], ladderSpare: 5, walkwaySpare: 10, guardrailSpare: 5, ladderExtra: [], walkwayExtra: [], guardrailExtra: [] };
   const st = Object.assign({}, STRUCT_DEF, b.struct);
   const setStruct = (kind, i, k, v) => setB((p) => { const s = Object.assign({}, STRUCT_DEF, p.struct); const a = (s[kind] || []).slice(); a[i] = Object.assign({}, a[i], { [k]: v }); s[kind] = a; return Object.assign({}, p, { struct: s }); });
   const addStruct = (kind, item) => setB((p) => { const s = Object.assign({}, STRUCT_DEF, p.struct); s[kind] = (s[kind] || []).concat([item]); return Object.assign({}, p, { struct: s }); });
   const delStruct = (kind, i) => setB((p) => { const s = Object.assign({}, STRUCT_DEF, p.struct); s[kind] = (s[kind] || []).filter((_, j) => j !== i); return Object.assign({}, p, { struct: s }); });
   const setStructVal = (k, v) => setB((p) => Object.assign({}, p, { struct: Object.assign({}, STRUCT_DEF, p.struct, { [k]: v }) }));
+  const addStructExtra = (kind) => setB((p) => { const s = Object.assign({}, STRUCT_DEF, p.struct); const key = kind + "Extra"; s[key] = (s[key] || []).concat([{ name: "", qty: "", unit: "" }]); return Object.assign({}, p, { struct: s }); });
+  const setStructExtra = (kind, i, k, v) => setB((p) => { const s = Object.assign({}, STRUCT_DEF, p.struct); const key = kind + "Extra"; const a = (s[key] || []).slice(); a[i] = Object.assign({}, a[i], { [k]: v }); s[key] = a; return Object.assign({}, p, { struct: s }); });
+  const delStructExtra = (kind, i) => setB((p) => { const s = Object.assign({}, STRUCT_DEF, p.struct); const key = kind + "Extra"; s[key] = (s[key] || []).filter((_, j) => j !== i); return Object.assign({}, p, { struct: s }); });
   const [advS, setAdvS] = React.useState(false);
   const [advC, setAdvC] = React.useState(false);
+  const isHome = !!(job && job.type === "home");  // งานบ้าน = ไม่มีงานโครงสร้างเพิ่มเติม
   const [advU, setAdvU] = React.useState(false);
   const csp = Object.assign({}, SPARE_DEF, b.conduitSpare);
 
@@ -171,7 +176,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   );
 
   // บล็อกกรอกงานโครงสร้าง (LADDER/WALKWAY/GUARD RAIL) — แต่ละ "จุด/แนว" = 1 แถว
-  const StructBlock = ({ kind, label, color, addLabel, cols, blank, extra }) => (
+  const StructBlock = ({ kind, label, color, addLabel, cols, blank, extra, spare, onSpare, extraItems, onExtraAdd, onExtraChange, onExtraDel }) => (
     <div style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 12, background: "var(--surface2)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 9 }}>
         <span style={{ width: 9, height: 9, borderRadius: 3, background: color }} />
@@ -188,8 +193,30 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             <button onClick={() => delStruct(kind, i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
           </div>
         ))}
-        <button onClick={() => addStruct(kind, Object.assign({}, blank))} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> {addLabel}</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button onClick={() => addStruct(kind, Object.assign({}, blank))} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> {addLabel}</button>
+          <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--text-3)" }}>% เผื่อ</span>
+            <input type="number" min={0} max={99} style={Object.assign({}, numStyle, { width: 58 })} value={spare != null ? spare : ""} placeholder="5" onChange={(e) => onSpare(e.target.value)} />
+          </span>
+        </div>
       </div>
+      {(extraItems && extraItems.length > 0) && (
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 6 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--text-3)" }}>วัสดุเพิ่ม (นอกระบบ)</span>
+          {extraItems.map((x, i) => (
+            <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 64px 52px 36px", gap: 6, alignItems: "center" }}>
+              <input value={x.name || ""} onChange={(e) => onExtraChange(i, "name", e.target.value)} placeholder="ชื่อวัสดุ" style={inputStyle} />
+              <input type="number" value={x.qty || ""} onChange={(e) => onExtraChange(i, "qty", e.target.value)} placeholder="จำนวน" style={numStyle} />
+              <input value={x.unit || ""} onChange={(e) => onExtraChange(i, "unit", e.target.value)} placeholder="หน่วย" style={inputStyle} />
+              <button onClick={() => onExtraDel(i)} style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
+            </div>
+          ))}
+        </div>
+      )}
+      <button onClick={onExtraAdd} style={{ marginTop: extraItems && extraItems.length > 0 ? 6 : 10, display: "inline-flex", alignItems: "center", gap: 4, background: "none", border: "none", color: "var(--text-3)", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
+        <Icon name="plus" size={12} color="var(--text-3)" /> เพิ่มวัสดุนอกระบบ
+      </button>
     </div>
   );
 
@@ -407,7 +434,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             )}
           </Section>
 
-          {/* ── งานเพิ่มเติม (Input): โครงสร้างบนหลังคา ── */}
+          {/* ── งานเพิ่มเติม (Input): โครงสร้างบนหลังคา — เฉพาะงานโครงการ ไม่แสดงงานบ้าน ── */}
+          {!isHome && (
           <Section title="งานเพิ่มเติม (Input) — โครงสร้าง" icon="box"
             right={<button onClick={() => setAdvS((v) => !v)} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 8, padding: "6px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name={advS ? "chevronDown" : "plus"} size={13} color="var(--text-2)" style={{ transform: advS ? "rotate(180deg)" : "none" }} /> {advS ? "ซ่อน" : "กรอกข้อมูล"}</button>}>
             <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>
@@ -416,18 +444,34 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             {advS && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 14 }}>
                 <StructBlock kind="ladder" label="LADDER (บันไดลิง)" color="#0D9488" addLabel="เพิ่มจุด"
-                  cols={[{ k: "h", ph: "ความสูง (m)" }]} blank={{ h: "" }} />
+                  cols={[{ k: "h", ph: "ความสูง (m)" }]} blank={{ h: "" }}
+                  spare={st.ladderSpare != null ? st.ladderSpare : 5} onSpare={(v) => setStructVal("ladderSpare", +v)}
+                  extraItems={st.ladderExtra || []}
+                  onExtraAdd={() => addStructExtra("ladder")}
+                  onExtraChange={(i, k, v) => setStructExtra("ladder", i, k, v)}
+                  onExtraDel={(i) => delStructExtra("ladder", i)} />
                 <StructBlock kind="walkway" label="WALKWAY" color="#D97706" addLabel="เพิ่มแนว"
                   cols={[{ k: "len", ph: "ความยาวแนว (m)" }]} blank={{ len: "" }}
                   extra={<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                     <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>END CLAMP</span>
                     <span style={{ width: 96 }}><Dropdown value={st.walkwayThk || 35} onChange={(v) => setStructVal("walkwayThk", +v)} options={[{ value: 30, label: "30mm." }, { value: 35, label: "35mm." }]} /></span>
-                  </span>} />
+                  </span>}
+                  spare={st.walkwaySpare != null ? st.walkwaySpare : 10} onSpare={(v) => setStructVal("walkwaySpare", +v)}
+                  extraItems={st.walkwayExtra || []}
+                  onExtraAdd={() => addStructExtra("walkway")}
+                  onExtraChange={(i, k, v) => setStructExtra("walkway", i, k, v)}
+                  onExtraDel={(i) => delStructExtra("walkway", i)} />
                 <StructBlock kind="guardrail" label="GUARD RAIL" color="#DB2777" addLabel="เพิ่มจุด"
-                  cols={[{ k: "len", ph: "ความยาว layout (m)" }, { k: "corners", ph: "จำนวนมุม" }]} blank={{ len: "", corners: "" }} />
+                  cols={[{ k: "len", ph: "ความยาว layout (m)" }, { k: "corners", ph: "จำนวนมุม" }]} blank={{ len: "", corners: "" }}
+                  spare={st.guardrailSpare != null ? st.guardrailSpare : 5} onSpare={(v) => setStructVal("guardrailSpare", +v)}
+                  extraItems={st.guardrailExtra || []}
+                  onExtraAdd={() => addStructExtra("guardrail")}
+                  onExtraChange={(i, k, v) => setStructExtra("guardrail", i, k, v)}
+                  onExtraDel={(i) => delStructExtra("guardrail", i)} />
               </div>
             )}
           </Section>
+          )}
 
           {/* ── Accessories ── */}
           <Section title="Accessories (เพิ่มของ)" icon="box">
