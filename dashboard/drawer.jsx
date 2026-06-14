@@ -314,7 +314,7 @@ function StockShopModal({ stock, job, byName, onClose }) {
   );
 }
 
-function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, stock, onSaveBOQ, priceMap }) {
+function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, stock, onSaveBOQ, onSurvey, priceMap }) {
   const SF = window.SF;
   const open = !!job;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -411,6 +411,23 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   <SpecItem label="ระบบ Backup" value={job.backup ? "Backup ✓" : "ไม่มี"} accent={job.backup} />
                 </div>
               </div>
+
+              {/* สำรวจหน้างาน (Site Survey) */}
+              {onSurvey && (() => {
+                const ss = window.surveyStatus ? window.surveyStatus(job) : { state: "none", pct: 0, label: "ยังไม่สำรวจ", color: "var(--text-3)" };
+                return (
+                  <button onClick={onSurvey}
+                    style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+                      background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                    <span style={{ width: 34, height: 34, borderRadius: 9, background: ss.color + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="list" size={17} color={ss.color} /></span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>สำรวจหน้างาน (Site Survey)</span>
+                      <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>{ss.state === "none" ? "ยังไม่ได้สำรวจ · แตะเพื่อเริ่ม" : ss.label + " · " + ss.pct + "% · แตะเพื่อแก้ไข"}</span>
+                    </span>
+                    <Icon name="arrowRight" size={16} color="var(--text-3)" />
+                  </button>
+                );
+              })()}
 
               {/* ถอดวัสดุ BOQ */}
               <button onClick={() => setBoqOpen(true)}

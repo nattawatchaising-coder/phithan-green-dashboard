@@ -6,6 +6,7 @@ const NAV = [
   { key: "overview", th: "ภาพรวม",      en: "Overview",  icon: "grid" },
   { key: "board",    th: "บอร์ดงาน",     en: "Workflow",  icon: "kanban" },
   { key: "table",    th: "ฐานข้อมูลงาน",  en: "Database",  icon: "table" },
+  { key: "survey",   th: "สำรวจหน้างาน",  en: "Site Survey", icon: "list" },
   { key: "calendar", th: "ปฏิทินนัด",     en: "Calendar",  icon: "calendar" },
   { key: "stock",    th: "คลังสินค้า",    en: "Inventory", icon: "box" },
 ];
@@ -90,6 +91,7 @@ function App() {
   const [delayedOnly, setDelayedOnly] = React.useState(false);
   const [selected, setSelected] = React.useState(null);
   const [form, setForm] = React.useState(null); // {job, isNew}
+  const [surveyJob, setSurveyJob] = React.useState(null); // งานที่กำลังเปิด wizard สำรวจหน้างาน
   const [techMgr, setTechMgr] = React.useState(false);
   const [brandMgr, setBrandMgr] = React.useState(false);
   const [userMgr, setUserMgr] = React.useState(false);
@@ -208,6 +210,7 @@ function App() {
 
   const closeSidebar = () => setSidebarOpen(false);
   const openJob = (j) => setSelected(j.id);
+  const openSurvey = (j) => setSurveyJob(j);
   const selectedJob = jobs.find((j) => j.id === selected) || null;
 
   const onSave = (rec) => {
@@ -282,6 +285,7 @@ function App() {
           {view === "table" && <TableView jobs={filtered} onOpen={openJob}
             onEdit={(j) => setForm({ job: store.raw.find((r) => r.id === j.id), isNew: false })}
             onDelete={onDelete} onSetMat={store.setMat} onSetStage={(id, s) => store.setStage(id, s)} />}
+          {view === "survey" && <SurveyView jobs={filtered} role={role} onOpen={openSurvey} />}
           {view === "calendar" && <CalendarView jobs={filtered} onOpen={openJob}
             canAdd={can(role, "addJob")}
             onAddOnDate={(key) => setForm({ job: Object.assign(store.blank(), { startDate: key, deadline: key }), isNew: true })} />}
@@ -293,8 +297,12 @@ function App() {
       <DetailDrawer job={selectedJob} onClose={() => setSelected(null)} onAdvance={(id) => store.advance(id)} onSetMat={store.setMat}
         currentUser={auth.current} canManage={can(role, "delJob")} stock={stock}
         onSaveBOQ={(id, boq) => store.patch(id, { boq })}
+        onSurvey={() => openSurvey(selectedJob)}
         priceMap={can(role, "delJob") ? effPriceMap : null}
         onEdit={(id) => { setSelected(null); setForm({ job: store.raw.find((r) => r.id === id), isNew: false }); }} />
+      {surveyJob && <SurveyWizard job={surveyJob} currentUser={auth.current}
+        onClose={() => setSurveyJob(null)}
+        onSave={(survey) => { store.patch(surveyJob.id, { survey }); setSurveyJob(null); }} />}
       {form && <JobForm initial={form.job} isNew={form.isNew} onSave={onSave} onClose={() => setForm(null)} onManageTechs={() => setTechMgr(true)} onManageBrands={() => setBrandMgr(true)} />}
       {techMgr && <TechManager store={techStore} onClose={() => setTechMgr(false)} />}
       {brandMgr && <BrandManager store={brandStore} onClose={() => setBrandMgr(false)} />}
