@@ -277,12 +277,15 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
   );
 }
 
-function Section({ title, icon, children }) {
+function Section({ title, icon, right, children }) {
   const mob = window.matchMedia("(max-width: 860px)").matches;
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: mob ? 14 : 18 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 14, display: "flex", alignItems: "center", gap: 7 }}>
-        <Icon name={icon} size={14} color="var(--primary)" /> {title}
+      <div style={{ marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--text-3)", display: "flex", alignItems: "center", gap: 7 }}>
+          <Icon name={icon} size={14} color="var(--primary)" /> {title}
+        </span>
+        {right}
       </div>
       {children}
     </div>

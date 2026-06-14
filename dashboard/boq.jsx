@@ -58,6 +58,13 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const setUpFlexSize = (size, v) => setB((p) => { const c = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit); c.upFlex = Object.assign({}, c.upFlex, { [size]: v }); return Object.assign({}, p, { conduit: c }); });
   const SPARE_DEF = { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10, upStraight: 10, upClamp: 10, upConnector: 10 };
   const setCSpare = (k, v) => setB((p) => Object.assign({}, p, { conduitSpare: Object.assign({}, SPARE_DEF, p.conduitSpare, { [k]: v }) }));
+  // งานเพิ่มเติม (Input) — โครงสร้างบนหลังคา
+  const STRUCT_DEF = { ladder: [], walkway: [], guardrail: [] };
+  const st = Object.assign({}, STRUCT_DEF, b.struct);
+  const setStruct = (kind, i, k, v) => setB((p) => { const s = Object.assign({}, STRUCT_DEF, p.struct); const a = (s[kind] || []).slice(); a[i] = Object.assign({}, a[i], { [k]: v }); s[kind] = a; return Object.assign({}, p, { struct: s }); });
+  const addStruct = (kind, item) => setB((p) => { const s = Object.assign({}, STRUCT_DEF, p.struct); s[kind] = (s[kind] || []).concat([item]); return Object.assign({}, p, { struct: s }); });
+  const delStruct = (kind, i) => setB((p) => { const s = Object.assign({}, STRUCT_DEF, p.struct); s[kind] = (s[kind] || []).filter((_, j) => j !== i); return Object.assign({}, p, { struct: s }); });
+  const [advS, setAdvS] = React.useState(false);
   const [advC, setAdvC] = React.useState(false);
   const [advU, setAdvU] = React.useState(false);
   const csp = Object.assign({}, SPARE_DEF, b.conduitSpare);
@@ -100,7 +107,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
   const opt = (arr) => arr.map((x) => ({ value: x, label: typeof x === "string" ? x.trim() : x }));
 
-  const GROUP_COLOR = { "PV MODULE": "#22A35B", INVERTER: "#7C5CFC", "COMBINER BOX": "#4F46E5", MOUNTING: "#F59E0B", CABLE: "#0EA5E9", "RACE WAY": "#64748B", GROUNDING: "#A16207", ACCESSORIES: "#EC4899" };
+  const GROUP_COLOR = { "PV MODULE": "#22A35B", INVERTER: "#7C5CFC", "COMBINER BOX": "#4F46E5", MOUNTING: "#F59E0B", CABLE: "#0EA5E9", "RACE WAY": "#64748B", GROUNDING: "#A16207", "LADDER (บันไดลิง)": "#0D9488", "WALKWAY": "#D97706", "GUARD RAIL": "#DB2777", ACCESSORIES: "#EC4899" };
 
   // ── Accessories: เพิ่มของ / ดึงจากราคาวัสดุ + คลังสินค้า ──
   const stockItems = (stock && stock.items) || [];
@@ -158,6 +165,28 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           </div>
         ))}
         <button onClick={() => addCond(kind, { size: sizes[0], [valKey]: 0 })} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่ม {label}</button>
+      </div>
+    </div>
+  );
+
+  // บล็อกกรอกงานโครงสร้าง (LADDER/WALKWAY/GUARD RAIL) — แต่ละ "จุด/แนว" = 1 แถว
+  const StructBlock = ({ kind, label, color, addLabel, cols, blank }) => (
+    <div style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 12, background: "var(--surface2)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 9 }}>
+        <span style={{ width: 9, height: 9, borderRadius: 3, background: color }} />
+        <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>{label}</span>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+        {(st[kind] || []).map((x, i) => (
+          <div key={i} style={{ display: "grid", gridTemplateColumns: cols.map(() => "1fr").join(" ") + " 36px", gap: 8, alignItems: "center" }}>
+            {cols.map((c) => (
+              <input key={c.k} type="number" style={numStyle} value={x[c.k] != null ? x[c.k] : ""} placeholder={c.ph}
+                onChange={(e) => setStruct(kind, i, c.k, e.target.value)} />
+            ))}
+            <button onClick={() => delStruct(kind, i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
+          </div>
+        ))}
+        <button onClick={() => addStruct(kind, Object.assign({}, blank))} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> {addLabel}</button>
       </div>
     </div>
   );
@@ -372,6 +401,24 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 {[...new Set((cond.upvc || []).map((x) => (x.size || "").trim()).filter(Boolean))].map((sz) => (
                   <Field key={sz} label={"ท่ออ่อนขาว " + ((sz.match(/(\d+)\s*mm/) || [])[1] || "") + "mm (กล่อง)"}><input type="number" style={numStyle} value={(cond.upFlex || {})[sz] != null ? cond.upFlex[sz] : 1} onChange={(e) => setUpFlexSize(sz, e.target.value)} /></Field>
                 ))}
+              </div>
+            )}
+          </Section>
+
+          {/* ── งานเพิ่มเติม (Input): โครงสร้างบนหลังคา ── */}
+          <Section title="งานเพิ่มเติม (Input) — โครงสร้าง" icon="box"
+            right={<button onClick={() => setAdvS((v) => !v)} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 8, padding: "6px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name={advS ? "chevronDown" : "plus"} size={13} color="var(--text-2)" style={{ transform: advS ? "rotate(180deg)" : "none" }} /> {advS ? "ซ่อน" : "กรอกข้อมูล"}</button>}>
+            <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>
+              เลือกกรอกเฉพาะงานที่มีในโครงการ — ระบบจะถอดวัสดุเพิ่มลงรายการ BOQ ให้อัตโนมัติ (งานที่ไม่กรอก จะไม่ถูกถอด)
+            </div>
+            {advS && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 14 }}>
+                <StructBlock kind="ladder" label="LADDER (บันไดลิง)" color="#0D9488" addLabel="เพิ่มจุด"
+                  cols={[{ k: "h", ph: "ความสูง (m)" }]} blank={{ h: "" }} />
+                <StructBlock kind="walkway" label="WALKWAY" color="#D97706" addLabel="เพิ่มแนว"
+                  cols={[{ k: "len", ph: "ความยาวแนว (m)" }]} blank={{ len: "" }} />
+                <StructBlock kind="guardrail" label="GUARD RAIL" color="#DB2777" addLabel="เพิ่มจุด"
+                  cols={[{ k: "len", ph: "ความยาว layout (m)" }, { k: "corners", ph: "จำนวนมุม" }]} blank={{ len: "", corners: "" }} />
               </div>
             )}
           </Section>
