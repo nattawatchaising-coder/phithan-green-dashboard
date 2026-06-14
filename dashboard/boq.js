@@ -580,6 +580,20 @@
     add("GROUNDING", 'อุปกรณ์เชื่อมสายกราวด์เทอร์โมเวล 2 ทาง 16 sq.mm Rod 5/8"', "pcs");
     add("GROUNDING", 'อุปกรณ์เชื่อมสายกราวด์เทอร์โมเวล 3 ทาง 16 sq.mm Rod 5/8"', "pcs");
     add("GROUNDING", "GROUNDTESTBOX-PVC-SEC", "pcs");
+    // งานโครงสร้าง (LADDER / WALKWAY / GUARD RAIL) — วัสดุเฉพาะที่ยังไม่อยู่ในหมวดอื่น
+    // (END CLAMP / RAIL / L FEET ใช้ร่วมกับ MOUNTING แล้ว จึงไม่ซ้ำที่นี่)
+    add("LADDER (บันไดลิง)", 'เหล็กกล่องดำ 2"x2"', "เส้น");
+    add("LADDER (บันไดลิง)", 'เหล็กกลมดำ 1"', "เส้น");
+    add("LADDER (บันไดลิง)", "เหล็กแบน 32 มม.", "เส้น");
+    add("LADDER (บันไดลิง)", 'แผ่นเพลท 4"x4"', "แผ่น");
+    add("LADDER (บันไดลิง)", 'พุ๊กเหล็ก 3/8"', "ตัว");
+    add("WALKWAY", "WALKWAY", "แผ่น");
+    add("WALKWAY", "WALKWAY JOINER", "ตัว");
+    add("GUARD RAIL", "เหล็กฉาก 40x40 มม. หนา 4 มม.", "เส้น");
+    add("GUARD RAIL", "สลิงสแตนเลส 6 มม.", "ม.");
+    add("GUARD RAIL", "เกลียวเร่งสแตนเลส 8 มม.", "ตัว");
+    add("GUARD RAIL", "กิ๊บสลิงสแตนเลส 6 มม.", "ตัว");
+    add("GUARD RAIL", "ปลอกอลูมิเนียม 6 มม.", "ตัว");
     return list;
   }
 

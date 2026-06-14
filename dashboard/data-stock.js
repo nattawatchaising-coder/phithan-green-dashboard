@@ -10,6 +10,7 @@
     { key: "invacc",    th: "อุปกรณ์อินเวอร์เตอร์", color: "#9333EA", icon: "settings" },
     { key: "battery",   th: "แบตเตอรี่",       color: "#14B8A6", icon: "battery" },
     { key: "structure", th: "Solar Mounting",    color: "#F59E0B", icon: "box" },
+    { key: "steelwork", th: "งานโครงสร้าง",       color: "#475569", icon: "box" },
     { key: "wiring",    th: "สายไฟ / ไฟฟ้า",   color: "#EF4444", icon: "flow" },
     { key: "conduit",   th: "ท่อร้อยสาย",       color: "#0EA5E9", icon: "menu" },
     { key: "grounding", th: "กราวด์ / กันดูด",  color: "#A16207", icon: "shield" },
@@ -34,6 +35,19 @@
     { id: "IV-13", sku: "WIR-AC16",  name: "สายไฟ AC 16 sq.", cat: "wiring", unit: "เมตร", qty: 880, min: 500, loc: "คลัง E-01" },
     { id: "IV-14", sku: "WIR-DCB",   name: "เบรกเกอร์ DC 1000V", cat: "wiring", unit: "ตัว", qty: 18, min: 20, loc: "คลัง E-02" },
     { id: "IV-15", sku: "BRD-NET30", name: "ตาข่ายกันนก (ม้วน 30 ม.)", cat: "other", unit: "ม้วน", qty: 16, min: 10, loc: "คลัง F-01" },
+    // ── งานโครงสร้าง (LADDER / WALKWAY / GUARD RAIL) — ถอดจากสูตร BOQ ──
+    { id: "IV-16", sku: "STW-0001", name: 'เหล็กกล่องดำ 2"x2"', cat: "steelwork", unit: "เส้น", qty: 0, min: 0, loc: "" },
+    { id: "IV-17", sku: "STW-0002", name: 'เหล็กกลมดำ 1"', cat: "steelwork", unit: "เส้น", qty: 0, min: 0, loc: "" },
+    { id: "IV-18", sku: "STW-0003", name: "เหล็กแบน 32 มม.", cat: "steelwork", unit: "เส้น", qty: 0, min: 0, loc: "" },
+    { id: "IV-19", sku: "STW-0004", name: 'แผ่นเพลท 4"x4"', cat: "steelwork", unit: "แผ่น", qty: 0, min: 0, loc: "" },
+    { id: "IV-20", sku: "STW-0005", name: 'พุ๊กเหล็ก 3/8"', cat: "steelwork", unit: "ตัว", qty: 0, min: 0, loc: "" },
+    { id: "IV-21", sku: "STW-0006", name: "WALKWAY", cat: "steelwork", unit: "แผ่น", qty: 0, min: 0, loc: "" },
+    { id: "IV-22", sku: "STW-0007", name: "WALKWAY JOINER", cat: "steelwork", unit: "ตัว", qty: 0, min: 0, loc: "" },
+    { id: "IV-23", sku: "STW-0008", name: "เหล็กฉาก 40x40 มม. หนา 4 มม.", cat: "steelwork", unit: "เส้น", qty: 0, min: 0, loc: "" },
+    { id: "IV-24", sku: "STW-0009", name: "สลิงสแตนเลส 6 มม.", cat: "steelwork", unit: "ม.", qty: 0, min: 0, loc: "" },
+    { id: "IV-25", sku: "STW-0010", name: "เกลียวเร่งสแตนเลส 8 มม.", cat: "steelwork", unit: "ตัว", qty: 0, min: 0, loc: "" },
+    { id: "IV-26", sku: "STW-0011", name: "กิ๊บสลิงสแตนเลส 6 มม.", cat: "steelwork", unit: "ตัว", qty: 0, min: 0, loc: "" },
+    { id: "IV-27", sku: "STW-0012", name: "ปลอกอลูมิเนียม 6 มม.", cat: "steelwork", unit: "ตัว", qty: 0, min: 0, loc: "" },
   ];
 
   const MOVES = [
@@ -53,9 +67,9 @@
   SF.MOVES_SEED = MOVES;
 
   // ── รหัสวัสดุ (mat code) — auto-gen ตามหมวด, แก้ทับได้ ──
-  SF.MAT_PREFIX = { panel: "PNL", inverter: "INV", invacc: "INVA", battery: "BAT", structure: "MT", wiring: "WIR", conduit: "CDT", grounding: "GND", electrical: "ELC", accessory: "ACS", other: "GEN" };
+  SF.MAT_PREFIX = { panel: "PNL", inverter: "INV", invacc: "INVA", battery: "BAT", structure: "MT", steelwork: "STW", wiring: "WIR", conduit: "CDT", grounding: "GND", electrical: "ELC", accessory: "ACS", other: "GEN" };
   // กลุ่มราคา BOQ → หมวดคลังสินค้า (เวลา auto-สร้างวัสดุจากหน้าราคา)
-  SF.BOQ_GROUP_TO_CAT = { "PV MODULE": "panel", INVERTER: "inverter", MOUNTING: "structure", CABLE: "wiring", "RACE WAY": "conduit", GROUNDING: "grounding", ACCESSORIES: "accessory" };
+  SF.BOQ_GROUP_TO_CAT = { "PV MODULE": "panel", INVERTER: "inverter", MOUNTING: "structure", CABLE: "wiring", "RACE WAY": "conduit", GROUNDING: "grounding", ACCESSORIES: "accessory", "LADDER (บันไดลิง)": "steelwork", WALKWAY: "steelwork", "GUARD RAIL": "steelwork" };
   // สร้างรหัสถัดไปของหมวด เช่น INV-0007 (กันซ้ำกับ used เพิ่มเติมได้)
   SF.genMatCode = function (cat, items, used) {
     const pre = SF.MAT_PREFIX[cat] || "GEN";
