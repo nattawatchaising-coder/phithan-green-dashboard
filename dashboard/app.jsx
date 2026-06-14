@@ -2,14 +2,18 @@
    SolarFlow / PHITHAN GREEN — main app shell
    ============================================================ */
 
+const OFFICE = ["admin", "manager", "tech"];
 const NAV = [
-  { key: "overview", th: "ภาพรวม",      en: "Overview",  icon: "grid" },
-  { key: "board",    th: "บอร์ดงาน",     en: "Workflow",  icon: "kanban" },
-  { key: "table",    th: "ฐานข้อมูลงาน",  en: "Database",  icon: "table" },
-  { key: "survey",   th: "สำรวจหน้างาน",  en: "Site Survey", icon: "list" },
-  { key: "calendar", th: "ปฏิทินนัด",     en: "Calendar",  icon: "calendar" },
-  { key: "stock",    th: "คลังสินค้า",    en: "Inventory", icon: "box" },
+  { key: "overview",   th: "ภาพรวม",         en: "Overview",      icon: "grid",     roles: OFFICE },
+  { key: "board",      th: "บอร์ดงาน",        en: "Workflow",      icon: "kanban",   roles: OFFICE },
+  { key: "table",      th: "ฐานข้อมูลงาน",     en: "Database",      icon: "table",    roles: OFFICE },
+  { key: "survey",     th: "สถานะสำรวจ",       en: "Survey Status", icon: "list",     roles: ["admin", "manager"] },
+  { key: "dispatch",   th: "จัดตารางสำรวจ",    en: "Dispatch",      icon: "calendar", roles: ["admin", "manager"] },
+  { key: "myschedule", th: "ตารางงานของฉัน",   en: "My Schedule",   icon: "list",     roles: ["survey"] },
+  { key: "calendar",   th: "ปฏิทินนัด",        en: "Calendar",      icon: "calendar", roles: OFFICE },
+  { key: "stock",      th: "คลังสินค้า",       en: "Inventory",     icon: "box",      roles: OFFICE },
 ];
+const navForRole = (role) => NAV.filter((n) => !n.roles || n.roles.includes(role));
 
 const ROLES = [
   { key: "admin",   th: "แอดมิน / ออฟฟิศ", icon: "users" },
@@ -82,6 +86,7 @@ function App() {
   const auth = useAuthStore();
   const notif = useNotifStore();
   const priceStore = usePriceStore();
+  const apptStore = useSurveyApptStore();
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [view, setView] = React.useState("overview");
   const [search, setSearch] = React.useState("");
@@ -92,6 +97,7 @@ function App() {
   const [selected, setSelected] = React.useState(null);
   const [form, setForm] = React.useState(null); // {job, isNew}
   const [surveyJob, setSurveyJob] = React.useState(null); // งานที่กำลังเปิด wizard สำรวจหน้างาน
+  const [surveyAppt, setSurveyAppt] = React.useState(null); // นัดหมายที่เปิด wizard มา (ถ้ามี) — ใช้ลิงก์ + ปิดสถานะ
   const [techMgr, setTechMgr] = React.useState(false);
   const [brandMgr, setBrandMgr] = React.useState(false);
   const [userMgr, setUserMgr] = React.useState(false);
@@ -107,6 +113,13 @@ function App() {
 
   // Auto-close sidebar when resizing to desktop
   React.useEffect(() => { if (!isMobile) setSidebarOpen(false); }, [isMobile]);
+
+  // เมื่อล็อกอิน/เปลี่ยนสิทธิ์ — ถ้าหน้าปัจจุบันไม่อยู่ในสิทธิ์ ให้ไปหน้าเริ่มต้นตาม role
+  React.useEffect(() => {
+    if (!auth.current) return;
+    const allowed = navForRole(role).map((n) => n.key);
+    if (!allowed.includes(view)) setView(role === "survey" ? "myschedule" : "overview");
+  }, [auth.current, role]);
 
   React.useEffect(() => { applyTheme(t); }, [t]);
 
@@ -148,7 +161,7 @@ function App() {
 
   // แจ้งเตือนงานล่าช้าตามขั้น (Flow) — คำนวณสด: tech เห็นเฉพาะงานตัวเอง, admin/manager เห็นทุกงาน
   const lateAlerts = React.useMemo(() => {
-    const scope = role === "tech" ? jobs.filter((j) => j.tech === techId) : jobs;
+    const scope = role === "tech" ? jobs.filter((j) => j.tech === techId) : (can(role, "viewAll") ? jobs : []);
     const out = [];
     scope.forEach((j) => (j.lateStages || []).forEach((ls) => out.push({ jobId: j.id, jobName: j.name, stage: ls })));
     return out.sort((a, b) => b.stage.daysLate - a.stage.daysLate);
@@ -156,7 +169,7 @@ function App() {
 
   // งานที่ต้องทำวันนี้ — today อยู่ในช่วง [เริ่ม..เสร็จ] (งานหลายวันขึ้นทุกวันที่กำลังทำ)
   const todayTasks = React.useMemo(() => {
-    const scope = role === "tech" ? jobs.filter((j) => j.tech === techId) : jobs;
+    const scope = role === "tech" ? jobs.filter((j) => j.tech === techId) : (can(role, "viewAll") ? jobs : []);
     const today = window.SF.TODAY;
     const out = [];
     scope.forEach((j) => {
@@ -210,7 +223,7 @@ function App() {
 
   const closeSidebar = () => setSidebarOpen(false);
   const openJob = (j) => setSelected(j.id);
-  const openSurvey = (j) => setSurveyJob(j);
+  const openSurvey = (j, appt) => { setSurveyJob(j); setSurveyAppt(appt || null); };
   const selectedJob = jobs.find((j) => j.id === selected) || null;
 
   const onSave = (rec) => {
@@ -263,6 +276,14 @@ function App() {
         {view === "stock" ? (
           <StockView stock={stock} onMenuOpen={() => setSidebarOpen(true)} currentUser={auth.current} jobs={jobs}
             priceStore={priceStore} canManagePrices={can(role, "delJob")} />
+        ) : view === "dispatch" ? (
+          <DispatchView appts={apptStore.appts} jobs={jobs} techs={techStore.techs} store={apptStore}
+            onMenuOpen={() => setSidebarOpen(true)} onOpenJob={openJob} />
+        ) : view === "myschedule" ? (
+          <MyScheduleView appts={apptStore.appts} jobs={jobs} me={auth.current}
+            onMenuOpen={() => setSidebarOpen(true)}
+            onStatus={(id, s) => apptStore.setStatus(id, s)}
+            onOpenSurvey={(j, appt) => openSurvey(j, appt)} />
         ) : (
         <React.Fragment>
         <Header view={view} role={role} count={filtered.length} total={jobs.length}
@@ -297,12 +318,17 @@ function App() {
       <DetailDrawer job={selectedJob} onClose={() => setSelected(null)} onAdvance={(id) => store.advance(id)} onSetMat={store.setMat}
         currentUser={auth.current} canManage={can(role, "delJob")} stock={stock}
         onSaveBOQ={(id, boq) => store.patch(id, { boq })}
-        onSurvey={() => openSurvey(selectedJob)}
+        onSurvey={(can(role, "doSurvey") || can(role, "dispatch")) ? () => openSurvey(selectedJob) : null}
         priceMap={can(role, "delJob") ? effPriceMap : null}
         onEdit={(id) => { setSelected(null); setForm({ job: store.raw.find((r) => r.id === id), isNew: false }); }} />
       {surveyJob && <SurveyWizard job={surveyJob} currentUser={auth.current}
-        onClose={() => setSurveyJob(null)}
-        onSave={(survey) => { store.patch(surveyJob.id, { survey }); setSurveyJob(null); }} />}
+        onClose={() => { setSurveyJob(null); setSurveyAppt(null); }}
+        onSave={(survey) => {
+          const s = surveyAppt ? Object.assign({}, survey, { appointmentId: surveyAppt.id }) : survey;
+          store.patch(surveyJob.id, { survey: s });
+          if (surveyAppt) apptStore.setStatus(surveyAppt.id, "done"); // เสร็จแบบสำรวจ → ปิดนัด
+          setSurveyJob(null); setSurveyAppt(null);
+        }} />}
       {form && <JobForm initial={form.job} isNew={form.isNew} onSave={onSave} onClose={() => setForm(null)} onManageTechs={() => setTechMgr(true)} onManageBrands={() => setBrandMgr(true)} />}
       {techMgr && <TechManager store={techStore} onClose={() => setTechMgr(false)} />}
       {brandMgr && <BrandManager store={brandStore} onClose={() => setBrandMgr(false)} />}
@@ -356,7 +382,7 @@ function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, currentUser
       </div>
 
       <nav className="sidebar-nav">
-        {NAV.map((n) => {
+        {navForRole(role).map((n) => {
           const active = view === n.key;
           return (
             <button key={n.key} onClick={() => onNav(n.key)} className={"nav-item" + (active ? " active" : "")} title={n.th}>

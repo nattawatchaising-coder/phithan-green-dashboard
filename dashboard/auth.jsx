@@ -32,12 +32,15 @@ const ROLE_INFO = {
   admin:   { th: "แอดมิน / ออฟฟิศ", icon: "users",  color: "#22A35B" },
   manager: { th: "ผู้จัดการ",        icon: "user",   color: "#3B82F6" },
   tech:    { th: "ช่างติดตั้ง",      icon: "wrench", color: "#F59E0B" },
+  survey:  { th: "วิศวกรสำรวจ",      icon: "list",   color: "#0EA5E9" },
 };
 
+// dispatch = เข้าถึงปฏิทินจ่ายงานสำรวจ · doSurvey = เปิดฟอร์มสำรวจหน้างานได้
 const PERMS = {
-  admin:   { viewAll: true,  addJob: true,  editJob: true, delJob: true,  stock: true, manageUsers: true  },
-  manager: { viewAll: true,  addJob: true,  editJob: true, delJob: true,  stock: true, manageUsers: false },
-  tech:    { viewAll: false, addJob: false, editJob: true, delJob: false, stock: true, manageUsers: false },
+  admin:   { viewAll: true,  addJob: true,  editJob: true, delJob: true,  stock: true, manageUsers: true,  dispatch: true,  doSurvey: true  },
+  manager: { viewAll: true,  addJob: true,  editJob: true, delJob: true,  stock: true, manageUsers: false, dispatch: true,  doSurvey: false },
+  tech:    { viewAll: false, addJob: false, editJob: true, delJob: false, stock: true, manageUsers: false, dispatch: false, doSurvey: false },
+  survey:  { viewAll: false, addJob: false, editJob: false, delJob: false, stock: false, manageUsers: false, dispatch: false, doSurvey: true  },
 };
 function can(role, action) { return !!(PERMS[role] && PERMS[role][action]); }
 
@@ -411,12 +414,13 @@ function UserEditModal({ initial, existing, onSave, onClose }) {
               <option value="admin">แอดมิน / ออฟฟิศ — ควบคุมทั้งหมด</option>
               <option value="manager">ผู้จัดการ — ดูทั้งหมด + แก้ไขงาน</option>
               <option value="tech">ช่างติดตั้ง — เห็นเฉพาะงานตัวเอง</option>
+              <option value="survey">วิศวกรสำรวจ — เห็นเฉพาะนัดสำรวจของตัวเอง</option>
             </select>
           </AField>
-          {f.role === "tech" && (
-            <AField label="ผูกกับช่างในระบบ (เพื่อกรองงาน)">
+          {(f.role === "tech" || f.role === "survey") && (
+            <AField label={f.role === "survey" ? "ผูกกับวิศวกร/พนักงานในระบบ (เพื่อรับนัดสำรวจ)" : "ผูกกับช่างในระบบ (เพื่อกรองงาน)"}>
               <select style={A_INPUT} value={f.techId || ""} onChange={(e) => set("techId", e.target.value || null)}>
-                <option value="">— เลือกช่าง —</option>
+                <option value="">— เลือกพนักงาน —</option>
                 {SF.TECHS.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.role})</option>)}
               </select>
             </AField>
@@ -437,6 +441,7 @@ function UserEditModal({ initial, existing, onSave, onClose }) {
               if (!f.name.trim()) { alert("กรุณากรอกชื่อผู้ใช้"); return; }
               if (!String(f.pin).trim()) { alert("กรุณากรอกรหัส PIN"); return; }
               if (f.role === "tech" && !f.techId) { alert("กรุณาเลือกช่างที่ผูกกับบัญชีนี้"); return; }
+              if (f.role === "survey" && !f.techId) { alert("กรุณาเลือกวิศวกรที่ผูกกับบัญชีนี้"); return; }
               onSave(Object.assign({}, f, { name: f.name.trim(), pin: String(f.pin).trim() }));
             }}
             style={{ flex: isMobile ? 1 : "none", padding: "11px 22px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>บันทึก</button>
