@@ -117,6 +117,50 @@
 
   const ROOF_OPTIONS = ROOF_HOOKS.map((r) => r.roof);
 
+  // ── ตาราง OD สายไฟ (mm) ตามชนิด + ขนาด sq.mm — อ้างอิง "คำนวณ BOQ.xlsx" ──
+  const CABLE_OD = {
+    "CV FD 4C":    {2.5:13.5,4:14.5,6:16,10:17.5,16:20,25:24,35:27,50:30,70:35,95:39,120:44,150:49,185:54,240:61,300:68,400:76},
+    "CV FD 3C":    {2.5:12.5,4:13.5,6:15,10:16,16:18,25:22,35:24,50:27,70:31,95:36,120:39,150:44,185:49,240:55,300:61,400:68},
+    "CV FD 2C":    {2.5:12,4:13,6:14,10:15,16:17,25:21,35:23,50:26,70:29,95:33,120:37,150:41,185:45,240:51,300:56,400:63},
+    "CV FD 1C":    {1.5:6.3,2.5:6.8,4:7.3,6:7.9,10:8.4,16:9.4,25:11,35:12,50:13.5,70:15,95:17.5,120:19,150:21,185:23,240:26,300:29,400:32,500:36,630:40,800:45,1000:51},
+    "IEC01 (THW)": {2.5:4,4:4.6,6:5.2,10:6.7,16:7,25:9.7,35:10.9,50:12.8,70:14.6,95:17.1,120:18.8,150:20.9,185:23.3,240:26.6,300:29.6,400:33.2},
+    "PV Cable":    {4:5,6:6.5},
+  };
+  // ท่อ HDPE: ขนาดนอก (mm) → เส้นผ่าน ID (mm) — fill limit 40%
+  const HDPE_TABLE = [
+    {mm:20,id:16.04},{mm:25,id:21.4},{mm:32,id:28},{mm:40,id:35.4},{mm:50,id:44.2},
+    {mm:63,id:55.8},{mm:75,id:66.4},{mm:90,id:79.8},{mm:110,id:97.4},{mm:125,id:110.8},
+    {mm:140,id:120},{mm:160,id:141.8},{mm:180,id:159.6},{mm:200,id:177.2},
+  ];
+  // ท่อ IMC: ขนาดนิ้ว → เส้นผ่าน ID (mm) — fill limit 40%
+  const IMC_CONDUIT = [
+    {sz:'1/2"',id:18.91},{sz:'3/4"',id:24.24},{sz:'1"',id:30.61},{sz:'1-1/4"',id:39.43},
+    {sz:'1-1/2"',id:45.52},{sz:'2"',id:57.52},{sz:'2-1/2"',id:69},{sz:'3"',id:84.73},{sz:'4"',id:109.84},
+  ];
+  // พื้นที่ตัดขวางสาย (mm²) จาก OD ในตาราง
+  function wireArea(type, sqmm) { const od = (CABLE_OD[type] || {})[+sqmm]; return od ? Math.PI * (od / 2) * (od / 2) : 0; }
+  // ตรวจสอบ WIRE WAY: fill ≤ 20% ของพื้นที่ราง W×H
+  function calcWireWay(cables, wayW, wayH) {
+    let total = 0;
+    (cables || []).forEach(function (c) { total += wireArea(c.type, c.size) * (+c.qty || 0); });
+    const area = (+wayW || 0) * (+wayH || 0);
+    const pct = area > 0 ? (total / area) * 100 : 0;
+    return { totalArea: total, wayArea: area, fillPct: pct, ok: pct <= 20 };
+  }
+  // หาขนาดท่อขั้นต่ำที่รับสายได้ fill ≤ 40%
+  function calcConduitSize(cables) {
+    let total = 0;
+    (cables || []).forEach(function (c) { total += wireArea(c.type, c.size) * (+c.qty || 0); });
+    function find(table, keyFn) {
+      for (var i = 0; i < table.length; i++) {
+        var r = table[i]; var a = Math.PI * (r.id / 2) * (r.id / 2);
+        if (a * 0.40 >= total) return { label: keyFn(r), fillPct: total / a * 100 };
+      }
+      return null;
+    }
+    return { totalArea: total, hdpe: find(HDPE_TABLE, function (r) { return r.mm + "mm"; }), imc: find(IMC_CONDUIT, function (r) { return r.sz; }) };
+  }
+
   function blankBOQ(job) {
     job = job || {};
     return {
@@ -150,6 +194,8 @@
       },
       jobType: (job && job.type) || "",
       accessories: [],
+      wirecheck: { wayW: 100, wayH: 100, cables: [] },
+      conduitcheck: { cables: [] },
     };
   }
 
@@ -590,5 +636,5 @@
     out.forEach((x) => INVERTERS.push(x));
   }
 
-  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_POINTS, DEFAULT_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, blankBOQ, calcBOQ, calcStructures, matKey, catalog, applyPrices, setPanels, setInverters };
+  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_POINTS, DEFAULT_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, catalog, applyPrices, setPanels, setInverters };
 })();
