@@ -454,9 +454,9 @@ function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey, o
 
   const todayY = _ymdLocal(new Date());
   const groups = [
+    { key: "past", th: "เลยกำหนด / ผ่านมา", items: items.filter((it) => it.day && it.day < todayY) },
     { key: "today", th: "วันนี้", items: items.filter((it) => it.day === todayY) },
     { key: "upcoming", th: "กำลังจะถึง", items: items.filter((it) => it.day && it.day > todayY) },
-    { key: "past", th: "เลยกำหนด / ผ่านมา", items: items.filter((it) => it.day && it.day < todayY) },
     { key: "nodate", th: "ไม่ระบุวันที่", items: items.filter((it) => !it.day) },
   ].filter((g) => g.items.length);
 
