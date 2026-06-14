@@ -254,6 +254,60 @@ function SurveyApptModal({ initial, jobs, techs, appts, onClose, onSave, onDelet
   );
 }
 
+/* ── เวิร์กโฟลว์งานสำรวจ (ขั้นตอนเชิงเส้นที่วิศวกรเดินผ่าน) ──
+   นัดหมาย → ออกเดินทาง → เช็คอินถึงไซต์ → ทำแบบสำรวจ(เสร็จ)
+   stamp = ฟิลด์เวลาที่ store.setStatus บันทึกไว้ตอนกดเลื่อนสถานะ */
+const APPT_FLOW = [
+  { key: "scheduled", th: "รับงาน / นัดหมาย", stamp: null },
+  { key: "transit",   th: "ออกเดินทาง",       stamp: "transitAt",   enterCta: "เริ่มเดินทาง",      enterIcon: "map" },
+  { key: "progress",  th: "เช็คอิน · ถึงไซต์", stamp: "arrivedAt",   enterCta: "เช็คอิน · ถึงไซต์",  enterIcon: "pin" },
+  { key: "done",      th: "ทำแบบสำรวจเสร็จ",   stamp: "completedAt", enterCta: "เปิดแบบสำรวจ",       enterIcon: "list" },
+];
+function flowCta(bg) { return { marginTop: 8, display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: 10, border: "none", background: bg, color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }; }
+
+// timeline ขั้นตอนงานสำรวจในการ์ด — ติ๊กถูกขั้นที่เสร็จ + เวลาจริง, ขั้นถัดไปกดเลื่อนได้
+function ApptFlow({ a, job, onStatus, onOpenSurvey }) {
+  const idx = APPT_FLOW.findIndex((s) => s.key === a.status); // -1 ถ้ายกเลิก/เลื่อนนัด
+  return (
+    <div style={{ paddingLeft: 2 }}>
+      {APPT_FLOW.map((s, i) => {
+        const reached = i <= idx;                 // ผ่าน/อยู่ขั้นนี้แล้ว
+        const isNext = i === idx + 1;             // ขั้นถัดไปที่ต้องทำ
+        const last = i === APPT_FLOW.length - 1;
+        const time = s.stamp && a[s.stamp] ? _hm(a[s.stamp]) : (i === 0 && a.start ? _hm(a.start) : "");
+        return (
+          <div key={s.key} style={{ display: "flex", gap: 11 }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <span style={{ width: 22, height: 22, borderRadius: 99, flexShrink: 0, display: "grid", placeItems: "center",
+                background: reached ? "var(--primary)" : isNext ? "var(--surface)" : "var(--surface3)",
+                border: isNext ? "2px solid var(--primary)" : "2px solid transparent", color: "#fff" }}>
+                {reached ? <Icon name="check" size={12} color="#fff" sw={2.6} />
+                  : isNext ? <span style={{ width: 7, height: 7, borderRadius: 99, background: "var(--primary)" }} />
+                  : <span style={{ width: 6, height: 6, borderRadius: 99, background: "var(--text-3)" }} />}
+              </span>
+              {!last && <span style={{ width: 2, flex: 1, minHeight: 18, background: i < idx ? "var(--primary)" : "var(--border)", margin: "2px 0" }} />}
+            </div>
+            <div style={{ flex: 1, minWidth: 0, paddingBottom: last ? 0 : 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 13, fontWeight: reached || isNext ? 700 : 600, color: reached || isNext ? "var(--text-1)" : "var(--text-3)" }}>{s.th}</span>
+                {time && <span style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--mono)" }}>{time}</span>}
+              </div>
+              {/* ปุ่มเลื่อน — แสดงบน "ขั้นถัดไป" ที่ต้องทำ (กดเพื่อเข้าสู่ขั้นนั้น) */}
+              {isNext && (
+                s.key === "done"
+                  ? (job ? <button onClick={() => onOpenSurvey(job, a)} style={flowCta("var(--primary)")}><Icon name={s.enterIcon} size={14} color="#fff" /> {s.enterCta}</button>
+                         : <div style={{ fontSize: 11.5, color: "#EF4444", marginTop: 6, fontWeight: 600 }}>ไม่พบงานที่ผูกไว้</div>)
+                  : <button onClick={() => onStatus(a.id, s.key)} style={flowCta((APPT_STATUS_BY[s.key] || {}).color || "var(--primary)")}><Icon name={s.enterIcon} size={14} color="#fff" /> {s.enterCta}</button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+      {a.status === "done" && job && <button onClick={() => onOpenSurvey(job, a)} style={{ width: "100%", marginTop: 4, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--primary-dark)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}><Icon name="check" size={14} color="var(--primary-dark)" /> ดู / แก้ไขแบบสำรวจ</button>}
+    </div>
+  );
+}
+
 /* ============================================================
    MY SCHEDULE — ตารางงานของวิศวกรสำรวจ (mobile) + ปุ่มเลื่อนสถานะ
    ============================================================ */
@@ -289,6 +343,7 @@ function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey })
               {g.items.map((a) => {
                 const job = jobsById[a.projectId];
                 const stt = APPT_STATUS_BY[a.status] || APPT_STATUS_BY.scheduled;
+                const idx = APPT_FLOW.findIndex((s) => s.key === a.status);
                 const sv = job && window.surveyStatus ? window.surveyStatus(job) : null;
                 const mapHref = job && job.map ? job.map : (a.address ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent((a.address || "") + " " + (a.province || "")) : null);
                 return (
@@ -303,20 +358,18 @@ function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey })
                       <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)" }}>{a.jobName || (job && job.name) || "—"}</div>
                       <div style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "flex-start", gap: 6 }}>
                         <Icon name="pin" size={13} color="var(--text-3)" style={{ flexShrink: 0, marginTop: 1 }} />
-                        <span>{a.address || "-"}{a.province ? ", " + a.province : ""}</span>
+                        <span style={{ flex: 1, minWidth: 0 }}>{a.address || "-"}{a.province ? ", " + a.province : ""}</span>
+                        {mapHref && <a href={mapHref} target="_blank" rel="noreferrer" style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3, color: "var(--primary-dark)", fontWeight: 700, fontSize: 11.5, textDecoration: "none" }}><Icon name="map" size={12} color="var(--primary-dark)" /> นำทาง</a>}
                       </div>
                       {a.phone && <div style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "center", gap: 6 }}><Icon name="phone" size={13} color="var(--text-3)" /><a href={"tel:" + a.phone} style={{ color: "var(--primary-dark)", textDecoration: "none", fontWeight: 600 }}>{a.phone}</a></div>}
                       {a.notes && <div style={{ fontSize: 12, color: "var(--text-2)", background: "var(--surface2)", borderRadius: 8, padding: "7px 10px" }}>📝 {a.notes}</div>}
                       {a.status === "done" && sv && <div style={{ fontSize: 12, color: "var(--primary-dark)", fontWeight: 700 }}>แบบสำรวจ: {sv.label} · {sv.pct}%</div>}
                     </div>
-                    {/* แถบปุ่มเลื่อนสถานะ */}
-                    <div style={{ display: "flex", gap: 8, padding: 12, paddingTop: 0 }}>
-                      {mapHref && <a href={mapHref} target="_blank" rel="noreferrer" style={{ flex: "0 0 auto", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "11px 13px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, textDecoration: "none" }}><Icon name="map" size={15} color="var(--text-2)" /> นำทาง</a>}
-                      {a.status === "scheduled" && <button onClick={() => onStatus(a.id, "transit")} style={primaryBtn("#F59E0B")}><Icon name="map" size={15} color="#fff" /> เริ่มเดินทาง</button>}
-                      {a.status === "transit" && <button onClick={() => onStatus(a.id, "progress")} style={primaryBtn("#8B5CF6")}><Icon name="pin" size={15} color="#fff" /> เช็คอิน · ถึงไซต์</button>}
-                      {a.status === "progress" && job && <button onClick={() => onOpenSurvey(job, a)} style={primaryBtn("var(--primary)")}><Icon name="list" size={15} color="#fff" /> เปิดแบบสำรวจ</button>}
-                      {a.status === "done" && job && <button onClick={() => onOpenSurvey(job, a)} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--primary-dark)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}><Icon name="check" size={15} color="var(--primary-dark)" /> ดู / แก้ไขแบบสำรวจ</button>}
-                      {a.status === "progress" && !job && <span style={{ flex: 1, fontSize: 12, color: "#EF4444", alignSelf: "center", textAlign: "center" }}>ไม่พบงานที่ผูกไว้</span>}
+                    {/* เวิร์กโฟลว์งานสำรวจ — ติดตามสถานะ + กดเลื่อนขั้น */}
+                    <div style={{ borderTop: "1px solid var(--border)", padding: "13px 14px", background: "var(--surface2)" }}>
+                      {idx >= 0
+                        ? <ApptFlow a={a} job={job} onStatus={onStatus} onOpenSurvey={onOpenSurvey} />
+                        : <div style={{ fontSize: 12.5, fontWeight: 700, color: stt.color }}>{stt.th}</div>}
                     </div>
                   </div>
                 );
@@ -328,6 +381,5 @@ function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey })
     </React.Fragment>
   );
 }
-function primaryBtn(bg) { return { flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px", borderRadius: 11, border: "none", background: bg, color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }; }
 
-Object.assign(window, { useSurveyApptStore, DispatchView, MyScheduleView, SurveyApptModal, apptConflicts, blankAppt, APPT_STATUS, APPT_STATUS_BY });
+Object.assign(window, { useSurveyApptStore, DispatchView, MyScheduleView, SurveyApptModal, ApptFlow, apptConflicts, blankAppt, APPT_STATUS, APPT_STATUS_BY, APPT_FLOW });
