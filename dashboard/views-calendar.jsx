@@ -329,17 +329,27 @@ function DaySidebar({ day, ym, jobs, milestones, todayKey, keyOf, onOpen, canAdd
 
             {list.length > 0 && (
               <React.Fragment>
-                {ms.length > 0 && <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", marginTop: 2 }}>นัดติดตั้ง</div>}
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", marginTop: ms.length > 0 ? 2 : 0 }}>ตารางงาน (ช่วงดำเนินการ)</div>
                 {list.map((j) => {
                   const s = stageOf(j.stage);
                   const c = j.delayed ? "#EF4444" : s.color;
+                  // สถานะของงานเทียบกับ "วันที่เลือก" — เริ่ม / เสร็จ / เริ่ม–เสร็จวันเดียว / กำลังดำเนินการ
+                  const selKey = keyOf(day);
+                  const startsHere = (j.startDate || j.deadline) === selKey;
+                  const endsHere = j.deadline === selKey;
+                  const sched = (startsHere && endsHere) ? { t: "เริ่ม–เสร็จในวันเดียว", solid: true }
+                    : startsHere ? { t: "เริ่มงาน" }
+                    : endsHere ? { t: "ครบกำหนด" }
+                    : { t: "กำลังดำเนินการ" };
                   return (
                     <button key={j.id} onClick={() => onOpen(j)}
                       style={{ display: "flex", alignItems: "center", gap: 11, padding: "12px 13px", width: "100%", textAlign: "left", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit" }}>
                       <span style={{ width: 4, alignSelf: "stretch", borderRadius: 99, background: c, flexShrink: 0 }} />
                       <span style={{ flex: 1, minWidth: 0 }}>
                         <span style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-                          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{j.name}</span>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}>{j.name}</span>
+                          <span style={{ flexShrink: 0, fontSize: 9.5, fontWeight: 700, borderRadius: 99, padding: "1px 7px",
+                            background: sched.solid ? c : c + "1f", color: sched.solid ? "#fff" : c }}>{sched.t}</span>
                           {j.delayed && <span style={{ fontSize: 9.5, fontWeight: 700, color: "#EF4444", background: "#FDE2E2", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>⚠ ล่าช้า</span>}
                         </span>
                         <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: "var(--text-3)" }}>
