@@ -250,28 +250,147 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
   const exportXlsx = () => {
     if (!window.XLSX) { alert("ไม่พบไลบรารี Excel (ลองโหลดหน้าใหม่)"); return; }
-    const aoa = [];
-    aoa.push(["บัญชีแสดงรายการปริมาณวัสดุ - Bill of Materials"]);
-    aoa.push(["โครงการ", job ? job.name : "", "", "รหัสงาน", job ? job.code : ""]);
-    aoa.push(["จำนวนแผง", (result.meta.panelCount || 0) + " แผง", "ขนาดติดตั้ง", (result.meta.kw || 0) + " kW", "วันที่", window.SF.TODAY]);
-    aoa.push([]);
+    const X = window.XLSX;
     const hasPrice = priced.grandTotal > 0;
-    aoa.push(["ลำดับ", "รหัส", "รายการ", "จำนวน", "หน่วย", "ราคา/หน่วย", "ราคารวม"]);
+
+    // ── จานสี (ธีมเขียว PHITHAN GREEN) ──
+    const C = {
+      brand: "1D854B", brandDk: "12603A", brandSoft: "EAF6EF",
+      group: "D6EBDF", alt: "F4FAF6", white: "FFFFFF",
+      border: "CBD8D0", text: "16241D", sub: "5A6B62",
+    };
+    const FONT = "Tahoma"; // รองรับภาษาไทยทุกเครื่อง Windows
+    const thin = { style: "thin", color: { rgb: C.border } };
+    const boxAll = { top: thin, bottom: thin, left: thin, right: thin };
+
+    // ── หัวคอลัมน์ + ความกว้าง ตามว่ามีราคาหรือไม่ ──
+    const cols = hasPrice
+      ? ["ลำดับ", "รหัส", "รายการวัสดุ", "จำนวน", "หน่วย", "ราคา/หน่วย", "ราคารวม"]
+      : ["ลำดับ", "รหัส", "รายการวัสดุ", "จำนวน", "หน่วย"];
+    const lastC = cols.length - 1;
+    const colW = hasPrice
+      ? [{ wch: 7 }, { wch: 15 }, { wch: 50 }, { wch: 10 }, { wch: 8 }, { wch: 13 }, { wch: 15 }]
+      : [{ wch: 7 }, { wch: 17 }, { wch: 54 }, { wch: 10 }, { wch: 10 }];
+
+    const aoa = [];
+    const merges = [];
+    const meta = [];   // ประเภทของแต่ละแถว (ใช้กำหนดสไตล์)
+    const rowsH = [];  // ความสูงแถว (hpt)
+    let R = 0;
+    const pushRow = (cells, type, hpt) => { aoa.push(cells); meta[R] = type; if (hpt) rowsH[R] = { hpt: hpt }; R += 1; };
+    const fullMerge = (r) => merges.push({ s: { r: r, c: 0 }, e: { r: r, c: lastC } });
+
+    // หัวเอกสาร
+    pushRow(["บัญชีแสดงปริมาณวัสดุ (Bill of Quantities)"], "title", 30); fullMerge(R - 1);
+    pushRow(["PHITHAN GREEN · ระบบติดตามงานติดตั้งโซลาร์เซลล์"], "subtitle", 20); fullMerge(R - 1);
+    pushRow([], "spacer", 6);
+
+    // ข้อมูลงาน (ป้าย/ค่า — ค่าผสานช่องที่เหลือ)
+    const info = [
+      ["โครงการ", job ? (job.name || "") : ""],
+      ["รหัสงาน", job ? (job.code || "") : ""],
+      ["ขนาดระบบ", (result.meta.panelCount || 0) + " แผง   ·   " + (result.meta.kw || 0) + " kW"],
+      ["วันที่ออกเอกสาร", window.SF.TODAY || ""],
+    ];
+    info.forEach((row) => {
+      const cells = [row[0]]; for (let i = 1; i <= lastC; i++) cells.push(i === 1 ? row[1] : "");
+      pushRow(cells, "info", 19); merges.push({ s: { r: R - 1, c: 1 }, e: { r: R - 1, c: lastC } });
+    });
+    pushRow([], "spacer", 8);
+
+    // หัวตาราง
+    pushRow(cols, "head", 22);
+
+    // กลุ่ม + รายการ
     let n = 0;
     priced.groups.forEach((g) => {
       n += 1;
-      aoa.push([n, "", g.group, "", "", "", ""]);
+      const grow = ["ลำดับที่ " + n, ""]; for (let i = 2; i <= lastC; i++) grow.push(i === 2 ? g.group : "");
+      pushRow(grow, "group", 20); merges.push({ s: { r: R - 1, c: 2 }, e: { r: R - 1, c: lastC } });
       g.items.forEach((it, k) => {
-        aoa.push([n + "." + (k + 1), it.code || "", it.name, it.qty, it.unit, it.price || "", it.total || ""]);
+        const base = [n + "." + (k + 1), it.code || "", it.name || "", +it.qty || 0, it.unit || ""];
+        if (hasPrice) base.push(it.price || 0, it.total || 0);
+        pushRow(base, k % 2 === 0 ? "item" : "itemAlt");
       });
     });
-    if (hasPrice) { aoa.push([]); aoa.push(["", "", "", "", "", "ต้นทุนรวม", priced.grandTotal]); }
-    const ws = window.XLSX.utils.aoa_to_sheet(aoa);
-    ws["!cols"] = [{ wch: 8 }, { wch: 16 }, { wch: 48 }, { wch: 9 }, { wch: 8 }, { wch: 11 }, { wch: 13 }];
-    const wb = window.XLSX.utils.book_new();
-    window.XLSX.utils.book_append_sheet(wb, ws, "BOQ");
+
+    // รวม
+    if (hasPrice) {
+      pushRow([], "spacer", 6);
+      const trow = []; for (let i = 0; i <= lastC; i++) trow.push("");
+      trow[2] = "ต้นทุนรวมทั้งสิ้น"; trow[lastC] = priced.grandTotal;
+      pushRow(trow, "total", 24);
+      merges.push({ s: { r: R - 1, c: 0 }, e: { r: R - 1, c: lastC - 1 } });
+    }
+
+    // ── สร้างชีต + ลงสไตล์ ──
+    const ws = X.utils.aoa_to_sheet(aoa);
+    ws["!merges"] = merges;
+    ws["!cols"] = colW;
+    ws["!rows"] = rowsH;
+
+    const moneyFmt = '#,##0.00';
+    const qtyFmt = '#,##0.##';
+    const styleCell = (r, c) => {
+      const t = meta[r];
+      if (t === "spacer") return null;
+      const s = { font: { name: FONT, sz: 11, color: { rgb: C.text } }, alignment: { vertical: "center" } };
+      if (t === "title") {
+        s.font = { name: FONT, sz: 16, bold: true, color: { rgb: C.white } };
+        s.fill = { patternType: "solid", fgColor: { rgb: C.brand } };
+        s.alignment = { horizontal: "center", vertical: "center" };
+      } else if (t === "subtitle") {
+        s.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.brandDk } };
+        s.fill = { patternType: "solid", fgColor: { rgb: C.brandSoft } };
+        s.alignment = { horizontal: "center", vertical: "center" };
+      } else if (t === "info") {
+        if (c === 0) { s.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.sub } }; s.alignment = { horizontal: "right", vertical: "center" }; }
+        else { s.font = { name: FONT, sz: 11.5, bold: true, color: { rgb: C.text } }; s.alignment = { horizontal: "left", vertical: "center" }; }
+        s.border = { bottom: thin };
+      } else if (t === "head") {
+        s.font = { name: FONT, sz: 11, bold: true, color: { rgb: C.white } };
+        s.fill = { patternType: "solid", fgColor: { rgb: C.brand } };
+        s.alignment = { horizontal: c === 2 ? "left" : "center", vertical: "center" };
+        s.border = boxAll;
+      } else if (t === "group") {
+        s.font = { name: FONT, sz: 11, bold: true, color: { rgb: C.brandDk } };
+        s.fill = { patternType: "solid", fgColor: { rgb: C.group } };
+        s.alignment = { horizontal: c < 2 ? "center" : "left", vertical: "center" };
+        s.border = boxAll;
+      } else if (t === "item" || t === "itemAlt") {
+        if (t === "itemAlt") s.fill = { patternType: "solid", fgColor: { rgb: C.alt } };
+        s.border = boxAll;
+        if (c === 0) s.alignment = { horizontal: "center", vertical: "center" };
+        else if (c === 1) { s.alignment = { horizontal: "center", vertical: "center" }; s.font = { name: FONT, sz: 9.5, color: { rgb: C.sub } }; }
+        else if (c === 2) s.alignment = { horizontal: "left", vertical: "center", wrapText: true };
+        else if (c === 3) { s.alignment = { horizontal: "right", vertical: "center" }; s.numFmt = qtyFmt; }
+        else if (c === 4) s.alignment = { horizontal: "center", vertical: "center" };
+        else if (c === 5 || c === 6) { s.alignment = { horizontal: "right", vertical: "center" }; s.numFmt = moneyFmt; }
+      } else if (t === "total") {
+        s.font = { name: FONT, sz: 12, bold: true, color: { rgb: C.white } };
+        s.fill = { patternType: "solid", fgColor: { rgb: C.brandDk } };
+        s.alignment = { horizontal: c === lastC ? "right" : "right", vertical: "center" };
+        if (c === lastC) s.numFmt = moneyFmt;
+        s.border = boxAll;
+      }
+      return s;
+    };
+
+    const range = X.utils.decode_range(ws["!ref"]);
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const ref = X.utils.encode_cell({ r: r, c: c });
+        const s = styleCell(r, c);
+        if (!s) continue;
+        if (!ws[ref]) ws[ref] = { t: "s", v: "" };  // สร้างช่องว่างให้พื้น/เส้นขอบขึ้น
+        ws[ref].s = s;
+      }
+    }
+
+    const wb = X.utils.book_new();
+    X.utils.book_append_sheet(wb, ws, "BOQ");
     const fn = "BOQ_" + (job ? job.code : "job") + ".xlsx";
-    window.XLSX.writeFile(wb, fn);
+    X.writeFile(wb, fn);
   };
 
   const numStyle = Object.assign({}, inputStyle, { textAlign: "right" });
@@ -360,7 +479,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               {b.rows.map((r, i) => (
                 <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 40px", gap: 8, alignItems: "center" }}>
                   <Field label={i === 0 ? "แผง/แถว" : ""}><input type="number" style={numStyle} value={r.panels} onChange={(e) => setRow(i, "panels", e.target.value)} /></Field>
-                  <Field label={i === 0 ? "จำนวนแถว" : ""}><input type="number" style={numStyle} value={r.count} onChange={(e) => setRow(i, "count", e.target.value)} /></Field>
+                  <Field label={i === 0 ? "จำนวนแถว" : ""}><input type="number" min="0" style={numStyle} value={r.count} onChange={(e) => setRow(i, "count", e.target.value)} /></Field>
                   <button onClick={() => delRow(i)} title="ลบแถว" style={{ height: 40, marginTop: i === 0 ? 18 : 0, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={15} /></button>
                 </div>
               ))}
