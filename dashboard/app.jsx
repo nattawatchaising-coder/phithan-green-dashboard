@@ -283,7 +283,8 @@ function App() {
           <MyScheduleView appts={apptStore.appts} jobs={jobs} me={auth.current}
             onMenuOpen={() => setSidebarOpen(true)}
             onStatus={(id, s) => apptStore.setStatus(id, s)}
-            onOpenSurvey={(j, appt) => openSurvey(j, appt)} />
+            onOpenSurvey={(j, appt) => openSurvey(j, appt)}
+            onOpen={openJob} />
         ) : (
         <React.Fragment>
         <Header view={view} role={role} count={filtered.length} total={jobs.length}

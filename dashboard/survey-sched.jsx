@@ -308,72 +308,134 @@ function ApptFlow({ a, job, onStatus, onOpenSurvey }) {
   );
 }
 
+/* ── การ์ดนัดสำรวจ (พร้อม timeline เวิร์กโฟลว์) ── */
+function ApptCard({ a, job, onStatus, onOpenSurvey }) {
+  const stt = APPT_STATUS_BY[a.status] || APPT_STATUS_BY.scheduled;
+  const idx = APPT_FLOW.findIndex((s) => s.key === a.status);
+  const sv = job && window.surveyStatus ? window.surveyStatus(job) : null;
+  const mapHref = job && job.map ? job.map : (a.address ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent((a.address || "") + " " + (a.province || "")) : null);
+  return (
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "4px solid " + stt.color, borderRadius: 14, boxShadow: "var(--shadow-sm)", overflow: "hidden" }}>
+      <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "var(--mono)", fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>
+            <Icon name="clock" size={14} color="var(--text-3)" />{thDate(_ymdLocal(a.start), true)} · {_hm(a.start)}–{_hm(a.end)}
+          </span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: "#0EA5E9", background: "#0EA5E916", padding: "3px 9px", borderRadius: 99, whiteSpace: "nowrap" }}>สำรวจหน้างาน</span>
+        </div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)" }}>{a.jobName || (job && job.name) || "—"}</div>
+        <div style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "flex-start", gap: 6 }}>
+          <Icon name="pin" size={13} color="var(--text-3)" style={{ flexShrink: 0, marginTop: 1 }} />
+          <span style={{ flex: 1, minWidth: 0 }}>{a.address || "-"}{a.province ? ", " + a.province : ""}</span>
+          {mapHref && <a href={mapHref} target="_blank" rel="noreferrer" style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3, color: "var(--primary-dark)", fontWeight: 700, fontSize: 11.5, textDecoration: "none" }}><Icon name="map" size={12} color="var(--primary-dark)" /> นำทาง</a>}
+        </div>
+        {a.phone && <div style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "center", gap: 6 }}><Icon name="phone" size={13} color="var(--text-3)" /><a href={"tel:" + a.phone} style={{ color: "var(--primary-dark)", textDecoration: "none", fontWeight: 600 }}>{a.phone}</a></div>}
+        {a.notes && <div style={{ fontSize: 12, color: "var(--text-2)", background: "var(--surface2)", borderRadius: 8, padding: "7px 10px" }}>📝 {a.notes}</div>}
+        {a.status === "done" && sv && <div style={{ fontSize: 12, color: "var(--primary-dark)", fontWeight: 700 }}>แบบสำรวจ: {sv.label} · {sv.pct}%</div>}
+      </div>
+      <div style={{ borderTop: "1px solid var(--border)", padding: "13px 14px", background: "var(--surface2)" }}>
+        {idx >= 0
+          ? <ApptFlow a={a} job={job} onStatus={onStatus} onOpenSurvey={onOpenSurvey} />
+          : <div style={{ fontSize: 12.5, fontWeight: 700, color: stt.color }}>{stt.th}</div>}
+      </div>
+    </div>
+  );
+}
+
+/* ── การ์ดงานในไปป์ไลน์ (ออกแบบ/ถอดของ/ติดตั้ง ฯลฯ) ที่มอบหมายให้คนนี้ ── */
+function JobTaskCard({ job, stage, start, end, onOpen }) {
+  const color = stage.color || "#64748B";
+  const mapHref = job.map ? job.map : (job.address ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent((job.address || "") + " " + (job.province || "")) : null);
+  const d = (v) => thDate(_ymdLocal(new Date(v)), true);
+  const dateStr = start && end ? (start === end ? d(start) : d(start) + " – " + d(end)) : (end ? d(end) : (start ? d(start) : "ไม่ระบุวัน"));
+  return (
+    <button onClick={() => onOpen && onOpen(job)} style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "4px solid " + color, borderRadius: 14, boxShadow: "var(--shadow-sm)", padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 7, minWidth: 0 }}>
+          <span style={{ width: 9, height: 9, borderRadius: 99, background: color, flexShrink: 0 }} />
+          <span style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{stage.th}</span>
+          {stage.en && <span style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--mono)" }}>{stage.en}</span>}
+        </span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11.5, fontWeight: 700, color: "var(--primary-dark)", flexShrink: 0 }}>เปิดงาน <Icon name="chevronRight" size={14} color="var(--primary-dark)" /></span>
+      </div>
+      <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)" }}>{job.name}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-2)" }}>
+        <Icon name="clock" size={13} color="var(--text-3)" />{dateStr}
+        {typeof job.progressPct === "number" && <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, color: "var(--text-3)", fontFamily: "var(--mono)" }}>{job.progressPct}%</span>}
+      </div>
+      <div style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "flex-start", gap: 6 }}>
+        <Icon name="pin" size={13} color="var(--text-3)" style={{ flexShrink: 0, marginTop: 1 }} />
+        <span style={{ flex: 1, minWidth: 0 }}>{job.address || "-"}{job.province ? ", " + job.province : ""}</span>
+        {mapHref && <a href={mapHref} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3, color: "var(--primary-dark)", fontWeight: 700, fontSize: 11.5, textDecoration: "none" }}><Icon name="map" size={12} color="var(--primary-dark)" /> นำทาง</a>}
+      </div>
+    </button>
+  );
+}
+
 /* ============================================================
-   MY SCHEDULE — ตารางงานของวิศวกรสำรวจ (mobile) + ปุ่มเลื่อนสถานะ
+   MY SCHEDULE — งานทั้งหมดของฉัน (mobile): นัดสำรวจ + งานในไปป์ไลน์
+   รวม "งานที่ต้องทำ" (ออกแบบ/ถอดของ/ติดตั้ง) ที่มอบหมายให้คนนี้ ไว้ที่เดียว
    ============================================================ */
-function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey }) {
+function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey, onOpen }) {
   const techId = me && me.techId;
+  const SF = window.SF;
   const jobsById = React.useMemo(() => Object.fromEntries((jobs || []).map((j) => [j.id, j])), [jobs]);
-  const mine = React.useMemo(() => (appts || []).filter((a) => techId && a.engineerId === techId && a.status !== "canceled")
-    .sort((x, y) => new Date(x.start) - new Date(y.start)), [appts, techId]);
-  const today = _ymdLocal(new Date());
+
+  // รวมรายการ: นัดสำรวจ (engineerId===คนนี้) + งานในไปป์ไลน์ (tech===คนนี้, ยังไม่เสร็จ)
+  const items = React.useMemo(() => {
+    if (!techId) return [];
+    const out = [];
+    (appts || []).forEach((a) => {
+      if (a.engineerId === techId && a.status !== "canceled")
+        out.push({ type: "survey", key: "a-" + a.id, a: a, day: a.start ? _ymdLocal(a.start) : "", ts: a.start ? new Date(a.start).getTime() : 0 });
+    });
+    (jobs || []).forEach((j) => {
+      if (j.tech !== techId || j.stage === "done") return;
+      const stage = (SF.STAGES || []).find((s) => s.key === j.stage) || { th: j.stage, en: "", color: "#64748B" };
+      const sd = j.stageDates && j.stageDates[j.stage];
+      const start = sd && typeof sd === "object" ? (sd.start || "") : "";
+      const end = sd ? (typeof sd === "object" ? (sd.end || "") : sd) : "";
+      const d0 = start || end || j.startDate || j.deadline || "";
+      out.push({ type: "job", key: "j-" + j.id, job: j, stage: stage, start: start, end: end, day: d0 ? _ymdLocal(new Date(d0)) : "", ts: d0 ? new Date(d0).getTime() : 0 });
+    });
+    return out.sort((x, y) => x.ts - y.ts);
+  }, [appts, jobs, techId]);
+
+  const todayY = _ymdLocal(new Date());
   const groups = [
-    { key: "today", th: "วันนี้", items: mine.filter((a) => _ymdLocal(a.start) === today) },
-    { key: "upcoming", th: "กำลังจะถึง", items: mine.filter((a) => _ymdLocal(a.start) > today) },
-    { key: "past", th: "ผ่านมาแล้ว", items: mine.filter((a) => _ymdLocal(a.start) < today) },
+    { key: "today", th: "วันนี้", items: items.filter((it) => it.day === todayY) },
+    { key: "upcoming", th: "กำลังจะถึง", items: items.filter((it) => it.day && it.day > todayY) },
+    { key: "past", th: "เลยกำหนด / ผ่านมา", items: items.filter((it) => it.day && it.day < todayY) },
+    { key: "nodate", th: "ไม่ระบุวันที่", items: items.filter((it) => !it.day) },
   ].filter((g) => g.items.length);
+
+  const nAppt = items.filter((i) => i.type === "survey").length;
+  const nJob = items.filter((i) => i.type === "job").length;
+  const sub = !techId ? "บัญชียังไม่ผูกกับพนักงาน — แจ้งแอดมิน"
+    : (items.length ? [nJob ? nJob + " งานในไปป์ไลน์" : null, nAppt ? nAppt + " นัดสำรวจ" : null].filter(Boolean).join(" · ") : "ไม่มีงานในความรับผิดชอบ");
+
+  const renderCard = (it) => it.type === "survey"
+    ? <ApptCard key={it.key} a={it.a} job={jobsById[it.a.projectId]} onStatus={onStatus} onOpenSurvey={onOpenSurvey} />
+    : <JobTaskCard key={it.key} job={it.job} stage={it.stage} start={it.start} end={it.end} onOpen={onOpen} />;
 
   return (
     <React.Fragment>
-      <SchedHeader icon="list" title="ตารางงานของฉัน" onMenuOpen={onMenuOpen}
-        sub={techId ? mine.length + " นัดสำรวจที่ได้รับมอบหมาย" : "บัญชียังไม่ผูกกับวิศวกร — แจ้งแอดมิน"} />
+      <SchedHeader icon="list" title="ตารางงานของฉัน" onMenuOpen={onMenuOpen} sub={sub} />
       <div className="app-content">
         {!techId ? (
           <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 14, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14 }}>
-            บัญชีของคุณยังไม่ได้ผูกกับข้อมูลวิศวกร · กรุณาให้แอดมินตั้งค่าในเมนูจัดการผู้ใช้งาน
+            บัญชีของคุณยังไม่ได้ผูกกับข้อมูลพนักงาน · กรุณาให้แอดมินตั้งค่าในเมนูจัดการผู้ใช้งาน
           </div>
-        ) : mine.length === 0 ? (
-          <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 14, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14 }}>
-            ยังไม่มีนัดสำรวจที่ได้รับมอบหมาย 🎉
+        ) : items.length === 0 ? (
+          <div style={{ padding: 44, textAlign: "center", color: "var(--text-3)", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16 }}>
+            <div style={{ fontSize: 30, marginBottom: 6 }}>🎉</div>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>ไม่มีงานในความรับผิดชอบตอนนี้</div>
           </div>
         ) : groups.map((g) => (
           <div key={g.key} style={{ marginBottom: 18 }}>
             <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 9 }}>{g.th} ({g.items.length})</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-              {g.items.map((a) => {
-                const job = jobsById[a.projectId];
-                const stt = APPT_STATUS_BY[a.status] || APPT_STATUS_BY.scheduled;
-                const idx = APPT_FLOW.findIndex((s) => s.key === a.status);
-                const sv = job && window.surveyStatus ? window.surveyStatus(job) : null;
-                const mapHref = job && job.map ? job.map : (a.address ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent((a.address || "") + " " + (a.province || "")) : null);
-                return (
-                  <div key={a.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "var(--shadow-sm)", overflow: "hidden" }}>
-                    <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "var(--mono)", fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>
-                          <Icon name="clock" size={14} color="var(--text-3)" />{thDate(_ymdLocal(a.start), true)} · {_hm(a.start)}–{_hm(a.end)}
-                        </span>
-                        <span style={{ fontSize: 10.5, fontWeight: 700, color: stt.color, background: stt.color + "16", padding: "3px 9px", borderRadius: 99 }}>{stt.th}</span>
-                      </div>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)" }}>{a.jobName || (job && job.name) || "—"}</div>
-                      <div style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "flex-start", gap: 6 }}>
-                        <Icon name="pin" size={13} color="var(--text-3)" style={{ flexShrink: 0, marginTop: 1 }} />
-                        <span style={{ flex: 1, minWidth: 0 }}>{a.address || "-"}{a.province ? ", " + a.province : ""}</span>
-                        {mapHref && <a href={mapHref} target="_blank" rel="noreferrer" style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3, color: "var(--primary-dark)", fontWeight: 700, fontSize: 11.5, textDecoration: "none" }}><Icon name="map" size={12} color="var(--primary-dark)" /> นำทาง</a>}
-                      </div>
-                      {a.phone && <div style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "center", gap: 6 }}><Icon name="phone" size={13} color="var(--text-3)" /><a href={"tel:" + a.phone} style={{ color: "var(--primary-dark)", textDecoration: "none", fontWeight: 600 }}>{a.phone}</a></div>}
-                      {a.notes && <div style={{ fontSize: 12, color: "var(--text-2)", background: "var(--surface2)", borderRadius: 8, padding: "7px 10px" }}>📝 {a.notes}</div>}
-                      {a.status === "done" && sv && <div style={{ fontSize: 12, color: "var(--primary-dark)", fontWeight: 700 }}>แบบสำรวจ: {sv.label} · {sv.pct}%</div>}
-                    </div>
-                    {/* เวิร์กโฟลว์งานสำรวจ — ติดตามสถานะ + กดเลื่อนขั้น */}
-                    <div style={{ borderTop: "1px solid var(--border)", padding: "13px 14px", background: "var(--surface2)" }}>
-                      {idx >= 0
-                        ? <ApptFlow a={a} job={job} onStatus={onStatus} onOpenSurvey={onOpenSurvey} />
-                        : <div style={{ fontSize: 12.5, fontWeight: 700, color: stt.color }}>{stt.th}</div>}
-                    </div>
-                  </div>
-                );
-              })}
+              {g.items.map(renderCard)}
             </div>
           </div>
         ))}
@@ -382,4 +444,4 @@ function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey })
   );
 }
 
-Object.assign(window, { useSurveyApptStore, DispatchView, MyScheduleView, SurveyApptModal, ApptFlow, apptConflicts, blankAppt, APPT_STATUS, APPT_STATUS_BY, APPT_FLOW });
+Object.assign(window, { useSurveyApptStore, DispatchView, MyScheduleView, SurveyApptModal, ApptCard, JobTaskCard, ApptFlow, apptConflicts, blankAppt, APPT_STATUS, APPT_STATUS_BY, APPT_FLOW });
