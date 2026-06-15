@@ -393,6 +393,9 @@ function ApptCard({ a, job, onStatus, onOpenSurvey }) {
   );
 }
 
+// ป้ายกำกับขั้นงานที่กินหลายวัน (start..end)
+const STAGE_KIND_TH = { start: "เริ่ม", end: "กำหนดเสร็จ", mid: "กำลังทำ" };
+
 /* ── การ์ดงานในไปป์ไลน์ (ออกแบบ/ถอดของ/ติดตั้ง ฯลฯ) ที่มอบหมายให้คนนี้ ──
    stages = งานหลายขั้นที่นัดวันเดียวกันของงานนี้ (รวมในการ์ดเดียว) */
 function JobTaskCard({ job, stages, day, onOpen }) {
@@ -405,8 +408,9 @@ function JobTaskCard({ job, stages, day, onOpen }) {
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap", minWidth: 0 }}>
           {list.map((s) => (
-            <span key={s.key || s.th} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px", borderRadius: 99, background: (s.color || "#64748B") + "16", color: s.color || "#64748B", fontSize: 12, fontWeight: 800, whiteSpace: "nowrap" }}>
+            <span key={(s.key || s.th) + (s.kind || "")} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px", borderRadius: 99, background: (s.color || "#64748B") + "16", color: s.color || "#64748B", fontSize: 12, fontWeight: 800, whiteSpace: "nowrap" }}>
               <span style={{ width: 7, height: 7, borderRadius: 99, background: s.color || "#64748B" }} />{s.th}
+              {s.kind && STAGE_KIND_TH[s.kind] && <span style={{ fontWeight: 600, opacity: .7 }}>· {STAGE_KIND_TH[s.kind]}</span>}
             </span>
           ))}
         </span>
@@ -448,17 +452,33 @@ function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey, o
       const STAGES = SF.STAGES || [];
       const cur = Math.max(0, STAGES.findIndex((s) => s.key === j.stage));
       const curStage = STAGES[cur] || { key: j.stage, th: j.stage, en: "", color: "#64748B" };
-      const dateOf = (key) => { const v = j.stageDates && j.stageDates[key]; if (!v) return ""; return typeof v === "object" ? (v.start || v.end || "") : v; };
-      const anchor = dateOf(curStage.key) || j.startDate || j.deadline || "";
-      const anchorDay = anchor ? _ymdLocal(new Date(anchor)) : "";
-      // ขั้นปัจจุบัน + ขั้นถัดไปที่ "นัดวันเดียวกัน" → รวมเป็นการ์ดเดียวหลายงาน
-      const stages = STAGES.filter((s, i) => {
-        if (i < cur) return false;
-        if (s.key === curStage.key) return true;
-        const dd = dateOf(s.key);
-        return dd && anchorDay && _ymdLocal(new Date(dd)) === anchorDay;
+      // กระจายแต่ละขั้น (ที่ยังไม่ผ่าน) ลงทุกวันในช่วง start..end + ติดป้าย kind
+      const byDay = {};
+      STAGES.forEach((s, i) => {
+        if (i < cur) return;                                  // ขั้นที่ทำผ่านแล้ว ไม่โชว์
+        const v = j.stageDates && j.stageDates[s.key];
+        if (!v) return;
+        let start = ((typeof v === "object" ? (v.start || v.end || "") : v) || "").slice(0, 10);
+        let end = ((typeof v === "object" ? (v.end || v.start || "") : v) || "").slice(0, 10);
+        if (!start) return;
+        if (!end || end < start) end = start;
+        let day = start, g = 0;
+        while (g < 60) {
+          const kind = start === end ? "single" : (day === start ? "start" : (day === end ? "end" : "mid"));
+          (byDay[day] = byDay[day] || []).push(Object.assign({}, s, { kind: kind }));
+          if (day === end) break;
+          day = _addDays(day, 1); g++;
+        }
       });
-      out.push({ type: "job", key: "j-" + j.id, job: j, stages: stages.length ? stages : [curStage], day: anchorDay, ts: anchor ? new Date(anchor).getTime() : 0 });
+      const days = Object.keys(byDay);
+      if (!days.length) {                                     // ไม่มีขั้นที่ลงวันไว้ → การ์ดเดียวตามกำหนดส่ง
+        const anchor = (j.startDate || j.deadline || "").slice(0, 10);
+        out.push({ type: "job", key: "j-" + j.id + "-x", job: j, day: anchor, stages: [Object.assign({}, curStage, { kind: "single" })], ts: anchor ? new Date(anchor + "T00:00:00").getTime() : 0 });
+        return;
+      }
+      days.forEach((day) => {
+        out.push({ type: "job", key: "j-" + j.id + "-" + day, job: j, day: day, stages: byDay[day], ts: new Date(day + "T00:00:00").getTime() });
+      });
     });
     return out.sort((x, y) => x.ts - y.ts);
   }, [appts, jobs, techId]);
