@@ -94,6 +94,32 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
     while (g < 120) { (otherTasksByDay[day] || []).forEach((j) => { if (!seen[j.id]) { seen[j.id] = 1; out.push(j); } }); if (day === e) break; day = _addDayYmd(day, 1); g++; }
     return out;
   };
+  // จำนวนงานอื่น (ไม่ซ้ำ) ต่อวัน — ใช้ระบายมินิปฏิทินโหลดงานช่าง
+  const otherCountByDay = React.useMemo(() => {
+    const m = {};
+    Object.keys(otherTasksByDay).forEach((day) => { const seen = {}; let n = 0; otherTasksByDay[day].forEach((j) => { if (!seen[j.id]) { seen[j.id] = 1; n++; } }); m[day] = n; });
+    return m;
+  }, [otherTasksByDay]);
+  // วันที่งานนี้ลงไว้ (ทุกขั้น) — ไฮไลต์ในมินิปฏิทิน
+  const thisJobDays = React.useMemo(() => {
+    const set = {};
+    SF.STAGES.forEach((s) => {
+      const v = f.stageDates && f.stageDates[s.key]; if (!v) return;
+      let start = ((typeof v === "object" ? (v.start || v.end || "") : v) || "").slice(0, 10);
+      let end = ((typeof v === "object" ? (v.end || v.start || "") : v) || "").slice(0, 10);
+      if (!start) return; if (!end || end < start) end = start;
+      let day = start, g = 0; while (g < 120) { set[day] = 1; if (day === end) break; day = _addDayYmd(day, 1); g++; }
+    });
+    return set;
+  }, [f.stageDates]);
+  // เดือนที่โชว์ในมินิปฏิทิน (ตั้งต้น = เดือนของวันแรกที่ลงไว้ หรือวันนี้)
+  const [flowMonth, setFlowMonth] = React.useState(() => {
+    let earliest = "";
+    (SF.STAGES || []).forEach((s) => { const v = f.stageDates && f.stageDates[s.key]; if (!v) return; const d = ((typeof v === "object" ? (v.start || v.end || "") : v) || "").slice(0, 10); if (d && (!earliest || d < earliest)) earliest = d; });
+    const base = new Date((earliest || window.SF.TODAY || "2026-06-15") + "T00:00:00");
+    return { y: base.getFullYear(), m: base.getMonth() };
+  });
+  const FLOW_MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 
   React.useEffect(() => {
     if (noBattery && f.battery) { set("battery", false); set("batSize", "ไม่มี"); }
@@ -250,6 +276,62 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
             <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 16, lineHeight: 1.5 }}>
               ทำเรียงทีละขั้น — กรอก<b style={{ color: "var(--text-2)" }}>วันเสร็จ</b>ของขั้นก่อนหน้าให้ครบ ขั้นถัดไปจึงปลดล็อก · วันเริ่มของขั้นถัดไปจะต่อจากวันเสร็จของขั้นก่อนให้อัตโนมัติ
             </div>
+            {/* มินิปฏิทินโหลดงานช่าง — เห็นชัดว่าวันไหนว่าง/มีงาน ก่อนลงวัน */}
+            {f.tech && (() => {
+              const fm = flowMonth;
+              const fFirst = new Date(fm.y, fm.m, 1).getDay();
+              const fDays = new Date(fm.y, fm.m + 1, 0).getDate();
+              const fCells = [];
+              for (let i = 0; i < fFirst; i++) fCells.push(null);
+              for (let d = 1; d <= fDays; d++) fCells.push(d);
+              const fKey = (d) => fm.y + "-" + String(fm.m + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+              const fShift = (delta) => setFlowMonth((s) => { const n = new Date(s.y, s.m + delta, 1); return { y: n.getFullYear(), m: n.getMonth() }; });
+              const navB = { width: 26, height: 26, borderRadius: 7, border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" };
+              return (
+                <div style={{ marginBottom: 16, border: "1px solid var(--border)", borderRadius: 12, padding: 12, background: "var(--surface2)" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, gap: 8 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-1)", display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                      <Icon name="calendar" size={13} color="var(--primary)" /><span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>ปฏิทินงานช่าง{techNick ? " " + techNick : ""} · {FLOW_MONTHS[fm.m]} {fm.y + 543}</span>
+                    </span>
+                    <span style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                      <button type="button" onClick={() => fShift(-1)} style={navB}><Icon name="chevronRight" size={14} color="var(--text-2)" style={{ transform: "scaleX(-1)" }} /></button>
+                      <button type="button" onClick={() => fShift(1)} style={navB}><Icon name="chevronRight" size={14} color="var(--text-2)" /></button>
+                    </span>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3 }}>
+                    {window.TH_DAYS.map((d, i) => (
+                      <div key={d} style={{ textAlign: "center", fontSize: 9.5, fontWeight: 700, color: i === 0 || i === 6 ? "#EF4444aa" : "var(--text-3)" }}>{d}</div>
+                    ))}
+                    {fCells.map((d, i) => {
+                      if (d === null) return <div key={i} />;
+                      const k = fKey(d);
+                      const cnt = otherCountByDay[k] || 0;
+                      const mine = !!thisJobDays[k];
+                      const isToday = k === window.SF.TODAY;
+                      let bg = "var(--surface)", col = "var(--text-2)", bd = "1px solid var(--border)";
+                      if (mine) { bg = "var(--primary-soft)"; col = "var(--primary-dark)"; bd = "1px solid var(--primary)"; }
+                      else if (cnt >= 2) { bg = "#FEE2E2"; col = "#B91C1C"; bd = "1px solid #FCA5A5"; }
+                      else if (cnt === 1) { bg = "#FEF3C7"; col = "#B45309"; bd = "1px solid #FCD34D"; }
+                      return (
+                        <div key={i} title={(mine ? "งานนี้" : cnt ? "ช่างมี " + cnt + " งาน" : "ว่าง") + " · " + d + " " + FLOW_MONTHS[fm.m]}
+                          style={{ minHeight: 30, borderRadius: 7, border: isToday ? "1.5px solid var(--primary)" : bd, background: bg,
+                            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
+                          <span style={{ fontSize: 11, fontWeight: isToday ? 800 : 600, color: col }}>{d}</span>
+                          {!mine && cnt > 0 && <span style={{ fontSize: 8, fontWeight: 700, color: col, lineHeight: 1 }}>{cnt} งาน</span>}
+                          {mine && <span style={{ width: 5, height: 5, borderRadius: 99, background: "var(--primary)" }} />}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{ display: "flex", gap: 12, marginTop: 9, flexWrap: "wrap", fontSize: 10, color: "var(--text-3)" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, border: "1px solid var(--border)", background: "var(--surface)" }} /> ว่าง</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: "#FEF3C7", border: "1px solid #FCD34D" }} /> มี 1 งาน</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: "#FEE2E2", border: "1px solid #FCA5A5" }} /> 2+ งาน</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: "var(--primary-soft)", border: "1px solid var(--primary)" }} /> งานนี้</span>
+                  </div>
+                </div>
+              );
+            })()}
             <div style={{ display: "flex", flexDirection: "column" }}>
               {SF.STAGES.map((s, i) => {
                 const sv = stageVal(s.key);
@@ -310,7 +392,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
         </div>
 
         {/* footer */}
-        <div style={{ padding: isMobile ? "14px 16px" : "16px 24px", paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10 }}>
+        <div style={{ padding: isMobile ? "14px 16px calc(14px + env(safe-area-inset-bottom, 0px))" : "16px 24px calc(16px + env(safe-area-inset-bottom, 0px))", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10 }}>
           <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 20px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
           <button onClick={save} style={{ flex: isMobile ? 1 : "none", padding: "11px 24px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
             <Icon name="check" size={16} color="#fff" sw={2.5} /> บันทึกข้อมูล
