@@ -34,7 +34,7 @@ function useFormMobile(bp = 860) {
   return m;
 }
 
-function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrands }) {
+function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrands, jobs }) {
   const SF = window.SF;
   const bdClose = window.useBackdropClose(onClose);
   const [f, setF] = React.useState(() => JSON.parse(JSON.stringify(initial)));
@@ -64,6 +64,36 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
   const brandInfo = (SF.BRAND_BY_NAME || {})[f.brand];
   const noBattery = brandInfo ? !brandInfo.battery : false;
   const isMobile = useFormMobile();
+
+  // ── โหลดงานของช่างที่เลือก: กันลงงานซ้อนวันเดียวกันเกินไป ──
+  const _addDayYmd = (k, n) => { const d = new Date(k + "T00:00:00"); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+  const techNick = (SF.TECH_BY_ID && SF.TECH_BY_ID[f.tech]) ? (SF.TECH_BY_ID[f.tech].nick || SF.TECH_BY_ID[f.tech].name) : "";
+  // วัน(YMD) → งานอื่นของช่างคนนี้ที่ active วันนั้น (กระจายทุกขั้นตามช่วง start..end)
+  const otherTasksByDay = React.useMemo(() => {
+    const map = {};
+    if (!f.tech) return map;
+    (jobs || []).forEach((j) => {
+      if (j.id === f.id || j.tech !== f.tech) return;     // ไม่นับงานนี้เอง + เฉพาะช่างคนเดียวกัน
+      const sd = j.stageDates || {};
+      SF.STAGES.forEach((st) => {
+        const v = sd[st.key]; if (!v) return;
+        let start = ((typeof v === "object" ? (v.start || v.end || "") : v) || "").slice(0, 10);
+        let end = ((typeof v === "object" ? (v.end || v.start || "") : v) || "").slice(0, 10);
+        if (!start) return; if (!end || end < start) end = start;
+        let day = start, g = 0;
+        while (g < 120) { (map[day] = map[day] || []).push(j); if (day === end) break; day = _addDayYmd(day, 1); g++; }
+      });
+    });
+    return map;
+  }, [jobs, f.tech, f.id]);
+  // งานอื่นของช่าง (ไม่ซ้ำ) ที่คาบเกี่ยวช่วง [start..end] ของขั้นนี้
+  const loadInSpan = (start, end) => {
+    if (!f.tech || !start) return [];
+    let s = start.slice(0, 10), e = (end || start).slice(0, 10); if (e < s) e = s;
+    const seen = {}; const out = []; let day = s, g = 0;
+    while (g < 120) { (otherTasksByDay[day] || []).forEach((j) => { if (!seen[j.id]) { seen[j.id] = 1; out.push(j); } }); if (day === e) break; day = _addDayYmd(day, 1); g++; }
+    return out;
+  };
 
   React.useEffect(() => {
     if (noBattery && f.battery) { set("battery", false); set("batSize", "ไม่มี"); }
@@ -257,6 +287,20 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
                             onChange={(e) => setStageEnd(s.key, i, e.target.value)} />
                         </div>
                       </div>
+                      {/* โหลดงานของช่างช่วงนี้ — กันลงงานซ้อน */}
+                      {f.tech && sv.start && (() => {
+                        const load = loadInSpan(sv.start, sv.end);
+                        if (load.length === 0) return (
+                          <div style={{ marginTop: 6, fontSize: 11, fontWeight: 600, color: "#16A34A", display: "flex", alignItems: "center", gap: 5 }}>
+                            <Icon name="check" size={12} color="#16A34A" sw={2.6} /> ช่าง{techNick} ว่างช่วงนี้
+                          </div>
+                        );
+                        return (
+                          <div title={load.map((j) => j.name).join(", ")} style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: "#B45309", background: "#FEF3C7", border: "1px solid #FCD34D", borderRadius: 8, padding: "5px 8px", display: "flex", alignItems: "center", gap: 5 }}>
+                            <Icon name="alert" size={12} color="#B45309" /> ช่าง{techNick} มีงานอื่น {load.length} งานช่วงนี้: {load.slice(0, 2).map((j) => j.name.replace("บ้าน", "")).join(", ")}{load.length > 2 ? " +" + (load.length - 2) : ""}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 );

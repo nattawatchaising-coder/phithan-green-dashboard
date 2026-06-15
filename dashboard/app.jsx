@@ -330,7 +330,7 @@ function App() {
           if (surveyAppt) apptStore.setStatus(surveyAppt.id, "done"); // เสร็จแบบสำรวจ → ปิดนัด
           setSurveyJob(null); setSurveyAppt(null);
         }} />}
-      {form && <JobForm initial={form.job} isNew={form.isNew} onSave={onSave} onClose={() => setForm(null)} onManageTechs={() => setTechMgr(true)} onManageBrands={() => setBrandMgr(true)} />}
+      {form && <JobForm initial={form.job} isNew={form.isNew} jobs={jobs} onSave={onSave} onClose={() => setForm(null)} onManageTechs={() => setTechMgr(true)} onManageBrands={() => setBrandMgr(true)} />}
       {techMgr && <TechManager store={techStore} onClose={() => setTechMgr(false)} />}
       {brandMgr && <BrandManager store={brandStore} onClose={() => setBrandMgr(false)} />}
       {userMgr && can(role, "manageUsers") && <UserManager authStore={auth} onClose={() => setUserMgr(false)} />}
