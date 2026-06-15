@@ -410,6 +410,20 @@ function JobTaskCard({ job, stages, day, onOpen, onAdvance }) {
   const curStage = (SF.STAGES || [])[curIdx];
   const nextStage = (SF.STAGES || [])[curIdx + 1];
   const canAdvance = !!(onAdvance && curStage && nextStage && job.stage !== "done" && list.some((s) => s.key === curStage.key));
+  // ผูกการกดเสร็จกับวันที่กำหนดของขั้นปัจจุบัน — กันกดข้ามก่อนถึงวันเริ่ม
+  let _cs = "", _ce = "";
+  if (canAdvance) {
+    const v = job.stageDates && job.stageDates[curStage.key];
+    if (v) {
+      if (typeof v === "object") { _cs = (v.start || v.end || "").slice(0, 10); _ce = (v.end || v.start || "").slice(0, 10); }
+      else { _cs = String(v).slice(0, 10); _ce = _cs; }
+    }
+    if (!_ce) _ce = _cs;
+  }
+  const _today = window.SF.TODAY;
+  const advEarly = canAdvance && _cs && _today < _cs;          // ยังไม่ถึงวันเริ่ม → ล็อก
+  const advOverdue = canAdvance && _ce && _today > _ce;        // เลยกำหนดเสร็จ
+  const daysLate = advOverdue ? Math.max(1, Math.round((new Date(_today + "T00:00:00") - new Date(_ce + "T00:00:00")) / 86400000)) : 0;
   const doAdvance = (e) => { e.stopPropagation(); if (confirm("ขั้น \"" + curStage.th + "\" เสร็จแล้ว เลื่อนไป \"" + nextStage.th + "\" ?")) onAdvance(job); };
   return (
     <div role="button" tabIndex={0} onClick={() => onOpen && onOpen(job)} style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "4px solid " + color, borderRadius: 14, boxShadow: "var(--shadow-sm)", padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
@@ -434,11 +448,15 @@ function JobTaskCard({ job, stages, day, onOpen, onAdvance }) {
         <span style={{ flex: 1, minWidth: 0 }}>{job.address || "-"}{job.province ? ", " + job.province : ""}</span>
         {mapHref && <a href={mapHref} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3, color: "var(--primary-dark)", fontWeight: 700, fontSize: 11.5, textDecoration: "none" }}><Icon name="map" size={12} color="var(--primary-dark)" /> นำทาง</a>}
       </div>
-      {canAdvance && (
-        <button onClick={doAdvance} style={{ marginTop: 2, width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", borderRadius: 10, border: "none", background: curStage.color || "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>
-          <Icon name="check" size={15} color="#fff" sw={2.5} /> เสร็จ “{curStage.th}” → {nextStage.th}
+      {canAdvance && (advEarly ? (
+        <div style={{ marginTop: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px", borderRadius: 10, background: "var(--surface3)", color: "var(--text-3)", fontWeight: 700, fontSize: 12.5 }}>
+          <Icon name="lock" size={13} color="var(--text-3)" /> เริ่ม “{curStage.th}” ได้ {thDate(_cs, true)}
+        </div>
+      ) : (
+        <button onClick={doAdvance} style={{ marginTop: 2, width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", borderRadius: 10, border: "none", background: advOverdue ? "#DC2626" : (curStage.color || "var(--primary)"), color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>
+          <Icon name={advOverdue ? "alert" : "check"} size={15} color="#fff" sw={2.5} /> {advOverdue ? "เลยกำหนด " + daysLate + " วัน · " : ""}เสร็จ “{curStage.th}” → {nextStage.th}
         </button>
-      )}
+      ))}
     </div>
   );
 }
