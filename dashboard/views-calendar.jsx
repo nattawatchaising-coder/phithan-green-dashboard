@@ -47,7 +47,7 @@ function calGroupByJob(tasks) {
   return order.map((id) => m[id]);
 }
 
-function CalendarView({ jobs, onOpen, onAddOnDate, canAdd }) {
+function CalendarView({ jobs, onOpen, onAddOnDate, canAdd, onAdvance }) {
   const isMobile = useMobileCal();
   const [ym, setYm] = React.useState({ y: 2026, m: 5 }); // June 2026 (0-indexed)
   // วันที่เลือก — เดสก์ท็อปแสดงในแถบข้าง, มือถือแสดง bottom sheet. ตั้งต้น = วันนี้ ถ้าอยู่ในเดือนนี้
@@ -73,7 +73,7 @@ function CalendarView({ jobs, onOpen, onAddOnDate, canAdd }) {
   if (isMobile) {
     return (
       <MobileCalendar ym={ym} cells={cells} tasksOn={tasksOn} groupsOn={groupsOn} keyOf={keyOf} todayKey={todayKey}
-        shift={shift} selDay={selDay} setSelDay={setSelDay} onOpen={onOpen} jobs={jobs} />
+        shift={shift} selDay={selDay} setSelDay={setSelDay} onOpen={onOpen} onAdvance={onAdvance} jobs={jobs} />
     );
   }
 
@@ -140,13 +140,13 @@ function CalendarView({ jobs, onOpen, onAddOnDate, canAdd }) {
 
       {/* ── ขวา: แถบสรุปรายวัน (ใช้การ์ดสไตล์เดียวกับตารางงานของฉัน) ── */}
       <DaySidebar day={selDay} ym={ym} groups={selDay ? groupsOn(selDay) : []}
-        todayKey={todayKey} keyOf={keyOf} onOpen={onOpen} canAdd={canAdd} onAddOnDate={onAddOnDate} />
+        todayKey={todayKey} keyOf={keyOf} onOpen={onOpen} onAdvance={onAdvance} canAdd={canAdd} onAddOnDate={onAddOnDate} />
     </div>
   );
 }
 
 /* ── แถบสรุปรายวัน (เดสก์ท็อป) — ใช้การ์ดเดียวกับ "ตารางงานของฉัน" (JobTaskCard) ── */
-function DaySidebar({ day, ym, groups, todayKey, keyOf, onOpen, canAdd, onAddOnDate }) {
+function DaySidebar({ day, ym, groups, todayKey, keyOf, onOpen, onAdvance, canAdd, onAddOnDate }) {
   const list = groups || [];
   const isToday = day != null && keyOf(day) === todayKey;
   const dayKey = day != null ? keyOf(day) : "";
@@ -184,7 +184,7 @@ function DaySidebar({ day, ym, groups, todayKey, keyOf, onOpen, canAdd, onAddOnD
                 ยังไม่มีงานในวันนี้{canAdd && onAddOnDate ? " — กด “เพิ่มงาน”" : ""}
               </div>
             ) : list.map((g) => (
-              <window.JobTaskCard key={g.job.id} job={g.job} stages={g.stages} day={dayKey} onOpen={onOpen} />
+              <window.JobTaskCard key={g.job.id} job={g.job} stages={g.stages} day={dayKey} onOpen={onOpen} onAdvance={onAdvance} />
             ))}
           </div>
         </React.Fragment>
@@ -195,7 +195,7 @@ function DaySidebar({ day, ym, groups, todayKey, keyOf, onOpen, canAdd, onAddOnD
 
 /* ── Mobile calendar — ทั้งเดือนพอดีจอเดียว (ไม่ต้องเลื่อน)
    แตะวันที่มีงาน → bottom sheet แสดงรายการงานของวันนั้น ── */
-function MobileCalendar({ ym, cells, tasksOn, groupsOn, keyOf, todayKey, shift, selDay, setSelDay, onOpen, jobs }) {
+function MobileCalendar({ ym, cells, tasksOn, groupsOn, keyOf, todayKey, shift, selDay, setSelDay, onOpen, onAdvance, jobs }) {
   const monthName = TH_MONTH_FULL[ym.m];
   const monthCount = jobs.filter((j) => j.deadline.startsWith(ym.y + "-" + String(ym.m + 1).padStart(2, "0"))).length;
   const selGroups = selDay ? groupsOn(selDay) : [];
@@ -291,7 +291,7 @@ function MobileCalendar({ ym, cells, tasksOn, groupsOn, keyOf, todayKey, shift, 
                 <div style={{ textAlign: "center", color: "var(--text-3)", fontSize: 13, padding: "20px 0" }}>ไม่มีงานในวันนี้</div>
               )}
               {selGroups.map((g) => (
-                <window.JobTaskCard key={g.job.id} job={g.job} stages={g.stages} day={keyOf(selDay)} onOpen={(jb) => { setSelDay(null); onOpen(jb); }} />
+                <window.JobTaskCard key={g.job.id} job={g.job} stages={g.stages} day={keyOf(selDay)} onOpen={(jb) => { setSelDay(null); onOpen(jb); }} onAdvance={onAdvance} />
               ))}
             </div>
           </div>

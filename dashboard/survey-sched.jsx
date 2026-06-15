@@ -397,14 +397,22 @@ function ApptCard({ a, job, onStatus, onOpenSurvey }) {
 const STAGE_KIND_TH = { start: "เริ่ม", end: "กำหนดเสร็จ", mid: "กำลังทำ" };
 
 /* ── การ์ดงานในไปป์ไลน์ (ออกแบบ/ถอดของ/ติดตั้ง ฯลฯ) ที่มอบหมายให้คนนี้ ──
-   stages = งานหลายขั้นที่นัดวันเดียวกันของงานนี้ (รวมในการ์ดเดียว) */
-function JobTaskCard({ job, stages, day, onOpen }) {
+   stages = งานหลายขั้นที่นัดวันเดียวกันของงานนี้ (รวมในการ์ดเดียว)
+   onAdvance(job) = กด "เสร็จขั้นนี้" → เลื่อนงานไปขั้นถัดไป (เฉพาะการ์ดที่มีขั้นปัจจุบัน) */
+function JobTaskCard({ job, stages, day, onOpen, onAdvance }) {
+  const SF = window.SF;
   const list = (stages && stages.length) ? stages : [{ th: job.stage, en: "", color: "#64748B" }];
   const color = list[0].color || "#64748B";
   const mapHref = job.map ? job.map : (job.address ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent((job.address || "") + " " + (job.province || "")) : null);
   const dateStr = day ? thDate(day, true) : "ไม่ระบุวัน";
+  // ปุ่ม "เสร็จขั้นนี้" — แสดงเฉพาะการ์ดที่มีขั้นปัจจุบันของงาน (กดแล้วเลื่อนไปขั้นถัดไป)
+  const curIdx = (SF.STAGES || []).findIndex((s) => s.key === job.stage);
+  const curStage = (SF.STAGES || [])[curIdx];
+  const nextStage = (SF.STAGES || [])[curIdx + 1];
+  const canAdvance = !!(onAdvance && curStage && nextStage && job.stage !== "done" && list.some((s) => s.key === curStage.key));
+  const doAdvance = (e) => { e.stopPropagation(); if (confirm("ขั้น \"" + curStage.th + "\" เสร็จแล้ว เลื่อนไป \"" + nextStage.th + "\" ?")) onAdvance(job); };
   return (
-    <button onClick={() => onOpen && onOpen(job)} style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "4px solid " + color, borderRadius: 14, boxShadow: "var(--shadow-sm)", padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+    <div role="button" tabIndex={0} onClick={() => onOpen && onOpen(job)} style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "4px solid " + color, borderRadius: 14, boxShadow: "var(--shadow-sm)", padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap", minWidth: 0 }}>
           {list.map((s) => (
@@ -426,7 +434,12 @@ function JobTaskCard({ job, stages, day, onOpen }) {
         <span style={{ flex: 1, minWidth: 0 }}>{job.address || "-"}{job.province ? ", " + job.province : ""}</span>
         {mapHref && <a href={mapHref} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3, color: "var(--primary-dark)", fontWeight: 700, fontSize: 11.5, textDecoration: "none" }}><Icon name="map" size={12} color="var(--primary-dark)" /> นำทาง</a>}
       </div>
-    </button>
+      {canAdvance && (
+        <button onClick={doAdvance} style={{ marginTop: 2, width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", borderRadius: 10, border: "none", background: curStage.color || "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>
+          <Icon name="check" size={15} color="#fff" sw={2.5} /> เสร็จ “{curStage.th}” → {nextStage.th}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -434,7 +447,7 @@ function JobTaskCard({ job, stages, day, onOpen }) {
    MY SCHEDULE — งานทั้งหมดของฉัน (mobile): นัดสำรวจ + งานในไปป์ไลน์
    รวม "งานที่ต้องทำ" (ออกแบบ/ถอดของ/ติดตั้ง) ที่มอบหมายให้คนนี้ ไว้ที่เดียว
    ============================================================ */
-function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey, onOpen }) {
+function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey, onOpen, onAdvance }) {
   const techId = me && me.techId;
   const SF = window.SF;
   const jobsById = React.useMemo(() => Object.fromEntries((jobs || []).map((j) => [j.id, j])), [jobs]);
@@ -498,7 +511,7 @@ function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey, o
 
   const renderCard = (it) => it.type === "survey"
     ? <ApptCard key={it.key} a={it.a} job={jobsById[it.a.projectId]} onStatus={onStatus} onOpenSurvey={onOpenSurvey} />
-    : <JobTaskCard key={it.key} job={it.job} stages={it.stages} day={it.day} onOpen={onOpen} />;
+    : <JobTaskCard key={it.key} job={it.job} stages={it.stages} day={it.day} onOpen={onOpen} onAdvance={onAdvance} />;
 
   return (
     <React.Fragment>

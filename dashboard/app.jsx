@@ -284,7 +284,8 @@ function App() {
             onMenuOpen={() => setSidebarOpen(true)}
             onStatus={(id, s) => apptStore.setStatus(id, s)}
             onOpenSurvey={(j, appt) => openSurvey(j, appt)}
-            onOpen={openJob} />
+            onOpen={openJob}
+            onAdvance={(j) => store.advance(j.id)} />
         ) : (
         <React.Fragment>
         <Header view={view} role={role} count={filtered.length} total={jobs.length}
@@ -309,7 +310,7 @@ function App() {
             onDelete={onDelete} onSetMat={store.setMat} onSetStage={(id, s) => store.setStage(id, s)} />}
           {view === "survey" && <SurveyView jobs={filtered} role={role} onOpen={openSurvey} />}
           {view === "calendar" && <CalendarView jobs={filtered} onOpen={openJob}
-            canAdd={can(role, "addJob")}
+            canAdd={can(role, "addJob")} onAdvance={can(role, "editJob") ? (j) => store.advance(j.id) : null}
             onAddOnDate={(key) => setForm({ job: Object.assign(store.blank(), { startDate: key, deadline: key }), isNew: true })} />}
         </div>
         </React.Fragment>
