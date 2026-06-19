@@ -48,17 +48,16 @@ function FlowTimeline({ job }) {
                 </div>
               )}
               {(() => {
-                const v = job.stageDates && job.stageDates[s.key];
-                const st = v ? (typeof v === "object" ? v.start : null) : null;
-                const en = v ? (typeof v === "object" ? v.end : v) : null;
-                if (!st && !en) return null;
-                const late = (job.lateStages || []).find((ls) => ls.key === s.key);
+                // โมเดลใหม่: โชว์วันกำหนดเฉพาะขั้นติดตั้ง (วันนัดติดตั้ง) — ขั้นอื่นเป็นสถานะอย่างเดียว
+                if (s.key !== "install") return null;
+                const st = SF.installDate ? SF.installDate(job) : "";
+                const en = SF.installEnd ? SF.installEnd(job) : st;
+                if (!st) return null;
+                const late = (job.lateStages || []).find((ls) => ls.key === "install");
                 return (
                   <div style={{ fontSize: 11.5, color: late ? "#EF4444" : "var(--text-3)", marginTop: 3, display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
                     <Icon name={late ? "alert" : "calendar"} size={11} color={late ? "#EF4444" : "var(--text-3)"} />
-                    {st && <span>เริ่ม {thDate(st, true)}</span>}
-                    {st && en && <span>·</span>}
-                    {en && <span>เสร็จ {thDate(en, true)}</span>}
+                    <span>นัดติดตั้ง {thDate(st, true)}{en && en !== st ? "–" + thDate(en, true) : ""}</span>
                     {late && <span style={{ fontWeight: 700, color: "#EF4444", background: "#FDE2E2", padding: "1px 6px", borderRadius: 99 }}>เลยกำหนด {late.daysLate} วัน</span>}
                   </div>
                 );
