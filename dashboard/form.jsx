@@ -47,9 +47,12 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
     return Object.assign({}, p, { stageDates: Object.assign({}, p.stageDates, { [k]: Object.assign({}, cur, { [which]: v }) }) });
   });
   const stageVal = (k) => { const v = f.stageDates && f.stageDates[k]; if (!v) return { start: "", end: "" }; if (typeof v === "object") return { start: v.start || "", end: v.end || "" }; return { start: "", end: v }; };
-  // วันนัดติดตั้ง — วันเดียวที่ใช้จัดตาราง (เก็บใน stageDates.install = {start,end})
-  const installDate = (SF.installDate ? SF.installDate(f) : "");
-  const setInstallDate = (v) => setF((p) => Object.assign({}, p, { stageDates: Object.assign({}, p.stageDates, { install: { start: v, end: v } }) }));
+  // วันนัดติดตั้ง — ช่วงวันที่ใช้จัดตาราง (เก็บใน stageDates.install = {start,end}) รองรับหลายวัน
+  const installDate = (SF.installDate ? SF.installDate(f) : "");      // วันเริ่ม
+  const installEnd = (SF.installEnd ? SF.installEnd(f) : installDate); // วันเสร็จ (>= วันเริ่ม)
+  const setInstall = (start, end) => setF((p) => Object.assign({}, p, { stageDates: Object.assign({}, p.stageDates, { install: { start: start, end: end } }) }));
+  const setInstallStart = (v) => setInstall(v, (installEnd && installEnd >= v) ? installEnd : v);   // เลื่อนวันเสร็จตามถ้าจำเป็น
+  const setInstallEnd = (v) => setInstall(installDate || v, (v && installDate && v < installDate) ? installDate : v);
   // ขั้นตอนการทำงาน = ตัวบอกสถานะ — กดเลือกขั้นปัจจุบัน
   const setCurStage = (k) => set("stage", k);
   // กรอกวันเสร็จขั้นนี้ → เติมวันเริ่มของขั้นถัดไปให้ต่อกันอัตโนมัติ (ถ้ายังว่าง)
@@ -79,9 +82,11 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
     if (!f.tech) return map;
     (jobs || []).forEach((j) => {
       if (j.id === f.id || j.tech !== f.tech || j.stage === "done") return;  // ไม่นับงานนี้เอง/งานเสร็จแล้ว + เฉพาะช่างคนเดียวกัน
-      const inst = SF.installDate ? SF.installDate(j) : "";
-      if (!inst) return;
-      (map[inst] = map[inst] || []).push(j);
+      const s = SF.installDate ? SF.installDate(j) : "";
+      if (!s) return;
+      const e = SF.installEnd ? SF.installEnd(j) : s;
+      let day = s, g = 0;
+      while (g < 120) { (map[day] = map[day] || []).push(j); if (day === e) break; day = _addDayYmd(day, 1); g++; }  // กระจายทุกวันในช่วงติดตั้ง
     });
     return map;
   }, [jobs, f.tech, f.id]);
@@ -99,8 +104,14 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
     Object.keys(otherTasksByDay).forEach((day) => { const seen = {}; let n = 0; otherTasksByDay[day].forEach((j) => { if (!seen[j.id]) { seen[j.id] = 1; n++; } }); m[day] = n; });
     return m;
   }, [otherTasksByDay]);
-  // วันนัดติดตั้งของงานนี้ — ไฮไลต์ในมินิปฏิทิน
-  const thisJobDays = React.useMemo(() => (installDate ? { [installDate]: 1 } : {}), [installDate]);
+  // ช่วงวันนัดติดตั้งของงานนี้ — ไฮไลต์ครบทุกวันในมินิปฏิทิน
+  const thisJobDays = React.useMemo(() => {
+    const set = {};
+    if (!installDate) return set;
+    let day = installDate, g = 0; const e = installEnd || installDate;
+    while (g < 120) { set[day] = 1; if (day === e) break; day = _addDayYmd(day, 1); g++; }
+    return set;
+  }, [installDate, installEnd]);
   // เดือนที่โชว์ในมินิปฏิทิน (ตั้งต้น = เดือนของวันนัดติดตั้ง หรือวันนี้)
   const [flowMonth, setFlowMonth] = React.useState(() => {
     const base = new Date((installDate || window.SF.TODAY || "2026-06-15") + "T00:00:00");
@@ -298,16 +309,29 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
               })()}
             </div>
 
-            {/* ── วันนัดติดตั้ง — วันเดียวที่ใช้จัดตารางงาน/ปฏิทิน ── */}
+            {/* ── วันนัดติดตั้ง — ระบุเป็นช่วงได้ (งานติดตั้งหลายวัน) ใช้จัดตารางงาน/ปฏิทิน ── */}
             <div style={{ borderTop: "1px dashed var(--border)", marginTop: 6, paddingTop: 16 }}>
-              <Field label="วันนัดติดตั้ง">
-                <input type="date" style={inputStyle} value={installDate} onChange={(e) => setInstallDate(e.target.value)} />
-              </Field>
-              {installDate && f.tech && otherCountByDay[installDate] > 0 && (
-                <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: "#B45309", background: "#FEF3C7", border: "1px solid #FCD34D", borderRadius: 8, padding: "7px 10px", display: "flex", alignItems: "center", gap: 6 }}>
-                  <Icon name="alert" size={13} color="#B45309" /> ช่าง{techNick} มีงานอื่น {otherCountByDay[installDate]} งานวันนี้ — เช็กว่าซ้อนกันไหม
-                </div>
-              )}
+              <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 10, lineHeight: 1.5 }}>
+                งานที่ติดตั้งหลายวัน ใส่<b style={{ color: "var(--text-2)" }}>วันเริ่ม–วันเสร็จ</b>ได้ · ถ้าวันเดียวใส่แค่วันเริ่ม
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <Field label="เริ่มติดตั้ง">
+                  <input type="date" style={inputStyle} value={installDate} max={installEnd || undefined} onChange={(e) => setInstallStart(e.target.value)} />
+                </Field>
+                <Field label="เสร็จติดตั้ง">
+                  <input type="date" style={Object.assign({}, inputStyle, installDate ? null : { opacity: .5, cursor: "not-allowed" })} disabled={!installDate} min={installDate || undefined} value={installEnd} onChange={(e) => setInstallEnd(e.target.value)} />
+                </Field>
+              </div>
+              {installDate && f.tech && (() => {
+                const days = Object.keys(thisJobDays);
+                const clash = days.reduce((n, d) => n + (otherCountByDay[d] || 0), 0);
+                if (!clash) return null;
+                return (
+                  <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: "#B45309", background: "#FEF3C7", border: "1px solid #FCD34D", borderRadius: 8, padding: "7px 10px", display: "flex", alignItems: "center", gap: 6 }}>
+                    <Icon name="alert" size={13} color="#B45309" /> ช่าง{techNick} มีงานอื่นในช่วงนี้ {clash} งาน — เช็กว่าซ้อนกันไหม
+                  </div>
+                );
+              })()}
             </div>
 
             {/* มินิปฏิทินโหลดงานช่าง — แตะวันว่างเพื่อเลือกวันนัดติดตั้ง */}
@@ -347,8 +371,8 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
                       else if (cnt >= 2) { bg = "#FEE2E2"; col = "#B91C1C"; bd = "1px solid #FCA5A5"; }
                       else if (cnt === 1) { bg = "#FEF3C7"; col = "#B45309"; bd = "1px solid #FCD34D"; }
                       return (
-                        <button type="button" key={i} onClick={() => setInstallDate(k)}
-                          title={(mine ? "วันนัดติดตั้งงานนี้" : cnt ? "ช่างมี " + cnt + " งาน" : "ว่าง") + " · " + d + " " + FLOW_MONTHS[fm.m] + " — แตะเพื่อเลือกวันติดตั้ง"}
+                        <button type="button" key={i} onClick={() => setInstallStart(k)}
+                          title={(mine ? "วันนัดติดตั้งงานนี้" : cnt ? "ช่างมี " + cnt + " งาน" : "ว่าง") + " · " + d + " " + FLOW_MONTHS[fm.m] + " — แตะเพื่อเลือกวันเริ่มติดตั้ง"}
                           style={{ minHeight: 30, borderRadius: 7, border: isToday && !mine ? "1.5px solid var(--primary)" : bd, background: bg, cursor: "pointer", fontFamily: "inherit",
                             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
                           <span style={{ fontSize: 11, fontWeight: isToday ? 800 : 600, color: col }}>{d}</span>

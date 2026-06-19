@@ -304,17 +304,25 @@
   const SEED = RAW.map((j) => Object.assign({ id: j.code }, j));
   const JOBS = SEED.map(deriveJob);
 
-  // วันนัดติดตั้ง = วันเดียวที่ใช้จัดตารางงาน (อ่านจาก stageDates.install)
-  function installDate(j) {
+  // วันนัดติดตั้ง = ช่วงวันที่ใช้จัดตารางงาน (อ่านจาก stageDates.install = {start,end})
+  function installDate(j) {                         // วันเริ่มติดตั้ง
     const v = j && j.stageDates && j.stageDates.install;
     if (!v) return "";
     if (typeof v === "object") return (v.start || v.end || "").slice(0, 10);
     return String(v).slice(0, 10);
   }
+  function installEnd(j) {                          // วันเสร็จติดตั้ง (>= วันเริ่ม, ค่าเริ่มต้น = วันเริ่ม)
+    const v = j && j.stageDates && j.stageDates.install;
+    if (!v) return "";
+    const s = installDate(j);
+    let e = (typeof v === "object" ? (v.end || v.start || "") : String(v)).slice(0, 10);
+    if (!e || e < s) e = s;
+    return e;
+  }
 
   window.SF = {
     STAGES, STAGE_INDEX, MATERIALS, MAT_STATUS, TECHS, TECH_BY_ID, BRANDS, TYPES,
-    SEED, JOBS, deriveJob, installDate,
+    SEED, JOBS, deriveJob, installDate, installEnd,
     // ใช้ local date string เพื่อหลีกเลี่ยง UTC offset (ไทย UTC+7 ทำให้ toISOString() ได้วันเมื่อวาน)
     TODAY: [TODAY.getFullYear(), String(TODAY.getMonth()+1).padStart(2,"0"), String(TODAY.getDate()).padStart(2,"0")].join("-"),
     PROVINCE_LATLNG: {

@@ -412,12 +412,13 @@ function JobTaskCard({ job, stages, day, onOpen, onAdvance }) {
   const canAdvance = !!(onAdvance && curStage && nextStage && job.stage !== "done" && list.some((s) => s.key === curStage.key));
   // ขั้นทำงานทั่วไป = อัปเดตสถานะได้อิสระ · เฉพาะขั้น "ติดตั้ง" ผูกกับวันนัดติดตั้ง
   const isInstall = !!(canAdvance && curStage.key === "install");
-  const _inst = isInstall && SF.installDate ? SF.installDate(job) : "";
+  const _instS = isInstall && SF.installDate ? SF.installDate(job) : "";       // วันเริ่มติดตั้ง
+  const _instE = isInstall && SF.installEnd ? SF.installEnd(job) : _instS;      // วันเสร็จติดตั้ง
   const _today = SF.TODAY;
-  const advNoDate = isInstall && !_inst;                       // อยู่ขั้นติดตั้งแต่ยังไม่กำหนดวัน → ล็อก
-  const advEarly = isInstall && _inst && _today < _inst;       // ยังไม่ถึงวันติดตั้ง → ล็อก
-  const advOverdue = isInstall && _inst && _today > _inst;     // เลยวันนัดติดตั้ง
-  const daysLate = advOverdue ? Math.max(1, Math.round((new Date(_today + "T00:00:00") - new Date(_inst + "T00:00:00")) / 86400000)) : 0;
+  const advNoDate = isInstall && !_instS;                      // อยู่ขั้นติดตั้งแต่ยังไม่กำหนดวัน → ล็อก
+  const advEarly = isInstall && _instS && _today < _instS;     // ยังไม่ถึงวันเริ่มติดตั้ง → ล็อก
+  const advOverdue = isInstall && _instE && _today > _instE;   // เลยวันเสร็จติดตั้ง
+  const daysLate = advOverdue ? Math.max(1, Math.round((new Date(_today + "T00:00:00") - new Date(_instE + "T00:00:00")) / 86400000)) : 0;
   const doAdvance = (e) => { e.stopPropagation(); if (confirm("ขั้น \"" + curStage.th + "\" เสร็จแล้ว เลื่อนไป \"" + nextStage.th + "\" ?")) onAdvance(job); };
   return (
     <div role="button" tabIndex={0} onClick={() => onOpen && onOpen(job)} style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "4px solid " + color, borderRadius: 14, boxShadow: "var(--shadow-sm)", padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
@@ -470,7 +471,7 @@ function JobTaskCard({ job, stages, day, onOpen, onAdvance }) {
       </div>
       {canAdvance && ((advNoDate || advEarly) ? (
         <div style={{ marginTop: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px", borderRadius: 10, background: "var(--surface3)", color: "var(--text-3)", fontWeight: 700, fontSize: 12.5 }}>
-          <Icon name="lock" size={13} color="var(--text-3)" /> {advNoDate ? "ยังไม่กำหนดวันนัดติดตั้ง" : "ติดตั้งวันที่ " + thDate(_inst, true)}
+          <Icon name="lock" size={13} color="var(--text-3)" /> {advNoDate ? "ยังไม่กำหนดวันนัดติดตั้ง" : "ติดตั้งวันที่ " + thDate(_instS, true) + (_instE && _instE !== _instS ? "–" + thDate(_instE, true) : "")}
         </div>
       ) : (
         <button onClick={doAdvance} style={{ marginTop: 2, width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", borderRadius: 10, border: "none", background: advOverdue ? "#DC2626" : (curStage.color || "var(--primary)"), color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>
@@ -503,10 +504,16 @@ function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey, o
       const STAGES = SF.STAGES || [];
       const cur = Math.max(0, STAGES.findIndex((s) => s.key === j.stage));
       const curStage = STAGES[cur] || { key: j.stage, th: j.stage, en: "", color: "#64748B" };
-      // แสดงเฉพาะงานที่ "มีวันนัดติดตั้งแล้ว" = วันที่ต้องไปจริง · ป้ายแสดงสถานะตอนนี้
-      const inst = SF.installDate ? SF.installDate(j) : "";
-      if (!inst) return;
-      out.push({ type: "job", key: "j-" + j.id, job: j, day: inst, stages: [Object.assign({}, curStage, { kind: "single" })], ts: new Date(inst + "T00:00:00").getTime() });
+      // แสดงเฉพาะงานที่ "มีวันนัดติดตั้งแล้ว" = วันที่ต้องไปจริง · กระจายครบทุกวันในช่วงติดตั้ง
+      const s = SF.installDate ? SF.installDate(j) : "";
+      if (!s) return;
+      const e = SF.installEnd ? SF.installEnd(j) : s;
+      let day = s, g = 0;
+      while (g < 60) {
+        const kind = s === e ? "single" : (day === s ? "start" : (day === e ? "end" : "mid"));
+        out.push({ type: "job", key: "j-" + j.id + "-" + day, job: j, day: day, stages: [Object.assign({}, curStage, { kind: kind })], ts: new Date(day + "T00:00:00").getTime() });
+        if (day === e) break; day = _addDays(day, 1); g++;
+      }
     });
     return out.sort((x, y) => x.ts - y.ts);
   }, [appts, jobs, techId]);
