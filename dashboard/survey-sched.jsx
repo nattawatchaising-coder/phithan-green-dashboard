@@ -421,8 +421,9 @@ function JobTaskCard({ job, stages, day, onOpen, onAdvance }) {
     if (!_ce) _ce = _cs;
   }
   const _today = window.SF.TODAY;
+  const advNoDate = canAdvance && !_cs;                        // ยังไม่กำหนดวัน → ล็อก (ต้องตั้งวันก่อน)
   const advEarly = canAdvance && _cs && _today < _cs;          // ยังไม่ถึงวันเริ่ม → ล็อก
-  const advOverdue = canAdvance && _ce && _today > _ce;        // เลยกำหนดเสร็จ
+  const advOverdue = canAdvance && _cs && _ce && _today > _ce; // เลยกำหนดเสร็จ
   const daysLate = advOverdue ? Math.max(1, Math.round((new Date(_today + "T00:00:00") - new Date(_ce + "T00:00:00")) / 86400000)) : 0;
   const doAdvance = (e) => { e.stopPropagation(); if (confirm("ขั้น \"" + curStage.th + "\" เสร็จแล้ว เลื่อนไป \"" + nextStage.th + "\" ?")) onAdvance(job); };
   return (
@@ -448,9 +449,9 @@ function JobTaskCard({ job, stages, day, onOpen, onAdvance }) {
         <span style={{ flex: 1, minWidth: 0 }}>{job.address || "-"}{job.province ? ", " + job.province : ""}</span>
         {mapHref && <a href={mapHref} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3, color: "var(--primary-dark)", fontWeight: 700, fontSize: 11.5, textDecoration: "none" }}><Icon name="map" size={12} color="var(--primary-dark)" /> นำทาง</a>}
       </div>
-      {canAdvance && (advEarly ? (
+      {canAdvance && ((advNoDate || advEarly) ? (
         <div style={{ marginTop: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px", borderRadius: 10, background: "var(--surface3)", color: "var(--text-3)", fontWeight: 700, fontSize: 12.5 }}>
-          <Icon name="lock" size={13} color="var(--text-3)" /> เริ่ม “{curStage.th}” ได้ {thDate(_cs, true)}
+          <Icon name="lock" size={13} color="var(--text-3)" /> {advNoDate ? "ยังไม่กำหนดวันขั้น “" + curStage.th + "”" : "เริ่ม “" + curStage.th + "” ได้ " + thDate(_cs, true)}
         </div>
       ) : (
         <button onClick={doAdvance} style={{ marginTop: 2, width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", borderRadius: 10, border: "none", background: advOverdue ? "#DC2626" : (curStage.color || "var(--primary)"), color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>
