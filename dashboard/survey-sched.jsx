@@ -477,9 +477,10 @@ function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey, o
       const STAGES = SF.STAGES || [];
       const cur = Math.max(0, STAGES.findIndex((s) => s.key === j.stage));
       const curStage = STAGES[cur] || { key: j.stage, th: j.stage, en: "", color: "#64748B" };
-      // หนึ่งงาน = หนึ่งการ์ด ลงตามวันนัดติดตั้ง · ป้ายแสดง "สถานะตอนนี้"
+      // แสดงเฉพาะงานที่ "มีวันนัดติดตั้งแล้ว" = วันที่ต้องไปจริง · ป้ายแสดงสถานะตอนนี้
       const inst = SF.installDate ? SF.installDate(j) : "";
-      out.push({ type: "job", key: "j-" + j.id, job: j, day: inst, stages: [Object.assign({}, curStage, { kind: "single" })], ts: inst ? new Date(inst + "T00:00:00").getTime() : 0 });
+      if (!inst) return;
+      out.push({ type: "job", key: "j-" + j.id, job: j, day: inst, stages: [Object.assign({}, curStage, { kind: "single" })], ts: new Date(inst + "T00:00:00").getTime() });
     });
     return out.sort((x, y) => x.ts - y.ts);
   }, [appts, jobs, techId]);
@@ -495,7 +496,7 @@ function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey, o
   const nAppt = items.filter((i) => i.type === "survey").length;
   const nJob = items.filter((i) => i.type === "job").length;
   const sub = !techId ? "บัญชียังไม่ผูกกับพนักงาน — แจ้งแอดมิน"
-    : (items.length ? [nJob ? nJob + " งานในไปป์ไลน์" : null, nAppt ? nAppt + " นัดสำรวจ" : null].filter(Boolean).join(" · ") : "ไม่มีงานในความรับผิดชอบ");
+    : (items.length ? [nJob ? nJob + " งานติดตั้งที่นัดแล้ว" : null, nAppt ? nAppt + " นัดสำรวจ" : null].filter(Boolean).join(" · ") : "ยังไม่มีงานที่นัดวันแล้ว");
 
   const renderCard = (it) => it.type === "survey"
     ? <ApptCard key={it.key} a={it.a} job={jobsById[it.a.projectId]} onStatus={onStatus} onOpenSurvey={onOpenSurvey} />
