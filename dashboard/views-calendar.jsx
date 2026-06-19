@@ -17,22 +17,16 @@ function useMobileCal(bp = 860) {
 
 const TH_MONTH_FULL = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
 
-/* งาน (ขั้น) ที่ active ในวัน k — กระจายทุกขั้นตามช่วง start..end + ติด kind/late
-   ใช้ทั้งช่องปฏิทินเดือนและแถบรายวัน เพื่อให้งานหลายวันโผล่ครบทุกวันในช่วง */
+/* งานที่ลงในวัน k = วันนัดติดตั้ง (วันเดียวต่องาน) — ป้ายแสดง "สถานะตอนนี้" ของงาน
+   ใช้ทั้งช่องปฏิทินเดือนและแถบรายวัน */
 function calTasksOn(jobs, k) {
   const SF = window.SF; const out = [];
   (jobs || []).forEach((j) => {
-    const sd = j.stageDates || {};
-    SF.STAGES.forEach((s) => {
-      const v = sd[s.key]; if (!v) return;
-      let start = ((typeof v === "object" ? (v.start || v.end || "") : v) || "").slice(0, 10);
-      let end = ((typeof v === "object" ? (v.end || v.start || "") : v) || "").slice(0, 10);
-      if (!start) return; if (!end || end < start) end = start;
-      if (k < start || k > end) return;
-      const kind = start === end ? "single" : (k === start ? "start" : (k === end ? "end" : "mid"));
-      const late = (j.lateStages || []).some((ls) => ls.key === s.key);
-      out.push({ job: j, stage: s, kind: kind, late: late });
-    });
+    const inst = SF.installDate ? SF.installDate(j) : "";
+    if (!inst || inst !== k) return;
+    const cur = SF.STAGES.find((s) => s.key === j.stage) || { key: j.stage, th: j.stage, en: "", color: "#64748B" };
+    const late = j.stage !== "done" && k < SF.TODAY;   // เลยวันนัดติดตั้งแต่ยังไม่เสร็จ
+    out.push({ job: j, stage: cur, kind: "single", late: late });
   });
   return out;
 }

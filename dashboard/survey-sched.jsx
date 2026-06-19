@@ -410,21 +410,14 @@ function JobTaskCard({ job, stages, day, onOpen, onAdvance }) {
   const curStage = (SF.STAGES || [])[curIdx];
   const nextStage = (SF.STAGES || [])[curIdx + 1];
   const canAdvance = !!(onAdvance && curStage && nextStage && job.stage !== "done" && list.some((s) => s.key === curStage.key));
-  // ผูกการกดเสร็จกับวันที่กำหนดของขั้นปัจจุบัน — กันกดข้ามก่อนถึงวันเริ่ม
-  let _cs = "", _ce = "";
-  if (canAdvance) {
-    const v = job.stageDates && job.stageDates[curStage.key];
-    if (v) {
-      if (typeof v === "object") { _cs = (v.start || v.end || "").slice(0, 10); _ce = (v.end || v.start || "").slice(0, 10); }
-      else { _cs = String(v).slice(0, 10); _ce = _cs; }
-    }
-    if (!_ce) _ce = _cs;
-  }
-  const _today = window.SF.TODAY;
-  const advNoDate = canAdvance && !_cs;                        // ยังไม่กำหนดวัน → ล็อก (ต้องตั้งวันก่อน)
-  const advEarly = canAdvance && _cs && _today < _cs;          // ยังไม่ถึงวันเริ่ม → ล็อก
-  const advOverdue = canAdvance && _cs && _ce && _today > _ce; // เลยกำหนดเสร็จ
-  const daysLate = advOverdue ? Math.max(1, Math.round((new Date(_today + "T00:00:00") - new Date(_ce + "T00:00:00")) / 86400000)) : 0;
+  // ขั้นทำงานทั่วไป = อัปเดตสถานะได้อิสระ · เฉพาะขั้น "ติดตั้ง" ผูกกับวันนัดติดตั้ง
+  const isInstall = !!(canAdvance && curStage.key === "install");
+  const _inst = isInstall && SF.installDate ? SF.installDate(job) : "";
+  const _today = SF.TODAY;
+  const advNoDate = isInstall && !_inst;                       // อยู่ขั้นติดตั้งแต่ยังไม่กำหนดวัน → ล็อก
+  const advEarly = isInstall && _inst && _today < _inst;       // ยังไม่ถึงวันติดตั้ง → ล็อก
+  const advOverdue = isInstall && _inst && _today > _inst;     // เลยวันนัดติดตั้ง
+  const daysLate = advOverdue ? Math.max(1, Math.round((new Date(_today + "T00:00:00") - new Date(_inst + "T00:00:00")) / 86400000)) : 0;
   const doAdvance = (e) => { e.stopPropagation(); if (confirm("ขั้น \"" + curStage.th + "\" เสร็จแล้ว เลื่อนไป \"" + nextStage.th + "\" ?")) onAdvance(job); };
   return (
     <div role="button" tabIndex={0} onClick={() => onOpen && onOpen(job)} style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "4px solid " + color, borderRadius: 14, boxShadow: "var(--shadow-sm)", padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
@@ -451,7 +444,7 @@ function JobTaskCard({ job, stages, day, onOpen, onAdvance }) {
       </div>
       {canAdvance && ((advNoDate || advEarly) ? (
         <div style={{ marginTop: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px", borderRadius: 10, background: "var(--surface3)", color: "var(--text-3)", fontWeight: 700, fontSize: 12.5 }}>
-          <Icon name="lock" size={13} color="var(--text-3)" /> {advNoDate ? "ยังไม่กำหนดวันขั้น “" + curStage.th + "”" : "เริ่ม “" + curStage.th + "” ได้ " + thDate(_cs, true)}
+          <Icon name="lock" size={13} color="var(--text-3)" /> {advNoDate ? "ยังไม่กำหนดวันนัดติดตั้ง" : "ติดตั้งวันที่ " + thDate(_inst, true)}
         </div>
       ) : (
         <button onClick={doAdvance} style={{ marginTop: 2, width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", borderRadius: 10, border: "none", background: advOverdue ? "#DC2626" : (curStage.color || "var(--primary)"), color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>
@@ -484,33 +477,9 @@ function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey, o
       const STAGES = SF.STAGES || [];
       const cur = Math.max(0, STAGES.findIndex((s) => s.key === j.stage));
       const curStage = STAGES[cur] || { key: j.stage, th: j.stage, en: "", color: "#64748B" };
-      // กระจายแต่ละขั้น (ที่ยังไม่ผ่าน) ลงทุกวันในช่วง start..end + ติดป้าย kind
-      const byDay = {};
-      STAGES.forEach((s, i) => {
-        if (i < cur) return;                                  // ขั้นที่ทำผ่านแล้ว ไม่โชว์
-        const v = j.stageDates && j.stageDates[s.key];
-        if (!v) return;
-        let start = ((typeof v === "object" ? (v.start || v.end || "") : v) || "").slice(0, 10);
-        let end = ((typeof v === "object" ? (v.end || v.start || "") : v) || "").slice(0, 10);
-        if (!start) return;
-        if (!end || end < start) end = start;
-        let day = start, g = 0;
-        while (g < 60) {
-          const kind = start === end ? "single" : (day === start ? "start" : (day === end ? "end" : "mid"));
-          (byDay[day] = byDay[day] || []).push(Object.assign({}, s, { kind: kind }));
-          if (day === end) break;
-          day = _addDays(day, 1); g++;
-        }
-      });
-      const days = Object.keys(byDay);
-      if (!days.length) {                                     // ไม่มีขั้นที่ลงวันไว้ → การ์ดเดียวตามกำหนดส่ง
-        const anchor = (j.startDate || j.deadline || "").slice(0, 10);
-        out.push({ type: "job", key: "j-" + j.id + "-x", job: j, day: anchor, stages: [Object.assign({}, curStage, { kind: "single" })], ts: anchor ? new Date(anchor + "T00:00:00").getTime() : 0 });
-        return;
-      }
-      days.forEach((day) => {
-        out.push({ type: "job", key: "j-" + j.id + "-" + day, job: j, day: day, stages: byDay[day], ts: new Date(day + "T00:00:00").getTime() });
-      });
+      // หนึ่งงาน = หนึ่งการ์ด ลงตามวันนัดติดตั้ง · ป้ายแสดง "สถานะตอนนี้"
+      const inst = SF.installDate ? SF.installDate(j) : "";
+      out.push({ type: "job", key: "j-" + j.id, job: j, day: inst, stages: [Object.assign({}, curStage, { kind: "single" })], ts: inst ? new Date(inst + "T00:00:00").getTime() : 0 });
     });
     return out.sort((x, y) => x.ts - y.ts);
   }, [appts, jobs, techId]);

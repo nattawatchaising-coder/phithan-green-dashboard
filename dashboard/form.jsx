@@ -47,6 +47,11 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
     return Object.assign({}, p, { stageDates: Object.assign({}, p.stageDates, { [k]: Object.assign({}, cur, { [which]: v }) }) });
   });
   const stageVal = (k) => { const v = f.stageDates && f.stageDates[k]; if (!v) return { start: "", end: "" }; if (typeof v === "object") return { start: v.start || "", end: v.end || "" }; return { start: "", end: v }; };
+  // วันนัดติดตั้ง — วันเดียวที่ใช้จัดตาราง (เก็บใน stageDates.install = {start,end})
+  const installDate = (SF.installDate ? SF.installDate(f) : "");
+  const setInstallDate = (v) => setF((p) => Object.assign({}, p, { stageDates: Object.assign({}, p.stageDates, { install: { start: v, end: v } }) }));
+  // ขั้นตอนการทำงาน = ตัวบอกสถานะ — กดเลือกขั้นปัจจุบัน
+  const setCurStage = (k) => set("stage", k);
   // กรอกวันเสร็จขั้นนี้ → เติมวันเริ่มของขั้นถัดไปให้ต่อกันอัตโนมัติ (ถ้ายังว่าง)
   const setStageEnd = (k, idx, v) => setF((p) => {
     const stages = SF.STAGES;
@@ -100,23 +105,11 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
     Object.keys(otherTasksByDay).forEach((day) => { const seen = {}; let n = 0; otherTasksByDay[day].forEach((j) => { if (!seen[j.id]) { seen[j.id] = 1; n++; } }); m[day] = n; });
     return m;
   }, [otherTasksByDay]);
-  // วันที่งานนี้ลงไว้ (ทุกขั้น) — ไฮไลต์ในมินิปฏิทิน
-  const thisJobDays = React.useMemo(() => {
-    const set = {};
-    SF.STAGES.forEach((s) => {
-      const v = f.stageDates && f.stageDates[s.key]; if (!v) return;
-      let start = ((typeof v === "object" ? (v.start || v.end || "") : v) || "").slice(0, 10);
-      let end = ((typeof v === "object" ? (v.end || v.start || "") : v) || "").slice(0, 10);
-      if (!start) return; if (!end || end < start) end = start;
-      let day = start, g = 0; while (g < 120) { set[day] = 1; if (day === end) break; day = _addDayYmd(day, 1); g++; }
-    });
-    return set;
-  }, [f.stageDates]);
-  // เดือนที่โชว์ในมินิปฏิทิน (ตั้งต้น = เดือนของวันแรกที่ลงไว้ หรือวันนี้)
+  // วันนัดติดตั้งของงานนี้ — ไฮไลต์ในมินิปฏิทิน
+  const thisJobDays = React.useMemo(() => (installDate ? { [installDate]: 1 } : {}), [installDate]);
+  // เดือนที่โชว์ในมินิปฏิทิน (ตั้งต้น = เดือนของวันนัดติดตั้ง หรือวันนี้)
   const [flowMonth, setFlowMonth] = React.useState(() => {
-    let earliest = "";
-    (SF.STAGES || []).forEach((s) => { const v = f.stageDates && f.stageDates[s.key]; if (!v) return; const d = ((typeof v === "object" ? (v.start || v.end || "") : v) || "").slice(0, 10); if (d && (!earliest || d < earliest)) earliest = d; });
-    const base = new Date((earliest || window.SF.TODAY || "2026-06-15") + "T00:00:00");
+    const base = new Date((installDate || window.SF.TODAY || "2026-06-15") + "T00:00:00");
     return { y: base.getFullYear(), m: base.getMonth() };
   });
   const FLOW_MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
@@ -271,12 +264,59 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
             </div>
           </Section>
 
-          {/* per-stage schedule → timeline ที่ล็อกตามลำดับ + วันต่อเนื่อง */}
-          <Section title="กำหนดการแต่ละขั้น (Flow)" icon="calendar">
-            <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 16, lineHeight: 1.5 }}>
-              ทำเรียงทีละขั้น — กรอก<b style={{ color: "var(--text-2)" }}>วันเสร็จ</b>ของขั้นก่อนหน้าให้ครบ ขั้นถัดไปจึงปลดล็อก · วันเริ่มของขั้นถัดไปจะต่อจากวันเสร็จของขั้นก่อนให้อัตโนมัติ
+          {/* สถานะงาน (กดเลือกขั้นปัจจุบัน) + วันนัดติดตั้ง (วันเดียวที่ใช้จัดตาราง) */}
+          <Section title="สถานะงาน & วันนัดติดตั้ง" icon="calendar">
+            {/* ── ขั้นตอนการทำงาน = ตัวบอกสถานะ — กดเลือกว่าตอนนี้ทำถึงขั้นไหน ── */}
+            <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 12, lineHeight: 1.5 }}>
+              แตะที่ขั้นเพื่อบอกว่า<b style={{ color: "var(--text-2)" }}>ตอนนี้งานอยู่ขั้นไหน</b> — ขั้นก่อนหน้าจะถือว่าเสร็จแล้ว
             </div>
-            {/* มินิปฏิทินโหลดงานช่าง — เห็นชัดว่าวันไหนว่าง/มีงาน ก่อนลงวัน */}
+            <div style={{ display: "flex", flexDirection: "column", marginBottom: 4 }}>
+              {(() => {
+                const curIdx = SF.STAGE_INDEX[f.stage] != null ? SF.STAGE_INDEX[f.stage] : 0;
+                return SF.STAGES.map((s, i) => {
+                  const isLast = i === SF.STAGES.length - 1;
+                  const passed = i < curIdx;            // ผ่านแล้ว
+                  const current = i === curIdx;          // กำลังทำ
+                  const filled = passed || current;
+                  return (
+                    <button key={s.key} type="button" onClick={() => setCurStage(s.key)}
+                      style={{ display: "flex", gap: 12, alignItems: "stretch", background: "none", border: "none", padding: 0, textAlign: "left", cursor: "pointer", fontFamily: "inherit" }}>
+                      {/* rail */}
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0, width: 28 }}>
+                        <span style={{ width: 28, height: 28, borderRadius: 99, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 12.5, fontWeight: 800,
+                          background: filled ? s.color : "var(--surface2)", border: "2px solid " + (filled ? s.color : "var(--border-strong)"),
+                          color: filled ? "#fff" : "var(--text-3)", boxShadow: current ? "0 0 0 4px " + (s.soft || "var(--primary-soft)") : "none", transition: "all .15s" }}>
+                          {passed ? <Icon name="check" size={14} color="#fff" sw={3} /> : (i + 1)}
+                        </span>
+                        {!isLast && <span style={{ flex: 1, width: 2, minHeight: 18, background: passed ? s.color : "var(--border)", margin: "3px 0" }} />}
+                      </div>
+                      {/* content */}
+                      <div style={{ flex: 1, paddingBottom: isLast ? 2 : 16, paddingTop: 3, minWidth: 0 }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13.5, fontWeight: current ? 800 : 600, color: current ? "var(--text-1)" : (passed ? "var(--text-2)" : "var(--text-3)") }}>
+                          {s.th} <span style={{ fontWeight: 400, color: "var(--text-3)", fontFamily: "var(--mono)", fontSize: 11 }}>{s.en}</span>
+                          {current && <span style={{ marginLeft: "auto", fontSize: 10.5, fontWeight: 800, color: s.color, background: (s.soft || "var(--primary-soft)"), padding: "2px 9px", borderRadius: 99, flexShrink: 0 }}>ตอนนี้</span>}
+                          {passed && <span style={{ marginLeft: "auto", fontSize: 10.5, fontWeight: 600, color: "var(--text-3)", flexShrink: 0 }}>เสร็จแล้ว</span>}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                });
+              })()}
+            </div>
+
+            {/* ── วันนัดติดตั้ง — วันเดียวที่ใช้จัดตารางงาน/ปฏิทิน ── */}
+            <div style={{ borderTop: "1px dashed var(--border)", marginTop: 6, paddingTop: 16 }}>
+              <Field label="วันนัดติดตั้ง">
+                <input type="date" style={inputStyle} value={installDate} onChange={(e) => setInstallDate(e.target.value)} />
+              </Field>
+              {installDate && f.tech && otherCountByDay[installDate] > 0 && (
+                <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: "#B45309", background: "#FEF3C7", border: "1px solid #FCD34D", borderRadius: 8, padding: "7px 10px", display: "flex", alignItems: "center", gap: 6 }}>
+                  <Icon name="alert" size={13} color="#B45309" /> ช่าง{techNick} มีงานอื่น {otherCountByDay[installDate]} งานวันนี้ — เช็กว่าซ้อนกันไหม
+                </div>
+              )}
+            </div>
+
+            {/* มินิปฏิทินโหลดงานช่าง — แตะวันว่างเพื่อเลือกวันนัดติดตั้ง */}
             {f.tech && (() => {
               const fm = flowMonth;
               const fFirst = new Date(fm.y, fm.m, 1).getDay();
@@ -288,7 +328,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
               const fShift = (delta) => setFlowMonth((s) => { const n = new Date(s.y, s.m + delta, 1); return { y: n.getFullYear(), m: n.getMonth() }; });
               const navB = { width: 26, height: 26, borderRadius: 7, border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" };
               return (
-                <div style={{ marginBottom: 16, border: "1px solid var(--border)", borderRadius: 12, padding: 12, background: "var(--surface2)" }}>
+                <div style={{ marginTop: 14, border: "1px solid var(--border)", borderRadius: 12, padding: 12, background: "var(--surface2)" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, gap: 8 }}>
                     <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-1)", display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
                       <Icon name="calendar" size={13} color="var(--primary)" /><span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>ปฏิทินงานช่าง{techNick ? " " + techNick : ""} · {FLOW_MONTHS[fm.m]} {fm.y + 543}</span>
@@ -313,13 +353,14 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
                       else if (cnt >= 2) { bg = "#FEE2E2"; col = "#B91C1C"; bd = "1px solid #FCA5A5"; }
                       else if (cnt === 1) { bg = "#FEF3C7"; col = "#B45309"; bd = "1px solid #FCD34D"; }
                       return (
-                        <div key={i} title={(mine ? "งานนี้" : cnt ? "ช่างมี " + cnt + " งาน" : "ว่าง") + " · " + d + " " + FLOW_MONTHS[fm.m]}
-                          style={{ minHeight: 30, borderRadius: 7, border: isToday ? "1.5px solid var(--primary)" : bd, background: bg,
+                        <button type="button" key={i} onClick={() => setInstallDate(k)}
+                          title={(mine ? "วันนัดติดตั้งงานนี้" : cnt ? "ช่างมี " + cnt + " งาน" : "ว่าง") + " · " + d + " " + FLOW_MONTHS[fm.m] + " — แตะเพื่อเลือกวันติดตั้ง"}
+                          style={{ minHeight: 30, borderRadius: 7, border: isToday && !mine ? "1.5px solid var(--primary)" : bd, background: bg, cursor: "pointer", fontFamily: "inherit",
                             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
                           <span style={{ fontSize: 11, fontWeight: isToday ? 800 : 600, color: col }}>{d}</span>
                           {!mine && cnt > 0 && <span style={{ fontSize: 8, fontWeight: 700, color: col, lineHeight: 1 }}>{cnt} งาน</span>}
                           {mine && <span style={{ width: 5, height: 5, borderRadius: 99, background: "var(--primary)" }} />}
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
@@ -327,67 +368,11 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, border: "1px solid var(--border)", background: "var(--surface)" }} /> ว่าง</span>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: "#FEF3C7", border: "1px solid #FCD34D" }} /> มี 1 งาน</span>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: "#FEE2E2", border: "1px solid #FCA5A5" }} /> 2+ งาน</span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: "var(--primary-soft)", border: "1px solid var(--primary)" }} /> งานนี้</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: "var(--primary-soft)", border: "1px solid var(--primary)" }} /> วันติดตั้งงานนี้</span>
                   </div>
                 </div>
               );
             })()}
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              {SF.STAGES.map((s, i) => {
-                const sv = stageVal(s.key);
-                const prevEnd = i === 0 ? "" : stageVal(SF.STAGES[i - 1].key).end;
-                const locked = i > 0 && !prevEnd;
-                const done = !!(sv.start && sv.end);
-                const isLast = i === SF.STAGES.length - 1;
-                const cap = { fontSize: 9.5, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 3, display: "block" };
-                const dis = (extra) => Object.assign({}, inputStyle, extra ? { opacity: .5, cursor: "not-allowed", background: "var(--surface)" } : {});
-                return (
-                  <div key={s.key} style={{ display: "flex", gap: 12, alignItems: "stretch" }}>
-                    {/* rail */}
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0, width: 26 }}>
-                      <span style={{ width: 26, height: 26, borderRadius: 99, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700,
-                        background: done ? s.color : "var(--surface2)", border: "2px solid " + (locked ? "var(--border-strong)" : s.color), color: done ? "#fff" : (locked ? "var(--text-3)" : s.color) }}>
-                        {done ? <Icon name="check" size={13} color="#fff" sw={3} /> : (locked ? <Icon name="lock" size={12} color="var(--text-3)" /> : (i + 1))}
-                      </span>
-                      {!isLast && <span style={{ flex: 1, width: 2, minHeight: 14, background: done ? s.color : "var(--border)", margin: "3px 0" }} />}
-                    </div>
-                    {/* content */}
-                    <div style={{ flex: 1, paddingBottom: isLast ? 0 : 18, opacity: locked ? .55 : 1, transition: "opacity .2s" }}>
-                      <span style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", marginBottom: 7, minHeight: 26 }}>
-                        {s.th} <span style={{ fontWeight: 400, color: "var(--text-3)", fontFamily: "var(--mono)", fontSize: 11 }}>{s.en}</span>
-                        {locked && <span style={{ marginLeft: "auto", fontSize: 10.5, fontWeight: 600, color: "var(--text-3)" }}>กรอกขั้นก่อนให้เสร็จก่อน</span>}
-                      </span>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                        <div><span style={cap}>เริ่ม</span>
-                          <input type="date" disabled={locked} min={prevEnd || undefined} max={sv.end || undefined}
-                            style={dis(locked)} value={sv.start}
-                            onChange={(e) => setStageField(s.key, "start", e.target.value)} />
-                        </div>
-                        <div><span style={cap}>เสร็จ</span>
-                          <input type="date" disabled={locked || !sv.start} min={sv.start || prevEnd || undefined}
-                            style={dis(locked || !sv.start)} value={sv.end}
-                            onChange={(e) => setStageEnd(s.key, i, e.target.value)} />
-                        </div>
-                      </div>
-                      {/* โหลดงานของช่างช่วงนี้ — กันลงงานซ้อน */}
-                      {f.tech && sv.start && (() => {
-                        const load = loadInSpan(sv.start, sv.end);
-                        if (load.length === 0) return (
-                          <div style={{ marginTop: 6, fontSize: 11, fontWeight: 600, color: "#16A34A", display: "flex", alignItems: "center", gap: 5 }}>
-                            <Icon name="check" size={12} color="#16A34A" sw={2.6} /> ช่าง{techNick} ว่างช่วงนี้
-                          </div>
-                        );
-                        return (
-                          <div title={load.map((j) => j.name).join(", ")} style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: "#B45309", background: "#FEF3C7", border: "1px solid #FCD34D", borderRadius: 8, padding: "5px 8px", display: "flex", alignItems: "center", gap: 5 }}>
-                            <Icon name="alert" size={12} color="#B45309" /> ช่าง{techNick} มีงานอื่น {load.length} งานช่วงนี้: {load.slice(0, 2).map((j) => j.name.replace("บ้าน", "")).join(", ")}{load.length > 2 ? " +" + (load.length - 2) : ""}
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
           </Section>
         </div>
 
