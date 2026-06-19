@@ -73,21 +73,15 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
   // ── โหลดงานของช่างที่เลือก: กันลงงานซ้อนวันเดียวกันเกินไป ──
   const _addDayYmd = (k, n) => { const d = new Date(k + "T00:00:00"); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
   const techNick = (SF.TECH_BY_ID && SF.TECH_BY_ID[f.tech]) ? (SF.TECH_BY_ID[f.tech].nick || SF.TECH_BY_ID[f.tech].name) : "";
-  // วัน(YMD) → งานอื่นของช่างคนนี้ที่ active วันนั้น (กระจายทุกขั้นตามช่วง start..end)
+  // วัน(YMD) → งานอื่นของช่างคนนี้ที่นัดติดตั้งวันนั้น (วันเดียวต่องาน — ไม่นับช่วงรายขั้นแบบเก่า)
   const otherTasksByDay = React.useMemo(() => {
     const map = {};
     if (!f.tech) return map;
     (jobs || []).forEach((j) => {
-      if (j.id === f.id || j.tech !== f.tech) return;     // ไม่นับงานนี้เอง + เฉพาะช่างคนเดียวกัน
-      const sd = j.stageDates || {};
-      SF.STAGES.forEach((st) => {
-        const v = sd[st.key]; if (!v) return;
-        let start = ((typeof v === "object" ? (v.start || v.end || "") : v) || "").slice(0, 10);
-        let end = ((typeof v === "object" ? (v.end || v.start || "") : v) || "").slice(0, 10);
-        if (!start) return; if (!end || end < start) end = start;
-        let day = start, g = 0;
-        while (g < 120) { (map[day] = map[day] || []).push(j); if (day === end) break; day = _addDayYmd(day, 1); g++; }
-      });
+      if (j.id === f.id || j.tech !== f.tech || j.stage === "done") return;  // ไม่นับงานนี้เอง/งานเสร็จแล้ว + เฉพาะช่างคนเดียวกัน
+      const inst = SF.installDate ? SF.installDate(j) : "";
+      if (!inst) return;
+      (map[inst] = map[inst] || []).push(j);
     });
     return map;
   }, [jobs, f.tech, f.id]);
