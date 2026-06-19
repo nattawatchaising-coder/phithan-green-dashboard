@@ -256,37 +256,29 @@
     const matVals = MATERIALS.map((m) => matObj[m.key]).filter((v) => v !== "na");
     const matReadyCount = matVals.filter((v) => v === "ready").length;
     const matReady = matVals.length > 0 && matReadyCount === matVals.length;
-    // กำหนดเริ่ม/เสร็จรวมของงาน — derive จากกำหนดการแต่ละขั้น (stageDates) ถ้ามี
-    // stageDates[key] = { start, end } (รองรับค่าเก่าที่เป็น string = วันเสร็จอย่างเดียว)
+    // กำหนดการของงาน = ช่วงวันนัดติดตั้ง (โมเดลใหม่: ใช้วันนัดติดตั้งวัน/ช่วงเดียวเป็นแหล่งเดียว)
+    // ไม่ derive จาก stageDates รายขั้นเดิม / j.deadline เก่าอีก เพื่อกันข้อมูลค้าง
     const sdates = j.stageDates || {};
-    const stageStarts = [], stageEnds = [];
-    STAGES.forEach((s) => {
-      const v = sdates[s.key];
-      if (!v) return;
-      if (typeof v === "object") { if (v.start) stageStarts.push(v.start); if (v.end) stageEnds.push(v.end); }
-      else if (v) stageEnds.push(v);
-    });
-    const effStart = (stageStarts.length ? stageStarts.slice().sort()[0] : null) || j.startDate || j.deadline;
-    const effDeadline = (stageEnds.length ? stageEnds.slice().sort()[stageEnds.length - 1] : null) || j.deadline;
-    // งานล่าช้า = ยังไม่เสร็จ และ "กำหนดการเสร็จสิ้น" เลยวันนี้ไปแล้ว (เทียบระดับวัน — ครบกำหนดวันนี้ยังไม่ล่าช้า)
+    const iv = sdates.install;
+    let instS = "", instE = "";
+    if (iv) {
+      if (typeof iv === "object") { instS = (iv.start || iv.end || "").slice(0, 10); instE = (iv.end || iv.start || "").slice(0, 10); }
+      else { instS = String(iv).slice(0, 10); instE = instS; }
+      if (!instE || instE < instS) instE = instS;
+    }
+    const effStart = instS || null;     // วันเริ่มติดตั้ง (null = ยังไม่นัด)
+    const effDeadline = instE || null;  // วันเสร็จติดตั้ง
+    // งานล่าช้า = ยังไม่เสร็จ และเลยวันเสร็จติดตั้งไปแล้ว (เทียบระดับวัน — ครบกำหนดวันนี้ยังไม่ล่าช้า)
     const todayMidnight = new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate());
     const dl = effDeadline ? parseDateLocal(effDeadline) : null;
     const delayed = j.stage !== "done" && dl && dl.getTime() < todayMidnight.getTime();
     const stageIdx = STAGE_INDEX[j.stage] != null ? STAGE_INDEX[j.stage] : 0;
-    // ขั้นงานที่เลยกำหนด = ยังไม่เสร็จ + ขั้นนี้ยังไม่ผ่าน (idx >= ขั้นปัจจุบัน) + วันเสร็จที่ตั้งไว้เลยวันนี้
+    // เลยกำหนด → ชี้ที่ขั้นติดตั้ง (โมเดลใหม่ผูกความล่าช้ากับวันนัดติดตั้ง)
     const lateStages = [];
-    if (j.stage !== "done") {
-      STAGES.forEach((s, idx) => {
-        if (idx < stageIdx) return; // ผ่านขั้นนี้ไปแล้ว
-        const v = sdates[s.key];
-        const end = v ? (typeof v === "object" ? v.end : v) : null;
-        if (!end) return;
-        const ed = parseDateLocal(end);
-        if (ed && ed.getTime() < todayMidnight.getTime()) {
-          lateStages.push({ key: s.key, th: s.th, en: s.en, color: s.color, end: end,
-            daysLate: Math.round((todayMidnight.getTime() - ed.getTime()) / 86400000) });
-        }
-      });
+    if (delayed) {
+      const inst = STAGES.find((s) => s.key === "install") || {};
+      lateStages.push({ key: "install", th: inst.th, en: inst.en, color: inst.color, end: instE,
+        daysLate: Math.round((todayMidnight.getTime() - dl.getTime()) / 86400000) });
     }
     return Object.assign({}, j, {
       id: j.id || j.code,

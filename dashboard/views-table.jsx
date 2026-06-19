@@ -76,7 +76,7 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
               {th("ขนาด", "kw", true)}
               {th("ความพร้อมวัสดุ", "matReadyPct", true)}
               {th("ขั้นตอน", "stage", true)}
-              {th("กำหนดเสร็จ", "deadline", true)}
+              {th("วันติดตั้ง", "deadline", true)}
               {th("จัดการ", null, true)}
             </tr>
           </thead>
@@ -131,9 +131,13 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
                 </td>
                 {/* deadline */}
                 <td style={{ padding: "13px 14px", textAlign: "center" }}>
-                  <div style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 600, color: j.delayed ? "#EF4444" : "var(--text-2)" }}>{thDate(j.deadline, true)}</div>
-                  {j.delayed ? <span style={{ fontSize: 10, fontWeight: 700, color: "#EF4444" }}>⚠ ล่าช้า</span>
-                    : <span style={{ fontSize: 10, fontWeight: 600, color: "var(--primary-dark)" }}>ปกติ</span>}
+                  {j.startDate ? (
+                    <React.Fragment>
+                      <div style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 600, color: j.delayed ? "#EF4444" : "var(--text-2)" }}>{thDate(j.startDate, true)}{j.deadline && j.deadline !== j.startDate ? "–" + thDate(j.deadline, true) : ""}</div>
+                      {j.delayed ? <span style={{ fontSize: 10, fontWeight: 700, color: "#EF4444" }}>⚠ ล่าช้า</span>
+                        : <span style={{ fontSize: 10, fontWeight: 600, color: "var(--primary-dark)" }}>ปกติ</span>}
+                    </React.Fragment>
+                  ) : <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)" }}>ยังไม่นัด</span>}
                 </td>
                 {/* actions */}
                 <td style={{ padding: "13px 14px", textAlign: "center", whiteSpace: "nowrap" }}>
@@ -190,7 +194,7 @@ function TableMobile({ jobs, sort, setSort, onOpen, onEdit, onDelete, onSetStage
     { key: "name", th: "ชื่อลูกค้า" },
     { key: "stage", th: "ขั้นตอน" },
     { key: "kw", th: "ขนาด (kW)" },
-    { key: "deadline", th: "กำหนดเสร็จ" },
+    { key: "deadline", th: "วันติดตั้ง" },
   ];
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -267,9 +271,9 @@ function TableMobile({ jobs, sort, setSort, onOpen, onEdit, onDelete, onSetStage
                 <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "var(--mono)", color: j.matReady ? "var(--primary-dark)" : "var(--text-3)" }}>{j.matReadyPct}%</span>
               </span>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontFamily: "var(--mono)", fontWeight: 600,
-                color: j.delayed ? "#EF4444" : "var(--text-2)" }}>
-                <Icon name="calendar" size={12} color={j.delayed ? "#EF4444" : "var(--text-3)"} />
-                {thDate(j.deadline, true)}{j.delayed && " ⚠"}
+                color: j.startDate ? (j.delayed ? "#EF4444" : "var(--text-2)") : "var(--text-3)" }}>
+                <Icon name="calendar" size={12} color={j.startDate ? (j.delayed ? "#EF4444" : "var(--text-3)") : "var(--text-3)"} />
+                {j.startDate ? thDate(j.startDate, true) + (j.deadline && j.deadline !== j.startDate ? "–" + thDate(j.deadline, true) : "") + (j.delayed ? " ⚠" : "") : "ยังไม่นัด"}
               </span>
             </div>
           </div>
