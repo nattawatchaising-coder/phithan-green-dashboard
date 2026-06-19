@@ -437,6 +437,32 @@ function JobTaskCard({ job, stages, day, onOpen, onAdvance }) {
         <Icon name="clock" size={13} color="var(--text-3)" />{dateStr}{list.length > 1 ? " · " + list.length + " งาน" : ""}
         {typeof job.progressPct === "number" && <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, color: "var(--text-3)", fontFamily: "var(--mono)" }}>{job.progressPct}%</span>}
       </div>
+      {/* แถบสถานะ จุด+เส้น — บอกว่างานเดินมาถึงขั้นไหนแล้ว */}
+      {(() => {
+        const STAGES = SF.STAGES || [];
+        const ci = Math.max(0, STAGES.findIndex((s) => s.key === job.stage));
+        const SHORT = { design: "ออกแบบ", takeoff: "ถอดของ", order: "สั่งของ", waiting: "รอของ", install: "ติดตั้ง", done: "เสร็จ" };
+        return (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(" + STAGES.length + ",1fr)", marginTop: 2, marginBottom: 2 }}>
+            {STAGES.map((s, i) => {
+              const passed = i < ci, current = i === ci, filled = passed || current;
+              return (
+                <div key={s.key} title={s.th} style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative", minWidth: 0 }}>
+                  {i > 0 && <span style={{ position: "absolute", top: 6, left: "-50%", width: "100%", height: 2, background: i <= ci ? STAGES[i - 1].color : "var(--border)", zIndex: 0 }} />}
+                  <span style={{ height: 14, display: "grid", placeItems: "center", position: "relative", zIndex: 1 }}>
+                    <span style={{ width: current ? 13 : 9, height: current ? 13 : 9, borderRadius: 99,
+                      background: filled ? s.color : "var(--surface)", border: current ? "2px solid " + s.color : (passed ? "none" : "1.5px solid var(--border-strong)"),
+                      boxShadow: current ? "0 0 0 3px " + s.color + "33" : "none", display: "grid", placeItems: "center" }}>
+                      {passed && <Icon name="check" size={6} color="#fff" sw={3.5} />}
+                    </span>
+                  </span>
+                  <span style={{ marginTop: 3, fontSize: 8.5, fontWeight: current ? 800 : 500, color: current ? s.color : (passed ? "var(--text-2)" : "var(--text-3)"), textAlign: "center", lineHeight: 1.15 }}>{SHORT[s.key] || s.th}</span>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
       <div style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "flex-start", gap: 6 }}>
         <Icon name="pin" size={13} color="var(--text-3)" style={{ flexShrink: 0, marginTop: 1 }} />
         <span style={{ flex: 1, minWidth: 0 }}>{job.address || "-"}{job.province ? ", " + job.province : ""}</span>
