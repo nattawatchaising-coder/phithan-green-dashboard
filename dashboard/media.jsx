@@ -34,19 +34,56 @@ function resizeImageFile(file, maxDim, quality) {
   });
 }
 
-/* hook: โหลดรูป + คอมเมนต์ของงานที่เปิดอยู่ */
+/* อ่านไฟล์ → dataURL (เก็บลง RTDB เป็น base64 เหมือนรูป — ไม่ต้องตั้งค่า Storage) */
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* dataURL (base64) → Blob URL สำหรับเปิดดู/ดาวน์โหลด PDF */
+function dataUrlToBlobUrl(dataUrl) {
+  const [head, b64] = String(dataUrl || "").split(",");
+  const mime = (head.match(/data:([^;]+)/) || [])[1] || "application/octet-stream";
+  const bin = atob(b64 || "");
+  const len = bin.length;
+  const arr = new Uint8Array(len);
+  for (let i = 0; i < len; i++) arr[i] = bin.charCodeAt(i);
+  return URL.createObjectURL(new Blob([arr], { type: mime }));
+}
+
+/* hook: โหลดรูป + คอมเมนต์ + ไฟล์แนบ (PDF) ของงานที่เปิดอยู่ */
 function useJobMedia(jobId) {
   const [photos, setPhotos] = React.useState([]);
   const [comments, setComments] = React.useState([]);
+  const [files, setFiles] = React.useState([]);
 
   React.useEffect(() => {
-    if (!jobId || !_MFB()) { setPhotos([]); setComments([]); return; }
+    if (!jobId || !_MFB()) { setPhotos([]); setComments([]); setFiles([]); return; }
     const pRef = _mref("jobPhotos/" + jobId);
     const cRef = _mref("jobComments/" + jobId);
+    const fRef = _mref("jobFiles/" + jobId);
     const ph = pRef.on("value", (s) => { const a = _msnap(s); a.sort((x, y) => (x.at || "").localeCompare(y.at || "")); setPhotos(a); });
     const ch = cRef.on("value", (s) => { const a = _msnap(s); a.sort((x, y) => (x.at || "").localeCompare(y.at || "")); setComments(a); });
-    return () => { pRef.off("value", ph); cRef.off("value", ch); };
+    const fh = fRef.on("value", (s) => { const a = _msnap(s); a.sort((x, y) => (x.at || "").localeCompare(y.at || "")); setFiles(a); });
+    return () => { pRef.off("value", ph); cRef.off("value", ch); fRef.off("value", fh); };
   }, [jobId]);
+
+  const addFile = React.useCallback((dataUrl, meta, user) => {
+    if (!jobId) return;
+    const id = "F-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    _mref("jobFiles/" + jobId + "/" + id).set({
+      id, jobId, dataUrl, kind: (meta && meta.kind) || "other",
+      name: (meta && meta.name) || "ไฟล์", size: (meta && meta.size) || 0,
+      by: (user && user.id) || null, byName: (user && user.name) || "-",
+      at: new Date().toISOString(),
+    });
+  }, [jobId]);
+
+  const removeFile = React.useCallback((id) => { if (jobId) _mref("jobFiles/" + jobId + "/" + id).remove(); }, [jobId]);
 
   const addPhoto = React.useCallback((dataUrl, user, caption) => {
     if (!jobId) return;
@@ -70,7 +107,7 @@ function useJobMedia(jobId) {
 
   const removeComment = React.useCallback((id) => { if (jobId) _mref("jobComments/" + jobId + "/" + id).remove(); }, [jobId]);
 
-  return { photos, comments, addPhoto, removePhoto, addComment, removeComment };
+  return { photos, comments, files, addPhoto, removePhoto, addComment, removeComment, addFile, removeFile };
 }
 
 /* ── รูปหน้างาน — แถวเดียวเลื่อนแนวนอน + ดูรูปใหญ่ (เลื่อน/ปัดดูได้) ── */
@@ -186,6 +223,129 @@ function JobPhotos({ media, currentUser, canManage }) {
   );
 }
 
+/* ── เอกสารแนบ (PDF) — แบบ + BOQ ที่ถอด ──
+   เก็บเป็น base64 ใน RTDB (jobFiles/{jobId}) เหมือนรูป · จำกัดขนาด ~8MB ต่อไฟล์ */
+const FILE_KINDS = {
+  design: { th: "แบบ", color: "#2563EB", soft: "#2563EB14" },
+  boq:    { th: "BOQ", color: "#0D9488", soft: "#0D948814" },
+  other:  { th: "เอกสาร", color: "#64748B", soft: "#64748B14" },
+};
+const MAX_FILE_MB = 8;
+function fmtBytes(n) {
+  if (!n) return "";
+  if (n < 1024) return n + " B";
+  if (n < 1024 * 1024) return (n / 1024).toFixed(0) + " KB";
+  return (n / 1024 / 1024).toFixed(1) + " MB";
+}
+
+function JobFiles({ media, currentUser, canManage }) {
+  const [busy, setBusy] = React.useState(false);
+  const pickKind = React.useRef("other");
+  const fileRef = React.useRef(null);
+  const files = media.files || [];
+
+  const trigger = (kind) => { pickKind.current = kind; if (fileRef.current) fileRef.current.click(); };
+
+  const onPick = async (e) => {
+    const list = Array.from(e.target.files || []);
+    if (!list.length) return;
+    setBusy(true);
+    try {
+      for (const f of list) {
+        const isPdf = f.type === "application/pdf" || /\.pdf$/i.test(f.name);
+        if (!isPdf) { alert("รองรับเฉพาะไฟล์ PDF: " + f.name); continue; }
+        if (f.size > MAX_FILE_MB * 1024 * 1024) { alert("ไฟล์ใหญ่เกิน " + MAX_FILE_MB + "MB — กรุณาบีบอัดก่อน: " + f.name); continue; }
+        const url = await readFileAsDataURL(f);
+        media.addFile(url, { kind: pickKind.current, name: f.name, size: f.size }, currentUser);
+      }
+    } catch (err) { alert("อัปโหลดไฟล์ไม่สำเร็จ: " + err.message); }
+    setBusy(false);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const open = (f, download) => {
+    try {
+      const url = dataUrlToBlobUrl(f.dataUrl);
+      if (download) {
+        const a = document.createElement("a");
+        a.href = url; a.download = f.name || "เอกสาร.pdf";
+        document.body.appendChild(a); a.click(); a.remove();
+      } else {
+        window.open(url, "_blank", "noopener");
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (err) { alert("เปิดไฟล์ไม่สำเร็จ: " + err.message); }
+  };
+
+  const canDelete = (f) => canManage || (currentUser && f.by === currentUser.id);
+  const UpBtn = ({ kind, label }) => {
+    const k = FILE_KINDS[kind];
+    return (
+      <button onClick={() => trigger(kind)} disabled={busy}
+        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9,
+          border: "1px solid " + k.color + "55", background: k.soft, color: k.color,
+          fontWeight: 700, fontFamily: "inherit", fontSize: 12.5, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
+        <Icon name="plus" size={14} color={k.color} sw={2.4} /> {label}
+      </button>
+    );
+  };
+
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 6 }}>
+          <Icon name="file" size={14} color="var(--text-2)" /> เอกสารแนบ (PDF){files.length > 0 && " · " + files.length}
+        </span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <UpBtn kind="design" label={busy ? "กำลังอัปโหลด..." : "แบบ"} />
+          <UpBtn kind="boq" label="BOQ" />
+        </span>
+        <input ref={fileRef} type="file" accept="application/pdf,.pdf" multiple onChange={onPick} style={{ display: "none" }} />
+      </div>
+
+      {files.length === 0 ? (
+        <div onClick={() => trigger("other")}
+          style={{ padding: "20px 0", textAlign: "center", fontSize: 12.5, color: "var(--text-3)",
+            border: "1.5px dashed var(--border-strong)", borderRadius: 12, cursor: "pointer" }}>
+          ยังไม่มีเอกสาร · แตะปุ่ม “แบบ” หรือ “BOQ” เพื่ออัปโหลด PDF
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {files.map((f) => {
+            const k = FILE_KINDS[f.kind] || FILE_KINDS.other;
+            return (
+              <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 12px",
+                background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 11 }}>
+                <span style={{ width: 34, height: 34, borderRadius: 9, background: k.soft, display: "grid", placeItems: "center", flexShrink: 0 }}>
+                  <Icon name="file" size={17} color={k.color} />
+                </span>
+                <button onClick={() => open(f, false)} title="เปิดดู"
+                  style={{ flex: 1, minWidth: 0, background: "none", border: "none", padding: 0, textAlign: "left", cursor: "pointer", fontFamily: "inherit" }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                    <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: ".04em", color: k.color, background: k.soft, padding: "1px 6px", borderRadius: 5, flexShrink: 0 }}>{k.th}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</span>
+                  </span>
+                  <span style={{ fontSize: 11, color: "var(--text-3)" }}>{fmtBytes(f.size)}{f.size ? " · " : ""}โดย {f.byName} · {thDateTime ? thDateTime(f.at) : ""}</span>
+                </button>
+                <button onClick={() => open(f, true)} title="ดาวน์โหลด" aria-label="ดาวน์โหลด"
+                  style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                  <Icon name="download" size={15} color="var(--text-2)" />
+                </button>
+                {canDelete(f) && (
+                  <button onClick={() => { if (confirm("ลบเอกสาร “" + f.name + "” ?")) media.removeFile(f.id); }} title="ลบ" aria-label="ลบ"
+                    style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-3)" }}>
+                    <Icon name="x" size={15} color="var(--text-3)" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── พูดคุย / บันทึกงาน ── */
 function JobComments({ media, currentUser, canManage }) {
   const [text, setText] = React.useState("");
@@ -238,4 +398,4 @@ function JobComments({ media, currentUser, canManage }) {
   );
 }
 
-Object.assign(window, { useJobMedia, resizeImageFile, JobPhotos, JobComments });
+Object.assign(window, { useJobMedia, resizeImageFile, readFileAsDataURL, dataUrlToBlobUrl, JobPhotos, JobFiles, JobComments });

@@ -499,6 +499,9 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                 <FlowTimeline job={job} />
               </div>
 
+              {/* เอกสารแนบ (PDF) — แบบ + BOQ ที่ถอด */}
+              <JobFiles media={media} currentUser={currentUser} canManage={canManage} />
+
               {/* รูปหน้างาน + พูดคุย/บันทึกงาน */}
               <JobPhotos media={media} currentUser={currentUser} canManage={canManage} />
               <JobComments media={media} currentUser={currentUser} canManage={canManage} />
