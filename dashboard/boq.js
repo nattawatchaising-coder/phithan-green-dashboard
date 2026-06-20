@@ -112,7 +112,7 @@
   const PULLBOX_SIZES = [
     "PULL BOX (HDG.) 100x100x100mm.", "PULL BOX (HDG.) 150x150x100mm.", "PULL BOX (HDG.) 150x150x150mm.",
     "PULL BOX (HDG.) 200x200x100mm.", "PULL BOX (HDG.) 200x200x150mm.", "PULL BOX (HDG.) 200x200x200mm.",
-    "กล่องพักสายไฟ uPVC สีขาว 100x100x50mm.", "กล่องพักสายไฟ uPVC สีขาว 150x150x50mm.",
+    "กล่องพักสายไฟ uPVC สีขาว 4\"x4\"x2\"", "กล่องพักสายไฟ uPVC สีขาว 4\"x4\"x3\"",
   ];
 
   const ROOF_OPTIONS = ROOF_HOOKS.map((r) => r.roof);
