@@ -115,6 +115,17 @@
     "กล่องพักสายไฟ uPVC สีขาว 4\"x4\"x2\"", "กล่องพักสายไฟ uPVC สีขาว 4\"x4\"x3\"",
   ];
 
+  // ── ACCESSORIES มาตรฐาน — ถอดให้ทุกงานอัตโนมัติ + เทปพันสายไฟตามจำนวนเฟส ──
+  const ACC_STD = [
+    "ลวดอลูมิเนียมกลม ขนาด 4 มม. x 10 เมตร",
+    'Cable Tie 8"',
+    "อะคริลิกกันน้ำรั่วซึม 4 กก. SUPREMPRO รุ่น 2601062 สีเทาอ่อน",
+    "ซิลิโคนยาแนวอเนกประสงค์ 280 มล. (สีขาว)",
+  ];
+  const ACC_TAPE_1P = ["สีน้ำตาล", "สีฟ้า"];
+  const ACC_TAPE_3P = ["สีน้ำตาล", "สีดำ", "สีเทา", "สีฟ้า"];
+  const accTape = (phase) => (phase === 3 ? ACC_TAPE_3P : ACC_TAPE_1P).map((c) => "เทปพันสายไฟ " + c);
+
   const ROOF_OPTIONS = ROOF_HOOKS.map((r) => r.roof);
 
   // ── ตาราง OD สายไฟ (mm) ตามชนิด + ขนาด sq.mm — อ้างอิง "คำนวณ BOQ.xlsx" ──
@@ -526,9 +537,12 @@
       ] });
     }
 
-    // ACCESSORIES (เพิ่มเอง / ดึงจากราคาวัสดุ-คลังสินค้า)
-    const acc = (b.accessories || []).filter((a) => (a.name || "").trim() && (+a.qty || 0) > 0)
-      .map((a) => ({ name: a.name.trim(), qty: +a.qty || 0, unit: a.unit || "" }));
+    // ACCESSORIES — ชุดมาตรฐาน (ถอดทุกงาน) + เทปพันสายไฟตามเฟส + ที่ผู้ใช้เพิ่มเอง
+    const autoAcc = ACC_STD.concat(accTape(phase)).map((name) => ({ name, qty: 1, unit: "ชิ้น" }));
+    const acc = autoAcc.concat(
+      (b.accessories || []).filter((a) => (a.name || "").trim() && (+a.qty || 0) > 0)
+        .map((a) => ({ name: a.name.trim(), qty: +a.qty || 0, unit: a.unit || "" }))
+    );
     if (acc.length) groups.push({ group: "ACCESSORIES", items: acc });
 
     return { groups, meta: { panelCount, kw, rowsSum, invCount, battCount, valid: rowsSum === panelCount } };
@@ -606,6 +620,9 @@
     add("GUARD RAIL", "เกลียวเร่งสแตนเลส 8 มม.", "ตัว");
     add("GUARD RAIL", "กิ๊บสลิงสแตนเลส 6 มม.", "ตัว");
     add("GUARD RAIL", "ปลอกอลูมิเนียม 6 มม.", "ตัว");
+    // ACCESSORIES มาตรฐาน + เทปพันสายไฟทุกสี (1 เฟส + 3 เฟส)
+    ACC_STD.forEach((n) => add("ACCESSORIES", n, "ชิ้น"));
+    [...new Set([...ACC_TAPE_1P, ...ACC_TAPE_3P])].forEach((c) => add("ACCESSORIES", "เทปพันสายไฟ " + c, "ชิ้น"));
     return list;
   }
 
