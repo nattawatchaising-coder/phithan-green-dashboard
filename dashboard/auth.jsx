@@ -26,7 +26,7 @@ function _alsGet(key, seed) {
 function _alsSet(key, data) { try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) {} }
 
 /* ---------- บัญชีเริ่มต้น + สิทธิ์ ---------- */
-const ADMIN_SEED = { id: "u-admin", name: "แอดมิน", pin: "1234", role: "admin", techId: null, active: true };
+const ADMIN_SEED = { id: "u-admin", name: "แอดมิน", username: "admin", pin: "1234", role: "admin", techId: null, active: true };
 
 const ROLE_INFO = {
   admin:   { th: "แอดมิน / ออฟฟิศ", icon: "users",  color: "#22A35B" },
@@ -45,7 +45,7 @@ const PERMS = {
 function can(role, action) { return !!(PERMS[role] && PERMS[role][action]); }
 
 function blankUser() {
-  return { id: "u-" + Date.now().toString(36), name: "", pin: "", role: "tech", techId: null, active: true };
+  return { id: "u-" + Date.now().toString(36), name: "", username: "", pin: "", role: "tech", techId: null, active: true };
 }
 
 /* ================================================================
@@ -79,7 +79,21 @@ function useAuthStore() {
     const u = (users || []).find((x) => x.id === userId);
     if (!u) return { ok: false, error: "ไม่พบผู้ใช้" };
     if (u.active === false) return { ok: false, error: "บัญชีถูกระงับการใช้งาน" };
-    if (String(u.pin) !== String(pin)) return { ok: false, error: "รหัส PIN ไม่ถูกต้อง" };
+    if (String(u.pin) !== String(pin)) return { ok: false, error: "รหัสผ่านไม่ถูกต้อง" };
+    try { localStorage.setItem(SF_SESSION_KEY, u.id); } catch (e) {}
+    setSession(u.id);
+    return { ok: true };
+  }, [users]);
+
+  // เข้าระบบด้วย ชื่อผู้ใช้ (ID) + รหัสผ่าน — fallback: จับคู่ด้วย "ชื่อ" สำหรับบัญชีเก่าที่ยังไม่ตั้ง ID
+  const loginCred = React.useCallback((username, password) => {
+    const uname = String(username || "").trim().toLowerCase();
+    if (!uname) return { ok: false, error: "กรุณากรอกชื่อผู้ใช้" };
+    const u = (users || []).find((x) => (x.username || "").toLowerCase() === uname)
+           || (users || []).find((x) => !x.username && (x.name || "").trim().toLowerCase() === uname);
+    if (!u) return { ok: false, error: "ไม่พบบัญชีนี้" };
+    if (u.active === false) return { ok: false, error: "บัญชีถูกระงับการใช้งาน" };
+    if (String(u.pin) !== String(password)) return { ok: false, error: "รหัสผ่านไม่ถูกต้อง" };
     try { localStorage.setItem(SF_SESSION_KEY, u.id); } catch (e) {}
     setSession(u.id);
     return { ok: true };
@@ -104,7 +118,7 @@ function useAuthStore() {
     else setUsers((prev) => (prev || []).filter((u) => u.id !== id));
   }, []);
 
-  return { users: list, current, loading, login, logout, upsertUser, removeUser, blankUser: () => blankUser() };
+  return { users: list, current, loading, login, loginCred, logout, upsertUser, removeUser, blankUser: () => blankUser() };
 }
 
 /* ================================================================
@@ -178,15 +192,15 @@ function RoleBadge({ role }) {
    LoginScreen — เลือกผู้ใช้ + กรอก PIN
    ================================================================ */
 function LoginScreen({ authStore }) {
-  const [sel, setSel]   = React.useState(null); // user object ที่เลือก
-  const [pin, setPin]   = React.useState("");
-  const [err, setErr]   = React.useState("");
-  const activeUsers = authStore.users.filter((u) => u.active !== false);
+  const [username, setUsername] = React.useState("");
+  const [pw, setPw]   = React.useState("");
+  const [show, setShow] = React.useState(false);
+  const [err, setErr] = React.useState("");
+  const pwRef = React.useRef(null);
 
   const submit = () => {
-    if (!sel) return;
-    const res = authStore.login(sel.id, pin);
-    if (!res.ok) { setErr(res.error); setPin(""); }
+    const res = authStore.loginCred(username, pw);
+    if (!res.ok) { setErr(res.error); setPw(""); }
   };
 
   return (
@@ -204,65 +218,41 @@ function LoginScreen({ authStore }) {
 
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18,
         boxShadow: "var(--shadow-sm)", width: "min(420px, 100%)", overflow: "hidden" }}>
-        {!sel ? (
-          <div style={{ padding: 20 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", marginBottom: 4 }}>เลือกผู้ใช้งาน</div>
-            <div style={{ fontSize: 12.5, color: "var(--text-3)", marginBottom: 14 }}>แตะชื่อของคุณเพื่อเข้าสู่ระบบ</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 9, maxHeight: "46dvh", overflowY: "auto" }}>
-              {activeUsers.length === 0 && <div style={{ padding: 24, textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>กำลังเตรียมระบบ...</div>}
-              {activeUsers.map((u) => (
-                <button key={u.id} onClick={() => { setSel(u); setErr(""); setPin(""); }}
-                  style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 13px", width: "100%", textAlign: "left",
-                    background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit" }}>
-                  <span style={{ width: 40, height: 40, borderRadius: 99, flexShrink: 0, display: "grid", placeItems: "center",
-                    background: (ROLE_INFO[u.role] || ROLE_INFO.tech).color, color: "#fff", fontWeight: 700, fontSize: 15 }}>
-                    {(u.name || "?").slice(0, 1)}
-                  </span>
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: "block", fontSize: 14.5, fontWeight: 700, color: "var(--text-1)" }}>{u.name}</span>
-                    <span style={{ display: "block", marginTop: 3 }}><RoleBadge role={u.role} /></span>
-                  </span>
-                  <Icon name="chevronRight" size={18} color="var(--text-3)" />
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div style={{ padding: 22 }}>
-            <button onClick={() => { setSel(null); setErr(""); setPin(""); }}
-              style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer",
-                color: "var(--text-3)", fontFamily: "inherit", fontSize: 12.5, padding: 0, marginBottom: 14 }}>
-              <Icon name="chevronRight" size={14} color="var(--text-3)" style={{ transform: "rotate(180deg)" }} /> เปลี่ยนผู้ใช้
-            </button>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-              <span style={{ width: 48, height: 48, borderRadius: 99, flexShrink: 0, display: "grid", placeItems: "center",
-                background: (ROLE_INFO[sel.role] || ROLE_INFO.tech).color, color: "#fff", fontWeight: 700, fontSize: 18 }}>
-                {(sel.name || "?").slice(0, 1)}
-              </span>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)" }}>{sel.name}</div>
-                <div style={{ marginTop: 4 }}><RoleBadge role={sel.role} /></div>
-              </div>
-            </div>
-            <AField label="รหัส PIN" required>
-              <input type="password" inputMode="numeric" autoFocus value={pin}
-                onChange={(e) => { setPin(e.target.value); setErr(""); }}
-                onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
-                style={Object.assign({}, A_INPUT, { fontSize: 20, letterSpacing: "0.3em", textAlign: "center" })}
-                placeholder="••••" />
+        <div style={{ padding: 22 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", marginBottom: 4 }}>เข้าสู่ระบบ</div>
+          <div style={{ fontSize: 12.5, color: "var(--text-3)", marginBottom: 16 }}>กรอกชื่อผู้ใช้และรหัสผ่านที่แอดมินกำหนดให้</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+            <AField label="ชื่อผู้ใช้ (ID)" required>
+              <input autoFocus autoCapitalize="none" autoCorrect="off" spellCheck={false} value={username}
+                onChange={(e) => { setUsername(e.target.value); setErr(""); }}
+                onKeyDown={(e) => { if (e.key === "Enter" && pwRef.current) pwRef.current.focus(); }}
+                style={A_INPUT} placeholder="เช่น admin" />
             </AField>
-            {err && <div style={{ marginTop: 10, fontSize: 12.5, color: "#EF4444", fontWeight: 600, textAlign: "center" }}>⚠ {err}</div>}
-            <button onClick={submit}
-              style={{ marginTop: 16, width: "100%", padding: "13px 16px", borderRadius: 12, border: "none",
-                background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14.5, cursor: "pointer",
-                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-              เข้าสู่ระบบ <Icon name="arrowRight" size={17} color="#fff" />
-            </button>
+            <AField label="รหัสผ่าน" required>
+              <div style={{ position: "relative" }}>
+                <input ref={pwRef} type={show ? "text" : "password"} value={pw}
+                  onChange={(e) => { setPw(e.target.value); setErr(""); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+                  style={Object.assign({}, A_INPUT, { paddingRight: 44 })} placeholder="••••••" />
+                <button type="button" onClick={() => setShow((s) => !s)} tabIndex={-1}
+                  style={{ position: "absolute", top: 0, right: 0, height: "100%", width: 42, display: "grid", placeItems: "center",
+                    background: "none", border: "none", cursor: "pointer", color: "var(--text-3)" }}>
+                  <Icon name={show ? "eyeOff" : "eye"} size={17} color="var(--text-3)" />
+                </button>
+              </div>
+            </AField>
           </div>
-        )}
+          {err && <div style={{ marginTop: 12, fontSize: 12.5, color: "#EF4444", fontWeight: 600, textAlign: "center" }}>⚠ {err}</div>}
+          <button onClick={submit}
+            style={{ marginTop: 18, width: "100%", padding: "13px 16px", borderRadius: 12, border: "none",
+              background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14.5, cursor: "pointer",
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            เข้าสู่ระบบ <Icon name="arrowRight" size={17} color="#fff" />
+          </button>
+        </div>
       </div>
 
-      <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>ครั้งแรกเข้าด้วย แอดมิน · PIN 1234 แล้วเปลี่ยนรหัสภายหลัง</div>
+      <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>ครั้งแรกเข้าด้วย ID <b>admin</b> · รหัสผ่าน <b>1234</b> แล้วเปลี่ยนภายหลัง</div>
     </div>
   );
 }
@@ -353,7 +343,7 @@ function UserManager({ authStore, onClose }) {
             <span style={{ width: 38, height: 38, borderRadius: 11, background: "var(--primary-soft)", display: "grid", placeItems: "center" }}><Icon name="users" size={19} color="var(--primary-dark)" /></span>
             <div>
               <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>จัดการผู้ใช้งาน</h2>
-              <span style={{ fontSize: 12, color: "var(--text-3)" }}>{users.length} บัญชี · กำหนดสิทธิ์ / รหัส PIN</span>
+              <span style={{ fontSize: 12, color: "var(--text-3)" }}>{users.length} บัญชี · กำหนด ID / รหัสผ่าน / สิทธิ์</span>
             </div>
           </div>
           <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={17} /></button>
@@ -365,7 +355,7 @@ function UserManager({ authStore, onClose }) {
               <span style={{ width: 38, height: 38, borderRadius: 99, flexShrink: 0, display: "grid", placeItems: "center",
                 background: (ROLE_INFO[u.role] || ROLE_INFO.tech).color, color: "#fff", fontWeight: 700, fontSize: 14 }}>{(u.name || "?").slice(0, 1)}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{u.name || "(ยังไม่ระบุชื่อ)"}{u.active === false && <span style={{ fontSize: 10.5, color: "#EF4444", fontWeight: 600 }}> · ระงับ</span>}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{u.name || "(ยังไม่ระบุชื่อ)"}{u.username && <span style={{ fontSize: 11.5, color: "var(--text-3)", fontWeight: 600, fontFamily: "var(--mono)" }}> · @{u.username}</span>}{u.active === false && <span style={{ fontSize: 10.5, color: "#EF4444", fontWeight: 600 }}> · ระงับ</span>}</div>
                 <div style={{ marginTop: 3, display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
                   <span style={{ flexShrink: 0 }}><RoleBadge role={u.role} /></span>
                   {u.role === "tech" && u.techId && (
@@ -407,8 +397,9 @@ function UserEditModal({ initial, existing, onSave, onClose }) {
           <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={15} /></button>
         </div>
         <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 14, overflowY: "auto" }}>
-          <AField label="ชื่อผู้ใช้" required><input autoFocus style={A_INPUT} value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="เช่น สมชาย ตั้งใจ" /></AField>
-          <AField label="รหัส PIN" required><input style={A_INPUT} value={f.pin} onChange={(e) => set("pin", e.target.value)} inputMode="numeric" placeholder="เช่น 1234" /></AField>
+          <AField label="ชื่อ-สกุล (แสดงในระบบ)" required><input autoFocus style={A_INPUT} value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="เช่น สมชาย ตั้งใจ" /></AField>
+          <AField label="ชื่อผู้ใช้ (ID เข้าระบบ)" required><input style={A_INPUT} value={f.username || ""} autoCapitalize="none" autoCorrect="off" spellCheck={false} onChange={(e) => set("username", e.target.value.replace(/\s/g, ""))} placeholder="เช่น somchai" /></AField>
+          <AField label="รหัสผ่าน" required><input style={A_INPUT} value={f.pin} onChange={(e) => set("pin", e.target.value)} placeholder="ตั้งรหัสผ่าน" /></AField>
           <AField label="สิทธิ์การใช้งาน (Role)">
             <select style={A_INPUT} value={f.role} onChange={(e) => set("role", e.target.value)}>
               <option value="admin">แอดมิน / ออฟฟิศ — ควบคุมทั้งหมด</option>
@@ -438,11 +429,14 @@ function UserEditModal({ initial, existing, onSave, onClose }) {
         <div style={{ padding: "14px 22px", paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10, flexShrink: 0 }}>
           <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 18px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
           <button onClick={() => {
-              if (!f.name.trim()) { alert("กรุณากรอกชื่อผู้ใช้"); return; }
-              if (!String(f.pin).trim()) { alert("กรุณากรอกรหัส PIN"); return; }
+              const uname = String(f.username || "").trim();
+              if (!f.name.trim()) { alert("กรุณากรอกชื่อ-สกุล"); return; }
+              if (!uname) { alert("กรุณากรอกชื่อผู้ใช้ (ID เข้าระบบ)"); return; }
+              if (existing.some((u) => u.id !== f.id && (u.username || "").toLowerCase() === uname.toLowerCase())) { alert("ชื่อผู้ใช้ \"" + uname + "\" ถูกใช้แล้ว กรุณาตั้งใหม่"); return; }
+              if (!String(f.pin).trim()) { alert("กรุณากรอกรหัสผ่าน"); return; }
               if (f.role === "tech" && !f.techId) { alert("กรุณาเลือกช่างที่ผูกกับบัญชีนี้"); return; }
               if (f.role === "survey" && !f.techId) { alert("กรุณาเลือกวิศวกรที่ผูกกับบัญชีนี้"); return; }
-              onSave(Object.assign({}, f, { name: f.name.trim(), pin: String(f.pin).trim() }));
+              onSave(Object.assign({}, f, { name: f.name.trim(), username: uname, pin: String(f.pin).trim() }));
             }}
             style={{ flex: isMobile ? 1 : "none", padding: "11px 22px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>บันทึก</button>
         </div>
