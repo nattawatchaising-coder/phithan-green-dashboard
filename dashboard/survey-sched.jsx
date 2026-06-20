@@ -442,7 +442,7 @@ function JobTaskCard({ job, stages, day, onOpen, onAdvance }) {
       {(() => {
         const STAGES = SF.STAGES || [];
         const ci = Math.max(0, STAGES.findIndex((s) => s.key === job.stage));
-        const SHORT = { design: "ออกแบบ", takeoff: "ถอดของ", order: "สั่งของ", waiting: "รอของ", install: "ติดตั้ง", done: "เสร็จ" };
+        const SHORT = { design: "ออกแบบ", takeoff: "ถอดของ", queue: "นัดคิว", install: "ติดตั้ง", done: "เสร็จ" };
         // ใช้ flexbox (ไม่ใช้ grid-template-columns) เพราะ CSS มือถือบังคับ grid ใน .app-content ให้เหลือ 1 คอลัมน์
         return (
           <div style={{ display: "flex", alignItems: "flex-start", marginTop: 2, marginBottom: 2 }}>

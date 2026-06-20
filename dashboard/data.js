@@ -4,16 +4,17 @@
    (Google-Sheets "Job Tracker"). Attached to window.SF
    ============================================================ */
 (function () {
-  // ---- 8 stages of the install workflow (from the requested flow) ----
+  // ---- ขั้นตอนการทำงาน (ออกแบบ → ถอดของ → นัดคิวติดตั้ง → ดำเนินการติดตั้ง → เสร็จสิ้น) ----
   const STAGES = [
-    { key: "design",   th: "ออกแบบ",            en: "Design",         color: "#7C5CFC", soft: "#EEE9FF" },
-    { key: "takeoff",  th: "ถอดของ",            en: "BOM Takeoff",    color: "#3B82F6", soft: "#E5EFFF" },
-    { key: "order",    th: "สั่งของ",            en: "Order",          color: "#06B6D4", soft: "#DEF6FB" },
-    { key: "waiting",  th: "รอของ",             en: "Awaiting Parts", color: "#F59E0B", soft: "#FEF1D8" },
-    { key: "install",  th: "ดำเนินงานติดตั้ง",   en: "Installing",     color: "#84CC16", soft: "#ECF8D4" },
-    { key: "done",     th: "เสร็จสิ้น",          en: "Completed",      color: "#10B981", soft: "#D6F5E6" },
+    { key: "design",   th: "ออกแบบ",            en: "Design",       color: "#7C5CFC", soft: "#EEE9FF" },
+    { key: "takeoff",  th: "ถอดของ",            en: "BOM Takeoff",  color: "#3B82F6", soft: "#E5EFFF" },
+    { key: "queue",    th: "นัดคิวติดตั้ง",      en: "Schedule",     color: "#F59E0B", soft: "#FEF1D8" },
+    { key: "install",  th: "ดำเนินการติดตั้ง",   en: "Installing",   color: "#84CC16", soft: "#ECF8D4" },
+    { key: "done",     th: "เสร็จสิ้น",          en: "Completed",    color: "#10B981", soft: "#D6F5E6" },
   ];
   const STAGE_INDEX = Object.fromEntries(STAGES.map((s, i) => [s.key, i]));
+  // ขั้นเก่าที่เลิกใช้ → จับคู่ขั้นใหม่ (สั่งของ/รอของ เดิม รวมเป็น "นัดคิวติดตั้ง")
+  const STAGE_REMAP = { order: "queue", waiting: "queue", countin: "takeoff", countout: "takeoff" };
 
   // ---- Material checklist components (from the real table) ----
   const MATERIALS = [
@@ -250,8 +251,9 @@
   // ---- derive computed fields from a raw record (re-run after every edit) ----
   const TODAY = new Date(); // ใช้วันที่จริงของระบบ (local timezone)
   function deriveJob(j) {
-    // remap any retired stage keys (e.g. old countin/countout) to a valid one
-    if (STAGE_INDEX[j.stage] == null) j = Object.assign({}, j, { stage: "install" });
+    // remap ขั้นเก่าที่เลิกใช้ → ขั้นใหม่ (สั่งของ/รอของ → นัดคิวติดตั้ง ฯลฯ)
+    if (STAGE_REMAP[j.stage]) j = Object.assign({}, j, { stage: STAGE_REMAP[j.stage] });
+    if (STAGE_INDEX[j.stage] == null) j = Object.assign({}, j, { stage: "queue" });
     const matObj = mats(j.mat || {});
     const matVals = MATERIALS.map((m) => matObj[m.key]).filter((v) => v !== "na");
     const matReadyCount = matVals.filter((v) => v === "ready").length;
