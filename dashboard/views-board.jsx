@@ -29,6 +29,12 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
         <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
           <Icon name="pin" size={11} style={{ verticalAlign: -1 }} /> {job.province} · <span style={{ fontWeight: 600, color: "var(--text-2)" }}>{job.brand}</span>
         </span>
+        {job.birdnet && (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 3, flexShrink: 0, fontSize: 10.5, fontWeight: 700,
+            color: "#0D9488", background: "#0D948814", border: "1px solid #0D948844", padding: "2px 7px", borderRadius: 99 }}>
+            <Icon name="net" size={10} color="#0D9488" />กันนก
+          </span>
+        )}
         {job.backup && (
           <span style={{ display: "inline-flex", alignItems: "center", gap: 3, flexShrink: 0, fontSize: 10.5, fontWeight: 700,
             color: "var(--primary-dark)", background: "var(--primary-soft)", padding: "2px 7px", borderRadius: 99 }}>
