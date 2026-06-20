@@ -27,7 +27,7 @@
     meter1: "Smart Meter DDSU666-H + CT 100A/40mA (1 เฟส)",
     meter3: "Smart Meter DTSU666-H + CT 100A/40mA (3 เฟส)",
     dongle: "Smart Dongle-WLAN-FE",
-    cabinet: "AC/DC Combiner Box ตู้หน้ากระจก เบอร์5",
+    cabinet: "AC/DC Combiner Box ตู้หน้ากระจก เบอร์3",
     dcFuseHolder: "DC FUSE HOLDER FEEO",
     dcFuse: "DC FUSE 16A 1000VDC FEEO",
     dcSpd: "DC SPD 2P 800VDC 20-40KA FEEO",
