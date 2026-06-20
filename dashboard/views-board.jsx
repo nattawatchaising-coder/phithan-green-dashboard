@@ -49,9 +49,11 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
         {job.battery && <Stat icon="battery" text={job.batSize} accent />}
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid var(--border)" }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}>
           <TechAvatar techId={job.tech} size={24} />
-          <span style={{ fontSize: 11.5, fontWeight: 600, color: job.delayed ? "#EF4444" : "var(--text-2)" }}>{thDate(job.deadline)}</span>
+          {job.startDate
+            ? <span style={{ fontSize: 11.5, fontWeight: 600, color: job.delayed ? "#EF4444" : "var(--text-2)" }}>{thDate(job.startDate)}</span>
+            : <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: "#B45309", background: "#FEF3C7", border: "1px solid #FCD34D", padding: "2px 7px", borderRadius: 99, whiteSpace: "nowrap" }}><Icon name="alert" size={10} color="#B45309" /> ยังไม่ระบุวันติดตั้ง</span>}
         </span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           <MatDots mat={job.mat} />
