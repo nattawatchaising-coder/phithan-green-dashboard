@@ -419,6 +419,9 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   <SpecItem label="แบตเตอรี่" value={job.battery ? job.batSize : "ไม่มี"} accent={job.battery} />
                   <SpecItem label="ระบบ / ออฟติไมเซอร์" value={job.connect} />
                   <SpecItem label="ระบบ Backup" value={job.backup ? "Backup ✓" : "ไม่มี"} accent={job.backup} />
+                  {(job.brand || "").toUpperCase().includes("ATMOCE") && (
+                    <SpecItem label="ตู้ Combiner" value={job.comboType === "assembled" ? "ตู้ประกอบ" : "ตู้สำเร็จ"} />
+                  )}
                 </div>
               </div>
 
