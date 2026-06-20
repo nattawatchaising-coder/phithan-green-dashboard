@@ -14,6 +14,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       if (job.panels != null && job.panels !== "") base.panels = job.panels;
       base.batteryKwh = job.battery ? (parseFloat(job.batSize) || 0) : 0;
       base.backup = !!job.backup;
+      base.birdnet = !!job.birdnet;   // บ้านติดตาข่ายกันนก → ถอดวัสดุกันนกให้อัตโนมัติ
       base.hwOptimizer = !!(job.connect && job.connect !== "-" && job.connect !== "ไม่มี");
       // งานมี Backup → ตั้งระบบสำรองไฟของ Huawei ให้ (เริ่มที่ Backup Box เปลี่ยนเป็น SmartGuard ได้)
       if (job.backup && (!base.hwBackup || base.hwBackup === "none")) base.hwBackup = "backupbox";

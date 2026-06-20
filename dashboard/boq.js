@@ -175,6 +175,7 @@
       hwExtraPanel: false,
       batteryKwh: 0,
       backup: !!job.backup,
+      birdnet: !!job.birdnet,
       roof: "เมทัลชีท",
       railSize: 4.2,
       gap: 0.025,
@@ -513,6 +514,16 @@
 
     // งานเพิ่มเติม (Input) — LADDER / WALKWAY / GUARD RAIL (งานโครงการเท่านั้น ไม่นับงานบ้าน)
     if ((b.jobType || "") !== "home") calcStructures(b).forEach((g) => groups.push(g));
+
+    // ── ตาข่ายกันนก (BIRD NET) — ถอดวัสดุให้อัตโนมัติเมื่อบ้านติดตาข่ายกันนก ──
+    if (b.birdnet) {
+      const rolls = Math.max(1, Math.ceil(panelCount / 24));   // ม้วนตาข่าย 8" x 30 ม. (ราว 1 ม้วน/งานบ้าน)
+      const clips = Math.max(1, panelCount * 5);               // คลิปล็อค C ~5 ตัว/แผง (เช่น 10 แผง = 50 ตัว)
+      groups.push({ group: "BIRD NET (ตาข่ายกันนก)", items: [
+        { name: 'ตะแกรงกันนกใต้แผงโซล่าเซล กว้าง 8" ยาว 30 ม.', qty: rolls, unit: "ม้วน" },
+        { name: "คลิปล็อคตัว C (short frame) ตามขนาดแผงโซล่า", qty: clips, unit: "ตัว" },
+      ] });
+    }
 
     // ACCESSORIES (เพิ่มเอง / ดึงจากราคาวัสดุ-คลังสินค้า)
     const acc = (b.accessories || []).filter((a) => (a.name || "").trim() && (+a.qty || 0) > 0)
