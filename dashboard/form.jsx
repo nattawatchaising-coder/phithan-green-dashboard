@@ -222,6 +222,12 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
               <Field label="ตาข่ายกันนก">
                 <ToggleField on={f.birdnet} onChange={(v) => set("birdnet", v)} labelOn="ติดตั้ง" labelOff="ไม่ติด" />
               </Field>
+              {(f.brand || "").toUpperCase().includes("ATMOCE") && (
+                <Field label="ตู้ Combiner">
+                  <Dropdown value={f.comboType || "ready"} onChange={(v) => set("comboType", v)}
+                    options={[{ value: "ready", label: "ตู้สำเร็จ" }, { value: "assembled", label: "ตู้ประกอบ" }]} />
+                </Field>
+              )}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr 1fr", gap: isMobile ? 12 : 14, marginTop: isMobile ? 12 : 14, opacity: noBattery ? 0.45 : 1, pointerEvents: noBattery ? "none" : "auto" }}>
               <Field label="ระบบแบตเตอรี่">
