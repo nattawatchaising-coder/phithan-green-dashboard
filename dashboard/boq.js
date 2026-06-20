@@ -345,7 +345,8 @@
         invItems.push({ name: selInv.model, qty: invCount, unit: "ตัว" });
         // ── ระดับระบบ: 1 ชุด/งาน (Smart Meter วัดที่จุดต่อกริด, Dongle 1 ตัว master ที่เหลือพ่วง RS485) ──
         invItems.push({ name: ph === 3 ? HW.meter3 : HW.meter1, qty: 1, unit: "ชุด" });
-        invItems.push({ name: HW.dongle, qty: 1, unit: "ชุด" });
+        // 2 รุ่นนี้มี dongle ในตัว (SUN2000-10K-LC0, SUN2000-5K-LB0) — ไม่ต้องถอด Smart Dongle เพิ่ม
+        if (!/SUN2000-10K-LC0|SUN2000-5K-LB0/i.test(selInv.model)) invItems.push({ name: HW.dongle, qty: 1, unit: "ชุด" });
         if ((+b.batteryKwh || 0) > 0) {
           const s1 = Math.ceil((+b.batteryKwh || 0) / 7);   // แบต S1 ก้อนละ 7 kWh
           const c1 = Math.ceil(s1 / 3);                      // Power Module 1 ตัว/แสตก (สูงสุด 3 ก้อน)
