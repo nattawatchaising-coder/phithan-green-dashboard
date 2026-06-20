@@ -308,7 +308,11 @@ function App() {
           {view === "table" && <TableView jobs={filtered} onOpen={openJob}
             onEdit={(j) => setForm({ job: store.raw.find((r) => r.id === j.id), isNew: false })}
             onDelete={onDelete} onSetMat={store.setMat} onSetStage={(id, s) => store.setStage(id, s)} />}
-          {view === "survey" && <SurveyView jobs={filtered} role={role} onOpen={openSurvey} />}
+          {view === "survey" && <SurveyView jobs={filtered} role={role} onOpen={openSurvey}
+            onToggleSkip={(can(role, "doSurvey") || can(role, "dispatch") || can(role, "editJob")) ? (j) => {
+              const cur = j.survey || {};
+              store.patch(j.id, { survey: Object.assign({}, cur, { skip: !cur.skip, skippedAt: !cur.skip ? new Date().toISOString() : null }) });
+            } : null} />}
           {view === "calendar" && <CalendarView jobs={filtered} onOpen={openJob}
             canAdd={can(role, "addJob")} onAdvance={can(role, "editJob") ? (j) => store.advance(j.id) : null}
             onAddOnDate={(key) => setForm({ job: Object.assign(store.blank(), { startDate: key, deadline: key }), isNew: true })} />}

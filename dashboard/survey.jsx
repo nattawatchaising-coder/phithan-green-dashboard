@@ -36,6 +36,7 @@ const SURVEY_PHOTO_SLOTS = [
 // ── สถานะการสำรวจของงาน (ใช้ในลิสต์/ป้าย) ──
 function surveyStatus(job) {
   const s = job && job.survey;
+  if (s && s.skip) return { state: "skip", pct: 100, label: "ไม่ต้องสำรวจ", color: "#16A34A" };
   if (!s || !s.startedAt) return { state: "none", pct: 0, label: "ยังไม่สำรวจ", color: "#94A3B8" };
   const fields = [
     !!(s.gps && s.gps.lat), !!s.meterSize, !!s.phase,                      // ขั้น 1

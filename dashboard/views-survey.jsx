@@ -3,24 +3,24 @@
    แสดงงานพร้อมสถานะการสำรวจ + เปิด wizard สำรวจหน้างาน
    ============================================================ */
 
-function SurveyView({ jobs, role, onOpen }) {
+function SurveyView({ jobs, role, onOpen, onToggleSkip }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
-  const [filter, setFilter] = React.useState("all"); // all | none | partial | done
+  const [filter, setFilter] = React.useState("all"); // all | none | partial | done | skip
 
   const withStatus = React.useMemo(
     () => jobs.map((j) => ({ job: j, st: window.surveyStatus(j) })),
     [jobs]
   );
   const counts = React.useMemo(() => {
-    const c = { all: withStatus.length, none: 0, partial: 0, done: 0 };
+    const c = { all: withStatus.length, none: 0, partial: 0, done: 0, skip: 0 };
     withStatus.forEach((x) => { c[x.st.state] = (c[x.st.state] || 0) + 1; });
     return c;
   }, [withStatus]);
 
   const shown = React.useMemo(() => {
     const arr = filter === "all" ? withStatus.slice() : withStatus.filter((x) => x.st.state === filter);
-    // ยังไม่สำรวจ → บางส่วน → ครบ (งานที่ต้องทำขึ้นก่อน)
-    const order = { none: 0, partial: 1, done: 2 };
+    // ยังไม่สำรวจ → บางส่วน → ครบ → ไม่ต้องสำรวจ (งานที่ต้องทำขึ้นก่อน)
+    const order = { none: 0, partial: 1, done: 2, skip: 3 };
     arr.sort((a, b) => (order[a.st.state] - order[b.st.state]) || (a.job.name || "").localeCompare(b.job.name || ""));
     return arr;
   }, [withStatus, filter]);
@@ -30,6 +30,7 @@ function SurveyView({ jobs, role, onOpen }) {
     { key: "none", label: "ยังไม่สำรวจ", color: "#94A3B8" },
     { key: "partial", label: "สำรวจบางส่วน", color: "#F59E0B" },
     { key: "done", label: "สำรวจครบ", color: "#16A34A" },
+    { key: "skip", label: "ไม่ต้องสำรวจ", color: "#64748B" },
   ];
 
   return (
@@ -59,13 +60,17 @@ function SurveyView({ jobs, role, onOpen }) {
             ไม่มีงานในสถานะนี้
           </div>
         )}
-        {shown.map(({ job, st }) => (
-          <button key={job.id} onClick={() => onOpen(job)}
+        {shown.map(({ job, st }) => {
+          const isSkip = st.state === "skip";
+          const toggleSkip = (e) => { e.stopPropagation(); onToggleSkip && onToggleSkip(job); };
+          return (
+          <div key={job.id} role="button" tabIndex={0} onClick={() => onOpen(job)}
             style={{ display: "flex", alignItems: "center", gap: 13, padding: 14, width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "inherit",
-              background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "var(--shadow-sm)" }}>
+              background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "var(--shadow-sm)", opacity: isSkip ? 0.72 : 1 }}>
             {/* สถานะวงกลม */}
             <span style={{ width: 42, height: 42, borderRadius: 12, flexShrink: 0, display: "grid", placeItems: "center", background: st.color + "1c", color: st.color }}>
               {st.state === "done" ? <Icon name="check" size={20} color={st.color} sw={2.4} />
+                : isSkip ? <Icon name="check" size={19} color={st.color} sw={2.2} />
                 : st.state === "partial" ? <span style={{ fontSize: 12, fontWeight: 800, fontFamily: "var(--mono)" }}>{st.pct}%</span>
                 : <Icon name="pin" size={18} color={st.color} />}
             </span>
@@ -83,12 +88,23 @@ function SurveyView({ jobs, role, onOpen }) {
             {/* ป้ายสถานะ + action */}
             <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
               <span style={{ fontSize: 10.5, fontWeight: 700, color: st.color, background: st.color + "16", padding: "3px 9px", borderRadius: 99, whiteSpace: "nowrap" }}>{st.label}</span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 700, color: "var(--primary-dark)" }}>
-                {st.state === "none" ? "เริ่มสำรวจ" : "แก้ไข"} <Icon name="chevronRight" size={14} color="var(--primary-dark)" />
-              </span>
+              {!isSkip && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 700, color: "var(--primary-dark)" }}>
+                  {st.state === "none" ? "เริ่มสำรวจ" : "แก้ไข"} <Icon name="chevronRight" size={14} color="var(--primary-dark)" />
+                </span>
+              )}
+              {onToggleSkip && (isSkip
+                ? <button onClick={toggleSkip} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: "var(--text-2)", background: "var(--surface2)", border: "1px solid var(--border-strong)", borderRadius: 8, padding: "5px 9px", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                    <Icon name="history" size={12} color="var(--text-2)" /> เข้าคิวสำรวจ
+                  </button>
+                : <button onClick={toggleSkip} title="ทำเครื่องหมายว่าสำรวจแล้ว/ไม่ต้องสำรวจ" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: "#16A34A", background: "#16A34A14", border: "1px solid #16A34A44", borderRadius: 8, padding: "5px 9px", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                    <Icon name="check" size={12} color="#16A34A" sw={2.6} /> ไม่ต้องสำรวจ
+                  </button>
+              )}
             </span>
-          </button>
-        ))}
+          </div>
+          );
+        })}
       </div>
     </div>
   );
