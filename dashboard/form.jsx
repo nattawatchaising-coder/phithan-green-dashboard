@@ -167,6 +167,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
               <Field label="ที่อยู่" span={2}><input style={inputStyle} value={f.address} onChange={(e) => set("address", e.target.value)} /></Field>
               <Field label="จังหวัด"><input style={inputStyle} value={f.province} onChange={(e) => set("province", e.target.value)} /></Field>
               <Field label="ลิงก์ Google Maps" span><input style={inputStyle} value={f.map} onChange={(e) => set("map", e.target.value)} placeholder="https://maps.app.goo.gl/..." /></Field>
+              <Field label="ลิงก์ Trello (การ์ดงาน)" span><input style={inputStyle} value={f.trello || ""} onChange={(e) => set("trello", e.target.value.trim())} placeholder="https://trello.com/c/..." /></Field>
               <div style={{ gridColumn: "1 / -1" }}>
                 <Field label="ช่างผู้รับผิดชอบ">
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>

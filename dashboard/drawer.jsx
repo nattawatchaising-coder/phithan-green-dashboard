@@ -393,6 +393,15 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                 </div>
                 <InfoRow label="ช่างผู้รับผิดชอบ"><TechAvatar techId={job.tech} size={24} showName /></InfoRow>
                 <InfoRow label="ประเภทงาน">{job.type === "home" ? "งานบ้าน" : "งานโครงการ"}</InfoRow>
+                {job.trello && (
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <InfoRow label="การ์ดงาน Trello">
+                      <a href={job.trello} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#fff", background: "#0079BF", padding: "6px 12px", borderRadius: 9, textDecoration: "none", fontWeight: 700, fontSize: 12.5 }}>
+                        <Icon name="trello" size={14} color="#fff" /> เปิดการ์ด Trello <Icon name="arrowRight" size={13} color="#fff" />
+                      </a>
+                    </InfoRow>
+                  </div>
+                )}
               </div>
 
               {/* spec card */}

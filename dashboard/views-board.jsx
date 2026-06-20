@@ -11,9 +11,18 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
         borderLeft: "3px solid " + (job.problem ? "#EF4444" : s.color), transition: "box-shadow .15s, transform .15s" }}
       onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 6px 18px rgba(8,20,14,.1)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
       onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "var(--shadow-sm)"; e.currentTarget.style.transform = "none"; }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7, gap: 8 }}>
         <span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, color: "var(--text-3)" }}>{job.code}</span>
-        <TypeBadge type={job.type} />
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          {job.trello && (
+            <a href={job.trello} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title="เปิดการ์ด Trello"
+              style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 700, color: "#fff",
+                background: "#0079BF", padding: "3px 8px", borderRadius: 6, textDecoration: "none" }}>
+              <Icon name="trello" size={11} color="#fff" /> Trello
+            </a>
+          )}
+          <TypeBadge type={job.type} />
+        </span>
       </div>
       <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.25, marginBottom: 2 }}>{job.name}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--text-3)", marginBottom: 10, whiteSpace: "nowrap", overflow: "hidden" }}>
