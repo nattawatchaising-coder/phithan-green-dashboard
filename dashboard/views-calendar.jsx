@@ -75,7 +75,7 @@ function CalendarView({ jobs, onOpen, onAddOnDate, canAdd, onAdvance }) {
   }
 
   const monthKey = ym.y + "-" + String(ym.m + 1).padStart(2, "0");
-  const monthCount = jobs.filter((j) => j.deadline.startsWith(monthKey)).length;
+  const monthCount = jobs.filter((j) => (j.deadline || "").startsWith(monthKey)).length;
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 372px", gap: 18, alignItems: "start" }}>
@@ -194,7 +194,7 @@ function DaySidebar({ day, ym, groups, todayKey, keyOf, onOpen, onAdvance, canAd
    แตะวันที่มีงาน → bottom sheet แสดงรายการงานของวันนั้น ── */
 function MobileCalendar({ ym, cells, tasksOn, groupsOn, keyOf, todayKey, shift, selDay, setSelDay, onOpen, onAdvance, jobs }) {
   const monthName = TH_MONTH_FULL[ym.m];
-  const monthCount = jobs.filter((j) => j.deadline.startsWith(ym.y + "-" + String(ym.m + 1).padStart(2, "0"))).length;
+  const monthCount = jobs.filter((j) => (j.deadline || "").startsWith(ym.y + "-" + String(ym.m + 1).padStart(2, "0"))).length;
   const selGroups = selDay ? groupsOn(selDay) : [];
 
   return (
