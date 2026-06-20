@@ -421,7 +421,7 @@ function JobTaskCard({ job, stages, day, onOpen, onAdvance }) {
   const daysLate = advOverdue ? Math.max(1, Math.round((new Date(_today + "T00:00:00") - new Date(_instE + "T00:00:00")) / 86400000)) : 0;
   const doAdvance = (e) => { e.stopPropagation(); if (confirm("ขั้น \"" + curStage.th + "\" เสร็จแล้ว เลื่อนไป \"" + nextStage.th + "\" ?")) onAdvance(job); };
   return (
-    <div role="button" tabIndex={0} onClick={() => onOpen && onOpen(job)} style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "4px solid " + color, borderRadius: 14, boxShadow: "var(--shadow-sm)", padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+    <div role="button" tabIndex={0} onClick={() => onOpen && onOpen(job)} style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "4px solid " + color, borderRadius: 14, boxShadow: "var(--shadow-sm)", padding: 12, display: "flex", flexDirection: "column", gap: 6 }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap", minWidth: 0 }}>
           {list.map((s) => (
@@ -433,7 +433,7 @@ function JobTaskCard({ job, stages, day, onOpen, onAdvance }) {
         </span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11.5, fontWeight: 700, color: "var(--primary-dark)", flexShrink: 0 }}>เปิดงาน <Icon name="chevronRight" size={14} color="var(--primary-dark)" /></span>
       </div>
-      <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)" }}>{job.name}</div>
+      <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{job.name}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-2)" }}>
         <Icon name="clock" size={13} color="var(--text-3)" />{dateStr}{list.length > 1 ? " · " + list.length + " งาน" : ""}
         {typeof job.progressPct === "number" && <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, color: "var(--text-3)", fontFamily: "var(--mono)" }}>{job.progressPct}%</span>}
@@ -466,9 +466,9 @@ function JobTaskCard({ job, stages, day, onOpen, onAdvance }) {
           </div>
         );
       })()}
-      <div style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "flex-start", gap: 6 }}>
-        <Icon name="pin" size={13} color="var(--text-3)" style={{ flexShrink: 0, marginTop: 1 }} />
-        <span style={{ flex: 1, minWidth: 0 }}>{job.address || "-"}{job.province ? ", " + job.province : ""}</span>
+      <div style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "center", gap: 6 }}>
+        <Icon name="pin" size={13} color="var(--text-3)" style={{ flexShrink: 0 }} />
+        <span style={{ flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{job.address || "-"}{job.province ? ", " + job.province : ""}</span>
         {mapHref && <a href={mapHref} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3, color: "var(--primary-dark)", fontWeight: 700, fontSize: 11.5, textDecoration: "none" }}><Icon name="map" size={12} color="var(--primary-dark)" /> นำทาง</a>}
       </div>
       {canAdvance && ((advNoDate || advEarly) ? (
