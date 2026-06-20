@@ -53,7 +53,7 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
         <Stat icon="panel" text={job.panels + " แผง"} />
         <Stat icon="power" text={(job.phase || "1") + " เฟส"} />
         {job.battery && <Stat icon="battery" text={job.batSize} accent />}
-        {(job.brand || "").toUpperCase().includes("ATMOCE") && <Stat icon="box" text={job.comboType === "assembled" ? "ตู้ประกอบ" : "ตู้สำเร็จ"} />}
+        {(job.brand || "").toUpperCase().includes("ATMOCE") && job.comboType === "assembled" && <Stat icon="box" text="ตู้ประกอบ" />}
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid var(--border)" }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}>
