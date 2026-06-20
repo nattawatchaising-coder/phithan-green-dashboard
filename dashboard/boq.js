@@ -28,12 +28,12 @@
     meter3: "Smart Meter DTSU666-H + CT 100A/40mA (3 เฟส)",
     dongle: "Smart Dongle-WLAN-FE",
     cabinet: "AC/DC Combiner Box ตู้หน้ากระจก เบอร์5",
-    dcFuseHolder: "DC FUSE HOLDER",
-    dcFuse: "DC FUSE 16A 1000VDC",
-    dcSpd: "DC SPD 2P 800VDC 20-40KA",
-    dcMcb: "DC MCB 20A 2P 800VDC",
-    acSpd1: "AC SPD 2P Uc275V In20Ka/Imax40Ka",
-    acSpd3: "AC SPD 4P Uc385V In20Ka/Imax40Ka",
+    dcFuseHolder: "DC FUSE HOLDER FEEO",
+    dcFuse: "DC FUSE 16A 1000VDC FEEO",
+    dcSpd: "DC SPD 2P 800VDC 20-40KA FEEO",
+    dcMcb: "DC MCB 20A 2P 800VDC FEEO",
+    acSpd1: "AC SPD 2P Uc275V In20Ka/Imax40Ka FEEO",
+    acSpd3: "AC SPD 4P Uc385V In20Ka/Imax40Ka FEEO",
     wireDuct: "WIRE DUCT 40x40mm (ยาว 2 ม.)",
     dinRail: "DIN RAIL DNR274",
     stopper: "Stopper เหล็ก รางปีกนก 2 น็อตคู่",
@@ -55,7 +55,7 @@
   const RCBO_SIZES = [16, 20, 25, 32, 40, 50, 63, 100];
   // เลือกขนาด RCBO จากกระแสออก × 1.25 ปัดขึ้นไปขนาดมาตรฐานถัดไป
   function rcboAmp(outA) { const v = (+outA || 0) * 1.25; for (let i = 0; i < RCBO_SIZES.length; i++) { if (RCBO_SIZES[i] >= v) return RCBO_SIZES[i]; } return RCBO_SIZES[RCBO_SIZES.length - 1]; }
-  function rcboName(outA, phase) { return "RCBO " + rcboAmp(outA) + "A " + (phase === 3 ? "3P+N" : "2P") + " 100mA"; }
+  function rcboName(outA, phase) { return "RCBO " + rcboAmp(outA) + "A " + (phase === 3 ? "3P+N" : "2P") + " 100mA FEEO"; }
 
   const COMBINER = { 1: "M-Combiner 1P (MC-100)", 3: "M-Combiner 3P (MC-100T)" };
   const CT       = { 1: "CT 250A x1", 3: "CT 250A x3" };
