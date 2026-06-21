@@ -88,7 +88,7 @@
     "CV-FD 4Cx2.5 SQ.MM.", "CV-FD 4Cx4 SQ.MM.", "CV-FD 4Cx6 SQ.MM.", "CV-FD 4Cx10 SQ.MM.",
     "VCT 2Cx2.5 SQ.MM.", "VCT 2Cx4 SQ.MM.", "VCT 2Cx6 SQ.MM.",
     "IEC01(THW)1Cx6 SQ.MM. Y/G", "IEC01(THW)1Cx10 SQ.MM. Y/G", "IEC01(THW)1Cx16 SQ.MM. Y/G",
-    "LAN CAT6 ",
+    "LAN CAT6",
   ];
 
   // สายไฟชุดมาตรฐาน (ค่าเริ่มต้น) — แก้ระยะได้
@@ -98,8 +98,8 @@
     { name: "COMBINER-MCB",    type: "", length: "" },
     { name: "COMBINER-BAT.",   type: "", length: "" },
     { name: "COMBINER-BACKUP", type: "", length: "" },
-    { name: "GROUND",          type: "", length: "" },
-    { name: "LAN",             type: "", length: "" },
+    { name: "GROUND",          type: "IEC01(THW)1Cx6 SQ.MM. Y/G", length: "" },
+    { name: "LAN",             type: "LAN CAT6", length: "" },
   ];
   // ชื่อจุดเดินสาย (ตัวเลือกตั้งต้น) — เพิ่มเองได้ในหน้า BOQ
   const CABLE_POINTS = DEFAULT_CABLES.map((c) => c.name);
@@ -194,7 +194,10 @@
       lfeetPerRail: 4,
       sparePct: { rail: 5, joiner: 5, endClamp: 10, midClamp: 10, lfeet: 5, ground: 10 },
       rows: [{ panels: +job.panels || 0, count: 1 }],
-      cables: DEFAULT_CABLES.map((c) => Object.assign({}, c)),
+      // ค่าเริ่มต้นสายไฟ — ตัด COMBINER-BAT. ออกถ้าไม่มีแบต, ตัด COMBINER-BACKUP ออกถ้าไม่มี Backup
+      cables: DEFAULT_CABLES
+        .filter((c) => !((c.name === "COMBINER-BAT." && !job.battery) || (c.name === "COMBINER-BACKUP" && !job.backup)))
+        .map((c) => Object.assign({}, c)),
       conduit: { imc: [], upvc: [], pullbox: [], flex: {}, upFlex: {} },
       conduitSpare: { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10, upStraight: 10, upClamp: 10, upConnector: 10 },
       // งานเพิ่มเติม (Input) — โครงสร้างบนหลังคา ถอดวัสดุตามสูตร (ว่าง = ไม่ใช้/ไม่ถอด)

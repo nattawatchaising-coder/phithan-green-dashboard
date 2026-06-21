@@ -21,6 +21,16 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       else if (!job.backup) base.hwBackup = "none";
       base.jobType = job.type || "";  // สะท้อน type ปัจจุบันของงานเสมอ
     }
+    // ปรับค่าเริ่มต้นสายไฟตามงาน: เลือก GROUND/LAN ให้ (ถ้ายังว่าง) · ตัด COMBINER-BAT./BACKUP ออกถ้างานไม่มีแบต/Backup
+    if (Array.isArray(base.cables)) {
+      base.cables = base.cables
+        .filter((c) => !((c.name === "COMBINER-BAT." && !(job && job.battery)) || (c.name === "COMBINER-BACKUP" && !(job && job.backup))))
+        .map((c) => {
+          if (!c.type && c.name === "GROUND") return Object.assign({}, c, { type: "IEC01(THW)1Cx6 SQ.MM. Y/G" });
+          if (!c.type && c.name === "LAN") return Object.assign({}, c, { type: "LAN CAT6" });
+          return c;
+        });
+    }
     return base;
   });
   const hasBattery = !!(job && job.battery);
@@ -37,6 +47,73 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const setCab = (i, k, v) => setB((p) => { const cs = p.cables.slice(); cs[i] = Object.assign({}, cs[i], { [k]: v }); return Object.assign({}, p, { cables: cs }); });
   const addCab = () => setB((p) => Object.assign({}, p, { cables: p.cables.concat([{ name: "", type: "", length: "" }]) }));
   const delCab = (i) => setB((p) => Object.assign({}, p, { cables: p.cables.filter((_, j) => j !== i) }));
+
+  // ── ตารางคำนวณขนาดสายไฟ: ไหลตามวงจร MICRO-MICRO → MICRO-COMBINER → COMBINER(รวม BAT+MICRO) → BACKUP/เมน หรือ → MCB ตู้ลูกค้า ──
+  const WIRECALC_DEF = { volt: 0, battKw: 5, strings: 1, backupMainA: 0 };   // volt 0 = ตามเฟส · strings = จำนวน String · backupMainA = กระแสเมนที่จะ Backup (A) เว้นว่าง = ยังไม่ระบุ
+  const wcalc = Object.assign({}, WIRECALC_DEF, b.wireCalc || {});
+  const setWcalc = (k, v) => setB((p) => Object.assign({}, p, { wireCalc: Object.assign({}, WIRECALC_DEF, p.wireCalc || {}, { [k]: +v || 0 }) }));
+  const wcPhase = +b.phase === 3 ? 3 : 1;
+  const wcVolt = +wcalc.volt || (wcPhase === 3 ? 400 : 230);
+  const wcStrings = Math.max(1, Math.round(+wcalc.strings || 1));   // แบ่งกี่ String (ขั้นต่ำ 1)
+  // ตารางพิกัดกระแสสายทองแดง (IEC01/THW) โดยประมาณ — เลือกขนาดให้รับ กระแส×1.25 (โหลดต่อเนื่อง)
+  const AMP_TABLE = [
+    { size: "2.5", amp: 24 }, { size: "4", amp: 31 }, { size: "6", amp: 40 }, { size: "10", amp: 55 },
+    { size: "16", amp: 73 }, { size: "25", amp: 95 }, { size: "35", amp: 119 }, { size: "50", amp: 146 },
+    { size: "70", amp: 181 }, { size: "95", amp: 219 },
+  ];
+  const pickWire = (amp) => { const need = amp * 1.25; const hit = AMP_TABLE.find((r) => r.amp >= need); return hit ? hit.size + " mm²" : "มากกว่า 95 mm²"; };
+  // กำลังไมโครต่อ 1 ตัว (จากรุ่นที่เลือก: 2:1 = 1250W, 1:1 = 500W) — ใช้คิดสาย MICRO-MICRO
+  const microUnit = (window.BOQ.MICRO || []).find((m) => m.ratio === b.microRatio) || (window.BOQ.MICRO || [])[1] || {};
+  const microW = parseFloat((String(microUnit.model || "").match(/(\d+(?:\.\d+)?)\s*watt/i) || [])[1]) || 1250;
+  const wireCalcRows = React.useMemo(() => {
+    const sysKw = +((job && job.kw) || 0);
+    const battKw = hasBattery ? (+wcalc.battKw || 0) : 0;
+    const combinedKw = sysKw + battKw;
+    const div = wcPhase === 3 ? Math.sqrt(3) * wcVolt : wcVolt;   // 3 เฟส: √3 × แรงดันไลน์
+    const phaseNote = wcPhase === 3 ? "3 เฟส · √3×" + wcVolt + "V" : "1 เฟส · " + wcVolt + "V";
+    const backupA = +wcalc.backupMainA || 0;
+
+    // 1) MICRO-MICRO: ไมโคร 1 ตัว (อุปกรณ์ 1 เฟส 230V) — ไม่หารสตริง
+    const microAmp = microW / 230;
+    const rows = [
+      { kind: "micromicro", label: "MICRO-MICRO", w: microW, ampTotal: microAmp, ampString: microAmp,
+        wire: pickWire(microAmp), note: "สายต่อไมโคร · ไมโคร 1 ตัว · 1 เฟส 230V · " + (Math.round(microW / 10) / 100) + " kW", splittable: false },
+    ];
+    // 2) MICRO-COMBINER: ต่อสตริง (กระแสไมโครรวม ÷ String) — กระแสรวม = ไมโครทุกสตริง
+    const mw = sysKw * 1000; const microTotal = div ? mw / div : 0; const microString = microTotal / wcStrings;
+    rows.push({ kind: "main", label: "MICRO-COMBINER", w: mw, ampTotal: microTotal, ampString: microString,
+      wire: pickWire(microString), note: phaseNote + " · " + sysKw + " kW" + (wcStrings > 1 ? " · แบ่ง " + wcStrings + " สตริง" : ""), splittable: true });
+    // 3) COMBINER รวม BAT + MICRO → MCB ตู้ลูกค้า (กรณีไม่มี Backup) / หรือเป็น feed เข้าระบบ Backup
+    const cw = combinedKw * 1000; const combAmp = div ? cw / div : 0;
+    rows.push({ kind: "mcb", label: hasBackup ? "COMBINER → BACKUP (รวม MICRO+BAT)" : "COMBINER → MCB ตู้ลูกค้า",
+      w: cw, ampTotal: combAmp, ampString: combAmp, wire: pickWire(combAmp), battAmp: div ? (battKw * 1000) / div : 0,
+      note: "รวม MICRO" + (battKw ? " + BAT " + battKw + " kW" : "") + " · " + phaseNote + " · " + (Math.round(combinedKw * 100) / 100) + " kW", splittable: false });
+    // 4) BACKUP → เมนไฟ (MAIN): ใช้ขนาดเมนเบรกเกอร์ที่จะ Backup (กรอกเอง) — เว้นว่างไว้ก่อนได้
+    if (hasBackup) {
+      rows.push({ kind: "backup", label: "BACKUP → เมนไฟ (MAIN)", w: null, ampTotal: backupA, ampString: backupA,
+        wire: backupA ? pickWire(backupA) : "—", needInput: !backupA,
+        note: backupA ? "ตามเมนเบรกเกอร์ที่ Backup · " + backupA + " A" : "⚠ ระบุกระแสเมนที่จะ Backup (A) ด้านบน", splittable: false });
+    }
+    return rows;
+  }, [job, microW, wcPhase, wcVolt, wcalc.battKw, wcalc.backupMainA, wcStrings, hasBattery, hasBackup]);
+  // ── พิกัดกระแสของสายแต่ละเส้น: อ่านขนาด (SQ.MM.) จากชื่อชนิดสาย → เทียบพิกัดทองแดง ──
+  const AMP_BY_MM = AMP_TABLE.reduce((m, r) => { m[r.size] = r.amp; return m; }, {});
+  const cableSqmm = (name) => { const m = /(\d+(?:\.\d+)?)\s*sq/i.exec(name || ""); return m ? m[1] : null; };
+  const cableAmp = (name) => { const s = cableSqmm(name); return s != null ? (AMP_BY_MM[s] || null) : null; };
+  // กระแสที่สายต้องรับ (×1.25) ตามจุดเดินสาย — MICRO-MICRO=ไมโคร 1 ตัว · MICRO-COMBINER=ต่อสตริง · COMBINER-BAT=กระแสแบต · COMBINER-BACKUP=ตามเมน · COMBINER-MCB=รวม MICRO+BAT · สายดิน/แลน=ไม่คิดโหลด
+  const reqAmpFor = (cabName) => {
+    const n = (cabName || "").toUpperCase();
+    if (/LAN|CAT|GROUND|กราว|ดิน/.test(n)) return null;
+    const microRow = wireCalcRows.find((r) => r.kind === "micromicro");
+    const mainRow = wireCalcRows.find((r) => r.kind === "main") || wireCalcRows[0];
+    const mcbRow = wireCalcRows.find((r) => r.kind === "mcb") || mainRow;
+    const backupRow = wireCalcRows.find((r) => r.kind === "backup");
+    if (/MICRO[\s-]*MICRO/.test(n)) return microRow ? microRow.ampTotal * 1.25 : 0;   // ไมโคร 1 ตัว
+    if (/MICRO/.test(n)) return mainRow.ampString * 1.25;                              // MICRO-COMBINER = ต่อสตริง
+    if (/BACKUP|สำรอง/.test(n)) return backupRow && backupRow.ampTotal ? backupRow.ampTotal * 1.25 : null;  // ตามเมนที่ Backup
+    if (/BAT|แบต/.test(n)) return mcbRow.battAmp ? mcbRow.battAmp * 1.25 : null;        // กระแสแบต
+    return mcbRow.ampTotal * 1.25;                                                      // COMBINER → MCB = รวม MICRO+BAT
+  };
 
   // ชื่อจุดเดินสาย: ตัวเลือกตั้งต้น + ที่ผู้ใช้เพิ่มเอง (เก็บใน localStorage ใช้ซ้ำได้)
   const CABLE_PT_KEY = "boq_cable_points_v1";
@@ -527,15 +604,104 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           {/* ── สายไฟ ── */}
           <Section title="สายไฟ" icon="power">
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {b.cables.map((c, i) => (
-                <div key={i} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 70px 36px" : "minmax(150px,1fr) minmax(0,1.3fr) 90px 36px", gap: 8, alignItems: "center" }}>
-                  {!isMobile && <Dropdown value={c.name || ""} onChange={(v) => setCab(i, "name", v)} options={cablePtOptions} placeholder="— เลือกจุด —" addable onAdd={addCablePt} />}
-                  <Dropdown value={c.type} onChange={(v) => setCab(i, "type", v)} options={cableTypeOptions} placeholder="— เลือกสายไฟ —" />
-                  <input type="number" style={numStyle} value={c.length} placeholder="ม." onChange={(e) => setCab(i, "length", e.target.value)} />
-                  <button onClick={() => delCab(i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
+              {b.cables.map((c, i) => {
+                const amp = cableAmp(c.type);
+                const req = reqAmpFor(c.name);
+                const bad = amp != null && req && amp < req;
+                const isComm = /LAN|CAT/i.test(c.type || "");
+                const showHint = !!c.type && !isComm;
+                return (
+                <div key={i} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 70px 36px" : "minmax(150px,1fr) minmax(0,1.3fr) 90px 36px", gap: 8, alignItems: "center" }}>
+                    {!isMobile && <Dropdown value={c.name || ""} onChange={(v) => setCab(i, "name", v)} options={cablePtOptions} placeholder="— เลือกจุด —" addable onAdd={addCablePt} />}
+                    <Dropdown value={c.type} onChange={(v) => setCab(i, "type", v)} options={cableTypeOptions} placeholder="— เลือกสายไฟ —" />
+                    <input type="number" style={numStyle} value={c.length} placeholder="ม." onChange={(e) => setCab(i, "length", e.target.value)} />
+                    <button onClick={() => delCab(i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
+                  </div>
+                  {showHint && (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, paddingLeft: isMobile ? 2 : 4,
+                      color: bad ? "#B91C1C" : (amp == null ? "#B91C1C" : "var(--text-3)") }}>
+                      {amp != null ? (
+                        <React.Fragment>
+                          <Icon name={bad ? "alert" : "bolt"} size={11} color={bad ? "#B91C1C" : "var(--text-3)"} />
+                          พิกัดสาย ~{amp} A{req ? " · ต้องการ ≥ " + (Math.round(req * 10) / 10).toFixed(1) + " A" : ""}{bad ? " · กระแสไม่พอ!" : ""}
+                        </React.Fragment>
+                      ) : (
+                        <React.Fragment>
+                          <Icon name="alert" size={11} color="#B91C1C" /> ระบุพิกัดกระแสไม่ได้ — เลือกชนิดสายที่มีขนาด (SQ.MM.)
+                        </React.Fragment>
+                      )}
+                    </span>
+                  )}
                 </div>
-              ))}
+                );
+              })}
               <button onClick={addCab} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--primary-soft)", color: "var(--primary-dark)", border: "none", borderRadius: 9, padding: "8px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={14} color="var(--primary-dark)" /> เพิ่มสาย</button>
+            </div>
+
+            {/* ── ตารางคำนวณขนาดสายไฟ (จากกระแส Micro-inverter) ── */}
+            <div style={{ marginTop: 16, border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", background: "var(--surface2)" }}>
+              <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--border)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <Icon name="bolt" size={13} color="var(--primary)" /> ตารางคำนวณขนาดสายไฟ
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "var(--primary-dark)", background: "var(--primary-soft)", padding: "3px 9px", borderRadius: 99 }}>{wcPhase} เฟส</span>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(118px, 1fr))", gap: 10 }}>
+                  {[
+                    { label: "แรงดัน (V)", value: wcVolt, key: "volt", min: undefined },
+                    { label: "แบ่ง String", value: wcStrings, key: "strings", min: "1" },
+                    hasBattery ? { label: "กำลังแบต (kW)", value: wcalc.battKw, key: "battKw", min: undefined } : null,
+                    hasBackup ? { label: "เมน Backup (A)", value: wcalc.backupMainA || "", key: "backupMainA", min: undefined, ph: "—" } : null,
+                  ].filter(Boolean).map((f) => (
+                    <label key={f.key} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>{f.label}</span>
+                      <input type="number" min={f.min} placeholder={f.ph} value={f.value} onChange={(e) => setWcalc(f.key, e.target.value)}
+                        style={Object.assign({}, numStyle, { width: "100%", height: 36 })} />
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 540 }}>
+                  <thead>
+                    <tr style={{ color: "var(--text-3)", fontSize: 11, textTransform: "uppercase", letterSpacing: ".04em" }}>
+                      <th style={{ textAlign: "left", padding: "8px 14px", fontWeight: 700 }}>ชุดคำนวณ</th>
+                      <th style={{ textAlign: "right", padding: "8px 10px", fontWeight: 700 }}>กำลัง (W)</th>
+                      <th style={{ textAlign: "right", padding: "8px 10px", fontWeight: 700 }}>กระแสรวม (A)</th>
+                      <th style={{ textAlign: "right", padding: "8px 10px", fontWeight: 700 }}>กระแส/สตริง (A)</th>
+                      <th style={{ textAlign: "right", padding: "8px 14px", fontWeight: 700 }}>สายแนะนำ/สตริง</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {wireCalcRows.map((r, i) => (
+                      <tr key={i} style={{ borderTop: "1px solid var(--border)" }}>
+                        <td style={{ padding: "9px 14px", color: "var(--text-1)" }}>
+                          <span style={{ fontWeight: 600 }}>{r.label}</span>
+                          <span style={{ display: "block", fontSize: 10.5, color: r.needInput ? "#B45309" : "var(--text-3)" }}>{r.note}</span>
+                        </td>
+                        <td style={{ padding: "9px 10px", textAlign: "right", fontFamily: "var(--mono)", color: "var(--text-2)" }}>{r.w == null ? "—" : Math.round(r.w).toLocaleString()}</td>
+                        <td style={{ padding: "9px 10px", textAlign: "right", fontFamily: "var(--mono)", fontWeight: 700, color: "var(--text-1)" }}>{r.needInput ? "—" : (Math.round(r.ampTotal * 10) / 10).toFixed(1)}</td>
+                        <td style={{ padding: "9px 10px", textAlign: "right", fontFamily: "var(--mono)" }}>
+                          {r.needInput ? <span style={{ color: "var(--text-3)" }}>—</span> : (
+                            <React.Fragment>
+                              <span style={{ fontWeight: 700, color: r.splittable && wcStrings > 1 ? "var(--primary-dark)" : "var(--text-1)" }}>{(Math.round(r.ampString * 10) / 10).toFixed(1)}</span>
+                              <span style={{ display: "block", fontSize: 9.5, color: "var(--text-3)" }}>×1.25 = {(Math.round(r.ampString * 1.25 * 10) / 10).toFixed(1)}</span>
+                            </React.Fragment>
+                          )}
+                        </td>
+                        <td style={{ padding: "9px 14px", textAlign: "right" }}>
+                          <span style={{ display: "inline-block", fontFamily: "var(--mono)", fontSize: 12, fontWeight: 700, color: r.needInput ? "var(--text-3)" : "var(--primary-dark)", background: r.needInput ? "var(--surface3)" : "var(--primary-soft)", padding: "3px 9px", borderRadius: 7 }}>{r.wire}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ padding: "9px 14px", fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5, borderTop: "1px solid var(--border)" }}>
+                * MICRO-MICRO = ไมโคร 1 ตัว ({microW}W) ÷ 230V (อุปกรณ์ 1 เฟส) · MICRO-COMBINER (กระแส/สตริง) = กระแสรวม ÷ จำนวน String · COMBINER→MCB ใช้กระแสรวมทุกสตริง · กระแสรวม: 1 เฟส = W ÷ V · 3 เฟส = W ÷ (√3 × แรงดันไลน์ V) · ขนาดสายแนะนำเลือกให้รับกระแส ×1.25 (โหลดต่อเนื่อง) อ้างพิกัดสายทองแดง IEC01/THW โดยประมาณ — โปรดตรวจสอบกับวิธีเดินสายจริง
+              </div>
             </div>
           </Section>
 

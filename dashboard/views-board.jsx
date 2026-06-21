@@ -55,14 +55,14 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
         {job.battery && <Stat icon="battery" text={job.batSize} accent />}
         {(job.brand || "").toUpperCase().includes("ATMOCE") && job.comboType === "assembled" && <Stat icon="box" text="ตู้ประกอบ" />}
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid var(--border)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid var(--border)", gap: 8, flexWrap: "wrap" }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}>
           <TechAvatar techId={job.tech} size={24} />
           {job.startDate
             ? <span style={{ fontSize: 11.5, fontWeight: 600, color: job.delayed ? "#EF4444" : "var(--text-2)" }}>{thDate(job.startDate)}</span>
             : <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: "#B45309", background: "#FEF3C7", border: "1px solid #FCD34D", padding: "2px 7px", borderRadius: 99, whiteSpace: "nowrap" }}><Icon name="alert" size={10} color="#B45309" /> ยังไม่ระบุวันติดตั้ง</span>}
         </span>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
           <MatDots mat={job.mat} />
           <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "var(--mono)", color: job.matReady ? "var(--primary-dark)" : "var(--text-3)" }}>{job.matReadyPct}%</span>
         </span>

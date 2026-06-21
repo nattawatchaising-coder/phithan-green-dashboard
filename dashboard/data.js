@@ -22,6 +22,7 @@
     { key: "inverter",  th: "อินเวอร์เตอร์", en: "Inverter" },
     { key: "structure", th: "โครงสร้างยึดแผง", en: "Solar Mounting" },
     { key: "wiring",    th: "สายไฟ",       en: "Wiring" },
+    { key: "combiner",  th: "ตู้ Combiner", en: "Combiner Box" },
     { key: "battery",   th: "แบตเตอรี่",    en: "Battery" },
     { key: "backup",    th: "ระบบ Backup", en: "Backup (EPS)" },
     { key: "birdnet",   th: "ตาข่ายกันนก", en: "Bird Net" },

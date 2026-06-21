@@ -12,6 +12,7 @@ const NAV = [
   { key: "myschedule", th: "ตารางงานของฉัน",   en: "My Schedule",   icon: "list",     roles: ["survey", "tech"] },
   { key: "calendar",   th: "ปฏิทินนัด",        en: "Calendar",      icon: "calendar", roles: OFFICE },
   { key: "stock",      th: "คลังสินค้า",       en: "Inventory",     icon: "box",      roles: OFFICE },
+  { key: "report",     th: "รายงานสรุป",       en: "Report",        icon: "file",     roles: OFFICE },
 ];
 const navForRole = (role) => NAV.filter((n) => !n.roles || n.roles.includes(role));
 
@@ -308,6 +309,7 @@ function App() {
           {view === "table" && <TableView jobs={filtered} onOpen={openJob}
             onEdit={(j) => setForm({ job: store.raw.find((r) => r.id === j.id), isNew: false })}
             onDelete={onDelete} onSetMat={store.setMat} onSetStage={(id, s) => store.setStage(id, s)} />}
+          {view === "report" && <ReportView jobs={filtered} onOpen={openJob} />}
           {view === "survey" && <SurveyView jobs={filtered} role={role} onOpen={openSurvey}
             onToggleSkip={(can(role, "doSurvey") || can(role, "dispatch") || can(role, "editJob")) ? (j) => {
               const cur = j.survey || {};
@@ -391,7 +393,8 @@ function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, currentUser
         {navForRole(role).map((n) => {
           const active = view === n.key;
           return (
-            <button key={n.key} onClick={() => onNav(n.key)} className={"nav-item" + (active ? " active" : "")} title={n.th}>
+            <button key={n.key} onClick={() => onNav(n.key)} className={"nav-item" + (active ? " active" : "")} title={n.th}
+              style={n.key === "report" ? { marginTop: "auto" } : undefined}>
               <Icon name={n.icon} size={19} color={active ? "var(--primary-dark)" : "var(--text-2)"} />
               {!icons && <span>{n.th}</span>}
               {!icons && n.key === "overview" && delayed > 0 && (
