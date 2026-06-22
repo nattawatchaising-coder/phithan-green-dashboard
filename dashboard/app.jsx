@@ -87,6 +87,7 @@ function App() {
   const auth = useAuthStore();
   const notif = useNotifStore();
   const priceStore = usePriceStore();
+  const ampStore = useAmpacityStore();
   const apptStore = useSurveyApptStore();
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [view, setView] = React.useState("overview");
@@ -222,6 +223,11 @@ function App() {
       .map((s) => ({ model: s.name, type: s.invType, kw: s.invKw, phase: s.invPhase, inputs: s.invInputs, maxPv: s.invMaxPv, outA: s.invOutA })));
   }, [stock.items]);
 
+  // ลงทะเบียนค่าพิกัดกระแสสายไฟที่แก้จากเล่ม วสท. (ทับค่าเริ่มต้น) → ให้ตัวคำนวณ BOQ ใช้
+  React.useEffect(() => {
+    if (window.BOQ && window.BOQ.setAmpacity) window.BOQ.setAmpacity(ampStore.overrides || {});
+  }, [ampStore.overrides]);
+
   const closeSidebar = () => setSidebarOpen(false);
   const openJob = (j) => setSelected(j.id);
   const openSurvey = (j, appt) => { setSurveyJob(j); setSurveyAppt(appt || null); };
@@ -276,7 +282,7 @@ function App() {
       <main className="app-main">
         {view === "stock" ? (
           <StockView stock={stock} onMenuOpen={() => setSidebarOpen(true)} currentUser={auth.current} jobs={jobs}
-            priceStore={priceStore} canManagePrices={can(role, "delJob")} />
+            priceStore={priceStore} ampStore={ampStore} canManagePrices={can(role, "delJob")} />
         ) : view === "dispatch" ? (
           <DispatchView appts={apptStore.appts} jobs={jobs} techs={techStore.techs} store={apptStore}
             onMenuOpen={() => setSidebarOpen(true)} onOpenJob={openJob} />

@@ -42,12 +42,13 @@ function StockKpi({ label, value, unit, icon, accent, sub, active, onClick }) {
   );
 }
 
-function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStore, canManagePrices }) {
+function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStore, ampStore, canManagePrices }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const byName = (currentUser && currentUser.name) || "-";
-  const [tab, setTab] = React.useState("stock"); // "stock" | "prices"
+  const [tab, setTab] = React.useState("stock"); // "stock" | "prices" | "amp"
   const isPrices = tab === "prices" && canManagePrices;
+  const isAmp = tab === "amp" && canManagePrices;
   const [cat, setCat] = React.useState("all");
   const [catOpen, setCatOpen] = React.useState(() => localStorage.getItem("sf_stock_catopen") !== "0"); // ย่อ/ขยายแถบกรองหมวด
   const toggleCat = () => setCatOpen((v) => { localStorage.setItem("sf_stock_catopen", v ? "0" : "1"); return !v; });
@@ -105,8 +106,10 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
             <Icon name="menu" size={18} color="var(--text-2)" />
           </button>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h1 className="page-title">{isPrices ? "ราคาวัสดุ (BOQ)" : "คลังสินค้า / สต็อก"}</h1>
-            {isPrices ? (
+            <h1 className="page-title">{isAmp ? "พิกัดกระแสสายไฟ (วสท.)" : isPrices ? "ราคาวัสดุ (BOQ)" : "คลังสินค้า / สต็อก"}</h1>
+            {isAmp ? (
+              <p className="page-sub">ตารางพิกัดกระแส วสท. — แยกตามฉนวน × วิธีเดินสาย × ขนาด (ใช้คำนวณ/เตือนขนาดสายใน BOQ)</p>
+            ) : isPrices ? (
               <p className="page-sub">รหัส / ราคา / หน่วย สำหรับคำนวณต้นทุน BOQ</p>
             ) : (
             <p className="page-sub">อุปกรณ์ติดตั้ง <strong>{filtered.length}</strong> จาก {items.length} รายการ
@@ -117,6 +120,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
             </p>
             )}
           </div>
+          {!isAmp && (
           <div className="header-actions">
             <div className="search-box">
               <Icon name="search" size={16} color="var(--text-3)" />
@@ -134,6 +138,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
               </button>
             )}
           </div>
+          )}
         </div>
         <div className="header-filters">
           {/* แถวเดียว: แท็บ (ซ้าย) + ปุ่มย่อ/ขยายหมวด (ขวา) */}
@@ -142,9 +147,10 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
               <React.Fragment>
                 <CatChip active={tab === "stock"} onClick={() => setTab("stock")} label="สต็อก" color="#3B82F6" />
                 <CatChip active={tab === "prices"} onClick={() => setTab("prices")} label="ราคา BOQ" color="#EC4899" />
+                <CatChip active={tab === "amp"} onClick={() => setTab("amp")} label="พิกัดสาย วสท." color="#F59E0B" />
               </React.Fragment>
             )}
-            {!isMobile && (
+            {!isMobile && !isAmp && (
               <button onClick={toggleCat} title={catOpen ? "ซ่อนตัวกรองหมวด" : "แสดงตัวกรองหมวด"}
                 style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 13px", borderRadius: 99,
                   border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)",
@@ -158,10 +164,10 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
             )}
           </div>
           {/* มือถือ: dropdown หมวด */}
-          {isMobile && !isPrices && <div style={{ marginTop: 10 }}><CatDropdown cat={cat} setCat={setCat} items={items} cats={SF.STOCK_CATS} /></div>}
+          {isMobile && !isPrices && !isAmp && <div style={{ marginTop: 10 }}><CatDropdown cat={cat} setCat={setCat} items={items} cats={SF.STOCK_CATS} /></div>}
           {isMobile && isPrices && <div style={{ marginTop: 10 }}><Dropdown value={priceGrp} onChange={setPriceGrp} options={priceGroups.map((g) => ({ value: g, label: g === "all" ? "ทั้งหมด" : (PG_TH[g] || g) }))} /></div>}
           {/* เดสก์ท็อป: ชิปหมวด — ย่อ/ขยายแบบลื่น (max-height + opacity) */}
-          {!isMobile && (
+          {!isMobile && !isAmp && (
             <div style={{ overflow: "hidden", maxHeight: catOpen ? 48 : 0, opacity: catOpen ? 1 : 0,
               marginTop: catOpen ? 8 : 0, transition: "max-height .24s ease, opacity .2s ease, margin-top .24s ease" }}>
               <div className="cat-chip-row" style={{ display: "flex", gap: 7, flexWrap: "nowrap", alignItems: "center", overflowX: "auto", paddingBottom: 4 }}>
@@ -182,7 +188,11 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
         </div>
       </header>
 
-      {isPrices ? (
+      {isAmp ? (
+        <div className="app-content">
+          <AmpacityEditor ampStore={ampStore} />
+        </div>
+      ) : isPrices ? (
         <div className="app-content">
           <PricePanel priceStore={priceStore} stock={stock} q={priceQ} grp={priceGrp} />
         </div>
@@ -655,6 +665,101 @@ function ItemModal({ initial, isNew, items, onSave, onClose }) {
           <button onClick={submitItem}
             style={{ flex: isMobile ? 1 : "none", padding: "11px 22px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>บันทึก</button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── ตัวแก้ตารางพิกัดกระแสสายไฟ (วสท.) — ฉนวน × วิธีเดินสาย × [กลุ่ม·จำนวนตัวนำ·แกน] × ขนาด ── */
+function AmpacityEditor({ ampStore }) {
+  const BOQ = window.BOQ || {};
+  const sizes = BOQ.WIRE_SIZES || [];
+  const classes = BOQ.INS_CLASSES || [];
+  const methods = BOQ.WIRE_METHODS || [];
+  const groups = BOQ.AMP_GROUPS || [];
+  const nconds = BOQ.AMP_NCOND || [];
+  const cores = BOQ.AMP_CORES || [];
+  const def = BOQ.DEFAULT_AMPACITY || {};
+  const ov = (ampStore && ampStore.overrides) || {};
+  const [insKey, setInsKey] = React.useState((classes[0] && classes[0].key) || "pvc");
+  const [methodKey, setMethodKey] = React.useState((methods[0] && methods[0].key) || "conduitAir");
+  const colKey = (g, n, c) => g + "|" + n + "|" + c;
+  const ovVal = (g, n, c, sz) => { try { const v = ov[insKey][methodKey][colKey(g, n, c)][sz]; return v > 0 ? v : undefined; } catch (e) { return undefined; } };
+  const defVal = (g, n, c, sz) => { try { return def[insKey][methodKey][colKey(g, n, c)][sz]; } catch (e) { return undefined; } };
+  const editedCount = React.useMemo(() => {
+    let n = 0; Object.keys(ov).forEach((i) => Object.keys(ov[i] || {}).forEach((m) => Object.keys(ov[i][m] || {}).forEach((col) => Object.keys(ov[i][m][col] || {}).forEach((s) => { if (+ov[i][m][col][s] > 0) n++; })))); return n;
+  }, [ov]);
+  // คอลัมน์ 8 ช่อง: กลุ่ม × จำนวนตัวนำ × แกน
+  const leaf = [];
+  groups.forEach((g) => nconds.forEach((n) => cores.forEach((c) => leaf.push({ g: g.key, n: n.key, c: c.key, cTh: c.th }))));
+  const cellStyle = { width: 58, height: 32, padding: "0 4px", textAlign: "center", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-1)", fontFamily: "var(--mono)", fontSize: 12 };
+  const thBase = { fontSize: 10.5, fontWeight: 700, color: "var(--text-2)", textAlign: "center", whiteSpace: "nowrap", background: "var(--surface2)", borderBottom: "1px solid var(--border)" };
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "12px 14px", background: "#FEF9EC", border: "1px solid #FCE4B6", borderRadius: 12, marginBottom: 14 }}>
+        <Icon name="alert" size={16} color="#B45309" style={{ flexShrink: 0, marginTop: 1 }} />
+        <div style={{ fontSize: 12, color: "#92500C", lineHeight: 1.55 }}>
+          ตารางพิกัดกระแส <strong>มาตรฐาน วสท.</strong> (ตัวนำทองแดง 0.6/1 kV) — แยกตาม <strong>กลุ่มการติดตั้ง × จำนวนตัวนำมีกระแส × แกนเดียว/หลายแกน</strong>
+          <br />ปัจจุบันมีตารางจริง: <strong>PVC · เดินในท่อร้อยสายในอากาศ</strong> · ฉนวน/วิธีอื่น (เช่น XLPE) <strong>กรอกค่าได้ที่นี่</strong> · ค่าที่กรอกใช้กับทุกงาน · เว้นว่าง = ใช้ค่าเริ่มต้น (ตัวเลขจาง)
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 7, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
+        {classes.map((c) => (
+          <CatChip key={c.key} active={insKey === c.key} onClick={() => setInsKey(c.key)} label={c.th} color="#F59E0B" />
+        ))}
+        <div style={{ width: 1, height: 22, background: "var(--border)", margin: "0 3px" }} />
+        <div style={{ minWidth: 220 }}>
+          <Dropdown value={methodKey} onChange={setMethodKey} options={methods.map((m) => ({ value: m.key, label: m.th }))} />
+        </div>
+        {editedCount > 0 && (
+          <button onClick={() => { if (confirm("คืนค่าพิกัดกระแสที่แก้ไว้ทั้งหมด ?\n(ลบ " + editedCount + " ช่อง)")) ampStore.reset(); }}
+            style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 99, border: "1px solid #FBD3D3", background: "#FEF2F2", color: "#B91C1C", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+            <Icon name="x" size={13} color="#B91C1C" /> คืนค่าที่แก้ ({editedCount})
+          </button>
+        )}
+      </div>
+
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ borderCollapse: "collapse", minWidth: 760 }}>
+            <thead>
+              <tr>
+                <th rowSpan={2} style={Object.assign({}, thBase, { padding: "8px 12px", textAlign: "left", position: "sticky", left: 0, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: ".03em" })}>ขนาด (mm²)</th>
+                {groups.map((g) => (
+                  <th key={g.key} colSpan={nconds.length * cores.length} style={Object.assign({}, thBase, { padding: "8px 6px", borderLeft: "1px solid var(--border)" })}>{g.th}</th>
+                ))}
+              </tr>
+              <tr>
+                {groups.map((g) => nconds.map((n) => cores.map((c, ci) => (
+                  <th key={g.key + n.key + c.key} style={Object.assign({}, thBase, { padding: "6px 4px", fontSize: 10, fontWeight: 600, borderLeft: ci === 0 && c === cores[0] ? "1px solid var(--border)" : "none" })}>
+                    <div style={{ color: "var(--primary-dark)" }}>{n.key} ตัวนำ</div>
+                    <div style={{ color: "var(--text-3)" }}>{c.th}</div>
+                  </th>
+                ))))}
+              </tr>
+            </thead>
+            <tbody>
+              {sizes.map((sz) => (
+                <tr key={sz} style={{ borderBottom: "1px solid var(--border)" }}>
+                  <td style={{ padding: "6px 12px", fontWeight: 700, fontSize: 13, color: "var(--text-1)", whiteSpace: "nowrap", background: "var(--surface)", position: "sticky", left: 0, fontFamily: "var(--mono)" }}>{sz}</td>
+                  {leaf.map((lf, idx) => (
+                    <td key={idx} style={{ padding: "4px 5px", textAlign: "center", borderLeft: (idx % (nconds.length * cores.length)) === 0 ? "1px solid var(--border)" : "none" }}>
+                      <input type="number" min="0" style={cellStyle}
+                        value={ovVal(lf.g, lf.n, lf.c, sz) != null ? ovVal(lf.g, lf.n, lf.c, sz) : ""}
+                        placeholder={defVal(lf.g, lf.n, lf.c, sz) != null ? String(defVal(lf.g, lf.n, lf.c, sz)) : "—"}
+                        onChange={(e) => ampStore.setCell(insKey, methodKey, lf.g, lf.n, lf.c, sz, e.target.value)} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div style={{ marginTop: 10, fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
+        หน่วยเป็นแอมแปร์ (A) · "แกนเดียว" = สาย 1C · "หลายแกน" = 2C ขึ้นไป · ระบบเลือกขนาดสายให้รับ <strong>กระแสใช้งาน × 1.25</strong> และเตือนเมื่อสายที่เลือกพิกัดต่ำกว่าที่ต้องการ
       </div>
     </div>
   );

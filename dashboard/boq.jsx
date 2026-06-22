@@ -49,19 +49,20 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const delCab = (i) => setB((p) => Object.assign({}, p, { cables: p.cables.filter((_, j) => j !== i) }));
 
   // ── ตารางคำนวณขนาดสายไฟ: ไหลตามวงจร MICRO-MICRO → MICRO-COMBINER → COMBINER(รวม BAT+MICRO) → BACKUP/เมน หรือ → MCB ตู้ลูกค้า ──
-  const WIRECALC_DEF = { volt: 0, battKw: 5, strings: 1, backupMainA: 0 };   // volt 0 = ตามเฟส · strings = จำนวน String · backupMainA = กระแสเมนที่จะ Backup (A) เว้นว่าง = ยังไม่ระบุ
+  // ins/method/group/ncond = สมมุติฐานของ "สายแนะนำ" ในตารางคำนวณ ตามพิกัด วสท.
+  const WIRECALC_DEF = { volt: 0, battKw: 5, strings: 1, backupMainA: 0, ins: "pvc", method: "conduitAir", group: "g1", ncond: "" };
   const wcalc = Object.assign({}, WIRECALC_DEF, b.wireCalc || {});
-  const setWcalc = (k, v) => setB((p) => Object.assign({}, p, { wireCalc: Object.assign({}, WIRECALC_DEF, p.wireCalc || {}, { [k]: +v || 0 }) }));
+  const WCALC_STR = { ins: 1, method: 1, group: 1, ncond: 1 };
+  const setWcalc = (k, v) => setB((p) => Object.assign({}, p, { wireCalc: Object.assign({}, WIRECALC_DEF, p.wireCalc || {}, { [k]: WCALC_STR[k] ? v : (+v || 0) }) }));
   const wcPhase = +b.phase === 3 ? 3 : 1;
   const wcVolt = +wcalc.volt || (wcPhase === 3 ? 400 : 230);
   const wcStrings = Math.max(1, Math.round(+wcalc.strings || 1));   // แบ่งกี่ String (ขั้นต่ำ 1)
-  // ตารางพิกัดกระแสสายทองแดง (IEC01/THW) โดยประมาณ — เลือกขนาดให้รับ กระแส×1.25 (โหลดต่อเนื่อง)
-  const AMP_TABLE = [
-    { size: "2.5", amp: 24 }, { size: "4", amp: 31 }, { size: "6", amp: 40 }, { size: "10", amp: 55 },
-    { size: "16", amp: 73 }, { size: "25", amp: 95 }, { size: "35", amp: 119 }, { size: "50", amp: 146 },
-    { size: "70", amp: 181 }, { size: "95", amp: 219 },
-  ];
-  const pickWire = (amp) => { const need = amp * 1.25; const hit = AMP_TABLE.find((r) => r.amp >= need); return hit ? hit.size + " mm²" : "มากกว่า 95 mm²"; };
+  const calcIns = wcalc.ins || "pvc";
+  const calcMethod = wcalc.method || "conduitAir";
+  const calcGroup = wcalc.group || "g1";
+  const calcNCond = wcalc.ncond ? String(wcalc.ncond) : (wcPhase === 3 ? "3" : "2");   // ว่าง = ตามเฟส
+  // เลือกขนาดสายให้รับ กระแส×1.25 (โหลดต่อเนื่อง) — ตามพิกัด วสท. (ฉนวน+วิธี+กลุ่ม+จำนวนตัวนำ · แกนเดียว)
+  const pickWire = (amp) => window.BOQ.pickWireSize((+amp || 0) * 1.25, calcIns, { method: calcMethod, group: calcGroup, ncond: calcNCond, core: "single" });
   // กำลังไมโครต่อ 1 ตัว (จากรุ่นที่เลือก: 2:1 = 1250W, 1:1 = 500W) — ใช้คิดสาย MICRO-MICRO
   const microUnit = (window.BOQ.MICRO || []).find((m) => m.ratio === b.microRatio) || (window.BOQ.MICRO || [])[1] || {};
   const microW = parseFloat((String(microUnit.model || "").match(/(\d+(?:\.\d+)?)\s*watt/i) || [])[1]) || 1250;
@@ -95,11 +96,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         note: backupA ? "ตามเมนเบรกเกอร์ที่ Backup · " + backupA + " A" : "⚠ ระบุกระแสเมนที่จะ Backup (A) ด้านบน", splittable: false });
     }
     return rows;
-  }, [job, microW, wcPhase, wcVolt, wcalc.battKw, wcalc.backupMainA, wcStrings, hasBattery, hasBackup]);
-  // ── พิกัดกระแสของสายแต่ละเส้น: อ่านขนาด (SQ.MM.) จากชื่อชนิดสาย → เทียบพิกัดทองแดง ──
-  const AMP_BY_MM = AMP_TABLE.reduce((m, r) => { m[r.size] = r.amp; return m; }, {});
-  const cableSqmm = (name) => { const m = /(\d+(?:\.\d+)?)\s*sq/i.exec(name || ""); return m ? m[1] : null; };
-  const cableAmp = (name) => { const s = cableSqmm(name); return s != null ? (AMP_BY_MM[s] || null) : null; };
+  }, [job, microW, wcPhase, wcVolt, wcalc.battKw, wcalc.backupMainA, wcStrings, hasBattery, hasBackup, calcIns, calcMethod, calcGroup, calcNCond]);
+  // ── พิกัดกระแสของสายแต่ละเส้น: อ่านชนิด/ขนาด/แกนจากชื่อ + วิธี/กลุ่ม/จำนวนตัวนำ → เทียบพิกัด วสท. ──
+  const cableAmp = (name, opts) => window.BOQ.ampacityOf(name, opts);
   // กระแสที่สายต้องรับ (×1.25) ตามจุดเดินสาย — MICRO-MICRO=ไมโคร 1 ตัว · MICRO-COMBINER=ต่อสตริง · COMBINER-BAT=กระแสแบต · COMBINER-BACKUP=ตามเมน · COMBINER-MCB=รวม MICRO+BAT · สายดิน/แลน=ไม่คิดโหลด
   const reqAmpFor = (cabName) => {
     const n = (cabName || "").toUpperCase();
@@ -258,6 +257,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       .sort((a, z) => String(a).localeCompare(String(z), "th", { numeric: true }))
       .map((n) => ({ value: n, label: n }));
   }, [stockItems.length, b.cables]);
+  // ตัวเลือกพิกัดกระแส วสท.: วิธีเดินสาย / ฉนวน / กลุ่มการติดตั้ง / จำนวนตัวนำมีกระแส
+  const methodOptions = (window.BOQ.WIRE_METHODS || []).map((m) => ({ value: m.key, label: m.th }));
+  const insOptions = (window.BOQ.INS_CLASSES || []).map((c) => ({ value: c.key, label: c.th }));
+  const groupOptions = (window.BOQ.AMP_GROUPS || []).map((g) => ({ value: g.key, label: g.th }));
+  const ncondOptions = (window.BOQ.AMP_NCOND || []).map((n) => ({ value: n.key, label: n.th }));
 
   const accList = b.accessories || [];
   const setAcc = (i, k, v) => setB((p) => { const a = (p.accessories || []).slice(); a[i] = Object.assign({}, a[i], { [k]: v }); if (k === "name" && matInfo[v]) a[i].unit = matInfo[v].unit || a[i].unit; return Object.assign({}, p, { accessories: a }); });
@@ -605,10 +609,16 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           <Section title="สายไฟ" icon="power">
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {b.cables.map((c, i) => {
-                const amp = cableAmp(c.type);
+                const isComm = /LAN|CAT/i.test(c.type || "");
+                const method = c.method || "conduitAir";
+                const group = c.group || "g1";
+                const ncond = c.ncond || (wcPhase === 3 ? "3" : "2");
+                const coreType = window.BOQ.cableCoreType(c.type);   // single / multi (จากชื่อ 1C/nC)
+                const coreTh = coreType === "multi" ? "หลายแกน" : "แกนเดียว";
+                const hasSize = window.BOQ.cableSizeNum(c.type) != null;
+                const amp = cableAmp(c.type, { method, group, ncond });
                 const req = reqAmpFor(c.name);
                 const bad = amp != null && req && amp < req;
-                const isComm = /LAN|CAT/i.test(c.type || "");
                 const showHint = !!c.type && !isComm;
                 return (
                 <div key={i} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -619,19 +629,37 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     <button onClick={() => delCab(i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
                   </div>
                   {showHint && (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, paddingLeft: isMobile ? 2 : 4,
-                      color: bad ? "#B91C1C" : (amp == null ? "#B91C1C" : "var(--text-3)") }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 5, paddingLeft: isMobile ? 2 : 4 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+                        <div style={{ width: isMobile ? "100%" : 184, flexShrink: 0 }}>
+                          <Dropdown value={method} onChange={(v) => setCab(i, "method", v)} options={methodOptions} placeholder="วิธีเดินสาย" />
+                        </div>
+                        <div style={{ width: isMobile ? "calc(50% - 4px)" : 104, flexShrink: 0 }}>
+                          <Dropdown value={group} onChange={(v) => setCab(i, "group", v)} options={groupOptions} />
+                        </div>
+                        <div style={{ width: isMobile ? "calc(50% - 4px)" : 150, flexShrink: 0 }}>
+                          <Dropdown value={ncond} onChange={(v) => setCab(i, "ncond", v)} options={ncondOptions} />
+                        </div>
+                        <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", background: "var(--surface3)", padding: "3px 8px", borderRadius: 99, whiteSpace: "nowrap" }}>{coreTh}</span>
+                      </div>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600,
+                        color: bad ? "#B91C1C" : (amp == null ? "#B91C1C" : "var(--text-3)") }}>
                       {amp != null ? (
                         <React.Fragment>
                           <Icon name={bad ? "alert" : "bolt"} size={11} color={bad ? "#B91C1C" : "var(--text-3)"} />
-                          พิกัดสาย ~{amp} A{req ? " · ต้องการ ≥ " + (Math.round(req * 10) / 10).toFixed(1) + " A" : ""}{bad ? " · กระแสไม่พอ!" : ""}
+                          พิกัดสาย ~{amp} A · {coreTh}{req ? " · ต้องการ ≥ " + (Math.round(req * 10) / 10).toFixed(1) + " A" : ""}{bad ? " · กระแสไม่พอ!" : ""}
+                        </React.Fragment>
+                      ) : !hasSize ? (
+                        <React.Fragment>
+                          <Icon name="alert" size={11} color="#B91C1C" /> ระบุพิกัดไม่ได้ — เลือกชนิดสายที่มีขนาด (SQ.MM.)
                         </React.Fragment>
                       ) : (
                         <React.Fragment>
-                          <Icon name="alert" size={11} color="#B91C1C" /> ระบุพิกัดกระแสไม่ได้ — เลือกชนิดสายที่มีขนาด (SQ.MM.)
+                          <Icon name="alert" size={11} color="#B91C1C" /> ยังไม่มีตารางพิกัดสำหรับเงื่อนไขนี้ — เพิ่มค่าได้ที่หน้าคลัง › พิกัดสาย วสท.
                         </React.Fragment>
                       )}
-                    </span>
+                      </span>
+                    </div>
                   )}
                 </div>
                 );
@@ -662,6 +690,26 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     </label>
                   ))}
                 </div>
+                {/* สมมุติฐานของ "สายแนะนำ": ฉนวน + วิธีเดินสาย + กลุ่ม + จำนวนตัวนำ (แกนเดียว) ตามพิกัด วสท. */}
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 10, marginTop: 10 }}>
+                  <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>ชนิดฉนวน</span>
+                    <Dropdown value={calcIns} onChange={(v) => setWcalc("ins", v)} options={insOptions} />
+                  </label>
+                  <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>วิธีเดินสาย</span>
+                    <Dropdown value={calcMethod} onChange={(v) => setWcalc("method", v)} options={methodOptions} />
+                  </label>
+                  <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>กลุ่มการติดตั้ง</span>
+                    <Dropdown value={calcGroup} onChange={(v) => setWcalc("group", v)} options={groupOptions} />
+                  </label>
+                  <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>จำนวนตัวนำมีกระแส</span>
+                    <Dropdown value={calcNCond} onChange={(v) => setWcalc("ncond", v)} options={ncondOptions} />
+                  </label>
+                </div>
+                <div style={{ fontSize: 10, color: "var(--text-3)", marginTop: 6 }}>* "สายแนะนำ" คิดบนพื้นฐานสายแกนเดียว (1C) — สายในรายการด้านบนอ่านแกนจากชื่อจริง</div>
               </div>
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 540 }}>

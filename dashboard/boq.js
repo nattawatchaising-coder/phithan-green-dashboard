@@ -104,6 +104,112 @@
   // ชื่อจุดเดินสาย (ตัวเลือกตั้งต้น) — เพิ่มเองได้ในหน้า BOQ
   const CABLE_POINTS = DEFAULT_CABLES.map((c) => c.name);
 
+  // ── พิกัดกระแสสายไฟ (อ้างอิงมาตรฐาน วสท. — ตัวนำทองแดง แรงดัน 0.6/1 kV) ──
+  // โครงสร้าง: [ฉนวน][วิธีเดินสาย][คอลัมน์ "กลุ่ม|จำนวนตัวนำมีกระแส|แกน"][ขนาด sq.mm] = กระแส (A)
+  //   · ฉนวน: pvc (PVC 70°C: THW/VCT) · xlpe (XLPE 90°C: CV) — อ่านจากชื่อสาย
+  //   · แกน: single (1C) / multi (2C ขึ้นไป) — อ่านจากชื่อสายอัตโนมัติ
+  //   · กลุ่ม + จำนวนตัวนำมีกระแส (2/3) — ผู้ใช้เลือกเองต่อสายในหน้า BOQ
+  // ปัจจุบันมีตารางจริง: PVC · เดินในท่อร้อยสายในอากาศ (วสท.) — ฉนวน/วิธีอื่นรอเติมตารางในหน้าคลัง
+  const WIRE_SIZES = [1, 1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300, 400, 500];
+  const WIRE_METHODS = [
+    { key: "conduitAir", th: "เดินในท่อร้อยสายในอากาศ" },
+  ];
+  const INS_CLASSES = [
+    { key: "pvc",  th: "PVC 70°C (THW/VCT)" },
+    { key: "xlpe", th: "XLPE 90°C (CV)" },
+  ];
+  const AMP_GROUPS = [
+    { key: "g1", th: "กลุ่มที่ 1" },
+    { key: "g2", th: "กลุ่มที่ 2" },
+  ];
+  const AMP_NCOND = [
+    { key: "2", th: "2 ตัวนำมีกระแส" },
+    { key: "3", th: "3 ตัวนำมีกระแส" },
+  ];
+  const AMP_CORES = [
+    { key: "single", th: "แกนเดียว" },
+    { key: "multi",  th: "หลายแกน" },
+  ];
+  // คอลัมน์ = "<กลุ่ม>|<จำนวนตัวนำ>|<แกน>"
+  const ampColKey = (group, ncond, core) => group + "|" + ncond + "|" + core;
+  // ตารางมาตรฐาน วสท. — PVC 70°C ทองแดง · เดินในท่อร้อยสายในอากาศ (ขนาดกระแสปรับ, แอมแปร์)
+  const DEFAULT_AMPACITY = {
+    pvc: {
+      conduitAir: {
+        "g1|2|single": { 1: 10, 1.5: 13, 2.5: 17, 4: 23, 6: 30, 10: 40, 16: 53, 25: 70, 35: 86, 50: 104, 70: 131, 95: 158, 120: 183, 150: 209, 185: 238, 240: 279, 300: 319 },
+        "g1|2|multi":  { 1: 10, 1.5: 12, 2.5: 16, 4: 22, 6: 28, 10: 37, 16: 50, 25: 65, 35: 80, 50: 96,  70: 121, 95: 145, 120: 167, 150: 191, 185: 216, 240: 253, 300: 291 },
+        "g1|3|single": { 1: 9,  1.5: 12, 2.5: 16, 4: 21, 6: 27, 10: 37, 16: 49, 25: 64, 35: 77, 50: 94,  70: 118, 95: 143, 120: 164, 150: 188, 185: 213, 240: 249, 300: 285 },
+        "g1|3|multi":  { 1: 9,  1.5: 11, 2.5: 15, 4: 20, 6: 25, 10: 34, 16: 45, 25: 59, 35: 72, 50: 86,  70: 109, 95: 131, 120: 150, 150: 171, 185: 194, 240: 227, 300: 259 },
+        "g2|2|single": { 1: 12, 1.5: 15, 2.5: 21, 4: 28, 6: 36, 10: 50, 16: 66, 25: 88, 35: 109, 50: 131, 70: 167, 95: 202, 120: 234, 150: 261, 185: 297, 240: 348, 300: 398, 400: 475, 500: 545 },
+        "g2|2|multi":  { 1: 11, 1.5: 14, 2.5: 20, 4: 26, 6: 33, 10: 45, 16: 60, 25: 78, 35: 97,  50: 116, 70: 146, 95: 175, 120: 202, 150: 224, 185: 256, 240: 299, 300: 343 },
+        "g2|3|single": { 1: 10, 1.5: 13, 2.5: 18, 4: 24, 6: 31, 10: 44, 16: 59, 25: 77, 35: 96,  50: 117, 70: 149, 95: 180, 120: 208, 150: 228, 185: 258, 240: 301, 300: 343, 400: 406, 500: 464 },
+        "g2|3|multi":  { 1: 10, 1.5: 13, 2.5: 17, 4: 23, 6: 30, 10: 40, 16: 54, 25: 70, 35: 86,  50: 103, 70: 130, 95: 156, 120: 179, 150: 196, 185: 222, 240: 258, 300: 295 },
+      },
+    },
+    xlpe: {
+      // ตารางมาตรฐาน วสท. 5-27 — XLPE 90°C ทองแดง · เดินในท่อร้อยสายในอากาศ
+      conduitAir: {
+        "g1|2|single": { 1: 13, 1.5: 17, 2.5: 24, 4: 32, 6: 41, 10: 56, 16: 74, 25: 96,  35: 119, 50: 144, 70: 182, 95: 219, 120: 253, 150: 289, 185: 329, 240: 386, 300: 442 },
+        "g1|2|multi":  { 1: 13, 1.5: 17, 2.5: 23, 4: 30, 6: 38, 10: 52, 16: 69, 25: 90,  35: 110, 50: 132, 70: 167, 95: 200, 120: 230, 150: 264, 185: 299, 240: 351, 300: 402 },
+        "g1|3|single": { 1: 12, 1.5: 15, 2.5: 21, 4: 28, 6: 36, 10: 49, 16: 66, 25: 86,  35: 106, 50: 128, 70: 163, 95: 197, 120: 227, 150: 259, 185: 295, 240: 346, 300: 396 },
+        "g1|3|multi":  { 1: 12, 1.5: 15, 2.5: 20, 4: 27, 6: 35, 10: 46, 16: 62, 25: 81,  35: 99,  50: 118, 70: 149, 95: 179, 120: 207, 150: 236, 185: 268, 240: 315, 300: 360 },
+        "g2|2|single": { 1: 15, 1.5: 21, 2.5: 28, 4: 38, 6: 49, 10: 68, 16: 91, 25: 121, 35: 149, 50: 180, 70: 230, 95: 278, 120: 322, 150: 358, 185: 409, 240: 480, 300: 549, 400: 622, 500: 713 },
+        "g2|2|multi":  { 1: 15, 1.5: 20, 2.5: 27, 4: 36, 6: 46, 10: 63, 16: 83, 25: 108, 35: 133, 50: 159, 70: 201, 95: 241, 120: 278, 150: 304, 185: 349, 240: 418, 300: 484 },
+        "g2|3|single": { 1: 14, 1.5: 18, 2.5: 25, 4: 34, 6: 44, 10: 60, 16: 80, 25: 106, 35: 131, 50: 159, 70: 202, 95: 245, 120: 284, 150: 311, 185: 349, 240: 410, 300: 468, 400: 531, 500: 606 },
+        "g2|3|multi":  { 1: 14, 1.5: 18, 2.5: 24, 4: 32, 6: 40, 10: 55, 16: 73, 25: 96,  35: 116, 50: 140, 70: 177, 95: 212, 120: 244, 150: 273, 185: 309, 240: 362, 300: 414 },
+      },
+    },
+  };
+  function _cloneAmp(src) {
+    const out = {};
+    Object.keys(src).forEach((cls) => { out[cls] = {}; Object.keys(src[cls]).forEach((m) => { out[cls][m] = {}; Object.keys(src[cls][m]).forEach((col) => { out[cls][m][col] = Object.assign({}, src[cls][m][col]); }); }); });
+    return out;
+  }
+  // AMPACITY = ตารางที่ใช้งานจริง (สะท้อนค่าที่แก้จากคลัง) — setAmpacity() จะ rebuild
+  const AMPACITY = _cloneAmp(DEFAULT_AMPACITY);
+  // โหลดค่าที่แก้จากคลัง: overrides = { ins: { method: { colKey: { size: amp } } } } — รวมทับ/เพิ่มจากค่าเริ่มต้น (เฉพาะค่า > 0)
+  function setAmpacity(overrides) {
+    const base = _cloneAmp(DEFAULT_AMPACITY);
+    if (overrides && typeof overrides === "object") {
+      Object.keys(overrides).forEach((cls) => {
+        if (!overrides[cls]) return; base[cls] = base[cls] || {};
+        Object.keys(overrides[cls]).forEach((m) => {
+          if (!overrides[cls][m]) return; base[cls][m] = base[cls][m] || {};
+          Object.keys(overrides[cls][m]).forEach((col) => {
+            if (!overrides[cls][m][col]) return; base[cls][m][col] = base[cls][m][col] || {};
+            Object.keys(overrides[cls][m][col]).forEach((sz) => { const v = +overrides[cls][m][col][sz]; if (v > 0) base[cls][m][col][sz] = v; });
+          });
+        });
+      });
+    }
+    Object.keys(AMPACITY).forEach((k) => delete AMPACITY[k]);
+    Object.keys(base).forEach((k) => { AMPACITY[k] = base[k]; });
+  }
+  // ชนิดฉนวนจากชื่อสาย: CV / CV-FD = XLPE 90°C · THW / IEC01 / VCT / อื่นๆ = PVC 70°C
+  function cableInsClass(type) { return /CV[\s-]*FD|\bCV\b/i.test(type || "") ? "xlpe" : "pvc"; }
+  // จำนวนแกนจากชื่อสาย: "1Cx.." = แกนเดียว, "2C/3C/4C.." = หลายแกน (ไม่พบ → แกนเดียว)
+  function cableCoreType(type) { const m = /(\d+)\s*C\s*x/i.exec(type || ""); return m && +m[1] >= 2 ? "multi" : "single"; }
+  // ขนาดตัวนำ (sq.mm) จากชื่อสาย เช่น "CV-FD 1Cx2.5 SQ.MM." → 2.5
+  function cableSizeNum(type) { const m = /(\d+(?:\.\d+)?)\s*sq/i.exec(type || ""); return m ? +m[1] : null; }
+  // พิกัดกระแสของสาย (A) — opts = { method, group, ncond } · ฉนวน/แกน/ขนาด อ่านจากชื่อ · ไม่มีข้อมูล = null
+  function ampacityOf(type, opts) {
+    opts = opts || {};
+    const sz = cableSizeNum(type); if (sz == null) return null;
+    const col = ampColKey(opts.group || "g1", String(opts.ncond || 2), cableCoreType(type));
+    const tbl = ((AMPACITY[cableInsClass(type)] || {})[opts.method || "conduitAir"] || {})[col] || {};
+    return tbl[sz] != null ? tbl[sz] : null;
+  }
+  // เลือกขนาดสายเล็กสุดที่รับกระแส "ที่ต้องการ" ได้ (ผู้เรียกคูณ 1.25 มาก่อนแล้ว) — opts = { method, group, ncond, core }
+  function pickWireSize(needAmp, insClass, opts) {
+    opts = opts || {};
+    const col = ampColKey(opts.group || "g1", String(opts.ncond || 2), opts.core || "single");
+    const tbl = ((AMPACITY[insClass || "pvc"] || {})[opts.method || "conduitAir"] || {})[col] || {};
+    for (let i = 0; i < WIRE_SIZES.length; i++) { const sz = WIRE_SIZES[i]; if ((tbl[sz] || 0) >= needAmp) return sz + " mm²"; }
+    const sizesWithData = WIRE_SIZES.filter((s) => tbl[s] != null);
+    if (!sizesWithData.length) return "—";   // ยังไม่มีตารางพิกัดสำหรับเงื่อนไขนี้
+    return "มากกว่า " + sizesWithData[sizesWithData.length - 1] + " mm²";
+  }
+
   // ── ท่อร้อยสาย (RACE WAY) ──
   const IMC_SIZES = ['IMC 1"', 'IMC 1-1/4"', 'IMC 1-1/2"', 'IMC 2"', 'IMC 2-1/2"', 'IMC 3"', 'IMC 3-1/2"'];
   const UPVC_SIZES = [
@@ -682,5 +788,5 @@
     out.forEach((x) => INVERTERS.push(x));
   }
 
-  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_POINTS, DEFAULT_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, catalog, applyPrices, setPanels, setInverters };
+  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_POINTS, DEFAULT_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, catalog, applyPrices, setPanels, setInverters };
 })();

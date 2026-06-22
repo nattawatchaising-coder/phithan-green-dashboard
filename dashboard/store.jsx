@@ -550,10 +550,65 @@ function usePriceStore() {
 }
 
 /* ================================================================
+   useAmpacityStore — ค่าพิกัดกระแสสายไฟที่แก้จากเล่ม วสท. (ทับค่าเริ่มต้นใน BOQ)
+   เก็บแบบ flat: key = "<cls>__<method>__<sizeEnc>" → amp (เลี่ยงจุดในคีย์ Firebase)
+   ================================================================ */
+const SF_AMP_KEY = "solarflow_ampacity_v1";
+// คีย์ = "<ins>__<method>__<group>__<ncond>__<core>__<sizeEnc>" (เลี่ยงจุดในคีย์ Firebase)
+const _ampEnc = (ins, method, group, ncond, core, size) => [ins, method, group, ncond, core, String(size).replace(/\./g, "_")].join("__");
+function _ampFlatToNested(flat) {
+  const out = {};
+  Object.keys(flat || {}).forEach((k) => {
+    const p = k.split("__"); if (p.length !== 6) return;
+    const v = +flat[k]; if (!(v > 0)) return;
+    const ins = p[0], method = p[1], col = p[2] + "|" + p[3] + "|" + p[4], size = p[5].replace(/_/g, ".");
+    out[ins] = out[ins] || {}; out[ins][method] = out[ins][method] || {}; out[ins][method][col] = out[ins][method][col] || {};
+    out[ins][method][col][size] = v;
+  });
+  return out;
+}
+function _ampLsGet() { try { const s = localStorage.getItem(SF_AMP_KEY); return s ? (JSON.parse(s) || {}) : {}; } catch (e) { return {}; } }
+
+function useAmpacityStore() {
+  const flatRef = React.useRef(_FB() ? {} : _ampLsGet());
+  const [overrides, setOv] = React.useState(() => _ampFlatToNested(flatRef.current));
+  const [loading, setLoading] = React.useState(_FB());
+
+  React.useEffect(() => {
+    if (!_FB()) { setLoading(false); return; }
+    const ref = _fbr("cableAmpacity");
+    const h = ref.on("value", (snap) => {
+      const v = snap.val() || {};
+      flatRef.current = v; setOv(_ampFlatToNested(v)); setLoading(false);
+    }, () => setLoading(false));
+    return () => ref.off("value", h);
+  }, []);
+
+  // setCell(ins, method, group, ncond, core, size, amp)
+  const setCell = React.useCallback((ins, method, group, ncond, core, size, amp) => {
+    const key = _ampEnc(ins, method, group, ncond, core, size); const val = +amp || 0;
+    if (_FB()) {
+      if (val > 0) _fbSet("cableAmpacity/" + key, val); else _fbRem("cableAmpacity/" + key);
+    } else {
+      const next = Object.assign({}, flatRef.current);
+      if (val > 0) next[key] = val; else delete next[key];
+      flatRef.current = next; _lsSet(SF_AMP_KEY, next); setOv(_ampFlatToNested(next));
+    }
+  }, []);
+
+  const reset = React.useCallback(() => {
+    if (_FB()) { _fbRem("cableAmpacity"); }
+    else { flatRef.current = {}; _lsSet(SF_AMP_KEY, {}); setOv({}); }
+  }, []);
+
+  return { overrides, loading, setCell, reset };
+}
+
+/* ================================================================
    Export to window (same pattern as original)
    ================================================================ */
 Object.assign(window, {
-  useJobStore, useStockStore, useTechStore, useBrandStore, usePriceStore,
+  useJobStore, useStockStore, useTechStore, useBrandStore, usePriceStore, useAmpacityStore,
   blankJob, blankItem, blankTech, nextCode,
   SF_STORE_KEY,
 });
