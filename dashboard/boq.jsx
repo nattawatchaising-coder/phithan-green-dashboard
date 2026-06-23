@@ -20,6 +20,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       if (job.backup && (!base.hwBackup || base.hwBackup === "none")) base.hwBackup = "backupbox";
       else if (!job.backup) base.hwBackup = "none";
       base.jobType = job.type || "";  // สะท้อน type ปัจจุบันของงานเสมอ
+      base.comboType = job.comboType || "ready";   // ตู้ Combiner (สำเร็จ/ประกอบ) สะท้อนงานเสมอ
     }
     // ปรับค่าเริ่มต้นสายไฟตามงาน: เลือก GROUND/LAN ให้ (ถ้ายังว่าง) · ตัด COMBINER-BAT./BACKUP ออกถ้างานไม่มีแบต/Backup
     if (Array.isArray(base.cables)) {
@@ -103,6 +104,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const reqAmpFor = (cabName) => {
     const n = (cabName || "").toUpperCase();
     if (/LAN|CAT|GROUND|กราว|ดิน/.test(n)) return null;
+    // ── จุดเดินสายระบบ String/Hybrid ──
+    if (/PV-INVERTER/.test(n)) return null;                                  // DC string — คิดในส่วนสาย DC แยก
+    const invAcPer = selInv ? (+selInv.outA || 0) : 0;                       // กระแสออก AC ต่ออินเวอร์เตอร์ 1 ตัว
+    const invCnt = (result && result.meta && result.meta.invCount) || 1;
+    if (/MCB_SOLAR-MDB/.test(n)) return invAcPer ? invAcPer * invCnt * 1.25 : null;   // รวมทุกตัว → ตู้เมน
+    if (/INVERTER-MCB_SOLAR/.test(n)) return invAcPer ? invAcPer * 1.25 : null;       // ต่ออินเวอร์เตอร์ 1 ตัว
     const microRow = wireCalcRows.find((r) => r.kind === "micromicro");
     const mainRow = wireCalcRows.find((r) => r.kind === "main") || wireCalcRows[0];
     const mcbRow = wireCalcRows.find((r) => r.kind === "mcb") || mainRow;
@@ -204,6 +211,63 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   }, [jobBrand, jobPhaseNum]); // eslint-disable-line
   const maxPvTotal = selInv ? (selInv.maxPv || 0) * result.meta.invCount : 0;
   const pvOver = isHuawei && maxPvTotal > 0 && result.meta.kw > maxPvTotal;
+
+  // ── การต่ออนุกรมแผง (String) + สาย DC PV1-F — เฉพาะอินเวอร์เตอร์ String/Hybrid ──
+  const selPanel = window.BOQ.findPanel ? window.BOQ.findPanel(b.panelModel) : null;
+  const isStringInv = !!(selInv && (selInv.type === "string" || selInv.type === "hybrid"));
+  const scfg = isStringInv && window.BOQ.stringConfig
+    ? window.BOQ.stringConfig(selPanel, selInv, { series: (b.dcSeries != null && b.dcSeries !== "") ? b.dcSeries : undefined })
+    : null;
+
+  // ── สลับชุดจุดเดินสายอัตโนมัติเมื่อเปลี่ยนระหว่างไมโคร ↔ String/Hybrid ──
+  // String/Hybrid → PV-INVERTER / INVERTER-MCB_SOLAR / MCB_SOLAR-MDB · ไมโคร → MICRO-MICRO / MICRO-COMBINER ...
+  // คงแถวสายดิน/แลน/จุดที่ผู้ใช้เพิ่มเองไว้ · ครั้งแรกที่เปิด (โหลดของเดิม) จะไม่แตะ
+  const prevStringRef = React.useRef(null);
+  React.useEffect(() => {
+    if (prevStringRef.current === null) { prevStringRef.current = isStringInv; return; }
+    if (prevStringRef.current === isStringInv) return;
+    prevStringRef.current = isStringInv;
+    const SYS = window.BOQ;
+    const sysAll = (SYS.MICRO_CABLE_NAMES || []).concat(SYS.STRING_CABLE_POINTS || []);
+    const defaults = isStringInv
+      ? (SYS.DEFAULT_STRING_CABLES || [])
+      : (SYS.DEFAULT_CABLES || []).filter((c) => (SYS.MICRO_CABLE_NAMES || []).indexOf(c.name) >= 0
+          && !((c.name === "COMBINER-BAT." && !hasBattery) || (c.name === "COMBINER-BACKUP" && !hasBackup)));
+    setB((p) => {
+      const keep = (p.cables || []).filter((c) => sysAll.indexOf(c.name) < 0);   // สายดิน/แลน/custom
+      return Object.assign({}, p, { cables: defaults.map((d) => Object.assign({}, d)).concat(keep) });
+    });
+  }, [isStringInv]); // eslint-disable-line
+
+  // ── แถวตารางคำนวณสายสำหรับระบบ String/Hybrid (DC + AC ออกอินเวอร์เตอร์) ──
+  const stringCalcRows = React.useMemo(() => {
+    if (!isStringInv) return [];
+    const invCount = (result && result.meta && result.meta.invCount) || 1;
+    const outA = selInv ? (+selInv.outA || 0) : 0;
+    const phN = wcPhase === 3 ? "3 เฟส" : "1 เฟส";
+    const rows = [];
+    // 1) PV-INVERTER (DC) — Isc × 1.25 → สาย PV1-F
+    if (scfg && scfg.ready) {
+      rows.push({ kind: "pv", label: "PV-INVERTER (DC)", w: Math.round((scfg.series || 1) * (scfg.vRef || 0) * (scfg.isc || 0)),
+        ampTotal: scfg.isc, ampString: scfg.isc, wire: scfg.dcWire, splittable: false,
+        note: "สาย DC · " + scfg.series + " แผงอนุกรม · " + scfg.stringVop + "V · Isc " + scfg.isc + " A" });
+    } else {
+      rows.push({ kind: "pv", label: "PV-INVERTER (DC)", w: null, ampTotal: 0, ampString: 0, wire: "—", needInput: true, splittable: false,
+        note: "⚠ กรอก Voc/Isc แผง + ช่วง MPPT อินเวอร์เตอร์ (คลัง) เพื่อคำนวณสาย DC" });
+    }
+    // 2) INVERTER → MCB_SOLAR (AC ต่ออินเวอร์เตอร์ 1 ตัว)
+    rows.push({ kind: "invmcb", label: "INVERTER → MCB_SOLAR", w: outA ? Math.round(outA * wcVolt) : null,
+      ampTotal: outA, ampString: outA, wire: outA ? pickWire(outA) : "—", needInput: !outA, splittable: false,
+      note: outA ? "กระแสออกอินเวอร์เตอร์/ตัว · " + phN + " · " + outA + " A" : "⚠ กรอกกระแสออก (A) ของอินเวอร์เตอร์ในคลัง" });
+    // 3) MCB_SOLAR → MDB (AC รวมทุกตัว → ตู้เมน)
+    const totalA = outA * invCount;
+    rows.push({ kind: "mcbmdb", label: "MCB_SOLAR → MDB (ตู้เมน)", w: totalA ? Math.round(totalA * wcVolt) : null,
+      ampTotal: totalA, ampString: totalA, wire: totalA ? pickWire(totalA) : "—", needInput: !totalA, splittable: false,
+      note: totalA ? "รวม " + invCount + " ตัว · " + phN + " · " + (Math.round(totalA * 10) / 10).toFixed(1) + " A" : "⚠ กรอกกระแสออก (A) ของอินเวอร์เตอร์ในคลัง" });
+    return rows;
+  }, [isStringInv, selInv, scfg, result, wcVolt, wcPhase, calcIns, calcMethod, calcGroup, calcNCond]);
+
+  const calcRows = isStringInv ? stringCalcRows : wireCalcRows;
 
   // กันพลาด: ถ้าจำนวนแผงในแถวไม่ตรงกับจำนวนแผงรวม ให้ยืนยันก่อน
   const guardRun = (fn) => {
@@ -552,6 +616,65 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             </Section>
           )}
 
+          {/* ── สาย DC / การต่ออนุกรม String (PV1-F) — เฉพาะอินเวอร์เตอร์ String/Hybrid ── */}
+          {isStringInv && scfg && (
+            <Section title="สาย DC / การต่ออนุกรม String (PV1-F)" icon="bolt">
+              {!scfg.ready ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 13px", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, fontSize: 12.5, fontWeight: 600, color: "#92400E" }}>
+                  <Icon name="alert" size={15} color="#F59E0B" /> {scfg.warns.join(" · ")}
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
+                    <div style={{ padding: "10px 12px", borderRadius: 10, background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                      <div style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>แผง · {b.panelModel}</div>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>Voc {scfg.voc} V · Isc {scfg.isc} A{scfg.vmp ? " · Vmp " + scfg.vmp + " V" : ""}</div>
+                    </div>
+                    <div style={{ padding: "10px 12px", borderRadius: 10, background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                      <div style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 3 }}>ช่วงทำงาน MPPT · {selInv.model}</div>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>{scfg.vmin}–{scfg.vmax} Vdc{scfg.maxVdc ? " · สูงสุด " + scfg.maxVdc + " V" : ""}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "auto 1fr", gap: 12, alignItems: "center" }}>
+                    <Field label={"แผงต่ออนุกรม/สตริง" + (scfg.maxSeries >= scfg.minSeries ? " (แนะนำ " + scfg.minSeries + "–" + scfg.maxSeries + ")" : "")}>
+                      <input type="number" style={Object.assign({}, numStyle, { width: 130 })} min={1}
+                        value={(b.dcSeries != null && b.dcSeries !== "") ? b.dcSeries : scfg.recSeries}
+                        onChange={(e) => set("dcSeries", e.target.value === "" ? "" : Math.max(1, parseInt(e.target.value) || 1))} />
+                    </Field>
+                    <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>
+                      ช่วงแนะนำ = แรงดันทำงานรวมอยู่ในช่วง MPPT และ Voc รวมไม่เกินแรงดันระบบสูงสุด
+                    </div>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 10 }}>
+                    {[
+                      { l: "แรงดันทำงานรวม", v: scfg.stringVop + " V", ok: scfg.inRange },
+                      { l: "Voc รวม (เปิดวงจร)", v: scfg.stringVoc + " V", ok: !scfg.overMaxVdc },
+                      { l: "กระแส DC (Isc×1.25)", v: scfg.dcAmp + " A", ok: null },
+                      { l: "ขนาดสาย DC PV1-F", v: scfg.dcWire, ok: null, hi: true },
+                    ].map((c, i) => (
+                      <div key={i} style={{ padding: "10px 12px", borderRadius: 10, background: "var(--surface3)", border: "1px solid " + (c.ok === false ? "#FBD3D3" : "var(--border)") }}>
+                        <div style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 3 }}>{c.l}</div>
+                        <div style={{ fontFamily: "var(--mono)", fontSize: 15, fontWeight: 800, color: c.hi ? "var(--primary-dark)" : (c.ok === false ? "#DC2626" : "var(--text-1)") }}>{c.v}{c.ok === true ? " ✓" : c.ok === false ? " ✗" : ""}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {scfg.warns.length > 0 && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                      {scfg.warns.map((w, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 12px", background: "#FEF2F2", border: "1px solid #FBD3D3", borderRadius: 9, fontSize: 12, fontWeight: 600, color: "#B91C1C" }}>
+                          <Icon name="alert" size={14} color="#EF4444" /> {w}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
+                    * แรงดันทำงานคิดจาก {scfg.vmp ? "Vmp" : "Voc"} × จำนวนแผงต่ออนุกรม · สาย DC เลือกจาก Isc × 1.25 (PV1-F ทองแดง) · สายคู่ แดง(+)/ดำ(−) ต่อสตริง
+                  </div>
+                </div>
+              )}
+            </Section>
+          )}
+
           {/* ── การจัดวางแผง ── */}
           <Section title="การจัดวางแผง (แถว)" icon="grid"
             right={<span style={{ fontSize: 11.5, fontWeight: 700, color: remaining === 0 ? "var(--primary-dark)" : "#EF4444" }}>
@@ -610,6 +733,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {b.cables.map((c, i) => {
                 const isComm = /LAN|CAT/i.test(c.type || "");
+                const isDC = /PV1-F|PV CABLE/i.test(c.type || "") || /PV-INVERTER/i.test(c.name || "");  // สาย DC คิดขนาดในส่วนสาย DC แยก
                 const method = c.method || "conduitAir";
                 const group = c.group || "g1";
                 const ncond = c.ncond || (wcPhase === 3 ? "3" : "2");
@@ -619,7 +743,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 const amp = cableAmp(c.type, { method, group, ncond });
                 const req = reqAmpFor(c.name);
                 const bad = amp != null && req && amp < req;
-                const showHint = !!c.type && !isComm;
+                const showHint = !!c.type && !isComm && !isDC;
                 return (
                 <div key={i} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 70px 36px" : "minmax(150px,1fr) minmax(0,1.3fr) 90px 36px", gap: 8, alignItems: "center" }}>
@@ -661,6 +785,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       </span>
                     </div>
                   )}
+                  {isDC && (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, paddingLeft: isMobile ? 2 : 4, fontSize: 11, fontWeight: 600, color: "var(--text-3)" }}>
+                      <Icon name="bolt" size={11} color="var(--text-3)" /> สาย DC{scfg && scfg.ready ? " · แนะนำ " + scfg.dcWire + " (Isc×1.25 = " + scfg.dcAmp + " A)" : ""} — ดูรายละเอียดในส่วน “สาย DC / การต่ออนุกรม String”
+                    </span>
+                  )}
                 </div>
                 );
               })}
@@ -679,7 +808,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(118px, 1fr))", gap: 10 }}>
                   {[
                     { label: "แรงดัน (V)", value: wcVolt, key: "volt", min: undefined },
-                    { label: "แบ่ง String", value: wcStrings, key: "strings", min: "1" },
+                    isStringInv ? null : { label: "แบ่ง String", value: wcStrings, key: "strings", min: "1" },
                     hasBattery ? { label: "กำลังแบต (kW)", value: wcalc.battKw, key: "battKw", min: undefined } : null,
                     hasBackup ? { label: "เมน Backup (A)", value: wcalc.backupMainA || "", key: "backupMainA", min: undefined, ph: "—" } : null,
                   ].filter(Boolean).map((f) => (
@@ -718,12 +847,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       <th style={{ textAlign: "left", padding: "8px 14px", fontWeight: 700 }}>ชุดคำนวณ</th>
                       <th style={{ textAlign: "right", padding: "8px 10px", fontWeight: 700 }}>กำลัง (W)</th>
                       <th style={{ textAlign: "right", padding: "8px 10px", fontWeight: 700 }}>กระแสรวม (A)</th>
-                      <th style={{ textAlign: "right", padding: "8px 10px", fontWeight: 700 }}>กระแส/สตริง (A)</th>
-                      <th style={{ textAlign: "right", padding: "8px 14px", fontWeight: 700 }}>สายแนะนำ/สตริง</th>
+                      <th style={{ textAlign: "right", padding: "8px 10px", fontWeight: 700 }}>{isStringInv ? "กระแส (A)" : "กระแส/สตริง (A)"}</th>
+                      <th style={{ textAlign: "right", padding: "8px 14px", fontWeight: 700 }}>{isStringInv ? "สายแนะนำ" : "สายแนะนำ/สตริง"}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {wireCalcRows.map((r, i) => (
+                    {calcRows.map((r, i) => (
                       <tr key={i} style={{ borderTop: "1px solid var(--border)" }}>
                         <td style={{ padding: "9px 14px", color: "var(--text-1)" }}>
                           <span style={{ fontWeight: 600 }}>{r.label}</span>
@@ -748,7 +877,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 </table>
               </div>
               <div style={{ padding: "9px 14px", fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5, borderTop: "1px solid var(--border)" }}>
-                * MICRO-MICRO = ไมโคร 1 ตัว ({microW}W) ÷ 230V (อุปกรณ์ 1 เฟส) · MICRO-COMBINER (กระแส/สตริง) = กระแสรวม ÷ จำนวน String · COMBINER→MCB ใช้กระแสรวมทุกสตริง · กระแสรวม: 1 เฟส = W ÷ V · 3 เฟส = W ÷ (√3 × แรงดันไลน์ V) · ขนาดสายแนะนำเลือกให้รับกระแส ×1.25 (โหลดต่อเนื่อง) อ้างพิกัดสายทองแดง IEC01/THW โดยประมาณ — โปรดตรวจสอบกับวิธีเดินสายจริง
+                {isStringInv
+                  ? "* PV-INVERTER = สาย DC จากแผง→อินเวอร์เตอร์ (Isc × 1.25, สาย PV1-F ขั้นต่ำ 6 mm²) · INVERTER→MCB_SOLAR = กระแสออกอินเวอร์เตอร์/ตัว · MCB_SOLAR→MDB = กระแสออกรวมทุกตัว → ตู้เมน · ขนาดสาย AC เลือกให้รับกระแส ×1.25 ตามพิกัด วสท. · กระแสออกตั้งค่าได้ที่หน้าคลัง › สเปคอินเวอร์เตอร์"
+                  : "* MICRO-MICRO = ไมโคร 1 ตัว (" + microW + "W) ÷ 230V (อุปกรณ์ 1 เฟส) · MICRO-COMBINER (กระแส/สตริง) = กระแสรวม ÷ จำนวน String · COMBINER→MCB ใช้กระแสรวมทุกสตริง · กระแสรวม: 1 เฟส = W ÷ V · 3 เฟส = W ÷ (√3 × แรงดันไลน์ V) · ขนาดสายแนะนำเลือกให้รับกระแส ×1.25 (โหลดต่อเนื่อง) อ้างพิกัดสายทองแดง IEC01/THW โดยประมาณ — โปรดตรวจสอบกับวิธีเดินสายจริง"}
               </div>
             </div>
           </Section>

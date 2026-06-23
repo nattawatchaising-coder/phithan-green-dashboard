@@ -587,8 +587,14 @@ function ItemModal({ initial, isNew, items, onSave, onClose }) {
                 <Field label="ความกว้าง (ม.)"><input type="number" style={inputStyle} value={f.width != null ? f.width : ""} onChange={(e) => set("width", parseFloat(e.target.value) || 0)} placeholder="1.134" /></Field>
                 <Field label="ความยาว (ม.)"><input type="number" style={inputStyle} value={f.length != null ? f.length : ""} onChange={(e) => set("length", parseFloat(e.target.value) || 0)} placeholder="2.382" /></Field>
               </div>
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px dashed var(--border-strong)", display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 12 }}>
+                <Field label="Voc (V)"><input type="number" style={inputStyle} value={f.voc != null ? f.voc : ""} onChange={(e) => set("voc", parseFloat(e.target.value) || 0)} placeholder="53.90" /></Field>
+                <Field label="Isc (A)"><input type="number" style={inputStyle} value={f.isc != null ? f.isc : ""} onChange={(e) => set("isc", parseFloat(e.target.value) || 0)} placeholder="15.29" /></Field>
+                <Field label="Vmp (V)"><input type="number" style={inputStyle} value={f.vmp != null ? f.vmp : ""} onChange={(e) => set("vmp", parseFloat(e.target.value) || 0)} placeholder="44.80" /></Field>
+                <Field label="Imp (A)"><input type="number" style={inputStyle} value={f.imp != null ? f.imp : ""} onChange={(e) => set("imp", parseFloat(e.target.value) || 0)} placeholder="14.52" /></Field>
+              </div>
               <div style={{ marginTop: 9, fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>
-                ความหนาเฟรม → เลือก MID/END CLAMP KIT (30/35mm) · ความกว้าง → คำนวณความยาว/จำนวนราง · Wp → คำนวณขนาดติดตั้ง (kW)
+                ความหนาเฟรม → เลือก MID/END CLAMP KIT (30/35mm) · ความกว้าง → คำนวณความยาว/จำนวนราง · Wp → คำนวณขนาดติดตั้ง (kW) · Voc/Isc/Vmp → คำนวณการต่ออนุกรม String + สาย DC
               </div>
             </div>
           )}
@@ -618,8 +624,19 @@ function ItemModal({ initial, isNew, items, onSave, onClose }) {
                 <Field label="String สูงสุด"><input type="number" style={inputStyle} value={f.invInputs != null ? f.invInputs : ""} onChange={(e) => set("invInputs", parseInt(e.target.value) || 0)} placeholder="1 / 2 / 3" /></Field>
                 <Field label="กระแสออก (A)"><input type="number" style={inputStyle} value={f.invOutA != null ? f.invOutA : ""} onChange={(e) => set("invOutA", parseFloat(e.target.value) || 0)} placeholder="25 / 16.9" /></Field>
               </div>
+              {(f.invType === "string" || f.invType === "hybrid") && (
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px dashed var(--border-strong)" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-2)", marginBottom: 8 }}>ช่วงแรงดัน DC / MPPT (สำหรับคำนวณ String)</div>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 12 }}>
+                    <Field label="MPPT ต่ำสุด (V)"><input type="number" style={inputStyle} value={f.mpptVmin != null ? f.mpptVmin : ""} onChange={(e) => set("mpptVmin", parseFloat(e.target.value) || 0)} placeholder="350" /></Field>
+                    <Field label="MPPT สูงสุด (V)"><input type="number" style={inputStyle} value={f.mpptVmax != null ? f.mpptVmax : ""} onChange={(e) => set("mpptVmax", parseFloat(e.target.value) || 0)} placeholder="560" /></Field>
+                    <Field label="แรงดัน DC สูงสุด (V)"><input type="number" style={inputStyle} value={f.maxVdc != null ? f.maxVdc : ""} onChange={(e) => set("maxVdc", parseFloat(e.target.value) || 0)} placeholder="600 / 1000" /></Field>
+                    <Field label="กระแส input/MPPT (A)"><input type="number" style={inputStyle} value={f.maxInA != null ? f.maxInA : ""} onChange={(e) => set("maxInA", parseFloat(e.target.value) || 0)} placeholder="20 / 30" /></Field>
+                  </div>
+                </div>
+              )}
               <div style={{ marginTop: 9, fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>
-                ตั้งเป็น String/Hybrid → เลือกในหน้าถอด BOQ ได้ คิดจำนวนตัว = ปัดขึ้น(กำลังแผงรวม ÷ MAX PV ต่อตัว) · MAX PV = กำลังแผงสูงสุดที่ใส่ได้ · String สูงสุด = จำนวน input Combiner Box · กระแสออก = ใช้คำนวณ RCBO
+                ตั้งเป็น String/Hybrid → เลือกในหน้าถอด BOQ ได้ คิดจำนวนตัว = ปัดขึ้น(กำลังแผงรวม ÷ MAX PV ต่อตัว) · MAX PV = กำลังแผงสูงสุดที่ใส่ได้ · String สูงสุด = จำนวน input Combiner Box · กระแสออก (A) = ใช้คำนวณ RCBO และขนาดสาย AC จุด INVERTER-MCB_SOLAR / MCB_SOLAR-MDB (×1.25) · ช่วง MPPT/Voc แผง → คำนวณจำนวนแผงต่ออนุกรม + สาย DC
               </div>
             </div>
           )}

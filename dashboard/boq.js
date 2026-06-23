@@ -7,9 +7,10 @@
   // ── ตารางรุ่นแผง: Wp, ความหนาเฟรม(mm), ความกว้างแผงด้านวางราง(m) ──
   // width = ค่าคอลัมน์ L ในชีต DATA (ด้านสั้นที่เรียงชิดกันบนราง)
   // สเปคเริ่มต้น (fallback) สำหรับรุ่นที่ระบบรู้จัก — ถ้าคลังยังไม่กรอกสเปคจะใช้ค่านี้
+  // voc/isc/vmp/imp = สเปคไฟฟ้าแผง (ใช้คำนวณการต่ออนุกรม String + สาย DC)
   const DEFAULT_PANELS = [
-    { model: "LONGi Hi-MO X10 650W-LR7-72HVH-650M", wp: 650, frame: 30, width: 1.134 },
-    { model: "LONGi Hi-MO X10 720W-LR7-72HVH-720M", wp: 720, frame: 35, width: 1.303 },
+    { model: "LONGi Hi-MO X10 650W-LR7-72HVH-650M", wp: 650, frame: 30, width: 1.134, voc: 53.90, isc: 15.29, vmp: 44.80, imp: 14.52 },
+    { model: "LONGi Hi-MO X10 720W-LR7-72HVH-720M", wp: 720, frame: 35, width: 1.303, voc: 0, isc: 0, vmp: 0, imp: 0 },
   ];
   // PANELS = รายการแผงที่ใช้งานจริง (สะท้อนคลังสินค้า) — setPanels() จะ rebuild อาเรย์นี้
   const PANELS = DEFAULT_PANELS.map((p) => Object.assign({}, p));
@@ -64,6 +65,36 @@
   const BATTERY_MODEL = "7kWh M-Battery (MS-7K-U)";
   const BATTERY_UNIT_KWH = 7;
 
+  // ── ขนาดเบรกเกอร์มาตรฐาน (AT) — เลือกจากกระแส × 1.25 ปัดขึ้นขนาดถัดไป ──
+  const BREAKER_AT = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 320, 400, 500, 630];
+  function pickBreakerAT(amp) { const v = (+amp || 0) * 1.25; for (let i = 0; i < BREAKER_AT.length; i++) { if (BREAKER_AT[i] >= v) return BREAKER_AT[i]; } return BREAKER_AT[BREAKER_AT.length - 1]; }
+
+  // ── ATMOCE "ตู้ประกอบ" (assembled) 3 เฟส: อุปกรณ์ในตู้รายชิ้น ──
+  // อุปกรณ์ขนาดคงที่ (ลำดับตรงตามสเปคงาน) — ตัวที่ขนาดเปลี่ยนตามกระแสเติมแทรกใน atmoceAssembled3()
+  const ATMOCE_ASM_FIXED = [
+    { name: "MCB 4P 25AT", qty: 1, unit: "ตัว" },                                                  // [0] เท่าเดิมตลอด
+    { name: "AC SPD TYPE II 3P+N Uc385V In20Ka/Imax40Ka", qty: 1, unit: "ตัว" },                    // [1] เท่าเดิมตลอด (3 เฟส = 3P+N)
+    { name: "MCB 4P 10AT 400V", qty: 1, unit: "ตัว" },                                             // [2] เท่าเดิมตลอด
+    { name: "บัสบาร์กราวด์ทองเหลือง 6x9 (6P)", qty: 1, unit: "ea" },                                  // [3]
+    { name: "รางวายดักส์ สูง60xกว้าง40", qty: 2, unit: "เส้น" },                                       // [4]
+    { name: "STOPPER TBR รุ่นพลาสติก สีดำ", qty: 10, unit: "ea" },                                    // [5]
+    { name: "รางรีเลย์ DIN-RAIL ยาว 1 เมตร", qty: 1, unit: "เส้น" },                                  // [6]
+    { name: "ชุดพุชอินเทอร์มินอล FJ7-2.5/4 24A ใส่สาย 0.14-2.5mm. สีเทา (1ชุด10แถว+ฝา1อัน P7-2.5/4) BLOX CONNECT", qty: 1, unit: "ชุด" },  // [7]
+  ];
+  // สร้างรายการอุปกรณ์ในตู้ประกอบ 3 เฟส — iMicro/iBatt = กระแสรวม (A) · hasBatt = มีแบตเตอรี่
+  // RCCB เลือกจากกระแสรวม (ไมโคร+แบต) · MCB ไมโคร/แบต เลือกตามกระแสแต่ละชุด (×1.25)
+  function atmoceAssembled3(iMicro, iBatt, hasBatt) {
+    const fx = ATMOCE_ASM_FIXED;
+    const out = [];
+    out.push({ name: "RCCB 4P " + pickBreakerAT(iMicro + iBatt) + "AT Type A 100mA", qty: 1, unit: "ตัว" });   // ตามกระแสรวม BAT+Micro
+    out.push(fx[0]);                                                                                            // MCB 4P 25AT
+    out.push(fx[1]);                                                                                            // AC SPD
+    if (hasBatt) out.push({ name: "MCB 4P " + pickBreakerAT(iBatt) + "AT 400V (แบตเตอรี่)", qty: 1, unit: "ตัว" });  // ตามกระแสรวม BATTERY
+    out.push({ name: "MCB 4P " + pickBreakerAT(iMicro) + "AT 400V (ไมโคร)", qty: 1, unit: "ตัว" });             // ตามกระแสรวม Micro
+    out.push(fx[2], fx[3], fx[4], fx[5], fx[6], fx[7]);                                                         // MCB 10AT + อุปกรณ์คงที่
+    return out.map((x) => Object.assign({}, x));
+  }
+
   // ── หลังคา → รุ่นขายึด (roof hook / L-feet) ──
   const ROOF_HOOKS = [
     { roof: "เมทัลชีท", model: "L FEET D09 NORMAL STUD WITH 3M" },
@@ -88,6 +119,7 @@
     "CV-FD 4Cx2.5 SQ.MM.", "CV-FD 4Cx4 SQ.MM.", "CV-FD 4Cx6 SQ.MM.", "CV-FD 4Cx10 SQ.MM.",
     "VCT 2Cx2.5 SQ.MM.", "VCT 2Cx4 SQ.MM.", "VCT 2Cx6 SQ.MM.",
     "IEC01(THW)1Cx6 SQ.MM. Y/G", "IEC01(THW)1Cx10 SQ.MM. Y/G", "IEC01(THW)1Cx16 SQ.MM. Y/G",
+    "PV1-F 1Cx6 SQ.MM. (DC)", "PV1-F 1Cx10 SQ.MM. (DC)", "PV1-F 1Cx16 SQ.MM. (DC)",
     "LAN CAT6",
   ];
 
@@ -101,8 +133,21 @@
     { name: "GROUND",          type: "IEC01(THW)1Cx6 SQ.MM. Y/G", length: "" },
     { name: "LAN",             type: "LAN CAT6", length: "" },
   ];
-  // ชื่อจุดเดินสาย (ตัวเลือกตั้งต้น) — เพิ่มเองได้ในหน้า BOQ
-  const CABLE_POINTS = DEFAULT_CABLES.map((c) => c.name);
+  // ── จุดเดินสายสำหรับระบบ String/Hybrid (แทนชุดไมโคร) ──
+  // PV-INVERTER = สาย DC จากแผง→อินเวอร์เตอร์ · INVERTER-MCB_SOLAR = AC จากอินเวอร์เตอร์→เบรกเกอร์โซลาร์ · MCB_SOLAR-MDB = เบรกเกอร์โซลาร์→ตู้เมน
+  const STRING_CABLE_POINTS = ["PV-INVERTER", "INVERTER-MCB_SOLAR", "MCB_SOLAR-MDB"];
+  const MICRO_CABLE_NAMES = ["MICRO-MICRO", "MICRO-COMBINER", "COMBINER-MCB", "COMBINER-BAT.", "COMBINER-BACKUP"];
+  const DEFAULT_STRING_CABLES = [
+    { name: "PV-INVERTER",        type: "PV1-F 1Cx6 SQ.MM. (DC)", length: "" },
+    { name: "INVERTER-MCB_SOLAR", type: "", length: "" },
+    { name: "MCB_SOLAR-MDB",      type: "", length: "" },
+  ];
+  // ชื่อจุดเดินสาย (ตัวเลือกตั้งต้น) — ไมโคร + String/Hybrid · เพิ่มเองได้ในหน้า BOQ
+  const CABLE_POINTS = DEFAULT_CABLES.map((c) => c.name).concat(STRING_CABLE_POINTS);
+  // ── สาย DC PV1-F: ตอนถอดของ แยกเป็น 2 เส้น สีแดง(+) และ สีดำ(−) ความยาวเท่ากัน ──
+  const PV_DC_COLORS = ["สีแดง (+)", "สีดำ (−)"];
+  function isPvDcCable(type) { return /PV1-F/i.test(type || ""); }
+  function pvCableColorName(type, colorTh) { return String(type || "").replace(/\s*\(DC\)\s*$/i, "").trim() + " " + colorTh; }
 
   // ── พิกัดกระแสสายไฟ (อ้างอิงมาตรฐาน วสท. — ตัวนำทองแดง แรงดัน 0.6/1 kV) ──
   // โครงสร้าง: [ฉนวน][วิธีเดินสาย][คอลัมน์ "กลุ่ม|จำนวนตัวนำมีกระแส|แกน"][ขนาด sq.mm] = กระแส (A)
@@ -210,6 +255,58 @@
     return "มากกว่า " + sizesWithData[sizesWithData.length - 1] + " mm²";
   }
 
+  // ── สาย DC โซลาร์ PV1-F (ตัวนำทองแดง XLPO 90°C, สายเดี่ยวในอากาศ) ──
+  // พิกัดกระแสสายเดี่ยว 2 เส้นในอากาศ (A) อ้างอิงสเปคผู้ผลิตทั่วไป — เลือกขนาดจากกระแสสตริง × 1.25
+  // ขนาดต่ำสุดของสาย DC = 6 mm² ตามมาตรฐาน วสท. (เลือกไม่ต่ำกว่านี้แม้กระแสน้อย)
+  const PV_WIRE_MIN = 6;
+  const PV_WIRE_SIZES = [2.5, 4, 6, 10, 16];
+  const PV_WIRE_AMP = { 2.5: 41, 4: 55, 6: 70, 10: 98, 16: 132 };
+  // เลือกขนาดสาย DC จากกระแสที่ต้องการ (ผู้เรียกคูณ factor มาก่อนแล้ว) — ไม่ต่ำกว่า PV_WIRE_MIN
+  function pickPvWireSize(needAmp) {
+    for (let i = 0; i < PV_WIRE_SIZES.length; i++) { const sz = PV_WIRE_SIZES[i]; if (sz >= PV_WIRE_MIN && PV_WIRE_AMP[sz] >= needAmp) return sz + " mm²"; }
+    return "มากกว่า " + PV_WIRE_SIZES[PV_WIRE_SIZES.length - 1] + " mm²";
+  }
+  // หาแผง / อินเวอร์เตอร์จากชื่อรุ่น (สะท้อนคลัง)
+  function findPanel(model) { return PANELS.find((p) => p.model === model) || null; }
+  function findInverter(model) { return INVERTERS.find((x) => x.model === model) || null; }
+  // ── คำนวณการต่ออนุกรมแผง (String) + สาย DC ──
+  // panel = { voc, isc, vmp, imp } · inv = { mpptVmin, mpptVmax, maxVdc, maxInA }
+  // คืนช่วงจำนวนแผง/สตริงที่ "แรงดัน" อยู่ในช่วงทำงาน MPPT (Vmin–Vmax) และ Voc รวมไม่เกินแรงดันระบบสูงสุด + ขนาดสาย DC
+  function stringConfig(panel, inv, opts) {
+    opts = opts || {}; panel = panel || {}; inv = inv || {};
+    const voc = +panel.voc || 0, isc = +panel.isc || 0, vmp = +panel.vmp || 0, imp = +panel.imp || 0;
+    const vmin = +inv.mpptVmin || 0, vmax = +inv.mpptVmax || 0, maxVdc = +inv.maxVdc || 0, maxInA = +inv.maxInA || 0;
+    const vRef = vmp > 0 ? vmp : voc;   // จุดทำงาน: ใช้ Vmp ถ้ามี ไม่งั้นใช้ Voc
+    const out = { voc, isc, vmp, imp, vmin, vmax, maxVdc, maxInA, vRef, warns: [], ready: false };
+    if (!voc || !vmin || !vmax) {
+      if (!voc) out.warns.push("ยังไม่ระบุ Voc ของแผง — เพิ่มได้ที่หน้าคลัง › สเปคแผง");
+      if (!vmin || !vmax) out.warns.push("ยังไม่ระบุช่วงแรงดันทำงาน MPPT ของอินเวอร์เตอร์ — เพิ่มได้ที่หน้าคลัง");
+      return out;
+    }
+    out.ready = true;
+    out.minSeries = Math.max(1, Math.ceil(vmin / vRef));         // ขั้นต่ำ ให้แรงดันถึง Vmin
+    const maxByOp = Math.floor(vmax / vRef);                      // สูงสุด ให้แรงดันทำงานไม่เกิน Vmax
+    const maxByVoc = maxVdc > 0 ? Math.floor(maxVdc / voc) : maxByOp;  // Voc รวม ต้องไม่เกินแรงดันระบบสูงสุด
+    out.maxByOp = maxByOp; out.maxByVoc = maxByVoc;
+    out.maxSeries = Math.min(maxByOp, maxByVoc);
+    out.recSeries = out.maxSeries >= out.minSeries ? out.maxSeries : out.minSeries;  // เลือกมากสุดที่อยู่ในช่วง (กระแสรวมต่ำสุด)
+    if (out.maxSeries < out.minSeries) out.warns.push("ช่วงแรงดันทำงานแคบเกินไป — แผงรุ่นนี้ต่ออนุกรมให้อยู่ในช่วง MPPT ไม่ได้");
+    // สถานะของจำนวนที่เลือกใช้ (ถ้าระบุ series มา)
+    const series = Math.max(1, Math.round(+opts.series || out.recSeries));
+    out.series = series;
+    out.stringVoc = Math.round(series * voc * 100) / 100;        // แรงดันเปิดวงจรรวม (เย็น/ไม่มีโหลด)
+    out.stringVop = Math.round(series * vRef * 100) / 100;       // แรงดันทำงานรวม (โดยประมาณ)
+    out.inRange = out.stringVop >= vmin && out.stringVop <= vmax;
+    out.overMaxVdc = maxVdc > 0 && out.stringVoc > maxVdc;
+    if (!out.inRange) out.warns.push("แรงดันทำงานรวม " + out.stringVop + " V อยู่นอกช่วง MPPT " + vmin + "–" + vmax + " V");
+    if (out.overMaxVdc) out.warns.push("Voc รวม " + out.stringVoc + " V เกินแรงดันระบบสูงสุด " + maxVdc + " V");
+    // กระแส DC = Isc × 1.25 (ป้องกันกระแสเกินตามมาตรฐาน) → เลือกขนาดสาย PV1-F
+    out.dcAmp = Math.round(isc * 1.25 * 100) / 100;
+    out.dcWire = isc > 0 ? pickPvWireSize(out.dcAmp) : "—";
+    if (maxInA > 0 && isc > maxInA) out.warns.push("Isc " + isc + " A เกินกระแส input สูงสุด/สตริง " + maxInA + " A");
+    return out;
+  }
+
   // ── ท่อร้อยสาย (RACE WAY) ──
   const IMC_SIZES = ['IMC 1"', 'IMC 1-1/4"', 'IMC 1-1/2"', 'IMC 2"', 'IMC 2-1/2"', 'IMC 3"', 'IMC 3-1/2"'];
   const UPVC_SIZES = [
@@ -284,6 +381,7 @@
       panels: +job.panels || 0,
       panelModel: PANELS[0].model,
       phase: String(job.phase) === "3" ? 3 : 1,
+      comboType: job.comboType || "ready",   // ตู้ Combiner ATMOCE: ready=สำเร็จ · assembled=ตู้ประกอบ
       microRatio: "2:1",
       inverterModel: "",
       strings: 0,
@@ -506,11 +604,18 @@
       // ไมโคร ATMOCE (ตามอัตราไมโคร) — ชุดเดิม
       const micro = MICRO.find((m) => m.ratio === b.microRatio) || MICRO[1];
       invCount = micro.perInverter ? panelCount / micro.perInverter : panelCount;
-      invItems = [
-        { name: micro.model, qty: invCount, unit: "LOT" },
-        { name: COMBINER[phase], qty: 1, unit: "SET" },
-        { name: CT[phase], qty: 1, unit: "SET" },
-      ];
+      invItems = [{ name: micro.model, qty: invCount, unit: "LOT" }];
+      // ตู้ Combiner: "ตู้ประกอบ" 3 เฟส → ถอดอุปกรณ์ในตู้รายชิ้น (กลุ่ม COMBINER BOX) · อื่นๆ → ตู้สำเร็จ M-Combiner
+      if (b.comboType === "assembled" && phase === 3) {
+        const SQRT3 = 1.7320508, V_LL = 400;
+        const battKw = battCount > 0 ? (+((b.wireCalc || {}).battKw) || 0) : 0;
+        const iMicro = (kw * 1000) / (SQRT3 * V_LL);          // กระแสรวมไมโคร (A)
+        const iBatt  = (battKw * 1000) / (SQRT3 * V_LL);      // กระแสรวมแบตเตอรี่ (A)
+        combItems = atmoceAssembled3(iMicro, iBatt, battCount > 0);
+      } else {
+        invItems.push({ name: COMBINER[phase], qty: 1, unit: "SET" });
+      }
+      invItems.push({ name: CT[phase], qty: 1, unit: "SET" });
       if (b.backup) invItems.push({ name: BACKUP[phase], qty: 1, unit: "SET" });
       if (battCount > 0) invItems.push({ name: BATTERY_MODEL, qty: battCount, unit: "SET" });
       invItems.push({ name: JUNCTION[phase], qty: 1, unit: "SET" });
@@ -524,7 +629,11 @@
       const t = (c.type || "").trim();
       const len = +c.length || 0;
       if (!t || len <= 0) return;
-      cableAgg[t] = (cableAgg[t] || 0) + len;
+      if (isPvDcCable(t)) {   // สาย DC → ถอด 2 สี (แดง+ / ดำ−) เส้นละ len
+        PV_DC_COLORS.forEach((col) => { const nm = pvCableColorName(t, col); cableAgg[nm] = (cableAgg[nm] || 0) + len; });
+      } else {
+        cableAgg[t] = (cableAgg[t] || 0) + len;
+      }
     });
 
     const groups = [];
@@ -676,6 +785,7 @@
     add("INVERTER", JUNCTION[1], "SET"); add("INVERTER", JUNCTION[3], "SET");
     add("INVERTER", "1.3 m, Three-terminal AC Cable (MW-025013-A)", "SET");
     add("INVERTER", "2 m, Two-terminal AC Cable (MW-025020-B0)", "SET");
+    ATMOCE_ASM_FIXED.forEach((x) => add("COMBINER BOX", x.name, x.unit));   // ตู้ประกอบ ATMOCE: อุปกรณ์ขนาดคงที่ (เบรกเกอร์ตามกระแสเป็นชื่อ dynamic ตั้งราคาในสต็อกได้)
     Object.keys(RAIL).forEach((k) => add("MOUNTING", RAIL[k], "SET"));
     add("MOUNTING", "RAIL SPLICE KIT", "SET");
     add("MOUNTING", "BOLT&N2 NUT M8 20mm.", "SET");
@@ -690,7 +800,10 @@
     [...midNames].forEach((v) => add("MOUNTING", v, "SET"));
     [...endNames].forEach((v) => add("MOUNTING", v, "SET"));
     ROOF_HOOKS.forEach((r) => add("MOUNTING", r.model, "SET"));
-    CABLE_TYPES.forEach((t) => add("CABLE", t, "M"));
+    CABLE_TYPES.forEach((t) => {
+      if (isPvDcCable(t)) PV_DC_COLORS.forEach((col) => add("CABLE", pvCableColorName(t, col), "M"));  // PV1-F → ขึ้นทะเบียน 2 สี (ไม่ใช้ตัว (DC) รวม)
+      else add("CABLE", t, "M");
+    });
     IMC_SIZES.forEach((nm) => {
       const sz = nm.replace(/^IMC\s*/i, "").trim();
       add("RACE WAY", nm, "pcs");
@@ -766,6 +879,10 @@
         wp: +p.wp > 0 ? +p.wp : (+def.wp || 0),
         frame: +p.frame > 0 ? +p.frame : (+def.frame || 30),
         width: +p.width > 0 ? +p.width : (+def.width || 0),
+        voc: +p.voc > 0 ? +p.voc : (+def.voc || 0),
+        isc: +p.isc > 0 ? +p.isc : (+def.isc || 0),
+        vmp: +p.vmp > 0 ? +p.vmp : (+def.vmp || 0),
+        imp: +p.imp > 0 ? +p.imp : (+def.imp || 0),
       });
     });
     // คลังยังไม่โหลด/ไม่มีแผง → คงค่าเริ่มต้นไว้ กันดรอปดาวน์ว่าง
@@ -782,11 +899,11 @@
       if (!p || !p.model) return;
       const type = p.type === "string" || p.type === "hybrid" ? p.type : "";
       if (!type) return;
-      out.push({ model: String(p.model).trim(), type: type, kw: +p.kw || 0, phase: +p.phase || 0, inputs: +p.inputs || 0, maxPv: +p.maxPv || 0, outA: +p.outA || 0 });
+      out.push({ model: String(p.model).trim(), type: type, kw: +p.kw || 0, phase: +p.phase || 0, inputs: +p.inputs || 0, maxPv: +p.maxPv || 0, outA: +p.outA || 0, mpptVmin: +p.mpptVmin || 0, mpptVmax: +p.mpptVmax || 0, maxVdc: +p.maxVdc || 0, maxInA: +p.maxInA || 0 });
     });
     INVERTERS.length = 0;
     out.forEach((x) => INVERTERS.push(x));
   }
 
-  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_POINTS, DEFAULT_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, catalog, applyPrices, setPanels, setInverters };
+  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, findPanel, findInverter, stringConfig, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, catalog, applyPrices, setPanels, setInverters };
 })();
