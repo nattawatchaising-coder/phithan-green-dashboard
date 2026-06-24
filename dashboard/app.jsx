@@ -89,6 +89,7 @@ function App() {
   const priceStore = usePriceStore();
   const ampStore = useAmpacityStore();
   const apptStore = useSurveyApptStore();
+  const fileFlags = useJobFileFlags();
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [view, setView] = React.useState("overview");
   const [search, setSearch] = React.useState("");
@@ -125,7 +126,10 @@ function App() {
 
   React.useEffect(() => { applyTheme(t); }, [t]);
 
-  const jobs = store.jobs;
+  const jobs = React.useMemo(() => store.jobs.map((j) => {
+    const f = fileFlags[j.id] || {};
+    return { ...j, hasDesign: !!f.design, hasBoq: !!f.boq };
+  }), [store.jobs, fileFlags]);
   const filtered = React.useMemo(() => {
     const q = search.trim().toLowerCase();
     return jobs.filter((j) => {
@@ -169,30 +173,47 @@ function App() {
     return out.sort((a, b) => b.stage.daysLate - a.stage.daysLate);
   }, [jobs, role, techId]);
 
-  // งานที่ต้องทำวันนี้ — today อยู่ในช่วง [เริ่ม..เสร็จ] (งานหลายวันขึ้นทุกวันที่กำลังทำ)
+  // งานติดตั้งวันนี้ (ตารางงาน) — today อยู่ในช่วงวันนัดติดตั้ง [startDate..deadline]
+  // ใช้ "ช่วงวันนัดติดตั้ง" เป็นตารางงานเดียว (ไม่ใช้ stageDates รายขั้นอื่นซึ่งเป็นแค่สถานะ)
   const todayTasks = React.useMemo(() => {
     const scope = role === "tech" ? jobs.filter((j) => j.tech === techId) : (can(role, "viewAll") ? jobs : []);
     const today = window.SF.TODAY;
+    const inst = window.SF.STAGES.find((s) => s.key === "install");
     const out = [];
     scope.forEach((j) => {
-      const sd = j.stageDates || {};
-      window.SF.STAGES.forEach((s) => {
-        const v = sd[s.key]; if (!v) return;
-        const st = typeof v === "object" ? (v.start || "") : "";
-        const en = typeof v === "object" ? (v.end || "") : v;
-        const s0 = st || en, e0 = en || st;
-        if (!s0 || today < s0 || today > e0) return;
-        const sameDay = st && en && st === en;
-        let kind;
-        if (sameDay) kind = "both";
-        else if (s0 !== e0 && today > s0 && today < e0) kind = "progress";
-        else if (today === e0 && en) kind = "end";
-        else kind = "start";
-        out.push({ job: j, stage: s, kind });
-      });
+      if (j.stage === "done") return;
+      const s0 = j.startDate, e0 = j.deadline || j.startDate;
+      if (!s0 || today < s0 || today > e0) return;
+      let kind;
+      if (s0 === e0) kind = "both";
+      else if (today === s0) kind = "start";
+      else if (today === e0) kind = "end";
+      else kind = "progress";
+      out.push({ job: j, stage: inst, kind });
     });
     return out;
   }, [jobs, role, techId]);
+
+  // ตารางงานของฉัน (วันนี้ + กำลังจะถึง) — นัดสำรวจ + งานติดตั้งของคนที่ล็อกอิน → โชว์บนหน้าภาพรวม
+  // ยุบงานโปรเจคเดียวกันให้เหลือแถวเดียว (เก็บช่วงวัน start–end) · เอาแค่ 3 แถวแรก
+  const myScheduleItems = React.useMemo(() => {
+    const all = window.buildMySchedItems ? window.buildMySchedItems(apptStore.appts, jobs, techId) : [];
+    const today = window.SF.TODAY;
+    const byJob = {}; const out = [];
+    all.forEach((it) => {
+      if (it.type === "job") {
+        const id = it.job.id, c = ((it.stages || [])[0] || {}).color;
+        if (!byJob[id]) { byJob[id] = { type: "job", key: "j-" + id, job: it.job, start: it.day, end: it.day, ts: it.ts, color: c }; out.push(byJob[id]); }
+        else { if (it.day < byJob[id].start) byJob[id].start = it.day; if (it.day > byJob[id].end) byJob[id].end = it.day; }
+      } else {
+        out.push({ type: "survey", key: it.key, a: it.a, start: it.day, end: it.day, ts: it.ts });
+      }
+    });
+    return out
+      .filter((it) => it.end && it.end >= today)              // ยังไม่จบ (วันนี้เป็นต้นไป)
+      .sort((a, b) => (a.start || "").localeCompare(b.start || "") || a.ts - b.ts)
+      .slice(0, 3);                                            // เอาแค่ 3 แถว
+  }, [apptStore.appts, jobs, techId]);
 
   const loading = store.loading || stock.loading || auth.loading;
 
@@ -310,7 +331,7 @@ function App() {
           onMenuOpen={() => setSidebarOpen(true)} />
 
         <div className="app-content" style={view === "board" ? { display: "flex", flexDirection: "column", minHeight: 0 } : {}}>
-          {view === "overview" && <OverviewView jobs={filtered} todayTasks={todayTasks} onOpen={openJob} onStage={goStage} onKpi={goKpi} />}
+          {view === "overview" && <OverviewView jobs={filtered} schedule={myScheduleItems} onOpen={openJob} onStage={goStage} onKpi={goKpi} />}
           {view === "board" && <KanbanView jobs={filtered} onOpen={openJob} onMoveStage={(id, s) => store.setStage(id, s)} />}
           {view === "table" && <TableView jobs={filtered} onOpen={openJob}
             onEdit={(j) => setForm({ job: store.raw.find((r) => r.id === j.id), isNew: false })}

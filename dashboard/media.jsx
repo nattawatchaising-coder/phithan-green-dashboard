@@ -68,7 +68,14 @@ function useJobMedia(jobId) {
     const fRef = _mref("jobFiles/" + jobId);
     const ph = pRef.on("value", (s) => { const a = _msnap(s); a.sort((x, y) => (x.at || "").localeCompare(y.at || "")); setPhotos(a); });
     const ch = cRef.on("value", (s) => { const a = _msnap(s); a.sort((x, y) => (x.at || "").localeCompare(y.at || "")); setComments(a); });
-    const fh = fRef.on("value", (s) => { const a = _msnap(s); a.sort((x, y) => (x.at || "").localeCompare(y.at || "")); setFiles(a); });
+    const fh = fRef.on("value", (s) => {
+      const a = _msnap(s); a.sort((x, y) => (x.at || "").localeCompare(y.at || "")); setFiles(a);
+      // mirror a tiny flag node (no base64) so การ์ดหน้าบอร์ดรู้ว่ามีแบบ/BOQ แนบหรือยัง
+      _mref("jobFileFlags/" + jobId).set({
+        design: a.some((f) => f.kind === "design"),
+        boq: a.some((f) => f.kind === "boq"),
+      });
+    });
     return () => { pRef.off("value", ph); cRef.off("value", ch); fRef.off("value", fh); };
   }, [jobId]);
 

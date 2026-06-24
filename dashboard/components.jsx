@@ -193,11 +193,20 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
   const btnRef = React.useRef(null);
   const panelRef = React.useRef(null);
   const cur = (options || []).find((o) => String(o.value) === String(value));
+  // หมวดหมู่: ถ้า option มีฟิลด์ group → โชว์ชิปฟิลเตอร์หมวดด้านบน (กดกรองก่อนเลือก)
+  const [cat, setCat] = React.useState(null);   // null = ทั้งหมด
+  const groupList = React.useMemo(() => [...new Set((options || []).map((o) => o.group).filter(Boolean))], [options]);
+  const hasGroups = groupList.length > 1;
+  const shown = (hasGroups && cat) ? (options || []).filter((o) => o.group === cat) : (options || []);
 
   const openMenu = () => {
     if (disabled) return;
     const r = btnRef.current.getBoundingClientRect();
-    setRect({ top: r.bottom + 6, left: r.left, width: r.width });
+    const spaceBelow = window.innerHeight - r.bottom;
+    const needUp = spaceBelow < 260 && r.top > spaceBelow;   // ที่ด้านล่างไม่พอ + ด้านบนมากกว่า → เปิดขึ้นบน
+    const maxH = Math.min(340, (needUp ? r.top : spaceBelow) - 12);
+    setRect({ left: r.left, width: r.width, maxH,
+      top: needUp ? null : r.bottom + 6, bottom: needUp ? (window.innerHeight - r.top + 6) : null });
     setOpen(true);
   };
   const submitAdd = () => {
@@ -223,7 +232,7 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
     return () => { clearTimeout(t); window.removeEventListener("scroll", close, true); window.removeEventListener("resize", close); };
   }, [open]);
 
-  React.useEffect(() => { if (!open) { setAdding(false); setAddText(""); } }, [open]);
+  React.useEffect(() => { if (!open) { setAdding(false); setAddText(""); setCat(null); } }, [open]);
 
   return (
     <React.Fragment>
@@ -242,19 +251,43 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
       {open && rect && (
         <React.Fragment>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 200 }} />
-          <div ref={panelRef} style={{ position: "fixed", top: rect.top, left: rect.left, width: rect.width, zIndex: 201,
+          <div ref={panelRef} style={{ position: "fixed", top: rect.top != null ? rect.top : undefined, bottom: rect.bottom != null ? rect.bottom : undefined, left: rect.left, width: rect.width, zIndex: 201,
             background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 14px 40px rgba(8,20,14,.22)",
-            maxHeight: 280, overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", padding: 5 }}>
-            {(options || []).map((o) => {
+            maxHeight: rect.maxH || 320, display: "flex", flexDirection: "column", overflow: "hidden", padding: 5 }}>
+            {hasGroups && (
+              <div style={{ flexShrink: 0, display: "flex", flexWrap: "wrap", gap: 5, padding: "1px 2px 8px",
+                background: "var(--bg)", borderBottom: "1px solid var(--border)", marginBottom: 4 }}>
+                {[null].concat(groupList).map((g) => {
+                  const on = cat === g;
+                  return (
+                    <button type="button" key={g || "__all"} onClick={(e) => { e.stopPropagation(); setCat(g); }}
+                      style={{ fontSize: 11.5, fontWeight: 700, padding: "4px 10px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
+                        border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+                        background: on ? "var(--primary)" : "var(--surface2)", color: on ? "#fff" : "var(--text-2)" }}>
+                      {g || "ทั้งหมด"}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <div style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}>
+            {shown.map((o, idx) => {
               const active = String(o.value) === String(value);
+              // หัวข้อหมวด (เฉพาะตอนดู "ทั้งหมด") — ขึ้นเมื่อ group เปลี่ยน
+              const head = (hasGroups && !cat && o.group && o.group !== (shown[idx - 1] || {}).group)
+                ? <div key={"h-" + o.group} style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".04em", color: "var(--text-3)", textTransform: "uppercase", padding: "8px 11px 3px" }}>{o.group}</div>
+                : null;
               return (
-                <button type="button" key={String(o.value)} onClick={() => { onChange(o.value); setOpen(false); }}
-                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "10px 11px", borderRadius: 9, border: "none",
-                    background: active ? "var(--primary-soft)" : "transparent", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
-                    fontSize: 13.5, fontWeight: active ? 700 : 500, color: active ? "var(--primary-dark)" : "var(--text-1)" }}>
-                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.label}</span>
-                  {active && <Icon name="check" size={15} color="var(--primary)" sw={2.6} />}
-                </button>
+                <React.Fragment key={String(o.value)}>
+                  {head}
+                  <button type="button" onClick={() => { onChange(o.value); setOpen(false); }}
+                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "10px 11px", borderRadius: 9, border: "none",
+                      background: active ? "var(--primary-soft)" : "transparent", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+                      fontSize: 13.5, fontWeight: active ? 700 : 500, color: active ? "var(--primary-dark)" : "var(--text-1)" }}>
+                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.label}</span>
+                    {active && <Icon name="check" size={15} color="var(--primary)" sw={2.6} />}
+                  </button>
+                </React.Fragment>
               );
             })}
             {addable && (adding ? (
@@ -272,6 +305,7 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
                 <Icon name="plus" size={14} color="var(--primary-dark)" /> เพิ่มตัวเลือกใหม่
               </button>
             ))}
+            </div>
           </div>
         </React.Fragment>
       )}

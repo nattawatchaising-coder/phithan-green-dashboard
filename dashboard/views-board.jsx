@@ -24,6 +24,12 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
           <TypeBadge type={job.type} />
         </span>
       </div>
+      {(job.hasDesign || job.hasBoq) && (
+        <div style={{ display: "flex", gap: 5, marginBottom: 6, flexWrap: "wrap" }}>
+          {job.hasDesign && <DocChip label="แบบ" color="#2563EB" soft="#2563EB14" />}
+          {job.hasBoq && <DocChip label="BOQ" color="#0D9488" soft="#0D948814" />}
+        </div>
+      )}
       <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.25, marginBottom: 2 }}>{job.name}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--text-3)", marginBottom: 10, whiteSpace: "nowrap", overflow: "hidden" }}>
         <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -68,6 +74,15 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
         </span>
       </div>
     </div>
+  );
+}
+
+function DocChip({ label, color, soft }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700,
+      color: color, background: soft, border: "1px solid " + color + "44", padding: "2px 7px", borderRadius: 99 }}>
+      <Icon name="file" size={10} color={color} />{label}
+    </span>
   );
 }
 

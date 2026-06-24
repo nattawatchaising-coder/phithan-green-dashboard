@@ -69,29 +69,35 @@
   const BREAKER_AT = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 320, 400, 500, 630];
   function pickBreakerAT(amp) { const v = (+amp || 0) * 1.25; for (let i = 0; i < BREAKER_AT.length; i++) { if (BREAKER_AT[i] >= v) return BREAKER_AT[i]; } return BREAKER_AT[BREAKER_AT.length - 1]; }
 
-  // ── ATMOCE "ตู้ประกอบ" (assembled) 3 เฟส: อุปกรณ์ในตู้รายชิ้น ──
-  // อุปกรณ์ขนาดคงที่ (ลำดับตรงตามสเปคงาน) — ตัวที่ขนาดเปลี่ยนตามกระแสเติมแทรกใน atmoceAssembled3()
-  const ATMOCE_ASM_FIXED = [
-    { name: "MCB 4P 25AT", qty: 1, unit: "ตัว" },                                                  // [0] เท่าเดิมตลอด
-    { name: "AC SPD TYPE II 3P+N Uc385V In20Ka/Imax40Ka", qty: 1, unit: "ตัว" },                    // [1] เท่าเดิมตลอด (3 เฟส = 3P+N)
-    { name: "MCB 4P 10AT 400V", qty: 1, unit: "ตัว" },                                             // [2] เท่าเดิมตลอด
-    { name: "บัสบาร์กราวด์ทองเหลือง 6x9 (6P)", qty: 1, unit: "ea" },                                  // [3]
-    { name: "รางวายดักส์ สูง60xกว้าง40", qty: 2, unit: "เส้น" },                                       // [4]
-    { name: "STOPPER TBR รุ่นพลาสติก สีดำ", qty: 10, unit: "ea" },                                    // [5]
-    { name: "รางรีเลย์ DIN-RAIL ยาว 1 เมตร", qty: 1, unit: "เส้น" },                                  // [6]
-    { name: "ชุดพุชอินเทอร์มินอล FJ7-2.5/4 24A ใส่สาย 0.14-2.5mm. สีเทา (1ชุด10แถว+ฝา1อัน P7-2.5/4) BLOX CONNECT", qty: 1, unit: "ชุด" },  // [7]
+  // ── ATMOCE "ตู้ประกอบ" (assembled): อุปกรณ์ในตู้รายชิ้น — รองรับ 1 เฟส (2P) และ 3 เฟส (4P/3P+N) ──
+  // ตัวตู้ (enclosure) — ใช้ร่วมทั้ง 1 เฟส/3 เฟส
+  const ATMOCE_ASM_ENCLOSURE = { name: "ตู้ AC/DC Combiner Box ตู้หน้ากระจก เบอร์3", qty: 1, unit: "ใบ" };
+  // อุปกรณ์ที่ใช้ร่วมทุกเฟส (ขนาดคงที่ ไม่ขึ้นกับจำนวนขั้ว)
+  const ATMOCE_ASM_SHARED = [
+    { name: "บัสบาร์กราวด์ทองเหลือง 6x9 (6P)", qty: 1, unit: "ea" },
+    { name: "รางวายดักส์ สูง60xกว้าง40", qty: 2, unit: "เส้น" },
+    { name: "STOPPER TBR รุ่นพลาสติก สีดำ", qty: 10, unit: "ea" },
+    { name: "รางรีเลย์ DIN-RAIL ยาว 1 เมตร", qty: 1, unit: "เส้น" },
+    { name: "ชุดพุชอินเทอร์มินอล FJ7-2.5/4 24A ใส่สาย 0.14-2.5mm. สีเทา (1ชุด10แถว+ฝา1อัน P7-2.5/4) BLOX CONNECT", qty: 1, unit: "ชุด" },
   ];
-  // สร้างรายการอุปกรณ์ในตู้ประกอบ 3 เฟส — iMicro/iBatt = กระแสรวม (A) · hasBatt = มีแบตเตอรี่
+  // อุปกรณ์คงที่ที่จำนวนขั้วเปลี่ยนตามเฟส (3 เฟส = 4P/3P+N · 1 เฟส = 2P)
+  const ATMOCE_ASM_POLE = {
+    3: { pole: "4P", mcb25: "MCB 4P 25AT", spd: "AC SPD TYPE II 3P+N Uc385V In20Ka/Imax40Ka", mcb10: "MCB 4P 10AT 400V" },
+    1: { pole: "2P", mcb25: "MCB 2P 25AT", spd: "AC SPD TYPE II 2P Uc275V In20Ka/Imax40Ka",   mcb10: "MCB 2P 10AT 400V" },
+  };
+  // สร้างรายการอุปกรณ์ในตู้ประกอบ — iMicro/iBatt = กระแสรวม (A) · hasBatt = มีแบตเตอรี่ · phase = 1|3
   // RCCB เลือกจากกระแสรวม (ไมโคร+แบต) · MCB ไมโคร/แบต เลือกตามกระแสแต่ละชุด (×1.25)
-  function atmoceAssembled3(iMicro, iBatt, hasBatt) {
-    const fx = ATMOCE_ASM_FIXED;
+  function atmoceAssembled(iMicro, iBatt, hasBatt, phase) {
+    const cfg = ATMOCE_ASM_POLE[phase === 3 ? 3 : 1];
     const out = [];
-    out.push({ name: "RCCB 4P " + pickBreakerAT(iMicro + iBatt) + "AT Type A 100mA", qty: 1, unit: "ตัว" });   // ตามกระแสรวม BAT+Micro
-    out.push(fx[0]);                                                                                            // MCB 4P 25AT
-    out.push(fx[1]);                                                                                            // AC SPD
-    if (hasBatt) out.push({ name: "MCB 4P " + pickBreakerAT(iBatt) + "AT 400V (แบตเตอรี่)", qty: 1, unit: "ตัว" });  // ตามกระแสรวม BATTERY
-    out.push({ name: "MCB 4P " + pickBreakerAT(iMicro) + "AT 400V (ไมโคร)", qty: 1, unit: "ตัว" });             // ตามกระแสรวม Micro
-    out.push(fx[2], fx[3], fx[4], fx[5], fx[6], fx[7]);                                                         // MCB 10AT + อุปกรณ์คงที่
+    out.push(ATMOCE_ASM_ENCLOSURE);                                                                                         // ตัวตู้หน้ากระจก เบอร์3
+    out.push({ name: "RCCB " + cfg.pole + " " + pickBreakerAT(iMicro + iBatt) + "AT Type A 100mA", qty: 1, unit: "ตัว" });  // ตามกระแสรวม BAT+Micro
+    out.push({ name: cfg.mcb25, qty: 1, unit: "ตัว" });                                                                     // MCB 25AT เท่าเดิม
+    out.push({ name: cfg.spd, qty: 1, unit: "ตัว" });                                                                       // AC SPD เท่าเดิม
+    if (hasBatt) out.push({ name: "MCB " + cfg.pole + " " + pickBreakerAT(iBatt) + "AT 400V (แบตเตอรี่)", qty: 1, unit: "ตัว" });  // ตามกระแสรวม BATTERY
+    out.push({ name: "MCB " + cfg.pole + " " + pickBreakerAT(iMicro) + "AT 400V (ไมโคร)", qty: 1, unit: "ตัว" });            // ตามกระแสรวม Micro
+    out.push({ name: cfg.mcb10, qty: 1, unit: "ตัว" });                                                                     // MCB 10AT เท่าเดิม
+    ATMOCE_ASM_SHARED.forEach((x) => out.push(x));                                                                          // อุปกรณ์ร่วม
     return out.map((x) => Object.assign({}, x));
   }
 
@@ -122,6 +128,19 @@
     "PV1-F 1Cx6 SQ.MM. (DC)", "PV1-F 1Cx10 SQ.MM. (DC)", "PV1-F 1Cx16 SQ.MM. (DC)",
     "LAN CAT6",
   ];
+
+  // ── หมวดสายไฟ — ใช้จัดกลุ่ม/ฟิลเตอร์ใน dropdown ถอด BOQ ──
+  // กำหนดหมวดเองได้ในคลัง (field cableGroup) · ว่าง = เดาจากชื่อด้วย cableCategory()
+  const CABLE_GROUPS = ["CV-FD", "VCT", "THW (กราวด์)", "PV1-F (DC)", "LAN", "อื่นๆ"];
+  function cableCategory(name) {
+    const s = String(name || "");
+    if (/PV1-F|PV CABLE/i.test(s)) return "PV1-F (DC)";
+    if (/CV-FD/i.test(s)) return "CV-FD";
+    if (/VCT/i.test(s)) return "VCT";
+    if (/THW|IEC01/i.test(s)) return "THW (กราวด์)";
+    if (/LAN|CAT/i.test(s)) return "LAN";
+    return "อื่นๆ";
+  }
 
   // สายไฟชุดมาตรฐาน (ค่าเริ่มต้น) — แก้ระยะได้
   const DEFAULT_CABLES = [
@@ -606,12 +625,13 @@
       invCount = micro.perInverter ? panelCount / micro.perInverter : panelCount;
       invItems = [{ name: micro.model, qty: invCount, unit: "LOT" }];
       // ตู้ Combiner: "ตู้ประกอบ" 3 เฟส → ถอดอุปกรณ์ในตู้รายชิ้น (กลุ่ม COMBINER BOX) · อื่นๆ → ตู้สำเร็จ M-Combiner
-      if (b.comboType === "assembled" && phase === 3) {
-        const SQRT3 = 1.7320508, V_LL = 400;
+      if (b.comboType === "assembled") {
         const battKw = battCount > 0 ? (+((b.wireCalc || {}).battKw) || 0) : 0;
-        const iMicro = (kw * 1000) / (SQRT3 * V_LL);          // กระแสรวมไมโคร (A)
-        const iBatt  = (battKw * 1000) / (SQRT3 * V_LL);      // กระแสรวมแบตเตอรี่ (A)
-        combItems = atmoceAssembled3(iMicro, iBatt, battCount > 0);
+        // กระแสรวม: 3 เฟส = P/(√3·400) · 1 เฟส = P/230
+        const div = phase === 3 ? (1.7320508 * 400) : 230;
+        const iMicro = (kw * 1000) / div;                     // กระแสรวมไมโคร (A)
+        const iBatt  = (battKw * 1000) / div;                 // กระแสรวมแบตเตอรี่ (A)
+        combItems = atmoceAssembled(iMicro, iBatt, battCount > 0, phase);
       } else {
         invItems.push({ name: COMBINER[phase], qty: 1, unit: "SET" });
       }
@@ -785,7 +805,10 @@
     add("INVERTER", JUNCTION[1], "SET"); add("INVERTER", JUNCTION[3], "SET");
     add("INVERTER", "1.3 m, Three-terminal AC Cable (MW-025013-A)", "SET");
     add("INVERTER", "2 m, Two-terminal AC Cable (MW-025020-B0)", "SET");
-    ATMOCE_ASM_FIXED.forEach((x) => add("COMBINER BOX", x.name, x.unit));   // ตู้ประกอบ ATMOCE: อุปกรณ์ขนาดคงที่ (เบรกเกอร์ตามกระแสเป็นชื่อ dynamic ตั้งราคาในสต็อกได้)
+    // ตู้ประกอบ ATMOCE: ตัวตู้ + อุปกรณ์คงที่ทั้ง 1 เฟส (2P) และ 3 เฟส (4P) — เบรกเกอร์ตามกระแสเป็นชื่อ dynamic ตั้งราคาในสต็อกได้
+    add("COMBINER BOX", ATMOCE_ASM_ENCLOSURE.name, ATMOCE_ASM_ENCLOSURE.unit);
+    [ATMOCE_ASM_POLE[1], ATMOCE_ASM_POLE[3]].forEach((c) => { add("COMBINER BOX", c.mcb25, "ตัว"); add("COMBINER BOX", c.spd, "ตัว"); add("COMBINER BOX", c.mcb10, "ตัว"); });
+    ATMOCE_ASM_SHARED.forEach((x) => add("COMBINER BOX", x.name, x.unit));
     Object.keys(RAIL).forEach((k) => add("MOUNTING", RAIL[k], "SET"));
     add("MOUNTING", "RAIL SPLICE KIT", "SET");
     add("MOUNTING", "BOLT&N2 NUT M8 20mm.", "SET");
@@ -905,5 +928,5 @@
     out.forEach((x) => INVERTERS.push(x));
   }
 
-  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, findPanel, findInverter, stringConfig, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, catalog, applyPrices, setPanels, setInverters };
+  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, findPanel, findInverter, stringConfig, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, catalog, applyPrices, setPanels, setInverters };
 })();

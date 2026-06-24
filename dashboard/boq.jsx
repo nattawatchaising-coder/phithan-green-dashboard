@@ -3,6 +3,17 @@
    กรอกพารามิเตอร์ → คำนวณรายการวัสดุอัตโนมัติ → บันทึก / ดาวน์โหลด Excel
    ============================================================ */
 
+// ช่องแสดงค่าแบบล็อก (อ่านอย่างเดียว) — ค่ามาจากข้อมูลงาน แก้ได้ที่หน้าแก้งานเท่านั้น
+function BoqLocked({ value, unit, num }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--surface3)", border: "1px solid var(--border)", borderRadius: 10, padding: "9px 11px" }} title="ตั้งค่าจากหน้าแก้งาน">
+      <Icon name="lock" size={13} color="var(--text-3)" />
+      <span style={{ flex: 1, textAlign: "right", fontFamily: num ? "var(--mono)" : "inherit", fontSize: num ? 15 : 13.5, fontWeight: num ? 700 : 600, color: num ? "var(--primary-dark)" : "var(--text-1)" }}>{value}</span>
+      {unit && <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{unit}</span>}
+    </div>
+  );
+}
+
 function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const bdClose = window.useBackdropClose(onClose);
   const baht = (n) => (Math.round((+n || 0) * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
@@ -313,14 +324,20 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   }, [priceMap, stockItems.length]);
 
   // ชนิดสายไฟ: ดึงจากคลังสินค้าหมวด "สายไฟ / ไฟฟ้า" (wiring) — ไม่มีของในคลังจึง fallback รายการตั้งต้น
+  // จัดหมวดสายไฟ: ใช้หมวดที่ตั้งในคลัง (cableGroup) ก่อน · ไม่มีก็เดาจากชื่อ
+  const cableCat = window.BOQ.cableCategory || ((n) => "อื่นๆ");
+  const CABLE_CAT_ORDER = window.BOQ.CABLE_GROUPS || ["อื่นๆ"];
   const cableTypeOptions = React.useMemo(() => {
-    const fromStock = stockItems.filter((s) => s.cat === "wiring").map((s) => s.name);
+    const wiringStock = stockItems.filter((s) => s.cat === "wiring");
+    const groupByName = {};
+    wiringStock.forEach((s) => { if (s.name && s.cableGroup) groupByName[s.name] = s.cableGroup; });
     const used = (b.cables || []).map((c) => c.type).filter(Boolean);
-    const base = fromStock.length ? fromStock : (window.BOQ.CABLE_TYPES || []);
+    const base = wiringStock.length ? wiringStock.map((s) => s.name) : (window.BOQ.CABLE_TYPES || []);
     return [...new Set(base.concat(used))]
-      .sort((a, z) => String(a).localeCompare(String(z), "th", { numeric: true }))
-      .map((n) => ({ value: n, label: n }));
-  }, [stockItems.length, b.cables]);
+      .map((n) => ({ value: n, label: n, group: groupByName[n] || cableCat(n) }))
+      // เรียงตามหมวด แล้วตามชื่อ (ให้รายการหมวดเดียวกันอยู่ติดกัน → หัวข้อหมวดถูกต้อง)
+      .sort((a, z) => (CABLE_CAT_ORDER.indexOf(a.group) - CABLE_CAT_ORDER.indexOf(z.group)) || String(a.value).localeCompare(String(z.value), "th", { numeric: true }));
+  }, [stockItems, b.cables]);
   // ตัวเลือกพิกัดกระแส วสท.: วิธีเดินสาย / ฉนวน / กลุ่มการติดตั้ง / จำนวนตัวนำมีกระแส
   const methodOptions = (window.BOQ.WIRE_METHODS || []).map((m) => ({ value: m.key, label: m.th }));
   const insOptions = (window.BOQ.INS_CLASSES || []).map((c) => ({ value: c.key, label: c.th }));
@@ -558,7 +575,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           {/* ── ข้อมูลระบบ ── */}
           <Section title="ข้อมูลระบบ" icon="sun">
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "repeat(3, minmax(0,1fr))", gap: 12 }}>
-              <Field label="จำนวนแผง"><input type="number" style={numStyle} value={b.panels} onChange={(e) => set("panels", e.target.value)} /></Field>
+              <Field label="จำนวนแผง"><BoqLocked value={b.panels} unit="แผง" num /></Field>
               <Field label="ขนาดติดตั้ง (kW)">
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "flex-end", gap: 4, background: "var(--surface3)", border: "1px solid var(--border)", borderRadius: 10, padding: "9px 11px" }}>
                   <span style={{ fontFamily: "var(--mono)", fontSize: 15, fontWeight: 700, color: "var(--primary-dark)" }}>{result.meta.kw.toLocaleString()}</span>
@@ -576,8 +593,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 ? <Field label="อัตราไมโคร"><Dropdown value={b.microRatio} onChange={(v) => set("microRatio", v)} options={[{ value: "1:1", label: "1:1 (1 แผง/ตัว)" }, { value: "2:1", label: "2:1 (2 แผง/ตัว)" }]} /></Field>
                 : <Field label="จำนวนอินเวอร์เตอร์"><div style={{ display: "flex", alignItems: "baseline", justifyContent: "flex-end", gap: 4, background: "var(--surface3)", border: "1px solid var(--border)", borderRadius: 10, padding: "9px 11px" }}><span style={{ fontFamily: "var(--mono)", fontSize: 15, fontWeight: 700, color: "var(--primary-dark)" }}>{result.meta.invCount}</span><span style={{ fontSize: 11.5, color: "var(--text-3)" }}>ตัว</span></div></Field>}
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="รุ่นแผง"><Dropdown value={b.panelModel} onChange={(v) => set("panelModel", v)} options={opt(window.BOQ.PANELS.map((p) => p.model))} /></Field></div>
-              {hasBattery && <Field label="แบตเตอรี่ (kWh)"><input type="number" style={numStyle} value={b.batteryKwh} onChange={(e) => set("batteryKwh", e.target.value)} /></Field>}
-              {hasBackup && <Field label="ระบบ Backup"><Dropdown value={b.backup} onChange={(v) => set("backup", v)} options={[{ value: true, label: "ติดตั้ง" }, { value: false, label: "ไม่ติดตั้ง" }]} /></Field>}
+              {hasBattery && <Field label="แบตเตอรี่ (kWh)"><BoqLocked value={b.batteryKwh} unit="kWh" num /></Field>}
+              {hasBackup && <Field label="ระบบ Backup"><BoqLocked value={b.backup ? "ติดตั้ง" : "ไม่ติดตั้ง"} /></Field>}
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="ประเภทหลังคา"><Dropdown value={b.roof} onChange={(v) => set("roof", v)} options={opt(window.BOQ.ROOF_OPTIONS)} /></Field></div>
             </div>
           </Section>

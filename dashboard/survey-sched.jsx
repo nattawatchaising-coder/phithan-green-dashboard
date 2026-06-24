@@ -488,37 +488,41 @@ function JobTaskCard({ job, stages, day, onOpen, onAdvance }) {
    MY SCHEDULE — งานทั้งหมดของฉัน (mobile): นัดสำรวจ + งานในไปป์ไลน์
    รวม "งานที่ต้องทำ" (ออกแบบ/ถอดของ/ติดตั้ง) ที่มอบหมายให้คนนี้ ไว้ที่เดียว
    ============================================================ */
+// สร้างรายการ "ตารางงานของฉัน" = นัดสำรวจ (engineerId===คนนี้) + งานติดตั้งที่นัดวันแล้ว (tech===คนนี้, ยังไม่เสร็จ)
+// กระจายงานติดตั้งครบทุกวันในช่วงนัดติดตั้ง · เรียงตามเวลา · ใช้ร่วมกับพาเนลหน้าภาพรวม
+function buildMySchedItems(appts, jobs, techId) {
+  if (!techId) return [];
+  const SF = window.SF;
+  const out = [];
+  (appts || []).forEach((a) => {
+    if (a.engineerId === techId && a.status !== "canceled")
+      out.push({ type: "survey", key: "a-" + a.id, a: a, day: a.start ? _ymdLocal(a.start) : "", ts: a.start ? new Date(a.start).getTime() : 0 });
+  });
+  (jobs || []).forEach((j) => {
+    if (j.tech !== techId || j.stage === "done") return;
+    const STAGES = SF.STAGES || [];
+    const cur = Math.max(0, STAGES.findIndex((s) => s.key === j.stage));
+    const curStage = STAGES[cur] || { key: j.stage, th: j.stage, en: "", color: "#64748B" };
+    // แสดงเฉพาะงานที่ "มีวันนัดติดตั้งแล้ว" = วันที่ต้องไปจริง · กระจายครบทุกวันในช่วงติดตั้ง
+    const s = SF.installDate ? SF.installDate(j) : "";
+    if (!s) return;
+    const e = SF.installEnd ? SF.installEnd(j) : s;
+    let day = s, g = 0;
+    while (g < 60) {
+      const kind = s === e ? "single" : (day === s ? "start" : (day === e ? "end" : "mid"));
+      out.push({ type: "job", key: "j-" + j.id + "-" + day, job: j, day: day, stages: [Object.assign({}, curStage, { kind: kind })], ts: new Date(day + "T00:00:00").getTime() });
+      if (day === e) break; day = _addDays(day, 1); g++;
+    }
+  });
+  return out.sort((x, y) => x.ts - y.ts);
+}
+
 function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey, onOpen, onAdvance }) {
   const techId = me && me.techId;
-  const SF = window.SF;
   const jobsById = React.useMemo(() => Object.fromEntries((jobs || []).map((j) => [j.id, j])), [jobs]);
 
-  // รวมรายการ: นัดสำรวจ (engineerId===คนนี้) + งานในไปป์ไลน์ (tech===คนนี้, ยังไม่เสร็จ)
-  const items = React.useMemo(() => {
-    if (!techId) return [];
-    const out = [];
-    (appts || []).forEach((a) => {
-      if (a.engineerId === techId && a.status !== "canceled")
-        out.push({ type: "survey", key: "a-" + a.id, a: a, day: a.start ? _ymdLocal(a.start) : "", ts: a.start ? new Date(a.start).getTime() : 0 });
-    });
-    (jobs || []).forEach((j) => {
-      if (j.tech !== techId || j.stage === "done") return;
-      const STAGES = SF.STAGES || [];
-      const cur = Math.max(0, STAGES.findIndex((s) => s.key === j.stage));
-      const curStage = STAGES[cur] || { key: j.stage, th: j.stage, en: "", color: "#64748B" };
-      // แสดงเฉพาะงานที่ "มีวันนัดติดตั้งแล้ว" = วันที่ต้องไปจริง · กระจายครบทุกวันในช่วงติดตั้ง
-      const s = SF.installDate ? SF.installDate(j) : "";
-      if (!s) return;
-      const e = SF.installEnd ? SF.installEnd(j) : s;
-      let day = s, g = 0;
-      while (g < 60) {
-        const kind = s === e ? "single" : (day === s ? "start" : (day === e ? "end" : "mid"));
-        out.push({ type: "job", key: "j-" + j.id + "-" + day, job: j, day: day, stages: [Object.assign({}, curStage, { kind: kind })], ts: new Date(day + "T00:00:00").getTime() });
-        if (day === e) break; day = _addDays(day, 1); g++;
-      }
-    });
-    return out.sort((x, y) => x.ts - y.ts);
-  }, [appts, jobs, techId]);
+  // รวมรายการ: นัดสำรวจ + งานติดตั้งที่นัดวันแล้ว (ตรรกะร่วมใน buildMySchedItems)
+  const items = React.useMemo(() => buildMySchedItems(appts, jobs, techId), [appts, jobs, techId]);
 
   const todayY = _ymdLocal(new Date());
   const groups = [
@@ -563,4 +567,4 @@ function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey, o
   );
 }
 
-Object.assign(window, { useSurveyApptStore, DispatchView, MyScheduleView, SurveyApptModal, ApptCard, JobTaskCard, ApptFlow, apptConflicts, blankAppt, APPT_STATUS, APPT_STATUS_BY, APPT_FLOW });
+Object.assign(window, { useSurveyApptStore, DispatchView, MyScheduleView, SurveyApptModal, ApptCard, JobTaskCard, ApptFlow, apptConflicts, blankAppt, buildMySchedItems, APPT_STATUS, APPT_STATUS_BY, APPT_FLOW });

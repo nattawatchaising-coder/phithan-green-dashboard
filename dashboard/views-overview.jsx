@@ -146,36 +146,55 @@ function Empty({ text }) {
   return <div style={{ padding: "26px 0", textAlign: "center", fontSize: 13, color: "var(--text-3)" }}>{text}</div>;
 }
 
-/* งานที่ต้องทำวันนี้ — ขั้น Flow ที่ today อยู่ในช่วงเริ่ม–เสร็จ */
-function TodayPanel({ tasks, onOpen }) {
-  const KIND = { start: { th: "เริ่มวันนี้", icon: "pin" }, progress: { th: "กำลังดำเนินการ", icon: "wrench" }, end: { th: "ส่งมอบ/เสร็จวันนี้", icon: "check" }, both: { th: "เริ่ม–เสร็จวันนี้", icon: "check" } };
+/* ตารางงานของฉัน (วันนี้ + กำลังจะถึง) — นัดสำรวจ + งานติดตั้งของคนที่ล็อกอิน · โปรเจคเดียวกันยุบเป็นแถวเดียว (ช่วงวัน) */
+function _schedTime(iso) { try { const d = new Date(iso); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); } catch (e) { return ""; } }
+// ช่วงวันแบบสั้น: วันเดียว "25 มิ.ย." · ช่วงเดือนเดียว "25–26 มิ.ย." · ข้ามเดือน "29 มิ.ย.–3 ก.ค."
+function _schedRange(start, end) {
+  const M = window.TH_MONTHS, d1 = parseDate(start), d2 = parseDate(end);
+  if (!end || start === end) return d1.getDate() + " " + M[d1.getMonth()];
+  if (d1.getMonth() === d2.getMonth() && d1.getFullYear() === d2.getFullYear())
+    return d1.getDate() + "–" + d2.getDate() + " " + M[d1.getMonth()];
+  return d1.getDate() + " " + M[d1.getMonth()] + "–" + d2.getDate() + " " + M[d2.getMonth()];
+}
+
+function MySchedRow({ it, onOpen }) {
+  const isSurvey = it.type === "survey";
+  const color = isSurvey ? "#7C5CFC" : (it.color || "var(--primary)");
+  const title = isSurvey ? (it.a.jobName || it.a.jobCode || "นัดสำรวจ") : it.job.name;
+  const range = _schedRange(it.start, it.end);
+  const sub = isSurvey
+    ? ("นัดสำรวจ" + (it.a.province ? " · " + it.a.province : "") + (_schedTime(it.a.start) ? " · " + _schedTime(it.a.start) : ""))
+    : ("ติดตั้ง · " + (it.job.province || "-") + " · " + it.job.kw + " kW");
+  const click = isSurvey ? () => { if (it.a.projectId) onOpen({ id: it.a.projectId }); } : () => onOpen(it.job);
+  return (
+    <button onClick={click} style={{ display: "flex", gap: 12, alignItems: "center", padding: "11px 13px", textAlign: "left",
+      background: color + "0d", border: "1px solid " + color + "33", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", width: "100%" }}>
+      <span style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: "grid", placeItems: "center", background: color, color: "#fff" }}>
+        <Icon name={isSurvey ? "search" : "pin"} size={15} color="#fff" />
+      </span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</span>
+        <span style={{ display: "block", fontSize: 11.5, color: "var(--text-2)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sub}</span>
+      </span>
+      <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: color, background: color + "14", padding: "4px 10px", borderRadius: 99, whiteSpace: "nowrap" }}>{range}</span>
+    </button>
+  );
+}
+
+function MySchedulePanel({ items, onOpen }) {
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 22, boxShadow: "var(--shadow-sm)" }}>
-      <PanelTitle icon="calendar" iconColor="var(--primary)" title="งานที่ต้องทำวันนี้" sub={thDate(window.SF.TODAY, true) + " · " + tasks.length + " รายการ"} />
-      {tasks.length === 0 ? <Empty text="วันนี้ไม่มีงานตามกำหนด 🎉" /> : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 10, marginTop: 16 }}>
-          {tasks.map((e, i) => {
-            const k = KIND[e.kind] || KIND.start;
-            return (
-              <button key={i} onClick={() => onOpen(e.job)} style={{ display: "flex", gap: 11, alignItems: "center", padding: "12px 13px", textAlign: "left",
-                background: e.stage.color + "0d", border: "1px solid " + e.stage.color + "33", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", width: "100%" }}>
-                <span style={{ width: 34, height: 34, borderRadius: 9, flexShrink: 0, display: "grid", placeItems: "center", background: e.stage.color, color: "#fff" }}>
-                  <Icon name={k.icon} size={16} color="#fff" />
-                </span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{e.job.name}</span>
-                  <span style={{ display: "block", fontSize: 11.5, color: "var(--text-2)", marginTop: 2 }}>{k.th} · {e.stage.th}</span>
-                </span>
-              </button>
-            );
-          })}
+      <PanelTitle icon="calendar" iconColor="var(--primary)" title="ตารางงานของฉัน" sub={thDate(window.SF.TODAY, true) + " · งานที่ใกล้ถึง"} />
+      {items.length === 0 ? <Empty text="ไม่มีงานในตารางของคุณตอนนี้ 🎉" /> : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
+          {items.map((it) => <MySchedRow key={it.key} it={it} onOpen={onOpen} />)}
         </div>
       )}
     </div>
   );
 }
 
-function OverviewView({ jobs, todayTasks, onOpen, onStage, onKpi }) {
+function OverviewView({ jobs, schedule, onOpen, onStage, onKpi }) {
   const active = jobs.filter((j) => j.stage !== "done");
   const delayed = jobs.filter((j) => j.delayed);
   const ready = active.filter((j) => j.matReady);
@@ -190,7 +209,7 @@ function OverviewView({ jobs, todayTasks, onOpen, onStage, onKpi }) {
         <KpiCard label="ความจุแบตเตอรี่รวม" value={totalKwh} unit="kWh" icon="battery" accent="#7C5CFC" sub="ระบบ ATMOCE" onClick={() => onKpi("battery")} />
       </div>
 
-      <TodayPanel tasks={todayTasks || []} onOpen={onOpen} />
+      <MySchedulePanel items={schedule || []} onOpen={onOpen} />
 
       <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 18 }}>
         <PipelinePanel jobs={jobs} onStage={onStage} />

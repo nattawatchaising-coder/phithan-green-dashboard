@@ -550,6 +550,26 @@ function usePriceStore() {
 }
 
 /* ================================================================
+   useJobFileFlags — ดัชนีเบาๆ ว่าแต่ละงานแนบ "แบบ"/"BOQ" แล้วหรือยัง
+   เก็บที่ jobFileFlags/{jobId} = { design, boq } (ไม่มี base64) ให้การ์ดหน้าบอร์ดโชว์ได้เร็ว
+   ================================================================ */
+function useJobFileFlags() {
+  const [flags, setFlags] = React.useState({});
+  React.useEffect(() => {
+    if (!_FB()) return;
+    const ref = _fbr("jobFileFlags");
+    const h = ref.on("value", (snap) => {
+      const v = snap.val() || {};
+      const m = {};
+      Object.keys(v).forEach((id) => { const r = v[id] || {}; m[id] = { design: !!r.design, boq: !!r.boq }; });
+      setFlags(m);
+    }, () => {});
+    return () => ref.off("value", h);
+  }, []);
+  return flags;
+}
+
+/* ================================================================
    useAmpacityStore — ค่าพิกัดกระแสสายไฟที่แก้จากเล่ม วสท. (ทับค่าเริ่มต้นใน BOQ)
    เก็บแบบ flat: key = "<cls>__<method>__<sizeEnc>" → amp (เลี่ยงจุดในคีย์ Firebase)
    ================================================================ */
