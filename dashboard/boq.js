@@ -142,6 +142,85 @@
     return "อื่นๆ";
   }
 
+  // จัดกลุ่มย่อยของวัสดุ (Accessories) — โชว์เป็นชิปฟิลเตอร์ใน dropdown เหมือนสายไฟ · เดาจากชื่อ + รู้หมวด
+  // ลำดับนี้ใช้เรียงชิป/หัวข้อกลุ่ม · แต่ละหมวดจะโผล่เฉพาะกลุ่มที่มีของจริงเท่านั้น
+  const MATERIAL_SUBGROUPS = [
+    // อุปกรณ์ไฟฟ้า / Accessories
+    "เบรกเกอร์", "SPD", "ฟิวส์", "ตู้ / กล่อง", "บัสบาร์ / กราวด์", "ราง / DIN / เทอร์มินอล", "เทป / กาว / รัดสาย",
+    // ท่อร้อยสาย
+    "ท่อ IMC (เหล็ก)", "ท่อ uPVC", "Pull Box / กล่องพัก", "รางเดินสาย",
+    // Solar Mounting
+    "ราง (Rail)", "แคลมป์ยึดแผง", "ขายึด / ฮุก", "น็อต / สกรู", "กราวด์ / EARTH",
+    // งานโครงสร้าง
+    "เหล็กรูปพรรณ", "สลิง / เกลียว / กิ๊บ",
+    // สายไฟ (ใช้หมวดเดียวกับ dropdown สายไฟ)
+    "CV-FD", "VCT", "THW (กราวด์)", "PV1-F (DC)", "LAN",
+    // อินเวอร์เตอร์
+    "ไมโคร / อินเวอร์เตอร์", "Combiner / Backup", "แบตเตอรี่", "CT", "อะแดปเตอร์ / สาย AC",
+    // กราวด์ / กันดูด
+    "แท่งกราวด์ / เชื่อม",
+    "อื่นๆ",
+  ];
+  function materialSubGroup(name, cat) {
+    const s = String(name || "");
+    const c = String(cat || "");
+
+    // สายไฟ → ใช้หมวดเดียวกับ dropdown สายไฟ
+    if (/สายไฟ|ไฟฟ้า$/.test(c) && /CV-FD|VCT|THW|IEC01|PV1-F|PV CABLE|LAN|CAT/i.test(s)) return cableCategory(s);
+
+    // ท่อร้อยสาย — เช็ค Pull Box/กล่องพัก ก่อน uPVC (กล่องพัก uPVC ต้องอยู่กลุ่ม Pull Box)
+    if (/ท่อร้อยสาย/.test(c)) {
+      if (/PULL BOX|กล่องพัก/i.test(s)) return "Pull Box / กล่องพัก";
+      if (/uPVC/i.test(s)) return "ท่อ uPVC";
+      if (/IMC|คุปปิ้ง|ท่ออ่อนเหล็ก/i.test(s)) return "ท่อ IMC (เหล็ก)";
+      if (/รางซี|C-Channel|ราง/i.test(s)) return "รางเดินสาย";
+      return "อื่นๆ";
+    }
+
+    // Solar Mounting
+    if (/Mounting/i.test(c)) {
+      if (/CLAM[EP]|CLAMP/i.test(s)) return "แคลมป์ยึดแผง";
+      if (/L ?FEET|HOOK|FLASHING|STUD/i.test(s)) return "ขายึด / ฮุก";
+      if (/RAIL|SPLICE/i.test(s)) return "ราง (Rail)";
+      if (/EARTH|GROUND|LUG/i.test(s)) return "กราวด์ / EARTH";
+      if (/BOLT|NUT|สกรู|พุ๊ก/i.test(s)) return "น็อต / สกรู";
+      return "อื่นๆ";
+    }
+
+    // งานโครงสร้าง
+    if (/โครงสร้าง/.test(c)) {
+      if (/สลิง|เกลียว|กิ๊บ|ปลอก/.test(s)) return "สลิง / เกลียว / กิ๊บ";
+      if (/เหล็ก|เพลท|WALKWAY|พุ๊ก|ฉาก/i.test(s)) return "เหล็กรูปพรรณ";
+      return "อื่นๆ";
+    }
+
+    // กราวด์ / กันดูด
+    if (/กราวด์|กันดูด/.test(c)) {
+      if (/แท่งกราวด์|เทอร์โมเวล|GROUND|EARTH|TEST/i.test(s)) return "แท่งกราวด์ / เชื่อม";
+      return "อื่นๆ";
+    }
+
+    // อินเวอร์เตอร์ / อุปกรณ์อินเวอร์เตอร์
+    if (/อินเวอร์เตอร์/.test(c)) {
+      if (/Battery|แบต|kWh/i.test(s)) return "แบตเตอรี่";
+      if (/Backup|Combiner/i.test(s)) return "Combiner / Backup";
+      if (/\bCT\b/i.test(s)) return "CT";
+      if (/adapter|junction|AC Cable|สาย/i.test(s)) return "อะแดปเตอร์ / สาย AC";
+      if (/inverter|ไมโคร/i.test(s)) return "ไมโคร / อินเวอร์เตอร์";
+      return "อื่นๆ";
+    }
+
+    // อุปกรณ์ไฟฟ้า / Accessories (รวมของไฟฟ้า + วัสดุสิ้นเปลือง)
+    if (/SPD/i.test(s)) return "SPD";
+    if (/FUSE|ฟิวส์/i.test(s)) return "ฟิวส์";
+    if (/MCB|MCCB|RCCB|RCBO|ELCB|เบรกเกอร์|breaker/i.test(s)) return "เบรกเกอร์";
+    if (/บัสบาร์|BUS-?BAR/i.test(s)) return "บัสบาร์ / กราวด์";
+    if (/COMBINER|ENCLOSURE|ตู้/i.test(s)) return "ตู้ / กล่อง";
+    if (/DIN-?RAIL|รางรีเลย์|วายดักส์|WIRE ?DUCT|STOPPER|เทอร์มินอล|TERMINAL/i.test(s)) return "ราง / DIN / เทอร์มินอล";
+    if (/เทป|ซิลิโคน|อะคริลิก|Cable Tie|ลวด|กาว|ยาแนว/i.test(s)) return "เทป / กาว / รัดสาย";
+    return "อื่นๆ";
+  }
+
   // สายไฟชุดมาตรฐาน (ค่าเริ่มต้น) — แก้ระยะได้
   const DEFAULT_CABLES = [
     { name: "MICRO-MICRO",     type: "", length: "" },
@@ -928,5 +1007,5 @@
     out.forEach((x) => INVERTERS.push(x));
   }
 
-  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, findPanel, findInverter, stringConfig, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, catalog, applyPrices, setPanels, setInverters };
+  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, findPanel, findInverter, stringConfig, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, catalog, applyPrices, setPanels, setInverters };
 })();

@@ -256,6 +256,11 @@
     if (STAGE_REMAP[j.stage]) j = Object.assign({}, j, { stage: STAGE_REMAP[j.stage] });
     if (STAGE_INDEX[j.stage] == null) j = Object.assign({}, j, { stage: "queue" });
     const matObj = mats(j.mat || {});
+    // วัสดุของฟีเจอร์ที่งานนี้ "ไม่มี" (แบต/Backup/ตาข่ายกันนก) = ไม่เกี่ยวข้อง (na) — ไม่นับในความพร้อมวัสดุ
+    // กันเคสข้อมูลค้างที่เก็บเป็น "none"(ยังไม่สั่ง) ทั้งที่งานไม่ได้ใช้ → ทำให้ค้างที่ไม่ถึง 100%
+    if (!j.battery) matObj.battery = "na";
+    if (!j.backup)  matObj.backup  = "na";
+    if (!j.birdnet) matObj.birdnet = "na";
     const matVals = MATERIALS.map((m) => matObj[m.key]).filter((v) => v !== "na");
     const matReadyCount = matVals.filter((v) => v === "ready").length;
     const matReady = matVals.length > 0 && matReadyCount === matVals.length;

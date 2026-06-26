@@ -164,14 +164,15 @@ function MatDots({ mat }) {
 
 // ---------- Segmented control ----------
 function Segmented({ options, value, onChange }) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
   return (
-    <div style={{ display: "inline-flex", background: "var(--surface3)", borderRadius: 10, padding: 3, gap: 2 }}>
+    <div style={{ display: "inline-flex", background: "var(--surface3)", borderRadius: isMobile ? 9 : 10, padding: isMobile ? 2 : 3, gap: 2 }}>
       {options.map((o) => {
         const active = o.value === value;
         return (
           <button key={o.value} onClick={() => onChange(o.value)}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "none",
-              cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap",
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: isMobile ? "5px 10px" : "6px 12px", borderRadius: 8, border: "none",
+              cursor: "pointer", fontFamily: "inherit", fontSize: isMobile ? 11.5 : 12.5, fontWeight: 600, whiteSpace: "nowrap",
               background: active ? "var(--surface)" : "transparent", color: active ? "var(--text-1)" : "var(--text-2)",
               boxShadow: active ? "0 1px 3px rgba(0,0,0,.08)" : "none", transition: "all .15s" }}>
             {o.icon && <Icon name={o.icon} size={15} />}{o.label}

@@ -261,3 +261,224 @@ function ReportView({ jobs, onOpen }) {
     </div>
   );
 }
+
+/* ============================================================
+   Daily Report — รายงานประจำวันของงานขั้น "ดำเนินการติดตั้ง"
+   - ข้อมูลระบบดึงอัตโนมัติจากงาน + ช่องกรอกรายวัน (เก็บ dailyReports/{jobId}/{date})
+   - ปุ่มคัดลอกเป็นข้อความสวยๆ เอาไปวางใน LINE / Trello / อีเมลได้
+   ============================================================ */
+function buildDailyText(job, dateStr, d) {
+  const SF = window.SF;
+  const L = [];
+  L.push("📋 รายงานติดตั้งโซลาร์เซลล์ — " + thDate(dateStr, true));
+  L.push("PHITHAN GREEN");
+  L.push("━━━━━━━━━━━━━━━━━");
+  L.push("🏠 " + (job.name || "(ไม่ระบุชื่อ)") + " · " + (job.code || job.id));
+  L.push("📍 " + (job.province || "-") + (job.brand ? " · " + job.brand : ""));
+  const spec = [job.kw + " kW", job.panels + " แผง", (job.phase || "1") + " เฟส"];
+  if (job.battery && job.batSize && job.batSize !== "ไม่มี") spec.push("🔋 " + job.batSize);
+  if (job.backup) spec.push("Back Up");
+  L.push("⚡ " + spec.join(" · "));
+  L.push("🗓️ ช่วงติดตั้ง: " + rpDateRange(job.startDate, job.deadline));
+  const tech = SF.TECH_BY_ID[job.tech];
+  const crew = (d.crew || "").trim() || (tech ? tech.name : "");
+  if (crew) L.push("👷 ทีมช่าง: " + crew);
+  L.push("");
+  if (d.pct !== "" && d.pct != null) L.push("📈 ความคืบหน้า: " + d.pct + "%");
+  const blk = (emoji, title, txt) => {
+    const lines = String(txt || "").split("\n").map((x) => x.trim()).filter(Boolean);
+    if (!lines.length) return;
+    L.push(emoji + " " + title);
+    lines.forEach((x) => L.push("• " + x));
+  };
+  blk("✅", "งานวันนี้", d.done);
+  blk("⚠️", "ปัญหา/อุปสรรค", d.issues);
+  blk("➡️", "แผนพรุ่งนี้", d.plan);
+  L.push("");
+  L.push("📦 ความพร้อมวัสดุ: " + (job.matReadyPct != null ? job.matReadyPct + "%" : "-"));
+  return L.join("\n");
+}
+
+function DailyReport({ job, onClose }) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const today = window.SF.TODAY;
+  const jid = job.id || job.code;
+  const [date, setDate] = React.useState(today);
+  const [entries, setEntries] = React.useState({});
+  const [form, setForm] = React.useState({ pct: "", done: "", issues: "", plan: "", crew: "" });
+  const [copied, setCopied] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+  const dirty = React.useRef(false);
+
+  const populate = (e) => { e = e || {}; setForm({ pct: e.pct != null ? e.pct : "", done: e.done || "", issues: e.issues || "", plan: e.plan || "", crew: e.crew || "" }); dirty.current = false; };
+
+  React.useEffect(() => {
+    if (!window.FBDB) return;
+    const r = window.FBDB.ref("dailyReports/" + jid);
+    const h = r.on("value", (s) => setEntries(s.val() || {}));
+    return () => r.off("value", h);
+  }, [jid]);
+
+  // โหลดข้อมูลของวันที่เลือกเข้าฟอร์ม (เปลี่ยนวัน = โหลดใหม่เสมอ)
+  React.useEffect(() => { populate(entries[date]); /* eslint-disable-next-line */ }, [date]);
+  // เมื่อ snapshot มาถึงและยังไม่แก้ → sync เข้าฟอร์ม (กันทับสิ่งที่กำลังพิมพ์)
+  React.useEffect(() => { if (!dirty.current) populate(entries[date]); /* eslint-disable-next-line */ }, [entries]);
+
+  const set = (k, v) => { dirty.current = true; setSaved(false); setForm((f) => Object.assign({}, f, { [k]: v })); };
+
+  const text = buildDailyText(job, date, form);
+
+  const save = () => {
+    if (!window.FBDB) return;
+    const rec = { date, pct: form.pct === "" ? null : +form.pct, done: form.done || "", issues: form.issues || "", plan: form.plan || "", crew: form.crew || "", savedAt: new Date().toISOString() };
+    window.FBDB.ref("dailyReports/" + jid + "/" + date).set(rec);
+    dirty.current = false; setSaved(true); setTimeout(() => setSaved(false), 1800);
+  };
+  const copy = () => rpCopy(text, (ok) => { if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1600); } });
+
+  const tech = window.SF.TECH_BY_ID[job.tech];
+  const pct = form.pct === "" ? null : Math.max(0, Math.min(100, +form.pct || 0));
+  const savedDates = Object.keys(entries).sort().reverse();
+
+  const taStyle = { width: "100%", minHeight: 64, padding: "9px 11px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13.5, lineHeight: 1.5, resize: "vertical", outline: "none", boxSizing: "border-box" };
+  const lbl = { fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 5, display: "block" };
+
+  const specChips = [];
+  specChips.push({ icon: "bolt", t: job.kw + " kW" });
+  specChips.push({ icon: "panel", t: job.panels + " แผง" });
+  specChips.push({ icon: "power", t: (job.phase || "1") + " เฟส" });
+  if (job.battery && job.batSize && job.batSize !== "ไม่มี") specChips.push({ icon: "battery", t: job.batSize });
+  if (job.backup) specChips.push({ icon: "shield", t: "Back Up" });
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 130, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(680px,100%)", maxHeight: isMobile ? "96dvh" : "92vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+        {/* header */}
+        <div style={{ padding: "16px 18px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, background: "var(--surface)" }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--primary-dark)" }}>รายงานประจำวัน · ติดตั้ง</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{job.name} <span style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 600, color: "var(--text-3)" }}>· {job.code}</span></div>
+          </div>
+          <button onClick={onClose} title="ปิด" style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface2)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} color="var(--text-2)" /></button>
+        </div>
+
+        {/* body */}
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* วันที่ */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}><Icon name="calendar" size={14} color="var(--primary)" /> วันที่รายงาน</span>
+            <input type="date" value={date} max={today} onChange={(e) => setDate(e.target.value || today)}
+              style={{ padding: "8px 11px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13.5, outline: "none" }} />
+            {entries[date] && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--primary-dark)", background: "var(--primary-soft)", padding: "3px 9px", borderRadius: 99 }}>มีบันทึกแล้ว</span>}
+            {savedDates.length > 0 && <span style={{ fontSize: 11, color: "var(--text-3)" }}>บันทึกไว้ {savedDates.length} วัน</span>}
+          </div>
+
+          {/* ข้อมูลระบบ (อัตโนมัติ) */}
+          <div style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 13, background: "var(--surface2)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13.5, color: "var(--text-2)", marginBottom: 8 }}>
+              <Icon name="pin" size={13} color="var(--text-3)" /> {job.province || "-"} · <span style={{ fontWeight: 700, color: "var(--text-1)" }}>{job.brand}</span>
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+              {specChips.map((c, i) => (
+                <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", background: "var(--surface)", border: "1px solid var(--border)", padding: "3px 8px", borderRadius: 7 }}>
+                  <Icon name={c.icon} size={11} color="var(--text-3)" />{c.t}
+                </span>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 12, color: "var(--text-3)" }}>
+              <span><Icon name="calendar" size={11} color="var(--text-3)" style={{ verticalAlign: -1 }} /> ช่วงติดตั้ง: <b style={{ color: "var(--text-2)" }}>{rpDateRange(job.startDate, job.deadline)}</b></span>
+              {tech && <span><Icon name="user" size={11} color="var(--text-3)" style={{ verticalAlign: -1 }} /> ช่าง: <b style={{ color: "var(--text-2)" }}>{tech.name}</b></span>}
+              <span><Icon name="box" size={11} color="var(--text-3)" style={{ verticalAlign: -1 }} /> วัสดุพร้อม: <b style={{ color: "var(--text-2)" }}>{job.matReadyPct}%</b></span>
+            </div>
+          </div>
+
+          {/* ฟอร์มกรอกรายวัน */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "120px 1fr", gap: 12, alignItems: "start" }}>
+              <div>
+                <label style={lbl}>ความคืบหน้า (%)</label>
+                <input type="number" min="0" max="100" value={form.pct} onChange={(e) => set("pct", e.target.value)} placeholder="เช่น 70"
+                  style={{ width: "100%", padding: "9px 11px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13.5, outline: "none", textAlign: "right", boxSizing: "border-box" }} />
+              </div>
+              <div>
+                <label style={lbl}>ทีมช่างวันนี้</label>
+                <input value={form.crew} onChange={(e) => set("crew", e.target.value)} placeholder={tech ? tech.name : "ชื่อทีม/ช่าง"}
+                  style={{ width: "100%", padding: "9px 11px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13.5, outline: "none", boxSizing: "border-box" }} />
+              </div>
+            </div>
+            <div><label style={lbl}>✅ งานที่ทำวันนี้ (บรรทัดละ 1 รายการ)</label><textarea value={form.done} onChange={(e) => set("done", e.target.value)} placeholder={"เช่น\nมุงโครงสร้าง + วางแผง 12 แผง\nเดินสาย DC ครบ"} style={taStyle} /></div>
+            <div><label style={lbl}>⚠️ ปัญหา / อุปสรรค</label><textarea value={form.issues} onChange={(e) => set("issues", e.target.value)} placeholder="เช่น ฝนตกช่วงบ่าย หยุดงาน 1 ชม." style={Object.assign({}, taStyle, { minHeight: 48 })} /></div>
+            <div><label style={lbl}>➡️ แผนงานพรุ่งนี้</label><textarea value={form.plan} onChange={(e) => set("plan", e.target.value)} placeholder="เช่น ต่อ Combiner + ทดสอบระบบ" style={Object.assign({}, taStyle, { minHeight: 48 })} /></div>
+          </div>
+
+          {/* พรีวิวสวยๆ */}
+          <div>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", letterSpacing: ".05em", textTransform: "uppercase", marginBottom: 8 }}>ตัวอย่างรายงาน</div>
+            <div style={{ border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
+              <div style={{ background: "linear-gradient(135deg, var(--primary), var(--primary-dark))", color: "#fff", padding: "13px 16px" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, opacity: .9, letterSpacing: ".05em" }}>PHITHAN GREEN · รายงานติดตั้ง</div>
+                <div style={{ fontSize: 15, fontWeight: 800, marginTop: 2 }}>{thDate(date, true)}</div>
+              </div>
+              <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10, background: "var(--surface)" }}>
+                <div style={{ fontSize: 14.5, fontWeight: 800, color: "var(--text-1)" }}>🏠 {job.name} <span style={{ fontWeight: 600, color: "var(--text-3)", fontSize: 12 }}>· {job.code}</span></div>
+                {pct != null && (
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginBottom: 4 }}><span>ความคืบหน้า</span><span style={{ color: "var(--primary-dark)" }}>{pct}%</span></div>
+                    <div style={{ height: 8, borderRadius: 99, background: "var(--surface3)", overflow: "hidden" }}><div style={{ width: pct + "%", height: "100%", background: "linear-gradient(90deg, var(--primary), var(--primary-dark))", borderRadius: 99 }} /></div>
+                  </div>
+                )}
+                <DRBlock emoji="✅" title="งานวันนี้" txt={form.done} color="var(--primary-dark)" />
+                <DRBlock emoji="⚠️" title="ปัญหา / อุปสรรค" txt={form.issues} color="#B45309" />
+                <DRBlock emoji="➡️" title="แผนพรุ่งนี้" txt={form.plan} color="#2563EB" />
+                <div style={{ borderTop: "1px solid var(--border)", paddingTop: 9, display: "flex", gap: 14, flexWrap: "wrap", fontSize: 11.5, color: "var(--text-3)" }}>
+                  <span>👷 {(form.crew || "").trim() || (tech ? tech.name : "-")}</span>
+                  <span>📦 วัสดุพร้อม {job.matReadyPct}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* footer */}
+        <div style={{ padding: 14, borderTop: "1px solid var(--border)", display: "flex", gap: 8, background: "var(--surface)" }}>
+          <button onClick={onClose} style={{ padding: "11px 16px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface2)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ปิด</button>
+          <button onClick={save} style={{ padding: "11px 16px", borderRadius: 11, border: "1px solid " + (saved ? "var(--primary)" : "var(--border-strong)"), background: saved ? "var(--primary-soft)" : "var(--surface2)", color: saved ? "var(--primary-dark)" : "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Icon name={saved ? "check" : "download"} size={15} color={saved ? "var(--primary-dark)" : "var(--text-2)"} /> {saved ? "บันทึกแล้ว" : "บันทึก"}
+          </button>
+          <button onClick={copy} style={{ flex: 1, padding: "11px 16px", borderRadius: 11, border: "none", background: copied ? "var(--primary-dark)" : "var(--primary)", color: "#fff", fontWeight: 800, fontFamily: "inherit", fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, boxShadow: "0 2px 8px rgba(34,163,91,.25)" }}>
+            <Icon name={copied ? "check" : "file"} size={16} color="#fff" /> {copied ? "คัดลอกแล้ว ✓" : "คัดลอกข้อความ"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DRBlock({ emoji, title, txt, color }) {
+  const lines = String(txt || "").split("\n").map((x) => x.trim()).filter(Boolean);
+  if (!lines.length) return null;
+  return (
+    <div>
+      <div style={{ fontSize: 12.5, fontWeight: 700, color: color || "var(--text-2)", marginBottom: 3 }}>{emoji} {title}</div>
+      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 2 }}>
+        {lines.map((x, i) => <li key={i} style={{ display: "flex", gap: 7, fontSize: 13, color: "var(--text-2)", lineHeight: 1.5 }}><span style={{ color: "var(--text-3)", flexShrink: 0 }}>•</span>{x}</li>)}
+      </ul>
+    </div>
+  );
+}
+
+// ปุ่มเปิดรายงานประจำวันบนการ์ด (เฉพาะงานขั้นดำเนินการติดตั้ง)
+function DailyReportButton({ job }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <React.Fragment>
+      <button onClick={(e) => { e.stopPropagation(); setOpen(true); }} title="รายงานประจำวัน"
+        style={{ marginTop: 10, width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+          padding: "8px 12px", borderRadius: 9, border: "1px dashed var(--primary)", background: "var(--primary-soft)",
+          color: "var(--primary-dark)", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+        <Icon name="file" size={13} color="var(--primary-dark)" /> รายงานวันนี้
+      </button>
+      {open && ReactDOM.createPortal(<DailyReport job={job} onClose={() => setOpen(false)} />, document.body)}
+    </React.Fragment>
+  );
+}

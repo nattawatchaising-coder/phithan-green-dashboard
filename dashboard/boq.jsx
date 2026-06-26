@@ -344,6 +344,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const groupOptions = (window.BOQ.AMP_GROUPS || []).map((g) => ({ value: g.key, label: g.th }));
   const ncondOptions = (window.BOQ.AMP_NCOND || []).map((n) => ({ value: n.key, label: n.th }));
 
+  // ตัวเลือกวัสดุใน Accessories: แบ่งกลุ่มย่อย (ชิปฟิลเตอร์) เหมือน dropdown สายไฟ · เดาจากชื่อ
+  const matSub = window.BOQ.materialSubGroup || (() => "อื่นๆ");
+  const MAT_SUB_ORDER = window.BOQ.MATERIAL_SUBGROUPS || ["อื่นๆ"];
+  const matItemOptions = (items, cat) => (items || [])
+    .map((n) => ({ value: n, label: n, group: matSub(n, cat) }))
+    // เรียงตามกลุ่มย่อย แล้วตามชื่อ (ให้รายการกลุ่มเดียวกันอยู่ติดกัน)
+    .sort((a, z) => (MAT_SUB_ORDER.indexOf(a.group) - MAT_SUB_ORDER.indexOf(z.group)) || String(a.value).localeCompare(String(z.value), "th", { numeric: true }));
+
   const accList = b.accessories || [];
   const setAcc = (i, k, v) => setB((p) => { const a = (p.accessories || []).slice(); a[i] = Object.assign({}, a[i], { [k]: v }); if (k === "name" && matInfo[v]) a[i].unit = matInfo[v].unit || a[i].unit; return Object.assign({}, p, { accessories: a }); });
   const setAccCat = (i, v) => setB((p) => { const a = (p.accessories || []).slice(); a[i] = Object.assign({}, a[i], { cat: v, name: "" }); return Object.assign({}, p, { accessories: a }); });
@@ -763,6 +771,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 const showHint = !!c.type && !isComm && !isDC;
                 return (
                 <div key={i} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {isMobile && <Dropdown value={c.name || ""} onChange={(v) => setCab(i, "name", v)} options={cablePtOptions} placeholder="— เลือกจุด —" addable onAdd={addCablePt} />}
                   <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 70px 36px" : "minmax(150px,1fr) minmax(0,1.3fr) 90px 36px", gap: 8, alignItems: "center" }}>
                     {!isMobile && <Dropdown value={c.name || ""} onChange={(v) => setCab(i, "name", v)} options={cablePtOptions} placeholder="— เลือกจุด —" addable onAdd={addCablePt} />}
                     <Dropdown value={c.type} onChange={(v) => setCab(i, "type", v)} options={cableTypeOptions} placeholder="— เลือกสายไฟ —" />
@@ -899,6 +908,106 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   : "* MICRO-MICRO = ไมโคร 1 ตัว (" + microW + "W) ÷ 230V (อุปกรณ์ 1 เฟส) · MICRO-COMBINER (กระแส/สตริง) = กระแสรวม ÷ จำนวน String · COMBINER→MCB ใช้กระแสรวมทุกสตริง · กระแสรวม: 1 เฟส = W ÷ V · 3 เฟส = W ÷ (√3 × แรงดันไลน์ V) · ขนาดสายแนะนำเลือกให้รับกระแส ×1.25 (โหลดต่อเนื่อง) อ้างพิกัดสายทองแดง IEC01/THW โดยประมาณ — โปรดตรวจสอบกับวิธีเดินสายจริง"}
               </div>
             </div>
+
+            {/* ── ตรวจสอบ WIRE WAY / CONDUIT (ย้ายมารวมกับการคำนวณสายไฟ) ── */}
+            <div style={{ marginTop: 16 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                <Icon name="grid" size={13} color="var(--primary)" /> ตรวจสอบ WIRE WAY / CONDUIT
+              </div>
+              {/* WIRE WAY */}
+              <div style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden", marginBottom: 10 }}>
+                <button onClick={() => setAdvWW((v) => !v)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 13px", background: "var(--surface2)", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                  <span style={{ fontWeight: 700, fontSize: 13, color: "var(--text-1)" }}>WIRE WAY (รางเดินสาย)</span>
+                  <Icon name={advWW ? "chevronDown" : "plus"} size={13} color="var(--text-2)" style={{ transform: advWW ? "rotate(180deg)" : "none" }} />
+                </button>
+                {advWW && (
+                  <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", whiteSpace: "nowrap" }}>ขนาดราง W × H (mm)</span>
+                      <input type="number" value={wc.wayW} onChange={(e) => setWC("wayW", e.target.value)} style={Object.assign({}, numStyle, { width: 70 })} placeholder="W" />
+                      <span style={{ color: "var(--text-3)" }}>×</span>
+                      <input type="number" value={wc.wayH} onChange={(e) => setWC("wayH", e.target.value)} style={Object.assign({}, numStyle, { width: 70 })} placeholder="H" />
+                      {wc.wayW > 0 && wc.wayH > 0 && <span style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--mono)" }}>= {(+wc.wayW * +wc.wayH).toLocaleString()} mm²</span>}
+                    </div>
+                    {wc.cables.map((c, i) => {
+                      const szOpts = Object.keys((window.BOQ.CABLE_OD || {})[c.type] || {}).map(Number).sort((a, b) => a - b).map((n) => ({ value: n, label: n + " sq.mm." }));
+                      return (
+                        <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 60px 30px", gap: 6, alignItems: "center" }}>
+                          <Dropdown value={c.type || ""} onChange={(v) => setWCCable(i, "type", v)} options={CHECK_TYPES.map((t) => ({ value: t, label: t }))} />
+                          <Dropdown value={+c.size || 0} onChange={(v) => setWCCable(i, "size", +v)} options={szOpts} />
+                          <input type="number" value={c.qty} onChange={(e) => setWCCable(i, "qty", e.target.value)} style={Object.assign({}, numStyle, { width: "100%" })} placeholder="เส้น" />
+                          <button onClick={() => delWCCable(i)} style={{ height: 36, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
+                        </div>
+                      );
+                    })}
+                    <button onClick={addWCCable} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--primary-soft)", color: "var(--primary-dark)", border: "none", borderRadius: 8, padding: "7px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--primary-dark)" /> เพิ่มสาย</button>
+                    {wc.cables.length > 0 && (
+                      <div style={{ background: "var(--surface2)", borderRadius: 9, padding: "10px 13px", display: "flex", flexDirection: "column", gap: 6 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                          <span style={{ color: "var(--text-2)" }}>พื้นที่สายรวม</span>
+                          <span style={{ fontFamily: "var(--mono)", fontWeight: 700 }}>{wcResult.totalArea.toFixed(1)} mm²</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                          <span style={{ color: "var(--text-2)" }}>พื้นที่ราง ({wc.wayW}×{wc.wayH} mm)</span>
+                          <span style={{ fontFamily: "var(--mono)", fontWeight: 700 }}>{(+wcResult.wayArea).toLocaleString()} mm²</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, alignItems: "center", paddingTop: 4, borderTop: "1px solid var(--border)" }}>
+                          <span style={{ fontWeight: 700, color: "var(--text-2)" }}>อัตราเต็ม (≤ 20%)</span>
+                          <span style={{ fontFamily: "var(--mono)", fontWeight: 800, color: wcResult.ok ? "#16A34A" : "#DC2626" }}>{wcResult.fillPct.toFixed(1)}% {wcResult.ok ? "✓ ผ่าน" : "✗ เกิน"}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              {/* CONDUIT */}
+              <div style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
+                <button onClick={() => setAdvCD((v) => !v)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 13px", background: "var(--surface2)", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                  <span style={{ fontWeight: 700, fontSize: 13, color: "var(--text-1)" }}>CONDUIT (ท่อร้อยสาย)</span>
+                  <Icon name={advCD ? "chevronDown" : "plus"} size={13} color="var(--text-2)" style={{ transform: advCD ? "rotate(180deg)" : "none" }} />
+                </button>
+                {advCD && (
+                  <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+                    {cc.cables.map((c, i) => {
+                      const szOpts = Object.keys((window.BOQ.CABLE_OD || {})[c.type] || {}).map(Number).sort((a, b) => a - b).map((n) => ({ value: n, label: n + " sq.mm." }));
+                      return (
+                        <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 60px 30px", gap: 6, alignItems: "center" }}>
+                          <Dropdown value={c.type || ""} onChange={(v) => setCCCable(i, "type", v)} options={CHECK_TYPES.map((t) => ({ value: t, label: t }))} />
+                          <Dropdown value={+c.size || 0} onChange={(v) => setCCCable(i, "size", +v)} options={szOpts} />
+                          <input type="number" value={c.qty} onChange={(e) => setCCCable(i, "qty", e.target.value)} style={Object.assign({}, numStyle, { width: "100%" })} placeholder="เส้น" />
+                          <button onClick={() => delCCCable(i)} style={{ height: 36, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
+                        </div>
+                      );
+                    })}
+                    <button onClick={addCCCable} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--primary-soft)", color: "var(--primary-dark)", border: "none", borderRadius: 8, padding: "7px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--primary-dark)" /> เพิ่มสาย</button>
+                    {cc.cables.length > 0 && (
+                      <div style={{ background: "var(--surface2)", borderRadius: 9, padding: "10px 13px", display: "flex", flexDirection: "column", gap: 7 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginBottom: 2 }}>ขนาดท่อขั้นต่ำที่แนะนำ (fill ≤ 40%)</div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, alignItems: "center" }}>
+                          <span style={{ color: "var(--text-2)" }}>HDPE</span>
+                          {ccResult.hdpe
+                            ? <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+                                <span style={{ background: "#0EA5E918", color: "#0369A1", fontFamily: "var(--mono)", fontWeight: 800, fontSize: 13, borderRadius: 7, padding: "2px 9px" }}>{ccResult.hdpe.label}</span>
+                                <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)" }}>{ccResult.hdpe.fillPct.toFixed(1)}%</span>
+                              </span>
+                            : <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: "#DC2626" }}>เกินขนาดในตาราง</span>}
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, alignItems: "center" }}>
+                          <span style={{ color: "var(--text-2)" }}>IMC</span>
+                          {ccResult.imc
+                            ? <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+                                <span style={{ background: "#7C3AED18", color: "#6D28D9", fontFamily: "var(--mono)", fontWeight: 800, fontSize: 13, borderRadius: 7, padding: "2px 9px" }}>{ccResult.imc.label}</span>
+                                <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)" }}>{ccResult.imc.fillPct.toFixed(1)}%</span>
+                              </span>
+                            : <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: "#DC2626" }}>เกินขนาดในตาราง</span>}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)" }}>* WIRE WAY: fill ≤ 20% ของพื้นที่ราง — CONDUIT: fill ≤ 40% ของพื้นที่ท่อ</div>
+            </div>
           </Section>
 
           {/* ── ท่อร้อยสาย (RACE WAY) ── */}
@@ -983,104 +1092,6 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           </Section>
           )}
 
-          {/* ── ตรวจสอบ WIRE WAY / CONDUIT ── */}
-          <Section title="ตรวจสอบ WIRE WAY / CONDUIT" icon="grid">
-            {/* WIRE WAY */}
-            <div style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden", marginBottom: 10 }}>
-              <button onClick={() => setAdvWW((v) => !v)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 13px", background: "var(--surface2)", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-                <span style={{ fontWeight: 700, fontSize: 13, color: "var(--text-1)" }}>WIRE WAY (รางเดินสาย)</span>
-                <Icon name={advWW ? "chevronDown" : "plus"} size={13} color="var(--text-2)" style={{ transform: advWW ? "rotate(180deg)" : "none" }} />
-              </button>
-              {advWW && (
-                <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", whiteSpace: "nowrap" }}>ขนาดราง W × H (mm)</span>
-                    <input type="number" value={wc.wayW} onChange={(e) => setWC("wayW", e.target.value)} style={Object.assign({}, numStyle, { width: 70 })} placeholder="W" />
-                    <span style={{ color: "var(--text-3)" }}>×</span>
-                    <input type="number" value={wc.wayH} onChange={(e) => setWC("wayH", e.target.value)} style={Object.assign({}, numStyle, { width: 70 })} placeholder="H" />
-                    {wc.wayW > 0 && wc.wayH > 0 && <span style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--mono)" }}>= {(+wc.wayW * +wc.wayH).toLocaleString()} mm²</span>}
-                  </div>
-                  {wc.cables.map((c, i) => {
-                    const szOpts = Object.keys((window.BOQ.CABLE_OD || {})[c.type] || {}).map(Number).sort((a, b) => a - b).map((n) => ({ value: n, label: n + " sq.mm." }));
-                    return (
-                      <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 60px 30px", gap: 6, alignItems: "center" }}>
-                        <Dropdown value={c.type || ""} onChange={(v) => setWCCable(i, "type", v)} options={CHECK_TYPES.map((t) => ({ value: t, label: t }))} />
-                        <Dropdown value={+c.size || 0} onChange={(v) => setWCCable(i, "size", +v)} options={szOpts} />
-                        <input type="number" value={c.qty} onChange={(e) => setWCCable(i, "qty", e.target.value)} style={Object.assign({}, numStyle, { width: "100%" })} placeholder="เส้น" />
-                        <button onClick={() => delWCCable(i)} style={{ height: 36, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
-                      </div>
-                    );
-                  })}
-                  <button onClick={addWCCable} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--primary-soft)", color: "var(--primary-dark)", border: "none", borderRadius: 8, padding: "7px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--primary-dark)" /> เพิ่มสาย</button>
-                  {wc.cables.length > 0 && (
-                    <div style={{ background: "var(--surface2)", borderRadius: 9, padding: "10px 13px", display: "flex", flexDirection: "column", gap: 6 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                        <span style={{ color: "var(--text-2)" }}>พื้นที่สายรวม</span>
-                        <span style={{ fontFamily: "var(--mono)", fontWeight: 700 }}>{wcResult.totalArea.toFixed(1)} mm²</span>
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                        <span style={{ color: "var(--text-2)" }}>พื้นที่ราง ({wc.wayW}×{wc.wayH} mm)</span>
-                        <span style={{ fontFamily: "var(--mono)", fontWeight: 700 }}>{(+wcResult.wayArea).toLocaleString()} mm²</span>
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, alignItems: "center", paddingTop: 4, borderTop: "1px solid var(--border)" }}>
-                        <span style={{ fontWeight: 700, color: "var(--text-2)" }}>อัตราเต็ม (≤ 20%)</span>
-                        <span style={{ fontFamily: "var(--mono)", fontWeight: 800, color: wcResult.ok ? "#16A34A" : "#DC2626" }}>{wcResult.fillPct.toFixed(1)}% {wcResult.ok ? "✓ ผ่าน" : "✗ เกิน"}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* CONDUIT */}
-            <div style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
-              <button onClick={() => setAdvCD((v) => !v)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 13px", background: "var(--surface2)", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-                <span style={{ fontWeight: 700, fontSize: 13, color: "var(--text-1)" }}>CONDUIT (ท่อร้อยสาย)</span>
-                <Icon name={advCD ? "chevronDown" : "plus"} size={13} color="var(--text-2)" style={{ transform: advCD ? "rotate(180deg)" : "none" }} />
-              </button>
-              {advCD && (
-                <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
-                  {cc.cables.map((c, i) => {
-                    const szOpts = Object.keys((window.BOQ.CABLE_OD || {})[c.type] || {}).map(Number).sort((a, b) => a - b).map((n) => ({ value: n, label: n + " sq.mm." }));
-                    return (
-                      <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 60px 30px", gap: 6, alignItems: "center" }}>
-                        <Dropdown value={c.type || ""} onChange={(v) => setCCCable(i, "type", v)} options={CHECK_TYPES.map((t) => ({ value: t, label: t }))} />
-                        <Dropdown value={+c.size || 0} onChange={(v) => setCCCable(i, "size", +v)} options={szOpts} />
-                        <input type="number" value={c.qty} onChange={(e) => setCCCable(i, "qty", e.target.value)} style={Object.assign({}, numStyle, { width: "100%" })} placeholder="เส้น" />
-                        <button onClick={() => delCCCable(i)} style={{ height: 36, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
-                      </div>
-                    );
-                  })}
-                  <button onClick={addCCCable} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--primary-soft)", color: "var(--primary-dark)", border: "none", borderRadius: 8, padding: "7px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--primary-dark)" /> เพิ่มสาย</button>
-                  {cc.cables.length > 0 && (
-                    <div style={{ background: "var(--surface2)", borderRadius: 9, padding: "10px 13px", display: "flex", flexDirection: "column", gap: 7 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginBottom: 2 }}>ขนาดท่อขั้นต่ำที่แนะนำ (fill ≤ 40%)</div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, alignItems: "center" }}>
-                        <span style={{ color: "var(--text-2)" }}>HDPE</span>
-                        {ccResult.hdpe
-                          ? <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
-                              <span style={{ background: "#0EA5E918", color: "#0369A1", fontFamily: "var(--mono)", fontWeight: 800, fontSize: 13, borderRadius: 7, padding: "2px 9px" }}>{ccResult.hdpe.label}</span>
-                              <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)" }}>{ccResult.hdpe.fillPct.toFixed(1)}%</span>
-                            </span>
-                          : <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: "#DC2626" }}>เกินขนาดในตาราง</span>}
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, alignItems: "center" }}>
-                        <span style={{ color: "var(--text-2)" }}>IMC</span>
-                        {ccResult.imc
-                          ? <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
-                              <span style={{ background: "#7C3AED18", color: "#6D28D9", fontFamily: "var(--mono)", fontWeight: 800, fontSize: 13, borderRadius: 7, padding: "2px 9px" }}>{ccResult.imc.label}</span>
-                              <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)" }}>{ccResult.imc.fillPct.toFixed(1)}%</span>
-                            </span>
-                          : <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: "#DC2626" }}>เกินขนาดในตาราง</span>}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-            <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)" }}>* WIRE WAY: fill ≤ 20% ของพื้นที่ราง — CONDUIT: fill ≤ 40% ของพื้นที่ท่อ</div>
-          </Section>
-
           {/* ── Accessories ── */}
           <Section title="Accessories (เพิ่มของ)" icon="box">
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -1096,7 +1107,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 72px", gap: 8, alignItems: "center" }}>
                       {a.cat === "พิมพ์เอง"
                         ? <input value={a.name} onChange={(e) => setAcc(i, "name", e.target.value)} placeholder="ชื่อวัสดุ" style={inputStyle} />
-                        : <Dropdown value={a.name || ""} onChange={(v) => setAcc(i, "name", v)} disabled={!a.cat} options={[{ value: "", label: a.cat ? "— เลือกวัสดุ —" : "เลือกหมวดก่อน" }].concat(items.map((n) => ({ value: n, label: n })))} />}
+                        : <Dropdown value={a.name || ""} onChange={(v) => setAcc(i, "name", v)} disabled={!a.cat} options={[{ value: "", label: a.cat ? "— เลือกวัสดุ —" : "เลือกหมวดก่อน" }].concat(matItemOptions(items, a.cat))} />}
                       <input type="number" style={numStyle} value={a.qty} placeholder="จำนวน" onChange={(e) => setAcc(i, "qty", e.target.value)} />
                     </div>
                   </div>

@@ -531,11 +531,11 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
         {/* ปุ่มย่อ/ขยายแถบกรองขั้นงาน — สไตล์เดียวกับ "หมวดหมู่" ฝั่งคลัง (ไม่แสดงบนหน้าภาพรวม) */}
         {view !== "overview" && (
         <button onClick={toggleStage} title={stageOpen ? "ซ่อนตัวกรองขั้นงาน" : "แสดงตัวกรองขั้นงาน"}
-          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 13px", borderRadius: 99,
+          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: isMobile ? "5px 10px" : "6px 13px", borderRadius: 99,
             border: "1px solid " + (stageFilter ? stageOf(stageFilter).color : "var(--border-strong)"),
             background: stageFilter ? stageOf(stageFilter).color + "16" : "var(--surface)",
             color: stageFilter ? stageOf(stageFilter).color : "var(--text-2)",
-            fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+            fontSize: isMobile ? 11.5 : 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
           <Icon name="filter" size={14} color={stageFilter ? stageOf(stageFilter).color : "var(--text-2)"} />
           ขั้นงาน{stageFilter ? ": " + stageOf(stageFilter).th : ""}
           <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: stageOpen ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
@@ -545,16 +545,16 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
       {/* ชิปกรองขั้นงาน — ย่อ/ขยายแบบลื่น (max-height + opacity); ซ่อนบนหน้าภาพรวม */}
       {view !== "overview" && (
       <div style={{ overflow: "hidden", maxHeight: stageOpen ? 180 : 0, opacity: stageOpen ? 1 : 0,
-        paddingBottom: stageOpen ? 14 : 0, transition: "max-height .24s ease, opacity .2s ease, padding-bottom .24s ease" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+        paddingBottom: stageOpen ? (isMobile ? 10 : 14) : 0, transition: "max-height .24s ease, opacity .2s ease, padding-bottom .24s ease" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 5 : 7, flexWrap: "wrap" }}>
           {(() => {
             const SF = window.SF;
             const chip = (active, color) => ({
-              display: "inline-flex", alignItems: "center", gap: 6, padding: isMobile ? "5px 11px" : "6px 13px", borderRadius: 99,
+              display: "inline-flex", alignItems: "center", gap: isMobile ? 5 : 6, padding: isMobile ? "4px 9px" : "6px 13px", borderRadius: 99,
               border: "1px solid " + (active ? (color || "var(--primary)") : "var(--border-strong)"),
               background: active ? (color ? color + "16" : "var(--primary-soft)") : "var(--surface)",
               color: active ? (color || "var(--primary-dark)") : "var(--text-2)",
-              fontFamily: "inherit", fontSize: isMobile ? 11.5 : 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
+              fontFamily: "inherit", fontSize: isMobile ? 11 : 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
             });
             const num = (active) => ({ fontSize: 11, fontWeight: 700, opacity: active ? 1 : .6, fontFamily: "var(--mono)" });
             return (
@@ -568,7 +568,7 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
                   return (
                     <button key={s.key} style={Object.assign(chip(active, s.color), n === 0 && !active ? { opacity: .5 } : {})}
                       onClick={() => setStageFilter(active ? null : s.key)}>
-                      <span style={{ width: 7, height: 7, borderRadius: 99, background: s.color, flexShrink: 0 }} />
+                      <span style={{ width: isMobile ? 6 : 7, height: isMobile ? 6 : 7, borderRadius: 99, background: s.color, flexShrink: 0 }} />
                       {s.th} <span style={num(active)}>{n}</span>
                     </button>
                   );

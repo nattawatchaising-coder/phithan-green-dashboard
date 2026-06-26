@@ -73,6 +73,7 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
           <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "var(--mono)", color: job.matReady ? "var(--primary-dark)" : "var(--text-3)" }}>{job.matReadyPct}%</span>
         </span>
       </div>
+      {job.stage === "install" && <DailyReportButton job={job} />}
     </div>
   );
 }
@@ -153,8 +154,8 @@ function KanbanMobile({ jobs, onOpen }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {SF.STAGES.map((s) => {
         const col = jobs.filter((j) => j.stage === s.key);
-        // ค่าเริ่มต้น: ขั้นที่มีงานให้ขยาย, ขั้นว่างพับ
-        const isOpen = collapsed[s.key] !== undefined ? !collapsed[s.key] : col.length > 0;
+        // ค่าเริ่มต้น: พับทุกขั้น (เห็นจำนวน+⚠ เพื่อสแกนง่าย) แล้วค่อยกดเปิดทีละขั้น
+        const isOpen = collapsed[s.key] !== undefined ? !collapsed[s.key] : false;
         const problems = col.filter((j) => j.problem || j.delayed).length;
         return (
           <div key={s.key} style={{ borderRadius: 14, background: "var(--surface2)", border: "1px solid var(--border)", overflow: "hidden" }}>
