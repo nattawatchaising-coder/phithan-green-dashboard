@@ -473,6 +473,12 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [stageOpen, setStageOpen] = React.useState(() => localStorage.getItem("sf_stage_filteropen") !== "0");
   const toggleStage = () => setStageOpen((v) => { localStorage.setItem("sf_stage_filteropen", v ? "0" : "1"); return !v; });
+  // มือถือหน้าบอร์ด: ซ่อนตัวกรองขั้นงาน (ซ้ำกับหัวข้อขั้นงานที่บอร์ดมือถือแสดงเป็น section อยู่แล้ว) เพื่อประหยัดพื้นที่
+  const showStageBar = view !== "overview" && !(isMobile && view === "board");
+  // มือถือ: ช่องค้นหายุบเป็นปุ่มสีเขียว กดแล้วค่อยขยายเป็นช่องพิมพ์ (ประหยัดพื้นที่หัว)
+  const [searchOpen, setSearchOpen] = React.useState(false);
+  const searchRef = React.useRef(null);
+  React.useEffect(() => { if (searchOpen && searchRef.current) searchRef.current.focus(); }, [searchOpen]);
   return (
     <header className="app-header">
       <div className="header-top">
@@ -489,18 +495,33 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
           </p>
         </div>
         <div className="header-actions">
-          <div className="search-box">
-            <Icon name="search" size={16} color="var(--text-3)" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหา..." />
-          </div>
-          {onMap && (
+          {isMobile && !searchOpen ? (
+            <button onClick={() => setSearchOpen(true)} title="ค้นหา" aria-label="ค้นหา"
+              style={{ width: 40, height: 40, borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff",
+                cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+              <Icon name="search" size={18} color="#fff" />
+            </button>
+          ) : (
+            <div className="search-box" style={isMobile ? { maxWidth: "none", flex: 1 } : undefined}>
+              <Icon name="search" size={16} color="var(--text-3)" />
+              <input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหา..."
+                onBlur={() => { if (isMobile && !search.trim()) setSearchOpen(false); }} />
+              {isMobile && (
+                <button onMouseDown={(e) => e.preventDefault()} onClick={() => { setSearch(""); setSearchOpen(false); }} title="ปิดค้นหา" aria-label="ปิดค้นหา"
+                  style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 7, border: "none", background: "var(--surface3)", color: "var(--text-3)", cursor: "pointer", display: "grid", placeItems: "center" }}>
+                  <Icon name="x" size={14} color="var(--text-3)" />
+                </button>
+              )}
+            </div>
+          )}
+          {onMap && !(isMobile && searchOpen) && (
             <button onClick={onMap} title="แผนที่งาน" aria-label="แผนที่งาน"
               style={{ width: 40, height: 40, borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)",
                 cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
               <Icon name="map" size={18} color="var(--text-2)" />
             </button>
           )}
-          {showBell && (
+          {showBell && !(isMobile && searchOpen) && (
             <div style={{ position: "relative", flexShrink: 0 }}>
               <button onClick={onBell} aria-label="การแจ้งเตือน"
                 style={{ width: 40, height: 40, borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)",
@@ -514,7 +535,7 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
               {notifOpen && <NotifPanel items={notifItems} lateAlerts={lateAlerts} onClose={onCloseNotif} onOpenJob={onOpenNotif} onMarkAll={onMarkAll} />}
             </div>
           )}
-          {canAdd && (
+          {canAdd && !(isMobile && searchOpen) && (
             <button className="btn-add" onClick={onAdd}>
               <Icon name="plus" size={17} color="#fff" sw={2.4} /><span>เพิ่มงาน</span>
             </button>
@@ -528,8 +549,8 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
           <Icon name="alert" size={15} color={delayedOnly ? "#fff" : "#EF4444"} />
           เฉพาะงานล่าช้า
         </button>
-        {/* ปุ่มย่อ/ขยายแถบกรองขั้นงาน — สไตล์เดียวกับ "หมวดหมู่" ฝั่งคลัง (ไม่แสดงบนหน้าภาพรวม) */}
-        {view !== "overview" && (
+        {/* ปุ่มย่อ/ขยายแถบกรองขั้นงาน — สไตล์เดียวกับ "หมวดหมู่" ฝั่งคลัง (ไม่แสดงบนหน้าภาพรวม / มือถือหน้าบอร์ด) */}
+        {showStageBar && (
         <button onClick={toggleStage} title={stageOpen ? "ซ่อนตัวกรองขั้นงาน" : "แสดงตัวกรองขั้นงาน"}
           style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: isMobile ? "5px 10px" : "6px 13px", borderRadius: 99,
             border: "1px solid " + (stageFilter ? stageOf(stageFilter).color : "var(--border-strong)"),
@@ -542,8 +563,8 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
         </button>
         )}
       </div>
-      {/* ชิปกรองขั้นงาน — ย่อ/ขยายแบบลื่น (max-height + opacity); ซ่อนบนหน้าภาพรวม */}
-      {view !== "overview" && (
+      {/* ชิปกรองขั้นงาน — ย่อ/ขยายแบบลื่น (max-height + opacity); ซ่อนบนหน้าภาพรวม / มือถือหน้าบอร์ด */}
+      {showStageBar && (
       <div style={{ overflow: "hidden", maxHeight: stageOpen ? 180 : 0, opacity: stageOpen ? 1 : 0,
         paddingBottom: stageOpen ? (isMobile ? 10 : 14) : 0, transition: "max-height .24s ease, opacity .2s ease, padding-bottom .24s ease" }}>
         <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 5 : 7, flexWrap: "wrap" }}>

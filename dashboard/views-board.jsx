@@ -26,8 +26,8 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
       </div>
       {(job.hasDesign || job.hasBoq) && (
         <div style={{ display: "flex", gap: 5, marginBottom: 6, flexWrap: "wrap" }}>
-          {job.hasDesign && <DocChip label="แบบ" color="#2563EB" soft="#2563EB14" />}
-          {job.hasBoq && <DocChip label="BOQ" color="#0D9488" soft="#0D948814" />}
+          {job.hasDesign && <DocChip job={job} kind="design" label="แบบ" color="#2563EB" soft="#2563EB14" />}
+          {job.hasBoq && <DocChip job={job} kind="boq" label="BOQ" color="#0D9488" soft="#0D948814" />}
         </div>
       )}
       <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.25, marginBottom: 2 }}>{job.name}</div>
@@ -78,12 +78,76 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
   );
 }
 
-function DocChip({ label, color, soft }) {
+function DocChip({ job, kind, label, color, soft }) {
+  const [open, setOpen] = React.useState(false);
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700,
-      color: color, background: soft, border: "1px solid " + color + "44", padding: "2px 7px", borderRadius: 99 }}>
-      <Icon name="file" size={10} color={color} />{label}
-    </span>
+    <React.Fragment>
+      <button onClick={(e) => { e.stopPropagation(); setOpen(true); }} title={"ดู" + label}
+        style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700,
+          color: color, background: soft, border: "1px solid " + color + "44", padding: "2px 7px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit" }}>
+        <Icon name="file" size={10} color={color} />{label}
+      </button>
+      {open && ReactDOM.createPortal(<DocViewer job={job} kind={kind} label={label} color={color} onClose={() => setOpen(false)} />, document.body)}
+    </React.Fragment>
+  );
+}
+
+/* ดูไฟล์ PDF (แบบ / BOQ) จากการ์ดได้เลย — โหลด media เฉพาะตอนเปิด
+   มือถือบางตัว iframe PDF ไม่เรนเดอร์ → มีปุ่ม เปิดเต็มจอ/ดาวน์โหลด เป็นทางสำรอง */
+function DocViewer({ job, kind, label, color, onClose }) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const media = useJobMedia(job.id);
+  const files = (media.files || []).filter((f) => f.kind === kind);
+  const [idx, setIdx] = React.useState(0);
+  const [slow, setSlow] = React.useState(false);
+  React.useEffect(() => { const t = setTimeout(() => setSlow(true), 5000); return () => clearTimeout(t); }, []);
+  const cur = files[idx] || files[0];
+  const blobUrl = React.useMemo(() => { try { return cur ? dataUrlToBlobUrl(cur.dataUrl) : null; } catch (e) { return null; } }, [cur && cur.id]);
+  React.useEffect(() => () => { if (blobUrl) URL.revokeObjectURL(blobUrl); }, [blobUrl]);
+  const download = () => { if (!blobUrl) return; const a = document.createElement("a"); a.href = blobUrl; a.download = cur.name || (label + ".pdf"); document.body.appendChild(a); a.click(); a.remove(); };
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)", zIndex: 130, display: "grid", placeItems: isMobile ? "stretch" : "center", padding: isMobile ? 0 : 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? 0 : 16, width: isMobile ? "100%" : "min(900px,96vw)", height: isMobile ? "100%" : "92vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+        {/* header */}
+        <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+          <span style={{ width: 30, height: 30, borderRadius: 8, background: color + "16", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="file" size={16} color={color} /></span>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, color: color, letterSpacing: ".04em" }}>{label} · {job.code}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cur ? cur.name : "กำลังโหลด…"}</div>
+          </div>
+          {blobUrl && <button onClick={() => window.open(blobUrl, "_blank", "noopener")} title="เปิดเต็มจอ"
+            style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="link" size={16} color="var(--text-2)" /></button>}
+          {blobUrl && <button onClick={download} title="ดาวน์โหลด"
+            style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="download" size={16} color="var(--text-2)" /></button>}
+          <button onClick={onClose} title="ปิด" style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+        </div>
+        {/* แท็บไฟล์ (กรณีแนบหลายไฟล์) */}
+        {files.length > 1 && (
+          <div style={{ display: "flex", gap: 6, padding: "8px 12px", borderBottom: "1px solid var(--border)", background: "var(--surface)", overflowX: "auto", flexShrink: 0 }}>
+            {files.map((f, i) => (
+              <button key={f.id} onClick={() => setIdx(i)} style={{ flexShrink: 0, padding: "5px 11px", borderRadius: 8, fontSize: 11.5, fontWeight: 600, fontFamily: "inherit", cursor: "pointer",
+                border: "1px solid " + (i === idx ? color : "var(--border-strong)"), background: i === idx ? color + "14" : "var(--surface)", color: i === idx ? color : "var(--text-2)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</button>
+            ))}
+          </div>
+        )}
+        {/* เนื้อหา */}
+        <div style={{ flex: 1, minHeight: 0, background: "var(--surface2)", display: "grid" }}>
+          {blobUrl
+            ? <iframe key={cur.id} src={blobUrl} title={cur.name} style={{ width: "100%", height: "100%", border: "none" }} />
+            : <div style={{ placeSelf: "center", textAlign: "center", color: "var(--text-3)", fontSize: 13, padding: 24 }}>
+                {slow ? <React.Fragment><Icon name="alert" size={22} color="var(--text-3)" /><div style={{ marginTop: 8 }}>ไม่พบไฟล์ {label} (อาจถูกลบไปแล้ว)</div></React.Fragment>
+                      : <React.Fragment><div style={{ width: 26, height: 26, border: "3px solid var(--border)", borderTopColor: color, borderRadius: "50%", margin: "0 auto 10px", animation: "spin .8s linear infinite" }} />กำลังโหลดไฟล์…</React.Fragment>}
+              </div>}
+        </div>
+        {isMobile && blobUrl && (
+          <div style={{ padding: "10px 14px calc(10px + env(safe-area-inset-bottom,0px))", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, flexShrink: 0 }}>
+            <button onClick={() => window.open(blobUrl, "_blank", "noopener")} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: color, color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}><Icon name="link" size={16} color="#fff" /> เปิดเต็มจอ</button>
+            <button onClick={download} style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 7 }}><Icon name="download" size={16} color="var(--text-2)" /></button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

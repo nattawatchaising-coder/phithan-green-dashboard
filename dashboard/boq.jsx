@@ -167,6 +167,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const [advS, setAdvS] = React.useState(false);
   const [advC, setAdvC] = React.useState(false);
   const isHome = !!(job && job.type === "home");  // งานบ้าน = ไม่มีงานโครงสร้างเพิ่มเติม
+  // accordion — เปิดได้ทีละหัวข้อ (กดอันใหม่ อันเก่าหุบเอง)
+  const [openSec, setOpenSec] = React.useState("info");
+  const secProps = (key) => ({ open: openSec === key, onToggle: () => setOpenSec((s) => (s === key ? null : key)) });
   const [advU, setAdvU] = React.useState(false);
 
   // ── เครื่องตรวจสอบ WIRE WAY / CONDUIT ──
@@ -567,8 +570,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const numStyle = Object.assign({}, inputStyle, { textAlign: "right" });
 
   return (
-    <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 110, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(720px,100%)", maxHeight: isMobile ? "96dvh" : "92vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+    <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 110, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 16 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(1040px,96vw)", height: isMobile ? "auto" : "94vh", maxHeight: isMobile ? "96dvh" : "94vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
         {/* header */}
         <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexShrink: 0 }}>
           <div style={{ minWidth: 0 }}>
@@ -578,10 +581,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
         </div>
 
-        {/* body */}
-        <div style={{ padding: 20, overflowY: "auto", display: "flex", flexDirection: "column", gap: 22 }}>
+        {/* body — ไม่มี padding บน เพื่อให้หัวข้อ sticky ปักชิดขอบบน เนื้อหาที่เลื่อนขึ้นจะลับหลังหัวข้อสนิท ไม่โผล่ลอด */}
+        <div style={{ flex: 1, minHeight: 0, padding: "0 20px 20px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
           {/* ── ข้อมูลระบบ ── */}
-          <Section title="ข้อมูลระบบ" icon="sun">
+          <BoqSection title="ข้อมูลระบบ" icon="sun" {...secProps("info")}>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "repeat(3, minmax(0,1fr))", gap: 12 }}>
               <Field label="จำนวนแผง"><BoqLocked value={b.panels} unit="แผง" num /></Field>
               <Field label="ขนาดติดตั้ง (kW)">
@@ -605,11 +608,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               {hasBackup && <Field label="ระบบ Backup"><BoqLocked value={b.backup ? "ติดตั้ง" : "ไม่ติดตั้ง"} /></Field>}
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="ประเภทหลังคา"><Dropdown value={b.roof} onChange={(v) => set("roof", v)} options={opt(window.BOQ.ROOF_OPTIONS)} /></Field></div>
             </div>
-          </Section>
+          </BoqSection>
 
           {/* ── ระบบอินเวอร์เตอร์ Hybrid/On-grid (Huawei) ── */}
           {isHuawei && (
-            <Section title={"ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + " (" + selInv.model + ")"} icon="bolt">
+            <BoqSection title={"ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + " (" + selInv.model + ")"} icon="bolt" {...secProps("hybrid")}>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "repeat(3, minmax(0,1fr))", gap: 12 }}>
                 <Field label="จำนวนอินเวอร์เตอร์">
                   <div style={{ display: "flex", alignItems: "baseline", justifyContent: "flex-end", gap: 4, background: "var(--surface3)", border: "1px solid var(--border)", borderRadius: 10, padding: "9px 11px" }}>
@@ -638,12 +641,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
                 * Combiner Box + DC (Fuse/Holder/MCB/MC4) คิดตามจำนวน String · RCBO/SPD/Smart Meter/Backup เลือกตามเฟส ({selInv.phase === 3 ? "3" : "1"} เฟส) · RCBO ขนาดจากกระแสออก × 1.25
               </div>
-            </Section>
+            </BoqSection>
           )}
 
           {/* ── สาย DC / การต่ออนุกรม String (PV1-F) — เฉพาะอินเวอร์เตอร์ String/Hybrid ── */}
           {isStringInv && scfg && (
-            <Section title="สาย DC / การต่ออนุกรม String (PV1-F)" icon="bolt">
+            <BoqSection title="สาย DC / การต่ออนุกรม String (PV1-F)" icon="bolt" {...secProps("dc")}>
               {!scfg.ready ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 13px", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, fontSize: 12.5, fontWeight: 600, color: "#92400E" }}>
                   <Icon name="alert" size={15} color="#F59E0B" /> {scfg.warns.join(" · ")}
@@ -697,11 +700,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   </div>
                 </div>
               )}
-            </Section>
+            </BoqSection>
           )}
 
           {/* ── การจัดวางแผง ── */}
-          <Section title="การจัดวางแผง (แถว)" icon="grid"
+          <BoqSection title="การจัดวางแผง (แถว)" icon="grid" {...secProps("layout")}
             right={<span style={{ fontSize: 11.5, fontWeight: 700, color: remaining === 0 ? "var(--primary-dark)" : "#EF4444" }}>
               วางแล้ว {result.meta.rowsSum} / {result.meta.panelCount} แผง
             </span>}>
@@ -751,10 +754,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 <Field label="% เผื่อ GROUND LUG"><input type="number" style={numStyle} value={b.sparePct.ground} onChange={(e) => setSpare("ground", e.target.value)} /></Field>
               </div>
             )}
-          </Section>
+          </BoqSection>
 
           {/* ── สายไฟ ── */}
-          <Section title="สายไฟ" icon="power">
+          <BoqSection title="สายไฟ" icon="power" {...secProps("wire")}>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {b.cables.map((c, i) => {
                 const isComm = /LAN|CAT/i.test(c.type || "");
@@ -1008,10 +1011,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               </div>
               <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)" }}>* WIRE WAY: fill ≤ 20% ของพื้นที่ราง — CONDUIT: fill ≤ 40% ของพื้นที่ท่อ</div>
             </div>
-          </Section>
+          </BoqSection>
 
           {/* ── ท่อร้อยสาย (RACE WAY) ── */}
-          <Section title="ท่อร้อยสาย (RACE WAY)" icon="grid">
+          <BoqSection title="ท่อร้อยสาย (RACE WAY)" icon="grid" {...secProps("raceway")}>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <ConduitList kind="imc" label="ท่อ IMC (3m/ท่อน)" sizes={window.BOQ.IMC_SIZES} valKey="length" unitText="ม." />
               <ConduitList kind="upvc" label="ท่อ uPVC" sizes={window.BOQ.UPVC_SIZES} valKey="length" unitText="ม." />
@@ -1051,11 +1054,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 ))}
               </div>
             )}
-          </Section>
+          </BoqSection>
 
           {/* ── งานเพิ่มเติม (Input): โครงสร้างบนหลังคา — เฉพาะงานโครงการ ไม่แสดงงานบ้าน ── */}
           {!isHome && (
-          <Section title="งานเพิ่มเติม (Input) — โครงสร้าง" icon="box"
+          <BoqSection title="งานเพิ่มเติม (Input) — โครงสร้าง" icon="box" {...secProps("struct")}
             right={<button onClick={() => setAdvS((v) => !v)} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 8, padding: "6px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name={advS ? "chevronDown" : "plus"} size={13} color="var(--text-2)" style={{ transform: advS ? "rotate(180deg)" : "none" }} /> {advS ? "ซ่อน" : "กรอกข้อมูล"}</button>}>
             <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>
               เลือกกรอกเฉพาะงานที่มีในโครงการ — ระบบจะถอดวัสดุเพิ่มลงรายการ BOQ ให้อัตโนมัติ (งานที่ไม่กรอก จะไม่ถูกถอด)
@@ -1089,11 +1092,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   onExtraDel={(i) => delStructExtra("guardrail", i)} />
               </div>
             )}
-          </Section>
+          </BoqSection>
           )}
 
           {/* ── Accessories ── */}
-          <Section title="Accessories (เพิ่มของ)" icon="box">
+          <BoqSection title="Accessories (เพิ่มของ)" icon="box" {...secProps("acc")}>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {accList.map((a, i) => {
                 const items = a.cat === "พิมพ์เอง" ? [] : (accCat.map[a.cat] || []);
@@ -1116,10 +1119,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <button onClick={addAcc} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--primary-soft)", color: "var(--primary-dark)", border: "none", borderRadius: 9, padding: "8px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={14} color="var(--primary-dark)" /> เพิ่มของ</button>
             </div>
             <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)" }}>* เลือกหมวด → เลือกวัสดุ (จากราคาวัสดุ + คลังสินค้า) หรือ "พิมพ์เอง" — ถ้ามีราคาในระบบจะคิดต้นทุนให้</div>
-          </Section>
+          </BoqSection>
 
           {/* ── ผลลัพธ์ BOQ ── */}
-          <Section title="รายการวัสดุที่ถอดได้" icon="box"
+          <BoqSection title="รายการวัสดุที่ถอดได้" icon="box" {...secProps("removable")}
             right={priced.grandTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>รวม ฿{baht(priced.grandTotal)}</span> : null}>
             <div style={{ border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
               {priced.groups.map((g, gi) => (
@@ -1156,7 +1159,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               )}
             </div>
             <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)" }}>* ราคาดึงจากเมนู "ราคาวัสดุ" — รายการที่ยังไม่ใส่ราคาจะขึ้น "–"</div>
-          </Section>
+          </BoqSection>
         </div>
 
         {/* footer */}
@@ -1170,16 +1173,24 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   );
 }
 
-function Section({ title, icon, right, children }) {
+function BoqSection({ title, icon, right, children, open, onToggle }) {
+  const mob = window.matchMedia("(max-width: 860px)").matches;
+  const ref = React.useRef(null);
+  // เปิดเมื่อไร เลื่อนหัวข้อขึ้นไปบนสุด เพื่อให้เห็นเนื้อหาด้านล่างครบ ไม่ถูกบังด้วยปุ่มล่าง
+  React.useEffect(() => {
+    if (open) { const t = setTimeout(() => { ref.current && ref.current.scrollIntoView({ behavior: "smooth", block: "start" }); }, 50); return () => clearTimeout(t); }
+  }, [open]);
   return (
-    <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, letterSpacing: ".06em", color: "var(--text-3)", textTransform: "uppercase" }}>
-          <Icon name={icon} size={14} color="var(--text-2)" /> {title}
-        </span>
-        {right}
+    <div ref={ref} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, scrollMargin: 8 }}>
+      <div style={{ position: open ? "sticky" : "static", top: 0, zIndex: 2, background: "var(--surface)", borderRadius: open ? "14px 14px 0 0" : 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: open ? (mob ? "13px 14px 9px" : "16px 18px 11px") : (mob ? "12px 14px" : "14px 18px"), boxShadow: open ? "0 1px 0 var(--border)" : "none" }}>
+        <button onClick={onToggle} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 7, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+          <Icon name="chevronDown" size={15} color="var(--text-3)" style={{ transition: "transform .2s", transform: open ? "none" : "rotate(-90deg)", flexShrink: 0 }} />
+          <Icon name={icon} size={14} color="var(--primary)" style={{ flexShrink: 0 }} />
+          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".06em", color: "var(--text-3)", textTransform: "uppercase", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</span>
+        </button>
+        {right && <div style={{ flexShrink: 0 }}>{right}</div>}
       </div>
-      {children}
+      {open && <div style={{ padding: mob ? "4px 14px 14px" : "5px 18px 18px" }}>{children}</div>}
     </div>
   );
 }
