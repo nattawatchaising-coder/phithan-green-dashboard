@@ -366,7 +366,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 7 }}>{label}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {(cond[kind] || []).map((x, i) => (
-          <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 78px 36px", gap: 8, alignItems: "center" }}>
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 78px 36px", gap: 8, alignItems: "center" }}>
             <Dropdown value={x.size} onChange={(v) => setCond(kind, i, "size", v)} options={opt(sizes)} placeholder="เลือกขนาด" />
             <input type="number" style={numStyle} value={x[valKey]} placeholder={unitText} onChange={(e) => setCond(kind, i, valKey, e.target.value)} />
             <button onClick={() => delCond(kind, i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
@@ -593,19 +593,19 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>kW</span>
                 </div>
               </Field>
-              <Field label="ระบบไฟฟ้า (ตามงาน)">
+              <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="ระบบไฟฟ้า (ตามงาน)">
                 <div style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--surface3)", border: "1px solid var(--border)", borderRadius: 10, padding: "9px 11px" }}>
                   <Icon name="lock" size={13} color="var(--text-3)" />
                   <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-1)" }}>{String(b.phase) === "3" ? "3 เฟส" : "1 เฟส"}</span>
                 </div>
-              </Field>
+              </Field></div>
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label={"อินเวอร์เตอร์" + (jobBrand ? " · " + jobBrand : "")}><Dropdown value={b.inverterModel || ""} onChange={(v) => set("inverterModel", v)} options={invOptions} /></Field></div>
-              {!b.inverterModel
+              <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}>{!b.inverterModel
                 ? <Field label="อัตราไมโคร"><Dropdown value={b.microRatio} onChange={(v) => set("microRatio", v)} options={[{ value: "1:1", label: "1:1 (1 แผง/ตัว)" }, { value: "2:1", label: "2:1 (2 แผง/ตัว)" }]} /></Field>
-                : <Field label="จำนวนอินเวอร์เตอร์"><div style={{ display: "flex", alignItems: "baseline", justifyContent: "flex-end", gap: 4, background: "var(--surface3)", border: "1px solid var(--border)", borderRadius: 10, padding: "9px 11px" }}><span style={{ fontFamily: "var(--mono)", fontSize: 15, fontWeight: 700, color: "var(--primary-dark)" }}>{result.meta.invCount}</span><span style={{ fontSize: 11.5, color: "var(--text-3)" }}>ตัว</span></div></Field>}
+                : <Field label="จำนวนอินเวอร์เตอร์"><div style={{ display: "flex", alignItems: "baseline", justifyContent: "flex-end", gap: 4, background: "var(--surface3)", border: "1px solid var(--border)", borderRadius: 10, padding: "9px 11px" }}><span style={{ fontFamily: "var(--mono)", fontSize: 15, fontWeight: 700, color: "var(--primary-dark)" }}>{result.meta.invCount}</span><span style={{ fontSize: 11.5, color: "var(--text-3)" }}>ตัว</span></div></Field>}</div>
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="รุ่นแผง"><Dropdown value={b.panelModel} onChange={(v) => set("panelModel", v)} options={opt(window.BOQ.PANELS.map((p) => p.model))} /></Field></div>
-              {hasBattery && <Field label="แบตเตอรี่ (kWh)"><BoqLocked value={b.batteryKwh} unit="kWh" num /></Field>}
-              {hasBackup && <Field label="ระบบ Backup"><BoqLocked value={b.backup ? "ติดตั้ง" : "ไม่ติดตั้ง"} /></Field>}
+              {hasBattery && <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="แบตเตอรี่ (kWh)"><BoqLocked value={b.batteryKwh} unit="kWh" num /></Field></div>}
+              {hasBackup && <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="ระบบ Backup"><BoqLocked value={b.backup ? "ติดตั้ง" : "ไม่ติดตั้ง"} /></Field></div>}
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="ประเภทหลังคา"><Dropdown value={b.roof} onChange={(v) => set("roof", v)} options={opt(window.BOQ.ROOF_OPTIONS)} /></Field></div>
             </div>
           </BoqSection>
@@ -673,7 +673,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       ช่วงแนะนำ = แรงดันทำงานรวมอยู่ในช่วง MPPT และ Voc รวมไม่เกินแรงดันระบบสูงสุด
                     </div>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 10 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "repeat(4, 1fr)", gap: 10 }}>
                     {[
                       { l: "แรงดันทำงานรวม", v: scfg.stringVop + " V", ok: scfg.inRange },
                       { l: "Voc รวม (เปิดวงจร)", v: scfg.stringVoc + " V", ok: !scfg.overMaxVdc },
@@ -758,7 +758,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
           {/* ── สายไฟ ── */}
           <BoqSection title="สายไฟ" icon="power" {...secProps("wire")}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 8 }}>
               {b.cables.map((c, i) => {
                 const isComm = /LAN|CAT/i.test(c.type || "");
                 const isDC = /PV1-F|PV CABLE/i.test(c.type || "") || /PV-INVERTER/i.test(c.name || "");  // สาย DC คิดขนาดในส่วนสาย DC แยก
@@ -773,9 +773,15 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 const bad = amp != null && req && amp < req;
                 const showHint = !!c.type && !isComm && !isDC;
                 return (
-                <div key={i} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  {isMobile && <Dropdown value={c.name || ""} onChange={(v) => setCab(i, "name", v)} options={cablePtOptions} placeholder="— เลือกจุด —" addable onAdd={addCablePt} />}
-                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 70px 36px" : "minmax(150px,1fr) minmax(0,1.3fr) 90px 36px", gap: 8, alignItems: "center" }}>
+                <div key={i} style={Object.assign({ display: "flex", flexDirection: "column", gap: isMobile ? 7 : 4 },
+                  isMobile ? { border: "1px solid var(--border)", borderRadius: 12, padding: "10px 11px", background: "var(--surface)" } : null)}>
+                  {isMobile && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>จุดเดินสาย</span>
+                      <Dropdown value={c.name || ""} onChange={(v) => setCab(i, "name", v)} options={cablePtOptions} placeholder="— เลือกจุด —" addable onAdd={addCablePt} />
+                    </div>
+                  )}
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 64px 34px" : "minmax(150px,1fr) minmax(0,1.3fr) 90px 36px", gap: 8, alignItems: "center" }}>
                     {!isMobile && <Dropdown value={c.name || ""} onChange={(v) => setCab(i, "name", v)} options={cablePtOptions} placeholder="— เลือกจุด —" addable onAdd={addCablePt} />}
                     <Dropdown value={c.type} onChange={(v) => setCab(i, "type", v)} options={cableTypeOptions} placeholder="— เลือกสายไฟ —" />
                     <input type="number" style={numStyle} value={c.length} placeholder="ม." onChange={(e) => setCab(i, "length", e.target.value)} />
@@ -796,11 +802,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                         <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", background: "var(--surface3)", padding: "3px 8px", borderRadius: 99, whiteSpace: "nowrap" }}>{coreTh}</span>
                       </div>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600,
-                        color: bad ? "#B91C1C" : (amp == null ? "#B91C1C" : "var(--text-3)") }}>
+                        color: bad || amp == null ? "#B91C1C" : (req ? "#16A34A" : "var(--text-3)") }}>
                       {amp != null ? (
                         <React.Fragment>
-                          <Icon name={bad ? "alert" : "bolt"} size={11} color={bad ? "#B91C1C" : "var(--text-3)"} />
-                          พิกัดสาย ~{amp} A · {coreTh}{req ? " · ต้องการ ≥ " + (Math.round(req * 10) / 10).toFixed(1) + " A" : ""}{bad ? " · กระแสไม่พอ!" : ""}
+                          <Icon name={bad ? "alert" : (req ? "check" : "bolt")} size={11} color={bad ? "#B91C1C" : (req ? "#16A34A" : "var(--text-3)")} />
+                          พิกัดสาย ~{amp} A · {coreTh}{req ? " · ต้องการ ≥ " + (Math.round(req * 10) / 10).toFixed(1) + " A" : ""}{bad ? " · กระแสไม่พอ!" : (req ? " · ผ่าน" : "")}
                         </React.Fragment>
                       ) : !hasSize ? (
                         <React.Fragment>
@@ -849,7 +855,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   ))}
                 </div>
                 {/* สมมุติฐานของ "สายแนะนำ": ฉนวน + วิธีเดินสาย + กลุ่ม + จำนวนตัวนำ (แกนเดียว) ตามพิกัด วสท. */}
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 10, marginTop: 10 }}>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "repeat(4, 1fr)", gap: 10, marginTop: 10 }}>
                   <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>ชนิดฉนวน</span>
                     <Dropdown value={calcIns} onChange={(v) => setWcalc("ins", v)} options={insOptions} />
@@ -869,6 +875,38 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 </div>
                 <div style={{ fontSize: 10, color: "var(--text-3)", marginTop: 6 }}>* "สายแนะนำ" คิดบนพื้นฐานสายแกนเดียว (1C) — สายในรายการด้านบนอ่านแกนจากชื่อจริง</div>
               </div>
+              {isMobile ? (
+                /* มือถือ: แต่ละชุดคำนวณเป็นการ์ด แสดงค่าครบในใบเดียว ไม่ต้องเลื่อนแนวนอน */
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "10px 12px" }}>
+                  {calcRows.map((r, i) => {
+                    const metric = (label, val, sub, hi) => (
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".02em", color: "var(--text-3)", textTransform: "uppercase" }}>{label}</div>
+                        <div style={{ fontFamily: "var(--mono)", fontSize: 13.5, fontWeight: 700, color: hi ? "var(--primary-dark)" : "var(--text-1)" }}>{val}</div>
+                        {sub && <div style={{ fontSize: 9.5, color: "var(--text-3)" }}>{sub}</div>}
+                      </div>
+                    );
+                    return (
+                      <div key={i} style={{ border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)", padding: "10px 12px" }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>{r.label}</div>
+                            {r.needInput && <div style={{ fontSize: 10.5, color: "#B45309", marginTop: 1 }}>{r.note}</div>}
+                          </div>
+                          <span style={{ flexShrink: 0, fontFamily: "var(--mono)", fontSize: 12, fontWeight: 700, color: r.needInput ? "var(--text-3)" : "var(--primary-dark)", background: r.needInput ? "var(--surface3)" : "var(--primary-soft)", padding: "4px 10px", borderRadius: 7 }}>{r.wire}</span>
+                        </div>
+                        {!r.needInput && (
+                          <div style={{ display: "flex", gap: 8, borderTop: "1px solid var(--border)", marginTop: 9, paddingTop: 9 }}>
+                            {metric("กำลัง (W)", r.w == null ? "—" : Math.round(r.w).toLocaleString())}
+                            {metric("กระแสรวม (A)", (Math.round(r.ampTotal * 10) / 10).toFixed(1))}
+                            {metric(isStringInv ? "กระแส (A)" : "กระแส/สตริง", (Math.round(r.ampString * 10) / 10).toFixed(1), "×1.25 = " + (Math.round(r.ampString * 1.25 * 10) / 10).toFixed(1), r.splittable && wcStrings > 1)}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 540 }}>
                   <thead>
@@ -905,11 +943,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   </tbody>
                 </table>
               </div>
+              )}
+              {!isMobile && (
               <div style={{ padding: "9px 14px", fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5, borderTop: "1px solid var(--border)" }}>
                 {isStringInv
                   ? "* PV-INVERTER = สาย DC จากแผง→อินเวอร์เตอร์ (Isc × 1.25, สาย PV1-F ขั้นต่ำ 6 mm²) · INVERTER→MCB_SOLAR = กระแสออกอินเวอร์เตอร์/ตัว · MCB_SOLAR→MDB = กระแสออกรวมทุกตัว → ตู้เมน · ขนาดสาย AC เลือกให้รับกระแส ×1.25 ตามพิกัด วสท. · กระแสออกตั้งค่าได้ที่หน้าคลัง › สเปคอินเวอร์เตอร์"
                   : "* MICRO-MICRO = ไมโคร 1 ตัว (" + microW + "W) ÷ 230V (อุปกรณ์ 1 เฟส) · MICRO-COMBINER (กระแส/สตริง) = กระแสรวม ÷ จำนวน String · COMBINER→MCB ใช้กระแสรวมทุกสตริง · กระแสรวม: 1 เฟส = W ÷ V · 3 เฟส = W ÷ (√3 × แรงดันไลน์ V) · ขนาดสายแนะนำเลือกให้รับกระแส ×1.25 (โหลดต่อเนื่อง) อ้างพิกัดสายทองแดง IEC01/THW โดยประมาณ — โปรดตรวจสอบกับวิธีเดินสายจริง"}
               </div>
+              )}
             </div>
 
             {/* ── ตรวจสอบ WIRE WAY / CONDUIT (ย้ายมารวมกับการคำนวณสายไฟ) ── */}
@@ -925,12 +966,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 </button>
                 {advWW && (
                   <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <div style={isMobile ? { display: "flex", flexDirection: "column", gap: 5 } : { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", whiteSpace: "nowrap" }}>ขนาดราง W × H (mm)</span>
-                      <input type="number" value={wc.wayW} onChange={(e) => setWC("wayW", e.target.value)} style={Object.assign({}, numStyle, { width: 70 })} placeholder="W" />
-                      <span style={{ color: "var(--text-3)" }}>×</span>
-                      <input type="number" value={wc.wayH} onChange={(e) => setWC("wayH", e.target.value)} style={Object.assign({}, numStyle, { width: 70 })} placeholder="H" />
-                      {wc.wayW > 0 && wc.wayH > 0 && <span style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--mono)" }}>= {(+wc.wayW * +wc.wayH).toLocaleString()} mm²</span>}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <input type="number" value={wc.wayW} onChange={(e) => setWC("wayW", e.target.value)} style={Object.assign({}, numStyle, { width: 70 })} placeholder="W" />
+                        <span style={{ color: "var(--text-3)" }}>×</span>
+                        <input type="number" value={wc.wayH} onChange={(e) => setWC("wayH", e.target.value)} style={Object.assign({}, numStyle, { width: 70 })} placeholder="H" />
+                        {wc.wayW > 0 && wc.wayH > 0 && <span style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--mono)" }}>= {(+wc.wayW * +wc.wayH).toLocaleString()} mm²</span>}
+                      </div>
                     </div>
                     {wc.cables.map((c, i) => {
                       const szOpts = Object.keys((window.BOQ.CABLE_OD || {})[c.type] || {}).map(Number).sort((a, b) => a - b).map((n) => ({ value: n, label: n + " sq.mm." }));
@@ -1102,12 +1145,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 const items = a.cat === "พิมพ์เอง" ? [] : (accCat.map[a.cat] || []);
                 return (
                   <div key={i} style={{ border: "1px solid var(--border)", borderRadius: 11, padding: 9, display: "flex", flexDirection: "column", gap: 7 }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 36px", gap: 8, alignItems: "center" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 36px", gap: 8, alignItems: "center" }}>
                       <Dropdown value={a.cat || ""} onChange={(v) => setAccCat(i, v)}
                         options={[{ value: "", label: "— เลือกหมวด —" }].concat(accCat.cats.map((c) => ({ value: c, label: c }))).concat([{ value: "พิมพ์เอง", label: "✎ พิมพ์เอง" }])} />
                       <button onClick={() => delAcc(i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 72px", gap: 8, alignItems: "center" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 72px", gap: 8, alignItems: "center" }}>
                       {a.cat === "พิมพ์เอง"
                         ? <input value={a.name} onChange={(e) => setAcc(i, "name", e.target.value)} placeholder="ชื่อวัสดุ" style={inputStyle} />
                         : <Dropdown value={a.name || ""} onChange={(v) => setAcc(i, "name", v)} disabled={!a.cat} options={[{ value: "", label: a.cat ? "— เลือกวัสดุ —" : "เลือกหมวดก่อน" }].concat(matItemOptions(items, a.cat))} />}
@@ -1134,19 +1177,21 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   {g.items.length === 0 ? (
                     <div style={{ padding: "9px 14px", fontSize: 12, color: "var(--text-3)" }}>—</div>
                   ) : g.items.map((it, ii) => (
-                    <div key={ii} style={{ display: "grid", gridTemplateColumns: "1fr 56px 84px", gap: 8, padding: "9px 14px", borderTop: "1px solid var(--border)", alignItems: "center" }}>
+                    <div key={ii} style={{ display: "grid", gridTemplateColumns: isMobile ? (priced.grandTotal > 0 ? "minmax(0,1fr) 46px 64px" : "minmax(0,1fr) auto") : "1fr 56px 84px", gap: 8, padding: "9px 14px", borderTop: "1px solid var(--border)", alignItems: "center" }}>
                       <span style={{ minWidth: 0 }}>
-                        <span style={{ display: "block", fontSize: 12.5, color: "var(--text-1)" }}>{(it.name || "").trim()}</span>
+                        <span style={{ display: "block", fontSize: 12.5, color: "var(--text-1)", lineHeight: 1.35 }}>{(it.name || "").trim()}</span>
                         {it.code ? <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--text-3)" }}>{it.code}</span> : null}
                       </span>
                       <span style={{ textAlign: "right" }}>
                         <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{(Math.round(it.qty * 100) / 100).toLocaleString()}</span>
                         <span style={{ display: "block", fontSize: 10, color: "var(--text-3)" }}>{it.unit}</span>
                       </span>
+                      {(!isMobile || priced.grandTotal > 0) && (
                       <span style={{ textAlign: "right" }}>
                         <span style={{ fontFamily: "var(--mono)", fontSize: 12.5, fontWeight: 700, color: it.total > 0 ? "var(--text-1)" : "var(--text-3)" }}>{it.total > 0 ? baht(it.total) : "–"}</span>
                         {it.price > 0 ? <span style={{ display: "block", fontSize: 9.5, color: "var(--text-3)" }}>@{baht(it.price)}</span> : null}
                       </span>
+                      )}
                     </div>
                   ))}
                 </div>

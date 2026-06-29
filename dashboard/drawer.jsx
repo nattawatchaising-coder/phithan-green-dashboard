@@ -346,7 +346,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
         {job && (
           <React.Fragment>
             {/* header */}
-            <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)", background: "var(--surface)", flexShrink: 0 }}>
+            <div style={{ padding: isMobile ? "15px 16px" : "20px 24px", borderBottom: "1px solid var(--border)", background: "var(--surface)", flexShrink: 0 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
@@ -355,7 +355,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                     <TypeBadge type={job.type} />
                     {job.delayed && <span style={{ fontSize: 11, fontWeight: 700, color: "#EF4444", background: "#FDE2E2", padding: "2px 8px", borderRadius: 6 }}>⚠ ล่าช้า</span>}
                   </div>
-                  <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-1)", margin: 0, lineHeight: 1.2 }}>{job.name}</h2>
+                  <h2 style={{ fontSize: isMobile ? 17 : 20, fontWeight: 700, color: "var(--text-1)", margin: 0, lineHeight: 1.25 }}>{job.name}</h2>
                 </div>
                 <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border)",
                   background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
@@ -371,9 +371,9 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
             </div>
 
             {/* body */}
-            <div style={{ overflowY: "auto", flex: 1, padding: "22px 24px" }}>
+            <div style={{ overflowY: "auto", flex: 1, padding: isMobile ? "16px 15px" : "22px 24px" }}>
               {/* customer info */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: isMobile ? 12 : 16, marginBottom: isMobile ? 18 : 24 }}>
                 <InfoRow label="เบอร์โทร">
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="phone" size={13} color="var(--text-3)" />{job.phone}</span>
                 </InfoRow>
@@ -407,11 +407,11 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               </div>
 
               {/* spec card */}
-              <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 18, marginBottom: 22 }}>
+              <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: isMobile ? 15 : 18, marginBottom: isMobile ? 18 : 22 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
                   <Icon name="sun" size={14} color="var(--primary)" /> สเปกระบบ
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)", gap: isMobile ? 14 : 16 }}>
                   <SpecItem label="แบรนด์" value={job.brand} />
                   <SpecItem label="ขนาดระบบ" value={job.kw + " kW"} mono />
                   <SpecItem label="จำนวนแผง" value={job.panels + " แผง"} mono />
@@ -465,7 +465,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                     พร้อม {job.matReadyPct}%
                   </span>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8 }}>
                   {SF.MATERIALS.filter((m) => {
                     if (m.key === "battery" && !job.battery) return false;
                     if (m.key === "backup" && !job.backup) return false;

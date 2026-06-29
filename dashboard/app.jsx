@@ -6,7 +6,7 @@ const OFFICE = ["admin", "manager", "tech"];
 const NAV = [
   { key: "overview",   th: "ภาพรวม",         en: "Overview",      icon: "grid",     roles: OFFICE },
   { key: "board",      th: "บอร์ดงาน",        en: "Workflow",      icon: "kanban",   roles: OFFICE },
-  { key: "table",      th: "ฐานข้อมูลงาน",     en: "Database",      icon: "table",    roles: OFFICE },
+  { key: "table",      th: "ฐานข้อมูลงาน",     en: "Database",      icon: "table",    roles: ["admin"] },
   { key: "survey",     th: "สถานะสำรวจ",       en: "Survey Status", icon: "list",     roles: ["admin", "manager"] },
   { key: "dispatch",   th: "จัดตารางสำรวจ",    en: "Dispatch",      icon: "calendar", roles: ["admin", "manager"] },
   { key: "myschedule", th: "ตารางงานของฉัน",   en: "My Schedule",   icon: "list",     roles: ["survey", "tech"] },
@@ -271,8 +271,10 @@ function App() {
     if (!can(role, "delJob")) { alert("คุณไม่มีสิทธิ์ลบงาน"); return; }
     if (confirm("ลบงาน \"" + j.name + "\" ?")) store.remove(j.id);
   };
-  const goStage = (key) => { setStageFilter(key); setQuickFilter(null); setView("table"); };
-  const goKpi = (key) => { setQuickFilter(key); setStageFilter(null); setTypeFilter("all"); setDelayedOnly(false); setView("table"); };
+  // หน้ารายการงานที่ใช้เจาะดู — table เฉพาะ admin, role อื่นใช้บอร์ดงานแทน
+  const listView = () => (navForRole(role).some((n) => n.key === "table") ? "table" : "board");
+  const goStage = (key) => { setStageFilter(key); setQuickFilter(null); setView(listView()); };
+  const goKpi = (key) => { setQuickFilter(key); setStageFilter(null); setTypeFilter("all"); setDelayedOnly(false); setView(listView()); };
 
   const navTo = (v) => {
     setView(v);
@@ -290,7 +292,7 @@ function App() {
   const openFromNotif = (n) => {
     if (n.id) notif.markRead(n.id);
     setNotifOpen(false);
-    if (n.jobId) { setView("table"); setSelected(n.jobId); }
+    if (n.jobId) { setView(listView()); setSelected(n.jobId); }
   };
 
   return (
@@ -369,7 +371,7 @@ function App() {
       {brandMgr && <BrandManager store={brandStore} onClose={() => setBrandMgr(false)} />}
       {userMgr && can(role, "manageUsers") && <UserManager authStore={auth} onClose={() => setUserMgr(false)} />}
       {briefingOpen && <DailyBriefing lateAlerts={lateAlerts} todayTasks={todayTasks}
-        onOpen={(jobId) => { localStorage.setItem("sf_briefing_seen", window.SF.TODAY); setBriefingOpen(false); setView("table"); setSelected(jobId); }}
+        onOpen={(jobId) => { localStorage.setItem("sf_briefing_seen", window.SF.TODAY); setBriefingOpen(false); setView(listView()); setSelected(jobId); }}
         onClose={() => { localStorage.setItem("sf_briefing_seen", window.SF.TODAY); setBriefingOpen(false); }} />}
       {mapOpen && <MapModal jobs={filtered} onOpen={(j) => { setMapOpen(false); openJob(j); }} onClose={() => setMapOpen(false)} />}
 
@@ -473,8 +475,8 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [stageOpen, setStageOpen] = React.useState(() => localStorage.getItem("sf_stage_filteropen") !== "0");
   const toggleStage = () => setStageOpen((v) => { localStorage.setItem("sf_stage_filteropen", v ? "0" : "1"); return !v; });
-  // มือถือหน้าบอร์ด: ซ่อนตัวกรองขั้นงาน (ซ้ำกับหัวข้อขั้นงานที่บอร์ดมือถือแสดงเป็น section อยู่แล้ว) เพื่อประหยัดพื้นที่
-  const showStageBar = view !== "overview" && !(isMobile && view === "board");
+  // มือถือ: ซ่อนแถบกรองขั้นงาน (ปุ่ม + ชิป) ทุกหน้า เพื่อประหยัดพื้นที่หัว
+  const showStageBar = view !== "overview" && !isMobile;
   // มือถือ: ช่องค้นหายุบเป็นปุ่มสีเขียว กดแล้วค่อยขยายเป็นช่องพิมพ์ (ประหยัดพื้นที่หัว)
   const [searchOpen, setSearchOpen] = React.useState(false);
   const searchRef = React.useRef(null);
