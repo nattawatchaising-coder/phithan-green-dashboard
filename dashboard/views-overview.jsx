@@ -194,7 +194,194 @@ function MySchedulePanel({ items, onOpen }) {
   );
 }
 
-function OverviewView({ jobs, schedule, onOpen, onStage, onKpi }) {
+/* ── เตือนของไม่พอ "ก่อนวันติดตั้ง" — เทียบ BOQ ของงาน (หักที่เบิกไปแล้ว) กับสต็อกคงเหลือ ── */
+const _shortNorm = (s) => String(s || "").replace(/\s+/g, " ").trim().toLowerCase();
+function _addDaysISO(iso, n) {
+  const d = new Date(iso + "T00:00:00"); d.setDate(d.getDate() + n);
+  const p = (x) => String(x).padStart(2, "0");
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+// คืนรายการวัสดุที่ "ยังต้องเบิกเพิ่ม แต่คลังไม่พอ" ของงานนี้ (จับคู่คลังด้วยชื่อ · หัก out-return ของงาน)
+function jobStockShortages(job, stockItems, moves) {
+  if (!job || !window.BOQ) return [];
+  let res;
+  try { res = window.BOQ.calcBOQ(Object.assign(window.BOQ.blankBOQ(job), job.boq || {})); }
+  catch (e) { return []; }
+  const byName = {};
+  (stockItems || []).forEach((it) => { if (it.name) byName[_shortNorm(it.name)] = it; });
+  // รวมความต้องการตาม BOQ (เฉพาะรายการที่มีในคลัง)
+  const need = {};
+  (res.groups || []).forEach((g) => (g.items || []).forEach((it) => {
+    const key = window.BOQ.matKey(it.name); const qty = Math.round(+it.qty || 0);
+    if (!key || qty <= 0) return;
+    const k = _shortNorm(key); const s = byName[k]; if (!s) return;
+    if (need[k]) need[k].qty += qty; else need[k] = { item: s, name: s.name, unit: it.unit || s.unit, qty, group: g.group };
+  }));
+  // หักที่เบิกไปแล้วสำหรับงานนี้ (out − return)
+  const done = {};
+  (moves || []).forEach((m) => {
+    if (m.jobId !== job.id) return;
+    done[m.itemId] = (done[m.itemId] || 0) + (m.type === "out" ? m.qty : (m.type === "return" ? -m.qty : 0));
+  });
+  const out = [];
+  Object.keys(need).forEach((k) => {
+    const n = need[k]; const already = Math.max(0, done[n.item.id] || 0);
+    const remain = n.qty - already; if (remain <= 0) return;      // เบิกครบแล้ว
+    const have = +n.item.qty || 0; const short = remain - have;
+    if (short > 0) out.push({ name: n.name, code: n.item.sku || "", unit: n.unit, group: n.group || "อื่นๆ", need: remain, have, short });
+  });
+  return out.sort((a, b) => b.short - a.short);
+}
+
+/* ── ดาวน์โหลด "รายการที่ต้องสั่งเพิ่ม" ของงานเป็นไฟล์ Excel — แยกตามหมวด (สไตล์เดียวกับ BOQ) ── */
+const SHORTAGE_GROUP_ORDER = ["PV MODULE", "INVERTER", "COMBINER BOX", "MOUNTING", "CABLE", "RACE WAY", "GROUNDING", "LADDER (บันไดลิง)", "WALKWAY", "GUARD RAIL", "ACCESSORIES"];
+function exportShortageXlsx(job, rows) {
+  if (!window.XLSX) { alert("ไม่พบไลบรารี Excel (ลองโหลดหน้าใหม่)"); return; }
+  const X = window.XLSX;
+  const C = { brand: "1D854B", brandDk: "12603A", brandSoft: "EAF6EF", group: "D6EBDF", alt: "F4FAF6",
+    white: "FFFFFF", border: "CBD8D0", text: "16241D", sub: "5A6B62", shortTx: "B45309", shortBg: "FDEBD0" };
+  const FONT = "Tahoma";
+  const thin = { style: "thin", color: { rgb: C.border } };
+  const boxAll = { top: thin, bottom: thin, left: thin, right: thin };
+  const cols = ["ลำดับ", "รหัส", "รายการวัสดุ", "ต้องใช้ (BOQ)", "คงเหลือ", "ต้องสั่งเพิ่ม", "หน่วย"];
+  const lastC = cols.length - 1;
+  const colW = [{ wch: 7 }, { wch: 15 }, { wch: 50 }, { wch: 13 }, { wch: 11 }, { wch: 14 }, { wch: 9 }];
+  const aoa = [], merges = [], meta = [], rowsH = []; let R = 0;
+  const pushRow = (cells, type, hpt) => { aoa.push(cells); meta[R] = type; if (hpt) rowsH[R] = { hpt: hpt }; R += 1; };
+  const fullMerge = (r) => merges.push({ s: { r: r, c: 0 }, e: { r: r, c: lastC } });
+  const inst = window.SF.installDate ? window.SF.installDate(job) : "";
+
+  pushRow(["รายการวัสดุที่ต้องสั่งเพิ่ม (ของไม่พอ)"], "title", 30); fullMerge(R - 1);
+  pushRow(["PHITHAN GREEN · ระบบติดตามงานติดตั้งโซลาร์เซลล์"], "subtitle", 20); fullMerge(R - 1);
+  pushRow([], "spacer", 6);
+  const info = [
+    ["โครงการ", job ? (job.name || "") : ""],
+    ["รหัสงาน", job ? (job.code || "") : ""],
+    ["วันติดตั้ง", inst || "-"],
+    ["วันที่ออกเอกสาร", window.SF.TODAY || ""],
+  ];
+  info.forEach((row) => {
+    const cells = [row[0]]; for (let i = 1; i <= lastC; i++) cells.push(i === 1 ? row[1] : "");
+    pushRow(cells, "info", 19); merges.push({ s: { r: R - 1, c: 1 }, e: { r: R - 1, c: lastC } });
+  });
+  pushRow([], "spacer", 8);
+  pushRow(cols, "head", 22);
+
+  // จัดกลุ่มตามหมวด (เรียงหมวดตามลำดับ BOQ · ในหมวดเรียงของขาดมากก่อน)
+  const byGroup = {};
+  (rows || []).forEach((it) => { const g = it.group || "อื่นๆ"; (byGroup[g] || (byGroup[g] = [])).push(it); });
+  const groups = Object.keys(byGroup).sort((a, b) => {
+    const ia = SHORTAGE_GROUP_ORDER.indexOf(a), ib = SHORTAGE_GROUP_ORDER.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b);
+  });
+  let n = 0;
+  groups.forEach((g) => {
+    n += 1;
+    const grow = ["ลำดับที่ " + n, ""]; for (let i = 2; i <= lastC; i++) grow.push(i === 2 ? g : "");
+    pushRow(grow, "group", 20); merges.push({ s: { r: R - 1, c: 2 }, e: { r: R - 1, c: lastC } });
+    byGroup[g].forEach((it, k) => {
+      pushRow([n + "." + (k + 1), it.code || "", it.name || "", +it.need || 0, +it.have || 0, +it.short || 0, it.unit || ""], k % 2 === 0 ? "item" : "itemAlt");
+    });
+  });
+
+  const ws = X.utils.aoa_to_sheet(aoa);
+  ws["!merges"] = merges; ws["!cols"] = colW; ws["!rows"] = rowsH;
+  const qtyFmt = '#,##0.##';
+  const styleCell = (r, c) => {
+    const t = meta[r]; if (t === "spacer") return null;
+    const s = { font: { name: FONT, sz: 11, color: { rgb: C.text } }, alignment: { vertical: "center" } };
+    if (t === "title") { s.font = { name: FONT, sz: 15, bold: true, color: { rgb: C.white } }; s.fill = { patternType: "solid", fgColor: { rgb: C.brand } }; s.alignment = { horizontal: "center", vertical: "center" }; }
+    else if (t === "subtitle") { s.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.brandDk } }; s.fill = { patternType: "solid", fgColor: { rgb: C.brandSoft } }; s.alignment = { horizontal: "center", vertical: "center" }; }
+    else if (t === "info") { if (c === 0) { s.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.sub } }; s.alignment = { horizontal: "right", vertical: "center" }; } else { s.font = { name: FONT, sz: 11.5, bold: true, color: { rgb: C.text } }; s.alignment = { horizontal: "left", vertical: "center" }; } s.border = { bottom: thin }; }
+    else if (t === "head") { s.font = { name: FONT, sz: 11, bold: true, color: { rgb: C.white } }; s.fill = { patternType: "solid", fgColor: { rgb: C.brand } }; s.alignment = { horizontal: c === 2 ? "left" : "center", vertical: "center", wrapText: true }; s.border = boxAll; }
+    else if (t === "group") { s.font = { name: FONT, sz: 11, bold: true, color: { rgb: C.brandDk } }; s.fill = { patternType: "solid", fgColor: { rgb: C.group } }; s.alignment = { horizontal: c < 2 ? "center" : "left", vertical: "center" }; s.border = boxAll; }
+    else if (t === "item" || t === "itemAlt") {
+      if (t === "itemAlt") s.fill = { patternType: "solid", fgColor: { rgb: C.alt } };
+      s.border = boxAll;
+      if (c === 0) s.alignment = { horizontal: "center", vertical: "center" };
+      else if (c === 1) { s.alignment = { horizontal: "center", vertical: "center" }; s.font = { name: FONT, sz: 9.5, color: { rgb: C.sub } }; }
+      else if (c === 2) s.alignment = { horizontal: "left", vertical: "center", wrapText: true };
+      else if (c === 5) { s.alignment = { horizontal: "right", vertical: "center" }; s.numFmt = qtyFmt; s.font = { name: FONT, sz: 11, bold: true, color: { rgb: C.shortTx } }; s.fill = { patternType: "solid", fgColor: { rgb: C.shortBg } }; }
+      else if (c === 6) s.alignment = { horizontal: "center", vertical: "center" };
+      else { s.alignment = { horizontal: "right", vertical: "center" }; s.numFmt = qtyFmt; }
+    }
+    return s;
+  };
+  const range = X.utils.decode_range(ws["!ref"]);
+  for (let r = range.s.r; r <= range.e.r; r++) {
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const ref = X.utils.encode_cell({ r: r, c: c }); const s = styleCell(r, c);
+      if (!s) continue; if (!ws[ref]) ws[ref] = { t: "s", v: "" }; ws[ref].s = s;
+    }
+  }
+  const wb = X.utils.book_new();
+  X.utils.book_append_sheet(wb, ws, "สั่งซื้อ");
+  X.writeFile(wb, "สั่งซื้อ_" + (job ? job.code : "job") + ".xlsx");
+}
+
+function MaterialShortagePanel({ jobs, stock, onOpen }) {
+  const SF = window.SF;
+  const today = SF.TODAY;
+  const SOON_DAYS = 14;   // เตือนงานที่จะติดตั้งภายใน 14 วัน (หรือถึงกำหนดแล้วแต่ยังไม่เสร็จ)
+  const stockItems = (stock && stock.items) || [];
+  const moves = (stock && stock.moves) || [];
+  const rows = React.useMemo(() => {
+    const soonMax = _addDaysISO(today, SOON_DAYS);
+    const cand = jobs.filter((j) => {
+      if (j.stage === "done") return false;
+      const s = SF.installDate ? SF.installDate(j) : "";
+      if (!s) return false;
+      const e = SF.installEnd ? SF.installEnd(j) : s;
+      return e >= today && s <= soonMax;   // ช่วงติดตั้งยังไม่ผ่าน & เริ่มภายในหน้าต่างที่กำหนด
+    });
+    return cand.map((j) => ({ job: j, start: SF.installDate(j), short: jobStockShortages(j, stockItems, moves) }))
+      .filter((r) => r.short.length > 0)
+      .sort((a, b) => (a.start || "").localeCompare(b.start || ""));
+  }, [jobs, stockItems, moves]);
+
+  if (rows.length === 0) return null;   // ของครบทุกงาน → ไม่แสดง (ลดความรก)
+  const AMBER = "#F59E0B";
+  return (
+    <div style={{ background: "var(--surface)", border: "1px solid " + AMBER + "55", borderRadius: 16, padding: 22, boxShadow: "0 0 0 3px " + AMBER + "12" }}>
+      <PanelTitle icon="alert" iconColor={AMBER} title="ของไม่พอ ก่อนวันติดตั้ง"
+        sub={rows.length + " งานที่ของขาด — ควรสั่งเพิ่มก่อนออกหน้างาน"} />
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16, maxHeight: 340, overflowY: "auto" }}>
+        {rows.map((r) => {
+          const d = parseDate(r.start);
+          const dateStr = r.start ? (d.getDate() + " " + window.TH_MONTHS[d.getMonth()]) : "ไม่ระบุวัน";
+          const dueSoon = r.start && r.start <= _addDaysISO(today, 3);
+          return (
+            <div key={r.job.id} role="button" tabIndex={0} onClick={() => onOpen(r.job)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(r.job); } }}
+              style={{ display: "flex", gap: 11, padding: "11px 12px", textAlign: "left", alignItems: "flex-start",
+              background: AMBER + "12", border: "1px solid " + AMBER + "44", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", width: "100%" }}>
+              <span style={{ width: 4, alignSelf: "stretch", borderRadius: 99, background: AMBER, flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                  <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: "0 1 auto" }}>{r.job.name}</span>
+                  <span style={{ fontSize: 10.5, fontWeight: 700, color: dueSoon ? "#EF4444" : AMBER, background: (dueSoon ? "#EF4444" : AMBER) + "1f", padding: "1px 7px", borderRadius: 99, whiteSpace: "nowrap", flexShrink: 0 }}>
+                    ติดตั้ง {dateStr}
+                  </span>
+                </div>
+                <div style={{ marginTop: 6 }}><StageBadge stageKey={r.job.stage} size="sm" /></div>
+              </div>
+              <button onClick={(e) => { e.stopPropagation(); exportShortageXlsx(r.job, r.short); }}
+                title="ดาวน์โหลดรายการสั่งซื้อ (Excel · แยกหมวด)" aria-label="ดาวน์โหลดรายการสั่งซื้อ"
+                style={{ flexShrink: 0, alignSelf: "center", display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 11px",
+                  background: "#1d854b14", border: "1px solid #1d854b44", borderRadius: 9, color: "#1d854b",
+                  fontWeight: 700, fontSize: 11.5, fontFamily: "inherit", cursor: "pointer", whiteSpace: "nowrap" }}>
+                <Icon name="download" size={14} color="#1d854b" /> ไฟล์
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ marginTop: 12, fontSize: 11, color: "var(--text-3)" }}>* เทียบ BOQ ที่ถอดได้กับคลัง (หักของที่เบิกเข้างานแล้ว) — เปิดงานเพื่อดู/เบิกของ · ปุ่ม “ไฟล์” = ดาวน์โหลดรายการสั่งซื้อ Excel (แยกหมวด)</div>
+    </div>
+  );
+}
+
+function OverviewView({ jobs, schedule, onOpen, onStage, onKpi, stock }) {
   const active = jobs.filter((j) => j.stage !== "done");
   const delayed = jobs.filter((j) => j.delayed);
   const ready = active.filter((j) => j.matReady);
@@ -212,6 +399,8 @@ function OverviewView({ jobs, schedule, onOpen, onStage, onKpi }) {
       )}
 
       <MySchedulePanel items={schedule || []} onOpen={onOpen} />
+
+      <MaterialShortagePanel jobs={jobs} stock={stock} onOpen={onOpen} />
 
       <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 18 }}>
         <PipelinePanel jobs={jobs} onStage={onStage} />

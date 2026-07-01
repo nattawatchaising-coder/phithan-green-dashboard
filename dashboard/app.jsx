@@ -345,7 +345,7 @@ function App() {
           onMenuOpen={() => setSidebarOpen(true)} />
 
         <div className="app-content" style={view === "board" ? { display: "flex", flexDirection: "column", minHeight: 0 } : {}}>
-          {view === "overview" && <OverviewView jobs={filtered} schedule={myScheduleItems} onOpen={openJob} onStage={goStage} onKpi={goKpi} />}
+          {view === "overview" && <OverviewView jobs={filtered} schedule={myScheduleItems} onOpen={openJob} onStage={goStage} onKpi={goKpi} stock={stock} />}
           {view === "board" && <KanbanView jobs={filtered} onOpen={openJob} onMoveStage={(id, s) => store.setStage(id, s)} />}
           {view === "table" && <TableView jobs={filtered} onOpen={openJob}
             onEdit={(j) => setForm({ job: store.raw.find((r) => r.id === j.id), isNew: false })}
