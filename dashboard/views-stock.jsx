@@ -198,11 +198,13 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
         </div>
       ) : (
       <div className="app-content">
-        <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)", gap: 14, marginBottom: 18 }}>
+        {!isMobile && (
+        <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 18 }}>
           <StockKpi label="รายการทั้งหมด" value={items.length} unit="ชนิด" icon="box" accent="#3B82F6" sub="ชนิดอุปกรณ์ในคลัง" active={kpiFilter===null} onClick={() => setKpiFilter(null)} />
           <StockKpi label="ใกล้หมด / ต่ำกว่าขั้นต่ำ" value={lowCount} unit="รายการ" icon="alert" accent="#F59E0B" sub="ควรสั่งเพิ่ม" active={kpiFilter==="low"} onClick={() => setKpiFilter(f => f==="low" ? null : "low")} />
           <StockKpi label="ความเคลื่อนไหวล่าสุด" value={stock.moves.length} unit="รายการ" icon="history" accent="#0EA5E9" sub="แตะดูทั้งหมด" active={movesOpen} onClick={() => setMovesOpen(true)} />
         </div>
+        )}
 
         <div>
           {/* stock list — เต็มความกว้าง (มือถือ: card list, เดสก์ท็อป: ตาราง) */}
@@ -226,7 +228,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                     const c = SF.STOCK_CAT_BY[it.cat] || SF.STOCK_CATS[SF.STOCK_CATS.length - 1];
                     const st = lowState(it);
                     return (
-                      <tr key={it.id} style={{ borderBottom: "1px solid var(--border)", background: st === "out" ? "#FEF6F6" : "transparent" }}>
+                      <tr key={it.id} style={{ borderBottom: "1px solid var(--border)", background: st === "out" ? "rgba(239,68,68,.07)" : "transparent" }}>
                         <td style={{ padding: "11px 12px" }}>
                           <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-1)" }}>{it.name}</div>
                           <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{it.sku}</div>
@@ -358,8 +360,8 @@ function StockCardList({ items, onMove, onEdit, onRemove }) {
         const c = SF.STOCK_CAT_BY[it.cat] || SF.STOCK_CATS[SF.STOCK_CATS.length - 1];
         const st = lowState(it);
         return (
-          <div key={it.id} style={{ background: st === "out" ? "#FEF6F6" : "var(--surface)",
-            border: "1px solid " + (st === "out" ? "#FBD3D3" : "var(--border)"), borderRadius: 14, padding: 13,
+          <div key={it.id} style={{ background: st === "out" ? "rgba(239,68,68,.07)" : "var(--surface)",
+            border: "1px solid " + (st === "out" ? "rgba(239,68,68,.22)" : "var(--border)"), borderRadius: 14, padding: 13,
             borderLeft: "3px solid " + STOCK_COLORS[st], boxShadow: "var(--shadow-sm)" }}>
             {/* หัว: ชื่อ + SKU + หมวด */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>

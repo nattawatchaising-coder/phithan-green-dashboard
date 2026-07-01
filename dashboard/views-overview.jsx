@@ -14,7 +14,7 @@ function KpiCard({ label, value, unit, icon, accent, sub, alert, onClick }) {
       boxShadow: alert ? "0 0 0 3px #EF444411" : "var(--shadow-sm)" }}>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: accent }} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-        <span style={{ fontSize: mob ? 11 : 12, fontWeight: 600, color: "var(--text-2)", letterSpacing: ".01em", whiteSpace: mob ? "normal" : "nowrap", lineHeight: 1.3 }}>{label}</span>
+        <span style={{ fontSize: mob ? 11 : 12, fontWeight: 600, color: "var(--text-2)", letterSpacing: ".01em", whiteSpace: "normal", lineHeight: 1.3, minWidth: 0 }}>{label}</span>
         <span style={{ width: mob ? 28 : 34, height: mob ? 28 : 34, borderRadius: mob ? 8 : 10, background: accent + "16", display: "grid", placeItems: "center", flexShrink: 0 }}>
           <Icon name={icon} size={mob ? 15 : 17} color={accent} />
         </span>
@@ -85,12 +85,12 @@ function AlertsPanel({ jobs, onOpen }) {
         {problems.length === 0 && <Empty text="ไม่มีงานติดปัญหา 🎉" />}
         {problems.map((j) => (
           <button key={j.id} onClick={() => onOpen(j)} style={{ display: "flex", gap: 11, padding: "11px 12px", textAlign: "left",
-            background: "#FEF6F6", border: "1px solid #FBDADA", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", width: "100%" }}>
+            background: "rgba(239,68,68,.07)", border: "1px solid rgba(239,68,68,.22)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", width: "100%" }}>
             <span style={{ width: 4, alignSelf: "stretch", borderRadius: 99, background: "#EF4444", flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                 <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: "0 1 auto" }}>{j.name}</span>
-                {j.delayed && <span style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", background: "#FDE2E2", padding: "1px 6px", borderRadius: 99 }}>ล่าช้า</span>}
+                {j.delayed && <span style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", background: "rgba(239,68,68,.16)", padding: "1px 6px", borderRadius: 99 }}>ล่าช้า</span>}
               </div>
               <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: 3, lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
                 {j.problem || ("เลยกำหนดวันนัด " + thDate(j.deadline))}
@@ -200,14 +200,16 @@ function OverviewView({ jobs, schedule, onOpen, onStage, onKpi }) {
   const ready = active.filter((j) => j.matReady);
   const totalKwh = jobs.filter((j) => j.battery).reduce((s, j) => s + (parseInt(j.batSize) || 0), 0);
   const done = jobs.filter((j) => j.stage === "done");
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+      {!isMobile && (
+      <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
         <KpiCard label="งานกำลังดำเนินการ" value={active.length} unit="งาน" icon="list" accent="#3B82F6" sub={"เสร็จแล้ว " + done.length + " งาน"} onClick={() => onKpi("active")} />
         <KpiCard label="งานล่าช้ากว่ากำหนด" value={delayed.length} unit="งาน" icon="alert" accent="#EF4444" alert={delayed.length > 0} sub="เลยวันนัดติดตั้ง" onClick={() => onKpi("delayed")} />
         <KpiCard label="อุปกรณ์พร้อมติดตั้ง" value={ready.length} unit="งาน" icon="box" accent="var(--primary)" sub="วัสดุครบทุกรายการ" onClick={() => onKpi("ready")} />
-        <KpiCard label="ความจุแบตเตอรี่รวม" value={totalKwh} unit="kWh" icon="battery" accent="#7C5CFC" sub="ระบบ ATMOCE" onClick={() => onKpi("battery")} />
       </div>
+      )}
 
       <MySchedulePanel items={schedule || []} onOpen={onOpen} />
 

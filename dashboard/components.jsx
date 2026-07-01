@@ -20,6 +20,7 @@ const ICONS = {
   bolt: "M13 2 4 14h7l-1 8 9-12h-7z",
   battery: "M3 8h14v8H3zM17 11h3v2h-3M6 11v2M9 11v2",
   sun: "M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z",
+  moon: "M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z",
   panel: "M3 4h18l1 9H2zM7 13v7M17 13v7M12 4v16M2 13h20M5 20h14",
   check: "M5 12l4 4L19 7",
   clock: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2",
@@ -249,9 +250,9 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
         </span>
         <Icon name="chevronDown" size={16} color="var(--text-3)" style={{ flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
       </button>
-      {open && rect && (
+      {open && rect && ReactDOM.createPortal((
         <React.Fragment>
-          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 200 }} />
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 200, touchAction: "none" }} />
           <div ref={panelRef} style={{ position: "fixed", top: rect.top != null ? rect.top : undefined, bottom: rect.bottom != null ? rect.bottom : undefined, left: rect.left, width: rect.width, zIndex: 201,
             background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 14px 40px rgba(8,20,14,.22)",
             maxHeight: rect.maxH || 320, display: "flex", flexDirection: "column", overflow: "hidden", padding: 5 }}>
@@ -309,7 +310,7 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
             </div>
           </div>
         </React.Fragment>
-      )}
+      ), document.body)}
     </React.Fragment>
   );
 }

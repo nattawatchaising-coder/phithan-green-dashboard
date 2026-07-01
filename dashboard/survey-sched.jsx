@@ -82,8 +82,9 @@ function useSurveyApptStore() {
 
 /* ── หัวเพจร่วม (สไตล์เดียวกับหน้า stock) ── */
 function SchedHeader({ icon, title, sub, onMenuOpen, right }) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
   return (
-    <header className="app-header">
+    <header className="app-header" style={isMobile ? { paddingBottom: 12 } : undefined}>
       <div className="header-top">
         <button className="hamburger" onClick={onMenuOpen} aria-label="เปิดเมนู"><Icon name="menu" size={18} color="var(--text-2)" /></button>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -399,12 +400,12 @@ const STAGE_KIND_TH = { start: "เริ่ม", end: "กำหนดเสร
 /* ── การ์ดงานในไปป์ไลน์ (ออกแบบ/ถอดของ/ติดตั้ง ฯลฯ) ที่มอบหมายให้คนนี้ ──
    stages = งานหลายขั้นที่นัดวันเดียวกันของงานนี้ (รวมในการ์ดเดียว)
    onAdvance(job) = กด "เสร็จขั้นนี้" → เลื่อนงานไปขั้นถัดไป (เฉพาะการ์ดที่มีขั้นปัจจุบัน) */
-function JobTaskCard({ job, stages, day, onOpen, onAdvance }) {
+function JobTaskCard({ job, stages, day, dayEnd, onOpen, onAdvance }) {
   const SF = window.SF;
   const list = (stages && stages.length) ? stages : [{ th: job.stage, en: "", color: "#64748B" }];
   const color = list[0].color || "#64748B";
   const mapHref = job.map ? job.map : (job.address ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent((job.address || "") + " " + (job.province || "")) : null);
-  const dateStr = day ? thDate(day, true) : "ไม่ระบุวัน";
+  const dateStr = day ? (dayEnd && dayEnd !== day ? thDate(day, true) + " – " + thDate(dayEnd, true) : thDate(day, true)) : "ไม่ระบุวัน";
   // ปุ่ม "เสร็จขั้นนี้" — แสดงเฉพาะการ์ดที่มีขั้นปัจจุบันของงาน (กดแล้วเลื่อนไปขั้นถัดไป)
   const curIdx = (SF.STAGES || []).findIndex((s) => s.key === job.stage);
   const curStage = (SF.STAGES || [])[curIdx];
@@ -503,16 +504,11 @@ function buildMySchedItems(appts, jobs, techId) {
     const STAGES = SF.STAGES || [];
     const cur = Math.max(0, STAGES.findIndex((s) => s.key === j.stage));
     const curStage = STAGES[cur] || { key: j.stage, th: j.stage, en: "", color: "#64748B" };
-    // แสดงเฉพาะงานที่ "มีวันนัดติดตั้งแล้ว" = วันที่ต้องไปจริง · กระจายครบทุกวันในช่วงติดตั้ง
+    // แสดงเฉพาะงานที่ "มีวันนัดติดตั้งแล้ว" = วันที่ต้องไปจริง · งานเดียวการ์ดเดียว (ช่วงวันติดตั้ง)
     const s = SF.installDate ? SF.installDate(j) : "";
     if (!s) return;
     const e = SF.installEnd ? SF.installEnd(j) : s;
-    let day = s, g = 0;
-    while (g < 60) {
-      const kind = s === e ? "single" : (day === s ? "start" : (day === e ? "end" : "mid"));
-      out.push({ type: "job", key: "j-" + j.id + "-" + day, job: j, day: day, stages: [Object.assign({}, curStage, { kind: kind })], ts: new Date(day + "T00:00:00").getTime() });
-      if (day === e) break; day = _addDays(day, 1); g++;
-    }
+    out.push({ type: "job", key: "j-" + j.id, job: j, day: s, dayEnd: e, stages: [Object.assign({}, curStage)], ts: new Date(s + "T00:00:00").getTime() });
   });
   return out.sort((x, y) => x.ts - y.ts);
 }
@@ -525,11 +521,18 @@ function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey, o
   const items = React.useMemo(() => buildMySchedItems(appts, jobs, techId), [appts, jobs, techId]);
 
   const todayY = _ymdLocal(new Date());
+  const grp = (it) => {
+    if (!it.day) return "nodate";
+    const end = it.dayEnd || it.day;
+    if (end < todayY) return "past";          // จบทั้งช่วงแล้ว
+    if (it.day > todayY) return "upcoming";   // ยังไม่เริ่ม
+    return "today";                            // กำลังอยู่ในช่วง (คร่อมวันนี้)
+  };
   const groups = [
-    { key: "past", th: "เลยกำหนด / ผ่านมา", items: items.filter((it) => it.day && it.day < todayY) },
-    { key: "today", th: "วันนี้", items: items.filter((it) => it.day === todayY) },
-    { key: "upcoming", th: "กำลังจะถึง", items: items.filter((it) => it.day && it.day > todayY) },
-    { key: "nodate", th: "ไม่ระบุวันที่", items: items.filter((it) => !it.day) },
+    { key: "past", th: "เลยกำหนด / ผ่านมา", items: items.filter((it) => grp(it) === "past") },
+    { key: "today", th: "วันนี้", items: items.filter((it) => grp(it) === "today") },
+    { key: "upcoming", th: "กำลังจะถึง", items: items.filter((it) => grp(it) === "upcoming") },
+    { key: "nodate", th: "ไม่ระบุวันที่", items: items.filter((it) => grp(it) === "nodate") },
   ].filter((g) => g.items.length);
 
   const nAppt = items.filter((i) => i.type === "survey").length;
@@ -539,7 +542,7 @@ function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey, o
 
   const renderCard = (it) => it.type === "survey"
     ? <ApptCard key={it.key} a={it.a} job={jobsById[it.a.projectId]} onStatus={onStatus} onOpenSurvey={onOpenSurvey} />
-    : <JobTaskCard key={it.key} job={it.job} stages={it.stages} day={it.day} onOpen={onOpen} onAdvance={onAdvance} />;
+    : <JobTaskCard key={it.key} job={it.job} stages={it.stages} day={it.day} dayEnd={it.dayEnd} onOpen={onOpen} onAdvance={onAdvance} />;
 
   return (
     <React.Fragment>

@@ -220,14 +220,13 @@ function LoginScreen({ authStore }) {
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18,
         boxShadow: "var(--shadow-sm)", width: "min(420px, 100%)", overflow: "hidden" }}>
         <div style={{ padding: 22 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", marginBottom: 4 }}>เข้าสู่ระบบ</div>
-          <div style={{ fontSize: 12.5, color: "var(--text-3)", marginBottom: 16 }}>กรอกชื่อผู้ใช้และรหัสผ่านที่แอดมินกำหนดให้</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", marginBottom: 16 }}>เข้าสู่ระบบ</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
             <AField label="ชื่อผู้ใช้ (ID)" required>
               <input autoFocus autoCapitalize="none" autoCorrect="off" spellCheck={false} value={username}
                 onChange={(e) => { setUsername(e.target.value); setErr(""); }}
                 onKeyDown={(e) => { if (e.key === "Enter" && pwRef.current) pwRef.current.focus(); }}
-                style={A_INPUT} placeholder="เช่น admin" />
+                style={A_INPUT} />
             </AField>
             <AField label="รหัสผ่าน" required>
               <div style={{ position: "relative" }}>
@@ -252,8 +251,6 @@ function LoginScreen({ authStore }) {
           </button>
         </div>
       </div>
-
-      <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>ครั้งแรกเข้าด้วย ID <b>admin</b> · รหัสผ่าน <b>1234</b> แล้วเปลี่ยนภายหลัง</div>
     </div>
   );
 }

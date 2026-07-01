@@ -28,7 +28,7 @@
     meter1: "Smart Meter DDSU666-H + CT 100A/40mA (1 เฟส)",
     meter3: "Smart Meter DTSU666-H + CT 100A/40mA (3 เฟส)",
     dongle: "Smart Dongle-WLAN-FE",
-    cabinet: "AC/DC Combiner Box ตู้หน้ากระจก เบอร์3",
+    cabinet: "AC/DC Combiner Box ตู้หน้ากระจก เบอร์4",
     dcFuseHolder: "DC FUSE HOLDER FEEO",
     dcFuse: "DC FUSE 16A 1000VDC FEEO",
     dcSpd: "DC SPD 2P 800VDC 20-40KA FEEO",
@@ -71,7 +71,7 @@
 
   // ── ATMOCE "ตู้ประกอบ" (assembled): อุปกรณ์ในตู้รายชิ้น — รองรับ 1 เฟส (2P) และ 3 เฟส (4P/3P+N) ──
   // ตัวตู้ (enclosure) — ใช้ร่วมทั้ง 1 เฟส/3 เฟส
-  const ATMOCE_ASM_ENCLOSURE = { name: "ตู้ AC/DC Combiner Box ตู้หน้ากระจก เบอร์3", qty: 1, unit: "ใบ" };
+  const ATMOCE_ASM_ENCLOSURE = { name: "ตู้ AC/DC Combiner Box ตู้หน้ากระจก เบอร์4", qty: 1, unit: "ใบ" };
   // อุปกรณ์ที่ใช้ร่วมทุกเฟส (ขนาดคงที่ ไม่ขึ้นกับจำนวนขั้ว)
   const ATMOCE_ASM_SHARED = [
     { name: "บัสบาร์กราวด์ทองเหลือง 6x9 (6P)", qty: 1, unit: "ea" },
@@ -90,7 +90,7 @@
   function atmoceAssembled(iMicro, iBatt, hasBatt, phase) {
     const cfg = ATMOCE_ASM_POLE[phase === 3 ? 3 : 1];
     const out = [];
-    out.push(ATMOCE_ASM_ENCLOSURE);                                                                                         // ตัวตู้หน้ากระจก เบอร์3
+    out.push(ATMOCE_ASM_ENCLOSURE);                                                                                         // ตัวตู้หน้ากระจก เบอร์4
     out.push({ name: "RCCB " + cfg.pole + " " + pickBreakerAT(iMicro + iBatt) + "AT Type A 100mA", qty: 1, unit: "ตัว" });  // ตามกระแสรวม BAT+Micro
     out.push({ name: cfg.mcb25, qty: 1, unit: "ตัว" });                                                                     // MCB 25AT เท่าเดิม
     out.push({ name: cfg.spd, qty: 1, unit: "ตัว" });                                                                       // AC SPD เท่าเดิม
@@ -683,7 +683,7 @@
         combItems.push({ name: HW.mc4, qty: totalStr, unit: "ชุด" });
         combItems.push({ name: ph === 3 ? HW.acSpd3 : HW.acSpd1, qty: invCount, unit: "ตัว" });
         combItems.push({ name: rcboName(selInv.outA, ph), qty: invCount, unit: "ตัว" });
-        combItems.push({ name: HW.wireDuct, qty: 1, unit: "เส้น" });   // ในตู้ใบเดียว
+        combItems.push({ name: HW.wireDuct, qty: 2, unit: "เส้น" });   // 2 เส้น/ตู้
         combItems.push({ name: HW.dinRail, qty: 1, unit: "เส้น" });    // ในตู้ใบเดียว
         combItems.push({ name: HW.stopper, qty: 10, unit: "ตัว" });    // 10/งาน (flat)
         combItems.push({ name: HW.groundBar, qty: 1, unit: "อัน" });

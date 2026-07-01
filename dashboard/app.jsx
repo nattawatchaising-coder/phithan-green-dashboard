@@ -108,6 +108,18 @@ function App() {
   const [briefingOpen, setBriefingOpen] = React.useState(false); // สรุปงานวันนี้ (เปิดครั้งแรกของวัน)
   const [mapOpen, setMapOpen] = React.useState(false); // แผนที่งาน (popup จากปุ่มใน header)
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  // โหมดกลางคืน — ผู้ใช้สลับเองได้ · จำค่าใน localStorage (ใช้ได้บนเว็บจริง ไม่พึ่ง edit-mode)
+  const [dark, setDark] = React.useState(() => {
+    const s = localStorage.getItem("pg-dark");
+    return s == null ? (TWEAK_DEFAULTS.mode === "dark") : s === "1";
+  });
+  const toggleDark = React.useCallback(() => setDark((d) => { const n = !d; localStorage.setItem("pg-dark", n ? "1" : "0"); return n; }), []);
+  // ย่อ/ขยายแถบเมนูด้านข้าง (เดสก์ท็อป) — จำค่าใน localStorage
+  const [collapsed, setCollapsed] = React.useState(() => {
+    const s = localStorage.getItem("pg-sidebar");
+    return s == null ? (TWEAK_DEFAULTS.sidebar === "icons") : s === "1";
+  });
+  const toggleCollapsed = React.useCallback(() => setCollapsed((c) => { const n = !c; localStorage.setItem("pg-sidebar", n ? "1" : "0"); return n; }), []);
   const isMobile = useIsMobile(); // force App re-render when mobile↔desktop breakpoint changes
 
   // สิทธิ์/ตัวตนของผู้ใช้ที่ล็อกอินอยู่ (null ถ้ายังไม่ล็อกอิน)
@@ -124,7 +136,7 @@ function App() {
     if (!allowed.includes(view)) setView(role === "survey" ? "myschedule" : "overview");
   }, [auth.current, role]);
 
-  React.useEffect(() => { applyTheme(t); }, [t]);
+  React.useEffect(() => { applyTheme(Object.assign({}, t, { mode: dark ? "dark" : "light" })); }, [t, dark]);
 
   const jobs = React.useMemo(() => store.jobs.map((j) => {
     const f = fileFlags[j.id] || {};
@@ -203,8 +215,7 @@ function App() {
     all.forEach((it) => {
       if (it.type === "job") {
         const id = it.job.id, c = ((it.stages || [])[0] || {}).color;
-        if (!byJob[id]) { byJob[id] = { type: "job", key: "j-" + id, job: it.job, start: it.day, end: it.day, ts: it.ts, color: c }; out.push(byJob[id]); }
-        else { if (it.day < byJob[id].start) byJob[id].start = it.day; if (it.day > byJob[id].end) byJob[id].end = it.day; }
+        if (!byJob[id]) { byJob[id] = { type: "job", key: "j-" + id, job: it.job, start: it.day, end: it.dayEnd || it.day, ts: it.ts, color: c }; out.push(byJob[id]); }
       } else {
         out.push({ type: "survey", key: it.key, a: it.a, start: it.day, end: it.day, ts: it.ts });
       }
@@ -299,7 +310,8 @@ function App() {
     <div className="app-root">
       {sidebarOpen && <div className="sidebar-overlay" onClick={closeSidebar} />}
       <Sidebar view={view} onNav={navTo} role={role} jobs={jobs} stock={stock} t={t}
-        open={sidebarOpen} onClose={closeSidebar}
+        open={sidebarOpen} onClose={closeSidebar} dark={dark} onToggleDark={toggleDark}
+        collapsed={collapsed} onToggleCollapsed={toggleCollapsed}
         currentUser={auth.current} onLogout={auth.logout}
         canManageUsers={can(role, "manageUsers")} onManageUsers={() => { setUserMgr(true); closeSidebar(); }} />
       <main className="app-main">
@@ -390,21 +402,33 @@ function App() {
   );
 }
 
-function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, currentUser, onLogout, canManageUsers, onManageUsers }) {
-  const icons = t.sidebar === "icons";
+function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, dark, onToggleDark, collapsed, onToggleCollapsed, currentUser, onLogout, canManageUsers, onManageUsers }) {
   // Read media query synchronously every render — avoids stale state when
   // the preview or device loads at one size then displays at another.
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  // โหมดไอคอน = ผู้ใช้ย่อแถบเอง (เฉพาะเดสก์ท็อป — มือถือใช้ drawer เต็มเสมอ)
+  const icons = !isMobile && collapsed;
   const delayed = jobs.filter((j) => j.delayed).length;
   const lowStock = stock.items.filter((it) => it.qty <= it.min).length;
   // On mobile: slide in/out via transform; on desktop: no inline style → always visible in flex flow
   const sidebarStyle = isMobile
     ? { transform: open ? "translateX(0)" : "translateX(-100%)",
         boxShadow: open ? "6px 0 36px rgba(0,0,0,.22)" : "none" }
-    : {};
+    : { position: "relative" };
   return (
     <aside className="sidebar" data-mode={icons ? "icons" : "full"}
       style={sidebarStyle}>
+      {/* ปุ่มย่อ/ขยาย — ลอยที่ขอบขวาของแถบ (เฉพาะเดสก์ท็อป) */}
+      {!isMobile && (
+        <button onClick={onToggleCollapsed} title={collapsed ? "ขยายแถบเมนู" : "ย่อแถบเมนู"} aria-label="ย่อ/ขยายแถบเมนู"
+          style={{ position: "absolute", top: "50%", right: -13, transform: "translateY(-50%)", width: 26, height: 26, borderRadius: 99,
+            border: "2px solid var(--bg)", background: "var(--primary)", color: "#fff",
+            cursor: "pointer", display: "grid", placeItems: "center", boxShadow: "0 2px 8px rgba(20,40,28,.18)", zIndex: 5, padding: 0 }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--primary-dark)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "var(--primary)"; }}>
+          <Icon name="chevronRight" size={15} color="#fff" style={{ transform: collapsed ? "none" : "rotate(180deg)", transition: "transform .18s" }} />
+        </button>
+      )}
       <div className="sidebar-brand">
         <img src="dashboard/assets/phithan-mark.png" alt="PHITHAN GREEN" className="brand-mark" />
         {!icons && (
@@ -459,6 +483,11 @@ function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, currentUser
             )}
           </div>
         )}
+        {/* โหมดกลางคืน — สลับธีมสว่าง/มืด (จำค่าไว้) */}
+        <button onClick={onToggleDark} className="nav-item" title={dark ? "โหมดกลางวัน" : "โหมดกลางคืน"} style={{ width: "100%" }}>
+          <Icon name={dark ? "sun" : "moon"} size={18} color="var(--text-2)" />
+          {!icons && <span>{dark ? "โหมดกลางวัน" : "โหมดกลางคืน"}</span>}
+        </button>
         <button onClick={onLogout} className="nav-item" title="ออกจากระบบ"
           style={{ width: "100%", color: "#EF4444" }}>
           <Icon name="history" size={18} color="#EF4444" style={{ transform: "scaleX(-1)" }} />
@@ -482,7 +511,7 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
   const searchRef = React.useRef(null);
   React.useEffect(() => { if (searchOpen && searchRef.current) searchRef.current.focus(); }, [searchOpen]);
   return (
-    <header className="app-header">
+    <header className="app-header" style={isMobile ? { paddingBottom: 12 } : undefined}>
       <div className="header-top">
         <button className="hamburger" onClick={onMenuOpen} aria-label="เปิดเมนู">
           <Icon name="menu" size={18} color="var(--text-2)" />
@@ -544,6 +573,7 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
           )}
         </div>
       </div>
+      {!isMobile && (
       <div className="header-filters">
         <Segmented value={typeFilter} onChange={setTypeFilter}
           options={[{ value: "all", label: "ทั้งหมด" }, { value: "home", label: "งานบ้าน" }, { value: "project", label: "โครงการ" }]} />
@@ -565,11 +595,12 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
         </button>
         )}
       </div>
+      )}
       {/* ชิปกรองขั้นงาน — ย่อ/ขยายแบบลื่น (max-height + opacity); ซ่อนบนหน้าภาพรวม / มือถือหน้าบอร์ด */}
       {showStageBar && (
       <div style={{ overflow: "hidden", maxHeight: stageOpen ? 180 : 0, opacity: stageOpen ? 1 : 0,
         paddingBottom: stageOpen ? (isMobile ? 10 : 14) : 0, transition: "max-height .24s ease, opacity .2s ease, padding-bottom .24s ease" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 5 : 7, flexWrap: "wrap" }}>
+        <div className="cat-chip-row" style={{ display: "flex", alignItems: "center", gap: isMobile ? 5 : 7, flexWrap: "nowrap", overflowX: "auto", overflowY: "hidden", paddingBottom: 2 }}>
           {(() => {
             const SF = window.SF;
             const chip = (active, color) => ({

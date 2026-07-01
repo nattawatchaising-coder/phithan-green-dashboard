@@ -2,6 +2,11 @@
    SolarFlow — Kanban board (drag cards across the 8 stages)
    ============================================================ */
 
+// เรียงการ์ดในแต่ละคอลัมน์ตามวันติดตั้ง (ใครก่อนอยู่บน) · งานที่ยังไม่ระบุวันไว้ท้ายสุด
+function byInstallDate(a, b) {
+  return (a.startDate || "9999-99-99").localeCompare(b.startDate || "9999-99-99");
+}
+
 function KanbanCard({ job, onOpen, onDragStart, dragging }) {
   const s = stageOf(job.stage);
   return (
@@ -175,7 +180,7 @@ function KanbanView({ jobs, onOpen, onMoveStage }) {
   return (
     <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 12, minHeight: 0, flex: 1 }}>
       {SF.STAGES.map((s) => {
-        const col = jobs.filter((j) => j.stage === s.key);
+        const col = jobs.filter((j) => j.stage === s.key).sort(byInstallDate);
         const isOver = over === s.key;
         return (
           <div key={s.key}
@@ -217,7 +222,7 @@ function KanbanMobile({ jobs, onOpen }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {SF.STAGES.map((s) => {
-        const col = jobs.filter((j) => j.stage === s.key);
+        const col = jobs.filter((j) => j.stage === s.key).sort(byInstallDate);
         // ค่าเริ่มต้น: พับทุกขั้น (เห็นจำนวน+⚠ เพื่อสแกนง่าย) แล้วค่อยกดเปิดทีละขั้น
         const isOpen = collapsed[s.key] !== undefined ? !collapsed[s.key] : false;
         const problems = col.filter((j) => j.problem || j.delayed).length;
