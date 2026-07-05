@@ -319,7 +319,8 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const media = useJobMedia(job ? job.id : null); // รูป + คอมเมนต์ของงานนี้
   const [boqOpen, setBoqOpen] = React.useState(false);
-  React.useEffect(() => { setBoqOpen(false); }, [job ? job.id : null]);
+  const [planOpen, setPlanOpen] = React.useState(false);
+  React.useEffect(() => { setBoqOpen(false); setPlanOpen(false); }, [job ? job.id : null]);
 
   /* loading state — กดปุ่มแล้วแสดง "กำลังบันทึก..." ทันที
      reset เมื่อ Firebase confirm แล้ว (job.stage เปลี่ยน) */
@@ -442,6 +443,20 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                 );
               })()}
 
+              {/* ผังหน้างาน (Site Plan) */}
+              {window.SitePlanEditor && (
+              <button onClick={() => setPlanOpen(true)}
+                style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+                  background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                <span style={{ width: 34, height: 34, borderRadius: 9, background: "#0EA5E91c", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="map" size={17} color="#0784b8" /></span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ผังหน้างาน (วาด + วัดระยะ)</span>
+                  <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>วาดเส้นสาย · วางจุดอุปกรณ์ · ประเมินของเบื้องต้น</span>
+                </span>
+                <Icon name="arrowRight" size={16} color="var(--text-3)" />
+              </button>
+              )}
+
               {/* ถอดวัสดุ BOQ */}
               <button onClick={() => setBoqOpen(true)}
                 style={{ width: "100%", marginBottom: 22, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
@@ -559,6 +574,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
       </aside>
       {boqOpen && job && <BOQEditor job={job} onClose={() => setBoqOpen(false)} priceMap={priceMap} stock={stock}
         onSave={onSaveBOQ ? (boq) => { onSaveBOQ(job.id, boq); setBoqOpen(false); } : null} />}
+      {planOpen && job && window.SitePlanEditor && <window.SitePlanEditor job={job} currentUser={currentUser} onClose={() => setPlanOpen(false)} />}
     </React.Fragment>
   );
 }
