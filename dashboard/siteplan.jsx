@@ -41,6 +41,12 @@ const PLAN_MARKER_BY = {}; PLAN_MARKER_KINDS.forEach((k) => { PLAN_MARKER_BY[k.k
 PLAN_MARKER_BY.array = { key: "array", label: "แผงโซลาร์", color: "#16A34A", icon: "panel" }; // legacy: จุดแผงแบบเก่า
 PLAN_MARKER_BY.camera = { key: "camera", label: "จุดกล้อง", color: "#F59E0B", icon: "pin" };  // จุดแนบรูปวางได้อิสระ (ไม่นับเป็นอุปกรณ์)
 
+// ค่าเริ่มต้นข้อมูลบน PDF นำเสนอ (แก้ไข + จำไว้ในเครื่องได้)
+const PDF_DEFAULTS = {
+  warranties: ["ฟรีล้างแผงโซลาร์เซลล์ 3 ครั้ง", "รับประกันงานติดตั้ง 5 ปี", "รับประกันอินเวอร์เตอร์ 5 ปี", "รับประกันแผงโซลาร์เซลล์ 15 ปี", "สำรวจหน้างานก่อนติดตั้งฟรี"],
+  email: "solar@phithangreen.com", tel: "064-867-5020 (ฝ่ายวิศวกรรม)", logo: "",
+};
+
 // แผงโซลาร์ตามขนาดจริง — ค่าตั้งต้น (เมตร) ด้านสั้น × ด้านยาว, ช่องว่างระหว่างแผง
 const PLAN_PANEL_SHORT = 1.13;   // ด้านสั้นของแผงมาตรฐาน (~1134 มม.)
 const PLAN_PANEL_LONG  = 2.28;   // ด้านยาว (แผง 550–600W ~2278 มม.)
@@ -320,6 +326,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
 
   // ── วัดขนาดที่แสดงจริงของรูป ──
   const imgRef = React.useRef(null);
+  const svgRef = React.useRef(null);   // overlay เส้น/จุด — ใช้ตอนส่งออกแบบติดตั้ง
   const [disp, setDisp] = React.useState({ w: 0, h: 0 });
   const measure = React.useCallback(() => {
     const el = imgRef.current; if (!el) return;
@@ -884,6 +891,199 @@ function SitePlanEditor({ job, onClose, currentUser }) {
     mark(); setPhotoDraw(false); setStrokes([]);
   };
 
+  // ── ส่งออก "แบบติดตั้ง" (รูปหน้างาน + เส้น/จุด/ป้าย) → โหลด/ส่งต่อผู้รับเหมา ──
+  const [exporting, setExporting] = React.useState(false);
+  const [pdfInfo, setPdfInfo] = React.useState(() => { try { const s = localStorage.getItem("pgPdfInfo"); if (s) return Object.assign({}, PDF_DEFAULTS, JSON.parse(s)); } catch (e) {} return Object.assign({}, PDF_DEFAULTS); });
+  const [pdfSettings, setPdfSettings] = React.useState(false);
+  const pdfLogoRef = React.useRef(null);
+  React.useEffect(() => { try { localStorage.setItem("pgPdfInfo", JSON.stringify(pdfInfo)); } catch (e) {} }, [pdfInfo]);
+  const attachPdfLogo = async (file) => { if (!file) return; setBusy(true); try { const url = await resizeImageFile(file, 500, 0.85); setPdfInfo((p) => Object.assign({}, p, { logo: url })); } catch (err) { alert("โหลดโลโก้ไม่สำเร็จ: " + err.message); } setBusy(false); };
+  const loadImgAsync = (src) => new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; });
+  // รูปผังหน้าปัจจุบันแบบเนียน: ภาพจริง + overlay เส้น/จุด (คืน canvas ความละเอียดจริง ไม่มีหัวกระดาษ)
+  const composeActivePlan = async () => {
+    const svgEl = svgRef.current; if (!image || !svgEl) return null;
+    const baseImg = await loadImgAsync(image); if (!baseImg) throw new Error("โหลดรูปพื้นไม่ได้");
+    const natW = baseImg.naturalWidth || imgDim.w || disp.w || 1200, natH = baseImg.naturalHeight || imgDim.h || disp.h || 800;
+    const maxW = 1800, sc = natW > maxW ? maxW / natW : 1, W = Math.round(natW * sc), H = Math.round(natH * sc);
+    const cv = document.createElement("canvas"); cv.width = W; cv.height = H; const ctx = cv.getContext("2d");
+    ctx.drawImage(baseImg, 0, 0, W, H);
+    const clone = svgEl.cloneNode(true);
+    const oAll = svgEl.querySelectorAll("*"), cAll = clone.querySelectorAll("*");   // คัดลอกสีที่ resolve แล้ว (กัน var(--...) หาย)
+    for (let i = 0; i < oAll.length; i++) { const st = getComputedStyle(oAll[i]); if (st.fill) cAll[i].setAttribute("fill", st.fill); if (st.stroke && st.stroke !== "none") cAll[i].setAttribute("stroke", st.stroke); }
+    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    const svgImg = await loadImgAsync("data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(clone)));
+    if (svgImg) ctx.drawImage(svgImg, 0, 0, W, H);
+    return cv;
+  };
+  const deliverBlob = async (blob, fname, mode, type, shareText) => {
+    if (mode === "share" && typeof navigator !== "undefined" && navigator.canShare) {
+      const file = new File([blob], fname, { type });
+      if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: fname, text: shareText }); return; }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = fname; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  };
+  const exportPlanImage = async (mode) => {
+    if (!image) { alert("ยังไม่มีรูปผังในหน้านี้ให้ส่งออก"); return; }
+    setExporting(true);
+    try {
+      const plan = await composeActivePlan(); if (!plan) throw new Error("สร้างรูปผังไม่ได้");
+      const W = plan.width, headH = Math.max(56, Math.round(W * 0.07));
+      const cv = document.createElement("canvas"); cv.width = W; cv.height = plan.height + headH; const ctx = cv.getContext("2d");
+      ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.fillStyle = "#0F5132"; ctx.fillRect(0, 0, W, headH);
+      ctx.fillStyle = "#fff"; ctx.textBaseline = "middle";
+      const pad = Math.round(W * 0.022), pageName = (pages[activePage] && pages[activePage].name) || "";
+      ctx.font = "800 " + Math.round(headH * 0.34) + "px system-ui, sans-serif"; ctx.fillText((job ? job.name : "ผังหน้างาน"), pad, headH * 0.36);
+      const scLbl = mpp ? ("มาตราส่วน 1px≈" + (Math.round(mpp * 10000) / 10000) + " ม.") : "ยังไม่ตั้งมาตราส่วน";
+      ctx.font = "600 " + Math.round(headH * 0.24) + "px system-ui, sans-serif";
+      ctx.fillText("แบบติดตั้ง · " + (job ? job.code : "") + (pageName ? " · " + pageName : "") + " · " + scLbl + " · " + new Date().toLocaleDateString("th-TH"), pad, headH * 0.72);
+      ctx.drawImage(plan, 0, headH, plan.width, plan.height);
+      const fname = "แบบติดตั้ง_" + ((job && job.code) || "ผัง") + (pageName ? "_" + pageName : "") + ".jpg";
+      const blob = await new Promise((res) => cv.toBlob(res, "image/jpeg", 0.9));
+      await deliverBlob(blob, fname, mode, "image/jpeg", (job ? job.name + " — " : "") + "แบบติดตั้งหน้างาน");
+    } catch (err) { alert("ส่งออกไม่สำเร็จ: " + (err && err.message ? err.message : err)); }
+    setExporting(false);
+  };
+
+  // ── PDF นำเสนอ: ปก + ผังทุกหน้า + รายละเอียดแต่ละจุด (รูปแนบ) + สรุปถอดของ ──
+  const ensureJsPDF = () => new Promise((res, rej) => {
+    if (window.jspdf && window.jspdf.jsPDF) return res(window.jspdf.jsPDF);
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+    s.onload = () => (window.jspdf && window.jspdf.jsPDF) ? res(window.jspdf.jsPDF) : rej(new Error("โหลดไลบรารี PDF ไม่ได้"));
+    s.onerror = () => rej(new Error("โหลดไลบรารี PDF ไม่ได้ (ต้องต่อเน็ต)"));
+    document.head.appendChild(s);
+  });
+  // สไลด์ 16:9 สไตล์ PHITHAN GREEN Site Survey
+  const SW = 1600, SH = 900;
+  const F = "system-ui, -apple-system, 'Segoe UI', 'Noto Sans Thai', 'Sarabun', sans-serif";
+  const BG = "#0E4D33", BGD = "#0A3123", MINT = "#8FE3B8", SITE_URL = "www.phithangreen.com";
+  const newSlide = (bg) => { const c = document.createElement("canvas"); c.width = SW; c.height = SH; const x = c.getContext("2d"); x.fillStyle = bg || "#ffffff"; x.fillRect(0, 0, SW, SH); return { c, x }; };
+  const drawContain = (x, img, bx, by, bw, bh) => { if (!img) return; const iw = img.width || img.naturalWidth, ih = img.height || img.naturalHeight; if (!iw || !ih) return; const r = Math.min(bw / iw, bh / ih); const w = iw * r, h = ih * r; x.drawImage(img, bx + (bw - w) / 2, by + (bh - h) / 2, w, h); };
+  const wrapTH = (x, text, maxW) => { const out = []; let cur = ""; for (const ch of (text || "")) { const t = cur + ch; if (x.measureText(t).width > maxW && cur) { out.push(cur); cur = ch; } else cur = t; } if (cur) out.push(cur); return out.length ? out : [""]; };
+  const foot = (x, dark) => { x.textBaseline = "alphabetic"; x.textAlign = "right"; x.fillStyle = dark ? "rgba(255,255,255,.72)" : "#9aa5a0"; x.font = "600 20px " + F; x.fillText(SITE_URL, SW - 44, SH - 30); x.textAlign = "left"; x.fillStyle = dark ? "rgba(255,255,255,.85)" : BG; x.font = "800 20px " + F; x.fillText("PHITHAN GREEN", 44, SH - 30); };
+  // ตราสัญลักษณ์สำรอง (พระอาทิตย์+ใบไม้) เมื่อยังไม่ได้ใส่โลโก้จริง
+  const drawEmblem = (x, cx, cy, r) => { x.save(); x.fillStyle = MINT; x.strokeStyle = MINT; x.lineWidth = Math.max(2, r * 0.14); x.lineCap = "round"; x.beginPath(); x.arc(cx, cy - r * 0.1, r * 0.42, 0, Math.PI * 2); x.fill(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; x.beginPath(); x.moveTo(cx + Math.cos(a) * r * 0.62, cy - r * 0.1 + Math.sin(a) * r * 0.62); x.lineTo(cx + Math.cos(a) * r * 0.92, cy - r * 0.1 + Math.sin(a) * r * 0.92); x.stroke(); } x.beginPath(); x.moveTo(cx, cy + r * 0.5); x.quadraticCurveTo(cx + r * 0.55, cy + r * 0.5, cx + r * 0.55, cy + r * 1.05); x.quadraticCurveTo(cx, cy + r * 0.95, cx, cy + r * 0.5); x.fill(); x.restore(); };
+  const pointLabel = (m) => m.kind === "xpage" ? ("จุดต่อรูป #" + (m.n || "")) : m.kind === "camera" ? "จุดกล้อง / ภาพหน้างาน" : ((PLAN_MARKER_BY[m.kind] || {}).label || "จุดอุปกรณ์");
+  // สไลด์รูป: ภาพใหญ่ + แถบคำบรรยายด้านล่าง (สไตล์หน้า "การดำเนินงาน")
+  const photoSlide = (tag, title, note, img) => {
+    const { c, x } = newSlide(BGD); const barH = 172;
+    x.textBaseline = "alphabetic"; x.textAlign = "right"; x.fillStyle = "rgba(255,255,255,.6)"; x.font = "600 20px " + F; x.fillText(SITE_URL, SW - 44, 48);  // แบรนด์บนขวา (กันชนแถบล่าง)
+    x.textAlign = "left"; x.fillStyle = "rgba(255,255,255,.85)"; x.font = "800 20px " + F; x.fillText("PHITHAN GREEN", 44, 48);
+    drawContain(x, img, 56, 78, SW - 112, SH - 78 - barH - 18);
+    x.fillStyle = BG; x.fillRect(0, SH - barH, SW, barH);
+    x.textAlign = "left";
+    if (tag) { x.fillStyle = MINT; x.font = "700 24px " + F; x.fillText(tag, 56, SH - barH + 46); }
+    x.fillStyle = "#fff"; x.font = "800 42px " + F; x.fillText(wrapTH(x, title, SW - 112)[0], 56, SH - barH + 98);
+    if (note) { x.fillStyle = "rgba(255,255,255,.82)"; x.font = "500 23px " + F; x.fillText(wrapTH(x, note, SW - 112)[0], 56, SH - barH + 140); }
+    return c;
+  };
+  const sectionSlide = (title, sub) => {
+    const { c, x } = newSlide(BG); x.textAlign = "center"; x.textBaseline = "middle";
+    x.fillStyle = "rgba(255,255,255,.6)"; x.font = "600 24px " + F; x.fillText(SITE_URL, SW / 2, 110);
+    const lines = String(title).split("\n"); x.fillStyle = "#fff"; x.font = "800 62px " + F;
+    lines.forEach((ln, i) => x.fillText(ln, SW / 2, SH / 2 - (lines.length - 1) * 40 + i * 80));
+    if (sub) { x.fillStyle = MINT; x.font = "600 30px " + F; x.fillText(sub, SW / 2, SH / 2 + (lines.length) * 40 + 90); }
+    x.textAlign = "left"; return c;
+  };
+  const exportPlanPDF = async (mode) => {
+    if (!image) { alert("ยังไม่มีรูปผังให้ทำ PDF"); return; }
+    setExporting(true);
+    try {
+      const JsPDF = await ensureJsPDF();
+      commitActive();   // เขียนหน้าที่แก้อยู่กลับเข้า pages ก่อนไล่อ่านทุกหน้า
+      const activePlan = await composeActivePlan();
+      const slides = [];
+      const dateStr = new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" });
+      const logoImg = pdfInfo.logo ? await loadImgAsync(pdfInfo.logo) : null;
+      const warr = (pdfInfo.warranties || []).map((s) => (s || "").trim()).filter(Boolean);
+      // ── ปก ──
+      { const { c, x } = newSlide(BGD); x.textAlign = "center"; x.textBaseline = "middle";
+        if (logoImg) drawContain(x, logoImg, SW / 2 - 150, 70, 300, 150); else drawEmblem(x, SW / 2, 130, 46);
+        x.fillStyle = "rgba(255,255,255,.6)"; x.font = "600 22px " + F; x.fillText(SITE_URL, SW / 2, 258);
+        x.fillStyle = "#fff"; x.font = "800 86px " + F; x.fillText("S I T E   S U R V E Y", SW / 2, SH / 2 + 20);
+        x.fillStyle = MINT; x.font = "700 38px " + F; x.fillText("P H I T H A N   G R E E N", SW / 2, SH / 2 + 100);
+        x.fillStyle = "#fff"; x.font = "700 30px " + F; x.fillText((job ? job.name + "  ·  " : "") + summary.kwp + " kWp", SW / 2, SH - 90);
+        x.textAlign = "left"; slides.push(c); }
+      // ── ข้อมูลลูกค้า + การรับประกัน ──
+      { const { c, x } = newSlide("#ffffff");
+        x.fillStyle = BG; x.fillRect(0, 0, 560, SH);
+        x.textAlign = "left"; x.textBaseline = "alphabetic";
+        const panelW = 560, nmMaxW = panelW - 96;
+        let ly = 96;
+        if (logoImg) { drawContain(x, logoImg, 48, ly, 200, 96); ly += 120; }   // โลโก้บนแผงเขียว (ถ้ามี)
+        // ชื่อลูกค้า: ย่อฟอนต์/ตัดบรรทัดให้พอดีแผงเขียว (กันล้น)
+        let nmFs = 44; x.font = "800 " + nmFs + "px " + F;
+        let nmLines = wrapTH(x, job ? job.name : "ลูกค้า", nmMaxW);
+        while (nmLines.length > 2 && nmFs > 28) { nmFs -= 3; x.font = "800 " + nmFs + "px " + F; nmLines = wrapTH(x, job ? job.name : "ลูกค้า", nmMaxW); }
+        ly += nmFs; x.fillStyle = "#fff"; nmLines.slice(0, 2).forEach((ln) => { x.fillText(ln, 48, ly); ly += nmFs + 6; });
+        ly += 24; x.fillStyle = MINT; x.font = "800 66px " + F; x.fillText(summary.kwp + " kWp", 48, ly);
+        ly += 40; x.fillStyle = "rgba(255,255,255,.85)"; x.font = "500 24px " + F; x.fillText("กำลังการติดตั้ง (dc)", 48, ly);
+        ly += 56; x.font = "500 23px " + F;
+        if (job && job.code) { x.fillText("รหัสงาน: " + job.code, 48, ly); ly += 40; }
+        x.fillText("วันที่: " + dateStr, 48, ly);
+        const rx = 624; let ry = 150;
+        x.fillStyle = BG; x.font = "800 34px " + F; x.fillText("การรับประกัน & บริการ", rx, ry); ry += 66;
+        x.font = "500 30px " + F;
+        warr.forEach((it) => { x.fillStyle = BG; x.fillText("✓", rx, ry); x.fillStyle = "#1f2937"; wrapTH(x, it, SW - rx - 90).forEach((ln, i) => { x.fillText(ln, rx + 42, ry + i * 40); }); ry += 40 * Math.max(1, wrapTH(x, it, SW - rx - 90).length) + 18; });
+        ry += 20; x.fillStyle = BG; x.font = "800 30px " + F; x.fillText("ติดต่อเพิ่มเติม", rx, ry); ry += 48;
+        x.fillStyle = "#374151"; x.font = "500 26px " + F;
+        if (pdfInfo.email) { x.fillText("Email: " + pdfInfo.email, rx, ry); ry += 42; }
+        if (pdfInfo.tel) { x.fillText("Tel: " + pdfInfo.tel, rx, ry); }
+        foot(x, false); slides.push(c); }
+      // ── พื้นที่และรูปแบบการติดตั้ง ──
+      slides.push(sectionSlide("พื้นที่และรูปแบบ\nการติดตั้งโซลาร์เซลล์", ""));
+      const pn = (pages[activePage] && pages[activePage].name) || "";
+      slides.push(photoSlide("พื้นที่และรูปแบบการติดตั้ง", "ผังการติดตั้ง" + (pn ? " · " + pn : ""), (mpp ? "มาตราส่วน 1px ≈ " + (Math.round(mpp * 10000) / 10000) + " ม.  ·  " : "") + "* อาจปรับเปลี่ยนตามหน้างาน", activePlan));
+      const pgs = pagesRef.current || [];
+      for (let pi = 0; pi < pgs.length; pi++) {
+        if (pi === activePage) continue;
+        const pg = pgs[pi]; if (!pg.image) continue;
+        const im = await loadImgAsync(pg.image); if (!im) continue;
+        slides.push(photoSlide("พื้นที่และรูปแบบการติดตั้ง", "ผังหน้างาน · " + (pg.name || ("รูป " + (pi + 1))), "เปิดหน้านี้ในแอปเพื่อดูเส้น/จุดแบบเต็ม", im));
+      }
+      // ── การดำเนินงาน (รายละเอียดแต่ละจุด) ──
+      const pts = [];
+      pgs.forEach((pg, pi) => { (pg.markers || []).forEach((m) => { const ps = markerPhotos(m); if (ps.length) pts.push({ m, ps, pageName: pg.name || ("รูป " + (pi + 1)) }); }); });
+      if (pts.length) slides.push(sectionSlide("การดำเนินงาน", "จุดติดตั้ง · แนวเดินสาย · หน้างานจริง"));
+      for (let i = 0; i < pts.length; i++) {
+        const { m, ps, pageName } = pts[i];
+        for (let j = 0; j < ps.length; j++) {
+          const im = await loadImgAsync(ps[j]); if (!im) continue;
+          const sub = "หน้า: " + pageName + (ps.length > 1 ? "  ·  รูป " + (j + 1) + "/" + ps.length : "") + (m.kind === "xpage" && m.toPage ? "  ·  เชื่อมไป " + ((pgs.find((p) => p.id === m.toPage) || {}).name || "อีกหน้า") : "") + "  ·  * อาจปรับเปลี่ยนตามหน้างาน";
+          slides.push(photoSlide("การดำเนินงาน", pointLabel(m), sub, im));
+        }
+      }
+      // ── อุปกรณ์ของที่ใช้ในงาน (สรุป) ──
+      { const { c, x } = newSlide("#ffffff");
+        x.fillStyle = BG; x.fillRect(0, 0, SW, 108); x.fillStyle = "#fff"; x.textAlign = "left"; x.textBaseline = "middle";
+        x.font = "800 40px " + F; x.fillText("อุปกรณ์ของที่ใช้ในงาน · ประเมินเบื้องต้น", 48, 56);
+        x.textBaseline = "alphabetic"; let yy = 196;
+        const row = (label, val) => { x.font = "600 30px " + F; x.fillStyle = "#374151"; x.textAlign = "left"; x.fillText("•  " + label, 70, yy); x.font = "800 30px " + F; x.fillStyle = BG; x.textAlign = "right"; x.fillText(val, SW - 70, yy); x.textAlign = "left"; yy += 56; };
+        row("กำลังติดตั้งรวม", summary.kwp + " kWp");
+        row("แผงโซลาร์" + (+wp > 0 ? " (" + wp + "W)" : ""), summary.panelTotal + " แผง · " + summary.panelBlocks + " บล็อก");
+        row("ไมโครอินเวอร์เตอร์", summary.microCount + " ตัว (รับ " + summary.microPanels + " แผง)");
+        (takeoff.cab || []).forEach((cb) => row("สาย " + (cb.label || cb.name || ""), (cb.meters != null ? cb.meters + " ม." : "")));
+        (takeoff.conduit || []).forEach((cd) => row("ท่อร้อยสาย " + (cd.label || ""), (cd.size ? cd.size + " · " : "") + cd.meters + " ม."));
+        if (takeoff.estKwh) row("ประเมินผลิตไฟ", "≈ " + takeoff.estKwh.toLocaleString() + " kWh/ปี");
+        x.fillStyle = "#9ca3af"; x.font = "500 22px " + F; x.fillText("* ประเมินเบื้องต้นจากผังหน้างาน ใช้ประกอบการติดตั้ง — ยืนยันหน้างานอีกครั้ง", 70, yy + 18);
+        foot(x, false); slides.push(c); }
+      // ── ขอบคุณ ──
+      { const { c, x } = newSlide(BGD); x.textAlign = "center"; x.textBaseline = "middle";
+        x.fillStyle = "#fff"; x.font = "800 86px " + F; x.fillText("THANK YOU", SW / 2, SH / 2 - 16);
+        x.fillStyle = "rgba(255,255,255,.7)"; x.font = "600 28px " + F; x.fillText(SITE_URL, SW / 2, SH / 2 + 66);
+        x.textAlign = "left"; slides.push(c); }
+      // ── สร้าง PDF ──
+      const pdf = new JsPDF({ orientation: "landscape", unit: "px", format: [SW, SH], compress: true });
+      slides.forEach((c, i) => { if (i) pdf.addPage([SW, SH], "landscape"); pdf.addImage(c.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, SW, SH); });
+      const fname = "SiteSurvey_" + ((job && job.code) || "plan") + ".pdf";
+      await deliverBlob(pdf.output("blob"), fname, mode, "application/pdf", (job ? job.name + " — " : "") + "Site Survey (PDF)");
+    } catch (err) { alert("สร้าง PDF ไม่สำเร็จ: " + (err && err.message ? err.message : err)); }
+    setExporting(false);
+  };
+
   const doSave = () => {
     const pgs = commitActive();           // เขียนหน้าที่กำลังแก้กลับเข้า array ก่อน
     const p0 = pgs[0] || {};
@@ -1185,6 +1385,28 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                     border: "1px solid " + (showGrid ? "var(--primary)" : "var(--border-strong)"), background: showGrid ? "var(--primary)" : "var(--surface)", color: showGrid ? "#fff" : "var(--text-2)" }}>
                   ▦ กริด
                 </button>
+                <button onClick={() => exportPlanImage("download")} disabled={exporting} title="โหลดเป็นรูปแบบติดตั้ง (รูปหน้างาน + เส้น/จุด/ป้าย)"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 10, cursor: exporting ? "default" : "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, opacity: exporting ? 0.6 : 1,
+                    border: "1px solid #0F5132", background: "#0F5132", color: "#fff" }}>
+                  ⬇️ {exporting ? "กำลังทำ..." : "โหลดแบบติดตั้ง"}
+                </button>
+                <button onClick={() => exportPlanPDF(typeof navigator !== "undefined" && navigator.share ? "share" : "download")} disabled={exporting} title="สร้าง PDF นำเสนอ (ปก + ผัง + รายละเอียดแต่ละจุด + สรุป)"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 10, cursor: exporting ? "default" : "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, opacity: exporting ? 0.6 : 1,
+                    border: "1px solid #B91C1C", background: "#B91C1C", color: "#fff" }}>
+                  📑 {exporting ? "กำลังทำ..." : "PDF นำเสนอ"}
+                </button>
+                <button onClick={() => setPdfSettings(true)} title="แก้ข้อความรับประกัน / ติดต่อ / โลโก้ บน PDF"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 11px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700,
+                    border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)" }}>
+                  ⚙️ ตั้งค่า PDF
+                </button>
+                {typeof navigator !== "undefined" && navigator.share && (
+                  <button onClick={() => exportPlanImage("share")} disabled={exporting} title="ส่งต่อให้ผู้รับเหมา (LINE/แชร์)"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 10, cursor: exporting ? "default" : "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, opacity: exporting ? 0.6 : 1,
+                      border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)" }}>
+                    📤 ส่งต่อ
+                  </button>
+                )}
                 <span style={{ marginLeft: "auto", fontSize: 11.5, fontWeight: 700, color: mpp ? "var(--primary-dark)" : "#F59E0B" }}>
                   {mpp ? "มาตราส่วน: 1px ≈ " + (Math.round(mpp * 10000) / 10000) + " ม." : "⚠ ยังไม่ตั้งมาตราส่วน"}
                 </span>
@@ -1393,7 +1615,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
               <div style={{ position: "relative", flexShrink: 0, lineHeight: 0, borderRadius: 12, overflow: "hidden", border: "1px solid var(--border)", cursor: tool === "move" ? "grab" : tool ? "crosshair" : "default", touchAction: tool === "move" ? "none" : "manipulation" }}
                 onClick={onTap} onPointerDown={onDragStart} onPointerMove={onDragMove} onPointerUp={onDragEnd} onPointerCancel={onDragEnd}>
                 <img ref={imgRef} src={image} onLoad={measure} alt="ผังหน้างาน" style={{ display: "block", width: "100%", height: "auto", userSelect: "none" }} draggable={false} />
-                <svg width={disp.w} height={disp.h} style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none", opacity: hideAnno ? 0 : 1, transition: "opacity .12s" }}>
+                <svg ref={svgRef} width={disp.w} height={disp.h} style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none", opacity: hideAnno ? 0 : 1, transition: "opacity .12s" }}>
                   {/* ── กริดช่วยจัดวาง (ทุก 1 ม. ถ้ามีมาตราส่วน · ไม่งั้นแบ่ง 12 ช่อง) ── */}
                   {showGrid && disp.w > 0 && (() => {
                     const step = (mpp && imgDim.w) ? (disp.w / imgDim.w) / mpp : disp.w / 12; // px ต่อ 1 ม.
@@ -1920,6 +2142,46 @@ function SitePlanEditor({ job, onClose, currentUser }) {
         <input ref={markerPhotoRef} type="file" accept="image/*" style={{ display: "none" }}
           onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) attachMarkerPhoto(f); e.target.value = ""; }} />
         {/* popover ปรับแต่งสาย (แตะป้ายบนภาพ) */}
+        {pdfSettings && (() => {
+          const inp = { width: "100%", boxSizing: "border-box", padding: "9px 11px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13.5 };
+          return (
+            <div onClick={() => setPdfSettings(false)} style={{ position: "fixed", inset: 0, background: "rgba(8,12,10,.55)", zIndex: 210, display: "grid", placeItems: "center", padding: 18 }}>
+              <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--surface)", borderRadius: 14, padding: 18, width: "min(440px,100%)", maxHeight: "88vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,.35)", display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 17 }}>⚙️</span><b style={{ fontSize: 15, color: "var(--text-1)" }}>ตั้งค่า PDF นำเสนอ</b>
+                  <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-3)" }}>บันทึกในเครื่องนี้</span>
+                </div>
+                <input ref={pdfLogoRef} type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) attachPdfLogo(f); e.target.value = ""; }} />
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ width: 84, height: 60, borderRadius: 8, border: "1px dashed var(--border-strong)", background: pdfInfo.logo ? "#0A3123" : "var(--surface2)", display: "grid", placeItems: "center", overflow: "hidden", flexShrink: 0 }}>
+                    {pdfInfo.logo ? <img src={pdfInfo.logo} alt="logo" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 11, color: "var(--text-3)" }}>ยังไม่มี</span>}
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <b style={{ fontSize: 12.5, color: "var(--text-2)" }}>โลโก้บริษัท (บนปก/หัวสไลด์)</b>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button onClick={() => (busy ? null : pdfLogoRef.current && pdfLogoRef.current.click())} disabled={busy} style={{ padding: "6px 11px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{busy ? "กำลังโหลด..." : (pdfInfo.logo ? "เปลี่ยนรูป" : "＋ อัปโหลดโลโก้")}</button>
+                      {pdfInfo.logo && <button onClick={() => setPdfInfo((p) => Object.assign({}, p, { logo: "" }))} style={{ padding: "6px 11px", borderRadius: 8, border: "1px solid #EF444455", background: "#EF444414", color: "#EF4444", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>ลบ</button>}
+                    </div>
+                    <span style={{ fontSize: 10.5, color: "var(--text-3)" }}>แนะนำโลโก้พื้นโปร่ง (PNG) สีอ่อน จะเด่นบนพื้นเขียว</span>
+                  </div>
+                </div>
+                <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>การรับประกัน & บริการ (บรรทัดละ 1 ข้อ)
+                  <textarea value={(pdfInfo.warranties || []).join("\n")} onChange={(e) => setPdfInfo((p) => Object.assign({}, p, { warranties: e.target.value.split("\n") }))} rows={6} style={Object.assign({}, inp, { resize: "vertical", lineHeight: 1.5 })} />
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>อีเมลติดต่อ
+                  <input value={pdfInfo.email || ""} onChange={(e) => setPdfInfo((p) => Object.assign({}, p, { email: e.target.value }))} style={inp} />
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>เบอร์โทร
+                  <input value={pdfInfo.tel || ""} onChange={(e) => setPdfInfo((p) => Object.assign({}, p, { tel: e.target.value }))} style={inp} />
+                </label>
+                <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
+                  <button onClick={() => { if (confirm("คืนค่ารับประกัน/ติดต่อ เป็นค่าเริ่มต้น? (โลโก้ไม่ถูกลบ)")) setPdfInfo((p) => Object.assign({}, PDF_DEFAULTS, { logo: p.logo })); }} style={{ padding: "9px 13px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>ค่าเริ่มต้น</button>
+                  <button onClick={() => setPdfSettings(false)} style={{ flex: 1, padding: "9px", borderRadius: 9, border: "none", background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>เสร็จ</button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
         {noteEdit && (() => {
           const nt = notes.find((n) => n.id === noteEdit); if (!nt) return null;
           // ปิดกล่อง: ถ้าไม่ได้พิมพ์อะไร (ว่าง) ให้ลบโน้ตนั้นทิ้ง
