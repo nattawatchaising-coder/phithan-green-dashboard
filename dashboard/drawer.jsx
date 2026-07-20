@@ -320,7 +320,8 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
   const media = useJobMedia(job ? job.id : null); // รูป + คอมเมนต์ของงานนี้
   const [boqOpen, setBoqOpen] = React.useState(false);
   const [planOpen, setPlanOpen] = React.useState(false);
-  React.useEffect(() => { setBoqOpen(false); setPlanOpen(false); }, [job ? job.id : null]);
+  const [plan3dOpen, setPlan3dOpen] = React.useState(false);
+  React.useEffect(() => { setBoqOpen(false); setPlanOpen(false); setPlan3dOpen(false); }, [job ? job.id : null]);
 
   /* loading state — กดปุ่มแล้วแสดง "กำลังบันทึก..." ทันที
      reset เมื่อ Firebase confirm แล้ว (job.stage เปลี่ยน) */
@@ -457,6 +458,20 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               </button>
               )}
 
+              {/* วางแผง 3D */}
+              {window.Plan3DEditor && (
+              <button onClick={() => setPlan3dOpen(true)}
+                style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+                  background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                <span style={{ width: 34, height: 34, borderRadius: 9, background: "#6366F11c", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="panel" size={17} color="#4F46E5" /></span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>วางแผง 3D (โมเดลหลังคา + เงาแดด)</span>
+                  <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>ปั้นหลังคาตามรูปโดรน · วางแผง · จำลองเงาดวงอาทิตย์</span>
+                </span>
+                <Icon name="arrowRight" size={16} color="var(--text-3)" />
+              </button>
+              )}
+
               {/* ถอดวัสดุ BOQ */}
               <button onClick={() => setBoqOpen(true)}
                 style={{ width: "100%", marginBottom: 22, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
@@ -575,6 +590,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
       {boqOpen && job && <BOQEditor job={job} onClose={() => setBoqOpen(false)} priceMap={priceMap} stock={stock}
         onSave={onSaveBOQ ? (boq) => { onSaveBOQ(job.id, boq); setBoqOpen(false); } : null} />}
       {planOpen && job && window.SitePlanEditor && <window.SitePlanEditor job={job} currentUser={currentUser} onClose={() => setPlanOpen(false)} />}
+      {plan3dOpen && job && window.Plan3DEditor && <window.Plan3DEditor job={job} currentUser={currentUser} onClose={() => setPlan3dOpen(false)} />}
     </React.Fragment>
   );
 }

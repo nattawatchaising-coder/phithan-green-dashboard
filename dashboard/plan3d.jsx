@@ -1,0 +1,677 @@
+/* ============================================================
+   PHITHAN GREEN — วางแผง 3D (Plan 3D)
+   - ปั้นหลังคาหลายผืน (กว้าง/ยาวลาด/องศาเอียง/ทิศ/ความสูง) เทียบรูปโดรนที่วางเป็นพื้น
+   - วางแผงเป็นกริดอัตโนมัติ แตะแผงเพื่อเว้นตำแหน่ง ลากหลังคา/สิ่งบดบังจัดตำแหน่งได้
+   - จำลองเงาแดดจริงตามเดือน/เวลา/พิกัด (คำนวณมุมเงย+ทิศดวงอาทิตย์)
+   - บันทึกลง RTDB: plan3d/{jobId} · ส่งออกภาพ PNG
+   Three.js โหลดแบบ lazy ครั้งแรกที่เปิด (ไม่ถ่วงโหลดหน้าหลัก)
+   ============================================================ */
+
+const P3_DEG = Math.PI / 180;
+const P3_PANEL_SHORT = 1.134;  // ด้านสั้นแผงมาตรฐาน (ม.)
+const P3_PANEL_LONG = 2.278;   // ด้านยาว (ม.)
+const P3_PANEL_T = 0.04;       // ความหนาที่วาด
+const P3_ROOF_COLORS = ["#94A3B8", "#B45309", "#64748B", "#7C8B9D"];
+
+/* ── โหลด Three.js + OrbitControls ครั้งเดียว ── */
+let _p3ThreeP = null;
+function p3LoadThree() {
+  if (window.THREE && window.THREE.OrbitControls) return Promise.resolve(window.THREE);
+  if (_p3ThreeP) return _p3ThreeP;
+  const inject = (src) => new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = src; s.onload = res; s.onerror = () => rej(new Error("โหลดไม่สำเร็จ: " + src));
+    document.head.appendChild(s);
+  });
+  _p3ThreeP = inject("https://unpkg.com/three@0.147.0/build/three.min.js")
+    .then(() => inject("https://unpkg.com/three@0.147.0/examples/js/controls/OrbitControls.js"))
+    .then(() => window.THREE);
+  _p3ThreeP.catch(() => { _p3ThreeP = null; });
+  return _p3ThreeP;
+}
+
+/* ── โหลด/บันทึกโมเดลของงาน (RTDB หรือ localStorage) ── */
+function usePlan3d(jobId) {
+  const KEY = "sf_plan3d_" + jobId;
+  const [saved, setSaved] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+  React.useEffect(() => {
+    if (!jobId) { setSaved(null); setLoading(false); return; }
+    if (window.FBDB) {
+      const ref = window.FBDB.ref("plan3d/" + jobId);
+      const h = ref.on("value", (s) => { setSaved(s.val() || null); setLoading(false); });
+      return () => ref.off("value", h);
+    }
+    try { const v = localStorage.getItem(KEY); setSaved(v ? JSON.parse(v) : null); } catch (e) { setSaved(null); }
+    setLoading(false);
+  }, [jobId]);
+  const save = React.useCallback((data) => {
+    if (!jobId) return;
+    if (window.FBDB) window.FBDB.ref("plan3d/" + jobId).set(data);
+    else { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} setSaved(data); }
+  }, [jobId]);
+  return { saved, loading, save };
+}
+
+let _p3Seq = 0;
+const p3Id = (p) => (p || "x") + Date.now().toString(36) + (_p3Seq++);
+
+function p3NewRoof(n) {
+  return { id: p3Id("r"), name: "หลังคา " + n, x: 0, z: 0, w: 8, d: 5, pitch: 15, az: 180, h: 3.2,
+    color: P3_ROOF_COLORS[(n - 1) % P3_ROOF_COLORS.length],
+    orient: "portrait", rows: 0, cols: 0, gap: 0.02, margin: 0.3, skips: {} };
+}
+function p3Blank(job) {
+  return {
+    groundW: 40, photo: null, photoW: 30, photoOpacity: 0.95, wp: 650,
+    roofs: [p3NewRoof(1)], obstacles: [],
+    sun: { month: 4, day: 15, hour: 12, lat: 13.75, lng: 100.5 },
+  };
+}
+
+/* ── ตำแหน่งดวงอาทิตย์ (ประมาณการ ใช้เพื่อจำลองเงา) → { alt, az } องศา ── */
+function p3SunPos(sun) {
+  const N = Math.min(365, Math.max(1, Math.round((sun.month - 1) * 30.4 + sun.day)));
+  const decl = 23.44 * Math.sin(2 * Math.PI * (284 + N) / 365);
+  const solarHour = sun.hour + ((+sun.lng || 100.5) - 105) / 15; // เทียบเวลาไทย (UTC+7 → 105°E)
+  const H = 15 * (solarHour - 12);
+  const lat = (+sun.lat || 13.75) * P3_DEG, d = decl * P3_DEG, h = H * P3_DEG;
+  const sinAlt = Math.sin(lat) * Math.sin(d) + Math.cos(lat) * Math.cos(d) * Math.cos(h);
+  const alt = Math.asin(Math.max(-1, Math.min(1, sinAlt)));
+  let az = Math.acos(Math.max(-1, Math.min(1, (Math.sin(d) - sinAlt * Math.sin(lat)) / (Math.cos(alt) * Math.cos(lat) || 1e-9))));
+  if (H > 0) az = 2 * Math.PI - az;
+  return { alt: alt / P3_DEG, az: az / P3_DEG };
+}
+
+/* ── คำนวณกริดแผงบนหลังคา → { rows, cols, pw, pd, x0, z0, count } ── */
+function p3Grid(roof) {
+  const pw = roof.orient === "portrait" ? P3_PANEL_SHORT : P3_PANEL_LONG;
+  const pd = roof.orient === "portrait" ? P3_PANEL_LONG : P3_PANEL_SHORT;
+  const gap = +roof.gap || 0.02, m = +roof.margin || 0;
+  const availW = roof.w - 2 * m, availD = roof.d - 2 * m;
+  const maxCols = Math.max(0, Math.floor((availW + gap) / (pw + gap)));
+  const maxRows = Math.max(0, Math.floor((availD + gap) / (pd + gap)));
+  const cols = roof.cols > 0 ? Math.min(roof.cols, maxCols) : maxCols;
+  const rows = roof.rows > 0 ? Math.min(roof.rows, maxRows) : maxRows;
+  const gridW = cols * pw + (cols - 1) * gap, gridD = rows * pd + (rows - 1) * gap;
+  let count = 0;
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (!(roof.skips || {})[r + "_" + c]) count++;
+  return { rows, cols, maxRows, maxCols, pw, pd, gap, x0: -gridW / 2, z0: -m - gridD, gridW, gridD, count };
+}
+function p3CountAll(st) { return (st.roofs || []).reduce((s, r) => s + p3Grid(r).count, 0); }
+
+/* ============================================================
+   Plan3DEditor — โหมดเต็มจอ
+   ============================================================ */
+function Plan3DEditor({ job, onClose, currentUser }) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const { saved, loading, save } = usePlan3d(job ? job.id : null);
+
+  const [ready, setReady] = React.useState(false);   // Three.js โหลดแล้ว
+  const [loadErr, setLoadErr] = React.useState(null);
+  const [st, setSt] = React.useState(() => p3Blank(job));
+  const [selRoof, setSelRoof] = React.useState(null);   // roof id
+  const [selObs, setSelObs] = React.useState(null);     // obstacle id
+  const [tab, setTab] = React.useState("roof");         // roof | photo | obstacle | sun
+  const [dirty, setDirty] = React.useState(false);
+  const [animating, setAnimating] = React.useState(false);
+  const loadedRef = React.useRef(false);
+
+  const set = (patch) => { setSt((p) => Object.assign({}, p, patch)); setDirty(true); };
+  const setSun = (patch) => { setSt((p) => Object.assign({}, p, { sun: Object.assign({}, p.sun, patch) })); setDirty(true); };
+  const patchRoof = (id, patch) => { setSt((p) => Object.assign({}, p, { roofs: p.roofs.map((r) => r.id === id ? Object.assign({}, r, patch) : r) })); setDirty(true); };
+  const patchObs = (id, patch) => { setSt((p) => Object.assign({}, p, { obstacles: (p.obstacles || []).map((o) => o.id === id ? Object.assign({}, o, patch) : o) })); setDirty(true); };
+
+  /* โหลด Three.js + โหลดข้อมูลที่บันทึกไว้ */
+  React.useEffect(() => { p3LoadThree().then(() => setReady(true)).catch((e) => setLoadErr(e.message)); }, []);
+  React.useEffect(() => {
+    if (loading || loadedRef.current) return;
+    loadedRef.current = true;
+    if (saved) {
+      const base = p3Blank(job);
+      const merged = Object.assign({}, base, saved, { sun: Object.assign({}, base.sun, saved.sun || {}) });
+      merged.roofs = (saved.roofs || base.roofs).map((r) => Object.assign({}, p3NewRoof(1), r, { skips: r.skips || {} }));
+      merged.obstacles = saved.obstacles || [];
+      setSt(merged);
+      if (merged.roofs[0]) setSelRoof(merged.roofs[0].id);
+    } else if (st.roofs[0]) setSelRoof(st.roofs[0].id);
+  }, [loading, saved]); // eslint-disable-line
+
+  /* ── refs ของ scene ── */
+  const mountRef = React.useRef(null);
+  const tRef = React.useRef({});          // { renderer, scene, camera, controls, sunLight, ... }
+  const stRef = React.useRef(st); stRef.current = st;
+  const selRef = React.useRef(selRoof); selRef.current = selRoof;
+
+  /* ── สร้าง scene ครั้งแรก ── */
+  React.useEffect(() => {
+    if (!ready || !mountRef.current) return;
+    const THREE = window.THREE;
+    const el = mountRef.current;
+    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    el.appendChild(renderer.domElement);
+    renderer.domElement.style.display = "block";
+    renderer.domElement.style.touchAction = "none";
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xdce8f2);
+    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+    camera.position.set(18, 16, 18);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.maxPolarAngle = Math.PI / 2 - 0.02;
+    controls.target.set(0, 1, 0);
+    controls.enableDamping = true; controls.dampingFactor = 0.12;
+
+    const amb = new THREE.HemisphereLight(0xcfe4ff, 0x8a795d, 0.75);
+    scene.add(amb);
+    const sunLight = new THREE.DirectionalLight(0xffffff, 1.35);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.set(2048, 2048);
+    const S = 45;
+    sunLight.shadow.camera.left = -S; sunLight.shadow.camera.right = S;
+    sunLight.shadow.camera.top = S; sunLight.shadow.camera.bottom = -S;
+    sunLight.shadow.camera.near = 1; sunLight.shadow.camera.far = 220;
+    sunLight.shadow.bias = -0.0004;
+    scene.add(sunLight); scene.add(sunLight.target);
+
+    const dyn = new THREE.Group();  // ส่วนที่ rebuild ตาม state
+    scene.add(dyn);
+
+    Object.assign(tRef.current, { THREE, renderer, scene, camera, controls, sunLight, amb, dyn, el });
+
+    const onResize = () => {
+      const w = el.clientWidth || 1, h = el.clientHeight || 1;
+      renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
+    };
+    onResize();
+    const ro = new ResizeObserver(onResize); ro.observe(el);
+
+    let run = true;
+    const loop = () => { if (!run) return; controls.update(); renderer.render(scene, camera); requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+
+    return () => { run = false; ro.disconnect(); controls.dispose(); renderer.dispose(); if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement); };
+  }, [ready]);
+
+  /* ── rebuild วัตถุตาม state (พื้น/หลังคา/แผง/สิ่งบดบัง) ── */
+  React.useEffect(() => {
+    const t = tRef.current; if (!t.dyn) return;
+    const THREE = t.THREE;
+    // เคลียร์ของเดิม
+    while (t.dyn.children.length) {
+      const c = t.dyn.children[0];
+      t.dyn.remove(c);
+      c.traverse && c.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) { (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { if (m.map) m.map.dispose(); m.dispose(); }); } });
+    }
+    t.pickRoofs = []; t.pickPanels = []; t.pickObs = [];
+
+    const G = +st.groundW || 40;
+    // พื้น (หญ้า/คอนกรีตจาง)
+    const groundMat = new THREE.MeshLambertMaterial({ color: 0xb9c4a5 });
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(G * 2.4, G * 2.4), groundMat);
+    ground.rotation.x = -Math.PI / 2; ground.position.y = -0.02; ground.receiveShadow = true;
+    t.dyn.add(ground);
+
+    // รูปโดรนวางบนพื้น (สเกลจาก photoW)
+    if (st.photo) {
+      const tex = new THREE.TextureLoader().load(st.photo, () => {
+        const img = tex.image; if (!img) return;
+        const pw = +st.photoW || 30, ph = pw * (img.height / img.width);
+        photoMesh.geometry.dispose();
+        photoMesh.geometry = new THREE.PlaneGeometry(pw, ph);
+      });
+      tex.anisotropy = 4;
+      const photoMat = new THREE.MeshLambertMaterial({ map: tex, transparent: true, opacity: Math.max(0.15, Math.min(1, +st.photoOpacity || 0.95)) });
+      const photoMesh = new THREE.Mesh(new THREE.PlaneGeometry(+st.photoW || 30, +st.photoW || 30), photoMat);
+      photoMesh.rotation.x = -Math.PI / 2; photoMesh.position.y = 0.0;
+      photoMesh.receiveShadow = true;
+      t.dyn.add(photoMesh);
+    } else {
+      const grid = new THREE.GridHelper(G, G, 0x8898a8, 0xaab8c6);
+      grid.position.y = 0.01; t.dyn.add(grid);
+    }
+
+    // เข็มทิศ N (เหนือ = -Z)
+    const mkText = (txt, color) => {
+      const cv = document.createElement("canvas"); cv.width = cv.height = 64;
+      const x = cv.getContext("2d"); x.fillStyle = color; x.font = "bold 44px system-ui"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(txt, 32, 34);
+      const tx = new THREE.CanvasTexture(cv);
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, depthTest: false }));
+      sp.scale.set(2.2, 2.2, 1); return sp;
+    };
+    const north = mkText("N", "#b91c1c"); north.position.set(0, 1.4, -G / 2 - 1.5); t.dyn.add(north);
+
+    // ── หลังคาแต่ละผืน + แผง ──
+    (st.roofs || []).forEach((roof) => {
+      const g = new THREE.Group();
+      g.position.set(+roof.x || 0, +roof.h || 3, +roof.z || 0);
+      g.rotation.y = -(((+roof.az || 180) - 180) * P3_DEG);   // az=180 → ลาดหันทิศใต้ (+Z)
+      const tilt = new THREE.Group();
+      tilt.rotation.x = (+roof.pitch || 0) * P3_DEG;          // ยกปลาย -Z ขึ้น (สันอยู่ไกล ชายคาอยู่ z=0)
+      g.add(tilt);
+
+      const selected = roof.id === selRoof;
+      const roofMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(roof.color || "#94A3B8"), transparent: true, opacity: 0.96 });
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(roof.w, 0.09, roof.d), roofMat);
+      slab.position.set(0, -0.045, -roof.d / 2);
+      slab.castShadow = true; slab.receiveShadow = true;
+      slab.userData = { kind: "roof", id: roof.id };
+      tilt.add(slab); t.pickRoofs.push(slab);
+
+      // เสา/ผนังใต้หลังคาแบบจาง ๆ ให้เห็นระดับ
+      const wallMat = new THREE.MeshLambertMaterial({ color: 0xe7e2d8, transparent: true, opacity: 0.5 });
+      const wall = new THREE.Mesh(new THREE.BoxGeometry(roof.w * 0.92, +roof.h || 3, roof.d * 0.8), wallMat);
+      wall.position.set(+roof.x || 0, (+roof.h || 3) / 2 - 0.15, (+roof.z || 0));
+      // หมุนตามทิศเดียวกับหลังคา แล้วเลื่อนไปกลางผืนลาด
+      wall.rotation.y = g.rotation.y;
+      const midLocal = new THREE.Vector3(0, 0, -roof.d / 2).applyEuler(new THREE.Euler(0, g.rotation.y, 0));
+      wall.position.x += midLocal.x; wall.position.z += midLocal.z;
+      wall.castShadow = true; wall.receiveShadow = true;
+      t.dyn.add(wall);
+
+      // ขอบเลือก
+      if (selected) {
+        const eg = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(roof.w + 0.1, 0.12, roof.d + 0.1)),
+          new THREE.LineBasicMaterial({ color: 0x16a34a }));
+        eg.position.copy(slab.position); tilt.add(eg);
+      }
+
+      // แผงตามกริด
+      const gr = p3Grid(roof);
+      const panelMat = new THREE.MeshStandardMaterial({ color: 0x10305e, roughness: 0.35, metalness: 0.55 });
+      const frameMat = new THREE.MeshLambertMaterial({ color: 0xcbd5e1 });
+      for (let r = 0; r < gr.rows; r++) for (let c = 0; c < gr.cols; c++) {
+        if ((roof.skips || {})[r + "_" + c]) continue;
+        const px = gr.x0 + c * (gr.pw + gr.gap) + gr.pw / 2;
+        const pz = gr.z0 + r * (gr.pd + gr.gap) + gr.pd / 2;
+        const pm = new THREE.Mesh(new THREE.BoxGeometry(gr.pw - 0.02, P3_PANEL_T, gr.pd - 0.02), panelMat);
+        pm.position.set(px, 0.06, pz);
+        pm.castShadow = true; pm.receiveShadow = true;
+        pm.userData = { kind: "panel", roofId: roof.id, key: r + "_" + c };
+        tilt.add(pm); t.pickPanels.push(pm);
+        const fr = new THREE.Mesh(new THREE.BoxGeometry(gr.pw, 0.012, gr.pd), frameMat);
+        fr.position.set(px, 0.028, pz); tilt.add(fr);
+      }
+      t.dyn.add(g);
+    });
+
+    // ── สิ่งบดบัง ──
+    (st.obstacles || []).forEach((o) => {
+      const grp = new THREE.Group(); grp.position.set(+o.x || 0, 0, +o.z || 0);
+      const selectedO = o.id === selObs;
+      if (o.kind === "tree") {
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.2, o.h * 0.45, 8), new THREE.MeshLambertMaterial({ color: 0x7c5a3a }));
+        trunk.position.y = o.h * 0.225; trunk.castShadow = true; grp.add(trunk);
+        const crown = new THREE.Mesh(new THREE.SphereGeometry(Math.max(o.w, 1) / 2, 12, 10), new THREE.MeshLambertMaterial({ color: 0x3f7d44 }));
+        crown.position.y = o.h * 0.45 + Math.max(o.w, 1) / 2 * 0.8; crown.castShadow = true; crown.receiveShadow = true;
+        crown.userData = { kind: "obstacle", id: o.id }; grp.add(crown); t.pickObs.push(crown);
+      } else {
+        const bx = new THREE.Mesh(new THREE.BoxGeometry(o.w, o.h, o.d), new THREE.MeshLambertMaterial({ color: selectedO ? 0x8aa8c8 : 0x9aa8b5 }));
+        bx.position.y = o.h / 2; bx.castShadow = true; bx.receiveShadow = true;
+        bx.userData = { kind: "obstacle", id: o.id }; grp.add(bx); t.pickObs.push(bx);
+      }
+      if (selectedO) {
+        const eg = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(o.w + 0.1, o.h + 0.1, o.d + 0.1)), new THREE.LineBasicMaterial({ color: 0x16a34a }));
+        eg.position.y = o.h / 2; grp.add(eg);
+      }
+      t.dyn.add(grp);
+    });
+  }, [st, selRoof, selObs, ready]);
+
+  /* ── อัปเดตดวงอาทิตย์/เงา ── */
+  React.useEffect(() => {
+    const t = tRef.current; if (!t.sunLight) return;
+    const sp = p3SunPos(st.sun);
+    const altR = sp.alt * P3_DEG, azR = sp.az * P3_DEG;
+    const R = 80;
+    // เหนือ = -Z, ตะวันออก = +X
+    t.sunLight.position.set(Math.sin(azR) * Math.cos(altR) * R, Math.max(0.02, Math.sin(altR)) * R, -Math.cos(azR) * Math.cos(altR) * R);
+    t.sunLight.target.position.set(0, 0, 0);
+    const day = sp.alt > 0;
+    t.sunLight.intensity = day ? (0.55 + 0.85 * Math.min(1, Math.sin(altR) * 1.6)) : 0;
+    t.amb.intensity = day ? 0.75 : 0.28;
+    if (t.scene) t.scene.background.set(day ? (sp.alt < 12 ? 0xf3d9b8 : 0xdce8f2) : 0x1d2733);
+  }, [st.sun, ready]);
+
+  /* ── animation กวาดทั้งวัน ── */
+  React.useEffect(() => {
+    if (!animating) return;
+    let run = true;
+    const step = () => {
+      if (!run) return;
+      setSt((p) => {
+        let h = (+p.sun.hour || 12) + 0.06;
+        if (h > 18.5) h = 6;
+        return Object.assign({}, p, { sun: Object.assign({}, p.sun, { hour: Math.round(h * 100) / 100 }) });
+      });
+      raf = requestAnimationFrame(step);
+    };
+    let raf = requestAnimationFrame(step);
+    return () => { run = false; cancelAnimationFrame(raf); };
+  }, [animating]);
+
+  /* ── โต้ตอบ: คลิกแผง = เว้น/ใส่คืน · ลากหลังคา/สิ่งบดบัง = ย้ายตำแหน่ง ── */
+  React.useEffect(() => {
+    const t = tRef.current; if (!ready || !t.renderer) return;
+    const THREE = t.THREE;
+    const cv = t.renderer.domElement;
+    const ray = new THREE.Raycaster();
+    const ptr = new THREE.Vector2();
+    const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    let down = null;   // { x, y, target, startPos, grabOff }
+
+    const pick = (ev) => {
+      const rect = cv.getBoundingClientRect();
+      ptr.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
+      ptr.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
+      ray.setFromCamera(ptr, t.camera);
+      const hitP = ray.intersectObjects(t.pickPanels || [], false)[0];
+      if (hitP) return { kind: "panel", obj: hitP.object };
+      const hitR = ray.intersectObjects(t.pickRoofs || [], false)[0];
+      if (hitR) return { kind: "roof", obj: hitR.object };
+      const hitO = ray.intersectObjects(t.pickObs || [], false)[0];
+      if (hitO) return { kind: "obstacle", obj: hitO.object };
+      return null;
+    };
+    const groundPoint = () => { const v = new THREE.Vector3(); return ray.ray.intersectPlane(groundPlane, v) ? v : null; };
+
+    const onDown = (ev) => {
+      if (ev.button !== undefined && ev.button !== 0) return;
+      const hit = pick(ev);
+      if (!hit) return;
+      const stNow = stRef.current;
+      let dragId = null, kind = hit.kind;
+      if (kind === "panel" || kind === "roof") dragId = hit.obj.userData.roofId || hit.obj.userData.id;
+      else dragId = hit.obj.userData.id;
+      const rec = kind === "obstacle"
+        ? (stNow.obstacles || []).find((o) => o.id === dragId)
+        : (stNow.roofs || []).find((r) => r.id === dragId);
+      if (!rec) return;
+      const gp = groundPoint();
+      down = { x: ev.clientX, y: ev.clientY, hit, kind, dragId, moved: false,
+        startPos: { x: +rec.x || 0, z: +rec.z || 0 }, grab: gp ? { x: gp.x, z: gp.z } : null };
+      t.controls.enabled = false;
+    };
+    const onMove = (ev) => {
+      if (!down) return;
+      if (Math.abs(ev.clientX - down.x) + Math.abs(ev.clientY - down.y) > 6) down.moved = true;
+      if (!down.moved || !down.grab) return;
+      const rect = cv.getBoundingClientRect();
+      ptr.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
+      ptr.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
+      ray.setFromCamera(ptr, t.camera);
+      const gp = groundPoint(); if (!gp) return;
+      const nx = Math.round((down.startPos.x + gp.x - down.grab.x) * 10) / 10;
+      const nz = Math.round((down.startPos.z + gp.z - down.grab.z) * 10) / 10;
+      if (down.kind === "obstacle") patchObs(down.dragId, { x: nx, z: nz });
+      else patchRoof(down.dragId, { x: nx, z: nz });
+    };
+    const onUp = () => {
+      const t2 = tRef.current; if (t2.controls) t2.controls.enabled = true;
+      if (down && !down.moved) {
+        const ud = down.hit.obj.userData;
+        if (down.kind === "panel") {
+          const stNow = stRef.current;
+          const roof = stNow.roofs.find((r) => r.id === ud.roofId);
+          if (roof) {
+            const skips = Object.assign({}, roof.skips || {});
+            if (skips[ud.key]) delete skips[ud.key]; else skips[ud.key] = true;
+            patchRoof(roof.id, { skips });
+          }
+          setSelRoof(ud.roofId); setSelObs(null); setTab("roof");
+        } else if (down.kind === "roof") { setSelRoof(ud.id); setSelObs(null); setTab("roof"); }
+        else { setSelObs(ud.id); setSelRoof(null); setTab("obstacle"); }
+      }
+      down = null;
+    };
+    cv.addEventListener("pointerdown", onDown);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => { cv.removeEventListener("pointerdown", onDown); window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", onUp); };
+  }, [ready]); // eslint-disable-line
+
+  /* ── มุมมอง ── */
+  const viewTop = () => { const t = tRef.current; if (!t.camera) return; t.camera.position.set(0, Math.max(30, st.groundW * 0.9), 0.01); t.controls.target.set(0, 0, 0); };
+  const view3d = () => { const t = tRef.current; if (!t.camera) return; t.camera.position.set(18, 16, 18); t.controls.target.set(0, 1, 0); };
+
+  /* ── อัปโหลดรูปโดรน ── */
+  const fileRef = React.useRef(null);
+  const onPickPhoto = async (e) => {
+    const f = (e.target.files || [])[0];
+    if (!f) return;
+    try {
+      const url = await window.resizeImageFile(f, 1600, 0.82);
+      set({ photo: url });
+    } catch (err) { alert("โหลดรูปไม่สำเร็จ: " + err.message); }
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  /* ── บันทึก / ส่งออก ── */
+  const doSave = () => { save(JSON.parse(JSON.stringify(st))); setDirty(false); };
+  const doPng = () => {
+    const t = tRef.current; if (!t.renderer) return;
+    try {
+      const a = document.createElement("a");
+      a.href = t.renderer.domElement.toDataURL("image/png");
+      a.download = (job ? job.code : "plan3d") + "-3D.png";
+      document.body.appendChild(a); a.click(); a.remove();
+    } catch (e) { alert("ส่งออกภาพไม่สำเร็จ: " + e.message); }
+  };
+  const tryClose = () => { if (dirty && !confirm("มีการแก้ไขที่ยังไม่บันทึก — ปิดโดยไม่บันทึกใช่ไหม?")) return; onClose(); };
+
+  /* ── UI helpers ── */
+  const inp = { width: "100%", boxSizing: "border-box", background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13, padding: "7px 9px", borderRadius: 9, outline: "none" };
+  const Num = ({ label, value, onChange, step, min, max, suffix }) => (
+    <label style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+      <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>{label}</span>
+      <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+        <input type="number" step={step || 1} min={min} max={max} value={value} style={inp}
+          onChange={(e) => onChange(e.target.value === "" ? 0 : +e.target.value)} />
+        {suffix && <span style={{ fontSize: 11, color: "var(--text-3)", flexShrink: 0 }}>{suffix}</span>}
+      </span>
+    </label>
+  );
+  const TabBtn = ({ k, label }) => (
+    <button onClick={() => setTab(k)} style={{ flex: 1, padding: "8px 4px", borderRadius: 9, border: "none", cursor: "pointer", fontFamily: "inherit",
+      fontSize: 12, fontWeight: 700, background: tab === k ? "var(--primary)" : "var(--surface2)", color: tab === k ? "#fff" : "var(--text-2)" }}>{label}</button>
+  );
+  const SmallBtn = ({ onClick, children, color, bg }) => (
+    <button onClick={onClick} style={{ padding: "7px 11px", borderRadius: 9, border: "1px solid var(--border-strong)", background: bg || "var(--surface)", color: color || "var(--text-1)", fontWeight: 700, fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>{children}</button>
+  );
+
+  const roof = (st.roofs || []).find((r) => r.id === selRoof) || null;
+  const obs = (st.obstacles || []).find((o) => o.id === selObs) || null;
+  const gridSel = roof ? p3Grid(roof) : null;
+  const total = p3CountAll(st);
+  const kwp = Math.round(total * (+st.wp || 650) / 10) / 100;
+  const sunNow = p3SunPos(st.sun);
+  const fmtHour = (h) => { const hh = Math.floor(h), mm = Math.round((h - hh) * 60); return hh + ":" + (mm < 10 ? "0" : "") + mm; };
+
+  /* ── side panel content ── */
+  const panelBody = (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", gap: 6 }}>
+        <TabBtn k="roof" label="หลังคา/แผง" />
+        <TabBtn k="photo" label="รูปโดรน" />
+        <TabBtn k="obstacle" label="สิ่งบดบัง" />
+        <TabBtn k="sun" label="แสงแดด" />
+      </div>
+
+      {tab === "photo" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <button onClick={() => fileRef.current && fileRef.current.click()}
+            style={{ padding: "12px 10px", borderRadius: 11, border: "1.5px dashed var(--border-strong)", background: "var(--surface2)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 12.5, cursor: "pointer" }}>
+            {st.photo ? "เปลี่ยนรูปโดรน (มุมบน)" : "+ อัปโหลดรูปโดรน (มุมบน)"}
+          </button>
+          <input ref={fileRef} type="file" accept="image/*" onChange={onPickPhoto} style={{ display: "none" }} />
+          {st.photo && (
+            <React.Fragment>
+              <img src={st.photo} alt="drone" style={{ width: "100%", borderRadius: 10, border: "1px solid var(--border)" }} />
+              <Num label="ความกว้างรูปเทียบของจริง (สเกล)" value={st.photoW} step={1} min={2} suffix="ม." onChange={(v) => set({ photoW: v })} />
+              <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>ความทึบรูป · {Math.round((st.photoOpacity || 0.95) * 100)}%</span>
+                <input type="range" min="0.15" max="1" step="0.05" value={st.photoOpacity} onChange={(e) => set({ photoOpacity: +e.target.value })} />
+              </label>
+              <SmallBtn onClick={() => set({ photo: null })} color="#B91C1C">ลบรูป</SmallBtn>
+            </React.Fragment>
+          )}
+          <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.55 }}>
+            เคล็ดลับ: ใช้รูปโดรนถ่ายตรงจากด้านบน แล้วปรับ “สเกล” ให้ระยะบนรูปตรงกับของจริง (เช่น วัดหน้าบ้านจริง 8 ม. ปรับจนหลังคาในรูปกว้างเท่าหลังคาที่ปั้น) จากนั้นกดแท็บ “หลังคา/แผง” แล้วลากหลังคาให้ทับตำแหน่งในรูป · กดปุ่ม “มุมบน” เพื่อวางแนวได้แม่นขึ้น
+          </div>
+        </div>
+      )}
+
+      {tab === "roof" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {(st.roofs || []).map((r) => (
+              <button key={r.id} onClick={() => { setSelRoof(r.id); setSelObs(null); }}
+                style={{ padding: "6px 11px", borderRadius: 99, border: "1px solid " + (r.id === selRoof ? "var(--primary)" : "var(--border-strong)"),
+                  background: r.id === selRoof ? "var(--primary-soft)" : "var(--surface)", color: r.id === selRoof ? "var(--primary-dark)" : "var(--text-2)",
+                  fontWeight: 700, fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>{r.name}</button>
+            ))}
+            <SmallBtn onClick={() => { const nr = p3NewRoof((st.roofs || []).length + 1); set({ roofs: (st.roofs || []).concat([nr]) }); setSelRoof(nr.id); }}>+ เพิ่ม</SmallBtn>
+          </div>
+          {roof && (
+            <React.Fragment>
+              <input value={roof.name} onChange={(e) => patchRoof(roof.id, { name: e.target.value })} style={inp} />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <Num label="กว้าง (แนวชายคา)" value={roof.w} step={0.1} min={1} suffix="ม." onChange={(v) => patchRoof(roof.id, { w: v })} />
+                <Num label="ยาวลาดหลังคา" value={roof.d} step={0.1} min={1} suffix="ม." onChange={(v) => patchRoof(roof.id, { d: v })} />
+                <Num label="องศาเอียง" value={roof.pitch} step={1} min={0} max={60} suffix="°" onChange={(v) => patchRoof(roof.id, { pitch: v })} />
+                <Num label="ทิศที่ลาดหันไป" value={roof.az} step={5} min={0} max={360} suffix="° (180=ใต้)" onChange={(v) => patchRoof(roof.id, { az: v })} />
+                <Num label="ความสูงชายคา" value={roof.h} step={0.1} min={0.5} suffix="ม." onChange={(v) => patchRoof(roof.id, { h: v })} />
+                <Num label="ระยะขอบกันตก" value={roof.margin} step={0.05} min={0} suffix="ม." onChange={(v) => patchRoof(roof.id, { margin: v })} />
+              </div>
+              <div style={{ borderTop: "1px dashed var(--border-strong)", paddingTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {["portrait", "landscape"].map((o) => (
+                    <button key={o} onClick={() => patchRoof(roof.id, { orient: o, skips: {} })}
+                      style={{ flex: 1, padding: "7px 4px", borderRadius: 9, border: "1px solid " + (roof.orient === o ? "var(--primary)" : "var(--border-strong)"),
+                        background: roof.orient === o ? "var(--primary-soft)" : "var(--surface)", color: roof.orient === o ? "var(--primary-dark)" : "var(--text-2)",
+                        fontWeight: 700, fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>{o === "portrait" ? "แผงแนวตั้ง" : "แผงแนวนอน"}</button>
+                  ))}
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <Num label={"แถว (สูงสุด " + (gridSel ? gridSel.maxRows : 0) + ") 0=เต็ม"} value={roof.rows} step={1} min={0} onChange={(v) => patchRoof(roof.id, { rows: v })} />
+                  <Num label={"คอลัมน์ (สูงสุด " + (gridSel ? gridSel.maxCols : 0) + ") 0=เต็ม"} value={roof.cols} step={1} min={0} onChange={(v) => patchRoof(roof.id, { cols: v })} />
+                </div>
+                <div style={{ fontSize: 11.5, color: "var(--text-2)", background: "var(--surface2)", borderRadius: 9, padding: "8px 10px" }}>
+                  ผืนนี้วางได้ <b>{gridSel ? gridSel.count : 0} แผง</b> · แตะแผงในภาพเพื่อเว้นตำแหน่ง (แตะซ้ำใส่คืน)
+                  {Object.keys(roof.skips || {}).length > 0 && <button onClick={() => patchRoof(roof.id, { skips: {} })} style={{ marginLeft: 8, border: "none", background: "none", color: "var(--primary-dark)", fontWeight: 700, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>ใส่คืนทั้งหมด</button>}
+                </div>
+              </div>
+              {(st.roofs || []).length > 1 && (
+                <SmallBtn color="#B91C1C" onClick={() => { if (!confirm("ลบ " + roof.name + " ?")) return; const rs = st.roofs.filter((r) => r.id !== roof.id); set({ roofs: rs }); setSelRoof(rs[0] ? rs[0].id : null); }}>ลบหลังคาผืนนี้</SmallBtn>
+              )}
+              <div style={{ fontSize: 11, color: "var(--text-3)" }}>ลากหลังคาในภาพเพื่อย้ายตำแหน่งให้ตรงกับรูปโดรน</div>
+            </React.Fragment>
+          )}
+        </div>
+      )}
+
+      {tab === "obstacle" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", gap: 6 }}>
+            <SmallBtn onClick={() => { const o = { id: p3Id("o"), kind: "box", x: 6, z: 6, w: 2, d: 2, h: 3 }; set({ obstacles: (st.obstacles || []).concat([o]) }); setSelObs(o.id); setSelRoof(null); }}>+ กล่อง/ตึก</SmallBtn>
+            <SmallBtn onClick={() => { const o = { id: p3Id("o"), kind: "tree", x: -6, z: 6, w: 3, d: 3, h: 5 }; set({ obstacles: (st.obstacles || []).concat([o]) }); setSelObs(o.id); setSelRoof(null); }}>+ ต้นไม้</SmallBtn>
+          </div>
+          {(st.obstacles || []).length === 0 && <div style={{ fontSize: 12, color: "var(--text-3)", textAlign: "center", padding: "10px 0" }}>เพิ่มตึกข้างเคียง / ถังน้ำ / ต้นไม้ เพื่อดูเงาบดบังแผง</div>}
+          {obs && (
+            <React.Fragment>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <Num label="กว้าง" value={obs.w} step={0.5} min={0.5} suffix="ม." onChange={(v) => patchObs(obs.id, { w: v })} />
+                <Num label="ลึก" value={obs.d} step={0.5} min={0.5} suffix="ม." onChange={(v) => patchObs(obs.id, { d: v })} />
+                <Num label="สูง" value={obs.h} step={0.5} min={0.5} suffix="ม." onChange={(v) => patchObs(obs.id, { h: v })} />
+              </div>
+              <SmallBtn color="#B91C1C" onClick={() => { set({ obstacles: st.obstacles.filter((o) => o.id !== obs.id) }); setSelObs(null); }}>ลบชิ้นนี้</SmallBtn>
+            </React.Fragment>
+          )}
+          <div style={{ fontSize: 11, color: "var(--text-3)" }}>แตะเพื่อเลือก · ลากเพื่อย้ายตำแหน่ง</div>
+        </div>
+      )}
+
+      {tab === "sun" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>เดือน · {["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."][(st.sun.month || 1) - 1]}</span>
+            <input type="range" min="1" max="12" step="1" value={st.sun.month} onChange={(e) => setSun({ month: +e.target.value })} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>เวลา · {fmtHour(+st.sun.hour || 12)} น.</span>
+            <input type="range" min="6" max="18.5" step="0.25" value={st.sun.hour} onChange={(e) => { setAnimating(false); setSun({ hour: +e.target.value }); }} />
+          </label>
+          <button onClick={() => setAnimating((a) => !a)}
+            style={{ padding: "9px 10px", borderRadius: 10, border: "none", background: animating ? "#B45309" : "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 12.5, cursor: "pointer" }}>
+            {animating ? "⏸ หยุดกวาดเงา" : "▶ กวาดเงาทั้งวัน (06:00–18:30)"}
+          </button>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <Num label="ละติจูด" value={st.sun.lat} step={0.01} onChange={(v) => setSun({ lat: v })} />
+            <Num label="ลองจิจูด" value={st.sun.lng} step={0.01} onChange={(v) => setSun({ lng: v })} />
+          </div>
+          <div style={{ fontSize: 11.5, color: "var(--text-2)", background: "var(--surface2)", borderRadius: 9, padding: "8px 10px", lineHeight: 1.5 }}>
+            ดวงอาทิตย์ตอนนี้: มุมเงย <b>{Math.round(sunNow.alt)}°</b> · ทิศ <b>{Math.round(sunNow.az)}°</b>{sunNow.alt <= 0 ? " · (ยังไม่ขึ้น/ตกแล้ว)" : ""}
+          </div>
+          <Num label="กำลังแผง (Wp/แผง)" value={st.wp} step={5} min={100} suffix="W" onChange={(v) => set({ wp: v })} />
+        </div>
+      )}
+    </div>
+  );
+
+  /* ── โครงหน้า ── */
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 120, background: "var(--bg)", display: "flex", flexDirection: "column" }}>
+      {/* header */}
+      <div style={{ padding: isMobile ? "10px 12px" : "12px 18px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+        <span style={{ width: 34, height: 34, borderRadius: 9, background: "#6366F11c", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="panel" size={17} color="#4F46E5" /></span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 600 }}>วางแผง 3D · {job ? job.code : ""}</div>
+          <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job ? job.name : ""}</div>
+        </div>
+        <span style={{ fontSize: isMobile ? 11 : 12.5, fontWeight: 700, color: "var(--primary-dark)", background: "var(--primary-soft)", padding: "6px 11px", borderRadius: 99, whiteSpace: "nowrap" }}>
+          {total} แผง · {kwp} kWp{job && job.panels ? (total === job.panels ? " ✓" : " / เป้า " + job.panels) : ""}
+        </span>
+        <button onClick={tryClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={17} /></button>
+      </div>
+
+      {/* body */}
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: isMobile ? "column" : "row" }}>
+        {/* 3D canvas */}
+        <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: "relative", background: "#dce8f2" }}>
+          <div ref={mountRef} style={{ position: "absolute", inset: 0 }} />
+          {!ready && !loadErr && <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "var(--text-2)", fontSize: 13.5, fontWeight: 600 }}>กำลังโหลดโหมด 3D…</div>}
+          {loadErr && <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "#B91C1C", fontSize: 13, padding: 30, textAlign: "center" }}>{loadErr}<br />ต้องต่ออินเทอร์เน็ตครั้งแรกเพื่อโหลดตัวเรนเดอร์ 3D</div>}
+          {/* view buttons */}
+          <div style={{ position: "absolute", top: 10, left: 10, display: "flex", gap: 6 }}>
+            <SmallBtn onClick={view3d}>มุม 3D</SmallBtn>
+            <SmallBtn onClick={viewTop}>มุมบน</SmallBtn>
+          </div>
+          <div style={{ position: "absolute", bottom: 10, left: 10, right: 10, display: "flex", gap: 6, justifyContent: "space-between", pointerEvents: "none" }}>
+            <span style={{ fontSize: 10.5, color: "#3b4b5a", background: "rgba(255,255,255,.75)", padding: "4px 9px", borderRadius: 8 }}>ลาก=หมุน · ล้อ/บีบ=ซูม · คลิกขวา/2นิ้ว=เลื่อน · แตะแผง=เว้น · ลากหลังคา=ย้าย</span>
+          </div>
+        </div>
+
+        {/* side panel */}
+        <div style={{ width: isMobile ? "100%" : 320, flexShrink: 0, maxHeight: isMobile ? "44%" : "none", overflowY: "auto",
+          borderLeft: isMobile ? "none" : "1px solid var(--border)", borderTop: isMobile ? "1px solid var(--border)" : "none",
+          background: "var(--surface)", padding: 12, boxSizing: "border-box" }}>
+          {panelBody}
+        </div>
+      </div>
+
+      {/* footer */}
+      <div style={{ padding: isMobile ? "10px 12px" : "10px 18px", paddingBottom: "calc(" + (isMobile ? 10 : 10) + "px + env(safe-area-inset-bottom,0px))", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 8, flexShrink: 0 }}>
+        <SmallBtn onClick={doPng}>📷 ภาพ PNG</SmallBtn>
+        <span style={{ flex: 1 }} />
+        {dirty && <span style={{ alignSelf: "center", fontSize: 11.5, color: "#B45309", fontWeight: 700 }}>ยังไม่บันทึก</span>}
+        <button onClick={doSave} style={{ padding: "10px 26px", borderRadius: 11, border: "none", background: dirty ? "var(--primary)" : "var(--surface3)", color: dirty ? "#fff" : "var(--text-3)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>บันทึก</button>
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { Plan3DEditor, usePlan3d });
