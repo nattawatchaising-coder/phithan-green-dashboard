@@ -276,6 +276,8 @@ function Plan3DEditor({ job, onClose, currentUser }) {
   const set = (patch) => { setSt((p) => Object.assign({}, p, patch)); setDirty(true); };
   const setSun = (patch) => { setSt((p) => Object.assign({}, p, { sun: Object.assign({}, p.sun, patch) })); setDirty(true); };
   const patchRoof = (id, patch) => { setSt((p) => Object.assign({}, p, { roofs: p.roofs.map((r) => r.id === id ? Object.assign({}, r, patch) : r) })); setDirty(true); };
+  /* แก้หลายผืนพร้อมกันใน state เดียว (ใช้ตอนลากทั้งกลุ่ม) — ups = { roofId: patch } */
+  const patchRoofs = (ups) => { setSt((p) => Object.assign({}, p, { roofs: p.roofs.map((r) => ups[r.id] ? Object.assign({}, r, ups[r.id]) : r) })); setDirty(true); };
   const patchObs = (id, patch) => { setSt((p) => Object.assign({}, p, { obstacles: (p.obstacles || []).map((o) => o.id === id ? Object.assign({}, o, patch) : o) })); setDirty(true); };
 
   /* โหลด Three.js + โหลดข้อมูลที่บันทึกไว้ */
@@ -516,13 +518,29 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         wall.position.y = -(+roof.h || 3);
         wall.castShadow = true; wall.receiveShadow = true;
         g.add(wall);
-        // จุดแก้ทรง (เฉพาะตอนเลือก) — วางบนพื้นระดับแปลน
-        if (selected) (roof.pts || []).forEach((p, idx) => {
-          const hnd = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 10), new THREE.MeshBasicMaterial({ color: 0x16a34a, depthTest: false }));
-          hnd.position.set((+roof.x || 0) + (+p.x || 0), 0.3, (+roof.z || 0) + (+p.z || 0));
-          hnd.renderOrder = 5;
-          hnd.userData = { kind: "vertex", roofId: roof.id, idx };
-          t.dyn.add(hnd); t.pickVerts.push(hnd);
+        // ── จุดแก้ทรง — เกาะบนมุมหลังคาจริง มองทะลุทุกชิ้น (depthTest:false) ──
+        info.surf.forEach((sp, idx) => {
+          if (selected) {
+            // ผืนที่เลือก: จุดเขียวใหญ่ + วงขาวรอบ ให้เห็นชัด/แตะง่าย
+            const halo = new THREE.Mesh(new THREE.SphereGeometry(0.44, 14, 12),
+              new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false }));
+            halo.position.set(sp.x, 0.12, sp.z);
+            halo.renderOrder = 20;
+            halo.userData = { kind: "vertex", roofId: roof.id, idx };
+            const dot = new THREE.Mesh(new THREE.SphereGeometry(0.3, 14, 12),
+              new THREE.MeshBasicMaterial({ color: 0x16a34a, depthTest: false }));
+            dot.position.copy(halo.position); dot.renderOrder = 21;
+            dot.userData = halo.userData;
+            tilt.add(halo); tilt.add(dot);
+            t.pickVerts.push(halo, dot);
+          } else {
+            // ผืนอื่น: จุดเทาเล็ก = เป้าให้ลากไปดูดติด (มองเห็นตลอด)
+            const ghost = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8),
+              new THREE.MeshBasicMaterial({ color: 0x94a3b8, depthTest: false, transparent: true, opacity: 0.85 }));
+            ghost.position.set(sp.x, 0.1, sp.z);
+            ghost.renderOrder = 18;
+            tilt.add(ghost);
+          }
         });
       } else {
         const slab = new THREE.Mesh(new THREE.BoxGeometry(roof.w, 0.09, roof.d), roofMat);
@@ -701,7 +719,11 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       rec = hit.kind === "obstacle" ? (stNow.obstacles || []).find((o) => o.id === dragId) : (stNow.roofs || []).find((r) => r.id === dragId);
       if (!rec) return;
       setRay(ev); const gp = groundPoint();
-      down = { x: ev.clientX, y: ev.clientY, hit, kind: hit.kind, dragId, moved: false,
+      // อยู่ในกลุ่ม → ลากทีเดียวไปทั้งก้อน (จำตำแหน่งเริ่มของสมาชิกทุกผืน)
+      const members = (hit.kind !== "obstacle" && rec.grp)
+        ? (stNow.roofs || []).filter((r) => r.grp === rec.grp).map((r) => ({ id: r.id, x: +r.x || 0, z: +r.z || 0 }))
+        : [{ id: rec.id, x: +rec.x || 0, z: +rec.z || 0 }];
+      down = { x: ev.clientX, y: ev.clientY, hit, kind: hit.kind, dragId, moved: false, members,
         startPos: { x: +rec.x || 0, z: +rec.z || 0 }, grab: gp ? { x: gp.x, z: gp.z } : null };
       t.controls.enabled = false;
     };
@@ -726,10 +748,17 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         }
         return;
       }
-      const nx = Math.round((down.startPos.x + gp.x - down.grab.x) * 10) / 10;
-      const nz = Math.round((down.startPos.z + gp.z - down.grab.z) * 10) / 10;
-      if (down.kind === "obstacle") patchObs(down.dragId, { x: nx, z: nz });
-      else patchRoof(down.dragId, { x: nx, z: nz });
+      const dx = gp.x - down.grab.x, dz = gp.z - down.grab.z;
+      if (down.kind === "obstacle") {
+        patchObs(down.dragId, { x: Math.round((down.startPos.x + dx) * 10) / 10, z: Math.round((down.startPos.z + dz) * 10) / 10 });
+      } else {
+        // ทุกผืนในกลุ่มขยับด้วยระยะเดียวกัน → รูปทรงรวมไม่เพี้ยน
+        const ups = {};
+        down.members.forEach((mb) => {
+          ups[mb.id] = { x: Math.round((mb.x + dx) * 10) / 10, z: Math.round((mb.z + dz) * 10) / 10 };
+        });
+        patchRoofs(ups);
+      }
     };
     const onUp = (ev) => {
       const t2 = tRef.current; if (t2.controls && !drawingRef.current) t2.controls.enabled = true;
@@ -820,6 +849,21 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       </span>
     </label>
   );
+  /* สไลเดอร์ปรับเร็ว + ช่องพิมพ์ตัวเลข (ใช้กับองศา/ทิศ) */
+  const NumRange = ({ label, value, onChange, min, max, step, suffix, span }) => (
+    <label style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, gridColumn: span ? "1 / -1" : "auto" }}>
+      <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>{label}</span>
+      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <input type="range" min={min} max={max} step={step} value={value}
+          onChange={(e) => onChange(+e.target.value)}
+          style={{ flex: 1, minWidth: 0, accentColor: "var(--primary)" }} />
+        <input type="number" min={min} max={max} step={step} value={value}
+          onChange={(e) => onChange(e.target.value === "" ? 0 : +e.target.value)}
+          style={Object.assign({}, inp, { width: 58, flexShrink: 0, textAlign: "center", padding: "5px 4px" })} />
+        {suffix && <span style={{ fontSize: 10.5, color: "var(--text-3)", flexShrink: 0 }}>{suffix}</span>}
+      </span>
+    </label>
+  );
   const TabBtn = ({ k, label }) => (
     <button onClick={() => setTab(k)} style={{ flex: 1, padding: "8px 4px", borderRadius: 9, border: "none", cursor: "pointer", fontFamily: "inherit",
       fontSize: 12, fontWeight: 700, background: tab === k ? "var(--primary)" : "var(--surface2)", color: tab === k ? "#fff" : "var(--text-2)" }}>{label}</button>
@@ -902,7 +946,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
               <button key={r.id} onClick={() => { setSelRoof(r.id); setSelObs(null); }}
                 style={{ padding: "6px 11px", borderRadius: 99, border: "1px solid " + (r.id === selRoof ? "var(--primary)" : "var(--border-strong)"),
                   background: r.id === selRoof ? "var(--primary-soft)" : "var(--surface)", color: r.id === selRoof ? "var(--primary-dark)" : "var(--text-2)",
-                  fontWeight: 700, fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>{r.kind === "poly" ? "⬠ " : r.kind === "gable" ? "⌂ " : r.kind === "hip" ? "⛺ " : ""}{r.name}</button>
+                  fontWeight: 700, fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>{r.kind === "poly" ? "⬠ " : r.kind === "gable" ? "⌂ " : r.kind === "hip" ? "⛺ " : ""}{r.name}{r.grp ? " 🔗" : ""}</button>
             ))}
             <SmallBtn onClick={() => { const nr = p3NewRoof((st.roofs || []).length + 1); set({ roofs: (st.roofs || []).concat([nr]) }); setSelRoof(nr.id); }}>+ สี่เหลี่ยม</SmallBtn>
             <SmallBtn onClick={() => { const nr = p3NewGable((st.roofs || []).length + 1); set({ roofs: (st.roofs || []).concat([nr]) }); setSelRoof(nr.id); }}>+ จั่ว ⌂</SmallBtn>
@@ -922,10 +966,10 @@ function Plan3DEditor({ job, onClose, currentUser }) {
                 {isGable && <Num label="กว้างรวม 2 ลาด" value={roof.span} step={0.1} min={1} suffix="ม." onChange={(v) => patchRoof(roof.id, { span: v })} />}
                 {isHip && <Num label="ยาวรวม (แนวสัน)" value={roof.w} step={0.1} min={1} suffix="ม." onChange={(v) => patchRoof(roof.id, { w: v })} />}
                 {isHip && <Num label="กว้างรวม" value={roof.d} step={0.1} min={1} suffix="ม." onChange={(v) => patchRoof(roof.id, { d: v })} />}
-                <Num label={isGable || isHip ? "องศาความชัน" : "องศาเอียง"} value={roof.pitch} step={1} min={0} max={60} suffix="°" onChange={(v) => patchRoof(roof.id, { pitch: v })} />
-                <Num label={isGable || isHip ? "ทิศด้าน A หันไป" : "ทิศที่ลาดหันไป"} value={roof.az} step={5} min={0} max={360} suffix="° (180=ใต้)" onChange={(v) => patchRoof(roof.id, { az: v })} />
                 <Num label="ความสูงชายคา" value={roof.h} step={0.1} min={0.5} suffix="ม." onChange={(v) => patchRoof(roof.id, { h: v })} />
                 <Num label="ระยะขอบกันตก" value={roof.margin} step={0.05} min={0} suffix="ม." onChange={(v) => patchRoof(roof.id, { margin: v })} />
+                <NumRange span label={isGable || isHip ? "องศาความชัน" : "องศาเอียง"} value={roof.pitch} step={1} min={0} max={60} suffix="°" onChange={(v) => patchRoof(roof.id, { pitch: v })} />
+                <NumRange span label={isGable || isHip ? "ทิศด้าน A หันไป (180 = ใต้)" : "ทิศที่ลาดหันไป (180 = ใต้)"} value={roof.az} step={5} min={0} max={360} suffix="°" onChange={(v) => patchRoof(roof.id, { az: v })} />
               </div>
               {isHip && hipInfo && (
                 <div style={{ fontSize: 11.5, color: "var(--text-2)", background: "#B4530910", border: "1px solid #B4530933", borderRadius: 9, padding: "8px 10px", lineHeight: 1.6 }}>
@@ -983,6 +1027,45 @@ function Plan3DEditor({ job, onClose, currentUser }) {
                   {Object.keys(roof.skips || {}).length > 0 && <button onClick={() => patchRoof(roof.id, { skips: {} })} style={{ marginLeft: 8, border: "none", background: "none", color: "var(--primary-dark)", fontWeight: 700, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>ใส่คืนทั้งหมด</button>}
                 </div>
               </div>
+              {/* ── จัดกลุ่ม: แตะผืนอื่นเพื่อรวม/แยก · ลากทีเดียวไปทั้งก้อน ── */}
+              {(st.roofs || []).length > 1 && (
+                <div style={{ borderTop: "1px dashed var(--border-strong)", paddingTop: 10 }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 6 }}>
+                    🔗 จัดกลุ่มกับผืนอื่น <span style={{ fontWeight: 500, textTransform: "none" }}>· แตะเพื่อรวม/แยก (ลากแล้วไปทั้งก้อน)</span>
+                  </div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {(st.roofs || []).filter((r) => r.id !== roof.id).map((r) => {
+                      const inGrp = !!roof.grp && r.grp === roof.grp;
+                      return (
+                        <button key={r.id} onClick={() => {
+                          const gid = roof.grp || p3Id("g");
+                          const ups = {};
+                          if (inGrp) {
+                            ups[r.id] = { grp: null };
+                            // เหลือสมาชิกเดียว = ไม่เป็นกลุ่มแล้ว
+                            const left = (st.roofs || []).filter((x) => x.grp === gid && x.id !== r.id);
+                            if (left.length < 2) left.forEach((x) => { ups[x.id] = { grp: null }; });
+                          } else {
+                            ups[roof.id] = { grp: gid };
+                            ups[r.id] = { grp: gid };
+                          }
+                          patchRoofs(ups);
+                        }}
+                          style={{ padding: "5px 10px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700,
+                            border: "1px solid " + (inGrp ? "#4F46E5" : "var(--border-strong)"),
+                            background: inGrp ? "#6366F118" : "var(--surface)", color: inGrp ? "#4F46E5" : "var(--text-3)" }}>
+                          {inGrp ? "🔗 " : "+ "}{r.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {roof.grp && (
+                    <div style={{ fontSize: 11, color: "#4F46E5", marginTop: 6, fontWeight: 600 }}>
+                      อยู่ในกลุ่มเดียวกัน {(st.roofs || []).filter((r) => r.grp === roof.grp).length} ผืน — ลากผืนไหนก็ย้ายพร้อมกันทั้งกลุ่ม
+                    </div>
+                  )}
+                </div>
+              )}
               {(st.roofs || []).length > 1 && (
                 <SmallBtn color="#B91C1C" onClick={() => { if (!confirm("ลบ " + roof.name + " ?")) return; const rs = st.roofs.filter((r) => r.id !== roof.id); set({ roofs: rs }); setSelRoof(rs[0] ? rs[0].id : null); }}>ลบหลังคาผืนนี้</SmallBtn>
               )}
