@@ -68,6 +68,32 @@ function p3NewGable(n) {
     color: P3_ROOF_COLORS[(n - 1) % P3_ROOF_COLORS.length],
     orient: "portrait", rows: 0, cols: 0, gap: 0.02, margin: 0.3, skips: {}, sideA: true, sideB: true };
 }
+/* หลังคาปั้นหยา: 4 ผืนลาดชนสันกลาง (คางหมู A/B + สามเหลี่ยม C/D) — ผืนต่อกันสนิทอัตโนมัติ */
+function p3NewHip(n) {
+  return { id: p3Id("r"), kind: "hip", name: "หลังคา " + n, x: 0, z: 0, w: 10, d: 7, pitch: 30, az: 180, h: 3.2,
+    color: P3_ROOF_COLORS[(n - 1) % P3_ROOF_COLORS.length],
+    orient: "portrait", rows: 0, cols: 0, gap: 0.02, margin: 0.3, skips: {},
+    sideA: true, sideB: true, sideC: false, sideD: false };
+}
+/* ผืนทั้ง 4 ของปั้นหยา (พิกัดผิวลาดต่อผืน + การหมุน/ตำแหน่งของแต่ละผืน) */
+function p3HipFaces(roof) {
+  const pitchR = (+roof.pitch || 0) * P3_DEG;
+  const cosP = Math.max(0.25, Math.cos(pitchR));
+  const w = Math.max(1, +roof.w || 10), d = Math.max(1, +roof.d || 7);
+  const half = d / 2, SL = half / cosP, r = Math.max(0.02, w - d);
+  const rise = half * Math.tan(pitchR);
+  const trap = [{ x: -w / 2, z: 0 }, { x: w / 2, z: 0 }, { x: r / 2, z: -SL }, { x: -r / 2, z: -SL }];
+  const tri = [{ x: -half, z: 0 }, { x: half, z: 0 }, { x: 0, z: -SL }];
+  return {
+    cosP, w, d, half, SL, r, rise,
+    faces: [
+      { side: "A", wrapY: 0, tiltZ: half, poly: trap },
+      { side: "B", wrapY: Math.PI, tiltZ: half, poly: trap },
+      { side: "C", wrapY: -Math.PI / 2, tiltZ: w / 2, poly: tri },
+      { side: "D", wrapY: Math.PI / 2, tiltZ: w / 2, poly: tri },
+    ],
+  };
+}
 function p3Blank(job) {
   return {
     groundW: 40, photo: null, photoW: 30, photoOpacity: 0.95, wp: 650,
@@ -119,14 +145,51 @@ function p3SurfInfo(roof) {
   return { loc, surf, zoff, cosP };
 }
 
-/* ── คำนวณตำแหน่งแผงบนหลังคา (rect + poly) →
-   { pw, pd, list:[{key,x,z,skip}], count, maxRows, maxCols, surfInfo } ── */
+/* วางกริดแผงภายในผืนโพลิกอน (พิกัดผิวลาด, ชายคาที่ z=0 ขึ้นไปทาง -z) */
+function p3FillPoly(out, poly, o) {
+  const xs = poly.map((p) => p.x), zs = poly.map((p) => p.z);
+  const minX = Math.min.apply(null, xs), maxX = Math.max.apply(null, xs), minZ = Math.min.apply(null, zs);
+  const { pw, pd, gap, m } = o;
+  const maxCols = Math.max(0, Math.floor(((maxX - minX) - 2 * m + gap) / (pw + gap)));
+  const maxRows = Math.max(0, Math.floor(((-minZ) - 2 * m + gap) / (pd + gap)));
+  out.maxCols = Math.max(out.maxCols, maxCols);
+  out.maxRows = Math.max(out.maxRows, maxRows);
+  if (o.enabled === false) return 0;
+  let count = 0;
+  const mi = m - 0.02; // หดจุดทดสอบเล็กน้อย กันตกบนเส้นขอบพอดี (point-on-edge)
+  for (let r = 0; r < maxRows; r++) for (let c = 0; c < maxCols; c++) {
+    const x1 = minX + m + c * (pw + gap), x2 = x1 + pw;
+    const z2 = -m - r * (pd + gap), z1 = z2 - pd;
+    const test = [[x1 - mi, z1 - mi], [x2 + mi, z1 - mi], [x1 - mi, z2 + mi], [x2 + mi, z2 + mi],
+      [(x1 + x2) / 2, z1 - mi], [(x1 + x2) / 2, z2 + mi], [x1 - mi, (z1 + z2) / 2], [x2 + mi, (z1 + z2) / 2]];
+    if (!test.every((t) => p3InPoly(t[0], t[1], poly))) continue;
+    const key = (o.prefix || "") + r + "_" + c, skip = !!o.skips[key];
+    out.list.push({ key, side: o.side, x: (x1 + x2) / 2, z: (z1 + z2) / 2, skip });
+    if (!skip) { count++; out.count++; }
+  }
+  return count;
+}
+
+/* ── คำนวณตำแหน่งแผงบนหลังคา (rect + gable + hip + poly) →
+   { pw, pd, list:[{key,side,x,z,skip}], count, maxRows, maxCols, surfInfo } ── */
 function p3Panels(roof) {
   const pw = roof.orient === "portrait" ? P3_PANEL_SHORT : P3_PANEL_LONG;
   const pd = roof.orient === "portrait" ? P3_PANEL_LONG : P3_PANEL_SHORT;
   const gap = +roof.gap || 0.02, m = +roof.margin || 0;
   const skips = roof.skips || {};
   const out = { pw, pd, gap, list: [], count: 0, maxRows: 0, maxCols: 0, surfInfo: null };
+
+  if (roof.kind === "hip") {
+    const H = p3HipFaces(roof);
+    out.hip = H;
+    H.faces.forEach((f) => {
+      out["count" + f.side] = p3FillPoly(out, f.poly, {
+        pw, pd, gap, m, skips, prefix: f.side + "_", side: f.side,
+        enabled: roof["side" + f.side] !== false,
+      });
+    });
+    return out;
+  }
 
   if (roof.kind === "gable") {
     // ── จั่ว: ลาด 2 ด้านเท่ากัน แชร์สันหลังคา · กริดคิดต่อด้าน ──
@@ -158,12 +221,13 @@ function p3Panels(roof) {
     const minX = Math.min.apply(null, xs), maxX = Math.max.apply(null, xs), minZ = Math.min.apply(null, zs);
     out.maxCols = Math.max(0, Math.floor(((maxX - minX) - 2 * m + gap) / (pw + gap)));
     out.maxRows = Math.max(0, Math.floor(((-minZ) - 2 * m + gap) / (pd + gap)));
+    const mi = m - 0.02; // หดจุดทดสอบเล็กน้อย กันตกบนเส้นขอบพอดี
     for (let r = 0; r < out.maxRows; r++) for (let c = 0; c < out.maxCols; c++) {
       const x1 = minX + m + c * (pw + gap), x2 = x1 + pw;
       const z2 = -m - r * (pd + gap), z1 = z2 - pd;
       // ทดสอบ 8 จุดรอบแผง (ขยายด้วยระยะขอบ) ต้องอยู่ในขอบเขตที่วาดทั้งหมด
-      const test = [[x1 - m, z1 - m], [x2 + m, z1 - m], [x1 - m, z2 + m], [x2 + m, z2 + m],
-        [(x1 + x2) / 2, z1 - m], [(x1 + x2) / 2, z2 + m], [x1 - m, (z1 + z2) / 2], [x2 + m, (z1 + z2) / 2]];
+      const test = [[x1 - mi, z1 - mi], [x2 + mi, z1 - mi], [x1 - mi, z2 + mi], [x2 + mi, z2 + mi],
+        [(x1 + x2) / 2, z1 - mi], [(x1 + x2) / 2, z2 + mi], [x1 - mi, (z1 + z2) / 2], [x2 + mi, (z1 + z2) / 2]];
       if (!test.every((t) => p3InPoly(t[0], t[1], info.surf))) continue;
       const key = r + "_" + c, skip = !!skips[key];
       out.list.push({ key, x: (x1 + x2) / 2, z: (z1 + z2) / 2, skip });
@@ -348,9 +412,40 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       const tilt = new THREE.Group();
       tilt.rotation.x = (+roof.pitch || 0) * P3_DEG;          // ยกปลาย -Z ขึ้น (ชายคาอยู่ z=0)
       const roofMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(roof.color || "#94A3B8"), transparent: true, opacity: 0.96, side: THREE.DoubleSide });
-      let sideParent = null; // จั่ว: แผงแยกด้าน A/B
+      let sideParent = null; // จั่ว/ปั้นหยา: แผงแยกด้าน
 
-      if (roof.kind === "gable") {
+      if (roof.kind === "hip") {
+        // ── ปั้นหยา: 4 ผืนชนสันกลาง (ต่อกันสนิท) + ผนังเดียวทั้งหลัง ──
+        const H = pan.hip || p3HipFaces(roof);
+        const pitchR = (+roof.pitch || 0) * P3_DEG;
+        sideParent = {};
+        H.faces.forEach((f) => {
+          const wrap = new THREE.Group(); wrap.rotation.y = f.wrapY;
+          const tiltF = new THREE.Group(); tiltF.position.set(0, 0, f.tiltZ); tiltF.rotation.x = pitchR;
+          const shp = new THREE.Shape();
+          f.poly.forEach((p, i) => { if (i === 0) shp.moveTo(p.x, -p.z); else shp.lineTo(p.x, -p.z); });
+          const slab = new THREE.Mesh(new THREE.ShapeGeometry(shp), roofMat);
+          slab.rotation.x = -Math.PI / 2; slab.position.y = -0.02;
+          slab.castShadow = true; slab.receiveShadow = true;
+          slab.userData = { kind: "roof", id: roof.id };
+          tiltF.add(slab); t.pickRoofs.push(slab);
+          const lp = f.poly.concat([f.poly[0]]).map((p) => new THREE.Vector3(p.x, 0.02, p.z));
+          tiltF.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(lp),
+            new THREE.LineBasicMaterial({ color: selected ? 0x16a34a : 0x475569 })));
+          wrap.add(tiltF); g.add(wrap);
+          sideParent[f.side] = tiltF;
+        });
+        // สันหลังคากลาง
+        const beam = new THREE.Mesh(new THREE.BoxGeometry(H.r + 0.15, 0.12, 0.18),
+          new THREE.MeshLambertMaterial({ color: 0x6b7280 }));
+        beam.position.set(0, H.rise + 0.02, 0); beam.castShadow = true; g.add(beam);
+        // ผนังเดียวใต้ทั้งหลัง — ให้ความรู้สึกเป็นบ้านหลังเดียว
+        const wallH = new THREE.Mesh(new THREE.BoxGeometry(H.w * 0.97, +roof.h || 3, H.d * 0.97),
+          new THREE.MeshLambertMaterial({ color: 0xe7e2d8, transparent: true, opacity: 0.5 }));
+        wallH.position.set(0, -((+roof.h || 3) / 2) - 0.02, 0);
+        wallH.castShadow = true; wallH.receiveShadow = true;
+        g.add(wallH);
+      } else if (roof.kind === "gable") {
         // ── หลังคาจั่ว: ลาด 2 ด้านชนสันหลังคากลาง + หน้าจั่วสามเหลี่ยม ──
         const pitchR = (+roof.pitch || 0) * P3_DEG;
         const cosP = Math.max(0.25, Math.cos(pitchR));
@@ -568,6 +663,21 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       return null;
     };
     const groundPoint = () => { const v = new THREE.Vector3(); return ray.ray.intersectPlane(groundPlane, v) ? v : null; };
+    // ดูดจุดเข้าหามุมหลังคาทรงอิสระผืนอื่น (รัศมี 0.45 ม.) — ให้ขอบผืนต่อกันสนิท
+    const snapPt = (pt, skipRoofId, skipIdx) => {
+      const stNow = stRef.current;
+      let best = null, bd = 0.45;
+      (stNow.roofs || []).forEach((r) => {
+        if (r.kind !== "poly" || !Array.isArray(r.pts)) return;
+        r.pts.forEach((p, i) => {
+          if (r.id === skipRoofId && i === skipIdx) return;
+          const wx = (+r.x || 0) + (+p.x || 0), wz = (+r.z || 0) + (+p.z || 0);
+          const dd = Math.hypot(wx - pt.x, wz - pt.z);
+          if (dd < bd) { bd = dd; best = { x: wx, z: wz }; }
+        });
+      });
+      return best || { x: Math.round(pt.x * 20) / 20, z: Math.round(pt.z * 20) / 20 };
+    };
 
     const onDown = (ev) => {
       if (ev.button !== undefined && ev.button !== 0) return;
@@ -602,11 +712,15 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       setRay(ev);
       const gp = groundPoint(); if (!gp) return;
       if (down.kind === "vertex") {
-        const nx = Math.round((down.startPt.x + gp.x - down.grab.x) * 20) / 20;
-        const nz = Math.round((down.startPt.z + gp.z - down.grab.z) * 20) / 20;
         const stNow = stRef.current;
         const roof = (stNow.roofs || []).find((r) => r.id === down.roofId);
         if (roof) {
+          // ตำแหน่ง world ใหม่ + ดูดเข้าหามุมผืนอื่น แล้วแปลงกลับเป็นพิกัดภายในผืน
+          const wx = (+roof.x || 0) + down.startPt.x + gp.x - down.grab.x;
+          const wz = (+roof.z || 0) + down.startPt.z + gp.z - down.grab.z;
+          const sp = snapPt({ x: wx, z: wz }, down.roofId, down.idx);
+          const nx = Math.round((sp.x - (+roof.x || 0)) * 20) / 20;
+          const nz = Math.round((sp.z - (+roof.z || 0)) * 20) / 20;
           const pts = roof.pts.map((p, i) => i === down.idx ? { x: nx, z: nz } : p);
           patchRoof(down.roofId, { pts });
         }
@@ -624,7 +738,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         if (!down.moved && ev.target === cv) {
           setRay(ev);
           const gp = groundPoint();
-          if (gp) setDrawPts((p) => p.concat([{ x: Math.round(gp.x * 20) / 20, z: Math.round(gp.z * 20) / 20 }]));
+          if (gp) { const sp = snapPt(gp, null, null); setDrawPts((p) => p.concat([sp])); }
         }
         down = null; return;
       }
@@ -718,8 +832,10 @@ function Plan3DEditor({ job, onClose, currentUser }) {
   const obs = (st.obstacles || []).find((o) => o.id === selObs) || null;
   const isPolyRoof = roof && roof.kind === "poly" && Array.isArray(roof.pts);
   const isGable = roof && roof.kind === "gable";
+  const isHip = roof && roof.kind === "hip";
   const gableRise = isGable ? Math.round(((+roof.span || 8) / 2) * Math.tan((+roof.pitch || 0) * P3_DEG) * 100) / 100 : 0;
   const gridSel = roof ? p3Panels(roof) : null;
+  const hipInfo = isHip && gridSel ? gridSel.hip : null;
   const total = p3CountAll(st);
   const kwp = Math.round(total * (+st.wp || 650) / 10) / 100;
   const sunNow = p3SunPos(st.sun);
@@ -786,10 +902,11 @@ function Plan3DEditor({ job, onClose, currentUser }) {
               <button key={r.id} onClick={() => { setSelRoof(r.id); setSelObs(null); }}
                 style={{ padding: "6px 11px", borderRadius: 99, border: "1px solid " + (r.id === selRoof ? "var(--primary)" : "var(--border-strong)"),
                   background: r.id === selRoof ? "var(--primary-soft)" : "var(--surface)", color: r.id === selRoof ? "var(--primary-dark)" : "var(--text-2)",
-                  fontWeight: 700, fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>{r.kind === "poly" ? "⬠ " : r.kind === "gable" ? "⌂ " : ""}{r.name}</button>
+                  fontWeight: 700, fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>{r.kind === "poly" ? "⬠ " : r.kind === "gable" ? "⌂ " : r.kind === "hip" ? "⛺ " : ""}{r.name}</button>
             ))}
             <SmallBtn onClick={() => { const nr = p3NewRoof((st.roofs || []).length + 1); set({ roofs: (st.roofs || []).concat([nr]) }); setSelRoof(nr.id); }}>+ สี่เหลี่ยม</SmallBtn>
             <SmallBtn onClick={() => { const nr = p3NewGable((st.roofs || []).length + 1); set({ roofs: (st.roofs || []).concat([nr]) }); setSelRoof(nr.id); }}>+ จั่ว ⌂</SmallBtn>
+            <SmallBtn onClick={() => { const nr = p3NewHip((st.roofs || []).length + 1); set({ roofs: (st.roofs || []).concat([nr]) }); setSelRoof(nr.id); }}>+ ปั้นหยา ⛺</SmallBtn>
           </div>
           <button onClick={startDraw}
             style={{ padding: "10px 10px", borderRadius: 10, border: "1.5px dashed #4F46E5", background: "#6366F114", color: "#4F46E5", fontWeight: 700, fontFamily: "inherit", fontSize: 12.5, cursor: "pointer" }}>
@@ -799,15 +916,33 @@ function Plan3DEditor({ job, onClose, currentUser }) {
             <React.Fragment>
               <input value={roof.name} onChange={(e) => patchRoof(roof.id, { name: e.target.value })} style={inp} />
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                {!isPolyRoof && !isGable && <Num label="กว้าง (แนวชายคา)" value={roof.w} step={0.1} min={1} suffix="ม." onChange={(v) => patchRoof(roof.id, { w: v })} />}
-                {!isPolyRoof && !isGable && <Num label="ยาวลาดหลังคา" value={roof.d} step={0.1} min={1} suffix="ม." onChange={(v) => patchRoof(roof.id, { d: v })} />}
+                {!isPolyRoof && !isGable && !isHip && <Num label="กว้าง (แนวชายคา)" value={roof.w} step={0.1} min={1} suffix="ม." onChange={(v) => patchRoof(roof.id, { w: v })} />}
+                {!isPolyRoof && !isGable && !isHip && <Num label="ยาวลาดหลังคา" value={roof.d} step={0.1} min={1} suffix="ม." onChange={(v) => patchRoof(roof.id, { d: v })} />}
                 {isGable && <Num label="ยาวสันหลังคา" value={roof.ridge} step={0.1} min={1} suffix="ม." onChange={(v) => patchRoof(roof.id, { ridge: v })} />}
                 {isGable && <Num label="กว้างรวม 2 ลาด" value={roof.span} step={0.1} min={1} suffix="ม." onChange={(v) => patchRoof(roof.id, { span: v })} />}
-                <Num label={isGable ? "องศาความชัน" : "องศาเอียง"} value={roof.pitch} step={1} min={0} max={60} suffix="°" onChange={(v) => patchRoof(roof.id, { pitch: v })} />
-                <Num label={isGable ? "ทิศด้าน A หันไป" : "ทิศที่ลาดหันไป"} value={roof.az} step={5} min={0} max={360} suffix="° (180=ใต้)" onChange={(v) => patchRoof(roof.id, { az: v })} />
+                {isHip && <Num label="ยาวรวม (แนวสัน)" value={roof.w} step={0.1} min={1} suffix="ม." onChange={(v) => patchRoof(roof.id, { w: v })} />}
+                {isHip && <Num label="กว้างรวม" value={roof.d} step={0.1} min={1} suffix="ม." onChange={(v) => patchRoof(roof.id, { d: v })} />}
+                <Num label={isGable || isHip ? "องศาความชัน" : "องศาเอียง"} value={roof.pitch} step={1} min={0} max={60} suffix="°" onChange={(v) => patchRoof(roof.id, { pitch: v })} />
+                <Num label={isGable || isHip ? "ทิศด้าน A หันไป" : "ทิศที่ลาดหันไป"} value={roof.az} step={5} min={0} max={360} suffix="° (180=ใต้)" onChange={(v) => patchRoof(roof.id, { az: v })} />
                 <Num label="ความสูงชายคา" value={roof.h} step={0.1} min={0.5} suffix="ม." onChange={(v) => patchRoof(roof.id, { h: v })} />
                 <Num label="ระยะขอบกันตก" value={roof.margin} step={0.05} min={0} suffix="ม." onChange={(v) => patchRoof(roof.id, { margin: v })} />
               </div>
+              {isHip && hipInfo && (
+                <div style={{ fontSize: 11.5, color: "var(--text-2)", background: "#B4530910", border: "1px solid #B4530933", borderRadius: 9, padding: "8px 10px", lineHeight: 1.6 }}>
+                  ⛺ ปั้นหยา · สันยาว ≈ <b>{Math.round(hipInfo.r * 100) / 100 } ม.</b> · สันสูงจากชายคา ≈ <b>{Math.round(hipInfo.rise * 100) / 100} ม.</b> · ลาด ≈ <b>{Math.round(hipInfo.SL * 100) / 100} ม.</b>
+                  {(+roof.w || 0) < (+roof.d || 0) && <div style={{ color: "#B45309", fontWeight: 700 }}>⚠ "ยาวรวม" ควรเป็นด้านที่ยาวกว่า "กว้างรวม"</div>}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 6 }}>
+                    {[["sideA", "A คางหมู"], ["sideB", "B คางหมู"], ["sideC", "C สามเหลี่ยม"], ["sideD", "D สามเหลี่ยม"]].map(([k, lb]) => (
+                      <button key={k} onClick={() => patchRoof(roof.id, { [k]: roof[k] === false })}
+                        style={{ padding: "6px 4px", borderRadius: 8, border: "1px solid " + (roof[k] !== false ? "var(--primary)" : "var(--border-strong)"),
+                          background: roof[k] !== false ? "var(--primary-soft)" : "var(--surface)", color: roof[k] !== false ? "var(--primary-dark)" : "var(--text-3)",
+                          fontWeight: 700, fontFamily: "inherit", fontSize: 11.5, cursor: "pointer" }}>
+                        {roof[k] !== false ? "✓ " : ""}{lb} · {gridSel ? (gridSel["count" + k.slice(4)] || 0) : 0} แผง
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {isGable && (
                 <div style={{ fontSize: 11.5, color: "var(--text-2)", background: "#B4530910", border: "1px solid #B4530933", borderRadius: 9, padding: "8px 10px", lineHeight: 1.6 }}>
                   ⌂ หลังคาจั่ว · สันสูงจากชายคา ≈ <b>{gableRise} ม.</b> · ลาดด้านละ ≈ <b>{gridSel && gridSel.slopeLen ? Math.round(gridSel.slopeLen * 100) / 100 : 0} ม.</b><br />
@@ -837,7 +972,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
                         fontWeight: 700, fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>{o === "portrait" ? "แผงแนวตั้ง" : "แผงแนวนอน"}</button>
                   ))}
                 </div>
-                {!isPolyRoof && (
+                {!isPolyRoof && !isHip && (
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     <Num label={"แถว (สูงสุด " + (gridSel ? gridSel.maxRows : 0) + ") 0=เต็ม"} value={roof.rows} step={1} min={0} onChange={(v) => patchRoof(roof.id, { rows: v })} />
                     <Num label={"คอลัมน์ (สูงสุด " + (gridSel ? gridSel.maxCols : 0) + ") 0=เต็ม"} value={roof.cols} step={1} min={0} onChange={(v) => patchRoof(roof.id, { cols: v })} />
