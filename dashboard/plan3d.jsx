@@ -254,6 +254,41 @@ function p3Panels(roof) {
 }
 function p3CountAll(st) { return (st.roofs || []).reduce((s, r) => s + p3Panels(r).count, 0); }
 
+/* ── ช่องกรอก/สไลเดอร์ ──
+   ต้องนิยามไว้ "นอก" Plan3DEditor เท่านั้น ถ้าประกาศข้างในจะกลายเป็นคอมโพเนนต์ชนิดใหม่ทุกครั้งที่ค่าเปลี่ยน
+   React จะ remount ตัว <input> ใหม่ → กดลากสไลเดอร์ค้างไม่ได้ (หลุดทันทีที่ขยับก้าวแรก) */
+const P3_INP = { width: "100%", boxSizing: "border-box", background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13, padding: "7px 9px", borderRadius: 9, outline: "none" };
+
+function P3Num({ label, value, onChange, step, min, max, suffix }) {
+  return (
+    <label style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+      <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>{label}</span>
+      <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+        <input type="number" step={step || 1} min={min} max={max} value={value} style={P3_INP}
+          onChange={(e) => onChange(e.target.value === "" ? 0 : +e.target.value)} />
+        {suffix && <span style={{ fontSize: 11, color: "var(--text-3)", flexShrink: 0 }}>{suffix}</span>}
+      </span>
+    </label>
+  );
+}
+
+function P3NumRange({ label, value, onChange, min, max, step, suffix, span }) {
+  return (
+    <label style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, gridColumn: span ? "1 / -1" : "auto" }}>
+      <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>{label}</span>
+      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <input type="range" min={min} max={max} step={step} value={value}
+          onChange={(e) => onChange(+e.target.value)}
+          style={{ flex: 1, minWidth: 0, accentColor: "var(--primary)", height: 26 }} />
+        <input type="number" min={min} max={max} step={step} value={value}
+          onChange={(e) => onChange(e.target.value === "" ? 0 : +e.target.value)}
+          style={Object.assign({}, P3_INP, { width: 58, flexShrink: 0, textAlign: "center", padding: "5px 4px" })} />
+        {suffix && <span style={{ fontSize: 10.5, color: "var(--text-3)", flexShrink: 0 }}>{suffix}</span>}
+      </span>
+    </label>
+  );
+}
+
 /* ============================================================
    Plan3DEditor — โหมดเต็มจอ
    ============================================================ */
@@ -806,6 +841,8 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     const cz = drawPts.reduce((s, p) => s + p.z, 0) / drawPts.length;
     const nr = Object.assign(p3NewRoof((st.roofs || []).length + 1), {
       kind: "poly", x: Math.round(cx * 10) / 10, z: Math.round(cz * 10) / 10,
+      // เริ่มที่องศา 0 = แบนราบ → ขอบใน 3D ตรงกับที่คลิกวางเป๊ะ ต่อผืนง่าย ค่อยเอียงทีหลัง
+      pitch: 0,
       pts: drawPts.map((p) => ({ x: Math.round((p.x - cx) * 20) / 20, z: Math.round((p.z - cz) * 20) / 20 })),
     });
     set({ roofs: (st.roofs || []).concat([nr]) });
@@ -837,33 +874,10 @@ function Plan3DEditor({ job, onClose, currentUser }) {
   };
   const tryClose = () => { if (dirty && !confirm("มีการแก้ไขที่ยังไม่บันทึก — ปิดโดยไม่บันทึกใช่ไหม?")) return; onClose(); };
 
-  /* ── UI helpers ── */
-  const inp = { width: "100%", boxSizing: "border-box", background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13, padding: "7px 9px", borderRadius: 9, outline: "none" };
-  const Num = ({ label, value, onChange, step, min, max, suffix }) => (
-    <label style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
-      <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>{label}</span>
-      <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-        <input type="number" step={step || 1} min={min} max={max} value={value} style={inp}
-          onChange={(e) => onChange(e.target.value === "" ? 0 : +e.target.value)} />
-        {suffix && <span style={{ fontSize: 11, color: "var(--text-3)", flexShrink: 0 }}>{suffix}</span>}
-      </span>
-    </label>
-  );
-  /* สไลเดอร์ปรับเร็ว + ช่องพิมพ์ตัวเลข (ใช้กับองศา/ทิศ) */
-  const NumRange = ({ label, value, onChange, min, max, step, suffix, span }) => (
-    <label style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, gridColumn: span ? "1 / -1" : "auto" }}>
-      <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>{label}</span>
-      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <input type="range" min={min} max={max} step={step} value={value}
-          onChange={(e) => onChange(+e.target.value)}
-          style={{ flex: 1, minWidth: 0, accentColor: "var(--primary)" }} />
-        <input type="number" min={min} max={max} step={step} value={value}
-          onChange={(e) => onChange(e.target.value === "" ? 0 : +e.target.value)}
-          style={Object.assign({}, inp, { width: 58, flexShrink: 0, textAlign: "center", padding: "5px 4px" })} />
-        {suffix && <span style={{ fontSize: 10.5, color: "var(--text-3)", flexShrink: 0 }}>{suffix}</span>}
-      </span>
-    </label>
-  );
+  /* ── UI helpers ── (Num/NumRange อ้างถึงตัวนอกไฟล์ เพื่อไม่ให้ input ถูก remount ทุก render) */
+  const inp = P3_INP;
+  const Num = P3Num;
+  const NumRange = P3NumRange;
   const TabBtn = ({ k, label }) => (
     <button onClick={() => setTab(k)} style={{ flex: 1, padding: "8px 4px", borderRadius: 9, border: "none", cursor: "pointer", fontFamily: "inherit",
       fontSize: 12, fontWeight: 700, background: tab === k ? "var(--primary)" : "var(--surface2)", color: tab === k ? "#fff" : "var(--text-2)" }}>{label}</button>
