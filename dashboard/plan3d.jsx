@@ -254,6 +254,30 @@ function p3Panels(roof) {
 }
 function p3CountAll(st) { return (st.roofs || []).reduce((s, r) => s + p3Panels(r).count, 0); }
 
+/* รวมมุมของหลังคาทรงอิสระทุกผืน (ยกเว้น exceptId) เป็น "จุดดูดติด" โดยรวมจุดที่ทับกันให้เหลือจุดเดียว */
+function p3SnapPoints(roofs, exceptId) {
+  const seen = {}, out = [];
+  (roofs || []).forEach((r) => {
+    if (r.id === exceptId || r.kind !== "poly" || !Array.isArray(r.pts)) return;
+    r.pts.forEach((p) => {
+      const wx = (+r.x || 0) + (+p.x || 0), wz = (+r.z || 0) + (+p.z || 0);
+      const k = Math.round(wx * 10) + "_" + Math.round(wz * 10);
+      if (seen[k]) return;
+      seen[k] = 1; out.push({ x: wx, z: wz });
+    });
+  });
+  return out;
+}
+
+/* แปลงพิกัดพื้น (world x,z) → พิกัดบนผิวลาดของหลังคาผืนหนึ่ง (ผกผันของ p3SurfInfo) */
+function p3WorldToSurf(roof, info, wx, wz) {
+  const rot = (((+roof.az || 180) - 180) * P3_DEG);
+  const px = wx - (+roof.x || 0), pz = wz - (+roof.z || 0);
+  const lx = px * Math.cos(rot) + pz * Math.sin(rot);
+  const lz = -px * Math.sin(rot) + pz * Math.cos(rot);
+  return { x: lx, z: (lz - info.zoff) / info.cosP };
+}
+
 /* ── ช่องกรอก/สไลเดอร์ ──
    ต้องนิยามไว้ "นอก" Plan3DEditor เท่านั้น ถ้าประกาศข้างในจะกลายเป็นคอมโพเนนต์ชนิดใหม่ทุกครั้งที่ค่าเปลี่ยน
    React จะ remount ตัว <input> ใหม่ → กดลากสไลเดอร์ค้างไม่ได้ (หลุดทันทีที่ขยับก้าวแรก) */
@@ -401,6 +425,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       c.traverse && c.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) { (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { if (m.map) m.map.dispose(); m.dispose(); }); } });
     }
     t.pickRoofs = []; t.pickPanels = []; t.pickObs = []; t.pickVerts = [];
+    t.selTilt = null; t.selInfo = null; t.selPolyRoof = null;
 
     const G = +st.groundW || 40;
     // พื้น
@@ -553,10 +578,10 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         wall.position.y = -(+roof.h || 3);
         wall.castShadow = true; wall.receiveShadow = true;
         g.add(wall);
-        // ── จุดแก้ทรง — เกาะบนมุมหลังคาจริง มองทะลุทุกชิ้น (depthTest:false) ──
-        info.surf.forEach((sp, idx) => {
-          if (selected) {
-            // ผืนที่เลือก: จุดเขียวใหญ่ + วงขาวรอบ ให้เห็นชัด/แตะง่าย
+        // ── จุดแก้ทรงของผืนที่เลือก — เกาะบนมุมหลังคาจริง มองทะลุทุกชิ้น (depthTest:false) ──
+        if (selected) {
+          t.selTilt = tilt; t.selInfo = info; t.selPolyRoof = roof;  // ใช้วางจุดดูดติดให้อยู่ระนาบเดียวกัน
+          info.surf.forEach((sp, idx) => {
             const halo = new THREE.Mesh(new THREE.SphereGeometry(0.44, 14, 12),
               new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false }));
             halo.position.set(sp.x, 0.12, sp.z);
@@ -568,15 +593,8 @@ function Plan3DEditor({ job, onClose, currentUser }) {
             dot.userData = halo.userData;
             tilt.add(halo); tilt.add(dot);
             t.pickVerts.push(halo, dot);
-          } else {
-            // ผืนอื่น: จุดเทาเล็ก = เป้าให้ลากไปดูดติด (มองเห็นตลอด)
-            const ghost = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8),
-              new THREE.MeshBasicMaterial({ color: 0x94a3b8, depthTest: false, transparent: true, opacity: 0.85 }));
-            ghost.position.set(sp.x, 0.1, sp.z);
-            ghost.renderOrder = 18;
-            tilt.add(ghost);
-          }
-        });
+          });
+        }
       } else {
         const slab = new THREE.Mesh(new THREE.BoxGeometry(roof.w, 0.09, roof.d), roofMat);
         slab.position.set(0, -0.045, -roof.d / 2);
@@ -618,6 +636,28 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       });
       t.dyn.add(g);
     });
+
+    // ── จุดดูดติด (snap) — วาดครั้งเดียว รวมจุดที่ทับกันให้เหลือจุดเดียว
+    //    และฉายลงบน "ระนาบของผืนที่กำลังแก้" เพื่อให้ลากจุดเขียวไปทับได้ตรงตา ──
+    (() => {
+      const sp = p3SnapPoints(st.roofs, t.selPolyRoof ? t.selPolyRoof.id : null);
+      if (!sp.length) return;
+      const geo = new THREE.SphereGeometry(0.22, 10, 8);
+      const mat = new THREE.MeshBasicMaterial({ color: 0x64748b, depthTest: false, transparent: true, opacity: 0.9 });
+      const onPlane = !drawing && t.selPolyRoof && t.selTilt;
+      sp.forEach((p) => {
+        const d = new THREE.Mesh(geo, mat);
+        if (onPlane) {
+          const s = p3WorldToSurf(t.selPolyRoof, t.selInfo, p.x, p.z);
+          d.position.set(s.x, 0.1, s.z);
+          t.selTilt.add(d);
+        } else {
+          d.position.set(p.x, 0.25, p.z);
+          t.dyn.add(d);
+        }
+        d.renderOrder = 18;
+      });
+    })();
 
     // ── สิ่งบดบัง ──
     (st.obstacles || []).forEach((o) => {
