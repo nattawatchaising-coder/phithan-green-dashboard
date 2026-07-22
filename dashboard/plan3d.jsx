@@ -892,8 +892,9 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     const cz = drawPts.reduce((s, p) => s + p.z, 0) / drawPts.length;
     const nr = Object.assign(p3NewRoof((st.roofs || []).length + 1), {
       kind: "poly", x: Math.round(cx * 10) / 10, z: Math.round(cz * 10) / 10,
-      // เริ่มที่องศา 0 = แบนราบ → ขอบใน 3D ตรงกับที่คลิกวางเป๊ะ ต่อผืนง่าย ค่อยเอียงทีหลัง
-      pitch: 0,
+      // เริ่มแนบพื้น: pitch 0 (แบนราบ) + h 0.05 (แทบติดพื้น กันภาพกระพริบซ้อนรูป)
+      // → มุมหลังคาอยู่ระดับพื้น คลิกวางจุดต่อผืนถัดไปในเปอร์สเปคทีฟตรงเป๊ะ ค่อยเพิ่มความสูง/องศาทีหลัง
+      pitch: 0, h: 0.05,
       pts: drawPts.map((p) => ({ x: Math.round((p.x - cx) * 20) / 20, z: Math.round((p.z - cz) * 20) / 20 })),
     });
     set({ roofs: (st.roofs || []).concat([nr]) });
