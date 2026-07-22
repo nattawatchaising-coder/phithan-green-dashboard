@@ -585,12 +585,12 @@ function Plan3DEditor({ job, onClose, currentUser }) {
           t.selTilt = tilt; t.selInfo = info; t.selPolyRoof = roof;  // ใช้วางจุดดูดติดให้อยู่ระนาบเดียวกัน
           info.surf.forEach((sp, idx) => {
             // transparent:true → อยู่กลุ่มการวาดเดียวกับรูปโดรน (โปร่งแสง) จึงวาดทับรูปได้ ไม่จมใต้รูป
-            const halo = new THREE.Mesh(new THREE.SphereGeometry(0.44, 14, 12),
+            const halo = new THREE.Mesh(new THREE.SphereGeometry(0.27, 14, 12),
               new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, transparent: true }));
             halo.position.set(sp.x, 0.12, sp.z);
             halo.renderOrder = 20;
             halo.userData = { kind: "vertex", roofId: roof.id, idx };
-            const dot = new THREE.Mesh(new THREE.SphereGeometry(0.3, 14, 12),
+            const dot = new THREE.Mesh(new THREE.SphereGeometry(0.17, 14, 12),
               new THREE.MeshBasicMaterial({ color: 0x16a34a, depthTest: false, transparent: true }));
             dot.position.copy(halo.position); dot.renderOrder = 21;
             dot.userData = halo.userData;
@@ -688,19 +688,19 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     if (drawing && drawPts.length) {
       // transparent:true → จุด/เส้นไปอยู่กลุ่มการวาดเดียวกับรูปโดรน (โปร่งแสง) แล้ว renderOrder สูงกว่าจึงวาดทับรูปได้จริง
       // ถ้าปล่อยเป็น opaque รูปโปร่งแสงจะถูกวาดทีหลังทับจุดจนซีด (เหมือนจุดอยู่ "ใต้รูป")
-      const mat = new THREE.LineBasicMaterial({ color: 0xdc2626, depthTest: false, transparent: true });
+      const mat = new THREE.LineBasicMaterial({ color: 0x16a34a, depthTest: false, transparent: true });
       const pts3 = drawPts.map((p) => new THREE.Vector3(p.x, 0.15, p.z));
       if (drawPts.length >= 3) pts3.push(pts3[0].clone());
       const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts3), mat);
       line.renderOrder = 20; t.dyn.add(line);
-      const R = Math.max(0.18, (+st.photoW || 30) / 95);
+      const R = Math.max(0.13, (+st.photoW || 30) / 130);
       drawPts.forEach((p, i) => {
         const first = i === 0;
         const halo = new THREE.Mesh(new THREE.SphereGeometry(R * 1.5, 16, 12),
           new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, transparent: true }));
         halo.position.set(p.x, 0.2, p.z); halo.renderOrder = 20; t.dyn.add(halo);
         const dot = new THREE.Mesh(new THREE.SphereGeometry(R, 16, 12),
-          new THREE.MeshBasicMaterial({ color: first ? 0x15803d : 0xdc2626, depthTest: false, transparent: true }));
+          new THREE.MeshBasicMaterial({ color: first ? 0x15803d : 0x16a34a, depthTest: false, transparent: true }));
         dot.position.set(p.x, 0.22, p.z); dot.renderOrder = 21; t.dyn.add(dot);
       });
     }
