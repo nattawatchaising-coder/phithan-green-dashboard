@@ -647,18 +647,13 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       if (!sp.length) return;
       const geo = new THREE.SphereGeometry(0.22, 10, 8);
       const mat = new THREE.MeshBasicMaterial({ color: 0x64748b, depthTest: false, transparent: true, opacity: 0.9 });
-      const onPlane = !drawing && t.selPolyRoof && t.selTilt;
+      // จุด snap = เป้าหมายพิกัด x,z บนพื้น → วางที่ระดับพื้นเสมอ
+      // (เลิกฉายลงระนาบหลังคาที่เลือก เพราะถ้าหลังคาเอียง จุดไกลชายคาจะถูกยกลอยขึ้นฟ้า)
       sp.forEach((p) => {
         const d = new THREE.Mesh(geo, mat);
-        if (onPlane) {
-          const s = p3WorldToSurf(t.selPolyRoof, t.selInfo, p.x, p.z);
-          d.position.set(s.x, 0.1, s.z);
-          t.selTilt.add(d);
-        } else {
-          d.position.set(p.x, 0.25, p.z);
-          t.dyn.add(d);
-        }
+        d.position.set(p.x, 0.15, p.z);
         d.renderOrder = 18;
+        t.dyn.add(d);
       });
     })();
 
@@ -767,10 +762,10 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       return null;
     };
     const groundPoint = () => { const v = new THREE.Vector3(); return ray.ray.intersectPlane(groundPlane, v) ? v : null; };
-    // ดูดจุดเข้าหามุมหลังคาทรงอิสระผืนอื่น (รัศมี 0.45 ม.) — ให้ขอบผืนต่อกันสนิท
+    // ดูดจุดเข้าหามุมหลังคาทรงอิสระผืนอื่น (รัศมี 0.7 ม.) — ให้ขอบผืนต่อกันสนิท
     const snapPt = (pt, skipRoofId, skipIdx) => {
       const stNow = stRef.current;
-      let best = null, bd = 0.45;
+      let best = null, bd = 0.7;
       (stNow.roofs || []).forEach((r) => {
         if (r.kind !== "poly" || !Array.isArray(r.pts)) return;
         r.pts.forEach((p, i) => {
