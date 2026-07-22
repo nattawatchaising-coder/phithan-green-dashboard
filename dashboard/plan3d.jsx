@@ -130,19 +130,30 @@ function p3Area(pts) {
   for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) a += (pts[j].x + pts[i].x) * (pts[j].z - pts[i].z);
   return Math.abs(a / 2);
 }
-/* พิกัดผิวหลังคาทรงอิสระ: หมุนตามทิศ → เลื่อนชายคาไป z=0 → ยืดตามลาด (1/cosP)
-   ทำให้เงา/ภาพฉายมุมบนตรงกับขอบเขตที่วาดบนรูปโดรนพอดี */
+/* พิกัดผิวหลังคาทรงอิสระ — พับรอบ "ขอบที่เลือก" (roof.hinge = index ขอบ เริ่ม pts[i]→pts[i+1])
+   หมุนให้ขอบพับนอนแนวนอน → เลื่อนขอบพับไป z=0 → ยืดตามลาด (1/cosP)
+   สองผืนที่แชร์ขอบพับเส้นเดียวกัน จะพับรอบแกนเดียวกัน = ขอบติดกันทุกองศา (แก้ปัญหาสันหลังคาไม่ต่อ) */
 function p3SurfInfo(roof) {
-  const rot = (((+roof.az || 180) - 180) * P3_DEG);
+  const pts = roof.pts || [];
   const cosP = Math.max(0.25, Math.cos((+roof.pitch || 0) * P3_DEG));
-  const loc = (roof.pts || []).map((p) => ({
-    x: (+p.x || 0) * Math.cos(rot) + (+p.z || 0) * Math.sin(rot),
-    z: -(+p.x || 0) * Math.sin(rot) + (+p.z || 0) * Math.cos(rot),
+  if (pts.length < 2) return { loc: [], surf: [], zoff: 0, cosP, rot: 0, hi: 0 };
+  const n = pts.length;
+  const hi = (((Math.round(+roof.hinge || 0)) % n) + n) % n;
+  const A = pts[hi], B = pts[(hi + 1) % n];
+  const rotate = (r) => pts.map((p) => ({
+    x: (+p.x || 0) * Math.cos(r) + (+p.z || 0) * Math.sin(r),
+    z: -(+p.x || 0) * Math.sin(r) + (+p.z || 0) * Math.cos(r),
   }));
-  if (!loc.length) return { loc: [], surf: [], zoff: 0, cosP };
-  const zoff = Math.max.apply(null, loc.map((p) => p.z));
+  // หมุนให้ขอบพับ (A→B) นอนขนานแกน x
+  let rot = -Math.atan2((+B.z || 0) - (+A.z || 0), (+B.x || 0) - (+A.x || 0));
+  let loc = rotate(rot);
+  let hz = loc[hi].z;
+  // ให้รูปอยู่ฝั่ง -z ของขอบพับ (คงคอนเวนชัน "ยกปลาย -z ขึ้น") ถ้าศูนย์กลางอยู่ฝั่ง +z ให้หมุนกลับ 180°
+  const cz = loc.reduce((s, p) => s + p.z, 0) / n;
+  if (cz > hz) { rot += Math.PI; loc = rotate(rot); hz = loc[hi].z; }
+  const zoff = hz;
   const surf = loc.map((p) => ({ x: p.x, z: (p.z - zoff) / cosP }));
-  return { loc, surf, zoff, cosP };
+  return { loc, surf, zoff, cosP, rot, hi };
 }
 
 /* วางกริดแผงภายในผืนโพลิกอน (พิกัดผิวลาด, ชายคาที่ z=0 ขึ้นไปทาง -z) */
@@ -558,6 +569,9 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         });
       } else if (isPoly) {
         const info = pan.surfInfo || p3SurfInfo(roof);
+        // แกนพับมาจาก "ขอบที่เลือก" (info.rot) ไม่ใช่ทิศ az · flip = พลิกด้านพับ (ขึ้น/ลง)
+        g.rotation.y = -info.rot;
+        tilt.rotation.x = (roof.flip ? -1 : 1) * (+roof.pitch || 0) * P3_DEG;
         tilt.position.set(0, 0, info.zoff);
         // ผิวหลังคาตามขอบเขตที่วาด (shape y = -z เพื่อให้ rotateX(-90°) ได้ z ถูกด้าน)
         const shp = new THREE.Shape();
@@ -571,6 +585,19 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         // ขอบเส้น
         const linePts = info.surf.concat([info.surf[0]]).map((p) => new THREE.Vector3(p.x, 0.02, p.z));
         tilt.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePts), new THREE.LineBasicMaterial({ color: selected ? 0x16a34a : 0x475569 })));
+        // ── ไฮไลต์ "ขอบพับ" (แกนที่หลังคาพับรอบ) สีส้ม เห็นชัดว่าพับตรงไหน ──
+        if (selected && info.surf.length) {
+          const hA = info.surf[info.hi], hB = info.surf[(info.hi + 1) % info.surf.length];
+          const hl = new THREE.Line(new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(hA.x, 0.06, hA.z), new THREE.Vector3(hB.x, 0.06, hB.z)]),
+            new THREE.LineBasicMaterial({ color: 0xf59e0b, depthTest: false, transparent: true }));
+          hl.renderOrder = 19; tilt.add(hl);
+          [hA, hB].forEach((p) => {
+            const m = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 10),
+              new THREE.MeshBasicMaterial({ color: 0xf59e0b, depthTest: false, transparent: true }));
+            m.position.set(p.x, 0.06, p.z); m.renderOrder = 19; tilt.add(m);
+          });
+        }
         // ผนังจาง ๆ ใต้หลังคา (ยึดตามขอบเขตแนวราบ)
         const wshp = new THREE.Shape();
         info.loc.forEach((p, i) => { if (i === 0) wshp.moveTo(p.x, -p.z); else wshp.lineTo(p.x, -p.z); });
@@ -885,11 +912,18 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     if (drawPts.length < 3) return;
     const cx = drawPts.reduce((s, p) => s + p.x, 0) / drawPts.length;
     const cz = drawPts.reduce((s, p) => s + p.z, 0) / drawPts.length;
+    // ขอบพับเริ่มต้น = ขอบที่ยาวที่สุด (มักเป็นชายคาหลัก) — ผู้ใช้เปลี่ยนได้ทีหลัง
+    let hinge = 0, hlen = -1;
+    for (let i = 0; i < drawPts.length; i++) {
+      const a = drawPts[i], b = drawPts[(i + 1) % drawPts.length];
+      const L = Math.hypot(b.x - a.x, b.z - a.z);
+      if (L > hlen) { hlen = L; hinge = i; }
+    }
     const nr = Object.assign(p3NewRoof((st.roofs || []).length + 1), {
       kind: "poly", x: Math.round(cx * 10) / 10, z: Math.round(cz * 10) / 10,
       // เริ่มแนบพื้น: pitch 0 (แบนราบ) + h 0.05 (แทบติดพื้น กันภาพกระพริบซ้อนรูป)
       // → มุมหลังคาอยู่ระดับพื้น คลิกวางจุดต่อผืนถัดไปในเปอร์สเปคทีฟตรงเป๊ะ ค่อยเพิ่มความสูง/องศาทีหลัง
-      pitch: 0, h: 0.05,
+      pitch: 0, h: 0.05, hinge: hinge, flip: false,
       pts: drawPts.map((p) => ({ x: Math.round((p.x - cx) * 20) / 20, z: Math.round((p.z - cz) * 20) / 20 })),
     });
     set({ roofs: (st.roofs || []).concat([nr]) });
@@ -1034,7 +1068,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
                 <Num label="ความสูงชายคา" value={roof.h} step={0.1} min={0.5} suffix="ม." onChange={(v) => patchRoof(roof.id, { h: v })} />
                 <Num label="ระยะขอบกันตก" value={roof.margin} step={0.05} min={0} suffix="ม." onChange={(v) => patchRoof(roof.id, { margin: v })} />
                 <NumRange span label={isGable || isHip ? "องศาความชัน" : "องศาเอียง"} value={roof.pitch} step={1} min={0} max={60} suffix="°" onChange={(v) => patchRoof(roof.id, { pitch: v })} />
-                <NumRange span label={isGable || isHip ? "ทิศด้าน A หันไป (180 = ใต้)" : "ทิศที่ลาดหันไป (180 = ใต้)"} value={roof.az} step={5} min={0} max={360} suffix="°" onChange={(v) => patchRoof(roof.id, { az: v })} />
+                {!isPolyRoof && <NumRange span label={isGable || isHip ? "ทิศด้าน A หันไป (180 = ใต้)" : "ทิศที่ลาดหันไป (180 = ใต้)"} value={roof.az} step={5} min={0} max={360} suffix="°" onChange={(v) => patchRoof(roof.id, { az: v })} />}
               </div>
               {isHip && hipInfo && (
                 <div style={{ fontSize: 11.5, color: "var(--text-2)", background: "#B4530910", border: "1px solid #B4530933", borderRadius: 9, padding: "8px 10px", lineHeight: 1.6 }}>
@@ -1067,10 +1101,28 @@ function Plan3DEditor({ job, onClose, currentUser }) {
                 </div>
               )}
               {isPolyRoof && (
-                <div style={{ fontSize: 11.5, color: "var(--text-2)", background: "#6366F110", border: "1px solid #6366F133", borderRadius: 9, padding: "8px 10px", lineHeight: 1.55 }}>
-                  ⬠ หลังคาทรงอิสระ · {roof.pts.length} จุด · พื้นที่แนวราบ ≈ <b>{polyAreaPlan} ตร.ม.</b> · พื้นที่ผิวลาด ≈ <b>{polyAreaSurf} ตร.ม.</b><br />
-                  ลาก<span style={{ color: "#16A34A", fontWeight: 700 }}>จุดสีเขียว</span>เพื่อปรับรูปทรง · ลากตัวหลังคาเพื่อย้ายทั้งผืน
-                </div>
+                <React.Fragment>
+                  <div style={{ fontSize: 11.5, color: "var(--text-2)", background: "#6366F110", border: "1px solid #6366F133", borderRadius: 9, padding: "8px 10px", lineHeight: 1.55 }}>
+                    ⬠ หลังคาทรงอิสระ · {roof.pts.length} จุด · พื้นที่แนวราบ ≈ <b>{polyAreaPlan} ตร.ม.</b> · พื้นที่ผิวลาด ≈ <b>{polyAreaSurf} ตร.ม.</b><br />
+                    ลาก<span style={{ color: "#16A34A", fontWeight: 700 }}>จุดสีเขียว</span>เพื่อปรับรูปทรง · ลากตัวหลังคาเพื่อย้ายทั้งผืน
+                  </div>
+                  {/* ── แนวพับ (สัน/ชายคา): หลังคาพับรอบขอบเส้นนี้ · แชร์ขอบเดียวกัน 2 ผืน = ติดกันทุกองศา ── */}
+                  <div style={{ fontSize: 11.5, color: "var(--text-2)", background: "#F59E0B12", border: "1px solid #F59E0B44", borderRadius: 9, padding: "8px 10px", display: "flex", flexDirection: "column", gap: 7 }}>
+                    <span style={{ fontWeight: 700, color: "#B45309" }}>🟧 แนวพับ (สัน/ชายคา) — ขอบส้มในภาพ</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <button onClick={() => patchRoof(roof.id, { hinge: (((Math.round(+roof.hinge || 0) - 1) % roof.pts.length) + roof.pts.length) % roof.pts.length })}
+                        style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-1)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>◀</button>
+                      <span style={{ flex: 1, textAlign: "center", fontWeight: 700, color: "var(--text-1)" }}>ขอบที่ {((Math.round(+roof.hinge || 0)) % roof.pts.length + roof.pts.length) % roof.pts.length + 1} / {roof.pts.length}</span>
+                      <button onClick={() => patchRoof(roof.id, { hinge: ((Math.round(+roof.hinge || 0) + 1) % roof.pts.length) })}
+                        style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-1)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>▶</button>
+                    </div>
+                    <button onClick={() => patchRoof(roof.id, { flip: !roof.flip })}
+                      style={{ padding: "6px 8px", borderRadius: 8, border: "1px solid " + (roof.flip ? "var(--primary)" : "var(--border-strong)"), background: roof.flip ? "var(--primary-soft)" : "var(--surface)", color: roof.flip ? "var(--primary-dark)" : "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>
+                      {roof.flip ? "▼ พับลง (ขอบนี้เป็นสัน/จุดสูง)" : "▲ พับขึ้น (ขอบนี้เป็นชายคา/จุดต่ำ)"}
+                    </button>
+                    <span style={{ fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>เคล็ดลับต่อสันให้สนิท: 2 ผืนที่ชนกัน เลือก<b>ขอบพับให้เป็นเส้นที่แชร์กัน</b>ทั้งคู่ แล้วมันจะติดกันไม่ว่าจะปรับองศาเท่าไร</span>
+                  </div>
+                </React.Fragment>
               )}
               <div style={{ borderTop: "1px dashed var(--border-strong)", paddingTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={{ display: "flex", gap: 6 }}>
