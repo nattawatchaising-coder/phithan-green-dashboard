@@ -683,21 +683,22 @@ function Plan3DEditor({ job, onClose, currentUser }) {
 
     // ── เส้นตัวอย่างตอนวาดหลังคาทรงอิสระ ──
     if (drawing && drawPts.length) {
-      const mat = new THREE.LineBasicMaterial({ color: 0xdc2626, depthTest: false });
+      // transparent:true → จุด/เส้นไปอยู่กลุ่มการวาดเดียวกับรูปโดรน (โปร่งแสง) แล้ว renderOrder สูงกว่าจึงวาดทับรูปได้จริง
+      // ถ้าปล่อยเป็น opaque รูปโปร่งแสงจะถูกวาดทีหลังทับจุดจนซีด (เหมือนจุดอยู่ "ใต้รูป")
+      const mat = new THREE.LineBasicMaterial({ color: 0xdc2626, depthTest: false, transparent: true });
       const pts3 = drawPts.map((p) => new THREE.Vector3(p.x, 0.15, p.z));
       if (drawPts.length >= 3) pts3.push(pts3[0].clone());
       const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts3), mat);
-      line.renderOrder = 6; t.dyn.add(line);
-      // ขนาดจุดปรับตามความกว้างรูป เพื่อให้เห็นชัดบนภาพหลายสิบเมตร + วงขาวล้อม (halo) ให้เด่นบนหลังคาสว่าง
-      const R = Math.max(0.35, (+st.photoW || 30) / 45);
+      line.renderOrder = 20; t.dyn.add(line);
+      const R = Math.max(0.18, (+st.photoW || 30) / 95);
       drawPts.forEach((p, i) => {
         const first = i === 0;
-        const halo = new THREE.Mesh(new THREE.SphereGeometry(R * (first ? 1.55 : 1.35), 16, 12),
-          new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false }));
-        halo.position.set(p.x, 0.2, p.z); halo.renderOrder = 6; t.dyn.add(halo);
-        const dot = new THREE.Mesh(new THREE.SphereGeometry(R * (first ? 1.1 : 0.92), 16, 12),
-          new THREE.MeshBasicMaterial({ color: first ? 0x15803d : 0xdc2626, depthTest: false }));
-        dot.position.set(p.x, 0.22, p.z); dot.renderOrder = 7; t.dyn.add(dot);
+        const halo = new THREE.Mesh(new THREE.SphereGeometry(R * 1.5, 16, 12),
+          new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, transparent: true }));
+        halo.position.set(p.x, 0.2, p.z); halo.renderOrder = 20; t.dyn.add(halo);
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(R, 16, 12),
+          new THREE.MeshBasicMaterial({ color: first ? 0x15803d : 0xdc2626, depthTest: false, transparent: true }));
+        dot.position.set(p.x, 0.22, p.z); dot.renderOrder = 21; t.dyn.add(dot);
       });
     }
   }, [st, selRoof, selObs, ready, drawing, drawPts]);
