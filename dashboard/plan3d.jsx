@@ -96,7 +96,7 @@ function p3HipFaces(roof) {
 }
 function p3Blank(job) {
   return {
-    groundW: 40, photo: null, photoW: 30, photoOpacity: 0.95, wp: 650,
+    groundW: 40, photo: null, photoW: 30, photoOpacity: 0.95, photoBright: 0.7, wp: 650,
     roofs: [], obstacles: [],
     sun: { month: 4, day: 15, hour: 12, lat: 13.75, lng: 100.5 },
   };
@@ -442,8 +442,10 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         photoMesh.geometry = new THREE.PlaneGeometry(pw, ph);
       });
       tex.anisotropy = 4;
-      // ใช้ MeshBasic → รูปโดรนแสดงสีจริงตามต้นฉบับ ไม่โดนแสงอาทิตย์จำลอง/ambient ส่องซ้ำจนสว่างจ้า (ภาพมีเงาในตัวอยู่แล้ว)
-      const photoMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: Math.max(0.15, Math.min(1, +st.photoOpacity || 0.95)) });
+      // ใช้ MeshBasic → รูปโดรนแสดงสีจริงตามต้นฉบับ ไม่โดนแสงอาทิตย์จำลอง/ambient ส่องซ้ำ
+      // color เป็นเทา = ตัวคูณหรี่ความสว่าง (รูปโดรนถ่ายกลางแดดมักสว่างจ้า) ปรับได้ด้วยสไลเดอร์ "ความสว่างรูป"
+      const bright = Math.max(0.25, Math.min(1, st.photoBright == null ? 0.7 : +st.photoBright));
+      const photoMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: Math.max(0.15, Math.min(1, +st.photoOpacity || 0.95)), color: new THREE.Color(bright, bright, bright) });
       const photoMesh = new THREE.Mesh(new THREE.PlaneGeometry(+st.photoW || 30, +st.photoW || 30), photoMat);
       photoMesh.rotation.x = -Math.PI / 2; photoMesh.position.y = 0.0;
       t.dyn.add(photoMesh);
@@ -582,13 +584,14 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         if (selected) {
           t.selTilt = tilt; t.selInfo = info; t.selPolyRoof = roof;  // ใช้วางจุดดูดติดให้อยู่ระนาบเดียวกัน
           info.surf.forEach((sp, idx) => {
+            // transparent:true → อยู่กลุ่มการวาดเดียวกับรูปโดรน (โปร่งแสง) จึงวาดทับรูปได้ ไม่จมใต้รูป
             const halo = new THREE.Mesh(new THREE.SphereGeometry(0.44, 14, 12),
-              new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false }));
+              new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, transparent: true }));
             halo.position.set(sp.x, 0.12, sp.z);
             halo.renderOrder = 20;
             halo.userData = { kind: "vertex", roofId: roof.id, idx };
             const dot = new THREE.Mesh(new THREE.SphereGeometry(0.3, 14, 12),
-              new THREE.MeshBasicMaterial({ color: 0x16a34a, depthTest: false }));
+              new THREE.MeshBasicMaterial({ color: 0x16a34a, depthTest: false, transparent: true }));
             dot.position.copy(halo.position); dot.renderOrder = 21;
             dot.userData = halo.userData;
             tilt.add(halo); tilt.add(dot);
@@ -973,6 +976,10 @@ function Plan3DEditor({ job, onClose, currentUser }) {
               <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                 <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>ความทึบรูป · {Math.round((st.photoOpacity || 0.95) * 100)}%</span>
                 <input type="range" min="0.15" max="1" step="0.05" value={st.photoOpacity} onChange={(e) => set({ photoOpacity: +e.target.value })} />
+              </label>
+              <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>ความสว่างรูป · {Math.round((st.photoBright == null ? 0.7 : st.photoBright) * 100)}% (ลดลงถ้ารูปสว่างจ้า)</span>
+                <input type="range" min="0.25" max="1" step="0.05" value={st.photoBright == null ? 0.7 : st.photoBright} onChange={(e) => set({ photoBright: +e.target.value })} />
               </label>
               <SmallBtn onClick={() => set({ photo: null })} color="#B91C1C">ลบรูป</SmallBtn>
             </React.Fragment>
