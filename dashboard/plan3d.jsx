@@ -97,7 +97,7 @@ function p3HipFaces(roof) {
 function p3Blank(job) {
   return {
     groundW: 40, photo: null, photoW: 30, photoOpacity: 0.95, wp: 650,
-    roofs: [p3NewRoof(1)], obstacles: [],
+    roofs: [], obstacles: [],
     sun: { month: 4, day: 15, hour: 12, lat: 13.75, lng: 100.5 },
   };
 }
