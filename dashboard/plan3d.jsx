@@ -442,10 +442,10 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         photoMesh.geometry = new THREE.PlaneGeometry(pw, ph);
       });
       tex.anisotropy = 4;
-      const photoMat = new THREE.MeshLambertMaterial({ map: tex, transparent: true, opacity: Math.max(0.15, Math.min(1, +st.photoOpacity || 0.95)) });
+      // ใช้ MeshBasic → รูปโดรนแสดงสีจริงตามต้นฉบับ ไม่โดนแสงอาทิตย์จำลอง/ambient ส่องซ้ำจนสว่างจ้า (ภาพมีเงาในตัวอยู่แล้ว)
+      const photoMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: Math.max(0.15, Math.min(1, +st.photoOpacity || 0.95)) });
       const photoMesh = new THREE.Mesh(new THREE.PlaneGeometry(+st.photoW || 30, +st.photoW || 30), photoMat);
       photoMesh.rotation.x = -Math.PI / 2; photoMesh.position.y = 0.0;
-      photoMesh.receiveShadow = true;
       t.dyn.add(photoMesh);
     } else {
       const grid = new THREE.GridHelper(G, G, 0x8898a8, 0xaab8c6);
@@ -683,14 +683,21 @@ function Plan3DEditor({ job, onClose, currentUser }) {
 
     // ── เส้นตัวอย่างตอนวาดหลังคาทรงอิสระ ──
     if (drawing && drawPts.length) {
-      const mat = new THREE.LineBasicMaterial({ color: 0x16a34a });
+      const mat = new THREE.LineBasicMaterial({ color: 0xdc2626, depthTest: false });
       const pts3 = drawPts.map((p) => new THREE.Vector3(p.x, 0.15, p.z));
       if (drawPts.length >= 3) pts3.push(pts3[0].clone());
-      t.dyn.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts3), mat));
+      const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts3), mat);
+      line.renderOrder = 6; t.dyn.add(line);
+      // ขนาดจุดปรับตามความกว้างรูป เพื่อให้เห็นชัดบนภาพหลายสิบเมตร + วงขาวล้อม (halo) ให้เด่นบนหลังคาสว่าง
+      const R = Math.max(0.35, (+st.photoW || 30) / 45);
       drawPts.forEach((p, i) => {
-        const dot = new THREE.Mesh(new THREE.SphereGeometry(i === 0 ? 0.34 : 0.24, 10, 8),
-          new THREE.MeshBasicMaterial({ color: i === 0 ? 0x15803d : 0x22c55e, depthTest: false }));
-        dot.position.set(p.x, 0.2, p.z); dot.renderOrder = 6; t.dyn.add(dot);
+        const first = i === 0;
+        const halo = new THREE.Mesh(new THREE.SphereGeometry(R * (first ? 1.55 : 1.35), 16, 12),
+          new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false }));
+        halo.position.set(p.x, 0.2, p.z); halo.renderOrder = 6; t.dyn.add(halo);
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(R * (first ? 1.1 : 0.92), 16, 12),
+          new THREE.MeshBasicMaterial({ color: first ? 0x15803d : 0xdc2626, depthTest: false }));
+        dot.position.set(p.x, 0.22, p.z); dot.renderOrder = 7; t.dyn.add(dot);
       });
     }
   }, [st, selRoof, selObs, ready, drawing, drawPts]);
