@@ -96,7 +96,7 @@ function p3HipFaces(roof) {
 }
 function p3Blank(job) {
   return {
-    groundW: 40, photo: null, photoW: 30, photoOpacity: 0.95, photoBright: 0.7, wp: 650,
+    groundW: 40, photo: null, photoW: 30, photoOpacity: 0.95, photoBright: 0.7, wp: 650, buildH: 0,
     roofs: [], obstacles: [],
     sun: { month: 4, day: 15, hour: 12, lat: 13.75, lng: 100.5 },
   };
@@ -651,7 +651,9 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         });
       } else if (isPoly) {
         // ── โมเดลจุดร่วม: ผิวหลังคา = รูปหลายเหลี่ยมยกตาม "ความสูงของแต่ละมุม" (roof.ph) ──
-        g.position.y = 0; g.rotation.y = 0;   // ความสูงเก็บที่ตัวมุม ไม่ใช้ pitch/az แล้ว
+        // ยกทั้ง g ขึ้นตาม "ความสูงอาคาร" (buildH) → หลังคา+แผงลอยขึ้นพร้อมกัน ผนังเติมช่องว่างลงถึงพื้น
+        const bH = +st.buildH || 0;
+        g.position.y = bH; g.rotation.y = 0;   // ความสูงทรงเก็บที่ตัวมุม + ยกฐานด้วยความสูงอาคาร
         const ph = p3PhOf(roof);
         const V3 = (a) => new THREE.Vector3(a.x, a.y, a.z);
         // ผิวหลังคา (สานสามเหลี่ยมแบบพัดจากมุม 0)
@@ -669,14 +671,15 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         const linePts = roof.pts.map((p, i) => new THREE.Vector3(+p.x || 0, ph[i] + 0.02, +p.z || 0));
         linePts.push(linePts[0].clone());
         g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePts), new THREE.LineBasicMaterial({ color: selected ? 0x16a34a : 0x475569 })));
-        // ผนังจาง ๆ ใต้ชายคา (จากมุมต่ำสุดลงถึงพื้น)
+        // ผนังอาคาร: จากชายคา (มุมต่ำสุด) ลงถึงพื้นจริง (รวมความสูงอาคาร)
         const minPh = Math.min.apply(null, ph);
-        if (minPh > 0.25) {
+        const wallH = minPh + bH;
+        if (wallH > 0.25) {
           const wshp = new THREE.Shape();
           roof.pts.forEach((p, i) => { const x = +p.x || 0, z = +p.z || 0; if (i === 0) wshp.moveTo(x, -z); else wshp.lineTo(x, -z); });
-          const wall = new THREE.Mesh(new THREE.ExtrudeGeometry(wshp, { depth: minPh, bevelEnabled: false }),
+          const wall = new THREE.Mesh(new THREE.ExtrudeGeometry(wshp, { depth: wallH, bevelEnabled: false }),
             new THREE.MeshLambertMaterial({ color: 0xe7e2d8, transparent: true, opacity: 0.4 }));
-          wall.rotation.x = -Math.PI / 2; wall.position.y = 0; wall.receiveShadow = true; g.add(wall);
+          wall.rotation.x = -Math.PI / 2; wall.position.y = minPh; wall.castShadow = true; wall.receiveShadow = true; g.add(wall);
         }
         // ── จุดแก้มุม (เลือกได้ · จุดที่เลือก = ส้มใหญ่ ปรับความสูงได้) ──
         if (selected) {
@@ -724,7 +727,9 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       let pquat = null, pnoff = null;
       if (isPoly && pan.plane) {
         const V = (a) => new THREE.Vector3(a.x, a.y, a.z);
-        pquat = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(V(pan.plane.u), V(pan.plane.n), V(pan.plane.v)));
+        // ต้องเป็นแกน right-handed (det +1) ไม่งั้น quaternion เพี้ยน แผงเอียงผิด → zAxis = u×n (= -v)
+        const pv = pan.plane.v;
+        pquat = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(V(pan.plane.u), V(pan.plane.n), V({ x: -pv.x, y: -pv.y, z: -pv.z })));
         pnoff = V(pan.plane.n).multiplyScalar(0.06);
       }
       pan.list.forEach((p) => {
@@ -1192,6 +1197,9 @@ function Plan3DEditor({ job, onClose, currentUser }) {
                         <button onClick={() => patchRoof(roof.id, { ph: roof.pts.map(() => 0.05) })}
                           style={{ padding: "5px 8px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 11.5, cursor: "pointer" }}>⭯ รีเซ็ตทุกมุมให้ราบ (0.05 ม.)</button>
                         <span style={{ fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>มุมที่ทับตำแหน่งเดียวกันกับผืนอื่นจะ<b>ยกความสูงพร้อมกัน</b> → หลังคาต่อกันสนิททุกทรง</span>
+                        <div style={{ borderTop: "1px dashed #F59E0B44", paddingTop: 7, marginTop: 1 }}>
+                          <NumRange span label="🏠 ความสูงอาคาร (ยกหลังคาทุกผืนขึ้นจากพื้น + ผนัง)" value={Math.round((+st.buildH || 0) * 10) / 10} min={0} max={20} step={0.5} suffix="ม." onChange={(v) => set({ buildH: v })} />
+                        </div>
                       </div>
                     );
                   })()}
