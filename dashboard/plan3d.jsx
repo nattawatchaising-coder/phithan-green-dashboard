@@ -672,7 +672,8 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         const linePts = roof.pts.map((p, i) => new THREE.Vector3(+p.x || 0, ph[i] + 0.02, +p.z || 0));
         linePts.push(linePts[0].clone());
         g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePts), new THREE.LineBasicMaterial({ color: selected ? 0x16a34a : 0x475569 })));
-        // ผนังอาคาร: จากชายคา (มุมต่ำสุด) ลงถึงพื้นจริง (รวมความสูงอาคาร)
+        // ผนังอาคาร: จากชายคา (มุมต่ำสุด) ลงถึงพื้นจริง — ต้องอยู่ "ใต้" หลังคา
+        // ExtrudeGeometry+rotateX(-90°) จะพุ่งขึ้น +y → ตั้ง position.y = -bH ให้ผืนกินช่วง g-local [-bH, minPh] = โลก [0, bH+minPh] (พื้น→ชายคา)
         const minPh = Math.min.apply(null, ph);
         const wallH = minPh + bH;
         if (wallH > 0.25) {
@@ -680,7 +681,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
           roof.pts.forEach((p, i) => { const x = +p.x || 0, z = +p.z || 0; if (i === 0) wshp.moveTo(x, -z); else wshp.lineTo(x, -z); });
           const wall = new THREE.Mesh(new THREE.ExtrudeGeometry(wshp, { depth: wallH, bevelEnabled: false }),
             new THREE.MeshLambertMaterial({ color: 0xe7e2d8, transparent: true, opacity: 0.4 }));
-          wall.rotation.x = -Math.PI / 2; wall.position.y = minPh; wall.castShadow = true; wall.receiveShadow = true; g.add(wall);
+          wall.rotation.x = -Math.PI / 2; wall.position.y = -bH; wall.castShadow = true; wall.receiveShadow = true; g.add(wall);
         }
         // ── จุดแก้มุม (เลือกได้ · จุดที่เลือก = ส้มใหญ่ ปรับความสูงได้) ──
         if (selected) {
