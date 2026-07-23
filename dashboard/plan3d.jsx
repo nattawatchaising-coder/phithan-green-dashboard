@@ -1197,27 +1197,9 @@ function Plan3DEditor({ job, onClose, currentUser }) {
                       <div style={{ fontSize: 11.5, color: "var(--text-2)", background: "#F59E0B12", border: "1px solid #F59E0B44", borderRadius: 9, padding: "8px 10px", display: "flex", flexDirection: "column", gap: 7 }}>
                         <span style={{ fontWeight: 700, color: "#B45309" }}>🔺 ความสูงของมุม (ยกสัน/หิปให้เป็นทรงหลังคา)</span>
                         {selIdx >= 0 ? (
-                          <React.Fragment>
-                            <NumRange span label={"ความสูงมุมที่เลือก #" + (selIdx + 1)} value={Math.round((rPh[selIdx] || 0) * 100) / 100} min={0} max={12} step={0.1} suffix="ม." onChange={(v) => setVertHeight(roof.id, selIdx, v)} />
-                            {/* ปุ่มลัด: ตั้งความสูงมุมที่เลือกทันที + ปรับทีละขั้น */}
-                            <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                              {[["ชายคา", 0.05], ["1", 1], ["1.5", 1.5], ["2", 2], ["2.5", 2.5], ["3", 3]].map(([lb, hv]) => {
-                                const on = Math.abs((rPh[selIdx] || 0) - hv) < 0.03;
-                                return (
-                                  <button key={lb} onClick={() => setVertHeight(roof.id, selIdx, hv)}
-                                    style={{ flex: "1 0 auto", minWidth: 40, padding: "6px 6px", borderRadius: 8, border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"), background: on ? "var(--primary-soft)" : "var(--surface)", color: on ? "var(--primary-dark)" : "var(--text-1)", fontWeight: 700, fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>{lb === "ชายคา" ? lb : lb + " ม."}</button>
-                                );
-                              })}
-                            </div>
-                            <div style={{ display: "flex", gap: 5 }}>
-                              <button onClick={() => setVertHeight(roof.id, selIdx, Math.max(0, Math.round(((rPh[selIdx] || 0) - 0.25) * 100) / 100))}
-                                style={{ flex: 1, padding: "6px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-1)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>− 0.25 ม.</button>
-                              <button onClick={() => setVertHeight(roof.id, selIdx, Math.round(((rPh[selIdx] || 0) + 0.25) * 100) / 100)}
-                                style={{ flex: 1, padding: "6px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-1)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>+ 0.25 ม.</button>
-                            </div>
-                          </React.Fragment>
+                          <NumRange span label={"ความสูงมุมที่เลือก #" + (selIdx + 1)} value={Math.round((rPh[selIdx] || 0) * 100) / 100} min={0} max={12} step={0.1} suffix="ม." onChange={(v) => setVertHeight(roof.id, selIdx, v)} />
                         ) : (
-                          <span style={{ color: "var(--text-3)" }}>แตะ<b style={{ color: "#16A34A" }}>จุดเขียว</b>ที่มุมหลังคาในภาพ (จะกลายเป็น<b style={{ color: "#D97706" }}>จุดส้ม</b>) แล้วปรับความสูงตรงนี้ หรือกดปุ่มลัด</span>
+                          <span style={{ color: "var(--text-3)" }}>แตะ<b style={{ color: "#16A34A" }}>จุดเขียว</b>ที่มุมหลังคาในภาพ (จะกลายเป็น<b style={{ color: "#D97706" }}>จุดส้ม</b>) แล้วปรับความสูงตรงนี้</span>
                         )}
                         <button onClick={() => patchRoof(roof.id, { ph: roof.pts.map(() => 0.05) })}
                           style={{ padding: "5px 8px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 11.5, cursor: "pointer" }}>⭯ รีเซ็ตทุกมุมให้ราบ (0.05 ม.)</button>
