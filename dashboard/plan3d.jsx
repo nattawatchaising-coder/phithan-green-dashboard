@@ -540,8 +540,8 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       const bright = Math.max(0.25, Math.min(1, st.photoBright == null ? 0.7 : +st.photoBright));
       const photoMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: Math.max(0.15, Math.min(1, +st.photoOpacity || 0.95)), color: new THREE.Color(bright, bright, bright) });
       const photoMesh = new THREE.Mesh(new THREE.PlaneGeometry(+st.photoW || 30, +st.photoW || 30), photoMat);
-      // รูปโดรน = หลังคามองจากบน → ยกขึ้นไปอยู่ระดับเดียวกับหลังคา (ความสูงอาคาร) ให้ติดกันเสมอ
-      photoMesh.rotation.x = -Math.PI / 2; photoMesh.position.y = (+st.buildH || 0) + 0.01;
+      // รูปโดรนอยู่ติดพื้นเสมอ (y=0) เป็นผังพื้น — ยกความสูงอาคารแล้วหลังคาลอยขึ้น รูปคงอยู่ที่พื้น
+      photoMesh.rotation.x = -Math.PI / 2; photoMesh.position.y = 0.0;
       t.dyn.add(photoMesh);
     } else {
       const grid = new THREE.GridHelper(G, G, 0x8898a8, 0xaab8c6);
@@ -758,11 +758,10 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       if (!sp.length) return;
       const geo = new THREE.SphereGeometry(0.22, 10, 8);
       const mat = new THREE.MeshBasicMaterial({ color: 0x64748b, depthTest: false, transparent: true, opacity: 0.9 });
-      // จุด snap = เป้าหมายพิกัด x,z → วางที่ระดับอาคาร (buildH) เท่ากับรูปโดรน/มุมหลังคาที่ยกขึ้น
-      const snapY = (+st.buildH || 0) + 0.15;
+      // จุด snap = เป้าหมายพิกัด x,z บนผังพื้น → วางที่ระดับพื้นเสมอ (ตรงกับรูปโดรน)
       sp.forEach((p) => {
         const d = new THREE.Mesh(geo, mat);
-        d.position.set(p.x, snapY, p.z);
+        d.position.set(p.x, 0.15, p.z);
         d.renderOrder = 18;
         t.dyn.add(d);
       });
@@ -794,9 +793,9 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     if (drawing && drawPts.length) {
       // transparent:true → จุด/เส้นไปอยู่กลุ่มการวาดเดียวกับรูปโดรน (โปร่งแสง) แล้ว renderOrder สูงกว่าจึงวาดทับรูปได้จริง
       // ถ้าปล่อยเป็น opaque รูปโปร่งแสงจะถูกวาดทีหลังทับจุดจนซีด (เหมือนจุดอยู่ "ใต้รูป")
-      const yB = +st.buildH || 0;   // วาดบนระนาบเดียวกับรูปโดรนที่ยกขึ้นตามความสูงอาคาร
+      // วาดบนผังพื้น (รูปโดรนอยู่ที่พื้นเสมอ)
       const mat = new THREE.LineBasicMaterial({ color: 0x16a34a, depthTest: false, transparent: true });
-      const pts3 = drawPts.map((p) => new THREE.Vector3(p.x, yB + 0.15, p.z));
+      const pts3 = drawPts.map((p) => new THREE.Vector3(p.x, 0.15, p.z));
       if (drawPts.length >= 3) pts3.push(pts3[0].clone());
       const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts3), mat);
       line.renderOrder = 20; t.dyn.add(line);
@@ -805,10 +804,10 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         const first = i === 0;
         const halo = new THREE.Mesh(new THREE.SphereGeometry(R * 1.5, 16, 12),
           new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, transparent: true }));
-        halo.position.set(p.x, yB + 0.2, p.z); halo.renderOrder = 20; t.dyn.add(halo);
+        halo.position.set(p.x, 0.2, p.z); halo.renderOrder = 20; t.dyn.add(halo);
         const dot = new THREE.Mesh(new THREE.SphereGeometry(R, 16, 12),
           new THREE.MeshBasicMaterial({ color: first ? 0x15803d : 0x16a34a, depthTest: false, transparent: true }));
-        dot.position.set(p.x, yB + 0.22, p.z); dot.renderOrder = 21; t.dyn.add(dot);
+        dot.position.set(p.x, 0.22, p.z); dot.renderOrder = 21; t.dyn.add(dot);
       });
     }
   }, [st, selRoof, selObs, selVert, ready, drawing, drawPts]);
@@ -873,13 +872,8 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       if (hitO) return { kind: "obstacle", obj: hitO.object };
       return null;
     };
-    // ฉายรังสีลงระนาบแนวราบที่ระดับ h (ค่าเริ่มต้น = ระดับอาคาร buildH ที่หลังคา/รูปโดรนลอยอยู่)
-    // → วาด/ลากมุม/ลากผืน ตรงกับรูปโดรนที่ยกขึ้นแล้ว · สิ่งบดบังใช้ระดับพื้น (0)
-    const groundPoint = (h) => {
-      const hh = h == null ? (+stRef.current.buildH || 0) : h;
-      const v = new THREE.Vector3();
-      return ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -hh), v) ? v : null;
-    };
+    // ฉายรังสีลงพื้น (y=0) ที่รูปโดรนวางอยู่ → วาด/ลากมุม/ลากผืน ตรงกับผังพื้นเสมอ
+    const groundPoint = () => { const v = new THREE.Vector3(); return ray.ray.intersectPlane(groundPlane, v) ? v : null; };
     // ดูดจุดเข้าหามุมหลังคาทรงอิสระผืนอื่น (รัศมี 0.7 ม.) — ให้ขอบผืนต่อกันสนิท
     const snapPt = (pt, skipRoofId, skipIdx) => {
       const stNow = stRef.current;
@@ -917,7 +911,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       else dragId = ud.id;
       rec = hit.kind === "obstacle" ? (stNow.obstacles || []).find((o) => o.id === dragId) : (stNow.roofs || []).find((r) => r.id === dragId);
       if (!rec) return;
-      setRay(ev); const gp = groundPoint(hit.kind === "obstacle" ? 0 : undefined);
+      setRay(ev); const gp = groundPoint();
       // อยู่ในกลุ่ม → ลากทีเดียวไปทั้งก้อน (จำตำแหน่งเริ่มของสมาชิกทุกผืน)
       const members = (hit.kind !== "obstacle" && rec.grp)
         ? (stNow.roofs || []).filter((r) => r.grp === rec.grp).map((r) => ({ id: r.id, x: +r.x || 0, z: +r.z || 0 }))
@@ -931,7 +925,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       if (Math.abs(ev.clientX - down.x) + Math.abs(ev.clientY - down.y) > 6) down.moved = true;
       if (down.draw || !down.moved || !down.grab) return;
       setRay(ev);
-      const gp = groundPoint(down.kind === "obstacle" ? 0 : undefined); if (!gp) return;
+      const gp = groundPoint(); if (!gp) return;
       if (down.kind === "vertex") {
         const stNow = stRef.current;
         const roof = (stNow.roofs || []).find((r) => r.id === down.roofId);
