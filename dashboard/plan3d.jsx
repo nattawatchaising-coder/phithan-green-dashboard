@@ -1185,10 +1185,6 @@ function Plan3DEditor({ job, onClose, currentUser }) {
               )}
               {isPolyRoof && (
                 <React.Fragment>
-                  <div style={{ fontSize: 11.5, color: "var(--text-2)", background: "#6366F110", border: "1px solid #6366F133", borderRadius: 9, padding: "8px 10px", lineHeight: 1.55 }}>
-                    ⬠ หลังคาทรงอิสระ · {roof.pts.length} จุด · พื้นที่แนวราบ ≈ <b>{polyAreaPlan} ตร.ม.</b> · พื้นที่ผิวลาด ≈ <b>{polyAreaSurf} ตร.ม.</b><br />
-                    ลาก<span style={{ color: "#16A34A", fontWeight: 700 }}>จุดเขียว</span>ในแนวราบ = ปรับรูปทรง · ลากตัวหลังคา = ย้ายทั้งผืน
-                  </div>
                   {/* ── ความสูงของแต่ละมุม = ตัวกำหนดทรง (จั่ว/ปั้นหยา) · มุมที่ทับกันข้ามผืนยกพร้อมกัน = ต่อกันเสมอ ── */}
                   {(() => {
                     const rPh = p3PhOf(roof);
@@ -1203,7 +1199,6 @@ function Plan3DEditor({ job, onClose, currentUser }) {
                         )}
                         <button onClick={() => patchRoof(roof.id, { ph: roof.pts.map(() => 0.05) })}
                           style={{ padding: "5px 8px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 11.5, cursor: "pointer" }}>⭯ รีเซ็ตทุกมุมให้ราบ (0.05 ม.)</button>
-                        <span style={{ fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>มุมที่ทับตำแหน่งเดียวกันกับผืนอื่นจะ<b>ยกความสูงพร้อมกัน</b> → หลังคาต่อกันสนิททุกทรง</span>
                         <div style={{ borderTop: "1px dashed #F59E0B44", paddingTop: 7, marginTop: 1 }}>
                           <NumRange span label="🏠 ความสูงอาคาร (ยกหลังคาทุกผืนขึ้นจากพื้น + ผนัง)" value={Math.round((+st.buildH || 0) * 10) / 10} min={0} max={20} step={0.5} suffix="ม." onChange={(v) => set({ buildH: v })} />
                         </div>
