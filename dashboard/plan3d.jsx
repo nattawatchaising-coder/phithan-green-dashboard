@@ -31,6 +31,156 @@ function p3LoadThree() {
   return _p3ThreeP;
 }
 
+/* ── แผนที่ดาวเทียม (Leaflet + Esri World Imagery) — ฟรี ไม่ต้องใช้ Google API key ── */
+let _p3LeafletP = null;
+function p3LoadLeaflet() {
+  if (window.L && window.L.map) return Promise.resolve(window.L);
+  if (_p3LeafletP) return _p3LeafletP;
+  const css = document.createElement("link");
+  css.rel = "stylesheet"; css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+  document.head.appendChild(css);
+  _p3LeafletP = new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    s.onload = () => res(window.L); s.onerror = () => rej(new Error("โหลดแผนที่ (Leaflet) ไม่สำเร็จ"));
+    document.head.appendChild(s);
+  });
+  _p3LeafletP.catch(() => { _p3LeafletP = null; });
+  return _p3LeafletP;
+}
+const P3_ESRI_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+const P3_ESRI_ATTR = "Tiles © Esri, Maxar, Earthstar Geographics";
+
+/* เมตรต่อพิกเซล (Web Mercator) ที่ละติจูด lat + ระดับซูม z */
+function p3MetersPerPixel(lat, z) {
+  return 156543.03392804097 * Math.cos((lat || 0) * Math.PI / 180) / Math.pow(2, z);
+}
+/* ดึงพิกัด lat,lng จากลิงก์ Google Maps (เฉพาะลิงก์เต็มที่มีตัวเลขในตัว) → [lat,lng] หรือ null */
+function p3ParseLatLng(url) {
+  if (!url || typeof url !== "string") return null;
+  const pats = [/@(-?\d+\.\d+),(-?\d+\.\d+)/, /[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/, /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/, /(-?\d{1,2}\.\d{4,}),\s*(-?\d{2,3}\.\d{4,})/];
+  for (const p of pats) { const m = url.match(p); if (m) return [parseFloat(m[1]), parseFloat(m[2])]; }
+  return null;
+}
+/* ค้นหาพิกัดจากที่อยู่ (Nominatim / OpenStreetMap — ฟรี ไม่ต้องใช้ key) → [lat,lng] หรือ null */
+function p3Geocode(query) {
+  const q = (query || "").trim();
+  if (!q) return Promise.resolve(null);
+  return fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q), { headers: { "Accept": "application/json" } })
+    .then((r) => r.ok ? r.json() : [])
+    .then((a) => (a && a[0]) ? [parseFloat(a[0].lat), parseFloat(a[0].lon)] : null)
+    .catch(() => null);
+}
+/* lng,lat → พิกเซลโลกที่ระดับซูม z (256px/ไทล์) */
+function p3LngLatToWorldPx(lat, lng, z) {
+  const s = 256 * Math.pow(2, z);
+  const x = (lng + 180) / 360 * s;
+  const sinL = Math.sin(lat * Math.PI / 180);
+  const y = (0.5 - Math.log((1 + sinL) / (1 - sinL)) / (4 * Math.PI)) * s;
+  return { x, y };
+}
+/* จับภาพดาวเทียมของ "พื้นที่ที่ผู้ใช้เห็น" (กว้าง realWidth จากซูม viewZoom × viewPx)
+   ต่อไทล์ที่ระดับ native (Esri สูงสุด ~19) เพื่อไม่ให้ดึงไทล์ที่ไม่มี → { url, widthM, lat, lng, zoom } */
+function p3CaptureTiles(lat, lng, viewZoom, viewPx) {
+  const realWidthM = p3MetersPerPixel(lat, viewZoom) * (viewPx || 1024);
+  const z = Math.max(1, Math.min(19, Math.round(viewZoom)));   // Esri World Imagery native ~19
+  let size = Math.round(realWidthM / p3MetersPerPixel(lat, z));
+  size = Math.max(256, Math.min(2048, size));
+  const c = p3LngLatToWorldPx(lat, lng, z);
+  const left = c.x - size / 2, top = c.y - size / 2;
+  const tL = Math.floor(left / 256), tT = Math.floor(top / 256);
+  const tR = Math.floor((left + size - 1) / 256), tB = Math.floor((top + size - 1) / 256);
+  const cv = document.createElement("canvas"); cv.width = size; cv.height = size;
+  const ctx = cv.getContext("2d");
+  const n = Math.pow(2, z);
+  const jobs = [];
+  for (let tx = tL; tx <= tR; tx++) for (let ty = tT; ty <= tB; ty++) {
+    const wx = ((tx % n) + n) % n, wy = ty;
+    if (wy < 0 || wy >= n) continue;
+    const url = P3_ESRI_URL.replace("{z}", z).replace("{x}", wx).replace("{y}", wy);
+    const dx = tx * 256 - left, dy = ty * 256 - top;
+    jobs.push(new Promise((res) => {
+      const img = new Image(); img.crossOrigin = "anonymous";
+      img.onload = () => { try { ctx.drawImage(img, dx, dy); } catch (e) {} res(); };
+      img.onerror = () => res();
+      img.src = url;
+    }));
+  }
+  return Promise.all(jobs).then(() => {
+    let url;
+    try { url = cv.toDataURL("image/jpeg", 0.85); } catch (e) { throw new Error("แปลงภาพแผนที่ไม่สำเร็จ (CORS)"); }
+    return { url, widthM: realWidthM, lat, lng, zoom: z };
+  });
+}
+
+/* ── โมดัลเลือกพื้นที่จากแผนที่ดาวเทียม (เลื่อน/ซูม → จับภาพเป็นผังพื้น) ── */
+function P3MapPicker({ initial, initialQuery, onPick, onClose }) {
+  const boxRef = React.useRef(null);
+  const mapRef = React.useRef(null);
+  const [ready, setReady] = React.useState(false);
+  const [err, setErr] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const [q, setQ] = React.useState(initialQuery || "");
+
+  React.useEffect(() => {
+    let map;
+    p3LoadLeaflet().then((L) => {
+      if (!boxRef.current) return;
+      const has = initial && initial.length === 2 && isFinite(initial[0]);
+      map = L.map(boxRef.current, { zoomControl: true }).setView(has ? initial : [13.7563, 100.5018], has ? 19 : 6);
+      L.tileLayer(P3_ESRI_URL, { maxZoom: 21, maxNativeZoom: 19, attribution: P3_ESRI_ATTR }).addTo(map);
+      mapRef.current = map; setReady(true);
+      setTimeout(() => map.invalidateSize(), 120);
+      if (!has && (initialQuery || "").trim()) p3Geocode(initialQuery).then((ll) => { if (ll && mapRef.current) mapRef.current.setView(ll, 19); });
+    }).catch((e) => setErr(e.message));
+    return () => { if (map) map.remove(); mapRef.current = null; };
+  }, []); // eslint-disable-line
+
+  const search = () => {
+    const query = (q || "").trim(); if (!query) return;
+    setBusy(true); setErr("");
+    p3Geocode(query).then((ll) => {
+      setBusy(false);
+      if (ll && mapRef.current) mapRef.current.setView(ll, 19);
+      else setErr("ไม่พบที่อยู่นี้ — ลองพิมพ์ละเอียดขึ้น หรือเลื่อนแผนที่หาเอง");
+    });
+  };
+  const use = () => {
+    const map = mapRef.current; if (!map) return;
+    const c = map.getCenter(), z = map.getZoom();
+    const vpx = (boxRef.current && boxRef.current.clientWidth) || 1024;
+    setBusy(true); setErr("");
+    p3CaptureTiles(c.lat, c.lng, z, vpx).then((res) => { setBusy(false); onPick(res); })
+      .catch((e) => { setBusy(false); setErr(e.message); });
+  };
+
+  const ibtn = { padding: "8px 12px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer", color: "var(--text-1)" };
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(8,20,14,.55)", display: "flex", padding: 12 }}>
+      <div style={{ flex: 1, minHeight: 0, background: "var(--surface)", borderRadius: 14, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,.4)" }}>
+        <div style={{ padding: 10, borderBottom: "1px solid var(--border)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <span style={{ fontWeight: 800, fontSize: 13.5, color: "var(--text-1)", whiteSpace: "nowrap" }}>🗺️ เลือกพื้นที่จากแผนที่</span>
+          <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === "Enter" && search()} placeholder="ค้นหาที่อยู่…"
+            style={{ flex: 1, minWidth: 130, padding: "8px 10px", border: "1px solid var(--border-strong)", borderRadius: 9, fontFamily: "inherit", fontSize: 13, background: "var(--surface2)", color: "var(--text-1)", outline: "none" }} />
+          <button onClick={search} disabled={busy} style={ibtn}>ค้นหา</button>
+          <button onClick={onClose} style={Object.assign({}, ibtn, { color: "#B91C1C" })}>ปิด</button>
+        </div>
+        <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
+          <div ref={boxRef} style={{ position: "absolute", inset: 0 }} />
+          <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", pointerEvents: "none", zIndex: 500, color: "#ff3b30", fontSize: 30, fontWeight: 700, textShadow: "0 0 4px #fff, 0 0 4px #fff" }}>⌖</div>
+          {!ready && !err && <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "var(--text-2)", fontSize: 13, fontWeight: 600 }}>กำลังโหลดแผนที่…</div>}
+          {err && <div style={{ position: "absolute", left: 10, bottom: 10, background: "#B91C1C", color: "#fff", padding: "6px 10px", borderRadius: 8, fontSize: 12, zIndex: 600, maxWidth: "80%" }}>{err}</div>}
+        </div>
+        <div style={{ padding: 10, borderTop: "1px solid var(--border)", display: "flex", gap: 8, alignItems: "center" }}>
+          <span style={{ fontSize: 11.5, color: "var(--text-3)", flex: 1, lineHeight: 1.4 }}>เลื่อน/ซูมให้เป้า <b style={{ color: "#ff3b30" }}>⌖</b> อยู่กลางบ้าน แล้วกด "ใช้พื้นที่นี้" · ทิศเหนือ = ด้านบนเสมอ · ซูมเยอะ = ละเอียด</span>
+          <button onClick={use} disabled={busy || !ready}
+            style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: (busy || !ready) ? "var(--surface3)" : "var(--primary)", color: "#fff", fontWeight: 800, fontFamily: "inherit", fontSize: 14, cursor: (busy || !ready) ? "default" : "pointer", whiteSpace: "nowrap" }}>{busy ? "กำลังจับภาพ…" : "✓ ใช้พื้นที่นี้"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── โหลด/บันทึกโมเดลของงาน (RTDB หรือ localStorage) ── */
 function usePlan3d(jobId) {
   const KEY = "sf_plan3d_" + jobId;
@@ -97,6 +247,7 @@ function p3HipFaces(roof) {
 function p3Blank(job) {
   return {
     groundW: 40, photo: null, photoW: 30, photoOpacity: 0.95, photoBright: 0.7, wp: 650, buildH: 0,
+    baseMap: null,   // { url, widthM, lat, lng, zoom } — ผังพื้นจากแผนที่ดาวเทียม (สเกลจริง, เหนือ=บน)
     roofs: [], obstacles: [],
     sun: { month: 4, day: 15, hour: 12, lat: 13.75, lng: 100.5 },
   };
@@ -407,6 +558,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
   const [drawPts, setDrawPts] = React.useState([]);     // จุดที่วาด (world x,z)
   const [showVerts, setShowVerts] = React.useState(true); // แสดงจุดเขียว (มุมแก้ทรง)
   const [locked, setLocked] = React.useState(false);      // ล็อกโมเดล — ดู/หมุนได้ แต่แก้ไม่ได้
+  const [mapOpen, setMapOpen] = React.useState(false);    // เปิดโมดัลเลือกพื้นที่จากแผนที่
   const loadedRef = React.useRef(false);
   const lockedRef = React.useRef(false); lockedRef.current = locked;
 
@@ -529,6 +681,16 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     ground.rotation.x = -Math.PI / 2; ground.position.y = -0.02; ground.receiveShadow = true;
     t.dyn.add(ground);
 
+    // ── ผังพื้นจากแผนที่ดาวเทียม (สเกลจริง · เหนือ=บน=−Z) วางเป็นฐานใต้รูปโดรน ──
+    if (st.baseMap && st.baseMap.url) {
+      const W = Math.max(2, +st.baseMap.widthM || 30);
+      const bt = new THREE.TextureLoader().load(st.baseMap.url);
+      bt.anisotropy = 4;
+      const bmesh = new THREE.Mesh(new THREE.PlaneGeometry(W, W), new THREE.MeshBasicMaterial({ map: bt }));
+      bmesh.rotation.x = -Math.PI / 2; bmesh.position.y = -0.01;
+      t.dyn.add(bmesh);
+    }
+
     // รูปโดรนวางบนพื้น (สเกลจาก photoW)
     if (st.photo) {
       const tex = new THREE.TextureLoader().load(st.photo, () => {
@@ -546,7 +708,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       // รูปโดรนอยู่ติดพื้นเสมอ (y=0) เป็นผังพื้น — ยกความสูงอาคารแล้วหลังคาลอยขึ้น รูปคงอยู่ที่พื้น
       photoMesh.rotation.x = -Math.PI / 2; photoMesh.position.y = 0.0;
       t.dyn.add(photoMesh);
-    } else {
+    } else if (!st.baseMap) {
       const grid = new THREE.GridHelper(G, G, 0x8898a8, 0xaab8c6);
       grid.position.y = 0.01; t.dyn.add(grid);
     }
@@ -1025,6 +1187,15 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     if (fileRef.current) fileRef.current.value = "";
   };
 
+  /* ── เลือกพื้นที่จากแผนที่ดาวเทียม → ตั้งเป็นผังพื้น + สเกลจริง + ตำแหน่งดวงอาทิตย์ ── */
+  const jobLatLng = p3ParseLatLng(job && job.map);
+  const jobAddr = job ? [job.address, job.province].filter(Boolean).join(" ") : "";
+  const onPickMap = (res) => {
+    set({ baseMap: { url: res.url, widthM: res.widthM, lat: res.lat, lng: res.lng, zoom: res.zoom }, groundW: Math.max(20, Math.ceil(res.widthM)) });
+    setSun({ lat: res.lat, lng: res.lng });
+    setMapOpen(false);
+  };
+
   /* ── บันทึก / ส่งออก ── */
   const doSave = () => { save(JSON.parse(JSON.stringify(st))); setDirty(false); };
   const doPng = () => {
@@ -1077,6 +1248,23 @@ function Plan3DEditor({ job, onClose, currentUser }) {
 
       {tab === "photo" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {/* ── ผังพื้นจากแผนที่ดาวเทียม (สเกลจริง + ทิศเหนืออัตโนมัติ) ── */}
+          <div style={{ border: "1px solid #16A34A44", background: "#16A34A0d", borderRadius: 11, padding: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+            <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>🗺️ ผังพื้นจากแผนที่ดาวเทียม</span>
+            <button onClick={() => setMapOpen(true)}
+              style={{ padding: "10px", borderRadius: 10, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>
+              {st.baseMap ? "เปลี่ยนพื้นที่ / เลือกใหม่" : "เลือกพื้นที่จากแผนที่ (ดาวเทียม)"}
+            </button>
+            {st.baseMap ? (
+              <React.Fragment>
+                <div style={{ fontSize: 11, color: "var(--text-2)" }}>ตั้งแล้ว · กว้างจริง ≈ <b>{Math.round(st.baseMap.widthM)} ม.</b> · พิกัด {(+st.baseMap.lat).toFixed(5)}, {(+st.baseMap.lng).toFixed(5)}</div>
+                <SmallBtn onClick={() => set({ baseMap: null })} color="#B91C1C">ลบผังแผนที่</SmallBtn>
+              </React.Fragment>
+            ) : (
+              <div style={{ fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>ได้สเกลจริง (เมตร) + ทิศเหนืออัตโนมัติ · วาดหลังคาบนแผนที่ได้เลยแม้ไม่มีรูปโดรน{jobAddr ? " · จะเล็งไปที่อยู่ลูกค้าให้" : ""}</div>
+            )}
+          </div>
+          <div style={{ borderTop: "1px dashed var(--border-strong)", paddingTop: 8, fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>รูปโดรน (เลเยอร์เสริม วางทับแผนที่)</div>
           <button onClick={() => fileRef.current && fileRef.current.click()}
             style={{ padding: "12px 10px", borderRadius: 11, border: "1.5px dashed var(--border-strong)", background: "var(--surface2)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 12.5, cursor: "pointer" }}>
             {st.photo ? "เปลี่ยนรูปโดรน (มุมบน)" : "+ อัปโหลดรูปโดรน (มุมบน)"}
@@ -1326,6 +1514,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
   /* ── โครงหน้า ── */
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 120, background: "var(--bg)", display: "flex", flexDirection: "column" }}>
+      {mapOpen && <P3MapPicker initial={jobLatLng} initialQuery={jobAddr} onPick={onPickMap} onClose={() => setMapOpen(false)} />}
       {/* header */}
       <div style={{ padding: isMobile ? "10px 12px" : "12px 18px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
         <span style={{ width: 34, height: 34, borderRadius: 9, background: "#6366F11c", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="panel" size={17} color="#4F46E5" /></span>
