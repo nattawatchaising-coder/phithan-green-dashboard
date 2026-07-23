@@ -405,7 +405,10 @@ function Plan3DEditor({ job, onClose, currentUser }) {
   const [animating, setAnimating] = React.useState(false);
   const [drawing, setDrawing] = React.useState(false);  // โหมดวาดหลังคาทรงอิสระ
   const [drawPts, setDrawPts] = React.useState([]);     // จุดที่วาด (world x,z)
+  const [showVerts, setShowVerts] = React.useState(true); // แสดงจุดเขียว (มุมแก้ทรง)
+  const [locked, setLocked] = React.useState(false);      // ล็อกโมเดล — ดู/หมุนได้ แต่แก้ไม่ได้
   const loadedRef = React.useRef(false);
+  const lockedRef = React.useRef(false); lockedRef.current = locked;
 
   const set = (patch) => { setSt((p) => Object.assign({}, p, patch)); setDirty(true); };
   const setSun = (patch) => { setSt((p) => Object.assign({}, p, { sun: Object.assign({}, p.sun, patch) })); setDirty(true); };
@@ -683,8 +686,8 @@ function Plan3DEditor({ job, onClose, currentUser }) {
             new THREE.MeshLambertMaterial({ color: 0xe7e2d8, transparent: true, opacity: 0.4 }));
           wall.rotation.x = -Math.PI / 2; wall.position.y = -bH; wall.castShadow = true; wall.receiveShadow = true; g.add(wall);
         }
-        // ── จุดแก้มุม (เลือกได้ · จุดที่เลือก = ส้มใหญ่ ปรับความสูงได้) ──
-        if (selected) {
+        // ── จุดแก้มุม (เลือกได้ · จุดที่เลือก = ส้มใหญ่ ปรับความสูงได้) — ซ่อนได้ด้วยปุ่มจุดเขียว/ล็อก ──
+        if (selected && showVerts && !locked) {
           t.selPolyRoof = roof; t.selTilt = null; t.selInfo = null;
           roof.pts.forEach((p, idx) => {
             const isSel = selVert && selVert.roofId === roof.id && selVert.idx === idx;
@@ -752,9 +755,9 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       t.dyn.add(g);
     });
 
-    // ── จุดดูดติด (snap) — วาดครั้งเดียว รวมจุดที่ทับกันให้เหลือจุดเดียว
-    //    และฉายลงบน "ระนาบของผืนที่กำลังแก้" เพื่อให้ลากจุดเขียวไปทับได้ตรงตา ──
+    // ── จุดดูดติด (snap) — ซ่อนพร้อมจุดเขียว/ตอนล็อก เพื่อดูโมเดลสะอาด ──
     (() => {
+      if (!showVerts || locked) return;
       const sp = p3SnapPoints(st.roofs, t.selPolyRoof ? t.selPolyRoof.id : null);
       if (!sp.length) return;
       const geo = new THREE.SphereGeometry(0.22, 10, 8);
@@ -811,7 +814,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         dot.position.set(p.x, 0.22, p.z); dot.renderOrder = 21; t.dyn.add(dot);
       });
     }
-  }, [st, selRoof, selObs, selVert, ready, drawing, drawPts]);
+  }, [st, selRoof, selObs, selVert, ready, drawing, drawPts, showVerts, locked]);
 
   /* ── อัปเดตดวงอาทิตย์/เงา ── */
   React.useEffect(() => {
@@ -893,6 +896,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
 
     const onDown = (ev) => {
       if (ev.button !== undefined && ev.button !== 0) return;
+      if (lockedRef.current) return;   // ล็อกโมเดล — หมุน/ซูมได้ (OrbitControls) แต่ลาก/แก้ไม่ได้
       if (drawingRef.current) { down = { x: ev.clientX, y: ev.clientY, draw: true, moved: false }; return; }
       const hit = pick(ev);
       if (!hit) return;
@@ -1193,9 +1197,27 @@ function Plan3DEditor({ job, onClose, currentUser }) {
                       <div style={{ fontSize: 11.5, color: "var(--text-2)", background: "#F59E0B12", border: "1px solid #F59E0B44", borderRadius: 9, padding: "8px 10px", display: "flex", flexDirection: "column", gap: 7 }}>
                         <span style={{ fontWeight: 700, color: "#B45309" }}>🔺 ความสูงของมุม (ยกสัน/หิปให้เป็นทรงหลังคา)</span>
                         {selIdx >= 0 ? (
-                          <NumRange span label={"ความสูงมุมที่เลือก #" + (selIdx + 1)} value={Math.round((rPh[selIdx] || 0) * 100) / 100} min={0} max={12} step={0.1} suffix="ม." onChange={(v) => setVertHeight(roof.id, selIdx, v)} />
+                          <React.Fragment>
+                            <NumRange span label={"ความสูงมุมที่เลือก #" + (selIdx + 1)} value={Math.round((rPh[selIdx] || 0) * 100) / 100} min={0} max={12} step={0.1} suffix="ม." onChange={(v) => setVertHeight(roof.id, selIdx, v)} />
+                            {/* ปุ่มลัด: ตั้งความสูงมุมที่เลือกทันที + ปรับทีละขั้น */}
+                            <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                              {[["ชายคา", 0.05], ["1", 1], ["1.5", 1.5], ["2", 2], ["2.5", 2.5], ["3", 3]].map(([lb, hv]) => {
+                                const on = Math.abs((rPh[selIdx] || 0) - hv) < 0.03;
+                                return (
+                                  <button key={lb} onClick={() => setVertHeight(roof.id, selIdx, hv)}
+                                    style={{ flex: "1 0 auto", minWidth: 40, padding: "6px 6px", borderRadius: 8, border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"), background: on ? "var(--primary-soft)" : "var(--surface)", color: on ? "var(--primary-dark)" : "var(--text-1)", fontWeight: 700, fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>{lb === "ชายคา" ? lb : lb + " ม."}</button>
+                                );
+                              })}
+                            </div>
+                            <div style={{ display: "flex", gap: 5 }}>
+                              <button onClick={() => setVertHeight(roof.id, selIdx, Math.max(0, Math.round(((rPh[selIdx] || 0) - 0.25) * 100) / 100))}
+                                style={{ flex: 1, padding: "6px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-1)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>− 0.25 ม.</button>
+                              <button onClick={() => setVertHeight(roof.id, selIdx, Math.round(((rPh[selIdx] || 0) + 0.25) * 100) / 100)}
+                                style={{ flex: 1, padding: "6px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-1)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>+ 0.25 ม.</button>
+                            </div>
+                          </React.Fragment>
                         ) : (
-                          <span style={{ color: "var(--text-3)" }}>แตะ<b style={{ color: "#16A34A" }}>จุดเขียว</b>ที่มุมหลังคาในภาพ (จะกลายเป็น<b style={{ color: "#D97706" }}>จุดส้ม</b>) แล้วปรับความสูงตรงนี้</span>
+                          <span style={{ color: "var(--text-3)" }}>แตะ<b style={{ color: "#16A34A" }}>จุดเขียว</b>ที่มุมหลังคาในภาพ (จะกลายเป็น<b style={{ color: "#D97706" }}>จุดส้ม</b>) แล้วปรับความสูงตรงนี้ หรือกดปุ่มลัด</span>
                         )}
                         <button onClick={() => patchRoof(roof.id, { ph: roof.pts.map(() => 0.05) })}
                           style={{ padding: "5px 8px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 11.5, cursor: "pointer" }}>⭯ รีเซ็ตทุกมุมให้ราบ (0.05 ม.)</button>
@@ -1347,10 +1369,16 @@ function Plan3DEditor({ job, onClose, currentUser }) {
           <div ref={mountRef} style={{ position: "absolute", inset: 0 }} />
           {!ready && !loadErr && <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "var(--text-2)", fontSize: 13.5, fontWeight: 600 }}>กำลังโหลดโหมด 3D…</div>}
           {loadErr && <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "#B91C1C", fontSize: 13, padding: 30, textAlign: "center" }}>{loadErr}<br />ต้องต่ออินเทอร์เน็ตครั้งแรกเพื่อโหลดตัวเรนเดอร์ 3D</div>}
-          {/* view buttons */}
-          <div style={{ position: "absolute", top: 10, left: 10, display: "flex", gap: 6 }}>
+          {/* view buttons + สลับจุดเขียว/ล็อก */}
+          <div style={{ position: "absolute", top: 10, left: 10, display: "flex", gap: 6, flexWrap: "wrap", maxWidth: "calc(100% - 20px)" }}>
             <SmallBtn onClick={view3d}>มุม 3D</SmallBtn>
             <SmallBtn onClick={viewTop}>มุมบน</SmallBtn>
+            <SmallBtn onClick={() => setShowVerts((v) => !v)} bg={showVerts ? "var(--surface)" : "var(--primary-soft)"} color={showVerts ? undefined : "var(--primary-dark)"}>
+              {showVerts ? "🟢 ซ่อนจุด" : "🟢 โชว์จุด"}
+            </SmallBtn>
+            <SmallBtn onClick={() => setLocked((v) => !v)} bg={locked ? "#B45309" : "var(--surface)"} color={locked ? "#fff" : undefined}>
+              {locked ? "🔒 ล็อกอยู่" : "🔓 ล็อก"}
+            </SmallBtn>
           </div>
           {/* แถบโหมดวาด ลอยบน canvas */}
           {drawing && (
@@ -1378,7 +1406,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       </div>
 
       {/* footer */}
-      <div style={{ padding: isMobile ? "10px 12px" : "10px 18px", paddingBottom: "calc(" + (isMobile ? 10 : 10) + "px + env(safe-area-inset-bottom,0px))", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 8, flexShrink: 0 }}>
+      <div style={{ paddingTop: 10, paddingLeft: isMobile ? 12 : 18, paddingRight: isMobile ? 12 : 18, paddingBottom: "calc(10px + env(safe-area-inset-bottom,0px))", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 8, flexShrink: 0 }}>
         <SmallBtn onClick={doPng}>📷 ภาพ PNG</SmallBtn>
         <span style={{ flex: 1 }} />
         {dirty && <span style={{ alignSelf: "center", fontSize: 11.5, color: "#B45309", fontWeight: 700 }}>ยังไม่บันทึก</span>}
