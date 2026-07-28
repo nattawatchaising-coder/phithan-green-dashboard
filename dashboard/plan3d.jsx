@@ -12,7 +12,9 @@ const P3_DEG = Math.PI / 180;
 const P3_PANEL_SHORT = 1.134;  // ด้านสั้นแผงมาตรฐาน (ม.)
 const P3_PANEL_LONG = 2.278;   // ด้านยาว (ม.)
 const P3_PANEL_T = 0.04;       // ความหนาที่วาด
-const P3_ROOF_COLORS = ["#94A3B8", "#B45309", "#64748B", "#7C8B9D"];
+/* หลังคาทุกผืนใช้สีเดียวกัน — บ้านหลังเดียวกันคนละสีทำให้ภาพ 3D ดูเป็นคนละหลัง
+   (งานเก่าที่บันทึก roof.color ไว้คนละสี จะถูกวาดทับด้วยสีนี้ทั้งหมด) */
+const P3_ROOF_COLOR = "#94A3B8";
 const P3_GRP_COLORS = ["#4F46E5", "#0891B2", "#DB2777", "#CA8A04", "#059669"];  // สีประจำกลุ่ม A,B,C…
 
 /* ── โหลด Three.js + OrbitControls ครั้งเดียว ── */
@@ -216,26 +218,26 @@ function p3NextRoofNo(roofs) {
 }
 function p3NewRoof(n) {
   return { id: p3Id("r"), kind: "rect", name: "หลังคา " + n, x: 0, z: 0, w: 8, d: 5, pitch: 15, az: 180, h: 3.2,
-    color: P3_ROOF_COLORS[(n - 1) % P3_ROOF_COLORS.length],
+    color: P3_ROOF_COLOR,
     orient: "portrait", rows: 0, cols: 0, gap: 0.02, margin: 0.3, skips: {} };
 }
 /* หลังคาจั่ว: สันหลังคากลาง ลาด 2 ด้าน (A หันทิศ az, B หันตรงข้าม) */
 function p3NewGable(n) {
   return { id: p3Id("r"), kind: "gable", name: "หลังคา " + n, x: 0, z: 0, ridge: 8, span: 8, pitch: 20, az: 180, h: 3.2,
-    color: P3_ROOF_COLORS[(n - 1) % P3_ROOF_COLORS.length],
+    color: P3_ROOF_COLOR,
     orient: "portrait", rows: 0, cols: 0, gap: 0.02, margin: 0.3, skips: {}, sideA: true, sideB: true };
 }
 /* หลังคาปั้นหยา: 4 ผืนลาดชนสันกลาง (คางหมู A/B + สามเหลี่ยม C/D) — ผืนต่อกันสนิทอัตโนมัติ */
 function p3NewHip(n) {
   return { id: p3Id("r"), kind: "hip", name: "หลังคา " + n, x: 0, z: 0, w: 10, d: 7, pitch: 30, az: 180, h: 3.2,
-    color: P3_ROOF_COLORS[(n - 1) % P3_ROOF_COLORS.length],
+    color: P3_ROOF_COLOR,
     orient: "portrait", rows: 0, cols: 0, gap: 0.02, margin: 0.3, skips: {},
     sideA: true, sideB: true, sideC: false, sideD: false };
 }
 /* หลังคาโดม: ผิวโค้งส่วนโค้งวงกลม (arch) ยืดยาวไปตามแนวสัน — ใช้กับโรงจอดรถ/โรงงาน/ทางเดินโดม */
 function p3NewDome(n) {
   return { id: p3Id("r"), kind: "dome", name: "หลังคา " + n, x: 0, z: 0, ridge: 12, span: 10, rise: 2.5, az: 180, h: 3.2,
-    color: P3_ROOF_COLORS[(n - 1) % P3_ROOF_COLORS.length],
+    color: P3_ROOF_COLOR,
     orient: "portrait", rows: 0, cols: 0, gap: 0.02, margin: 0.3, skips: {}, maxTilt: 90 };
 }
 /* เรขาคณิตโดม — คอร์ด (span) + ความสูงโค้ง (rise) → รัศมี, มุมครึ่ง, ความยาวส่วนโค้ง
@@ -1044,7 +1046,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
   const [drawing, setDrawing] = React.useState(false);  // โหมดวาดหลังคาทรงอิสระ
   const [drawPts, setDrawPts] = React.useState([]);     // จุดที่วาด (world x,z)
   const [showVerts, setShowVerts] = React.useState(true); // แสดงจุดเขียว (มุมแก้ทรง)
-  const [locked, setLocked] = React.useState(false);      // ล็อกโมเดล — ดู/หมุนได้ แต่แก้ไม่ได้
+  const [locked, setLocked] = React.useState(false);      // ล็อกตัวบ้าน (หลังคา/มุม/สิ่งบดบัง) — แผงยังจัดได้ตามปกติ
   const [mapOpen, setMapOpen] = React.useState(false);    // เปิดโมดัลเลือกพื้นที่จากแผนที่
   const [sysOpen, setSysOpen] = React.useState(false);    // เวิร์กสเปซออกแบบระบบ (สตริง/ไมโคร + ผลผลิต 15 ปี)
   const [photoEdit, setPhotoEdit] = React.useState(false); // โหมดปรับรูปโดรนบนภาพ (ลาก/หมุน/ย่อขยาย)
@@ -1316,7 +1318,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     (st.roofs || []).forEach((roof) => {
       const isPoly = roof.kind === "poly" && Array.isArray(roof.pts) && roof.pts.length >= 3;
       // โหมดเพิ่มแผงเอง: โชว์ "ช่องว่าง" จาง ๆ ทุกช่องที่ยังวางได้ (รวมนอกกรอบแถว/คอลัมน์) แตะแล้วเติมแผง
-      const pan = p3Panels(roof, roof.id === selRoof && addMode && !locked ? { slots: true, blk: selBlk } : null);
+      const pan = p3Panels(roof, roof.id === selRoof && addMode ? { slots: true, blk: selBlk } : null);
       const selected = roof.id === selRoof;
 
       const g = new THREE.Group();
@@ -1324,7 +1326,8 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       g.rotation.y = -(((+roof.az || 180) - 180) * P3_DEG);   // az=180 → ลาดหันทิศใต้ (+Z)
       const tilt = new THREE.Group();
       tilt.rotation.x = (+roof.pitch || 0) * P3_DEG;          // ยกปลาย -Z ขึ้น (ชายคาอยู่ z=0)
-      const roofMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(roof.color || "#94A3B8"), transparent: true, opacity: 0.96, side: THREE.DoubleSide });
+      // สีเดียวทุกผืนเสมอ — ไม่อ่าน roof.color ของงานเก่า เพื่อให้บ้านหลังเดียวดูเป็นหลังเดียว
+      const roofMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(P3_ROOF_COLOR), transparent: true, opacity: 0.96, side: THREE.DoubleSide });
       let sideParent = null; // จั่ว/ปั้นหยา: แผงแยกด้าน
 
       if (roof.kind === "hip") {
@@ -1536,7 +1539,11 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       // โดม: แต่ละแผงเอียงตามความชันของโค้งจุดนั้น (rx) แล้วยกออกตามแนวตั้งฉากของผิว
       const isDomeR = roof.kind === "dome";
       const slotMat = new THREE.MeshBasicMaterial({ color: 0x16a34a, transparent: true, opacity: 0.22, depthTest: false });
+      // ช่องที่เว้นไว้ = โชว์เป็นแผงจาง ๆ เฉพาะตอนกำลังจัดแผงผืนนี้ (ไว้แตะใส่คืน)
+      // นอกจากนั้นไม่วาดเลย — ภาพ 3D/รูป PNG/รายงาน จะได้ไม่มีช่องโหว่จาง ๆ ค้างอยู่
+      const showGhost = selected && tab === "panel";
       pan.list.forEach((p) => {
+        if (p.skip && !showGhost) return;
         const parent = (sideParent && sideParent[p.side]) || (isPoly || isDomeR ? g : tilt);
         const pw = p.pw || pan.pw, pd = p.pd || pan.pd;
         // ขาตั้งเอียง: หมุนแผงรอบแกนยาวของตัวเอง (X) ก่อน แล้วค่อยหมุนทั้งชุดรอบแกนตั้งฉากผิว (Y) → ลำดับ YXZ
@@ -1583,7 +1590,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       });
       // ── จุดจับชุดแผงบนภาพ: ลากตรงกลาง = ย้ายทั้งชุด · ลากมุม = ย่อ/ขยาย (เพิ่ม-ลดแถว/คอลัมน์) · จุดบน = หมุน ──
       // โดมเป็นผิวโค้ง กรอบสี่เหลี่ยมแบนวางทับไม่ได้ → ใช้สไลเดอร์แทน
-      if (selected && tab === "panel" && !locked && !isDomeR && pan.rects && pan.rects.length) {
+      if (selected && tab === "panel" && !isDomeR && pan.rects && pan.rects.length) {
         const biSel = Math.min(selBlk, (pan.blocks || []).length - 1);
         const gizMat = new THREE.MeshBasicMaterial({ color: 0x2563eb, depthTest: false, transparent: true });
         const lineMat = new THREE.LineBasicMaterial({ color: 0x2563eb, depthTest: false, transparent: true });
@@ -1860,7 +1867,9 @@ function Plan3DEditor({ job, onClose, currentUser }) {
 
     const onDown = (ev) => {
       if (ev.button !== undefined && ev.button !== 0) return;
-      if (lockedRef.current) return;   // ล็อกโมเดล — หมุน/ซูมได้ (OrbitControls) แต่ลาก/แก้ไม่ได้
+      /* ล็อกโมเดล = ล็อกเฉพาะ "ตัวบ้าน" (หลังคา/มุม/สิ่งบดบัง/รูปโดรน/วาดผืนใหม่)
+         แต่ยัง "จัดแผงได้ตามปกติ" — แตะเว้นช่อง · ลาก/หมุน/ย่อขยายชุดแผง */
+      if (lockedRef.current && (photoEditRef.current || drawingRef.current)) return;
 
       // ── โหมดปรับรูปโดรน: จับได้เฉพาะรูป/จุดจับ (พักแก้โมเดลกันลากผิด) ──
       if (photoEditRef.current) {
@@ -1896,7 +1905,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       let rec = null, dragId = null;
       /* อยู่แท็บ "แผง" = ล็อกตัวบ้านไว้ กันเผลอลากหลังคา/มุม/สิ่งบดบังหลุดตอนกำลังจัดแผง
          (ยังแตะเลือกผืนได้ · จะย้ายบ้านจริง ๆ ให้กลับไปแท็บหลังคา) */
-      const bodyLock = tabRef.current === "panel";
+      const bodyLock = tabRef.current === "panel" || lockedRef.current;
       if (hit.kind === "vertex") {
         rec = (stNow.roofs || []).find((r) => r.id === ud.roofId);
         if (!rec) return;
@@ -2858,7 +2867,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
               <IconBtn icon="nodes" label={isMobile ? "" : "จุด"} on={showVerts} onClick={() => setShowVerts((v) => !v)}
                 title={showVerts ? "ซ่อนจุดมุมหลังคา" : "แสดงจุดมุมหลังคา (ใช้แก้ทรง)"} />
               <IconBtn icon={locked ? "lock" : "unlock"} label={isMobile ? "" : "ล็อก"} on={locked} tone="warn" onClick={() => setLocked((v) => !v)}
-                title={locked ? "ล็อกโมเดลอยู่ — ดู/หมุนได้ แต่แก้ไม่ได้" : "ล็อกโมเดลกันแก้โดนโดยไม่ตั้งใจ"} />
+                title={locked ? "ล็อกตัวบ้านอยู่ — หลังคา/มุม/สิ่งบดบัง ขยับไม่ได้ · แผงยังจัดได้ตามปกติ" : "ล็อกตัวบ้านกันเผลอลาก (ยังจัดแผงได้)"} />
               <span className="p3-vr" />
               <IconBtn icon={lightMode === "sun" ? "sunShadow" : lightMode === "noshadow" ? "sun" : "bulb"}
                 label={isMobile ? "" : (lightMode === "sun" ? "แดด+เงา" : lightMode === "noshadow" ? "ไม่มีเงา" : "แสงแบน")}
@@ -2910,6 +2919,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
           <div style={{ position: "absolute", bottom: 10, left: 10, right: 10, display: "flex", pointerEvents: "none" }}>
             <span className="p3-hint" style={{ flexWrap: "wrap", rowGap: 3 }}>
               {(drawing ? [["คลิก", "วางจุด"], [view2D ? "ลาก" : "ลาก", view2D ? "เลื่อนผัง" : "หมุนมุมมอง"], ["ลากแล้วปล่อย", "ไม่วางจุด"]]
+                : locked ? [["สถานะ", "ล็อกตัวบ้านไว้ — จัดแผงได้"], ["ลาก", view2D ? "เลื่อนผัง" : "หมุนมุมมอง"], ["แตะแผง", "เว้นช่อง"], ["ลากจุดน้ำเงิน", "ย้าย/ย่อขยายชุดแผง"]]
                 : tab === "panel" ? [["สถานะ", "ล็อกตัวบ้านไว้"], ["ลาก", view2D ? "เลื่อนผัง" : "หมุนมุมมอง"], ["แตะแผง", "เว้นช่อง"], ["ลากจุดน้ำเงิน", "ย้าย/ย่อขยายชุดแผง"]]
                 : view2D ? [["ลาก", "เลื่อนผัง"], ["ล้อ/บีบ", "ซูม"], ["แตะแผง", "เว้นช่อง"], ["ลากหลังคา", "ย้าย"]]
                 : [["ลาก", "หมุน"], ["ล้อ/บีบ", "ซูม"], ["คลิกขวา/2 นิ้ว", "เลื่อน"], ["แตะแผง", "เว้นช่อง"], ["ลากหลังคา", "ย้าย"]]

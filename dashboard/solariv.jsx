@@ -879,6 +879,8 @@ function ivDaySim(st, panel, groups, byPanel, o) {
     const row = { h: scR(h, 2), alt: scR(sun.alt, 1), az: scR(sun.az, 1), ghi: scR(ghi, 0),
       dni: scR(dni, 0), dhi: scR(dhi, 0), per, dc: scR(dcAll, 3), ac: scR(ac, 3), clip: acRaw > ac,
       poaAvg: kwpSum ? scR(poaSumW / kwpSum, 0) : 0,
+      /* อุณหภูมิเซลล์ของทั้งระบบ = ถ่วงน้ำหนักด้วย kWp ของแต่ละกลุ่ม (กลุ่มใหญ่มีน้ำหนักมากกว่า) */
+      tCell: kwpSum ? scR(groups.reduce((a, g) => a + per[g.key].tCell * (gKw[g.key] || 0), 0) / kwpSum, 1) : 0,
       shade: kwpSum ? scR(groups.reduce((a, g) => a + per[g.key].shade * (gKw[g.key] || 0), 0) / kwpSum, 1) : 0 };
     rows.push(row);
     if (!peak || row.ac > peak.ac) peak = row;
@@ -925,7 +927,8 @@ function ivYearSim(st, panel, groups, byPanel, o) {
     if (!sim) continue;
     const cells = hours.map((h) => {
       const r = sim.rows.find((q) => Math.abs(q.h - h) < 0.26);
-      return r ? { h, poa: r.poaAvg, shade: r.shade, ac: r.ac, ghi: r.ghi } : { h, poa: 0, shade: 0, ac: 0, ghi: 0 };
+      return r ? { h, poa: r.poaAvg, shade: r.shade, ac: r.ac, ghi: r.ghi, dc: r.dc, tCell: r.tCell }
+               : { h, poa: 0, shade: 0, ac: 0, ghi: 0, dc: 0, tCell: 0 };
     });
     const days = SC_MDAYS[m];
     totalKwh += sim.dayKwh * days;
@@ -941,7 +944,9 @@ function ivYearSim(st, panel, groups, byPanel, o) {
       shadeFrom: sim.shadeFrom, shadeTo: sim.shadeTo, clipHours: sim.clipHours });
   }
   const worst = months.slice().sort((a, b) => b.shadeLossPct - a.shadeLossPct)[0] || null;
-  return { months, hours, maxPoa, maxAc,
+  /* เดือนที่ผลิตได้เยอะที่สุด — ใช้เป็นวันตัวแทน "วันที่ดีที่สุดของปี" ในรายงาน */
+  const best = months.slice().sort((a, b) => b.monthKwh - a.monthKwh)[0] || null;
+  return { months, hours, maxPoa, maxAc, bestMonth: best,
     totalKwh: Math.round(totalKwh), shadeLossKwh: Math.round(lossKwh),
     shadeLossPct: fullKwh > 0 ? scR(lossKwh / fullKwh * 100, 1) : 0,
     clipHours: scR(months.reduce((a, x) => a + x.clipHours * x.days, 0), 0),

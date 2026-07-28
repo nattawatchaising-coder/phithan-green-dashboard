@@ -60,6 +60,72 @@ const SU_CSS = `
 .su-pick-row tbody tr[data-on="1"] td{background:var(--acs)}
 .su-pick-row tbody tr[data-on="1"] td:first-child{box-shadow:inset 2px 0 0 var(--ac)}
 
+/* ---- กรอบรายชื่อเส้น I-V + กำลัง ---- */
+.su-ivlegend{display:flex;flex-wrap:wrap;gap:5px 14px;border:1px solid var(--ln);border-radius:10px;
+  padding:8px 11px;font-size:10px}
+.su-ivlegend span{display:flex;align-items:center;gap:5px;font-weight:700;color:var(--text-2);white-space:nowrap}
+.su-ivlegend i{width:13px;height:3px;border-radius:2px;display:block;flex:0 0 auto}
+.su-ivlegend i.dash{background:repeating-linear-gradient(90deg,var(--text-3) 0 4px,transparent 4px 7px)}
+.su-ivlegend b{font-weight:800;color:var(--text-1);font-variant-numeric:tabular-nums}
+.su-ivlegend .mute{color:var(--text-3);font-weight:650}
+
+/* ---- แบ่งเฟส L1/L2/L3 ---- */
+.su-phgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px}
+.su-phcard{display:flex;flex-direction:column;gap:4px;padding:11px 13px;border-radius:13px;
+  border:1px solid var(--ln2);background:var(--surface);position:relative;overflow:hidden}
+.su-phcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px}
+.su-phcard[data-ph="1"]::before{background:#D97706}
+.su-phcard[data-ph="2"]::before{background:#2563EB}
+.su-phcard[data-ph="3"]::before{background:#0F7A43}
+.su-phcard .hd{display:flex;align-items:baseline;gap:7px}
+.su-phcard .hd b{font-size:13px;font-weight:800;letter-spacing:.04em}
+.su-phcard .hd i{font-style:normal;font-size:10px;font-weight:700;color:var(--text-3);margin-left:auto}
+.su-phcard .big{font-size:21px;font-weight:800;letter-spacing:-.5px;line-height:1.1}
+.su-phcard .big small{font-size:10px;font-weight:700;color:var(--text-3);margin-left:3px}
+.su-phcard .sub{font-size:9.5px;font-weight:650;color:var(--text-3)}
+.su-phcard .bar{display:block;height:4px;border-radius:99px;background:var(--surface3);overflow:hidden;margin-top:2px}
+.su-phcard .bar i{display:block;height:100%;border-radius:99px;background:currentColor;opacity:.75}
+.su-phcard[data-ph="1"] .bar i{background:#D97706}
+.su-phcard[data-ph="2"] .bar i{background:#2563EB}
+.su-phcard[data-ph="3"] .bar i{background:#0F7A43}
+.su-phcard .us{font-size:9px;font-weight:700;color:var(--text-3);letter-spacing:.02em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ปุ่มเลือกเฟสในตาราง */
+.su-phpick{display:inline-flex;gap:3px}
+.su-phpick button{border:1px solid var(--ln2);background:var(--surface);color:var(--text-3);
+  font-family:inherit;font-size:10px;font-weight:800;padding:3px 8px;border-radius:7px;cursor:pointer;letter-spacing:.02em}
+.su-phpick button:hover{border-color:var(--ac);color:var(--text-1)}
+.su-phpick button[data-on="1"][data-ph="1"]{background:#FEF3E2;border-color:#D97706;color:#B45309}
+.su-phpick button[data-on="1"][data-ph="2"]{background:#E8F0FE;border-color:#2563EB;color:#1D4ED8}
+.su-phpick button[data-on="1"][data-ph="3"]{background:var(--acs);border-color:var(--ac);color:var(--acd)}
+
+/* ---- ไมโครอินเวอร์เตอร์: การ์ดเลือกอัตราส่วน ---- */
+.su-mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.su-mcard{display:flex;flex-direction:column;gap:7px;text-align:left;cursor:pointer;font-family:inherit;
+  padding:13px 14px;border-radius:14px;border:1.5px solid var(--ln2);background:var(--surface);
+  color:var(--text-1);transition:border-color .15s,background .15s,box-shadow .15s}
+.su-mcard:hover{border-color:var(--ac)}
+.su-mcard[data-on="1"]{border-color:var(--ac);background:var(--acs);box-shadow:0 1px 3px rgba(13,23,20,.07)}
+.su-mcard[data-bad="1"]{border-color:rgba(185,28,28,.38)}
+.su-mcard .rt{display:flex;align-items:center;gap:9px}
+.su-mcard .rt b{font-size:13.5px;font-weight:800;letter-spacing:-.1px}
+.su-mcard .tag{margin-left:auto;font-size:8.5px;font-weight:800;padding:2px 7px;border-radius:99px;
+  background:var(--ac);color:#fff;white-space:nowrap}
+.su-mcard .tag.bad{background:var(--dngr)}
+.su-mcard .mo{font-size:10px;color:var(--text-3);line-height:1.45;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.su-mcard .st{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding-top:7px;border-top:1px solid var(--ln)}
+.su-mcard .st span{display:flex;flex-direction:column;gap:1px;min-width:0}
+.su-mcard .st i{font-style:normal;font-size:8.5px;font-weight:700;color:var(--text-3);letter-spacing:.02em}
+.su-mcard .st b{font-size:12.5px;font-weight:800;letter-spacing:-.2px}
+.su-mcard .wy{font-size:9.5px;font-weight:650;color:var(--text-3);line-height:1.45}
+.su-mcard[data-on="1"] .wy{color:var(--acd)}
+/* กล่องอธิบายหลักการทำงานของไมโคร */
+.su-mfact{display:flex;gap:10px;align-items:flex-start;padding:11px 13px;border-radius:12px;
+  background:var(--acs);border-left:3px solid var(--ac);font-size:10.5px;line-height:1.65;color:var(--text-2)}
+.su-mfact .ic{color:var(--acd);flex:0 0 auto;margin-top:1px}
+.su-mfact b{color:var(--text-1)}
+
 /* ---- ป้ายที่มาของค่า ---- */
 .su-src{font-size:8.5px;font-weight:800;padding:2px 6px;border-radius:99px;letter-spacing:.02em;white-space:nowrap}
 .su-src.stock{background:var(--acs);color:var(--acd)}
@@ -97,7 +163,9 @@ function SuSpec({ label, value, src, suffix, step, onChange, onReset }) {
         {src === "edit" && <button className="p3-lnk" style={{ fontSize: 9.5 }} onClick={(e) => { e.preventDefault(); onReset(); }}>คืนค่า</button>}
       </span>
       <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-        <input className="p3-inp" type="number" step={step || 0.01} value={value == null ? "" : value}
+        {/* 0 = ยังไม่ได้กรอกจากดาต้าชีต — โชว์ช่องว่างพร้อมคำใบ้ ดีกว่าโชว์ "0" ที่อ่านเหมือนค่าจริง */}
+        <input className="p3-inp" type="number" step={step || 0.01} placeholder="ยังไม่ระบุ"
+          value={value == null || value === 0 ? "" : value}
           onChange={(e) => onChange(e.target.value === "" ? null : +e.target.value)} />
         {suffix && <span className="p3-sfx">{suffix}</span>}
       </span>
@@ -117,6 +185,32 @@ function SuFacing({ tilt, az, size }) {
         stroke="var(--ac)" strokeWidth="2.2" strokeLinecap="round" />
       <circle cx={s / 2} cy={s / 2} r="2.4" fill="var(--ac)" />
       <text x={s / 2} y={s - 1} textAnchor="middle" fontSize="8" fontWeight="800" fill="var(--text-2)">{Math.round(tilt)}°</text>
+    </svg>
+  );
+}
+
+/* ภาพเล็ก ๆ ของอัตราส่วน แผง : ไมโคร — แผงกี่ใบเสียบเข้ากล่องเดียว และมี MPPT กี่ช่อง
+   เส้นจากแผงลงกล่อง = 1 เส้นต่อ 1 ช่อง MPPT (เห็นทันทีว่าแยกอิสระกี่ทาง) */
+function SuMicroGlyph({ per, mppt, on }) {
+  const n = Math.max(1, per || 1);
+  const W = 20 + n * 22, H = 40;
+  const c = on ? "var(--ac)" : "var(--text-3)";
+  const indep = (mppt || 1) >= n;                    // ช่องเท่าจำนวนแผง = อิสระทุกใบ
+  return (
+    <svg width={W} height={H} viewBox={"0 0 " + W + " " + H} style={{ display: "block", flex: "0 0 auto" }}>
+      {Array.from({ length: n }).map((_, i) => {
+        const x = 10 + i * 22;
+        return (
+          <g key={i}>
+            <rect x={x} y="3" width="17" height="11" rx="2" fill={on ? "var(--acs)" : "transparent"} stroke={c} strokeWidth="1.4" />
+            <path d={"M" + (x + 8.5) + " 14 v" + (indep ? 8 : 5)} stroke={c} strokeWidth="1.4" strokeLinecap="round"
+              strokeDasharray={indep ? null : "2 2"} />
+          </g>
+        );
+      })}
+      {!indep && <path d={"M18.5 19 H" + (10 + (n - 1) * 22 + 8.5) + " V22"} stroke={c} strokeWidth="1.4" fill="none" />}
+      <rect x="6" y="22" width={W - 12} height="12" rx="3" fill={on ? "var(--ac)" : "transparent"} stroke={c} strokeWidth="1.4" />
+      <path d={"M" + (W / 2) + " 34 v4"} stroke={c} strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }
@@ -172,7 +266,8 @@ const suColor = (i) => SU_SCOLOR[(i - 1 + SU_SCOLOR.length) % SU_SCOLOR.length];
 
 /* ── ผังแผง 2D (มองจากด้านบน) — แตะ/ลากเพื่อจัดแผงเข้าสตริง ──
    foot = ผลจาก p3FootAll(st) · assign = { uid: หมายเลขสตริง } */
-function SuLayout2D({ foot, assign, active, onPaint, height }) {
+/* labels = { uid: "L1" } เขียนทับบนแผง · colorOf(uid, กลุ่ม) = แทนที่สีประจำกลุ่ม · unitName = คำเรียกในทูลทิป */
+function SuLayout2D({ foot, assign, active, onPaint, height, labels, colorOf, unitName }) {
   const wrapRef = React.useRef(null);
   const [drag, setDrag] = React.useState(false);
   const b = foot.bounds;
@@ -201,14 +296,29 @@ function SuLayout2D({ foot, assign, active, onPaint, height }) {
         {/* แผง */}
         {foot.panels.map((p) => {
           const s = assign[p.uid] || 0;
-          const c = s ? suColor(s) : null;
+          const c = s ? (colorOf ? colorOf(p.uid, s) : suColor(s)) : null;
+          const un = unitName || "สตริง";
           return (
             <polygon key={p.uid} data-uid={p.uid} points={p.pts.map((q) => q[0] + "," + q[1]).join(" ")}
               fill={c ? c : "#CBD5E1"} fillOpacity={c ? 0.88 : 0.5}
               stroke={c ? "#fff" : "#94A3B8"} strokeWidth="0.035" strokeDasharray={c ? null : "0.12 0.09"}
               style={{ cursor: active ? "crosshair" : "pointer" }}>
-              <title>{p.roofName + " · " + p.key + (s ? " · สตริง " + s : " · ยังไม่อยู่สตริงไหน")}</title>
+              <title>{p.roofName + " · " + p.key + (s ? " · " + un + " " + s : " · ยังไม่อยู่" + un + "ไหน")
+                + (labels && labels[p.uid] ? " · เฟส " + labels[p.uid] : "")}</title>
             </polygon>
+          );
+        })}
+        {/* ป้ายบอกเฟสบนแผงแต่ละใบ — เขียนทับตรงกลางแผง ให้อ่านออกแม้พิมพ์ขาวดำ
+            pointerEvents none เพื่อไม่ให้บังการแตะทาสีแผง */}
+        {labels && foot.panels.map((p) => {
+          const t = labels[p.uid];
+          if (!t) return null;
+          const cx = p.pts.reduce((a, q) => a + q[0], 0) / p.pts.length;
+          const cz = p.pts.reduce((a, q) => a + q[1], 0) / p.pts.length;
+          return (
+            <text key={"L" + p.uid} x={cx} y={cz + 0.16} textAnchor="middle" fontSize="0.44" fontWeight="800"
+              fill="#fff" stroke="rgba(0,0,0,.35)" strokeWidth="0.05" paintOrder="stroke"
+              style={{ pointerEvents: "none", userSelect: "none" }}>{t}</text>
           );
         })}
         {/* เข็มทิศ: บนจอ +Z = ทิศใต้ ตามฉาก 3 มิติ */}
@@ -545,7 +655,8 @@ function SuShadeStrip({ sim, groups }) {
    โหมดรวม: วาดทุกเส้นแยกสี ไม่มีเส้นกำลัง/พื้นระบาย เพื่อไม่ให้ลายตา
    โหมดเดี่ยว: ใส่พื้นระบาย เส้นกำลัง และจุด MPP พร้อมตัวเลขเต็ม */
 function SuIvChart({ curves, stcRef, meas, height, focusId }) {
-  const W = 620, H = 292, L = 46, R = 48, T = 16, B = 32;
+  /* สูงกว่าปกติตั้งใจ — หลายเส้นทับกันแถวหัวเข่า ต้องมีพื้นที่แนวตั้งพอถึงจะแยกออก */
+  const W = 620, H = 372, L = 46, R = 48, T = 16, B = 32;
   const list = (curves || []).filter((x) => x && x.curve);
   if (!list.length) return null;
   const solo = focusId != null ? list.find((x) => x.id === focusId) : null;
@@ -617,13 +728,30 @@ function SuIvChart({ curves, stcRef, meas, height, focusId }) {
               <circle cx={X(x.curve.vmp)} cy={Yi(x.curve.imp)} r="3.6" fill="#fff" stroke={x.color} strokeWidth="2" />
             </g>
           ))}
-          {/* ตัวเลขกำลังของแต่ละสตริง วางเรียงไม่ให้ทับกัน */}
-          {list.map((x, k) => (
-            <text key={"t" + x.id} x={X(x.curve.vmp)} y={Yi(x.curve.imp) - 9 - (k % 2) * 11} textAnchor="middle"
-              fontSize="9.5" fontWeight="800" fill={x.color}>
-              {scR(x.curve.pmax >= 1000 ? x.curve.pmax / 1000 : x.curve.pmax, 2)}{x.curve.pmax >= 1000 ? "k" : ""}
-            </text>
-          ))}
+          {/* กรอบชื่อเส้น + กำลัง วางในกราฟมุมซ้ายล่าง — ช่วงแรงดันต่ำกระแสยังอยู่บนสุด พื้นที่ตรงนี้จึงว่างเสมอ */}
+          {(() => {
+            const rows = list.map((x) => ({ c: x.color, t: x.name, v: scR(scNum(x.watt, x.curve.pmax), 0).toLocaleString() + " W" }))
+              .concat([{ c: null, t: "ที่มาตรฐาน STC (1000 W/m² · 25°C)", v: "" }]);
+            const cols = rows.length > 10 ? 2 : 1;
+            const per = Math.ceil(rows.length / cols);
+            const rh = 12, cw = cols > 1 ? 158 : 176, pad = 7;
+            const bw = cw * cols + pad, bh = per * rh + pad * 1.6, bx = L + 52, by = H - B - bh - 12;
+            return (
+              <g>
+                <rect x={bx} y={by} width={bw} height={bh} rx="6" fill="var(--surface)" fillOpacity="0.93" stroke="var(--ln2)" />
+                {rows.map((r, i) => {
+                  const cx = bx + pad + Math.floor(i / per) * cw, cy = by + pad + (i % per) * rh + 7;
+                  return (
+                    <g key={i}>
+                      <rect x={cx} y={cy - 3.4} width="12" height="3" rx="1.5" fill={r.c || "var(--text-3)"} fillOpacity={r.c ? 1 : 0.55} />
+                      <text x={cx + 17} y={cy} fontSize="8.5" fontWeight={r.c ? 700 : 600} fill={r.c ? "var(--text-2)" : "var(--text-3)"}>{r.t}</text>
+                      {r.v && <text x={cx + cw - 12} y={cy} textAnchor="end" fontSize="8.5" fontWeight="800" fill="var(--text-1)">{r.v}</text>}
+                    </g>
+                  );
+                })}
+              </g>
+            );
+          })()}
         </g>
       )}
       {/* ค่าที่วัดได้จริง */}
@@ -780,8 +908,67 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   };
   const strIds = plan && plan.strings ? plan.strings.map((s) => s.id || 0).filter(Boolean) : [];
   const nextStr = (strIds.length ? Math.max.apply(null, strIds) : 0) + 1;
-  const microPlans = React.useMemo(() => (isMicro ? scMicroPlan(groups, panel, micros) : null), [isMicro, groups, panel, micros]);
+  const microPlans = React.useMemo(() => (isMicro ? scMicroPlan(groups, panel, micros, S.env, S) : null),
+    [isMicro, groups, panel, micros, S.env, S.microRatio, S.micro]);
+  const stockMicroRow = micros.find((m) => m.ratio === S.microRatio) || micros[0] || {};
+  const setM = (k, v) => { const o = Object.assign({}, S.micro); if (v == null) delete o[k]; else o[k] = v; set({ micro: o }); };
   const microSel = microPlans ? (microPlans.find((m) => m.ratio === S.microRatio) || microPlans[0]) : null;
+  /* ── จัดแผงเข้า "ตัวไมโคร" — แบบเดียวกับจัดสตริง แต่ตัวละ per ใบ ──
+     ระบบจับคู่แผงที่ติดกันบนหลังคาให้ก่อน แตะแก้เองได้ทีหลัง (เก็บใน S.microAssign) */
+  const microAuto = React.useMemo(() => (isMicro && microSel && foot.panels.length
+    ? scMicroAssign(foot.panels, idx.byPanel, groups, microSel.per) : { assign: {}, units: [] }),
+    [isMicro, foot, idx, groups, microSel && microSel.per]);
+  const microManual = !!S.microManual;
+  const microAssign = microManual ? (S.microAssign || {}) : microAuto.assign;
+  /* สร้างรายการตัวไมโครจากผังที่ใช้จริง (ไม่ว่าจะระบบจัดหรือแก้เอง) จะได้ตรงกันทุกที่ */
+  const microUnits = React.useMemo(() => {
+    if (!isMicro || !microSel) return [];
+    const bag = {};
+    foot.panels.forEach((p) => {
+      const id = microAssign[p.uid];
+      if (!id) return;
+      if (!bag[id]) bag[id] = { id, uids: [], gks: {} };
+      bag[id].uids.push(p.uid);
+      const gk = idx.byPanel[p.uid]; if (gk) bag[id].gks[gk] = (bag[id].gks[gk] || 0) + 1;
+    });
+    return Object.keys(bag).map((k) => {
+      const u = bag[k], gks = Object.keys(u.gks);
+      const g = groups.find((x) => x.key === gks[0]);
+      return { id: +k, n: u.uids.length, uids: u.uids, gLabel: g ? g.label : "—",
+        mixed: gks.length > 1, over: u.uids.length > microSel.per };
+    }).sort((a, b) => a.id - b.id);
+  }, [isMicro, microAssign, foot, idx, groups, microSel && microSel.per]);
+  const microUnassigned = isMicro ? foot.panels.filter((p) => !microAssign[p.uid]).length : 0;
+  /* ── ระบบ 3 เฟส: ไมโครเป็นอุปกรณ์ 1 เฟส ต้องกระจายตัวลง L1/L2/L3 เอง ──
+     ค่าตั้งต้นดึงจากข้อมูลงาน (job.phase) แก้ทับได้ในหน้านี้ */
+  const jobPhase = String(job && job.phase) === "3" ? 3 : 1;
+  const phases = S.phases == null ? jobPhase : (scNum(S.phases, 1) === 3 ? 3 : 1);
+  const phaseBins = React.useMemo(() => (isMicro && microSel && typeof scMicroPhases === "function"
+    ? scMicroPhases(microUnits, { phases, wp: panel.wp, acW: microSel.acW, acV: microSel.acV,
+        perBranch: microSel.perBranch, override: S.microPhase || {} })
+    : []), [isMicro, microUnits, phases, panel.wp, microSel, S.microPhase]);
+  const phaseBal = React.useMemo(() => (typeof scPhaseBalance === "function" ? scPhaseBalance(phaseBins, 10) : null), [phaseBins]);
+  const setUnitPhase = (uid, ph) => {
+    const o = Object.assign({}, S.microPhase || {});
+    if (!ph) delete o[uid]; else o[uid] = ph;
+    set({ microPhase: o });
+  };
+  /* uid ของแผง → เฟสที่ตัวไมโครของมันอยู่ (ใช้เขียนป้าย L1/L2/L3 บนผัง 2 มิติ) */
+  const uidPhase = React.useMemo(() => {
+    const m = {};
+    if (phases !== 3) return m;
+    phaseBins.forEach((b) => b.units.forEach((u) => (u.uids || []).forEach((x) => { m[x] = b.label; })));
+    return m;
+  }, [phases, phaseBins]);
+  const SU_PHCOLOR = { L1: "#D97706", L2: "#2563EB", L3: "#0F7A43" };
+  const [muColorBy, setMuColorBy] = React.useState("unit");   // unit = สีตามตัวไมโคร · phase = สีตามเฟส
+  const [activeMu, setActiveMu] = React.useState(1);
+  const nextMu = (microUnits.length ? Math.max.apply(null, microUnits.map((u) => u.id)) : 0) + 1;
+  const paintMu = (uid) => {
+    const a = Object.assign({}, microAssign);
+    if (!activeMu) delete a[uid]; else a[uid] = activeMu;
+    set({ microAssign: a, microManual: true });
+  };
 
   /* AC รวม = กำลังอินเวอร์เตอร์ × จำนวนตัว — ต้องคิดได้แม้สเปค MPPT ในคลังยังว่าง (ไม่งั้นผลผลิตจะไม่ถูกตัดยอด) */
   const acKw = isMicro ? (microSel ? microSel.acKw : 0) : scR(scNum(inv.kw) * Math.max(1, scNum(S.invCount, 1)), 2);
@@ -795,16 +982,28 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   /* ตั้งค่าโมเดล "เงาบังนิดเดียวแต่ฉุดทั้งสตริง" (ไดโอดบายพาส)
      แผงครึ่งเซลล์เดาให้จากข้อมูลคลัง — แก้ทับได้ */
   const hc = scHalfCut(panel);
+  /* ทุกแผงมี MPPT ของตัวเอง (ไมโคร 1 แผง/ช่อง) — ใช้ตัดค่าสูญเสีย "แผงไม่เท่ากัน" ทิ้ง */
+  const microIndep = isMicro && microSel ? microSel.nSeries <= 1 : false;
   const elecCfg = Object.assign({}, IV_ELEC, { halfCut: hc.half }, S.elec || {});
   const setElec = (p) => set({ elec: Object.assign({}, elecCfg, p) });
   const shade3d = React.useMemo(() => (use3d && typeof ivShadeAnnual === "function" && groups.length
     ? ivShadeAnnual(st, idx.byPanel, groups, { lat: st.sun && st.sun.lat, lng: st.sun && st.sun.lng, albedo: S.env && S.env.albedo, elec: elecCfg })
     : null), [use3d, st, idx, groups, S.env, S.elec, hc.half]);
+  /* ค่าสูญเสีย "แผงไม่เท่ากัน" (mismatch) มาจากการที่ทุกแผงในสตริงถูกบังคับให้ใช้กระแสเท่ากัน
+     ใบที่อ่อนกว่าจึงฉุดทั้งสตริง — ไมโครที่ให้ MPPT แผงละช่องไม่มีปัญหานี้ เหลือแค่ความคลาดของตัวแปลงเอง
+     (แนวทางเดียวกับที่ PVsyst/อุตสาหกรรมใช้: สตริง ~2% · ไมโคร/ออปติไมเซอร์ ~0.3%) */
+  const lossEff = React.useMemo(() => {
+    const base = Object.assign({}, SC_LOSS, S.loss || {});
+    /* ปรับให้เฉพาะตอนที่ยังเป็นค่ากลาง 2% อยู่ — ถ้าผู้ใช้ตั้งเองแล้วเคารพค่าที่ตั้ง */
+    if (microIndep && base.mismatch === SC_LOSS.mismatch) base.mismatch = 0.3;
+    return base;
+  }, [S.loss, microIndep]);
   const energy = React.useMemo(() => (groups.length && panel.wp
-    ? scEnergy(groups, panel, { lat: st.sun && st.sun.lat, lng: st.sun && st.sun.lng, loss: S.loss,
+    ? scEnergy(groups, panel, { lat: st.sun && st.sun.lat, lng: st.sun && st.sun.lng, loss: lossEff,
         shadeByGroup: shade3d ? shade3d.byGroup : null,
-        invEff: (S.inv && S.inv.eff) != null ? S.inv.eff : (isMicro ? 96.5 : inv.eff), acKw, tamb: S.tamb, kc: S.kc })
-    : null), [groups, panel, S.loss, S.inv, S.tamb, S.kc, acKw, isMicro, inv.eff, st.sun, shade3d]);
+        invEff: isMicro ? (microSel ? microSel.eff : 96.5) : ((S.inv && S.inv.eff) != null ? S.inv.eff : inv.eff),
+        acKw, tamb: S.tamb, kc: S.kc })
+    : null), [groups, panel, lossEff, S.inv, S.tamb, S.kc, acKw, isMicro, inv.eff, st.sun, shade3d, microSel && microSel.eff]);
   const life = energy ? scLife(energy.annual, panel, S.years) : null;
 
   /* ══ ตรวจวัด I-V ══ */
@@ -817,11 +1016,21 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
     [panel.voc, panel.isc, panel.vmp, panel.imp, panel.wp, panel.cells]);
   /* หน่วยที่ตรวจวัดได้ — โหมดสตริงวัดทีละสตริง · โหมดไมโครวัดทีละแผง (แยกตามกลุ่มทิศทาง) */
   const ivUnits = React.useMemo(() => {
-    if (isMicro) return groups.map((g) => ({ id: "g:" + g.key, name: g.roofName + " · เอียง " + scR(g.tilt, 0) + "°", n: 1, tilt: g.tilt, az: g.az, count: g.count, gk: g.key, micro: true }));
+    /* ไมโคร = ดูทีละ "ตัว" ไม่ใช่ทีละกลุ่มทิศทาง — เพราะแต่ละตัวโดนเงาไม่เท่ากัน
+       เส้น I-V จึงต้องแยกกันคนละเส้น ถึงจะเห็นว่าตัวไหนตกและตัวไหนยังปกติ */
+    if (isMicro) {
+      const nS = microSel ? microSel.nSeries : 1;
+      return microUnits.map((u) => {
+        const g = groups.find((x) => x.key === idx.byPanel[u.uids[0]]) || groups[0] || {};
+        return { id: "m:" + u.id, name: "ไมโคร " + u.id, sid: u.id, n: nS,
+          tilt: g.tilt == null ? 0 : g.tilt, az: g.az == null ? 180 : g.az,
+          gk: g.key, uids: u.uids, count: u.n, label: g.label, micro: true };
+      });
+    }
     /* ทิศ 0° = หันเหนือ ห้ามใช้ || เพราะ 0 จะกลายเป็น 180 (เคยพลาดตรงนี้ ผลลัพธ์ด้านเหนือเลยเท่าด้านใต้) */
     return (plan && plan.strings ? plan.strings : []).map((s) => ({ id: "s:" + s.id, name: "สตริง " + s.id, sid: s.id, n: s.n,
       tilt: s.tilt == null ? 0 : s.tilt, az: s.az == null ? 180 : s.az, gk: s.groupKey, label: s.label }));
-  }, [isMicro, groups, plan]);
+  }, [isMicro, groups, plan, microUnits, idx, microSel && microSel.nSeries]);
   const monthNow = new Date(siteDate + "T12:00:00").getMonth();
   /* ── จำลองทั้งวันอัตโนมัติ: แสง เงา อุณหภูมิ กำลังไฟ ทุก 15 นาที ตั้งแต่เช้าถึงเย็น ──
      ทุกอย่างในขั้นนี้อ่านจากผลจำลองชุดเดียวกัน ตัวเลขบนกราฟกับในตารางจึงตรงกันเสมอ */
@@ -829,7 +1038,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
     ? ivDaySim(st, panel, groups, idx.byPanel, {
         lat: st.sun && st.sun.lat, lng: st.sun && st.sun.lng, date: siteDate,
         tAmb: site.tAmb, ghi: site.ghi, refHour: site.hour == null ? 12 : site.hour,
-        albedo: S.env && S.env.albedo, elec: elecCfg, acKw, invEff: (S.inv && S.inv.eff) != null ? S.inv.eff : (isMicro ? 96.5 : inv.eff),
+        albedo: S.env && S.env.albedo, elec: elecCfg, acKw, invEff: isMicro ? (microSel ? microSel.eff : 96.5) : ((S.inv && S.inv.eff) != null ? S.inv.eff : inv.eff),
         dcLoss: energy ? 1 - energy.dcLoss / 100 : 0.92 })
     : null), [st, panel, groups, idx, siteDate, site.tAmb, site.ghi, site.hour, S.env, acKw, S.inv, isMicro, inv.eff, energy && energy.dcLoss, S.elec, hc.half]);
   /* เวลาที่ใช้ดู — ถ้ายังไม่ได้เลือกเอง ระบบเลือก "ช่วงที่เหมาะจะออกไปวัดที่สุด" ให้ (แดดแรง ไม่มีเงา) */
@@ -838,13 +1047,15 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   /* จำลองทั้ง 12 เดือน — วันตัวแทนของแต่ละเดือน ใช้ทำแผนที่ เดือน × ชั่วโมง */
   const [mapMode, setMapMode] = React.useState("light");
   /* หนักสุดในหน้านี้ (12 วันจำลอง) — คำนวณต่อเมื่อเปิดมาถึงขั้นตรวจวัดจริง ๆ ไม่ถ่วงตอนเปิดหน้าแรก */
-  const year = React.useMemo(() => (step >= 2 && typeof ivYearSim === "function" && groups.length && panel.wp
-    ? ivYearSim(st, panel, groups, idx.byPanel, {
-        lat: st.sun && st.sun.lat, lng: st.sun && st.sun.lng, year: +siteDate.slice(0, 4) || undefined,
-        tAmb: site.tAmb, albedo: S.env && S.env.albedo, elec: elecCfg, acKw,
-        invEff: (S.inv && S.inv.eff) != null ? S.inv.eff : (isMicro ? 96.5 : inv.eff),
-        dcLoss: energy ? 1 - energy.dcLoss / 100 : 0.92 })
-    : null), [step >= 2, st, panel, groups, idx, siteDate.slice(0, 4), site.tAmb, S.env, acKw, S.inv, isMicro, inv.eff, energy && energy.dcLoss, S.elec, hc.half]);
+  const yearOpt = {
+    lat: st.sun && st.sun.lat, lng: st.sun && st.sun.lng, year: +siteDate.slice(0, 4) || undefined,
+    tAmb: site.tAmb, albedo: S.env && S.env.albedo, elec: elecCfg, acKw,
+    invEff: isMicro ? (microSel ? microSel.eff : 96.5) : ((S.inv && S.inv.eff) != null ? S.inv.eff : inv.eff),
+    dcLoss: energy ? 1 - energy.dcLoss / 100 : 0.92,
+  };
+  const canYear = typeof ivYearSim === "function" && groups.length > 0 && panel.wp > 0;
+  const year = React.useMemo(() => (step >= 2 && canYear ? ivYearSim(st, panel, groups, idx.byPanel, yearOpt) : null),
+    [step >= 2, st, panel, groups, idx, siteDate.slice(0, 4), site.tAmb, S.env, acKw, S.inv, isMicro, inv.eff, energy && energy.dcLoss, S.elec, hc.half]);
   const simRow = sim ? sim.rows.reduce((a, r) => (Math.abs(r.h - simHour) < Math.abs(a.h - simHour) ? r : a), sim.rows[0]) : null;
   const shadeAuto = site.shadeAuto !== false;
   /* เงารายแผง ณ เวลาที่ดู — ใช้สร้างเส้น I-V แบบมีขั้นบันไดของสตริงที่โดนบัง */
@@ -855,24 +1066,25 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
     if (!par) return [];
     return ivUnits.map((u) => {
       const m = meas[u.id] || {};
-      /* เงาอ่านจากผลจำลอง ณ เวลานั้น (มาจากการยิงลำแสงจริงในโมเดล 3 มิติ) */
+      /* แผงที่อยู่ในหน่วยนี้จริง ๆ — ไมโครใช้ผังที่จับคู่ไว้ · สตริงใช้ผังที่ทาสีไว้ */
+      const uids = shadeUid && shadeUid.byUid
+        ? (isMicro ? (u.uids || []) : foot.panels.filter((p) => effAssign[p.uid] === u.sid).map((p) => p.uid))
+        : [];
+      const fracs = uids.map((x) => (shadeUid.byUid[x] || 0));
+      const el = fracs.length ? ivElecLoss(fracs, elecCfg) : null;
+      /* เงาอ่านจากผลจำลอง ณ เวลานั้น (มาจากการยิงลำแสงจริงในโมเดล 3 มิติ)
+         ไมโครคิดจากแผงของตัวเองล้วน ๆ ไม่เฉลี่ยทั้งกลุ่ม — ไม่งั้นทุกตัวจะได้ค่าเท่ากันหมด
+         ซึ่งขัดกับหลักการของไมโครที่แต่ละตัวเป็นอิสระต่อกัน */
       const cell = simRow && u.gk != null ? simRow.per[u.gk] : null;
-      const auto = shadeAuto && cell ? cell.shade : null;
+      const auto = shadeAuto
+        ? (isMicro ? (el ? scR(el.elec * 100, 1) : (cell ? cell.shade : null)) : (cell ? cell.shade : null))
+        : null;
       const shade = m.shade != null && m.shade !== "" ? scNum(m.shade) : (auto != null ? auto : scNum(site.shade, 0));
       const irr = ivIrradiance({ lat: st.sun && st.sun.lat, lng: st.sun && st.sun.lng, date: siteDate, hour: simHour,
         tilt: u.tilt, az: u.az, ghi: site.ghi, shade, albedo: S.env && S.env.albedo });
       const tAmb = site.tAmb != null && site.tAmb !== "" ? scNum(site.tAmb) : SC_TAMB[isFinite(monthNow) ? monthNow : 6];
       const temp = ivCellTemp(irr.poaNet, tAmb, site.wind, site.mount);
       const a = ivAssess({ panel, par, irr, temp, nSeries: u.n, nPar: 1, ageYears: site.age, meas: m });
-      /* ── เส้น I-V จริงตอนโดนเงา ──
-         แผงในสตริงต่ออนุกรมกัน เงาบังแผงเดียวจะฉุดทั้งสตริง ไดโอดบายพาสจึงตัดท่อนที่โดนบังทิ้ง
-         ทำให้เส้นหักเป็นขั้น ไม่ใช่เส้นเรียบ ๆ ที่ย่อส่วนลงมา */
-      const uids = shadeUid && shadeUid.byUid
-        ? (isMicro ? (foot.panels.filter((p) => idx.byPanel[p.uid] === u.gk).map((p) => p.uid).slice(0, 1))
-                   : foot.panels.filter((p) => effAssign[p.uid] === u.sid).map((p) => p.uid))
-        : [];
-      const fracs = uids.map((x) => (shadeUid.byUid[x] || 0));
-      const el = fracs.length ? ivElecLoss(fracs, elecCfg) : null;
       return { u, irr, temp, a, m, shade, shadeAuto: auto, fracs, el };
     });
   }, [par, ivUnits, meas, site.shade, site.tAmb, site.wind, site.mount, site.ghi, site.age, siteDate, panel, st.sun, monthNow, simRow, simHour, shadeAuto, shadeUid, foot, effAssign, isMicro, idx, S.elec]);
@@ -911,9 +1123,14 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   /* รวมทุกอย่างที่คำนวณไว้แล้วส่งให้ตัวสร้างรายงาน — ไม่คำนวณซ้ำ ตัวเลขในรายงานจึงตรงกับบนจอเป๊ะ */
   const doReport = () => {
     if (typeof suPrintReport !== "function") { alert("ยังโหลดตัวสร้างรายงานไม่สำเร็จ ลองรีเฟรชหน้าอีกครั้ง"); return; }
+    /* รายงานต้องมีข้อมูล 12 เดือนเสมอ — ถ้ากดปุ่มตั้งแต่ยังไม่ผ่านขั้นที่ 3 ให้คำนวณตรงนี้เลย
+       (ไม่งั้นจะได้รายงานที่หัวข้อทั้งปีหายไปเงียบ ๆ) */
+    const yearNow = year || (canYear ? ivYearSim(st, panel, groups, idx.byPanel, yearOpt) : null);
     suPrintReport({ job, sys: S, panel, inv, groups, plan, microSel, isMicro, energy, life, roi, roiCfg,
-      ivRows, ivDone, ivAvg, ivOutliers, site, siteDate, acKw, totalPanels, warns, foot, assign: effAssign,
-      shade3d, sim, simHour, year, snapImg });
+      ivRows, ivDone, ivAvg, ivOutliers, site, siteDate, acKw, totalPanels, warns, foot,
+      /* โหมดไมโครใช้ผัง "แผงอยู่ไมโครตัวไหน" แทนผังสตริง — ผังในรายงานจะได้ตรงกับที่เห็นบนจอ */
+      assign: isMicro ? microAssign : effAssign, microUnits, phases, phaseBins, phaseBal, uidPhase,
+      shade3d, sim, simHour, year: yearNow, snapImg });
   };
 
   return (
@@ -1077,23 +1294,76 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                 ) : (
                   <div className="p3-card">
                     <span className="p3-eb"><P3Icon name="box" size={13} />ไมโครอินเวอร์เตอร์<span className="ln" /><span style={{ fontWeight: 600 }}>แนะนำอัตราส่วนให้อัตโนมัติ</span></span>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {(microPlans || []).map((m, i) => (
-                        <button key={m.ratio} className="p3-chip" data-on={(S.microRatio || (microPlans[0] || {}).ratio) === m.ratio ? "1" : "0"}
-                          onClick={() => set({ microRatio: m.ratio })}
-                          style={{ borderRadius: 12, padding: "11px 13px", flexDirection: "column", alignItems: "stretch", gap: 6, textAlign: "left" }}>
-                          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <b style={{ fontSize: 14, fontWeight: 800 }}>แผง {m.per} : ไมโคร 1</b>
-                            {i === 0 && <span className="su-src stock" title={m.why}>แนะนำ · {m.why}</span>}
-                            <span style={{ marginLeft: "auto", fontSize: 11.5, fontWeight: 800 }}>{m.units} ตัว</span>
-                          </span>
-                          <span style={{ fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.55 }}>
-                            {m.model} · {m.acW} W/ตัว · DC/AC {m.dcAc} · รวม AC {m.acKw} kW
-                            {m.warns.length ? " · ⚠ " + m.warns[0] : ""}
-                          </span>
-                        </button>
-                      ))}
+                    {/* ── เลือกอัตราส่วนแผง : ไมโคร ── */}
+                    <div className="su-mgrid">
+                      {(microPlans || []).map((m, i) => {
+                        const on = (S.microRatio || (microPlans[0] || {}).ratio) === m.ratio;
+                        return (
+                          <button key={m.ratio} className="su-mcard" data-on={on ? "1" : "0"} data-bad={m.ok ? "0" : "1"}
+                            onClick={() => set({ microRatio: m.ratio })}>
+                            <span className="rt">
+                              <SuMicroGlyph per={m.per} mppt={m.nMppt} on={on} />
+                              <b>แผง {m.per} : ไมโคร 1</b>
+                              {i === 0 && m.ok && <span className="tag">แนะนำ</span>}
+                              {!m.ok && <span className="tag bad">สเปคไม่ผ่าน</span>}
+                            </span>
+                            <span className="mo">{m.model}</span>
+                            <span className="st">
+                              <span><i>ใช้</i><b>{m.units}</b> ตัว</span>
+                              <span><i>AC/ตัว</i><b>{m.acW}</b> W</span>
+                              <span><i>DC/AC</i><b>{m.dcAc}</b></span>
+                              <span><i>MPPT</i><b>{m.nMppt}</b> ช่อง</span>
+                            </span>
+                            <span className="wy">{m.why}</span>
+                          </button>
+                        );
+                      })}
                     </div>
+                    {microSel && (
+                      <React.Fragment>
+                        {/* ── สเปคไฟฟ้า ชุดเดียวกับสตริงอินเวอร์เตอร์ ── */}
+                        <span className="p3-eb" style={{ marginTop: 3 }}>สเปคไฟฟ้าต่อ 1 ตัว<span className="ln" />
+                          <span style={{ fontWeight: 600 }}>แก้ทับได้ ระบบจำไว้เฉพาะงานนี้</span></span>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 9 }}>
+                          <SuSpec label="กำลัง AC ต่อเนื่อง" value={microSel.spec.acW} step={50} suffix="W" src={srcOf(S.micro, stockMicroRow, "acW")} onChange={(v) => setM("acW", v)} onReset={() => setM("acW", null)} />
+                          <SuSpec label="แรงดัน DC สูงสุด" value={microSel.spec.maxVdc} step={5} suffix="V" src={srcOf(S.micro, stockMicroRow, "maxVdc")} onChange={(v) => setM("maxVdc", v)} onReset={() => setM("maxVdc", null)} />
+                          <SuSpec label="จำนวน MPPT" value={microSel.spec.mppt} step={1} suffix="ช่อง" src={srcOf(S.micro, stockMicroRow, "mppt")} onChange={(v) => setM("mppt", v)} onReset={() => setM("mppt", null)} />
+                          <SuSpec label="MPPT ต่ำสุด" value={microSel.spec.mpptVmin} step={1} suffix="V" src={srcOf(S.micro, stockMicroRow, "mpptVmin")} onChange={(v) => setM("mpptVmin", v)} onReset={() => setM("mpptVmin", null)} />
+                          <SuSpec label="MPPT สูงสุด" value={microSel.spec.mpptVmax} step={1} suffix="V" src={srcOf(S.micro, stockMicroRow, "mpptVmax")} onChange={(v) => setM("mpptVmax", v)} onReset={() => setM("mpptVmax", null)} />
+                          <SuSpec label="กระแสทำงานสูงสุด/ช่อง" value={microSel.spec.maxInA} step={0.5} suffix="A" src={srcOf(S.micro, stockMicroRow, "maxInA")} onChange={(v) => setM("maxInA", v)} onReset={() => setM("maxInA", null)} />
+                          <SuSpec label="กระแสลัดวงจรสูงสุด/ช่อง" value={microSel.spec.maxIscA} step={0.5} suffix="A" src={srcOf(S.micro, stockMicroRow, "maxIscA")} onChange={(v) => setM("maxIscA", v)} onReset={() => setM("maxIscA", null)} />
+                          <SuSpec label="รับแผงต่ำสุด" value={microSel.spec.wpMin} step={10} suffix="W" src={srcOf(S.micro, stockMicroRow, "wpMin")} onChange={(v) => setM("wpMin", v)} onReset={() => setM("wpMin", null)} />
+                          <SuSpec label="รับแผงสูงสุด" value={microSel.spec.wpMax} step={10} suffix="W" src={srcOf(S.micro, stockMicroRow, "wpMax")} onChange={(v) => setM("wpMax", v)} onReset={() => setM("wpMax", null)} />
+                          <SuSpec label="กระแสออก AC/ตัว" value={microSel.spec.outA} step={0.1} suffix="A" src={srcOf(S.micro, stockMicroRow, "outA")} onChange={(v) => setM("outA", v)} onReset={() => setM("outA", null)} />
+                          <SuSpec label="ต่อพ่วงได้/วงจร" value={microSel.spec.perBranch} step={1} suffix="ตัว" src={srcOf(S.micro, stockMicroRow, "perBranch")} onChange={(v) => setM("perBranch", v)} onReset={() => setM("perBranch", null)} />
+                          <SuSpec label="ประสิทธิภาพ" value={microSel.spec.eff} step={0.1} suffix="%" src={srcOf(S.micro, stockMicroRow, "eff")} onChange={(v) => setM("eff", v)} onReset={() => setM("eff", null)} />
+                        </div>
+                        {/* เทียบกระแสเข้า 1 ช่อง MPPT ให้เห็นทันที (แบบเดียวกับสตริง) */}
+                        {panel.imp && (
+                          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", borderTop: "1px solid var(--ln)", paddingTop: 9 }}>
+                            <span className="p3-stat" style={{ color: microSel.cur.limOp && microSel.cur.opA > microSel.cur.limOp ? "#B91C1C" : undefined }}>
+                              กระแสทำงาน (Imp) <b>{microSel.cur.opA} A</b>
+                              <span style={{ color: "var(--text-3)", fontWeight: 700 }}>&nbsp;/ {microSel.cur.limOp || "—"} A</span>
+                            </span>
+                            <span className="p3-stat" style={{ color: microSel.cur.limSc && microSel.cur.scA > microSel.cur.limSc ? "#B91C1C" : undefined }}>
+                              กระแสลัดวงจร (Isc×1.25) <b>{microSel.cur.scA} A</b>
+                              <span style={{ color: "var(--text-3)", fontWeight: 700 }}>&nbsp;/ {microSel.cur.limSc || "—"} A</span>
+                            </span>
+                            <span className="p3-stat">แผงต่อ 1 MPPT <b>{microSel.nSeries}</b> ใบ</span>
+                          </div>
+                        )}
+                        {/* จุดขายจริงของไมโคร — อธิบายให้เห็นภาพ ไม่ใช่แค่ข้อความ */}
+                        <div className="su-mfact">
+                          <span className="ic"><P3Icon name="bulb" size={14} /></span>
+                          <span>
+                            <b>ทำไมเงาบังแล้วเสียแค่แผงนั้น</b> — ไมโครติดใต้แผงและแปลงเป็น AC ตรงจุดนั้นเลย
+                            รุ่นนี้มี MPPT <b>{microSel.nMppt} ช่องอิสระ</b> ต่อแผง <b>{microSel.per} ใบ</b> จึงเท่ากับ
+                            <b> 1 ช่อง = {microSel.nSeries} แผง</b> — แต่ละแผงหาจุดทำงานของตัวเอง
+                            แผงที่โดนบังจึงตกคนเดียว ไม่ฉุดใบข้าง ๆ ต่างจากสตริงที่ทุกใบต้องใช้กระแสเท่ากัน
+                          </span>
+                        </div>
+                      </React.Fragment>
+                    )}
                     <span className="p3-note">แบบ 2:1 ประหยัดกว่าแต่แผงคู่เดียวกันต้องอยู่ทิศ/มุมเดียวกัน ระบบเช็คให้แล้วจากผัง 3 มิติ — กลุ่มไหนแผงเป็นเลขคี่จะเตือนไว้</span>
                   </div>
                 )}
@@ -1229,18 +1499,20 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
 
                 {isMicro && microSel && (
                   <div className="p3-card">
-                    <span className="p3-eb"><P3Icon name="layers" size={13} />การต่อไมโคร<span className="ln" /></span>
+                    <span className="p3-eb"><P3Icon name="layers" size={13} />การต่อไมโคร<span className="ln" />
+                      <span style={{ fontWeight: 600 }}>{microSel.model}</span></span>
                     <div className="su-scroll">
                       <table className="su-tb">
-                        <thead><tr><th>กลุ่ม</th><th>แผง</th><th>ไมโคร</th><th>หมายเหตุ</th></tr></thead>
+                        <thead><tr><th>กลุ่มทิศทาง</th><th>แผง</th><th>ไมโคร</th><th>ช่อง MPPT</th><th>หมายเหตุ</th></tr></thead>
                         <tbody>
                           {groups.map((g) => {
                             const u = Math.ceil(g.count / microSel.per), odd = microSel.per > 1 && g.count % microSel.per;
                             return (
                               <tr key={g.key}>
-                                <td style={{ maxWidth: 230 }}>{g.label}</td>
+                                <td style={{ maxWidth: 210 }}>{g.label}</td>
                                 <td><b>{g.count}</b></td>
                                 <td><b>{u}</b> ตัว</td>
+                                <td>{u * microSel.nMppt} ช่อง</td>
                                 <td style={{ color: odd ? "#B45309" : "var(--text-3)" }}>{odd ? "เหลือแผงเดี่ยว 1 แผง (ตัวสุดท้ายใช้ช่องเดียว)" : "ลงตัวพอดี"}</td>
                               </tr>
                             );
@@ -1248,11 +1520,194 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                         </tbody>
                       </table>
                     </div>
+                    {/* ── ตรวจแรงดัน/กระแสของ 1 ช่อง MPPT (= สตริงสั้น ๆ ที่มีแผง n ใบ) ── */}
+                    <span className="p3-eb" style={{ marginTop: 3 }}>ตรวจสเปคไฟฟ้าต่อ 1 ช่อง MPPT<span className="ln" />
+                      <span style={{ fontWeight: 600 }}>{microSel.nSeries} แผงต่อช่อง</span></span>
+                    <div className="su-scroll">
+                      <table className="su-tb">
+                        <thead><tr><th>รายการตรวจ</th><th>ได้</th><th>พิกัด</th><th>ผล</th></tr></thead>
+                        <tbody>
+                          {microSel.chk.checks.map((c) => (
+                            <tr key={c.k}>
+                              <td>{c.k === "voc" ? "Voc ตอนอากาศเย็น " + scNum((S.env || {}).tMin, 15) + "°C"
+                                : c.k === "hot" ? "Vmp ตอนแผงร้อน " + scNum((S.env || {}).tCellHot, 65) + "°C"
+                                : "Vmp ตอนอากาศเย็น"}</td>
+                              <td><b>{scR(c.v, 1)}</b> V</td>
+                              <td>{c.k === "hot" ? "≥ " : "≤ "}{c.lim} V</td>
+                              <td style={{ color: c.ok ? "#12794A" : "#B91C1C", fontWeight: 800 }}>{c.ok ? "ผ่าน" : "ไม่ผ่าน"}</td>
+                            </tr>
+                          ))}
+                          <tr>
+                            <td>กระแสทำงาน Imp</td><td><b>{microSel.cur.opA}</b> A</td>
+                            <td>{microSel.cur.limOp ? "≤ " + microSel.cur.limOp + " A" : "ยังไม่ระบุ"}</td>
+                            <td style={{ color: !microSel.cur.limOp ? "var(--text-3)" : microSel.cur.opA <= microSel.cur.limOp ? "#12794A" : "#B91C1C", fontWeight: 800 }}>
+                              {!microSel.cur.limOp ? "—" : microSel.cur.opA <= microSel.cur.limOp ? "ผ่าน" : "ไม่ผ่าน"}</td>
+                          </tr>
+                          <tr>
+                            <td>กระแสลัดวงจร Isc×1.25</td><td><b>{microSel.cur.scA}</b> A</td>
+                            <td>{microSel.cur.limSc ? "≤ " + microSel.cur.limSc + " A" : "ยังไม่ระบุ"}</td>
+                            <td style={{ color: !microSel.cur.limSc ? "var(--text-3)" : microSel.cur.scA <= microSel.cur.limSc ? "#12794A" : "#B91C1C", fontWeight: 800 }}>
+                              {!microSel.cur.limSc ? "—" : microSel.cur.scA <= microSel.cur.limSc ? "ผ่าน" : "ไม่ผ่าน"}</td>
+                          </tr>
+                          {(microSel.spec.wpMin > 0 || microSel.spec.wpMax > 0) && (
+                            <tr>
+                              <td>กำลังแผงที่รองรับ</td><td><b>{scNum(panel.wp)}</b> W</td>
+                              <td>{microSel.spec.wpMin || "—"} – {microSel.spec.wpMax || "—"} W</td>
+                              <td style={{ color: (!microSel.spec.wpMin || scNum(panel.wp) >= microSel.spec.wpMin) && (!microSel.spec.wpMax || scNum(panel.wp) <= microSel.spec.wpMax) ? "#12794A" : "#B91C1C", fontWeight: 800 }}>
+                                {(!microSel.spec.wpMin || scNum(panel.wp) >= microSel.spec.wpMin) && (!microSel.spec.wpMax || scNum(panel.wp) <= microSel.spec.wpMax) ? "ผ่าน" : "ไม่ผ่าน"}</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                    <span className="p3-note">
+                      ไมโครมองเป็น “สตริงสั้น ๆ” ได้เลย — 1 ช่อง MPPT = 1 สตริงที่มีแผง {microSel.nSeries} ใบ
+                      จึงตรวจแรงดัน/กระแสด้วยเกณฑ์เดียวกับสตริงอินเวอร์เตอร์ทุกประการ
+                    </span>
+
+                    {/* ── ผัง 2 มิติ: จัดแผงเข้าตัวไมโครเอง (แบบเดียวกับจัดสตริง) ── */}
+                    <span className="p3-eb" style={{ marginTop: 3 }}><P3Icon name="plan" size={13} />จัดแผงเข้าตัวไมโคร<span className="ln" />
+                      <span style={{ fontWeight: 600 }}>{microManual ? "แก้เอง" : "ระบบจัดให้"}</span></span>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                      {microUnits.map((u) => (
+                        <button key={u.id} className="p3-chip" data-on={activeMu === u.id ? "1" : "0"}
+                          onClick={() => setActiveMu(u.id)}
+                          title={u.mixed ? "ตัวนี้คร่อมกลุ่มทิศทาง — แผงคนละทิศห้ามอยู่ไมโครตัวเดียวกัน"
+                            : u.over ? "ใส่แผงเกินที่ไมโครรุ่นนี้รับได้" : "ไมโคร " + u.id + " · " + u.gLabel}
+                          style={{ borderColor: activeMu === u.id ? suColor(u.id) : "var(--ln2)",
+                            background: activeMu === u.id ? suColor(u.id) + "1E" : "var(--surface)",
+                            color: activeMu === u.id ? suColor(u.id) : "var(--text-2)" }}>
+                          <span className="dot" style={{ background: suColor(u.id), width: 9, height: 9 }} />
+                          ไมโคร {u.id} · <b>{u.n}</b>
+                          {(u.mixed || u.over) && <span style={{ color: "#B91C1C", fontWeight: 800 }}>!</span>}
+                        </button>
+                      ))}
+                      <button className="p3-chip" onClick={() => setActiveMu(nextMu)} data-on={activeMu === nextMu ? "1" : "0"}
+                        title="เริ่มไมโครตัวใหม่ แล้วแตะแผงที่จะใส่"><P3Icon name="plus" size={12} />ไมโครใหม่</button>
+                      <button className="p3-chip" onClick={() => setActiveMu(0)} data-on={activeMu === 0 ? "1" : "0"}
+                        title="แตะแผงเพื่อเอาออกจากไมโคร" style={{ borderStyle: "dashed" }}><P3Icon name="trash" size={12} />เอาออก</button>
+                      <span style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
+                        {phases === 3 && (
+                          <span className="p3-seg wide">
+                            {[["unit", "สีตามไมโคร"], ["phase", "สีตามเฟส"]].map(([k, t]) => (
+                              <button key={k} data-on={muColorBy === k ? "1" : "0"} onClick={() => setMuColorBy(k)}>{t}</button>
+                            ))}
+                          </span>
+                        )}
+                        {microManual ? (
+                          <button className="p3-b sm" onClick={() => set({ microAssign: {}, microManual: false })}
+                            title="ทิ้งที่แก้เองทั้งหมด กลับไปใช้ที่ระบบจับคู่ให้"><P3Icon name="reset" size={13} />คืนค่าที่ระบบจัด</button>
+                        ) : (
+                          <button className="p3-b sm" onClick={() => set({ microAssign: microAuto.assign, microManual: true })}
+                            title="ยึดการจับคู่ชุดนี้ไว้ แล้วเริ่มแก้เอง"><P3Icon name="check" size={13} />ยึดชุดนี้ไว้แก้เอง</button>
+                        )}
+                      </span>
+                    </div>
+                    <SuLayout2D foot={foot} assign={microAssign} active={activeMu !== null} onPaint={paintMu}
+                      unitName="ไมโคร"
+                      labels={phases === 3 ? uidPhase : null}
+                      colorOf={phases === 3 && muColorBy === "phase"
+                        ? (uid) => SU_PHCOLOR[uidPhase[uid]] || "#94A3B8" : null} />
+                    <span className="p3-note">
+                      {microSel.per > 1
+                        ? "ระบบจับคู่แผงที่ติดกันบนหลังคาให้แล้ว (สายจะได้สั้น) — แตะหรือลากบนแผงเพื่อย้ายเข้าตัวที่เลือกไว้ด้านบน · แผงคนละทิศห้ามอยู่ตัวเดียวกัน"
+                        : "อัตราส่วน 1:1 — แผงทุกใบมีไมโครของตัวเอง สีในผังคือหมายเลขตัว ไม่ต้องจับคู่อะไรเพิ่ม"}
+                      {phases === 3 ? " · ตัวหนังสือบนแผงคือเฟสที่แผงนั้นลง (L1/L2/L3)" : ""}
+                      {" · มองจากด้านบน ทิศเหนืออยู่บน"}
+                    </span>
+                    {(microUnassigned > 0 || microUnits.some((u) => u.mixed || u.over)) && (
+                      <div className="su-alert warn"><P3Icon name="height" size={14} /><span>
+                        {microUnassigned > 0 && <React.Fragment>ยังมีแผง <b>{microUnassigned}</b> ใบที่ไม่ได้อยู่ไมโครตัวไหน </React.Fragment>}
+                        {microUnits.filter((u) => u.mixed).length > 0 && <React.Fragment>· มี <b>{microUnits.filter((u) => u.mixed).length}</b> ตัวที่คร่อมกลุ่มทิศทาง (แผงคนละทิศต้องแยกตัวกัน) </React.Fragment>}
+                        {microUnits.filter((u) => u.over).length > 0 && <React.Fragment>· มี <b>{microUnits.filter((u) => u.over).length}</b> ตัวที่ใส่แผงเกิน {microSel.per} ใบ</React.Fragment>}
+                      </span></div>
+                    )}
+                    {/* ── แบ่งเฟส: ไมโครเป็นอุปกรณ์ 1 เฟส ระบบ 3 เฟสต้องเกลี่ยลง L1/L2/L3 ── */}
+                    <span className="p3-eb" style={{ marginTop: 3 }}><P3Icon name="grid" size={13} />ระบบไฟและการแบ่งเฟส<span className="ln" />
+                      <span className="p3-seg wide">
+                        {[[1, "1 เฟส"], [3, "3 เฟส"]].map(([v, t]) => (
+                          <button key={v} data-on={phases === v ? "1" : "0"} onClick={() => set({ phases: v })}>{t}</button>
+                        ))}
+                      </span>
+                    </span>
+                    {phases === 1 ? (
+                      <span className="p3-note">ระบบ 1 เฟส — ไมโครทุกตัวลงเฟสเดียวกันหมด ไม่ต้องแบ่งกลุ่ม
+                        {jobPhase === 3 ? " · หมายเหตุ: ข้อมูลงานระบุไว้เป็น 3 เฟส" : ""}</span>
+                    ) : (
+                      <React.Fragment>
+                        <div className="su-phgrid">
+                          {phaseBins.map((b) => (
+                            <div key={b.phase} className="su-phcard" data-ph={b.phase}>
+                              <span className="hd"><b>{b.label}</b><i>{b.count} ตัว</i></span>
+                              <span className="big">{b.acKw}<small>kW</small></span>
+                              <span className="sub">{b.panels} แผง · {b.amps} A{b.branches ? " · " + b.branches + " วงจร" : ""}</span>
+                              <span className="bar"><i style={{ width: (phaseBins.reduce((a, x) => Math.max(a, x.dcW), 1)
+                                ? b.dcW / phaseBins.reduce((a, x) => Math.max(a, x.dcW), 1) * 100 : 0) + "%" }} /></span>
+                              <span className="us">{b.units.map((u) => u.id).join(" · ") || "—"}</span>
+                            </div>
+                          ))}
+                        </div>
+                        {phaseBal && (
+                          <div className={"su-alert " + (phaseBal.ok ? "good" : "warn")}>
+                            <P3Icon name={phaseBal.ok ? "check" : "height"} size={14} />
+                            <span>
+                              {phaseBal.ok
+                                ? <React.Fragment>เฟสสมดุลดี — ต่างกัน <b>{phaseBal.spread}</b> ตัว ({phaseBal.pct}% ของกำลัง) อยู่ในเกณฑ์ {phaseBal.tol}%</React.Fragment>
+                                : <React.Fragment>เฟสไม่สมดุล — เฟสที่หนักกับเบาต่างกัน <b>{phaseBal.pct}%</b> ({phaseBal.spread} ตัว) เกินเกณฑ์ {phaseBal.tol}% ควรเกลี่ยใหม่</React.Fragment>}
+                            </span>
+                          </div>
+                        )}
+                        {/* ย้ายเฟสรายตัว — ระบบเกลี่ยให้แล้ว แต่หน้างานอาจต้องสลับตามตำแหน่งสายจริง */}
+                        <div className="su-scroll">
+                          <table className="su-tb">
+                            <thead><tr><th>ไมโคร</th><th>แผง</th><th>กลุ่มทิศทาง</th><th>เฟส</th></tr></thead>
+                            <tbody>
+                              {phaseBins.reduce((all, b) => all.concat(b.units.map((u) => ({ u, b }))), [])
+                                .sort((a, z) => a.u.id - z.u.id).map(({ u, b }) => (
+                                <tr key={u.id}>
+                                  <td><span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                                    <span style={{ width: 9, height: 9, borderRadius: 99, background: suColor(u.id) }} />
+                                    <b>ไมโคร {u.id}</b></span></td>
+                                  <td>{u.n}</td>
+                                  <td style={{ maxWidth: 190 }}>{u.gLabel}</td>
+                                  <td>
+                                    <span className="su-phpick">
+                                      {[1, 2, 3].map((ph) => (
+                                        <button key={ph} data-on={b.phase === ph ? "1" : "0"} data-ph={ph}
+                                          title={(S.microPhase || {})[u.id] === ph ? "ล็อกไว้เอง — กดซ้ำเพื่อให้ระบบเกลี่ยเอง" : "ย้ายไปเฟสนี้"}
+                                          onClick={() => setUnitPhase(u.id, (S.microPhase || {})[u.id] === ph ? null : ph)}>
+                                          L{ph}{(S.microPhase || {})[u.id] === ph ? "•" : ""}
+                                        </button>
+                                      ))}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        <span className="p3-note">
+                          ระบบเกลี่ยให้กำลังแต่ละเฟสใกล้เคียงกันที่สุดแล้ว (ไมโคร {microUnits.length} ตัว →{" "}
+                          {phaseBins.map((b) => b.count).join("/")}) — กด L1/L2/L3 เพื่อล็อกตัวไหนไว้เฟสไหนเอง จุด • คือตัวที่ล็อกไว้
+                          ที่เหลือระบบจะเกลี่ยรอบ ๆ ให้ใหม่เอง
+                          {Object.keys(S.microPhase || {}).length > 0 && (
+                            <button className="p3-lnk" style={{ marginLeft: 6 }} onClick={() => set({ microPhase: {} })}>ล้างที่ล็อกไว้</button>
+                          )}
+                        </span>
+                      </React.Fragment>
+                    )}
+
                     <div style={{ display: "flex", gap: 14, flexWrap: "wrap", borderTop: "1px solid var(--ln)", paddingTop: 9 }}>
-                      <span className="p3-stat">ไมโครรวม <b>{microSel.units}</b> ตัว</span>
+                      <span className="p3-stat">ไมโครรวม <b>{microUnits.length || microSel.units}</b> ตัว
+                        {microManual && microUnits.length !== microSel.units ? <span style={{ color: "var(--text-3)", fontWeight: 700 }}>&nbsp;(จัดเอง)</span> : null}</span>
                       <span className="p3-stat">DC <b>{microSel.dcKw}</b> kWp</span>
                       <span className="p3-stat">AC <b>{microSel.acKw}</b> kW</span>
                       <span className="p3-stat">DC/AC <b>{microSel.dcAc}</b></span>
+                      <span className="p3-stat">กระแส AC รวม <b>{microSel.acAmpTotal}</b> A</span>
+                      {microSel.branches > 0 && (
+                        <span className="p3-stat" title={"ต่อพ่วงได้ " + microSel.perBranch + " ตัวต่อวงจร"}>
+                          วงจรย่อย AC <b>{microSel.branches}</b> วงจร</span>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1261,6 +1716,9 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                   <div key={i} className="su-alert warn"><P3Icon name="height" size={14} /><span>{w}</span></div>
                 ))}
                 {/* ข้อมูลที่ยังขาด — ไม่ใช่ความผิดพลาด แค่ยังตรวจให้ไม่ได้ */}
+                {(microSel && microSel.notes ? microSel.notes : []).map((n, i) => (
+                  <div key={"mn" + i} className="su-alert info"><P3Icon name="bulb" size={14} /><span>{n}</span></div>
+                ))}
                 {(plan && plan.notes ? plan.notes : []).map((n, i) => (
                   <div key={"n" + i} className="su-alert info"><P3Icon name="bulb" size={14} /><span>{n}</span></div>
                 ))}
@@ -1486,7 +1944,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                 {ivMain && ivMain.a && ivMain.a.exp && (
                   <div className="p3-card">
                     <span className="p3-eb"><P3Icon name="curve" size={13} />
-                      เส้น I-V {ivCur ? "ของ" + ivCur.u.name : "รวมทุก" + (isMicro ? "กลุ่ม" : "สตริง")}<span className="ln" />
+                      เส้น I-V {ivCur ? "ของ" + ivCur.u.name : "รวมทุก" + (isMicro ? "ตัว" : "สตริง")}<span className="ln" />
                       {ivCur ? (
                         <button className="p3-lnk" style={{ fontSize: 10 }} onClick={() => setIvSel(null)}>
                           <P3Icon name="layers" size={12} />แสดงทั้งหมด
@@ -1497,16 +1955,18 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                     </span>
                     <SuIvChart focusId={ivSel} stcRef={ivMain.a.expStc}
                       curves={ivRows.map((r, i) => (r.a && r.a.exp
-                        ? { id: r.u.id, name: r.u.name, curve: r.a.exp, color: suColor(r.u.sid || i + 1) } : null)).filter(Boolean)}
+                        ? { id: r.u.id, name: r.u.name, curve: r.a.exp, color: suColor(r.u.sid || i + 1),
+                            /* ไมโคร: โชว์กำลังรวมทั้งตัว (ทุกช่อง MPPT) ไม่ใช่ของช่องเดียว */
+                            watt: r.a.exp.pmax * (isMicro ? Math.max(1, Math.round((r.u.count || 1) / Math.max(1, r.u.n))) : 1) }
+                        : null)).filter(Boolean)}
                       meas={ivCur && ivCur.a.stc ? { voc: scNum(ivCur.m.voc), isc: scNum(ivCur.m.isc), vmp: scNum(ivCur.m.vmp), imp: scNum(ivCur.m.imp), pmax: scNum(ivCur.m.pmax) } : null} />
-                    <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>
-                      {ivCur
-                        ? <span><b style={{ color: suColor(ivCur.u.sid || 1) }}>━</b> {ivCur.u.name}</span>
-                        : ivRows.map((r, i) => <span key={r.u.id}><b style={{ color: suColor(r.u.sid || i + 1) }}>━</b> {r.u.name}</span>)}
-                      <span><b style={{ color: "var(--text-3)" }}>┅</b> ที่มาตรฐาน STC (1000 W/m² · 25°C)</span>
-                      {ivCur && <span><b style={{ color: "#D97706" }}>┅</b> กำลังไฟ (แกนขวา)</span>}
-                      {ivCur && ivCur.a.stc && <span><b style={{ color: "#2563EB" }}>●</b> ที่วัดได้จริง</span>}
-                    </div>
+                    {/* ชื่อเส้น+กำลังอยู่ในกรอบบนกราฟแล้ว เหลือแค่สิ่งที่กรอบนั้นไม่ได้บอก */}
+                    {ivCur && (
+                      <div className="su-ivlegend">
+                        <span className="mute"><i style={{ background: "#D97706" }} />กำลังไฟ (แกนขวา)</span>
+                        {ivCur.a.stc && <span className="mute"><i style={{ background: "#2563EB" }} />ที่วัดได้จริง</span>}
+                      </div>
+                    )}
 
                     {/* ── เงาบังนิดเดียวแต่ฉุดทั้งสตริง ── */}
                     {ivCur && ivCur.el && ivCur.el.geo > 0 && (
@@ -1523,11 +1983,11 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                     )}
 
                     {/* ── ค่าที่ควรได้ ทุกสตริง — กดแถวเพื่อเจาะดูเส้นเดียว ── */}
-                    <span className="p3-eb" style={{ marginTop: 3 }}>ค่าที่ควรได้ของทุก{isMicro ? "กลุ่ม" : "สตริง"} ณ เวลานี้<span className="ln" />
+                    <span className="p3-eb" style={{ marginTop: 3 }}>ค่าที่ควรได้ของทุก{isMicro ? "ไมโคร" : "สตริง"} ณ เวลานี้<span className="ln" />
                       <span style={{ fontWeight: 600 }}>กดแถวเพื่อดูทีละเส้น</span></span>
                     <div className="su-scroll">
                       <table className="su-tb su-pick-row">
-                        <thead><tr><th></th><th>แผง</th><th>แสง</th><th>เซลล์</th><th>Voc</th><th>Isc</th><th>Vmp</th><th>Imp</th><th>Pmax</th></tr></thead>
+                        <thead><tr><th></th><th>แผง</th>{isMicro && <th>ต่อช่อง</th>}<th>แสง</th><th>เซลล์</th><th>Voc</th><th>Isc</th><th>Vmp</th><th>Imp</th><th>{isMicro ? "Pmax/ช่อง" : "Pmax"}</th>{isMicro && <th>รวมทั้งตัว</th>}</tr></thead>
                         <tbody>
                           {ivRows.map((r, i) => r.a && r.a.exp && (
                             <tr key={r.u.id} data-on={ivSel === r.u.id ? "1" : "0"}
@@ -1536,17 +1996,20 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                               <td><span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                                 <span style={{ width: 9, height: 9, borderRadius: 99, background: suColor(r.u.sid || i + 1) }} />
                                 <b>{r.u.name}</b></span></td>
-                              <td>{r.u.n}</td>
+                              <td><b>{isMicro ? (r.u.count || r.u.n) : r.u.n}</b></td>
+                              {isMicro && <td>{r.u.n} ใบ</td>}
                               <td>{r.a.cond.g}</td><td>{scR(r.a.cond.tc, 0)}°C</td>
                               <td>{scR(r.a.exp.voc, 1)}</td><td>{scR(r.a.exp.isc, 2)}</td>
                               <td>{scR(r.a.exp.vmp, 1)}</td><td>{scR(r.a.exp.imp, 2)}</td>
                               <td><b>{scR(r.a.exp.pmax, 0)}</b> W</td>
+                              {/* ไมโคร 1 ตัวมีหลายช่อง MPPT — กำลังรวมของตัวนั้นคือทุกช่องบวกกัน */}
+                              {isMicro && <td><b>{scR(r.a.exp.pmax * Math.max(1, Math.round((r.u.count || 1) / Math.max(1, r.u.n))), 0)}</b> W</td>}
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
-                    <span className="p3-note">หน่วย: แสง W/m² · Voc/Vmp เป็นโวลต์ · Isc/Imp เป็นแอมป์ — พกตารางนี้ไปหน้างานได้เลย ถ้าวัดได้ต่างจากนี้เกิน 5% ค่อยไล่หาสาเหตุ</span>
+                    <span className="p3-note">หน่วย: แสง W/m² · Voc/Vmp เป็นโวลต์ · Isc/Imp เป็นแอมป์ — พกตารางนี้ไปหน้างานได้เลย ถ้าวัดได้ต่างจากนี้เกิน 5% ค่อยไล่หาสาเหตุ{isMicro ? " · ไมโคร 1 ตัวรับแผง " + (microSel ? microSel.per : 1) + " ใบ แต่แยกเป็นช่อง MPPT อิสระช่องละ " + (microSel ? microSel.nSeries : 1) + " ใบ ค่าไฟฟ้าในตารางจึงเป็นของ 1 ช่อง (ที่เครื่องวัดอ่านได้ตอนถอดสายมาวัดทีละเส้น) ส่วน “รวมทั้งตัว” คือทุกช่องบวกกัน · เส้นของแต่ละตัวคิดจากเงาที่ตกบนแผงของตัวนั้นเองล้วน ๆ ตัวที่โดนบังจึงต่ำลงคนเดียว ไม่ลากตัวอื่นลงไปด้วย" : ""}</span>
 
                   </div>
                 )}

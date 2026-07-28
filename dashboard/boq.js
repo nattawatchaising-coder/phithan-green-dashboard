@@ -15,10 +15,25 @@
   // PANELS = รายการแผงที่ใช้งานจริง (สะท้อนคลังสินค้า) — setPanels() จะ rebuild อาเรย์นี้
   const PANELS = DEFAULT_PANELS.map((p) => Object.assign({}, p));
 
-  // ── ไมโครอินเวอร์เตอร์: perInverter = จำนวนแผงต่อ 1 ตัว ──
+  /* ── ไมโครอินเวอร์เตอร์ ──
+     perInverter = จำนวนแผงต่อ 1 ตัว · mppt = จำนวนช่อง MPPT อิสระต่อ 1 ตัว
+     รุ่นในตลาด (Hoymiles HMS-2T, APsystems DS3) ให้ MPPT แยกอิสระ "ช่องละ 1 แผง"
+     แม้จะเป็นรุ่น 2 แผงต่อตัว — แผงคู่กันจึงไม่ฉุดกันเอง (ต่างจากสตริงอินเวอร์เตอร์)
+     สเปคไฟฟ้าใช้ชื่อฟิลด์ชุดเดียวกับสตริงอินเวอร์เตอร์ เพื่อให้ตรวจแรงดัน/กระแสด้วยโค้ดเดียวกันได้
+       maxVdc = แรงดัน DC สูงสุดที่ทนได้ · mpptVmin/mpptVmax = ช่วงแรงดันที่ MPPT ทำงาน
+       maxInA/maxIscA = กระแสทำงาน/ลัดวงจรสูงสุดต่อ 1 ช่อง · wpMin/wpMax = ช่วงกำลังแผงที่รองรับ
+       acW = กำลัง AC ต่อเนื่องต่อตัว · acWPeak = กำลังสูงสุดชั่วขณะ · outA = กระแสออกสูงสุดต่อตัว
+       perBranch = ต่อพ่วงได้กี่ตัวต่อ 1 วงจรย่อย AC · eff = ประสิทธิภาพแปลงไฟ (CEC) */
+  /* ค่าที่ใส่ไว้ = เฉพาะที่เหมือนกันแทบทุกยี่ห้อของไมโครระดับแผง (maxVdc 60V · MPPT 16–60V)
+     ส่วนพิกัดกระแส/ช่วงกำลังแผง/จำนวนตัวต่อวงจร ต้องกรอกจากดาต้าชีตของรุ่นที่ใช้จริง
+     ปล่อยเป็น 0 ไว้ ระบบจะขึ้นว่า "ยังไม่ระบุ" แทนที่จะเตือนผิด ๆ จากค่าที่เดาเอา */
   const MICRO = [
-    { ratio: "1:1", model: "ATMOCE Micro-inverter 500Watt 1:1", perInverter: 1 },
-    { ratio: "2:1", model: "ATMOCE Micro-inverter 1250Watt 2:1 ", perInverter: 2 },
+    { ratio: "1:1", model: "ATMOCE Micro-inverter 500Watt 1:1", perInverter: 1, mppt: 1,
+      maxVdc: 60, mpptVmin: 16, mpptVmax: 60, maxInA: 0, maxIscA: 0, wpMin: 0, wpMax: 0,
+      acW: 500, acWPeak: 500, acV: 230, outA: 0, perBranch: 0, eff: 96.5 },
+    { ratio: "2:1", model: "ATMOCE Micro-inverter 1250Watt 2:1", perInverter: 2, mppt: 2,
+      maxVdc: 60, mpptVmin: 16, mpptVmax: 60, maxInA: 0, maxIscA: 0, wpMin: 0, wpMax: 0,
+      acW: 1250, acWPeak: 1250, acV: 230, outA: 0, perBranch: 0, eff: 96.5 },
   ];
   // อินเวอร์เตอร์ String/Hybrid (ตั้งสเปคจากคลัง) — setInverters() จะ rebuild อาเรย์นี้
   const INVERTERS = [];

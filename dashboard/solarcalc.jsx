@@ -351,32 +351,165 @@ function scAutoAssign(footPanels, byPanel, groups, panel, inv, env, opt) {
   return assign;
 }
 
-/* ── ไมโครอินเวอร์เตอร์: เทียบ 1:1 กับ 2:1 ──
-   กติกา 2:1 คือแผง 2 แผงที่ต่อตัวเดียวกันต้องทิศ/มุมเดียวกัน จึงคิดแยกรายกลุ่ม */
-function scMicroPlan(groups, panel, micros) {
+/* ── จัดแผงเข้า "ตัวไมโคร" อัตโนมัติ ──
+   ไมโคร 1 ตัวรับแผง per ใบ และแผงที่อยู่ตัวเดียวกันต้องอยู่กลุ่มทิศ/มุมเดียวกัน
+   จับคู่แผงที่อยู่ "ติดกันจริงบนหลังคา" (เรียงตามแถวแล้วตามคอลัมน์) สายจะได้สั้นและเดินตามผังง่าย
+   คืน { assign: { uid: หมายเลขตัว }, units: [{ id, gk, uids[], n }] } */
+function scMicroAssign(panels, byPanel, groups, per) {
+  const P = Math.max(1, Math.round(per || 1));
+  const assign = {}, units = [];
+  (groups || []).forEach((g) => {
+    const mine = (panels || []).filter((p) => byPanel[p.uid] === g.key);
+    /* เรียงเป็นแถวก่อน (แกน z = เหนือ→ใต้) แล้วค่อยซ้าย→ขวา ในแถวเดียวกัน
+       เผื่อความคลาดเคลื่อนของ z เล็กน้อยด้วยการปัดเป็นช่วงละ 0.5 ม. */
+    mine.sort((a, b) => (Math.round(a.cz * 2) - Math.round(b.cz * 2)) || (a.cx - b.cx));
+    for (let i = 0; i < mine.length; i += P) {
+      const chunk = mine.slice(i, i + P);
+      const id = units.length + 1;
+      chunk.forEach((p) => { assign[p.uid] = id; });
+      units.push({ id, gk: g.key, gLabel: g.label, uids: chunk.map((p) => p.uid), n: chunk.length, full: chunk.length === P });
+    }
+  });
+  return { assign, units };
+}
+
+/* ── แบ่งไมโครลงเฟส (ระบบ 3 เฟส) ──
+   ไมโครแทบทุกรุ่นเป็นอุปกรณ์ 1 เฟส พอเอาเข้าระบบ 3 เฟสจึงต้องกระจายตัวลง L1/L2/L3 เอง
+   ให้กำลังแต่ละเฟสใกล้เคียงกันที่สุด (เช่น 10 ตัว → 4/3/3) ไม่งั้นเฟสที่หนักจะแรงดันตกกว่าเพื่อน
+   วิธี: เรียงตัวที่กำลังมากไปน้อย แล้วหย่อนลงเฟสที่เบาที่สุดทีละตัว (greedy — ได้ผลต่างน้อยสุดเสมอ
+   เมื่อทุกตัวกำลังเท่ากัน และเข้าใกล้ค่าที่ดีที่สุดเมื่อกำลังไม่เท่ากัน)
+   override = { <หมายเลขตัว>: เฟส 1..n } สำหรับกรณีช่างอยากย้ายเฟสเอง
+   คืน [{ phase, label, units[], count, panels, dcW, acW, amps, branches }] */
+function scMicroPhases(units, opt) {
+  opt = opt || {};
+  const n = Math.max(1, Math.round(scNum(opt.phases, 1)));
+  const wp = scNum(opt.wp);
+  const acWEach = scNum(opt.acW);
+  const acV = scNum(opt.acV, 230);
+  const perBranch = Math.max(0, Math.round(scNum(opt.perBranch)));
+  const ov = opt.override || {};
+  const L = ["L1", "L2", "L3"];
+  const bins = [];
+  for (let i = 0; i < n; i++) bins.push({ phase: i + 1, label: n > 1 ? (L[i] || "L" + (i + 1)) : "1 เฟส", units: [], panels: 0 });
+
+  const list = (units || []).slice();
+  /* ตัวที่ช่างระบุเฟสไว้เองต้องลงตามนั้นก่อน แล้วค่อยเกลี่ยที่เหลือรอบ ๆ */
+  const rest = [];
+  list.forEach((u) => {
+    const p = Math.round(scNum(ov[u.id], 0));
+    if (p >= 1 && p <= n) { bins[p - 1].units.push(u); bins[p - 1].panels += u.n; }
+    else rest.push(u);
+  });
+  rest.sort((a, b) => b.n - a.n || a.id - b.id);
+  rest.forEach((u) => {
+    /* เฟสที่เบาที่สุด — เท่ากันให้เอาเฟสซ้ายสุด ผลลัพธ์จะได้คงที่ ไม่สลับไปมาทุกครั้งที่คำนวณ */
+    let best = bins[0];
+    for (let i = 1; i < bins.length; i++) if (bins[i].panels < best.panels) best = bins[i];
+    best.units.push(u); best.panels += u.n;
+  });
+
+  return bins.map((b) => {
+    b.units.sort((x, y) => x.id - y.id);
+    const acW = b.units.length * acWEach;
+    return { phase: b.phase, label: b.label, units: b.units, count: b.units.length, panels: b.panels,
+      dcW: scR(b.panels * wp, 0), acW: scR(acW, 0), acKw: scR(acW / 1000, 2),
+      amps: acV ? scR(acW / acV, 1) : 0,
+      branches: perBranch ? Math.ceil(b.units.length / perBranch) : 0 };
+  });
+}
+
+/* สรุปความสมดุลของเฟส — ต่างกันกี่ตัว/กี่ % และผ่านเกณฑ์ที่ตั้งไว้ไหม */
+function scPhaseBalance(bins, tolPct) {
+  const tol = scNum(tolPct, 10);
+  if (!bins || bins.length < 2) return { ok: true, spread: 0, pct: 0, maxCount: 0, minCount: 0 };
+  const cs = bins.map((b) => b.count), ws = bins.map((b) => b.dcW);
+  const maxW = Math.max.apply(null, ws), minW = Math.min.apply(null, ws);
+  const pct = maxW > 0 ? scR((maxW - minW) / maxW * 100, 1) : 0;
+  return { ok: pct <= tol, spread: Math.max.apply(null, cs) - Math.min.apply(null, cs), pct,
+    maxCount: Math.max.apply(null, cs), minCount: Math.min.apply(null, cs), tol };
+}
+
+/* สเปคไมโครที่ใช้จริง = คลัง → ค่าที่แก้ทับเฉพาะงาน (ลำดับเดียวกับ scInvSpec) */
+const SC_MICRO_EXTRA = { perInverter: 1, mppt: 1, maxVdc: 60, mpptVmin: 16, mpptVmax: 60,
+  maxInA: 14, maxIscA: 18, wpMin: 0, wpMax: 0, acW: 0, acWPeak: 0, acV: 230, outA: 0, perBranch: 0, eff: 96.5 };
+
+function scMicroSpec(sys) {
+  const B = window.BOQ || {};
+  const ratio = (sys && sys.microRatio) || "";
+  const stock = (B.MICRO || []).find((m) => m.ratio === ratio) || (B.MICRO || [])[0] || {};
+  return Object.assign({}, SC_MICRO_EXTRA, stock, (sys && sys.micro) || {});
+}
+
+/* จำนวนแผงต่อ 1 ช่อง MPPT — ตัวเลขนี้คือหัวใจของไมโคร
+   1 = ทุกแผงมี MPPT ของตัวเอง เงาบังใบไหนเสียเฉพาะใบนั้น (รุ่นในตลาดเป็นแบบนี้เกือบทั้งหมด
+   แม้เป็นรุ่น 2 แผงต่อตัว เพราะให้ MPPT มา 2 ช่องอิสระ) */
+function scMicroPerMppt(mi) {
+  const per = Math.max(1, Math.round(scNum(mi.perInverter, 1)));
+  const nM = Math.max(1, Math.round(scNum(mi.mppt, per)));
+  return Math.max(1, Math.ceil(per / nM));
+}
+
+/* ── ไมโครอินเวอร์เตอร์: ตรวจสเปคไฟฟ้าแบบเดียวกับสตริง ──
+   มอง 1 ช่อง MPPT = 1 สตริงสั้น ๆ ที่มีแผงกี่ใบก็ตามที่ต่ออนุกรมเข้าช่องนั้น
+   (1:1 → สตริงละ 1 แผง · 2:1 ที่มี MPPT 2 ช่อง → ก็ยังสตริงละ 1 แผง)
+   กติกา 2:1 คือแผง 2 แผงที่ต่อตัวเดียวกันต้องอยู่ทิศ/มุมเดียวกัน จึงคิดแยกรายกลุ่ม */
+function scMicroPlan(groups, panel, micros, env, sys) {
   const wp = scNum(panel.wp);
-  return (micros || []).map((m) => {
+  const total = (groups || []).reduce((a, g) => a + g.count, 0);
+  return (micros || []).map((raw) => {
+    /* ถ้ารุ่นนี้คือรุ่นที่ผู้ใช้เลือกอยู่ ให้ค่าที่แก้ทับเองมีผลด้วย */
+    const m = Object.assign({}, SC_MICRO_EXTRA, raw,
+      (sys && sys.microRatio === raw.ratio && sys.micro) ? sys.micro : {});
     const per = Math.max(1, Math.round(scNum(m.perInverter, 1)));
+    const nSeries = scMicroPerMppt(m);                          // แผงอนุกรมต่อ 1 ช่อง MPPT
+    const nMppt = Math.max(1, Math.round(scNum(m.mppt, per)));
     const acW = scNum(m.acW) || scNum((/(\d+(?:\.\d+)?)\s*w/i.exec(m.model || "") || [])[1]) || per * 400;
     let units = 0, odd = 0;
     (groups || []).forEach((g) => {
       units += Math.ceil(g.count / per);
       if (per > 1 && g.count % per) odd++;                       // กลุ่มที่เหลือแผงเดี่ยว ต้องใช้ตัวนั้นแค่ครึ่งเดียว
     });
-    const total = (groups || []).reduce((a, g) => a + g.count, 0);
     const dcAc = acW ? scR(wp * per / acW, 2) : 0;
-    const warns = [];
+    const warns = [], notes = [];
+
+    /* ── ตรวจแรงดัน/กระแสเข้า 1 ช่อง MPPT ── */
+    const chk = scStringCheck(panel, m, nSeries, env);
+    chk.checks.forEach((c) => { if (!c.ok) warns.push(c.msg); });
+    const cur = scCurrent(panel, m, 1);
+    cur.warns.forEach((w) => warns.push(w));
+    /* ไม่เอา cur.notes มาใช้ — ข้อความนั้นเขียนไว้สำหรับสตริงอินเวอร์เตอร์ (อ้างพิกัด 20–30 A)
+       ไมโครมีคำแนะนำของตัวเองด้านล่าง */
+
+    /* ── ช่วงกำลังแผงที่รุ่นนี้รองรับ ── */
+    const wpMin = scNum(m.wpMin), wpMax = scNum(m.wpMax);
+    if (wp && wpMin && wp < wpMin) warns.push("แผง " + wp + " W เล็กกว่าช่วงที่ไมโครรุ่นนี้รองรับ (" + wpMin + "–" + wpMax + " W)");
+    if (wp && wpMax && wp > wpMax) warns.push("แผง " + wp + " W ใหญ่กว่าช่วงที่ไมโครรุ่นนี้รองรับ (" + wpMin + "–" + wpMax + " W)");
+
     if (dcAc > 1.5) warns.push("DC/AC ต่อตัว " + dcAc + " สูงมาก แผงแรงเกินไมโครรุ่นนี้ ช่วงเที่ยงจะตัดยอดทิ้ง");
-    else if (dcAc && dcAc < 0.9) warns.push("DC/AC ต่อตัว " + dcAc + " ต่ำ ไมโครใหญ่เกินแผง จ่ายแพงโดยไม่ได้ผลผลิตเพิ่ม");
-    if (odd) warns.push("มี " + odd + " กลุ่มที่จำนวนแผงเป็นเลขคี่ → ไมโคร " + odd + " ตัวจะเสียบแค่ช่องเดียว");
-    /* คะแนนเลือกอัตโนมัติ = ใช้ไมโครน้อยตัวที่สุด "เท่าที่ยังไม่ตัดยอด"
-       ตัวน้อย = ถูกกว่า/ติดตั้งเร็วกว่า · แต่ถ้า DC/AC เกิน ~1.25 เริ่มเสียผลผลิตช่วงเที่ยง ไม่คุ้ม */
+    else if (dcAc && dcAc < 0.9) notes.push("DC/AC ต่อตัว " + dcAc + " ต่ำ ไมโครใหญ่เกินแผง จ่ายแพงโดยไม่ได้ผลผลิตเพิ่ม");
+    if (odd) notes.push("มี " + odd + " กลุ่มที่จำนวนแผงเป็นเลขคี่ → ไมโคร " + odd + " ตัวจะเสียบแค่ช่องเดียว");
+
+    /* ── วงจรย่อย AC: ไมโครต่อพ่วงกันบนสายเส้นเดียว จำกัดจำนวนตัวต่อวงจร ── */
+    const perBranch = Math.max(0, Math.round(scNum(m.perBranch)));
+    const branches = perBranch ? Math.ceil(units / perBranch) : 0;
+    if (!perBranch) notes.push("ยังไม่ได้ระบุ “ต่อพ่วงได้กี่ตัวต่อวงจร” ของไมโครรุ่นนี้ — กรอกจากดาต้าชีตแล้วระบบจะบอกจำนวนวงจร AC ให้");
+    if (!scNum(m.maxInA) && !scNum(m.maxIscA)) notes.push("ยังไม่ได้กรอกพิกัดกระแสเข้าของไมโครรุ่นนี้ — กรอก “กระแสทำงาน/ลัดวงจรสูงสุดต่อช่อง” จากดาต้าชีต ระบบจะได้ตรวจให้ครบเหมือนสตริงอินเวอร์เตอร์");
+    if (!wpMin && !wpMax) notes.push("ยังไม่ได้กรอกช่วงกำลังแผงที่ไมโครรุ่นนี้รองรับ — สำคัญมากกับแผงกำลังสูง เพราะแผงใหญ่เกินพิกัดจะถูกตัดยอดทิ้งทั้งวัน");
+    const outA = scNum(m.outA) || (scNum(m.acV, 230) ? scR(acW / scNum(m.acV, 230), 2) : 0);
+
+    /* คะแนนเลือกอัตโนมัติ = ใช้ไมโครน้อยตัวที่สุด "เท่าที่ยังไม่ตัดยอดและสเปคไฟฟ้าผ่าน" */
     const fewer = total > 0 ? (1 - units / total) * 40 : 0;         // 2:1 ได้ 20 · 1:1 ได้ 0
     const clipPen = Math.max(0, (dcAc || 0) - 1.25) * 120;
-    const why = clipPen > 8 ? "แผงแรงเกินไมโคร จะตัดยอดทิ้ง" : (per > 1 ? "ใช้ไมโครน้อยกว่าครึ่ง โดยแทบไม่ตัดยอด" : "แผงคู่ไม่ต้องทิศเดียวกัน ยืดหยุ่นที่สุด");
-    return { ratio: m.ratio, model: m.model, per, acW, units, total, dcAc, odd, warns, why,
+    const failPen = chk.ok && cur.ok ? 0 : 200;                     // สเปคไฟฟ้าไม่ผ่าน = ห้ามแนะนำ
+    const why = failPen ? "สเปคไฟฟ้าไม่ผ่าน"
+      : clipPen > 8 ? "แผงแรงเกินไมโคร จะตัดยอดทิ้ง"
+      : (per > 1 ? "ใช้ไมโครน้อยกว่าครึ่ง โดยแทบไม่ตัดยอด" : "แผงทุกใบมีตัวแปลงของตัวเอง ยืดหยุ่นที่สุด");
+    return { ratio: m.ratio, model: m.model, per, nMppt, nSeries, acW, acWPeak: scNum(m.acWPeak) || acW,
+      acV: scNum(m.acV, 230), outA, perBranch, branches, eff: scNum(m.eff, 96.5),
+      units, total, dcAc, odd, warns, notes, why, spec: m, chk, cur, ok: chk.ok && cur.ok,
       acKw: scR(units * acW / 1000, 2), dcKw: scR(total * wp / 1000, 2),
-      score: Math.round(60 + fewer - clipPen - odd * 8) };
+      acAmpTotal: scR(units * outA, 1),
+      score: Math.round(60 + fewer - clipPen - failPen - odd * 4) };
   }).sort((a, b) => b.score - a.score);
 }
 
@@ -544,6 +677,11 @@ function scBlankSys() {
     /* สภาพอากาศตอนออกไปตรวจวัดหน้างาน (ใช้ชดเชยค่าที่วัดได้กลับเป็นมาตรฐาน) */
     /* hour = null → ระบบเลือกช่วงเวลาที่เหมาะจะออกไปวัดให้เอง (แดดแรงและไม่มีเงาบัง) */
     site: { date: "", hour: null, wind: 1, mount: "close", tAmb: null, ghi: null, shade: 0, age: 0 },
+    micro: null,               // สเปคไมโครที่แก้ทับเฉพาะงานนี้ (null = ใช้ตามคลัง)
+    microAssign: {},           // { uid ของแผง: หมายเลขตัวไมโคร } — ว่าง = ให้ระบบจับคู่ให้
+    phases: null,              // 1 = 1 เฟส · 3 = 3 เฟส (null = ตามข้อมูลงาน)
+    microPhase: {},            // { หมายเลขตัวไมโคร: เฟส } — ว่าง = ให้ระบบเกลี่ยให้
+    microManual: false,        // true = ยึดผังที่แก้เอง ไม่ให้ระบบจับคู่ใหม่ทับ
     meas: {},                  // { "<หมายเลขสตริง>": { g, tmod, voc, isc, vmp, imp, pmax, note } }
     shade3d: null,             // ผลคำนวณเงาทั้งปีจากโมเดล 3 มิติ (ดู ivShadeAnnual) — null = ใช้ % ที่กรอกมือ
     elec: null,                // ตั้งค่าโมเดล "เงาฉุดทั้งสตริง" (null = ใช้ค่ากลาง IV_ELEC)
@@ -580,11 +718,12 @@ function scInvSpec(sys) {
 Object.assign(window, {
   SC_DEG, SC_MON, SC_MDAYS, SC_PANEL_EXTRA, SC_INV_EXTRA, SC_ENV, SC_LOSS, SC_TAMB, SC_KC,
   scSunPos, scNormalToTiltAz, scPanelNormal, scGroupsFromPlan, scPanelIndex, scStringsFromAssign, scAutoAssign,
-  scVocAt, scVmpAt, scStringCheck, scSeriesRange, scCurrent, scStringsPerMppt, scAutoStrings, scMicroPlan,
+  scVocAt, scVmpAt, scStringCheck, scSeriesRange, scCurrent, scStringsPerMppt, scAutoStrings,
+  scMicroPlan, scMicroSpec, scMicroPerMppt, scMicroAssign, scMicroPhases, scPhaseBalance, SC_MICRO_EXTRA,
   scYearOneGroup, scDcAt, scEnergy, scLife, scBlankSys, scPanelSpec, scInvSpec, scHalfCut, scR, scNum, scClamp,
 });
 window.SolarCalc = {
   groups: scGroupsFromPlan, seriesRange: scSeriesRange, check: scStringCheck,
   autoStrings: scAutoStrings, micro: scMicroPlan, energy: scEnergy, life: scLife,
-  blankSys: scBlankSys, panelSpec: scPanelSpec, invSpec: scInvSpec,
+  blankSys: scBlankSys, panelSpec: scPanelSpec, invSpec: scInvSpec, microSpec: scMicroSpec,
 };
