@@ -491,16 +491,25 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                     <Icon name="box" size={14} color="var(--text-2)" /> สถานะวัสดุ
                     <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: 0, textTransform: "none", color: "var(--text-3)", marginLeft: 2 }}>· แตะเพื่อแก้ไข</span>
                   </span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: job.matReady ? "var(--primary-dark)" : "var(--text-2)" }}>
-                    พร้อม {job.matReadyPct}%
+                  {/* ความคืบหน้าเป็นแถบสั้น ๆ ข้างตัวเลข — เห็นภาพรวมก่อนไล่อ่านทีละรายการ */}
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ width: 54, height: 6, borderRadius: 99, background: "var(--surface3)", overflow: "hidden", display: "block" }}>
+                      <span style={{ display: "block", height: "100%", width: job.matReadyPct + "%", borderRadius: 99,
+                        background: job.matReady ? "var(--primary)" : "#F59E0B", transition: "width .4s cubic-bezier(.2,.8,.2,1)" }} />
+                    </span>
+                    <span style={{ fontFamily: "var(--display)", fontSize: 13, fontWeight: 700, letterSpacing: "-.02em",
+                      fontVariantNumeric: "tabular-nums", color: job.matReady ? "var(--primary-dark)" : "var(--text-2)" }}>{job.matReadyPct}%</span>
                   </span>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8 }}>
+                {/* เดิมเป็นกล่องมีขอบ 6 ใบเรียงกัน = เส้นขอบ 6 เส้นแย่งความสนใจกับตัวข้อมูล
+                   เปลี่ยนเป็นแผงเดียวแบ่งด้วยเส้นผม เหมือนตารางย่อย อ่านไล่ลงมาได้ลื่นกว่า */}
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 0,
+                  border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", background: "var(--surface)" }}>
                   {SF.MATERIALS.filter((m) => {
                     if (m.key === "battery" && !job.battery) return false;
                     if (m.key === "backup" && !job.backup) return false;
                     return true;
-                  }).map((m) => {
+                  }).map((m, i) => {
                     const MAT_CYCLE = ["none", "waiting", "ready", "na"];
                     const cycle = () => {
                       const cur = MAT_CYCLE.indexOf(job.mat[m.key]);
@@ -509,11 +518,12 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                     return (
                       <button key={m.key} onClick={cycle} title="คลิกเพื่อเปลี่ยนสถานะ"
                         style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
-                        padding: "9px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10,
-                        cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "border-color .15s" }}
-                        onMouseEnter={(e) => e.currentTarget.style.borderColor = "var(--border-strong)"}
-                        onMouseLeave={(e) => e.currentTarget.style.borderColor = "var(--border)"}>
-                        <span style={{ fontSize: 12.5, color: "var(--text-1)", fontWeight: 500 }}>{m.th}</span>
+                        padding: "10px 12px", background: "transparent", border: 0,
+                        boxShadow: "inset 0 -1px 0 var(--border)" + (!isMobile && i % 2 === 0 ? ", inset -1px 0 0 var(--border)" : ""),
+                        cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "background .13s" }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface2)"}
+                        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
+                        <span style={{ fontSize: 12.5, color: "var(--text-1)", fontWeight: 600 }}>{m.th}</span>
                         <MatChip status={job.mat[m.key]} />
                       </button>
                     );
