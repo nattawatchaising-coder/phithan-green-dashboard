@@ -9,10 +9,10 @@ function MatCell({ status, onCycle }) {
   const m = window.SF.MAT_STATUS[status];
   return (
     <button onClick={onCycle} title="คลิกเพื่อเปลี่ยนสถานะ"
-      style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 9px", borderRadius: 7,
-        background: m.soft, color: m.color, fontWeight: 600, fontSize: 11, border: "1px solid " + m.color + "33",
+      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 99,
+        background: m.soft, color: m.color, fontWeight: 700, fontSize: 11, border: "1px solid transparent",
         cursor: "pointer", fontFamily: "inherit", minWidth: 58, justifyContent: "center" }}>
-      <span style={{ fontSize: 10 }}>{m.icon}</span>{m.th}
+      <span style={{ width: 6, height: 6, borderRadius: 99, background: m.color, flexShrink: 0 }} />{m.th}
     </button>
   );
 }

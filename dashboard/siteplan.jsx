@@ -1281,15 +1281,19 @@ function SitePlanEditor({ job, onClose, currentUser }) {
     </g>
   );
 
-  const toolBtn = (key, label, emoji) => {
+  /* ปุ่มเครื่องมือ — ใช้ไอคอนชุดเดียวกับทั้งระบบ ไม่ใช่อีโมจิ
+     ที่กำลังใช้อยู่จะเป็นสีเขียวทึบ เพราะเป็น "โหมด" ที่ค้างอยู่จนกว่าจะกดออก ต้องเห็นชัดกว่าปุ่มธรรมดา */
+  const toolBtn = (key, label, icon) => {
     const on = tool === key;
     return (
       <button onClick={() => { setTool(on ? null : key); setDraft([]); setCalPts([]); setLinkFrom(null); setLinkPts([]); setPairFrom(null); }}
-        style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
-          fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap",
-          border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
-          background: on ? "var(--primary-soft)" : "var(--surface)", color: on ? "var(--primary-dark)" : "var(--text-2)" }}>
-        <span style={{ fontSize: 14 }}>{emoji}</span>{label}
+        title={label}
+        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
+          fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", transition: "background .14s, color .14s, border-color .14s",
+          border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
+          background: on ? "var(--primary)" : "var(--surface)", color: on ? "#fff" : "var(--text-2)",
+          boxShadow: on ? "0 2px 8px rgba(34,163,91,.28)" : "none" }}>
+        <Icon name={icon} size={14} color={on ? "#fff" : "var(--text-3)"} />{label}
       </button>
     );
   };
@@ -1335,7 +1339,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                   <div key={p.id} onClick={() => gotoPage(i)}
                     style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: 9, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
                       border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"), background: on ? "var(--primary-soft)" : "var(--surface)", color: on ? "var(--primary-dark)" : "var(--text-2)", fontSize: 12.5, fontWeight: 700 }}>
-                    <span style={{ fontSize: 12 }}>{hasImg ? "🖼️" : "➕"}</span>
+                    <Icon name={hasImg ? "image" : "plus"} size={12} color="currentColor" />
                     <span>{p.name || ("รูป " + (i + 1))}</span>
                     {on && <span onClick={(e) => { e.stopPropagation(); renamePage(i); }} title="เปลี่ยนชื่อหน้า" style={{ opacity: 0.55, marginLeft: 1 }}>✎</span>}
                     {pages.length > 1 && <span onClick={(e) => { e.stopPropagation(); deletePage(i); }} title="ลบหน้า" style={{ opacity: 0.55, fontWeight: 900, fontSize: 14 }}>×</span>}
@@ -1365,40 +1369,40 @@ function SitePlanEditor({ job, onClose, currentUser }) {
             <React.Fragment>
               {/* ── แถบเครื่องมือ ── */}
               <div style={{ display: "flex", flexWrap: "wrap", gap: 7, alignItems: "center" }}>
-                {toolBtn("calib", mpp ? "คาลิเบรตใหม่" : "ตั้งมาตราส่วน", "📏")}
-                {toolBtn("draw", "วาดสาย", "✏️")}
-                {toolBtn("marker", "วางอุปกรณ์", "📍")}
-                {toolBtn("photo", "รูปจุด", "📷")}
-                {toolBtn("connect", "เชื่อม/จับคู่", "🔗")}
-                {toolBtn("note", "คอมเมนต์", "💬")}
-                {toolBtn("xpage", "ต่อรูป", "🔀")}
-                {toolBtn("move", "ย้าย", "✋")}
-                {toolBtn("erase", "ลบ", "🗑️")}
+                {toolBtn("calib", mpp ? "คาลิเบรตใหม่" : "ตั้งมาตราส่วน", "ruler")}
+                {toolBtn("draw", "วาดสาย", "pen")}
+                {toolBtn("marker", "วางอุปกรณ์", "pin")}
+                {toolBtn("photo", "รูปจุด", "camera")}
+                {toolBtn("connect", "เชื่อม/จับคู่", "link")}
+                {toolBtn("note", "คอมเมนต์", "message")}
+                {toolBtn("xpage", "ต่อรูป", "shuffle")}
+                {toolBtn("move", "ย้าย", "hand")}
+                {toolBtn("erase", "ลบ", "trash")}
                 <button onClick={undo} disabled={histLen === 0} title="ย้อนกลับสิ่งที่เพิ่งทำ"
                   style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 10, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap",
                     cursor: histLen === 0 ? "not-allowed" : "pointer", opacity: histLen === 0 ? 0.45 : 1,
                     border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)" }}>
-                  <span style={{ fontSize: 14 }}>↩</span>ย้อนกลับ{histLen > 0 ? " (" + histLen + ")" : ""}
+                  <Icon name="undo" size={14} color="var(--text-3)" />ย้อนกลับ{histLen > 0 ? " (" + histLen + ")" : ""}
                 </button>
                 <button onClick={() => setShowGrid((v) => !v)} title="กริดช่วยจัดวางให้ตรง"
                   style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700,
                     border: "1px solid " + (showGrid ? "var(--primary)" : "var(--border-strong)"), background: showGrid ? "var(--primary)" : "var(--surface)", color: showGrid ? "#fff" : "var(--text-2)" }}>
-                  ▦ กริด
+                  <Icon name="gridDots" size={14} color={showGrid ? "#fff" : "var(--text-3)"} />กริด
                 </button>
                 <button onClick={() => exportPlanImage("download")} disabled={exporting} title="โหลดเป็นรูปแบบติดตั้ง (รูปหน้างาน + เส้น/จุด/ป้าย)"
                   style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 10, cursor: exporting ? "default" : "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, opacity: exporting ? 0.6 : 1,
                     border: "1px solid #0F5132", background: "#0F5132", color: "#fff" }}>
-                  ⬇️ {exporting ? "กำลังทำ..." : "โหลดแบบติดตั้ง"}
+                  <Icon name="download" size={14} color="#fff" />{exporting ? "กำลังทำ..." : "โหลดแบบติดตั้ง"}
                 </button>
                 <button onClick={() => exportPlanPDF(typeof navigator !== "undefined" && navigator.share ? "share" : "download")} disabled={exporting} title="สร้าง PDF นำเสนอ (ปก + ผัง + รายละเอียดแต่ละจุด + สรุป)"
                   style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 10, cursor: exporting ? "default" : "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, opacity: exporting ? 0.6 : 1,
                     border: "1px solid #B91C1C", background: "#B91C1C", color: "#fff" }}>
-                  📑 {exporting ? "กำลังทำ..." : "PDF นำเสนอ"}
+                  <Icon name="file" size={14} color="#fff" />{exporting ? "กำลังทำ..." : "PDF นำเสนอ"}
                 </button>
                 <button onClick={() => setPdfSettings(true)} title="แก้ข้อความรับประกัน / ติดต่อ / โลโก้ บน PDF"
                   style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 11px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700,
                     border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)" }}>
-                  ⚙️ ตั้งค่า PDF
+                  <Icon name="settings" size={14} color="var(--text-3)" />ตั้งค่า PDF
                 </button>
                 {typeof navigator !== "undefined" && navigator.share && (
                   <button onClick={() => exportPlanImage("share")} disabled={exporting} title="ส่งต่อให้ผู้รับเหมา (LINE/แชร์)"

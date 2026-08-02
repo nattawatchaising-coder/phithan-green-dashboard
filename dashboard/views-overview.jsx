@@ -59,11 +59,13 @@ function PipelinePanel({ jobs, onStage }) {
             <span style={{ width: 104, flexShrink: 0, display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 600, color: "var(--text-1)", lineHeight: 1.25 }}>
               <span style={{ width: 8, height: 8, borderRadius: 99, background: s.color, flexShrink: 0 }} />{s.th}
             </span>
-            <span style={{ flex: 1, minWidth: 0, height: 22, background: "var(--surface3)", borderRadius: 7, overflow: "hidden", display: "block" }}>
-              <span style={{ display: "block", height: "100%", width: Math.max((counts[i] / max) * 100, counts[i] ? 6 : 0) + "%",
-                background: "linear-gradient(90deg," + s.color + "cc," + s.color + ")", borderRadius: 7, transition: "width .6s cubic-bezier(.2,.8,.2,1)" }} />
+            {/* แท่งบางลงและเป็นสีทึบสีเดียว — ไล่เฉดทำให้ความยาวแท่งอ่านยากขึ้นโดยไม่ได้อะไรกลับมา */}
+            <span style={{ flex: 1, minWidth: 0, height: 10, background: "var(--surface3)", borderRadius: 99, overflow: "hidden", display: "block" }}>
+              <span style={{ display: "block", height: "100%", width: Math.max((counts[i] / max) * 100, counts[i] ? 5 : 0) + "%",
+                background: s.color, borderRadius: 99, transition: "width .6s cubic-bezier(.2,.8,.2,1)" }} />
             </span>
-            <span style={{ width: 28, flexShrink: 0, fontFamily: "var(--mono)", fontSize: 14, fontWeight: 600, color: counts[i] ? "var(--text-1)" : "var(--text-3)", textAlign: "right" }}>{counts[i]}</span>
+            <span style={{ width: 30, flexShrink: 0, fontFamily: "var(--display)", fontSize: 15, fontWeight: 700, letterSpacing: "-.03em",
+              fontVariantNumeric: "tabular-nums", color: counts[i] ? "var(--text-1)" : "var(--text-3)", textAlign: "right" }}>{counts[i]}</span>
           </button>
         ))}
       </div>
@@ -91,13 +93,18 @@ function AlertsPanel({ jobs, onOpen }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16, maxHeight: 280, overflowY: "auto" }}>
         {problems.length === 0 && <Empty text="ไม่มีงานติดปัญหา 🎉" />}
         {problems.map((j) => (
-          <button key={j.id} onClick={() => onOpen(j)} style={{ display: "flex", gap: 11, padding: "11px 12px", textAlign: "left",
-            background: "rgba(239,68,68,.07)", border: "1px solid rgba(239,68,68,.22)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", width: "100%" }}>
-            <span style={{ width: 4, alignSelf: "stretch", borderRadius: 99, background: "#EF4444", flexShrink: 0 }} />
+          /* เดิมทาพื้นแดง + ขอบแดง + ขีดแดง = บอกเรื่องเดียวกัน 3 ที่ ทั้งแผงเลยแดงไปหมดจนไม่รู้ว่าใบไหนหนักกว่ากัน
+             เหลือขีดแดงอย่างเดียว แล้วให้ป้าย "ล่าช้า" เป็นตัวไล่ระดับความหนักแทน */
+          <button key={j.id} onClick={() => onOpen(j)} style={{ display: "flex", gap: 12, padding: "11px 12px", textAlign: "left",
+            background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", width: "100%",
+            transition: "background .14s, border-color .14s" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface2)"; e.currentTarget.style.borderColor = "var(--border-strong)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--surface)"; e.currentTarget.style.borderColor = "var(--border)"; }}>
+            <span style={{ width: 3, alignSelf: "stretch", borderRadius: 99, background: j.delayed ? "#D93025" : "#F59E0B", flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                 <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: "0 1 auto" }}>{j.name}</span>
-                {j.delayed && <span style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", background: "rgba(239,68,68,.16)", padding: "1px 6px", borderRadius: 99 }}>ล่าช้า</span>}
+                {j.delayed && <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".02em", color: "#D93025", background: "rgba(217,48,37,.11)", padding: "2px 7px", borderRadius: 99, flexShrink: 0 }}>ล่าช้า</span>}
               </div>
               <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: 3, lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
                 {j.problem || ("เลยกำหนดวันนัด " + thDate(j.deadline))}
@@ -448,11 +455,17 @@ function BrandPanel({ jobs }) {
       </div>
       <div style={{ marginTop: 22 }}>
         <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", marginBottom: 10 }}>ประเภทงาน</div>
-        <div style={{ display: "flex", gap: 12 }}>
-          {byType.map(({ t, n }) => (
-            <div key={t.key} style={{ flex: 1, padding: "14px 16px", borderRadius: 12, background: t.color + "12", border: "1px solid " + t.color + "26" }}>
-              <div style={{ fontFamily: "var(--display)", fontSize: 26, fontWeight: 700, color: t.color, lineHeight: 1 }}>{n}</div>
-              <div style={{ fontSize: 12.5, color: "var(--text-2)", marginTop: 5, fontWeight: 500 }}>{t.th}</div>
+        {/* ตัวเลขยืนบนพื้นเปล่า คั่นด้วยเส้นผม — กล่องสีจางทำให้ดูเหมือนปุ่มทั้งที่กดไม่ได้ */}
+        <div style={{ display: "flex", gap: 0 }}>
+          {byType.map(({ t, n }, i) => (
+            <div key={t.key} style={{ flex: 1, minWidth: 0, padding: i ? "2px 0 2px 18px" : "2px 18px 2px 0",
+              borderLeft: i ? "1px solid var(--border)" : "none" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                <span style={{ width: 7, height: 7, borderRadius: 99, background: t.color, flexShrink: 0 }} />
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-2)" }}>{t.th}</span>
+              </div>
+              <div style={{ fontFamily: "var(--display)", fontSize: 30, fontWeight: 700, color: "var(--text-1)",
+                lineHeight: 1, letterSpacing: "-.035em", fontVariantNumeric: "tabular-nums", marginTop: 8 }}>{n}</div>
             </div>
           ))}
         </div>

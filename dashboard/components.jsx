@@ -49,6 +49,15 @@ const ICONS = {
   net: "M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18",
   file: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h8M8 9h2",
   download: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3",
+  /* ── เครื่องมือในหน้าผังหน้างาน (เดิมใช้อีโมจิ ซึ่งหน้าตาต่างกันทุกเครื่องและดูไม่เป็นงานออกแบบ) ── */
+  ruler: "M3 15 15 3l6 6L9 21zM7.5 10.5l2 2M10.5 7.5l2 2M13.5 4.5l2 2",
+  pen: "M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z",
+  camera: "M3 7h3l2-3h8l2 3h3v13H3zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+  shuffle: "M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5",
+  hand: "M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v6M10 10.5V6a2 2 0 0 0-4 0v8M18 11a2 2 0 0 1 4 0v3a8 8 0 0 1-8 8h-2a8 8 0 0 1-8-8v-1a2 2 0 0 1 4 0",
+  trash: "M4 7h16M10 11v6M14 11v6M5 7l1 14h12l1-14M9 7V4h6v3",
+  undo: "M3 7v6h6M3.5 13a9 9 0 1 1 2.6 6.4",
+  gridDots: "M3 3h18v18H3zM9 3v18M15 3v18M3 9h18M3 15h18",
 };
 
 function Icon({ name, size = 18, color = "currentColor", fill = "none", sw = 1.75, style }) {
@@ -112,10 +121,11 @@ function TypeBadge({ type }) {
 function MatChip({ status, label, compact }) {
   const m = window.SF.MAT_STATUS[status];
   return (
+    /* จุดสีแทนอีโมจิ — อีโมจิเรนเดอร์ไม่เหมือนกันทุกเครื่องและทำให้ความสูงบรรทัดกระตุก */
     <span title={label ? label + " · " + m.th : m.th}
-      style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: compact ? "2px 6px" : "3px 8px",
-        borderRadius: 6, background: m.soft, color: m.color, fontWeight: 600, fontSize: compact ? 10.5 : 11, whiteSpace: "nowrap" }}>
-      <span style={{ fontSize: compact ? 9 : 10 }}>{m.icon}</span>{!compact && (label || m.th)}
+      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: compact ? "2px 7px" : "3px 9px",
+        borderRadius: 99, background: m.soft, color: m.color, fontWeight: 700, fontSize: compact ? 10.5 : 11, whiteSpace: "nowrap" }}>
+      <span style={{ width: 6, height: 6, borderRadius: 99, background: m.color, flexShrink: 0 }} />{!compact && (label || m.th)}
     </span>
   );
 }
