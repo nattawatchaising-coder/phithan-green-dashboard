@@ -80,7 +80,7 @@ function CalendarView({ jobs, onOpen, onAddOnDate, canAdd, onAdvance }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 372px", gap: 18, alignItems: "start" }}>
       {/* ── ซ้าย: ปฏิทินเดือน ── */}
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 22, boxShadow: "var(--shadow-sm)" }}>
+      <div className="pnl">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <h2 style={{ fontSize: 19, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>{TH_MONTH_FULL[ym.m]} {ym.y + 543}</h2>
@@ -149,7 +149,7 @@ function DaySidebar({ day, ym, groups, todayKey, keyOf, onOpen, onAdvance, canAd
   const dayKey = day != null ? keyOf(day) : "";
 
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 18, boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column", gap: 14, position: "sticky", top: 12 }}>
+    <div className="pnl" style={{ display: "flex", flexDirection: "column", gap: 14, position: "sticky", top: 12 }}>
       {day == null ? (
         <div style={{ padding: "48px 8px", textAlign: "center", color: "var(--text-3)" }}>
           <Icon name="calendar" size={26} color="var(--text-3)" />
@@ -395,7 +395,7 @@ function MapView({ jobs, onOpen }) {
       ? { display: "flex", flexDirection: "column", gap: 14 }
       : { display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: 18, flex: 1, minHeight: 0 }}>
       {/* real map */}
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 18, boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column" }}>
+      <div className="pnl" style={{ display: "flex", flexDirection: "column" }}>
         <PanelTitle icon="map" iconColor="var(--primary)" title="แผนที่ตำแหน่งงานติดตั้ง" sub="แผนที่จริง · เลื่อน/ซูมได้ · คลิกหมุดเพื่อดูงาน" />
         <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", margin: "12px 0 4px" }}>
           {window.SF.STAGES.map((s) => (
@@ -411,7 +411,7 @@ function MapView({ jobs, onOpen }) {
           minHeight: isMobile ? 320 : 460, borderRadius: 14, overflow: "hidden", marginTop: 10, border: "1px solid var(--border)", zIndex: 0 }} />
       </div>
       {/* province list */}
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 18, boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column", minHeight: isMobile ? "auto" : 0 }}>
+      <div className="pnl" style={{ display: "flex", flexDirection: "column", minHeight: isMobile ? "auto" : 0 }}>
         <PanelTitle icon="pin" title="งานแยกตามจังหวัด" sub={"แตะจังหวัดเพื่อโฟกัสบนแผนที่ · " + byProvince.length + " จังหวัด"} />
         <div style={isMobile
           ? { marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }

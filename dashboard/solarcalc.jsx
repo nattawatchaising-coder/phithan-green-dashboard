@@ -18,7 +18,14 @@ const SC_MDAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
    noct  = อุณหภูมิเซลล์ตอนใช้งานปกติ (°C) ใช้ประมาณอุณหภูมิเซลล์จากแดด
    deg1  = เสื่อมปีแรก (%) · degY = เสื่อมปีถัด ๆ ไป (%/ปี) — ตามการรับประกันทั่วไป */
 const SC_PANEL_EXTRA = { tcVoc: -0.25, tcIsc: 0.045, tcPmax: -0.29, noct: 44, deg1: 1.0, degY: 0.4 };
-const SC_INV_EXTRA = { eff: 97.5 };
+/* ── ค่ากลางของอินเวอร์เตอร์ ──
+   ดาต้าชีตแยกกระแสไว้ 3 ค่า คนละความหมาย ห้ามเอามาปนกัน (ตัวอย่าง SUN2000-50K-MC0):
+     maxInA   = Max. Current per Input  (23 A) → เพดานของ "1 สตริง" ที่เสียบ 1 ขั้ว
+     maxMpptA = Max. Current per MPPT   (30 A) → เพดานของ "ทุกสตริงในช่อง MPPT เดียวกันรวมกัน"
+     maxIscA  = Max. Short Circuit Current per MPPT (40 A) → เทียบกับ Isc×1.25 รวมทั้งช่อง
+   vStart = แรงดันที่อินเวอร์เตอร์เริ่มจ่ายไฟ · vRated = แรงดันที่ออกแบบไว้ให้ทำงานได้ดีที่สุด
+   effEuro = ประสิทธิภาพถ่วงน้ำหนักตามการใช้งานจริง (ใช้คิดผลผลิต) ส่วน eff = ค่าสูงสุดบนดาต้าชีต */
+const SC_INV_EXTRA = { eff: 97.5, strPerMppt: 2 };
 
 /* อุณหภูมิออกแบบ: ไทยพื้นราบต่ำสุดราว 15 °C (ภาคเหนือ/อีสานหนาวจัดกว่านี้ ปรับได้)
    tCellHot = อุณหภูมิเซลล์ตอนบ่ายแดดจัด ใช้เช็คว่าแรงดันไม่ตกหลุด MPPT */
@@ -162,16 +169,22 @@ function scStringCheck(panel, inv, n, env) {
     msg: "แรงดันทำงานตอนแผงร้อน " + scR(vmpHot, 0) + " V ต้องไม่ต่ำกว่า MPPT ต่ำสุด " + vmin + " V" });
   if (vmax) checks.push({ k: "cold", ok: vmpCold <= vmax, v: vmpCold, lim: vmax,
     msg: "แรงดันทำงานตอนอากาศเย็น " + scR(vmpCold, 0) + " V ต้องไม่เกิน MPPT สูงสุด " + vmax + " V" });
+  /* แรงดันเริ่มทำงาน — ต่ำกว่านี้อินเวอร์เตอร์ไม่ยอมออกไฟเลย (เช้า/เย็น/วันฟ้าปิดจะจุดไม่ติด) */
+  const vStart = scNum(inv.vStart);
+  if (vStart) checks.push({ k: "start", ok: vmpHot >= vStart, v: vmpHot, lim: vStart,
+    msg: "แรงดันทำงานตอนแผงร้อน " + scR(vmpHot, 0) + " V ต่ำกว่าแรงดันเริ่มทำงานของอินเวอร์เตอร์ " + vStart + " V — เช้า/เย็นจะจุดไม่ติด" });
   const ok = checks.every((c) => c.ok);
-  /* คะแนนคุณภาพ: อยากให้จุดทำงานอยู่ "ค่อนไปทางบน" ของช่วง MPPT
-     เพราะแรงดันสูง = กระแสต่ำ = สูญเสียในสายน้อย และ MPPT ทำงานแม่นกว่า
+  /* คะแนนคุณภาพ: อยากให้จุดทำงานอยู่ใกล้ "แรงดันที่ผู้ผลิตออกแบบไว้" (Rated input voltage)
+     ถ้าดาต้าชีตไม่บอก ก็เล็งไว้ค่อนไปทางบนของช่วง MPPT (แรงดันสูง = กระแสต่ำ = สูญเสียในสายน้อย)
      แต่ต้องเหลือระยะห่างจากเพดานไว้กันวันอากาศเย็น */
+  const vRated = scNum(inv.vRated);
   let score = 0, band = "-";
   if (ok && vmin && vmax) {
+    const aim = vRated && vRated > vmin && vRated < vmax ? (vRated - vmin) / (vmax - vmin) : 0.62;
     const pos = (vmpNom - vmin) / Math.max(1, vmax - vmin);      // 0 = ติดพื้น, 1 = ติดเพดาน
     const headHot = (vmpHot - vmin) / Math.max(1, vmax - vmin);  // เหลือกันร้อนแค่ไหน
     const headCold = (maxVdc ? (maxVdc - vocCold) / maxVdc : 0.15);
-    score = Math.round(100 * scClamp(1 - Math.abs(pos - 0.62) / 0.62, 0, 1) * scClamp(headHot / 0.12, 0, 1) * scClamp(headCold / 0.08, 0, 1));
+    score = Math.round(100 * scClamp(1 - Math.abs(pos - aim) / Math.max(0.2, aim), 0, 1) * scClamp(headHot / 0.12, 0, 1) * scClamp(headCold / 0.08, 0, 1));
     band = score >= 75 ? "ดีมาก" : score >= 50 ? "ใช้ได้" : "พอไหว";
   }
   return { n, ok, checks, score, band, vocCold: scR(vocCold, 1), vmpHot: scR(vmpHot, 1), vmpCold: scR(vmpCold, 1), vmpNom: scR(vmpNom, 1),
@@ -197,23 +210,78 @@ function scSeriesRange(panel, inv, env) {
 function scCurrent(panel, inv, nPar) {
   const n = Math.max(1, Math.round(nPar || 1));
   const imp = scNum(panel.imp), isc = scNum(panel.isc);
-  const limOp = scNum(inv.maxInA), limSc = scNum(inv.maxIscA);
+  const limIn = scNum(inv.maxInA);                                  // ต่อ 1 ขั้ว (1 สตริง)
+  const limOp = scNum(inv.maxMpptA) || limIn * (n > 1 ? 1 : 1);     // ต่อ 1 ช่อง MPPT (ทุกสตริงรวมกัน)
+  const limSc = scNum(inv.maxIscA);
   const opA = scR(imp * n, 2), scA = scR(isc * 1.25 * n, 2);
   const warns = [], notes = [];
-  if (limOp && opA > limOp) warns.push("กระแสทำงาน " + opA + " A" + (n > 1 ? " (" + n + " สตริงขนาน)" : "") + " เกินกระแสเข้าสูงสุดต่อช่อง MPPT (" + limOp + " A)");
+  if (limIn && imp > limIn) warns.push("กระแสทำงานของ 1 สตริง " + scR(imp, 2) + " A เกินกระแสสูงสุดต่อ 1 ขั้ว (" + limIn + " A)");
+  if (limOp && opA > limOp) warns.push("กระแสทำงานรวม " + opA + " A" + (n > 1 ? " (" + n + " สตริงขนาน)" : "") + " เกินกระแสเข้าสูงสุดต่อช่อง MPPT (" + limOp + " A)");
   if (limSc && scA > limSc) warns.push("กระแสลัดวงจร Isc×1.25 = " + scA + " A" + (n > 1 ? " (" + n + " สตริงขนาน)" : "") + " เกินพิกัดกระแสลัดวงจรต่อช่อง MPPT (" + limSc + " A)");
-  if (!limSc && isc) notes.push("ยังไม่ได้ระบุ “กระแสลัดวงจรสูงสุด/MPPT” ของอินเวอร์เตอร์ — กรอกจากดาต้าชีต (ปกติ 20–30 A) ระบบจะได้ตรวจให้ครบ");
-  return { opA, scA, limOp, limSc, n, warns, notes, ok: !warns.length };
+  if (!scNum(inv.maxMpptA) && limIn) notes.push("ยังไม่ได้ระบุ “กระแสสูงสุดต่อช่อง MPPT” — ดาต้าชีตแยกจาก “ต่อ 1 อินพุต” (เช่น 30 A ต่อ MPPT แต่ 23 A ต่ออินพุต) ระบบเลยใช้ค่าต่ออินพุตแทนไปก่อน");
+  if (!limSc && isc) notes.push("ยังไม่ได้ระบุ “กระแสลัดวงจรสูงสุด/MPPT” ของอินเวอร์เตอร์ — กรอกจากดาต้าชีต ระบบจะได้ตรวจให้ครบ");
+  return { opA, scA, limIn, limOp, limSc, impA: scR(imp, 2), n, warns, notes, ok: !warns.length };
 }
 
-/* จำนวนสตริงที่ขนานเข้า 1 MPPT ได้ — ติดเพดานทั้งกระแสทำงานและกระแสลัดวงจร */
+/* จำนวนสตริงที่ขนานเข้า 1 MPPT ได้
+   เพดานมี 2 ชั้น ต้องผ่านทั้งคู่:
+     1) ชั้นกายภาพ — 1 ช่อง MPPT มีขั้ว DC ให้เสียบกี่สตริง (inv.strPerMppt · ปกติ 2 อินพุตต่อช่อง)
+     2) ชั้นกระแส  — ขนานแล้วกระแสต้องไม่เกินพิกัดทำงาน/ลัดวงจรของช่อง */
 function scStringsPerMppt(panel, inv) {
   const imp = scNum(panel.imp), isc = scNum(panel.isc);
-  const limOp = scNum(inv.maxInA), limSc = scNum(inv.maxIscA);
-  let n = 99;
+  /* เพดานกระแสของ "ทั้งช่อง MPPT" — ถ้ายังไม่กรอกค่าต่อ MPPT ก็ใช้ค่าต่ออินพุตแทนไปก่อน (ระมัดระวังไว้ก่อน) */
+  const limOp = scNum(inv.maxMpptA) || scNum(inv.maxInA), limSc = scNum(inv.maxIscA);
+  let n = Math.max(1, Math.round(scNum(inv.strPerMppt, 2) || 2));
   if (imp && limOp) n = Math.min(n, Math.floor(limOp / imp));
   if (isc && limSc) n = Math.min(n, Math.floor(limSc / (isc * 1.25)));
-  return n === 99 ? 1 : Math.max(1, n);
+  return Math.max(1, n);
+}
+/* ── ฟิวส์สตริง (string fuse) ──
+   ขนานกัน 1–2 สตริง ไม่ต้องมีฟิวส์ เพราะถ้าสตริงหนึ่งลัดวงจร อีกเส้นเดียวป้อนกระแสย้อนได้ไม่เกินที่สายทน
+   ตั้งแต่ 3 สตริงขึ้นไป สตริงที่เสียต้องรับกระแสย้อนจากเพื่อน (n−1) เส้นรวมกัน → ต้องมีฟิวส์ทุกเส้น
+   (แนวเดียวกับ IEC 62548 / NEC 690.9) · พิกัดฟิวส์ที่นิยม = 1.5 × Isc ปัดขึ้นเป็นเบอร์มาตรฐาน
+   และต้องไม่เกินพิกัดกระแสย้อนสูงสุดของแผง (module max series fuse rating บนดาต้าชีต) */
+const SC_FUSE_SIZES = [10, 12, 15, 16, 20, 25, 30, 32];
+function scStringFuse(panel, nPar, nStrings) {
+  const n = Math.max(1, Math.round(nPar || 1));
+  const isc = scNum(panel && panel.isc);
+  const out = { need: n >= 3, nPar: n, count: 0, amp: 0, isc, limit: scNum(panel && panel.fuseA), warns: [], why: "" };
+  if (!out.need) {
+    out.why = n <= 1 ? "สตริงละช่อง ไม่มีการขนาน จึงไม่ต้องมีฟิวส์" : "ขนาน 2 สตริง ยังไม่ต้องมีฟิวส์ตามมาตรฐาน";
+    return out;
+  }
+  out.count = Math.max(0, Math.round(nStrings || 0));
+  out.why = "ขนาน " + n + " สตริงต่อ 1 ช่อง MPPT — สตริงที่ลัดวงจรจะรับกระแสย้อนจากอีก " + (n - 1) + " เส้น ต้องใส่ฟิวส์ทุกเส้น";
+  if (isc) {
+    const need = isc * 1.5;
+    out.amp = SC_FUSE_SIZES.find((a) => a >= need) || Math.ceil(need);
+    if (out.limit && out.amp > out.limit) out.warns.push("ฟิวส์ที่ต้องใช้ " + out.amp + " A เกินพิกัดฟิวส์สูงสุดของแผง (" + out.limit + " A) — ลดจำนวนสตริงที่ขนานลง");
+  } else {
+    out.warns.push("ยังไม่ทราบ Isc ของแผง จึงเลือกพิกัดฟิวส์ให้ไม่ได้");
+  }
+  return out;
+}
+
+/* ── ที่อยู่ของ "ขั้วที่เสียบสตริง" ──
+   1 อินเวอร์เตอร์ มีหลายช่อง MPPT · 1 ช่อง MPPT มีขั้วให้เสียบหลายช่อง (input)
+   จึงนับเป็น pin = ลำดับขั้วทั้งระบบ (นับ 0) แล้วถอดกลับเป็น INV / MPPT / ช่อง
+   ตัวอย่างรุ่นที่มี 1 MPPT แต่เสียบได้ 2 ช่อง → pin 0 = INV1/MPPT1/ช่อง1 · pin 1 = INV1/MPPT1/ช่อง2 */
+function scPinLayout(inv, nInv) {
+  const mpptPerInv = Math.max(1, Math.round(scNum(inv.inputs, 2)));
+  const phys = Math.max(1, Math.round(scNum(inv.strPerMppt, 2) || 2));   // ขั้วต่อ 1 ช่อง MPPT
+  const n = Math.max(1, Math.round(scNum(nInv, 1)));
+  return { mpptPerInv, phys, mppt: n * mpptPerInv, pins: n * mpptPerInv * phys, nInv: n };
+}
+function scPinAddr(pin, inv, nInv) {
+  const L = scPinLayout(inv, nInv);
+  const mppt = Math.floor(pin / L.phys);                                 // ช่อง MPPT ลำดับที่เท่าไหร่ทั้งระบบ
+  return { pin, mppt, inv: Math.floor(mppt / L.mpptPerInv),
+    mpptNo: mppt % L.mpptPerInv + 1, inNo: pin % L.phys + 1 };
+}
+/* ชื่อขั้วแบบอ่านออก → "INV1 / MPPT1 / ช่อง2" */
+function scMpptName(pin, inv, nInv) {
+  const a = scPinAddr(pin, inv, nInv);
+  return "INV" + (a.inv + 1) + " / MPPT" + a.mpptNo + " / ช่อง" + a.inNo;
 }
 
 /* ── จัดสตริงอัตโนมัติ ──
@@ -259,14 +327,19 @@ function scAutoStrings(groups, panel, inv, env, opt) {
   Object.keys(byGroup).forEach((k) => {
     byGroup[k].forEach((s) => {
       while (mi < out.mppt && (used[mi] || 0) >= perMppt) mi++;
-      if (mi >= out.mppt) { s.mppt = null; return; }
+      if (mi >= out.mppt) { s.mppt = null; s.pin = null; return; }
+      const LAY = scPinLayout(inv, nInv);
       s.mppt = mi; s.inv = Math.floor(mi / mpptPerInv);
+      s.pin = mi * LAY.phys + Math.min(LAY.phys - 1, used[mi] || 0);
+      s.addr = scMpptName(s.pin, inv, nInv);
       used[mi] = (used[mi] || 0) + 1;
     });
     mi++;                                                        // ขึ้นกลุ่มใหม่ = ขึ้น MPPT ใหม่
   });
   /* กระแสเข้าช่อง MPPT — คิดจากจำนวนสตริงที่ขนานเข้าช่องเดียวกันจริง */
   const parMax = Math.max(1, Math.max.apply(null, [1].concat(Object.keys(used).map((k) => used[k]))));
+  out.mpptPerInv = mpptPerInv; out.load = used;
+  out.fuse = scStringFuse(panel, parMax, out.strings.length);
   out.current = scCurrent(panel, inv, parMax);
   out.current.warns.forEach((w) => out.warns.push(w));
   out.notes = out.current.notes.slice();
@@ -297,25 +370,56 @@ function scStringsFromAssign(assign, byPanel, groups, panel, inv, env, opt) {
     const gk = byPanel[uid];
     if (gk) bag[sid].gset[gk] = (bag[sid].gset[gk] || 0) + 1;
   });
-  const mpptPerInv = Math.max(1, Math.round(scNum(inv.inputs, 2)));
   const nInv0 = Math.max(1, Math.round(scNum(opt.invCount, 1)));
-  const slots0 = nInv0 * mpptPerInv, perMppt0 = scStringsPerMppt(panel, inv);
-  const strings = Object.keys(bag).sort((a, b) => a - b).map((sid, i) => {
+  const LAY = scPinLayout(inv, nInv0);
+  const mpptPerInv = LAY.mpptPerInv, slots0 = LAY.mppt, perMppt0 = scStringsPerMppt(panel, inv);
+  const strings = Object.keys(bag).sort((a, b) => a - b).map((sid) => {
     const b = bag[sid];
     const gks = Object.keys(b.gset);
     const main = gks.sort((x, y) => b.gset[y] - b.gset[x])[0];
     const g = gMap[main] || {};
     const chk = scStringCheck(panel, inv, b.keys.length, env);
     const mixed = gks.length > 1;
-    /* ช่อง MPPT เต็มแล้วก็ต้องบอกว่าเสียบไม่ได้ ไม่ใช่แจกเลขต่อไปเรื่อย ๆ */
-    const slot = Math.floor(i / perMppt0);
-    const fits = slot < slots0;
     return { id: +sid, n: b.keys.length, keys: b.keys, groupKey: main, mixed, groupCount: gks.length,
       label: (g.label || "—") + (mixed ? " + อีก " + (gks.length - 1) + " ทิศ" : ""),
-      tilt: g.tilt, az: g.az, chk,
-      mppt: fits ? slot : null, inv: fits ? Math.floor(slot / mpptPerInv) : null };
+      tilt: g.tilt, az: g.az, chk, pin: null, mppt: null, inv: null, addr: "", picked: false };
   });
   const warns = [];
+  /* ── ลงขั้ว (pin) ──
+     ที่ผู้ใช้ปักเองไว้ลงก่อน (opt.mpptPick = { สตริงที่: ขั้วที่ }) ที่เหลือค่อยไล่ลงขั้วที่ยังว่าง
+     ขั้วเดียวเสียบได้สตริงเดียว · ส่วนจำนวนสตริงที่ "ขนานเข้า 1 MPPT" ได้ ถูกจำกัดด้วยกระแสอีกชั้น */
+  const pick = opt.mpptPick || {};
+  const load = {}, owner = {};
+  const place = (s, pin) => {
+    const a = scPinAddr(pin, inv, nInv0);
+    s.pin = pin; s.mppt = a.mppt; s.inv = a.inv; s.addr = scMpptName(pin, inv, nInv0);
+    load[a.mppt] = (load[a.mppt] || 0) + 1;
+    (owner[pin] = owner[pin] || []).push(s.id);
+  };
+  strings.forEach((s) => {
+    const p = pick[s.id];
+    if (p == null || p === "") return;
+    const pin = Math.round(+p);
+    if (!(pin >= 0 && pin < LAY.pins)) return;
+    s.picked = true; place(s, pin);
+  });
+  strings.forEach((s) => {
+    if (s.pin != null) return;
+    let pin = 0;
+    /* ข้ามขั้วที่มีคนจองแล้ว และข้ามช่อง MPPT ที่รับกระแสขนานเพิ่มไม่ไหวแล้ว */
+    while (pin < LAY.pins && (owner[pin] || (load[Math.floor(pin / LAY.phys)] || 0) >= perMppt0)) pin++;
+    if (pin >= LAY.pins) return;
+    place(s, pin);
+  });
+  Object.keys(owner).forEach((k) => {
+    if (owner[k].length > 1) warns.push(scMpptName(+k, inv, nInv0) + " ถูกจองซ้ำ " + owner[k].length + " สตริง (#" + owner[k].join(", #") + ") — 1 ขั้วเสียบได้สตริงเดียว");
+  });
+  Object.keys(load).forEach((k) => {
+    if (load[k] > perMppt0) warns.push("MPPT ที่ " + (+k % mpptPerInv + 1) + " ของอินเวอร์เตอร์ตัวที่ " + (Math.floor(+k / mpptPerInv) + 1) +
+      " มี " + load[k] + " สตริงขนานกัน เกินที่ช่องนี้รับได้ (" + perMppt0 + " สตริง/MPPT)");
+  });
+  const noSlot = strings.filter((s) => s.pin == null).length;
+  if (noSlot) warns.push("มี " + noSlot + " สตริงที่ไม่มีขั้วเหลือให้เสียบ — เพิ่มจำนวนอินเวอร์เตอร์ หรือย้ายขั้วเอง");
   strings.forEach((s) => {
     if (s.mixed) warns.push("สตริง #" + s.id + " มีแผงจาก " + s.groupCount + " ทิศ/มุมปนกัน — แผงที่ได้แดดน้อยจะฉุดทั้งสตริง แยกออกจากกันดีกว่า");
     if (!s.chk.ok) warns.push("สตริง #" + s.id + " (" + s.n + " แผง) " + s.chk.fails.join(" · "));
@@ -324,17 +428,18 @@ function scStringsFromAssign(assign, byPanel, groups, panel, inv, env, opt) {
   const assigned = strings.reduce((a, s) => a + s.n, 0);
   if (total && assigned < total) warns.push("ยังมีแผงที่ไม่ได้อยู่สตริงไหนเลย " + (total - assigned) + " แผง");
   const nInv = nInv0, slots = slots0, perMppt = perMppt0;
-  if (strings.length > slots * perMppt) warns.push("สตริง " + strings.length + " เส้น เกินช่อง MPPT ที่มี (" + slots * perMppt + " สตริง) — เพิ่มจำนวนอินเวอร์เตอร์");
   /* กระแสเข้าช่อง MPPT — นับสตริงที่ลงช่องเดียวกันว่าขนานกันกี่เส้น */
-  const perSlot = {};
-  strings.forEach((s) => { if (s.mppt != null) perSlot[s.mppt] = (perSlot[s.mppt] || 0) + 1; });
-  const parMax = Math.max(1, Math.max.apply(null, [1].concat(Object.keys(perSlot).map((k) => perSlot[k]))));
+  const parMax = Math.max(1, Math.max.apply(null, [1].concat(Object.keys(load).map((k) => load[k]))));
   const current = scCurrent(panel, inv, parMax);
   current.warns.forEach((w) => warns.push(w));
+  const fuse = scStringFuse(panel, parMax, strings.length);
+  if (fuse.need) warns.push("ต้องมีฟิวส์สตริง " + fuse.count + " ตัว" + (fuse.amp ? " (" + fuse.amp + " A)" : "") + " — " + fuse.why);
+  fuse.warns.forEach((w) => warns.push(w));
   const dcKw = scR(assigned * scNum(panel.wp) / 1000, 2), acKw = scR(nInv * scNum(inv.kw), 2);
   if (acKw && dcKw / acKw > 1.4) warns.push("DC/AC = " + scR(dcKw / acKw, 2) + " สูงไป อินเวอร์เตอร์จะตัดยอด (clipping) ช่วงเที่ยง — เพิ่มขนาด/จำนวนอินเวอร์เตอร์");
   return { strings, warns, notes: current.notes, current, panels: assigned, dcKw, acKw, dcAc: acKw ? scR(dcKw / acKw, 2) : 0,
-    range: scSeriesRange(panel, inv, env), perMppt, mppt: slots, manual: true };
+    range: scSeriesRange(panel, inv, env), perMppt, mppt: slots, mpptPerInv, pins: LAY.pins, phys: LAY.phys,
+    load, owner, nInv, fuse, manual: true };
 }
 
 /* สร้าง assign map ตั้งต้นจากการจัดอัตโนมัติ (ผู้ใช้จะได้แก้ต่อจากของที่ใช้ได้อยู่แล้ว) */
@@ -524,12 +629,41 @@ function scDiffuseFrac(kt) {
   return 0.165;
 }
 
+/* ── อุณหภูมิเซลล์: โมเดล Sandia ตามวิธียึดแผงจริง ──
+   ที่นี่คือ "แหล่งความจริงเดียว" ของทั้งตัวคิดผลผลิตรายปีและตัวคำนวณเส้น I-V
+   เดิมสองที่ใช้คนละสูตร (รายปีใช้ NOCT ที่สมมติว่ายกลอยมีลมผ่าน) ทำให้งานที่ยึดชิดหลังคา
+   ประเมินผลผลิตสูงเกินจริง เพราะของจริงเซลล์ร้อนกว่าที่ NOCT บอกหลายองศา
+   Tหลังแผง = G·exp(a + b·ลม) + Tอากาศ  ·  Tเซลล์ = Tหลังแผง + G/1000·dT */
+const SC_MOUNT = {
+  close:  { a: -2.98, b: -0.0471, dT: 1, label: "ยึดชิดหลังคา", note: "ระบายอากาศหลังแผงได้น้อย ความร้อนสะสมสูงสุด" },
+  rack:   { a: -3.56, b: -0.0750, dT: 3, label: "ยกสูงจากหลังคา", note: "มีช่องลมผ่านหลังแผง ระบายความร้อนได้ดีกว่า" },
+  ground: { a: -3.58, b: -0.1130, dT: 3, label: "ขาตั้งบนพื้น/โล่ง", note: "ลมผ่านได้รอบตัว เย็นที่สุด" },
+};
+const SC_WIND = 1;                                              // ลมเฉลี่ยที่หน้างานบนหลังคา (m/s)
+function scTcell(poa, tAmb, wind, mount) {
+  const M = SC_MOUNT[mount] || SC_MOUNT.close;
+  const G = Math.max(0, scNum(poa, 0)), ws = Math.max(0, scNum(wind, SC_WIND));
+  return G * Math.exp(M.a + M.b * ws) + scNum(tAmb, 32) + G / 1000 * M.dT;
+}
+
+/* ── การสะท้อนที่ผิวกระจกตามมุมตกกระทบ (IAM – ASHRAE) ──
+   แดดเฉียงมากยิ่งสะท้อนทิ้งมาก ตอนเช้า/เย็นจึงได้ไฟน้อยกว่าที่ความเข้มแสงบอก
+   ใช้เฉพาะกับแสงตรง (beam) ส่วนแสงกระจายมาจากทั่วท้องฟ้าใช้ค่าคงที่โดยประมาณ */
+const SC_B0 = 0.05;                                             // ค่ากลางกระจกโซลาร์เคลือบกันสะท้อน
+function scIam(cosAoi) {
+  if (cosAoi <= 0) return 0;
+  if (cosAoi >= 1) return 1;
+  return Math.max(0, 1 - SC_B0 * (1 / cosAoi - 1));
+}
+const SC_IAM_DIFF = 0.97;                                       // แสงกระจาย/สะท้อนพื้น: เฉลี่ยทุกมุมทั่วโดมท้องฟ้าแล้ว
+
 /* พลังงานรายปีของ "1 กลุ่มทิศทาง" ต่อกำลังติดตั้ง 1 kWp → { kwh, poa, monthly[12] } */
 function scYearOneGroup(tilt, az, o) {
   const lat = scNum(o.lat, 13.75), lng = scNum(o.lng, 100.5);
   const tamb = o.tamb || SC_TAMB, kc = o.kc || SC_KC;
-  const noct = scNum(o.noct, SC_PANEL_EXTRA.noct), tcP = scNum(o.tcPmax, SC_PANEL_EXTRA.tcPmax);
+  const tcP = scNum(o.tcPmax, SC_PANEL_EXTRA.tcPmax);
   const alb = scNum(o.albedo, SC_ENV.albedo);
+  const mount = o.mount || "close", wind = scNum(o.wind, SC_WIND);
   const bT = tilt * SC_DEG, cosB = Math.cos(bT), sinB = Math.sin(bT);
   const dt = 0.5;                                                 // ก้าวเวลา 30 นาที
   const mon = new Array(12).fill(0), monPoa = new Array(12).fill(0);
@@ -548,10 +682,13 @@ function scYearOneGroup(tilt, az, o) {
         const dhi = ghi * scDiffuseFrac(kt);
         const dni = sa > 0.01 ? Math.max(0, (ghi - dhi) / sa) : 0;
         const cosAoi = cosB * sa + sinB * Math.cos(s.alt * SC_DEG) * Math.cos((s.az - az) * SC_DEG);
-        const poa = Math.max(0, dni * cosAoi) + dhi * (1 + cosB) / 2 + ghi * alb * (1 - cosB) / 2;
+        const beam = Math.max(0, dni * cosAoi), sky = dhi * (1 + cosB) / 2, gnd = ghi * alb * (1 - cosB) / 2;
+        const poa = beam + sky + gnd;                              // แสงที่ตกถึงหน้าแผง (ก่อนหักการสะท้อน)
         if (poa <= 0) continue;
-        const tCell = tamb[m] + (noct - 20) / 800 * poa;
-        const dcW = poa / 1000 * 1000 * (1 + tcP / 100 * (tCell - 25));   // ต่อ 1 kWp
+        /* แสงที่ "เข้าไปถึงเซลล์" จริง — หักส่วนที่สะท้อนกลับที่ผิวกระจกตามมุมตกกระทบ */
+        const poaEff = beam * scIam(cosAoi) + (sky + gnd) * SC_IAM_DIFF;
+        const tCell = scTcell(poa, tamb[m], wind, mount);
+        const dcW = poaEff / 1000 * 1000 * (1 + tcP / 100 * (tCell - 25));   // ต่อ 1 kWp
         mon[m] += Math.max(0, dcW) * dt / 1000;                    // kWh
         monPoa[m] += poa * dt / 1000;
       }
@@ -573,11 +710,13 @@ function scDcAt(tilt, az, sun, m, o) {
   const dni = Math.max(0, (ghi - dhi) / sa);
   const bT = tilt * SC_DEG, cosB = Math.cos(bT), sinB = Math.sin(bT);
   const cosAoi = cosB * sa + sinB * Math.cos(sun.alt * SC_DEG) * Math.cos((sun.az - az) * SC_DEG);
-  const poa = Math.max(0, dni * cosAoi) + dhi * (1 + cosB) / 2 + ghi * scNum(o.albedo, SC_ENV.albedo) * (1 - cosB) / 2;
+  const beam = Math.max(0, dni * cosAoi), sky = dhi * (1 + cosB) / 2, gnd = ghi * scNum(o.albedo, SC_ENV.albedo) * (1 - cosB) / 2;
+  const poa = beam + sky + gnd;
   if (poa <= 0) return { dc: 0, poa: 0 };
-  const tCell = tamb + (scNum(o.noct, SC_PANEL_EXTRA.noct) - 20) / 800 * poa;
-  const dc = Math.max(0, poa * (1 + scNum(o.tcPmax, SC_PANEL_EXTRA.tcPmax) / 100 * (tCell - 25)));   // W ต่อ 1 kWp
-  return { dc, poa };
+  const poaEff = beam * scIam(cosAoi) + (sky + gnd) * SC_IAM_DIFF;
+  const tCell = scTcell(poa, tamb, o.wind, o.mount);
+  const dc = Math.max(0, poaEff * (1 + scNum(o.tcPmax, SC_PANEL_EXTRA.tcPmax) / 100 * (tCell - 25)));   // W ต่อ 1 kWp
+  return { dc, poa, tCell };
 }
 
 /* ── พลังงานทั้งระบบ ──
@@ -589,6 +728,7 @@ function scEnergy(groups, panel, sys) {
   const loss = Object.assign({}, SC_LOSS, sys.loss || {});
   const wp = scNum(panel.wp, 650);
   const o = { lat: sys.lat, lng: sys.lng, tamb: sys.tamb, kc: sys.kc, albedo: sys.albedo,
+    mount: sys.mount || "close", wind: sys.wind,
     noct: scNum(panel.noct, SC_PANEL_EXTRA.noct), tcPmax: scNum(panel.tcPmax, SC_PANEL_EXTRA.tcPmax) };
   /* เงาบัง: ถ้ามีผลคำนวณจากโมเดล 3 มิติรายกลุ่ม (shadeByGroup) ใช้ตัวนั้นแทนค่า % ที่กรอกมือ
      เพราะแต่ละกลุ่มโดนบังไม่เท่ากัน — เฉลี่ยรวมทั้งระบบจะทำให้กลุ่มที่โดนหนักดูดีเกินจริง */
@@ -642,6 +782,7 @@ function scEnergy(groups, panel, sys) {
     clipLoss: beforeClip > 0 ? scR((1 - net / beforeClip) * 100, 1) : 0,
     clipKwh: Math.round(Math.max(0, beforeClip - net)),
     dcLoss: scR((1 - dcLoss) * 100, 1), eff: scR(eff * 100, 1),
+    mount: o.mount, mountLabel: (SC_MOUNT[o.mount] || SC_MOUNT.close).label, wind: scNum(o.wind, SC_WIND),
     shadeMode: shg ? "model" : "manual",
     shadeLoss: shg ? scR(gs.reduce((a, x) => a + (1 - x.sf) * x.kwp, 0) / (dcKw || 1) * 100, 1) : scR(scNum(loss.shade, 0), 1),
   };
@@ -670,6 +811,7 @@ function scBlankSys() {
     microRatio: "",
     series: 0,                 // 0 = ให้ระบบเลือกให้
     assign: {}, manual: false, // { "<roofId>|<panelKey>": หมายเลขสตริง } · manual=false = ใช้ที่ระบบจัดให้
+    mpptPick: {},              // { "<หมายเลขสตริง>": ช่อง MPPT ที่ปักเอง (นับ 0) } · ไม่มี = ให้ระบบไล่ลงช่องว่างให้
     loss: Object.assign({}, SC_LOSS),
     env: Object.assign({}, SC_ENV),
     tamb: SC_TAMB.slice(), kc: SC_KC.slice(),
@@ -717,8 +859,9 @@ function scInvSpec(sys) {
 
 Object.assign(window, {
   SC_DEG, SC_MON, SC_MDAYS, SC_PANEL_EXTRA, SC_INV_EXTRA, SC_ENV, SC_LOSS, SC_TAMB, SC_KC,
+  SC_MOUNT, SC_WIND, scTcell, scIam, SC_IAM_DIFF, scStringFuse, SC_FUSE_SIZES,
   scSunPos, scNormalToTiltAz, scPanelNormal, scGroupsFromPlan, scPanelIndex, scStringsFromAssign, scAutoAssign,
-  scVocAt, scVmpAt, scStringCheck, scSeriesRange, scCurrent, scStringsPerMppt, scAutoStrings,
+  scVocAt, scVmpAt, scStringCheck, scSeriesRange, scCurrent, scStringsPerMppt, scMpptName, scPinLayout, scPinAddr, scAutoStrings,
   scMicroPlan, scMicroSpec, scMicroPerMppt, scMicroAssign, scMicroPhases, scPhaseBalance, SC_MICRO_EXTRA,
   scYearOneGroup, scDcAt, scEnergy, scLife, scBlankSys, scPanelSpec, scInvSpec, scHalfCut, scR, scNum, scClamp,
 });

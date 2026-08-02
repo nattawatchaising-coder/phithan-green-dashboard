@@ -3,6 +3,97 @@
    กรอกพารามิเตอร์ → คำนวณรายการวัสดุอัตโนมัติ → บันทึก / ดาวน์โหลด Excel
    ============================================================ */
 
+/* ── หน้าตาแบบเดียวกับเวิร์กสเปซวางแผง 3 มิติ ──
+   เต็มจอ · หัวข้ออยู่แถบซ้าย · สรุปตัวเลขติดขอบล่างเห็นตลอด
+   (เดิมเป็นกล่องกลางจอที่ต้องพับ-กางหัวข้อ ทำให้เลื่อนหาของนาน และไม่รู้ว่ายอดรวมเปลี่ยนไปแค่ไหน) */
+const BQ_CSS = `
+.bq{position:fixed;inset:0;z-index:120;background:var(--bg);display:flex;flex-direction:column;
+  font-family:inherit;animation:bqIn .18s ease}
+@keyframes bqIn{from{opacity:0}to{opacity:1}}
+.bq-head{flex-shrink:0;display:flex;align-items:center;gap:11px;padding:11px 18px;
+  border-bottom:1px solid var(--border);background:var(--surface)}
+.bq-head .mark{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;flex-shrink:0;
+  background:var(--primary-soft);color:var(--primary-dark)}
+.bq-head .eb{font-size:9.5px;font-weight:700;letter-spacing:.14em;color:var(--text-3);text-transform:uppercase}
+.bq-head .nm{font-size:14.5px;font-weight:700;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bq-head .x{width:32px;height:32px;border-radius:9px;border:1px solid var(--border);background:var(--surface);
+  cursor:pointer;display:grid;place-items:center;color:var(--text-2);flex-shrink:0}
+.bq-head .x:hover{background:var(--surface2);color:var(--text-1)}
+
+.bq-body{flex:1;min-height:0;display:flex}
+.bq-rail{width:236px;flex-shrink:0;border-right:1px solid var(--border);background:var(--surface);
+  padding:14px 11px;display:flex;flex-direction:column;gap:3px;overflow-y:auto}
+.bq-main{flex:1;min-width:0;overflow-y:auto;padding:20px 22px 28px}
+.bq-wrap{max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.bq-eb{font-size:9.5px;font-weight:800;letter-spacing:.13em;color:var(--text-3);text-transform:uppercase;padding:0 8px 7px}
+
+/* แถวหัวข้อในแถบซ้าย — ทั้งแถวกดได้ · ค่าที่กรอกแล้วโชว์ตรงขวาเลย ไม่ต้องเปิดเข้าไปดู */
+.bq-nav{display:flex;gap:10px;align-items:center;padding:9px 10px;border-radius:11px;border:0;width:100%;
+  background:none;text-align:left;cursor:pointer;font-family:inherit;transition:background .14s;position:relative}
+.bq-nav:hover{background:var(--surface2)}
+.bq-nav[data-on="1"]{background:var(--primary-soft)}
+.bq-nav[data-on="1"]::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;
+  border-radius:0 3px 3px 0;background:var(--primary)}
+.bq-nav .ic{width:24px;height:24px;border-radius:8px;flex:0 0 auto;display:grid;place-items:center;
+  background:var(--surface3);color:var(--text-3)}
+.bq-nav[data-on="1"] .ic{background:var(--primary);color:#fff}
+.bq-nav .tx{flex:1;min-width:0}
+.bq-nav .tt{display:block;font-size:12.5px;font-weight:700;color:var(--text-1);line-height:1.3;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bq-nav[data-on="1"] .tt{color:var(--primary-dark)}
+.bq-nav .mt{display:block;font-size:10px;font-weight:600;color:var(--text-3);line-height:1.4;margin-top:1px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bq-nav .mt.warn{color:#B45309}
+.bq-nav .mt.ok{color:var(--primary-dark)}
+
+/* การ์ดเนื้อหา */
+.bq-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px 20px 20px}
+.bq-card>.hd{display:flex;align-items:center;gap:9px;padding-bottom:12px;margin-bottom:14px;
+  border-bottom:1px solid var(--border)}
+.bq-card>.hd .t{font-size:13.5px;font-weight:700;color:var(--text-1);letter-spacing:-.01em}
+.bq-card>.hd .r{margin-left:auto;flex-shrink:0}
+
+/* แถบสรุปล่าง */
+.bq-foot{flex-shrink:0;border-top:1px solid var(--border);background:var(--surface);
+  padding:10px 18px calc(10px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:0}
+.bq-kpis{display:flex;align-items:center;min-width:0}
+.bq-gap{flex:1}
+.bq-kpi{display:flex;flex-direction:column;gap:2px;padding:0 16px;border-left:1px solid var(--border);min-width:0}
+.bq-kpi:first-child{border-left:none;padding-left:0}
+.bq-kpi .k{font-size:9.5px;font-weight:700;color:var(--text-3);white-space:nowrap}
+.bq-kpi .v{font-size:15px;font-weight:800;color:var(--text-1);letter-spacing:-.3px;white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+.bq-kpi .v small{font-size:10px;font-weight:700;color:var(--text-3);margin-left:2px}
+.bq-kpi .v.hi{color:var(--primary-dark)}
+.bq-btn{padding:10px 16px;border-radius:11px;border:1px solid var(--border-strong);background:var(--surface);
+  color:var(--text-2);font-weight:700;font-family:inherit;font-size:13px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.bq-btn:hover{background:var(--surface2)}
+.bq-btn.gh{border-color:#1d854b;background:rgba(34,163,91,.08);color:#1d854b}
+.bq-btn.pri{border:0;background:var(--primary);color:#fff;padding:10px 24px}
+.bq-btn.pri:hover{filter:brightness(1.06)}
+
+@media (max-width:860px){
+  .bq-body{flex-direction:column}
+  .bq-rail{width:100%;flex-direction:row;gap:5px;overflow-x:auto;padding:9px 11px;
+    border-right:none;border-bottom:1px solid var(--border)}
+  .bq-rail>.bq-eb{display:none}
+  .bq-nav{width:auto;flex:0 0 auto;min-width:0;padding:7px 11px}
+  .bq-nav .mt{display:none}
+  .bq-nav[data-on="1"]::before{display:none}
+  .bq-main{padding:13px 12px 22px}
+  .bq-card{padding:14px 14px 16px;border-radius:14px}
+  /* จอแคบ: ตัวเลขสรุปเลื่อนแนวนอนแถวบน · ปุ่มลงมาอยู่แถวล่างเต็มความกว้าง จะได้ไม่ทับกัน */
+  .bq-foot{flex-wrap:wrap;gap:8px;padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))}
+  .bq-kpis{width:100%;overflow-x:auto;padding-bottom:2px}
+  .bq-kpi{padding:0 11px}
+  .bq-kpi .v{font-size:14px}
+  .bq-gap{display:none}
+  .bq-foot .bq-btn{flex:1;justify-content:center;padding:11px 10px;margin:0 !important}
+  .bq-foot .bq-btn.pri{flex:1.6}
+}
+`;
+
 // ช่องแสดงค่าแบบล็อก (อ่านอย่างเดียว) — ค่ามาจากข้อมูลงาน แก้ได้ที่หน้าแก้งานเท่านั้น
 function BoqLocked({ value, unit, num }) {
   return (
@@ -167,9 +258,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const [advS, setAdvS] = React.useState(false);
   const [advC, setAdvC] = React.useState(false);
   const isHome = !!(job && job.type === "home");  // งานบ้าน = ไม่มีงานโครงสร้างเพิ่มเติม
-  // accordion — เปิดได้ทีละหัวข้อ (กดอันใหม่ อันเก่าหุบเอง)
+  // หัวข้อที่กำลังเปิดอยู่ — เลือกจากแถบซ้าย ทีละหัวข้อ (เนื้อหาที่ไม่ได้เลือกไม่ต้องเรนเดอร์ให้หนักเปล่า)
   const [openSec, setOpenSec] = React.useState("info");
-  const secProps = (key) => ({ open: openSec === key, onToggle: () => setOpenSec((s) => (s === key ? null : key)) });
+  const secProps = (key) => ({ open: openSec === key, onToggle: () => setOpenSec(key) });
   const [advU, setAdvU] = React.useState(false);
 
   // ── เครื่องตรวจสอบ WIRE WAY / CONDUIT ──
@@ -232,6 +323,45 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const scfg = isStringInv && window.BOQ.stringConfig
     ? window.BOQ.stringConfig(selPanel, selInv, { series: (b.dcSeries != null && b.dcSeries !== "") ? b.dcSeries : undefined })
     : null;
+
+  /* ── แรงดันตกของสายแต่ละเส้น ──
+     ใช้ "กระแสใช้งานจริง" ไม่ใช่ ×1.25 — ตัวคูณ 1.25 มีไว้เลือกพิกัดกระแสของสาย (ความร้อน)
+     ส่วนแรงดันตกเกิดที่ภาระจริง · สาย DC คิดที่ Imp ของสตริง เทียบกับแรงดันทำงานของสตริงนั้น */
+  const vdropFor = (c) => {
+    if (!window.BOQ.calcVdrop || !c) return null;
+    const n = (c.name || "").toUpperCase(), type = c.type || "";
+    if (/LAN|CAT/i.test(type) || /GROUND|กราว|ดิน/.test(n)) return null;
+    const size = window.BOQ.cableSizeNum(type), len = +c.length || 0;
+    if (!size || !len) return null;
+    const ins = window.BOQ.cableInsClass(type);
+    const isDc = /PV1-F|PV CABLE/i.test(type) || /PV-INVERTER/.test(n);
+    if (isDc) {
+      if (!(scfg && scfg.ready && scfg.stringVop)) return null;
+      const imp = +(selPanel && selPanel.imp) || 0;
+      if (!imp) return null;
+      const r = window.BOQ.calcVdrop({ length: len, amp: imp, size, volts: scfg.stringVop, ins, phase: 1, dc: true });
+      return r ? Object.assign(r, { dc: true }) : null;
+    }
+    const req = reqAmpFor(c.name);
+    if (!req) return null;
+    /* ไมโคร 1 ตัวเป็นอุปกรณ์ 1 เฟสเสมอ แม้ระบบรวมจะเป็น 3 เฟส */
+    const ph = wcPhase === 3 && !/MICRO[\s-]*MICRO/.test(n) ? 3 : 1;
+    const volts = ph === 3 ? (+wcVolt || 400) : (wcPhase === 3 ? 230 : (+wcVolt || 230));
+    return window.BOQ.calcVdrop({ length: len, amp: req / 1.25, size, volts, ins, phase: ph, dc: false });
+  };
+  /* รวมเส้นทางไฟ: DC สูงสุด + AC สูงสุด — มาตรฐานคุมทั้งเส้นทางไม่ให้เกิน 5% */
+  const vdropSum = React.useMemo(() => {
+    let dc = 0, ac = 0, any = false;
+    (b.cables || []).forEach((c) => {
+      const r = vdropFor(c);
+      if (!r) return;
+      any = true;
+      if (r.dc) dc = Math.max(dc, r.pct); else ac += r.pct;
+    });
+    const LIM = (window.BOQ.VD_LIMIT || { dc: 2, ac: 3, total: 5 });
+    return { any, dc: Math.round(dc * 100) / 100, ac: Math.round(ac * 100) / 100,
+      total: Math.round((dc + ac) * 100) / 100, lim: LIM };
+  }, [b.cables, scfg, wcPhase, wcVolt, selPanel, wireCalcRows, result]);
 
   // ── สลับชุดจุดเดินสายอัตโนมัติเมื่อเปลี่ยนระหว่างไมโคร ↔ String/Hybrid ──
   // String/Hybrid → PV-INVERTER / INVERTER-MCB_SOLAR / MCB_SOLAR-MDB · ไมโคร → MICRO-MICRO / MICRO-COMBINER ...
@@ -569,20 +699,60 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
   const numStyle = Object.assign({}, inputStyle, { textAlign: "right" });
 
+  /* ── สารบัญด้านซ้าย ── ข้อความบรรทัดล่างคือ "สถานะย่อ" ของหัวข้อนั้น เห็นได้โดยไม่ต้องเปิดเข้าไป */
+  const wireDone = (b.cables || []).filter((c) => c.type && +c.length > 0).length;
+  const navSecs = [
+    { key: "info", icon: "sun", title: "ข้อมูลระบบ",
+      meta: b.panels + " แผง · " + result.meta.kw + " kW · " + (String(b.phase) === "3" ? "3 เฟส" : "1 เฟส") },
+    isHuawei ? { key: "hybrid", icon: "bolt", title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid"),
+      meta: selInv.model } : null,
+    isStringInv && scfg ? { key: "dc", icon: "bolt", title: "สาย DC / การต่ออนุกรม",
+      meta: scfg.ready ? scfg.series + " แผงอนุกรม · " + scfg.dcWire : "ยังกรอกสเปคไม่ครบ", tone: scfg.ready ? "ok" : "warn" } : null,
+    { key: "layout", icon: "grid", title: "การจัดวางแผง",
+      meta: "วางแล้ว " + result.meta.rowsSum + " / " + result.meta.panelCount + " แผง", tone: remaining === 0 ? "ok" : "warn" },
+    { key: "wire", icon: "power", title: "สายไฟ",
+      meta: wireDone ? wireDone + " เส้นที่ระบุครบ" + (vdropSum.any ? " · แรงดันตก " + vdropSum.total + "%" : "") : "ยังไม่ได้กรอกระยะสาย",
+      tone: !wireDone ? "" : (vdropSum.total > vdropSum.lim.total ? "warn" : "ok") },
+    { key: "raceway", icon: "grid", title: "ท่อร้อยสาย",
+      meta: ((b.conduit && b.conduit.imc) || []).length + ((b.conduit && b.conduit.upvc) || []).length + " รายการ" },
+    !isHome ? { key: "struct", icon: "box", title: "งานเพิ่มเติม — โครงสร้าง", meta: "บันได · ทางเดิน · ราวกันตก" } : null,
+    { key: "acc", icon: "box", title: "Accessories", meta: (accList || []).length ? accList.length + " รายการ" : "ยังไม่เพิ่ม" },
+    { key: "removable", icon: "box", title: "รายการวัสดุที่ถอดได้",
+      meta: priced.grandTotal > 0 ? "รวม ฿" + baht(priced.grandTotal) : "ยังไม่มีราคา", tone: priced.grandTotal > 0 ? "ok" : "" },
+  ].filter(Boolean);
+  const itemCount = priced.groups.reduce((a, g) => a + g.items.length, 0);
+
   return (
-    <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 110, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 16 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(1040px,96vw)", height: isMobile ? "auto" : "94vh", maxHeight: isMobile ? "96dvh" : "94vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
-        {/* header */}
-        <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexShrink: 0 }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)" }}>ถอดวัสดุ BOQ {job && <span style={{ fontFamily: "var(--mono)", color: "var(--primary-dark)" }}>· {job.code}</span>}</div>
-            <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-1)", margin: "2px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job ? job.name : "งาน"}</h2>
-          </div>
-          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
+    <div className="bq">
+      <style>{BQ_CSS}</style>
+      {/* header */}
+      <div className="bq-head">
+        <span className="mark"><Icon name="box" size={16} color="currentColor" /></span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="eb">ถอดวัสดุ BOQ{job && job.code ? " · " + job.code : ""}</div>
+          <div className="nm">{job ? job.name : "งาน"}</div>
+        </div>
+        <button className="x" onClick={onClose} title="ปิด"><Icon name="x" size={16} /></button>
+      </div>
+
+      <div className="bq-body">
+        {/* สารบัญ */}
+        <div className="bq-rail">
+          <span className="bq-eb">หัวข้อ</span>
+          {navSecs.map((s) => (
+            <button key={s.key} className="bq-nav" data-on={openSec === s.key ? "1" : "0"} onClick={() => setOpenSec(s.key)}>
+              <span className="ic"><Icon name={s.icon} size={13} color="currentColor" /></span>
+              <span className="tx">
+                <span className="tt">{s.title}</span>
+                <span className={"mt " + (s.tone || "")}>{s.meta}</span>
+              </span>
+            </button>
+          ))}
         </div>
 
-        {/* body — ไม่มี padding บน เพื่อให้หัวข้อ sticky ปักชิดขอบบน เนื้อหาที่เลื่อนขึ้นจะลับหลังหัวข้อสนิท ไม่โผล่ลอด */}
-        <div style={{ flex: 1, minHeight: 0, padding: "0 20px 20px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
+        {/* เนื้อหาของหัวข้อที่เลือก */}
+        <div className="bq-main">
+          <div className="bq-wrap">
           {/* ── ข้อมูลระบบ ── */}
           <BoqSection title="ข้อมูลระบบ" icon="sun" {...secProps("info")}>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "repeat(3, minmax(0,1fr))", gap: 12 }}>
@@ -772,6 +942,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 const req = reqAmpFor(c.name);
                 const bad = amp != null && req && amp < req;
                 const showHint = !!c.type && !isComm && !isDC;
+                const vd = isComm ? null : vdropFor(c);
                 return (
                 <div key={i} style={Object.assign({ display: "flex", flexDirection: "column", gap: isMobile ? 7 : 4 },
                   isMobile ? { border: "1px solid var(--border)", borderRadius: 12, padding: "10px 11px", background: "var(--surface)" } : null)}>
@@ -825,10 +996,46 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       <Icon name="bolt" size={11} color="var(--text-3)" /> สาย DC{scfg && scfg.ready ? " · แนะนำ " + scfg.dcWire + " (Isc×1.25 = " + scfg.dcAmp + " A)" : ""} — ดูรายละเอียดในส่วน “สาย DC / การต่ออนุกรม String”
                     </span>
                   )}
+                  {vd && (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, paddingLeft: isMobile ? 2 : 4, fontSize: 11, fontWeight: 600,
+                      color: vd.ok ? "var(--text-3)" : "#B45309" }}
+                      title={"ΔV = " + (vd.phase === 3 ? "√3" : "2") + " × " + vd.length + " ม. × " + Math.round(vd.amp * 100) / 100 + " A × ρ ÷ " + vd.size + " mm²  (ρ = ความต้านทานทองแดงที่อุณหภูมิใช้งาน)"}>
+                      <Icon name={vd.ok ? "check" : "alert"} size={11} color={vd.ok ? "var(--text-3)" : "#B45309"} />
+                      แรงดันตก {vd.pct}% ({vd.dv} V จาก {vd.volts} V) · เกณฑ์ ≤ {vd.lim}%
+                      {!vd.ok && (vd.minSize ? " — ต้องใช้สาย ≥ " + vd.minSize + " mm² หรือลดระยะเดินสาย"
+                        : " — ต้องใช้สายโตกว่า " + vd.need + " mm² ซึ่งเกินขนาดที่มีในตาราง ให้ลดระยะหรือเพิ่มแรงดัน (ต่ออนุกรมมากขึ้น)")}
+                    </span>
+                  )}
                 </div>
                 );
               })}
               <button onClick={addCab} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--primary-soft)", color: "var(--primary-dark)", border: "none", borderRadius: 9, padding: "8px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={14} color="var(--primary-dark)" /> เพิ่มสาย</button>
+              {/* ── สรุปแรงดันตกทั้งเส้นทาง — มาตรฐานคุมทั้ง DC, AC และผลรวม ── */}
+              {vdropSum.any && (() => {
+                const L = vdropSum.lim;
+                const cell = (lb, val, lim, tip) => (
+                  <span title={tip} style={{ display: "inline-flex", alignItems: "baseline", gap: 5, fontSize: 11.5, fontWeight: 700,
+                    color: val > lim ? "#B45309" : "var(--text-2)" }}>
+                    {lb} <b style={{ fontSize: 13.5, color: val > lim ? "#B45309" : "var(--text-1)" }}>{val}%</b>
+                    <span style={{ fontWeight: 600, color: "var(--text-3)" }}>/ {lim}%</span>
+                  </span>
+                );
+                const bad = vdropSum.dc > L.dc || vdropSum.ac > L.ac || vdropSum.total > L.total;
+                return (
+                  <div style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center", padding: "10px 13px", borderRadius: 11,
+                    border: "1px solid " + (bad ? "#F59E0B55" : "var(--border)"), background: bad ? "#F59E0B12" : "var(--surface2)" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--text-1)" }}>
+                      <Icon name="bolt" size={12} color={bad ? "#B45309" : "var(--primary)"} />แรงดันตกรวม
+                    </span>
+                    {cell("ฝั่ง DC", vdropSum.dc, L.dc, "เส้นที่ตกมากสุดฝั่ง DC (แต่ละสตริงเป็นเส้นทางของตัวเอง ไม่บวกกัน)")}
+                    {cell("ฝั่ง AC", vdropSum.ac, L.ac, "บวกทุกช่วงฝั่ง AC ตั้งแต่อินเวอร์เตอร์ถึงตู้เมน")}
+                    {cell("รวมทั้งเส้นทาง", vdropSum.total, L.total, "DC + AC — เกณฑ์ออกแบบทั่วไปไม่เกิน 5%")}
+                    <span style={{ fontSize: 10.5, color: "var(--text-3)", fontWeight: 600 }}>
+                      {bad ? "เกินเกณฑ์ — ขยับขนาดสายขึ้นหรือลดระยะ ไม่งั้นไฟหายไปกับสายและแรงดันปลายทางตก" : "อยู่ในเกณฑ์ · คิดที่กระแสใช้งานจริงและความต้านทานทองแดงตอนสายร้อน"}
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* ── ตารางคำนวณขนาดสายไฟ (จากกระแส Micro-inverter) ── */}
@@ -1205,37 +1412,45 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             </div>
             <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)" }}>* ราคาดึงจากเมนู "ราคาวัสดุ" — รายการที่ยังไม่ใส่ราคาจะขึ้น "–"</div>
           </BoqSection>
+          </div>
         </div>
+      </div>
 
-        {/* footer */}
-        <div style={{ padding: "12px 20px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, flexShrink: 0 }}>
-          <button onClick={onClose} style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ปิด</button>
-          <button onClick={() => guardRun(exportXlsx)} style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: 11, border: "1px solid #1d854b", background: "#22A35B14", color: "#1d854b", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="box" size={15} color="#1d854b" /> Excel</button>
-          {onSave && <button onClick={() => guardRun(() => onSave(b))} style={{ flex: 1, padding: "11px 22px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>บันทึก BOQ</button>}
-        </div>
+      {/* สรุปติดขอบล่าง — เห็นตัวเลขเปลี่ยนทันทีขณะแก้ ไม่ต้องเลื่อนไปดูท้ายรายการ */}
+      <div className="bq-foot">
+        <span className="bq-kpis">
+        <span className="bq-kpi"><span className="k">จำนวนแผง</span><span className="v">{(b.panels || 0).toLocaleString()}<small>แผง</small></span></span>
+        <span className="bq-kpi"><span className="k">ขนาดติดตั้ง</span><span className="v">{result.meta.kw.toLocaleString()}<small>kW</small></span></span>
+        <span className="bq-kpi"><span className="k">{b.inverterModel ? "อินเวอร์เตอร์" : "ไมโคร"}</span><span className="v">{result.meta.invCount}<small>ตัว</small></span></span>
+        <span className="bq-kpi"><span className="k">รายการวัสดุ</span><span className="v">{itemCount.toLocaleString()}<small>รายการ</small></span></span>
+        <span className="bq-kpi"><span className="k">ต้นทุนรวม</span><span className="v hi">{priced.grandTotal > 0 ? "฿" + baht(priced.grandTotal) : "—"}</span></span>
+        </span>
+        <span className="bq-gap" />
+        {remaining !== 0 && (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11.5, fontWeight: 700, color: "#B45309", marginRight: 12, whiteSpace: "nowrap" }}>
+            <span style={{ width: 7, height: 7, borderRadius: 99, background: "#F59E0B", boxShadow: "0 0 0 3px rgba(245,158,11,.22)" }} />
+            ยังวางแผงไม่ครบ {Math.abs(remaining)} แผง
+          </span>
+        )}
+        <button className="bq-btn" style={{ marginRight: 8 }} onClick={onClose}>ปิด</button>
+        <button className="bq-btn gh" style={{ marginRight: 8 }} onClick={() => guardRun(exportXlsx)}><Icon name="box" size={15} color="#1d854b" /> Excel</button>
+        {onSave && <button className="bq-btn pri" onClick={() => guardRun(() => onSave(b))}><Icon name="check" size={15} color="#fff" /> บันทึก BOQ</button>}
       </div>
     </div>
   );
 }
 
-function BoqSection({ title, icon, right, children, open, onToggle }) {
-  const mob = window.matchMedia("(max-width: 860px)").matches;
-  const ref = React.useRef(null);
-  // เปิดเมื่อไร เลื่อนหัวข้อขึ้นไปบนสุด เพื่อให้เห็นเนื้อหาด้านล่างครบ ไม่ถูกบังด้วยปุ่มล่าง
-  React.useEffect(() => {
-    if (open) { const t = setTimeout(() => { ref.current && ref.current.scrollIntoView({ behavior: "smooth", block: "start" }); }, 50); return () => clearTimeout(t); }
-  }, [open]);
+/* การ์ดเนื้อหา 1 หัวข้อ — เลือกจากแถบซ้าย · หัวข้อที่ไม่ได้เลือกไม่เรนเดอร์เลย */
+function BoqSection({ title, icon, right, children, open }) {
+  if (!open) return null;
   return (
-    <div ref={ref} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, scrollMargin: 8 }}>
-      <div style={{ position: open ? "sticky" : "static", top: 0, zIndex: 2, background: "var(--surface)", borderRadius: open ? "14px 14px 0 0" : 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: open ? (mob ? "13px 14px 9px" : "16px 18px 11px") : (mob ? "12px 14px" : "14px 18px"), boxShadow: open ? "0 1px 0 var(--border)" : "none" }}>
-        <button onClick={onToggle} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 7, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-          <Icon name="chevronDown" size={15} color="var(--text-3)" style={{ transition: "transform .2s", transform: open ? "none" : "rotate(-90deg)", flexShrink: 0 }} />
-          <Icon name={icon} size={14} color="var(--primary)" style={{ flexShrink: 0 }} />
-          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".06em", color: "var(--text-3)", textTransform: "uppercase", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</span>
-        </button>
-        {right && <div style={{ flexShrink: 0 }}>{right}</div>}
+    <div className="bq-card">
+      <div className="hd">
+        <Icon name={icon} size={15} color="var(--primary)" />
+        <span className="t">{title}</span>
+        {right && <span className="r">{right}</span>}
       </div>
-      {open && <div style={{ padding: mob ? "4px 14px 14px" : "5px 18px 18px" }}>{children}</div>}
+      {children}
     </div>
   );
 }

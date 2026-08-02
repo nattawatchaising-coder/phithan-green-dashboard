@@ -51,6 +51,11 @@ const SU_CSS = `
 .su-tb tr[data-on="1"] td{background:var(--acs)}
 .su-tb td b{color:var(--text-1);font-weight:800}
 .su-scroll{overflow-x:auto;margin:0 -2px;padding:0 2px}
+/* ช่องเลือก MPPT ในตาราง — เตี้ยกว่าอินพุตปกติ ให้แถวไม่บวม และจางไว้จนกว่าจะปักเอง */
+.su-slot{width:auto;min-width:186px;padding:3px 6px;font-size:11px;font-weight:700;
+  border-color:transparent;background:transparent;color:var(--text-2);cursor:pointer}
+.su-slot:hover{border-color:var(--ln2);background:var(--surface2)}
+.su-slot[data-pick="1"]{border-color:var(--ac);background:var(--acs);color:var(--text-1)}
 /* ปุ่มสลับแบบยาว (ข้อความล้วน) — เวอร์ชันเดิมออกแบบไว้ให้ไอคอนซ้อนข้อความ เลยแคบไป */
 .su .p3-seg.wide{gap:3px}
 .su .p3-seg.wide button{flex-direction:row;padding:6px 16px;font-size:10.5px;white-space:nowrap;min-width:74px;justify-content:center}
@@ -59,6 +64,33 @@ const SU_CSS = `
 .su-pick-row tbody tr:hover td{background:var(--surface2)}
 .su-pick-row tbody tr[data-on="1"] td{background:var(--acs)}
 .su-pick-row tbody tr[data-on="1"] td:first-child{box-shadow:inset 2px 0 0 var(--ac)}
+
+/* ---- แผ่นเลือกเนื้อหารายงาน ---- */
+.su-sheet-bg{position:absolute;inset:0;z-index:40;background:rgba(11,25,20,.42);backdrop-filter:blur(2px);
+  display:grid;place-items:center;padding:26px;animation:suFade .16s ease}
+@keyframes suFade{from{opacity:0}to{opacity:1}}
+.su-sheet{width:min(560px,100%);max-height:100%;display:flex;flex-direction:column;background:var(--surface);
+  border:1px solid var(--ln2);border-radius:20px;box-shadow:0 26px 60px -18px rgba(11,25,20,.42);overflow:hidden}
+.su-sheet-hd{display:flex;gap:12px;align-items:flex-start;padding:17px 20px 14px;border-bottom:1px solid var(--ln)}
+.su-sheet-hd h4{font-size:14px;font-weight:800;color:var(--text-1);margin:0 0 2px}
+.su-sheet-hd p{font-size:10.5px;color:var(--text-3);margin:0;line-height:1.5}
+.su-sheet-bd{overflow-y:auto;padding:8px 12px 12px}
+.su-sheet-ft{display:flex;align-items:center;gap:8px;padding:13px 16px;border-top:1px solid var(--ln);background:var(--surface2)}
+/* แถวติ๊ก — ทั้งแถวกดได้ ไม่ต้องเล็งช่องสี่เหลี่ยม */
+.su-ck{display:flex;gap:11px;align-items:flex-start;width:100%;padding:9px 10px;border:0;border-radius:12px;
+  background:none;text-align:left;cursor:pointer;font-family:inherit;transition:background .13s}
+.su-ck:hover{background:var(--surface2)}
+.su-ck .bx{flex:0 0 auto;width:18px;height:18px;border-radius:6px;border:1.5px solid var(--ln2);margin-top:1px;
+  display:grid;place-items:center;color:#fff;transition:all .13s}
+.su-ck[data-on="1"] .bx{background:var(--ac);border-color:var(--ac)}
+.su-ck .tx{min-width:0}
+.su-ck .tx b{display:block;font-size:12px;font-weight:700;color:var(--text-1);line-height:1.35}
+.su-ck .tx i{display:block;font-style:normal;font-size:10px;color:var(--text-3);line-height:1.45;margin-top:1px}
+.su-ck[data-on="0"] .tx b{color:var(--text-3)}
+.su-ck.sub{padding-left:14px;margin-left:22px}
+.su-ck.sub .tx b{font-size:11.5px;font-weight:650}
+.su-ck.sub[data-off="1"]{opacity:.4;pointer-events:none}
+.su-sheet-bd .grp+.grp{border-top:1px solid var(--ln)}
 
 /* ---- กรอบรายชื่อเส้น I-V + กำลัง ---- */
 .su-ivlegend{display:flex;flex-wrap:wrap;gap:5px 14px;border:1px solid var(--ln);border-radius:10px;
@@ -898,8 +930,14 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   const effAssign = isManual ? (S.assign || {}) : autoSeed;
   /* ตาราง/ผัง/จานสี อ่านจากชุดข้อมูลเดียวกันทั้งหมด จะได้ไม่มีทางขัดกันเอง */
   const plan = React.useMemo(() => (!isMicro && panel.voc
-    ? scStringsFromAssign(effAssign, idx.byPanel, groups, panel, inv, S.env, { invCount: S.invCount, totalPanels })
-    : null), [isMicro, effAssign, idx, groups, panel, inv, S.env, S.invCount, totalPanels]);
+    ? scStringsFromAssign(effAssign, idx.byPanel, groups, panel, inv, S.env, { invCount: S.invCount, totalPanels, mpptPick: S.mpptPick })
+    : null), [isMicro, effAssign, idx, groups, panel, inv, S.env, S.invCount, totalPanels, S.mpptPick]);
+  /* ปักช่อง MPPT เอง: เก็บเป็น { สตริงที่: ช่องที่ } · null = คืนให้ระบบไล่ลงช่องว่างให้ */
+  const pickMppt = (sid, slot) => {
+    const next = Object.assign({}, S.mpptPick || {});
+    if (slot == null) delete next[sid]; else next[sid] = slot;
+    set({ mpptPick: next });
+  };
   const doAuto = () => set({ assign: autoSeed, manual: true });
   const paint = (uid) => {
     const a = Object.assign({}, effAssign);
@@ -998,12 +1036,19 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
     if (microIndep && base.mismatch === SC_LOSS.mismatch) base.mismatch = 0.3;
     return base;
   }, [S.loss, microIndep]);
+  /* ผลผลิตต้องคิดด้วย "ประสิทธิภาพยุโรป" (ถ่วงน้ำหนักตามภาระจริงตลอดวัน) ไม่ใช่ค่าสูงสุดบนดาต้าชีต
+     ซึ่งเกิดขึ้นแค่จุดเดียว — ถ้าคลังยังไม่กรอกค่ายุโรป ค่อยใช้ค่าสูงสุดแทน */
+  const invEffUse = (S.inv && S.inv.effEuro) != null ? S.inv.effEuro
+    : (S.inv && S.inv.eff) != null ? S.inv.eff : (scNum(inv.effEuro) || inv.eff);
   const energy = React.useMemo(() => (groups.length && panel.wp
     ? scEnergy(groups, panel, { lat: st.sun && st.sun.lat, lng: st.sun && st.sun.lng, loss: lossEff,
         shadeByGroup: shade3d ? shade3d.byGroup : null,
-        invEff: isMicro ? (microSel ? microSel.eff : 96.5) : ((S.inv && S.inv.eff) != null ? S.inv.eff : inv.eff),
+        invEff: isMicro ? (microSel ? microSel.eff : 96.5) : invEffUse,
+        /* วิธียึดแผง/ลม ใช้ชุดเดียวกับตอนคำนวณเส้น I-V — อุณหภูมิเซลล์จะได้ตรงกันทั้งระบบ */
+        mount: (S.site && S.site.mount) || "close", wind: (S.site && S.site.wind) != null ? S.site.wind : SC_WIND,
         acKw, tamb: S.tamb, kc: S.kc })
-    : null), [groups, panel, lossEff, S.inv, S.tamb, S.kc, acKw, isMicro, inv.eff, st.sun, shade3d, microSel && microSel.eff]);
+    : null), [groups, panel, lossEff, S.inv, S.tamb, S.kc, acKw, isMicro, inv.eff, st.sun, shade3d, microSel && microSel.eff,
+      S.site && S.site.mount, S.site && S.site.wind]);
   const life = energy ? scLife(energy.annual, panel, S.years) : null;
 
   /* ══ ตรวจวัด I-V ══ */
@@ -1038,7 +1083,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
     ? ivDaySim(st, panel, groups, idx.byPanel, {
         lat: st.sun && st.sun.lat, lng: st.sun && st.sun.lng, date: siteDate,
         tAmb: site.tAmb, ghi: site.ghi, refHour: site.hour == null ? 12 : site.hour,
-        albedo: S.env && S.env.albedo, elec: elecCfg, acKw, invEff: isMicro ? (microSel ? microSel.eff : 96.5) : ((S.inv && S.inv.eff) != null ? S.inv.eff : inv.eff),
+        albedo: S.env && S.env.albedo, elec: elecCfg, acKw, invEff: isMicro ? (microSel ? microSel.eff : 96.5) : invEffUse,
         dcLoss: energy ? 1 - energy.dcLoss / 100 : 0.92 })
     : null), [st, panel, groups, idx, siteDate, site.tAmb, site.ghi, site.hour, S.env, acKw, S.inv, isMicro, inv.eff, energy && energy.dcLoss, S.elec, hc.half]);
   /* เวลาที่ใช้ดู — ถ้ายังไม่ได้เลือกเอง ระบบเลือก "ช่วงที่เหมาะจะออกไปวัดที่สุด" ให้ (แดดแรง ไม่มีเงา) */
@@ -1050,7 +1095,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   const yearOpt = {
     lat: st.sun && st.sun.lat, lng: st.sun && st.sun.lng, year: +siteDate.slice(0, 4) || undefined,
     tAmb: site.tAmb, albedo: S.env && S.env.albedo, elec: elecCfg, acKw,
-    invEff: isMicro ? (microSel ? microSel.eff : 96.5) : ((S.inv && S.inv.eff) != null ? S.inv.eff : inv.eff),
+    invEff: isMicro ? (microSel ? microSel.eff : 96.5) : invEffUse,
     dcLoss: energy ? 1 - energy.dcLoss / 100 : 0.92,
   };
   const canYear = typeof ivYearSim === "function" && groups.length > 0 && panel.wp > 0;
@@ -1120,9 +1165,25 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
 
   const warns = [].concat(plan ? plan.warns : [], microSel ? microSel.warns : []);
 
+  /* ── เลือกเนื้อหาที่จะออกรายงาน ──
+     เก็บไว้กับงาน (S.report) เพราะแต่ละงานส่งให้คนละคนดู — ลูกค้าคนเดิมเปิดรายงานซ้ำจะได้เหมือนเดิม */
+  const [repOpen, setRepOpen] = React.useState(false);
+  const repPick = React.useMemo(() => Object.assign(
+    typeof rpPickAll === "function" ? rpPickAll() : {}, S.report || {}), [S.report]);
+  const repToggle = (k) => set({ report: Object.assign({}, repPick, { [k]: !repPick[k] }) });
+  const repPreset = (only) => {
+    const all = typeof rpPickAll === "function" ? rpPickAll() : {};
+    if (!only) { set({ report: all }); return; }
+    const next = {};
+    Object.keys(all).forEach((k) => { next[k] = only.indexOf(k) >= 0; });
+    set({ report: next });
+  };
+  const repCount = (typeof RP_SECTIONS !== "undefined" ? RP_SECTIONS : []).filter((s) => repPick[s.key]).length;
+
   /* รวมทุกอย่างที่คำนวณไว้แล้วส่งให้ตัวสร้างรายงาน — ไม่คำนวณซ้ำ ตัวเลขในรายงานจึงตรงกับบนจอเป๊ะ */
   const doReport = () => {
     if (typeof suPrintReport !== "function") { alert("ยังโหลดตัวสร้างรายงานไม่สำเร็จ ลองรีเฟรชหน้าอีกครั้ง"); return; }
+    setRepOpen(false);
     /* รายงานต้องมีข้อมูล 12 เดือนเสมอ — ถ้ากดปุ่มตั้งแต่ยังไม่ผ่านขั้นที่ 3 ให้คำนวณตรงนี้เลย
        (ไม่งั้นจะได้รายงานที่หัวข้อทั้งปีหายไปเงียบ ๆ) */
     const yearNow = year || (canYear ? ivYearSim(st, panel, groups, idx.byPanel, yearOpt) : null);
@@ -1130,7 +1191,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
       ivRows, ivDone, ivAvg, ivOutliers, site, siteDate, acKw, totalPanels, warns, foot,
       /* โหมดไมโครใช้ผัง "แผงอยู่ไมโครตัวไหน" แทนผังสตริง — ผังในรายงานจะได้ตรงกับที่เห็นบนจอ */
       assign: isMicro ? microAssign : effAssign, microUnits, phases, phaseBins, phaseBal, uidPhase,
-      shade3d, sim, simHour, year: yearNow, snapImg });
+      shade3d, sim, simHour, year: yearNow, snapImg, pick: repPick });
   };
 
   return (
@@ -1266,14 +1327,19 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                       <SuSpec label="MPPT ต่ำสุด" value={inv.mpptVmin} step={5} suffix="V" src={srcOf(S.inv, stockInvRow, "mpptVmin")} onChange={(v) => setI("mpptVmin", v)} onReset={() => setI("mpptVmin", null)} />
                       <SuSpec label="MPPT สูงสุด" value={inv.mpptVmax} step={5} suffix="V" src={srcOf(S.inv, stockInvRow, "mpptVmax")} onChange={(v) => setI("mpptVmax", v)} onReset={() => setI("mpptVmax", null)} />
                       <SuSpec label="แรงดัน DC สูงสุด" value={inv.maxVdc} step={10} suffix="V" src={srcOf(S.inv, stockInvRow, "maxVdc")} onChange={(v) => setI("maxVdc", v)} onReset={() => setI("maxVdc", null)} />
-                      <SuSpec label="กระแสทำงานสูงสุด/MPPT" value={inv.maxInA} step={0.5} suffix="A" src={srcOf(S.inv, stockInvRow, "maxInA")} onChange={(v) => setI("maxInA", v)} onReset={() => setI("maxInA", null)} />
+                      <SuSpec label="แรงดันเริ่มทำงาน" value={inv.vStart} step={10} suffix="V" src={srcOf(S.inv, stockInvRow, "vStart")} onChange={(v) => setI("vStart", v)} onReset={() => setI("vStart", null)} />
+                      <SuSpec label="กระแสสูงสุด/อินพุต" value={inv.maxInA} step={0.5} suffix="A" src={srcOf(S.inv, stockInvRow, "maxInA")} onChange={(v) => setI("maxInA", v)} onReset={() => setI("maxInA", null)} />
+                      <SuSpec label="กระแสสูงสุด/MPPT" value={inv.maxMpptA} step={0.5} suffix="A" src={srcOf(S.inv, stockInvRow, "maxMpptA")} onChange={(v) => setI("maxMpptA", v)} onReset={() => setI("maxMpptA", null)} />
                       <SuSpec label="กระแสลัดวงจรสูงสุด/MPPT" value={inv.maxIscA} step={0.5} suffix="A" src={srcOf(S.inv, stockInvRow, "maxIscA")} onChange={(v) => setI("maxIscA", v)} onReset={() => setI("maxIscA", null)} />
                       <SuSpec label="จำนวน MPPT" value={inv.inputs} step={1} suffix="ช่อง" src={srcOf(S.inv, stockInvRow, "inputs")} onChange={(v) => setI("inputs", v)} onReset={() => setI("inputs", null)} />
-                      <SuSpec label="ประสิทธิภาพ" value={inv.eff} step={0.1} suffix="%" src={srcOf(S.inv, stockInvRow, "eff")} onChange={(v) => setI("eff", v)} onReset={() => setI("eff", null)} />
+                      <SuSpec label="อินพุตต่อ 1 MPPT" value={inv.strPerMppt} step={1} suffix="ขั้ว" src={srcOf(S.inv, stockInvRow, "strPerMppt")} onChange={(v) => setI("strPerMppt", v)} onReset={() => setI("strPerMppt", null)} />
+                      <SuSpec label="ประสิทธิภาพ (ใช้คิดผลผลิต)" value={inv.effEuro || inv.eff} step={0.1} suffix="%" src={srcOf(S.inv, stockInvRow, inv.effEuro ? "effEuro" : "eff")} onChange={(v) => setI(inv.effEuro ? "effEuro" : "eff", v)} onReset={() => setI(inv.effEuro ? "effEuro" : "eff", null)} />
                     </div>
                     {/* เทียบกระแสให้เห็นทันทีว่าคู่ไหนเทียบกับคู่ไหน */}
                     {panel.imp && (() => {
-                      const cur = scCurrent(panel, inv, 1);
+                      const per = scStringsPerMppt(panel, inv);
+                      const cur = scCurrent(panel, inv, per);
+                      const lay = scPinLayout(inv, S.invCount);
                       const row = (lb, val, lim, tip) => (
                         <span className="p3-stat" title={tip} style={{ color: lim && val > lim ? "#B91C1C" : undefined }}>
                           {lb} <b>{val} A</b>{lim ? <span style={{ color: "var(--text-3)", fontWeight: 700 }}>&nbsp;/ {lim} A</span> : <span style={{ color: "var(--text-3)" }}>&nbsp;/ ยังไม่ระบุ</span>}
@@ -1281,9 +1347,12 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                       );
                       return (
                         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", borderTop: "1px solid var(--ln)", paddingTop: 9 }}>
-                          {row("กระแสทำงาน (Imp)", cur.opA, cur.limOp, "Imp ของแผง ต่อ 1 สตริง เทียบกับกระแสทำงานสูงสุดของช่อง MPPT")}
-                          {row("กระแสลัดวงจร (Isc×1.25)", cur.scA, cur.limSc, "Isc×1.25 ตามมาตรฐานการติดตั้ง เทียบกับพิกัดกระแสลัดวงจรของช่อง MPPT")}
-                          <span className="p3-stat">ขนานได้ <b>{scStringsPerMppt(panel, inv)}</b> สตริง/ช่อง</span>
+                          {row("1 สตริง (Imp)", cur.impA, cur.limIn, "Imp ของแผง 1 สตริง เทียบกับกระแสสูงสุดของ 1 ขั้ว")}
+                          {row("รวมใน 1 MPPT", cur.opA, cur.limOp, "ทุกสตริงที่ขนานเข้าช่อง MPPT เดียวกันรวมกัน เทียบกับกระแสสูงสุดต่อ MPPT")}
+                          {row("ลัดวงจร (Isc×1.25)", cur.scA, cur.limSc, "Isc×1.25 ตามมาตรฐานการติดตั้ง เทียบกับพิกัดกระแสลัดวงจรของช่อง MPPT")}
+                          <span className="p3-stat" title={"ขั้วที่มี " + lay.phys + " ต่อ MPPT · ตัดลงถ้ากระแสขนานเกินพิกัด"}>
+                            ขนานได้ <b>{per}</b> สตริง/MPPT</span>
+                          <span className="p3-stat" title={lay.mppt + " ช่อง MPPT × " + lay.phys + " ขั้ว"}>ขั้วทั้งระบบ <b>{lay.pins}</b></span>
                         </div>
                       );
                     })()}
@@ -1468,7 +1537,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                       <span style={{ fontWeight: 600 }}>{plan.strings.length} สตริง · {plan.panels} แผง</span></span>
                     <div className="su-scroll">
                       <table className="su-tb">
-                        <thead><tr><th>สตริง</th><th>แผง</th><th>กลุ่ม</th><th>MPPT</th><th>Voc เย็น</th><th>ช่วงทำงาน</th><th>สถานะ</th></tr></thead>
+                        <thead><tr><th>สตริง</th><th>แผง</th><th>กลุ่ม</th><th>ขั้วที่เสียบ · INV / MPPT / ช่อง</th><th>Voc เย็น</th><th>ช่วงทำงาน</th><th>สถานะ</th></tr></thead>
                         <tbody>
                           {plan.strings.map((s, i) => (
                             <tr key={i} data-on={s.id && activeStr === s.id ? "1" : "0"}>
@@ -1480,7 +1549,24 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                               </td>
                               <td><b>{s.n}</b></td>
                               <td style={{ maxWidth: 190, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: s.mixed ? "#B45309" : undefined }}>{s.label}</td>
-                              <td>{s.mppt == null ? "—" : "อินฯ " + (s.inv + 1) + " / ช่อง " + (s.mppt % Math.max(1, scNum(inv.inputs, 2)) + 1)}</td>
+                              <td>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                                  <select className="p3-inp su-slot" value={(S.mpptPick || {})[s.id] != null ? (S.mpptPick || {})[s.id] : ""}
+                                    onChange={(e) => pickMppt(s.id, e.target.value === "" ? null : +e.target.value)}
+                                    data-pick={s.picked ? "1" : "0"}
+                                    title="เลือกเองว่าจะเสียบสตริงนี้เข้าขั้วไหน — INV = อินเวอร์เตอร์ตัวที่ · MPPT = ช่อง MPPT · ช่อง = ขั้วในช่องนั้น · อัตโนมัติ = ระบบไล่ลงขั้วที่ว่าง">
+                                    <option value="">{s.pin == null ? "— ไม่มีขั้วเหลือ —" : "อัตโนมัติ · " + s.addr}</option>
+                                    {Array.from({ length: plan.pins }).map((_, k) => {
+                                      const own = (plan.owner || {})[k] || [];
+                                      const mine = own.indexOf(s.id) >= 0;
+                                      const busy = own.filter((x) => x !== s.id);
+                                      return <option key={k} value={k}>{scMpptName(k, inv, S.invCount) +
+                                        (busy.length ? " · สตริง #" + busy.join(", #") : mine ? "" : " · ว่าง")}</option>;
+                                    })}
+                                  </select>
+                                  {s.picked && <span title="ปักช่องเอง" style={{ color: "var(--acd)", fontWeight: 800, fontSize: 11 }}>●</span>}
+                                </span>
+                              </td>
                               <td>{s.chk.vocCold} V</td>
                               <td>{s.chk.vmpHot}–{s.chk.vmpCold} V</td>
                               <td style={{ color: s.chk.ok ? "var(--acd)" : "#B91C1C", fontWeight: 800 }}>{s.chk.ok ? s.chk.band : "ไม่ผ่าน"}</td>
@@ -1489,6 +1575,16 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                         </tbody>
                       </table>
                     </div>
+                    {/* ฟิวส์สตริง — จำเป็นเมื่อขนานตั้งแต่ 3 เส้นต่อ 1 ช่อง MPPT */}
+                    {plan.fuse && (
+                      <div className={"su-alert " + (plan.fuse.need ? "warn" : "")} style={!plan.fuse.need ? { background: "var(--surface2)", borderLeftColor: "var(--ln2)" } : null}>
+                        <P3Icon name={plan.fuse.need ? "height" : "check"} size={14} />
+                        {plan.fuse.need
+                          ? <span><b>ต้องใส่ฟิวส์สตริง {plan.fuse.count} ตัว{plan.fuse.amp ? " ขนาด " + plan.fuse.amp + " A" : ""}</b> (พร้อมกระบอกฟิวส์) — {plan.fuse.why}
+                            {plan.fuse.isc ? " · เลือกจาก Isc " + plan.fuse.isc + " A × 1.5" : ""}</span>
+                          : <span>ไม่ต้องใช้ฟิวส์สตริง — {plan.fuse.why}</span>}
+                      </div>
+                    )}
                     <div style={{ display: "flex", gap: 14, flexWrap: "wrap", borderTop: "1px solid var(--ln)", paddingTop: 9 }}>
                       <span className="p3-stat">DC <b>{plan.dcKw}</b> kWp</span>
                       <span className="p3-stat">AC <b>{plan.acKw}</b> kW</span>
@@ -2347,7 +2443,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
 
                 <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
                   <button className="p3-b" onClick={() => setStep(3)}>ย้อนกลับ</button>
-                  <button className="p3-b pri" style={{ padding: "10px 20px" }} onClick={doReport}>
+                  <button className="p3-b pri" style={{ padding: "10px 20px" }} onClick={() => setRepOpen(true)}>
                     <P3Icon name="doc" size={14} />ออกรายงาน PDF
                   </button>
                 </div>
@@ -2377,13 +2473,64 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
             {warns.length} ข้อควรแก้
           </span>
         )}
-        <button className="p3-b" style={{ padding: "10px 16px", marginRight: 8 }} onClick={doReport} disabled={!energy} title="รวมทุกขั้นตอนเป็นรายงานหน้าเดียว แล้วสั่งพิมพ์/บันทึกเป็น PDF">
+        <button className="p3-b" style={{ padding: "10px 16px", marginRight: 8 }} onClick={() => setRepOpen(true)} disabled={!energy}
+          title="เลือกหัวข้อที่จะออก แล้วสั่งพิมพ์/บันทึกเป็น PDF">
           <P3Icon name="doc" size={15} />รายงาน PDF
         </button>
         <button className="p3-b pri" style={{ padding: "10px 22px" }} onClick={onClose}>
           <P3Icon name="check" size={15} />เสร็จ
         </button>
       </div>
+
+      {/* ── เลือกเนื้อหาก่อนออกรายงาน ── */}
+      {repOpen && (
+        <div className="su-sheet-bg" onMouseDown={(e) => { if (e.target === e.currentTarget) setRepOpen(false); }}>
+          <div className="su-sheet">
+            <div className="su-sheet-hd">
+              <span style={{ width: 30, height: 30, borderRadius: 9, background: "var(--acs)", display: "grid", placeItems: "center", color: "var(--acd)", flexShrink: 0 }}>
+                <P3Icon name="doc" size={15} />
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h4>เลือกเนื้อหาที่จะออกรายงาน</h4>
+                <p>ติ๊กเฉพาะหัวข้อที่อยากให้อยู่ในไฟล์ — เลขหัวข้อจะไล่ใหม่ให้เอง ไม่มีเลขขาด</p>
+              </div>
+              <button className="ghost" onClick={() => setRepOpen(false)} title="ปิด"><Icon name="x" size={15} /></button>
+            </div>
+            <div className="su-sheet-bd">
+              {(typeof RP_SECTIONS !== "undefined" ? RP_SECTIONS : []).map((s) => (
+                <div className="grp" key={s.key}>
+                  <button className="su-ck" data-on={repPick[s.key] ? "1" : "0"} onClick={() => repToggle(s.key)}>
+                    <span className="bx">{repPick[s.key] && <P3Icon name="check" size={12} />}</span>
+                    <span className="tx"><b>{s.label}</b>{s.note && <i>{s.note}</i>}</span>
+                  </button>
+                  {(s.subs || []).map((b) => (
+                    <button key={b.key} className="su-ck sub" data-on={repPick[b.key] ? "1" : "0"}
+                      data-off={repPick[s.key] ? "0" : "1"} onClick={() => repToggle(b.key)}>
+                      <span className="bx">{repPick[b.key] && <P3Icon name="check" size={12} />}</span>
+                      <span className="tx"><b>{b.label}</b>{b.note && <i>{b.note}</i>}</span>
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+            <div className="su-sheet-ft">
+              <button className="p3-b sm" onClick={() => repPreset(null)} title="เอาทุกหัวข้อ">ทั้งเล่ม</button>
+              <button className="p3-b sm" onClick={() => repPreset(["cover", "summary", "prod", "shade", "life", "roi"])}
+                title="หน้าปก · สรุป · ผลผลิต · คืนทุน — ตัดรายละเอียดทางเทคนิคออก">ฉบับลูกค้า</button>
+              <button className="p3-b sm" onClick={() => repPreset(["equip", "wiring", "layout", "iv", "ivDay", "ivYear", "ivAll", "ivMeas"])}
+                title="อุปกรณ์ · การต่อ · ผัง · เส้น I-V — เอาไว้ให้ช่างถือหน้างาน">ฉบับหน้างาน</button>
+              <span style={{ flex: 1 }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: repCount ? "var(--text-3)" : "#B45309", marginRight: 4 }}>
+                {repCount ? repCount + " หัวข้อ" : "ยังไม่เลือกหัวข้อ"}
+              </span>
+              <button className="p3-b pri" style={{ padding: "9px 18px" }} onClick={doReport}
+                disabled={!repCount && !repPick.cover && !repPick.summary}>
+                <P3Icon name="doc" size={14} />ออกรายงาน
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

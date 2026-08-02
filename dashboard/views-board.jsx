@@ -187,17 +187,18 @@ function KanbanView({ jobs, onOpen, onMoveStage }) {
             onDragOver={(e) => { e.preventDefault(); setOver(s.key); }}
             onDragLeave={() => setOver((o) => (o === s.key ? null : o))}
             onDrop={() => onDrop(s.key)}
-            style={{ width: 264, flexShrink: 0, display: "flex", flexDirection: "column", borderRadius: 14,
+            style={{ width: 264, flexShrink: 0, display: "flex", flexDirection: "column", borderRadius: 18,
               background: isOver ? s.soft : "var(--surface2)", border: "1px solid " + (isOver ? s.color : "var(--border)"),
               transition: "background .15s, border-color .15s" }}>
             <div style={{ padding: "13px 14px", display: "flex", alignItems: "center", justifyContent: "space-between",
               borderBottom: "1px solid var(--border)", position: "sticky", top: 0 }}>
-              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ width: 9, height: 9, borderRadius: 99, background: s.color }} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{s.th}</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                <span style={{ width: 7, height: 7, borderRadius: 99, background: s.color, flexShrink: 0 }} />
+                <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: ".05em", color: "var(--text-2)",
+                  whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.th}</span>
               </span>
-              <span style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 600, color: s.color,
-                background: s.soft, minWidth: 22, height: 22, borderRadius: 99, display: "grid", placeItems: "center", padding: "0 6px" }}>{col.length}</span>
+              <span style={{ fontFamily: "var(--display)", fontSize: 15, fontWeight: 700, letterSpacing: "-.02em",
+                color: col.length ? "var(--text-1)" : "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{col.length}</span>
             </div>
             <div style={{ padding: 11, display: "flex", flexDirection: "column", gap: 11, overflowY: "auto", flex: 1, minHeight: 80 }}>
               {col.map((j) => <KanbanCard key={j.id} job={j} onOpen={onOpen} onDragStart={onDragStart} dragging={drag === j.id} />)}

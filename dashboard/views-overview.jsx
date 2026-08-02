@@ -2,19 +2,36 @@
    SolarFlow — Overview view (KPIs, pipeline, alerts, schedule)
    ============================================================ */
 
+/* แผงตัวเลขรวม — ผืนเดียวแบ่งด้วยเส้นผม แทนการ์ดสามใบหน้าตาเหมือนกัน
+   ตัวเลขใหญ่เป็นพระเอก · สีใช้เฉพาะตอนมีความหมาย (ล่าช้า) ไม่ใช่แถบสีประดับทุกใบ */
+function StatRail({ items }) {
+  return (
+    <div className="stat-rail">
+      {items.map((it) => (
+        <button key={it.label} onClick={it.onClick} data-alert={it.alert ? "1" : "0"}
+          data-active={it.active ? "1" : null} title={it.onClick ? "ดูรายการ" : undefined}>
+          <span className="lb">
+            <span className="pip" style={{ background: it.alert ? "#D93025" : it.accent }} />{it.label}
+          </span>
+          <span className="num">{it.value}{it.unit && <em>{it.unit}</em>}</span>
+          <span className="sub">{it.sub}</span>
+          {it.onClick && <span className="go"><Icon name="arrowRight" size={15} color="currentColor" /></span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* ของเดิม — ยังมีที่อื่นเรียกใช้อยู่ */
 function KpiCard({ label, value, unit, icon, accent, sub, alert, onClick }) {
   const mob = window.matchMedia("(max-width: 860px)").matches;
   return (
     <div onClick={onClick}
-      onMouseEnter={(e) => { if (onClick) { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 10px 26px rgba(20,40,28,.12)"; e.currentTarget.style.borderColor = accent; const c = e.currentTarget.querySelector(".kpi-cta"); if (c) c.style.opacity = 1; } }}
-      onMouseLeave={(e) => { if (onClick) { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = alert ? "0 0 0 3px #EF444411" : "var(--shadow-sm)"; e.currentTarget.style.borderColor = alert ? "#FCA5A5" : "var(--border)"; const c = e.currentTarget.querySelector(".kpi-cta"); if (c) c.style.opacity = 0; } }}
       style={{ background: "var(--surface)", border: "1px solid " + (alert ? "#FCA5A5" : "var(--border)"),
-      borderRadius: mob ? 14 : 16, padding: mob ? 14 : 20, position: "relative", overflow: "hidden", cursor: onClick ? "pointer" : "default",
-      transition: "transform .14s, box-shadow .14s, border-color .14s",
-      boxShadow: alert ? "0 0 0 3px #EF444411" : "var(--shadow-sm)" }}>
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: accent }} />
+      borderRadius: mob ? 14 : 16, padding: mob ? 14 : 20, position: "relative", overflow: "hidden",
+      cursor: onClick ? "pointer" : "default", boxShadow: "var(--shadow-sm)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-        <span style={{ fontSize: mob ? 11 : 12, fontWeight: 600, color: "var(--text-2)", letterSpacing: ".01em", whiteSpace: "normal", lineHeight: 1.3, minWidth: 0 }}>{label}</span>
+        <span style={{ fontSize: mob ? 11 : 12, fontWeight: 600, color: "var(--text-2)", lineHeight: 1.3, minWidth: 0 }}>{label}</span>
         <span style={{ width: mob ? 28 : 34, height: mob ? 28 : 34, borderRadius: mob ? 8 : 10, background: accent + "16", display: "grid", placeItems: "center", flexShrink: 0 }}>
           <Icon name={icon} size={mob ? 15 : 17} color={accent} />
         </span>
@@ -23,14 +40,7 @@ function KpiCard({ label, value, unit, icon, accent, sub, alert, onClick }) {
         <span style={{ fontFamily: "var(--display)", fontSize: mob ? 26 : 34, fontWeight: 700, color: "var(--text-1)", lineHeight: 1 }}>{value}</span>
         {unit && <span style={{ fontSize: mob ? 12.5 : 14, fontWeight: 600, color: "var(--text-3)" }}>{unit}</span>}
       </div>
-      <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        {sub && <span style={{ fontSize: mob ? 11 : 12, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sub}</span>}
-        {!mob && (
-          <span className="kpi-cta" style={{ opacity: 0, transition: "opacity .14s", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 700, color: accent, whiteSpace: "nowrap" }}>
-            ดูรายการ <Icon name="arrowRight" size={13} color={accent} />
-          </span>
-        )}
-      </div>
+      {sub && <div style={{ marginTop: 8, fontSize: mob ? 11 : 12, color: "var(--text-3)" }}>{sub}</div>}
     </div>
   );
 }
@@ -40,7 +50,7 @@ function PipelinePanel({ jobs, onStage }) {
   const counts = SF.STAGES.map((s) => jobs.filter((j) => j.stage === s.key).length);
   const max = Math.max(...counts, 1);
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 22, boxShadow: "var(--shadow-sm)" }}>
+    <div className="pnl">
       <PanelTitle icon="trend" iconColor="var(--primary)" title="งานแยกตามขั้นตอน" sub="Pipeline · คลิกเพื่อกรอง" />
       <div style={{ display: "flex", flexDirection: "column", gap: 11, marginTop: 18 }}>
         {SF.STAGES.map((s, i) => (
@@ -61,17 +71,14 @@ function PipelinePanel({ jobs, onStage }) {
   );
 }
 
+/* หัวข้อแผง — ป้ายตัวเล็กคาดเส้นผม ไม่ใช่ไอคอนสี + หัวเรื่องใหญ่ทุกแผง
+   ปล่อยให้เนื้อหาในแผงเป็นตัวเด่นแทน */
 function PanelTitle({ icon, iconColor, title, sub, right }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <Icon name={icon} size={17} color={iconColor || "var(--text-2)"} />
-        <div>
-          <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap" }}>{title}</div>
-          {sub && <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 1 }}>{sub}</div>}
-        </div>
-      </div>
-      {right}
+    <div className="pnl-hd">
+      <span className="t">{title}</span>
+      {sub && <span className="s">{sub}</span>}
+      {right && <span className="r">{right}</span>}
     </div>
   );
 }
@@ -79,7 +86,7 @@ function PanelTitle({ icon, iconColor, title, sub, right }) {
 function AlertsPanel({ jobs, onOpen }) {
   const problems = jobs.filter((j) => j.problem || j.delayed);
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 22, boxShadow: "var(--shadow-sm)" }}>
+    <div className="pnl">
       <PanelTitle icon="alert" iconColor="#EF4444" title="งานที่ต้องดูแล" sub={problems.length + " งานติดปัญหา / ล่าช้า"} />
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16, maxHeight: 280, overflowY: "auto" }}>
         {problems.length === 0 && <Empty text="ไม่มีงานติดปัญหา 🎉" />}
@@ -109,7 +116,7 @@ function SchedulePanel({ jobs, onOpen }) {
   const upcoming = jobs.filter((j) => j.stage !== "done" && j.deadline >= today)
     .sort((a, b) => a.deadline.localeCompare(b.deadline)).slice(0, 6);
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 22, boxShadow: "var(--shadow-sm)" }}>
+    <div className="pnl">
       <PanelTitle icon="calendar" iconColor="var(--primary)" title="นัดติดตั้งที่ใกล้ถึง" sub="เรียงตามวันนัด" />
       <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 14 }}>
         {upcoming.map((j) => {
@@ -167,26 +174,23 @@ function MySchedRow({ it, onOpen }) {
     : ("ติดตั้ง · " + (it.job.province || "-") + " · " + it.job.kw + " kW");
   const click = isSurvey ? () => { if (it.a.projectId) onOpen({ id: it.a.projectId }); } : () => onOpen(it.job);
   return (
-    <button onClick={click} style={{ display: "flex", gap: 12, alignItems: "center", padding: "11px 13px", textAlign: "left",
-      background: color + "0d", border: "1px solid " + color + "33", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", width: "100%" }}>
-      <span style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: "grid", placeItems: "center", background: color, color: "#fff" }}>
-        <Icon name={isSurvey ? "search" : "pin"} size={15} color="#fff" />
+    <button onClick={click}>
+      <span className="mk" style={{ background: color }} />
+      <span className="bd">
+        <span className="nm">{title}</span>
+        <span className="mt">{sub}</span>
       </span>
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</span>
-        <span style={{ display: "block", fontSize: 11.5, color: "var(--text-2)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sub}</span>
-      </span>
-      <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: color, background: color + "14", padding: "4px 10px", borderRadius: 99, whiteSpace: "nowrap" }}>{range}</span>
+      <span className="when"><b>{isSurvey ? "สำรวจ" : "ติดตั้ง"}</b>{range}</span>
     </button>
   );
 }
 
 function MySchedulePanel({ items, onOpen }) {
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 22, boxShadow: "var(--shadow-sm)" }}>
+    <div className="pnl">
       <PanelTitle icon="calendar" iconColor="var(--primary)" title="ตารางงานของฉัน" sub={thDate(window.SF.TODAY, true) + " · งานที่ใกล้ถึง"} />
       {items.length === 0 ? <Empty text="ไม่มีงานในตารางของคุณตอนนี้ 🎉" /> : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
+        <div className="rows">
           {items.map((it) => <MySchedRow key={it.key} it={it} onOpen={onOpen} />)}
         </div>
       )}
@@ -342,37 +346,37 @@ function MaterialShortagePanel({ jobs, stock, onOpen }) {
   if (rows.length === 0) return null;   // ของครบทุกงาน → ไม่แสดง (ลดความรก)
   const AMBER = "#F59E0B";
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid " + AMBER + "55", borderRadius: 16, padding: 22, boxShadow: "0 0 0 3px " + AMBER + "12" }}>
-      <PanelTitle icon="alert" iconColor={AMBER} title="ของไม่พอ ก่อนวันติดตั้ง"
+    /* แผงนี้เป็นคำเตือน — ใช้เส้นซ้ายสีเหลืองอันเดียวบอกสถานะ พอแล้ว ไม่ต้องระบายพื้นทุกแถว */
+    <div className="pnl" style={{ borderLeft: "3px solid " + AMBER }}>
+      <PanelTitle title="ของไม่พอ ก่อนวันติดตั้ง"
         sub={rows.length + " งานที่ของขาด — ควรสั่งเพิ่มก่อนออกหน้างาน"} />
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16, maxHeight: 340, overflowY: "auto" }}>
+      <div className="rows" style={{ maxHeight: 340, overflowY: "auto" }}>
         {rows.map((r) => {
           const d = parseDate(r.start);
           const dateStr = r.start ? (d.getDate() + " " + window.TH_MONTHS[d.getMonth()]) : "ไม่ระบุวัน";
           const dueSoon = r.start && r.start <= _addDaysISO(today, 3);
           return (
-            <div key={r.job.id} role="button" tabIndex={0} onClick={() => onOpen(r.job)}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(r.job); } }}
-              style={{ display: "flex", gap: 11, padding: "11px 12px", textAlign: "left", alignItems: "flex-start",
-              background: AMBER + "12", border: "1px solid " + AMBER + "44", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", width: "100%" }}>
-              <span style={{ width: 4, alignSelf: "stretch", borderRadius: 99, background: AMBER, flexShrink: 0 }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                  <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: "0 1 auto" }}>{r.job.name}</span>
-                  <span style={{ fontSize: 10.5, fontWeight: 700, color: dueSoon ? "#EF4444" : AMBER, background: (dueSoon ? "#EF4444" : AMBER) + "1f", padding: "1px 7px", borderRadius: 99, whiteSpace: "nowrap", flexShrink: 0 }}>
-                    ติดตั้ง {dateStr}
-                  </span>
-                </div>
-                <div style={{ marginTop: 6 }}><StageBadge stageKey={r.job.stage} size="sm" /></div>
-              </div>
-              <button onClick={(e) => { e.stopPropagation(); exportShortageXlsx(r.job, r.short); }}
-                title="ดาวน์โหลดรายการสั่งซื้อ (Excel · แยกหมวด)" aria-label="ดาวน์โหลดรายการสั่งซื้อ"
-                style={{ flexShrink: 0, alignSelf: "center", display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 11px",
-                  background: "#1d854b14", border: "1px solid #1d854b44", borderRadius: 9, color: "#1d854b",
-                  fontWeight: 700, fontSize: 11.5, fontFamily: "inherit", cursor: "pointer", whiteSpace: "nowrap" }}>
-                <Icon name="download" size={14} color="#1d854b" /> ไฟล์
-              </button>
-            </div>
+            <button key={r.job.id} onClick={() => onOpen(r.job)}>
+              <span className="mk" style={{ background: dueSoon ? "#D93025" : AMBER }} />
+              <span className="bd">
+                <span className="nm">{r.job.name}</span>
+                <span className="mt">
+                  ขาด {r.short.length} รายการ · {window.SF.STAGES.find((x) => x.key === r.job.stage).th}
+                </span>
+              </span>
+              <span className="when" style={dueSoon ? { color: "#D93025" } : null}>
+                <b>ติดตั้ง</b>{dateStr}
+              </span>
+              <span onClick={(e) => { e.stopPropagation(); exportShortageXlsx(r.job, r.short); }}
+                role="button" tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); exportShortageXlsx(r.job, r.short); } }}
+                title="ดาวน์โหลดรายการสั่งซื้อ (Excel · แยกหมวด)"
+                style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 10px",
+                  border: "1px solid var(--border-strong)", borderRadius: 9, color: "var(--primary-dark)",
+                  fontWeight: 700, fontSize: 11.5, cursor: "pointer", whiteSpace: "nowrap", background: "var(--surface)" }}>
+                <Icon name="download" size={13} color="var(--primary-dark)" /> ไฟล์
+              </span>
+            </button>
           );
         })}
       </div>
@@ -391,11 +395,14 @@ function OverviewView({ jobs, schedule, onOpen, onStage, onKpi, stock }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       {!isMobile && (
-      <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
-        <KpiCard label="งานกำลังดำเนินการ" value={active.length} unit="งาน" icon="list" accent="#3B82F6" sub={"เสร็จแล้ว " + done.length + " งาน"} onClick={() => onKpi("active")} />
-        <KpiCard label="งานล่าช้ากว่ากำหนด" value={delayed.length} unit="งาน" icon="alert" accent="#EF4444" alert={delayed.length > 0} sub="เลยวันนัดติดตั้ง" onClick={() => onKpi("delayed")} />
-        <KpiCard label="อุปกรณ์พร้อมติดตั้ง" value={ready.length} unit="งาน" icon="box" accent="var(--primary)" sub="วัสดุครบทุกรายการ" onClick={() => onKpi("ready")} />
-      </div>
+      <StatRail items={[
+        { label: "กำลังดำเนินการ", value: active.length, unit: "งาน", accent: "#3B82F6",
+          sub: <React.Fragment>เสร็จไปแล้ว <b>{done.length}</b> งาน</React.Fragment>, onClick: () => onKpi("active") },
+        { label: "ล่าช้ากว่ากำหนด", value: delayed.length, unit: "งาน", accent: "var(--text-3)", alert: delayed.length > 0,
+          sub: delayed.length ? "เลยวันนัดติดตั้งแล้ว" : "ไม่มีงานเลยกำหนด", onClick: () => onKpi("delayed") },
+        { label: "ของพร้อมติดตั้ง", value: ready.length, unit: "งาน", accent: "var(--primary)",
+          sub: <React.Fragment>จาก <b>{active.length}</b> งานที่ค้าง</React.Fragment>, onClick: () => onKpi("ready") },
+      ]} />
       )}
 
       <MySchedulePanel items={schedule || []} onOpen={onOpen} />
@@ -422,7 +429,7 @@ function BrandPanel({ jobs }) {
   const byType = SF.TYPES.map((t) => ({ t, n: jobs.filter((j) => j.type === t.key).length }));
   const colors = { ATMOCE: "#7C5CFC", Huawei: "#EF4444" };
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 22, boxShadow: "var(--shadow-sm)" }}>
+    <div className="pnl">
       <PanelTitle icon="grid" title="สัดส่วนงาน" sub="แบรนด์ & ประเภท" />
       <div style={{ marginTop: 20 }}>
         <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", marginBottom: 8 }}>แบรนด์อินเวอร์เตอร์</div>
@@ -454,4 +461,4 @@ function BrandPanel({ jobs }) {
   );
 }
 
-Object.assign(window, { OverviewView, KpiCard, PanelTitle, Empty });
+Object.assign(window, { OverviewView, KpiCard, StatRail, PanelTitle, Empty });

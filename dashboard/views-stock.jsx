@@ -199,10 +199,16 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
       ) : (
       <div className="app-content">
         {!isMobile && (
-        <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 18 }}>
-          <StockKpi label="รายการทั้งหมด" value={items.length} unit="ชนิด" icon="box" accent="#3B82F6" sub="ชนิดอุปกรณ์ในคลัง" active={kpiFilter===null} onClick={() => setKpiFilter(null)} />
-          <StockKpi label="ใกล้หมด / ต่ำกว่าขั้นต่ำ" value={lowCount} unit="รายการ" icon="alert" accent="#F59E0B" sub="ควรสั่งเพิ่ม" active={kpiFilter==="low"} onClick={() => setKpiFilter(f => f==="low" ? null : "low")} />
-          <StockKpi label="ความเคลื่อนไหวล่าสุด" value={stock.moves.length} unit="รายการ" icon="history" accent="#0EA5E9" sub="แตะดูทั้งหมด" active={movesOpen} onClick={() => setMovesOpen(true)} />
+        /* ใช้แผงตัวเลขชุดเดียวกับหน้าภาพรวม — ช่องที่กำลังกรองอยู่จะมีเส้นใต้เขียวคาดไว้ */
+        <div style={{ marginBottom: 18 }}>
+          <StatRail items={[
+            { label: "รายการทั้งหมด", value: items.length, unit: "ชนิด", accent: "#3B82F6",
+              sub: "ชนิดอุปกรณ์ในคลัง", active: kpiFilter === null, onClick: () => setKpiFilter(null) },
+            { label: "ใกล้หมด / ต่ำกว่าขั้นต่ำ", value: lowCount, unit: "รายการ", accent: "#F59E0B", alert: lowCount > 0,
+              sub: "ควรสั่งเพิ่ม", active: kpiFilter === "low", onClick: () => setKpiFilter((f) => (f === "low" ? null : "low")) },
+            { label: "ความเคลื่อนไหวล่าสุด", value: stock.moves.length, unit: "รายการ", accent: "var(--primary)",
+              sub: "แตะดูทั้งหมด", active: movesOpen, onClick: () => setMovesOpen(true) },
+          ]} />
         </div>
         )}
 
@@ -212,7 +218,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
             <StockCardList items={filtered} onMove={setMoveItem}
               onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
           ) : (
-          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
                 <thead>
@@ -595,8 +601,30 @@ function ItemModal({ initial, isNew, items, onSave, onClose }) {
                 <Field label="Vmp (V)"><input type="number" style={inputStyle} value={f.vmp != null ? f.vmp : ""} onChange={(e) => set("vmp", parseFloat(e.target.value) || 0)} placeholder="44.80" /></Field>
                 <Field label="Imp (A)"><input type="number" style={inputStyle} value={f.imp != null ? f.imp : ""} onChange={(e) => set("imp", parseFloat(e.target.value) || 0)} placeholder="14.52" /></Field>
               </div>
-              <div style={{ marginTop: 9, fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>
-                ความหนาเฟรม → เลือก MID/END CLAMP KIT (30/35mm) · ความกว้าง → คำนวณความยาว/จำนวนราง · Wp → คำนวณขนาดติดตั้ง (kW) · Voc/Isc/Vmp → คำนวณการต่ออนุกรม String + สาย DC
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px dashed var(--border-strong)" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-2)", marginBottom: 8 }}>ค่าอุณหภูมิ &amp; การเสื่อม (ใช้คำนวณผลผลิตและเส้น I-V)</div>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 12 }}>
+                  <Field label="ค่าอุณหภูมิ Voc (%/°C)"><input type="number" step="0.001" style={inputStyle} value={f.tcVoc != null ? f.tcVoc : ""} onChange={(e) => set("tcVoc", parseFloat(e.target.value) || 0)} placeholder="-0.25" /></Field>
+                  <Field label="ค่าอุณหภูมิ Isc (%/°C)"><input type="number" step="0.001" style={inputStyle} value={f.tcIsc != null ? f.tcIsc : ""} onChange={(e) => set("tcIsc", parseFloat(e.target.value) || 0)} placeholder="0.045" /></Field>
+                  <Field label="ค่าอุณหภูมิ Pmax (%/°C)"><input type="number" step="0.001" style={inputStyle} value={f.tcPmax != null ? f.tcPmax : ""} onChange={(e) => set("tcPmax", parseFloat(e.target.value) || 0)} placeholder="-0.29" /></Field>
+                  <Field label="NOCT / NMOT (°C)"><input type="number" step="0.1" style={inputStyle} value={f.noct != null ? f.noct : ""} onChange={(e) => set("noct", parseFloat(e.target.value) || 0)} placeholder="44" /></Field>
+                  <Field label="เสื่อมปีแรก (%)"><input type="number" step="0.1" style={inputStyle} value={f.deg1 != null ? f.deg1 : ""} onChange={(e) => set("deg1", parseFloat(e.target.value) || 0)} placeholder="1" /></Field>
+                  <Field label="เสื่อมปีถัดไป (%/ปี)"><input type="number" step="0.01" style={inputStyle} value={f.degY != null ? f.degY : ""} onChange={(e) => set("degY", parseFloat(e.target.value) || 0)} placeholder="0.4" /></Field>
+                  <Field label="จำนวนเซลล์อนุกรม"><input type="number" style={inputStyle} value={f.cells != null ? f.cells : ""} onChange={(e) => set("cells", parseInt(e.target.value) || 0)} placeholder="72 / 144" /></Field>
+                  <Field label="ฟิวส์สูงสุดของแผง (A)"><input type="number" style={inputStyle} value={f.fuseA != null ? f.fuseA : ""} onChange={(e) => set("fuseA", parseFloat(e.target.value) || 0)} placeholder="25 / 30" /></Field>
+                  <Field label="ชนิดเซลล์">
+                    <select style={inputStyle} value={f.halfCut === true ? "1" : f.halfCut === false ? "0" : ""}
+                      onChange={(e) => set("halfCut", e.target.value === "" ? null : e.target.value === "1")}>
+                      <option value="">— ให้ระบบเดาจากรุ่น —</option>
+                      <option value="1">ครึ่งเซลล์ (half-cut)</option>
+                      <option value="0">เซลล์เต็ม</option>
+                    </select>
+                  </Field>
+                </div>
+              </div>
+              <div style={{ marginTop: 9, fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.55 }}>
+                ความหนาเฟรม → เลือก MID/END CLAMP KIT (30/35mm) · ความกว้าง/ความยาว → คำนวณราง + ขนาดแผงในผัง 3 มิติ · Wp → ขนาดติดตั้ง (kW) · Voc/Isc/Vmp/Imp → การต่ออนุกรม String + สาย DC ·
+                ค่าอุณหภูมิ Voc → Voc ตอนอากาศเย็น (ตัวกำหนดจำนวนแผงสูงสุดต่อสตริง) · Pmax + NOCT → กำลังที่หายไปตอนแผงร้อน · เสื่อมปีแรก/ปีถัดไป → ผลผลิตตลอดอายุและการคืนทุน · จำนวนเซลล์ + ชนิดเซลล์ → เส้น I-V และการคิดเงาบังผ่านไดโอดบายพาส · ไม่กรอก = ใช้ค่ากลางของอุตสาหกรรม
               </div>
             </div>
           )}
@@ -623,7 +651,8 @@ function ItemModal({ initial, isNew, items, onSave, onClose }) {
                   </select>
                 </Field>
                 <Field label="MAX PV (kW)"><input type="number" style={inputStyle} value={f.invMaxPv != null ? f.invMaxPv : ""} onChange={(e) => set("invMaxPv", parseFloat(e.target.value) || 0)} placeholder="7.5 / 15" /></Field>
-                <Field label="String สูงสุด"><input type="number" style={inputStyle} value={f.invInputs != null ? f.invInputs : ""} onChange={(e) => set("invInputs", parseInt(e.target.value) || 0)} placeholder="1 / 2 / 3" /></Field>
+                <Field label="จำนวนช่อง MPPT"><input type="number" style={inputStyle} value={f.invInputs != null ? f.invInputs : ""} onChange={(e) => set("invInputs", parseInt(e.target.value) || 0)} placeholder="1 / 2 / 3" /></Field>
+                <Field label="อินพุตต่อ 1 ช่อง MPPT"><input type="number" style={inputStyle} value={f.invStrPerMppt != null ? f.invStrPerMppt : ""} onChange={(e) => set("invStrPerMppt", parseInt(e.target.value) || 0)} placeholder="2" /></Field>
                 <Field label="กระแสออก (A)"><input type="number" style={inputStyle} value={f.invOutA != null ? f.invOutA : ""} onChange={(e) => set("invOutA", parseFloat(e.target.value) || 0)} placeholder="25 / 16.9" /></Field>
               </div>
               {(f.invType === "string" || f.invType === "hybrid") && (
@@ -633,12 +662,25 @@ function ItemModal({ initial, isNew, items, onSave, onClose }) {
                     <Field label="MPPT ต่ำสุด (V)"><input type="number" style={inputStyle} value={f.mpptVmin != null ? f.mpptVmin : ""} onChange={(e) => set("mpptVmin", parseFloat(e.target.value) || 0)} placeholder="350" /></Field>
                     <Field label="MPPT สูงสุด (V)"><input type="number" style={inputStyle} value={f.mpptVmax != null ? f.mpptVmax : ""} onChange={(e) => set("mpptVmax", parseFloat(e.target.value) || 0)} placeholder="560" /></Field>
                     <Field label="แรงดัน DC สูงสุด (V)"><input type="number" style={inputStyle} value={f.maxVdc != null ? f.maxVdc : ""} onChange={(e) => set("maxVdc", parseFloat(e.target.value) || 0)} placeholder="600 / 1000" /></Field>
-                    <Field label="กระแส input/MPPT (A)"><input type="number" style={inputStyle} value={f.maxInA != null ? f.maxInA : ""} onChange={(e) => set("maxInA", parseFloat(e.target.value) || 0)} placeholder="20 / 30" /></Field>
+                    <Field label="แรงดันเริ่มทำงาน (V)"><input type="number" style={inputStyle} value={f.vStart != null ? f.vStart : ""} onChange={(e) => set("vStart", parseFloat(e.target.value) || 0)} placeholder="180 / 200" /></Field>
+                    <Field label="แรงดันใช้งานที่ออกแบบไว้ (V)"><input type="number" style={inputStyle} value={f.vRated != null ? f.vRated : ""} onChange={(e) => set("vRated", parseFloat(e.target.value) || 0)} placeholder="600 / 720" /></Field>
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-2)", margin: "12px 0 8px" }}>พิกัดกระแสเข้า (ดาต้าชีตแยก 3 ค่า คนละความหมาย)</div>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 12 }}>
+                    <Field label="กระแสสูงสุดต่อ 1 อินพุต (A)"><input type="number" style={inputStyle} value={f.maxInA != null ? f.maxInA : ""} onChange={(e) => set("maxInA", parseFloat(e.target.value) || 0)} placeholder="23" /></Field>
+                    <Field label="กระแสสูงสุดต่อ 1 MPPT (A)"><input type="number" style={inputStyle} value={f.maxMpptA != null ? f.maxMpptA : ""} onChange={(e) => set("maxMpptA", parseFloat(e.target.value) || 0)} placeholder="30 / 33" /></Field>
+                    <Field label="กระแสลัดวงจรสูงสุด/MPPT (A)"><input type="number" style={inputStyle} value={f.maxIscA != null ? f.maxIscA : ""} onChange={(e) => set("maxIscA", parseFloat(e.target.value) || 0)} placeholder="40 / 44" /></Field>
+                    <Field label="กำลัง AC สูงสุด (kW)"><input type="number" style={inputStyle} value={f.invMaxAcKw != null ? f.invMaxAcKw : ""} onChange={(e) => set("invMaxAcKw", parseFloat(e.target.value) || 0)} placeholder="55" /></Field>
+                    <Field label="ประสิทธิภาพสูงสุด (%)"><input type="number" style={inputStyle} value={f.invEff != null ? f.invEff : ""} onChange={(e) => set("invEff", parseFloat(e.target.value) || 0)} placeholder="98.5" /></Field>
+                    <Field label="ประสิทธิภาพยุโรป (%)"><input type="number" style={inputStyle} value={f.invEffEuro != null ? f.invEffEuro : ""} onChange={(e) => set("invEffEuro", parseFloat(e.target.value) || 0)} placeholder="98.2" /></Field>
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.55 }}>
+                    กระแส 3 ค่านี้ห้ามสลับกัน — <b>ต่ออินพุต</b> คุมสตริงเดี่ยว (Imp ของแผงต้องไม่เกิน) · <b>ต่อ MPPT</b> คุมทุกสตริงที่ขนานเข้าช่องเดียวกันรวมกัน (ตัวที่กำหนดว่าเสียบขนานได้กี่เส้นจริง) · <b>ลัดวงจร/MPPT</b> เทียบกับ Isc×1.25 · รุ่นที่ค่าไม่เท่ากันทุกช่อง (เช่น 30/33/33/30) ให้กรอกค่าน้อยสุดไว้ก่อน · ประสิทธิภาพยุโรปใช้คิดผลผลิต ส่วนค่าสูงสุดเป็นค่าโฆษณาบนดาต้าชีต
                   </div>
                 </div>
               )}
               <div style={{ marginTop: 9, fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>
-                ตั้งเป็น String/Hybrid → เลือกในหน้าถอด BOQ ได้ คิดจำนวนตัว = ปัดขึ้น(กำลังแผงรวม ÷ MAX PV ต่อตัว) · MAX PV = กำลังแผงสูงสุดที่ใส่ได้ · String สูงสุด = จำนวน input Combiner Box · กระแสออก (A) = ใช้คำนวณ RCBO และขนาดสาย AC จุด INVERTER-MCB_SOLAR / MCB_SOLAR-MDB (×1.25) · ช่วง MPPT/Voc แผง → คำนวณจำนวนแผงต่ออนุกรม + สาย DC
+                ตั้งเป็น String/Hybrid → เลือกในหน้าถอด BOQ ได้ คิดจำนวนตัว = ปัดขึ้น(กำลังแผงรวม ÷ MAX PV ต่อตัว) · MAX PV = กำลังแผงสูงสุดที่ใส่ได้ · จำนวนช่อง MPPT × อินพุตต่อช่อง = สตริงที่เสียบได้ทั้งตัว (เช่น 2 ช่อง × 2 อินพุต = 4 สตริง · ไม่กรอกถือว่า 2 อินพุต/ช่อง) · กระแสออก (A) = ใช้คำนวณ RCBO และขนาดสาย AC จุด INVERTER-MCB_SOLAR / MCB_SOLAR-MDB (×1.25) · ช่วง MPPT/Voc แผง → คำนวณจำนวนแผงต่ออนุกรม + สาย DC
               </div>
             </div>
           )}
@@ -758,7 +800,7 @@ function AmpacityEditor({ ampStore }) {
         )}
       </div>
 
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
         <div style={{ overflowX: "auto" }}>
           <table style={{ borderCollapse: "collapse", minWidth: 760 }}>
             <thead>

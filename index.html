@@ -198,6 +198,72 @@ input, select, textarea { font-family: inherit; }
 }
 
 /* templated thumbnail for bundler */
+
+/* ============================================================
+   ชั้นดีไซน์ใหม่ — แผงตัวเลขหน้าภาพรวม + ลิ้นชักรายละเอียดงาน
+   หลักคิด: ลดกล่องซ้อนกล่อง ใช้เส้นผมแบ่งแทนกรอบ · ตัวเลขเป็นพระเอก
+   สีใช้เฉพาะตอนมีความหมาย (ล่าช้า = แดง) ไม่ใช่แถบสีประดับทุกใบ
+   ============================================================ */
+
+/* ---- แผงตัวเลขรวม: ผืนเดียวแบ่งด้วยเส้นผม ไม่ใช่ 3 กล่องเหมือนกันเป๊ะ ---- */
+.stat-rail{display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface);
+  border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:var(--shadow-sm);position:relative}
+.stat-rail::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 140% at 0% 0%,rgba(34,163,91,.055),transparent 58%)}
+.stat-rail>button{position:relative;display:flex;flex-direction:column;gap:0;align-items:flex-start;
+  padding:20px 22px;border:0;background:none;cursor:pointer;font-family:inherit;text-align:left;
+  transition:background .16s}
+.stat-rail>button+button{box-shadow:inset 1px 0 0 var(--border)}
+.stat-rail>button:hover{background:var(--surface2)}
+.stat-rail .lb{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:650;
+  letter-spacing:.07em;text-transform:uppercase;color:var(--text-3)}
+.stat-rail .lb .pip{width:6px;height:6px;border-radius:99px;flex:0 0 auto}
+.stat-rail .num{font-family:var(--display);font-size:40px;font-weight:700;line-height:1;
+  letter-spacing:-.035em;color:var(--text-1);margin:13px 0 0;font-variant-numeric:tabular-nums}
+.stat-rail .num em{font-style:normal;font-family:var(--sans);font-size:13px;font-weight:600;
+  color:var(--text-3);letter-spacing:0;margin-left:6px}
+.stat-rail .sub{margin-top:7px;font-size:12px;color:var(--text-3);display:flex;align-items:center;gap:5px}
+.stat-rail .sub b{color:var(--text-2);font-weight:650}
+.stat-rail>button[data-alert="1"] .num{color:#D93025}
+.stat-rail>button[data-alert="1"]{background:linear-gradient(180deg,rgba(217,48,37,.05),transparent 60%)}
+/* ช่องที่กำลังใช้กรองอยู่ — คาดเส้นเขียวใต้ช่อง บอกว่ากดค้างไว้ */
+.stat-rail>button[data-active="1"]{background:var(--surface2)}
+.stat-rail>button[data-active="1"]::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--primary)}
+.stat-rail .go{position:absolute;right:18px;bottom:18px;opacity:0;transform:translateX(-4px);
+  transition:opacity .16s,transform .16s;color:var(--primary-dark)}
+.stat-rail>button:hover .go{opacity:1;transform:none}
+@media(max-width:860px){.stat-rail{grid-template-columns:1fr}
+  .stat-rail>button+button{box-shadow:inset 0 1px 0 var(--border)}
+  .stat-rail>button{flex-direction:row;align-items:center;gap:14px;padding:14px 16px}
+  .stat-rail .num{margin:0;font-size:28px;min-width:52px}
+  .stat-rail .sub{margin-top:2px}}
+
+
+/* ---- แผงเนื้อหาหน้าภาพรวม: หัวข้อคาดเส้นผม + รายการคั่นเส้น แทนกล่องซ้อนกล่อง ---- */
+.pnl{background:var(--surface);border:1px solid var(--border);border-radius:18px;
+  padding:20px 22px;box-shadow:var(--shadow-sm)}
+.pnl-hd{display:flex;align-items:baseline;gap:10px;padding-bottom:12px;
+  border-bottom:1px solid var(--border);margin-bottom:4px}
+.pnl-hd .t{font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-2)}
+.pnl-hd .s{font-size:11.5px;color:var(--text-3);font-weight:500}
+.pnl-hd .r{margin-left:auto}
+/* รายการแถว — แตะได้ทั้งแถว คั่นด้วยเส้นผม ไม่ใช่กล่องมีพื้นสีทีละใบ */
+.rows{display:flex;flex-direction:column}
+.rows>button{display:flex;gap:13px;align-items:center;padding:13px 4px;text-align:left;width:100%;
+  background:none;border:0;border-top:1px solid var(--border);cursor:pointer;font-family:inherit;
+  transition:background .14s;border-radius:0;position:relative}
+.rows>button:first-child{border-top:0}
+.rows>button:hover{background:var(--surface2);box-shadow:0 0 0 6px var(--surface2)}
+.rows .mk{width:9px;height:9px;border-radius:99px;flex:0 0 auto;margin-left:3px}
+.rows .bd{flex:1;min-width:0}
+.rows .nm{display:block;font-size:13.5px;font-weight:650;color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rows .mt{display:block;font-size:11.5px;color:var(--text-3);margin-top:3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rows .when{flex:0 0 auto;font-family:var(--mono);font-size:11.5px;font-weight:600;
+  color:var(--text-2);white-space:nowrap;letter-spacing:-.01em}
+.rows .when b{display:block;font-family:var(--sans);font-size:10px;font-weight:650;
+  color:var(--text-3);letter-spacing:.04em;text-align:right;margin-bottom:1px}
 </style>
 <template id="__bundler_thumbnail">
 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -218,7 +284,7 @@ input, select, textarea { font-family: inherit; }
 <!-- data (plain JS) -->
 <script src="dashboard/data.js?v=22"></script>
 <script src="dashboard/data-stock.js?v=12"></script>
-<script src="dashboard/boq.js?v=52"></script>
+<script src="dashboard/boq.js?v=57"></script>
 <!-- SheetJS (xlsx-js-style: SheetJS fork with cell styling support) -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 
@@ -232,26 +298,26 @@ input, select, textarea { font-family: inherit; }
 <script type="text/babel" src="dashboard/components.jsx?v=24"></script>
 <script type="text/babel" src="dashboard/store.jsx?v=31"></script>
 <script type="text/babel" src="dashboard/media.jsx?v=7"></script>
-<script type="text/babel" src="dashboard/boq.jsx?v=61"></script>
+<script type="text/babel" src="dashboard/boq.jsx?v=65"></script>
 <script type="text/babel" src="dashboard/prices.jsx?v=11"></script>
 <script type="text/babel" src="dashboard/siteplan.jsx?v=42"></script>
-<script type="text/babel" src="dashboard/solarcalc.jsx?v=17"></script>
-<script type="text/babel" src="dashboard/solariv.jsx?v=10"></script>
-<script type="text/babel" src="dashboard/solarreport.jsx?v=22"></script>
-<script type="text/babel" src="dashboard/solarui.jsx?v=39"></script>
+<script type="text/babel" src="dashboard/solarcalc.jsx?v=22"></script>
+<script type="text/babel" src="dashboard/solariv.jsx?v=11"></script>
+<script type="text/babel" src="dashboard/solarreport.jsx?v=24"></script>
+<script type="text/babel" src="dashboard/solarui.jsx?v=43"></script>
 <script type="text/babel" src="dashboard/plan3d.jsx?v=62"></script>
 <script type="text/babel" src="dashboard/drawer.jsx?v=37"></script>
-<script type="text/babel" src="dashboard/views-overview.jsx?v=25"></script>
-<script type="text/babel" src="dashboard/views-board.jsx?v=23"></script>
+<script type="text/babel" src="dashboard/views-overview.jsx?v=29"></script>
+<script type="text/babel" src="dashboard/views-board.jsx?v=24"></script>
 <script type="text/babel" src="dashboard/views-table.jsx?v=19"></script>
 <script type="text/babel" src="dashboard/views-report.jsx?v=4"></script>
-<script type="text/babel" src="dashboard/views-calendar.jsx?v=25"></script>
-<script type="text/babel" src="dashboard/views-stock.jsx?v=47"></script>
+<script type="text/babel" src="dashboard/views-calendar.jsx?v=26"></script>
+<script type="text/babel" src="dashboard/views-stock.jsx?v=53"></script>
 <script type="text/babel" src="dashboard/form.jsx?v=29"></script>
 <script type="text/babel" src="dashboard/survey.jsx?v=2"></script>
 <script type="text/babel" src="dashboard/views-survey.jsx?v=2"></script>
 <script type="text/babel" src="dashboard/survey-sched.jsx?v=20"></script>
 <script type="text/babel" src="dashboard/auth.jsx?v=11"></script>
-<script type="text/babel" src="dashboard/app.jsx?v=69"></script>
+<script type="text/babel" src="dashboard/app.jsx?v=73"></script>
 </body>
 </html>

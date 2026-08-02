@@ -305,10 +305,36 @@ function rpIvAll(curves, stcRef) {
     "</svg>";
 }
 
+/* ── สารบัญของรายงาน — ใช้ทั้งตอนประกอบไฟล์และตอนให้ผู้ใช้ติ๊กเลือกก่อนออกรายงาน ──
+   หัวข้อไหนไม่ติ๊ก = ไม่ออกไปเลย และเลขหัวข้อจะไล่ใหม่ให้เองไม่ให้ขาดตอน */
+const RP_SECTIONS = [
+  { key: "cover", label: "หน้าปก", note: "โลโก้ · ตัวเลขเด่น · ภาพ 3 มิติ" },
+  { key: "summary", label: "สรุปผลการออกแบบ", note: "การ์ดตัวเลขสำคัญทั้งหมดในหน้าเดียว" },
+  { key: "equip", label: "อุปกรณ์ที่ใช้", note: "สเปคแผง/อินเวอร์เตอร์ · ผืนหลังคาและทิศทาง" },
+  { key: "wiring", label: "การต่อสตริง / ไมโคร", note: "ตารางการต่อ · ข้อควรแก้",
+    subs: [{ key: "layout", label: "ผังแผงมองจากด้านบน", note: "สีเดียวกัน = สตริง/ไมโครเดียวกัน" }] },
+  { key: "iv", label: "แสง เงา และเส้น I-V", subs: [
+    { key: "ivDay", label: "กำลังไฟ + อุณหภูมิเซลล์ตลอดวัน", note: "เดือนที่ผลิตได้สูงสุด" },
+    { key: "ivYear", label: "แสง/เงาทั้งปี 12 เดือน", note: "แผนที่ความร้อน + ตารางสรุป" },
+    { key: "ivAll", label: "เส้น I-V ทุกสตริง/ไมโคร", note: "กราฟรวม + ตารางค่าที่ควรวัดได้" },
+    { key: "ivMeas", label: "ผลตรวจวัดหน้างาน", note: "เทียบค่าที่วัดได้กับที่ควรได้" }] },
+  { key: "prod", label: "ผลผลิตที่คาดการณ์", subs: [
+    { key: "shade", label: "เงาบังทั้งปีจากโมเดล 3 มิติ" },
+    { key: "life", label: "ตารางผลผลิตตลอดอายุระบบ" }] },
+  { key: "roi", label: "ผลตอบแทนการลงทุน", note: "คืนทุน · IRR · กระแสเงินสด" },
+];
+/* ค่าเริ่มต้น = เอาทุกหัวข้อ */
+function rpPickAll() {
+  const o = {};
+  RP_SECTIONS.forEach((s) => { o[s.key] = true; (s.subs || []).forEach((b) => { o[b.key] = true; }); });
+  return o;
+}
+
 /* ── ประกอบเนื้อรายงาน ── */
 function suReportHTML(D) {
   const job = D.job || {}, S = D.sys || {}, panel = D.panel || {}, inv = D.inv || {};
   const E = D.energy, L = D.life, roi = D.roi, R = D.roiCfg || {};
+  const P = Object.assign(rpPickAll(), D.pick || {});
   const today = new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" });
   const sec = (n, title, body, sub) =>
     '<section class="sec"><h2><span class="no">' + n + "</span>" + RP_ESC(title) +
@@ -393,10 +419,10 @@ function suReportHTML(D) {
             { v: !D.microSel.cur.limSc ? "—" : D.microSel.cur.scA <= D.microSel.cur.limSc ? "ผ่าน" : "ไม่ผ่าน",
               cls: !D.microSel.cur.limSc ? "" : D.microSel.cur.scA <= D.microSel.cur.limSc ? "ok" : "bad" }],
         ])) : "")
-    : (D.plan ? rpTable(["สตริง", "แผง", "กลุ่มทิศทาง", "ช่อง MPPT", "Voc ตอนเย็น", "ช่วงแรงดันทำงาน", "ผลตรวจ"],
+    : (D.plan ? rpTable(["สตริง", "แผง", "กลุ่มทิศทาง", "ขั้วที่เสียบ (INV / MPPT / ช่อง)", "Voc ตอนเย็น", "ช่วงแรงดันทำงาน", "ผลตรวจ"],
         D.plan.strings.map((s) => [
           "#" + s.id, s.n, s.label,
-          s.mppt == null ? "ไม่มีช่องเหลือ" : "อินฯ " + (s.inv + 1) + " / ช่อง " + (s.mppt % Math.max(1, scNum(inv.inputs, 2)) + 1),
+          s.pin == null ? "ไม่มีขั้วเหลือ" : (s.addr || ""),
           s.chk.vocCold + " V", s.chk.vmpHot + " – " + s.chk.vmpCold + " V",
           { v: s.chk.ok ? "ผ่าน · " + s.chk.band : "ไม่ผ่าน", cls: s.chk.ok ? "ok" : "bad" },
         ])) : "");
@@ -436,7 +462,7 @@ function suReportHTML(D) {
   const sim = D.sim;
   const Y = D.year;
   /* วันตัวแทนของรายงาน = เดือนที่ผลิตได้สูงสุดใน 12 เดือน (แสงดีที่สุด เห็นศักยภาพเต็มของระบบ) */
-  const best = Y && Y.bestMonth ? Y.bestMonth : null;
+  const best = Y && Y.bestMonth && P.ivDay ? Y.bestMonth : null;
   const daySec = best
     ? "<h3>กำลังไฟและอุณหภูมิเซลล์ตลอดวัน — " + RP_ESC(best.label) + " (เดือนที่ผลิตได้สูงสุดใน 12 เดือน)</h3>" +
       rpDayPower(best, D.acKw) +
@@ -456,7 +482,7 @@ function suReportHTML(D) {
       scNum(panel.tcPmax, -0.29) + " %/°C) จึงเห็นกำลังไฟยอดแบนช่วงบ่ายแม้แดดยังแรง</p>"
     : "";
   /* ทั้ง 12 เดือน — ทั้งแผนที่ความร้อนและตาราง */
-  const yearSec = Y
+  const yearSec = Y && P.ivYear
     ? "<h3>แสงที่ได้ทั้งปี — เดือน × ชั่วโมง</h3>" + rpYearMap(Y, "light") +
       "<h3>เงาบังทั้งปี — เดือน × ชั่วโมง</h3>" + rpYearMap(Y, "shade") +
       "<h3>สรุปทั้งปี 12 เดือน</h3>" +
@@ -478,7 +504,7 @@ function suReportHTML(D) {
       color: (typeof suColor === "function" ? suColor(r.u.sid || i + 1) : "#22A35B") };
   }).filter(Boolean);
   const ivMain = (D.ivRows || [])[0];
-  const ivAllSec = ivCurves.length
+  const ivAllSec = ivCurves.length && P.ivAll
     ? "<h3>เส้น I-V ที่ควรได้ของทุก" + (D.isMicro ? "ไมโคร" : "สตริง") + " ณ " + ivHM(D.simHour) + " น.</h3>" +
       rpIvAll(ivCurves, ivMain && ivMain.a ? ivMain.a.expStc : null) +
       rpTable([D.isMicro ? "ไมโคร" : "สตริง", "แผง"].concat(D.isMicro ? ["ต่อช่อง"] : [])
@@ -498,7 +524,7 @@ function suReportHTML(D) {
       "ถ้าวัดได้ต่างจากนี้เกิน 5% ค่อยไล่หาสาเหตุ · เส้นประคือเส้นที่สภาวะมาตรฐาน STC ไว้เทียบว่าอากาศจริงกินกำลังไปเท่าไหร่" + (D.isMicro ? " · ไมโคร 1 ตัวรับแผงหลายใบ แต่แยกเป็นช่อง MPPT อิสระ ค่าไฟฟ้าในตารางจึงเป็นของ 1 ช่อง (ตรงกับที่เครื่องวัดอ่านได้ตอนวัดทีละเส้น) ส่วน “รวมทั้งตัว” คือทุกช่องบวกกัน · แต่ละเส้นคิดจากเงาที่ตกบนแผงของตัวนั้นเอง ตัวที่โดนบังจึงต่ำลงคนเดียว" : "") + "</p>"
     : "";
   let ivSec = "";
-  if (rows.length) {
+  if (rows.length && P.ivMeas) {
     const first = rows[0];
     const condTbl = rpTable(["สภาพอากาศตอนตรวจวัด", "ค่า"], [
       ["วัน–เวลา", D.siteDate + " เวลา " + ivHM(D.simHour) + " น." + (D.site.hour == null ? " (ระบบเลือกช่วงที่เหมาะจะวัดให้)" : "")],
@@ -536,7 +562,7 @@ function suReportHTML(D) {
 
   /* 5 · ผลผลิต (มีส่วนเงาบังนำหน้า ถ้าคำนวณจากโมเดล 3 มิติไว้) */
   let shadeSec = "";
-  const sh = D.shade3d;
+  const sh = P.shade ? D.shade3d : null;
   if (sh) {
     shadeSec = "<h3>เงาบังตลอดทั้งปี (คำนวณจากโมเดล 3 มิติ)</h3>" +
       rpTable(["ที่มาของการสูญเสียจากเงา", "ทั้งปี"], [
@@ -561,9 +587,11 @@ function suReportHTML(D) {
       (E.shadeMode === "model" ? "เงาบังรายกลุ่มจากโมเดล 3 มิติ (เฉลี่ย " + E.shadeLoss + "%) " : "เงาบัง " + E.shadeLoss + "% (กรอกมือ) ") +
       "ประสิทธิภาพอินเวอร์เตอร์ " + E.eff + "%" +
       (E.clipLoss > 0.2 ? " และการตัดยอดที่ขนาด AC จริง " + E.clipLoss + "% (" + rpN(E.clipKwh) + " kWh/ปี)" : "") + "</p>" +
-      "<h3>ผลผลิตตลอดอายุ " + L.years + " ปี</h3>" +
-      rpTable(["ปี", "ผลผลิต (kWh)", "เหลือ % ของปีแรก"], L.rows.map((r) => [r.year, rpN(r.kwh), r.factor + " %"])) +
-      '<p class="note">รวมทั้งหมด ' + rpN(L.total) + " kWh · เฉลี่ยปีละ " + rpN(L.avg) + " kWh · ปีสุดท้ายเหลือ " + L.lastPct + "% ของกำลังเดิม</p>";
+      (P.life
+        ? "<h3>ผลผลิตตลอดอายุ " + L.years + " ปี</h3>" +
+          rpTable(["ปี", "ผลผลิต (kWh)", "เหลือ % ของปีแรก"], L.rows.map((r) => [r.year, rpN(r.kwh), r.factor + " %"])) +
+          '<p class="note">รวมทั้งหมด ' + rpN(L.total) + " kWh · เฉลี่ยปีละ " + rpN(L.avg) + " kWh · ปีสุดท้ายเหลือ " + L.lastPct + "% ของกำลังเดิม</p>"
+        : "");
   }
 
   /* 6 · ROI */
@@ -590,11 +618,11 @@ function suReportHTML(D) {
     ? '<ul class="find">' + D.warns.map((w) => '<li class="warn">' + RP_ESC(w) + "</li>").join("") + "</ul>"
     : '<p class="ok-box">ไม่พบข้อควรแก้ในการออกแบบ</p>';
 
-  return '<!doctype html><html lang="th"><head><meta charset="utf-8">' +
-    "<title>รายงานระบบโซลาร์ " + RP_ESC(job.code || "") + "</title>" +
-    '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' +
-    '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">' +
-    "<style>" + RP_CSS + "</style></head><body>" +
+  /* ── เรียงหัวข้อตามที่ติ๊กเลือกไว้ แล้วค่อยแจกเลข ── */
+  const secs = [];
+  const addSec = (on, title, body, sub) => { if (on && body) secs.push(sec(secs.length + 1, title, body, sub)); };
+
+  const cover = !P.cover ? "" :
     /* ── หน้าปก: เต็มหน้า A4 หนึ่งหน้า ── */
     '<header class="cover">' +
       '<div class="cv-bar">' +
@@ -616,20 +644,25 @@ function suReportHTML(D) {
         "<span><i>สถานที่ติดตั้ง</i>" + RP_ESC([job.address, job.province].filter(Boolean).join(" ") || "—") + "</span>" +
         "<span><i>วันที่ออกรายงาน</i>" + RP_ESC(today) + "</span>" +
       "</div>" +
-    "</header>" +
-    /* ── สรุปผู้บริหาร: ตัวเลขสำคัญทั้งหมดในหน้าเดียว ── */
+    "</header>";
+
+  /* ── สรุปผู้บริหาร: ตัวเลขสำคัญทั้งหมดในหน้าเดียว ── */
+  const summary = !P.summary ? "" :
     '<section class="sec sum"><h2><span class="no">✦</span>สรุปผลการออกแบบ<small>' +
       RP_ESC(job.code || "") + "</small></h2>" +
       '<div class="kpis">' + kpis + "</div>" +
       '<p class="note">ตัวเลขทั้งหมดมาจากการจำลองตำแหน่งดวงอาทิตย์จริงที่พิกัดของงานนี้ ร่วมกับโมเดล 3 มิติของอาคาร ' +
-      "รายละเอียดวิธีคิดและสมมติฐานอยู่ในหัวข้อถัดไปทั้งหมด</p></section>" +
-    sec(1, "อุปกรณ์ที่ใช้", specTbl + "<h3>ผืนหลังคาและทิศทางแผง</h3>" + groupTbl,
-      D.totalPanels + " แผง · " + (D.groups || []).length + " กลุ่มทิศทาง") +
-    sec(2, D.isMicro ? "การต่อไมโครอินเวอร์เตอร์" : "การต่อสตริงและช่อง MPPT",
+      "รายละเอียดวิธีคิดและสมมติฐานอยู่ในหัวข้อถัดไปทั้งหมด</p></section>";
+
+  addSec(P.equip, "อุปกรณ์ที่ใช้", specTbl + "<h3>ผืนหลังคาและทิศทางแผง</h3>" + groupTbl,
+      D.totalPanels + " แผง · " + (D.groups || []).length + " กลุ่มทิศทาง");
+  addSec(P.wiring, D.isMicro ? "การต่อไมโครอินเวอร์เตอร์" : "การต่อสตริงและช่อง MPPT",
       wiring + microNote + phaseSec + wiringNote +
-      "<h3>ผังแผงมองจากด้านบน (สีเดียวกัน = " + (D.isMicro ? "ไมโครตัวเดียวกัน" : "สตริงเดียวกัน") +
-      (D.isMicro && D.phases === 3 ? " · ตัวหนังสือบนแผง = เฟส" : "") + " · ทิศเหนืออยู่บน)</h3>" +
-      rpLayout(D.foot, D.assign, D.uidPhase) +
+      (P.layout
+        ? "<h3>ผังแผงมองจากด้านบน (สีเดียวกัน = " + (D.isMicro ? "ไมโครตัวเดียวกัน" : "สตริงเดียวกัน") +
+          (D.isMicro && D.phases === 3 ? " · ตัวหนังสือบนแผง = เฟส" : "") + " · ทิศเหนืออยู่บน)</h3>" +
+          rpLayout(D.foot, D.assign, D.uidPhase)
+        : "") +
       (D.isMicro && (D.microUnits || []).length
         ? rpTable(["ไมโคร", "แผง", "กลุ่มทิศทาง"].concat(D.phases === 3 ? ["เฟส"] : []).concat(["หมายเหตุ"]),
             D.microUnits.map((u) => [
@@ -641,12 +674,19 @@ function suReportHTML(D) {
           '<p class="note">ช่างเดินตามผังนี้ได้เลย — แผงสีเดียวกันเสียบเข้าไมโครตัวเดียวกัน' +
           (D.phases === 3 ? " และตัวหนังสือบนแผงบอกเฟสที่ต้องต่อ" : "") + "</p>"
         : "") +
-      "<h3>ข้อควรแก้</h3>" + warnList) +
-    sec(3, "แสง เงา และผลตรวจวัด I-V", ivSec,
-      rows.length ? rows.length + " หน่วย · เฉลี่ย " + D.ivAvg + "% ของที่ควรได้"
-        : (sim ? "จำลองทั้งวัน · " + rpN(sim.dayKwh, 1) + " kWh" : "")) +
-    sec(4, "ผลผลิตที่คาดการณ์", prodSec, L ? rpN(L.rows[0].kwh) + " kWh ในปีแรก" : "") +
-    sec(5, "ผลตอบแทนการลงทุน", roiSec, roi && roi.payback ? "คืนทุน " + roi.payback + " ปี" : "") +
+      "<h3>ข้อควรแก้</h3>" + warnList);
+  addSec(P.iv, "แสง เงา และผลตรวจวัด I-V", ivSec,
+      rows.length && P.ivMeas ? rows.length + " หน่วย · เฉลี่ย " + D.ivAvg + "% ของที่ควรได้"
+        : (sim ? "จำลองทั้งวัน · " + rpN(sim.dayKwh, 1) + " kWh" : ""));
+  addSec(P.prod, "ผลผลิตที่คาดการณ์", prodSec, L ? rpN(L.rows[0].kwh) + " kWh ในปีแรก" : "");
+  addSec(P.roi, "ผลตอบแทนการลงทุน", roiSec, roi && roi.payback ? "คืนทุน " + roi.payback + " ปี" : "");
+
+  return '<!doctype html><html lang="th"><head><meta charset="utf-8">' +
+    "<title>รายงานระบบโซลาร์ " + RP_ESC(job.code || "") + "</title>" +
+    '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' +
+    '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">' +
+    "<style>" + RP_CSS + "</style></head><body>" +
+    cover + summary + secs.join("") +
     '<footer class="foot">' +
       "<p><b>หมายเหตุการใช้งานตัวเลขในรายงานนี้</b> — ผลผลิตคำนวณจากแบบจำลองท้องฟ้าและสถิติอากาศรายเดือนของประเทศไทย " +
       "ผลจริงขึ้นกับสภาพอากาศแต่ละปี เงาที่เปลี่ยนไปตามฤดู และการบำรุงรักษา · " +
@@ -821,5 +861,5 @@ function suPrintReport(D) {
   return w;
 }
 
-Object.assign(window, { suReportHTML, suPrintReport, rpTable, rpMonthly, rpCash, rpIv,
+Object.assign(window, { suReportHTML, suPrintReport, RP_SECTIONS, rpPickAll, rpTable, rpMonthly, rpCash, rpIv,
   rpDayPower, rpYearMap, rpIvAll, RP_CSS });

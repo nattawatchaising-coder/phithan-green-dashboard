@@ -379,6 +379,32 @@
     for (let i = 0; i < PV_WIRE_SIZES.length; i++) { const sz = PV_WIRE_SIZES[i]; if (sz >= PV_WIRE_MIN && PV_WIRE_AMP[sz] >= needAmp) return sz + " mm²"; }
     return "มากกว่า " + PV_WIRE_SIZES[PV_WIRE_SIZES.length - 1] + " mm²";
   }
+  // ── แรงดันตกในสาย (voltage drop) ──
+  // ΔV = k × L × I × ρ ÷ A   ·  k = 2 สำหรับ DC/1 เฟส (ไป-กลับ 2 เส้น) · k = √3 สำหรับ 3 เฟส
+  // ρ = ความต้านทานจำเพาะทองแดง "ที่อุณหภูมิใช้งาน" ไม่ใช่ที่ 20°C (0.0172) เพราะสายร้อนแล้วต้านทานสูงขึ้น
+  //     PVC 70°C ≈ 0.0206 · XLPE/PV1-F 90°C ≈ 0.0219 Ω·mm²/m (α ทองแดง 0.00393/°C)
+  // เกณฑ์ออกแบบ: ฝั่ง DC ≤ 2% · ฝั่ง AC ≤ 3% · รวมทั้งเส้นทางไม่เกิน 5%
+  const VD_RHO = { pvc: 0.0206, xlpe: 0.0219 };
+  const VD_LIMIT = { dc: 2, ac: 3, total: 5 };
+  function calcVdrop(o) {
+    o = o || {};
+    const L = +o.length || 0, I = +o.amp || 0, A = +o.size || 0, V = +o.volts || 0;
+    if (!(L > 0 && I > 0 && A > 0 && V > 0)) return null;
+    const rho = VD_RHO[o.ins === "xlpe" ? "xlpe" : "pvc"];
+    const k = +o.phase === 3 ? Math.sqrt(3) : 2;
+    const dv = k * L * I * rho / A;
+    const pct = dv / V * 100;
+    const lim = +o.limit || (o.dc ? VD_LIMIT.dc : VD_LIMIT.ac);
+    // ขนาดเล็กสุดที่แรงดันตกยังอยู่ในเกณฑ์ (ไว้บอกว่าต้องขยับไปเบอร์ไหน)
+    const need = k * L * I * rho / (lim / 100 * V);
+    const pool = o.dc ? PV_WIRE_SIZES : WIRE_SIZES;
+    let minSize = null;
+    for (let i = 0; i < pool.length; i++) { if (pool[i] >= need && (!o.dc || pool[i] >= PV_WIRE_MIN)) { minSize = pool[i]; break; } }
+    return { dv: Math.round(dv * 100) / 100, pct: Math.round(pct * 100) / 100, lim,
+      ok: pct <= lim, size: A, need: Math.round(need * 100) / 100, minSize, volts: V, amp: I, length: L,
+      phase: +o.phase === 3 ? 3 : 1 };
+  }
+
   // หาแผง / อินเวอร์เตอร์จากชื่อรุ่น (สะท้อนคลัง)
   function findPanel(model) { return PANELS.find((p) => p.model === model) || null; }
   function findInverter(model) { return INVERTERS.find((x) => x.model === model) || null; }
@@ -1000,7 +1026,14 @@
         isc: +p.isc > 0 ? +p.isc : (+def.isc || 0),
         vmp: +p.vmp > 0 ? +p.vmp : (+def.vmp || 0),
         imp: +p.imp > 0 ? +p.imp : (+def.imp || 0),
+        length: +p.length > 0 ? +p.length : (+def.length || 0),
       });
+      /* ค่าที่ใช้เฉพาะตอนคำนวณผลผลิต/เส้น I-V — ใส่เฉพาะที่กรอกมาจริง จะได้ไม่ทับค่ากลางของเครื่องคำนวณ */
+      const row = out[out.length - 1];
+      ["tcVoc", "tcIsc", "tcPmax", "noct", "deg1", "degY", "cells", "fuseA"].forEach((k) => {
+        if (p[k] !== "" && p[k] != null && !isNaN(+p[k]) && +p[k] !== 0) row[k] = +p[k];
+      });
+      if (p.halfCut === true || p.halfCut === false) row.halfCut = p.halfCut;
     });
     // คลังยังไม่โหลด/ไม่มีแผง → คงค่าเริ่มต้นไว้ กันดรอปดาวน์ว่าง
     const next = out.length ? out : DEFAULT_PANELS.map((d) => Object.assign({}, d));
@@ -1016,11 +1049,17 @@
       if (!p || !p.model) return;
       const type = p.type === "string" || p.type === "hybrid" ? p.type : "";
       if (!type) return;
-      out.push({ model: String(p.model).trim(), type: type, kw: +p.kw || 0, phase: +p.phase || 0, inputs: +p.inputs || 0, maxPv: +p.maxPv || 0, outA: +p.outA || 0, mpptVmin: +p.mpptVmin || 0, mpptVmax: +p.mpptVmax || 0, maxVdc: +p.maxVdc || 0, maxInA: +p.maxInA || 0 });
+      out.push({ model: String(p.model).trim(), type: type, kw: +p.kw || 0, phase: +p.phase || 0, inputs: +p.inputs || 0, maxPv: +p.maxPv || 0, outA: +p.outA || 0, mpptVmin: +p.mpptVmin || 0, mpptVmax: +p.mpptVmax || 0, maxVdc: +p.maxVdc || 0, maxInA: +p.maxInA || 0, maxIscA: +p.maxIscA || 0,
+        maxMpptA: +p.maxMpptA || 0, vStart: +p.vStart || 0, vRated: +p.vRated || 0, maxAcKw: +p.maxAcKw || 0 });
+      // ค่าที่ยังไม่กรอกต้องไม่ทับค่ากลางในเครื่องคำนวณ จึงใส่เฉพาะตอนมีค่าจริง
+      const row = out[out.length - 1];
+      if (+p.strPerMppt > 0) row.strPerMppt = Math.round(+p.strPerMppt);
+      if (+p.eff > 0) row.eff = +p.eff;
+      if (+p.effEuro > 0) row.effEuro = +p.effEuro;
     });
     INVERTERS.length = 0;
     out.forEach((x) => INVERTERS.push(x));
   }
 
-  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, findPanel, findInverter, stringConfig, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, catalog, applyPrices, setPanels, setInverters };
+  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, catalog, applyPrices, setPanels, setInverters };
 })();
