@@ -49,15 +49,25 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
     </React.Fragment>
   );
 
+  /* หัวตาราง — พื้นสีขาวเหมือนตัวตาราง คั่นด้วยเส้นผมเส้นเดียว
+     คอลัมน์ที่เรียงอยู่จะเป็นสีเขียวพร้อมลูกศร ส่วนคอลัมน์อื่นขึ้นลูกศรจาง ๆ ตอนชี้ ให้รู้ว่ากดเรียงได้ */
   const th = (label, key, center) => {
     const active = key && sort.key === key;
     return (
       <th onClick={key ? () => setSort((s) => ({ key, dir: s.key === key ? -s.dir : 1 })) : undefined}
-        style={{ padding: "13px 14px", fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase",
+        onMouseEnter={key ? (e) => { const c = e.currentTarget.querySelector("i"); if (c) c.style.opacity = active ? 1 : .45; } : undefined}
+        onMouseLeave={key ? (e) => { const c = e.currentTarget.querySelector("i"); if (c) c.style.opacity = active ? 1 : 0; } : undefined}
+        style={{ padding: "12px 14px", fontSize: 10, fontWeight: 800, letterSpacing: ".09em", textTransform: "uppercase",
           color: active ? "var(--primary-dark)" : "var(--text-3)", textAlign: center ? "center" : "left", whiteSpace: "nowrap",
-          cursor: key ? "pointer" : "default", userSelect: "none", background: "var(--surface2)",
-          position: "sticky", top: 0, zIndex: 2, borderBottom: "1px solid var(--border-strong)" }}>
-        {label}{active && <span style={{ color: "var(--primary)" }}> {sort.dir > 0 ? "↑" : "↓"}</span>}
+          cursor: key ? "pointer" : "default", userSelect: "none", background: "var(--surface)",
+          position: "sticky", top: 0, zIndex: 2, boxShadow: "inset 0 -1px 0 var(--border)" }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, justifyContent: center ? "center" : "flex-start" }}>
+          {label}
+          {key && <i style={{ opacity: active ? 1 : 0, transition: "opacity .14s", display: "inline-flex",
+            transform: active && sort.dir < 0 ? "rotate(180deg)" : "none" }}>
+            <Icon name="chevronDown" size={11} color={active ? "var(--primary)" : "var(--text-3)"} sw={2.5} />
+          </i>}
+        </span>
       </th>
     );
   };
@@ -82,31 +92,40 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
           </thead>
           <tbody>
             {sorted.map((j) => (
-              <tr key={j.id} style={{ borderBottom: "1px solid var(--border)", background: j.delayed ? "#FEF7F7" : "transparent" }}
-                onMouseEnter={(e) => { if (!j.delayed) e.currentTarget.style.background = "var(--surface2)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = j.delayed ? "#FEF7F7" : "transparent"; }}>
+              /* เดิมงานล่าช้าทาพื้นชมพูทั้งแถว — กวาดตาหายาก และสีตายตัวไม่เข้ากับโหมดกลางคืน
+                 เปลี่ยนเป็นขีดแดงบาง ๆ ที่ต้นแถว เห็นชัดพอ ๆ กันแต่ไม่รบกวนการอ่านข้อมูล */
+              <tr key={j.id} style={{ borderBottom: "1px solid var(--border)", background: "transparent", transition: "background .12s" }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface2)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
                 {/* customer */}
-                <td style={{ padding: "13px 14px", minWidth: 190 }}>
-                  <button onClick={() => onOpen(j)} style={{ textAlign: "left", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>{j.name}</div>
-                    <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2, display: "flex", gap: 8, alignItems: "center" }}>
-                      <span><Icon name="phone" size={10} style={{ verticalAlign: -1 }} /> {j.phone}</span>
-                      <span style={{ color: "var(--primary-dark)", fontWeight: 600 }}><Icon name="pin" size={10} style={{ verticalAlign: -1 }} /> {j.province}</span>
-                    </div>
-                  </button>
+                <td style={{ padding: "12px 14px 12px 0", minWidth: 200 }}>
+                  <span style={{ display: "flex", alignItems: "stretch", gap: 11 }}>
+                    <span style={{ width: 3, borderRadius: "0 99px 99px 0", flexShrink: 0,
+                      background: j.delayed ? "#D93025" : (j.problem ? "#F59E0B" : "transparent") }} />
+                    <button onClick={() => onOpen(j)} style={{ textAlign: "left", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0, minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-.01em", lineHeight: 1.3 }}>{j.name}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 3, whiteSpace: "nowrap" }}>
+                        <span style={{ fontFamily: "var(--mono)", letterSpacing: "-.01em" }}>{j.code}</span>
+                        {j.province ? " · " + j.province : ""}{j.phone ? " · " + j.phone : ""}
+                      </div>
+                    </button>
+                  </span>
                 </td>
                 {/* type */}
                 <td style={{ padding: "13px 14px", textAlign: "center" }}><TypeBadge type={j.type} /></td>
                 {/* brand/spec */}
-                <td style={{ padding: "13px 14px" }}>
+                <td style={{ padding: "12px 14px" }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>{j.brand}</div>
-                  <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{j.battery ? "🔋 " + j.batSize : "ไม่มีแบต"}{j.backup ? " · Backup" : ""}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
+                    {j.battery ? <Icon name="battery" size={11} color="var(--primary-dark)" /> : null}
+                    {j.battery ? j.batSize : "ไม่มีแบต"}{j.backup ? " · Backup" : ""}
+                  </div>
                 </td>
-                {/* size */}
-                <td style={{ padding: "13px 14px", textAlign: "center" }}>
-                  <div style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>{j.kw} kW</div>
-                  <div style={{ fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap" }}>{j.panels} แผง</div>
-                  <div style={{ fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap" }}>{(j.phase || "1")} เฟส</div>
+                {/* size — เดิมซ้อน 3 บรรทัด แถวเลยสูงเกินจำเป็น · ยุบเหลือเลขเด่น 1 ตัว + บรรทัดรองบรรทัดเดียว */}
+                <td style={{ padding: "12px 14px", textAlign: "center" }}>
+                  <div style={{ fontFamily: "var(--display)", fontSize: 15, fontWeight: 700, letterSpacing: "-.03em",
+                    fontVariantNumeric: "tabular-nums", color: "var(--text-1)" }}>{j.kw}<span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--text-3)", marginLeft: 2 }}>kW</span></div>
+                  <div style={{ fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap", marginTop: 2 }}>{j.panels} แผง · {(j.phase || "1")} เฟส</div>
                 </td>
                 {/* material readiness — แถบความคืบหน้า + % (แก้รายชิ้นได้ใน drawer/ฟอร์ม) */}
                 <td style={{ padding: "13px 14px" }}>
@@ -116,33 +135,36 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
                         background: j.matReadyPct >= 100 ? "var(--primary)" : (j.matReadyPct > 0 ? "#F59E0B" : "transparent"),
                         borderRadius: 99, transition: "width .4s cubic-bezier(.2,.8,.2,1)" }} />
                     </span>
-                    <span style={{ fontSize: 12, fontWeight: 700, fontFamily: "var(--mono)", minWidth: 36, textAlign: "right",
+                    <span style={{ fontFamily: "var(--display)", fontSize: 12.5, fontWeight: 700, letterSpacing: "-.02em",
+                      fontVariantNumeric: "tabular-nums", minWidth: 38, textAlign: "right",
                       color: j.matReady ? "var(--primary-dark)" : "var(--text-2)" }}>{j.matReadyPct}%</span>
                   </div>
                 </td>
                 {/* stage */}
                 <td style={{ padding: "13px 14px", textAlign: "center" }}>
                   <select value={j.stage} onChange={(e) => onSetStage(j.id, e.target.value)}
-                    style={{ fontFamily: "inherit", fontSize: 11.5, fontWeight: 600, color: stageOf(j.stage).color,
-                      background: stageOf(j.stage).soft, border: "1px solid " + stageOf(j.stage).color + "33", borderRadius: 8,
-                      padding: "5px 8px", cursor: "pointer", outline: "none" }}>
+                    style={{ fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: stageOf(j.stage).color,
+                      background: stageOf(j.stage).soft, border: "1px solid transparent", borderRadius: 99,
+                      padding: "5px 10px", cursor: "pointer", outline: "none" }}>
                     {SF.STAGES.map((s) => <option key={s.key} value={s.key}>{s.th}</option>)}
                   </select>
                 </td>
                 {/* deadline */}
                 <td style={{ padding: "13px 14px", textAlign: "center" }}>
+                  {/* "ปกติ" ไม่ได้บอกอะไรเพิ่ม — ตัดออก ให้ป้ายขึ้นเฉพาะตอนล่าช้าจริง จะได้สะดุดตา */}
                   {j.startDate ? (
                     <React.Fragment>
-                      <div style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 600, color: j.delayed ? "#EF4444" : "var(--text-2)" }}>{thDate(j.startDate, true)}{j.deadline && j.deadline !== j.startDate ? "–" + thDate(j.deadline, true) : ""}</div>
-                      {j.delayed ? <span style={{ fontSize: 10, fontWeight: 700, color: "#EF4444" }}>⚠ ล่าช้า</span>
-                        : <span style={{ fontSize: 10, fontWeight: 600, color: "var(--primary-dark)" }}>ปกติ</span>}
+                      <div style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 600, letterSpacing: "-.01em",
+                        color: j.delayed ? "#D93025" : "var(--text-2)" }}>{thDate(j.startDate, true)}{j.deadline && j.deadline !== j.startDate ? "–" + thDate(j.deadline, true) : ""}</div>
+                      {j.delayed && <span style={{ display: "inline-block", marginTop: 3, fontSize: 9.5, fontWeight: 800, letterSpacing: ".02em",
+                        color: "#D93025", background: "rgba(217,48,37,.11)", padding: "2px 7px", borderRadius: 99 }}>ล่าช้า</span>}
                     </React.Fragment>
                   ) : <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)" }}>ยังไม่นัด</span>}
                 </td>
                 {/* actions */}
                 <td style={{ padding: "13px 14px", textAlign: "center", whiteSpace: "nowrap" }}>
-                  <button onClick={() => onEdit(j)} title="แก้ไข" style={actionBtn("#3B82F6")}><Icon name="settings" size={15} /></button>
-                  <button onClick={() => onDelete(j)} title="ลบ" style={actionBtn("#EF4444")}><Icon name="x" size={15} /></button>
+                  <button onClick={() => onEdit(j)} title="แก้ไข" style={actionBtn("#3B82F6")} {...actionHover("#3B82F6")}><Icon name="settings" size={15} /></button>
+                  <button onClick={() => onDelete(j)} title="ลบ" style={actionBtn("#EF4444")} {...actionHover("#EF4444")}><Icon name="x" size={15} /></button>
                 </td>
               </tr>
             ))}
@@ -171,14 +193,17 @@ function StatusTabs({ tab, setTab, counts }) {
         const active = tab === o.key;
         return (
           <button key={o.key} onClick={() => setTab(o.key)}
+            /* ชุดเดียวกับชิปกรองขั้นงานบนหัวหน้า: ไม่มีเส้นขอบ พื้นจาง ที่เลือกอยู่ค่อยเป็นเขียว */
             style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: mob ? 5 : 7,
-              padding: mob ? "8px 8px" : "8px 14px", borderRadius: 99, flex: mob ? "1 1 0" : "0 0 auto", minWidth: 0,
-              border: "1px solid " + (active ? "var(--primary)" : "var(--border-strong)"),
-              background: active ? "var(--primary-soft)" : "var(--surface)",
-              color: active ? "var(--primary-dark)" : "var(--text-2)", fontWeight: 600, fontSize: mob ? 12 : 13, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+              padding: mob ? "8px 8px" : "8px 15px", borderRadius: 99, flex: mob ? "1 1 0" : "0 0 auto", minWidth: 0,
+              border: "1px solid " + (active ? "var(--primary)" : "transparent"),
+              background: active ? "var(--primary-soft)" : "var(--surface2)",
+              color: active ? "var(--primary-dark)" : "var(--text-2)", fontWeight: active ? 700 : 600,
+              fontSize: mob ? 12 : 13, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+              transition: "background .15s, color .15s" }}>
             <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{o.label}</span>
-            <span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 700, minWidth: 18, textAlign: "center", padding: "1px 5px", borderRadius: 99, flexShrink: 0,
-              background: active ? "var(--primary)" : "var(--surface3)", color: active ? "#fff" : "var(--text-3)" }}>{o.n}</span>
+            <span style={{ fontFamily: "var(--display)", fontSize: 12, fontWeight: 800, letterSpacing: "-.02em",
+              fontVariantNumeric: "tabular-nums", flexShrink: 0, opacity: active ? 1 : .5 }}>{o.n}</span>
           </button>
         );
       })}
@@ -283,9 +308,18 @@ function TableMobile({ jobs, sort, setSort, onOpen, onEdit, onDelete, onSetStage
   );
 }
 
+/* ปุ่มจัดการ — เงียบไว้ก่อน (เทา) ค่อยติดสีตอนเอาเมาส์ชี้
+   เดิมทาสีฟ้า/แดงทุกแถวตลอดเวลา ทำให้สายตาวิ่งไปที่ปุ่มแทนที่จะเป็นข้อมูลงาน */
 function actionBtn(color) {
-  return { background: color + "14", border: "none", color, width: 30, height: 30, borderRadius: 8,
-    cursor: "pointer", margin: "0 2px", display: "inline-grid", placeItems: "center", verticalAlign: "middle" };
+  return { background: "transparent", border: "1px solid var(--border)", color: "var(--text-3)", width: 30, height: 30, borderRadius: 9,
+    cursor: "pointer", margin: "0 2px", display: "inline-grid", placeItems: "center", verticalAlign: "middle",
+    transition: "background .13s, color .13s, border-color .13s" };
+}
+function actionHover(color) {
+  return {
+    onMouseEnter: (e) => { e.currentTarget.style.background = color + "16"; e.currentTarget.style.color = color; e.currentTarget.style.borderColor = color + "44"; },
+    onMouseLeave: (e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-3)"; e.currentTarget.style.borderColor = "var(--border)"; },
+  };
 }
 
 Object.assign(window, { TableView, TableMobile });
