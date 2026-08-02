@@ -459,7 +459,7 @@ function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, dark, onTog
                 <span className="nav-badge">{delayed}</span>
               )}
               {!icons && n.key === "stock" && lowStock > 0 && (
-                <span className="nav-badge" style={{ background: "#F59E0B" }}>{lowStock}</span>
+                <span className="nav-badge warn">{lowStock}</span>
               )}
             </button>
           );
@@ -608,14 +608,18 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
         <div className="cat-chip-row" style={{ display: "flex", alignItems: "center", gap: isMobile ? 5 : 7, flexWrap: "nowrap", overflowX: "auto", overflowY: "hidden", paddingBottom: 2 }}>
           {(() => {
             const SF = window.SF;
+            /* ชิปกรองขั้นงาน — ปกติไม่มีเส้นขอบ ใช้พื้นจางพอให้รู้ว่ากดได้
+               ที่เลือกอยู่ค่อยได้สีของขั้นงานนั้นเต็ม ๆ (สีมีความหมายเฉพาะตอนถูกเลือก) */
             const chip = (active, color) => ({
-              display: "inline-flex", alignItems: "center", gap: isMobile ? 5 : 6, padding: isMobile ? "4px 9px" : "6px 13px", borderRadius: 99,
-              border: "1px solid " + (active ? (color || "var(--primary)") : "var(--border-strong)"),
-              background: active ? (color ? color + "16" : "var(--primary-soft)") : "var(--surface)",
+              display: "inline-flex", alignItems: "center", gap: isMobile ? 5 : 7, padding: isMobile ? "5px 10px" : "6px 13px", borderRadius: 99,
+              border: "1px solid " + (active ? (color || "var(--primary)") : "transparent"),
+              background: active ? (color ? color + "18" : "var(--primary-soft)") : "var(--surface2)",
               color: active ? (color || "var(--primary-dark)") : "var(--text-2)",
-              fontFamily: "inherit", fontSize: isMobile ? 11 : 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
+              fontFamily: "inherit", fontSize: isMobile ? 11.5 : 12.5, fontWeight: active ? 700 : 600,
+              cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, transition: "background .15s, color .15s",
             });
-            const num = (active) => ({ fontSize: 11, fontWeight: 700, opacity: active ? 1 : .6, fontFamily: "var(--mono)" });
+            const num = (active) => ({ fontSize: 11.5, fontWeight: 800, opacity: active ? 1 : .55,
+              fontFamily: "var(--display)", fontVariantNumeric: "tabular-nums", letterSpacing: "-.02em" });
             return (
               <React.Fragment>
                 <button style={chip(!stageFilter)} onClick={() => setStageFilter(null)}>

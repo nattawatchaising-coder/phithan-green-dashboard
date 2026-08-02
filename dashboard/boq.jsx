@@ -1377,9 +1377,15 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             <div style={{ border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
               {priced.groups.map((g, gi) => (
                 <div key={gi}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", background: "var(--surface2)", borderTop: gi ? "1px solid var(--border)" : "none" }}>
-                    <span style={{ width: 8, height: 8, borderRadius: 99, background: GROUP_COLOR[g.group] || "var(--text-3)" }} />
-                    <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text-1)", letterSpacing: ".03em" }}>{g.group}</span>
+                  {/* หัวหมวดลอยติดขอบบนตอนเลื่อน — รายการยาว ๆ จะได้รู้ตลอดว่าอ่านอยู่หมวดไหน */}
+                  <div style={{ position: "sticky", top: 0, zIndex: 1, display: "flex", alignItems: "center", gap: 8,
+                    padding: "9px 14px", background: "var(--surface2)", borderTop: gi ? "1px solid var(--border)" : "none",
+                    boxShadow: "inset 0 -1px 0 var(--border)" }}>
+                    <span style={{ width: 7, height: 7, borderRadius: 99, background: GROUP_COLOR[g.group] || "var(--text-3)", flexShrink: 0 }} />
+                    <span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-2)", letterSpacing: ".09em" }}>{g.group}</span>
+                    <span style={{ marginLeft: "auto", fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>
+                      {g.items.length ? g.items.length + " รายการ" : ""}
+                    </span>
                   </div>
                   {g.items.length === 0 ? (
                     <div style={{ padding: "9px 14px", fontSize: 12, color: "var(--text-3)" }}>—</div>
@@ -1390,13 +1396,15 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                         {it.code ? <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--text-3)" }}>{it.code}</span> : null}
                       </span>
                       <span style={{ textAlign: "right" }}>
-                        <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{(Math.round(it.qty * 100) / 100).toLocaleString()}</span>
-                        <span style={{ display: "block", fontSize: 10, color: "var(--text-3)" }}>{it.unit}</span>
+                        <span style={{ fontFamily: "var(--display)", fontSize: 14, fontWeight: 700, letterSpacing: "-.02em",
+                          fontVariantNumeric: "tabular-nums", color: "var(--text-1)" }}>{(Math.round(it.qty * 100) / 100).toLocaleString()}</span>
+                        <span style={{ display: "block", fontSize: 9.5, fontWeight: 600, letterSpacing: ".04em", color: "var(--text-3)" }}>{it.unit}</span>
                       </span>
                       {(!isMobile || priced.grandTotal > 0) && (
                       <span style={{ textAlign: "right" }}>
-                        <span style={{ fontFamily: "var(--mono)", fontSize: 12.5, fontWeight: 700, color: it.total > 0 ? "var(--text-1)" : "var(--text-3)" }}>{it.total > 0 ? baht(it.total) : "–"}</span>
-                        {it.price > 0 ? <span style={{ display: "block", fontSize: 9.5, color: "var(--text-3)" }}>@{baht(it.price)}</span> : null}
+                        <span style={{ fontFamily: "var(--mono)", fontSize: 12.5, fontWeight: 700, fontVariantNumeric: "tabular-nums",
+                          color: it.total > 0 ? "var(--text-1)" : "var(--text-3)" }}>{it.total > 0 ? baht(it.total) : "–"}</span>
+                        {it.price > 0 ? <span style={{ display: "block", fontSize: 9.5, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>@{baht(it.price)}</span> : null}
                       </span>
                       )}
                     </div>
@@ -1404,9 +1412,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 </div>
               ))}
               {priced.grandTotal > 0 && (
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 14px", background: "var(--surface2)", borderTop: "2px solid var(--border-strong)" }}>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)" }}>ต้นทุนรวม</span>
-                  <span style={{ fontFamily: "var(--mono)", fontSize: 15, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(priced.grandTotal)}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "13px 14px",
+                  background: "var(--primary-soft)", borderTop: "1px solid var(--border)" }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".08em", color: "var(--primary-dark)" }}>ต้นทุนรวม</span>
+                  <span style={{ fontFamily: "var(--display)", fontSize: 20, fontWeight: 700, letterSpacing: "-.035em",
+                    fontVariantNumeric: "tabular-nums", color: "var(--primary-dark)" }}>฿{baht(priced.grandTotal)}</span>
                 </div>
               )}
             </div>

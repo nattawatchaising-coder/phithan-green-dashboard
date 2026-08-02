@@ -10,14 +10,17 @@ function byInstallDate(a, b) {
 function KanbanCard({ job, onOpen, onDragStart, dragging }) {
   const s = stageOf(job.stage);
   return (
+    /* การ์ดงาน — คอลัมน์บอกขั้นงานอยู่แล้ว การ์ดจึงไม่ต้องทาสีขั้นงานซ้ำ
+       เหลือขีดสีไว้เฉพาะตอน "มีปัญหา" หรือ "ล่าช้า" ซึ่งเป็นสีที่มีความหมายจริง */
     <div draggable onDragStart={(e) => onDragStart(e, job)} onClick={() => onOpen(job)}
-      style={{ background: "var(--surface)", border: "1px solid " + (job.problem ? "#FBD3D3" : "var(--border)"),
-        borderRadius: 13, padding: 13, cursor: "grab", boxShadow: "var(--shadow-sm)", opacity: dragging ? 0.4 : 1,
-        borderLeft: "3px solid " + (job.problem ? "#EF4444" : s.color), transition: "box-shadow .15s, transform .15s" }}
-      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 6px 18px rgba(8,20,14,.1)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+      style={{ background: "var(--surface)", border: "1px solid " + (job.problem ? "#F6C9C9" : "var(--border)"),
+        borderRadius: 14, padding: "13px 14px", cursor: "grab", boxShadow: "var(--shadow-sm)", opacity: dragging ? 0.4 : 1,
+        borderLeft: job.problem ? "3px solid #EF4444" : (job.delayed ? "3px solid #F59E0B" : "1px solid var(--border)"),
+        transition: "box-shadow .16s, transform .16s, border-color .16s" }}
+      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 8px 22px rgba(8,20,14,.09)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
       onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "var(--shadow-sm)"; e.currentTarget.style.transform = "none"; }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7, gap: 8 }}>
-        <span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, color: "var(--text-3)" }}>{job.code}</span>
+        <span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, color: "var(--text-3)", letterSpacing: "-.01em" }}>{job.code}</span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
           {job.trello && (
             <a href={job.trello} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title="เปิดการ์ด Trello"
@@ -35,7 +38,7 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
           {job.hasBoq && <DocChip job={job} kind="boq" label="BOQ" color="#0D9488" soft="#0D948814" />}
         </div>
       )}
-      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.25, marginBottom: 2 }}>{job.name}</div>
+      <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3, marginBottom: 3, letterSpacing: "-.01em" }}>{job.name}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--text-3)", marginBottom: 10, whiteSpace: "nowrap", overflow: "hidden" }}>
         <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
           <Icon name="pin" size={11} style={{ verticalAlign: -1 }} /> {job.province} · <span style={{ fontWeight: 600, color: "var(--text-2)" }}>{job.brand}</span>
@@ -59,23 +62,37 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
           ⚠ {job.problem}
         </div>
       )}
-      <div style={{ display: "flex", gap: 6, marginBottom: 11, flexWrap: "wrap" }}>
-        <Stat icon="bolt" text={job.kw + " kW"} />
-        <Stat icon="panel" text={job.panels + " แผง"} />
-        <Stat icon="power" text={(job.phase || "1") + " เฟส"} />
-        {job.battery && <Stat icon="battery" text={job.batSize} accent />}
-        {(job.brand || "").toUpperCase().includes("ATMOCE") && job.comboType === "assembled" && <Stat icon="box" text="ตู้ประกอบ" />}
+      {/* สเปคเป็นบรรทัดเดียวคั่นด้วยจุด — เดิมเป็นป้าย 3-5 อันเรียงกัน กินสายตาเท่าชื่องาน */}
+      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 11, flexWrap: "wrap", fontSize: 11.5 }}>
+        <span style={{ color: "var(--text-2)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+          <b style={{ color: "var(--text-1)", fontWeight: 700 }}>{job.kw}</b> kW
+          <span style={{ color: "var(--text-3)", margin: "0 5px" }}>·</span>
+          <b style={{ color: "var(--text-1)", fontWeight: 700 }}>{job.panels}</b> แผง
+          <span style={{ color: "var(--text-3)", margin: "0 5px" }}>·</span>
+          {(job.phase || "1")} เฟส
+        </span>
+        {job.battery && (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10.5, fontWeight: 700,
+            color: "var(--primary-dark)", background: "var(--primary-soft)", padding: "2px 7px", borderRadius: 99 }}>
+            <Icon name="battery" size={10} color="var(--primary-dark)" />{job.batSize}
+          </span>
+        )}
+        {(job.brand || "").toUpperCase().includes("ATMOCE") && job.comboType === "assembled" && (
+          <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-2)", background: "var(--surface2)", padding: "2px 7px", borderRadius: 99 }}>ตู้ประกอบ</span>
+        )}
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid var(--border)", gap: 8, flexWrap: "wrap" }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}>
           <TechAvatar techId={job.tech} size={24} />
           {job.startDate
-            ? <span style={{ fontSize: 11.5, fontWeight: 600, color: job.delayed ? "#EF4444" : "var(--text-2)" }}>{thDate(job.startDate)}</span>
+            ? <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 600, letterSpacing: "-.01em",
+                color: job.delayed ? "#D93025" : "var(--text-2)" }}>{thDate(job.startDate)}</span>
             : <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: "#B45309", background: "#FEF3C7", border: "1px solid #FCD34D", padding: "2px 7px", borderRadius: 99, whiteSpace: "nowrap" }}><Icon name="alert" size={10} color="#B45309" /> ยังไม่ระบุวันติดตั้ง</span>}
         </span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
           <MatDots mat={job.mat} />
-          <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "var(--mono)", color: job.matReady ? "var(--primary-dark)" : "var(--text-3)" }}>{job.matReadyPct}%</span>
+          <span style={{ fontFamily: "var(--display)", fontSize: 12, fontWeight: 700, letterSpacing: "-.02em",
+            fontVariantNumeric: "tabular-nums", color: job.matReady ? "var(--primary-dark)" : "var(--text-3)" }}>{job.matReadyPct}%</span>
         </span>
       </div>
       {job.stage === "install" && <DailyReportButton job={job} />}
