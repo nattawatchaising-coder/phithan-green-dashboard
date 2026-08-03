@@ -755,7 +755,6 @@ function AmpacityEditor({ ampStore }) {
   const sizes = BOQ.WIRE_SIZES || [];
   const classes = BOQ.INS_CLASSES || [];
   const methods = BOQ.WIRE_METHODS || [];
-  const groups = BOQ.AMP_GROUPS || [];
   const nconds = BOQ.AMP_NCOND || [];
   const cores = BOQ.AMP_CORES || [];
   const def = BOQ.DEFAULT_AMPACITY || {};
@@ -774,8 +773,15 @@ function AmpacityEditor({ ampStore }) {
     if (own != null) return own;
     return baseKey ? rawDef(baseKey, g, n, c, sz) : undefined;
   };
-  const borrowed = baseKey && rawDef(methodKey, "g1", "2", "single", sizes[0]) == null;
+  /* วิธีนี้มีตารางเป็นของตัวเองไหม — เช็คทั้งชุด ไม่ใช่ดูช่องเดียว
+     (เดิมดูแค่ "g1|2|single" ของขนาดแรก พอวิธีที่ใช้กลุ่ม 7 อย่างเดียวมาถึงจะอ่านผิดว่ายืมมา) */
+  const anyDef = (m) => { const t = (def[insKey] || {})[m] || {}; return Object.keys(t).some((c) => Object.keys(t[c] || {}).length > 0); };
+  const methodMeta = methods.find((m) => m.key === methodKey) || {};
+  const borrowed = !!(baseKey && !anyDef(methodKey) && anyDef(baseKey));
+  const noTable = !anyDef(methodKey) && !borrowed;
   const methodTh = (k) => ((methods.find((m) => m.key === k) || {}).th || k);
+  // โชว์เฉพาะกลุ่มที่วิธีนี้ใช้ได้จริง — ไม่งั้นได้คอลัมน์ว่าง 5 กลุ่มที่ไม่มีวันกรอก
+  const groups = (BOQ.AMP_GROUPS || []).filter((g) => !methodMeta.groups || methodMeta.groups.indexOf(g.key) >= 0);
   const editedCount = React.useMemo(() => {
     let n = 0; Object.keys(ov).forEach((i) => Object.keys(ov[i] || {}).forEach((m) => Object.keys(ov[i][m] || {}).forEach((col) => Object.keys(ov[i][m][col] || {}).forEach((s) => { if (+ov[i][m][col][s] > 0) n++; })))); return n;
   }, [ov]);
@@ -800,16 +806,16 @@ function AmpacityEditor({ ampStore }) {
         <div style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "11px 14px", background: "rgba(34,163,91,.07)", border: "1px solid #BBE7CD", borderRadius: 12, marginBottom: 14 }}>
           <Icon name="check" size={16} color="#22A35B" style={{ flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 12, color: "#1d854b", lineHeight: 1.55 }}>
-            ตัวเลขจางในตารางนี้ <strong>ยืมมาจาก "{methodTh(baseKey)}"</strong> — รางปิดมีฝาเป็นช่องเดินสายปิด ระบายความร้อนแบบเดียวกับเดินในท่อ
-            เครื่องคำนวณ BOQ ใช้ค่าชุดนี้อยู่จริง · กรอกทับได้ถ้ามีตารางเฉพาะของรางรุ่นที่ใช้
+            ตัวเลขจางในตารางนี้ <strong>ยืมมาจาก "{methodTh(baseKey)}"</strong> — {methodMeta.baseWhy || "วสท. ให้สองวิธีนี้ใช้ตารางพิกัดชุดเดียวกัน"}
+            <br />เครื่องคำนวณ BOQ ใช้ค่าชุดนี้อยู่จริง · กรอกทับได้ถ้ามีตารางเฉพาะของรุ่นที่ใช้
           </div>
         </div>
-      ) : methodKey !== "conduitAir" && (
+      ) : noTable && (
         <div style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "11px 14px", background: "#FEF2F2", border: "1px solid #FBD3D3", borderRadius: 12, marginBottom: 14 }}>
           <Icon name="alert" size={16} color="#EF4444" style={{ flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 12, color: "#B91C1C", lineHeight: 1.55 }}>
-            <strong>ยังไม่มีตารางของวิธีนี้</strong> — ช่อง "สายแนะนำ" ในหน้า BOQ จะขึ้น "—" จนกว่าจะกรอก
-            <br />รางเคเบิลแบบระบายอากาศ สายอยู่ในอากาศเกือบอิสระจึง <strong>รับกระแสได้มากกว่า</strong> เดินในท่อ — เอาตัวเลขของวิธีอื่นมาใส่แทนไม่ได้
+            <strong>ยังไม่มีตารางของ "{methodMeta.th || methodKey}"</strong> — ช่อง "สายแนะนำ" ในหน้า BOQ จะขึ้น "—" จนกว่าจะกรอก
+            <br />แต่ละวิธีระบายความร้อนไม่เท่ากัน <strong>เอาตัวเลขของวิธีอื่นมาใส่แทนไม่ได้</strong> — รางไม่มีฝารับกระแสได้มากกว่ารางมีฝา และมากกว่าเดินในท่อ
             <br />แนวทาง วสท.: พิกัดในรางเคเบิล ≈ <strong>65%</strong> ของพิกัดสายเดี่ยวเดินในอากาศ (สาย &lt; 300 mm²) และ <strong>75%</strong> สำหรับ 300 mm² ขึ้นไป — ต้องมีตารางสายเดี่ยวในอากาศเป็นฐานก่อน
           </div>
         </div>

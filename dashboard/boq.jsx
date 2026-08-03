@@ -198,6 +198,24 @@ function WireArt({ art, w, h }) {
       {[30, 52, 74, 96].map((x) => cd(x, 50, 9))}
       <path d="M28 18v-8M52 18v-8M76 18v-8M100 18v-8" stroke={S} strokeWidth="1.3" opacity=".55" />
       <path d="M25 14l3-4 3 4M49 14l3-4 3 4M73 14l3-4 3 4M97 14l3-4 3 4" fill="none" stroke={S} strokeWidth="1.3" opacity=".55" /></g>,
+    // Cable Tray ระบายอากาศ ไม่มีฝา — พื้นรางเจาะรู ลมขึ้นจากใต้รางได้ (ต่างจากบันไดตรงที่พื้นยังเป็นแผ่น)
+    trayVent: <g><path d="M12 24v36h108V24" fill="none" stroke={S} strokeWidth="2.2" />
+      <line x1="12" y1="60" x2="120" y2="60" stroke={S} strokeWidth="2.4" />
+      {[22, 34, 46, 58, 70, 82, 94, 106].map((x) => <circle key={"h" + x} cx={x} cy="60" r="1.9" fill="var(--surface)" stroke={S} strokeWidth="1" />)}
+      {[30, 52, 74, 96].map((x) => cd(x, 50, 9))}
+      <path d="M28 18v-8M52 18v-8M76 18v-8M100 18v-8" stroke={S} strokeWidth="1.3" opacity=".55" />
+      <path d="M25 14l3-4 3 4M49 14l3-4 3 4M73 14l3-4 3 4M97 14l3-4 3 4" fill="none" stroke={S} strokeWidth="1.3" opacity=".55" /></g>,
+    // Cable Tray พื้นทึบ ไม่มีฝา — ลมออกได้ทางบนอย่างเดียว พิกัดต่ำกว่าแบบระบายอากาศ
+    traySolid: <g><path d="M12 24v36h108V24" fill="none" stroke={S} strokeWidth="2.2" />
+      <rect x="12" y="58" width="108" height="4" fill={F} stroke={S} strokeWidth="1.6" />
+      {[30, 52, 74, 96].map((x) => cd(x, 49, 9))}
+      <path d="M40 18v-8M76 18v-8" stroke={S} strokeWidth="1.3" opacity=".55" />
+      <path d="M37 14l3-4 3 4M73 14l3-4 3 4" fill="none" stroke={S} strokeWidth="1.3" opacity=".55" /></g>,
+    // รางเคเบิลมีฝาปิด — ปิดทับด้านบน ความร้อนสะสม พิกัดต่ำสุดในบรรดารางเคเบิล
+    trayCover: <g><rect x="8" y="18" width="116" height="8" rx="2" fill={F} stroke={S} strokeWidth="1.6" />
+      <path d="M14 26v34h104V26" fill="none" stroke={S} strokeWidth="2.2" />
+      <line x1="14" y1="60" x2="118" y2="60" stroke={S} strokeWidth="2.4" strokeDasharray="7 6" />
+      {[32, 53, 74, 95].map((x) => cd(x, 50, 9))}</g>,
     // Wireway — รางเหล็กปิดมีฝา เป็นช่องเดินสายปิด ความร้อนออกยากพอ ๆ กับเดินในท่อ
     way: <g><rect x="12" y="20" width="108" height="8" rx="2" fill={F} stroke={S} strokeWidth="1.5" />
       <rect x="16" y="28" width="100" height="36" rx="2" fill="none" stroke={S} strokeWidth="2.2" />
@@ -273,6 +291,16 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const wcalc = Object.assign({}, WIRECALC_DEF, b.wireCalc || {});
   const WCALC_STR = { ins: 1, method: 1, group: 1, ncond: 1 };
   const setWcalc = (k, v) => setB((p) => Object.assign({}, p, { wireCalc: Object.assign({}, WIRECALC_DEF, p.wireCalc || {}, { [k]: WCALC_STR[k] ? v : (+v || 0) }) }));
+  /* เปลี่ยนวิธีเดินสาย = เปลี่ยนตารางพิกัด — ถ้ากลุ่มที่ค้างอยู่ใช้กับวิธีใหม่ไม่ได้ ให้ย้ายกลุ่มให้เลย
+     ไม่งั้นได้คู่ที่ไม่มีในมาตรฐาน (เช่น รางเคเบิล + กลุ่มที่ 1) แล้วช่อง "สายแนะนำ" ขึ้น "—" โดยไม่รู้สาเหตุ */
+  const setMethodPick = (v) => {
+    const m = (window.BOQ.WIRE_METHODS || []).find((x) => x.key === v) || {};
+    setB((p) => {
+      const cur = Object.assign({}, WIRECALC_DEF, p.wireCalc || {});
+      const g = m.groups && m.groups.length && m.groups.indexOf(cur.group) < 0 ? m.groups[0] : cur.group;
+      return Object.assign({}, p, { wireCalc: Object.assign({}, cur, { method: v, group: g }) });
+    });
+  };
   const wcPhase = +b.phase === 3 ? 3 : 1;
   const wcVolt = +wcalc.volt || (wcPhase === 3 ? 400 : 230);
   const wcStrings = Math.max(1, Math.round(+wcalc.strings || 1));   // แบ่งกี่ String (ขั้นต่ำ 1)
@@ -1472,7 +1500,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   </label>
                   <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>วิธีเดินสาย</span>
-                    <Dropdown value={calcMethod} onChange={(v) => setWcalc("method", v)} options={methodOptions} />
+                    <Dropdown value={calcMethod} onChange={setMethodPick} options={methodOptions} />
                   </label>
                   <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>กลุ่มการติดตั้ง</span>
@@ -1504,16 +1532,16 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       )}
                       <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-1)" }}>{grpMeta.th}{grpMeta.sub ? " · " + grpMeta.sub : ""}</div>
                       <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.55, marginTop: 2 }}>{grpMeta.desc || ""}</div>
-                      {mtdMeta.group && mtdMeta.group !== calcGroup && (
-                        <button type="button" onClick={() => setWcalc("group", mtdMeta.group)}
+                      {mtdMeta.groups && mtdMeta.groups.indexOf(calcGroup) < 0 && (
+                        <button type="button" onClick={() => setWcalc("group", mtdMeta.groups[0])}
                           style={{ marginTop: 5, border: 0, background: "#FEF3C7", color: "#92400E", borderRadius: 8, padding: "4px 9px", fontWeight: 800, fontSize: 10.5, cursor: "pointer", fontFamily: "inherit" }}>
-                          วิธีเดินสายที่เลือกตรงกับ {(window.BOQ.AMP_GROUPS || []).find((g) => g.key === mtdMeta.group) ? ((window.BOQ.AMP_GROUPS || []).find((g) => g.key === mtdMeta.group).th) : mtdMeta.group} — กดเพื่อสลับ
+                          วิธีเดินสายนี้ใช้กับ {((window.BOQ.AMP_GROUPS || []).find((g) => g.key === mtdMeta.groups[0]) || {}).th || mtdMeta.groups[0]} — กดเพื่อสลับ
                         </button>
                       )}
                     </div>
                     <button type="button" onClick={() => setArtOpen(!artOpen)}
                       style={{ border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", borderRadius: 9, padding: "6px 11px", fontWeight: 700, fontSize: 11, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0 }}>
-                      {artOpen ? "ซ่อนรูป" : "ดูรูปทั้ง 7 กลุ่ม"}
+                      {artOpen ? "ซ่อนรูป" : "ดูรูปทั้งหมด"}
                     </button>
                   </div>
                   {artOpen && (
@@ -1528,10 +1556,23 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                           <span style={{ fontSize: 9.5, color: "var(--text-3)", lineHeight: 1.35 }}>{g.sub}</span>
                         </button>
                       ))}
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "8px 6px", borderRadius: 11, border: "1px dashed var(--border-strong)", background: "var(--surface2)", textAlign: "center" }}>
-                        <WireArt art="way" w="100%" h={54} />
-                        <span style={{ fontSize: 11, fontWeight: 800, color: "var(--text-2)" }}>Wireway</span>
-                        <span style={{ fontSize: 9.5, color: "var(--text-3)", lineHeight: 1.35 }}>รางปิดมีฝา · ใช้พิกัดเท่ากลุ่มที่ 2</span>
+                    </div>
+                  )}
+                  {/* แถวที่สอง: วิธีเดินสายจริง ๆ ที่เลือกได้ — กดเลือกแล้วกลุ่มพิกัดจะย้ายตามให้เอง */}
+                  {artOpen && (
+                    <div style={{ padding: "0 12px 12px" }}>
+                      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", padding: "4px 0 8px", borderTop: "1px solid var(--border)", marginTop: 2 }}>วิธีเดินสาย</div>
+                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(4, minmax(0,1fr))", gap: 9 }}>
+                        {(window.BOQ.WIRE_METHODS || []).map((m) => (
+                          <button key={m.key} type="button" onClick={() => setMethodPick(m.key)} title={m.baseWhy || m.th}
+                            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "8px 6px", borderRadius: 11, cursor: "pointer", fontFamily: "inherit", textAlign: "center",
+                              border: "1px solid " + (calcMethod === m.key ? "var(--primary)" : "var(--border)"),
+                              background: calcMethod === m.key ? "var(--primary-soft)" : "var(--surface)" }}>
+                            <WireArt art={m.art} w="100%" h={54} />
+                            <span style={{ fontSize: 10, fontWeight: 800, lineHeight: 1.35, color: calcMethod === m.key ? "var(--primary-dark)" : "var(--text-1)" }}>{m.th.replace(/^[^·]+· /, "")}</span>
+                            <span style={{ fontSize: 9, color: "var(--text-3)" }}>{((window.BOQ.AMP_GROUPS || []).find((g) => g.key === (m.groups || [])[0]) || {}).th || ""}{m.base ? " · ใช้ตารางร่วม" : ""}</span>
+                          </button>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -1557,7 +1598,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   <div className="bq-note" style={{ background: ampSrc.borrowed ? "rgba(34,163,91,.07)" : "#FFFBEB", border: "1px solid " + (ampSrc.borrowed ? "#BBE7CD" : "#FDE68A"), color: ampSrc.borrowed ? "#1d854b" : "#92400E" }}>
                     <Icon name={ampSrc.borrowed ? "check" : "alert"} size={15} color={ampSrc.borrowed ? "#22A35B" : "#F59E0B"} />
                     <span>{ampSrc.borrowed
-                      ? "รางปิดมีฝาระบายความร้อนเหมือนเดินในท่อ จึงใช้ตารางพิกัดของ \"" + ampSrcTh(ampSrc.from) + "\" — อย่าลืมใส่ตัวคูณลดกระแสตามจำนวนวงจรในราง"
+                      ? (mtdMeta.baseWhy || "วิธีนี้ระบายความร้อนแบบเดียวกัน") + " จึงใช้ตารางพิกัดของ \"" + ampSrcTh(ampSrc.from) + "\" — อย่าลืมใส่ตัวคูณลดกระแสตามจำนวนวงจรในราง"
                       : "ยังไม่มีตารางพิกัดกระแสของ " + (insOptions.find((o) => o.value === calcIns) || {}).label + " × " + ampSrcTh(calcMethod) + " × " + (grpMeta.th || calcGroup) + " ในระบบ ช่อง \"สายแนะนำ\" จะขึ้น \"—\" — เพิ่มตารางได้ที่หน้าคลัง › พิกัดกระแสสายไฟ (พิกัดของแต่ละกลุ่มไม่เท่ากัน ใช้แทนกันไม่ได้)"}</span>
                   </div>
                 )}
