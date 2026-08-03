@@ -284,6 +284,37 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const setUpFlexSize = (size, v) => setB((p) => { const c = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit); c.upFlex = Object.assign({}, c.upFlex, { [size]: v }); return Object.assign({}, p, { conduit: c }); });
   const SPARE_DEF = { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10, upStraight: 10, upClamp: 10, upConnector: 10 };
   const setCSpare = (k, v) => setB((p) => Object.assign({}, p, { conduitSpare: Object.assign({}, SPARE_DEF, p.conduitSpare, { [k]: v }) }));
+  // ── รางไฟ (WIREWAY / CABLE TRAY) — โครงสร้างข้อมูลเหมือนท่อร้อยสาย: {size, length} ต่อแถว ──
+  const TRAY_DEF = { way: [], tray: [], spare: 10, extra: [] };
+  const tw = Object.assign({}, TRAY_DEF, b.tray);
+  const trayLen = Math.round(((tw.way || []).concat(tw.tray || [])).reduce((s, x) => s + (+x.length || 0), 0));
+  const setTrayRow = (kind, i, k, v) => setB((p) => { const t = Object.assign({}, TRAY_DEF, p.tray); const a = (t[kind] || []).slice(); a[i] = Object.assign({}, a[i], { [k]: v }); t[kind] = a; return Object.assign({}, p, { tray: t }); });
+  const addTrayRow = (kind, item) => setB((p) => { const t = Object.assign({}, TRAY_DEF, p.tray); t[kind] = (t[kind] || []).concat([item]); return Object.assign({}, p, { tray: t }); });
+  const delTrayRow = (kind, i) => setB((p) => { const t = Object.assign({}, TRAY_DEF, p.tray); t[kind] = (t[kind] || []).filter((_, j) => j !== i); return Object.assign({}, p, { tray: t }); });
+  const setTrayVal = (k, v) => setB((p) => Object.assign({}, p, { tray: Object.assign({}, TRAY_DEF, p.tray, { [k]: v }) }));
+
+  // ── โครงสร้างรองรับอุปกรณ์ (Inverter / ตู้ MDB) ──
+  const SUP_DEF = { inv: 0, invKind: "floor", mdb: 0, mdbKind: "floor", spare: 10, extra: [] };
+  const sup = Object.assign({}, SUP_DEF, b.support);
+  const setSup = (k, v) => setB((p) => Object.assign({}, p, { support: Object.assign({}, SUP_DEF, p.support, { [k]: v }) }));
+
+  // ── ค่าแรง / ค่าขออนุญาต — null = ยังไม่เคยแก้ ใช้รายการตั้งต้น (ต้องคัดลอกก่อนแก้ครั้งแรก) ──
+  const svcList = (key, preset) => (b[key] == null ? preset.map((x) => Object.assign({}, x, { price: 0 })) : b[key]);
+  const setSvc = (key, preset, i, k, v) => setB((p) => {
+    const a = (p[key] == null ? preset.map((x) => Object.assign({}, x, { price: 0 })) : p[key]).slice();
+    a[i] = Object.assign({}, a[i], { [k]: v });
+    return Object.assign({}, p, { [key]: a });
+  });
+  const addSvc = (key, preset) => setB((p) => {
+    const a = (p[key] == null ? preset.map((x) => Object.assign({}, x, { price: 0 })) : p[key]).slice();
+    return Object.assign({}, p, { [key]: a.concat([{ name: "", qty: 1, unit: "งาน", price: 0, auto: "" }]) });
+  });
+  const delSvc = (key, preset, i) => setB((p) => {
+    const a = (p[key] == null ? preset.map((x) => Object.assign({}, x, { price: 0 })) : p[key]);
+    return Object.assign({}, p, { [key]: a.filter((_, j) => j !== i) });
+  });
+  const resetSvc = (key) => setB((p) => Object.assign({}, p, { [key]: null }));
+
   // งานเพิ่มเติม (Input) — โครงสร้างบนหลังคา
   const STRUCT_DEF = { ladder: [], walkway: [], walkwayThk: 35, guardrail: [], ladderSpare: 5, walkwaySpare: 10, guardrailSpare: 5, ladderExtra: [], walkwayExtra: [], guardrailExtra: [] };
   const st = Object.assign({}, STRUCT_DEF, b.struct);
@@ -472,7 +503,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
   const opt = (arr) => arr.map((x) => ({ value: x, label: typeof x === "string" ? x.trim() : x }));
 
-  const GROUP_COLOR = { "PV MODULE": "#22A35B", INVERTER: "#7C5CFC", "COMBINER BOX": "#4F46E5", MOUNTING: "#F59E0B", CABLE: "#0EA5E9", "RACE WAY": "#64748B", GROUNDING: "#A16207", "LADDER (บันไดลิง)": "#0D9488", "WALKWAY": "#D97706", "GUARD RAIL": "#DB2777", ACCESSORIES: "#EC4899" };
+  const GROUP_COLOR = { "PV MODULE": "#22A35B", INVERTER: "#7C5CFC", "COMBINER BOX": "#4F46E5", MOUNTING: "#F59E0B", CABLE: "#0EA5E9", "RACE WAY": "#64748B", GROUNDING: "#A16207", "LADDER (บันไดลิง)": "#0D9488", "WALKWAY": "#D97706", "GUARD RAIL": "#DB2777", ACCESSORIES: "#EC4899",
+    [window.BOQ.G_TRAY]: "#0891B2", [window.BOQ.G_SUPPORT]: "#78716C",
+    [window.BOQ.G_LABOR]: "#2563EB", [window.BOQ.G_PERMIT]: "#9333EA" };
 
   // ── Accessories: เพิ่มของ / ดึงจากราคาวัสดุ + คลังสินค้า ──
   const stockItems = (stock && stock.items) || [];
@@ -552,6 +585,63 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       </div>
     </div>
   );
+
+  /* รายการรางไฟ — เลือกขนาด + ความยาวรวมของขนาดนั้น (ข้อต่อ/ขาแขวน/พุก คิดต่อจากความยาวให้เอง) */
+  const TrayList = ({ kind, label, sizes, hint }) => (
+    <div>
+      <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 7 }}>{hint}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {(tw[kind] || []).map((x, i) => (
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 78px 36px", gap: 8, alignItems: "center" }}>
+            <Dropdown value={x.size} onChange={(v) => setTrayRow(kind, i, "size", v)} options={opt(sizes)} placeholder="เลือกขนาด" />
+            <input type="number" style={numStyle} value={x.length} placeholder="ม." onChange={(e) => setTrayRow(kind, i, "length", e.target.value)} />
+            <button onClick={() => delTrayRow(kind, i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
+          </div>
+        ))}
+        <button onClick={() => addTrayRow(kind, { size: sizes[0], length: 0 })} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่ม {label}</button>
+      </div>
+    </div>
+  );
+
+  /* ตารางค่าแรง / ค่าขออนุญาต — ปริมาณช่องที่มี auto จะวิ่งตามผลถอดวัสดุเอง แก้ไม่ได้ (แต่ลบทั้งบรรทัดได้) */
+  const SvcTable = ({ sKey, preset, qtyLabel }) => {
+    const rows = svcList(sKey, preset);
+    const g = (priced.groups || []).find((x) => x.group === (sKey === "labor" ? window.BOQ.G_LABOR : window.BOQ.G_PERMIT));
+    const live = (g && g.items) || [];
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 62px 36px" : "minmax(0,1fr) 84px 62px 96px 36px", gap: 8,
+          fontSize: 9.5, fontWeight: 800, letterSpacing: ".05em", color: "var(--text-3)", textTransform: "uppercase", padding: "0 2px" }}>
+          <span>รายการ</span>{!isMobile && <span style={{ textAlign: "right" }}>{qtyLabel}</span>}
+          {!isMobile && <span style={{ textAlign: "right" }}>หน่วย</span>}
+          <span style={{ textAlign: "right" }}>ราคา/หน่วย</span><span />
+        </div>
+        {rows.map((r, i) => {
+          const q = live[i] ? live[i].qty : (+r.qty || 0);
+          const tot = q * (+r.price || 0);
+          return (
+            <div key={i} style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 62px 36px" : "minmax(0,1fr) 84px 62px 96px 36px", gap: 8, alignItems: "center" }}>
+              <span style={{ minWidth: 0 }}>
+                <input value={r.name} onChange={(e) => setSvc(sKey, preset, i, "name", e.target.value)} style={Object.assign({}, inputStyle, { width: "100%" })} placeholder="ชื่อรายการ" />
+                {tot > 0 && <span style={{ display: "block", fontSize: 10, color: "var(--text-3)", marginTop: 2, paddingLeft: 2 }}>= ฿{baht(tot)}{result.meta.kw > 0 ? " · ฿" + baht(tot / result.meta.kw) + "/kW" : ""}</span>}
+              </span>
+              {!isMobile && (r.auto
+                ? <span style={{ textAlign: "right", fontFamily: "var(--mono)", fontSize: 13, fontWeight: 700, color: "var(--primary-dark)" }} title="ปริมาณคิดจากผลถอดวัสดุอัตโนมัติ">{(Math.round(q * 100) / 100).toLocaleString()}</span>
+                : <input type="number" style={numStyle} value={r.qty != null ? r.qty : ""} onChange={(e) => setSvc(sKey, preset, i, "qty", e.target.value)} />)}
+              {!isMobile && <input value={r.unit || ""} onChange={(e) => setSvc(sKey, preset, i, "unit", e.target.value)} style={Object.assign({}, inputStyle, { width: "100%", textAlign: "right" })} />}
+              <input type="number" style={numStyle} value={r.price != null ? r.price : ""} placeholder="0" onChange={(e) => setSvc(sKey, preset, i, "price", e.target.value)} />
+              <button onClick={() => delSvc(sKey, preset, i)} title="ลบบรรทัด" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
+            </div>
+          );
+        })}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button onClick={() => addSvc(sKey, preset)} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--primary-soft)", color: "var(--primary-dark)", border: "none", borderRadius: 9, padding: "8px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={14} color="var(--primary-dark)" /> เพิ่มบรรทัด</button>
+          {b[sKey] != null && <button onClick={() => resetSvc(sKey)} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "8px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>คืนรายการตั้งต้น</button>}
+        </div>
+      </div>
+    );
+  };
 
   // บล็อกกรอกงานโครงสร้าง (LADDER/WALKWAY/GUARD RAIL) — แต่ละ "จุด/แนว" = 1 แถว
   const StructBlock = ({ kind, label, color, addLabel, cols, blank, extra, spare, onSpare, extraItems, onExtraAdd, onExtraChange, onExtraDel }) => (
@@ -762,8 +852,18 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       tone: !wireDone ? "" : (vdropSum.total > vdropSum.lim.total ? "warn" : "ok") },
     { key: "raceway", icon: "grid", title: "ท่อร้อยสาย",
       meta: ((b.conduit && b.conduit.imc) || []).length + ((b.conduit && b.conduit.upvc) || []).length + " รายการ" },
+    { key: "tray", icon: "grid", title: "รางไฟ (Wireway / Tray)",
+      meta: trayLen > 0 ? "รวม " + trayLen + " ม." : "ยังไม่ได้กรอก", tone: trayLen > 0 ? "ok" : "" },
+    { key: "support", icon: "box", title: "โครงสร้างรองรับอุปกรณ์",
+      meta: sup.inv + sup.mdb > 0 ? "อินเวอร์เตอร์ " + sup.inv + " · ตู้ " + sup.mdb : "ยังไม่ได้ถอด", tone: sup.inv + sup.mdb > 0 ? "ok" : "" },
     !isHome ? { key: "struct", icon: "box", title: "งานเพิ่มเติม — โครงสร้าง", meta: "บันได · ทางเดิน · ราวกันตก" } : null,
     { key: "acc", icon: "box", title: "Accessories", meta: (accList || []).length ? accList.length + " รายการ" : "ยังไม่เพิ่ม" },
+    { key: "labor", icon: "power", title: "ค่าแรงติดตั้ง",
+      meta: priced.laborTotal > 0 ? "฿" + baht(priced.laborTotal) + " · ฿" + baht(priced.laborPerKw) + "/kW" : "ยังไม่ได้ตั้งเรต",
+      tone: priced.laborTotal > 0 ? "ok" : "warn" },
+    { key: "permit", icon: "box", title: "ค่าขออนุญาต & เอกสาร",
+      meta: priced.permitTotal > 0 ? "฿" + baht(priced.permitTotal) : "ยังไม่ได้กรอกค่าธรรมเนียม",
+      tone: priced.permitTotal > 0 ? "ok" : "warn" },
     { key: "removable", icon: "box", title: "รายการวัสดุที่ถอดได้",
       meta: priced.grandTotal > 0 ? "รวม ฿" + baht(priced.grandTotal) : "ยังไม่มีราคา", tone: priced.grandTotal > 0 ? "ok" : "" },
   ].filter(Boolean);
@@ -819,7 +919,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label={"อินเวอร์เตอร์" + (jobBrand ? " · " + jobBrand : "")}><Dropdown value={b.inverterModel || ""} onChange={(v) => set("inverterModel", v)} options={invOptions} /></Field></div>
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}>{!b.inverterModel
                 ? <Field label="อัตราไมโคร"><Dropdown value={b.microRatio} onChange={(v) => set("microRatio", v)} options={[{ value: "1:1", label: "1:1 (1 แผง/ตัว)" }, { value: "2:1", label: "2:1 (2 แผง/ตัว)" }]} /></Field>
-                : <Field label="จำนวนอินเวอร์เตอร์"><BoqInvCount value={b.invCount} auto={result.meta.invAuto} onChange={(v) => set("invCount", v)} style={numStyle} /></Field>}</div>
+                : <Field label="จำนวนอินเวอร์เตอร์ (แก้ไขได้)"><BoqInvCount value={b.invCount} auto={result.meta.invAuto} onChange={(v) => set("invCount", v)} style={numStyle} /></Field>}</div>
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="รุ่นแผง"><Dropdown value={b.panelModel} onChange={(v) => set("panelModel", v)} options={opt(window.BOQ.PANELS.map((p) => p.model))} /></Field></div>
               {hasBattery && <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="แบตเตอรี่ (kWh)"><BoqLocked value={b.batteryKwh} unit="kWh" num /></Field></div>}
               {hasBackup && <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="ระบบ Backup"><BoqLocked value={b.backup ? "ติดตั้ง" : "ไม่ติดตั้ง"} /></Field></div>}
@@ -831,7 +931,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           {isHuawei && (
             <BoqSection title={"ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + " (" + selInv.model + ")"} icon="bolt" {...secProps("hybrid")}>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "repeat(3, minmax(0,1fr))", gap: 12 }}>
-                <Field label="จำนวนอินเวอร์เตอร์">
+                <Field label="จำนวนอินเวอร์เตอร์ (แก้ไขได้)">
                   <BoqInvCount value={b.invCount} auto={result.meta.invAuto} onChange={(v) => set("invCount", v)} style={numStyle} />
                 </Field>
                 <Field label={"String ต่อตัว (รับได้ " + capPerInv + ")"}>
@@ -1417,6 +1517,81 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             )}
           </BoqSection>
 
+          {/* ── รางไฟ (WIREWAY / CABLE TRAY) ── */}
+          <BoqSection title="รางไฟ (Wireway / Cable Tray)" icon="grid" {...secProps("tray")}
+            right={trayLen > 0 ? <span style={{ fontSize: 12, fontWeight: 800, color: "var(--primary-dark)" }}>รวม {trayLen} ม.</span> : null}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <TrayList kind="way" label="Wireway เหล็กมีฝา" sizes={window.BOQ.WAY_SIZES}
+                hint={"รางเหล็กพับมีฝาปิด ยาว " + window.BOQ.WAY_PIPE_LEN.toFixed(1) + " ม./ท่อน — กรอกความยาวรวมของแต่ละขนาด"} />
+              <TrayList kind="tray" label="Cable Tray บันได" sizes={window.BOQ.TRAY_SIZES}
+                hint={"รางบันได ยาว " + window.BOQ.TRAY_PIPE_LEN.toFixed(1) + " ม./ท่อน — ใช้เดินสายจำนวนมากระยะไกล"} />
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "160px 1fr", gap: 12, alignItems: "center" }}>
+                <Field label="% เผื่อ อุปกรณ์ประกอบ">
+                  <input type="number" style={numStyle} value={tw.spare} onChange={(e) => setTrayVal("spare", e.target.value)} />
+                </Field>
+                <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>
+                  ตัวราง = ปัดขึ้นตามความยาว/ท่อน · ชุดข้อต่อ = ทุกรอยต่อ +2 · ขาแขวน = ทุก 1.5 ม. · พุ๊กเหล็ก 4 ตัว/ขา
+                </div>
+              </div>
+              {/* ข้องอ / ข้อลด / สามทาง — รูปทรงไม่ตายตัว กรอกจำนวนเองตามแบบ */}
+              <div>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 7 }}>ข้องอ / ข้อลด / สามทาง (กรอกเอง)</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {(tw.extra || []).map((x, i) => (
+                    <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 78px 62px 36px", gap: 8, alignItems: "center" }}>
+                      <input value={x.name || ""} placeholder="เช่น ข้องอ 90° Wireway 100x100 mm." style={inputStyle} onChange={(e) => setTrayVal("extra", (tw.extra || []).map((y, j) => j === i ? Object.assign({}, y, { name: e.target.value }) : y))} />
+                      <input type="number" style={numStyle} value={x.qty != null ? x.qty : ""} placeholder="จำนวน" onChange={(e) => setTrayVal("extra", (tw.extra || []).map((y, j) => j === i ? Object.assign({}, y, { qty: e.target.value }) : y))} />
+                      <input value={x.unit || ""} placeholder="หน่วย" style={inputStyle} onChange={(e) => setTrayVal("extra", (tw.extra || []).map((y, j) => j === i ? Object.assign({}, y, { unit: e.target.value }) : y))} />
+                      <button onClick={() => setTrayVal("extra", (tw.extra || []).filter((_, j) => j !== i))} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
+                    </div>
+                  ))}
+                  <button onClick={() => setTrayVal("extra", (tw.extra || []).concat([{ name: "", qty: "", unit: "ชุด" }]))} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่มอุปกรณ์</button>
+                </div>
+              </div>
+            </div>
+          </BoqSection>
+
+          {/* ── โครงสร้างรองรับอุปกรณ์ (Inverter / ตู้ MDB) ── */}
+          <BoqSection title="โครงสร้างรองรับอุปกรณ์ (Inverter / ตู้ MDB)" icon="box" {...secProps("support")}
+            right={<button onClick={() => { setSup("inv", result.meta.invCount || 1); setSup("mdb", 1); }}
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 8, padding: "6px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
+              title={"ตั้งเป็นอินเวอร์เตอร์ " + (result.meta.invCount || 1) + " ตัว + ตู้ 1 ใบ"}>ใช้ตามระบบ</button>}>
+            <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 14 }}>
+              อินเวอร์เตอร์ตัวใหญ่และตู้ MDB ต้องมีโครงเหล็กหรือฉากรองรับ ไม่ได้ยึดผนังเปล่า ๆ — ใส่ 0 ถ้างานนี้ไม่ต้องทำโครง
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "repeat(3, minmax(0,1fr))", gap: 12 }}>
+              <Field label="จุดรองรับอินเวอร์เตอร์"><input type="number" min={0} style={numStyle} value={sup.inv} onChange={(e) => setSup("inv", Math.max(0, parseInt(e.target.value) || 0))} /></Field>
+              <Field label="แบบยึดอินเวอร์เตอร์"><Dropdown value={sup.invKind} onChange={(v) => setSup("invKind", v)} options={Object.keys(window.BOQ.SUPPORT_KINDS).map((k) => ({ value: k, label: window.BOQ.SUPPORT_KINDS[k].label }))} /></Field>
+              <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="% เผื่อวัสดุ"><input type="number" style={numStyle} value={sup.spare} onChange={(e) => setSup("spare", e.target.value)} /></Field></div>
+              <Field label="จุดรองรับตู้ MDB / ตู้ไฟ"><input type="number" min={0} style={numStyle} value={sup.mdb} onChange={(e) => setSup("mdb", Math.max(0, parseInt(e.target.value) || 0))} /></Field>
+              <Field label="แบบยึดตู้"><Dropdown value={sup.mdbKind} onChange={(v) => setSup("mdbKind", v)} options={Object.keys(window.BOQ.SUPPORT_KINDS).map((k) => ({ value: k, label: window.BOQ.SUPPORT_KINDS[k].label }))} /></Field>
+            </div>
+            {sup.inv + sup.mdb > 0 && (
+              <div className="bq-note ok" style={{ marginTop: 14 }}>
+                <Icon name="check" size={15} color="#22A35B" />
+                <span>ถอดวัสดุให้แล้ว — ดูรายการจริงได้ในหัวข้อ "รายการวัสดุที่ถอดได้" หมวด {window.BOQ.G_SUPPORT} (รวมสีกันสนิม ลวดเชื่อม ใบตัดเหล็ก)</span>
+              </div>
+            )}
+          </BoqSection>
+
+          {/* ── ค่าแรงติดตั้ง ── */}
+          <BoqSection title="ค่าแรงติดตั้ง" icon="power" {...secProps("labor")}
+            right={priced.laborTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(priced.laborTotal)} · ฿{baht(priced.laborPerKw)}/kW</span> : null}>
+            <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
+              ปริมาณของบรรทัดที่ขึ้นเลขสีเขียวดึงจากผลถอดวัสดุให้เอง (แผง/ตัว/เมตร) — กรอกแค่ "ราคาต่อหน่วย" · บรรทัดที่ราคา 0 จะไม่ถูกบวกเข้ายอด
+            </div>
+            <SvcTable sKey="labor" preset={window.BOQ.LABOR_PRESET} qtyLabel="ปริมาณ" />
+          </BoqSection>
+
+          {/* ── ค่าขออนุญาต & เอกสาร ── */}
+          <BoqSection title="ค่าขออนุญาต & เอกสาร" icon="box" {...secProps("permit")}
+            right={priced.permitTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(priced.permitTotal)}</span> : null}>
+            <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
+              ค่าธรรมเนียมจริงเปลี่ยนตามพื้นที่และขนาดระบบ ระบบจึงไม่เดาให้ — กรอกตามใบเสร็จ/ประกาศล่าสุด · ลบบรรทัดที่งานนี้ไม่ต้องขอได้เลย
+            </div>
+            <SvcTable sKey="permit" preset={window.BOQ.PERMIT_PRESET} qtyLabel="จำนวน" />
+          </BoqSection>
+
           {/* ── งานเพิ่มเติม (Input): โครงสร้างบนหลังคา — เฉพาะงานโครงการ ไม่แสดงงานบ้าน ── */}
           {!isHome && (
           <BoqSection title="งานเพิ่มเติม (Input) — โครงสร้าง" icon="box" {...secProps("struct")}
@@ -1485,6 +1660,38 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           {/* ── ผลลัพธ์ BOQ ── */}
           <BoqSection title="รายการวัสดุที่ถอดได้" icon="box" {...secProps("removable")}
             right={priced.grandTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>รวม ฿{baht(priced.grandTotal)}</span> : null}>
+            {/* ── สรุปต้นทุนต่อ kW ── ตัวเลขที่ใช้เทียบข้ามงานได้จริง ── */}
+            {priced.grandTotal > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ marginBottom: 8, fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>
+                  ต้นทุนต่อขนาดติดตั้ง · {result.meta.kw.toLocaleString()} kW
+                </div>
+                <div className="bq-spec">
+                  <div><span className="k">ค่าวัสดุ</span><span className="v">฿{baht(priced.matPerKw)}/kW</span></div>
+                  <div data-miss={priced.laborTotal > 0 ? "0" : "1"}><span className="k">ค่าแรง</span><span className="v">{priced.laborTotal > 0 ? "฿" + baht(priced.laborPerKw) + "/kW" : "ยังไม่ตั้งเรต"}</span></div>
+                  <div data-miss={priced.permitTotal > 0 ? "0" : "1"}><span className="k">ค่าขออนุญาต</span><span className="v">{priced.permitTotal > 0 ? "฿" + baht(priced.permitPerKw) + "/kW" : "ยังไม่กรอก"}</span></div>
+                  <div><span className="k">รวมทั้งหมด</span><span className="v hi">฿{baht(priced.perKw)}/kW</span></div>
+                </div>
+                {/* แยกรายหมวด เรียงจากแพงสุด — หาว่าเงินหายไปไหนได้ในบรรทัดเดียว */}
+                <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 4 }}>
+                  {priced.groups.filter((g) => g.subtotal > 0).slice().sort((a, c) => c.subtotal - a.subtotal).map((g, i) => (
+                    <div key={i} style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 78px" : "150px 1fr 96px 84px", gap: 8, alignItems: "center" }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                        <span style={{ width: 7, height: 7, borderRadius: 99, background: GROUP_COLOR[g.group] || "var(--text-3)", flexShrink: 0 }} />
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.group}</span>
+                      </span>
+                      {!isMobile && (
+                        <span style={{ height: 6, borderRadius: 99, background: "var(--surface3)", overflow: "hidden" }}>
+                          <span style={{ display: "block", height: "100%", width: Math.max(2, (g.subtotal / priced.grandTotal) * 100) + "%", background: GROUP_COLOR[g.group] || "var(--text-3)", borderRadius: 99 }} />
+                        </span>
+                      )}
+                      {!isMobile && <span style={{ textAlign: "right", fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: "var(--text-1)", fontVariantNumeric: "tabular-nums" }}>฿{baht(g.subtotal)}</span>}
+                      <span style={{ textAlign: "right", fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 800, color: "var(--primary-dark)", fontVariantNumeric: "tabular-nums" }}>฿{baht(g.perKw)}/kW</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div style={{ border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
               {priced.groups.map((g, gi) => (
                 <div key={gi}>
@@ -1494,8 +1701,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     boxShadow: "inset 0 -1px 0 var(--border)" }}>
                     <span style={{ width: 7, height: 7, borderRadius: 99, background: GROUP_COLOR[g.group] || "var(--text-3)", flexShrink: 0 }} />
                     <span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-2)", letterSpacing: ".09em" }}>{g.group}</span>
-                    <span style={{ marginLeft: "auto", fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>
-                      {g.items.length ? g.items.length + " รายการ" : ""}
+                    {/* ยอดรายหมวด + บาทต่อ kW — เห็นทันทีว่าหมวดไหนกินต้นทุนเท่าไรต่อกำลังติดตั้ง */}
+                    <span style={{ marginLeft: "auto", fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+                      {g.subtotal > 0
+                        ? "฿" + baht(g.subtotal) + (g.perKw > 0 ? " · ฿" + baht(g.perKw) + "/kW" : "")
+                        : (g.items.length ? g.items.length + " รายการ" : "")}
                     </span>
                   </div>
                   {g.items.length === 0 ? (
@@ -1545,6 +1755,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         <span className="bq-kpi"><span className="k">{b.inverterModel ? "อินเวอร์เตอร์" : "ไมโคร"}</span><span className="v">{result.meta.invCount}<small>ตัว</small></span></span>
         <span className="bq-kpi"><span className="k">รายการวัสดุ</span><span className="v">{itemCount.toLocaleString()}<small>รายการ</small></span></span>
         <span className="bq-kpi"><span className="k">ต้นทุนรวม</span><span className="v hi">{priced.grandTotal > 0 ? "฿" + baht(priced.grandTotal) : "—"}</span></span>
+        <span className="bq-kpi"><span className="k">ต่อ kW</span><span className="v hi">{priced.perKw > 0 ? "฿" + baht(priced.perKw) : "—"}</span></span>
         </span>
         <span className="bq-gap" />
         {remaining !== 0 && (

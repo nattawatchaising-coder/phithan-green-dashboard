@@ -482,6 +482,112 @@
     "กล่องพักสายไฟ uPVC สีขาว 4\"x4\"x2\"", "กล่องพักสายไฟ uPVC สีขาว 4\"x4\"x3\"",
   ];
 
+  /* ── รางไฟ (WIREWAY / CABLE TRAY) ──
+     Wireway = รางเหล็กพับมีฝาปิด ยาว 2.40 ม./ท่อน — ใช้เดินสายในอาคาร/ข้างตู้
+     Cable Tray บันได = ยาว 3.00 ม./ท่อน — ใช้เดินสายจำนวนมากระยะไกล
+     ถอดของ: ตัวราง + ชุดข้อต่อทุกรอยต่อ + ขาแขวนทุก 1.5 ม. + พุกยึด 4 ตัว/ขา */
+  const WAY_PIPE_LEN = 2.4, TRAY_PIPE_LEN = 3.0, WAY_HANGER_STEP = 1.5;
+  const WAY_SIZES = [
+    "Wireway 50x50 mm.", "Wireway 100x50 mm.", "Wireway 100x100 mm.",
+    "Wireway 150x100 mm.", "Wireway 200x100 mm.", "Wireway 200x200 mm.", "Wireway 300x100 mm.",
+  ];
+  const TRAY_SIZES = [
+    "Cable Tray บันได 150x50 mm.", "Cable Tray บันได 200x50 mm.", "Cable Tray บันได 300x100 mm.",
+    "Cable Tray บันได 450x100 mm.", "Cable Tray บันได 600x100 mm.",
+  ];
+  const traySuffix = (nm) => String(nm).replace(/^(Wireway|Cable Tray บันได)\s*/i, "").trim();
+  /* ถอดวัสดุรางไฟ 1 ขนาด — คืน array ของ item · pct = % เผื่อของอุปกรณ์ประกอบ */
+  function wayItems(name, lenM, pct, isTray) {
+    const len = +lenM || 0;
+    if (len <= 0) return [];
+    const sz = traySuffix(name);
+    const kind = isTray ? "Cable Tray" : "Wireway";
+    const up = (v) => Math.ceil(v * (1 + (+pct || 0) / 100));
+    const pipeLen = isTray ? TRAY_PIPE_LEN : WAY_PIPE_LEN;
+    const pcs = Math.ceil(len / pipeLen);
+    const joint = Math.max(0, pcs - 1) + 2;                       // ทุกรอยต่อ + เผื่อหัวท้าย
+    const hanger = Math.ceil(len / WAY_HANGER_STEP);              // ขาแขวนทุก 1.5 ม.
+    const out = [
+      { name: name + " (" + pipeLen.toFixed(1) + "m/ท่อน)", qty: pcs, unit: "ท่อน" },
+      { name: "ชุดข้อต่อราง " + kind + " " + sz, qty: up(joint), unit: "ชุด" },
+      { name: "ขาแขวนราง " + kind + " " + sz, qty: up(hanger), unit: "ชุด" },
+      { name: 'พุ๊กเหล็ก 3/8"', qty: up(hanger * 4), unit: "ตัว" },
+    ];
+    if (!isTray) out.push({ name: "สกรู+น็อต M6 ประกอบราง", qty: up(pcs * 8), unit: "ชุด" });
+    return out;
+  }
+
+  /* รวมบรรทัดชื่อซ้ำเป็นบรรทัดเดียว — เช่น พุ๊กเหล็ก ที่ถอดมาจากรางหลายขนาด/หลายจุด */
+  function mergeItems(rows) {
+    const order = [], map = {};
+    (rows || []).forEach((r) => {
+      const k = r.name + "|" + (r.unit || "");
+      if (map[k]) map[k].qty += +r.qty || 0;
+      else { map[k] = { name: r.name, qty: +r.qty || 0, unit: r.unit || "" }; order.push(k); }
+    });
+    return order.map((k) => map[k]).filter((x) => x.qty > 0);
+  }
+
+  /* ── โครงสร้างรองรับอุปกรณ์ (Inverter / ตู้ MDB) ──
+     อินเวอร์เตอร์ตัวใหญ่และตู้ MDB ต้องมีโครงเหล็กหรือฉากยึด ไม่ได้แขวนกับผนังเปล่า ๆ
+     "ตั้งพื้น" = ทำโครงเหล็กกล่องยืนพื้น · "ยึดผนัง" = ฉากรองรับยิงพุกเข้าผนัง */
+  const SUPPORT_KINDS = {
+    floor: {
+      label: "โครงเหล็กตั้งพื้น",
+      per: [
+        { name: 'เหล็กกล่องดำ 2"x2"', qty: 2, unit: "เส้น" },
+        { name: 'แผ่นเพลท 4"x4"', qty: 4, unit: "แผ่น" },
+        { name: 'พุ๊กเหล็ก 3/8"', qty: 16, unit: "ตัว" },
+      ],
+    },
+    wall: {
+      label: "ฉากยึดผนัง",
+      per: [
+        { name: "เหล็กฉาก 40x40 มม. หนา 4 มม.", qty: 1, unit: "เส้น" },
+        { name: 'แผ่นเพลท 4"x4"', qty: 2, unit: "แผ่น" },
+        { name: 'พุ๊กเหล็ก 3/8"', qty: 8, unit: "ตัว" },
+      ],
+    },
+  };
+  // ของใช้ร่วมทั้งงาน — ถอดครั้งเดียวเมื่อมีงานโครงสร้างรองรับอย่างน้อย 1 จุด
+  const SUPPORT_SHARED = [
+    { name: "สีกันสนิม (แดง) 1/4 แกลลอน", qty: 1, unit: "กระป๋อง" },
+    { name: "ลวดเชื่อมไฟฟ้า 2.6 มม.", qty: 1, unit: "กล่อง" },
+    { name: 'ใบตัดเหล็ก 4"', qty: 3, unit: "ใบ" },
+  ];
+
+  /* ── ค่าแรงติดตั้ง ── แยกเป็นรายการงาน · ปริมาณดึงจากผลถอดวัสดุให้อัตโนมัติ (auto)
+     ราคาเป็น 0 ทั้งหมดตอนเริ่ม — ต้องกรอกเรตของบริษัทเอง ระบบไม่เดาให้ */
+  const LABOR_PRESET = [
+    { name: "ค่าแรงติดตั้งแผงโซลาร์ + โครงราง", unit: "แผง", auto: "panels" },
+    { name: "ค่าแรงติดตั้งอินเวอร์เตอร์", unit: "ตัว", auto: "inv" },
+    { name: "ค่าแรงติดตั้งตู้ Combiner / MDB", unit: "ตู้", auto: "board" },
+    { name: "ค่าแรงเดินสาย DC (PV1-F)", unit: "ม.", auto: "dcLen" },
+    { name: "ค่าแรงเดินสาย AC", unit: "ม.", auto: "acLen" },
+    { name: "ค่าแรงเดินท่อร้อยสาย / รางไฟ", unit: "ม.", auto: "wayLen" },
+    { name: "ค่าแรงงานโครงสร้างบนหลังคา (บันได/ทางเดิน/ราวกันตก)", unit: "จุด", auto: "struct" },
+    { name: "ค่าแรงงานระบบกราวด์", unit: "งาน", auto: "one" },
+    { name: "ทดสอบระบบ & Commissioning", unit: "งาน", auto: "one" },
+    { name: "ขนส่ง · เครน · นั่งร้าน", unit: "งาน", auto: "one" },
+  ];
+  /* ── ค่าขออนุญาต & เอกสาร ── ค่าธรรมเนียมจริงเปลี่ยนตามพื้นที่/ขนาดระบบ จึงเว้นราคาไว้ให้กรอก */
+  const PERMIT_PRESET = [
+    { name: "ค่าตรวจสอบระบบ — การไฟฟ้า (PEA/MEA)", unit: "งาน" },
+    { name: "ค่าเปลี่ยนมิเตอร์ / มิเตอร์ TOU", unit: "ชุด" },
+    { name: "ค่าเชื่อมต่อระบบขนานไฟฟ้า", unit: "งาน" },
+    { name: "ค่าจดแจ้งยกเว้นใบอนุญาต (กกพ.)", unit: "งาน" },
+    { name: "ใบอนุญาตผลิตไฟฟ้า (กกพ.)", unit: "ฉบับ" },
+    { name: "ค่าวิศวกรไฟฟ้าเซ็นรับรองแบบ", unit: "งาน" },
+    { name: "ค่าวิศวกรโยธาเซ็นรับรองโครงสร้าง", unit: "งาน" },
+    { name: "ค่าเขียนแบบ As-built", unit: "ชุด" },
+    { name: "ค่าขออนุญาตดัดแปลงอาคาร (อ.1)", unit: "งาน" },
+  ];
+  const G_TRAY = "รางไฟ (WIREWAY / TRAY)";
+  const G_SUPPORT = "โครงสร้างรองรับอุปกรณ์";
+  const G_LABOR = "ค่าแรงติดตั้ง";
+  const G_PERMIT = "ค่าขออนุญาต & เอกสาร";
+  const SERVICE_GROUPS = [G_LABOR, G_PERMIT];   // หมวดที่ราคาอยู่ในบรรทัดเอง ไม่ดึงจากคลัง
+
   // ── ACCESSORIES มาตรฐาน — ถอดให้ทุกงานอัตโนมัติ + เทปพันสายไฟตามจำนวนเฟส ──
   const ACC_STD = [
     "ลวดอลูมิเนียมกลม ขนาด 4 มม. x 10 เมตร",
@@ -568,6 +674,13 @@
         .filter((c) => !((c.name === "COMBINER-BAT." && !job.battery) || (c.name === "COMBINER-BACKUP" && !job.backup)))
         .map((c) => Object.assign({}, c)),
       conduit: { imc: [], upvc: [], pullbox: [], flex: {}, upFlex: {} },
+      // รางไฟ — way = Wireway เหล็กมีฝา · tray = Cable Tray บันได · extra = ข้องอ/ข้อต่อพิเศษที่กรอกเอง
+      tray: { way: [], tray: [], spare: 10, extra: [] },
+      // โครงสร้างรองรับอุปกรณ์ — 0 = ไม่ถอด · kind: floor(โครงตั้งพื้น) / wall(ฉากยึดผนัง)
+      support: { inv: 0, invKind: "floor", mdb: 0, mdbKind: "floor", spare: 10, extra: [] },
+      // ค่าแรง / ค่าขออนุญาต — null = ยังไม่เคยตั้งค่า ใช้รายการตั้งต้น (ราคา 0 รอกรอก)
+      labor: null,
+      permit: null,
       conduitSpare: { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10, upStraight: 10, upClamp: 10, upConnector: 10 },
       // งานเพิ่มเติม (Input) — โครงสร้างบนหลังคา ถอดวัสดุตามสูตร (ว่าง = ไม่ใช้/ไม่ถอด)
       // งานเพิ่มเติม (Input) — โครงสร้างบนหลังคา ถอดวัสดุตามสูตร (ว่าง = ไม่ใช้/ไม่ถอด)
@@ -905,6 +1018,39 @@
 
     if (race.length) groups.push({ group: "RACE WAY", items: race });
 
+    // ── รางไฟ (WIREWAY / CABLE TRAY) ──
+    const tw = b.tray || {};
+    const waySpare = tw.spare != null ? +tw.spare : 10;
+    const wayMap = aggBy(tw.way, "length");
+    const trayMap = aggBy(tw.tray, "length");
+    let wayTotalLen = 0;
+    const wayRows = [];
+    Object.keys(wayMap).forEach((nm) => { wayTotalLen += wayMap[nm]; wayItems(nm, wayMap[nm], waySpare, false).forEach((x) => wayRows.push(x)); });
+    Object.keys(trayMap).forEach((nm) => { wayTotalLen += trayMap[nm]; wayItems(nm, trayMap[nm], waySpare, true).forEach((x) => wayRows.push(x)); });
+    (tw.extra || []).filter((x) => (x.name || "").trim() && +x.qty > 0)
+      .forEach((x) => wayRows.push({ name: x.name.trim(), qty: +x.qty, unit: x.unit || "" }));
+    // ชื่อซ้ำ (เช่น พุ๊กเหล็ก ที่มาจากหลายขนาด) รวมเป็นบรรทัดเดียว
+    if (wayRows.length) groups.push({ group: G_TRAY, items: mergeItems(wayRows) });
+
+    // ── โครงสร้างรองรับอุปกรณ์ (Inverter / ตู้ MDB) ──
+    const sup = b.support || {};
+    const supSpare = sup.spare != null ? +sup.spare : 10;
+    const nInvSup = Math.max(0, Math.round(+sup.inv || 0));
+    const nMdbSup = Math.max(0, Math.round(+sup.mdb || 0));
+    if (nInvSup > 0 || nMdbSup > 0) {
+      const supRows = [];
+      const addKind = (n, kindKey) => {
+        const K = SUPPORT_KINDS[kindKey] || SUPPORT_KINDS.floor;
+        K.per.forEach((x) => supRows.push({ name: x.name, qty: Math.ceil(x.qty * n * (1 + supSpare / 100)), unit: x.unit }));
+      };
+      if (nInvSup > 0) addKind(nInvSup, sup.invKind);
+      if (nMdbSup > 0) addKind(nMdbSup, sup.mdbKind);
+      SUPPORT_SHARED.forEach((x) => supRows.push(Object.assign({}, x)));
+      (sup.extra || []).filter((x) => (x.name || "").trim() && +x.qty > 0)
+        .forEach((x) => supRows.push({ name: x.name.trim(), qty: +x.qty, unit: x.unit || "" }));
+      groups.push({ group: G_SUPPORT, items: mergeItems(supRows) });
+    }
+
     // GROUNDING (ระบบกราวด์) — ตามขนาดติดตั้ง (kW); ไซต์ใหญ่ตั้งแต่ 30 kW เพิ่มอุปกรณ์
     if (panelCount > 0) {
       const big = kw >= 30;
@@ -940,7 +1086,39 @@
     );
     if (acc.length) groups.push({ group: "ACCESSORIES", items: acc });
 
-    return { groups, meta: { panelCount, kw, rowsSum, invCount, invAuto, plan, battCount, valid: rowsSum === panelCount } };
+    /* ── ค่าแรง & ค่าขออนุญาต ──
+       ปริมาณของค่าแรงดึงจากผลถอดวัสดุด้านบน (auto) — ราคาอยู่ในบรรทัดเอง ไม่ดึงจากคลังวัสดุ
+       บรรทัดที่ราคา 0 ยังแสดงในตารางให้เห็นว่ายังไม่ได้ตั้งราคา แต่ไม่บวกเข้ายอดรวม */
+    let dcLen = 0, acLen = 0;
+    Object.keys(cableAgg).forEach((t) => { if (/PV1-F|PV CABLE/i.test(t)) dcLen += cableAgg[t]; else acLen += cableAgg[t]; });
+    const upvcTotalLen = Object.keys(upvcMap).reduce((s, k) => s + upvcMap[k], 0);
+    const st0 = b.struct || {};
+    const structPts = (st0.ladder || []).length + (st0.walkway || []).length + (st0.guardrail || []).length;
+    const AUTO = {
+      panels: panelCount,
+      inv: invCount,
+      board: (combItems && combItems.length ? 1 : 0) + (b.hwExtraPanel ? 1 : 0),
+      dcLen: Math.round(dcLen),
+      acLen: Math.round(acLen),
+      wayLen: Math.round(imcTotalLen + upvcTotalLen + wayTotalLen),
+      struct: structPts,
+      one: 1,
+    };
+    const svcRows = (rows, preset) => (rows == null ? preset.map((p) => Object.assign({}, p, { price: 0 })) : rows)
+      .filter((r) => r && (r.name || "").trim())
+      .map((r) => ({
+        name: String(r.name).trim(),
+        qty: r.auto && AUTO[r.auto] != null ? AUTO[r.auto] : Math.max(0, +r.qty || 0),
+        unit: r.unit || "",
+        price: Math.max(0, +r.price || 0),
+        auto: r.auto || "",
+      }));
+    const labor = svcRows(b.labor, LABOR_PRESET);
+    const permit = svcRows(b.permit, PERMIT_PRESET);
+    if (labor.length) groups.push({ group: G_LABOR, items: labor });
+    if (permit.length) groups.push({ group: G_PERMIT, items: permit });
+
+    return { groups, meta: { panelCount, kw, rowsSum, invCount, invAuto, plan, battCount, auto: AUTO, valid: rowsSum === panelCount } };
   }
 
   // ── ราคา/ต้นทุน ──────────────────────────────────────────
@@ -1004,6 +1182,22 @@
       add("RACE WAY", "ท่ออ่อนขาว uPVC " + suf, "box");
     });
     PULLBOX_SIZES.forEach((s) => add("RACE WAY", s, "pcs"));
+    // รางไฟ — ตัวราง/ข้อต่อ/ขาแขวน แยกตามขนาด (พุ๊กเหล็กใช้ร่วมกับงานโครงสร้าง)
+    WAY_SIZES.forEach((nm) => {
+      const sz = traySuffix(nm);
+      add(G_TRAY, nm + " (" + WAY_PIPE_LEN.toFixed(1) + "m/ท่อน)", "ท่อน");
+      add(G_TRAY, "ชุดข้อต่อราง Wireway " + sz, "ชุด");
+      add(G_TRAY, "ขาแขวนราง Wireway " + sz, "ชุด");
+    });
+    TRAY_SIZES.forEach((nm) => {
+      const sz = traySuffix(nm);
+      add(G_TRAY, nm + " (" + TRAY_PIPE_LEN.toFixed(1) + "m/ท่อน)", "ท่อน");
+      add(G_TRAY, "ชุดข้อต่อราง Cable Tray " + sz, "ชุด");
+      add(G_TRAY, "ขาแขวนราง Cable Tray " + sz, "ชุด");
+    });
+    add(G_TRAY, "สกรู+น็อต M6 ประกอบราง", "ชุด");
+    // โครงสร้างรองรับอุปกรณ์ (เหล็กกล่อง/เหล็กฉาก/เพลท/พุ๊ก ใช้ชื่อร่วมกับงานโครงสร้างบนหลังคา)
+    SUPPORT_SHARED.forEach((x) => add(G_SUPPORT, x.name, x.unit));
     add("GROUNDING", 'แท่งกราวด์ชุบทองแดง 5/8" ยาว 2.4 m', "pcs");
     add("GROUNDING", 'อุปกรณ์เชื่อมสายกราวด์เทอร์โมเวล 2 ทาง 16 sq.mm Rod 5/8"', "pcs");
     add("GROUNDING", 'อุปกรณ์เชื่อมสายกราวด์เทอร์โมเวล 3 ทาง 16 sq.mm Rod 5/8"', "pcs");
@@ -1032,17 +1226,32 @@
   function applyPrices(result, priceMap) {
     priceMap = priceMap || {};
     let grand = 0;
-    const groups = (result.groups || []).map((g) => ({
-      group: g.group,
-      items: g.items.map((it) => {
-        const rec = priceMap[matKey(it.name)] || {};
-        const price = +rec.price || 0;
+    /* ต้นทุนต่อ kW ใช้ "ขนาดติดตั้ง DC" เป็นตัวหาร — เทียบข้ามงานได้ตรง ๆ ว่าหมวดไหนแพงผิดปกติ */
+    const kw = +((result.meta || {}).kw) || 0;
+    const perKw = (v) => (kw > 0 ? Math.round((v / kw) * 100) / 100 : 0);
+    const groups = (result.groups || []).map((g) => {
+      const service = SERVICE_GROUPS.indexOf(g.group) >= 0;
+      let sub = 0;
+      const items = g.items.map((it) => {
+        // หมวดค่าแรง/ค่าขออนุญาต ราคาอยู่ในบรรทัดเอง · หมวดวัสดุดึงราคาจากคลัง
+        const rec = service ? {} : (priceMap[matKey(it.name)] || {});
+        const price = service ? (+it.price || 0) : (+rec.price || 0);
         const total = price * (it.qty || 0);
-        grand += total;
-        return Object.assign({}, it, { code: rec.code || "", price: price, total: total });
-      }),
-    }));
-    return { groups: groups, grandTotal: grand };
+        sub += total;
+        return Object.assign({}, it, { code: rec.code || "", price: price, total: total, perKw: perKw(total) });
+      });
+      grand += sub;
+      return { group: g.group, service: service, items: items, subtotal: sub, perKw: perKw(sub) };
+    });
+    const sumOf = (keys) => groups.filter((g) => keys.indexOf(g.group) >= 0).reduce((s, g) => s + g.subtotal, 0);
+    const laborTotal = sumOf([G_LABOR]), permitTotal = sumOf([G_PERMIT]);
+    const matTotal = grand - laborTotal - permitTotal;
+    return {
+      groups: groups, grandTotal: grand, kw: kw, perKw: perKw(grand),
+      matTotal: matTotal, matPerKw: perKw(matTotal),
+      laborTotal: laborTotal, laborPerKw: perKw(laborTotal),
+      permitTotal: permitTotal, permitPerKw: perKw(permitTotal),
+    };
   }
 
   // ── ลงทะเบียนสเปคแผงจากคลังสินค้า: rebuild ทั้งรายการให้ "ตรงกับคลัง" ──
@@ -1103,5 +1312,7 @@
     out.forEach((x) => INVERTERS.push(x));
   }
 
-  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, catalog, applyPrices, setPanels, setInverters };
+  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, catalog, applyPrices, setPanels, setInverters,
+    WAY_SIZES, TRAY_SIZES, WAY_PIPE_LEN, TRAY_PIPE_LEN, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
+    G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, SERVICE_GROUPS, mergeItems };
 })();
