@@ -764,7 +764,18 @@ function AmpacityEditor({ ampStore }) {
   const [methodKey, setMethodKey] = React.useState((methods[0] && methods[0].key) || "conduitAir");
   const colKey = (g, n, c) => g + "|" + n + "|" + c;
   const ovVal = (g, n, c, sz) => { try { const v = ov[insKey][methodKey][colKey(g, n, c)][sz]; return v > 0 ? v : undefined; } catch (e) { return undefined; } };
-  const defVal = (g, n, c, sz) => { try { return def[insKey][methodKey][colKey(g, n, c)][sz]; } catch (e) { return undefined; } };
+  /* ค่าเริ่มต้นของช่อง — วิธีที่ยังไม่มีตารางของตัวเอง ให้โชว์ค่าที่ "ยืม" มาจากวิธีฐาน
+     (เช่น Wireway ยืมของเดินในท่อในอากาศ) เพราะเครื่องคำนวณก็ใช้ค่านั้นจริง ๆ ตอนเลือกขนาดสาย
+     ถ้าไม่โชว์ ตารางจะขึ้น "—" ทั้งหน้า ทั้งที่หน้า BOQ คำนวณออกมาได้ปกติ */
+  const baseKey = (BOQ.WIRE_METHOD_BASE || {})[methodKey];
+  const rawDef = (m, g, n, c, sz) => { try { return def[insKey][m][colKey(g, n, c)][sz]; } catch (e) { return undefined; } };
+  const defVal = (g, n, c, sz) => {
+    const own = rawDef(methodKey, g, n, c, sz);
+    if (own != null) return own;
+    return baseKey ? rawDef(baseKey, g, n, c, sz) : undefined;
+  };
+  const borrowed = baseKey && rawDef(methodKey, "g1", "2", "single", sizes[0]) == null;
+  const methodTh = (k) => ((methods.find((m) => m.key === k) || {}).th || k);
   const editedCount = React.useMemo(() => {
     let n = 0; Object.keys(ov).forEach((i) => Object.keys(ov[i] || {}).forEach((m) => Object.keys(ov[i][m] || {}).forEach((col) => Object.keys(ov[i][m][col] || {}).forEach((s) => { if (+ov[i][m][col][s] > 0) n++; })))); return n;
   }, [ov]);
@@ -780,9 +791,29 @@ function AmpacityEditor({ ampStore }) {
         <Icon name="alert" size={16} color="#B45309" style={{ flexShrink: 0, marginTop: 1 }} />
         <div style={{ fontSize: 12, color: "#92500C", lineHeight: 1.55 }}>
           ตารางพิกัดกระแส <strong>มาตรฐาน วสท.</strong> (ตัวนำทองแดง 0.6/1 kV) — แยกตาม <strong>กลุ่มการติดตั้ง × จำนวนตัวนำมีกระแส × แกนเดียว/หลายแกน</strong>
-          <br />ปัจจุบันมีตารางจริง: <strong>PVC · เดินในท่อร้อยสายในอากาศ</strong> · ฉนวน/วิธีอื่น (เช่น XLPE) <strong>กรอกค่าได้ที่นี่</strong> · ค่าที่กรอกใช้กับทุกงาน · เว้นว่าง = ใช้ค่าเริ่มต้น (ตัวเลขจาง)
+          <br />ปัจจุบันมีตารางจริง: <strong>PVC · เดินในท่อร้อยสายในอากาศ</strong> · ฉนวน/วิธีอื่น (เช่น XLPE, รางเคเบิลบันได) <strong>กรอกค่าได้ที่นี่</strong> · ค่าที่กรอกใช้กับทุกงาน · เว้นว่าง = ใช้ค่าเริ่มต้น (ตัวเลขจาง)
         </div>
       </div>
+
+      {/* บอกที่มาของตัวเลขจางในตาราง — ยืมมาจากวิธีอื่น หรือยังไม่มีเลย */}
+      {borrowed ? (
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "11px 14px", background: "rgba(34,163,91,.07)", border: "1px solid #BBE7CD", borderRadius: 12, marginBottom: 14 }}>
+          <Icon name="check" size={16} color="#22A35B" style={{ flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 12, color: "#1d854b", lineHeight: 1.55 }}>
+            ตัวเลขจางในตารางนี้ <strong>ยืมมาจาก "{methodTh(baseKey)}"</strong> — รางปิดมีฝาเป็นช่องเดินสายปิด ระบายความร้อนแบบเดียวกับเดินในท่อ
+            เครื่องคำนวณ BOQ ใช้ค่าชุดนี้อยู่จริง · กรอกทับได้ถ้ามีตารางเฉพาะของรางรุ่นที่ใช้
+          </div>
+        </div>
+      ) : methodKey !== "conduitAir" && (
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "11px 14px", background: "#FEF2F2", border: "1px solid #FBD3D3", borderRadius: 12, marginBottom: 14 }}>
+          <Icon name="alert" size={16} color="#EF4444" style={{ flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 12, color: "#B91C1C", lineHeight: 1.55 }}>
+            <strong>ยังไม่มีตารางของวิธีนี้</strong> — ช่อง "สายแนะนำ" ในหน้า BOQ จะขึ้น "—" จนกว่าจะกรอก
+            <br />รางเคเบิลแบบระบายอากาศ สายอยู่ในอากาศเกือบอิสระจึง <strong>รับกระแสได้มากกว่า</strong> เดินในท่อ — เอาตัวเลขของวิธีอื่นมาใส่แทนไม่ได้
+            <br />แนวทาง วสท.: พิกัดในรางเคเบิล ≈ <strong>65%</strong> ของพิกัดสายเดี่ยวเดินในอากาศ (สาย &lt; 300 mm²) และ <strong>75%</strong> สำหรับ 300 mm² ขึ้นไป — ต้องมีตารางสายเดี่ยวในอากาศเป็นฐานก่อน
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: 7, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
         {classes.map((c) => (
