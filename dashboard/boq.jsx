@@ -203,8 +203,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const calcMethod = wcalc.method || "conduitAir";
   const calcGroup = wcalc.group || "g1";
   const calcNCond = wcalc.ncond ? String(wcalc.ncond) : (wcPhase === 3 ? "3" : "2");   // ว่าง = ตามเฟส
-  // เลือกขนาดสายให้รับ กระแส×1.25 (โหลดต่อเนื่อง) — ตามพิกัด วสท. (ฉนวน+วิธี+กลุ่ม+จำนวนตัวนำ · แกนเดียว)
-  const pickWire = (amp) => window.BOQ.pickWireSize((+amp || 0) * 1.25, calcIns, { method: calcMethod, group: calcGroup, ncond: calcNCond, core: "single" });
+  const calcDerate = +wcalc.derate > 0 ? +wcalc.derate : 1;   // ตัวคูณลดกระแส (หลายวงจรในช่อง/รางเดียวกัน)
+  // เลือกขนาดสายให้รับ กระแส×1.25 (โหลดต่อเนื่อง) — ตามพิกัด วสท. (ฉนวน+วิธี+กลุ่ม+จำนวนตัวนำ · แกนเดียว) แล้วหักตัวคูณลดกระแส
+  const pickWire = (amp) => window.BOQ.pickWireSize((+amp || 0) * 1.25, calcIns, { method: calcMethod, group: calcGroup, ncond: calcNCond, core: "single", derate: calcDerate });
+  // ตารางพิกัดของวิธีที่เลือกมีจริงไหม / ยืมมาจากวิธีอื่นไหม — ไว้บอกผู้ใช้ตรง ๆ
+  const ampSrc = window.BOQ.ampTableFor
+    ? window.BOQ.ampTableFor(calcIns, calcMethod, window.BOQ.ampColKey(calcGroup, calcNCond, "single"))
+    : { tbl: {}, borrowed: false };
+  const ampSrcTh = (k) => ((window.BOQ.WIRE_METHODS || []).find((m) => m.key === k) || {}).th || k;
   // กำลังไมโครต่อ 1 ตัว (จากรุ่นที่เลือก: 2:1 = 1250W, 1:1 = 500W) — ใช้คิดสาย MICRO-MICRO
   const microUnit = (window.BOQ.MICRO || []).find((m) => m.ratio === b.microRatio) || (window.BOQ.MICRO || [])[1] || {};
   const microW = parseFloat((String(microUnit.model || "").match(/(\d+(?:\.\d+)?)\s*watt/i) || [])[1]) || 1250;
@@ -288,6 +294,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const TRAY_DEF = { way: [], tray: [], spare: 10, extra: [] };
   const tw = Object.assign({}, TRAY_DEF, b.tray);
   const trayLen = Math.round(((tw.way || []).concat(tw.tray || [])).reduce((s, x) => s + (+x.length || 0), 0));
+  /* ตัวคูณลดกระแสที่แย่ที่สุดจากรางที่กรอกสายไว้ — ส่งไปเป็นค่าแนะนำให้ตารางคำนวณขนาดสายไฟ */
+  const trayWorst = [["way", window.BOQ.WAY_SIZES], ["tray", window.BOQ.TRAY_SIZES]].reduce((f, [k, sizes]) =>
+    (tw[k] || []).reduce((g, x) => ((x.cables || []).length
+      ? Math.min(g, window.BOQ.trayCheck(x.size, x.cables, k === "tray", sizes).derate) : g), f), 1);
   // นับรางที่กรอกสายไว้แล้วแต่ยังไม่ผ่านเกณฑ์ % เติมเต็ม / วางชั้นเดียว
   const trayBad = [["way", window.BOQ.WAY_SIZES], ["tray", window.BOQ.TRAY_SIZES]].reduce((n, [k, sizes]) =>
     n + (tw[k] || []).filter((x) => (x.cables || []).length && (() => { const c = window.BOQ.trayCheck(x.size, x.cables, k === "tray", sizes); return !(c.ok && c.widthOk); })()).length, 0);
@@ -1390,7 +1400,32 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     <Dropdown value={calcNCond} onChange={(v) => setWcalc("ncond", v)} options={ncondOptions} />
                   </label>
                 </div>
-                <div style={{ fontSize: 10, color: "var(--text-3)", marginTop: 6 }}>* "สายแนะนำ" คิดบนพื้นฐานสายแกนเดียว (1C) — สายในรายการด้านบนอ่านแกนจากชื่อจริง</div>
+                {/* ตัวคูณลดกระแส — หลายวงจรอยู่ในท่อ/รางเดียวกัน ระบายความร้อนแย่ลง พิกัดที่ใช้ได้จริงจึงต่ำกว่าตาราง */}
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "140px 1fr", gap: 10, marginTop: 10, alignItems: "center" }}>
+                  <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>ตัวคูณลดกระแส</span>
+                    <input type="number" min={0.1} max={1} step={0.05} value={wcalc.derate != null && wcalc.derate !== "" ? wcalc.derate : 1}
+                      onChange={(e) => setWcalc("derate", e.target.value)}
+                      style={Object.assign({}, numStyle, { width: "100%", height: 36 })} />
+                  </label>
+                  <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.5, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <span>1.00 = วงจรเดียว · หลายวงจรในท่อ/รางเดียวกันให้ลดลง (4–6 ตัวนำ 0.80 · 7–9 0.70 · 10–20 0.50)</span>
+                    {trayWorst < 1 && (
+                      <button type="button" onClick={() => setWcalc("derate", trayWorst)}
+                        style={{ border: 0, background: "var(--primary-soft)", color: "var(--primary-dark)", borderRadius: 8, padding: "5px 10px", fontWeight: 800, fontSize: 11, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+                        title="ใช้ตัวคูณที่แย่ที่สุดจากหัวข้อรางไฟ">ใช้ ×{trayWorst.toFixed(2)} จากรางไฟ</button>
+                    )}
+                  </div>
+                </div>
+                {calcMethod !== "conduitAir" && (
+                  <div className="bq-note" style={{ background: ampSrc.borrowed ? "rgba(34,163,91,.07)" : "#FFFBEB", border: "1px solid " + (ampSrc.borrowed ? "#BBE7CD" : "#FDE68A"), color: ampSrc.borrowed ? "#1d854b" : "#92400E" }}>
+                    <Icon name={ampSrc.borrowed ? "check" : "alert"} size={15} color={ampSrc.borrowed ? "#22A35B" : "#F59E0B"} />
+                    <span>{ampSrc.borrowed
+                      ? "รางปิดมีฝาระบายความร้อนเหมือนเดินในท่อ จึงใช้ตารางพิกัดของ \"" + ampSrcTh(ampSrc.from) + "\" — อย่าลืมใส่ตัวคูณลดกระแสตามจำนวนวงจรในราง"
+                      : "ยังไม่มีตารางพิกัดกระแสของวิธีนี้ในระบบ ช่อง \"สายแนะนำ\" จะขึ้น \"—\" — เพิ่มตารางได้ที่หน้าคลัง › พิกัดกระแสสายไฟ (รางแบบระบายอากาศรับกระแสได้มากกว่าเดินในท่อ ใช้แทนกันไม่ได้)"}</span>
+                  </div>
+                )}
+                <div style={{ fontSize: 10, color: "var(--text-3)", marginTop: 6 }}>* "สายแนะนำ" คิดบนพื้นฐานสายแกนเดียว (1C) — สายในรายการด้านบนอ่านแกนจากชื่อจริง{calcDerate < 1 ? " · หักตัวคูณลดกระแส ×" + calcDerate.toFixed(2) + " แล้ว" : ""}</div>
               </div>
               {isMobile ? (
                 /* มือถือ: แต่ละชุดคำนวณเป็นการ์ด แสดงค่าครบในใบเดียว ไม่ต้องเลื่อนแนวนอน */

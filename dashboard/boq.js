@@ -269,9 +269,27 @@
   //   · กลุ่ม + จำนวนตัวนำมีกระแส (2/3) — ผู้ใช้เลือกเองต่อสายในหน้า BOQ
   // ปัจจุบันมีตารางจริง: PVC · เดินในท่อร้อยสายในอากาศ (วสท.) — ฉนวน/วิธีอื่นรอเติมตารางในหน้าคลัง
   const WIRE_SIZES = [1, 1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300, 400, 500];
+  /* วิธีเดินสาย — วิธีที่ยังไม่มีตารางพิกัดของตัวเอง จะยืมตารางของวิธีที่ "สภาพระบายความร้อนเท่ากัน" (base)
+     · รางเดินสายปิดมีฝา (Wireway) = ช่องเดินสายปิด ระบายความร้อนเหมือนเดินในท่อ → ยืมตารางท่อในอากาศได้
+     · รางเคเบิลบันได/มีรูระบาย = สายอยู่ในอากาศเกือบอิสระ รับกระแสได้มากกว่า → คนละตาราง ต้องกรอกเองที่หน้าคลัง
+     ทุกวิธีให้ใส่ "ตัวคูณลดกระแส" เพิ่มได้เมื่อมีหลายวงจรอยู่ในช่องเดียวกัน */
   const WIRE_METHODS = [
     { key: "conduitAir", th: "เดินในท่อร้อยสายในอากาศ" },
+    { key: "wireway", th: "เดินในรางเดินสายปิดมีฝา (Wireway)", base: "conduitAir" },
+    { key: "trayPerf", th: "เดินในรางเคเบิลบันได / มีรูระบายอากาศ" },
   ];
+  const WIRE_METHOD_BASE = {};
+  WIRE_METHODS.forEach((m) => { if (m.base) WIRE_METHOD_BASE[m.key] = m.base; });
+  // ตารางพิกัดที่ใช้จริงของวิธีนั้น — ไม่มีของตัวเองก็ยืมของ base · ไม่มีทั้งคู่ = {}
+  function ampTableFor(insClass, method, col) {
+    const ins = AMPACITY[insClass || "pvc"] || {};
+    const own = (ins[method || "conduitAir"] || {})[col];
+    if (own && Object.keys(own).length) return { tbl: own, borrowed: false };
+    const base = WIRE_METHOD_BASE[method];
+    const bt = base ? (ins[base] || {})[col] : null;
+    if (bt && Object.keys(bt).length) return { tbl: bt, borrowed: true, from: base };
+    return { tbl: {}, borrowed: false };
+  }
   const INS_CLASSES = [
     { key: "pvc",  th: "PVC 70°C (THW/VCT)" },
     { key: "xlpe", th: "XLPE 90°C (CV)" },
@@ -354,15 +372,22 @@
     opts = opts || {};
     const sz = cableSizeNum(type); if (sz == null) return null;
     const col = ampColKey(opts.group || "g1", String(opts.ncond || 2), cableCoreType(type));
-    const tbl = ((AMPACITY[cableInsClass(type)] || {})[opts.method || "conduitAir"] || {})[col] || {};
-    return tbl[sz] != null ? tbl[sz] : null;
+    const tbl = ampTableFor(cableInsClass(type), opts.method, col).tbl;
+    const base = tbl[sz];
+    if (base == null) return null;
+    // ตัวคูณลดกระแส (หลายวงจรในช่องเดียวกัน) — 1 = ไม่ลด
+    const d = +opts.derate > 0 ? +opts.derate : 1;
+    return Math.round(base * d * 10) / 10;
   }
   // เลือกขนาดสายเล็กสุดที่รับกระแส "ที่ต้องการ" ได้ (ผู้เรียกคูณ 1.25 มาก่อนแล้ว) — opts = { method, group, ncond, core }
   function pickWireSize(needAmp, insClass, opts) {
     opts = opts || {};
     const col = ampColKey(opts.group || "g1", String(opts.ncond || 2), opts.core || "single");
-    const tbl = ((AMPACITY[insClass || "pvc"] || {})[opts.method || "conduitAir"] || {})[col] || {};
-    for (let i = 0; i < WIRE_SIZES.length; i++) { const sz = WIRE_SIZES[i]; if ((tbl[sz] || 0) >= needAmp) return sz + " mm²"; }
+    const tbl = ampTableFor(insClass, opts.method, col).tbl;
+    /* ตัวคูณลดกระแส = สายในช่องเดียวกันหลายวงจรจะระบายความร้อนได้แย่ลง
+       พิกัดที่ใช้ได้จริง = พิกัดตาราง × ตัวคูณ · จึงเทียบกับกระแสที่ต้องการโดยตรง */
+    const d = +opts.derate > 0 ? +opts.derate : 1;
+    for (let i = 0; i < WIRE_SIZES.length; i++) { const sz = WIRE_SIZES[i]; if ((tbl[sz] || 0) * d >= needAmp) return sz + " mm²"; }
     const sizesWithData = WIRE_SIZES.filter((s) => tbl[s] != null);
     if (!sizesWithData.length) return "—";   // ยังไม่มีตารางพิกัดสำหรับเงื่อนไขนี้
     return "มากกว่า " + sizesWithData[sizesWithData.length - 1] + " mm²";
@@ -1385,7 +1410,7 @@
     out.forEach((x) => INVERTERS.push(x));
   }
 
-  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, catalog, applyPrices, setPanels, setInverters,
+  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, catalog, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, WAY_PIPE_LEN, TRAY_PIPE_LEN, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
     TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,
     G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, SERVICE_GROUPS, mergeItems };
