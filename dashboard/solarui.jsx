@@ -3555,7 +3555,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
             </div>
             <div className="su-sheet-ft">
               <button className="p3-b sm" onClick={() => repPreset(null)} title="เอาทุกหัวข้อ">ทั้งเล่ม</button>
-              <button className="p3-b sm" onClick={() => repPreset(["cover", "summary", "prod", "shade", "life", "pxx",
+              <button className="p3-b sm" onClick={() => repPreset(["cover", "summary", "prod", "shade", "pxx",
                 "env", "load", "loadDay", "loadMon", "battSpec", "roi"])}
                 title="หน้าปก · สรุป · ผลผลิต · การใช้ไฟ · คืนทุน — ตัดรายละเอียดทางเทคนิคออก">ฉบับลูกค้า</button>
               <button className="p3-b sm" onClick={() => repPreset(["equip", "wiring", "layout", "iv", "ivDay", "ivYear", "ivAll", "ivMeas"])}
