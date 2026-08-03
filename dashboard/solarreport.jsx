@@ -305,6 +305,199 @@ function rpIvAll(curves, stcRef) {
     "</svg>";
 }
 
+/* ── แผนภาพค่าสูญเสีย (Sankey) ──
+   ลำน้ำสีเขียวไหลลง ความกว้าง = พลังงานที่ยังเหลือ · สายที่แยกออกข้างทาง = ที่เสียไปในด่านนั้น
+   วาดแบบเดียวกับบนหน้าจอเป๊ะ ๆ ลูกค้าเปิดรายงานแล้วจะเห็นภาพเดียวกับที่ช่างเห็น */
+function rpLossFlow(chain) {
+  const rows = (chain || []).filter(Boolean);
+  if (!rows.length) return "";
+  const top = rows.reduce((a, r) => Math.max(a, r.kwh || 0), 1);
+  const W = 700, X0 = 30, TW = 148, XL = 262, LX = 274;
+  const HL = 46, HM = 40, TOP = 12;
+  const cut = (s, n) => (s && s.length > n ? s.slice(0, n - 1) + "…" : s || "");
+  const wOf = (v) => Math.max(0, Math.min(1, v / top)) * TW;
+  const seg = [];
+  let prev = rows[0].kwh, y = TOP;
+  rows.forEach((r) => {
+    const h = r.kind === "loss" || r.kind === "gain" ? HL : HM;
+    seg.push({ r: r, y0: y, y1: y + h, wA: wOf(prev), wB: wOf(r.kwh) });
+    prev = r.kwh; y += h;
+  });
+  const last = seg[seg.length - 1], H = last.y1 + 20;
+  const trunk = "M" + X0 + " " + TOP + " L" + (X0 + seg[0].wA).toFixed(1) + " " + TOP + " " +
+    seg.map((s) => {
+      const yc = (s.y0 + s.y1) / 2;
+      return "L" + (X0 + s.wA).toFixed(1) + " " + yc.toFixed(1) +
+        " L" + (X0 + s.wB).toFixed(1) + " " + yc.toFixed(1) +
+        " L" + (X0 + s.wB).toFixed(1) + " " + s.y1.toFixed(1);
+    }).join(" ") +
+    " L" + (X0 + last.wB / 2).toFixed(1) + " " + (last.y1 + 14).toFixed(1) +
+    " L" + X0 + " " + last.y1.toFixed(1) + " Z";
+  return '<svg viewBox="0 0 ' + W + " " + H + '" class="chart">' +
+    '<defs><linearGradient id="rpFlowG" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0%" stop-color="#3ECF84"/><stop offset="55%" stop-color="#22A35B"/><stop offset="100%" stop-color="#0B6B3A"/></linearGradient></defs>' +
+    '<path d="' + trunk + '" fill="url(#rpFlowG)"/>' +
+    seg.map((s) => ((s.r.kind === "loss" || s.r.kind === "gain") && Math.abs(s.wA - s.wB) > 0.2
+      ? '<line x1="' + X0 + '" y1="' + ((s.y0 + s.y1) / 2).toFixed(1) + '" x2="' + (X0 + Math.min(s.wA, s.wB)).toFixed(1) +
+        '" y2="' + ((s.y0 + s.y1) / 2).toFixed(1) + '" stroke="#fff" stroke-width="1" stroke-opacity=".28"/>' : "")).join("") +
+    seg.map((s) => {
+      const R = s.r, yc = (s.y0 + s.y1) / 2;
+      const heavy = R.kind === "loss" && R.pct >= 3, zero = R.kind === "loss" && R.loss <= 0;
+      if (R.kind === "loss" || R.kind === "gain") {
+        const gain = R.kind === "gain";
+        const col = gain ? "#2563EB" : heavy ? "#DC2626" : "#EFA53A";
+        const th = Math.max(3.6, Math.abs(s.wA - s.wB));
+        const inner = X0 + Math.min(s.wA, s.wB);
+        const yA = (yc - th / 2).toFixed(1), yB = (yc + th / 2).toFixed(1);
+        const HEAD = 9, FLARE = 3.4;
+        const ribbon = zero ? "" : '<path d="' + (gain
+          ? "M" + XL + " " + yA + " L" + (inner + HEAD).toFixed(1) + " " + yA +
+            " L" + (inner + HEAD).toFixed(1) + " " + (yc - th / 2 - FLARE).toFixed(1) + " L" + inner.toFixed(1) + " " + yc.toFixed(1) +
+            " L" + (inner + HEAD).toFixed(1) + " " + (yc + th / 2 + FLARE).toFixed(1) + " L" + (inner + HEAD).toFixed(1) + " " + yB + " L" + XL + " " + yB + " Z"
+          : "M" + inner.toFixed(1) + " " + yA + " L" + (XL - HEAD) + " " + yA +
+            " L" + (XL - HEAD) + " " + (yc - th / 2 - FLARE).toFixed(1) + " L" + XL + " " + yc.toFixed(1) +
+            " L" + (XL - HEAD) + " " + (yc + th / 2 + FLARE).toFixed(1) + " L" + (XL - HEAD) + " " + yB + " L" + inner.toFixed(1) + " " + yB + " Z") +
+          '" fill="' + col + '" fill-opacity="' + (gain ? 0.78 : heavy ? 0.92 : 0.85) + '"/>';
+        return ribbon +
+          (zero ? '<line x1="' + (X0 + s.wA).toFixed(1) + '" y1="' + yc.toFixed(1) + '" x2="' + XL + '" y2="' + yc.toFixed(1) +
+            '" stroke="#D8E0DB" stroke-width="1" stroke-dasharray="2 4"/>' : "") +
+          '<text x="' + LX + '" y="' + (yc - 9).toFixed(1) + '" font-size="10" font-weight="700" fill="' + (zero ? "#8A968F" : "#3A4A43") + '">' + RP_ESC(cut(R.label, 66)) + "</text>" +
+          '<text x="' + LX + '" y="' + (yc + 3).toFixed(1) + '" font-size="9.5" font-weight="800" fill="' +
+          (zero ? "#8A968F" : gain ? "#1D4ED8" : heavy ? "#B91C1C" : "#B45309") + '">' +
+          RP_ESC(gain ? "+" + R.pct + "%  ·  " + rpN(R.gain) + " kWh"
+            : zero ? "ไม่เสียพลังงานในด่านนี้" : "−" + R.pct + "%  ·  " + rpN(R.loss) + " kWh") +
+          (R.unit ? '<tspan fill="#8A968F" font-weight="700">' + RP_ESC("   → " + R.unit) + "</tspan>" : "") + "</text>" +
+          (R.note ? '<text x="' + LX + '" y="' + (yc + 14).toFixed(1) + '" font-size="8.5" font-weight="600" fill="#8A968F">' + RP_ESC(cut(R.note, 70)) + "</text>" : "");
+      }
+      const big = R.kind === "end", first = R.kind === "start";
+      const accent = big ? "#0F7A43" : first ? "#B45309" : "#C9D3CD";
+      return '<line x1="' + X0 + '" y1="' + s.y1.toFixed(1) + '" x2="' + (XL + 4) + '" y2="' + s.y1.toFixed(1) +
+        '" stroke="' + (big ? "#0F7A43" : "#D8E0DB") + '" stroke-width="' + (big ? 1.4 : 1) + '"' +
+        (big ? ' stroke-opacity=".7"' : ' stroke-dasharray="3 4"') + "/>" +
+        '<rect x="' + (LX - 9) + '" y="' + (s.y1 - 32).toFixed(1) + '" width="3" height="30" rx="1.5" fill="' + accent +
+        '" fill-opacity="' + (big || first ? 1 : 0.5) + '"/>' +
+        '<text x="' + LX + '" y="' + (s.y1 - 23).toFixed(1) + '" font-size="10.5" font-weight="800" fill="#16211D">' + RP_ESC(cut(R.label, 60)) + "</text>" +
+        '<text x="' + LX + '" y="' + (s.y1 - 11).toFixed(1) + '" font-size="9.5" font-weight="800" fill="' +
+        (big ? "#0F7A43" : first ? "#B45309" : "#3A4A43") + '">' + RP_ESC(rpN(R.kwh) + " kWh") +
+        (R.unit ? '<tspan fill="#8A968F" font-weight="700">' + RP_ESC("   ·   " + R.unit) + "</tspan>" : "") +
+        (big ? '<tspan fill="#0F7A43" font-weight="800">' + RP_ESC("   ·   PR " + R.pct + "%") + "</tspan>" : "") + "</text>" +
+        (R.note ? '<text x="' + LX + '" y="' + (s.y1 - 1).toFixed(1) + '" font-size="8.5" font-weight="600" fill="#8A968F">' + RP_ESC(cut(R.note, 70)) + "</text>" : "");
+    }).join("") +
+    "</svg>";
+}
+
+/* ── เส้นทางเดินดวงอาทิตย์ + แผนที่เงาบัง ── */
+const RP_ISO = [
+  { at: 0.40, c: "#B91C1C", o: 0.85, lb: "40%+" },
+  { at: 0.20, c: "#DC2626", o: 0.60, lb: "20–40%" },
+  { at: 0.10, c: "#F59E0B", o: 0.62, lb: "10–20%" },
+  { at: 0.05, c: "#F59E0B", o: 0.40, lb: "5–10%" },
+  { at: 0.01, c: "#F59E0B", o: 0.22, lb: "1–5%" },
+];
+function rpSunPath(path, iso) {
+  if (!path || !path.paths || !path.paths.length) return "";
+  const W = 700, H = 350, L = 42, R = 16, T = 16, B = 30;
+  const X = (az) => L + az / 360 * (W - L - R);
+  const Y = (alt) => H - B - Math.max(0, Math.min(90, alt)) / 90 * (H - T - B);
+  const line = (pts) => pts.map((q, k) => (k ? "L" : "M") + X(q.az).toFixed(1) + " " + Y(q.alt).toFixed(1)).join(" ");
+  const cw = iso ? Math.abs(X(iso.azStep) - X(0)) : 0;
+  const ch = iso ? Math.abs(Y(0) - Y(iso.altStep)) : 0;
+  const compass = [[0, "เหนือ"], [45, "ตอ.เฉียงเหนือ"], [90, "ตะวันออก"], [135, "ตอ.เฉียงใต้"], [180, "ใต้"],
+    [225, "ตต.เฉียงใต้"], [270, "ตะวันตก"], [315, "ตต.เฉียงเหนือ"], [360, "เหนือ"]];
+  return '<svg viewBox="0 0 ' + W + " " + H + '" class="chart">' +
+    '<rect x="' + L + '" y="' + T + '" width="' + (W - L - R) + '" height="' + (H - T - B) + '" rx="6" fill="#F6F8F7"/>' +
+    (iso ? iso.cells.map((c) => {
+      const b = RP_ISO.filter((x) => c.f >= x.at)[0];
+      if (!b) return "";
+      return '<rect x="' + (X(c.az) - cw / 2).toFixed(1) + '" y="' + (Y(c.alt) - ch / 2).toFixed(1) +
+        '" width="' + (cw + 0.6).toFixed(1) + '" height="' + (ch + 0.6).toFixed(1) + '" fill="' + b.c + '" opacity="' + b.o + '"/>';
+    }).join("") : "") +
+    Array.from({ length: 7 }).map((_, k) => {
+      const alt = k * 15;
+      return '<line x1="' + L + '" y1="' + Y(alt).toFixed(1) + '" x2="' + (W - R) + '" y2="' + Y(alt).toFixed(1) +
+        '" stroke="#E3E8E6" stroke-width="1"/>' +
+        '<text x="' + (L - 6) + '" y="' + (Y(alt) + 3.4).toFixed(1) + '" text-anchor="end" font-size="8.5" font-weight="700" fill="#8A968F">' + alt + "°</text>";
+    }).join("") +
+    compass.map((c) => (c[0] > 0 && c[0] < 360
+      ? '<line x1="' + X(c[0]).toFixed(1) + '" y1="' + T + '" x2="' + X(c[0]).toFixed(1) + '" y2="' + (H - B) + '" stroke="#EEF1F0" stroke-width="1"/>' : "") +
+      '<text x="' + X(c[0]).toFixed(1) + '" y="' + (H - B + 13) + '" text-anchor="' + (c[0] === 0 ? "start" : c[0] === 360 ? "end" : "middle") +
+      '" font-size="8.5" font-weight="' + (c[0] === 180 ? 800 : 700) + '" fill="' + (c[0] === 180 ? "#3A4A43" : "#8A968F") + '">' + RP_ESC(c[1]) + "</text>").join("") +
+    path.hours.map((hr) => hr.segs.map((sg) => '<path d="' + line(sg) + '" fill="none" stroke="#8A968F" stroke-width="1" stroke-dasharray="2 3" opacity=".55"/>').join("") +
+      '<text x="' + X(hr.pts[0].az).toFixed(1) + '" y="' + (Y(hr.pts[0].alt) - 5).toFixed(1) +
+      '" text-anchor="middle" font-size="8" font-weight="800" fill="#8A968F">' + hr.h + "</text>").join("") +
+    path.paths.map((p, i) => {
+      const main = i === 0 || i === path.paths.length - 1 || i === 3;
+      return p.segs.map((sg) => '<path d="' + line(sg) + '" fill="none" stroke="#B45309" stroke-width="' + (main ? 1.9 : 1.2) +
+        '" opacity="' + (main ? 0.95 : 0.6) + '" stroke-linecap="round"/>').join("");
+    }).join("") +
+    [path.paths[0], path.paths[path.paths.length - 1]].map((p, i) => (p && p.peak
+      ? '<text x="' + Math.max(L + 36, Math.min(W - R - 36, X(p.peak.az))).toFixed(1) + '" y="' + (Y(p.peak.alt) + (i ? 13 : -7)).toFixed(1) +
+        '" text-anchor="middle" font-size="8.5" font-weight="800" fill="#B45309">' + RP_ESC(p.label) + "</text>" : "")).join("") +
+    "</svg>" +
+    (iso ? '<p class="note"><b>ระดับสีของเงาบัง</b> — ' +
+      RP_ISO.slice().reverse().map((b) => b.lb).join(" · ") +
+      " (เข้มขึ้น = โดนบังหนักขึ้น) · เส้นทางเดินเส้นไหนวิ่งผ่านพื้นที่สี แปลว่าเดือนนั้นเวลานั้นแผงโดนเงาบังแน่นอน</p>" : "");
+}
+
+/* ── ชุดเส้น I-V & P-V แบบดาต้าชีต ── */
+const RP_GRAMP = ["#0B5F35", "#15803D", "#22A35B", "#6FC48F", "#B3DEC4"];
+const RP_TRAMP = ["#1D4ED8", "#0F7A43", "#D97706", "#DC2626"];
+function rpIvFamily(curves, mode) {
+  const list = (curves || []).filter(Boolean);
+  if (!list.length) return "";
+  const ramp = mode === "temp" ? RP_TRAMP : RP_GRAMP;
+  const colOf = (i) => ramp[Math.min(i, ramp.length - 1)];
+  const W = 700, H = 360, L = 48, R = 54, T = 18, B = 32;
+  const vTop = list.reduce((a, c) => Math.max(a, c.voc), 0) * 1.08;
+  const iTop = list.reduce((a, c) => Math.max(a, c.isc), 0) * 1.14;
+  const pTop = list.reduce((a, c) => Math.max(a, c.pmax), 0) * 1.14;
+  const X = (v) => L + v / vTop * (W - L - R);
+  const Yi = (i) => H - B - i / iTop * (H - T - B);
+  const Yp = (p) => H - B - p / pTop * (H - T - B);
+  const pathOf = (c, fy, fv) => c.pts.map((q, k) => (k ? "L" : "M") + X(q.v).toFixed(1) + " " + fy(fv(q)).toFixed(1)).join(" ");
+  return '<svg viewBox="0 0 ' + W + " " + H + '" class="chart">' +
+    Array.from({ length: 5 }).map((_, k) => {
+      const y = T + (H - T - B) * k / 4, p = pTop * (1 - k / 4);
+      return '<line x1="' + L + '" y1="' + y.toFixed(1) + '" x2="' + (W - R) + '" y2="' + y.toFixed(1) + '" stroke="#E3E8E6" stroke-width="1"/>' +
+        '<text x="' + (L - 7) + '" y="' + (y + 3.5).toFixed(1) + '" text-anchor="end" font-size="8.5" font-weight="700" fill="#8A968F">' +
+        (Math.round(iTop * (1 - k / 4) * 10) / 10) + "</text>" +
+        '<text x="' + (W - R + 7) + '" y="' + (y + 3.5).toFixed(1) + '" font-size="8.5" font-weight="700" fill="#B45309">' +
+        (p >= 1000 ? Math.round(p / 100) / 10 + "k" : Math.round(p)) + "</text>";
+    }).join("") +
+    Array.from({ length: 6 }).map((_, k) => {
+      const v = vTop * k / 5;
+      return (k ? '<line x1="' + X(v).toFixed(1) + '" y1="' + T + '" x2="' + X(v).toFixed(1) + '" y2="' + (H - B) + '" stroke="#EEF1F0" stroke-width="1"/>' : "") +
+        '<text x="' + X(v).toFixed(1) + '" y="' + (H - B + 13) + '" text-anchor="middle" font-size="8.5" fill="#8A968F">' + Math.round(v) + "</text>";
+    }).join("") +
+    '<line x1="' + L + '" y1="' + T + '" x2="' + L + '" y2="' + (H - B) + '" stroke="#C9D3CD" stroke-width="1.1"/>' +
+    '<text x="' + (L - 7) + '" y="' + (T - 5) + '" text-anchor="end" font-size="8" font-weight="700" fill="#8A968F">A</text>' +
+    '<text x="' + (W - R + 7) + '" y="' + (T - 5) + '" font-size="8" font-weight="700" fill="#B45309">W</text>' +
+    '<text x="' + (W - R) + '" y="' + (H - 4) + '" text-anchor="end" font-size="8.5" fill="#8A968F">แรงดัน (V)</text>' +
+    '<path d="' + list.map((c, k) => (k ? "L" : "M") + X(c.vmp).toFixed(1) + " " + Yi(c.imp).toFixed(1)).join(" ") +
+    '" fill="none" stroke="#A8B4AE" stroke-width="1" stroke-dasharray="2 4"/>' +
+    list.map((c, i) => '<path d="' + pathOf(c, Yp, (q) => q.p) + '" fill="none" stroke="' + colOf(i) + '" stroke-width="1.3" stroke-dasharray="4 3" opacity=".7"/>' +
+      '<path d="' + pathOf(c, Yi, (q) => q.i) + '" fill="none" stroke="' + colOf(i) + '" stroke-width="2" stroke-linejoin="round"/>' +
+      '<circle cx="' + X(c.vmp).toFixed(1) + '" cy="' + Yi(c.imp).toFixed(1) + '" r="3.4" fill="#fff" stroke="' + colOf(i) + '" stroke-width="1.9"/>').join("") +
+    (() => {
+      const rh = 12.5, cw = 214, pad = 8;
+      const bh = list.length * rh + pad * 2 + 12, bx = L + 24, by = H - B - bh - 12;
+      return '<g><rect x="' + bx + '" y="' + by.toFixed(1) + '" width="' + (cw + pad) + '" height="' + bh.toFixed(1) +
+        '" rx="6" fill="#fff" fill-opacity=".94" stroke="#D8E0DB" stroke-width="1"/>' +
+        '<text x="' + (bx + pad) + '" y="' + (by + pad + 8).toFixed(1) + '" font-size="8" font-weight="800" fill="#8A968F">' +
+        RP_ESC(mode === "temp" ? "อุณหภูมิเซลล์" : "ความเข้มแสง") + "</text>" +
+        list.map((c, i) => {
+          const cy = by + pad + 20 + i * rh + 3;
+          return '<rect x="' + (bx + pad) + '" y="' + (cy - 3.4).toFixed(1) + '" width="13" height="3" rx="1.5" fill="' + colOf(i) + '"/>' +
+            '<text x="' + (bx + pad + 19) + '" y="' + cy.toFixed(1) + '" font-size="8.5" font-weight="700" fill="#3A4A43">' + RP_ESC(c.label) + "</text>" +
+            '<text x="' + (bx + pad + 94) + '" y="' + cy.toFixed(1) + '" font-size="8.5" font-weight="700" fill="#8A968F">' +
+            RP_ESC(Math.round(c.vmp) + " V · " + (Math.round(c.imp * 10) / 10) + " A") + "</text>" +
+            '<text x="' + (bx + cw - 4) + '" y="' + cy.toFixed(1) + '" text-anchor="end" font-size="8.5" font-weight="800" fill="#16211D">' +
+            RP_ESC(c.pmax >= 1000 ? Math.round(c.pmax / 10) / 100 + " kW" : Math.round(c.pmax) + " W") + "</text>";
+        }).join("") + "</g>";
+    })() +
+    "</svg>";
+}
+
 /* ── สารบัญของรายงาน — ใช้ทั้งตอนประกอบไฟล์และตอนให้ผู้ใช้ติ๊กเลือกก่อนออกรายงาน ──
    หัวข้อไหนไม่ติ๊ก = ไม่ออกไปเลย และเลขหัวข้อจะไล่ใหม่ให้เองไม่ให้ขาดตอน */
 const RP_SECTIONS = [
@@ -316,11 +509,15 @@ const RP_SECTIONS = [
   { key: "iv", label: "แสง เงา และเส้น I-V", subs: [
     { key: "ivDay", label: "กำลังไฟ + อุณหภูมิเซลล์ตลอดวัน", note: "เดือนที่ผลิตได้สูงสุด" },
     { key: "ivYear", label: "แสง/เงาทั้งปี 12 เดือน", note: "แผนที่ความร้อน + ตารางสรุป" },
-    { key: "ivAll", label: "เส้น I-V ทุกสตริง/ไมโคร", note: "กราฟรวม + ตารางค่าที่ควรวัดได้" },
+    { key: "ivSun", label: "เส้นทางเดินดวงอาทิตย์ & แผนที่เงาบัง", note: "ทิศ × มุมสูง — เห็นว่าโดนบังเดือนไหน เวลาไหน" },
+    { key: "ivFam", label: "เส้น P-V & I-V ที่แสง/อุณหภูมิต่าง ๆ", note: "แบบเดียวกับกราฟบนดาต้าชีตแผง" },
+    { key: "ivAll", label: "ค่าที่ควรวัดได้ทุกสตริง/ไมโคร", note: "ตารางพกไปเทียบกับเครื่องวัดที่หน้างาน" },
     { key: "ivMeas", label: "ผลตรวจวัดหน้างาน", note: "เทียบค่าที่วัดได้กับที่ควรได้" }] },
   { key: "prod", label: "ผลผลิตที่คาดการณ์", subs: [
     { key: "shade", label: "เงาบังทั้งปีจากโมเดล 3 มิติ" },
+    { key: "loss", label: "แผนภาพค่าสูญเสียของระบบ", note: "ไล่จากแสงที่ได้ลงมาถึงไฟ AC ทีละด่าน" },
     { key: "life", label: "ตารางผลผลิตตลอดอายุระบบ" }] },
+  { key: "env", label: "ผลกระทบต่อสิ่งแวดล้อม", note: "คาร์บอนที่ลดได้ · ค่าเทียบเท่า · คืนทุนทางคาร์บอน" },
   { key: "roi", label: "ผลตอบแทนการลงทุน", note: "คืนทุน · IRR · กระแสเงินสด" },
 ];
 /* ค่าเริ่มต้น = เอาทุกหัวข้อ */
@@ -505,8 +702,9 @@ function suReportHTML(D) {
   }).filter(Boolean);
   const ivMain = (D.ivRows || [])[0];
   const ivAllSec = ivCurves.length && P.ivAll
-    ? "<h3>เส้น I-V ที่ควรได้ของทุก" + (D.isMicro ? "ไมโคร" : "สตริง") + " ณ " + ivHM(D.simHour) + " น.</h3>" +
-      rpIvAll(ivCurves, ivMain && ivMain.a ? ivMain.a.expStc : null) +
+    /* กราฟรวมทุกสตริงถูกยกเลิกไปแล้ว (เส้นทับกันจนอ่านยาก และซ้ำกับกราฟ P-V & I-V ด้านบน)
+       เหลือเฉพาะตารางค่าที่ควรวัดได้ ซึ่งเป็นสิ่งที่กราฟนั้นบอกไม่ได้ — ตรงกับที่แสดงบนหน้าจอ */
+    ? "<h3>ค่าที่ควรวัดได้ของทุก" + (D.isMicro ? "ไมโคร" : "สตริง") + " ณ " + ivHM(D.simHour) + " น.</h3>" +
       rpTable([D.isMicro ? "ไมโคร" : "สตริง", "แผง"].concat(D.isMicro ? ["ต่อช่อง"] : [])
         .concat(["แสง W/m²", "เซลล์ °C", "Voc", "Isc", "Vmp", "Imp", D.isMicro ? "Pmax/ช่อง" : "Pmax"])
         .concat(D.isMicro ? ["รวมทั้งตัว"] : []),
@@ -558,7 +756,34 @@ function suReportHTML(D) {
   } else {
     ivSec = "";
   }
-  ivSec = daySec + yearSec + ivAllSec + (ivSec ? "<h3>ผลตรวจวัดเทียบกับค่าที่ควรได้</h3>" + ivSec : "");
+  /* เส้นทางเดินดวงอาทิตย์ + แผนที่เงา — ทิศทางแสงตัดสินเงาทั้งหมด ไม่ขึ้นกับวันที่ */
+  const sunSec = !(P.ivSun && D.sunPath) ? "" :
+    "<h3>เส้นทางเดินดวงอาทิตย์ตลอดปี และทิศทางแสงที่ทำให้แผงโดนบัง</h3>" +
+    rpSunPath(D.sunPath, D.isoShade) +
+    '<p class="note">แกนนอนคือทิศที่ดวงอาทิตย์อยู่ (0° เหนือ · 90° ตะวันออก · 180° ใต้ · 270° ตะวันตก) แกนตั้งคือมุมสูงเหนือขอบฟ้า · ' +
+    "เส้นโค้งสีส้ม 7 เส้นคือเส้นทางเดินของดวงอาทิตย์ในวันตัวแทนแต่ละช่วงของปี เส้นประคือเวลา · " +
+    "ที่ละติจูดของประเทศไทย ฤดูร้อนดวงอาทิตย์อ้อมไปทางทิศเหนือ เส้นทางเดินจึงข้ามขอบซ้าย–ขวาของกราฟ" +
+    (D.isoShade ? " · แผนที่เงาคิดจากการยิงลำแสงไปทั่วท้องฟ้า " + D.isoShade.cells.length + " ทิศทาง ผ่านโมเดล 3 มิติของหน้างานจริง" : "") + "</p>";
+  /* ชุดเส้น I-V / P-V แบบดาต้าชีต */
+  const famSec = !(P.ivFam && (D.ivFamG || []).length) ? "" :
+    "<h3>เส้น P-V &amp; I-V ที่ความเข้มแสงต่าง ๆ (ต่อ 1 แผง · เซลล์ 25 °C)</h3>" +
+    rpIvFamily(D.ivFamG, "irr") +
+    rpTable(["ความเข้มแสง", "Voc", "Isc", "Vmp", "Imp", "Pmax", "Fill Factor", "เทียบ STC"],
+      D.ivFamG.map((c) => [c.label, c.voc + " V", c.isc + " A", c.vmp + " V", c.imp + " A",
+        { v: c.pmax + " W", cls: "ok" }, c.ff + " %",
+        D.ivFamG[0].pmax > 0 ? scR(c.pmax / D.ivFamG[0].pmax * 100, 1) + " %" : "—"])) +
+    '<p class="note">แสงลดลงครึ่งหนึ่ง กระแสลดลงครึ่งหนึ่งตาม แต่แรงดันวงจรเปิดแทบไม่เปลี่ยน (ตกแบบลอการิทึม) — ' +
+    "นี่คือเหตุผลที่วันเมฆครึ้มระบบยังจ่ายไฟได้และอินเวอร์เตอร์ยังทำงานในช่วง MPPT · เทียบกับกราฟบนดาต้าชีตของแผงรุ่นนี้ได้ตรง ๆ</p>" +
+    (!(D.ivFamT || []).length ? "" :
+      "<h3>เส้น P-V &amp; I-V ที่อุณหภูมิเซลล์ต่าง ๆ (ทั้งสตริง · แสง 1000 W/m²)</h3>" +
+      rpIvFamily(D.ivFamT, "temp") +
+      rpTable(["อุณหภูมิเซลล์", "Voc", "Isc", "Vmp", "Imp", "Pmax", "เทียบที่ 25 °C"],
+        D.ivFamT.map((c) => [c.label, c.voc + " V", c.isc + " A", c.vmp + " V", c.imp + " A",
+          { v: (c.pmax >= 1000 ? scR(c.pmax / 1000, 2) + " kW" : c.pmax + " W"), cls: "ok" },
+          D.ivFamT[0].pmax > 0 ? scR(c.pmax / D.ivFamT[0].pmax * 100, 1) + " %" : "—"])) +
+      '<p class="note">ความร้อนกินแรงดัน ไม่ได้กินกระแส — เส้นเลื่อนเข้าหาแกนซ้ายแต่ความสูงเกือบไม่เปลี่ยน · ' +
+      "จึงต้องตรวจ Voc ตอนเช้าที่อากาศเย็นที่สุด (แรงดันสูงสุด ห้ามเกินพิกัดอินเวอร์เตอร์) และเป็นเหตุผลที่บ่ายแดดแรงแต่ได้ไฟน้อยกว่าที่คาด</p>");
+  ivSec = daySec + yearSec + sunSec + famSec + ivAllSec + (ivSec ? "<h3>ผลตรวจวัดเทียบกับค่าที่ควรได้</h3>" + ivSec : "");
 
   /* 5 · ผลผลิต (มีส่วนเงาบังนำหน้า ถ้าคำนวณจากโมเดล 3 มิติไว้) */
   let shadeSec = "";
@@ -587,6 +812,13 @@ function suReportHTML(D) {
       (E.shadeMode === "model" ? "เงาบังรายกลุ่มจากโมเดล 3 มิติ (เฉลี่ย " + E.shadeLoss + "%) " : "เงาบัง " + E.shadeLoss + "% (กรอกมือ) ") +
       "ประสิทธิภาพอินเวอร์เตอร์ " + E.eff + "%" +
       (E.clipLoss > 0.2 ? " และการตัดยอดที่ขนาด AC จริง " + E.clipLoss + "% (" + rpN(E.clipKwh) + " kWh/ปี)" : "") + "</p>" +
+      (P.loss && (E.chain || []).length
+        ? "<h3>แผนภาพค่าสูญเสียของระบบ — จากแสงที่ได้ ถึงไฟที่ส่งออกจริง</h3>" +
+          rpLossFlow(E.chain) +
+          '<p class="note">ลำน้ำสีเขียวคือพลังงานที่ยังเหลืออยู่ ความกว้างแปรตามปริมาณจริง · สายที่แยกออกข้างทางคือที่เสียไปในแต่ละด่าน · ' +
+          "ทุกตัวเลขมาจากการเดินเวลาชุดเดียวกับที่คำนวณผลผลิตข้างต้น บรรทัดสุดท้ายจึงเท่ากับผลผลิตปีแรกพอดี · " +
+          "Performance Ratio " + E.pr + "% คือบรรทัดสุดท้ายหารบรรทัดแรก เป็นตัวเลขมาตรฐานที่ใช้เทียบคุณภาพงานติดตั้งข้ามโครงการโดยไม่ต้องสนใจว่าหน้างานไหนแดดแรงกว่ากัน</p>"
+        : "") +
       (P.life
         ? "<h3>ผลผลิตตลอดอายุ " + L.years + " ปี</h3>" +
           rpTable(["ปี", "ผลผลิต (kWh)", "เหลือ % ของปีแรก"], L.rows.map((r) => [r.year, rpN(r.kwh), r.factor + " %"])) +
@@ -594,7 +826,34 @@ function suReportHTML(D) {
         : "");
   }
 
-  /* 6 · ROI */
+  /* 6 · สิ่งแวดล้อม */
+  const EV = D.env;
+  const envSec = !EV ? "" :
+    '<div class="kpis">' +
+    rpCard("ลดคาร์บอนได้ปีละ", EV.co2YearT, "tCO₂e", "hi") +
+    rpCard("ตลอด " + EV.years + " ปี", EV.co2LifeT, "tCO₂e", "hi") +
+    rpCard("เท่ากับปลูกไม้ยืนต้น", rpN(EV.trees), "ต้น") +
+    rpCard("คืนทุนทางคาร์บอน", EV.carbonPayback == null ? "—" : EV.carbonPayback, "ปี") +
+    "</div>" +
+    rpTable(["ปริมาณคาร์บอนที่ลดได้ เทียบเท่ากับ", "ต่อปี", "ตลอด " + EV.years + " ปี"], [
+      ["ก๊าซเรือนกระจกที่ไม่ถูกปล่อย", { v: rpN(EV.co2Year) + " kgCO₂e", cls: "ok" }, { v: rpN(EV.co2Life) + " kgCO₂e", cls: "ok" }],
+      ["การปลูกไม้ยืนต้น (ดูดซับ 9.5 kgCO₂/ต้น/ปี)", rpN(EV.trees) + " ต้น", rpN(EV.treesLife) + " ต้น"],
+      ["การไม่ขับรถยนต์นั่งส่วนบุคคล (0.12 kgCO₂/กม.)", rpN(EV.carKm) + " กม.", rpN(EV.carKm * EV.years) + " กม."],
+      ["น้ำมันเบนซินที่ไม่ถูกเผา (2.31 kgCO₂/ลิตร)", rpN(EV.petrol) + " ลิตร", rpN(EV.petrol * EV.years) + " ลิตร"],
+      ["ไฟฟ้าที่ครัวเรือนไทยใช้ทั้งปี (~200 หน่วย/เดือน)", EV.homes + " หลัง", "—"],
+    ]) +
+    rpTable(["คาร์บอนที่ใช้สร้างระบบ (embodied carbon)", "ค่า"], [
+      ["กำลังติดตั้ง", (E ? E.dcKw : "—") + " kWp"],
+      ["คาร์บอนต่อกำลังติดตั้ง 1 kWp", scNum(EV.embod) && E && E.dcKw ? Math.round(EV.embod / E.dcKw) + " kgCO₂e" : "—"],
+      ["รวมคาร์บอนที่ใช้ผลิต ขนส่ง และติดตั้ง", EV.embodT + " tCO₂e"],
+      ["ระยะเวลาคืนทุนทางคาร์บอน", { v: (EV.carbonPayback == null ? "—" : EV.carbonPayback + " ปี"), cls: "ok" }],
+      ["ตลอดอายุระบบลดได้กี่เท่าของที่ใช้สร้าง", { v: (EV.ratio == null ? "—" : EV.ratio + " เท่า"), cls: "ok" }],
+    ]) +
+    '<p class="note">คำนวณจากไฟฟ้าที่ระบบนี้ผลิตได้จริงตามผลจำลองในรายงานฉบับนี้ คูณด้วยค่าการปล่อยก๊าซเรือนกระจกของไฟฟ้าจากระบบสายส่งไทย ' +
+    EV.ef + " kgCO₂e ต่อหน่วย (อ้างอิงองค์การบริหารจัดการก๊าซเรือนกระจก) · " +
+    "ค่าคาร์บอนที่ใช้สร้างระบบเป็นค่ากลางของแผงผลึกเดี่ยวรุ่นปัจจุบัน ใช้ประเมินว่าระบบเริ่มเป็นบวกต่อสิ่งแวดล้อมเมื่อไหร่</p>";
+
+  /* 7 · ROI */
   let roiSec = "";
   if (roi) {
     roiSec =
@@ -679,6 +938,7 @@ function suReportHTML(D) {
       rows.length && P.ivMeas ? rows.length + " หน่วย · เฉลี่ย " + D.ivAvg + "% ของที่ควรได้"
         : (sim ? "จำลองทั้งวัน · " + rpN(sim.dayKwh, 1) + " kWh" : ""));
   addSec(P.prod, "ผลผลิตที่คาดการณ์", prodSec, L ? rpN(L.rows[0].kwh) + " kWh ในปีแรก" : "");
+  addSec(P.env, "ผลกระทบต่อสิ่งแวดล้อม", envSec, EV ? "ลดคาร์บอน " + EV.co2LifeT + " tCO₂e ตลอด " + EV.years + " ปี" : "");
   addSec(P.roi, "ผลตอบแทนการลงทุน", roiSec, roi && roi.payback ? "คืนทุน " + roi.payback + " ปี" : "");
 
   return '<!doctype html><html lang="th"><head><meta charset="utf-8">' +
@@ -862,4 +1122,4 @@ function suPrintReport(D) {
 }
 
 Object.assign(window, { suReportHTML, suPrintReport, RP_SECTIONS, rpPickAll, rpTable, rpMonthly, rpCash, rpIv,
-  rpDayPower, rpYearMap, rpIvAll, RP_CSS });
+  rpDayPower, rpYearMap, rpIvAll, rpLossFlow, rpSunPath, rpIvFamily, RP_CSS });

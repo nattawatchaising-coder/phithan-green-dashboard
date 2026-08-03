@@ -183,6 +183,47 @@ const SU_CSS = `
 .su-alert.bad{background:rgba(185,28,28,.08);border:1px solid rgba(185,28,28,.24);color:#991B1B}
 .su-alert.good{background:var(--acs);border:1px solid transparent;color:var(--acd)}
 .su-alert.info{background:rgba(37,99,235,.07);border:1px solid rgba(37,99,235,.18);color:#1D4ED8}
+
+/* ---- ปุ่มเดินดูทีละเดือน ---- */
+.su-mstep{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--ln2);border-radius:99px;
+  padding:2px 3px;background:var(--surface)}
+.su-mstep b{font-size:10.5px;font-weight:700;color:var(--text-2);padding:0 6px;white-space:nowrap;
+  min-width:118px;text-align:center}
+.su-mstep button{width:21px;height:21px;border:none;border-radius:99px;background:transparent;cursor:pointer;
+  display:grid;place-items:center;color:var(--text-3);padding:0;transition:background .12s ease,color .12s ease}
+.su-mstep button:hover{background:var(--acs);color:var(--acd)}
+.su-mstep button:first-child{transform:rotate(180deg)}
+
+/* ---- ผลกระทบต่อสิ่งแวดล้อม ---- */
+.su-env{display:grid;grid-template-columns:minmax(210px,.9fr) 2fr;gap:14px;align-items:stretch}
+.su-env .hero{display:flex;flex-direction:column;gap:5px;justify-content:center;padding:14px 15px;border-radius:14px;
+  background:linear-gradient(140deg,var(--acs),transparent 78%);border:1px solid var(--ln2)}
+.su-env .hero .eb{font-size:9px;font-weight:800;letter-spacing:.14em;color:var(--acd);text-transform:uppercase}
+.su-env .hero .big{font-family:var(--font-num,inherit);font-size:38px;font-weight:800;letter-spacing:-.045em;
+  line-height:1;color:var(--text-1);font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:7px}
+.su-env .hero .big small{font-size:12px;font-weight:800;letter-spacing:0;color:var(--acd)}
+.su-env .hero .sub{font-size:9.5px;line-height:1.6;color:var(--text-3)}
+.su-env .hero .sub b{color:var(--text-2)}
+.su-env .tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;
+  background:var(--ln);border:1px solid var(--ln);border-radius:14px;overflow:hidden}
+.su-env .tile{display:flex;flex-direction:column;gap:3px;padding:12px 13px;background:var(--surface);color:var(--acd)}
+.su-env .tile .v{font-family:var(--font-num,inherit);font-size:20px;font-weight:800;letter-spacing:-.03em;
+  color:var(--text-1);line-height:1.05;font-variant-numeric:tabular-nums}
+.su-env .tile .v small{font-size:9.5px;font-weight:700;color:var(--text-3);margin-left:4px;letter-spacing:0}
+.su-env .tile .lb{font-size:10px;font-weight:700;color:var(--text-2)}
+.su-env .tile .sb{font-size:8.5px;color:var(--text-3);line-height:1.4}
+.su-env-pb{display:flex;align-items:center;gap:11px;padding-top:10px;border-top:1px solid var(--ln)}
+.su-env-pb .l{font-size:10.5px;font-weight:700;color:var(--text-2);white-space:nowrap}
+.su-env-pb .bar{flex:1;height:7px;border-radius:99px;background:var(--surface3);overflow:hidden}
+.su-env-pb .bar span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#22A35B,#0F7A43)}
+.su-env-pb .r{font-size:10px;font-weight:700;color:var(--text-3);white-space:nowrap}
+.su-env-pb .r b{font-family:var(--font-num,inherit);font-size:14px;color:var(--text-1);letter-spacing:-.3px}
+@media (max-width:720px){ .su-env{grid-template-columns:1fr} }
+
+/* ---- คำอธิบายระดับเงาบนแผนที่ดวงอาทิตย์ ---- */
+.su-isolg{display:flex;flex-wrap:wrap;gap:5px 12px;align-items:center}
+.su-isolg span{display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:700;color:var(--text-3)}
+.su-isolg i{width:13px;height:9px;border-radius:2px;display:block}
 `;
 
 /* กล่องกรอกเลขพร้อมป้ายบอกที่มาของค่า (คลัง / ค่ากลาง / แก้เอง) */
@@ -803,6 +844,331 @@ function SuIvChart({ curves, stcRef, meas, height, focusId }) {
   );
 }
 
+/* ============================================================
+   ชุดเส้น I-V & P-V ที่ความเข้มแสง / อุณหภูมิต่าง ๆ
+   ============================================================ */
+const SU_GRAMP = ["#0B5F35", "#15803D", "#22A35B", "#6FC48F", "#B3DEC4"];
+const SU_TRAMP = ["#1D4ED8", "#0F7A43", "#D97706", "#DC2626"];
+function SuIvFamily({ curves, mode, showPv }) {
+  const W = 620, H = 356, L = 46, R = 50, T = 18, B = 32;
+  const list = (curves || []).filter(Boolean);
+  if (!list.length) return null;
+  const ramp = mode === "temp" ? SU_TRAMP : SU_GRAMP;
+  const colOf = (i) => ramp[Math.min(i, ramp.length - 1)];
+  const vTop = list.reduce((a, c) => Math.max(a, c.voc), 0) * 1.08;
+  const iTop = list.reduce((a, c) => Math.max(a, c.isc), 0) * 1.14;
+  const pTop = list.reduce((a, c) => Math.max(a, c.pmax), 0) * 1.14;
+  const X = (v) => L + v / vTop * (W - L - R);
+  const Yi = (i) => H - B - i / iTop * (H - T - B);
+  const Yp = (p) => H - B - p / pTop * (H - T - B);
+  const path = (pts, fy, fv) => pts.map((q, k) => (k ? "L" : "M") + X(q.v).toFixed(1) + " " + fy(fv(q)).toFixed(1)).join(" ");
+  const gI = 4, gV = 5;
+  /* เส้นร้อยจุดกำลังสูงสุดของทุกเส้น — เห็นทันทีว่า MPPT ต้องไล่ตามจุดไปทางไหน */
+  const locus = list.map((c, k) => (k ? "L" : "M") + X(c.vmp).toFixed(1) + " " + Yi(c.imp).toFixed(1)).join(" ");
+  return (
+    <svg viewBox={"0 0 " + W + " " + H} style={{ width: "100%", display: "block", overflow: "visible" }}>
+      {Array.from({ length: gI + 1 }).map((_, k) => {
+        const y = T + (H - T - B) * k / gI, iv = iTop * (1 - k / gI), pv = pTop * (1 - k / gI);
+        return (
+          <g key={"h" + k}>
+            <line x1={L} y1={y} x2={W - R} y2={y} stroke="var(--ln)" strokeWidth="1" strokeDasharray={k === gI ? null : "3 4"} />
+            <text x={L - 7} y={y + 3.5} textAnchor="end" fontSize="9" fontWeight="700" fill="var(--text-3)">{scR(iv, iTop > 20 ? 0 : 1)}</text>
+            {showPv && <text x={W - R + 7} y={y + 3.5} fontSize="9" fontWeight="700" fill="#B45309">{pv >= 1000 ? scR(pv / 1000, 1) + "k" : scR(pv, 0)}</text>}
+          </g>
+        );
+      })}
+      {Array.from({ length: gV + 1 }).map((_, k) => {
+        const v = vTop * k / gV;
+        return (
+          <g key={"v" + k}>
+            <line x1={X(v)} y1={T} x2={X(v)} y2={H - B} stroke="var(--ln)" strokeWidth="1" strokeDasharray="3 4" opacity={k ? 1 : 0} />
+            <text x={X(v)} y={H - B + 13} textAnchor="middle" fontSize="9" fontWeight="700" fill="var(--text-3)">{scR(v, 0)}</text>
+          </g>
+        );
+      })}
+      <line x1={L} y1={T} x2={L} y2={H - B} stroke="var(--ln2)" strokeWidth="1.2" />
+      <text x={L - 7} y={T - 5} textAnchor="end" fontSize="8.5" fontWeight="800" fill="var(--text-3)">A</text>
+      {showPv && <text x={W - R + 7} y={T - 5} fontSize="8.5" fontWeight="800" fill="#B45309">W</text>}
+      <text x={W - R} y={H - 4} textAnchor="end" fontSize="8.5" fontWeight="800" fill="var(--text-3)">แรงดัน (V)</text>
+
+      {showPv && <path d={locus} fill="none" stroke="var(--text-3)" strokeWidth="1" strokeDasharray="2 4" opacity=".5" />}
+      {list.map((c, i) => (
+        <g key={c.key}>
+          {showPv && <path d={path(c.pts, Yp, (q) => q.p)} fill="none" stroke={colOf(i)} strokeWidth="1.4" strokeDasharray="4 3" opacity=".75" />}
+          <path d={path(c.pts, Yi, (q) => q.i)} fill="none" stroke={colOf(i)} strokeWidth="2.1" strokeLinejoin="round" />
+          <circle cx={X(c.vmp)} cy={Yi(c.imp)} r="3.6" fill="var(--surface)" stroke={colOf(i)} strokeWidth="2" />
+        </g>
+      ))}
+      {/* กรอบสรุปมุมซ้ายล่าง — ช่วงแรงดันต่ำเส้นทุกเส้นอยู่บนสุดเสมอ พื้นที่ตรงนี้จึงว่างแน่นอน */}
+      {(() => {
+        const rh = 12.5, cw = 196, pad = 8;
+        const bh = list.length * rh + pad * 2 + 12, bx = L + 20, by = H - B - bh - 10;
+        return (
+          <g>
+            <rect x={bx} y={by} width={cw + pad} height={bh} rx="7" fill="var(--surface)" fillOpacity=".94" stroke="var(--ln2)" />
+            <text x={bx + pad} y={by + pad + 8} fontSize="8" fontWeight="800" fill="var(--text-3)" letterSpacing=".08em">
+              {mode === "temp" ? "อุณหภูมิเซลล์" : "ความเข้มแสง"}
+            </text>
+            {list.map((c, i) => {
+              const cy = by + pad + 20 + i * rh + 3;
+              return (
+                <g key={c.key}>
+                  <rect x={bx + pad} y={cy - 3.4} width="13" height="3" rx="1.5" fill={colOf(i)} />
+                  <text x={bx + pad + 19} y={cy} fontSize="8.5" fontWeight="700" fill="var(--text-2)">{c.label}</text>
+                  <text x={bx + pad + 86} y={cy} fontSize="8.5" fontWeight="700" fill="var(--text-3)">{scR(c.vmp, 0)} V · {scR(c.imp, 1)} A</text>
+                  <text x={bx + cw - 4} y={cy} textAnchor="end" fontSize="8.5" fontWeight="800" fill="var(--text-1)">
+                    {c.pmax >= 1000 ? scR(c.pmax / 1000, 2) + " kW" : scR(c.pmax, 0) + " W"}
+                  </text>
+                </g>
+              );
+            })}
+          </g>
+        );
+      })()}
+    </svg>
+  );
+}
+
+/* ============================================================
+   เส้นทางเดินดวงอาทิตย์ + แผนที่เงาบัง
+   ============================================================ */
+/* ระดับเงาบังแบบขั้นบันได — อ่านง่ายกว่าไล่เฉดต่อเนื่อง เพราะดูออกว่า "เกินกี่ %" ตรงไหน */
+const SU_ISO = [
+  { at: 0.40, c: "#B91C1C", o: 0.85, lb: "40%+" },
+  { at: 0.20, c: "#DC2626", o: 0.60, lb: "20–40%" },
+  { at: 0.10, c: "#F59E0B", o: 0.62, lb: "10–20%" },
+  { at: 0.05, c: "#F59E0B", o: 0.40, lb: "5–10%" },
+  { at: 0.01, c: "#F59E0B", o: 0.22, lb: "1–5%" },
+];
+const suIsoBand = (f) => SU_ISO.find((b) => f >= b.at) || null;
+function SuSunPath({ path, iso, mark }) {
+  if (!path || !path.paths.length) return null;
+  const W = 640, H = 330, L = 40, R = 16, T = 16, B = 30;
+  /* แกนทิศต้องเต็ม 0–360° เสมอ — ที่ละติจูดไทย ฤดูร้อนดวงอาทิตย์อ้อมไปทางเหนือจริง ๆ */
+  const a0 = 0, a1 = 360, altTop = 90;
+  const X = (az) => L + (az - a0) / (a1 - a0) * (W - L - R);
+  const Y = (alt) => H - B - scClamp(alt, 0, altTop) / altTop * (H - T - B);
+  const cw = iso ? Math.abs(X(iso.azStep) - X(0)) : 0;
+  const ch = iso ? Math.abs(Y(0) - Y(iso.altStep)) : 0;
+  const compass = [[0, "เหนือ"], [45, "ตอ.เฉียงเหนือ"], [90, "ตะวันออก"], [135, "ตอ.เฉียงใต้"], [180, "ใต้"], [225, "ตต.เฉียงใต้"], [270, "ตะวันตก"], [315, "ตต.เฉียงเหนือ"], [360, "เหนือ"]];
+  const line = (pts) => pts.map((q, k) => (k ? "L" : "M") + X(q.az).toFixed(1) + " " + Y(q.alt).toFixed(1)).join(" ");
+  return (
+    <svg viewBox={"0 0 " + W + " " + H} style={{ width: "100%", display: "block", overflow: "visible" }}>
+      <rect x={L} y={T} width={W - L - R} height={H - T - B} rx="6" fill="var(--bg)" opacity=".55" />
+      {/* แผนที่เงา — ช่องละ 1 ทิศทางแสง */}
+      {iso && iso.cells.map((c, i) => {
+        const b = suIsoBand(c.f);
+        if (!b) return null;
+        return <rect key={i} x={X(c.az) - cw / 2} y={Y(c.alt) - ch / 2} width={cw + 0.6} height={ch + 0.6}
+          fill={b.c} opacity={b.o} />;
+      })}
+      {/* เส้นตาราง */}
+      {Array.from({ length: 7 }).map((_, k) => {
+        const alt = k * 15;
+        return (
+          <g key={"a" + k}>
+            <line x1={L} y1={Y(alt)} x2={W - R} y2={Y(alt)} stroke="var(--ln)" strokeWidth="1" strokeDasharray={k ? "3 4" : null} opacity=".9" />
+            <text x={L - 6} y={Y(alt) + 3.4} textAnchor="end" fontSize="9" fontWeight="700" fill="var(--text-3)">{alt}°</text>
+          </g>
+        );
+      })}
+      {compass.map(([az, lb], k) => (
+        <g key={k}>
+          <line x1={X(az)} y1={T} x2={X(az)} y2={H - B} stroke="var(--ln)" strokeWidth="1" strokeDasharray="3 4"
+            opacity={az === 0 || az === 360 ? 0 : 1} />
+          <text x={X(az)} y={H - B + 13} textAnchor={az === 0 ? "start" : az === 360 ? "end" : "middle"}
+            fontSize="8.5" fontWeight={az === 180 ? 800 : 700}
+            fill={az === 180 ? "var(--text-2)" : "var(--text-3)"}>{lb}</text>
+        </g>
+      ))}
+      <text x={L - 6} y={T - 4} textAnchor="end" fontSize="8" fontWeight="800" fill="var(--text-3)">สูง</text>
+
+      {/* เส้นชั่วโมง */}
+      {path.hours.map((hr) => (
+        <g key={hr.h}>
+          {hr.segs.map((sg, k) => (
+            <path key={k} d={line(sg)} fill="none" stroke="var(--text-3)" strokeWidth="1" strokeDasharray="2 3" opacity=".55" />
+          ))}
+          <text x={X(hr.pts[0].az)} y={Y(hr.pts[0].alt) - 5} textAnchor="middle" fontSize="8" fontWeight="800" fill="var(--text-3)" opacity=".9">{hr.h}</text>
+        </g>
+      ))}
+      {/* เส้นทางเดินของแต่ละเดือน */}
+      {path.paths.map((p, i) => {
+        const main = i === 0 || i === path.paths.length - 1 || i === 3;
+        return (
+          <g key={p.doy}>
+            {p.segs.map((sg, k) => (
+              <path key={k} d={line(sg)} fill="none" stroke="#B45309" strokeWidth={main ? 1.9 : 1.2}
+                opacity={main ? 0.95 : 0.6} strokeLinecap="round" />
+            ))}
+          </g>
+        );
+      })}
+      {/* ป้ายกำกับเส้นบนสุด/ล่างสุด — ที่เหลือเดาได้จากลำดับ */}
+      {[path.paths[0], path.paths[path.paths.length - 1]].map((p, i) => (p && p.peak ? (
+        <text key={i} x={scClamp(X(p.peak.az), L + 34, W - R - 34)} y={Y(p.peak.alt) + (i ? 13 : -7)}
+          textAnchor="middle" fontSize="8.5" fontWeight="800" fill="#B45309">{p.label}</text>
+      ) : null))}
+      {/* ดวงอาทิตย์ ณ เวลาที่กำลังดูอยู่ */}
+      {mark && mark.alt > 0 && mark.az >= a0 && mark.az <= a1 && (
+        <g>
+          <circle cx={X(mark.az)} cy={Y(mark.alt)} r="9" fill="#F59E0B" opacity=".22" />
+          <circle cx={X(mark.az)} cy={Y(mark.alt)} r="4.6" fill="#F59E0B" stroke="var(--surface)" strokeWidth="1.6" />
+          <text x={X(mark.az)} y={Y(mark.alt) - 13} textAnchor="middle" fontSize="9" fontWeight="800" fill="#B45309">{mark.label || "ตอนนี้"}</text>
+        </g>
+      )}
+    </svg>
+  );
+}
+
+/* ============================================================
+   แผนภาพค่าสูญเสียของระบบ
+   ============================================================ */
+/* กราฟไหล (Sankey) — ลำน้ำสีเขียวไหลลงจากบนสุด แล้วมีสายแยกออกข้างทางทุกครั้งที่เสียพลังงาน
+   ความกว้างของลำน้ำ = พลังงานที่เหลืออยู่จริง · ความหนาของสายที่แยกออก = ที่เสียไปในด่านนั้น
+   อ่านได้ในแวบเดียวว่าด่านไหนกินหนัก โดยไม่ต้องไล่อ่านตัวเลขทีละบรรทัด */
+function SuLossFlow({ chain }) {
+  const rows = (chain || []).filter(Boolean);
+  if (!rows.length) return null;
+  /* ลำน้ำกว้างขึ้นได้ตอนขึ้นหลังคาเอียง — สเกลจึงต้องอิงค่ามากสุดของทั้งสาย ไม่ใช่บรรทัดแรก */
+  const top = rows.reduce((a, r) => Math.max(a, r.kwh || 0), 1);
+  const W = 620, X0 = 28, TW = 132, XL = 232, LX = 244;
+  const HL = 46, HM = 40, TOP = 12;
+  const cut = (s, n) => (s && s.length > n ? s.slice(0, n - 1) + "…" : s || "");
+  const wOf = (v) => scClamp(v / top, 0, 1) * TW;
+  const seg = [];
+  let prev = rows[0].kwh, y = TOP;
+  rows.forEach((r) => {
+    const h = r.kind === "loss" || r.kind === "gain" ? HL : HM;
+    seg.push({ r, y0: y, y1: y + h, wA: wOf(prev), wB: wOf(r.kwh) });
+    prev = r.kwh; y += h;
+  });
+  const last = seg[seg.length - 1];
+  const H = last.y1 + 20;
+  /* ขอบขวาของลำน้ำหักมุมเป็นขั้น ๆ ตรงกลางแถวที่มีการแยก — สายที่แยกออกจะได้หนาเท่ากันตลอด
+     (ถ้าให้ลาดทั้งแถว สายจะบานเป็นปากแตรและอ่านความหนาไม่ได้) */
+  const trunk = "M" + X0 + " " + TOP + " L" + (X0 + seg[0].wA).toFixed(1) + " " + TOP + " " +
+    seg.map((s) => {
+      const yc = (s.y0 + s.y1) / 2;
+      return "L" + (X0 + s.wA).toFixed(1) + " " + yc.toFixed(1) +
+        " L" + (X0 + s.wB).toFixed(1) + " " + yc.toFixed(1) +
+        " L" + (X0 + s.wB).toFixed(1) + " " + s.y1.toFixed(1);
+    }).join(" ") +
+    " L" + (X0 + last.wB / 2).toFixed(1) + " " + (last.y1 + 14).toFixed(1) +
+    " L" + X0 + " " + last.y1.toFixed(1) + " Z";
+  return (
+    <svg viewBox={"0 0 " + W + " " + H} style={{ width: "100%", display: "block", overflow: "hidden" }}>
+      <defs>
+        <linearGradient id="suFlowG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#3ECF84" /><stop offset="55%" stopColor="#22A35B" /><stop offset="100%" stopColor="#0B6B3A" />
+        </linearGradient>
+      </defs>
+      <path d={trunk} fill="url(#suFlowG)" />
+      {/* เส้นคั่นบาง ๆ ตรงจุดที่ลำน้ำแคบลง — ทำให้เห็นว่าแต่ละด่านกินไปเท่าไหร่ ทั้งที่คอดลงทีละนิด */}
+      {seg.map((s) => (s.r.kind === "loss" || s.r.kind === "gain") && Math.abs(s.wA - s.wB) > 0.2 ? (
+        <line key={"t" + s.r.k} x1={X0} y1={(s.y0 + s.y1) / 2} x2={X0 + Math.min(s.wA, s.wB)} y2={(s.y0 + s.y1) / 2}
+          stroke="#fff" strokeWidth="1" opacity=".28" />
+      ) : null)}
+      {seg.map((s) => {
+        const R = s.r, yc = (s.y0 + s.y1) / 2;
+        const heavy = R.kind === "loss" && R.pct >= 3;
+        const zero = R.kind === "loss" && R.loss <= 0;
+        /* กำไรกับค่าสูญเสียใช้รูปทรงเดียวกัน ต่างกันที่ทิศทางและสี — สายฟ้าเข้า vs สายที่รั่วออก */
+        if (R.kind === "loss" || R.kind === "gain") {
+          const gain = R.kind === "gain";
+          const col = gain ? "#2563EB" : heavy ? "#DC2626" : "#EFA53A";
+          /* ความหนาของสาย = ความกว้างที่ลำน้ำเปลี่ยนไปพอดี — อ่านเทียบกันได้ด้วยตาเปล่า */
+          const th = Math.max(3.6, Math.abs(s.wA - s.wB));
+          const inner = X0 + Math.min(s.wA, s.wB);
+          const yA = yc - th / 2, yB = yc + th / 2;
+          const HEAD = 9, FLARE = 3.4;
+          /* กำไรวิ่งเข้าลำน้ำ (หัวลูกศรอยู่ติดลำน้ำ) · ค่าสูญเสียวิ่งออก (หัวลูกศรอยู่ปลายขวา) */
+          const ribbon = zero ? null : gain
+            ? "M" + XL + " " + yA + " L" + (inner + HEAD) + " " + yA +
+              " L" + (inner + HEAD) + " " + (yA - FLARE) + " L" + inner + " " + yc +
+              " L" + (inner + HEAD) + " " + (yB + FLARE) + " L" + (inner + HEAD) + " " + yB + " L" + XL + " " + yB + " Z"
+            : "M" + inner + " " + yA + " L" + (XL - HEAD) + " " + yA +
+              " L" + (XL - HEAD) + " " + (yA - FLARE) + " L" + XL + " " + yc +
+              " L" + (XL - HEAD) + " " + (yB + FLARE) + " L" + (XL - HEAD) + " " + yB + " L" + inner + " " + yB + " Z";
+          return (
+            <g key={R.k}>
+              {ribbon
+                ? <path d={ribbon} fill={col} opacity={gain ? 0.78 : heavy ? 0.92 : 0.85} />
+                : <line x1={X0 + s.wA} y1={yc} x2={XL} y2={yc} stroke="var(--ln2)" strokeWidth="1" strokeDasharray="2 4" />}
+              <text x={LX} y={yc - 9} fontSize="10" fontWeight="700" fill={zero ? "var(--text-3)" : "var(--text-2)"}>{cut(R.label, 66)}</text>
+              <text x={LX} y={yc + 3} fontSize="9.5" fontWeight="800"
+                fill={zero ? "var(--text-3)" : gain ? "#1D4ED8" : heavy ? "#B91C1C" : "#B45309"}>
+                {gain ? "+" + R.pct + "%  ·  " + R.gain.toLocaleString() + " kWh"
+                  : zero ? "ไม่เสียพลังงานในด่านนี้" : "−" + R.pct + "%  ·  " + R.loss.toLocaleString() + " kWh"}
+                {R.unit ? <tspan fill="var(--text-3)" fontWeight="700">{"   → " + R.unit}</tspan> : null}
+              </text>
+              {R.note && <text x={LX} y={yc + 14} fontSize="8.5" fontWeight="600" fill="var(--text-3)">{cut(R.note, 70)}</text>}
+            </g>
+          );
+        }
+        /* หมุดหลัก — ต้นทาง / พลังงานนาม / เข้าอินเวอร์เตอร์ / ออกจากระบบ */
+        const big = R.kind === "end", first = R.kind === "start";
+        const accent = big ? "var(--acd)" : first ? "#B45309" : "var(--ln2)";
+        return (
+          <g key={R.k}>
+            <line x1={X0} y1={s.y1} x2={XL + 4} y2={s.y1} stroke={big ? "var(--acd)" : "var(--ln2)"}
+              strokeWidth={big ? 1.4 : 1} strokeDasharray={big ? null : "3 4"} opacity={big ? 0.7 : 1} />
+            <rect x={LX - 9} y={s.y1 - 32} width="3" height="30" rx="1.5" fill={accent} opacity={big || first ? 1 : 0.5} />
+            <text x={LX} y={s.y1 - 23} fontSize="10.5" fontWeight="800" fill="var(--text-1)">{cut(R.label, 60)}</text>
+            <text x={LX} y={s.y1 - 11} fontSize="9.5" fontWeight="800" fill={big ? "var(--acd)" : first ? "#B45309" : "var(--text-2)"}>
+              {R.kwh.toLocaleString()} kWh
+              {R.unit ? <tspan fill="var(--text-3)" fontWeight="700">{"   ·   " + R.unit}</tspan> : null}
+              {big ? <tspan fill="var(--acd)" fontWeight="800">{"   ·   PR " + R.pct + "%"}</tspan> : null}
+            </text>
+            {R.note && <text x={LX} y={s.y1 - 1} fontSize="8.5" fontWeight="600" fill="var(--text-3)">{cut(R.note, 70)}</text>}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+/* ============================================================
+   ผลกระทบต่อสิ่งแวดล้อม
+   ============================================================ */
+function SuEnviron({ env, years }) {
+  if (!env) return null;
+  const tiles = [
+    { ic: "tree", v: env.trees.toLocaleString(), u: "ต้น", lb: "เท่ากับปลูกไม้ยืนต้น", sub: "ดูดซับ 9.5 kgCO₂/ต้น/ปี" },
+    { ic: "map", v: env.carKm.toLocaleString(), u: "กม.", lb: "เท่ากับไม่ขับรถยนต์", sub: "0.12 kgCO₂/กม." },
+    { ic: "coin", v: env.petrol.toLocaleString(), u: "ลิตร", lb: "เท่ากับน้ำมันเบนซิน", sub: "2.31 kgCO₂/ลิตร" },
+    { ic: "sun", v: env.homes.toLocaleString(), u: "หลัง", lb: "เท่ากับไฟบ้านทั้งปี", sub: "ครัวเรือนไทย ~200 หน่วย/เดือน" },
+  ];
+  return (
+    <React.Fragment>
+      <div className="su-env">
+        <div className="hero">
+          <span className="eb">ลดคาร์บอนได้ปีละ</span>
+          <span className="big">{env.co2YearT.toLocaleString()}<small>tCO₂e</small></span>
+          <span className="sub">ตลอด {years} ปี รวม <b>{env.co2LifeT.toLocaleString()} tCO₂e</b> · คิดที่ {env.ef} kgCO₂e ต่อไฟฟ้า 1 หน่วยจากสายส่ง (อบก.)</span>
+        </div>
+        <div className="tiles">
+          {tiles.map((t) => (
+            <div key={t.lb} className="tile">
+              <P3Icon name={t.ic} size={13} />
+              <span className="v">{t.v}<small>{t.u}</small></span>
+              <span className="lb">{t.lb}</span>
+              <span className="sb">{t.sub}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      {env.carbonPayback != null && (
+        <div className="su-env-pb">
+          <span className="l">คืนทุนทางคาร์บอน</span>
+          <span className="bar"><span style={{ width: scClamp(env.carbonPayback / Math.max(1, years) * 100, 1, 100) + "%" }} /></span>
+          <span className="r"><b>{env.carbonPayback}</b> ปี</span>
+        </div>
+      )}
+    </React.Fragment>
+  );
+}
+
 /* ── แถบแยกส่วนของแสงที่ตกบนหน้าแผง ── */
 function SuLightBar({ irr }) {
   const parts = [
@@ -1050,6 +1416,10 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
     : null), [groups, panel, lossEff, S.inv, S.tamb, S.kc, acKw, isMicro, inv.eff, st.sun, shade3d, microSel && microSel.eff,
       S.site && S.site.mount, S.site && S.site.wind]);
   const life = energy ? scLife(energy.annual, panel, S.years) : null;
+  /* ผลกระทบต่อสิ่งแวดล้อม — คิดจากไฟที่ผลิตได้จริงคูณค่าการปล่อยของไฟจากสายส่ง */
+  const env = React.useMemo(() => (energy && life && typeof scEnviron === "function"
+    ? scEnviron(energy.annual, life.total, S.years, energy.dcKw, S.envf) : null),
+    [energy, life, S.years, S.envf]);
 
   /* ══ ตรวจวัด I-V ══ */
   const site = Object.assign({ date: "", hour: null, wind: 1, mount: "close", tAmb: null, ghi: null, shade: 0, age: 0 }, S.site || {});
@@ -1077,6 +1447,9 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
       tilt: s.tilt == null ? 0 : s.tilt, az: s.az == null ? 180 : s.az, gk: s.groupKey, label: s.label }));
   }, [isMicro, groups, plan, microUnits, idx, microSel && microSel.nSeries]);
   const monthNow = new Date(siteDate + "T12:00:00").getMonth();
+  /* เดินดูทีละเดือน — วนกลับต้นปี/ปลายปีให้เอง กดรัวได้ไม่ต้องกลัวตกขอบ */
+  const setMonth = (m) => setSite({ date: (siteDate.slice(0, 4) || "2026") + "-" + String(((m % 12) + 12) % 12 + 1).padStart(2, "0") + "-15" });
+  const stepMonth = (d) => setMonth((isFinite(monthNow) ? monthNow : 6) + d);
   /* ── จำลองทั้งวันอัตโนมัติ: แสง เงา อุณหภูมิ กำลังไฟ ทุก 15 นาที ตั้งแต่เช้าถึงเย็น ──
      ทุกอย่างในขั้นนี้อ่านจากผลจำลองชุดเดียวกัน ตัวเลขบนกราฟกับในตารางจึงตรงกันเสมอ */
   const sim = React.useMemo(() => (typeof ivDaySim === "function" && groups.length && panel.wp
@@ -1101,6 +1474,22 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   const canYear = typeof ivYearSim === "function" && groups.length > 0 && panel.wp > 0;
   const year = React.useMemo(() => (step >= 2 && canYear ? ivYearSim(st, panel, groups, idx.byPanel, yearOpt) : null),
     [step >= 2, st, panel, groups, idx, siteDate.slice(0, 4), site.tAmb, S.env, acKw, S.inv, isMicro, inv.eff, energy && energy.dcLoss, S.elec, hc.half]);
+  /* ── เส้นทางเดินดวงอาทิตย์ + แผนที่เงาบนแกน ทิศ × มุมสูง ──
+     เส้นทางเดินขึ้นกับละติจูดอย่างเดียว คิดเร็วมาก · แผนที่เงาต้องยิงลำแสงหลายร้อยทิศ
+     จึงคิดต่อเมื่อเปิดมาถึงขั้นนี้จริง ๆ และจำผลไว้จนกว่าผัง 3 มิติจะเปลี่ยน */
+  const sunPath = React.useMemo(() => (typeof ivSunPath === "function"
+    ? ivSunPath({ lat: st.sun && st.sun.lat, lng: st.sun && st.sun.lng }) : null),
+    [st.sun && st.sun.lat, st.sun && st.sun.lng]);
+  const [isoOn, setIsoOn] = React.useState(true);
+  const [isoShade, setIsoShade] = React.useState(null);
+  /* ยิงลำแสงพันกว่าทิศทาง — งานใหญ่ใช้เวลาเกินครึ่งวินาที ถ้าคิดตอน render จอจะค้าง
+     จึงให้การ์ดขึ้นก่อนแล้วค่อยคิดในคิวถัดไป ผู้ใช้เห็นหัวข้อกับคำอธิบายทันที */
+  React.useEffect(() => {
+    if (!(step >= 2 && isoOn && typeof ivIsoShade === "function")) { setIsoShade(null); return; }
+    let dead = false;
+    const t = setTimeout(() => { const r = ivIsoShade(st, {}); if (!dead) setIsoShade(r); }, 30);
+    return () => { dead = true; clearTimeout(t); };
+  }, [step >= 2, isoOn, st]);
   const simRow = sim ? sim.rows.reduce((a, r) => (Math.abs(r.h - simHour) < Math.abs(a.h - simHour) ? r : a), sim.rows[0]) : null;
   const shadeAuto = site.shadeAuto !== false;
   /* เงารายแผง ณ เวลาที่ดู — ใช้สร้างเส้น I-V แบบมีขั้นบันไดของสตริงที่โดนบัง */
@@ -1148,6 +1537,17 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
     return ivDone.filter((r) => r.a.ratio < med - 5).map((r) => ({ name: r.u.name, ratio: r.a.ratio, med }));
   }, [ivDone]);
 
+  /* ── ชุดเส้น I-V / P-V ที่ความเข้มแสงและอุณหภูมิต่าง ๆ ──
+     แบบเดียวกับกราฟคู่บนดาต้าชีตแผง แต่คิดจากสเปคของแผงรุ่นที่เลือกจริง
+     ต่อ 1 แผง = เอาไปเทียบกับดาต้าชีตได้ตรง ๆ · ทั้งสตริง = ค่าที่เครื่องวัดจะอ่านได้ที่หน้างาน */
+  const [famMode, setFamMode] = React.useState("irr");     // irr = ไล่ความเข้มแสง · temp = ไล่อุณหภูมิ
+  const [famScope, setFamScope] = React.useState("mod");   // mod = 1 แผง · str = ทั้งสตริง
+  const famStrN = ivMain && ivMain.u ? ivMain.u.n : 1;      // แผงอนุกรมของสตริง/ช่องที่กำลังดูอยู่
+  const famN = famScope === "str" ? famStrN : 1;
+  const ivFam = React.useMemo(() => (typeof ivFamily === "function" && par
+    ? ivFamily(par, panel, { mode: famMode, nSeries: famN, tc: 25, g: 1000 }) : []),
+    [par, panel, famMode, famN]);
+
   /* ══ ROI ══ */
   const roiCfg = Object.assign({}, IV_ROI, S.roi || {});
   const setRoi = (p) => set({ roi: Object.assign({}, roiCfg, p) });
@@ -1187,7 +1587,13 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
     /* รายงานต้องมีข้อมูล 12 เดือนเสมอ — ถ้ากดปุ่มตั้งแต่ยังไม่ผ่านขั้นที่ 3 ให้คำนวณตรงนี้เลย
        (ไม่งั้นจะได้รายงานที่หัวข้อทั้งปีหายไปเงียบ ๆ) */
     const yearNow = year || (canYear ? ivYearSim(st, panel, groups, idx.byPanel, yearOpt) : null);
+    /* แผนที่เงาคิดต่อเมื่อเปิดถึงขั้นที่ 3 — ถ้ากดออกรายงานตั้งแต่ขั้นแรก ต้องคิดตรงนี้ให้ครบ */
+    const isoNow = isoShade || (typeof ivIsoShade === "function" && totalPanels ? ivIsoShade(st, {}) : null);
+    /* กราฟดาต้าชีตในรายงานตรึงเงื่อนไขไว้ ไม่ผูกกับปุ่มที่ผู้ใช้กดค้างไว้บนหน้าจอ */
+    const famG = par && typeof ivFamily === "function" ? ivFamily(par, panel, { mode: "irr", nSeries: 1, tc: 25 }) : [];
+    const famT = par && typeof ivFamily === "function" ? ivFamily(par, panel, { mode: "temp", nSeries: famStrN, g: 1000 }) : [];
     suPrintReport({ job, sys: S, panel, inv, groups, plan, microSel, isMicro, energy, life, roi, roiCfg,
+      env, sunPath, isoShade: isoNow, ivFamG: famG, ivFamT: famT,
       ivRows, ivDone, ivAvg, ivOutliers, site, siteDate, acKw, totalPanels, warns, foot,
       /* โหมดไมโครใช้ผัง "แผงอยู่ไมโครตัวไหน" แทนผังสตริง — ผังในรายงานจะได้ตรงกับที่เห็นบนจอ */
       assign: isMicro ? microAssign : effAssign, microUnits, phases, phaseBins, phaseBal, uidPhase,
@@ -1840,7 +2246,12 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                 {sim && (
                   <div className="p3-card">
                     <span className="p3-eb"><P3Icon name="sun" size={13} />จำลองแสงตลอดวัน<span className="ln" />
-                      <span style={{ fontWeight: 600 }}>วันเฉลี่ยของเดือน{SC_MON[isFinite(monthNow) ? monthNow : 6]}</span></span>
+                      {/* เดินดูทีละเดือนได้จากตรงนี้เลย ไม่ต้องเลื่อนลงไปหาแถบเลือกเดือนด้านล่าง */}
+                      <span className="su-mstep">
+                        <button onClick={() => stepMonth(-1)} title="เดือนก่อนหน้า"><P3Icon name="arrow" size={12} /></button>
+                        <b>วันเฉลี่ยของเดือน{SC_MON[isFinite(monthNow) ? monthNow : 6]}</b>
+                        <button onClick={() => stepMonth(1)} title="เดือนถัดไป"><P3Icon name="arrow" size={12} /></button>
+                      </span></span>
                     <SuDayLight sim={sim} groups={groups} hour={simHour} onHour={(h) => setSite({ hour: scR(h, 2) })} />
                     <div style={{ display: "flex", gap: 14, flexWrap: "wrap", borderTop: "1px solid var(--ln)", paddingTop: 9 }}>
                       <span className="p3-stat">พระอาทิตย์ขึ้น <b>{ivHM(sim.sunrise)}</b></span>
@@ -1917,6 +2328,59 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                   </div>
                 )}
 
+                {/* ── เส้นทางเดินดวงอาทิตย์ + แผนที่เงาบัง ── */}
+                {sunPath && (
+                  <div className="p3-card">
+                    <span className="p3-eb"><P3Icon name="sunShadow" size={13} />เส้นทางเดินดวงอาทิตย์ &amp; แผนที่เงาบัง<span className="ln" />
+                      <span className="p3-seg wide" style={{ marginLeft: "auto" }}>
+                        <button data-on={isoOn ? "1" : "0"} onClick={() => setIsoOn(true)}>ซ้อนแผนที่เงา</button>
+                        <button data-on={isoOn ? "0" : "1"} onClick={() => setIsoOn(false)}>เฉพาะเส้นทาง</button>
+                      </span></span>
+                    <span className="p3-note" style={{ marginTop: -2 }}>
+                      แกนนอนคือทิศที่ดวงอาทิตย์อยู่ แกนตั้งคือมุมสูงเหนือขอบฟ้า — เส้นโค้งสีส้มคือเส้นทางที่ดวงอาทิตย์เดินในวันนั้น
+                      ตัวเลขบนเส้นประคือเวลา · พื้นหลังสีคือ<b>ทิศทางแสงที่ทำให้แผงโดนบัง</b> ยิ่งเข้มยิ่งโดนหนัก
+                      เส้นทางเดินเส้นไหนวิ่งผ่านพื้นที่สี แปลว่าเดือนนั้นเวลานั้นโดนเงาแน่นอน
+                    </span>
+                    <SuSunPath path={sunPath} iso={isoShade}
+                      mark={ivMain && ivMain.irr && !ivMain.irr.night
+                        ? { alt: ivMain.irr.alt, az: ivMain.irr.az, label: ivHM(simHour) } : null} />
+                    {isoOn && isoShade && (
+                      <div className="su-isolg" style={{ borderTop: "1px solid var(--ln)", paddingTop: 9 }}>
+                        <span style={{ fontWeight: 800, color: "var(--text-2)" }}>เงาบังเฉลี่ยทั้งระบบ</span>
+                        {SU_ISO.slice().reverse().map((b) => (
+                          <span key={b.lb}><i style={{ background: b.c, opacity: b.o }} />{b.lb}</span>
+                        ))}
+                        {!isoShade.any && <span style={{ color: "var(--acd)", fontWeight: 800 }}>· ไม่มีทิศทางแสงไหนที่ทำให้แผงโดนบังเลย</span>}
+                      </div>
+                    )}
+                    <div style={{ display: "flex", gap: 14, flexWrap: "wrap", borderTop: "1px solid var(--ln)", paddingTop: 9 }}>
+                      <span className="p3-stat">ละติจูด <b>{scR(scNum(st.sun && st.sun.lat, 13.75), 3)}°</b></span>
+                      <span className="p3-stat">ดวงอาทิตย์สูงสุดของปี <b>{sunPath.maxAlt}°</b></span>
+                      {sunPath.paths[0] && sunPath.paths[0].peak && (
+                        <span className="p3-stat">วันที่ยาวที่สุด <b>{ivHM(sunPath.paths[0].rise)}–{ivHM(sunPath.paths[0].set)}</b></span>
+                      )}
+                      {sunPath.paths[sunPath.paths.length - 1] && (
+                        <span className="p3-stat">วันที่สั้นที่สุด <b>{ivHM(sunPath.paths[sunPath.paths.length - 1].rise)}–{ivHM(sunPath.paths[sunPath.paths.length - 1].set)}</b></span>
+                      )}
+                      {isoShade && isoShade.worst && (
+                        <span className="p3-stat" style={{ color: "#B45309" }}>
+                          ทิศทางที่โดนหนักสุด <b>ทิศ {isoShade.worst.az}° สูง {isoShade.worst.alt}°</b> ({scR(isoShade.worst.f * 100, 1)}%)</span>
+                      )}
+                    </div>
+                    {isoOn && !isoShade && (
+                      <span className="p3-note">{totalPanels > 0
+                        ? "กำลังยิงลำแสงไปทั่วท้องฟ้าเพื่อวาดแผนที่เงา…"
+                        : "ยังไม่มีแผงในผัง 3 มิติ จึงยังวาดแผนที่เงาไม่ได้ — เส้นทางเดินดวงอาทิตย์ด้านบนคิดจากละติจูดของหน้างานล้วน ๆ"}</span>
+                    )}
+                    {isoOn && isoShade && isoShade.sampled > 0 && (
+                      <span className="p3-note">
+                        ผังนี้มี {isoShade.panels} แผง — แผนที่เงาสุ่มแผงตัวแทน {isoShade.sampled} ใบกระจายทั่วผังเพื่อให้วาดได้ทันที
+                        (ตัวบดบังคิดครบทุกชิ้น) · ตัวเลขเงาที่เอาไปคิดผลผลิตจริงยังคิดครบทุกใบเหมือนเดิม
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {/* ── สภาพอากาศเฉลี่ยของเดือนที่เลือก ── */}
                 <div className="p3-card">
                   <span className="p3-eb"><P3Icon name="cloud" size={13} />สภาพอากาศเฉลี่ยเดือน{SC_MON[isFinite(monthNow) ? monthNow : 6]}<span className="ln" />
@@ -1925,7 +2389,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                   <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                     {SC_MON.map((mm, i) => (
                       <button key={i} className="p3-chip" data-on={i === monthNow ? "1" : "0"}
-                        onClick={() => setSite({ date: (siteDate.slice(0, 4) || "2026") + "-" + String(i + 1).padStart(2, "0") + "-15" })}
+                        onClick={() => setMonth(i)}
                         style={{ padding: "5px 9px", fontSize: 10.5 }}>{mm}</button>
                     ))}
                   </div>
@@ -2039,30 +2503,12 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                 {/* ── เส้น I-V (รวมทุกสตริง · กดในตารางเพื่อเจาะดูทีละเส้น) ── */}
                 {ivMain && ivMain.a && ivMain.a.exp && (
                   <div className="p3-card">
+                    {/* กราฟเส้น I-V ย้ายไปการ์ด "เส้น P-V & I-V" ด้านล่างแล้ว — ตรงนี้เหลือเฉพาะ
+                        ตัวเลขที่ต้องพกไปวัดหน้างาน ซึ่งกราฟชุดใหม่ไม่ได้บอก (แยกรายสตริงตามเงาที่โดนจริง) */}
                     <span className="p3-eb"><P3Icon name="curve" size={13} />
-                      เส้น I-V {ivCur ? "ของ" + ivCur.u.name : "รวมทุก" + (isMicro ? "ตัว" : "สตริง")}<span className="ln" />
-                      {ivCur ? (
-                        <button className="p3-lnk" style={{ fontSize: 10 }} onClick={() => setIvSel(null)}>
-                          <P3Icon name="layers" size={12} />แสดงทั้งหมด
-                        </button>
-                      ) : (
-                        <span style={{ fontWeight: 600 }}>{ivRows.length} เส้น · {ivMain.a.cond.g} W/m² · เซลล์ {scR(ivMain.a.cond.tc, 0)}°C</span>
-                      )}
+                      ค่าที่ควรวัดได้ของทุก{isMicro ? "ตัว" : "สตริง"} ณ เวลานี้<span className="ln" />
+                      <span style={{ fontWeight: 600 }}>{ivRows.length} {isMicro ? "ตัว" : "สตริง"} · {ivMain.a.cond.g} W/m² · เซลล์ {scR(ivMain.a.cond.tc, 0)}°C</span>
                     </span>
-                    <SuIvChart focusId={ivSel} stcRef={ivMain.a.expStc}
-                      curves={ivRows.map((r, i) => (r.a && r.a.exp
-                        ? { id: r.u.id, name: r.u.name, curve: r.a.exp, color: suColor(r.u.sid || i + 1),
-                            /* ไมโคร: โชว์กำลังรวมทั้งตัว (ทุกช่อง MPPT) ไม่ใช่ของช่องเดียว */
-                            watt: r.a.exp.pmax * (isMicro ? Math.max(1, Math.round((r.u.count || 1) / Math.max(1, r.u.n))) : 1) }
-                        : null)).filter(Boolean)}
-                      meas={ivCur && ivCur.a.stc ? { voc: scNum(ivCur.m.voc), isc: scNum(ivCur.m.isc), vmp: scNum(ivCur.m.vmp), imp: scNum(ivCur.m.imp), pmax: scNum(ivCur.m.pmax) } : null} />
-                    {/* ชื่อเส้น+กำลังอยู่ในกรอบบนกราฟแล้ว เหลือแค่สิ่งที่กรอบนั้นไม่ได้บอก */}
-                    {ivCur && (
-                      <div className="su-ivlegend">
-                        <span className="mute"><i style={{ background: "#D97706" }} />กำลังไฟ (แกนขวา)</span>
-                        {ivCur.a.stc && <span className="mute"><i style={{ background: "#2563EB" }} />ที่วัดได้จริง</span>}
-                      </div>
-                    )}
 
                     {/* ── เงาบังนิดเดียวแต่ฉุดทั้งสตริง ── */}
                     {ivCur && ivCur.el && ivCur.el.geo > 0 && (
@@ -2078,9 +2524,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                       </div>
                     )}
 
-                    {/* ── ค่าที่ควรได้ ทุกสตริง — กดแถวเพื่อเจาะดูเส้นเดียว ── */}
-                    <span className="p3-eb" style={{ marginTop: 3 }}>ค่าที่ควรได้ของทุก{isMicro ? "ไมโคร" : "สตริง"} ณ เวลานี้<span className="ln" />
-                      <span style={{ fontWeight: 600 }}>กดแถวเพื่อดูทีละเส้น</span></span>
+                    {/* กดแถวเพื่อดูว่าเส้นนั้นโดนเงาบังอยู่เท่าไหร่ */}
                     <div className="su-scroll">
                       <table className="su-tb su-pick-row">
                         <thead><tr><th></th><th>แผง</th>{isMicro && <th>ต่อช่อง</th>}<th>แสง</th><th>เซลล์</th><th>Voc</th><th>Isc</th><th>Vmp</th><th>Imp</th><th>{isMicro ? "Pmax/ช่อง" : "Pmax"}</th>{isMicro && <th>รวมทั้งตัว</th>}</tr></thead>
@@ -2088,7 +2532,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                           {ivRows.map((r, i) => r.a && r.a.exp && (
                             <tr key={r.u.id} data-on={ivSel === r.u.id ? "1" : "0"}
                               onClick={() => setIvSel(ivSel === r.u.id ? null : r.u.id)}
-                              title={ivSel === r.u.id ? "กดอีกครั้งเพื่อกลับไปดูรวมทุกเส้น" : "กดเพื่อดูเฉพาะเส้นนี้"}>
+                              title={ivSel === r.u.id ? "กดอีกครั้งเพื่อยกเลิก" : "กดเพื่อดูว่าเส้นนี้โดนเงาบังอยู่เท่าไหร่"}>
                               <td><span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                                 <span style={{ width: 9, height: 9, borderRadius: 99, background: suColor(r.u.sid || i + 1) }} />
                                 <b>{r.u.name}</b></span></td>
@@ -2107,6 +2551,67 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                     </div>
                     <span className="p3-note">หน่วย: แสง W/m² · Voc/Vmp เป็นโวลต์ · Isc/Imp เป็นแอมป์ — พกตารางนี้ไปหน้างานได้เลย ถ้าวัดได้ต่างจากนี้เกิน 5% ค่อยไล่หาสาเหตุ{isMicro ? " · ไมโคร 1 ตัวรับแผง " + (microSel ? microSel.per : 1) + " ใบ แต่แยกเป็นช่อง MPPT อิสระช่องละ " + (microSel ? microSel.nSeries : 1) + " ใบ ค่าไฟฟ้าในตารางจึงเป็นของ 1 ช่อง (ที่เครื่องวัดอ่านได้ตอนถอดสายมาวัดทีละเส้น) ส่วน “รวมทั้งตัว” คือทุกช่องบวกกัน · เส้นของแต่ละตัวคิดจากเงาที่ตกบนแผงของตัวนั้นเองล้วน ๆ ตัวที่โดนบังจึงต่ำลงคนเดียว ไม่ลากตัวอื่นลงไปด้วย" : ""}</span>
 
+                  </div>
+                )}
+
+                {/* ── เส้น P-V & I-V ที่ความเข้มแสง/อุณหภูมิต่าง ๆ (แบบดาต้าชีต) ── */}
+                {!!ivFam.length && (
+                  <div className="p3-card">
+                    <span className="p3-eb"><P3Icon name="curve" size={13} />เส้น P-V &amp; I-V {famMode === "temp" ? "ที่อุณหภูมิเซลล์ต่าง ๆ" : "ที่ความเข้มแสงต่าง ๆ"}<span className="ln" />
+                      <span className="p3-seg wide" style={{ marginLeft: "auto" }}>
+                        <button data-on={famMode === "irr" ? "1" : "0"} onClick={() => setFamMode("irr")}>ไล่ความเข้มแสง</button>
+                        <button data-on={famMode === "temp" ? "1" : "0"} onClick={() => setFamMode("temp")}>ไล่อุณหภูมิ</button>
+                      </span></span>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      <span className="p3-seg">
+                        <button data-on={famScope === "mod" ? "1" : "0"} onClick={() => setFamScope("mod")}>ต่อ 1 แผง</button>
+                        <button data-on={famScope === "str" ? "1" : "0"} onClick={() => setFamScope("str")}>
+                          ทั้ง{isMicro ? "ช่อง" : "สตริง"} · {famStrN} แผง</button>
+                      </span>
+                      <span className="p3-stat" style={{ marginLeft: "auto" }}>
+                        {famMode === "temp" ? "ตรึงแสงไว้ที่ 1000 W/m²" : "ตรึงอุณหภูมิเซลล์ไว้ที่ 25 °C (มาตรฐาน STC)"}</span>
+                    </div>
+                    <SuIvFamily curves={ivFam} mode={famMode} showPv />
+                    <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 9.5, color: "var(--text-3)", fontWeight: 700 }}>
+                      <span><b style={{ color: "var(--text-2)" }}>━</b> เส้น I-V — กระแส (แกนซ้าย)</span>
+                      <span><b style={{ color: "var(--text-2)" }}>┅</b> เส้น P-V — กำลังไฟ (แกนขวา)</span>
+                      <span><b style={{ color: "var(--text-3)" }}>◦</b> จุดกลม = จุดกำลังสูงสุด (MPP) ที่อินเวอร์เตอร์ต้องไล่ตาม</span>
+                    </div>
+                    <span className="p3-note">
+                      {famMode === "temp" ? (
+                        <React.Fragment>
+                          <b>ความร้อนกินแรงดัน ไม่ได้กินกระแส</b> — สังเกตว่าเส้นเลื่อนเข้าหาแกนซ้าย (Voc ลดลง) แต่ความสูงเกือบไม่เปลี่ยน
+                          นี่คือเหตุผลที่ต้องเช็ก Voc ตอนเช้าที่อากาศเย็นที่สุด (แรงดันจะสูงสุด อาจเกินพิกัดอินเวอร์เตอร์)
+                          และเหตุผลที่ตอนบ่ายแดดแรงแต่ได้ไฟน้อยกว่าที่คิด · แผงรุ่นนี้ {scNum(panel.tcPmax, -0.29)} %/°C
+                          {ivMain && ivMain.temp ? " · ตอนนี้ที่หน้างานเซลล์ร้อน " + ivMain.temp.tCell + " °C" : ""}
+                        </React.Fragment>
+                      ) : (
+                        <React.Fragment>
+                          <b>แสงกินกระแส ไม่ค่อยกินแรงดัน</b> — แสงลดครึ่งหนึ่ง กระแสลดครึ่งหนึ่งตาม แต่ Voc แทบไม่ขยับ (ตกแบบลอการิทึม)
+                          นี่คือเหตุผลที่วันเมฆครึ้มระบบยังจ่ายไฟได้ อินเวอร์เตอร์ยังเข้าช่วง MPPT อยู่ ·
+                          กราฟนี้คิดจากสเปคของ {panel.model || "แผงที่เลือก"} เทียบกับกราฟบนดาต้าชีตได้ตรง ๆ ที่โหมด "ต่อ 1 แผง"
+                        </React.Fragment>
+                      )}
+                    </span>
+                    <div className="su-scroll">
+                      <table className="su-tb">
+                        <thead><tr><th>{famMode === "temp" ? "อุณหภูมิเซลล์" : "ความเข้มแสง"}</th><th>Voc</th><th>Isc</th><th>Vmp</th><th>Imp</th><th>Pmax</th><th>Fill Factor</th><th>เทียบ STC</th></tr></thead>
+                        <tbody>
+                          {ivFam.map((c, i) => (
+                            <tr key={c.key}>
+                              <td><span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                                <span style={{ width: 9, height: 9, borderRadius: 99, background: (famMode === "temp" ? SU_TRAMP : SU_GRAMP)[Math.min(i, 4)] }} />
+                                <b>{c.label}</b></span></td>
+                              <td>{c.voc} V</td><td>{c.isc} A</td><td>{c.vmp} V</td><td>{c.imp} A</td>
+                              <td><b>{c.pmax >= 1000 ? scR(c.pmax / 1000, 2) + " kW" : c.pmax + " W"}</b></td>
+                              <td>{c.ff}%</td>
+                              <td style={{ fontWeight: 800, color: i === 0 ? "var(--acd)" : "var(--text-3)" }}>
+                                {ivFam[0].pmax > 0 ? scR(c.pmax / ivFam[0].pmax * 100, 1) + "%" : "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
 
@@ -2275,6 +2780,23 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                   )}
                 </div>
 
+                {/* ── แผนภาพค่าสูญเสียตลอดเส้นทาง แสง → ไฟ AC ── */}
+                {!!(energy.chain && energy.chain.length) && (
+                  <div className="p3-card">
+                    <span className="p3-eb"><P3Icon name="height" size={13} />แผนภาพค่าสูญเสียของระบบ<span className="ln" />
+                      <span style={{ fontWeight: 600 }}>แสงที่ได้ → ไฟที่ขายได้ เหลือ {energy.chain[energy.chain.length - 1].pct}%</span></span>
+                    <span className="p3-note" style={{ marginTop: -2 }}>
+                      ไล่จากแสงที่ตกบนหน้าแผงทั้งปีลงมาทีละด่านจนถึงไฟ AC ที่ออกจากระบบจริง —
+                      ทุกบรรทัดมาจากการเดินเวลาชุดเดียวกับที่คำนวณผลผลิตด้านบน บรรทัดสุดท้ายจึงเท่ากับตัวเลขผลผลิตปีแรกเป๊ะ
+                    </span>
+                    <SuLossFlow chain={energy.chain} />
+                    <span className="p3-note">
+                      <b>Performance Ratio {energy.pr}%</b> คือบรรทัดสุดท้ายหารบรรทัดแรก — เป็นตัวเลขที่ใช้เทียบคุณภาพงานติดตั้งข้ามโครงการได้
+                      โดยไม่ต้องสนใจว่าหน้างานไหนแดดแรงกว่ากัน (งานหลังคาบ้านในไทยที่ออกแบบดีมักได้ 78–84%)
+                    </span>
+                  </div>
+                )}
+
                 <div className="p3-card">
                   <span className="p3-eb"><P3Icon name="height" size={13} />ค่าสูญเสียของระบบ<span className="ln" />
                     <span style={{ fontWeight: 600 }}>รวม {energy.dcLoss}% ฝั่ง DC{shade3d ? " + เงา " + energy.shadeLoss + "%" : ""}</span></span>
@@ -2291,6 +2813,43 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                         {energy.clipLoss > 8 ? " — เพิ่มขนาด/จำนวนอินเวอร์เตอร์คุ้มกว่ามาก" : " — ปกติของการออกแบบให้ DC มากกว่า AC เล็กน้อย"}</span></div>
                   )}
                 </div>
+
+                {/* ── ผลกระทบต่อสิ่งแวดล้อม ── */}
+                {env && (
+                  <div className="p3-card">
+                    <span className="p3-eb"><P3Icon name="tree" size={13} />ผลกระทบต่อสิ่งแวดล้อม<span className="ln" />
+                      <span style={{ fontWeight: 600 }}>ตัวเลขเทียบเท่าทั้งหมดคิดต่อปี</span></span>
+                    <SuEnviron env={env} years={S.years} />
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 9, borderTop: "1px solid var(--ln)", paddingTop: 10 }}>
+                      <label className="p3-f">
+                        <span className="lb" style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                          <span>ค่าการปล่อยของไฟจากสายส่ง</span>
+                          <span className={"su-src " + (S.envf && S.envf.ef != null ? "edit" : "def")}>
+                            {S.envf && S.envf.ef != null ? "แก้เอง" : "อบก."}</span>
+                          {S.envf && S.envf.ef != null && <button className="p3-lnk" style={{ fontSize: 9.5 }}
+                            onClick={(e) => { e.preventDefault(); set({ envf: Object.assign({}, S.envf, { ef: null }) }); }}>คืนค่า</button>}
+                        </span>
+                        <span style={{ display: "flex", gap: 5, alignItems: "center" }}>
+                          <input className="p3-inp" type="number" min="0" step="0.01"
+                            value={S.envf && S.envf.ef != null ? S.envf.ef : SC_ENVF.ef}
+                            onChange={(e) => set({ envf: Object.assign({}, S.envf, { ef: e.target.value === "" ? null : +e.target.value }) })} />
+                          <span className="p3-sfx">kg/kWh</span></span></label>
+                      <label className="p3-f">
+                        <span className="lb" title="คาร์บอนที่ใช้ไปตั้งแต่ถลุงซิลิคอน ผลิตแผง ขนส่ง จนติดตั้งเสร็จ — หารด้วยที่ลดได้ต่อปี ก็ได้ 'ปีที่ระบบเริ่มเป็นบวกต่อโลกจริง ๆ'">คาร์บอนที่ใช้สร้างระบบ</span>
+                        <span style={{ display: "flex", gap: 5, alignItems: "center" }}>
+                          <input className="p3-inp" type="number" min="0" step="10"
+                            value={S.envf && S.envf.embod != null ? S.envf.embod : SC_ENVF.embod}
+                            onChange={(e) => set({ envf: Object.assign({}, S.envf, { embod: e.target.value === "" ? null : +e.target.value }) })} />
+                          <span className="p3-sfx">kg/kWp</span></span></label>
+                    </div>
+                    <span className="p3-note">
+                      ระบบขนาด {energy.dcKw} kWp นี้ใช้คาร์บอนสร้างราว <b>{env.embodT} tCO₂e</b> (ถลุงซิลิคอน ผลิตแผง ขนส่ง ติดตั้ง)
+                      แล้วลดคืนได้ปีละ {env.co2YearT} tCO₂e → <b>คืนทุนทางคาร์บอนใน {env.carbonPayback} ปี</b>
+                      {env.ratio ? " และตลอด " + S.years + " ปีจะลดได้ราว " + env.ratio + " เท่าของที่ใช้ไปตอนสร้าง" : ""} ·
+                      ตัวเลขทั้งหมดคิดจากไฟที่ระบบนี้ผลิตได้จริงตามผลคำนวณด้านบน ไม่ใช่ค่าเฉลี่ยของอุตสาหกรรม
+                    </span>
+                  </div>
+                )}
 
                 <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
                   <button className="p3-b" onClick={() => setStep(2)}>ย้อนกลับ</button>

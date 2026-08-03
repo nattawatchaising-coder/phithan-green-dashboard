@@ -170,6 +170,29 @@ function ivModule(par, panel, G, Tc) {
     ff: ffT, g: scNum(G, 1000), tc: scNum(Tc, 25) };
 }
 
+/* ── ชุดเส้น I-V / P-V หลายเส้นในกราฟเดียว ──
+   โหมด "แสง"    = ตรึงอุณหภูมิเซลล์ไว้ แล้วไล่ความเข้มแสง — เห็นว่ากระแสแปรตามแสงเกือบเป็นเส้นตรง
+   โหมด "ร้อน"   = ตรึงความเข้มแสงไว้ แล้วไล่อุณหภูมิ — เห็นว่าแรงดันคือตัวที่ความร้อนกิน
+   นี่คือกราฟคู่มาตรฐานบนดาต้าชีตแผงทุกรุ่น เอาไว้เทียบว่าแผงที่หน้างานยังตรงสเปคอยู่ไหม */
+const IV_GLEVELS = [1000, 800, 600, 400, 200];
+const IV_TLEVELS = [25, 40, 55, 70];
+function ivFamily(par, panel, o) {
+  o = o || {};
+  if (!par || !panel || !panel.voc) return [];
+  const ns = Math.max(1, Math.round(scNum(o.nSeries, 1))), np = Math.max(1, Math.round(scNum(o.nPar, 1)));
+  const kD = o.derate == null ? 1 : o.derate;
+  const temp = o.mode === "temp";
+  const list = temp
+    ? (o.temps || IV_TLEVELS).map((t) => ({ g: scNum(o.g, 1000), tc: t }))
+    : (o.levels || IV_GLEVELS).map((g) => ({ g, tc: scNum(o.tc, 25) }));
+  return list.map((c) => {
+    const s = ivString(par, panel, c.g, c.tc, ns, np, kD);
+    if (!s) return null;
+    return Object.assign(s, { key: temp ? "t" + c.tc : "g" + c.g,
+      label: temp ? scR(c.tc, 0) + " °C" : c.g + " W/m²" });
+  }).filter(Boolean);
+}
+
 /* เส้น I-V ของทั้งสตริง = แรงดันคูณจำนวนแผงอนุกรม · กระแสคูณจำนวนสตริงขนาน */
 function ivString(par, panel, G, Tc, nSeries, nPar, derate) {
   const m = ivModule(par, panel, G, Tc);
@@ -685,6 +708,99 @@ function ivShadeMoment(st, byPanel, groups, o) {
   Object.keys(acc).forEach((k) => { byGroup[k] = scR(acc[k].s / acc[k].n * 100, 1); });
   return { byUid: sh.byUid, byGroup, overall: scR(sh.mean * 100, 1), sun,
     panels: geo.panels.length, obstacles: geo.obstacles, night: false };
+}
+
+/* ============================================================
+   เส้นทางเดินดวงอาทิตย์ + แผนที่เงาบัง (sun path & iso-shading)
+   ------------------------------------------------------------
+   แกนนอน = ทิศที่ดวงอาทิตย์อยู่ (0° เหนือ · 90° ตะวันออก · 180° ใต้ · 270° ตะวันตก)
+   แกนตั้ง = มุมสูงเหนือขอบฟ้า
+   บนแกนคู่นี้ ตำแหน่งดวงอาทิตย์ทุกวันทั้งปีจะตกอยู่ในแถบเดียว และที่สำคัญกว่านั้น
+   "เงาบัง" ขึ้นกับทิศทางแสงเท่านั้น ไม่ขึ้นกับว่าเป็นวันไหน — จึงวาดเป็นแผนที่พื้นหลังตายตัวได้
+   แล้วเอาเส้นทางเดินของแต่ละเดือนทาบลงไป เห็นทันทีว่าโดนบังเดือนไหน เวลาไหน
+   ============================================================ */
+/* วันตัวแทน 7 เส้นแบบเดียวกับที่ใช้กันในวงการ — เดือนที่เส้นทางทับกันรวมเป็นเส้นเดียว */
+const IV_SUNDAYS = [
+  { doy: 172, label: "21 มิ.ย." },
+  { doy: 141, label: "21 พ.ค. · 23 ก.ค." },
+  { doy: 110, label: "20 เม.ย. · 23 ส.ค." },
+  { doy: 79,  label: "20 มี.ค. · 23 ก.ย." },
+  { doy: 52,  label: "21 ก.พ. · 23 ต.ค." },
+  { doy: 19,  label: "19 ม.ค. · 22 พ.ย." },
+  { doy: 356, label: "22 ธ.ค." },
+];
+/* แถบเมืองไทยอยู่ใต้เส้นทรอปิกออฟแคนเซอร์ — ฤดูร้อนดวงอาทิตย์อ้อมเหนือ ทิศจึงวิ่งข้าม 0°/360°
+   ถ้าลากเส้นตรง ๆ จะได้เส้นพาดขวางทั้งกราฟ ต้องตัดเส้นตรงจุดที่ข้ามก่อน */
+function ivAzSplit(pts) {
+  const segs = []; let cur = [];
+  for (let i = 0; i < pts.length; i++) {
+    if (i && Math.abs(pts[i].az - pts[i - 1].az) > 180) { if (cur.length > 1) segs.push(cur); cur = []; }
+    cur.push(pts[i]);
+  }
+  if (cur.length > 1) segs.push(cur);
+  return segs;
+}
+function ivSunPath(o) {
+  o = o || {};
+  const lat = scNum(o.lat, 13.75), lng = scNum(o.lng, 100.5);
+  const paths = IV_SUNDAYS.map((d) => {
+    const pts = [];
+    for (let h = 4; h <= 20.001; h += 0.1) {
+      const s = scSunPos(lat, lng, d.doy, h);
+      if (s.alt > 0) pts.push({ az: s.az, alt: s.alt, h });
+    }
+    return { doy: d.doy, label: d.label, pts, segs: ivAzSplit(pts),
+      rise: pts.length ? pts[0].h : null, set: pts.length ? pts[pts.length - 1].h : null,
+      peak: pts.reduce((a, q) => (!a || q.alt > a.alt ? q : a), null) };
+  }).filter((p) => p.pts.length);
+  /* เส้นชั่วโมง — จุดที่ดวงอาทิตย์อยู่ ณ เวลาเดียวกันของทั้ง 7 วัน ต่อกันเป็นเส้น */
+  const hours = [];
+  for (let hh = 5; hh <= 19; hh++) {
+    const pts = IV_SUNDAYS.map((d) => { const s = scSunPos(lat, lng, d.doy, hh); return s.alt > 1 ? { az: s.az, alt: s.alt } : null; }).filter(Boolean);
+    if (pts.length > 1) hours.push({ h: hh, pts, segs: ivAzSplit(pts) });
+  }
+  let maxAlt = 0, north = false;
+  paths.forEach((p) => {
+    if (p.segs.length > 1) north = true;
+    p.pts.forEach((q) => { if (q.alt > maxAlt) maxAlt = q.alt; });
+  });
+  return { paths, hours, lat, lng, maxAlt: scR(maxAlt, 1), north };
+}
+
+/* แผนที่เงาบังบนแกน ทิศ × มุมสูง — คิดครั้งเดียวแล้วใช้ได้ทั้งปี
+   คืนค่าเป็นตาราง cells[] แต่ละช่องคือ "แผงทั้งระบบโดนบังเฉลี่ยกี่ %" ถ้าดวงอาทิตย์อยู่ตรงนั้น */
+function ivIsoShade(st, o) {
+  o = o || {};
+  const geo = ivGeom(st);
+  if (!geo.panels.length) return null;
+  const az0 = scNum(o.azMin, 0), az1 = scNum(o.azMax, 354);
+  const azStep = scNum(o.azStep, 6), altStep = scNum(o.altStep, 5);
+  /* งานใหญ่ยิงลำแสงครบทุกใบ × ทุกทิศทางแล้วช้าเกินไป (140 แผง ≈ 2 วินาที)
+     แผนที่นี้ต้องการแค่ "เฉลี่ยทั้งระบบ" จึงสุ่มแผงตัวแทนกระจายทั่วผังแทน
+     ตัวบดบังยังคิดครบทุกชิ้นเสมอ — ความละเอียดของท้องฟ้าจึงไม่ลดลงเลย */
+  /* ต้นทุนโตตาม แผง × ตัวบดบัง — คุมงบให้อยู่ราวครึ่งวินาทีไม่ว่าผังจะใหญ่แค่ไหน */
+  const maxP = o.maxPanels != null ? Math.max(6, Math.round(scNum(o.maxPanels, 48)))
+    : scClamp(Math.round(3000 / Math.max(1, geo.blockers.length)), 12, 48);
+  let G = geo, sampled = 0;
+  if (geo.panels.length > maxP) {
+    const stride = geo.panels.length / maxP, pick = [];
+    for (let i = 0; i < maxP; i++) pick.push(Math.min(geo.panels.length - 1, Math.round(i * stride)));
+    G = { panels: pick.map((i) => geo.panels[i]), samples: pick.map((i) => geo.samples[i]), blockers: geo.blockers };
+    sampled = G.panels.length;
+  }
+  const cells = [];
+  let worst = null;
+  for (let az = az0; az <= az1 + 0.001; az += azStep) {
+    for (let alt = altStep / 2; alt < 90; alt += altStep) {
+      const sh = ivShadeAt(G, ivSunDir(alt, az));
+      const c = { az: scR(az, 1), alt: scR(alt, 1), f: sh.mean };
+      cells.push(c);
+      if (sh.mean > 0.001 && (!worst || sh.mean > worst.f)) worst = c;
+    }
+  }
+  return { cells, az0, az1, azStep, altStep, worst, sampled,
+    panels: geo.panels.length, obstacles: geo.obstacles, buildings: geo.buildings,
+    any: cells.some((c) => c.f > 0.005) };
 }
 
 /* ============================================================

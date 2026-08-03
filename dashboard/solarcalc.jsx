@@ -701,7 +701,7 @@ function scYearOneGroup(tilt, az, o) {
 /* กำลัง DC ต่อ 1 kWp ณ เวลาหนึ่ง (W) — แยกออกมาเพื่อให้รวมทุกกลุ่มในลูปเดียวกันได้ */
 function scDcAt(tilt, az, sun, m, o) {
   const sa = Math.sin(sun.alt * SC_DEG);
-  if (sa <= 0.017) return { dc: 0, poa: 0 };
+  if (sa <= 0.017) return { dc: 0, poa: 0, poaEff: 0 };
   const kc = (o.kc || SC_KC)[m], tamb = (o.tamb || SC_TAMB)[m];
   const ghi = 1098 * sa * Math.exp(-0.057 / sa) * kc;
   const i0 = 1367 * (1 + 0.033 * Math.cos(2 * Math.PI * o.doy / 365)) * sa;
@@ -712,11 +712,12 @@ function scDcAt(tilt, az, sun, m, o) {
   const cosAoi = cosB * sa + sinB * Math.cos(sun.alt * SC_DEG) * Math.cos((sun.az - az) * SC_DEG);
   const beam = Math.max(0, dni * cosAoi), sky = dhi * (1 + cosB) / 2, gnd = ghi * scNum(o.albedo, SC_ENV.albedo) * (1 - cosB) / 2;
   const poa = beam + sky + gnd;
-  if (poa <= 0) return { dc: 0, poa: 0 };
+  if (poa <= 0) return { dc: 0, poa: 0, poaEff: 0, ghi: ghi };
   const poaEff = beam * scIam(cosAoi) + (sky + gnd) * SC_IAM_DIFF;
   const tCell = scTcell(poa, tamb, o.wind, o.mount);
   const dc = Math.max(0, poaEff * (1 + scNum(o.tcPmax, SC_PANEL_EXTRA.tcPmax) / 100 * (tCell - 25)));   // W ต่อ 1 kWp
-  return { dc, poa, tCell };
+  /* ghi = แสงบนพื้นราบ ณ เวลานั้น — ไม่ขึ้นกับมุมหลังคา ใช้เป็นจุดตั้งต้นของแผนภาพค่าสูญเสีย */
+  return { dc, poa, poaEff, tCell, ghi: ghi };
 }
 
 /* ── พลังงานทั้งระบบ ──
@@ -742,24 +743,31 @@ function scEnergy(groups, panel, sys) {
   const dcKw = gs.reduce((a, x) => a + x.kwp, 0);
   const lat = scNum(sys.lat, 13.75), lng = scNum(sys.lng, 100.5), dt = 0.5;
   const monthly = new Array(12).fill(0);
-  let gross = 0, net = 0, poaSum = 0, doy = 0;
+  /* ตัวสะสมสำหรับ "แผนภาพค่าสูญเสีย" — เก็บพลังงานที่จุดต่าง ๆ ของเส้นทาง
+     poaSum = แสงดิบ · poaEffSum = หลังหักการสะท้อนหน้ากระจก · grossNoShade = หลังหักความร้อน · gross = หลังหักเงา */
+  let gross = 0, net = 0, poaSum = 0, poaEffSum = 0, grossNoShade = 0, ghiSum = 0, doy = 0;
   for (let m = 0; m < 12; m++) {
     for (let d = 0; d < SC_MDAYS[m]; d++) {
       doy++; o.doy = doy;
       for (let h = 4; h < 20; h += dt) {
         const sun = scSunPos(lat, lng, doy, h);
         if (sun.alt <= 1) continue;
-        let dcW = 0;
+        let dcW = 0, ghiNow = 0;
         for (let i = 0; i < gs.length; i++) {
           const r = scDcAt(gs[i].g.tilt, gs[i].g.az, sun, m, o);
+          /* แสงบนพื้นราบเป็นค่าของ "หน้างาน" ไม่ใช่ของกลุ่มแผง — เก็บครั้งเดียวต่อช่วงเวลา */
+          if (r.ghi > ghiNow) ghiNow = r.ghi;
           if (!r.dc) continue;
           const dcG = r.dc * gs[i].sf;                               // หักเงาของกลุ่มนี้
           const kwh = dcG * gs[i].kwp * dt / 1000;
           gs[i].kwh += kwh; gs[i].poa += r.poa * dt / 1000;
           dcW += dcG * gs[i].kwp;                                    // W (รวมทั้งระบบ)
           poaSum += r.poa * gs[i].kwp * dt / 1000;
+          poaEffSum += r.poaEff * gs[i].kwp * dt / 1000;
+          grossNoShade += r.dc * gs[i].kwp * dt / 1000;
           gross += kwh;
         }
+        ghiSum += ghiNow * dt / 1000;                                // kWh/m² บนพื้นราบ สะสมทั้งปี
         if (dcW <= 0) continue;
         let acKwNow = dcW / 1000 * dcLoss * eff;
         if (acKw > 0 && acKwNow > acKw) acKwNow = acKw;              // ← ตัดยอดจริงตรงนี้
@@ -770,11 +778,73 @@ function scEnergy(groups, panel, sys) {
   }
   const dcAc = acKw > 0 ? dcKw / acKw : 0;
   const beforeClip = gross * dcLoss * eff;
+  /* ── แผนภาพค่าสูญเสีย (loss diagram) ──
+     เดินตามลำดับเดียวกับที่ใช้กันในวงการ (PVsyst): เริ่มจาก "แสงบนพื้นราบ" ซึ่งเป็นของหน้างาน
+     ไม่ขึ้นกับการออกแบบ → บวกที่ได้เพิ่มจากมุมเอียงหลังคา → หักการสะท้อนหน้ากระจก
+     → คูณพื้นที่แผงกับประสิทธิภาพ STC เป็นพลังงานไฟฟ้า → หักทีละด่านจนถึงไฟ AC ที่ส่งออกจริง
+     ทุกตัวเลขมาจากลูปข้างบนชุดเดียวกัน บรรทัดสุดท้ายจึงเท่ากับ annual เป๊ะ ไม่ใช่ประมาณ
+
+     หน่วย: 3 บรรทัดแรกเป็นเรื่องของ "แสง" (kWh/m²) แต่แสดงเป็น kWh ด้วยการคูณ kWp ไว้แล้ว
+     เส้นทางน้ำจึงต่อเนื่องกันได้ — ที่บรรทัด "พลังงานนาม" ตัวเลขทั้งสองสเกลบรรจบกันพอดี */
+  const areaOne = scNum(panel.width, 0) * scNum(panel.length, 0);          // m² ต่อแผง (จากคลัง)
+  const nPanels = gs.reduce((a, x) => a + scNum(x.g.count, 0), 0);
+  const areaAll = areaOne * nPanels;
+  const etaStc = areaOne > 0 ? wp / (areaOne * 1000) * 100 : 0;            // ประสิทธิภาพแผงที่ STC (%)
+  const eGhi = ghiSum * dcKw;                                             // ถ้าวางราบกับพื้น จะได้แสงเท่านี้
+  /* มุมเอียง/ทิศเฉลี่ยถ่วงน้ำหนักด้วยกำลังติดตั้ง — ใช้เขียนกำกับบรรทัดที่ได้เพิ่มจากหลังคา */
+  const tiltAvg = dcKw > 0 ? gs.reduce((a, x) => a + scNum(x.g.tilt, 0) * x.kwp, 0) / dcKw : 0;
+  const chain = [];
+  const nominal = poaSum;
+  let cur = eGhi;
+  chain.push({ k: "ghi", kind: "start", label: "แสงอาทิตย์บนพื้นราบทั้งปี", kwh: Math.round(eGhi),
+    unit: scR(ghiSum, 0).toLocaleString() + " kWh/m²",
+    note: "ค่าของหน้างานที่พิกัดนี้ ไม่ขึ้นกับการออกแบบ — เป็นเพดานที่ระบบทำได้" });
+  const cut = (k, label, next, note, extra) => {
+    const nx = Math.max(0, next), lost = cur - nx;
+    chain.push(Object.assign({ k, kind: "loss", label, loss: Math.round(lost), kwh: Math.round(nx),
+      pct: nominal > 0 ? scR(lost / nominal * 100, 2) : 0,
+      rel: cur > 0 ? scR(lost / cur * 100, 2) : 0, note }, extra || {}));
+    cur = nx;
+  };
+  /* ได้เพิ่ม (หรือลด) จากการวางบนหลังคาเอียงแทนที่จะวางราบ — เป็น "กำไร" ไม่ใช่ค่าสูญเสีย */
+  chain.push({ k: "tilt", kind: "gain", label: "มุมเอียงและทิศของหลังคา",
+    gain: Math.round(poaSum - eGhi), kwh: Math.round(poaSum),
+    pct: eGhi > 0 ? scR((poaSum - eGhi) / eGhi * 100, 2) : 0,
+    unit: scR(poaSum / (dcKw || 1), 0).toLocaleString() + " kWh/m²",
+    note: "เอียงเฉลี่ย " + scR(tiltAvg, 0) + "° · แสงที่ตกบนหน้าแผงจริง (ลำแสงตรง + ฟุ้งจากฟ้า + สะท้อนพื้น)" });
+  cur = poaSum;
+  cut("iam", "การสะท้อนที่ผิวกระจกตามมุมตกกระทบ (IAM)", poaEffSum,
+    "แดดเฉียงตอนเช้า/เย็นสะท้อนออกจากหน้าแผงมากกว่าแดดตั้งฉาก",
+    { unit: scR(poaEffSum / (dcKw || 1), 0).toLocaleString() + " kWh/m²" });
+  chain.push({ k: "nom", kind: "mark", label: "พลังงานนามของแผงที่ประสิทธิภาพ STC", kwh: Math.round(poaEffSum),
+    note: areaOne > 0
+      ? "แผง " + nPanels + " ใบ · พื้นที่รับแสง " + scR(areaAll, 1) + " m² · ประสิทธิภาพ " + scR(etaStc, 1) + "%"
+      : "กำลังติดตั้ง " + scR(dcKw, 2) + " kWp (คลังยังไม่ระบุขนาดแผง จึงยังบอกพื้นที่ไม่ได้)" });
+  cut("temp", "อุณหภูมิเซลล์สูงกว่า 25 °C", grossNoShade,
+    "แบบจำลอง Sandia · " + (SC_MOUNT[o.mount] || SC_MOUNT.close).label + " · ลม " + scNum(o.wind, SC_WIND) + " m/s");
+  cut("shade", shg ? "เงาบัง (คำนวณจากโมเดล 3 มิติ)" : "เงาบัง (กรอกเอง)",
+    shg ? gross : gross * (1 - scNum(loss.shade, 0) / 100),
+    shg ? "ยิงลำแสงจริงจากแผงทุกใบ รวมผลไดโอดบายพาสฉุดทั้งสตริงแล้ว" : null);
+  cut("soil", "ฝุ่น/คราบบนหน้าแผง", cur * (1 - scNum(loss.soil, 0) / 100));
+  cut("mismatch", "แผงไม่เท่ากัน (mismatch)", cur * (1 - scNum(loss.mismatch, 0) / 100),
+    "แผงต่ออนุกรมกัน กระแสไหลได้เท่าใบที่อ่อนที่สุด");
+  cut("wire", "สูญเสียในสาย DC", cur * (1 - scNum(loss.wire, 0) / 100));
+  cut("avail", "ระบบหยุด/ซ่อมบำรุง", cur * (1 - scNum(loss.avail, 0) / 100));
+  chain.push({ k: "dc", kind: "mark", label: "พลังงาน DC ที่เข้าอินเวอร์เตอร์", kwh: Math.round(cur) });
+  cut("inv", "การแปลง DC → AC ในอินเวอร์เตอร์", cur * eff,
+    "ประสิทธิภาพ " + scR(eff * 100, 1) + "%");
+  cut("clip", "อินเวอร์เตอร์รับไม่หมด ถูกตัดยอด (clipping)", net,
+    acKw > 0 ? "DC/AC = " + scR(dcAc, 2) + " · ตัดที่ " + acKw + " kW" : "ยังไม่ได้ระบุขนาด AC");
+  chain.push({ k: "ac", kind: "end", label: "พลังงาน AC ที่ส่งออกจากระบบ", kwh: Math.round(net),
+    pct: nominal > 0 ? scR(net / nominal * 100, 1) : 0 });
+
   const perGroup = gs.map((x) => Object.assign({}, x.g, { kwp: scR(x.kwp, 2),
     kwhPerKwp: Math.round(x.kwh / (x.kwp || 1)), kwh: Math.round(x.kwh), poa: scR(x.poa / (x.kwp || 1), 0),
     shade: scR((1 - x.sf) * 100, 1) }));
   return {
-    perGroup, dcKw: scR(dcKw, 2), acKw, dcAc: scR(dcAc, 2),
+    perGroup, dcKw: scR(dcKw, 2), acKw, dcAc: scR(dcAc, 2), chain, nominal: Math.round(nominal),
+    ghiPerM2: scR(ghiSum, 0), area: scR(areaAll, 1), etaStc: scR(etaStc, 1),
+    tiltGain: eGhi > 0 ? scR((poaSum - eGhi) / eGhi * 100, 1) : 0,
     annual: Math.round(net), monthly: monthly.map((v) => Math.round(v)),
     perKwp: dcKw ? Math.round(net / dcKw) : 0,
     poaPerKwp: dcKw ? scR(poaSum / dcKw, 0) : 0,
@@ -800,6 +870,41 @@ function scLife(annual, panel, years) {
     rows.push({ year: i, factor: scR(factor * 100, 1), kwh });
   }
   return { rows, total, years: y, avg: Math.round(total / y), lastPct: rows[rows.length - 1].factor };
+}
+
+/* ============================================================
+   ผลกระทบต่อสิ่งแวดล้อม
+   ============================================================
+   ค่ากลางที่ใช้ (แก้ทับได้ในหน้าจอ):
+   · ef      0.4999 kgCO₂e/kWh — ค่าการปล่อยของไฟฟ้าจากสายส่งไทย (อบก./TGO grid mix)
+   · tree    9.5 kgCO₂/ต้น/ปี  — ไม้ยืนต้นในโครงการปลูกป่าของ อบก.
+   · carKm   0.12 kgCO₂/km     — รถยนต์นั่งส่วนบุคคลเครื่องเบนซิน
+   · petrol  2.31 kgCO₂/ลิตร   — น้ำมันเบนซิน
+   · home    2,400 kWh/ปี      — ครัวเรือนไทยเฉลี่ย ~200 หน่วย/เดือน
+   · embod   550 kgCO₂e/kWp    — คาร์บอนที่ใช้ผลิต+ขนส่ง+ติดตั้งแผงผลึกเดี่ยวรุ่นปัจจุบัน  */
+const SC_ENVF = { ef: 0.4999, tree: 9.5, carKm: 0.12, petrol: 2.31, home: 2400, embod: 550 };
+function scEnviron(annual, lifeTotal, years, dcKw, o) {
+  const F = Object.assign({}, SC_ENVF, o || {});
+  const a = Math.max(0, scNum(annual, 0)), tot = Math.max(0, scNum(lifeTotal, a));
+  const yrs = Math.max(1, Math.round(years || 15));
+  const co2Y = a * scNum(F.ef, SC_ENVF.ef);                       // kgCO₂/ปี
+  const co2L = tot * scNum(F.ef, SC_ENVF.ef);                     // kgCO₂ ตลอดอายุ
+  const embod = Math.max(0, scNum(dcKw, 0)) * scNum(F.embod, SC_ENVF.embod);
+  return {
+    ef: scNum(F.ef, SC_ENVF.ef), years: yrs,
+    co2Year: Math.round(co2Y), co2YearT: scR(co2Y / 1000, 2),
+    co2Life: Math.round(co2L), co2LifeT: scR(co2L / 1000, 1),
+    trees: Math.round(co2Y / scNum(F.tree, SC_ENVF.tree)),        // ต้นไม้ที่ต้องปลูกให้ได้ผลเท่ากัน
+    treesLife: Math.round(co2L / scNum(F.tree, SC_ENVF.tree)),
+    carKm: Math.round(co2Y / scNum(F.carKm, SC_ENVF.carKm)),      // ระยะทางรถยนต์ที่เทียบเท่า (กม./ปี)
+    petrol: Math.round(co2Y / scNum(F.petrol, SC_ENVF.petrol)),   // น้ำมันเบนซิน (ลิตร/ปี)
+    homes: scR(a / scNum(F.home, SC_ENVF.home), 1),               // เท่ากับไฟบ้านกี่หลัง
+    embod: Math.round(embod), embodT: scR(embod / 1000, 2),
+    /* คาร์บอนที่ใช้สร้างระบบ คืนทุนทางสิ่งแวดล้อมภายในกี่ปี */
+    carbonPayback: co2Y > 0 ? scR(embod / co2Y, 1) : null,
+    /* ตลอดอายุได้คืนกี่เท่าของที่ลงทุนไป */
+    ratio: embod > 0 ? scR(co2L / embod, 0) : null,
+  };
 }
 
 /* ── สเปคเริ่มต้นของระบบ (เก็บลง state ของโหมด 3D) ── */
