@@ -1486,8 +1486,22 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 {/* รูปประกอบ — กลุ่มที่เลือกหน้าตาเป็นยังไง · กดกางดูครบทั้ง 7 กลุ่มแล้วกดเลือกจากรูปได้เลย */}
                 <div style={{ marginTop: 10, border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
                   <div style={{ display: "flex", gap: 12, alignItems: "center", padding: "10px 12px", background: "var(--surface2)", flexWrap: isMobile ? "wrap" : "nowrap" }}>
-                    <WireArt art={grpMeta.art} w={110} h={65} />
+                    {/* สองรูปคู่กัน: ซ้าย = วิธีเดินสายที่เลือก (ตัวที่ตัดสินตารางพิกัด) · ขวา = กลุ่มการติดตั้ง
+                        ถ้าสองอย่างเป็นภาพเดียวกันอยู่แล้ว (เช่น ท่อในอากาศ = กลุ่ม 2) ก็โชว์ใบเดียวพอ */}
+                    {mtdMeta.art && mtdMeta.art !== grpMeta.art && (
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0 }}>
+                        <WireArt art={mtdMeta.art} w={110} h={65} />
+                        <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--text-3)" }}>วิธีเดินสาย</span>
+                      </div>
+                    )}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0 }}>
+                      <WireArt art={grpMeta.art} w={110} h={65} />
+                      {mtdMeta.art && mtdMeta.art !== grpMeta.art && <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--text-3)" }}>กลุ่มพิกัดกระแส</span>}
+                    </div>
                     <div style={{ flex: 1, minWidth: 140 }}>
+                      {mtdMeta.art && mtdMeta.art !== grpMeta.art && (
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-2)", marginBottom: 3 }}>{mtdMeta.th}</div>
+                      )}
                       <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-1)" }}>{grpMeta.th}{grpMeta.sub ? " · " + grpMeta.sub : ""}</div>
                       <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.55, marginTop: 2 }}>{grpMeta.desc || ""}</div>
                       {mtdMeta.group && mtdMeta.group !== calcGroup && (

@@ -823,6 +823,11 @@ function AmpacityEditor({ ampStore }) {
         <div style={{ minWidth: 220 }}>
           <Dropdown value={methodKey} onChange={setMethodKey} options={methods.map((m) => ({ value: m.key, label: m.th }))} />
         </div>
+        {/* รูปของวิธีเดินสายที่เลือก — หัวคอลัมน์มีรูปกลุ่มแล้ว แต่ "วิธี" คือตัวที่ตัดสินว่าใช้ตารางไหน ต้องเห็นด้วย */}
+        {typeof WireArt === "function" && (() => {
+          const mArt = ((methods.find((m) => m.key === methodKey) || {}).art);
+          return mArt ? <WireArt art={mArt} key={methodKey} w={92} h={54} /> : null;
+        })()}
         {editedCount > 0 && (
           <button onClick={() => { if (confirm("คืนค่าพิกัดกระแสที่แก้ไว้ทั้งหมด ?\n(ลบ " + editedCount + " ช่อง)")) ampStore.reset(); }}
             style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 99, border: "1px solid #FBD3D3", background: "#FEF2F2", color: "#B91C1C", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
