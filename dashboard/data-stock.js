@@ -69,7 +69,10 @@
   // ── รหัสวัสดุ (mat code) — auto-gen ตามหมวด, แก้ทับได้ ──
   SF.MAT_PREFIX = { panel: "PNL", inverter: "INV", invacc: "INVA", battery: "BAT", structure: "MT", steelwork: "STW", wiring: "WIR", conduit: "CDT", grounding: "GND", electrical: "ELC", accessory: "ACS", other: "GEN" };
   // กลุ่มราคา BOQ → หมวดคลังสินค้า (เวลา auto-สร้างวัสดุจากหน้าราคา)
-  SF.BOQ_GROUP_TO_CAT = { "PV MODULE": "panel", INVERTER: "inverter", MOUNTING: "structure", CABLE: "wiring", "RACE WAY": "conduit", GROUNDING: "grounding", ACCESSORIES: "accessory", "LADDER (บันไดลิง)": "steelwork", WALKWAY: "steelwork", "GUARD RAIL": "steelwork" };
+  SF.BOQ_GROUP_TO_CAT = { "PV MODULE": "panel", INVERTER: "inverter", MOUNTING: "structure", CABLE: "wiring", "RACE WAY": "conduit", GROUNDING: "grounding", ACCESSORIES: "accessory", "LADDER (บันไดลิง)": "steelwork", WALKWAY: "steelwork", "GUARD RAIL": "steelwork",
+    // รางไฟอยู่หมวดเดียวกับท่อร้อยสาย · โครงเหล็กรองรับอุปกรณ์อยู่หมวดงานเหล็กเหมือนบันได/ทางเดิน
+    "รางไฟ (WIREWAY / TRAY)": "conduit", "โครงสร้างรองรับอุปกรณ์": "steelwork",
+    "COMBINER BOX": "electrical" };   // เดิมไม่ได้แมป ทำให้ของในตู้ไปตกหมวด "อื่นๆ" ตอนสร้างวัสดุอัตโนมัติ
   // สร้างรหัสถัดไปของหมวด เช่น INV-0007 (กันซ้ำกับ used เพิ่มเติมได้)
   SF.genMatCode = function (cat, items, used) {
     const pre = SF.MAT_PREFIX[cat] || "GEN";

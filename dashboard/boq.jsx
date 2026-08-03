@@ -369,6 +369,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
   const result = window.BOQ.calcBOQ(b);
   const priced = window.BOQ.applyPrices(result, priceMap || {});
+  /* จุดรองรับที่ควรเป็น — เฉพาะอินเวอร์เตอร์สตริง/ไฮบริดที่เป็นกล่องแขวนผนัง/ตั้งพื้น
+     ไมโครอินเวอร์เตอร์ยึดใต้แผงอยู่แล้ว ไม่ต้องทำโครง (และ invCount ของไมโครเป็น LOT ไม่ใช่จำนวนตัว เช่น 155 แผง 2:1 = 77.5) */
+  const supAuto = b.inverterModel ? Math.max(1, Math.round(result.meta.invCount || 1)) : 0;
   const remaining = result.meta.panelCount - result.meta.rowsSum; // >0 ขาด, <0 เกิน, 0 ครบ
   // อินเวอร์เตอร์ String/Hybrid ที่เลือก (Huawei = มี combiner box)
   const selInv = (window.BOQ.INVERTERS || []).find((x) => x.model === b.inverterModel);
@@ -1568,17 +1571,17 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
           {/* ── โครงสร้างรองรับอุปกรณ์ (Inverter / ตู้ MDB) ── */}
           <BoqSection title="โครงสร้างรองรับอุปกรณ์ (Inverter / ตู้ MDB)" icon="box" {...secProps("support")}
-            right={<button onClick={() => { setSup("inv", result.meta.invCount || 1); setSup("mdb", 1); }}
+            right={<button onClick={() => { setSup("inv", supAuto); setSup("mdb", 1); }}
               style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 8, padding: "6px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
-              title={"ตั้งเป็นอินเวอร์เตอร์ " + (result.meta.invCount || 1) + " ตัว + ตู้ 1 ใบ"}>ใช้ตามระบบ</button>}>
+              title={supAuto > 0 ? "ตั้งเป็นอินเวอร์เตอร์ " + supAuto + " ตัว + ตู้ 1 ใบ" : "ไมโครอินเวอร์เตอร์ยึดใต้แผงอยู่แล้ว — ตั้งเฉพาะตู้ 1 ใบ"}>ใช้ตามระบบ</button>}>
             <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 14 }}>
               อินเวอร์เตอร์ตัวใหญ่และตู้ MDB ต้องมีโครงเหล็กหรือฉากรองรับ ไม่ได้ยึดผนังเปล่า ๆ — ใส่ 0 ถ้างานนี้ไม่ต้องทำโครง
             </div>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "repeat(3, minmax(0,1fr))", gap: 12 }}>
-              <Field label="จุดรองรับอินเวอร์เตอร์"><input type="number" min={0} style={numStyle} value={sup.inv} onChange={(e) => setSup("inv", Math.max(0, parseInt(e.target.value) || 0))} /></Field>
+              <Field label="จุดรองรับอินเวอร์เตอร์"><input type="number" min={0} step={1} style={numStyle} value={sup.inv} onChange={(e) => setSup("inv", e.target.value === "" ? 0 : Math.max(0, Math.round(+e.target.value || 0)))} /></Field>
               <Field label="แบบยึดอินเวอร์เตอร์"><Dropdown value={sup.invKind} onChange={(v) => setSup("invKind", v)} options={Object.keys(window.BOQ.SUPPORT_KINDS).map((k) => ({ value: k, label: window.BOQ.SUPPORT_KINDS[k].label }))} /></Field>
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="% เผื่อวัสดุ"><input type="number" style={numStyle} value={sup.spare} onChange={(e) => setSup("spare", e.target.value)} /></Field></div>
-              <Field label="จุดรองรับตู้ MDB / ตู้ไฟ"><input type="number" min={0} style={numStyle} value={sup.mdb} onChange={(e) => setSup("mdb", Math.max(0, parseInt(e.target.value) || 0))} /></Field>
+              <Field label="จุดรองรับตู้ MDB / ตู้ไฟ"><input type="number" min={0} step={1} style={numStyle} value={sup.mdb} onChange={(e) => setSup("mdb", e.target.value === "" ? 0 : Math.max(0, Math.round(+e.target.value || 0)))} /></Field>
               <Field label="แบบยึดตู้"><Dropdown value={sup.mdbKind} onChange={(v) => setSup("mdbKind", v)} options={Object.keys(window.BOQ.SUPPORT_KINDS).map((k) => ({ value: k, label: window.BOQ.SUPPORT_KINDS[k].label }))} /></Field>
             </div>
             {sup.inv + sup.mdb > 0 && (
