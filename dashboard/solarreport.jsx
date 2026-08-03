@@ -500,6 +500,91 @@ function rpIvFamily(curves, mode) {
 
 /* ── สารบัญของรายงาน — ใช้ทั้งตอนประกอบไฟล์และตอนให้ผู้ใช้ติ๊กเลือกก่อนออกรายงาน ──
    หัวข้อไหนไม่ติ๊ก = ไม่ออกไปเลย และเลขหัวข้อจะไล่ใหม่ให้เองไม่ให้ขาดตอน */
+/* ── ไฟทั้งวันไหลไปไหน (แท่งซ้อน 24 ชั่วโมง) ──
+   ใช้ตรรกะเดียวกับ SuFlowDay บนหน้าจอเป๊ะ ๆ เพื่อให้รายงานกับหน้าจอไม่มีทางขัดกัน */
+const RP_FLOW = {
+  direct: { c: "#22A35B", label: "ใช้ตรง ๆ ตอนนั้น" },
+  chg: { c: "#2563EB", label: "เก็บเข้าแบต" },
+  dis: { c: "#6366F1", label: "จ่ายออกจากแบต" },
+  exp: { c: "#EFA53A", label: "ขายคืนการไฟฟ้า" },
+  curt: { c: "#DC2626", label: "ตัดทิ้ง (ห้ามไหลย้อน)" },
+  imp: { c: "#94A3B8", label: "ซื้อจากการไฟฟ้า" },
+};
+function rpFlowDay(rows, mode, on) {
+  if (!rows || !rows.length) return "";
+  const keys = mode === "load" ? ["direct", "dis", "imp"] : ["direct", "chg", "exp", "curt"];
+  const W = 720, H = 158, L = 34, R = on && mode === "pv" ? 34 : 10, T = 12, B = 18;
+  const top = Math.max(0.02, rows.reduce((a, r) => Math.max(a, keys.reduce((s, k) => s + (r[k] || 0), 0)), 0));
+  const X = (h) => L + (h + 0.5) / 24 * (W - L - R);
+  const bw = (W - L - R) / 24 * 0.76;
+  const Y = (v) => T + (1 - v / top) * (H - T - B);
+  let out = "";
+  [0, 0.5, 1].forEach((f) => {
+    out += '<line x1="' + L + '" y1="' + Y(top * f).toFixed(1) + '" x2="' + (W - R) + '" y2="' + Y(top * f).toFixed(1) +
+      '" stroke="#E4EAE7" stroke-width="1"/><text x="' + (L - 4) + '" y="' + (Y(top * f) + 3).toFixed(1) +
+      '" text-anchor="end" font-size="8.5" font-weight="700" fill="#8A968F">' + scR(top * f, 2) + "</text>";
+  });
+  rows.forEach((r) => {
+    let acc = 0;
+    keys.forEach((k) => {
+      const v = r[k] || 0; if (v <= 0) return;
+      const y0 = Y(acc + v), hh = Math.max(0.6, Y(acc) - Y(acc + v)); acc += v;
+      out += '<rect x="' + (X(r.h) - bw / 2).toFixed(1) + '" y="' + y0.toFixed(1) + '" width="' + bw.toFixed(1) +
+        '" height="' + hh.toFixed(1) + '" fill="' + RP_FLOW[k].c + '" opacity="' + (k === "curt" ? ".85" : ".92") + '"/>';
+    });
+  });
+  if (on && mode === "pv") {
+    out += '<polyline points="' + rows.map((r) => X(r.h).toFixed(1) + "," + (T + (1 - Math.max(0, Math.min(100, r.soc)) / 100) * (H - T - B)).toFixed(1)).join(" ") +
+      '" fill="none" stroke="#0F172A" stroke-width="1.5" stroke-dasharray="5 3" opacity=".6"/>' +
+      '<text x="' + (W - R + 4) + '" y="' + (T + 4) + '" font-size="8.5" font-weight="700" fill="#8A968F">100%</text>' +
+      '<text x="' + (W - R + 4) + '" y="' + (H - B + 3) + '" font-size="8.5" font-weight="700" fill="#8A968F">0%</text>';
+  }
+  [0, 3, 6, 9, 12, 15, 18, 21].forEach((h) => {
+    out += '<text x="' + X(h).toFixed(1) + '" y="' + (H - 5) + '" text-anchor="middle" font-size="8.5" font-weight="700" fill="#8A968F">' + h + "</text>";
+  });
+  out += '<text x="' + (W - R) + '" y="' + (H - 5) + '" text-anchor="end" font-size="8" font-weight="800" fill="#8A968F">น.</text>' +
+    '<text x="2" y="' + (T - 3) + '" font-size="8.5" font-weight="800" fill="#8A968F">kWh</text>';
+  return '<svg viewBox="0 0 ' + W + " " + H + '" class="chart">' + out + "</svg>";
+}
+const rpFlowLegend = (keys, soc) => '<div class="lgd">' +
+  keys.map((k) => '<span><i style="background:' + RP_FLOW[k].c + '"></i>' + RP_ESC(RP_FLOW[k].label) + "</span>").join("") +
+  (soc ? '<span><i class="dash"></i>ระดับไฟในแบต (0–100%)</span>' : "") + "</div>";
+
+/* ── ระฆังคว่ำของผลผลิต: P50 อยู่กลาง แรเงาส่วนที่ต่ำกว่า P90 ── */
+function rpPxx(px, mode) {
+  if (!px) return "";
+  const rows = mode === "one" ? px.one : px.avg;
+  const sig = (mode === "one" ? px.sigma1 : px.sigmaN) / 100;
+  const W = 720, H = 176, L = 10, R = 10, T = 16, B = 32;
+  const p50 = px.p50 || 1, lo = p50 * (1 - 3.2 * sig), hi = p50 * (1 + 3.2 * sig);
+  const X = (v) => L + (v - lo) / Math.max(1e-9, hi - lo) * (W - L - R);
+  const Y = (f) => T + (1 - f) * (H - T - B);
+  const pts = [];
+  for (let i = 0; i < 121; i++) {
+    const v = lo + (hi - lo) * i / 120, t = (v - p50) / Math.max(1e-9, p50 * sig);
+    pts.push({ x: X(v), y: Y(Math.exp(-0.5 * t * t)), v });
+  }
+  const p90 = (rows.find((r) => r.p === 90) || rows[0]).kwh;
+  const under = pts.filter((p) => p.v <= p90);
+  const fill = under.length
+    ? '<path d="M' + under[0].x.toFixed(1) + " " + Y(0).toFixed(1) + " L" +
+      under.map((p) => p.x.toFixed(1) + " " + p.y.toFixed(1)).join(" L") + " L" +
+      under[under.length - 1].x.toFixed(1) + " " + Y(0).toFixed(1) + ' Z" fill="#B45309" opacity=".16"/>' : "";
+  const mark = (v, p, c) => '<line x1="' + X(v).toFixed(1) + '" y1="' + Y(0).toFixed(1) + '" x2="' + X(v).toFixed(1) +
+    '" y2="' + Y(Math.exp(-0.5 * Math.pow((v - p50) / (p50 * sig), 2))).toFixed(1) + '" stroke="' + c +
+    '" stroke-width="1.6"' + (p === 90 ? ' stroke-dasharray="4 3"' : "") + "/>" +
+    '<text x="' + X(v).toFixed(1) + '" y="' + (T - 5) + '" text-anchor="middle" font-size="10" font-weight="800" fill="' + c + '">P' + p + "</text>" +
+    '<text x="' + X(v).toFixed(1) + '" y="' + (H - 17) + '" text-anchor="middle" font-size="10" font-weight="800" fill="' + c + '">' + rpN(v) + "</text>";
+  return '<svg viewBox="0 0 ' + W + " " + H + '" class="chart">' +
+    '<line x1="' + L + '" y1="' + Y(0).toFixed(1) + '" x2="' + (W - R) + '" y2="' + Y(0).toFixed(1) + '" stroke="#D8E0DC" stroke-width="1.2"/>' +
+    fill + '<polyline points="' + pts.map((p) => p.x.toFixed(1) + "," + p.y.toFixed(1)).join(" ") + '" fill="none" stroke="#0B5F35" stroke-width="2"/>' +
+    mark(p50, 50, "#0B5F35") + mark(p90, 90, "#B45309") +
+    '<text x="' + X(p90).toFixed(1) + '" y="' + (H - 4) + '" text-anchor="middle" font-size="8.5" font-weight="800" fill="#B45309">โอกาสตกลงมาต่ำกว่านี้ 10%</text>' +
+    '<text x="' + L + '" y="' + (H - 4) + '" font-size="8.5" font-weight="700" fill="#8A968F">แย่กว่าที่คิด</text>' +
+    '<text x="' + (W - R) + '" y="' + (H - 4) + '" text-anchor="end" font-size="8.5" font-weight="700" fill="#8A968F">ดีกว่าที่คิด</text>' +
+    "</svg>";
+}
+
 const RP_SECTIONS = [
   { key: "cover", label: "หน้าปก", note: "โลโก้ · ตัวเลขเด่น · ภาพ 3 มิติ" },
   { key: "summary", label: "สรุปผลการออกแบบ", note: "การ์ดตัวเลขสำคัญทั้งหมดในหน้าเดียว" },
@@ -516,8 +601,13 @@ const RP_SECTIONS = [
   { key: "prod", label: "ผลผลิตที่คาดการณ์", subs: [
     { key: "shade", label: "เงาบังทั้งปีจากโมเดล 3 มิติ" },
     { key: "loss", label: "แผนภาพค่าสูญเสียของระบบ", note: "ไล่จากแสงที่ได้ลงมาถึงไฟ AC ทีละด่าน" },
+    { key: "pxx", label: "ความมั่นใจของผลผลิต (P50/P90)", note: "ตัวเลขที่ธนาคารและผู้ลงทุนขอดู" },
     { key: "life", label: "ตารางผลผลิตตลอดอายุระบบ" }] },
   { key: "env", label: "ผลกระทบต่อสิ่งแวดล้อม", note: "คาร์บอนที่ลดได้ · ค่าเทียบเท่า · คืนทุนทางคาร์บอน" },
+  { key: "load", label: "การใช้ไฟ · แบตเตอรี่ · ห้ามไหลย้อน", note: "จำลองทีละชั่วโมงทั้งปี — ผลิตแล้วได้ใช้เองกี่ %", subs: [
+    { key: "loadDay", label: "กราฟไฟทั้งวัน", note: "ไฟที่ผลิตได้ไปไหน + ไฟที่ใช้มาจากไหน" },
+    { key: "loadMon", label: "ตารางรายเดือน" },
+    { key: "battSpec", label: "สเปคแบตเตอรี่ที่ใช้คิด" }] },
   { key: "roi", label: "ผลตอบแทนการลงทุน", note: "คืนทุน · IRR · กระแสเงินสด" },
 ];
 /* ค่าเริ่มต้น = เอาทุกหัวข้อ */
@@ -819,6 +909,22 @@ function suReportHTML(D) {
           "ทุกตัวเลขมาจากการเดินเวลาชุดเดียวกับที่คำนวณผลผลิตข้างต้น บรรทัดสุดท้ายจึงเท่ากับผลผลิตปีแรกพอดี · " +
           "Performance Ratio " + E.pr + "% คือบรรทัดสุดท้ายหารบรรทัดแรก เป็นตัวเลขมาตรฐานที่ใช้เทียบคุณภาพงานติดตั้งข้ามโครงการโดยไม่ต้องสนใจว่าหน้างานไหนแดดแรงกว่ากัน</p>"
         : "") +
+      (P.pxx && D.px
+        ? "<h3>ผลผลิตนี้มั่นใจได้แค่ไหน — P50 / P90</h3>" + rpPxx(D.px, D.pxMode || "avg") +
+          rpTable(["ระดับความมั่นใจ", "ผลผลิต (kWh/ปี)", "% ของค่ากลาง", "ความหมาย"],
+            (D.pxMode === "one" ? D.px.one : D.px.avg).map((r) => [
+              "P" + r.p, { v: rpN(r.kwh), cls: r.p === 90 ? "ok" : "" }, r.pct + " %",
+              r.p === 50 ? "ค่ากลาง — โอกาสได้มากกว่านี้ครึ่งหนึ่ง" : "มั่นใจ " + r.p + "% ว่าผลผลิตจะไม่ต่ำกว่านี้"])) +
+          rpTable(["ที่มาของความไม่แน่นอน", "± % (1σ)"],
+            D.px.parts.map((p) => [p.label, p.v + " %"])
+              .concat([[{ html: "<b>รวมทั้งหมด (รากที่สองของผลบวกกำลังสอง)</b>" },
+                { v: (D.pxMode === "one" ? D.px.sigma1 : D.px.sigmaN) + " %", cls: "ok" }]])) +
+          '<p class="note">ตัวเลขผลผลิตทุกหัวข้อในรายงานนี้เป็นค่ากลาง (P50) — มีโอกาสครึ่งหนึ่งที่ปีจริงจะได้น้อยกว่านั้น ' +
+          "ธนาคารและผู้ลงทุนจึงนิยมดู P90 = " + rpN(D.pxMode === "one" ? D.px.p90one : D.px.p90avg) + " kWh/ปี " +
+          "ซึ่งเป็นระดับที่มั่นใจได้ 90% ว่าทำได้ไม่ต่ำกว่านี้ · " +
+          (D.pxMode === "one" ? "คิดแบบ “ปีใดปีหนึ่ง” จึงเผื่อความแปรปรวนของแสงเต็มจำนวน"
+            : "คิดแบบ “ค่าเฉลี่ยตลอด " + D.px.years + " ปี” ความแปรปรวนของแสงเฉลี่ยกันเองไปแล้ว ตัวเลขจึงแคบกว่าการมองปีเดียว") + "</p>"
+        : "") +
       (P.life
         ? "<h3>ผลผลิตตลอดอายุ " + L.years + " ปี</h3>" +
           rpTable(["ปี", "ผลผลิต (kWh)", "เหลือ % ของปีแรก"], L.rows.map((r) => [r.year, rpN(r.kwh), r.factor + " %"])) +
@@ -853,7 +959,74 @@ function suReportHTML(D) {
     EV.ef + " kgCO₂e ต่อหน่วย (อ้างอิงองค์การบริหารจัดการก๊าซเรือนกระจก) · " +
     "ค่าคาร์บอนที่ใช้สร้างระบบเป็นค่ากลางของแผงผลึกเดี่ยวรุ่นปัจจุบัน ใช้ประเมินว่าระบบเริ่มเป็นบวกต่อสิ่งแวดล้อมเมื่อไหร่</p>";
 
-  /* 7 · ROI */
+  /* 7 · การใช้ไฟ · แบตเตอรี่ · ห้ามไหลย้อน */
+  const DS = D.dis, PF = D.prof, BT = D.battS, GC = D.gridCfg || {};
+  const gridLabel = GC.mode === "zero" ? "ห้ามไหลย้อนเด็ดขาด (zero export)"
+    : GC.mode === "limit" ? "ปล่อยออกได้ไม่เกิน " + scNum(GC.expLimitKw) + " kW" : "ขายคืนได้ไม่จำกัด";
+  /* เดือนตัวแทนของกราฟรายวัน = เดือนที่ต้องตัดไฟทิ้งมากที่สุด (ถ้าไม่มี ใช้เดือนที่ผลิตได้เยอะสุด)
+     เพราะเป็นเดือนที่เห็นปัญหาชัดที่สุด ลูกค้าจะได้เห็นว่าเงินหายไปตรงไหน */
+  const flowM = DS ? (DS.curt > 0
+    ? DS.months.slice().sort((a, b) => b.curt - a.curt)[0].m
+    : DS.months.slice().sort((a, b) => b.pv - a.pv)[0].m) : 0;
+  const loadSec = !DS ? "" :
+    '<div class="kpis">' +
+    rpCard("ผลิตแล้วได้ใช้เอง", DS.selfPct, "%", "hi") +
+    rpCard("ไฟที่ใช้มาจากโซลาร์", DS.suffPct, "%", "hi") +
+    rpCard("ขายคืนการไฟฟ้า", rpN(DS.exp), "kWh/ปี") +
+    rpCard("ยังต้องซื้อไฟ", rpN(DS.imp), "kWh/ปี") +
+    (DS.curt > 0 ? rpCard("ตัดทิ้งเพราะห้ามไหลย้อน", rpN(DS.curt), "kWh/ปี") : "") +
+    (DS.on ? rpCard("แบตใช้ไปปีละ", rpN(DS.cycles), "รอบ") : "") +
+    "</div>" +
+    rpTable(["สมมติฐานการใช้ไฟของลูกค้า", "ค่า"], [
+      ["ลักษณะการใช้ไฟ", PF ? PF.label : "—"],
+      ["ใช้ไฟทั้งปี", PF ? rpN(PF.annual) + " kWh (เฉลี่ยวันละ " + PF.perDay + " kWh)" : "—"],
+      ["เงื่อนไขฝั่งการไฟฟ้า", { v: gridLabel, cls: GC.mode === "sell" ? "ok" : "" }],
+      ["แบตเตอรี่", DS.on && BT ? BT.cap + " kWh (ใช้ได้จริง " + BT.usable + " kWh) · ชาร์จ/จ่าย " + scNum(BT.pKw) + " kW" : "ไม่มีในระบบนี้"],
+    ]) +
+    (P.loadDay
+      ? "<h3>ไฟที่ผลิตได้ในวันเฉลี่ยเดือน" + SC_MON[flowM].replace(".", "") + " ถูกเอาไปทำอะไร</h3>" +
+        rpFlowDay(DS.dayRows[flowM], "pv", DS.on) + rpFlowLegend(["direct", "chg", "exp", "curt"], DS.on) +
+        "<h3>ไฟที่ลูกค้าใช้ในวันเดียวกัน มาจากไหน</h3>" +
+        rpFlowDay(DS.dayRows[flowM], "load", DS.on) + rpFlowLegend(["direct", "dis", "imp"], false) +
+        '<p class="note">จำลองทีละชั่วโมงตลอดทั้ง 12 เดือน โดยเทียบไฟที่ระบบผลิตได้กับรูปการใช้ไฟของลูกค้าในเวลาเดียวกัน ' +
+        "ลำดับการจ่ายคือ ใช้เองก่อน → เก็บเข้าแบต → ที่เหลือขายคืนหรือตัดทิ้งตามเงื่อนไขการไฟฟ้า</p>"
+      : "") +
+    (P.loadMon
+      ? "<h3>สรุปรายเดือน (kWh)</h3>" +
+        rpTable(["เดือน", "ผลิตได้", "ลูกค้าใช้ไฟ", "ใช้ตรง ๆ"].concat(DS.on ? ["จากแบต"] : [])
+          .concat(["ขายคืน"]).concat(DS.curt > 0 ? ["ตัดทิ้ง"] : []).concat(["ซื้อจากการไฟฟ้า", "ใช้เอง %"]),
+          DS.months.map((mo) => [mo.label, rpN(mo.pv), rpN(mo.load), rpN(mo.direct)]
+            .concat(DS.on ? [rpN(mo.dis)] : []).concat([rpN(mo.exp)])
+            .concat(DS.curt > 0 ? [{ v: rpN(mo.curt), cls: mo.curt > 0 ? "bad" : "" }] : [])
+            .concat([rpN(mo.imp), { v: mo.selfPct + " %", cls: "ok" }])))
+      : "") +
+    (P.battSpec && DS.on && BT
+      ? "<h3>สเปคแบตเตอรี่ที่ใช้ในการคำนวณ</h3>" +
+        rpTable(["รายการ", "ค่า", "ที่มา / ความหมาย"], [
+          ["ชนิดเซลล์", (SC_CHEM[BT.chem] || {}).label || BT.chem, "กำหนดอายุ รอบการใช้งาน และ DoD ที่ปลอดภัย"],
+          ["ความจุตามป้าย", BT.cap + " kWh", "ตัวเลขบนดาต้าชีตของผู้ผลิต"],
+          ["ใช้ได้จริง (DoD " + scNum(BT.dod) + "%)", { v: BT.usable + " kWh", cls: "ok" }, "ลึกกว่านี้แบตเสื่อมเร็ว"],
+          ["กันไว้เผื่อไฟดับ", BT.reserve + " kWh (" + scNum(BT.reservePct) + "% ของความจุใช้งาน)", "ส่วนนี้ไม่ถูกใช้ลดค่าไฟ"],
+          ["ส่วนที่ใช้ลดค่าไฟได้จริง", { v: BT.work + " kWh", cls: "ok" }, "ความจุใช้งาน หักที่กันไว้สำรอง"],
+          ["กำลังชาร์จ / จ่ายสูงสุด", scNum(BT.pKw) + " kW", "เอาค่าที่น้อยกว่าระหว่างตัวแบตกับอินเวอร์เตอร์ไฮบริด"],
+          ["ประสิทธิภาพไป-กลับ", scNum(BT.rte) + " %", "ไฟหายไปในการเก็บ-จ่ายปีละ " + rpN(DS.battLoss) + " kWh"],
+          ["แบตกินไฟเองต่อวัน", scNum(BT.standby) + " % ของความจุ", "BMS พัดลม และวงจรสแตนด์บาย"],
+          ["จำนวนรอบจนหมดอายุ", rpN(BT.cycles) + " รอบ", "ใช้จริงจากการจำลอง " + rpN(DS.cycles) + " รอบ/ปี"],
+          ["อายุปฏิทิน", scNum(BT.calYears) + " ปี", "เสื่อมตามเวลาแม้ไม่ค่อยได้ใช้"],
+          ["อายุที่ประเมินได้", { v: (DS.battLife == null ? "—" : DS.battLife + " ปี"), cls: "ok" },
+            DS.byCycle != null && DS.byCycle < scNum(BT.calYears) ? "หมดรอบก่อนหมดอายุปฏิทิน" : "หมดอายุปฏิทินก่อนใช้ครบรอบ"],
+          ["ความจุคงเหลือตอนหมดอายุ", scNum(BT.eol) + " %", "เกณฑ์สิ้นอายุการใช้งานตามมาตรฐาน"],
+          ["ราคาแบตที่ใช้คิด", rpN(BT.capex) + " บาท", BT.costMode === "lump" ? "กรอกเป็นยอดรวมทั้งชุด" : scNum(BT.cost) + " บาท/kWh"],
+        ]) +
+        '<p class="note">รายการที่ต้องตรวจเพิ่มก่อนสั่งซื้อแต่ไม่ได้นำมาคิดเป็นตัวเงินในรายงานนี้: แรงดันระบบ (48V หรือ High-Voltage) ต้องตรงกับอินเวอร์เตอร์ไฮบริดที่เลือก · ' +
+        "กระแสชาร์จ/จ่ายสูงสุดต่อโมดูล · ช่วงอุณหภูมิใช้งานและความจำเป็นในการระบายอากาศ · ระดับการป้องกันของตู้ (IP) · " +
+        "มาตรฐานความปลอดภัย (IEC 62619 / IEC 62933 / มอก.) · เงื่อนไขและอายุการรับประกันของผู้ผลิต</p>"
+      : "") +
+    '<p class="note">ตัวเลข “ใช้เอง ' + DS.selfPct + '%” นี้ไม่ได้ตั้งขึ้นเอง แต่มาจากการจำลองเทียบชั่วโมงต่อชั่วโมงตลอดทั้งปี ' +
+    "และถูกนำไปใช้คิดผลตอบแทนในหัวข้อถัดไปโดยตรง — หน่วยที่ใช้เองมีมูลค่าเท่าค่าไฟเต็ม ส่วนที่ขายคืนได้ราคาต่ำกว่า" +
+    (DS.curt > 0 ? " และหน่วยที่ถูกตัดทิ้งไม่มีมูลค่าเลย" : "") + "</p>";
+
+  /* 8 · ROI */
   let roiSec = "";
   if (roi) {
     roiSec =
@@ -868,9 +1041,20 @@ function suReportHTML(D) {
       rpTable(["ปี", "ผลผลิต kWh", "เหลือ %", "ประหยัดค่าไฟ", "ขายคืน", "ค่าดูแล", "สุทธิ", "สะสม"],
         roi.rows.map((r) => [r.year, rpN(r.kwh), r.keep, rpN(r.save), rpN(r.sell), rpN(r.om + r.rep), rpN(r.net),
           { v: rpN(r.cum), cls: r.cum >= 0 ? "ok" : "" }])) +
-      '<p class="note">สมมติฐาน: ค่าไฟ ' + R.tariff + " บาท/หน่วย ปรับขึ้นปีละ " + R.escal + "% · ใช้ไฟเอง " + R.selfUse +
-      "% ส่วนที่เหลือขายคืนหน่วยละ " + R.exportRate + " บาท · ค่าดูแลรักษาปีละ " + R.om + "% ของค่าติดตั้ง · อัตราคิดลด " + R.discount + "%" +
-      (scNum(R.invRepCost) ? " · เผื่อเปลี่ยนอินเวอร์เตอร์ปีที่ " + R.invRepYear + " เป็นเงิน " + rpN(R.invRepCost) + " บาท" : "") + "</p>";
+      '<p class="note">สมมติฐาน: ค่าไฟ ' + R.tariff + " บาท/หน่วย ปรับขึ้นปีละ " + R.escal + "% · " +
+      (roi.split
+        ? "ใช้ไฟเอง " + scR((roi.split.direct + roi.split.dis) * 100, 1) + "% และขายคืน " + scR(roi.split.exp * 100, 1) +
+          "% (มาจากการจำลองชั่วโมงต่อชั่วโมงในหัวข้อการใช้ไฟ ไม่ใช่ค่าที่ตั้งเอง)"
+        : "ใช้ไฟเอง " + R.selfUse + "% ส่วนที่เหลือ") +
+      " ขายคืนหน่วยละ " + R.exportRate + " บาท · ค่าดูแลรักษาปีละ " + R.om + "% ของค่าติดตั้ง · อัตราคิดลด " + R.discount + "%" +
+      (scNum(R.invRepCost) ? " · เผื่อเปลี่ยนอินเวอร์เตอร์ปีที่ " + R.invRepYear + " เป็นเงิน " + rpN(R.invRepCost) + " บาท" : "") +
+      (roi.battCapex > 0
+        ? " · เงินลงทุนแยกเป็นโซลาร์ " + rpN(roi.pvCapex) + " บาท และแบตเตอรี่ " + rpN(roi.battCapex) +
+          " บาท ซึ่งเผื่อเปลี่ยนใหม่ทุก " + (D.dis && D.dis.battLife ? Math.round(D.dis.battLife) : "—") + " ปี"
+        : "") +
+      (roi.kYield < 1
+        ? " · คิดที่ระดับความมั่นใจ P90 คือใช้ผลผลิตต่ำกว่าค่ากลาง " + scR((1 - roi.kYield) * 100, 1) + "%"
+        : " · คิดที่ผลผลิตค่ากลาง P50") + "</p>";
   }
 
   const warnList = (D.warns || []).length
@@ -939,6 +1123,8 @@ function suReportHTML(D) {
         : (sim ? "จำลองทั้งวัน · " + rpN(sim.dayKwh, 1) + " kWh" : ""));
   addSec(P.prod, "ผลผลิตที่คาดการณ์", prodSec, L ? rpN(L.rows[0].kwh) + " kWh ในปีแรก" : "");
   addSec(P.env, "ผลกระทบต่อสิ่งแวดล้อม", envSec, EV ? "ลดคาร์บอน " + EV.co2LifeT + " tCO₂e ตลอด " + EV.years + " ปี" : "");
+  addSec(P.load, "การใช้ไฟ แบตเตอรี่ และการขายคืน", loadSec,
+      DS ? "ผลิตแล้วได้ใช้เอง " + DS.selfPct + "%" + (DS.on ? " · แบต " + (D.battS ? D.battS.cap : "") + " kWh" : "") : "");
   addSec(P.roi, "ผลตอบแทนการลงทุน", roiSec, roi && roi.payback ? "คืนทุน " + roi.payback + " ปี" : "");
 
   return '<!doctype html><html lang="th"><head><meta charset="utf-8">' +
@@ -1030,6 +1216,10 @@ td.bad{color:#B3261E;font-weight:700}
 .note{font-size:9.5px;line-height:1.65;color:#6C7A74;margin-top:7px;padding-left:9px;border-left:2px solid #E3E8E6}
 .chart{width:100%;display:block;margin:6px 0 10px}
 .legend{font-size:9px;color:#6C7A74;margin:-4px 0 10px;overflow:hidden}
+.lgd{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;font-size:9px;color:#3A4A43;margin:-4px 0 10px}
+.lgd span{display:inline-flex;align-items:center;gap:5px;font-weight:600}
+.lgd i{width:9px;height:9px;border-radius:2px;flex:0 0 auto}
+.lgd i.dash{width:14px;height:0;border-radius:0;border-top:1.5px dashed #0F172A;opacity:.6}
 table.strip{width:100%;border-collapse:collapse;font-size:9.5px;margin-bottom:2px}
 table.strip td{padding:2px 6px 2px 0;vertical-align:middle}
 table.strip td:first-child{width:150px;color:#3A4A43;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1122,4 +1312,4 @@ function suPrintReport(D) {
 }
 
 Object.assign(window, { suReportHTML, suPrintReport, RP_SECTIONS, rpPickAll, rpTable, rpMonthly, rpCash, rpIv,
-  rpDayPower, rpYearMap, rpIvAll, rpLossFlow, rpSunPath, rpIvFamily, RP_CSS });
+  rpDayPower, rpYearMap, rpIvAll, rpLossFlow, rpSunPath, rpIvFamily, rpFlowDay, rpPxx, RP_FLOW, RP_CSS });

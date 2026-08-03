@@ -746,6 +746,10 @@ function scEnergy(groups, panel, sys) {
   /* ตัวสะสมสำหรับ "แผนภาพค่าสูญเสีย" — เก็บพลังงานที่จุดต่าง ๆ ของเส้นทาง
      poaSum = แสงดิบ · poaEffSum = หลังหักการสะท้อนหน้ากระจก · grossNoShade = หลังหักความร้อน · gross = หลังหักเงา */
   let gross = 0, net = 0, poaSum = 0, poaEffSum = 0, grossNoShade = 0, ghiSum = 0, doy = 0;
+  /* ผลผลิตรายชั่วโมงของ "วันเฉลี่ย" แต่ละเดือน (12 × 24 · kWh)
+     เก็บระหว่างลูปหลักไปเลย — ใช้เป็นฐานของการคิดใช้เอง/แบต/ห้ามไหลย้อน จะได้ไม่ต้องจำลองซ้ำ
+     และรวมทั้งปีแล้วเท่ากับ annual เป๊ะ เพราะมาจากตัวเลขชุดเดียวกัน */
+  const hrly = []; for (let m = 0; m < 12; m++) hrly.push(new Array(24).fill(0));
   for (let m = 0; m < 12; m++) {
     for (let d = 0; d < SC_MDAYS[m]; d++) {
       doy++; o.doy = doy;
@@ -773,6 +777,7 @@ function scEnergy(groups, panel, sys) {
         if (acKw > 0 && acKwNow > acKw) acKwNow = acKw;              // ← ตัดยอดจริงตรงนี้
         net += acKwNow * dt;
         monthly[m] += acKwNow * dt;
+        hrly[m][Math.min(23, Math.max(0, Math.floor(h)))] += acKwNow * dt;
       }
     }
   }
@@ -846,6 +851,7 @@ function scEnergy(groups, panel, sys) {
     ghiPerM2: scR(ghiSum, 0), area: scR(areaAll, 1), etaStc: scR(etaStc, 1),
     tiltGain: eGhi > 0 ? scR((poaSum - eGhi) / eGhi * 100, 1) : 0,
     annual: Math.round(net), monthly: monthly.map((v) => Math.round(v)),
+    hourly: hrly.map((row, m) => row.map((v) => scR(v / SC_MDAYS[m], 4))),   // kWh ต่อชั่วโมง ของวันเฉลี่ยเดือนนั้น
     perKwp: dcKw ? Math.round(net / dcKw) : 0,
     poaPerKwp: dcKw ? scR(poaSum / dcKw, 0) : 0,
     pr: poaSum ? scR(net / poaSum * 100, 1) : 0,                    // Performance Ratio (%)
@@ -907,6 +913,229 @@ function scEnviron(annual, lifeTotal, years, dcKw, o) {
   };
 }
 
+/* ============================================================
+   โปรไฟล์การใช้ไฟของลูกค้า (24 ชั่วโมง)
+   ============================================================
+   ตัวเลขในแต่ละชุดเป็น "น้ำหนักเทียบกัน" ไม่ใช่หน่วยไฟ — ระบบหารด้วยผลรวมให้เอง
+   แล้วค่อยคูณด้วยยอดใช้ไฟจริงจากบิล ผู้ใช้จึงกรอกแค่ค่าไฟเดือนละกี่หน่วยก็พอ
+   ชุดค่าเหล่านี้อ้างอิงรูปโหลดที่พบทั่วไปในไทย (พีคเย็นของบ้าน · พีคกลางวันของออฟฟิศ/โรงงาน) */
+const SC_LOADS = {
+  home:    { label: "บ้านพักอาศัย (กลางวันไม่ค่อยมีคน)", hint: "พีคตอนเย็น — ไฟที่ผลิตกลางวันจะเหลือขายคืนเยอะ ถ้าไม่มีแบต",
+    shape: [3, 2.5, 2.5, 2.5, 2.5, 3, 5, 6, 4, 3.5, 3.5, 4, 4.5, 4, 3.5, 3.5, 4, 5, 8, 9, 8.5, 7, 5.5, 4] },
+  homeDay: { label: "บ้าน มีคนอยู่กลางวัน + แอร์", hint: "ใช้เองกลางวันได้มาก คืนทุนเร็วกว่าบ้านทั่วไป",
+    shape: [4, 3.5, 3, 3, 3, 3.5, 5, 5.5, 5, 5.5, 6.5, 7, 7.5, 7.5, 7.5, 7, 6.5, 6.5, 8, 9, 8.5, 7, 5.5, 4.5] },
+  office:  { label: "สำนักงาน / ออฟฟิศ", hint: "โหลดตรงกับแดดพอดี เหมาะกับโซลาร์ที่สุด",
+    shape: [1, 1, 1, 1, 1, 1.2, 2, 4, 7, 9, 9.5, 9.5, 8, 9, 9.5, 9, 7.5, 4, 2.5, 1.8, 1.5, 1.3, 1.2, 1] },
+  shop:    { label: "ร้านค้า / ร้านอาหาร", hint: "เปิดสาย ปิดดึก — ครึ่งหลังของวันต้องซื้อไฟอยู่ดี",
+    shape: [1.5, 1.3, 1.2, 1.2, 1.2, 1.5, 2, 2.5, 3.5, 5, 7, 8, 8.5, 7.5, 7, 7, 7.5, 8, 8.5, 8, 7, 5.5, 3.5, 2] },
+  fac1:    { label: "โรงงาน 1 กะ (8:00–17:00)", hint: "พีคกลางวันเต็ม ๆ ระบบขนาดใหญ่ใช้เองได้เกือบหมด",
+    shape: [2, 2, 2, 2, 2, 2.5, 4, 7, 9, 9.5, 9.5, 7, 9.5, 9.5, 9, 8, 5, 3, 2.5, 2, 2, 2, 2, 2] },
+  fac2:    { label: "โรงงาน 2 กะ (8:00–24:00)", hint: "กะดึกต้องซื้อไฟ — แบตช่วยได้ชัดถ้าค่าไฟแพง",
+    shape: [2, 2, 2, 2, 2, 2.5, 4, 6.5, 8, 8.5, 8.5, 6.5, 8.5, 8.5, 8, 7.5, 7, 6.5, 6, 6, 5.5, 5, 4, 3] },
+  fac24:   { label: "เดินเครื่อง 24 ชั่วโมง", hint: "โหลดเกือบราบ ใช้เองได้ 100% ถ้าระบบไม่ใหญ่เกินโหลดกลางวัน",
+    shape: [3.5, 3.5, 3.5, 3.5, 3.5, 3.8, 4.2, 4.5, 4.8, 5, 5, 4.5, 5, 5, 4.8, 4.6, 4.4, 4.2, 4, 4, 3.8, 3.8, 3.6, 3.5] },
+  custom:  { label: "กรอกเอง 24 ช่อง", hint: "ถ้ามีข้อมูลจากมิเตอร์ TOU หรือเครื่องบันทึกโหลด ใส่ตรงนี้ได้เลย",
+    shape: [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4] },
+};
+const SC_LOAD = {
+  preset: "office", mode: "month",     // month = กรอกหน่วยต่อเดือน · year = ต่อปี
+  kwhMonth: 0, kwhYear: 0,
+  shape: null,                          // ใช้เมื่อ preset = custom
+  monScale: null,                       // 12 ค่า (%) — เดือนไหนใช้ไฟมากกว่าปกติ (หน้าร้อนเปิดแอร์)
+};
+/* ค่าถ่วงรายเดือนสำเร็จรูป — หน้าร้อนไทย (มี.ค.–พ.ค.) ใช้ไฟมากกว่าค่าเฉลี่ยชัดเจน */
+const SC_MONSCALE_AC = [90, 95, 112, 122, 118, 105, 100, 100, 98, 96, 92, 88];
+
+function scLoadProfile(cfg) {
+  const C = Object.assign({}, SC_LOAD, cfg || {});
+  const P = SC_LOADS[C.preset] || SC_LOADS.office;
+  let sh = (C.preset === "custom" && C.shape && C.shape.length === 24) ? C.shape : P.shape;
+  sh = sh.map((v) => Math.max(0, scNum(v, 0)));
+  const tot = sh.reduce((a, b) => a + b, 0) || 1;
+  const shape = sh.map((v) => v / tot);                       // รวมกันได้ 1 พอดี
+  const annual0 = C.mode === "year" ? scNum(C.kwhYear, 0) : scNum(C.kwhMonth, 0) * 12;
+  const ms = (C.monScale && C.monScale.length === 12) ? C.monScale.map((v) => Math.max(0, scNum(v, 100)) / 100) : new Array(12).fill(1);
+  /* ถ่วงน้ำหนักรายเดือนแล้วยอดรวมทั้งปีต้องเท่าเดิม — ไม่งั้นการปรับหน้าร้อนจะไปเพิ่มค่าไฟทั้งปีให้เอง */
+  const wsum = ms.reduce((a, v, m) => a + v * SC_MDAYS[m], 0) || 365;
+  const daily = ms.map((v) => (annual0 > 0 ? annual0 * v / wsum : 0));
+  const monthly = daily.map((d, m) => d * SC_MDAYS[m]);
+  return {
+    shape, daily, monthly, preset: C.preset, label: P.label, hint: P.hint,
+    annual: Math.round(monthly.reduce((a, b) => a + b, 0)),
+    perDay: scR(annual0 / 365, 1),
+    peakKw: scR(Math.max.apply(null, shape) * (annual0 / 365), 2),   // โหลดสูงสุดโดยประมาณ (kW เฉลี่ยชั่วโมงนั้น)
+  };
+}
+
+/* ============================================================
+   แบตเตอรี่
+   ============================================================
+   สเปคที่ต้องรู้ให้ครบก่อนคิดเงินได้ (ดูป้ายหรือดาต้าชีตของแบต):
+   · kwh      ความจุป้าย (nameplate) หน่วย kWh — เช่น 5.12 / 10.24 / 15 kWh
+   · dod      ใช้ได้จริงกี่ % ของป้าย (Depth of Discharge) — LFP มัก 90–95 · ตะกั่วกรด 50
+   · pKw      ชาร์จ/จ่ายได้สูงสุดกี่ kW — มาจากทั้งตัวแบตและอินเวอร์เตอร์ไฮบริด เอาค่าน้อยกว่า
+   · rte      ประสิทธิภาพไป-กลับ (round-trip) % — รวมขาชาร์จ+ขาจ่าย+ตัวแปลง มัก 88–95
+   · reserve  กันไว้กี่ % เผื่อไฟดับ — ส่วนนี้จะไม่ถูกใช้ลดค่าไฟ
+   · standby  ไฟที่แบตกินเองต่อวัน (% ของความจุ) — BMS/พัดลม/สแตนด์บาย มัก 0.5–2
+   · cycles   จำนวนรอบจนหมดอายุ ที่ DoD ตามป้าย — LFP 6,000 · NMC 4,000 · ตะกั่ว 800
+   · calYears อายุปฏิทิน (ปี) — ถึงไม่ค่อยได้ใช้ก็เสื่อมตามเวลา มัก 10–15
+   · eol      ความจุคงเหลือตอนหมดอายุ (%) — มาตรฐาน 70–80
+   · degY     เสื่อมปีละ % (ใช้คิดผลผลิตปีหลัง ๆ)
+   · cost     ราคา บาท/kWh หรือกรอกยอดรวม (รวมค่าอินเวอร์เตอร์ไฮบริด/ตู้/ติดตั้ง)
+   ยังมีที่ควรเช็คแต่ไม่ได้เอามาคิดเงิน: แรงดันระบบ (48V / HV), เข้ากันได้กับไฮบริดรุ่นไหน,
+   กระแสชาร์จสูงสุด, ช่วงอุณหภูมิใช้งาน, IP ของตู้, มาตรฐาน (IEC 62619 / มอก.), การรับประกัน  */
+const SC_BATT = {
+  on: false, chem: "lfp",
+  kwh: 10, dod: 90, pKw: 5, rte: 90, reserve: 20, standby: 1,
+  cycles: 6000, calYears: 15, eol: 70, degY: 2,
+  costMode: "perKwh", cost: 12000, lump: 0,
+};
+const SC_CHEM = {
+  lfp:  { label: "ลิเทียมฟอสเฟต (LFP)", dod: 95, rte: 92, cycles: 6000, calYears: 15, eol: 70, cost: 12000 },
+  nmc:  { label: "ลิเทียม NMC", dod: 90, rte: 94, cycles: 4000, calYears: 12, eol: 70, cost: 14000 },
+  lead: { label: "ตะกั่วกรด / ดีพไซเคิล", dod: 50, rte: 80, cycles: 800, calYears: 6, eol: 80, cost: 6000 },
+};
+function scBattSpec(o) {
+  const B = Object.assign({}, SC_BATT, o || {});
+  const cap = Math.max(0, scNum(B.kwh, 0));
+  const usable = cap * scClamp(scNum(B.dod, 90), 5, 100) / 100;
+  const reserve = usable * scClamp(scNum(B.reserve, 0), 0, 90) / 100;
+  const capex = B.costMode === "lump" ? scNum(B.lump, 0) : scNum(B.cost, 0) * cap;
+  return Object.assign({}, B, { cap, usable: scR(usable, 2), reserve: scR(reserve, 2),
+    reservePct: scClamp(scNum(B.reserve, 0), 0, 90),
+    work: scR(Math.max(0, usable - reserve), 2), capex: Math.round(capex) });
+}
+
+/* ============================================================
+   จ่ายไฟตามลำดับ (dispatch) — ใช้เอง → แบต → ขายคืน/ตัดทิ้ง
+   ============================================================
+   hourly = ตาราง 12×24 จาก scEnergy (kWh ต่อชั่วโมงของวันเฉลี่ยเดือนนั้น)
+   เดินวันเฉลี่ยของแต่ละเดือนซ้ำ 4 รอบ เอาเฉพาะรอบสุดท้าย เพื่อให้ระดับไฟในแบตเข้าที่ก่อนบันทึกผล
+   (ไม่งั้นเดือนแรกจะออกมาแย่เกินจริงเพราะเริ่มจากแบตว่าง) */
+function scDispatch(hourly, prof, batt, opt) {
+  opt = opt || {};
+  if (!hourly || !hourly.length || !prof) return null;
+  const B = scBattSpec(batt);
+  const on = !!B.on && B.usable > 0;
+  const usable = on ? B.usable : 0, floor = on ? B.reserve : 0;
+  const rte = scClamp(scNum(B.rte, 90), 50, 100) / 100;
+  const eC = Math.sqrt(rte), eD = Math.sqrt(rte);              // แบ่งการสูญเสียครึ่งขาเข้า ครึ่งขาออก
+  const pMax = on ? Math.max(0, scNum(B.pKw, 0)) : 0;
+  const stby = on ? usable * scClamp(scNum(B.standby, 0), 0, 10) / 100 / 24 : 0;
+  /* เพดานไฟที่ปล่อยออกมิเตอร์ได้: 0 = ห้ามไหลย้อนเด็ดขาด · null/ไม่ใส่ = ปล่อยได้ไม่จำกัด */
+  const zero = !!opt.zeroExport;
+  const lim = zero ? 0 : (scNum(opt.expLimitKw, 0) > 0 ? scNum(opt.expLimitKw) : Infinity);
+  const months = [], dayRows = [];
+  let soc = floor;
+  const A = { pv: 0, load: 0, direct: 0, chg: 0, dis: 0, exp: 0, curt: 0, imp: 0 };
+  for (let m = 0; m < 12; m++) {
+    const days = SC_MDAYS[m], sum = { pv: 0, load: 0, direct: 0, chg: 0, dis: 0, exp: 0, curt: 0, imp: 0 };
+    const rows = [];
+    for (let pass = 0; pass < 4; pass++) {
+      const keep = pass === 3;
+      if (keep) rows.length = 0;
+      for (let h = 0; h < 24; h++) {
+        const pv = Math.max(0, scNum(hourly[m][h], 0));
+        const ld = prof.daily[m] * prof.shape[h];
+        if (on) soc = Math.max(0, soc - stby);
+        const direct = Math.min(pv, ld);
+        let sur = pv - direct, def = ld - direct, chg = 0, dis = 0;
+        if (on && sur > 0) {
+          chg = Math.min(sur, (usable - soc) / eC, pMax);
+          if (chg > 0) { soc += chg * eC; sur -= chg; } else chg = 0;
+        }
+        if (on && def > 0) {
+          dis = Math.min(def, Math.max(0, soc - floor) * eD, pMax);
+          if (dis > 0) { soc -= dis / eD; def -= dis; } else dis = 0;
+        }
+        const exp = Math.min(sur, lim), curt = sur - exp;
+        if (keep) {
+          sum.pv += pv; sum.load += ld; sum.direct += direct; sum.chg += chg;
+          sum.dis += dis; sum.exp += exp; sum.curt += curt; sum.imp += def;
+          rows.push({ h, pv: scR(pv, 3), load: scR(ld, 3), direct: scR(direct, 3), chg: scR(chg, 3),
+            dis: scR(dis, 3), exp: scR(exp, 3), curt: scR(curt, 3), imp: scR(def, 3),
+            soc: scR(usable > 0 ? soc / usable * 100 : 0, 1) });
+        }
+      }
+    }
+    const mo = { m, label: SC_MON[m], days, rows };
+    Object.keys(sum).forEach((k) => { mo[k] = scR(sum[k] * days, 1); A[k] += sum[k] * days; });
+    mo.selfPct = sum.pv > 0 ? scR((sum.direct + sum.dis) / sum.pv * 100, 1) : 0;
+    mo.suffPct = sum.load > 0 ? scR((sum.direct + sum.dis) / sum.load * 100, 1) : 0;
+    months.push(mo); dayRows.push(rows);
+  }
+  const selfKwh = A.direct + A.dis;
+  const pvUse = Math.max(0, A.pv - A.curt);                    // ไฟที่ได้ใช้จริง (หลังโดนตัดยอดเพราะห้ามไหลย้อน)
+  /* อายุแบต: ถึงก่อนระหว่าง "ครบจำนวนรอบ" กับ "หมดอายุปฏิทิน" */
+  const cyc = usable > 0 ? A.dis / usable : 0;
+  const byCycle = cyc > 0 ? scNum(B.cycles, 6000) / cyc : Infinity;
+  const battLife = on ? Math.min(byCycle, scNum(B.calYears, 15)) : null;
+  return {
+    on, months, dayRows, batt: B,
+    zeroExport: zero, expLimitKw: lim === Infinity ? null : lim,
+    pv: Math.round(A.pv), load: Math.round(A.load), direct: Math.round(A.direct),
+    chg: Math.round(A.chg), dis: Math.round(A.dis), exp: Math.round(A.exp),
+    curt: Math.round(A.curt), imp: Math.round(A.imp),
+    selfKwh: Math.round(selfKwh), pvUse: Math.round(pvUse),
+    selfPct: A.pv > 0 ? scR(selfKwh / A.pv * 100, 1) : 0,          // ผลิตได้แล้วได้ใช้เองกี่ %
+    suffPct: A.load > 0 ? scR(selfKwh / A.load * 100, 1) : 0,      // ไฟที่ใช้ทั้งบ้าน/โรงงาน มาจากโซลาร์กี่ %
+    expPct: A.pv > 0 ? scR(A.exp / A.pv * 100, 1) : 0,
+    curtPct: A.pv > 0 ? scR(A.curt / A.pv * 100, 1) : 0,
+    battLoss: Math.round(A.chg - A.dis),                            // หายไปในการเก็บ-จ่าย
+    cycles: scR(cyc, 0), battLife: battLife == null ? null : scR(battLife, 1),
+    byCycle: byCycle === Infinity ? null : scR(byCycle, 1),
+    /* สัดส่วนที่ ROI เอาไปใช้ต่อ — อิงกับไฟที่ผลิตได้ทั้งหมด */
+    fSelf: A.pv > 0 ? selfKwh / A.pv : 0,
+    fDirect: A.pv > 0 ? A.direct / A.pv : 0,
+    fDis: A.pv > 0 ? A.dis / A.pv : 0,
+    fExp: A.pv > 0 ? A.exp / A.pv : 0,
+    fCurt: A.pv > 0 ? A.curt / A.pv : 0,
+  };
+}
+
+/* ============================================================
+   P50 / P90 — ผลผลิตนี้มั่นใจได้แค่ไหน
+   ============================================================
+   ตัวเลขผลผลิตที่คำนวณมาคือค่า "กลาง" (P50) แปลว่ามีโอกาสครึ่งหนึ่งที่จะได้น้อยกว่านั้น
+   ธนาคารกับผู้ลงทุนจึงขอดู P90 = ระดับที่มั่นใจ 90% ว่าจะทำได้ไม่ต่ำกว่านี้
+   ความไม่แน่นอนแต่ละก้อนเป็นอิสระต่อกัน จึงรวมกันแบบรากที่สองของผลบวกกำลังสอง
+   · irr    แสงแต่ละปีไม่เท่ากัน (เมฆ/ฤดู) — เขตร้อนชื้นราว 4–5% ต่อปี
+   · model  ความคลาดของแบบจำลองและข้อมูลอากาศที่ใช้
+   · soil   ฝุ่น/คราบ และรอบการล้างที่คาดไม่ได้
+   · avail  ระบบหยุดเดินโดยไม่ได้วางแผน (ไฟดับ/อินเวอร์เตอร์)
+   · degr   ค่าเสื่อมของแผงจริงอาจต่างจากที่ผู้ผลิตรับประกัน
+   ยิ่งมองยาวหลายปี ความแปรปรวนของแสงจะเฉลี่ยกันเอง จึงหารด้วยรากที่สองของจำนวนปี */
+const SC_UNC = { irr: 4.5, model: 3.0, soil: 2.0, avail: 1.5, degr: 1.0 };
+const SC_PZ = [{ p: 50, z: 0 }, { p: 75, z: 0.6745 }, { p: 90, z: 1.2816 }, { p: 95, z: 1.6449 }, { p: 99, z: 2.3263 }];
+function scPxx(annual, o, years) {
+  const U = Object.assign({}, SC_UNC, o || {});
+  const y = Math.max(1, Math.round(years || 1));
+  const sq = (v) => scNum(v, 0) * scNum(v, 0);
+  const fixed = sq(U.model) + sq(U.soil) + sq(U.avail) + sq(U.degr);
+  const s1 = Math.sqrt(sq(U.irr) + fixed);                    // ความไม่แน่นอนของ "ปีใดปีหนึ่ง"
+  const sN = Math.sqrt(sq(U.irr) / y + fixed);                // ความไม่แน่นอนของ "ค่าเฉลี่ยตลอด N ปี"
+  const a = Math.max(0, scNum(annual, 0));
+  const mk = (sig) => SC_PZ.map((x) => ({ p: x.p, z: x.z, kwh: Math.round(a * (1 - x.z * sig / 100)),
+    pct: scR(100 - x.z * sig, 1) }));
+  const one = mk(s1), avg = mk(sN);
+  const pick = (rows, p) => (rows.find((r) => r.p === p) || rows[0]).kwh;
+  return {
+    parts: [
+      { k: "irr", label: "แสงแต่ละปีไม่เท่ากัน", v: scNum(U.irr, 0) },
+      { k: "model", label: "ความคลาดของแบบจำลอง", v: scNum(U.model, 0) },
+      { k: "soil", label: "ฝุ่น/คราบและรอบการล้าง", v: scNum(U.soil, 0) },
+      { k: "avail", label: "ระบบหยุดโดยไม่ได้วางแผน", v: scNum(U.avail, 0) },
+      { k: "degr", label: "ค่าเสื่อมจริงของแผง", v: scNum(U.degr, 0) },
+    ],
+    years: y, sigma1: scR(s1, 2), sigmaN: scR(sN, 2), p50: Math.round(a),
+    one, avg,
+    p90one: pick(one, 90), p90avg: pick(avg, 90), p75avg: pick(avg, 75), p99avg: pick(avg, 99),
+    /* ตัวคูณสำหรับเอาไปคิดคืนทุนแบบระมัดระวัง */
+    kP90: a > 0 ? scR(pick(avg, 90) / a, 4) : 1,
+    kP75: a > 0 ? scR(pick(avg, 75) / a, 4) : 1,
+  };
+}
+
 /* ── สเปคเริ่มต้นของระบบ (เก็บลง state ของโหมด 3D) ── */
 function scBlankSys() {
   return {
@@ -933,6 +1162,10 @@ function scBlankSys() {
     shade3d: null,             // ผลคำนวณเงาทั้งปีจากโมเดล 3 มิติ (ดู ivShadeAnnual) — null = ใช้ % ที่กรอกมือ
     elec: null,                // ตั้งค่าโมเดล "เงาฉุดทั้งสตริง" (null = ใช้ค่ากลาง IV_ELEC)
     roi: null,                 // ตั้งค่า ROI (null = ใช้ค่ากลาง IV_ROI)
+    load: null,                // โปรไฟล์การใช้ไฟของลูกค้า (null = ใช้ค่ากลาง SC_LOAD)
+    batt: null,                // สเปคแบตเตอรี่ (null = ไม่มีแบต · ดู SC_BATT)
+    grid: null,                // ข้อจำกัดฝั่งการไฟฟ้า { zeroExport, expLimitKw }
+    unc: null,                 // ความไม่แน่นอนสำหรับ P50/P90 (null = ใช้ค่ากลาง SC_UNC)
   };
 }
 
@@ -969,9 +1202,14 @@ Object.assign(window, {
   scVocAt, scVmpAt, scStringCheck, scSeriesRange, scCurrent, scStringsPerMppt, scMpptName, scPinLayout, scPinAddr, scAutoStrings,
   scMicroPlan, scMicroSpec, scMicroPerMppt, scMicroAssign, scMicroPhases, scPhaseBalance, SC_MICRO_EXTRA,
   scYearOneGroup, scDcAt, scEnergy, scLife, scBlankSys, scPanelSpec, scInvSpec, scHalfCut, scR, scNum, scClamp,
+  scEnviron, SC_ENVF,
+  SC_LOADS, SC_LOAD, SC_MONSCALE_AC, scLoadProfile,
+  SC_BATT, SC_CHEM, scBattSpec, scDispatch,
+  SC_UNC, SC_PZ, scPxx,
 });
 window.SolarCalc = {
   groups: scGroupsFromPlan, seriesRange: scSeriesRange, check: scStringCheck,
   autoStrings: scAutoStrings, micro: scMicroPlan, energy: scEnergy, life: scLife,
   blankSys: scBlankSys, panelSpec: scPanelSpec, invSpec: scInvSpec, microSpec: scMicroSpec,
+  loadProfile: scLoadProfile, dispatch: scDispatch, battSpec: scBattSpec, pxx: scPxx,
 };

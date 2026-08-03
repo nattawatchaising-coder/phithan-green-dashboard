@@ -158,6 +158,33 @@ const SU_CSS = `
 .su-mfact .ic{color:var(--acd);flex:0 0 auto;margin-top:1px}
 .su-mfact b{color:var(--text-1)}
 
+/* ---- แถวตัวเลขสรุป (ใช้ซ้ำได้ทุกการ์ด) ---- */
+.su-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:9px}
+.su-tiles>div{display:flex;flex-direction:column;gap:2px;min-width:0;padding:10px 12px;border-radius:12px;
+  background:var(--surface2);border:1px solid var(--ln)}
+.su-tiles .k{font-size:9.5px;font-weight:800;color:var(--text-3);letter-spacing:.02em}
+.su-tiles .v{font-size:18px;font-weight:800;letter-spacing:-.4px;color:var(--text-1);line-height:1.2;
+  font-variant-numeric:tabular-nums}
+.su-tiles .v small{font-size:9.5px;font-weight:700;color:var(--text-3);margin-left:4px;letter-spacing:0}
+.su-tiles .d{font-size:9.5px;font-weight:650;color:var(--text-3);line-height:1.45}
+.su-tiles>div[data-good="1"] .v{color:var(--acd)}
+.su-tiles>div[data-good="0"] .v{color:#B45309}
+
+/* ---- คำอธิบายสีของกราฟไฟทั้งวัน ---- */
+.su-flg{display:flex;flex-wrap:wrap;gap:5px 14px;align-items:center}
+.su-flg span{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:var(--text-2)}
+.su-flg i{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
+.su-flg i.dash{width:14px;height:0;border-top:1.6px dashed #0F172A;border-radius:0;opacity:.65}
+
+/* ---- ตัวแก้รูปโหลด 24 ช่อง ---- */
+.su-h24{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px}
+.su-h24 label{display:flex;flex-direction:column;gap:2px;min-width:0}
+.su-h24 i{font-style:normal;font-size:8.5px;font-weight:800;color:var(--text-3);text-align:center}
+.su-h24 input{width:100%;padding:4px 2px;text-align:center;font-size:10.5px;font-weight:700;
+  border:1px solid var(--ln2);border-radius:7px;background:var(--surface);color:var(--text-1);font-family:inherit}
+.su-h24 input:focus{outline:none;border-color:var(--ac)}
+@media (max-width:820px){.su-h24{grid-template-columns:repeat(6,minmax(0,1fr))}}
+
 /* ---- ป้ายที่มาของค่า ---- */
 .su-src{font-size:8.5px;font-weight:800;padding:2px 6px;border-radius:99px;letter-spacing:.02em;white-space:nowrap}
 .su-src.stock{background:var(--acs);color:var(--acd)}
@@ -1226,6 +1253,104 @@ function SuThermo({ temp }) {
 }
 
 /* ── กราฟกระแสเงินสดสะสม + จุดคุ้มทุน ── */
+/* ── ไฟทั้งวันไหลไปไหนบ้าง ──
+   mode "pv"   = ไฟที่ผลิตได้แยกเป็น ใช้ตรง ๆ / เข้าแบต / ขายคืน / ตัดทิ้ง (+ เส้นระดับไฟในแบต)
+   mode "load" = ไฟที่ใช้ทั้งวันมาจากไหน แสงตรง / แบต / ซื้อจากการไฟฟ้า */
+const SU_FLOW = {
+  direct: { c: "#22A35B", label: "ใช้ตรง ๆ ตอนนั้น" },
+  chg:    { c: "#2563EB", label: "เก็บเข้าแบต" },
+  dis:    { c: "#6366F1", label: "จ่ายออกจากแบต" },
+  exp:    { c: "#EFA53A", label: "ขายคืนการไฟฟ้า" },
+  curt:   { c: "#DC2626", label: "ตัดทิ้ง (ห้ามไหลย้อน)" },
+  imp:    { c: "#94A3B8", label: "ซื้อจากการไฟฟ้า" },
+};
+function SuFlowDay({ rows, mode, on, height }) {
+  const keys = mode === "load" ? ["direct", "dis", "imp"] : ["direct", "chg", "exp", "curt"];
+  const W = 620, H = height || 152, L = 30, R = on && mode === "pv" ? 30 : 8, T = 12, B = 18;
+  const top = Math.max(0.02, rows.reduce((a, r) => Math.max(a, keys.reduce((s, k) => s + (r[k] || 0), 0)), 0));
+  const X = (h) => L + (h + 0.5) / 24 * (W - L - R);
+  const bw = (W - L - R) / 24 * 0.76;
+  const Y = (v) => T + (1 - v / top) * (H - T - B);
+  const socPts = rows.map((r) => X(r.h) + "," + (T + (1 - scClamp(r.soc, 0, 100) / 100) * (H - T - B))).join(" ");
+  return (
+    <svg viewBox={"0 0 " + W + " " + H} style={{ width: "100%", display: "block", overflow: "visible" }}>
+      {[0, 0.5, 1].map((f) => (
+        <g key={f}>
+          <line x1={L} y1={Y(top * f)} x2={W - R} y2={Y(top * f)} stroke="var(--ln)" strokeWidth="1" />
+          <text x={L - 4} y={Y(top * f) + 3} textAnchor="end" fontSize="8.5" fontWeight="700" fill="var(--text-3)">{scR(top * f, 2)}</text>
+        </g>
+      ))}
+      <text x={2} y={T - 3} fontSize="8.5" fontWeight="800" fill="var(--text-3)">kWh</text>
+      {rows.map((r) => {
+        let acc = 0;
+        return (
+          <g key={r.h}>
+            {keys.map((k) => {
+              const v = r[k] || 0; if (v <= 0) return null;
+              const y0 = Y(acc + v), h = Math.max(0.6, Y(acc) - Y(acc + v)); acc += v;
+              return <rect key={k} x={X(r.h) - bw / 2} y={y0} width={bw} height={h} fill={SU_FLOW[k].c} opacity={k === "curt" ? 0.85 : 0.92}>
+                <title>{r.h + ":00 · " + SU_FLOW[k].label + " " + scR(v, 2) + " kWh"}</title></rect>;
+            })}
+          </g>
+        );
+      })}
+      {on && mode === "pv" && (
+        <g>
+          <polyline points={socPts} fill="none" stroke="#0F172A" strokeWidth="1.6" strokeDasharray="5 3" opacity=".65" />
+          <text x={W - R + 4} y={T + 4} fontSize="8.5" fontWeight="800" fill="var(--text-3)">100%</text>
+          <text x={W - R + 4} y={H - B + 3} fontSize="8.5" fontWeight="800" fill="var(--text-3)">0%</text>
+        </g>
+      )}
+      {[0, 3, 6, 9, 12, 15, 18, 21].map((h) => (
+        <text key={h} x={X(h)} y={H - 5} textAnchor="middle" fontSize="8.5" fontWeight="700" fill="var(--text-3)">{h}</text>
+      ))}
+      <text x={W - R} y={H - 5} textAnchor="end" fontSize="8" fontWeight="800" fill="var(--text-3)">น.</text>
+    </svg>
+  );
+}
+
+/* ── ผลผลิตนี้มั่นใจได้แค่ไหน (P50/P90) ──
+   วาดเป็นระฆังคว่ำของการแจกแจงปกติ แล้วแรเงาส่วนที่ "ต่ำกว่า P90" ให้เห็นว่าโอกาสพลาดมีแค่ 10% */
+function SuPxx({ px, mode }) {
+  const rows = mode === "one" ? px.one : px.avg;
+  const sig = (mode === "one" ? px.sigma1 : px.sigmaN) / 100;
+  const W = 620, H = 168, L = 8, R = 8, T = 14, B = 30;
+  const p50 = px.p50 || 1, lo = p50 * (1 - 3.2 * sig), hi = p50 * (1 + 3.2 * sig);
+  const X = (v) => L + (v - lo) / Math.max(1e-9, hi - lo) * (W - L - R);
+  const Y = (f) => T + (1 - f) * (H - T - B);
+  const N = 121, pts = [];
+  for (let i = 0; i < N; i++) {
+    const v = lo + (hi - lo) * i / (N - 1);
+    const t = (v - p50) / Math.max(1e-9, p50 * sig);
+    pts.push({ x: X(v), y: Y(Math.exp(-0.5 * t * t)), v });
+  }
+  const p90 = (rows.find((r) => r.p === 90) || rows[0]).kwh;
+  const line = pts.map((p) => p.x.toFixed(1) + "," + p.y.toFixed(1)).join(" ");
+  const under = pts.filter((p) => p.v <= p90);
+  const fill = under.length
+    ? "M" + under[0].x.toFixed(1) + " " + Y(0) + " L" + under.map((p) => p.x.toFixed(1) + " " + p.y.toFixed(1)).join(" L")
+      + " L" + under[under.length - 1].x.toFixed(1) + " " + Y(0) + " Z" : "";
+  const marks = [{ p: 50, v: p50, c: "#0B5F35" }, { p: 90, v: p90, c: "#B45309" }];
+  return (
+    <svg viewBox={"0 0 " + W + " " + H} style={{ width: "100%", display: "block", overflow: "visible" }}>
+      <line x1={L} y1={Y(0)} x2={W - R} y2={Y(0)} stroke="var(--ln2)" strokeWidth="1.2" />
+      {fill && <path d={fill} fill="#B45309" opacity=".16" />}
+      <polyline points={line} fill="none" stroke="#0B5F35" strokeWidth="2" />
+      {marks.map((m) => (
+        <g key={m.p}>
+          <line x1={X(m.v)} y1={Y(0)} x2={X(m.v)} y2={Y(m.p === 50 ? 1 : Math.exp(-0.5 * Math.pow((m.v - p50) / (p50 * sig), 2)))}
+            stroke={m.c} strokeWidth="1.6" strokeDasharray={m.p === 50 ? "" : "4 3"} />
+          <text x={X(m.v)} y={T - 4} textAnchor="middle" fontSize="10" fontWeight="800" fill={m.c}>P{m.p}</text>
+          <text x={X(m.v)} y={H - 16} textAnchor="middle" fontSize="10" fontWeight="800" fill={m.c}>{m.v.toLocaleString()}</text>
+        </g>
+      ))}
+      <text x={L} y={H - 3} fontSize="8.5" fontWeight="700" fill="var(--text-3)">แย่กว่าที่คิด</text>
+      <text x={W - R} y={H - 3} textAnchor="end" fontSize="8.5" fontWeight="700" fill="var(--text-3)">ดีกว่าที่คิด</text>
+      <text x={X(p90)} y={H - 3} textAnchor="middle" fontSize="8.5" fontWeight="800" fill="#B45309">โอกาสตกลงมาต่ำกว่านี้ 10%</text>
+    </svg>
+  );
+}
+
 function SuCash({ roi }) {
   const W = 620, H = 176, L = 4, B = 22, T = 10;
   const rows = roi.rows;
@@ -1421,6 +1546,31 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
     ? scEnviron(energy.annual, life.total, S.years, energy.dcKw, S.envf) : null),
     [energy, life, S.years, S.envf]);
 
+  /* ══ โหลดของลูกค้า · แบตเตอรี่ · ข้อจำกัดฝั่งการไฟฟ้า ══
+     ทั้งสามอย่างนี้ไม่เปลี่ยนผลผลิต แต่เปลี่ยน "มูลค่า" ของไฟที่ผลิตได้
+     — ไฟที่ใช้เองมีค่าเท่าค่าไฟเต็ม · ไฟที่ขายคืนได้ราคาถูกกว่า · ไฟที่ห้ามไหลย้อนแล้วไม่มีที่ไปคือศูนย์ */
+  const loadCfg = Object.assign({}, SC_LOAD, S.load || {});
+  const setLoad = (p) => set({ load: Object.assign({}, loadCfg, p) });
+  const battCfg = Object.assign({}, SC_BATT, S.batt || {});
+  const setBatt = (p) => set({ batt: Object.assign({}, battCfg, p) });
+  /* mode: sell = ขายคืนได้ไม่จำกัด · limit = การไฟฟ้าให้ปล่อยได้ไม่เกินกี่ kW · zero = ห้ามไหลย้อนเด็ดขาด */
+  const gridCfg = Object.assign({ mode: "sell", expLimitKw: 0 }, S.grid || {});
+  const setGrid = (p) => set({ grid: Object.assign({}, gridCfg, p) });
+  const prof = React.useMemo(() => scLoadProfile(loadCfg), [S.load]);
+  const battS = scBattSpec(battCfg);
+  /* ยังไม่กรอกยอดใช้ไฟ = คิดไม่ได้ว่าใช้เองเท่าไหร่ → ปล่อยเป็น null แล้วให้ ROI กลับไปใช้สไลเดอร์ % เหมือนเดิม */
+  const dis = React.useMemo(() => (energy && energy.hourly && prof.annual > 0 && typeof scDispatch === "function"
+    ? scDispatch(energy.hourly, prof, battCfg, { zeroExport: gridCfg.mode === "zero",
+        expLimitKw: gridCfg.mode === "limit" ? gridCfg.expLimitKw : 0 })
+    : null), [energy, prof, S.batt, S.grid]);
+  const [flowMon, setFlowMon] = React.useState(3);      // เดือนที่กำลังดูกราฟไฟทั้งวัน (เม.ย. = ร้อนสุด)
+  /* ── ความมั่นใจของตัวเลขผลผลิต ── */
+  const uncCfg = Object.assign({}, SC_UNC, S.unc || {});
+  const setUnc = (p) => set({ unc: Object.assign({}, uncCfg, p) });
+  const [pxMode, setPxMode] = React.useState("avg");    // avg = เฉลี่ยตลอดอายุโครงการ · one = ปีใดปีหนึ่ง
+  const px = React.useMemo(() => (energy && energy.annual && typeof scPxx === "function"
+    ? scPxx(energy.annual, uncCfg, (S.roi && S.roi.years) || IV_ROI.years) : null), [energy, S.unc, S.roi]);
+
   /* ══ ตรวจวัด I-V ══ */
   const site = Object.assign({ date: "", hour: null, wind: 1, mount: "close", tAmb: null, ghi: null, shade: 0, age: 0 }, S.site || {});
   const siteDate = site.date || new Date().toISOString().slice(0, 10);
@@ -1551,15 +1701,27 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   /* ══ ROI ══ */
   const roiCfg = Object.assign({}, IV_ROI, S.roi || {});
   const setRoi = (p) => set({ roi: Object.assign({}, roiCfg, p) });
-  const roi = React.useMemo(() => (energy && energy.annual ? ivRoi(energy.annual, panel, energy.dcKw, roiCfg) : null),
-    [energy, panel, S.roi]);
+  /* คิดคืนทุนที่ระดับความมั่นใจไหน — P50 คือค่ากลาง · P90 คือแบบระมัดระวังที่ธนาคารชอบดู */
+  const [roiP, setRoiP] = React.useState("p50");
+  /* ปีที่ต้องเปลี่ยนแบต: อายุที่คำนวณได้จากรอบการใช้งานจริง ปัดขึ้นเป็นจำนวนเต็มปี */
+  const battRepYear = dis && dis.on && dis.battLife ? Math.max(1, Math.round(dis.battLife)) : 0;
+  const roiX = {
+    split: dis ? { direct: dis.fDirect, dis: dis.fDis, exp: dis.fExp } : null,
+    battCapex: dis && dis.on ? battS.capex : 0,
+    battRepYear, battRepCost: dis && dis.on ? battS.capex : 0,
+    battDegY: dis && dis.on ? scNum(battCfg.degY, 0) : 0,
+    kYield: roiP === "p90" && px ? px.kP90 : 1,
+  };
+  const roi = React.useMemo(() => (energy && energy.annual ? ivRoi(energy.annual, panel, energy.dcKw, roiCfg, roiX) : null),
+    [energy, panel, S.roi, dis, roiP, px, S.batt]);
 
   const ready = { equip: !!(panel.wp && (isMicro ? microSel : inv.model)), plan: !!(isMicro ? microSel : (plan && plan.strings.length)) };
   const steps = [
     { t: "อุปกรณ์", s: panel.model ? (panel.model.length > 26 ? panel.model.slice(0, 26) + "…" : panel.model) + (isMicro ? " · ไมโคร" : inv.model ? " · " + inv.model.slice(0, 18) : "") : "เลือกแผง + อินเวอร์เตอร์", ic: "layers" },
     { t: isMicro ? "การต่อไมโคร" : "การต่อสตริง", s: isMicro ? (microSel ? microSel.ratio + " · " + microSel.units + " ตัว" : "—") : (plan && plan.strings.length ? plan.strings.length + " สตริง · " + plan.panels + " แผง" : "—"), ic: "grid" },
     { t: "แสง เงา & เส้น I-V", s: sim ? SC_MON[isFinite(monthNow) ? monthNow : 6] + " · " + sim.dayKwh + " kWh/วัน" + (sim.shadeLossPct > 0 ? " · เงา " + sim.shadeLossPct + "%" : "") : "จำลองรายเดือน", ic: "curve" },
-    { t: "ผลผลิต " + S.years + " ปี", s: energy ? energy.annual.toLocaleString() + " kWh/ปี" : "—", ic: "sun" },
+    { t: "ผลผลิต " + S.years + " ปี", s: energy ? energy.annual.toLocaleString() + " kWh/ปี" + (px ? " · P90 " + px.p90avg.toLocaleString() : "") : "—", ic: "sun" },
+    { t: "โหลด & แบตเตอรี่", s: dis ? "ใช้เอง " + dis.selfPct + "%" + (dis.on ? " · แบต " + battS.cap + " kWh" : "") + (dis.curtPct > 0 ? " · ตัดทิ้ง " + dis.curtPct + "%" : "") : "ยังไม่ได้กรอกยอดใช้ไฟ", ic: "bulb" },
     { t: "คืนทุน & ROI", s: roi ? (roi.payback ? "คืนทุน " + roi.payback + " ปี" : "ยังไม่คืนทุนใน " + roi.years + " ปี") + (roi.irr != null ? " · IRR " + roi.irr + "%" : "") : "—", ic: "coin" },
   ];
 
@@ -1594,6 +1756,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
     const famT = par && typeof ivFamily === "function" ? ivFamily(par, panel, { mode: "temp", nSeries: famStrN, g: 1000 }) : [];
     suPrintReport({ job, sys: S, panel, inv, groups, plan, microSel, isMicro, energy, life, roi, roiCfg,
       env, sunPath, isoShade: isoNow, ivFamG: famG, ivFamT: famT,
+      dis, prof, px, pxMode, battS, gridCfg, roiP,
       ivRows, ivDone, ivAvg, ivOutliers, site, siteDate, acKw, totalPanels, warns, foot,
       /* โหมดไมโครใช้ผัง "แผงอยู่ไมโครตัวไหน" แทนผังสตริง — ผังในรายงานจะได้ตรงกับที่เห็นบนจอ */
       assign: isMicro ? microAssign : effAssign, microUnits, phases, phaseBins, phaseBal, uidPhase,
@@ -2851,6 +3014,46 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                   </div>
                 )}
 
+                {/* ── ตัวเลขนี้มั่นใจได้แค่ไหน ── */}
+                {px && (
+                  <div className="p3-card">
+                    <span className="p3-eb"><P3Icon name="probe" size={13} />ความมั่นใจของผลผลิต · P50 / P90<span className="ln" />
+                      <span className="p3-seg wide" style={{ marginLeft: "auto" }}>
+                        {[["avg", "เฉลี่ยตลอด " + px.years + " ปี"], ["one", "ปีใดปีหนึ่ง"]].map(([k, t]) => (
+                          <button key={k} data-on={pxMode === k ? "1" : "0"} onClick={() => setPxMode(k)}>{t}</button>
+                        ))}
+                      </span>
+                    </span>
+                    <SuPxx px={px} mode={pxMode} />
+                    <div className="su-tiles">
+                      {[["P50 · ค่ากลาง", px.p50, "kWh/ปี", "โอกาสได้มากกว่านี้ครึ่งหนึ่ง"],
+                        ["P90 · แบบระมัดระวัง", pxMode === "one" ? px.p90one : px.p90avg, "kWh/ปี", "มั่นใจ 90% ว่าไม่ต่ำกว่านี้"],
+                        ["ต่ำกว่าค่ากลาง", scR(100 - (pxMode === "one" ? px.p90one : px.p90avg) / (px.p50 || 1) * 100, 1), "%", "ส่วนต่างที่ควรเผื่อไว้ตอนเสนอราคา"],
+                        ["ความไม่แน่นอนรวม", pxMode === "one" ? px.sigma1 : px.sigmaN, "% (1σ)", "รวมทุกก้อนแบบรากที่สองของผลบวกกำลังสอง"]].map(([k, v, u, d]) => (
+                        <div key={k}>
+                          <span className="k">{k}</span>
+                          <span className="v">{typeof v === "number" ? v.toLocaleString() : v}<small>{u}</small></span>
+                          <span className="d">{d}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 9 }}>
+                      {px.parts.map((p) => (
+                        <label key={p.k} className="p3-f"><span className="lb">{p.label}</span>
+                          <span style={{ display: "flex", gap: 5, alignItems: "center" }}>
+                            <input className="p3-inp" type="number" step="0.5" min="0" max="20" value={uncCfg[p.k]}
+                              onChange={(e) => setUnc({ [p.k]: scClamp(+e.target.value || 0, 0, 20) })} />
+                            <span className="p3-sfx">± %</span></span></label>
+                      ))}
+                    </div>
+                    <span className="p3-note">
+                      ตัวเลขผลผลิตที่คำนวณมาเป็นค่ากลาง (P50) — ปีที่เมฆเยอะจะได้น้อยกว่านั้น ปีที่แดดดีจะได้มากกว่า
+                      เวลาเสนอลูกค้าหรือยื่นธนาคาร ให้ยึด <b>P90 = {(pxMode === "one" ? px.p90one : px.p90avg).toLocaleString()} kWh/ปี</b> จะปลอดภัยกว่า
+                      · มองยาวหลายปีความแปรปรวนของแสงเฉลี่ยกันเอง ตัวเลข P90 จึงขยับเข้าใกล้ค่ากลางมากขึ้น
+                    </span>
+                  </div>
+                )}
+
                 <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
                   <button className="p3-b" onClick={() => setStep(2)}>ย้อนกลับ</button>
                   <label className="p3-f" style={{ width: 108 }}>
@@ -2858,7 +3061,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                     <input className="p3-inp" type="number" min="1" max="30" step="1" value={S.years} onChange={(e) => set({ years: scClamp(+e.target.value || 15, 1, 30) })} />
                   </label>
                   <span style={{ flex: 1 }} />
-                  <button className="p3-b pri" style={{ padding: "10px 20px" }} onClick={() => setStep(4)}>ถัดไป · คืนทุน<P3Icon name="arrow" size={14} /></button>
+                  <button className="p3-b pri" style={{ padding: "10px 20px" }} onClick={() => setStep(4)}>ถัดไป · โหลด &amp; แบต<P3Icon name="arrow" size={14} /></button>
                 </div>
               </React.Fragment>
             )}
@@ -2866,9 +3069,263 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
               <div className="su-alert warn"><P3Icon name="height" size={14} />ยังคำนวณไม่ได้ — ต้องมีแผงในผังและเลือกรุ่นแผงก่อน</div>
             )}
 
-            {/* ══ ขั้น 5 · คืนทุน & ROI ══ */}
-            {step === 4 && roi && (
+            {/* ══ ขั้น 4 · โหลดลูกค้า · แบตเตอรี่ · ห้ามไหลย้อน ══ */}
+            {step === 4 && (
               <React.Fragment>
+                <div className="p3-card">
+                  <span className="p3-eb"><P3Icon name="bulb" size={13} />ลูกค้าใช้ไฟแบบไหน<span className="ln" />
+                    <span style={{ fontWeight: 600 }}>{prof.annual > 0 ? prof.annual.toLocaleString() + " หน่วย/ปี" : "ยังไม่ได้กรอก"}</span></span>
+                  <span className="p3-note" style={{ marginTop: -2 }}>
+                    ผลผลิตไม่เปลี่ยนตามข้อมูลตรงนี้ แต่ <b>มูลค่าของไฟเปลี่ยน</b> — หน่วยที่ใช้เองทันทีมีค่าเท่าค่าไฟเต็ม
+                    ส่วนที่เหลือได้แค่ราคาขายคืน กรอกจากบิลค่าไฟของลูกค้าได้เลย
+                  </span>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 9 }}>
+                    <label className="p3-f"><span className="lb">ลักษณะการใช้ไฟ</span>
+                      <select className="p3-inp" value={loadCfg.preset} onChange={(e) => setLoad({ preset: e.target.value })}>
+                        {Object.keys(SC_LOADS).map((k) => <option key={k} value={k}>{SC_LOADS[k].label}</option>)}
+                      </select></label>
+                    <label className="p3-f"><span className="lb">{loadCfg.mode === "year" ? "ใช้ไฟทั้งปี" : "ใช้ไฟเฉลี่ยเดือนละ"}</span>
+                      <span style={{ display: "flex", gap: 5, alignItems: "center" }}>
+                        <input className="p3-inp" type="number" step="10" min="0"
+                          value={loadCfg.mode === "year" ? loadCfg.kwhYear : loadCfg.kwhMonth}
+                          onChange={(e) => setLoad(loadCfg.mode === "year" ? { kwhYear: +e.target.value || 0 } : { kwhMonth: +e.target.value || 0 })} />
+                        <span className="p3-sfx">หน่วย</span></span></label>
+                    <label className="p3-f"><span className="lb">กรอกเป็น</span>
+                      <select className="p3-inp" value={loadCfg.mode} onChange={(e) => setLoad({ mode: e.target.value })}>
+                        <option value="month">ต่อเดือน (เฉลี่ยจากบิล)</option>
+                        <option value="year">ต่อปี</option>
+                      </select></label>
+                  </div>
+                  <span className="p3-note" style={{ margin: 0 }}>{prof.hint}</span>
+
+                  {loadCfg.preset === "custom" && (
+                    <React.Fragment>
+                      <span className="p3-eb" style={{ marginTop: 2 }}>น้ำหนักการใช้ไฟรายชั่วโมง<span className="ln" /></span>
+                      <div className="su-h24">
+                        {(loadCfg.shape && loadCfg.shape.length === 24 ? loadCfg.shape : SC_LOADS.custom.shape).map((v, h) => (
+                          <label key={h}><i>{h}</i>
+                            <input type="number" step="0.5" min="0" value={v} onChange={(e) => {
+                              const arr = (loadCfg.shape && loadCfg.shape.length === 24 ? loadCfg.shape : SC_LOADS.custom.shape).slice();
+                              arr[h] = Math.max(0, +e.target.value || 0); setLoad({ shape: arr });
+                            }} /></label>
+                        ))}
+                      </div>
+                      <span className="p3-note" style={{ margin: 0 }}>
+                        ใส่เป็นตัวเลขเทียบกันก็พอ (เช่น กลางคืน 2 กลางวัน 8) ระบบจะเทียบสัดส่วนแล้วคูณด้วยยอดใช้ไฟจริงให้เอง
+                      </span>
+                    </React.Fragment>
+                  )}
+
+                  <span className="p3-eb" style={{ marginTop: 2 }}>เดือนไหนใช้ไฟมากกว่าปกติ<span className="ln" />
+                    <button className="p3-b sm" onClick={() => setLoad({ monScale: SC_MONSCALE_AC.slice() })}>หน้าร้อนเปิดแอร์</button>
+                    <button className="p3-b sm" onClick={() => setLoad({ monScale: null })}>เท่ากันทุกเดือน</button>
+                  </span>
+                  <div className="su-h24">
+                    {SC_MON.map((mo, m) => (
+                      <label key={m}><i>{mo}</i>
+                        <input type="number" step="1" min="0"
+                          value={loadCfg.monScale && loadCfg.monScale.length === 12 ? loadCfg.monScale[m] : 100}
+                          onChange={(e) => {
+                            const arr = (loadCfg.monScale && loadCfg.monScale.length === 12 ? loadCfg.monScale.slice() : new Array(12).fill(100));
+                            arr[m] = Math.max(0, +e.target.value || 0); setLoad({ monScale: arr });
+                          }} /></label>
+                    ))}
+                  </div>
+                  <span className="p3-note" style={{ margin: 0 }}>
+                    หน่วยเป็น % เทียบกับค่าเฉลี่ย — ปรับแล้วยอดใช้ไฟทั้งปียังเท่าเดิม แค่ย้ายน้ำหนักไปเดือนที่ใช้เยอะกว่า
+                  </span>
+                </div>
+
+                <div className="p3-card">
+                  <span className="p3-eb"><P3Icon name="link" size={13} />ข้อจำกัดฝั่งการไฟฟ้า<span className="ln" /></span>
+                  <div className="su-pick">
+                    {[["sell", "ขายคืนได้ไม่จำกัด", "ขนานไฟแล้วปล่อยส่วนเกินเข้าระบบได้เต็มที่"],
+                      ["limit", "จำกัดกำลังที่ปล่อยได้", "การไฟฟ้าอนุญาตให้ไหลย้อนได้ไม่เกินค่าที่กำหนด"],
+                      ["zero", "ห้ามไหลย้อน (zero export)", "ต้องติดมิเตอร์ตรวจจับ + สั่งอินเวอร์เตอร์หรี่กำลังลง"]].map(([k, h, d]) => (
+                      <button key={k} data-on={gridCfg.mode === k ? "1" : "0"} onClick={() => setGrid({ mode: k })}>
+                        <span className="h">{h}</span><span className="d">{d}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {gridCfg.mode === "limit" && (
+                    <label className="p3-f" style={{ maxWidth: 220 }}><span className="lb">ปล่อยออกได้ไม่เกิน</span>
+                      <span style={{ display: "flex", gap: 5, alignItems: "center" }}>
+                        <input className="p3-inp" type="number" step="0.5" min="0" value={gridCfg.expLimitKw}
+                          onChange={(e) => setGrid({ expLimitKw: Math.max(0, +e.target.value || 0) })} />
+                        <span className="p3-sfx">kW</span></span></label>
+                  )}
+                  {dis && dis.curt > 0 && (
+                    <div className="su-alert warn"><P3Icon name="height" size={14} />
+                      ต้องหรี่กำลังทิ้งปีละ <b>&nbsp;{dis.curt.toLocaleString()} หน่วย ({dis.curtPct}%)</b>&nbsp; —
+                      {dis.on ? " ลองเพิ่มความจุแบตหรือกำลังชาร์จ จะเก็บส่วนนี้ไว้ใช้ตอนเย็นได้" : " แบตเตอรี่จะช่วยเก็บส่วนนี้ไว้ใช้ทีหลังแทนที่จะทิ้งไปเปล่า ๆ"}
+                    </div>
+                  )}
+                </div>
+
+                <div className="p3-card">
+                  <span className="p3-eb"><P3Icon name="box" size={13} />แบตเตอรี่<span className="ln" />
+                    <span className="p3-seg wide" style={{ marginLeft: "auto" }}>
+                      <button data-on={!battCfg.on ? "1" : "0"} onClick={() => setBatt({ on: false })}>ไม่มีแบต</button>
+                      <button data-on={battCfg.on ? "1" : "0"} onClick={() => setBatt({ on: true })}>มีแบต</button>
+                    </span></span>
+                  {battCfg.on && (
+                    <React.Fragment>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 9 }}>
+                        <label className="p3-f"><span className="lb">ชนิดเซลล์</span>
+                          <select className="p3-inp" value={battCfg.chem} onChange={(e) => {
+                            const c = SC_CHEM[e.target.value] || SC_CHEM.lfp;
+                            setBatt({ chem: e.target.value, dod: c.dod, rte: c.rte, cycles: c.cycles, calYears: c.calYears, eol: c.eol, cost: c.cost });
+                          }}>
+                            {Object.keys(SC_CHEM).map((k) => <option key={k} value={k}>{SC_CHEM[k].label}</option>)}
+                          </select></label>
+                        {[["kwh", "ความจุตามป้าย", "kWh", 0.5], ["dod", "ใช้ได้จริง (DoD)", "%", 1],
+                          ["pKw", "ชาร์จ/จ่ายสูงสุด", "kW", 0.5], ["rte", "ประสิทธิภาพไป-กลับ", "%", 0.5],
+                          ["reserve", "กันไว้เผื่อไฟดับ", "%", 5], ["standby", "แบตกินเองต่อวัน", "%", 0.1],
+                          ["cycles", "จำนวนรอบจนหมดอายุ", "รอบ", 100], ["calYears", "อายุปฏิทิน", "ปี", 1],
+                          ["degY", "เสื่อมปีละ", "%", 0.5]].map(([k, lb, sfx, stp]) => (
+                          <label key={k} className="p3-f"><span className="lb">{lb}</span>
+                            <span style={{ display: "flex", gap: 5, alignItems: "center" }}>
+                              <input className="p3-inp" type="number" step={stp} min="0" value={battCfg[k]}
+                                onChange={(e) => setBatt({ [k]: Math.max(0, +e.target.value || 0) })} />
+                              <span className="p3-sfx">{sfx}</span></span></label>
+                        ))}
+                        <label className="p3-f"><span className="lb">คิดราคาแบบ</span>
+                          <select className="p3-inp" value={battCfg.costMode} onChange={(e) => setBatt({ costMode: e.target.value })}>
+                            <option value="perKwh">บาทต่อ kWh</option>
+                            <option value="lump">ยอดรวมทั้งชุด</option>
+                          </select></label>
+                        <label className="p3-f"><span className="lb">{battCfg.costMode === "lump" ? "ราคารวมทั้งชุด" : "ราคาต่อ kWh"}</span>
+                          <span style={{ display: "flex", gap: 5, alignItems: "center" }}>
+                            <input className="p3-inp" type="number" step="500" min="0"
+                              value={battCfg.costMode === "lump" ? battCfg.lump : battCfg.cost}
+                              onChange={(e) => setBatt(battCfg.costMode === "lump" ? { lump: +e.target.value || 0 } : { cost: +e.target.value || 0 })} />
+                            <span className="p3-sfx">บาท</span></span></label>
+                      </div>
+                      <div className="su-tiles">
+                        {[["ใช้งานได้จริง", battS.usable, "kWh", "ความจุป้าย × DoD"],
+                          ["ส่วนที่ลดค่าไฟได้", battS.work, "kWh", "หักที่กันไว้เผื่อไฟดับแล้ว"],
+                          ["ใช้ไปปีละ", dis && dis.on ? dis.cycles : 0, "รอบ", "จากการจำลองจ่ายไฟจริงทั้งปี"],
+                          ["น่าจะอยู่ได้", dis && dis.battLife != null ? dis.battLife : "—", "ปี",
+                            dis && dis.byCycle != null && dis.byCycle < scNum(battCfg.calYears)
+                              ? "หมดรอบก่อนหมดอายุปฏิทิน" : "หมดอายุปฏิทินก่อนใช้ครบรอบ"],
+                          ["เงินค่าแบต", battS.capex, "บาท", "รวมอยู่ในเงินลงทุนของขั้นถัดไปแล้ว"]].map(([k, v, u, d]) => (
+                          <div key={k}><span className="k">{k}</span>
+                            <span className="v">{typeof v === "number" ? v.toLocaleString() : v}<small>{u}</small></span>
+                            <span className="d">{d}</span></div>
+                        ))}
+                      </div>
+                      <span className="p3-note" style={{ margin: 0 }}>
+                        ค่าที่ต้องดูจากดาต้าชีตของแบตให้ครบ: ความจุป้าย · DoD · กำลังชาร์จ/จ่าย (เอาค่าที่น้อยกว่าระหว่างตัวแบตกับอินเวอร์เตอร์ไฮบริด) ·
+                        ประสิทธิภาพไป-กลับ · จำนวนรอบที่รับประกัน · อายุปฏิทิน · ความจุคงเหลือตอนหมดอายุ ·
+                        ที่ยังต้องเช็คแต่ไม่ได้เอามาคิดเงินตรงนี้คือ แรงดันระบบ (48V หรือ HV) ว่าตรงกับไฮบริดที่เลือกไหม · ช่วงอุณหภูมิใช้งาน ·
+                        มาตรฐาน IEC 62619 / มอก. · เงื่อนไขการรับประกัน
+                      </span>
+                    </React.Fragment>
+                  )}
+                  {!battCfg.on && (
+                    <span className="p3-note" style={{ margin: 0 }}>
+                      ยังไม่ใส่แบต — ไฟที่ผลิตเกินความต้องการตอนนั้นจะถูกขายคืนที่ราคาถูกกว่าค่าไฟ (หรือถูกตัดทิ้งถ้าห้ามไหลย้อน)
+                      กด “มีแบต” เพื่อดูว่าคุ้มไหมที่จะเก็บไว้ใช้ตอนเย็น
+                    </span>
+                  )}
+                </div>
+
+                {dis ? (
+                  <React.Fragment>
+                    <div className="su-tiles">
+                      {[["ผลิตแล้วได้ใช้เอง", dis.selfPct, "%", (dis.direct + dis.dis).toLocaleString() + " จาก " + dis.pv.toLocaleString() + " หน่วย/ปี", dis.selfPct >= 60],
+                        ["ไฟที่ใช้มาจากโซลาร์", dis.suffPct, "%", "ที่เหลือยังต้องซื้อ " + dis.imp.toLocaleString() + " หน่วย/ปี", dis.suffPct >= 40],
+                        ["ขายคืนการไฟฟ้า", dis.expPct, "%", dis.exp.toLocaleString() + " หน่วย/ปี", null],
+                        ["ตัดทิ้งเพราะห้ามไหลย้อน", dis.curtPct, "%", dis.curt.toLocaleString() + " หน่วย/ปี", dis.curt > 0 ? false : true]].map(([k, v, u, d, good]) => (
+                        <div key={k} data-good={good == null ? undefined : (good ? "1" : "0")}>
+                          <span className="k">{k}</span><span className="v">{v}<small>{u}</small></span><span className="d">{d}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="p3-card">
+                      <span className="p3-eb"><P3Icon name="curve" size={13} />ไฟทั้งวันไหลไปไหน · {SC_MON[flowMon]}<span className="ln" />
+                        <span className="su-mstep">
+                          <button onClick={() => setFlowMon((flowMon + 11) % 12)} title="เดือนก่อนหน้า"><P3Icon name="arrow" size={12} /></button>
+                          <b>{SC_MON[flowMon]}</b>
+                          <button onClick={() => setFlowMon((flowMon + 1) % 12)} title="เดือนถัดไป"><P3Icon name="arrow" size={12} /></button>
+                        </span></span>
+                      <span className="p3-note" style={{ marginTop: -2 }}>ไฟที่ผลิตได้ในวันเฉลี่ยของเดือนนี้ ถูกเอาไปทำอะไรบ้าง</span>
+                      <SuFlowDay rows={dis.dayRows[flowMon]} mode="pv" on={dis.on} />
+                      <div className="su-flg">
+                        {["direct", "chg", "exp", "curt"].map((k) => (
+                          <span key={k}><i style={{ background: SU_FLOW[k].c }} />{SU_FLOW[k].label}</span>
+                        ))}
+                        {dis.on && <span><i className="dash" />ระดับไฟในแบต (0–100%)</span>}
+                      </div>
+                      <span className="p3-eb" style={{ marginTop: 6 }}>ไฟที่ลูกค้าใช้ มาจากไหน<span className="ln" /></span>
+                      <SuFlowDay rows={dis.dayRows[flowMon]} mode="load" on={dis.on} />
+                      <div className="su-flg">
+                        {["direct", "dis", "imp"].map((k) => (
+                          <span key={k}><i style={{ background: SU_FLOW[k].c }} />{SU_FLOW[k].label}</span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="p3-card">
+                      <span className="p3-eb"><P3Icon name="doc" size={13} />รายเดือน<span className="ln" /></span>
+                      <div className="su-scroll">
+                        <table className="su-tb">
+                          <thead><tr><th>เดือน</th><th>ผลิตได้</th><th>ใช้ไฟ</th><th>ใช้ตรง ๆ</th>
+                            {dis.on && <th>จากแบต</th>}<th>ขายคืน</th>{dis.curt > 0 && <th>ตัดทิ้ง</th>}
+                            <th>ซื้อจากการไฟฟ้า</th><th>ใช้เอง %</th></tr></thead>
+                          <tbody>
+                            {dis.months.map((mo) => (
+                              <tr key={mo.m} data-on={mo.m === flowMon ? "1" : "0"} onClick={() => setFlowMon(mo.m)} style={{ cursor: "pointer" }}>
+                                <td><b>{mo.label}</b></td>
+                                <td>{Math.round(mo.pv).toLocaleString()}</td>
+                                <td>{Math.round(mo.load).toLocaleString()}</td>
+                                <td>{Math.round(mo.direct).toLocaleString()}</td>
+                                {dis.on && <td>{Math.round(mo.dis).toLocaleString()}</td>}
+                                <td>{Math.round(mo.exp).toLocaleString()}</td>
+                                {dis.curt > 0 && <td style={{ color: mo.curt > 0 ? "var(--dngr)" : undefined }}>{Math.round(mo.curt).toLocaleString()}</td>}
+                                <td>{Math.round(mo.imp).toLocaleString()}</td>
+                                <td><b>{mo.selfPct}</b></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <span className="p3-note">
+                        หน่วยเป็น kWh · กดที่แถวเพื่อดูกราฟรายชั่วโมงของเดือนนั้น
+                        {dis.on ? " · ไฟหายไปในการเก็บ-จ่ายของแบตปีละ " + dis.battLoss.toLocaleString() + " หน่วย (ประสิทธิภาพไป-กลับ " + battCfg.rte + "%)" : ""}
+                      </span>
+                    </div>
+                  </React.Fragment>
+                ) : (
+                  <div className="su-alert warn"><P3Icon name="height" size={14} />
+                    ยังคำนวณการใช้เองไม่ได้ — กรอกยอดใช้ไฟของลูกค้าด้านบนก่อน (ถ้าไม่กรอก ขั้นคืนทุนจะกลับไปใช้สไลเดอร์ “ใช้เองกี่ %” แบบเดิม)
+                  </div>
+                )}
+
+                <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
+                  <button className="p3-b" onClick={() => setStep(3)}>ย้อนกลับ</button>
+                  <button className="p3-b pri" style={{ padding: "10px 20px" }} onClick={() => setStep(5)}>ถัดไป · คืนทุน<P3Icon name="arrow" size={14} /></button>
+                </div>
+              </React.Fragment>
+            )}
+
+            {/* ══ ขั้น 5 · คืนทุน & ROI ══ */}
+            {step === 5 && roi && (
+              <React.Fragment>
+                {px && (
+                  <div className="p3-card" style={{ flexDirection: "row", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "11px 13px" }}>
+                    <span className="p3-eb" style={{ margin: 0 }}><P3Icon name="probe" size={13} />คิดที่ระดับความมั่นใจ</span>
+                    <span className="p3-seg wide">
+                      <button data-on={roiP === "p50" ? "1" : "0"} onClick={() => setRoiP("p50")}>P50 · ค่ากลาง</button>
+                      <button data-on={roiP === "p90" ? "1" : "0"} onClick={() => setRoiP("p90")}>P90 · ระมัดระวัง</button>
+                    </span>
+                    <span className="p3-note" style={{ margin: 0, flex: 1, minWidth: 200, border: "none", padding: 0 }}>
+                      ใช้ผลผลิต <b>{Math.round(energy.annual * roi.kYield).toLocaleString()} kWh/ปี</b>
+                      {roiP === "p90" ? " (ต่ำกว่าค่ากลาง " + scR((1 - roi.kYield) * 100, 1) + "% เผื่อปีที่แดดไม่ดี)" : " (ค่ากลาง — โอกาสได้มากกว่านี้ครึ่งหนึ่ง)"}
+                    </span>
+                  </div>
+                )}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 10 }}>
                   {[["คืนทุนภายใน", roi.payback ? roi.payback : "ไม่คืนใน " + roi.years, roi.payback ? "ปี" : "ปี", roi.payback && roi.payback <= 8],
                     ["ผลตอบแทน IRR", roi.irr == null ? "—" : roi.irr, "% ต่อปี", roi.irr != null && roi.irr >= 8],
@@ -2937,17 +3394,41 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                         <input className="p3-inp" type="number" step="1000" value={roiCfg.invRepCost} onChange={(e) => setRoi({ invRepCost: +e.target.value || 0 })} />
                         <span className="p3-sfx">บาท</span></span></label>
                   </div>
-                  <P3NumRange label="ไฟที่ผลิตได้ ใช้เองกี่ %" value={roiCfg.selfUse} min={0} max={100} step={5} suffix="%"
-                    onChange={(v) => setRoi({ selfUse: v })} />
-                  <span className="p3-note">
-                    ส่วนที่ใช้เองคิดที่ค่าไฟเต็ม <b>{roiCfg.tariff} บาท/หน่วย</b> · ส่วนที่เหลือ {100 - scNum(roiCfg.selfUse)}% คิดที่ราคาขายคืน <b>{roiCfg.exportRate} บาท</b> —
-                    ยิ่งใช้ไฟกลางวันเองมาก ยิ่งคืนทุนเร็ว ปรับสไลเดอร์ดูผลได้ทันที
-                  </span>
+                  {dis ? (
+                    <React.Fragment>
+                      <div className="su-tiles">
+                        {[["ใช้เอง", scR(dis.fSelf * 100, 1), "%", "คิดที่ค่าไฟเต็ม " + roiCfg.tariff + " บาท/หน่วย"],
+                          ["ขายคืน", scR(dis.fExp * 100, 1), "%", "คิดที่ " + roiCfg.exportRate + " บาท/หน่วย"],
+                          ["ตัดทิ้ง", scR(dis.fCurt * 100, 1), "%", "ไม่ได้เงินเลย"],
+                          ["เงินค่าแบต", roi.battCapex, "บาท", roi.battCapex > 0 ? "เปลี่ยนใหม่ทุก " + battRepYear + " ปี" : "ไม่มีแบตในระบบนี้"]].map(([k, v, u, d]) => (
+                          <div key={k}><span className="k">{k}</span>
+                            <span className="v">{typeof v === "number" ? v.toLocaleString() : v}<small>{u}</small></span>
+                            <span className="d">{d}</span></div>
+                        ))}
+                      </div>
+                      <span className="p3-note">
+                        สัดส่วนนี้ไม่ได้เดา — มาจากการจำลองชั่วโมงต่อชั่วโมงทั้งปีในขั้น “โหลด &amp; แบตเตอรี่”
+                        เทียบไฟที่ผลิตได้กับไฟที่ลูกค้าใช้จริง จะแก้ได้ต้องกลับไปแก้ที่ขั้นนั้น
+                      </span>
+                    </React.Fragment>
+                  ) : (
+                    <React.Fragment>
+                      <P3NumRange label="ไฟที่ผลิตได้ ใช้เองกี่ %" value={roiCfg.selfUse} min={0} max={100} step={5} suffix="%"
+                        onChange={(v) => setRoi({ selfUse: v })} />
+                      <span className="p3-note">
+                        ส่วนที่ใช้เองคิดที่ค่าไฟเต็ม <b>{roiCfg.tariff} บาท/หน่วย</b> · ส่วนที่เหลือ {100 - scNum(roiCfg.selfUse)}% คิดที่ราคาขายคืน <b>{roiCfg.exportRate} บาท</b> —
+                        อยากได้ตัวเลขที่แม่นกว่านี้ ให้กลับไปกรอกยอดใช้ไฟของลูกค้าในขั้น “โหลด &amp; แบตเตอรี่” ระบบจะจำลองให้ทีละชั่วโมงทั้งปี
+                      </span>
+                    </React.Fragment>
+                  )}
                 </div>
 
                 <div className="p3-card">
                   <span className="p3-eb"><P3Icon name="curve" size={13} />กระแสเงินสดสะสม<span className="ln" />
-                    <span style={{ fontWeight: 600 }}>ลงทุน {roi.capex.toLocaleString()} บาท ({roi.perWp} บาท/W)</span></span>
+                    <span style={{ fontWeight: 600 }}>ลงทุน {roi.capex.toLocaleString()} บาท
+                      {roi.battCapex > 0
+                        ? " · โซลาร์ " + roi.pvCapex.toLocaleString() + " (" + roi.perWp + " บาท/W) + แบต " + roi.battCapex.toLocaleString()
+                        : " (" + roi.perWp + " บาท/W)"}</span></span>
                   <SuCash roi={roi} />
                   <div style={{ display: "flex", gap: 14, flexWrap: "wrap", borderTop: "1px solid var(--ln)", paddingTop: 9 }}>
                     <span className="p3-stat">ประหยัดปีแรก <b>{roi.rows[0].net.toLocaleString()}</b> บาท</span>
@@ -3001,14 +3482,14 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                 </div>
 
                 <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-                  <button className="p3-b" onClick={() => setStep(3)}>ย้อนกลับ</button>
+                  <button className="p3-b" onClick={() => setStep(4)}>ย้อนกลับ</button>
                   <button className="p3-b pri" style={{ padding: "10px 20px" }} onClick={() => setRepOpen(true)}>
                     <P3Icon name="doc" size={14} />ออกรายงาน PDF
                   </button>
                 </div>
               </React.Fragment>
             )}
-            {step === 4 && !roi && (
+            {step === 5 && !roi && (
               <div className="su-alert warn"><P3Icon name="height" size={14} />ยังคำนวณคืนทุนไม่ได้ — ต้องมีผลผลิตก่อน (กลับไปขั้นผลผลิต)</div>
             )}
           </div>
@@ -3074,8 +3555,9 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
             </div>
             <div className="su-sheet-ft">
               <button className="p3-b sm" onClick={() => repPreset(null)} title="เอาทุกหัวข้อ">ทั้งเล่ม</button>
-              <button className="p3-b sm" onClick={() => repPreset(["cover", "summary", "prod", "shade", "life", "roi"])}
-                title="หน้าปก · สรุป · ผลผลิต · คืนทุน — ตัดรายละเอียดทางเทคนิคออก">ฉบับลูกค้า</button>
+              <button className="p3-b sm" onClick={() => repPreset(["cover", "summary", "prod", "shade", "life", "pxx",
+                "env", "load", "loadDay", "loadMon", "battSpec", "roi"])}
+                title="หน้าปก · สรุป · ผลผลิต · การใช้ไฟ · คืนทุน — ตัดรายละเอียดทางเทคนิคออก">ฉบับลูกค้า</button>
               <button className="p3-b sm" onClick={() => repPreset(["equip", "wiring", "layout", "iv", "ivDay", "ivYear", "ivAll", "ivMeas"])}
                 title="อุปกรณ์ · การต่อ · ผัง · เส้น I-V — เอาไว้ให้ช่างถือหน้างาน">ฉบับหน้างาน</button>
               <span style={{ flex: 1 }} />

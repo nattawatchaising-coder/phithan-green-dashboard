@@ -1106,47 +1106,74 @@ function ivIrr(capex, flows) {
 }
 
 /* ── กระแสเงินสดรายปี ──
-   annual = ผลผลิตปีแรก (kWh) · panel ใช้ค่าเสื่อมของแผงชุดเดียวกับหน้าผลผลิต */
-function ivRoi(annual, panel, dcKw, r) {
+   annual = ผลผลิตปีแรก (kWh) · panel ใช้ค่าเสื่อมของแผงชุดเดียวกับหน้าผลผลิต
+   x = ของเพิ่มเติมที่คำนวณมาแล้วจากที่อื่น (ไม่ได้เก็บใน state):
+     · split   { direct, dis, exp } สัดส่วนของไฟที่ผลิตได้ — มาจาก scDispatch แทนสไลเดอร์ "ใช้เองกี่ %"
+     · battCapex / battRepYear / battRepCost / battDegY  ค่าใช้จ่ายและการเสื่อมของแบต
+     · kYield  ตัวคูณผลผลิต (1 = P50 · น้อยกว่า 1 = คิดแบบระมัดระวังที่ P90) */
+function ivRoi(annual, panel, dcKw, r, x) {
   const R = Object.assign({}, IV_ROI, r || {});
+  x = x || {};
   const yrs = Math.max(1, Math.round(R.years));
-  const capex = R.costMode === "lump" ? scNum(R.lump) : scNum(R.perWp) * scNum(dcKw) * 1000;
+  const pvCapex = R.costMode === "lump" ? scNum(R.lump) : scNum(R.perWp) * scNum(dcKw) * 1000;
+  const battCapex = Math.max(0, scNum(x.battCapex, 0));
+  const capex = pvCapex + battCapex;
   const d1 = scNum(panel.deg1, SC_PANEL_EXTRA.deg1) / 100, dy = scNum(panel.degY, SC_PANEL_EXTRA.degY) / 100;
+  const kY = scNum(x.kYield, 1) || 1;
+  const sp = x.split || null;
+  const fDirect = sp ? scClamp(scNum(sp.direct, 0), 0, 1) : 0;
+  const fDis = sp ? scClamp(scNum(sp.dis, 0), 0, 1) : 0;
+  const fExp = sp ? scClamp(scNum(sp.exp, 0), 0, 1) : 0;
   const self = scClamp(scNum(R.selfUse, 70), 0, 100) / 100;
-  const omBase = capex * scNum(R.om) / 100;
+  const bDegY = scNum(x.battDegY, 0) / 100;
+  const bRepY = Math.max(0, Math.round(scNum(x.battRepYear, 0)));
+  const bRepCost = Math.max(0, scNum(x.battRepCost, 0));
+  /* ค่าดูแลคิดจากค่าติดตั้งฝั่งโซลาร์เท่านั้น — แบตมีรอบเปลี่ยนของตัวเองอยู่แล้ว จะได้ไม่นับซ้ำ */
+  const omBase = pvCapex * scNum(R.om) / 100;
   const rows = []; const flows = [];
-  let cum = -capex, payback = null, totalSave = 0, totalKwh = 0;
+  let cum = -capex, payback = null, totalSave = 0, totalKwh = 0, totalDel = 0, bAge = 0;
   for (let y = 1; y <= yrs; y++) {
+    bAge++;
     const keep = (1 - d1) * Math.pow(1 - dy, y - 1);
-    const kwh = annual * keep;
+    const kwh = annual * keep * kY;
     const esc = Math.pow(1 + scNum(R.escal) / 100, y - 1);
-    const save = kwh * self * scNum(R.tariff) * esc;
-    const sell = kwh * (1 - self) * scNum(R.exportRate) * esc;
+    /* แบตเก็บได้น้อยลงทุกปี ส่วนที่ใช้ตรง ๆ ตอนกลางวันไม่กระทบ — แยกคิดกันคนละก้อน */
+    const bKeep = Math.max(0, 1 - bDegY * (bAge - 1));
+    const fSelf = sp ? fDirect + fDis * bKeep : self;
+    const fSell = sp ? fExp : 1 - self;
+    const save = kwh * fSelf * scNum(R.tariff) * esc;
+    const sell = kwh * fSell * scNum(R.exportRate) * esc;
     const om = omBase * Math.pow(1 + scNum(R.omEscal) / 100, y - 1);
-    const rep = (scNum(R.invRepYear) === y ? scNum(R.invRepCost) : 0);
+    let rep = (scNum(R.invRepYear) === y ? scNum(R.invRepCost) : 0);
+    if (bRepY > 0 && bRepCost > 0 && y < yrs && y % bRepY === 0) { rep += bRepCost; bAge = 0; }
     const net = save + sell - om - rep;
     const prev = cum;
     cum += net;
     if (payback == null && cum >= 0 && net > 0) payback = scR(y - 1 + (-prev) / net, 2);
-    totalSave += save + sell; totalKwh += kwh;
+    totalSave += save + sell; totalKwh += kwh; totalDel += kwh * (fSelf + fSell);
     flows.push(net);
     rows.push({ year: y, kwh: Math.round(kwh), keep: scR(keep * 100, 1), save: Math.round(save), sell: Math.round(sell),
-      om: Math.round(om), rep: Math.round(rep), net: Math.round(net), cum: Math.round(cum) });
+      om: Math.round(om), rep: Math.round(rep), net: Math.round(net), cum: Math.round(cum),
+      selfPct: scR(fSelf * 100, 1), bKeep: scR(bKeep * 100, 0) });
   }
   const disc = scNum(R.discount) / 100;
   const npv = -capex + ivNpv(disc, flows);
   const irr = ivIrr(capex, flows);
-  /* LCOE = (เงินลงทุน + ค่าดูแลคิดลด) ÷ ผลผลิตคิดลด — ใช้เทียบกับค่าไฟต่อหน่วยตรง ๆ */
+  /* LCOE = (เงินลงทุน + ค่าดูแลคิดลด) ÷ ผลผลิตคิดลด — ใช้เทียบกับค่าไฟต่อหน่วยตรง ๆ
+     ถ้ามีการห้ามไหลย้อนจนต้องตัดไฟทิ้ง จะนับเฉพาะหน่วยที่ได้ใช้จริง ต้นทุนต่อหน่วยจึงสูงขึ้นตามจริง */
+  const fDel = sp ? Math.min(1, fDirect + fDis + fExp) : 1;
   let dCost = capex, dKwh = 0;
-  rows.forEach((x, i) => { dCost += (x.om + x.rep) / Math.pow(1 + disc, i + 1); dKwh += x.kwh / Math.pow(1 + disc, i + 1); });
+  rows.forEach((q, i) => { dCost += (q.om + q.rep) / Math.pow(1 + disc, i + 1); dKwh += q.kwh * fDel / Math.pow(1 + disc, i + 1); });
   return {
-    capex: Math.round(capex), rows, years: yrs, payback,
+    capex: Math.round(capex), pvCapex: Math.round(pvCapex), battCapex: Math.round(battCapex),
+    kYield: scR(kY, 4), split: sp, deliveredKwh: Math.round(totalDel),
+    rows, years: yrs, payback,
     npv: Math.round(npv), irr: irr == null ? null : scR(irr * 100, 2),
     lcoe: dKwh ? scR(dCost / dKwh, 2) : 0,
     totalSave: Math.round(totalSave), totalKwh: Math.round(totalKwh),
     netTotal: Math.round(rows.length ? rows[rows.length - 1].cum : -capex),
     roiPct: capex ? scR((rows[rows.length - 1].cum + capex) / capex * 100, 1) : 0,
-    perWp: scNum(dcKw) ? scR(capex / (scNum(dcKw) * 1000), 2) : 0,
+    perWp: scNum(dcKw) ? scR(pvCapex / (scNum(dcKw) * 1000), 2) : 0,
     year1: rows[0] || null, cfg: R,
   };
 }
