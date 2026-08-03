@@ -314,6 +314,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     return Object.assign({}, p, { [key]: a.filter((_, j) => j !== i) });
   });
   const resetSvc = (key) => setB((p) => Object.assign({}, p, { [key]: null }));
+  // ค่าแรง: เหมารวม vs แยกรายการ — เก็บข้อมูลทั้งสองแบบไว้ สลับกลับไปมาไม่หาย
+  const laborMode = b.laborMode === "lump" ? "lump" : "split";
+  const LUMP_DEF = { basis: "job", rate: 0, note: "" };
+  const lump = Object.assign({}, LUMP_DEF, b.laborLump);
+  const setLump = (k, v) => setB((p) => Object.assign({}, p, { laborLump: Object.assign({}, LUMP_DEF, p.laborLump, { [k]: v }) }));
 
   // งานเพิ่มเติม (Input) — โครงสร้างบนหลังคา
   const STRUCT_DEF = { ladder: [], walkway: [], walkwayThk: 35, guardrail: [], ladderSpare: 5, walkwaySpare: 10, guardrailSpare: 5, ladderExtra: [], walkwayExtra: [], guardrailExtra: [] };
@@ -605,7 +610,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   );
 
   /* ตารางค่าแรง / ค่าขออนุญาต — ปริมาณช่องที่มี auto จะวิ่งตามผลถอดวัสดุเอง แก้ไม่ได้ (แต่ลบทั้งบรรทัดได้) */
-  const SvcTable = ({ sKey, preset, qtyLabel }) => {
+  const SvcTable = ({ sKey, preset, qtyLabel, total, perKw }) => {
     const rows = svcList(sKey, preset);
     const g = (priced.groups || []).find((x) => x.group === (sKey === "labor" ? window.BOQ.G_LABOR : window.BOQ.G_PERMIT));
     const live = (g && g.items) || [];
@@ -635,6 +640,15 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             </div>
           );
         })}
+        {total > 0 && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "10px 12px", marginTop: 2,
+            background: "var(--primary-soft)", borderRadius: 10 }}>
+            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".06em", color: "var(--primary-dark)" }}>รวมทุกบรรทัด</span>
+            <span style={{ fontFamily: "var(--display)", fontSize: 17, fontWeight: 700, letterSpacing: "-.03em", fontVariantNumeric: "tabular-nums", color: "var(--primary-dark)" }}>
+              ฿{baht(total)}{perKw > 0 ? <span style={{ fontSize: 11.5, fontWeight: 700, marginLeft: 6 }}>· ฿{baht(perKw)}/kW</span> : null}
+            </span>
+          </div>
+        )}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button onClick={() => addSvc(sKey, preset)} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--primary-soft)", color: "var(--primary-dark)", border: "none", borderRadius: 9, padding: "8px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={14} color="var(--primary-dark)" /> เพิ่มบรรทัด</button>
           {b[sKey] != null && <button onClick={() => resetSvc(sKey)} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "8px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>คืนรายการตั้งต้น</button>}
@@ -859,7 +873,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     !isHome ? { key: "struct", icon: "box", title: "งานเพิ่มเติม — โครงสร้าง", meta: "บันได · ทางเดิน · ราวกันตก" } : null,
     { key: "acc", icon: "box", title: "Accessories", meta: (accList || []).length ? accList.length + " รายการ" : "ยังไม่เพิ่ม" },
     { key: "labor", icon: "power", title: "ค่าแรงติดตั้ง",
-      meta: priced.laborTotal > 0 ? "฿" + baht(priced.laborTotal) + " · ฿" + baht(priced.laborPerKw) + "/kW" : "ยังไม่ได้ตั้งเรต",
+      meta: (laborMode === "lump" ? "เหมารวม · " : "แยกรายการ · ")
+        + (priced.laborTotal > 0 ? "฿" + baht(priced.laborTotal) + " · ฿" + baht(priced.laborPerKw) + "/kW" : "ยังไม่ได้ตั้งเรต"),
       tone: priced.laborTotal > 0 ? "ok" : "warn" },
     { key: "permit", icon: "box", title: "ค่าขออนุญาต & เอกสาร",
       meta: priced.permitTotal > 0 ? "฿" + baht(priced.permitTotal) : "ยังไม่ได้กรอกค่าธรรมเนียม",
@@ -1577,10 +1592,56 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           {/* ── ค่าแรงติดตั้ง ── */}
           <BoqSection title="ค่าแรงติดตั้ง" icon="power" {...secProps("labor")}
             right={priced.laborTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(priced.laborTotal)} · ฿{baht(priced.laborPerKw)}/kW</span> : null}>
-            <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
-              ปริมาณของบรรทัดที่ขึ้นเลขสีเขียวดึงจากผลถอดวัสดุให้เอง (แผง/ตัว/เมตร) — กรอกแค่ "ราคาต่อหน่วย" · บรรทัดที่ราคา 0 จะไม่ถูกบวกเข้ายอด
+            {/* เหมารวม = ตกลงราคาเดียวจบ · แยกรายการ = เห็นว่าเงินไปอยู่งานไหน (ใช้ต่อรองและคุมหน้างานได้) */}
+            <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+              {[{ v: "lump", t: "เหมารวม", d: "ราคาเดียวจบ" }, { v: "split", t: "แยกรายการงาน", d: "เห็นทีละงาน" }].map((m) => (
+                <button key={m.v} type="button" onClick={() => set("laborMode", m.v)}
+                  style={{ flex: "1 1 180px", textAlign: "left", padding: "10px 13px", borderRadius: 11, cursor: "pointer", fontFamily: "inherit",
+                    border: "1px solid " + (laborMode === m.v ? "var(--primary)" : "var(--border-strong)"),
+                    background: laborMode === m.v ? "var(--primary-soft)" : "var(--surface2)" }}>
+                  <span style={{ display: "block", fontSize: 12.5, fontWeight: 800, color: laborMode === m.v ? "var(--primary-dark)" : "var(--text-1)" }}>{m.t}</span>
+                  <span style={{ display: "block", fontSize: 10.5, color: "var(--text-3)", marginTop: 1 }}>{m.d}</span>
+                </button>
+              ))}
             </div>
-            <SvcTable sKey="labor" preset={window.BOQ.LABOR_PRESET} qtyLabel="ปริมาณ" />
+
+            {laborMode === "lump" ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>
+                  ตกลงค่าแรงเป็นก้อนเดียว — เลือกฐานคิดแล้วกรอกเรต ระบบคูณปริมาณจริงของงานนี้ให้เอง
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "200px 140px minmax(0,1fr)", gap: 12 }}>
+                  <Field label="ฐานคิด">
+                    <Dropdown value={lump.basis} onChange={(v) => setLump("basis", v)} options={[
+                      { value: "job", label: "เหมาทั้งงาน (บาท)" },
+                      { value: "kw", label: "ต่อ kW (฿/kW)" },
+                      { value: "panel", label: "ต่อแผง (฿/แผง)" },
+                    ]} />
+                  </Field>
+                  <Field label={lump.basis === "kw" ? "฿ ต่อ kW" : lump.basis === "panel" ? "฿ ต่อแผง" : "฿ เหมาทั้งงาน"}>
+                    <input type="number" min={0} style={numStyle} value={lump.rate} placeholder="0" onChange={(e) => setLump("rate", e.target.value)} />
+                  </Field>
+                  <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}>
+                    <Field label="ชื่อที่จะขึ้นในใบ BOQ (เว้นว่าง = ใช้ชื่อมาตรฐาน)">
+                      <input value={lump.note} placeholder="เช่น ค่าแรงติดตั้งเหมาทั้งระบบ รวมนั่งร้าน" style={inputStyle} onChange={(e) => setLump("note", e.target.value)} />
+                    </Field>
+                  </div>
+                </div>
+                <div className="bq-spec">
+                  <div><span className="k">ฐานคิด</span><span className="v">{lump.basis === "kw" ? result.meta.kw.toLocaleString() + " kW" : lump.basis === "panel" ? result.meta.panelCount.toLocaleString() + " แผง" : "1 งาน"}</span></div>
+                  <div><span className="k">เรต</span><span className="v">฿{baht(lump.rate)}</span></div>
+                  <div><span className="k">ค่าแรงรวม</span><span className="v hi">฿{baht(priced.laborTotal)}</span></div>
+                  <div><span className="k">คิดเป็น</span><span className="v hi">฿{baht(priced.laborPerKw)}/kW</span></div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
+                  ปริมาณของบรรทัดที่ขึ้นเลขสีเขียวดึงจากผลถอดวัสดุให้เอง (แผง/ตัว/เมตร) — กรอกแค่ "ราคาต่อหน่วย" · บรรทัดที่ราคา 0 จะไม่ถูกบวกเข้ายอด
+                </div>
+                <SvcTable sKey="labor" preset={window.BOQ.LABOR_PRESET} qtyLabel="ปริมาณ" total={priced.laborTotal} perKw={priced.laborPerKw} />
+              </div>
+            )}
           </BoqSection>
 
           {/* ── ค่าขออนุญาต & เอกสาร ── */}
@@ -1589,7 +1650,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
               ค่าธรรมเนียมจริงเปลี่ยนตามพื้นที่และขนาดระบบ ระบบจึงไม่เดาให้ — กรอกตามใบเสร็จ/ประกาศล่าสุด · ลบบรรทัดที่งานนี้ไม่ต้องขอได้เลย
             </div>
-            <SvcTable sKey="permit" preset={window.BOQ.PERMIT_PRESET} qtyLabel="จำนวน" />
+            <SvcTable sKey="permit" preset={window.BOQ.PERMIT_PRESET} qtyLabel="จำนวน" total={priced.permitTotal} perKw={priced.permitPerKw} />
           </BoqSection>
 
           {/* ── งานเพิ่มเติม (Input): โครงสร้างบนหลังคา — เฉพาะงานโครงการ ไม่แสดงงานบ้าน ── */}

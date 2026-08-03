@@ -680,6 +680,8 @@
       support: { inv: 0, invKind: "floor", mdb: 0, mdbKind: "floor", spare: 10, extra: [] },
       // ค่าแรง / ค่าขออนุญาต — null = ยังไม่เคยตั้งค่า ใช้รายการตั้งต้น (ราคา 0 รอกรอก)
       labor: null,
+      laborMode: "split",                         // split = แยกรายการงาน · lump = เหมารวม
+      laborLump: { basis: "job", rate: 0, note: "" },   // basis: job(เหมาทั้งงาน) / kw / panel
       permit: null,
       conduitSpare: { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10, upStraight: 10, upClamp: 10, upConnector: 10 },
       // งานเพิ่มเติม (Input) — โครงสร้างบนหลังคา ถอดวัสดุตามสูตร (ว่าง = ไม่ใช้/ไม่ถอด)
@@ -1113,7 +1115,16 @@
         price: Math.max(0, +r.price || 0),
         auto: r.auto || "",
       }));
-    const labor = svcRows(b.labor, LABOR_PRESET);
+    /* ค่าแรงมี 2 แบบ — เหมารวมทั้งงาน (บรรทัดเดียว) หรือแยกรายการงาน
+       เหมารวมยังเลือกฐานคิดได้ 3 แบบ: เหมาทั้งงาน · ต่อ kW · ต่อแผง (ทั้งหมดออกมาเป็น 1 บรรทัด) */
+    const LB = Object.assign({ basis: "job", rate: 0, note: "" }, b.laborLump || {});
+    const lumpBase = LB.basis === "kw" ? { qty: kw, unit: "kW", label: "เหมาต่อ kW" }
+      : LB.basis === "panel" ? { qty: panelCount, unit: "แผง", label: "เหมาต่อแผง" }
+      : { qty: 1, unit: "งาน", label: "เหมาทั้งงาน" };
+    const labor = b.laborMode === "lump"
+      ? [{ name: (LB.note || "").trim() || ("ค่าแรงติดตั้งทั้งระบบ (" + lumpBase.label + ")"),
+           qty: lumpBase.qty, unit: lumpBase.unit, price: Math.max(0, +LB.rate || 0), auto: "lump" }]
+      : svcRows(b.labor, LABOR_PRESET);
     const permit = svcRows(b.permit, PERMIT_PRESET);
     if (labor.length) groups.push({ group: G_LABOR, items: labor });
     if (permit.length) groups.push({ group: G_PERMIT, items: permit });
