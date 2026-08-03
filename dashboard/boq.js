@@ -446,6 +446,31 @@
     return out;
   }
 
+  /* ── แผนสตริง ── ตอบคำถาม "ลงสตริงละ N แผง แล้วจะได้กี่สตริง"
+     แผงทั้งงาน ÷ แผงต่ออนุกรม = จำนวนสตริง (ปัดขึ้น) · เศษที่เหลือกลายเป็นสตริงสุดท้ายที่แผงไม่เต็ม
+     ช่องรับสตริงของอินเวอร์เตอร์ = จำนวน MPPT × สตริงต่อ MPPT (ค่าปริยาย 1 ถ้ายังไม่กรอกในคลัง)
+     สตริงที่แผงไม่เต็มแรงดันจะต่ำกว่าเพื่อน — เตือนไว้เพราะกำลังจะหายไปบางส่วน */
+  function stringPlan(panelCount, series, inv, invCount) {
+    inv = inv || {};
+    const n = Math.max(0, Math.round(+panelCount || 0));
+    const s = Math.max(1, Math.round(+series || 0));
+    const nInv = Math.max(1, Math.round(+invCount || 1));
+    const full = Math.floor(n / s);
+    const rest = n - full * s;
+    const strings = full + (rest > 0 ? 1 : 0);
+    const perMppt = Math.max(1, Math.round(+inv.strPerMppt || 1));
+    const mppt = Math.max(0, Math.round(+inv.inputs || 0));
+    const capPerInv = mppt * perMppt;
+    const cap = capPerInv * nInv;
+    return {
+      series: s, panels: n, strings, full, rest, invCount: nInv,
+      perInv: Math.ceil(strings / nInv), perMppt, mppt, capPerInv, cap,
+      over: cap > 0 && strings > cap,          // สตริงมากกว่าช่องรับ → ต้องเพิ่มอินเวอร์เตอร์หรือเพิ่มแผงต่อสตริง
+      spare: cap > 0 ? cap - strings : 0,      // ช่องที่ยังว่าง
+      uneven: rest > 0,                        // มีสตริงที่แผงไม่เต็ม
+    };
+  }
+
   // ── ท่อร้อยสาย (RACE WAY) ──
   const IMC_SIZES = ['IMC 1"', 'IMC 1-1/4"', 'IMC 1-1/2"', 'IMC 2"', 'IMC 2-1/2"', 'IMC 3"', 'IMC 3-1/2"'];
   const UPVC_SIZES = [
@@ -523,7 +548,8 @@
       comboType: job.comboType || "ready",   // ตู้ Combiner ATMOCE: ready=สำเร็จ · assembled=ตู้ประกอบ
       microRatio: "2:1",
       inverterModel: "",
-      strings: 0,
+      invCount: 0,    // 0 = คิดให้อัตโนมัติจากกำลังแผง ÷ MAX PV ต่อตัว
+      strings: 0,     // 0 = คิดให้อัตโนมัติจากแผนสตริง (แผงทั้งงาน ÷ แผงต่ออนุกรม)
       hwBackup: "none",
       hwOptimizer: !!(job.connect && job.connect !== "-" && job.connect !== "ไม่มี"),
       hwExtraPanel: false,
@@ -688,15 +714,26 @@
     const battCount = Math.round((+b.batteryKwh || 0) / BATTERY_UNIT_KWH);
     const selInv = b.inverterModel ? INVERTERS.find((x) => x.model === b.inverterModel) : null;
     let invCount, invItems, combItems = null;
+    let invAuto = 0, plan = null;
     if (selInv) {
       // จำนวนตัว = ปัดขึ้น(กำลังแผงรวม ÷ MAX PV ต่อตัว) — ถ้าไม่ได้ตั้ง MAX PV ใช้ kW ต่อตัวแทน
+      // ระบุเองได้ที่ b.invCount (0/ว่าง = ใช้ค่าอัตโนมัติ) เช่นงานที่แบ่งอินเวอร์เตอร์ตามหลังคาคนละทิศ
       const invSizeBase = selInv.maxPv > 0 ? selInv.maxPv : selInv.kw;
-      invCount = invSizeBase > 0 ? Math.ceil(kw / invSizeBase) : 0;
+      invAuto = invSizeBase > 0 ? Math.max(1, Math.ceil(kw / invSizeBase)) : 0;
+      invCount = +b.invCount > 0 ? Math.max(1, Math.round(+b.invCount)) : invAuto;
       if (selInv.inputs > 0) {
         // ── Huawei (string/hybrid) ── INVERTER = ตัวหลัก/แบต/สำรอง · COMBINER BOX = ตู้+อุปกรณ์ป้องกัน
         const ph = selInv.phase === 3 ? 3 : 1;
-        const strPer = Math.min(Math.max(Math.round(+b.strings || selInv.inputs), 1), selInv.inputs);
-        const totalStr = invCount * strPer;
+        /* จำนวนสตริงรวม — เอาจากแผนสตริงจริง (แผงทั้งงาน ÷ แผงต่ออนุกรม) ไม่ใช่เดาจากจำนวนช่อง MPPT
+           ของเดิมใช้ "ช่องต่อตัว × จำนวนตัว" ซึ่งได้ 4 สตริงสำหรับงาน 155 แผง — น้อยกว่าจริงมาก
+           ระบุเองได้ที่ b.strings (สตริงต่อตัว · 0 = อัตโนมัติ) */
+        const scIn = stringConfig(panel, selInv, { series: (b.dcSeries != null && b.dcSeries !== "") ? b.dcSeries : undefined });
+        if (scIn.ready) plan = stringPlan(panelCount, scIn.series, selInv, invCount);
+        const capPerInv = Math.max(1, (+selInv.inputs || 1) * Math.max(1, Math.round(+selInv.strPerMppt || 1)));
+        const strPer = +b.strings > 0
+          ? Math.min(Math.max(Math.round(+b.strings), 1), capPerInv)
+          : (plan ? plan.perInv : selInv.inputs);
+        const totalStr = +b.strings > 0 || !plan ? invCount * strPer : plan.strings;
         // กลุ่ม INVERTER
         invItems = [];
         invItems.push({ name: selInv.model, qty: invCount, unit: "ตัว" });
@@ -903,7 +940,7 @@
     );
     if (acc.length) groups.push({ group: "ACCESSORIES", items: acc });
 
-    return { groups, meta: { panelCount, kw, rowsSum, invCount, battCount, valid: rowsSum === panelCount } };
+    return { groups, meta: { panelCount, kw, rowsSum, invCount, invAuto, plan, battCount, valid: rowsSum === panelCount } };
   }
 
   // ── ราคา/ต้นทุน ──────────────────────────────────────────
@@ -1045,14 +1082,19 @@
   // เฉพาะรายการที่ตั้ง type = string/hybrid + kW ต่อตัว เท่านั้นที่นำมาเลือกใน BOQ
   function setInverters(list) {
     const out = [];
+    /* กันกรอกผิดหน่วย — ช่อง kW และ MAX PV เป็น "กิโลวัตต์" แต่บางทีกรอกเป็นวัตต์มา (เช่น 55000)
+       อินเวอร์เตอร์สตริงที่ใหญ่ที่สุดยังไม่ถึง 1,000 kW ค่าตั้งแต่ 1,000 ขึ้นไปจึงเป็นวัตต์แน่นอน หารกลับให้เลย
+       ไม่งั้นจำนวนตัวจะเพี้ยน (100 kW ÷ 55,000 = ปัดขึ้นได้ 1 ตัว) */
+    const kwUnit = (v) => { const n = +v || 0; return n >= 1000 ? Math.round(n / 1000 * 100) / 100 : n; };
     (list || []).forEach((p) => {
       if (!p || !p.model) return;
       const type = p.type === "string" || p.type === "hybrid" ? p.type : "";
       if (!type) return;
-      out.push({ model: String(p.model).trim(), type: type, kw: +p.kw || 0, phase: +p.phase || 0, inputs: +p.inputs || 0, maxPv: +p.maxPv || 0, outA: +p.outA || 0, mpptVmin: +p.mpptVmin || 0, mpptVmax: +p.mpptVmax || 0, maxVdc: +p.maxVdc || 0, maxInA: +p.maxInA || 0, maxIscA: +p.maxIscA || 0,
+      out.push({ model: String(p.model).trim(), type: type, kw: kwUnit(p.kw), phase: +p.phase || 0, inputs: +p.inputs || 0, maxPv: kwUnit(p.maxPv), outA: +p.outA || 0, mpptVmin: +p.mpptVmin || 0, mpptVmax: +p.mpptVmax || 0, maxVdc: +p.maxVdc || 0, maxInA: +p.maxInA || 0, maxIscA: +p.maxIscA || 0,
         maxMpptA: +p.maxMpptA || 0, vStart: +p.vStart || 0, vRated: +p.vRated || 0, maxAcKw: +p.maxAcKw || 0 });
       // ค่าที่ยังไม่กรอกต้องไม่ทับค่ากลางในเครื่องคำนวณ จึงใส่เฉพาะตอนมีค่าจริง
       const row = out[out.length - 1];
+      if ((+p.maxPv || 0) >= 1000 || (+p.kw || 0) >= 1000) row.unitFixed = true;   // เตือนให้ไปแก้ที่คลัง
       if (+p.strPerMppt > 0) row.strPerMppt = Math.round(+p.strPerMppt);
       if (+p.eff > 0) row.eff = +p.eff;
       if (+p.effEuro > 0) row.effEuro = +p.effEuro;
@@ -1061,5 +1103,5 @@
     out.forEach((x) => INVERTERS.push(x));
   }
 
-  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, catalog, applyPrices, setPanels, setInverters };
+  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, catalog, applyPrices, setPanels, setInverters };
 })();

@@ -73,8 +73,29 @@ const BQ_CSS = `
 .bq-btn.pri{border:0;background:var(--primary);color:#fff;padding:10px 24px}
 .bq-btn.pri:hover{filter:brightness(1.06)}
 
+/* ตารางสเปคจากคลัง + ตัวเลขที่คำนวณได้ — ช่องที่ยังไม่กรอกในคลังขึ้นสีส้มให้เห็นว่าต้องไปเติม */
+.bq-spec{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.bq-spec>div{padding:9px 11px;border-radius:10px;background:var(--surface3);border:1px solid var(--border);min-width:0}
+.bq-spec .k{display:block;font-size:10px;font-weight:700;color:var(--text-3);margin-bottom:3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bq-spec .v{display:block;font-family:var(--mono);font-size:13.5px;font-weight:800;color:var(--text-1);
+  font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bq-spec .v.hi{color:var(--primary-dark)}
+.bq-spec>div[data-miss="1"]{background:#FFFBEB;border-color:#FDE68A}
+.bq-spec>div[data-miss="1"] .v{color:#B45309}
+.bq-spec>div[data-bad="1"]{background:#FEF2F2;border-color:#FBD3D3}
+.bq-spec>div[data-bad="1"] .v{color:#DC2626}
+/* ปุ่มลิงก์เล็ก ๆ ท้ายป้ายช่องกรอก — กดแล้วกลับไปใช้ค่าอัตโนมัติ */
+.bq-auto{border:0;background:none;padding:0;margin-left:auto;cursor:pointer;font-family:inherit;
+  font-size:9.5px;font-weight:800;color:var(--primary-dark);text-decoration:underline;white-space:nowrap}
+.bq-note{margin-top:9px;display:flex;align-items:flex-start;gap:7px;padding:9px 12px;border-radius:10px;
+  font-size:12px;font-weight:600;line-height:1.5}
+.bq-note.warn{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E}
+.bq-note.ok{background:rgba(34,163,91,.07);border:1px solid #BBE7CD;color:#1d854b}
+
 @media (max-width:860px){
   .bq-body{flex-direction:column}
+  .bq-spec{grid-template-columns:repeat(2,minmax(0,1fr))}
   .bq-rail{width:100%;flex-direction:row;gap:5px;overflow-x:auto;padding:9px 11px;
     border-right:none;border-bottom:1px solid var(--border)}
   .bq-rail>.bq-eb{display:none}
@@ -101,6 +122,24 @@ function BoqLocked({ value, unit, num }) {
       <Icon name="lock" size={13} color="var(--text-3)" />
       <span style={{ flex: 1, textAlign: "right", fontFamily: num ? "var(--mono)" : "inherit", fontSize: num ? 15 : 13.5, fontWeight: num ? 700 : 600, color: num ? "var(--primary-dark)" : "var(--text-1)" }}>{value}</span>
       {unit && <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{unit}</span>}
+    </div>
+  );
+}
+
+/* จำนวนอินเวอร์เตอร์ — ปกติคิดให้อัตโนมัติจาก กำลังแผงรวม ÷ MAX PV ต่อตัว
+   พิมพ์ทับได้สำหรับงานที่ต้องแบ่งอินเวอร์เตอร์ตามทิศหลังคา/ตามอาคาร · ล้างช่องหรือกด "อัตโนมัติ" เพื่อกลับไปใช้ค่าคำนวณ */
+function BoqInvCount({ value, auto, onChange, style }) {
+  const manual = +value > 0;
+  const shown = manual ? +value : auto;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+      <input type="number" min={1} step={1} style={Object.assign({}, style, { flex: 1, minWidth: 0 })}
+        value={shown || ""} onChange={(e) => onChange(Math.max(0, parseInt(e.target.value) || 0))} />
+      <span style={{ fontSize: 11.5, color: "var(--text-3)", flexShrink: 0 }}>ตัว</span>
+      {manual
+        ? <button type="button" className="bq-auto" onClick={() => onChange(0)}
+            title={auto > 0 ? "กลับไปใช้ค่าอัตโนมัติ " + auto + " ตัว" : "กลับไปใช้ค่าอัตโนมัติ"}>อัตโนมัติ{auto > 0 ? " " + auto : ""}</button>
+        : <span className="bq-auto" style={{ textDecoration: "none", cursor: "default" }} title="คิดจากกำลังแผงรวม ÷ MAX PV ต่อตัว">อัตโนมัติ</span>}
     </div>
   );
 }
@@ -316,12 +355,19 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   }, [jobBrand, jobPhaseNum]); // eslint-disable-line
   const maxPvTotal = selInv ? (selInv.maxPv || 0) * result.meta.invCount : 0;
   const pvOver = isHuawei && maxPvTotal > 0 && result.meta.kw > maxPvTotal;
+  // ช่องรับสตริงต่อตัว = จำนวน MPPT × สตริงต่อ MPPT (แผนสตริงคิดหลังรู้ scfg ด้านล่าง)
+  const perMppt = Math.max(1, Math.round(+(selInv && selInv.strPerMppt) || 1));
+  const capPerInv = selInv ? Math.max(1, (+selInv.inputs || 1) * perMppt) : 1;
 
   // ── การต่ออนุกรมแผง (String) + สาย DC PV1-F — เฉพาะอินเวอร์เตอร์ String/Hybrid ──
   const selPanel = window.BOQ.findPanel ? window.BOQ.findPanel(b.panelModel) : null;
   const isStringInv = !!(selInv && (selInv.type === "string" || selInv.type === "hybrid"));
   const scfg = isStringInv && window.BOQ.stringConfig
     ? window.BOQ.stringConfig(selPanel, selInv, { series: (b.dcSeries != null && b.dcSeries !== "") ? b.dcSeries : undefined })
+    : null;
+  /* แผนสตริง — "ลงสตริงละ N แผง แล้วได้กี่สตริง" · ต้องรู้ Voc/ช่วง MPPT ก่อน (scfg.ready) */
+  const plan = scfg && scfg.ready && window.BOQ.stringPlan
+    ? window.BOQ.stringPlan(result.meta.panelCount, scfg.series, selInv, result.meta.invCount)
     : null;
 
   /* ── แรงดันตกของสายแต่ละเส้น ──
@@ -707,7 +753,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     isHuawei ? { key: "hybrid", icon: "bolt", title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid"),
       meta: selInv.model } : null,
     isStringInv && scfg ? { key: "dc", icon: "bolt", title: "สาย DC / การต่ออนุกรม",
-      meta: scfg.ready ? scfg.series + " แผงอนุกรม · " + scfg.dcWire : "ยังกรอกสเปคไม่ครบ", tone: scfg.ready ? "ok" : "warn" } : null,
+      meta: scfg.ready ? scfg.series + " แผงอนุกรม" + (plan ? " · " + plan.strings + " สตริง" : "") + " · " + scfg.dcWire : "ยังกรอกสเปคไม่ครบ",
+      tone: !scfg.ready ? "warn" : (plan && plan.over ? "warn" : "ok") } : null,
     { key: "layout", icon: "grid", title: "การจัดวางแผง",
       meta: "วางแล้ว " + result.meta.rowsSum + " / " + result.meta.panelCount + " แผง", tone: remaining === 0 ? "ok" : "warn" },
     { key: "wire", icon: "power", title: "สายไฟ",
@@ -772,7 +819,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label={"อินเวอร์เตอร์" + (jobBrand ? " · " + jobBrand : "")}><Dropdown value={b.inverterModel || ""} onChange={(v) => set("inverterModel", v)} options={invOptions} /></Field></div>
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}>{!b.inverterModel
                 ? <Field label="อัตราไมโคร"><Dropdown value={b.microRatio} onChange={(v) => set("microRatio", v)} options={[{ value: "1:1", label: "1:1 (1 แผง/ตัว)" }, { value: "2:1", label: "2:1 (2 แผง/ตัว)" }]} /></Field>
-                : <Field label="จำนวนอินเวอร์เตอร์"><div style={{ display: "flex", alignItems: "baseline", justifyContent: "flex-end", gap: 4, background: "var(--surface3)", border: "1px solid var(--border)", borderRadius: 10, padding: "9px 11px" }}><span style={{ fontFamily: "var(--mono)", fontSize: 15, fontWeight: 700, color: "var(--primary-dark)" }}>{result.meta.invCount}</span><span style={{ fontSize: 11.5, color: "var(--text-3)" }}>ตัว</span></div></Field>}</div>
+                : <Field label="จำนวนอินเวอร์เตอร์"><BoqInvCount value={b.invCount} auto={result.meta.invAuto} onChange={(v) => set("invCount", v)} style={numStyle} /></Field>}</div>
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="รุ่นแผง"><Dropdown value={b.panelModel} onChange={(v) => set("panelModel", v)} options={opt(window.BOQ.PANELS.map((p) => p.model))} /></Field></div>
               {hasBattery && <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="แบตเตอรี่ (kWh)"><BoqLocked value={b.batteryKwh} unit="kWh" num /></Field></div>}
               {hasBackup && <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="ระบบ Backup"><BoqLocked value={b.backup ? "ติดตั้ง" : "ไม่ติดตั้ง"} /></Field></div>}
@@ -785,13 +832,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             <BoqSection title={"ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + " (" + selInv.model + ")"} icon="bolt" {...secProps("hybrid")}>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "repeat(3, minmax(0,1fr))", gap: 12 }}>
                 <Field label="จำนวนอินเวอร์เตอร์">
-                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "flex-end", gap: 4, background: "var(--surface3)", border: "1px solid var(--border)", borderRadius: 10, padding: "9px 11px" }}>
-                    <span style={{ fontFamily: "var(--mono)", fontSize: 15, fontWeight: 700, color: "var(--primary-dark)" }}>{result.meta.invCount}</span><span style={{ fontSize: 11.5, color: "var(--text-3)" }}>ตัว</span>
-                  </div>
+                  <BoqInvCount value={b.invCount} auto={result.meta.invAuto} onChange={(v) => set("invCount", v)} style={numStyle} />
                 </Field>
-                <Field label={"String ต่อตัว (สูงสุด " + selInv.inputs + ")"}>
-                  <input type="number" style={numStyle} value={b.strings || selInv.inputs} min={1} max={selInv.inputs}
-                    onChange={(e) => set("strings", Math.min(Math.max(parseInt(e.target.value) || 1, 1), selInv.inputs))} />
+                <Field label={"String ต่อตัว (รับได้ " + capPerInv + ")"}>
+                  <input type="number" style={numStyle} value={b.strings || (plan ? plan.perInv : selInv.inputs)} min={1} max={capPerInv}
+                    onChange={(e) => set("strings", Math.min(Math.max(parseInt(e.target.value) || 0, 0), capPerInv))} />
                 </Field>
                 <Field label="ระบบสำรองไฟ">
                   <Dropdown value={b.hwBackup || "none"} onChange={(v) => set("hwBackup", v)} options={[
@@ -808,8 +853,40 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   <Icon name="alert" size={15} color="#EF4444" /> กำลังแผง {result.meta.kw} kW เกิน MAX PV รวม {maxPvTotal} kW ({selInv.invCount || result.meta.invCount} ตัว × {selInv.maxPv} kW) — เพิ่มจำนวนอินเวอร์เตอร์หรือลดแผง
                 </div>
               )}
-              <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
-                * Combiner Box + DC (Fuse/Holder/MCB/MC4) คิดตามจำนวน String · RCBO/SPD/Smart Meter/Backup เลือกตามเฟส ({selInv.phase === 3 ? "3" : "1"} เฟส) · RCBO ขนาดจากกระแสออก × 1.25
+              {selInv.unitFixed && (
+                <div className="bq-note warn">
+                  <Icon name="alert" size={15} color="#F59E0B" />
+                  <span>คลังกรอก MAX PV / kW ของรุ่นนี้เป็น "วัตต์" ระบบแปลงกลับเป็นกิโลวัตต์ให้ชั่วคราวแล้ว — ควรไปแก้ที่หน้าคลัง › สเปคอินเวอร์เตอร์ ให้เป็น kW จริง ๆ</span>
+                </div>
+              )}
+
+              {/* สเปคจากคลัง — ตัวเลขทุกตัวที่ใช้คิด BOQ อยู่ตรงนี้หมด ช่องส้ม = ยังไม่กรอกในคลัง */}
+              <div style={{ marginTop: 16, marginBottom: 8, fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>
+                สเปคจากคลังสินค้า · {selInv.model}
+              </div>
+              <div className="bq-spec">
+                {[
+                  { k: "กำลังต่อตัว", v: selInv.kw ? selInv.kw + " kW" : "—", miss: !selInv.kw },
+                  { k: "MAX PV ต่อตัว", v: selInv.maxPv ? selInv.maxPv + " kWp" : "ไม่ระบุ (ใช้ kW แทน)", miss: !selInv.maxPv },
+                  { k: "เฟส", v: selInv.phase ? selInv.phase + " เฟส" : "—", miss: !selInv.phase, bad: !!selInv.phase && selInv.phase !== (String(b.phase) === "3" ? 3 : 1) },
+                  { k: "กระแสออก (AC)", v: selInv.outA ? selInv.outA + " A" : "—", miss: !selInv.outA },
+                  { k: "จำนวน MPPT", v: selInv.inputs ? selInv.inputs + " ช่อง" : "—", miss: !selInv.inputs },
+                  { k: "สตริงต่อ MPPT", v: selInv.strPerMppt ? selInv.strPerMppt : "ไม่ระบุ (คิด 1)", miss: !selInv.strPerMppt },
+                  { k: "รับสตริงได้/ตัว", v: capPerInv + " สตริง", hi: true },
+                  { k: "ช่วง MPPT", v: selInv.mpptVmin && selInv.mpptVmax ? selInv.mpptVmin + "–" + selInv.mpptVmax + " V" : "—", miss: !(selInv.mpptVmin && selInv.mpptVmax) },
+                  { k: "Vdc สูงสุด", v: selInv.maxVdc ? selInv.maxVdc + " V" : "—", miss: !selInv.maxVdc },
+                  { k: "กระแส input/สตริง", v: selInv.maxInA ? selInv.maxInA + " A" : "—", miss: !selInv.maxInA },
+                  { k: "กระแสสูงสุด/MPPT", v: selInv.maxMpptA ? selInv.maxMpptA + " A" : "—", miss: !selInv.maxMpptA },
+                  { k: "MAX PV รวมทั้งงาน", v: maxPvTotal ? maxPvTotal + " kWp" : "—", hi: true, bad: pvOver },
+                ].map((c, i) => (
+                  <div key={i} data-miss={c.miss ? "1" : "0"} data-bad={c.bad ? "1" : "0"}>
+                    <span className="k">{c.k}</span><span className={"v " + (c.hi && !c.bad ? "hi" : "")}>{c.v}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ marginTop: 10, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
+                * จำนวนตัว = ปัดขึ้น(กำลังแผงรวม ÷ MAX PV ต่อตัว) พิมพ์ทับได้ · Combiner Box + DC (Fuse/Holder/MCB/MC4) คิดตามจำนวน String · RCBO/SPD/Smart Meter/Backup เลือกตามเฟส ({selInv.phase === 3 ? "3" : "1"} เฟส) · RCBO ขนาดจากกระแสออก × 1.25
               </div>
             </BoqSection>
           )}
@@ -856,6 +933,40 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       </div>
                     ))}
                   </div>
+                  {/* ── แผนสตริง — ลงสตริงละกี่แผง แล้วได้กี่สตริง ต่อเข้าอินเวอร์เตอร์พอไหม ── */}
+                  {plan && (
+                    <div>
+                      <div style={{ marginBottom: 8, fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>
+                        แผนสตริง · {plan.panels} แผง ÷ {plan.series} แผง/สตริง
+                      </div>
+                      <div className="bq-spec">
+                        <div><span className="k">จำนวนสตริงรวม</span><span className="v hi">{plan.strings} สตริง</span></div>
+                        <div><span className="k">สตริงที่แผงเต็ม</span><span className="v">{plan.full} × {plan.series} แผง</span></div>
+                        <div data-miss={plan.uneven ? "1" : "0"}><span className="k">สตริงเศษ</span><span className="v">{plan.rest > 0 ? "1 × " + plan.rest + " แผง" : "ไม่มี"}</span></div>
+                        <div><span className="k">สตริงต่ออินเวอร์เตอร์</span><span className="v">{plan.perInv} / {plan.capPerInv}</span></div>
+                        <div><span className="k">อินเวอร์เตอร์</span><span className="v">{plan.invCount} ตัว</span></div>
+                        <div><span className="k">ช่องรับสตริงรวม</span><span className="v">{plan.cap} ช่อง</span></div>
+                        <div data-bad={plan.over ? "1" : "0"}><span className="k">{plan.over ? "เกินช่องรับ" : "ช่องที่ยังว่าง"}</span><span className="v">{plan.over ? plan.strings - plan.cap : plan.spare} สตริง</span></div>
+                        <div><span className="k">กระแส DC รวม/ตัว</span><span className="v">{Math.round(plan.perInv * scfg.dcAmp * 10) / 10} A</span></div>
+                      </div>
+                      {plan.over ? (
+                        <div className="bq-note warn">
+                          <Icon name="alert" size={15} color="#F59E0B" />
+                          <span>สตริง {plan.strings} เส้น มากกว่าช่องรับรวม {plan.cap} ช่อง ({plan.invCount} ตัว × {plan.capPerInv}) — เพิ่มจำนวนอินเวอร์เตอร์ เพิ่มแผงต่อสตริง หรือใส่ Combiner รวมสตริงก่อนเข้าเครื่อง</span>
+                        </div>
+                      ) : plan.uneven ? (
+                        <div className="bq-note warn">
+                          <Icon name="alert" size={15} color="#F59E0B" />
+                          <span>สตริงสุดท้ายมีแค่ {plan.rest} แผง — แรงดัน {Math.round(plan.rest * scfg.vRef * 10) / 10} V {plan.rest * scfg.vRef < scfg.vmin ? "ต่ำกว่าช่วง MPPT " + scfg.vmin + " V เครื่องจะไม่ดึงกำลังจากสตริงนี้" : "ต่ำกว่าสตริงอื่น ควรแยกเข้า MPPT คนละช่อง"}</span>
+                        </div>
+                      ) : (
+                        <div className="bq-note ok">
+                          <Icon name="check" size={15} color="#22A35B" />
+                          <span>แบ่งลงตัว {plan.strings} สตริง × {plan.series} แผง · เหลือช่องว่างอีก {plan.spare} ช่อง</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {scfg.warns.length > 0 && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                       {scfg.warns.map((w, i) => (
