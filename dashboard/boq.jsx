@@ -144,6 +144,83 @@ function BoqInvCount({ value, auto, onChange, style }) {
   );
 }
 
+/* ── รูปประกอบ "ลักษณะการติดตั้ง" (วสท. แบ่งไว้ 7 กลุ่ม) ──
+   วาดเป็น SVG ในโค้ดเลย ไม่ต้องพึ่งไฟล์รูปข้างนอก · ใช้สีตามธีมจึงสลับโหมดมืดได้เอง
+   อ่านรูปยังไง: ยิ่งสายอยู่ในที่โล่ง ลมพัดผ่านได้ ระบายความร้อนยิ่งดี พิกัดกระแสยิ่งสูง
+   ฝังในฉนวนความร้อน (กลุ่ม 1) แย่ที่สุด → รางบันไดในอากาศ (กลุ่ม 7) ดีที่สุด */
+function WireArt({ art, w, h }) {
+  const S = "var(--text-3)", A = "var(--primary)", F = "var(--surface3)", BG = "var(--surface)";
+  const uid = "wa-" + (art || "x");
+  const hatch = "url(#" + uid + "-hatch)", soil = "url(#" + uid + "-soil)";
+  // ตัวนำ 1 เส้น: วงนอก = ฉนวน · จุดกลาง = ทองแดง
+  const cd = (x, y, r) => <g key={"c" + x + "_" + y}><circle cx={x} cy={y} r={r} fill={BG} stroke={A} strokeWidth="1.6" /><circle cx={x} cy={y} r={r * 0.36} fill={A} /></g>;
+  const wall = (x, y, ww, hh) => <g key="w"><rect x={x} y={y} width={ww} height={hh} fill={hatch} stroke={S} strokeWidth="1.3" /></g>;
+  const body = {
+    // กลุ่ม 1 — ท่ออยู่ในผนัง/ฝ้าที่มีฉนวนความร้อน (เส้นหยักคือฉนวน) ความร้อนออกไม่ได้
+    g1: <g>{wall(4, 6, 124, 66)}
+      <path d="M4 20 q7-6 14 0 t14 0 t14 0 t14 0 t14 0 t14 0 t14 0 t14 0" fill="none" stroke={S} strokeWidth="1.5" />
+      <circle cx="66" cy="47" r="19" fill={BG} stroke={S} strokeWidth="1.7" />
+      <circle cx="66" cy="47" r="15.5" fill="none" stroke={S} strokeWidth="1" opacity=".55" />
+      {cd(60, 42, 5)}{cd(72, 42, 5)}{cd(66, 53, 5)}</g>,
+    // กลุ่ม 2 — ท่อร้อยสายเกาะผนัง/ลอยในอากาศ (เส้นโค้งขวา = อากาศถ่ายเทได้)
+    g2: <g>{wall(4, 6, 18, 66)}
+      <line x1="22" y1="6" x2="22" y2="72" stroke={S} strokeWidth="1.7" />
+      <path d="M22 40h20" stroke={S} strokeWidth="2.4" />
+      <circle cx="66" cy="40" r="21" fill={BG} stroke={S} strokeWidth="1.7" />
+      <circle cx="66" cy="40" r="17" fill="none" stroke={S} strokeWidth="1" opacity=".55" />
+      {cd(59, 35, 5.5)}{cd(74, 35, 5.5)}{cd(66, 47, 5.5)}
+      <path d="M98 26q8 4 16 0M98 40q8 4 16 0M98 54q8 4 16 0" fill="none" stroke={S} strokeWidth="1.3" opacity=".5" /></g>,
+    // กลุ่ม 3 — สายมีเปลือกนอกยึดเกาะผนัง/เพดานโดยตรง ไม่มีท่อ (ครึ่งวงบนคือคลิปรัดสาย)
+    g3: <g>{wall(4, 6, 124, 16)}
+      <line x1="4" y1="22" x2="128" y2="22" stroke={S} strokeWidth="1.7" />
+      {[34, 66, 98].map((x) => <path key={"k" + x} d={"M" + (x - 13) + " 22v8a13 13 0 0 0 26 0v-8"} fill="none" stroke={S} strokeWidth="1.4" />)}
+      {[34, 66, 98].map((x) => <g key={"s" + x}><circle cx={x} cy={38} r="11" fill={BG} stroke={S} strokeWidth="1.5" />{cd(x, 38, 5.5)}</g>)}</g>,
+    // กลุ่ม 4 — วางบนลูกถ้วยในอากาศ เว้นระยะห่างกัน ระบายความร้อนได้รอบเส้น
+    g4: <g><rect x="4" y="62" width="124" height="10" fill={hatch} stroke={S} strokeWidth="1.3" />
+      {[30, 66, 102].map((x) => <g key={"p" + x}>
+        <rect x={x - 3} y={44} width="6" height="18" fill={F} stroke={S} strokeWidth="1.3" />
+        <ellipse cx={x} cy={42} rx="9" ry="4" fill={F} stroke={S} strokeWidth="1.3" />
+        <ellipse cx={x} cy={35} rx="7" ry="3.5" fill={F} stroke={S} strokeWidth="1.3" />
+        {cd(x, 25, 6.5)}</g>)}</g>,
+    // กลุ่ม 5 — ท่อร้อยสายฝังใต้ดิน (จุด = เนื้อดิน) ดินพาความร้อนออกช้ากว่าอากาศ
+    g5: <g><rect x="4" y="20" width="124" height="52" fill={soil} stroke={S} strokeWidth="1.3" />
+      <line x1="4" y1="20" x2="128" y2="20" stroke={S} strokeWidth="2" />
+      <circle cx="66" cy="47" r="19" fill={BG} stroke={S} strokeWidth="1.7" />
+      <circle cx="66" cy="47" r="15.5" fill="none" stroke={S} strokeWidth="1" opacity=".55" />
+      {cd(60, 42, 5)}{cd(72, 42, 5)}{cd(66, 53, 5)}</g>,
+    // กลุ่ม 6 — ฝังดินโดยตรง ไม่มีท่อ (ต้องเป็นสายที่ฝังดินได้ เช่น NYY)
+    g6: <g><rect x="4" y="20" width="124" height="52" fill={soil} stroke={S} strokeWidth="1.3" />
+      <line x1="4" y1="20" x2="128" y2="20" stroke={S} strokeWidth="2" />
+      {[38, 66, 94].map((x) => <g key={"b" + x}><circle cx={x} cy={48} r="12" fill={BG} stroke={S} strokeWidth="1.5" />{cd(x, 48, 6)}</g>)}</g>,
+    // กลุ่ม 7 — วางบนรางเคเบิลบันได/มีรูระบาย วางชั้นเดียว ลมผ่านได้ทั้งบนและล่าง จึงรับกระแสได้มากสุด
+    g7: <g><path d="M12 24v36h108V24" fill="none" stroke={S} strokeWidth="2.2" />
+      <line x1="12" y1="60" x2="120" y2="60" stroke={S} strokeWidth="2.4" strokeDasharray="7 6" />
+      {[30, 52, 74, 96].map((x) => cd(x, 50, 9))}
+      <path d="M28 18v-8M52 18v-8M76 18v-8M100 18v-8" stroke={S} strokeWidth="1.3" opacity=".55" />
+      <path d="M25 14l3-4 3 4M49 14l3-4 3 4M73 14l3-4 3 4M97 14l3-4 3 4" fill="none" stroke={S} strokeWidth="1.3" opacity=".55" /></g>,
+    // Wireway — รางเหล็กปิดมีฝา เป็นช่องเดินสายปิด ความร้อนออกยากพอ ๆ กับเดินในท่อ
+    way: <g><rect x="12" y="20" width="108" height="8" rx="2" fill={F} stroke={S} strokeWidth="1.5" />
+      <rect x="16" y="28" width="100" height="36" rx="2" fill="none" stroke={S} strokeWidth="2.2" />
+      {[32, 50, 68, 86, 104].map((x) => cd(x, 40, 7))}
+      {[32, 50, 68, 86, 104].map((x) => cd(x, 55, 7))}</g>,
+  }[art];
+  if (!body) return null;
+  return (
+    <svg viewBox="0 0 132 78" width={w || 132} height={h || 78} style={{ flexShrink: 0, display: "block" }} aria-hidden="true">
+      <defs>
+        <pattern id={uid + "-hatch"} width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <line x1="0" y1="0" x2="0" y2="7" stroke={S} strokeWidth="1.1" opacity=".38" />
+        </pattern>
+        <pattern id={uid + "-soil"} width="10" height="10" patternUnits="userSpaceOnUse">
+          <circle cx="2.5" cy="2.5" r="1.1" fill={S} opacity=".42" />
+          <circle cx="7.5" cy="7" r="1.1" fill={S} opacity=".42" />
+        </pattern>
+      </defs>
+      {body}
+    </svg>
+  );
+}
+
 function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const bdClose = window.useBackdropClose(onClose);
   const baht = (n) => (Math.round((+n || 0) * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
@@ -211,6 +288,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     ? window.BOQ.ampTableFor(calcIns, calcMethod, window.BOQ.ampColKey(calcGroup, calcNCond, "single"))
     : { tbl: {}, borrowed: false };
   const ampSrcTh = (k) => ((window.BOQ.WIRE_METHODS || []).find((m) => m.key === k) || {}).th || k;
+  /* รูปประกอบลักษณะการติดตั้ง — เลือกกลุ่มผิดคือคำนวณสายผิดทั้งงาน แต่ชื่อกลุ่มอย่างเดียวจำยาก
+     จึงโชว์รูปของกลุ่มที่เลือกไว้ตลอด และกางดูทั้ง 7 กลุ่มเทียบกันได้ */
+  const [artOpen, setArtOpen] = React.useState(false);
+  const hasAmpTbl = !!(ampSrc.tbl && Object.keys(ampSrc.tbl).length);   // ไม่มีตาราง = ช่อง "สายแนะนำ" จะขึ้น "—"
+  const grpMeta = (window.BOQ.AMP_GROUPS || []).find((g) => g.key === calcGroup) || {};
+  const mtdMeta = (window.BOQ.WIRE_METHODS || []).find((m) => m.key === calcMethod) || {};
   // กำลังไมโครต่อ 1 ตัว (จากรุ่นที่เลือก: 2:1 = 1250W, 1:1 = 500W) — ใช้คิดสาย MICRO-MICRO
   const microUnit = (window.BOQ.MICRO || []).find((m) => m.ratio === b.microRatio) || (window.BOQ.MICRO || [])[1] || {};
   const microW = parseFloat((String(microUnit.model || "").match(/(\d+(?:\.\d+)?)\s*watt/i) || [])[1]) || 1250;
@@ -575,7 +658,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   // ตัวเลือกพิกัดกระแส วสท.: วิธีเดินสาย / ฉนวน / กลุ่มการติดตั้ง / จำนวนตัวนำมีกระแส
   const methodOptions = (window.BOQ.WIRE_METHODS || []).map((m) => ({ value: m.key, label: m.th }));
   const insOptions = (window.BOQ.INS_CLASSES || []).map((c) => ({ value: c.key, label: c.th }));
-  const groupOptions = (window.BOQ.AMP_GROUPS || []).map((g) => ({ value: g.key, label: g.th }));
+  const groupOptions = (window.BOQ.AMP_GROUPS || []).map((g) => ({ value: g.key, label: g.sub ? g.th + " · " + g.sub : g.th }));
   const ncondOptions = (window.BOQ.AMP_NCOND || []).map((n) => ({ value: n.key, label: n.th }));
 
   // ตัวเลือกวัสดุใน Accessories: แบ่งกลุ่มย่อย (ชิปฟิลเตอร์) เหมือน dropdown สายไฟ · เดาจากชื่อ
@@ -1400,6 +1483,45 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     <Dropdown value={calcNCond} onChange={(v) => setWcalc("ncond", v)} options={ncondOptions} />
                   </label>
                 </div>
+                {/* รูปประกอบ — กลุ่มที่เลือกหน้าตาเป็นยังไง · กดกางดูครบทั้ง 7 กลุ่มแล้วกดเลือกจากรูปได้เลย */}
+                <div style={{ marginTop: 10, border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
+                  <div style={{ display: "flex", gap: 12, alignItems: "center", padding: "10px 12px", background: "var(--surface2)", flexWrap: isMobile ? "wrap" : "nowrap" }}>
+                    <WireArt art={grpMeta.art} w={110} h={65} />
+                    <div style={{ flex: 1, minWidth: 140 }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-1)" }}>{grpMeta.th}{grpMeta.sub ? " · " + grpMeta.sub : ""}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.55, marginTop: 2 }}>{grpMeta.desc || ""}</div>
+                      {mtdMeta.group && mtdMeta.group !== calcGroup && (
+                        <button type="button" onClick={() => setWcalc("group", mtdMeta.group)}
+                          style={{ marginTop: 5, border: 0, background: "#FEF3C7", color: "#92400E", borderRadius: 8, padding: "4px 9px", fontWeight: 800, fontSize: 10.5, cursor: "pointer", fontFamily: "inherit" }}>
+                          วิธีเดินสายที่เลือกตรงกับ {(window.BOQ.AMP_GROUPS || []).find((g) => g.key === mtdMeta.group) ? ((window.BOQ.AMP_GROUPS || []).find((g) => g.key === mtdMeta.group).th) : mtdMeta.group} — กดเพื่อสลับ
+                        </button>
+                      )}
+                    </div>
+                    <button type="button" onClick={() => setArtOpen(!artOpen)}
+                      style={{ border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", borderRadius: 9, padding: "6px 11px", fontWeight: 700, fontSize: 11, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0 }}>
+                      {artOpen ? "ซ่อนรูป" : "ดูรูปทั้ง 7 กลุ่ม"}
+                    </button>
+                  </div>
+                  {artOpen && (
+                    <div style={{ padding: "11px 12px", display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(4, minmax(0,1fr))", gap: 9 }}>
+                      {(window.BOQ.AMP_GROUPS || []).map((g) => (
+                        <button key={g.key} type="button" onClick={() => setWcalc("group", g.key)} title={g.desc}
+                          style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "8px 6px", borderRadius: 11, cursor: "pointer", fontFamily: "inherit", textAlign: "center",
+                            border: "1px solid " + (calcGroup === g.key ? "var(--primary)" : "var(--border)"),
+                            background: calcGroup === g.key ? "var(--primary-soft)" : "var(--surface)" }}>
+                          <WireArt art={g.art} w="100%" h={54} />
+                          <span style={{ fontSize: 11, fontWeight: 800, color: calcGroup === g.key ? "var(--primary-dark)" : "var(--text-1)" }}>{g.th}</span>
+                          <span style={{ fontSize: 9.5, color: "var(--text-3)", lineHeight: 1.35 }}>{g.sub}</span>
+                        </button>
+                      ))}
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "8px 6px", borderRadius: 11, border: "1px dashed var(--border-strong)", background: "var(--surface2)", textAlign: "center" }}>
+                        <WireArt art="way" w="100%" h={54} />
+                        <span style={{ fontSize: 11, fontWeight: 800, color: "var(--text-2)" }}>Wireway</span>
+                        <span style={{ fontSize: 9.5, color: "var(--text-3)", lineHeight: 1.35 }}>รางปิดมีฝา · ใช้พิกัดเท่ากลุ่มที่ 2</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
                 {/* ตัวคูณลดกระแส — หลายวงจรอยู่ในท่อ/รางเดียวกัน ระบายความร้อนแย่ลง พิกัดที่ใช้ได้จริงจึงต่ำกว่าตาราง */}
                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "140px 1fr", gap: 10, marginTop: 10, alignItems: "center" }}>
                   <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -1417,12 +1539,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     )}
                   </div>
                 </div>
-                {calcMethod !== "conduitAir" && (
+                {(!hasAmpTbl || ampSrc.borrowed) && (
                   <div className="bq-note" style={{ background: ampSrc.borrowed ? "rgba(34,163,91,.07)" : "#FFFBEB", border: "1px solid " + (ampSrc.borrowed ? "#BBE7CD" : "#FDE68A"), color: ampSrc.borrowed ? "#1d854b" : "#92400E" }}>
                     <Icon name={ampSrc.borrowed ? "check" : "alert"} size={15} color={ampSrc.borrowed ? "#22A35B" : "#F59E0B"} />
                     <span>{ampSrc.borrowed
                       ? "รางปิดมีฝาระบายความร้อนเหมือนเดินในท่อ จึงใช้ตารางพิกัดของ \"" + ampSrcTh(ampSrc.from) + "\" — อย่าลืมใส่ตัวคูณลดกระแสตามจำนวนวงจรในราง"
-                      : "ยังไม่มีตารางพิกัดกระแสของวิธีนี้ในระบบ ช่อง \"สายแนะนำ\" จะขึ้น \"—\" — เพิ่มตารางได้ที่หน้าคลัง › พิกัดกระแสสายไฟ (รางแบบระบายอากาศรับกระแสได้มากกว่าเดินในท่อ ใช้แทนกันไม่ได้)"}</span>
+                      : "ยังไม่มีตารางพิกัดกระแสของ " + (insOptions.find((o) => o.value === calcIns) || {}).label + " × " + ampSrcTh(calcMethod) + " × " + (grpMeta.th || calcGroup) + " ในระบบ ช่อง \"สายแนะนำ\" จะขึ้น \"—\" — เพิ่มตารางได้ที่หน้าคลัง › พิกัดกระแสสายไฟ (พิกัดของแต่ละกลุ่มไม่เท่ากัน ใช้แทนกันไม่ได้)"}</span>
                   </div>
                 )}
                 <div style={{ fontSize: 10, color: "var(--text-3)", marginTop: 6 }}>* "สายแนะนำ" คิดบนพื้นฐานสายแกนเดียว (1C) — สายในรายการด้านบนอ่านแกนจากชื่อจริง{calcDerate < 1 ? " · หักตัวคูณลดกระแส ×" + calcDerate.toFixed(2) + " แล้ว" : ""}</div>

@@ -791,7 +791,7 @@ function AmpacityEditor({ ampStore }) {
         <Icon name="alert" size={16} color="#B45309" style={{ flexShrink: 0, marginTop: 1 }} />
         <div style={{ fontSize: 12, color: "#92500C", lineHeight: 1.55 }}>
           ตารางพิกัดกระแส <strong>มาตรฐาน วสท.</strong> (ตัวนำทองแดง 0.6/1 kV) — แยกตาม <strong>กลุ่มการติดตั้ง × จำนวนตัวนำมีกระแส × แกนเดียว/หลายแกน</strong>
-          <br />ปัจจุบันมีตารางจริง: <strong>PVC · เดินในท่อร้อยสายในอากาศ</strong> · ฉนวน/วิธีอื่น (เช่น XLPE, รางเคเบิลบันได) <strong>กรอกค่าได้ที่นี่</strong> · ค่าที่กรอกใช้กับทุกงาน · เว้นว่าง = ใช้ค่าเริ่มต้น (ตัวเลขจาง)
+          <br />ปัจจุบันมีตารางจริง: <strong>PVC · เดินในท่อร้อยสายในอากาศ · กลุ่มที่ 1–2</strong> (ตารางที่ 5-20) · กลุ่มที่ 3–7 และ XLPE <strong>กรอกค่าได้ที่นี่</strong> · ค่าที่กรอกใช้กับทุกงาน · เว้นว่าง = ใช้ค่าเริ่มต้น (ตัวเลขจาง)
         </div>
       </div>
 
@@ -838,7 +838,14 @@ function AmpacityEditor({ ampStore }) {
               <tr>
                 <th rowSpan={2} style={Object.assign({}, thBase, { padding: "8px 12px", textAlign: "left", position: "sticky", left: 0, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: ".03em" })}>ขนาด (mm²)</th>
                 {groups.map((g) => (
-                  <th key={g.key} colSpan={nconds.length * cores.length} style={Object.assign({}, thBase, { padding: "8px 6px", borderLeft: "1px solid var(--border)" })}>{g.th}</th>
+                  /* มีรูปกำกับหัวคอลัมน์ด้วย — 7 กลุ่มจำจากชื่ออย่างเดียวไม่ไหว กรอกผิดคอลัมน์คือสายผิดทั้งงาน */
+                  <th key={g.key} colSpan={nconds.length * cores.length} title={g.desc || ""} style={Object.assign({}, thBase, { padding: "7px 6px", borderLeft: "1px solid var(--border)" })}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                      {typeof WireArt === "function" && <WireArt art={g.art} w={74} h={44} />}
+                      <span>{g.th}</span>
+                      {g.sub && <span style={{ fontSize: 9.5, fontWeight: 600, color: "var(--text-3)" }}>{g.sub}</span>}
+                    </div>
+                  </th>
                 ))}
               </tr>
               <tr>
