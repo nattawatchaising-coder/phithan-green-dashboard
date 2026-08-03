@@ -288,10 +288,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const TRAY_DEF = { way: [], tray: [], spare: 10, extra: [] };
   const tw = Object.assign({}, TRAY_DEF, b.tray);
   const trayLen = Math.round(((tw.way || []).concat(tw.tray || [])).reduce((s, x) => s + (+x.length || 0), 0));
+  // นับรางที่กรอกสายไว้แล้วแต่ยังไม่ผ่านเกณฑ์ % เติมเต็ม / วางชั้นเดียว
+  const trayBad = [["way", window.BOQ.WAY_SIZES], ["tray", window.BOQ.TRAY_SIZES]].reduce((n, [k, sizes]) =>
+    n + (tw[k] || []).filter((x) => (x.cables || []).length && (() => { const c = window.BOQ.trayCheck(x.size, x.cables, k === "tray", sizes); return !(c.ok && c.widthOk); })()).length, 0);
   const setTrayRow = (kind, i, k, v) => setB((p) => { const t = Object.assign({}, TRAY_DEF, p.tray); const a = (t[kind] || []).slice(); a[i] = Object.assign({}, a[i], { [k]: v }); t[kind] = a; return Object.assign({}, p, { tray: t }); });
   const addTrayRow = (kind, item) => setB((p) => { const t = Object.assign({}, TRAY_DEF, p.tray); t[kind] = (t[kind] || []).concat([item]); return Object.assign({}, p, { tray: t }); });
   const delTrayRow = (kind, i) => setB((p) => { const t = Object.assign({}, TRAY_DEF, p.tray); t[kind] = (t[kind] || []).filter((_, j) => j !== i); return Object.assign({}, p, { tray: t }); });
   const setTrayVal = (k, v) => setB((p) => Object.assign({}, p, { tray: Object.assign({}, TRAY_DEF, p.tray, { [k]: v }) }));
+  const [trayOpen, setTrayOpen] = React.useState({});   // แถวไหนกางตารางตรวจสายอยู่
 
   // ── โครงสร้างรองรับอุปกรณ์ (Inverter / ตู้ MDB) ──
   const SUP_DEF = { inv: 0, invKind: "floor", mdb: 0, mdbKind: "floor", spare: 10, extra: [] };
@@ -594,23 +598,99 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     </div>
   );
 
-  /* รายการรางไฟ — เลือกขนาด + ความยาวรวมของขนาดนั้น (ข้อต่อ/ขาแขวน/พุก คิดต่อจากความยาวให้เอง) */
-  const TrayList = ({ kind, label, sizes, hint }) => (
-    <div>
-      <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 3 }}>{label}</div>
-      <div style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 7 }}>{hint}</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {(tw[kind] || []).map((x, i) => (
-          <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 78px 36px", gap: 8, alignItems: "center" }}>
-            <Dropdown value={x.size} onChange={(v) => setTrayRow(kind, i, "size", v)} options={opt(sizes)} placeholder="เลือกขนาด" />
-            <input type="number" style={numStyle} value={x.length} placeholder="ม." onChange={(e) => setTrayRow(kind, i, "length", e.target.value)} />
-            <button onClick={() => delTrayRow(kind, i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
-          </div>
-        ))}
-        <button onClick={() => addTrayRow(kind, { size: sizes[0], length: 0 })} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่ม {label}</button>
+  /* รายการรางไฟ — เลือกขนาด + ความยาวรวมของขนาดนั้น (ข้อต่อ/ขาแขวน/พุก คิดต่อจากความยาวให้เอง)
+     กางออกได้เพื่อใส่สายที่จะเดินในรางนั้น แล้วตรวจ % เติมเต็ม + ตัวคูณลดกระแส */
+  const TrayList = ({ kind, label, sizes, hint }) => {
+    const isTray = kind === "tray";
+    const OD = window.BOQ.CABLE_OD || {};
+    const odTypes = Object.keys(OD);
+    const setCables = (i, cs) => setTrayRow(kind, i, "cables", cs);
+    return (
+      <div>
+        <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 3 }}>{label}</div>
+        <div style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 7 }}>{hint}</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {(tw[kind] || []).map((x, i) => {
+            const cbs = x.cables || [];
+            const chk = window.BOQ.trayCheck(x.size, cbs, isTray, sizes);
+            const open = trayOpen[kind + i];
+            const any = cbs.length > 0;
+            return (
+              <div key={i} style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 9, background: "var(--surface2)" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 78px 36px", gap: 8, alignItems: "center" }}>
+                  <Dropdown value={x.size} onChange={(v) => setTrayRow(kind, i, "size", v)} options={opt(sizes)} placeholder="เลือกขนาด" />
+                  <input type="number" style={numStyle} value={x.length} placeholder="ม." onChange={(e) => setTrayRow(kind, i, "length", e.target.value)} />
+                  <button onClick={() => delTrayRow(kind, i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 7, flexWrap: "wrap" }}>
+                  <button onClick={() => setTrayOpen((p) => Object.assign({}, p, { [kind + i]: !open }))}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", color: "var(--text-2)", fontWeight: 700, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
+                    <Icon name="settings" size={13} color="var(--text-2)" /> สายที่เดินในรางนี้{any ? " (" + cbs.length + ")" : ""}
+                    <Icon name="chevronDown" size={13} color="var(--text-2)" style={{ transform: open ? "rotate(180deg)" : "none" }} />
+                  </button>
+                  {any && (
+                    <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 8, fontSize: 11, fontWeight: 800, fontVariantNumeric: "tabular-nums",
+                      color: chk.ok && chk.widthOk ? "#16A34A" : "#DC2626" }}>
+                      <span>เติมเต็ม {chk.fillPct}% / {chk.limit}%</span>
+                      <span style={{ color: "var(--text-3)", fontWeight: 700 }}>ตัวคูณ ×{chk.derate.toFixed(2)}</span>
+                      <span>{chk.ok && chk.widthOk ? "✓" : "✗"}</span>
+                    </span>
+                  )}
+                </div>
+                {open && (
+                  <div style={{ marginTop: 9, display: "flex", flexDirection: "column", gap: 7 }}>
+                    {cbs.map((c, j) => (
+                      <div key={j} style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 72px 56px 32px" : "minmax(0,1fr) 92px 66px 32px", gap: 7, alignItems: "center" }}>
+                        <Dropdown value={c.type} onChange={(v) => setCables(i, cbs.map((y, k) => k === j ? Object.assign({}, y, { type: v, size: +(Object.keys(OD[v] || {})[0] || 2.5) }) : y))} options={opt(odTypes)} />
+                        <Dropdown value={String(c.size)} onChange={(v) => setCables(i, cbs.map((y, k) => k === j ? Object.assign({}, y, { size: +v }) : y))} options={Object.keys(OD[c.type] || {}).map((s) => ({ value: s, label: s + " mm²" }))} />
+                        <input type="number" min={1} style={numStyle} value={c.qty} placeholder="เส้น" onChange={(e) => setCables(i, cbs.map((y, k) => k === j ? Object.assign({}, y, { qty: e.target.value }) : y))} />
+                        <button onClick={() => setCables(i, cbs.filter((_, k) => k !== j))} title="ลบ" style={{ height: 38, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
+                      </div>
+                    ))}
+                    <button onClick={() => setCables(i, cbs.concat([{ type: odTypes[0], size: +(Object.keys(OD[odTypes[0]] || {})[0] || 2.5), qty: 1 }]))}
+                      style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "6px 10px", fontWeight: 700, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={12} color="var(--text-2)" /> เพิ่มสาย</button>
+                    {any && (
+                      <>
+                        <div className="bq-spec" style={{ marginTop: 2 }}>
+                          <div><span className="k">พื้นที่ราง</span><span className="v">{chk.dim.w}×{chk.dim.h} = {chk.dim.area.toLocaleString()} mm²</span></div>
+                          <div><span className="k">พื้นที่สายรวม</span><span className="v">{chk.area.toLocaleString()} mm²</span></div>
+                          <div data-bad={chk.ok ? "0" : "1"}><span className="k">เติมเต็ม (เกณฑ์ {chk.limit}%)</span><span className="v hi">{chk.fillPct}%</span></div>
+                          <div><span className="k">ตัวนำนำกระแส</span><span className="v">{chk.cores} เส้น</span></div>
+                          <div><span className="k">ตัวคูณลดกระแส</span><span className="v hi">×{chk.derate.toFixed(2)}</span></div>
+                          {isTray && <div data-bad={chk.widthOk ? "0" : "1"}><span className="k">ผลรวม Ø (วางชั้นเดียว)</span><span className="v">{chk.odSum} / {chk.dim.w} mm</span></div>}
+                          <div><span className="k">พื้นที่รางขั้นต่ำ</span><span className="v">{chk.needArea.toLocaleString()} mm²</span></div>
+                          <div data-miss={chk.unknown.length ? "1" : "0"}><span className="k">ไม่มีข้อมูล OD</span><span className="v">{chk.unknown.length ? chk.unknown.length + " ชนิด" : "ครบ"}</span></div>
+                        </div>
+                        {!chk.ok && (
+                          <div className="bq-note warn">
+                            <Icon name="alert" size={15} color="#F59E0B" />
+                            <span>สายกินพื้นที่ {chk.fillPct}% เกินเกณฑ์ {chk.limit}% — {chk.suggest ? "ขยับเป็น " + chk.suggest : "ต้องใช้รางที่มีพื้นที่อย่างน้อย " + chk.needArea.toLocaleString() + " mm² หรือแยกเดินสองราง"}</span>
+                          </div>
+                        )}
+                        {chk.ok && !chk.widthOk && (
+                          <div className="bq-note warn">
+                            <Icon name="alert" size={15} color="#F59E0B" />
+                            <span>ผลรวมเส้นผ่านศูนย์กลาง {chk.odSum} mm กว้างกว่าราง {chk.dim.w} mm — สายจะซ้อนกันหลายชั้น ต้องคิดตัวคูณลดกระแสเพิ่มหรือขยายราง</span>
+                          </div>
+                        )}
+                        {chk.ok && chk.widthOk && (
+                          <div className="bq-note ok">
+                            <Icon name="check" size={15} color="#22A35B" />
+                            <span>ผ่านเกณฑ์ — เหลือพื้นที่อีก {(chk.limit - chk.fillPct).toFixed(1)}% · อย่าลืมเอาตัวคูณ ×{chk.derate.toFixed(2)} ไปหารพิกัดกระแสของสายในตารางคำนวณขนาดสายไฟ</span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          <button onClick={() => addTrayRow(kind, { size: sizes[0], length: 0, cables: [] })} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่ม {label}</button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   /* ตารางค่าแรง / ค่าขออนุญาต — ปริมาณช่องที่มี auto จะวิ่งตามผลถอดวัสดุเอง แก้ไม่ได้ (แต่ลบทั้งบรรทัดได้) */
   const SvcTable = ({ sKey, preset, qtyLabel, total, perW }) => {
@@ -870,7 +950,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     { key: "raceway", icon: "grid", title: "ท่อร้อยสาย",
       meta: ((b.conduit && b.conduit.imc) || []).length + ((b.conduit && b.conduit.upvc) || []).length + " รายการ" },
     { key: "tray", icon: "grid", title: "รางไฟ (Wireway / Tray)",
-      meta: trayLen > 0 ? "รวม " + trayLen + " ม." : "ยังไม่ได้กรอก", tone: trayLen > 0 ? "ok" : "" },
+      meta: trayLen > 0 ? "รวม " + trayLen + " ม." + (trayBad > 0 ? " · " + trayBad + " รางสายแน่นเกิน" : "") : "ยังไม่ได้กรอก",
+      tone: trayLen > 0 ? (trayBad > 0 ? "warn" : "ok") : "" },
     { key: "support", icon: "box", title: "โครงสร้างรองรับอุปกรณ์",
       meta: sup.inv + sup.mdb > 0 ? "อินเวอร์เตอร์ " + sup.inv + " · ตู้ " + sup.mdb : "ยังไม่ได้ถอด", tone: sup.inv + sup.mdb > 0 ? "ok" : "" },
     !isHome ? { key: "struct", icon: "box", title: "งานเพิ่มเติม — โครงสร้าง", meta: "บันได · ทางเดิน · ราวกันตก" } : null,

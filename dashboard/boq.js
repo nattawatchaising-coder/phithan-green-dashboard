@@ -517,6 +517,65 @@
     return out;
   }
 
+  /* ── ตรวจสายในราง ──
+     Wireway (รางปิดมีฝา): พื้นที่หน้าตัดสายรวม ≤ 20% ของพื้นที่ราง — สายเบียดกันแล้วระบายความร้อนไม่ออก
+     Cable Tray (รางบันได): ≤ 50% ของพื้นที่ราง และควรวางชั้นเดียว คือผลรวมเส้นผ่านศูนย์กลาง ≤ ความกว้างราง
+     ตัวคูณลดกระแส: ยิ่งมีตัวนำนำกระแสในรางเดียวกันมาก แต่ละเส้นยิ่งรับกระแสได้น้อยลง
+     (ตารางตัวคูณตามจำนวนตัวนำ — แก้ตัวเลขได้ที่นี่ถ้าใช้เกณฑ์ของโครงการอื่น) */
+  const TRAY_FILL_LIMIT = { way: 20, tray: 50 };
+  const TRAY_DERATE = [
+    { max: 3, f: 1.00 }, { max: 6, f: 0.80 }, { max: 9, f: 0.70 }, { max: 20, f: 0.50 },
+    { max: 30, f: 0.45 }, { max: 40, f: 0.40 }, { max: Infinity, f: 0.35 },
+  ];
+  function trayDerate(n) {
+    const k = Math.max(0, Math.round(+n || 0));
+    for (let i = 0; i < TRAY_DERATE.length; i++) if (k <= TRAY_DERATE[i].max) return TRAY_DERATE[i].f;
+    return TRAY_DERATE[TRAY_DERATE.length - 1].f;
+  }
+  // ขนาดรางจากชื่อ เช่น "Wireway 150x100 mm." → กว้าง 150 สูง 100 (mm)
+  function trayDim(name) {
+    const m = /(\d+)\s*[xX×]\s*(\d+)/.exec(String(name || ""));
+    if (!m) return { w: 0, h: 0, area: 0 };
+    const w = +m[1], h = +m[2];
+    return { w: w, h: h, area: w * h };
+  }
+  // จำนวนตัวนำนำกระแสของสาย 1 เส้น จากชื่อ เช่น "CV FD 4C" → 4 · "CV FD 1C" → 1
+  function cableCores(type) { const m = /(\d+)\s*C\b/i.exec(String(type || "")); return m ? +m[1] : 1; }
+  /* ตรวจ 1 ราง — cables = [{type, size, qty}] (รูปแบบเดียวกับตารางตรวจ WIRE WAY เดิม) */
+  function trayCheck(name, cables, isTray, sizePool) {
+    const dim = trayDim(name);
+    let area = 0, odSum = 0, cores = 0;
+    const unknown = [];
+    (cables || []).forEach((c) => {
+      const q = Math.max(0, Math.round(+c.qty || 0));
+      if (!q) return;
+      const od = (CABLE_OD[c.type] || {})[+c.size];
+      if (!od) { if (c.type) unknown.push(c.type + " " + c.size + " sq.mm."); return; }
+      area += Math.PI * (od / 2) * (od / 2) * q;
+      odSum += od * q;
+      cores += cableCores(c.type) * q;
+    });
+    const limit = isTray ? TRAY_FILL_LIMIT.tray : TRAY_FILL_LIMIT.way;
+    const pct = dim.area > 0 ? (area / dim.area) * 100 : 0;
+    const need = limit > 0 ? area / (limit / 100) : 0;      // พื้นที่รางขั้นต่ำที่ต้องมี (mm²)
+    // ขนาดเล็กสุดในรายการที่ยังผ่านเกณฑ์ — ไว้บอกว่าต้องขยับไปเบอร์ไหน
+    let suggest = null;
+    (sizePool || []).forEach((nm) => {
+      if (suggest) return;
+      const d = trayDim(nm);
+      // รางบันไดต้องกว้างพอวางชั้นเดียวด้วย ไม่ใช่ดูแค่พื้นที่
+      if (d.area > 0 && d.area >= need && (!isTray || d.w >= odSum)) suggest = nm;
+    });
+    return {
+      dim: dim, area: Math.round(area * 10) / 10, fillPct: Math.round(pct * 10) / 10, limit: limit,
+      ok: dim.area > 0 && pct <= limit,
+      odSum: Math.round(odSum * 10) / 10,
+      widthOk: !isTray || dim.w === 0 || odSum <= dim.w,   // รางบันไดควรวางชั้นเดียว
+      cores: cores, derate: trayDerate(cores),
+      needArea: Math.round(need), suggest: suggest, unknown: unknown,
+    };
+  }
+
   /* รวมบรรทัดชื่อซ้ำเป็นบรรทัดเดียว — เช่น พุ๊กเหล็ก ที่ถอดมาจากรางหลายขนาด/หลายจุด */
   function mergeItems(rows) {
     const order = [], map = {};
@@ -1328,5 +1387,6 @@
 
   window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, catalog, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, WAY_PIPE_LEN, TRAY_PIPE_LEN, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
+    TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,
     G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, SERVICE_GROUPS, mergeItems };
 })();
