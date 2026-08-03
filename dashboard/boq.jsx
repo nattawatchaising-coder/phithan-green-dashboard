@@ -316,7 +316,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const resetSvc = (key) => setB((p) => Object.assign({}, p, { [key]: null }));
   // ค่าแรง: เหมารวม vs แยกรายการ — เก็บข้อมูลทั้งสองแบบไว้ สลับกลับไปมาไม่หาย
   const laborMode = b.laborMode === "lump" ? "lump" : "split";
-  const LUMP_DEF = { basis: "job", rate: 0, note: "" };
+  const LUMP_DEF = { basis: "w", rate: 0, note: "" };
   const lump = Object.assign({}, LUMP_DEF, b.laborLump);
   const setLump = (k, v) => setB((p) => Object.assign({}, p, { laborLump: Object.assign({}, LUMP_DEF, p.laborLump, { [k]: v }) }));
 
@@ -610,7 +610,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   );
 
   /* ตารางค่าแรง / ค่าขออนุญาต — ปริมาณช่องที่มี auto จะวิ่งตามผลถอดวัสดุเอง แก้ไม่ได้ (แต่ลบทั้งบรรทัดได้) */
-  const SvcTable = ({ sKey, preset, qtyLabel, total, perKw }) => {
+  const SvcTable = ({ sKey, preset, qtyLabel, total, perW }) => {
     const rows = svcList(sKey, preset);
     const g = (priced.groups || []).find((x) => x.group === (sKey === "labor" ? window.BOQ.G_LABOR : window.BOQ.G_PERMIT));
     const live = (g && g.items) || [];
@@ -629,7 +629,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             <div key={i} style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 62px 36px" : "minmax(0,1fr) 84px 62px 96px 36px", gap: 8, alignItems: "center" }}>
               <span style={{ minWidth: 0 }}>
                 <input value={r.name} onChange={(e) => setSvc(sKey, preset, i, "name", e.target.value)} style={Object.assign({}, inputStyle, { width: "100%" })} placeholder="ชื่อรายการ" />
-                {tot > 0 && <span style={{ display: "block", fontSize: 10, color: "var(--text-3)", marginTop: 2, paddingLeft: 2 }}>= ฿{baht(tot)}{result.meta.kw > 0 ? " · ฿" + baht(tot / result.meta.kw) + "/kW" : ""}</span>}
+                {tot > 0 && <span style={{ display: "block", fontSize: 10, color: "var(--text-3)", marginTop: 2, paddingLeft: 2 }}>= ฿{baht(tot)}{result.meta.kw > 0 ? " · ฿" + baht(tot / (result.meta.kw * 1000)) + "/W" : ""}</span>}
               </span>
               {!isMobile && (r.auto
                 ? <span style={{ textAlign: "right", fontFamily: "var(--mono)", fontSize: 13, fontWeight: 700, color: "var(--primary-dark)" }} title="ปริมาณคิดจากผลถอดวัสดุอัตโนมัติ">{(Math.round(q * 100) / 100).toLocaleString()}</span>
@@ -645,7 +645,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             background: "var(--primary-soft)", borderRadius: 10 }}>
             <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".06em", color: "var(--primary-dark)" }}>รวมทุกบรรทัด</span>
             <span style={{ fontFamily: "var(--display)", fontSize: 17, fontWeight: 700, letterSpacing: "-.03em", fontVariantNumeric: "tabular-nums", color: "var(--primary-dark)" }}>
-              ฿{baht(total)}{perKw > 0 ? <span style={{ fontSize: 11.5, fontWeight: 700, marginLeft: 6 }}>· ฿{baht(perKw)}/kW</span> : null}
+              ฿{baht(total)}{perW > 0 ? <span style={{ fontSize: 11.5, fontWeight: 700, marginLeft: 6 }}>· ฿{baht(perW)}/W</span> : null}
             </span>
           </div>
         )}
@@ -874,7 +874,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     { key: "acc", icon: "box", title: "Accessories", meta: (accList || []).length ? accList.length + " รายการ" : "ยังไม่เพิ่ม" },
     { key: "labor", icon: "power", title: "ค่าแรงติดตั้ง",
       meta: (laborMode === "lump" ? "เหมารวม · " : "แยกรายการ · ")
-        + (priced.laborTotal > 0 ? "฿" + baht(priced.laborTotal) + " · ฿" + baht(priced.laborPerKw) + "/kW" : "ยังไม่ได้ตั้งเรต"),
+        + (priced.laborTotal > 0 ? "฿" + baht(priced.laborTotal) + " · ฿" + baht(priced.laborPerW) + "/W" : "ยังไม่ได้ตั้งเรต"),
       tone: priced.laborTotal > 0 ? "ok" : "warn" },
     { key: "permit", icon: "box", title: "ค่าขออนุญาต & เอกสาร",
       meta: priced.permitTotal > 0 ? "฿" + baht(priced.permitTotal) : "ยังไม่ได้กรอกค่าธรรมเนียม",
@@ -1591,7 +1591,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
           {/* ── ค่าแรงติดตั้ง ── */}
           <BoqSection title="ค่าแรงติดตั้ง" icon="power" {...secProps("labor")}
-            right={priced.laborTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(priced.laborTotal)} · ฿{baht(priced.laborPerKw)}/kW</span> : null}>
+            right={priced.laborTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(priced.laborTotal)} · ฿{baht(priced.laborPerW)}/W</span> : null}>
             {/* เหมารวม = ตกลงราคาเดียวจบ · แยกรายการ = เห็นว่าเงินไปอยู่งานไหน (ใช้ต่อรองและคุมหน้างานได้) */}
             <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
               {[{ v: "lump", t: "เหมารวม", d: "ราคาเดียวจบ" }, { v: "split", t: "แยกรายการงาน", d: "เห็นทีละงาน" }].map((m) => (
@@ -1613,12 +1613,13 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "200px 140px minmax(0,1fr)", gap: 12 }}>
                   <Field label="ฐานคิด">
                     <Dropdown value={lump.basis} onChange={(v) => setLump("basis", v)} options={[
+                      { value: "w", label: "ต่อวัตต์ (฿/W)" },
                       { value: "job", label: "เหมาทั้งงาน (บาท)" },
                       { value: "kw", label: "ต่อ kW (฿/kW)" },
                       { value: "panel", label: "ต่อแผง (฿/แผง)" },
                     ]} />
                   </Field>
-                  <Field label={lump.basis === "kw" ? "฿ ต่อ kW" : lump.basis === "panel" ? "฿ ต่อแผง" : "฿ เหมาทั้งงาน"}>
+                  <Field label={lump.basis === "w" ? "฿ ต่อวัตต์" : lump.basis === "kw" ? "฿ ต่อ kW" : lump.basis === "panel" ? "฿ ต่อแผง" : "฿ เหมาทั้งงาน"}>
                     <input type="number" min={0} style={numStyle} value={lump.rate} placeholder="0" onChange={(e) => setLump("rate", e.target.value)} />
                   </Field>
                   <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}>
@@ -1628,10 +1629,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   </div>
                 </div>
                 <div className="bq-spec">
-                  <div><span className="k">ฐานคิด</span><span className="v">{lump.basis === "kw" ? result.meta.kw.toLocaleString() + " kW" : lump.basis === "panel" ? result.meta.panelCount.toLocaleString() + " แผง" : "1 งาน"}</span></div>
+                  <div><span className="k">ฐานคิด</span><span className="v">{lump.basis === "w" ? Math.round(result.meta.kw * 1000).toLocaleString() + " W" : lump.basis === "kw" ? result.meta.kw.toLocaleString() + " kW" : lump.basis === "panel" ? result.meta.panelCount.toLocaleString() + " แผง" : "1 งาน"}</span></div>
                   <div><span className="k">เรต</span><span className="v">฿{baht(lump.rate)}</span></div>
                   <div><span className="k">ค่าแรงรวม</span><span className="v hi">฿{baht(priced.laborTotal)}</span></div>
-                  <div><span className="k">คิดเป็น</span><span className="v hi">฿{baht(priced.laborPerKw)}/kW</span></div>
+                  <div><span className="k">คิดเป็น</span><span className="v hi">฿{baht(priced.laborPerW)}/W</span></div>
                 </div>
               </div>
             ) : (
@@ -1639,7 +1640,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
                   ปริมาณของบรรทัดที่ขึ้นเลขสีเขียวดึงจากผลถอดวัสดุให้เอง (แผง/ตัว/เมตร) — กรอกแค่ "ราคาต่อหน่วย" · บรรทัดที่ราคา 0 จะไม่ถูกบวกเข้ายอด
                 </div>
-                <SvcTable sKey="labor" preset={window.BOQ.LABOR_PRESET} qtyLabel="ปริมาณ" total={priced.laborTotal} perKw={priced.laborPerKw} />
+                <SvcTable sKey="labor" preset={window.BOQ.LABOR_PRESET} qtyLabel="ปริมาณ" total={priced.laborTotal} perW={priced.laborPerW} />
               </div>
             )}
           </BoqSection>
@@ -1650,7 +1651,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
               ค่าธรรมเนียมจริงเปลี่ยนตามพื้นที่และขนาดระบบ ระบบจึงไม่เดาให้ — กรอกตามใบเสร็จ/ประกาศล่าสุด · ลบบรรทัดที่งานนี้ไม่ต้องขอได้เลย
             </div>
-            <SvcTable sKey="permit" preset={window.BOQ.PERMIT_PRESET} qtyLabel="จำนวน" total={priced.permitTotal} perKw={priced.permitPerKw} />
+            <SvcTable sKey="permit" preset={window.BOQ.PERMIT_PRESET} qtyLabel="จำนวน" total={priced.permitTotal} perW={priced.permitPerW} />
           </BoqSection>
 
           {/* ── งานเพิ่มเติม (Input): โครงสร้างบนหลังคา — เฉพาะงานโครงการ ไม่แสดงงานบ้าน ── */}
@@ -1725,13 +1726,13 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             {priced.grandTotal > 0 && (
               <div style={{ marginBottom: 14 }}>
                 <div style={{ marginBottom: 8, fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>
-                  ต้นทุนต่อขนาดติดตั้ง · {result.meta.kw.toLocaleString()} kW
+                  ต้นทุนต่อวัตต์ · {Math.round(result.meta.kw * 1000).toLocaleString()} W ({result.meta.kw.toLocaleString()} kW)
                 </div>
                 <div className="bq-spec">
-                  <div><span className="k">ค่าวัสดุ</span><span className="v">฿{baht(priced.matPerKw)}/kW</span></div>
-                  <div data-miss={priced.laborTotal > 0 ? "0" : "1"}><span className="k">ค่าแรง</span><span className="v">{priced.laborTotal > 0 ? "฿" + baht(priced.laborPerKw) + "/kW" : "ยังไม่ตั้งเรต"}</span></div>
-                  <div data-miss={priced.permitTotal > 0 ? "0" : "1"}><span className="k">ค่าขออนุญาต</span><span className="v">{priced.permitTotal > 0 ? "฿" + baht(priced.permitPerKw) + "/kW" : "ยังไม่กรอก"}</span></div>
-                  <div><span className="k">รวมทั้งหมด</span><span className="v hi">฿{baht(priced.perKw)}/kW</span></div>
+                  <div><span className="k">ค่าวัสดุ</span><span className="v">฿{baht(priced.matPerW)}/W</span></div>
+                  <div data-miss={priced.laborTotal > 0 ? "0" : "1"}><span className="k">ค่าแรง</span><span className="v">{priced.laborTotal > 0 ? "฿" + baht(priced.laborPerW) + "/W" : "ยังไม่ตั้งเรต"}</span></div>
+                  <div data-miss={priced.permitTotal > 0 ? "0" : "1"}><span className="k">ค่าขออนุญาต</span><span className="v">{priced.permitTotal > 0 ? "฿" + baht(priced.permitPerW) + "/W" : "ยังไม่กรอก"}</span></div>
+                  <div><span className="k">รวมทั้งหมด</span><span className="v hi">฿{baht(priced.perW)}/W</span></div>
                 </div>
                 {/* แยกรายหมวด เรียงจากแพงสุด — หาว่าเงินหายไปไหนได้ในบรรทัดเดียว */}
                 <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 4 }}>
@@ -1747,7 +1748,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                         </span>
                       )}
                       {!isMobile && <span style={{ textAlign: "right", fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: "var(--text-1)", fontVariantNumeric: "tabular-nums" }}>฿{baht(g.subtotal)}</span>}
-                      <span style={{ textAlign: "right", fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 800, color: "var(--primary-dark)", fontVariantNumeric: "tabular-nums" }}>฿{baht(g.perKw)}/kW</span>
+                      <span style={{ textAlign: "right", fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 800, color: "var(--primary-dark)", fontVariantNumeric: "tabular-nums" }} title={"฿" + baht(g.perKw) + "/kW"}>฿{baht(g.perW)}/W</span>
                     </div>
                   ))}
                 </div>
@@ -1765,7 +1766,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     {/* ยอดรายหมวด + บาทต่อ kW — เห็นทันทีว่าหมวดไหนกินต้นทุนเท่าไรต่อกำลังติดตั้ง */}
                     <span style={{ marginLeft: "auto", fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
                       {g.subtotal > 0
-                        ? "฿" + baht(g.subtotal) + (g.perKw > 0 ? " · ฿" + baht(g.perKw) + "/kW" : "")
+                        ? "฿" + baht(g.subtotal) + (g.perW > 0 ? " · ฿" + baht(g.perW) + "/W" : "")
                         : (g.items.length ? g.items.length + " รายการ" : "")}
                     </span>
                   </div>
@@ -1816,7 +1817,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         <span className="bq-kpi"><span className="k">{b.inverterModel ? "อินเวอร์เตอร์" : "ไมโคร"}</span><span className="v">{result.meta.invCount}<small>ตัว</small></span></span>
         <span className="bq-kpi"><span className="k">รายการวัสดุ</span><span className="v">{itemCount.toLocaleString()}<small>รายการ</small></span></span>
         <span className="bq-kpi"><span className="k">ต้นทุนรวม</span><span className="v hi">{priced.grandTotal > 0 ? "฿" + baht(priced.grandTotal) : "—"}</span></span>
-        <span className="bq-kpi"><span className="k">ต่อ kW</span><span className="v hi">{priced.perKw > 0 ? "฿" + baht(priced.perKw) : "—"}</span></span>
+        <span className="bq-kpi" title={priced.perKw > 0 ? "฿" + baht(priced.perKw) + "/kW" : ""}><span className="k">ต่อวัตต์</span><span className="v hi">{priced.perW > 0 ? "฿" + baht(priced.perW) : "—"}</span></span>
         </span>
         <span className="bq-gap" />
         {remaining !== 0 && (

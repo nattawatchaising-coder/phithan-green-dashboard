@@ -681,7 +681,7 @@
       // ค่าแรง / ค่าขออนุญาต — null = ยังไม่เคยตั้งค่า ใช้รายการตั้งต้น (ราคา 0 รอกรอก)
       labor: null,
       laborMode: "split",                         // split = แยกรายการงาน · lump = เหมารวม
-      laborLump: { basis: "job", rate: 0, note: "" },   // basis: job(เหมาทั้งงาน) / kw / panel
+      laborLump: { basis: "w", rate: 0, note: "" },   // basis: w(บาท/วัตต์ · ที่ใช้กันจริง) / job / kw / panel
       permit: null,
       conduitSpare: { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10, upStraight: 10, upClamp: 10, upConnector: 10 },
       // งานเพิ่มเติม (Input) — โครงสร้างบนหลังคา ถอดวัสดุตามสูตร (ว่าง = ไม่ใช้/ไม่ถอด)
@@ -1117,8 +1117,9 @@
       }));
     /* ค่าแรงมี 2 แบบ — เหมารวมทั้งงาน (บรรทัดเดียว) หรือแยกรายการงาน
        เหมารวมยังเลือกฐานคิดได้ 3 แบบ: เหมาทั้งงาน · ต่อ kW · ต่อแผง (ทั้งหมดออกมาเป็น 1 บรรทัด) */
-    const LB = Object.assign({ basis: "job", rate: 0, note: "" }, b.laborLump || {});
-    const lumpBase = LB.basis === "kw" ? { qty: kw, unit: "kW", label: "เหมาต่อ kW" }
+    const LB = Object.assign({ basis: "w", rate: 0, note: "" }, b.laborLump || {});
+    const lumpBase = LB.basis === "w" ? { qty: Math.round(kw * 1000), unit: "W", label: "เหมาต่อวัตต์" }
+      : LB.basis === "kw" ? { qty: kw, unit: "kW", label: "เหมาต่อ kW" }
       : LB.basis === "panel" ? { qty: panelCount, unit: "แผง", label: "เหมาต่อแผง" }
       : { qty: 1, unit: "งาน", label: "เหมาทั้งงาน" };
     const labor = b.laborMode === "lump"
@@ -1237,9 +1238,11 @@
   function applyPrices(result, priceMap) {
     priceMap = priceMap || {};
     let grand = 0;
-    /* ต้นทุนต่อ kW ใช้ "ขนาดติดตั้ง DC" เป็นตัวหาร — เทียบข้ามงานได้ตรง ๆ ว่าหมวดไหนแพงผิดปกติ */
+    /* ต้นทุนต่อกำลังติดตั้ง (DC) — เทียบข้ามงานได้ตรง ๆ ว่าหมวดไหนแพงผิดปกติ
+       วงการเสนอราคาไทยพูดกันเป็น "บาทต่อวัตต์" จึงคิดทั้ง ฿/W และ ฿/kW ให้ */
     const kw = +((result.meta || {}).kw) || 0;
     const perKw = (v) => (kw > 0 ? Math.round((v / kw) * 100) / 100 : 0);
+    const perW = (v) => (kw > 0 ? Math.round((v / (kw * 1000)) * 1000) / 1000 : 0);
     const groups = (result.groups || []).map((g) => {
       const service = SERVICE_GROUPS.indexOf(g.group) >= 0;
       let sub = 0;
@@ -1249,19 +1252,19 @@
         const price = service ? (+it.price || 0) : (+rec.price || 0);
         const total = price * (it.qty || 0);
         sub += total;
-        return Object.assign({}, it, { code: rec.code || "", price: price, total: total, perKw: perKw(total) });
+        return Object.assign({}, it, { code: rec.code || "", price: price, total: total, perKw: perKw(total), perW: perW(total) });
       });
       grand += sub;
-      return { group: g.group, service: service, items: items, subtotal: sub, perKw: perKw(sub) };
+      return { group: g.group, service: service, items: items, subtotal: sub, perKw: perKw(sub), perW: perW(sub) };
     });
     const sumOf = (keys) => groups.filter((g) => keys.indexOf(g.group) >= 0).reduce((s, g) => s + g.subtotal, 0);
     const laborTotal = sumOf([G_LABOR]), permitTotal = sumOf([G_PERMIT]);
     const matTotal = grand - laborTotal - permitTotal;
     return {
-      groups: groups, grandTotal: grand, kw: kw, perKw: perKw(grand),
-      matTotal: matTotal, matPerKw: perKw(matTotal),
-      laborTotal: laborTotal, laborPerKw: perKw(laborTotal),
-      permitTotal: permitTotal, permitPerKw: perKw(permitTotal),
+      groups: groups, grandTotal: grand, kw: kw, perKw: perKw(grand), perW: perW(grand),
+      matTotal: matTotal, matPerKw: perKw(matTotal), matPerW: perW(matTotal),
+      laborTotal: laborTotal, laborPerKw: perKw(laborTotal), laborPerW: perW(laborTotal),
+      permitTotal: permitTotal, permitPerKw: perKw(permitTotal), permitPerW: perW(permitTotal),
     };
   }
 
