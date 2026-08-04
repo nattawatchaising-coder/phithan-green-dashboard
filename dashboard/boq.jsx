@@ -192,16 +192,13 @@ function WireArt({ art, w, h }) {
     g6: <g><rect x="4" y="20" width="124" height="52" fill={soil} stroke={S} strokeWidth="1.3" />
       <line x1="4" y1="20" x2="128" y2="20" stroke={S} strokeWidth="2" />
       {[38, 66, 94].map((x) => <g key={"b" + x}><circle cx={x} cy={48} r="12" fill={BG} stroke={S} strokeWidth="1.5" />{cd(x, 48, 6)}</g>)}</g>,
-    /* กลุ่ม 7 — สายวางบนรางเคเบิลที่แขวนอยู่ในอากาศ (รูปรวมของกลุ่ม: ราง + ฉากยึดผนัง)
+    /* กลุ่ม 7 — สายวางบนรางเคเบิล เอาแค่ตัวรางเปล่า ๆ (รูปรวมของกลุ่ม)
        รางแต่ละแบบมีรูปของตัวเองอีกที — ดูที่ traySolid / trayVent / ladder / trayCover */
-    g7: <g>{wall(4, 6, 16, 66)}
-      <path d="M20 30h10M20 58h10" stroke={S} strokeWidth="1.6" />
-      <path d="M30 22v42" stroke={S} strokeWidth="1.8" />
-      <path d="M30 26v34h84V26" fill="none" stroke={S} strokeWidth="2.2" />
-      <line x1="30" y1="60" x2="114" y2="60" stroke={S} strokeWidth="2.4" />
-      {[46, 64, 82, 100].map((x) => cd(x, 51, 8))}
-      <path d="M46 18v-7M74 18v-7M102 18v-7" stroke={S} strokeWidth="1.3" opacity=".55" />
-      <path d="M43 14l3-4 3 4M71 14l3-4 3 4M99 14l3-4 3 4" fill="none" stroke={S} strokeWidth="1.3" opacity=".55" /></g>,
+    g7: <g><path d="M12 26v34h108V26" fill="none" stroke={S} strokeWidth="2.2" />
+      <line x1="12" y1="60" x2="120" y2="60" stroke={S} strokeWidth="2.4" />
+      {[30, 52, 74, 96].map((x) => cd(x, 50, 9))}
+      <path d="M28 20v-8M52 20v-8M76 20v-8M100 20v-8" stroke={S} strokeWidth="1.3" opacity=".55" />
+      <path d="M25 16l3-4 3 4M49 16l3-4 3 4M73 16l3-4 3 4M97 16l3-4 3 4" fill="none" stroke={S} strokeWidth="1.3" opacity=".55" /></g>,
     /* รางบันได (Ladder) เปิดฝา — พื้นรางเป็นขั้นบันไดเว้นช่อง ลมผ่านได้มากที่สุด พิกัดสูงสุดของกลุ่ม 7
        (มองจากด้านหน้า: ขีดสั้น ๆ ที่พื้นราง = ขั้นบันไดที่เห็นเป็นท่อน ๆ) */
     ladder: <g><path d="M12 24v36h108V24" fill="none" stroke={S} strokeWidth="2.2" />
@@ -302,9 +299,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
   // ── ตารางคำนวณขนาดสายไฟ: ไหลตามวงจร MICRO-MICRO → MICRO-COMBINER → COMBINER(รวม BAT+MICRO) → BACKUP/เมน หรือ → MCB ตู้ลูกค้า ──
   // ins/method/group/ncond = สมมุติฐานของ "สายแนะนำ" ในตารางคำนวณ ตามพิกัด วสท.
-  const WIRECALC_DEF = { volt: 0, battKw: 5, strings: 1, backupMainA: 0, ins: "pvc", method: "conduitAir", group: "g1", ncond: "", orient: "vert" };
+  const WIRECALC_DEF = { volt: 0, battKw: 5, strings: 1, backupMainA: 0, ins: "pvc", method: "conduitAir", group: "g1", ncond: "", core: "single" };
   const wcalc = Object.assign({}, WIRECALC_DEF, b.wireCalc || {});
-  const WCALC_STR = { ins: 1, method: 1, group: 1, ncond: 1, orient: 1 };
+  const WCALC_STR = { ins: 1, method: 1, group: 1, ncond: 1, core: 1 };
   const setWcalc = (k, v) => setB((p) => Object.assign({}, p, { wireCalc: Object.assign({}, WIRECALC_DEF, p.wireCalc || {}, { [k]: WCALC_STR[k] ? v : (+v || 0) }) }));
   /* เปลี่ยนวิธีเดินสาย = เปลี่ยนตารางพิกัด — ถ้ากลุ่มที่ค้างอยู่ใช้กับวิธีใหม่ไม่ได้ ให้ย้ายกลุ่มให้เลย
      ไม่งั้นได้คู่ที่ไม่มีในมาตรฐาน (เช่น รางเคเบิล + กลุ่มที่ 1) แล้วช่อง "สายแนะนำ" ขึ้น "—" โดยไม่รู้สาเหตุ */
@@ -329,8 +326,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   /* แกนย่อยของคอลัมน์ — แต่ละกลุ่มแยกไม่เหมือนกัน (ดู AMP_GROUPS.cores ใน boq.js)
      กลุ่ม 1,2,3,7 = แกนเดียว/หลายแกน · กลุ่ม 4 = แนวตั้ง/แนวราบ · กลุ่ม 5,6 = รวมเป็นคอลัมน์เดียว */
   const coreOpts = (window.BOQ.ampCoresFor || (() => []))(calcGroup);
-  const calcCore = (window.BOQ.ampCoreKey || (() => "single"))(calcGroup, "single", wcalc.orient);
-  const isOrientGroup = coreOpts.some((c) => c.key === "vert");   // กลุ่มที่ต้องเลือกแนวการวางเอง
+  /* ค่าที่ผู้ใช้เลือกไว้ อาจไม่มีในกลุ่มที่เพิ่งสลับมา (เช่นเลือก "หลายแกน" ไว้ แล้วย้ายไปกลุ่ม 4 ที่มีแต่แนวตั้ง/แนวราบ)
+     ampCoreKey จะเด้งไปตัวที่กลุ่มนั้นมีจริงให้เอง */
+  const corePick = wcalc.core || "single";
+  const calcCore = (window.BOQ.ampCoreKey || (() => "single"))(calcGroup, corePick, corePick);
   // เลือกขนาดสายให้รับ กระแส×1.25 (โหลดต่อเนื่อง) — ตามพิกัด วสท. (ฉนวน+วิธี+กลุ่ม+จำนวนตัวนำ+แกน) แล้วหักตัวคูณลดกระแส
   const pickWire = (amp) => window.BOQ.pickWireSize((+amp || 0) * 1.25, calcIns, { method: calcMethod, group: calcGroup, ncond: calcNCond, core: calcCore, derate: calcDerate });
   // ตารางพิกัดของวิธีที่เลือกมีจริงไหม / ยืมมาจากวิธีอื่นไหม — ไว้บอกผู้ใช้ตรง ๆ
@@ -717,7 +716,15 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   // ตัวเลือกพิกัดกระแส วสท.: วิธีเดินสาย / ฉนวน / กลุ่มการติดตั้ง / จำนวนตัวนำมีกระแส
   const methodOptions = (window.BOQ.WIRE_METHODS || []).map((m) => ({ value: m.key, label: m.th, sub: m.sub }));
   const insOptions = (window.BOQ.INS_CLASSES || []).map((c) => ({ value: c.key, label: c.th }));
-  const groupOptions = (window.BOQ.AMP_GROUPS || []).map((g) => ({ value: g.key, label: g.sub ? g.th + " · " + g.sub : g.th }));
+  // ชื่อกลุ่มสั้น ๆ บนปุ่ม · คำอธิบายไปอยู่บรรทัดที่สองในเมนู (ปุ่มแคบ ชื่อยาวจะถูกตัดหาย)
+  const groupOptions = (window.BOQ.AMP_GROUPS || []).map((g) => ({ value: g.key, label: g.th, sub: g.sub }));
+  /* กลุ่มการติดตั้งขึ้นกับวิธีเดินสาย — เลือกวิธีก่อน แล้วเหลือเฉพาะกลุ่มที่ใช้กับวิธีนั้นได้จริง
+     (เดินในท่อวิธีเดียวใช้ได้ 3 กลุ่ม เพราะ วสท. แยกที่ท่อไปวางตรงไหน · รางเคเบิลมีแต่กลุ่ม 7) */
+  const groupOptionsFor = (methodKey) => {
+    const m = (window.BOQ.WIRE_METHODS || []).find((x) => x.key === methodKey);
+    const allow = m && m.groups && m.groups.length ? m.groups : null;
+    return allow ? groupOptions.filter((o) => allow.indexOf(o.value) >= 0) : groupOptions;
+  };
   const ncondOptions = (window.BOQ.AMP_NCOND || []).map((n) => ({ value: n.key, label: n.th }));
 
   // ตัวเลือกวัสดุใน Accessories: แบ่งกลุ่มย่อย (ชิปฟิลเตอร์) เหมือน dropdown สายไฟ · เดาจากชื่อ
@@ -1484,11 +1491,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 const ncond = c.ncond || (wcPhase === 3 ? "3" : "2");
                 const coreType = window.BOQ.cableCoreType(c.type);   // single / multi (จากชื่อ 1C/nC)
                 /* กลุ่มที่เลือกอาจไม่ได้แยกคอลัมน์ตามแกนเดียว/หลายแกน (กลุ่ม 5,6 รวมกัน · กลุ่ม 4 แยกแนวการวาง)
-                   จึงต้องแปลงเป็นแกนย่อยของกลุ่มนั้นก่อน แล้วค่อยเอาไปเขียนป้ายกำกับ */
-                const coreKey = (window.BOQ.ampCoreKey || (() => coreType))(group, coreType, wcalc.orient);
+                   ตั้งต้นใช้ค่าที่อ่านจากชื่อสาย แล้วเด้งเข้าแกนย่อยที่กลุ่มนั้นมีจริง — ผู้ใช้แก้ทับได้ */
+                const rowCoreOpts = (window.BOQ.ampCoresFor || (() => []))(group);
+                const coreKey = (window.BOQ.ampCoreKey || (() => coreType))(group, c.core || coreType, c.core || coreType);
                 const coreTh = (window.BOQ.AMP_CORE_LABEL || {})[coreKey] || (coreType === "multi" ? "หลายแกน" : "แกนเดียว");
                 const hasSize = window.BOQ.cableSizeNum(c.type) != null;
-                const amp = cableAmp(c.type, { method, group, ncond, orient: wcalc.orient });
+                const amp = cableAmp(c.type, { method, group, ncond, core: coreKey, orient: coreKey });
                 const req = reqAmpFor(c.name);
                 const bad = amp != null && req && amp < req;
                 const showHint = !!c.type && !isComm && !isDC;
@@ -1511,16 +1519,20 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   {showHint && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 5, paddingLeft: isMobile ? 2 : 4 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-                        <div style={{ width: isMobile ? "100%" : 184, flexShrink: 0 }}>
-                          <Dropdown value={method} onChange={(v) => setCab(i, "method", v)} options={methodOptions} placeholder="วิธีเดินสาย" />
-                        </div>
-                        <div style={{ width: isMobile ? "calc(50% - 4px)" : 104, flexShrink: 0 }}>
-                          <Dropdown value={group} onChange={(v) => setCab(i, "group", v)} options={groupOptions} />
+                        <div style={{ width: isMobile ? "100%" : 210, flexShrink: 0 }}>
+                          <Dropdown value={method} onChange={(v) => setCab(i, "method", v)} options={methodOptions} placeholder="วิธีเดินสาย" wrap />
                         </div>
                         <div style={{ width: isMobile ? "calc(50% - 4px)" : 150, flexShrink: 0 }}>
-                          <Dropdown value={ncond} onChange={(v) => setCab(i, "ncond", v)} options={ncondOptions} />
+                          <Dropdown value={group} onChange={(v) => setCab(i, "group", v)} options={groupOptionsFor(method)} wrap />
                         </div>
-                        <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", background: "var(--surface3)", padding: "3px 8px", borderRadius: 99, whiteSpace: "nowrap" }}>{coreTh}</span>
+                        <div style={{ width: isMobile ? "calc(50% - 4px)" : 132, flexShrink: 0 }}>
+                          <Dropdown value={ncond} onChange={(v) => setCab(i, "ncond", v)} options={ncondOptions} wrap />
+                        </div>
+                        {/* แกนสาย — ตั้งต้นอ่านจากชื่อสาย (1C = แกนเดียว · nC = หลายแกน) แก้ทับได้ถ้าตารางกลุ่มนั้นแยกอย่างอื่น */}
+                        <div style={{ width: isMobile ? "100%" : 148, flexShrink: 0 }}>
+                          <Dropdown value={coreKey} onChange={(v) => setCab(i, "core", v)} disabled={rowCoreOpts.length < 2}
+                            options={rowCoreOpts.map((x) => ({ value: x.key, label: x.th }))} wrap />
+                        </div>
                       </div>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600,
                         color: bad || amp == null ? "#B91C1C" : (req ? "#16A34A" : "var(--text-3)") }}>
@@ -1611,32 +1623,31 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     </label>
                   ))}
                 </div>
-                {/* สมมุติฐานของ "สายแนะนำ": ฉนวน + วิธีเดินสาย + กลุ่ม + จำนวนตัวนำ (แกนเดียว) ตามพิกัด วสท. */}
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "repeat(4, 1fr)", gap: 10, marginTop: 10 }}>
+                {/* สมมุติฐานของ "สายแนะนำ": ฉนวน + วิธีเดินสาย + กลุ่ม + จำนวนตัวนำ + แกนสาย ตามพิกัด วสท.
+                    ลำดับคือเลือก "วิธีเดินสาย" ก่อน แล้วกลุ่มการติดตั้งจะเหลือเฉพาะที่ใช้กับวิธีนั้นได้ */}
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "minmax(0,1fr) minmax(0,1.7fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.1fr)", gap: 10, marginTop: 10, alignItems: "end" }}>
                   <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>ชนิดฉนวน</span>
                     <Dropdown value={calcIns} onChange={(v) => setWcalc("ins", v)} options={insOptions} />
                   </label>
                   <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>วิธีเดินสาย</span>
-                    <Dropdown value={calcMethod} onChange={setMethodPick} options={methodOptions} />
+                    <Dropdown value={calcMethod} onChange={setMethodPick} options={methodOptions} wrap />
                   </label>
                   <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>กลุ่มการติดตั้ง</span>
-                    <Dropdown value={calcGroup} onChange={(v) => setWcalc("group", v)} options={groupOptions} />
+                    <Dropdown value={calcGroup} onChange={(v) => setWcalc("group", v)} options={groupOptionsFor(calcMethod)} wrap />
                   </label>
                   <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>จำนวนตัวนำมีกระแส</span>
-                    <Dropdown value={calcNCond} onChange={(v) => setWcalc("ncond", v)} options={ncondOptions} />
+                    <Dropdown value={calcNCond} onChange={(v) => setWcalc("ncond", v)} options={ncondOptions} wrap />
                   </label>
-                  {/* กลุ่มที่ 4 ใช้สายแกนเดียวอย่างเดียว แต่ วสท. แยกตารางตามแนวการวาง จึงต้องเลือกเอง */}
-                  {isOrientGroup && (
-                    <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                      <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>แนวการวางสาย</span>
-                      <Dropdown value={wcalc.orient || "vert"} onChange={(v) => setWcalc("orient", v)}
-                        options={coreOpts.map((c) => ({ value: c.key, label: c.th }))} />
-                    </label>
-                  )}
+                  {/* แกนสาย — กลุ่ม 1,2,3,7 = แกนเดียว/หลายแกน · กลุ่ม 4 = แนวตั้ง/แนวราบ · กลุ่ม 5,6 = รวมเป็นคอลัมน์เดียว */}
+                  <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>แกนสาย</span>
+                    <Dropdown value={calcCore} onChange={(v) => setWcalc("core", v)} disabled={coreOpts.length < 2}
+                      options={coreOpts.map((c) => ({ value: c.key, label: c.th }))} wrap />
+                  </label>
                 </div>
                 {/* บอกให้รู้ว่าคอลัมน์ที่กำลังอ่านอยู่คือคอลัมน์ไหน — แต่ละกลุ่มแยกแกนย่อยไม่เหมือนกัน */}
                 <div style={{ marginTop: 6, fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>
@@ -1735,7 +1746,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       : "ยังไม่มีตารางพิกัดกระแสของ " + (insOptions.find((o) => o.value === calcIns) || {}).label + " × " + ampSrcTh(calcMethod) + " × " + (grpMeta.th || calcGroup) + " ในระบบ ช่อง \"สายแนะนำ\" จะขึ้น \"—\" — เพิ่มตารางได้ที่หน้าคลัง › พิกัดกระแสสายไฟ (พิกัดของแต่ละกลุ่มไม่เท่ากัน ใช้แทนกันไม่ได้)"}</span>
                   </div>
                 )}
-                <div style={{ fontSize: 10, color: "var(--text-3)", marginTop: 6 }}>* "สายแนะนำ" คิดบนพื้นฐานสายแกนเดียว (1C) — สายในรายการด้านบนอ่านแกนจากชื่อจริง{calcDerate < 1 ? " · หักตัวคูณลดกระแส ×" + calcDerate.toFixed(2) + " แล้ว" : ""}</div>
+                <div style={{ fontSize: 10, color: "var(--text-3)", marginTop: 6 }}>* "สายแนะนำ" คิดตามแกนสายที่เลือกไว้ข้างบน — สายในรายการด้านบนตั้งต้นอ่านแกนจากชื่อสายเอง แล้วแก้ทับได้ทีละเส้น{calcDerate < 1 ? " · หักตัวคูณลดกระแส ×" + calcDerate.toFixed(2) + " แล้ว" : ""}</div>
               </div>
               {isMobile ? (
                 /* มือถือ: แต่ละชุดคำนวณเป็นการ์ด แสดงค่าครบในใบเดียว ไม่ต้องเลื่อนแนวนอน */

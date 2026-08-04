@@ -197,7 +197,8 @@ function Segmented({ options, value, onChange }) {
 /* ── Dropdown — ตัวเลือกแบบกำหนดสไตล์เอง (แทน native select)
    ใช้ fixed-position สำหรับเมนู เพื่อไม่ให้ถูก modal ที่เลื่อนได้ตัดขอบ
    options: [{ value, label }] ── */
-function Dropdown({ value, onChange, options, disabled, placeholder, style, addable, onAdd }) {
+/* wrap = ให้ข้อความบนปุ่มตัดบรรทัดได้ถึง 2 บรรทัด (ชื่อยาว ๆ อย่างวิธีเดินสายตาม วสท. ถ้าตัดด้วย ... จะอ่านไม่รู้เรื่อง) */
+function Dropdown({ value, onChange, options, disabled, placeholder, style, addable, onAdd, wrap }) {
   const [open, setOpen] = React.useState(false);
   const [rect, setRect] = React.useState(null);
   const [adding, setAdding] = React.useState(false);
@@ -217,7 +218,11 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
     const spaceBelow = window.innerHeight - r.bottom;
     const needUp = spaceBelow < 260 && r.top > spaceBelow;   // ที่ด้านล่างไม่พอ + ด้านบนมากกว่า → เปิดขึ้นบน
     const maxH = Math.min(340, (needUp ? r.top : spaceBelow) - 12);
-    setRect({ left: r.left, width: r.width, maxH,
+    /* ตัวเลือกที่มีคำอธิบาย (sub) ต้องมีที่พออ่าน — ปุ่มแคบ ๆ 150px ทำให้ข้อความหักเป็นเส้นเดียวอ่านไม่ได้
+       จึงกางเมนูให้กว้างขึ้นได้ แต่ไม่ให้ล้นขอบจอ */
+    const hasSub = (options || []).some((o) => o.sub);
+    const w = hasSub ? Math.min(Math.max(r.width, 330), window.innerWidth - 16) : r.width;
+    setRect({ left: Math.max(8, Math.min(r.left, window.innerWidth - w - 8)), width: w, maxH,
       top: needUp ? null : r.bottom + 6, bottom: needUp ? (window.innerHeight - r.top + 6) : null });
     setOpen(true);
   };
@@ -255,7 +260,9 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
           color: "var(--text-1)", fontFamily: "inherit", fontSize: 13.5, padding: "9px 11px", borderRadius: 10,
           outline: "none", cursor: disabled ? "default" : "pointer", textAlign: "left", opacity: disabled ? 0.55 : 1,
         }, style || {})}>
-        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span style={wrap
+          ? { flex: 1, minWidth: 0, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", whiteSpace: "normal", lineHeight: 1.3 }
+          : { flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {cur ? cur.label : (placeholder || "—")}
         </span>
         <Icon name="chevronDown" size={16} color="var(--text-3)" style={{ flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform .18s" }} />

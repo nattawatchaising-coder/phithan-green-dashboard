@@ -440,7 +440,9 @@
     opts = opts || {};
     const sz = cableSizeNum(type); if (sz == null) return null;
     const grp = opts.group || "g1";
-    const col = ampColKey(grp, String(opts.ncond || 2), ampCoreKey(grp, cableCoreType(type), opts.orient || opts.core));
+    // แกน: ใช้ค่าที่ผู้เรียกระบุมาก่อน (ผู้ใช้เลือกเองในหน้า BOQ) ไม่ได้ระบุจึงอ่านจากชื่อสาย
+    const want = opts.core || opts.orient || cableCoreType(type);
+    const col = ampColKey(grp, String(opts.ncond || 2), ampCoreKey(grp, want, want));
     const tbl = ampTableFor(cableInsClass(type), opts.method, col).tbl;
     const base = tbl[sz];
     if (base == null) return null;

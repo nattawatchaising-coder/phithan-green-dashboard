@@ -830,7 +830,7 @@ function AmpacityEditor({ ampStore }) {
         ))}
         <div style={{ width: 1, height: 22, background: "var(--border)", margin: "0 3px" }} />
         <div style={{ minWidth: 300, maxWidth: 340, flex: "1 1 260px" }}>
-          <Dropdown value={methodKey} onChange={setMethodKey} options={methods.map((m) => ({ value: m.key, label: m.th, sub: m.sub }))} />
+          <Dropdown value={methodKey} onChange={setMethodKey} wrap options={methods.map((m) => ({ value: m.key, label: m.th, sub: m.sub }))} />
         </div>
         {/* รูปของวิธีเดินสายที่เลือก — หัวคอลัมน์มีรูปกลุ่มแล้ว แต่ "วิธี" คือตัวที่ตัดสินว่าใช้ตารางไหน ต้องเห็นด้วย */}
         {typeof WireArt === "function" && (() => {
