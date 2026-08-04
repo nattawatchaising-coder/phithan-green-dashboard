@@ -735,8 +735,61 @@
   // ท่อ IMC: ขนาดนิ้ว → เส้นผ่าน ID (mm) — fill limit 40%
   const IMC_CONDUIT = [
     {sz:'1/2"',id:18.91},{sz:'3/4"',id:24.24},{sz:'1"',id:30.61},{sz:'1-1/4"',id:39.43},
-    {sz:'1-1/2"',id:45.52},{sz:'2"',id:57.52},{sz:'2-1/2"',id:69},{sz:'3"',id:84.73},{sz:'4"',id:109.84},
+    {sz:'1-1/2"',id:45.52},{sz:'2"',id:57.52},{sz:'2-1/2"',id:69},{sz:'3"',id:84.73},{sz:'3-1/2"',id:97.38},{sz:'4"',id:109.84},
   ];
+  /* ท่อขาว uPVC (มอก. 216) — ขนาดที่เรียกคือ "ขนาดนอก" ต้องหักผนังท่อสองด้านถึงจะเป็นรูใน
+     ค่าผนังเป็นค่าปกติของท่อร้อยสายสีขาว แก้ตัวเลขได้ที่นี่ถ้าใช้ท่อยี่ห้อที่ผนังหนาไม่เท่านี้ */
+  const UPVC_CONDUIT = [
+    {mm:16,id:12.4},{mm:20,id:16.4},{mm:25,id:21.4},{mm:32,id:28.0},{mm:40,id:35.4},{mm:55,id:49.0},
+  ];
+  /* ── ตรวจสายในท่อร้อยสาย ──
+     เกณฑ์ % เติมเต็มของท่อ ไม่ใช่ค่าเดียว วสท./NEC ให้ตามจำนวนเส้นที่ร้อยในท่อเดียวกัน
+     1 เส้น ≤ 53% · 2 เส้น ≤ 31% · ตั้งแต่ 3 เส้นขึ้นไป ≤ 40% */
+  function conduitFillLimit(n) { const k = Math.max(0, Math.round(+n || 0)); return k === 1 ? 53 : k === 2 ? 31 : 40; }
+  // รูในของท่อจากชื่อ เช่น 'IMC 2"' → 57.52 · "ท่อขาว uPVC 25mm. (สีขาว)" → 21.4
+  function conduitDim(name) {
+    const s = String(name || "");
+    if (/IMC/i.test(s)) {
+      const m = /IMC\s*([\d\-\/]+)"/.exec(s);
+      const r = m ? IMC_CONDUIT.find(function (x) { return x.sz === m[1] + '"'; }) : null;
+      return r ? { id: r.id, area: Math.PI * (r.id / 2) * (r.id / 2) } : { id: 0, area: 0 };
+    }
+    const m2 = /(\d+(?:\.\d+)?)\s*mm/i.exec(s);
+    const r2 = m2 ? UPVC_CONDUIT.find(function (x) { return x.mm === +m2[1]; }) : null;
+    return r2 ? { id: r2.id, area: Math.PI * (r2.id / 2) * (r2.id / 2) } : { id: 0, area: 0 };
+  }
+  /* ตรวจ 1 ท่อ — รูปแบบผลลัพธ์เดียวกับ trayCheck เพื่อให้หน้าจอใช้โค้ดชุดเดียวกันได้ */
+  function conduitCheck(name, cables, sizePool) {
+    const dim = conduitDim(name);
+    let area = 0, cores = 0, runs = 0;
+    const unknown = [];
+    (cables || []).forEach(function (c) {
+      const q = Math.max(0, Math.round(+c.qty || 0));
+      if (!q) return;
+      const od = (CABLE_OD[c.type] || {})[+c.size];
+      if (!od) { if (c.type) unknown.push(c.type + " " + c.size + " sq.mm."); return; }
+      area += Math.PI * (od / 2) * (od / 2) * q;
+      cores += cableCores(c.type) * q;
+      runs += q;
+    });
+    const limit = conduitFillLimit(runs);
+    const pct = dim.area > 0 ? (area / dim.area) * 100 : 0;
+    const need = area / (limit / 100);
+    let suggest = null;
+    (sizePool || []).forEach(function (nm) {
+      if (suggest) return;
+      const d = conduitDim(nm);
+      if (d.area > 0 && d.area >= need) suggest = nm;
+    });
+    return {
+      dim: { w: Math.round(dim.id * 10) / 10, h: 0, area: Math.round(dim.area) },
+      area: Math.round(area * 10) / 10, fillPct: Math.round(pct * 10) / 10, limit: limit,
+      ok: dim.area > 0 && pct <= limit,
+      runs: runs, cores: cores, derate: trayDerate(cores),
+      odSum: 0, widthOk: true,
+      needArea: Math.round(need), suggest: suggest, unknown: unknown,
+    };
+  }
   // พื้นที่ตัดขวางสาย (mm²) จาก OD ในตาราง
   function wireArea(type, sqmm) { const od = (CABLE_OD[type] || {})[+sqmm]; return od ? Math.PI * (od / 2) * (od / 2) : 0; }
   // ตรวจสอบ WIRE WAY: fill ≤ 20% ของพื้นที่ราง W×H
@@ -1445,5 +1498,6 @@
   window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, catalog, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, WAY_PIPE_LEN, TRAY_PIPE_LEN, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
     TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,
+    UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,
     G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, SERVICE_GROUPS, mergeItems };
 })();

@@ -401,14 +401,23 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const setUpFlexSize = (size, v) => setB((p) => { const c = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit); c.upFlex = Object.assign({}, c.upFlex, { [size]: v }); return Object.assign({}, p, { conduit: c }); });
   const SPARE_DEF = { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10, upStraight: 10, upClamp: 10, upConnector: 10 };
   const setCSpare = (k, v) => setB((p) => Object.assign({}, p, { conduitSpare: Object.assign({}, SPARE_DEF, p.conduitSpare, { [k]: v }) }));
+  const [condOpen, setCondOpen] = React.useState({});   // ท่อแถวไหนกางตารางตรวจสายอยู่
+  const condPools = [["imc", window.BOQ.IMC_SIZES], ["upvc", window.BOQ.UPVC_SIZES]];
+  const condLen = Math.round(condPools.reduce((s, [k]) => s + (cond[k] || []).reduce((t, x) => t + (+x.length || 0), 0), 0));
+  // ท่อที่กรอกสายไว้แล้วแต่ % เติมเต็มยังเกินเกณฑ์
+  const condBad = condPools.reduce((n, [k, sizes]) =>
+    n + (cond[k] || []).filter((x) => (x.cables || []).length && !window.BOQ.conduitCheck(x.size, x.cables, sizes).ok).length, 0);
   // ── รางไฟ (WIREWAY / CABLE TRAY) — โครงสร้างข้อมูลเหมือนท่อร้อยสาย: {size, length} ต่อแถว ──
   const TRAY_DEF = { way: [], tray: [], spare: 10, extra: [] };
   const tw = Object.assign({}, TRAY_DEF, b.tray);
   const trayLen = Math.round(((tw.way || []).concat(tw.tray || [])).reduce((s, x) => s + (+x.length || 0), 0));
   /* ตัวคูณลดกระแสที่แย่ที่สุดจากรางที่กรอกสายไว้ — ส่งไปเป็นค่าแนะนำให้ตารางคำนวณขนาดสายไฟ */
-  const trayWorst = [["way", window.BOQ.WAY_SIZES], ["tray", window.BOQ.TRAY_SIZES]].reduce((f, [k, sizes]) =>
-    (tw[k] || []).reduce((g, x) => ((x.cables || []).length
-      ? Math.min(g, window.BOQ.trayCheck(x.size, x.cables, k === "tray", sizes).derate) : g), f), 1);
+  const trayWorst = condPools.reduce((f, [k, sizes]) =>
+    (cond[k] || []).reduce((g, x) => ((x.cables || []).length
+      ? Math.min(g, window.BOQ.conduitCheck(x.size, x.cables, sizes).derate) : g), f),
+    [["way", window.BOQ.WAY_SIZES], ["tray", window.BOQ.TRAY_SIZES]].reduce((f, [k, sizes]) =>
+      (tw[k] || []).reduce((g, x) => ((x.cables || []).length
+        ? Math.min(g, window.BOQ.trayCheck(x.size, x.cables, k === "tray", sizes).derate) : g), f), 1));
   // นับรางที่กรอกสายไว้แล้วแต่ยังไม่ผ่านเกณฑ์ % เติมเต็ม / วางชั้นเดียว
   const trayBad = [["way", window.BOQ.WAY_SIZES], ["tray", window.BOQ.TRAY_SIZES]].reduce((n, [k, sizes]) =>
     n + (tw[k] || []).filter((x) => (x.cables || []).length && (() => { const c = window.BOQ.trayCheck(x.size, x.cables, k === "tray", sizes); return !(c.ok && c.widthOk); })()).length, 0);
@@ -703,21 +712,103 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const addAcc = () => setB((p) => Object.assign({}, p, { accessories: (p.accessories || []).concat([{ cat: "", name: "", qty: 1, unit: "" }]) }));
   const delAcc = (i) => setB((p) => Object.assign({}, p, { accessories: (p.accessories || []).filter((_, j) => j !== i) }));
 
-  const ConduitList = ({ kind, label, sizes, valKey, unitText }) => (
-    <div>
-      <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 7 }}>{label}</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {(cond[kind] || []).map((x, i) => (
-          <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 78px 36px", gap: 8, alignItems: "center" }}>
-            <Dropdown value={x.size} onChange={(v) => setCond(kind, i, "size", v)} options={opt(sizes)} placeholder="เลือกขนาด" />
-            <input type="number" style={numStyle} value={x[valKey]} placeholder={unitText} onChange={(e) => setCond(kind, i, valKey, e.target.value)} />
-            <button onClick={() => delCond(kind, i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
-          </div>
-        ))}
-        <button onClick={() => addCond(kind, { size: sizes[0], [valKey]: 0 })} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่ม {label}</button>
+  /* รายการท่อร้อยสาย — หน้าตาเดียวกับรายการรางไฟ: เลือกขนาด + ความยาวรวมของขนาดนั้น
+     กางออกได้เพื่อใส่สายที่จะร้อยในท่อนั้น แล้วตรวจ % เติมเต็ม + ตัวคูณลดกระแส
+     (PULL BOX ไม่มีสายร้อยผ่านเป็นเส้น ๆ ให้ตรวจ จึงกรอกแค่จำนวน) */
+  const ConduitList = ({ kind, label, sizes, valKey, unitText, hint, check }) => {
+    const OD = window.BOQ.CABLE_OD || {};
+    const odTypes = Object.keys(OD);
+    const setCables = (i, cs) => setCond(kind, i, "cables", cs);
+    return (
+      <div>
+        <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: hint ? 3 : 7 }}>{label}</div>
+        {hint && <div style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 7 }}>{hint}</div>}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {(cond[kind] || []).map((x, i) => {
+            const cbs = x.cables || [];
+            const chk = check ? window.BOQ.conduitCheck(x.size, cbs, sizes) : null;
+            const open = condOpen[kind + i];
+            const any = cbs.length > 0;
+            const row = (
+              <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 78px 36px", gap: 8, alignItems: "center" }}>
+                <Dropdown value={x.size} onChange={(v) => setCond(kind, i, "size", v)} options={opt(sizes)} placeholder="เลือกขนาด" />
+                <input type="number" style={numStyle} value={x[valKey]} placeholder={unitText} onChange={(e) => setCond(kind, i, valKey, e.target.value)} />
+                <button onClick={() => delCond(kind, i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
+              </div>
+            );
+            if (!check) return <div key={i}>{row}</div>;
+            return (
+              <div key={i} style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 9, background: "var(--surface2)" }}>
+                {row}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 7, flexWrap: "wrap" }}>
+                  <button onClick={() => setCondOpen((p) => Object.assign({}, p, { [kind + i]: !open }))}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", color: "var(--text-2)", fontWeight: 700, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
+                    <Icon name="settings" size={13} color="var(--text-2)" /> สายที่ร้อยในท่อนี้{any ? " (" + cbs.length + ")" : ""}
+                    <Icon name="chevronDown" size={13} color="var(--text-2)" style={{ transform: open ? "rotate(180deg)" : "none" }} />
+                  </button>
+                  {any && (
+                    <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 8, fontSize: 11, fontWeight: 800, fontVariantNumeric: "tabular-nums",
+                      color: chk.ok ? "#16A34A" : "#DC2626" }}>
+                      <span>เติมเต็ม {chk.fillPct}% / {chk.limit}%</span>
+                      <span style={{ color: "var(--text-3)", fontWeight: 700 }}>ตัวคูณ ×{chk.derate.toFixed(2)}</span>
+                      <span>{chk.ok ? "✓" : "✗"}</span>
+                    </span>
+                  )}
+                </div>
+                {open && (
+                  <div style={{ marginTop: 9, display: "flex", flexDirection: "column", gap: 7 }}>
+                    {cbs.map((c, j) => (
+                      <div key={j} style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 72px 56px 32px" : "minmax(0,1fr) 92px 66px 32px", gap: 7, alignItems: "center" }}>
+                        <Dropdown value={c.type} onChange={(v) => setCables(i, cbs.map((y, k) => k === j ? Object.assign({}, y, { type: v, size: +(Object.keys(OD[v] || {})[0] || 2.5) }) : y))} options={opt(odTypes)} />
+                        <Dropdown value={String(c.size)} onChange={(v) => setCables(i, cbs.map((y, k) => k === j ? Object.assign({}, y, { size: +v }) : y))} options={Object.keys(OD[c.type] || {}).map((s) => ({ value: s, label: s + " mm²" }))} />
+                        <input type="number" min={1} style={numStyle} value={c.qty} placeholder="เส้น" onChange={(e) => setCables(i, cbs.map((y, k) => k === j ? Object.assign({}, y, { qty: e.target.value }) : y))} />
+                        <button onClick={() => setCables(i, cbs.filter((_, k) => k !== j))} title="ลบ" style={{ height: 38, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
+                      </div>
+                    ))}
+                    <button onClick={() => setCables(i, cbs.concat([{ type: odTypes[0], size: +(Object.keys(OD[odTypes[0]] || {})[0] || 2.5), qty: 1 }]))}
+                      style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "6px 10px", fontWeight: 700, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={12} color="var(--text-2)" /> เพิ่มสาย</button>
+                    {any && (
+                      <>
+                        <div className="bq-spec" style={{ marginTop: 2 }}>
+                          <div><span className="k">รูในท่อ</span><span className="v">Ø{chk.dim.w} = {chk.dim.area.toLocaleString()} mm²</span></div>
+                          <div><span className="k">พื้นที่สายรวม</span><span className="v">{chk.area.toLocaleString()} mm²</span></div>
+                          <div data-bad={chk.ok ? "0" : "1"}><span className="k">เติมเต็ม (เกณฑ์ {chk.limit}%)</span><span className="v hi">{chk.fillPct}%</span></div>
+                          <div><span className="k">จำนวนสายในท่อ</span><span className="v">{chk.runs} เส้น</span></div>
+                          <div><span className="k">ตัวนำนำกระแส</span><span className="v">{chk.cores} เส้น</span></div>
+                          <div><span className="k">ตัวคูณลดกระแส</span><span className="v hi">×{chk.derate.toFixed(2)}</span></div>
+                          <div><span className="k">พื้นที่ท่อขั้นต่ำ</span><span className="v">{chk.needArea.toLocaleString()} mm²</span></div>
+                          <div data-miss={chk.unknown.length ? "1" : "0"}><span className="k">ไม่มีข้อมูล OD</span><span className="v">{chk.unknown.length ? chk.unknown.length + " ชนิด" : "ครบ"}</span></div>
+                        </div>
+                        {chk.dim.area === 0 && (
+                          <div className="bq-note warn">
+                            <Icon name="alert" size={15} color="#F59E0B" />
+                            <span>ยังไม่มีขนาดรูในของท่อ "{x.size}" ในระบบ จึงตรวจ % เติมเต็มให้ไม่ได้ — เพิ่มค่ารูในได้ที่ตาราง IMC_CONDUIT / UPVC_CONDUIT ใน boq.js</span>
+                          </div>
+                        )}
+                        {chk.dim.area > 0 && !chk.ok && (
+                          <div className="bq-note warn">
+                            <Icon name="alert" size={15} color="#F59E0B" />
+                            <span>สายกินพื้นที่ {chk.fillPct}% เกินเกณฑ์ {chk.limit}% ({chk.runs === 1 ? "ร้อยสายเส้นเดียว" : chk.runs === 2 ? "ร้อย 2 เส้น" : "ร้อยตั้งแต่ 3 เส้นขึ้นไป"}) — {chk.suggest ? "ขยับเป็น " + chk.suggest : "ต้องใช้ท่อที่มีพื้นที่อย่างน้อย " + chk.needArea.toLocaleString() + " mm² หรือแยกร้อยสองท่อ"}</span>
+                          </div>
+                        )}
+                        {chk.ok && (
+                          <div className="bq-note ok">
+                            <Icon name="check" size={15} color="#22A35B" />
+                            <span>ผ่านเกณฑ์ — เหลือพื้นที่อีก {(chk.limit - chk.fillPct).toFixed(1)}% · อย่าลืมเอาตัวคูณ ×{chk.derate.toFixed(2)} ไปหารพิกัดกระแสของสายในตารางคำนวณขนาดสายไฟ</span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          <button onClick={() => addCond(kind, check ? { size: sizes[0], [valKey]: 0, cables: [] } : { size: sizes[0], [valKey]: 0 })} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่ม {label}</button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   /* รายการรางไฟ — เลือกขนาด + ความยาวรวมของขนาดนั้น (ข้อต่อ/ขาแขวน/พุก คิดต่อจากความยาวให้เอง)
      กางออกได้เพื่อใส่สายที่จะเดินในรางนั้น แล้วตรวจ % เติมเต็ม + ตัวคูณลดกระแส */
@@ -1069,7 +1160,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       meta: wireDone ? wireDone + " เส้นที่ระบุครบ" + (vdropSum.any ? " · แรงดันตก " + vdropSum.total + "%" : "") : "ยังไม่ได้กรอกระยะสาย",
       tone: !wireDone ? "" : (vdropSum.total > vdropSum.lim.total ? "warn" : "ok") },
     { key: "raceway", icon: "grid", title: "ท่อร้อยสาย",
-      meta: ((b.conduit && b.conduit.imc) || []).length + ((b.conduit && b.conduit.upvc) || []).length + " รายการ" },
+      meta: condLen > 0 ? "รวม " + condLen + " ม." + (condBad > 0 ? " · " + condBad + " ท่อสายแน่นเกิน" : "") : "ยังไม่ได้กรอก",
+      tone: condLen > 0 ? (condBad > 0 ? "warn" : "ok") : "" },
     { key: "tray", icon: "grid", title: "รางไฟ (Wireway / Tray)",
       meta: trayLen > 0 ? "รวม " + trayLen + " ม." + (trayBad > 0 ? " · " + trayBad + " รางสายแน่นเกิน" : "") : "ยังไม่ได้กรอก",
       tone: trayLen > 0 ? (trayBad > 0 ? "warn" : "ok") : "" },
@@ -1590,7 +1682,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     {trayWorst < 1 && (
                       <button type="button" onClick={() => setWcalc("derate", trayWorst)}
                         style={{ border: 0, background: "var(--primary-soft)", color: "var(--primary-dark)", borderRadius: 8, padding: "5px 10px", fontWeight: 800, fontSize: 11, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
-                        title="ใช้ตัวคูณที่แย่ที่สุดจากหัวข้อรางไฟ">ใช้ ×{trayWorst.toFixed(2)} จากรางไฟ</button>
+                        title="ใช้ตัวคูณที่แย่ที่สุดจากหัวข้อท่อร้อยสายและรางไฟ">ใช้ ×{trayWorst.toFixed(2)} จากท่อ/ราง</button>
                     )}
                   </div>
                 </div>
@@ -1786,11 +1878,15 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           </BoqSection>
 
           {/* ── ท่อร้อยสาย (RACE WAY) ── */}
-          <BoqSection title="ท่อร้อยสาย (RACE WAY)" icon="grid" {...secProps("raceway")}>
+          <BoqSection title="ท่อร้อยสาย (RACE WAY)" icon="grid" {...secProps("raceway")}
+            right={condLen > 0 ? <span style={{ fontSize: 12, fontWeight: 800, color: "var(--primary-dark)" }}>รวม {condLen} ม.</span> : null}>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <ConduitList kind="imc" label="ท่อ IMC (3m/ท่อน)" sizes={window.BOQ.IMC_SIZES} valKey="length" unitText="ม." />
-              <ConduitList kind="upvc" label="ท่อ uPVC" sizes={window.BOQ.UPVC_SIZES} valKey="length" unitText="ม." />
-              <ConduitList kind="pullbox" label="PULL BOX" sizes={window.BOQ.PULLBOX_SIZES} valKey="qty" unitText="ชิ้น" />
+              <ConduitList kind="imc" label="ท่อ IMC (3m/ท่อน)" sizes={window.BOQ.IMC_SIZES} valKey="length" unitText="ม." check
+                hint="ท่อเหล็ก IMC ยาว 3.0 ม./ท่อน — กรอกความยาวรวมของแต่ละขนาด" />
+              <ConduitList kind="upvc" label="ท่อ uPVC" sizes={window.BOQ.UPVC_SIZES} valKey="length" unitText="ม." check
+                hint="ท่อขาว uPVC ยาว 2.9 ม./ท่อน — ขนาดที่เรียกเป็นขนาดนอก ระบบหักผนังท่อให้แล้วตอนตรวจ % เติมเต็ม" />
+              <ConduitList kind="pullbox" label="PULL BOX" sizes={window.BOQ.PULLBOX_SIZES} valKey="qty" unitText="ชิ้น"
+                hint="กล่องพักสาย — กรอกจำนวนใบ (ไม่มีสายวิ่งผ่านเป็นเส้นให้ตรวจ % เติมเต็ม)" />
             </div>
             <div style={{ marginTop: 12, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
               * อุปกรณ์ IMC (แคล้มประกับ / บุชชิ่ง,ล็อกนัท / รางซี / คอนเนคเตอร์ / คุปปิ้ง) คำนวณอัตโนมัติจากความยาวท่อ + จำนวน PULL BOX
