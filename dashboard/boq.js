@@ -271,13 +271,12 @@
   const WIRE_SIZES = [1, 1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300, 400, 500];
   /* วิธีเดินสาย — วิธีที่ยังไม่มีตารางพิกัดของตัวเอง จะยืมตารางของวิธีที่ "สภาพระบายความร้อนเท่ากัน" (base)
      · รางเดินสายปิดมีฝา (Wireway) = ช่องเดินสายปิด ระบายความร้อนเหมือนเดินในท่อ → ยืมตารางท่อในอากาศได้
-     · รางเคเบิลบันได/มีรูระบาย = สายอยู่ในอากาศเกือบอิสระ รับกระแสได้มากกว่า → คนละตาราง ต้องกรอกเองที่หน้าคลัง
+     · รางเคเบิลเปิดฝา (พื้นทึบ/ระบายอากาศ/บันได) = ระบายความร้อนคนละแบบ → ตารางแยกกันทุกแบบ ต้องกรอกเองที่หน้าคลัง
      ทุกวิธีให้ใส่ "ตัวคูณลดกระแส" เพิ่มได้เมื่อมีหลายวงจรอยู่ในช่องเดียวกัน */
   /* รายการวิธีเดินสายไล่ตามที่ วสท. แยกตารางไว้จริง
      · groups = กลุ่มการติดตั้งที่ใช้กับวิธีนี้ได้ (ตัวแรก = ค่าตั้งต้นเวลาสลับวิธี)
        ท่อร้อยสายวิธีเดียวใช้ได้ 3 กลุ่ม เพราะ วสท. แยกที่ "ท่อไปวางตรงไหน" ไม่ใช่ที่ตัวท่อ
-     · base = วิธีที่ วสท. ให้ใช้ตารางร่วมกัน (ไม่ใช่การเดามั่ว — baseWhy บอกเหตุผลให้ผู้ใช้อ่าน)
-     · ราง: tray กับ ladder แยกตัวเลือกให้เลือกตามของจริงที่ซื้อ แต่พิกัดกระแสใช้ตารางร่วมกันตามมาตรฐาน */
+     · base = วิธีที่ วสท. ให้ใช้ตารางร่วมกัน (ไม่ใช่การเดามั่ว — baseWhy บอกเหตุผลให้ผู้ใช้อ่าน) */
   const WIRE_METHODS = [
     // ── ท่อร้อยสาย / ช่องเดินสายปิด ──
     { key: "conduitAir", th: "ท่อ · เดินในท่อร้อยสาย (IMC / EMT / uPVC)", art: "g2", group: "g2", groups: ["g2", "g1", "g5"] },
@@ -287,12 +286,13 @@
     { key: "surface", th: "ลอย · เกาะผนัง–เพดานโดยตรง (ไม่มีท่อ)", art: "g3", group: "g3", groups: ["g3"] },
     { key: "insulator", th: "ลอย · บนลูกถ้วยในอากาศ", art: "g4", group: "g4", groups: ["g4"] },
     { key: "buried", th: "ดิน · ฝังดินโดยตรง (NYY)", art: "g6", group: "g6", groups: ["g6"] },
-    // ── รางเคเบิล (กลุ่มที่ 7) — วสท. แยกตารางตาม "มีฝาปิดไหม" และ "พื้นรางทึบไหม" ──
-    { key: "trayPerf", th: "ราง · Cable Tray ระบายอากาศ — ไม่มีฝาปิด", art: "trayVent", group: "g7", groups: ["g7"] },
-    { key: "ladder", th: "ราง · Cable Ladder บันได — ไม่มีฝาปิด", art: "g7", group: "g7", groups: ["g7"],
-      base: "trayPerf", baseWhy: "วสท. ให้รางแบบระบายอากาศและแบบบันไดที่ไม่มีฝาปิด ใช้ตารางพิกัดชุดเดียวกัน" },
-    { key: "traySolid", th: "ราง · Cable Tray พื้นทึบ — ไม่มีฝาปิด", art: "traySolid", group: "g7", groups: ["g7"] },
-    { key: "trayCover", th: "ราง · มีฝาปิด — พื้นทึบ / ระบายอากาศ / บันได", art: "trayCover", group: "g7", groups: ["g7"] },
+    /* ── รางเคเบิล (กลุ่มที่ 7) ──
+       เปิดฝา: พื้นทึบ / ระบายอากาศ / บันได แยกตารางกันคนละชุด (ระบายความร้อนไม่เท่ากัน)
+       ปิดฝา: ทั้งสามแบบคิดเหมือนกันหมด จึงเหลือตัวเลือกเดียว */
+    { key: "traySolid", th: "ราง · พื้นทึบ — เปิดฝา", art: "traySolid", group: "g7", groups: ["g7"] },
+    { key: "trayPerf", th: "ราง · ระบายอากาศ — เปิดฝา", art: "trayVent", group: "g7", groups: ["g7"] },
+    { key: "ladder", th: "ราง · บันได (Ladder) — เปิดฝา", art: "g7", group: "g7", groups: ["g7"] },
+    { key: "trayCover", th: "ราง · ปิดฝา — พื้นทึบ / ระบายอากาศ / บันได ใช้ตารางเดียวกัน", art: "trayCover", group: "g7", groups: ["g7"] },
   ];
   const WIRE_METHOD_BASE = {};
   WIRE_METHODS.forEach((m) => { if (m.base) WIRE_METHOD_BASE[m.key] = m.base; });
@@ -314,30 +314,54 @@
      ยิ่งระบายความร้อนได้ดี พิกัดกระแสยิ่งสูง — ฝังในฉนวนความร้อน (กลุ่ม 1) แย่สุด · รางบันไดในอากาศ (กลุ่ม 7) ดีสุด
      ตอนนี้มีตารางจริงเฉพาะกลุ่ม 1–2 (ตารางที่ 5-20) · กลุ่มอื่นกรอกเพิ่มได้ที่หน้าคลัง › พิกัดกระแสสายไฟ
      `art` = รหัสรูปประกอบใน WireArt (boq.jsx) — ให้เห็นภาพว่าแต่ละกลุ่มหน้าตาเป็นยังไง */
+  /* cores = แกนย่อยที่ "กลุ่มนั้น" แยกตารางไว้จริง — ไม่ใช่ทุกกลุ่มจะแยกเหมือนกัน
+       single/multi = แยกสายแกนเดียวกับสายหลายแกน (กลุ่ม 1,2,3,7)
+       vert/horiz   = กลุ่ม 4 ใช้สายแกนเดียวอย่างเดียว แต่แยกที่ "วางแนวตั้ง / แนวราบ" แทน
+       any          = กลุ่ม 5,6 เอาแกนเดียวกับหลายแกนมารวมเป็นคอลัมน์เดียว แยกแค่จำนวนตัวนำ */
   const AMP_GROUPS = [
-    { key: "g1", th: "กลุ่มที่ 1", art: "g1", sub: "ในช่องเดินสาย · ฝังในฉนวนความร้อน",
-      desc: "สายเดินในท่อ/ช่องเดินสาย ที่ฝังอยู่ในผนังหรือฝ้าเพดานซึ่งมีฉนวนความร้อน หรือผนังกันไฟ — ระบายความร้อนแย่ที่สุด" },
-    { key: "g2", th: "กลุ่มที่ 2", art: "g2", sub: "ในช่องเดินสาย · เกาะผนัง/ในอากาศ",
-      desc: "สายเดินในท่อร้อยสายหรือรางปิด ที่เกาะผนัง เดินลอยในอากาศ หรือฝังในผนังคอนกรีตตัน" },
-    { key: "g3", th: "กลุ่มที่ 3", art: "g3", sub: "เกาะผนัง/เพดานโดยตรง",
-      desc: "สายมีเปลือกนอก ยึดเกาะผนังหรือเพดานโดยตรง ไม่มีท่อหุ้ม" },
-    { key: "g4", th: "กลุ่มที่ 4", art: "g4", sub: "บนลูกถ้วยในอากาศ",
-      desc: "สายเดินบนฉนวนลูกถ้วย แขวนในอากาศ เว้นระยะห่างระหว่างสาย" },
-    { key: "g5", th: "กลุ่มที่ 5", art: "g5", sub: "ในท่อฝังดิน",
-      desc: "สายเดินในท่อร้อยสายที่ฝังใต้ดิน" },
-    { key: "g6", th: "กลุ่มที่ 6", art: "g6", sub: "ฝังดินโดยตรง",
-      desc: "สายฝังดินโดยตรง ไม่มีท่อ (ต้องเป็นสายชนิดที่ใช้ฝังดินได้ เช่น NYY)" },
-    { key: "g7", th: "กลุ่มที่ 7", art: "g7", sub: "บนรางเคเบิล",
-      desc: "สายวางบนรางเคเบิล — แบบมีฝาปิด · ด้านล่างทึบ · ระบายอากาศ · บันได (ตารางที่ 5-30 ถึง 5-33)" },
+    { key: "g1", th: "กลุ่มที่ 1", art: "g1", sub: "ในช่องเดินสาย · ฝังในฉนวนความร้อน", cores: ["single", "multi"],
+      desc: "สายเดินในท่อโลหะหรืออโลหะ ที่อยู่ในฝ้าเพดานซึ่งเป็นฉนวนความร้อน หรือผนังกันไฟ — ระบายความร้อนแย่ที่สุด" },
+    { key: "g2", th: "กลุ่มที่ 2", art: "g2", sub: "ในช่องเดินสาย · เกาะผนัง/ในอากาศ", cores: ["single", "multi"],
+      desc: "สายเดินในท่อโลหะหรืออโลหะ ที่เกาะผนัง เดินลอยในอากาศ หรือฝังในผนังคอนกรีต" },
+    { key: "g3", th: "กลุ่มที่ 3", art: "g3", sub: "เกาะผนัง/เพดานโดยตรง", cores: ["single", "multi"],
+      desc: "สายเดินเกาะผนังหรือเพดานโดยตรง ไม่มีสิ่งปิดหุ้ม" },
+    { key: "g4", th: "กลุ่มที่ 4", art: "g4", sub: "บนลูกถ้วยในอากาศ", cores: ["vert", "horiz"],
+      desc: "สายเดินบนฉนวนลูกถ้วยในอากาศ — ใช้สายแกนเดียวเท่านั้น แยกตารางตามการวางแนวตั้งกับแนวราบ" },
+    { key: "g5", th: "กลุ่มที่ 5", art: "g5", sub: "ในท่อฝังดิน", cores: ["any"],
+      desc: "สายเดินในท่อโลหะหรืออโลหะที่ฝังดิน — แกนเดียวกับหลายแกนใช้ตารางร่วมกัน แยกแค่จำนวนตัวนำ" },
+    { key: "g6", th: "กลุ่มที่ 6", art: "g6", sub: "ฝังดินโดยตรง", cores: ["any"],
+      desc: "สายฝังดินโดยตรง — แกนเดียวกับหลายแกนใช้ตารางร่วมกัน และไม่เกิน 3 ตัวนำ (ต้องเป็นสายชนิดที่ฝังดินได้ เช่น NYY)" },
+    { key: "g7", th: "กลุ่มที่ 7", art: "g7", sub: "บนรางเคเบิล", cores: ["single", "multi"],
+      desc: "สายวางบนรางเคเบิล — เปิดฝา: พื้นทึบ · ระบายอากาศ · บันได แยกตารางกันคนละชุด · ปิดฝา: ทั้งสามแบบใช้ตารางเดียวกัน" },
   ];
   const AMP_NCOND = [
     { key: "2", th: "2 ตัวนำมีกระแส" },
     { key: "3", th: "3 ตัวนำมีกระแส" },
   ];
+  const AMP_CORE_LABEL = {
+    single: "แกนเดียว", multi: "หลายแกน", any: "แกนเดียว/หลายแกน",
+    vert: "แกนเดียว · แนวตั้ง", horiz: "แกนเดียว · แนวราบ",
+  };
   const AMP_CORES = [
-    { key: "single", th: "แกนเดียว" },
-    { key: "multi",  th: "หลายแกน" },
+    { key: "single", th: AMP_CORE_LABEL.single },
+    { key: "multi",  th: AMP_CORE_LABEL.multi },
   ];
+  const ampGroupMeta = (group) => AMP_GROUPS.find((g) => g.key === group) || {};
+  // แกนย่อยที่กลุ่มนี้มีจริง — ใช้ทั้งตอนสร้างคอลัมน์ตารางในคลัง และตอนให้เลือกในหน้า BOQ
+  function ampCoresFor(group) {
+    const ks = ampGroupMeta(group).cores || ["single", "multi"];
+    return ks.map((k) => ({ key: k, th: AMP_CORE_LABEL[k] || k }));
+  }
+  /* แปลงแกนที่ "อ่านได้จากชื่อสาย" (single/multi) ให้ตรงกับแกนที่กลุ่มนั้นมีจริง
+     · กลุ่มที่รวมแกนเดียว/หลายแกน → any
+     · กลุ่มที่แยกแนวตั้ง/แนวราบ → ใช้ค่าที่ผู้ใช้เลือก (pick) ถ้าไม่ได้เลือกก็ตัวแรก */
+  function ampCoreKey(group, core, pick) {
+    const ks = ampGroupMeta(group).cores || ["single", "multi"];
+    if (ks.indexOf(core) >= 0) return core;
+    if (ks.indexOf("any") >= 0) return "any";
+    if (pick && ks.indexOf(pick) >= 0) return pick;
+    return ks[0];
+  }
   // คอลัมน์ = "<กลุ่ม>|<จำนวนตัวนำ>|<แกน>"
   const ampColKey = (group, ncond, core) => group + "|" + ncond + "|" + core;
   // ตารางมาตรฐาน วสท. — PVC 70°C ทองแดง · เดินในท่อร้อยสายในอากาศ (ขนาดกระแสปรับ, แอมแปร์)
@@ -403,7 +427,8 @@
   function ampacityOf(type, opts) {
     opts = opts || {};
     const sz = cableSizeNum(type); if (sz == null) return null;
-    const col = ampColKey(opts.group || "g1", String(opts.ncond || 2), cableCoreType(type));
+    const grp = opts.group || "g1";
+    const col = ampColKey(grp, String(opts.ncond || 2), ampCoreKey(grp, cableCoreType(type), opts.orient || opts.core));
     const tbl = ampTableFor(cableInsClass(type), opts.method, col).tbl;
     const base = tbl[sz];
     if (base == null) return null;
@@ -414,7 +439,8 @@
   // เลือกขนาดสายเล็กสุดที่รับกระแส "ที่ต้องการ" ได้ (ผู้เรียกคูณ 1.25 มาก่อนแล้ว) — opts = { method, group, ncond, core }
   function pickWireSize(needAmp, insClass, opts) {
     opts = opts || {};
-    const col = ampColKey(opts.group || "g1", String(opts.ncond || 2), opts.core || "single");
+    const grp = opts.group || "g1";
+    const col = ampColKey(grp, String(opts.ncond || 2), ampCoreKey(grp, opts.core || "single", opts.orient));
     const tbl = ampTableFor(insClass, opts.method, col).tbl;
     /* ตัวคูณลดกระแส = สายในช่องเดียวกันหลายวงจรจะระบายความร้อนได้แย่ลง
        พิกัดที่ใช้ได้จริง = พิกัดตาราง × ตัวคูณ · จึงเทียบกับกระแสที่ต้องการโดยตรง */
@@ -1499,5 +1525,6 @@
     WAY_SIZES, TRAY_SIZES, WAY_PIPE_LEN, TRAY_PIPE_LEN, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
     TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,
     UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,
+    AMP_CORE_LABEL, ampGroupMeta, ampCoresFor, ampCoreKey,
     G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, SERVICE_GROUPS, mergeItems };
 })();

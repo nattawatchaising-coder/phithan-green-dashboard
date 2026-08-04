@@ -287,9 +287,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
   // ── ตารางคำนวณขนาดสายไฟ: ไหลตามวงจร MICRO-MICRO → MICRO-COMBINER → COMBINER(รวม BAT+MICRO) → BACKUP/เมน หรือ → MCB ตู้ลูกค้า ──
   // ins/method/group/ncond = สมมุติฐานของ "สายแนะนำ" ในตารางคำนวณ ตามพิกัด วสท.
-  const WIRECALC_DEF = { volt: 0, battKw: 5, strings: 1, backupMainA: 0, ins: "pvc", method: "conduitAir", group: "g1", ncond: "" };
+  const WIRECALC_DEF = { volt: 0, battKw: 5, strings: 1, backupMainA: 0, ins: "pvc", method: "conduitAir", group: "g1", ncond: "", orient: "vert" };
   const wcalc = Object.assign({}, WIRECALC_DEF, b.wireCalc || {});
-  const WCALC_STR = { ins: 1, method: 1, group: 1, ncond: 1 };
+  const WCALC_STR = { ins: 1, method: 1, group: 1, ncond: 1, orient: 1 };
   const setWcalc = (k, v) => setB((p) => Object.assign({}, p, { wireCalc: Object.assign({}, WIRECALC_DEF, p.wireCalc || {}, { [k]: WCALC_STR[k] ? v : (+v || 0) }) }));
   /* เปลี่ยนวิธีเดินสาย = เปลี่ยนตารางพิกัด — ถ้ากลุ่มที่ค้างอยู่ใช้กับวิธีใหม่ไม่ได้ ให้ย้ายกลุ่มให้เลย
      ไม่งั้นได้คู่ที่ไม่มีในมาตรฐาน (เช่น รางเคเบิล + กลุ่มที่ 1) แล้วช่อง "สายแนะนำ" ขึ้น "—" โดยไม่รู้สาเหตุ */
@@ -309,11 +309,16 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const calcGroup = wcalc.group || "g1";
   const calcNCond = wcalc.ncond ? String(wcalc.ncond) : (wcPhase === 3 ? "3" : "2");   // ว่าง = ตามเฟส
   const calcDerate = +wcalc.derate > 0 ? +wcalc.derate : 1;   // ตัวคูณลดกระแส (หลายวงจรในช่อง/รางเดียวกัน)
-  // เลือกขนาดสายให้รับ กระแส×1.25 (โหลดต่อเนื่อง) — ตามพิกัด วสท. (ฉนวน+วิธี+กลุ่ม+จำนวนตัวนำ · แกนเดียว) แล้วหักตัวคูณลดกระแส
-  const pickWire = (amp) => window.BOQ.pickWireSize((+amp || 0) * 1.25, calcIns, { method: calcMethod, group: calcGroup, ncond: calcNCond, core: "single", derate: calcDerate });
+  /* แกนย่อยของคอลัมน์ — แต่ละกลุ่มแยกไม่เหมือนกัน (ดู AMP_GROUPS.cores ใน boq.js)
+     กลุ่ม 1,2,3,7 = แกนเดียว/หลายแกน · กลุ่ม 4 = แนวตั้ง/แนวราบ · กลุ่ม 5,6 = รวมเป็นคอลัมน์เดียว */
+  const coreOpts = (window.BOQ.ampCoresFor || (() => []))(calcGroup);
+  const calcCore = (window.BOQ.ampCoreKey || (() => "single"))(calcGroup, "single", wcalc.orient);
+  const isOrientGroup = coreOpts.some((c) => c.key === "vert");   // กลุ่มที่ต้องเลือกแนวการวางเอง
+  // เลือกขนาดสายให้รับ กระแส×1.25 (โหลดต่อเนื่อง) — ตามพิกัด วสท. (ฉนวน+วิธี+กลุ่ม+จำนวนตัวนำ+แกน) แล้วหักตัวคูณลดกระแส
+  const pickWire = (amp) => window.BOQ.pickWireSize((+amp || 0) * 1.25, calcIns, { method: calcMethod, group: calcGroup, ncond: calcNCond, core: calcCore, derate: calcDerate });
   // ตารางพิกัดของวิธีที่เลือกมีจริงไหม / ยืมมาจากวิธีอื่นไหม — ไว้บอกผู้ใช้ตรง ๆ
   const ampSrc = window.BOQ.ampTableFor
-    ? window.BOQ.ampTableFor(calcIns, calcMethod, window.BOQ.ampColKey(calcGroup, calcNCond, "single"))
+    ? window.BOQ.ampTableFor(calcIns, calcMethod, window.BOQ.ampColKey(calcGroup, calcNCond, calcCore))
     : { tbl: {}, borrowed: false };
   const ampSrcTh = (k) => ((window.BOQ.WIRE_METHODS || []).find((m) => m.key === k) || {}).th || k;
   /* รูปประกอบลักษณะการติดตั้ง — เลือกกลุ่มผิดคือคำนวณสายผิดทั้งงาน แต่ชื่อกลุ่มอย่างเดียวจำยาก
@@ -1459,9 +1464,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 const group = c.group || "g1";
                 const ncond = c.ncond || (wcPhase === 3 ? "3" : "2");
                 const coreType = window.BOQ.cableCoreType(c.type);   // single / multi (จากชื่อ 1C/nC)
-                const coreTh = coreType === "multi" ? "หลายแกน" : "แกนเดียว";
+                /* กลุ่มที่เลือกอาจไม่ได้แยกคอลัมน์ตามแกนเดียว/หลายแกน (กลุ่ม 5,6 รวมกัน · กลุ่ม 4 แยกแนวการวาง)
+                   จึงต้องแปลงเป็นแกนย่อยของกลุ่มนั้นก่อน แล้วค่อยเอาไปเขียนป้ายกำกับ */
+                const coreKey = (window.BOQ.ampCoreKey || (() => coreType))(group, coreType, wcalc.orient);
+                const coreTh = (window.BOQ.AMP_CORE_LABEL || {})[coreKey] || (coreType === "multi" ? "หลายแกน" : "แกนเดียว");
                 const hasSize = window.BOQ.cableSizeNum(c.type) != null;
-                const amp = cableAmp(c.type, { method, group, ncond });
+                const amp = cableAmp(c.type, { method, group, ncond, orient: wcalc.orient });
                 const req = reqAmpFor(c.name);
                 const bad = amp != null && req && amp < req;
                 const showHint = !!c.type && !isComm && !isDC;
@@ -1602,6 +1610,20 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>จำนวนตัวนำมีกระแส</span>
                     <Dropdown value={calcNCond} onChange={(v) => setWcalc("ncond", v)} options={ncondOptions} />
                   </label>
+                  {/* กลุ่มที่ 4 ใช้สายแกนเดียวอย่างเดียว แต่ วสท. แยกตารางตามแนวการวาง จึงต้องเลือกเอง */}
+                  {isOrientGroup && (
+                    <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>แนวการวางสาย</span>
+                      <Dropdown value={wcalc.orient || "vert"} onChange={(v) => setWcalc("orient", v)}
+                        options={coreOpts.map((c) => ({ value: c.key, label: c.th }))} />
+                    </label>
+                  )}
+                </div>
+                {/* บอกให้รู้ว่าคอลัมน์ที่กำลังอ่านอยู่คือคอลัมน์ไหน — แต่ละกลุ่มแยกแกนย่อยไม่เหมือนกัน */}
+                <div style={{ marginTop: 6, fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>
+                  กำลังอ่านคอลัมน์ <b style={{ color: "var(--text-2)" }}>{(grpMeta.th || calcGroup) + " · " + calcNCond + " ตัวนำ · " + ((window.BOQ.AMP_CORE_LABEL || {})[calcCore] || calcCore)}</b>
+                  {calcCore === "any" && " — กลุ่มนี้ วสท. ให้สายแกนเดียวกับสายหลายแกนใช้ตารางร่วมกัน"}
+                  {calcGroup === "g6" && " · กลุ่มฝังดินโดยตรงไม่เกิน 3 ตัวนำ"}
                 </div>
                 {/* รูปประกอบ — กลุ่มที่เลือกหน้าตาเป็นยังไง · กดกางดูครบทั้ง 7 กลุ่มแล้วกดเลือกจากรูปได้เลย */}
                 <div style={{ marginTop: 10, border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>

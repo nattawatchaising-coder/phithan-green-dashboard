@@ -785,9 +785,11 @@ function AmpacityEditor({ ampStore }) {
   const editedCount = React.useMemo(() => {
     let n = 0; Object.keys(ov).forEach((i) => Object.keys(ov[i] || {}).forEach((m) => Object.keys(ov[i][m] || {}).forEach((col) => Object.keys(ov[i][m][col] || {}).forEach((s) => { if (+ov[i][m][col][s] > 0) n++; })))); return n;
   }, [ov]);
-  // คอลัมน์ 8 ช่อง: กลุ่ม × จำนวนตัวนำ × แกน
+  /* คอลัมน์ = กลุ่ม × จำนวนตัวนำ × แกนย่อย — "แกนย่อย" ไม่เท่ากันทุกกลุ่ม
+     กลุ่ม 1,2,3,7 แยกแกนเดียว/หลายแกน · กลุ่ม 4 แยกแนวตั้ง/แนวราบ · กลุ่ม 5,6 รวมเป็นคอลัมน์เดียว */
+  const groupCores = (g) => (BOQ.ampCoresFor ? BOQ.ampCoresFor(g.key) : cores);
   const leaf = [];
-  groups.forEach((g) => nconds.forEach((n) => cores.forEach((c) => leaf.push({ g: g.key, n: n.key, c: c.key, cTh: c.th }))));
+  groups.forEach((g) => { const cs = groupCores(g); nconds.forEach((n, ni) => cs.forEach((c, ci) => leaf.push({ g: g.key, n: n.key, c: c.key, cTh: c.th, first: ni === 0 && ci === 0 }))); });
   const cellStyle = { width: 58, height: 32, padding: "0 4px", textAlign: "center", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-1)", fontFamily: "var(--mono)", fontSize: 12 };
   const thBase = { fontSize: 10.5, fontWeight: 700, color: "var(--text-2)", textAlign: "center", whiteSpace: "nowrap", background: "var(--surface2)", borderBottom: "1px solid var(--border)" };
 
@@ -796,7 +798,8 @@ function AmpacityEditor({ ampStore }) {
       <div style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "12px 14px", background: "#FEF9EC", border: "1px solid #FCE4B6", borderRadius: 12, marginBottom: 14 }}>
         <Icon name="alert" size={16} color="#B45309" style={{ flexShrink: 0, marginTop: 1 }} />
         <div style={{ fontSize: 12, color: "#92500C", lineHeight: 1.55 }}>
-          ตารางพิกัดกระแส <strong>มาตรฐาน วสท.</strong> (ตัวนำทองแดง 0.6/1 kV) — แยกตาม <strong>กลุ่มการติดตั้ง × จำนวนตัวนำมีกระแส × แกนเดียว/หลายแกน</strong>
+          ตารางพิกัดกระแส <strong>มาตรฐาน วสท.</strong> (ตัวนำทองแดง 0.6/1 kV) — แยกตาม <strong>กลุ่มการติดตั้ง × จำนวนตัวนำมีกระแส × แกนย่อย</strong>
+          <br />แกนย่อยไม่เท่ากันทุกกลุ่ม: กลุ่ม 1,2,3,7 = <strong>แกนเดียว/หลายแกน</strong> · กลุ่ม 4 = <strong>แนวตั้ง/แนวราบ</strong> (แกนเดียวล้วน) · กลุ่ม 5,6 = <strong>รวมเป็นคอลัมน์เดียว</strong>
           <br />ปัจจุบันมีตารางจริง: <strong>PVC · เดินในท่อร้อยสายในอากาศ · กลุ่มที่ 1–2</strong> (ตารางที่ 5-20) · กลุ่มที่ 3–7 และ XLPE <strong>กรอกค่าได้ที่นี่</strong> · ค่าที่กรอกใช้กับทุกงาน · เว้นว่าง = ใช้ค่าเริ่มต้น (ตัวเลขจาง)
         </div>
       </div>
@@ -850,7 +853,7 @@ function AmpacityEditor({ ampStore }) {
                 <th rowSpan={2} style={Object.assign({}, thBase, { padding: "8px 12px", textAlign: "left", position: "sticky", left: 0, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: ".03em" })}>ขนาด (mm²)</th>
                 {groups.map((g) => (
                   /* มีรูปกำกับหัวคอลัมน์ด้วย — 7 กลุ่มจำจากชื่ออย่างเดียวไม่ไหว กรอกผิดคอลัมน์คือสายผิดทั้งงาน */
-                  <th key={g.key} colSpan={nconds.length * cores.length} title={g.desc || ""} style={Object.assign({}, thBase, { padding: "7px 6px", borderLeft: "1px solid var(--border)" })}>
+                  <th key={g.key} colSpan={nconds.length * groupCores(g).length} title={g.desc || ""} style={Object.assign({}, thBase, { padding: "7px 6px", borderLeft: "1px solid var(--border)" })}>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
                       {typeof WireArt === "function" && <WireArt art={g.art} w={74} h={44} />}
                       <span>{g.th}</span>
@@ -860,12 +863,12 @@ function AmpacityEditor({ ampStore }) {
                 ))}
               </tr>
               <tr>
-                {groups.map((g) => nconds.map((n) => cores.map((c, ci) => (
-                  <th key={g.key + n.key + c.key} style={Object.assign({}, thBase, { padding: "6px 4px", fontSize: 10, fontWeight: 600, borderLeft: ci === 0 && c === cores[0] ? "1px solid var(--border)" : "none" })}>
-                    <div style={{ color: "var(--primary-dark)" }}>{n.key} ตัวนำ</div>
-                    <div style={{ color: "var(--text-3)" }}>{c.th}</div>
+                {leaf.map((lf, idx) => (
+                  <th key={idx} style={Object.assign({}, thBase, { padding: "6px 4px", fontSize: 10, fontWeight: 600, borderLeft: lf.first ? "1px solid var(--border)" : "none" })}>
+                    <div style={{ color: "var(--primary-dark)" }}>{lf.n} ตัวนำ</div>
+                    <div style={{ color: "var(--text-3)" }}>{lf.cTh}</div>
                   </th>
-                ))))}
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -873,7 +876,7 @@ function AmpacityEditor({ ampStore }) {
                 <tr key={sz} style={{ borderBottom: "1px solid var(--border)" }}>
                   <td style={{ padding: "6px 12px", fontWeight: 700, fontSize: 13, color: "var(--text-1)", whiteSpace: "nowrap", background: "var(--surface)", position: "sticky", left: 0, fontFamily: "var(--mono)" }}>{sz}</td>
                   {leaf.map((lf, idx) => (
-                    <td key={idx} style={{ padding: "4px 5px", textAlign: "center", borderLeft: (idx % (nconds.length * cores.length)) === 0 ? "1px solid var(--border)" : "none" }}>
+                    <td key={idx} style={{ padding: "4px 5px", textAlign: "center", borderLeft: lf.first ? "1px solid var(--border)" : "none" }}>
                       <input type="number" min="0" style={cellStyle}
                         value={ovVal(lf.g, lf.n, lf.c, sz) != null ? ovVal(lf.g, lf.n, lf.c, sz) : ""}
                         placeholder={defVal(lf.g, lf.n, lf.c, sz) != null ? String(defVal(lf.g, lf.n, lf.c, sz)) : "—"}
@@ -887,7 +890,7 @@ function AmpacityEditor({ ampStore }) {
         </div>
       </div>
       <div style={{ marginTop: 10, fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
-        หน่วยเป็นแอมแปร์ (A) · "แกนเดียว" = สาย 1C · "หลายแกน" = 2C ขึ้นไป · ระบบเลือกขนาดสายให้รับ <strong>กระแสใช้งาน × 1.25</strong> และเตือนเมื่อสายที่เลือกพิกัดต่ำกว่าที่ต้องการ
+        หน่วยเป็นแอมแปร์ (A) · "แกนเดียว" = สาย 1C · "หลายแกน" = 2C ขึ้นไป · "แกนเดียว/หลายแกน" = กลุ่มนั้นใช้ตารางร่วมกัน · ระบบเลือกขนาดสายให้รับ <strong>กระแสใช้งาน × 1.25</strong> และเตือนเมื่อสายที่เลือกพิกัดต่ำกว่าที่ต้องการ
       </div>
     </div>
   );
