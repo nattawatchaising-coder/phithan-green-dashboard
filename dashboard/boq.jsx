@@ -88,6 +88,10 @@ const BQ_CSS = `
 /* ปุ่มลิงก์เล็ก ๆ ท้ายป้ายช่องกรอก — กดแล้วกลับไปใช้ค่าอัตโนมัติ */
 .bq-auto{border:0;background:none;padding:0;margin-left:auto;cursor:pointer;font-family:inherit;
   font-size:9.5px;font-weight:800;color:var(--primary-dark);text-decoration:underline;white-space:nowrap}
+/* ปุ่มลบท้ายแถว — เงียบ ๆ ไว้ก่อน ค่อยเป็นสีแดงตอนเอาเมาส์ไปชี้ จะได้ไม่แย่งสายตากับข้อมูลในแถว */
+.bq-x{height:36px;width:100%;background:none;border:1px solid transparent;color:var(--text-3);
+  border-radius:9px;cursor:pointer;display:grid;place-items:center;transition:background .12s,color .12s,border-color .12s}
+.bq-x:hover{background:#EF44441a;border-color:#EF444433;color:#EF4444}
 .bq-note{margin-top:9px;display:flex;align-items:flex-start;gap:7px;padding:9px 12px;border-radius:10px;
   font-size:12px;font-weight:600;line-height:1.5}
 .bq-note.warn{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E}
@@ -1172,6 +1176,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   };
 
   const numStyle = Object.assign({}, inputStyle, { textAlign: "right" });
+  // ดรอปดาวน์เงื่อนไขใต้สายแต่ละเส้น — เป็นข้อมูลรอง จึงเล็กกว่าแถวหลักหนึ่งระดับ
+  const cabSelStyle = { fontSize: 12, padding: "6px 9px", borderRadius: 9, background: "var(--surface)" };
 
   /* ── สารบัญด้านซ้าย ── ข้อความบรรทัดล่างคือ "สถานะย่อ" ของหัวข้อนั้น เห็นได้โดยไม่ต้องเปิดเข้าไป */
   const wireDone = (b.cables || []).filter((c) => c.type && +c.length > 0).length;
@@ -1514,24 +1520,26 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     {!isMobile && <Dropdown value={c.name || ""} onChange={(v) => setCab(i, "name", v)} options={cablePtOptions} placeholder="— เลือกจุด —" addable onAdd={addCablePt} />}
                     <Dropdown value={c.type} onChange={(v) => setCab(i, "type", v)} options={cableTypeOptions} placeholder="— เลือกสายไฟ —" />
                     <input type="number" style={numStyle} value={c.length} placeholder="ม." onChange={(e) => setCab(i, "length", e.target.value)} />
-                    <button onClick={() => delCab(i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
+                    <button className="bq-x" onClick={() => delCab(i)} title="ลบสายเส้นนี้"><Icon name="x" size={14} /></button>
                   </div>
                   {showHint && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 5, paddingLeft: isMobile ? 2 : 4 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-                        <div style={{ width: isMobile ? "100%" : 210, flexShrink: 0 }}>
-                          <Dropdown value={method} onChange={(v) => setCab(i, "method", v)} options={methodOptions} placeholder="วิธีเดินสาย" wrap />
+                    /* บรรทัดเงื่อนไขของสายเส้นนี้ — เป็นข้อมูลรอง ทำให้เล็กกว่าแถวหลักและมีเส้นนำสายตาด้านซ้าย */
+                    <div style={{ display: "flex", flexDirection: "column", gap: 5, marginLeft: isMobile ? 0 : 3, paddingLeft: isMobile ? 0 : 9,
+                      borderLeft: isMobile ? "none" : "2px solid var(--surface3)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <div style={{ width: isMobile ? "100%" : 206, flexShrink: 0 }}>
+                          <Dropdown value={method} onChange={(v) => setCab(i, "method", v)} options={methodOptions} placeholder="วิธีเดินสาย" wrap style={cabSelStyle} />
                         </div>
-                        <div style={{ width: isMobile ? "calc(50% - 4px)" : 150, flexShrink: 0 }}>
-                          <Dropdown value={group} onChange={(v) => setCab(i, "group", v)} options={groupOptionsFor(method)} wrap />
+                        <div style={{ width: isMobile ? "calc(50% - 3px)" : 118, flexShrink: 0 }}>
+                          <Dropdown value={group} onChange={(v) => setCab(i, "group", v)} options={groupOptionsFor(method)} style={cabSelStyle} />
                         </div>
-                        <div style={{ width: isMobile ? "calc(50% - 4px)" : 132, flexShrink: 0 }}>
-                          <Dropdown value={ncond} onChange={(v) => setCab(i, "ncond", v)} options={ncondOptions} wrap />
+                        <div style={{ width: isMobile ? "calc(50% - 3px)" : 96, flexShrink: 0 }}>
+                          <Dropdown value={ncond} onChange={(v) => setCab(i, "ncond", v)} options={ncondOptions} style={cabSelStyle} />
                         </div>
                         {/* แกนสาย — ตั้งต้นอ่านจากชื่อสาย (1C = แกนเดียว · nC = หลายแกน) แก้ทับได้ถ้าตารางกลุ่มนั้นแยกอย่างอื่น */}
-                        <div style={{ width: isMobile ? "100%" : 148, flexShrink: 0 }}>
+                        <div style={{ width: isMobile ? "100%" : 142, flexShrink: 0 }}>
                           <Dropdown value={coreKey} onChange={(v) => setCab(i, "core", v)} disabled={rowCoreOpts.length < 2}
-                            options={rowCoreOpts.map((x) => ({ value: x.key, label: x.th }))} wrap />
+                            options={rowCoreOpts.map((x) => ({ value: x.key, label: x.th }))} style={cabSelStyle} />
                         </div>
                       </div>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600,
@@ -1602,151 +1610,123 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
             {/* ── ตารางคำนวณขนาดสายไฟ (จากกระแส Micro-inverter) ── */}
             <div style={{ marginTop: 16, border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", background: "var(--surface2)" }}>
-              <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--border)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <div style={{ padding: "11px 14px 12px", borderBottom: "1px solid var(--border)" }}>
+                {/* หัวการ์ด — ชื่ออยู่ซ้าย ตัวเลขตั้งต้นเกาะขวา ช่องกว้างพอดีตัวเลข ไม่ยืดเต็มแถว */}
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 10, flexWrap: "wrap", marginBottom: 11 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", display: "inline-flex", alignItems: "center", gap: 6, paddingBottom: 7, marginRight: 2 }}>
                     <Icon name="bolt" size={13} color="var(--primary)" /> ตารางคำนวณขนาดสายไฟ
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>· {wcPhase} เฟส</span>
                   </span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "var(--primary-dark)", background: "var(--primary-soft)", padding: "3px 9px", borderRadius: 99 }}>{wcPhase} เฟส</span>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(118px, 1fr))", gap: 10 }}>
+                  {!isMobile && <span style={{ width: 1, height: 22, background: "var(--border)", marginRight: 4, marginBottom: 6 }} />}
                   {[
-                    { label: "แรงดัน (V)", value: wcVolt, key: "volt", min: undefined },
-                    isStringInv ? null : { label: "แบ่ง String", value: wcStrings, key: "strings", min: "1" },
-                    hasBattery ? { label: "กำลังแบต (kW)", value: wcalc.battKw, key: "battKw", min: undefined } : null,
-                    hasBackup ? { label: "เมน Backup (A)", value: wcalc.backupMainA || "", key: "backupMainA", min: undefined, ph: "—" } : null,
+                    { label: "แรงดัน", unit: "V", value: wcVolt, key: "volt", min: undefined },
+                    isStringInv ? null : { label: "แบ่ง String", unit: "", value: wcStrings, key: "strings", min: "1" },
+                    hasBattery ? { label: "กำลังแบต", unit: "kW", value: wcalc.battKw, key: "battKw", min: undefined } : null,
+                    hasBackup ? { label: "เมน Backup", unit: "A", value: wcalc.backupMainA || "", key: "backupMainA", min: undefined, ph: "—" } : null,
                   ].filter(Boolean).map((f) => (
-                    <label key={f.key} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                      <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>{f.label}</span>
+                    <label key={f.key} style={{ display: "flex", flexDirection: "column", gap: 3, width: isMobile ? "calc(50% - 5px)" : 104 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>{f.label}{f.unit ? " (" + f.unit + ")" : ""}</span>
                       <input type="number" min={f.min} placeholder={f.ph} value={f.value} onChange={(e) => setWcalc(f.key, e.target.value)}
-                        style={Object.assign({}, numStyle, { width: "100%", height: 36 })} />
+                        style={Object.assign({}, numStyle, { width: "100%", height: 34, fontSize: 12.5, padding: "6px 9px" })} />
                     </label>
                   ))}
                 </div>
-                {/* สมมุติฐานของ "สายแนะนำ": ฉนวน + วิธีเดินสาย + กลุ่ม + จำนวนตัวนำ + แกนสาย ตามพิกัด วสท.
-                    ลำดับคือเลือก "วิธีเดินสาย" ก่อน แล้วกลุ่มการติดตั้งจะเหลือเฉพาะที่ใช้กับวิธีนั้นได้ */}
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "minmax(0,1fr) minmax(0,1.7fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.1fr)", gap: 10, marginTop: 10, alignItems: "end" }}>
-                  <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>ชนิดฉนวน</span>
-                    <Dropdown value={calcIns} onChange={(v) => setWcalc("ins", v)} options={insOptions} />
-                  </label>
-                  <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>วิธีเดินสาย</span>
-                    <Dropdown value={calcMethod} onChange={setMethodPick} options={methodOptions} wrap />
-                  </label>
-                  <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>กลุ่มการติดตั้ง</span>
-                    <Dropdown value={calcGroup} onChange={(v) => setWcalc("group", v)} options={groupOptionsFor(calcMethod)} wrap />
-                  </label>
-                  <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>จำนวนตัวนำมีกระแส</span>
-                    <Dropdown value={calcNCond} onChange={(v) => setWcalc("ncond", v)} options={ncondOptions} wrap />
-                  </label>
-                  {/* แกนสาย — กลุ่ม 1,2,3,7 = แกนเดียว/หลายแกน · กลุ่ม 4 = แนวตั้ง/แนวราบ · กลุ่ม 5,6 = รวมเป็นคอลัมน์เดียว */}
-                  <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>แกนสาย</span>
-                    <Dropdown value={calcCore} onChange={(v) => setWcalc("core", v)} disabled={coreOpts.length < 2}
-                      options={coreOpts.map((c) => ({ value: c.key, label: c.th }))} wrap />
-                  </label>
+
+                {/* เงื่อนไขพิกัดตาม วสท. — เรียงตามลำดับที่ต้องเลือกจริง: ฉนวน → วิธีเดินสาย → กลุ่ม → ตัวนำ → แกน */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-end" }}>
+                  {[
+                    { k: "ins", lb: "ฉนวน", w: isMobile ? "calc(50% - 4px)" : 134,
+                      el: <Dropdown value={calcIns} onChange={(v) => setWcalc("ins", v)} options={insOptions} /> },
+                    { k: "method", lb: "วิธีเดินสาย", w: isMobile ? "100%" : 224,
+                      el: <Dropdown value={calcMethod} onChange={setMethodPick} options={methodOptions} wrap /> },
+                    { k: "group", lb: "กลุ่มการติดตั้ง", w: isMobile ? "calc(50% - 4px)" : 124,
+                      el: <Dropdown value={calcGroup} onChange={(v) => setWcalc("group", v)} options={groupOptionsFor(calcMethod)} /> },
+                    { k: "ncond", lb: "ตัวนำมีกระแส", w: isMobile ? "calc(50% - 4px)" : 116,
+                      el: <Dropdown value={calcNCond} onChange={(v) => setWcalc("ncond", v)} options={ncondOptions} /> },
+                    /* แกนสาย — กลุ่ม 1,2,3,7 = แกนเดียว/หลายแกน · กลุ่ม 4 = แนวตั้ง/แนวราบ · กลุ่ม 5,6 = รวมคอลัมน์เดียว */
+                    { k: "core", lb: "แกนสาย", w: isMobile ? "calc(50% - 4px)" : 146,
+                      el: <Dropdown value={calcCore} onChange={(v) => setWcalc("core", v)} disabled={coreOpts.length < 2}
+                        options={coreOpts.map((c) => ({ value: c.key, label: c.th }))} /> },
+                  ].map((f) => (
+                    <label key={f.k} style={{ width: f.w, display: "flex", flexDirection: "column", gap: 3 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>{f.lb}</span>
+                      {f.el}
+                    </label>
+                  ))}
                 </div>
-                {/* บอกให้รู้ว่าคอลัมน์ที่กำลังอ่านอยู่คือคอลัมน์ไหน — แต่ละกลุ่มแยกแกนย่อยไม่เหมือนกัน */}
-                <div style={{ marginTop: 6, fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>
-                  กำลังอ่านคอลัมน์ <b style={{ color: "var(--text-2)" }}>{(grpMeta.th || calcGroup) + " · " + calcNCond + " ตัวนำ · " + ((window.BOQ.AMP_CORE_LABEL || {})[calcCore] || calcCore)}</b>
-                  {calcCore === "any" && " — กลุ่มนี้ วสท. ให้สายแกนเดียวกับสายหลายแกนใช้ตารางร่วมกัน"}
-                  {calcGroup === "g6" && " · กลุ่มฝังดินโดยตรงไม่เกิน 3 ตัวนำ"}
-                </div>
-                {/* รูปประกอบ — กลุ่มที่เลือกหน้าตาเป็นยังไง · กดกางดูครบทั้ง 7 กลุ่มแล้วกดเลือกจากรูปได้เลย */}
-                <div style={{ marginTop: 10, border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
-                  <div style={{ display: "flex", gap: 12, alignItems: "center", padding: "10px 12px", background: "var(--surface2)", flexWrap: isMobile ? "wrap" : "nowrap" }}>
-                    {/* สองรูปคู่กัน: ซ้าย = วิธีเดินสายที่เลือก (ตัวที่ตัดสินตารางพิกัด) · ขวา = กลุ่มการติดตั้ง
-                        ถ้าสองอย่างเป็นภาพเดียวกันอยู่แล้ว (เช่น ท่อในอากาศ = กลุ่ม 2) ก็โชว์ใบเดียวพอ */}
-                    {mtdMeta.art && mtdMeta.art !== grpMeta.art && (
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0 }}>
-                        <WireArt art={mtdMeta.art} w={110} h={65} />
-                        <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--text-3)" }}>วิธีเดินสาย</span>
+
+                {/* แถบสรุป — รูปของวิธีที่เลือก + คอลัมน์ที่กำลังอ่าน · ไม่ต้องมีกรอบซ้อนกรอบ ใช้เส้นคั่นพอ */}
+                <div style={{ marginTop: 11, paddingTop: 11, borderTop: "1px solid var(--border)" }}>
+                  <div style={{ display: "flex", gap: 11, alignItems: "center", flexWrap: "wrap" }}>
+                    {mtdMeta.art && mtdMeta.art !== grpMeta.art && <WireArt art={mtdMeta.art} w={84} h={50} />}
+                    <WireArt art={grpMeta.art} w={84} h={50} />
+                    <div style={{ flex: 1, minWidth: 170 }}>
+                      <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-1)" }}>{mtdMeta.th}</div>
+                      <div style={{ fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5, marginTop: 1 }}>
+                        อ่านคอลัมน์ <b style={{ color: "var(--text-2)", fontWeight: 700 }}>{(grpMeta.th || calcGroup) + " · " + calcNCond + " ตัวนำ · " + ((window.BOQ.AMP_CORE_LABEL || {})[calcCore] || calcCore)}</b>
+                        {grpMeta.sub ? " — " + grpMeta.sub : ""}
                       </div>
-                    )}
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0 }}>
-                      <WireArt art={grpMeta.art} w={110} h={65} />
-                      {mtdMeta.art && mtdMeta.art !== grpMeta.art && <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--text-3)" }}>กลุ่มพิกัดกระแส</span>}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 140 }}>
-                      {mtdMeta.art && mtdMeta.art !== grpMeta.art && (
-                        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-2)", marginBottom: 3 }}>{mtdMeta.th}</div>
-                      )}
-                      <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-1)" }}>{grpMeta.th}{grpMeta.sub ? " · " + grpMeta.sub : ""}</div>
-                      <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.55, marginTop: 2 }}>{grpMeta.desc || ""}</div>
                       {mtdMeta.groups && mtdMeta.groups.indexOf(calcGroup) < 0 && (
                         <button type="button" onClick={() => setWcalc("group", mtdMeta.groups[0])}
-                          style={{ marginTop: 5, border: 0, background: "#FEF3C7", color: "#92400E", borderRadius: 8, padding: "4px 9px", fontWeight: 800, fontSize: 10.5, cursor: "pointer", fontFamily: "inherit" }}>
-                          วิธีเดินสายนี้ใช้กับ {((window.BOQ.AMP_GROUPS || []).find((g) => g.key === mtdMeta.groups[0]) || {}).th || mtdMeta.groups[0]} — กดเพื่อสลับ
+                          style={{ marginTop: 4, border: 0, background: "#FEF3C7", color: "#92400E", borderRadius: 7, padding: "3px 8px", fontWeight: 700, fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>
+                          วิธีนี้ใช้กับ {((window.BOQ.AMP_GROUPS || []).find((g) => g.key === mtdMeta.groups[0]) || {}).th || mtdMeta.groups[0]} — กดสลับ
                         </button>
                       )}
                     </div>
                     <button type="button" onClick={() => setArtOpen(!artOpen)}
-                      style={{ border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", borderRadius: 9, padding: "6px 11px", fontWeight: 700, fontSize: 11, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0 }}>
-                      {artOpen ? "ซ่อนรูป" : "ดูรูปทั้งหมด"}
+                      style={{ border: 0, background: "none", color: "var(--text-3)", padding: "2px 0", fontWeight: 700, fontSize: 10.5, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", textDecoration: "underline", textUnderlineOffset: 3 }}>
+                      {artOpen ? "ซ่อนรูป" : "เลือกจากรูป"}
                     </button>
                   </div>
                   {artOpen && (
-                    <div style={{ padding: "11px 12px", display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(4, minmax(0,1fr))", gap: 9 }}>
-                      {(window.BOQ.AMP_GROUPS || []).map((g) => (
-                        <button key={g.key} type="button" onClick={() => setWcalc("group", g.key)} title={g.desc}
-                          style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "8px 6px", borderRadius: 11, cursor: "pointer", fontFamily: "inherit", textAlign: "center",
-                            border: "1px solid " + (calcGroup === g.key ? "var(--primary)" : "var(--border)"),
-                            background: calcGroup === g.key ? "var(--primary-soft)" : "var(--surface)" }}>
-                          <WireArt art={g.art} w="100%" h={54} />
-                          <span style={{ fontSize: 11, fontWeight: 800, color: calcGroup === g.key ? "var(--primary-dark)" : "var(--text-1)" }}>{g.th}</span>
-                          <span style={{ fontSize: 9.5, color: "var(--text-3)", lineHeight: 1.35 }}>{g.sub}</span>
-                        </button>
+                    <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
+                      {[
+                        { title: "วิธีเดินสาย", items: (window.BOQ.WIRE_METHODS || []).map((m) => ({ key: m.key, art: m.art, name: m.th, note: ((window.BOQ.AMP_GROUPS || []).find((g) => g.key === (m.groups || [])[0]) || {}).th || "", on: calcMethod === m.key, pick: () => setMethodPick(m.key), tip: m.sub })) },
+                        { title: "กลุ่มการติดตั้ง", items: (window.BOQ.AMP_GROUPS || []).map((g) => ({ key: g.key, art: g.art, name: g.th, note: g.sub, on: calcGroup === g.key, pick: () => setWcalc("group", g.key), tip: g.desc })) },
+                      ].map((sec) => (
+                        <div key={sec.title}>
+                          <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: ".07em", color: "var(--text-3)", textTransform: "uppercase", marginBottom: 6 }}>{sec.title}</div>
+                          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(4, minmax(0,1fr))", gap: 7 }}>
+                            {sec.items.map((it) => (
+                              <button key={it.key} type="button" onClick={it.pick} title={it.tip || it.name}
+                                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "6px 5px 7px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", textAlign: "center",
+                                  border: "1px solid " + (it.on ? "var(--primary)" : "var(--border)"),
+                                  background: it.on ? "var(--primary-soft)" : "var(--surface)" }}>
+                                <WireArt art={it.art} w="100%" h={46} />
+                                <span style={{ fontSize: 9.5, fontWeight: 700, lineHeight: 1.35, color: it.on ? "var(--primary-dark)" : "var(--text-1)" }}>{it.name}</span>
+                                {it.note && <span style={{ fontSize: 9, color: "var(--text-3)", lineHeight: 1.3 }}>{it.note}</span>}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       ))}
                     </div>
                   )}
-                  {/* แถวที่สอง: วิธีเดินสายจริง ๆ ที่เลือกได้ — กดเลือกแล้วกลุ่มพิกัดจะย้ายตามให้เอง */}
-                  {artOpen && (
-                    <div style={{ padding: "0 12px 12px" }}>
-                      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", padding: "4px 0 8px", borderTop: "1px solid var(--border)", marginTop: 2 }}>วิธีเดินสาย</div>
-                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(4, minmax(0,1fr))", gap: 9 }}>
-                        {(window.BOQ.WIRE_METHODS || []).map((m) => (
-                          <button key={m.key} type="button" onClick={() => setMethodPick(m.key)} title={m.sub || m.baseWhy || m.th}
-                            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "8px 6px", borderRadius: 11, cursor: "pointer", fontFamily: "inherit", textAlign: "center",
-                              border: "1px solid " + (calcMethod === m.key ? "var(--primary)" : "var(--border)"),
-                              background: calcMethod === m.key ? "var(--primary-soft)" : "var(--surface)" }}>
-                            <WireArt art={m.art} w="100%" h={54} />
-                            <span style={{ fontSize: 10, fontWeight: 800, lineHeight: 1.35, color: calcMethod === m.key ? "var(--primary-dark)" : "var(--text-1)" }}>{m.th}</span>
-                            <span style={{ fontSize: 9, color: "var(--text-3)" }}>{((window.BOQ.AMP_GROUPS || []).find((g) => g.key === (m.groups || [])[0]) || {}).th || ""}{m.base ? " · ใช้ตารางร่วม" : ""}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                </div>
+
+                {/* ตัวคูณลดกระแส — หลายวงจรในท่อ/รางเดียวกัน ระบายความร้อนแย่ลง พิกัดที่ใช้ได้จริงจึงต่ำกว่าตาราง */}
+                <div style={{ marginTop: 11, paddingTop: 11, borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>ตัวคูณลดกระแส</span>
+                  <input type="number" min={0.1} max={1} step={0.05} value={wcalc.derate != null && wcalc.derate !== "" ? wcalc.derate : 1}
+                    onChange={(e) => setWcalc("derate", e.target.value)}
+                    style={Object.assign({}, numStyle, { width: 76, height: 32, fontSize: 12.5, padding: "5px 9px" })} />
+                  {trayWorst < 1 && (
+                    <button type="button" onClick={() => setWcalc("derate", trayWorst)}
+                      style={{ border: 0, background: "var(--primary-soft)", color: "var(--primary-dark)", borderRadius: 7, padding: "4px 9px", fontWeight: 700, fontSize: 10.5, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+                      title="ใช้ตัวคูณที่แย่ที่สุดจากหัวข้อท่อร้อยสายและรางไฟ">ใช้ ×{trayWorst.toFixed(2)} จากท่อ/ราง</button>
                   )}
+                  <span style={{ fontSize: 10, color: "var(--text-3)" }}>1.00 = วงจรเดียว · 4–6 ตัวนำ 0.80 · 7–9 0.70 · 10–20 0.50</span>
                 </div>
-                {/* ตัวคูณลดกระแส — หลายวงจรอยู่ในท่อ/รางเดียวกัน ระบายความร้อนแย่ลง พิกัดที่ใช้ได้จริงจึงต่ำกว่าตาราง */}
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "140px 1fr", gap: 10, marginTop: 10, alignItems: "center" }}>
-                  <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>ตัวคูณลดกระแส</span>
-                    <input type="number" min={0.1} max={1} step={0.05} value={wcalc.derate != null && wcalc.derate !== "" ? wcalc.derate : 1}
-                      onChange={(e) => setWcalc("derate", e.target.value)}
-                      style={Object.assign({}, numStyle, { width: "100%", height: 36 })} />
-                  </label>
-                  <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.5, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    <span>1.00 = วงจรเดียว · หลายวงจรในท่อ/รางเดียวกันให้ลดลง (4–6 ตัวนำ 0.80 · 7–9 0.70 · 10–20 0.50)</span>
-                    {trayWorst < 1 && (
-                      <button type="button" onClick={() => setWcalc("derate", trayWorst)}
-                        style={{ border: 0, background: "var(--primary-soft)", color: "var(--primary-dark)", borderRadius: 8, padding: "5px 10px", fontWeight: 800, fontSize: 11, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
-                        title="ใช้ตัวคูณที่แย่ที่สุดจากหัวข้อท่อร้อยสายและรางไฟ">ใช้ ×{trayWorst.toFixed(2)} จากท่อ/ราง</button>
-                    )}
-                  </div>
-                </div>
+
                 {(!hasAmpTbl || ampSrc.borrowed) && (
-                  <div className="bq-note" style={{ background: ampSrc.borrowed ? "rgba(34,163,91,.07)" : "#FFFBEB", border: "1px solid " + (ampSrc.borrowed ? "#BBE7CD" : "#FDE68A"), color: ampSrc.borrowed ? "#1d854b" : "#92400E" }}>
+                  <div className="bq-note" style={{ marginTop: 10, background: ampSrc.borrowed ? "rgba(34,163,91,.07)" : "#FFFBEB", border: "1px solid " + (ampSrc.borrowed ? "#BBE7CD" : "#FDE68A"), color: ampSrc.borrowed ? "#1d854b" : "#92400E" }}>
                     <Icon name={ampSrc.borrowed ? "check" : "alert"} size={15} color={ampSrc.borrowed ? "#22A35B" : "#F59E0B"} />
                     <span>{ampSrc.borrowed
-                      ? (mtdMeta.baseWhy || "วิธีนี้ระบายความร้อนแบบเดียวกัน") + " จึงใช้ตารางพิกัดของ \"" + ampSrcTh(ampSrc.from) + "\" — อย่าลืมใส่ตัวคูณลดกระแสตามจำนวนวงจรในราง"
-                      : "ยังไม่มีตารางพิกัดกระแสของ " + (insOptions.find((o) => o.value === calcIns) || {}).label + " × " + ampSrcTh(calcMethod) + " × " + (grpMeta.th || calcGroup) + " ในระบบ ช่อง \"สายแนะนำ\" จะขึ้น \"—\" — เพิ่มตารางได้ที่หน้าคลัง › พิกัดกระแสสายไฟ (พิกัดของแต่ละกลุ่มไม่เท่ากัน ใช้แทนกันไม่ได้)"}</span>
+                      ? "ใช้ตารางพิกัดของ \"" + ampSrcTh(ampSrc.from) + "\" — " + (mtdMeta.baseWhy || "ระบายความร้อนแบบเดียวกัน")
+                      : "ยังไม่มีตารางของคอลัมน์นี้ — \"สายแนะนำ\" จะขึ้น \"—\" จนกว่าจะกรอกที่หน้าคลัง › พิกัดสาย วสท."}</span>
                   </div>
                 )}
-                <div style={{ fontSize: 10, color: "var(--text-3)", marginTop: 6 }}>* "สายแนะนำ" คิดตามแกนสายที่เลือกไว้ข้างบน — สายในรายการด้านบนตั้งต้นอ่านแกนจากชื่อสายเอง แล้วแก้ทับได้ทีละเส้น{calcDerate < 1 ? " · หักตัวคูณลดกระแส ×" + calcDerate.toFixed(2) + " แล้ว" : ""}</div>
+                <div style={{ fontSize: 10, color: "var(--text-3)", marginTop: 7 }}>สายแนะนำ = ขนาดเล็กสุดที่รับกระแส ×1.25 ได้ตามคอลัมน์นี้{calcDerate < 1 ? " · หักตัวคูณ ×" + calcDerate.toFixed(2) + " แล้ว" : ""}</div>
               </div>
               {isMobile ? (
                 /* มือถือ: แต่ละชุดคำนวณเป็นการ์ด แสดงค่าครบในใบเดียว ไม่ต้องเลื่อนแนวนอน */
