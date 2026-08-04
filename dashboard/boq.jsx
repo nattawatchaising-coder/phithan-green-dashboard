@@ -300,6 +300,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const setCab = (i, k, v) => setB((p) => { const cs = p.cables.slice(); cs[i] = Object.assign({}, cs[i], { [k]: v }); return Object.assign({}, p, { cables: cs }); });
   const addCab = () => setB((p) => Object.assign({}, p, { cables: p.cables.concat([{ name: "", type: "", length: "" }]) }));
   const delCab = (i) => setB((p) => Object.assign({}, p, { cables: p.cables.filter((_, j) => j !== i) }));
+  /* ล้างเงื่อนไขเฉพาะเส้น — กลับไปใช้ค่าตั้งต้นของงาน (ที่ตั้งไว้ในตารางคำนวณขนาดสายไฟ)
+     เก็บเป็น "ไม่มีคีย์" ไม่ใช่ค่าว่าง เพื่อให้แยกออกว่าเส้นนี้ตั้งใจแก้เองหรือแค่ตามค่าตั้งต้น */
+  const resetCabCond = (i) => setB((p) => {
+    const cs = p.cables.slice(); const x = Object.assign({}, cs[i]);
+    delete x.method; delete x.group; delete x.ncond; delete x.core;
+    cs[i] = x; return Object.assign({}, p, { cables: cs });
+  });
+  const [cabOpen, setCabOpen] = React.useState({});   // แถวไหนกางเงื่อนไขเฉพาะเส้นอยู่
 
   // ── ตารางคำนวณขนาดสายไฟ: ไหลตามวงจร MICRO-MICRO → MICRO-COMBINER → COMBINER(รวม BAT+MICRO) → BACKUP/เมน หรือ → MCB ตู้ลูกค้า ──
   // ins/method/group/ncond = สมมุติฐานของ "สายแนะนำ" ในตารางคำนวณ ตามพิกัด วสท.
@@ -1178,6 +1186,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const numStyle = Object.assign({}, inputStyle, { textAlign: "right" });
   // ดรอปดาวน์เงื่อนไขใต้สายแต่ละเส้น — เป็นข้อมูลรอง จึงเล็กกว่าแถวหลักหนึ่งระดับ
   const cabSelStyle = { fontSize: 12, padding: "6px 9px", borderRadius: 9, background: "var(--surface)" };
+  // คอลัมน์ของรายการสายไฟ — ใช้ทั้งหัวตารางและทุกแถว จะได้ตรงกันเสมอ
+  const CAB_COLS = "minmax(150px,1fr) minmax(0,1.35fr) 88px 34px";
+  const cabLenSum = Math.round((b.cables || []).reduce((s, c) => s + (+c.length || 0), 0));
 
   /* ── สารบัญด้านซ้าย ── ข้อความบรรทัดล่างคือ "สถานะย่อ" ของหัวข้อนั้น เห็นได้โดยไม่ต้องเปิดเข้าไป */
   const wireDone = (b.cables || []).filter((c) => c.type && +c.length > 0).length;
@@ -1485,16 +1496,31 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           </BoqSection>
 
           {/* ── สายไฟ ── */}
-          <BoqSection title="สายไฟ" icon="power" {...secProps("wire")}>
-            <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 8 }}>
+          <BoqSection title="สายไฟ" icon="power" {...secProps("wire")}
+            right={cabLenSum > 0 ? <span style={{ fontSize: 12, fontWeight: 800, color: "var(--primary-dark)" }}>รวม {cabLenSum} ม.</span> : null}>
+            {/* หัวคอลัมน์ — เดิมไม่มีเลย ต้องเดาเอาว่าช่องไหนคืออะไร */}
+            {!isMobile && (
+              <div style={{ display: "grid", gridTemplateColumns: CAB_COLS, gap: 8, padding: "0 2px 6px",
+                fontSize: 9.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>
+                <span>จุดเดินสาย</span><span>ชนิดสายไฟ</span><span style={{ textAlign: "right" }}>ความยาว</span><span />
+              </div>
+            )}
+            <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 2 }}>
               {b.cables.map((c, i) => {
                 const isComm = /LAN|CAT/i.test(c.type || "");
                 const isDC = /PV1-F|PV CABLE/i.test(c.type || "") || /PV-INVERTER/i.test(c.name || "");  // สาย DC คิดขนาดในส่วนสาย DC แยก
+                /* เงื่อนไขของสายเส้นนี้ — ไม่ได้ตั้งเอง = ตามค่าตั้งต้นของงาน (ตารางคำนวณขนาดสายไฟ)
+                   ปกติทั้งงานเดินแบบเดียวกัน จะได้ไม่ต้องมากดซ้ำทุกเส้น เส้นไหนต่างค่อยกดแก้เฉพาะเส้น */
+                const own = !!(c.method || c.group || c.ncond || c.core);
+                const rawMethod = c.method || calcMethod;
+                const rawMeta = (window.BOQ.WIRE_METHODS || []).find((m) => m.key === rawMethod) || {};
+                // ไม่ได้เลือกกลุ่มเอง → ตามค่าตั้งต้นถ้าวิธีนี้ใช้กลุ่มนั้นได้ ไม่งั้นใช้กลุ่มแรกของวิธีนั้น
+                const rawGroup = c.group || ((rawMeta.groups || []).indexOf(calcGroup) >= 0 ? calcGroup : (rawMeta.groups || ["g1"])[0]);
                 // แถวเก่าที่บันทึกวิธีที่เลิกใช้แล้วไว้ ให้เด้งไปวิธีที่ใช้แทน (ดู WIRE_METHOD_LEGACY)
-                const pick = (window.BOQ.normWireMethod || ((m, g) => ({ method: m, group: g })))(c.method || "conduitAir", c.group || "g1");
+                const pick = (window.BOQ.normWireMethod || ((m, g) => ({ method: m, group: g })))(rawMethod, rawGroup);
                 const method = pick.method;
                 const group = pick.group;
-                const ncond = c.ncond || (wcPhase === 3 ? "3" : "2");
+                const ncond = c.ncond || calcNCond;
                 const coreType = window.BOQ.cableCoreType(c.type);   // single / multi (จากชื่อ 1C/nC)
                 /* กลุ่มที่เลือกอาจไม่ได้แยกคอลัมน์ตามแกนเดียว/หลายแกน (กลุ่ม 5,6 รวมกัน · กลุ่ม 4 แยกแนวการวาง)
                    ตั้งต้นใช้ค่าที่อ่านจากชื่อสาย แล้วเด้งเข้าแกนย่อยที่กลุ่มนั้นมีจริง — ผู้ใช้แก้ทับได้ */
@@ -1507,79 +1533,93 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 const bad = amp != null && req && amp < req;
                 const showHint = !!c.type && !isComm && !isDC;
                 const vd = isComm ? null : vdropFor(c);
+                const open = !!cabOpen[i];
+                const mShort = ((window.BOQ.WIRE_METHODS || []).find((m) => m.key === method) || {});
+                const condTh = (mShort.short || mShort.th || method) + " · " + ((window.BOQ.AMP_GROUPS || []).find((g) => g.key === group) || {}).th + " · " + ncond + " ตัวนำ · " + coreTh;
                 return (
-                <div key={i} style={Object.assign({ display: "flex", flexDirection: "column", gap: isMobile ? 7 : 4 },
-                  isMobile ? { border: "1px solid var(--border)", borderRadius: 12, padding: "10px 11px", background: "var(--surface)" } : null)}>
+                <div key={i} style={Object.assign({ display: "flex", flexDirection: "column", gap: isMobile ? 7 : 3, padding: isMobile ? "10px 11px" : "5px 2px" },
+                  isMobile ? { border: "1px solid var(--border)", borderRadius: 12, background: "var(--surface)" }
+                    : { borderTop: i === 0 ? "none" : "1px solid var(--border)" })}>
                   {isMobile && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                       <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>จุดเดินสาย</span>
                       <Dropdown value={c.name || ""} onChange={(v) => setCab(i, "name", v)} options={cablePtOptions} placeholder="— เลือกจุด —" addable onAdd={addCablePt} />
                     </div>
                   )}
-                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 64px 34px" : "minmax(150px,1fr) minmax(0,1.3fr) 90px 36px", gap: 8, alignItems: "center" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 64px 34px" : CAB_COLS, gap: 8, alignItems: "center" }}>
                     {!isMobile && <Dropdown value={c.name || ""} onChange={(v) => setCab(i, "name", v)} options={cablePtOptions} placeholder="— เลือกจุด —" addable onAdd={addCablePt} />}
                     <Dropdown value={c.type} onChange={(v) => setCab(i, "type", v)} options={cableTypeOptions} placeholder="— เลือกสายไฟ —" />
                     <input type="number" style={numStyle} value={c.length} placeholder="ม." onChange={(e) => setCab(i, "length", e.target.value)} />
                     <button className="bq-x" onClick={() => delCab(i)} title="ลบสายเส้นนี้"><Icon name="x" size={14} /></button>
                   </div>
-                  {showHint && (
-                    /* บรรทัดเงื่อนไขของสายเส้นนี้ — เป็นข้อมูลรอง ทำให้เล็กกว่าแถวหลักและมีเส้นนำสายตาด้านซ้าย */
-                    <div style={{ display: "flex", flexDirection: "column", gap: 5, marginLeft: isMobile ? 0 : 3, paddingLeft: isMobile ? 0 : 9,
-                      borderLeft: isMobile ? "none" : "2px solid var(--surface3)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                        <div style={{ width: isMobile ? "100%" : 206, flexShrink: 0 }}>
-                          <Dropdown value={method} onChange={(v) => setCab(i, "method", v)} options={methodOptions} placeholder="วิธีเดินสาย" wrap style={cabSelStyle} />
-                        </div>
-                        <div style={{ width: isMobile ? "calc(50% - 3px)" : 118, flexShrink: 0 }}>
-                          <Dropdown value={group} onChange={(v) => setCab(i, "group", v)} options={groupOptionsFor(method)} style={cabSelStyle} />
-                        </div>
-                        <div style={{ width: isMobile ? "calc(50% - 3px)" : 96, flexShrink: 0 }}>
-                          <Dropdown value={ncond} onChange={(v) => setCab(i, "ncond", v)} options={ncondOptions} style={cabSelStyle} />
-                        </div>
-                        {/* แกนสาย — ตั้งต้นอ่านจากชื่อสาย (1C = แกนเดียว · nC = หลายแกน) แก้ทับได้ถ้าตารางกลุ่มนั้นแยกอย่างอื่น */}
-                        <div style={{ width: isMobile ? "100%" : 142, flexShrink: 0 }}>
-                          <Dropdown value={coreKey} onChange={(v) => setCab(i, "core", v)} disabled={rowCoreOpts.length < 2}
-                            options={rowCoreOpts.map((x) => ({ value: x.key, label: x.th }))} style={cabSelStyle} />
-                        </div>
-                      </div>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600,
-                        color: bad || amp == null ? "#B91C1C" : (req ? "#16A34A" : "var(--text-3)") }}>
-                      {amp != null ? (
-                        <React.Fragment>
-                          <Icon name={bad ? "alert" : (req ? "check" : "bolt")} size={11} color={bad ? "#B91C1C" : (req ? "#16A34A" : "var(--text-3)")} />
-                          พิกัดสาย ~{amp} A · {coreTh}{req ? " · ต้องการ ≥ " + (Math.round(req * 10) / 10).toFixed(1) + " A" : ""}{bad ? " · กระแสไม่พอ!" : (req ? " · ผ่าน" : "")}
-                        </React.Fragment>
-                      ) : !hasSize ? (
-                        <React.Fragment>
-                          <Icon name="alert" size={11} color="#B91C1C" /> ระบุพิกัดไม่ได้ — เลือกชนิดสายที่มีขนาด (SQ.MM.)
-                        </React.Fragment>
-                      ) : (
-                        <React.Fragment>
-                          <Icon name="alert" size={11} color="#B91C1C" /> ยังไม่มีตารางพิกัดสำหรับเงื่อนไขนี้ — เพิ่มค่าได้ที่หน้าคลัง › พิกัดสาย วสท.
-                        </React.Fragment>
+                  {/* บรรทัดสถานะ — ปกติเห็นแค่สรุปสั้น ๆ กดที่ป้ายเงื่อนไขถึงจะกางช่องแก้เฉพาะเส้น */}
+                  {(showHint || isDC || vd) && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: 11, lineHeight: 1.5 }}>
+                      {showHint && (
+                        <button type="button" onClick={() => setCabOpen((p) => Object.assign({}, p, { [i]: !open }))}
+                          title={own ? "เส้นนี้ตั้งเงื่อนไขเอง — กดเพื่อแก้" : "ตามค่าตั้งต้นของงาน — กดเพื่อตั้งเฉพาะเส้นนี้"}
+                          style={{ display: "inline-flex", alignItems: "center", gap: 5, border: "1px solid " + (own ? "var(--border-strong)" : "transparent"),
+                            background: own ? "var(--surface)" : "var(--surface2)", color: own ? "var(--text-2)" : "var(--text-3)",
+                            borderRadius: 99, padding: "3px 9px", fontSize: 10.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                          {own && <span style={{ width: 5, height: 5, borderRadius: 99, background: "var(--primary)" }} />}
+                          {condTh}
+                          <Icon name="chevronDown" size={12} color="var(--text-3)" style={{ transform: open ? "rotate(180deg)" : "none" }} />
+                        </button>
                       )}
-                      </span>
+                      {showHint && (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700,
+                          color: bad || amp == null ? "#B91C1C" : (req ? "#16A34A" : "var(--text-3)") }}>
+                          <Icon name={amp == null || bad ? "alert" : (req ? "check" : "bolt")} size={11} color={bad || amp == null ? "#B91C1C" : (req ? "#16A34A" : "var(--text-3)")} />
+                          {amp != null
+                            ? "พิกัด ~" + amp + " A" + (req ? " / ต้องการ " + (Math.round(req * 10) / 10).toFixed(1) + " A" : "") + (bad ? " · ไม่พอ" : (req ? " · ผ่าน" : ""))
+                            : (!hasSize ? "เลือกสายที่ระบุขนาด (SQ.MM.) ก่อน" : "ยังไม่มีตารางพิกัดของเงื่อนไขนี้")}
+                        </span>
+                      )}
+                      {vd && (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700, color: vd.ok ? "var(--text-3)" : "#B45309" }}
+                          title={"ΔV = " + (vd.phase === 3 ? "√3" : "2") + " × " + vd.length + " ม. × " + Math.round(vd.amp * 100) / 100 + " A × ρ ÷ " + vd.size + " mm²  ·  เกณฑ์ ≤ " + vd.lim + "%"}>
+                          <Icon name={vd.ok ? "check" : "alert"} size={11} color={vd.ok ? "var(--text-3)" : "#B45309"} />
+                          ΔV {vd.pct}%
+                          {!vd.ok && (vd.minSize ? " · ต้องใช้ ≥ " + vd.minSize + " mm²" : " · เกินขนาดสายที่มี ให้ลดระยะหรือเพิ่มแรงดัน")}
+                        </span>
+                      )}
+                      {isDC && (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700, color: "var(--text-3)" }}>
+                          <Icon name="bolt" size={11} color="var(--text-3)" />
+                          สาย DC{scfg && scfg.ready ? " · แนะนำ " + scfg.dcWire : ""} — ดูหัวข้อ “สาย DC / การต่ออนุกรม String”
+                        </span>
+                      )}
                     </div>
                   )}
-                  {isDC && (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, paddingLeft: isMobile ? 2 : 4, fontSize: 11, fontWeight: 600, color: "var(--text-3)" }}>
-                      <Icon name="bolt" size={11} color="var(--text-3)" /> สาย DC{scfg && scfg.ready ? " · แนะนำ " + scfg.dcWire + " (Isc×1.25 = " + scfg.dcAmp + " A)" : ""} — ดูรายละเอียดในส่วน “สาย DC / การต่ออนุกรม String”
-                    </span>
-                  )}
-                  {vd && (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, paddingLeft: isMobile ? 2 : 4, fontSize: 11, fontWeight: 600,
-                      color: vd.ok ? "var(--text-3)" : "#B45309" }}
-                      title={"ΔV = " + (vd.phase === 3 ? "√3" : "2") + " × " + vd.length + " ม. × " + Math.round(vd.amp * 100) / 100 + " A × ρ ÷ " + vd.size + " mm²  (ρ = ความต้านทานทองแดงที่อุณหภูมิใช้งาน)"}>
-                      <Icon name={vd.ok ? "check" : "alert"} size={11} color={vd.ok ? "var(--text-3)" : "#B45309"} />
-                      แรงดันตก {vd.pct}% ({vd.dv} V จาก {vd.volts} V) · เกณฑ์ ≤ {vd.lim}%
-                      {!vd.ok && (vd.minSize ? " — ต้องใช้สาย ≥ " + vd.minSize + " mm² หรือลดระยะเดินสาย"
-                        : " — ต้องใช้สายโตกว่า " + vd.need + " mm² ซึ่งเกินขนาดที่มีในตาราง ให้ลดระยะหรือเพิ่มแรงดัน (ต่ออนุกรมมากขึ้น)")}
-                    </span>
+                  {showHint && open && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", padding: "8px 9px", marginTop: 1,
+                      background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10 }}>
+                      <div style={{ width: isMobile ? "100%" : 206, flexShrink: 0 }}>
+                        <Dropdown value={method} onChange={(v) => setCab(i, "method", v)} options={methodOptions} placeholder="วิธีเดินสาย" wrap style={cabSelStyle} />
+                      </div>
+                      <div style={{ width: isMobile ? "calc(50% - 3px)" : 118, flexShrink: 0 }}>
+                        <Dropdown value={group} onChange={(v) => setCab(i, "group", v)} options={groupOptionsFor(method)} style={cabSelStyle} />
+                      </div>
+                      <div style={{ width: isMobile ? "calc(50% - 3px)" : 96, flexShrink: 0 }}>
+                        <Dropdown value={ncond} onChange={(v) => setCab(i, "ncond", v)} options={ncondOptions} style={cabSelStyle} />
+                      </div>
+                      {/* แกนสาย — ตั้งต้นอ่านจากชื่อสาย (1C = แกนเดียว · nC = หลายแกน) แก้ทับได้ถ้าตารางกลุ่มนั้นแยกอย่างอื่น */}
+                      <div style={{ width: isMobile ? "100%" : 142, flexShrink: 0 }}>
+                        <Dropdown value={coreKey} onChange={(v) => setCab(i, "core", v)} disabled={rowCoreOpts.length < 2}
+                          options={rowCoreOpts.map((x) => ({ value: x.key, label: x.th }))} style={cabSelStyle} />
+                      </div>
+                      {own && (
+                        <button type="button" onClick={() => resetCabCond(i)}
+                          style={{ border: 0, background: "none", color: "var(--text-3)", fontSize: 10.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline", textUnderlineOffset: 3 }}>
+                          ใช้ค่าตั้งต้น
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
                 );
               })}
-              <button onClick={addCab} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--primary-soft)", color: "var(--primary-dark)", border: "none", borderRadius: 9, padding: "8px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={14} color="var(--primary-dark)" /> เพิ่มสาย</button>
+              <button onClick={addCab} style={{ alignSelf: "flex-start", marginTop: 4, display: "inline-flex", alignItems: "center", gap: 5, background: "none", color: "var(--primary-dark)", border: "1px dashed var(--border-strong)", borderRadius: 9, padding: "6px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--primary-dark)" /> เพิ่มสาย</button>
               {/* ── สรุปแรงดันตกทั้งเส้นทาง — มาตรฐานคุมทั้ง DC, AC และผลรวม ── */}
               {vdropSum.any && (() => {
                 const L = vdropSum.lim;
