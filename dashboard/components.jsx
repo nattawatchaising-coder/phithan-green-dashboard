@@ -292,12 +292,16 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
               return (
                 <React.Fragment key={String(o.value)}>
                   {head}
+                  {/* o.sub = คำอธิบายบรรทัดที่สอง — ไว้ใช้ตอนชื่อสั้นแต่ต้องบอกรายละเอียดเพิ่ม (เช่น วิธีเดินสายตาม วสท.) */}
                   <button type="button" onClick={() => { onChange(o.value); setOpen(false); }}
-                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "10px 11px", borderRadius: 9, border: "none",
+                    style={{ width: "100%", display: "flex", alignItems: o.sub ? "flex-start" : "center", gap: 8, padding: "10px 11px", borderRadius: 9, border: "none",
                       background: active ? "var(--primary-soft)" : "transparent", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
                       fontSize: 13.5, fontWeight: active ? 700 : 500, color: active ? "var(--primary-dark)" : "var(--text-1)" }}>
-                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.label}</span>
-                    {active && <Icon name="check" size={15} color="var(--primary)" sw={2.6} />}
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.label}</span>
+                      {o.sub && <span style={{ display: "block", marginTop: 2, fontSize: 11, fontWeight: 500, lineHeight: 1.45, color: "var(--text-3)", whiteSpace: "normal" }}>{o.sub}</span>}
+                    </span>
+                    {active && <Icon name="check" size={15} color="var(--primary)" sw={2.6} style={{ flexShrink: 0, marginTop: o.sub ? 2 : 0 }} />}
                   </button>
                 </React.Fragment>
               );

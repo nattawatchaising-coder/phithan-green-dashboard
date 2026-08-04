@@ -192,12 +192,26 @@ function WireArt({ art, w, h }) {
     g6: <g><rect x="4" y="20" width="124" height="52" fill={soil} stroke={S} strokeWidth="1.3" />
       <line x1="4" y1="20" x2="128" y2="20" stroke={S} strokeWidth="2" />
       {[38, 66, 94].map((x) => <g key={"b" + x}><circle cx={x} cy={48} r="12" fill={BG} stroke={S} strokeWidth="1.5" />{cd(x, 48, 6)}</g>)}</g>,
-    // กลุ่ม 7 — วางบนรางเคเบิลบันได/มีรูระบาย วางชั้นเดียว ลมผ่านได้ทั้งบนและล่าง จึงรับกระแสได้มากสุด
-    g7: <g><path d="M12 24v36h108V24" fill="none" stroke={S} strokeWidth="2.2" />
-      <line x1="12" y1="60" x2="120" y2="60" stroke={S} strokeWidth="2.4" strokeDasharray="7 6" />
-      {[30, 52, 74, 96].map((x) => cd(x, 50, 9))}
+    /* กลุ่ม 7 — สายวางบนรางเคเบิลที่แขวนอยู่ในอากาศ (รูปรวมของกลุ่ม: ราง + ฉากยึดผนัง)
+       รางแต่ละแบบมีรูปของตัวเองอีกที — ดูที่ traySolid / trayVent / ladder / trayCover */
+    g7: <g>{wall(4, 6, 16, 66)}
+      <path d="M20 30h10M20 58h10" stroke={S} strokeWidth="1.6" />
+      <path d="M30 22v42" stroke={S} strokeWidth="1.8" />
+      <path d="M30 26v34h84V26" fill="none" stroke={S} strokeWidth="2.2" />
+      <line x1="30" y1="60" x2="114" y2="60" stroke={S} strokeWidth="2.4" />
+      {[46, 64, 82, 100].map((x) => cd(x, 51, 8))}
+      <path d="M46 18v-7M74 18v-7M102 18v-7" stroke={S} strokeWidth="1.3" opacity=".55" />
+      <path d="M43 14l3-4 3 4M71 14l3-4 3 4M99 14l3-4 3 4" fill="none" stroke={S} strokeWidth="1.3" opacity=".55" /></g>,
+    /* รางบันได (Ladder) เปิดฝา — พื้นรางเป็นขั้นบันไดเว้นช่อง ลมผ่านได้มากที่สุด พิกัดสูงสุดของกลุ่ม 7
+       (มองจากด้านหน้า: ขีดสั้น ๆ ที่พื้นราง = ขั้นบันไดที่เห็นเป็นท่อน ๆ) */
+    ladder: <g><path d="M12 24v36h108V24" fill="none" stroke={S} strokeWidth="2.2" />
+      {[14, 31, 48, 65, 82, 99, 116].map((x) => <line key={"r" + x} x1={x} y1="59" x2={x + 4} y2="59" stroke={S} strokeWidth="4.5" strokeLinecap="round" />)}
+      {[30, 52, 74, 96].map((x) => cd(x, 48, 9))}
       <path d="M28 18v-8M52 18v-8M76 18v-8M100 18v-8" stroke={S} strokeWidth="1.3" opacity=".55" />
-      <path d="M25 14l3-4 3 4M49 14l3-4 3 4M73 14l3-4 3 4M97 14l3-4 3 4" fill="none" stroke={S} strokeWidth="1.3" opacity=".55" /></g>,
+      <path d="M25 14l3-4 3 4M49 14l3-4 3 4M73 14l3-4 3 4M97 14l3-4 3 4" fill="none" stroke={S} strokeWidth="1.3" opacity=".55" />
+      {/* ลมลอดขึ้นจากใต้รางได้ตามช่องระหว่างขั้นบันได */}
+      <path d="M40 74v-6M63 74v-6M86 74v-6" stroke={S} strokeWidth="1.2" opacity=".45" />
+      <path d="M37.5 70.5l2.5-3 2.5 3M60.5 70.5l2.5-3 2.5 3M83.5 70.5l2.5-3 2.5 3" fill="none" stroke={S} strokeWidth="1.2" opacity=".45" /></g>,
     // Cable Tray ระบายอากาศ ไม่มีฝา — พื้นรางเจาะรู ลมขึ้นจากใต้รางได้ (ต่างจากบันไดตรงที่พื้นยังเป็นแผ่น)
     trayVent: <g><path d="M12 24v36h108V24" fill="none" stroke={S} strokeWidth="2.2" />
       <line x1="12" y1="60" x2="120" y2="60" stroke={S} strokeWidth="2.4" />
@@ -211,16 +225,17 @@ function WireArt({ art, w, h }) {
       {[30, 52, 74, 96].map((x) => cd(x, 49, 9))}
       <path d="M40 18v-8M76 18v-8" stroke={S} strokeWidth="1.3" opacity=".55" />
       <path d="M37 14l3-4 3 4M73 14l3-4 3 4" fill="none" stroke={S} strokeWidth="1.3" opacity=".55" /></g>,
-    // รางเคเบิลมีฝาปิด — ปิดทับด้านบน ความร้อนสะสม พิกัดต่ำสุดในบรรดารางเคเบิล
-    trayCover: <g><rect x="8" y="18" width="116" height="8" rx="2" fill={F} stroke={S} strokeWidth="1.6" />
-      <path d="M14 26v34h104V26" fill="none" stroke={S} strokeWidth="2.2" />
-      <line x1="14" y1="60" x2="118" y2="60" stroke={S} strokeWidth="2.4" strokeDasharray="7 6" />
-      {[32, 53, 74, 95].map((x) => cd(x, 50, 9))}</g>,
-    // Wireway — รางเหล็กปิดมีฝา เป็นช่องเดินสายปิด ความร้อนออกยากพอ ๆ กับเดินในท่อ
-    way: <g><rect x="12" y="20" width="108" height="8" rx="2" fill={F} stroke={S} strokeWidth="1.5" />
-      <rect x="16" y="28" width="100" height="36" rx="2" fill="none" stroke={S} strokeWidth="2.2" />
-      {[32, 50, 68, 86, 104].map((x) => cd(x, 40, 7))}
-      {[32, 50, 68, 86, 104].map((x) => cd(x, 55, 7))}</g>,
+    /* รางเคเบิลปิดฝา (รวมรางเดินสายปิดมีฝา/Wireway) — ฝาปิดทับด้านบน ความร้อนออกไม่ได้
+       พื้นรางวาดครบทั้งสามแบบ (ทึบ · เจาะรู · ขั้นบันได) เพราะปิดฝาแล้วคิดเหมือนกันหมด */
+    trayCover: <g><rect x="10" y="14" width="112" height="9" rx="2" fill={F} stroke={S} strokeWidth="1.7" />
+      {[22, 110].map((x) => <line key={"lk" + x} x1={x} y1="23" x2={x} y2="27" stroke={S} strokeWidth="1.6" />)}
+      <path d="M16 25v35h100V25" fill="none" stroke={S} strokeWidth="2.2" />
+      <line x1="16" y1="60" x2="116" y2="60" stroke={S} strokeWidth="2.6" />
+      {[34, 55, 76, 97].map((x) => cd(x, 50, 9))}
+      {/* ความร้อนลอยขึ้นแล้วชนฝา ออกไม่ได้ — พิกัดกระแสจึงต่ำกว่าแบบเปิดฝา */}
+      <path d="M45 40v-9M87 40v-9" stroke={S} strokeWidth="1.3" opacity=".5" />
+      <path d="M42.5 33.5l2.5-3 2.5 3M84.5 33.5l2.5-3 2.5 3" fill="none" stroke={S} strokeWidth="1.3" opacity=".5" />
+      <path d="M38 29h14M80 29h14" stroke={S} strokeWidth="1.6" opacity=".5" /></g>,
   }[art];
   if (!body) return null;
   return (
@@ -305,8 +320,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const wcVolt = +wcalc.volt || (wcPhase === 3 ? 400 : 230);
   const wcStrings = Math.max(1, Math.round(+wcalc.strings || 1));   // แบ่งกี่ String (ขั้นต่ำ 1)
   const calcIns = wcalc.ins || "pvc";
-  const calcMethod = wcalc.method || "conduitAir";
-  const calcGroup = wcalc.group || "g1";
+  // งานเก่าที่บันทึกวิธีที่เลิกใช้แล้วไว้ (เช่น Wireway) ให้เด้งไปวิธีที่ใช้แทนทันที ไม่ปล่อยช่องว่าง
+  const calcPick = (window.BOQ.normWireMethod || ((m, g) => ({ method: m, group: g })))(wcalc.method || "conduitAir", wcalc.group || "g1");
+  const calcMethod = calcPick.method;
+  const calcGroup = calcPick.group;
   const calcNCond = wcalc.ncond ? String(wcalc.ncond) : (wcPhase === 3 ? "3" : "2");   // ว่าง = ตามเฟส
   const calcDerate = +wcalc.derate > 0 ? +wcalc.derate : 1;   // ตัวคูณลดกระแส (หลายวงจรในช่อง/รางเดียวกัน)
   /* แกนย่อยของคอลัมน์ — แต่ละกลุ่มแยกไม่เหมือนกัน (ดู AMP_GROUPS.cores ใน boq.js)
@@ -698,7 +715,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       .sort((a, z) => (CABLE_CAT_ORDER.indexOf(a.group) - CABLE_CAT_ORDER.indexOf(z.group)) || String(a.value).localeCompare(String(z.value), "th", { numeric: true }));
   }, [stockItems, b.cables]);
   // ตัวเลือกพิกัดกระแส วสท.: วิธีเดินสาย / ฉนวน / กลุ่มการติดตั้ง / จำนวนตัวนำมีกระแส
-  const methodOptions = (window.BOQ.WIRE_METHODS || []).map((m) => ({ value: m.key, label: m.th }));
+  const methodOptions = (window.BOQ.WIRE_METHODS || []).map((m) => ({ value: m.key, label: m.th, sub: m.sub }));
   const insOptions = (window.BOQ.INS_CLASSES || []).map((c) => ({ value: c.key, label: c.th }));
   const groupOptions = (window.BOQ.AMP_GROUPS || []).map((g) => ({ value: g.key, label: g.sub ? g.th + " · " + g.sub : g.th }));
   const ncondOptions = (window.BOQ.AMP_NCOND || []).map((n) => ({ value: n.key, label: n.th }));
@@ -1460,8 +1477,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               {b.cables.map((c, i) => {
                 const isComm = /LAN|CAT/i.test(c.type || "");
                 const isDC = /PV1-F|PV CABLE/i.test(c.type || "") || /PV-INVERTER/i.test(c.name || "");  // สาย DC คิดขนาดในส่วนสาย DC แยก
-                const method = c.method || "conduitAir";
-                const group = c.group || "g1";
+                // แถวเก่าที่บันทึกวิธีที่เลิกใช้แล้วไว้ ให้เด้งไปวิธีที่ใช้แทน (ดู WIRE_METHOD_LEGACY)
+                const pick = (window.BOQ.normWireMethod || ((m, g) => ({ method: m, group: g })))(c.method || "conduitAir", c.group || "g1");
+                const method = pick.method;
+                const group = pick.group;
                 const ncond = c.ncond || (wcPhase === 3 ? "3" : "2");
                 const coreType = window.BOQ.cableCoreType(c.type);   // single / multi (จากชื่อ 1C/nC)
                 /* กลุ่มที่เลือกอาจไม่ได้แยกคอลัมน์ตามแกนเดียว/หลายแกน (กลุ่ม 5,6 รวมกัน · กลุ่ม 4 แยกแนวการวาง)
@@ -1678,12 +1697,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", padding: "4px 0 8px", borderTop: "1px solid var(--border)", marginTop: 2 }}>วิธีเดินสาย</div>
                       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(4, minmax(0,1fr))", gap: 9 }}>
                         {(window.BOQ.WIRE_METHODS || []).map((m) => (
-                          <button key={m.key} type="button" onClick={() => setMethodPick(m.key)} title={m.baseWhy || m.th}
+                          <button key={m.key} type="button" onClick={() => setMethodPick(m.key)} title={m.sub || m.baseWhy || m.th}
                             style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "8px 6px", borderRadius: 11, cursor: "pointer", fontFamily: "inherit", textAlign: "center",
                               border: "1px solid " + (calcMethod === m.key ? "var(--primary)" : "var(--border)"),
                               background: calcMethod === m.key ? "var(--primary-soft)" : "var(--surface)" }}>
                             <WireArt art={m.art} w="100%" h={54} />
-                            <span style={{ fontSize: 10, fontWeight: 800, lineHeight: 1.35, color: calcMethod === m.key ? "var(--primary-dark)" : "var(--text-1)" }}>{m.th.replace(/^[^·]+· /, "")}</span>
+                            <span style={{ fontSize: 10, fontWeight: 800, lineHeight: 1.35, color: calcMethod === m.key ? "var(--primary-dark)" : "var(--text-1)" }}>{m.th}</span>
                             <span style={{ fontSize: 9, color: "var(--text-3)" }}>{((window.BOQ.AMP_GROUPS || []).find((g) => g.key === (m.groups || [])[0]) || {}).th || ""}{m.base ? " · ใช้ตารางร่วม" : ""}</span>
                           </button>
                         ))}
