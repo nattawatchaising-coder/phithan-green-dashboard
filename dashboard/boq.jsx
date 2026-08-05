@@ -1118,8 +1118,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       /* บันไดราคา — ต่อท้ายใบถอดของ เพื่อให้ไฟล์เดียวจบตั้งแต่ต้นทุนถึงราคาเสนอ
          บรรทัดที่ยังไม่ได้กรอก (เช่น ยังไม่ตั้งราคาขาย) ไม่ต้องใส่ให้รก */
       const money = [
-        pb.contractor > 0 ? ["ราคาผู้รับเหมา", pb.contractor] : null,
-        pb.contractor > 0 ? ["ต้นทุนรวม (วัสดุ + ค่าแรง + ผู้รับเหมา)", pb.totalCost] : null,
+        pb.contractor > 0 ? ["ค่าแรงผู้รับเหมา", pb.contractor] : null,
+        pb.contractor > 0 ? ["ต้นทุนรวม (วัสดุ + ค่าแรงติดตั้ง + ค่าแรงผู้รับเหมา)", pb.totalCost] : null,
         ["ต้นทุนรวม + VAT " + pb.vat + "%", pb.totalCostVat],
         pb.sell > 0 ? ["ราคาขาย", pb.sell] : null,
         pb.sell > 0 ? ["ราคาขาย + VAT " + pb.vat + "%", pb.sellVat] : null,
@@ -2271,11 +2271,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           <BoqSection title="แบ่งราคา & กำไร" icon="bolt" {...secProps("price")}
             right={pb.sell > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: (pb.net > 0 ? pb.netProfit : pb.profit) > 0 ? "var(--primary-dark)" : "#B45309" }}>กำไร {(pb.net > 0 ? pb.netMargin : pb.margin)}%</span> : null}>
             <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 14 }}>
-              ต้นทุนดึงจากใบถอดของให้เอง — กรอกเฉพาะราคาผู้รับเหมา ราคาขาย และส่วนลด แล้วระบบคิด VAT กำไร และบาทต่อวัตต์ให้
+              ต้นทุนดึงจากใบถอดของให้เอง — กรอกเฉพาะค่าแรงผู้รับเหมา ราคาขาย และส่วนลด แล้วระบบคิด VAT กำไร และบาทต่อวัตต์ให้
             </div>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(4, minmax(0,1fr))", gap: 10, marginBottom: 14 }}>
               {[
-                { k: "contractor", lb: "ราคาผู้รับเหมา (฿)", tip: "ค่าจ้างผู้รับเหมาช่วง — บวกเข้าเป็นต้นทุน" },
+                { k: "contractor", lb: "ค่าแรงผู้รับเหมา (฿)", tip: "ค่าจ้างทีมผู้รับเหมาที่มารับงานนี้ — บวกเข้าเป็นต้นทุน" },
                 { k: "sell", lb: "ราคาขาย (฿)", tip: "ราคาขายก่อน VAT และก่อนหักส่วนลด" },
                 { k: "discount", lb: "ส่วนลด (฿)", tip: "จำนวนเงินที่ลดให้ลูกค้า — ราคาหลังลดคำนวณให้" },
                 { k: "vat", lb: "VAT (%)", tip: "ปกติ 7% — แก้ได้ถ้างานนี้คิดต่าง" },
@@ -2292,7 +2292,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             <div style={{ border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
               {[
                 { lb: "ต้นทุนวัสดุ + ค่าแรง (จาก BOQ)", v: pb.cost, sub: priced.perW > 0 ? "฿" + baht(priced.perW) + "/W" : "" },
-                { lb: "ราคาผู้รับเหมา", v: pb.contractor, dim: true },
+                { lb: "ค่าแรงผู้รับเหมา", v: pb.contractor, dim: true },
                 { lb: "ต้นทุนรวม", v: pb.totalCost, strong: true, sub: pb.costPerW > 0 ? "฿" + baht(pb.costPerW) + "/W" : "" },
                 { lb: "ต้นทุนรวม + VAT " + pb.vat + "%", v: pb.totalCostVat, dim: true },
                 { lb: "ราคาขาย", v: pb.sell, strong: true, sub: pb.sellPerW > 0 ? "฿" + baht(pb.sellPerW) + "/W" : "" },
@@ -2329,7 +2329,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   </span>
                   <span style={{ fontSize: 11, color: good ? "var(--primary-dark)" : "#92400E", fontWeight: 600 }}>
                     {good
-                      ? "คิดจากราคา" + (pb.discount > 0 ? "หลังส่วนลด" : "ขาย") + " หักต้นทุนรวม (วัสดุ+ค่าแรง+ผู้รับเหมา) · ตัวเลขนี้ยังไม่รวม VAT"
+                      ? "คิดจากราคา" + (pb.discount > 0 ? "หลังส่วนลด" : "ขาย") + " หักต้นทุนรวม (วัสดุ + ค่าแรงติดตั้ง + ค่าแรงผู้รับเหมา) · ตัวเลขนี้ยังไม่รวม VAT"
                       : "ราคานี้ขายแล้วขาดทุน — ต้นทุนรวม ฿" + baht(pb.totalCost) + " สูงกว่าราคาที่ตั้งไว้"}
                   </span>
                 </div>
