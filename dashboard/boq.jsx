@@ -1042,6 +1042,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     </div>
   );
 
+  /* ── ส่งออก Excel ──
+     ไฟล์เดียว 2 ชีต: "ใบถอดวัสดุ" (ปริมาณ+ราคา) กับ "สรุปราคา" (ตามหมวด + บันไดราคา + กำไร)
+     บันไดราคาแยกออกจากใบถอดของ เพราะใบถอดของเอาไว้ส่งหน้างาน ส่วนบันไดราคาเป็นข้อมูลภายใน */
   const exportXlsx = () => {
     if (!window.XLSX) { alert("ไม่พบไลบรารี Excel (ลองโหลดหน้าใหม่)"); return; }
     const X = window.XLSX;
@@ -1049,159 +1052,270 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
     // ── จานสี (ธีมเขียว PHITHAN GREEN) ──
     const C = {
-      brand: "1D854B", brandDk: "12603A", brandSoft: "EAF6EF",
-      group: "D6EBDF", alt: "F4FAF6", white: "FFFFFF",
-      border: "CBD8D0", text: "16241D", sub: "5A6B62",
+      brand: "1D854B", brandDk: "0F5233", brandSoft: "EAF6EF",
+      group: "D3E9DC", alt: "F6FAF7", white: "FFFFFF",
+      line: "C3D4CA", lineSoft: "E2EBE5", text: "16241D", sub: "6B7C73",
+      red: "B4232A", gold: "8A6D1F", goldSoft: "FBF6E7",
     };
     const FONT = "Tahoma"; // รองรับภาษาไทยทุกเครื่อง Windows
-    const thin = { style: "thin", color: { rgb: C.border } };
-    const boxAll = { top: thin, bottom: thin, left: thin, right: thin };
+    const hair = { style: "hair", color: { rgb: C.lineSoft } };
+    const thin = { style: "thin", color: { rgb: C.line } };
+    const med = { style: "medium", color: { rgb: C.brand } };
+    const moneyFmt = '#,##0.00;[Red]-#,##0.00';
+    const qtyFmt = '#,##0.##';
+    const pctFmt = '0.0"%"';
+    const perWFmt = '#,##0.000';
 
-    // ── หัวคอลัมน์ + ความกว้าง ตามว่ามีราคาหรือไม่ ──
+    // ── ตัวช่วยสร้างชีต: เก็บ aoa + ชนิดของแต่ละแถว แล้วค่อยลงสไตล์ทีเดียว ──
+    const mkSheet = (lastC, colW) => {
+      const S = { aoa: [], merges: [], meta: [], rows: [], lastC: lastC, colW: colW, R: 0 };
+      S.push = (cells, type, hpt) => {
+        const row = []; for (let i = 0; i <= lastC; i++) row.push(cells[i] != null ? cells[i] : "");
+        S.aoa.push(row); S.meta[S.R] = type; if (hpt) S.rows[S.R] = { hpt: hpt }; S.R += 1;
+        return S.R - 1;
+      };
+      S.merge = (r, c1, c2) => { if (c2 > c1) S.merges.push({ s: { r: r, c: c1 }, e: { r: r, c: c2 } }); };
+      S.band = (cells, type, hpt) => { const r = S.push(cells, type, hpt); S.merge(r, 0, lastC); return r; };
+      S.gap = (hpt) => S.push([], "spacer", hpt || 7);
+      return S;
+    };
+    // หัวเอกสารมาตรฐาน — ใช้ทั้งสองชีตจะได้หน้าตาเป็นชุดเดียวกัน
+    const docHead = (S, title, sub) => {
+      S.band([title], "title", 34);
+      S.band([sub], "subtitle", 19);
+      S.gap(5);
+    };
+    const paint = (S, styleFn) => {
+      const ws = X.utils.aoa_to_sheet(S.aoa);
+      ws["!merges"] = S.merges; ws["!cols"] = S.colW; ws["!rows"] = S.rows;
+      ws["!margins"] = { left: 0.4, right: 0.4, top: 0.55, bottom: 0.5, header: 0.3, footer: 0.3 };
+      const range = X.utils.decode_range(ws["!ref"]);
+      for (let r = range.s.r; r <= range.e.r; r++) {
+        for (let c = range.s.c; c <= range.e.c; c++) {
+          const s = styleFn(S.meta[r], r, c);
+          if (!s) continue;
+          const ref = X.utils.encode_cell({ r: r, c: c });
+          if (!ws[ref]) ws[ref] = { t: "s", v: "" }; // สร้างช่องว่างให้พื้น/เส้นขอบขึ้น
+          ws[ref].s = s;
+        }
+      }
+      return ws;
+    };
+    // สไตล์ที่ทั้งสองชีตใช้ร่วมกัน (หัวเอกสาร / แถบหมวด / หมายเหตุ)
+    const commonStyle = (t, lastC, c) => {
+      if (t === "spacer") return { font: { name: FONT, sz: 6 } };
+      if (t === "title") return {
+        font: { name: FONT, sz: 15, bold: true, color: { rgb: C.white } },
+        fill: { patternType: "solid", fgColor: { rgb: C.brand } },
+        alignment: { horizontal: "center", vertical: "center" },
+      };
+      if (t === "subtitle") return {
+        font: { name: FONT, sz: 10, bold: true, color: { rgb: C.brandDk } },
+        fill: { patternType: "solid", fgColor: { rgb: C.brandSoft } },
+        alignment: { horizontal: "center", vertical: "center" },
+        border: { bottom: med },
+      };
+      if (t === "note") return {
+        font: { name: FONT, sz: 9.5, italic: true, color: { rgb: C.sub } },
+        alignment: { horizontal: "left", vertical: "center", wrapText: true },
+      };
+      if (t === "sec") return {
+        font: { name: FONT, sz: 11, bold: true, color: { rgb: C.brandDk } },
+        alignment: { horizontal: "left", vertical: "center" },
+        border: { bottom: { style: "medium", color: { rgb: C.group } } },
+      };
+      return null;
+    };
+
+    const jobName = (job && job.name) || "—";
+    const jobCode = (job && job.code) || "—";
+    const kwTxt = (result.meta.kw || 0).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " kWp";
+    const itemCount = priced.groups.reduce((s, g) => s + g.items.length, 0);
+
+    /* ═══ ชีต 1: ใบถอดวัสดุ ═══ */
     const cols = hasPrice
-      ? ["ลำดับ", "รหัส", "รายการวัสดุ", "จำนวน", "หน่วย", "ราคา/หน่วย", "ราคารวม"]
-      : ["ลำดับ", "รหัส", "รายการวัสดุ", "จำนวน", "หน่วย"];
+      ? ["ลำดับ", "รหัสวัสดุ", "รายการ", "จำนวน", "หน่วย", "ราคา/หน่วย", "จำนวนเงิน"]
+      : ["ลำดับ", "รหัสวัสดุ", "รายการ", "จำนวน", "หน่วย"];
     const lastC = cols.length - 1;
     const colW = hasPrice
-      ? [{ wch: 7 }, { wch: 15 }, { wch: 50 }, { wch: 10 }, { wch: 8 }, { wch: 13 }, { wch: 15 }]
-      : [{ wch: 7 }, { wch: 17 }, { wch: 54 }, { wch: 10 }, { wch: 10 }];
+      ? [{ wch: 7 }, { wch: 14 }, { wch: 46 }, { wch: 9.5 }, { wch: 8 }, { wch: 13 }, { wch: 15 }]
+      : [{ wch: 7 }, { wch: 16 }, { wch: 54 }, { wch: 11 }, { wch: 10 }];
+    const A = mkSheet(lastC, colW);
+    docHead(A, "บัญชีแสดงปริมาณวัสดุ  ·  BILL OF QUANTITIES", "PHITHAN GREEN  —  งานติดตั้งระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์");
 
-    const aoa = [];
-    const merges = [];
-    const meta = [];   // ประเภทของแต่ละแถว (ใช้กำหนดสไตล์)
-    const rowsH = [];  // ความสูงแถว (hpt)
-    let R = 0;
-    const pushRow = (cells, type, hpt) => { aoa.push(cells); meta[R] = type; if (hpt) rowsH[R] = { hpt: hpt }; R += 1; };
-    const fullMerge = (r) => merges.push({ s: { r: r, c: 0 }, e: { r: r, c: lastC } });
-
-    // หัวเอกสาร
-    pushRow(["บัญชีแสดงปริมาณวัสดุ (Bill of Quantities)"], "title", 30); fullMerge(R - 1);
-    pushRow(["PHITHAN GREEN · ระบบติดตามงานติดตั้งโซลาร์เซลล์"], "subtitle", 20); fullMerge(R - 1);
-    pushRow([], "spacer", 6);
-
-    // ข้อมูลงาน (ป้าย/ค่า — ค่าผสานช่องที่เหลือ)
+    // ข้อมูลงาน — วางเป็น 2 คู่ต่อแถว ไม่ให้เหลือช่องว่างยาว ๆ ทางขวา
+    const mid = Math.ceil((lastC + 1) / 2);
     const info = [
-      ["โครงการ", job ? (job.name || "") : ""],
-      ["รหัสงาน", job ? (job.code || "") : ""],
-      ["ขนาดระบบ", (result.meta.panelCount || 0) + " แผง   ·   " + (result.meta.kw || 0) + " kW"],
-      ["วันที่ออกเอกสาร", window.SF.TODAY || ""],
+      ["โครงการ", jobName, "รหัสงาน", jobCode],
+      ["ขนาดระบบ", (result.meta.panelCount || 0).toLocaleString("en-US") + " แผง  ·  " + kwTxt,
+        "ระบบไฟ", String(b.phase) === "3" ? "3 เฟส 380V" : "1 เฟส 220V"],
+      ["จำนวนรายการ", itemCount.toLocaleString("en-US") + " รายการ / " + priced.groups.length + " หมวด",
+        "วันที่ออกเอกสาร", window.SF.TODAY || ""],
     ];
     info.forEach((row) => {
-      const cells = [row[0]]; for (let i = 1; i <= lastC; i++) cells.push(i === 1 ? row[1] : "");
-      pushRow(cells, "info", 19); merges.push({ s: { r: R - 1, c: 1 }, e: { r: R - 1, c: lastC } });
+      const cells = []; cells[0] = row[0]; cells[1] = row[1]; cells[mid] = row[2]; cells[mid + 1] = row[3];
+      const r = A.push(cells, "info", 18);
+      A.merge(r, 1, mid - 1); A.merge(r, mid + 1, lastC);
     });
-    pushRow([], "spacer", 8);
+    A.gap(9);
 
-    // หัวตาราง
-    pushRow(cols, "head", 22);
+    A.push(cols, "head", 24);
 
-    // กลุ่ม + รายการ
+    // หมวด + รายการ (ยอดรวมของหมวดอยู่บนหัวหมวดเลย จะได้ไม่ต้องมีแถวรวมย่อยเพิ่ม)
     let n = 0;
     priced.groups.forEach((g) => {
       n += 1;
-      const grow = ["ลำดับที่ " + n, ""]; for (let i = 2; i <= lastC; i++) grow.push(i === 2 ? g.group : "");
-      pushRow(grow, "group", 20); merges.push({ s: { r: R - 1, c: 2 }, e: { r: R - 1, c: lastC } });
+      const grow = []; grow[0] = "หมวด " + n; grow[1] = g.group;
+      if (hasPrice) grow[lastC] = g.subtotal;
+      const gr = A.push(grow, "group", 21);
+      A.merge(gr, 1, hasPrice ? lastC - 1 : lastC);
       g.items.forEach((it, k) => {
         const base = [n + "." + (k + 1), it.code || "", it.name || "", +it.qty || 0, it.unit || ""];
-        if (hasPrice) base.push(it.price || 0, it.total || 0);
-        pushRow(base, k % 2 === 0 ? "item" : "itemAlt");
+        if (hasPrice) { base.push(it.price || 0); base.push(it.total || 0); }
+        A.push(base, k % 2 === 0 ? "item" : "itemAlt", 17);
       });
     });
 
-    // รวม
     if (hasPrice) {
-      pushRow([], "spacer", 6);
-      const trow = []; for (let i = 0; i <= lastC; i++) trow.push("");
-      trow[2] = "ต้นทุนรวมทั้งสิ้น"; trow[lastC] = priced.grandTotal;
-      pushRow(trow, "total", 24);
-      merges.push({ s: { r: R - 1, c: 0 }, e: { r: R - 1, c: lastC - 1 } });
-      /* บันไดราคา — ต่อท้ายใบถอดของ เพื่อให้ไฟล์เดียวจบตั้งแต่ต้นทุนถึงราคาเสนอ
-         บรรทัดที่ยังไม่ได้กรอก (เช่น ยังไม่ตั้งราคาขาย) ไม่ต้องใส่ให้รก */
-      const money = [
-        pb.contractor > 0 ? ["ค่าแรงผู้รับเหมา", pb.contractor] : null,
-        pb.contractor > 0 ? ["ต้นทุนรวม (วัสดุ + ค่าแรงติดตั้ง + ค่าแรงผู้รับเหมา)", pb.totalCost] : null,
-        ["ต้นทุนรวม + VAT " + pb.vat + "%", pb.totalCostVat],
-        pb.sell > 0 ? ["ราคาขาย", pb.sell] : null,
-        pb.sell > 0 ? ["ราคาขาย + VAT " + pb.vat + "%", pb.sellVat] : null,
-        pb.discount > 0 ? ["ส่วนลด", -pb.discount] : null,
-        pb.discount > 0 ? ["ราคาหลังส่วนลด", pb.net] : null,
-        pb.discount > 0 ? ["ราคาหลังส่วนลด + VAT " + pb.vat + "%", pb.netVat] : null,
-      ].filter(Boolean);
-      money.forEach((m) => {
-        const row = []; for (let i = 0; i <= lastC; i++) row.push("");
-        row[2] = m[0]; row[lastC] = m[1];
-        pushRow(row, "item", 20);
-        merges.push({ s: { r: R - 1, c: 0 }, e: { r: R - 1, c: lastC - 1 } });
-      });
+      const tr = A.push([null, null, "รวมต้นทุนใบถอดวัสดุ (ก่อน VAT)", null, null, null, priced.grandTotal], "total", 26);
+      A.merge(tr, 0, lastC - 1);
     }
+    A.gap(6);
+    const nr = A.band(["หมายเหตุ  ·  ปริมาณคำนวณจากแบบและรวม % เผื่อแล้ว  ·  ราคาเป็นราคาต้นทุนก่อนภาษีมูลค่าเพิ่ม  ·  เอกสารสร้างอัตโนมัติจากระบบ PHITHAN GREEN"], "note", 26);
+    A.merges.push({ s: { r: nr, c: 0 }, e: { r: nr, c: lastC } });
 
-    // ── สร้างชีต + ลงสไตล์ ──
-    const ws = X.utils.aoa_to_sheet(aoa);
-    ws["!merges"] = merges;
-    ws["!cols"] = colW;
-    ws["!rows"] = rowsH;
-
-    const moneyFmt = '#,##0.00';
-    const qtyFmt = '#,##0.##';
-    const styleCell = (r, c) => {
-      const t = meta[r];
-      if (t === "spacer") return null;
-      const s = { font: { name: FONT, sz: 11, color: { rgb: C.text } }, alignment: { vertical: "center" } };
-      if (t === "title") {
-        s.font = { name: FONT, sz: 16, bold: true, color: { rgb: C.white } };
-        s.fill = { patternType: "solid", fgColor: { rgb: C.brand } };
-        s.alignment = { horizontal: "center", vertical: "center" };
-      } else if (t === "subtitle") {
-        s.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.brandDk } };
-        s.fill = { patternType: "solid", fgColor: { rgb: C.brandSoft } };
-        s.alignment = { horizontal: "center", vertical: "center" };
-      } else if (t === "info") {
-        if (c === 0) { s.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.sub } }; s.alignment = { horizontal: "right", vertical: "center" }; }
-        else { s.font = { name: FONT, sz: 11.5, bold: true, color: { rgb: C.text } }; s.alignment = { horizontal: "left", vertical: "center" }; }
-        s.border = { bottom: thin };
+    const wsA = paint(A, (t, r, c) => {
+      const com = commonStyle(t, lastC, c); if (com) return com;
+      const s = { font: { name: FONT, sz: 10.5, color: { rgb: C.text } }, alignment: { vertical: "center" } };
+      if (t === "info") {
+        const isLabel = c === 0 || c === mid;
+        if (isLabel) { s.font = { name: FONT, sz: 10, bold: true, color: { rgb: C.sub } }; s.alignment = { horizontal: "left", vertical: "center" }; }
+        else { s.font = { name: FONT, sz: 11, bold: true, color: { rgb: C.text } }; s.alignment = { horizontal: "left", vertical: "center" }; }
+        s.border = { bottom: hair };
       } else if (t === "head") {
-        s.font = { name: FONT, sz: 11, bold: true, color: { rgb: C.white } };
+        s.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.white } };
         s.fill = { patternType: "solid", fgColor: { rgb: C.brand } };
-        s.alignment = { horizontal: c === 2 ? "left" : "center", vertical: "center" };
-        s.border = boxAll;
+        s.alignment = { horizontal: c === 2 ? "left" : "center", vertical: "center", wrapText: true };
+        s.border = { top: thin, bottom: thin, left: { style: "thin", color: { rgb: C.brand } }, right: { style: "thin", color: { rgb: C.brand } } };
       } else if (t === "group") {
         s.font = { name: FONT, sz: 11, bold: true, color: { rgb: C.brandDk } };
         s.fill = { patternType: "solid", fgColor: { rgb: C.group } };
-        s.alignment = { horizontal: c < 2 ? "center" : "left", vertical: "center" };
-        s.border = boxAll;
+        s.alignment = { horizontal: c === 0 ? "center" : (c === lastC ? "right" : "left"), vertical: "center" };
+        if (c === lastC && hasPrice) s.numFmt = moneyFmt;
+        s.border = { top: thin, bottom: thin, left: hair, right: hair };
       } else if (t === "item" || t === "itemAlt") {
         if (t === "itemAlt") s.fill = { patternType: "solid", fgColor: { rgb: C.alt } };
-        s.border = boxAll;
-        if (c === 0) s.alignment = { horizontal: "center", vertical: "center" };
-        else if (c === 1) { s.alignment = { horizontal: "center", vertical: "center" }; s.font = { name: FONT, sz: 9.5, color: { rgb: C.sub } }; }
-        else if (c === 2) s.alignment = { horizontal: "left", vertical: "center", wrapText: true };
-        else if (c === 3) { s.alignment = { horizontal: "right", vertical: "center" }; s.numFmt = qtyFmt; }
-        else if (c === 4) s.alignment = { horizontal: "center", vertical: "center" };
-        else if (c === 5 || c === 6) { s.alignment = { horizontal: "right", vertical: "center" }; s.numFmt = moneyFmt; }
+        s.border = { top: hair, bottom: hair, left: hair, right: hair };
+        if (c === 0) { s.alignment = { horizontal: "center", vertical: "center" }; s.font = { name: FONT, sz: 9.5, color: { rgb: C.sub } }; }
+        else if (c === 1) { s.alignment = { horizontal: "center", vertical: "center" }; s.font = { name: FONT, sz: 9, color: { rgb: C.sub } }; }
+        else if (c === 2) s.alignment = { horizontal: "left", vertical: "center", wrapText: true, indent: 1 };
+        else if (c === 3) { s.alignment = { horizontal: "right", vertical: "center" }; s.numFmt = qtyFmt; s.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.text } }; }
+        else if (c === 4) { s.alignment = { horizontal: "center", vertical: "center" }; s.font = { name: FONT, sz: 10, color: { rgb: C.sub } }; }
+        else { s.alignment = { horizontal: "right", vertical: "center" }; s.numFmt = moneyFmt; if (c === lastC) s.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.text } }; }
       } else if (t === "total") {
         s.font = { name: FONT, sz: 12, bold: true, color: { rgb: C.white } };
         s.fill = { patternType: "solid", fgColor: { rgb: C.brandDk } };
-        s.alignment = { horizontal: c === lastC ? "right" : "right", vertical: "center" };
+        s.alignment = { horizontal: "right", vertical: "center", indent: c === lastC ? 0 : 1 };
         if (c === lastC) s.numFmt = moneyFmt;
-        s.border = boxAll;
+        s.border = { top: med, bottom: med };
       }
       return s;
-    };
-
-    const range = X.utils.decode_range(ws["!ref"]);
-    for (let r = range.s.r; r <= range.e.r; r++) {
-      for (let c = range.s.c; c <= range.e.c; c++) {
-        const ref = X.utils.encode_cell({ r: r, c: c });
-        const s = styleCell(r, c);
-        if (!s) continue;
-        if (!ws[ref]) ws[ref] = { t: "s", v: "" };  // สร้างช่องว่างให้พื้น/เส้นขอบขึ้น
-        ws[ref].s = s;
-      }
-    }
+    });
 
     const wb = X.utils.book_new();
-    X.utils.book_append_sheet(wb, ws, "BOQ");
-    const fn = "BOQ_" + (job ? job.code : "job") + ".xlsx";
+    X.utils.book_append_sheet(wb, wsA, "ใบถอดวัสดุ");
+
+    /* ═══ ชีต 2: สรุปราคา ═══ */
+    if (hasPrice) {
+      const B2 = mkSheet(3, [{ wch: 3 }, { wch: 44 }, { wch: 18 }, { wch: 14 }]);
+      const L = 1, V = 2, U = 3; // คอลัมน์ป้าย / จำนวนเงิน / หน่วยเทียบ
+      docHead(B2, "สรุปราคาโครงการ  ·  PRICE SUMMARY", jobName + "   ·   " + jobCode + "   ·   " + kwTxt);
+
+      const kv = (label, value, unit, type) => {
+        const cells = []; cells[L] = label; cells[V] = value; if (unit != null) cells[U] = unit;
+        return B2.push(cells, type || "kv", 19);
+      };
+      const sec = (t) => { const cells = []; cells[L] = t; const r = B2.push(cells, "sec", 22); B2.merge(r, L, U); return r; };
+      const head3 = (a, b2, c3) => { const cells = []; cells[L] = a; cells[V] = b2; cells[U] = c3; return B2.push(cells, "head", 20); };
+
+      // ── ต้นทุนตามหมวด ──
+      sec("ต้นทุนแยกตามหมวดงาน");
+      head3("หมวดงาน", "จำนวนเงิน (บาท)", "สัดส่วน");
+      priced.groups.forEach((g, i) => {
+        const cells = []; cells[L] = g.group; cells[V] = g.subtotal;
+        cells[U] = priced.grandTotal > 0 ? (g.subtotal / priced.grandTotal) * 100 : 0;
+        B2.push(cells, i % 2 === 0 ? "item" : "itemAlt", 18);
+      });
+      kv("รวมต้นทุนใบถอดวัสดุ", priced.grandTotal, 100, "sum");
+      B2.gap(10);
+
+      // ── บันไดราคา ──
+      sec("โครงสร้างราคา");
+      head3("รายการ", "จำนวนเงิน (บาท)", "฿ / วัตต์");
+      const ladder = [
+        ["ต้นทุนวัสดุ + ค่าแรงติดตั้ง", pb.cost, null, "kv"],
+        pb.contractor > 0 ? ["ค่าแรงผู้รับเหมา", pb.contractor, null, "kv"] : null,
+        ["ต้นทุนรวม", pb.totalCost, pb.costPerW, "strong"],
+        ["ต้นทุนรวม + VAT " + pb.vat + "%", pb.totalCostVat, null, "kv"],
+        pb.sell > 0 ? ["ราคาขาย", pb.sell, pb.sellPerW, "strong"] : null,
+        pb.sell > 0 ? ["ราคาขาย + VAT " + pb.vat + "%", pb.sellVat, null, "kv"] : null,
+        pb.discount > 0 ? ["ส่วนลด", -pb.discount, null, "neg"] : null,
+        pb.discount > 0 ? ["ราคาหลังส่วนลด", pb.net, pb.netPerW, "strong"] : null,
+        pb.discount > 0 ? ["ราคาหลังส่วนลด + VAT " + pb.vat + "%", pb.netVat, null, "kv"] : null,
+      ].filter(Boolean);
+      ladder.forEach((m) => kv(m[0], m[1], m[2], m[3]));
+
+      // ── กำไร ──
+      if (pb.sell > 0) {
+        B2.gap(10);
+        sec("กำไรและอัตรากำไร");
+        head3("รายการ", "จำนวนเงิน (บาท)", "อัตรากำไร");
+        const g1 = []; g1[L] = "กำไรจากราคาขาย"; g1[V] = pb.profit; g1[U] = pb.margin;
+        B2.push(g1, "profit", 20);
+        if (pb.discount > 0) {
+          const g2 = []; g2[L] = "กำไรหลังหักส่วนลด"; g2[V] = pb.netProfit; g2[U] = pb.netMargin;
+          B2.push(g2, "profit", 20);
+        }
+      }
+      B2.gap(8);
+      const bn = B2.push([null, "หมายเหตุ  ·  ต้นทุนมาจากใบถอดวัสดุในชีตแรก  ·  ราคาต่อวัตต์คิดจากกำลังติดตั้งด้าน DC " + kwTxt + "  ·  เอกสารภายใน ไม่ใช่ใบเสนอราคา"], "note", 26);
+      B2.merge(bn, L, U);
+
+      const wsB = paint(B2, (t, r, c) => {
+        // คอลัมน์ 0 เป็นแค่ขอบซ้าย ปล่อยว่าง ยกเว้นแถบหัวเอกสารที่ผสานเต็มความกว้าง
+        if (c === 0 && t !== "title" && t !== "subtitle") return { fill: { patternType: "solid", fgColor: { rgb: C.white } } };
+        const com = commonStyle(t, 3, c); if (com) return com;
+        const s = { font: { name: FONT, sz: 10.5, color: { rgb: C.text } }, alignment: { vertical: "center" } };
+        const right = { horizontal: "right", vertical: "center" };
+        if (t === "head") {
+          s.font = { name: FONT, sz: 10, bold: true, color: { rgb: C.white } };
+          s.fill = { patternType: "solid", fgColor: { rgb: C.brand } };
+          s.alignment = c === L ? { horizontal: "left", vertical: "center", indent: 1 } : { horizontal: "right", vertical: "center", indent: 1 };
+          return s;
+        }
+        s.border = { top: hair, bottom: hair, left: hair, right: hair };
+        if (t === "itemAlt") s.fill = { patternType: "solid", fgColor: { rgb: C.alt } };
+        if (t === "sum") {
+          s.font = { name: FONT, sz: 11, bold: true, color: { rgb: C.brandDk } };
+          s.fill = { patternType: "solid", fgColor: { rgb: C.group } };
+        } else if (t === "strong") {
+          s.font = { name: FONT, sz: 11, bold: true, color: { rgb: C.brandDk } };
+          s.fill = { patternType: "solid", fgColor: { rgb: C.brandSoft } };
+        } else if (t === "neg") {
+          s.font = { name: FONT, sz: 10.5, color: { rgb: C.red } };
+        } else if (t === "profit") {
+          s.font = { name: FONT, sz: 11.5, bold: true, color: { rgb: C.gold } };
+          s.fill = { patternType: "solid", fgColor: { rgb: C.goldSoft } };
+        }
+        if (c === L) { s.alignment = { horizontal: "left", vertical: "center", indent: 1, wrapText: true }; }
+        else { s.alignment = Object.assign({ indent: 1 }, right); s.numFmt = c === V ? moneyFmt : (t === "item" || t === "itemAlt" || t === "sum" || t === "profit" ? pctFmt : perWFmt); }
+        return s;
+      });
+      X.utils.book_append_sheet(wb, wsB, "สรุปราคา");
+    }
+
+    const stamp = (window.SF.TODAY || "").replace(/-/g, "");
+    const fn = "BOQ_" + jobCode.replace(/[\\/:*?"<>|]/g, "-") + "_" + stamp + ".xlsx";
     X.writeFile(wb, fn);
   };
 
