@@ -734,15 +734,73 @@
     { name: "ค่าจดแจ้งยกเว้นใบอนุญาต (กกพ.)", unit: "งาน" },
     { name: "ใบอนุญาตผลิตไฟฟ้า (กกพ.)", unit: "ฉบับ" },
     { name: "ค่าวิศวกรไฟฟ้าเซ็นรับรองแบบ", unit: "งาน" },
+    { name: "ค่าคำนวณโครงสร้างรองรับแผง", unit: "งาน" },
     { name: "ค่าวิศวกรโยธาเซ็นรับรองโครงสร้าง", unit: "งาน" },
     { name: "ค่าเขียนแบบ As-built", unit: "ชุด" },
     { name: "ค่าขออนุญาตดัดแปลงอาคาร (อ.1)", unit: "งาน" },
+  ];
+  /* ── ค่าขนส่ง & เครื่องจักร · ค่าบริหารจัดการหน้างาน ──
+     งานโครงการต้องขนของขึ้นหลังคาด้วยเฮี้ยบ/เครน และทีมค้างที่หน้างานหลายวัน
+     สองหมวดนี้ราคาอยู่ในบรรทัดเองเหมือนค่าแรง ไม่ใช่ของในคลัง */
+  const TRANSPORT_PRESET = [
+    { name: "รถบรรทุก / รถเฮี้ยบ", unit: "เที่ยว" },
+    { name: "รถเครน", unit: "วัน" },
+  ];
+  const MANAGE_PRESET = [
+    { name: "ค่าที่พักทีมติดตั้ง", unit: "คืน" },
+    { name: "ค่าเดินทาง", unit: "เที่ยว" },
+    { name: "ค่าดูแลระบบ O&M", unit: "ปี" },
   ];
   const G_TRAY = "รางไฟ (WIREWAY / TRAY)";
   const G_SUPPORT = "โครงสร้างรองรับอุปกรณ์";
   const G_LABOR = "ค่าแรงติดตั้ง";
   const G_PERMIT = "ค่าขออนุญาต & เอกสาร";
-  const SERVICE_GROUPS = [G_LABOR, G_PERMIT];   // หมวดที่ราคาอยู่ในบรรทัดเอง ไม่ดึงจากคลัง
+  const G_TRANSPORT = "ขนส่ง & เครื่องจักร";
+  const G_MANAGE = "บริหารจัดการหน้างาน";
+  const SERVICE_GROUPS = [G_LABOR, G_PERMIT, G_TRANSPORT, G_MANAGE];   // หมวดที่ราคาอยู่ในบรรทัดเอง ไม่ดึงจากคลัง
+
+  /* ── หมวดของงานโครงการ ──
+     งานโครงการมีของที่งานบ้านไม่มี: ตู้ไฟแยกฝั่ง, ระบบสูบน้ำล้างแผง, ถังเก็บน้ำ, ท่อน้ำ, อุปกรณ์มอนิเตอร์
+     ราคาดึงจากคลังเหมือนวัสดุอื่น · ทุกหมวดพิมพ์อุปกรณ์ประกอบเพิ่มเองได้ เพราะแล้วแต่หน้างาน */
+  const G_BOARD = "ตู้ไฟ";
+  const G_WATER = "ระบบสูบน้ำ (WATER SYSTEM)";
+  const G_TANK = "ถังเก็บน้ำ (TANK)";
+  const G_PIPE = "ท่อน้ำ (PIPE)";
+  const G_MONITOR = "อุปกรณ์มอนิเตอร์";
+  const PROJECT_KITS = [
+    { key: "board", group: G_BOARD, th: "ตู้ไฟ", icon: "box",
+      hint: "ตู้แยกฝั่ง AC / DC / Data Logger — กรอกจำนวนตู้",
+      items: [
+        { key: "ac", name: "ตู้ไฟ AC", unit: "ตู้" },
+        { key: "dc", name: "ตู้ไฟ DC", unit: "ตู้" },
+        { key: "logger", name: "ตู้ไฟ DATA LOGGER", unit: "ตู้" },
+      ] },
+    { key: "water", group: G_WATER, th: "ระบบสูบน้ำ", icon: "power",
+      hint: "ปั๊มน้ำสำหรับระบบล้างแผง — เลือกกำลังตามหน้างาน",
+      items: [
+        { key: "p300", name: "Pump 300W", unit: "ตัว" },
+        { key: "p350", name: "Pump 350W", unit: "ตัว" },
+        { key: "p400", name: "Pump 400W", unit: "ตัว" },
+        { key: "p900", name: "Pump 900W", unit: "ตัว" },
+        { key: "booster", name: "Booster Pump set (2 motor)", unit: "ชุด" },
+      ] },
+    { key: "tank", group: G_TANK, th: "ถังเก็บน้ำ", icon: "box",
+      items: [
+        { key: "t1000", name: "ถังเก็บน้ำ 1,000 ลิตร", unit: "ใบ" },
+        { key: "t2000", name: "ถังเก็บน้ำ 2,000 ลิตร", unit: "ใบ" },
+        { key: "t3000", name: "ถังเก็บน้ำ 3,000 ลิตร", unit: "ใบ" },
+      ] },
+    { key: "pipe", group: G_PIPE, th: "ท่อน้ำ", icon: "grid",
+      hint: "ท่อ PPR — กรอกจำนวนเส้น (ข้อต่อ/วาล์ว ใส่ในอุปกรณ์ประกอบ)",
+      items: [{ key: "ppr34", name: "ท่อ PPR 3/4\"", unit: "เส้น" }] },
+    { key: "monitor", group: G_MONITOR, th: "อุปกรณ์มอนิเตอร์", icon: "bolt",
+      hint: "ต่อกับอินเวอร์เตอร์เพื่ออ่านค่าและส่งข้อมูล",
+      items: [
+        { key: "logger", name: "SMART Logger", unit: "ตัว" },
+        { key: "janitza", name: "Janitza Power Meter", unit: "ตัว" },
+        { key: "ct", name: "CT (หม้อแปลงกระแส)", unit: "ตัว" },
+      ] },
+  ];
 
   // ── ACCESSORIES มาตรฐาน — ถอดให้ทุกงานอัตโนมัติ + เทปพันสายไฟตามจำนวนเฟส ──
   const ACC_STD = [
@@ -1276,6 +1334,20 @@
       groups.push({ group: "GROUNDING", items: gnd });
     }
 
+    /* หมวดของงานโครงการ (ตู้ไฟ / ปั๊ม / ถัง / ท่อ / อุปกรณ์มอนิเตอร์)
+       กรอกจำนวนเท่าไรก็ออกเท่านั้น ไม่กรอก = ไม่มีหมวดนี้ในใบถอดของ */
+    const proj = b.project || {};
+    PROJECT_KITS.forEach((k) => {
+      const st = proj[k.key] || {};
+      const rows = [];
+      k.items.forEach((it) => { const q = Math.max(0, +st[it.key] || 0); if (q > 0) rows.push({ name: it.name, qty: q, unit: it.unit }); });
+      (st.extra || []).forEach((x) => {
+        const nm = String(x.name || "").trim(), q = Math.max(0, +x.qty || 0);
+        if (nm && q > 0) rows.push({ name: nm, qty: q, unit: x.unit || "ชิ้น" });
+      });
+      if (rows.length) groups.push({ group: k.group, items: mergeItems(rows) });
+    });
+
     // งานเพิ่มเติม (Input) — LADDER / WALKWAY / GUARD RAIL (งานโครงการเท่านั้น ไม่นับงานบ้าน)
     if ((b.jobType || "") !== "home") calcStructures(b).forEach((g) => groups.push(g));
 
@@ -1338,6 +1410,10 @@
     const permit = svcRows(b.permit, PERMIT_PRESET);
     if (labor.length) groups.push({ group: G_LABOR, items: labor });
     if (permit.length) groups.push({ group: G_PERMIT, items: permit });
+    /* ขนส่ง & บริหารจัดการ — เป็นของงานโครงการ งานบ้านส่วนใหญ่ไม่มี
+       จึงขึ้นเฉพาะงานที่เข้าไปกรอกไว้จริง (ยังไม่แตะ = null = ไม่ต้องโผล่ในใบถอดของ) */
+    if (b.transport != null) { const r = svcRows(b.transport, TRANSPORT_PRESET); if (r.length) groups.push({ group: G_TRANSPORT, items: r }); }
+    if (b.manage != null) { const r = svcRows(b.manage, MANAGE_PRESET); if (r.length) groups.push({ group: G_MANAGE, items: r }); }
 
     return { groups, meta: { panelCount, kw, rowsSum, invCount, invAuto, plan, battCount, auto: AUTO, valid: rowsSum === panelCount } };
   }
@@ -1437,6 +1513,8 @@
     add("GUARD RAIL", "เกลียวเร่งสแตนเลส 8 มม.", "ตัว");
     add("GUARD RAIL", "กิ๊บสลิงสแตนเลส 6 มม.", "ตัว");
     add("GUARD RAIL", "ปลอกอลูมิเนียม 6 มม.", "ตัว");
+    // หมวดงานโครงการ — ตู้ไฟ / ปั๊ม / ถัง / ท่อ / อุปกรณ์มอนิเตอร์
+    PROJECT_KITS.forEach((k) => k.items.forEach((it) => add(k.group, it.name, it.unit)));
     // ACCESSORIES มาตรฐาน + เทปพันสายไฟทุกสี (1 เฟส + 3 เฟส)
     ACC_STD.forEach((n) => add("ACCESSORIES", n, "ชิ้น"));
     [...new Set([...ACC_TAPE_1P, ...ACC_TAPE_3P])].forEach((c) => add("ACCESSORIES", "เทปพันสายไฟ " + c, "ชิ้น"));
@@ -1474,6 +1552,36 @@
       matTotal: matTotal, matPerKw: perKw(matTotal), matPerW: perW(matTotal),
       laborTotal: laborTotal, laborPerKw: perKw(laborTotal), laborPerW: perW(laborTotal),
       permitTotal: permitTotal, permitPerKw: perKw(permitTotal), permitPerW: perW(permitTotal),
+    };
+  }
+
+  /* ── แบ่งราคา: ต้นทุน → ราคาผู้รับเหมา → ราคาขาย → ส่วนลด ──
+     ต้นทุนมาจากใบถอดของ (ไม่ต้องกรอก) ที่เหลือกรอกเอง แล้วคิด VAT / กำไร / ฿ต่อวัตต์ ให้
+     ส่วนลดกรอกเป็น "จำนวนเงินที่ลด" ราคาหลังลดคำนวณให้ ไม่ใช่กรอกราคาสุทธิเอง
+     จะได้เห็นทันทีว่าลดไปเท่าไรแล้วกำไรเหลือเท่าไร */
+  const VAT_RATE = 7;
+  function priceBreakdown(cost, p, watt) {
+    p = p || {};
+    const vat = +p.vat >= 0 && p.vat !== "" && p.vat != null ? +p.vat : VAT_RATE;
+    const r2 = (v) => Math.round(v * 100) / 100;
+    const addVat = (v) => r2(v * (1 + vat / 100));
+    const base = Math.max(0, +cost || 0);
+    const contractor = Math.max(0, +p.contractor || 0);
+    const totalCost = base + contractor;
+    const sell = Math.max(0, +p.sell || 0);
+    const discount = Math.max(0, +p.discount || 0);
+    const net = Math.max(0, sell - discount);
+    const w = Math.max(0, +watt || 0);
+    const perW = (v) => (w > 0 ? Math.round((v / w) * 1000) / 1000 : 0);
+    const pct = (profit, price) => (price > 0 ? Math.round((profit / price) * 10000) / 100 : 0);
+    return {
+      vat: vat, cost: base, contractor: contractor,
+      totalCost: totalCost, totalCostVat: addVat(totalCost),
+      sell: sell, sellVat: addVat(sell),
+      discount: discount, net: net, netVat: addVat(net),
+      profit: sell - totalCost, margin: pct(sell - totalCost, sell),
+      netProfit: net - totalCost, netMargin: pct(net - totalCost, net),
+      costPerW: perW(totalCost), sellPerW: perW(sell), netPerW: perW(net),
     };
   }
 
@@ -1537,6 +1645,7 @@
 
   window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, catalog, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, WAY_PIPE_LEN, TRAY_PIPE_LEN, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
+    TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, VAT_RATE, priceBreakdown,
     TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,
     UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,
     AMP_CORE_LABEL, ampGroupMeta, ampCoresFor, ampCoreKey, WIRE_METHOD_LEGACY, normWireMethod,

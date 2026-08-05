@@ -507,8 +507,33 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
   const csp = Object.assign({}, SPARE_DEF, b.conduitSpare);
 
+  /* ── หมวดของงานโครงการ (ตู้ไฟ / ปั๊ม / ถัง / ท่อ / อุปกรณ์มอนิเตอร์) ──
+     โครงสร้างเดียวกันทุกหมวด: จำนวนต่อรายการ + อุปกรณ์ประกอบที่พิมพ์เพิ่มเอง */
+  const KITS = window.BOQ.PROJECT_KITS || [];
+  const kitOf = (k) => (b.project || {})[k] || {};
+  const setKit = (k, key, v) => setB((p) => {
+    const pr = Object.assign({}, p.project); pr[k] = Object.assign({}, pr[k], { [key]: v });
+    return Object.assign({}, p, { project: pr });
+  });
+  const kitCount = (k) => {
+    const st = kitOf(k.key);
+    return k.items.reduce((s, it) => s + Math.max(0, +st[it.key] || 0), 0)
+      + (st.extra || []).filter((x) => (x.name || "").trim() && +x.qty > 0).length;
+  };
+  const kitTotal = KITS.reduce((s, k) => s + kitCount(k), 0);
+
+  // ── ราคาขาย & ส่วนลด ──
+  const PRICE_DEF = { contractor: 0, sell: 0, discount: 0, vat: window.BOQ.VAT_RATE };
+  const pricing = Object.assign({}, PRICE_DEF, b.pricing || {});
+  const setPricing = (k, v) => setB((p) => Object.assign({}, p, { pricing: Object.assign({}, PRICE_DEF, p.pricing || {}, { [k]: v === "" ? "" : +v || 0 }) }));
+
   const result = window.BOQ.calcBOQ(b);
   const priced = window.BOQ.applyPrices(result, priceMap || {});
+  // แบ่งราคา: ต้นทุนมาจากใบถอดของ · ผู้รับเหมา/ราคาขาย/ส่วนลด กรอกเอง
+  const pb = window.BOQ.priceBreakdown(priced.grandTotal, pricing, (result.meta.kw || 0) * 1000);
+  // ยอดรวมของหมวดขนส่ง + บริหารจัดการ (ราคาอยู่ในบรรทัดเอง จึงบวกจากผลถอดของโดยตรง)
+  const siteTotal = (priced.groups || []).filter((g) => g.group === window.BOQ.G_TRANSPORT || g.group === window.BOQ.G_MANAGE)
+    .reduce((s, g) => s + g.subtotal, 0);
   /* จุดรองรับที่ควรเป็น — เฉพาะอินเวอร์เตอร์สตริง/ไฮบริดที่เป็นกล่องแขวนผนัง/ตั้งพื้น
      ไมโครอินเวอร์เตอร์ยึดใต้แผงอยู่แล้ว ไม่ต้องทำโครง (และ invCount ของไมโครเป็น LOT ไม่ใช่จำนวนตัว เช่น 155 แผง 2:1 = 77.5) */
   const supAuto = b.inverterModel ? Math.max(1, Math.round(result.meta.invCount || 1)) : 0;
@@ -653,7 +678,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
   const GROUP_COLOR = { "PV MODULE": "#22A35B", INVERTER: "#7C5CFC", "COMBINER BOX": "#4F46E5", MOUNTING: "#F59E0B", CABLE: "#0EA5E9", "RACE WAY": "#64748B", GROUNDING: "#A16207", "LADDER (บันไดลิง)": "#0D9488", "WALKWAY": "#D97706", "GUARD RAIL": "#DB2777", ACCESSORIES: "#EC4899",
     [window.BOQ.G_TRAY]: "#0891B2", [window.BOQ.G_SUPPORT]: "#78716C",
-    [window.BOQ.G_LABOR]: "#2563EB", [window.BOQ.G_PERMIT]: "#9333EA" };
+    [window.BOQ.G_LABOR]: "#2563EB", [window.BOQ.G_PERMIT]: "#9333EA",
+    [window.BOQ.G_TRANSPORT]: "#0F766E", [window.BOQ.G_MANAGE]: "#B45309",
+    "ตู้ไฟ": "#475569", "ระบบสูบน้ำ (WATER SYSTEM)": "#0284C7", "ถังเก็บน้ำ (TANK)": "#0369A1",
+    "ท่อน้ำ (PIPE)": "#0E7490", "อุปกรณ์มอนิเตอร์": "#6D28D9" };
 
   // ── Accessories: เพิ่มของ / ดึงจากราคาวัสดุ + คลังสินค้า ──
   const stockItems = (stock && stock.items) || [];
@@ -918,11 +946,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     );
   };
 
-  /* ตารางค่าแรง / ค่าขออนุญาต — ปริมาณช่องที่มี auto จะวิ่งตามผลถอดวัสดุเอง แก้ไม่ได้ (แต่ลบทั้งบรรทัดได้) */
+  /* ตารางค่าแรง / ค่าขออนุญาต / ขนส่ง / บริหารจัดการ — ปริมาณช่องที่มี auto จะวิ่งตามผลถอดวัสดุเอง แก้ไม่ได้ (แต่ลบทั้งบรรทัดได้) */
+  const SVC_GROUP = { labor: window.BOQ.G_LABOR, permit: window.BOQ.G_PERMIT, transport: window.BOQ.G_TRANSPORT, manage: window.BOQ.G_MANAGE };
   const SvcTable = ({ sKey, preset, qtyLabel, total, perW }) => {
     const rows = svcList(sKey, preset);
-    const g = (priced.groups || []).find((x) => x.group === (sKey === "labor" ? window.BOQ.G_LABOR : window.BOQ.G_PERMIT));
+    const g = (priced.groups || []).find((x) => x.group === SVC_GROUP[sKey]);
     const live = (g && g.items) || [];
+    const sum = total != null ? total : (g ? g.subtotal : 0);   // ไม่ส่ง total มา = เอายอดของหมวดนั้นเอง
+    const sumPerW = perW != null ? perW : (g ? g.perW : 0);
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 62px 36px" : "minmax(0,1fr) 84px 62px 96px 36px", gap: 8,
@@ -945,21 +976,21 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 : <input type="number" style={numStyle} value={r.qty != null ? r.qty : ""} onChange={(e) => setSvc(sKey, preset, i, "qty", e.target.value)} />)}
               {!isMobile && <input value={r.unit || ""} onChange={(e) => setSvc(sKey, preset, i, "unit", e.target.value)} style={Object.assign({}, inputStyle, { width: "100%", textAlign: "right" })} />}
               <input type="number" style={numStyle} value={r.price != null ? r.price : ""} placeholder="0" onChange={(e) => setSvc(sKey, preset, i, "price", e.target.value)} />
-              <button onClick={() => delSvc(sKey, preset, i)} title="ลบบรรทัด" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
+              <button className="bq-x" onClick={() => delSvc(sKey, preset, i)} title="ลบบรรทัด"><Icon name="x" size={14} /></button>
             </div>
           );
         })}
-        {total > 0 && (
+        {sum > 0 && (
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "10px 12px", marginTop: 2,
             background: "var(--primary-soft)", borderRadius: 10 }}>
             <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".06em", color: "var(--primary-dark)" }}>รวมทุกบรรทัด</span>
             <span style={{ fontFamily: "var(--display)", fontSize: 17, fontWeight: 700, letterSpacing: "-.03em", fontVariantNumeric: "tabular-nums", color: "var(--primary-dark)" }}>
-              ฿{baht(total)}{perW > 0 ? <span style={{ fontSize: 11.5, fontWeight: 700, marginLeft: 6 }}>· ฿{baht(perW)}/W</span> : null}
+              ฿{baht(sum)}{sumPerW > 0 ? <span style={{ fontSize: 11.5, fontWeight: 700, marginLeft: 6 }}>· ฿{baht(sumPerW)}/W</span> : null}
             </span>
           </div>
         )}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button onClick={() => addSvc(sKey, preset)} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--primary-soft)", color: "var(--primary-dark)", border: "none", borderRadius: 9, padding: "8px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={14} color="var(--primary-dark)" /> เพิ่มบรรทัด</button>
+          <button onClick={() => addSvc(sKey, preset)} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "none", color: "var(--primary-dark)", border: "1px dashed var(--border-strong)", borderRadius: 9, padding: "6px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--primary-dark)" /> เพิ่มบรรทัด</button>
           {b[sKey] != null && <button onClick={() => resetSvc(sKey)} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "8px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>คืนรายการตั้งต้น</button>}
         </div>
       </div>
@@ -1084,6 +1115,24 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       trow[2] = "ต้นทุนรวมทั้งสิ้น"; trow[lastC] = priced.grandTotal;
       pushRow(trow, "total", 24);
       merges.push({ s: { r: R - 1, c: 0 }, e: { r: R - 1, c: lastC - 1 } });
+      /* บันไดราคา — ต่อท้ายใบถอดของ เพื่อให้ไฟล์เดียวจบตั้งแต่ต้นทุนถึงราคาเสนอ
+         บรรทัดที่ยังไม่ได้กรอก (เช่น ยังไม่ตั้งราคาขาย) ไม่ต้องใส่ให้รก */
+      const money = [
+        pb.contractor > 0 ? ["ราคาผู้รับเหมา", pb.contractor] : null,
+        pb.contractor > 0 ? ["ต้นทุนรวม (วัสดุ + ค่าแรง + ผู้รับเหมา)", pb.totalCost] : null,
+        ["ต้นทุนรวม + VAT " + pb.vat + "%", pb.totalCostVat],
+        pb.sell > 0 ? ["ราคาขาย", pb.sell] : null,
+        pb.sell > 0 ? ["ราคาขาย + VAT " + pb.vat + "%", pb.sellVat] : null,
+        pb.discount > 0 ? ["ส่วนลด", -pb.discount] : null,
+        pb.discount > 0 ? ["ราคาหลังส่วนลด", pb.net] : null,
+        pb.discount > 0 ? ["ราคาหลังส่วนลด + VAT " + pb.vat + "%", pb.netVat] : null,
+      ].filter(Boolean);
+      money.forEach((m) => {
+        const row = []; for (let i = 0; i <= lastC; i++) row.push("");
+        row[2] = m[0]; row[lastC] = m[1];
+        pushRow(row, "item", 20);
+        merges.push({ s: { r: R - 1, c: 0 }, e: { r: R - 1, c: lastC - 1 } });
+      });
     }
 
     // ── สร้างชีต + ลงสไตล์ ──
@@ -1195,8 +1244,16 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     { key: "permit", icon: "box", title: "ค่าขออนุญาต & เอกสาร",
       meta: priced.permitTotal > 0 ? "฿" + baht(priced.permitTotal) : "ยังไม่ได้กรอกค่าธรรมเนียม",
       tone: priced.permitTotal > 0 ? "ok" : "warn" },
+    /* หมวดของงานโครงการ — งานบ้านไม่ต้องมีให้เกะกะ */
+    !isHome ? { key: "project", icon: "box", title: "ตู้ไฟ · น้ำ · ท่อ · มอนิเตอร์",
+      meta: kitTotal > 0 ? kitTotal + " รายการ" : "ยังไม่ได้กรอก", tone: kitTotal > 0 ? "ok" : "" } : null,
+    !isHome ? { key: "site", icon: "power", title: "ขนส่ง & บริหารจัดการ",
+      meta: siteTotal > 0 ? "฿" + baht(siteTotal) : "ยังไม่ได้กรอก", tone: siteTotal > 0 ? "ok" : "" } : null,
     { key: "removable", icon: "box", title: "รายการวัสดุที่ถอดได้",
       meta: priced.grandTotal > 0 ? "รวม ฿" + baht(priced.grandTotal) : "ยังไม่มีราคา", tone: priced.grandTotal > 0 ? "ok" : "" },
+    { key: "price", icon: "bolt", title: "แบ่งราคา & กำไร",
+      meta: pb.sell > 0 ? "ขาย ฿" + baht(pb.net || pb.sell) + " · กำไร " + (pb.net > 0 ? pb.netMargin : pb.margin) + "%" : "ยังไม่ได้ตั้งราคาขาย",
+      tone: pb.sell > 0 ? ((pb.net > 0 ? pb.netProfit : pb.profit) > 0 ? "ok" : "warn") : "" },
   ].filter(Boolean);
   const itemCount = priced.groups.reduce((a, g) => a + g.items.length, 0);
 
@@ -1993,6 +2050,71 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             <SvcTable sKey="permit" preset={window.BOQ.PERMIT_PRESET} qtyLabel="จำนวน" total={priced.permitTotal} perW={priced.permitPerW} />
           </BoqSection>
 
+          {/* ── หมวดของงานโครงการ: ตู้ไฟ / ระบบสูบน้ำ / ถัง / ท่อ / อุปกรณ์มอนิเตอร์ ── */}
+          {!isHome && (
+          <BoqSection title="ตู้ไฟ · ระบบน้ำ · ท่อ · อุปกรณ์มอนิเตอร์" icon="box" {...secProps("project")}
+            right={kitTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>{kitTotal} รายการ</span> : null}>
+            <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 14 }}>
+              ของที่มีเฉพาะงานโครงการ — กรอกจำนวนเฉพาะที่งานนี้มี ที่เหลือปล่อยว่าง · ราคาดึงจากคลังเหมือนวัสดุอื่น
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {KITS.map((k) => {
+                const st = kitOf(k.key);
+                const extra = st.extra || [];
+                const setExtra = (v) => setKit(k.key, "extra", v);
+                return (
+                  <div key={k.key}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: k.hint ? 3 : 7 }}>{k.th}</div>
+                    {k.hint && <div style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 7 }}>{k.hint}</div>}
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(3, minmax(0,1fr))", gap: 9 }}>
+                      {k.items.map((it) => (
+                        <label key={it.key} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>{it.name} <span style={{ color: "var(--border-strong)" }}>({it.unit})</span></span>
+                          <input type="number" min={0} placeholder="0" value={st[it.key] != null ? st[it.key] : ""}
+                            onChange={(e) => setKit(k.key, it.key, e.target.value === "" ? "" : Math.max(0, +e.target.value || 0))}
+                            style={Object.assign({}, numStyle, { width: "100%", height: 34, fontSize: 12.5, padding: "6px 9px" })} />
+                        </label>
+                      ))}
+                    </div>
+                    {/* อุปกรณ์ประกอบ — ของจุกจิกของหมวดนี้ที่แล้วแต่หน้างาน พิมพ์เพิ่มเอง */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+                      {extra.map((x, i) => (
+                        <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 72px 62px 34px", gap: 7, alignItems: "center" }}>
+                          <input value={x.name || ""} placeholder={"อุปกรณ์ประกอบ " + k.th} style={Object.assign({}, inputStyle, cabSelStyle)}
+                            onChange={(e) => setExtra(extra.map((y, j) => j === i ? Object.assign({}, y, { name: e.target.value }) : y))} />
+                          <input type="number" min={0} value={x.qty != null ? x.qty : ""} placeholder="จำนวน" style={Object.assign({}, numStyle, cabSelStyle)}
+                            onChange={(e) => setExtra(extra.map((y, j) => j === i ? Object.assign({}, y, { qty: e.target.value }) : y))} />
+                          <input value={x.unit || ""} placeholder="หน่วย" style={Object.assign({}, inputStyle, cabSelStyle)}
+                            onChange={(e) => setExtra(extra.map((y, j) => j === i ? Object.assign({}, y, { unit: e.target.value }) : y))} />
+                          <button className="bq-x" onClick={() => setExtra(extra.filter((_, j) => j !== i))} title="ลบ"><Icon name="x" size={13} /></button>
+                        </div>
+                      ))}
+                      <button onClick={() => setExtra(extra.concat([{ name: "", qty: "", unit: "ชิ้น" }]))}
+                        style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "none", color: "var(--text-2)", border: "1px dashed var(--border-strong)", borderRadius: 9, padding: "5px 10px", fontWeight: 700, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>
+                        <Icon name="plus" size={12} color="var(--text-2)" /> อุปกรณ์ประกอบ {k.th}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </BoqSection>
+          )}
+
+          {/* ── ขนส่ง & บริหารจัดการหน้างาน — ราคาอยู่ในบรรทัดเอง เหมือนค่าแรง ── */}
+          {!isHome && (
+          <BoqSection title="ขนส่ง & บริหารจัดการหน้างาน" icon="power" {...secProps("site")}
+            right={siteTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(siteTotal)}</span> : null}>
+            <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
+              ค่าขนของขึ้นไซต์และค่าอยู่หน้างาน — กรอกเฉพาะที่งานนี้มีจริง บรรทัดที่ไม่ใช้ลบทิ้งได้
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8 }}>ขนส่ง & เครื่องจักร</div>
+            <SvcTable sKey="transport" preset={window.BOQ.TRANSPORT_PRESET} qtyLabel="จำนวน" />
+            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", margin: "18px 0 8px" }}>บริหารจัดการ</div>
+            <SvcTable sKey="manage" preset={window.BOQ.MANAGE_PRESET} qtyLabel="จำนวน" />
+          </BoqSection>
+          )}
+
           {/* ── งานเพิ่มเติม (Input): โครงสร้างบนหลังคา — เฉพาะงานโครงการ ไม่แสดงงานบ้าน ── */}
           {!isHome && (
           <BoqSection title="งานเพิ่มเติม (Input) — โครงสร้าง" icon="box" {...secProps("struct")}
@@ -2144,6 +2266,76 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             </div>
             <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)" }}>* ราคาดึงจากเมนู "ราคาวัสดุ" — รายการที่ยังไม่ใส่ราคาจะขึ้น "–"</div>
           </BoqSection>
+
+          {/* ── แบ่งราคา: ต้นทุน → ผู้รับเหมา → ราคาขาย → ส่วนลด ── */}
+          <BoqSection title="แบ่งราคา & กำไร" icon="bolt" {...secProps("price")}
+            right={pb.sell > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: (pb.net > 0 ? pb.netProfit : pb.profit) > 0 ? "var(--primary-dark)" : "#B45309" }}>กำไร {(pb.net > 0 ? pb.netMargin : pb.margin)}%</span> : null}>
+            <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 14 }}>
+              ต้นทุนดึงจากใบถอดของให้เอง — กรอกเฉพาะราคาผู้รับเหมา ราคาขาย และส่วนลด แล้วระบบคิด VAT กำไร และบาทต่อวัตต์ให้
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(4, minmax(0,1fr))", gap: 10, marginBottom: 14 }}>
+              {[
+                { k: "contractor", lb: "ราคาผู้รับเหมา (฿)", tip: "ค่าจ้างผู้รับเหมาช่วง — บวกเข้าเป็นต้นทุน" },
+                { k: "sell", lb: "ราคาขาย (฿)", tip: "ราคาขายก่อน VAT และก่อนหักส่วนลด" },
+                { k: "discount", lb: "ส่วนลด (฿)", tip: "จำนวนเงินที่ลดให้ลูกค้า — ราคาหลังลดคำนวณให้" },
+                { k: "vat", lb: "VAT (%)", tip: "ปกติ 7% — แก้ได้ถ้างานนี้คิดต่าง" },
+              ].map((f) => (
+                <label key={f.k} style={{ display: "flex", flexDirection: "column", gap: 3 }} title={f.tip}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>{f.lb}</span>
+                  <input type="number" min={0} placeholder="0" value={pricing[f.k] != null ? pricing[f.k] : ""}
+                    onChange={(e) => setPricing(f.k, e.target.value)}
+                    style={Object.assign({}, numStyle, { width: "100%", height: 36 })} />
+                </label>
+              ))}
+            </div>
+            {/* บันไดราคา — ไล่จากต้นทุนขึ้นไปถึงราคาสุทธิ ทุกขั้นมีทั้งก่อนและหลัง VAT */}
+            <div style={{ border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
+              {[
+                { lb: "ต้นทุนวัสดุ + ค่าแรง (จาก BOQ)", v: pb.cost, sub: priced.perW > 0 ? "฿" + baht(priced.perW) + "/W" : "" },
+                { lb: "ราคาผู้รับเหมา", v: pb.contractor, dim: true },
+                { lb: "ต้นทุนรวม", v: pb.totalCost, strong: true, sub: pb.costPerW > 0 ? "฿" + baht(pb.costPerW) + "/W" : "" },
+                { lb: "ต้นทุนรวม + VAT " + pb.vat + "%", v: pb.totalCostVat, dim: true },
+                { lb: "ราคาขาย", v: pb.sell, strong: true, sub: pb.sellPerW > 0 ? "฿" + baht(pb.sellPerW) + "/W" : "" },
+                { lb: "ราคาขาย + VAT " + pb.vat + "%", v: pb.sellVat, dim: true },
+                pb.discount > 0 ? { lb: "ราคาหลังส่วนลด (ลด ฿" + baht(pb.discount) + ")", v: pb.net, strong: true, sub: pb.netPerW > 0 ? "฿" + baht(pb.netPerW) + "/W" : "" } : null,
+                pb.discount > 0 ? { lb: "ราคาหลังส่วนลด + VAT " + pb.vat + "%", v: pb.netVat, dim: true } : null,
+              ].filter(Boolean).map((r, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, padding: "9px 14px",
+                  borderTop: i === 0 ? "none" : "1px solid var(--border)", background: r.strong ? "var(--surface2)" : "transparent" }}>
+                  <span style={{ fontSize: r.strong ? 12 : 11.5, fontWeight: r.strong ? 700 : 600, color: r.dim ? "var(--text-3)" : "var(--text-1)" }}>{r.lb}</span>
+                  <span style={{ display: "inline-flex", alignItems: "baseline", gap: 8 }}>
+                    {r.sub && <span style={{ fontSize: 10, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{r.sub}</span>}
+                    <span style={{ fontFamily: "var(--mono)", fontSize: r.strong ? 14 : 12.5, fontWeight: r.strong ? 800 : 600,
+                      fontVariantNumeric: "tabular-nums", color: r.v > 0 ? (r.dim ? "var(--text-2)" : "var(--text-1)") : "var(--text-3)" }}>
+                      {r.v > 0 ? "฿" + baht(r.v) : "—"}
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
+            {/* กำไร — ตัวเลขที่ต้องดูก่อนกดเสนอราคา */}
+            {pb.sell > 0 && (() => {
+              const profit = pb.discount > 0 ? pb.netProfit : pb.profit;
+              const margin = pb.discount > 0 ? pb.netMargin : pb.margin;
+              const good = profit > 0;
+              return (
+                <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", padding: "12px 14px", borderRadius: 12,
+                  background: good ? "var(--primary-soft)" : "#FEF3C7", border: "1px solid " + (good ? "#BBE7CD" : "#FDE68A") }}>
+                  <span style={{ display: "inline-flex", alignItems: "baseline", gap: 7 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".06em", color: good ? "var(--primary-dark)" : "#92400E" }}>กำไร</span>
+                    <span style={{ fontFamily: "var(--display)", fontSize: 20, fontWeight: 700, letterSpacing: "-.035em",
+                      fontVariantNumeric: "tabular-nums", color: good ? "var(--primary-dark)" : "#92400E" }}>฿{baht(profit)}</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 800, color: good ? "var(--primary-dark)" : "#92400E" }}>({margin}%)</span>
+                  </span>
+                  <span style={{ fontSize: 11, color: good ? "var(--primary-dark)" : "#92400E", fontWeight: 600 }}>
+                    {good
+                      ? "คิดจากราคา" + (pb.discount > 0 ? "หลังส่วนลด" : "ขาย") + " หักต้นทุนรวม (วัสดุ+ค่าแรง+ผู้รับเหมา) · ตัวเลขนี้ยังไม่รวม VAT"
+                      : "ราคานี้ขายแล้วขาดทุน — ต้นทุนรวม ฿" + baht(pb.totalCost) + " สูงกว่าราคาที่ตั้งไว้"}
+                  </span>
+                </div>
+              );
+            })()}
+          </BoqSection>
           </div>
         </div>
       </div>
@@ -2157,6 +2349,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         <span className="bq-kpi"><span className="k">รายการวัสดุ</span><span className="v">{itemCount.toLocaleString()}<small>รายการ</small></span></span>
         <span className="bq-kpi"><span className="k">ต้นทุนรวม</span><span className="v hi">{priced.grandTotal > 0 ? "฿" + baht(priced.grandTotal) : "—"}</span></span>
         <span className="bq-kpi" title={priced.perKw > 0 ? "฿" + baht(priced.perKw) + "/kW" : ""}><span className="k">ต่อวัตต์</span><span className="v hi">{priced.perW > 0 ? "฿" + baht(priced.perW) : "—"}</span></span>
+        {pb.sell > 0 && (
+          <span className="bq-kpi" title={"ราคาขาย" + (pb.discount > 0 ? "หลังส่วนลด" : "") + " ฿" + baht(pb.net || pb.sell) + " · รวม VAT ฿" + baht(pb.discount > 0 ? pb.netVat : pb.sellVat)}>
+            <span className="k">กำไร</span>
+            <span className="v hi">{(pb.discount > 0 ? pb.netMargin : pb.margin)}<small>%</small></span>
+          </span>
+        )}
         </span>
         <span className="bq-gap" />
         {remaining !== 0 && (
