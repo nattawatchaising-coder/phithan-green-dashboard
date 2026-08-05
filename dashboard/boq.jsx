@@ -1233,6 +1233,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     { key: "tray", icon: "grid", title: "รางไฟ (Wireway / Tray)",
       meta: trayLen > 0 ? "รวม " + trayLen + " ม." + (trayBad > 0 ? " · " + trayBad + " รางสายแน่นเกิน" : "") : "ยังไม่ได้กรอก",
       tone: trayLen > 0 ? (trayBad > 0 ? "warn" : "ok") : "" },
+    /* หมวดของงานโครงการ — วางต่อจากรางไฟ เพราะกรอกไล่จากงานเดินสาย/เดินท่อมาที่ตู้และระบบน้ำต่อกันเลย
+       งานบ้านไม่ต้องมีให้เกะกะ */
+    !isHome ? { key: "project", icon: "box", title: "ตู้ไฟ · น้ำ · ท่อ · มอนิเตอร์",
+      meta: kitTotal > 0 ? kitTotal + " รายการ" : "ยังไม่ได้กรอก", tone: kitTotal > 0 ? "ok" : "" } : null,
+    !isHome ? { key: "site", icon: "power", title: "ขนส่ง & บริหารจัดการ",
+      meta: siteTotal > 0 ? "฿" + baht(siteTotal) : "ยังไม่ได้กรอก", tone: siteTotal > 0 ? "ok" : "" } : null,
     { key: "support", icon: "box", title: "โครงสร้างรองรับอุปกรณ์",
       meta: sup.inv + sup.mdb > 0 ? "อินเวอร์เตอร์ " + sup.inv + " · ตู้ " + sup.mdb : "ยังไม่ได้ถอด", tone: sup.inv + sup.mdb > 0 ? "ok" : "" },
     !isHome ? { key: "struct", icon: "box", title: "งานเพิ่มเติม — โครงสร้าง", meta: "บันได · ทางเดิน · ราวกันตก" } : null,
@@ -1244,11 +1250,6 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     { key: "permit", icon: "box", title: "ค่าขออนุญาต & เอกสาร",
       meta: priced.permitTotal > 0 ? "฿" + baht(priced.permitTotal) : "ยังไม่ได้กรอกค่าธรรมเนียม",
       tone: priced.permitTotal > 0 ? "ok" : "warn" },
-    /* หมวดของงานโครงการ — งานบ้านไม่ต้องมีให้เกะกะ */
-    !isHome ? { key: "project", icon: "box", title: "ตู้ไฟ · น้ำ · ท่อ · มอนิเตอร์",
-      meta: kitTotal > 0 ? kitTotal + " รายการ" : "ยังไม่ได้กรอก", tone: kitTotal > 0 ? "ok" : "" } : null,
-    !isHome ? { key: "site", icon: "power", title: "ขนส่ง & บริหารจัดการ",
-      meta: siteTotal > 0 ? "฿" + baht(siteTotal) : "ยังไม่ได้กรอก", tone: siteTotal > 0 ? "ok" : "" } : null,
     { key: "removable", icon: "box", title: "รายการวัสดุที่ถอดได้",
       meta: priced.grandTotal > 0 ? "รวม ฿" + baht(priced.grandTotal) : "ยังไม่มีราคา", tone: priced.grandTotal > 0 ? "ok" : "" },
     { key: "price", icon: "bolt", title: "แบ่งราคา & กำไร",
@@ -1962,6 +1963,71 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             </div>
           </BoqSection>
 
+          {/* ── หมวดของงานโครงการ: ตู้ไฟ / ระบบสูบน้ำ / ถัง / ท่อ / อุปกรณ์มอนิเตอร์ ── */}
+          {!isHome && (
+          <BoqSection title="ตู้ไฟ · ระบบน้ำ · ท่อ · อุปกรณ์มอนิเตอร์" icon="box" {...secProps("project")}
+            right={kitTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>{kitTotal} รายการ</span> : null}>
+            <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 14 }}>
+              ของที่มีเฉพาะงานโครงการ — กรอกจำนวนเฉพาะที่งานนี้มี ที่เหลือปล่อยว่าง · ราคาดึงจากคลังเหมือนวัสดุอื่น
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {KITS.map((k) => {
+                const st = kitOf(k.key);
+                const extra = st.extra || [];
+                const setExtra = (v) => setKit(k.key, "extra", v);
+                return (
+                  <div key={k.key}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: k.hint ? 3 : 7 }}>{k.th}</div>
+                    {k.hint && <div style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 7 }}>{k.hint}</div>}
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(3, minmax(0,1fr))", gap: 9 }}>
+                      {k.items.map((it) => (
+                        <label key={it.key} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>{it.name} <span style={{ color: "var(--border-strong)" }}>({it.unit})</span></span>
+                          <input type="number" min={0} placeholder="0" value={st[it.key] != null ? st[it.key] : ""}
+                            onChange={(e) => setKit(k.key, it.key, e.target.value === "" ? "" : Math.max(0, +e.target.value || 0))}
+                            style={Object.assign({}, numStyle, { width: "100%", height: 34, fontSize: 12.5, padding: "6px 9px" })} />
+                        </label>
+                      ))}
+                    </div>
+                    {/* อุปกรณ์ประกอบ — ของจุกจิกของหมวดนี้ที่แล้วแต่หน้างาน พิมพ์เพิ่มเอง */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+                      {extra.map((x, i) => (
+                        <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 72px 62px 34px", gap: 7, alignItems: "center" }}>
+                          <input value={x.name || ""} placeholder={"อุปกรณ์ประกอบ " + k.th} style={Object.assign({}, inputStyle, cabSelStyle)}
+                            onChange={(e) => setExtra(extra.map((y, j) => j === i ? Object.assign({}, y, { name: e.target.value }) : y))} />
+                          <input type="number" min={0} value={x.qty != null ? x.qty : ""} placeholder="จำนวน" style={Object.assign({}, numStyle, cabSelStyle)}
+                            onChange={(e) => setExtra(extra.map((y, j) => j === i ? Object.assign({}, y, { qty: e.target.value }) : y))} />
+                          <input value={x.unit || ""} placeholder="หน่วย" style={Object.assign({}, inputStyle, cabSelStyle)}
+                            onChange={(e) => setExtra(extra.map((y, j) => j === i ? Object.assign({}, y, { unit: e.target.value }) : y))} />
+                          <button className="bq-x" onClick={() => setExtra(extra.filter((_, j) => j !== i))} title="ลบ"><Icon name="x" size={13} /></button>
+                        </div>
+                      ))}
+                      <button onClick={() => setExtra(extra.concat([{ name: "", qty: "", unit: "ชิ้น" }]))}
+                        style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "none", color: "var(--text-2)", border: "1px dashed var(--border-strong)", borderRadius: 9, padding: "5px 10px", fontWeight: 700, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>
+                        <Icon name="plus" size={12} color="var(--text-2)" /> อุปกรณ์ประกอบ {k.th}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </BoqSection>
+          )}
+
+          {/* ── ขนส่ง & บริหารจัดการหน้างาน — ราคาอยู่ในบรรทัดเอง เหมือนค่าแรง ── */}
+          {!isHome && (
+          <BoqSection title="ขนส่ง & บริหารจัดการหน้างาน" icon="power" {...secProps("site")}
+            right={siteTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(siteTotal)}</span> : null}>
+            <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
+              ค่าขนของขึ้นไซต์และค่าอยู่หน้างาน — กรอกเฉพาะที่งานนี้มีจริง บรรทัดที่ไม่ใช้ลบทิ้งได้
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8 }}>ขนส่ง & เครื่องจักร</div>
+            <SvcTable sKey="transport" preset={window.BOQ.TRANSPORT_PRESET} qtyLabel="จำนวน" />
+            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", margin: "18px 0 8px" }}>บริหารจัดการ</div>
+            <SvcTable sKey="manage" preset={window.BOQ.MANAGE_PRESET} qtyLabel="จำนวน" />
+          </BoqSection>
+          )}
+
           {/* ── โครงสร้างรองรับอุปกรณ์ (Inverter / ตู้ MDB) ── */}
           <BoqSection title="โครงสร้างรองรับอุปกรณ์ (Inverter / ตู้ MDB)" icon="box" {...secProps("support")}
             right={<button onClick={() => { setSup("inv", supAuto); setSup("mdb", 1); }}
@@ -2050,70 +2116,6 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             <SvcTable sKey="permit" preset={window.BOQ.PERMIT_PRESET} qtyLabel="จำนวน" total={priced.permitTotal} perW={priced.permitPerW} />
           </BoqSection>
 
-          {/* ── หมวดของงานโครงการ: ตู้ไฟ / ระบบสูบน้ำ / ถัง / ท่อ / อุปกรณ์มอนิเตอร์ ── */}
-          {!isHome && (
-          <BoqSection title="ตู้ไฟ · ระบบน้ำ · ท่อ · อุปกรณ์มอนิเตอร์" icon="box" {...secProps("project")}
-            right={kitTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>{kitTotal} รายการ</span> : null}>
-            <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 14 }}>
-              ของที่มีเฉพาะงานโครงการ — กรอกจำนวนเฉพาะที่งานนี้มี ที่เหลือปล่อยว่าง · ราคาดึงจากคลังเหมือนวัสดุอื่น
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {KITS.map((k) => {
-                const st = kitOf(k.key);
-                const extra = st.extra || [];
-                const setExtra = (v) => setKit(k.key, "extra", v);
-                return (
-                  <div key={k.key}>
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: k.hint ? 3 : 7 }}>{k.th}</div>
-                    {k.hint && <div style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 7 }}>{k.hint}</div>}
-                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(3, minmax(0,1fr))", gap: 9 }}>
-                      {k.items.map((it) => (
-                        <label key={it.key} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>{it.name} <span style={{ color: "var(--border-strong)" }}>({it.unit})</span></span>
-                          <input type="number" min={0} placeholder="0" value={st[it.key] != null ? st[it.key] : ""}
-                            onChange={(e) => setKit(k.key, it.key, e.target.value === "" ? "" : Math.max(0, +e.target.value || 0))}
-                            style={Object.assign({}, numStyle, { width: "100%", height: 34, fontSize: 12.5, padding: "6px 9px" })} />
-                        </label>
-                      ))}
-                    </div>
-                    {/* อุปกรณ์ประกอบ — ของจุกจิกของหมวดนี้ที่แล้วแต่หน้างาน พิมพ์เพิ่มเอง */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
-                      {extra.map((x, i) => (
-                        <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 72px 62px 34px", gap: 7, alignItems: "center" }}>
-                          <input value={x.name || ""} placeholder={"อุปกรณ์ประกอบ " + k.th} style={Object.assign({}, inputStyle, cabSelStyle)}
-                            onChange={(e) => setExtra(extra.map((y, j) => j === i ? Object.assign({}, y, { name: e.target.value }) : y))} />
-                          <input type="number" min={0} value={x.qty != null ? x.qty : ""} placeholder="จำนวน" style={Object.assign({}, numStyle, cabSelStyle)}
-                            onChange={(e) => setExtra(extra.map((y, j) => j === i ? Object.assign({}, y, { qty: e.target.value }) : y))} />
-                          <input value={x.unit || ""} placeholder="หน่วย" style={Object.assign({}, inputStyle, cabSelStyle)}
-                            onChange={(e) => setExtra(extra.map((y, j) => j === i ? Object.assign({}, y, { unit: e.target.value }) : y))} />
-                          <button className="bq-x" onClick={() => setExtra(extra.filter((_, j) => j !== i))} title="ลบ"><Icon name="x" size={13} /></button>
-                        </div>
-                      ))}
-                      <button onClick={() => setExtra(extra.concat([{ name: "", qty: "", unit: "ชิ้น" }]))}
-                        style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "none", color: "var(--text-2)", border: "1px dashed var(--border-strong)", borderRadius: 9, padding: "5px 10px", fontWeight: 700, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>
-                        <Icon name="plus" size={12} color="var(--text-2)" /> อุปกรณ์ประกอบ {k.th}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </BoqSection>
-          )}
-
-          {/* ── ขนส่ง & บริหารจัดการหน้างาน — ราคาอยู่ในบรรทัดเอง เหมือนค่าแรง ── */}
-          {!isHome && (
-          <BoqSection title="ขนส่ง & บริหารจัดการหน้างาน" icon="power" {...secProps("site")}
-            right={siteTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(siteTotal)}</span> : null}>
-            <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
-              ค่าขนของขึ้นไซต์และค่าอยู่หน้างาน — กรอกเฉพาะที่งานนี้มีจริง บรรทัดที่ไม่ใช้ลบทิ้งได้
-            </div>
-            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8 }}>ขนส่ง & เครื่องจักร</div>
-            <SvcTable sKey="transport" preset={window.BOQ.TRANSPORT_PRESET} qtyLabel="จำนวน" />
-            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", margin: "18px 0 8px" }}>บริหารจัดการ</div>
-            <SvcTable sKey="manage" preset={window.BOQ.MANAGE_PRESET} qtyLabel="จำนวน" />
-          </BoqSection>
-          )}
 
           {/* ── งานเพิ่มเติม (Input): โครงสร้างบนหลังคา — เฉพาะงานโครงการ ไม่แสดงงานบ้าน ── */}
           {!isHome && (
