@@ -1631,6 +1631,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>· {wcPhase} เฟส</span>
                   </span>
                   {!isMobile && <span style={{ width: 1, height: 22, background: "var(--border)", marginRight: 4, marginBottom: 6 }} />}
+                  {/* ฉนวนอยู่แถวบนคู่กับแรงดัน — เป็นค่าของ "ตัวสาย" ไม่ใช่ของวิธีเดิน และย้ายมาแล้วแถวล่างเหลือที่ให้ชื่อวิธีเดินสายเต็ม ๆ */}
+                  <label style={{ display: "flex", flexDirection: "column", gap: 3, width: isMobile ? "100%" : 152 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>ชนิดฉนวน</span>
+                    <Dropdown value={calcIns} onChange={(v) => setWcalc("ins", v)} options={insOptions} style={{ height: 34, fontSize: 12.5, padding: "6px 9px" }} />
+                  </label>
                   {[
                     { label: "แรงดัน", unit: "V", value: wcVolt, key: "volt", min: undefined },
                     isStringInv ? null : { label: "แบ่ง String", unit: "", value: wcStrings, key: "strings", min: "1" },
@@ -1645,13 +1650,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   ))}
                 </div>
 
-                {/* เงื่อนไขพิกัดตาม วสท. — เรียงตามลำดับที่ต้องเลือกจริง: ฉนวน → วิธีเดินสาย → กลุ่ม → ตัวนำ → แกน */}
+                {/* เงื่อนไขพิกัดตาม วสท. — วิธีเดินสายชื่อยาวสุดและเป็นตัวตั้งต้นของกลุ่ม จึงให้กินที่ที่เหลือทั้งหมด */}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-end" }}>
                   {[
-                    { k: "ins", lb: "ฉนวน", w: isMobile ? "calc(50% - 4px)" : 134,
-                      el: <Dropdown value={calcIns} onChange={(v) => setWcalc("ins", v)} options={insOptions} /> },
-                    { k: "method", lb: "วิธีเดินสาย", w: isMobile ? "100%" : 224,
-                      el: <Dropdown value={calcMethod} onChange={setMethodPick} options={methodOptions} wrap /> },
+                    { k: "method", lb: "วิธีเดินสาย", w: isMobile ? "100%" : 0, grow: 1, min: 268,
+                      el: <Dropdown value={calcMethod} onChange={setMethodPick} options={methodOptions} /> },
                     { k: "group", lb: "กลุ่มการติดตั้ง", w: isMobile ? "calc(50% - 4px)" : 124,
                       el: <Dropdown value={calcGroup} onChange={(v) => setWcalc("group", v)} options={groupOptionsFor(calcMethod)} /> },
                     { k: "ncond", lb: "ตัวนำมีกระแส", w: isMobile ? "calc(50% - 4px)" : 116,
@@ -1661,7 +1664,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       el: <Dropdown value={calcCore} onChange={(v) => setWcalc("core", v)} disabled={coreOpts.length < 2}
                         options={coreOpts.map((c) => ({ value: c.key, label: c.th }))} /> },
                   ].map((f) => (
-                    <label key={f.k} style={{ width: f.w, display: "flex", flexDirection: "column", gap: 3 }}>
+                    <label key={f.k} style={{ width: f.w || undefined, flex: f.grow && !isMobile ? "1 1 " + f.min + "px" : "0 0 auto",
+                      minWidth: f.grow && !isMobile ? f.min : undefined, display: "flex", flexDirection: "column", gap: 3 }}>
                       <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>{f.lb}</span>
                       {f.el}
                     </label>
