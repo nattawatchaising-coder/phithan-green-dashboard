@@ -43,6 +43,7 @@
     meter1: "Smart Meter DDSU666-H + CT 100A/40mA (1 เฟส)",
     meter3: "Smart Meter DTSU666-H + CT 100A/40mA (3 เฟส)",
     dongle: "Smart Dongle-WLAN-FE",
+    logger: "HUAWEI SMART LOGGER 3000A-GL",
     cabinet: "AC/DC Combiner Box ตู้หน้ากระจก เบอร์4",
     dcFuseHolder: "DC FUSE HOLDER FEEO",
     dcFuse: "DC FUSE 16A 1000VDC FEEO",
@@ -794,9 +795,9 @@
       hint: "ท่อ PPR — กรอกจำนวนเส้น (ข้อต่อ/วาล์ว ใส่ในอุปกรณ์ประกอบ)",
       items: [{ key: "ppr34", name: "ท่อ PPR 3/4\"", unit: "เส้น" }] },
     { key: "monitor", group: G_MONITOR, th: "อุปกรณ์มอนิเตอร์", icon: "bolt",
+      // SmartLogger ถอดให้อัตโนมัติในหมวด INVERTER แล้ว (งานโครงการที่ใช้อินเวอร์เตอร์ Huawei) จึงไม่ต้องกรอกซ้ำที่นี่
       hint: "ต่อกับอินเวอร์เตอร์เพื่ออ่านค่าและส่งข้อมูล",
       items: [
-        { key: "logger", name: "SMART Logger", unit: "ตัว" },
         { key: "janitza", name: "Janitza Power Meter", unit: "ตัว" },
         { key: "ct", name: "CT (หม้อแปลงกระแส)", unit: "ตัว" },
       ] },
@@ -1097,6 +1098,8 @@
     const selInv = b.inverterModel ? INVERTERS.find((x) => x.model === b.inverterModel) : null;
     let invCount, invItems, combItems = null;
     let invAuto = 0, plan = null;
+    // งานโครงการ vs งานบ้าน — ต่างกันที่อุปกรณ์มอนิเตอร์และตู้รวม (โครงการใช้ตู้ไฟ DC/AC ของตัวเอง)
+    const isProject = (b.jobType || "") !== "home";
     if (selInv) {
       // จำนวนตัว = ปัดขึ้น(กำลังแผงรวม ÷ MAX PV ต่อตัว) — ถ้าไม่ได้ตั้ง MAX PV ใช้ kW ต่อตัวแทน
       // ระบุเองได้ที่ b.invCount (0/ว่าง = ใช้ค่าอัตโนมัติ) เช่นงานที่แบ่งอินเวอร์เตอร์ตามหลังคาคนละทิศ
@@ -1119,10 +1122,16 @@
         // กลุ่ม INVERTER
         invItems = [];
         invItems.push({ name: selInv.model, qty: invCount, unit: "ตัว" });
-        // ── ระดับระบบ: 1 ชุด/งาน (Smart Meter วัดที่จุดต่อกริด, Dongle 1 ตัว master ที่เหลือพ่วง RS485) ──
-        invItems.push({ name: ph === 3 ? HW.meter3 : HW.meter1, qty: 1, unit: "ชุด" });
-        // 2 รุ่นนี้มี dongle ในตัว (SUN2000-10K-LC0, SUN2000-5K-LB0) — ไม่ต้องถอด Smart Dongle เพิ่ม
-        if (!/SUN2000-10K-LC0|SUN2000-5K-LB0/i.test(selInv.model)) invItems.push({ name: HW.dongle, qty: 1, unit: "ชุด" });
+        /* ── อุปกรณ์มอนิเตอร์ระดับระบบ: 1 ชุด/งาน ──
+           งานโครงการใช้ SmartLogger รวมศูนย์ตัวเดียว (อ่านหลายอินเวอร์เตอร์ผ่าน RS485) ไม่ใช้ Smart Meter + Dongle
+           งานบ้านใช้ Smart Meter วัดที่จุดต่อกริด + Dongle 1 ตัว */
+        if (isProject) {
+          invItems.push({ name: HW.logger, qty: 1, unit: "ตัว" });
+        } else {
+          invItems.push({ name: ph === 3 ? HW.meter3 : HW.meter1, qty: 1, unit: "ชุด" });
+          // 2 รุ่นนี้มี dongle ในตัว (SUN2000-10K-LC0, SUN2000-5K-LB0) — ไม่ต้องถอด Smart Dongle เพิ่ม
+          if (!/SUN2000-10K-LC0|SUN2000-5K-LB0/i.test(selInv.model)) invItems.push({ name: HW.dongle, qty: 1, unit: "ชุด" });
+        }
         if ((+b.batteryKwh || 0) > 0) {
           const s1 = Math.ceil((+b.batteryKwh || 0) / 7);   // แบต S1 ก้อนละ 7 kWh
           const c1 = Math.ceil(s1 / 3);                      // Power Module 1 ตัว/แสตก (สูงสุด 3 ก้อน)
@@ -1133,25 +1142,28 @@
         if (b.hwBackup === "smartguard") invItems.push({ name: ph === 3 ? HW.smartguard3 : HW.smartguard1, qty: 1, unit: "ตัว" });
         else if (b.hwBackup === "backupbox") invItems.push({ name: ph === 3 ? HW.backupbox3 : HW.backupbox1, qty: 1, unit: "ตัว" });
         if (b.hwOptimizer) invItems.push({ name: HW.optimizer, qty: panelCount, unit: "ตัว" });
-        // กลุ่ม COMBINER BOX
+        /* กลุ่ม COMBINER BOX — เฉพาะงานบ้าน
+           งานโครงการไม่ใช้ตู้ Combiner สำเร็จ แต่ประกอบเป็นตู้ไฟ DC/AC ของโครงการเอง (หมวด "ตู้ไฟ") */
         combItems = [];
-        combItems.push({ name: HW.cabinet, qty: 1, unit: "ตู้" });
-        combItems.push({ name: HW.dcFuseHolder, qty: totalStr * 2, unit: "ตัว" });
-        combItems.push({ name: HW.dcFuse, qty: totalStr * 2, unit: "ตัว" });
-        combItems.push({ name: HW.dcSpd, qty: totalStr, unit: "ตัว" });
-        combItems.push({ name: HW.dcMcb, qty: totalStr, unit: "ตัว" });
-        combItems.push({ name: HW.mc4, qty: totalStr, unit: "ชุด" });
-        combItems.push({ name: ph === 3 ? HW.acSpd3 : HW.acSpd1, qty: invCount, unit: "ตัว" });
-        combItems.push({ name: rcboName(selInv.outA, ph), qty: invCount, unit: "ตัว" });
-        combItems.push({ name: HW.wireDuct, qty: 2, unit: "เส้น" });   // 2 เส้น/ตู้
-        combItems.push({ name: HW.dinRail, qty: 1, unit: "เส้น" });    // ในตู้ใบเดียว
-        combItems.push({ name: HW.stopper, qty: 10, unit: "ตัว" });    // 10/งาน (flat)
-        combItems.push({ name: HW.groundBar, qty: 1, unit: "อัน" });
-        // ตู้ไฟเพิ่ม (case by case)
-        if (b.hwExtraPanel) {
-          combItems.push({ name: ph === 3 ? HW.panel3 : HW.panel1, qty: 1, unit: "ตู้" });
-          combItems.push({ name: ph === 3 ? HW.mcb3 : HW.mcb2, qty: 2, unit: "ตัว" });
-          if (ph === 3) combItems.push({ name: HW.busbar, qty: 1, unit: "ชุด" });
+        if (!isProject) {
+          combItems.push({ name: HW.cabinet, qty: 1, unit: "ตู้" });
+          combItems.push({ name: HW.dcFuseHolder, qty: totalStr * 2, unit: "ตัว" });
+          combItems.push({ name: HW.dcFuse, qty: totalStr * 2, unit: "ตัว" });
+          combItems.push({ name: HW.dcSpd, qty: totalStr, unit: "ตัว" });
+          combItems.push({ name: HW.dcMcb, qty: totalStr, unit: "ตัว" });
+          combItems.push({ name: HW.mc4, qty: totalStr, unit: "ชุด" });
+          combItems.push({ name: ph === 3 ? HW.acSpd3 : HW.acSpd1, qty: invCount, unit: "ตัว" });
+          combItems.push({ name: rcboName(selInv.outA, ph), qty: invCount, unit: "ตัว" });
+          combItems.push({ name: HW.wireDuct, qty: 2, unit: "เส้น" });   // 2 เส้น/ตู้
+          combItems.push({ name: HW.dinRail, qty: 1, unit: "เส้น" });    // ในตู้ใบเดียว
+          combItems.push({ name: HW.stopper, qty: 10, unit: "ตัว" });    // 10/งาน (flat)
+          combItems.push({ name: HW.groundBar, qty: 1, unit: "อัน" });
+          // ตู้ไฟเพิ่ม (case by case)
+          if (b.hwExtraPanel) {
+            combItems.push({ name: ph === 3 ? HW.panel3 : HW.panel1, qty: 1, unit: "ตู้" });
+            combItems.push({ name: ph === 3 ? HW.mcb3 : HW.mcb2, qty: 2, unit: "ตัว" });
+            if (ph === 3) combItems.push({ name: HW.busbar, qty: 1, unit: "ชุด" });
+          }
         }
       } else {
         // String / Hybrid ทั่วไป: จำนวนตัว = ปัดขึ้น(kW รวม ÷ kW ต่อตัว) + แบต
@@ -1434,6 +1446,7 @@
     add("INVERTER", CT[1], "SET"); add("INVERTER", CT[3], "SET");
     add("INVERTER", BACKUP[1], "SET"); add("INVERTER", BACKUP[3], "SET");
     add("INVERTER", BATTERY_MODEL, "SET");
+    add("INVERTER", HW.logger, "ตัว");   // SmartLogger ของงานโครงการ
     add("INVERTER", JUNCTION[1], "SET"); add("INVERTER", JUNCTION[3], "SET");
     add("INVERTER", "1.3 m, Three-terminal AC Cable (MW-025013-A)", "SET");
     add("INVERTER", "2 m, Two-terminal AC Cable (MW-025020-B0)", "SET");
