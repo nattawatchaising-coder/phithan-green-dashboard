@@ -31,16 +31,16 @@
    ข้อมูล โครงสร้างหน้า และตรรกะทั้งหมดไม่ถูกแตะเลยแม้แต่บรรทัดเดียว
    ────────────────────────────────────────────────────────────── */
 [data-theme="aurora"] {
-  --bg: #EFF5F8; --surface: #FFFFFF; --surface2: #F3F8FA; --surface3: #E7F1F5;
-  --border: rgba(18,64,88,.10); --border-strong: rgba(18,64,88,.19);
-  --text-1: #0E2430; --text-2: #4C6572; --text-3: #8AA2AE;
-  --shadow-sm: 0 1px 2px rgba(19,78,110,.05), 0 10px 30px rgba(19,78,110,.07);
+  --bg: #E9F1FA; --surface: #FFFFFF; --surface2: #F2F7FC; --surface3: #E5EFF8;
+  --border: rgba(16,58,86,.09); --border-strong: rgba(16,58,86,.18);
+  --text-1: #0B1F2C; --text-2: #47616F; --text-3: #86A0AE;
+  --shadow-sm: 0 2px 4px rgba(12,64,104,.05), 0 12px 32px rgba(12,64,104,.08);
   /* สามสีของม่านแสง — เขียวมิ้นต์ · ฟ้าทะเล · ม่วงลาเวนเดอร์ (เข้มพอให้อ่านออกบนพื้นสว่าง) */
-  --au-a: #0E9E74; --au-b: #1499C9; --au-c: #6B5BD6;
-  /* ผิวกระจก: ขาวโปร่ง วางซ้อนบนม่านแสง */
-  --au-glass: rgba(255,255,255,.64);
-  --au-glass-hi: rgba(255,255,255,.88);
-  --au-lift: 0 20px 46px rgba(19,78,110,.10), 0 1px 2px rgba(19,78,110,.05), inset 0 1px 0 rgba(255,255,255,.9);
+  --au-a: #00A874; --au-b: #0E8FD6; --au-c: #7A4FE0;
+  /* ผิวกระจก: ขาวโปร่ง วางซ้อนบนผืนสี */
+  --au-glass: rgba(255,255,255,.86);
+  --au-glass-hi: rgba(255,255,255,.95);
+  --au-lift: 0 26px 60px rgba(12,64,104,.16), 0 2px 6px rgba(12,64,104,.06);
   color-scheme: light;
 }
 [data-cardstyle="flat"] { --shadow-sm: none; }
@@ -295,25 +295,25 @@ input, select, textarea { font-family: inherit; }
    ทุกกฎในบล็อกนี้เป็นการ "ทับหน้าตา" ล้วน ๆ ไม่มีผลกับข้อมูล
    ══════════════════════════════════════════════════════════════ */
 
-/* ── ท้องฟ้า: ม่านแสงพาสเทลเคลื่อนช้า ๆ อยู่หลังทุกอย่าง ── */
+/* ── ผืนสี: ม่านแสงเข้มจัดเต็มจอ เป็น "ผ้าใบ" ของทั้งระบบ ไม่ใช่แค่พื้นหลังจาง ── */
 html[data-theme="aurora"] body::before {
-  content: ""; position: fixed; inset: -25% -15%; z-index: -1; pointer-events: none;
+  content: ""; position: fixed; inset: -20%; z-index: -1; pointer-events: none;
   background:
-    radial-gradient(48% 52% at 8% 10%,  rgba(52,226,170,.80), transparent 66%),
-    radial-gradient(46% 50% at 92% 6%,  rgba(88,201,255,.74), transparent 68%),
-    radial-gradient(54% 58% at 80% 92%, rgba(165,142,255,.68), transparent 70%),
-    radial-gradient(44% 48% at 4% 90%,  rgba(255,198,138,.54), transparent 72%),
-    radial-gradient(38% 34% at 50% 50%, rgba(255,255,255,.45), transparent 74%);
-  filter: blur(52px) saturate(132%);
+    radial-gradient(42% 48% at 4% 2%,   rgba(0,232,168,.95), transparent 62%),
+    radial-gradient(44% 50% at 97% 0%,  rgba(48,178,255,.95), transparent 64%),
+    radial-gradient(48% 54% at 90% 98%, rgba(146,104,255,.92), transparent 66%),
+    radial-gradient(42% 48% at 0% 98%,  rgba(255,172,88,.80), transparent 68%),
+    radial-gradient(30% 26% at 52% 44%, rgba(255,255,255,.92), transparent 72%);
+  filter: blur(64px) saturate(155%);
   animation: auDrift 34s ease-in-out infinite alternate;
 }
-/* ── ลำแสงเฉียง: แถบสว่างบาง ๆ พาดผ่าน ให้พื้นหลังมีความลึก ไม่แบน ── */
+/* ── ลำแสงเฉียง: แถบสว่างพาดผ่าน ให้ผืนสีมีความลึก ไม่แบน ── */
 html[data-theme="aurora"] body::after {
   content: ""; position: fixed; inset: -30%; z-index: -1; pointer-events: none;
   background:
-    linear-gradient(112deg, transparent 34%, rgba(255,255,255,.55) 44%, transparent 52%),
-    linear-gradient(112deg, transparent 58%, rgba(255,255,255,.35) 66%, transparent 73%);
-  filter: blur(28px);
+    linear-gradient(112deg, transparent 32%, rgba(255,255,255,.6) 43%, transparent 52%),
+    linear-gradient(112deg, transparent 58%, rgba(255,255,255,.38) 67%, transparent 75%);
+  filter: blur(30px);
   animation: auRay 26s ease-in-out infinite alternate;
 }
 @keyframes auDrift {
@@ -324,33 +324,65 @@ html[data-theme="aurora"] body::after {
 @keyframes auRay  { from { transform: translate3d(-4%,0,0); } to { transform: translate3d(6%,0,0); } }
 @keyframes auText { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
 @keyframes auSweep { from { transform: translateX(-60%); } to { transform: translateX(160%); } }
+@keyframes auFloat { from { transform: translateY(0); } to { transform: translateY(-5px); } }
 
-/* ── ผังใหม่: แถบเมนูกับพื้นที่ทำงานเป็น "แผ่นกระจกสองแผ่นลอย" อยู่บนม่านแสง ──
-   เดิมทั้งสองส่วนติดขอบจอและคั่นด้วยเส้น 1px — โหมดนี้ยกออกมาลอย มีระยะหายใจรอบด้าน
-   ทำเฉพาะจอเดสก์ท็อป เพราะบนมือถือแถบเมนูเป็นลิ้นชักเลื่อนเข้ามา ต้องชิดขอบเหมือนเดิม */
+/* ══ ผังใหม่ทั้งหน้า (เฉพาะเดสก์ท็อป) ══════════════════════════
+   เดิม: แถบเมนู + หัวหน้า + เนื้อหา เป็นผืนขาวติดกันเต็มจอ คั่นด้วยเส้น 1px
+   ใหม่: ผืนสีคือผ้าใบ · แถบเมนูเป็นเกาะลอยกลางจอ · หัวหน้าเป็นการ์ดลอยแยกใบ
+        เนื้อหาไม่มีกล่องครอบ การ์ดแต่ละใบลอยอยู่บนผืนสีตรง ๆ
+   มือถือไม่แตะ เพราะเมนูเป็นลิ้นชักเลื่อนเข้ามา ต้องชิดขอบจอเหมือนเดิม
+   ══════════════════════════════════════════════════════════════ */
 @media (min-width: 861px) {
-  [data-theme="aurora"] .app-root { padding: 18px; gap: 16px; }
-  [data-theme="aurora"] .sidebar,
-  [data-theme="aurora"] .app-main {
-    border-radius: 26px; overflow: hidden;
+  [data-theme="aurora"] .app-root { padding: 20px 24px; gap: 20px; }
+
+  /* แถบเมนู → เกาะลอย ไม่ยาวเต็มความสูงอีกต่อไป จัดกลางแนวตั้ง */
+  [data-theme="aurora"] .sidebar {
+    align-self: center; height: auto; max-height: calc(100dvh - 48px);
+    border-radius: 30px; border: 1px solid var(--au-glass-hi); border-right: 1px solid var(--au-glass-hi);
     background: var(--au-glass);
-    -webkit-backdrop-filter: blur(26px) saturate(165%); backdrop-filter: blur(26px) saturate(165%);
-    border: 1px solid var(--au-glass-hi);
-    box-shadow: 0 30px 68px rgba(19,78,110,.13), 0 2px 8px rgba(19,78,110,.05);
+    -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
+    box-shadow: 0 34px 74px rgba(12,64,104,.20), 0 2px 8px rgba(12,64,104,.06);
+    overflow: hidden auto;
   }
-  [data-theme="aurora"] .sidebar { border-right: 1px solid var(--au-glass-hi); }
-  [data-theme="aurora"] .app-header { background: transparent; }
+  /* พื้นที่ทำงาน → โปร่งใส ปล่อยให้ผืนสีเป็นพื้นจริง ๆ */
+  [data-theme="aurora"] .app-main { background: none; }
+
+  /* หัวหน้า → การ์ดลอยแยกใบ มุมโค้ง ไม่ใช่แถบเต็มความกว้างที่มีเส้นคาดใต้ */
+  [data-theme="aurora"] .app-header {
+    background: var(--au-glass);
+    -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
+    border: 1px solid var(--au-glass-hi); border-radius: 26px;
+    box-shadow: 0 22px 50px rgba(12,64,104,.15), 0 2px 6px rgba(12,64,104,.05);
+    padding: 22px 26px 8px; overflow: hidden;
+  }
+  [data-theme="aurora"] .app-header::after { top: 0; bottom: auto; }
+  /* เนื้อหาเลิกมีระยะขอบซ้าย-ขวา เพราะการ์ดข้างในจัดระยะเองแล้ว */
+  [data-theme="aurora"] .app-content { padding: 20px 0 26px; }
+
+  /* ชื่อหน้าใหญ่ขึ้นอีกระดับ — โหมดนี้ให้ตัวหนังสือเป็นงานออกแบบ ไม่ใช่แค่ป้ายบอกหน้า */
+  [data-theme="aurora"] .page-title { font-size: 28px; letter-spacing: -.042em; }
+  [data-theme="aurora"] .page-sub { font-size: 13px; margin-top: 6px; }
+  [data-theme="aurora"] .stat-rail .num { font-size: 50px; letter-spacing: -.05em; margin-top: 15px; }
+  [data-theme="aurora"] .stat-rail>button { padding: 24px 24px 22px; }
 }
-[data-theme="aurora"] .app-header { position: relative; border-bottom: 1px solid var(--border); }
-/* เส้นแสงใต้หัวหน้า — ไล่สามสีของม่านแสง */
+/* จอกว้างค่อยปล่อยตัวหนังสือเต็มขนาด — จอแคบกว่านี้ชื่อหน้าจะดันแถวค้นหาตกบรรทัด */
+@media (min-width: 1200px) {
+  [data-theme="aurora"] .page-title { font-size: 34px; letter-spacing: -.045em; }
+  [data-theme="aurora"] .stat-rail .num { font-size: 56px; margin-top: 16px; }
+  [data-theme="aurora"] .stat-rail>button { padding: 26px 26px 24px; }
+}
+[data-theme="aurora"] .app-header { position: relative; border-bottom: none; }
+/* เส้นแสงสามสี — อยู่ขอบบนของการ์ดหัวหน้า */
 [data-theme="aurora"] .app-header::after {
-  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(14,158,116,.5) 22%, rgba(20,153,201,.45) 54%, rgba(107,91,214,.4) 78%, transparent);
+  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--au-a) 20%, var(--au-b) 52%, var(--au-c) 80%, transparent);
 }
-[data-theme="aurora"] .sidebar-brand { border-bottom: 1px solid var(--border); }
+
+/* ── แบรนด์: ตราวงกลมบนพื้นไล่สี ── */
+[data-theme="aurora"] .sidebar-brand { border-bottom: 1px solid var(--border); padding-top: 22px; padding-bottom: 20px; }
 [data-theme="aurora"] .brand-mark {
-  background: #fff;
-  box-shadow: 0 0 0 1px rgba(14,158,116,.16), 0 8px 22px rgba(14,158,116,.20);
+  border-radius: 16px; background: #fff; padding: 5px 7px;
+  box-shadow: 0 0 0 1px rgba(0,168,116,.18), 0 10px 26px rgba(0,168,116,.28);
 }
 [data-theme="aurora"] .brand-name,
 [data-theme="aurora"] .page-title {
@@ -361,42 +393,44 @@ html[data-theme="aurora"] body::after {
   animation: auText 12s ease-in-out infinite alternate;
 }
 
-/* ── เมนู ── */
-[data-theme="aurora"] .nav-item:hover { background: rgba(20,153,201,.08); }
+/* ── เมนู → ปุ่มแคปซูล หน้าที่เปิดอยู่ทาพื้นไล่สีเต็มปุ่ม ── */
+[data-theme="aurora"] .nav-item { border-radius: 14px; padding: 12px 14px; }
+[data-theme="aurora"] .nav-item:hover { background: rgba(14,143,214,.09); }
 [data-theme="aurora"] .nav-item.active {
-  background: linear-gradient(90deg, rgba(14,158,116,.16), rgba(20,153,201,.07) 58%, transparent);
-  box-shadow: inset 0 0 0 1px rgba(14,158,116,.14);
+  background: linear-gradient(100deg, var(--au-a), var(--au-b));
+  color: #fff; box-shadow: 0 12px 26px rgba(14,143,214,.34);
 }
-[data-theme="aurora"] .nav-item.active::before {
-  width: 3px; background: linear-gradient(180deg, var(--au-a), var(--au-b));
-  box-shadow: 0 0 10px rgba(14,158,116,.55);
-}
+[data-theme="aurora"] .nav-item.active::before { display: none; }
+/* ไอคอนถูกกำหนดสีไว้เป็น attribute ในโค้ด — CSS ชนะ attribute จึงเปลี่ยนเป็นขาวได้ */
+[data-theme="aurora"] .nav-item.active svg { stroke: #fff; }
+[data-theme="aurora"] .nav-item.active .nav-badge { background: rgba(255,255,255,.92); color: #C0392F; }
 [data-theme="aurora"] .sidebar-foot { border-top: 1px solid var(--border); }
 [data-theme="aurora"] .role-btn.active {
   background: linear-gradient(100deg, var(--au-a), var(--au-b)); color: #fff;
-  box-shadow: 0 6px 18px rgba(20,153,201,.28);
+  box-shadow: 0 8px 20px rgba(14,143,214,.3);
 }
 
 /* ── แผงตัวเลข: จากแถบเดียวยาว → สามการ์ดลอยแยกใบ ── */
 [data-theme="aurora"] .stat-rail {
   background: none; border: none; box-shadow: none; overflow: visible;
-  gap: 14px; border-radius: 0;
+  gap: 18px; border-radius: 0;
 }
 [data-theme="aurora"] .stat-rail::before,
 [data-theme="aurora"] .stat-rail::after { display: none; }
 [data-theme="aurora"] .stat-rail>button {
-  border-radius: 20px; overflow: hidden;
+  border-radius: 26px; overflow: hidden;
   background: var(--au-glass);
-  -webkit-backdrop-filter: blur(20px) saturate(160%); backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(175%); backdrop-filter: blur(24px) saturate(175%);
   border: 1px solid var(--au-glass-hi);
   box-shadow: var(--au-lift);
-  transition: transform .18s cubic-bezier(.3,.9,.3,1), box-shadow .18s;
+  transition: transform .2s cubic-bezier(.3,.9,.3,1), box-shadow .2s;
 }
 [data-theme="aurora"] .stat-rail>button+button { box-shadow: var(--au-lift); }
 [data-theme="aurora"] .stat-rail>button:hover {
-  background: var(--au-glass); transform: translateY(-3px);
-  box-shadow: 0 28px 56px rgba(19,78,110,.16), inset 0 1px 0 rgba(255,255,255,.9);
+  background: var(--au-glass); transform: translateY(-5px);
+  box-shadow: 0 36px 70px rgba(12,64,104,.22);
 }
+[data-theme="aurora"] .stat-rail .lb { font-size: 11.5px; letter-spacing: .09em; }
 /* ตัวเลขใหญ่ = พระเอก จึงไล่สีให้เด่นขึ้นมาจากการ์ด */
 [data-theme="aurora"] .stat-rail .num {
   background: linear-gradient(168deg, var(--au-a), var(--au-b));
@@ -405,33 +439,36 @@ html[data-theme="aurora"] body::after {
 }
 /* ใช้ background-image ไม่ใช่ background ย่อ เพราะตัวย่อจะรีเซ็ต background-clip:text ทิ้ง */
 [data-theme="aurora"] .stat-rail>button[data-alert="1"] .num {
-  background-image: linear-gradient(168deg, #E5484D, #A9182A);
+  background-image: linear-gradient(168deg, #F0555A, #A9182A);
 }
-[data-theme="aurora"] .stat-rail>button[data-alert="1"] { background: linear-gradient(180deg, rgba(229,72,77,.09), var(--au-glass) 58%); }
-[data-theme="aurora"] .stat-rail>button[data-active="1"] { background: linear-gradient(180deg, rgba(14,158,116,.11), var(--au-glass) 58%); }
+[data-theme="aurora"] .stat-rail>button[data-alert="1"] { background: linear-gradient(165deg, rgba(240,85,90,.16), var(--au-glass) 56%); }
+[data-theme="aurora"] .stat-rail>button[data-active="1"] { background: linear-gradient(165deg, rgba(0,168,116,.16), var(--au-glass) 56%); }
 [data-theme="aurora"] .stat-rail>button[data-active="1"]::after {
-  left: 16px; right: 16px; bottom: 0; height: 3px; border-radius: 3px 3px 0 0;
+  left: 20px; right: 20px; bottom: 0; height: 4px; border-radius: 4px 4px 0 0;
   background: linear-gradient(90deg, var(--au-a), var(--au-b));
 }
-@media (max-width: 860px) { [data-theme="aurora"] .stat-rail { gap: 10px; } }
+@media (max-width: 860px) { [data-theme="aurora"] .stat-rail { gap: 12px; } }
 
-/* ── แผงเนื้อหา: กระจกขาวลอย ขอบบนเป็นเส้นแสง ── */
+/* ── แผงเนื้อหา: การ์ดขาวลอย ขอบบนเป็นเส้นแสง ── */
 [data-theme="aurora"] .pnl {
   background: var(--au-glass);
-  -webkit-backdrop-filter: blur(20px) saturate(160%); backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid var(--au-glass-hi); border-radius: 22px;
+  -webkit-backdrop-filter: blur(24px) saturate(175%); backdrop-filter: blur(24px) saturate(175%);
+  border: 1px solid var(--au-glass-hi); border-radius: 26px; padding: 24px 26px;
   box-shadow: var(--au-lift); position: relative; overflow: hidden;
 }
 [data-theme="aurora"] .pnl::after {
-  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px; pointer-events: none;
-  background: linear-gradient(90deg, transparent, rgba(14,158,116,.55) 22%, rgba(20,153,201,.5) 54%, rgba(107,91,214,.45) 78%, transparent);
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--au-a) 20%, var(--au-b) 52%, var(--au-c) 80%, transparent);
 }
-[data-theme="aurora"] .rows>button:hover { background: rgba(20,153,201,.06); box-shadow: 0 0 0 6px rgba(20,153,201,.06); }
+[data-theme="aurora"] .pnl-hd .t { font-size: 12.5px; letter-spacing: .09em; }
+[data-theme="aurora"] .rows>button { padding: 15px 6px; }
+[data-theme="aurora"] .rows>button:hover { background: rgba(14,143,214,.07); box-shadow: 0 0 0 8px rgba(14,143,214,.07); }
 
-/* ── ปุ่ม/ช่องกรอก ── */
+/* ── ปุ่ม/ช่องกรอก → ทรงแคปซูล ── */
 [data-theme="aurora"] .btn-add {
-  background: linear-gradient(100deg, #0FB98A, #1499C9); color: #fff;
-  box-shadow: 0 8px 24px rgba(20,153,201,.30), inset 0 1px 0 rgba(255,255,255,.35);
+  background: linear-gradient(100deg, var(--au-a), var(--au-b)); color: #fff;
+  border-radius: 99px; padding: 11px 22px;
+  box-shadow: 0 12px 28px rgba(14,143,214,.34), inset 0 1px 0 rgba(255,255,255,.35);
   position: relative; overflow: hidden;
 }
 [data-theme="aurora"] .btn-add::after {
@@ -439,32 +476,37 @@ html[data-theme="aurora"] body::after {
   background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
   animation: auSweep 3.6s ease-in-out infinite;
 }
-[data-theme="aurora"] .btn-add:hover { box-shadow: 0 12px 32px rgba(20,153,201,.42); }
-[data-theme="aurora"] .search-box { background: rgba(255,255,255,.6); border-color: var(--au-glass-hi); }
+[data-theme="aurora"] .btn-add:hover { box-shadow: 0 16px 36px rgba(14,143,214,.46); }
+[data-theme="aurora"] .search-box {
+  background: rgba(255,255,255,.7); border-color: var(--au-glass-hi); border-radius: 99px; padding: 10px 16px;
+}
 [data-theme="aurora"] .search-box:focus-within {
-  background: #fff; border-color: rgba(20,153,201,.5);
-  box-shadow: 0 0 0 3px rgba(20,153,201,.14);
+  background: #fff; border-color: rgba(14,143,214,.5);
+  box-shadow: 0 0 0 4px rgba(14,143,214,.14);
 }
 [data-theme="aurora"] .ghost-btn,
-[data-theme="aurora"] .delay-toggle { background: rgba(255,255,255,.55); border-color: var(--au-glass-hi); }
+[data-theme="aurora"] .delay-toggle {
+  background: rgba(255,255,255,.7); border-color: var(--au-glass-hi); border-radius: 99px;
+  box-shadow: 0 4px 14px rgba(12,64,104,.07);
+}
 [data-theme="aurora"] .ghost-btn:hover,
-[data-theme="aurora"] .hamburger:hover { background: rgba(20,153,201,.10); }
-[data-theme="aurora"] .clear-chip { background: rgba(20,153,201,.12); color: var(--au-b); }
+[data-theme="aurora"] .hamburger:hover { background: rgba(14,143,214,.12); }
+[data-theme="aurora"] .clear-chip { background: rgba(14,143,214,.13); color: var(--au-b); }
 
-/* ── การ์ดในหน้าย่อย (BOQ / ออกแบบ / ผังหน้างาน) ให้เป็นกระจกชุดเดียวกัน ── */
+/* ── การ์ดในหน้าย่อย (BOQ / ออกแบบ / ผังหน้างาน) ให้เป็นชุดเดียวกัน ── */
 [data-theme="aurora"] .bq-card,
 [data-theme="aurora"] .p3-card {
   background: var(--au-glass);
-  -webkit-backdrop-filter: blur(18px) saturate(155%); backdrop-filter: blur(18px) saturate(155%);
-  border-color: var(--au-glass-hi); border-radius: 18px;
+  -webkit-backdrop-filter: blur(22px) saturate(170%); backdrop-filter: blur(22px) saturate(170%);
+  border-color: var(--au-glass-hi); border-radius: 22px;
   box-shadow: var(--au-lift);
 }
 
 /* ── รายละเอียดเล็ก ๆ ที่ทำให้ทั้งระบบดูเป็นชุดเดียวกัน ── */
-[data-theme="aurora"] ::-webkit-scrollbar-thumb { background: rgba(20,153,201,.30); }
-[data-theme="aurora"] ::-webkit-scrollbar-thumb:hover { background: rgba(20,153,201,.5); }
-[data-theme="aurora"] ::selection { background: rgba(20,153,201,.22); color: var(--text-1); }
-[data-theme="aurora"] .sidebar-overlay { background: rgba(14,36,48,.34); }
+[data-theme="aurora"] ::-webkit-scrollbar-thumb { background: rgba(14,143,214,.32); }
+[data-theme="aurora"] ::-webkit-scrollbar-thumb:hover { background: rgba(14,143,214,.55); }
+[data-theme="aurora"] ::selection { background: rgba(14,143,214,.22); color: var(--text-1); }
+[data-theme="aurora"] .sidebar-overlay { background: rgba(11,31,44,.38); }
 
 /* เครื่องที่ตั้งค่า "ลดการเคลื่อนไหว" ไว้ — คงหน้าตาไว้ แต่หยุดทุกแอนิเมชัน */
 @media (prefers-reduced-motion: reduce) {
