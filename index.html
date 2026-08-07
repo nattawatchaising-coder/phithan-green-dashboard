@@ -25,23 +25,22 @@
   --primary: #22A35B; --primary-dark: #14663A; --primary-soft: #E1F5E8; --primary-bright: #35B76D;
   --sidebar-w: 250px;
 }
-/* ── โหมดออโรรา (AURORA) ──────────────────────────────────────
-   สกินพิเศษโทนสว่าง: ม่านแสงพาสเทลเป็นพื้นหลัง เนื้อหาลอยอยู่บนแผ่นกระจกขาว
-   ทุกอย่างทำผ่านตัวแปรสีชุดเดิม + ชั้นตกแต่งด้านล่าง
-   ข้อมูล โครงสร้างหน้า และตรรกะทั้งหมดไม่ถูกแตะเลยแม้แต่บรรทัดเดียว
+/* ── โหมดกราไฟต์ (GRAPHITE) ───────────────────────────────────
+   สกินพิเศษโทนเทาเข้ม แนวทางเดียวกับ iOS: พื้นเทาไล่ระดับความสว่าง
+   ไม่ใช้สีฉูดฉาดและไม่มีเอฟเฟกต์เคลื่อนไหว จ้องนาน ๆ ไม่ล้าตา
+   ระดับความสูงของชั้นบอกด้วย "ความสว่าง" ไม่ใช่เงา — เป็นวิธีของ UI พื้นมืด
+   (คีย์ภายในยังใช้ชื่อ aurora เพื่อให้ค่าที่ผู้ใช้เคยเลือกไว้ไม่หาย)
    ────────────────────────────────────────────────────────────── */
 [data-theme="aurora"] {
-  --bg: #E9F1FA; --surface: #FFFFFF; --surface2: #F2F7FC; --surface3: #E5EFF8;
-  --border: rgba(16,58,86,.09); --border-strong: rgba(16,58,86,.18);
-  --text-1: #0B1F2C; --text-2: #47616F; --text-3: #86A0AE;
-  --shadow-sm: 0 2px 4px rgba(12,64,104,.05), 0 12px 32px rgba(12,64,104,.08);
-  /* สามสีของม่านแสง — เขียวมิ้นต์ · ฟ้าทะเล · ม่วงลาเวนเดอร์ (เข้มพอให้อ่านออกบนพื้นสว่าง) */
-  --au-a: #00A874; --au-b: #0E8FD6; --au-c: #7A4FE0;
-  /* ผิวกระจก: ขาวโปร่ง วางซ้อนบนผืนสี */
-  --au-glass: rgba(255,255,255,.86);
-  --au-glass-hi: rgba(255,255,255,.95);
-  --au-lift: 0 26px 60px rgba(12,64,104,.16), 0 2px 6px rgba(12,64,104,.06);
-  color-scheme: light;
+  --bg: #131315; --surface: #232327; --surface2: #2E2E34; --surface3: #3A3A41;
+  --border: rgba(255,255,255,.09); --border-strong: rgba(255,255,255,.18);
+  --text-1: #F2F2F7; --text-2: rgba(235,235,245,.62); --text-3: rgba(235,235,245,.36);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.45);
+  /* แถบที่ต้องเบลอพื้นหลัง (หัวหน้า/แถบเมนู) — โปร่งพอให้เห็นเนื้อหาเลื่อนผ่านราง ๆ */
+  --gr-bar: rgba(32,32,36,.80);
+  --gr-card: #232327;
+  --gr-hi: rgba(255,255,255,.055);
+  color-scheme: dark;
 }
 [data-cardstyle="flat"] { --shadow-sm: none; }
 [data-density="compact"] { --sidebar-w: 230px; }
@@ -290,323 +289,136 @@ input, select, textarea { font-family: inherit; }
 .rows .when b{display:block;font-family:var(--sans);font-size:10px;font-weight:650;
   color:var(--text-3);letter-spacing:.04em;text-align:right;margin-bottom:1px}
 
+
 /* ══════════════════════════════════════════════════════════════
-   ชั้นตกแต่งโหมดออโรรา — ทำงานเมื่อ data-theme="aurora" เท่านั้น
+   ชั้นตกแต่งโหมดกราไฟต์ — ทำงานเมื่อ data-theme="aurora" เท่านั้น
    ทุกกฎในบล็อกนี้เป็นการ "ทับหน้าตา" ล้วน ๆ ไม่มีผลกับข้อมูล
+   ผังเต็มขอบจอเหมือนโหมดปกติ ไม่มีกรอบลอย ไม่มีแอนิเมชันพื้นหลัง
    ══════════════════════════════════════════════════════════════ */
 
-/* ── ผืนสี: ม่านแสงเข้มจัดเต็มจอ เป็น "ผ้าใบ" ของทั้งระบบ ไม่ใช่แค่พื้นหลังจาง ── */
-html[data-theme="aurora"] body::before {
-  content: ""; position: fixed; inset: -20%; z-index: -1; pointer-events: none;
-  background:
-    radial-gradient(42% 48% at 4% 2%,   rgba(0,232,168,.95), transparent 62%),
-    radial-gradient(44% 50% at 97% 0%,  rgba(48,178,255,.95), transparent 64%),
-    radial-gradient(48% 54% at 90% 98%, rgba(146,104,255,.92), transparent 66%),
-    radial-gradient(42% 48% at 0% 98%,  rgba(255,172,88,.80), transparent 68%),
-    radial-gradient(30% 26% at 52% 44%, rgba(255,255,255,.92), transparent 72%);
-  filter: blur(64px) saturate(155%);
-  animation: auDrift 34s ease-in-out infinite alternate;
+/* ── แถบเมนู + หัวหน้า: กระจกฝ้าแบบ iOS ── */
+[data-theme="aurora"] .sidebar,
+[data-theme="aurora"] .app-header {
+  background: var(--gr-bar);
+  -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
 }
-/* ── ลำแสงเฉียง: แถบสว่างพาดผ่าน ให้ผืนสีมีความลึก ไม่แบน ── */
-html[data-theme="aurora"] body::after {
-  content: ""; position: fixed; inset: -30%; z-index: -1; pointer-events: none;
-  background:
-    linear-gradient(112deg, transparent 32%, rgba(255,255,255,.6) 43%, transparent 52%),
-    linear-gradient(112deg, transparent 58%, rgba(255,255,255,.38) 67%, transparent 75%);
-  filter: blur(30px);
-  animation: auRay 26s ease-in-out infinite alternate;
-}
-@keyframes auDrift {
-  0%   { transform: translate3d(0,0,0) scale(1); }
-  50%  { transform: translate3d(-3%,2.5%,0) scale(1.09); }
-  100% { transform: translate3d(3.5%,-2%,0) scale(1.04); }
-}
-@keyframes auRay  { from { transform: translate3d(-4%,0,0); } to { transform: translate3d(6%,0,0); } }
-@keyframes auText { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
-@keyframes auSweep { from { transform: translateX(-60%); } to { transform: translateX(160%); } }
-@keyframes auFloat { from { transform: translateY(0); } to { transform: translateY(-5px); } }
+[data-theme="aurora"] .sidebar { border-right: 1px solid var(--border); }
+[data-theme="aurora"] .app-header { border-bottom: 1px solid var(--border); }
+[data-theme="aurora"] .sidebar-brand,
+[data-theme="aurora"] .sidebar-foot { border-color: var(--border); }
+[data-theme="aurora"] .brand-mark { background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.5); }
+[data-theme="aurora"] .brand-name { color: var(--text-1); }
+/* ชื่อหน้าใหญ่แบบ Large Title ของ iOS — บีบระยะตัวอักษร ไม่ใส่สีไล่ */
+[data-theme="aurora"] .page-title { color: var(--text-1); letter-spacing: -.04em; }
+@media (min-width: 861px) { [data-theme="aurora"] .page-title { font-size: 28px; } }
+@media (min-width: 1200px) { [data-theme="aurora"] .page-title { font-size: 32px; } }
 
-/* ══ ผังใหม่ทั้งหน้า (เฉพาะเดสก์ท็อป) ══════════════════════════
-   เดิม: แถบเมนู + หัวหน้า + เนื้อหา เป็นผืนขาวติดกันเต็มจอ คั่นด้วยเส้น 1px
-   ใหม่: ผืนสีคือผ้าใบ · แถบเมนูเป็นเกาะลอยกลางจอ · หัวหน้าเป็นการ์ดลอยแยกใบ
-        เนื้อหาไม่มีกล่องครอบ การ์ดแต่ละใบลอยอยู่บนผืนสีตรง ๆ
-   มือถือไม่แตะ เพราะเมนูเป็นลิ้นชักเลื่อนเข้ามา ต้องชิดขอบจอเหมือนเดิม
-   ══════════════════════════════════════════════════════════════ */
-@media (min-width: 861px) {
-  [data-theme="aurora"] .app-root { padding: 20px 24px; gap: 20px; }
-
-  /* แถบเมนู → เกาะลอย ไม่ยาวเต็มความสูงอีกต่อไป จัดกลางแนวตั้ง */
-  [data-theme="aurora"] .sidebar {
-    align-self: center; height: auto; max-height: calc(100dvh - 48px);
-    border-radius: 30px; border: 1px solid var(--au-glass-hi); border-right: 1px solid var(--au-glass-hi);
-    background: var(--au-glass);
-    -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
-    box-shadow: 0 34px 74px rgba(12,64,104,.20), 0 2px 8px rgba(12,64,104,.06);
-    overflow: hidden auto;
-  }
-  /* พื้นที่ทำงาน → โปร่งใส ปล่อยให้ผืนสีเป็นพื้นจริง ๆ */
-  [data-theme="aurora"] .app-main { background: none; }
-
-  /* หัวหน้า → การ์ดลอยแยกใบ มุมโค้ง ไม่ใช่แถบเต็มความกว้างที่มีเส้นคาดใต้ */
-  [data-theme="aurora"] .app-header {
-    background: var(--au-glass);
-    -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
-    border: 1px solid var(--au-glass-hi); border-radius: 26px;
-    box-shadow: 0 22px 50px rgba(12,64,104,.15), 0 2px 6px rgba(12,64,104,.05);
-    padding: 22px 26px 8px; overflow: hidden;
-  }
-  [data-theme="aurora"] .app-header::after { top: 0; bottom: auto; }
-  /* เนื้อหาเลิกมีระยะขอบซ้าย-ขวา เพราะการ์ดข้างในจัดระยะเองแล้ว */
-  [data-theme="aurora"] .app-content { padding: 20px 0 26px; }
-  /* หัวหน้าต้องเว้นขวาเท่าความกว้างสกอลล์บาร์ของพื้นที่เนื้อหา (ตั้งไว้ 9px ที่ ::-webkit-scrollbar)
-     ไม่งั้นขอบขวาของการ์ดหัวหน้าจะล้ำการ์ดข้างล่างออกไป 9px เห็นเป็นรอยเหลื่อม */
-  [data-theme="aurora"] .app-header { margin-right: 9px; }
-
-  /* ชื่อหน้าใหญ่ขึ้นอีกระดับ — โหมดนี้ให้ตัวหนังสือเป็นงานออกแบบ ไม่ใช่แค่ป้ายบอกหน้า */
-  [data-theme="aurora"] .page-title { font-size: 28px; letter-spacing: -.042em; }
-  [data-theme="aurora"] .page-sub { font-size: 13px; margin-top: 6px; }
-  [data-theme="aurora"] .stat-rail .num { font-size: 50px; letter-spacing: -.05em; margin-top: 15px; }
-  [data-theme="aurora"] .stat-rail>button { padding: 24px 24px 22px; }
-}
-/* จอกว้างค่อยปล่อยตัวหนังสือเต็มขนาด — จอแคบกว่านี้ชื่อหน้าจะดันแถวค้นหาตกบรรทัด */
-@media (min-width: 1200px) {
-  [data-theme="aurora"] .page-title { font-size: 34px; letter-spacing: -.045em; }
-  [data-theme="aurora"] .stat-rail .num { font-size: 56px; margin-top: 16px; }
-  [data-theme="aurora"] .stat-rail>button { padding: 26px 26px 24px; }
-}
-[data-theme="aurora"] .app-header { position: relative; border-bottom: none; }
-/* เส้นแสงสามสี — อยู่ขอบบนของการ์ดหัวหน้า */
-[data-theme="aurora"] .app-header::after {
-  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
-  background: linear-gradient(90deg, transparent, var(--au-a) 20%, var(--au-b) 52%, var(--au-c) 80%, transparent);
-}
-
-/* ── แบรนด์: ตราวงกลมบนพื้นไล่สี ── */
-[data-theme="aurora"] .sidebar-brand { border-bottom: 1px solid var(--border); padding-top: 22px; padding-bottom: 20px; }
-[data-theme="aurora"] .brand-mark {
-  border-radius: 16px; background: #fff; padding: 5px 7px;
-  box-shadow: 0 0 0 1px rgba(0,168,116,.18), 0 10px 26px rgba(0,168,116,.28);
-}
-[data-theme="aurora"] .brand-name,
-[data-theme="aurora"] .page-title {
-  background: linear-gradient(96deg, var(--au-a) 0%, var(--au-b) 46%, var(--au-c) 100%);
-  background-size: 220% 100%;
-  -webkit-background-clip: text; background-clip: text;
-  -webkit-text-fill-color: transparent; color: transparent;
-  animation: auText 12s ease-in-out infinite alternate;
-}
-
-/* ── เมนู → ปุ่มแคปซูล หน้าที่เปิดอยู่ทาพื้นไล่สีเต็มปุ่ม ── */
-[data-theme="aurora"] .nav-item { border-radius: 14px; padding: 12px 14px; }
-[data-theme="aurora"] .nav-item:hover { background: rgba(14,143,214,.09); }
+/* ── เมนู: หน้าที่เปิดอยู่เป็นแถบสีเขียวทึบ ตัวอักษรขาว ── */
+[data-theme="aurora"] .nav-item { border-radius: 12px; }
+[data-theme="aurora"] .nav-item:hover { background: var(--gr-hi); }
 [data-theme="aurora"] .nav-item.active {
-  background: linear-gradient(100deg, var(--au-a), var(--au-b));
-  color: #fff; box-shadow: 0 12px 26px rgba(14,143,214,.34);
+  background: var(--primary); color: #fff; box-shadow: none;
 }
 [data-theme="aurora"] .nav-item.active::before { display: none; }
 /* ไอคอนถูกกำหนดสีไว้เป็น attribute ในโค้ด — CSS ชนะ attribute จึงเปลี่ยนเป็นขาวได้ */
 [data-theme="aurora"] .nav-item.active svg { stroke: #fff; }
-[data-theme="aurora"] .nav-item.active .nav-badge { background: rgba(255,255,255,.92); color: #C0392F; }
-/* เมนู "รายงาน" ถูกดันไปล่างสุดด้วย margin-top:auto ซึ่งใช้ไม่ได้แล้วเมื่อแถบเมนูสูงเท่าเนื้อหา
-   จึงคั่นด้วยเส้นผมแทน ให้ยังแยกออกจากเมนูงานเหมือนเดิม */
-[data-theme="aurora"] .sidebar-nav > .nav-item[style*="margin-top: auto"] { margin-top: 17px !important; }
+[data-theme="aurora"] .nav-item.active .nav-badge { background: rgba(255,255,255,.9); color: #B3261E; }
+[data-theme="aurora"] .nav-badge { background: rgba(255,69,58,.22); color: #FF9F99; }
+[data-theme="aurora"] .nav-badge.warn { background: rgba(255,159,10,.20); color: #FFCE7A; }
+/* เมนู "รายงาน" ถูกดันไปล่างสุดด้วย margin-top:auto อยู่แล้ว — เพิ่มเส้นคั่นให้ชัดขึ้น */
 [data-theme="aurora"] .sidebar-nav > .nav-item[style*="margin-top: auto"]::after {
   content: ""; position: absolute; left: 6px; right: 6px; top: -9px; height: 1px; background: var(--border);
 }
-[data-theme="aurora"] .sidebar-foot { border-top: 1px solid var(--border); }
-[data-theme="aurora"] .role-btn.active {
-  background: linear-gradient(100deg, var(--au-a), var(--au-b)); color: #fff;
-  box-shadow: 0 8px 20px rgba(14,143,214,.3);
-}
+[data-theme="aurora"] .role-btn.active { background: var(--primary); color: #fff; }
 
-/* ── แผงตัวเลข: จากแถบเดียวยาว → สามการ์ดลอยแยกใบ ── */
-[data-theme="aurora"] .stat-rail {
-  background: none; border: none; box-shadow: none; overflow: visible;
-  gap: 18px; border-radius: 0;
+/* ── การ์ด: เทาสว่างกว่าพื้นหนึ่งระดับ + เส้นขอบบาง ไม่ใช้เงาหนัก ──
+   บนพื้นมืด เงาแทบมองไม่เห็น จึงใช้ "ความสว่าง" บอกว่าอะไรลอยอยู่ข้างบน */
+[data-theme="aurora"] .pnl,
+[data-theme="aurora"] .stat-rail,
+[data-theme="aurora"] .bq-card,
+[data-theme="aurora"] .p3-card {
+  background: var(--gr-card); border: 1px solid var(--border); border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.4);
 }
-[data-theme="aurora"] .stat-rail::before,
-[data-theme="aurora"] .stat-rail::after { display: none; }
-[data-theme="aurora"] .stat-rail>button {
-  border-radius: 26px; overflow: hidden;
-  background: var(--au-glass);
-  -webkit-backdrop-filter: blur(24px) saturate(175%); backdrop-filter: blur(24px) saturate(175%);
-  border: 1px solid var(--au-glass-hi);
-  box-shadow: var(--au-lift);
-  transition: transform .2s cubic-bezier(.3,.9,.3,1), box-shadow .2s;
-}
-[data-theme="aurora"] .stat-rail>button+button { box-shadow: var(--au-lift); }
-[data-theme="aurora"] .stat-rail>button:hover {
-  background: var(--au-glass); transform: translateY(-5px);
-  box-shadow: 0 36px 70px rgba(12,64,104,.22);
-}
-[data-theme="aurora"] .stat-rail .lb { font-size: 11.5px; letter-spacing: .09em; }
-/* ตัวเลขใหญ่ = พระเอก จึงไล่สีให้เด่นขึ้นมาจากการ์ด */
-[data-theme="aurora"] .stat-rail .num {
-  background: linear-gradient(168deg, var(--au-a), var(--au-b));
-  -webkit-background-clip: text; background-clip: text;
-  -webkit-text-fill-color: transparent; color: transparent;
-}
-/* ใช้ background-image ไม่ใช่ background ย่อ เพราะตัวย่อจะรีเซ็ต background-clip:text ทิ้ง */
-[data-theme="aurora"] .stat-rail>button[data-alert="1"] .num {
-  background-image: linear-gradient(168deg, #F0555A, #A9182A);
-}
-[data-theme="aurora"] .stat-rail>button[data-alert="1"] { background: linear-gradient(165deg, rgba(240,85,90,.16), var(--au-glass) 56%); }
-[data-theme="aurora"] .stat-rail>button[data-active="1"] { background: linear-gradient(165deg, rgba(0,168,116,.16), var(--au-glass) 56%); }
-[data-theme="aurora"] .stat-rail>button[data-active="1"]::after {
-  left: 20px; right: 20px; bottom: 0; height: 4px; border-radius: 4px 4px 0 0;
-  background: linear-gradient(90deg, var(--au-a), var(--au-b));
-}
-@media (max-width: 860px) { [data-theme="aurora"] .stat-rail { gap: 12px; } }
+[data-theme="aurora"] .pnl::after { display: none; }
+[data-theme="aurora"] .stat-rail::before { display: none; }
+[data-theme="aurora"] .stat-rail > button:hover { background: var(--gr-hi); }
+[data-theme="aurora"] .stat-rail > button[data-active="1"] { background: var(--gr-hi); }
+[data-theme="aurora"] .stat-rail > button[data-active="1"]::after { background: var(--primary-bright); }
+[data-theme="aurora"] .stat-rail .num { color: var(--text-1); }
+[data-theme="aurora"] .stat-rail > button[data-alert="1"] .num { color: #FF6B62; }
+[data-theme="aurora"] .stat-rail > button[data-alert="1"] { background: rgba(255,69,58,.09); }
+[data-theme="aurora"] .rows > button:hover { background: var(--gr-hi); box-shadow: 0 0 0 6px var(--gr-hi); }
 
-/* ── แผงเนื้อหา: การ์ดขาวลอย ขอบบนเป็นเส้นแสง ── */
-[data-theme="aurora"] .pnl {
-  background: var(--au-glass);
-  -webkit-backdrop-filter: blur(24px) saturate(175%); backdrop-filter: blur(24px) saturate(175%);
-  border: 1px solid var(--au-glass-hi); border-radius: 26px; padding: 24px 26px;
-  box-shadow: var(--au-lift); position: relative; overflow: hidden;
+/* ── การ์ดของทุกหน้าที่เหลือ (ตาราง · บอร์ด · ปฏิทิน · รายงาน · คลัง · สำรวจ) ──
+   ทั้งระบบเขียนการ์ดด้วยรูปแบบ inline เดียวกันหมด: background var(--surface) + border var(--border)
+   จับด้วย attribute selector ทีเดียวจบ ไม่ต้องไล่แก้ 29 จุดใน 15 ไฟล์
+   ต้องใช้ !important เพราะของเดิมเป็น inline style ซึ่งชนะกฎ CSS ปกติ */
+[data-theme="aurora"] .app-content [style*="background: var(--surface)"][style*="border: 1px solid var(--border)"] {
+  border-radius: 16px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.4) !important;
 }
-[data-theme="aurora"] .pnl::after {
-  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; pointer-events: none;
-  background: linear-gradient(90deg, transparent, var(--au-a) 20%, var(--au-b) 52%, var(--au-c) 80%, transparent);
-}
-[data-theme="aurora"] .pnl-hd .t { font-size: 12.5px; letter-spacing: .09em; }
-[data-theme="aurora"] .rows>button { padding: 15px 6px; }
-[data-theme="aurora"] .rows>button:hover { background: rgba(14,143,214,.07); box-shadow: 0 0 0 8px rgba(14,143,214,.07); }
+/* หัวตารางที่ปักหมุดไว้ (position:sticky) ต้องทึบ ไม่งั้นแถวข้อมูลจะวิ่งทะลุขึ้นมาให้เห็น */
+[data-theme="aurora"] .app-content thead th { background: var(--gr-card) !important; }
 
-/* ── ปุ่ม/ช่องกรอก → ทรงแคปซูล ── */
+/* ── ปุ่ม/ช่องกรอก: ทรงแคปซูลแบบ iOS ── */
 [data-theme="aurora"] .btn-add {
-  background: linear-gradient(100deg, var(--au-a), var(--au-b)); color: #fff;
-  border-radius: 99px; padding: 11px 22px;
-  box-shadow: 0 12px 28px rgba(14,143,214,.34), inset 0 1px 0 rgba(255,255,255,.35);
-  position: relative; overflow: hidden;
+  background: var(--primary); color: #fff; border-radius: 99px; padding: 11px 20px;
+  box-shadow: none;
 }
-[data-theme="aurora"] .btn-add::after {
-  content: ""; position: absolute; top: 0; bottom: 0; width: 34%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
-  animation: auSweep 3.6s ease-in-out infinite;
-}
-[data-theme="aurora"] .btn-add:hover { box-shadow: 0 16px 36px rgba(14,143,214,.46); }
+[data-theme="aurora"] .btn-add:hover { background: var(--primary-bright); box-shadow: none; transform: none; }
 [data-theme="aurora"] .search-box {
-  background: rgba(255,255,255,.7); border-color: var(--au-glass-hi); border-radius: 99px; padding: 10px 16px;
+  background: var(--surface2); border-color: transparent; border-radius: 99px; padding: 9px 15px;
 }
 [data-theme="aurora"] .search-box:focus-within {
-  background: #fff; border-color: rgba(14,143,214,.5);
-  box-shadow: 0 0 0 4px rgba(14,143,214,.14);
+  background: var(--surface2); border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(48,209,88,.16);
 }
 [data-theme="aurora"] .ghost-btn,
 [data-theme="aurora"] .delay-toggle {
-  background: rgba(255,255,255,.7); border-color: var(--au-glass-hi); border-radius: 99px;
-  box-shadow: 0 4px 14px rgba(12,64,104,.07);
+  background: var(--surface2); border-color: transparent; border-radius: 99px; box-shadow: none;
 }
 [data-theme="aurora"] .ghost-btn:hover,
-[data-theme="aurora"] .hamburger:hover { background: rgba(14,143,214,.12); }
-[data-theme="aurora"] .clear-chip { background: rgba(14,143,214,.13); color: var(--au-b); }
+[data-theme="aurora"] .hamburger { background: var(--surface2); }
+[data-theme="aurora"] .hamburger:hover { background: var(--surface3); }
+[data-theme="aurora"] .clear-chip { background: var(--surface3); color: var(--text-2); }
 
-/* ── การ์ดในหน้าย่อย (BOQ / ออกแบบ / ผังหน้างาน) ให้เป็นชุดเดียวกัน ── */
-[data-theme="aurora"] .bq-card,
-[data-theme="aurora"] .p3-card {
-  background: var(--au-glass);
-  -webkit-backdrop-filter: blur(22px) saturate(170%); backdrop-filter: blur(22px) saturate(170%);
-  border-color: var(--au-glass-hi); border-radius: 22px;
-  box-shadow: var(--au-lift);
-}
-
-/* ── การ์ดของทุกหน้าที่เหลือ (ตาราง · บอร์ด · ปฏิทิน · รายงาน · คลัง · สำรวจ · ตารางนัด) ──
-   ทั้งระบบเขียนการ์ดด้วยรูปแบบ inline เดียวกันหมด 29 จุดใน 15 ไฟล์:
-     background: var(--surface) + border: 1px solid var(--border)
-   จับด้วย attribute selector ทีเดียวจบ ไม่ต้องไล่แก้ทุกไฟล์ (และไม่แตะโหมดปกติเลย)
-   ต้องใช้ !important เพราะของเดิมเป็น inline style ซึ่งชนะกฎ CSS ปกติ */
-[data-theme="aurora"] .app-content [style*="background: var(--surface)"][style*="border: 1px solid var(--border)"] {
-  background: var(--au-glass) !important;
-  -webkit-backdrop-filter: blur(22px) saturate(170%); backdrop-filter: blur(22px) saturate(170%);
-  border-color: var(--au-glass-hi) !important;
-  border-radius: 22px !important;
-  box-shadow: var(--au-lift) !important;
-}
-/* หัวตารางที่ปักหมุดไว้ (position:sticky) ต้องทึบ ไม่งั้นแถวข้อมูลจะวิ่งทะลุขึ้นมาให้เห็น */
-[data-theme="aurora"] .app-content thead th { background: rgba(255,255,255,.96) !important; }
-
-/* ── หน้าจอเต็มจอ BOQ: เป็นแผ่นทึบซ้อนทับทั้งจอ (z-index 120) จึงต้องวาดผืนสีของตัวเอง
-   ทำให้จางกว่าหน้าหลัก เพราะเป็นหน้ากรอกตัวเลข ต้องอ่านสบายตากว่าหน้าภาพรวม ── */
-[data-theme="aurora"] .bq {
-  background:
-    radial-gradient(58% 58% at 5% 0%,  rgba(52,226,170,.55), transparent 62%),
-    radial-gradient(54% 54% at 97% 0%, rgba(88,201,255,.52), transparent 64%),
-    radial-gradient(62% 62% at 93% 100%, rgba(165,142,255,.50), transparent 66%),
-    radial-gradient(46% 46% at 0% 100%, rgba(255,198,138,.34), transparent 68%),
-    var(--bg);
-}
+/* ── หน้าจอเต็มจอ BOQ / ออกแบบระบบ ── */
 [data-theme="aurora"] .bq-head,
 [data-theme="aurora"] .bq-foot,
-[data-theme="aurora"] .bq-rail {
-  background: var(--au-glass);
-  -webkit-backdrop-filter: blur(26px) saturate(170%); backdrop-filter: blur(26px) saturate(170%);
+[data-theme="aurora"] .bq-rail,
+[data-theme="aurora"] .su-rail,
+[data-theme="aurora"] .su-foot {
+  background: var(--gr-bar);
+  -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
 }
-/* หัวข้อที่เปิดอยู่ในสารบัญซ้าย → แคปซูลไล่สีชุดเดียวกับเมนูหลัก
-   ตัวหนังสือย่อยทุกแบบ (ปกติ/เตือน/ครบแล้ว) ต้องเป็นขาว ไม่งั้นอ่านไม่ออกบนพื้นไล่สี */
-[data-theme="aurora"] .bq-nav[data-on="1"] {
-  background: linear-gradient(100deg, var(--au-a), var(--au-b));
-  box-shadow: 0 10px 22px rgba(14,143,214,.30);
-}
+[data-theme="aurora"] .bq-nav[data-on="1"] { background: var(--primary); }
 [data-theme="aurora"] .bq-nav[data-on="1"]::before { display: none; }
 [data-theme="aurora"] .bq-nav[data-on="1"] .tt { color: #fff; }
 [data-theme="aurora"] .bq-nav[data-on="1"] .mt,
 [data-theme="aurora"] .bq-nav[data-on="1"] .mt.warn,
-[data-theme="aurora"] .bq-nav[data-on="1"] .mt.ok { color: rgba(255,255,255,.82); }
-[data-theme="aurora"] .bq-nav[data-on="1"] .ic { background: rgba(255,255,255,.92); color: var(--au-a); }
-[data-theme="aurora"] .bq-nav[data-on="1"] .ic svg { stroke: var(--au-a); }
-
-/* ── หน้าจอเต็มจอ ออกแบบระบบ (.su) — โครงเดียวกับ BOQ ── */
-[data-theme="aurora"] .su,
-[data-theme="aurora"] .su-main {
-  background:
-    radial-gradient(58% 58% at 5% 0%,  rgba(52,226,170,.55), transparent 62%),
-    radial-gradient(54% 54% at 97% 0%, rgba(88,201,255,.52), transparent 64%),
-    radial-gradient(62% 62% at 93% 100%, rgba(165,142,255,.50), transparent 66%),
-    radial-gradient(46% 46% at 0% 100%, rgba(255,198,138,.34), transparent 68%),
-    var(--bg);
-}
-[data-theme="aurora"] .su-main { background: none; }
-[data-theme="aurora"] .su-rail,
-[data-theme="aurora"] .su-foot {
-  background: var(--au-glass);
-  -webkit-backdrop-filter: blur(26px) saturate(170%); backdrop-filter: blur(26px) saturate(170%);
-}
-[data-theme="aurora"] .su-step[data-on="1"] {
-  background: linear-gradient(100deg, var(--au-a), var(--au-b));
-  box-shadow: 0 10px 22px rgba(14,143,214,.30);
-}
+[data-theme="aurora"] .bq-nav[data-on="1"] .mt.ok { color: rgba(255,255,255,.8); }
+[data-theme="aurora"] .bq-nav[data-on="1"] .ic { background: rgba(255,255,255,.92); color: var(--primary); }
+[data-theme="aurora"] .bq-nav[data-on="1"] .ic svg { stroke: var(--primary); }
+[data-theme="aurora"] .su-step[data-on="1"] { background: var(--primary); }
 [data-theme="aurora"] .su-step[data-on="1"] .tt { color: #fff; }
-[data-theme="aurora"] .su-step[data-on="1"] .sb { color: rgba(255,255,255,.82); }
-[data-theme="aurora"] .su-step[data-on="1"] .no { background: rgba(255,255,255,.92); color: var(--au-a); }
+[data-theme="aurora"] .su-step[data-on="1"] .sb { color: rgba(255,255,255,.8); }
+[data-theme="aurora"] .su-step[data-on="1"] .no { background: rgba(255,255,255,.92); color: var(--primary); }
 
-/* ── ลิ้นชักรายละเอียดงาน: เว้นขอบให้ลอย + มุมโค้งฝั่งซ้าย ── */
-@media (min-width: 861px) {
-  /* ตำแหน่งของลิ้นชักเขียนเป็น inline style ไว้ จึงต้อง !important ถึงจะดันให้ลอยออกจากขอบจอได้ */
-  [data-theme="aurora"] .drawer-panel {
-    top: 16px !important; right: 16px !important;
-    height: calc(100dvh - 32px) !important; max-height: calc(100dvh - 32px) !important;
-    border-radius: 26px; overflow: hidden;
-    border: 1px solid var(--au-glass-hi);
-    box-shadow: -24px 0 70px rgba(12,64,104,.22);
-  }
-}
+/* ── ลิ้นชักรายละเอียดงาน ── */
+[data-theme="aurora"] .drawer-panel { box-shadow: -20px 0 60px rgba(0,0,0,.55); }
 
 /* ── รายละเอียดเล็ก ๆ ที่ทำให้ทั้งระบบดูเป็นชุดเดียวกัน ── */
-[data-theme="aurora"] ::-webkit-scrollbar-thumb { background: rgba(14,143,214,.32); }
-[data-theme="aurora"] ::-webkit-scrollbar-thumb:hover { background: rgba(14,143,214,.55); }
-[data-theme="aurora"] ::selection { background: rgba(14,143,214,.22); color: var(--text-1); }
-[data-theme="aurora"] .sidebar-overlay { background: rgba(11,31,44,.38); }
+[data-theme="aurora"] ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.16); }
+[data-theme="aurora"] ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.28); }
+[data-theme="aurora"] ::selection { background: rgba(48,209,88,.3); color: #fff; }
+[data-theme="aurora"] .sidebar-overlay { background: rgba(0,0,0,.55); }
+/* ช่องกรอกทั่วระบบใช้พื้น var(--surface) ซึ่งเท่ากับพื้นการ์ด — บนพื้นมืดจะกลืนกันจนหาไม่เจอ
+   จึงยกช่องกรอกให้สว่างกว่าการ์ดหนึ่งระดับ */
+[data-theme="aurora"] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="aurora"] textarea,
+[data-theme="aurora"] select { color-scheme: dark; }
 
-/* เครื่องที่ตั้งค่า "ลดการเคลื่อนไหว" ไว้ — คงหน้าตาไว้ แต่หยุดทุกแอนิเมชัน */
-@media (prefers-reduced-motion: reduce) {
-  html[data-theme="aurora"] body::before,
-  html[data-theme="aurora"] body::after,
-  [data-theme="aurora"] .brand-name,
-  [data-theme="aurora"] .page-title,
-  [data-theme="aurora"] .btn-add::after { animation: none; }
-  [data-theme="aurora"] .stat-rail>button:hover { transform: none; }
-}
 </style>
 <template id="__bundler_thumbnail">
 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -661,6 +473,6 @@ html[data-theme="aurora"] body::after {
 <script type="text/babel" src="dashboard/views-survey.jsx?v=2"></script>
 <script type="text/babel" src="dashboard/survey-sched.jsx?v=20"></script>
 <script type="text/babel" src="dashboard/auth.jsx?v=12"></script>
-<script type="text/babel" src="dashboard/app.jsx?v=78"></script>
+<script type="text/babel" src="dashboard/app.jsx?v=80"></script>
 </body>
 </html>

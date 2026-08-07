@@ -38,9 +38,9 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 
 /* โหมดออโรรา — สีหลักเปลี่ยนเป็นเขียวมิ้นต์เรืองแสง ให้อ่านออกบนพื้นมืด
    ต้องตั้งผ่าน JS เพราะตัวแปรพวกนี้ถูกเขียนเป็น inline style บน <html> (ชนะกฎใน CSS) */
-/* โทนสว่าง: primary เป็นเขียวมิ้นต์เข้มพอที่ตัวอักษรขาวบนปุ่มยังอ่านออก
-   (ปุ่มทั่วระบบเขียนสีขาวไว้ตายตัว) ส่วน dark ใช้เป็นสีตัวอักษรบนพื้นสว่าง */
-const AURORA = { primary: "#0FB98A", dark: "#0A7A5C", soft: "rgba(15,185,138,.13)", bright: "#1499C9" };
+/* โหมดกราไฟต์: primary เป็นเขียวแบรนด์ที่สว่างพอสำหรับพื้นเทาเข้ม และยังรองรับตัวอักษรขาวบนปุ่ม
+   ส่วน dark ใช้เป็นสีตัวอักษรบนพื้นมืด จึงต้องสว่างกว่า primary (กลับด้านกับโหมดปกติ) */
+const AURORA = { primary: "#28A85F", dark: "#4CD97B", soft: "rgba(40,168,95,.20)", bright: "#34C759" };
 
 function applyTheme(t) {
   const root = document.documentElement;
@@ -54,7 +54,7 @@ function applyTheme(t) {
   root.style.setProperty("--primary-soft", aurora ? a.soft : (t.mode === "dark" ? "rgba(53,183,109,.16)" : a.soft));
   root.style.setProperty("--primary-bright", a.bright);
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", aurora ? "#EFF5F8" : "#22A35B");
+  if (meta) meta.setAttribute("content", aurora ? "#131315" : "#22A35B");
 }
 
 /* ── responsive helper — uses matchMedia so it works even when resize events
@@ -497,15 +497,14 @@ function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, aurora, onT
             )}
           </div>
         )}
-        {/* โหมดออโรรา — สกินพิเศษ (จำค่าไว้) · ตอนเปิดอยู่ ปุ่มเองก็เรืองแสงบอกสถานะ */}
-        <button onClick={onToggleAurora} className="nav-item" title={aurora ? "กลับสู่โหมดปกติ" : "เปิดโหมดออโรรา"}
-          style={{ width: "100%", color: aurora ? "var(--primary-dark)" : "var(--text-2)",
-            textShadow: aurora ? "0 0 16px rgba(61,255,176,.45)" : "none" }}>
-          <Icon name="sparkle" size={18} color={aurora ? "var(--primary-dark)" : "var(--text-2)"} />
-          {!icons && <span>{aurora ? "โหมดออโรรา" : "โหมดออโรรา"}</span>}
+        {/* โหมดกราไฟต์ — สกินโทนเทาเข้ม (จำค่าไว้) · จุดเขียวด้านขวาบอกว่าเปิดอยู่ */}
+        <button onClick={onToggleAurora} className="nav-item" title={aurora ? "กลับสู่โหมดปกติ" : "เปิดโหมดกราไฟต์"}
+          style={{ width: "100%", color: aurora ? "var(--primary-dark)" : "var(--text-2)" }}>
+          <Icon name="moon" size={18} color={aurora ? "var(--primary-dark)" : "var(--text-2)"} />
+          {!icons && <span>โหมดกราไฟต์</span>}
           {!icons && aurora && (
             <span style={{ marginLeft: "auto", width: 7, height: 7, borderRadius: 99, flexShrink: 0,
-              background: "var(--primary-bright)", boxShadow: "0 0 10px var(--primary-bright)" }} />
+              background: "var(--primary-bright)" }} />
           )}
         </button>
         <button onClick={onLogout} className="nav-item" title="ออกจากระบบ"
