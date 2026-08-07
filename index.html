@@ -25,11 +25,18 @@
   --primary: #22A35B; --primary-dark: #14663A; --primary-soft: #E1F5E8; --primary-bright: #35B76D;
   --sidebar-w: 250px;
 }
-[data-theme="dark"] {
-  --bg: #0A0F0B; --surface: #111A13; --surface2: #16201A; --surface3: #1F2C24;
-  --border: rgba(255,255,255,.08); --border-strong: rgba(255,255,255,.15);
-  --text-1: #ECF3EE; --text-2: #9DB0A4; --text-3: #647568;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
+/* ── โหมดออโรรา (AURORA) ──────────────────────────────────────
+   สกินพิเศษ: เปลี่ยนบรรยากาศทั้งระบบเป็นแสงเหนือยามค่ำ
+   ทุกอย่างทำผ่านตัวแปรสีชุดเดิม + ชั้นตกแต่งด้านล่าง
+   ข้อมูล โครงสร้างหน้า และตรรกะทั้งหมดไม่ถูกแตะเลยแม้แต่บรรทัดเดียว
+   ────────────────────────────────────────────────────────────── */
+[data-theme="aurora"] {
+  --bg: #04090C; --surface: #0B1519; --surface2: #101F24; --surface3: #172C32;
+  --border: rgba(125,247,209,.11); --border-strong: rgba(125,247,209,.24);
+  --text-1: #EAFBF4; --text-2: #94B5AB; --text-3: #5F8277;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.5), 0 10px 34px rgba(0,0,0,.34);
+  --au-a: #3DFFB0; --au-b: #37D8FF; --au-c: #A98CFF;
+  color-scheme: dark;
 }
 [data-cardstyle="flat"] { --shadow-sm: none; }
 [data-density="compact"] { --sidebar-w: 230px; }
@@ -83,8 +90,6 @@ input, select, textarea { font-family: inherit; }
   min-width: 21px; height: 20px; border-radius: 99px; display: grid; place-items: center; padding: 0 7px;
   font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
 .nav-badge.warn { background: rgba(245,158,11,.16); color: #B45309; }
-[data-theme="dark"] .nav-badge { background: rgba(239,68,68,.2); color: #FCA5A5; }
-[data-theme="dark"] .nav-badge.warn { background: rgba(245,158,11,.22); color: #FCD34D; }
 
 .sidebar-foot { padding: 14px 12px; border-top: 1px solid var(--border); width: 100%; }
 .role-label { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); padding: 0 4px 9px; }
@@ -279,6 +284,167 @@ input, select, textarea { font-family: inherit; }
   color:var(--text-2);white-space:nowrap;letter-spacing:-.01em}
 .rows .when b{display:block;font-family:var(--sans);font-size:10px;font-weight:650;
   color:var(--text-3);letter-spacing:.04em;text-align:right;margin-bottom:1px}
+
+/* ══════════════════════════════════════════════════════════════
+   ชั้นตกแต่งโหมดออโรรา — ทำงานเมื่อ data-theme="aurora" เท่านั้น
+   ทุกกฎในบล็อกนี้เป็นการ "ทับหน้าตา" ล้วน ๆ ไม่มีผลกับข้อมูล
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── ท้องฟ้า: ม่านแสงเหนือเคลื่อนช้า ๆ อยู่หลังทุกอย่าง ── */
+html[data-theme="aurora"] body::before {
+  content: ""; position: fixed; inset: -25% -15%; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(42% 46% at 16% 18%, rgba(61,255,176,.42), transparent 64%),
+    radial-gradient(38% 44% at 86% 12%, rgba(55,216,255,.36), transparent 66%),
+    radial-gradient(48% 52% at 66% 92%, rgba(169,140,255,.34), transparent 68%),
+    radial-gradient(34% 38% at 4% 80%, rgba(61,255,176,.22), transparent 70%),
+    radial-gradient(60% 60% at 50% 50%, rgba(20,80,70,.28), transparent 72%);
+  filter: blur(34px) saturate(150%);
+  animation: auDrift 30s ease-in-out infinite alternate;
+}
+/* ── ฝุ่นดาว: จุดจาง ๆ ให้พื้นหลังไม่เรียบจนดูแบน ── */
+html[data-theme="aurora"] body::after {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .5;
+  background-image:
+    radial-gradient(1px 1px at 12% 28%, rgba(255,255,255,.45), transparent),
+    radial-gradient(1px 1px at 76% 18%, rgba(180,255,230,.4), transparent),
+    radial-gradient(1px 1px at 42% 72%, rgba(255,255,255,.32), transparent),
+    radial-gradient(1px 1px at 88% 64%, rgba(190,220,255,.36), transparent),
+    radial-gradient(1px 1px at 28% 88%, rgba(255,255,255,.28), transparent);
+  background-size: 340px 340px, 420px 420px, 300px 300px, 480px 480px, 380px 380px;
+  animation: auTwinkle 7s ease-in-out infinite alternate;
+}
+@keyframes auDrift {
+  0%   { transform: translate3d(0,0,0) scale(1); }
+  50%  { transform: translate3d(-3%,2.5%,0) scale(1.09); }
+  100% { transform: translate3d(3.5%,-2%,0) scale(1.04); }
+}
+@keyframes auTwinkle { from { opacity: .28; } to { opacity: .6; } }
+@keyframes auText { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
+@keyframes auSweep { from { transform: translateX(-60%); } to { transform: translateX(160%); } }
+
+/* ── กระจกฝ้า: แถบเมนู + หัวหน้า ── */
+[data-theme="aurora"] .sidebar,
+[data-theme="aurora"] .app-header {
+  background: linear-gradient(180deg, rgba(17,34,39,.80), rgba(7,17,20,.88));
+  -webkit-backdrop-filter: blur(22px) saturate(155%); backdrop-filter: blur(22px) saturate(155%);
+}
+[data-theme="aurora"] .sidebar { border-right: 1px solid var(--border); }
+[data-theme="aurora"] .app-header { position: relative; border-bottom: 1px solid var(--border); }
+/* เส้นแสงวิ่งใต้หัวหน้า — จังหวะช้าพอที่จะไม่รบกวนตอนทำงาน */
+[data-theme="aurora"] .app-header::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; overflow: hidden;
+  background: linear-gradient(90deg, transparent, rgba(61,255,176,.5) 24%, rgba(55,216,255,.45) 52%, rgba(169,140,255,.42) 76%, transparent);
+}
+[data-theme="aurora"] .sidebar-brand { border-bottom: 1px solid var(--border); }
+[data-theme="aurora"] .brand-mark {
+  background: linear-gradient(160deg, #ffffff, #DFFFF2);
+  box-shadow: 0 0 0 1px rgba(61,255,176,.3), 0 6px 22px rgba(61,255,176,.28);
+}
+[data-theme="aurora"] .brand-name,
+[data-theme="aurora"] .page-title {
+  background: linear-gradient(92deg, #F2FFF9 0%, var(--au-a) 34%, var(--au-b) 62%, var(--au-c) 100%);
+  background-size: 240% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  animation: auText 11s ease-in-out infinite alternate;
+}
+[data-theme="aurora"] .page-title { filter: drop-shadow(0 0 20px rgba(61,255,176,.22)); }
+
+/* ── เมนู: หน้าที่เปิดอยู่เรืองแสง ── */
+[data-theme="aurora"] .nav-item:hover { background: rgba(125,247,209,.075); }
+[data-theme="aurora"] .nav-item.active {
+  background: linear-gradient(90deg, rgba(61,255,176,.19), rgba(55,216,255,.08) 58%, transparent);
+  box-shadow: inset 0 0 0 1px rgba(61,255,176,.16);
+}
+[data-theme="aurora"] .nav-item.active::before {
+  width: 3px; background: linear-gradient(180deg, var(--au-a), var(--au-b));
+  box-shadow: 0 0 12px rgba(61,255,176,.85);
+}
+[data-theme="aurora"] .nav-badge { background: rgba(255,107,107,.18); color: #FFB3B3; }
+[data-theme="aurora"] .nav-badge.warn { background: rgba(255,209,102,.18); color: #FFDF9B; }
+[data-theme="aurora"] .sidebar-foot { border-top: 1px solid var(--border); }
+[data-theme="aurora"] .role-btn.active {
+  background: linear-gradient(100deg, var(--au-a), var(--au-b)); color: #04231A;
+  box-shadow: 0 4px 18px rgba(61,255,176,.3);
+}
+
+/* ── แผงเนื้อหา: กระจกลอย ขอบบนเป็นเส้นแสง ── */
+[data-theme="aurora"] .pnl,
+[data-theme="aurora"] .stat-rail {
+  background: linear-gradient(158deg, rgba(255,255,255,.062), rgba(255,255,255,.016));
+  -webkit-backdrop-filter: blur(18px) saturate(145%); backdrop-filter: blur(18px) saturate(145%);
+  border: 1px solid var(--border); border-radius: 20px; position: relative; overflow: hidden;
+  box-shadow: 0 20px 54px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.07);
+}
+[data-theme="aurora"] .stat-rail::before {
+  background: radial-gradient(120% 150% at 0% 0%, rgba(61,255,176,.10), transparent 60%);
+}
+[data-theme="aurora"] .pnl::after,
+[data-theme="aurora"] .stat-rail::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(61,255,176,.6) 22%, rgba(55,216,255,.55) 54%, rgba(169,140,255,.5) 78%, transparent);
+}
+/* ตัวเลขใหญ่ = พระเอก จึงไล่สีให้เรืองขึ้นมาจากพื้น */
+[data-theme="aurora"] .stat-rail .num {
+  background: linear-gradient(180deg, #FFFFFF, #96FFD6);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  filter: drop-shadow(0 0 16px rgba(61,255,176,.3));
+}
+/* ใช้ background-image ไม่ใช่ background ย่อ เพราะตัวย่อจะรีเซ็ต background-clip:text ทิ้ง */
+[data-theme="aurora"] .stat-rail>button[data-alert="1"] .num {
+  background-image: linear-gradient(180deg, #FFE3E0, #FF7A72);
+  filter: drop-shadow(0 0 16px rgba(255,107,107,.35));
+}
+[data-theme="aurora"] .stat-rail>button[data-alert="1"] { background: linear-gradient(180deg, rgba(255,107,107,.1), transparent 62%); }
+[data-theme="aurora"] .stat-rail>button:hover { background: rgba(125,247,209,.06); }
+[data-theme="aurora"] .stat-rail>button[data-active="1"] { background: rgba(61,255,176,.09); }
+[data-theme="aurora"] .stat-rail>button[data-active="1"]::after {
+  background: linear-gradient(90deg, var(--au-a), var(--au-b)); box-shadow: 0 0 14px rgba(61,255,176,.7);
+}
+[data-theme="aurora"] .rows>button:hover { background: rgba(125,247,209,.06); box-shadow: 0 0 0 6px rgba(125,247,209,.06); }
+
+/* ── ปุ่ม/ช่องกรอก ── */
+[data-theme="aurora"] .btn-add {
+  background: linear-gradient(100deg, var(--au-a), var(--au-b)); color: #04231A;
+  box-shadow: 0 4px 22px rgba(61,255,176,.34), inset 0 1px 0 rgba(255,255,255,.45);
+  position: relative; overflow: hidden;
+}
+[data-theme="aurora"] .btn-add::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 34%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent);
+  animation: auSweep 3.6s ease-in-out infinite;
+}
+[data-theme="aurora"] .btn-add:hover { box-shadow: 0 8px 32px rgba(61,255,176,.5); }
+[data-theme="aurora"] .search-box:focus-within { box-shadow: 0 0 0 3px rgba(61,255,176,.16), 0 0 22px rgba(61,255,176,.2); }
+[data-theme="aurora"] .ghost-btn:hover,
+[data-theme="aurora"] .hamburger:hover { background: rgba(125,247,209,.09); }
+[data-theme="aurora"] .clear-chip { background: rgba(125,247,209,.12); }
+
+/* ── การ์ดในหน้าย่อย (BOQ / ออกแบบ / ผังหน้างาน) ให้เป็นกระจกชุดเดียวกัน ── */
+[data-theme="aurora"] .bq-card,
+[data-theme="aurora"] .p3-card {
+  background: linear-gradient(158deg, rgba(255,255,255,.055), rgba(255,255,255,.014));
+  -webkit-backdrop-filter: blur(16px) saturate(140%); backdrop-filter: blur(16px) saturate(140%);
+  border-color: var(--border);
+  box-shadow: 0 14px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+/* ── รายละเอียดเล็ก ๆ ที่ทำให้ทั้งระบบดูเป็นชุดเดียวกัน ── */
+[data-theme="aurora"] ::-webkit-scrollbar-thumb { background: rgba(61,255,176,.28); }
+[data-theme="aurora"] ::-webkit-scrollbar-thumb:hover { background: rgba(61,255,176,.5); }
+[data-theme="aurora"] ::selection { background: rgba(61,255,176,.3); color: #FFFFFF; }
+[data-theme="aurora"] .sidebar-overlay { background: rgba(2,10,8,.6); }
+
+/* เครื่องที่ตั้งค่า "ลดการเคลื่อนไหว" ไว้ — คงหน้าตาไว้ แต่หยุดทุกแอนิเมชัน */
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="aurora"] body::before,
+  html[data-theme="aurora"] body::after,
+  [data-theme="aurora"] .brand-name,
+  [data-theme="aurora"] .page-title,
+  [data-theme="aurora"] .btn-add::after { animation: none; }
+}
 </style>
 <template id="__bundler_thumbnail">
 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -310,7 +476,7 @@ input, select, textarea { font-family: inherit; }
 
 <!-- app modules (Babel) — ?v= prevents browser from serving stale compiled cache -->
 <script type="text/babel" src="dashboard/tweaks-panel.jsx?v=6"></script>
-<script type="text/babel" src="dashboard/components.jsx?v=28"></script>
+<script type="text/babel" src="dashboard/components.jsx?v=29"></script>
 <script type="text/babel" src="dashboard/store.jsx?v=31"></script>
 <script type="text/babel" src="dashboard/media.jsx?v=7"></script>
 <script type="text/babel" src="dashboard/boq.jsx?v=93"></script>
@@ -332,7 +498,7 @@ input, select, textarea { font-family: inherit; }
 <script type="text/babel" src="dashboard/survey.jsx?v=2"></script>
 <script type="text/babel" src="dashboard/views-survey.jsx?v=2"></script>
 <script type="text/babel" src="dashboard/survey-sched.jsx?v=20"></script>
-<script type="text/babel" src="dashboard/auth.jsx?v=11"></script>
-<script type="text/babel" src="dashboard/app.jsx?v=75"></script>
+<script type="text/babel" src="dashboard/auth.jsx?v=12"></script>
+<script type="text/babel" src="dashboard/app.jsx?v=77"></script>
 </body>
 </html>

@@ -58,6 +58,8 @@ const ICONS = {
   trash: "M4 7h16M10 11v6M14 11v6M5 7l1 14h12l1-14M9 7V4h6v3",
   undo: "M3 7v6h6M3.5 13a9 9 0 1 1 2.6 6.4",
   gridDots: "M3 3h18v18H3zM9 3v18M15 3v18M3 9h18M3 15h18",
+  // ประกายดาว — ใช้กับปุ่มสลับโหมดออโรรา
+  sparkle: "M11 3 12.9 8.1 18 10l-5.1 1.9L11 17l-1.9-5.1L4 10l5.1-1.9zM18 15l.75 2.25L21 18l-2.25.75L18 21l-.75-2.25L15 18l2.25-.75z",
 };
 
 function Icon({ name, size = 18, color = "currentColor", fill = "none", sw = 1.75, style }) {

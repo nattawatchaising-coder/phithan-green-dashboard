@@ -36,16 +36,25 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "cardStyle": "soft"
 }/*EDITMODE-END*/;
 
+/* โหมดออโรรา — สีหลักเปลี่ยนเป็นเขียวมิ้นต์เรืองแสง ให้อ่านออกบนพื้นมืด
+   ต้องตั้งผ่าน JS เพราะตัวแปรพวกนี้ถูกเขียนเป็น inline style บน <html> (ชนะกฎใน CSS) */
+/* primary ต้องเป็นเขียวเข้มพอที่ตัวอักษรขาวบนปุ่มยังอ่านออก (ปุ่มทั่วระบบเขียนสีขาวไว้ตายตัว)
+   ส่วนเขียวมิ้นต์เรืองแสงเก็บไว้ที่ bright/dark สำหรับตัวอักษรบนพื้นมืดและแสงเรือง */
+const AURORA = { primary: "#0FA97A", dark: "#8CFFD2", soft: "rgba(61,255,176,.15)", bright: "#3DFFB0" };
+
 function applyTheme(t) {
   const root = document.documentElement;
   root.setAttribute("data-theme", t.mode);
   root.setAttribute("data-density", t.density);
   root.setAttribute("data-cardstyle", t.cardStyle);
-  const a = ACCENTS[t.accent] || ACCENTS.phithan;
+  const aurora = t.mode === "aurora";
+  const a = aurora ? AURORA : (ACCENTS[t.accent] || ACCENTS.phithan);
   root.style.setProperty("--primary", a.primary);
-  root.style.setProperty("--primary-dark", t.mode === "dark" ? a.bright : a.dark);
-  root.style.setProperty("--primary-soft", t.mode === "dark" ? "rgba(53,183,109,.16)" : a.soft);
+  root.style.setProperty("--primary-dark", aurora ? a.dark : (t.mode === "dark" ? a.bright : a.dark));
+  root.style.setProperty("--primary-soft", aurora ? a.soft : (t.mode === "dark" ? "rgba(53,183,109,.16)" : a.soft));
   root.style.setProperty("--primary-bright", a.bright);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", aurora ? "#04090C" : "#22A35B");
 }
 
 /* ── responsive helper — uses matchMedia so it works even when resize events
@@ -64,7 +73,7 @@ function useIsMobile(bp = 860) {
 function LoadingScreen() {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      height: "100vh", background: "var(--bg)", gap: 18 }}>
+      height: "100vh", background: "transparent", gap: 18 }}>
       <img src="dashboard/assets/phithan-mark.png" alt="PHITHAN GREEN" style={{ height: 60, borderRadius: 14, padding: 8, background: "#fff", boxShadow: "0 4px 18px rgba(34,163,91,.18)" }} />
       <div style={{ fontFamily: "var(--display)", fontSize: 22, fontWeight: 800, color: "var(--primary-dark)", letterSpacing: "-.01em" }}>PHITHAN GREEN</div>
       <div style={{ display: "flex", gap: 7 }}>
@@ -108,12 +117,12 @@ function App() {
   const [briefingOpen, setBriefingOpen] = React.useState(false); // สรุปงานวันนี้ (เปิดครั้งแรกของวัน)
   const [mapOpen, setMapOpen] = React.useState(false); // แผนที่งาน (popup จากปุ่มใน header)
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
-  // โหมดกลางคืน — ผู้ใช้สลับเองได้ · จำค่าใน localStorage (ใช้ได้บนเว็บจริง ไม่พึ่ง edit-mode)
-  const [dark, setDark] = React.useState(() => {
-    const s = localStorage.getItem("pg-dark");
-    return s == null ? (TWEAK_DEFAULTS.mode === "dark") : s === "1";
+  // โหมดออโรรา — สกินพิเศษ สลับเองได้ · จำค่าใน localStorage (ใช้ได้บนเว็บจริง ไม่พึ่ง edit-mode)
+  const [aurora, setAurora] = React.useState(() => {
+    const s = localStorage.getItem("pg-aurora");
+    return s == null ? (TWEAK_DEFAULTS.mode === "aurora") : s === "1";
   });
-  const toggleDark = React.useCallback(() => setDark((d) => { const n = !d; localStorage.setItem("pg-dark", n ? "1" : "0"); return n; }), []);
+  const toggleAurora = React.useCallback(() => setAurora((d) => { const n = !d; localStorage.setItem("pg-aurora", n ? "1" : "0"); return n; }), []);
   // ย่อ/ขยายแถบเมนูด้านข้าง (เดสก์ท็อป) — จำค่าใน localStorage
   const [collapsed, setCollapsed] = React.useState(() => {
     const s = localStorage.getItem("pg-sidebar");
@@ -136,7 +145,7 @@ function App() {
     if (!allowed.includes(view)) setView(role === "survey" ? "myschedule" : "overview");
   }, [auth.current, role]);
 
-  React.useEffect(() => { applyTheme(Object.assign({}, t, { mode: dark ? "dark" : "light" })); }, [t, dark]);
+  React.useEffect(() => { applyTheme(Object.assign({}, t, { mode: aurora ? "aurora" : "light" })); }, [t, aurora]);
 
   const jobs = React.useMemo(() => store.jobs.map((j) => {
     const f = fileFlags[j.id] || {};
@@ -315,7 +324,7 @@ function App() {
     <div className="app-root">
       {sidebarOpen && <div className="sidebar-overlay" onClick={closeSidebar} />}
       <Sidebar view={view} onNav={navTo} role={role} jobs={jobs} stock={stock} t={t}
-        open={sidebarOpen} onClose={closeSidebar} dark={dark} onToggleDark={toggleDark}
+        open={sidebarOpen} onClose={closeSidebar} aurora={aurora} onToggleAurora={toggleAurora}
         collapsed={collapsed} onToggleCollapsed={toggleCollapsed}
         currentUser={auth.current} onLogout={auth.logout}
         canManageUsers={can(role, "manageUsers")} onManageUsers={() => { setUserMgr(true); closeSidebar(); }} />
@@ -394,7 +403,7 @@ function App() {
 
       <TweaksPanel>
         <TweakSection label="ธีม / Theme" />
-        <TweakRadio label="โหมด" value={t.mode} options={["light", "dark"]} onChange={(v) => setTweak("mode", v)} />
+        <TweakRadio label="โหมด" value={t.mode} options={["light", "aurora"]} onChange={(v) => setTweak("mode", v)} />
         <TweakSelect label="โทนสีหลัก" value={t.accent}
           options={[{ value: "phithan", label: "PHITHAN Green" }, { value: "emerald", label: "Emerald" }, { value: "amber", label: "Command Amber" }]}
           onChange={(v) => setTweak("accent", v)} />
@@ -407,7 +416,7 @@ function App() {
   );
 }
 
-function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, dark, onToggleDark, collapsed, onToggleCollapsed, currentUser, onLogout, canManageUsers, onManageUsers }) {
+function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, aurora, onToggleAurora, collapsed, onToggleCollapsed, currentUser, onLogout, canManageUsers, onManageUsers }) {
   // Read media query synchronously every render — avoids stale state when
   // the preview or device loads at one size then displays at another.
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -488,10 +497,16 @@ function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, dark, onTog
             )}
           </div>
         )}
-        {/* โหมดกลางคืน — สลับธีมสว่าง/มืด (จำค่าไว้) */}
-        <button onClick={onToggleDark} className="nav-item" title={dark ? "โหมดกลางวัน" : "โหมดกลางคืน"} style={{ width: "100%" }}>
-          <Icon name={dark ? "sun" : "moon"} size={18} color="var(--text-2)" />
-          {!icons && <span>{dark ? "โหมดกลางวัน" : "โหมดกลางคืน"}</span>}
+        {/* โหมดออโรรา — สกินพิเศษ (จำค่าไว้) · ตอนเปิดอยู่ ปุ่มเองก็เรืองแสงบอกสถานะ */}
+        <button onClick={onToggleAurora} className="nav-item" title={aurora ? "กลับสู่โหมดปกติ" : "เปิดโหมดออโรรา"}
+          style={{ width: "100%", color: aurora ? "var(--primary-dark)" : "var(--text-2)",
+            textShadow: aurora ? "0 0 16px rgba(61,255,176,.45)" : "none" }}>
+          <Icon name="sparkle" size={18} color={aurora ? "var(--primary-dark)" : "var(--text-2)"} />
+          {!icons && <span>{aurora ? "โหมดออโรรา" : "โหมดออโรรา"}</span>}
+          {!icons && aurora && (
+            <span style={{ marginLeft: "auto", width: 7, height: 7, borderRadius: 99, flexShrink: 0,
+              background: "var(--primary-bright)", boxShadow: "0 0 10px var(--primary-bright)" }} />
+          )}
         </button>
         <button onClick={onLogout} className="nav-item" title="ออกจากระบบ"
           style={{ width: "100%", color: "#EF4444" }}>

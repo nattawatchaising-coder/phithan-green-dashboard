@@ -205,8 +205,9 @@ function LoginScreen({ authStore }) {
   };
 
   return (
+    /* พื้นโปร่ง ไม่ทาสีทับ — body ทาสีพื้นอยู่แล้ว และโหมดออโรราจะได้เห็นม่านแสงด้านหลังด้วย */
     <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      background: "var(--bg)", gap: 22,
+      background: "transparent", gap: 22,
       padding: "calc(20px + env(safe-area-inset-top, 0px)) 20px calc(20px + env(safe-area-inset-bottom, 0px))" }}>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
         <img src="dashboard/assets/phithan-mark.png" alt="PHITHAN GREEN"
