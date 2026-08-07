@@ -38,9 +38,9 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 
 /* โหมดออโรรา — สีหลักเปลี่ยนเป็นเขียวมิ้นต์เรืองแสง ให้อ่านออกบนพื้นมืด
    ต้องตั้งผ่าน JS เพราะตัวแปรพวกนี้ถูกเขียนเป็น inline style บน <html> (ชนะกฎใน CSS) */
-/* primary ต้องเป็นเขียวเข้มพอที่ตัวอักษรขาวบนปุ่มยังอ่านออก (ปุ่มทั่วระบบเขียนสีขาวไว้ตายตัว)
-   ส่วนเขียวมิ้นต์เรืองแสงเก็บไว้ที่ bright/dark สำหรับตัวอักษรบนพื้นมืดและแสงเรือง */
-const AURORA = { primary: "#0FA97A", dark: "#8CFFD2", soft: "rgba(61,255,176,.15)", bright: "#3DFFB0" };
+/* โทนสว่าง: primary เป็นเขียวมิ้นต์เข้มพอที่ตัวอักษรขาวบนปุ่มยังอ่านออก
+   (ปุ่มทั่วระบบเขียนสีขาวไว้ตายตัว) ส่วน dark ใช้เป็นสีตัวอักษรบนพื้นสว่าง */
+const AURORA = { primary: "#0FB98A", dark: "#0A7A5C", soft: "rgba(15,185,138,.13)", bright: "#1499C9" };
 
 function applyTheme(t) {
   const root = document.documentElement;
@@ -54,7 +54,7 @@ function applyTheme(t) {
   root.style.setProperty("--primary-soft", aurora ? a.soft : (t.mode === "dark" ? "rgba(53,183,109,.16)" : a.soft));
   root.style.setProperty("--primary-bright", a.bright);
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", aurora ? "#04090C" : "#22A35B");
+  if (meta) meta.setAttribute("content", aurora ? "#EFF5F8" : "#22A35B");
 }
 
 /* ── responsive helper — uses matchMedia so it works even when resize events
