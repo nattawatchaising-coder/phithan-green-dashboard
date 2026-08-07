@@ -358,6 +358,9 @@ html[data-theme="aurora"] body::after {
   [data-theme="aurora"] .app-header::after { top: 0; bottom: auto; }
   /* เนื้อหาเลิกมีระยะขอบซ้าย-ขวา เพราะการ์ดข้างในจัดระยะเองแล้ว */
   [data-theme="aurora"] .app-content { padding: 20px 0 26px; }
+  /* หัวหน้าต้องเว้นขวาเท่าความกว้างสกอลล์บาร์ของพื้นที่เนื้อหา (ตั้งไว้ 9px ที่ ::-webkit-scrollbar)
+     ไม่งั้นขอบขวาของการ์ดหัวหน้าจะล้ำการ์ดข้างล่างออกไป 9px เห็นเป็นรอยเหลื่อม */
+  [data-theme="aurora"] .app-header { margin-right: 9px; }
 
   /* ชื่อหน้าใหญ่ขึ้นอีกระดับ — โหมดนี้ให้ตัวหนังสือเป็นงานออกแบบ ไม่ใช่แค่ป้ายบอกหน้า */
   [data-theme="aurora"] .page-title { font-size: 28px; letter-spacing: -.042em; }
@@ -404,6 +407,12 @@ html[data-theme="aurora"] body::after {
 /* ไอคอนถูกกำหนดสีไว้เป็น attribute ในโค้ด — CSS ชนะ attribute จึงเปลี่ยนเป็นขาวได้ */
 [data-theme="aurora"] .nav-item.active svg { stroke: #fff; }
 [data-theme="aurora"] .nav-item.active .nav-badge { background: rgba(255,255,255,.92); color: #C0392F; }
+/* เมนู "รายงาน" ถูกดันไปล่างสุดด้วย margin-top:auto ซึ่งใช้ไม่ได้แล้วเมื่อแถบเมนูสูงเท่าเนื้อหา
+   จึงคั่นด้วยเส้นผมแทน ให้ยังแยกออกจากเมนูงานเหมือนเดิม */
+[data-theme="aurora"] .sidebar-nav > .nav-item[style*="margin-top: auto"] { margin-top: 17px !important; }
+[data-theme="aurora"] .sidebar-nav > .nav-item[style*="margin-top: auto"]::after {
+  content: ""; position: absolute; left: 6px; right: 6px; top: -9px; height: 1px; background: var(--border);
+}
 [data-theme="aurora"] .sidebar-foot { border-top: 1px solid var(--border); }
 [data-theme="aurora"] .role-btn.active {
   background: linear-gradient(100deg, var(--au-a), var(--au-b)); color: #fff;
@@ -502,6 +511,87 @@ html[data-theme="aurora"] body::after {
   box-shadow: var(--au-lift);
 }
 
+/* ── การ์ดของทุกหน้าที่เหลือ (ตาราง · บอร์ด · ปฏิทิน · รายงาน · คลัง · สำรวจ · ตารางนัด) ──
+   ทั้งระบบเขียนการ์ดด้วยรูปแบบ inline เดียวกันหมด 29 จุดใน 15 ไฟล์:
+     background: var(--surface) + border: 1px solid var(--border)
+   จับด้วย attribute selector ทีเดียวจบ ไม่ต้องไล่แก้ทุกไฟล์ (และไม่แตะโหมดปกติเลย)
+   ต้องใช้ !important เพราะของเดิมเป็น inline style ซึ่งชนะกฎ CSS ปกติ */
+[data-theme="aurora"] .app-content [style*="background: var(--surface)"][style*="border: 1px solid var(--border)"] {
+  background: var(--au-glass) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(170%); backdrop-filter: blur(22px) saturate(170%);
+  border-color: var(--au-glass-hi) !important;
+  border-radius: 22px !important;
+  box-shadow: var(--au-lift) !important;
+}
+/* หัวตารางที่ปักหมุดไว้ (position:sticky) ต้องทึบ ไม่งั้นแถวข้อมูลจะวิ่งทะลุขึ้นมาให้เห็น */
+[data-theme="aurora"] .app-content thead th { background: rgba(255,255,255,.96) !important; }
+
+/* ── หน้าจอเต็มจอ BOQ: เป็นแผ่นทึบซ้อนทับทั้งจอ (z-index 120) จึงต้องวาดผืนสีของตัวเอง
+   ทำให้จางกว่าหน้าหลัก เพราะเป็นหน้ากรอกตัวเลข ต้องอ่านสบายตากว่าหน้าภาพรวม ── */
+[data-theme="aurora"] .bq {
+  background:
+    radial-gradient(58% 58% at 5% 0%,  rgba(52,226,170,.55), transparent 62%),
+    radial-gradient(54% 54% at 97% 0%, rgba(88,201,255,.52), transparent 64%),
+    radial-gradient(62% 62% at 93% 100%, rgba(165,142,255,.50), transparent 66%),
+    radial-gradient(46% 46% at 0% 100%, rgba(255,198,138,.34), transparent 68%),
+    var(--bg);
+}
+[data-theme="aurora"] .bq-head,
+[data-theme="aurora"] .bq-foot,
+[data-theme="aurora"] .bq-rail {
+  background: var(--au-glass);
+  -webkit-backdrop-filter: blur(26px) saturate(170%); backdrop-filter: blur(26px) saturate(170%);
+}
+/* หัวข้อที่เปิดอยู่ในสารบัญซ้าย → แคปซูลไล่สีชุดเดียวกับเมนูหลัก
+   ตัวหนังสือย่อยทุกแบบ (ปกติ/เตือน/ครบแล้ว) ต้องเป็นขาว ไม่งั้นอ่านไม่ออกบนพื้นไล่สี */
+[data-theme="aurora"] .bq-nav[data-on="1"] {
+  background: linear-gradient(100deg, var(--au-a), var(--au-b));
+  box-shadow: 0 10px 22px rgba(14,143,214,.30);
+}
+[data-theme="aurora"] .bq-nav[data-on="1"]::before { display: none; }
+[data-theme="aurora"] .bq-nav[data-on="1"] .tt { color: #fff; }
+[data-theme="aurora"] .bq-nav[data-on="1"] .mt,
+[data-theme="aurora"] .bq-nav[data-on="1"] .mt.warn,
+[data-theme="aurora"] .bq-nav[data-on="1"] .mt.ok { color: rgba(255,255,255,.82); }
+[data-theme="aurora"] .bq-nav[data-on="1"] .ic { background: rgba(255,255,255,.92); color: var(--au-a); }
+[data-theme="aurora"] .bq-nav[data-on="1"] .ic svg { stroke: var(--au-a); }
+
+/* ── หน้าจอเต็มจอ ออกแบบระบบ (.su) — โครงเดียวกับ BOQ ── */
+[data-theme="aurora"] .su,
+[data-theme="aurora"] .su-main {
+  background:
+    radial-gradient(58% 58% at 5% 0%,  rgba(52,226,170,.55), transparent 62%),
+    radial-gradient(54% 54% at 97% 0%, rgba(88,201,255,.52), transparent 64%),
+    radial-gradient(62% 62% at 93% 100%, rgba(165,142,255,.50), transparent 66%),
+    radial-gradient(46% 46% at 0% 100%, rgba(255,198,138,.34), transparent 68%),
+    var(--bg);
+}
+[data-theme="aurora"] .su-main { background: none; }
+[data-theme="aurora"] .su-rail,
+[data-theme="aurora"] .su-foot {
+  background: var(--au-glass);
+  -webkit-backdrop-filter: blur(26px) saturate(170%); backdrop-filter: blur(26px) saturate(170%);
+}
+[data-theme="aurora"] .su-step[data-on="1"] {
+  background: linear-gradient(100deg, var(--au-a), var(--au-b));
+  box-shadow: 0 10px 22px rgba(14,143,214,.30);
+}
+[data-theme="aurora"] .su-step[data-on="1"] .tt { color: #fff; }
+[data-theme="aurora"] .su-step[data-on="1"] .sb { color: rgba(255,255,255,.82); }
+[data-theme="aurora"] .su-step[data-on="1"] .no { background: rgba(255,255,255,.92); color: var(--au-a); }
+
+/* ── ลิ้นชักรายละเอียดงาน: เว้นขอบให้ลอย + มุมโค้งฝั่งซ้าย ── */
+@media (min-width: 861px) {
+  /* ตำแหน่งของลิ้นชักเขียนเป็น inline style ไว้ จึงต้อง !important ถึงจะดันให้ลอยออกจากขอบจอได้ */
+  [data-theme="aurora"] .drawer-panel {
+    top: 16px !important; right: 16px !important;
+    height: calc(100dvh - 32px) !important; max-height: calc(100dvh - 32px) !important;
+    border-radius: 26px; overflow: hidden;
+    border: 1px solid var(--au-glass-hi);
+    box-shadow: -24px 0 70px rgba(12,64,104,.22);
+  }
+}
+
 /* ── รายละเอียดเล็ก ๆ ที่ทำให้ทั้งระบบดูเป็นชุดเดียวกัน ── */
 [data-theme="aurora"] ::-webkit-scrollbar-thumb { background: rgba(14,143,214,.32); }
 [data-theme="aurora"] ::-webkit-scrollbar-thumb:hover { background: rgba(14,143,214,.55); }
@@ -559,7 +649,7 @@ html[data-theme="aurora"] body::after {
 <script type="text/babel" src="dashboard/solarreport.jsx?v=29"></script>
 <script type="text/babel" src="dashboard/solarui.jsx?v=57"></script>
 <script type="text/babel" src="dashboard/plan3d.jsx?v=62"></script>
-<script type="text/babel" src="dashboard/drawer.jsx?v=38"></script>
+<script type="text/babel" src="dashboard/drawer.jsx?v=39"></script>
 <script type="text/babel" src="dashboard/views-overview.jsx?v=30"></script>
 <script type="text/babel" src="dashboard/views-board.jsx?v=25"></script>
 <script type="text/babel" src="dashboard/views-table.jsx?v=22"></script>

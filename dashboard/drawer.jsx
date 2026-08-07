@@ -340,7 +340,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.34)",
         backdropFilter: "blur(2px)", opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none",
         transition: "opacity .3s", zIndex: 80 }} />
-      <aside style={{ position: "fixed", top: 0, right: 0, width: "min(540px, 94vw)",
+      <aside className="drawer-panel" style={{ position: "fixed", top: 0, right: 0, width: "min(540px, 94vw)",
         height: "100dvh", maxHeight: "100dvh",
         background: "var(--bg)", boxShadow: "-20px 0 60px rgba(8,20,14,.18)", zIndex: 90,
         transform: open ? "translateX(0)" : "translateX(100%)", transition: "transform .34s cubic-bezier(.3,.9,.3,1)",
