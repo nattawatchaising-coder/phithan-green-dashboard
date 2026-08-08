@@ -263,6 +263,19 @@
   function isPvDcCable(type) { return /PV1-F/i.test(type || ""); }
   function pvCableColorName(type, colorTh) { return String(type || "").replace(/\s*\(DC\)\s*$/i, "").trim() + " " + colorTh; }
 
+  /* ── ปริมาณสาย DC ──
+     ช่อง "ความยาว" ของสาย DC กรอกเป็น "ระยะเส้นที่ไกลที่สุด" (สตริงที่อยู่ไกลอินเวอร์เตอร์สุด)
+     ไม่ใช่ระยะรวมทั้งงาน เพราะระยะไกลสุดคือตัวที่ใช้เช็กแรงดันตกอยู่แล้ว กรอกที่เดียวได้ทั้งสองอย่าง
+     ปริมาณของ = ระยะไกลสุด × จำนวนสตริง × เผื่อ 1.2 → ได้ระยะต่อ 1 ขั้ว
+     แล้วถอดเป็น 2 สี แดง(+) กับ ดำ(−) เท่ากันทั้งคู่ (ไป-กลับของแต่ละสตริง) */
+  const PV_DC_SPARE = 1.2;
+  function pvDcLength(farthest, strings) {
+    const L = Math.max(0, +farthest || 0);
+    const n = Math.max(1, Math.round(+strings || 1));
+    const perPole = Math.round(L * n * PV_DC_SPARE * 100) / 100;
+    return { farthest: L, strings: n, spare: PV_DC_SPARE, perPole: perPole, total: Math.round(perPole * 2 * 100) / 100 };
+  }
+
   // ── พิกัดกระแสสายไฟ (อ้างอิงมาตรฐาน วสท. — ตัวนำทองแดง แรงดัน 0.6/1 kV) ──
   // โครงสร้าง: [ฉนวน][วิธีเดินสาย][คอลัมน์ "กลุ่ม|จำนวนตัวนำมีกระแส|แกน"][ขนาด sq.mm] = กระแส (A)
   //   · ฉนวน: pvc (PVC 70°C: THW/VCT) · xlpe (XLPE 90°C: CV) — อ่านจากชื่อสาย
@@ -1200,8 +1213,9 @@
       const t = (c.type || "").trim();
       const len = +c.length || 0;
       if (!t || len <= 0) return;
-      if (isPvDcCable(t)) {   // สาย DC → ถอด 2 สี (แดง+ / ดำ−) เส้นละ len
-        PV_DC_COLORS.forEach((col) => { const nm = pvCableColorName(t, col); cableAgg[nm] = (cableAgg[nm] || 0) + len; });
+      if (isPvDcCable(t)) {   // สาย DC → ระยะไกลสุด × สตริง × เผื่อ แล้วถอด 2 สี (แดง+ / ดำ−) เท่ากัน
+        const dc = pvDcLength(len, plan ? plan.strings : 1);
+        PV_DC_COLORS.forEach((col) => { const nm = pvCableColorName(t, col); cableAgg[nm] = (cableAgg[nm] || 0) + dc.perPole; });
       } else {
         cableAgg[t] = (cableAgg[t] || 0) + len;
       }
@@ -1673,7 +1687,7 @@
     out.forEach((x) => INVERTERS.push(x));
   }
 
-  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, qtyKey, catalog, applyPrices, setPanels, setInverters,
+  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, WAY_PIPE_LEN, TRAY_PIPE_LEN, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
     TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, VAT_RATE, priceBreakdown,
     TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,

@@ -1411,7 +1411,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const cabSelStyle = { fontSize: 12, padding: "6px 9px", borderRadius: 9, background: "var(--surface)" };
   // คอลัมน์ของรายการสายไฟ — ใช้ทั้งหัวตารางและทุกแถว จะได้ตรงกันเสมอ
   const CAB_COLS = "minmax(150px,1fr) minmax(0,1.35fr) 88px 34px";
-  const cabLenSum = Math.round((b.cables || []).reduce((s, c) => s + (+c.length || 0), 0));
+  /* ยอดรวมความยาวสาย = ปริมาณที่ถอดได้จริง ไม่ใช่ผลบวกของตัวเลขที่กรอก
+     สาย DC กรอกเป็น "ระยะไกลสุด" ต่อสตริง ของจริงต้อง × จำนวนสตริง × เผื่อ แล้วคูณ 2 ขั้ว (แดง/ดำ) */
+  const dcStrings = (result.meta.plan && result.meta.plan.strings) || 1;
+  const dcOf = (c) => window.BOQ.pvDcLength(+c.length || 0, dcStrings);
+  const cabLenSum = Math.round((b.cables || []).reduce((s, c) =>
+    s + (window.BOQ.isPvDcCable(c.type) ? dcOf(c).total : (+c.length || 0)), 0));
 
   /* ── สารบัญด้านซ้าย ── ข้อความบรรทัดล่างคือ "สถานะย่อ" ของหัวข้อนั้น เห็นได้โดยไม่ต้องเปิดเข้าไป */
   const wireDone = (b.cables || []).filter((c) => c.type && +c.length > 0).length;
@@ -1781,7 +1786,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 64px 34px" : CAB_COLS, gap: 8, alignItems: "center" }}>
                     {!isMobile && <Dropdown value={c.name || ""} onChange={(v) => setCab(i, "name", v)} options={cablePtOptions} placeholder="— เลือกจุด —" addable onAdd={addCablePt} />}
                     <Dropdown value={c.type} onChange={(v) => setCab(i, "type", v)} options={cableTypeOptions} placeholder="— เลือกสายไฟ —" />
-                    <input type="number" style={numStyle} value={c.length} placeholder="ม." onChange={(e) => setCab(i, "length", e.target.value)} />
+                    <input type="number" style={numStyle} value={c.length}
+                      placeholder={window.BOQ.isPvDcCable(c.type) ? "ไกลสุด" : "ม."}
+                      title={window.BOQ.isPvDcCable(c.type) ? "สาย DC — กรอก “ระยะเส้นที่ไกลที่สุด” (สตริงที่อยู่ไกลอินเวอร์เตอร์สุด) ระบบคูณจำนวนสตริงและเผื่อให้เอง" : undefined}
+                      onChange={(e) => setCab(i, "length", e.target.value)} />
                     <button className="bq-x" onClick={() => delCab(i)} title="ลบสายเส้นนี้"><Icon name="x" size={14} /></button>
                   </div>
                   {/* บรรทัดสถานะ — ปกติเห็นแค่สรุปสั้น ๆ กดที่ป้ายเงื่อนไขถึงจะกางช่องแก้เฉพาะเส้น */}
@@ -1821,6 +1829,19 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                           สาย DC{scfg && scfg.ready ? " · แนะนำ " + scfg.dcWire : ""} — ดูหัวข้อ “สาย DC / การต่ออนุกรม String”
                         </span>
                       )}
+                      {/* สาย DC — แจกแจงให้เห็นว่าปริมาณที่ถอดได้มาจากอะไร ไม่ใช่ตัวเลขที่กรอกตรง ๆ */}
+                      {window.BOQ.isPvDcCable(c.type) && +c.length > 0 && (() => {
+                        const d = dcOf(c);
+                        return (
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700, color: "var(--primary-dark)" }}
+                            title="ระยะไกลสุด × จำนวนสตริง × เผื่อ 1.2 = ระยะต่อ 1 ขั้ว · ถอดของเป็นสาย 2 สี แดง(+) กับ ดำ(−) เท่ากัน">
+                            <Icon name="check" size={11} color="var(--primary-dark)" />
+                            {d.farthest.toLocaleString() + " ม. × " + d.strings + " สตริง × " + d.spare + " = "}
+                            <b>{d.perPole.toLocaleString() + " ม./ขั้ว"}</b>
+                            {" · แดง " + d.perPole.toLocaleString() + " + ดำ " + d.perPole.toLocaleString() + " = รวม " + d.total.toLocaleString() + " ม."}
+                          </span>
+                        );
+                      })()}
                     </div>
                   )}
                   {showHint && open && (
