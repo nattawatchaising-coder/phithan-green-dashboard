@@ -314,10 +314,11 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                       <tr key={it.id} onClick={() => setDetailItem(it)} title="กดเพื่อดูรายละเอียด · รับ / เบิก / คืน"
                         style={{ borderBottom: "1px solid var(--border)", cursor: "pointer",
                           background: st === "out" ? "rgba(239,68,68,.07)" : "transparent" }}>
-                        {/* ยี่ห้อ/รุ่น อยู่ใต้ชื่อในช่องเดียวกัน — เป็นชื่อของของชิ้นเดียวกัน ไม่ต้องแยกคอลัมน์ให้ตารางกว้าง */}
+                        {/* ใต้ชื่อเอาแค่ "ยี่ห้อ" — ชื่อรุ่นมักเขียนอยู่ในชื่อรายการอยู่แล้ว ใส่ซ้ำก็อ่านซ้ำเปล่า ๆ
+                            (รุ่นเต็ม ๆ ดูได้ในหน้ารายละเอียด และใช้กรองจากแถบด้านบนได้) */}
                         <td style={{ padding: "11px 12px" }}>
                           <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-1)" }}>{it.name}</div>
-                          {SF.matVariantLabel(it) && <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginTop: 2 }}>{SF.matVariantLabel(it)}</div>}
+                          {(it.brand || "").trim() && <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginTop: 2 }}>{it.brand}</div>}
                           <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{it.sku}</div>
                         </td>
                         <td style={{ padding: "11px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
@@ -455,7 +456,7 @@ function StockCardList({ items, onOpen, onEdit, onRemove }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.25 }}>{it.name}</div>
-                {SF.matVariantLabel(it) && <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", marginTop: 2 }}>{SF.matVariantLabel(it)}</div>}
+                {(it.brand || "").trim() && <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginTop: 2 }}>{it.brand}</div>}
                 <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>{it.sku || "—"}</div>
               </div>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: c.color,
