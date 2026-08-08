@@ -35,9 +35,9 @@ function FlowTimeline({ job }) {
                 <span style={{ fontSize: 14, fontWeight: isCurrent ? 700 : 600,
                   color: isDone || isCurrent ? "var(--text-1)" : "var(--text-3)" }}>{s.th}</span>
                 <span style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--mono)" }}>{s.en}</span>
-                {isCurrent && !step.blocked && <span style={{ fontSize: 10.5, fontWeight: 700, color: s.color,
+                {isCurrent && !step.blocked && <span style={{ fontSize: 10.5, fontWeight: 700, color: s.fg,
                   background: s.soft, padding: "2px 8px", borderRadius: 99 }}>ขั้นปัจจุบัน</span>}
-                {step.blocked && <span style={{ fontSize: 10.5, fontWeight: 700, color: "#EF4444",
+                {step.blocked && <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--tint-red-tx)",
                   background: "var(--tint-red-bg2)", padding: "2px 8px", borderRadius: 99 }}>⚠ ติดปัญหา</span>}
               </div>
               {(step.at || step.date) && (isDone || isCurrent) && (

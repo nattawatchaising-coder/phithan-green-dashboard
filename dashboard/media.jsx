@@ -233,9 +233,9 @@ function JobPhotos({ media, currentUser, canManage }) {
 /* ── เอกสารแนบ (PDF) — แบบ + BOQ ที่ถอด ──
    เก็บเป็น base64 ใน RTDB (jobFiles/{jobId}) เหมือนรูป · จำกัดขนาด ~8MB ต่อไฟล์ */
 const FILE_KINDS = {
-  design: { th: "แบบ", color: "#2563EB", soft: "#2563EB14" },
-  boq:    { th: "BOQ", color: "#0D9488", soft: "#0D948814" },
-  other:  { th: "เอกสาร", color: "#64748B", soft: "#64748B14" },
+  design: { th: "แบบ", color: "var(--kind-design)", soft: "rgba(37,99,235,.10)" },
+  boq:    { th: "BOQ", color: "var(--kind-boq)",    soft: "rgba(13,148,136,.10)" },
+  other:  { th: "เอกสาร", color: "var(--kind-other)", soft: "rgba(100,116,139,.12)" },
 };
 const MAX_FILE_MB = 8;
 function fmtBytes(n) {

@@ -6,11 +6,13 @@
 (function () {
   // ---- ขั้นตอนการทำงาน (ออกแบบ → ถอดของ → นัดคิวติดตั้ง → ดำเนินการติดตั้ง → เสร็จสิ้น) ----
   const STAGES = [
-    { key: "design",   th: "ออกแบบ",            en: "Design",       color: "#7C5CFC", soft: "#EEE9FF" },
-    { key: "takeoff",  th: "ถอดของ",            en: "BOM Takeoff",  color: "#3B82F6", soft: "#E5EFFF" },
-    { key: "queue",    th: "นัดคิวติดตั้ง",      en: "Schedule",     color: "#F59E0B", soft: "#FEF1D8" },
-    { key: "install",  th: "ดำเนินการติดตั้ง",   en: "Installing",   color: "#84CC16", soft: "#ECF8D4" },
-    { key: "done",     th: "เสร็จสิ้น",          en: "Completed",    color: "#10B981", soft: "#D6F5E6" },
+    /* color = สีจุด/แถบ (คงเดิมทั้งสองโหมด) · soft = พื้นป้าย · fg = ตัวอักษรบนป้าย
+       soft/fg เป็นตัวแปร เพราะบนพื้นมืดต้องกลับด้าน (พื้นจาง + ตัวอักษรสว่าง) */
+    { key: "design",   th: "ออกแบบ",            en: "Design",       color: "#7C5CFC", soft: "var(--st-design-soft)",  fg: "var(--st-design-fg)" },
+    { key: "takeoff",  th: "ถอดของ",            en: "BOM Takeoff",  color: "#3B82F6", soft: "var(--st-takeoff-soft)", fg: "var(--st-takeoff-fg)" },
+    { key: "queue",    th: "นัดคิวติดตั้ง",      en: "Schedule",     color: "#F59E0B", soft: "var(--st-queue-soft)",   fg: "var(--st-queue-fg)" },
+    { key: "install",  th: "ดำเนินการติดตั้ง",   en: "Installing",   color: "#84CC16", soft: "var(--st-install-soft)", fg: "var(--st-install-fg)" },
+    { key: "done",     th: "เสร็จสิ้น",          en: "Completed",    color: "#10B981", soft: "var(--st-done-soft)",    fg: "var(--st-done-fg)" },
   ];
   const STAGE_INDEX = Object.fromEntries(STAGES.map((s, i) => [s.key, i]));
   // ขั้นเก่าที่เลิกใช้ → จับคู่ขั้นใหม่ (สั่งของ/รอของ เดิม รวมเป็น "นัดคิวติดตั้ง")
@@ -29,10 +31,10 @@
   ];
   // material status: ready ✅ / waiting ⏳ / none ❌ / na ➖
   const MAT_STATUS = {
-    ready:   { th: "ครบ",     icon: "✅", color: "#10B981", soft: "#D6F5E6" },
-    waiting: { th: "รอของ",   icon: "⏳", color: "#F59E0B", soft: "#FEF1D8" },
-    none:    { th: "ยังไม่สั่ง", icon: "❌", color: "#EF4444", soft: "#FDE2E2" },
-    na:      { th: "ไม่ใช้",   icon: "➖", color: "#94A3B8", soft: "#EEF1F5" },
+    ready:   { th: "ครบ",     icon: "✅", color: "#10B981", soft: "var(--mat-ready-soft)",   fg: "var(--mat-ready-fg)" },
+    waiting: { th: "รอของ",   icon: "⏳", color: "#F59E0B", soft: "var(--mat-waiting-soft)", fg: "var(--mat-waiting-fg)" },
+    none:    { th: "ยังไม่สั่ง", icon: "❌", color: "#EF4444", soft: "var(--mat-none-soft)",    fg: "var(--mat-none-fg)" },
+    na:      { th: "ไม่ใช้",   icon: "➖", color: "#94A3B8", soft: "var(--mat-na-soft)",      fg: "var(--mat-na-fg)" },
   };
 
   // ---- Technicians (install crews) ----

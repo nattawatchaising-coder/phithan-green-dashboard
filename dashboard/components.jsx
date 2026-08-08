@@ -104,7 +104,7 @@ function StageBadge({ stageKey, size = "md" }) {
   const fs = size === "sm" ? 11 : 12.5;
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: pad,
-      borderRadius: 999, background: s.soft, color: s.color, fontWeight: 600, fontSize: fs, whiteSpace: "nowrap" }}>
+      borderRadius: 999, background: s.soft, color: s.fg, fontWeight: 600, fontSize: fs, whiteSpace: "nowrap" }}>
       <span style={{ width: 6, height: 6, borderRadius: 99, background: s.color }} />
       {s.th}
     </span>
@@ -126,7 +126,7 @@ function MatChip({ status, label, compact }) {
     /* จุดสีแทนอีโมจิ — อีโมจิเรนเดอร์ไม่เหมือนกันทุกเครื่องและทำให้ความสูงบรรทัดกระตุก */
     <span title={label ? label + " · " + m.th : m.th}
       style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: compact ? "2px 7px" : "3px 9px",
-        borderRadius: 99, background: m.soft, color: m.color, fontWeight: 700, fontSize: compact ? 10.5 : 11, whiteSpace: "nowrap" }}>
+        borderRadius: 99, background: m.soft, color: m.fg, fontWeight: 700, fontSize: compact ? 10.5 : 11, whiteSpace: "nowrap" }}>
       <span style={{ width: 6, height: 6, borderRadius: 99, background: m.color, flexShrink: 0 }} />{!compact && (label || m.th)}
     </span>
   );

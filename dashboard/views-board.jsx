@@ -13,9 +13,9 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
     /* การ์ดงาน — คอลัมน์บอกขั้นงานอยู่แล้ว การ์ดจึงไม่ต้องทาสีขั้นงานซ้ำ
        เหลือขีดสีไว้เฉพาะตอน "มีปัญหา" หรือ "ล่าช้า" ซึ่งเป็นสีที่มีความหมายจริง */
     <div draggable onDragStart={(e) => onDragStart(e, job)} onClick={() => onOpen(job)}
-      style={{ background: "var(--surface)", border: "1px solid " + (job.problem ? "#F6C9C9" : "var(--border)"),
+      style={{ background: "var(--surface)", border: "1px solid " + (job.problem ? "var(--tint-red-bd)" : "var(--border)"),
         borderRadius: 14, padding: "13px 14px", cursor: "grab", boxShadow: "var(--shadow-sm)", opacity: dragging ? 0.4 : 1,
-        borderLeft: job.problem ? "3px solid #EF4444" : (job.delayed ? "3px solid #F59E0B" : "1px solid var(--border)"),
+        borderLeft: job.problem ? "3px solid var(--mark-danger)" : (job.delayed ? "3px solid var(--mark-warn)" : "1px solid var(--border)"),
         transition: "box-shadow .16s, transform .16s, border-color .16s" }}
       onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 8px 22px rgba(8,20,14,.09)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
       onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "var(--shadow-sm)"; e.currentTarget.style.transform = "none"; }}>
@@ -256,7 +256,7 @@ function KanbanMobile({ jobs, onOpen }) {
                 {problems > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", background: "var(--tint-red-bg2)", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>{problems}⚠</span>}
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-                <span style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 600, color: s.color, background: s.soft,
+                <span style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 600, color: s.fg, background: s.soft,
                   minWidth: 24, height: 24, borderRadius: 99, display: "grid", placeItems: "center", padding: "0 7px" }}>{col.length}</span>
                 <Icon name="chevronDown" size={17} color="var(--text-3)"
                   style={{ transform: isOpen ? "none" : "rotate(-90deg)", transition: "transform .18s" }} />

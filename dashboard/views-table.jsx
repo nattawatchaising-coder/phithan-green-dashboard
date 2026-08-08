@@ -10,7 +10,7 @@ function MatCell({ status, onCycle }) {
   return (
     <button onClick={onCycle} title="คลิกเพื่อเปลี่ยนสถานะ"
       style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 99,
-        background: m.soft, color: m.color, fontWeight: 700, fontSize: 11, border: "1px solid transparent",
+        background: m.soft, color: m.fg, fontWeight: 700, fontSize: 11, border: "1px solid transparent",
         cursor: "pointer", fontFamily: "inherit", minWidth: 58, justifyContent: "center" }}>
       <span style={{ width: 6, height: 6, borderRadius: 99, background: m.color, flexShrink: 0 }} />{m.th}
     </button>
@@ -143,7 +143,7 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
                 {/* stage */}
                 <td style={{ padding: "13px 14px", textAlign: "center" }}>
                   <select value={j.stage} onChange={(e) => onSetStage(j.id, e.target.value)}
-                    style={{ fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: stageOf(j.stage).color,
+                    style={{ fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: stageOf(j.stage).fg,
                       background: stageOf(j.stage).soft, border: "1px solid transparent", borderRadius: 99,
                       padding: "5px 10px", cursor: "pointer", outline: "none" }}>
                     {SF.STAGES.map((s) => <option key={s.key} value={s.key}>{s.th}</option>)}
@@ -247,7 +247,7 @@ function TableMobile({ jobs, sort, setSort, onOpen, onEdit, onDelete, onSetStage
         return (
           <div key={j.id} style={{ background: j.delayed ? "#FEF7F7" : "var(--surface)",
             border: "1px solid " + (j.delayed ? "var(--tint-red-bd2)" : "var(--border)"), borderRadius: 14, padding: 13,
-            borderLeft: "3px solid " + (j.delayed ? "#EF4444" : s.color), boxShadow: "var(--shadow-sm)" }}>
+            borderLeft: "3px solid " + (j.delayed ? "var(--mark-danger)" : s.color), boxShadow: "var(--shadow-sm)" }}>
             {/* หัว: รหัส + ประเภท + ปุ่มจัดการ */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
               <button onClick={() => onOpen(j)} style={{ textAlign: "left", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0, flex: 1, minWidth: 0 }}>
@@ -286,7 +286,7 @@ function TableMobile({ jobs, sort, setSort, onOpen, onEdit, onDelete, onSetStage
             {/* ท้าย: ขั้นตอน (select) + วัสดุ% + กำหนดเสร็จ */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
               <select value={j.stage} onChange={(e) => onSetStage(j.id, e.target.value)}
-                style={{ fontFamily: "inherit", fontSize: 12, fontWeight: 600, color: s.color,
+                style={{ fontFamily: "inherit", fontSize: 12, fontWeight: 600, color: s.fg,
                   background: s.soft, border: "1px solid " + s.color + "33", borderRadius: 8,
                   padding: "6px 9px", cursor: "pointer", outline: "none" }}>
                 {SF.STAGES.map((st) => <option key={st.key} value={st.key}>{st.th}</option>)}
