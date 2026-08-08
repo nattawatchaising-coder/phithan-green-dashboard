@@ -685,6 +685,24 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
   // ── Accessories: เพิ่มของ / ดึงจากราคาวัสดุ + คลังสินค้า ──
   const stockItems = (stock && stock.items) || [];
+
+  /* ── แก้ราคาได้จากในใบถอดของเลย ──
+     เขียนลงคลังสินค้าเหมือนหน้า "ราคา BOQ" (ต้นทางเดียว) แก้ที่ไหนก็เห็นตรงกันทั้งสองที่
+     หมวดบริการ (ค่าแรง/ขออนุญาต/ขนส่ง/บริหาร) แก้ที่นี่ไม่ได้ เพราะราคาอยู่ในบรรทัดของมันเอง */
+  /* ต้องมี priceMap ด้วย — แอปส่ง priceMap มาเฉพาะสิทธิ์ที่ดูแลราคาได้ (แอดมิน/ผู้จัดการ)
+     ถ้าไม่เช็ก ช่างที่เปิด BOQ ดูก็จะแก้ราคาต้นทุนได้ */
+  const canEditPrice = !!(priceMap && stock && stock.upsertItem && window.saveMatPrice);
+  const [editPx, setEditPx] = React.useState(null);   // { name, group, unit, val }
+  const isService = (grp) => (window.BOQ.SERVICE_GROUPS || []).indexOf(grp) >= 0;
+  const commitPx = () => {
+    setEditPx((cur) => {
+      if (!cur) return null;
+      if (String(cur.val).trim() !== "" && +cur.val >= 0) {
+        window.saveMatPrice(stock, { name: cur.name, group: cur.group, unit: cur.unit, price: +cur.val });
+      }
+      return null;
+    });
+  };
   const matInfo = React.useMemo(() => {
     const m = {};
     (window.BOQ.catalog() || []).forEach((c) => { m[c.name] = { unit: c.unit }; });
@@ -2360,13 +2378,36 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                           fontVariantNumeric: "tabular-nums", color: "var(--text-1)" }}>{(Math.round(it.qty * 100) / 100).toLocaleString()}</span>
                         <span style={{ display: "block", fontSize: 9.5, fontWeight: 600, letterSpacing: ".04em", color: "var(--text-3)" }}>{it.unit}</span>
                       </span>
-                      {(!isMobile || priced.grandTotal > 0) && (
-                      <span style={{ textAlign: "right" }}>
-                        <span style={{ fontFamily: "var(--mono)", fontSize: 12.5, fontWeight: 700, fontVariantNumeric: "tabular-nums",
-                          color: it.total > 0 ? "var(--text-1)" : "var(--text-3)" }}>{it.total > 0 ? baht(it.total) : "–"}</span>
-                        {it.price > 0 ? <span style={{ display: "block", fontSize: 9.5, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>@{baht(it.price)}</span> : null}
-                      </span>
-                      )}
+                      {(!isMobile || priced.grandTotal > 0) && (() => {
+                        const editable = canEditPrice && !isService(g.group) && (it.name || "").trim();
+                        const editing = editPx && editPx.name === it.name;
+                        if (editing) return (
+                          <span style={{ textAlign: "right" }}>
+                            <input autoFocus type="number" min={0} step="any" value={editPx.val}
+                              onChange={(e) => setEditPx((p) => Object.assign({}, p, { val: e.target.value }))}
+                              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commitPx(); } if (e.key === "Escape") setEditPx(null); }}
+                              onBlur={commitPx}
+                              style={{ width: "100%", height: 30, padding: "0 7px", textAlign: "right", borderRadius: 8,
+                                border: "1px solid var(--primary)", background: "var(--surface)", color: "var(--text-1)",
+                                fontFamily: "var(--mono)", fontSize: 12.5, fontWeight: 700, outline: "none" }} />
+                            <span style={{ display: "block", fontSize: 9, color: "var(--text-3)" }}>บาท/{it.unit || "หน่วย"}</span>
+                          </span>
+                        );
+                        return (
+                          <span style={{ textAlign: "right" }}>
+                            <span
+                              onClick={editable ? () => setEditPx({ name: it.name, group: g.group, unit: it.unit, val: it.price > 0 ? String(it.price) : "" }) : undefined}
+                              title={editable ? "แก้ราคา/หน่วย — บันทึกลงคลังสินค้า" : undefined}
+                              style={{ fontFamily: "var(--mono)", fontSize: 12.5, fontWeight: 700, fontVariantNumeric: "tabular-nums",
+                                color: it.total > 0 ? "var(--text-1)" : "var(--text-3)",
+                                cursor: editable ? "pointer" : "default",
+                                borderBottom: editable ? "1px dashed var(--border-strong)" : "none" }}>
+                              {it.total > 0 ? baht(it.total) : "–"}
+                            </span>
+                            {it.price > 0 ? <span style={{ display: "block", fontSize: 9.5, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>@{baht(it.price)}</span> : null}
+                          </span>
+                        );
+                      })()}
                     </div>
                   ))}
                 </div>
@@ -2380,7 +2421,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 </div>
               )}
             </div>
-            <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)" }}>* ราคาดึงจากเมนู "ราคาวัสดุ" — รายการที่ยังไม่ใส่ราคาจะขึ้น "–"</div>
+            <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)" }}>
+              {canEditPrice
+                ? '* กดที่ตัวเลขราคาเพื่อแก้ราคา/หน่วยได้เลย — บันทึกลงคลังสินค้า จึงเห็นตรงกับเมนู "ราคา BOQ" · หมวดค่าแรง/ค่าขออนุญาต/ขนส่ง/บริหาร แก้ที่หัวข้อของหมวดนั้น'
+                : '* ราคาดึงจากเมนู "ราคาวัสดุ" — รายการที่ยังไม่ใส่ราคาจะขึ้น "–"'}
+            </div>
           </BoqSection>
 
           {/* ── แบ่งราคา: ต้นทุน → ผู้รับเหมา → ราคาขาย → ส่วนลด ── */}

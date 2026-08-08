@@ -43,25 +43,14 @@ function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
   const newItems = cat.filter((c) => !stockByName[c.name]);
   const newCount = newItems.length;
 
-  // บันทึก → เขียนลง "คลังสินค้า" (ต้นทางเดียว); สร้าง record ใหม่ถ้ายังไม่มี + auto-gen รหัส
+  /* บันทึก → เขียนลง "คลังสินค้า" (ต้นทางเดียว); สร้าง record ใหม่ถ้ายังไม่มี + auto-gen รหัส
+     ใช้ saveMatPrice ตัวเดียวกับช่องแก้ราคาในใบถอดของ ตรรกะจะได้ไม่แยกกันเดิน */
   const saveAll = () => {
-    let maxId = 0;
-    stockItems.forEach((it) => { const n = parseInt(String(it.id || "").replace(/\D/g, ""), 10); if (!isNaN(n) && n > maxId) maxId = n; });
-    const usedCodes = stockItems.map((s) => s.sku).filter(Boolean);
+    const ctx = window.newMatSaveCtx(stock);
     cat.forEach((c) => {
       if (!isDirty(c)) return;
       const l = local[c.name];
-      const existing = stockByName[c.name];
-      const catKey = existing ? existing.cat : (SF.BOQ_GROUP_TO_CAT[c.group] || "other");
-      let code = String(l.code || "").trim();
-      if (!code) code = (existing && existing.sku) || SF.genMatCode(catKey, stockItems, usedCodes);
-      usedCodes.push(code);
-      if (existing) {
-        stock.upsertItem(Object.assign({}, existing, { sku: code, price: +l.price || 0, unit: existing.unit || c.unit || "" }));
-      } else {
-        maxId += 1;
-        stock.upsertItem({ id: "IV-" + String(maxId).padStart(2, "0"), name: c.name, sku: code, cat: catKey, unit: c.unit || "", qty: 0, min: 0, loc: "", price: +l.price || 0 });
-      }
+      window.saveMatPrice(stock, { name: c.name, group: c.group, unit: c.unit, price: l.price, code: l.code }, ctx);
     });
     setLocal({});
   };
@@ -70,17 +59,10 @@ function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
   const addAllNew = () => {
     if (!newCount) return;
     if (!confirm("เพิ่ม " + newCount + " รายการที่ยังไม่มีในคลังสินค้า\n(จำนวน 0 · สร้างรหัสอัตโนมัติตามหมวด · ราคาที่กรอกไว้จะถูกบันทึกด้วย)")) return;
-    let maxId = 0;
-    stockItems.forEach((it) => { const n = parseInt(String(it.id || "").replace(/\D/g, ""), 10); if (!isNaN(n) && n > maxId) maxId = n; });
-    const usedCodes = stockItems.map((s) => s.sku).filter(Boolean);
+    const ctx = window.newMatSaveCtx(stock);
     newItems.forEach((c) => {
       const l = local[c.name] || {};
-      const catKey = SF.BOQ_GROUP_TO_CAT[c.group] || "other";
-      let code = String(l.code || "").trim();
-      if (!code) code = SF.genMatCode(catKey, stockItems, usedCodes);
-      usedCodes.push(code);
-      maxId += 1;
-      stock.upsertItem({ id: "IV-" + String(maxId).padStart(2, "0"), name: c.name, sku: code, cat: catKey, unit: c.unit || "", qty: 0, min: 0, loc: "", price: +l.price || 0 });
+      window.saveMatPrice(stock, { name: c.name, group: c.group, unit: c.unit, price: l.price, code: l.code }, ctx);
     });
     setLocal({});
   };

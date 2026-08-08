@@ -348,5 +348,42 @@ function useBackdropClose(onClose) {
   };
 }
 
+/* ── บันทึกราคาวัสดุ 1 รายการลง "คลังสินค้า" ──
+   คลังคือต้นทางเดียวของราคา (หน้า "ราคา BOQ" ก็เขียนลงที่เดียวกัน) แก้จากตรงไหนก็เห็นตรงกันหมด
+   · มีของในคลังแล้ว → อัปเดตราคา (ชื่อ/หน่วย/จำนวนคงเดิม)
+   · ยังไม่มี → สร้างรายการใหม่ จำนวน 0 + รหัสอัตโนมัติตามหมวด
+   จับคู่ของเดิมด้วย matKey ไม่ใช่ชื่อดิบ เพราะชื่อที่ต่างกันเล็กน้อย (เช่นมี "(3m/ท่อน)" ต่อท้าย)
+   คือของชิ้นเดียวกันในสายตาเครื่องคิดราคา — ถ้าเทียบชื่อดิบจะสร้างรายการซ้ำ */
+function newMatSaveCtx(stock) {
+  const items = (stock && stock.items) || [];
+  let maxId = 0;
+  items.forEach((it) => { const n = parseInt(String(it.id || "").replace(/\D/g, ""), 10); if (!isNaN(n) && n > maxId) maxId = n; });
+  return { maxId: maxId, used: items.map((s) => s.sku).filter(Boolean) };
+}
+
+function saveMatPrice(stock, opt, ctx) {
+  const SF = window.SF || {};
+  const mk = (window.BOQ && window.BOQ.matKey) || ((x) => String(x || "").trim());
+  const items = (stock && stock.items) || [];
+  const name = String((opt && opt.name) || "").trim();
+  if (!name || !stock || !stock.upsertItem) return null;
+  /* บันทึกทีละหลายรายการต้องส่ง ctx มาด้วย ไม่งั้นทุกรายการใหม่จะคำนวณ id/รหัสจาก
+     stock.items ชุดเดิม (ยังไม่ทันอัปเดต) แล้วได้ค่าซ้ำกันหมด */
+  const c = ctx || newMatSaveCtx(stock);
+  const existing = items.find((s) => s.name && mk(s.name) === mk(name));
+  const catKey = existing ? existing.cat : ((SF.BOQ_GROUP_TO_CAT || {})[opt.group] || "other");
+  const sku = String((opt && opt.code) || "").trim() || (existing && existing.sku) || SF.genMatCode(catKey, items, c.used);
+  c.used.push(sku);
+  const price = Math.max(0, +opt.price || 0);
+  if (existing) {
+    stock.upsertItem(Object.assign({}, existing, { sku: sku, price: price, unit: existing.unit || opt.unit || "" }));
+    return existing.id;
+  }
+  c.maxId += 1;
+  const id = "IV-" + String(c.maxId).padStart(2, "0");
+  stock.upsertItem({ id: id, name: name, sku: sku, cat: catKey, unit: opt.unit || "", qty: 0, min: 0, loc: "", price: price });
+  return id;
+}
+
 Object.assign(window, { Icon, ICONS, StageBadge, TypeBadge, MatChip, TechAvatar, ProgressBar, MatDots, Segmented, Dropdown, useBackdropClose,
-  thDate, thDateTime, fmtBaht, stageOf, parseDate, TH_MONTHS, TH_DAYS });
+  thDate, thDateTime, fmtBaht, stageOf, parseDate, TH_MONTHS, TH_DAYS, saveMatPrice, newMatSaveCtx });
