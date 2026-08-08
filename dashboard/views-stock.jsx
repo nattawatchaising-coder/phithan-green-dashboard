@@ -205,28 +205,12 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
             )}
           </div>
           {/* มือถือ: dropdown หมวด */}
-          {isMobile && !isPrices && !isAmp && (
-            <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
-              <CatDropdown cat={cat} setCat={setCat} items={items} cats={SF.STOCK_CATS} />
-              {/* ยี่ห้อ/รุ่น — มือถือใช้ดรอปดาวน์แทนชิป จะได้ไม่กินที่ */}
-              {brandList.length > 0 && (
-                <div style={{ display: "grid", gridTemplateColumns: brand !== "all" && modelList.length ? "1fr 1fr" : "1fr", gap: 8 }}>
-                  <Dropdown value={brand} onChange={(v) => { setBrand(v); setModel("all"); }}
-                    options={[{ value: "all", label: "ทุกยี่ห้อ" }].concat(brandList.map((b) => ({ value: b, label: b + " (" + brandCount[b] + ")" })))} />
-                  {brand !== "all" && modelList.length > 0 && (
-                    <Dropdown value={model} onChange={setModel}
-                      options={[{ value: "all", label: "ทุกรุ่น" }].concat(modelList.map((m) => ({ value: m, label: m + " (" + modelCount[m] + ")" })))} />
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+          {isMobile && !isPrices && !isAmp && <div style={{ marginTop: 10 }}><CatDropdown cat={cat} setCat={setCat} items={items} cats={SF.STOCK_CATS} /></div>}
           {isMobile && isPrices && <div style={{ marginTop: 10 }}><Dropdown value={priceGrp} onChange={setPriceGrp} options={priceGroups.map((g) => ({ value: g, label: g === "all" ? "ทั้งหมด" : (PG_TH[g] || g) }))} /></div>}
           {/* เดสก์ท็อป: ชิปหมวด — ย่อ/ขยายแบบลื่น (max-height + opacity) */}
           {!isMobile && !isAmp && (
-            // ความสูงต้องเผื่อตามจำนวนแถวที่โผล่จริง (หมวด + ยี่ห้อ + รุ่น) ไม่งั้นแถวล่างโดนตัด
             <div style={{ overflow: "hidden",
-              maxHeight: catOpen ? (56 * (1 + (!isPrices && brandList.length ? 1 : 0) + (!isPrices && brand !== "all" && modelList.length ? 1 : 0))) : 0,
+              maxHeight: catOpen ? 48 : 0,
               opacity: catOpen ? 1 : 0,
               marginTop: catOpen ? 8 : 0, transition: "max-height .24s ease, opacity .2s ease, margin-top .24s ease" }}>
               <div className="cat-chip-row" style={{ display: "flex", gap: 7, flexWrap: "nowrap", alignItems: "center", overflowX: "auto", paddingBottom: 4 }}>
@@ -242,21 +226,6 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                   </React.Fragment>
                 )}
               </div>
-              {/* ยี่ห้อ — เลือกแล้วแถวรุ่นค่อยขึ้นต่อข้างล่าง */}
-              {!isPrices && brandList.length > 0 && (
-                <div className="cat-chip-row" style={{ display: "flex", gap: 7, flexWrap: "nowrap", alignItems: "center", overflowX: "auto", paddingBottom: 4, marginTop: 6 }}>
-                  <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", whiteSpace: "nowrap", paddingRight: 2 }}>ยี่ห้อ</span>
-                  <CatChip active={brand === "all"} onClick={() => { setBrand("all"); setModel("all"); }} label="ทุกยี่ห้อ" color="var(--text-2)" />
-                  {brandList.map((b) => <CatChip key={b} active={brand === b} onClick={() => { setBrand(b); setModel("all"); }} label={b} color="#0EA5E9" count={brandCount[b]} />)}
-                </div>
-              )}
-              {!isPrices && brand !== "all" && modelList.length > 0 && (
-                <div className="cat-chip-row" style={{ display: "flex", gap: 7, flexWrap: "nowrap", alignItems: "center", overflowX: "auto", paddingBottom: 4, marginTop: 6 }}>
-                  <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", whiteSpace: "nowrap", paddingRight: 2 }}>รุ่น</span>
-                  <CatChip active={model === "all"} onClick={() => setModel("all")} label="ทุกรุ่น" color="var(--text-2)" />
-                  {modelList.map((m) => <CatChip key={m} active={model === m} onClick={() => setModel(m)} label={m} color="#7C5CFC" count={modelCount[m]} />)}
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -284,6 +253,37 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
               sub: "แตะดูทั้งหมด", active: movesOpen, onClick: () => setMovesOpen(true) },
           ]} />
         </div>
+        )}
+
+        {/* ── เลือกยี่ห้อ / รุ่น ── วางติดกับรายการเลย เลื่อนมาดูของแล้วยังกดเปลี่ยนได้ ไม่ต้องเลื่อนกลับขึ้นหัวเพจ */}
+        {brandList.length > 0 && (
+          <div style={{ marginBottom: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+            {isMobile ? (
+              <div style={{ display: "grid", gridTemplateColumns: brand !== "all" && modelList.length ? "1fr 1fr" : "1fr", gap: 8 }}>
+                <Dropdown value={brand} onChange={(v) => { setBrand(v); setModel("all"); }}
+                  options={[{ value: "all", label: "ทุกยี่ห้อ" }].concat(brandList.map((b) => ({ value: b, label: b + " (" + brandCount[b] + ")" })))} />
+                {brand !== "all" && modelList.length > 0 && (
+                  <Dropdown value={model} onChange={setModel}
+                    options={[{ value: "all", label: "ทุกรุ่น" }].concat(modelList.map((m) => ({ value: m, label: m + " (" + modelCount[m] + ")" })))} />
+                )}
+              </div>
+            ) : (
+              <React.Fragment>
+                <div className="cat-chip-row" style={{ display: "flex", gap: 7, flexWrap: "nowrap", alignItems: "center", overflowX: "auto", paddingBottom: 2 }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", whiteSpace: "nowrap", paddingRight: 2 }}>ยี่ห้อ</span>
+                  <CatChip active={brand === "all"} onClick={() => { setBrand("all"); setModel("all"); }} label="ทุกยี่ห้อ" color="var(--text-2)" />
+                  {brandList.map((b) => <CatChip key={b} active={brand === b} onClick={() => { setBrand(b); setModel("all"); }} label={b} color="#0EA5E9" count={brandCount[b]} />)}
+                </div>
+                {brand !== "all" && modelList.length > 0 && (
+                  <div className="cat-chip-row" style={{ display: "flex", gap: 7, flexWrap: "nowrap", alignItems: "center", overflowX: "auto", paddingBottom: 2 }}>
+                    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", whiteSpace: "nowrap", paddingRight: 2 }}>รุ่น</span>
+                    <CatChip active={model === "all"} onClick={() => setModel("all")} label="ทุกรุ่น" color="var(--text-2)" />
+                    {modelList.map((m) => <CatChip key={m} active={model === m} onClick={() => setModel(m)} label={m} color="#7C5CFC" count={modelCount[m]} />)}
+                  </div>
+                )}
+              </React.Fragment>
+            )}
+          </div>
         )}
 
         <div>
