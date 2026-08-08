@@ -58,6 +58,8 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   const [itemForm, setItemForm] = React.useState(null); // {item, isNew}
   const [detailItem, setDetailItem] = React.useState(null); // แถวที่กดเปิดดูรายละเอียด
   const [fillOpen, setFillOpen] = React.useState(false);   // หน้าต่างเติมยี่ห้อ/รุ่นจากชื่อ
+  const [brand, setBrand] = React.useState("all");  // กรองยี่ห้อ
+  const [model, setModel] = React.useState("all");  // กรองรุ่น (ขึ้นกับยี่ห้อที่เลือก)
   const [movesOpen, setMovesOpen] = React.useState(false); // popup ความเคลื่อนไหว
   // ── แท็บราคา BOQ: ค้นหา + กรองกลุ่ม (ยกขึ้นมาไว้บน header เหมือนหน้าสต็อก) ──
   const [priceQ, setPriceQ] = React.useState("");
@@ -77,6 +79,33 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   const lowCount = items.filter((it) => lowState(it) !== "ok").length;
   // จำนวนรายการต่อหมวด — ใช้แสดงตัวเลข + ซ่อนหมวดที่ว่างในแถบชิป (ลดความรก)
   const catCount = React.useMemo(() => { const m = {}; items.forEach((it) => { m[it.cat] = (m[it.cat] || 0) + 1; }); return m; }, [items]);
+  /* ตัวเลือกยี่ห้อ/รุ่น — นับจากของที่ผ่านตัวกรอง "หมวด" แล้ว
+     เลือกยี่ห้อก่อน แถวรุ่นถึงจะขึ้น เพราะรุ่นของคนละยี่ห้อไม่ควรปนกัน */
+  const brandCount = React.useMemo(() => {
+    const m = {};
+    items.forEach((it) => {
+      if (cat !== "all" && it.cat !== cat) return;
+      const b = (it.brand || "").trim(); if (!b) return;
+      m[b] = (m[b] || 0) + 1;
+    });
+    return m;
+  }, [items, cat]);
+  const brandList = React.useMemo(() => Object.keys(brandCount).sort((a, z) => a.localeCompare(z, "th")), [brandCount]);
+  const modelCount = React.useMemo(() => {
+    const m = {};
+    if (brand === "all") return m;
+    items.forEach((it) => {
+      if (cat !== "all" && it.cat !== cat) return;
+      if ((it.brand || "") !== brand) return;
+      const md = (it.model || "").trim(); if (!md) return;
+      m[md] = (m[md] || 0) + 1;
+    });
+    return m;
+  }, [items, cat, brand]);
+  const modelList = React.useMemo(() => Object.keys(modelCount).sort((a, z) => a.localeCompare(z, "th", { numeric: true })), [modelCount]);
+  // เปลี่ยนยี่ห้อ/หมวด แล้วรุ่นที่เลือกไว้อาจไม่มีอยู่แล้ว — ล้างทิ้ง ไม่งั้นตารางว่างโดยไม่รู้สาเหตุ
+  React.useEffect(() => { if (model !== "all" && !modelCount[model]) setModel("all"); }, [modelCount]);
+  React.useEffect(() => { if (brand !== "all" && !brandCount[brand]) { setBrand("all"); setModel("all"); } }, [brandCount]);
   const thisMonth = SF.TODAY.slice(0, 7);
   const inItemIds = new Set(stock.moves.filter((m) => m.type === "in" && m.date.startsWith(thisMonth)).map((m) => m.itemId));
   const outItemIds = new Set(stock.moves.filter((m) => m.type === "out" && m.date.startsWith(thisMonth)).map((m) => m.itemId));
@@ -87,6 +116,8 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   const catOrder = {}; SF.STOCK_CATS.forEach((c, i) => { catOrder[c.key] = i; });
   const filtered = items.filter((it) => {
     if (cat !== "all" && it.cat !== cat) return false;
+    if (brand !== "all" && (it.brand || "") !== brand) return false;
+    if (model !== "all" && (it.model || "") !== model) return false;
     if (search && !((it.name + it.sku + it.loc + (it.brand || "") + (it.model || "")).toLowerCase().includes(search.toLowerCase()))) return false;
     if (kpiFilter === "low" && lowState(it) === "ok") return false;
     if (kpiFilter === "in" && !inItemIds.has(it.id)) return false;
@@ -174,11 +205,29 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
             )}
           </div>
           {/* มือถือ: dropdown หมวด */}
-          {isMobile && !isPrices && !isAmp && <div style={{ marginTop: 10 }}><CatDropdown cat={cat} setCat={setCat} items={items} cats={SF.STOCK_CATS} /></div>}
+          {isMobile && !isPrices && !isAmp && (
+            <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+              <CatDropdown cat={cat} setCat={setCat} items={items} cats={SF.STOCK_CATS} />
+              {/* ยี่ห้อ/รุ่น — มือถือใช้ดรอปดาวน์แทนชิป จะได้ไม่กินที่ */}
+              {brandList.length > 0 && (
+                <div style={{ display: "grid", gridTemplateColumns: brand !== "all" && modelList.length ? "1fr 1fr" : "1fr", gap: 8 }}>
+                  <Dropdown value={brand} onChange={(v) => { setBrand(v); setModel("all"); }}
+                    options={[{ value: "all", label: "ทุกยี่ห้อ" }].concat(brandList.map((b) => ({ value: b, label: b + " (" + brandCount[b] + ")" })))} />
+                  {brand !== "all" && modelList.length > 0 && (
+                    <Dropdown value={model} onChange={setModel}
+                      options={[{ value: "all", label: "ทุกรุ่น" }].concat(modelList.map((m) => ({ value: m, label: m + " (" + modelCount[m] + ")" })))} />
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           {isMobile && isPrices && <div style={{ marginTop: 10 }}><Dropdown value={priceGrp} onChange={setPriceGrp} options={priceGroups.map((g) => ({ value: g, label: g === "all" ? "ทั้งหมด" : (PG_TH[g] || g) }))} /></div>}
           {/* เดสก์ท็อป: ชิปหมวด — ย่อ/ขยายแบบลื่น (max-height + opacity) */}
           {!isMobile && !isAmp && (
-            <div style={{ overflow: "hidden", maxHeight: catOpen ? 48 : 0, opacity: catOpen ? 1 : 0,
+            // ความสูงต้องเผื่อตามจำนวนแถวที่โผล่จริง (หมวด + ยี่ห้อ + รุ่น) ไม่งั้นแถวล่างโดนตัด
+            <div style={{ overflow: "hidden",
+              maxHeight: catOpen ? (56 * (1 + (!isPrices && brandList.length ? 1 : 0) + (!isPrices && brand !== "all" && modelList.length ? 1 : 0))) : 0,
+              opacity: catOpen ? 1 : 0,
               marginTop: catOpen ? 8 : 0, transition: "max-height .24s ease, opacity .2s ease, margin-top .24s ease" }}>
               <div className="cat-chip-row" style={{ display: "flex", gap: 7, flexWrap: "nowrap", alignItems: "center", overflowX: "auto", paddingBottom: 4 }}>
                 {isPrices ? (
@@ -193,6 +242,21 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                   </React.Fragment>
                 )}
               </div>
+              {/* ยี่ห้อ — เลือกแล้วแถวรุ่นค่อยขึ้นต่อข้างล่าง */}
+              {!isPrices && brandList.length > 0 && (
+                <div className="cat-chip-row" style={{ display: "flex", gap: 7, flexWrap: "nowrap", alignItems: "center", overflowX: "auto", paddingBottom: 4, marginTop: 6 }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", whiteSpace: "nowrap", paddingRight: 2 }}>ยี่ห้อ</span>
+                  <CatChip active={brand === "all"} onClick={() => { setBrand("all"); setModel("all"); }} label="ทุกยี่ห้อ" color="var(--text-2)" />
+                  {brandList.map((b) => <CatChip key={b} active={brand === b} onClick={() => { setBrand(b); setModel("all"); }} label={b} color="#0EA5E9" count={brandCount[b]} />)}
+                </div>
+              )}
+              {!isPrices && brand !== "all" && modelList.length > 0 && (
+                <div className="cat-chip-row" style={{ display: "flex", gap: 7, flexWrap: "nowrap", alignItems: "center", overflowX: "auto", paddingBottom: 4, marginTop: 6 }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", whiteSpace: "nowrap", paddingRight: 2 }}>รุ่น</span>
+                  <CatChip active={model === "all"} onClick={() => setModel("all")} label="ทุกรุ่น" color="var(--text-2)" />
+                  {modelList.map((m) => <CatChip key={m} active={model === m} onClick={() => setModel(m)} label={m} color="#7C5CFC" count={modelCount[m]} />)}
+                </div>
+              )}
             </div>
           )}
         </div>
