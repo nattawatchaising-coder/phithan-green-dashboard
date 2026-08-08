@@ -703,6 +703,17 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       return null;
     });
   };
+  /* ── แก้จำนวนได้จากในใบถอดของ ──
+     เก็บเป็น qtyAdj (หมวด|ชื่อ → จำนวน) ทับค่าที่ระบบถอดให้ ไม่ไปยุ่งกับสูตร
+     ลบค่าออก = กลับไปใช้จำนวนอัตโนมัติ */
+  const [editQty, setEditQty] = React.useState(null);   // { key, val }
+  const setQtyAdj = (key, v) => setB((p) => {
+    const a = Object.assign({}, p.qtyAdj);
+    if (v == null || String(v).trim() === "") delete a[key]; else a[key] = Math.max(0, +v || 0);
+    return Object.assign({}, p, { qtyAdj: a });
+  });
+  const commitQty = () => setEditQty((cur) => { if (cur) setQtyAdj(cur.key, cur.val); return null; });
+
   const matInfo = React.useMemo(() => {
     const m = {};
     (window.BOQ.catalog() || []).forEach((c) => { m[c.name] = { unit: c.unit }; });
@@ -1145,6 +1156,13 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       return null;
     };
 
+    /* ── สูตร ──
+       เขียนเป็นสูตร Excel จริง ไม่ใช่ตัวเลขตาย เพิ่ม/แก้บรรทัดในไฟล์แล้วยอดรวมขยับตาม
+       v = ค่าที่คำนวณไว้แล้ว ใส่ไว้เป็น cached value โปรแกรมที่ไม่คำนวณสูตรก็ยังเห็นตัวเลข */
+    const F = (f, v) => ({ t: "n", f: f, v: +v || 0 });
+    const CL = (c) => X.utils.encode_col(c);      // index → ตัวอักษรคอลัมน์
+    const AT = (col, r) => col + (r + 1);          // แถวใน aoa (0-based) → อ้างอิงแบบ Excel (1-based)
+
     const jobName = (job && job.name) || "—";
     const jobCode = (job && job.code) || "—";
     const kwTxt = (result.meta.kw || 0).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " kWp";
@@ -1179,27 +1197,49 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
     A.push(cols, "head", 24);
 
-    // หมวด + รายการ (ยอดรวมของหมวดอยู่บนหัวหมวดเลย จะได้ไม่ต้องมีแถวรวมย่อยเพิ่ม)
-    let n = 0;
+    /* หมวด + รายการ (ยอดรวมของหมวดอยู่บนหัวหมวดเลย จะได้ไม่ต้องมีแถวรวมย่อยเพิ่ม)
+       ทุกยอดเป็นสูตร: จำนวนเงิน = จำนวน × ราคา/หน่วย · ยอดหมวด = SUM ของรายการในหมวด
+       ปิดท้ายแต่ละหมวดด้วยแถวบาง ๆ ให้ช่วง SUM กินเลยบรรทัดสุดท้ายไปหนึ่งแถว
+       แทรกบรรทัดใหม่ต่อท้ายหมวดจึงยังอยู่ในช่วง ยอดรวมขยับตามทันที */
+    const QC = CL(3), PC = CL(5), TC = CL(lastC);
+    const groupRows = [];
+    let n = 0, bodyStart = null, bodyEnd = null;
     priced.groups.forEach((g) => {
       n += 1;
       const grow = []; grow[0] = "หมวด " + n; grow[1] = g.group;
-      if (hasPrice) grow[lastC] = g.subtotal;
       const gr = A.push(grow, "group", 21);
       A.merge(gr, 1, hasPrice ? lastC - 1 : lastC);
+      if (bodyStart == null) bodyStart = gr;
+      groupRows.push(gr);
+      const first = A.R;
       g.items.forEach((it, k) => {
         const base = [n + "." + (k + 1), it.code || "", it.name || "", +it.qty || 0, it.unit || ""];
-        if (hasPrice) { base.push(it.price || 0); base.push(it.total || 0); }
+        if (hasPrice) {
+          const er = A.R;   // แถว Excel ของบรรทัดนี้ (ยังไม่ push จึงเท่ากับ index ถัดไป)
+          base.push(it.price || 0);
+          base.push(F("ROUND(" + AT(QC, er) + "*" + AT(PC, er) + ",2)", it.total || 0));
+        }
         A.push(base, k % 2 === 0 ? "item" : "itemAlt", 17);
       });
+      const tail = A.push([], "grouptail", 5);   // แถวปิดหมวด (บาง ๆ) — เผื่อที่ให้แทรกบรรทัด
+      bodyEnd = tail;
+      if (hasPrice) A.aoa[gr][lastC] = g.items.length
+        ? F("ROUND(SUM(" + AT(TC, first) + ":" + AT(TC, tail) + "),2)", g.subtotal)
+        : 0;
     });
 
     if (hasPrice) {
-      const tr = A.push([null, null, "รวมต้นทุนใบถอดวัสดุ (ก่อน VAT)", null, null, null, priced.grandTotal], "total", 26);
+      // รวมทั้งใบ = บวกเฉพาะแถวหัวหมวด (คอลัมน์ ลำดับ ขึ้นต้นด้วย "หมวด") — เพิ่มหมวดใหม่ก็ยังรวมให้
+      const gsum = 'SUMIF($' + CL(0) + "$" + (bodyStart + 1) + ":$" + CL(0) + "$" + (bodyEnd + 1)
+        + ',"หมวด*",$' + TC + "$" + (bodyStart + 1) + ":$" + TC + "$" + (bodyEnd + 1) + ")";
+      const tr = A.push([null, null, "รวมต้นทุนใบถอดวัสดุ (ก่อน VAT)", null, null, null,
+        F("ROUND(" + gsum + ",2)", priced.grandTotal)], "total", 26);
       A.merge(tr, 0, lastC - 1);
     }
     A.gap(6);
-    const nr = A.band(["หมายเหตุ  ·  ปริมาณคำนวณจากแบบและรวม % เผื่อแล้ว  ·  ราคาเป็นราคาต้นทุนก่อนภาษีมูลค่าเพิ่ม  ·  เอกสารสร้างอัตโนมัติจากระบบ PHITHAN GREEN"], "note", 26);
+    const nr = A.band([hasPrice
+      ? "หมายเหตุ  ·  ปริมาณคำนวณจากแบบและรวม % เผื่อแล้ว  ·  ราคาเป็นราคาต้นทุนก่อนภาษีมูลค่าเพิ่ม  ·  ช่องยอดเป็นสูตร แก้จำนวน/ราคา หรือแทรกบรรทัดในหมวด แล้วยอดหมวด ยอดรวม และชีตสรุปราคาคิดใหม่ให้เอง  ·  เอกสารสร้างอัตโนมัติจากระบบ PHITHAN GREEN"
+      : "หมายเหตุ  ·  ปริมาณคำนวณจากแบบและรวม % เผื่อแล้ว  ·  เอกสารสร้างอัตโนมัติจากระบบ PHITHAN GREEN"], "note", 26);
     A.merges.push({ s: { r: nr, c: 0 }, e: { r: nr, c: lastC } });
 
     const wsA = paint(A, (t, r, c) => {
@@ -1221,6 +1261,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         s.alignment = { horizontal: c === 0 ? "center" : (c === lastC ? "right" : "left"), vertical: "center" };
         if (c === lastC && hasPrice) s.numFmt = moneyFmt;
         s.border = { top: thin, bottom: thin, left: hair, right: hair };
+      } else if (t === "grouptail") {
+        s.font = { name: FONT, sz: 5 };
+        s.border = { left: hair, right: hair, bottom: hair };
       } else if (t === "item" || t === "itemAlt") {
         if (t === "itemAlt") s.fill = { patternType: "solid", fgColor: { rgb: C.alt } };
         s.border = { top: hair, bottom: hair, left: hair, right: hair };
@@ -1256,44 +1299,70 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       const sec = (t) => { const cells = []; cells[L] = t; const r = B2.push(cells, "sec", 22); B2.merge(r, L, U); return r; };
       const head3 = (a, b2, c3) => { const cells = []; cells[L] = a; cells[V] = b2; cells[U] = c3; return B2.push(cells, "head", 20); };
 
+      /* ทั้งชีตนี้เป็นสูตรที่โยงกลับไปชีต "ใบถอดวัสดุ"
+         แก้ราคา/เพิ่มของในชีตแรก → ต้นทุน สัดส่วน VAT และกำไรที่นี่ขยับตามเองทั้งหมด */
+      const SV = CL(V), SU = CL(U);
+      const S1 = "'ใบถอดวัสดุ'!";
+      const watt = Math.round((result.meta.kw || 0) * 1000);
+      const perWf = (r, v) => (watt > 0 ? F(AT(SV, r) + "/" + watt, v) : 0);
+
       // ── ต้นทุนตามหมวด ──
       sec("ต้นทุนแยกตามหมวดงาน");
       head3("หมวดงาน", "จำนวนเงิน (บาท)", "สัดส่วน");
+      const gStart = B2.R;
       priced.groups.forEach((g, i) => {
-        const cells = []; cells[L] = g.group; cells[V] = g.subtotal;
-        cells[U] = priced.grandTotal > 0 ? (g.subtotal / priced.grandTotal) * 100 : 0;
+        const cells = []; cells[L] = g.group;
+        cells[V] = F(S1 + "$" + TC + "$" + (groupRows[i] + 1), g.subtotal);
         B2.push(cells, i % 2 === 0 ? "item" : "itemAlt", 18);
       });
-      kv("รวมต้นทุนใบถอดวัสดุ", priced.grandTotal, 100, "sum");
+      const gEnd = B2.R - 1;
+      const rSum = kv("รวมต้นทุนใบถอดวัสดุ",
+        F("ROUND(SUM(" + AT(SV, gStart) + ":" + AT(SV, gEnd) + "),2)", priced.grandTotal), 100, "sum");
+      // สัดส่วน % คิดหลังได้แถวยอดรวมแล้ว จะได้ล็อกช่องหารไว้ช่องเดียว
+      for (let r = gStart; r <= gEnd; r++) {
+        const share = priced.grandTotal > 0 ? (priced.groups[r - gStart].subtotal / priced.grandTotal) * 100 : 0;
+        B2.aoa[r][U] = F("IF($" + SV + "$" + (rSum + 1) + "=0,0," + AT(SV, r) + "/$" + SV + "$" + (rSum + 1) + "*100)", share);
+      }
       B2.gap(10);
 
-      // ── บันไดราคา ──
+      // ── บันไดราคา ── ทุกขั้นคิดต่อจากขั้นบน ไม่ใช่ตัวเลขตายแยกกัน
       sec("โครงสร้างราคา");
       head3("รายการ", "จำนวนเงิน (บาท)", "฿ / วัตต์");
-      const ladder = [
-        ["ต้นทุนวัสดุ + ค่าแรงติดตั้ง", pb.cost, null, "kv"],
-        pb.contractor > 0 ? ["ค่าแรงผู้รับเหมา", pb.contractor, null, "kv"] : null,
-        ["ต้นทุนรวม", pb.totalCost, pb.costPerW, "strong"],
-        ["ต้นทุนรวม + VAT " + pb.vat + "%", pb.totalCostVat, null, "kv"],
-        pb.sell > 0 ? ["ราคาขาย", pb.sell, pb.sellPerW, "strong"] : null,
-        pb.sell > 0 ? ["ราคาขาย + VAT " + pb.vat + "%", pb.sellVat, null, "kv"] : null,
-        pb.discount > 0 ? ["ส่วนลด", -pb.discount, null, "neg"] : null,
-        pb.discount > 0 ? ["ราคาหลังส่วนลด", pb.net, pb.netPerW, "strong"] : null,
-        pb.discount > 0 ? ["ราคาหลังส่วนลด + VAT " + pb.vat + "%", pb.netVat, null, "kv"] : null,
-      ].filter(Boolean);
-      ladder.forEach((m) => kv(m[0], m[1], m[2], m[3]));
+      const vf = 1 + pb.vat / 100;
+      const rCost = kv("ต้นทุนวัสดุ + ค่าแรงติดตั้ง", F(AT(SV, rSum), pb.cost), null, "kv");
+      const rCon = pb.contractor > 0 ? kv("ค่าแรงผู้รับเหมา", pb.contractor, null, "kv") : null;
+      const rTot = kv("ต้นทุนรวม",
+        F(AT(SV, rCost) + (rCon != null ? "+" + AT(SV, rCon) : ""), pb.totalCost), null, "strong");
+      B2.aoa[rTot][U] = perWf(rTot, pb.costPerW);
+      kv("ต้นทุนรวม + VAT " + pb.vat + "%", F("ROUND(" + AT(SV, rTot) + "*" + vf + ",2)", pb.totalCostVat), null, "kv");
+      let rSell = null, rNet = null;
+      if (pb.sell > 0) {
+        rSell = kv("ราคาขาย", pb.sell, null, "strong");
+        B2.aoa[rSell][U] = perWf(rSell, pb.sellPerW);
+        kv("ราคาขาย + VAT " + pb.vat + "%", F("ROUND(" + AT(SV, rSell) + "*" + vf + ",2)", pb.sellVat), null, "kv");
+      }
+      if (pb.discount > 0) {
+        const rDis = kv("ส่วนลด", -pb.discount, null, "neg");
+        rNet = kv("ราคาหลังส่วนลด",
+          F(rSell != null ? AT(SV, rSell) + "+" + AT(SV, rDis) : String(pb.net), pb.net), null, "strong");
+        B2.aoa[rNet][U] = perWf(rNet, pb.netPerW);
+        kv("ราคาหลังส่วนลด + VAT " + pb.vat + "%", F("ROUND(" + AT(SV, rNet) + "*" + vf + ",2)", pb.netVat), null, "kv");
+      }
 
-      // ── กำไร ──
+      // ── กำไร ── = ราคาขาย − ต้นทุนรวม (อ้างช่องด้านบน ไม่ได้พิมพ์ตัวเลขซ้ำ)
       if (pb.sell > 0) {
         B2.gap(10);
         sec("กำไรและอัตรากำไร");
         head3("รายการ", "จำนวนเงิน (บาท)", "อัตรากำไร");
-        const g1 = []; g1[L] = "กำไรจากราคาขาย"; g1[V] = pb.profit; g1[U] = pb.margin;
-        B2.push(g1, "profit", 20);
-        if (pb.discount > 0) {
-          const g2 = []; g2[L] = "กำไรหลังหักส่วนลด"; g2[V] = pb.netProfit; g2[U] = pb.netMargin;
-          B2.push(g2, "profit", 20);
-        }
+        const profitRow = (label, priceRow, amt, mg) => {
+          const cells = []; cells[L] = label;
+          cells[V] = F(AT(SV, priceRow) + "-" + AT(SV, rTot), amt);
+          const r = B2.push(cells, "profit", 20);
+          B2.aoa[r][U] = F("IF(" + AT(SV, priceRow) + "=0,0," + AT(SV, r) + "/" + AT(SV, priceRow) + "*100)", mg);
+          return r;
+        };
+        profitRow("กำไรจากราคาขาย", rSell, pb.profit, pb.margin);
+        if (rNet != null) profitRow("กำไรหลังหักส่วนลด", rNet, pb.netProfit, pb.netMargin);
       }
       B2.gap(8);
       const bn = B2.push([null, "หมายเหตุ  ·  ต้นทุนมาจากใบถอดวัสดุในชีตแรก  ·  ราคาต่อวัตต์คิดจากกำลังติดตั้งด้าน DC " + kwTxt + "  ·  เอกสารภายใน ไม่ใช่ใบเสนอราคา"], "note", 26);
@@ -2368,16 +2437,41 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   {g.items.length === 0 ? (
                     <div style={{ padding: "9px 14px", fontSize: 12, color: "var(--text-3)" }}>—</div>
                   ) : g.items.map((it, ii) => (
-                    <div key={ii} style={{ display: "grid", gridTemplateColumns: isMobile ? (priced.grandTotal > 0 ? "minmax(0,1fr) 46px 64px" : "minmax(0,1fr) auto") : "1fr 56px 84px", gap: 8, padding: "9px 14px", borderTop: "1px solid var(--border)", alignItems: "center" }}>
+                    <div key={ii} style={{ display: "grid", gridTemplateColumns: isMobile ? (priced.grandTotal > 0 ? "minmax(0,1fr) 56px 64px" : "minmax(0,1fr) 56px") : "1fr 68px 84px", gap: 8, padding: "9px 14px", borderTop: "1px solid var(--border)", alignItems: "center" }}>
                       <span style={{ minWidth: 0 }}>
                         <span style={{ display: "block", fontSize: 12.5, color: "var(--text-1)", lineHeight: 1.35 }}>{(it.name || "").trim()}</span>
                         {it.code ? <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--text-3)" }}>{it.code}</span> : null}
                       </span>
-                      <span style={{ textAlign: "right" }}>
-                        <span style={{ fontFamily: "var(--display)", fontSize: 14, fontWeight: 700, letterSpacing: "-.02em",
-                          fontVariantNumeric: "tabular-nums", color: "var(--text-1)" }}>{(Math.round(it.qty * 100) / 100).toLocaleString()}</span>
-                        <span style={{ display: "block", fontSize: 9.5, fontWeight: 600, letterSpacing: ".04em", color: "var(--text-3)" }}>{it.unit}</span>
-                      </span>
+                      {(() => {
+                        const qEditable = !isService(g.group) && (it.name || "").trim();
+                        const qKey = qEditable ? window.BOQ.qtyKey(g.group, it.name) : "";
+                        if (editQty && editQty.key === qKey && qKey) return (
+                          <span style={{ textAlign: "right" }}>
+                            <input autoFocus type="number" min={0} step="any" value={editQty.val}
+                              onChange={(e) => setEditQty((p) => Object.assign({}, p, { val: e.target.value }))}
+                              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commitQty(); } if (e.key === "Escape") setEditQty(null); }}
+                              onBlur={commitQty}
+                              style={{ width: "100%", height: 30, padding: "0 6px", textAlign: "right", borderRadius: 8,
+                                border: "1px solid var(--primary)", background: "var(--surface)", color: "var(--text-1)",
+                                fontFamily: "var(--mono)", fontSize: 12.5, fontWeight: 700, outline: "none" }} />
+                            <span style={{ display: "block", fontSize: 9, color: "var(--text-3)" }}>ว่าง = อัตโนมัติ</span>
+                          </span>
+                        );
+                        return (
+                          <span style={{ textAlign: "right" }}>
+                            <span
+                              onClick={qEditable ? () => setEditQty({ key: qKey, val: String(Math.round(it.qty * 100) / 100) }) : undefined}
+                              title={qEditable ? (it.qtyAdj ? "แก้เอง (อัตโนมัติ " + (Math.round(it.qtyAuto * 100) / 100).toLocaleString() + ") — ลบค่าออกเพื่อกลับไปใช้อัตโนมัติ" : "กดเพื่อแก้จำนวน") : undefined}
+                              style={{ fontFamily: "var(--display)", fontSize: 14, fontWeight: 700, letterSpacing: "-.02em",
+                                fontVariantNumeric: "tabular-nums", color: it.qtyAdj ? "var(--primary-dark)" : "var(--text-1)",
+                                cursor: qEditable ? "pointer" : "default",
+                                borderBottom: qEditable ? "1px dashed var(--border-strong)" : "none" }}>
+                              {(Math.round(it.qty * 100) / 100).toLocaleString()}
+                            </span>
+                            <span style={{ display: "block", fontSize: 9.5, fontWeight: 600, letterSpacing: ".04em", color: "var(--text-3)" }}>{it.unit}</span>
+                          </span>
+                        );
+                      })()}
                       {(!isMobile || priced.grandTotal > 0) && (() => {
                         const editable = canEditPrice && !isService(g.group) && (it.name || "").trim();
                         const editing = editPx && editPx.name === it.name;
@@ -2422,9 +2516,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               )}
             </div>
             <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)" }}>
+              {'* กดที่ "จำนวน" เพื่อแก้จำนวนเองได้ (ตัวเลขเขียวคือแก้เอง · ลบค่าออกแล้วกด Enter = กลับไปใช้จำนวนอัตโนมัติ) '}
               {canEditPrice
-                ? '* กดที่ตัวเลขราคาเพื่อแก้ราคา/หน่วยได้เลย — บันทึกลงคลังสินค้า จึงเห็นตรงกับเมนู "ราคา BOQ" · หมวดค่าแรง/ค่าขออนุญาต/ขนส่ง/บริหาร แก้ที่หัวข้อของหมวดนั้น'
-                : '* ราคาดึงจากเมนู "ราคาวัสดุ" — รายการที่ยังไม่ใส่ราคาจะขึ้น "–"'}
+                ? '· กดที่ตัวเลขราคาเพื่อแก้ราคา/หน่วย — บันทึกลงคลังสินค้า จึงเห็นตรงกับเมนู "ราคา BOQ" · หมวดค่าแรง/ค่าขออนุญาต/ขนส่ง/บริหาร แก้ที่หัวข้อของหมวดนั้น'
+                : '· ราคาดึงจากเมนู "ราคาวัสดุ" — รายการที่ยังไม่ใส่ราคาจะขึ้น "–"'}
             </div>
           </BoqSection>
 

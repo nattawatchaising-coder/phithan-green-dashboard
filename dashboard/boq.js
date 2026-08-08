@@ -1427,8 +1427,25 @@
     if (b.transport != null) { const r = svcRows(b.transport, TRANSPORT_PRESET); if (r.length) groups.push({ group: G_TRANSPORT, items: r }); }
     if (b.manage != null) { const r = svcRows(b.manage, MANAGE_PRESET); if (r.length) groups.push({ group: G_MANAGE, items: r }); }
 
+    /* จำนวนที่แก้มือจากในใบถอดของ — ทับค่าที่ระบบถอดให้
+       หมวดค่าแรง/ขออนุญาต/ขนส่ง/บริหาร ไม่รับ เพราะมีช่องกรอกจำนวนของตัวเองอยู่แล้ว */
+    const adj = b.qtyAdj || {};
+    if (Object.keys(adj).length) {
+      groups.forEach((g) => {
+        if (SERVICE_GROUPS.indexOf(g.group) >= 0) return;
+        g.items = g.items.map((it) => {
+          const v = adj[qtyKey(g.group, it.name)];
+          if (v == null || v === "") return it;
+          return Object.assign({}, it, { qty: Math.max(0, +v || 0), qtyAuto: it.qty, qtyAdj: true });
+        });
+      });
+    }
+
     return { groups, meta: { panelCount, kw, rowsSum, invCount, invAuto, plan, battCount, auto: AUTO, valid: rowsSum === panelCount } };
   }
+
+  /* คีย์จำนวนที่แก้มือ — ผูกกับหมวดด้วย กันชื่อซ้ำข้ามหมวดทับกัน */
+  function qtyKey(group, name) { return String(group || "") + "|" + matKey(name); }
 
   // ── ราคา/ต้นทุน ──────────────────────────────────────────
   // key สำหรับจับคู่ราคา = ชื่อวัสดุ (ตัดส่วนต่อท้าย "(3m/ท่อน)"/"(2.9m/ท่อน)")
@@ -1656,7 +1673,7 @@
     out.forEach((x) => INVERTERS.push(x));
   }
 
-  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, catalog, applyPrices, setPanels, setInverters,
+  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, qtyKey, catalog, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, WAY_PIPE_LEN, TRAY_PIPE_LEN, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
     TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, VAT_RATE, priceBreakdown,
     TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,
