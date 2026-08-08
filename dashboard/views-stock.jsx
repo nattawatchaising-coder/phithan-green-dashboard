@@ -56,6 +56,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   const [search, setSearch] = React.useState("");
   const [moveItem, setMoveItem] = React.useState(null); // {item, type}
   const [itemForm, setItemForm] = React.useState(null); // {item, isNew}
+  const [detailItem, setDetailItem] = React.useState(null); // แถวที่กดเปิดดูรายละเอียด
   const [fillOpen, setFillOpen] = React.useState(false);   // หน้าต่างเติมยี่ห้อ/รุ่นจากชื่อ
   const [movesOpen, setMovesOpen] = React.useState(false); // popup ความเคลื่อนไหว
   // ── แท็บราคา BOQ: ค้นหา + กรองกลุ่ม (ยกขึ้นมาไว้บน header เหมือนหน้าสต็อก) ──
@@ -224,7 +225,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
         <div>
           {/* stock list — เต็มความกว้าง (มือถือ: card list, เดสก์ท็อป: ตาราง) */}
           {isMobile ? (
-            <StockCardList items={filtered} onMove={setMoveItem}
+            <StockCardList items={filtered} onOpen={setDetailItem}
               onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
           ) : (
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
@@ -232,9 +233,11 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                    {["รายการอุปกรณ์", "หมวด", "คงเหลือ", "ขั้นต่ำ", "ที่จัดเก็บ", "จัดการ"].map((h, i) => (
+                    {/* ไม่มีคอลัมน์ "หมวด" แล้ว เพราะกรองหมวดจากชิปด้านบนได้อยู่แล้ว
+                        เอาที่ว่างมาใส่ ยี่ห้อ/รุ่น กับ ราคา ที่ต้องดูบ่อยกว่า */}
+                    {["รายการอุปกรณ์", "ยี่ห้อ / รุ่น", "ราคา/หน่วย", "คงเหลือ", "ขั้นต่ำ", "ที่จัดเก็บ", "จัดการ"].map((h, i) => (
                       <th key={h} style={{ padding: "12px 12px", fontSize: 10.5, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase",
-                        color: "var(--text-3)", textAlign: i >= 2 && i <= 3 ? "center" : "left", whiteSpace: "nowrap", background: "var(--surface2)" }}>{h}</th>
+                        color: "var(--text-3)", textAlign: i === 2 ? "right" : (i >= 3 && i <= 4 ? "center" : "left"), whiteSpace: "nowrap", background: "var(--surface2)" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -243,15 +246,26 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                     const c = SF.STOCK_CAT_BY[it.cat] || SF.STOCK_CATS[SF.STOCK_CATS.length - 1];
                     const st = lowState(it);
                     return (
-                      <tr key={it.id} style={{ borderBottom: "1px solid var(--border)", background: st === "out" ? "rgba(239,68,68,.07)" : "transparent" }}>
+                      /* กดที่แถวเพื่อเปิดรายละเอียด — รับ/เบิก/คืน อยู่ข้างในนั้น จะได้ไม่กดพลาดจากหน้าตาราง */
+                      <tr key={it.id} onClick={() => setDetailItem(it)} title="กดเพื่อดูรายละเอียด · รับ / เบิก / คืน"
+                        style={{ borderBottom: "1px solid var(--border)", cursor: "pointer",
+                          background: st === "out" ? "rgba(239,68,68,.07)" : "transparent" }}>
                         <td style={{ padding: "11px 12px" }}>
                           <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-1)" }}>{it.name}</div>
-                          {SF.matVariantLabel(it) && <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", marginTop: 1 }}>{SF.matVariantLabel(it)}</div>}
                           <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{it.sku}</div>
                         </td>
                         <td style={{ padding: "11px 12px" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 600, color: c.color, background: c.color + "16", padding: "3px 9px", borderRadius: 99, whiteSpace: "nowrap" }}>
-                            <span style={{ width: 7, height: 7, borderRadius: 99, background: c.color }} />{c.th}
+                          {(it.brand || it.model) ? (
+                            <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                              {it.brand && <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>{it.brand}</span>}
+                              {it.model && <span style={{ fontSize: 11.5, color: "var(--text-2)" }}>{it.model}</span>}
+                            </span>
+                          ) : <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>—</span>}
+                        </td>
+                        <td style={{ padding: "11px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
+                          <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 700,
+                            color: +it.price > 0 ? "var(--text-1)" : "var(--text-3)" }}>
+                            {+it.price > 0 ? "\u0e3f" + (+it.price).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "\u2013"}
                           </span>
                         </td>
                         <td style={{ padding: "11px 12px", textAlign: "center" }}>
@@ -261,20 +275,15 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                         </td>
                         <td style={{ padding: "11px 12px", textAlign: "center", fontFamily: "var(--mono)", fontSize: 12.5, color: "var(--text-2)" }}>{it.min.toLocaleString()}</td>
                         <td style={{ padding: "11px 12px", fontSize: 12.5, color: "var(--text-2)", whiteSpace: "nowrap" }}>{it.loc}</td>
-                        <td style={{ padding: "11px 12px", whiteSpace: "nowrap" }}>
-                          <button onClick={() => setMoveItem({ item: it, type: "in" })} title="รับเข้า"
-                            style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "#22A35B16", border: "none", color: "var(--tint-ok-tx)", fontWeight: 700, fontSize: 11.5, padding: "5px 9px", borderRadius: 8, cursor: "pointer", marginRight: 4, fontFamily: "inherit" }}>+ รับ</button>
-                          <button onClick={() => setMoveItem({ item: it, type: "out" })} title="เบิกออก"
-                            style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "#7C5CFC16", border: "none", color: "#6645e0", fontWeight: 700, fontSize: 11.5, padding: "5px 9px", borderRadius: 8, cursor: "pointer", marginRight: 4, fontFamily: "inherit" }}>− เบิก</button>
-                          <button onClick={() => setMoveItem({ item: it, type: "return" })} title="คืนของ"
-                            style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "#0EA5E916", border: "none", color: "#0784b8", fontWeight: 700, fontSize: 11.5, padding: "5px 9px", borderRadius: 8, cursor: "pointer", marginRight: 4, fontFamily: "inherit" }}>↩ คืน</button>
+                        {/* เหลือแค่ แก้ไข/ลบ — รับ/เบิก/คืน ย้ายไปอยู่ในหน้ารายละเอียด */}
+                        <td style={{ padding: "11px 12px", whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
                           <button onClick={() => setItemForm({ item: it, isNew: false })} title="แก้ไข" style={{ background: "#3B82F614", border: "none", color: "#3B82F6", width: 28, height: 28, borderRadius: 7, cursor: "pointer", verticalAlign: "middle" }}><Icon name="settings" size={14} /></button>
                           <button onClick={() => { if (confirm("ลบ \"" + it.name + "\" ?")) stock.removeItem(it.id); }} title="ลบ" style={{ background: "#EF444414", border: "none", color: "#EF4444", width: 28, height: 28, borderRadius: 7, cursor: "pointer", marginLeft: 4, verticalAlign: "middle" }}><Icon name="x" size={14} /></button>
                         </td>
                       </tr>
                     );
                   })}
-                  {filtered.length === 0 && <tr><td colSpan={6} style={{ padding: 44, textAlign: "center", color: "var(--text-3)" }}>ไม่พบรายการอุปกรณ์</td></tr>}
+                  {filtered.length === 0 && <tr><td colSpan={7} style={{ padding: 44, textAlign: "center", color: "var(--text-3)" }}>ไม่พบรายการอุปกรณ์</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -286,6 +295,10 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
 
       {moveItem && <MoveModal info={moveItem} byName={byName} jobs={jobs || []} onSave={(qty, ref, note, jobId) => { stock.move(moveItem.item.id, moveItem.type, qty, ref, note, byName, jobId); setMoveItem(null); }} onClose={() => setMoveItem(null)} />}
       {itemForm && <ItemModal initial={itemForm.item} isNew={itemForm.isNew} items={stock.items} onSave={(rec) => { stock.upsertItem(rec); setItemForm(null); }} onClose={() => setItemForm(null)} />}
+      {detailItem && <ItemDetailModal item={(stock.items || []).find((x) => x.id === detailItem.id) || detailItem}
+        onMove={(type) => { setMoveItem({ item: detailItem, type: type }); setDetailItem(null); }}
+        onEdit={() => { setItemForm({ item: detailItem, isNew: false }); setDetailItem(null); }}
+        onClose={() => setDetailItem(null)} />}
       {fillOpen && <FillVariantModal items={stock.items} onApply={(list) => { list.forEach((r) => stock.upsertItem(r)); setFillOpen(false); }} onClose={() => setFillOpen(false)} />}
       {movesOpen && <MovesModal moves={stock.moves} items={items} jobs={jobs || []} onClose={() => setMovesOpen(false)} />}
       {addPriceOpen && <AddPriceModal priceStore={priceStore} stock={stock} onClose={() => setAddPriceOpen(false)} />}
@@ -366,7 +379,7 @@ function CatChip({ active, onClick, label, color, count }) {
 }
 
 /* ── Mobile stock — card list แทนตาราง ── */
-function StockCardList({ items, onMove, onEdit, onRemove }) {
+function StockCardList({ items, onOpen, onEdit, onRemove }) {
   const SF = window.SF;
   if (items.length === 0) {
     return <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 14 }}>ไม่พบรายการอุปกรณ์</div>;
@@ -404,25 +417,16 @@ function StockCardList({ items, onMove, onEdit, onRemove }) {
               {it.loc && <span style={{ fontSize: 11.5, color: "var(--text-3)" }}><Icon name="pin" size={11} style={{ verticalAlign: -1 }} /> {it.loc}</span>}
             </div>
 
-            {/* ปุ่ม */}
-            <div style={{ marginTop: 12, paddingTop: 11, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 7 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                <button onClick={() => onMove({ item: it, type: "in" })}
-                  style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3, background: "#22A35B16", border: "none",
-                    color: "var(--tint-ok-tx)", fontWeight: 700, fontSize: 12.5, padding: "9px 6px", borderRadius: 9, cursor: "pointer", fontFamily: "inherit" }}>+ รับ</button>
-                <button onClick={() => onMove({ item: it, type: "out" })}
-                  style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3, background: "#7C5CFC16", border: "none",
-                    color: "#6645e0", fontWeight: 700, fontSize: 12.5, padding: "9px 6px", borderRadius: 9, cursor: "pointer", fontFamily: "inherit" }}>− เบิก</button>
-                <button onClick={() => onMove({ item: it, type: "return" })}
-                  style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3, background: "#0EA5E916", border: "none",
-                    color: "#0784b8", fontWeight: 700, fontSize: 12.5, padding: "9px 6px", borderRadius: 9, cursor: "pointer", fontFamily: "inherit" }}>↩ คืน</button>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                <button onClick={() => onEdit(it)} title="แก้ไข" aria-label="แก้ไข"
-                  style={{ flex: 1, background: "#3B82F614", border: "none", color: "#3B82F6", height: 36, borderRadius: 9, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, fontWeight: 600, fontSize: 12.5, fontFamily: "inherit" }}><Icon name="settings" size={15} /> แก้ไข</button>
-                <button onClick={() => { if (confirm("ลบ \"" + it.name + "\" ?")) onRemove(it.id); }} title="ลบ" aria-label="ลบ"
-                  style={{ flexShrink: 0, background: "#EF444414", border: "none", color: "#EF4444", width: 44, height: 36, borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={16} /></button>
-              </div>
+            {/* ปุ่ม — รับ/เบิก/คืน อยู่ข้างในหน้ารายละเอียด กดเข้าไปก่อน */}
+            <div style={{ marginTop: 12, paddingTop: 11, borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 7 }}>
+              <button onClick={() => onOpen(it)}
+                style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, background: "var(--primary-soft)",
+                  border: "none", color: "var(--primary-dark)", fontWeight: 700, fontSize: 12.5, padding: "9px 6px", borderRadius: 9,
+                  cursor: "pointer", fontFamily: "inherit" }}>ดูรายละเอียด · รับ/เบิก/คืน</button>
+              <button onClick={() => onEdit(it)} title="แก้ไข" aria-label="แก้ไข"
+                style={{ flexShrink: 0, background: "#3B82F614", border: "none", color: "#3B82F6", width: 44, height: 36, borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={16} /></button>
+              <button onClick={() => { if (confirm("ลบ \"" + it.name + "\" ?")) onRemove(it.id); }} title="ลบ" aria-label="ลบ"
+                style={{ flexShrink: 0, background: "#EF444414", border: "none", color: "#EF4444", width: 44, height: 36, borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={16} /></button>
             </div>
           </div>
         );
@@ -906,6 +910,89 @@ function AmpacityEditor({ ampStore }) {
       </div>
       <div style={{ marginTop: 10, fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
         หน่วยเป็นแอมแปร์ (A) · "แกนเดียว" = สาย 1C · "หลายแกน" = 2C ขึ้นไป · "แกนเดียว/หลายแกน" = กลุ่มนั้นใช้ตารางร่วมกัน · ระบบเลือกขนาดสายให้รับ <strong>กระแสใช้งาน × 1.25</strong> และเตือนเมื่อสายที่เลือกพิกัดต่ำกว่าที่ต้องการ
+      </div>
+    </div>
+  );
+}
+
+/* ── รายละเอียดอุปกรณ์ 1 รายการ ──
+   รับ / เบิก / คืน ย้ายมาอยู่ในนี้ ต้องกดเข้ามาก่อนถึงจะทำได้
+   จากหน้าตารางเดิมปุ่มอยู่ติดกันในแถวแคบ ๆ กดพลาดข้ามรายการได้ง่าย */
+function ItemDetailModal({ item, onMove, onEdit, onClose }) {
+  const SF = window.SF;
+  const bdClose = window.useBackdropClose(onClose);
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const c = SF.STOCK_CAT_BY[item.cat] || SF.STOCK_CATS[SF.STOCK_CATS.length - 1];
+  const st = lowState(item);
+  const info = [
+    { k: "หมวดหมู่", v: c.th },
+    { k: "รหัสวัสดุ", v: item.sku || "—", mono: true },
+    { k: "ยี่ห้อ", v: item.brand || "—" },
+    { k: "รุ่น", v: item.model || "—" },
+    { k: "ราคา/หน่วย", v: +item.price > 0 ? "฿" + (+item.price).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—", mono: true },
+    { k: "ขั้นต่ำแจ้งเตือน", v: (+item.min || 0).toLocaleString() + " " + (item.unit || ""), mono: true },
+    { k: "ที่จัดเก็บ", v: item.loc || "—" },
+  ];
+  return (
+    <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 110,
+      display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18,
+        width: isMobile ? "100%" : "min(520px,100%)", maxHeight: isMobile ? "92dvh" : "88vh", display: "flex", flexDirection: "column",
+        overflow: "hidden", boxShadow: "0 30px 80px rgba(0,0,0,.45)" }}>
+        <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)", flexShrink: 0,
+          display: "flex", alignItems: "flex-start", gap: 12 }}>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontSize: 16, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3 }}>{item.name}</span>
+            {SF.matVariantLabel(item) && <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, color: "var(--text-2)", marginTop: 3 }}>{SF.matVariantLabel(item)}</span>}
+          </span>
+          <button onClick={onClose} style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)",
+            background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+        </div>
+        <div style={{ padding: 22, overflowY: "auto", display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* คงเหลือ — ตัวเลขใหญ่สุดในหน้านี้ เพราะเป็นสิ่งที่คนเปิดเข้ามาดู */}
+          <div style={{ padding: "14px 16px", borderRadius: 14, background: "var(--surface2)", border: "1px solid var(--border)",
+            display: "flex", alignItems: "baseline", gap: 9 }}>
+            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>คงเหลือ</span>
+            <span style={{ marginLeft: "auto", fontFamily: "var(--display)", fontSize: 30, fontWeight: 700, letterSpacing: "-.03em", color: STOCK_COLORS[st] }}>
+              {(+item.qty || 0).toLocaleString()}
+            </span>
+            <span style={{ fontSize: 13, color: "var(--text-3)" }}>{item.unit}</span>
+            {st !== "ok" && <span style={{ fontSize: 11, fontWeight: 800, color: STOCK_COLORS[st] }}>{st === "out" ? "⚠ หมดสต็อก" : "⚠ ใกล้หมด"}</span>}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 1, background: "var(--border)",
+            border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
+            {info.map((r) => (
+              <span key={r.k} style={{ background: "var(--surface)", padding: "9px 12px", display: "flex", alignItems: "baseline", gap: 8 }}>
+                <span style={{ fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap" }}>{r.k}</span>
+                <span style={{ marginLeft: "auto", fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", textAlign: "right",
+                  fontFamily: r.mono ? "var(--mono)" : "inherit" }}>{r.v}</span>
+              </span>
+            ))}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>เคลื่อนไหวสต็อก</span>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 9 }}>
+              {["in", "out", "return"].map((k) => {
+                const mt = MOVE_TYPES[k];
+                return (
+                  <button key={k} onClick={() => onMove(k)}
+                    style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "13px 8px", borderRadius: 12,
+                      border: "1px solid " + mt.accent + "44", background: mt.bg, color: mt.color,
+                      fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    <span style={{ fontSize: 19, lineHeight: 1 }}>{mt.sym}</span>
+                    {mt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+        <div style={{ padding: "13px 22px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex",
+          gap: 8, justifyContent: "flex-end", flexShrink: 0 }}>
+          <button onClick={onEdit} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: 11,
+            border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit",
+            fontSize: 13, fontWeight: 700, cursor: "pointer" }}><Icon name="settings" size={14} color="var(--text-2)" /> แก้ไขรายการ</button>
+        </div>
       </div>
     </div>
   );
