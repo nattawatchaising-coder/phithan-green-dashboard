@@ -784,7 +784,7 @@
   const PROJECT_KITS = [
     /* ตู้ไฟ — แยกเป็นตู้ ๆ อุปกรณ์ที่อยู่ในตู้ไหนก็กรอกใต้ตู้นั้น
        boards ใช้จัดหน้าจอ ส่วน items (แบนราบ) คือสิ่งที่ถอดของ/คลังสินค้าใช้ — สร้างให้อัตโนมัติด้านล่าง */
-    { key: "board", group: G_BOARD, th: "ตู้ไฟ", icon: "box",
+    { key: "board", sec: "board", group: G_BOARD, th: "ตู้ไฟ", icon: "box",
       hint: "แยกเป็นตู้ — กรอกจำนวนตู้ แล้วกรอกอุปกรณ์ที่อยู่ในตู้นั้น",
       boards: [
         { key: "ac", name: "ตู้ไฟ AC", unit: "ตู้", items: [] },
@@ -794,7 +794,7 @@
           { key: "ct", name: "CT (หม้อแปลงกระแส)", unit: "ตัว" },
         ] },
       ] },
-    { key: "water", group: G_WATER, th: "ระบบสูบน้ำ", icon: "power",
+    { key: "water", sec: "water", group: G_WATER, th: "ระบบสูบน้ำ", icon: "power",
       hint: "ปั๊มน้ำสำหรับระบบล้างแผง — เลือกกำลังตามหน้างาน",
       items: [
         { key: "p300", name: "Pump 300W", unit: "ตัว" },
@@ -803,13 +803,13 @@
         { key: "p900", name: "Pump 900W", unit: "ตัว" },
         { key: "booster", name: "Booster Pump set (2 motor)", unit: "ชุด" },
       ] },
-    { key: "tank", group: G_TANK, th: "ถังเก็บน้ำ", icon: "box",
+    { key: "tank", sec: "water", group: G_TANK, th: "ถังเก็บน้ำ", icon: "box",
       items: [
         { key: "t1000", name: "ถังเก็บน้ำ 1,000 ลิตร", unit: "ใบ" },
         { key: "t2000", name: "ถังเก็บน้ำ 2,000 ลิตร", unit: "ใบ" },
         { key: "t3000", name: "ถังเก็บน้ำ 3,000 ลิตร", unit: "ใบ" },
       ] },
-    { key: "pipe", group: G_PIPE, th: "ท่อน้ำ", icon: "grid",
+    { key: "pipe", sec: "water", group: G_PIPE, th: "ท่อน้ำ", icon: "grid",
       hint: "ท่อ PPR — กรอกจำนวนเส้น (ข้อต่อ/วาล์ว ใส่ในอุปกรณ์ประกอบ)",
       items: [{ key: "ppr34", name: "ท่อ PPR 3/4\"", unit: "เส้น" }] },
   ];

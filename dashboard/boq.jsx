@@ -526,7 +526,17 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     return k.items.reduce((s, it) => s + Math.max(0, +st[it.key] || 0), 0)
       + window.BOQ.kitExtraKeys(k).reduce((s, ek) => s + (st[ek] || []).filter((x) => (x.name || "").trim() && +x.qty > 0).length, 0);
   };
-  const kitTotal = KITS.reduce((s, k) => s + kitCount(k), 0);
+  /* ตู้ไฟ กับ ระบบน้ำ เป็นคนละเรื่องกัน จึงแยกเป็นคนละหัวข้อในสารบัญ ไม่ใช่กองรวมกัน */
+  const KIT_SECS = [
+    { key: "project", sec: "board", icon: "box", title: "ตู้ไฟ",
+      hint: "ตู้ไฟของงานโครงการ — กรอกจำนวนตู้ แล้วกรอกอุปกรณ์ที่อยู่ในตู้นั้น · ราคาดึงจากคลังเหมือนวัสดุอื่น" },
+    { key: "watersys", sec: "water", icon: "power", title: "ระบบน้ำ (ปั๊ม · ถัง · ท่อ)",
+      hint: "ระบบล้างแผง — กรอกเฉพาะที่งานนี้มี ที่เหลือปล่อยว่าง · ราคาดึงจากคลังเหมือนวัสดุอื่น" },
+  ];
+  const kitSections = KIT_SECS.map((s) => {
+    const kits = KITS.filter((k) => k.sec === s.sec);
+    return Object.assign({}, s, { kits: kits, count: kits.reduce((n, k) => n + kitCount(k), 0) });
+  });
 
   // ── ราคาขาย & ส่วนลด ──
   const PRICE_DEF = { contractor: 0, sell: 0, discount: 0, vat: window.BOQ.VAT_RATE };
@@ -1447,8 +1457,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       tone: trayLen > 0 ? (trayBad > 0 ? "warn" : "ok") : "" },
     /* หมวดของงานโครงการ — วางต่อจากรางไฟ เพราะกรอกไล่จากงานเดินสาย/เดินท่อมาที่ตู้และระบบน้ำต่อกันเลย
        งานบ้านไม่ต้องมีให้เกะกะ */
-    !isHome ? { key: "project", icon: "box", title: "ตู้ไฟ · น้ำ · ท่อ",
-      meta: kitTotal > 0 ? kitTotal + " รายการ" : "ยังไม่ได้กรอก", tone: kitTotal > 0 ? "ok" : "" } : null,
+  ].concat(isHome ? [] : kitSections.map((sc) => ({ key: sc.key, icon: sc.icon, title: sc.title,
+    meta: sc.count > 0 ? sc.count + " รายการ" : "ยังไม่ได้กรอก", tone: sc.count > 0 ? "ok" : "" }))).concat([
     !isHome ? { key: "site", icon: "power", title: "ขนส่ง & บริหารจัดการ",
       meta: siteTotal > 0 ? "฿" + baht(siteTotal) : "ยังไม่ได้กรอก", tone: siteTotal > 0 ? "ok" : "" } : null,
     { key: "support", icon: "box", title: "โครงสร้างรองรับอุปกรณ์",
@@ -1469,7 +1479,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     { key: "price", icon: "bolt", title: "แบ่งราคา & กำไร",
       meta: pb.sell > 0 ? "ขาย ฿" + baht(pb.net || pb.sell) + " · กำไร " + (pb.net > 0 ? pb.netMargin : pb.margin) + "%" : "ยังไม่ได้ตั้งราคาขาย",
       tone: pb.sell > 0 ? ((pb.net > 0 ? pb.netProfit : pb.profit) > 0 ? "ok" : "warn") : "" },
-  ].filter(Boolean);
+  ]).filter(Boolean);
   const itemCount = priced.groups.reduce((a, g) => a + g.items.length, 0);
 
   return (
@@ -2193,15 +2203,15 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             </div>
           </BoqSection>
 
-          {/* ── หมวดของงานโครงการ: ตู้ไฟ / ระบบสูบน้ำ / ถัง / ท่อ / อุปกรณ์มอนิเตอร์ ── */}
-          {!isHome && (
-          <BoqSection title="ตู้ไฟ · ระบบน้ำ · ท่อ" icon="box" {...secProps("project")}
-            right={kitTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>{kitTotal} รายการ</span> : null}>
+          {/* ── หมวดของงานโครงการ — ตู้ไฟ กับ ระบบน้ำ เป็นคนละหัวข้อกัน ── */}
+          {!isHome && kitSections.map((sc) => (
+          <BoqSection key={sc.key} title={sc.title} icon={sc.icon} {...secProps(sc.key)}
+            right={sc.count > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>{sc.count} รายการ</span> : null}>
             <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 14 }}>
-              ของที่มีเฉพาะงานโครงการ — กรอกจำนวนเฉพาะที่งานนี้มี ที่เหลือปล่อยว่าง · ราคาดึงจากคลังเหมือนวัสดุอื่น
+              {sc.hint}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {KITS.map((k, ki) => {
+              {sc.kits.map((k, ki) => {
                 const st = kitOf(k.key);
                 // ช่องกรอกจำนวน 1 ช่อง — ใช้ทั้งแบบเรียงเป็นตาราง และแบบอยู่ในตู้
                 const numBox = (it) => (
@@ -2250,8 +2260,13 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 return (
                   /* แต่ละหมวดเป็นบล็อกของตัวเอง คั่นเส้นให้ชัด — ระบบน้ำ/ถัง/ท่อ เป็นคนละเรื่องกับตู้ไฟ */
                   <div key={k.key} style={ki === 0 ? null : { paddingTop: 16, borderTop: "1px solid var(--border)" }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: k.hint ? 3 : 7 }}>{k.th}</div>
-                    {k.hint && <div style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 7 }}>{k.hint}</div>}
+                    {/* หมวดเดียวในหัวข้อ = ชื่อซ้ำกับหัวข้อ ไม่ต้องขึ้นอีกรอบ */}
+                    {sc.kits.length > 1 && (
+                      <React.Fragment>
+                        <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: k.hint ? 3 : 7 }}>{k.th}</div>
+                        {k.hint && <div style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 7 }}>{k.hint}</div>}
+                      </React.Fragment>
+                    )}
                     {/* หมวดที่แยกเป็นตู้ — แต่ละตู้เป็นกล่องของตัวเอง: จำนวนตู้ · อุปกรณ์ในตู้ · อุปกรณ์ประกอบของตู้นั้น */}
                     {k.boards ? (
                       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0,1fr))", gap: 9, alignItems: "start" }}>
@@ -2284,7 +2299,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               })}
             </div>
           </BoqSection>
-          )}
+          ))}
 
           {/* ── ขนส่ง & บริหารจัดการหน้างาน — ราคาอยู่ในบรรทัดเอง เหมือนค่าแรง ── */}
           {!isHome && (
