@@ -299,9 +299,9 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                   <tr style={{ borderBottom: "1px solid var(--border)" }}>
                     {/* ไม่มีคอลัมน์ "หมวด" แล้ว เพราะกรองหมวดจากชิปด้านบนได้อยู่แล้ว
                         เอาที่ว่างมาใส่ ยี่ห้อ/รุ่น กับ ราคา ที่ต้องดูบ่อยกว่า */}
-                    {["รายการอุปกรณ์", "ยี่ห้อ / รุ่น", "ราคา/หน่วย", "คงเหลือ", "ขั้นต่ำ", "ที่จัดเก็บ", "จัดการ"].map((h, i) => (
+                    {["รายการอุปกรณ์", "ราคา/หน่วย", "คงเหลือ", "ขั้นต่ำ", "ที่จัดเก็บ", "จัดการ"].map((h, i) => (
                       <th key={h} style={{ padding: "12px 12px", fontSize: 10.5, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase",
-                        color: "var(--text-3)", textAlign: i === 2 ? "right" : (i >= 3 && i <= 4 ? "center" : "left"), whiteSpace: "nowrap", background: "var(--surface2)" }}>{h}</th>
+                        color: "var(--text-3)", textAlign: i === 1 ? "right" : (i >= 2 && i <= 3 ? "center" : "left"), whiteSpace: "nowrap", background: "var(--surface2)" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -314,17 +314,11 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                       <tr key={it.id} onClick={() => setDetailItem(it)} title="กดเพื่อดูรายละเอียด · รับ / เบิก / คืน"
                         style={{ borderBottom: "1px solid var(--border)", cursor: "pointer",
                           background: st === "out" ? "rgba(239,68,68,.07)" : "transparent" }}>
+                        {/* ยี่ห้อ/รุ่น อยู่ใต้ชื่อในช่องเดียวกัน — เป็นชื่อของของชิ้นเดียวกัน ไม่ต้องแยกคอลัมน์ให้ตารางกว้าง */}
                         <td style={{ padding: "11px 12px" }}>
                           <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-1)" }}>{it.name}</div>
+                          {SF.matVariantLabel(it) && <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginTop: 2 }}>{SF.matVariantLabel(it)}</div>}
                           <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{it.sku}</div>
-                        </td>
-                        <td style={{ padding: "11px 12px" }}>
-                          {(it.brand || it.model) ? (
-                            <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                              {it.brand && <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>{it.brand}</span>}
-                              {it.model && <span style={{ fontSize: 11.5, color: "var(--text-2)" }}>{it.model}</span>}
-                            </span>
-                          ) : <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>—</span>}
                         </td>
                         <td style={{ padding: "11px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
                           <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 700,
@@ -347,7 +341,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                       </tr>
                     );
                   })}
-                  {filtered.length === 0 && <tr><td colSpan={7} style={{ padding: 44, textAlign: "center", color: "var(--text-3)" }}>ไม่พบรายการอุปกรณ์</td></tr>}
+                  {filtered.length === 0 && <tr><td colSpan={6} style={{ padding: 44, textAlign: "center", color: "var(--text-3)" }}>ไม่พบรายการอุปกรณ์</td></tr>}
                 </tbody>
               </table>
             </div>
