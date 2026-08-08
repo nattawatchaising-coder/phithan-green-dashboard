@@ -859,6 +859,9 @@
   const ACC_TAPE_1P = ["สีน้ำตาล", "สีฟ้า"];
   const ACC_TAPE_3P = ["สีน้ำตาล", "สีดำ", "สีเทา", "สีฟ้า"];
   const accTape = (phase) => (phase === 3 ? ACC_TAPE_3P : ACC_TAPE_1P).map((c) => "เทปพันสายไฟ " + c);
+  /* งานโครงการไม่ไล่ถอด Accessories ทีละชิ้น ใช้เงินเผื่อเป็น % ของราคาทุนวัสดุแทน
+     ฐานคิด = ทุกหมวดวัสดุ ยกเว้นหมวดค่าแรง/ค่าธรรมเนียม/ขนส่ง/บริหาร และยกเว้นตัวเอง */
+  const ACC_ALLOW_PCT = 5;
 
   const ROOF_OPTIONS = ROOF_HOOKS.map((r) => r.roof);
 
@@ -1421,13 +1424,22 @@
       ] });
     }
 
-    // ACCESSORIES — ชุดมาตรฐาน (ถอดทุกงาน) + เทปพันสายไฟตามเฟส + ที่ผู้ใช้เพิ่มเอง
-    const autoAcc = ACC_STD.concat(accTape(phase)).map((name) => ({ name, qty: 1, unit: "ชิ้น" }));
-    const acc = autoAcc.concat(
-      (b.accessories || []).filter((a) => (a.name || "").trim() && (+a.qty || 0) > 0)
-        .map((a) => ({ name: a.name.trim(), qty: +a.qty || 0, unit: a.unit || "" }))
-    );
-    if (acc.length) groups.push({ group: "ACCESSORIES", items: acc });
+    /* ── ACCESSORIES ──
+       งานบ้าน: ถอดของจริงเป็นชิ้น ๆ (ชุดมาตรฐาน + เทปพันสายไฟตามเฟส + ที่ผู้ใช้เพิ่มเอง)
+       งานโครงการ: ไม่ไล่ถอดทีละชิ้น ใช้เป็นเงินเผื่อ % ของราคาทุนวัสดุแทน
+         (ยอดคิดตอน applyPrices เพราะต้องรู้ราคาทุนหมวดอื่นก่อน) */
+    if (isProject) {
+      groups.push({ group: "ACCESSORIES", items: [
+        { name: "Accessories Allowance " + ACC_ALLOW_PCT + "%", qty: 1, unit: "เหมา", allowancePct: ACC_ALLOW_PCT },
+      ] });
+    } else {
+      const autoAcc = ACC_STD.concat(accTape(phase)).map((name) => ({ name, qty: 1, unit: "ชิ้น" }));
+      const acc = autoAcc.concat(
+        (b.accessories || []).filter((a) => (a.name || "").trim() && (+a.qty || 0) > 0)
+          .map((a) => ({ name: a.name.trim(), qty: +a.qty || 0, unit: a.unit || "" }))
+      );
+      if (acc.length) groups.push({ group: "ACCESSORIES", items: acc });
+    }
 
     /* ── ค่าแรง & ค่าขออนุญาต ──
        ปริมาณของค่าแรงดึงจากผลถอดวัสดุด้านบน (auto) — ราคาอยู่ในบรรทัดเอง ไม่ดึงจากคลังวัสดุ
@@ -1600,7 +1612,6 @@
   // ผูกราคาเข้ากับผลลัพธ์ BOQ → คืน groups (มี code/price/total ต่อรายการ) + grandTotal
   function applyPrices(result, priceMap) {
     priceMap = priceMap || {};
-    let grand = 0;
     /* ต้นทุนต่อกำลังติดตั้ง (DC) — เทียบข้ามงานได้ตรง ๆ ว่าหมวดไหนแพงผิดปกติ
        วงการเสนอราคาไทยพูดกันเป็น "บาทต่อวัตต์" จึงคิดทั้ง ฿/W และ ฿/kW ให้ */
     const kw = +((result.meta || {}).kw) || 0;
@@ -1617,9 +1628,25 @@
         sub += total;
         return Object.assign({}, it, { code: rec.code || "", price: price, total: total, perKw: perKw(total), perW: perW(total) });
       });
-      grand += sub;
-      return { group: g.group, service: service, items: items, subtotal: sub, perKw: perKw(sub), perW: perW(sub) };
+      return { group: g.group, service: service, items: items, subtotal: sub, perKw: perKw(sub),
+        perW: perW(sub), allowance: g.items.some((it) => +it.allowancePct > 0) };
     });
+    /* เงินเผื่อ Accessories — คิดเป็น % ของราคาทุนวัสดุที่ถอดได้ทั้งงาน
+       ต้องคิดรอบสองเพราะรอบแรกยังไม่รู้ยอดหมวดอื่น · ฐานไม่รวมหมวดบริการ และไม่รวมตัวเอง (กันคิดซ้อน) */
+    if (groups.some((g) => g.allowance)) {
+      const base = groups.filter((g) => !g.service && !g.allowance).reduce((s, g) => s + g.subtotal, 0);
+      groups.forEach((g) => {
+        if (!g.allowance) return;
+        g.items = g.items.map((it) => {
+          if (!(+it.allowancePct > 0)) return it;
+          const total = Math.round(base * it.allowancePct) / 100;
+          return Object.assign({}, it, { price: total, total: total, perKw: perKw(total), perW: perW(total), allowBase: base });
+        });
+        g.subtotal = g.items.reduce((s, it) => s + it.total, 0);
+        g.perKw = perKw(g.subtotal); g.perW = perW(g.subtotal);
+      });
+    }
+    const grand = groups.reduce((s, g) => s + g.subtotal, 0);
     const sumOf = (keys) => groups.filter((g) => keys.indexOf(g.group) >= 0).reduce((s, g) => s + g.subtotal, 0);
     const laborTotal = sumOf([G_LABOR]), permitTotal = sumOf([G_PERMIT]);
     const matTotal = grand - laborTotal - permitTotal;
@@ -1721,7 +1748,7 @@
 
   window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, WAY_PIPE_LEN, TRAY_PIPE_LEN, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
-    TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, VAT_RATE, priceBreakdown,
+    TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, ACC_ALLOW_PCT, VAT_RATE, priceBreakdown,
     TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,
     UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,
     AMP_CORE_LABEL, ampGroupMeta, ampCoresFor, ampCoreKey, WIRE_METHOD_LEGACY, normWireMethod,

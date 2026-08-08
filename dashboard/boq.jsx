@@ -550,6 +550,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   // ยอดรวมของหมวดขนส่ง + บริหารจัดการ (ราคาอยู่ในบรรทัดเอง จึงบวกจากผลถอดของโดยตรง)
   const siteTotal = (priced.groups || []).filter((g) => g.group === window.BOQ.G_TRANSPORT || g.group === window.BOQ.G_MANAGE)
     .reduce((s, g) => s + g.subtotal, 0);
+  /* เงินเผื่อ Accessories (งานโครงการ) — เอนจินคิดมาให้แล้วตอนใส่ราคา ที่นี่แค่ดึงยอดกับฐานคิดมาโชว์ */
+  const accAllowGrp = (priced.groups || []).find((g) => g.allowance);
+  const accAllow = accAllowGrp ? accAllowGrp.subtotal : 0;
+  const accBase = accAllowGrp ? ((accAllowGrp.items.find((it) => it.allowBase != null) || {}).allowBase || 0) : 0;
   /* จุดรองรับที่ควรเป็น — เฉพาะอินเวอร์เตอร์สตริง/ไฮบริดที่เป็นกล่องแขวนผนัง/ตั้งพื้น
      ไมโครอินเวอร์เตอร์ยึดใต้แผงอยู่แล้ว ไม่ต้องทำโครง (และ invCount ของไมโครเป็น LOT ไม่ใช่จำนวนตัว เช่น 155 แผง 2:1 = 77.5) */
   const supAuto = b.inverterModel ? Math.max(1, Math.round(result.meta.invCount || 1)) : 0;
@@ -1466,7 +1470,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     !isHome ? { key: "struct", icon: "box", title: "งานเพิ่มเติม — โครงสร้าง",
       meta: structRows > 0 ? "กรอกแล้ว " + structRows + " รายการ" : "บันได · ทางเดิน · ราวกันตก",
       tone: structRows > 0 ? "ok" : "" } : null,
-    { key: "acc", icon: "box", title: "Accessories", meta: (accList || []).length ? accList.length + " รายการ" : "ยังไม่เพิ่ม" },
+    isHome
+      ? { key: "acc", icon: "box", title: "Accessories", meta: (accList || []).length ? accList.length + " รายการ" : "ยังไม่เพิ่ม" }
+      : { key: "acc", icon: "box", title: "Accessories Allowance " + window.BOQ.ACC_ALLOW_PCT + "%",
+          meta: accAllow > 0 ? "฿" + baht(accAllow) + " (" + window.BOQ.ACC_ALLOW_PCT + "% ของ ฿" + baht(accBase) + ")" : "ยังไม่มีราคาทุน",
+          tone: accAllow > 0 ? "ok" : "" },
     { key: "labor", icon: "power", title: "ค่าแรงติดตั้ง",
       meta: (laborMode === "lump" ? "เหมารวม · " : "แยกรายการ · ")
         + (priced.laborTotal > 0 ? "฿" + baht(priced.laborTotal) + " · ฿" + baht(priced.laborPerW) + "/W" : "ยังไม่ได้ตั้งเรต"),
@@ -2446,7 +2454,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           </BoqSection>
           )}
 
-          {/* ── Accessories ── */}
+          {/* ── Accessories ──
+               งานโครงการไม่ไล่เพิ่มของทีละชิ้น ใช้เงินเผื่อเป็น % ของราคาทุนวัสดุแทน */}
+          {isHome ? (
           <BoqSection title="Accessories (เพิ่มของ)" icon="box" {...secProps("acc")}>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {accList.map((a, i) => {
@@ -2471,6 +2481,20 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             </div>
             <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)" }}>* เลือกหมวด → เลือกวัสดุ (จากราคาวัสดุ + คลังสินค้า) หรือ "พิมพ์เอง" — ถ้ามีราคาในระบบจะคิดต้นทุนให้</div>
           </BoqSection>
+          ) : (
+          <BoqSection title={"Accessories Allowance " + window.BOQ.ACC_ALLOW_PCT + "%"} icon="box" {...secProps("acc")}
+            right={accAllow > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(accAllow)}</span> : null}>
+            <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
+              งานโครงการไม่ไล่ถอด Accessories ทีละชิ้น — คิดเป็นเงินเผื่อ {window.BOQ.ACC_ALLOW_PCT}% ของราคาทุนวัสดุที่ถอดได้ทั้งงาน
+              (ไม่รวมค่าแรง ค่าขออนุญาต ขนส่ง บริหารจัดการ และไม่รวมตัวมันเอง)
+            </div>
+            <div className="bq-spec">
+              <div><span className="k">ฐานคิด · ราคาทุนวัสดุ</span><span className="v">฿{baht(accBase)}</span></div>
+              <div><span className="k">อัตราเงินเผื่อ</span><span className="v">{window.BOQ.ACC_ALLOW_PCT}%</span></div>
+              <div><span className="k">เงินเผื่อ Accessories</span><span className="v hi">฿{baht(accAllow)}</span></div>
+            </div>
+          </BoqSection>
+          )}
 
           {/* ── ผลลัพธ์ BOQ ── */}
           <BoqSection title="รายการวัสดุที่ถอดได้" icon="box" {...secProps("removable")}
@@ -2532,7 +2556,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                         {it.code ? <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--text-3)" }}>{it.code}</span> : null}
                       </span>
                       {(() => {
-                        const qEditable = !isService(g.group) && (it.name || "").trim();
+                        const qEditable = !isService(g.group) && !it.allowancePct && (it.name || "").trim();
                         const qKey = qEditable ? window.BOQ.qtyKey(g.group, it.name) : "";
                         if (editQty && editQty.key === qKey && qKey) return (
                           <span style={{ textAlign: "right" }}>
@@ -2562,7 +2586,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                         );
                       })()}
                       {(!isMobile || priced.grandTotal > 0) && (() => {
-                        const editable = canEditPrice && !isService(g.group) && (it.name || "").trim();
+                        const editable = canEditPrice && !isService(g.group) && !it.allowancePct && (it.name || "").trim();
                         const editing = editPx && editPx.name === it.name;
                         if (editing) return (
                           <span style={{ textAlign: "right" }}>
