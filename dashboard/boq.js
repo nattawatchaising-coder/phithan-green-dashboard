@@ -621,9 +621,10 @@
     const out = [
       { name: name + " (" + pipeLen.toFixed(1) + "m/ท่อน)", qty: pcs, unit: "ท่อน" },
       { name: "ชุดข้อต่อราง " + kind + " " + sz, qty: up(joint), unit: "ชุด" },
-      { name: "ขาแขวนราง " + kind + " " + sz, qty: up(hanger), unit: "ชุด" },
       { name: 'พุ๊กเหล็ก 3/8"', qty: up(hanger * 4), unit: "ตัว" },
     ];
+    // รางบันไดแขวนด้วยขาแขวนสำเร็จ · Wireway ยึดพุ๊กเข้าโครงตรง ๆ ไม่ต้องมีขาแขวน
+    if (isTray) out.splice(2, 0, { name: "ขาแขวนราง " + kind + " " + sz, qty: up(hanger), unit: "ชุด" });
     if (!isTray) out.push({ name: "สกรู+น็อต M6 ประกอบราง", qty: up(pcs * 8), unit: "ชุด" });
     return out;
   }
@@ -774,20 +775,24 @@
   const SERVICE_GROUPS = [G_LABOR, G_PERMIT, G_TRANSPORT, G_MANAGE];   // หมวดที่ราคาอยู่ในบรรทัดเอง ไม่ดึงจากคลัง
 
   /* ── หมวดของงานโครงการ ──
-     งานโครงการมีของที่งานบ้านไม่มี: ตู้ไฟแยกฝั่ง, ระบบสูบน้ำล้างแผง, ถังเก็บน้ำ, ท่อน้ำ, อุปกรณ์มอนิเตอร์
+     งานโครงการมีของที่งานบ้านไม่มี: ตู้ไฟแยกฝั่ง (พร้อมอุปกรณ์ในตู้), ระบบสูบน้ำล้างแผง, ถังเก็บน้ำ, ท่อน้ำ
      ราคาดึงจากคลังเหมือนวัสดุอื่น · ทุกหมวดพิมพ์อุปกรณ์ประกอบเพิ่มเองได้ เพราะแล้วแต่หน้างาน */
   const G_BOARD = "ตู้ไฟ";
   const G_WATER = "ระบบสูบน้ำ (WATER SYSTEM)";
   const G_TANK = "ถังเก็บน้ำ (TANK)";
   const G_PIPE = "ท่อน้ำ (PIPE)";
-  const G_MONITOR = "อุปกรณ์มอนิเตอร์";
   const PROJECT_KITS = [
+    /* ตู้ไฟ — แยกเป็นตู้ ๆ อุปกรณ์ที่อยู่ในตู้ไหนก็กรอกใต้ตู้นั้น
+       boards ใช้จัดหน้าจอ ส่วน items (แบนราบ) คือสิ่งที่ถอดของ/คลังสินค้าใช้ — สร้างให้อัตโนมัติด้านล่าง */
     { key: "board", group: G_BOARD, th: "ตู้ไฟ", icon: "box",
-      hint: "ตู้แยกฝั่ง AC / DC / Data Logger — กรอกจำนวนตู้",
-      items: [
-        { key: "ac", name: "ตู้ไฟ AC", unit: "ตู้" },
-        { key: "dc", name: "ตู้ไฟ DC", unit: "ตู้" },
-        { key: "logger", name: "ตู้ไฟ DATA LOGGER", unit: "ตู้" },
+      hint: "แยกเป็นตู้ — กรอกจำนวนตู้ แล้วกรอกอุปกรณ์ที่อยู่ในตู้นั้น",
+      boards: [
+        { key: "ac", name: "ตู้ไฟ AC", unit: "ตู้", items: [] },
+        { key: "dc", name: "ตู้ไฟ DC", unit: "ตู้", items: [] },
+        { key: "logger", name: "ตู้ไฟ DATA LOGGER", unit: "ตู้", items: [
+          { key: "janitza", name: "Janitza Power Meter", unit: "ตัว" },
+          { key: "ct", name: "CT (หม้อแปลงกระแส)", unit: "ตัว" },
+        ] },
       ] },
     { key: "water", group: G_WATER, th: "ระบบสูบน้ำ", icon: "power",
       hint: "ปั๊มน้ำสำหรับระบบล้างแผง — เลือกกำลังตามหน้างาน",
@@ -807,14 +812,29 @@
     { key: "pipe", group: G_PIPE, th: "ท่อน้ำ", icon: "grid",
       hint: "ท่อ PPR — กรอกจำนวนเส้น (ข้อต่อ/วาล์ว ใส่ในอุปกรณ์ประกอบ)",
       items: [{ key: "ppr34", name: "ท่อ PPR 3/4\"", unit: "เส้น" }] },
-    { key: "monitor", group: G_MONITOR, th: "อุปกรณ์มอนิเตอร์", icon: "bolt",
-      // SmartLogger ถอดให้อัตโนมัติในหมวด INVERTER แล้ว (งานโครงการที่ใช้อินเวอร์เตอร์ Huawei) จึงไม่ต้องกรอกซ้ำที่นี่
-      hint: "ต่อกับอินเวอร์เตอร์เพื่ออ่านค่าและส่งข้อมูล",
-      items: [
-        { key: "janitza", name: "Janitza Power Meter", unit: "ตัว" },
-        { key: "ct", name: "CT (หม้อแปลงกระแส)", unit: "ตัว" },
-      ] },
   ];
+  /* แปลง boards → items แบนราบ ให้ calcBOQ/catalog ใช้เหมือนหมวดอื่น
+     ตัวตู้เองก็เป็นรายการหนึ่ง (key เดียวกับตู้) แล้วตามด้วยอุปกรณ์ในตู้นั้น */
+  PROJECT_KITS.forEach((k) => {
+    if (!k.boards) return;
+    k.items = k.boards.reduce((a, bd) => a
+      .concat([{ key: bd.key, name: bd.name, unit: bd.unit, board: bd.key }])
+      .concat((bd.items || []).map((it) => Object.assign({ board: bd.key }, it))), []);
+  });
+
+  /* งานเก่ากรอก Janitza/CT ไว้ในหมวด "อุปกรณ์มอนิเตอร์" (project.monitor)
+     ตอนนี้ย้ายไปอยู่ในตู้ DATA LOGGER แล้ว — ย้ายค่าที่กรอกไว้ให้เอง ไม่ต้องกรอกใหม่ */
+  function normProject(project) {
+    const p = Object.assign({}, project || {});
+    const m = p.monitor;
+    if (!m) return p;
+    const bd = Object.assign({}, p.board);
+    ["janitza", "ct"].forEach((key) => { if (bd[key] == null && m[key] != null) bd[key] = m[key]; });
+    if ((m.extra || []).length) bd.extra = (bd.extra || []).concat(m.extra);
+    p.board = bd;
+    delete p.monitor;
+    return p;
+  }
 
   // ── ACCESSORIES มาตรฐาน — ถอดให้ทุกงานอัตโนมัติ + เทปพันสายไฟตามจำนวนเฟส ──
   const ACC_STD = [
@@ -1031,8 +1051,8 @@
       });
       const thk = +(st.walkwayThk) || 35;                               // ความหนา walkway → ขนาด END CLAMP KIT
       const it = [];
-      if (dT) it.push({ name: "WALKWAY", qty: dT, unit: "แผ่น" });
-      if (fT) it.push({ name: "WALKWAY JOINER", qty: fT, unit: "ตัว" });
+      // JOINER มาพร้อมแผ่น WALKWAY อยู่แล้ว จึงเป็นรายการเดียวกัน ไม่แยกบรรทัด
+      if (dT) it.push({ name: "WALKWAY+JOINER", qty: dT, unit: "แผ่น" });
       if (hT) it.push({ name: END_CLAMP[thk] || ("END CLAMP KIT " + thk + "mm."), qty: sp(hT, wlkSp), unit: "ชุด" });
       if (mT) it.push({ name: "RAIL 4.2 M", qty: sp(mT, wlkSp), unit: "เส้น" });
       // ชื่อชุดยึด WALKWAY ตรงกับ L FEET ที่เลือกไว้ใน MOUNTING (เปลี่ยนตามประเภทหลังคา)
@@ -1362,7 +1382,7 @@
 
     /* หมวดของงานโครงการ (ตู้ไฟ / ปั๊ม / ถัง / ท่อ / อุปกรณ์มอนิเตอร์)
        กรอกจำนวนเท่าไรก็ออกเท่านั้น ไม่กรอก = ไม่มีหมวดนี้ในใบถอดของ */
-    const proj = b.project || {};
+    const proj = normProject(b.project);
     PROJECT_KITS.forEach((k) => {
       const st = proj[k.key] || {};
       const rows = [];
@@ -1528,7 +1548,6 @@
       const sz = traySuffix(nm);
       add(G_TRAY, nm + " (" + WAY_PIPE_LEN.toFixed(1) + "m/ท่อน)", "ท่อน");
       add(G_TRAY, "ชุดข้อต่อราง Wireway " + sz, "ชุด");
-      add(G_TRAY, "ขาแขวนราง Wireway " + sz, "ชุด");
     });
     TRAY_SIZES.forEach((nm) => {
       const sz = traySuffix(nm);
@@ -1550,8 +1569,7 @@
     add("LADDER (บันไดลิง)", "เหล็กแบน 32 มม.", "เส้น");
     add("LADDER (บันไดลิง)", 'แผ่นเพลท 4"x4"', "แผ่น");
     add("LADDER (บันไดลิง)", 'พุ๊กเหล็ก 3/8"', "ตัว");
-    add("WALKWAY", "WALKWAY", "แผ่น");
-    add("WALKWAY", "WALKWAY JOINER", "ตัว");
+    add("WALKWAY", "WALKWAY+JOINER", "แผ่น");
     add("GUARD RAIL", "เหล็กฉาก 40x40 มม. หนา 4 มม.", "เส้น");
     add("GUARD RAIL", "สลิงสแตนเลส 6 มม.", "ม.");
     add("GUARD RAIL", "เกลียวเร่งสแตนเลส 8 มม.", "ตัว");
@@ -1689,7 +1707,7 @@
 
   window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, WAY_PIPE_LEN, TRAY_PIPE_LEN, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
-    TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, VAT_RATE, priceBreakdown,
+    TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, VAT_RATE, priceBreakdown,
     TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,
     UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,
     AMP_CORE_LABEL, ampGroupMeta, ampCoresFor, ampCoreKey, WIRE_METHOD_LEGACY, normWireMethod,

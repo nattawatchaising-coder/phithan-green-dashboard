@@ -497,7 +497,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const addStructExtra = (kind) => setB((p) => { const s = Object.assign({}, STRUCT_DEF, p.struct); const key = kind + "Extra"; s[key] = (s[key] || []).concat([{ name: "", qty: "", unit: "" }]); return Object.assign({}, p, { struct: s }); });
   const setStructExtra = (kind, i, k, v) => setB((p) => { const s = Object.assign({}, STRUCT_DEF, p.struct); const key = kind + "Extra"; const a = (s[key] || []).slice(); a[i] = Object.assign({}, a[i], { [k]: v }); s[key] = a; return Object.assign({}, p, { struct: s }); });
   const delStructExtra = (kind, i) => setB((p) => { const s = Object.assign({}, STRUCT_DEF, p.struct); const key = kind + "Extra"; s[key] = (s[key] || []).filter((_, j) => j !== i); return Object.assign({}, p, { struct: s }); });
-  const [advS, setAdvS] = React.useState(false);
+  /* งานโครงสร้างที่กรอกไว้แล้ว — นับเป็นจุด/แนว เอาไว้บอกบนหัวข้อและกางให้อัตโนมัติ
+     เดิมข้อมูลที่กรอกไว้ซ่อนอยู่หลังปุ่ม เปิดงานเดิมมาแล้วดูเหมือนไม่มีอะไรเลย */
+  const structRows = ["ladder", "walkway", "guardrail"].reduce((s, k) => s + (st[k] || []).length, 0)
+    + ["ladderExtra", "walkwayExtra", "guardrailExtra"].reduce((s, k) => s + (st[k] || []).filter((x) => (x.name || "").trim()).length, 0);
+  const [advS, setAdvS] = React.useState(structRows > 0);
   const [advC, setAdvC] = React.useState(false);
   const isHome = !!(job && job.type === "home");  // งานบ้าน = ไม่มีงานโครงสร้างเพิ่มเติม
   // หัวข้อที่กำลังเปิดอยู่ — เลือกจากแถบซ้าย ทีละหัวข้อ (เนื้อหาที่ไม่ได้เลือกไม่ต้องเรนเดอร์ให้หนักเปล่า)
@@ -507,12 +511,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
   const csp = Object.assign({}, SPARE_DEF, b.conduitSpare);
 
-  /* ── หมวดของงานโครงการ (ตู้ไฟ / ปั๊ม / ถัง / ท่อ / อุปกรณ์มอนิเตอร์) ──
-     โครงสร้างเดียวกันทุกหมวด: จำนวนต่อรายการ + อุปกรณ์ประกอบที่พิมพ์เพิ่มเอง */
+  /* ── หมวดของงานโครงการ (ตู้ไฟ / ปั๊ม / ถัง / ท่อ) ──
+     โครงสร้างเดียวกันทุกหมวด: จำนวนต่อรายการ + อุปกรณ์ประกอบที่พิมพ์เพิ่มเอง
+     หมวดตู้ไฟแยกย่อยเป็นตู้ ๆ อุปกรณ์ที่อยู่ในตู้ไหนก็อยู่ใต้ตู้นั้น */
   const KITS = window.BOQ.PROJECT_KITS || [];
-  const kitOf = (k) => (b.project || {})[k] || {};
+  const project = window.BOQ.normProject(b.project);   // งานเก่าที่กรอกไว้ในหมวดมอนิเตอร์ ย้ายเข้าตู้ Logger ให้เอง
+  const kitOf = (k) => project[k] || {};
   const setKit = (k, key, v) => setB((p) => {
-    const pr = Object.assign({}, p.project); pr[k] = Object.assign({}, pr[k], { [key]: v });
+    const pr = window.BOQ.normProject(p.project); pr[k] = Object.assign({}, pr[k], { [key]: v });
     return Object.assign({}, p, { project: pr });
   });
   const kitCount = (k) => {
@@ -1441,13 +1447,15 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       tone: trayLen > 0 ? (trayBad > 0 ? "warn" : "ok") : "" },
     /* หมวดของงานโครงการ — วางต่อจากรางไฟ เพราะกรอกไล่จากงานเดินสาย/เดินท่อมาที่ตู้และระบบน้ำต่อกันเลย
        งานบ้านไม่ต้องมีให้เกะกะ */
-    !isHome ? { key: "project", icon: "box", title: "ตู้ไฟ · น้ำ · ท่อ · มอนิเตอร์",
+    !isHome ? { key: "project", icon: "box", title: "ตู้ไฟ · น้ำ · ท่อ",
       meta: kitTotal > 0 ? kitTotal + " รายการ" : "ยังไม่ได้กรอก", tone: kitTotal > 0 ? "ok" : "" } : null,
     !isHome ? { key: "site", icon: "power", title: "ขนส่ง & บริหารจัดการ",
       meta: siteTotal > 0 ? "฿" + baht(siteTotal) : "ยังไม่ได้กรอก", tone: siteTotal > 0 ? "ok" : "" } : null,
     { key: "support", icon: "box", title: "โครงสร้างรองรับอุปกรณ์",
       meta: sup.inv + sup.mdb > 0 ? "อินเวอร์เตอร์ " + sup.inv + " · ตู้ " + sup.mdb : "ยังไม่ได้ถอด", tone: sup.inv + sup.mdb > 0 ? "ok" : "" },
-    !isHome ? { key: "struct", icon: "box", title: "งานเพิ่มเติม — โครงสร้าง", meta: "บันได · ทางเดิน · ราวกันตก" } : null,
+    !isHome ? { key: "struct", icon: "box", title: "งานเพิ่มเติม — โครงสร้าง",
+      meta: structRows > 0 ? "กรอกแล้ว " + structRows + " รายการ" : "บันได · ทางเดิน · ราวกันตก",
+      tone: structRows > 0 ? "ok" : "" } : null,
     { key: "acc", icon: "box", title: "Accessories", meta: (accList || []).length ? accList.length + " รายการ" : "ยังไม่เพิ่ม" },
     { key: "labor", icon: "power", title: "ค่าแรงติดตั้ง",
       meta: (laborMode === "lump" ? "เหมารวม · " : "แยกรายการ · ")
@@ -2108,12 +2116,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           <BoqSection title="ท่อร้อยสาย (RACE WAY)" icon="grid" {...secProps("raceway")}
             right={condLen > 0 ? <span style={{ fontSize: 12, fontWeight: 800, color: "var(--primary-dark)" }}>รวม {condLen} ม.</span> : null}>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <ConduitList kind="imc" label="ท่อ IMC (3m/ท่อน)" sizes={window.BOQ.IMC_SIZES} valKey="length" unitText="ม." check
-                hint="ท่อเหล็ก IMC ยาว 3.0 ม./ท่อน — กรอกความยาวรวมของแต่ละขนาด" />
-              <ConduitList kind="upvc" label="ท่อ uPVC" sizes={window.BOQ.UPVC_SIZES} valKey="length" unitText="ม." check
-                hint="ท่อขาว uPVC ยาว 2.9 ม./ท่อน — ขนาดที่เรียกเป็นขนาดนอก ระบบหักผนังท่อให้แล้วตอนตรวจ % เติมเต็ม" />
-              <ConduitList kind="pullbox" label="PULL BOX" sizes={window.BOQ.PULLBOX_SIZES} valKey="qty" unitText="ชิ้น"
-                hint="กล่องพักสาย — กรอกจำนวนใบ (ไม่มีสายวิ่งผ่านเป็นเส้นให้ตรวจ % เติมเต็ม)" />
+              {ConduitList({ kind: "imc", label: "ท่อ IMC (3m/ท่อน)", sizes: window.BOQ.IMC_SIZES, valKey: "length", unitText: "ม.", check: true,
+                hint: "ท่อเหล็ก IMC ยาว 3.0 ม./ท่อน — กรอกความยาวรวมของแต่ละขนาด" })}
+              {ConduitList({ kind: "upvc", label: "ท่อ uPVC", sizes: window.BOQ.UPVC_SIZES, valKey: "length", unitText: "ม.", check: true,
+                hint: "ท่อขาว uPVC ยาว 2.9 ม./ท่อน — ขนาดที่เรียกเป็นขนาดนอก ระบบหักผนังท่อให้แล้วตอนตรวจ % เติมเต็ม" })}
+              {ConduitList({ kind: "pullbox", label: "PULL BOX", sizes: window.BOQ.PULLBOX_SIZES, valKey: "qty", unitText: "ชิ้น",
+                hint: "กล่องพักสาย — กรอกจำนวนใบ (ไม่มีสายวิ่งผ่านเป็นเส้นให้ตรวจ % เติมเต็ม)" })}
             </div>
             <div style={{ marginTop: 12, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
               * อุปกรณ์ IMC (แคล้มประกับ / บุชชิ่ง,ล็อกนัท / รางซี / คอนเนคเตอร์ / คุปปิ้ง) คำนวณอัตโนมัติจากความยาวท่อ + จำนวน PULL BOX
@@ -2155,10 +2163,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           <BoqSection title="รางไฟ (Wireway / Cable Tray)" icon="grid" {...secProps("tray")}
             right={trayLen > 0 ? <span style={{ fontSize: 12, fontWeight: 800, color: "var(--primary-dark)" }}>รวม {trayLen} ม.</span> : null}>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <TrayList kind="way" label="Wireway เหล็กมีฝา" sizes={window.BOQ.WAY_SIZES}
-                hint={"รางเหล็กพับมีฝาปิด ยาว " + window.BOQ.WAY_PIPE_LEN.toFixed(1) + " ม./ท่อน — กรอกความยาวรวมของแต่ละขนาด"} />
-              <TrayList kind="tray" label="Cable Tray บันได" sizes={window.BOQ.TRAY_SIZES}
-                hint={"รางบันได ยาว " + window.BOQ.TRAY_PIPE_LEN.toFixed(1) + " ม./ท่อน — ใช้เดินสายจำนวนมากระยะไกล"} />
+              {TrayList({ kind: "way", label: "Wireway เหล็กมีฝา", sizes: window.BOQ.WAY_SIZES,
+                hint: "รางเหล็กพับมีฝาปิด ยาว " + window.BOQ.WAY_PIPE_LEN.toFixed(1) + " ม./ท่อน — กรอกความยาวรวมของแต่ละขนาด" })}
+              {TrayList({ kind: "tray", label: "Cable Tray บันได", sizes: window.BOQ.TRAY_SIZES,
+                hint: "รางบันได ยาว " + window.BOQ.TRAY_PIPE_LEN.toFixed(1) + " ม./ท่อน — ใช้เดินสายจำนวนมากระยะไกล" })}
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "160px 1fr", gap: 12, alignItems: "center" }}>
                 <Field label="% เผื่อ อุปกรณ์ประกอบ">
                   <input type="number" style={numStyle} value={tw.spare} onChange={(e) => setTrayVal("spare", e.target.value)} />
@@ -2187,7 +2195,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
           {/* ── หมวดของงานโครงการ: ตู้ไฟ / ระบบสูบน้ำ / ถัง / ท่อ / อุปกรณ์มอนิเตอร์ ── */}
           {!isHome && (
-          <BoqSection title="ตู้ไฟ · ระบบน้ำ · ท่อ · อุปกรณ์มอนิเตอร์" icon="box" {...secProps("project")}
+          <BoqSection title="ตู้ไฟ · ระบบน้ำ · ท่อ" icon="box" {...secProps("project")}
             right={kitTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>{kitTotal} รายการ</span> : null}>
             <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 14 }}>
               ของที่มีเฉพาะงานโครงการ — กรอกจำนวนเฉพาะที่งานนี้มี ที่เหลือปล่อยว่าง · ราคาดึงจากคลังเหมือนวัสดุอื่น
@@ -2201,16 +2209,40 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   <div key={k.key}>
                     <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: k.hint ? 3 : 7 }}>{k.th}</div>
                     {k.hint && <div style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 7 }}>{k.hint}</div>}
-                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(3, minmax(0,1fr))", gap: 9 }}>
-                      {k.items.map((it) => (
+                    {(() => {
+                      // ช่องกรอกจำนวน 1 ช่อง — ใช้ทั้งแบบเรียงเป็นตาราง และแบบอยู่ในตู้
+                      const numBox = (it) => (
                         <label key={it.key} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                           <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>{it.name} <span style={{ color: "var(--border-strong)" }}>({it.unit})</span></span>
                           <input type="number" min={0} placeholder="0" value={st[it.key] != null ? st[it.key] : ""}
                             onChange={(e) => setKit(k.key, it.key, e.target.value === "" ? "" : Math.max(0, +e.target.value || 0))}
                             style={Object.assign({}, numStyle, { width: "100%", height: 34, fontSize: 12.5, padding: "6px 9px" })} />
                         </label>
-                      ))}
-                    </div>
+                      );
+                      /* หมวดที่แยกเป็นตู้ — แต่ละตู้เป็นกล่องของตัวเอง จำนวนตู้อยู่บนสุด
+                         อุปกรณ์ที่อยู่ในตู้นั้นเรียงต่อลงมา จะได้เห็นชัดว่าของชิ้นไหนอยู่ตู้ไหน */
+                      if (k.boards) return (
+                        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0,1fr))", gap: 9, alignItems: "start" }}>
+                          {k.boards.map((bd) => (
+                            <div key={bd.key} style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 10, background: "var(--surface2)",
+                              display: "flex", flexDirection: "column", gap: 9 }}>
+                              {numBox({ key: bd.key, name: bd.name, unit: bd.unit })}
+                              {(bd.items || []).length > 0 && (
+                                <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 8, borderTop: "1px dashed var(--border-strong)" }}>
+                                  <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>อุปกรณ์ในตู้นี้</span>
+                                  {bd.items.map((it) => numBox(it))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                      return (
+                        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(3, minmax(0,1fr))", gap: 9 }}>
+                          {k.items.map((it) => numBox(it))}
+                        </div>
+                      );
+                    })()}
                     {/* อุปกรณ์ประกอบ — ของจุกจิกของหมวดนี้ที่แล้วแต่หน้างาน พิมพ์เพิ่มเอง */}
                     <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
                       {extra.map((x, i) => (
@@ -2244,9 +2276,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               ค่าขนของขึ้นไซต์และค่าอยู่หน้างาน — กรอกเฉพาะที่งานนี้มีจริง บรรทัดที่ไม่ใช้ลบทิ้งได้
             </div>
             <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8 }}>ขนส่ง & เครื่องจักร</div>
-            <SvcTable sKey="transport" preset={window.BOQ.TRANSPORT_PRESET} qtyLabel="จำนวน" />
+            {SvcTable({ sKey: "transport", preset: window.BOQ.TRANSPORT_PRESET, qtyLabel: "จำนวน" })}
             <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", margin: "18px 0 8px" }}>บริหารจัดการ</div>
-            <SvcTable sKey="manage" preset={window.BOQ.MANAGE_PRESET} qtyLabel="จำนวน" />
+            {SvcTable({ sKey: "manage", preset: window.BOQ.MANAGE_PRESET, qtyLabel: "จำนวน" })}
           </BoqSection>
           )}
 
@@ -2324,7 +2356,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
                   ปริมาณของบรรทัดที่ขึ้นเลขสีเขียวดึงจากผลถอดวัสดุให้เอง (แผง/ตัว/เมตร) — กรอกแค่ "ราคาต่อหน่วย" · บรรทัดที่ราคา 0 จะไม่ถูกบวกเข้ายอด
                 </div>
-                <SvcTable sKey="labor" preset={window.BOQ.LABOR_PRESET} qtyLabel="ปริมาณ" total={priced.laborTotal} perW={priced.laborPerW} />
+                {SvcTable({ sKey: "labor", preset: window.BOQ.LABOR_PRESET, qtyLabel: "ปริมาณ", total: priced.laborTotal, perW: priced.laborPerW })}
               </div>
             )}
           </BoqSection>
@@ -2335,44 +2367,47 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
               ค่าธรรมเนียมจริงเปลี่ยนตามพื้นที่และขนาดระบบ ระบบจึงไม่เดาให้ — กรอกตามใบเสร็จ/ประกาศล่าสุด · ลบบรรทัดที่งานนี้ไม่ต้องขอได้เลย
             </div>
-            <SvcTable sKey="permit" preset={window.BOQ.PERMIT_PRESET} qtyLabel="จำนวน" total={priced.permitTotal} perW={priced.permitPerW} />
+            {SvcTable({ sKey: "permit", preset: window.BOQ.PERMIT_PRESET, qtyLabel: "จำนวน", total: priced.permitTotal, perW: priced.permitPerW })}
           </BoqSection>
 
 
           {/* ── งานเพิ่มเติม (Input): โครงสร้างบนหลังคา — เฉพาะงานโครงการ ไม่แสดงงานบ้าน ── */}
           {!isHome && (
           <BoqSection title="งานเพิ่มเติม (Input) — โครงสร้าง" icon="box" {...secProps("struct")}
-            right={<button onClick={() => setAdvS((v) => !v)} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 8, padding: "6px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name={advS ? "chevronDown" : "plus"} size={13} color="var(--text-2)" style={{ transform: advS ? "rotate(180deg)" : "none" }} /> {advS ? "ซ่อน" : "กรอกข้อมูล"}</button>}>
+            right={<span style={{ display: "inline-flex", alignItems: "center", gap: 9 }}>
+              {structRows > 0 && <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>กรอกแล้ว {structRows} รายการ</span>}
+              <button onClick={() => setAdvS((v) => !v)} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 8, padding: "6px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name={advS ? "chevronDown" : "plus"} size={13} color="var(--text-2)" style={{ transform: advS ? "rotate(180deg)" : "none" }} /> {advS ? "ซ่อน" : "กรอกข้อมูล"}</button>
+            </span>}>
             <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>
               เลือกกรอกเฉพาะงานที่มีในโครงการ — ระบบจะถอดวัสดุเพิ่มลงรายการ BOQ ให้อัตโนมัติ (งานที่ไม่กรอก จะไม่ถูกถอด)
             </div>
             {advS && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 14 }}>
-                <StructBlock kind="ladder" label="LADDER (บันไดลิง)" color="#0D9488" addLabel="เพิ่มจุด"
-                  cols={[{ k: "h", ph: "ความสูง (m)" }]} blank={{ h: "" }}
-                  spare={st.ladderSpare != null ? st.ladderSpare : 5} onSpare={(v) => setStructVal("ladderSpare", +v)}
-                  extraItems={st.ladderExtra || []}
-                  onExtraAdd={() => addStructExtra("ladder")}
-                  onExtraChange={(i, k, v) => setStructExtra("ladder", i, k, v)}
-                  onExtraDel={(i) => delStructExtra("ladder", i)} />
-                <StructBlock kind="walkway" label="WALKWAY" color="#D97706" addLabel="เพิ่มแนว"
-                  cols={[{ k: "len", ph: "ความยาวแนว (m)" }]} blank={{ len: "" }}
-                  extra={<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                {StructBlock({ kind: "ladder", label: "LADDER (บันไดลิง)", color: "#0D9488", addLabel: "เพิ่มจุด",
+                  cols: [{ k: "h", ph: "ความสูง (m)" }], blank: { h: "" },
+                  spare: st.ladderSpare != null ? st.ladderSpare : 5, onSpare: (v) => setStructVal("ladderSpare", +v),
+                  extraItems: st.ladderExtra || [],
+                  onExtraAdd: () => addStructExtra("ladder"),
+                  onExtraChange: (i, k, v) => setStructExtra("ladder", i, k, v),
+                  onExtraDel: (i) => delStructExtra("ladder", i) })}
+                {StructBlock({ kind: "walkway", label: "WALKWAY", color: "#D97706", addLabel: "เพิ่มแนว",
+                  cols: [{ k: "len", ph: "ความยาวแนว (m)" }], blank: { len: "" },
+                  extra: <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                     <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>END CLAMP</span>
                     <span style={{ width: 96 }}><Dropdown value={st.walkwayThk || 35} onChange={(v) => setStructVal("walkwayThk", +v)} options={[{ value: 30, label: "30mm." }, { value: 35, label: "35mm." }]} /></span>
-                  </span>}
-                  spare={st.walkwaySpare != null ? st.walkwaySpare : 10} onSpare={(v) => setStructVal("walkwaySpare", +v)}
-                  extraItems={st.walkwayExtra || []}
-                  onExtraAdd={() => addStructExtra("walkway")}
-                  onExtraChange={(i, k, v) => setStructExtra("walkway", i, k, v)}
-                  onExtraDel={(i) => delStructExtra("walkway", i)} />
-                <StructBlock kind="guardrail" label="GUARD RAIL" color="#DB2777" addLabel="เพิ่มจุด"
-                  cols={[{ k: "len", ph: "ความยาว layout (m)" }, { k: "corners", ph: "จำนวนมุม" }]} blank={{ len: "", corners: "" }}
-                  spare={st.guardrailSpare != null ? st.guardrailSpare : 5} onSpare={(v) => setStructVal("guardrailSpare", +v)}
-                  extraItems={st.guardrailExtra || []}
-                  onExtraAdd={() => addStructExtra("guardrail")}
-                  onExtraChange={(i, k, v) => setStructExtra("guardrail", i, k, v)}
-                  onExtraDel={(i) => delStructExtra("guardrail", i)} />
+                  </span>,
+                  spare: st.walkwaySpare != null ? st.walkwaySpare : 10, onSpare: (v) => setStructVal("walkwaySpare", +v),
+                  extraItems: st.walkwayExtra || [],
+                  onExtraAdd: () => addStructExtra("walkway"),
+                  onExtraChange: (i, k, v) => setStructExtra("walkway", i, k, v),
+                  onExtraDel: (i) => delStructExtra("walkway", i) })}
+                {StructBlock({ kind: "guardrail", label: "GUARD RAIL", color: "#DB2777", addLabel: "เพิ่มจุด",
+                  cols: [{ k: "len", ph: "ความยาว layout (m)" }, { k: "corners", ph: "จำนวนมุม" }], blank: { len: "", corners: "" },
+                  spare: st.guardrailSpare != null ? st.guardrailSpare : 5, onSpare: (v) => setStructVal("guardrailSpare", +v),
+                  extraItems: st.guardrailExtra || [],
+                  onExtraAdd: () => addStructExtra("guardrail"),
+                  onExtraChange: (i, k, v) => setStructExtra("guardrail", i, k, v),
+                  onExtraDel: (i) => delStructExtra("guardrail", i) })}
               </div>
             )}
           </BoqSection>
@@ -2642,7 +2677,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         )}
         <button className="bq-btn" style={{ marginRight: 8 }} onClick={onClose}>ปิด</button>
         <button className="bq-btn gh" style={{ marginRight: 8 }} onClick={() => guardRun(exportXlsx)}><Icon name="box" size={15} color="var(--tint-ok-tx)" /> Excel</button>
-        {onSave && <button className="bq-btn pri" onClick={() => guardRun(() => onSave(b))}><Icon name="check" size={15} color="#fff" /> บันทึก BOQ</button>}
+        {onSave && <button className="bq-btn pri" onClick={() => guardRun(() => onSave(Object.assign({}, b, { project: project })))}><Icon name="check" size={15} color="#fff" /> บันทึก BOQ</button>}
       </div>
     </div>
   );
