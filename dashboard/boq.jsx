@@ -524,7 +524,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const kitCount = (k) => {
     const st = kitOf(k.key);
     return k.items.reduce((s, it) => s + Math.max(0, +st[it.key] || 0), 0)
-      + (st.extra || []).filter((x) => (x.name || "").trim() && +x.qty > 0).length;
+      + window.BOQ.kitExtraKeys(k).reduce((s, ek) => s + (st[ek] || []).filter((x) => (x.name || "").trim() && +x.qty > 0).length, 0);
   };
   const kitTotal = KITS.reduce((s, k) => s + kitCount(k), 0);
 
@@ -2201,66 +2201,84 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               ของที่มีเฉพาะงานโครงการ — กรอกจำนวนเฉพาะที่งานนี้มี ที่เหลือปล่อยว่าง · ราคาดึงจากคลังเหมือนวัสดุอื่น
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {KITS.map((k) => {
+              {KITS.map((k, ki) => {
                 const st = kitOf(k.key);
-                const extra = st.extra || [];
-                const setExtra = (v) => setKit(k.key, "extra", v);
+                // ช่องกรอกจำนวน 1 ช่อง — ใช้ทั้งแบบเรียงเป็นตาราง และแบบอยู่ในตู้
+                const numBox = (it) => (
+                  <label key={it.key} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>{it.name} <span style={{ color: "var(--border-strong)" }}>({it.unit})</span></span>
+                    <input type="number" min={0} placeholder="0" value={st[it.key] != null ? st[it.key] : ""}
+                      onChange={(e) => setKit(k.key, it.key, e.target.value === "" ? "" : Math.max(0, +e.target.value || 0))}
+                      style={Object.assign({}, numStyle, { width: "100%", height: 34, fontSize: 12.5, padding: "6px 9px" })} />
+                  </label>
+                );
+                /* อุปกรณ์ประกอบ — ของจุกจิกที่แล้วแต่หน้างาน พิมพ์เพิ่มเอง
+                   หมวดที่แยกเป็นตู้ เก็บแยกคีย์ละตู้ ของในตู้ AC ก็อยู่แค่ตู้ AC ไม่ปนตู้อื่น */
+                const extraList = (stateKey, ofWhat, small) => {
+                  const extra = st[stateKey] || [];
+                  const setExtra = (v) => setKit(k.key, stateKey, v);
+                  const upd = (i, key) => (e) => setExtra(extra.map((y, j) => j === i ? Object.assign({}, y, { [key]: e.target.value }) : y));
+                  return (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+                      {extra.map((x, i) => (
+                        /* กล่องตู้แคบกว่า จึงขึ้นบรรทัดชื่อก่อน แล้วค่อย จำนวน/หน่วย/ลบ ต่อบรรทัดล่าง */
+                        small ? (
+                          <div key={i} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                            <input value={x.name || ""} placeholder={"อุปกรณ์ประกอบ " + ofWhat} style={Object.assign({}, inputStyle, cabSelStyle)} onChange={upd(i, "name")} />
+                            <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr) 30px", gap: 5, alignItems: "center" }}>
+                              <input type="number" min={0} value={x.qty != null ? x.qty : ""} placeholder="จำนวน" style={Object.assign({}, numStyle, cabSelStyle)} onChange={upd(i, "qty")} />
+                              <input value={x.unit || ""} placeholder="หน่วย" style={Object.assign({}, inputStyle, cabSelStyle)} onChange={upd(i, "unit")} />
+                              <button className="bq-x" onClick={() => setExtra(extra.filter((_, j) => j !== i))} title="ลบ"><Icon name="x" size={13} /></button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 72px 62px 34px", gap: 7, alignItems: "center" }}>
+                            <input value={x.name || ""} placeholder={"อุปกรณ์ประกอบ " + ofWhat} style={Object.assign({}, inputStyle, cabSelStyle)} onChange={upd(i, "name")} />
+                            <input type="number" min={0} value={x.qty != null ? x.qty : ""} placeholder="จำนวน" style={Object.assign({}, numStyle, cabSelStyle)} onChange={upd(i, "qty")} />
+                            <input value={x.unit || ""} placeholder="หน่วย" style={Object.assign({}, inputStyle, cabSelStyle)} onChange={upd(i, "unit")} />
+                            <button className="bq-x" onClick={() => setExtra(extra.filter((_, j) => j !== i))} title="ลบ"><Icon name="x" size={13} /></button>
+                          </div>
+                        )
+                      ))}
+                      <button onClick={() => setExtra(extra.concat([{ name: "", qty: "", unit: "ชิ้น" }]))}
+                        style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "none", color: "var(--text-2)", border: "1px dashed var(--border-strong)", borderRadius: 9, padding: "5px 10px", fontWeight: 700, fontSize: small ? 10.5 : 11, cursor: "pointer", fontFamily: "inherit" }}>
+                        <Icon name="plus" size={12} color="var(--text-2)" /> อุปกรณ์ประกอบ {ofWhat}
+                      </button>
+                    </div>
+                  );
+                };
                 return (
-                  <div key={k.key}>
+                  /* แต่ละหมวดเป็นบล็อกของตัวเอง คั่นเส้นให้ชัด — ระบบน้ำ/ถัง/ท่อ เป็นคนละเรื่องกับตู้ไฟ */
+                  <div key={k.key} style={ki === 0 ? null : { paddingTop: 16, borderTop: "1px solid var(--border)" }}>
                     <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: k.hint ? 3 : 7 }}>{k.th}</div>
                     {k.hint && <div style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 7 }}>{k.hint}</div>}
-                    {(() => {
-                      // ช่องกรอกจำนวน 1 ช่อง — ใช้ทั้งแบบเรียงเป็นตาราง และแบบอยู่ในตู้
-                      const numBox = (it) => (
-                        <label key={it.key} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>{it.name} <span style={{ color: "var(--border-strong)" }}>({it.unit})</span></span>
-                          <input type="number" min={0} placeholder="0" value={st[it.key] != null ? st[it.key] : ""}
-                            onChange={(e) => setKit(k.key, it.key, e.target.value === "" ? "" : Math.max(0, +e.target.value || 0))}
-                            style={Object.assign({}, numStyle, { width: "100%", height: 34, fontSize: 12.5, padding: "6px 9px" })} />
-                        </label>
-                      );
-                      /* หมวดที่แยกเป็นตู้ — แต่ละตู้เป็นกล่องของตัวเอง จำนวนตู้อยู่บนสุด
-                         อุปกรณ์ที่อยู่ในตู้นั้นเรียงต่อลงมา จะได้เห็นชัดว่าของชิ้นไหนอยู่ตู้ไหน */
-                      if (k.boards) return (
-                        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0,1fr))", gap: 9, alignItems: "start" }}>
-                          {k.boards.map((bd) => (
-                            <div key={bd.key} style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 10, background: "var(--surface2)",
-                              display: "flex", flexDirection: "column", gap: 9 }}>
-                              {numBox({ key: bd.key, name: bd.name, unit: bd.unit })}
-                              {(bd.items || []).length > 0 && (
-                                <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 8, borderTop: "1px dashed var(--border-strong)" }}>
-                                  <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>อุปกรณ์ในตู้นี้</span>
-                                  {bd.items.map((it) => numBox(it))}
-                                </div>
-                              )}
+                    {/* หมวดที่แยกเป็นตู้ — แต่ละตู้เป็นกล่องของตัวเอง: จำนวนตู้ · อุปกรณ์ในตู้ · อุปกรณ์ประกอบของตู้นั้น */}
+                    {k.boards ? (
+                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0,1fr))", gap: 9, alignItems: "start" }}>
+                        {k.boards.map((bd) => (
+                          <div key={bd.key} style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 10, background: "var(--surface2)",
+                            display: "flex", flexDirection: "column", gap: 9 }}>
+                            {numBox({ key: bd.key, name: bd.name, unit: bd.unit })}
+                            {(bd.items || []).length > 0 && (
+                              <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 8, borderTop: "1px dashed var(--border-strong)" }}>
+                                <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>อุปกรณ์ในตู้นี้</span>
+                                {bd.items.map((it) => numBox(it))}
+                              </div>
+                            )}
+                            <div style={{ paddingTop: 8, borderTop: "1px dashed var(--border-strong)" }}>
+                              {extraList(bd.extraKey, bd.name, true)}
                             </div>
-                          ))}
-                        </div>
-                      );
-                      return (
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <React.Fragment>
                         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(3, minmax(0,1fr))", gap: 9 }}>
                           {k.items.map((it) => numBox(it))}
                         </div>
-                      );
-                    })()}
-                    {/* อุปกรณ์ประกอบ — ของจุกจิกของหมวดนี้ที่แล้วแต่หน้างาน พิมพ์เพิ่มเอง */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
-                      {extra.map((x, i) => (
-                        <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 72px 62px 34px", gap: 7, alignItems: "center" }}>
-                          <input value={x.name || ""} placeholder={"อุปกรณ์ประกอบ " + k.th} style={Object.assign({}, inputStyle, cabSelStyle)}
-                            onChange={(e) => setExtra(extra.map((y, j) => j === i ? Object.assign({}, y, { name: e.target.value }) : y))} />
-                          <input type="number" min={0} value={x.qty != null ? x.qty : ""} placeholder="จำนวน" style={Object.assign({}, numStyle, cabSelStyle)}
-                            onChange={(e) => setExtra(extra.map((y, j) => j === i ? Object.assign({}, y, { qty: e.target.value }) : y))} />
-                          <input value={x.unit || ""} placeholder="หน่วย" style={Object.assign({}, inputStyle, cabSelStyle)}
-                            onChange={(e) => setExtra(extra.map((y, j) => j === i ? Object.assign({}, y, { unit: e.target.value }) : y))} />
-                          <button className="bq-x" onClick={() => setExtra(extra.filter((_, j) => j !== i))} title="ลบ"><Icon name="x" size={13} /></button>
-                        </div>
-                      ))}
-                      <button onClick={() => setExtra(extra.concat([{ name: "", qty: "", unit: "ชิ้น" }]))}
-                        style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "none", color: "var(--text-2)", border: "1px dashed var(--border-strong)", borderRadius: 9, padding: "5px 10px", fontWeight: 700, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>
-                        <Icon name="plus" size={12} color="var(--text-2)" /> อุปกรณ์ประกอบ {k.th}
-                      </button>
-                    </div>
+                        {extraList("extra", k.th)}
+                      </React.Fragment>
+                    )}
                   </div>
                 );
               })}

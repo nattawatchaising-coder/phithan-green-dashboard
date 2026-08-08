@@ -817,22 +817,35 @@
      ตัวตู้เองก็เป็นรายการหนึ่ง (key เดียวกับตู้) แล้วตามด้วยอุปกรณ์ในตู้นั้น */
   PROJECT_KITS.forEach((k) => {
     if (!k.boards) return;
+    // อุปกรณ์ประกอบแยกของใครของมัน ตู้ AC ก็ของในตู้ AC ไม่ปนกับตู้อื่น
+    k.boards.forEach((bd) => { bd.extraKey = "extra_" + bd.key; });
     k.items = k.boards.reduce((a, bd) => a
       .concat([{ key: bd.key, name: bd.name, unit: bd.unit, board: bd.key }])
       .concat((bd.items || []).map((it) => Object.assign({ board: bd.key }, it))), []);
   });
+  // คีย์ที่เก็บ "อุปกรณ์ประกอบ" ของหมวดนั้น — หมวดที่แยกเป็นตู้จะมีคีย์ละตู้
+  function kitExtraKeys(k) { return k.boards ? k.boards.map((bd) => bd.extraKey) : ["extra"]; }
 
-  /* งานเก่ากรอก Janitza/CT ไว้ในหมวด "อุปกรณ์มอนิเตอร์" (project.monitor)
-     ตอนนี้ย้ายไปอยู่ในตู้ DATA LOGGER แล้ว — ย้ายค่าที่กรอกไว้ให้เอง ไม่ต้องกรอกใหม่ */
+  /* ย้ายข้อมูลของงานเก่ามาโครงสร้างใหม่ให้เอง ไม่ต้องกรอกซ้ำ
+     · Janitza/CT เคยอยู่หมวด "อุปกรณ์มอนิเตอร์" (project.monitor) → เข้าตู้ DATA LOGGER
+     · อุปกรณ์ประกอบเคยเป็นกองเดียวของทั้งหมวดตู้ไฟ (board.extra) → เข้าตู้แรก (ตู้ AC)
+       ยอดในใบถอดของเท่าเดิม เพราะทุกตู้อยู่หมวด "ตู้ไฟ" เหมือนกัน ต่างแค่อยู่ใต้ตู้ไหน */
   function normProject(project) {
     const p = Object.assign({}, project || {});
+    const board = PROJECT_KITS.find((k) => k.key === "board");
+    const first = board.boards[0].extraKey;
+    const loggerKey = (board.boards.find((x) => x.key === "logger") || board.boards[0]).extraKey;
     const m = p.monitor;
-    if (!m) return p;
+    if (!m && !(p.board && p.board.extra)) return p;
     const bd = Object.assign({}, p.board);
-    ["janitza", "ct"].forEach((key) => { if (bd[key] == null && m[key] != null) bd[key] = m[key]; });
-    if ((m.extra || []).length) bd.extra = (bd.extra || []).concat(m.extra);
+    if (m) {
+      ["janitza", "ct"].forEach((key) => { if (bd[key] == null && m[key] != null) bd[key] = m[key]; });
+      if ((m.extra || []).length) bd[loggerKey] = (bd[loggerKey] || []).concat(m.extra);
+      delete p.monitor;
+    }
+    if ((bd.extra || []).length) bd[first] = (bd[first] || []).concat(bd.extra);
+    delete bd.extra;
     p.board = bd;
-    delete p.monitor;
     return p;
   }
 
@@ -1380,17 +1393,18 @@
       groups.push({ group: "GROUNDING", items: gnd });
     }
 
-    /* หมวดของงานโครงการ (ตู้ไฟ / ปั๊ม / ถัง / ท่อ / อุปกรณ์มอนิเตอร์)
-       กรอกจำนวนเท่าไรก็ออกเท่านั้น ไม่กรอก = ไม่มีหมวดนี้ในใบถอดของ */
+    /* หมวดของงานโครงการ (ตู้ไฟ / ปั๊ม / ถัง / ท่อ)
+       กรอกจำนวนเท่าไรก็ออกเท่านั้น ไม่กรอก = ไม่มีหมวดนี้ในใบถอดของ
+       อุปกรณ์ประกอบของหมวดที่แยกเป็นตู้ อยู่แยกคีย์ละตู้ แต่รวมลงหมวดเดียวกันในใบถอดของ */
     const proj = normProject(b.project);
     PROJECT_KITS.forEach((k) => {
       const st = proj[k.key] || {};
       const rows = [];
       k.items.forEach((it) => { const q = Math.max(0, +st[it.key] || 0); if (q > 0) rows.push({ name: it.name, qty: q, unit: it.unit }); });
-      (st.extra || []).forEach((x) => {
+      kitExtraKeys(k).forEach((ek) => (st[ek] || []).forEach((x) => {
         const nm = String(x.name || "").trim(), q = Math.max(0, +x.qty || 0);
         if (nm && q > 0) rows.push({ name: nm, qty: q, unit: x.unit || "ชิ้น" });
-      });
+      }));
       if (rows.length) groups.push({ group: k.group, items: mergeItems(rows) });
     });
 
@@ -1707,7 +1721,7 @@
 
   window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, WAY_PIPE_LEN, TRAY_PIPE_LEN, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
-    TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, VAT_RATE, priceBreakdown,
+    TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, VAT_RATE, priceBreakdown,
     TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,
     UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,
     AMP_CORE_LABEL, ampGroupMeta, ampCoresFor, ampCoreKey, WIRE_METHOD_LEGACY, normWireMethod,
