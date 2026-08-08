@@ -544,7 +544,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const setPricing = (k, v) => setB((p) => Object.assign({}, p, { pricing: Object.assign({}, PRICE_DEF, p.pricing || {}, { [k]: v === "" ? "" : +v || 0 }) }));
 
   const result = window.BOQ.calcBOQ(b);
-  const priced = window.BOQ.applyPrices(result, priceMap || {});
+  const priced = window.BOQ.applyPrices(result, priceMap || {}, b.pick || {});
   // แบ่งราคา: ต้นทุนมาจากใบถอดของ · ผู้รับเหมา/ราคาขาย/ส่วนลด กรอกเอง
   const pb = window.BOQ.priceBreakdown(priced.grandTotal, pricing, (result.meta.kw || 0) * 1000);
   // ยอดรวมของหมวดขนส่ง + บริหารจัดการ (ราคาอยู่ในบรรทัดเอง จึงบวกจากผลถอดของโดยตรง)
@@ -723,6 +723,16 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       return null;
     });
   };
+  /* ── เลือก/แก้ ยี่ห้อ-รุ่น ของวัสดุจากในใบถอดของ ──
+     ของชิ้นเดียวกันมีได้หลายยี่ห้อ/รุ่น ราคาไม่เท่ากัน · เลือกไว้ที่ b.pick (ชื่อวัสดุ → รหัสวัสดุ)
+     แก้/เพิ่มยี่ห้อรุ่น เขียนลงคลังสินค้าโดยตรง เหมือนแก้ในหน้าคลัง */
+  const [editVar, setEditVar] = React.useState(null);   // { name, group, unit }
+  const setPick = (key, sku) => setB((p) => {
+    const pk = Object.assign({}, p.pick);
+    if (!sku) delete pk[key]; else pk[key] = sku;
+    return Object.assign({}, p, { pick: pk });
+  });
+
   /* ── แก้จำนวนได้จากในใบถอดของ ──
      เก็บเป็น qtyAdj (หมวด|ชื่อ → จำนวน) ทับค่าที่ระบบถอดให้ ไม่ไปยุ่งกับสูตร
      ลบค่าออก = กลับไปใช้จำนวนอัตโนมัติ */
@@ -796,6 +806,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     .map((n) => ({ value: n, label: n, group: matSub(n, cat) }))
     // เรียงตามกลุ่มย่อย แล้วตามชื่อ (ให้รายการกลุ่มเดียวกันอยู่ติดกัน)
     .sort((a, z) => (MAT_SUB_ORDER.indexOf(a.group) - MAT_SUB_ORDER.indexOf(z.group)) || String(a.value).localeCompare(String(z.value), "th", { numeric: true }));
+
+  /* วัสดุทั้งหมดที่เลือกได้ (คลังสินค้า + ราคาวัสดุ + แคตตาล็อกระบบ) รวมเป็นลิสต์เดียว
+     ใช้ในช่อง "อุปกรณ์ประกอบ" ของหมวดงานโครงการ — จะได้ไม่ต้องพิมพ์ชื่อเองให้สะกดเพี้ยน */
+  const allMatOptions = React.useMemo(() => {
+    const out = [];
+    accCat.cats.forEach((c) => (accCat.map[c] || []).forEach((n) => out.push({ value: n, label: n, group: c })));
+    return out;
+  }, [accCat]);
 
   const accList = b.accessories || [];
   const setAcc = (i, k, v) => setB((p) => { const a = (p.accessories || []).slice(); a[i] = Object.assign({}, a[i], { [k]: v }); if (k === "name" && matInfo[v]) a[i].unit = matInfo[v].unit || a[i].unit; return Object.assign({}, p, { accessories: a }); });
@@ -2230,28 +2248,49 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       style={Object.assign({}, numStyle, { width: "100%", height: 34, fontSize: 12.5, padding: "6px 9px" })} />
                   </label>
                 );
-                /* อุปกรณ์ประกอบ — ของจุกจิกที่แล้วแต่หน้างาน พิมพ์เพิ่มเอง
+                /* อุปกรณ์ประกอบ — ของจุกจิกที่แล้วแต่หน้างาน
+                   เลือกจากคลังสินค้าได้เลย (ราคาจะดึงมาให้เอง) หรือกด "พิมพ์เอง" ถ้ายังไม่มีในคลัง
                    หมวดที่แยกเป็นตู้ เก็บแยกคีย์ละตู้ ของในตู้ AC ก็อยู่แค่ตู้ AC ไม่ปนตู้อื่น */
                 const extraList = (stateKey, ofWhat, small) => {
                   const extra = st[stateKey] || [];
                   const setExtra = (v) => setKit(k.key, stateKey, v);
-                  const upd = (i, key) => (e) => setExtra(extra.map((y, j) => j === i ? Object.assign({}, y, { [key]: e.target.value }) : y));
+                  const patch = (i, o) => setExtra(extra.map((y, j) => j === i ? Object.assign({}, y, o) : y));
+                  const upd = (i, key) => (e) => patch(i, { [key]: e.target.value });
+                  // เลือกจากคลัง → เติมหน่วยให้ตามที่คลังตั้งไว้
+                  const pickName = (i, v) => patch(i, Object.assign({ name: v }, matInfo[v] && matInfo[v].unit ? { unit: matInfo[v].unit } : {}));
+                  const nameCell = (x, i) => (x.custom
+                    ? <input autoFocus value={x.name || ""} placeholder={"พิมพ์ชื่อ อุปกรณ์ประกอบ " + ofWhat} style={Object.assign({}, inputStyle, cabSelStyle)} onChange={upd(i, "name")} />
+                    : <Dropdown value={x.name || ""} onChange={(v) => pickName(i, v)} style={cabSelStyle}
+                        placeholder={"เลือกจากคลัง — " + ofWhat} options={allMatOptions}
+                        addable onAdd={(v) => patch(i, { name: v, custom: true })} />);
+                  const customToggle = (x, i) => (
+                    <button type="button" onClick={() => patch(i, { custom: !x.custom })}
+                      title={x.custom ? "กลับไปเลือกจากคลังสินค้า" : "พิมพ์ชื่อเอง (ของที่ยังไม่มีในคลัง)"}
+                      style={{ border: 0, background: "none", padding: 0, cursor: "pointer", fontFamily: "inherit",
+                        fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", textDecoration: "underline", textUnderlineOffset: 3, alignSelf: "flex-start" }}>
+                      {x.custom ? "เลือกจากคลังแทน" : "พิมพ์เอง"}
+                    </button>
+                  );
                   return (
                     <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
                       {extra.map((x, i) => (
                         /* กล่องตู้แคบกว่า จึงขึ้นบรรทัดชื่อก่อน แล้วค่อย จำนวน/หน่วย/ลบ ต่อบรรทัดล่าง */
                         small ? (
                           <div key={i} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                            <input value={x.name || ""} placeholder={"อุปกรณ์ประกอบ " + ofWhat} style={Object.assign({}, inputStyle, cabSelStyle)} onChange={upd(i, "name")} />
+                            {nameCell(x, i)}
                             <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr) 30px", gap: 5, alignItems: "center" }}>
                               <input type="number" min={0} value={x.qty != null ? x.qty : ""} placeholder="จำนวน" style={Object.assign({}, numStyle, cabSelStyle)} onChange={upd(i, "qty")} />
                               <input value={x.unit || ""} placeholder="หน่วย" style={Object.assign({}, inputStyle, cabSelStyle)} onChange={upd(i, "unit")} />
                               <button className="bq-x" onClick={() => setExtra(extra.filter((_, j) => j !== i))} title="ลบ"><Icon name="x" size={13} /></button>
                             </div>
+                            {customToggle(x, i)}
                           </div>
                         ) : (
                           <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 72px 62px 34px", gap: 7, alignItems: "center" }}>
-                            <input value={x.name || ""} placeholder={"อุปกรณ์ประกอบ " + ofWhat} style={Object.assign({}, inputStyle, cabSelStyle)} onChange={upd(i, "name")} />
+                            <span style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}>
+                              {nameCell(x, i)}
+                              {customToggle(x, i)}
+                            </span>
                             <input type="number" min={0} value={x.qty != null ? x.qty : ""} placeholder="จำนวน" style={Object.assign({}, numStyle, cabSelStyle)} onChange={upd(i, "qty")} />
                             <input value={x.unit || ""} placeholder="หน่วย" style={Object.assign({}, inputStyle, cabSelStyle)} onChange={upd(i, "unit")} />
                             <button className="bq-x" onClick={() => setExtra(extra.filter((_, j) => j !== i))} title="ลบ"><Icon name="x" size={13} /></button>
@@ -2553,7 +2592,29 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     <div key={ii} style={{ display: "grid", gridTemplateColumns: isMobile ? (priced.grandTotal > 0 ? "minmax(0,1fr) 56px 64px" : "minmax(0,1fr) 56px") : "1fr 68px 84px", gap: 8, padding: "9px 14px", borderTop: "1px solid var(--border)", alignItems: "center" }}>
                       <span style={{ minWidth: 0 }}>
                         <span style={{ display: "block", fontSize: 12.5, color: "var(--text-1)", lineHeight: 1.35 }}>{(it.name || "").trim()}</span>
-                        {it.code ? <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--text-3)" }}>{it.code}</span> : null}
+                        {/* ยี่ห้อ/รุ่น — ของชิ้นเดียวกันมีหลายตัว ราคาไม่เท่ากัน กดเพื่อเลือก/แก้ได้เหมือนแก้ในคลัง */}
+                        <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 1 }}>
+                          {(() => {
+                            const vEditable = canEditPrice && !isService(g.group) && !it.allowancePct && (it.name || "").trim();
+                            const n = (it.variants || []).length;
+                            if (!vEditable && !it.variantLabel) return null;
+                            if (!vEditable) return <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-2)" }}>{it.variantLabel}</span>;
+                            return (
+                              <button type="button" onClick={() => setEditVar({ name: it.name, group: g.group, unit: it.unit })}
+                                title={n > 1 ? n + " ยี่ห้อ/รุ่นในคลัง — กดเพื่อเลือกหรือแก้" : "กดเพื่อระบุยี่ห้อ/รุ่น และแก้ราคา (บันทึกลงคลังสินค้า)"}
+                                style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "1px 7px", borderRadius: 99,
+                                  border: "1px solid " + (it.variantLabel ? "var(--border-strong)" : "transparent"),
+                                  background: it.variantLabel ? "var(--surface2)" : "transparent",
+                                  color: it.variantLabel ? "var(--text-2)" : "var(--text-3)",
+                                  fontFamily: "inherit", fontSize: 10.5, fontWeight: 700, cursor: "pointer" }}>
+                                {it.variantLabel || "+ ระบุยี่ห้อ/รุ่น"}
+                                {n > 1 && <span style={{ color: "var(--primary-dark)" }}>{n} ตัวเลือก</span>}
+                                {n > 1 && <Icon name="chevronDown" size={11} color="var(--text-3)" />}
+                              </button>
+                            );
+                          })()}
+                          {it.code ? <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--text-3)" }}>{it.code}</span> : null}
+                        </span>
                       </span>
                       {(() => {
                         const qEditable = !isService(g.group) && !it.allowancePct && (it.name || "").trim();
@@ -2735,6 +2796,117 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         <button className="bq-btn" style={{ marginRight: 8 }} onClick={onClose}>ปิด</button>
         <button className="bq-btn gh" style={{ marginRight: 8 }} onClick={() => guardRun(exportXlsx)}><Icon name="box" size={15} color="var(--tint-ok-tx)" /> Excel</button>
         {onSave && <button className="bq-btn pri" onClick={() => guardRun(() => onSave(Object.assign({}, b, { project: project })))}><Icon name="check" size={15} color="#fff" /> บันทึก BOQ</button>}
+      </div>
+      {editVar && (
+        <MatVariantModal item={editVar} stock={stock} priceMap={priceMap || {}}
+          picked={(b.pick || {})[window.BOQ.matKey(editVar.name)] || ""}
+          onPick={(sku) => setPick(window.BOQ.matKey(editVar.name), sku)}
+          onClose={() => setEditVar(null)} />
+      )}
+    </div>
+  );
+}
+
+/* ── เลือก/แก้ ยี่ห้อ-รุ่น-ราคา ของวัสดุ 1 ชนิด ──
+   ของชิ้นเดียวกันมีได้หลายยี่ห้อ/หลายรุ่น ราคาไม่เท่ากัน — ที่นี่เลือกว่างานนี้ใช้ตัวไหน
+   และแก้ ยี่ห้อ/รุ่น/ราคา ได้เลย เขียนลงคลังสินค้าโดยตรง (ต้นทางเดียวกับหน้าคลัง) */
+function MatVariantModal({ item, stock, priceMap, picked, onPick, onClose }) {
+  const bdClose = window.useBackdropClose(onClose);
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const baht = (n) => (Math.round((+n || 0) * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const key = window.BOQ.matKey(item.name);
+  const rec = priceMap[key] || {};
+  const variants = rec.variants || [];
+  const cur = variants.find((v) => v.sku === picked) || variants[0] || null;
+  const [f, setF] = React.useState(() => ({ brand: (cur && cur.brand) || "", model: (cur && cur.model) || "",
+    price: cur && cur.price > 0 ? String(cur.price) : "", id: (cur && cur.id) || "", isNew: false }));
+  const set = (k, v) => setF((p) => Object.assign({}, p, { [k]: v }));
+  const loadVariant = (v) => setF({ brand: v.brand || "", model: v.model || "", price: v.price > 0 ? String(v.price) : "", id: v.id, isNew: false });
+  const startNew = () => setF({ brand: "", model: "", price: "", id: "", isNew: true });
+  const save = () => {
+    const id = window.saveMatPrice(stock, { name: item.name, group: item.group, unit: item.unit,
+      brand: f.brand, model: f.model, price: +f.price || 0, id: f.isNew ? "" : f.id, forceNew: f.isNew });
+    // ตัวที่เพิ่งเพิ่ม/แก้ ให้เป็นตัวที่งานนี้ใช้เลย
+    const saved = ((stock && stock.items) || []).find((s) => s.id === id);
+    if (f.isNew) onPick("");   // รหัสของตัวใหม่ยังไม่รู้จนกว่าคลังจะอัปเดต — ปล่อยเป็นตัวตั้งต้นไปก่อน
+    else if (saved && saved.sku) onPick(saved.sku);
+    onClose();
+  };
+  const inp = { background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-1)",
+    fontFamily: "inherit", fontSize: 13, padding: "8px 10px", borderRadius: 10, outline: "none", width: "100%" };
+  return (
+    <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 120,
+      display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18,
+        width: isMobile ? "100%" : "min(520px,100%)", maxHeight: isMobile ? "92dvh" : "88vh", display: "flex", flexDirection: "column",
+        overflow: "hidden", boxShadow: "0 30px 80px rgba(0,0,0,.45)" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", flexShrink: 0 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>ยี่ห้อ · รุ่น · ราคา</div>
+          <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text-1)", marginTop: 3 }}>{item.name}</div>
+        </div>
+        <div style={{ padding: 20, overflowY: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
+          {variants.length > 1 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>งานนี้ใช้ตัวไหน</span>
+              {variants.map((v) => {
+                const on = cur && v.sku === cur.sku;
+                return (
+                  <button key={v.id || v.sku} type="button" onClick={() => { onPick(v.sku); loadVariant(v); }}
+                    style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "left", cursor: "pointer", fontFamily: "inherit",
+                      padding: "9px 11px", borderRadius: 11, border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
+                      background: on ? "var(--primary-soft)" : "var(--surface)" }}>
+                    <span style={{ width: 8, height: 8, borderRadius: 99, flexShrink: 0, background: on ? "var(--primary)" : "var(--surface3)" }} />
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>{v.label || "(ยังไม่ระบุยี่ห้อ/รุ่น)"}</span>
+                      <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--text-3)" }}>{v.sku}</span>
+                    </span>
+                    <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 700, color: v.price > 0 ? "var(--text-1)" : "var(--text-3)", whiteSpace: "nowrap" }}>
+                      {v.price > 0 ? "฿" + baht(v.price) : "–"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 9, paddingTop: variants.length > 1 ? 12 : 0,
+            borderTop: variants.length > 1 ? "1px solid var(--border)" : "none" }}>
+            <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>
+              {f.isNew ? "เพิ่มยี่ห้อ/รุ่นใหม่ของของชิ้นนี้" : "แก้รายละเอียด (บันทึกลงคลังสินค้า)"}
+            </span>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 9 }}>
+              <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>ยี่ห้อ (Brand)</span>
+                <input autoFocus style={inp} value={f.brand} onChange={(e) => set("brand", e.target.value)} placeholder="THAI PP-R / SANWA" />
+              </label>
+              <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>รุ่น (Model)</span>
+                <input style={inp} value={f.model} onChange={(e) => set("model", e.target.value)} placeholder="D25 / CKT 20" />
+              </label>
+            </div>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>ราคา/หน่วย (บาท{item.unit ? " ต่อ " + item.unit : ""})</span>
+              <input type="number" min={0} step="any" style={Object.assign({}, inp, { textAlign: "right", fontFamily: "var(--mono)", fontWeight: 700 })}
+                value={f.price} onChange={(e) => set("price", e.target.value)} placeholder="0"
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); save(); } }} />
+            </label>
+            {!f.isNew && (
+              <button type="button" onClick={startNew}
+                style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "none",
+                  color: "var(--primary-dark)", border: "1px dashed var(--border-strong)", borderRadius: 9, padding: "6px 11px",
+                  fontWeight: 700, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit" }}>
+                <Icon name="plus" size={12} color="var(--primary-dark)" /> เพิ่มยี่ห้อ/รุ่นใหม่ของของชิ้นนี้
+              </button>
+            )}
+          </div>
+          <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
+            * แก้ที่นี่ = แก้ในคลังสินค้าเลย เห็นตรงกันทั้งหน้าคลัง หน้าราคา BOQ และทุกงานที่ใช้ของชิ้นนี้
+            {variants.length > 1 ? " · ส่วน “งานนี้ใช้ตัวไหน” เก็บไว้ที่งานนี้งานเดียว" : ""}
+          </div>
+        </div>
+        <div style={{ padding: "13px 20px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 8, justifyContent: "flex-end", flexShrink: 0 }}>
+          <button className="bq-btn" onClick={onClose}>ยกเลิก</button>
+          <button className="bq-btn pri" onClick={save}><Icon name="check" size={15} color="#fff" /> บันทึก</button>
+        </div>
       </div>
     </div>
   );

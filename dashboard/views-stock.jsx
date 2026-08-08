@@ -85,7 +85,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   const catOrder = {}; SF.STOCK_CATS.forEach((c, i) => { catOrder[c.key] = i; });
   const filtered = items.filter((it) => {
     if (cat !== "all" && it.cat !== cat) return false;
-    if (search && !((it.name + it.sku + it.loc).toLowerCase().includes(search.toLowerCase()))) return false;
+    if (search && !((it.name + it.sku + it.loc + (it.brand || "") + (it.model || "")).toLowerCase().includes(search.toLowerCase()))) return false;
     if (kpiFilter === "low" && lowState(it) === "ok") return false;
     if (kpiFilter === "in" && !inItemIds.has(it.id)) return false;
     if (kpiFilter === "out" && !outItemIds.has(it.id)) return false;
@@ -237,6 +237,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                       <tr key={it.id} style={{ borderBottom: "1px solid var(--border)", background: st === "out" ? "rgba(239,68,68,.07)" : "transparent" }}>
                         <td style={{ padding: "11px 12px" }}>
                           <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-1)" }}>{it.name}</div>
+                          {SF.matVariantLabel(it) && <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", marginTop: 1 }}>{SF.matVariantLabel(it)}</div>}
                           <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{it.sku}</div>
                         </td>
                         <td style={{ padding: "11px 12px" }}>
@@ -373,6 +374,7 @@ function StockCardList({ items, onMove, onEdit, onRemove }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.25 }}>{it.name}</div>
+                {SF.matVariantLabel(it) && <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", marginTop: 2 }}>{SF.matVariantLabel(it)}</div>}
                 <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>{it.sku || "—"}</div>
               </div>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: c.color,
@@ -579,6 +581,9 @@ function ItemModal({ initial, isNew, items, onSave, onClose }) {
               {SF.STOCK_CATS.map((c) => <option key={c.key} value={c.key}>{c.th}</option>)}
             </select>
           </Field>
+          {/* ยี่ห้อ/รุ่น — ของชิ้นเดียวกันคนละยี่ห้อคนละรุ่น ราคาไม่เท่ากัน แยกเป็นคนละรายการได้ */}
+          <Field label="ยี่ห้อ (Brand)"><input style={inputStyle} value={f.brand || ""} onChange={(e) => set("brand", e.target.value)} placeholder="THAI PP-R / SANWA" /></Field>
+          <Field label="รุ่น (Model)"><input style={inputStyle} value={f.model || ""} onChange={(e) => set("model", e.target.value)} placeholder="D25 / CKT 20" /></Field>
           <Field label="จำนวนคงเหลือ"><input type="number" style={inputStyle} value={f.qty} onChange={(e) => set("qty", parseInt(e.target.value) || 0)} /></Field>
           <Field label="หน่วยนับ"><input style={inputStyle} value={f.unit} onChange={(e) => set("unit", e.target.value)} placeholder="แผง / ตัว / ม้วน" /></Field>
           <Field label="ขั้นต่ำ (แจ้งเตือน)"><input type="number" style={inputStyle} value={f.min} onChange={(e) => set("min", parseInt(e.target.value) || 0)} /></Field>

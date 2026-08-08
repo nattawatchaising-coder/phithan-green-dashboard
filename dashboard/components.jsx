@@ -370,18 +370,24 @@ function saveMatPrice(stock, opt, ctx) {
   /* บันทึกทีละหลายรายการต้องส่ง ctx มาด้วย ไม่งั้นทุกรายการใหม่จะคำนวณ id/รหัสจาก
      stock.items ชุดเดิม (ยังไม่ทันอัปเดต) แล้วได้ค่าซ้ำกันหมด */
   const c = ctx || newMatSaveCtx(stock);
-  const existing = items.find((s) => s.name && mk(s.name) === mk(name));
+  /* opt.id = แก้รายการนั้นตรง ๆ (ของชื่อเดียวกันมีหลายยี่ห้อ/รุ่น ต้องระบุว่าตัวไหน)
+     opt.forceNew = สร้างรายการใหม่เสมอ ใช้ตอนเพิ่มยี่ห้อ/รุ่นใหม่ของของชิ้นเดิม */
+  const existing = opt.forceNew ? null
+    : (opt.id ? items.find((s) => s.id === opt.id) : items.find((s) => s.name && mk(s.name) === mk(name)));
   const catKey = existing ? existing.cat : ((SF.BOQ_GROUP_TO_CAT || {})[opt.group] || "other");
   const sku = String((opt && opt.code) || "").trim() || (existing && existing.sku) || SF.genMatCode(catKey, items, c.used);
   c.used.push(sku);
   const price = Math.max(0, +opt.price || 0);
+  const vf = {};
+  if (opt.brand != null) vf.brand = String(opt.brand).trim();
+  if (opt.model != null) vf.model = String(opt.model).trim();
   if (existing) {
-    stock.upsertItem(Object.assign({}, existing, { sku: sku, price: price, unit: existing.unit || opt.unit || "" }));
+    stock.upsertItem(Object.assign({}, existing, vf, { sku: sku, price: price, unit: existing.unit || opt.unit || "" }));
     return existing.id;
   }
   c.maxId += 1;
   const id = "IV-" + String(c.maxId).padStart(2, "0");
-  stock.upsertItem({ id: id, name: name, sku: sku, cat: catKey, unit: opt.unit || "", qty: 0, min: 0, loc: "", price: price });
+  stock.upsertItem(Object.assign({ id: id, name: name, sku: sku, cat: catKey, unit: opt.unit || "", qty: 0, min: 0, loc: "", price: price }, vf));
   return id;
 }
 

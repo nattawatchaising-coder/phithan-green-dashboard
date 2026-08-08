@@ -229,7 +229,9 @@ function blankItem(items) {
     const n = parseInt((it.id || "").replace(/[^0-9]/g, ""), 10);
     if (!isNaN(n) && n > max) max = n;
   });
-  return { id: "IV-" + String(max + 1).padStart(2, "0"), sku: "", name: "", cat: "panel", unit: "ชิ้น", qty: 0, min: 0, loc: "", price: 0 };
+  /* brand/model — ของชิ้นเดียวกันมีหลายยี่ห้อ/หลายรุ่น ราคาไม่เท่ากัน
+     ชื่อ (name) ยังเป็นตัวจับคู่กับใบถอดของ · brand+model เป็นตัวแยกว่าเป็นของตัวไหน */
+  return { id: "IV-" + String(max + 1).padStart(2, "0"), sku: "", name: "", brand: "", model: "", cat: "panel", unit: "ชิ้น", qty: 0, min: 0, loc: "", price: 0 };
 }
 
 /* ================================================================

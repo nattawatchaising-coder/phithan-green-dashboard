@@ -1610,8 +1610,17 @@
   }
 
   // ผูกราคาเข้ากับผลลัพธ์ BOQ → คืน groups (มี code/price/total ต่อรายการ) + grandTotal
-  function applyPrices(result, priceMap) {
+  function applyPrices(result, priceMap, picks) {
     priceMap = priceMap || {};
+    picks = picks || {};
+    /* เลือกว่าจะใช้ของยี่ห้อ/รุ่นไหน — ไม่ได้เลือกไว้ = ตัวตั้งต้น (ตัวแรกในคลัง)
+       เลือกไว้แล้วแต่ของถูกลบจากคลัง = ถอยกลับไปตัวตั้งต้น ไม่ให้ราคาหาย */
+    const variantOf = (key, rec) => {
+      const list = rec.variants || [];
+      if (list.length < 2) return rec;
+      const want = picks[key];
+      return (want && list.find((v) => v.sku === want)) || rec;
+    };
     /* ต้นทุนต่อกำลังติดตั้ง (DC) — เทียบข้ามงานได้ตรง ๆ ว่าหมวดไหนแพงผิดปกติ
        วงการเสนอราคาไทยพูดกันเป็น "บาทต่อวัตต์" จึงคิดทั้ง ฿/W และ ฿/kW ให้ */
     const kw = +((result.meta || {}).kw) || 0;
@@ -1622,11 +1631,15 @@
       let sub = 0;
       const items = g.items.map((it) => {
         // หมวดค่าแรง/ค่าขออนุญาต ราคาอยู่ในบรรทัดเอง · หมวดวัสดุดึงราคาจากคลัง
-        const rec = service ? {} : (priceMap[matKey(it.name)] || {});
+        const key = matKey(it.name);
+        const base = service ? {} : (priceMap[key] || {});
+        const rec = service ? base : variantOf(key, base);
         const price = service ? (+it.price || 0) : (+rec.price || 0);
         const total = price * (it.qty || 0);
         sub += total;
-        return Object.assign({}, it, { code: rec.code || "", price: price, total: total, perKw: perKw(total), perW: perW(total) });
+        return Object.assign({}, it, { code: rec.code || "", price: price, total: total, perKw: perKw(total), perW: perW(total),
+          brand: rec.brand || "", model: rec.model || "", variantLabel: rec.label || "",
+          variants: base.variants || [], pickSku: rec.sku || "" });
       });
       return { group: g.group, service: service, items: items, subtotal: sub, perKw: perKw(sub),
         perW: perW(sub), allowance: g.items.some((it) => +it.allowancePct > 0) };

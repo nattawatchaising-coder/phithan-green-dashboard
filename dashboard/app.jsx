@@ -246,11 +246,22 @@ function App() {
   }, [loading, auth.current, lateAlerts.length, todayTasks.length]);
 
   // ราคารวมสำหรับ BOQ — คลังสินค้าเป็นต้นทางเดียว (ชนะ); boqPrices เป็น fallback ของเก่า
+  /* ของชิ้นเดียวกันอาจมีหลายยี่ห้อ/หลายรุ่น ราคาไม่เท่ากัน — เก็บทุกตัวไว้ใน variants
+     ตัวที่อยู่ระดับบน (code/price/unit) คือตัวที่ใช้เป็นค่าตั้งต้น (ตัวแรกในคลัง)
+     ใบถอดของเลือกเองได้ว่าจะใช้ตัวไหน เก็บไว้ที่ b.pick */
   const effPriceMap = React.useMemo(() => {
     const mk = window.BOQ ? window.BOQ.matKey : (x) => x;
     const m = {};
     Object.keys(priceStore.priceMap).forEach((n) => { m[mk(n)] = priceStore.priceMap[n]; }); // legacy ก่อน
-    (stock.items || []).forEach((s) => { if (s.name) m[mk(s.name)] = { code: s.sku || "", price: +s.price || 0, unit: s.unit || "" }; }); // คลังทับ
+    (stock.items || []).forEach((s) => {                                                    // คลังทับ
+      if (!s.name) return;
+      const k = mk(s.name);
+      const v = { id: s.id, sku: s.sku || "", code: s.sku || "", price: +s.price || 0, unit: s.unit || "",
+        brand: s.brand || "", model: s.model || "", label: window.SF.matVariantLabel(s) };
+      const cur = m[k];
+      if (cur && cur.variants) cur.variants.push(v);
+      else m[k] = Object.assign({}, v, { variants: [v] });
+    });
     return m;
   }, [stock.items, priceStore.priceMap]);
 

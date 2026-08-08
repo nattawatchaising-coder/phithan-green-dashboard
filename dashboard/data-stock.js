@@ -82,4 +82,11 @@
     if (used) used.forEach((c) => { const m = re.exec(String(c || "")); if (m) { const n = +m[1]; if (n > max) max = n; } });
     return pre + "-" + String(max + 1).padStart(4, "0");
   };
+  /* ป้ายบอกว่าเป็นของตัวไหน — ของชิ้นเดียวกันมีหลายยี่ห้อ/หลายรุ่น ราคาไม่เท่ากัน
+     คืนค่าว่างถ้าไม่ได้กรอกทั้งคู่ (ของเก่าที่ยังไม่ได้ระบุ) */
+  SF.matVariantLabel = function (it) {
+    const b = String((it && it.brand) || "").trim();
+    const m = String((it && it.model) || "").trim();
+    return b && m ? b + " · " + m : (b || m);
+  };
 })();
