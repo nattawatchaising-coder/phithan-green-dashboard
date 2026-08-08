@@ -89,4 +89,79 @@
     const m = String((it && it.model) || "").trim();
     return b && m ? b + " · " + m : (b || m);
   };
+
+  /* ── เดายี่ห้อ/รุ่นจากชื่อวัสดุ ──
+     ชื่อของเดิมในคลังมักมียี่ห้อกับรุ่นเขียนติดอยู่แล้ว เช่น
+       "ข้องอ 90 องศา 3/4 นิ้ว THAI PP-R รุ่น D25 ขนาด ... สีเขียว" → THAI PP-R · D25
+       "Huawei SUN2000-50K-MC0"                                   → Huawei · SUN2000-50K-MC0
+     ของโหลที่ไม่มียี่ห้อจริง ๆ (ท่อ uPVC, IMC, สายไฟ, รางไฟ, เหล็ก) คืน null ปล่อยว่างไว้ถูกแล้ว */
+  // ยี่ห้อที่เขียนอยู่ในชื่อตรง ๆ — เรียงยาวไปสั้น กันชื่อสั้นไปกินชื่อยาว
+  SF.MAT_BRANDS = ["THAI PP-R", "THAIPP-R", "THAIPPR", "BLOX CONNECT", "SCHNEIDER", "SUPREMPRO",
+    "ATMOCE", "HUAWEI", "SANWA", "LONGi", "JINKO", "BASOR", "AIKO", "TBR"];
+  // เขียนยี่ห้อให้เป็นแบบเดียวกันทั้งคลัง (ในชื่อสะกดปนกันหลายแบบ)
+  SF.MAT_BRAND_CANON = { HUAWEI: "Huawei", THAIPPR: "THAI PP-R", "THAIPP-R": "THAI PP-R" };
+  /* ชื่อที่ไม่ได้เขียนยี่ห้อไว้ แต่รู้ว่าเป็นของใครจากตระกูลรหัสรุ่น
+     วงเล็บที่ 1 (ถ้ามี) = ชื่อรุ่นที่จะหยิบมาใช้ */
+  SF.MAT_BRAND_HINTS = [
+    { re: /(SUN2000-[A-Za-z0-9\-]+)/, brand: "Huawei" },
+    { re: /(LUNA2000-[A-Za-z0-9\-]+)/, brand: "Huawei" },
+    { re: /(SmartGuard-[A-Za-z0-9\-]+)/, brand: "Huawei" },
+    { re: /(Smart Dongle-[A-Za-z0-9\-]+)/, brand: "Huawei" },
+    { re: /(D[DT]SU\d+-[A-Za-z0-9]+)/, brand: "Huawei" },
+    { re: /(Backup Box-[A-Za-z0-9]+)/, brand: "Huawei" },
+    { re: /\((M[A-Z]?-?\d[A-Za-z0-9\-]*)\)/, brand: "ATMOCE" },     // (MC-100) (MU100-S) (MS-7K-U)
+    { re: /\((MW-[0-9A-Za-z\-]+)\)/, brand: "ATMOCE" },             // สาย AC ของไมโครอินเวอร์เตอร์
+    { re: /(M-Combiner|M-Backup|M-Battery|M-ELV|Micro-inverter|phase junction adapter|phase AC cable sealing)/i, brand: "ATMOCE" },
+  ];
+  SF.guessVariant = function (name) {
+    const raw = String(name || "").replace(/\s+/g, " ").trim();
+    if (!raw) return null;
+    let brand = "", model = "", at = -1;
+    // 1) ยี่ห้อที่เขียนอยู่ในชื่อ — จำตำแหน่งที่เจอจริง (indexOf เดา ๆ ตัดคำผิดได้)
+    for (let i = 0; i < SF.MAT_BRANDS.length; i++) {
+      const b = SF.MAT_BRANDS[i];
+      const re = new RegExp("(^|[\\s\\-(])(" + b.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")([\\s\\-)]|$)", "i");
+      const m = re.exec(raw);
+      if (m) { brand = b; at = m.index + m[1].length; break; }
+    }
+    /* 2) รุ่นแบบ "รุ่น X" มาก่อนเสมอ — ตัดที่ ขนาด/สี/ยาว/เกลียว เพราะนั่นเป็นสเปค ไม่ใช่ชื่อรุ่น */
+    const mRun = /รุ่น\s*([^\s].*?)(?=\s*(?:ขนาด|สี|ยาว|เกลียว|$))/.exec(raw);
+    if (mRun) model = mRun[1].trim();
+    // 3) ไม่มียี่ห้อในชื่อ → ดูจากตระกูลรหัสรุ่น (วงเล็บที่ 1 คือชื่อรุ่น)
+    if (!brand) {
+      for (let i = 0; i < SF.MAT_BRAND_HINTS.length; i++) {
+        const h = SF.MAT_BRAND_HINTS[i], m = h.re.exec(raw);
+        if (!m) continue;
+        brand = h.brand;
+        // เอาเฉพาะที่หน้าตาเป็นรหัสรุ่นจริง (มีตัวเลข หรือมีตัวพิมพ์ใหญ่ติดกัน) ไม่ใช่คำบรรยาย
+        if (!model && m[1] && (/\d/.test(m[1]) || /-[A-Z]{3,}/.test(m[1]))) model = m[1].trim();
+        break;
+      }
+    }
+    if (!model && brand && at === 0) {
+      // 4) ยี่ห้ออยู่หน้าชื่อ → ที่เหลือคือรุ่น (ตัดวงเล็บอธิบายท้ายออก)
+      model = raw.slice(brand.length).replace(/^[\s\-–]+/, "").replace(/\s*\([^)]*\)\s*$/, "").trim();
+    } else if (!model && brand && at > 0) {
+      /* 5) ยี่ห้ออยู่กลางชื่อ → เอาคำที่ตามหลังยี่ห้อเป็นรุ่น
+            ตัดที่จุลภาค แล้วตัดหางที่เป็นสเปค (3P / 20A / (10kA)) ออก เหลือแต่ชื่อรุ่นจริง */
+      const after = raw.slice(at + brand.length).replace(/^[\s\-–]+/, "").split(",")[0];
+      const toks = after.split(" ").filter(Boolean);
+      const keep = [];
+      for (let i = 0; i < toks.length && i < 3; i++) {
+        if (/^\d+P$|^\d+A[TF]?$|^\(.*\)$|^ขนาด$|^สี/.test(toks[i])) break;
+        keep.push(toks[i]);
+      }
+      const cand = keep.join(" ").trim();
+      // กันไปหยิบ "ขนาด" มาเป็นชื่อรุ่น (3/4 นิ้ว · 50 มม. · 2,000 ลิตร ไม่ใช่รุ่น)
+      if (/\d/.test(cand) && !/นิ้ว|มม\.|ซม\.|ลิตร|เมตร/.test(cand)) model = cand;
+    }
+    // 6) ไม่มียี่ห้อ แต่มี "รุ่น X" → คำหน้า "รุ่น" มักเป็นยี่ห้อ
+    if (!brand && model) {
+      const mB = /([A-Za-z][A-Za-z0-9&.\- ]{1,20}?)\s*รุ่น/.exec(raw);
+      if (mB) brand = mB[1].trim();
+    }
+    brand = SF.MAT_BRAND_CANON[brand.toUpperCase()] || SF.MAT_BRAND_CANON[brand] || brand;
+    model = model.replace(/[\s,]+$/, "");
+    return brand || model ? { brand: brand, model: model } : null;
+  };
 })();

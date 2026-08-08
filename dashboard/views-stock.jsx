@@ -56,6 +56,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   const [search, setSearch] = React.useState("");
   const [moveItem, setMoveItem] = React.useState(null); // {item, type}
   const [itemForm, setItemForm] = React.useState(null); // {item, isNew}
+  const [fillOpen, setFillOpen] = React.useState(false);   // หน้าต่างเติมยี่ห้อ/รุ่นจากชื่อ
   const [movesOpen, setMovesOpen] = React.useState(false); // popup ความเคลื่อนไหว
   // ── แท็บราคา BOQ: ค้นหา + กรองกลุ่ม (ยกขึ้นมาไว้บน header เหมือนหน้าสต็อก) ──
   const [priceQ, setPriceQ] = React.useState("");
@@ -133,9 +134,17 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                 <Icon name="plus" size={17} color="#fff" sw={2.4} /><span>เพิ่มวัสดุ</span>
               </button>
             ) : (
-              <button className="btn-add" onClick={() => setItemForm({ item: stock.blankItem(), isNew: true })}>
-                <Icon name="plus" size={17} color="#fff" sw={2.4} /><span>เพิ่มรายการ</span>
-              </button>
+              <React.Fragment>
+                {/* เติมยี่ห้อ/รุ่นจากชื่อ — ของเดิมส่วนใหญ่เขียนยี่ห้อกับรุ่นไว้ในชื่ออยู่แล้ว
+                    ให้ดูรายการที่จะเติมก่อน แล้วค่อยกดยืนยัน ไม่เขียนทับของที่กรอกไว้เอง */}
+                <button className="btn-add" onClick={() => setFillOpen(true)}
+                  style={{ background: "var(--surface2)", color: "var(--text-2)", border: "1px solid var(--border-strong)" }}>
+                  <Icon name="sparkle" size={16} color="var(--text-2)" /><span>เติมยี่ห้อ/รุ่น</span>
+                </button>
+                <button className="btn-add" onClick={() => setItemForm({ item: stock.blankItem(), isNew: true })}>
+                  <Icon name="plus" size={17} color="#fff" sw={2.4} /><span>เพิ่มรายการ</span>
+                </button>
+              </React.Fragment>
             )}
           </div>
           )}
@@ -277,6 +286,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
 
       {moveItem && <MoveModal info={moveItem} byName={byName} jobs={jobs || []} onSave={(qty, ref, note, jobId) => { stock.move(moveItem.item.id, moveItem.type, qty, ref, note, byName, jobId); setMoveItem(null); }} onClose={() => setMoveItem(null)} />}
       {itemForm && <ItemModal initial={itemForm.item} isNew={itemForm.isNew} items={stock.items} onSave={(rec) => { stock.upsertItem(rec); setItemForm(null); }} onClose={() => setItemForm(null)} />}
+      {fillOpen && <FillVariantModal items={stock.items} onApply={(list) => { list.forEach((r) => stock.upsertItem(r)); setFillOpen(false); }} onClose={() => setFillOpen(false)} />}
       {movesOpen && <MovesModal moves={stock.moves} items={items} jobs={jobs || []} onClose={() => setMovesOpen(false)} />}
       {addPriceOpen && <AddPriceModal priceStore={priceStore} stock={stock} onClose={() => setAddPriceOpen(false)} />}
     </React.Fragment>
@@ -896,6 +906,74 @@ function AmpacityEditor({ ampStore }) {
       </div>
       <div style={{ marginTop: 10, fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
         หน่วยเป็นแอมแปร์ (A) · "แกนเดียว" = สาย 1C · "หลายแกน" = 2C ขึ้นไป · "แกนเดียว/หลายแกน" = กลุ่มนั้นใช้ตารางร่วมกัน · ระบบเลือกขนาดสายให้รับ <strong>กระแสใช้งาน × 1.25</strong> และเตือนเมื่อสายที่เลือกพิกัดต่ำกว่าที่ต้องการ
+      </div>
+    </div>
+  );
+}
+
+/* ── เติมยี่ห้อ/รุ่นจากชื่อวัสดุ ──
+   ของเดิมในคลังส่วนใหญ่เขียนยี่ห้อกับรุ่นไว้ในชื่ออยู่แล้ว (เช่น "... THAI PP-R รุ่น D25 ...")
+   ระบบอ่านออกมาให้ดูก่อนทั้งหมด ติ๊กเลือกได้ทีละรายการ แล้วค่อยกดบันทึก
+   ของที่กรอกยี่ห้อ/รุ่นไว้เองแล้ว จะไม่ถูกแตะ · ของโหลที่ไม่มียี่ห้อจริง ๆ ก็ไม่ขึ้นในลิสต์ */
+function FillVariantModal({ items, onApply, onClose }) {
+  const SF = window.SF;
+  const bdClose = window.useBackdropClose(onClose);
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const rows = React.useMemo(() => (items || [])
+    .filter((it) => !String(it.brand || "").trim() && !String(it.model || "").trim())
+    .map((it) => ({ it: it, g: SF.guessVariant(it.name) }))
+    .filter((r) => r.g && (r.g.brand || r.g.model)), [items]);
+  const [off, setOff] = React.useState({});   // ติ๊กออก = ไม่เอารายการนั้น
+  const on = (id) => !off[id];
+  const toggle = (id) => setOff((p) => Object.assign({}, p, { [id]: !p[id] }));
+  const picked = rows.filter((r) => on(r.it.id));
+  const apply = () => onApply(picked.map((r) => Object.assign({}, r.it, { brand: r.g.brand, model: r.g.model })));
+  const skipped = (items || []).length - rows.length;
+  return (
+    <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 120,
+      display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18,
+        width: isMobile ? "100%" : "min(720px,100%)", maxHeight: isMobile ? "92dvh" : "88vh", display: "flex", flexDirection: "column",
+        overflow: "hidden", boxShadow: "0 30px 80px rgba(0,0,0,.45)" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", flexShrink: 0 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)" }}>เติมยี่ห้อ/รุ่นจากชื่อวัสดุ</div>
+          <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 4, lineHeight: 1.5 }}>
+            อ่านยี่ห้อกับรุ่นจากชื่อที่มีอยู่แล้ว — ดูให้ครบก่อนกดบันทึก อันไหนไม่ถูกติ๊กออกได้
+            {skipped > 0 ? " · อีก " + skipped.toLocaleString() + " รายการไม่ขึ้นในลิสต์ เพราะกรอกไว้แล้ว หรือเป็นของโหลที่ไม่มียี่ห้อ" : ""}
+          </div>
+        </div>
+        <div style={{ overflowY: "auto", padding: rows.length ? 0 : 20 }}>
+          {rows.length === 0 ? (
+            <div style={{ fontSize: 13, color: "var(--text-2)" }}>ไม่มีรายการที่อ่านยี่ห้อ/รุ่นจากชื่อได้ — กรอกเองได้ที่ปุ่มแก้ไขของแต่ละรายการ</div>
+          ) : rows.map((r) => (
+            <label key={r.it.id} style={{ display: "grid", gridTemplateColumns: "26px minmax(0,1.5fr) minmax(0,1fr)", gap: 10,
+              alignItems: "center", padding: "9px 20px", borderBottom: "1px solid var(--border)", cursor: "pointer" }}>
+              <input type="checkbox" checked={on(r.it.id)} onChange={() => toggle(r.it.id)} style={{ width: 16, height: 16, accentColor: "var(--primary)" }} />
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 12.5, color: "var(--text-1)", lineHeight: 1.35 }}>{r.it.name}</span>
+                <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--text-3)" }}>{r.it.sku}</span>
+              </span>
+              <span style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {r.g.brand && <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--primary-dark)", background: "var(--primary-soft)", borderRadius: 99, padding: "2px 9px" }}>{r.g.brand}</span>}
+                {r.g.model && <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 99, padding: "2px 9px" }}>{r.g.model}</span>}
+              </span>
+            </label>
+          ))}
+        </div>
+        <div style={{ padding: "13px 20px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex",
+          gap: 8, alignItems: "center", flexShrink: 0 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>เลือกไว้ {picked.length} / {rows.length} รายการ</span>
+          <span style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+            <button onClick={onClose} style={{ padding: "9px 15px", borderRadius: 11, border: "1px solid var(--border-strong)",
+              background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>ยกเลิก</button>
+            <button disabled={!picked.length} onClick={apply}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 11, border: 0,
+                background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 700,
+                cursor: picked.length ? "pointer" : "default", opacity: picked.length ? 1 : .5 }}>
+              <Icon name="check" size={15} color="#fff" /> บันทึก {picked.length} รายการ
+            </button>
+          </span>
+        </div>
       </div>
     </div>
   );
