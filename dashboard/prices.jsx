@@ -100,14 +100,14 @@ function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
           const dirty = isDirty(c);
           const inStock = !!stockByName[c.name];
           return (
-            <div key={c.name} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 150px 110px 34px", gap: isMobile ? 8 : 10, alignItems: "center", padding: "7px 8px", borderRadius: 9, background: dirty ? "#FEF9EC" : "transparent", borderBottom: "1px solid var(--border)" }}>
+            <div key={c.name} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 150px 110px 34px", gap: isMobile ? 8 : 10, alignItems: "center", padding: "7px 8px", borderRadius: 9, background: dirty ? "var(--tint-amber-bg)" : "transparent", borderBottom: "1px solid var(--border)" }}>
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto", minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ width: 6, height: 6, borderRadius: 99, background: PRICE_GROUP_COLOR[c.group] || "var(--text-3)", flexShrink: 0 }} />
                   <span style={{ fontSize: 12.5, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
                   {inStock
-                    ? <span title="มีในคลังสินค้า" style={{ fontSize: 9.5, fontWeight: 700, color: "#1d854b", background: "#22A35B16", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>คลัง</span>
-                    : <span title="ยังไม่มีในคลัง — บันทึกแล้วจะสร้างให้" style={{ fontSize: 9.5, fontWeight: 700, color: "#92600B", background: "#F59E0B1f", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>ใหม่</span>}
+                    ? <span title="มีในคลังสินค้า" style={{ fontSize: 9.5, fontWeight: 700, color: "var(--tint-ok-tx)", background: "#22A35B16", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>คลัง</span>
+                    : <span title="ยังไม่มีในคลัง — บันทึกแล้วจะสร้างให้" style={{ fontSize: 9.5, fontWeight: 700, color: "var(--tint-amber-tx)", background: "#F59E0B1f", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>ใหม่</span>}
                 </div>
                 <span style={{ fontSize: 10.5, color: "var(--text-3)", marginLeft: 12 }}>{(PRICE_GROUP_TH[c.group] || c.group)} · {c.unit || "-"}</span>
               </div>
@@ -124,7 +124,7 @@ function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
 
       {/* sticky save bar */}
       <div style={{ position: "sticky", bottom: 0, padding: "12px 16px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, alignItems: "center" }}>
-        <div style={{ flex: 1, fontSize: 11.5, color: "var(--text-3)" }}>{newCount > 0 ? <span>มี <b style={{ color: "#92600B" }}>{newCount}</b> รายการยังไม่อยู่ในคลัง</span> : (dirtyCount > 0 ? <span style={{ color: "#F59E0B", fontWeight: 700 }}>ยังไม่บันทึก {dirtyCount} รายการ</span> : "บันทึกครบแล้ว")}</div>
+        <div style={{ flex: 1, fontSize: 11.5, color: "var(--text-3)" }}>{newCount > 0 ? <span>มี <b style={{ color: "var(--tint-amber-tx)" }}>{newCount}</b> รายการยังไม่อยู่ในคลัง</span> : (dirtyCount > 0 ? <span style={{ color: "#F59E0B", fontWeight: 700 }}>ยังไม่บันทึก {dirtyCount} รายการ</span> : "บันทึกครบแล้ว")}</div>
         {newCount > 0 && (
           <button onClick={addAllNew}
             style={{ flex: "0 0 auto", padding: "11px 18px", borderRadius: 11, border: "1px solid var(--primary)", background: "var(--surface)", color: "var(--primary-dark)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>

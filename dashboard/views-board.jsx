@@ -57,7 +57,7 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
         )}
       </div>
       {job.problem && (
-        <div style={{ fontSize: 11, color: "#B91C1C", background: "#FEF2F2", borderRadius: 8, padding: "6px 8px", marginBottom: 10, lineHeight: 1.4,
+        <div style={{ fontSize: 11, color: "var(--tint-red-tx)", background: "var(--tint-red-bg)", borderRadius: 8, padding: "6px 8px", marginBottom: 10, lineHeight: 1.4,
           display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
           ⚠ {job.problem}
         </div>
@@ -87,7 +87,7 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
           {job.startDate
             ? <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 600, letterSpacing: "-.01em",
                 color: job.delayed ? "#D93025" : "var(--text-2)" }}>{thDate(job.startDate)}</span>
-            : <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: "#B45309", background: "#FEF3C7", border: "1px solid #FCD34D", padding: "2px 7px", borderRadius: 99, whiteSpace: "nowrap" }}><Icon name="alert" size={10} color="#B45309" /> ยังไม่ระบุวันติดตั้ง</span>}
+            : <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg2)", border: "1px solid #FCD34D", padding: "2px 7px", borderRadius: 99, whiteSpace: "nowrap" }}><Icon name="alert" size={10} color="var(--tint-amber-tx)" /> ยังไม่ระบุวันติดตั้ง</span>}
         </span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
           <MatDots mat={job.mat} />
@@ -253,7 +253,7 @@ function KanbanMobile({ jobs, onOpen }) {
               <span style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
                 <span style={{ width: 10, height: 10, borderRadius: 99, background: s.color, flexShrink: 0 }} />
                 <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{s.th}</span>
-                {problems > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", background: "#FDE2E2", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>{problems}⚠</span>}
+                {problems > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", background: "var(--tint-red-bg2)", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>{problems}⚠</span>}
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
                 <span style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 600, color: s.color, background: s.soft,

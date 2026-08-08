@@ -336,8 +336,8 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
                 const clash = days.reduce((n, d) => n + (otherCountByDay[d] || 0), 0);
                 if (!clash) return null;
                 return (
-                  <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: "#B45309", background: "#FEF3C7", border: "1px solid #FCD34D", borderRadius: 8, padding: "7px 10px", display: "flex", alignItems: "center", gap: 6 }}>
-                    <Icon name="alert" size={13} color="#B45309" /> ช่าง{techNick} มีงานอื่นในช่วงนี้ {clash} งาน — เช็กว่าซ้อนกันไหม
+                  <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg2)", border: "1px solid #FCD34D", borderRadius: 8, padding: "7px 10px", display: "flex", alignItems: "center", gap: 6 }}>
+                    <Icon name="alert" size={13} color="var(--tint-amber-tx)" /> ช่าง{techNick} มีงานอื่นในช่วงนี้ {clash} งาน — เช็กว่าซ้อนกันไหม
                   </div>
                 );
               })()}
@@ -377,8 +377,8 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
                       const isToday = k === window.SF.TODAY;
                       let bg = "var(--surface)", col = "var(--text-2)", bd = "1px solid var(--border)";
                       if (mine) { bg = "var(--primary-soft)"; col = "var(--primary-dark)"; bd = "1px solid var(--primary)"; }
-                      else if (cnt >= 2) { bg = "#FEE2E2"; col = "#B91C1C"; bd = "1px solid #FCA5A5"; }
-                      else if (cnt === 1) { bg = "#FEF3C7"; col = "#B45309"; bd = "1px solid #FCD34D"; }
+                      else if (cnt >= 2) { bg = "var(--tint-red-bg2)"; col = "var(--tint-red-tx)"; bd = "1px solid #FCA5A5"; }
+                      else if (cnt === 1) { bg = "var(--tint-amber-bg2)"; col = "var(--tint-amber-tx)"; bd = "1px solid #FCD34D"; }
                       return (
                         <button type="button" key={i} onClick={() => setInstallStart(k)}
                           title={(mine ? "วันนัดติดตั้งงานนี้" : cnt ? "ช่างมี " + cnt + " งาน" : "ว่าง") + " · " + d + " " + FLOW_MONTHS[fm.m] + " — แตะเพื่อเลือกวันเริ่มติดตั้ง"}
@@ -393,8 +393,8 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
                   </div>
                   <div style={{ display: "flex", gap: 12, marginTop: 9, flexWrap: "wrap", fontSize: 10, color: "var(--text-3)" }}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, border: "1px solid var(--border)", background: "var(--surface)" }} /> ว่าง</span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: "#FEF3C7", border: "1px solid #FCD34D" }} /> มี 1 งาน</span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: "#FEE2E2", border: "1px solid #FCA5A5" }} /> 2+ งาน</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: "var(--tint-amber-bg2)", border: "1px solid #FCD34D" }} /> มี 1 งาน</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: "var(--tint-red-bg2)", border: "1px solid #FCA5A5" }} /> 2+ งาน</span>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: "var(--primary-soft)", border: "1px solid var(--primary)" }} /> วันติดตั้งงานนี้</span>
                   </div>
                 </div>

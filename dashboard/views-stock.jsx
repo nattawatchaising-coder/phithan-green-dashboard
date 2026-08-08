@@ -11,7 +11,7 @@ const STOCK_COLORS = { out: "#EF4444", low: "#F59E0B", ok: "#22A35B" };
 
 /* ประเภทการเคลื่อนไหวสต็อก: รับเข้า / เบิกออก / คืนของ */
 const MOVE_TYPES = {
-  in:     { key: "in",     label: "รับเข้า",  sym: "+", color: "#1d854b", accent: "#22A35B", bg: "#22A35B16", title: "รับเข้าคลัง",      sub: "เพิ่มสต็อกจากการสั่งซื้อ" },
+  in:     { key: "in",     label: "รับเข้า",  sym: "+", color: "var(--tint-ok-tx)", accent: "#22A35B", bg: "#22A35B16", title: "รับเข้าคลัง",      sub: "เพิ่มสต็อกจากการสั่งซื้อ" },
   out:    { key: "out",    label: "เบิกออก",  sym: "−", color: "#6645e0", accent: "#7C5CFC", bg: "#7C5CFC16", title: "เบิกออกหน้างาน",   sub: "เลือกงานที่นำไปใช้" },
   return: { key: "return", label: "คืนของ",  sym: "↩", color: "#0784b8", accent: "#0EA5E9", bg: "#0EA5E916", title: "คืนของเข้าคลัง",   sub: "คืนอุปกรณ์ที่เบิกจากงาน" },
 };
@@ -253,7 +253,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                         <td style={{ padding: "11px 12px", fontSize: 12.5, color: "var(--text-2)", whiteSpace: "nowrap" }}>{it.loc}</td>
                         <td style={{ padding: "11px 12px", whiteSpace: "nowrap" }}>
                           <button onClick={() => setMoveItem({ item: it, type: "in" })} title="รับเข้า"
-                            style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "#22A35B16", border: "none", color: "#1d854b", fontWeight: 700, fontSize: 11.5, padding: "5px 9px", borderRadius: 8, cursor: "pointer", marginRight: 4, fontFamily: "inherit" }}>+ รับ</button>
+                            style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "#22A35B16", border: "none", color: "var(--tint-ok-tx)", fontWeight: 700, fontSize: 11.5, padding: "5px 9px", borderRadius: 8, cursor: "pointer", marginRight: 4, fontFamily: "inherit" }}>+ รับ</button>
                           <button onClick={() => setMoveItem({ item: it, type: "out" })} title="เบิกออก"
                             style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "#7C5CFC16", border: "none", color: "#6645e0", fontWeight: 700, fontSize: 11.5, padding: "5px 9px", borderRadius: 8, cursor: "pointer", marginRight: 4, fontFamily: "inherit" }}>− เบิก</button>
                           <button onClick={() => setMoveItem({ item: it, type: "return" })} title="คืนของ"
@@ -397,7 +397,7 @@ function StockCardList({ items, onMove, onEdit, onRemove }) {
               <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                 <button onClick={() => onMove({ item: it, type: "in" })}
                   style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3, background: "#22A35B16", border: "none",
-                    color: "#1d854b", fontWeight: 700, fontSize: 12.5, padding: "9px 6px", borderRadius: 9, cursor: "pointer", fontFamily: "inherit" }}>+ รับ</button>
+                    color: "var(--tint-ok-tx)", fontWeight: 700, fontSize: 12.5, padding: "9px 6px", borderRadius: 9, cursor: "pointer", fontFamily: "inherit" }}>+ รับ</button>
                 <button onClick={() => onMove({ item: it, type: "out" })}
                   style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3, background: "#7C5CFC16", border: "none",
                     color: "#6645e0", fontWeight: 700, fontSize: 12.5, padding: "9px 6px", borderRadius: 9, cursor: "pointer", fontFamily: "inherit" }}>− เบิก</button>
@@ -795,8 +795,8 @@ function AmpacityEditor({ ampStore }) {
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "12px 14px", background: "#FEF9EC", border: "1px solid #FCE4B6", borderRadius: 12, marginBottom: 14 }}>
-        <Icon name="alert" size={16} color="#B45309" style={{ flexShrink: 0, marginTop: 1 }} />
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "12px 14px", background: "var(--tint-amber-bg)", border: "1px solid var(--tint-amber-bd)", borderRadius: 12, marginBottom: 14 }}>
+        <Icon name="alert" size={16} color="var(--tint-amber-tx)" style={{ flexShrink: 0, marginTop: 1 }} />
         <div style={{ fontSize: 12, color: "#92500C", lineHeight: 1.55 }}>
           ตารางพิกัดกระแส <strong>มาตรฐาน วสท.</strong> (ตัวนำทองแดง 0.6/1 kV) — แยกตาม <strong>กลุ่มการติดตั้ง × จำนวนตัวนำมีกระแส × แกนย่อย</strong>
           <br />แกนย่อยไม่เท่ากันทุกกลุ่ม: กลุ่ม 1,2,3,7 = <strong>แกนเดียว/หลายแกน</strong> · กลุ่ม 4 = <strong>แนวตั้ง/แนวราบ</strong> (แกนเดียวล้วน) · กลุ่ม 5,6 = <strong>รวมเป็นคอลัมน์เดียว</strong>
@@ -806,17 +806,17 @@ function AmpacityEditor({ ampStore }) {
 
       {/* บอกที่มาของตัวเลขจางในตาราง — ยืมมาจากวิธีอื่น หรือยังไม่มีเลย */}
       {borrowed ? (
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "11px 14px", background: "rgba(34,163,91,.07)", border: "1px solid #BBE7CD", borderRadius: 12, marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "11px 14px", background: "var(--tint-ok-bg)", border: "1px solid var(--tint-ok-bd)", borderRadius: 12, marginBottom: 14 }}>
           <Icon name="check" size={16} color="#22A35B" style={{ flexShrink: 0, marginTop: 1 }} />
-          <div style={{ fontSize: 12, color: "#1d854b", lineHeight: 1.55 }}>
+          <div style={{ fontSize: 12, color: "var(--tint-ok-tx)", lineHeight: 1.55 }}>
             ตัวเลขจางในตารางนี้ <strong>ยืมมาจาก "{methodTh(baseKey)}"</strong> — {methodMeta.baseWhy || "วสท. ให้สองวิธีนี้ใช้ตารางพิกัดชุดเดียวกัน"}
             <br />เครื่องคำนวณ BOQ ใช้ค่าชุดนี้อยู่จริง · กรอกทับได้ถ้ามีตารางเฉพาะของรุ่นที่ใช้
           </div>
         </div>
       ) : noTable && (
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "11px 14px", background: "#FEF2F2", border: "1px solid #FBD3D3", borderRadius: 12, marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "11px 14px", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd2)", borderRadius: 12, marginBottom: 14 }}>
           <Icon name="alert" size={16} color="#EF4444" style={{ flexShrink: 0, marginTop: 1 }} />
-          <div style={{ fontSize: 12, color: "#B91C1C", lineHeight: 1.55 }}>
+          <div style={{ fontSize: 12, color: "var(--tint-red-tx)", lineHeight: 1.55 }}>
             <strong>ยังไม่มีตารางของ "{methodMeta.th || methodKey}"</strong> — ช่อง "สายแนะนำ" ในหน้า BOQ จะขึ้น "—" จนกว่าจะกรอก
             <br />แต่ละวิธีระบายความร้อนไม่เท่ากัน <strong>เอาตัวเลขของวิธีอื่นมาใส่แทนไม่ได้</strong> — รางไม่มีฝารับกระแสได้มากกว่ารางมีฝา และมากกว่าเดินในท่อ
             <br />แนวทาง วสท.: พิกัดในรางเคเบิล ≈ <strong>65%</strong> ของพิกัดสายเดี่ยวเดินในอากาศ (สาย &lt; 300 mm²) และ <strong>75%</strong> สำหรับ 300 mm² ขึ้นไป — ต้องมีตารางสายเดี่ยวในอากาศเป็นฐานก่อน
@@ -839,8 +839,8 @@ function AmpacityEditor({ ampStore }) {
         })()}
         {editedCount > 0 && (
           <button onClick={() => { if (confirm("คืนค่าพิกัดกระแสที่แก้ไว้ทั้งหมด ?\n(ลบ " + editedCount + " ช่อง)")) ampStore.reset(); }}
-            style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 99, border: "1px solid #FBD3D3", background: "#FEF2F2", color: "#B91C1C", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-            <Icon name="x" size={13} color="#B91C1C" /> คืนค่าที่แก้ ({editedCount})
+            style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 99, border: "1px solid var(--tint-red-bd2)", background: "var(--tint-red-bg)", color: "var(--tint-red-tx)", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+            <Icon name="x" size={13} color="var(--tint-red-tx)" /> คืนค่าที่แก้ ({editedCount})
           </button>
         )}
       </div>

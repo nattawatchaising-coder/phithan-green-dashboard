@@ -17,7 +17,7 @@ function FlowTimeline({ job }) {
             {/* connector + dot */}
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
               <div style={{ width: 26, height: 26, borderRadius: 99, flexShrink: 0,
-                background: (isDone || isCurrent) && !step.blocked ? s.color : step.blocked ? "#FDE2E2" : "var(--surface3)",
+                background: (isDone || isCurrent) && !step.blocked ? s.color : step.blocked ? "var(--tint-red-bg2)" : "var(--surface3)",
                 border: isCurrent ? "2px solid " + (step.blocked ? "#EF4444" : s.color) : "2px solid transparent",
                 color: "#fff", display: "grid", placeItems: "center",
                 boxShadow: isCurrent ? "0 0 0 4px " + (step.blocked ? "#EF444422" : s.color + "22") : "none" }}>
@@ -38,7 +38,7 @@ function FlowTimeline({ job }) {
                 {isCurrent && !step.blocked && <span style={{ fontSize: 10.5, fontWeight: 700, color: s.color,
                   background: s.soft, padding: "2px 8px", borderRadius: 99 }}>ขั้นปัจจุบัน</span>}
                 {step.blocked && <span style={{ fontSize: 10.5, fontWeight: 700, color: "#EF4444",
-                  background: "#FDE2E2", padding: "2px 8px", borderRadius: 99 }}>⚠ ติดปัญหา</span>}
+                  background: "var(--tint-red-bg2)", padding: "2px 8px", borderRadius: 99 }}>⚠ ติดปัญหา</span>}
               </div>
               {(step.at || step.date) && (isDone || isCurrent) && (
                 // เวลาจริงที่กดเลื่อนเข้า stage นี้ (วัน + เวลา)
@@ -58,13 +58,13 @@ function FlowTimeline({ job }) {
                   <div style={{ fontSize: 11.5, color: late ? "#EF4444" : "var(--text-3)", marginTop: 3, display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
                     <Icon name={late ? "alert" : "calendar"} size={11} color={late ? "#EF4444" : "var(--text-3)"} />
                     <span>นัดติดตั้ง {thDate(st, true)}{en && en !== st ? "–" + thDate(en, true) : ""}</span>
-                    {late && <span style={{ fontWeight: 700, color: "#EF4444", background: "#FDE2E2", padding: "1px 6px", borderRadius: 99 }}>เลยกำหนด {late.daysLate} วัน</span>}
+                    {late && <span style={{ fontWeight: 700, color: "#EF4444", background: "var(--tint-red-bg2)", padding: "1px 6px", borderRadius: 99 }}>เลยกำหนด {late.daysLate} วัน</span>}
                   </div>
                 );
               })()}
               {step.blocked && job.problem && (
-                <div style={{ marginTop: 8, padding: "10px 12px", background: "#FEF2F2", border: "1px solid #FECACA",
-                  borderRadius: 10, fontSize: 12.5, color: "#B91C1C", lineHeight: 1.5 }}>{job.problem}</div>
+                <div style={{ marginTop: 8, padding: "10px 12px", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)",
+                  borderRadius: 10, fontSize: 12.5, color: "var(--tint-red-tx)", lineHeight: 1.5 }}>{job.problem}</div>
               )}
             </div>
           </div>
@@ -278,7 +278,7 @@ function StockShopModal({ stock, job, byName, onClose }) {
                   sub={<span>BOQ <b style={{ color: "var(--text-2)" }}>{l.qty}</b> {l.unit} · {it.qty <= 0 ? <span style={{ color: "#EF4444" }}>หมดสต็อก</span> : <span>คงเหลือ {it.qty.toLocaleString()} {it.unit}</span>}{it.sku ? " · " + it.sku : ""}{short && it.qty > 0 ? <span style={{ color: "#F59E0B" }}> · ไม่พอตาม BOQ</span> : ""}</span>} />;
               })}
               {boqMissing.length > 0 && (
-                <div style={{ margin: "8px 8px 0", padding: "10px 12px", background: "#FEF9F0", border: "1px dashed #F4C77B", borderRadius: 10, fontSize: 11.5, color: "#92600B", lineHeight: 1.55 }}>
+                <div style={{ margin: "8px 8px 0", padding: "10px 12px", background: "var(--tint-amber-bg)", border: "1px dashed var(--tint-amber-bd)", borderRadius: 10, fontSize: 11.5, color: "var(--tint-amber-tx)", lineHeight: 1.55 }}>
                   <b>{boqMissing.length} รายการใน BOQ ยังไม่มีในคลัง</b> — เพิ่มวัสดุ + สร้างรหัสในหน้า “คลังสินค้า” เพื่อให้เบิกได้:
                   <div style={{ marginTop: 4, color: "#7a5208" }}>{boqMissing.slice(0, 6).map((l) => l.name).join(" · ")}{boqMissing.length > 6 ? " …" : ""}</div>
                 </div>
@@ -355,7 +355,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                     <span style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 600, color: "var(--primary-dark)",
                       background: "var(--primary-soft)", padding: "2px 8px", borderRadius: 6 }}>{job.code}</span>
                     <TypeBadge type={job.type} />
-                    {job.delayed && <span style={{ fontSize: 11, fontWeight: 700, color: "#EF4444", background: "#FDE2E2", padding: "2px 8px", borderRadius: 6 }}>⚠ ล่าช้า</span>}
+                    {job.delayed && <span style={{ fontSize: 11, fontWeight: 700, color: "#EF4444", background: "var(--tint-red-bg2)", padding: "2px 8px", borderRadius: 6 }}>⚠ ล่าช้า</span>}
                   </div>
                   <h2 style={{ fontSize: isMobile ? 17 : 20, fontWeight: 700, color: "var(--text-1)", margin: 0, lineHeight: 1.25 }}>{job.name}</h2>
                 </div>

@@ -127,7 +127,7 @@ const SU_CSS = `
 .su-phpick button{border:1px solid var(--ln2);background:var(--surface);color:var(--text-3);
   font-family:inherit;font-size:10px;font-weight:800;padding:3px 8px;border-radius:7px;cursor:pointer;letter-spacing:.02em}
 .su-phpick button:hover{border-color:var(--ac);color:var(--text-1)}
-.su-phpick button[data-on="1"][data-ph="1"]{background:#FEF3E2;border-color:#D97706;color:#B45309}
+.su-phpick button[data-on="1"][data-ph="1"]{background:#FEF3E2;border-color:#D97706;color:var(--tint-amber-tx)}
 .su-phpick button[data-on="1"][data-ph="2"]{background:#E8F0FE;border-color:#2563EB;color:#1D4ED8}
 .su-phpick button[data-on="1"][data-ph="3"]{background:var(--acs);border-color:var(--ac);color:var(--acd)}
 
@@ -168,7 +168,7 @@ const SU_CSS = `
 .su-tiles .v small{font-size:9.5px;font-weight:700;color:var(--text-3);margin-left:4px;letter-spacing:0}
 .su-tiles .d{font-size:9.5px;font-weight:650;color:var(--text-3);line-height:1.45}
 .su-tiles>div[data-good="1"] .v{color:var(--acd)}
-.su-tiles>div[data-good="0"] .v{color:#B45309}
+.su-tiles>div[data-good="0"] .v{color:var(--tint-amber-tx)}
 
 /* ---- คำอธิบายสีของกราฟไฟทั้งวัน ---- */
 .su-flg{display:flex;flex-wrap:wrap;gap:5px 14px;align-items:center}
@@ -326,7 +326,7 @@ function SuVoltBand({ rows, inv, sel, onPick }) {
       <div style={{ position: "relative", height: 15, fontSize: 9, color: "var(--text-3)", fontWeight: 700 }}>
         <span style={{ position: "absolute", left: px(vmin) + "%", transform: "translateX(-50%)" }}>{vmin}V</span>
         <span style={{ position: "absolute", left: px(vmax) + "%", transform: "translateX(-50%)" }}>{vmax}V</span>
-        {vdc ? <span style={{ position: "absolute", left: px(vdc) + "%", transform: "translateX(-50%)", color: "#B91C1C" }}>{vdc}V</span> : null}
+        {vdc ? <span style={{ position: "absolute", left: px(vdc) + "%", transform: "translateX(-50%)", color: "var(--tint-red-tx)" }}>{vdc}V</span> : null}
       </div>
       {rows.map((r) => {
         const lo = px(r.vmpHot), hi = px(r.vmpCold);
@@ -339,29 +339,29 @@ function SuVoltBand({ rows, inv, sel, onPick }) {
             <span style={{ position: "relative", flex: 1, height: 18, borderRadius: 6, background: "var(--surface2)", overflow: "hidden" }}>
               {/* ช่วงทำงาน MPPT = พื้นเขียวจาง */}
               <span style={{ position: "absolute", left: px(vmin) + "%", width: (px(vmax) - px(vmin)) + "%", top: 0, bottom: 0, background: "rgba(34,163,91,.14)" }} />
-              {vdc ? <span style={{ position: "absolute", left: px(vdc) + "%", top: 0, bottom: 0, width: 2, background: "#B91C1C" }} /> : null}
+              {vdc ? <span style={{ position: "absolute", left: px(vdc) + "%", top: 0, bottom: 0, width: 2, background: "var(--tint-red-tx)" }} /> : null}
               {/* ช่วงแรงดันจริงของสตริงนี้ ร้อน→เย็น */}
               <span style={{ position: "absolute", left: lo + "%", width: Math.max(1.5, hi - lo) + "%", top: 4, height: 10, borderRadius: 99,
-                background: r.ok ? "linear-gradient(90deg,#F59E0B,#22A35B)" : "#B91C1C", opacity: r.ok ? 1 : .55 }} />
+                background: r.ok ? "linear-gradient(90deg,#F59E0B,#22A35B)" : "var(--tint-red-tx)", opacity: r.ok ? 1 : .55 }} />
               {/* Voc ตอนอากาศเย็น = ขีดที่ห้ามเลยเส้นแดง */}
-              <span style={{ position: "absolute", left: px(r.vocCold) + "%", top: 1, bottom: 1, width: 2, background: r.vocCold > vdc && vdc ? "#B91C1C" : "var(--text-3)" }} />
+              <span style={{ position: "absolute", left: px(r.vocCold) + "%", top: 1, bottom: 1, width: 2, background: r.vocCold > vdc && vdc ? "var(--tint-red-tx)" : "var(--text-3)" }} />
             </span>
             <span style={{ width: 54, textAlign: "right", fontSize: 10, fontWeight: 800, flex: "0 0 auto",
-              color: r.ok ? (r.score >= 75 ? "var(--acd)" : "var(--text-2)") : "#B91C1C" }}>{r.ok ? r.band : "ไม่ผ่าน"}</span>
+              color: r.ok ? (r.score >= 75 ? "var(--acd)" : "var(--text-2)") : "var(--tint-red-tx)" }}>{r.ok ? r.band : "ไม่ผ่าน"}</span>
           </button>
         );
       })}
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 9.5, color: "var(--text-3)", paddingLeft: 39 }}>
         <span><b style={{ color: "#F59E0B" }}>■</b> แผงร้อน (แรงดันต่ำสุด)</span>
         <span><b style={{ color: "#22A35B" }}>■</b> อากาศเย็น (แรงดันสูงสุด)</span>
-        <span><b style={{ color: "#B91C1C" }}>│</b> เพดาน Voc</span>
+        <span><b style={{ color: "var(--tint-red-tx)" }}>│</b> เพดาน Voc</span>
       </div>
     </div>
   );
 }
 
 /* สีประจำสตริง — ไล่โทนให้แยกออกจากกันชัดแม้อยู่ติดกัน */
-const SU_SCOLOR = ["#22A35B", "#2563EB", "#D97706", "#7C3AED", "#DC2626", "#0891B2", "#DB2777", "#65A30D", "#EA580C", "#4F46E5"];
+const SU_SCOLOR = ["#22A35B", "#2563EB", "#D97706", "#7C3AED", "var(--tint-red-tx2)", "#0891B2", "#DB2777", "#65A30D", "#EA580C", "#4F46E5"];
 const suColor = (i) => SU_SCOLOR[(i - 1 + SU_SCOLOR.length) % SU_SCOLOR.length];
 
 /* ── ผังแผง 2D (มองจากด้านบน) — แตะ/ลากเพื่อจัดแผงเข้าสตริง ──
@@ -423,8 +423,8 @@ function SuLayout2D({ foot, assign, active, onPaint, height, labels, colorOf, un
         })}
         {/* เข็มทิศ: บนจอ +Z = ทิศใต้ ตามฉาก 3 มิติ */}
         <g transform={"translate(" + (b.minX - pad + 0.7) + "," + (b.minZ - pad + 0.7) + ")"}>
-          <line x1="0" y1="0" x2="0" y2="1.1" stroke="#B91C1C" strokeWidth="0.09" />
-          <text x="0" y="-0.15" fontSize="0.62" fontWeight="800" fill="#B91C1C" textAnchor="middle">N</text>
+          <line x1="0" y1="0" x2="0" y2="1.1" stroke="var(--tint-red-tx)" strokeWidth="0.09" />
+          <text x="0" y="-0.15" fontSize="0.62" fontWeight="800" fill="var(--tint-red-tx)" textAnchor="middle">N</text>
         </g>
       </svg>
     </div>
@@ -586,23 +586,23 @@ function SuDayPower({ sim, groups, acKw, hour, onHour }) {
         <g key={k}>
           <line x1={L} y1={Yp(pTop * f)} x2={W - R} y2={Yp(pTop * f)} stroke="var(--ln)" strokeWidth="1" strokeDasharray={f ? "3 4" : null} />
           <text x={L - 6} y={Yp(pTop * f) + 3.5} textAnchor="end" fontSize="9" fontWeight="700" fill="var(--text-3)">{scR(pTop * f, 1)}</text>
-          <text x={W - R + 6} y={Yt(tTop * f) + 3.5} fontSize="9" fontWeight="700" fill="#DC2626">{Math.round(tTop * f)}</text>
+          <text x={W - R + 6} y={Yt(tTop * f) + 3.5} fontSize="9" fontWeight="700" fill="var(--tint-red-tx2)">{Math.round(tTop * f)}</text>
         </g>
       ))}
       <text x={L - 6} y={9} textAnchor="end" fontSize="8.5" fontWeight="800" fill="var(--text-3)">kW</text>
-      <text x={W - R + 6} y={9} fontSize="8.5" fontWeight="800" fill="#DC2626">°C</text>
+      <text x={W - R + 6} y={9} fontSize="8.5" fontWeight="800" fill="var(--tint-red-tx2)">°C</text>
       {/* เพดานอินเวอร์เตอร์ */}
       {acKw > 0 && acKw < pTop && (
         <g>
-          <line x1={L} y1={Yp(acKw)} x2={W - R} y2={Yp(acKw)} stroke="#B45309" strokeWidth="1.4" strokeDasharray="5 3" />
-          <text x={W - R - 2} y={Yp(acKw) - 4} textAnchor="end" fontSize="9" fontWeight="800" fill="#B45309">เพดานอินเวอร์เตอร์ {acKw} kW</text>
+          <line x1={L} y1={Yp(acKw)} x2={W - R} y2={Yp(acKw)} stroke="var(--tint-amber-tx)" strokeWidth="1.4" strokeDasharray="5 3" />
+          <text x={W - R - 2} y={Yp(acKw) - 4} textAnchor="end" fontSize="9" fontWeight="800" fill="var(--tint-amber-tx)">เพดานอินเวอร์เตอร์ {acKw} kW</text>
         </g>
       )}
       <path d={line((r) => r.dc, Yp) + " L" + X(sim.rows[sim.rows.length - 1].h).toFixed(1) + " " + Yp(0) + " L" + X(sim.rows[0].h).toFixed(1) + " " + Yp(0) + " Z"}
         fill="rgba(34,163,91,.14)" />
       <path d={line((r) => r.dc, Yp)} fill="none" stroke="#22A35B" strokeWidth="1.4" strokeDasharray="4 3" />
       <path d={line((r) => r.ac, Yp)} fill="none" stroke="#0F7A43" strokeWidth="2.3" strokeLinejoin="round" />
-      <path d={line(tOf, Yt)} fill="none" stroke="#DC2626" strokeWidth="1.7" strokeLinejoin="round" opacity=".85" />
+      <path d={line(tOf, Yt)} fill="none" stroke="var(--tint-red-tx2)" strokeWidth="1.7" strokeLinejoin="round" opacity=".85" />
       {/* จุดสูงสุดของแต่ละเส้น พร้อมตัวเลข */}
       {(() => {
         const pk = sim.rows.reduce((a, r) => (r.ac > a.ac ? r : a), sim.rows[0]);
@@ -617,9 +617,9 @@ function SuDayPower({ sim, groups, acKw, hour, onHour }) {
                 สูงสุด {scR(pk.ac, 2)} kW
               </text>
             )}
-            <circle cx={X(tk.h)} cy={Yt(tOf(tk))} r="3" fill="#fff" stroke="#DC2626" strokeWidth="1.6" />
+            <circle cx={X(tk.h)} cy={Yt(tOf(tk))} r="3" fill="#fff" stroke="var(--tint-red-tx2)" strokeWidth="1.6" />
             {farT && (
-              <text x={scClamp(X(tk.h), L + 30, W - R - 30)} y={Yt(tOf(tk)) - 6} textAnchor="middle" fontSize="9" fontWeight="800" fill="#DC2626">
+              <text x={scClamp(X(tk.h), L + 30, W - R - 30)} y={Yt(tOf(tk)) - 6} textAnchor="middle" fontSize="9" fontWeight="800" fill="var(--tint-red-tx2)">
                 ร้อนสุด {scR(tOf(tk), 0)}°C
               </text>
             )}
@@ -629,13 +629,13 @@ function SuDayPower({ sim, groups, acKw, hour, onHour }) {
       {/* ค่าที่เวลาปัจจุบัน */}
       <line x1={X(cur.h)} y1={T} x2={X(cur.h)} y2={H - B} stroke="var(--ac)" strokeWidth="1.4" />
       <circle cx={X(cur.h)} cy={Yp(cur.ac)} r="4" fill="#fff" stroke="var(--ac)" strokeWidth="2" />
-      <circle cx={X(cur.h)} cy={Yt(tOf(cur))} r="3.4" fill="#fff" stroke="#DC2626" strokeWidth="1.8" />
+      <circle cx={X(cur.h)} cy={Yt(tOf(cur))} r="3.4" fill="#fff" stroke="var(--tint-red-tx2)" strokeWidth="1.8" />
       <g transform={"translate(" + scClamp(X(cur.h) + 7, L, W - R - 104) + "," + (T + 1) + ")"}>
         <rect width="102" height="30" rx="6" fill="var(--surface)" stroke="var(--ln2)" />
         <text x="7" y="13" fontSize="9.5" fontWeight="800" fill="var(--text-2)">{ivHM(cur.h)}</text>
         <text x="95" y="13" textAnchor="end" fontSize="9.5" fontWeight="800" fill="#0F7A43">{scR(cur.ac, 2)} kW</text>
         <text x="7" y="25" fontSize="9" fontWeight="700" fill="var(--text-3)">DC {scR(cur.dc, 2)}</text>
-        <text x="95" y="25" textAnchor="end" fontSize="9" fontWeight="800" fill="#DC2626">เซลล์ {scR(tOf(cur), 0)}°C</text>
+        <text x="95" y="25" textAnchor="end" fontSize="9" fontWeight="800" fill="var(--tint-red-tx2)">เซลล์ {scR(tOf(cur), 0)}°C</text>
       </g>
       {[6, 9, 12, 15, 18].filter((h) => h >= h0 && h <= h1).map((h) => (
         <text key={h} x={X(h)} y={H - B + 13} textAnchor="middle" fontSize="9" fontWeight="700" fill="var(--text-3)">{h}:00</text>
@@ -662,7 +662,7 @@ function SuYearMap({ year, mode, month, onMonth }) {
   const colShade = (v, poa) => {
     if (poa <= 2) return "var(--surface3)";
     if (v <= 0.5) return "#E8F5ED";
-    return v < 15 ? "#FDE68A" : v < 40 ? "#F59E0B" : "#DC2626";
+    return v < 15 ? "var(--tint-amber-bd)" : v < 40 ? "#F59E0B" : "var(--tint-red-tx2)";
   };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
@@ -688,7 +688,7 @@ function SuYearMap({ year, mode, month, onMonth }) {
             ))}
           </span>
           <span style={{ width: 54, flex: "0 0 auto", fontSize: 9.5, fontWeight: 700, textAlign: "right",
-            color: mode === "shade" ? (mo.shadeLossPct >= 5 ? "#B91C1C" : mo.shadeLossPct > 0 ? "#B45309" : "var(--text-3)") : "var(--text-2)" }}>
+            color: mode === "shade" ? (mo.shadeLossPct >= 5 ? "var(--tint-red-tx)" : mo.shadeLossPct > 0 ? "var(--tint-amber-tx)" : "var(--text-3)") : "var(--text-2)" }}>
             {mode === "shade" ? mo.shadeLossPct + "%" : Math.round(mo.monthKwh / 100) / 10 + "k"}
           </span>
         </div>
@@ -697,9 +697,9 @@ function SuYearMap({ year, mode, month, onMonth }) {
         {mode === "shade" ? (
           <React.Fragment>
             <span><b style={{ color: "#E8F5ED" }}>■</b> ไม่มีเงา</span>
-            <span><b style={{ color: "#FDE68A" }}>■</b> บังบางส่วน</span>
+            <span><b style={{ color: "var(--tint-amber-bd)" }}>■</b> บังบางส่วน</span>
             <span><b style={{ color: "#F59E0B" }}>■</b> บังมาก</span>
-            <span><b style={{ color: "#DC2626" }}>■</b> บังเกือบหมด</span>
+            <span><b style={{ color: "var(--tint-red-tx2)" }}>■</b> บังเกือบหมด</span>
             <span style={{ marginLeft: "auto" }}>ขวาสุด = เสียไปกี่ % ของเดือนนั้น</span>
           </React.Fragment>
         ) : (
@@ -719,7 +719,7 @@ function SuYearMap({ year, mode, month, onMonth }) {
 function SuShadeStrip({ sim, groups }) {
   if (!sim || !sim.rows.length) return null;
   const h0 = Math.max(4.5, (sim.sunrise || 6) - 0.5), h1 = Math.min(20, (sim.sunset || 18.5) + 0.5);
-  const col = (v) => (v <= 0.5 ? "var(--surface3)" : v < 15 ? "#FDE68A" : v < 40 ? "#F59E0B" : "#DC2626");
+  const col = (v) => (v <= 0.5 ? "var(--surface3)" : v < 15 ? "var(--tint-amber-bd)" : v < 40 ? "#F59E0B" : "var(--tint-red-tx2)");
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
       {groups.map((g) => (
@@ -740,9 +740,9 @@ function SuShadeStrip({ sim, groups }) {
       </div>
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", paddingLeft: 127, fontSize: 9.5, color: "var(--text-3)", fontWeight: 700 }}>
         <span><b style={{ color: "#E5E9E6" }}>■</b> ไม่มีเงา</span>
-        <span><b style={{ color: "#FDE68A" }}>■</b> บังบางส่วน</span>
+        <span><b style={{ color: "var(--tint-amber-bd)" }}>■</b> บังบางส่วน</span>
         <span><b style={{ color: "#F59E0B" }}>■</b> บังมาก</span>
-        <span><b style={{ color: "#DC2626" }}>■</b> บังเกือบหมด</span>
+        <span><b style={{ color: "var(--tint-red-tx2)" }}>■</b> บังเกือบหมด</span>
       </div>
     </div>
   );
@@ -786,7 +786,7 @@ function SuIvChart({ curves, stcRef, meas, height, focusId }) {
           <g key={"h" + k}>
             <line x1={L} y1={y} x2={W - R} y2={y} stroke="var(--ln)" strokeWidth="1" strokeDasharray={k === gridI ? null : "3 4"} />
             <text x={L - 7} y={y + 3.5} textAnchor="end" fontSize="9" fontWeight="700" fill="var(--text-3)">{scR(iv, iTop > 20 ? 0 : 1)}</text>
-            <text x={W - R + 7} y={y + 3.5} fontSize="9" fontWeight="700" fill="#B45309">{pv >= 1000 ? scR(pv / 1000, 1) + "k" : scR(pv, 0)}</text>
+            <text x={W - R + 7} y={y + 3.5} fontSize="9" fontWeight="700" fill="var(--tint-amber-tx)">{pv >= 1000 ? scR(pv / 1000, 1) + "k" : scR(pv, 0)}</text>
           </g>
         );
       })}
@@ -801,7 +801,7 @@ function SuIvChart({ curves, stcRef, meas, height, focusId }) {
       })}
       <line x1={L} y1={T} x2={L} y2={H - B} stroke="var(--ln2)" strokeWidth="1.2" />
       <text x={L - 7} y={T - 5} textAnchor="end" fontSize="8.5" fontWeight="800" fill="var(--text-3)">A</text>
-      <text x={W - R + 7} y={T - 5} fontSize="8.5" fontWeight="800" fill="#B45309">W</text>
+      <text x={W - R + 7} y={T - 5} fontSize="8.5" fontWeight="800" fill="var(--tint-amber-tx)">W</text>
       <text x={W - R} y={H - 4} textAnchor="end" fontSize="8.5" fontWeight="800" fill="var(--text-3)">แรงดัน (V)</text>
 
       {/* เส้นอ้างอิงที่ STC — จาง ๆ ไว้เทียบว่าอากาศตอนวัดกินไปเท่าไหร่ */}
@@ -875,7 +875,7 @@ function SuIvChart({ curves, stcRef, meas, height, focusId }) {
    ชุดเส้น I-V & P-V ที่ความเข้มแสง / อุณหภูมิต่าง ๆ
    ============================================================ */
 const SU_GRAMP = ["#0B5F35", "#15803D", "#22A35B", "#6FC48F", "#B3DEC4"];
-const SU_TRAMP = ["#1D4ED8", "#0F7A43", "#D97706", "#DC2626"];
+const SU_TRAMP = ["#1D4ED8", "#0F7A43", "#D97706", "var(--tint-red-tx2)"];
 function SuIvFamily({ curves, mode, showPv }) {
   const W = 620, H = 356, L = 46, R = 50, T = 18, B = 32;
   const list = (curves || []).filter(Boolean);
@@ -900,7 +900,7 @@ function SuIvFamily({ curves, mode, showPv }) {
           <g key={"h" + k}>
             <line x1={L} y1={y} x2={W - R} y2={y} stroke="var(--ln)" strokeWidth="1" strokeDasharray={k === gI ? null : "3 4"} />
             <text x={L - 7} y={y + 3.5} textAnchor="end" fontSize="9" fontWeight="700" fill="var(--text-3)">{scR(iv, iTop > 20 ? 0 : 1)}</text>
-            {showPv && <text x={W - R + 7} y={y + 3.5} fontSize="9" fontWeight="700" fill="#B45309">{pv >= 1000 ? scR(pv / 1000, 1) + "k" : scR(pv, 0)}</text>}
+            {showPv && <text x={W - R + 7} y={y + 3.5} fontSize="9" fontWeight="700" fill="var(--tint-amber-tx)">{pv >= 1000 ? scR(pv / 1000, 1) + "k" : scR(pv, 0)}</text>}
           </g>
         );
       })}
@@ -915,7 +915,7 @@ function SuIvFamily({ curves, mode, showPv }) {
       })}
       <line x1={L} y1={T} x2={L} y2={H - B} stroke="var(--ln2)" strokeWidth="1.2" />
       <text x={L - 7} y={T - 5} textAnchor="end" fontSize="8.5" fontWeight="800" fill="var(--text-3)">A</text>
-      {showPv && <text x={W - R + 7} y={T - 5} fontSize="8.5" fontWeight="800" fill="#B45309">W</text>}
+      {showPv && <text x={W - R + 7} y={T - 5} fontSize="8.5" fontWeight="800" fill="var(--tint-amber-tx)">W</text>}
       <text x={W - R} y={H - 4} textAnchor="end" fontSize="8.5" fontWeight="800" fill="var(--text-3)">แรงดัน (V)</text>
 
       {showPv && <path d={locus} fill="none" stroke="var(--text-3)" strokeWidth="1" strokeDasharray="2 4" opacity=".5" />}
@@ -961,8 +961,8 @@ function SuIvFamily({ curves, mode, showPv }) {
    ============================================================ */
 /* ระดับเงาบังแบบขั้นบันได — อ่านง่ายกว่าไล่เฉดต่อเนื่อง เพราะดูออกว่า "เกินกี่ %" ตรงไหน */
 const SU_ISO = [
-  { at: 0.40, c: "#B91C1C", o: 0.85, lb: "40%+" },
-  { at: 0.20, c: "#DC2626", o: 0.60, lb: "20–40%" },
+  { at: 0.40, c: "var(--tint-red-tx)", o: 0.85, lb: "40%+" },
+  { at: 0.20, c: "var(--tint-red-tx2)", o: 0.60, lb: "20–40%" },
   { at: 0.10, c: "#F59E0B", o: 0.62, lb: "10–20%" },
   { at: 0.05, c: "#F59E0B", o: 0.40, lb: "5–10%" },
   { at: 0.01, c: "#F59E0B", o: 0.22, lb: "1–5%" },
@@ -1025,7 +1025,7 @@ function SuSunPath({ path, iso, mark }) {
         return (
           <g key={p.doy}>
             {p.segs.map((sg, k) => (
-              <path key={k} d={line(sg)} fill="none" stroke="#B45309" strokeWidth={main ? 1.9 : 1.2}
+              <path key={k} d={line(sg)} fill="none" stroke="var(--tint-amber-tx)" strokeWidth={main ? 1.9 : 1.2}
                 opacity={main ? 0.95 : 0.6} strokeLinecap="round" />
             ))}
           </g>
@@ -1034,14 +1034,14 @@ function SuSunPath({ path, iso, mark }) {
       {/* ป้ายกำกับเส้นบนสุด/ล่างสุด — ที่เหลือเดาได้จากลำดับ */}
       {[path.paths[0], path.paths[path.paths.length - 1]].map((p, i) => (p && p.peak ? (
         <text key={i} x={scClamp(X(p.peak.az), L + 34, W - R - 34)} y={Y(p.peak.alt) + (i ? 13 : -7)}
-          textAnchor="middle" fontSize="8.5" fontWeight="800" fill="#B45309">{p.label}</text>
+          textAnchor="middle" fontSize="8.5" fontWeight="800" fill="var(--tint-amber-tx)">{p.label}</text>
       ) : null))}
       {/* ดวงอาทิตย์ ณ เวลาที่กำลังดูอยู่ */}
       {mark && mark.alt > 0 && mark.az >= a0 && mark.az <= a1 && (
         <g>
           <circle cx={X(mark.az)} cy={Y(mark.alt)} r="9" fill="#F59E0B" opacity=".22" />
           <circle cx={X(mark.az)} cy={Y(mark.alt)} r="4.6" fill="#F59E0B" stroke="var(--surface)" strokeWidth="1.6" />
-          <text x={X(mark.az)} y={Y(mark.alt) - 13} textAnchor="middle" fontSize="9" fontWeight="800" fill="#B45309">{mark.label || "ตอนนี้"}</text>
+          <text x={X(mark.az)} y={Y(mark.alt) - 13} textAnchor="middle" fontSize="9" fontWeight="800" fill="var(--tint-amber-tx)">{mark.label || "ตอนนี้"}</text>
         </g>
       )}
     </svg>
@@ -1103,7 +1103,7 @@ function SuLossFlow({ chain }) {
         /* กำไรกับค่าสูญเสียใช้รูปทรงเดียวกัน ต่างกันที่ทิศทางและสี — สายฟ้าเข้า vs สายที่รั่วออก */
         if (R.kind === "loss" || R.kind === "gain") {
           const gain = R.kind === "gain";
-          const col = gain ? "#2563EB" : heavy ? "#DC2626" : "#EFA53A";
+          const col = gain ? "#2563EB" : heavy ? "var(--tint-red-tx2)" : "#EFA53A";
           /* ความหนาของสาย = ความกว้างที่ลำน้ำเปลี่ยนไปพอดี — อ่านเทียบกันได้ด้วยตาเปล่า */
           const th = Math.max(3.6, Math.abs(s.wA - s.wB));
           const inner = X0 + Math.min(s.wA, s.wB);
@@ -1124,7 +1124,7 @@ function SuLossFlow({ chain }) {
                 : <line x1={X0 + s.wA} y1={yc} x2={XL} y2={yc} stroke="var(--ln2)" strokeWidth="1" strokeDasharray="2 4" />}
               <text x={LX} y={yc - 9} fontSize="10" fontWeight="700" fill={zero ? "var(--text-3)" : "var(--text-2)"}>{cut(R.label, 66)}</text>
               <text x={LX} y={yc + 3} fontSize="9.5" fontWeight="800"
-                fill={zero ? "var(--text-3)" : gain ? "#1D4ED8" : heavy ? "#B91C1C" : "#B45309"}>
+                fill={zero ? "var(--text-3)" : gain ? "#1D4ED8" : heavy ? "var(--tint-red-tx)" : "var(--tint-amber-tx)"}>
                 {gain ? "+" + R.pct + "%  ·  " + R.gain.toLocaleString() + " kWh"
                   : zero ? "ไม่เสียพลังงานในด่านนี้" : "−" + R.pct + "%  ·  " + R.loss.toLocaleString() + " kWh"}
                 {R.unit ? <tspan fill="var(--text-3)" fontWeight="700">{"   → " + R.unit}</tspan> : null}
@@ -1135,14 +1135,14 @@ function SuLossFlow({ chain }) {
         }
         /* หมุดหลัก — ต้นทาง / พลังงานนาม / เข้าอินเวอร์เตอร์ / ออกจากระบบ */
         const big = R.kind === "end", first = R.kind === "start";
-        const accent = big ? "var(--acd)" : first ? "#B45309" : "var(--ln2)";
+        const accent = big ? "var(--acd)" : first ? "var(--tint-amber-tx)" : "var(--ln2)";
         return (
           <g key={R.k}>
             <line x1={X0} y1={s.y1} x2={XL + 4} y2={s.y1} stroke={big ? "var(--acd)" : "var(--ln2)"}
               strokeWidth={big ? 1.4 : 1} strokeDasharray={big ? null : "3 4"} opacity={big ? 0.7 : 1} />
             <rect x={LX - 9} y={s.y1 - 32} width="3" height="30" rx="1.5" fill={accent} opacity={big || first ? 1 : 0.5} />
             <text x={LX} y={s.y1 - 23} fontSize="10.5" fontWeight="800" fill="var(--text-1)">{cut(R.label, 60)}</text>
-            <text x={LX} y={s.y1 - 11} fontSize="9.5" fontWeight="800" fill={big ? "var(--acd)" : first ? "#B45309" : "var(--text-2)"}>
+            <text x={LX} y={s.y1 - 11} fontSize="9.5" fontWeight="800" fill={big ? "var(--acd)" : first ? "var(--tint-amber-tx)" : "var(--text-2)"}>
               {R.kwh.toLocaleString()} kWh
               {R.unit ? <tspan fill="var(--text-3)" fontWeight="700">{"   ·   " + R.unit}</tspan> : null}
               {big ? <tspan fill="var(--acd)" fontWeight="800">{"   ·   PR " + R.pct + "%"}</tspan> : null}
@@ -1230,7 +1230,7 @@ function SuLightBar({ irr }) {
 
 /* ── ความร้อนสะสมหลังแผง: อากาศ → หลังแผง → เซลล์ ── */
 function SuThermo({ temp }) {
-  const stops = [{ v: temp.tAmb, lb: "อากาศ", c: "#60A5FA" }, { v: temp.tBack, lb: "หลังแผง", c: "#F59E0B" }, { v: temp.tCell, lb: "เซลล์", c: "#DC2626" }];
+  const stops = [{ v: temp.tAmb, lb: "อากาศ", c: "#60A5FA" }, { v: temp.tBack, lb: "หลังแผง", c: "#F59E0B" }, { v: temp.tCell, lb: "เซลล์", c: "var(--tint-red-tx2)" }];
   const lo = 20, hi = Math.max(80, temp.tCell + 6);
   const px = (v) => scClamp((v - lo) / (hi - lo) * 100, 0, 100);
   return (
@@ -1246,7 +1246,7 @@ function SuThermo({ temp }) {
           <span key={s.lb} className="p3-stat"><span style={{ width: 8, height: 8, borderRadius: 99, background: s.c, display: "inline-block" }} />
             {s.lb} <b>{s.v}°C</b></span>
         ))}
-        <span className="p3-stat" style={{ color: temp.rise > 30 ? "#B45309" : undefined }}>ร้อนกว่าอากาศ <b>+{temp.rise}°C</b></span>
+        <span className="p3-stat" style={{ color: temp.rise > 30 ? "var(--tint-amber-tx)" : undefined }}>ร้อนกว่าอากาศ <b>+{temp.rise}°C</b></span>
       </div>
     </div>
   );
@@ -1261,7 +1261,7 @@ const SU_FLOW = {
   chg:    { c: "#2563EB", label: "เก็บเข้าแบต" },
   dis:    { c: "#6366F1", label: "จ่ายออกจากแบต" },
   exp:    { c: "#EFA53A", label: "ขายคืนการไฟฟ้า" },
-  curt:   { c: "#DC2626", label: "ตัดทิ้ง (ห้ามไหลย้อน)" },
+  curt:   { c: "var(--tint-red-tx2)", label: "ตัดทิ้ง (ห้ามไหลย้อน)" },
   imp:    { c: "#94A3B8", label: "ซื้อจากการไฟฟ้า" },
 };
 function SuFlowDay({ rows, mode, on, height }) {
@@ -1330,11 +1330,11 @@ function SuPxx({ px, mode }) {
   const fill = under.length
     ? "M" + under[0].x.toFixed(1) + " " + Y(0) + " L" + under.map((p) => p.x.toFixed(1) + " " + p.y.toFixed(1)).join(" L")
       + " L" + under[under.length - 1].x.toFixed(1) + " " + Y(0) + " Z" : "";
-  const marks = [{ p: 50, v: p50, c: "#0B5F35" }, { p: 90, v: p90, c: "#B45309" }];
+  const marks = [{ p: 50, v: p50, c: "#0B5F35" }, { p: 90, v: p90, c: "var(--tint-amber-tx)" }];
   return (
     <svg viewBox={"0 0 " + W + " " + H} style={{ width: "100%", display: "block", overflow: "visible" }}>
       <line x1={L} y1={Y(0)} x2={W - R} y2={Y(0)} stroke="var(--ln2)" strokeWidth="1.2" />
-      {fill && <path d={fill} fill="#B45309" opacity=".16" />}
+      {fill && <path d={fill} fill="var(--tint-amber-tx)" opacity=".16" />}
       <polyline points={line} fill="none" stroke="#0B5F35" strokeWidth="2" />
       {marks.map((m) => (
         <g key={m.p}>
@@ -1346,7 +1346,7 @@ function SuPxx({ px, mode }) {
       ))}
       <text x={L} y={H - 3} fontSize="8.5" fontWeight="700" fill="var(--text-3)">แย่กว่าที่คิด</text>
       <text x={W - R} y={H - 3} textAnchor="end" fontSize="8.5" fontWeight="700" fill="var(--text-3)">ดีกว่าที่คิด</text>
-      <text x={X(p90)} y={H - 3} textAnchor="middle" fontSize="8.5" fontWeight="800" fill="#B45309">โอกาสตกลงมาต่ำกว่านี้ 10%</text>
+      <text x={X(p90)} y={H - 3} textAnchor="middle" fontSize="8.5" fontWeight="800" fill="var(--tint-amber-tx)">โอกาสตกลงมาต่ำกว่านี้ 10%</text>
     </svg>
   );
 }
@@ -1369,8 +1369,8 @@ function SuCash({ roi }) {
       ))}
       {roi.payback != null && roi.payback <= rows.length && (
         <g>
-          <line x1={X(roi.payback)} y1={T} x2={X(roi.payback)} y2={H - B} stroke="#B45309" strokeWidth="1.6" strokeDasharray="4 3" />
-          <text x={X(roi.payback) + 5} y={T + 10} fontSize="10" fontWeight="800" fill="#B45309">คืนทุนปีที่ {roi.payback}</text>
+          <line x1={X(roi.payback)} y1={T} x2={X(roi.payback)} y2={H - B} stroke="var(--tint-amber-tx)" strokeWidth="1.6" strokeDasharray="4 3" />
+          <text x={X(roi.payback) + 5} y={T + 10} fontSize="10" fontWeight="800" fill="var(--tint-amber-tx)">คืนทุนปีที่ {roi.payback}</text>
         </g>
       )}
       {rows.map((r, i) => (i % 5 === 4 || i === 0) && (
@@ -1768,7 +1768,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
       <style>{SU_CSS}</style>
       {/* header */}
       <div className="p3-head" style={{ padding: "11px 18px" }}>
-        <span style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(245,158,11,.14)", display: "grid", placeItems: "center", flexShrink: 0, color: "#B45309" }}>
+        <span style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(245,158,11,.14)", display: "grid", placeItems: "center", flexShrink: 0, color: "var(--tint-amber-tx)" }}>
           <P3Icon name="sun" size={16} />
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -1910,7 +1910,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                       const cur = scCurrent(panel, inv, per);
                       const lay = scPinLayout(inv, S.invCount);
                       const row = (lb, val, lim, tip) => (
-                        <span className="p3-stat" title={tip} style={{ color: lim && val > lim ? "#B91C1C" : undefined }}>
+                        <span className="p3-stat" title={tip} style={{ color: lim && val > lim ? "var(--tint-red-tx)" : undefined }}>
                           {lb} <b>{val} A</b>{lim ? <span style={{ color: "var(--text-3)", fontWeight: 700 }}>&nbsp;/ {lim} A</span> : <span style={{ color: "var(--text-3)" }}>&nbsp;/ ยังไม่ระบุ</span>}
                         </span>
                       );
@@ -1979,11 +1979,11 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                         {/* เทียบกระแสเข้า 1 ช่อง MPPT ให้เห็นทันที (แบบเดียวกับสตริง) */}
                         {panel.imp && (
                           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", borderTop: "1px solid var(--ln)", paddingTop: 9 }}>
-                            <span className="p3-stat" style={{ color: microSel.cur.limOp && microSel.cur.opA > microSel.cur.limOp ? "#B91C1C" : undefined }}>
+                            <span className="p3-stat" style={{ color: microSel.cur.limOp && microSel.cur.opA > microSel.cur.limOp ? "var(--tint-red-tx)" : undefined }}>
                               กระแสทำงาน (Imp) <b>{microSel.cur.opA} A</b>
                               <span style={{ color: "var(--text-3)", fontWeight: 700 }}>&nbsp;/ {microSel.cur.limOp || "—"} A</span>
                             </span>
-                            <span className="p3-stat" style={{ color: microSel.cur.limSc && microSel.cur.scA > microSel.cur.limSc ? "#B91C1C" : undefined }}>
+                            <span className="p3-stat" style={{ color: microSel.cur.limSc && microSel.cur.scA > microSel.cur.limSc ? "var(--tint-red-tx)" : undefined }}>
                               กระแสลัดวงจร (Isc×1.25) <b>{microSel.cur.scA} A</b>
                               <span style={{ color: "var(--text-3)", fontWeight: 700 }}>&nbsp;/ {microSel.cur.limSc || "—"} A</span>
                             </span>
@@ -2035,7 +2035,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                   <div className="p3-card">
                     <span className="p3-eb"><P3Icon name="height" size={13} />จำนวนแผงต่ออนุกรม (ต่อ 1 สตริง)<span className="ln" /></span>
                     <span className="p3-note" style={{ marginTop: -3 }}>
-                      แถบคือช่วงแรงดันจริงของสตริง ตั้งแต่ตอน<b style={{ color: "#B45309" }}>แผงร้อนจัด</b>ถึงตอน<b style={{ color: "var(--acd)" }}>อากาศเย็น</b> —
+                      แถบคือช่วงแรงดันจริงของสตริง ตั้งแต่ตอน<b style={{ color: "var(--tint-amber-tx)" }}>แผงร้อนจัด</b>ถึงตอน<b style={{ color: "var(--acd)" }}>อากาศเย็น</b> —
                       ต้องอยู่ในพื้นเขียว (ช่วง MPPT) ตลอด และขีด Voc ห้ามเลยเส้นแดง
                     </span>
                     <SuVoltBand rows={range.rows.filter((r) => r.n >= Math.max(1, range.min - 2) && r.n <= range.max + 2)}
@@ -2064,8 +2064,8 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                             color: activeStr === s.id ? suColor(s.id) : "var(--text-2)" }}>
                           <span className="dot" style={{ background: suColor(s.id), width: 9, height: 9 }} />
                           สตริง {s.id} · <b>{s.n}</b>
-                          {!s.chk.ok && <span style={{ color: "#B91C1C", fontWeight: 800 }}>!</span>}
-                          {s.mixed && <span style={{ color: "#B45309", fontWeight: 800 }}>⌇</span>}
+                          {!s.chk.ok && <span style={{ color: "var(--tint-red-tx)", fontWeight: 800 }}>!</span>}
+                          {s.mixed && <span style={{ color: "var(--tint-amber-tx)", fontWeight: 800 }}>⌇</span>}
                         </button>
                       ))}
                       <button className="p3-chip" onClick={() => setActiveStr(nextStr)} data-on={activeStr === nextStr ? "1" : "0"}
@@ -2117,7 +2117,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                                 </span>
                               </td>
                               <td><b>{s.n}</b></td>
-                              <td style={{ maxWidth: 190, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: s.mixed ? "#B45309" : undefined }}>{s.label}</td>
+                              <td style={{ maxWidth: 190, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: s.mixed ? "var(--tint-amber-tx)" : undefined }}>{s.label}</td>
                               <td>
                                 <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
                                   <select className="p3-inp su-slot" value={(S.mpptPick || {})[s.id] != null ? (S.mpptPick || {})[s.id] : ""}
@@ -2138,7 +2138,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                               </td>
                               <td>{s.chk.vocCold} V</td>
                               <td>{s.chk.vmpHot}–{s.chk.vmpCold} V</td>
-                              <td style={{ color: s.chk.ok ? "var(--acd)" : "#B91C1C", fontWeight: 800 }}>{s.chk.ok ? s.chk.band : "ไม่ผ่าน"}</td>
+                              <td style={{ color: s.chk.ok ? "var(--acd)" : "var(--tint-red-tx)", fontWeight: 800 }}>{s.chk.ok ? s.chk.band : "ไม่ผ่าน"}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -2157,7 +2157,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                     <div style={{ display: "flex", gap: 14, flexWrap: "wrap", borderTop: "1px solid var(--ln)", paddingTop: 9 }}>
                       <span className="p3-stat">DC <b>{plan.dcKw}</b> kWp</span>
                       <span className="p3-stat">AC <b>{plan.acKw}</b> kW</span>
-                      <span className="p3-stat" style={{ color: plan.dcAc > 1.4 || plan.dcAc < 0.85 ? "#B45309" : undefined }}>DC/AC <b>{plan.dcAc}</b></span>
+                      <span className="p3-stat" style={{ color: plan.dcAc > 1.4 || plan.dcAc < 0.85 ? "var(--tint-amber-tx)" : undefined }}>DC/AC <b>{plan.dcAc}</b></span>
                     </div>
                   </div>
                 )}
@@ -2178,7 +2178,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                                 <td><b>{g.count}</b></td>
                                 <td><b>{u}</b> ตัว</td>
                                 <td>{u * microSel.nMppt} ช่อง</td>
-                                <td style={{ color: odd ? "#B45309" : "var(--text-3)" }}>{odd ? "เหลือแผงเดี่ยว 1 แผง (ตัวสุดท้ายใช้ช่องเดียว)" : "ลงตัวพอดี"}</td>
+                                <td style={{ color: odd ? "var(--tint-amber-tx)" : "var(--text-3)" }}>{odd ? "เหลือแผงเดี่ยว 1 แผง (ตัวสุดท้ายใช้ช่องเดียว)" : "ลงตัวพอดี"}</td>
                               </tr>
                             );
                           })}
@@ -2199,26 +2199,26 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                                 : "Vmp ตอนอากาศเย็น"}</td>
                               <td><b>{scR(c.v, 1)}</b> V</td>
                               <td>{c.k === "hot" ? "≥ " : "≤ "}{c.lim} V</td>
-                              <td style={{ color: c.ok ? "#12794A" : "#B91C1C", fontWeight: 800 }}>{c.ok ? "ผ่าน" : "ไม่ผ่าน"}</td>
+                              <td style={{ color: c.ok ? "#12794A" : "var(--tint-red-tx)", fontWeight: 800 }}>{c.ok ? "ผ่าน" : "ไม่ผ่าน"}</td>
                             </tr>
                           ))}
                           <tr>
                             <td>กระแสทำงาน Imp</td><td><b>{microSel.cur.opA}</b> A</td>
                             <td>{microSel.cur.limOp ? "≤ " + microSel.cur.limOp + " A" : "ยังไม่ระบุ"}</td>
-                            <td style={{ color: !microSel.cur.limOp ? "var(--text-3)" : microSel.cur.opA <= microSel.cur.limOp ? "#12794A" : "#B91C1C", fontWeight: 800 }}>
+                            <td style={{ color: !microSel.cur.limOp ? "var(--text-3)" : microSel.cur.opA <= microSel.cur.limOp ? "#12794A" : "var(--tint-red-tx)", fontWeight: 800 }}>
                               {!microSel.cur.limOp ? "—" : microSel.cur.opA <= microSel.cur.limOp ? "ผ่าน" : "ไม่ผ่าน"}</td>
                           </tr>
                           <tr>
                             <td>กระแสลัดวงจร Isc×1.25</td><td><b>{microSel.cur.scA}</b> A</td>
                             <td>{microSel.cur.limSc ? "≤ " + microSel.cur.limSc + " A" : "ยังไม่ระบุ"}</td>
-                            <td style={{ color: !microSel.cur.limSc ? "var(--text-3)" : microSel.cur.scA <= microSel.cur.limSc ? "#12794A" : "#B91C1C", fontWeight: 800 }}>
+                            <td style={{ color: !microSel.cur.limSc ? "var(--text-3)" : microSel.cur.scA <= microSel.cur.limSc ? "#12794A" : "var(--tint-red-tx)", fontWeight: 800 }}>
                               {!microSel.cur.limSc ? "—" : microSel.cur.scA <= microSel.cur.limSc ? "ผ่าน" : "ไม่ผ่าน"}</td>
                           </tr>
                           {(microSel.spec.wpMin > 0 || microSel.spec.wpMax > 0) && (
                             <tr>
                               <td>กำลังแผงที่รองรับ</td><td><b>{scNum(panel.wp)}</b> W</td>
                               <td>{microSel.spec.wpMin || "—"} – {microSel.spec.wpMax || "—"} W</td>
-                              <td style={{ color: (!microSel.spec.wpMin || scNum(panel.wp) >= microSel.spec.wpMin) && (!microSel.spec.wpMax || scNum(panel.wp) <= microSel.spec.wpMax) ? "#12794A" : "#B91C1C", fontWeight: 800 }}>
+                              <td style={{ color: (!microSel.spec.wpMin || scNum(panel.wp) >= microSel.spec.wpMin) && (!microSel.spec.wpMax || scNum(panel.wp) <= microSel.spec.wpMax) ? "#12794A" : "var(--tint-red-tx)", fontWeight: 800 }}>
                                 {(!microSel.spec.wpMin || scNum(panel.wp) >= microSel.spec.wpMin) && (!microSel.spec.wpMax || scNum(panel.wp) <= microSel.spec.wpMax) ? "ผ่าน" : "ไม่ผ่าน"}</td>
                             </tr>
                           )}
@@ -2244,7 +2244,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                             color: activeMu === u.id ? suColor(u.id) : "var(--text-2)" }}>
                           <span className="dot" style={{ background: suColor(u.id), width: 9, height: 9 }} />
                           ไมโคร {u.id} · <b>{u.n}</b>
-                          {(u.mixed || u.over) && <span style={{ color: "#B91C1C", fontWeight: 800 }}>!</span>}
+                          {(u.mixed || u.over) && <span style={{ color: "var(--tint-red-tx)", fontWeight: 800 }}>!</span>}
                         </button>
                       ))}
                       <button className="p3-chip" onClick={() => setActiveMu(nextMu)} data-on={activeMu === nextMu ? "1" : "0"}
@@ -2421,8 +2421,8 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                       <span className="p3-stat">ตก <b>{ivHM(sim.sunset)}</b></span>
                       <span className="p3-stat">แดดแรงสุด <b>{sim.maxPoa}</b> W/m² ตอน <b>{ivHM(sim.peak ? sim.peak.h : null)}</b></span>
                       <span className="p3-stat">ผลิตได้วันนี้ <b>{sim.dayKwh}</b> kWh</span>
-                      {sim.clipHours > 0 && <span className="p3-stat" style={{ color: "#B45309" }}>อินเวอร์เตอร์ตัดยอด <b>{sim.clipHours}</b> ชม.</span>}
-                      {sim.shadeLossPct > 0 && <span className="p3-stat" style={{ color: "#B45309" }}>เงากินไป <b>{sim.shadeLossKwh}</b> kWh ({sim.shadeLossPct}%)</span>}
+                      {sim.clipHours > 0 && <span className="p3-stat" style={{ color: "var(--tint-amber-tx)" }}>อินเวอร์เตอร์ตัดยอด <b>{sim.clipHours}</b> ชม.</span>}
+                      {sim.shadeLossPct > 0 && <span className="p3-stat" style={{ color: "var(--tint-amber-tx)" }}>เงากินไป <b>{sim.shadeLossKwh}</b> kWh ({sim.shadeLossPct}%)</span>}
                     </div>
 
                     <span className="p3-eb" style={{ marginTop: 3 }}><P3Icon name="tree" size={12} />เงาบังรายชั่วโมง — จากตัวอาคารและสิ่งบดบังในผัง 3 มิติ<span className="ln" />
@@ -2440,7 +2440,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                     <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 9.5, color: "var(--text-3)", fontWeight: 700 }}>
                       <span><b style={{ color: "#22A35B" }}>┅</b> กำลัง DC จากแผง</span>
                       <span><b style={{ color: "#0F7A43" }}>━</b> กำลัง AC ที่ออกจากอินเวอร์เตอร์จริง</span>
-                      <span><b style={{ color: "#DC2626" }}>━</b> อุณหภูมิเซลล์ (แกนขวา)</span>
+                      <span><b style={{ color: "var(--tint-red-tx2)" }}>━</b> อุณหภูมิเซลล์ (แกนขวา)</span>
                     </div>
                   </div>
                 )}
@@ -2461,10 +2461,10 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                     <div style={{ display: "flex", gap: 14, flexWrap: "wrap", borderTop: "1px solid var(--ln)", paddingTop: 9 }}>
                       <span className="p3-stat" title="รวมจากวันตัวแทนของแต่ละเดือน — ตัวเลขทางการดูที่ขั้นผลผลิต ซึ่งเดินครบทุกวันของปี">
                         ผลิตทั้งปี (ประมาณ) <b>{Math.round(year.totalKwh / 1000).toLocaleString()}</b> MWh</span>
-                      <span className="p3-stat" style={{ color: year.shadeLossPct > 0 ? "#B45309" : undefined }}>
+                      <span className="p3-stat" style={{ color: year.shadeLossPct > 0 ? "var(--tint-amber-tx)" : undefined }}>
                         เงากินทั้งปี <b>{year.shadeLossKwh.toLocaleString()}</b> kWh ({year.shadeLossPct}%)</span>
                       {year.worstMonth && year.worstMonth.shadeLossPct > 0 && (
-                        <span className="p3-stat" style={{ color: "#B45309" }}>เดือนที่โดนหนักสุด <b>{year.worstMonth.label}</b> ({year.worstMonth.shadeLossPct}%)</span>
+                        <span className="p3-stat" style={{ color: "var(--tint-amber-tx)" }}>เดือนที่โดนหนักสุด <b>{year.worstMonth.label}</b> ({year.worstMonth.shadeLossPct}%)</span>
                       )}
                       {year.clipHours > 0 && <span className="p3-stat">อินเวอร์เตอร์ตัดยอดรวม <b>{year.clipHours}</b> ชม./ปี</span>}
                     </div>
@@ -2480,7 +2480,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                               <td>{scR(mo.peakAc, 2)} kW</td>
                               <td>{scR(mo.dayKwh, 1)} kWh</td>
                               <td><b>{mo.monthKwh.toLocaleString()}</b> kWh</td>
-                              <td style={{ fontWeight: 800, color: mo.shadeLossPct >= 5 ? "#B91C1C" : mo.shadeLossPct > 0 ? "#B45309" : "var(--text-3)" }}>
+                              <td style={{ fontWeight: 800, color: mo.shadeLossPct >= 5 ? "var(--tint-red-tx)" : mo.shadeLossPct > 0 ? "var(--tint-amber-tx)" : "var(--text-3)" }}>
                                 {mo.shadeLossPct}%{mo.shadeFrom != null ? " (" + ivHM(mo.shadeFrom) + "–" + ivHM(mo.shadeTo) + ")" : ""}
                               </td>
                             </tr>
@@ -2526,7 +2526,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                         <span className="p3-stat">วันที่สั้นที่สุด <b>{ivHM(sunPath.paths[sunPath.paths.length - 1].rise)}–{ivHM(sunPath.paths[sunPath.paths.length - 1].set)}</b></span>
                       )}
                       {isoShade && isoShade.worst && (
-                        <span className="p3-stat" style={{ color: "#B45309" }}>
+                        <span className="p3-stat" style={{ color: "var(--tint-amber-tx)" }}>
                           ทิศทางที่โดนหนักสุด <b>ทิศ {isoShade.worst.az}° สูง {isoShade.worst.alt}°</b> ({scR(isoShade.worst.f * 100, 1)}%)</span>
                       )}
                     </div>
@@ -2621,7 +2621,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                       {shadeAuto ? (
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", minHeight: 30 }}>
                           {ivRows.map((r) => (
-                            <span key={r.u.id} className="p3-stat" style={{ color: r.shade >= 10 ? "#B91C1C" : r.shade > 0 ? "#B45309" : undefined }}>
+                            <span key={r.u.id} className="p3-stat" style={{ color: r.shade >= 10 ? "var(--tint-red-tx)" : r.shade > 0 ? "var(--tint-amber-tx)" : undefined }}>
                               {r.u.name} <b>{scR(r.shade, 1)}%</b>
                             </span>
                           ))}
@@ -2643,7 +2643,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                         <span className="p3-stat" title="แสงรวมที่ตกบนพื้นราบ">แสงบนพื้นราบ <b>{ivMain.irr.ghi}</b> W/m²</span>
                         <span className="p3-stat" title="มุมระหว่างลำแสงกับเส้นตั้งฉากหน้าแผง — ยิ่งน้อยยิ่งได้แสงเต็ม">มุมตกกระทบ <b>{ivMain.irr.aoi}°</b></span>
                         <span className="p3-stat" title="แสงที่สะท้อนออกจากผิวกระจกเมื่อแสงเข้าเฉียง">ผ่านผิวกระจก <b>{scR(ivMain.irr.iam * 100, 1)}%</b></span>
-                        <span className="p3-stat" style={{ color: ivMain.irr.tiltGain >= 1 ? "var(--acd)" : "#B45309" }}
+                        <span className="p3-stat" style={{ color: ivMain.irr.tiltGain >= 1 ? "var(--acd)" : "var(--tint-amber-tx)" }}
                           title="มุมเอียงหลังคาทำให้ได้แสงมากกว่า/น้อยกว่าพื้นราบเท่าไหร่">
                           มุมหลังคา{ivMain.irr.tiltGain >= 1 ? "ช่วยเพิ่ม" : "ทำให้ลด"} <b>{scR(Math.abs(ivMain.irr.tiltGain - 1) * 100, 1)}%</b></span>
                         <span className="p3-stat">ดวงอาทิตย์สูง <b>{ivMain.irr.alt}°</b> ทิศ <b>{ivMain.irr.az}°</b></span>
@@ -2680,7 +2680,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                           <b>สตริงนี้โดนเงาบังในเวลานี้</b> — เงาบังพื้นที่จริง <b>{scR(ivCur.el.geo * 100, 1)}%</b>
                           แต่แผงต่ออนุกรมกัน กระแสไหลได้เท่าตัวที่แย่ที่สุด ไดโอดบายพาสจึงตัดท่อนที่โดนบังทิ้ง
                           <b> {ivCur.el.subLost} จาก {ivCur.el.subTotal} ท่อน</b> →
-                          กำลังหายจริง <b style={{ color: "#B91C1C" }}>{scR(ivCur.el.elec * 100, 1)}%</b>
+                          กำลังหายจริง <b style={{ color: "var(--tint-red-tx)" }}>{scR(ivCur.el.elec * 100, 1)}%</b>
                           {ivCur.el.geo > 0 ? " (แรงกว่าคิดตามพื้นที่ " + scR(ivCur.el.elec / Math.max(0.0001, ivCur.el.geo), 1) + " เท่า)" : ""}
                           {" · เส้นเขียวหักผลนี้ไปแล้ว"}
                         </span>
@@ -2817,7 +2817,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                           <tr key={g.key}>
                             <td style={{ maxWidth: 170, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{g.roofName}{g.side ? " · " + g.side : ""}</td>
                             <td>{g.tilt}°</td><td>{g.az}°</td><td>{g.count}</td><td>{g.kwp}</td>
-                            <td style={{ color: g.shade >= 5 ? "#B45309" : undefined }}>{g.shade || 0}%</td>
+                            <td style={{ color: g.shade >= 5 ? "var(--tint-amber-tx)" : undefined }}>{g.shade || 0}%</td>
                             <td>{g.kwhPerKwp.toLocaleString()}</td><td><b>{g.kwh.toLocaleString()}</b></td>
                           </tr>
                         ))}
@@ -2859,8 +2859,8 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                     <React.Fragment>
                       <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
                         <span className="p3-stat">เงาเชิงพื้นที่ <b>{shade3d.geoOnly}%</b></span>
-                        <span className="p3-stat" style={{ color: "#B91C1C" }}>+ ผลฉุดทั้งสตริง <b>{shade3d.elecExtra}%</b></span>
-                        <span className="p3-stat" style={{ color: shade3d.overall >= 5 ? "#B45309" : "var(--acd)", fontWeight: 800 }}>
+                        <span className="p3-stat" style={{ color: "var(--tint-red-tx)" }}>+ ผลฉุดทั้งสตริง <b>{shade3d.elecExtra}%</b></span>
+                        <span className="p3-stat" style={{ color: shade3d.overall >= 5 ? "var(--tint-amber-tx)" : "var(--acd)", fontWeight: 800 }}>
                           = เสียจริง <b>{shade3d.overall}%</b> ต่อปี</span>
                         <span className="p3-stat">ตัวอาคาร/หลังคา <b>{shade3d.buildings}</b> ชิ้น</span>
                         <span className="p3-stat">สิ่งบดบังในผัง <b>{shade3d.obstacles}</b> ชิ้น</span>
@@ -2906,10 +2906,10 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                                 <tr key={g.key}>
                                   <td style={{ maxWidth: 210, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{g.label}</td>
                                   <td>{g.count}</td>
-                                  <td style={{ fontWeight: 800, color: v >= 8 ? "#B91C1C" : v >= 3 ? "#B45309" : "var(--acd)" }}>{v}%</td>
+                                  <td style={{ fontWeight: 800, color: v >= 8 ? "var(--tint-red-tx)" : v >= 3 ? "var(--tint-amber-tx)" : "var(--acd)" }}>{v}%</td>
                                   <td style={{ width: 110 }}>
                                     <span className="su-bar" style={{ display: "block", height: 6 }}>
-                                      <span style={{ width: scClamp(v * 5, 0, 100) + "%", background: v >= 8 ? "#DC2626" : v >= 3 ? "#D97706" : "#22A35B" }} />
+                                      <span style={{ width: scClamp(v * 5, 0, 100) + "%", background: v >= 8 ? "var(--tint-red-tx2)" : v >= 3 ? "#D97706" : "#22A35B" }} />
                                     </span>
                                   </td>
                                 </tr>
@@ -2923,7 +2923,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                           <span className="p3-eb" style={{ marginTop: 2 }}>แผงที่โดนบังหนักที่สุด<span className="ln" /></span>
                           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                             {shade3d.worst.map((w) => (
-                              <span key={w.uid} className="p3-chip" style={{ cursor: "default", color: w.pct >= 15 ? "#B91C1C" : "#B45309" }}>
+                              <span key={w.uid} className="p3-chip" style={{ cursor: "default", color: w.pct >= 15 ? "var(--tint-red-tx)" : "var(--tint-amber-tx)" }}>
                                 {w.roofName} · {w.key} <b>{w.pct}%</b>
                               </span>
                             ))}
@@ -3501,14 +3501,14 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
         <span className="su-kpi"><span className="k">กำลังติดตั้ง DC</span><span className="v">{energy ? energy.dcKw : 0}<small>kWp</small></span></span>
         <span className="su-kpi"><span className="k">อินเวอร์เตอร์ AC</span><span className="v">{acKw || 0}<small>kW</small></span></span>
         <span className="su-kpi"><span className="k">DC/AC</span>
-          <span className="v" style={{ color: energy && (energy.dcAc > 1.4 || (energy.dcAc && energy.dcAc < 0.85)) ? "#B45309" : undefined }}>{energy ? energy.dcAc : "—"}</span></span>
+          <span className="v" style={{ color: energy && (energy.dcAc > 1.4 || (energy.dcAc && energy.dcAc < 0.85)) ? "var(--tint-amber-tx)" : undefined }}>{energy ? energy.dcAc : "—"}</span></span>
         <span className="su-kpi"><span className="k">{isMicro ? "ไมโคร" : "สตริง"}</span>
           <span className="v">{isMicro ? (microSel ? microSel.units : 0) : (plan ? plan.strings.length : 0)}<small>{isMicro ? "ตัว" : "สตริง"}</small></span></span>
         <span className="su-kpi"><span className="k">ผลผลิตปีแรก</span><span className="v">{life ? life.rows[0].kwh.toLocaleString() : "—"}<small>kWh</small></span></span>
         <span className="su-kpi"><span className="k">รวม {S.years} ปี</span><span className="v">{life ? Math.round(life.total / 1000).toLocaleString() : "—"}<small>MWh</small></span></span>
         <span style={{ flex: 1 }} />
         {!!warns.length && (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11.5, fontWeight: 700, color: "#B45309", marginRight: 12 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11.5, fontWeight: 700, color: "var(--tint-amber-tx)", marginRight: 12 }}>
             <span style={{ width: 7, height: 7, borderRadius: 99, background: "#F59E0B", boxShadow: "0 0 0 3px rgba(245,158,11,.22)" }} />
             {warns.length} ข้อควรแก้
           </span>
@@ -3561,7 +3561,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
               <button className="p3-b sm" onClick={() => repPreset(["equip", "wiring", "layout", "iv", "ivDay", "ivYear", "ivAll", "ivMeas"])}
                 title="อุปกรณ์ · การต่อ · ผัง · เส้น I-V — เอาไว้ให้ช่างถือหน้างาน">ฉบับหน้างาน</button>
               <span style={{ flex: 1 }} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: repCount ? "var(--text-3)" : "#B45309", marginRight: 4 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: repCount ? "var(--text-3)" : "var(--tint-amber-tx)", marginRight: 4 }}>
                 {repCount ? repCount + " หัวข้อ" : "ยังไม่เลือกหัวข้อ"}
               </span>
               <button className="p3-b pri" style={{ padding: "9px 18px" }} onClick={doReport}

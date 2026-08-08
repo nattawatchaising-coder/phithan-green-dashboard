@@ -136,7 +136,7 @@ function ReportBlock({ job, onOpen }) {
                 <span style={{ color: "var(--text-3)", flexShrink: 0 }}>•</span>
                 {RP_LINK(x)
                   ? <a href={x} target="_blank" rel="noopener noreferrer" style={{ color: "#3B82F6", wordBreak: "break-all", textDecoration: "none" }}>{x}</a>
-                  : <span style={{ color: x.startsWith("⚠") ? "#DC2626" : "var(--text-2)" }}>{x}</span>}
+                  : <span style={{ color: x.startsWith("⚠") ? "var(--tint-red-tx2)" : "var(--text-2)" }}>{x}</span>}
               </li>
             ))}
           </ul>
@@ -428,7 +428,7 @@ function DailyReport({ job, onClose }) {
                   </div>
                 )}
                 <DRBlock emoji="✅" title="งานวันนี้" txt={form.done} color="var(--primary-dark)" />
-                <DRBlock emoji="⚠️" title="ปัญหา / อุปสรรค" txt={form.issues} color="#B45309" />
+                <DRBlock emoji="⚠️" title="ปัญหา / อุปสรรค" txt={form.issues} color="var(--tint-amber-tx)" />
                 <DRBlock emoji="➡️" title="แผนพรุ่งนี้" txt={form.plan} color="#2563EB" />
                 <div style={{ borderTop: "1px solid var(--border)", paddingTop: 9, display: "flex", gap: 14, flexWrap: "wrap", fontSize: 11.5, color: "var(--text-3)" }}>
                   <span>👷 {(form.crew || "").trim() || (tech ? tech.name : "-")}</span>

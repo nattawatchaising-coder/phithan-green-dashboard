@@ -10,7 +10,7 @@
 const PLAN_LINE_KINDS = [
   { key: "dc",      label: "สาย DC (PV)", color: "#EF4444", spare: 10 },
   { key: "ac",      label: "สาย AC",      color: "#3B82F6", spare: 10 },
-  { key: "ground",  label: "สายกราวด์",   color: "#16A34A", spare: 10 },
+  { key: "ground",  label: "สายกราวด์",   color: "var(--tint-green-tx)", spare: 10 },
   { key: "lan",     label: "สาย LAN",     color: "#F59E0B", spare: 10 },
   { key: "conduit", label: "ท่อร้อยสาย",  color: "#7C5CFC", spare: 5 },
 ];
@@ -38,7 +38,7 @@ const PLAN_MARKER_KINDS = [
   { key: "ground",   label: "จุดกราวด์",     color: "#84CC16", icon: "pin" },
 ];
 const PLAN_MARKER_BY = {}; PLAN_MARKER_KINDS.forEach((k) => { PLAN_MARKER_BY[k.key] = k; });
-PLAN_MARKER_BY.array = { key: "array", label: "แผงโซลาร์", color: "#16A34A", icon: "panel" }; // legacy: จุดแผงแบบเก่า
+PLAN_MARKER_BY.array = { key: "array", label: "แผงโซลาร์", color: "var(--tint-green-tx)", icon: "panel" }; // legacy: จุดแผงแบบเก่า
 PLAN_MARKER_BY.camera = { key: "camera", label: "จุดกล้อง", color: "#F59E0B", icon: "pin" };  // จุดแนบรูปวางได้อิสระ (ไม่นับเป็นอุปกรณ์)
 
 // ค่าเริ่มต้นข้อมูลบน PDF นำเสนอ (แก้ไข + จำไว้ในเครื่องได้)
@@ -1396,7 +1396,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                 </button>
                 <button onClick={() => exportPlanPDF(typeof navigator !== "undefined" && navigator.share ? "share" : "download")} disabled={exporting} title="สร้าง PDF นำเสนอ (ปก + ผัง + รายละเอียดแต่ละจุด + สรุป)"
                   style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 10, cursor: exporting ? "default" : "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, opacity: exporting ? 0.6 : 1,
-                    border: "1px solid #B91C1C", background: "#B91C1C", color: "#fff" }}>
+                    border: "1px solid var(--tint-red-tx)", background: "var(--tint-red-tx)", color: "#fff" }}>
                   <Icon name="file" size={14} color="#fff" />{exporting ? "กำลังทำ..." : "PDF นำเสนอ"}
                 </button>
                 <button onClick={() => setPdfSettings(true)} title="แก้ข้อความรับประกัน / ติดต่อ / โลโก้ บน PDF"
@@ -1819,10 +1819,10 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                     return (
                       <g key={nt.id} onClick={(e) => { if (tool === "erase" || tool === "move") return; e.stopPropagation(); setNoteEdit(nt.id); }}
                         style={{ cursor: tool === "move" ? "move" : "pointer", pointerEvents: canEdit ? "auto" : "none" }}>
-                        <rect x={g.x} y={g.y} width={g.w} height={g.h} rx={7} fill="#FEF3C7" stroke="#F59E0B" strokeWidth={1.4} opacity={0.97} />
+                        <rect x={g.x} y={g.y} width={g.w} height={g.h} rx={7} fill="var(--tint-amber-bg2)" stroke="#F59E0B" strokeWidth={1.4} opacity={0.97} />
                         <rect x={g.x} y={g.y} width={4} height={g.h} rx={2} fill="#F59E0B" />
                         {empty
-                          ? <text x={g.x + 10} y={g.y + 16} fontSize={g.fs} fontStyle="italic" fill="#B45309" style={{ pointerEvents: "none" }}>แตะเพื่อพิมพ์…</text>
+                          ? <text x={g.x + 10} y={g.y + 16} fontSize={g.fs} fontStyle="italic" fill="var(--tint-amber-tx)" style={{ pointerEvents: "none" }}>แตะเพื่อพิมพ์…</text>
                           : g.rows.map((r, i) => <text key={i} x={g.x + 10} y={g.y + 16 + i * (g.fs + 5)} fontSize={g.fs} fontWeight="600" fill="#78350F" style={{ pointerEvents: "none", whiteSpace: "pre" }}>{r}</text>)}
                       </g>
                     );
@@ -1934,7 +1934,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                         </div>
                         <div style={{ marginTop: 9, fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.7 }}>
                           {dcCalc.isc > 0 ? (
-                            <span>กระแสออกแบบ = Isc × 1.25 ≈ <b style={{ color: "var(--text-1)" }}>{dcCalc.amp}</b> A → สายแนะนำ <b style={{ color: "#b91c1c", fontSize: 14 }}>{dcCalc.cable}</b>
+                            <span>กระแสออกแบบ = Isc × 1.25 ≈ <b style={{ color: "var(--text-1)" }}>{dcCalc.amp}</b> A → สายแนะนำ <b style={{ color: "var(--tint-red-tx)", fontSize: 14 }}>{dcCalc.cable}</b>
                               {(() => { const dc = summary.cable.find((c) => c.kind.key === "dc"); return dc && dc.raw > 0 ? <span> · ยาว <b style={{ color: "var(--text-1)" }}>{dc.withSpare.toLocaleString()}</b> ม.</span> : null; })()}
                             </span>
                           ) : <span style={{ color: "#F59E0B" }}>ใส่ค่า Isc ของแผง (หรือเลือกรุ่นแผงจากคลังที่กรอก Isc ไว้) เพื่อคำนวณขนาดสาย DC</span>}
@@ -1972,7 +1972,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                           </div>
                         </div>
                         <div style={{ marginTop: 9, fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.7 }}>
-                          ระบบ <b style={{ color: "var(--text-1)" }}>{acCalc.kw || 0}</b> kW → กระแส ≈ <b style={{ color: "var(--text-1)" }}>{acCalc.amp}</b> A <span style={{ color: "var(--text-3)" }}>(×1.25 = {acCalc.need} A)</span> → สายแนะนำ <b style={{ color: "#1d854b", fontSize: 14 }}>{acCalc.cable}</b>
+                          ระบบ <b style={{ color: "var(--text-1)" }}>{acCalc.kw || 0}</b> kW → กระแส ≈ <b style={{ color: "var(--text-1)" }}>{acCalc.amp}</b> A <span style={{ color: "var(--text-3)" }}>(×1.25 = {acCalc.need} A)</span> → สายแนะนำ <b style={{ color: "var(--tint-ok-tx)", fontSize: 14 }}>{acCalc.cable}</b>
                           {(() => { const ac = summary.cable.find((c) => c.kind.key === "ac"); return ac && ac.raw > 0 ? <span> · ยาว <b style={{ color: "var(--text-1)" }}>{ac.withSpare.toLocaleString()}</b> ม.</span> : null; })()}
                         </div>
                         <div style={{ fontSize: 10.5, color: "var(--text-3)", marginTop: 4 }}>* {invType === "micro" ? "ไมโคร: คิด kW จากจำนวนแผง × Wp อัตโนมัติ (พิมพ์ทับได้)" : "สตริง: กรอก kW พิกัดอินเวอร์เตอร์"} · สาย CV-FD (XLPE 90°C) เดินในท่อในอากาศ กลุ่ม 1 (เดียวกับ BOQ)</div>
@@ -2017,7 +2017,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                             <div style={{ fontSize: 10.5, opacity: 0.85, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase" }}>สรุปสำหรับนำเสนอลูกค้า</div>
                             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "2px 16px", marginTop: 5 }}>
                               <span style={{ fontSize: 23, fontWeight: 800 }}>{takeoff.kwp}<span style={{ fontSize: 13, fontWeight: 700, marginLeft: 3 }}>kWp</span></span>
-                              <span style={{ fontSize: 17, fontWeight: 800, color: "#FDE68A" }}>≈ {takeoff.estKwh.toLocaleString()}<span style={{ fontSize: 11.5, fontWeight: 700, marginLeft: 3 }}>kWh/ปี</span></span>
+                              <span style={{ fontSize: 17, fontWeight: 800, color: "var(--tint-amber-bd)" }}>≈ {takeoff.estKwh.toLocaleString()}<span style={{ fontSize: 11.5, fontWeight: 700, marginLeft: 3 }}>kWh/ปี</span></span>
                               <span style={{ opacity: 0.85, fontSize: 12 }}>~{takeoff.estKwhMo.toLocaleString()} kWh/เดือน</span>
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, fontSize: 11, opacity: 0.92 }}>ผลิตไฟเฉลี่ย
@@ -2032,7 +2032,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                             <Icon name="box" size={13} color="var(--primary-dark)" /> ถอดวัสดุจากผัง (BOQ)
                           </div>
                           <button onClick={doCopyTakeoff}
-                            style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border-strong)", background: copied ? "#16A34A" : "var(--surface)", color: copied ? "#fff" : "var(--text-2)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+                            style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border-strong)", background: copied ? "var(--tint-green-tx)" : "var(--surface)", color: copied ? "#fff" : "var(--text-2)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
                             {copied ? "✓ คัดลอกแล้ว" : "⧉ คัดลอกรายการ"}
                           </button>
                         </div>

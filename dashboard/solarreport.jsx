@@ -55,8 +55,8 @@ function rpCash(roi) {
       '" height="' + Math.max(1, Math.abs(Y(r.cum) - Y(0))).toFixed(1) + '" rx="1.5" fill="' + (r.cum >= 0 ? "#22A35B" : "#C9D3CD") + '"/>').join("") +
     (roi.payback != null && roi.payback <= rows.length
       ? '<line x1="' + X(roi.payback).toFixed(1) + '" y1="' + T + '" x2="' + X(roi.payback).toFixed(1) + '" y2="' + (H - B) +
-        '" stroke="#B45309" stroke-width="1.4" stroke-dasharray="4 3"/><text x="' + (X(roi.payback) + 5).toFixed(1) + '" y="' + (T + 10) +
-        '" font-size="10" font-weight="700" fill="#B45309">คืนทุนปีที่ ' + roi.payback + "</text>" : "") +
+        '" stroke="var(--tint-amber-tx)" stroke-width="1.4" stroke-dasharray="4 3"/><text x="' + (X(roi.payback) + 5).toFixed(1) + '" y="' + (T + 10) +
+        '" font-size="10" font-weight="700" fill="var(--tint-amber-tx)">คืนทุนปีที่ ' + roi.payback + "</text>" : "") +
     rows.map((r, i) => (i % 5 === 4 || i === 0)
       ? '<text x="' + (X(i) + bw / 2).toFixed(1) + '" y="' + (H - 5) + '" text-anchor="middle" font-size="9" fill="#8A968F">' + r.year + "</text>" : "").join("") +
     "</svg>";
@@ -148,13 +148,13 @@ function rpDayLight(sim, groups) {
           "<tr><td>" + RP_ESC(g.roofName + (g.side ? " · " + g.side : "")) + "</td><td>" +
           '<span class="bar">' + sim.rows.map((r) => {
             const v = r.per[g.key] ? r.per[g.key].shade : 0;
-            const c = v <= 0.5 ? "#EDF1EF" : v < 15 ? "#FDE68A" : v < 40 ? "#F59E0B" : "#DC2626";
+            const c = v <= 0.5 ? "#EDF1EF" : v < 15 ? "var(--tint-amber-bd)" : v < 40 ? "#F59E0B" : "var(--tint-red-tx2)";
             return '<i style="background:' + c + '"></i>';
           }).join("") + "</span></td></tr>").join("") +
         "</table>" +
         '<p class="legend"><span style="float:left">' + ivHM(h0) + '</span><span style="float:right">' + ivHM(h1) + "</span>" +
-        '<b style="color:#EDF1EF">■</b> ไม่มีเงา &nbsp; <b style="color:#FDE68A">■</b> บังบางส่วน &nbsp; ' +
-        '<b style="color:#F59E0B">■</b> บังมาก &nbsp; <b style="color:#DC2626">■</b> บังเกือบหมด</p>'
+        '<b style="color:#EDF1EF">■</b> ไม่มีเงา &nbsp; <b style="color:var(--tint-amber-bd)">■</b> บังบางส่วน &nbsp; ' +
+        '<b style="color:#F59E0B">■</b> บังมาก &nbsp; <b style="color:var(--tint-red-tx2)">■</b> บังเกือบหมด</p>'
       : "");
 }
 
@@ -190,8 +190,8 @@ function rpDayPower(mo, acKw) {
     '<text x="' + (W - R + 6) + '" y="' + (T - 14) + '" font-size="8" font-weight="700" fill="#C4342B">°C</text>' +
     (acKw > 0 && acKw < pTop
       ? '<line x1="' + L + '" y1="' + Yp(acKw).toFixed(1) + '" x2="' + (W - R) + '" y2="' + Yp(acKw).toFixed(1) +
-        '" stroke="#B45309" stroke-width="1.2" stroke-dasharray="5 3"/><text x="' + (W - R - 2) + '" y="' + (Yp(acKw) - 4).toFixed(1) +
-        '" text-anchor="end" font-size="8.5" font-weight="700" fill="#B45309">เพดานอินเวอร์เตอร์ ' + acKw + " kW</text>" : "") +
+        '" stroke="var(--tint-amber-tx)" stroke-width="1.2" stroke-dasharray="5 3"/><text x="' + (W - R - 2) + '" y="' + (Yp(acKw) - 4).toFixed(1) +
+        '" text-anchor="end" font-size="8.5" font-weight="700" fill="var(--tint-amber-tx)">เพดานอินเวอร์เตอร์ ' + acKw + " kW</text>" : "") +
     '<path d="' + path(cs, (c) => c.dc, Yp) + " L" + X(cs[cs.length - 1].h).toFixed(1) + " " + Yp(0) + " L" + X(cs[0].h).toFixed(1) + " " + Yp(0) +
     ' Z" fill="rgba(34,163,91,.13)"/>' +
     '<path d="' + path(cs, (c) => c.dc, Yp) + '" fill="none" stroke="#22A35B" stroke-width="1.2" stroke-dasharray="4 3"/>' +
@@ -221,7 +221,7 @@ function rpYearMap(year, mode) {
     const f = t * (stops.length - 1), i = Math.min(stops.length - 2, Math.floor(f)), k = f - i;
     return "rgb(" + [0, 1, 2].map((j) => Math.round(stops[i][j] + (stops[i + 1][j] - stops[i][j]) * k)).join(",") + ")";
   };
-  const colShade = (v, poa) => (poa <= 2 ? "#EFF2F0" : v <= 0.5 ? "#E8F5ED" : v < 15 ? "#FDE68A" : v < 40 ? "#F59E0B" : "#DC2626");
+  const colShade = (v, poa) => (poa <= 2 ? "#EFF2F0" : v <= 0.5 ? "#E8F5ED" : v < 15 ? "var(--tint-amber-bd)" : v < 40 ? "#F59E0B" : "var(--tint-red-tx2)");
   const hdr = year.hours.map((h) => '<i class="hh">' + (h % 2 === 0 ? h : "") + "</i>").join("");
   const rows = year.months.map((mo) => {
     const val = mode === "shade" ? mo.shadeLossPct + "%" : Math.round(mo.monthKwh / 100) / 10 + "k";
@@ -231,8 +231,8 @@ function rpYearMap(year, mode) {
       '</span></td><td class="mv ' + cls + '">' + val + "</td></tr>";
   }).join("");
   const legend = mode === "shade"
-    ? '<b style="color:#E8F5ED">■</b> ไม่มีเงา &nbsp; <b style="color:#FDE68A">■</b> บังบางส่วน &nbsp; ' +
-      '<b style="color:#F59E0B">■</b> บังมาก &nbsp; <b style="color:#DC2626">■</b> บังเกือบหมด &nbsp;·&nbsp; ขวาสุด = เสียไปกี่ % ของเดือนนั้น'
+    ? '<b style="color:#E8F5ED">■</b> ไม่มีเงา &nbsp; <b style="color:var(--tint-amber-bd)">■</b> บังบางส่วน &nbsp; ' +
+      '<b style="color:#F59E0B">■</b> บังมาก &nbsp; <b style="color:var(--tint-red-tx2)">■</b> บังเกือบหมด &nbsp;·&nbsp; ขวาสุด = เสียไปกี่ % ของเดือนนั้น'
     : 'อ่อน = แดดน้อย &nbsp; <b style="color:#4AB37A">■</b> ปานกลาง &nbsp; <b style="color:#F59E0B">■</b> แรงสุด ' +
       year.maxPoa + " W/m² &nbsp;·&nbsp; ขวาสุด = ผลผลิตทั้งเดือน (kWh)";
   return '<table class="ymap"><tr><td class="mo"></td><td><span class="hm hdr">' + hdr + '</span></td><td class="mv"></td></tr>' +
@@ -261,7 +261,7 @@ function rpIvAll(curves, stcRef) {
         '" stroke="#E3E8E6" stroke-width="1"/>' +
         '<text x="' + (L - 7) + '" y="' + (y + 3.5).toFixed(1) + '" text-anchor="end" font-size="8.5" font-weight="700" fill="#8A968F">' +
         (Math.round(iTop * (1 - k / gI) * 10) / 10) + "</text>" +
-        '<text x="' + (W - R + 7) + '" y="' + (y + 3.5).toFixed(1) + '" font-size="8.5" font-weight="700" fill="#B45309">' +
+        '<text x="' + (W - R + 7) + '" y="' + (y + 3.5).toFixed(1) + '" font-size="8.5" font-weight="700" fill="var(--tint-amber-tx)">' +
         (() => { const p = pTop * (1 - k / gI); return p >= 1000 ? Math.round(p / 100) / 10 + "k" : Math.round(p); })() + "</text>";
     }).join("") +
     Array.from({ length: gV + 1 }).map((_, k) => {
@@ -272,7 +272,7 @@ function rpIvAll(curves, stcRef) {
     }).join("") +
     '<line x1="' + L + '" y1="' + T + '" x2="' + L + '" y2="' + (H - B) + '" stroke="#C9D3CD" stroke-width="1.1"/>' +
     '<text x="' + (L - 7) + '" y="' + (T - 5) + '" text-anchor="end" font-size="8" font-weight="700" fill="#8A968F">A</text>' +
-    '<text x="' + (W - R + 7) + '" y="' + (T - 5) + '" font-size="8" font-weight="700" fill="#B45309">W</text>' +
+    '<text x="' + (W - R + 7) + '" y="' + (T - 5) + '" font-size="8" font-weight="700" fill="var(--tint-amber-tx)">W</text>' +
     '<text x="' + (W - R) + '" y="' + (H - 4) + '" text-anchor="end" font-size="8.5" fill="#8A968F">แรงดัน (V)</text>' +
     (stcRef ? '<path d="' + iv(stcRef) + '" fill="none" stroke="#A8B4AE" stroke-width="1.2" stroke-dasharray="5 4"/>' : "") +
     list.map((x) => '<path d="' + iv(x.curve) + '" fill="none" stroke="' + x.color + '" stroke-width="2" stroke-linejoin="round"/>' +
@@ -345,7 +345,7 @@ function rpLossFlow(chain) {
       const heavy = R.kind === "loss" && R.pct >= 3, zero = R.kind === "loss" && R.loss <= 0;
       if (R.kind === "loss" || R.kind === "gain") {
         const gain = R.kind === "gain";
-        const col = gain ? "#2563EB" : heavy ? "#DC2626" : "#EFA53A";
+        const col = gain ? "#2563EB" : heavy ? "var(--tint-red-tx2)" : "#EFA53A";
         const th = Math.max(3.6, Math.abs(s.wA - s.wB));
         const inner = X0 + Math.min(s.wA, s.wB);
         const yA = (yc - th / 2).toFixed(1), yB = (yc + th / 2).toFixed(1);
@@ -363,14 +363,14 @@ function rpLossFlow(chain) {
             '" stroke="#D8E0DB" stroke-width="1" stroke-dasharray="2 4"/>' : "") +
           '<text x="' + LX + '" y="' + (yc - 9).toFixed(1) + '" font-size="10" font-weight="700" fill="' + (zero ? "#8A968F" : "#3A4A43") + '">' + RP_ESC(cut(R.label, 66)) + "</text>" +
           '<text x="' + LX + '" y="' + (yc + 3).toFixed(1) + '" font-size="9.5" font-weight="800" fill="' +
-          (zero ? "#8A968F" : gain ? "#1D4ED8" : heavy ? "#B91C1C" : "#B45309") + '">' +
+          (zero ? "#8A968F" : gain ? "#1D4ED8" : heavy ? "var(--tint-red-tx)" : "var(--tint-amber-tx)") + '">' +
           RP_ESC(gain ? "+" + R.pct + "%  ·  " + rpN(R.gain) + " kWh"
             : zero ? "ไม่เสียพลังงานในด่านนี้" : "−" + R.pct + "%  ·  " + rpN(R.loss) + " kWh") +
           (R.unit ? '<tspan fill="#8A968F" font-weight="700">' + RP_ESC("   → " + R.unit) + "</tspan>" : "") + "</text>" +
           (R.note ? '<text x="' + LX + '" y="' + (yc + 14).toFixed(1) + '" font-size="8.5" font-weight="600" fill="#8A968F">' + RP_ESC(cut(R.note, 70)) + "</text>" : "");
       }
       const big = R.kind === "end", first = R.kind === "start";
-      const accent = big ? "#0F7A43" : first ? "#B45309" : "#C9D3CD";
+      const accent = big ? "#0F7A43" : first ? "var(--tint-amber-tx)" : "#C9D3CD";
       return '<line x1="' + X0 + '" y1="' + s.y1.toFixed(1) + '" x2="' + (XL + 4) + '" y2="' + s.y1.toFixed(1) +
         '" stroke="' + (big ? "#0F7A43" : "#D8E0DB") + '" stroke-width="' + (big ? 1.4 : 1) + '"' +
         (big ? ' stroke-opacity=".7"' : ' stroke-dasharray="3 4"') + "/>" +
@@ -378,7 +378,7 @@ function rpLossFlow(chain) {
         '" fill-opacity="' + (big || first ? 1 : 0.5) + '"/>' +
         '<text x="' + LX + '" y="' + (s.y1 - 23).toFixed(1) + '" font-size="10.5" font-weight="800" fill="#16211D">' + RP_ESC(cut(R.label, 60)) + "</text>" +
         '<text x="' + LX + '" y="' + (s.y1 - 11).toFixed(1) + '" font-size="9.5" font-weight="800" fill="' +
-        (big ? "#0F7A43" : first ? "#B45309" : "#3A4A43") + '">' + RP_ESC(rpN(R.kwh) + " kWh") +
+        (big ? "#0F7A43" : first ? "var(--tint-amber-tx)" : "#3A4A43") + '">' + RP_ESC(rpN(R.kwh) + " kWh") +
         (R.unit ? '<tspan fill="#8A968F" font-weight="700">' + RP_ESC("   ·   " + R.unit) + "</tspan>" : "") +
         (big ? '<tspan fill="#0F7A43" font-weight="800">' + RP_ESC("   ·   PR " + R.pct + "%") + "</tspan>" : "") + "</text>" +
         (R.note ? '<text x="' + LX + '" y="' + (s.y1 - 1).toFixed(1) + '" font-size="8.5" font-weight="600" fill="#8A968F">' + RP_ESC(cut(R.note, 70)) + "</text>" : "");
@@ -388,8 +388,8 @@ function rpLossFlow(chain) {
 
 /* ── เส้นทางเดินดวงอาทิตย์ + แผนที่เงาบัง ── */
 const RP_ISO = [
-  { at: 0.40, c: "#B91C1C", o: 0.85, lb: "40%+" },
-  { at: 0.20, c: "#DC2626", o: 0.60, lb: "20–40%" },
+  { at: 0.40, c: "var(--tint-red-tx)", o: 0.85, lb: "40%+" },
+  { at: 0.20, c: "var(--tint-red-tx2)", o: 0.60, lb: "20–40%" },
   { at: 0.10, c: "#F59E0B", o: 0.62, lb: "10–20%" },
   { at: 0.05, c: "#F59E0B", o: 0.40, lb: "5–10%" },
   { at: 0.01, c: "#F59E0B", o: 0.22, lb: "1–5%" },
@@ -427,12 +427,12 @@ function rpSunPath(path, iso) {
       '" text-anchor="middle" font-size="8" font-weight="800" fill="#8A968F">' + hr.h + "</text>").join("") +
     path.paths.map((p, i) => {
       const main = i === 0 || i === path.paths.length - 1 || i === 3;
-      return p.segs.map((sg) => '<path d="' + line(sg) + '" fill="none" stroke="#B45309" stroke-width="' + (main ? 1.9 : 1.2) +
+      return p.segs.map((sg) => '<path d="' + line(sg) + '" fill="none" stroke="var(--tint-amber-tx)" stroke-width="' + (main ? 1.9 : 1.2) +
         '" opacity="' + (main ? 0.95 : 0.6) + '" stroke-linecap="round"/>').join("");
     }).join("") +
     [path.paths[0], path.paths[path.paths.length - 1]].map((p, i) => (p && p.peak
       ? '<text x="' + Math.max(L + 36, Math.min(W - R - 36, X(p.peak.az))).toFixed(1) + '" y="' + (Y(p.peak.alt) + (i ? 13 : -7)).toFixed(1) +
-        '" text-anchor="middle" font-size="8.5" font-weight="800" fill="#B45309">' + RP_ESC(p.label) + "</text>" : "")).join("") +
+        '" text-anchor="middle" font-size="8.5" font-weight="800" fill="var(--tint-amber-tx)">' + RP_ESC(p.label) + "</text>" : "")).join("") +
     "</svg>" +
     (iso ? '<p class="note"><b>ระดับสีของเงาบัง</b> — ' +
       RP_ISO.slice().reverse().map((b) => b.lb).join(" · ") +
@@ -441,7 +441,7 @@ function rpSunPath(path, iso) {
 
 /* ── ชุดเส้น I-V & P-V แบบดาต้าชีต ── */
 const RP_GRAMP = ["#0B5F35", "#15803D", "#22A35B", "#6FC48F", "#B3DEC4"];
-const RP_TRAMP = ["#1D4ED8", "#0F7A43", "#D97706", "#DC2626"];
+const RP_TRAMP = ["#1D4ED8", "#0F7A43", "#D97706", "var(--tint-red-tx2)"];
 function rpIvFamily(curves, mode) {
   const list = (curves || []).filter(Boolean);
   if (!list.length) return "";
@@ -461,7 +461,7 @@ function rpIvFamily(curves, mode) {
       return '<line x1="' + L + '" y1="' + y.toFixed(1) + '" x2="' + (W - R) + '" y2="' + y.toFixed(1) + '" stroke="#E3E8E6" stroke-width="1"/>' +
         '<text x="' + (L - 7) + '" y="' + (y + 3.5).toFixed(1) + '" text-anchor="end" font-size="8.5" font-weight="700" fill="#8A968F">' +
         (Math.round(iTop * (1 - k / 4) * 10) / 10) + "</text>" +
-        '<text x="' + (W - R + 7) + '" y="' + (y + 3.5).toFixed(1) + '" font-size="8.5" font-weight="700" fill="#B45309">' +
+        '<text x="' + (W - R + 7) + '" y="' + (y + 3.5).toFixed(1) + '" font-size="8.5" font-weight="700" fill="var(--tint-amber-tx)">' +
         (p >= 1000 ? Math.round(p / 100) / 10 + "k" : Math.round(p)) + "</text>";
     }).join("") +
     Array.from({ length: 6 }).map((_, k) => {
@@ -471,7 +471,7 @@ function rpIvFamily(curves, mode) {
     }).join("") +
     '<line x1="' + L + '" y1="' + T + '" x2="' + L + '" y2="' + (H - B) + '" stroke="#C9D3CD" stroke-width="1.1"/>' +
     '<text x="' + (L - 7) + '" y="' + (T - 5) + '" text-anchor="end" font-size="8" font-weight="700" fill="#8A968F">A</text>' +
-    '<text x="' + (W - R + 7) + '" y="' + (T - 5) + '" font-size="8" font-weight="700" fill="#B45309">W</text>' +
+    '<text x="' + (W - R + 7) + '" y="' + (T - 5) + '" font-size="8" font-weight="700" fill="var(--tint-amber-tx)">W</text>' +
     '<text x="' + (W - R) + '" y="' + (H - 4) + '" text-anchor="end" font-size="8.5" fill="#8A968F">แรงดัน (V)</text>' +
     '<path d="' + list.map((c, k) => (k ? "L" : "M") + X(c.vmp).toFixed(1) + " " + Yi(c.imp).toFixed(1)).join(" ") +
     '" fill="none" stroke="#A8B4AE" stroke-width="1" stroke-dasharray="2 4"/>' +
@@ -507,7 +507,7 @@ const RP_FLOW = {
   chg: { c: "#2563EB", label: "เก็บเข้าแบต" },
   dis: { c: "#6366F1", label: "จ่ายออกจากแบต" },
   exp: { c: "#EFA53A", label: "ขายคืนการไฟฟ้า" },
-  curt: { c: "#DC2626", label: "ตัดทิ้ง (ห้ามไหลย้อน)" },
+  curt: { c: "var(--tint-red-tx2)", label: "ตัดทิ้ง (ห้ามไหลย้อน)" },
   imp: { c: "#94A3B8", label: "ซื้อจากการไฟฟ้า" },
 };
 function rpFlowDay(rows, mode, on) {
@@ -569,7 +569,7 @@ function rpPxx(px, mode) {
   const fill = under.length
     ? '<path d="M' + under[0].x.toFixed(1) + " " + Y(0).toFixed(1) + " L" +
       under.map((p) => p.x.toFixed(1) + " " + p.y.toFixed(1)).join(" L") + " L" +
-      under[under.length - 1].x.toFixed(1) + " " + Y(0).toFixed(1) + ' Z" fill="#B45309" opacity=".16"/>' : "";
+      under[under.length - 1].x.toFixed(1) + " " + Y(0).toFixed(1) + ' Z" fill="var(--tint-amber-tx)" opacity=".16"/>' : "";
   const mark = (v, p, c) => '<line x1="' + X(v).toFixed(1) + '" y1="' + Y(0).toFixed(1) + '" x2="' + X(v).toFixed(1) +
     '" y2="' + Y(Math.exp(-0.5 * Math.pow((v - p50) / (p50 * sig), 2))).toFixed(1) + '" stroke="' + c +
     '" stroke-width="1.6"' + (p === 90 ? ' stroke-dasharray="4 3"' : "") + "/>" +
@@ -578,8 +578,8 @@ function rpPxx(px, mode) {
   return '<svg viewBox="0 0 ' + W + " " + H + '" class="chart">' +
     '<line x1="' + L + '" y1="' + Y(0).toFixed(1) + '" x2="' + (W - R) + '" y2="' + Y(0).toFixed(1) + '" stroke="#D8E0DC" stroke-width="1.2"/>' +
     fill + '<polyline points="' + pts.map((p) => p.x.toFixed(1) + "," + p.y.toFixed(1)).join(" ") + '" fill="none" stroke="#0B5F35" stroke-width="2"/>' +
-    mark(p50, 50, "#0B5F35") + mark(p90, 90, "#B45309") +
-    '<text x="' + X(p90).toFixed(1) + '" y="' + (H - 4) + '" text-anchor="middle" font-size="8.5" font-weight="800" fill="#B45309">โอกาสตกลงมาต่ำกว่านี้ 10%</text>' +
+    mark(p50, 50, "#0B5F35") + mark(p90, 90, "var(--tint-amber-tx)") +
+    '<text x="' + X(p90).toFixed(1) + '" y="' + (H - 4) + '" text-anchor="middle" font-size="8.5" font-weight="800" fill="var(--tint-amber-tx)">โอกาสตกลงมาต่ำกว่านี้ 10%</text>' +
     '<text x="' + L + '" y="' + (H - 4) + '" font-size="8.5" font-weight="700" fill="#8A968F">แย่กว่าที่คิด</text>' +
     '<text x="' + (W - R) + '" y="' + (H - 4) + '" text-anchor="end" font-size="8.5" font-weight="700" fill="#8A968F">ดีกว่าที่คิด</text>' +
     "</svg>";

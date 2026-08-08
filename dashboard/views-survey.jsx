@@ -29,7 +29,7 @@ function SurveyView({ jobs, role, onOpen, onToggleSkip }) {
     { key: "all", label: "ทั้งหมด", color: "var(--text-2)" },
     { key: "none", label: "ยังไม่สำรวจ", color: "#94A3B8" },
     { key: "partial", label: "สำรวจบางส่วน", color: "#F59E0B" },
-    { key: "done", label: "สำรวจครบ", color: "#16A34A" },
+    { key: "done", label: "สำรวจครบ", color: "var(--tint-green-tx)" },
     { key: "skip", label: "ไม่ต้องสำรวจ", color: "#64748B" },
   ];
 
@@ -97,8 +97,8 @@ function SurveyView({ jobs, role, onOpen, onToggleSkip }) {
                 ? <button onClick={toggleSkip} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: "var(--text-2)", background: "var(--surface2)", border: "1px solid var(--border-strong)", borderRadius: 8, padding: "5px 9px", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
                     <Icon name="history" size={12} color="var(--text-2)" /> เข้าคิวสำรวจ
                   </button>
-                : <button onClick={toggleSkip} title="ทำเครื่องหมายว่าสำรวจแล้ว/ไม่ต้องสำรวจ" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: "#16A34A", background: "#16A34A14", border: "1px solid #16A34A44", borderRadius: 8, padding: "5px 9px", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-                    <Icon name="check" size={12} color="#16A34A" sw={2.6} /> ไม่ต้องสำรวจ
+                : <button onClick={toggleSkip} title="ทำเครื่องหมายว่าสำรวจแล้ว/ไม่ต้องสำรวจ" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: "var(--tint-green-tx)", background: "rgba(22,163,74,.08)", border: "1px solid rgba(22,163,74,.27)", borderRadius: 8, padding: "5px 9px", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                    <Icon name="check" size={12} color="var(--tint-green-tx)" sw={2.6} /> ไม่ต้องสำรวจ
                   </button>
               )}
             </span>

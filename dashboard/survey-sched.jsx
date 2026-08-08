@@ -12,7 +12,7 @@ const APPT_STATUS = [
   { key: "scheduled",   th: "นัดหมายแล้ว",          color: "#3B82F6", icon: "calendar" },
   { key: "transit",     th: "กำลังเดินทาง",          color: "#F59E0B", icon: "map" },
   { key: "progress",    th: "ถึงไซต์ / กำลังสำรวจ",  color: "#8B5CF6", icon: "pin" },
-  { key: "done",        th: "สำรวจเสร็จ",            color: "#16A34A", icon: "check" },
+  { key: "done",        th: "สำรวจเสร็จ",            color: "var(--tint-green-tx)", icon: "check" },
   { key: "rescheduled", th: "เลื่อนนัด",             color: "#0EA5E9", icon: "history" },
   { key: "canceled",    th: "ยกเลิก",                color: "#EF4444", icon: "x" },
 ];
@@ -286,7 +286,7 @@ function SurveyApptModal({ initial, jobs, techs, appts, onClose, onSave, onDelet
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>เวลาเริ่ม</label><input type="time" value={f._start} onChange={(e) => set("_start", e.target.value)} style={inputStyle} /></div>
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>เวลาสิ้นสุด</label><input type="time" value={f._end} onChange={(e) => set("_end", e.target.value)} style={inputStyle} /></div>
           </div>
-          {clash && <div style={{ fontSize: 12, color: "#B91C1C", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 9, padding: "9px 11px", fontWeight: 600 }}>⚠ วิศวกรคนนี้มีนัดซ้อนทับช่วงเวลานี้ ({_hm(clash.start)}–{_hm(clash.end)} · {clash.jobName})</div>}
+          {clash && <div style={{ fontSize: 12, color: "var(--tint-red-tx)", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)", borderRadius: 9, padding: "9px 11px", fontWeight: 600 }}>⚠ วิศวกรคนนี้มีนัดซ้อนทับช่วงเวลานี้ ({_hm(clash.start)}–{_hm(clash.end)} · {clash.jobName})</div>}
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <label style={lbl}>สถานะ</label>
             <Dropdown value={f.status} onChange={(v) => set("status", v)} options={APPT_STATUS.map((s) => ({ value: s.key, label: s.th }))} />
@@ -297,7 +297,7 @@ function SurveyApptModal({ initial, jobs, techs, appts, onClose, onSave, onDelet
           </div>
         </div>
         <div style={{ padding: "12px 18px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, alignItems: "center" }}>
-          {!isNew && <button onClick={() => onDelete(f.id)} style={{ flex: "0 0 auto", width: 44, height: 44, borderRadius: 11, border: "1px solid #FECACA", background: "#FEF2F2", color: "#EF4444", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={16} /></button>}
+          {!isNew && <button onClick={() => onDelete(f.id)} style={{ flex: "0 0 auto", width: 44, height: 44, borderRadius: 11, border: "1px solid var(--tint-red-bd)", background: "var(--tint-red-bg)", color: "#EF4444", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={16} /></button>}
           <button onClick={onClose} style={{ flex: "0 0 auto", padding: "12px 18px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
           <button onClick={submit} style={{ flex: 1, padding: "12px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>บันทึกนัดหมาย</button>
         </div>
@@ -477,7 +477,7 @@ function JobTaskCard({ job, stages, day, dayEnd, onOpen, onAdvance }) {
           <Icon name="lock" size={13} color="var(--text-3)" /> {advNoDate ? "ยังไม่กำหนดวันนัดติดตั้ง" : "ติดตั้งวันที่ " + thDate(_instS, true) + (_instE && _instE !== _instS ? "–" + thDate(_instE, true) : "")}
         </div>
       ) : (
-        <button onClick={doAdvance} style={{ marginTop: 2, width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", borderRadius: 10, border: "none", background: advOverdue ? "#DC2626" : (curStage.color || "var(--primary)"), color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>
+        <button onClick={doAdvance} style={{ marginTop: 2, width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", borderRadius: 10, border: "none", background: advOverdue ? "var(--tint-red-tx2)" : (curStage.color || "var(--primary)"), color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>
           <Icon name={advOverdue ? "alert" : "check"} size={15} color="#fff" sw={2.5} /> {advOverdue ? "เลยกำหนด " + daysLate + " วัน · " : ""}เสร็จ “{curStage.th}” → {nextStage.th}
         </button>
       ))}

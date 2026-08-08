@@ -166,13 +166,13 @@ function P3MapPicker({ initial, initialQuery, onPick, onClose }) {
           <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === "Enter" && search()} placeholder="ค้นหาที่อยู่…"
             style={{ flex: 1, minWidth: 130, padding: "8px 10px", border: "1px solid var(--border-strong)", borderRadius: 9, fontFamily: "inherit", fontSize: 13, background: "var(--surface2)", color: "var(--text-1)", outline: "none" }} />
           <button onClick={search} disabled={busy} style={ibtn}>ค้นหา</button>
-          <button onClick={onClose} style={Object.assign({}, ibtn, { color: "#B91C1C" })}>ปิด</button>
+          <button onClick={onClose} style={Object.assign({}, ibtn, { color: "var(--tint-red-tx)" })}>ปิด</button>
         </div>
         <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
           <div ref={boxRef} style={{ position: "absolute", inset: 0 }} />
           <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", pointerEvents: "none", zIndex: 500, color: "#ff3b30", fontSize: 30, fontWeight: 700, textShadow: "0 0 4px #fff, 0 0 4px #fff" }}>⌖</div>
           {!ready && !err && <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "var(--text-2)", fontSize: 13, fontWeight: 600 }}>กำลังโหลดแผนที่…</div>}
-          {err && <div style={{ position: "absolute", left: 10, bottom: 10, background: "#B91C1C", color: "#fff", padding: "6px 10px", borderRadius: 8, fontSize: 12, zIndex: 600, maxWidth: "80%" }}>{err}</div>}
+          {err && <div style={{ position: "absolute", left: 10, bottom: 10, background: "var(--tint-red-tx)", color: "#fff", padding: "6px 10px", borderRadius: 8, fontSize: 12, zIndex: 600, maxWidth: "80%" }}>{err}</div>}
         </div>
         <div style={{ padding: 10, borderTop: "1px solid var(--border)", display: "flex", gap: 8, alignItems: "center" }}>
           <span style={{ fontSize: 11.5, color: "var(--text-3)", flex: 1, lineHeight: 1.4 }}>เลื่อน/ซูมให้เป้า <b style={{ color: "#ff3b30" }}>⌖</b> อยู่กลางบ้าน แล้วกด "ใช้พื้นที่นี้" · ทิศเหนือ = ด้านบนเสมอ · ซูมเยอะ = ละเอียด</span>
@@ -813,8 +813,8 @@ const P3_INP = { width: "100%", boxSizing: "border-box", background: "var(--surf
    ซึ่งเป็นตัวที่ทำให้หน้าจอ "รู้สึกมีคนออกแบบ" — จึงยัดเป็น <style> ก้อนเดียว ขอบเขตอยู่ใต้ .p3 เท่านั้น */
 const P3_CSS = `
 .p3{--ink:#0D1714;--ink2:#18261F;--ln:rgba(13,23,20,.10);--ln2:rgba(13,23,20,.17);
-  --ac:var(--primary,#16A34A);--acs:rgba(22,163,74,.11);--acd:var(--primary-dark,#15803D);
-  --trk:rgba(13,23,20,.11);--warn:#B45309;--dngr:#B91C1C;
+  --ac:var(--primary,var(--tint-green-tx));--acs:rgba(22,163,74,.11);--acd:var(--primary-dark,#15803D);
+  --trk:rgba(13,23,20,.11);--warn:var(--tint-amber-tx);--dngr:var(--tint-red-tx);
   --sh:0 1px 2px rgba(13,23,20,.05),0 10px 28px -16px rgba(13,23,20,.28);
   font-variant-numeric:tabular-nums;}
 .p3 *{box-sizing:border-box}
@@ -1312,7 +1312,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, depthTest: false }));
       sp.scale.set(2.2, 2.2, 1); return sp;
     };
-    const north = mkText("N", "#b91c1c"); north.position.set(0, 1.4, -G / 2 - 1.5); t.dyn.add(north);
+    const north = mkText("N", "var(--tint-red-tx)"); north.position.set(0, 1.4, -G / 2 - 1.5); t.dyn.add(north);
 
     // ── หลังคาแต่ละผืน + แผง ──
     (st.roofs || []).forEach((roof) => {
@@ -1749,7 +1749,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     const mkLabel = (txt) => {
       const cv = document.createElement("canvas"); cv.width = 128; cv.height = 64;
       const x = cv.getContext("2d");
-      x.fillStyle = "#B45309"; x.font = "bold 42px system-ui"; x.textAlign = "center"; x.textBaseline = "middle";
+      x.fillStyle = "var(--tint-amber-tx)"; x.font = "bold 42px system-ui"; x.textAlign = "center"; x.textBaseline = "middle";
       x.fillText(txt, 64, 34);
       // depthTest ปกติ — ป้ายที่อยู่หลังอาคารต้องถูกบัง ไม่งั้นลอยมาทับกลางฉากดูงง
       const sp2 = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true }));
@@ -2383,13 +2383,13 @@ function Plan3DEditor({ job, onClose, currentUser }) {
               </div>}
               {isHip && hipInfo && (
                 <div className="p3-card amber">
-                  <span className="p3-eb" style={{ color: "#B45309" }}><P3Icon name="roof" size={13} />หลังคาปั้นหยา<span className="ln" /></span>
+                  <span className="p3-eb" style={{ color: "var(--tint-amber-tx)" }}><P3Icon name="roof" size={13} />หลังคาปั้นหยา<span className="ln" /></span>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 14px" }}>
                     <span className="p3-stat">สันยาว <b>{Math.round(hipInfo.r * 100) / 100}</b> ม.</span>
                     <span className="p3-stat">สันสูงจากชายคา <b>{Math.round(hipInfo.rise * 100) / 100}</b> ม.</span>
                     <span className="p3-stat">ลาด <b>{Math.round(hipInfo.SL * 100) / 100}</b> ม.</span>
                   </div>
-                  {(+roof.w || 0) < (+roof.d || 0) && <div style={{ color: "#B45309", fontWeight: 700, fontSize: 11 }}>“ยาวรวม” ควรเป็นด้านที่ยาวกว่า “กว้างรวม”</div>}
+                  {(+roof.w || 0) < (+roof.d || 0) && <div style={{ color: "var(--tint-amber-tx)", fontWeight: 700, fontSize: 11 }}>“ยาวรวม” ควรเป็นด้านที่ยาวกว่า “กว้างรวม”</div>}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
                     {[["sideA", "A คางหมู"], ["sideB", "B คางหมู"], ["sideC", "C สามเหลี่ยม"], ["sideD", "D สามเหลี่ยม"]].map(([k, lb]) => {
                       const on = roof[k] !== false;
@@ -2415,12 +2415,12 @@ function Plan3DEditor({ job, onClose, currentUser }) {
                     <span className="p3-stat">ยาวส่วนโค้ง <b>{Math.round(domeInfo.arc * 100) / 100}</b> ม.</span>
                     <span className="p3-stat">ชันสุดที่ริม <b>{Math.round(domeInfo.th / P3_DEG)}</b>°</span>
                   </div>
-                  {domeInfo.rise >= domeInfo.span / 2 - 1e-6 && <span style={{ color: "#B45309", fontWeight: 700, fontSize: 11 }}>สูงสุดแล้ว (ครึ่งวงกลม) — จะสูงกว่านี้ต้องเพิ่มความกว้างโดม</span>}
+                  {domeInfo.rise >= domeInfo.span / 2 - 1e-6 && <span style={{ color: "var(--tint-amber-tx)", fontWeight: 700, fontSize: 11 }}>สูงสุดแล้ว (ครึ่งวงกลม) — จะสูงกว่านี้ต้องเพิ่มความกว้างโดม</span>}
                   {/* ริมโดมชันเกือบตั้ง แผงตรงนั้นแทบไม่ได้แดด — ตัดออกได้ด้วยสไลเดอร์นี้ */}
                   <NumRange span label="วางแผงเฉพาะช่วงที่ชันไม่เกิน (90° = เต็มโค้ง)" value={roof.maxTilt == null ? 90 : roof.maxTilt} step={5} min={5} max={90} suffix="°" onChange={(v) => patchRoof(roof.id, { maxTilt: v })} />
                   {gridSel && gridSel.rowTilts && gridSel.rowTilts.length > 0
                     ? <span className="p3-note">วางได้ <b style={{ color: "var(--text-1)" }}>{gridSel.rowTilts.length} แถว</b> · ความชันแต่ละแถว {gridSel.rowTilts.join("° / ")}°</span>
-                    : <span style={{ color: "#B45309", fontWeight: 700, fontSize: 11 }}>ไม่มีแถวไหนผ่านเงื่อนไขความชัน — เพิ่มองศาที่ยอมรับ หรือลดความสูงโค้ง</span>}
+                    : <span style={{ color: "var(--tint-amber-tx)", fontWeight: 700, fontSize: 11 }}>ไม่มีแถวไหนผ่านเงื่อนไขความชัน — เพิ่มองศาที่ยอมรับ หรือลดความสูงโค้ง</span>}
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {/* เดาแนวสันจาก "ด้านที่ยาวกว่า" ถ้าเดาผิดก็สลับได้ */}
                     <SmallBtn icon="reset" onClick={() => patchRoof(roof.id, { ridge: roof.span, span: roof.ridge, az: (((+roof.az || 180) + 90) % 360), skips: {}, blocks: clearCells(roof) })}>สลับแนวสัน 90°</SmallBtn>
@@ -2433,7 +2433,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
               )}
               {isGable && (
                 <div className="p3-card amber">
-                  <span className="p3-eb" style={{ color: "#B45309" }}><P3Icon name="roof" size={13} />หลังคาจั่ว<span className="ln" /></span>
+                  <span className="p3-eb" style={{ color: "var(--tint-amber-tx)" }}><P3Icon name="roof" size={13} />หลังคาจั่ว<span className="ln" /></span>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 14px" }}>
                     <span className="p3-stat">สันสูงจากชายคา <b>{gableRise}</b> ม.</span>
                     <span className="p3-stat">ลาดด้านละ <b>{gridSel && gridSel.slopeLen ? Math.round(gridSel.slopeLen * 100) / 100 : 0}</b> ม.</span>
@@ -2463,11 +2463,11 @@ function Plan3DEditor({ job, onClose, currentUser }) {
                     const selIdx = (selVert && selVert.roofId === roof.id) ? selVert.idx : -1;
                     return (
                       <div className="p3-card amber">
-                        <span className="p3-eb" style={{ color: "#B45309" }}><P3Icon name="height" size={13} />ความสูงของมุม<span className="ln" /><span style={{ fontWeight: 600 }}>ยกสัน/หิปให้เป็นทรง</span></span>
+                        <span className="p3-eb" style={{ color: "var(--tint-amber-tx)" }}><P3Icon name="height" size={13} />ความสูงของมุม<span className="ln" /><span style={{ fontWeight: 600 }}>ยกสัน/หิปให้เป็นทรง</span></span>
                         {selIdx >= 0 ? (
                           <NumRange span label={"ความสูงมุมที่เลือก #" + (selIdx + 1)} value={Math.round((rPh[selIdx] || 0) * 100) / 100} min={0} max={12} step={0.1} suffix="ม." onChange={(v) => setVertHeight(roof.id, selIdx, v)} />
                         ) : (
-                          <span className="p3-note">แตะ<b style={{ color: "#16A34A" }}>จุดเขียว</b>ที่มุมหลังคาในภาพ (จะกลายเป็น<b style={{ color: "#D97706" }}>จุดส้ม</b>) แล้วปรับความสูงตรงนี้</span>
+                          <span className="p3-note">แตะ<b style={{ color: "var(--tint-green-tx)" }}>จุดเขียว</b>ที่มุมหลังคาในภาพ (จะกลายเป็น<b style={{ color: "#D97706" }}>จุดส้ม</b>) แล้วปรับความสูงตรงนี้</span>
                         )}
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                           <SmallBtn icon="reset" onClick={() => patchRoof(roof.id, { ph: roof.pts.map(() => 0.05) })}>รีเซ็ตทุกมุมให้ราบ</SmallBtn>
@@ -2544,7 +2544,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
                     })}
                     {roof.grp && grpSize(roof.grp) > 1 && (
                       <button className="p3-chip" onClick={() => { const ups = {}; (st.roofs || []).filter((r) => r.grp === roof.grp).forEach((r) => { ups[r.id] = { grp: null }; }); patchRoofs(ups); }}
-                        style={{ padding: "5px 10px", fontSize: 11.5, borderStyle: "dashed", background: "none", color: "#B91C1C" }}>
+                        style={{ padding: "5px 10px", fontSize: 11.5, borderStyle: "dashed", background: "none", color: "var(--tint-red-tx)" }}>
                         แยกทั้งกลุ่ม
                       </button>
                     )}
@@ -2556,7 +2556,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
               {(st.roofs || []).length > 1 && (
                 delAsk === roof.id ? (
                   <div style={{ display: "flex", gap: 7, alignItems: "center", flexWrap: "wrap", border: "1px solid rgba(185,28,28,.3)", background: "rgba(185,28,28,.05)", borderRadius: 11, padding: "9px 10px" }}>
-                    <span style={{ fontSize: 11.5, fontWeight: 700, color: "#B91C1C", marginRight: "auto" }}>ลบ “{roof.name}” ?</span>
+                    <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--tint-red-tx)", marginRight: "auto" }}>ลบ “{roof.name}” ?</span>
                     <SmallBtn cls="dngr solid" onClick={() => {
                       let rs = st.roofs.filter((r) => r.id !== roof.id);
                       /* ลบจนกลุ่มเหลือผืนเดียว = ไม่ใช่กลุ่มแล้ว สลายทิ้ง จะได้ไม่มีชิป "กลุ่ม A · 1 ผืน" ค้าง */
@@ -2659,12 +2659,12 @@ function Plan3DEditor({ job, onClose, currentUser }) {
                     const now = Math.round((pdB + B.gap) * 100) / 100;
                     return (
                       <div style={{ fontSize: 11, lineHeight: 1.6, borderRadius: 10, padding: "8px 10px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
-                        color: now + 1e-9 >= need ? "var(--text-3)" : "#B45309",
+                        color: now + 1e-9 >= need ? "var(--text-3)" : "var(--tint-amber-tx)",
                         background: now + 1e-9 >= need ? "var(--surface2)" : "rgba(245,158,11,.12)",
                         border: "1px solid " + (now + 1e-9 >= need ? "transparent" : "rgba(180,83,9,.25)") }}>
                         <span>เอียง {B.tilt}° · ระยะแถวตอนนี้ <b>{now} ม.</b> · กันเงาแถวหน้าควร ≥ <b>{need} ม.</b></span>
                         {now + 1e-9 < need && (
-                          <button className="p3-lnk" style={{ marginLeft: "auto", color: "#B45309", borderColor: "rgba(180,83,9,.4)" }}
+                          <button className="p3-lnk" style={{ marginLeft: "auto", color: "var(--tint-amber-tx)", borderColor: "rgba(180,83,9,.4)" }}
                             onClick={() => patchBlk(roof, bi, { gap: Math.round((need - pdB) * 100) / 100 })}>ตั้งให้พอดี</button>
                         )}
                       </div>
@@ -2764,7 +2764,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
             <Slider label="เวลา" right={fmtHour(+st.sun.hour || 12) + " น."}
               min={6} max={18.5} step={0.25} value={st.sun.hour} onChange={(v) => { setAnimating(false); setSun({ hour: v }); }} />
             <button className={"p3-b w " + (animating ? "" : "pri")} onClick={() => setAnimating((a) => !a)}
-              style={animating ? { background: "#B45309", borderColor: "#B45309", color: "#fff", fontWeight: 700 } : null}>
+              style={animating ? { background: "var(--tint-amber-tx)", borderColor: "var(--tint-amber-tx)", color: "#fff", fontWeight: 700 } : null}>
               <P3Icon name={animating ? "pause" : "play"} size={14} />{animating ? "หยุดกวาดเงา" : "กวาดเงาทั้งวัน (06:00–18:30)"}
             </button>
           </div>
@@ -2833,7 +2833,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
               <span style={{ display: isMobile ? "none" : "flex", flexDirection: "column", gap: 4, minWidth: 96 }}>
                 <span style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>
                   <span>เป้า <b style={{ color: "var(--text-2)", fontWeight: 800 }}>{goal}</b> แผง</span>
-                  <span style={{ color: done ? "var(--primary-dark)" : "#B45309", fontWeight: 800, whiteSpace: "nowrap" }}>
+                  <span style={{ color: done ? "var(--primary-dark)" : "var(--tint-amber-tx)", fontWeight: 800, whiteSpace: "nowrap" }}>
                     {done ? (total > goal ? "เกิน " + (total - goal) : "ครบ") : "ขาด " + (goal - total)}
                   </span>
                 </span>
@@ -2853,7 +2853,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: "relative", background: "#dce8f2" }}>
           <div ref={mountRef} style={{ position: "absolute", inset: 0 }} />
           {!ready && !loadErr && <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "var(--text-2)", fontSize: 13.5, fontWeight: 600 }}>กำลังโหลดโหมด 3D…</div>}
-          {loadErr && <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "#B91C1C", fontSize: 13, padding: 30, textAlign: "center" }}>{loadErr}<br />ต้องต่ออินเทอร์เน็ตครั้งแรกเพื่อโหลดตัวเรนเดอร์ 3D</div>}
+          {loadErr && <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "var(--tint-red-tx)", fontSize: 13, padding: 30, textAlign: "center" }}>{loadErr}<br />ต้องต่ออินเทอร์เน็ตครั้งแรกเพื่อโหลดตัวเรนเดอร์ 3D</div>}
           {/* แถบเครื่องมือกระจกฝ้าชิ้นเดียว — จัดกลุ่มด้วยเส้นคั่นบาง ๆ แทนปุ่มลอยกระจัดกระจาย */}
           <div style={{ position: "absolute", top: 10, left: 10, display: "flex", gap: 6, flexWrap: "wrap", maxWidth: "calc(100% - 20px)" }}>
             <div className="p3-tools">
@@ -2951,7 +2951,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         <span style={{ flex: 1 }} />
         {/* จุดส้มกะพริบ = ยังไม่บันทึก มองเห็นก่อนอ่านตัวหนังสือ */}
         {dirty && (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "#B45309", fontWeight: 700 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "var(--tint-amber-tx)", fontWeight: 700 }}>
             <span style={{ width: 7, height: 7, borderRadius: 99, background: "#F59E0B", boxShadow: "0 0 0 3px rgba(245,158,11,.22)" }} />
             ยังไม่บันทึก
           </span>

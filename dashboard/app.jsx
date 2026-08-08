@@ -36,10 +36,9 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "cardStyle": "soft"
 }/*EDITMODE-END*/;
 
-/* โหมดออโรรา — สีหลักเปลี่ยนเป็นเขียวมิ้นต์เรืองแสง ให้อ่านออกบนพื้นมืด
-   ต้องตั้งผ่าน JS เพราะตัวแปรพวกนี้ถูกเขียนเป็น inline style บน <html> (ชนะกฎใน CSS) */
 /* โหมดกราไฟต์: primary เป็นเขียวแบรนด์ที่สว่างพอสำหรับพื้นเทาเข้ม และยังรองรับตัวอักษรขาวบนปุ่ม
-   ส่วน dark ใช้เป็นสีตัวอักษรบนพื้นมืด จึงต้องสว่างกว่า primary (กลับด้านกับโหมดปกติ) */
+   ส่วน dark ใช้เป็นสีตัวอักษรบนพื้นมืด จึงต้องสว่างกว่า primary (กลับด้านกับโหมดปกติ)
+   ต้องตั้งผ่าน JS เพราะตัวแปรพวกนี้ถูกเขียนเป็น inline style บน <html> (ชนะกฎใน CSS) */
 const AURORA = { primary: "#28A85F", dark: "#4CD97B", soft: "rgba(40,168,95,.20)", bright: "#34C759" };
 
 function applyTheme(t) {
@@ -666,11 +665,11 @@ function DailyBriefing({ lateAlerts, todayTasks, onOpen, onClose }) {
   const today = window.SF.TODAY;
   const Row = ({ jobId, color, danger, title, sub }) => (
     <button onClick={() => onOpen(jobId)} style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 12px", width: "100%", textAlign: "left",
-      background: danger ? "#FEF2F2" : "var(--surface)", border: "1px solid " + (danger ? "#FECACA" : "var(--border)"), borderRadius: 12, cursor: "pointer", fontFamily: "inherit" }}>
+      background: danger ? "var(--tint-red-bg)" : "var(--surface)", border: "1px solid " + (danger ? "var(--tint-red-bd)" : "var(--border)"), borderRadius: 12, cursor: "pointer", fontFamily: "inherit" }}>
       <span style={{ width: 32, height: 32, borderRadius: 9, flexShrink: 0, display: "grid", placeItems: "center", background: color, color: "#fff" }}><Icon name={danger ? "alert" : "wrench"} size={16} color="#fff" /></span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</span>
-        <span style={{ display: "block", fontSize: 11.5, color: danger ? "#B91C1C" : "var(--text-2)", marginTop: 1 }}>{sub}</span>
+        <span style={{ display: "block", fontSize: 11.5, color: danger ? "var(--tint-red-tx)" : "var(--text-2)", marginTop: 1 }}>{sub}</span>
       </span>
       <Icon name="chevronRight" size={15} color="var(--text-3)" style={{ flexShrink: 0 }} />
     </button>

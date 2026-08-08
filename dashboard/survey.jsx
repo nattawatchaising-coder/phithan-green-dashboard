@@ -36,7 +36,7 @@ const SURVEY_PHOTO_SLOTS = [
 // ── สถานะการสำรวจของงาน (ใช้ในลิสต์/ป้าย) ──
 function surveyStatus(job) {
   const s = job && job.survey;
-  if (s && s.skip) return { state: "skip", pct: 100, label: "ไม่ต้องสำรวจ", color: "#16A34A" };
+  if (s && s.skip) return { state: "skip", pct: 100, label: "ไม่ต้องสำรวจ", color: "var(--tint-green-tx)" };
   if (!s || !s.startedAt) return { state: "none", pct: 0, label: "ยังไม่สำรวจ", color: "#94A3B8" };
   const fields = [
     !!(s.gps && s.gps.lat), !!s.meterSize, !!s.phase,                      // ขั้น 1
@@ -47,7 +47,7 @@ function surveyStatus(job) {
   const checks = fields.concat(SURVEY_PHOTO_SLOTS.map((p) => !!photos[p.key]));
   const done = checks.filter(Boolean).length;
   const pct = Math.round((done / checks.length) * 100);
-  if (pct >= 100) return { state: "done", pct: 100, label: "สำรวจครบ", color: "#16A34A" };
+  if (pct >= 100) return { state: "done", pct: 100, label: "สำรวจครบ", color: "var(--tint-green-tx)" };
   return { state: "partial", pct, label: "สำรวจบางส่วน", color: "#F59E0B" };
 }
 
@@ -323,7 +323,7 @@ function SurveyWizard({ job, onClose, onSave, currentUser }) {
 
           {step === 4 && (
             <SurveyBlock title="📷 รูปถ่ายบังคับ (Checklist)" sub={"ถ่ายให้ครบทั้ง " + SURVEY_PHOTO_SLOTS.length + " รูป เพื่อให้การสำรวจสมบูรณ์"}>
-              {!window.FBDB && <div style={{ fontSize: 12, color: "#EF4444", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 9, padding: "9px 11px" }}>⚠ ต้องเชื่อมต่อ Firebase จึงจะอัปโหลดรูปได้</div>}
+              {!window.FBDB && <div style={{ fontSize: 12, color: "#EF4444", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)", borderRadius: 9, padding: "9px 11px" }}>⚠ ต้องเชื่อมต่อ Firebase จึงจะอัปโหลดรูปได้</div>}
               <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
                 {SURVEY_PHOTO_SLOTS.map((slot) => (
                   <SurveyPhotoSlot key={slot.key} slot={slot} photo={media.photos[slot.key]} busy={busySlot === slot.key}

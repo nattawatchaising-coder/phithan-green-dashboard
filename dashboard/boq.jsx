@@ -43,7 +43,7 @@ const BQ_CSS = `
 .bq-nav[data-on="1"] .tt{color:var(--primary-dark)}
 .bq-nav .mt{display:block;font-size:10px;font-weight:600;color:var(--text-3);line-height:1.4;margin-top:1px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bq-nav .mt.warn{color:#B45309}
+.bq-nav .mt.warn{color:var(--tint-amber-tx)}
 .bq-nav .mt.ok{color:var(--primary-dark)}
 
 /* การ์ดเนื้อหา */
@@ -69,7 +69,7 @@ const BQ_CSS = `
   color:var(--text-2);font-weight:700;font-family:inherit;font-size:13px;cursor:pointer;
   display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .bq-btn:hover{background:var(--surface2)}
-.bq-btn.gh{border-color:#1d854b;background:rgba(34,163,91,.08);color:#1d854b}
+.bq-btn.gh{border-color:var(--tint-ok-tx);background:rgba(34,163,91,.08);color:var(--tint-ok-tx)}
 .bq-btn.pri{border:0;background:var(--primary);color:#fff;padding:10px 24px}
 .bq-btn.pri:hover{filter:brightness(1.06)}
 
@@ -81,10 +81,10 @@ const BQ_CSS = `
 .bq-spec .v{display:block;font-family:var(--mono);font-size:13.5px;font-weight:800;color:var(--text-1);
   font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bq-spec .v.hi{color:var(--primary-dark)}
-.bq-spec>div[data-miss="1"]{background:#FFFBEB;border-color:#FDE68A}
-.bq-spec>div[data-miss="1"] .v{color:#B45309}
-.bq-spec>div[data-bad="1"]{background:#FEF2F2;border-color:#FBD3D3}
-.bq-spec>div[data-bad="1"] .v{color:#DC2626}
+.bq-spec>div[data-miss="1"]{background:var(--tint-amber-bg);border-color:var(--tint-amber-bd)}
+.bq-spec>div[data-miss="1"] .v{color:var(--tint-amber-tx)}
+.bq-spec>div[data-bad="1"]{background:var(--tint-red-bg);border-color:var(--tint-red-bd2)}
+.bq-spec>div[data-bad="1"] .v{color:var(--tint-red-tx2)}
 /* ปุ่มลิงก์เล็ก ๆ ท้ายป้ายช่องกรอก — กดแล้วกลับไปใช้ค่าอัตโนมัติ */
 .bq-auto{border:0;background:none;padding:0;margin-left:auto;cursor:pointer;font-family:inherit;
   font-size:9.5px;font-weight:800;color:var(--primary-dark);text-decoration:underline;white-space:nowrap}
@@ -94,8 +94,8 @@ const BQ_CSS = `
 .bq-x:hover{background:#EF44441a;border-color:#EF444433;color:#EF4444}
 .bq-note{margin-top:9px;display:flex;align-items:flex-start;gap:7px;padding:9px 12px;border-radius:10px;
   font-size:12px;font-weight:600;line-height:1.5}
-.bq-note.warn{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E}
-.bq-note.ok{background:rgba(34,163,91,.07);border:1px solid #BBE7CD;color:#1d854b}
+.bq-note.warn{background:var(--tint-amber-bg);border:1px solid var(--tint-amber-bd);color:var(--tint-amber-tx2)}
+.bq-note.ok{background:var(--tint-ok-bg);border:1px solid var(--tint-ok-bd);color:var(--tint-ok-tx)}
 
 @media (max-width:860px){
   .bq-body{flex-direction:column}
@@ -679,7 +679,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const GROUP_COLOR = { "PV MODULE": "#22A35B", INVERTER: "#7C5CFC", "COMBINER BOX": "#4F46E5", MOUNTING: "#F59E0B", CABLE: "#0EA5E9", "RACE WAY": "#64748B", GROUNDING: "#A16207", "LADDER (บันไดลิง)": "#0D9488", "WALKWAY": "#D97706", "GUARD RAIL": "#DB2777", ACCESSORIES: "#EC4899",
     [window.BOQ.G_TRAY]: "#0891B2", [window.BOQ.G_SUPPORT]: "#78716C",
     [window.BOQ.G_LABOR]: "#2563EB", [window.BOQ.G_PERMIT]: "#9333EA",
-    [window.BOQ.G_TRANSPORT]: "#0F766E", [window.BOQ.G_MANAGE]: "#B45309",
+    [window.BOQ.G_TRANSPORT]: "#0F766E", [window.BOQ.G_MANAGE]: "var(--tint-amber-tx)",
     "ตู้ไฟ": "#475569", "ระบบสูบน้ำ (WATER SYSTEM)": "#0284C7", "ถังเก็บน้ำ (TANK)": "#0369A1",
     "ท่อน้ำ (PIPE)": "#0E7490", "อุปกรณ์มอนิเตอร์": "#6D28D9" };
 
@@ -790,7 +790,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   </button>
                   {any && (
                     <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 8, fontSize: 11, fontWeight: 800, fontVariantNumeric: "tabular-nums",
-                      color: chk.ok ? "#16A34A" : "#DC2626" }}>
+                      color: chk.ok ? "var(--tint-green-tx)" : "var(--tint-red-tx2)" }}>
                       <span>เติมเต็ม {chk.fillPct}% / {chk.limit}%</span>
                       <span style={{ color: "var(--text-3)", fontWeight: 700 }}>ตัวคูณ ×{chk.derate.toFixed(2)}</span>
                       <span>{chk.ok ? "✓" : "✗"}</span>
@@ -884,7 +884,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   </button>
                   {any && (
                     <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 8, fontSize: 11, fontWeight: 800, fontVariantNumeric: "tabular-nums",
-                      color: chk.ok && chk.widthOk ? "#16A34A" : "#DC2626" }}>
+                      color: chk.ok && chk.widthOk ? "var(--tint-green-tx)" : "var(--tint-red-tx2)" }}>
                       <span>เติมเต็ม {chk.fillPct}% / {chk.limit}%</span>
                       <span style={{ color: "var(--text-3)", fontWeight: 700 }}>ตัวคูณ ×{chk.derate.toFixed(2)}</span>
                       <span>{chk.ok && chk.widthOk ? "✓" : "✗"}</span>
@@ -1452,7 +1452,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 <Field label="ตู้ไฟเพิ่ม (case by case)"><Dropdown value={!!b.hwExtraPanel} onChange={(v) => set("hwExtraPanel", v)} options={[{ value: false, label: "ไม่มี" }, { value: true, label: "มี" }]} /></Field>
               </div>
               {pvOver && (
-                <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 7, padding: "9px 12px", background: "#FEF2F2", border: "1px solid #FBD3D3", borderRadius: 10, fontSize: 12.5, fontWeight: 700, color: "#B91C1C" }}>
+                <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 7, padding: "9px 12px", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd2)", borderRadius: 10, fontSize: 12.5, fontWeight: 700, color: "var(--tint-red-tx)" }}>
                   <Icon name="alert" size={15} color="#EF4444" /> กำลังแผง {result.meta.kw} kW เกิน MAX PV รวม {maxPvTotal} kW ({selInv.invCount || result.meta.invCount} ตัว × {selInv.maxPv} kW) — เพิ่มจำนวนอินเวอร์เตอร์หรือลดแผง
                 </div>
               )}
@@ -1498,7 +1498,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           {isStringInv && scfg && (
             <BoqSection title="สาย DC / การต่ออนุกรม String (PV1-F)" icon="bolt" {...secProps("dc")}>
               {!scfg.ready ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 13px", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, fontSize: 12.5, fontWeight: 600, color: "#92400E" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 13px", background: "var(--tint-amber-bg)", border: "1px solid var(--tint-amber-bd)", borderRadius: 10, fontSize: 12.5, fontWeight: 600, color: "var(--tint-amber-tx2)" }}>
                   <Icon name="alert" size={15} color="#F59E0B" /> {scfg.warns.join(" · ")}
                 </div>
               ) : (
@@ -1530,9 +1530,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       { l: "กระแส DC (Isc×1.25)", v: scfg.dcAmp + " A", ok: null },
                       { l: "ขนาดสาย DC PV1-F", v: scfg.dcWire, ok: null, hi: true },
                     ].map((c, i) => (
-                      <div key={i} style={{ padding: "10px 12px", borderRadius: 10, background: "var(--surface3)", border: "1px solid " + (c.ok === false ? "#FBD3D3" : "var(--border)") }}>
+                      <div key={i} style={{ padding: "10px 12px", borderRadius: 10, background: "var(--surface3)", border: "1px solid " + (c.ok === false ? "var(--tint-red-bd2)" : "var(--border)") }}>
                         <div style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 3 }}>{c.l}</div>
-                        <div style={{ fontFamily: "var(--mono)", fontSize: 15, fontWeight: 800, color: c.hi ? "var(--primary-dark)" : (c.ok === false ? "#DC2626" : "var(--text-1)") }}>{c.v}{c.ok === true ? " ✓" : c.ok === false ? " ✗" : ""}</div>
+                        <div style={{ fontFamily: "var(--mono)", fontSize: 15, fontWeight: 800, color: c.hi ? "var(--primary-dark)" : (c.ok === false ? "var(--tint-red-tx2)" : "var(--text-1)") }}>{c.v}{c.ok === true ? " ✓" : c.ok === false ? " ✗" : ""}</div>
                       </div>
                     ))}
                   </div>
@@ -1573,7 +1573,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   {scfg.warns.length > 0 && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                       {scfg.warns.map((w, i) => (
-                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 12px", background: "#FEF2F2", border: "1px solid #FBD3D3", borderRadius: 9, fontSize: 12, fontWeight: 600, color: "#B91C1C" }}>
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 12px", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd2)", borderRadius: 9, fontSize: 12, fontWeight: 600, color: "var(--tint-red-tx)" }}>
                           <Icon name="alert" size={14} color="#EF4444" /> {w}
                         </div>
                       ))}
@@ -1609,14 +1609,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 <Icon name="check" size={15} color="var(--primary-dark)" sw={2.6} /> วางแผงครบตามจำนวนแล้ว ({result.meta.panelCount} แผง)
               </div>
             ) : remaining > 0 ? (
-              <div style={{ marginTop: 10, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, padding: "9px 12px", background: "#FEF2F2", border: "1px solid #FBD3D3", borderRadius: 10, fontSize: 12.5, fontWeight: 700, color: "#B91C1C" }}>
+              <div style={{ marginTop: 10, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, padding: "9px 12px", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd2)", borderRadius: 10, fontSize: 12.5, fontWeight: 700, color: "var(--tint-red-tx)" }}>
                 <Icon name="alert" size={15} color="#EF4444" /> ยังขาดอีก {remaining} แผง
                 <button onClick={() => fillRemaining(remaining)} style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, background: "#EF4444", color: "#fff", border: "none", borderRadius: 8, padding: "6px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
                   <Icon name="plus" size={13} color="#fff" /> เพิ่มแถว {remaining} แผง
                 </button>
               </div>
             ) : (
-              <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 7, padding: "9px 12px", background: "#FEF9EC", border: "1px solid #FCE4B6", borderRadius: 10, fontSize: 12.5, fontWeight: 700, color: "#B45309" }}>
+              <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 7, padding: "9px 12px", background: "var(--tint-amber-bg)", border: "1px solid var(--tint-amber-bd)", borderRadius: 10, fontSize: 12.5, fontWeight: 700, color: "var(--tint-amber-tx)" }}>
                 <Icon name="alert" size={15} color="#F59E0B" /> วางเกินจำนวนแผง {-remaining} แผง — ตรวจสอบจำนวนแผง/แถว
               </div>
             )}
@@ -1713,17 +1713,17 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       )}
                       {showHint && (
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700,
-                          color: bad || amp == null ? "#B91C1C" : (req ? "#16A34A" : "var(--text-3)") }}>
-                          <Icon name={amp == null || bad ? "alert" : (req ? "check" : "bolt")} size={11} color={bad || amp == null ? "#B91C1C" : (req ? "#16A34A" : "var(--text-3)")} />
+                          color: bad || amp == null ? "var(--tint-red-tx)" : (req ? "var(--tint-green-tx)" : "var(--text-3)") }}>
+                          <Icon name={amp == null || bad ? "alert" : (req ? "check" : "bolt")} size={11} color={bad || amp == null ? "var(--tint-red-tx)" : (req ? "var(--tint-green-tx)" : "var(--text-3)")} />
                           {amp != null
                             ? "พิกัด ~" + amp + " A" + (req ? " / ต้องการ " + (Math.round(req * 10) / 10).toFixed(1) + " A" : "") + (bad ? " · ไม่พอ" : (req ? " · ผ่าน" : ""))
                             : (!hasSize ? "เลือกสายที่ระบุขนาด (SQ.MM.) ก่อน" : "ยังไม่มีตารางพิกัดของเงื่อนไขนี้")}
                         </span>
                       )}
                       {vd && (
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700, color: vd.ok ? "var(--text-3)" : "#B45309" }}
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700, color: vd.ok ? "var(--text-3)" : "var(--tint-amber-tx)" }}
                           title={"ΔV = " + (vd.phase === 3 ? "√3" : "2") + " × " + vd.length + " ม. × " + Math.round(vd.amp * 100) / 100 + " A × ρ ÷ " + vd.size + " mm²  ·  เกณฑ์ ≤ " + vd.lim + "%"}>
-                          <Icon name={vd.ok ? "check" : "alert"} size={11} color={vd.ok ? "var(--text-3)" : "#B45309"} />
+                          <Icon name={vd.ok ? "check" : "alert"} size={11} color={vd.ok ? "var(--text-3)" : "var(--tint-amber-tx)"} />
                           ΔV {vd.pct}%
                           {!vd.ok && (vd.minSize ? " · ต้องใช้ ≥ " + vd.minSize + " mm²" : " · เกินขนาดสายที่มี ให้ลดระยะหรือเพิ่มแรงดัน")}
                         </span>
@@ -1770,8 +1770,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 const L = vdropSum.lim;
                 const cell = (lb, val, lim, tip) => (
                   <span title={tip} style={{ display: "inline-flex", alignItems: "baseline", gap: 5, fontSize: 11.5, fontWeight: 700,
-                    color: val > lim ? "#B45309" : "var(--text-2)" }}>
-                    {lb} <b style={{ fontSize: 13.5, color: val > lim ? "#B45309" : "var(--text-1)" }}>{val}%</b>
+                    color: val > lim ? "var(--tint-amber-tx)" : "var(--text-2)" }}>
+                    {lb} <b style={{ fontSize: 13.5, color: val > lim ? "var(--tint-amber-tx)" : "var(--text-1)" }}>{val}%</b>
                     <span style={{ fontWeight: 600, color: "var(--text-3)" }}>/ {lim}%</span>
                   </span>
                 );
@@ -1780,7 +1780,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   <div style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center", padding: "10px 13px", borderRadius: 11,
                     border: "1px solid " + (bad ? "#F59E0B55" : "var(--border)"), background: bad ? "#F59E0B12" : "var(--surface2)" }}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--text-1)" }}>
-                      <Icon name="bolt" size={12} color={bad ? "#B45309" : "var(--primary)"} />แรงดันตกรวม
+                      <Icon name="bolt" size={12} color={bad ? "var(--tint-amber-tx)" : "var(--primary)"} />แรงดันตกรวม
                     </span>
                     {cell("ฝั่ง DC", vdropSum.dc, L.dc, "เส้นที่ตกมากสุดฝั่ง DC (แต่ละสตริงเป็นเส้นทางของตัวเอง ไม่บวกกัน)")}
                     {cell("ฝั่ง AC", vdropSum.ac, L.ac, "บวกทุกช่วงฝั่ง AC ตั้งแต่อินเวอร์เตอร์ถึงตู้เมน")}
@@ -1857,7 +1857,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       </div>
                       {mtdMeta.groups && mtdMeta.groups.indexOf(calcGroup) < 0 && (
                         <button type="button" onClick={() => setWcalc("group", mtdMeta.groups[0])}
-                          style={{ marginTop: 4, border: 0, background: "#FEF3C7", color: "#92400E", borderRadius: 7, padding: "3px 8px", fontWeight: 700, fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>
+                          style={{ marginTop: 4, border: 0, background: "var(--tint-amber-bg2)", color: "var(--tint-amber-tx2)", borderRadius: 7, padding: "3px 8px", fontWeight: 700, fontSize: 10, cursor: "pointer", fontFamily: "inherit" }}>
                           วิธีนี้ใช้กับ {((window.BOQ.AMP_GROUPS || []).find((g) => g.key === mtdMeta.groups[0]) || {}).th || mtdMeta.groups[0]} — กดสลับ
                         </button>
                       )}
@@ -1908,7 +1908,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 </div>
 
                 {(!hasAmpTbl || ampSrc.borrowed) && (
-                  <div className="bq-note" style={{ marginTop: 10, background: ampSrc.borrowed ? "rgba(34,163,91,.07)" : "#FFFBEB", border: "1px solid " + (ampSrc.borrowed ? "#BBE7CD" : "#FDE68A"), color: ampSrc.borrowed ? "#1d854b" : "#92400E" }}>
+                  <div className="bq-note" style={{ marginTop: 10, background: ampSrc.borrowed ? "var(--tint-ok-bg)" : "var(--tint-amber-bg)", border: "1px solid " + (ampSrc.borrowed ? "var(--tint-ok-bd)" : "var(--tint-amber-bd)"), color: ampSrc.borrowed ? "var(--tint-ok-tx)" : "var(--tint-amber-tx2)" }}>
                     <Icon name={ampSrc.borrowed ? "check" : "alert"} size={15} color={ampSrc.borrowed ? "#22A35B" : "#F59E0B"} />
                     <span>{ampSrc.borrowed
                       ? "ใช้ตารางพิกัดของ \"" + ampSrcTh(ampSrc.from) + "\" — " + (mtdMeta.baseWhy || "ระบายความร้อนแบบเดียวกัน")
@@ -1933,7 +1933,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
                           <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>{r.label}</div>
-                            {r.needInput && <div style={{ fontSize: 10.5, color: "#B45309", marginTop: 1 }}>{r.note}</div>}
+                            {r.needInput && <div style={{ fontSize: 10.5, color: "var(--tint-amber-tx)", marginTop: 1 }}>{r.note}</div>}
                           </div>
                           <span style={{ flexShrink: 0, fontFamily: "var(--mono)", fontSize: 12, fontWeight: 700, color: r.needInput ? "var(--text-3)" : "var(--primary-dark)", background: r.needInput ? "var(--surface3)" : "var(--primary-soft)", padding: "4px 10px", borderRadius: 7 }}>{r.wire}</span>
                         </div>
@@ -1965,7 +1965,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       <tr key={i} style={{ borderTop: "1px solid var(--border)" }}>
                         <td style={{ padding: "9px 14px", color: "var(--text-1)" }}>
                           <span style={{ fontWeight: 600 }}>{r.label}</span>
-                          <span style={{ display: "block", fontSize: 10.5, color: r.needInput ? "#B45309" : "var(--text-3)" }}>{r.note}</span>
+                          <span style={{ display: "block", fontSize: 10.5, color: r.needInput ? "var(--tint-amber-tx)" : "var(--text-3)" }}>{r.note}</span>
                         </td>
                         <td style={{ padding: "9px 10px", textAlign: "right", fontFamily: "var(--mono)", color: "var(--text-2)" }}>{r.w == null ? "—" : Math.round(r.w).toLocaleString()}</td>
                         <td style={{ padding: "9px 10px", textAlign: "right", fontFamily: "var(--mono)", fontWeight: 700, color: "var(--text-1)" }}>{r.needInput ? "—" : (Math.round(r.ampTotal * 10) / 10).toFixed(1)}</td>
@@ -2385,7 +2385,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
           {/* ── แบ่งราคา: ต้นทุน → ผู้รับเหมา → ราคาขาย → ส่วนลด ── */}
           <BoqSection title="แบ่งราคา & กำไร" icon="bolt" {...secProps("price")}
-            right={pb.sell > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: (pb.net > 0 ? pb.netProfit : pb.profit) > 0 ? "var(--primary-dark)" : "#B45309" }}>กำไร {(pb.net > 0 ? pb.netMargin : pb.margin)}%</span> : null}>
+            right={pb.sell > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: (pb.net > 0 ? pb.netProfit : pb.profit) > 0 ? "var(--primary-dark)" : "var(--tint-amber-tx)" }}>กำไร {(pb.net > 0 ? pb.netMargin : pb.margin)}%</span> : null}>
             <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 14 }}>
               ต้นทุนดึงจากใบถอดของให้เอง — กรอกเฉพาะค่าแรงผู้รับเหมา ราคาขาย และส่วนลด แล้วระบบคิด VAT กำไร และบาทต่อวัตต์ให้
             </div>
@@ -2436,14 +2436,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               const good = profit > 0;
               return (
                 <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", padding: "12px 14px", borderRadius: 12,
-                  background: good ? "var(--primary-soft)" : "#FEF3C7", border: "1px solid " + (good ? "#BBE7CD" : "#FDE68A") }}>
+                  background: good ? "var(--primary-soft)" : "var(--tint-amber-bg2)", border: "1px solid " + (good ? "var(--tint-ok-bd)" : "var(--tint-amber-bd)") }}>
                   <span style={{ display: "inline-flex", alignItems: "baseline", gap: 7 }}>
-                    <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".06em", color: good ? "var(--primary-dark)" : "#92400E" }}>กำไร</span>
+                    <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".06em", color: good ? "var(--primary-dark)" : "var(--tint-amber-tx2)" }}>กำไร</span>
                     <span style={{ fontFamily: "var(--display)", fontSize: 20, fontWeight: 700, letterSpacing: "-.035em",
-                      fontVariantNumeric: "tabular-nums", color: good ? "var(--primary-dark)" : "#92400E" }}>฿{baht(profit)}</span>
-                    <span style={{ fontSize: 12.5, fontWeight: 800, color: good ? "var(--primary-dark)" : "#92400E" }}>({margin}%)</span>
+                      fontVariantNumeric: "tabular-nums", color: good ? "var(--primary-dark)" : "var(--tint-amber-tx2)" }}>฿{baht(profit)}</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 800, color: good ? "var(--primary-dark)" : "var(--tint-amber-tx2)" }}>({margin}%)</span>
                   </span>
-                  <span style={{ fontSize: 11, color: good ? "var(--primary-dark)" : "#92400E", fontWeight: 600 }}>
+                  <span style={{ fontSize: 11, color: good ? "var(--primary-dark)" : "var(--tint-amber-tx2)", fontWeight: 600 }}>
                     {good
                       ? "คิดจากราคา" + (pb.discount > 0 ? "หลังส่วนลด" : "ขาย") + " หักต้นทุนรวม (วัสดุ + ค่าแรงติดตั้ง + ค่าแรงผู้รับเหมา) · ตัวเลขนี้ยังไม่รวม VAT"
                       : "ราคานี้ขายแล้วขาดทุน — ต้นทุนรวม ฿" + baht(pb.totalCost) + " สูงกว่าราคาที่ตั้งไว้"}
@@ -2474,13 +2474,13 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         </span>
         <span className="bq-gap" />
         {remaining !== 0 && (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11.5, fontWeight: 700, color: "#B45309", marginRight: 12, whiteSpace: "nowrap" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11.5, fontWeight: 700, color: "var(--tint-amber-tx)", marginRight: 12, whiteSpace: "nowrap" }}>
             <span style={{ width: 7, height: 7, borderRadius: 99, background: "#F59E0B", boxShadow: "0 0 0 3px rgba(245,158,11,.22)" }} />
             ยังวางแผงไม่ครบ {Math.abs(remaining)} แผง
           </span>
         )}
         <button className="bq-btn" style={{ marginRight: 8 }} onClick={onClose}>ปิด</button>
-        <button className="bq-btn gh" style={{ marginRight: 8 }} onClick={() => guardRun(exportXlsx)}><Icon name="box" size={15} color="#1d854b" /> Excel</button>
+        <button className="bq-btn gh" style={{ marginRight: 8 }} onClick={() => guardRun(exportXlsx)}><Icon name="box" size={15} color="var(--tint-ok-tx)" /> Excel</button>
         {onSave && <button className="bq-btn pri" onClick={() => guardRun(() => onSave(b))}><Icon name="check" size={15} color="#fff" /> บันทึก BOQ</button>}
       </div>
     </div>

@@ -291,11 +291,11 @@ function NotifPanel({ items, lateAlerts, onClose, onOpenJob, onMarkAll }) {
               {alerts.map((a, i) => (
                 <button key={a.jobId + a.stage.key + i} onClick={() => onOpenJob({ jobId: a.jobId })}
                   style={{ display: "flex", gap: 10, padding: "11px 12px", width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "inherit",
-                    background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 11 }}>
+                    background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)", borderRadius: 11 }}>
                   <span style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: "grid", placeItems: "center", background: "#EF4444", color: "#fff" }}><Icon name="alert" size={15} color="#fff" /></span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.jobName}</span>
-                    <span style={{ display: "block", fontSize: 12, color: "#B91C1C", marginTop: 2, lineHeight: 1.4 }}>ขั้น "{a.stage.th}" เลยกำหนด {a.stage.daysLate} วัน</span>
+                    <span style={{ display: "block", fontSize: 12, color: "var(--tint-red-tx)", marginTop: 2, lineHeight: 1.4 }}>ขั้น "{a.stage.th}" เลยกำหนด {a.stage.daysLate} วัน</span>
                     <span style={{ display: "block", fontSize: 10.5, color: "var(--text-3)", marginTop: 3 }}>กำหนดเสร็จ {thDate ? thDate(a.stage.end, true) : a.stage.end}</span>
                   </span>
                 </button>

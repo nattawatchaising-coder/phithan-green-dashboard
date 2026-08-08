@@ -246,7 +246,7 @@ function TableMobile({ jobs, sort, setSort, onOpen, onEdit, onDelete, onSetStage
         const s = stageOf(j.stage);
         return (
           <div key={j.id} style={{ background: j.delayed ? "#FEF7F7" : "var(--surface)",
-            border: "1px solid " + (j.delayed ? "#FBD3D3" : "var(--border)"), borderRadius: 14, padding: 13,
+            border: "1px solid " + (j.delayed ? "var(--tint-red-bd2)" : "var(--border)"), borderRadius: 14, padding: 13,
             borderLeft: "3px solid " + (j.delayed ? "#EF4444" : s.color), boxShadow: "var(--shadow-sm)" }}>
             {/* หัว: รหัส + ประเภท + ปุ่มจัดการ */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
