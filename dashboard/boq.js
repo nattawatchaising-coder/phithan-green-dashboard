@@ -1501,6 +1501,21 @@
       });
     }
 
+    /* ชื่อที่เปลี่ยนเองจากในใบถอดของ — ทับชื่อที่ระบบถอดให้
+       ทำหลัง qtyAdj เพราะคีย์ของ qtyAdj อิงชื่อเดิม ถ้าสลับลำดับจะหากันไม่เจอ
+       ราคาไปหาจากคลังด้วย "ชื่อใหม่" ต้นทุนจึงผูกกับของที่เลือกจริง ไม่ใช่ชื่อที่ระบบตั้ง */
+    const ren = b.rename || {};
+    if (Object.keys(ren).length) {
+      groups.forEach((g) => {
+        if (SERVICE_GROUPS.indexOf(g.group) >= 0) return;
+        g.items = g.items.map((it) => {
+          const nm = String(ren[qtyKey(g.group, it.name)] || "").trim();
+          if (!nm || nm === it.name) return it;
+          return Object.assign({}, it, { name: nm, nameAuto: it.name, renamed: true });
+        });
+      });
+    }
+
     return { groups, meta: { panelCount, kw, rowsSum, invCount, invAuto, plan, battCount, auto: AUTO, valid: rowsSum === panelCount } };
   }
 

@@ -732,6 +732,15 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     if (!sku) delete pk[key]; else pk[key] = sku;
     return Object.assign({}, p, { pick: pk });
   });
+  /* เปลี่ยนชื่อรายการในใบถอดของ — เก็บเป็น rename (หมวด|ชื่อเดิม → ชื่อใหม่)
+     ราคาไปหาจากคลังด้วยชื่อใหม่ เลือกของจากคลังจึงได้ราคามาด้วยเลย ยอดไม่เพี้ยน
+     ลบชื่อออก = กลับไปใช้ชื่อที่ระบบถอดให้ */
+  const setRename = (key, name) => setB((p) => {
+    const r = Object.assign({}, p.rename);
+    const v = String(name || "").trim();
+    if (!v) delete r[key]; else r[key] = v;
+    return Object.assign({}, p, { rename: r });
+  });
 
   /* ── แก้จำนวนได้จากในใบถอดของ ──
      เก็บเป็น qtyAdj (หมวด|ชื่อ → จำนวน) ทับค่าที่ระบบถอดให้ ไม่ไปยุ่งกับสูตร
@@ -1207,13 +1216,15 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     const itemCount = priced.groups.reduce((s, g) => s + g.items.length, 0);
 
     /* ═══ ชีต 1: ใบถอดวัสดุ ═══ */
+    /* คอลัมน์ — ตั้งชื่อ index ไว้ใช้ทั้งสูตรและสไตล์ จะได้ไม่ต้องนับนิ้วเวลาเพิ่ม/ลดคอลัมน์ */
     const cols = hasPrice
-      ? ["ลำดับ", "รหัสวัสดุ", "รายการ", "จำนวน", "หน่วย", "ราคา/หน่วย", "จำนวนเงิน"]
-      : ["ลำดับ", "รหัสวัสดุ", "รายการ", "จำนวน", "หน่วย"];
+      ? ["ลำดับ", "รหัสวัสดุ", "รายการ", "ยี่ห้อ / รุ่น", "จำนวน", "หน่วย", "ราคา/หน่วย", "จำนวนเงิน"]
+      : ["ลำดับ", "รหัสวัสดุ", "รายการ", "ยี่ห้อ / รุ่น", "จำนวน", "หน่วย"];
+    const cNo = 0, cCode = 1, cName = 2, cVar = 3, cQty = 4, cUnit = 5, cPrice = 6;
     const lastC = cols.length - 1;
     const colW = hasPrice
-      ? [{ wch: 7 }, { wch: 14 }, { wch: 46 }, { wch: 9.5 }, { wch: 8 }, { wch: 13 }, { wch: 15 }]
-      : [{ wch: 7 }, { wch: 16 }, { wch: 54 }, { wch: 11 }, { wch: 10 }];
+      ? [{ wch: 7 }, { wch: 14 }, { wch: 42 }, { wch: 24 }, { wch: 9.5 }, { wch: 8 }, { wch: 13 }, { wch: 15 }]
+      : [{ wch: 7 }, { wch: 16 }, { wch: 48 }, { wch: 26 }, { wch: 11 }, { wch: 10 }];
     const A = mkSheet(lastC, colW);
     docHead(A, "บัญชีแสดงปริมาณวัสดุ  ·  BILL OF QUANTITIES", "PHITHAN GREEN  —  งานติดตั้งระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์");
 
@@ -1239,7 +1250,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
        ทุกยอดเป็นสูตร: จำนวนเงิน = จำนวน × ราคา/หน่วย · ยอดหมวด = SUM ของรายการในหมวด
        ปิดท้ายแต่ละหมวดด้วยแถวบาง ๆ ให้ช่วง SUM กินเลยบรรทัดสุดท้ายไปหนึ่งแถว
        แทรกบรรทัดใหม่ต่อท้ายหมวดจึงยังอยู่ในช่วง ยอดรวมขยับตามทันที */
-    const QC = CL(3), PC = CL(5), TC = CL(lastC);
+    const QC = CL(cQty), PC = CL(cPrice), TC = CL(lastC);
     const groupRows = [];
     let n = 0, bodyStart = null, bodyEnd = null;
     priced.groups.forEach((g) => {
@@ -1251,7 +1262,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       groupRows.push(gr);
       const first = A.R;
       g.items.forEach((it, k) => {
-        const base = [n + "." + (k + 1), it.code || "", it.name || "", +it.qty || 0, it.unit || ""];
+        const base = [n + "." + (k + 1), it.code || "", it.name || "", it.variantLabel || "", +it.qty || 0, it.unit || ""];
         if (hasPrice) {
           const er = A.R;   // แถว Excel ของบรรทัดนี้ (ยังไม่ push จึงเท่ากับ index ถัดไป)
           base.push(it.price || 0);
@@ -1270,8 +1281,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       // รวมทั้งใบ = บวกเฉพาะแถวหัวหมวด (คอลัมน์ ลำดับ ขึ้นต้นด้วย "หมวด") — เพิ่มหมวดใหม่ก็ยังรวมให้
       const gsum = 'SUMIF($' + CL(0) + "$" + (bodyStart + 1) + ":$" + CL(0) + "$" + (bodyEnd + 1)
         + ',"หมวด*",$' + TC + "$" + (bodyStart + 1) + ":$" + TC + "$" + (bodyEnd + 1) + ")";
-      const tr = A.push([null, null, "รวมต้นทุนใบถอดวัสดุ (ก่อน VAT)", null, null, null,
-        F("ROUND(" + gsum + ",2)", priced.grandTotal)], "total", 26);
+      const totRow = []; totRow[cName] = "รวมต้นทุนใบถอดวัสดุ (ก่อน VAT)";
+      totRow[lastC] = F("ROUND(" + gsum + ",2)", priced.grandTotal);
+      const tr = A.push(totRow, "total", 26);
       A.merge(tr, 0, lastC - 1);
     }
     A.gap(6);
@@ -1291,7 +1303,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       } else if (t === "head") {
         s.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.white } };
         s.fill = { patternType: "solid", fgColor: { rgb: C.brand } };
-        s.alignment = { horizontal: c === 2 ? "left" : "center", vertical: "center", wrapText: true };
+        s.alignment = { horizontal: (c === cName || c === cVar) ? "left" : "center", vertical: "center", wrapText: true };
         s.border = { top: thin, bottom: thin, left: { style: "thin", color: { rgb: C.brand } }, right: { style: "thin", color: { rgb: C.brand } } };
       } else if (t === "group") {
         s.font = { name: FONT, sz: 11, bold: true, color: { rgb: C.brandDk } };
@@ -1305,11 +1317,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       } else if (t === "item" || t === "itemAlt") {
         if (t === "itemAlt") s.fill = { patternType: "solid", fgColor: { rgb: C.alt } };
         s.border = { top: hair, bottom: hair, left: hair, right: hair };
-        if (c === 0) { s.alignment = { horizontal: "center", vertical: "center" }; s.font = { name: FONT, sz: 9.5, color: { rgb: C.sub } }; }
-        else if (c === 1) { s.alignment = { horizontal: "center", vertical: "center" }; s.font = { name: FONT, sz: 9, color: { rgb: C.sub } }; }
-        else if (c === 2) s.alignment = { horizontal: "left", vertical: "center", wrapText: true, indent: 1 };
-        else if (c === 3) { s.alignment = { horizontal: "right", vertical: "center" }; s.numFmt = qtyFmt; s.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.text } }; }
-        else if (c === 4) { s.alignment = { horizontal: "center", vertical: "center" }; s.font = { name: FONT, sz: 10, color: { rgb: C.sub } }; }
+        if (c === cNo) { s.alignment = { horizontal: "center", vertical: "center" }; s.font = { name: FONT, sz: 9.5, color: { rgb: C.sub } }; }
+        else if (c === cCode) { s.alignment = { horizontal: "center", vertical: "center" }; s.font = { name: FONT, sz: 9, color: { rgb: C.sub } }; }
+        else if (c === cName) s.alignment = { horizontal: "left", vertical: "center", wrapText: true, indent: 1 };
+        else if (c === cVar) { s.alignment = { horizontal: "left", vertical: "center", wrapText: true, indent: 1 }; s.font = { name: FONT, sz: 9.5, color: { rgb: C.sub } }; }
+        else if (c === cQty) { s.alignment = { horizontal: "right", vertical: "center" }; s.numFmt = qtyFmt; s.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.text } }; }
+        else if (c === cUnit) { s.alignment = { horizontal: "center", vertical: "center" }; s.font = { name: FONT, sz: 10, color: { rgb: C.sub } }; }
         else { s.alignment = { horizontal: "right", vertical: "center" }; s.numFmt = moneyFmt; if (c === lastC) s.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.text } }; }
       } else if (t === "total") {
         s.font = { name: FONT, sz: 12, bold: true, color: { rgb: C.white } };
@@ -2600,7 +2613,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                             if (!vEditable && !it.variantLabel) return null;
                             if (!vEditable) return <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-2)" }}>{it.variantLabel}</span>;
                             return (
-                              <button type="button" onClick={() => setEditVar({ name: it.name, group: g.group, unit: it.unit })}
+                              <button type="button" onClick={() => setEditVar({ name: it.name, group: g.group, unit: it.unit, rkey: window.BOQ.qtyKey(g.group, it.nameAuto || it.name), nameAuto: it.nameAuto || it.name })}
                                 title={n > 1 ? n + " ยี่ห้อ/รุ่นในคลัง — กดเพื่อเลือกหรือแก้" : "กดเพื่อระบุยี่ห้อ/รุ่น และแก้ราคา (บันทึกลงคลังสินค้า)"}
                                 style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "1px 7px", borderRadius: 99,
                                   border: "1px solid " + (it.variantLabel ? "var(--border-strong)" : "transparent"),
@@ -2798,9 +2811,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         {onSave && <button className="bq-btn pri" onClick={() => guardRun(() => onSave(Object.assign({}, b, { project: project })))}><Icon name="check" size={15} color="#fff" /> บันทึก BOQ</button>}
       </div>
       {editVar && (
-        <MatVariantModal item={editVar} stock={stock} priceMap={priceMap || {}}
+        <MatVariantModal item={editVar} stock={stock} priceMap={priceMap || {}} matOptions={allMatOptions}
           picked={(b.pick || {})[window.BOQ.matKey(editVar.name)] || ""}
           onPick={(sku) => setPick(window.BOQ.matKey(editVar.name), sku)}
+          renamed={(b.rename || {})[editVar.rkey] || ""}
+          onRename={(nm) => { setRename(editVar.rkey, nm); setEditVar((p) => Object.assign({}, p, { name: String(nm || "").trim() || p.nameAuto })); }}
           onClose={() => setEditVar(null)} />
       )}
     </div>
@@ -2810,7 +2825,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 /* ── เลือก/แก้ ยี่ห้อ-รุ่น-ราคา ของวัสดุ 1 ชนิด ──
    ของชิ้นเดียวกันมีได้หลายยี่ห้อ/หลายรุ่น ราคาไม่เท่ากัน — ที่นี่เลือกว่างานนี้ใช้ตัวไหน
    และแก้ ยี่ห้อ/รุ่น/ราคา ได้เลย เขียนลงคลังสินค้าโดยตรง (ต้นทางเดียวกับหน้าคลัง) */
-function MatVariantModal({ item, stock, priceMap, picked, onPick, onClose }) {
+function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, renamed, onRename, onClose }) {
   const bdClose = window.useBackdropClose(onClose);
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const baht = (n) => (Math.round((+n || 0) * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
@@ -2822,6 +2837,13 @@ function MatVariantModal({ item, stock, priceMap, picked, onPick, onClose }) {
     price: cur && cur.price > 0 ? String(cur.price) : "", id: (cur && cur.id) || "", isNew: false }));
   const set = (k, v) => setF((p) => Object.assign({}, p, { [k]: v }));
   const loadVariant = (v) => setF({ brand: v.brand || "", model: v.model || "", price: v.price > 0 ? String(v.price) : "", id: v.id, isNew: false });
+  /* เปลี่ยนชื่อรายการ → กลายเป็นของคนละตัว ช่องยี่ห้อ/รุ่น/ราคา ต้องโหลดของตัวใหม่มาแทน
+     ไม่งั้นกดบันทึกแล้วจะเอาค่าของตัวเก่าไปทับตัวใหม่ */
+  const curId = (cur && cur.id) || "";
+  React.useEffect(() => {
+    setF({ brand: (cur && cur.brand) || "", model: (cur && cur.model) || "",
+      price: cur && cur.price > 0 ? String(cur.price) : "", id: curId, isNew: false });
+  }, [curId, key]);
   const startNew = () => setF({ brand: "", model: "", price: "", id: "", isNew: true });
   const save = () => {
     const id = window.saveMatPrice(stock, { name: item.name, group: item.group, unit: item.unit,
@@ -2845,6 +2867,27 @@ function MatVariantModal({ item, stock, priceMap, picked, onPick, onClose }) {
           <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text-1)", marginTop: 3 }}>{item.name}</div>
         </div>
         <div style={{ padding: 20, overflowY: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* ── ชื่อรายการ ── เลือกของจากคลังมาทับได้เลย ราคาจะตามของที่เลือกทันที ── */}
+          {onRename && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>ชื่อรายการในใบถอดของ</span>
+              <Dropdown value={item.name} onChange={(v) => onRename(v === (item.nameAuto || item.name) ? "" : v)}
+                options={(matOptions || []).some((o) => o.value === item.name) ? matOptions : [{ value: item.name, label: item.name, group: "ชื่อปัจจุบัน" }].concat(matOptions || [])}
+                addable onAdd={(v) => onRename(v)} placeholder="เลือกวัสดุจากคลัง" />
+              {renamed ? (
+                <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "var(--text-3)" }}>
+                  <span>ระบบถอดให้ชื่อ “{item.nameAuto}”</span>
+                  <button type="button" onClick={() => onRename("")}
+                    style={{ border: 0, background: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 11,
+                      fontWeight: 700, color: "var(--primary-dark)", textDecoration: "underline", textUnderlineOffset: 3 }}>ใช้ชื่อเดิม</button>
+                </span>
+              ) : (
+                <span style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
+                  เปลี่ยนเป็นของตัวอื่นในคลังได้ — ราคาจะดึงจากของที่เลือกให้เอง ยอดในใบถอดของไม่เพี้ยน
+                </span>
+              )}
+            </div>
+          )}
           {variants.length > 1 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>งานนี้ใช้ตัวไหน</span>
