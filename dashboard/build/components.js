@@ -1,0 +1,796 @@
+const ICONS = {
+  grid: "M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z",
+  kanban: "M4 4v16M10 4v10M16 4v13M4 4h16M10 4h0M16 4h0",
+  table: "M3 5h18M3 12h18M3 19h18M9 5v14M15 5v14",
+  calendar: "M3 5h18v16H3zM3 9h18M8 3v4M16 3v4",
+  map: "M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14",
+  search: "M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-4.3-4.3",
+  plus: "M12 5v14M5 12h14",
+  bell: "M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0",
+  filter: "M3 5h18l-7 8v6l-4 2v-8z",
+  chevronRight: "M9 6l6 6-6 6",
+  chevronDown: "M6 9l6 6 6-6",
+  x: "M6 6l12 12M18 6 6 18",
+  phone: "M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z",
+  bolt: "M13 2 4 14h7l-1 8 9-12h-7z",
+  battery: "M3 8h14v8H3zM17 11h3v2h-3M6 11v2M9 11v2",
+  sun: "M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z",
+  moon: "M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z",
+  panel: "M3 4h18l1 9H2zM7 13v7M17 13v7M12 4v16M2 13h20M5 20h14",
+  check: "M5 12l4 4L19 7",
+  clock: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2",
+  alert: "M12 3 2 20h20zM12 10v4M12 17.5v.5",
+  user: "M20 21a8 8 0 1 0-16 0M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+  users: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8",
+  arrowRight: "M5 12h14M13 6l6 6-6 6",
+  pin: "M12 21s7-6.3 7-12a7 7 0 1 0-14 0c0 5.7 7 12 7 12zM12 11a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
+  box: "M21 8 12 3 3 8l9 5zM3 8v8l9 5 9-5V8M12 13v8",
+  list: "M8 6h13M8 12h13M8 18h13M3 6h0M3 12h0M3 18h0",
+  trend: "M3 17l6-6 4 4 8-8M21 7h-5M21 7v5",
+  settings: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 4.6 15H4.5a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 11 4.6V4.5a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.1a2 2 0 0 1 0 4h-.1z",
+  menu: "M3 6h18M3 12h18M3 18h18",
+  flow: "M5 6h6M5 12h14M5 18h9M17 4l2 2-2 2M14 16l2 2-2 2",
+  wrench: "M14.7 6.3a4 4 0 0 0-5.3 5.3L3 18l3 3 6.4-6.4a4 4 0 0 0 5.3-5.3l-2.6 2.6-2.3-.4-.4-2.3z",
+  history: "M3 3v5h5M3.05 13a9 9 0 1 0 2.5-6.5L3 8M12 7v5l4 2",
+  shield: "M12 2 4 5v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V5z",
+  image: "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM8.5 10.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM21 16l-5-5L5 21",
+  message: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
+  power: "M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10",
+  lock: "M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4",
+  eye: "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z",
+  eyeOff: "M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24M1 1l22 22",
+  trello: "M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM8 7v9M16 7v5",
+  link: "M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1",
+  net: "M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18",
+  file: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h8M8 9h2",
+  download: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3",
+  ruler: "M3 15 15 3l6 6L9 21zM7.5 10.5l2 2M10.5 7.5l2 2M13.5 4.5l2 2",
+  pen: "M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z",
+  camera: "M3 7h3l2-3h8l2 3h3v13H3zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+  shuffle: "M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5",
+  hand: "M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v6M10 10.5V6a2 2 0 0 0-4 0v8M18 11a2 2 0 0 1 4 0v3a8 8 0 0 1-8 8h-2a8 8 0 0 1-8-8v-1a2 2 0 0 1 4 0",
+  trash: "M4 7h16M10 11v6M14 11v6M5 7l1 14h12l1-14M9 7V4h6v3",
+  undo: "M3 7v6h6M3.5 13a9 9 0 1 1 2.6 6.4",
+  gridDots: "M3 3h18v18H3zM9 3v18M15 3v18M3 9h18M3 15h18",
+  sparkle: "M11 3 12.9 8.1 18 10l-5.1 1.9L11 17l-1.9-5.1L4 10l5.1-1.9zM18 15l.75 2.25L21 18l-2.25.75L18 21l-.75-2.25L15 18l2.25-.75z"
+};
+function Icon({
+  name,
+  size = 18,
+  color = "currentColor",
+  fill = "none",
+  sw = 1.75,
+  style
+}) {
+  const d = ICONS[name];
+  return React.createElement("svg", {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: fill,
+    stroke: color,
+    strokeWidth: sw,
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    style: {
+      flexShrink: 0,
+      ...style
+    }
+  }, d.split("M").filter(Boolean).map((seg, i) => React.createElement("path", {
+    key: i,
+    d: "M" + seg
+  })));
+}
+const TH_MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+const TH_DAYS = ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."];
+function parseDate(s) {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+function thDate(s, withYear) {
+  if (!s) return "—";
+  const d = parseDate(s);
+  return d.getDate() + " " + TH_MONTHS[d.getMonth()] + (withYear ? " " + (d.getFullYear() + 543).toString().slice(-2) : "");
+}
+function thDateTime(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  const date = d.getDate() + " " + TH_MONTHS[d.getMonth()] + " " + (d.getFullYear() + 543).toString().slice(-2);
+  const time = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  return date + " · " + time + " น.";
+}
+function fmtBaht(n) {
+  if (n >= 1000000) return (n / 1000000).toFixed(n % 1000000 === 0 ? 0 : 2) + "M";
+  if (n >= 1000) return (n / 1000).toFixed(0) + "k";
+  return "" + n;
+}
+function stageOf(key) {
+  return window.SF.STAGES[window.SF.STAGE_INDEX[key]];
+}
+function StageBadge({
+  stageKey,
+  size = "md"
+}) {
+  const s = stageOf(stageKey);
+  const pad = size === "sm" ? "3px 9px" : "5px 12px";
+  const fs = size === "sm" ? 11 : 12.5;
+  return React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: pad,
+      borderRadius: 999,
+      background: s.soft,
+      color: s.fg,
+      fontWeight: 600,
+      fontSize: fs,
+      whiteSpace: "nowrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 6,
+      height: 6,
+      borderRadius: 99,
+      background: s.color
+    }
+  }), s.th);
+}
+function TypeBadge({
+  type
+}) {
+  const t = window.SF.TYPES.find(x => x.key === type);
+  return React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: t.color,
+      background: t.color + "1A",
+      padding: "3px 8px",
+      borderRadius: 6,
+      whiteSpace: "nowrap"
+    }
+  }, t.th);
+}
+function MatChip({
+  status,
+  label,
+  compact
+}) {
+  const m = window.SF.MAT_STATUS[status];
+  return React.createElement("span", {
+    title: label ? label + " · " + m.th : m.th,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      padding: compact ? "2px 7px" : "3px 9px",
+      borderRadius: 99,
+      background: m.soft,
+      color: m.fg,
+      fontWeight: 700,
+      fontSize: compact ? 10.5 : 11,
+      whiteSpace: "nowrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 6,
+      height: 6,
+      borderRadius: 99,
+      background: m.color,
+      flexShrink: 0
+    }
+  }), !compact && (label || m.th));
+}
+function TechAvatar({
+  techId,
+  size = 28,
+  showName
+}) {
+  const t = window.SF.TECH_BY_ID[techId];
+  if (!t) return null;
+  const initial = t.nick.slice(0, 2);
+  return React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, React.createElement("span", {
+    style: {
+      width: size,
+      height: size,
+      borderRadius: 99,
+      background: t.color,
+      color: "#fff",
+      display: "grid",
+      placeItems: "center",
+      fontWeight: 700,
+      fontSize: size * 0.4,
+      flexShrink: 0
+    }
+  }, initial), showName && React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 500,
+      color: "var(--text-1)"
+    }
+  }, t.name));
+}
+function ProgressBar({
+  pct,
+  color = "var(--primary)",
+  height = 6
+}) {
+  return React.createElement("div", {
+    style: {
+      height,
+      borderRadius: 99,
+      background: "var(--surface3)",
+      overflow: "hidden",
+      width: "100%"
+    }
+  }, React.createElement("div", {
+    style: {
+      width: pct + "%",
+      height: "100%",
+      borderRadius: 99,
+      background: color,
+      transition: "width .5s cubic-bezier(.2,.8,.2,1)"
+    }
+  }));
+}
+function MatDots({
+  mat
+}) {
+  const items = window.SF.MATERIALS.filter(m => mat[m.key] !== "na");
+  const allReady = items.length > 0 && items.every(m => mat[m.key] === "ready");
+  return React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      gap: 3,
+      alignItems: "center"
+    },
+    title: allReady ? "วัสดุครบ พร้อมติดตั้ง" : undefined
+  }, items.map(m => {
+    const st = window.SF.MAT_STATUS[mat[m.key]];
+    return React.createElement("span", {
+      key: m.key,
+      title: m.th + " · " + st.th,
+      style: {
+        width: 7,
+        height: 7,
+        borderRadius: 2,
+        background: st.color
+      }
+    });
+  }), allReady && React.createElement("span", {
+    style: {
+      display: "inline-grid",
+      placeItems: "center",
+      width: 15,
+      height: 15,
+      borderRadius: 99,
+      background: "var(--primary)",
+      marginLeft: 2
+    }
+  }, React.createElement(Icon, {
+    name: "check",
+    size: 10,
+    color: "#fff",
+    sw: 3
+  })));
+}
+function Segmented({
+  options,
+  value,
+  onChange
+}) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  return React.createElement("div", {
+    style: {
+      display: "inline-flex",
+      background: "var(--surface3)",
+      borderRadius: isMobile ? 9 : 10,
+      padding: isMobile ? 2 : 3,
+      gap: 2
+    }
+  }, options.map(o => {
+    const active = o.value === value;
+    return React.createElement("button", {
+      key: o.value,
+      onClick: () => onChange(o.value),
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: isMobile ? "5px 10px" : "6px 12px",
+        borderRadius: 8,
+        border: "none",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: isMobile ? 11.5 : 12.5,
+        fontWeight: 600,
+        whiteSpace: "nowrap",
+        background: active ? "var(--surface)" : "transparent",
+        color: active ? "var(--text-1)" : "var(--text-2)",
+        boxShadow: active ? "0 1px 3px rgba(0,0,0,.08)" : "none",
+        transition: "all .15s"
+      }
+    }, o.icon && React.createElement(Icon, {
+      name: o.icon,
+      size: 15
+    }), o.label);
+  }));
+}
+function Dropdown({
+  value,
+  onChange,
+  options,
+  disabled,
+  placeholder,
+  style,
+  addable,
+  onAdd,
+  wrap
+}) {
+  const [open, setOpen] = React.useState(false);
+  const [rect, setRect] = React.useState(null);
+  const [adding, setAdding] = React.useState(false);
+  const [addText, setAddText] = React.useState("");
+  const btnRef = React.useRef(null);
+  const panelRef = React.useRef(null);
+  const cur = (options || []).find(o => String(o.value) === String(value));
+  const [cat, setCat] = React.useState(null);
+  const [q, setQ] = React.useState("");
+  const groupList = React.useMemo(() => [...new Set((options || []).map(o => o.group).filter(Boolean))], [options]);
+  const hasGroups = groupList.length > 1;
+  const hasSearch = (options || []).length >= 12;
+  const byCat = hasGroups && cat ? (options || []).filter(o => o.group === cat) : options || [];
+  const qq = q.trim().toLowerCase();
+  const shown = qq ? byCat.filter(o => (String(o.label || "") + " " + String(o.sub || "") + " " + String(o.group || "")).toLowerCase().indexOf(qq) >= 0) : byCat;
+  const openMenu = () => {
+    if (disabled) return;
+    const r = btnRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - r.bottom;
+    const needUp = spaceBelow < 260 && r.top > spaceBelow;
+    const maxH = Math.min(400, (needUp ? r.top : spaceBelow) - 12);
+    const hasSub = (options || []).some(o => o.sub);
+    const w = hasSub ? Math.min(Math.max(r.width, 330), window.innerWidth - 16) : r.width;
+    setRect({
+      left: Math.max(8, Math.min(r.left, window.innerWidth - w - 8)),
+      width: w,
+      maxH,
+      top: needUp ? null : r.bottom + 6,
+      bottom: needUp ? window.innerHeight - r.top + 6 : null
+    });
+    setOpen(true);
+  };
+  const submitAdd = () => {
+    const v = (addText || "").trim();
+    if (!v) {
+      setAdding(false);
+      return;
+    }
+    if (onAdd) onAdd(v);
+    onChange(v);
+    setAddText("");
+    setAdding(false);
+    setOpen(false);
+  };
+  React.useEffect(() => {
+    if (!open) return;
+    const close = e => {
+      if (panelRef.current && e && e.target && panelRef.current.contains(e.target)) return;
+      setOpen(false);
+    };
+    const t = setTimeout(() => {
+      window.addEventListener("scroll", close, true);
+      window.addEventListener("resize", close);
+    }, 250);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [open]);
+  React.useEffect(() => {
+    if (!open) {
+      setAdding(false);
+      setAddText("");
+      setCat(null);
+      setQ("");
+    }
+  }, [open]);
+  return React.createElement(React.Fragment, null, React.createElement("button", {
+    type: "button",
+    ref: btnRef,
+    onClick: openMenu,
+    disabled: disabled,
+    style: Object.assign({
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8,
+      width: "100%",
+      background: "var(--surface2)",
+      border: "1px solid " + (open ? "var(--primary)" : "var(--border-strong)"),
+      color: "var(--text-1)",
+      fontFamily: "inherit",
+      fontSize: 13.5,
+      padding: "9px 11px",
+      borderRadius: 10,
+      outline: "none",
+      cursor: disabled ? "default" : "pointer",
+      textAlign: "left",
+      opacity: disabled ? 0.55 : 1
+    }, style || {})
+  }, React.createElement("span", {
+    style: wrap ? {
+      flex: 1,
+      minWidth: 0,
+      display: "-webkit-box",
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: "vertical",
+      overflow: "hidden",
+      whiteSpace: "normal",
+      lineHeight: 1.3
+    } : {
+      flex: 1,
+      minWidth: 0,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, cur ? cur.label : placeholder || "—"), React.createElement(Icon, {
+    name: "chevronDown",
+    size: 16,
+    color: "var(--text-3)",
+    style: {
+      flexShrink: 0,
+      transform: open ? "rotate(180deg)" : "none",
+      transition: "transform .18s"
+    }
+  })), open && rect && ReactDOM.createPortal(React.createElement(React.Fragment, null, React.createElement("div", {
+    onClick: () => setOpen(false),
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 200,
+      touchAction: "none"
+    }
+  }), React.createElement("div", {
+    ref: panelRef,
+    style: {
+      position: "fixed",
+      top: rect.top != null ? rect.top : undefined,
+      bottom: rect.bottom != null ? rect.bottom : undefined,
+      left: rect.left,
+      width: rect.width,
+      zIndex: 201,
+      background: "var(--bg)",
+      border: "1px solid var(--border)",
+      borderRadius: 12,
+      boxShadow: "0 14px 40px rgba(8,20,14,.22)",
+      maxHeight: rect.maxH || 320,
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
+      padding: 5
+    }
+  }, hasSearch && React.createElement("div", {
+    style: {
+      flexShrink: 0,
+      padding: "1px 2px 7px"
+    }
+  }, React.createElement("input", {
+    value: q,
+    onChange: e => setQ(e.target.value),
+    placeholder: "\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E04\u0E49\u0E19\u0E2B\u0E32\u2026",
+    autoFocus: !window.matchMedia("(max-width: 860px)").matches,
+    onKeyDown: e => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setOpen(false);
+      }
+    },
+    style: {
+      width: "100%",
+      background: "var(--surface2)",
+      border: "1px solid var(--border-strong)",
+      color: "var(--text-1)",
+      fontFamily: "inherit",
+      fontSize: 13,
+      padding: "8px 10px",
+      borderRadius: 9,
+      outline: "none"
+    }
+  })), hasGroups && React.createElement("div", {
+    style: {
+      flexShrink: 0,
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 5,
+      padding: "1px 2px 8px",
+      background: "var(--bg)",
+      borderBottom: "1px solid var(--border)",
+      marginBottom: 4
+    }
+  }, [null].concat(groupList).map(g => {
+    const on = cat === g;
+    return React.createElement("button", {
+      type: "button",
+      key: g || "__all",
+      onClick: e => {
+        e.stopPropagation();
+        setCat(g);
+      },
+      style: {
+        fontSize: 11.5,
+        fontWeight: 700,
+        padding: "4px 10px",
+        borderRadius: 99,
+        cursor: "pointer",
+        fontFamily: "inherit",
+        border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+        background: on ? "var(--primary)" : "var(--surface2)",
+        color: on ? "#fff" : "var(--text-2)"
+      }
+    }, g || "ทั้งหมด");
+  })), React.createElement("div", {
+    style: {
+      flex: 1,
+      minHeight: 0,
+      overflowY: "auto",
+      WebkitOverflowScrolling: "touch",
+      overscrollBehavior: "contain"
+    }
+  }, shown.map((o, idx) => {
+    const active = String(o.value) === String(value);
+    const head = hasGroups && !cat && o.group && o.group !== (shown[idx - 1] || {}).group ? React.createElement("div", {
+      key: "h-" + o.group,
+      style: {
+        fontSize: 10.5,
+        fontWeight: 800,
+        letterSpacing: ".04em",
+        color: "var(--text-3)",
+        textTransform: "uppercase",
+        padding: "8px 11px 3px"
+      }
+    }, o.group) : null;
+    return React.createElement(React.Fragment, {
+      key: String(o.value)
+    }, head, React.createElement("button", {
+      type: "button",
+      onClick: () => {
+        onChange(o.value);
+        setOpen(false);
+      },
+      style: {
+        width: "100%",
+        display: "flex",
+        alignItems: o.sub ? "flex-start" : "center",
+        gap: 8,
+        padding: "10px 11px",
+        borderRadius: 9,
+        border: "none",
+        background: active ? "var(--primary-soft)" : "transparent",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        textAlign: "left",
+        fontSize: 13.5,
+        fontWeight: active ? 700 : 500,
+        color: active ? "var(--primary-dark)" : "var(--text-1)"
+      }
+    }, React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, o.label), o.sub && React.createElement("span", {
+      style: {
+        display: "block",
+        marginTop: 2,
+        fontSize: 11,
+        fontWeight: 500,
+        lineHeight: 1.45,
+        color: "var(--text-3)",
+        whiteSpace: "normal"
+      }
+    }, o.sub)), active && React.createElement(Icon, {
+      name: "check",
+      size: 15,
+      color: "var(--primary)",
+      sw: 2.6,
+      style: {
+        flexShrink: 0,
+        marginTop: o.sub ? 2 : 0
+      }
+    })));
+  }), shown.length === 0 && React.createElement("div", {
+    style: {
+      padding: "14px 11px",
+      fontSize: 12.5,
+      color: "var(--text-3)",
+      textAlign: "center"
+    }
+  }, "\u0E44\u0E21\u0E48\u0E1E\u0E1A \u201C", q, "\u201D", addable ? " — พิมพ์ชื่อใหม่ได้ที่ปุ่มด้านล่าง" : "")), addable && (adding ? React.createElement("div", {
+    style: {
+      flexShrink: 0,
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "6px 7px",
+      marginTop: 2,
+      borderTop: "1px solid var(--border)"
+    }
+  }, React.createElement("input", {
+    autoFocus: true,
+    value: addText,
+    placeholder: "\u0E0A\u0E37\u0E48\u0E2D\u0E15\u0E31\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E43\u0E2B\u0E21\u0E48",
+    onChange: e => setAddText(e.target.value),
+    onKeyDown: e => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        submitAdd();
+      } else if (e.key === "Escape") {
+        setAdding(false);
+        setAddText("");
+      }
+    },
+    style: {
+      flex: 1,
+      minWidth: 0,
+      background: "var(--surface2)",
+      border: "1px solid var(--border-strong)",
+      color: "var(--text-1)",
+      fontFamily: "inherit",
+      fontSize: 13,
+      padding: "8px 9px",
+      borderRadius: 8,
+      outline: "none"
+    }
+  }), React.createElement("button", {
+    type: "button",
+    onClick: submitAdd,
+    title: "\u0E40\u0E1E\u0E34\u0E48\u0E21",
+    style: {
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+      width: 32,
+      height: 32,
+      background: "var(--primary)",
+      color: "#fff",
+      border: "none",
+      borderRadius: 8,
+      cursor: "pointer"
+    }
+  }, React.createElement(Icon, {
+    name: "check",
+    size: 15,
+    color: "#fff",
+    sw: 2.6
+  }))) : React.createElement("button", {
+    type: "button",
+    onClick: () => {
+      setAdding(true);
+      if (q.trim()) setAddText(q.trim());
+    },
+    style: {
+      flexShrink: 0,
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+      gap: 7,
+      padding: "10px 11px",
+      borderRadius: 9,
+      border: "none",
+      marginTop: 2,
+      borderTop: "1px solid var(--border)",
+      background: "transparent",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      textAlign: "left",
+      fontSize: 13,
+      fontWeight: 700,
+      color: "var(--primary-dark)"
+    }
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 14,
+    color: "var(--primary-dark)"
+  }), " ", q.trim() ? "ใช้ชื่อ “" + q.trim() + "”" : "พิมพ์ชื่อเอง")))), document.body));
+}
+function useBackdropClose(onClose) {
+  const down = React.useRef(false);
+  return {
+    onMouseDown: e => {
+      down.current = e.target === e.currentTarget;
+    },
+    onClick: e => {
+      const ok = e.target === e.currentTarget && down.current;
+      down.current = false;
+      if (ok) onClose();
+    }
+  };
+}
+function newMatSaveCtx(stock) {
+  const items = stock && stock.items || [];
+  let maxId = 0;
+  items.forEach(it => {
+    const n = parseInt(String(it.id || "").replace(/\D/g, ""), 10);
+    if (!isNaN(n) && n > maxId) maxId = n;
+  });
+  return {
+    maxId: maxId,
+    used: items.map(s => s.sku).filter(Boolean)
+  };
+}
+function saveMatPrice(stock, opt, ctx) {
+  const SF = window.SF || {};
+  const mk = window.BOQ && window.BOQ.matKey || (x => String(x || "").trim());
+  const items = stock && stock.items || [];
+  const name = String(opt && opt.name || "").trim();
+  if (!name || !stock || !stock.upsertItem) return null;
+  const c = ctx || newMatSaveCtx(stock);
+  const existing = opt.forceNew ? null : opt.id ? items.find(s => s.id === opt.id) : items.find(s => s.name && mk(s.name) === mk(name));
+  const catKey = existing ? existing.cat : (SF.BOQ_GROUP_TO_CAT || {})[opt.group] || "other";
+  const sku = String(opt && opt.code || "").trim() || existing && existing.sku || SF.genMatCode(catKey, items, c.used);
+  c.used.push(sku);
+  const price = Math.max(0, +opt.price || 0);
+  const vf = {};
+  if (opt.brand != null) vf.brand = String(opt.brand).trim();
+  if (opt.model != null) vf.model = String(opt.model).trim();
+  if (existing) {
+    stock.upsertItem(Object.assign({}, existing, vf, {
+      sku: sku,
+      price: price,
+      unit: existing.unit || opt.unit || ""
+    }));
+    return existing.id;
+  }
+  c.maxId += 1;
+  const id = "IV-" + String(c.maxId).padStart(2, "0");
+  stock.upsertItem(Object.assign({
+    id: id,
+    name: name,
+    sku: sku,
+    cat: catKey,
+    unit: opt.unit || "",
+    qty: 0,
+    min: 0,
+    loc: "",
+    price: price
+  }, vf));
+  return id;
+}
+Object.assign(window, {
+  Icon,
+  ICONS,
+  StageBadge,
+  TypeBadge,
+  MatChip,
+  TechAvatar,
+  ProgressBar,
+  MatDots,
+  Segmented,
+  Dropdown,
+  useBackdropClose,
+  thDate,
+  thDateTime,
+  fmtBaht,
+  stageOf,
+  parseDate,
+  TH_MONTHS,
+  TH_DAYS,
+  saveMatPrice,
+  newMatSaveCtx
+});

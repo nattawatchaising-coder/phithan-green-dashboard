@@ -41,10 +41,86 @@ function apptConflicts(list) {
 function blankAppt() {
   return {
     id: "SA-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
-    projectId: "", jobName: "", jobCode: "", province: "", address: "", phone: "",
+    projectId: "", leadId: "", jobName: "", jobCode: "", province: "", address: "", phone: "",
     engineerId: "", start: "", end: "", status: "scheduled", notes: "",
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
   };
+}
+
+/* ============================================================
+   LEADS — ลูกค้าที่ขอให้ไปสำรวจ (ยังไม่เป็นงาน)
+   คนที่ให้ไปสำรวจส่วนใหญ่ยังไม่ตัดสินใจติดตั้งกับเรา ถ้าสร้างเป็น "งาน" ทุกราย
+   ฐานข้อมูลงานจะบวมด้วยงานที่ไม่เกิดจริง — จึงเก็บแยกที่โหนด surveyLeads
+   ตกลงติดตั้งเมื่อไหร่ค่อยกด "แปลงเป็นงาน" ย้ายเข้า jobs พร้อมแบบสำรวจ+รูป
+   ============================================================ */
+const LEAD_STATUS = [
+  { key: "open", th: "รอตัดสินใจ", color: "#0EA5E9" },
+  { key: "won",  th: "เป็นงานแล้ว", color: "var(--tint-green-tx)" },
+  { key: "lost", th: "ไม่ติดตั้ง",  color: "#94A3B8" },
+];
+const LEAD_STATUS_BY = Object.fromEntries(LEAD_STATUS.map((s) => [s.key, s]));
+const SF_LEAD_KEY = "solarflow_leads_v1";
+
+function blankLead(leads) {
+  let max = 0;
+  (leads || []).forEach((l) => { const n = parseInt(String(l.code || "").replace(/\D/g, ""), 10); if (!isNaN(n) && n > max) max = n; });
+  const now = new Date().toISOString();
+  return {
+    // id ไม่ซ้ำกับใครตลอดกาล (code เป็นเลขที่ให้คนอ่าน) — รูปสำรวจผูกกับ id ถ้าใช้เลขวนซ้ำรูปเก่าจะโผล่ผิดราย
+    id: "LD-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+    code: "LD-" + String(max + 1).padStart(3, "0"),
+    name: "", phone: "", address: "", province: "", type: "home", phase: "1", roof: "",
+    note: "", status: "open", jobId: "", survey: null,
+    createdAt: now, updatedAt: now,
+  };
+}
+
+// lead → รูปงานปลอมสำหรับ SurveyWizard/การ์ด (ใช้ id/code/name/survey เหมือนงานจริง)
+function leadAsJob(l) {
+  if (!l) return null;
+  return { __lead: true, id: l.id, code: l.code, name: l.name, phone: l.phone, address: l.address,
+    province: l.province, type: l.type || "home", phase: l.phase || "1", roof: l.roof || "", map: "", survey: l.survey || null };
+}
+
+function useSurveyLeadStore() {
+  const [leads, setLeads] = React.useState(_FB() ? null : () => _lsGet(SF_LEAD_KEY, []));
+  const ref = React.useRef(leads);
+  React.useEffect(() => { ref.current = leads; }, [leads]);
+  React.useEffect(() => {
+    if (!_FB()) return;
+    const r = _fbr("surveyLeads");
+    const h = r.on("value", (snap) => setLeads(_snap2arr(snap) || []), () => setLeads([]));
+    return () => r.off("value", h);
+  }, []);
+  React.useEffect(() => { if (!_FB() && leads !== null) _lsSet(SF_LEAD_KEY, leads); }, [leads]);
+
+  const upsert = React.useCallback((rec) => {
+    const r = Object.assign({}, rec, { updatedAt: new Date().toISOString() });
+    if (_FB()) _fbSet("surveyLeads/" + r.id, r);
+    else setLeads((p) => { const a = p || []; const i = a.findIndex((x) => x.id === r.id); if (i === -1) return a.concat([r]); const c = a.slice(); c[i] = Object.assign({}, a[i], r); return c; });
+    return r;
+  }, []);
+  const patch = React.useCallback((id, fields) => {
+    const f = Object.assign({}, fields, { updatedAt: new Date().toISOString() });
+    if (_FB()) _fbUpd("surveyLeads/" + id, f);
+    else setLeads((p) => (p || []).map((x) => x.id === id ? Object.assign({}, x, f) : x));
+  }, []);
+  const remove = React.useCallback((id) => {
+    if (_FB()) { _fbRem("surveyLeads/" + id); _fbRem("surveyPhotos/" + id); }
+    else setLeads((p) => (p || []).filter((x) => x.id !== id));
+  }, []);
+
+  return { leads: leads || [], upsert, patch, remove, blank: () => blankLead(ref.current || []) };
+}
+
+/* ย้ายรูป checklist จากลูกค้าสำรวจ → งานจริง (คนละคีย์ใน surveyPhotos) */
+function moveSurveyPhotos(fromId, toId) {
+  if (!window.FBDB || !fromId || !toId || fromId === toId) return Promise.resolve();
+  return window.FBDB.ref("surveyPhotos/" + fromId).once("value").then((s) => {
+    const v = s.val();
+    if (!v) return null;
+    return window.FBDB.ref("surveyPhotos/" + toId).set(v).then(() => window.FBDB.ref("surveyPhotos/" + fromId).remove());
+  }).catch(() => null);
 }
 
 const SF_APPT_KEY = "solarflow_appts_v1";
@@ -100,7 +176,8 @@ function SchedHeader({ icon, title, sub, onMenuOpen, right }) {
 /* ============================================================
    DISPATCH — ปฏิทินจ่ายงานรายวิศวกร (office) + เตือนซ้อนทับ
    ============================================================ */
-function DispatchView({ appts, jobs, techs, store, onMenuOpen, onOpenJob }) {
+function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpenJob }) {
+  const leads = (leadStore && leadStore.leads) || [];
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [day, setDay] = React.useState(() => _ymdLocal(new Date()));
   const [edit, setEdit] = React.useState(null); // appointment ที่กำลังแก้ (หรือ object ใหม่)
@@ -173,7 +250,7 @@ function DispatchView({ appts, jobs, techs, store, onMenuOpen, onOpenJob }) {
                         </span>
                       </div>
                       <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{a.jobName || "—"}</div>
-                      <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{a.jobCode}{a.province ? " · " + a.province : ""}</div>
+                      <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{a.jobCode}{a.province ? " · " + a.province : ""}{a.leadId ? <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#0EA5E9", background: "#0EA5E916", padding: "2px 7px", borderRadius: 99 }}>ลูกค้าสำรวจ</span> : null}</div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-2)", marginTop: 1 }}>
                         <span style={{ width: 8, height: 8, borderRadius: 99, background: (t && t.color) || "#94A3B8", flexShrink: 0 }} />
                         {t ? t.name : "ยังไม่มอบหมาย"}
@@ -212,7 +289,7 @@ function DispatchView({ appts, jobs, techs, store, onMenuOpen, onOpenJob }) {
                           <span style={{ fontSize: 10, fontWeight: 700, color: stt.color, background: stt.color + "16", padding: "2px 8px", borderRadius: 99 }}>{stt.th}</span>
                         </div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", marginTop: 5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.jobName || "—"}</div>
-                        <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{a.jobCode}{a.province ? " · " + a.province : ""}</div>
+                        <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{a.jobCode}{a.province ? " · " + a.province : ""}{a.leadId ? <span style={{ marginLeft: 5, fontSize: 9.5, fontWeight: 700, color: "#0EA5E9", background: "#0EA5E916", padding: "2px 6px", borderRadius: 99 }}>ลูกค้าสำรวจ</span> : null}</div>
                         {clash && <div style={{ fontSize: 10.5, fontWeight: 700, color: "#EF4444", marginTop: 5 }}>⚠ เวลาซ้อนทับกับนัดอื่น</div>}
                         {a.notes && <div style={{ fontSize: 11, color: "var(--text-2)", marginTop: 5, background: "var(--surface2)", borderRadius: 7, padding: "5px 8px" }}>📝 {a.notes}</div>}
                       </button>
@@ -225,22 +302,34 @@ function DispatchView({ appts, jobs, techs, store, onMenuOpen, onOpenJob }) {
         )}
       </div>
       {edit && <SurveyApptModal initial={edit} jobs={jobs} techs={techs} appts={appts}
-        onClose={() => setEdit(null)} onSave={(rec) => { store.upsert(rec); setEdit(null); }}
+        leads={leads} blankLead={leadStore && leadStore.blank}
+        onClose={() => setEdit(null)}
+        onSave={(rec, newLead) => { if (newLead && leadStore) leadStore.upsert(newLead); store.upsert(rec); setEdit(null); }}
         onDelete={(id) => { if (confirm("ลบนัดสำรวจนี้?")) { store.remove(id); setEdit(null); } }} />}
     </React.Fragment>
   );
 }
 const navBtn = { width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 };
 
-/* ── Modal สร้าง/แก้ไขนัดสำรวจ ── */
-function SurveyApptModal({ initial, jobs, techs, appts, onClose, onSave, onDelete }) {
+/* ── Modal สร้าง/แก้ไขนัดสำรวจ ──
+   onSave(appt, newLead) — newLead != null เมื่อผู้ใช้กรอกลูกค้าใหม่ (ยังไม่มีในระบบ) */
+function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, onClose, onSave, onDelete }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const bdClose = window.useBackdropClose(onClose);
   const isNew = !(appts || []).some((a) => a.id === initial.id);
   const [f, setF] = React.useState(() => Object.assign({}, initial,
     { _date: initial.start ? _ymdLocal(initial.start) : _ymdLocal(new Date()), _start: initial.start ? _hm(initial.start) : "09:00", _end: initial.end ? _hm(initial.end) : "11:00" }));
   const set = (k, v) => setF((p) => Object.assign({}, p, { [k]: v }));
-  const pickJob = (id) => setF((p) => { const j = (jobs || []).find((x) => x.id === id) || {}; return Object.assign({}, p, { projectId: id, jobName: j.name || "", jobCode: j.code || "", province: j.province || "", address: j.address || "", phone: j.phone || "" }); });
+  // นัดใหม่ตั้งต้นที่ "ลูกค้าสำรวจ" — ส่วนใหญ่ยังไม่ใช่งานในระบบ
+  const [target, setTarget] = React.useState(() => (initial.projectId ? "job" : "lead"));
+  // "" = ลูกค้าใหม่ (กรอกเอง) · ค่าอื่น = เลือกจากลูกค้าสำรวจที่มีอยู่
+  const [nl, setNl] = React.useState(() => ({ name: "", phone: "", address: "", province: "" }));
+  const setN = (k, v) => setNl((p) => Object.assign({}, p, { [k]: v }));
+  const newLead = target === "lead" && !f.leadId;
+
+  const pickJob = (id) => setF((p) => { const j = (jobs || []).find((x) => x.id === id) || {}; return Object.assign({}, p, { projectId: id, leadId: "", jobName: j.name || "", jobCode: j.code || "", province: j.province || "", address: j.address || "", phone: j.phone || "" }); });
+  const pickLead = (id) => setF((p) => { const l = (leads || []).find((x) => x.id === id) || {}; return Object.assign({}, p, { leadId: id, projectId: "", jobName: l.name || "", jobCode: l.code || "", province: l.province || "", address: l.address || "", phone: l.phone || "" }); });
+  const switchTarget = (v) => { setTarget(v); setF((p) => Object.assign({}, p, v === "job" ? { leadId: "" } : { projectId: "" })); };
 
   const startISO = _composeISO(f._date, f._start), endISO = _composeISO(f._date, f._end);
   // เตือนเวลาซ้อนทับกับนัดอื่นของวิศวกรคนเดียวกัน (ไม่นับนัดนี้เอง)
@@ -251,12 +340,19 @@ function SurveyApptModal({ initial, jobs, techs, appts, onClose, onSave, onDelet
   }, [f.engineerId, startISO, endISO, appts]);
 
   const submit = () => {
-    if (!f.projectId) { alert("กรุณาเลือกงาน/โครงการ"); return; }
+    let lead = null;
+    if (target === "job") {
+      if (!f.projectId) { alert("กรุณาเลือกงาน/โครงการ"); return; }
+    } else if (newLead) {
+      if (!nl.name.trim()) { alert("กรุณากรอกชื่อลูกค้า"); return; }
+      lead = Object.assign(blankLead ? blankLead() : {}, { name: nl.name.trim(), phone: nl.phone.trim(), address: nl.address.trim(), province: nl.province.trim() });
+    }
     if (!startISO || !endISO) { alert("กรุณาระบุวันและเวลา"); return; }
     if (new Date(endISO) <= new Date(startISO)) { alert("เวลาสิ้นสุดต้องหลังเวลาเริ่ม"); return; }
     const out = Object.assign({}, f, { start: startISO, end: endISO });
+    if (lead) Object.assign(out, { leadId: lead.id, projectId: "", jobName: lead.name, jobCode: lead.code, province: lead.province, address: lead.address, phone: lead.phone });
     delete out._date; delete out._start; delete out._end;
-    onSave(out);
+    onSave(out, lead);
   };
 
   const lbl = { fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" };
@@ -268,11 +364,39 @@ function SurveyApptModal({ initial, jobs, techs, appts, onClose, onSave, onDelet
           <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
         </div>
         <div style={{ overflowY: "auto", padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* สำรวจให้ใคร — ลูกค้าที่ยังไม่เป็นงาน (ไม่ไปบวมฐานข้อมูลงาน) หรืองานที่รับแล้ว */}
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <label style={lbl}>งาน / โครงการ *</label>
-            <Dropdown value={f.projectId} onChange={pickJob} placeholder="— เลือกงาน —"
-              options={(jobs || []).map((j) => ({ value: j.id, label: j.name + " · " + j.code + (j.province ? " · " + j.province : "") }))} />
+            <label style={lbl}>สำรวจให้ใคร</label>
+            <Segmented value={target} onChange={switchTarget}
+              options={[{ value: "lead", label: "ลูกค้าสำรวจ" }, { value: "job", label: "งานในระบบ" }]} />
           </div>
+          {target === "job" ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              <label style={lbl}>งาน / โครงการ *</label>
+              <Dropdown value={f.projectId} onChange={pickJob} placeholder="— เลือกงาน —"
+                options={(jobs || []).map((j) => ({ value: j.id, label: j.name + " · " + j.code + (j.province ? " · " + j.province : "") }))} />
+            </div>
+          ) : (
+            <React.Fragment>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                <label style={lbl}>ลูกค้า</label>
+                <Dropdown value={f.leadId} onChange={pickLead} placeholder="＋ ลูกค้าใหม่ (กรอกข้อมูลด้านล่าง)"
+                  options={[{ value: "", label: "＋ ลูกค้าใหม่ (กรอกข้อมูลด้านล่าง)" }].concat(
+                    (leads || []).filter((l) => l.status !== "won").map((l) => ({ value: l.id, label: l.name + " · " + l.code + (l.province ? " · " + l.province : "") })))} />
+              </div>
+              {newLead && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 11, padding: 13, borderRadius: 12, background: "var(--surface2)", border: "1px dashed var(--border-strong)" }}>
+                  <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>บันทึกเป็น “ลูกค้าสำรวจ” ยังไม่นับเป็นงาน · ถ้าตกลงติดตั้งค่อยกดแปลงเป็นงานทีหลัง</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>ชื่อลูกค้า *</label><input value={nl.name} onChange={(e) => setN("name", e.target.value)} placeholder="เช่น คุณสมชาย ใจดี" style={inputStyle} /></div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>เบอร์โทร</label><input value={nl.phone} onChange={(e) => setN("phone", e.target.value)} placeholder="08x-xxx-xxxx" style={inputStyle} /></div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>จังหวัด</label><input value={nl.province} onChange={(e) => setN("province", e.target.value)} placeholder="เช่น ชลบุรี" style={inputStyle} /></div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>ที่อยู่หน้างาน</label><input value={nl.address} onChange={(e) => setN("address", e.target.value)} placeholder="บ้านเลขที่ / ถนน / ตำบล" style={inputStyle} /></div>
+                </div>
+              )}
+            </React.Fragment>
+          )}
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <label style={lbl}>วิศวกรสำรวจ</label>
             <Dropdown value={f.engineerId} onChange={(v) => set("engineerId", v)} placeholder="— ยังไม่มอบหมาย —"
@@ -373,7 +497,7 @@ function ApptCard({ a, job, onStatus, onOpenSurvey }) {
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "var(--mono)", fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>
             <Icon name="clock" size={14} color="var(--text-3)" />{thDate(_ymdLocal(a.start), true)} · {_hm(a.start)}–{_hm(a.end)}
           </span>
-          <span style={{ fontSize: 10, fontWeight: 700, color: "#0EA5E9", background: "#0EA5E916", padding: "3px 9px", borderRadius: 99, whiteSpace: "nowrap" }}>สำรวจหน้างาน</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: "#0EA5E9", background: "#0EA5E916", padding: "3px 9px", borderRadius: 99, whiteSpace: "nowrap" }}>{a.leadId ? "สำรวจ · ลูกค้าใหม่" : "สำรวจหน้างาน"}</span>
         </div>
         <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)" }}>{a.jobName || (job && job.name) || "—"}</div>
         <div style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "flex-start", gap: 6 }}>
@@ -513,9 +637,12 @@ function buildMySchedItems(appts, jobs, techId) {
   return out.sort((x, y) => x.ts - y.ts);
 }
 
-function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey, onOpen, onAdvance }) {
+function MyScheduleView({ appts, jobs, leads, me, onMenuOpen, onStatus, onOpenSurvey, onOpen, onAdvance }) {
   const techId = me && me.techId;
   const jobsById = React.useMemo(() => Object.fromEntries((jobs || []).map((j) => [j.id, j])), [jobs]);
+  const leadsById = React.useMemo(() => Object.fromEntries((leads || []).map((l) => [l.id, l])), [leads]);
+  // นัดสำรวจอาจผูกกับ "ลูกค้าสำรวจ" (ยังไม่เป็นงาน) — แปลงเป็นรูปงานให้ wizard ใช้ได้เหมือนกัน
+  const targetOf = (a) => a.leadId ? leadAsJob(leadsById[a.leadId]) : jobsById[a.projectId];
 
   // รวมรายการ: นัดสำรวจ + งานติดตั้งที่นัดวันแล้ว (ตรรกะร่วมใน buildMySchedItems)
   const items = React.useMemo(() => buildMySchedItems(appts, jobs, techId), [appts, jobs, techId]);
@@ -541,7 +668,7 @@ function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey, o
     : (items.length ? [nJob ? nJob + " งานติดตั้งที่นัดแล้ว" : null, nAppt ? nAppt + " นัดสำรวจ" : null].filter(Boolean).join(" · ") : "ยังไม่มีงานที่นัดวันแล้ว");
 
   const renderCard = (it) => it.type === "survey"
-    ? <ApptCard key={it.key} a={it.a} job={jobsById[it.a.projectId]} onStatus={onStatus} onOpenSurvey={onOpenSurvey} />
+    ? <ApptCard key={it.key} a={it.a} job={targetOf(it.a)} onStatus={onStatus} onOpenSurvey={onOpenSurvey} />
     : <JobTaskCard key={it.key} job={it.job} stages={it.stages} day={it.day} dayEnd={it.dayEnd} onOpen={onOpen} onAdvance={onAdvance} />;
 
   return (
@@ -570,4 +697,5 @@ function MyScheduleView({ appts, jobs, me, onMenuOpen, onStatus, onOpenSurvey, o
   );
 }
 
-Object.assign(window, { useSurveyApptStore, DispatchView, MyScheduleView, SurveyApptModal, ApptCard, JobTaskCard, ApptFlow, apptConflicts, blankAppt, buildMySchedItems, APPT_STATUS, APPT_STATUS_BY, APPT_FLOW });
+Object.assign(window, { useSurveyApptStore, DispatchView, MyScheduleView, SurveyApptModal, ApptCard, JobTaskCard, ApptFlow, apptConflicts, blankAppt, buildMySchedItems, APPT_STATUS, APPT_STATUS_BY, APPT_FLOW,
+  useSurveyLeadStore, blankLead, leadAsJob, moveSurveyPhotos, LEAD_STATUS, LEAD_STATUS_BY, SchedHeader });

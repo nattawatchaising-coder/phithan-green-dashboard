@@ -1,0 +1,1682 @@
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+const OFFICE = ["admin", "manager", "tech"];
+const NAV = [{
+  key: "overview",
+  th: "ภาพรวม",
+  en: "Overview",
+  icon: "grid",
+  roles: OFFICE
+}, {
+  key: "board",
+  th: "บอร์ดงาน",
+  en: "Workflow",
+  icon: "kanban",
+  roles: OFFICE
+}, {
+  key: "table",
+  th: "ฐานข้อมูลงาน",
+  en: "Database",
+  icon: "table",
+  roles: ["admin"]
+}, {
+  key: "leads",
+  th: "ลูกค้าสำรวจ",
+  en: "Survey Leads",
+  icon: "user",
+  roles: ["admin", "manager"]
+}, {
+  key: "dispatch",
+  th: "จัดตารางสำรวจ",
+  en: "Dispatch",
+  icon: "calendar",
+  roles: ["admin", "manager"]
+}, {
+  key: "myschedule",
+  th: "ตารางงานของฉัน",
+  en: "My Schedule",
+  icon: "list",
+  roles: ["survey", "tech"]
+}, {
+  key: "calendar",
+  th: "ปฏิทินนัด",
+  en: "Calendar",
+  icon: "calendar",
+  roles: OFFICE
+}, {
+  key: "stock",
+  th: "คลังสินค้า",
+  en: "Inventory",
+  icon: "box",
+  roles: OFFICE
+}, {
+  key: "report",
+  th: "รายงานสรุป",
+  en: "Report",
+  icon: "file",
+  roles: OFFICE
+}];
+const navForRole = role => NAV.filter(n => !n.roles || n.roles.includes(role));
+const ROLES = [{
+  key: "admin",
+  th: "แอดมิน / ออฟฟิศ",
+  icon: "users"
+}, {
+  key: "manager",
+  th: "ผู้จัดการ",
+  icon: "user"
+}, {
+  key: "tech",
+  th: "ช่างติดตั้ง",
+  icon: "wrench"
+}];
+const ACCENTS = {
+  phithan: {
+    primary: "#22A35B",
+    dark: "#14663A",
+    soft: "#E1F5E8",
+    bright: "#35B76D"
+  },
+  emerald: {
+    primary: "#10B981",
+    dark: "#047857",
+    soft: "#D6F5E6",
+    bright: "#34D399"
+  },
+  amber: {
+    primary: "#F59E0B",
+    dark: "#B45309",
+    soft: "#FEF1D8",
+    bright: "#FBBF24"
+  }
+};
+const TWEAK_DEFAULTS = {
+  "mode": "light",
+  "accent": "phithan",
+  "density": "comfy",
+  "sidebar": "full",
+  "cardStyle": "soft"
+};
+const AURORA = {
+  primary: "#28A85F",
+  dark: "#4CD97B",
+  soft: "rgba(40,168,95,.20)",
+  bright: "#34C759"
+};
+function applyTheme(t) {
+  const root = document.documentElement;
+  root.setAttribute("data-theme", t.mode);
+  root.setAttribute("data-density", t.density);
+  root.setAttribute("data-cardstyle", t.cardStyle);
+  const aurora = t.mode === "aurora";
+  const a = aurora ? AURORA : ACCENTS[t.accent] || ACCENTS.phithan;
+  root.style.setProperty("--primary", a.primary);
+  root.style.setProperty("--primary-dark", aurora ? a.dark : t.mode === "dark" ? a.bright : a.dark);
+  root.style.setProperty("--primary-soft", aurora ? a.soft : t.mode === "dark" ? "rgba(53,183,109,.16)" : a.soft);
+  root.style.setProperty("--primary-bright", a.bright);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", aurora ? "#131315" : "#22A35B");
+}
+function useIsMobile(bp = 860) {
+  const mq = React.useMemo(() => window.matchMedia(`(max-width: ${bp}px)`), [bp]);
+  const [m, setM] = React.useState(mq.matches);
+  React.useEffect(() => {
+    const fn = e => setM(e.matches);
+    mq.addEventListener("change", fn);
+    return () => mq.removeEventListener("change", fn);
+  }, [mq]);
+  return m;
+}
+function LoadingScreen() {
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      height: "100vh",
+      background: "transparent",
+      gap: 18
+    }
+  }, React.createElement("img", {
+    src: "dashboard/assets/phithan-mark.png",
+    alt: "PHITHAN GREEN",
+    style: {
+      height: 60,
+      borderRadius: 14,
+      padding: 8,
+      background: "#fff",
+      boxShadow: "0 4px 18px rgba(34,163,91,.18)"
+    }
+  }), React.createElement("div", {
+    style: {
+      fontFamily: "var(--display)",
+      fontSize: 22,
+      fontWeight: 800,
+      color: "var(--primary-dark)",
+      letterSpacing: "-.01em"
+    }
+  }, "PHITHAN GREEN"), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 7
+    }
+  }, [0, 1, 2].map(i => React.createElement("div", {
+    key: i,
+    style: {
+      width: 10,
+      height: 10,
+      borderRadius: "50%",
+      background: "var(--primary)",
+      animation: "pgBounce 1.1s " + i * 0.2 + "s infinite ease-in-out alternate"
+    }
+  }))), React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-3)"
+    }
+  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25..."), React.createElement("style", null, `@keyframes pgBounce { from { transform: translateY(0); opacity: .4; } to { transform: translateY(-10px); opacity: 1; } }`));
+}
+function App() {
+  const store = useJobStore();
+  const stock = useStockStore();
+  const techStore = useTechStore();
+  const brandStore = useBrandStore();
+  const auth = useAuthStore();
+  const notif = useNotifStore();
+  const priceStore = usePriceStore();
+  const ampStore = useAmpacityStore();
+  const apptStore = useSurveyApptStore();
+  const leadStore = useSurveyLeadStore();
+  const fileFlags = useJobFileFlags();
+  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const [view, setView] = React.useState("overview");
+  const [search, setSearch] = React.useState("");
+  const [typeFilter, setTypeFilter] = React.useState("all");
+  const [stageFilter, setStageFilter] = React.useState(null);
+  const [quickFilter, setQuickFilter] = React.useState(null);
+  const [delayedOnly, setDelayedOnly] = React.useState(false);
+  const [selected, setSelected] = React.useState(null);
+  const [form, setForm] = React.useState(null);
+  const [surveyJob, setSurveyJob] = React.useState(null);
+  const [surveyAppt, setSurveyAppt] = React.useState(null);
+  const [techMgr, setTechMgr] = React.useState(false);
+  const [brandMgr, setBrandMgr] = React.useState(false);
+  const [userMgr, setUserMgr] = React.useState(false);
+  const [notifOpen, setNotifOpen] = React.useState(false);
+  const [briefingOpen, setBriefingOpen] = React.useState(false);
+  const [mapOpen, setMapOpen] = React.useState(false);
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [aurora, setAurora] = React.useState(() => {
+    const s = localStorage.getItem("pg-aurora");
+    return s == null ? TWEAK_DEFAULTS.mode === "aurora" : s === "1";
+  });
+  const toggleAurora = React.useCallback(() => setAurora(d => {
+    const n = !d;
+    localStorage.setItem("pg-aurora", n ? "1" : "0");
+    return n;
+  }), []);
+  const [collapsed, setCollapsed] = React.useState(() => {
+    const s = localStorage.getItem("pg-sidebar");
+    return s == null ? TWEAK_DEFAULTS.sidebar === "icons" : s === "1";
+  });
+  const toggleCollapsed = React.useCallback(() => setCollapsed(c => {
+    const n = !c;
+    localStorage.setItem("pg-sidebar", n ? "1" : "0");
+    return n;
+  }), []);
+  const isMobile = useIsMobile();
+  const role = auth.current ? auth.current.role : null;
+  const techId = auth.current ? auth.current.techId : null;
+  React.useEffect(() => {
+    if (!isMobile) setSidebarOpen(false);
+  }, [isMobile]);
+  React.useEffect(() => {
+    if (!auth.current) return;
+    const allowed = navForRole(role).map(n => n.key);
+    if (!allowed.includes(view)) setView(role === "survey" ? "myschedule" : "overview");
+  }, [auth.current, role]);
+  React.useEffect(() => {
+    applyTheme(Object.assign({}, t, {
+      mode: aurora ? "aurora" : "light"
+    }));
+  }, [t, aurora]);
+  const jobs = React.useMemo(() => store.jobs.map(j => {
+    const f = fileFlags[j.id] || {};
+    return {
+      ...j,
+      hasDesign: !!f.design,
+      hasBoq: !!f.boq
+    };
+  }), [store.jobs, fileFlags]);
+  const filtered = React.useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return jobs.filter(j => {
+      if (q && !(j.name + j.code + j.province + j.phone + j.brand).toLowerCase().includes(q)) return false;
+      if (typeFilter !== "all" && j.type !== typeFilter) return false;
+      if (stageFilter && j.stage !== stageFilter) return false;
+      if (delayedOnly && !j.delayed) return false;
+      if (quickFilter === "active" && j.stage === "done") return false;
+      if (quickFilter === "delayed" && !j.delayed) return false;
+      if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return false;
+      if (quickFilter === "battery" && !j.battery) return false;
+      if (role === "tech" && j.tech !== techId) return false;
+      return true;
+    });
+  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, role, techId]);
+  const stageCounts = React.useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const c = {};
+    let all = 0;
+    jobs.forEach(j => {
+      if (q && !(j.name + j.code + j.province + j.phone + j.brand).toLowerCase().includes(q)) return;
+      if (typeFilter !== "all" && j.type !== typeFilter) return;
+      if (delayedOnly && !j.delayed) return;
+      if (quickFilter === "active" && j.stage === "done") return;
+      if (quickFilter === "delayed" && !j.delayed) return;
+      if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return;
+      if (quickFilter === "battery" && !j.battery) return;
+      if (role === "tech" && j.tech !== techId) return;
+      c[j.stage] = (c[j.stage] || 0) + 1;
+      all++;
+    });
+    c.__all = all;
+    return c;
+  }, [jobs, search, typeFilter, delayedOnly, quickFilter, role, techId]);
+  const lateAlerts = React.useMemo(() => {
+    const scope = role === "tech" ? jobs.filter(j => j.tech === techId) : can(role, "viewAll") ? jobs : [];
+    const out = [];
+    scope.forEach(j => (j.lateStages || []).forEach(ls => out.push({
+      jobId: j.id,
+      jobName: j.name,
+      stage: ls
+    })));
+    return out.sort((a, b) => b.stage.daysLate - a.stage.daysLate);
+  }, [jobs, role, techId]);
+  const todayTasks = React.useMemo(() => {
+    const scope = role === "tech" ? jobs.filter(j => j.tech === techId) : can(role, "viewAll") ? jobs : [];
+    const today = window.SF.TODAY;
+    const inst = window.SF.STAGES.find(s => s.key === "install");
+    const out = [];
+    scope.forEach(j => {
+      if (j.stage === "done") return;
+      const s0 = j.startDate,
+        e0 = j.deadline || j.startDate;
+      if (!s0 || today < s0 || today > e0) return;
+      let kind;
+      if (s0 === e0) kind = "both";else if (today === s0) kind = "start";else if (today === e0) kind = "end";else kind = "progress";
+      out.push({
+        job: j,
+        stage: inst,
+        kind
+      });
+    });
+    return out;
+  }, [jobs, role, techId]);
+  const myScheduleItems = React.useMemo(() => {
+    const all = window.buildMySchedItems ? window.buildMySchedItems(apptStore.appts, jobs, techId) : [];
+    const today = window.SF.TODAY;
+    const byJob = {};
+    const out = [];
+    all.forEach(it => {
+      if (it.type === "job") {
+        const id = it.job.id,
+          c = ((it.stages || [])[0] || {}).color;
+        if (!byJob[id]) {
+          byJob[id] = {
+            type: "job",
+            key: "j-" + id,
+            job: it.job,
+            start: it.day,
+            end: it.dayEnd || it.day,
+            ts: it.ts,
+            color: c
+          };
+          out.push(byJob[id]);
+        }
+      } else {
+        out.push({
+          type: "survey",
+          key: it.key,
+          a: it.a,
+          start: it.day,
+          end: it.day,
+          ts: it.ts
+        });
+      }
+    });
+    return out.filter(it => it.end && it.end >= today).sort((a, b) => (a.start || "").localeCompare(b.start || "") || a.ts - b.ts).slice(0, 3);
+  }, [apptStore.appts, jobs, techId]);
+  const loading = store.loading || stock.loading || auth.loading;
+  React.useEffect(() => {
+    if (loading || !auth.current) return;
+    const today = window.SF.TODAY;
+    if (localStorage.getItem("sf_briefing_seen") === today) return;
+    if (lateAlerts.length === 0 && todayTasks.length === 0) return;
+    setBriefingOpen(true);
+  }, [loading, auth.current, lateAlerts.length, todayTasks.length]);
+  const effPriceMap = React.useMemo(() => {
+    const mk = window.BOQ ? window.BOQ.matKey : x => x;
+    const m = {};
+    Object.keys(priceStore.priceMap).forEach(n => {
+      m[mk(n)] = priceStore.priceMap[n];
+    });
+    const put = (k, v, alias) => {
+      const cur = m[k];
+      if (cur && cur.variants) {
+        if (!cur.variants.some(x => x.id === v.id)) cur.variants.push(v);
+      } else if (!alias || !cur) m[k] = Object.assign({}, v, {
+        variants: [v]
+      });
+    };
+    const mats = (stock.items || []).filter(s => s.name);
+    mats.forEach(s => {
+      const v = {
+        id: s.id,
+        sku: s.sku || "",
+        code: s.sku || "",
+        price: +s.price || 0,
+        unit: s.unit || "",
+        brand: s.brand || "",
+        model: s.model || "",
+        label: window.SF.matVariantLabel(s)
+      };
+      put(mk(s.name), v, false);
+    });
+    mats.forEach(s => {
+      if (!(s.aka || []).length) return;
+      const v = {
+        id: s.id,
+        sku: s.sku || "",
+        code: s.sku || "",
+        price: +s.price || 0,
+        unit: s.unit || "",
+        brand: s.brand || "",
+        model: s.model || "",
+        label: window.SF.matVariantLabel(s)
+      };
+      s.aka.forEach(n => {
+        if (n) put(mk(n), v, true);
+      });
+    });
+    return m;
+  }, [stock.items, priceStore.priceMap]);
+  React.useEffect(() => {
+    if (!window.BOQ) return;
+    if (window.BOQ.setPanels) window.BOQ.setPanels((stock.items || []).filter(s => s.cat === "panel" && s.name).map(s => ({
+      model: s.name,
+      wp: s.wp,
+      frame: s.frame,
+      width: s.width,
+      length: s.length,
+      voc: s.voc,
+      isc: s.isc,
+      vmp: s.vmp,
+      imp: s.imp,
+      tcVoc: s.tcVoc,
+      tcIsc: s.tcIsc,
+      tcPmax: s.tcPmax,
+      noct: s.noct,
+      deg1: s.deg1,
+      degY: s.degY,
+      cells: s.cells,
+      fuseA: s.fuseA,
+      halfCut: s.halfCut
+    })));
+    if (window.BOQ.setInverters) window.BOQ.setInverters((stock.items || []).filter(s => s.cat === "inverter" && s.name).map(s => ({
+      model: s.name,
+      type: s.invType,
+      kw: s.invKw,
+      phase: s.invPhase,
+      inputs: s.invInputs,
+      maxPv: s.invMaxPv,
+      outA: s.invOutA,
+      mpptVmin: s.mpptVmin,
+      mpptVmax: s.mpptVmax,
+      maxVdc: s.maxVdc,
+      maxInA: s.maxInA,
+      maxIscA: s.maxIscA,
+      maxMpptA: s.maxMpptA,
+      strPerMppt: s.invStrPerMppt,
+      eff: s.invEff,
+      effEuro: s.invEffEuro,
+      vStart: s.vStart,
+      vRated: s.vRated,
+      maxAcKw: s.invMaxAcKw
+    })));
+  }, [stock.items]);
+  React.useEffect(() => {
+    if (window.BOQ && window.BOQ.setAmpacity) window.BOQ.setAmpacity(ampStore.overrides || {});
+  }, [ampStore.overrides]);
+  const closeSidebar = () => setSidebarOpen(false);
+  const openJob = j => setSelected(j.id);
+  const openSurvey = (j, appt) => {
+    setSurveyJob(j);
+    setSurveyAppt(appt || null);
+  };
+  const convertLead = lead => {
+    if (!can(role, "addJob")) {
+      alert("คุณไม่มีสิทธิ์สร้างงาน");
+      return;
+    }
+    const rec = Object.assign(store.blank(), {
+      name: lead.name || "",
+      phone: lead.phone || "",
+      address: lead.address || "",
+      type: lead.type || "home",
+      note: lead.note || ""
+    });
+    if (lead.province) rec.province = lead.province;
+    if (lead.phase) rec.phase = lead.phase;
+    if (lead.roof) rec.roof = lead.roof;
+    if (lead.survey) rec.survey = lead.survey;
+    store.upsert(rec);
+    if (window.moveSurveyPhotos) window.moveSurveyPhotos(lead.id, rec.id);
+    leadStore.patch(lead.id, {
+      status: "won",
+      jobId: rec.id
+    });
+    (apptStore.appts || []).forEach(a => {
+      if (a.leadId === lead.id) apptStore.upsert(Object.assign({}, a, {
+        projectId: rec.id,
+        jobCode: rec.code
+      }));
+    });
+    setView(listView());
+    setSelected(rec.id);
+  };
+  const selectedJob = jobs.find(j => j.id === selected) || null;
+  const onSave = rec => {
+    const prev = store.raw.find(r => r.id === rec.id);
+    store.upsert(rec);
+    if (rec.tech && (!prev || prev.tech !== rec.tech)) {
+      notif.addNotif({
+        toTechId: rec.tech,
+        type: "assign",
+        jobId: rec.id,
+        jobName: rec.name,
+        title: "ได้รับมอบหมายงานใหม่",
+        body: (rec.name || "งาน") + " · " + (rec.province || "") + " · " + (rec.kw || "") + " kW"
+      });
+    }
+    setForm(null);
+  };
+  const onDelete = j => {
+    if (!can(role, "delJob")) {
+      alert("คุณไม่มีสิทธิ์ลบงาน");
+      return;
+    }
+    if (confirm("ลบงาน \"" + j.name + "\" ?")) store.remove(j.id);
+  };
+  const listView = () => navForRole(role).some(n => n.key === "table") ? "table" : "board";
+  const goStage = key => {
+    setStageFilter(key);
+    setQuickFilter(null);
+    setView(listView());
+  };
+  const goKpi = key => {
+    setQuickFilter(key);
+    setStageFilter(null);
+    setTypeFilter("all");
+    setDelayedOnly(false);
+    setView(listView());
+  };
+  const navTo = v => {
+    setView(v);
+    if (v !== "table") {
+      setStageFilter(null);
+      setQuickFilter(null);
+    }
+    closeSidebar();
+  };
+  if (loading) return React.createElement(LoadingScreen, null);
+  if (!auth.current) return React.createElement(LoginScreen, {
+    authStore: auth
+  });
+  const myNotifs = techId ? notif.notifs.filter(n => n.toTechId === techId) : [];
+  const unread = myNotifs.filter(n => !n.read).length;
+  const bellCount = unread + lateAlerts.length;
+  const openFromNotif = n => {
+    if (n.id) notif.markRead(n.id);
+    setNotifOpen(false);
+    if (n.jobId) {
+      setView(listView());
+      setSelected(n.jobId);
+    }
+  };
+  return React.createElement("div", {
+    className: "app-root"
+  }, sidebarOpen && React.createElement("div", {
+    className: "sidebar-overlay",
+    onClick: closeSidebar
+  }), React.createElement(Sidebar, {
+    view: view,
+    onNav: navTo,
+    role: role,
+    jobs: jobs,
+    stock: stock,
+    t: t,
+    open: sidebarOpen,
+    onClose: closeSidebar,
+    aurora: aurora,
+    onToggleAurora: toggleAurora,
+    collapsed: collapsed,
+    onToggleCollapsed: toggleCollapsed,
+    currentUser: auth.current,
+    onLogout: auth.logout,
+    canManageUsers: can(role, "manageUsers"),
+    onManageUsers: () => {
+      setUserMgr(true);
+      closeSidebar();
+    }
+  }), React.createElement("main", {
+    className: "app-main"
+  }, view === "stock" ? React.createElement(StockView, {
+    stock: stock,
+    onMenuOpen: () => setSidebarOpen(true),
+    currentUser: auth.current,
+    jobs: jobs,
+    priceStore: priceStore,
+    ampStore: ampStore,
+    canManagePrices: can(role, "delJob")
+  }) : view === "dispatch" ? React.createElement(DispatchView, {
+    appts: apptStore.appts,
+    jobs: jobs,
+    techs: techStore.techs,
+    store: apptStore,
+    leadStore: leadStore,
+    onMenuOpen: () => setSidebarOpen(true),
+    onOpenJob: openJob
+  }) : view === "leads" ? React.createElement(LeadsView, {
+    leadStore: leadStore,
+    appts: apptStore.appts,
+    jobs: jobs,
+    onMenuOpen: () => setSidebarOpen(true),
+    onOpenSurvey: can(role, "doSurvey") || can(role, "dispatch") ? pseudo => openSurvey(pseudo) : null,
+    onConvert: convertLead,
+    canConvert: can(role, "addJob")
+  }) : view === "myschedule" ? React.createElement(MyScheduleView, {
+    appts: apptStore.appts,
+    jobs: jobs,
+    leads: leadStore.leads,
+    me: auth.current,
+    onMenuOpen: () => setSidebarOpen(true),
+    onStatus: (id, s) => apptStore.setStatus(id, s),
+    onOpenSurvey: (j, appt) => openSurvey(j, appt),
+    onOpen: openJob,
+    onAdvance: j => store.advance(j.id)
+  }) : React.createElement(React.Fragment, null, React.createElement(Header, {
+    view: view,
+    role: role,
+    count: filtered.length,
+    total: jobs.length,
+    search: search,
+    setSearch: setSearch,
+    typeFilter: typeFilter,
+    setTypeFilter: setTypeFilter,
+    delayedOnly: delayedOnly,
+    setDelayedOnly: setDelayedOnly,
+    stageFilter: stageFilter,
+    setStageFilter: setStageFilter,
+    stageCounts: stageCounts,
+    quickFilter: quickFilter,
+    setQuickFilter: setQuickFilter,
+    onAdd: () => setForm({
+      job: store.blank(),
+      isNew: true
+    }),
+    canAdd: can(role, "addJob"),
+    onMap: () => setMapOpen(true),
+    showBell: true,
+    unread: bellCount,
+    notifItems: myNotifs,
+    lateAlerts: lateAlerts,
+    notifOpen: notifOpen,
+    onBell: () => setNotifOpen(v => !v),
+    onCloseNotif: () => setNotifOpen(false),
+    onOpenNotif: openFromNotif,
+    onMarkAll: () => notif.markAllRead(techId),
+    onMenuOpen: () => setSidebarOpen(true)
+  }), React.createElement("div", {
+    className: "app-content",
+    style: view === "board" ? {
+      display: "flex",
+      flexDirection: "column",
+      minHeight: 0
+    } : {}
+  }, view === "overview" && React.createElement(OverviewView, {
+    jobs: filtered,
+    schedule: myScheduleItems,
+    onOpen: openJob,
+    onStage: goStage,
+    onKpi: goKpi,
+    stock: stock
+  }), view === "board" && React.createElement(KanbanView, {
+    jobs: filtered,
+    onOpen: openJob,
+    onMoveStage: (id, s) => store.setStage(id, s)
+  }), view === "table" && React.createElement(TableView, {
+    jobs: filtered,
+    onOpen: openJob,
+    onEdit: j => setForm({
+      job: store.raw.find(r => r.id === j.id),
+      isNew: false
+    }),
+    onDelete: onDelete,
+    onSetMat: store.setMat,
+    onSetStage: (id, s) => store.setStage(id, s)
+  }), view === "report" && React.createElement(ReportView, {
+    jobs: filtered,
+    onOpen: openJob
+  }), view === "survey" && React.createElement(SurveyView, {
+    jobs: filtered,
+    role: role,
+    onOpen: openSurvey,
+    onToggleSkip: can(role, "doSurvey") || can(role, "dispatch") || can(role, "editJob") ? j => {
+      const cur = j.survey || {};
+      store.patch(j.id, {
+        survey: Object.assign({}, cur, {
+          skip: !cur.skip,
+          skippedAt: !cur.skip ? new Date().toISOString() : null
+        })
+      });
+    } : null
+  }), view === "calendar" && React.createElement(CalendarView, {
+    jobs: filtered,
+    onOpen: openJob,
+    canAdd: can(role, "addJob"),
+    onAdvance: can(role, "editJob") ? j => store.advance(j.id) : null,
+    onAddOnDate: key => setForm({
+      job: Object.assign(store.blank(), {
+        startDate: key,
+        deadline: key
+      }),
+      isNew: true
+    })
+  })))), React.createElement(DetailDrawer, {
+    job: selectedJob,
+    onClose: () => setSelected(null),
+    onAdvance: id => store.advance(id),
+    onSetMat: store.setMat,
+    currentUser: auth.current,
+    canManage: can(role, "delJob"),
+    stock: stock,
+    onSaveBOQ: (id, boq) => store.patch(id, {
+      boq
+    }),
+    onSurvey: can(role, "doSurvey") || can(role, "dispatch") ? () => openSurvey(selectedJob) : null,
+    priceMap: can(role, "delJob") ? effPriceMap : null,
+    onEdit: id => {
+      setSelected(null);
+      setForm({
+        job: store.raw.find(r => r.id === id),
+        isNew: false
+      });
+    }
+  }), surveyJob && React.createElement(SurveyWizard, {
+    job: surveyJob,
+    currentUser: auth.current,
+    onClose: () => {
+      setSurveyJob(null);
+      setSurveyAppt(null);
+    },
+    onSave: survey => {
+      const s = surveyAppt ? Object.assign({}, survey, {
+        appointmentId: surveyAppt.id
+      }) : survey;
+      if (surveyJob.__lead) leadStore.patch(surveyJob.id, {
+        survey: s
+      });else store.patch(surveyJob.id, {
+        survey: s
+      });
+      if (surveyAppt) apptStore.setStatus(surveyAppt.id, "done");
+      setSurveyJob(null);
+      setSurveyAppt(null);
+    }
+  }), form && React.createElement(JobForm, {
+    initial: form.job,
+    isNew: form.isNew,
+    jobs: jobs,
+    onSave: onSave,
+    onClose: () => setForm(null),
+    onManageTechs: () => setTechMgr(true),
+    onManageBrands: () => setBrandMgr(true)
+  }), techMgr && React.createElement(TechManager, {
+    store: techStore,
+    onClose: () => setTechMgr(false)
+  }), brandMgr && React.createElement(BrandManager, {
+    store: brandStore,
+    onClose: () => setBrandMgr(false)
+  }), userMgr && can(role, "manageUsers") && React.createElement(UserManager, {
+    authStore: auth,
+    onClose: () => setUserMgr(false)
+  }), briefingOpen && React.createElement(DailyBriefing, {
+    lateAlerts: lateAlerts,
+    todayTasks: todayTasks,
+    onOpen: jobId => {
+      localStorage.setItem("sf_briefing_seen", window.SF.TODAY);
+      setBriefingOpen(false);
+      setView(listView());
+      setSelected(jobId);
+    },
+    onClose: () => {
+      localStorage.setItem("sf_briefing_seen", window.SF.TODAY);
+      setBriefingOpen(false);
+    }
+  }), mapOpen && React.createElement(MapModal, {
+    jobs: filtered,
+    onOpen: j => {
+      setMapOpen(false);
+      openJob(j);
+    },
+    onClose: () => setMapOpen(false)
+  }), React.createElement(TweaksPanel, null, React.createElement(TweakSection, {
+    label: "\u0E18\u0E35\u0E21 / Theme"
+  }), React.createElement(TweakRadio, {
+    label: "\u0E42\u0E2B\u0E21\u0E14",
+    value: t.mode,
+    options: ["light", "aurora"],
+    onChange: v => setTweak("mode", v)
+  }), React.createElement(TweakSelect, {
+    label: "\u0E42\u0E17\u0E19\u0E2A\u0E35\u0E2B\u0E25\u0E31\u0E01",
+    value: t.accent,
+    options: [{
+      value: "phithan",
+      label: "PHITHAN Green"
+    }, {
+      value: "emerald",
+      label: "Emerald"
+    }, {
+      value: "amber",
+      label: "Command Amber"
+    }],
+    onChange: v => setTweak("accent", v)
+  }), React.createElement(TweakSection, {
+    label: "\u0E40\u0E25\u0E22\u0E4C\u0E40\u0E2D\u0E32\u0E15\u0E4C / Layout"
+  }), React.createElement(TweakRadio, {
+    label: "\u0E04\u0E27\u0E32\u0E21\u0E2B\u0E19\u0E32\u0E41\u0E19\u0E48\u0E19",
+    value: t.density,
+    options: ["comfy", "compact"],
+    onChange: v => setTweak("density", v)
+  }), React.createElement(TweakRadio, {
+    label: "\u0E41\u0E16\u0E1A\u0E40\u0E21\u0E19\u0E39",
+    value: t.sidebar,
+    options: ["full", "icons"],
+    onChange: v => setTweak("sidebar", v)
+  }), React.createElement(TweakRadio, {
+    label: "\u0E2A\u0E44\u0E15\u0E25\u0E4C\u0E01\u0E32\u0E23\u0E4C\u0E14",
+    value: t.cardStyle,
+    options: ["soft", "flat"],
+    onChange: v => setTweak("cardStyle", v)
+  })));
+}
+function Sidebar({
+  view,
+  onNav,
+  role,
+  jobs,
+  stock,
+  t,
+  open,
+  onClose,
+  aurora,
+  onToggleAurora,
+  collapsed,
+  onToggleCollapsed,
+  currentUser,
+  onLogout,
+  canManageUsers,
+  onManageUsers
+}) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const icons = !isMobile && collapsed;
+  const delayed = jobs.filter(j => j.delayed).length;
+  const lowStock = stock.items.filter(it => it.qty <= it.min).length;
+  const sidebarStyle = isMobile ? {
+    transform: open ? "translateX(0)" : "translateX(-100%)",
+    boxShadow: open ? "6px 0 36px rgba(0,0,0,.22)" : "none"
+  } : {
+    position: "relative"
+  };
+  return React.createElement("aside", {
+    className: "sidebar",
+    "data-mode": icons ? "icons" : "full",
+    style: sidebarStyle
+  }, !isMobile && React.createElement("button", {
+    onClick: onToggleCollapsed,
+    title: collapsed ? "ขยายแถบเมนู" : "ย่อแถบเมนู",
+    "aria-label": "\u0E22\u0E48\u0E2D/\u0E02\u0E22\u0E32\u0E22\u0E41\u0E16\u0E1A\u0E40\u0E21\u0E19\u0E39",
+    style: {
+      position: "absolute",
+      top: "50%",
+      right: -13,
+      transform: "translateY(-50%)",
+      width: 26,
+      height: 26,
+      borderRadius: 99,
+      border: "2px solid var(--bg)",
+      background: "var(--primary)",
+      color: "#fff",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      boxShadow: "0 2px 8px rgba(20,40,28,.18)",
+      zIndex: 5,
+      padding: 0
+    },
+    onMouseEnter: e => {
+      e.currentTarget.style.background = "var(--primary-dark)";
+    },
+    onMouseLeave: e => {
+      e.currentTarget.style.background = "var(--primary)";
+    }
+  }, React.createElement(Icon, {
+    name: "chevronRight",
+    size: 15,
+    color: "#fff",
+    style: {
+      transform: collapsed ? "none" : "rotate(180deg)",
+      transition: "transform .18s"
+    }
+  })), React.createElement("div", {
+    className: "sidebar-brand"
+  }, React.createElement("img", {
+    src: "dashboard/assets/phithan-mark.png",
+    alt: "PHITHAN GREEN",
+    className: "brand-mark"
+  }), !icons && React.createElement("div", null, React.createElement("div", {
+    className: "brand-name"
+  }, "PHITHAN GREEN"), React.createElement("div", {
+    className: "brand-sub"
+  }, "\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07")), React.createElement("button", {
+    className: "sidebar-close-btn",
+    onClick: onClose,
+    title: "\u0E1B\u0E34\u0E14\u0E40\u0E21\u0E19\u0E39",
+    "aria-label": "\u0E1B\u0E34\u0E14\u0E40\u0E21\u0E19\u0E39"
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 15,
+    color: "var(--text-2)"
+  }))), React.createElement("nav", {
+    className: "sidebar-nav"
+  }, navForRole(role).map(n => {
+    const active = view === n.key;
+    return React.createElement("button", {
+      key: n.key,
+      onClick: () => onNav(n.key),
+      className: "nav-item" + (active ? " active" : ""),
+      title: n.th,
+      style: n.key === "report" ? {
+        marginTop: "auto"
+      } : undefined
+    }, React.createElement(Icon, {
+      name: n.icon,
+      size: 19,
+      color: active ? "var(--primary-dark)" : "var(--text-2)"
+    }), !icons && React.createElement("span", null, n.th), !icons && n.key === "overview" && delayed > 0 && React.createElement("span", {
+      className: "nav-badge"
+    }, delayed), !icons && n.key === "stock" && lowStock > 0 && React.createElement("span", {
+      className: "nav-badge warn"
+    }, lowStock));
+  })), React.createElement("div", {
+    className: "sidebar-foot"
+  }, canManageUsers && React.createElement("button", {
+    onClick: onManageUsers,
+    className: "nav-item",
+    title: "\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19",
+    style: {
+      width: "100%"
+    }
+  }, React.createElement(Icon, {
+    name: "users",
+    size: 19,
+    color: "var(--text-2)"
+  }), !icons && React.createElement("span", null, "\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19")), currentUser && React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: icons ? 0 : "4px 2px 10px",
+      justifyContent: icons ? "center" : "flex-start"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 36,
+      height: 36,
+      borderRadius: 99,
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+      background: (ROLE_INFO[currentUser.role] || ROLE_INFO.tech).color,
+      color: "#fff",
+      fontWeight: 700,
+      fontSize: 14
+    }
+  }, (currentUser.name || "?").slice(0, 1)), !icons && React.createElement("div", {
+    style: {
+      minWidth: 0,
+      flex: 1
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, currentUser.name), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, (ROLE_INFO[currentUser.role] || ROLE_INFO.tech).th))), React.createElement("button", {
+    onClick: onToggleAurora,
+    className: "nav-item",
+    title: aurora ? "กลับสู่โหมดปกติ" : "เปิดโหมดกราไฟต์",
+    style: {
+      width: "100%",
+      color: aurora ? "var(--primary-dark)" : "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "moon",
+    size: 18,
+    color: aurora ? "var(--primary-dark)" : "var(--text-2)"
+  }), !icons && React.createElement("span", null, "\u0E42\u0E2B\u0E21\u0E14\u0E01\u0E23\u0E32\u0E44\u0E1F\u0E15\u0E4C"), !icons && aurora && React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      width: 7,
+      height: 7,
+      borderRadius: 99,
+      flexShrink: 0,
+      background: "var(--primary-bright)"
+    }
+  })), React.createElement("button", {
+    onClick: onLogout,
+    className: "nav-item",
+    title: "\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A",
+    style: {
+      width: "100%",
+      color: "#EF4444"
+    }
+  }, React.createElement(Icon, {
+    name: "history",
+    size: 18,
+    color: "#EF4444",
+    style: {
+      transform: "scaleX(-1)"
+    }
+  }), !icons && React.createElement("span", {
+    style: {
+      color: "#EF4444",
+      fontWeight: 600
+    }
+  }, "\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A"))));
+}
+function Header({
+  view,
+  role,
+  count,
+  total,
+  search,
+  setSearch,
+  typeFilter,
+  setTypeFilter,
+  delayedOnly,
+  setDelayedOnly,
+  stageFilter,
+  setStageFilter,
+  stageCounts,
+  quickFilter,
+  setQuickFilter,
+  onAdd,
+  canAdd,
+  onMap,
+  showBell,
+  unread,
+  notifItems,
+  lateAlerts,
+  notifOpen,
+  onBell,
+  onCloseNotif,
+  onOpenNotif,
+  onMarkAll,
+  onMenuOpen
+}) {
+  const nav = NAV.find(n => n.key === view);
+  const QUICK_LABELS = {
+    active: "กำลังดำเนินการ",
+    delayed: "ล่าช้า",
+    ready: "อุปกรณ์พร้อมติดตั้ง",
+    battery: "มีแบตเตอรี่"
+  };
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const [stageOpen, setStageOpen] = React.useState(() => localStorage.getItem("sf_stage_filteropen") !== "0");
+  const toggleStage = () => setStageOpen(v => {
+    localStorage.setItem("sf_stage_filteropen", v ? "0" : "1");
+    return !v;
+  });
+  const showStageBar = view !== "overview" && !isMobile;
+  const [searchOpen, setSearchOpen] = React.useState(false);
+  const searchRef = React.useRef(null);
+  React.useEffect(() => {
+    if (searchOpen && searchRef.current) searchRef.current.focus();
+  }, [searchOpen]);
+  return React.createElement("header", {
+    className: "app-header",
+    style: isMobile ? {
+      paddingBottom: 12
+    } : undefined
+  }, React.createElement("div", {
+    className: "header-top"
+  }, React.createElement("button", {
+    className: "hamburger",
+    onClick: onMenuOpen,
+    "aria-label": "\u0E40\u0E1B\u0E34\u0E14\u0E40\u0E21\u0E19\u0E39"
+  }, React.createElement(Icon, {
+    name: "menu",
+    size: 18,
+    color: "var(--text-2)"
+  })), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("h1", {
+    className: "page-title"
+  }, nav.th), React.createElement("p", {
+    className: "page-sub"
+  }, "\u0E41\u0E2A\u0E14\u0E07 ", React.createElement("strong", null, count), " \u0E08\u0E32\u0E01 ", total, " \u0E07\u0E32\u0E19", role === "tech" && " · เฉพาะงานของคุณ", stageFilter && React.createElement("span", null, " \xB7 \u0E01\u0E23\u0E2D\u0E07: ", stageOf(stageFilter).th, " ", React.createElement("button", {
+    onClick: () => setStageFilter(null),
+    className: "clear-chip"
+  }, "\u0E25\u0E49\u0E32\u0E07 \u2715")), quickFilter && React.createElement("span", null, " \xB7 \u0E01\u0E23\u0E2D\u0E07: ", QUICK_LABELS[quickFilter], " ", React.createElement("button", {
+    onClick: () => setQuickFilter(null),
+    className: "clear-chip"
+  }, "\u0E25\u0E49\u0E32\u0E07 \u2715")))), React.createElement("div", {
+    className: "header-actions"
+  }, isMobile && !searchOpen ? React.createElement("button", {
+    onClick: () => setSearchOpen(true),
+    title: "\u0E04\u0E49\u0E19\u0E2B\u0E32",
+    "aria-label": "\u0E04\u0E49\u0E19\u0E2B\u0E32",
+    style: {
+      width: 40,
+      height: 40,
+      borderRadius: 11,
+      border: "none",
+      background: "var(--primary)",
+      color: "#fff",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "search",
+    size: 18,
+    color: "#fff"
+  })) : React.createElement("div", {
+    className: "search-box",
+    style: isMobile ? {
+      maxWidth: "none",
+      flex: 1
+    } : undefined
+  }, React.createElement(Icon, {
+    name: "search",
+    size: 16,
+    color: "var(--text-3)"
+  }), React.createElement("input", {
+    ref: searchRef,
+    value: search,
+    onChange: e => setSearch(e.target.value),
+    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32...",
+    onBlur: () => {
+      if (isMobile && !search.trim()) setSearchOpen(false);
+    }
+  }), isMobile && React.createElement("button", {
+    onMouseDown: e => e.preventDefault(),
+    onClick: () => {
+      setSearch("");
+      setSearchOpen(false);
+    },
+    title: "\u0E1B\u0E34\u0E14\u0E04\u0E49\u0E19\u0E2B\u0E32",
+    "aria-label": "\u0E1B\u0E34\u0E14\u0E04\u0E49\u0E19\u0E2B\u0E32",
+    style: {
+      flexShrink: 0,
+      width: 22,
+      height: 22,
+      borderRadius: 7,
+      border: "none",
+      background: "var(--surface3)",
+      color: "var(--text-3)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 14,
+    color: "var(--text-3)"
+  }))), onMap && !(isMobile && searchOpen) && React.createElement("button", {
+    onClick: onMap,
+    title: "\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48\u0E07\u0E32\u0E19",
+    "aria-label": "\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48\u0E07\u0E32\u0E19",
+    style: {
+      width: 40,
+      height: 40,
+      borderRadius: 11,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "map",
+    size: 18,
+    color: "var(--text-2)"
+  })), showBell && !(isMobile && searchOpen) && React.createElement("div", {
+    style: {
+      position: "relative",
+      flexShrink: 0
+    }
+  }, React.createElement("button", {
+    onClick: onBell,
+    "aria-label": "\u0E01\u0E32\u0E23\u0E41\u0E08\u0E49\u0E07\u0E40\u0E15\u0E37\u0E2D\u0E19",
+    style: {
+      width: 40,
+      height: 40,
+      borderRadius: 11,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)",
+      position: "relative"
+    }
+  }, React.createElement(Icon, {
+    name: "bell",
+    size: 18,
+    color: "var(--text-2)"
+  }), unread > 0 && React.createElement("span", {
+    style: {
+      position: "absolute",
+      top: -5,
+      right: -5,
+      minWidth: 18,
+      height: 18,
+      padding: "0 5px",
+      borderRadius: 99,
+      background: "#EF4444",
+      color: "#fff",
+      fontSize: 10.5,
+      fontWeight: 700,
+      display: "grid",
+      placeItems: "center",
+      border: "2px solid var(--bg)"
+    }
+  }, unread)), notifOpen && React.createElement(NotifPanel, {
+    items: notifItems,
+    lateAlerts: lateAlerts,
+    onClose: onCloseNotif,
+    onOpenJob: onOpenNotif,
+    onMarkAll: onMarkAll
+  })), canAdd && !(isMobile && searchOpen) && React.createElement("button", {
+    className: "btn-add",
+    onClick: onAdd
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 17,
+    color: "#fff",
+    sw: 2.4
+  }), React.createElement("span", null, "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E07\u0E32\u0E19")))), !isMobile && React.createElement("div", {
+    className: "header-filters"
+  }, React.createElement(Segmented, {
+    value: typeFilter,
+    onChange: setTypeFilter,
+    options: [{
+      value: "all",
+      label: "ทั้งหมด"
+    }, {
+      value: "home",
+      label: "งานบ้าน"
+    }, {
+      value: "project",
+      label: "โครงการ"
+    }]
+  }), React.createElement("button", {
+    className: "delay-toggle" + (delayedOnly ? " on" : ""),
+    onClick: () => setDelayedOnly(v => !v)
+  }, React.createElement(Icon, {
+    name: "alert",
+    size: 15,
+    color: delayedOnly ? "#fff" : "#EF4444"
+  }), "\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E07\u0E32\u0E19\u0E25\u0E48\u0E32\u0E0A\u0E49\u0E32"), showStageBar && React.createElement("button", {
+    onClick: toggleStage,
+    title: stageOpen ? "ซ่อนตัวกรองขั้นงาน" : "แสดงตัวกรองขั้นงาน",
+    style: {
+      marginLeft: "auto",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: isMobile ? "5px 10px" : "6px 13px",
+      borderRadius: 99,
+      border: "1px solid " + (stageFilter ? stageOf(stageFilter).color : "var(--border-strong)"),
+      background: stageFilter ? stageOf(stageFilter).color + "16" : "var(--surface)",
+      color: stageFilter ? stageOf(stageFilter).color : "var(--text-2)",
+      fontSize: isMobile ? 11.5 : 12.5,
+      fontWeight: 600,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      whiteSpace: "nowrap"
+    }
+  }, React.createElement(Icon, {
+    name: "filter",
+    size: 14,
+    color: stageFilter ? stageOf(stageFilter).color : "var(--text-2)"
+  }), "\u0E02\u0E31\u0E49\u0E19\u0E07\u0E32\u0E19", stageFilter ? ": " + stageOf(stageFilter).th : "", React.createElement(Icon, {
+    name: "chevronDown",
+    size: 14,
+    color: "var(--text-3)",
+    style: {
+      transform: stageOpen ? "rotate(180deg)" : "none",
+      transition: "transform .18s"
+    }
+  }))), showStageBar && React.createElement("div", {
+    style: {
+      overflow: "hidden",
+      maxHeight: stageOpen ? 180 : 0,
+      opacity: stageOpen ? 1 : 0,
+      paddingBottom: stageOpen ? isMobile ? 10 : 14 : 0,
+      transition: "max-height .24s ease, opacity .2s ease, padding-bottom .24s ease"
+    }
+  }, React.createElement("div", {
+    className: "cat-chip-row",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: isMobile ? 5 : 7,
+      flexWrap: "nowrap",
+      overflowX: "auto",
+      overflowY: "hidden",
+      paddingBottom: 2
+    }
+  }, (() => {
+    const SF = window.SF;
+    const chip = (active, color) => ({
+      display: "inline-flex",
+      alignItems: "center",
+      gap: isMobile ? 5 : 7,
+      padding: isMobile ? "5px 10px" : "6px 13px",
+      borderRadius: 99,
+      border: "1px solid " + (active ? color || "var(--primary)" : "transparent"),
+      background: active ? color ? color + "18" : "var(--primary-soft)" : "var(--surface2)",
+      color: active ? color || "var(--primary-dark)" : "var(--text-2)",
+      fontFamily: "inherit",
+      fontSize: isMobile ? 11.5 : 12.5,
+      fontWeight: active ? 700 : 600,
+      cursor: "pointer",
+      whiteSpace: "nowrap",
+      flexShrink: 0,
+      transition: "background .15s, color .15s"
+    });
+    const num = active => ({
+      fontSize: 11.5,
+      fontWeight: 800,
+      opacity: active ? 1 : .55,
+      fontFamily: "var(--display)",
+      fontVariantNumeric: "tabular-nums",
+      letterSpacing: "-.02em"
+    });
+    return React.createElement(React.Fragment, null, React.createElement("button", {
+      style: chip(!stageFilter),
+      onClick: () => setStageFilter(null)
+    }, "\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 ", React.createElement("span", {
+      style: num(!stageFilter)
+    }, stageCounts && stageCounts.__all || 0)), SF.STAGES.map(s => {
+      const active = stageFilter === s.key;
+      const n = stageCounts && stageCounts[s.key] || 0;
+      return React.createElement("button", {
+        key: s.key,
+        style: Object.assign(chip(active, s.color), n === 0 && !active ? {
+          opacity: .5
+        } : {}),
+        onClick: () => setStageFilter(active ? null : s.key)
+      }, React.createElement("span", {
+        style: {
+          width: isMobile ? 6 : 7,
+          height: isMobile ? 6 : 7,
+          borderRadius: 99,
+          background: s.color,
+          flexShrink: 0
+        }
+      }), s.th, " ", React.createElement("span", {
+        style: num(active)
+      }, n));
+    }));
+  })())));
+}
+function DailyBriefing({
+  lateAlerts,
+  todayTasks,
+  onOpen,
+  onClose
+}) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const today = window.SF.TODAY;
+  const Row = ({
+    jobId,
+    color,
+    danger,
+    title,
+    sub
+  }) => React.createElement("button", {
+    onClick: () => onOpen(jobId),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 11,
+      padding: "11px 12px",
+      width: "100%",
+      textAlign: "left",
+      background: danger ? "var(--tint-red-bg)" : "var(--surface)",
+      border: "1px solid " + (danger ? "var(--tint-red-bd)" : "var(--border)"),
+      borderRadius: 12,
+      cursor: "pointer",
+      fontFamily: "inherit"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: 9,
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+      background: color,
+      color: "#fff"
+    }
+  }, React.createElement(Icon, {
+    name: danger ? "alert" : "wrench",
+    size: 16,
+    color: "#fff"
+  })), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 13.5,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, title), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      color: danger ? "var(--tint-red-tx)" : "var(--text-2)",
+      marginTop: 1
+    }
+  }, sub)), React.createElement(Icon, {
+    name: "chevronRight",
+    size: 15,
+    color: "var(--text-3)",
+    style: {
+      flexShrink: 0
+    }
+  }));
+  return React.createElement("div", {
+    onClick: onClose,
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(8,20,14,.5)",
+      backdropFilter: "blur(3px)",
+      zIndex: 120,
+      display: "grid",
+      placeItems: isMobile ? "end center" : "center",
+      padding: isMobile ? 0 : 20
+    }
+  }, React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "var(--bg)",
+      borderRadius: isMobile ? "20px 20px 0 0" : 18,
+      width: isMobile ? "100%" : "min(480px,100%)",
+      maxHeight: isMobile ? "90dvh" : "88vh",
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
+      boxShadow: "0 30px 80px rgba(8,20,14,.3)"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "18px 20px",
+      borderBottom: "1px solid var(--border)",
+      background: "var(--surface)",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 11
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 38,
+      height: 38,
+      borderRadius: 11,
+      background: "var(--primary-soft)",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, React.createElement(Icon, {
+    name: "bell",
+    size: 19,
+    color: "var(--primary-dark)"
+  })), React.createElement("div", null, React.createElement("h2", {
+    style: {
+      fontSize: 16.5,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      margin: 0
+    }
+  }, "\u0E2A\u0E23\u0E38\u0E1B\u0E07\u0E32\u0E19\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49"), React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, thDate(today, true)))), React.createElement("button", {
+    onClick: onClose,
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: 9,
+      border: "1px solid var(--border)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 16
+  }))), React.createElement("div", {
+    style: {
+      overflowY: "auto",
+      padding: 16,
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, lateAlerts.length > 0 && React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 800,
+      letterSpacing: ".05em",
+      textTransform: "uppercase",
+      color: "#EF4444",
+      padding: "2px 2px"
+    }
+  }, "\u26A0 \u0E40\u0E25\u0E22\u0E01\u0E33\u0E2B\u0E19\u0E14 (", lateAlerts.length, ")"), lateAlerts.map((a, i) => React.createElement(Row, {
+    key: "l" + i,
+    jobId: a.jobId,
+    color: "#EF4444",
+    danger: true,
+    title: a.jobName,
+    sub: 'ขั้น "' + a.stage.th + '" เลยกำหนด ' + a.stage.daysLate + " วัน"
+  })), todayTasks.length > 0 && React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 800,
+      letterSpacing: ".05em",
+      textTransform: "uppercase",
+      color: "var(--primary-dark)",
+      padding: "6px 2px 2px"
+    }
+  }, "\uD83D\uDCCD \u0E01\u0E33\u0E2B\u0E19\u0E14\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49 (", todayTasks.length, ")"), todayTasks.map((e, i) => React.createElement(Row, {
+    key: "t" + i,
+    jobId: e.job.id,
+    color: e.stage.color,
+    title: e.job.name,
+    sub: {
+      start: "เริ่ม",
+      progress: "กำลังดำเนินการ",
+      end: "ส่งมอบ/เสร็จ",
+      both: "เริ่ม–เสร็จ"
+    }[e.kind] + " · " + e.stage.th
+  }))), React.createElement("div", {
+    style: {
+      padding: "12px 20px",
+      paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
+      borderTop: "1px solid var(--border)",
+      background: "var(--surface)"
+    }
+  }, React.createElement("button", {
+    onClick: onClose,
+    style: {
+      width: "100%",
+      padding: "12px",
+      borderRadius: 11,
+      border: "none",
+      background: "var(--primary)",
+      color: "#fff",
+      fontWeight: 700,
+      fontFamily: "inherit",
+      fontSize: 14,
+      cursor: "pointer"
+    }
+  }, "\u0E23\u0E31\u0E1A\u0E17\u0E23\u0E32\u0E1A"))));
+}
+function MapModal({
+  jobs,
+  onOpen,
+  onClose
+}) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const bdClose = window.useBackdropClose(onClose);
+  return React.createElement("div", _extends({}, bdClose, {
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(8,20,14,.5)",
+      backdropFilter: "blur(3px)",
+      zIndex: 95,
+      display: "grid",
+      placeItems: isMobile ? "stretch" : "center",
+      padding: isMobile ? 0 : 20
+    }
+  }), React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "var(--bg)",
+      borderRadius: isMobile ? 0 : 20,
+      width: isMobile ? "100%" : "min(1120px, 100%)",
+      height: isMobile ? "100%" : "88vh",
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
+      boxShadow: "0 30px 80px rgba(8,20,14,.3)"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "16px 20px",
+      borderBottom: "1px solid var(--border)",
+      background: "var(--surface)",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 11
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 38,
+      height: 38,
+      borderRadius: 11,
+      background: "var(--primary-soft)",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, React.createElement(Icon, {
+    name: "map",
+    size: 19,
+    color: "var(--primary-dark)"
+  })), React.createElement("div", null, React.createElement("h2", {
+    style: {
+      fontSize: 16.5,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      margin: 0
+    }
+  }, "\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"), React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, jobs.length, " \u0E07\u0E32\u0E19 \xB7 \u0E04\u0E25\u0E34\u0E01\u0E2B\u0E21\u0E38\u0E14\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E14\u0E39\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14"))), React.createElement("button", {
+    onClick: onClose,
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: 9,
+      border: "1px solid var(--border)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 16
+  }))), React.createElement("div", {
+    style: {
+      flex: 1,
+      minHeight: 0,
+      overflowY: isMobile ? "auto" : "hidden",
+      padding: isMobile ? 14 : 18,
+      display: "flex",
+      flexDirection: "column"
+    }
+  }, React.createElement(MapView, {
+    jobs: jobs,
+    onOpen: onOpen
+  }))));
+}
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App, null));

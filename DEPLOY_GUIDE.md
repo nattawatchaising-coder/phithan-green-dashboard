@@ -60,6 +60,22 @@ const FIREBASE_CONFIG = {
 
 ---
 
+## ⚠ ก่อน commit / deploy ทุกครั้ง — `npm run build`
+
+เว็บโหลดไฟล์ใน `dashboard/build/` (JS ที่แปลงจาก `.jsx` แล้ว) ไม่ได้โหลด `.jsx` ตรงๆ
+เมื่อก่อนให้ Babel แปลงสดในเบราว์เซอร์ทุกครั้งที่เปิดเว็บ — 2 MB ใช้เวลา 20+ วินาที ตอนนี้เหลือ ~1 วินาที
+
+```bash
+npm run build
+```
+
+**แก้ไฟล์ `.jsx` แล้วไม่ build = เว็บยังเป็นโค้ดเก่า** (ไม่มี error ให้เห็น เงียบสนิท)
+ตอนนั่งพัฒนาเปิด `npm run watch` ค้างไว้ มันจะ build ให้อัตโนมัติทุกครั้งที่เซฟ
+
+ไฟล์ใน `dashboard/build/` ต้อง commit ขึ้น git ด้วย เพราะ Vercel ไม่ได้ตั้งให้ build เอง
+
+---
+
 ## ขั้นตอนที่ 3 — Deploy ขึ้น Vercel (5 นาที)
 
 ### 3.1 Push code ขึ้น GitHub

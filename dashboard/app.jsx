@@ -7,7 +7,10 @@ const NAV = [
   { key: "overview",   th: "ภาพรวม",         en: "Overview",      icon: "grid",     roles: OFFICE },
   { key: "board",      th: "บอร์ดงาน",        en: "Workflow",      icon: "kanban",   roles: OFFICE },
   { key: "table",      th: "ฐานข้อมูลงาน",     en: "Database",      icon: "table",    roles: ["admin"] },
-  { key: "survey",     th: "สถานะสำรวจ",       en: "Survey Status", icon: "list",     roles: ["admin", "manager"] },
+  { key: "leads",      th: "ลูกค้าสำรวจ",      en: "Survey Leads",  icon: "user",     roles: ["admin", "manager"] },
+  // "สถานะสำรวจ" (SurveyView) ถอดออกจากเมนูแล้ว — การสำรวจย้ายไปอยู่กับ "ลูกค้าสำรวจ" ทั้งหมด
+  // งานในฐานงานมาจากลูกค้าที่แปลงแล้ว (พกแบบสำรวจติดมาด้วย) · โค้ดหน้ายังอยู่ใน views-survey.jsx ถ้าอยากได้คืน
+  // { key: "survey", th: "สถานะสำรวจ", en: "Survey Status", icon: "list", roles: ["admin", "manager"] },
   { key: "dispatch",   th: "จัดตารางสำรวจ",    en: "Dispatch",      icon: "calendar", roles: ["admin", "manager"] },
   { key: "myschedule", th: "ตารางงานของฉัน",   en: "My Schedule",   icon: "list",     roles: ["survey", "tech"] },
   { key: "calendar",   th: "ปฏิทินนัด",        en: "Calendar",      icon: "calendar", roles: OFFICE },
@@ -97,6 +100,7 @@ function App() {
   const priceStore = usePriceStore();
   const ampStore = useAmpacityStore();
   const apptStore = useSurveyApptStore();
+  const leadStore = useSurveyLeadStore();   // ลูกค้าที่ขอให้ไปสำรวจ — แยกจากฐานข้อมูลงาน
   const fileFlags = useJobFileFlags();
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [view, setView] = React.useState("overview");
@@ -298,6 +302,27 @@ function App() {
   const closeSidebar = () => setSidebarOpen(false);
   const openJob = (j) => setSelected(j.id);
   const openSurvey = (j, appt) => { setSurveyJob(j); setSurveyAppt(appt || null); };
+
+  /* ลูกค้าสำรวจ → งานติดตั้งจริง (กดตอนลูกค้าตกลงเท่านั้น — ฐานข้อมูลงานจึงมีแต่งานที่เกิดจริง)
+     ย้ายทั้งแบบสำรวจและรูป checklist ไปกับงานใหม่ แล้วผูกนัดสำรวจเดิมเข้ากับงาน */
+  const convertLead = (lead) => {
+    if (!can(role, "addJob")) { alert("คุณไม่มีสิทธิ์สร้างงาน"); return; }
+    const rec = Object.assign(store.blank(), {
+      name: lead.name || "", phone: lead.phone || "", address: lead.address || "",
+      type: lead.type || "home", note: lead.note || "",
+    });
+    if (lead.province) rec.province = lead.province;
+    if (lead.phase) rec.phase = lead.phase;
+    if (lead.roof) rec.roof = lead.roof;
+    if (lead.survey) rec.survey = lead.survey;
+    store.upsert(rec);
+    if (window.moveSurveyPhotos) window.moveSurveyPhotos(lead.id, rec.id);
+    leadStore.patch(lead.id, { status: "won", jobId: rec.id });
+    (apptStore.appts || []).forEach((a) => {
+      if (a.leadId === lead.id) apptStore.upsert(Object.assign({}, a, { projectId: rec.id, jobCode: rec.code }));
+    });
+    setView(listView()); setSelected(rec.id);
+  };
   const selectedJob = jobs.find((j) => j.id === selected) || null;
 
   const onSave = (rec) => {
@@ -354,10 +379,15 @@ function App() {
           <StockView stock={stock} onMenuOpen={() => setSidebarOpen(true)} currentUser={auth.current} jobs={jobs}
             priceStore={priceStore} ampStore={ampStore} canManagePrices={can(role, "delJob")} />
         ) : view === "dispatch" ? (
-          <DispatchView appts={apptStore.appts} jobs={jobs} techs={techStore.techs} store={apptStore}
+          <DispatchView appts={apptStore.appts} jobs={jobs} techs={techStore.techs} store={apptStore} leadStore={leadStore}
             onMenuOpen={() => setSidebarOpen(true)} onOpenJob={openJob} />
+        ) : view === "leads" ? (
+          <LeadsView leadStore={leadStore} appts={apptStore.appts} jobs={jobs}
+            onMenuOpen={() => setSidebarOpen(true)}
+            onOpenSurvey={(can(role, "doSurvey") || can(role, "dispatch")) ? (pseudo) => openSurvey(pseudo) : null}
+            onConvert={convertLead} canConvert={can(role, "addJob")} />
         ) : view === "myschedule" ? (
-          <MyScheduleView appts={apptStore.appts} jobs={jobs} me={auth.current}
+          <MyScheduleView appts={apptStore.appts} jobs={jobs} leads={leadStore.leads} me={auth.current}
             onMenuOpen={() => setSidebarOpen(true)}
             onStatus={(id, s) => apptStore.setStatus(id, s)}
             onOpenSurvey={(j, appt) => openSurvey(j, appt)}
@@ -409,7 +439,9 @@ function App() {
         onClose={() => { setSurveyJob(null); setSurveyAppt(null); }}
         onSave={(survey) => {
           const s = surveyAppt ? Object.assign({}, survey, { appointmentId: surveyAppt.id }) : survey;
-          store.patch(surveyJob.id, { survey: s });
+          // งานสำรวจของ "ลูกค้าสำรวจ" เก็บไว้ที่ตัวลูกค้า ไม่แตะฐานข้อมูลงาน
+          if (surveyJob.__lead) leadStore.patch(surveyJob.id, { survey: s });
+          else store.patch(surveyJob.id, { survey: s });
           if (surveyAppt) apptStore.setStatus(surveyAppt.id, "done"); // เสร็จแบบสำรวจ → ปิดนัด
           setSurveyJob(null); setSurveyAppt(null);
         }} />}
