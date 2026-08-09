@@ -9,6 +9,44 @@ function lowState(it) {
 }
 const STOCK_COLORS = { out: "#EF4444", low: "#F59E0B", ok: "#22A35B" };
 
+/* ── ของชนิดเดียวกันแต่คนละขนาด ──
+   ในคลังยังเก็บแยกรายการเหมือนเดิม (คนละรหัส คนละราคา คนละสต็อก)
+   แต่ตอนเปิดดูจะจับมารวมเป็นปุ่มเลือกขนาดให้ ไม่ต้องปิดแล้วไปหาตัวอื่น
+   จับขนาดจากชื่อ: 20mm. · 1/2" · 25 มม. · 1x2.5 sq.mm · 2x4 */
+const SIZE_RE = /(\d+(?:\.\d+)?\s*[x×]\s*\d+(?:\.\d+)?\s*(?:sq\.?\s*mm\.?|ตร\.?\s*มม\.?|mm\.?|มม\.?)?)|(\d+[\s-]\d+\/\d+\s*(?:"|″|นิ้ว))|(\d+\/\d+\s*(?:"|″|นิ้ว))|(\d+(?:\.\d+)?\s*(?:sq\.?\s*mm\.?|ตร\.?\s*มม\.?))|(\d+(?:\.\d+)?\s*(?:mm\.?|มม\.?|"|″|นิ้ว))/i;
+function sizeOfName(name) {
+  const s = String(name || "");
+  const m = s.match(SIZE_RE);
+  if (!m) return null;
+  return { size: m[0].trim().replace(/\s+/g, " "), base: s.slice(0, m.index) + "\u0000" + s.slice(m.index + m[0].length) };
+}
+/* คีย์กลุ่ม = หมวดหลัก + ยี่ห้อ + ชื่อที่ตัดขนาดออกแล้ว */
+function sizeGroupKey(it) {
+  const p = sizeOfName(it && it.name);
+  if (!p) return null;
+  return window.SF.mainCatOf(it.cat) + "|" + String(it.brand || "").trim().toLowerCase() + "|" + p.base.toLowerCase();
+}
+function sizeNum(txt) { const m = String(txt).match(/\d+(?:\.\d+)?/); return m ? +m[0] : 0; }
+function sizeLabel(it) { return ((sizeOfName(it && it.name) || {}).size) || ""; }
+/* ชื่อที่ตัดขนาดออก — ใช้โชว์บนการ์ดที่รวมหลายขนาดไว้ใบเดียว */
+function baseLabel(name) {
+  const p = sizeOfName(name);
+  if (!p) return name;
+  return p.base.replace("\u0000", "").replace(/\s{2,}/g, " ").replace(/\s+([)\]])/g, "$1").replace(/([([])\s+/g, "$1").trim();
+}
+/* สรุปกลุ่มขนาด: ช่วงราคา · ยอดคงเหลือรวม · สถานะ (หมดทุกขนาดถึงจะขึ้นหมดสต็อก) */
+function groupSummary(list) {
+  const prices = list.map((x) => +x.price || 0).filter((v) => v > 0);
+  return {
+    n: list.length,
+    min: prices.length ? Math.min.apply(null, prices) : 0,
+    max: prices.length ? Math.max.apply(null, prices) : 0,
+    qty: list.reduce((s, x) => s + (+x.qty || 0), 0),
+    st: list.every((x) => lowState(x) === "out") ? "out" : (list.some((x) => lowState(x) !== "ok") ? "low" : "ok"),
+    sizes: list.map(sizeLabel).filter(Boolean),
+  };
+}
+
 /* ประเภทการเคลื่อนไหวสต็อก: รับเข้า / เบิกออก / คืนของ */
 const MOVE_TYPES = {
   in:     { key: "in",     label: "รับเข้า",  sym: "+", color: "var(--tint-ok-tx)", accent: "#22A35B", bg: "#22A35B16", title: "รับเข้าคลัง",      sub: "เพิ่มสต็อกจากการสั่งซื้อ" },
@@ -61,7 +99,8 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   /* หน้าแรกของคลัง = การ์ดหมวดใหญ่ ๆ กดเข้าไปดูของข้างใน
      ของ 300+ ชิ้นเทมหน้าเดียวหาอะไรไม่เจอ — ค้นหา/เลือกหมวดแล้วค่อยลงรายการ */
   const [browse, setBrowse] = React.useState(true);
-  const [catOpen, setCatOpen] = React.useState(() => localStorage.getItem("sf_stock_catopen") !== "0"); // ย่อ/ขยายแถบกรองหมวด
+  // แถบกรองหมวด — เริ่มมาปิดไว้ก่อน (หน้าแรกมีการ์ดหมวดให้กดอยู่แล้ว) เปิดค้างไว้ได้ถ้าอยากใช้
+  const [catOpen, setCatOpen] = React.useState(() => localStorage.getItem("sf_stock_catopen") === "1");
   const toggleCat = () => setCatOpen((v) => { localStorage.setItem("sf_stock_catopen", v ? "0" : "1"); return !v; });
   const [kpiFilter, setKpiFilter] = React.useState(null); // null | 'low' | 'in' | 'out'
   const [search, setSearch] = React.useState("");
@@ -93,15 +132,24 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   const subCount = React.useMemo(() => { const m = {}; items.forEach((it) => { if (SF.mainCatOf(it.cat) !== it.cat) m[it.cat] = (m[it.cat] || 0) + 1; }); return m; }, [items]);
   const subChips = (SF.STOCK_SUB_BY_CAT[cat] || []).filter((c) => sub === c.key || subCount[c.key]);
   /* กดค้นหา / กรองยี่ห้อ / กด KPI เมื่อไหร่ = ตั้งใจจะหาของ ข้ามหน้าเลือกหมวดไปเลย */
-  const showCatHome = !isPrices && !isAmp && browse && cat === "all" && !search.trim() && brand === "all" && !kpiFilter;
-  const catCover = React.useMemo(() => {
-    const m = {};
-    items.forEach((it) => { const k = SF.mainCatOf(it.cat); if (!m[k] && imgs[it.id]) m[k] = imgs[it.id]; });
-    return m;
-  }, [items, imgs]);
+  const browsing = !isPrices && !isAmp && browse && !search.trim() && brand === "all" && !kpiFilter;
+  const showCatHome = browsing && cat === "all";
+  /* หมวดหลักที่มีหมวดย่อย → กดเข้าไปแล้วเจอหน้าเลือกหมวดย่อยอีกชั้นก่อนถึงรายการ */
+  const showSubHome = browsing && cat !== "all" && sub === "all" && subChips.length > 0;
   const catLow = React.useMemo(() => {
     const m = {};
     items.forEach((it) => { if (lowState(it) !== "ok") { const k = SF.mainCatOf(it.cat); m[k] = (m[k] || 0) + 1; } });
+    return m;
+  }, [items]);
+  /* ย้อนกลับทีละชั้น: หมวดย่อย → หมวดหลัก → หน้าเลือกหมวด */
+  const goBack = () => {
+    if (sub !== "all") { setSub("all"); setBrowse(true); return; }
+    if (cat !== "all") { setCat("all"); setBrowse(true); return; }
+    setBrowse(true); setKpiFilter(null); setSearch(""); setBrand("all");
+  };
+  const subLow = React.useMemo(() => {
+    const m = {};
+    items.forEach((it) => { if (lowState(it) !== "ok" && SF.mainCatOf(it.cat) !== it.cat) m[it.cat] = (m[it.cat] || 0) + 1; });
     return m;
   }, [items]);
   // เปลี่ยนหมวดหลัก / หมวดย่อยหายไป → รีเซ็ตตัวกรองย่อย ไม่ให้ค้างจนตารางว่างโดยไม่รู้สาเหตุ
@@ -148,6 +196,50 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
     if (a.cat !== b.cat) return String(a.cat).localeCompare(String(b.cat));
     return String(a.name || "").localeCompare(String(b.name || ""), "th", { numeric: true });
   });
+  /* ของชนิดเดียวกันคนละขนาด — ใช้ทำปุ่มเลือกขนาดในหน้ารายละเอียด */
+  const sizeGroups = React.useMemo(() => {
+    const m = {};
+    items.forEach((it) => { const k = sizeGroupKey(it); if (k) (m[k] = m[k] || []).push(it); });
+    return m;
+  }, [items]);
+  /* รวมของชนิดเดียวกันหลายขนาดให้เหลือการ์ดใบเดียว — กดเข้าไปค่อยเลือกขนาด
+     (รวมแค่ตอนแสดงผล ในคลังยังเป็นคนละรายการเหมือนเดิม) */
+  const rowsOf = (list) => {
+    const byKey = {};
+    list.forEach((it) => { const k = sizeGroupKey(it); if (k) (byKey[k] = byKey[k] || []).push(it); });
+    const seen = {}, out = [];
+    list.forEach((it) => {
+      const k = sizeGroupKey(it);
+      const g = k ? byKey[k] : null;
+      if (!g || g.length < 2) { out.push({ it: it, sizes: null }); return; }
+      if (seen[k]) return;
+      seen[k] = 1;
+      const sorted = g.slice().sort((a, b) => sizeNum(sizeLabel(a)) - sizeNum(sizeLabel(b)) || sizeLabel(a).localeCompare(sizeLabel(b)));
+      // เอาตัวที่มีรูปขึ้นเป็นหน้ากลุ่ม ถ้าไม่มีรูปเลยก็ใช้ขนาดเล็กสุด
+      out.push({ it: sorted.find((x) => imgs[x.id]) || sorted[0], sizes: sorted });
+    });
+    return out;
+  };
+  /* "＋ เพิ่มขนาด" — เปิดฟอร์มใหม่ที่ก๊อปชื่อ/หมวด/ยี่ห้อ/หน่วย/ขั้นต่ำ/ที่จัดเก็บมาให้
+     ชื่อต้องเหมือนเดิมเป๊ะ ๆ ยกเว้นตรงขนาด ระบบถึงจะรวมเป็นกลุ่มเดียวกัน */
+  const addSizeFrom = (it) => {
+    if (!it) return;
+    const rec = Object.assign(stock.blankItem(), {
+      name: it.name || "", cat: it.cat, brand: it.brand || "", unit: it.unit || "ชิ้น",
+      min: +it.min || 0, loc: it.loc || "", desc: it.desc || "", qty: 0, price: 0, sku: "",
+    });
+    setDetailItem(null);
+    setItemForm({ item: rec, isNew: true, sizeOf: it.name });
+  };
+  const variantsOf = (it) => {
+    const k = sizeGroupKey(it);
+    const list = (k && sizeGroups[k]) || [];
+    if (list.length < 2) return [];
+    return list.map((x) => ({ it: x, size: (sizeOfName(x.name) || {}).size || "" }))
+      .sort((a, b) => sizeNum(a.size) - sizeNum(b.size) || a.size.localeCompare(b.size));
+  };
+  // ของที่อยู่ในหมวดหลักตรง ๆ (ไม่ได้ใส่หมวดย่อยไว้) — เอาไปต่อท้ายหน้าเลือกหมวดย่อย
+  const directItems = showSubHome ? filtered.filter((it) => it.cat === cat) : [];
 
   return (
     <React.Fragment>
@@ -256,7 +348,8 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
               {/* แถวหมวดย่อย — ขึ้นเฉพาะตอนเลือกหมวดหลักที่มีหมวดย่อยอยู่จริง */}
               {!isPrices && subChips.length > 0 && (
                 <div className="cat-chip-row" style={{ display: "flex", gap: 6, flexWrap: "nowrap", alignItems: "center", overflowX: "auto", marginTop: 6, paddingLeft: 2, paddingBottom: 2 }}>
-                  <CatChip active={sub === "all"} onClick={() => setSub("all")} label={"ทุกหมวดย่อย"} color="var(--text-2)" count={catCount[cat] || 0} />
+                  {/* กดชิปนี้ = อยากเห็นของทั้งหมวด ไม่ใช่กลับไปหน้าเลือกหมวดย่อย */}
+                  <CatChip active={sub === "all"} onClick={() => { setSub("all"); setBrowse(false); }} label={"ทุกหมวดย่อย"} color="var(--text-2)" count={catCount[cat] || 0} />
                   {subChips.map((c) => <CatChip key={c.key} active={sub === c.key} onClick={() => setSub(c.key)} label={c.th} color={c.color} count={subCount[c.key] || 0} />)}
                 </div>
               )}
@@ -289,8 +382,9 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
         </div>
         )}
 
-        {/* ── เลือกยี่ห้อ ── วางติดกับรายการเลย เลื่อนมาดูของแล้วยังกดเปลี่ยนได้ ไม่ต้องเลื่อนกลับขึ้นหัวเพจ */}
-        {brandList.length > 0 && (
+        {/* ── เลือกยี่ห้อ ── วางติดกับรายการเลย เลื่อนมาดูของแล้วยังกดเปลี่ยนได้ ไม่ต้องเลื่อนกลับขึ้นหัวเพจ
+            หน้าแรก (เลือกหมวด) ไม่ต้องขึ้น — ยี่ห้อทั้งคลังมี 14 ยี่ห้อ รกเปล่า ๆ กดเข้าหมวดก่อนค่อยโผล่ */}
+        {brandList.length > 0 && !showCatHome && (
           <div style={{ marginBottom: 12, display: "flex", flexDirection: "column", gap: 8 }}>
             {isMobile ? (
               <Dropdown value={brand} onChange={setBrand}
@@ -306,17 +400,58 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
         )}
 
         <div>
+          {/* เส้นทางที่อยู่ + ปุ่มย้อนกลับ — เข้าไปดูของในหมวดแล้วต้องกลับออกมาได้เสมอ */}
+          {!isPrices && !isAmp && !showCatHome && !showSubHome && (
+            <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12, flexWrap: "wrap" }}>
+              <button onClick={goBack} title="ย้อนกลับ"
+                style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 11px", borderRadius: 9, border: "1px solid var(--border-strong)",
+                  background: "var(--surface2)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: "rotate(90deg)" }} />ย้อนกลับ
+              </button>
+              <span style={{ fontSize: 12, color: "var(--text-3)" }}>
+                <span onClick={() => { setCat("all"); setSub("all"); setBrowse(true); }}
+                  style={{ cursor: "pointer", fontWeight: 700, color: "var(--text-2)" }}>คลังทั้งหมด</span>
+                {cat !== "all" && <span> › <span style={{ fontWeight: 700, color: sub === "all" ? "var(--text-1)" : "var(--text-2)", cursor: "pointer" }}
+                  onClick={() => { setSub("all"); setBrowse(true); }}>{(SF.STOCK_CAT_BY[cat] || {}).th || ""}</span></span>}
+                {sub !== "all" && <span> › <span style={{ fontWeight: 700, color: "var(--text-1)" }}>{(SF.STOCK_CAT_BY[sub] || {}).th || ""}</span></span>}
+                <span> · {filtered.length.toLocaleString()} รายการ</span>
+              </span>
+            </div>
+          )}
           {/* stock list — เต็มความกว้าง (มือถือ: card list, เดสก์ท็อป: ตาราง) */}
           {showCatHome ? (
-            <StockCatHome cats={SF.STOCK_CATS} subsBy={SF.STOCK_SUB_BY_CAT} count={catCount} subCount={subCount}
-              low={catLow} cover={catCover} total={items.length}
-              onPick={(k, sk) => { setCat(k); if (sk) setSub(sk); }}
-              onAll={() => setBrowse(false)} />
+            <CatBrowser list={SF.STOCK_CATS.filter((c) => catCount[c.key])} count={catCount} low={catLow} imgs={imgs}
+              title="เลือกหมวดที่ต้องการ"
+              hint={SF.STOCK_CATS.filter((c) => catCount[c.key]).length + " หมวด · " + items.length.toLocaleString() + " รายการ"}
+              onPick={(k) => setCat(k)} onAll={() => setBrowse(false)} onSetImage={(k, d) => stock.setImage("cat_" + k, d)} />
+          ) : showSubHome ? (
+            <React.Fragment>
+              <CatBrowser list={subChips} count={subCount} low={subLow} imgs={imgs}
+                title={(SF.STOCK_CAT_BY[cat] || {}).th || ""}
+                hint={subChips.length + " หมวดย่อย · " + (catCount[cat] || 0).toLocaleString() + " รายการ"}
+                allLabel="ดูทุกรายการในหมวดนี้"
+                onPick={(k) => setSub(k)} onAll={() => setBrowse(false)} onBack={() => setCat("all")}
+                onSetImage={(k, d) => stock.setImage("cat_" + k, d)} />
+              {/* ของที่ยังไม่ได้จัดเข้าหมวดย่อย — ต่อท้ายหน้านี้เลย ไม่ต้องกดเข้าไปอีกชั้น */}
+              {directItems.length > 0 && (
+                <div style={{ marginTop: 24 }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 9, marginBottom: 10, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>รายการในหมวดนี้</span>
+                    <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>ยังไม่ได้อยู่ในหมวดย่อย · {directItems.length.toLocaleString()} รายการ</span>
+                  </div>
+                  {isMobile
+                    ? <StockCardList rows={rowsOf(directItems)} imgs={imgs} onOpen={setDetailItem}
+                        onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
+                    : <StockGrid rows={rowsOf(directItems)} imgs={imgs} lowState={lowState} onOpen={setDetailItem}
+                        onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />}
+                </div>
+              )}
+            </React.Fragment>
           ) : isMobile ? (
-            <StockCardList items={filtered} imgs={imgs} onOpen={setDetailItem}
+            <StockCardList rows={rowsOf(filtered)} imgs={imgs} onOpen={setDetailItem}
               onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
           ) : view === "grid" ? (
-            <StockGrid items={filtered} imgs={imgs} lowState={lowState} onOpen={setDetailItem}
+            <StockGrid rows={rowsOf(filtered)} imgs={imgs} lowState={lowState} onOpen={setDetailItem}
               onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
           ) : (
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
@@ -386,12 +521,15 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
 
       {moveItem && <MoveModal info={moveItem} byName={byName} jobs={jobs || []} onSave={(qty, ref, note, jobId) => { stock.move(moveItem.item.id, moveItem.type, qty, ref, note, byName, jobId); setMoveItem(null); }} onClose={() => setMoveItem(null)} />}
       {itemForm && <ItemModal initial={itemForm.item} isNew={itemForm.isNew} items={stock.items} onAddCat={stock.addCat} onRemoveCat={stock.removeCat}
+        hint={itemForm.sizeOf ? "ก๊อปมาจาก “" + itemForm.sizeOf + "” — แก้เฉพาะตรงขนาด (ตัวอักษรอื่นต้องเหมือนเดิมเป๊ะ) ระบบจะรวมเป็นสินค้าเดียวกันให้เอง" : ""}
         img={imgs[itemForm.item.id]} onImage={(d) => stock.setImage(itemForm.item.id, d)}
         onSave={(rec) => { stock.upsertItem(rec); setItemForm(null); }} onClose={() => setItemForm(null)} />}
       {detailItem && <ItemDetailModal item={(stock.items || []).find((x) => x.id === detailItem.id) || detailItem} img={imgs[detailItem.id]}
+        variants={variantsOf(detailItem)} onPickVariant={setDetailItem}
         loadDoc={stock.loadDoc} setDoc={stock.setDoc}
         onMove={(type) => { setMoveItem({ item: detailItem, type: type }); setDetailItem(null); }}
         onEdit={() => { setItemForm({ item: detailItem, isNew: false }); setDetailItem(null); }}
+        onAddSize={() => { addSizeFrom(detailItem); }}
         onClose={() => setDetailItem(null)} />}
       {fillOpen && <FillVariantModal items={stock.items} onApply={(list) => { list.forEach((r) => stock.upsertItem(r)); setFillOpen(false); }} onClose={() => setFillOpen(false)} />}
       {movesOpen && <MovesModal moves={stock.moves} items={items} jobs={jobs || []} onClose={() => setMovesOpen(false)} />}
@@ -473,16 +611,18 @@ function CatChip({ active, onClick, label, color, count }) {
 }
 
 /* ── Mobile stock — card list แทนตาราง ── */
-function StockCardList({ items, imgs, onOpen, onEdit, onRemove }) {
+function StockCardList({ rows, imgs, onOpen, onEdit, onRemove }) {
   const SF = window.SF;
-  if (items.length === 0) {
+  if (!rows || rows.length === 0) {
     return <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 14 }}>ไม่พบรายการอุปกรณ์</div>;
   }
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      {items.map((it) => {
+      {rows.map((r) => {
+        const it = r.it;
+        const g = r.sizes && r.sizes.length > 1 ? groupSummary(r.sizes) : null;
         const c = SF.STOCK_CAT_BY[it.cat] || SF.STOCK_CATS[SF.STOCK_CATS.length - 1];
-        const st = lowState(it);
+        const st = g ? g.st : lowState(it);
         return (
           <div key={it.id} style={{ background: st === "out" ? "rgba(239,68,68,.07)" : "var(--surface)",
             border: "1px solid " + (st === "out" ? "rgba(239,68,68,.22)" : "var(--border)"), borderRadius: 14, padding: 13,
@@ -491,9 +631,9 @@ function StockCardList({ items, imgs, onOpen, onEdit, onRemove }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
               <MatThumb src={(imgs || {})[it.id]} item={it} size={46} />
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.25 }}>{it.name}</div>
+                <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.25 }}>{g ? baseLabel(it.name) : it.name}</div>
                 {(it.brand || "").trim() && <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginTop: 2 }}>{it.brand}</div>}
-                <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>{it.sku || "—"}</div>
+                <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>{g ? g.sizes.join(" · ") : (it.sku || "—")}</div>
               </div>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: c.color,
                 background: c.color + "16", padding: "3px 9px", borderRadius: 99, whiteSpace: "nowrap", flexShrink: 0 }}>
@@ -504,12 +644,14 @@ function StockCardList({ items, imgs, onOpen, onEdit, onRemove }) {
             {/* คงเหลือ + ขั้นต่ำ + ที่จัดเก็บ */}
             <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginTop: 10, flexWrap: "wrap" }}>
               <span style={{ display: "inline-flex", alignItems: "baseline", gap: 4 }}>
-                <span style={{ fontFamily: "var(--display)", fontSize: 22, fontWeight: 700, color: STOCK_COLORS[st], lineHeight: 1 }}>{it.qty.toLocaleString()}</span>
+                <span style={{ fontFamily: "var(--display)", fontSize: 22, fontWeight: 700, color: STOCK_COLORS[st], lineHeight: 1 }}>{(g ? g.qty : it.qty).toLocaleString()}</span>
                 <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{it.unit}</span>
                 {st !== "ok" && <span style={{ fontSize: 10, fontWeight: 700, color: STOCK_COLORS[st], marginLeft: 2 }}>{st === "out" ? "⚠ หมด" : "⚠ ใกล้หมด"}</span>}
               </span>
-              <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>ขั้นต่ำ <span style={{ fontFamily: "var(--mono)", color: "var(--text-2)" }}>{it.min.toLocaleString()}</span></span>
-              {it.loc && <span style={{ fontSize: 11.5, color: "var(--text-3)" }}><Icon name="pin" size={11} style={{ verticalAlign: -1 }} /> {it.loc}</span>}
+              {g
+                ? <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{g.n} ขนาด</span>
+                : <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>ขั้นต่ำ <span style={{ fontFamily: "var(--mono)", color: "var(--text-2)" }}>{it.min.toLocaleString()}</span></span>}
+              {!g && it.loc && <span style={{ fontSize: 11.5, color: "var(--text-3)" }}><Icon name="pin" size={11} style={{ verticalAlign: -1 }} /> {it.loc}</span>}
             </div>
 
             {/* ปุ่ม — รับ/เบิก/คืน อยู่ข้างในหน้ารายละเอียด กดเข้าไปก่อน */}
@@ -517,11 +659,12 @@ function StockCardList({ items, imgs, onOpen, onEdit, onRemove }) {
               <button onClick={() => onOpen(it)}
                 style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, background: "var(--primary-soft)",
                   border: "none", color: "var(--primary-dark)", fontWeight: 700, fontSize: 12.5, padding: "9px 6px", borderRadius: 9,
-                  cursor: "pointer", fontFamily: "inherit" }}>ดูรายละเอียด · รับ/เบิก/คืน</button>
-              <button onClick={() => onEdit(it)} title="แก้ไข" aria-label="แก้ไข"
-                style={{ flexShrink: 0, background: "#3B82F614", border: "none", color: "#3B82F6", width: 44, height: 36, borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={16} /></button>
-              <button onClick={() => { if (confirm("ลบ \"" + it.name + "\" ?")) onRemove(it.id); }} title="ลบ" aria-label="ลบ"
-                style={{ flexShrink: 0, background: "#EF444414", border: "none", color: "#EF4444", width: 44, height: 36, borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={16} /></button>
+                  cursor: "pointer", fontFamily: "inherit" }}>{g ? "เลือกขนาด · " + g.n + " ขนาด" : "ดูรายละเอียด · รับ/เบิก/คืน"}</button>
+              {/* การ์ดรวมขนาดยังไม่รู้ว่าจะแก้/ลบตัวไหน — เข้าไปเลือกขนาดก่อน */}
+              {!g && <button onClick={() => onEdit(it)} title="แก้ไข" aria-label="แก้ไข"
+                style={{ flexShrink: 0, background: "#3B82F614", border: "none", color: "#3B82F6", width: 44, height: 36, borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={16} /></button>}
+              {!g && <button onClick={() => { if (confirm("ลบ \"" + it.name + "\" ?")) onRemove(it.id); }} title="ลบ" aria-label="ลบ"
+                style={{ flexShrink: 0, background: "#EF444414", border: "none", color: "#EF4444", width: 44, height: 36, borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={16} /></button>}
             </div>
           </div>
         );
@@ -656,7 +799,7 @@ function MoveModal({ info, onSave, onClose, byName, jobs, lockedJob, maxQty }) {
   );
 }
 
-function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveCat, img, onImage }) {
+function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveCat, img, onImage, hint }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const bdClose = window.useBackdropClose(onClose);
@@ -700,7 +843,11 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
               </Field>
             </div>
           )}
-          <div style={{ gridColumn: "1 / -1" }}><Field label="ชื่ออุปกรณ์" required><input style={inputStyle} value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="เช่น แผงโซล่า Longi 550W" /></Field></div>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <Field label="ชื่ออุปกรณ์" required><input style={inputStyle} value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="เช่น แผงโซล่า Longi 550W" /></Field>
+            {/* มาจากปุ่ม "เพิ่มขนาด" — ชื่อถูกก๊อปมาแล้ว เหลือแก้แค่ตัวเลขขนาด */}
+            {hint && <div style={{ marginTop: 5, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>{hint}</div>}
+          </div>
           <Field label="รหัสวัสดุ (mat code)">
             <div style={{ display: "flex", gap: 6 }}>
               <input style={Object.assign({}, inputStyle, { flex: 1 })} value={f.sku} onChange={(e) => set("sku", e.target.value)} placeholder={suggestCode + " (อัตโนมัติ)"} />
@@ -1092,10 +1239,82 @@ function AmpacityEditor({ ampStore }) {
   );
 }
 
+/* ── ตัวอ่าน PDF ในหน้า ──
+   วาดหน้ากระดาษลง canvas เอง (pdf.js) แทนที่จะฝัง <iframe>
+   เพราะ viewer ในตัวเบราว์เซอร์บางตัว (เช่นแอปเดสก์ท็อป) ไม่ยอมแสดงในกรอบ
+   โหลดไลบรารีตอนเปิดดูเอกสารครั้งแรกเท่านั้น ไม่ถ่วงตอนเปิดแอป */
+let _pdfjsPromise = null;
+function loadPdfJs() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if (_pdfjsPromise) return _pdfjsPromise;
+  const BASE = "https://unpkg.com/pdfjs-dist@3.11.174/build/";
+  _pdfjsPromise = new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = BASE + "pdf.min.js";
+    s.onload = () => {
+      if (!window.pdfjsLib) { rej(new Error("no pdfjsLib")); return; }
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = BASE + "pdf.worker.min.js";
+      res(window.pdfjsLib);
+    };
+    s.onerror = () => { _pdfjsPromise = null; rej(new Error("load fail")); };
+    document.head.appendChild(s);
+  });
+  return _pdfjsPromise;
+}
+const PDF_MAX_PAGES = 12;
+function PdfPreview({ data, onOpen }) {
+  const wrap = React.useRef(null);
+  const [state, setState] = React.useState("loading");   // loading | ok | error
+  React.useEffect(() => {
+    let dead = false;
+    const el = wrap.current;
+    if (!el || !data) return;
+    el.innerHTML = "";
+    setState("loading");
+    loadPdfJs()
+      .then((lib) => {
+        const b64 = String(data).split(",")[1] || "";
+        const bin = atob(b64);
+        const arr = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+        return lib.getDocument({ data: arr }).promise;
+      })
+      .then(async (pdf) => {
+        const width = el.clientWidth || 800;
+        for (let p = 1; p <= Math.min(pdf.numPages, PDF_MAX_PAGES); p++) {
+          if (dead) return;
+          const page = await pdf.getPage(p);
+          const v1 = page.getViewport({ scale: 1 });
+          const vp = page.getViewport({ scale: Math.min(3, (width / v1.width) * 1.6) });
+          const canvas = document.createElement("canvas");
+          canvas.width = vp.width; canvas.height = vp.height;
+          canvas.style.cssText = "width:100%;height:auto;display:block;border:1px solid var(--border);border-radius:12px;background:#fff;margin-bottom:10px";
+          el.appendChild(canvas);
+          await page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise;
+        }
+        if (!dead) setState("ok");
+      })
+      .catch(() => { if (!dead) setState("error"); });
+    return () => { dead = true; };
+  }, [data]);
+  return (
+    <div>
+      {state === "loading" && <div style={{ padding: 18, textAlign: "center", fontSize: 12.5, color: "var(--text-3)" }}>กำลังเปิดเอกสาร…</div>}
+      {state === "error" && (
+        <div style={{ padding: 14, borderRadius: 12, border: "1px dashed var(--border-strong)", background: "var(--surface2)",
+          fontSize: 12.5, color: "var(--text-2)", textAlign: "center" }}>
+          แสดงในหน้านี้ไม่ได้ (ต่ออินเทอร์เน็ตไม่ได้) — <span onClick={onOpen} style={{ color: "var(--primary-dark)", fontWeight: 700, cursor: "pointer" }}>กดเปิดเต็มจอแทน</span>
+        </div>
+      )}
+      <div ref={wrap} />
+    </div>
+  );
+}
+
 /* ── รายละเอียดอุปกรณ์ 1 รายการ ──
    รับ / เบิก / คืน ย้ายมาอยู่ในนี้ ต้องกดเข้ามาก่อนถึงจะทำได้
    จากหน้าตารางเดิมปุ่มอยู่ติดกันในแถวแคบ ๆ กดพลาดข้ามรายการได้ง่าย */
-function ItemDetailModal({ item, img, loadDoc, setDoc, onMove, onEdit, onClose }) {
+function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit, onClose, onPickVariant, onAddSize }) {
   const SF = window.SF;
   const bdClose = window.useBackdropClose(onClose);
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -1121,12 +1340,17 @@ function ItemDetailModal({ item, img, loadDoc, setDoc, onMove, onEdit, onClose }
     if (loadDoc) loadDoc(item.id).then((d) => { if (!dead) setDocState(d); });
     return () => { dead = true; };
   }, [item.id, item.doc && item.doc.name]);
-  const openDoc = () => {
-    if (!doc || !doc.data) return;
+  /* แปลงเป็น blob URL ครั้งเดียว แล้วฝังให้ดูในหน้านี้เลย ไม่ต้องกดเปิดแท็บใหม่
+     (คืน URL ทิ้งตอนปิด/เปลี่ยนไฟล์ ไม่ให้หน่วยความจำค้าง) */
+  const [docUrl, setDocUrl] = React.useState("");
+  React.useEffect(() => {
+    if (!doc || !doc.data) { setDocUrl(""); return; }
     const url = window.dataUrlToBlobUrl(doc.data);
-    window.open(url, "_blank", "noopener");
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
-  };
+    setDocUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [doc && doc.data]);
+  const isDocImg = !!(doc && /^image\//.test(doc.type || ""));
+  const openDoc = () => { if (docUrl) window.open(docUrl, "_blank", "noopener"); };
   const pickDoc = (file) => {
     if (!file) return;
     setBusy(true);
@@ -1152,7 +1376,7 @@ function ItemDetailModal({ item, img, loadDoc, setDoc, onMove, onEdit, onClose }
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 110,
       display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18,
-        width: isMobile ? "100%" : "min(1000px,100%)", maxHeight: isMobile ? "94dvh" : "92vh", display: "flex", flexDirection: "column",
+        width: isMobile ? "100%" : "min(1280px,100%)", maxHeight: isMobile ? "94dvh" : "94vh", display: "flex", flexDirection: "column",
         overflow: "hidden", boxShadow: "0 30px 80px rgba(0,0,0,.45)" }}>
 
         {/* หัว — เหลือแค่ทางเดินของหมวด ชื่อสินค้าไปอยู่ตัวใหญ่ข้างใน */}
@@ -1168,7 +1392,7 @@ function ItemDetailModal({ item, img, loadDoc, setDoc, onMove, onEdit, onClose }
 
         <div style={{ padding: isMobile ? 16 : 22, overflowY: "auto", display: "flex", flexDirection: "column", gap: 18 }}>
           {/* สองคอลัมน์แบบหน้าสินค้า — ซ้ายรูปใหญ่ ขวาข้อมูล+ราคา+ปุ่ม */}
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0,380px) minmax(0,1fr)", gap: isMobile ? 16 : 26 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0,540px) minmax(0,1fr)", gap: isMobile ? 16 : 28 }}>
             <div>
               <div style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden",
                 aspectRatio: "1 / 1", display: "grid", placeItems: "center", padding: 16, position: "relative" }}>
@@ -1193,6 +1417,38 @@ function ItemDetailModal({ item, img, loadDoc, setDoc, onMove, onEdit, onClose }
                 <p style={{ margin: 0, fontSize: 13, color: "var(--text-2)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{item.desc}</p>
               )}
               <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--text-3)" }}>รหัสวัสดุ : {item.sku || "—"}</div>
+
+              {/* เลือกขนาด — ของชนิดเดียวกันที่มีหลายขนาด กดสลับดูได้เลย
+                  แต่ละขนาดยังเป็นคนละรายการในคลัง (คนละรหัส/ราคา/สต็อก) เหมือนเดิม */}
+              {(variants || []).length > 1 && (
+                <div>
+                  <span style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-2)", marginBottom: 6 }}>
+                    ขนาด <span style={{ color: "var(--text-3)", fontWeight: 600 }}>({variants.length} ขนาด)</span>
+                  </span>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {variants.map((v) => {
+                      const on = v.it.id === item.id;
+                      const vs = lowState(v.it);
+                      return (
+                        <button key={v.it.id} onClick={() => !on && onPickVariant && onPickVariant(v.it)}
+                          title={v.it.name + (vs === "out" ? " · หมดสต็อก" : "")}
+                          style={{ padding: "6px 13px", borderRadius: 9, cursor: on ? "default" : "pointer", fontFamily: "inherit",
+                            fontSize: 12.5, fontWeight: 700, border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+                            background: on ? "var(--primary)18" : "var(--surface)",
+                            color: on ? "var(--primary-dark)" : (vs === "out" ? "var(--text-3)" : "var(--text-2)"),
+                            textDecoration: vs === "out" ? "line-through" : "none" }}>
+                          {v.size}
+                        </button>
+                      );
+                    })}
+                    {onAddSize && (
+                      <button onClick={onAddSize} title="เพิ่มขนาดใหม่ให้ของชิ้นนี้"
+                        style={{ padding: "6px 12px", borderRadius: 9, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
+                          border: "1px dashed var(--border-strong)", background: "var(--surface2)", color: "var(--text-3)" }}>＋ เพิ่มขนาด</button>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div style={{ height: 1, background: "var(--border)" }} />
 
@@ -1271,8 +1527,8 @@ function ItemDetailModal({ item, img, loadDoc, setDoc, onMove, onEdit, onClose }
                     textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.name}</span>
                   <span style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{kb(doc.size || 0)}</span>
                 </span>
-                <button onClick={openDoc} style={{ flexShrink: 0, padding: "7px 13px", borderRadius: 9, border: "none",
-                  background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>เปิดดู</button>
+                <button onClick={openDoc} style={{ flexShrink: 0, padding: "7px 13px", borderRadius: 9, border: "1px solid var(--border-strong)",
+                  background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>เปิดเต็มจอ</button>
                 <button onClick={() => { if (confirm("ลบเอกสารนี้?")) { setDoc(item.id, null); setDocState(null); } }}
                   title="ลบ" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border-strong)",
                     background: "var(--surface)", color: "#EF4444", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
@@ -1286,6 +1542,10 @@ function ItemDetailModal({ item, img, loadDoc, setDoc, onMove, onEdit, onClose }
                 {busy ? "กำลังอัปโหลด…" : (item.doc ? "กำลังโหลดเอกสาร…" : "แนบ DATA SHEET (PDF)")}
               </button>
             )}
+            {/* แสดงเอกสารในหน้านี้เลย — ไม่ต้องกดเปิดแท็บใหม่ */}
+            {doc && doc.data && (isDocImg
+              ? <img src={docUrl} alt={doc.name} style={{ width: "100%", borderRadius: 12, border: "1px solid var(--border)", display: "block" }} />
+              : <PdfPreview data={doc.data} onOpen={openDoc} />)}
             <input ref={fileRef} type="file" accept="application/pdf,image/*" style={{ display: "none" }}
               onChange={(e) => { pickDoc(e.target.files && e.target.files[0]); e.target.value = ""; }} />
           </div>
@@ -1293,6 +1553,14 @@ function ItemDetailModal({ item, img, loadDoc, setDoc, onMove, onEdit, onClose }
 
         <div style={{ padding: "13px 22px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex",
           gap: 8, justifyContent: "flex-end", flexShrink: 0 }}>
+          {/* เพิ่มขนาดใหม่ให้ของชิ้นนี้ — ก๊อปชื่อ/หมวด/ยี่ห้อ/หน่วยไปให้แล้ว เหลือแก้ตัวเลขขนาดกับราคา */}
+          {onAddSize && (
+            <button onClick={onAddSize} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: 11,
+              marginRight: "auto", border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--primary-dark)",
+              fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+              <Icon name="plus" size={14} color="var(--primary-dark)" /> เพิ่มขนาด
+            </button>
+          )}
           <button onClick={onEdit} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: 11,
             border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit",
             fontSize: 13, fontWeight: 700, cursor: "pointer" }}><Icon name="settings" size={14} color="var(--text-2)" /> แก้ไขรายการ</button>
@@ -1383,21 +1651,25 @@ function MatThumb({ src, item, size, radius }) {
   const ch = String((item || {}).name || "?").trim().charAt(0).toUpperCase();
   return (
     <span style={Object.assign({}, box, { background: c + "14", borderColor: c + "33" })}>
-      <span style={{ fontSize: Math.round(s * 0.36), fontWeight: 800, color: c }}>{ch}</span>
+      {/* size อาจส่งมาเป็น "100%" (กรอบยืดเต็มพื้นที่) — คิดขนาดตัวอักษรไม่ได้ ใช้ค่ากลางแทน */}
+      <span style={{ fontSize: typeof s === "number" ? Math.round(s * 0.36) : 34, fontWeight: 800, color: c }}>{ch}</span>
     </span>
   );
 }
 
 /* ── มุมมองการ์ด (เดสก์ท็อป) ── หน้าตาแบบแคตตาล็อกร้านวัสดุ: รูป · ยี่ห้อ · ชื่อ · รหัส · ราคา */
-function StockGrid({ items, imgs, onOpen, onEdit, onRemove, lowState }) {
+function StockGrid({ rows, imgs, onOpen, onEdit, onRemove, lowState }) {
   const SF = window.SF;
+  const baht = (v) => "฿" + (+v).toLocaleString(undefined, { maximumFractionDigits: 2 });
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 12 }}>
-      {items.map((it) => {
-        const st = lowState(it);
+      {(rows || []).map((r) => {
+        const it = r.it;
+        const g = r.sizes && r.sizes.length > 1 ? groupSummary(r.sizes) : null;
+        const st = g ? g.st : lowState(it);
         const c = SF.STOCK_CAT_BY[it.cat] || {};
         return (
-          <div key={it.id} onClick={() => onOpen(it)} title="กดเพื่อดูรายละเอียด · รับ / เบิก / คืน"
+          <div key={it.id} onClick={() => onOpen(it)} title={g ? "กดเพื่อเลือกขนาด" : "กดเพื่อดูรายละเอียด · รับ / เบิก / คืน"}
             style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden",
               cursor: "pointer", display: "flex", flexDirection: "column", boxShadow: "var(--shadow-sm)" }}>
             <div style={{ position: "relative", background: "var(--surface2)", aspectRatio: "1 / 1", display: "grid", placeItems: "center", padding: 10 }}>
@@ -1406,27 +1678,42 @@ function StockGrid({ items, imgs, onOpen, onEdit, onRemove, lowState }) {
                 <span style={{ position: "absolute", top: 8, left: 8, fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 99,
                   background: st === "out" ? "#EF4444" : "#F59E0B", color: "#fff" }}>{st === "out" ? "หมดสต็อก" : "ต่ำกว่าขั้นต่ำ"}</span>
               )}
+              {g && (
+                <span style={{ position: "absolute", top: 8, right: 8, fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 99,
+                  background: "var(--surface)", border: "1px solid var(--border-strong)", color: "var(--text-2)" }}>{g.n} ขนาด</span>
+              )}
             </div>
             <div style={{ padding: "10px 11px 11px", display: "flex", flexDirection: "column", gap: 3, flex: 1 }}>
               {(it.brand || "").trim() && <div style={{ fontSize: 10.5, fontWeight: 800, color: c.color || "var(--text-2)", letterSpacing: ".03em" }}>{it.brand}</div>}
               <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-1)", lineHeight: 1.35,
-                display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{it.name}</div>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--text-3)" }}>{it.sku}</div>
+                display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{g ? baseLabel(it.name) : it.name}</div>
+              {/* กลุ่มขนาด: โชว์ขนาดที่มีแทนรหัสวัสดุ (แต่ละขนาดคนละรหัสอยู่แล้ว) */}
+              <div style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {g ? g.sizes.join(" · ") : it.sku}
+              </div>
               <div style={{ marginTop: "auto", paddingTop: 7, display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 6 }}>
                 <span style={{ fontFamily: "var(--mono)", fontSize: 14, fontWeight: 800,
-                  color: +it.price > 0 ? "var(--text-1)" : "var(--text-3)" }}>
-                  {+it.price > 0 ? "฿" + (+it.price).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "–"}
+                  color: (g ? g.max : +it.price) > 0 ? "var(--text-1)" : "var(--text-3)" }}>
+                  {g
+                    ? (g.max > 0 ? (g.min === g.max ? baht(g.min) : baht(g.min) + "–" + (+g.max).toLocaleString(undefined, { maximumFractionDigits: 2 })) : "–")
+                    : (+it.price > 0 ? baht(it.price) : "–")}
                   <span style={{ fontSize: 10, fontWeight: 600, color: "var(--text-3)" }}>{it.unit ? "/" + it.unit : ""}</span>
                 </span>
                 <span style={{ fontSize: 11, fontWeight: 700, whiteSpace: "nowrap",
                   color: st === "out" ? "#EF4444" : (st === "low" ? "#F59E0B" : "var(--text-2)") }}>
-                  เหลือ {(+it.qty || 0).toLocaleString()}
+                  เหลือ {(g ? g.qty : +it.qty || 0).toLocaleString()}
                 </span>
               </div>
-              <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 5, marginTop: 7 }}>
-                <button onClick={() => onEdit(it)} title="แก้ไข" style={{ flex: 1, height: 28, background: "#3B82F614", border: "none", color: "#3B82F6", borderRadius: 7, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={13} /></button>
-                <button onClick={() => { if (confirm('ลบ "' + it.name + '" ?')) onRemove(it.id); }} title="ลบ" style={{ width: 32, height: 28, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 7, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
-              </div>
+              {/* การ์ดรวมขนาดไม่มีปุ่มแก้ไข/ลบ — ต้องเลือกขนาดก่อนถึงจะรู้ว่าจะแก้ตัวไหน */}
+              {g ? (
+                <div style={{ marginTop: 7, height: 28, borderRadius: 7, background: "var(--primary-soft)", color: "var(--primary-dark)",
+                  fontSize: 11.5, fontWeight: 700, display: "grid", placeItems: "center" }}>เลือกขนาด</div>
+              ) : (
+                <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 5, marginTop: 7 }}>
+                  <button onClick={() => onEdit(it)} title="แก้ไข" style={{ flex: 1, height: 28, background: "#3B82F614", border: "none", color: "#3B82F6", borderRadius: 7, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={13} /></button>
+                  <button onClick={() => { if (confirm('ลบ "' + it.name + '" ?')) onRemove(it.id); }} title="ลบ" style={{ width: 32, height: 28, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 7, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -1483,58 +1770,78 @@ function MatImagePicker({ src, item, onPick, onClear }) {
   );
 }
 
+/* ── การ์ดหมวด ──
+   รูปประจำหมวดเลือกใส่เอง (เก็บที่ stockImg/cat_<key> เหมือนรูปสินค้า)
+   ยังไม่ใส่ก็ขึ้นไอคอนประจำหมวดไปก่อน */
+function CatCard({ c, n, lowN, img, onPick, onImage }) {
+  const ref = React.useRef(null);
+  const [busy, setBusy] = React.useState(false);
+  const take = (file) => {
+    if (!file || !/^image\//.test(file.type)) return;
+    setBusy(true);
+    window.resizeImageFile(file, 600, 0.72).then((d) => { onImage(d); setBusy(false); })
+      .catch(() => { setBusy(false); alert("อ่านไฟล์รูปไม่สำเร็จ"); });
+  };
+  const btn = { padding: "3px 9px", borderRadius: 99, border: "1px solid var(--border-strong)", background: "var(--surface)",
+    fontFamily: "inherit", fontSize: 10.5, fontWeight: 700, cursor: busy ? "wait" : "pointer", color: "var(--text-2)" };
+  return (
+    <div onClick={() => onPick(c.key)}
+      style={{ position: "relative", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16,
+        cursor: "pointer", display: "flex", alignItems: "center", gap: 13, padding: 14, boxShadow: "var(--shadow-sm)" }}>
+      <span style={{ width: 76, height: 76, borderRadius: 12, flexShrink: 0, overflow: "hidden", display: "grid", placeItems: "center",
+        background: img ? "var(--surface2)" : c.color + "16", border: "1px solid " + (img ? "var(--border)" : c.color + "33") }}>
+        {img
+          ? <img src={img} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
+          : <Icon name={c.icon || "box"} size={30} color={c.color} />}
+      </span>
+      <span style={{ minWidth: 0, flex: 1 }}>
+        <span style={{ display: "block", fontSize: 14.5, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3 }}>{c.th}</span>
+        <span style={{ display: "block", fontSize: 12, color: "var(--text-3)", marginTop: 3 }}>
+          {(n || 0).toLocaleString()} รายการ
+          {lowN ? <span style={{ color: "#EF4444", fontWeight: 700 }}>{" · ของขาด " + lowN}</span> : null}
+        </span>
+        {/* ปุ่มรูป — กดแล้วไม่เข้าไปในหมวด (stopPropagation) */}
+        <span onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 5, marginTop: 7 }}>
+          <button type="button" disabled={busy} style={btn} onClick={() => ref.current && ref.current.click()}>
+            {busy ? "กำลังย่อรูป…" : (img ? "เปลี่ยนรูป" : "ใส่รูป")}
+          </button>
+          {img && <button type="button" style={Object.assign({}, btn, { color: "#EF4444" })} onClick={() => onImage("")}>ลบรูป</button>}
+        </span>
+      </span>
+      <Icon name="chevronDown" size={16} color="var(--text-3)" style={{ transform: "rotate(-90deg)", flexShrink: 0 }} />
+      <input ref={ref} type="file" accept="image/*" style={{ display: "none" }}
+        onClick={(e) => e.stopPropagation()}
+        onChange={(e) => { take(e.target.files && e.target.files[0]); e.target.value = ""; }} />
+    </div>
+  );
+}
+
 /* ── หน้าเลือกหมวด ──
-   การ์ดหมวดใหญ่พร้อมรูปตัวอย่างจากของจริงในหมวดนั้น กดแล้วเข้าไปดูรายการ
-   หมวดย่อยขึ้นเป็นลิงก์ใต้การ์ด กดข้ามเข้าหมวดย่อยได้เลย */
-function StockCatHome({ cats, subsBy, count, subCount, low, cover, total, onPick, onAll }) {
-  const shown = (cats || []).filter((c) => count[c.key]);
+   ใช้ทั้งชั้นหมวดหลัก และชั้นหมวดย่อย (กดหมวดหลักที่มีหมวดย่อย → เจอหน้านี้อีกที) */
+function CatBrowser({ list, count, low, imgs, title, hint, allLabel, onPick, onAll, onBack, onSetImage }) {
+  const shown = list || [];
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>เลือกหมวดที่ต้องการ</span>
-        <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{shown.length} หมวด · {total.toLocaleString()} รายการ</span>
+        {onBack && (
+          <button onClick={onBack} title="กลับไปหน้าหมวดหลัก"
+            style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 11px", borderRadius: 9, border: "1px solid var(--border-strong)",
+              background: "var(--surface2)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+            <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: "rotate(90deg)" }} />ย้อนกลับ
+          </button>
+        )}
+        <span style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{title}</span>
+        <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{hint}</span>
         <button onClick={onAll} style={{ marginLeft: "auto", padding: "7px 14px", borderRadius: 9, border: "1px solid var(--border-strong)",
           background: "var(--surface2)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-          ดูทุกรายการ
+          {allLabel || "ดูทุกรายการ"}
         </button>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))", gap: 14 }}>
-        {shown.map((c) => {
-          const subs = (subsBy[c.key] || []).filter((x) => subCount[x.key]);
-          return (
-            <div key={c.key} onClick={() => onPick(c.key)}
-              style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden",
-                cursor: "pointer", display: "flex", flexDirection: "column", boxShadow: "var(--shadow-sm)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 13, padding: 14, borderBottom: subs.length ? "1px solid var(--border)" : "none" }}>
-                <span style={{ width: 62, height: 62, borderRadius: 12, flexShrink: 0, overflow: "hidden", display: "grid", placeItems: "center",
-                  background: cover[c.key] ? "var(--surface2)" : c.color + "16", border: "1px solid " + (cover[c.key] ? "var(--border)" : c.color + "33") }}>
-                  {cover[c.key]
-                    ? <img src={cover[c.key]} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
-                    : <Icon name={c.icon || "box"} size={26} color={c.color} />}
-                </span>
-                <span style={{ minWidth: 0, flex: 1 }}>
-                  <span style={{ display: "block", fontSize: 14.5, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3 }}>{c.th}</span>
-                  <span style={{ display: "block", fontSize: 12, color: "var(--text-3)", marginTop: 3 }}>
-                    {count[c.key].toLocaleString()} รายการ
-                    {low[c.key] ? <span style={{ color: "#EF4444", fontWeight: 700 }}>{" · ของขาด " + low[c.key]}</span> : null}
-                  </span>
-                </span>
-                <Icon name="chevronDown" size={16} color="var(--text-3)" style={{ transform: "rotate(-90deg)", flexShrink: 0 }} />
-              </div>
-              {subs.length > 0 && (
-                <div onClick={(e) => e.stopPropagation()} style={{ padding: "10px 14px 12px", display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {subs.map((x) => (
-                    <button key={x.key} onClick={() => onPick(c.key, x.key)}
-                      style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 10px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
-                        border: "1px solid var(--border-strong)", background: "var(--surface2)", color: "var(--text-2)" }}>
-                      {x.th} <span style={{ color: "var(--text-3)" }}>{subCount[x.key]}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))", gap: 14 }}>
+        {shown.map((c) => (
+          <CatCard key={c.key} c={c} n={count[c.key]} lowN={low[c.key]} img={imgs["cat_" + c.key]}
+            onPick={onPick} onImage={(d) => onSetImage(c.key, d)} />
+        ))}
       </div>
     </div>
   );
