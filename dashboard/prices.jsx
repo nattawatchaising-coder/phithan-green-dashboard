@@ -164,7 +164,10 @@ function AddPriceModal({ priceStore, stock, onClose }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div><label style={label}>หมวดหมู่</label>
               <select value={nf.cat} onChange={(e) => setNF("cat", e.target.value)} style={inStyle}>
-                {(SF.STOCK_CATS || []).map((c) => <option key={c.key} value={c.key}>{c.th}</option>)}
+                {(SF.STOCK_CATS || []).map((c) => [
+                  <option key={c.key} value={c.key}>{c.th}</option>,
+                ].concat(((SF.STOCK_SUB_BY_CAT || {})[c.key] || []).map((s2) =>
+                  <option key={s2.key} value={s2.key}>{"  └ " + s2.th}</option>)))}
               </select>
             </div>
             <div><label style={label}>หน่วย</label><input value={nf.unit} onChange={(e) => setNF("unit", e.target.value)} placeholder="เช่น pcs" style={inStyle} /></div>

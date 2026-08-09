@@ -488,7 +488,16 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const setLump = (k, v) => setB((p) => Object.assign({}, p, { laborLump: Object.assign({}, LUMP_DEF, p.laborLump, { [k]: v }) }));
 
   // งานเพิ่มเติม (Input) — โครงสร้างบนหลังคา
-  const STRUCT_DEF = { ladder: [], walkway: [], walkwayThk: 35, guardrail: [], ladderSpare: 5, walkwaySpare: 10, guardrailSpare: 5, ladderExtra: [], walkwayExtra: [], guardrailExtra: [] };
+  const STRUCT_DEF = { ladder: [], walkway: [], walkwayThk: 35, guardrail: [], ladderSpare: 5, walkwaySpare: 10, guardrailSpare: 5, ladderExtra: [], walkwayExtra: [], guardrailExtra: [], steel: {} };
+  /* ขนาด/ความหนาเหล็ก — ใช้ร่วมกันทั้ง บันไดลิง · ราวกันตก · โครงรองรับอุปกรณ์
+     ว่าง = ใช้ค่าตั้งต้น (ได้ชื่อเดิม ของในคลังยังผูกราคาได้เหมือนเดิม) */
+  const setSteel = (kind, k, v) => setB((p) => {
+    const s = Object.assign({}, STRUCT_DEF, p.struct);
+    const sm = Object.assign({}, s.steel);
+    sm[kind] = Object.assign({}, sm[kind], { [k]: v === "" || v == null ? "" : v });
+    s.steel = sm;
+    return Object.assign({}, p, { struct: s });
+  });
   const st = Object.assign({}, STRUCT_DEF, b.struct);
   const setStruct = (kind, i, k, v) => setB((p) => { const s = Object.assign({}, STRUCT_DEF, p.struct); const a = (s[kind] || []).slice(); a[i] = Object.assign({}, a[i], { [k]: v }); s[kind] = a; return Object.assign({}, p, { struct: s }); });
   const addStruct = (kind, item) => setB((p) => { const s = Object.assign({}, STRUCT_DEF, p.struct); s[kind] = (s[kind] || []).concat([item]); return Object.assign({}, p, { struct: s }); });
@@ -739,7 +748,15 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     const r = Object.assign({}, p.rename);
     const v = String(name || "").trim();
     if (!v) delete r[key]; else r[key] = v;
-    return Object.assign({}, p, { rename: r });
+    const kp = Object.assign({}, p.renameKeep);
+    if (!v) delete kp[key];   // กลับไปใช้ชื่อเดิม = ไม่ต้องล็อกราคาแล้ว
+    return Object.assign({}, p, { rename: r, renameKeep: kp });
+  });
+  /* ใช้ชื่อใหม่แต่คิดราคาเดิม — เอาไว้ตอนอยากเปลี่ยนแค่คำที่พิมพ์บนใบเสนอ ไม่ได้เปลี่ยนของ */
+  const setRenameKeep = (key, on) => setB((p) => {
+    const kp = Object.assign({}, p.renameKeep);
+    if (on) kp[key] = true; else delete kp[key];
+    return Object.assign({}, p, { renameKeep: kp });
   });
 
   /* ── แก้จำนวนได้จากในใบถอดของ ──
@@ -819,8 +836,13 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   /* วัสดุทั้งหมดที่เลือกได้ (คลังสินค้า + ราคาวัสดุ + แคตตาล็อกระบบ) รวมเป็นลิสต์เดียว
      ใช้ในช่อง "อุปกรณ์ประกอบ" ของหมวดงานโครงการ — จะได้ไม่ต้องพิมพ์ชื่อเองให้สะกดเพี้ยน */
   const allMatOptions = React.useMemo(() => {
-    const out = [];
-    accCat.cats.forEach((c) => (accCat.map[c] || []).forEach((n) => out.push({ value: n, label: n, group: c })));
+    const out = [], seen = {};
+    // ของชื่อซ้ำข้ามหมวดได้ — เอาหมวดแรกที่เจอพอ ไม่งั้นตัวเลือกซ้ำและ key ชนกัน
+    accCat.cats.forEach((c) => (accCat.map[c] || []).forEach((n) => {
+      const k = window.BOQ.matKey(n);
+      if (seen[k]) return;
+      seen[k] = 1; out.push({ value: n, label: n, group: c });
+    }));
     return out;
   }, [accCat]);
 
@@ -1218,13 +1240,13 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     /* ═══ ชีต 1: ใบถอดวัสดุ ═══ */
     /* คอลัมน์ — ตั้งชื่อ index ไว้ใช้ทั้งสูตรและสไตล์ จะได้ไม่ต้องนับนิ้วเวลาเพิ่ม/ลดคอลัมน์ */
     const cols = hasPrice
-      ? ["ลำดับ", "รหัสวัสดุ", "รายการ", "ยี่ห้อ / รุ่น", "จำนวน", "หน่วย", "ราคา/หน่วย", "จำนวนเงิน"]
-      : ["ลำดับ", "รหัสวัสดุ", "รายการ", "ยี่ห้อ / รุ่น", "จำนวน", "หน่วย"];
-    const cNo = 0, cCode = 1, cName = 2, cVar = 3, cQty = 4, cUnit = 5, cPrice = 6;
+      ? ["ลำดับ", "รหัสวัสดุ", "รายการ", "ยี่ห้อ", "รุ่น", "จำนวน", "หน่วย", "ราคา/หน่วย", "จำนวนเงิน"]
+      : ["ลำดับ", "รหัสวัสดุ", "รายการ", "ยี่ห้อ", "รุ่น", "จำนวน", "หน่วย"];
+    const cNo = 0, cCode = 1, cName = 2, cBrand = 3, cModel = 4, cQty = 5, cUnit = 6, cPrice = 7;
     const lastC = cols.length - 1;
     const colW = hasPrice
-      ? [{ wch: 7 }, { wch: 14 }, { wch: 42 }, { wch: 24 }, { wch: 9.5 }, { wch: 8 }, { wch: 13 }, { wch: 15 }]
-      : [{ wch: 7 }, { wch: 16 }, { wch: 48 }, { wch: 26 }, { wch: 11 }, { wch: 10 }];
+      ? [{ wch: 7 }, { wch: 14 }, { wch: 40 }, { wch: 15 }, { wch: 18 }, { wch: 9.5 }, { wch: 8 }, { wch: 13 }, { wch: 15 }]
+      : [{ wch: 7 }, { wch: 16 }, { wch: 46 }, { wch: 16 }, { wch: 20 }, { wch: 11 }, { wch: 10 }];
     const A = mkSheet(lastC, colW);
     docHead(A, "บัญชีแสดงปริมาณวัสดุ  ·  BILL OF QUANTITIES", "PHITHAN GREEN  —  งานติดตั้งระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์");
 
@@ -1262,7 +1284,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       groupRows.push(gr);
       const first = A.R;
       g.items.forEach((it, k) => {
-        const base = [n + "." + (k + 1), it.code || "", it.name || "", it.variantLabel || "", +it.qty || 0, it.unit || ""];
+        const base = [n + "." + (k + 1), it.code || "", it.name || "", it.brand || "", it.model || "", +it.qty || 0, it.unit || ""];
         if (hasPrice) {
           const er = A.R;   // แถว Excel ของบรรทัดนี้ (ยังไม่ push จึงเท่ากับ index ถัดไป)
           base.push(it.price || 0);
@@ -1303,7 +1325,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       } else if (t === "head") {
         s.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.white } };
         s.fill = { patternType: "solid", fgColor: { rgb: C.brand } };
-        s.alignment = { horizontal: (c === cName || c === cVar) ? "left" : "center", vertical: "center", wrapText: true };
+        s.alignment = { horizontal: (c === cName || c === cBrand || c === cModel) ? "left" : "center", vertical: "center", wrapText: true };
         s.border = { top: thin, bottom: thin, left: { style: "thin", color: { rgb: C.brand } }, right: { style: "thin", color: { rgb: C.brand } } };
       } else if (t === "group") {
         s.font = { name: FONT, sz: 11, bold: true, color: { rgb: C.brandDk } };
@@ -1320,7 +1342,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         if (c === cNo) { s.alignment = { horizontal: "center", vertical: "center" }; s.font = { name: FONT, sz: 9.5, color: { rgb: C.sub } }; }
         else if (c === cCode) { s.alignment = { horizontal: "center", vertical: "center" }; s.font = { name: FONT, sz: 9, color: { rgb: C.sub } }; }
         else if (c === cName) s.alignment = { horizontal: "left", vertical: "center", wrapText: true, indent: 1 };
-        else if (c === cVar) { s.alignment = { horizontal: "left", vertical: "center", wrapText: true, indent: 1 }; s.font = { name: FONT, sz: 9.5, color: { rgb: C.sub } }; }
+        else if (c === cBrand) { s.alignment = { horizontal: "left", vertical: "center", wrapText: true, indent: 1 }; s.font = { name: FONT, sz: 9.5, bold: true, color: { rgb: C.sub } }; }
+        else if (c === cModel) { s.alignment = { horizontal: "left", vertical: "center", wrapText: true, indent: 1 }; s.font = { name: FONT, sz: 9.5, color: { rgb: C.sub } }; }
         else if (c === cQty) { s.alignment = { horizontal: "right", vertical: "center" }; s.numFmt = qtyFmt; s.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.text } }; }
         else if (c === cUnit) { s.alignment = { horizontal: "center", vertical: "center" }; s.font = { name: FONT, sz: 10, color: { rgb: C.sub } }; }
         else { s.alignment = { horizontal: "right", vertical: "center" }; s.numFmt = moneyFmt; if (c === lastC) s.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.text } }; }
@@ -2390,6 +2413,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <Field label="จุดรองรับตู้ MDB / ตู้ไฟ"><input type="number" min={0} step={1} style={numStyle} value={sup.mdb} onChange={(e) => setSup("mdb", e.target.value === "" ? 0 : Math.max(0, Math.round(+e.target.value || 0)))} /></Field>
               <Field label="แบบยึดตู้"><Dropdown value={sup.mdbKind} onChange={(v) => setSup("mdbKind", v)} options={Object.keys(window.BOQ.SUPPORT_KINDS).map((k) => ({ value: k, label: window.BOQ.SUPPORT_KINDS[k].label }))} /></Field>
             </div>
+            {/* ตั้งขนาดเหล็กจากตรงนี้ได้เลย — ตัวเดียวกับที่อยู่ในหัวข้องานโครงสร้าง แก้ที่ไหนก็มีผลทั้งคู่ */}
+            <div style={{ marginTop: 12 }}>
+              <SteelSpecBlock st={st} setSteel={setSteel} />
+            </div>
             {sup.inv + sup.mdb > 0 && (
               <div className="bq-note ok" style={{ marginTop: 14 }}>
                 <Icon name="check" size={15} color="#22A35B" />
@@ -2476,6 +2503,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             </div>
             {advS && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 14 }}>
+                <SteelSpecBlock st={st} setSteel={setSteel} />
                 {StructBlock({ kind: "ladder", label: "LADDER (บันไดลิง)", color: "#0D9488", addLabel: "เพิ่มจุด",
                   cols: [{ k: "h", ph: "ความสูง (m)" }], blank: { h: "" },
                   spare: st.ladderSpare != null ? st.ladderSpare : 5, onSpare: (v) => setStructVal("ladderSpare", +v),
@@ -2605,6 +2633,13 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     <div key={ii} style={{ display: "grid", gridTemplateColumns: isMobile ? (priced.grandTotal > 0 ? "minmax(0,1fr) 56px 64px" : "minmax(0,1fr) 56px") : "1fr 68px 84px", gap: 8, padding: "9px 14px", borderTop: "1px solid var(--border)", alignItems: "center" }}>
                       <span style={{ minWidth: 0 }}>
                         <span style={{ display: "block", fontSize: 12.5, color: "var(--text-1)", lineHeight: 1.35 }}>{(it.name || "").trim()}</span>
+                        {/* เปลี่ยนชื่อแล้วบอกชื่อเดิมไว้ด้วย — จำนวนยังถอดจากชื่อเดิม เปลี่ยนชื่อไม่กระทบตัวเลข */}
+                        {it.renamed && (
+                          <span style={{ display: "block", fontSize: 10, color: "var(--text-3)", lineHeight: 1.3 }}
+                            title={it.priceName ? "เปลี่ยนแค่ชื่อบนใบ จำนวนและราคายังคิดจากชื่อเดิม" : "ระบบถอดจำนวนจากชื่อนี้ — เปลี่ยนชื่อแล้วจำนวนไม่เปลี่ยน"}>
+                            ถอดจาก “{it.nameAuto}”{it.priceName ? " · ราคาเดิม" : ""}
+                          </span>
+                        )}
                         {/* ยี่ห้อ/รุ่น — ของชิ้นเดียวกันมีหลายตัว ราคาไม่เท่ากัน กดเพื่อเลือก/แก้ได้เหมือนแก้ในคลัง */}
                         <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 1 }}>
                           {(() => {
@@ -2613,7 +2648,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                             if (!vEditable && !it.variantLabel) return null;
                             if (!vEditable) return <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-2)" }}>{it.variantLabel}</span>;
                             return (
-                              <button type="button" onClick={() => setEditVar({ name: it.name, group: g.group, unit: it.unit, rkey: window.BOQ.qtyKey(g.group, it.nameAuto || it.name), nameAuto: it.nameAuto || it.name })}
+                              <button type="button" onClick={() => setEditVar({ name: it.name, group: g.group, unit: it.unit, rkey: window.BOQ.qtyKey(g.group, it.nameAuto || it.name), nameAuto: it.nameAuto || it.name, priceName: it.priceName || it.name })}
                                 title={n > 1 ? n + " ยี่ห้อ/รุ่นในคลัง — กดเพื่อเลือกหรือแก้" : "กดเพื่อระบุยี่ห้อ/รุ่น และแก้ราคา (บันทึกลงคลังสินค้า)"}
                                 style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "1px 7px", borderRadius: 99,
                                   border: "1px solid " + (it.variantLabel ? "var(--border-strong)" : "transparent"),
@@ -2631,7 +2666,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       </span>
                       {(() => {
                         const qEditable = !isService(g.group) && !it.allowancePct && (it.name || "").trim();
-                        const qKey = qEditable ? window.BOQ.qtyKey(g.group, it.name) : "";
+                        /* คีย์ต้องอิง "ชื่อที่ระบบถอดให้" เสมอ เพราะฝั่ง calcBOQ ใส่จำนวนที่แก้มือ "ก่อน" เปลี่ยนชื่อ
+                           ถ้าใช้ชื่อใหม่ พอเปลี่ยนชื่อแล้วจำนวนที่แก้ไว้จะหากันไม่เจอ */
+                        const qKey = qEditable ? window.BOQ.qtyKey(g.group, it.nameAuto || it.name) : "";
                         if (editQty && editQty.key === qKey && qKey) return (
                           <span style={{ textAlign: "right" }}>
                             <input autoFocus type="number" min={0} step="any" value={editQty.val}
@@ -2812,10 +2849,19 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       </div>
       {editVar && (
         <MatVariantModal item={editVar} stock={stock} priceMap={priceMap || {}} matOptions={allMatOptions}
-          picked={(b.pick || {})[window.BOQ.matKey(editVar.name)] || ""}
-          onPick={(sku) => setPick(window.BOQ.matKey(editVar.name), sku)}
+          picked={(b.pick || {})[window.BOQ.matKey(editVar.priceName || editVar.name)] || ""}
+          onPick={(sku) => setPick(window.BOQ.matKey(editVar.priceName || editVar.name), sku)}
           renamed={(b.rename || {})[editVar.rkey] || ""}
-          onRename={(nm) => { setRename(editVar.rkey, nm); setEditVar((p) => Object.assign({}, p, { name: String(nm || "").trim() || p.nameAuto })); }}
+          keepPrice={!!(b.renameKeep || {})[editVar.rkey]}
+          onRename={(nm) => {
+            const v = String(nm || "").trim();
+            setRename(editVar.rkey, v);
+            // เปลี่ยนชื่อ = เลือกของตัวใหม่ ราคาต้องตามชื่อใหม่ (เว้นแต่ยังติ๊กใช้ราคาเดิมอยู่)
+            setEditVar((p) => { const nn = v || p.nameAuto; const keep = v && (b.renameKeep || {})[p.rkey];
+              return Object.assign({}, p, { name: nn, priceName: keep ? p.nameAuto : nn }); });
+          }}
+          onKeepPrice={(on) => { setRenameKeep(editVar.rkey, on);
+            setEditVar((p) => Object.assign({}, p, { priceName: on ? p.nameAuto : p.name })); }}
           onClose={() => setEditVar(null)} />
       )}
     </div>
@@ -2825,11 +2871,95 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 /* ── เลือก/แก้ ยี่ห้อ-รุ่น-ราคา ของวัสดุ 1 ชนิด ──
    ของชิ้นเดียวกันมีได้หลายยี่ห้อ/หลายรุ่น ราคาไม่เท่ากัน — ที่นี่เลือกว่างานนี้ใช้ตัวไหน
    และแก้ ยี่ห้อ/รุ่น/ราคา ได้เลย เขียนลงคลังสินค้าโดยตรง (ต้นทางเดียวกับหน้าคลัง) */
-function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, renamed, onRename, onClose }) {
+/* ── ขนาด/ความหนาเหล็ก ──
+   งานโครงสร้างเดิมล็อกขนาดไว้ตายตัว (เหล็กกล่อง 2"x2" ฯลฯ) หน้างานเปลี่ยนได้ตามความสูง/น้ำหนัก
+   เลือกที่นี่ที่เดียว มีผลทั้ง บันไดลิง · ราวกันตก · โครงรองรับอุปกรณ์
+   ปล่อยเป็นค่าตั้งต้น = ได้ชื่อเดิมเป๊ะ ๆ ราคาที่เคยผูกไว้ในคลังไม่หลุด */
+function SteelSpecBlock({ st, setSteel }) {
+  const SP = window.BOQ.STEEL_SPECS;
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const sel = (st && st.steel) || {};
+  const KINDS = ["box", "round", "flat", "angle", "plate", "anchor"];
+  const changed = KINDS.some((k) => (sel[k] || {}).size || (sel[k] || {}).thk || (sel[k] || {}).barLen);
+  const reset = () => KINDS.forEach((k) => { setSteel(k, "size", ""); setSteel(k, "thk", ""); setSteel(k, "barLen", ""); });
+  /* พับเก็บไว้ — ส่วนใหญ่ใช้ขนาดตั้งต้น กางค้างไว้ตลอดกินที่เปล่า ๆ
+     กดแล้วค่อยกาง เหมือนปุ่มตั้งค่าของหัวข้ออื่น */
+  const [open, setOpen] = React.useState(false);
+  const summary = changed
+    ? KINDS.filter((k) => (sel[k] || {}).size || (sel[k] || {}).thk || (sel[k] || {}).barLen)
+        .map((k) => window.BOQ.steelName(k, sel[k])).join(" · ")
+    : "ใช้ขนาดมาตรฐานทั้งหมด";
+  return (
+    <div style={{ border: "1px solid var(--border)", borderRadius: 12, padding: open ? 12 : "10px 12px", background: "var(--surface2)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+        <button type="button" onClick={() => setOpen((v) => !v)}
+          style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", color: "var(--text-2)",
+            fontWeight: 700, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit", padding: 0, flexShrink: 0 }}>
+          <Icon name="settings" size={13} color="var(--text-2)" />
+          ขนาด / ความหนาเหล็ก
+          <Icon name="chevronDown" size={13} color="var(--text-2)" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
+        </button>
+        {!open && (
+          <span title={summary} style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            fontSize: 10.5, fontWeight: changed ? 700 : 500, color: changed ? "var(--primary-dark)" : "var(--text-3)" }}>{summary}</span>
+        )}
+        {open && changed && (
+          <button type="button" onClick={reset} style={{ marginLeft: "auto", border: 0, background: "none", padding: 0, cursor: "pointer",
+            fontFamily: "inherit", fontSize: 11, fontWeight: 700, color: "var(--primary-dark)", textDecoration: "underline", textUnderlineOffset: 3 }}>คืนค่าตั้งต้นทั้งหมด</button>
+        )}
+      </div>
+      {!open ? null : (
+      <React.Fragment>
+      <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.5, margin: "8px 0 10px" }}>
+        ใช้ร่วมกันทั้ง บันไดลิง · ราวกันตก · โครงสร้างรองรับอุปกรณ์ — เปลี่ยนความยาวท่อนแล้วจำนวนเส้นคิดใหม่ให้เอง
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
+        {KINDS.map((k) => {
+          const S = SP[k];
+          const cur = sel[k] || {};
+          const nm = window.BOQ.steelName(k, cur);
+          const isLen = !!S.barLen;
+          return (
+            <div key={k} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "9px 10px", background: "var(--surface)" }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-2)", marginBottom: 6 }}>{S.th}</div>
+              <div style={{ display: "grid", gridTemplateColumns: S.thks.length ? (isLen ? "1fr 1fr 78px" : "1fr 1fr") : (isLen ? "1fr 78px" : "1fr"), gap: 6 }}>
+                <Dropdown value={cur.size == null || cur.size === "" ? S.dSize : cur.size}
+                  onChange={(v) => setSteel(k, "size", v === S.dSize ? "" : v)}
+                  options={S.sizes.map((z) => ({ value: z, label: String(z) + (S.sizeUnit ? " " + S.sizeUnit : "") }))} />
+                {S.thks.length > 0 && (
+                  <Dropdown value={cur.thk == null || cur.thk === "" ? (S.dThk === "" ? "__none" : S.dThk) : cur.thk}
+                    onChange={(v) => setSteel(k, "thk", v === "__none" ? "" : v)}
+                    options={[{ value: "__none", label: "ไม่ระบุหนา" }].concat(S.thks.map((t) => ({ value: t, label: "หนา " + t + " มม." })))} />
+                )}
+                {isLen && (
+                  <Dropdown value={+cur.barLen || S.barLen}
+                    onChange={(v) => setSteel(k, "barLen", +v === S.barLen ? "" : +v)}
+                    options={[4, 5, 6, 8].map((L) => ({ value: L, label: L + " ม./ท่อน" }))} />
+                )}
+              </div>
+              <div style={{ fontSize: 10.5, color: "var(--text-3)", marginTop: 5, lineHeight: 1.4 }} title="ชื่อที่จะไปโผล่ในใบถอดของ">
+                ถอดเป็น “{nm}”
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      </React.Fragment>
+      )}
+    </div>
+  );
+}
+
+function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, renamed, onRename, keepPrice, onKeepPrice, onClose }) {
   const bdClose = window.useBackdropClose(onClose);
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const baht = (n) => (Math.round((+n || 0) * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
-  const key = window.BOQ.matKey(item.name);
+  /* ราคา/ยี่ห้อ/รุ่น อ้างอิง "ชื่อที่ใช้หาราคา" ไม่ใช่ชื่อที่แสดง
+     ติ๊กใช้ราคาเดิมไว้ = แก้ราคาที่นี่คือแก้ของตัวเดิมในคลัง */
+  const priceSrc = item.priceName || item.name;
+  const key = window.BOQ.matKey(priceSrc);
+  // ของในคลังที่รับชื่อนี้ไว้เป็นชื่อพ้อง (เพราะเคยเปลี่ยนชื่อ หรือผูกไว้เอง)
+  const linked = ((stock && stock.items) || []).find((s) => (s.aka || []).some((n) => window.BOQ.matKey(n) === key));
   const rec = priceMap[key] || {};
   const variants = rec.variants || [];
   const cur = variants.find((v) => v.sku === picked) || variants[0] || null;
@@ -2846,7 +2976,7 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
   }, [curId, key]);
   const startNew = () => setF({ brand: "", model: "", price: "", id: "", isNew: true });
   const save = () => {
-    const id = window.saveMatPrice(stock, { name: item.name, group: item.group, unit: item.unit,
+    const id = window.saveMatPrice(stock, { name: priceSrc, group: item.group, unit: item.unit,
       brand: f.brand, model: f.model, price: +f.price || 0, id: f.isNew ? "" : f.id, forceNew: f.isNew });
     // ตัวที่เพิ่งเพิ่ม/แก้ ให้เป็นตัวที่งานนี้ใช้เลย
     const saved = ((stock && stock.items) || []).find((s) => s.id === id);
@@ -2875,15 +3005,53 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
                 options={(matOptions || []).some((o) => o.value === item.name) ? matOptions : [{ value: item.name, label: item.name, group: "ชื่อปัจจุบัน" }].concat(matOptions || [])}
                 addable onAdd={(v) => onRename(v)} placeholder="เลือกวัสดุจากคลัง" />
               {renamed ? (
-                <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "var(--text-3)" }}>
-                  <span>ระบบถอดให้ชื่อ “{item.nameAuto}”</span>
-                  <button type="button" onClick={() => onRename("")}
-                    style={{ border: 0, background: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 11,
-                      fontWeight: 700, color: "var(--primary-dark)", textDecoration: "underline", textUnderlineOffset: 3 }}>ใช้ชื่อเดิม</button>
-                </span>
+                <React.Fragment>
+                  <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "var(--text-3)" }}>
+                    <span>ระบบถอดให้ชื่อ “{item.nameAuto}”</span>
+                    <button type="button" onClick={() => onRename("")}
+                      style={{ border: 0, background: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 11,
+                        fontWeight: 700, color: "var(--primary-dark)", textDecoration: "underline", textUnderlineOffset: 3 }}>ใช้ชื่อเดิม</button>
+                  </span>
+                  {/* เปลี่ยนแค่คำที่พิมพ์บนใบ ไม่ได้เปลี่ยนของ → ล็อกราคาไว้ที่ของเดิม ต้นทุนไม่ขยับ */}
+                  {onKeepPrice && (
+                    <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer",
+                      background: keepPrice ? "var(--primary-soft)" : "var(--surface2)", padding: "9px 11px", borderRadius: 10,
+                      border: "1px solid " + (keepPrice ? "var(--primary)" : "var(--border)") }}>
+                      <input type="checkbox" checked={!!keepPrice} onChange={(e) => onKeepPrice(e.target.checked)}
+                        style={{ width: 15, height: 15, marginTop: 1, accentColor: "var(--primary)", flexShrink: 0, cursor: "pointer" }} />
+                      <span style={{ minWidth: 0 }}>
+                        <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: keepPrice ? "var(--primary-dark)" : "var(--text-1)" }}>
+                          ใช้ชื่อใหม่ แต่คิดราคาเดิม
+                        </span>
+                        <span style={{ display: "block", fontSize: 11, color: "var(--text-3)", lineHeight: 1.5, marginTop: 2 }}>
+                          เปลี่ยนแค่คำที่พิมพ์บนใบ ราคายังคิดจาก “{item.nameAuto}” — ต้นทุนและยอดรวมไม่ขยับ
+                        </span>
+                      </span>
+                    </label>
+                  )}
+                </React.Fragment>
               ) : (
                 <span style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
                   เปลี่ยนเป็นของตัวอื่นในคลังได้ — ราคาจะดึงจากของที่เลือกให้เอง ยอดในใบถอดของไม่เพี้ยน
+                </span>
+              )}
+              {/* ชื่อที่พิมพ์เองยังไม่มีในคลัง = ไม่มีราคาให้ดึง ต้องเตือน ไม่งั้นยอดหายเงียบ ๆ */}
+              {!variants.length && (
+                <span style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 11, lineHeight: 1.5,
+                  color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg)", padding: "9px 11px", borderRadius: 9 }}>
+                  <span style={{ display: "flex", gap: 7, alignItems: "flex-start" }}>
+                    <Icon name="alert" size={13} color="var(--tint-amber-tx)" style={{ flexShrink: 0, marginTop: 1 }} />
+                    <span>ชื่อนี้ยังไม่มีในคลัง ราคาจึงเป็น 0 — ถ้าเปลี่ยนชื่อของในคลังไปแล้ว ให้ผูกชื่อนี้เข้ากับของตัวนั้น หรือกรอกราคาด้านล่างเพื่อเพิ่มเป็นของใหม่</span>
+                  </span>
+                  {/* ผูกชื่อ → เขียนลงคลังเป็นชื่อพ้อง แก้ครั้งเดียวทุกงานที่เรียกชื่อนี้หาราคาเจอหมด */}
+                  {stock && stock.linkAlias && (
+                    <Dropdown value="" placeholder="ผูกชื่อนี้เข้ากับของในคลัง (รหัสอุปกรณ์)…"
+                      options={matOptions || []}
+                      onChange={(v) => {
+                        const t = (stock.items || []).find((s) => s.name && window.BOQ.matKey(s.name) === window.BOQ.matKey(v));
+                        if (t) stock.linkAlias(t.id, priceSrc);
+                      }} />
+                  )}
                 </span>
               )}
             </div>
@@ -2916,6 +3084,24 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
             <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>
               {f.isNew ? "เพิ่มยี่ห้อ/รุ่นใหม่ของของชิ้นนี้" : "แก้รายละเอียด (บันทึกลงคลังสินค้า)"}
             </span>
+            {/* ชื่อบนใบกับของที่คิดราคาเป็นคนละตัว ต้องบอกให้ชัดว่ากำลังแก้ของตัวไหนในคลัง */}
+            {priceSrc !== item.name && (
+              <span style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.5, marginTop: -3 }}>
+                กำลังแก้ของในคลังชื่อ “{priceSrc}” ซึ่งเป็นตัวที่ใช้คิดราคาให้บรรทัดนี้
+              </span>
+            )}
+            {/* ผูกด้วยชื่อพ้องอยู่ — บอกว่าไปโผล่ที่ของตัวไหนในคลัง และถอดออกได้ */}
+            {linked && (
+              <span style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: 11, color: "var(--text-3)", marginTop: -3 }}>
+                <span>ผูกไว้กับ <b style={{ color: "var(--text-2)" }}>{linked.name}</b>
+                  {linked.sku ? <span style={{ fontFamily: "var(--mono)" }}> · {linked.sku}</span> : null}</span>
+                {stock.unlinkAlias && (
+                  <button type="button" onClick={() => stock.unlinkAlias(linked.id, priceSrc)}
+                    style={{ border: 0, background: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 11,
+                      fontWeight: 700, color: "var(--primary-dark)", textDecoration: "underline", textUnderlineOffset: 3 }}>ยกเลิกการผูก</button>
+                )}
+              </span>
+            )}
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 9 }}>
               <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>ยี่ห้อ (Brand)</span>

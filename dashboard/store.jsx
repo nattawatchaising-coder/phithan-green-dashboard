@@ -26,6 +26,9 @@ function _snap2arr(snapshot) {
 const SF_STORE_KEY = "solarflow_db_v2";
 const SF_STOCK_KEY = "solarflow_stock_v2";
 const SF_MOVES_KEY = "solarflow_moves_v2";
+const SF_STOCKCAT_KEY = "solarflow_stockcats_v1";
+const SF_STOCKIMG_KEY = "solarflow_stockimg_v1";
+const SF_STOCKDOC_KEY = "solarflow_stockdoc_v1";
 const SF_TECH_KEY  = "solarflow_techs_v1";
 const SF_BRAND_KEY = "solarflow_brands_v1";
 
@@ -36,6 +39,8 @@ function _lsGet(key, seed) {
   } catch (e) {}
   return seed.map((x) => Object.assign({}, x));
 }
+function _lsGetRaw(key) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+function _lsSetRaw(key, data) { try { if (data) localStorage.setItem(key, JSON.stringify(data)); else localStorage.removeItem(key); } catch (e) {} }
 function _lsSet(key, data) {
   try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) {}
 }
@@ -231,7 +236,7 @@ function blankItem(items) {
   });
   /* brand/model — ของชิ้นเดียวกันมีหลายยี่ห้อ/หลายรุ่น ราคาไม่เท่ากัน
      ชื่อ (name) ยังเป็นตัวจับคู่กับใบถอดของ · brand+model เป็นตัวแยกว่าเป็นของตัวไหน */
-  return { id: "IV-" + String(max + 1).padStart(2, "0"), sku: "", name: "", brand: "", model: "", cat: "panel", unit: "ชิ้น", qty: 0, min: 0, loc: "", price: 0 };
+  return { id: "IV-" + String(max + 1).padStart(2, "0"), sku: "", name: "", brand: "", model: "", desc: "", aka: [], cat: "panel", unit: "ชิ้น", qty: 0, min: 0, loc: "", price: 0 };
 }
 
 /* ================================================================
@@ -243,12 +248,15 @@ function useStockStore() {
 
   const [items, setItems]     = React.useState(_FB() ? null : () => _lsGet(SF_STOCK_KEY, ISEED()));
   const [moves, setMoves]     = React.useState(_FB() ? null : () => _lsGet(SF_MOVES_KEY, MSEED()));
+  const [cats, setCats]       = React.useState(() => _lsGet(SF_STOCKCAT_KEY, []));   // หมวดที่ผู้ใช้สร้างเอง
   const [loading, setLoading] = React.useState(_FB());
 
   const itemsRef = React.useRef(items);
   const movesRef = React.useRef(moves);
+  const catsRef  = React.useRef(cats);
   React.useEffect(() => { itemsRef.current = items; }, [items]);
   React.useEffect(() => { movesRef.current = moves; }, [moves]);
+  React.useEffect(() => { catsRef.current = cats; }, [cats]);
 
   /* ---------- Firebase listeners ---------- */
   React.useEffect(() => {
@@ -288,15 +296,63 @@ function useStockStore() {
       setMoves(arr); mDone = true; done();
     }, () => { mDone = true; done(); });
 
-    return () => { iRef.off("value", iH); mRef.off("value", mH); };
+    const cRef = _fbr("stockCats");
+    const cH = cRef.on("value", (snap) => { setCats(_snap2arr(snap) || []); }, () => {});
+
+    return () => { iRef.off("value", iH); mRef.off("value", mH); cRef.off("value", cH); };
+  }, []);
+
+  /* หมวดที่ผู้ใช้สร้างเอง — ต่อท้ายหมวดมาตรฐาน ใช้ได้ทุกที่ที่มีตัวเลือกหมวด */
+  /* parent ว่าง = หมวดหลัก · ใส่คีย์หมวดหลัก = หมวดย่อยของหมวดนั้น
+     คืนคีย์ที่ได้ (หรือคีย์ของหมวดชื่อซ้ำที่มีอยู่แล้ว) ให้เอาไปเลือกต่อได้เลย */
+  const addCat = React.useCallback((th, parent) => {
+    const name = String(th || "").trim();
+    const par = String(parent || "").trim();
+    if (!name) return "";
+    const cur = catsRef.current || [];
+    const dup = cur.find((c) => c.th === name && (c.parent || "") === par);
+    if (dup) return dup.key;
+    // ชื่อชนหมวดมาตรฐาน (เฉพาะตอนสร้างหมวดหลัก) → ใช้ตัวที่มีอยู่ ไม่สร้างซ้ำ
+    if (!par) { const std = (window.SF.STOCK_CATS || []).find((c) => c.th === name && !c.custom); if (std) return std.key; }
+    const COLORS = ["#0891B2", "#DB2777", "#65A30D", "#C026D3", "#EA580C", "#0D9488", "#6366F1", "#B45309"];
+    const pre = par ? "sub" : "cus";
+    let n = 1, key;
+    do { key = pre + n; n += 1; } while (cur.some((c) => c.key === key));
+    const rec = { key: key, th: name, color: COLORS[cur.length % COLORS.length], icon: "box", custom: true };
+    if (par) rec.parent = par;
+    if (_FB()) _fbSet("stockCats/" + key, rec); else setCats((p) => p.concat([rec]));
+    return key;
+  }, []);
+
+  // ลบหมวดหลัก = ลบหมวดย่อยใต้มันด้วย ไม่ให้เหลือหมวดย่อยที่ไม่มีแม่
+  const removeCat = React.useCallback((key) => {
+    const kids = (catsRef.current || []).filter((c) => c.parent === key).map((c) => c.key);
+    [key].concat(kids).forEach((k) => { if (_FB()) _fbRem("stockCats/" + k); });
+    if (!_FB()) setCats((p) => p.filter((c) => c.key !== key && c.parent !== key));
   }, []);
 
   /* ---------- localStorage sync ---------- */
   React.useEffect(() => { if (!_FB() && items !== null) _lsSet(SF_STOCK_KEY, items); }, [items]);
   React.useEffect(() => { if (!_FB() && moves !== null) _lsSet(SF_MOVES_KEY, moves); }, [moves]);
+  React.useEffect(() => { if (!_FB()) _lsSet(SF_STOCKCAT_KEY, cats || []); }, [cats]);
+  /* ลงทะเบียนหมวดที่สร้างเองเข้า SF.STOCK_CATS ให้ทุกหน้าที่มีตัวเลือกหมวดเห็นพร้อมกัน
+     ต้องทำตอน render ไม่ใช่ใน effect — effect ทำงานหลัง render รอบที่ cats เปลี่ยนไปแล้ว
+     หน้าจอจะยังวาดด้วยหมวดชุดเก่า แล้วไม่มีอะไรมากระตุ้นให้วาดใหม่ หมวดที่เพิ่งสร้างเลยไม่โผล่ */
+  React.useMemo(() => { if (window.SF.setCustomCats) window.SF.setCustomCats(cats || []); }, [cats]);
 
   /* ---------- mutations ---------- */
-  const upsertItem = React.useCallback((rec) => {
+  /* เปลี่ยนชื่อของในคลัง = ใบถอดของที่ทำไว้แล้วจะหาราคาไม่เจอ (มันจับคู่ด้วยชื่อ)
+     จึงเก็บชื่อเดิมไว้ใน aka ให้จับคู่ได้ทั้งชื่อเก่าและชื่อใหม่ ของเก่าไม่พัง */
+  const withAka = (rec) => {
+    const prev = (itemsRef.current || []).find((x) => x.id === rec.id);
+    if (!prev || !prev.name || !rec.name || prev.name === rec.name) return rec;
+    const aka = (rec.aka || prev.aka || []).slice();
+    if (aka.indexOf(prev.name) < 0) aka.push(prev.name);
+    return Object.assign({}, rec, { aka: aka.filter((n) => n && n !== rec.name) });
+  };
+
+  const upsertItem = React.useCallback((rec0) => {
+    const rec = withAka(rec0);
     if (_FB()) {
       _fbSet("stock/" + rec.id, rec);
     } else {
@@ -307,6 +363,84 @@ function useStockStore() {
       });
     }
   }, []);
+
+  /* ── รูปสินค้า ──
+     เก็บแยกโหนด stockImg/{id} ไม่ปนกับ stock — รายการของ 300+ ชิ้นถูกโหลดทุกครั้งที่เปิดแอป
+     ถ้าเอา base64 ไปแปะไว้ในนั้นด้วย ทั้งแอปจะอืดทันที
+     โหลดรูปเฉพาะตอนเปิดหน้าคลัง (เรียก enableImages) */
+  const [imgs, setImgs] = React.useState(() => (_FB() ? {} : _lsGet(SF_STOCKIMG_KEY, {})));
+  const [imgOn, setImgOn] = React.useState(false);
+  const enableImages = React.useCallback(() => setImgOn(true), []);
+  React.useEffect(() => {
+    if (!imgOn || !_FB()) return;
+    const r = _fbr("stockImg");
+    const h = r.on("value", (snap) => setImgs(snap.val() || {}), () => {});
+    return () => r.off("value", h);
+  }, [imgOn]);
+  React.useEffect(() => { if (!_FB()) _lsSet(SF_STOCKIMG_KEY, imgs || {}); }, [imgs]);
+
+  const setImage = React.useCallback((id, dataUrl) => {
+    if (!id) return;
+    const v = dataUrl || "";
+    if (_FB()) { if (v) _fbSet("stockImg/" + id, v); else _fbRem("stockImg/" + id); }
+    // อัปเดตในเครื่องทันทีด้วย ไม่ต้องรอ listener เด้งกลับ — เลือกรูปแล้วเห็นเลย
+    setImgs((p) => { const m = Object.assign({}, p); if (v) m[id] = v; else delete m[id]; return m; });
+    // ธง img บนตัวรายการ — ใช้บอกว่ามีรูปโดยไม่ต้องโหลดรูปจริง
+    const it = (itemsRef.current || []).find((x) => x.id === id);
+    if (it && !!it.img !== !!v) upsertItem(Object.assign({}, it, { img: !!v }));
+  }, []);
+
+  /* ── เอกสาร / DATA SHEET ──
+     ไฟล์ PDF ใหญ่กว่ารูปมาก จึงไม่โหลดยกโช่ง—ดึงทีละใบตอนกดเปิดดู
+     ชื่อ/ขนาดเก็บไว้ที่ตัวรายการ (doc) จึงรู้ได้ว่ามีเอกสารโดยไม่ต้องโหลด */
+  const DOC_MAX = 6 * 1024 * 1024;   // กันไฟล์ใหญ่เกินจน RTDB รับไม่ไหว
+  const [docCache, setDocCache] = React.useState({});
+  const loadDoc = React.useCallback((id) => {
+    if (!id) return Promise.resolve(null);
+    if (docCache[id] !== undefined) return Promise.resolve(docCache[id]);
+    if (!_FB()) { const v = _lsGetRaw(SF_STOCKDOC_KEY + "_" + id); setDocCache((p) => Object.assign({}, p, { [id]: v })); return Promise.resolve(v); }
+    return _fbGet("stockDoc/" + id).then((sn) => {
+      const v = sn.val() || null;
+      setDocCache((p) => Object.assign({}, p, { [id]: v }));
+      return v;
+    }).catch(() => null);
+  }, [docCache]);
+
+  const setDoc = React.useCallback((id, doc) => {
+    if (!id) return;
+    if (doc && doc.data && doc.data.length > DOC_MAX) { alert("ไฟล์ใหญ่เกิน 6 MB — ลดขนาดไฟล์ก่อนอัป"); return; }
+    if (_FB()) { if (doc) _fbSet("stockDoc/" + id, doc); else _fbRem("stockDoc/" + id); }
+    else _lsSetRaw(SF_STOCKDOC_KEY + "_" + id, doc);
+    setDocCache((p) => Object.assign({}, p, { [id]: doc || null }));
+    const it = (itemsRef.current || []).find((x) => x.id === id);
+    if (it) {
+      const meta = doc ? { name: doc.name || "datasheet.pdf", size: doc.size || 0 } : null;
+      const cur = it.doc || null;
+      if (JSON.stringify(cur) !== JSON.stringify(meta)) {
+        const rec = Object.assign({}, it);
+        if (meta) rec.doc = meta; else delete rec.doc;
+        upsertItem(rec);
+        if (!meta && _FB()) _fbRem("stock/" + id + "/doc");   // set() ไม่ลบคีย์ที่หายไปให้เอง
+      }
+    }
+  }, []);
+
+  /* ผูกชื่อที่ใบถอดของเรียก เข้ากับของในคลังชิ้นนี้ — แก้ครั้งเดียว ใช้ได้ทุกงาน */
+  const linkAlias = React.useCallback((id, boqName) => {
+    const nm = String(boqName || "").trim();
+    const it = (itemsRef.current || []).find((x) => x.id === id);
+    if (!nm || !it || nm === it.name) return;
+    const aka = (it.aka || []).slice();
+    if (aka.indexOf(nm) >= 0) return;
+    aka.push(nm);
+    upsertItem(Object.assign({}, it, { aka: aka }));
+  }, [upsertItem]);
+
+  const unlinkAlias = React.useCallback((id, boqName) => {
+    const it = (itemsRef.current || []).find((x) => x.id === id);
+    if (!it) return;
+    upsertItem(Object.assign({}, it, { aka: (it.aka || []).filter((n) => n !== boqName) }));
+  }, [upsertItem]);
 
   const removeItem = React.useCallback((id) => {
     if (_FB()) { _fbRem("stock/" + id); }
@@ -355,8 +489,9 @@ function useStockStore() {
   }, []);
 
   return {
-    items: items || [], moves: moves || [], loading,
-    upsertItem, removeItem, move, resetStock,
+    items: items || [], moves: moves || [], cats: cats || [], imgs: imgs || {}, loading,
+    upsertItem, removeItem, move, resetStock, linkAlias, unlinkAlias, addCat, removeCat, setImage, enableImages,
+    loadDoc, setDoc,
     blankItem: () => blankItem(itemsRef.current || []),
   };
 }

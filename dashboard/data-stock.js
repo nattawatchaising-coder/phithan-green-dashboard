@@ -61,8 +61,37 @@
     { id: "MV-1001", itemId: "IV-02", type: "out", qty: 60, date: "2026-06-01", ref: "SF-2407", note: "เบิกแผง 450W งานโกดัง" },
   ];
 
-  SF.STOCK_CATS = STOCK_CATS;
-  SF.STOCK_CAT_BY = Object.fromEntries(STOCK_CATS.map((c) => [c.key, c]));
+  SF.STOCK_CATS = STOCK_CATS.slice();
+  SF.STOCK_CAT_BY = Object.fromEntries(SF.STOCK_CATS.map((c) => [c.key, c]));
+  SF.STOCK_CATS_BASE = STOCK_CATS;
+  /* หมวดที่ผู้ใช้สร้างเอง — แทรกก่อน "อื่นๆ" ให้ "อื่นๆ" อยู่ท้ายสุดเสมอ
+     เขียนทับ SF.STOCK_CATS ตัวเดิม ทุกหน้าที่อ่านค่านี้ตอน render จึงเห็นพร้อมกัน */
+  SF.STOCK_SUBS = [];                 // หมวดย่อยทั้งหมด (มี parent)
+  SF.STOCK_SUB_BY_CAT = {};           // คีย์หมวดหลัก → หมวดย่อยของมัน
+  SF.setCustomCats = function (list) {
+    const all = (list || []).filter((c) => c && c.key && c.th);
+    const mains = all.filter((c) => !c.parent);
+    const base = STOCK_CATS.filter((c) => c.key !== "other");
+    const other = STOCK_CATS.filter((c) => c.key === "other");
+    SF.STOCK_CATS = base
+      .concat(mains.map((c) => Object.assign({ color: "#0891B2", icon: "box" }, c, { custom: true })))
+      .concat(other);
+    const mainBy = Object.fromEntries(SF.STOCK_CATS.map((c) => [c.key, c]));
+    // หมวดย่อยที่หมวดแม่ถูกลบไปแล้ว ทิ้ง ไม่งั้นจะค้างเป็นหมวดลอย ๆ ที่กรองไม่เจอ
+    SF.STOCK_SUBS = all.filter((c) => c.parent && mainBy[c.parent])
+      .map((c) => Object.assign({ icon: "box" }, c, { color: c.color || (mainBy[c.parent] || {}).color || "#0891B2", custom: true, sub: true }));
+    SF.STOCK_SUB_BY_CAT = {};
+    SF.STOCK_SUBS.forEach((c) => { (SF.STOCK_SUB_BY_CAT[c.parent] = SF.STOCK_SUB_BY_CAT[c.parent] || []).push(c); });
+    // ค้นด้วยคีย์ได้ทั้งหมวดหลักและหมวดย่อย (ป้ายสี/ชื่อในตารางใช้ตัวนี้)
+    SF.STOCK_CAT_BY = Object.assign({}, mainBy, Object.fromEntries(SF.STOCK_SUBS.map((c) => [c.key, c])));
+  };
+  /* ของเก็บคีย์ที่ "ละเอียดที่สุด" ไว้ในช่อง cat (หมวดย่อยถ้าเลือก ไม่งั้นหมวดหลัก)
+     ตัวนี้แปลงกลับเป็นหมวดหลักเสมอ — ใช้ตอนกรอง/นับ/ตั้งรหัสวัสดุ */
+  SF.mainCatOf = function (key) {
+    const c = SF.STOCK_CAT_BY[key];
+    return (c && c.parent) || key;
+  };
+  SF.setCustomCats([]);
   SF.INVENTORY_SEED = INVENTORY;
   SF.MOVES_SEED = MOVES;
 
@@ -75,7 +104,7 @@
     "COMBINER BOX": "electrical" };   // เดิมไม่ได้แมป ทำให้ของในตู้ไปตกหมวด "อื่นๆ" ตอนสร้างวัสดุอัตโนมัติ
   // สร้างรหัสถัดไปของหมวด เช่น INV-0007 (กันซ้ำกับ used เพิ่มเติมได้)
   SF.genMatCode = function (cat, items, used) {
-    const pre = SF.MAT_PREFIX[cat] || "GEN";
+    const pre = SF.MAT_PREFIX[cat] || SF.MAT_PREFIX[SF.mainCatOf(cat)] || "GEN";   // หมวดย่อยใช้รหัสของหมวดหลัก
     const re = new RegExp("^" + pre + "-(\\d+)$", "i");
     let max = 0;
     (items || []).forEach((it) => { const m = re.exec(String(it.sku || "")); if (m) { const n = +m[1]; if (n > max) max = n; } });

@@ -699,24 +699,63 @@
     return order.map((k) => map[k]).filter((x) => x.qty > 0);
   }
 
+  /* ── ขนาด/ความหนาเหล็ก ──
+     งานโครงสร้าง (บันไดลิง · ราวกันตก · โครงรองรับอุปกรณ์) เดิมล็อกขนาดไว้ตายตัว
+     หน้างานจริงเปลี่ยนได้ตามความสูง/น้ำหนัก จึงให้เลือกเองต่อรายงาน
+     ค่าเริ่มต้น (dSize/dThk) ต้องได้ชื่อ "เดิม" เป๊ะ ๆ ของเก่าในคลังจะได้ยังผูกราคาได้ */
+  const STEEL_SPECS = {
+    box: { th: "เหล็กกล่องดำ", unit: "เส้น", barLen: 6,
+      sizes: ['1"x1"', '1"x2"', '1.5"x1.5"', '2"x2"', '2"x4"', '3"x3"', '4"x4"'],
+      thks: [1.2, 1.6, 2.0, 2.3, 3.2, 4.0], dSize: '2"x2"', dThk: "" },
+    round: { th: "เหล็กกลมดำ", unit: "เส้น", barLen: 6,
+      sizes: ['3/8"', '1/2"', '5/8"', '3/4"', '1"', '1 1/4"', '1 1/2"'],
+      thks: [], dSize: '1"', dThk: "" },
+    flat: { th: "เหล็กแบน", unit: "เส้น", barLen: 6, sizeUnit: "มม.",
+      sizes: [25, 32, 38, 50, 65, 75], thks: [3, 4, 5, 6, 9], dSize: 32, dThk: "" },
+    angle: { th: "เหล็กฉาก", unit: "เส้น", barLen: 6, sizeUnit: "มม.",
+      sizes: ["40x40", "50x50", "65x65", "75x75", "100x100"],
+      thks: [3, 4, 5, 6, 9], dSize: "40x40", dThk: 4 },
+    plate: { th: "แผ่นเพลท", unit: "แผ่น",
+      sizes: ['3"x3"', '4"x4"', '5"x5"', '6"x6"'],
+      thks: [4.5, 6, 9, 12], dSize: '4"x4"', dThk: "" },
+    anchor: { th: "พุ๊กเหล็ก", unit: "ตัว",
+      sizes: ['1/4"', '3/8"', '1/2"', '5/8"'], thks: [], dSize: '3/8"', dThk: "" },
+  };
+  /* ชื่อรายการจากขนาด+ความหนา — ไม่ระบุความหนา = ได้ชื่อสั้นแบบเดิม ไม่ทำของเก่าหลุด */
+  function steelName(kind, sel) {
+    const S = STEEL_SPECS[kind];
+    if (!S) return "";
+    const s = (sel && sel.size != null && sel.size !== "") ? sel.size : S.dSize;
+    const t = (sel && sel.thk != null && sel.thk !== "") ? sel.thk : S.dThk;
+    return S.th + " " + s + (S.sizeUnit ? " " + S.sizeUnit : "") + (t === "" || t == null ? "" : " หนา " + t + " มม.");
+  }
+  // ความยาวท่อน (ม.) — เผื่อเปลี่ยนเป็นเหล็ก 6 ม. เป็นอย่างอื่นในอนาคต
+  function steelBarLen(kind, sel) {
+    const S = STEEL_SPECS[kind] || {};
+    const v = +((sel && sel.barLen) || 0);
+    return v > 0 ? v : (S.barLen || 6);
+  }
+  function steelSel(b, kind) { return (((b && b.struct) || {}).steel || {})[kind] || {}; }
+  function steelOf(b, kind) { return steelName(kind, steelSel(b, kind)); }
+
   /* ── โครงสร้างรองรับอุปกรณ์ (Inverter / ตู้ MDB) ──
      อินเวอร์เตอร์ตัวใหญ่และตู้ MDB ต้องมีโครงเหล็กหรือฉากยึด ไม่ได้แขวนกับผนังเปล่า ๆ
      "ตั้งพื้น" = ทำโครงเหล็กกล่องยืนพื้น · "ยึดผนัง" = ฉากรองรับยิงพุกเข้าผนัง */
   const SUPPORT_KINDS = {
     floor: {
       label: "โครงเหล็กตั้งพื้น",
-      per: [
-        { name: 'เหล็กกล่องดำ 2"x2"', qty: 2, unit: "เส้น" },
-        { name: 'แผ่นเพลท 4"x4"', qty: 4, unit: "แผ่น" },
-        { name: 'พุ๊กเหล็ก 3/8"', qty: 16, unit: "ตัว" },
+      per: (b) => [
+        { name: steelOf(b, "box"), qty: 2, unit: "เส้น" },
+        { name: steelOf(b, "plate"), qty: 4, unit: "แผ่น" },
+        { name: steelOf(b, "anchor"), qty: 16, unit: "ตัว" },
       ],
     },
     wall: {
       label: "ฉากยึดผนัง",
-      per: [
-        { name: "เหล็กฉาก 40x40 มม. หนา 4 มม.", qty: 1, unit: "เส้น" },
-        { name: 'แผ่นเพลท 4"x4"', qty: 2, unit: "แผ่น" },
-        { name: 'พุ๊กเหล็ก 3/8"', qty: 8, unit: "ตัว" },
+      per: (b) => [
+        { name: steelOf(b, "angle"), qty: 1, unit: "เส้น" },
+        { name: steelOf(b, "plate"), qty: 2, unit: "แผ่น" },
+        { name: steelOf(b, "anchor"), qty: 8, unit: "ตัว" },
       ],
     },
   };
@@ -1031,25 +1070,29 @@
     // LADDER (บันไดลิง) — ต่อจุด: ความสูง h (m)
     const lad = (st.ladder || []).filter((p) => (+p.h || 0) > 0);
     if (lad.length) {
+      // ความยาวท่อนเหล็กตามที่เลือก (ปกติ 6 ม.) — เปลี่ยนแล้วจำนวนท่อนคิดใหม่ตาม
+      const lBox = steelBarLen("box", steelSel(b, "box"));
+      const lRound = steelBarLen("round", steelSel(b, "round"));
+      const lFlat = steelBarLen("flat", steelSel(b, "flat"));
       let boxF = 0, flatPcs = 0, roundLen = 0, plate = 0, anchor = 0;
       lad.forEach((p) => {
         const B = +p.h, C = B + 1;
-        boxF += Math.ceil((C * 2) / 6);                         // เหล็กกล่อง 2"x2" (2 ราง ÷ 6m/ท่อน)
+        boxF += Math.ceil((C * 2) / lBox);                       // เหล็กกล่อง (2 ราง ÷ ความยาวท่อน)
         const G = C >= 5 ? C - 2.5 : 0;                          // ครอบหลัง เมื่อสูง ≥5m
         const K = G * 3 + (G / 0.5) * 2;
-        flatPcs += Math.ceil(K / 6);                            // เหล็กแบน 32mm (÷6m)
+        flatPcs += Math.ceil(K / lFlat);                        // เหล็กแบน (÷ ความยาวท่อน)
         const rungs = Math.ceil(B / 0.35);
         roundLen += 0.5 * rungs;                                // ความยาวรวมเหล็กกลม (ขั้นละ 0.5m)
         const Q = B >= 3 ? 2 : 1, R = roundLen > 0 ? Q * 2 : 0;
         plate += R; anchor += R * 4;
       });
-      const roundPcs = Math.ceil(roundLen / 6);
+      const roundPcs = Math.ceil(roundLen / lRound);
       const it = [];
-      if (boxF) it.push({ name: 'เหล็กกล่องดำ 2"x2"', qty: sp(boxF + 1, ladSp), unit: "เส้น" });
-      if (roundPcs) it.push({ name: 'เหล็กกลมดำ 1"', qty: sp(roundPcs + 1, ladSp), unit: "เส้น" });
-      if (flatPcs) it.push({ name: "เหล็กแบน 32 มม.", qty: sp(flatPcs + 1, ladSp), unit: "เส้น" });
-      if (plate) it.push({ name: 'แผ่นเพลท 4"x4"', qty: sp(plate + 2, ladSp), unit: "แผ่น" });
-      if (anchor) it.push({ name: 'พุ๊กเหล็ก 3/8"', qty: sp(anchor + 5, ladSp), unit: "ตัว" });
+      if (boxF) it.push({ name: steelOf(b, "box"), qty: sp(boxF + 1, ladSp), unit: "เส้น" });
+      if (roundPcs) it.push({ name: steelOf(b, "round"), qty: sp(roundPcs + 1, ladSp), unit: "เส้น" });
+      if (flatPcs) it.push({ name: steelOf(b, "flat"), qty: sp(flatPcs + 1, ladSp), unit: "เส้น" });
+      if (plate) it.push({ name: steelOf(b, "plate"), qty: sp(plate + 2, ladSp), unit: "แผ่น" });
+      if (anchor) it.push({ name: steelOf(b, "anchor"), qty: sp(anchor + 5, ladSp), unit: "ตัว" });
       (st.ladderExtra || []).filter((x) => (x.name || "").trim() && +x.qty > 0).forEach((x) => it.push({ name: x.name.trim(), qty: +x.qty, unit: x.unit || "" }));
       if (it.length) out.push({ group: "LADDER (บันไดลิง)", items: it });
     }
@@ -1080,15 +1123,17 @@
     // GUARD RAIL — ต่อจุด: ความยาว layout len (m), จำนวนมุม corners
     const grl = (st.guardrail || []).filter((p) => (+p.len || 0) > 0 || (+p.corners || 0) > 0);
     if (grl.length) {
+      const lAng = steelBarLen("angle", steelSel(b, "angle"));
       let angle = 0, sling = 0, turnb = 0, clip = 0, sleeve = 0;
       grl.forEach((p) => {
         const B = +p.len || 0, D = +p.corners || 0;
-        angle += Math.ceil((B / 3) / 2);                        // เหล็กฉาก (support ทุก 3m, 1 ท่อน=2 support)
+        // เหล็กฉาก — support ทุก 3m, 1 ท่อน (ยาว lAng) ทำได้ lAng/3 support
+        angle += Math.ceil((B / 3) / Math.max(1, Math.floor(lAng / 3)));
         sling += B > 0 ? B * 2 + 20 : 0;                        // สลิง = layout ×2 + เผื่อ 20m/จุด
         const L = D * 4; turnb += L; clip += L * 2; sleeve += L;
       });
       const it = [];
-      if (angle) it.push({ name: "เหล็กฉาก 40x40 มม. หนา 4 มม.", qty: sp(angle + 1, grlSp), unit: "เส้น" });
+      if (angle) it.push({ name: steelOf(b, "angle"), qty: sp(angle + 1, grlSp), unit: "เส้น" });
       if (sling) it.push({ name: "สลิงสแตนเลส 6 มม.", qty: sp(sling + 10, grlSp), unit: "ม." });
       if (turnb) it.push({ name: "เกลียวเร่งสแตนเลส 8 มม.", qty: sp(turnb + 4, grlSp), unit: "ตัว" });
       if (clip) it.push({ name: "กิ๊บสลิงสแตนเลส 6 มม.", qty: sp(clip + 4, grlSp), unit: "ตัว" });
@@ -1372,7 +1417,7 @@
       const supRows = [];
       const addKind = (n, kindKey) => {
         const K = SUPPORT_KINDS[kindKey] || SUPPORT_KINDS.floor;
-        K.per.forEach((x) => supRows.push({ name: x.name, qty: Math.ceil(x.qty * n * (1 + supSpare / 100)), unit: x.unit }));
+        K.per(b).forEach((x) => supRows.push({ name: x.name, qty: Math.ceil(x.qty * n * (1 + supSpare / 100)), unit: x.unit }));
       };
       if (nInvSup > 0) addKind(nInvSup, sup.invKind);
       if (nMdbSup > 0) addKind(nMdbSup, sup.mdbKind);
@@ -1505,13 +1550,19 @@
        ทำหลัง qtyAdj เพราะคีย์ของ qtyAdj อิงชื่อเดิม ถ้าสลับลำดับจะหากันไม่เจอ
        ราคาไปหาจากคลังด้วย "ชื่อใหม่" ต้นทุนจึงผูกกับของที่เลือกจริง ไม่ใช่ชื่อที่ระบบตั้ง */
     const ren = b.rename || {};
+    const renKeep = b.renameKeep || {};   // ชื่อไหนติ๊ก "ใช้ราคาเดิม" ไว้ ราคายังไปหาจากชื่อที่ระบบถอดให้
     if (Object.keys(ren).length) {
       groups.forEach((g) => {
         if (SERVICE_GROUPS.indexOf(g.group) >= 0) return;
         g.items = g.items.map((it) => {
-          const nm = String(ren[qtyKey(g.group, it.name)] || "").trim();
+          const k = qtyKey(g.group, it.name);
+          const nm = String(ren[k] || "").trim();
           if (!nm || nm === it.name) return it;
-          return Object.assign({}, it, { name: nm, nameAuto: it.name, renamed: true });
+          const o = { name: nm, nameAuto: it.name, renamed: true };
+          /* priceName = ชื่อที่ใช้ "หาราคา" ปกติเท่ากับชื่อที่แสดง
+             ติ๊กใช้ราคาเดิม → ล็อกไว้ที่ชื่อเดิม เปลี่ยนแค่ป้ายบนใบ ต้นทุนไม่ขยับ */
+          if (renKeep[k]) o.priceName = it.name;
+          return Object.assign({}, it, o);
         });
       });
     }
@@ -1605,13 +1656,11 @@
     add("GROUNDING", "GROUNDTESTBOX-PVC-SEC", "pcs");
     // งานโครงสร้าง (LADDER / WALKWAY / GUARD RAIL) — วัสดุเฉพาะที่ยังไม่อยู่ในหมวดอื่น
     // (END CLAMP / RAIL / L FEET ใช้ร่วมกับ MOUNTING แล้ว จึงไม่ซ้ำที่นี่)
-    add("LADDER (บันไดลิง)", 'เหล็กกล่องดำ 2"x2"', "เส้น");
-    add("LADDER (บันไดลิง)", 'เหล็กกลมดำ 1"', "เส้น");
-    add("LADDER (บันไดลิง)", "เหล็กแบน 32 มม.", "เส้น");
-    add("LADDER (บันไดลิง)", 'แผ่นเพลท 4"x4"', "แผ่น");
-    add("LADDER (บันไดลิง)", 'พุ๊กเหล็ก 3/8"', "ตัว");
+    // ชื่อเหล็กมาจาก steelName() ตัวเดียวกับที่ถอดใช้ — ขนาดตั้งต้นจึงตรงกันเสมอ ไม่หลุดจากกัน
+    ["box", "round", "flat", "plate", "anchor"].forEach((k) =>
+      add("LADDER (บันไดลิง)", steelName(k), STEEL_SPECS[k].unit));
     add("WALKWAY", "WALKWAY+JOINER", "แผ่น");
-    add("GUARD RAIL", "เหล็กฉาก 40x40 มม. หนา 4 มม.", "เส้น");
+    add("GUARD RAIL", steelName("angle"), STEEL_SPECS.angle.unit);
     add("GUARD RAIL", "สลิงสแตนเลส 6 มม.", "ม.");
     add("GUARD RAIL", "เกลียวเร่งสแตนเลส 8 มม.", "ตัว");
     add("GUARD RAIL", "กิ๊บสลิงสแตนเลส 6 มม.", "ตัว");
@@ -1646,7 +1695,7 @@
       let sub = 0;
       const items = g.items.map((it) => {
         // หมวดค่าแรง/ค่าขออนุญาต ราคาอยู่ในบรรทัดเอง · หมวดวัสดุดึงราคาจากคลัง
-        const key = matKey(it.name);
+        const key = matKey(it.priceName || it.name);   // priceName = ชื่อที่ล็อกราคาไว้ (ติ๊ก "ใช้ราคาเดิม" ตอนเปลี่ยนชื่อ)
         const base = service ? {} : (priceMap[key] || {});
         const rec = service ? base : variantOf(key, base);
         const price = service ? (+it.price || 0) : (+rec.price || 0);
@@ -1776,6 +1825,7 @@
 
   window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, WAY_PIPE_LEN, TRAY_PIPE_LEN, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
+    STEEL_SPECS, steelName, steelBarLen, steelSel, steelOf,
     TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, ACC_ALLOW_PCT, VAT_RATE, priceBreakdown,
     TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,
     UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,

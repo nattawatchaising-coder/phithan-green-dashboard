@@ -253,14 +253,25 @@ function App() {
     const mk = window.BOQ ? window.BOQ.matKey : (x) => x;
     const m = {};
     Object.keys(priceStore.priceMap).forEach((n) => { m[mk(n)] = priceStore.priceMap[n]; }); // legacy ก่อน
-    (stock.items || []).forEach((s) => {                                                    // คลังทับ
-      if (!s.name) return;
-      const k = mk(s.name);
+    const put = (k, v, alias) => {
+      const cur = m[k];
+      if (cur && cur.variants) { if (!cur.variants.some((x) => x.id === v.id)) cur.variants.push(v); }
+      // ชื่อจริงชนะเสมอ — ชื่อเก่า (alias) เข้าได้เฉพาะช่องที่ยังว่าง จะได้ไม่ไปทับของที่มีชื่อนั้นอยู่จริง
+      else if (!alias || !cur) m[k] = Object.assign({}, v, { variants: [v] });
+    };
+    const mats = (stock.items || []).filter((s) => s.name);
+    mats.forEach((s) => {                                                                   // คลังทับ
       const v = { id: s.id, sku: s.sku || "", code: s.sku || "", price: +s.price || 0, unit: s.unit || "",
         brand: s.brand || "", model: s.model || "", label: window.SF.matVariantLabel(s) };
-      const cur = m[k];
-      if (cur && cur.variants) cur.variants.push(v);
-      else m[k] = Object.assign({}, v, { variants: [v] });
+      put(mk(s.name), v, false);
+    });
+    /* ชื่อเก่า/ชื่อพ้อง (aka) — เปลี่ยนชื่อของในคลังแล้ว ใบถอดของที่ทำไว้ยังหาราคาเจอ
+       ทำรอบสองแยก เพื่อให้ชื่อจริงของทุกตัวถูกจองก่อน */
+    mats.forEach((s) => {
+      if (!(s.aka || []).length) return;
+      const v = { id: s.id, sku: s.sku || "", code: s.sku || "", price: +s.price || 0, unit: s.unit || "",
+        brand: s.brand || "", model: s.model || "", label: window.SF.matVariantLabel(s) };
+      s.aka.forEach((n) => { if (n) put(mk(n), v, true); });
     });
     return m;
   }, [stock.items, priceStore.priceMap]);

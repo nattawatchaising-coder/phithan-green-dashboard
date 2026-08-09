@@ -209,12 +209,12 @@ function StockShopModal({ stock, job, byName, onClose }) {
   const [cat, setCat] = React.useState("all");
   const extraItems = allItems.filter((it) => {
     if (boqStockIds.has(it.id)) return false;
-    if (cat !== "all" && it.cat !== cat) return false;
+    if (cat !== "all" && it.cat !== cat && SF.mainCatOf(it.cat) !== cat) return false;   // เลือกหมวดหลัก = เห็นของในหมวดย่อยด้วย
     if (q && !_matNorm(it.name + " " + (it.sku || "")).includes(_matNorm(q))) return false;
     return true;
   });
   const extraCats = React.useMemo(() => {
-    const present = new Set(allItems.filter((it) => !boqStockIds.has(it.id)).map((it) => it.cat));
+    const present = new Set(allItems.filter((it) => !boqStockIds.has(it.id)).map((it) => SF.mainCatOf(it.cat)));
     return (SF.STOCK_CATS || []).filter((c) => present.has(c.key));
   }, [allItems, boqStockIds]);
 

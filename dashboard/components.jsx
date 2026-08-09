@@ -210,16 +210,23 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
   const cur = (options || []).find((o) => String(o.value) === String(value));
   // หมวดหมู่: ถ้า option มีฟิลด์ group → โชว์ชิปฟิลเตอร์หมวดด้านบน (กดกรองก่อนเลือก)
   const [cat, setCat] = React.useState(null);   // null = ทั้งหมด
+  const [q, setQ] = React.useState("");
   const groupList = React.useMemo(() => [...new Set((options || []).map((o) => o.group).filter(Boolean))], [options]);
   const hasGroups = groupList.length > 1;
-  const shown = (hasGroups && cat) ? (options || []).filter((o) => o.group === cat) : (options || []);
+  // รายการยาว ๆ (เช่น วัสดุในคลังหลายร้อยตัว) เลื่อนหาไม่ไหว — มีช่องค้นให้พิมพ์
+  const hasSearch = (options || []).length >= 12;
+  const byCat = (hasGroups && cat) ? (options || []).filter((o) => o.group === cat) : (options || []);
+  const qq = q.trim().toLowerCase();
+  const shown = qq
+    ? byCat.filter((o) => (String(o.label || "") + " " + String(o.sub || "") + " " + String(o.group || "")).toLowerCase().indexOf(qq) >= 0)
+    : byCat;
 
   const openMenu = () => {
     if (disabled) return;
     const r = btnRef.current.getBoundingClientRect();
     const spaceBelow = window.innerHeight - r.bottom;
     const needUp = spaceBelow < 260 && r.top > spaceBelow;   // ที่ด้านล่างไม่พอ + ด้านบนมากกว่า → เปิดขึ้นบน
-    const maxH = Math.min(340, (needUp ? r.top : spaceBelow) - 12);
+    const maxH = Math.min(400, (needUp ? r.top : spaceBelow) - 12);
     /* ตัวเลือกที่มีคำอธิบาย (sub) ต้องมีที่พออ่าน — ปุ่มแคบ ๆ 150px ทำให้ข้อความหักเป็นเส้นเดียวอ่านไม่ได้
        จึงกางเมนูให้กว้างขึ้นได้ แต่ไม่ให้ล้นขอบจอ */
     const hasSub = (options || []).some((o) => o.sub);
@@ -251,7 +258,7 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
     return () => { clearTimeout(t); window.removeEventListener("scroll", close, true); window.removeEventListener("resize", close); };
   }, [open]);
 
-  React.useEffect(() => { if (!open) { setAdding(false); setAddText(""); setCat(null); } }, [open]);
+  React.useEffect(() => { if (!open) { setAdding(false); setAddText(""); setCat(null); setQ(""); } }, [open]);
 
   return (
     <React.Fragment>
@@ -275,6 +282,15 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
           <div ref={panelRef} style={{ position: "fixed", top: rect.top != null ? rect.top : undefined, bottom: rect.bottom != null ? rect.bottom : undefined, left: rect.left, width: rect.width, zIndex: 201,
             background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 14px 40px rgba(8,20,14,.22)",
             maxHeight: rect.maxH || 320, display: "flex", flexDirection: "column", overflow: "hidden", padding: 5 }}>
+            {hasSearch && (
+              <div style={{ flexShrink: 0, padding: "1px 2px 7px" }}>
+                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="พิมพ์ค้นหา…"
+                  autoFocus={!window.matchMedia("(max-width: 860px)").matches}
+                  onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); setOpen(false); } }}
+                  style={{ width: "100%", background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-1)",
+                    fontFamily: "inherit", fontSize: 13, padding: "8px 10px", borderRadius: 9, outline: "none" }} />
+              </div>
+            )}
             {hasGroups && (
               <div style={{ flexShrink: 0, display: "flex", flexWrap: "wrap", gap: 5, padding: "1px 2px 8px",
                 background: "var(--bg)", borderBottom: "1px solid var(--border)", marginBottom: 4 }}>
@@ -315,8 +331,15 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
                 </React.Fragment>
               );
             })}
+            {shown.length === 0 && (
+              <div style={{ padding: "14px 11px", fontSize: 12.5, color: "var(--text-3)", textAlign: "center" }}>
+                ไม่พบ “{q}”{addable ? " — พิมพ์ชื่อใหม่ได้ที่ปุ่มด้านล่าง" : ""}
+              </div>
+            )}
+            </div>
+            {/* ปุ่มพิมพ์ชื่อเอง ตรึงไว้ท้ายเมนู ไม่ต้องเลื่อนผ่านตัวเลือกทั้งหมดถึงจะเจอ */}
             {addable && (adding ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 7px", marginTop: 2, borderTop: "1px solid var(--border)" }}>
+              <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 6, padding: "6px 7px", marginTop: 2, borderTop: "1px solid var(--border)" }}>
                 <input autoFocus value={addText} placeholder="ชื่อตัวเลือกใหม่"
                   onChange={(e) => setAddText(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); submitAdd(); } else if (e.key === "Escape") { setAdding(false); setAddText(""); } }}
@@ -324,13 +347,12 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
                 <button type="button" onClick={submitAdd} title="เพิ่ม" style={{ flexShrink: 0, display: "grid", placeItems: "center", width: 32, height: 32, background: "var(--primary)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}><Icon name="check" size={15} color="#fff" sw={2.6} /></button>
               </div>
             ) : (
-              <button type="button" onClick={() => setAdding(true)}
-                style={{ width: "100%", display: "flex", alignItems: "center", gap: 7, padding: "10px 11px", borderRadius: 9, border: "none", marginTop: 2, borderTop: "1px solid var(--border)",
+              <button type="button" onClick={() => { setAdding(true); if (q.trim()) setAddText(q.trim()); }}
+                style={{ flexShrink: 0, width: "100%", display: "flex", alignItems: "center", gap: 7, padding: "10px 11px", borderRadius: 9, border: "none", marginTop: 2, borderTop: "1px solid var(--border)",
                   background: "transparent", cursor: "pointer", fontFamily: "inherit", textAlign: "left", fontSize: 13, fontWeight: 700, color: "var(--primary-dark)" }}>
-                <Icon name="plus" size={14} color="var(--primary-dark)" /> เพิ่มตัวเลือกใหม่
+                <Icon name="plus" size={14} color="var(--primary-dark)" /> {q.trim() ? "ใช้ชื่อ “" + q.trim() + "”" : "พิมพ์ชื่อเอง"}
               </button>
             ))}
-            </div>
           </div>
         </React.Fragment>
       ), document.body)}
