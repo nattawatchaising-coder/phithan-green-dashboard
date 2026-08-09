@@ -833,6 +833,7 @@ function DetailDrawer({
   stock,
   onSaveBOQ,
   onSurvey,
+  onSurveyReport,
   priceMap
 }) {
   const SF = window.SF;
@@ -1145,7 +1146,7 @@ function DetailDrawer({
       label: "ยังไม่สำรวจ",
       color: "var(--text-3)"
     };
-    return React.createElement("button", {
+    return React.createElement(React.Fragment, null, React.createElement("button", {
       onClick: onSurvey,
       style: {
         width: "100%",
@@ -1197,7 +1198,30 @@ function DetailDrawer({
       name: "arrowRight",
       size: 16,
       color: "var(--text-3)"
-    }));
+    })), onSurveyReport && ss.state !== "none" && React.createElement("button", {
+      onClick: onSurveyReport,
+      style: {
+        width: "100%",
+        marginBottom: 10,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 7,
+        padding: "10px 14px",
+        background: "var(--primary-soft)",
+        border: "1px solid var(--primary)",
+        borderRadius: 11,
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 13,
+        fontWeight: 700,
+        color: "var(--primary-dark)"
+      }
+    }, React.createElement(Icon, {
+      name: "file",
+      size: 15,
+      color: "var(--primary-dark)"
+    }), " \u0E14\u0E39\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1C\u0E25\u0E2A\u0E33\u0E23\u0E27\u0E08 \xB7 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF"));
   })(), window.SitePlanEditor && React.createElement("button", {
     onClick: () => setPlanOpen(true),
     style: {

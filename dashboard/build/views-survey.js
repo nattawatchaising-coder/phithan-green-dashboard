@@ -304,6 +304,7 @@ function LeadsView({
   jobs,
   onMenuOpen,
   onOpenSurvey,
+  onReport,
   onConvert,
   canConvert
 }) {
@@ -571,7 +572,14 @@ function LeadsView({
       name: "list",
       size: 14,
       color: "#fff"
-    }), " ", st.state === "none" ? "เริ่มแบบสำรวจ" : "ดู / แก้แบบสำรวจ"), canConvert && (l.status || "open") !== "won" && React.createElement("button", {
+    }), " ", st.state === "none" ? "เริ่มแบบสำรวจ" : "ดู / แก้แบบสำรวจ"), onReport && st.state !== "none" && React.createElement("button", {
+      onClick: () => onReport(window.leadAsJob(l)),
+      style: leadBtn("var(--primary-dark)")
+    }, React.createElement(Icon, {
+      name: "file",
+      size: 14,
+      color: "var(--primary-dark)"
+    }), " \u0E23\u0E32\u0E22\u0E07\u0E32\u0E19 \xB7 PDF"), canConvert && (l.status || "open") !== "won" && React.createElement("button", {
       onClick: () => convert(l),
       style: leadBtn("var(--tint-green-tx)", true)
     }, React.createElement(Icon, {

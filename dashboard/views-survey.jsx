@@ -114,7 +114,7 @@ function SurveyView({ jobs, role, onOpen, onToggleSkip }) {
    LEADS — หน้ารวม "ลูกค้าสำรวจ" (ยังไม่เป็นงาน)
    อยู่คนละฐานกับงานติดตั้ง · ตกลงติดตั้งเมื่อไหร่ค่อยกด "แปลงเป็นงาน"
    ============================================================ */
-function LeadsView({ leadStore, appts, jobs, onMenuOpen, onOpenSurvey, onConvert, canConvert }) {
+function LeadsView({ leadStore, appts, jobs, onMenuOpen, onOpenSurvey, onReport, onConvert, canConvert }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [filter, setFilter] = React.useState("open");
   const [edit, setEdit] = React.useState(null);
@@ -204,6 +204,7 @@ function LeadsView({ leadStore, appts, jobs, onMenuOpen, onOpenSurvey, onConvert
                   {/* ปุ่มจัดการ */}
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", borderTop: "1px solid var(--border)", paddingTop: 10 }}>
                     {onOpenSurvey && <button onClick={() => onOpenSurvey(window.leadAsJob(l))} style={leadBtn("var(--primary)", true)}><Icon name="list" size={14} color="#fff" /> {st.state === "none" ? "เริ่มแบบสำรวจ" : "ดู / แก้แบบสำรวจ"}</button>}
+                    {onReport && st.state !== "none" && <button onClick={() => onReport(window.leadAsJob(l))} style={leadBtn("var(--primary-dark)")}><Icon name="file" size={14} color="var(--primary-dark)" /> รายงาน · PDF</button>}
                     {canConvert && (l.status || "open") !== "won" && <button onClick={() => convert(l)} style={leadBtn("var(--tint-green-tx)", true)}><Icon name="check" size={14} color="#fff" sw={2.4} /> แปลงเป็นงานติดตั้ง</button>}
                     {(l.status || "open") === "open" && <button onClick={() => leadStore.patch(l.id, { status: "lost" })} style={leadBtn("var(--text-2)")}>ไม่ติดตั้ง</button>}
                     {(l.status || "open") === "lost" && <button onClick={() => leadStore.patch(l.id, { status: "open" })} style={leadBtn("var(--text-2)")}>กลับมารอตัดสินใจ</button>}

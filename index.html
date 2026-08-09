@@ -457,6 +457,40 @@ input, select, textarea { font-family: inherit; }
 [data-theme="aurora"] ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.28); }
 [data-theme="aurora"] ::selection { background: rgba(48,209,88,.3); color: #fff; }
 [data-theme="aurora"] .sidebar-overlay { background: rgba(0,0,0,.55); }
+/* ── รายงานผลสำรวจหน้างาน ──
+   กระดาษรายงานเป็นพื้นขาวเสมอ (ไม่ตามธีมมืด) เพราะมันคือหน้าที่จะพิมพ์ออกมาจริง */
+.sv-rep-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 18px; }
+.sv-rep-info { display: grid; grid-template-columns: 88px 1fr 88px 1fr; }
+.sv-rep-info > :nth-child(4n) { border-right: none; }
+.sv-rep-paper { --bg: #fff; --surface: #fff; --surface2: #F7FAF8; --surface3: #EEF3EF;
+  --border: #E3EAE5; --border-strong: #CFDAD3; --text-1: #15211A; --text-2: #55645B; --text-3: #93A399;
+  --primary: #22A35B; --primary-dark: #14663A; color-scheme: light; }
+@media (max-width: 700px) {
+  .sv-rep-grid2 { grid-template-columns: 1fr; }
+  .sv-rep-info { grid-template-columns: 84px 1fr; }
+  .sv-rep-info > :nth-child(2n) { border-right: none; }
+}
+/* รูปในรายงาน — แนวนอนเต็มความกว้าง · แนวตั้งจำกัดความสูงแล้วจัดกลาง ไม่งั้นกินกระดาษทั้งหน้า */
+.sv-rep-shot img { display: block; width: 100%; max-width: 100%; }
+.sv-rep-shot[data-p="1"] img { width: auto; max-height: 440px; }
+
+/* พิมพ์ / บันทึกเป็น PDF — ให้เหลือเฉพาะกระดาษรายงาน ไม่มีเมนูหรือปุ่มติดไปด้วย */
+@media print {
+  html, body, #root { height: auto !important; overflow: visible !important; background: #fff !important; }
+  .app-root { display: block !important; height: auto !important; overflow: visible !important; }
+  .app-root > *:not(.sv-rep-overlay) { display: none !important; }
+  .sv-rep-overlay { position: static !important; inset: auto !important; background: none !important;
+    padding: 0 !important; overflow: visible !important; z-index: auto !important; }
+  .sv-rep-paper { max-width: none !important; margin: 0 !important; padding: 0 !important;
+    border-radius: 0 !important; box-shadow: none !important; }
+  .sv-rep-noprint { display: none !important; }
+  .sv-rep-shot img { max-height: 165mm; }
+  .sv-rep-shot[data-p="1"] img { max-height: 135mm; }
+  /* คงสีป้าย/เส้นคั่นไว้ในไฟล์ PDF ไม่งั้นเบราว์เซอร์ตัดพื้นหลังทิ้งหมด */
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  @page { size: A4; margin: 12mm 10mm; }
+}
+
 /* ช่องกรอกทั่วระบบใช้พื้น var(--surface) ซึ่งเท่ากับพื้นการ์ด — บนพื้นมืดจะกลืนกันจนหาไม่เจอ
    จึงยกช่องกรอกให้สว่างกว่าการ์ดหนึ่งระดับ */
 [data-theme="aurora"] input:not([type="checkbox"]):not([type="radio"]),
@@ -507,7 +541,7 @@ input, select, textarea { font-family: inherit; }
 <script src="dashboard/build/solarreport.js?v=30"></script>
 <script src="dashboard/build/solarui.js?v=58"></script>
 <script src="dashboard/build/plan3d.js?v=63"></script>
-<script src="dashboard/build/drawer.js?v=42"></script>
+<script src="dashboard/build/drawer.js?v=43"></script>
 <script src="dashboard/build/views-overview.js?v=30"></script>
 <script src="dashboard/build/views-board.js?v=27"></script>
 <script src="dashboard/build/views-table.js?v=24"></script>
@@ -515,10 +549,11 @@ input, select, textarea { font-family: inherit; }
 <script src="dashboard/build/views-calendar.js?v=27"></script>
 <script src="dashboard/build/views-stock.js?v=91"></script>
 <script src="dashboard/build/form.js?v=30"></script>
-<script src="dashboard/build/survey.js?v=3"></script>
-<script src="dashboard/build/views-survey.js?v=4"></script>
+<script src="dashboard/build/survey.js?v=4"></script>
+<script src="dashboard/build/survey-report.js?v=2"></script>
+<script src="dashboard/build/views-survey.js?v=5"></script>
 <script src="dashboard/build/survey-sched.js?v=22"></script>
 <script src="dashboard/build/auth.js?v=13"></script>
-<script src="dashboard/build/app.js?v=85"></script>
+<script src="dashboard/build/app.js?v=86"></script>
 </body>
 </html>

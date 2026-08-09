@@ -313,7 +313,7 @@ function StockShopModal({ stock, job, byName, onClose }) {
   );
 }
 
-function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, stock, onSaveBOQ, onSurvey, priceMap }) {
+function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, stock, onSaveBOQ, onSurvey, onSurveyReport, priceMap }) {
   const SF = window.SF;
   const open = !!job;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -431,6 +431,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               {onSurvey && (() => {
                 const ss = window.surveyStatus ? window.surveyStatus(job) : { state: "none", pct: 0, label: "ยังไม่สำรวจ", color: "var(--text-3)" };
                 return (
+                  <React.Fragment>
                   <button onClick={onSurvey}
                     style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
                       background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
@@ -441,6 +442,16 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                     </span>
                     <Icon name="arrowRight" size={16} color="var(--text-3)" />
                   </button>
+                  {/* ออกรายงานได้เมื่อเริ่มสำรวจแล้ว — ยังไม่มีข้อมูลก็ไม่มีอะไรให้พิมพ์ */}
+                  {onSurveyReport && ss.state !== "none" && (
+                    <button onClick={onSurveyReport}
+                      style={{ width: "100%", marginBottom: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "10px 14px",
+                        background: "var(--primary-soft)", border: "1px solid var(--primary)", borderRadius: 11, cursor: "pointer", fontFamily: "inherit",
+                        fontSize: 13, fontWeight: 700, color: "var(--primary-dark)" }}>
+                      <Icon name="file" size={15} color="var(--primary-dark)" /> ดูรายงานผลสำรวจ · บันทึก PDF
+                    </button>
+                  )}
+                  </React.Fragment>
                 );
               })()}
 

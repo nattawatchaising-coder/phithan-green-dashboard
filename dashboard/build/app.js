@@ -199,6 +199,7 @@ function App() {
   const [form, setForm] = React.useState(null);
   const [surveyJob, setSurveyJob] = React.useState(null);
   const [surveyAppt, setSurveyAppt] = React.useState(null);
+  const [reportJob, setReportJob] = React.useState(null);
   const [techMgr, setTechMgr] = React.useState(false);
   const [brandMgr, setBrandMgr] = React.useState(false);
   const [userMgr, setUserMgr] = React.useState(false);
@@ -592,6 +593,7 @@ function App() {
     jobs: jobs,
     onMenuOpen: () => setSidebarOpen(true),
     onOpenSurvey: can(role, "doSurvey") || can(role, "dispatch") ? pseudo => openSurvey(pseudo) : null,
+    onReport: pseudo => setReportJob(pseudo),
     onConvert: convertLead,
     canConvert: can(role, "addJob")
   }) : view === "myschedule" ? React.createElement(MyScheduleView, {
@@ -704,6 +706,7 @@ function App() {
       boq
     }),
     onSurvey: can(role, "doSurvey") || can(role, "dispatch") ? () => openSurvey(selectedJob) : null,
+    onSurveyReport: () => setReportJob(selectedJob),
     priceMap: can(role, "delJob") ? effPriceMap : null,
     onEdit: id => {
       setSelected(null);
@@ -719,7 +722,7 @@ function App() {
       setSurveyJob(null);
       setSurveyAppt(null);
     },
-    onSave: survey => {
+    onSave: (survey, thenReport) => {
       const s = surveyAppt ? Object.assign({}, survey, {
         appointmentId: surveyAppt.id
       }) : survey;
@@ -729,9 +732,15 @@ function App() {
         survey: s
       });
       if (surveyAppt) apptStore.setStatus(surveyAppt.id, "done");
+      if (thenReport) setReportJob(Object.assign({}, surveyJob, {
+        survey: s
+      }));
       setSurveyJob(null);
       setSurveyAppt(null);
     }
+  }), reportJob && React.createElement(SurveyReportHost, {
+    job: reportJob,
+    onClose: () => setReportJob(null)
   }), form && React.createElement(JobForm, {
     initial: form.job,
     isNew: form.isNew,

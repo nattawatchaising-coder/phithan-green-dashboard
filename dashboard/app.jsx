@@ -113,6 +113,7 @@ function App() {
   const [form, setForm] = React.useState(null); // {job, isNew}
   const [surveyJob, setSurveyJob] = React.useState(null); // งานที่กำลังเปิด wizard สำรวจหน้างาน
   const [surveyAppt, setSurveyAppt] = React.useState(null); // นัดหมายที่เปิด wizard มา (ถ้ามี) — ใช้ลิงก์ + ปิดสถานะ
+  const [reportJob, setReportJob] = React.useState(null);   // งาน/ลูกค้าที่กำลังเปิดรายงานผลสำรวจ
   const [techMgr, setTechMgr] = React.useState(false);
   const [brandMgr, setBrandMgr] = React.useState(false);
   const [userMgr, setUserMgr] = React.useState(false);
@@ -385,6 +386,7 @@ function App() {
           <LeadsView leadStore={leadStore} appts={apptStore.appts} jobs={jobs}
             onMenuOpen={() => setSidebarOpen(true)}
             onOpenSurvey={(can(role, "doSurvey") || can(role, "dispatch")) ? (pseudo) => openSurvey(pseudo) : null}
+            onReport={(pseudo) => setReportJob(pseudo)}
             onConvert={convertLead} canConvert={can(role, "addJob")} />
         ) : view === "myschedule" ? (
           <MyScheduleView appts={apptStore.appts} jobs={jobs} leads={leadStore.leads} me={auth.current}
@@ -433,18 +435,22 @@ function App() {
         currentUser={auth.current} canManage={can(role, "delJob")} stock={stock}
         onSaveBOQ={(id, boq) => store.patch(id, { boq })}
         onSurvey={(can(role, "doSurvey") || can(role, "dispatch")) ? () => openSurvey(selectedJob) : null}
+        onSurveyReport={() => setReportJob(selectedJob)}
         priceMap={can(role, "delJob") ? effPriceMap : null}
         onEdit={(id) => { setSelected(null); setForm({ job: store.raw.find((r) => r.id === id), isNew: false }); }} />
       {surveyJob && <SurveyWizard job={surveyJob} currentUser={auth.current}
         onClose={() => { setSurveyJob(null); setSurveyAppt(null); }}
-        onSave={(survey) => {
+        onSave={(survey, thenReport) => {
           const s = surveyAppt ? Object.assign({}, survey, { appointmentId: surveyAppt.id }) : survey;
           // งานสำรวจของ "ลูกค้าสำรวจ" เก็บไว้ที่ตัวลูกค้า ไม่แตะฐานข้อมูลงาน
           if (surveyJob.__lead) leadStore.patch(surveyJob.id, { survey: s });
           else store.patch(surveyJob.id, { survey: s });
           if (surveyAppt) apptStore.setStatus(surveyAppt.id, "done"); // เสร็จแบบสำรวจ → ปิดนัด
+          // เปิดรายงานด้วยข้อมูลที่เพิ่งบันทึก (store ยังไม่เด้งกลับมาตอนนี้)
+          if (thenReport) setReportJob(Object.assign({}, surveyJob, { survey: s }));
           setSurveyJob(null); setSurveyAppt(null);
         }} />}
+      {reportJob && <SurveyReportHost job={reportJob} onClose={() => setReportJob(null)} />}
       {form && <JobForm initial={form.job} isNew={form.isNew} jobs={jobs} onSave={onSave} onClose={() => setForm(null)} onManageTechs={() => setTechMgr(true)} onManageBrands={() => setBrandMgr(true)} />}
       {techMgr && <TechManager store={techStore} onClose={() => setTechMgr(false)} />}
       {brandMgr && <BrandManager store={brandStore} onClose={() => setBrandMgr(false)} />}
