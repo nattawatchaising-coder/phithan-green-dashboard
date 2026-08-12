@@ -1099,6 +1099,7 @@ function p3NewBlk(i) {
     adds: {}
   };
 }
+const P3_SWEEP_SEC = 15;
 const p3BlkRy = (roof, blk) => (roof && roof.kind === "poly" ? 1 : -1) * (+(blk && blk.rot) || 0) * P3_DEG;
 const p3BlkPW = b => b.orient === "portrait" ? P3_PANEL_SHORT : P3_PANEL_LONG;
 const p3BlkPD = b => b.orient === "portrait" ? P3_PANEL_LONG : P3_PANEL_SHORT;
@@ -2148,6 +2149,7 @@ function Plan3DEditor({
   const [tab, setTab] = React.useState("roof");
   const [dirty, setDirty] = React.useState(false);
   const [animating, setAnimating] = React.useState(false);
+  const [sweepSpd, setSweepSpd] = React.useState(1);
   const [drawing, setDrawing] = React.useState(false);
   const [drawPts, setDrawPts] = React.useState([]);
   const [showVerts, setShowVerts] = React.useState(true);
@@ -3350,20 +3352,29 @@ function Plan3DEditor({
       gapSize: SR * 0.025
     })).computeLineDistances());
   }, [st.sun, st.groundW, ready, showSun]);
+  const sweepH = React.useRef(null);
   React.useEffect(() => {
-    if (!animating) return;
-    let run = true;
-    const step = () => {
+    if (!animating) {
+      sweepH.current = null;
+      return;
+    }
+    let run = true,
+      last = performance.now();
+    const rate = (18.5 - 6) / P3_SWEEP_SEC * sweepSpd;
+    const startH = +st.sun.hour || 12;
+    const step = now => {
       if (!run) return;
-      setSt(p => {
-        let h = (+p.sun.hour || 12) + 0.06;
-        if (h > 18.5) h = 6;
-        return Object.assign({}, p, {
-          sun: Object.assign({}, p.sun, {
-            hour: Math.round(h * 100) / 100
-          })
-        });
-      });
+      const dt = Math.min(0.25, (now - last) / 1000);
+      last = now;
+      if (sweepH.current == null) sweepH.current = startH;
+      sweepH.current += rate * dt;
+      if (sweepH.current > 18.5) sweepH.current = 6;
+      const hv = Math.round(sweepH.current * 100) / 100;
+      setSt(p => Object.assign({}, p, {
+        sun: Object.assign({}, p.sun, {
+          hour: hv
+        })
+      }));
       raf = requestAnimationFrame(step);
     };
     let raf = requestAnimationFrame(step);
@@ -3371,7 +3382,7 @@ function Plan3DEditor({
       run = false;
       cancelAnimationFrame(raf);
     };
-  }, [animating]);
+  }, [animating, sweepSpd]);
   React.useEffect(() => {
     const t = tRef.current;
     if (!ready || !t.renderer) return;
@@ -5802,7 +5813,46 @@ function Plan3DEditor({
   }, React.createElement(P3Icon, {
     name: animating ? "pause" : "play",
     size: 14
-  }), animating ? "หยุดกวาดเงา" : "กวาดเงาทั้งวัน (06:00–18:30)")), React.createElement("button", {
+  }), animating ? "หยุดกวาดเงา" : "กวาดเงาทั้งวัน (06:00–18:30)"), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      alignItems: "center"
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "var(--text-3)",
+      flex: "0 0 auto"
+    }
+  }, "\u0E04\u0E27\u0E32\u0E21\u0E40\u0E23\u0E47\u0E27"), [{
+    v: 0.5,
+    th: "ช้า"
+  }, {
+    v: 1,
+    th: "ปกติ"
+  }, {
+    v: 2,
+    th: "เร็ว"
+  }, {
+    v: 4,
+    th: "เร็วมาก"
+  }].map(o => React.createElement("button", {
+    key: o.v,
+    className: "p3-chip",
+    "data-on": sweepSpd === o.v ? "1" : "0",
+    onClick: () => setSweepSpd(o.v),
+    style: {
+      flex: 1,
+      justifyContent: "center",
+      borderRadius: 8,
+      padding: "5px 4px",
+      fontSize: 11.5
+    }
+  }, o.th))), React.createElement("span", {
+    className: "p3-note"
+  }, "\u0E1B\u0E01\u0E15\u0E34 = \u0E01\u0E27\u0E32\u0E14\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48\u0E40\u0E0A\u0E49\u0E32\u0E16\u0E36\u0E07\u0E40\u0E22\u0E47\u0E19\u0E43\u0E19 ", P3_SWEEP_SEC, " \u0E27\u0E34\u0E19\u0E32\u0E17\u0E35")), React.createElement("button", {
     className: "p3-b w " + (showSun ? "soft" : ""),
     onClick: () => setShowSun(v => !v),
     title: "\u0E40\u0E2A\u0E49\u0E19\u0E2A\u0E35\u0E2A\u0E49\u0E21 = \u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19\u0E14\u0E27\u0E07\u0E2D\u0E32\u0E17\u0E34\u0E15\u0E22\u0E4C\u0E0A\u0E48\u0E27\u0E07\u0E01\u0E25\u0E32\u0E07\u0E27\u0E31\u0E19 \xB7 \u0E40\u0E2A\u0E49\u0E19\u0E08\u0E32\u0E07 = \u0E0A\u0E48\u0E27\u0E07\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E15\u0E49\u0E02\u0E2D\u0E1A\u0E1F\u0E49\u0E32 \xB7 \u0E08\u0E38\u0E14\u0E2A\u0E49\u0E21\u0E2A\u0E2D\u0E07\u0E1B\u0E25\u0E32\u0E22 = \u0E40\u0E27\u0E25\u0E32\u0E02\u0E36\u0E49\u0E19\u2013\u0E15\u0E01",

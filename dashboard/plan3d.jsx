@@ -586,6 +586,8 @@ function p3NewBlk(i) {
    ทรงอิสระ (poly) basis เป็น (u, n, −v) ซึ่งสลับมือ → เครื่องหมายต้องกลับเป็น +rot
    เดิมใช้ −rot ทั้งคู่ ทรงอิสระเลยหมุนสวนทางกริด ผิดไป 2 เท่าของมุมที่ตั้ง
    ผลคือแผงเรียงเฉียงแต่ตัวแผงหันคนละทาง ขอบชุดออกมาเป็นฟันเลื่อย */
+/* กวาดเงาทั้งวัน (06:00–18:30) ที่ความเร็วปกติ ใช้เวลากี่วินาที */
+const P3_SWEEP_SEC = 15;
 const p3BlkRy = (roof, blk) => (roof && roof.kind === "poly" ? 1 : -1) * (+(blk && blk.rot) || 0) * P3_DEG;
 const p3BlkPW = (b) => (b.orient === "portrait" ? P3_PANEL_SHORT : P3_PANEL_LONG);
 const p3BlkPD = (b) => (b.orient === "portrait" ? P3_PANEL_LONG : P3_PANEL_SHORT);
@@ -1155,6 +1157,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
   const [tab, setTab] = React.useState("roof");         // roof | photo | obstacle | sun
   const [dirty, setDirty] = React.useState(false);
   const [animating, setAnimating] = React.useState(false);
+  const [sweepSpd, setSweepSpd] = React.useState(1);      // ตัวคูณความเร็วตอนกวาดเงาทั้งวัน
   const [drawing, setDrawing] = React.useState(false);  // โหมดวาดหลังคาทรงอิสระ
   const [drawPts, setDrawPts] = React.useState([]);     // จุดที่วาด (world x,z)
   const [showVerts, setShowVerts] = React.useState(true); // แสดงจุดเขียว (มุมแก้ทรง)
@@ -1976,22 +1979,33 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       new THREE.LineDashedMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.45, dashSize: SR * 0.03, gapSize: SR * 0.025 })).computeLineDistances());
   }, [st.sun, st.groundW, ready, showSun]);
 
-  /* ── animation กวาดทั้งวัน ── */
+  /* ── animation กวาดทั้งวัน ──
+     เดินตาม "เวลาจริงที่ผ่านไป" ไม่ใช่ตามจำนวนเฟรม — เดิมบวกทีละ 0.06 ชม./เฟรม
+     จอ 60Hz กวาดทั้งวันจบใน ~3.5 วิ (เร็วจนดูไม่ทัน) ส่วนจอ 120Hz เร็วเป็นสองเท่าอีก
+     ตอนนี้ 1x = ทั้งวันใน 15 วิ และเร็วเท่ากันทุกเครื่อง */
+  const sweepH = React.useRef(null);
   React.useEffect(() => {
-    if (!animating) return;
-    let run = true;
-    const step = () => {
+    if (!animating) { sweepH.current = null; return; }
+    let run = true, last = performance.now();
+    const rate = (18.5 - 6) / P3_SWEEP_SEC * sweepSpd;   // ชั่วโมงจำลอง ต่อ วินาทีจริง
+    const startH = +st.sun.hour || 12;                   // เริ่มเดินต่อจากเวลาที่ค้างอยู่
+    const step = (now) => {
       if (!run) return;
-      setSt((p) => {
-        let h = (+p.sun.hour || 12) + 0.06;
-        if (h > 18.5) h = 6;
-        return Object.assign({}, p, { sun: Object.assign({}, p.sun, { hour: Math.round(h * 100) / 100 }) });
-      });
+      const dt = Math.min(0.25, (now - last) / 1000);    // สลับแท็บไปนาน ๆ อย่ากระโดดทีเดียวหลายชั่วโมง
+      last = now;
+      /* สะสมเวลาไว้ในตัวแปรความละเอียดเต็ม แล้วค่อยปัดตอนเขียนลง state
+         ถ้าอ่านค่าที่ปัดแล้วมาบวกต่อ จอที่รีเฟรชเร็ว (120–240Hz) จะได้ก้าวละไม่ถึง 0.005 ชม.
+         ปัดแล้วได้ค่าเดิมทุกเฟรม เข็มเลยแทบไม่เดิน — ตอนตั้งความเร็ว "ช้า" เจอเต็ม ๆ */
+      if (sweepH.current == null) sweepH.current = startH;
+      sweepH.current += rate * dt;
+      if (sweepH.current > 18.5) sweepH.current = 6;
+      const hv = Math.round(sweepH.current * 100) / 100;
+      setSt((p) => Object.assign({}, p, { sun: Object.assign({}, p.sun, { hour: hv }) }));
       raf = requestAnimationFrame(step);
     };
     let raf = requestAnimationFrame(step);
     return () => { run = false; cancelAnimationFrame(raf); };
-  }, [animating]);
+  }, [animating, sweepSpd]);
 
   /* ── โต้ตอบ: คลิกแผง = เว้น/ใส่คืน · ลากหลังคา/จุดทรง/สิ่งบดบัง = ย้าย · โหมดวาด = คลิกวางจุด ── */
   React.useEffect(() => {
@@ -3020,6 +3034,16 @@ function Plan3DEditor({ job, onClose, currentUser }) {
               style={animating ? { background: "var(--tint-amber-tx)", borderColor: "var(--tint-amber-tx)", color: "#fff", fontWeight: 700 } : null}>
               <P3Icon name={animating ? "pause" : "play"} size={14} />{animating ? "หยุดกวาดเงา" : "กวาดเงาทั้งวัน (06:00–18:30)"}
             </button>
+            {/* ความเร็วกวาด — ปรับได้ระหว่างกวาดอยู่เลย ไม่ต้องหยุดก่อน */}
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", flex: "0 0 auto" }}>ความเร็ว</span>
+              {[{ v: 0.5, th: "ช้า" }, { v: 1, th: "ปกติ" }, { v: 2, th: "เร็ว" }, { v: 4, th: "เร็วมาก" }].map((o) => (
+                <button key={o.v} className="p3-chip" data-on={sweepSpd === o.v ? "1" : "0"}
+                  onClick={() => setSweepSpd(o.v)}
+                  style={{ flex: 1, justifyContent: "center", borderRadius: 8, padding: "5px 4px", fontSize: 11.5 }}>{o.th}</button>
+              ))}
+            </div>
+            <span className="p3-note">ปกติ = กวาดตั้งแต่เช้าถึงเย็นใน {P3_SWEEP_SEC} วินาที</span>
           </div>
           {/* เส้นแนวโคจร = ทางเดินของดวงอาทิตย์ทั้งวันตามเดือน/พิกัดที่ตั้งไว้ */}
           <button className={"p3-b w " + (showSun ? "soft" : "")} onClick={() => setShowSun((v) => !v)}
