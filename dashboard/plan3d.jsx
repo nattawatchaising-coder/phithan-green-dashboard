@@ -704,7 +704,17 @@ function p3FillBlk(face, blk, m, want) {
           const hh = hgt[stk.pop()];
           const left = stk.length ? stk[stk.length - 1] + 1 : 0;
           const w = Math.min(j - left, capC);
-          if (hh > 0 && w > 0 && (!best || hh * w > best.h * best.w)) best = { i: i - hh + 1, j: j - w, h: hh, w };
+          if (hh > 0 && w > 0) {
+            /* ใหญ่ที่สุดก่อน · ถ้าได้จำนวนแผงเท่ากันหลายที่ เลือกอันที่ใกล้ตำแหน่งที่ผู้ใช้เลื่อนชุดไว้ที่สุด
+               ไม่งั้นขยับสไลเดอร์เลื่อนชุดแล้วบล็อกจะกระโดดไปโผล่คนละมุมของหลังคา */
+            const cu = (cellU(j0 + j - w) + cellU(j0 + j - 1)) / 2;
+            const cv = (cellV(i0 + i - hh + 1) + cellV(i0 + i)) / 2;
+            const d2 = (cu - Au) * (cu - Au) + (cv - Av) * (cv - Av);
+            const area = hh * w;
+            if (!best || area > best.area || (area === best.area && d2 < best.d2)) {
+              best = { i: i - hh + 1, j: j - w, h: hh, w, area, d2 };
+            }
+          }
         }
         stk.push(j);
       }
@@ -717,10 +727,13 @@ function p3FillBlk(face, blk, m, want) {
     for (let r = kr.r0; r < kr.r0 + kr.rows; r++) for (let c = kr.c0; c < kr.c0 + kr.cols; c++) {
       if (push(r, c, "keep")) used[r + "_" + c] = 1;
     }
-    // กรอบลาก/ย่อขยายต้องตามสี่เหลี่ยมที่ได้จริง ไม่ใช่กริดตั้งต้น
+    /* กรอบลาก/ย่อขยายต้องตามสี่เหลี่ยมที่ได้จริง ไม่ใช่กริดตั้งต้น
+       จุดกึ่งกลางต้องส่งผ่าน xf() ด้วย — สี่เหลี่ยมที่เลือกได้ไม่ได้อยู่ตรงจุดหมุนพอดี
+       ถ้าบวก du/dv เฉย ๆ กรอบจะเพี้ยนไปจากตัวแผงตามระยะห่างจากจุดหมุน */
     const uA = cellU(kr.c0), uB = cellU(kr.c0 + kr.cols - 1);
     const vA = cellV(kr.r0), vB = cellV(kr.r0 + kr.rows - 1);
-    res.rect.cu = (uA + uB) / 2 + blk.du; res.rect.cv = (vA + vB) / 2 + blk.dv;
+    const ctr = xf((uA + uB) / 2, (vA + vB) / 2);
+    res.rect.cu = ctr.u; res.rect.cv = ctr.v;
     res.rect.w = Math.abs(uB - uA) + pw; res.rect.h = Math.abs(vB - vA) + pd;
     res.rect.rows = kr.rows; res.rect.cols = kr.cols;
   } else {
@@ -2765,20 +2778,28 @@ function Plan3DEditor({ job, onClose, currentUser }) {
                       <button className="p3-lnk" onClick={() => patchBlk(roof, bi, { rot: 0 })}>ตั้งตรงกับผืน (0°)</button>
                     </div>
                   )}
-                  {/* ปุ่มเต็มความกว้าง — ของเดิมเป็นชิปเล็กชิดขวา จอแคบ ๆ จะถูกตัดหายไปเลย */}
+                  {/* เลือกได้ทั้งสองแบบ — ของเดิม (ตัดตามขอบ) ยังอยู่ครบ ไม่ได้ถูกแทนที่ */}
                   {!isDome && (
-                    <button className={"p3-b w " + (B.keep ? "pri" : B.rot !== 0 ? "soft" : "")}
-                      onClick={() => patchBlk(roof, bi, { keep: !B.keep })}
-                      style={{ padding: "9px 10px", fontSize: 12.5, fontWeight: 700 }}>
-                      <P3Icon name={B.keep ? "check" : "grid"} size={14} />
-                      {B.keep ? "จัดเป็นสี่เหลี่ยมอยู่ — แตะเพื่อปิด" : "จัดเป็นสี่เหลี่ยม (ทุกแถวยาวเท่ากัน)"}
-                    </button>
+                    <React.Fragment>
+                      <span className="p3-eb" style={{ marginTop: 2 }}><P3Icon name="grid" size={12} />รูปทรงของชุดแผง<span className="ln" /></span>
+                      <div style={{ display: "flex", gap: 7 }}>
+                        {[{ k: false, th: "ตัดตามขอบหลังคา", d: "วางเต็มเท่าที่ผืนรับได้" },
+                          { k: true, th: "สี่เหลี่ยมตรง", d: "ทุกแถวยาวเท่ากัน" }].map((o) => (
+                          <button key={String(o.k)} className="p3-chip" data-on={!!B.keep === o.k ? "1" : "0"}
+                            onClick={() => patchBlk(roof, bi, { keep: o.k })}
+                            style={{ flex: 1, flexDirection: "column", alignItems: "flex-start", gap: 1, borderRadius: 9, padding: "7px 9px", fontSize: 12, textAlign: "left" }}>
+                            <span style={{ fontWeight: 700 }}>{o.th}</span>
+                            <span style={{ fontSize: 10.5, fontWeight: 600, opacity: 0.72 }}>{o.d}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </React.Fragment>
                   )}
                   {!isDome && B.rot !== 0 && !B.keep && (
-                    <span className="p3-note">หมุนแล้วมุมกริดยื่นพ้นขอบหลังคา ช่องที่ล้นจะถูกตัดออกทีละช่อง แต่ละแถวเลยยาวไม่เท่ากันเป็นขั้นบันได — กดปุ่มด้านบนจะได้สี่เหลี่ยมตรง ๆ แถวเท่ากันหมด</span>
+                    <span className="p3-note">แบบตัดตามขอบ: หมุนแล้วมุมกริดยื่นพ้นขอบหลังคา ช่องที่ล้นจะถูกตัดออกทีละช่อง แต่ละแถวเลยยาวไม่เท่ากันเป็นขั้นบันได — ถ้าอยากได้แถวตรงเท่ากันหมด เลือก “สี่เหลี่ยมตรง”</span>
                   )}
                   {!isDome && B.keep && (
-                    <span className="p3-note">ระบบเลือกสี่เหลี่ยมผืนใหญ่ที่สุดที่ยังอยู่ในหลังคาครบทุกแผง หมุนกี่องศาก็ได้แถวตรงเสมอ (ใส่แถว/คอลัมน์เองได้ถ้าอยากให้เล็กกว่านั้น)</span>
+                    <span className="p3-note">แบบสี่เหลี่ยมตรง: ระบบเลือกสี่เหลี่ยมผืนใหญ่ที่สุดที่ยังอยู่ในหลังคาครบทุกแผง หมุนกี่องศาก็ได้แถวตรงเสมอ · ถ้าได้เท่ากันหลายที่จะเลือกอันที่ใกล้ตำแหน่งที่เลื่อนชุดไว้ที่สุด · ใส่แถว/คอลัมน์เองได้ถ้าอยากให้เล็กกว่านั้น</span>
                   )}
 
                   {/* ── แบ่งเป็นกลุ่ม + เว้นทางเดิน ── */}

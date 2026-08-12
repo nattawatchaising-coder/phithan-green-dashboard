@@ -1258,12 +1258,22 @@ function p3FillBlk(face, blk, m, want) {
           const hh = hgt[stk.pop()];
           const left = stk.length ? stk[stk.length - 1] + 1 : 0;
           const w = Math.min(j - left, capC);
-          if (hh > 0 && w > 0 && (!best || hh * w > best.h * best.w)) best = {
-            i: i - hh + 1,
-            j: j - w,
-            h: hh,
-            w
-          };
+          if (hh > 0 && w > 0) {
+            const cu = (cellU(j0 + j - w) + cellU(j0 + j - 1)) / 2;
+            const cv = (cellV(i0 + i - hh + 1) + cellV(i0 + i)) / 2;
+            const d2 = (cu - Au) * (cu - Au) + (cv - Av) * (cv - Av);
+            const area = hh * w;
+            if (!best || area > best.area || area === best.area && d2 < best.d2) {
+              best = {
+                i: i - hh + 1,
+                j: j - w,
+                h: hh,
+                w,
+                area,
+                d2
+              };
+            }
+          }
         }
         stk.push(j);
       }
@@ -1285,8 +1295,9 @@ function p3FillBlk(face, blk, m, want) {
       uB = cellU(kr.c0 + kr.cols - 1);
     const vA = cellV(kr.r0),
       vB = cellV(kr.r0 + kr.rows - 1);
-    res.rect.cu = (uA + uB) / 2 + blk.du;
-    res.rect.cv = (vA + vB) / 2 + blk.dv;
+    const ctr = xf((uA + uB) / 2, (vA + vB) / 2);
+    res.rect.cu = ctr.u;
+    res.rect.cv = ctr.v;
     res.rect.w = Math.abs(uB - uA) + pw;
     res.rect.h = Math.abs(vB - vA) + pd;
     res.rect.rows = kr.rows;
@@ -5256,24 +5267,61 @@ function Plan3DEditor({
       onClick: () => patchBlk(roof, bi, {
         rot: 0
       })
-    }, "\u0E15\u0E31\u0E49\u0E07\u0E15\u0E23\u0E07\u0E01\u0E31\u0E1A\u0E1C\u0E37\u0E19 (0\xB0)")), !isDome && React.createElement("button", {
-      className: "p3-b w " + (B.keep ? "pri" : B.rot !== 0 ? "soft" : ""),
-      onClick: () => patchBlk(roof, bi, {
-        keep: !B.keep
-      }),
+    }, "\u0E15\u0E31\u0E49\u0E07\u0E15\u0E23\u0E07\u0E01\u0E31\u0E1A\u0E1C\u0E37\u0E19 (0\xB0)")), !isDome && React.createElement(React.Fragment, null, React.createElement("span", {
+      className: "p3-eb",
       style: {
-        padding: "9px 10px",
-        fontSize: 12.5,
-        fontWeight: 700
+        marginTop: 2
       }
     }, React.createElement(P3Icon, {
-      name: B.keep ? "check" : "grid",
-      size: 14
-    }), B.keep ? "จัดเป็นสี่เหลี่ยมอยู่ — แตะเพื่อปิด" : "จัดเป็นสี่เหลี่ยม (ทุกแถวยาวเท่ากัน)"), !isDome && B.rot !== 0 && !B.keep && React.createElement("span", {
+      name: "grid",
+      size: 12
+    }), "\u0E23\u0E39\u0E1B\u0E17\u0E23\u0E07\u0E02\u0E2D\u0E07\u0E0A\u0E38\u0E14\u0E41\u0E1C\u0E07", React.createElement("span", {
+      className: "ln"
+    })), React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 7
+      }
+    }, [{
+      k: false,
+      th: "ตัดตามขอบหลังคา",
+      d: "วางเต็มเท่าที่ผืนรับได้"
+    }, {
+      k: true,
+      th: "สี่เหลี่ยมตรง",
+      d: "ทุกแถวยาวเท่ากัน"
+    }].map(o => React.createElement("button", {
+      key: String(o.k),
+      className: "p3-chip",
+      "data-on": !!B.keep === o.k ? "1" : "0",
+      onClick: () => patchBlk(roof, bi, {
+        keep: o.k
+      }),
+      style: {
+        flex: 1,
+        flexDirection: "column",
+        alignItems: "flex-start",
+        gap: 1,
+        borderRadius: 9,
+        padding: "7px 9px",
+        fontSize: 12,
+        textAlign: "left"
+      }
+    }, React.createElement("span", {
+      style: {
+        fontWeight: 700
+      }
+    }, o.th), React.createElement("span", {
+      style: {
+        fontSize: 10.5,
+        fontWeight: 600,
+        opacity: 0.72
+      }
+    }, o.d))))), !isDome && B.rot !== 0 && !B.keep && React.createElement("span", {
       className: "p3-note"
-    }, "\u0E2B\u0E21\u0E38\u0E19\u0E41\u0E25\u0E49\u0E27\u0E21\u0E38\u0E21\u0E01\u0E23\u0E34\u0E14\u0E22\u0E37\u0E48\u0E19\u0E1E\u0E49\u0E19\u0E02\u0E2D\u0E1A\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 \u0E0A\u0E48\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E25\u0E49\u0E19\u0E08\u0E30\u0E16\u0E39\u0E01\u0E15\u0E31\u0E14\u0E2D\u0E2D\u0E01\u0E17\u0E35\u0E25\u0E30\u0E0A\u0E48\u0E2D\u0E07 \u0E41\u0E15\u0E48\u0E25\u0E30\u0E41\u0E16\u0E27\u0E40\u0E25\u0E22\u0E22\u0E32\u0E27\u0E44\u0E21\u0E48\u0E40\u0E17\u0E48\u0E32\u0E01\u0E31\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E31\u0E49\u0E19\u0E1A\u0E31\u0E19\u0E44\u0E14 \u2014 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E14\u0E49\u0E32\u0E19\u0E1A\u0E19\u0E08\u0E30\u0E44\u0E14\u0E49\u0E2A\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E35\u0E48\u0E22\u0E21\u0E15\u0E23\u0E07 \u0E46 \u0E41\u0E16\u0E27\u0E40\u0E17\u0E48\u0E32\u0E01\u0E31\u0E19\u0E2B\u0E21\u0E14"), !isDome && B.keep && React.createElement("span", {
+    }, "\u0E41\u0E1A\u0E1A\u0E15\u0E31\u0E14\u0E15\u0E32\u0E21\u0E02\u0E2D\u0E1A: \u0E2B\u0E21\u0E38\u0E19\u0E41\u0E25\u0E49\u0E27\u0E21\u0E38\u0E21\u0E01\u0E23\u0E34\u0E14\u0E22\u0E37\u0E48\u0E19\u0E1E\u0E49\u0E19\u0E02\u0E2D\u0E1A\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 \u0E0A\u0E48\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E25\u0E49\u0E19\u0E08\u0E30\u0E16\u0E39\u0E01\u0E15\u0E31\u0E14\u0E2D\u0E2D\u0E01\u0E17\u0E35\u0E25\u0E30\u0E0A\u0E48\u0E2D\u0E07 \u0E41\u0E15\u0E48\u0E25\u0E30\u0E41\u0E16\u0E27\u0E40\u0E25\u0E22\u0E22\u0E32\u0E27\u0E44\u0E21\u0E48\u0E40\u0E17\u0E48\u0E32\u0E01\u0E31\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E31\u0E49\u0E19\u0E1A\u0E31\u0E19\u0E44\u0E14 \u2014 \u0E16\u0E49\u0E32\u0E2D\u0E22\u0E32\u0E01\u0E44\u0E14\u0E49\u0E41\u0E16\u0E27\u0E15\u0E23\u0E07\u0E40\u0E17\u0E48\u0E32\u0E01\u0E31\u0E19\u0E2B\u0E21\u0E14 \u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E2A\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E35\u0E48\u0E22\u0E21\u0E15\u0E23\u0E07\u201D"), !isDome && B.keep && React.createElement("span", {
       className: "p3-note"
-    }, "\u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2A\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E35\u0E48\u0E22\u0E21\u0E1C\u0E37\u0E19\u0E43\u0E2B\u0E0D\u0E48\u0E17\u0E35\u0E48\u0E2A\u0E38\u0E14\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E04\u0E23\u0E1A\u0E17\u0E38\u0E01\u0E41\u0E1C\u0E07 \u0E2B\u0E21\u0E38\u0E19\u0E01\u0E35\u0E48\u0E2D\u0E07\u0E28\u0E32\u0E01\u0E47\u0E44\u0E14\u0E49\u0E41\u0E16\u0E27\u0E15\u0E23\u0E07\u0E40\u0E2A\u0E21\u0E2D (\u0E43\u0E2A\u0E48\u0E41\u0E16\u0E27/\u0E04\u0E2D\u0E25\u0E31\u0E21\u0E19\u0E4C\u0E40\u0E2D\u0E07\u0E44\u0E14\u0E49\u0E16\u0E49\u0E32\u0E2D\u0E22\u0E32\u0E01\u0E43\u0E2B\u0E49\u0E40\u0E25\u0E47\u0E01\u0E01\u0E27\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19)"), React.createElement("span", {
+    }, "\u0E41\u0E1A\u0E1A\u0E2A\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E35\u0E48\u0E22\u0E21\u0E15\u0E23\u0E07: \u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2A\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E35\u0E48\u0E22\u0E21\u0E1C\u0E37\u0E19\u0E43\u0E2B\u0E0D\u0E48\u0E17\u0E35\u0E48\u0E2A\u0E38\u0E14\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E04\u0E23\u0E1A\u0E17\u0E38\u0E01\u0E41\u0E1C\u0E07 \u0E2B\u0E21\u0E38\u0E19\u0E01\u0E35\u0E48\u0E2D\u0E07\u0E28\u0E32\u0E01\u0E47\u0E44\u0E14\u0E49\u0E41\u0E16\u0E27\u0E15\u0E23\u0E07\u0E40\u0E2A\u0E21\u0E2D \xB7 \u0E16\u0E49\u0E32\u0E44\u0E14\u0E49\u0E40\u0E17\u0E48\u0E32\u0E01\u0E31\u0E19\u0E2B\u0E25\u0E32\u0E22\u0E17\u0E35\u0E48\u0E08\u0E30\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2D\u0E31\u0E19\u0E17\u0E35\u0E48\u0E43\u0E01\u0E25\u0E49\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E48\u0E2D\u0E19\u0E0A\u0E38\u0E14\u0E44\u0E27\u0E49\u0E17\u0E35\u0E48\u0E2A\u0E38\u0E14 \xB7 \u0E43\u0E2A\u0E48\u0E41\u0E16\u0E27/\u0E04\u0E2D\u0E25\u0E31\u0E21\u0E19\u0E4C\u0E40\u0E2D\u0E07\u0E44\u0E14\u0E49\u0E16\u0E49\u0E32\u0E2D\u0E22\u0E32\u0E01\u0E43\u0E2B\u0E49\u0E40\u0E25\u0E47\u0E01\u0E01\u0E27\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19"), React.createElement("span", {
       className: "p3-eb",
       style: {
         marginTop: 2
