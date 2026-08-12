@@ -2348,6 +2348,8 @@ function Plan3DEditor({
     scene.add(dyn);
     const sunGrp = new THREE.Group();
     scene.add(sunGrp);
+    const sunBall = new THREE.Group();
+    scene.add(sunBall);
     Object.assign(tRef.current, {
       THREE,
       renderer,
@@ -2358,6 +2360,7 @@ function Plan3DEditor({
       amb,
       dyn,
       sunGrp,
+      sunBall,
       el
     });
     const onResize = () => {
@@ -3190,7 +3193,8 @@ function Plan3DEditor({
         t.dyn.add(dot);
       });
     }
-  }, [st, selRoof, selObs, selVert, ready, drawing, drawPts, showVerts, locked, photoEdit, addMode, selBlk, tab, shadowOn]);
+  }, [st.roofs, st.obstacles, st.groundW, st.buildH, st.photo, st.photoW, st.photoOpacity, st.photoBright, st.photoRot, st.photoX, st.photoZ, st.baseMap, selRoof, selObs, selVert, ready, drawing, drawPts, showVerts, locked, photoEdit, addMode, selBlk, tab, shadowOn]);
+  const sunPathKey = [st.sun.month, st.sun.day, st.sun.lat, st.sun.lng].join("|");
   React.useEffect(() => {
     const t = tRef.current;
     if (!t.sunLight) return;
@@ -3205,8 +3209,11 @@ function Plan3DEditor({
     t.sunLight.intensity = flat ? 0.3 : day ? 0.55 + 0.85 * Math.min(1, Math.sin(altR) * 1.6) : 0;
     t.amb.intensity = flat ? 1.55 : day ? 0.75 : 0.28;
     if (t.scene) t.scene.background.set(flat ? 0xdce8f2 : day ? sp.alt < 12 ? 0xf3d9b8 : 0xdce8f2 : 0x1d2733);
+  }, [st.sun, ready, lightMode]);
+  React.useEffect(() => {
+    const t = tRef.current;
+    if (!t.sunGrp) return;
     const g = t.sunGrp;
-    if (!g) return;
     while (g.children.length) {
       const c = g.children[0];
       g.remove(c);
@@ -3260,7 +3267,7 @@ function Plan3DEditor({
       cv.width = 128;
       cv.height = 64;
       const x = cv.getContext("2d");
-      x.fillStyle = "var(--tint-amber-tx)";
+      x.fillStyle = "#B45309";
       x.font = "bold 42px system-ui";
       x.textAlign = "center";
       x.textBaseline = "middle";
@@ -3290,13 +3297,32 @@ function Plan3DEditor({
         g.add(lb);
       }
     }
-    if (day) {
-      const pos = dirAt(sp.alt, sp.az);
-      const ball = new THREE.Mesh(new THREE.SphereGeometry(SR * 0.038, 20, 16), new THREE.MeshBasicMaterial({
-        color: sp.alt < 12 ? 0xff8c3a : 0xffd24a
-      }));
-      ball.position.copy(pos);
-      g.add(ball);
+  }, [sunPathKey, st.groundW, ready, showSun]);
+  React.useEffect(() => {
+    const t = tRef.current;
+    if (!t.sunBall) return;
+    const g = t.sunBall;
+    while (g.children.length) {
+      const c = g.children[0];
+      g.remove(c);
+      if (c.geometry) c.geometry.dispose();
+      if (c.material && c.material !== t.glowMat) c.material.dispose();
+    }
+    if (!showSun) return;
+    const THREE = t.THREE;
+    if (!THREE) return;
+    const sp = p3SunPos(st.sun);
+    if (sp.alt <= 0) return;
+    const SR = Math.max(26, (+st.groundW || 40) * 0.95);
+    const a = sp.alt * P3_DEG,
+      z = sp.az * P3_DEG;
+    const pos = new THREE.Vector3(Math.sin(z) * Math.cos(a) * SR, Math.sin(a) * SR, -Math.cos(z) * Math.cos(a) * SR);
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(SR * 0.038, 20, 16), new THREE.MeshBasicMaterial({
+      color: sp.alt < 12 ? 0xff8c3a : 0xffd24a
+    }));
+    ball.position.copy(pos);
+    g.add(ball);
+    if (!t.glowMat) {
       const cv = document.createElement("canvas");
       cv.width = cv.height = 128;
       const cx = cv.getContext("2d");
@@ -3306,23 +3332,24 @@ function Plan3DEditor({
       grd.addColorStop(1, "rgba(255,180,70,0)");
       cx.fillStyle = grd;
       cx.fillRect(0, 0, 128, 128);
-      const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+      t.glowMat = new THREE.SpriteMaterial({
         map: new THREE.CanvasTexture(cv),
         transparent: true,
         depthWrite: false
-      }));
-      glow.scale.set(SR * 0.26, SR * 0.26, 1);
-      glow.position.copy(pos);
-      g.add(glow);
-      g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([pos, new THREE.Vector3(0, 0, 0)]), new THREE.LineDashedMaterial({
-        color: 0xf59e0b,
-        transparent: true,
-        opacity: 0.45,
-        dashSize: SR * 0.03,
-        gapSize: SR * 0.025
-      })).computeLineDistances());
+      });
     }
-  }, [st.sun, st.groundW, ready, lightMode, showSun]);
+    const glow = new THREE.Sprite(t.glowMat);
+    glow.scale.set(SR * 0.26, SR * 0.26, 1);
+    glow.position.copy(pos);
+    g.add(glow);
+    g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([pos, new THREE.Vector3(0, 0, 0)]), new THREE.LineDashedMaterial({
+      color: 0xf59e0b,
+      transparent: true,
+      opacity: 0.45,
+      dashSize: SR * 0.03,
+      gapSize: SR * 0.025
+    })).computeLineDistances());
+  }, [st.sun, st.groundW, ready, showSun]);
   React.useEffect(() => {
     if (!animating) return;
     let run = true;

@@ -1292,10 +1292,14 @@ function Plan3DEditor({ job, onClose, currentUser }) {
 
     const dyn = new THREE.Group();  // ส่วนที่ rebuild ตาม state
     scene.add(dyn);
-    const sunGrp = new THREE.Group(); // ดวงอาทิตย์ + แนวโคจร (อัปเดตแยก ไม่ต้อง rebuild ทั้งฉาก)
+    /* แนวโคจรทั้งวัน + ขีดชั่วโมง — เปลี่ยนตามวันที่/พิกัดเท่านั้น ไม่เปลี่ยนตามเวลา
+       แยกกลุ่มกับตัวดวงอาทิตย์ เพื่อให้ตอนกวาดเวลาทั้งวันไม่ต้องสร้างป้ายชั่วโมงใหม่ทุกเฟรม */
+    const sunGrp = new THREE.Group();
     scene.add(sunGrp);
+    const sunBall = new THREE.Group();   // ตัวดวงอาทิตย์ + แสงฟุ้ง + เส้นบอกทิศ (ขยับตามเวลา)
+    scene.add(sunBall);
 
-    Object.assign(tRef.current, { THREE, renderer, scene, camera, controls, sunLight, amb, dyn, sunGrp, el });
+    Object.assign(tRef.current, { THREE, renderer, scene, camera, controls, sunLight, amb, dyn, sunGrp, sunBall, el });
 
     const onResize = () => {
       const w = el.clientWidth || 1, h = el.clientHeight || 1;
@@ -1845,9 +1849,18 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         dot.position.set(p.x, 0.22, p.z); dot.renderOrder = 21; t.dyn.add(dot);
       });
     }
-  }, [st, selRoof, selObs, selVert, ready, drawing, drawPts, showVerts, locked, photoEdit, addMode, selBlk, tab, shadowOn]);
+    /* ผูกเฉพาะส่วนของ st ที่ฉากนี้ใช้จริง — ห้ามผูกทั้ง st
+       เดิมผูกทั้งก้อน พอกดกวาดเงาทั้งวัน (ขยับ st.sun.hour ทุกเฟรม) ฉากทั้งฉากถูกรื้อสร้างใหม่ทุกเฟรม
+       ทั้งที่หลังคา/แผง/สิ่งบดบัง ไม่ได้เปลี่ยนอะไรเลย — แดดมีเอฟเฟกต์ของตัวเองอยู่แล้ว
+       eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [st.roofs, st.obstacles, st.groundW, st.buildH, st.photo, st.photoW, st.photoOpacity, st.photoBright,
+    st.photoRot, st.photoX, st.photoZ, st.baseMap,
+    selRoof, selObs, selVert, ready, drawing, drawPts, showVerts, locked, photoEdit, addMode, selBlk, tab, shadowOn]);
 
-  /* ── อัปเดตดวงอาทิตย์/เงา ── */
+  /* แนวโคจรขึ้นกับวันที่และพิกัดเท่านั้น — เวลาในวันเปลี่ยนแล้วเส้นเดิมยังใช้ได้ */
+  const sunPathKey = [st.sun.month, st.sun.day, st.sun.lat, st.sun.lng].join("|");
+
+  /* ── อัปเดตทิศทางแดด/ความสว่าง (เบา ทำได้ทุกเฟรม) ── */
   React.useEffect(() => {
     const t = tRef.current; if (!t.sunLight) return;
     const sp = p3SunPos(st.sun);
@@ -1864,9 +1877,15 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     t.amb.intensity = flat ? 1.55 : (day ? 0.75 : 0.28);
     if (t.scene) t.scene.background.set(flat ? 0xdce8f2 : (day ? (sp.alt < 12 ? 0xf3d9b8 : 0xdce8f2) : 0x1d2733));
 
-    /* ── ดวงอาทิตย์ + เส้นแนวโคจรทั้งวัน ──
-       วางบนโดมสมมติรัศมี R รอบผัง · ทิศเหนือ = -Z, ตะวันออก = +X (ตรงกับเข็มทิศในฉาก) */
-    const g = t.sunGrp; if (!g) return;
+  }, [st.sun, ready, lightMode]);
+
+  /* ── เส้นแนวโคจรทั้งวัน + ขีดชั่วโมง ──
+     เปลี่ยนตาม "วันที่กับพิกัด" เท่านั้น ไม่เปลี่ยนตามเวลาในวัน
+     เดิมรวมอยู่กับตัวดวงอาทิตย์ ทำให้ตอนกวาดเวลาทั้งวันต้องสร้างเส้น 300 จุด
+     กับป้ายชั่วโมง (วาดลง canvas แล้วอัปโหลดเป็นเท็กซ์เจอร์) ใหม่ทุกเฟรม — นั่นคือต้นเหตุที่กระตุก */
+  React.useEffect(() => {
+    const t = tRef.current; if (!t.sunGrp) return;
+    const g = t.sunGrp;
     while (g.children.length) {
       const c = g.children[0]; g.remove(c);
       c.traverse && c.traverse((o) => {
@@ -1903,7 +1922,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     const mkLabel = (txt) => {
       const cv = document.createElement("canvas"); cv.width = 128; cv.height = 64;
       const x = cv.getContext("2d");
-      x.fillStyle = "var(--tint-amber-tx)"; x.font = "bold 42px system-ui"; x.textAlign = "center"; x.textBaseline = "middle";
+      x.fillStyle = "#B45309"; x.font = "bold 42px system-ui"; x.textAlign = "center"; x.textBaseline = "middle";
       x.fillText(txt, 64, 34);
       // depthTest ปกติ — ป้ายที่อยู่หลังอาคารต้องถูกบัง ไม่งั้นลอยมาทับกลางฉากดูงง
       const sp2 = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true }));
@@ -1918,24 +1937,44 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       dot.position.copy(p); g.add(dot);
       if (h % 3 === 0) { const lb = mkLabel(h + ":00"); lb.position.copy(p).multiplyScalar(1.075); g.add(lb); }
     }
-    // ตัวดวงอาทิตย์ (ซ่อนตอนตกดินแล้ว) + แสงฟุ้งรอบ ๆ
-    if (day) {
-      const pos = dirAt(sp.alt, sp.az);
-      const ball = new THREE.Mesh(new THREE.SphereGeometry(SR * 0.038, 20, 16),
-        new THREE.MeshBasicMaterial({ color: sp.alt < 12 ? 0xff8c3a : 0xffd24a }));
-      ball.position.copy(pos); g.add(ball);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sunPathKey, st.groundW, ready, showSun]);
+
+  /* ── ตัวดวงอาทิตย์ + แสงฟุ้ง + เส้นบอกทิศ — ขยับตามเวลา ──
+     ของในกลุ่มนี้เบามาก (ทรงกลม 1 ลูก + สไปรต์ 1 ตัว + เส้น 1 เส้น) สร้างใหม่ทุกเฟรมได้สบาย
+     เท็กซ์เจอร์แสงฟุ้งวาดครั้งเดียวแล้วใช้ซ้ำ — ของเดิมวาด canvas ใหม่ทุกครั้งที่เวลาเปลี่ยน */
+  React.useEffect(() => {
+    const t = tRef.current; if (!t.sunBall) return;
+    const g = t.sunBall;
+    while (g.children.length) {
+      const c = g.children[0]; g.remove(c);
+      if (c.geometry) c.geometry.dispose();
+      if (c.material && c.material !== t.glowMat) c.material.dispose();
+    }
+    if (!showSun) return;
+    const THREE = t.THREE; if (!THREE) return;
+    const sp = p3SunPos(st.sun);
+    if (sp.alt <= 0) return;                                // ตกดินแล้ว ไม่ต้องวาด
+    const SR = Math.max(26, (+st.groundW || 40) * 0.95);
+    const a = sp.alt * P3_DEG, z = sp.az * P3_DEG;
+    const pos = new THREE.Vector3(Math.sin(z) * Math.cos(a) * SR, Math.sin(a) * SR, -Math.cos(z) * Math.cos(a) * SR);
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(SR * 0.038, 20, 16),
+      new THREE.MeshBasicMaterial({ color: sp.alt < 12 ? 0xff8c3a : 0xffd24a }));
+    ball.position.copy(pos); g.add(ball);
+    if (!t.glowMat) {
       const cv = document.createElement("canvas"); cv.width = cv.height = 128;
       const cx = cv.getContext("2d");
       const grd = cx.createRadialGradient(64, 64, 4, 64, 64, 64);
       grd.addColorStop(0, "rgba(255,214,102,.85)"); grd.addColorStop(0.45, "rgba(255,190,80,.28)"); grd.addColorStop(1, "rgba(255,180,70,0)");
       cx.fillStyle = grd; cx.fillRect(0, 0, 128, 128);
-      const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }));
-      glow.scale.set(SR * 0.26, SR * 0.26, 1); glow.position.copy(pos); g.add(glow);
-      // เส้นบาง ๆ จากดวงอาทิตย์มาที่กลางผัง — ดูออกว่าแดดส่องมาจากทางไหน
-      g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([pos, new THREE.Vector3(0, 0, 0)]),
-        new THREE.LineDashedMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.45, dashSize: SR * 0.03, gapSize: SR * 0.025 })).computeLineDistances());
+      t.glowMat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false });
     }
-  }, [st.sun, st.groundW, ready, lightMode, showSun]);
+    const glow = new THREE.Sprite(t.glowMat);
+    glow.scale.set(SR * 0.26, SR * 0.26, 1); glow.position.copy(pos); g.add(glow);
+    // เส้นบาง ๆ จากดวงอาทิตย์มาที่กลางผัง — ดูออกว่าแดดส่องมาจากทางไหน
+    g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([pos, new THREE.Vector3(0, 0, 0)]),
+      new THREE.LineDashedMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.45, dashSize: SR * 0.03, gapSize: SR * 0.025 })).computeLineDistances());
+  }, [st.sun, st.groundW, ready, showSun]);
 
   /* ── animation กวาดทั้งวัน ── */
   React.useEffect(() => {
