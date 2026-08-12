@@ -956,6 +956,17 @@ function BOQEditor({
       conduit: c
     });
   });
+  const setCondVal = (k, v) => setB(p => Object.assign({}, p, {
+    conduit: Object.assign({
+      imc: [],
+      upvc: [],
+      pullbox: []
+    }, p.conduit, {
+      [k]: v
+    })
+  }));
+  const condFits = React.useMemo(() => window.BOQ.condFittings(), []);
+  const trayFits = React.useMemo(() => window.BOQ.trayFittings(), []);
   const SPARE_DEF = {
     clamp: 10,
     bushing: 10,
@@ -2246,6 +2257,134 @@ function BOQEditor({
       size: 13,
       color: "var(--text-2)"
     }), " \u0E40\u0E1E\u0E34\u0E48\u0E21 ", label)));
+  };
+  const FitList = ({
+    rows,
+    onChange,
+    catalog,
+    hint
+  }) => {
+    const list = rows || [];
+    const set = (i, patch) => onChange(list.map((y, j) => j === i ? Object.assign({}, y, patch) : y));
+    const options = React.useMemo(() => {
+      const base = catalog.map(f => ({
+        value: f.name,
+        label: f.name,
+        group: f.group
+      }));
+      const known = new Set(base.map(o => o.value));
+      list.forEach(x => {
+        const n = (x.name || "").trim();
+        if (n && !known.has(n)) {
+          known.add(n);
+          base.push({
+            value: n,
+            label: n,
+            group: "พิมพ์เอง"
+          });
+        }
+      });
+      return base;
+    }, [catalog, list]);
+    const unitOf = n => {
+      const f = catalog.find(x => x.name === n);
+      return f ? f.unit : "";
+    };
+    return React.createElement("div", null, React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: "var(--text-2)",
+        marginBottom: 3
+      }
+    }, "\u0E02\u0E49\u0E2D\u0E07\u0E2D / \u0E02\u0E49\u0E2D\u0E25\u0E14 / \u0E2A\u0E32\u0E21\u0E17\u0E32\u0E07"), React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        color: "var(--text-3)",
+        marginBottom: 7
+      }
+    }, hint), React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 8
+      }
+    }, list.map((x, i) => React.createElement("div", {
+      key: i,
+      style: {
+        display: "grid",
+        gridTemplateColumns: "minmax(0,1fr) 78px 62px 36px",
+        gap: 8,
+        alignItems: "center"
+      }
+    }, React.createElement(Dropdown, {
+      value: x.name || "",
+      options: options,
+      placeholder: "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D",
+      wrap: true,
+      addable: true,
+      onAdd: () => {},
+      onChange: v => set(i, {
+        name: v,
+        unit: x.unit || unitOf(v) || "ชุด"
+      })
+    }), React.createElement("input", {
+      type: "number",
+      style: numStyle,
+      value: x.qty != null ? x.qty : "",
+      placeholder: "\u0E08\u0E33\u0E19\u0E27\u0E19",
+      onChange: e => set(i, {
+        qty: e.target.value
+      })
+    }), React.createElement("input", {
+      value: x.unit || "",
+      placeholder: "\u0E2B\u0E19\u0E48\u0E27\u0E22",
+      style: inputStyle,
+      onChange: e => set(i, {
+        unit: e.target.value
+      })
+    }), React.createElement("button", {
+      onClick: () => onChange(list.filter((_, j) => j !== i)),
+      title: "\u0E25\u0E1A",
+      style: {
+        height: 40,
+        background: "#EF444414",
+        border: "none",
+        color: "#EF4444",
+        borderRadius: 9,
+        cursor: "pointer",
+        display: "grid",
+        placeItems: "center"
+      }
+    }, React.createElement(Icon, {
+      name: "x",
+      size: 14
+    })))), React.createElement("button", {
+      onClick: () => onChange(list.concat([{
+        name: "",
+        qty: "",
+        unit: (catalog[0] || {}).unit || "ชุด"
+      }])),
+      style: {
+        alignSelf: "flex-start",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        background: "var(--surface3)",
+        color: "var(--text-2)",
+        border: "1px solid var(--border-strong)",
+        borderRadius: 9,
+        padding: "7px 11px",
+        fontWeight: 700,
+        fontSize: 12,
+        cursor: "pointer",
+        fontFamily: "inherit"
+      }
+    }, React.createElement(Icon, {
+      name: "plus",
+      size: 13,
+      color: "var(--text-2)"
+    }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D")));
   };
   const SVC_GROUP = {
     labor: window.BOQ.G_LABOR,
@@ -5494,6 +5633,11 @@ function BOQEditor({
     valKey: "qty",
     unitText: "ชิ้น",
     hint: "กล่องพักสาย — กรอกจำนวนใบ (ไม่มีสายวิ่งผ่านเป็นเส้นให้ตรวจ % เติมเต็ม)"
+  }), FitList({
+    rows: cond.extra,
+    onChange: v => setCondVal("extra", v),
+    catalog: condFits,
+    hint: "ของท่อร้อยสายโดยเฉพาะ — เลือกได้ครบทุกขนาด แยกกลุ่ม IMC กับ uPVC (คนละอันกับข้องอของรางไฟ)"
   })), React.createElement("div", {
     style: {
       marginTop: 12,
@@ -5692,91 +5836,12 @@ function BOQEditor({
       color: "var(--text-3)",
       lineHeight: 1.5
     }
-  }, "\u0E15\u0E31\u0E27\u0E23\u0E32\u0E07 = \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19\u0E15\u0E32\u0E21\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27/\u0E17\u0E48\u0E2D\u0E19 \xB7 \u0E0A\u0E38\u0E14\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D = \u0E17\u0E38\u0E01\u0E23\u0E2D\u0E22\u0E15\u0E48\u0E2D +2 \xB7 \u0E02\u0E32\u0E41\u0E02\u0E27\u0E19 = \u0E17\u0E38\u0E01 1.5 \u0E21. \xB7 \u0E1E\u0E38\u0E4A\u0E01\u0E40\u0E2B\u0E25\u0E47\u0E01 4 \u0E15\u0E31\u0E27/\u0E02\u0E32")), React.createElement("div", null, React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-2)",
-      marginBottom: 7
-    }
-  }, "\u0E02\u0E49\u0E2D\u0E07\u0E2D / \u0E02\u0E49\u0E2D\u0E25\u0E14 / \u0E2A\u0E32\u0E21\u0E17\u0E32\u0E07 (\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07)"), React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8
-    }
-  }, (tw.extra || []).map((x, i) => React.createElement("div", {
-    key: i,
-    style: {
-      display: "grid",
-      gridTemplateColumns: "minmax(0,1fr) 78px 62px 36px",
-      gap: 8,
-      alignItems: "center"
-    }
-  }, React.createElement("input", {
-    value: x.name || "",
-    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E02\u0E49\u0E2D\u0E07\u0E2D 90\xB0 Wireway 100x100 mm.",
-    style: inputStyle,
-    onChange: e => setTrayVal("extra", (tw.extra || []).map((y, j) => j === i ? Object.assign({}, y, {
-      name: e.target.value
-    }) : y))
-  }), React.createElement("input", {
-    type: "number",
-    style: numStyle,
-    value: x.qty != null ? x.qty : "",
-    placeholder: "\u0E08\u0E33\u0E19\u0E27\u0E19",
-    onChange: e => setTrayVal("extra", (tw.extra || []).map((y, j) => j === i ? Object.assign({}, y, {
-      qty: e.target.value
-    }) : y))
-  }), React.createElement("input", {
-    value: x.unit || "",
-    placeholder: "\u0E2B\u0E19\u0E48\u0E27\u0E22",
-    style: inputStyle,
-    onChange: e => setTrayVal("extra", (tw.extra || []).map((y, j) => j === i ? Object.assign({}, y, {
-      unit: e.target.value
-    }) : y))
-  }), React.createElement("button", {
-    onClick: () => setTrayVal("extra", (tw.extra || []).filter((_, j) => j !== i)),
-    title: "\u0E25\u0E1A",
-    style: {
-      height: 40,
-      background: "#EF444414",
-      border: "none",
-      color: "#EF4444",
-      borderRadius: 9,
-      cursor: "pointer",
-      display: "grid",
-      placeItems: "center"
-    }
-  }, React.createElement(Icon, {
-    name: "x",
-    size: 14
-  })))), React.createElement("button", {
-    onClick: () => setTrayVal("extra", (tw.extra || []).concat([{
-      name: "",
-      qty: "",
-      unit: "ชุด"
-    }])),
-    style: {
-      alignSelf: "flex-start",
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 5,
-      background: "var(--surface3)",
-      color: "var(--text-2)",
-      border: "1px solid var(--border-strong)",
-      borderRadius: 9,
-      padding: "7px 11px",
-      fontWeight: 700,
-      fontSize: 12,
-      cursor: "pointer",
-      fontFamily: "inherit"
-    }
-  }, React.createElement(Icon, {
-    name: "plus",
-    size: 13,
-    color: "var(--text-2)"
-  }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C"))))), !isHome && kitSections.map(sc => React.createElement(BoqSection, _extends({
+  }, "\u0E15\u0E31\u0E27\u0E23\u0E32\u0E07 = \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19\u0E15\u0E32\u0E21\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27/\u0E17\u0E48\u0E2D\u0E19 \xB7 \u0E0A\u0E38\u0E14\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D = \u0E17\u0E38\u0E01\u0E23\u0E2D\u0E22\u0E15\u0E48\u0E2D +2 \xB7 \u0E02\u0E32\u0E41\u0E02\u0E27\u0E19 = \u0E17\u0E38\u0E01 1.5 \u0E21. \xB7 \u0E1E\u0E38\u0E4A\u0E01\u0E40\u0E2B\u0E25\u0E47\u0E01 4 \u0E15\u0E31\u0E27/\u0E02\u0E32")), FitList({
+    rows: tw.extra,
+    onChange: v => setTrayVal("extra", v),
+    catalog: trayFits,
+    hint: "ของรางไฟโดยเฉพาะ — เลือกได้ครบทุกขนาด แยกกลุ่ม Wireway กับ Cable Tray บันได"
+  }))), !isHome && kitSections.map(sc => React.createElement(BoqSection, _extends({
     key: sc.key,
     title: sc.title,
     icon: sc.icon

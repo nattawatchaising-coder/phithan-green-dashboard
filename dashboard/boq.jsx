@@ -432,6 +432,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const delCond = (kind, i) => setB((p) => { const c = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit); c[kind] = (c[kind] || []).filter((_, j) => j !== i); return Object.assign({}, p, { conduit: c }); });
   const setFlexSize = (size, v) => setB((p) => { const c = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit); c.flex = Object.assign({}, c.flex, { [size]: v }); return Object.assign({}, p, { conduit: c }); });
   const setUpFlexSize = (size, v) => setB((p) => { const c = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit); c.upFlex = Object.assign({}, c.upFlex, { [size]: v }); return Object.assign({}, p, { conduit: c }); });
+  const setCondVal = (k, v) => setB((p) => Object.assign({}, p, { conduit: Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit, { [k]: v }) }));
+  // รายการข้อต่อให้เลือก — คงที่ทั้งไฟล์ สร้างครั้งเดียวพอ
+  const condFits = React.useMemo(() => window.BOQ.condFittings(), []);
+  const trayFits = React.useMemo(() => window.BOQ.trayFittings(), []);
   const SPARE_DEF = { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10, upStraight: 10, upClamp: 10, upConnector: 10 };
   const setCSpare = (k, v) => setB((p) => Object.assign({}, p, { conduitSpare: Object.assign({}, SPARE_DEF, p.conduitSpare, { [k]: v }) }));
   const [condOpen, setCondOpen] = React.useState({});   // ท่อแถวไหนกางตารางตรวจสายอยู่
@@ -1040,6 +1044,43 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             );
           })}
           <button onClick={() => addTrayRow(kind, { size: sizes[0], length: 0, cables: [] })} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่ม {label}</button>
+        </div>
+      </div>
+    );
+  };
+
+  /* ── ข้องอ / ข้อลด / สามทาง ──
+     จำนวนขึ้นกับรูปทรงการเดินจริง ระบบเดาไม่ได้ ต้องกรอกเอง
+     แต่ "ชื่อ" ปล่อยให้พิมพ์เองไม่ได้ เพราะพิมพ์ต่างกันนิดเดียวก็เทียบราคา/ตัดสต็อกไม่ตรง
+     จึงให้เลือกจากรายการที่ครบทุกขนาด (แยกกลุ่ม IMC/uPVC และ Wireway/Cable Tray)
+     ของนอกรายการยังพิมพ์เพิ่มเองได้ที่ปุ่ม "เพิ่มรายการใหม่" ในดรอปดาวน์ */
+  const FitList = ({ rows, onChange, catalog, hint }) => {
+    const list = rows || [];
+    const set = (i, patch) => onChange(list.map((y, j) => j === i ? Object.assign({}, y, patch) : y));
+    // ชื่อที่พิมพ์เองไว้ (ไม่อยู่ในรายการ) ต้องใส่กลับเข้าตัวเลือกด้วย ไม่งั้นปุ่มจะโชว์ว่างเปล่า
+    const options = React.useMemo(() => {
+      const base = catalog.map((f) => ({ value: f.name, label: f.name, group: f.group }));
+      const known = new Set(base.map((o) => o.value));
+      list.forEach((x) => { const n = (x.name || "").trim(); if (n && !known.has(n)) { known.add(n); base.push({ value: n, label: n, group: "พิมพ์เอง" }); } });
+      return base;
+    }, [catalog, list]);
+    const unitOf = (n) => { const f = catalog.find((x) => x.name === n); return f ? f.unit : ""; };
+    return (
+      <div>
+        <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 3 }}>ข้องอ / ข้อลด / สามทาง</div>
+        <div style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 7 }}>{hint}</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {list.map((x, i) => (
+            <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 78px 62px 36px", gap: 8, alignItems: "center" }}>
+              <Dropdown value={x.name || ""} options={options} placeholder="เลือกข้อต่อ" wrap
+                addable onAdd={() => {}}
+                onChange={(v) => set(i, { name: v, unit: x.unit || unitOf(v) || "ชุด" })} />
+              <input type="number" style={numStyle} value={x.qty != null ? x.qty : ""} placeholder="จำนวน" onChange={(e) => set(i, { qty: e.target.value })} />
+              <input value={x.unit || ""} placeholder="หน่วย" style={inputStyle} onChange={(e) => set(i, { unit: e.target.value })} />
+              <button onClick={() => onChange(list.filter((_, j) => j !== i))} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
+            </div>
+          ))}
+          <button onClick={() => onChange(list.concat([{ name: "", qty: "", unit: (catalog[0] || {}).unit || "ชุด" }]))} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่มข้อต่อ</button>
         </div>
       </div>
     );
@@ -2196,6 +2237,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 hint: "ท่อขาว uPVC ยาว 2.9 ม./ท่อน — ขนาดที่เรียกเป็นขนาดนอก ระบบหักผนังท่อให้แล้วตอนตรวจ % เติมเต็ม" })}
               {ConduitList({ kind: "pullbox", label: "PULL BOX", sizes: window.BOQ.PULLBOX_SIZES, valKey: "qty", unitText: "ชิ้น",
                 hint: "กล่องพักสาย — กรอกจำนวนใบ (ไม่มีสายวิ่งผ่านเป็นเส้นให้ตรวจ % เติมเต็ม)" })}
+              {FitList({ rows: cond.extra, onChange: (v) => setCondVal("extra", v), catalog: condFits,
+                hint: "ของท่อร้อยสายโดยเฉพาะ — เลือกได้ครบทุกขนาด แยกกลุ่ม IMC กับ uPVC (คนละอันกับข้องอของรางไฟ)" })}
             </div>
             <div style={{ marginTop: 12, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
               * อุปกรณ์ IMC (แคล้มประกับ / บุชชิ่ง,ล็อกนัท / รางซี / คอนเนคเตอร์ / คุปปิ้ง) คำนวณอัตโนมัติจากความยาวท่อ + จำนวน PULL BOX
@@ -2249,21 +2292,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   ตัวราง = ปัดขึ้นตามความยาว/ท่อน · ชุดข้อต่อ = ทุกรอยต่อ +2 · ขาแขวน = ทุก 1.5 ม. · พุ๊กเหล็ก 4 ตัว/ขา
                 </div>
               </div>
-              {/* ข้องอ / ข้อลด / สามทาง — รูปทรงไม่ตายตัว กรอกจำนวนเองตามแบบ */}
-              <div>
-                <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 7 }}>ข้องอ / ข้อลด / สามทาง (กรอกเอง)</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {(tw.extra || []).map((x, i) => (
-                    <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 78px 62px 36px", gap: 8, alignItems: "center" }}>
-                      <input value={x.name || ""} placeholder="เช่น ข้องอ 90° Wireway 100x100 mm." style={inputStyle} onChange={(e) => setTrayVal("extra", (tw.extra || []).map((y, j) => j === i ? Object.assign({}, y, { name: e.target.value }) : y))} />
-                      <input type="number" style={numStyle} value={x.qty != null ? x.qty : ""} placeholder="จำนวน" onChange={(e) => setTrayVal("extra", (tw.extra || []).map((y, j) => j === i ? Object.assign({}, y, { qty: e.target.value }) : y))} />
-                      <input value={x.unit || ""} placeholder="หน่วย" style={inputStyle} onChange={(e) => setTrayVal("extra", (tw.extra || []).map((y, j) => j === i ? Object.assign({}, y, { unit: e.target.value }) : y))} />
-                      <button onClick={() => setTrayVal("extra", (tw.extra || []).filter((_, j) => j !== i))} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
-                    </div>
-                  ))}
-                  <button onClick={() => setTrayVal("extra", (tw.extra || []).concat([{ name: "", qty: "", unit: "ชุด" }]))} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่มอุปกรณ์</button>
-                </div>
-              </div>
+              {/* ข้องอ / ข้อลด / สามทาง — รูปทรงไม่ตายตัว เลือกของ + กรอกจำนวนตามแบบ */}
+              {FitList({ rows: tw.extra, onChange: (v) => setTrayVal("extra", v), catalog: trayFits,
+                hint: "ของรางไฟโดยเฉพาะ — เลือกได้ครบทุกขนาด แยกกลุ่ม Wireway กับ Cable Tray บันได" })}
             </div>
           </BoqSection>
 

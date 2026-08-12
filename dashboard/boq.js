@@ -593,6 +593,28 @@
     "กล่องพักสายไฟ uPVC สีขาว 4\"x4\"x2\"", "กล่องพักสายไฟ uPVC สีขาว 4\"x4\"x3\"",
   ];
 
+  /* ── ข้อต่อ/ข้องอของท่อร้อยสาย ──
+     จำนวนขึ้นกับรูปทรงการเดินท่อจริง (เลี้ยวกี่มุม แยกกี่จุด) ระบบเดาจากความยาวไม่ได้ ต้องกรอกเอง
+     แต่ให้ "เลือกจากรายการ" แทนพิมพ์เอง ชื่อจะได้ตรงกับคลังทุกครั้ง ไม่ต้องมานั่งไล่ชื่อซ้ำทีหลัง */
+  const COND_FIT_KINDS = ["ข้องอ 90°", "ข้องอ 45°", "สามทาง", "ข้อลด", "ยูเนี่ยนคัปปลิ้ง", "ข้อต่อเข้ากล่อง"];
+  const upvcSuffix = (nm) => {
+    const mm = (String(nm).match(/(\d+)\s*mm/) || [])[1];
+    return mm ? "uPVC " + mm + "mm. (สีขาว)" : String(nm).trim();
+  };
+  /* รายการข้อต่อท่อทุกขนาด — IMC และ uPVC แยกกลุ่มกันในดรอปดาวน์ */
+  function condFittings() {
+    const out = [];
+    IMC_SIZES.forEach((nm) => {
+      const sz = nm.replace(/^IMC\s*/i, "").trim();
+      COND_FIT_KINDS.forEach((k) => out.push({ name: k + " IMC " + sz, unit: "pcs", group: "IMC" }));
+    });
+    UPVC_SIZES.forEach((nm) => {
+      const suf = upvcSuffix(nm);
+      COND_FIT_KINDS.forEach((k) => out.push({ name: k + " " + suf, unit: "pcs", group: "uPVC" }));
+    });
+    return out;
+  }
+
   /* ── รางไฟ (WIREWAY / CABLE TRAY) ──
      Wireway = รางเหล็กพับมีฝาปิด ยาว 2.40 ม./ท่อน — ใช้เดินสายในอาคาร/ข้างตู้
      Cable Tray บันได = ยาว 3.00 ม./ท่อน — ใช้เดินสายจำนวนมากระยะไกล
@@ -626,6 +648,26 @@
     // รางบันไดแขวนด้วยขาแขวนสำเร็จ · Wireway ยึดพุ๊กเข้าโครงตรง ๆ ไม่ต้องมีขาแขวน
     if (isTray) out.splice(2, 0, { name: "ขาแขวนราง " + kind + " " + sz, qty: up(hanger), unit: "ชุด" });
     if (!isTray) out.push({ name: "สกรู+น็อต M6 ประกอบราง", qty: up(pcs * 8), unit: "ชุด" });
+    return out;
+  }
+
+  /* ── ข้องอ/ข้อต่อของรางไฟ ──
+     เหมือนฝั่งท่อ คือขึ้นกับรูปทรงจริง กรอกเอง แต่เลือกจากรายการได้ทุกขนาด
+     แยกกลุ่ม Wireway กับ Cable Tray บันได เพราะของคนละแบบ ใช้แทนกันไม่ได้ */
+  const WAY_FIT_KINDS = [
+    "ข้องอ 90° เปิดนอก", "ข้องอ 90° เปิดใน", "ข้องอ เปิดบน (ขึ้น)", "ข้องอลง",
+    "สามทาง", "สี่ทาง", "ข้อลด", "ข้อต่อลงตู้", "แผ่นปิดหัว-ท้าย",
+  ];
+  function trayFittings() {
+    const out = [];
+    WAY_SIZES.forEach((nm) => {
+      const sz = traySuffix(nm);
+      WAY_FIT_KINDS.forEach((k) => out.push({ name: k + " Wireway " + sz, unit: "ชุด", group: "Wireway" }));
+    });
+    TRAY_SIZES.forEach((nm) => {
+      const sz = traySuffix(nm);
+      WAY_FIT_KINDS.forEach((k) => out.push({ name: k + " Cable Tray " + sz, unit: "ชุด", group: "Cable Tray บันได" }));
+    });
     return out;
   }
 
@@ -1029,7 +1071,8 @@
       cables: DEFAULT_CABLES
         .filter((c) => !((c.name === "COMBINER-BAT." && !job.battery) || (c.name === "COMBINER-BACKUP" && !job.backup)))
         .map((c) => Object.assign({}, c)),
-      conduit: { imc: [], upvc: [], pullbox: [], flex: {}, upFlex: {} },
+      // ท่อร้อยสาย — extra = ข้องอ/ข้อลด/สามทาง ที่เลือกเพิ่มเอง (ระบบเดาจากความยาวไม่ได้)
+      conduit: { imc: [], upvc: [], pullbox: [], flex: {}, upFlex: {}, extra: [] },
       // รางไฟ — way = Wireway เหล็กมีฝา · tray = Cable Tray บันได · extra = ข้องอ/ข้อต่อพิเศษที่กรอกเอง
       tray: { way: [], tray: [], spare: 10, extra: [] },
       // โครงสร้างรองรับอุปกรณ์ — 0 = ไม่ถอด · kind: floor(โครงตั้งพื้น) / wall(ฉากยึดผนัง)
@@ -1391,8 +1434,11 @@
     });
     // PULL BOX (ชิ้น)
     Object.keys(pbMap).forEach((nm) => race.push({ name: nm, qty: pbMap[nm], unit: "pcs" }));
+    // ข้องอ/ข้อลด/สามทาง ที่เลือกเพิ่มเอง
+    (cond.extra || []).filter((x) => (x.name || "").trim() && +x.qty > 0)
+      .forEach((x) => race.push({ name: x.name.trim(), qty: +x.qty, unit: x.unit || "pcs" }));
 
-    if (race.length) groups.push({ group: "RACE WAY", items: race });
+    if (race.length) groups.push({ group: "RACE WAY", items: mergeItems(race) });
 
     // ── รางไฟ (WIREWAY / CABLE TRAY) ──
     const tw = b.tray || {};
@@ -1635,6 +1681,7 @@
       add("RACE WAY", "ท่ออ่อนขาว uPVC " + suf, "box");
     });
     PULLBOX_SIZES.forEach((s) => add("RACE WAY", s, "pcs"));
+    condFittings().forEach((f) => add("RACE WAY", f.name, f.unit));   // ข้องอ/สามทาง/ข้อลด ของท่อ ทุกขนาด
     // รางไฟ — ตัวราง/ข้อต่อ/ขาแขวน แยกตามขนาด (พุ๊กเหล็กใช้ร่วมกับงานโครงสร้าง)
     WAY_SIZES.forEach((nm) => {
       const sz = traySuffix(nm);
@@ -1648,6 +1695,7 @@
       add(G_TRAY, "ขาแขวนราง Cable Tray " + sz, "ชุด");
     });
     add(G_TRAY, "สกรู+น็อต M6 ประกอบราง", "ชุด");
+    trayFittings().forEach((f) => add(G_TRAY, f.name, f.unit));       // ข้องอ/สามทาง/แผ่นปิด ของราง ทุกขนาด
     // โครงสร้างรองรับอุปกรณ์ (เหล็กกล่อง/เหล็กฉาก/เพลท/พุ๊ก ใช้ชื่อร่วมกับงานโครงสร้างบนหลังคา)
     SUPPORT_SHARED.forEach((x) => add(G_SUPPORT, x.name, x.unit));
     add("GROUNDING", 'แท่งกราวด์ชุบทองแดง 5/8" ยาว 2.4 m', "pcs");
@@ -1826,6 +1874,7 @@
 
   window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, WAY_PIPE_LEN, TRAY_PIPE_LEN, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
+    COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings,
     STEEL_SPECS, steelName, steelBarLen, steelSel, steelOf,
     TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, ACC_ALLOW_PCT, VAT_RATE, priceBreakdown,
     TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,
