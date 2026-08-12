@@ -31,9 +31,18 @@ const IV_MOUNT = window.SC_MOUNT || {
 /* ── จำนวนเซลล์อนุกรมในแผง — ดาต้าชีตไม่ค่อยระบุตรง ๆ เดาจาก Voc ──
    เซลล์ซิลิคอนสมัยใหม่ Voc ต่อเซลล์ ≈ 0.74–0.76 V (แผง half-cut นับเฉพาะที่ต่ออนุกรม) */
 function ivCells(panel) {
-  const c = scNum(panel && panel.cells);
-  if (c >= 12) return Math.round(c);
-  return Math.max(12, Math.round(scNum(panel && panel.voc, 40) / 0.75));
+  const c = Math.round(scNum(panel && panel.cells));
+  const voc = scNum(panel && panel.voc, 40);
+  /* คลังมักกรอกจำนวนเซลล์ตามที่พิมพ์บนดาต้าชีต เช่น 144 (= 72 เซลล์ผ่าครึ่ง)
+     แต่ครึ่งบน-ครึ่งล่างต่อ "ขนาน" กัน จำนวนที่ต่ออนุกรมจริงจึงเหลือครึ่งเดียว
+     ถ้าเอา 144 ไปเข้าโมเดลไดโอดตรง ๆ สมการจะหาค่า Rsh ที่เป็นบวกไม่ได้ →
+     ivExtract คืน null → หน้าจอขึ้น "ยังสร้างเส้น I-V ไม่ได้" ทั้งที่กรอกครบแล้ว
+     เช็กด้วย Voc ต่อเซลล์: ซิลิคอนจริงอยู่ราว 0.6–0.76 V ถ้าได้ต่ำกว่า 0.45 V แปลว่านับเกินไปเท่าตัว */
+  if (c >= 12) {
+    if (c % 2 === 0 && voc / c < 0.45) return c / 2;
+    return c;
+  }
+  return Math.max(12, Math.round(voc / 0.75));
 }
 
 const ivExp = (x) => Math.exp(Math.min(500, x));
@@ -94,8 +103,19 @@ function ivMppOf(p, Voc) {
 function ivExtract(panel) {
   const Isc = scNum(panel.isc), Voc = scNum(panel.voc), Vmp = scNum(panel.vmp), Imp = scNum(panel.imp);
   if (!(Isc > 0 && Voc > 0 && Vmp > 0 && Imp > 0 && Vmp < Voc && Imp < Isc)) return null;
-  const Ns = ivCells(panel), Pm = Vmp * Imp;
-  const a0 = 1.15;
+  const Ns = ivCells(panel);
+  /* ค่าอุดมคติ 1.15 ใช้ได้กับแผงส่วนใหญ่ แต่บางรุ่น (Fill Factor สูงมาก หรือกรอกจำนวนเซลล์คลาดเคลื่อน)
+     จะหา Rsh ที่เป็นบวกไม่ได้เลย — ไล่เพิ่ม a ให้หัวเข่าป้านขึ้นทีละขั้นจนสร้างโมเดลได้
+     ดีกว่าคืน null แล้วให้หน้าจอบอกว่า "กรอกไม่ครบ" ทั้งที่กรอกครบแล้ว */
+  for (let k = 0; k < 14; k++) {
+    const r = ivExtractA(panel, Ns, 1.15 + k * 0.1);
+    if (r) return r;
+  }
+  return null;
+}
+function ivExtractA(panel, Ns, a0) {
+  const Isc = scNum(panel.isc), Voc = scNum(panel.voc), Vmp = scNum(panel.vmp), Imp = scNum(panel.imp);
+  const Pm = Vmp * Imp;
   const aVt = a0 * Ns * IV_K * IV_T0 / IV_Q;
   const I0 = Isc / (ivExp(Voc / aVt) - 1);
   /* Rsh คำนวณย้อนจากเงื่อนไข "โมเดลต้องผ่านจุด (Vmp, Imp)" — สูตรของ Villalva */

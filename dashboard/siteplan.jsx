@@ -95,8 +95,9 @@ function SitePlanEditor({ job, onClose, currentUser }) {
   // รุ่นแผงจากคลัง (หมวด panel) — ใช้ขนาด/Wp มาวางแผง (แก้ขนาดที่หน้าคลัง)
   const stock = useStockStore();
   const panelModels = React.useMemo(
-    () => (stock.items || []).filter((it) => it.cat === "panel"),
-    [stock.items]
+    // แผงที่อยู่ในหมวดย่อย (เช่น แผง › AIKO) เก็บคีย์หมวดย่อยไว้ใน cat จึงต้องแปลงกลับเป็นหมวดหลักก่อน
+    () => (stock.items || []).filter((it) => window.SF.mainCatOf(it.cat) === "panel"),
+    [stock.items, stock.cats]
   );
 
   // ── working state ──

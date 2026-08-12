@@ -843,10 +843,12 @@ function DetailDrawer({
   const [boqOpen, setBoqOpen] = React.useState(false);
   const [planOpen, setPlanOpen] = React.useState(false);
   const [plan3dOpen, setPlan3dOpen] = React.useState(false);
+  const [designOpen, setDesignOpen] = React.useState(false);
   React.useEffect(() => {
     setBoqOpen(false);
     setPlanOpen(false);
     setPlan3dOpen(false);
+    setDesignOpen(false);
   }, [job ? job.id : null]);
   const [advancing, setAdvancing] = React.useState(false);
   React.useEffect(() => {
@@ -1326,6 +1328,58 @@ function DetailDrawer({
     name: "arrowRight",
     size: 16,
     color: "var(--text-3)"
+  })), window.SolarDesignHost && React.createElement("button", {
+    onClick: () => setDesignOpen(true),
+    style: {
+      width: "100%",
+      marginBottom: 10,
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "12px 14px",
+      background: "var(--surface)",
+      border: "1px solid var(--border-strong)",
+      borderRadius: 12,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      textAlign: "left"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 34,
+      height: 34,
+      borderRadius: 9,
+      background: "#F59E0B1c",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "bolt",
+    size: 17,
+    color: "#B45309"
+  })), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 13.5,
+      fontWeight: 700,
+      color: "var(--text-1)"
+    }
+  }, "\u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E23\u0E30\u0E1A\u0E1A + \u0E1C\u0E25\u0E1C\u0E25\u0E34\u0E15"), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E15\u0E48\u0E2D\u0E2A\u0E15\u0E23\u0E34\u0E07 \xB7 \u0E15\u0E23\u0E27\u0E08 I-V \xB7 \u0E1C\u0E25\u0E1C\u0E25\u0E34\u0E15 25 \u0E1B\u0E35 \xB7 \u0E04\u0E37\u0E19\u0E17\u0E38\u0E19 \u2014 \u0E40\u0E02\u0E49\u0E32\u0E15\u0E23\u0E07 \u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E23\u0E2D\u0E08\u0E2D 3 \u0E21\u0E34\u0E15\u0E34")), React.createElement(Icon, {
+    name: "arrowRight",
+    size: 16,
+    color: "var(--text-3)"
   })), React.createElement("button", {
     onClick: () => setBoqOpen(true),
     style: {
@@ -1661,6 +1715,9 @@ function DetailDrawer({
     job: job,
     currentUser: currentUser,
     onClose: () => setPlan3dOpen(false)
+  }), designOpen && job && window.SolarDesignHost && React.createElement(window.SolarDesignHost, {
+    job: job,
+    onClose: () => setDesignOpen(false)
   }));
 }
 function SpecItem({

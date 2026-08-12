@@ -801,7 +801,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const cableCat = window.BOQ.cableCategory || ((n) => "อื่นๆ");
   const CABLE_CAT_ORDER = window.BOQ.CABLE_GROUPS || ["อื่นๆ"];
   const cableTypeOptions = React.useMemo(() => {
-    const wiringStock = stockItems.filter((s) => s.cat === "wiring");
+    // รวมสายที่อยู่ในหมวดย่อยของ "สายไฟ / ไฟฟ้า" ด้วย (cat เก็บคีย์หมวดย่อยไว้)
+    const wiringStock = stockItems.filter((s) => window.SF.mainCatOf(s.cat) === "wiring");
     const groupByName = {};
     wiringStock.forEach((s) => { if (s.name && s.cableGroup) groupByName[s.name] = s.cableGroup; });
     const used = (b.cables || []).map((c) => c.type).filter(Boolean);

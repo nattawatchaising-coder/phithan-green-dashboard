@@ -284,16 +284,20 @@ function App() {
   // ลงทะเบียนสเปคแผง + อินเวอร์เตอร์จากคลังสินค้า → ให้ตัวคำนวณ BOQ ใช้
   React.useEffect(() => {
     if (!window.BOQ) return;
-    if (window.BOQ.setPanels) window.BOQ.setPanels((stock.items || []).filter((s) => s.cat === "panel" && s.name)
+    /* ของที่อยู่ในหมวดย่อย (เช่น แผง › AIKO) เก็บคีย์หมวดย่อยไว้ในช่อง cat
+       จึงต้องแปลงกลับเป็นหมวดหลักก่อนกรอง ไม่งั้นแผงในหมวดย่อยจะหายไปจากดรอปดาวน์ทั้งหมด */
+    const inCat = (s, k) => window.SF.mainCatOf(s.cat) === k;
+    if (window.BOQ.setPanels) window.BOQ.setPanels((stock.items || []).filter((s) => inCat(s, "panel") && s.name)
       .map((s) => ({ model: s.name, wp: s.wp, frame: s.frame, width: s.width, length: s.length,
         voc: s.voc, isc: s.isc, vmp: s.vmp, imp: s.imp,
         tcVoc: s.tcVoc, tcIsc: s.tcIsc, tcPmax: s.tcPmax, noct: s.noct,
         deg1: s.deg1, degY: s.degY, cells: s.cells, fuseA: s.fuseA, halfCut: s.halfCut })));
-    if (window.BOQ.setInverters) window.BOQ.setInverters((stock.items || []).filter((s) => s.cat === "inverter" && s.name)
+    if (window.BOQ.setInverters) window.BOQ.setInverters((stock.items || []).filter((s) => inCat(s, "inverter") && s.name)
       .map((s) => ({ model: s.name, type: s.invType, kw: s.invKw, phase: s.invPhase, inputs: s.invInputs, maxPv: s.invMaxPv, outA: s.invOutA, mpptVmin: s.mpptVmin, mpptVmax: s.mpptVmax, maxVdc: s.maxVdc, maxInA: s.maxInA, maxIscA: s.maxIscA, maxMpptA: s.maxMpptA,
         strPerMppt: s.invStrPerMppt, eff: s.invEff, effEuro: s.invEffEuro,
         vStart: s.vStart, vRated: s.vRated, maxAcKw: s.invMaxAcKw })));
-  }, [stock.items]);
+    /* ต้องผูกกับ stock.cats ด้วย — ถ้ารายชื่อหมวดย่อยมาถึงทีหลังรายการของ mainCatOf() จะยังแปลงคีย์ไม่ออก */
+  }, [stock.items, stock.cats]);
 
   // ลงทะเบียนค่าพิกัดกระแสสายไฟที่แก้จากเล่ม วสท. (ทับค่าเริ่มต้น) → ให้ตัวคำนวณ BOQ ใช้
   React.useEffect(() => {

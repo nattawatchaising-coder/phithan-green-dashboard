@@ -7223,8 +7223,86 @@ function SolarWorkspace({
     size: 14
   }), "\u0E2D\u0E2D\u0E01\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19")))));
 }
+function SolarDesignHost({
+  job,
+  onClose
+}) {
+  const {
+    saved,
+    loading,
+    save
+  } = usePlan3d(job ? job.id : null);
+  const [sysLocal, setSysLocal] = React.useState(null);
+  const st = React.useMemo(() => {
+    const base = p3Blank(job);
+    if (!saved) return base;
+    const m = Object.assign({}, base, saved, {
+      sun: Object.assign({}, base.sun, saved.sun || {})
+    });
+    m.roofs = (saved.roofs || []).map(r => Object.assign({}, p3NewRoof(1), r, {
+      skips: r.skips || {},
+      pts: r.pts || null
+    }));
+    m.obstacles = saved.obstacles || [];
+    return m;
+  }, [saved, job && job.id]);
+  const stRef = React.useRef(st);
+  stRef.current = st;
+  const pend = React.useRef(null),
+    timer = React.useRef(null);
+  const flush = React.useCallback(() => {
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+    const s = pend.current;
+    if (!s) return;
+    pend.current = null;
+    const wp = scNum((scPanelSpec(s) || {}).wp, 0);
+    save(Object.assign({}, stRef.current, wp ? {
+      sys: s,
+      wp: wp
+    } : {
+      sys: s
+    }));
+  }, [save]);
+  React.useEffect(() => flush, [flush]);
+  if (!job) return null;
+  if (loading) {
+    return React.createElement("div", {
+      style: {
+        position: "fixed",
+        inset: 0,
+        zIndex: 130,
+        background: "var(--bg)",
+        display: "grid",
+        placeItems: "center",
+        fontFamily: "inherit",
+        fontSize: 13,
+        fontWeight: 700,
+        color: "var(--text-2)"
+      }
+    }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E40\u0E1B\u0E34\u0E14\u0E1C\u0E31\u0E07\u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u2026");
+  }
+  return React.createElement(React.Fragment, null, React.createElement("style", null, typeof P3_CSS === "string" ? P3_CSS : ""), React.createElement(SolarWorkspace, {
+    job: job,
+    st: st,
+    sys: sysLocal || st.sys || scBlankSys(),
+    onClose: () => {
+      flush();
+      onClose();
+    },
+    onChange: s => {
+      setSysLocal(s);
+      pend.current = s;
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = setTimeout(flush, 900);
+    }
+  }));
+}
 Object.assign(window, {
   SolarWorkspace,
+  SolarDesignHost,
   SuVoltBand,
   SuFacing,
   SU_CSS

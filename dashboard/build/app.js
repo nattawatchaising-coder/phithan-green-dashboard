@@ -403,7 +403,8 @@ function App() {
   }, [stock.items, priceStore.priceMap]);
   React.useEffect(() => {
     if (!window.BOQ) return;
-    if (window.BOQ.setPanels) window.BOQ.setPanels((stock.items || []).filter(s => s.cat === "panel" && s.name).map(s => ({
+    const inCat = (s, k) => window.SF.mainCatOf(s.cat) === k;
+    if (window.BOQ.setPanels) window.BOQ.setPanels((stock.items || []).filter(s => inCat(s, "panel") && s.name).map(s => ({
       model: s.name,
       wp: s.wp,
       frame: s.frame,
@@ -423,7 +424,7 @@ function App() {
       fuseA: s.fuseA,
       halfCut: s.halfCut
     })));
-    if (window.BOQ.setInverters) window.BOQ.setInverters((stock.items || []).filter(s => s.cat === "inverter" && s.name).map(s => ({
+    if (window.BOQ.setInverters) window.BOQ.setInverters((stock.items || []).filter(s => inCat(s, "inverter") && s.name).map(s => ({
       model: s.name,
       type: s.invType,
       kw: s.invKw,
@@ -444,7 +445,7 @@ function App() {
       vRated: s.vRated,
       maxAcKw: s.invMaxAcKw
     })));
-  }, [stock.items]);
+  }, [stock.items, stock.cats]);
   React.useEffect(() => {
     if (window.BOQ && window.BOQ.setAmpacity) window.BOQ.setAmpacity(ampStore.overrides || {});
   }, [ampStore.overrides]);

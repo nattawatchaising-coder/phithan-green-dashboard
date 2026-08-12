@@ -321,7 +321,8 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
   const [boqOpen, setBoqOpen] = React.useState(false);
   const [planOpen, setPlanOpen] = React.useState(false);
   const [plan3dOpen, setPlan3dOpen] = React.useState(false);
-  React.useEffect(() => { setBoqOpen(false); setPlanOpen(false); setPlan3dOpen(false); }, [job ? job.id : null]);
+  const [designOpen, setDesignOpen] = React.useState(false);   // ออกแบบระบบ/ผลผลิต — เข้าตรงไม่ผ่านจอ 3 มิติ
+  React.useEffect(() => { setBoqOpen(false); setPlanOpen(false); setPlan3dOpen(false); setDesignOpen(false); }, [job ? job.id : null]);
 
   /* loading state — กดปุ่มแล้วแสดง "กำลังบันทึก..." ทันที
      reset เมื่อ Firebase confirm แล้ว (job.stage เปลี่ยน) */
@@ -483,6 +484,20 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               </button>
               )}
 
+              {/* ออกแบบระบบ + ผลผลิต — เข้าตรง ไม่ต้องเปิดจอ 3 มิติก่อน (ใช้ผังแผงที่บันทึกไว้แล้ว) */}
+              {window.SolarDesignHost && (
+              <button onClick={() => setDesignOpen(true)}
+                style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+                  background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                <span style={{ width: 34, height: 34, borderRadius: 9, background: "#F59E0B1c", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="bolt" size={17} color="#B45309" /></span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ออกแบบระบบ + ผลผลิต</span>
+                  <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>ต่อสตริง · ตรวจ I-V · ผลผลิต 25 ปี · คืนทุน — เข้าตรง ไม่ต้องรอจอ 3 มิติ</span>
+                </span>
+                <Icon name="arrowRight" size={16} color="var(--text-3)" />
+              </button>
+              )}
+
               {/* ถอดวัสดุ BOQ */}
               <button onClick={() => setBoqOpen(true)}
                 style={{ width: "100%", marginBottom: 22, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
@@ -612,6 +627,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
         onSave={onSaveBOQ ? (boq) => { onSaveBOQ(job.id, boq); setBoqOpen(false); } : null} />}
       {planOpen && job && window.SitePlanEditor && <window.SitePlanEditor job={job} currentUser={currentUser} onClose={() => setPlanOpen(false)} />}
       {plan3dOpen && job && window.Plan3DEditor && <window.Plan3DEditor job={job} currentUser={currentUser} onClose={() => setPlan3dOpen(false)} />}
+      {designOpen && job && window.SolarDesignHost && <window.SolarDesignHost job={job} onClose={() => setDesignOpen(false)} />}
     </React.Fragment>
   );
 }

@@ -28,9 +28,13 @@ const IV_MOUNT = window.SC_MOUNT || {
   }
 };
 function ivCells(panel) {
-  const c = scNum(panel && panel.cells);
-  if (c >= 12) return Math.round(c);
-  return Math.max(12, Math.round(scNum(panel && panel.voc, 40) / 0.75));
+  const c = Math.round(scNum(panel && panel.cells));
+  const voc = scNum(panel && panel.voc, 40);
+  if (c >= 12) {
+    if (c % 2 === 0 && voc / c < 0.45) return c / 2;
+    return c;
+  }
+  return Math.max(12, Math.round(voc / 0.75));
 }
 const ivExp = x => Math.exp(Math.min(500, x));
 function ivSolveI(p, V, seed) {
@@ -93,9 +97,19 @@ function ivExtract(panel) {
     Vmp = scNum(panel.vmp),
     Imp = scNum(panel.imp);
   if (!(Isc > 0 && Voc > 0 && Vmp > 0 && Imp > 0 && Vmp < Voc && Imp < Isc)) return null;
-  const Ns = ivCells(panel),
-    Pm = Vmp * Imp;
-  const a0 = 1.15;
+  const Ns = ivCells(panel);
+  for (let k = 0; k < 14; k++) {
+    const r = ivExtractA(panel, Ns, 1.15 + k * 0.1);
+    if (r) return r;
+  }
+  return null;
+}
+function ivExtractA(panel, Ns, a0) {
+  const Isc = scNum(panel.isc),
+    Voc = scNum(panel.voc),
+    Vmp = scNum(panel.vmp),
+    Imp = scNum(panel.imp);
+  const Pm = Vmp * Imp;
   const aVt = a0 * Ns * IV_K * IV_T0 / IV_Q;
   const I0 = Isc / (ivExp(Voc / aVt) - 1);
   const build = Rs => {

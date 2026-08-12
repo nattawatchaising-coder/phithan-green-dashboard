@@ -3576,4 +3576,62 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   );
 }
 
-Object.assign(window, { SolarWorkspace, SuVoltBand, SuFacing, SU_CSS });
+/* ============================================================
+   SolarDesignHost — เข้า "ออกแบบระบบ + ผลผลิต" ตรง ๆ โดยไม่ต้องเปิดจอ 3 มิติก่อน
+   ------------------------------------------------------------
+   ผังแผง/ทิศ/เงา ยังอ่านจากโมเดล 3 มิติที่บันทึกไว้ของงานนี้เหมือนเดิม (plan3d/{jobId})
+   ต่างกันแค่ไม่ต้องรอโหลด Three.js กับฉาก 3 มิติ — เปิดบนมือถือแล้วเข้าถึงเร็วกว่ามาก
+   แลกกับที่ไม่มีภาพฉาก 3 มิติไปแปะหัวรายงาน (ต้องเข้าทางจอ 3 มิติถึงจะถ่ายภาพได้)
+   ============================================================ */
+function SolarDesignHost({ job, onClose }) {
+  const { saved, loading, save } = usePlan3d(job ? job.id : null);
+  const [sysLocal, setSysLocal] = React.useState(null);   // null = ยังไม่ได้แก้อะไร ใช้ค่าที่บันทึกไว้
+  /* ต่อของเก่าให้ครบรูปแบบปัจจุบันแบบเดียวกับที่ Plan3DEditor ทำตอนโหลด
+     ไม่งั้นผังที่บันทึกไว้ก่อนเพิ่มฟิลด์ใหม่จะอ่านแล้วพัง */
+  const st = React.useMemo(() => {
+    const base = p3Blank(job);
+    if (!saved) return base;
+    const m = Object.assign({}, base, saved, { sun: Object.assign({}, base.sun, saved.sun || {}) });
+    m.roofs = (saved.roofs || []).map((r) => Object.assign({}, p3NewRoof(1), r, { skips: r.skips || {}, pts: r.pts || null }));
+    m.obstacles = saved.obstacles || [];
+    return m;
+  }, [saved, job && job.id]);
+
+  /* เขียนลงฐานข้อมูลแบบหน่วงเวลา — ในเวิร์กสเปซผู้ใช้ลากสไลเดอร์/พิมพ์เลขรัว ๆ
+     ถ้าเซฟทุกครั้งที่ค่าเปลี่ยนจะยิงเน็ตเป็นร้อยครั้ง (เน็ตหน้างานช้าอยู่แล้ว) */
+  const stRef = React.useRef(st); stRef.current = st;
+  const pend = React.useRef(null), timer = React.useRef(null);
+  const flush = React.useCallback(() => {
+    if (timer.current) { clearTimeout(timer.current); timer.current = null; }
+    const s = pend.current;
+    if (!s) return;
+    pend.current = null;
+    const wp = scNum((scPanelSpec(s) || {}).wp, 0);
+    /* เลือกรุ่นแผงแล้วให้ kWp ที่จอ 3 มิติใช้ตามไปด้วย จะได้ไม่ขัดกันสองที่ (ตรงกับที่ Plan3DEditor ทำ) */
+    save(Object.assign({}, stRef.current, wp ? { sys: s, wp: wp } : { sys: s }));
+  }, [save]);
+  React.useEffect(() => flush, [flush]);   // ปิดหน้าต่างระหว่างที่ยังหน่วงอยู่ → เซฟให้ก่อน
+
+  if (!job) return null;
+  if (loading) {
+    return (
+      <div style={{ position: "fixed", inset: 0, zIndex: 130, background: "var(--bg)", display: "grid", placeItems: "center",
+        fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--text-2)" }}>กำลังเปิดผังของงานนี้…</div>
+    );
+  }
+  return (
+    <React.Fragment>
+      {/* เวิร์กสเปซใช้คลาส .p3-* ซึ่งปกติ Plan3DEditor เป็นคนใส่ CSS ให้ — เข้าตรงจึงต้องใส่เอง */}
+      <style>{typeof P3_CSS === "string" ? P3_CSS : ""}</style>
+    <SolarWorkspace job={job} st={st} sys={sysLocal || st.sys || scBlankSys()} onClose={() => { flush(); onClose(); }}
+      onChange={(s) => {
+        setSysLocal(s);
+        pend.current = s;
+        if (timer.current) clearTimeout(timer.current);
+        timer.current = setTimeout(flush, 900);
+      }} />
+    </React.Fragment>
+  );
+}
+
+Object.assign(window, { SolarWorkspace, SolarDesignHost, SuVoltBand, SuFacing, SU_CSS });

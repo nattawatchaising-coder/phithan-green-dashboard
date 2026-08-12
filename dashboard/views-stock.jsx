@@ -807,7 +807,9 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
   const set = (k, v) => setF((p) => Object.assign({}, p, { [k]: v }));
   const suggestCode = SF.genMatCode(f.cat, items || []); // รหัสถัดไปตามหมวด
 
-  /* หมวด — f.cat เก็บคีย์ที่ละเอียดที่สุด แยกกลับเป็นหลัก/ย่อยตอนแสดง */
+  /* หมวด — f.cat เก็บคีย์ที่ละเอียดที่สุด แยกกลับเป็นหลัก/ย่อยตอนแสดง
+     ช่องสเปค (แผง/อินเวอร์เตอร์/อุปกรณ์ไฟฟ้า/สาย) ต้องดูจาก mainCat ไม่ใช่ f.cat
+     ไม่งั้นของที่ย้ายเข้าหมวดย่อยจะไม่มีช่องให้กรอก Voc/Isc/Vmp/Imp อีกเลย */
   const mainCat = SF.mainCatOf(f.cat);
   const subCat = mainCat === f.cat ? "" : f.cat;
   const subList = SF.STOCK_SUB_BY_CAT[mainCat] || [];
@@ -927,7 +929,7 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
                 placeholder="บรรทัดละหนึ่งชื่อ — ปล่อยว่างได้ ระบบเติมให้เองเมื่อเปลี่ยนชื่อ" />
             </Field>
           </div>
-          {f.cat === "panel" && (
+          {mainCat === "panel" && (
             <div style={{ gridColumn: "1 / -1", marginTop: 2, padding: 14, background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 10 }}>
                 <Icon name="panel" size={14} color="var(--primary-dark)" /> สเปคแผง (ใช้ช่วยถอด BOQ)
@@ -971,7 +973,7 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
               </div>
             </div>
           )}
-          {f.cat === "inverter" && (
+          {mainCat === "inverter" && (
             <div style={{ gridColumn: "1 / -1", marginTop: 2, padding: 14, background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 10 }}>
                 <Icon name="bolt" size={14} color="var(--primary-dark)" /> สเปคอินเวอร์เตอร์ (ใช้ช่วยถอด BOQ)
@@ -1027,7 +1029,7 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
               </div>
             </div>
           )}
-          {f.cat === "electrical" && (
+          {mainCat === "electrical" && (
             <div style={{ gridColumn: "1 / -1", marginTop: 2, padding: 14, background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 10 }}>
                 <Icon name="bolt" size={14} color="#4F46E5" /> สเปคอุปกรณ์ไฟฟ้า (เบรกเกอร์ / ป้องกัน)
@@ -1063,7 +1065,7 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
               </div>
             </div>
           )}
-          {f.cat === "wiring" && (
+          {mainCat === "wiring" && (
             <div style={{ gridColumn: "1 / -1", marginTop: 2, padding: 14, background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 10 }}>
                 <Icon name="power" size={14} color="var(--primary-dark)" /> หมวดสาย (ใช้จัดกลุ่มใน dropdown ถอด BOQ)

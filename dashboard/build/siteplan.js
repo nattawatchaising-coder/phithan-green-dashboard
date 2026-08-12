@@ -182,7 +182,7 @@ function SitePlanEditor({
     save
   } = useSitePlan(job ? job.id : null);
   const stock = useStockStore();
-  const panelModels = React.useMemo(() => (stock.items || []).filter(it => it.cat === "panel"), [stock.items]);
+  const panelModels = React.useMemo(() => (stock.items || []).filter(it => window.SF.mainCatOf(it.cat) === "panel"), [stock.items, stock.cats]);
   const [image, setImage] = React.useState(null);
   const [imgDim, setImgDim] = React.useState({
     w: 0,

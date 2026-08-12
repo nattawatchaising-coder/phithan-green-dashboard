@@ -1550,7 +1550,7 @@ function BOQEditor({
   const cableCat = window.BOQ.cableCategory || (n => "อื่นๆ");
   const CABLE_CAT_ORDER = window.BOQ.CABLE_GROUPS || ["อื่นๆ"];
   const cableTypeOptions = React.useMemo(() => {
-    const wiringStock = stockItems.filter(s => s.cat === "wiring");
+    const wiringStock = stockItems.filter(s => window.SF.mainCatOf(s.cat) === "wiring");
     const groupByName = {};
     wiringStock.forEach(s => {
       if (s.name && s.cableGroup) groupByName[s.name] = s.cableGroup;
