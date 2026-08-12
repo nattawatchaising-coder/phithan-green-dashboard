@@ -1163,11 +1163,11 @@ function p3FillBlk(face, blk, m, want) {
       v: Av + a * sn + b * cs + blk.dv
     };
   };
-  const keepOn = blk.keep && blk.rows > 0 && blk.cols > 0;
+  const keepOn = !!blk.keep;
   const mi = Math.max(0, m - 0.02);
   const fits = (u, v, mode) => {
     if (mode === "add") return p3InPoly(u, v, poly);
-    if (mode === "auto" && keepOn) return true;
+    if (mode === "keep") return true;
     if (mode === "auto" && !moved && face.test === false) return true;
     const pad = mode === "slot" ? 0.01 : moved ? 0.01 : mi;
     const hw = pw / 2 + pad,
@@ -1223,8 +1223,77 @@ function p3FillBlk(face, blk, m, want) {
     gg
   };
   const used = {};
-  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-    if (push(r, c, "auto")) used[r + "_" + c] = 1;
+  const keepRect = () => {
+    const dg = Math.hypot(maxU - minU, maxV - minV);
+    let nr = Math.ceil(dg / (pd + gap)) + 2,
+      nc = Math.ceil(dg / (pw + gap)) + 2;
+    while ((rows + 2 * nr) * (cols + 2 * nc) > 20000 && (nr > 1 || nc > 1)) {
+      nr = Math.max(1, Math.floor(nr * 0.75));
+      nc = Math.max(1, Math.floor(nc * 0.75));
+    }
+    const i0 = -nr,
+      j0 = -nc,
+      R = rows + 2 * nr,
+      C = cols + 2 * nc;
+    const okRow = [];
+    for (let i = 0; i < R; i++) {
+      const row = new Uint8Array(C);
+      for (let j = 0; j < C; j++) {
+        const p = xf(cellU(j0 + j), cellV(i0 + i));
+        row[j] = fits(p.u, p.v, "slot") ? 1 : 0;
+      }
+      okRow.push(row);
+    }
+    const capR = blk.rows > 0 ? blk.rows : R,
+      capC = blk.cols > 0 ? blk.cols : C;
+    let best = null;
+    const hgt = new Int32Array(C);
+    for (let i = 0; i < R; i++) {
+      for (let j = 0; j < C; j++) hgt[j] = okRow[i][j] ? Math.min(hgt[j] + 1, capR) : 0;
+      const stk = [];
+      for (let j = 0; j <= C; j++) {
+        const h = j < C ? hgt[j] : 0;
+        while (stk.length && hgt[stk[stk.length - 1]] > h) {
+          const hh = hgt[stk.pop()];
+          const left = stk.length ? stk[stk.length - 1] + 1 : 0;
+          const w = Math.min(j - left, capC);
+          if (hh > 0 && w > 0 && (!best || hh * w > best.h * best.w)) best = {
+            i: i - hh + 1,
+            j: j - w,
+            h: hh,
+            w
+          };
+        }
+        stk.push(j);
+      }
+    }
+    if (!best) return null;
+    return {
+      r0: i0 + best.i,
+      c0: j0 + best.j,
+      rows: best.h,
+      cols: best.w
+    };
+  };
+  const kr = keepOn ? keepRect() : null;
+  if (kr) {
+    for (let r = kr.r0; r < kr.r0 + kr.rows; r++) for (let c = kr.c0; c < kr.c0 + kr.cols; c++) {
+      if (push(r, c, "keep")) used[r + "_" + c] = 1;
+    }
+    const uA = cellU(kr.c0),
+      uB = cellU(kr.c0 + kr.cols - 1);
+    const vA = cellV(kr.r0),
+      vB = cellV(kr.r0 + kr.rows - 1);
+    res.rect.cu = (uA + uB) / 2 + blk.du;
+    res.rect.cv = (vA + vB) / 2 + blk.dv;
+    res.rect.w = Math.abs(uB - uA) + pw;
+    res.rect.h = Math.abs(vB - vA) + pd;
+    res.rect.rows = kr.rows;
+    res.rect.cols = kr.cols;
+  } else {
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      if (push(r, c, "auto")) used[r + "_" + c] = 1;
+    }
   }
   Object.keys(blk.adds || {}).forEach(k => {
     if (!blk.adds[k] || !k.startsWith(blk.pfx + face.keyPfx)) return;
@@ -4961,8 +5030,6 @@ function Plan3DEditor({
     const nCol = B.cols > 0 ? Math.min(B.cols, per.maxCols) : per.maxCols;
     const nRow = B.rows > 0 ? Math.min(B.rows, per.maxRows) : per.maxRows;
     const grpN = (B.gc > 0 ? Math.ceil(nCol / B.gc) : 1) * (B.gr > 0 ? Math.ceil(nRow / B.gr) : 1);
-    const keepCan = B.rows > 0 && B.cols > 0;
-    const keepOn = B.keep && keepCan;
     return React.createElement(React.Fragment, null, React.createElement("div", {
       style: {
         display: "flex",
@@ -5190,8 +5257,7 @@ function Plan3DEditor({
       })
     }, "\u0E15\u0E31\u0E49\u0E07\u0E15\u0E23\u0E07\u0E01\u0E31\u0E1A\u0E1C\u0E37\u0E19 (0\xB0)"), React.createElement("button", {
       className: "p3-chip",
-      "data-on": keepOn ? "1" : "0",
-      disabled: !keepCan,
+      "data-on": B.keep ? "1" : "0",
       onClick: () => patchBlk(roof, bi, {
         keep: !B.keep
       }),
@@ -5199,15 +5265,16 @@ function Plan3DEditor({
         marginLeft: "auto",
         borderRadius: 9,
         padding: "6px 10px",
-        fontSize: 11.5,
-        opacity: keepCan ? 1 : 0.45
+        fontSize: 11.5
       }
     }, React.createElement(P3Icon, {
-      name: keepOn ? "check" : "grid",
+      name: B.keep ? "check" : "grid",
       size: 12
-    }), "\u0E04\u0E07\u0E23\u0E39\u0E1B\u0E2A\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E35\u0E48\u0E22\u0E21")), !isDome && B.rot !== 0 && !keepOn && React.createElement("span", {
+    }), "\u0E08\u0E31\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E35\u0E48\u0E22\u0E21")), !isDome && B.rot !== 0 && !B.keep && React.createElement("span", {
       className: "p3-note"
-    }, "\u0E2B\u0E21\u0E38\u0E19\u0E41\u0E25\u0E49\u0E27\u0E21\u0E38\u0E21\u0E01\u0E23\u0E34\u0E14\u0E22\u0E37\u0E48\u0E19\u0E1E\u0E49\u0E19\u0E02\u0E2D\u0E1A\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 \u0E0A\u0E48\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E25\u0E49\u0E19\u0E08\u0E30\u0E16\u0E39\u0E01\u0E15\u0E31\u0E14\u0E2D\u0E2D\u0E01 \u0E0A\u0E38\u0E14\u0E41\u0E1C\u0E07\u0E40\u0E25\u0E22\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E31\u0E49\u0E19\u0E1A\u0E31\u0E19\u0E44\u0E14 \u2014", " ", keepCan ? "กด “คงรูปสี่เหลี่ยม” ถ้าอยากได้แถวตรงเต็มกรอบ (แล้วเช็กเองว่าไม่ล้นหลังคา)" : "ถ้าอยากได้แถวตรง ต้องกำหนดแถวกับคอลัมน์เองก่อน (ไม่ใช่ 0=เต็ม) แล้วค่อยกด “คงรูปสี่เหลี่ยม” — ไม่งั้นระบบไม่รู้ว่าจะให้สี่เหลี่ยมใหญ่แค่ไหน"), React.createElement("span", {
+    }, "\u0E2B\u0E21\u0E38\u0E19\u0E41\u0E25\u0E49\u0E27\u0E21\u0E38\u0E21\u0E01\u0E23\u0E34\u0E14\u0E22\u0E37\u0E48\u0E19\u0E1E\u0E49\u0E19\u0E02\u0E2D\u0E1A\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 \u0E0A\u0E48\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E25\u0E49\u0E19\u0E08\u0E30\u0E16\u0E39\u0E01\u0E15\u0E31\u0E14\u0E2D\u0E2D\u0E01\u0E17\u0E35\u0E25\u0E30\u0E0A\u0E48\u0E2D\u0E07 \u0E02\u0E2D\u0E1A\u0E0A\u0E38\u0E14\u0E40\u0E25\u0E22\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E31\u0E49\u0E19\u0E1A\u0E31\u0E19\u0E44\u0E14 \u2014 \u0E01\u0E14 \u201C\u0E08\u0E31\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E35\u0E48\u0E22\u0E21\u201D \u0E08\u0E30\u0E44\u0E14\u0E49\u0E41\u0E16\u0E27\u0E15\u0E23\u0E07\u0E40\u0E15\u0E47\u0E21\u0E01\u0E23\u0E2D\u0E1A"), !isDome && B.keep && React.createElement("span", {
+      className: "p3-note"
+    }, "\u0E08\u0E31\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E35\u0E48\u0E22\u0E21\u0E2D\u0E22\u0E39\u0E48 \u2014 \u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2A\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E35\u0E48\u0E22\u0E21\u0E1C\u0E37\u0E19\u0E43\u0E2B\u0E0D\u0E48\u0E17\u0E35\u0E48\u0E2A\u0E38\u0E14\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E04\u0E23\u0E1A\u0E17\u0E38\u0E01\u0E41\u0E1C\u0E07 \u0E2B\u0E21\u0E38\u0E19\u0E01\u0E35\u0E48\u0E2D\u0E07\u0E28\u0E32\u0E01\u0E47\u0E44\u0E14\u0E49\u0E41\u0E16\u0E27\u0E15\u0E23\u0E07\u0E40\u0E2A\u0E21\u0E2D (\u0E43\u0E2A\u0E48\u0E41\u0E16\u0E27/\u0E04\u0E2D\u0E25\u0E31\u0E21\u0E19\u0E4C\u0E40\u0E2D\u0E07\u0E44\u0E14\u0E49\u0E16\u0E49\u0E32\u0E2D\u0E22\u0E32\u0E01\u0E43\u0E2B\u0E49\u0E40\u0E25\u0E47\u0E01\u0E01\u0E27\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19)"), React.createElement("span", {
       className: "p3-eb",
       style: {
         marginTop: 2

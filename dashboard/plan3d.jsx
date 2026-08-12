@@ -633,17 +633,13 @@ function p3FillBlk(face, blk, m, want) {
     const a = u - Au, b = v - Av;
     return { u: Au + a * cs - b * sn + blk.du, v: Av + a * sn + b * cs + blk.dv };
   };
-  const keepOn = blk.keep && blk.rows > 0 && blk.cols > 0;
+  const keepOn = !!blk.keep;
   const mi = Math.max(0, m - 0.02);          // หดจุดทดสอบเล็กน้อย กันตกบนเส้นขอบพอดี
   /* mode "auto" = ช่องในกริดปกติ (คงพฤติกรรมเดิมเป๊ะ) · "slot" = ช่องว่างให้แตะเพิ่ม ต้องตรวจขอบเสมอ
      · "add" = แผงที่ผู้ใช้เติมเอง เช็คแค่จุดกึ่งกลาง จะได้ยื่นพ้นขอบได้นิดหน่อยตามที่ตั้งใจ แต่ไม่ลอยกลางอากาศ */
   const fits = (u, v, mode) => {
     if (mode === "add") return p3InPoly(u, v, poly);
-    /* คงรูปสี่เหลี่ยม: หมุนแล้วมุมกริดจะยื่นพ้นขอบหลังคา ปกติช่องพวกนั้นจะถูกตัดทิ้ง
-       ชุดแผงเลยกลายเป็นขั้นบันไดหยัก ๆ ไม่เป็นแถวตรง · เปิดโหมดนี้แล้วเก็บครบทุกช่องตามที่สั่ง
-       ใช้ได้เฉพาะตอนกำหนดแถว+คอลัมน์เองเท่านั้น — ถ้าปล่อย 0 (เต็มผืน) จำนวนช่องจะนับจากกรอบผืน
-       พอไม่ตัดขอบเลย แผงจะงอกล้นออกไปนอกหลังคาเป็นร้อยแผง */
-    if (mode === "auto" && keepOn) return true;
+    if (mode === "keep") return true;                                    // ตรวจไปแล้วตอนหาสี่เหลี่ยม
     if (mode === "auto" && !moved && face.test === false) return true;   // เดิม: สี่เหลี่ยม/จั่ว กริดพอดีผืนอยู่แล้ว
     const pad = mode === "slot" ? 0.01 : (moved ? 0.01 : mi);
     const hw = pw / 2 + pad, hd = pd / 2 + pad;
@@ -665,8 +661,65 @@ function p3FillBlk(face, blk, m, want) {
     maxRows, maxCols, pw, pd, gap, anchor: face.anchor, m, bb: { minU, maxU, minV, maxV },
     gc, gr, gg };   // ส่งค่าแบ่งกลุ่มไปด้วย ตอนลากย่อ/ขยายจะได้คิดความกว้างรวมทางเดินถูก
   const used = {};
-  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-    if (push(r, c, "auto")) used[r + "_" + c] = 1;
+  /* ── โหมด "จัดเป็นสี่เหลี่ยม" ──
+     ปกติเราไล่วางทีละช่องแล้วตัดช่องที่ล้นขอบหลังคาทิ้ง พอชุดแผงถูกหมุน มุมกริดจะยื่นพ้นขอบ
+     ช่องริมเลยหายเป็นหย่อม ๆ ได้ขอบหยักเป็นขั้นบันได ซึ่งวางจริงหน้างานไม่ได้
+     โหมดนี้เปลี่ยนวิธีคิด: ไล่ตรวจทั้งแลตทิซว่าช่องไหนวางได้บ้าง แล้วหา "สี่เหลี่ยมผืนใหญ่ที่สุด
+     ที่ทุกช่องข้างในวางได้ครบ" — ได้แถวตรงเต็มกรอบเสมอ และไม่มีทางล้นออกนอกหลังคา
+     ถ้าผู้ใช้กำหนดแถว/คอลัมน์ไว้ ก็ไม่ให้เกินที่สั่ง */
+  const keepRect = () => {
+    const dg = Math.hypot(maxU - minU, maxV - minV);
+    let nr = Math.ceil(dg / (pd + gap)) + 2, nc = Math.ceil(dg / (pw + gap)) + 2;
+    // ผืนใหญ่มาก ๆ อย่าไล่จนเครื่องค้าง — หดขอบเขตค้นหาลงจนจำนวนช่องอยู่ในงบ
+    while ((rows + 2 * nr) * (cols + 2 * nc) > 20000 && (nr > 1 || nc > 1)) {
+      nr = Math.max(1, Math.floor(nr * 0.75)); nc = Math.max(1, Math.floor(nc * 0.75));
+    }
+    const i0 = -nr, j0 = -nc, R = rows + 2 * nr, C = cols + 2 * nc;
+    const okRow = [];
+    for (let i = 0; i < R; i++) {
+      const row = new Uint8Array(C);
+      for (let j = 0; j < C; j++) {
+        const p = xf(cellU(j0 + j), cellV(i0 + i));
+        row[j] = fits(p.u, p.v, "slot") ? 1 : 0;
+      }
+      okRow.push(row);
+    }
+    // สี่เหลี่ยมใหญ่สุดในตาราง 0/1 — ไล่ทีละแถวแบบฮิสโตแกรม
+    const capR = blk.rows > 0 ? blk.rows : R, capC = blk.cols > 0 ? blk.cols : C;
+    let best = null;
+    const hgt = new Int32Array(C);
+    for (let i = 0; i < R; i++) {
+      for (let j = 0; j < C; j++) hgt[j] = okRow[i][j] ? Math.min(hgt[j] + 1, capR) : 0;
+      const stk = [];
+      for (let j = 0; j <= C; j++) {
+        const h = j < C ? hgt[j] : 0;
+        while (stk.length && hgt[stk[stk.length - 1]] > h) {
+          const hh = hgt[stk.pop()];
+          const left = stk.length ? stk[stk.length - 1] + 1 : 0;
+          const w = Math.min(j - left, capC);
+          if (hh > 0 && w > 0 && (!best || hh * w > best.h * best.w)) best = { i: i - hh + 1, j: j - w, h: hh, w };
+        }
+        stk.push(j);
+      }
+    }
+    if (!best) return null;
+    return { r0: i0 + best.i, c0: j0 + best.j, rows: best.h, cols: best.w };
+  };
+  const kr = keepOn ? keepRect() : null;
+  if (kr) {
+    for (let r = kr.r0; r < kr.r0 + kr.rows; r++) for (let c = kr.c0; c < kr.c0 + kr.cols; c++) {
+      if (push(r, c, "keep")) used[r + "_" + c] = 1;
+    }
+    // กรอบลาก/ย่อขยายต้องตามสี่เหลี่ยมที่ได้จริง ไม่ใช่กริดตั้งต้น
+    const uA = cellU(kr.c0), uB = cellU(kr.c0 + kr.cols - 1);
+    const vA = cellV(kr.r0), vB = cellV(kr.r0 + kr.rows - 1);
+    res.rect.cu = (uA + uB) / 2 + blk.du; res.rect.cv = (vA + vB) / 2 + blk.dv;
+    res.rect.w = Math.abs(uB - uA) + pw; res.rect.h = Math.abs(vB - vA) + pd;
+    res.rect.rows = kr.rows; res.rect.cols = kr.cols;
+  } else {
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      if (push(r, c, "auto")) used[r + "_" + c] = 1;
+    }
   }
   // แผงที่ผู้ใช้แตะเพิ่มเอง — อยู่นอกกรอบแถว/คอลัมน์ หรือขอบเลยผืนไปนิดก็วางได้
   Object.keys(blk.adds || {}).forEach((k) => {
@@ -2640,9 +2693,6 @@ function Plan3DEditor({ job, onClose, currentUser }) {
             const nCol = B.cols > 0 ? Math.min(B.cols, per.maxCols) : per.maxCols;
             const nRow = B.rows > 0 ? Math.min(B.rows, per.maxRows) : per.maxRows;
             const grpN = (B.gc > 0 ? Math.ceil(nCol / B.gc) : 1) * (B.gr > 0 ? Math.ceil(nRow / B.gr) : 1);
-            /* "คงรูปสี่เหลี่ยม" ใช้ได้เฉพาะตอนกำหนดขนาดกริดเอง ปล่อย 0=เต็ม แล้วไม่ตัดขอบ แผงจะล้นหลังคา */
-            const keepCan = B.rows > 0 && B.cols > 0;
-            const keepOn = B.keep && keepCan;
             return (
               <React.Fragment>
                 {/* ผืนที่กำลังวาง — ตัวเลขใหญ่ขวามือ อ่านได้ทันทีว่าผืนนี้ได้กี่แผง */}
@@ -2706,20 +2756,18 @@ function Plan3DEditor({ job, onClose, currentUser }) {
                         <button className="p3-lnk" onClick={() => patchAllBlk(roof, { rot: B.rot })}>ใช้มุมนี้กับทุกชุด</button>
                       )}
                       <button className="p3-lnk" onClick={() => patchBlk(roof, bi, { rot: 0 })}>ตั้งตรงกับผืน (0°)</button>
-                      <button className="p3-chip" data-on={keepOn ? "1" : "0"} disabled={!keepCan}
+                      <button className="p3-chip" data-on={B.keep ? "1" : "0"}
                         onClick={() => patchBlk(roof, bi, { keep: !B.keep })}
-                        style={{ marginLeft: "auto", borderRadius: 9, padding: "6px 10px", fontSize: 11.5, opacity: keepCan ? 1 : 0.45 }}>
-                        <P3Icon name={keepOn ? "check" : "grid"} size={12} />คงรูปสี่เหลี่ยม
+                        style={{ marginLeft: "auto", borderRadius: 9, padding: "6px 10px", fontSize: 11.5 }}>
+                        <P3Icon name={B.keep ? "check" : "grid"} size={12} />จัดเป็นสี่เหลี่ยม
                       </button>
                     </div>
                   )}
-                  {!isDome && B.rot !== 0 && !keepOn && (
-                    <span className="p3-note">
-                      หมุนแล้วมุมกริดยื่นพ้นขอบหลังคา ช่องที่ล้นจะถูกตัดออก ชุดแผงเลยเป็นขั้นบันได —{" "}
-                      {keepCan
-                        ? "กด “คงรูปสี่เหลี่ยม” ถ้าอยากได้แถวตรงเต็มกรอบ (แล้วเช็กเองว่าไม่ล้นหลังคา)"
-                        : "ถ้าอยากได้แถวตรง ต้องกำหนดแถวกับคอลัมน์เองก่อน (ไม่ใช่ 0=เต็ม) แล้วค่อยกด “คงรูปสี่เหลี่ยม” — ไม่งั้นระบบไม่รู้ว่าจะให้สี่เหลี่ยมใหญ่แค่ไหน"}
-                    </span>
+                  {!isDome && B.rot !== 0 && !B.keep && (
+                    <span className="p3-note">หมุนแล้วมุมกริดยื่นพ้นขอบหลังคา ช่องที่ล้นจะถูกตัดออกทีละช่อง ขอบชุดเลยเป็นขั้นบันได — กด “จัดเป็นสี่เหลี่ยม” จะได้แถวตรงเต็มกรอบ</span>
+                  )}
+                  {!isDome && B.keep && (
+                    <span className="p3-note">จัดเป็นสี่เหลี่ยมอยู่ — ระบบเลือกสี่เหลี่ยมผืนใหญ่ที่สุดที่ยังอยู่ในหลังคาครบทุกแผง หมุนกี่องศาก็ได้แถวตรงเสมอ (ใส่แถว/คอลัมน์เองได้ถ้าอยากให้เล็กกว่านั้น)</span>
                   )}
 
                   {/* ── แบ่งเป็นกลุ่ม + เว้นทางเดิน ── */}
