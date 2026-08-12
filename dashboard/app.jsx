@@ -287,8 +287,11 @@ function App() {
     /* ของที่อยู่ในหมวดย่อย (เช่น แผง › AIKO) เก็บคีย์หมวดย่อยไว้ในช่อง cat
        จึงต้องแปลงกลับเป็นหมวดหลักก่อนกรอง ไม่งั้นแผงในหมวดย่อยจะหายไปจากดรอปดาวน์ทั้งหมด */
     const inCat = (s, k) => window.SF.mainCatOf(s.cat) === k;
+    /* ชื่อหมวดย่อยที่ของชิ้นนั้นอยู่ (เช่น แผง › AIKO) — เอาไปจัดกลุ่มในดรอปดาวน์เลือกรุ่น
+       ของที่อยู่หมวดหลักเฉย ๆ คืนค่าว่าง แล้วดรอปดาวน์จะเอาไปกองรวมกันท้ายสุด */
+    const subTh = (s) => { const c = window.SF.STOCK_CAT_BY[s.cat]; return c && c.parent ? c.th : ""; };
     if (window.BOQ.setPanels) window.BOQ.setPanels((stock.items || []).filter((s) => inCat(s, "panel") && s.name)
-      .map((s) => ({ model: s.name, wp: s.wp, frame: s.frame, width: s.width, length: s.length,
+      .map((s) => ({ model: s.name, group: subTh(s), wp: s.wp, frame: s.frame, width: s.width, length: s.length,
         voc: s.voc, isc: s.isc, vmp: s.vmp, imp: s.imp,
         tcVoc: s.tcVoc, tcIsc: s.tcIsc, tcPmax: s.tcPmax, noct: s.noct,
         deg1: s.deg1, degY: s.degY, cells: s.cells, fuseA: s.fuseA, halfCut: s.halfCut })));

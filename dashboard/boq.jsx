@@ -1596,7 +1596,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}>{!b.inverterModel
                 ? <Field label="อัตราไมโคร"><Dropdown value={b.microRatio} onChange={(v) => set("microRatio", v)} options={[{ value: "1:1", label: "1:1 (1 แผง/ตัว)" }, { value: "2:1", label: "2:1 (2 แผง/ตัว)" }]} /></Field>
                 : <Field label="จำนวนอินเวอร์เตอร์ (แก้ไขได้)"><BoqInvCount value={b.invCount} auto={result.meta.invAuto} onChange={(v) => set("invCount", v)} style={numStyle} /></Field>}</div>
-              <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="รุ่นแผง"><Dropdown value={b.panelModel} onChange={(v) => set("panelModel", v)} options={opt(window.BOQ.PANELS.map((p) => p.model))} /></Field></div>
+              <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="รุ่นแผง"><Dropdown value={b.panelModel} onChange={(v) => set("panelModel", v)}
+                options={window.BOQ.PANELS.map((p) => ({ value: p.model, label: p.model, sub: p.wp ? p.wp + "W" : "", group: p.group || "" }))} /></Field></div>
               {hasBattery && <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="แบตเตอรี่ (kWh)"><BoqLocked value={b.batteryKwh} unit="kWh" num /></Field></div>}
               {hasBackup && <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="ระบบ Backup"><BoqLocked value={b.backup ? "ติดตั้ง" : "ไม่ติดตั้ง"} /></Field></div>}
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="ประเภทหลังคา"><Dropdown value={b.roof} onChange={(v) => set("roof", v)} options={opt(window.BOQ.ROOF_OPTIONS)} /></Field></div>

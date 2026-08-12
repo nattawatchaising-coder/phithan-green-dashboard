@@ -3749,7 +3749,12 @@ function BOQEditor({
   }, React.createElement(Dropdown, {
     value: b.panelModel,
     onChange: v => set("panelModel", v),
-    options: opt(window.BOQ.PANELS.map(p => p.model))
+    options: window.BOQ.PANELS.map(p => ({
+      value: p.model,
+      label: p.model,
+      sub: p.wp ? p.wp + "W" : "",
+      group: p.group || ""
+    }))
   }))), hasBattery && React.createElement("div", {
     style: {
       gridColumn: isMobile ? "1 / -1" : "auto"

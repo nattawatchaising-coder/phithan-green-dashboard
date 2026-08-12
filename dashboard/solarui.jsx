@@ -1843,9 +1843,25 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                 <div className="p3-card">
                   <span className="p3-eb"><P3Icon name="grid" size={13} />แผงโซลาร์<span className="ln" />
                     <span style={{ fontWeight: 600 }}>สเปคดึงจากคลังสินค้า</span></span>
+                  {/* จัดตามหมวดย่อยที่ตั้งไว้ในคลัง (AIKO / JINKO / LONGI …) รุ่นเยอะแล้วหาง่ายกว่าไล่ทีละบรรทัด
+                      รุ่นที่ยังไม่ได้จัดหมวดย่อยจะไปกองรวมกันท้ายสุด */}
                   <select className="p3-inp" value={S.panelModel || ""} onChange={(e) => set({ panelModel: e.target.value })}>
                     <option value="">— เลือกรุ่นแผง —</option>
-                    {stockPanels.map((p) => <option key={p.model} value={p.model}>{p.model} ({p.wp}W)</option>)}
+                    {(() => {
+                      const opt = (p) => <option key={p.model} value={p.model}>{p.model} ({p.wp}W)</option>;
+                      const groups = [];
+                      stockPanels.forEach((p) => {
+                        const g = String(p.group || "").trim();
+                        let e = groups.find((x) => x.g === g);
+                        if (!e) groups.push(e = { g, list: [] });
+                        e.list.push(p);
+                      });
+                      groups.sort((a, b) => (a.g ? 0 : 1) - (b.g ? 0 : 1));   // ที่ยังไม่จัดหมวด ไว้ท้ายสุด
+                      if (groups.length === 1 && !groups[0].g) return stockPanels.map(opt);
+                      return groups.map((x) => (x.g
+                        ? <optgroup key={x.g} label={x.g}>{x.list.map(opt)}</optgroup>
+                        : <optgroup key="_etc" label="ยังไม่จัดหมวดย่อย">{x.list.map(opt)}</optgroup>));
+                    })()}
                   </select>
                   {/* ค่าไฟฟ้าทั้งหมดคือคอลัมน์ STC ในดาต้าชีต (ไม่ใช่คอลัมน์ NOCT/NMOT) */}
                   <span className="p3-eb" style={{ marginTop: 2 }}>ค่าไฟฟ้า @ STC<span style={{ fontWeight: 600 }}>1000 W/m² · เซลล์ 25°C · AM1.5</span><span className="ln" /></span>

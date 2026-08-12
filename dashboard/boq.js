@@ -1776,6 +1776,7 @@
       const def = DEFAULT_PANELS.find((d) => d.model === model) || {};
       out.push({
         model: model,
+        group: String(p.group || "").trim(),   // หมวดย่อยในคลัง (AIKO / JINKO / LONGI) — ใช้จัดกลุ่มในดรอปดาวน์
         wp: +p.wp > 0 ? +p.wp : (+def.wp || 0),
         frame: +p.frame > 0 ? +p.frame : (+def.frame || 30),
         width: +p.width > 0 ? +p.width : (+def.width || 0),

@@ -3625,10 +3625,31 @@ function SolarWorkspace({
     })
   }, React.createElement("option", {
     value: ""
-  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E38\u0E48\u0E19\u0E41\u0E1C\u0E07 \u2014"), stockPanels.map(p => React.createElement("option", {
-    key: p.model,
-    value: p.model
-  }, p.model, " (", p.wp, "W)"))), React.createElement("span", {
+  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E38\u0E48\u0E19\u0E41\u0E1C\u0E07 \u2014"), (() => {
+    const opt = p => React.createElement("option", {
+      key: p.model,
+      value: p.model
+    }, p.model, " (", p.wp, "W)");
+    const groups = [];
+    stockPanels.forEach(p => {
+      const g = String(p.group || "").trim();
+      let e = groups.find(x => x.g === g);
+      if (!e) groups.push(e = {
+        g,
+        list: []
+      });
+      e.list.push(p);
+    });
+    groups.sort((a, b) => (a.g ? 0 : 1) - (b.g ? 0 : 1));
+    if (groups.length === 1 && !groups[0].g) return stockPanels.map(opt);
+    return groups.map(x => x.g ? React.createElement("optgroup", {
+      key: x.g,
+      label: x.g
+    }, x.list.map(opt)) : React.createElement("optgroup", {
+      key: "_etc",
+      label: "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E08\u0E31\u0E14\u0E2B\u0E21\u0E27\u0E14\u0E22\u0E48\u0E2D\u0E22"
+    }, x.list.map(opt)));
+  })()), React.createElement("span", {
     className: "p3-eb",
     style: {
       marginTop: 2

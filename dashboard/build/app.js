@@ -404,8 +404,13 @@ function App() {
   React.useEffect(() => {
     if (!window.BOQ) return;
     const inCat = (s, k) => window.SF.mainCatOf(s.cat) === k;
+    const subTh = s => {
+      const c = window.SF.STOCK_CAT_BY[s.cat];
+      return c && c.parent ? c.th : "";
+    };
     if (window.BOQ.setPanels) window.BOQ.setPanels((stock.items || []).filter(s => inCat(s, "panel") && s.name).map(s => ({
       model: s.name,
+      group: subTh(s),
       wp: s.wp,
       frame: s.frame,
       width: s.width,
