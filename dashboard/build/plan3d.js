@@ -1063,6 +1063,10 @@ function p3NormBlk(b, i) {
     du: +b.du || 0,
     dv: +b.dv || 0,
     rot: +b.rot || 0,
+    gc: Math.max(0, Math.round(+b.gc || 0)),
+    gr: Math.max(0, Math.round(+b.gr || 0)),
+    gg: Math.max(0, +b.gg || 0),
+    keep: b.keep === true,
     tilt: Math.max(0, Math.min(60, +b.tilt || 0)),
     skips: b.skips || {},
     adds: b.adds || {}
@@ -1108,8 +1112,20 @@ function p3FillBlk(face, blk, m, want) {
     maxU = Math.max.apply(null, us);
   const minV = Math.min.apply(null, vs),
     maxV = Math.max.apply(null, vs);
-  const maxCols = Math.max(0, Math.floor((maxU - minU - 2 * m + gap) / (pw + gap)));
-  const maxRows = Math.max(0, Math.floor((maxV - minV - 2 * m + gap) / (pd + gap)));
+  const gc = blk.gc,
+    gr = blk.gr,
+    gg = blk.gg;
+  const offU = c => gc > 0 && gg > 0 ? Math.floor(c / gc) * gg : 0;
+  const offV = r => gr > 0 && gg > 0 ? Math.floor(r / gr) * gg : 0;
+  const spanW = n => n * pw + (n - 1) * gap + (gc > 0 && gg > 0 ? (Math.ceil(n / gc) - 1) * gg : 0);
+  const spanD = n => n * pd + (n - 1) * gap + (gr > 0 && gg > 0 ? (Math.ceil(n / gr) - 1) * gg : 0);
+  const fitN = (avail, span) => {
+    let n = 0;
+    while (span(n + 1) <= avail + 1e-9) n++;
+    return n;
+  };
+  const maxCols = fitN(maxU - minU - 2 * m, spanW);
+  const maxRows = fitN(maxV - minV - 2 * m, spanD);
   const res = {
     list: [],
     slots: [],
@@ -1120,18 +1136,18 @@ function p3FillBlk(face, blk, m, want) {
   const cols = blk.cols > 0 ? Math.min(blk.cols, maxCols) : maxCols;
   const rows = blk.rows > 0 ? Math.min(blk.rows, maxRows) : maxRows;
   if (maxCols < 1 || maxRows < 1) return res;
-  const gridW = cols * pw + (cols - 1) * gap,
-    gridD = rows * pd + (rows - 1) * gap;
+  const gridW = spanW(cols),
+    gridD = spanD(rows);
   let cellU, cellV;
   if (face.anchor === "topCenter") {
-    cellU = c => -gridW / 2 + c * (pw + gap) + pw / 2;
-    cellV = r => maxV - m - gridD + r * (pd + gap) + pd / 2;
+    cellU = c => -gridW / 2 + c * (pw + gap) + offU(c) + pw / 2;
+    cellV = r => maxV - m - gridD + r * (pd + gap) + offV(r) + pd / 2;
   } else if (face.anchor === "minMin") {
-    cellU = c => minU + m + c * (pw + gap) + pw / 2;
-    cellV = r => minV + m + r * (pd + gap) + pd / 2;
+    cellU = c => minU + m + c * (pw + gap) + offU(c) + pw / 2;
+    cellV = r => minV + m + r * (pd + gap) + offV(r) + pd / 2;
   } else {
-    cellU = c => minU + m + c * (pw + gap) + pw / 2;
-    cellV = r => maxV - m - r * (pd + gap) - pd / 2;
+    cellU = c => minU + m + c * (pw + gap) + offU(c) + pw / 2;
+    cellV = r => maxV - m - r * (pd + gap) - offV(r) - pd / 2;
   }
   const Au = (cellU(0) + cellU(Math.max(0, cols - 1))) / 2,
     Av = (cellV(0) + cellV(Math.max(0, rows - 1))) / 2;
@@ -1147,9 +1163,11 @@ function p3FillBlk(face, blk, m, want) {
       v: Av + a * sn + b * cs + blk.dv
     };
   };
+  const keepOn = blk.keep && blk.rows > 0 && blk.cols > 0;
   const mi = Math.max(0, m - 0.02);
   const fits = (u, v, mode) => {
     if (mode === "add") return p3InPoly(u, v, poly);
+    if (mode === "auto" && keepOn) return true;
     if (mode === "auto" && !moved && face.test === false) return true;
     const pad = mode === "slot" ? 0.01 : moved ? 0.01 : mi;
     const hw = pw / 2 + pad,
@@ -1199,7 +1217,10 @@ function p3FillBlk(face, blk, m, want) {
       maxU,
       minV,
       maxV
-    }
+    },
+    gc,
+    gr,
+    gg
   };
   const used = {};
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
@@ -1234,8 +1255,9 @@ function p3FillBlk(face, blk, m, want) {
   return res;
 }
 function p3BlkC0(rect, rows, cols) {
-  const gW = cols * rect.pw + (cols - 1) * rect.gap,
-    gD = rows * rect.pd + (rows - 1) * rect.gap;
+  const gg = rect.gg || 0;
+  const gW = cols * rect.pw + (cols - 1) * rect.gap + (rect.gc > 0 && gg > 0 ? (Math.ceil(cols / rect.gc) - 1) * gg : 0);
+  const gD = rows * rect.pd + (rows - 1) * rect.gap + (rect.gr > 0 && gg > 0 ? (Math.ceil(rows / rect.gr) - 1) * gg : 0);
   const b = rect.bb,
     m = rect.m;
   if (rect.anchor === "topCenter") return {
@@ -2091,7 +2113,11 @@ function Plan3DEditor({
     rot: b.rot,
     tilt: b.tilt,
     skips: b.skips,
-    adds: b.adds
+    adds: b.adds,
+    gc: b.gc,
+    gr: b.gr,
+    gg: b.gg,
+    keep: b.keep
   }));
   const clearCells = roof => blkStore(roof).map(b => Object.assign({}, b, {
     skips: {},
@@ -2103,6 +2129,11 @@ function Plan3DEditor({
     bs[i] = Object.assign({}, bs[i], patch);
     patchRoof(roof.id, {
       blocks: bs
+    });
+  };
+  const patchAllBlk = (roof, patch) => {
+    patchRoof(roof.id, {
+      blocks: blkStore(roof).map(b => Object.assign({}, b, patch))
     });
   };
   const toggleCell = (roof, key, isSlot) => {
@@ -2189,7 +2220,8 @@ function Plan3DEditor({
     const el = mountRef.current;
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
-      preserveDrawingBuffer: true
+      preserveDrawingBuffer: true,
+      logarithmicDepthBuffer: true
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.shadowMap.enabled = true;
@@ -2302,6 +2334,15 @@ function Plan3DEditor({
     t.selInfo = null;
     t.selPolyRoof = null;
     const G = +st.groundW || 40;
+    if (t.camera && t.controls) {
+      const far = Math.max(500, G * 6);
+      if (t.camera.far !== far) {
+        t.camera.far = far;
+        t.camera.updateProjectionMatrix();
+      }
+      t.controls.minDistance = 1.5;
+      t.controls.maxDistance = far * 0.42;
+    }
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(G * 2.4, G * 2.4), new THREE.MeshLambertMaterial({
       color: 0xb9c4a5
     }));
@@ -4917,6 +4958,11 @@ function Plan3DEditor({
     const nSkip = Object.keys(B.skips || {}).length,
       nAdd = Object.keys(B.adds || {}).length;
     const pdB = p3BlkPD(B);
+    const nCol = B.cols > 0 ? Math.min(B.cols, per.maxCols) : per.maxCols;
+    const nRow = B.rows > 0 ? Math.min(B.rows, per.maxRows) : per.maxRows;
+    const grpN = (B.gc > 0 ? Math.ceil(nCol / B.gc) : 1) * (B.gr > 0 ? Math.ceil(nRow / B.gr) : 1);
+    const keepCan = B.rows > 0 && B.cols > 0;
+    const keepOn = B.keep && keepCan;
     return React.createElement(React.Fragment, null, React.createElement("div", {
       style: {
         display: "flex",
@@ -5125,7 +5171,93 @@ function Plan3DEditor({
       onChange: v => patchBlk(roof, bi, {
         rot: v
       })
-    }), !isDome && React.createElement(NumRange, {
+    }), !isDome && React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 7,
+        flexWrap: "wrap",
+        alignItems: "center"
+      }
+    }, blks.length > 1 && React.createElement("button", {
+      className: "p3-lnk",
+      onClick: () => patchAllBlk(roof, {
+        rot: B.rot
+      })
+    }, "\u0E43\u0E0A\u0E49\u0E21\u0E38\u0E21\u0E19\u0E35\u0E49\u0E01\u0E31\u0E1A\u0E17\u0E38\u0E01\u0E0A\u0E38\u0E14"), React.createElement("button", {
+      className: "p3-lnk",
+      onClick: () => patchBlk(roof, bi, {
+        rot: 0
+      })
+    }, "\u0E15\u0E31\u0E49\u0E07\u0E15\u0E23\u0E07\u0E01\u0E31\u0E1A\u0E1C\u0E37\u0E19 (0\xB0)"), React.createElement("button", {
+      className: "p3-chip",
+      "data-on": keepOn ? "1" : "0",
+      disabled: !keepCan,
+      onClick: () => patchBlk(roof, bi, {
+        keep: !B.keep
+      }),
+      style: {
+        marginLeft: "auto",
+        borderRadius: 9,
+        padding: "6px 10px",
+        fontSize: 11.5,
+        opacity: keepCan ? 1 : 0.45
+      }
+    }, React.createElement(P3Icon, {
+      name: keepOn ? "check" : "grid",
+      size: 12
+    }), "\u0E04\u0E07\u0E23\u0E39\u0E1B\u0E2A\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E35\u0E48\u0E22\u0E21")), !isDome && B.rot !== 0 && !keepOn && React.createElement("span", {
+      className: "p3-note"
+    }, "\u0E2B\u0E21\u0E38\u0E19\u0E41\u0E25\u0E49\u0E27\u0E21\u0E38\u0E21\u0E01\u0E23\u0E34\u0E14\u0E22\u0E37\u0E48\u0E19\u0E1E\u0E49\u0E19\u0E02\u0E2D\u0E1A\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 \u0E0A\u0E48\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E25\u0E49\u0E19\u0E08\u0E30\u0E16\u0E39\u0E01\u0E15\u0E31\u0E14\u0E2D\u0E2D\u0E01 \u0E0A\u0E38\u0E14\u0E41\u0E1C\u0E07\u0E40\u0E25\u0E22\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E31\u0E49\u0E19\u0E1A\u0E31\u0E19\u0E44\u0E14 \u2014", " ", keepCan ? "กด “คงรูปสี่เหลี่ยม” ถ้าอยากได้แถวตรงเต็มกรอบ (แล้วเช็กเองว่าไม่ล้นหลังคา)" : "ถ้าอยากได้แถวตรง ต้องกำหนดแถวกับคอลัมน์เองก่อน (ไม่ใช่ 0=เต็ม) แล้วค่อยกด “คงรูปสี่เหลี่ยม” — ไม่งั้นระบบไม่รู้ว่าจะให้สี่เหลี่ยมใหญ่แค่ไหน"), React.createElement("span", {
+      className: "p3-eb",
+      style: {
+        marginTop: 2
+      }
+    }, React.createElement(P3Icon, {
+      name: "grid",
+      size: 12
+    }), "\u0E41\u0E1A\u0E48\u0E07\u0E01\u0E25\u0E38\u0E48\u0E21 & \u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19", React.createElement("span", {
+      className: "ln"
+    }), React.createElement("span", {
+      style: {
+        fontWeight: 600
+      }
+    }, grpN > 1 ? grpN + " กลุ่ม" : "ยังไม่แบ่ง")), React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr 1fr",
+        gap: 9
+      }
+    }, React.createElement(Num, {
+      label: "\u0E04\u0E2D\u0E25\u0E31\u0E21\u0E19\u0E4C/\u0E01\u0E25\u0E38\u0E48\u0E21 0=\u0E44\u0E21\u0E48\u0E41\u0E1A\u0E48\u0E07",
+      value: B.gc,
+      step: 1,
+      min: 0,
+      onChange: v => patchBlk(roof, bi, {
+        gc: v,
+        adds: {}
+      })
+    }), React.createElement(Num, {
+      label: "\u0E41\u0E16\u0E27/\u0E01\u0E25\u0E38\u0E48\u0E21 0=\u0E44\u0E21\u0E48\u0E41\u0E1A\u0E48\u0E07",
+      value: B.gr,
+      step: 1,
+      min: 0,
+      onChange: v => patchBlk(roof, bi, {
+        gr: v,
+        adds: {}
+      })
+    }), React.createElement(Num, {
+      label: "\u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19\u0E23\u0E30\u0E2B\u0E27\u0E48\u0E32\u0E07\u0E01\u0E25\u0E38\u0E48\u0E21",
+      value: B.gg,
+      step: 0.05,
+      min: 0,
+      suffix: "\u0E21.",
+      onChange: v => patchBlk(roof, bi, {
+        gg: v,
+        adds: {}
+      })
+    })), React.createElement("span", {
+      className: "p3-note"
+    }, "\u0E41\u0E1A\u0E48\u0E07\u0E0A\u0E38\u0E14\u0E40\u0E14\u0E35\u0E22\u0E27\u0E2D\u0E2D\u0E01\u0E40\u0E1B\u0E47\u0E19\u0E01\u0E25\u0E38\u0E48\u0E21\u0E22\u0E48\u0E2D\u0E22\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E40\u0E27\u0E49\u0E19\u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19\u0E43\u0E2B\u0E49\u0E40\u0E2D\u0E07 \u2014 \u0E14\u0E35\u0E01\u0E27\u0E48\u0E32\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E2B\u0E25\u0E32\u0E22\u0E0A\u0E38\u0E14\u0E41\u0E25\u0E49\u0E27\u0E21\u0E32\u0E44\u0E25\u0E48\u0E08\u0E31\u0E14\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07\u0E40\u0E2D\u0E07 \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E17\u0E38\u0E01\u0E01\u0E25\u0E38\u0E48\u0E21\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E41\u0E19\u0E27\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E19\u0E40\u0E2A\u0E21\u0E2D \u0E2B\u0E21\u0E38\u0E19\u0E17\u0E35\u0E40\u0E14\u0E35\u0E22\u0E27\u0E2B\u0E21\u0E38\u0E19\u0E15\u0E32\u0E21\u0E01\u0E31\u0E19\u0E17\u0E31\u0E49\u0E07\u0E0A\u0E38\u0E14", B.gg <= 0 && (B.gc > 0 || B.gr > 0) ? " · ตอนนี้ทางเดินเป็น 0 ม. ต้องใส่ระยะด้วยถึงจะเห็นช่อง" : ""), !isDome && React.createElement(NumRange, {
       span: true,
       label: "\u0E02\u0E32\u0E15\u0E31\u0E49\u0E07\u0E40\u0E2D\u0E35\u0E22\u0E07 (\u0E22\u0E01\u0E41\u0E1C\u0E07\u0E08\u0E32\u0E01\u0E1C\u0E34\u0E27\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32)",
       value: B.tilt,

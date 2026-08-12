@@ -562,6 +562,11 @@ function p3NormBlk(b, i) {
     gap: b.gap == null ? 0.02 : Math.max(0, +b.gap),
     du: +b.du || 0, dv: +b.dv || 0,                       // เลื่อนบล็อก (ม.) ตามแกนผิวหลังคา
     rot: +b.rot || 0,                                     // หมุนบล็อก (°) เทียบผืน
+    /* แบ่งเป็นกลุ่มย่อยแล้วเว้นทางเดิน — 0 = ไม่แบ่ง (ของเก่าทุกงานจึงวางเหมือนเดิมเป๊ะ) */
+    gc: Math.max(0, Math.round(+b.gc || 0)),              // กี่คอลัมน์ต่อกลุ่ม
+    gr: Math.max(0, Math.round(+b.gr || 0)),              // กี่แถวต่อกลุ่ม
+    gg: Math.max(0, +b.gg || 0),                          // ทางเดินระหว่างกลุ่ม (ม.)
+    keep: b.keep === true,                                // หมุนแล้วคงรูปสี่เหลี่ยม ไม่ตัดตามขอบหลังคา
     tilt: Math.max(0, Math.min(60, +b.tilt || 0)),        // ขาตั้งเอียง (°) ยกแผงจากผิวหลังคา
     skips: b.skips || {}, adds: b.adds || {},
   };
@@ -590,25 +595,35 @@ function p3FillBlk(face, blk, m, want) {
   const us = poly.map((p) => p.x), vs = poly.map((p) => p.z);
   const minU = Math.min.apply(null, us), maxU = Math.max.apply(null, us);
   const minV = Math.min.apply(null, vs), maxV = Math.max.apply(null, vs);
-  const maxCols = Math.max(0, Math.floor(((maxU - minU) - 2 * m + gap) / (pw + gap)));
-  const maxRows = Math.max(0, Math.floor(((maxV - minV) - 2 * m + gap) / (pd + gap)));
+  /* ── แบ่งกลุ่ม + ทางเดินระหว่างกลุ่ม ──
+     off() = ระยะที่ต้องเลื่อนช่องที่ c/r นั้นออกไป เพราะข้ามทางเดินมาแล้วกี่เส้น
+     span() = ความกว้าง/ลึกรวมของ n ช่อง (นับทางเดินด้วย) — ใช้หาว่าผืนนี้ใส่ได้สูงสุดเท่าไร
+     ทั้งคู่คืนค่าเท่าเดิมเป๊ะเมื่อไม่ได้แบ่งกลุ่ม (gc/gr = 0) */
+  const gc = blk.gc, gr = blk.gr, gg = blk.gg;
+  const offU = (c) => (gc > 0 && gg > 0 ? Math.floor(c / gc) * gg : 0);
+  const offV = (r) => (gr > 0 && gg > 0 ? Math.floor(r / gr) * gg : 0);
+  const spanW = (n) => n * pw + (n - 1) * gap + (gc > 0 && gg > 0 ? (Math.ceil(n / gc) - 1) * gg : 0);
+  const spanD = (n) => n * pd + (n - 1) * gap + (gr > 0 && gg > 0 ? (Math.ceil(n / gr) - 1) * gg : 0);
+  const fitN = (avail, span) => { let n = 0; while (span(n + 1) <= avail + 1e-9) n++; return n; };
+  const maxCols = fitN((maxU - minU) - 2 * m, spanW);
+  const maxRows = fitN((maxV - minV) - 2 * m, spanD);
   const res = { list: [], slots: [], count: 0, maxRows, maxCols };
   const cols = blk.cols > 0 ? Math.min(blk.cols, maxCols) : maxCols;
   const rows = blk.rows > 0 ? Math.min(blk.rows, maxRows) : maxRows;
   if (maxCols < 1 || maxRows < 1) return res;
 
   // ตำแหน่งกึ่งกลางช่อง (r,c) ก่อนเลื่อน/หมุน — สูตรตาม anchor เดิมของแต่ละทรง
-  const gridW = cols * pw + (cols - 1) * gap, gridD = rows * pd + (rows - 1) * gap;
+  const gridW = spanW(cols), gridD = spanD(rows);
   let cellU, cellV;
   if (face.anchor === "topCenter") {
-    cellU = (c) => -gridW / 2 + c * (pw + gap) + pw / 2;
-    cellV = (r) => maxV - m - gridD + r * (pd + gap) + pd / 2;
+    cellU = (c) => -gridW / 2 + c * (pw + gap) + offU(c) + pw / 2;
+    cellV = (r) => maxV - m - gridD + r * (pd + gap) + offV(r) + pd / 2;
   } else if (face.anchor === "minMin") {
-    cellU = (c) => minU + m + c * (pw + gap) + pw / 2;
-    cellV = (r) => minV + m + r * (pd + gap) + pd / 2;
+    cellU = (c) => minU + m + c * (pw + gap) + offU(c) + pw / 2;
+    cellV = (r) => minV + m + r * (pd + gap) + offV(r) + pd / 2;
   } else {                                    // topLeft
-    cellU = (c) => minU + m + c * (pw + gap) + pw / 2;
-    cellV = (r) => maxV - m - r * (pd + gap) - pd / 2;
+    cellU = (c) => minU + m + c * (pw + gap) + offU(c) + pw / 2;
+    cellV = (r) => maxV - m - r * (pd + gap) - offV(r) - pd / 2;
   }
   // จุดหมุน = กึ่งกลางกริดอัตโนมัติ (หมุนแล้วบล็อกยังอยู่ที่เดิม ไม่เหวี่ยงหนี)
   const Au = (cellU(0) + cellU(Math.max(0, cols - 1))) / 2, Av = (cellV(0) + cellV(Math.max(0, rows - 1))) / 2;
@@ -618,11 +633,17 @@ function p3FillBlk(face, blk, m, want) {
     const a = u - Au, b = v - Av;
     return { u: Au + a * cs - b * sn + blk.du, v: Av + a * sn + b * cs + blk.dv };
   };
+  const keepOn = blk.keep && blk.rows > 0 && blk.cols > 0;
   const mi = Math.max(0, m - 0.02);          // หดจุดทดสอบเล็กน้อย กันตกบนเส้นขอบพอดี
   /* mode "auto" = ช่องในกริดปกติ (คงพฤติกรรมเดิมเป๊ะ) · "slot" = ช่องว่างให้แตะเพิ่ม ต้องตรวจขอบเสมอ
      · "add" = แผงที่ผู้ใช้เติมเอง เช็คแค่จุดกึ่งกลาง จะได้ยื่นพ้นขอบได้นิดหน่อยตามที่ตั้งใจ แต่ไม่ลอยกลางอากาศ */
   const fits = (u, v, mode) => {
     if (mode === "add") return p3InPoly(u, v, poly);
+    /* คงรูปสี่เหลี่ยม: หมุนแล้วมุมกริดจะยื่นพ้นขอบหลังคา ปกติช่องพวกนั้นจะถูกตัดทิ้ง
+       ชุดแผงเลยกลายเป็นขั้นบันไดหยัก ๆ ไม่เป็นแถวตรง · เปิดโหมดนี้แล้วเก็บครบทุกช่องตามที่สั่ง
+       ใช้ได้เฉพาะตอนกำหนดแถว+คอลัมน์เองเท่านั้น — ถ้าปล่อย 0 (เต็มผืน) จำนวนช่องจะนับจากกรอบผืน
+       พอไม่ตัดขอบเลย แผงจะงอกล้นออกไปนอกหลังคาเป็นร้อยแผง */
+    if (mode === "auto" && keepOn) return true;
     if (mode === "auto" && !moved && face.test === false) return true;   // เดิม: สี่เหลี่ยม/จั่ว กริดพอดีผืนอยู่แล้ว
     const pad = mode === "slot" ? 0.01 : (moved ? 0.01 : mi);
     const hw = pw / 2 + pad, hd = pd / 2 + pad;
@@ -641,7 +662,8 @@ function p3FillBlk(face, blk, m, want) {
   };
   // กรอบของบล็อก (ใช้วาดจุดจับลาก/ย่อขยายในภาพ 3 มิติ)
   res.rect = { cu: Au + blk.du, cv: Av + blk.dv, w: gridW, h: gridD, rot: blk.rot, rows, cols,
-    maxRows, maxCols, pw, pd, gap, anchor: face.anchor, m, bb: { minU, maxU, minV, maxV } };
+    maxRows, maxCols, pw, pd, gap, anchor: face.anchor, m, bb: { minU, maxU, minV, maxV },
+    gc, gr, gg };   // ส่งค่าแบ่งกลุ่มไปด้วย ตอนลากย่อ/ขยายจะได้คิดความกว้างรวมทางเดินถูก
   const used = {};
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
     if (push(r, c, "auto")) used[r + "_" + c] = 1;
@@ -670,7 +692,9 @@ function p3FillBlk(face, blk, m, want) {
 /* กึ่งกลางกริด (ตอนยังไม่เลื่อน) เมื่อใช้แถว/คอลัมน์ตามที่กำหนด — ใช้ตอนลากย่อ/ขยายในภาพ
    เพื่อคำนวณว่าต้องตั้ง du/dv เท่าไรมุมที่ไม่ได้ลากถึงจะอยู่กับที่ */
 function p3BlkC0(rect, rows, cols) {
-  const gW = cols * rect.pw + (cols - 1) * rect.gap, gD = rows * rect.pd + (rows - 1) * rect.gap;
+  const gg = rect.gg || 0;
+  const gW = cols * rect.pw + (cols - 1) * rect.gap + (rect.gc > 0 && gg > 0 ? (Math.ceil(cols / rect.gc) - 1) * gg : 0);
+  const gD = rows * rect.pd + (rows - 1) * rect.gap + (rect.gr > 0 && gg > 0 ? (Math.ceil(rows / rect.gr) - 1) * gg : 0);
   const b = rect.bb, m = rect.m;
   if (rect.anchor === "topCenter") return { u: 0, v: b.maxV - m - gD / 2, w: gW, h: gD };
   if (rect.anchor === "minMin") return { u: b.minU + m + gW / 2, v: b.minV + m + gD / 2, w: gW, h: gD };
@@ -1074,6 +1098,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
   const blkStore = (roof) => p3Blocks(roof).map((b) => ({
     id: b.id, orient: b.orient, rows: b.rows, cols: b.cols, gap: b.gap,
     du: b.du, dv: b.dv, rot: b.rot, tilt: b.tilt, skips: b.skips, adds: b.adds,
+    gc: b.gc, gr: b.gr, gg: b.gg, keep: b.keep,
   }));
   /* ผิวเปลี่ยนทรง → ช่องที่เว้น/เพิ่มไว้ไม่ตรงแล้ว ล้างทิ้งแต่คงค่าตั้งของชุดไว้ */
   const clearCells = (roof) => blkStore(roof).map((b) => Object.assign({}, b, { skips: {}, adds: {} }));
@@ -1081,6 +1106,11 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     const bs = blkStore(roof); if (!bs[i]) return;
     bs[i] = Object.assign({}, bs[i], patch);
     patchRoof(roof.id, { blocks: bs });
+  };
+  /* ใส่ค่าเดียวกันให้ทุกชุดในผืนนี้ — ใช้ตอนอยากให้ทุกชุดหันไปทางเดียวกันเป๊ะ ๆ
+     ตั้งทีละชุดแล้วเผลอต่างกันองศาเดียว มองจากมุมสูงก็เห็นว่าไม่ตรงแนวแล้ว */
+  const patchAllBlk = (roof, patch) => {
+    patchRoof(roof.id, { blocks: blkStore(roof).map((b) => Object.assign({}, b, patch)) });
   };
   /* แตะแผง = เว้น/ใส่คืน · แตะช่องว่าง (โหมดเพิ่มเอง) = เติมแผงตรงนั้น */
   const toggleCell = (roof, key, isSlot) => {
@@ -1140,7 +1170,9 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     if (!ready || !mountRef.current) return;
     const THREE = window.THREE;
     const el = mountRef.current;
-    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+    /* logarithmicDepthBuffer: ไซต์ใหญ่มองได้ไกลเป็นกิโล แต่พื้น/ผังดาวเทียม/รูปโดรน วางซ้อนกันห่างแค่ 1 ซม.
+       บัฟเฟอร์ความลึกแบบปกติจะแยกไม่ออกตอนซูมออก แล้วขึ้นเป็นลายทางสลับกันทั้งจอ */
+    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, logarithmicDepthBuffer: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -1216,6 +1248,15 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     t.selTilt = null; t.selInfo = null; t.selPolyRoof = null;
 
     const G = +st.groundW || 40;
+    /* ระยะมองไกลของกล้องเคยตั้งตายตัวไว้ 500 ม. — ไซต์ใหญ่ที่พื้นกว้างเป็นร้อยเมตร
+       พอซูมออกหน่อยเดียว ระนาบตัดไกลจะกินภาพหายทั้งจอ · ให้ขยับตามขนาดพื้นจริง
+       แล้วล็อกระยะซูมออกไว้ไม่ให้เลยขอบเขตที่กล้องมองเห็น จะได้ไม่มีทางซูมจนภาพหายอีก */
+    if (t.camera && t.controls) {
+      const far = Math.max(500, G * 6);
+      if (t.camera.far !== far) { t.camera.far = far; t.camera.updateProjectionMatrix(); }
+      t.controls.minDistance = 1.5;
+      t.controls.maxDistance = far * 0.42;   // ไกลสุด + ครึ่งความกว้างพื้น ยังอยู่ในระยะมองเห็น
+    }
     // พื้น
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(G * 2.4, G * 2.4), new THREE.MeshLambertMaterial({ color: 0xb9c4a5 }));
     ground.rotation.x = -Math.PI / 2; ground.position.y = -0.02; ground.receiveShadow = true;
@@ -2595,6 +2636,13 @@ function Plan3DEditor({ job, onClose, currentUser }) {
             const per = (gridSel && gridSel.perBlk && gridSel.perBlk[bi]) || { maxRows: 0, maxCols: 0, count: 0 };
             const nSkip = Object.keys(B.skips || {}).length, nAdd = Object.keys(B.adds || {}).length;
             const pdB = p3BlkPD(B);
+            /* จะได้กี่กลุ่มจริง ๆ — โชว์ไว้ข้างหัวข้อ จะได้รู้ทันทีว่าตั้งแล้วมีผลหรือยัง */
+            const nCol = B.cols > 0 ? Math.min(B.cols, per.maxCols) : per.maxCols;
+            const nRow = B.rows > 0 ? Math.min(B.rows, per.maxRows) : per.maxRows;
+            const grpN = (B.gc > 0 ? Math.ceil(nCol / B.gc) : 1) * (B.gr > 0 ? Math.ceil(nRow / B.gr) : 1);
+            /* "คงรูปสี่เหลี่ยม" ใช้ได้เฉพาะตอนกำหนดขนาดกริดเอง ปล่อย 0=เต็ม แล้วไม่ตัดขอบ แผงจะล้นหลังคา */
+            const keepCan = B.rows > 0 && B.cols > 0;
+            const keepOn = B.keep && keepCan;
             return (
               <React.Fragment>
                 {/* ผืนที่กำลังวาง — ตัวเลขใหญ่ขวามือ อ่านได้ทันทีว่าผืนนี้ได้กี่แผง */}
@@ -2651,6 +2699,38 @@ function Plan3DEditor({ job, onClose, currentUser }) {
                   <NumRange span label={isDome ? "เลื่อนตามแนวสันโดม (+ ไปทางขวา)" : "เลื่อนซ้าย–ขวา (+ ขวา)"} value={Math.round(B.du * 100) / 100} step={0.1} min={-25} max={25} suffix="ม." onChange={(v) => patchBlk(roof, bi, { du: v })} />
                   <NumRange span label={isDome ? "เลื่อนไปตามส่วนโค้ง" : "เลื่อนขึ้น–ลงตามลาด (+ ขึ้นไปทางสัน)"} value={Math.round(B.dv * 100) / 100} step={0.1} min={-25} max={25} suffix="ม." onChange={(v) => patchBlk(roof, bi, { dv: v })} />
                   {!isDome && <NumRange span label="หมุนชุดแผง (เทียบผืนหลังคา)" value={B.rot} step={1} min={-90} max={90} suffix="°" onChange={(v) => patchBlk(roof, bi, { rot: v })} />}
+                  {!isDome && (
+                    <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
+                      {/* หมุนทีละชุดแล้วองศาไม่เท่ากัน มองจากด้านบนจะเห็นว่าไม่เป็นแนวเดียวกัน */}
+                      {blks.length > 1 && (
+                        <button className="p3-lnk" onClick={() => patchAllBlk(roof, { rot: B.rot })}>ใช้มุมนี้กับทุกชุด</button>
+                      )}
+                      <button className="p3-lnk" onClick={() => patchBlk(roof, bi, { rot: 0 })}>ตั้งตรงกับผืน (0°)</button>
+                      <button className="p3-chip" data-on={keepOn ? "1" : "0"} disabled={!keepCan}
+                        onClick={() => patchBlk(roof, bi, { keep: !B.keep })}
+                        style={{ marginLeft: "auto", borderRadius: 9, padding: "6px 10px", fontSize: 11.5, opacity: keepCan ? 1 : 0.45 }}>
+                        <P3Icon name={keepOn ? "check" : "grid"} size={12} />คงรูปสี่เหลี่ยม
+                      </button>
+                    </div>
+                  )}
+                  {!isDome && B.rot !== 0 && !keepOn && (
+                    <span className="p3-note">
+                      หมุนแล้วมุมกริดยื่นพ้นขอบหลังคา ช่องที่ล้นจะถูกตัดออก ชุดแผงเลยเป็นขั้นบันได —{" "}
+                      {keepCan
+                        ? "กด “คงรูปสี่เหลี่ยม” ถ้าอยากได้แถวตรงเต็มกรอบ (แล้วเช็กเองว่าไม่ล้นหลังคา)"
+                        : "ถ้าอยากได้แถวตรง ต้องกำหนดแถวกับคอลัมน์เองก่อน (ไม่ใช่ 0=เต็ม) แล้วค่อยกด “คงรูปสี่เหลี่ยม” — ไม่งั้นระบบไม่รู้ว่าจะให้สี่เหลี่ยมใหญ่แค่ไหน"}
+                    </span>
+                  )}
+
+                  {/* ── แบ่งเป็นกลุ่ม + เว้นทางเดิน ── */}
+                  <span className="p3-eb" style={{ marginTop: 2 }}><P3Icon name="grid" size={12} />แบ่งกลุ่ม &amp; ทางเดิน<span className="ln" />
+                    <span style={{ fontWeight: 600 }}>{grpN > 1 ? grpN + " กลุ่ม" : "ยังไม่แบ่ง"}</span></span>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 9 }}>
+                    <Num label="คอลัมน์/กลุ่ม 0=ไม่แบ่ง" value={B.gc} step={1} min={0} onChange={(v) => patchBlk(roof, bi, { gc: v, adds: {} })} />
+                    <Num label="แถว/กลุ่ม 0=ไม่แบ่ง" value={B.gr} step={1} min={0} onChange={(v) => patchBlk(roof, bi, { gr: v, adds: {} })} />
+                    <Num label="ทางเดินระหว่างกลุ่ม" value={B.gg} step={0.05} min={0} suffix="ม." onChange={(v) => patchBlk(roof, bi, { gg: v, adds: {} })} />
+                  </div>
+                  <span className="p3-note">แบ่งชุดเดียวออกเป็นกลุ่มย่อยพร้อมเว้นทางเดินให้เอง — ดีกว่าสร้างหลายชุดแล้วมาไล่จัดตำแหน่งเอง เพราะทุกกลุ่มอยู่ในแนวเดียวกันเสมอ หมุนทีเดียวหมุนตามกันทั้งชุด{B.gg <= 0 && (B.gc > 0 || B.gr > 0) ? " · ตอนนี้ทางเดินเป็น 0 ม. ต้องใส่ระยะด้วยถึงจะเห็นช่อง" : ""}</span>
                   {!isDome && <NumRange span label="ขาตั้งเอียง (ยกแผงจากผิวหลังคา)" value={B.tilt} step={1} min={0} max={45} suffix="°" onChange={(v) => patchBlk(roof, bi, { tilt: v })} />}
                   {isDome && <span className="p3-note">โดมเป็นผิวโค้ง — แผงต้องแนบโค้ง จึงหมุนชุดหรือใส่ขาตั้งเอียงไม่ได้</span>}
                   {!isDome && B.tilt > 0 && (() => {
