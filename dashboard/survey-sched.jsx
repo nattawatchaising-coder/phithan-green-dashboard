@@ -619,9 +619,15 @@ function buildMySchedItems(appts, jobs, techId) {
   if (!techId) return [];
   const SF = window.SF;
   const out = [];
+  const todayY = _ymdLocal(new Date());
   (appts || []).forEach((a) => {
-    if (a.engineerId === techId && a.status !== "canceled")
-      out.push({ type: "survey", key: "a-" + a.id, a: a, day: a.start ? _ymdLocal(a.start) : "", ts: a.start ? new Date(a.start).getTime() : 0 });
+    if (a.engineerId !== techId || a.status === "canceled") return;
+    const day = a.start ? _ymdLocal(a.start) : "";
+    /* นัดที่ปิดจบไปแล้ว (สำรวจเสร็จ / เลื่อนไปนัดใหม่) ไม่ใช่งานค้าง — เดิมค้างอยู่ในช่อง
+       "เลยกำหนด / ผ่านมา" ตลอดไป ทำให้ตารางงานดูเหมือนมีงานค้างทั้งที่ทำเสร็จแล้ว
+       ยังโชว์ในวันของมันเอง เพื่อให้เห็นว่าวันนี้ทำอะไรไปแล้วบ้าง + กดกลับเข้าแบบสำรวจได้ */
+    if ((a.status === "done" || a.status === "rescheduled") && day !== todayY) return;
+    out.push({ type: "survey", key: "a-" + a.id, a: a, day: day, ts: a.start ? new Date(a.start).getTime() : 0 });
   });
   (jobs || []).forEach((j) => {
     if (j.tech !== techId || j.stage === "done") return;
