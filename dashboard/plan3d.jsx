@@ -394,7 +394,7 @@ function p3Foot(roof) {
   (pan.list || []).forEach((p) => {
     if (p.skip || p.slot) return;
     const blk = blocks[p.blk] || { rot: 0, tilt: 0 };
-    const ry = -(+blk.rot || 0) * P3_DEG, T = (+blk.tilt || 0) * P3_DEG;
+    const ry = p3BlkRy(roof, blk), T = (+blk.tilt || 0) * P3_DEG;
     /* จุดกึ่งกลางแผงในกรอบของด้านนั้น ๆ */
     const c0 = roof.kind === "dome" || roof.kind === "poly"
       ? { x: p.x, y: p.y || 0, z: p.z }
@@ -580,6 +580,13 @@ function p3Blocks(roof) {
 function p3NewBlk(i) {
   return { id: p3Id("pb"), orient: "portrait", rows: 0, cols: 0, gap: 0.02, du: 0, dv: 0, rot: 0, tilt: 0, skips: {}, adds: {} };
 }
+/* ── มุมหมุนของ "ตัวแผงแต่ละแผ่น" (เรเดียน) ให้ตรงกับแนวแถวที่กริดหมุนไป ──
+   กริดหมุนในพิกัดผิว (u,v) ด้วยมุม +rot เสมอ แต่ตัวแผงหมุนรอบแกนตั้งฉากผิวใน basis ของ renderer
+   ทรงสี่เหลี่ยม/จั่ว/ปั้นหยา basis เป็น (x, y, z) ของโลก → ต้องใส่ −rot ถึงจะไปทางเดียวกับกริด
+   ทรงอิสระ (poly) basis เป็น (u, n, −v) ซึ่งสลับมือ → เครื่องหมายต้องกลับเป็น +rot
+   เดิมใช้ −rot ทั้งคู่ ทรงอิสระเลยหมุนสวนทางกริด ผิดไป 2 เท่าของมุมที่ตั้ง
+   ผลคือแผงเรียงเฉียงแต่ตัวแผงหันคนละทาง ขอบชุดออกมาเป็นฟันเลื่อย */
+const p3BlkRy = (roof, blk) => (roof && roof.kind === "poly" ? 1 : -1) * (+(blk && blk.rot) || 0) * P3_DEG;
 const p3BlkPW = (b) => (b.orient === "portrait" ? P3_PANEL_SHORT : P3_PANEL_LONG);
 const p3BlkPD = (b) => (b.orient === "portrait" ? P3_PANEL_LONG : P3_PANEL_SHORT);
 
@@ -835,7 +842,7 @@ function p3Panels(roof, want) {
   out.toMesh = toMesh;
 
   blocks.forEach((blk) => {
-    const ry = -blk.rot * P3_DEG, tiltR = blk.tilt * P3_DEG;
+    const ry = p3BlkRy(roof, blk), tiltR = blk.tilt * P3_DEG;
     let mr = 0, mc = 0, n = 0;
     faces.forEach((face, fi) => {
       const slots = wantB != null && (wantB === -1 || wantB === blk.i);
@@ -2756,18 +2763,22 @@ function Plan3DEditor({ job, onClose, currentUser }) {
                         <button className="p3-lnk" onClick={() => patchAllBlk(roof, { rot: B.rot })}>ใช้มุมนี้กับทุกชุด</button>
                       )}
                       <button className="p3-lnk" onClick={() => patchBlk(roof, bi, { rot: 0 })}>ตั้งตรงกับผืน (0°)</button>
-                      <button className="p3-chip" data-on={B.keep ? "1" : "0"}
-                        onClick={() => patchBlk(roof, bi, { keep: !B.keep })}
-                        style={{ marginLeft: "auto", borderRadius: 9, padding: "6px 10px", fontSize: 11.5 }}>
-                        <P3Icon name={B.keep ? "check" : "grid"} size={12} />จัดเป็นสี่เหลี่ยม
-                      </button>
                     </div>
                   )}
+                  {/* ปุ่มเต็มความกว้าง — ของเดิมเป็นชิปเล็กชิดขวา จอแคบ ๆ จะถูกตัดหายไปเลย */}
+                  {!isDome && (
+                    <button className={"p3-b w " + (B.keep ? "pri" : B.rot !== 0 ? "soft" : "")}
+                      onClick={() => patchBlk(roof, bi, { keep: !B.keep })}
+                      style={{ padding: "9px 10px", fontSize: 12.5, fontWeight: 700 }}>
+                      <P3Icon name={B.keep ? "check" : "grid"} size={14} />
+                      {B.keep ? "จัดเป็นสี่เหลี่ยมอยู่ — แตะเพื่อปิด" : "จัดเป็นสี่เหลี่ยม (ทุกแถวยาวเท่ากัน)"}
+                    </button>
+                  )}
                   {!isDome && B.rot !== 0 && !B.keep && (
-                    <span className="p3-note">หมุนแล้วมุมกริดยื่นพ้นขอบหลังคา ช่องที่ล้นจะถูกตัดออกทีละช่อง ขอบชุดเลยเป็นขั้นบันได — กด “จัดเป็นสี่เหลี่ยม” จะได้แถวตรงเต็มกรอบ</span>
+                    <span className="p3-note">หมุนแล้วมุมกริดยื่นพ้นขอบหลังคา ช่องที่ล้นจะถูกตัดออกทีละช่อง แต่ละแถวเลยยาวไม่เท่ากันเป็นขั้นบันได — กดปุ่มด้านบนจะได้สี่เหลี่ยมตรง ๆ แถวเท่ากันหมด</span>
                   )}
                   {!isDome && B.keep && (
-                    <span className="p3-note">จัดเป็นสี่เหลี่ยมอยู่ — ระบบเลือกสี่เหลี่ยมผืนใหญ่ที่สุดที่ยังอยู่ในหลังคาครบทุกแผง หมุนกี่องศาก็ได้แถวตรงเสมอ (ใส่แถว/คอลัมน์เองได้ถ้าอยากให้เล็กกว่านั้น)</span>
+                    <span className="p3-note">ระบบเลือกสี่เหลี่ยมผืนใหญ่ที่สุดที่ยังอยู่ในหลังคาครบทุกแผง หมุนกี่องศาก็ได้แถวตรงเสมอ (ใส่แถว/คอลัมน์เองได้ถ้าอยากให้เล็กกว่านั้น)</span>
                   )}
 
                   {/* ── แบ่งเป็นกลุ่ม + เว้นทางเดิน ── */}
