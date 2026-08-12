@@ -547,6 +547,23 @@ function ivHitBox(o, d, lo, hi) {
   }
   return true;
 }
+function ivHitBoxRot(o, d, b) {
+  const c = Math.cos(b.rot),
+    s = Math.sin(b.rot);
+  const ox = o.x - b.cx,
+    oz = o.z - b.cz;
+  const o2 = {
+    x: ox * c - oz * s + b.cx,
+    y: o.y,
+    z: ox * s + oz * c + b.cz
+  };
+  const d2 = {
+    x: d.x * c - d.z * s,
+    y: d.y,
+    z: d.x * s + d.z * c
+  };
+  return ivHitBox(o2, d2, b.lo, b.hi);
+}
 function ivHitQuad(o, d, q) {
   const dn = ivDot(d, q.n);
   if (Math.abs(dn) < 1e-9) return false;
@@ -776,6 +793,9 @@ function ivGeom(st) {
           y: h,
           z: z + d
         },
+        rot: -scNum(o.rot) * Math.PI / 180,
+        cx: x,
+        cz: z,
         bc: c,
         br: Math.hypot(w, h / 2, d),
         name: o.name || "สิ่งบดบัง",
@@ -851,7 +871,7 @@ function ivShadeAt(geo, dir) {
           dz = b.bc.z - o.z;
         if (dx * dir.x + dy * dir.y + dz * dir.z < -b.br) continue;
         let hit = false;
-        if (b.t === "s") hit = ivHitSphere(o, dir, b.c, b.r);else if (b.t === "b") hit = ivHitBox(o, dir, b.lo, b.hi);else if (b.t === "q") hit = ivHitQuad(o, dir, b);else if (b.t === "w") hit = ivHitWall(o, dir, b.poly, b.top);else if (b.t === "t") {
+        if (b.t === "s") hit = ivHitSphere(o, dir, b.c, b.r);else if (b.t === "b") hit = b.rot ? ivHitBoxRot(o, dir, b) : ivHitBox(o, dir, b.lo, b.hi);else if (b.t === "q") hit = ivHitQuad(o, dir, b);else if (b.t === "w") hit = ivHitWall(o, dir, b.poly, b.top);else if (b.t === "t") {
           for (let j = 0; j < b.tris.length; j++) {
             if (ivHitTri(o, dir, b.tris[j].a, b.tris[j].e1, b.tris[j].e2)) {
               hit = true;
@@ -1713,6 +1733,7 @@ Object.assign(window, {
   ivShadeMoment,
   ivSunDir,
   ivHitBox,
+  ivHitBoxRot,
   ivHitSphere,
   ivHitQuad,
   ivHitTri,

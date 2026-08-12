@@ -1436,7 +1436,17 @@ function p3Faces(roof, pan) {
     }]
   }];
 }
+const _p3PanCache = new Map();
 function p3Panels(roof, want) {
+  const key = JSON.stringify(want || 0) + "" + JSON.stringify(roof);
+  const hit = _p3PanCache.get(key);
+  if (hit) return hit;
+  const res = p3PanelsCalc(roof, want);
+  if (_p3PanCache.size > 32) _p3PanCache.clear();
+  _p3PanCache.set(key, res);
+  return res;
+}
+function p3PanelsCalc(roof, want) {
   const m = +roof.margin || 0;
   const blocks = p3Blocks(roof);
   const out = {
@@ -2396,12 +2406,34 @@ function Plan3DEditor({
         if (o.geometry) o.geometry.dispose();
         if (o.material) {
           (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => {
-            if (m.map) m.map.dispose();
+            if (m.map && !m.map.userData.p3keep) m.map.dispose();
             m.dispose();
           });
         }
       });
     }
+    t.texCache = t.texCache || {};
+    const texKeep = [st.photo, st.baseMap && st.baseMap.url].filter(Boolean);
+    Object.keys(t.texCache).forEach(u => {
+      if (texKeep.indexOf(u) < 0) {
+        t.texCache[u].dispose();
+        delete t.texCache[u];
+      }
+    });
+    const p3Tex = (url, onReady) => {
+      const has = t.texCache[url];
+      if (has) {
+        if (onReady && has.image) Promise.resolve().then(() => onReady(has));
+        return has;
+      }
+      const tx = new THREE.TextureLoader().load(url, () => {
+        if (onReady) onReady(tx);
+      });
+      tx.anisotropy = 4;
+      tx.userData.p3keep = true;
+      t.texCache[url] = tx;
+      return tx;
+    };
     t.pickRoofs = [];
     t.pickPanels = [];
     t.pickObs = [];
@@ -2433,8 +2465,7 @@ function Plan3DEditor({
     t.dyn.add(ground);
     if (st.baseMap && st.baseMap.url) {
       const W = Math.max(2, +st.baseMap.widthM || 30);
-      const bt = new THREE.TextureLoader().load(st.baseMap.url);
-      bt.anisotropy = 4;
+      const bt = p3Tex(st.baseMap.url);
       const bmesh = new THREE.Mesh(new THREE.PlaneGeometry(W, W), new THREE.MeshBasicMaterial({
         map: bt
       }));
@@ -2509,8 +2540,8 @@ function Plan3DEditor({
         fr.renderOrder = 58;
         pgrp.add(keep(fr));
       };
-      const tex = new THREE.TextureLoader().load(st.photo, () => {
-        const img = tex.image;
+      const tex = p3Tex(st.photo, tx => {
+        const img = tx.image;
         if (!img) return;
         const pw = +st.photoW || 30,
           ph = pw * (img.height / img.width);
@@ -2520,7 +2551,6 @@ function Plan3DEditor({
         const t2 = tRef.current;
         if (t2.renderer) t2.renderer.render(t2.scene, t2.camera);
       });
-      tex.anisotropy = 4;
       const bright = Math.max(0.25, Math.min(1, st.photoBright == null ? 0.7 : +st.photoBright));
       const photoMat = new THREE.MeshBasicMaterial({
         map: tex,
@@ -2883,6 +2913,11 @@ function Plan3DEditor({
         }
       }
       g.add(tilt);
+      const geoBox = {};
+      const boxOf = (w, h, d) => {
+        const k = w.toFixed(3) + "|" + h.toFixed(3) + "|" + d.toFixed(3);
+        return geoBox[k] || (geoBox[k] = new THREE.BoxGeometry(w, h, d));
+      };
       const panelMat = new THREE.MeshStandardMaterial({
         color: 0x10305e,
         roughness: 0.35,
@@ -2915,6 +2950,9 @@ function Plan3DEditor({
         opacity: 0.22,
         depthTest: false
       });
+      const legMat = new THREE.MeshLambertMaterial({
+        color: 0x9aa3ad
+      });
       const showGhost = selected && tab === "panel";
       pan.list.forEach(p => {
         if (p.skip && !showGhost) return;
@@ -2925,7 +2963,7 @@ function Plan3DEditor({
           ryR = p.ry || 0;
         const lift = tR ? pd / 2 * Math.sin(tR) : 0;
         const mat = p.slot ? slotMat : p.skip ? ghostMat : panelMat;
-        const pm = new THREE.Mesh(new THREE.BoxGeometry(pw - 0.02, P3_PANEL_T, pd - 0.02), mat);
+        const pm = new THREE.Mesh(boxOf(pw - 0.02, P3_PANEL_T, pd - 0.02), mat);
         if (isDomeR) {
           pm.position.set(p.x, p.y + 0.06 * Math.cos(p.rx), p.z + 0.06 * Math.sin(p.rx));
           pm.rotation.x = p.rx;
@@ -2951,7 +2989,7 @@ function Plan3DEditor({
         parent.add(pm);
         t.pickPanels.push(pm);
         if (!p.skip && !p.slot) {
-          const fr = new THREE.Mesh(new THREE.BoxGeometry(pw, 0.012, pd), frameMat);
+          const fr = new THREE.Mesh(boxOf(pw, 0.012, pd), frameMat);
           if (isDomeR) {
             fr.position.set(p.x, p.y + 0.028 * Math.cos(p.rx), p.z + 0.028 * Math.sin(p.rx));
             fr.rotation.x = p.rx;
@@ -2966,11 +3004,8 @@ function Plan3DEditor({
           parent.add(fr);
           if (tR > 0.02) {
             const legH = pd * Math.sin(tR);
-            const legMat = new THREE.MeshLambertMaterial({
-              color: 0x9aa3ad
-            });
             [-1, 1].forEach(sg => {
-              const leg = new THREE.Mesh(new THREE.BoxGeometry(0.05, legH, 0.05), legMat);
+              const leg = new THREE.Mesh(boxOf(0.05, legH, 0.05), legMat);
               const lx = sg * (pw / 2 - 0.15),
                 lz = -pd / 2 + 0.05;
               const off = new THREE.Vector3(lx, legH / 2, lz).applyEuler(new THREE.Euler(0, ryR, 0));
@@ -3079,6 +3114,7 @@ function Plan3DEditor({
     (st.obstacles || []).forEach(o => {
       const grp = new THREE.Group();
       grp.position.set(+o.x || 0, 0, +o.z || 0);
+      grp.rotation.y = -((+o.rot || 0) * P3_DEG);
       const selectedO = o.id === selObs;
       if (o.kind === "tree") {
         const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.2, o.h * 0.45, 8), new THREE.MeshLambertMaterial({
@@ -5584,7 +5620,39 @@ function Plan3DEditor({
     onChange: v => patchObs(obs.id, {
       h: v
     })
-  })), React.createElement(SmallBtn, {
+  })), obs.kind !== "tree" && React.createElement("div", {
+    className: "p3-card"
+  }, React.createElement(NumRange, {
+    span: true,
+    label: "\u0E2B\u0E21\u0E38\u0E19 (\u0E21\u0E2D\u0E07\u0E08\u0E32\u0E01\u0E14\u0E49\u0E32\u0E19\u0E1A\u0E19 \xB7 + \u0E15\u0E32\u0E21\u0E40\u0E02\u0E47\u0E21)",
+    value: +obs.rot || 0,
+    step: 1,
+    min: -180,
+    max: 180,
+    suffix: "\xB0",
+    onChange: v => patchObs(obs.id, {
+      rot: v
+    })
+  }), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 7,
+      flexWrap: "wrap"
+    }
+  }, [0, 45, 90, 135].map(a => React.createElement("button", {
+    key: a,
+    className: "p3-lnk",
+    onClick: () => patchObs(obs.id, {
+      rot: a
+    })
+  }, a, "\xB0")), React.createElement("button", {
+    className: "p3-lnk",
+    onClick: () => patchObs(obs.id, {
+      rot: Math.round((((+obs.rot || 0) + 90 + 180) % 360 + 360) % 360 - 180)
+    })
+  }, "\u0E2B\u0E21\u0E38\u0E19 +90\xB0")), React.createElement("span", {
+    className: "p3-note"
+  }, "\u0E15\u0E36\u0E01\u0E02\u0E49\u0E32\u0E07\u0E40\u0E04\u0E35\u0E22\u0E07\u0E2A\u0E48\u0E27\u0E19\u0E43\u0E2B\u0E0D\u0E48\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E27\u0E32\u0E07\u0E15\u0E23\u0E07\u0E41\u0E01\u0E19\u0E40\u0E2B\u0E19\u0E37\u0E2D\u2013\u0E43\u0E15\u0E49 \u0E2B\u0E21\u0E38\u0E19\u0E43\u0E2B\u0E49\u0E15\u0E23\u0E07\u0E01\u0E31\u0E1A\u0E23\u0E39\u0E1B\u0E42\u0E14\u0E23\u0E19\u0E41\u0E25\u0E49\u0E27\u0E40\u0E07\u0E32\u0E17\u0E35\u0E48\u0E04\u0E33\u0E19\u0E27\u0E13\u0E08\u0E30\u0E15\u0E23\u0E07\u0E01\u0E31\u0E1A\u0E02\u0E2D\u0E07\u0E08\u0E23\u0E34\u0E07")), React.createElement(SmallBtn, {
     cls: "dngr",
     icon: "trash",
     onClick: () => {

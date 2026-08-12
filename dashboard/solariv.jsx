@@ -440,6 +440,17 @@ function ivHitBox(o, d, lo, hi) {
   }
   return true;
 }
+/* ── กล่องที่หมุนรอบแกนตั้ง ──
+   แทนที่จะเขียนสูตรตัดกล่องเอียงใหม่ ให้หมุน "ลำแสง" กลับเข้าไปอยู่ในกรอบของกล่อง
+   แล้วใช้สูตรกล่องตรงเดิม — ผลลัพธ์เท่ากันเป๊ะและโค้ดที่ผ่านการใช้งานมาแล้วไม่ต้องแตะ
+   b.rot = ค่าเดียวกับ rotation.y ของฉาก 3 มิติ (three หมุน local→world: x·cos+z·sin, −x·sin+z·cos) */
+function ivHitBoxRot(o, d, b) {
+  const c = Math.cos(b.rot), s = Math.sin(b.rot);
+  const ox = o.x - b.cx, oz = o.z - b.cz;
+  const o2 = { x: ox * c - oz * s + b.cx, y: o.y, z: ox * s + oz * c + b.cz };
+  const d2 = { x: d.x * c - d.z * s, y: d.y, z: d.x * s + d.z * c };
+  return ivHitBox(o2, d2, b.lo, b.hi);
+}
 /* ลำแสงชนแผ่นสี่เหลี่ยม (แผงอีกใบ) ไหม */
 function ivHitQuad(o, d, q) {
   const dn = ivDot(d, q.n);
@@ -565,7 +576,10 @@ function ivGeom(st) {
     } else {
       const w = Math.max(0.2, scNum(o.w, 1)) / 2, d = Math.max(0.2, scNum(o.d, 1)) / 2;
       const c = { x, y: h / 2, z };
+      /* กล่องหมุนได้ — เก็บมุมไว้ด้วย (เรเดียน ตรงกับ rotation.y ที่ฉาก 3 มิติใช้)
+         ตอนยิงลำแสงจะหมุนลำแสงกลับเข้ากรอบของกล่องแทน เงาที่คำนวณจึงตรงกับที่เห็นในภาพ */
       blockers.push({ t: "b", lo: { x: x - w, y: 0, z: z - d }, hi: { x: x + w, y: h, z: z + d },
+        rot: -scNum(o.rot) * Math.PI / 180, cx: x, cz: z,
         bc: c, br: Math.hypot(w, h / 2, d), name: o.name || "สิ่งบดบัง", id: o.id });
     }
   });
@@ -615,7 +629,7 @@ function ivShadeAt(geo, dir) {
         if (dx * dir.x + dy * dir.y + dz * dir.z < -b.br) continue;
         let hit = false;
         if (b.t === "s") hit = ivHitSphere(o, dir, b.c, b.r);
-        else if (b.t === "b") hit = ivHitBox(o, dir, b.lo, b.hi);
+        else if (b.t === "b") hit = b.rot ? ivHitBoxRot(o, dir, b) : ivHitBox(o, dir, b.lo, b.hi);
         else if (b.t === "q") hit = ivHitQuad(o, dir, b);
         else if (b.t === "w") hit = ivHitWall(o, dir, b.poly, b.top);
         else if (b.t === "t") { for (let j = 0; j < b.tris.length; j++) { if (ivHitTri(o, dir, b.tris[j].a, b.tris[j].e1, b.tris[j].e2)) { hit = true; break; } } }
@@ -1203,7 +1217,7 @@ Object.assign(window, {
   ivCells, ivExtract, ivAt, ivModule, ivString, ivSolveI, ivVocOf, ivMppOf,
   ivIrradiance, ivCellTemp, ivIam, ivDayOfYear, ivExpect, ivToStc, ivDiagnose, ivAssess,
   ivRoi, ivNpv, ivIrr,
-  ivGeom, ivShadeAt, ivShadeAnnual, ivShadeMoment, ivSunDir, ivHitBox, ivHitSphere, ivHitQuad,
+  ivGeom, ivShadeAt, ivShadeAnnual, ivShadeMoment, ivSunDir, ivHitBox, ivHitBoxRot, ivHitSphere, ivHitQuad,
   ivHitTri, ivHitWall, ivInPoly, ivHull2D, ivDaySim, ivYearSim, ivHM,
   IV_ELEC, ivElecLoss, ivStringShaded, ivVatI,
 });

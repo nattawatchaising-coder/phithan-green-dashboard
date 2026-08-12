@@ -799,9 +799,24 @@ function p3Faces(roof, pan) {
     poly: [{ x: -w / 2, z: 0 }, { x: w / 2, z: 0 }, { x: w / 2, z: -d }, { x: -w / 2, z: -d }] }];
 }
 
+/* ── จำผลลัพธ์ล่าสุดไว้ ──
+   หน้าจอเรียกคำนวณผังแผงของผืนเดียวกันซ้ำหลายรอบต่อการวาดหนึ่งครั้ง
+   (นับแผงรวมทั้งงาน + แผงของผืนที่เลือก + ตอนสร้างวัตถุในฉาก + ตอนถอดรอยเท้าแผง)
+   ปกติครั้งละไม่ถึงมิลลิวินาที แต่โหมด "สี่เหลี่ยมตรง" ต้องไล่ทั้งแลตทิซ ตกครั้งละ ~8 ms
+   ลากสไลเดอร์ทีเดียวจึงเสียเวลาไปกับการคำนวณซ้ำหลายสิบมิลลิวินาที = ภาพกระตุก */
+const _p3PanCache = new Map();
+function p3Panels(roof, want) {
+  const key = JSON.stringify(want || 0) + "" + JSON.stringify(roof);
+  const hit = _p3PanCache.get(key);
+  if (hit) return hit;
+  const res = p3PanelsCalc(roof, want);
+  if (_p3PanCache.size > 32) _p3PanCache.clear();   // กันโตไม่จบ — ของเก่าไม่มีใครใช้แล้ว
+  _p3PanCache.set(key, res);
+  return res;
+}
 /* ── คำนวณตำแหน่งแผงบนหลังคาทุกทรง ──
    out.list[] = { key, side, x, z (หรือ x,y,z สำหรับ poly/dome), pw, pd, blk, ry, tiltR, skip, slot } */
-function p3Panels(roof, want) {
+function p3PanelsCalc(roof, want) {
   const m = +roof.margin || 0;
   const blocks = p3Blocks(roof);
   const out = { blocks, list: [], count: 0, maxRows: 0, maxCols: 0, surfInfo: null, perBlk: [],
@@ -1313,8 +1328,25 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     while (t.dyn.children.length) {
       const c = t.dyn.children[0];
       t.dyn.remove(c);
-      c.traverse && c.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) { (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { if (m.map) m.map.dispose(); m.dispose(); }); } });
+      /* รูปโดรน/ผังดาวเทียมเก็บไว้ใช้ซ้ำ (ดู p3Tex) ห้ามทิ้ง ไม่งั้นต้องถอดรหัสรูปใหม่ทุกครั้งที่วาดฉาก */
+      c.traverse && c.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) { (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { if (m.map && !m.map.userData.p3keep) m.map.dispose(); m.dispose(); }); } });
     }
+    /* ทิ้งรูปที่ไม่ได้ใช้แล้ว (ผู้ใช้เปลี่ยนรูปโดรน/ย้ายหมุดแผนที่) ที่เหลือใช้ตัวเดิมต่อ */
+    t.texCache = t.texCache || {};
+    const texKeep = [st.photo, st.baseMap && st.baseMap.url].filter(Boolean);
+    Object.keys(t.texCache).forEach((u) => {
+      if (texKeep.indexOf(u) < 0) { t.texCache[u].dispose(); delete t.texCache[u]; }
+    });
+    const p3Tex = (url, onReady) => {
+      const has = t.texCache[url];
+      /* รูปที่เคยโหลดแล้วต้องแจ้งกลับแบบ "รอบถัดไป" เสมอ ห้ามเรียกทันที
+         เพราะฝั่งที่เรียกยังสร้าง mesh ไม่เสร็จ (โค้ดอยู่บรรทัดถัดไป) เรียกตรงนี้จะพังทั้งจอ */
+      if (has) { if (onReady && has.image) Promise.resolve().then(() => onReady(has)); return has; }
+      const tx = new THREE.TextureLoader().load(url, () => { if (onReady) onReady(tx); });
+      tx.anisotropy = 4; tx.userData.p3keep = true;
+      t.texCache[url] = tx;
+      return tx;
+    };
     t.pickRoofs = []; t.pickPanels = []; t.pickObs = []; t.pickVerts = [];
     t.pickPhoto = []; t.pickPhotoH = []; t.photoDeco = [];
     t.pickBlk = []; t.blkFrames = [];   // จุดจับลาก/ย่อขยายชุดแผงบนภาพ 3 มิติ
@@ -1338,8 +1370,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     // ── ผังพื้นจากแผนที่ดาวเทียม (สเกลจริง · เหนือ=บน=−Z) วางเป็นฐานใต้รูปโดรน ──
     if (st.baseMap && st.baseMap.url) {
       const W = Math.max(2, +st.baseMap.widthM || 30);
-      const bt = new THREE.TextureLoader().load(st.baseMap.url);
-      bt.anisotropy = 4;
+      const bt = p3Tex(st.baseMap.url);
       const bmesh = new THREE.Mesh(new THREE.PlaneGeometry(W, W), new THREE.MeshBasicMaterial({ map: bt }));
       bmesh.rotation.x = -Math.PI / 2; bmesh.position.y = -0.01;
       t.dyn.add(bmesh);
@@ -1394,15 +1425,14 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         fr.renderOrder = 58; pgrp.add(keep(fr));
       };
 
-      const tex = new THREE.TextureLoader().load(st.photo, () => {
-        const img = tex.image; if (!img) return;
+      const tex = p3Tex(st.photo, (tx) => {
+        const img = tx.image; if (!img) return;
         const pw = +st.photoW || 30, ph = pw * (img.height / img.width);
         photoMesh.geometry.dispose();
         photoMesh.geometry = new THREE.PlaneGeometry(pw, ph);
         layoutHandles(pw, ph);
         const t2 = tRef.current; if (t2.renderer) t2.renderer.render(t2.scene, t2.camera);
       });
-      tex.anisotropy = 4;
       // ใช้ MeshBasic → รูปโดรนแสดงสีจริงตามต้นฉบับ ไม่โดนแสงอาทิตย์จำลอง/ambient ส่องซ้ำ
       // color เป็นเทา = ตัวคูณหรี่ความสว่าง (รูปโดรนถ่ายกลางแดดมักสว่างจ้า) ปรับได้ด้วยสไลเดอร์ "ความสว่างรูป"
       const bright = Math.max(0.25, Math.min(1, st.photoBright == null ? 0.7 : +st.photoBright));
@@ -1637,6 +1667,14 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       }
       g.add(tilt);
 
+      /* แผงทุกแผ่นในผืนหนึ่งขนาดเท่ากันหมด — ใช้รูปทรงร่วมกันได้
+         เดิมสร้าง BoxGeometry ใหม่ทีละแผ่น (แผง+กรอบ+ขาตั้ง) หลังคาใหญ่ ๆ ตกหลายร้อยชิ้นต่อการวาดหนึ่งครั้ง
+         ทุกครั้งที่ขยับสไลเดอร์ก็สร้างใหม่ทั้งชุด นั่นคือต้นเหตุที่ลากแล้วกระตุก */
+      const geoBox = {};
+      const boxOf = (w, h, d) => {
+        const k = w.toFixed(3) + "|" + h.toFixed(3) + "|" + d.toFixed(3);
+        return geoBox[k] || (geoBox[k] = new THREE.BoxGeometry(w, h, d));
+      };
       // แผง (แผงที่เว้นไว้ = โปร่งจาง แตะเพื่อใส่คืน)
       const panelMat = new THREE.MeshStandardMaterial({ color: 0x10305e, roughness: 0.35, metalness: 0.55 });
       const ghostMat = new THREE.MeshLambertMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.16 });
@@ -1653,6 +1691,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       // โดม: แต่ละแผงเอียงตามความชันของโค้งจุดนั้น (rx) แล้วยกออกตามแนวตั้งฉากของผิว
       const isDomeR = roof.kind === "dome";
       const slotMat = new THREE.MeshBasicMaterial({ color: 0x16a34a, transparent: true, opacity: 0.22, depthTest: false });
+      const legMat = new THREE.MeshLambertMaterial({ color: 0x9aa3ad });   // ใช้ร่วมกันทุกขา ไม่ต้องสร้างใหม่ทีละต้น
       // ช่องที่เว้นไว้ = โชว์เป็นแผงจาง ๆ เฉพาะตอนกำลังจัดแผงผืนนี้ (ไว้แตะใส่คืน)
       // นอกจากนั้นไม่วาดเลย — ภาพ 3D/รูป PNG/รายงาน จะได้ไม่มีช่องโหว่จาง ๆ ค้างอยู่
       const showGhost = selected && tab === "panel";
@@ -1664,7 +1703,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         const tR = p.tiltR || 0, ryR = p.ry || 0;
         const lift = tR ? (pd / 2) * Math.sin(tR) : 0;    // ยกให้ขอบล่างของแผงแตะผิวหลังคาพอดี
         const mat = p.slot ? slotMat : p.skip ? ghostMat : panelMat;
-        const pm = new THREE.Mesh(new THREE.BoxGeometry(pw - 0.02, P3_PANEL_T, pd - 0.02), mat);
+        const pm = new THREE.Mesh(boxOf(pw - 0.02, P3_PANEL_T, pd - 0.02), mat);
         if (isDomeR) { pm.position.set(p.x, p.y + 0.06 * Math.cos(p.rx), p.z + 0.06 * Math.sin(p.rx)); pm.rotation.x = p.rx; }
         else if (isPoly && pquat) {
           pm.position.set(p.x + pnoff.x, p.y + pnoff.y, p.z + pnoff.z);
@@ -1676,7 +1715,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         pm.userData = { kind: "panel", roofId: roof.id, key: p.key, slot: !!p.slot };
         parent.add(pm); t.pickPanels.push(pm);
         if (!p.skip && !p.slot) {
-          const fr = new THREE.Mesh(new THREE.BoxGeometry(pw, 0.012, pd), frameMat);
+          const fr = new THREE.Mesh(boxOf(pw, 0.012, pd), frameMat);
           if (isDomeR) { fr.position.set(p.x, p.y + 0.028 * Math.cos(p.rx), p.z + 0.028 * Math.sin(p.rx)); fr.rotation.x = p.rx; }
           else if (isPoly && pquat) {
             fr.position.set(p.x + pnoff.x * 0.5, p.y + pnoff.y * 0.5, p.z + pnoff.z * 0.5);
@@ -1687,9 +1726,8 @@ function Plan3DEditor({ job, onClose, currentUser }) {
           // ขาตั้ง: เสาสองต้นใต้ขอบสูงของแผง ให้เห็นว่ายกด้วยโครง ไม่ใช่แปะราบ
           if (tR > 0.02) {
             const legH = pd * Math.sin(tR);
-            const legMat = new THREE.MeshLambertMaterial({ color: 0x9aa3ad });
             [-1, 1].forEach((sg) => {
-              const leg = new THREE.Mesh(new THREE.BoxGeometry(0.05, legH, 0.05), legMat);
+              const leg = new THREE.Mesh(boxOf(0.05, legH, 0.05), legMat);
               const lx = sg * (pw / 2 - 0.15), lz = -pd / 2 + 0.05;
               const off = new THREE.Vector3(lx, legH / 2, lz).applyEuler(new THREE.Euler(0, ryR, 0));
               if (isPoly && pquat) {
@@ -1765,6 +1803,8 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     // ── สิ่งบดบัง ──
     (st.obstacles || []).forEach((o) => {
       const grp = new THREE.Group(); grp.position.set(+o.x || 0, 0, +o.z || 0);
+      // rotation.y ลบ = หมุนตามเข็มเมื่อมองจากด้านบน (ใช้เกณฑ์เดียวกับการหมุนรูปโดรน)
+      grp.rotation.y = -((+o.rot || 0) * P3_DEG);
       const selectedO = o.id === selObs;
       if (o.kind === "tree") {
         const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.2, o.h * 0.45, 8), new THREE.MeshLambertMaterial({ color: 0x7c5a3a }));
@@ -2887,6 +2927,20 @@ function Plan3DEditor({ job, onClose, currentUser }) {
                 <Num label="ลึก" value={obs.d} step={0.5} min={0.5} suffix="ม." onChange={(v) => patchObs(obs.id, { d: v })} />
                 <Num label="สูง" value={obs.h} step={0.5} min={0.5} suffix="ม." onChange={(v) => patchObs(obs.id, { h: v })} />
               </div>
+              {/* ต้นไม้เป็นทรงกลม หมุนแล้วไม่ต่างอะไร — โชว์เฉพาะทรงกล่อง (ตึก/ถังน้ำ/กันสาด) */}
+              {obs.kind !== "tree" && (
+                <div className="p3-card">
+                  <NumRange span label="หมุน (มองจากด้านบน · + ตามเข็ม)" value={+obs.rot || 0} step={1} min={-180} max={180} suffix="°"
+                    onChange={(v) => patchObs(obs.id, { rot: v })} />
+                  <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+                    {[0, 45, 90, 135].map((a) => (
+                      <button key={a} className="p3-lnk" onClick={() => patchObs(obs.id, { rot: a })}>{a}°</button>
+                    ))}
+                    <button className="p3-lnk" onClick={() => patchObs(obs.id, { rot: Math.round((((+obs.rot || 0) + 90 + 180) % 360 + 360) % 360 - 180) })}>หมุน +90°</button>
+                  </div>
+                  <span className="p3-note">ตึกข้างเคียงส่วนใหญ่ไม่ได้วางตรงแกนเหนือ–ใต้ หมุนให้ตรงกับรูปโดรนแล้วเงาที่คำนวณจะตรงกับของจริง</span>
+                </div>
+              )}
               <SmallBtn cls="dngr" icon="trash" onClick={() => { set({ obstacles: st.obstacles.filter((o) => o.id !== obs.id) }); setSelObs(null); }}>ลบชิ้นนี้</SmallBtn>
             </React.Fragment>
           )}
