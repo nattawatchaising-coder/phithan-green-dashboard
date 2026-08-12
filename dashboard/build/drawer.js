@@ -1224,7 +1224,7 @@ function DetailDrawer({
       size: 15,
       color: "var(--primary-dark)"
     }), " \u0E14\u0E39\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1C\u0E25\u0E2A\u0E33\u0E23\u0E27\u0E08 \xB7 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF"));
-  })(), window.SitePlanEditor && React.createElement("button", {
+  })(), false && window.SitePlanEditor && React.createElement("button", {
     onClick: () => setPlanOpen(true),
     style: {
       width: "100%",

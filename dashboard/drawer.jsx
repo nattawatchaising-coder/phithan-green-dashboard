@@ -456,8 +456,8 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                 );
               })()}
 
-              {/* ผังหน้างาน (Site Plan) */}
-              {window.SitePlanEditor && (
+              {/* ผังหน้างาน (Site Plan) — ซ่อนปุ่มไว้ก่อนตามที่สั่ง (โค้ดยังอยู่ครบ เปลี่ยน false กลับเป็น true เมื่อจะเอากลับมา) */}
+              {false && window.SitePlanEditor && (
               <button onClick={() => setPlanOpen(true)}
                 style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
                   background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
