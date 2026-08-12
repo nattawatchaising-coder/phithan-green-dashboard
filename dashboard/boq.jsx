@@ -851,6 +851,21 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     return out;
   }, [accCat]);
 
+  /* ตัวเลือกข้อต่อท่อน้ำ — รายการมาตรฐานทุกขนาด (แยกชิปตามขนาดท่อ)
+     ต่อท้ายด้วยของท่อน้ำที่มีอยู่ในคลังแล้ว จะได้ไม่เสียของเก่าที่ตั้งราคาไว้ */
+  const pipeOptions = React.useMemo(() => {
+    const std = window.BOQ.pipeFittings().map((f) => ({ value: f.name, label: f.name, group: f.group }));
+    const seen = new Set(std.map((o) => window.BOQ.matKey(o.value)));
+    stockItems.forEach((s) => {
+      const n = s.name || "";
+      if (!/PP-?R|ท่อน้ำ|วาล์ว/i.test(n)) return;
+      const k = window.BOQ.matKey(n);
+      if (seen.has(k)) return;
+      seen.add(k); std.push({ value: n, label: n, group: "มีในคลังแล้ว" });
+    });
+    return std;
+  }, [stockItems.length]);
+
   const accList = b.accessories || [];
   const setAcc = (i, k, v) => setB((p) => { const a = (p.accessories || []).slice(); a[i] = Object.assign({}, a[i], { [k]: v }); if (k === "name" && matInfo[v]) a[i].unit = matInfo[v].unit || a[i].unit; return Object.assign({}, p, { accessories: a }); });
   const setAccCat = (i, v) => setB((p) => { const a = (p.accessories || []).slice(); a[i] = Object.assign({}, a[i], { cat: v, name: "" }); return Object.assign({}, p, { accessories: a }); });
@@ -2320,7 +2335,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 /* อุปกรณ์ประกอบ — ของจุกจิกที่แล้วแต่หน้างาน
                    เลือกจากคลังสินค้าได้เลย (ราคาจะดึงมาให้เอง) หรือกด "พิมพ์เอง" ถ้ายังไม่มีในคลัง
                    หมวดที่แยกเป็นตู้ เก็บแยกคีย์ละตู้ ของในตู้ AC ก็อยู่แค่ตู้ AC ไม่ปนตู้อื่น */
-                const extraList = (stateKey, ofWhat, small) => {
+                const extraList = (stateKey, ofWhat, small, opts) => {
+                  const options = opts || allMatOptions;
                   const extra = st[stateKey] || [];
                   const setExtra = (v) => setKit(k.key, stateKey, v);
                   const patch = (i, o) => setExtra(extra.map((y, j) => j === i ? Object.assign({}, y, o) : y));
@@ -2330,7 +2346,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   const nameCell = (x, i) => (x.custom
                     ? <input autoFocus value={x.name || ""} placeholder={"พิมพ์ชื่อ อุปกรณ์ประกอบ " + ofWhat} style={Object.assign({}, inputStyle, cabSelStyle)} onChange={upd(i, "name")} />
                     : <Dropdown value={x.name || ""} onChange={(v) => pickName(i, v)} style={cabSelStyle}
-                        placeholder={"เลือกจากคลัง — " + ofWhat} options={allMatOptions}
+                        placeholder={"เลือกจากคลัง — " + ofWhat} options={options}
                         addable onAdd={(v) => patch(i, { name: v, custom: true })} />);
                   const customToggle = (x, i) => (
                     <button type="button" onClick={() => patch(i, { custom: !x.custom })}
@@ -2407,7 +2423,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(3, minmax(0,1fr))", gap: 9 }}>
                           {k.items.map((it) => numBox(it))}
                         </div>
-                        {extraList("extra", k.th)}
+                        {/* ท่อน้ำ ใช้รายการข้อต่อ PPR ของตัวเอง (แยกชิปตามขนาดท่อ) แทนที่จะไล่หาจากของทั้งคลัง */}
+                        {extraList("extra", k.th, false, k.key === "pipe" ? pipeOptions : null)}
                       </React.Fragment>
                     )}
                   </div>

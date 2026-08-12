@@ -894,6 +894,23 @@
       hint: "ท่อ PPR — กรอกจำนวนเส้น (ข้อต่อ/วาล์ว ใส่ในอุปกรณ์ประกอบ)",
       items: [{ key: "ppr34", name: "ท่อ PPR 3/4\"", unit: "เส้น" }] },
   ];
+
+  /* ── ข้อต่อ/วาล์วท่อน้ำ PPR ──
+     แนวเดียวกับข้อต่อรางไฟ/ท่อร้อยสาย: จำนวนขึ้นกับการเดินท่อจริง กรอกเอง แต่ชื่อเลือกจากรายการ
+     เดิมช่องนี้ให้ไล่หาจากของทั้งคลัง 500 กว่าตัว ซึ่งของท่อน้ำกองอยู่ในหมวด "อื่นๆ" ปนกับของอื่นหมด
+     แยกกลุ่มตามขนาดท่อ จะได้กดกรองขนาดแล้วเห็นเฉพาะของขนาดนั้น */
+  const PPR_SIZES = ['1/2"', '3/4"', '1"', '1-1/4"', '1-1/2"', '2"'];
+  const PPR_FIT_KINDS = [
+    "ข้องอ 90°", "ข้องอ 45°", "ข้องอเกลียวใน 90°", "ข้องอเกลียวนอก 90°",
+    "ข้อต่อตรง", "ข้อต่อเกลียวใน", "ข้อต่อเกลียวนอก", "ข้อต่อยูเนี่ยนเกลียวนอก",
+    "สามทาง", "สามทางเกลียวใน", "ข้อลด", "ฝาครอบปิดปลายท่อ",
+    "สต๊อปวาล์ว", "บอลวาล์ว", "เช็ควาล์ว", "แคลมป์รัดท่อ",
+  ];
+  function pipeFittings() {
+    const out = [];
+    PPR_SIZES.forEach((sz) => PPR_FIT_KINDS.forEach((k) => out.push({ name: k + " PPR " + sz, unit: "ชิ้น", group: "PPR " + sz })));
+    return out;
+  }
   /* แปลง boards → items แบนราบ ให้ calcBOQ/catalog ใช้เหมือนหมวดอื่น
      ตัวตู้เองก็เป็นรายการหนึ่ง (key เดียวกับตู้) แล้วตามด้วยอุปกรณ์ในตู้นั้น */
   PROJECT_KITS.forEach((k) => {
@@ -1715,6 +1732,7 @@
     add("GUARD RAIL", "ปลอกอลูมิเนียม 6 มม.", "ตัว");
     // หมวดงานโครงการ — ตู้ไฟ / ปั๊ม / ถัง / ท่อ / อุปกรณ์มอนิเตอร์
     PROJECT_KITS.forEach((k) => k.items.forEach((it) => add(k.group, it.name, it.unit)));
+    pipeFittings().forEach((f) => add(G_PIPE, f.name, f.unit));       // ข้อต่อ/วาล์ว PPR ทุกขนาด
     // ACCESSORIES มาตรฐาน + เทปพันสายไฟทุกสี (1 เฟส + 3 เฟส)
     ACC_STD.forEach((n) => add("ACCESSORIES", n, "ชิ้น"));
     [...new Set([...ACC_TAPE_1P, ...ACC_TAPE_3P])].forEach((c) => add("ACCESSORIES", "เทปพันสายไฟ " + c, "ชิ้น"));
@@ -1874,7 +1892,7 @@
 
   window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, WAY_PIPE_LEN, TRAY_PIPE_LEN, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
-    COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings,
+    COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings,
     STEEL_SPECS, steelName, steelBarLen, steelSel, steelOf,
     TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, ACC_ALLOW_PCT, VAT_RATE, priceBreakdown,
     TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,

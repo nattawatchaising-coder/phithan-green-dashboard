@@ -1623,6 +1623,27 @@ function BOQEditor({
     }));
     return out;
   }, [accCat]);
+  const pipeOptions = React.useMemo(() => {
+    const std = window.BOQ.pipeFittings().map(f => ({
+      value: f.name,
+      label: f.name,
+      group: f.group
+    }));
+    const seen = new Set(std.map(o => window.BOQ.matKey(o.value)));
+    stockItems.forEach(s => {
+      const n = s.name || "";
+      if (!/PP-?R|ท่อน้ำ|วาล์ว/i.test(n)) return;
+      const k = window.BOQ.matKey(n);
+      if (seen.has(k)) return;
+      seen.add(k);
+      std.push({
+        value: n,
+        label: n,
+        group: "มีในคลังแล้ว"
+      });
+    });
+    return std;
+  }, [stockItems.length]);
   const accList = b.accessories || [];
   const setAcc = (i, k, v) => setB(p => {
     const a = (p.accessories || []).slice();
@@ -5898,7 +5919,8 @@ function BOQEditor({
         padding: "6px 9px"
       })
     }));
-    const extraList = (stateKey, ofWhat, small) => {
+    const extraList = (stateKey, ofWhat, small, opts) => {
+      const options = opts || allMatOptions;
       const extra = st[stateKey] || [];
       const setExtra = v => setKit(k.key, stateKey, v);
       const patch = (i, o) => setExtra(extra.map((y, j) => j === i ? Object.assign({}, y, o) : y));
@@ -5921,7 +5943,7 @@ function BOQEditor({
         onChange: v => pickName(i, v),
         style: cabSelStyle,
         placeholder: "เลือกจากคลัง — " + ofWhat,
-        options: allMatOptions,
+        options: options,
         addable: true,
         onAdd: v => patch(i, {
           name: v,
@@ -6117,7 +6139,7 @@ function BOQEditor({
         gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(3, minmax(0,1fr))",
         gap: 9
       }
-    }, k.items.map(it => numBox(it))), extraList("extra", k.th)));
+    }, k.items.map(it => numBox(it))), extraList("extra", k.th, false, k.key === "pipe" ? pipeOptions : null)));
   })))), !isHome && React.createElement(BoqSection, _extends({
     title: "\u0E02\u0E19\u0E2A\u0E48\u0E07 & \u0E1A\u0E23\u0E34\u0E2B\u0E32\u0E23\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19",
     icon: "power"
