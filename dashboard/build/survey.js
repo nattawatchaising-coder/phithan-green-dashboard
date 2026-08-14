@@ -204,6 +204,40 @@ function useSurveyPhotos(jobId) {
     removePhoto
   };
 }
+const STICKER_CATS = ["อินเวอร์เตอร์", "แผงโซลาร์", "ตู้ไฟ / เบรกเกอร์", "อุปกรณ์ยึดจับ", "สายไฟ / ท่อ", "สัญลักษณ์", "อื่นๆ"];
+function useStickerLib() {
+  const [items, setItems] = React.useState([]);
+  React.useEffect(() => {
+    if (!window.FBDB) return;
+    const ref = window.FBDB.ref("annStickers");
+    const h = ref.on("value", s => {
+      const v = s.val() || {};
+      setItems(Object.keys(v).map(k => Object.assign({
+        id: k
+      }, v[k])).sort((a, b) => (a.cat || "").localeCompare(b.cat || "", "th") || (a.name || "").localeCompare(b.name || "", "th")));
+    });
+    return () => ref.off("value", h);
+  }, []);
+  const add = React.useCallback(rec => {
+    if (!window.FBDB) return Promise.reject(new Error("ยังไม่ได้เชื่อมต่อฐานข้อมูล"));
+    const id = "s_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    return window.FBDB.ref("annStickers/" + id).set(Object.assign({
+      at: new Date().toISOString()
+    }, rec));
+  }, []);
+  const patch = React.useCallback((id, fields) => {
+    if (window.FBDB) window.FBDB.ref("annStickers/" + id).update(fields);
+  }, []);
+  const remove = React.useCallback(id => {
+    if (window.FBDB) window.FBDB.ref("annStickers/" + id).remove();
+  }, []);
+  return {
+    items,
+    add,
+    patch,
+    remove
+  };
+}
 function sortedShots(photos) {
   const fixed = SURVEY_PHOTO_SLOTS.map(s => s.key);
   return Object.keys(photos || {}).filter(k => photos[k] && photos[k].dataUrl).map(k => Object.assign({
@@ -249,7 +283,9 @@ function AnnOverlay({
   ann,
   aw,
   ah,
-  edit
+  edit,
+  sel,
+  svgRef
 }) {
   const ref = React.useRef(null);
   const box = useBoxSize(ref, aw, ah);
@@ -257,8 +293,20 @@ function AnnOverlay({
   const W = box.w,
     H = box.h;
   const unit = Math.max(W, H) / 100;
+  const setRef = el => {
+    ref.current = el;
+    if (svgRef) svgRef.current = el;
+  };
+  const dot = (cx, cy) => React.createElement("circle", {
+    cx: cx,
+    cy: cy,
+    r: unit * 1.7,
+    fill: "#fff",
+    stroke: "var(--primary)",
+    strokeWidth: unit * 0.55
+  });
   return React.createElement("svg", {
-    ref: ref,
+    ref: setRef,
     viewBox: "0 0 " + W + " " + H,
     preserveAspectRatio: "none",
     "aria-hidden": "true",
@@ -270,35 +318,42 @@ function AnnOverlay({
       pointerEvents: "none"
     }
   }, list.map((a, i) => {
+    const on = edit && sel === i;
     if (a.t === "i") {
-      const w = (a.w || 0.35) * W,
+      const x = a.x * W,
+        y = a.y * H,
+        w = (a.w || 0.35) * W,
         hh = w * (a.r || 0.75);
       return React.createElement("g", {
-        key: i
+        key: i,
+        "data-ai": i
       }, React.createElement("image", {
         href: a.src,
-        x: a.x * W,
-        y: a.y * H,
+        x: x,
+        y: y,
         width: w,
         height: hh,
         preserveAspectRatio: "none"
       }), React.createElement("rect", {
-        x: a.x * W,
-        y: a.y * H,
+        x: x,
+        y: y,
         width: w,
         height: hh,
         fill: "none",
         stroke: a.c || "#FFFFFF",
         strokeWidth: unit * 0.5,
         rx: unit * 0.8
-      }), edit && React.createElement("circle", {
-        cx: a.x * W + w,
-        cy: a.y * H + hh,
-        r: unit * 1.6,
-        fill: "#fff",
+      }), on && React.createElement("rect", {
+        x: x - unit,
+        y: y - unit,
+        width: w + unit * 2,
+        height: hh + unit * 2,
+        fill: "none",
         stroke: "var(--primary)",
-        strokeWidth: unit * 0.5
-      }));
+        strokeWidth: unit * 0.55,
+        strokeDasharray: unit * 1.6 + " " + unit,
+        rx: unit
+      }), on && dot(x + w, y + hh));
     }
     if (a.t === "a") {
       const x1 = a.x1 * W,
@@ -315,7 +370,8 @@ function AnnOverlay({
         ny = Math.cos(ang);
       const pts = [x2 + "," + y2, bx + halfW * nx + "," + (by + halfW * ny), bx - halfW * nx + "," + (by - halfW * ny)].join(" ");
       return React.createElement("g", {
-        key: i
+        key: i,
+        "data-ai": i
       }, React.createElement("line", {
         x1: x1,
         y1: y1,
@@ -330,11 +386,13 @@ function AnnOverlay({
         strokeLinejoin: "round",
         stroke: a.c,
         strokeWidth: lw * 0.35
-      }));
+      }), on && dot(x1, y1), on && dot(x2, y2));
     }
     const fs = (a.s || 0.055) * W;
-    return React.createElement("text", {
+    return React.createElement("g", {
       key: i,
+      "data-ai": i
+    }, React.createElement("text", {
       x: a.x * W,
       y: a.y * H,
       fill: a.c,
@@ -347,10 +405,375 @@ function AnnOverlay({
         fontFamily: "var(--sans)"
       },
       dominantBaseline: "middle"
-    }, a.v);
+    }, a.v), on && React.createElement("rect", {
+      x: a.x * W - unit,
+      y: a.y * H - fs * 0.72,
+      width: fs * 0.62 * String(a.v || "").length + unit * 2,
+      height: fs * 1.44,
+      fill: "none",
+      stroke: "var(--primary)",
+      strokeWidth: unit * 0.55,
+      strokeDasharray: unit * 1.6 + " " + unit,
+      rx: unit
+    }), on && dot(a.x * W + fs * 0.62 * String(a.v || "").length + unit, a.y * H + fs * 0.72));
   }));
 }
+function StickerPicker({
+  onPick,
+  onClose
+}) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const lib = useStickerLib();
+  const [cat, setCat] = React.useState("");
+  const [manage, setManage] = React.useState(false);
+  const [busy, setBusy] = React.useState("");
+  const fileRef = React.useRef(null);
+  const cats = React.useMemo(() => {
+    const seen = STICKER_CATS.slice();
+    lib.items.forEach(s => {
+      if (s.cat && seen.indexOf(s.cat) < 0) seen.push(s.cat);
+    });
+    return seen;
+  }, [lib.items]);
+  const shown = lib.items.filter(s => !cat || (s.cat || "อื่นๆ") === cat);
+  const addFiles = async files => {
+    const arr = Array.prototype.slice.call(files || []);
+    for (const file of arr) {
+      if (file.type.indexOf("image/") !== 0) continue;
+      setBusy(file.name);
+      try {
+        const src = await resizeImageFile(file, 700, 0.78);
+        const dim = await new Promise(res => {
+          const im = new Image();
+          im.onload = () => res({
+            w: im.naturalWidth,
+            h: im.naturalHeight
+          });
+          im.onerror = () => res({
+            w: 4,
+            h: 3
+          });
+          im.src = src;
+        });
+        await lib.add({
+          name: file.name.replace(/\.[^.]+$/, "").slice(0, 60) || "รูปแปะ",
+          cat: cat || "อื่นๆ",
+          src: src,
+          r: dim.h / dim.w
+        });
+      } catch (err) {
+        alert("เพิ่มรูปเข้าคลังไม่สำเร็จ: " + err.message);
+      }
+      setBusy("");
+    }
+  };
+  React.useEffect(() => {
+    const onPaste = e => {
+      const items = e.clipboardData && e.clipboardData.items || [];
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].kind !== "file" || items[i].type.indexOf("image/") !== 0) continue;
+        const f = items[i].getAsFile();
+        if (f) {
+          e.preventDefault();
+          addFiles([f]);
+        }
+        return;
+      }
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [cat]);
+  const chip = on => ({
+    padding: "6px 12px",
+    borderRadius: 99,
+    cursor: "pointer",
+    fontFamily: "inherit",
+    fontSize: 12,
+    fontWeight: 600,
+    whiteSpace: "nowrap",
+    border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+    background: on ? "var(--primary-soft)" : "var(--surface)",
+    color: on ? "var(--primary-dark)" : "var(--text-2)"
+  });
+  return React.createElement("div", {
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(8,20,14,.55)",
+      backdropFilter: "blur(3px)",
+      zIndex: 140,
+      display: "grid",
+      placeItems: isMobile ? "end center" : "center",
+      padding: isMobile ? 0 : 20
+    }
+  }, React.createElement("div", {
+    style: {
+      background: "var(--bg)",
+      borderRadius: isMobile ? "20px 20px 0 0" : 20,
+      width: isMobile ? "100%" : "min(720px,100%)",
+      maxHeight: isMobile ? "92dvh" : "88vh",
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
+      boxShadow: "0 30px 90px rgba(8,20,14,.4)"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "13px 16px",
+      borderBottom: "1px solid var(--border)",
+      background: "var(--surface)",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: 10
+    }
+  }, React.createElement("div", {
+    style: {
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, "\u0E04\u0E25\u0E31\u0E07\u0E23\u0E39\u0E1B\u0E41\u0E1B\u0E30"), React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      marginTop: 1
+    }
+  }, "\u0E01\u0E14\u0E23\u0E39\u0E1B\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E41\u0E1B\u0E30\u0E25\u0E07\u0E1A\u0E19\u0E23\u0E39\u0E1B\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \xB7 \u0E25\u0E07\u0E23\u0E39\u0E1B\u0E44\u0E27\u0E49\u0E04\u0E23\u0E31\u0E49\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27\u0E43\u0E0A\u0E49\u0E44\u0E14\u0E49\u0E17\u0E38\u0E01\u0E07\u0E32\u0E19")), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "center",
+      flexShrink: 0
+    }
+  }, React.createElement("button", {
+    onClick: () => setManage(m => !m),
+    style: {
+      height: 32,
+      padding: "0 12px",
+      borderRadius: 9,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      border: "1px solid " + (manage ? "var(--primary)" : "var(--border-strong)"),
+      background: manage ? "var(--primary-soft)" : "var(--surface)",
+      color: manage ? "var(--primary-dark)" : "var(--text-2)"
+    }
+  }, manage ? "เสร็จแล้ว" : "จัดการ"), React.createElement("button", {
+    onClick: onClose,
+    style: {
+      width: 34,
+      height: 34,
+      borderRadius: 10,
+      border: "1px solid var(--border)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 16
+  })))), React.createElement("div", {
+    style: {
+      padding: "10px 14px",
+      borderBottom: "1px solid var(--border)",
+      background: "var(--surface)",
+      display: "flex",
+      gap: 6,
+      overflowX: "auto"
+    }
+  }, React.createElement("button", {
+    onClick: () => setCat(""),
+    style: chip(!cat)
+  }, "\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 ", React.createElement("span", {
+    style: {
+      fontFamily: "var(--mono)",
+      opacity: .7
+    }
+  }, lib.items.length)), cats.map(c => {
+    const n = lib.items.filter(s => (s.cat || "อื่นๆ") === c).length;
+    return React.createElement("button", {
+      key: c,
+      onClick: () => setCat(c),
+      style: chip(cat === c)
+    }, c, " ", React.createElement("span", {
+      style: {
+        fontFamily: "var(--mono)",
+        opacity: .7
+      }
+    }, n));
+  })), React.createElement("div", {
+    style: {
+      flex: 1,
+      overflowY: "auto",
+      padding: 14,
+      background: "var(--surface2)"
+    }
+  }, !window.FBDB && React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#EF4444",
+      marginBottom: 10
+    }
+  }, "\u26A0 \u0E15\u0E49\u0E2D\u0E07\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D\u0E10\u0E32\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E01\u0E48\u0E2D\u0E19\u0E08\u0E36\u0E07\u0E08\u0E30\u0E40\u0E01\u0E47\u0E1A\u0E23\u0E39\u0E1B\u0E40\u0E02\u0E49\u0E32\u0E04\u0E25\u0E31\u0E07\u0E44\u0E14\u0E49"), !shown.length && React.createElement("div", {
+    style: {
+      padding: "28px 10px",
+      textAlign: "center",
+      color: "var(--text-3)",
+      fontSize: 12.5
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E39\u0E1B\u0E43\u0E19\u0E2B\u0E21\u0E27\u0E14\u0E19\u0E35\u0E49 \u2014 \u0E01\u0E14 \u201C\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E23\u0E39\u0E1B\u0E40\u0E02\u0E49\u0E32\u0E04\u0E25\u0E31\u0E07\u201D \u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07 \u0E2B\u0E23\u0E37\u0E2D\u0E01\u0E4A\u0E2D\u0E1B\u0E23\u0E39\u0E1B\u0E21\u0E32\u0E41\u0E25\u0E49\u0E27\u0E01\u0E14 Ctrl+V \u0E44\u0E14\u0E49\u0E40\u0E25\u0E22"), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill,minmax(" + (isMobile ? 104 : 128) + "px,1fr))",
+      gap: 10
+    }
+  }, shown.map(s => React.createElement("div", {
+    key: s.id,
+    style: {
+      position: "relative",
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 12,
+      padding: 8,
+      display: "flex",
+      flexDirection: "column",
+      gap: 6
+    }
+  }, React.createElement("button", {
+    onClick: () => !manage && onPick(s),
+    disabled: manage,
+    style: {
+      border: "none",
+      background: "var(--surface3)",
+      borderRadius: 9,
+      padding: 0,
+      height: 76,
+      cursor: manage ? "default" : "pointer",
+      display: "grid",
+      placeItems: "center",
+      overflow: "hidden"
+    }
+  }, React.createElement("img", {
+    src: s.src,
+    alt: s.name,
+    style: {
+      maxWidth: "100%",
+      maxHeight: 76,
+      objectFit: "contain"
+    }
+  })), manage ? React.createElement(React.Fragment, null, React.createElement("input", {
+    value: s.name || "",
+    onChange: e => lib.patch(s.id, {
+      name: e.target.value
+    }),
+    style: {
+      width: "100%",
+      boxSizing: "border-box",
+      border: "1px solid var(--border)",
+      borderRadius: 7,
+      padding: "4px 7px",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      background: "var(--surface2)",
+      color: "var(--text-1)"
+    }
+  }), React.createElement("select", {
+    value: s.cat || "อื่นๆ",
+    onChange: e => lib.patch(s.id, {
+      cat: e.target.value
+    }),
+    style: {
+      width: "100%",
+      boxSizing: "border-box",
+      border: "1px solid var(--border)",
+      borderRadius: 7,
+      padding: "4px 5px",
+      fontFamily: "inherit",
+      fontSize: 11,
+      background: "var(--surface2)",
+      color: "var(--text-2)"
+    }
+  }, cats.map(c => React.createElement("option", {
+    key: c,
+    value: c
+  }, c))), React.createElement("button", {
+    onClick: () => {
+      if (confirm("ลบ “" + (s.name || "รูปนี้") + "” ออกจากคลัง?")) lib.remove(s.id);
+    },
+    style: {
+      border: "none",
+      background: "#EF444414",
+      color: "#EF4444",
+      borderRadius: 8,
+      padding: "5px 0",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\uD83D\uDDD1 \u0E25\u0E1A\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E04\u0E25\u0E31\u0E07")) : React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 600,
+      color: "var(--text-2)",
+      textAlign: "center",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, s.name))))), React.createElement("div", {
+    style: {
+      padding: "12px 14px",
+      paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
+      borderTop: "1px solid var(--border)",
+      background: "var(--surface)",
+      display: "flex",
+      gap: 10,
+      alignItems: "center"
+    }
+  }, React.createElement("input", {
+    ref: fileRef,
+    type: "file",
+    accept: "image/*",
+    multiple: true,
+    style: {
+      display: "none"
+    },
+    onChange: e => {
+      addFiles(e.target.files);
+      e.target.value = "";
+    }
+  }), React.createElement("button", {
+    onClick: () => fileRef.current && fileRef.current.click(),
+    disabled: !!busy,
+    style: {
+      flex: 1,
+      padding: 12,
+      borderRadius: 12,
+      border: "none",
+      background: "var(--primary)",
+      color: "#fff",
+      fontWeight: 700,
+      fontFamily: "inherit",
+      fontSize: 13.5,
+      cursor: busy ? "default" : "pointer"
+    }
+  }, busy ? "กำลังเพิ่ม " + busy + "…" : "เพิ่มรูปเข้าคลัง" + (cat ? " › " + cat : "")))));
+}
 const ANN_TOOLS = [{
+  key: "s",
+  th: "เลือก",
+  glyph: "✥",
+  hint: "แตะสิ่งที่เขียนไว้เพื่อเลือก · ลากเพื่อย้าย · ลากจุดมุมเพื่อย่อ-ขยาย · กดถังขยะเพื่อลบ"
+}, {
   key: "a",
   th: "ลูกศร",
   glyph: "↗",
@@ -364,58 +787,109 @@ const ANN_TOOLS = [{
   key: "i",
   th: "แปะรูป",
   glyph: "🖼",
-  hint: "ก๊อปรูป/ภาพตัดมา แล้วกดแปะ (หรือ Ctrl+V) แล้วลากวางได้"
-}, {
-  key: "m",
-  th: "ย้าย",
-  glyph: "✥",
-  hint: "ลากรูปที่แปะไว้เพื่อย้าย · ลากมุมขวาล่างเพื่อย่อ-ขยาย"
+  hint: "เลือกรูปอุปกรณ์จากคลังมาแปะทับ แล้วลากย้าย/ย่อขยายได้"
 }];
+const HANDLE_PX = 13;
 function AnnEditor({
   shot,
   onSave,
   onClose
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
-  const [tool, setTool] = React.useState("a");
+  const [tool, setTool] = React.useState("s");
   const [color, setColor] = React.useState("#EF4444");
   const [ann, setAnn] = React.useState(() => (shot.ann || []).slice());
+  const [sel, setSel] = React.useState(null);
   const [drag, setDrag] = React.useState(null);
   const [grab, setGrab] = React.useState(null);
   const [txt, setTxt] = React.useState(null);
-  const [busy, setBusy] = React.useState(false);
+  const [selBox, setSelBox] = React.useState(null);
+  const [picker, setPicker] = React.useState(false);
   const boxRef = React.useRef(null);
   const txtRef = React.useRef(null);
+  const svgRef = React.useRef(null);
   const W = shot.aw || 1000,
     H = shot.ah || 750;
   const curTool = ANN_TOOLS.find(t => t.key === tool) || ANN_TOOLS[0];
   React.useEffect(() => {
     if (txt && txtRef.current) txtRef.current.focus();
   }, [txt && txt.at]);
+  React.useEffect(() => {
+    if (sel != null && sel >= ann.length) setSel(null);
+  }, [ann.length]);
+  React.useLayoutEffect(() => {
+    if (sel == null || !svgRef.current) {
+      setSelBox(null);
+      return;
+    }
+    const el = svgRef.current.querySelector('[data-ai="' + sel + '"]');
+    if (!el) {
+      setSelBox(null);
+      return;
+    }
+    const b = el.getBBox();
+    setSelBox({
+      x: b.x,
+      y: b.y,
+      w: b.width,
+      h: b.height
+    });
+  }, [sel, ann]);
   const pt = e => {
     const r = boxRef.current.getBoundingClientRect();
     const t = e.touches && e.touches[0] || e.changedTouches && e.changedTouches[0] || e;
+    const px = t.clientX - r.left,
+      py = t.clientY - r.top;
     return {
-      x: Math.min(1, Math.max(0, (t.clientX - r.left) / r.width)),
-      y: Math.min(1, Math.max(0, (t.clientY - r.top) / r.height)),
-      ar: r.width / r.height
+      x: Math.min(1, Math.max(0, px / r.width)),
+      y: Math.min(1, Math.max(0, py / r.height)),
+      px: px,
+      py: py,
+      bw: r.width,
+      bh: r.height
     };
   };
-  const hitImage = p => {
+  const handlesOf = (i, p) => {
+    const a = ann[i];
+    if (!a) return [];
+    if (a.t === "a") return [{
+      k: "p1",
+      x: a.x1 * p.bw,
+      y: a.y1 * p.bh
+    }, {
+      k: "p2",
+      x: a.x2 * p.bw,
+      y: a.y2 * p.bh
+    }];
+    const el = svgRef.current && svgRef.current.querySelector('[data-ai="' + i + '"]');
+    if (!el) return [];
+    const b = el.getBBox();
+    return [{
+      k: "size",
+      x: b.x + b.width,
+      y: b.y + b.height
+    }];
+  };
+  const hitAt = p => {
     for (let i = ann.length - 1; i >= 0; i--) {
       const a = ann[i];
-      if (a.t !== "i") continue;
-      const w = a.w || 0.35;
-      const hh = w * (a.r || 0.75) * p.ar;
-      if (p.x >= a.x && p.x <= a.x + w && p.y >= a.y && p.y <= a.y + hh) {
-        const corner = p.x > a.x + w - 0.06 && p.y > a.y + hh - 0.06 * p.ar;
-        return {
-          i: i,
-          mode: corner ? "size" : "move",
-          dx: p.x - a.x,
-          dy: p.y - a.y
-        };
+      if (a.t === "a") {
+        const x1 = a.x1 * p.bw,
+          y1 = a.y1 * p.bh,
+          x2 = a.x2 * p.bw,
+          y2 = a.y2 * p.bh;
+        const dx = x2 - x1,
+          dy = y2 - y1,
+          len2 = dx * dx + dy * dy || 1;
+        const t = Math.max(0, Math.min(1, ((p.px - x1) * dx + (p.py - y1) * dy) / len2));
+        const d = Math.hypot(p.px - (x1 + t * dx), p.py - (y1 + t * dy));
+        if (d <= 14) return i;
+        continue;
       }
+      const el = svgRef.current && svgRef.current.querySelector('[data-ai="' + i + '"]');
+      if (!el) continue;
+      const b = el.getBBox();
+      if (p.px >= b.x - 4 && p.px <= b.x + b.width + 4 && p.py >= b.y - 4 && p.py <= b.y + b.height + 4) return i;
     }
     return null;
   };
@@ -431,22 +905,58 @@ function AnnEditor({
       });
       return;
     }
-    if (tool === "m" || tool === "i") {
-      const hit = hitImage(p);
-      if (hit) {
-        e.preventDefault();
-        setGrab(hit);
-      }
+    if (tool === "a") {
+      e.preventDefault();
+      setSel(null);
+      setDrag({
+        t: "a",
+        x1: p.x,
+        y1: p.y,
+        x2: p.x,
+        y2: p.y,
+        c: color
+      });
       return;
     }
+    if (sel != null) {
+      const h = handlesOf(sel, p).find(g => Math.hypot(p.px - g.x, p.py - g.y) <= HANDLE_PX);
+      if (h) {
+        e.preventDefault();
+        const a = ann[sel];
+        const el = svgRef.current.querySelector('[data-ai="' + sel + '"]');
+        const b = el ? el.getBBox() : {
+          width: 1
+        };
+        setGrab({
+          i: sel,
+          mode: h.k,
+          w0: b.width || 1,
+          s0: a.s || 0.055,
+          x0: a.x,
+          y0: a.y
+        });
+        return;
+      }
+    }
+    const hit = hitAt(p);
+    setSel(hit);
+    if (hit == null) return;
     e.preventDefault();
-    setDrag({
-      t: "a",
-      x1: p.x,
-      y1: p.y,
-      x2: p.x,
-      y2: p.y,
-      c: color
+    const a = ann[hit];
+    setGrab(a.t === "a" ? {
+      i: hit,
+      mode: "moveArrow",
+      dx: p.x - a.x1,
+      dy: p.y - a.y1,
+      span: {
+        x: a.x2 - a.x1,
+        y: a.y2 - a.y1
+      }
+    } : {
+      i: hit,
+      mode: "move",
+      dx: p.x - a.x,
+      dy: p.y - a.y
     });
   };
   const move = e => {
@@ -455,11 +965,35 @@ function AnnEditor({
       const p = pt(e);
       setAnn(list => list.map((a, j) => {
         if (j !== grab.i) return a;
-        if (grab.mode === "size") return Object.assign({}, a, {
-          w: Math.min(1, Math.max(0.06, p.x - a.x))
+        if (grab.mode === "size") {
+          if (a.t === "i") return Object.assign({}, a, {
+            w: Math.min(1.2, Math.max(0.05, p.x - a.x))
+          });
+          const f = Math.max(0.25, (p.px - grab.x0 * p.bw) / (grab.w0 || 1));
+          return Object.assign({}, a, {
+            s: Math.min(0.4, Math.max(0.02, grab.s0 * f))
+          });
+        }
+        if (grab.mode === "p1") return Object.assign({}, a, {
+          x1: p.x,
+          y1: p.y
         });
+        if (grab.mode === "p2") return Object.assign({}, a, {
+          x2: p.x,
+          y2: p.y
+        });
+        if (grab.mode === "moveArrow") {
+          const nx = p.x - grab.dx,
+            ny = p.y - grab.dy;
+          return Object.assign({}, a, {
+            x1: nx,
+            y1: ny,
+            x2: nx + grab.span.x,
+            y2: ny + grab.span.y
+          });
+        }
         return Object.assign({}, a, {
-          x: Math.max(0, Math.min(1 - (a.w || 0.35), p.x - grab.dx)),
+          x: Math.max(0, Math.min(1, p.x - grab.dx)),
           y: Math.max(0, Math.min(1, p.y - grab.dy))
         });
       }));
@@ -480,86 +1014,54 @@ function AnnEditor({
     }
     if (!drag) return;
     const far = Math.abs(drag.x2 - drag.x1) > 0.03 || Math.abs(drag.y2 - drag.y1) > 0.03;
-    if (far) setAnn(a => a.concat([drag]));
+    if (far) {
+      setAnn(a => a.concat([drag]));
+      setSel(ann.length);
+      setTool("s");
+    }
     setDrag(null);
   };
   const commitText = () => {
     const v = (txt.v || "").trim();
-    if (v) setAnn(a => a.concat([{
-      t: "t",
-      x: txt.x,
-      y: txt.y,
-      v: v,
-      c: color,
-      s: 0.055
-    }]));
+    if (v) {
+      setAnn(a => a.concat([{
+        t: "t",
+        x: txt.x,
+        y: txt.y,
+        v: v,
+        c: color,
+        s: 0.055
+      }]));
+      setSel(ann.length);
+      setTool("s");
+    }
     setTxt(null);
   };
-  const addImage = async file => {
-    if (!file) return;
-    setBusy(true);
-    try {
-      const dataUrl = await resizeImageFile(file, 900, 0.8);
-      const dim = await new Promise(res => {
-        const im = new Image();
-        im.onload = () => res({
-          w: im.naturalWidth,
-          h: im.naturalHeight
-        });
-        im.onerror = () => res({
-          w: 4,
-          h: 3
-        });
-        im.src = dataUrl;
-      });
-      setAnn(a => a.concat([{
-        t: "i",
-        src: dataUrl,
-        x: 0.28,
-        y: 0.28,
-        w: 0.4,
-        r: dim.h / dim.w,
-        c: color
-      }]));
-      setTool("m");
-    } catch (err) {
-      alert("แปะรูปไม่สำเร็จ: " + err.message);
-    }
-    setBusy(false);
+  const removeSel = () => {
+    if (sel == null) return;
+    setAnn(a => a.filter((x, j) => j !== sel));
+    setSel(null);
   };
-  const pasteImage = async () => {
-    try {
-      if (!navigator.clipboard || !navigator.clipboard.read) throw new Error("เบราว์เซอร์นี้อ่านคลิปบอร์ดไม่ได้ ลองกด Ctrl+V แทน");
-      const list = await navigator.clipboard.read();
-      for (const it of list) {
-        const type = it.types.find(t => t.indexOf("image/") === 0);
-        if (!type) continue;
-        addImage(new File([await it.getType(type)], "paste.png", {
-          type: type
-        }));
-        return;
-      }
-      alert("ในคลิปบอร์ดไม่มีรูปภาพ — ก๊อปรูปมาก่อนแล้วค่อยกดแปะ");
-    } catch (err) {
-      alert("แปะรูปไม่สำเร็จ: " + err.message);
-    }
+  const pickColor = c => {
+    setColor(c);
+    if (sel != null) setAnn(a => a.map((x, j) => j === sel ? Object.assign({}, x, {
+      c: c
+    }) : x));
   };
-  React.useEffect(() => {
-    const onPaste = e => {
-      const items = e.clipboardData && e.clipboardData.items || [];
-      for (let i = 0; i < items.length; i++) {
-        if (items[i].kind !== "file" || items[i].type.indexOf("image/") !== 0) continue;
-        const f = items[i].getAsFile();
-        if (f) {
-          e.preventDefault();
-          addImage(f);
-        }
-        return;
-      }
-    };
-    window.addEventListener("paste", onPaste);
-    return () => window.removeEventListener("paste", onPaste);
-  }, []);
+  const useSticker = s => {
+    setAnn(a => a.concat([{
+      t: "i",
+      src: s.src,
+      x: 0.28,
+      y: 0.28,
+      w: 0.36,
+      r: s.r || 0.75,
+      c: color
+    }]));
+    setSel(ann.length);
+    setTool("s");
+    setPicker(false);
+  };
   const ghost = {
     display: "inline-flex",
     alignItems: "center",
@@ -674,7 +1176,7 @@ function AnnEditor({
       overflow: "hidden",
       border: "1px solid var(--border)",
       boxShadow: "0 6px 24px rgba(8,20,14,.14)",
-      cursor: tool === "m" ? "move" : tool === "t" ? "text" : "crosshair"
+      cursor: tool === "s" ? sel == null ? "default" : "move" : tool === "t" ? "text" : "crosshair"
     }
   }, React.createElement("img", {
     src: shot.dataUrl,
@@ -690,8 +1192,30 @@ function AnnEditor({
     ann: drag ? ann.concat([drag]) : ann,
     aw: W,
     ah: H,
-    edit: tool === "m" || tool === "i"
-  })), txt && React.createElement("div", {
+    edit: true,
+    sel: sel,
+    svgRef: svgRef
+  })), sel != null && selBox && !txt && React.createElement("button", {
+    onClick: removeSel,
+    title: "\u0E25\u0E1A\u0E2A\u0E34\u0E48\u0E07\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01",
+    style: {
+      position: "absolute",
+      left: selBox.x + selBox.w - 12,
+      top: selBox.y - 15,
+      zIndex: 4,
+      width: 30,
+      height: 30,
+      borderRadius: 99,
+      border: "2px solid var(--surface)",
+      background: "#EF4444",
+      color: "#fff",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 13,
+      boxShadow: "0 3px 10px rgba(0,0,0,.3)"
+    }
+  }, "\uD83D\uDDD1"), txt && React.createElement("div", {
     style: {
       position: "absolute",
       left: txt.x * 100 + "%",
@@ -775,8 +1299,12 @@ function AnnEditor({
     return React.createElement("button", {
       key: t.key,
       onClick: () => {
+        if (t.key === "i") {
+          setPicker(true);
+          return;
+        }
         setTool(t.key);
-        if (t.key === "i") pasteImage();
+        if (t.key !== "s") setSel(null);
       },
       title: t.hint,
       style: {
@@ -809,7 +1337,7 @@ function AnnEditor({
     }
   }, ANN_COLORS.map(c => React.createElement("button", {
     key: c,
-    onClick: () => setColor(c),
+    onClick: () => pickColor(c),
     "aria-label": "สี " + c,
     style: {
       width: 26,
@@ -825,14 +1353,26 @@ function AnnEditor({
     style: {
       flex: 1
     }
-  }), React.createElement("button", {
-    onClick: () => setAnn(a => a.slice(0, -1)),
-    disabled: !ann.length || busy,
+  }), sel != null && React.createElement("button", {
+    onClick: removeSel,
+    style: Object.assign({}, ghost, {
+      borderColor: "#EF4444",
+      color: "#EF4444"
+    })
+  }, "\uD83D\uDDD1 \u0E25\u0E1A\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01"), React.createElement("button", {
+    onClick: () => {
+      setAnn(a => a.slice(0, -1));
+      setSel(null);
+    },
+    disabled: !ann.length,
     style: Object.assign({}, ghost, {
       opacity: ann.length ? 1 : .4
     })
   }, "\u21B6 \u0E40\u0E25\u0E34\u0E01\u0E17\u0E33"), React.createElement("button", {
-    onClick: () => setAnn([]),
+    onClick: () => {
+      setAnn([]);
+      setSel(null);
+    },
     disabled: !ann.length,
     style: Object.assign({}, ghost, {
       opacity: ann.length ? 1 : .4
@@ -874,7 +1414,10 @@ function AnnEditor({
       cursor: "pointer",
       boxShadow: "0 4px 14px rgba(34,163,91,.3)"
     }
-  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E17\u0E35\u0E48\u0E40\u0E02\u0E35\u0E22\u0E19"))));
+  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E17\u0E35\u0E48\u0E40\u0E02\u0E35\u0E22\u0E19"))), picker && React.createElement(StickerPicker, {
+    onPick: useSticker,
+    onClose: () => setPicker(false)
+  }));
 }
 function SurveyBlock({
   title,
@@ -2321,6 +2864,9 @@ Object.assign(window, {
   useSurveyPhotos,
   AnnOverlay,
   AnnEditor,
+  useStickerLib,
+  StickerPicker,
+  STICKER_CATS,
   sortedShots,
   shotTitle,
   isExtraShot,
