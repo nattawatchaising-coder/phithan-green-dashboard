@@ -445,7 +445,7 @@ function App() {
         onSurveyReport={() => setReportJob(selectedJob)}
         priceMap={can(role, "delJob") ? effPriceMap : null}
         onEdit={(id) => { setSelected(null); setForm({ job: store.raw.find((r) => r.id === id), isNew: false }); }} />
-      {surveyJob && <SurveyWizard job={surveyJob} currentUser={auth.current}
+      {surveyJob && <SurveyWizard job={surveyJob} currentUser={auth.current} stock={stock}
         onClose={() => { setSurveyJob(null); setSurveyAppt(null); }}
         onSave={(survey, thenReport) => {
           const s = surveyAppt ? Object.assign({}, survey, { appointmentId: surveyAppt.id }) : survey;
@@ -457,7 +457,7 @@ function App() {
           if (thenReport) setReportJob(Object.assign({}, surveyJob, { survey: s }));
           setSurveyJob(null); setSurveyAppt(null);
         }} />}
-      {reportJob && <SurveyReportHost job={reportJob} onClose={() => setReportJob(null)} />}
+      {reportJob && <SurveyReportHost job={reportJob} stock={stock} onClose={() => setReportJob(null)} />}
       {form && <JobForm initial={form.job} isNew={form.isNew} jobs={jobs} onSave={onSave} onClose={() => setForm(null)} onManageTechs={() => setTechMgr(true)} onManageBrands={() => setBrandMgr(true)} />}
       {techMgr && <TechManager store={techStore} onClose={() => setTechMgr(false)} />}
       {brandMgr && <BrandManager store={brandStore} onClose={() => setBrandMgr(false)} />}

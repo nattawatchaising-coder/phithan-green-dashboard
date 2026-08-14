@@ -9,6 +9,7 @@ const _lbl = (list, v) => {
   const x = (list || []).find(o => o.value === v);
   return x ? x.label : v || "";
 };
+const _yn = v => v === "yes" ? "มี" : v === "no" ? "ไม่มี" : "";
 function RepCheck({
   label,
   value
@@ -138,12 +139,29 @@ function RepCell({
 function SurveyReport({
   job,
   photos,
+  docs,
   onClose
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const s = job && job.survey || {};
   const shots = window.sortedShots(photos || {});
   const gps = s.gps && s.gps.lat ? s.gps.lat + ", " + s.gps.lng : "";
+  const shotGroups = React.useMemo(() => {
+    const out = [],
+      by = {};
+    shots.forEach(sh => {
+      const c = (sh.cat || "").trim();
+      if (!by[c]) {
+        by[c] = {
+          cat: c,
+          shots: []
+        };
+        out.push(by[c]);
+      }
+      by[c].shots.push(sh);
+    });
+    return out;
+  }, [photos]);
   const doPrint = () => {
     const old = document.title;
     document.title = "รายงานสำรวจ " + (job.code || "") + " " + (job.name || "");
@@ -224,7 +242,7 @@ function SurveyReport({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, shots.length, " \u0E23\u0E39\u0E1B \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19 PDF\u201D")), React.createElement("button", {
+  }, shots.length, " \u0E23\u0E39\u0E1B", (docs || []).length ? " · DATA SHEET " + docs.length + " ใบ" : "", " \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19 PDF\u201D")), React.createElement("button", {
     onClick: doPrint,
     style: {
       display: "inline-flex",
@@ -365,15 +383,6 @@ function SurveyReport({
     label: "\u0E42\u0E04\u0E23\u0E07\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E23\u0E31\u0E1A\u0E19\u0E49\u0E33\u0E2B\u0E19\u0E31\u0E01",
     value: structure
   }), React.createElement(RepCheck, {
-    label: "\u0E1E\u0E37\u0E49\u0E19\u0E17\u0E35\u0E48\u0E40\u0E1E\u0E35\u0E22\u0E07\u0E1E\u0E2D",
-    value: s.roofArea ? s.roofArea + " ตร.ม." : ""
-  }), React.createElement(RepCheck, {
-    label: "\u0E2D\u0E32\u0E22\u0E38\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32",
-    value: s.roofAge ? s.roofAge + " ปี" : ""
-  }), React.createElement(RepCheck, {
-    label: "\u0E04\u0E27\u0E32\u0E21\u0E25\u0E32\u0E14\u0E40\u0E2D\u0E35\u0E22\u0E07 / \u0E17\u0E34\u0E28\u0E2B\u0E31\u0E19",
-    value: [s.roofPitch !== "" && s.roofPitch != null ? s.roofPitch + "°" : "", s.azimuth !== "" && s.azimuth != null ? "Az " + s.azimuth + "°" : ""].filter(Boolean).join(" · ")
-  }), React.createElement(RepCheck, {
     label: "\u0E21\u0E35\u0E27\u0E31\u0E15\u0E16\u0E38\u0E17\u0E35\u0E48\u0E2A\u0E48\u0E07\u0E1C\u0E25\u0E01\u0E23\u0E30\u0E17\u0E1A\u0E15\u0E48\u0E2D\u0E01\u0E32\u0E23\u0E23\u0E31\u0E1A\u0E41\u0E2A\u0E07",
     value: (s.shadingTags || []).join(", ")
   }), React.createElement(RepCheck, {
@@ -398,18 +407,28 @@ function SurveyReport({
     label: "\u0E15\u0E39\u0E49 MDB",
     value: [s.mdbBrand, mdbSpace].filter(Boolean).join(" · ")
   }), React.createElement(RepCheck, {
+    label: "\u0E40\u0E0B\u0E1F\u0E15\u0E35\u0E49\u0E04\u0E31\u0E15\u0E43\u0E19\u0E15\u0E39\u0E49",
+    value: _yn(s.mdbSafety)
+  }), React.createElement(RepCheck, {
+    label: "\u0E40\u0E21\u0E19\u0E01\u0E31\u0E19\u0E14\u0E39\u0E14 (RCD / RCCB)",
+    value: _yn(s.mdbRccb)
+  }), React.createElement(RepCheck, {
     label: "\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07 MDB",
     value: s.mdbLoc
   }), React.createElement(RepCheck, {
     label: "\u0E08\u0E38\u0E14\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C",
     value: invLoc
   }), React.createElement(RepCheck, {
-    label: "\u0E23\u0E30\u0E22\u0E30\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22\u0E42\u0E14\u0E22\u0E1B\u0E23\u0E30\u0E21\u0E32\u0E13",
-    value: s.cableRun ? s.cableRun + " ม." : ""
-  }), React.createElement(RepCheck, {
     label: "\u0E1E\u0E34\u0E01\u0E31\u0E14 GPS \u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19",
     value: gps
-  })), (s.specials || []).filter(Boolean).length > 0 && React.createElement(RepGroup, {
+  })), window.SURVEY_CABLE_LEGS.some(l => +s[l.key] > 0) && React.createElement(RepGroup, {
+    icon: "\uD83D\uDCCF",
+    title: "ระยะเดินสาย (รวม " + window.cableTotal(s) + " ม.)"
+  }, window.SURVEY_CABLE_LEGS.map(l => React.createElement(RepCheck, {
+    key: l.key,
+    label: l.th,
+    value: +s[l.key] > 0 ? s[l.key] + " ม." : ""
+  }))), (s.specials || []).filter(Boolean).length > 0 && React.createElement(RepGroup, {
     icon: "\u26A0\uFE0F",
     title: "\u0E04\u0E27\u0E32\u0E21\u0E15\u0E49\u0E2D\u0E07\u0E01\u0E32\u0E23\u0E1E\u0E34\u0E40\u0E28\u0E29"
   }, (s.specials || []).filter(Boolean).map((v, i) => React.createElement(RepCheck, {
@@ -439,50 +458,122 @@ function SurveyReport({
       flexDirection: "column",
       gap: 12
     }
-  }, shots.map((sh, i) => React.createElement("div", {
-    key: sh.key,
-    className: "sv-rep-shot",
-    "data-p": sh.ah > sh.aw ? "1" : "0",
-    style: {
-      border: "1px solid var(--border)",
-      borderRadius: 9,
-      padding: 10,
-      breakInside: "avoid"
-    }
-  }, React.createElement("div", {
+  }, shotGroups.map(g => React.createElement(React.Fragment, {
+    key: g.cat || "_"
+  }, g.cat && shotGroups.length > 1 && React.createElement("div", {
     style: {
       fontSize: 11.5,
       fontWeight: 800,
-      color: "var(--text-1)",
-      marginBottom: 7
+      color: "var(--primary-dark)",
+      marginTop: 4,
+      breakInside: "avoid"
     }
-  }, i + 1, ". ", window.shotTitle(sh)), React.createElement("div", {
+  }, "\u25B8 ", g.cat), g.shots.map(sh => {
+    const i = shots.indexOf(sh);
+    return (React.createElement("div", {
+        key: sh.key,
+        className: "sv-rep-shot",
+        "data-p": sh.ah > sh.aw ? "1" : "0",
+        style: {
+          border: "1px solid var(--border)",
+          borderRadius: 9,
+          padding: 10,
+          breakInside: "avoid"
+        }
+      }, React.createElement("div", {
+        style: {
+          fontSize: 11.5,
+          fontWeight: 800,
+          color: "var(--text-1)",
+          marginBottom: 7
+        }
+      }, i + 1, ". ", window.shotTitle(sh)), React.createElement("div", {
+        style: {
+          textAlign: "center"
+        }
+      }, React.createElement("div", {
+        style: {
+          position: "relative",
+          display: "inline-block",
+          maxWidth: "100%",
+          lineHeight: 0,
+          borderRadius: 6,
+          overflow: "hidden"
+        }
+      }, React.createElement("img", {
+        src: sh.dataUrl,
+        alt: window.shotTitle(sh)
+      }), React.createElement(window.AnnOverlay, {
+        ann: sh.ann,
+        aw: sh.aw,
+        ah: sh.ah
+      }))), sh.caption && React.createElement("div", {
+        style: {
+          fontSize: 11,
+          color: "var(--text-2)",
+          marginTop: 7
+        }
+      }, sh.caption))
+    );
+  }))))), (docs || []).length > 0 && React.createElement(React.Fragment, null, (docs || []).map(d => React.createElement("div", {
+    key: d.role,
+    className: "sv-rep-ds",
     style: {
-      textAlign: "center"
+      breakBefore: "page",
+      pageBreakBefore: "always",
+      marginTop: 22
     }
   }, React.createElement("div", {
     style: {
-      position: "relative",
-      display: "inline-block",
-      maxWidth: "100%",
-      lineHeight: 0,
-      borderRadius: 6,
-      overflow: "hidden"
+      display: "flex",
+      alignItems: "center",
+      gap: 7,
+      borderBottom: "1px solid var(--border)",
+      paddingBottom: 6,
+      marginBottom: 12
     }
-  }, React.createElement("img", {
-    src: sh.dataUrl,
-    alt: window.shotTitle(sh)
-  }), React.createElement(window.AnnOverlay, {
-    ann: sh.ann,
-    aw: sh.aw,
-    ah: sh.ah
-  }))), sh.caption && React.createElement("div", {
+  }, React.createElement("span", {
     style: {
-      fontSize: 11,
-      color: "var(--text-2)",
-      marginTop: 7
+      width: 6,
+      height: 6,
+      borderRadius: 99,
+      background: "var(--primary)"
     }
-  }, sh.caption))))), React.createElement("div", {
+  }), React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, "DATA SHEET \u2014 ", d.role), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-2)",
+      marginLeft: "auto"
+    }
+  }, d.name)), /^image\//.test(d.doc.type || "") ? React.createElement("img", {
+    src: d.doc.data,
+    alt: d.name,
+    style: {
+      width: "100%",
+      display: "block",
+      borderRadius: 8,
+      border: "1px solid var(--border)"
+    }
+  }) : React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-2)",
+      background: "var(--surface2)",
+      border: "1px solid var(--border)",
+      borderRadius: 8,
+      padding: "12px 14px"
+    }
+  }, "\u0E41\u0E19\u0E1A\u0E44\u0E1F\u0E25\u0E4C\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E41\u0E22\u0E01: ", React.createElement("b", {
+    style: {
+      color: "var(--text-1)"
+    }
+  }, d.doc.name), " (\u0E40\u0E1B\u0E34\u0E14\u0E14\u0E39\u0E44\u0E14\u0E49\u0E08\u0E32\u0E01\u0E2B\u0E19\u0E49\u0E32\u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32)")))), React.createElement("div", {
     style: {
       marginTop: 22,
       paddingTop: 12,
@@ -503,13 +594,53 @@ function SurveyReport({
 }
 function SurveyReportHost({
   job,
+  stock,
   onClose
 }) {
   const media = window.useSurveyPhotos(job ? job.id : null);
+  const s = job && job.survey || {};
+  const items = stock && stock.items || [];
+  const withDoc = React.useMemo(() => {
+    const names = [{
+      role: "Inverter",
+      name: s.invModel
+    }, {
+      role: "แผงโซลาร์",
+      name: s.panelModel
+    }];
+    return names.map(x => {
+      const nm = String(x.name || "").trim();
+      if (!nm) return null;
+      const it = items.find(i => (i.name || "").trim() === nm && i.doc);
+      return it ? {
+        role: x.role,
+        item: it
+      } : null;
+    }).filter(Boolean);
+  }, [items, s.invModel, s.panelModel]);
+  const [docs, setDocs] = React.useState([]);
+  React.useEffect(() => {
+    let dead = false;
+    if (!withDoc.length || !stock || !stock.loadDoc) {
+      setDocs([]);
+      return;
+    }
+    Promise.all(withDoc.map(w => stock.loadDoc(w.item.id).then(d => d && d.data ? {
+      role: w.role,
+      name: w.item.name,
+      doc: d
+    } : null).catch(() => null))).then(list => {
+      if (!dead) setDocs(list.filter(Boolean));
+    });
+    return () => {
+      dead = true;
+    };
+  }, [withDoc]);
   if (!job) return null;
   return React.createElement(SurveyReport, {
     job: job,
     photos: media.photos,
+    docs: docs,
     onClose: onClose
   });
 }

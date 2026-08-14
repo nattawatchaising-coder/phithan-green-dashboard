@@ -724,6 +724,7 @@ function App() {
   }), surveyJob && React.createElement(SurveyWizard, {
     job: surveyJob,
     currentUser: auth.current,
+    stock: stock,
     onClose: () => {
       setSurveyJob(null);
       setSurveyAppt(null);
@@ -746,6 +747,7 @@ function App() {
     }
   }), reportJob && React.createElement(SurveyReportHost, {
     job: reportJob,
+    stock: stock,
     onClose: () => setReportJob(null)
   }), form && React.createElement(JobForm, {
     initial: form.job,

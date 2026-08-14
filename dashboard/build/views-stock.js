@@ -4047,7 +4047,7 @@ function ItemDetailModal({
     name: "plus",
     size: 14,
     color: "var(--text-2)"
-  }), busy ? "กำลังอัปโหลด…" : item.doc ? "กำลังโหลดเอกสาร…" : "แนบ DATA SHEET (PDF)"), doc && doc.data && (isDocImg ? React.createElement("img", {
+  }), busy ? "กำลังอัปโหลด…" : item.doc ? "กำลังโหลดเอกสาร…" : "แนบ DATA SHEET (PDF หรือรูป)"), doc && doc.data && (isDocImg ? React.createElement("img", {
     src: docUrl,
     alt: doc.name,
     style: {

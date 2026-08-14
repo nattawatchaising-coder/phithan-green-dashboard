@@ -1541,7 +1541,8 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
                   border: "1px dashed var(--border-strong)", background: "var(--surface2)", color: "var(--text-2)",
                   fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: busy ? "wait" : "pointer", width: "100%" }}>
                 <Icon name="plus" size={14} color="var(--text-2)" />
-                {busy ? "กำลังอัปโหลด…" : (item.doc ? "กำลังโหลดเอกสาร…" : "แนบ DATA SHEET (PDF)")}
+                {/* รูป JPG/PNG จะถูกเอาไปต่อท้ายเป็นหน้าใน "รายงานผลสำรวจ" ให้อัตโนมัติ เมื่อเสนอรุ่นนี้ */}
+                {busy ? "กำลังอัปโหลด…" : (item.doc ? "กำลังโหลดเอกสาร…" : "แนบ DATA SHEET (PDF หรือรูป)")}
               </button>
             )}
             {/* แสดงเอกสารในหน้านี้เลย — ไม่ต้องกดเปิดแท็บใหม่ */}

@@ -38,6 +38,18 @@ const SURVEY_METER_AUTH = [
   { value: "MEA", label: "MEA (นครหลวง)" },
   { value: "PEA", label: "PEA (ภูมิภาค)" },
 ];
+const SURVEY_YESNO = [{ value: "yes", label: "มี" }, { value: "no", label: "ไม่มี" }];
+/* ระยะเดินสาย — เดิมเป็นตัวเลขก้อนเดียว "แผง→อินเวอร์เตอร์→MDB" ซึ่งเอาไปคิดสายไม่ได้
+   เพราะแต่ละช่วงเป็นสายคนละชนิดคนละขนาด แยกกรอกทีละช่วงแล้วรวมยอดให้ */
+const SURVEY_CABLE_LEGS = [
+  { key: "cableDc",  th: "แผง → อินเวอร์เตอร์ (สาย DC)" },
+  { key: "cableAc",  th: "อินเวอร์เตอร์ → ตู้ MDB (สาย AC)" },
+  { key: "cableCt",  th: "CT / Meter → อินเวอร์เตอร์" },
+  { key: "cableGnd", th: "สายกราวด์ → หลักดิน" },
+];
+const cableTotal = (s) => SURVEY_CABLE_LEGS.reduce((t, l) => t + (+((s || {})[l.key]) || 0), 0);
+// หมวดหมู่รูปเพิ่มเติม — จัดกลุ่มในรายงานตามลำดับนี้
+const SURVEY_PHOTO_CATS = ["หลังคา / โครงสร้าง", "ระบบไฟฟ้า / ตู้ MDB", "จุดติดตั้งอุปกรณ์", "สิ่งกีดขวาง / เงาบัง", "รูปอุปกรณ์ที่เสนอ", "อื่นๆ"];
 
 // รายการรูปบังคับ (mandatory photo checklist) — ครบทุกช่อง = ผ่าน
 const SURVEY_PHOTO_SLOTS = [
@@ -59,7 +71,7 @@ function surveyStatus(job) {
   if (!s || !s.startedAt) return { state: "none", pct: 0, label: "ยังไม่สำรวจ", color: "#94A3B8" };
   const fields = [
     !!(s.gps && s.gps.lat), !!s.meterSize, !!s.phase,                      // ขั้น 1
-    !!s.roofType, !!(s.roofPitch !== "" && s.roofPitch != null),           // ขั้น 2
+    !!s.roofType,                                                          // ขั้น 2
     !!s.mdbBrand, !!s.mainBreaker, !!s.inverterLoc,                        // ขั้น 3
   ];
   const photos = s.photos || {};
@@ -81,13 +93,14 @@ function blankSurvey(job) {
     mainBreaker: "", mainCable: "",             // เมนเบรกเกอร์เดิม / สายเมนเดิม
     buildingType: "",                           // พื้นที่ที่จะวางแผง (บ้านเดี่ยว ฯลฯ)
     roofType: (job && job.roof) || "",
-    roofArea: "",                               // พื้นที่หลังคาที่ใช้ได้ (ตร.ม.)
-    roofAge: "", roofCondition: "", roofPitch: "", azimuth: "",
+    roofCondition: "",
     structureOk: "",                            // โครงสร้างรับน้ำหนัก ผ่าน/ต้องเสริม
     birdNet: "",                                // ตาข่ายกันนก
     shadingTags: [], shadingNote: "",
     mdbBrand: "", mdbSpace: "", mdbLoc: "",     // ตู้ MDB — ยี่ห้อ / ช่องว่าง / ตำแหน่งที่ตั้ง
-    inverterLoc: "", cableRun: "",
+    mdbSafety: "", mdbRccb: "",                 // เซฟตี้คัตในตู้ / เมนเป็นชนิดกันดูด RCD-RCCB
+    inverterLoc: "",
+    cableDc: "", cableAc: "", cableCt: "", cableGnd: "",   // ระยะเดินสายแยกช่วง
     sizeKw: (job && job.kw) ? String(job.kw) : "",
     invModel: "", panelModel: "", monitoring: "", meterCt: "",
     specials: [],                               // ความต้องการพิเศษของลูกค้า (ข้อความหลายข้อ)
@@ -322,7 +335,15 @@ function SurveyShotCard({ shot, slot, n, busy, onPick, onRemove, onAnn, onField,
               <button type="button" onClick={() => onMove(1)} disabled={last} title="เลื่อนลง" style={Object.assign({}, mini, { opacity: last ? .35 : 1 })}>↓</button>
             </React.Fragment>}
           </div>
-          {!req && <input value={shot.title || ""} onChange={(e) => onField("title", e.target.value)} placeholder="หัวข้อรูป เช่น ภาพจากโดรน บินเฉียงด้านซ้าย" style={Object.assign({}, inputStyle, { fontSize: 13 })} />}
+          {!req && (
+            <React.Fragment>
+              <input value={shot.title || ""} onChange={(e) => onField("title", e.target.value)} placeholder="หัวข้อรูป เช่น ภาพจากโดรน บินเฉียงด้านซ้าย" style={Object.assign({}, inputStyle, { fontSize: 13 })} />
+              {/* หมวดหมู่ — รายงานจะจัดกลุ่มรูปตามนี้ ไม่ใส่ก็ไปกองรวมกันท้ายสุด */}
+              <Dropdown value={shot.cat || ""} onChange={(v) => onField("cat", v)} placeholder="— หมวดหมู่รูป (ไม่ใส่ก็ได้) —"
+                options={SURVEY_PHOTO_CATS.concat(shot.cat && SURVEY_PHOTO_CATS.indexOf(shot.cat) < 0 ? [shot.cat] : []).map((c) => ({ value: c, label: c }))}
+                wrap addable onAdd={() => {}} />
+            </React.Fragment>
+          )}
           <input value={shot.caption || ""} onChange={(e) => onField("caption", e.target.value)} placeholder="คำบรรยายใต้รูป (ไม่ใส่ก็ได้)" style={Object.assign({}, inputStyle, { fontSize: 13 })} />
         </React.Fragment>
       )}
@@ -339,7 +360,7 @@ const SURVEY_STEPS = [
   { n: 5, icon: "image", th: "รูปถ่าย" },
 ];
 
-function SurveyWizard({ job, onClose, onSave, onReport, currentUser }) {
+function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const bdClose = window.useBackdropClose(onClose);
   const [step, setStep] = React.useState(1);
@@ -354,6 +375,26 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser }) {
     const cur = p.shadingTags || [];
     return Object.assign({}, p, { shadingTags: cur.includes(t) ? cur.filter((x) => x !== t) : cur.concat([t]) });
   });
+
+  /* รุ่นอินเวอร์เตอร์ / แผง ดึงจากคลังสินค้า แบ่งกลุ่มตามหมวดย่อย (เช่น แผง › AIKO)
+     รุ่นที่พิมพ์เองไว้แต่เดิม (หรือรุ่นที่ยังไม่ได้ลงคลัง) ต่อท้ายไว้ ไม่ให้ค่าที่กรอกไว้แล้วหาย */
+  const stockItems = (stock && stock.items) || [];
+  const modelOptions = (mainCat, cur) => {
+    const SF = window.SF;
+    const out = [];
+    stockItems.forEach((s) => {
+      if (!s.name || !SF || SF.mainCatOf(s.cat) !== mainCat) return;
+      const c = SF.STOCK_CAT_BY[s.cat];
+      out.push({ value: s.name, label: s.name, group: (c && c.parent) ? c.th : "อื่นๆ",
+        sub: [s.brand, s.model].filter(Boolean).join(" · ") });
+    });
+    out.sort((a, b) => (a.group || "").localeCompare(b.group || "", "th") || a.label.localeCompare(b.label, "th"));
+    const v = (cur || "").trim();
+    if (v && !out.some((o) => o.value === v)) out.push({ value: v, label: v, group: "พิมพ์เอง" });
+    return out;
+  };
+  const invOptions = React.useMemo(() => modelOptions("inverter", f.invModel), [stockItems, f.invModel]);
+  const panelOptions = React.useMemo(() => modelOptions("panel", f.panelModel), [stockItems, f.panelModel]);
 
   // จับพิกัด GPS ปัจจุบัน
   const captureGps = () => {
@@ -390,6 +431,39 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser }) {
     const maxOrder = shots.reduce((m, s) => Math.max(m, s.order == null ? 0 : s.order), SURVEY_PHOTO_SLOTS.length);
     pickPhoto(key, file, maxOrder + 1);
   };
+  /* วางภาพจากคลิปบอร์ด — ช่างมักครอปรูปอุปกรณ์/ภาพตัดจาก PDF หรือกดปุ่มจับภาพหน้าจอมา
+     แล้วอยากแปะเข้ารายงานเลย ไม่ต้องเซฟเป็นไฟล์ก่อน · ทำงานเฉพาะตอนอยู่ขั้นรูปถ่าย */
+  React.useEffect(() => {
+    if (step !== 5) return;
+    const onPaste = (e) => {
+      const items = (e.clipboardData && e.clipboardData.items) || [];
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].kind !== "file" || items[i].type.indexOf("image/") !== 0) continue;
+        const file = items[i].getAsFile();
+        if (file) { e.preventDefault(); addShot(file); }
+        return;
+      }
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [step, shots.length]);
+
+  // ปุ่มวางภาพ (สำหรับมือถือ/เครื่องที่กด Ctrl+V ไม่ได้) — อ่านรูปจากคลิปบอร์ดตรง ๆ
+  const pasteFromClipboard = async () => {
+    try {
+      if (!navigator.clipboard || !navigator.clipboard.read) throw new Error("เบราว์เซอร์นี้อ่านคลิปบอร์ดไม่ได้ ลองกด Ctrl+V แทน");
+      const list = await navigator.clipboard.read();
+      for (const it of list) {
+        const type = it.types.find((t) => t.indexOf("image/") === 0);
+        if (!type) continue;
+        const blob = await it.getType(type);
+        addShot(new File([blob], "paste.png", { type: type }));
+        return;
+      }
+      alert("ในคลิปบอร์ดไม่มีรูปภาพ — ก๊อปรูปมาก่อนแล้วค่อยกดวาง");
+    } catch (err) { alert("วางภาพไม่สำเร็จ: " + err.message); }
+  };
+
   // สลับลำดับกับใบข้างเคียง (ทั้งลิสต์รวมช่องบังคับ) — เขียน order ให้ทุกใบครั้งเดียว กันค่าว่าง
   const moveShot = (key, dir) => {
     const arr = shots.slice();
@@ -489,10 +563,8 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser }) {
                   {fld("การไฟฟ้า", <Dropdown value={f.meterAuth} onChange={(v) => set("meterAuth", v)} placeholder="— เลือก —" options={SURVEY_METER_AUTH} />)}
                 </div>
                 {fld("ระบบไฟฟ้า (เฟส)", <Segmented value={f.phase} onChange={(v) => set("phase", v)} options={[{ value: "1", label: "1 เฟส" }, { value: "3", label: "3 เฟส" }]} />, true)}
-                <div style={two}>
-                  {fld("ขนาดเมนเบรกเกอร์", <input value={f.mainBreaker} onChange={(e) => set("mainBreaker", e.target.value)} placeholder="เช่น 100A, 3P" style={inputStyle} />, true)}
-                  {fld("สายเมนเดิม", <input value={f.mainCable} onChange={(e) => set("mainCable", e.target.value)} placeholder="เช่น NYY 50 sq.mm" style={inputStyle} />)}
-                </div>
+                {/* เมนเบรกเกอร์อยู่ในตู้ MDB จึงย้ายไปกรอกพร้อมกันตอนเปิดฝาตู้ (ขั้น "ไฟฟ้า & ตำแหน่ง") */}
+                {fld("สายเมนเดิม", <input value={f.mainCable} onChange={(e) => set("mainCable", e.target.value)} placeholder="เช่น NYY 50 sq.mm" style={inputStyle} />)}
               </SurveyBlock>
             </React.Fragment>
           )}
@@ -502,20 +574,9 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser }) {
               <SurveyBlock title="🏠 ชนิด & สภาพหลังคา">
                 {fld("พื้นที่ที่จะวางแผงโซลาร์", <Dropdown value={f.buildingType} onChange={(v) => set("buildingType", v)} placeholder="— เลือกประเภทอาคาร —" options={SURVEY_BUILDING.map((r) => ({ value: r, label: r }))} />)}
                 {fld("ประเภทหลังคา", <Dropdown value={f.roofType} onChange={(v) => set("roofType", v)} placeholder="— เลือกประเภท —" options={SURVEY_ROOF_TYPES.map((r) => ({ value: r, label: r }))} />, true)}
-                <div style={two}>
-                  {fld("พื้นที่ใช้ได้ (ตร.ม.)", <input type="number" value={f.roofArea} onChange={(e) => set("roofArea", e.target.value)} placeholder="ตร.ม." style={numStyle} />)}
-                  {fld("อายุหลังคา (ปี)", <input type="number" value={f.roofAge} onChange={(e) => set("roofAge", e.target.value)} placeholder="ปี" style={numStyle} />)}
-                </div>
                 {fld("สภาพหลังคา", <Dropdown value={f.roofCondition} onChange={(v) => set("roofCondition", v)} placeholder="— เลือก —" options={SURVEY_ROOF_COND} />)}
                 {fld("โครงสร้างรับน้ำหนัก", <Segmented value={f.structureOk} onChange={(v) => set("structureOk", v)} options={SURVEY_PASS} />)}
                 {fld("ตาข่ายกันนก", <Segmented value={f.birdNet} onChange={(v) => set("birdNet", v)} options={SURVEY_BIRDNET} />)}
-              </SurveyBlock>
-              <SurveyBlock title="📐 มุมหลังคา" sub="ความลาดเอียง และทิศหันของหลังคา (Azimuth)">
-                <div style={two}>
-                  {fld("ความลาดเอียง (องศา)", <input type="number" value={f.roofPitch} onChange={(e) => set("roofPitch", e.target.value)} placeholder="0–90°" style={numStyle} />, true)}
-                  {fld("ทิศหัน / Azimuth (องศา)", <input type="number" value={f.azimuth} onChange={(e) => set("azimuth", e.target.value)} placeholder="0=N 90=E 180=S" style={numStyle} />)}
-                </div>
-                <div style={{ fontSize: 10.5, color: "var(--text-3)" }}>0° = ทิศเหนือ · 90° = ทิศตะวันออก · 180° = ทิศใต้ · 270° = ทิศตะวันตก</div>
               </SurveyBlock>
               <SurveyBlock title="🌳 สิ่งกีดขวาง / เงาบัง" sub="เลือกสิ่งที่อาจบดบังแสงแดด">
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
@@ -538,14 +599,33 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser }) {
 
           {step === 3 && (
             <React.Fragment>
-              <SurveyBlock title="🔌 ตู้เมนไฟฟ้า (MDB)">
+              <SurveyBlock title="🔌 ตู้เมนไฟฟ้า (MDB)" sub="เปิดฝาตู้แล้วดูของข้างในไปพร้อมกันทีเดียว">
                 {fld("ยี่ห้อ / รุ่นตู้ MDB", <input value={f.mdbBrand} onChange={(e) => set("mdbBrand", e.target.value)} placeholder="เช่น Schneider, ABB, Haco" style={inputStyle} />, true)}
+                {/* เมนเบรกเกอร์อยู่ในตู้นี้ ย้ายมาจากขั้นมิเตอร์ จะได้กรอกตอนเปิดฝาตู้รอบเดียว */}
+                {fld("ขนาดเมนเบรกเกอร์", <input value={f.mainBreaker} onChange={(e) => set("mainBreaker", e.target.value)} placeholder="เช่น 100A, 3P" style={inputStyle} />, true)}
+                <div style={two}>
+                  {fld("มีเซฟตี้คัต", <Segmented value={f.mdbSafety} onChange={(v) => set("mdbSafety", v)} options={SURVEY_YESNO} />)}
+                  {fld("เมนเป็นชนิดกันดูด (RCD / RCCB)", <Segmented value={f.mdbRccb} onChange={(v) => set("mdbRccb", v)} options={SURVEY_YESNO} />)}
+                </div>
                 {fld("ตำแหน่งที่ตั้งตู้ MDB", <input value={f.mdbLoc} onChange={(e) => set("mdbLoc", e.target.value)} placeholder="เช่น ข้างบันได ชั้น 1 / โรงจอดรถ" style={inputStyle} />)}
                 {fld("ช่องว่างในตู้", <Dropdown value={f.mdbSpace} onChange={(v) => set("mdbSpace", v)} placeholder="— เลือก —" options={SURVEY_MDB_SPACE} />)}
               </SurveyBlock>
               <SurveyBlock title="🔋 ตำแหน่งติดตั้งอินเวอร์เตอร์">
                 {fld("ตำแหน่งที่เสนอติดตั้ง", <Segmented value={f.inverterLoc} onChange={(v) => set("inverterLoc", v)} options={SURVEY_INV_LOC} />, true)}
-                {fld("ระยะเดินสายโดยประมาณ (เมตร)", <input type="number" value={f.cableRun} onChange={(e) => set("cableRun", e.target.value)} placeholder="ระยะจากแผง → อินเวอร์เตอร์ → MDB" style={numStyle} />)}
+              </SurveyBlock>
+              {/* ระยะเดินสายแยกเป็นช่วง — แต่ละช่วงเป็นสายคนละชนิด เอาไปคิดของได้ตรงกว่ายอดรวมก้อนเดียว */}
+              <SurveyBlock title="📏 ระยะเดินสาย (เมตร)" sub="วัดทีละช่วง ช่วงไหนไม่มีก็เว้นว่างไว้">
+                <div style={two}>
+                  {SURVEY_CABLE_LEGS.map((l) => (
+                    <React.Fragment key={l.key}>
+                      {fld(l.th, <input type="number" value={f[l.key] || ""} onChange={(e) => set(l.key, e.target.value)} placeholder="ม." style={numStyle} />)}
+                    </React.Fragment>
+                  ))}
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "9px 12px", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>รวมทุกช่วง</span>
+                  <span style={{ fontFamily: "var(--mono)", fontSize: 13.5, fontWeight: 800, color: "var(--primary-dark)" }}>{cableTotal(f)} ม.</span>
+                </div>
               </SurveyBlock>
             </React.Fragment>
           )}
@@ -554,8 +634,10 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser }) {
             <React.Fragment>
               <SurveyBlock title="🧰 อุปกรณ์ที่เสนอ" sub="ขึ้นในตารางหัวรายงาน — เว้นว่างได้ถ้ายังไม่สรุป">
                 {fld("ขนาดระบบ (kW)", <input value={f.sizeKw} onChange={(e) => set("sizeKw", e.target.value)} placeholder="เช่น 6.7" style={inputStyle} />)}
-                {fld("Inverter", <input value={f.invModel} onChange={(e) => set("invModel", e.target.value)} placeholder="เช่น Solis S6-EH1P6K-L-PLUS — 6kW Hybrid 1P" style={inputStyle} />)}
-                {fld("แผงโซลาร์", <input value={f.panelModel} onChange={(e) => set("panelModel", e.target.value)} placeholder="เช่น Aiko (670W)" style={inputStyle} />)}
+                {/* เลือกรุ่นจากคลังของเรา จะได้ชื่อรุ่นตรงกับที่ตั้งราคาไว้ + ดึง DATA SHEET ไปแนบท้ายรายงานได้
+                   ยังพิมพ์เองได้ถ้าเสนอรุ่นที่ยังไม่มีในคลัง */}
+                {fld("Inverter", <Dropdown value={f.invModel} onChange={(v) => set("invModel", v)} placeholder="— เลือกจากคลัง —" options={invOptions} wrap addable onAdd={() => {}} />)}
+                {fld("แผงโซลาร์", <Dropdown value={f.panelModel} onChange={(v) => set("panelModel", v)} placeholder="— เลือกจากคลัง —" options={panelOptions} wrap addable onAdd={() => {}} />)}
                 {fld("Monitoring", <input value={f.monitoring} onChange={(e) => set("monitoring", e.target.value)} placeholder="เช่น Solis S2-WL-ST — WiFi Stick" style={inputStyle} />)}
                 {fld("Meter / CT", <input value={f.meterCt} onChange={(e) => set("meterCt", e.target.value)} placeholder="เช่น Solis SDM630MCT V2 5A" style={inputStyle} />)}
               </SurveyBlock>
@@ -602,7 +684,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser }) {
                   })}
                 </div>
               </SurveyBlock>
-              <SurveyBlock title={"🖼️ รูปเพิ่มเติม (" + extras.length + " รูป)"} sub="ถ่ายกี่รูปก็ได้ · ตั้งหัวข้อและคำบรรยายให้แต่ละรูป แล้วมันจะเรียงตามนี้ในรายงาน">
+              <SurveyBlock title={"🖼️ รูปเพิ่มเติม (" + extras.length + " รูป)"} sub="ถ่ายกี่รูปก็ได้ · ครอปรูปมาแล้วกด Ctrl+V แปะได้เลย · ตั้งหัวข้อ/หมวดหมู่ แล้วรายงานจะจัดกลุ่มให้ตามนี้">
                 <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
                   {extras.map((shot) => {
                     const idx = shots.findIndex((s) => s.key === shot.key);
@@ -617,7 +699,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser }) {
                     );
                   })}
                 </div>
-                <AddShotButton busy={busySlot && isExtraShot(busySlot)} onPick={addShot} />
+                <AddShotButton busy={busySlot && isExtraShot(busySlot)} onPick={addShot} onPaste={pasteFromClipboard} />
               </SurveyBlock>
             </React.Fragment>
           )}
@@ -650,17 +732,25 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser }) {
 }
 
 /* ปุ่มเพิ่มรูป — แยกออกมาเพราะต้องมี input file ของตัวเอง */
-function AddShotButton({ busy, onPick }) {
+function AddShotButton({ busy, onPick, onPaste }) {
   const ref = React.useRef(null);
+  const btn = { flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "13px", borderRadius: 11,
+    border: "1px dashed var(--border-strong)", background: "var(--surface)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: busy ? "default" : "pointer" };
   return (
     <React.Fragment>
       <input ref={ref} type="file" accept="image/*" capture="environment" style={{ display: "none" }}
         onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) onPick(f); e.target.value = ""; }} />
-      <button type="button" onClick={() => ref.current && ref.current.click()} disabled={busy}
-        style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "13px", borderRadius: 11,
-          border: "1px dashed var(--border-strong)", background: "var(--surface)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: busy ? "default" : "pointer" }}>
-        <Icon name="plus" size={16} color="var(--primary-dark)" sw={2.4} /> {busy ? "กำลังเพิ่มรูป..." : "เพิ่มรูป"}
-      </button>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button type="button" onClick={() => ref.current && ref.current.click()} disabled={busy} style={btn}>
+          <Icon name="plus" size={16} color="var(--primary-dark)" sw={2.4} /> {busy ? "กำลังเพิ่มรูป..." : "เพิ่มรูป"}
+        </button>
+        {/* ครอปรูปอุปกรณ์/ภาพตัดมาแล้วแปะได้เลย ไม่ต้องเซฟเป็นไฟล์ก่อน (กด Ctrl+V ก็ได้) */}
+        {onPaste && (
+          <button type="button" onClick={onPaste} disabled={busy} style={Object.assign({}, btn, { flex: "0 0 auto", paddingLeft: 15, paddingRight: 15 })} title="วางภาพจากคลิปบอร์ด (Ctrl+V)">
+            📋 วางภาพ
+          </button>
+        )}
+      </div>
     </React.Fragment>
   );
 }
@@ -669,4 +759,5 @@ Object.assign(window, {
   SurveyWizard, surveyStatus, blankSurvey, useSurveyPhotos, AnnOverlay, AnnEditor,
   sortedShots, shotTitle, isExtraShot,
   SURVEY_PHOTO_SLOTS, SURVEY_SLOT_BY, SURVEY_STEPS, SURVEY_ROOF_COND, SURVEY_MDB_SPACE, SURVEY_INV_LOC, SURVEY_PASS, SURVEY_BIRDNET,
+  SURVEY_YESNO, SURVEY_CABLE_LEGS, cableTotal, SURVEY_PHOTO_CATS,
 });

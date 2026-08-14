@@ -13,6 +13,7 @@ function repDate(iso) {
   return d.getDate() + " " + TH_MONTH[d.getMonth()] + " " + (d.getFullYear() + 543);
 }
 const _lbl = (list, v) => { const x = (list || []).find((o) => o.value === v); return x ? x.label : (v || ""); };
+const _yn = (v) => (v === "yes" ? "มี" : v === "no" ? "ไม่มี" : "");
 
 /* แถวติ๊กในหัวข้อ "ผลการตรวจสอบ" — ติ๊กเมื่อมีค่า · ค่าขึ้นในวงเล็บตัวเอียง */
 function RepCheck({ label, value }) {
@@ -59,11 +60,22 @@ function RepCell({ k, v }) {
   );
 }
 
-function SurveyReport({ job, photos, onClose }) {
+function SurveyReport({ job, photos, docs, onClose }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const s = (job && job.survey) || {};
   const shots = window.sortedShots(photos || {});
   const gps = s.gps && s.gps.lat ? s.gps.lat + ", " + s.gps.lng : "";
+  /* จัดกลุ่มรูปตามหมวดที่ช่างเลือกไว้ ยังเรียงตามลำดับเดิม — รูปบังคับกับรูปที่ไม่ได้ตั้งหมวด
+     อยู่กลุ่มไม่มีชื่อ กองอยู่ต้นรายการเหมือนเดิม รายงานเก่าที่ยังไม่มีหมวดจึงหน้าตาไม่เปลี่ยน */
+  const shotGroups = React.useMemo(() => {
+    const out = [], by = {};
+    shots.forEach((sh) => {
+      const c = (sh.cat || "").trim();
+      if (!by[c]) { by[c] = { cat: c, shots: [] }; out.push(by[c]); }
+      by[c].shots.push(sh);
+    });
+    return out;
+  }, [photos]);
 
   // เปิดหน้าพิมพ์ของเบราว์เซอร์ → เลือก "บันทึกเป็น PDF" (มือถือมีปุ่มแชร์ต่อในหน้าเดียวกัน)
   const doPrint = () => {
@@ -88,7 +100,7 @@ function SurveyReport({ job, photos, onClose }) {
         <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>รายงานผลสำรวจหน้างาน</div>
-          <div style={{ fontSize: 11, color: "var(--text-3)" }}>{shots.length} รูป · กดปุ่มแล้วเลือก “บันทึกเป็น PDF”</div>
+          <div style={{ fontSize: 11, color: "var(--text-3)" }}>{shots.length} รูป{(docs || []).length ? " · DATA SHEET " + docs.length + " ใบ" : ""} · กดปุ่มแล้วเลือก “บันทึกเป็น PDF”</div>
         </div>
         <button onClick={doPrint} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "11px 16px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
           <Icon name="file" size={16} color="#fff" /> บันทึก PDF
@@ -131,9 +143,6 @@ function SurveyReport({ job, photos, onClose }) {
             <RepCheck label="ประเภทหลังคา" value={s.roofType} />
             <RepCheck label="สภาพหลังคา" value={roofCond} />
             <RepCheck label="โครงสร้างรับน้ำหนัก" value={structure} />
-            <RepCheck label="พื้นที่เพียงพอ" value={s.roofArea ? s.roofArea + " ตร.ม." : ""} />
-            <RepCheck label="อายุหลังคา" value={s.roofAge ? s.roofAge + " ปี" : ""} />
-            <RepCheck label="ความลาดเอียง / ทิศหัน" value={[s.roofPitch !== "" && s.roofPitch != null ? s.roofPitch + "°" : "", s.azimuth !== "" && s.azimuth != null ? "Az " + s.azimuth + "°" : ""].filter(Boolean).join(" · ")} />
             <RepCheck label="มีวัตถุที่ส่งผลกระทบต่อการรับแสง" value={(s.shadingTags || []).join(", ")} />
             <RepCheck label="ตาข่ายกันนก" value={birdNet} />
           </RepGroup>
@@ -144,11 +153,19 @@ function SurveyReport({ job, photos, onClose }) {
             <RepCheck label="สายเมนเดิม" value={s.mainCable} />
             <RepCheck label="มิเตอร์" value={meter} />
             <RepCheck label="ตู้ MDB" value={[s.mdbBrand, mdbSpace].filter(Boolean).join(" · ")} />
+            <RepCheck label="เซฟตี้คัตในตู้" value={_yn(s.mdbSafety)} />
+            <RepCheck label="เมนกันดูด (RCD / RCCB)" value={_yn(s.mdbRccb)} />
             <RepCheck label="ตำแหน่ง MDB" value={s.mdbLoc} />
             <RepCheck label="จุดติดตั้งอินเวอร์เตอร์" value={invLoc} />
-            <RepCheck label="ระยะเดินสายโดยประมาณ" value={s.cableRun ? s.cableRun + " ม." : ""} />
             <RepCheck label="พิกัด GPS หน้างาน" value={gps} />
           </RepGroup>
+
+          {/* ระยะเดินสายแยกช่วง — ช่วงไหนไม่ได้วัดก็ไม่ต้องขึ้น */}
+          {window.SURVEY_CABLE_LEGS.some((l) => +s[l.key] > 0) && (
+            <RepGroup icon="📏" title={"ระยะเดินสาย (รวม " + window.cableTotal(s) + " ม.)"}>
+              {window.SURVEY_CABLE_LEGS.map((l) => <RepCheck key={l.key} label={l.th} value={+s[l.key] > 0 ? s[l.key] + " ม." : ""} />)}
+            </RepGroup>
+          )}
 
           {(s.specials || []).filter(Boolean).length > 0 && (
             <RepGroup icon="⚠️" title="ความต้องการพิเศษ">
@@ -170,7 +187,13 @@ function SurveyReport({ job, photos, onClose }) {
         {shots.length > 0 && (
           <RepSection title={"ภาพประกอบการสำรวจ (" + shots.length + " รูป)"}>
             <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 12 }}>
-              {shots.map((sh, i) => (
+              {shotGroups.map((g) => (
+                <React.Fragment key={g.cat || "_"}>
+                {/* หัวหมวดรูป — ขึ้นเฉพาะตอนที่มีการแบ่งหมวดจริง ๆ ไม่งั้นรายงานเดิมจะมีหัวว่างเปล่าโผล่มา */}
+                {g.cat && shotGroups.length > 1 && (
+                  <div style={{ fontSize: 11.5, fontWeight: 800, color: "var(--primary-dark)", marginTop: 4, breakInside: "avoid" }}>▸ {g.cat}</div>
+                )}
+                {g.shots.map((sh) => { const i = shots.indexOf(sh); return (
                 /* รูปแนวตั้งถ้าปล่อยเต็มความกว้างจะกินกระดาษทั้งหน้า — จำกัดความสูงแล้วจัดกลาง
                    กรอบ inline-block เพื่อให้เท่าขนาดรูปพอดี ลูกศรที่วาดทับจะได้ไม่เลื่อน */
                 <div key={sh.key} className="sv-rep-shot" data-p={sh.ah > sh.aw ? "1" : "0"}
@@ -184,9 +207,32 @@ function SurveyReport({ job, photos, onClose }) {
                   </div>
                   {sh.caption && <div style={{ fontSize: 11, color: "var(--text-2)", marginTop: 7 }}>{sh.caption}</div>}
                 </div>
+                ); })}
+                </React.Fragment>
               ))}
             </div>
           </RepSection>
+        )}
+
+        {/* DATA SHEET ของรุ่นที่เสนอ — ขึ้นหน้าใหม่ทุกใบ จะได้เป็นเอกสารแนบเต็มหน้า
+           ไฟล์ PDF ฝังในหน้าพิมพ์ไม่ได้ ขึ้นเป็นบรรทัดอ้างอิงชื่อไฟล์ไว้แทน */}
+        {(docs || []).length > 0 && (
+          <React.Fragment>
+            {(docs || []).map((d) => (
+              <div key={d.role} className="sv-rep-ds" style={{ breakBefore: "page", pageBreakBefore: "always", marginTop: 22 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, borderBottom: "1px solid var(--border)", paddingBottom: 6, marginBottom: 12 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: 99, background: "var(--primary)" }} />
+                  <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)" }}>DATA SHEET — {d.role}</span>
+                  <span style={{ fontSize: 11.5, color: "var(--text-2)", marginLeft: "auto" }}>{d.name}</span>
+                </div>
+                {/^image\//.test(d.doc.type || "")
+                  ? <img src={d.doc.data} alt={d.name} style={{ width: "100%", display: "block", borderRadius: 8, border: "1px solid var(--border)" }} />
+                  : <div style={{ fontSize: 11.5, color: "var(--text-2)", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 14px" }}>
+                      แนบไฟล์เอกสารแยก: <b style={{ color: "var(--text-1)" }}>{d.doc.name}</b> (เปิดดูได้จากหน้าคลังสินค้า)
+                    </div>}
+              </div>
+            ))}
+          </React.Fragment>
         )}
 
         {/* ท้ายรายงาน */}
@@ -199,11 +245,34 @@ function SurveyReport({ job, photos, onClose }) {
   );
 }
 
-/* ตัวห่อ — โหลดรูปของงาน/ลูกค้ารายนี้ให้รายงาน (hook เรียกในคอมโพเนนต์เท่านั้น) */
-function SurveyReportHost({ job, onClose }) {
+/* ตัวห่อ — โหลดรูปของงาน/ลูกค้ารายนี้ให้รายงาน (hook เรียกในคอมโพเนนต์เท่านั้น)
+   พร้อมดึง DATA SHEET ของรุ่นที่เสนอ (อินเวอร์เตอร์ / แผง) จากคลัง มาต่อท้ายเป็นหน้ารายงาน
+   เอกสารเก็บแยกโหนด โหลดทีละใบเฉพาะตอนออกรายงาน ไม่ถ่วงตอนเปิดแอป */
+function SurveyReportHost({ job, stock, onClose }) {
   const media = window.useSurveyPhotos(job ? job.id : null);
+  const s = (job && job.survey) || {};
+  const items = (stock && stock.items) || [];
+  const withDoc = React.useMemo(() => {
+    const names = [{ role: "Inverter", name: s.invModel }, { role: "แผงโซลาร์", name: s.panelModel }];
+    return names.map((x) => {
+      const nm = String(x.name || "").trim();
+      if (!nm) return null;
+      const it = items.find((i) => (i.name || "").trim() === nm && i.doc);
+      return it ? { role: x.role, item: it } : null;
+    }).filter(Boolean);
+  }, [items, s.invModel, s.panelModel]);
+  const [docs, setDocs] = React.useState([]);
+  React.useEffect(() => {
+    let dead = false;
+    if (!withDoc.length || !stock || !stock.loadDoc) { setDocs([]); return; }
+    Promise.all(withDoc.map((w) => stock.loadDoc(w.item.id)
+      .then((d) => (d && d.data ? { role: w.role, name: w.item.name, doc: d } : null))
+      .catch(() => null)))
+      .then((list) => { if (!dead) setDocs(list.filter(Boolean)); });
+    return () => { dead = true; };
+  }, [withDoc]);
   if (!job) return null;
-  return <SurveyReport job={job} photos={media.photos} onClose={onClose} />;
+  return <SurveyReport job={job} photos={media.photos} docs={docs} onClose={onClose} />;
 }
 
 Object.assign(window, { SurveyReport, SurveyReportHost, repDate });
