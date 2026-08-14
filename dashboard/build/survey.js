@@ -219,18 +219,46 @@ function shotTitle(shot) {
   const s = SURVEY_SLOT_BY[shot.key];
   return s ? s.label : "รูปเพิ่มเติม";
 }
-const ANN_COLORS = ["#EF4444", "#22C55E", "#FACC15", "#FFFFFF", "#0EA5E9"];
+const ANN_COLORS = ["#EF4444", "#F97316", "#FACC15", "#22C55E", "#0EA5E9", "#FFFFFF"];
+function useBoxSize(ref, fallbackW, fallbackH) {
+  const [sz, setSz] = React.useState(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const read = () => {
+      const r = el.getBoundingClientRect();
+      if (r.width > 4 && r.height > 4) setSz({
+        w: r.width,
+        h: r.height
+      });
+    };
+    read();
+    const t = setTimeout(read, 120);
+    window.addEventListener("resize", read);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("resize", read);
+    };
+  }, [ref]);
+  return sz || {
+    w: fallbackW || 1000,
+    h: fallbackH || 750
+  };
+}
 function AnnOverlay({
   ann,
   aw,
-  ah
+  ah,
+  edit
 }) {
+  const ref = React.useRef(null);
+  const box = useBoxSize(ref, aw, ah);
   const list = ann || [];
-  if (!list.length) return null;
-  const W = aw || 1000,
-    H = ah || 750;
+  const W = box.w,
+    H = box.h;
   const unit = Math.max(W, H) / 100;
   return React.createElement("svg", {
+    ref: ref,
     viewBox: "0 0 " + W + " " + H,
     preserveAspectRatio: "none",
     "aria-hidden": "true",
@@ -242,33 +270,69 @@ function AnnOverlay({
       pointerEvents: "none"
     }
   }, list.map((a, i) => {
+    if (a.t === "i") {
+      const w = (a.w || 0.35) * W,
+        hh = w * (a.r || 0.75);
+      return React.createElement("g", {
+        key: i
+      }, React.createElement("image", {
+        href: a.src,
+        x: a.x * W,
+        y: a.y * H,
+        width: w,
+        height: hh,
+        preserveAspectRatio: "none"
+      }), React.createElement("rect", {
+        x: a.x * W,
+        y: a.y * H,
+        width: w,
+        height: hh,
+        fill: "none",
+        stroke: a.c || "#FFFFFF",
+        strokeWidth: unit * 0.5,
+        rx: unit * 0.8
+      }), edit && React.createElement("circle", {
+        cx: a.x * W + w,
+        cy: a.y * H + hh,
+        r: unit * 1.6,
+        fill: "#fff",
+        stroke: "var(--primary)",
+        strokeWidth: unit * 0.5
+      }));
+    }
     if (a.t === "a") {
       const x1 = a.x1 * W,
         y1 = a.y1 * H,
         x2 = a.x2 * W,
         y2 = a.y2 * H;
       const ang = Math.atan2(y2 - y1, x2 - x1);
-      const head = unit * 4.5;
-      const p1x = x2 - head * Math.cos(ang - 0.42),
-        p1y = y2 - head * Math.sin(ang - 0.42);
-      const p2x = x2 - head * Math.cos(ang + 0.42),
-        p2y = y2 - head * Math.sin(ang + 0.42);
+      const lw = unit * 1.15;
+      const head = lw * 3.4;
+      const halfW = head * 0.46;
+      const bx = x2 - head * Math.cos(ang),
+        by = y2 - head * Math.sin(ang);
+      const nx = -Math.sin(ang),
+        ny = Math.cos(ang);
+      const pts = [x2 + "," + y2, bx + halfW * nx + "," + (by + halfW * ny), bx - halfW * nx + "," + (by - halfW * ny)].join(" ");
       return React.createElement("g", {
         key: i
       }, React.createElement("line", {
         x1: x1,
         y1: y1,
-        x2: x2,
-        y2: y2,
+        x2: bx,
+        y2: by,
         stroke: a.c,
-        strokeWidth: unit * 1.3,
+        strokeWidth: lw,
         strokeLinecap: "round"
       }), React.createElement("polygon", {
-        points: x2 + "," + y2 + " " + p1x + "," + p1y + " " + p2x + "," + p2y,
-        fill: a.c
+        points: pts,
+        fill: a.c,
+        strokeLinejoin: "round",
+        stroke: a.c,
+        strokeWidth: lw * 0.35
       }));
     }
-    const fs = (a.s || 0.05) * W;
+    const fs = (a.s || 0.055) * W;
     return React.createElement("text", {
       key: i,
       x: a.x * W,
@@ -277,7 +341,7 @@ function AnnOverlay({
       fontSize: fs,
       fontWeight: "800",
       stroke: "rgba(0,0,0,.55)",
-      strokeWidth: fs * 0.14,
+      strokeWidth: fs * 0.16,
       paintOrder: "stroke",
       style: {
         fontFamily: "var(--sans)"
@@ -286,6 +350,27 @@ function AnnOverlay({
     }, a.v);
   }));
 }
+const ANN_TOOLS = [{
+  key: "a",
+  th: "ลูกศร",
+  glyph: "↗",
+  hint: "ลากจากจุดที่ต้องการชี้ ไปยังปลายลูกศร"
+}, {
+  key: "t",
+  th: "ข้อความ",
+  glyph: "ก",
+  hint: "แตะตำแหน่งบนรูป แล้วพิมพ์ข้อความได้เลย"
+}, {
+  key: "i",
+  th: "แปะรูป",
+  glyph: "🖼",
+  hint: "ก๊อปรูป/ภาพตัดมา แล้วกดแปะ (หรือ Ctrl+V) แล้วลากวางได้"
+}, {
+  key: "m",
+  th: "ย้าย",
+  glyph: "✥",
+  hint: "ลากรูปที่แปะไว้เพื่อย้าย · ลากมุมขวาล่างเพื่อย่อ-ขยาย"
+}];
 function AnnEditor({
   shot,
   onSave,
@@ -296,29 +381,62 @@ function AnnEditor({
   const [color, setColor] = React.useState("#EF4444");
   const [ann, setAnn] = React.useState(() => (shot.ann || []).slice());
   const [drag, setDrag] = React.useState(null);
+  const [grab, setGrab] = React.useState(null);
+  const [txt, setTxt] = React.useState(null);
+  const [busy, setBusy] = React.useState(false);
   const boxRef = React.useRef(null);
+  const txtRef = React.useRef(null);
   const W = shot.aw || 1000,
     H = shot.ah || 750;
+  const curTool = ANN_TOOLS.find(t => t.key === tool) || ANN_TOOLS[0];
+  React.useEffect(() => {
+    if (txt && txtRef.current) txtRef.current.focus();
+  }, [txt && txt.at]);
   const pt = e => {
     const r = boxRef.current.getBoundingClientRect();
     const t = e.touches && e.touches[0] || e.changedTouches && e.changedTouches[0] || e;
     return {
       x: Math.min(1, Math.max(0, (t.clientX - r.left) / r.width)),
-      y: Math.min(1, Math.max(0, (t.clientY - r.top) / r.height))
+      y: Math.min(1, Math.max(0, (t.clientY - r.top) / r.height)),
+      ar: r.width / r.height
     };
   };
+  const hitImage = p => {
+    for (let i = ann.length - 1; i >= 0; i--) {
+      const a = ann[i];
+      if (a.t !== "i") continue;
+      const w = a.w || 0.35;
+      const hh = w * (a.r || 0.75) * p.ar;
+      if (p.x >= a.x && p.x <= a.x + w && p.y >= a.y && p.y <= a.y + hh) {
+        const corner = p.x > a.x + w - 0.06 && p.y > a.y + hh - 0.06 * p.ar;
+        return {
+          i: i,
+          mode: corner ? "size" : "move",
+          dx: p.x - a.x,
+          dy: p.y - a.y
+        };
+      }
+    }
+    return null;
+  };
   const down = e => {
+    if (txt) return;
     const p = pt(e);
     if (tool === "t") {
-      const v = prompt("ข้อความที่จะเขียนบนรูป");
-      if (v && v.trim()) setAnn(a => a.concat([{
-        t: "t",
+      setTxt({
         x: p.x,
         y: p.y,
-        v: v.trim(),
-        c: color,
-        s: 0.055
-      }]));
+        v: "",
+        at: Date.now()
+      });
+      return;
+    }
+    if (tool === "m" || tool === "i") {
+      const hit = hitImage(p);
+      if (hit) {
+        e.preventDefault();
+        setGrab(hit);
+      }
       return;
     }
     e.preventDefault();
@@ -332,6 +450,21 @@ function AnnEditor({
     });
   };
   const move = e => {
+    if (grab) {
+      e.preventDefault();
+      const p = pt(e);
+      setAnn(list => list.map((a, j) => {
+        if (j !== grab.i) return a;
+        if (grab.mode === "size") return Object.assign({}, a, {
+          w: Math.min(1, Math.max(0.06, p.x - a.x))
+        });
+        return Object.assign({}, a, {
+          x: Math.max(0, Math.min(1 - (a.w || 0.35), p.x - grab.dx)),
+          y: Math.max(0, Math.min(1, p.y - grab.dy))
+        });
+      }));
+      return;
+    }
     if (!drag) return;
     e.preventDefault();
     const p = pt(e);
@@ -341,25 +474,108 @@ function AnnEditor({
     }));
   };
   const up = () => {
+    if (grab) {
+      setGrab(null);
+      return;
+    }
     if (!drag) return;
     const far = Math.abs(drag.x2 - drag.x1) > 0.03 || Math.abs(drag.y2 - drag.y1) > 0.03;
     if (far) setAnn(a => a.concat([drag]));
     setDrag(null);
   };
-  const btn = on => ({
+  const commitText = () => {
+    const v = (txt.v || "").trim();
+    if (v) setAnn(a => a.concat([{
+      t: "t",
+      x: txt.x,
+      y: txt.y,
+      v: v,
+      c: color,
+      s: 0.055
+    }]));
+    setTxt(null);
+  };
+  const addImage = async file => {
+    if (!file) return;
+    setBusy(true);
+    try {
+      const dataUrl = await resizeImageFile(file, 900, 0.8);
+      const dim = await new Promise(res => {
+        const im = new Image();
+        im.onload = () => res({
+          w: im.naturalWidth,
+          h: im.naturalHeight
+        });
+        im.onerror = () => res({
+          w: 4,
+          h: 3
+        });
+        im.src = dataUrl;
+      });
+      setAnn(a => a.concat([{
+        t: "i",
+        src: dataUrl,
+        x: 0.28,
+        y: 0.28,
+        w: 0.4,
+        r: dim.h / dim.w,
+        c: color
+      }]));
+      setTool("m");
+    } catch (err) {
+      alert("แปะรูปไม่สำเร็จ: " + err.message);
+    }
+    setBusy(false);
+  };
+  const pasteImage = async () => {
+    try {
+      if (!navigator.clipboard || !navigator.clipboard.read) throw new Error("เบราว์เซอร์นี้อ่านคลิปบอร์ดไม่ได้ ลองกด Ctrl+V แทน");
+      const list = await navigator.clipboard.read();
+      for (const it of list) {
+        const type = it.types.find(t => t.indexOf("image/") === 0);
+        if (!type) continue;
+        addImage(new File([await it.getType(type)], "paste.png", {
+          type: type
+        }));
+        return;
+      }
+      alert("ในคลิปบอร์ดไม่มีรูปภาพ — ก๊อปรูปมาก่อนแล้วค่อยกดแปะ");
+    } catch (err) {
+      alert("แปะรูปไม่สำเร็จ: " + err.message);
+    }
+  };
+  React.useEffect(() => {
+    const onPaste = e => {
+      const items = e.clipboardData && e.clipboardData.items || [];
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].kind !== "file" || items[i].type.indexOf("image/") !== 0) continue;
+        const f = items[i].getAsFile();
+        if (f) {
+          e.preventDefault();
+          addImage(f);
+        }
+        return;
+      }
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, []);
+  const ghost = {
     display: "inline-flex",
     alignItems: "center",
-    gap: 5,
-    padding: "9px 13px",
+    justifyContent: "center",
+    gap: 6,
+    height: 38,
+    padding: "0 14px",
     borderRadius: 10,
-    cursor: "pointer",
+    border: "1px solid var(--border-strong)",
+    background: "var(--surface)",
+    color: "var(--text-2)",
     fontFamily: "inherit",
     fontSize: 12.5,
     fontWeight: 700,
-    border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
-    background: on ? "var(--primary-soft)" : "var(--surface)",
-    color: on ? "var(--primary-dark)" : "var(--text-2)"
-  });
+    cursor: "pointer"
+  };
   return React.createElement("div", {
     style: {
       position: "fixed",
@@ -374,16 +590,17 @@ function AnnEditor({
   }, React.createElement("div", {
     style: {
       background: "var(--bg)",
-      borderRadius: isMobile ? "20px 20px 0 0" : 18,
-      width: isMobile ? "100%" : "min(860px,100%)",
+      borderRadius: isMobile ? "20px 20px 0 0" : 20,
+      width: isMobile ? "100%" : "min(880px,100%)",
       maxHeight: isMobile ? "96dvh" : "94vh",
       display: "flex",
       flexDirection: "column",
-      overflow: "hidden"
+      overflow: "hidden",
+      boxShadow: "0 30px 90px rgba(8,20,14,.4)"
     }
   }, React.createElement("div", {
     style: {
-      padding: "14px 18px",
+      padding: "13px 16px",
       borderBottom: "1px solid var(--border)",
       background: "var(--surface)",
       display: "flex",
@@ -397,21 +614,23 @@ function AnnEditor({
     }
   }, React.createElement("div", {
     style: {
-      fontSize: 15.5,
+      fontSize: 15,
       fontWeight: 800,
-      color: "var(--text-1)"
+      color: "var(--text-1)",
+      letterSpacing: "-.01em"
     }
   }, "\u0E40\u0E02\u0E35\u0E22\u0E19\u0E1A\u0E19\u0E23\u0E39\u0E1B"), React.createElement("div", {
     style: {
       fontSize: 11.5,
-      color: "var(--text-3)"
+      color: "var(--text-3)",
+      marginTop: 1
     }
-  }, tool === "a" ? "ลากนิ้วจากต้นทางไปปลายทาง = ลูกศร" : "แตะตำแหน่งที่จะวางข้อความ")), React.createElement("button", {
+  }, curTool.hint)), React.createElement("button", {
     onClick: onClose,
     style: {
-      width: 32,
-      height: 32,
-      borderRadius: 9,
+      width: 34,
+      height: 34,
+      borderRadius: 10,
       border: "1px solid var(--border)",
       background: "var(--surface)",
       cursor: "pointer",
@@ -433,6 +652,11 @@ function AnnEditor({
       placeItems: "center"
     }
   }, React.createElement("div", {
+    style: {
+      position: "relative",
+      maxWidth: "100%"
+    }
+  }, React.createElement("div", {
     ref: boxRef,
     onMouseDown: down,
     onMouseMove: move,
@@ -443,13 +667,14 @@ function AnnEditor({
     onTouchEnd: up,
     style: {
       position: "relative",
-      maxWidth: "100%",
       touchAction: "none",
       userSelect: "none",
       lineHeight: 0,
-      borderRadius: 10,
+      borderRadius: 12,
       overflow: "hidden",
-      border: "1px solid var(--border)"
+      border: "1px solid var(--border)",
+      boxShadow: "0 6px 24px rgba(8,20,14,.14)",
+      cursor: tool === "m" ? "move" : tool === "t" ? "text" : "crosshair"
     }
   }, React.createElement("img", {
     src: shot.dataUrl,
@@ -458,46 +683,143 @@ function AnnEditor({
     style: {
       display: "block",
       maxWidth: "100%",
-      maxHeight: isMobile ? "56dvh" : "62vh",
+      maxHeight: isMobile ? "52dvh" : "58vh",
       width: "auto"
     }
   }), React.createElement(AnnOverlay, {
     ann: drag ? ann.concat([drag]) : ann,
     aw: W,
-    ah: H
-  }))), React.createElement("div", {
+    ah: H,
+    edit: tool === "m" || tool === "i"
+  })), txt && React.createElement("div", {
+    style: {
+      position: "absolute",
+      left: txt.x * 100 + "%",
+      top: txt.y * 100 + "%",
+      transform: "translate(-6px,-50%)",
+      zIndex: 3,
+      display: "flex",
+      gap: 6,
+      alignItems: "center",
+      background: "var(--surface)",
+      border: "1px solid var(--primary)",
+      borderRadius: 10,
+      padding: 5,
+      boxShadow: "0 8px 24px rgba(8,20,14,.25)"
+    }
+  }, React.createElement("input", {
+    ref: txtRef,
+    value: txt.v,
+    onChange: e => setTxt(Object.assign({}, txt, {
+      v: e.target.value
+    })),
+    onKeyDown: e => {
+      if (e.key === "Enter") commitText();
+      if (e.key === "Escape") setTxt(null);
+    },
+    placeholder: "\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E02\u0E49\u0E2D\u0E04\u0E27\u0E32\u0E21\u2026",
+    style: {
+      width: 168,
+      border: "none",
+      outline: "none",
+      background: "transparent",
+      fontFamily: "inherit",
+      fontSize: 13,
+      color: "var(--text-1)"
+    }
+  }), React.createElement("button", {
+    onClick: commitText,
+    style: {
+      border: "none",
+      background: "var(--primary)",
+      color: "#fff",
+      borderRadius: 8,
+      height: 28,
+      padding: "0 11px",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E43\u0E2A\u0E48"), React.createElement("button", {
+    onClick: () => setTxt(null),
+    style: {
+      border: "none",
+      background: "var(--surface3)",
+      color: "var(--text-2)",
+      borderRadius: 8,
+      width: 28,
+      height: 28,
+      cursor: "pointer"
+    }
+  }, "\u2715")))), React.createElement("div", {
     style: {
       padding: "10px 14px",
       borderTop: "1px solid var(--border)",
       background: "var(--surface)",
       display: "flex",
-      gap: 8,
+      gap: 10,
       flexWrap: "wrap",
       alignItems: "center"
     }
-  }, React.createElement("button", {
-    onClick: () => setTool("a"),
-    style: btn(tool === "a")
-  }, "\u2197 \u0E25\u0E39\u0E01\u0E28\u0E23"), React.createElement("button", {
-    onClick: () => setTool("t"),
-    style: btn(tool === "t")
-  }, "\u0E01 \u0E02\u0E49\u0E2D\u0E04\u0E27\u0E32\u0E21"), React.createElement("span", {
+  }, React.createElement("div", {
     style: {
       display: "inline-flex",
-      gap: 6,
-      marginLeft: 2
+      background: "var(--surface3)",
+      borderRadius: 11,
+      padding: 3,
+      gap: 2
+    }
+  }, ANN_TOOLS.map(t => {
+    const on = t.key === tool;
+    return React.createElement("button", {
+      key: t.key,
+      onClick: () => {
+        setTool(t.key);
+        if (t.key === "i") pasteImage();
+      },
+      title: t.hint,
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        height: 32,
+        padding: "0 11px",
+        borderRadius: 9,
+        border: "none",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 12.5,
+        fontWeight: 700,
+        whiteSpace: "nowrap",
+        background: on ? "var(--surface)" : "transparent",
+        color: on ? "var(--primary-dark)" : "var(--text-2)",
+        boxShadow: on ? "0 1px 3px rgba(0,0,0,.1)" : "none",
+        transition: "all .15s"
+      }
+    }, React.createElement("span", {
+      style: {
+        fontSize: 13
+      }
+    }, t.glyph), !isMobile && t.th);
+  })), React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      gap: 5
     }
   }, ANN_COLORS.map(c => React.createElement("button", {
     key: c,
     onClick: () => setColor(c),
     "aria-label": "สี " + c,
     style: {
-      width: 28,
-      height: 28,
+      width: 26,
+      height: 26,
       borderRadius: 99,
       cursor: "pointer",
       background: c,
-      border: color === c ? "3px solid var(--primary-dark)" : "1px solid var(--border-strong)"
+      transition: "transform .12s",
+      transform: color === c ? "scale(1.14)" : "none",
+      border: color === c ? "2.5px solid var(--primary-dark)" : "1px solid rgba(0,0,0,.18)"
     }
   }))), React.createElement("span", {
     style: {
@@ -505,15 +827,15 @@ function AnnEditor({
     }
   }), React.createElement("button", {
     onClick: () => setAnn(a => a.slice(0, -1)),
-    disabled: !ann.length,
-    style: Object.assign(btn(false), {
-      opacity: ann.length ? 1 : .45
+    disabled: !ann.length || busy,
+    style: Object.assign({}, ghost, {
+      opacity: ann.length ? 1 : .4
     })
-  }, "\u0E40\u0E25\u0E34\u0E01\u0E17\u0E33"), React.createElement("button", {
+  }, "\u21B6 \u0E40\u0E25\u0E34\u0E01\u0E17\u0E33"), React.createElement("button", {
     onClick: () => setAnn([]),
     disabled: !ann.length,
-    style: Object.assign(btn(false), {
-      opacity: ann.length ? 1 : .45
+    style: Object.assign({}, ghost, {
+      opacity: ann.length ? 1 : .4
     })
   }, "\u0E25\u0E49\u0E32\u0E07")), React.createElement("div", {
     style: {
@@ -528,7 +850,7 @@ function AnnEditor({
     onClick: onClose,
     style: {
       padding: "12px 18px",
-      borderRadius: 11,
+      borderRadius: 12,
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -542,14 +864,15 @@ function AnnEditor({
     style: {
       flex: 1,
       padding: 12,
-      borderRadius: 11,
+      borderRadius: 12,
       border: "none",
       background: "var(--primary)",
       color: "#fff",
       fontWeight: 700,
       fontFamily: "inherit",
       fontSize: 14,
-      cursor: "pointer"
+      cursor: "pointer",
+      boxShadow: "0 4px 14px rgba(34,163,91,.3)"
     }
   }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E17\u0E35\u0E48\u0E40\u0E02\u0E35\u0E22\u0E19"))));
 }
@@ -558,30 +881,107 @@ function SurveyBlock({
   sub,
   children
 }) {
-  return React.createElement("div", {
+  const m = /^(\S+)\s+([\s\S]+)$/.exec(String(title || ""));
+  const glyph = m && !/[ก-๙A-Za-z0-9]/.test(m[1]) ? m[1] : "";
+  const head = glyph ? m[2] : title;
+  return React.createElement("section", {
     style: {
       background: "var(--surface)",
       border: "1px solid var(--border)",
-      borderRadius: 14,
-      padding: 16,
+      borderRadius: 16,
+      padding: "15px 16px 16px",
       display: "flex",
       flexDirection: "column",
-      gap: 13
+      gap: 14,
+      boxShadow: "0 1px 2px rgba(8,20,14,.04)"
     }
-  }, React.createElement("div", null, React.createElement("div", {
+  }, React.createElement("header", {
     style: {
-      fontSize: 13,
-      fontWeight: 800,
+      display: "flex",
+      gap: 10,
+      alignItems: "flex-start"
+    }
+  }, glyph && React.createElement("span", {
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: 10,
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+      background: "var(--primary-soft)",
+      fontSize: 15,
+      lineHeight: 1
+    }
+  }, glyph), React.createElement("span", {
+    style: {
+      minWidth: 0,
+      paddingTop: glyph ? 2 : 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 13.5,
+      fontWeight: 700,
       color: "var(--text-1)",
-      letterSpacing: ".01em"
+      letterSpacing: "-.005em"
     }
-  }, title), sub && React.createElement("div", {
+  }, head), sub && React.createElement("span", {
     style: {
+      display: "block",
       fontSize: 11.5,
       color: "var(--text-3)",
-      marginTop: 2
+      marginTop: 2,
+      lineHeight: 1.45
     }
-  }, sub)), children);
+  }, sub))), children);
+}
+function SurveyToggle({
+  label,
+  hint,
+  value,
+  onChange,
+  options
+}) {
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+      padding: "9px 12px",
+      background: "var(--surface2)",
+      border: "1px solid var(--border)",
+      borderRadius: 11
+    }
+  }, React.createElement("span", {
+    style: {
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: "var(--text-1)",
+      lineHeight: 1.35
+    }
+  }, label), hint && React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 11,
+      color: "var(--text-3)",
+      marginTop: 1
+    }
+  }, hint)), React.createElement("span", {
+    style: {
+      flexShrink: 0
+    }
+  }, React.createElement(Segmented, {
+    value: value,
+    onChange: onChange,
+    options: options
+  })));
 }
 function SurveyShotCard({
   shot,
@@ -615,13 +1015,15 @@ function SurveyShotCard({
   };
   return React.createElement("div", {
     style: {
-      border: "1px solid " + (has ? "var(--primary)" : "var(--border-strong)"),
-      borderRadius: 12,
+      border: "1px solid " + (has ? "var(--border)" : "var(--border-strong)"),
+      borderRadius: 13,
       padding: 11,
-      background: has ? "var(--primary-soft)" : "var(--surface2)",
+      borderLeft: "3px solid " + (has ? "var(--primary)" : "var(--surface3)"),
+      background: has ? "var(--surface)" : "var(--surface2)",
       display: "flex",
       flexDirection: "column",
-      gap: 10
+      gap: 10,
+      transition: "border-color .2s"
     }
   }, React.createElement("div", {
     style: {
@@ -629,29 +1031,7 @@ function SurveyShotCard({
       gap: 11,
       alignItems: "center"
     }
-  }, React.createElement("span", {
-    style: {
-      width: 26,
-      height: 26,
-      borderRadius: 99,
-      flexShrink: 0,
-      display: "grid",
-      placeItems: "center",
-      background: has ? "var(--primary)" : "var(--surface3)",
-      color: has ? "#fff" : "var(--text-3)",
-      fontSize: 12,
-      fontWeight: 800
-    }
-  }, has ? n || React.createElement(Icon, {
-    name: "check",
-    size: 15,
-    color: "#fff",
-    sw: 2.6
-  }) : React.createElement(Icon, {
-    name: "image",
-    size: 14,
-    color: "var(--text-3)"
-  })), has && React.createElement("span", {
+  }, has ? React.createElement("span", {
     style: {
       position: "relative",
       flexShrink: 0,
@@ -662,13 +1042,45 @@ function SurveyShotCard({
     alt: "",
     onClick: () => onAnn && onAnn(),
     style: {
-      width: 52,
-      height: 52,
-      borderRadius: 9,
+      width: 54,
+      height: 54,
+      borderRadius: 10,
       objectFit: "cover",
       cursor: "pointer",
       border: "1px solid var(--border)"
     }
+  }), React.createElement("span", {
+    style: {
+      position: "absolute",
+      top: -5,
+      left: -5,
+      width: 20,
+      height: 20,
+      borderRadius: 99,
+      display: "grid",
+      placeItems: "center",
+      background: "var(--primary)",
+      color: "#fff",
+      fontSize: 10.5,
+      fontWeight: 800,
+      fontFamily: "var(--mono)",
+      border: "2px solid var(--surface)"
+    }
+  }, n || "✓")) : React.createElement("span", {
+    style: {
+      width: 54,
+      height: 54,
+      borderRadius: 10,
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+      background: "var(--surface3)",
+      border: "1px dashed var(--border-strong)"
+    }
+  }, React.createElement(Icon, {
+    name: "image",
+    size: 17,
+    color: "var(--text-3)"
   })), React.createElement("span", {
     style: {
       flex: 1,
@@ -764,18 +1176,27 @@ function SurveyShotCard({
     style: {
       display: "inline-flex",
       alignItems: "center",
-      gap: 5,
+      gap: 6,
       padding: "7px 12px",
       borderRadius: 9,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
+      border: "1px solid " + (shot.ann && shot.ann.length ? "var(--primary)" : "var(--border-strong)"),
+      background: shot.ann && shot.ann.length ? "var(--primary-soft)" : "var(--surface)",
       color: "var(--primary-dark)",
       fontFamily: "inherit",
       fontSize: 12,
       fontWeight: 700,
       cursor: "pointer"
     }
-  }, "\u2197 \u0E40\u0E02\u0E35\u0E22\u0E19\u0E25\u0E39\u0E01\u0E28\u0E23 / \u0E02\u0E49\u0E2D\u0E04\u0E27\u0E32\u0E21", shot.ann && shot.ann.length ? " (" + shot.ann.length + ")" : ""), onMove && React.createElement(React.Fragment, null, React.createElement("button", {
+  }, "\u2197 \u0E40\u0E02\u0E35\u0E22\u0E19 / \u0E41\u0E1B\u0E30\u0E23\u0E39\u0E1B\u0E17\u0E31\u0E1A", shot.ann && shot.ann.length ? React.createElement("span", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontSize: 10.5,
+      background: "var(--primary)",
+      color: "#fff",
+      borderRadius: 99,
+      padding: "1px 6px"
+    }
+  }, shot.ann.length) : null), onMove && React.createElement(React.Fragment, null, React.createElement("button", {
     type: "button",
     onClick: () => onMove(-1),
     disabled: first,
@@ -946,7 +1367,7 @@ function SurveyWizard({
     pickPhoto(key, file, maxOrder + 1);
   };
   React.useEffect(() => {
-    if (step !== 5) return;
+    if (step !== 5 || annKey) return;
     const onPaste = e => {
       const items = e.clipboardData && e.clipboardData.items || [];
       for (let i = 0; i < items.length; i++) {
@@ -961,7 +1382,7 @@ function SurveyWizard({
     };
     window.addEventListener("paste", onPaste);
     return () => window.removeEventListener("paste", onPaste);
-  }, [step, shots.length]);
+  }, [step, annKey, shots.length]);
   const pasteFromClipboard = async () => {
     try {
       if (!navigator.clipboard || !navigator.clipboard.read) throw new Error("เบราว์เซอร์นี้อ่านคลิปบอร์ดไม่ได้ ลองกด Ctrl+V แทน");
@@ -1024,17 +1445,16 @@ function SurveyWizard({
     if (onSave) onSave(out, thenReport === true);
   };
   const labelStyle = {
-    fontSize: 10.5,
-    fontWeight: 700,
-    letterSpacing: ".05em",
-    textTransform: "uppercase",
-    color: "var(--text-3)"
+    fontSize: 11.5,
+    fontWeight: 600,
+    color: "var(--text-3)",
+    lineHeight: 1.3
   };
   const fld = (label, child, req) => React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
-      gap: 5
+      gap: 6
     }
   }, React.createElement("label", {
     style: labelStyle
@@ -1076,7 +1496,7 @@ function SurveyWizard({
     }
   }, React.createElement("div", {
     style: {
-      padding: "16px 20px 12px",
+      padding: "15px 18px 13px",
       borderBottom: "1px solid var(--border)",
       background: "var(--surface)"
     }
@@ -1093,39 +1513,73 @@ function SurveyWizard({
     }
   }, React.createElement("div", {
     style: {
-      fontSize: 11.5,
+      display: "flex",
+      alignItems: "center",
+      gap: 7,
+      fontSize: 11,
       color: "var(--text-3)",
       fontWeight: 600
     }
-  }, "\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \xB7 ", job ? job.code : ""), React.createElement("h2", {
+  }, React.createElement("span", {
     style: {
-      fontSize: 17,
+      fontFamily: "var(--mono)",
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "var(--primary-dark)",
+      background: "var(--primary-soft)",
+      padding: "2px 7px",
+      borderRadius: 6
+    }
+  }, job ? job.code : ""), "\u0E41\u0E1A\u0E1A\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19"), React.createElement("h2", {
+    style: {
+      fontSize: 17.5,
       fontWeight: 800,
       color: "var(--text-1)",
-      margin: "2px 0 0",
+      margin: "4px 0 0",
+      letterSpacing: "-.015em",
       whiteSpace: "nowrap",
       overflow: "hidden",
-      textOverflow: "ellipsis"
+      textOverflow: "ellipsis",
+      fontFamily: "var(--display)"
     }
   }, job ? job.name : "")), React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
-      gap: 10,
+      gap: 9,
       flexShrink: 0
     }
   }, React.createElement("span", {
     style: {
-      fontSize: 12,
-      fontWeight: 800,
-      color: st.color
+      position: "relative",
+      width: 38,
+      height: 38,
+      borderRadius: 99,
+      display: "grid",
+      placeItems: "center",
+      background: "conic-gradient(" + st.color + " " + st.pct * 3.6 + "deg, var(--surface3) 0deg)"
     }
-  }, st.pct, "%"), React.createElement("button", {
+  }, React.createElement("span", {
+    style: {
+      position: "absolute",
+      inset: 3.5,
+      borderRadius: 99,
+      background: "var(--surface)"
+    }
+  }), React.createElement("span", {
+    style: {
+      position: "relative",
+      fontSize: 10.5,
+      fontWeight: 800,
+      color: st.color,
+      fontFamily: "var(--mono)"
+    }
+  }, st.pct)), React.createElement("button", {
     onClick: onClose,
     style: {
-      width: 32,
-      height: 32,
-      borderRadius: 9,
+      width: 34,
+      height: 34,
+      borderRadius: 10,
       border: "1px solid var(--border)",
       background: "var(--surface)",
       cursor: "pointer",
@@ -1139,49 +1593,75 @@ function SurveyWizard({
   })))), React.createElement("div", {
     style: {
       display: "flex",
-      gap: 6,
-      marginTop: 13
+      alignItems: "center",
+      gap: 2,
+      marginTop: 14
     }
-  }, SURVEY_STEPS.map(s => {
+  }, SURVEY_STEPS.map((s, i) => {
     const active = s.n === step,
       done = s.n < step;
-    return React.createElement("button", {
-      key: s.n,
-      onClick: () => setStep(s.n),
+    return React.createElement(React.Fragment, {
+      key: s.n
+    }, i > 0 && React.createElement("span", {
       style: {
         flex: 1,
+        height: 2,
+        borderRadius: 99,
+        background: done || active ? "var(--primary)" : "var(--surface3)",
+        transition: "background .2s"
+      }
+    }), React.createElement("button", {
+      onClick: () => setStep(s.n),
+      title: s.th,
+      style: {
         display: "flex",
-        flexDirection: "column",
         alignItems: "center",
-        gap: 4,
-        background: "transparent",
+        gap: 6,
+        background: active ? "var(--primary-soft)" : "transparent",
         border: "none",
         cursor: "pointer",
         fontFamily: "inherit",
-        padding: 0
+        padding: active && !isMobile ? "4px 11px 4px 4px" : 4,
+        borderRadius: 99,
+        flexShrink: 0
       }
     }, React.createElement("span", {
       style: {
-        width: "100%",
-        height: 4,
+        width: 24,
+        height: 24,
         borderRadius: 99,
-        background: active || done ? "var(--primary)" : "var(--surface3)"
+        display: "grid",
+        placeItems: "center",
+        flexShrink: 0,
+        fontSize: 11.5,
+        fontWeight: 800,
+        fontFamily: "var(--mono)",
+        transition: "all .2s",
+        background: done ? "var(--primary)" : active ? "var(--primary)" : "var(--surface3)",
+        color: done || active ? "#fff" : "var(--text-3)",
+        boxShadow: active ? "0 0 0 3px var(--primary-soft)" : "none"
       }
-    }), React.createElement("span", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 4,
-        fontSize: isMobile ? 0 : 10.5,
-        fontWeight: active ? 800 : 600,
-        color: active ? "var(--primary-dark)" : "var(--text-3)"
-      }
-    }, React.createElement(Icon, {
-      name: s.icon,
+    }, done ? React.createElement(Icon, {
+      name: "check",
       size: 13,
-      color: active ? "var(--primary-dark)" : "var(--text-3)"
-    }), !isMobile && s.th));
-  }))), React.createElement("div", {
+      color: "#fff",
+      sw: 2.8
+    }) : s.n), active && !isMobile && React.createElement("span", {
+      style: {
+        fontSize: 12,
+        fontWeight: 700,
+        color: "var(--primary-dark)",
+        whiteSpace: "nowrap"
+      }
+    }, s.th)));
+  })), isMobile && React.createElement("div", {
+    style: {
+      marginTop: 7,
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--primary-dark)"
+    }
+  }, (SURVEY_STEPS[step - 1] || {}).th)), React.createElement("div", {
     style: {
       overflowY: "auto",
       flex: 1,
@@ -1276,7 +1756,9 @@ function SurveyWizard({
     onChange: v => set("meterAuth", v),
     placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01 \u2014",
     options: SURVEY_METER_AUTH
-  }))), fld("ระบบไฟฟ้า (เฟส)", React.createElement(Segmented, {
+  }))), React.createElement(SurveyToggle, {
+    label: "\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E1F\u0E1F\u0E49\u0E32",
+    hint: "\u0E08\u0E33\u0E40\u0E1B\u0E47\u0E19\u0E15\u0E49\u0E2D\u0E07\u0E23\u0E30\u0E1A\u0E38",
     value: f.phase,
     onChange: v => set("phase", v),
     options: [{
@@ -1286,7 +1768,7 @@ function SurveyWizard({
       value: "3",
       label: "3 เฟส"
     }]
-  }), true), fld("สายเมนเดิม", React.createElement("input", {
+  }), fld("สายเมนเดิม", React.createElement("input", {
     value: f.mainCable,
     onChange: e => set("mainCable", e.target.value),
     placeholder: "\u0E40\u0E0A\u0E48\u0E19 NYY 50 sq.mm",
@@ -1314,11 +1796,19 @@ function SurveyWizard({
     onChange: v => set("roofCondition", v),
     placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01 \u2014",
     options: SURVEY_ROOF_COND
-  })), fld("โครงสร้างรับน้ำหนัก", React.createElement(Segmented, {
+  })), React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, React.createElement(SurveyToggle, {
+    label: "\u0E42\u0E04\u0E23\u0E07\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E23\u0E31\u0E1A\u0E19\u0E49\u0E33\u0E2B\u0E19\u0E31\u0E01",
     value: f.structureOk,
     onChange: v => set("structureOk", v),
     options: SURVEY_PASS
-  })), fld("ตาข่ายกันนก", React.createElement(Segmented, {
+  }), React.createElement(SurveyToggle, {
+    label: "\u0E15\u0E32\u0E02\u0E48\u0E32\u0E22\u0E01\u0E31\u0E19\u0E19\u0E01",
     value: f.birdNet,
     onChange: v => set("birdNet", v),
     options: SURVEY_BIRDNET
@@ -1380,16 +1870,23 @@ function SurveyWizard({
     placeholder: "\u0E40\u0E0A\u0E48\u0E19 100A, 3P",
     style: inputStyle
   }), true), React.createElement("div", {
-    style: two
-  }, fld("มีเซฟตี้คัต", React.createElement(Segmented, {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, React.createElement(SurveyToggle, {
+    label: "\u0E21\u0E35\u0E40\u0E0B\u0E1F\u0E15\u0E35\u0E49\u0E04\u0E31\u0E15",
     value: f.mdbSafety,
     onChange: v => set("mdbSafety", v),
     options: SURVEY_YESNO
-  })), fld("เมนเป็นชนิดกันดูด (RCD / RCCB)", React.createElement(Segmented, {
+  }), React.createElement(SurveyToggle, {
+    label: "\u0E40\u0E21\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E0A\u0E19\u0E34\u0E14\u0E01\u0E31\u0E19\u0E14\u0E39\u0E14",
+    hint: "RCD / RCCB",
     value: f.mdbRccb,
     onChange: v => set("mdbRccb", v),
     options: SURVEY_YESNO
-  }))), fld("ตำแหน่งที่ตั้งตู้ MDB", React.createElement("input", {
+  })), fld("ตำแหน่งที่ตั้งตู้ MDB", React.createElement("input", {
     value: f.mdbLoc,
     onChange: e => set("mdbLoc", e.target.value),
     placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E02\u0E49\u0E32\u0E07\u0E1A\u0E31\u0E19\u0E44\u0E14 \u0E0A\u0E31\u0E49\u0E19 1 / \u0E42\u0E23\u0E07\u0E08\u0E2D\u0E14\u0E23\u0E16",
@@ -1543,7 +2040,7 @@ function SurveyWizard({
     })
   }))), step === 5 && React.createElement(React.Fragment, null, React.createElement(SurveyBlock, {
     title: "📷 รูปถ่ายบังคับ (" + SURVEY_PHOTO_SLOTS.length + " รูป)",
-    sub: "\u0E16\u0E48\u0E32\u0E22\u0E43\u0E2B\u0E49\u0E04\u0E23\u0E1A\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E43\u0E2B\u0E49\u0E01\u0E32\u0E23\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E2A\u0E21\u0E1A\u0E39\u0E23\u0E13\u0E4C \xB7 \u0E41\u0E15\u0E30\u0E23\u0E39\u0E1B\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E02\u0E35\u0E22\u0E19\u0E25\u0E39\u0E01\u0E28\u0E23/\u0E02\u0E49\u0E2D\u0E04\u0E27\u0E32\u0E21"
+    sub: "\u0E16\u0E48\u0E32\u0E22\u0E43\u0E2B\u0E49\u0E04\u0E23\u0E1A\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E43\u0E2B\u0E49\u0E01\u0E32\u0E23\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E2A\u0E21\u0E1A\u0E39\u0E23\u0E13\u0E4C \xB7 \u0E41\u0E15\u0E30\u0E23\u0E39\u0E1B\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E02\u0E35\u0E22\u0E19\u0E25\u0E39\u0E01\u0E28\u0E23 \u0E02\u0E49\u0E2D\u0E04\u0E27\u0E32\u0E21 \u0E2B\u0E23\u0E37\u0E2D\u0E41\u0E1B\u0E30\u0E23\u0E39\u0E1B\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E17\u0E31\u0E1A"
   }, !window.FBDB && React.createElement("div", {
     style: {
       fontSize: 12,
@@ -1584,7 +2081,7 @@ function SurveyWizard({
     });
   }))), React.createElement(SurveyBlock, {
     title: "🖼️ รูปเพิ่มเติม (" + extras.length + " รูป)",
-    sub: "\u0E16\u0E48\u0E32\u0E22\u0E01\u0E35\u0E48\u0E23\u0E39\u0E1B\u0E01\u0E47\u0E44\u0E14\u0E49 \xB7 \u0E04\u0E23\u0E2D\u0E1B\u0E23\u0E39\u0E1B\u0E21\u0E32\u0E41\u0E25\u0E49\u0E27\u0E01\u0E14 Ctrl+V \u0E41\u0E1B\u0E30\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22 \xB7 \u0E15\u0E31\u0E49\u0E07\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D/\u0E2B\u0E21\u0E27\u0E14\u0E2B\u0E21\u0E39\u0E48 \u0E41\u0E25\u0E49\u0E27\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E08\u0E30\u0E08\u0E31\u0E14\u0E01\u0E25\u0E38\u0E48\u0E21\u0E43\u0E2B\u0E49\u0E15\u0E32\u0E21\u0E19\u0E35\u0E49"
+    sub: "\u0E16\u0E48\u0E32\u0E22\u0E01\u0E35\u0E48\u0E23\u0E39\u0E1B\u0E01\u0E47\u0E44\u0E14\u0E49 \xB7 \u0E04\u0E23\u0E2D\u0E1B\u0E23\u0E39\u0E1B\u0E21\u0E32\u0E41\u0E25\u0E49\u0E27\u0E01\u0E14 Ctrl+V \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E40\u0E1B\u0E47\u0E19\u0E23\u0E39\u0E1B\u0E43\u0E2B\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22 \xB7 \u0E15\u0E31\u0E49\u0E07\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D/\u0E2B\u0E21\u0E27\u0E14\u0E2B\u0E21\u0E39\u0E48 \u0E41\u0E25\u0E49\u0E27\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E08\u0E30\u0E08\u0E31\u0E14\u0E01\u0E25\u0E38\u0E48\u0E21\u0E43\u0E2B\u0E49\u0E15\u0E32\u0E21\u0E19\u0E35\u0E49"
   }, React.createElement("div", {
     style: {
       display: "flex",

@@ -160,34 +160,68 @@ function shotTitle(shot) {
    พิกัดเก็บเป็นสัดส่วน 0–1 ของรูป · วาดด้วย SVG viewBox เท่าขนาดรูปจริง
    จึงคมทุกขนาดหน้าจอ ไม่บิดเบี้ยว และพิมพ์ลงรายงานได้ตรง
    ============================================================ */
-const ANN_COLORS = ["#EF4444", "#22C55E", "#FACC15", "#FFFFFF", "#0EA5E9"];
+const ANN_COLORS = ["#EF4444", "#F97316", "#FACC15", "#22C55E", "#0EA5E9", "#FFFFFF"];
 
-function AnnOverlay({ ann, aw, ah }) {
+/* วัดขนาดจริงของกรอบที่รูปแสดงอยู่ แล้วเอาไปทำ viewBox
+   ของเดิมใช้ aw/ah ของไฟล์รูป — รูปเก่าที่ไม่มีค่านี้จะตกไปใช้ 1000x750 ทำให้ภาพ SVG
+   ถูกยืดผิดสัดส่วน หัวลูกศรเลยเบี้ยว · วัดจากกรอบจริงแล้วไม่มีทางเบี้ยว */
+function useBoxSize(ref, fallbackW, fallbackH) {
+  const [sz, setSz] = React.useState(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const read = () => { const r = el.getBoundingClientRect(); if (r.width > 4 && r.height > 4) setSz({ w: r.width, h: r.height }); };
+    read();
+    const t = setTimeout(read, 120);          // รอรูปโหลดเสร็จอีกรอบ
+    window.addEventListener("resize", read);
+    return () => { clearTimeout(t); window.removeEventListener("resize", read); };
+  }, [ref]);
+  return sz || { w: fallbackW || 1000, h: fallbackH || 750 };
+}
+
+function AnnOverlay({ ann, aw, ah, edit }) {
+  const ref = React.useRef(null);
+  const box = useBoxSize(ref, aw, ah);
   const list = ann || [];
-  if (!list.length) return null;
-  const W = aw || 1000, H = ah || 750;
-  const unit = Math.max(W, H) / 100;            // ความหนาเส้นอ้างอิงกับขนาดรูป
+  const W = box.w, H = box.h;
+  const unit = Math.max(W, H) / 100;            // ความหนาเส้นอ้างอิงกับขนาดที่แสดงจริง
   return (
-    <svg viewBox={"0 0 " + W + " " + H} preserveAspectRatio="none" aria-hidden="true"
+    <svg ref={ref} viewBox={"0 0 " + W + " " + H} preserveAspectRatio="none" aria-hidden="true"
       style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
       {list.map((a, i) => {
-        if (a.t === "a") {
-          const x1 = a.x1 * W, y1 = a.y1 * H, x2 = a.x2 * W, y2 = a.y2 * H;
-          const ang = Math.atan2(y2 - y1, x2 - x1);
-          const head = unit * 4.5;
-          const p1x = x2 - head * Math.cos(ang - 0.42), p1y = y2 - head * Math.sin(ang - 0.42);
-          const p2x = x2 - head * Math.cos(ang + 0.42), p2y = y2 - head * Math.sin(ang + 0.42);
+        if (a.t === "i") {
+          /* รูปที่แปะทับ (ภาพตัด / รูปอุปกรณ์) — w เป็นสัดส่วนความกว้าง, r = สูง/กว้างของรูปเดิม */
+          const w = (a.w || 0.35) * W, hh = w * (a.r || 0.75);
           return (
             <g key={i}>
-              <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={a.c} strokeWidth={unit * 1.3} strokeLinecap="round" />
-              <polygon points={x2 + "," + y2 + " " + p1x + "," + p1y + " " + p2x + "," + p2y} fill={a.c} />
+              <image href={a.src} x={a.x * W} y={a.y * H} width={w} height={hh} preserveAspectRatio="none" />
+              <rect x={a.x * W} y={a.y * H} width={w} height={hh} fill="none" stroke={a.c || "#FFFFFF"} strokeWidth={unit * 0.5} rx={unit * 0.8} />
+              {/* จุดจับย่อ-ขยายมุมขวาล่าง โชว์เฉพาะตอนแก้ ไม่ติดไปในรายงาน */}
+              {edit && <circle cx={a.x * W + w} cy={a.y * H + hh} r={unit * 1.6} fill="#fff" stroke="var(--primary)" strokeWidth={unit * 0.5} />}
             </g>
           );
         }
-        const fs = (a.s || 0.05) * W;
+        if (a.t === "a") {
+          const x1 = a.x1 * W, y1 = a.y1 * H, x2 = a.x2 * W, y2 = a.y2 * H;
+          const ang = Math.atan2(y2 - y1, x2 - x1);
+          const lw = unit * 1.15;
+          const head = lw * 3.4;                 // หัวลูกศรผูกกับความหนาเส้น จะได้ได้สัดส่วนเสมอ
+          const halfW = head * 0.46;
+          const bx = x2 - head * Math.cos(ang), by = y2 - head * Math.sin(ang);       // โคนหัวลูกศร
+          const nx = -Math.sin(ang), ny = Math.cos(ang);
+          const pts = [x2 + "," + y2, (bx + halfW * nx) + "," + (by + halfW * ny), (bx - halfW * nx) + "," + (by - halfW * ny)].join(" ");
+          return (
+            <g key={i}>
+              {/* เส้นหยุดที่โคนหัว ไม่ให้ปลายเส้นล้นออกมาเป็นก้อน */}
+              <line x1={x1} y1={y1} x2={bx} y2={by} stroke={a.c} strokeWidth={lw} strokeLinecap="round" />
+              <polygon points={pts} fill={a.c} strokeLinejoin="round" stroke={a.c} strokeWidth={lw * 0.35} />
+            </g>
+          );
+        }
+        const fs = (a.s || 0.055) * W;
         return (
           <text key={i} x={a.x * W} y={a.y * H} fill={a.c} fontSize={fs} fontWeight="800"
-            stroke="rgba(0,0,0,.55)" strokeWidth={fs * 0.14} paintOrder="stroke"
+            stroke="rgba(0,0,0,.55)" strokeWidth={fs * 0.16} paintOrder="stroke"
             style={{ fontFamily: "var(--sans)" }} dominantBaseline="middle">{a.v}</text>
         );
       })}
@@ -195,95 +229,240 @@ function AnnOverlay({ ann, aw, ah }) {
   );
 }
 
+const ANN_TOOLS = [
+  { key: "a", th: "ลูกศร",   glyph: "↗", hint: "ลากจากจุดที่ต้องการชี้ ไปยังปลายลูกศร" },
+  { key: "t", th: "ข้อความ", glyph: "ก", hint: "แตะตำแหน่งบนรูป แล้วพิมพ์ข้อความได้เลย" },
+  { key: "i", th: "แปะรูป",  glyph: "🖼", hint: "ก๊อปรูป/ภาพตัดมา แล้วกดแปะ (หรือ Ctrl+V) แล้วลากวางได้" },
+  { key: "m", th: "ย้าย",    glyph: "✥", hint: "ลากรูปที่แปะไว้เพื่อย้าย · ลากมุมขวาล่างเพื่อย่อ-ขยาย" },
+];
+
 /* ตัวเขียนบนรูป — จิ้มลากบนมือถือได้เลย */
 function AnnEditor({ shot, onSave, onClose }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
-  const [tool, setTool] = React.useState("a");        // a = ลูกศร · t = ข้อความ
+  const [tool, setTool] = React.useState("a");        // a ลูกศร · t ข้อความ · i แปะรูป · m ย้าย
   const [color, setColor] = React.useState("#EF4444");
   const [ann, setAnn] = React.useState(() => (shot.ann || []).slice());
   const [drag, setDrag] = React.useState(null);       // ลูกศรที่กำลังลาก
+  const [grab, setGrab] = React.useState(null);       // รูปที่กำลังย้าย/ย่อขยาย
+  const [txt, setTxt] = React.useState(null);         // { x, y, v } กล่องพิมพ์ข้อความที่เปิดค้างอยู่
+  const [busy, setBusy] = React.useState(false);
   const boxRef = React.useRef(null);
+  const txtRef = React.useRef(null);
   const W = shot.aw || 1000, H = shot.ah || 750;
+  const curTool = ANN_TOOLS.find((t) => t.key === tool) || ANN_TOOLS[0];
+
+  React.useEffect(() => { if (txt && txtRef.current) txtRef.current.focus(); }, [txt && txt.at]);
 
   // แปลงตำแหน่งนิ้ว/เมาส์ → สัดส่วน 0–1 ของรูป
   const pt = (e) => {
     const r = boxRef.current.getBoundingClientRect();
     const t = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]) || e;
-    return { x: Math.min(1, Math.max(0, (t.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (t.clientY - r.top) / r.height)) };
+    return { x: Math.min(1, Math.max(0, (t.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (t.clientY - r.top) / r.height)),
+      ar: r.width / r.height };
   };
+  // หารูปที่แปะไว้ใต้จุดที่จิ้ม (เอาใบบนสุดก่อน) — คืน index กับว่าจับมุมย่อขยายอยู่ไหม
+  const hitImage = (p) => {
+    for (let i = ann.length - 1; i >= 0; i--) {
+      const a = ann[i];
+      if (a.t !== "i") continue;
+      const w = a.w || 0.35;
+      const hh = w * (a.r || 0.75) * p.ar;   // ความสูงคิดเป็นสัดส่วนของกรอบ (r คือ สูง/กว้าง ของรูปต้นฉบับ)
+      if (p.x >= a.x && p.x <= a.x + w && p.y >= a.y && p.y <= a.y + hh) {
+        const corner = (p.x > a.x + w - 0.06) && (p.y > a.y + hh - 0.06 * p.ar);
+        return { i: i, mode: corner ? "size" : "move", dx: p.x - a.x, dy: p.y - a.y };
+      }
+    }
+    return null;
+  };
+
   const down = (e) => {
+    if (txt) return;
     const p = pt(e);
-    if (tool === "t") {
-      const v = prompt("ข้อความที่จะเขียนบนรูป");
-      if (v && v.trim()) setAnn((a) => a.concat([{ t: "t", x: p.x, y: p.y, v: v.trim(), c: color, s: 0.055 }]));
+    if (tool === "t") { setTxt({ x: p.x, y: p.y, v: "", at: Date.now() }); return; }
+    if (tool === "m" || tool === "i") {
+      const hit = hitImage(p);
+      if (hit) { e.preventDefault(); setGrab(hit); }
       return;
     }
     e.preventDefault();
     setDrag({ t: "a", x1: p.x, y1: p.y, x2: p.x, y2: p.y, c: color });
   };
-  const move = (e) => { if (!drag) return; e.preventDefault(); const p = pt(e); setDrag((d) => Object.assign({}, d, { x2: p.x, y2: p.y })); };
+  const move = (e) => {
+    if (grab) {
+      e.preventDefault();
+      const p = pt(e);
+      setAnn((list) => list.map((a, j) => {
+        if (j !== grab.i) return a;
+        if (grab.mode === "size") return Object.assign({}, a, { w: Math.min(1, Math.max(0.06, p.x - a.x)) });
+        return Object.assign({}, a, { x: Math.max(0, Math.min(1 - (a.w || 0.35), p.x - grab.dx)), y: Math.max(0, Math.min(1, p.y - grab.dy)) });
+      }));
+      return;
+    }
+    if (!drag) return;
+    e.preventDefault();
+    const p = pt(e);
+    setDrag((d) => Object.assign({}, d, { x2: p.x, y2: p.y }));
+  };
   const up = () => {
+    if (grab) { setGrab(null); return; }
     if (!drag) return;
     const far = Math.abs(drag.x2 - drag.x1) > 0.03 || Math.abs(drag.y2 - drag.y1) > 0.03;
     if (far) setAnn((a) => a.concat([drag]));
     setDrag(null);
   };
 
-  const btn = (on) => ({ display: "inline-flex", alignItems: "center", gap: 5, padding: "9px 13px", borderRadius: 10, cursor: "pointer",
-    fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
-    background: on ? "var(--primary-soft)" : "var(--surface)", color: on ? "var(--primary-dark)" : "var(--text-2)" });
+  const commitText = () => {
+    const v = (txt.v || "").trim();
+    if (v) setAnn((a) => a.concat([{ t: "t", x: txt.x, y: txt.y, v: v, c: color, s: 0.055 }]));
+    setTxt(null);
+  };
+
+  /* แปะรูปเข้าไป "ในรูป" — เอาไว้เอาภาพตัด / รูปอุปกรณ์จากดาต้าชีต มาวางเทียบให้ดูคร่าว ๆ
+     เก็บเป็น dataUrl ย่อแล้วในตัว annotation จึงติดไปกับรูปทั้งตอนแก้และตอนออกรายงาน */
+  const addImage = async (file) => {
+    if (!file) return;
+    setBusy(true);
+    try {
+      const dataUrl = await resizeImageFile(file, 900, 0.8);
+      const dim = await new Promise((res) => { const im = new Image(); im.onload = () => res({ w: im.naturalWidth, h: im.naturalHeight }); im.onerror = () => res({ w: 4, h: 3 }); im.src = dataUrl; });
+      setAnn((a) => a.concat([{ t: "i", src: dataUrl, x: 0.28, y: 0.28, w: 0.4, r: dim.h / dim.w, c: color }]));
+      setTool("m");   // แปะแล้วสลับเป็นโหมดย้ายทันที จะได้ลากไปวางตรงที่ต้องการต่อได้เลย
+    } catch (err) { alert("แปะรูปไม่สำเร็จ: " + err.message); }
+    setBusy(false);
+  };
+  const pasteImage = async () => {
+    try {
+      if (!navigator.clipboard || !navigator.clipboard.read) throw new Error("เบราว์เซอร์นี้อ่านคลิปบอร์ดไม่ได้ ลองกด Ctrl+V แทน");
+      const list = await navigator.clipboard.read();
+      for (const it of list) {
+        const type = it.types.find((t) => t.indexOf("image/") === 0);
+        if (!type) continue;
+        addImage(new File([await it.getType(type)], "paste.png", { type: type }));
+        return;
+      }
+      alert("ในคลิปบอร์ดไม่มีรูปภาพ — ก๊อปรูปมาก่อนแล้วค่อยกดแปะ");
+    } catch (err) { alert("แปะรูปไม่สำเร็จ: " + err.message); }
+  };
+  React.useEffect(() => {
+    const onPaste = (e) => {
+      const items = (e.clipboardData && e.clipboardData.items) || [];
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].kind !== "file" || items[i].type.indexOf("image/") !== 0) continue;
+        const f = items[i].getAsFile();
+        if (f) { e.preventDefault(); addImage(f); }
+        return;
+      }
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, []);
+
+  const ghost = { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, height: 38, padding: "0 14px", borderRadius: 10,
+    border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" };
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.62)", backdropFilter: "blur(3px)", zIndex: 130, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
-      <div style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(860px,100%)", maxHeight: isMobile ? "96dvh" : "94vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+      <div style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 20, width: isMobile ? "100%" : "min(880px,100%)", maxHeight: isMobile ? "96dvh" : "94vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 90px rgba(8,20,14,.4)" }}>
+        <div style={{ padding: "13px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 15.5, fontWeight: 800, color: "var(--text-1)" }}>เขียนบนรูป</div>
-            <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{tool === "a" ? "ลากนิ้วจากต้นทางไปปลายทาง = ลูกศร" : "แตะตำแหน่งที่จะวางข้อความ"}</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-.01em" }}>เขียนบนรูป</div>
+            <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 1 }}>{curTool.hint}</div>
           </div>
-          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
+          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
         </div>
 
         <div style={{ flex: 1, overflow: "auto", padding: 14, background: "var(--surface2)", display: "grid", placeItems: "center" }}>
-          <div ref={boxRef} onMouseDown={down} onMouseMove={move} onMouseUp={up} onMouseLeave={up}
-            onTouchStart={down} onTouchMove={move} onTouchEnd={up}
-            style={{ position: "relative", maxWidth: "100%", touchAction: "none", userSelect: "none", lineHeight: 0, borderRadius: 10, overflow: "hidden", border: "1px solid var(--border)" }}>
-            <img src={shot.dataUrl} alt="" draggable={false} style={{ display: "block", maxWidth: "100%", maxHeight: isMobile ? "56dvh" : "62vh", width: "auto" }} />
-            <AnnOverlay ann={drag ? ann.concat([drag]) : ann} aw={W} ah={H} />
+          <div style={{ position: "relative", maxWidth: "100%" }}>
+            <div ref={boxRef} onMouseDown={down} onMouseMove={move} onMouseUp={up} onMouseLeave={up}
+              onTouchStart={down} onTouchMove={move} onTouchEnd={up}
+              style={{ position: "relative", touchAction: "none", userSelect: "none", lineHeight: 0, borderRadius: 12, overflow: "hidden",
+                border: "1px solid var(--border)", boxShadow: "0 6px 24px rgba(8,20,14,.14)",
+                cursor: tool === "m" ? "move" : tool === "t" ? "text" : "crosshair" }}>
+              <img src={shot.dataUrl} alt="" draggable={false} style={{ display: "block", maxWidth: "100%", maxHeight: isMobile ? "52dvh" : "58vh", width: "auto" }} />
+              <AnnOverlay ann={drag ? ann.concat([drag]) : ann} aw={W} ah={H} edit={tool === "m" || tool === "i"} />
+            </div>
+            {/* กล่องพิมพ์ข้อความ — วางตรงจุดที่แตะ (ของเดิมใช้ prompt() ซึ่งเว็บแอปบล็อก เลยพิมพ์ไม่ได้เลย) */}
+            {txt && (
+              <div style={{ position: "absolute", left: (txt.x * 100) + "%", top: (txt.y * 100) + "%", transform: "translate(-6px,-50%)", zIndex: 3, display: "flex", gap: 6, alignItems: "center", background: "var(--surface)", border: "1px solid var(--primary)", borderRadius: 10, padding: 5, boxShadow: "0 8px 24px rgba(8,20,14,.25)" }}>
+                <input ref={txtRef} value={txt.v} onChange={(e) => setTxt(Object.assign({}, txt, { v: e.target.value }))}
+                  onKeyDown={(e) => { if (e.key === "Enter") commitText(); if (e.key === "Escape") setTxt(null); }}
+                  placeholder="พิมพ์ข้อความ…" style={{ width: 168, border: "none", outline: "none", background: "transparent", fontFamily: "inherit", fontSize: 13, color: "var(--text-1)" }} />
+                <button onClick={commitText} style={{ border: "none", background: "var(--primary)", color: "#fff", borderRadius: 8, height: 28, padding: "0 11px", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>ใส่</button>
+                <button onClick={() => setTxt(null)} style={{ border: "none", background: "var(--surface3)", color: "var(--text-2)", borderRadius: 8, width: 28, height: 28, cursor: "pointer" }}>✕</button>
+              </div>
+            )}
           </div>
         </div>
 
-        <div style={{ padding: "10px 14px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <button onClick={() => setTool("a")} style={btn(tool === "a")}>↗ ลูกศร</button>
-          <button onClick={() => setTool("t")} style={btn(tool === "t")}>ก ข้อความ</button>
-          <span style={{ display: "inline-flex", gap: 6, marginLeft: 2 }}>
+        <div style={{ padding: "10px 14px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          {/* เครื่องมือ — กลุ่มเดียวแบบ segmented ปุ่มเท่ากันหมด ไม่ยาวลากยาวเหมือนของเดิม */}
+          <div style={{ display: "inline-flex", background: "var(--surface3)", borderRadius: 11, padding: 3, gap: 2 }}>
+            {ANN_TOOLS.map((t) => {
+              const on = t.key === tool;
+              return (
+                <button key={t.key} onClick={() => { setTool(t.key); if (t.key === "i") pasteImage(); }} title={t.hint}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 32, padding: "0 11px", borderRadius: 9, border: "none", cursor: "pointer",
+                    fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap",
+                    background: on ? "var(--surface)" : "transparent", color: on ? "var(--primary-dark)" : "var(--text-2)",
+                    boxShadow: on ? "0 1px 3px rgba(0,0,0,.1)" : "none", transition: "all .15s" }}>
+                  <span style={{ fontSize: 13 }}>{t.glyph}</span>{!isMobile && t.th}
+                </button>
+              );
+            })}
+          </div>
+          <span style={{ display: "inline-flex", gap: 5 }}>
             {ANN_COLORS.map((c) => (
               <button key={c} onClick={() => setColor(c)} aria-label={"สี " + c}
-                style={{ width: 28, height: 28, borderRadius: 99, cursor: "pointer", background: c, border: color === c ? "3px solid var(--primary-dark)" : "1px solid var(--border-strong)" }} />
+                style={{ width: 26, height: 26, borderRadius: 99, cursor: "pointer", background: c, transition: "transform .12s",
+                  transform: color === c ? "scale(1.14)" : "none",
+                  border: color === c ? "2.5px solid var(--primary-dark)" : "1px solid rgba(0,0,0,.18)" }} />
             ))}
           </span>
           <span style={{ flex: 1 }} />
-          <button onClick={() => setAnn((a) => a.slice(0, -1))} disabled={!ann.length} style={Object.assign(btn(false), { opacity: ann.length ? 1 : .45 })}>เลิกทำ</button>
-          <button onClick={() => setAnn([])} disabled={!ann.length} style={Object.assign(btn(false), { opacity: ann.length ? 1 : .45 })}>ล้าง</button>
+          <button onClick={() => setAnn((a) => a.slice(0, -1))} disabled={!ann.length || busy} style={Object.assign({}, ghost, { opacity: ann.length ? 1 : .4 })}>↶ เลิกทำ</button>
+          <button onClick={() => setAnn([])} disabled={!ann.length} style={Object.assign({}, ghost, { opacity: ann.length ? 1 : .4 })}>ล้าง</button>
         </div>
         <div style={{ padding: "12px 14px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10 }}>
-          <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
-          <button onClick={() => onSave(ann)} style={{ flex: 1, padding: 12, borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>บันทึกที่เขียน</button>
+          <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: 12, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
+          <button onClick={() => onSave(ann)} style={{ flex: 1, padding: 12, borderRadius: 12, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer", boxShadow: "0 4px 14px rgba(34,163,91,.3)" }}>บันทึกที่เขียน</button>
         </div>
       </div>
     </div>
   );
 }
 
-// ── หัวข้อย่อยในฟอร์ม ──
+/* ── หัวข้อย่อยในฟอร์ม ──
+   สัญลักษณ์นำหน้าชื่อหัวข้อจะถูกดึงออกมาใส่ในวงกลมสีอ่อนด้านซ้าย
+   ตัวหัวข้อจะได้เหลือแต่ตัวหนังสือ อ่านง่าย ไม่ใช่อีโมจิลอยปนกับข้อความ */
 function SurveyBlock({ title, sub, children }) {
+  const m = /^(\S+)\s+([\s\S]+)$/.exec(String(title || ""));
+  const glyph = m && !/[ก-๙A-Za-z0-9]/.test(m[1]) ? m[1] : "";
+  const head = glyph ? m[2] : title;
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, display: "flex", flexDirection: "column", gap: 13 }}>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)", letterSpacing: ".01em" }}>{title}</div>
-        {sub && <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 2 }}>{sub}</div>}
-      </div>
+    <section style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "15px 16px 16px", display: "flex", flexDirection: "column", gap: 14, boxShadow: "0 1px 2px rgba(8,20,14,.04)" }}>
+      <header style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+        {glyph && <span style={{ width: 30, height: 30, borderRadius: 10, flexShrink: 0, display: "grid", placeItems: "center", background: "var(--primary-soft)", fontSize: 15, lineHeight: 1 }}>{glyph}</span>}
+        <span style={{ minWidth: 0, paddingTop: glyph ? 2 : 0 }}>
+          <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-.005em" }}>{head}</span>
+          {sub && <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)", marginTop: 2, lineHeight: 1.45 }}>{sub}</span>}
+        </span>
+      </header>
       {children}
+    </section>
+  );
+}
+
+/* คำถามตอบสั้น ๆ (มี/ไม่มี, ผ่าน/ไม่ผ่าน) — ชื่อคำถามซ้าย ปุ่มชิดขวา
+   ของเดิมเอา Segmented ไปวางใต้ป้ายในช่องกริดครึ่งจอ ป้ายยาว ๆ เลยตัดบรรทัด
+   แล้วปุ่มไปลอยอยู่ล่างสุดดูยาวผิดรูป · แบบแถวนี้กว้างเท่าไรก็ไม่เพี้ยน */
+function SurveyToggle({ label, hint, value, onChange, options }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "9px 12px", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 11 }}>
+      <span style={{ minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, color: "var(--text-1)", lineHeight: 1.35 }}>{label}</span>
+        {hint && <span style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{hint}</span>}
+      </span>
+      <span style={{ flexShrink: 0 }}><Segmented value={value} onChange={onChange} options={options} /></span>
     </div>
   );
 }
@@ -295,16 +474,21 @@ function SurveyShotCard({ shot, slot, n, busy, onPick, onRemove, onAnn, onField,
   const req = !!slot;
   const mini = { width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", fontSize: 13, fontWeight: 800, flexShrink: 0 };
   return (
-    <div style={{ border: "1px solid " + (has ? "var(--primary)" : "var(--border-strong)"), borderRadius: 12, padding: 11,
-      background: has ? "var(--primary-soft)" : "var(--surface2)", display: "flex", flexDirection: "column", gap: 10 }}>
+    <div style={{ border: "1px solid " + (has ? "var(--border)" : "var(--border-strong)"), borderRadius: 13, padding: 11,
+      borderLeft: "3px solid " + (has ? "var(--primary)" : "var(--surface3)"),
+      background: has ? "var(--surface)" : "var(--surface2)", display: "flex", flexDirection: "column", gap: 10, transition: "border-color .2s" }}>
       <div style={{ display: "flex", gap: 11, alignItems: "center" }}>
-        <span style={{ width: 26, height: 26, borderRadius: 99, flexShrink: 0, display: "grid", placeItems: "center",
-          background: has ? "var(--primary)" : "var(--surface3)", color: has ? "#fff" : "var(--text-3)", fontSize: 12, fontWeight: 800 }}>
-          {has ? (n || <Icon name="check" size={15} color="#fff" sw={2.6} />) : <Icon name="image" size={14} color="var(--text-3)" />}
-        </span>
-        {has && (
+        {has ? (
+          /* มีรูปแล้ว — โชว์รูปย่อพร้อมเลขลำดับมุมบนซ้าย แตะเพื่อเขียนทับได้ทันที */
           <span style={{ position: "relative", flexShrink: 0, lineHeight: 0 }}>
-            <img src={shot.dataUrl} alt="" onClick={() => onAnn && onAnn()} style={{ width: 52, height: 52, borderRadius: 9, objectFit: "cover", cursor: "pointer", border: "1px solid var(--border)" }} />
+            <img src={shot.dataUrl} alt="" onClick={() => onAnn && onAnn()} style={{ width: 54, height: 54, borderRadius: 10, objectFit: "cover", cursor: "pointer", border: "1px solid var(--border)" }} />
+            <span style={{ position: "absolute", top: -5, left: -5, width: 20, height: 20, borderRadius: 99, display: "grid", placeItems: "center",
+              background: "var(--primary)", color: "#fff", fontSize: 10.5, fontWeight: 800, fontFamily: "var(--mono)", border: "2px solid var(--surface)" }}>{n || "✓"}</span>
+          </span>
+        ) : (
+          <span style={{ width: 54, height: 54, borderRadius: 10, flexShrink: 0, display: "grid", placeItems: "center",
+            background: "var(--surface3)", border: "1px dashed var(--border-strong)" }}>
+            <Icon name="image" size={17} color="var(--text-3)" />
           </span>
         )}
         <span style={{ flex: 1, minWidth: 0 }}>
@@ -327,8 +511,11 @@ function SurveyShotCard({ shot, slot, n, busy, onPick, onRemove, onAnn, onField,
       {has && (
         <React.Fragment>
           <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
-            <button type="button" onClick={onAnn} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-              ↗ เขียนลูกศร / ข้อความ{shot.ann && shot.ann.length ? " (" + shot.ann.length + ")" : ""}
+            <button type="button" onClick={onAnn} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9,
+              border: "1px solid " + (shot.ann && shot.ann.length ? "var(--primary)" : "var(--border-strong)"),
+              background: shot.ann && shot.ann.length ? "var(--primary-soft)" : "var(--surface)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+              ↗ เขียน / แปะรูปทับ
+              {shot.ann && shot.ann.length ? <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, background: "var(--primary)", color: "#fff", borderRadius: 99, padding: "1px 6px" }}>{shot.ann.length}</span> : null}
             </button>
             {onMove && <React.Fragment>
               <button type="button" onClick={() => onMove(-1)} disabled={first} title="เลื่อนขึ้น" style={Object.assign({}, mini, { opacity: first ? .35 : 1 })}>↑</button>
@@ -434,7 +621,9 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
   /* วางภาพจากคลิปบอร์ด — ช่างมักครอปรูปอุปกรณ์/ภาพตัดจาก PDF หรือกดปุ่มจับภาพหน้าจอมา
      แล้วอยากแปะเข้ารายงานเลย ไม่ต้องเซฟเป็นไฟล์ก่อน · ทำงานเฉพาะตอนอยู่ขั้นรูปถ่าย */
   React.useEffect(() => {
-    if (step !== 5) return;
+    // ตอนเปิดหน้าต่างเขียนทับรูปอยู่ ปล่อยให้ที่นั่นรับ Ctrl+V ไปแปะ "ในรูป" แทน
+    // ไม่งั้นวางทีเดียวจะได้ทั้งรูปใหม่และรูปแปะทับพร้อมกัน
+    if (step !== 5 || annKey) return;
     const onPaste = (e) => {
       const items = (e.clipboardData && e.clipboardData.items) || [];
       for (let i = 0; i < items.length; i++) {
@@ -446,7 +635,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
     };
     window.addEventListener("paste", onPaste);
     return () => window.removeEventListener("paste", onPaste);
-  }, [step, shots.length]);
+  }, [step, annKey, shots.length]);
 
   // ปุ่มวางภาพ (สำหรับมือถือ/เครื่องที่กด Ctrl+V ไม่ได้) — อ่านรูปจากคลิปบอร์ดตรง ๆ
   const pasteFromClipboard = async () => {
@@ -492,9 +681,11 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
     if (onSave) onSave(out, thenReport === true);
   };
 
-  const labelStyle = { fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" };
+  /* ป้ายชื่อช่อง — ตัวหนังสือปกติ ไม่บังคับตัวพิมพ์ใหญ่/ไม่ถ่างตัวอักษร
+     ภาษาไทยถ่างตัวอักษรแล้วอ่านยาก และดูเป็นแดชบอร์ดสำเร็จรูปมากกว่าเอกสารงานจริง */
+  const labelStyle = { fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", lineHeight: 1.3 };
   const fld = (label, child, req) => (
-    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       <label style={labelStyle}>{label}{req && <span style={{ color: "#EF4444" }}> *</span>}</label>
       {child}
     </div>
@@ -507,31 +698,49 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 115, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(680px,100%)", maxHeight: isMobile ? "96dvh" : "94vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
         {/* header */}
-        <div style={{ padding: "16px 20px 12px", borderBottom: "1px solid var(--border)", background: "var(--surface)" }}>
+        <div style={{ padding: "15px 18px 13px", borderBottom: "1px solid var(--border)", background: "var(--surface)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 11.5, color: "var(--text-3)", fontWeight: 600 }}>สำรวจหน้างาน · {job ? job.code : ""}</div>
-              <h2 style={{ fontSize: 17, fontWeight: 800, color: "var(--text-1)", margin: "2px 0 0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{job ? job.name : ""}</h2>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11, color: "var(--text-3)", fontWeight: 600 }}>
+                <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, fontWeight: 700, color: "var(--primary-dark)", background: "var(--primary-soft)", padding: "2px 7px", borderRadius: 6 }}>{job ? job.code : ""}</span>
+                แบบสำรวจหน้างาน
+              </div>
+              <h2 style={{ fontSize: 17.5, fontWeight: 800, color: "var(--text-1)", margin: "4px 0 0", letterSpacing: "-.015em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontFamily: "var(--display)" }}>{job ? job.name : ""}</h2>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-              <span style={{ fontSize: 12, fontWeight: 800, color: st.color }}>{st.pct}%</span>
-              <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+            <div style={{ display: "flex", alignItems: "center", gap: 9, flexShrink: 0 }}>
+              {/* วงแหวนบอกความคืบหน้า — เห็นทีเดียวว่ากรอกไปกี่ % แล้ว */}
+              <span style={{ position: "relative", width: 38, height: 38, borderRadius: 99, display: "grid", placeItems: "center",
+                background: "conic-gradient(" + st.color + " " + (st.pct * 3.6) + "deg, var(--surface3) 0deg)" }}>
+                <span style={{ position: "absolute", inset: 3.5, borderRadius: 99, background: "var(--surface)" }} />
+                <span style={{ position: "relative", fontSize: 10.5, fontWeight: 800, color: st.color, fontFamily: "var(--mono)" }}>{st.pct}</span>
+              </span>
+              <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
             </div>
           </div>
-          {/* step indicator */}
-          <div style={{ display: "flex", gap: 6, marginTop: 13 }}>
-            {SURVEY_STEPS.map((s) => {
+          {/* ขั้นตอน — เลขขั้นในวงกลม ขั้นที่ผ่านแล้วขึ้นเครื่องหมายถูก กดข้ามไปขั้นไหนก็ได้ */}
+          <div style={{ display: "flex", alignItems: "center", gap: 2, marginTop: 14 }}>
+            {SURVEY_STEPS.map((s, i) => {
               const active = s.n === step, done = s.n < step;
               return (
-                <button key={s.n} onClick={() => setStep(s.n)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
-                  <span style={{ width: "100%", height: 4, borderRadius: 99, background: active || done ? "var(--primary)" : "var(--surface3)" }} />
-                  <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: isMobile ? 0 : 10.5, fontWeight: active ? 800 : 600, color: active ? "var(--primary-dark)" : "var(--text-3)" }}>
-                    <Icon name={s.icon} size={13} color={active ? "var(--primary-dark)" : "var(--text-3)"} />{!isMobile && s.th}
-                  </span>
-                </button>
+                <React.Fragment key={s.n}>
+                  {i > 0 && <span style={{ flex: 1, height: 2, borderRadius: 99, background: done || active ? "var(--primary)" : "var(--surface3)", transition: "background .2s" }} />}
+                  <button onClick={() => setStep(s.n)} title={s.th}
+                    style={{ display: "flex", alignItems: "center", gap: 6, background: active ? "var(--primary-soft)" : "transparent", border: "none", cursor: "pointer",
+                      fontFamily: "inherit", padding: active && !isMobile ? "4px 11px 4px 4px" : 4, borderRadius: 99, flexShrink: 0 }}>
+                    <span style={{ width: 24, height: 24, borderRadius: 99, display: "grid", placeItems: "center", flexShrink: 0,
+                      fontSize: 11.5, fontWeight: 800, fontFamily: "var(--mono)", transition: "all .2s",
+                      background: done ? "var(--primary)" : active ? "var(--primary)" : "var(--surface3)",
+                      color: done || active ? "#fff" : "var(--text-3)",
+                      boxShadow: active ? "0 0 0 3px var(--primary-soft)" : "none" }}>
+                      {done ? <Icon name="check" size={13} color="#fff" sw={2.8} /> : s.n}
+                    </span>
+                    {active && !isMobile && <span style={{ fontSize: 12, fontWeight: 700, color: "var(--primary-dark)", whiteSpace: "nowrap" }}>{s.th}</span>}
+                  </button>
+                </React.Fragment>
               );
             })}
           </div>
+          {isMobile && <div style={{ marginTop: 7, fontSize: 12, fontWeight: 700, color: "var(--primary-dark)" }}>{(SURVEY_STEPS[step - 1] || {}).th}</div>}
         </div>
 
         {/* body */}
@@ -562,7 +771,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
                   {fld("ขนาดมิเตอร์ไฟฟ้า", <input value={f.meterSize} onChange={(e) => set("meterSize", e.target.value)} placeholder="เช่น 15(45)A" style={inputStyle} />, true)}
                   {fld("การไฟฟ้า", <Dropdown value={f.meterAuth} onChange={(v) => set("meterAuth", v)} placeholder="— เลือก —" options={SURVEY_METER_AUTH} />)}
                 </div>
-                {fld("ระบบไฟฟ้า (เฟส)", <Segmented value={f.phase} onChange={(v) => set("phase", v)} options={[{ value: "1", label: "1 เฟส" }, { value: "3", label: "3 เฟส" }]} />, true)}
+                <SurveyToggle label="ระบบไฟฟ้า" hint="จำเป็นต้องระบุ" value={f.phase} onChange={(v) => set("phase", v)} options={[{ value: "1", label: "1 เฟส" }, { value: "3", label: "3 เฟส" }]} />
                 {/* เมนเบรกเกอร์อยู่ในตู้ MDB จึงย้ายไปกรอกพร้อมกันตอนเปิดฝาตู้ (ขั้น "ไฟฟ้า & ตำแหน่ง") */}
                 {fld("สายเมนเดิม", <input value={f.mainCable} onChange={(e) => set("mainCable", e.target.value)} placeholder="เช่น NYY 50 sq.mm" style={inputStyle} />)}
               </SurveyBlock>
@@ -575,8 +784,10 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
                 {fld("พื้นที่ที่จะวางแผงโซลาร์", <Dropdown value={f.buildingType} onChange={(v) => set("buildingType", v)} placeholder="— เลือกประเภทอาคาร —" options={SURVEY_BUILDING.map((r) => ({ value: r, label: r }))} />)}
                 {fld("ประเภทหลังคา", <Dropdown value={f.roofType} onChange={(v) => set("roofType", v)} placeholder="— เลือกประเภท —" options={SURVEY_ROOF_TYPES.map((r) => ({ value: r, label: r }))} />, true)}
                 {fld("สภาพหลังคา", <Dropdown value={f.roofCondition} onChange={(v) => set("roofCondition", v)} placeholder="— เลือก —" options={SURVEY_ROOF_COND} />)}
-                {fld("โครงสร้างรับน้ำหนัก", <Segmented value={f.structureOk} onChange={(v) => set("structureOk", v)} options={SURVEY_PASS} />)}
-                {fld("ตาข่ายกันนก", <Segmented value={f.birdNet} onChange={(v) => set("birdNet", v)} options={SURVEY_BIRDNET} />)}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <SurveyToggle label="โครงสร้างรับน้ำหนัก" value={f.structureOk} onChange={(v) => set("structureOk", v)} options={SURVEY_PASS} />
+                  <SurveyToggle label="ตาข่ายกันนก" value={f.birdNet} onChange={(v) => set("birdNet", v)} options={SURVEY_BIRDNET} />
+                </div>
               </SurveyBlock>
               <SurveyBlock title="🌳 สิ่งกีดขวาง / เงาบัง" sub="เลือกสิ่งที่อาจบดบังแสงแดด">
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
@@ -603,9 +814,9 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
                 {fld("ยี่ห้อ / รุ่นตู้ MDB", <input value={f.mdbBrand} onChange={(e) => set("mdbBrand", e.target.value)} placeholder="เช่น Schneider, ABB, Haco" style={inputStyle} />, true)}
                 {/* เมนเบรกเกอร์อยู่ในตู้นี้ ย้ายมาจากขั้นมิเตอร์ จะได้กรอกตอนเปิดฝาตู้รอบเดียว */}
                 {fld("ขนาดเมนเบรกเกอร์", <input value={f.mainBreaker} onChange={(e) => set("mainBreaker", e.target.value)} placeholder="เช่น 100A, 3P" style={inputStyle} />, true)}
-                <div style={two}>
-                  {fld("มีเซฟตี้คัต", <Segmented value={f.mdbSafety} onChange={(v) => set("mdbSafety", v)} options={SURVEY_YESNO} />)}
-                  {fld("เมนเป็นชนิดกันดูด (RCD / RCCB)", <Segmented value={f.mdbRccb} onChange={(v) => set("mdbRccb", v)} options={SURVEY_YESNO} />)}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <SurveyToggle label="มีเซฟตี้คัต" value={f.mdbSafety} onChange={(v) => set("mdbSafety", v)} options={SURVEY_YESNO} />
+                  <SurveyToggle label="เมนเป็นชนิดกันดูด" hint="RCD / RCCB" value={f.mdbRccb} onChange={(v) => set("mdbRccb", v)} options={SURVEY_YESNO} />
                 </div>
                 {fld("ตำแหน่งที่ตั้งตู้ MDB", <input value={f.mdbLoc} onChange={(e) => set("mdbLoc", e.target.value)} placeholder="เช่น ข้างบันได ชั้น 1 / โรงจอดรถ" style={inputStyle} />)}
                 {fld("ช่องว่างในตู้", <Dropdown value={f.mdbSpace} onChange={(v) => set("mdbSpace", v)} placeholder="— เลือก —" options={SURVEY_MDB_SPACE} />)}
@@ -665,7 +876,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
 
           {step === 5 && (
             <React.Fragment>
-              <SurveyBlock title={"📷 รูปถ่ายบังคับ (" + SURVEY_PHOTO_SLOTS.length + " รูป)"} sub="ถ่ายให้ครบเพื่อให้การสำรวจสมบูรณ์ · แตะรูปเพื่อเขียนลูกศร/ข้อความ">
+              <SurveyBlock title={"📷 รูปถ่ายบังคับ (" + SURVEY_PHOTO_SLOTS.length + " รูป)"} sub="ถ่ายให้ครบเพื่อให้การสำรวจสมบูรณ์ · แตะรูปเพื่อเขียนลูกศร ข้อความ หรือแปะรูปอุปกรณ์ทับ">
                 {!window.FBDB && <div style={{ fontSize: 12, color: "#EF4444", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)", borderRadius: 9, padding: "9px 11px" }}>⚠ ต้องเชื่อมต่อ Firebase จึงจะอัปโหลดรูปได้</div>}
                 <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
                   {SURVEY_PHOTO_SLOTS.map((slot) => {
@@ -684,7 +895,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
                   })}
                 </div>
               </SurveyBlock>
-              <SurveyBlock title={"🖼️ รูปเพิ่มเติม (" + extras.length + " รูป)"} sub="ถ่ายกี่รูปก็ได้ · ครอปรูปมาแล้วกด Ctrl+V แปะได้เลย · ตั้งหัวข้อ/หมวดหมู่ แล้วรายงานจะจัดกลุ่มให้ตามนี้">
+              <SurveyBlock title={"🖼️ รูปเพิ่มเติม (" + extras.length + " รูป)"} sub="ถ่ายกี่รูปก็ได้ · ครอปรูปมาแล้วกด Ctrl+V เพิ่มเป็นรูปใหม่ได้เลย · ตั้งหัวข้อ/หมวดหมู่ แล้วรายงานจะจัดกลุ่มให้ตามนี้">
                 <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
                   {extras.map((shot) => {
                     const idx = shots.findIndex((s) => s.key === shot.key);
