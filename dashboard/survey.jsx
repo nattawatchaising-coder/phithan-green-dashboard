@@ -238,6 +238,9 @@ function AnnOverlay({ ann, aw, ah, edit, sel, svgRef }) {
       </g>
     );
   };
+  /* หมุดมองไม่เห็นที่มุมขวาบนของสิ่งที่เลือก — อยู่ในกลุ่มเดียวกัน จึงหมุน/ย้ายตามไปด้วย
+     ตัวแก้ไขเอาตำแหน่งหมุดนี้ไปวางปุ่มถังขยะ ปุ่มจะเกาะมุมรูปจริงเสมอ ไม่ลอยหลุดตอนรูปถูกหมุน */
+  const anchor = (x, y) => <circle data-del="" cx={x} cy={y} r={0.01} fill="none" />;
   const selRect = (x, y, w, h) => (
     <rect x={x} y={y} width={w} height={h} fill="none" stroke="var(--primary)"
       strokeWidth={unit * 0.55} strokeDasharray={unit * 1.6 + " " + unit} rx={unit} />
@@ -263,6 +266,7 @@ function AnnOverlay({ ann, aw, ah, edit, sel, svgRef }) {
               {on && selRect(x - unit, y - unit, w + unit * 2, hh + unit * 2)}
               {on && arm(cx, y - unit, y + hh + unit)}
               {on && dot(x + w, y + hh, "size")}
+              {on && anchor(x + w + unit, y - unit)}
             </g>
           );
         }
@@ -289,6 +293,7 @@ function AnnOverlay({ ann, aw, ah, edit, sel, svgRef }) {
               </g>
               {on && dot(x1, y1, "p1")}
               {on && dot(x2, y2, "p2")}
+              {on && anchor(Math.max(x1, x2) + unit, Math.min(y1, y2) - unit)}
             </g>
           );
         }
@@ -306,6 +311,7 @@ function AnnOverlay({ ann, aw, ah, edit, sel, svgRef }) {
             {on && selRect(ax - unit, ay - fs * 0.72, tw + unit * 2, fs * 1.44)}
             {on && arm(ax + tw / 2, ay - fs * 0.72, ay + fs * 0.72)}
             {on && dot(ax + tw + unit, ay + fs * 0.72, "size")}
+            {on && anchor(ax + tw + unit * 2, ay - fs * 0.72 - unit)}
           </g>
         );
       })}
@@ -466,11 +472,13 @@ function AnnEditor({ shot, onSave, onClose }) {
      เอาไปวางปุ่มถังขยะให้ลอยอยู่มุมขวาบนของสิ่งนั้นพอดี */
   React.useLayoutEffect(() => {
     if (sel == null || !svgRef.current || !boxRef.current) { setSelBox(null); return; }
-    const el = bodyOf(sel);
+    const g = svgRef.current.querySelector('[data-ai="' + sel + '"]');
+    const el = g && g.querySelector("[data-del]");
     if (!el) { setSelBox(null); return; }
-    // วัดจากตำแหน่งบนจอจริง จะได้ตามไปด้วยเวลาสิ่งนั้นถูกหมุน (getBBox ให้ค่าก่อนหมุน)
+    /* อ่านตำแหน่งหมุดมุมขวาบนจากที่มันอยู่บนจอจริง — หมุดหมุนไปพร้อมรูป
+       ถ้าไปวัดจากกรอบสี่เหลี่ยมแนวตรง พอรูปถูกหมุน ปุ่มจะไปลอยอยู่กลางอากาศ ไม่เกาะรูป */
     const b = el.getBoundingClientRect(), r = boxRef.current.getBoundingClientRect();
-    setSelBox({ x: b.left - r.left, y: b.top - r.top, w: b.width, h: b.height });
+    setSelBox({ x: b.left + b.width / 2 - r.left, y: b.top + b.height / 2 - r.top });
   }, [sel, ann]);
 
   // แปลงตำแหน่งนิ้ว/เมาส์ → สัดส่วน 0–1 ของรูป + พิกเซลในกรอบ (พิกเซล = หน่วยใน viewBox พอดี)
@@ -662,7 +670,7 @@ function AnnEditor({ shot, onSave, onClose }) {
             {/* ปุ่มลบของสิ่งที่เลือก — ลอยมุมขวาบนของมันเอง กดลบได้ทันทีทั้งลูกศร ข้อความ และรูปที่แปะ */}
             {sel != null && selBox && !txt && (
               <button onClick={removeSel} title="ลบสิ่งที่เลือก"
-                style={{ position: "absolute", left: selBox.x + selBox.w - 12, top: selBox.y - 15, zIndex: 4,
+                style={{ position: "absolute", left: selBox.x, top: selBox.y, transform: "translate(-40%,-60%)", zIndex: 4,
                   width: 30, height: 30, borderRadius: 99, border: "2px solid var(--surface)", background: "#EF4444", color: "#fff",
                   cursor: "pointer", display: "grid", placeItems: "center", fontSize: 13, boxShadow: "0 3px 10px rgba(0,0,0,.3)" }}>🗑</button>
             )}

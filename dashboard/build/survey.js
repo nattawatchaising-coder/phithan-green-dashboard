@@ -327,6 +327,13 @@ function AnnOverlay({
       strokeWidth: unit * 0.6
     }), dot(cx, ty, "rot", "var(--primary)"));
   };
+  const anchor = (x, y) => React.createElement("circle", {
+    "data-del": "",
+    cx: x,
+    cy: y,
+    r: 0.01,
+    fill: "none"
+  });
   const selRect = (x, y, w, h) => React.createElement("rect", {
     x: x,
     y: y,
@@ -382,7 +389,7 @@ function AnnOverlay({
         stroke: a.c || "#FFFFFF",
         strokeWidth: unit * 0.5,
         rx: unit * 0.8
-      })), on && selRect(x - unit, y - unit, w + unit * 2, hh + unit * 2), on && arm(cx, y - unit, y + hh + unit), on && dot(x + w, y + hh, "size"));
+      })), on && selRect(x - unit, y - unit, w + unit * 2, hh + unit * 2), on && arm(cx, y - unit, y + hh + unit), on && dot(x + w, y + hh, "size"), on && anchor(x + w + unit, y - unit));
     }
     if (a.t === "a" || a.t === "d") {
       const x1 = a.x1 * W,
@@ -424,7 +431,7 @@ function AnnOverlay({
         strokeWidth: lw,
         strokeLinecap: "round",
         strokeDasharray: a.t === "d" ? unit * 2.6 + " " + unit * 1.9 : undefined
-      }), headEl), on && dot(x1, y1, "p1"), on && dot(x2, y2, "p2"));
+      }), headEl), on && dot(x1, y1, "p1"), on && dot(x2, y2, "p2"), on && anchor(Math.max(x1, x2) + unit, Math.min(y1, y2) - unit));
     }
     const ax = a.x * W,
       ay = a.y * H;
@@ -449,7 +456,7 @@ function AnnOverlay({
         fontFamily: "var(--sans)"
       },
       dominantBaseline: "middle"
-    }, a.v)), on && selRect(ax - unit, ay - fs * 0.72, tw + unit * 2, fs * 1.44), on && arm(ax + tw / 2, ay - fs * 0.72, ay + fs * 0.72), on && dot(ax + tw + unit, ay + fs * 0.72, "size"));
+    }, a.v)), on && selRect(ax - unit, ay - fs * 0.72, tw + unit * 2, fs * 1.44), on && arm(ax + tw / 2, ay - fs * 0.72, ay + fs * 0.72), on && dot(ax + tw + unit, ay + fs * 0.72, "size"), on && anchor(ax + tw + unit * 2, ay - fs * 0.72 - unit));
   }));
 }
 function StickerPicker({
@@ -861,7 +868,8 @@ function AnnEditor({
       setSelBox(null);
       return;
     }
-    const el = bodyOf(sel);
+    const g = svgRef.current.querySelector('[data-ai="' + sel + '"]');
+    const el = g && g.querySelector("[data-del]");
     if (!el) {
       setSelBox(null);
       return;
@@ -869,10 +877,8 @@ function AnnEditor({
     const b = el.getBoundingClientRect(),
       r = boxRef.current.getBoundingClientRect();
     setSelBox({
-      x: b.left - r.left,
-      y: b.top - r.top,
-      w: b.width,
-      h: b.height
+      x: b.left + b.width / 2 - r.left,
+      y: b.top + b.height / 2 - r.top
     });
   }, [sel, ann]);
   const pt = e => {
@@ -1290,8 +1296,9 @@ function AnnEditor({
     title: "\u0E25\u0E1A\u0E2A\u0E34\u0E48\u0E07\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01",
     style: {
       position: "absolute",
-      left: selBox.x + selBox.w - 12,
-      top: selBox.y - 15,
+      left: selBox.x,
+      top: selBox.y,
+      transform: "translate(-40%,-60%)",
       zIndex: 4,
       width: 30,
       height: 30,
