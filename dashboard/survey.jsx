@@ -217,53 +217,95 @@ function AnnOverlay({ ann, aw, ah, edit, sel, svgRef }) {
   const W = box.w, H = box.h;
   const unit = Math.max(W, H) / 100;            // ความหนาเส้นอ้างอิงกับขนาดที่แสดงจริง
   const setRef = (el) => { ref.current = el; if (svgRef) svgRef.current = el; };
-  const dot = (cx, cy) => <circle cx={cx} cy={cy} r={unit * 1.7} fill="#fff" stroke="var(--primary)" strokeWidth={unit * 0.55} />;
+  /* จุดจับ — วงกลมทึบใหญ่พอให้นิ้วโดน มีวงใสรอบนอกเผื่อกดพลาดนิดหน่อย
+     ของเดิมเล็กเกินไป กดโดนยากมากบนจอสัมผัส */
+  const dot = (cx, cy, k, fill) => (
+    <g key={k}>
+      <circle cx={cx} cy={cy} r={unit * 4.4} fill="rgba(34,163,91,.16)" />
+      <circle data-h={k} cx={cx} cy={cy} r={unit * 2.5} fill={fill || "#fff"}
+        stroke={fill ? "#fff" : "var(--primary)"} strokeWidth={unit * 0.7} />
+    </g>
+  );
+  /* ก้านหมุน — ยื่นออกจากขอบบน ปลายก้านเป็นจุดสีเขียวทึบ ให้ต่างจากจุดย่อขยาย
+     ถ้าของอยู่ชิดขอบบนจนก้านจะโผล่พ้นรูป (โดนตัดหาย กดไม่โดน) ให้สลับไปยื่นลงล่างแทน */
+  const arm = (cx, topY, botY) => {
+    const down = topY < unit * 9;
+    const ty = down ? botY + unit * 7 : topY - unit * 7;
+    return (
+      <g key="rot">
+        <line x1={cx} y1={down ? botY : topY} x2={cx} y2={ty} stroke="var(--primary)" strokeWidth={unit * 0.6} />
+        {dot(cx, ty, "rot", "var(--primary)")}
+      </g>
+    );
+  };
+  const selRect = (x, y, w, h) => (
+    <rect x={x} y={y} width={w} height={h} fill="none" stroke="var(--primary)"
+      strokeWidth={unit * 0.55} strokeDasharray={unit * 1.6 + " " + unit} rx={unit} />
+  );
   return (
     <svg ref={setRef} viewBox={"0 0 " + W + " " + H} preserveAspectRatio="none" aria-hidden="true"
       style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
       {list.map((a, i) => {
         const on = edit && sel === i;
+        const rot = a.rot || 0;
         if (a.t === "i") {
-          /* รูปที่แปะทับ (ภาพตัด / รูปอุปกรณ์) — w เป็นสัดส่วนความกว้าง, r = สูง/กว้างของรูปเดิม */
+          /* รูปที่แปะทับ (ภาพตัด / รูปอุปกรณ์) — w เป็นสัดส่วนความกว้าง, r = สูง/กว้างของรูปเดิม
+             หมุนรอบจุดกึ่งกลางของตัวรูปเอง ย่อขยายก็ยึดจุดกึ่งกลางไว้ ศูนย์กลางจึงไม่ขยับ */
           const x = a.x * W, y = a.y * H, w = (a.w || 0.35) * W, hh = w * (a.r || 0.75);
+          const cx = x + w / 2, cy = y + hh / 2;
           return (
-            <g key={i} data-ai={i}>
-              <image href={a.src} x={x} y={y} width={w} height={hh} preserveAspectRatio="none" />
-              <rect x={x} y={y} width={w} height={hh} fill="none" stroke={a.c || "#FFFFFF"} strokeWidth={unit * 0.5} rx={unit * 0.8} />
-              {/* กรอบเลือก + จุดจับย่อ-ขยาย โชว์เฉพาะตอนแก้ ไม่ติดไปในรายงาน */}
-              {on && <rect x={x - unit} y={y - unit} width={w + unit * 2} height={hh + unit * 2} fill="none" stroke="var(--primary)" strokeWidth={unit * 0.55} strokeDasharray={unit * 1.6 + " " + unit} rx={unit} />}
-              {on && dot(x + w, y + hh)}
+            <g key={i} data-ai={i} transform={rot ? "rotate(" + rot + " " + cx + " " + cy + ")" : undefined}>
+              <g data-body="">
+                <image href={a.src} x={x} y={y} width={w} height={hh} preserveAspectRatio="none" />
+                <rect x={x} y={y} width={w} height={hh} fill="none" stroke={a.c || "#FFFFFF"} strokeWidth={unit * 0.5} rx={unit * 0.8} />
+              </g>
+              {/* กรอบเลือก + จุดจับ โชว์เฉพาะตอนแก้ ไม่ติดไปในรายงาน */}
+              {on && selRect(x - unit, y - unit, w + unit * 2, hh + unit * 2)}
+              {on && arm(cx, y - unit, y + hh + unit)}
+              {on && dot(x + w, y + hh, "size")}
             </g>
           );
         }
-        if (a.t === "a") {
+        if (a.t === "a" || a.t === "d") {
           const x1 = a.x1 * W, y1 = a.y1 * H, x2 = a.x2 * W, y2 = a.y2 * H;
-          const ang = Math.atan2(y2 - y1, x2 - x1);
-          const lw = unit * 1.15;
-          const head = lw * 3.4;                 // หัวลูกศรผูกกับความหนาเส้น จะได้ได้สัดส่วนเสมอ
-          const halfW = head * 0.46;
-          const bx = x2 - head * Math.cos(ang), by = y2 - head * Math.sin(ang);       // โคนหัวลูกศร
-          const nx = -Math.sin(ang), ny = Math.cos(ang);
-          const pts = [x2 + "," + y2, (bx + halfW * nx) + "," + (by + halfW * ny), (bx - halfW * nx) + "," + (by - halfW * ny)].join(" ");
+          const lw = unit * (a.t === "d" ? 0.95 : 1.15);
+          let bx = x2, by = y2, headEl = null;
+          if (a.t === "a") {
+            const ang = Math.atan2(y2 - y1, x2 - x1);
+            const head = lw * 3.4;               // หัวลูกศรผูกกับความหนาเส้น จะได้ได้สัดส่วนเสมอ
+            const halfW = head * 0.46;
+            bx = x2 - head * Math.cos(ang); by = y2 - head * Math.sin(ang);            // โคนหัวลูกศร
+            const nx = -Math.sin(ang), ny = Math.cos(ang);
+            const pts = [x2 + "," + y2, (bx + halfW * nx) + "," + (by + halfW * ny), (bx - halfW * nx) + "," + (by - halfW * ny)].join(" ");
+            headEl = <polygon points={pts} fill={a.c} strokeLinejoin="round" stroke={a.c} strokeWidth={lw * 0.35} />;
+          }
           return (
             <g key={i} data-ai={i}>
-              {/* เส้นหยุดที่โคนหัว ไม่ให้ปลายเส้นล้นออกมาเป็นก้อน */}
-              <line x1={x1} y1={y1} x2={bx} y2={by} stroke={a.c} strokeWidth={lw} strokeLinecap="round" />
-              <polygon points={pts} fill={a.c} strokeLinejoin="round" stroke={a.c} strokeWidth={lw * 0.35} />
-              {on && dot(x1, y1)}
-              {on && dot(x2, y2)}
+              <g data-body="">
+                {/* ลูกศร: เส้นหยุดที่โคนหัว ไม่ให้ปลายเส้นล้นออกมาเป็นก้อน · เส้นประ: ลากยาวสุดปลาย */}
+                <line x1={x1} y1={y1} x2={bx} y2={by} stroke={a.c} strokeWidth={lw} strokeLinecap="round"
+                  strokeDasharray={a.t === "d" ? unit * 2.6 + " " + unit * 1.9 : undefined} />
+                {headEl}
+              </g>
+              {on && dot(x1, y1, "p1")}
+              {on && dot(x2, y2, "p2")}
             </g>
           );
         }
+        /* ข้อความ — หมุนรอบจุดเริ่มบรรทัด (จุดที่แตะวางไว้) จุดนี้อยู่กับที่เสมอ */
+        const ax = a.x * W, ay = a.y * H;
         const fs = (a.s || 0.055) * W;
+        const tw = fs * 0.62 * String(a.v || "").length;
         return (
-          <g key={i} data-ai={i}>
-            <text x={a.x * W} y={a.y * H} fill={a.c} fontSize={fs} fontWeight="800"
-              stroke="rgba(0,0,0,.55)" strokeWidth={fs * 0.16} paintOrder="stroke"
-              style={{ fontFamily: "var(--sans)" }} dominantBaseline="middle">{a.v}</text>
-            {on && <rect x={a.x * W - unit} y={a.y * H - fs * 0.72} width={fs * 0.62 * String(a.v || "").length + unit * 2} height={fs * 1.44}
-              fill="none" stroke="var(--primary)" strokeWidth={unit * 0.55} strokeDasharray={unit * 1.6 + " " + unit} rx={unit} />}
-            {on && dot(a.x * W + fs * 0.62 * String(a.v || "").length + unit, a.y * H + fs * 0.72)}
+          <g key={i} data-ai={i} transform={rot ? "rotate(" + rot + " " + ax + " " + ay + ")" : undefined}>
+            <g data-body="">
+              <text x={ax} y={ay} fill={a.c} fontSize={fs} fontWeight="800"
+                stroke="rgba(0,0,0,.55)" strokeWidth={fs * 0.16} paintOrder="stroke"
+                style={{ fontFamily: "var(--sans)" }} dominantBaseline="middle">{a.v}</text>
+            </g>
+            {on && selRect(ax - unit, ay - fs * 0.72, tw + unit * 2, fs * 1.44)}
+            {on && arm(ax + tw / 2, ay - fs * 0.72, ay + fs * 0.72)}
+            {on && dot(ax + tw + unit, ay + fs * 0.72, "size")}
           </g>
         );
       })}
@@ -391,12 +433,13 @@ function StickerPicker({ onPick, onClose }) {
 }
 
 const ANN_TOOLS = [
-  { key: "s", th: "เลือก",   glyph: "✥", hint: "แตะสิ่งที่เขียนไว้เพื่อเลือก · ลากเพื่อย้าย · ลากจุดมุมเพื่อย่อ-ขยาย · กดถังขยะเพื่อลบ" },
+  { key: "s", th: "เลือก",   glyph: "✥", hint: "แตะสิ่งที่เขียนไว้เพื่อเลือก · ลากเพื่อย้าย · จุดขาวมุมล่างขวาย่อ-ขยาย · จุดเขียวด้านบนหมุน · ถังขยะลบ" },
   { key: "a", th: "ลูกศร",   glyph: "↗", hint: "ลากจากจุดที่ต้องการชี้ ไปยังปลายลูกศร" },
+  { key: "d", th: "เส้นประ", glyph: "╌", hint: "ลากเพื่อตีเส้นประ ใช้บอกแนวเดินสาย / ขอบเขตพื้นที่" },
   { key: "t", th: "ข้อความ", glyph: "ก", hint: "แตะตำแหน่งบนรูป แล้วพิมพ์ข้อความได้เลย" },
-  { key: "i", th: "แปะรูป",  glyph: "🖼", hint: "เลือกรูปอุปกรณ์จากคลังมาแปะทับ แล้วลากย้าย/ย่อขยายได้" },
+  { key: "i", th: "แปะรูป",  glyph: "🖼", hint: "เลือกรูปอุปกรณ์จากคลังมาแปะทับ แล้วลากย้าย/ย่อขยาย/หมุนได้" },
 ];
-const HANDLE_PX = 13;      // รัศมีที่ถือว่าจับโดนจุดมุม (นิ้วอ้วนกว่าเมาส์ เผื่อไว้หน่อย)
+const HANDLE_PX = 26;      // รัศมีที่ถือว่าจับโดนจุดจับ (นิ้วอ้วนกว่าเมาส์มาก เผื่อไว้เยอะ ๆ)
 
 /* ตัวเขียนบนรูป — จิ้มลากบนมือถือได้เลย */
 function AnnEditor({ shot, onSave, onClose }) {
@@ -422,11 +465,12 @@ function AnnEditor({ shot, onSave, onClose }) {
   /* วัดกรอบของสิ่งที่เลือกจาก DOM จริง — ข้อความไทยกว้างเท่าไรเดาไม่ได้ ต้องถาม getBBox
      เอาไปวางปุ่มถังขยะให้ลอยอยู่มุมขวาบนของสิ่งนั้นพอดี */
   React.useLayoutEffect(() => {
-    if (sel == null || !svgRef.current) { setSelBox(null); return; }
-    const el = svgRef.current.querySelector('[data-ai="' + sel + '"]');
+    if (sel == null || !svgRef.current || !boxRef.current) { setSelBox(null); return; }
+    const el = bodyOf(sel);
     if (!el) { setSelBox(null); return; }
-    const b = el.getBBox();
-    setSelBox({ x: b.x, y: b.y, w: b.width, h: b.height });
+    // วัดจากตำแหน่งบนจอจริง จะได้ตามไปด้วยเวลาสิ่งนั้นถูกหมุน (getBBox ให้ค่าก่อนหมุน)
+    const b = el.getBoundingClientRect(), r = boxRef.current.getBoundingClientRect();
+    setSelBox({ x: b.left - r.left, y: b.top - r.top, w: b.width, h: b.height });
   }, [sel, ann]);
 
   // แปลงตำแหน่งนิ้ว/เมาส์ → สัดส่วน 0–1 ของรูป + พิกเซลในกรอบ (พิกเซล = หน่วยใน viewBox พอดี)
@@ -436,22 +480,44 @@ function AnnEditor({ shot, onSave, onClose }) {
     const px = t.clientX - r.left, py = t.clientY - r.top;
     return { x: Math.min(1, Math.max(0, px / r.width)), y: Math.min(1, Math.max(0, py / r.height)), px: px, py: py, bw: r.width, bh: r.height };
   };
-  // จุดมุมย่อ-ขยายของสิ่งที่เลือก (พิกเซลในกรอบ) — ลูกศรใช้ปลายทั้งสองข้างแทน
-  const handlesOf = (i, p) => {
-    const a = ann[i];
-    if (!a) return [];
-    if (a.t === "a") return [{ k: "p1", x: a.x1 * p.bw, y: a.y1 * p.bh }, { k: "p2", x: a.x2 * p.bw, y: a.y2 * p.bh }];
-    const el = svgRef.current && svgRef.current.querySelector('[data-ai="' + i + '"]');
-    if (!el) return [];
-    const b = el.getBBox();
-    return [{ k: "size", x: b.x + b.width, y: b.y + b.height }];
+  const isLine = (a) => a && (a.t === "a" || a.t === "d");
+  // ตัวรูป/ตัวอักษรจริง ๆ ไม่รวมกรอบเลือกกับจุดจับ — ใช้วัดขนาดให้ตรงกับที่ตาเห็น
+  const bodyOf = (i) => {
+    const g = svgRef.current && svgRef.current.querySelector('[data-ai="' + i + '"]');
+    return g ? (g.querySelector("[data-body]") || g) : null;
+  };
+  /* จุดที่ของสิ่งนั้นหมุนรอบ — รูปหมุนรอบกลางตัว ข้อความหมุนรอบจุดเริ่มบรรทัด
+     ทั้งสองจุดคำนวณตรง ๆ ได้ ไม่ต้องพึ่งกรอบที่วัดจาก DOM จึงไม่เพี้ยนระหว่างลาก */
+  const rotCenter = (a, p) => {
+    if (a.t !== "i") return { x: a.x * p.bw, y: a.y * p.bh };
+    const w = (a.w || 0.35) * p.bw;
+    return { x: a.x * p.bw + w / 2, y: a.y * p.bh + w * (a.r || 0.75) / 2 };
+  };
+  // หมุนตำแหน่งนิ้วย้อนกลับ เพื่อเทียบกับกรอบตอนยังไม่หมุน (getBBox ให้ค่าก่อนหมุนเสมอ)
+  const unrot = (a, p) => {
+    const deg = a.rot || 0;
+    if (!deg) return { x: p.px, y: p.py };
+    const c = rotCenter(a, p), th = -deg * Math.PI / 180;
+    const dx = p.px - c.x, dy = p.py - c.y;
+    return { x: c.x + dx * Math.cos(th) - dy * Math.sin(th), y: c.y + dx * Math.sin(th) + dy * Math.cos(th) };
+  };
+  /* จุดจับของสิ่งที่เลือก — อ่านตำแหน่งจากวงกลมที่วาดไว้จริง ๆ ในภาพ
+     ตาเห็นจุดตรงไหน กดตรงนั้นก็โดน แม้สิ่งนั้นจะถูกหมุนไปแล้ว */
+  const handlesOf = (i) => {
+    const g = svgRef.current && svgRef.current.querySelector('[data-ai="' + i + '"]');
+    if (!g || !boxRef.current) return [];
+    const r = boxRef.current.getBoundingClientRect();
+    return Array.prototype.map.call(g.querySelectorAll("[data-h]"), (el) => {
+      const b = el.getBoundingClientRect();
+      return { k: el.getAttribute("data-h"), x: b.left + b.width / 2 - r.left, y: b.top + b.height / 2 - r.top };
+    });
   };
   /* หาว่าจิ้มโดนอันไหน — ไล่จากใบบนสุดลงมา
-     รูป/ข้อความวัดจากกรอบจริงใน SVG · ลูกศรวัดระยะห่างจากเส้น (กรอบสี่เหลี่ยมของเส้นเฉียงมันกว้างเกินจริง) */
+     รูป/ข้อความวัดจากกรอบจริงใน SVG · เส้นวัดระยะห่างจากตัวเส้น (กรอบสี่เหลี่ยมของเส้นเฉียงมันกว้างเกินจริง) */
   const hitAt = (p) => {
     for (let i = ann.length - 1; i >= 0; i--) {
       const a = ann[i];
-      if (a.t === "a") {
+      if (isLine(a)) {
         const x1 = a.x1 * p.bw, y1 = a.y1 * p.bh, x2 = a.x2 * p.bw, y2 = a.y2 * p.bh;
         const dx = x2 - x1, dy = y2 - y1, len2 = dx * dx + dy * dy || 1;
         const t = Math.max(0, Math.min(1, ((p.px - x1) * dx + (p.py - y1) * dy) / len2));
@@ -459,10 +525,10 @@ function AnnEditor({ shot, onSave, onClose }) {
         if (d <= 14) return i;
         continue;
       }
-      const el = svgRef.current && svgRef.current.querySelector('[data-ai="' + i + '"]');
+      const el = bodyOf(i);
       if (!el) continue;
-      const b = el.getBBox();
-      if (p.px >= b.x - 4 && p.px <= b.x + b.width + 4 && p.py >= b.y - 4 && p.py <= b.y + b.height + 4) return i;
+      const b = el.getBBox(), q = unrot(a, p);
+      if (q.x >= b.x - 4 && q.x <= b.x + b.width + 4 && q.y >= b.y - 4 && q.y <= b.y + b.height + 4) return i;
     }
     return null;
   };
@@ -471,16 +537,24 @@ function AnnEditor({ shot, onSave, onClose }) {
     if (txt) return;
     const p = pt(e);
     if (tool === "t") { setTxt({ x: p.x, y: p.y, v: "", at: Date.now() }); return; }
-    if (tool === "a") { e.preventDefault(); setSel(null); setDrag({ t: "a", x1: p.x, y1: p.y, x2: p.x, y2: p.y, c: color }); return; }
-    // โหมดเลือก — จับจุดมุมของอันที่เลือกอยู่ก่อน แล้วค่อยดูว่าจิ้มโดนอันไหน
+    if (tool === "a" || tool === "d") { e.preventDefault(); setSel(null); setDrag({ t: tool, x1: p.x, y1: p.y, x2: p.x, y2: p.y, c: color }); return; }
+    // โหมดเลือก — จับจุดจับของอันที่เลือกอยู่ก่อน (เอาจุดที่ใกล้ที่สุด) แล้วค่อยดูว่าจิ้มโดนอันไหน
     if (sel != null) {
-      const h = handlesOf(sel, p).find((g) => Math.hypot(p.px - g.x, p.py - g.y) <= HANDLE_PX);
+      let h = null, best = HANDLE_PX;
+      handlesOf(sel).forEach((g) => {
+        const d = Math.hypot(p.px - g.x, p.py - g.y);
+        if (d <= best) { best = d; h = g; }
+      });
       if (h) {
         e.preventDefault();
         const a = ann[sel];
-        const el = svgRef.current.querySelector('[data-ai="' + sel + '"]');
+        const el = bodyOf(sel);
         const b = el ? el.getBBox() : { width: 1 };
-        setGrab({ i: sel, mode: h.k, w0: b.width || 1, s0: a.s || 0.055, x0: a.x, y0: a.y });
+        const c = rotCenter(a, p);
+        setGrab({
+          i: sel, mode: h.k, w0: b.width || 1, s0: a.s || 0.055, cx: c.x, cy: c.y,
+          a0: Math.atan2(p.py - c.y, p.px - c.x) * 180 / Math.PI - (a.rot || 0),
+        });
         return;
       }
     }
@@ -489,8 +563,8 @@ function AnnEditor({ shot, onSave, onClose }) {
     if (hit == null) return;
     e.preventDefault();
     const a = ann[hit];
-    setGrab(a.t === "a"
-      ? { i: hit, mode: "moveArrow", dx: p.x - a.x1, dy: p.y - a.y1, span: { x: a.x2 - a.x1, y: a.y2 - a.y1 } }
+    setGrab(isLine(a)
+      ? { i: hit, mode: "moveLine", dx: p.x - a.x1, dy: p.y - a.y1, span: { x: a.x2 - a.x1, y: a.y2 - a.y1 } }
       : { i: hit, mode: "move", dx: p.x - a.x, dy: p.y - a.y });
   };
   const move = (e) => {
@@ -499,15 +573,27 @@ function AnnEditor({ shot, onSave, onClose }) {
       const p = pt(e);
       setAnn((list) => list.map((a, j) => {
         if (j !== grab.i) return a;
+        if (grab.mode === "rot") {
+          // หมุนตามนิ้ว · ใกล้แนวตรง (0/90/180/270) ให้ดูดเข้าองศาพอดี จะได้วางตรงง่าย ๆ
+          let d = Math.atan2(p.py - grab.cy, p.px - grab.cx) * 180 / Math.PI - grab.a0;
+          d = ((d % 360) + 360) % 360;
+          const snap = [0, 90, 180, 270, 360].find((s) => Math.abs(d - s) <= 4);
+          return Object.assign({}, a, { rot: snap == null ? Math.round(d * 10) / 10 : snap % 360 });
+        }
         if (grab.mode === "size") {
-          // รูป = เปลี่ยนความกว้าง (สูงตามสัดส่วนเดิม) · ข้อความ = ขยายขนาดตัวอักษรตามที่ลาก
-          if (a.t === "i") return Object.assign({}, a, { w: Math.min(1.2, Math.max(0.05, p.x - a.x)) });
-          const f = Math.max(0.25, (p.px - grab.x0 * p.bw) / (grab.w0 || 1));
+          const q = unrot(a, p);
+          if (a.t === "i") {
+            // รูป = เปลี่ยนความกว้าง (สูงตามสัดส่วนเดิม) โดยตรึงจุดกึ่งกลางไว้ ตอนหมุนอยู่จะได้ไม่ดีดหนี
+            const halfW = Math.max(p.bw * 0.025, Math.abs(q.x - grab.cx));
+            const w = Math.min(1.4, halfW * 2 / p.bw), hh = w * p.bw * (a.r || 0.75);
+            return Object.assign({}, a, { w: w, x: (grab.cx - halfW) / p.bw, y: (grab.cy - hh / 2) / p.bh });
+          }
+          const f = Math.max(0.25, (q.x - grab.cx) / (grab.w0 || 1));      // ข้อความ = ขยายขนาดตัวอักษรตามที่ลาก
           return Object.assign({}, a, { s: Math.min(0.4, Math.max(0.02, grab.s0 * f)) });
         }
         if (grab.mode === "p1") return Object.assign({}, a, { x1: p.x, y1: p.y });
         if (grab.mode === "p2") return Object.assign({}, a, { x2: p.x, y2: p.y });
-        if (grab.mode === "moveArrow") {
+        if (grab.mode === "moveLine") {
           const nx = p.x - grab.dx, ny = p.y - grab.dy;
           return Object.assign({}, a, { x1: nx, y1: ny, x2: nx + grab.span.x, y2: ny + grab.span.y });
         }

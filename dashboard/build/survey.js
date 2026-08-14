@@ -297,13 +297,46 @@ function AnnOverlay({
     ref.current = el;
     if (svgRef) svgRef.current = el;
   };
-  const dot = (cx, cy) => React.createElement("circle", {
+  const dot = (cx, cy, k, fill) => React.createElement("g", {
+    key: k
+  }, React.createElement("circle", {
     cx: cx,
     cy: cy,
-    r: unit * 1.7,
-    fill: "#fff",
+    r: unit * 4.4,
+    fill: "rgba(34,163,91,.16)"
+  }), React.createElement("circle", {
+    "data-h": k,
+    cx: cx,
+    cy: cy,
+    r: unit * 2.5,
+    fill: fill || "#fff",
+    stroke: fill ? "#fff" : "var(--primary)",
+    strokeWidth: unit * 0.7
+  }));
+  const arm = (cx, topY, botY) => {
+    const down = topY < unit * 9;
+    const ty = down ? botY + unit * 7 : topY - unit * 7;
+    return React.createElement("g", {
+      key: "rot"
+    }, React.createElement("line", {
+      x1: cx,
+      y1: down ? botY : topY,
+      x2: cx,
+      y2: ty,
+      stroke: "var(--primary)",
+      strokeWidth: unit * 0.6
+    }), dot(cx, ty, "rot", "var(--primary)"));
+  };
+  const selRect = (x, y, w, h) => React.createElement("rect", {
+    x: x,
+    y: y,
+    width: w,
+    height: h,
+    fill: "none",
     stroke: "var(--primary)",
-    strokeWidth: unit * 0.55
+    strokeWidth: unit * 0.55,
+    strokeDasharray: unit * 1.6 + " " + unit,
+    rx: unit
   });
   return React.createElement("svg", {
     ref: setRef,
@@ -319,14 +352,20 @@ function AnnOverlay({
     }
   }, list.map((a, i) => {
     const on = edit && sel === i;
+    const rot = a.rot || 0;
     if (a.t === "i") {
       const x = a.x * W,
         y = a.y * H,
         w = (a.w || 0.35) * W,
         hh = w * (a.r || 0.75);
+      const cx = x + w / 2,
+        cy = y + hh / 2;
       return React.createElement("g", {
         key: i,
-        "data-ai": i
+        "data-ai": i,
+        transform: rot ? "rotate(" + rot + " " + cx + " " + cy + ")" : undefined
+      }, React.createElement("g", {
+        "data-body": ""
       }, React.createElement("image", {
         href: a.src,
         x: x,
@@ -343,35 +382,39 @@ function AnnOverlay({
         stroke: a.c || "#FFFFFF",
         strokeWidth: unit * 0.5,
         rx: unit * 0.8
-      }), on && React.createElement("rect", {
-        x: x - unit,
-        y: y - unit,
-        width: w + unit * 2,
-        height: hh + unit * 2,
-        fill: "none",
-        stroke: "var(--primary)",
-        strokeWidth: unit * 0.55,
-        strokeDasharray: unit * 1.6 + " " + unit,
-        rx: unit
-      }), on && dot(x + w, y + hh));
+      })), on && selRect(x - unit, y - unit, w + unit * 2, hh + unit * 2), on && arm(cx, y - unit, y + hh + unit), on && dot(x + w, y + hh, "size"));
     }
-    if (a.t === "a") {
+    if (a.t === "a" || a.t === "d") {
       const x1 = a.x1 * W,
         y1 = a.y1 * H,
         x2 = a.x2 * W,
         y2 = a.y2 * H;
-      const ang = Math.atan2(y2 - y1, x2 - x1);
-      const lw = unit * 1.15;
-      const head = lw * 3.4;
-      const halfW = head * 0.46;
-      const bx = x2 - head * Math.cos(ang),
+      const lw = unit * (a.t === "d" ? 0.95 : 1.15);
+      let bx = x2,
+        by = y2,
+        headEl = null;
+      if (a.t === "a") {
+        const ang = Math.atan2(y2 - y1, x2 - x1);
+        const head = lw * 3.4;
+        const halfW = head * 0.46;
+        bx = x2 - head * Math.cos(ang);
         by = y2 - head * Math.sin(ang);
-      const nx = -Math.sin(ang),
-        ny = Math.cos(ang);
-      const pts = [x2 + "," + y2, bx + halfW * nx + "," + (by + halfW * ny), bx - halfW * nx + "," + (by - halfW * ny)].join(" ");
+        const nx = -Math.sin(ang),
+          ny = Math.cos(ang);
+        const pts = [x2 + "," + y2, bx + halfW * nx + "," + (by + halfW * ny), bx - halfW * nx + "," + (by - halfW * ny)].join(" ");
+        headEl = React.createElement("polygon", {
+          points: pts,
+          fill: a.c,
+          strokeLinejoin: "round",
+          stroke: a.c,
+          strokeWidth: lw * 0.35
+        });
+      }
       return React.createElement("g", {
         key: i,
         "data-ai": i
+      }, React.createElement("g", {
+        "data-body": ""
       }, React.createElement("line", {
         x1: x1,
         y1: y1,
@@ -379,22 +422,23 @@ function AnnOverlay({
         y2: by,
         stroke: a.c,
         strokeWidth: lw,
-        strokeLinecap: "round"
-      }), React.createElement("polygon", {
-        points: pts,
-        fill: a.c,
-        strokeLinejoin: "round",
-        stroke: a.c,
-        strokeWidth: lw * 0.35
-      }), on && dot(x1, y1), on && dot(x2, y2));
+        strokeLinecap: "round",
+        strokeDasharray: a.t === "d" ? unit * 2.6 + " " + unit * 1.9 : undefined
+      }), headEl), on && dot(x1, y1, "p1"), on && dot(x2, y2, "p2"));
     }
+    const ax = a.x * W,
+      ay = a.y * H;
     const fs = (a.s || 0.055) * W;
+    const tw = fs * 0.62 * String(a.v || "").length;
     return React.createElement("g", {
       key: i,
-      "data-ai": i
+      "data-ai": i,
+      transform: rot ? "rotate(" + rot + " " + ax + " " + ay + ")" : undefined
+    }, React.createElement("g", {
+      "data-body": ""
     }, React.createElement("text", {
-      x: a.x * W,
-      y: a.y * H,
+      x: ax,
+      y: ay,
       fill: a.c,
       fontSize: fs,
       fontWeight: "800",
@@ -405,17 +449,7 @@ function AnnOverlay({
         fontFamily: "var(--sans)"
       },
       dominantBaseline: "middle"
-    }, a.v), on && React.createElement("rect", {
-      x: a.x * W - unit,
-      y: a.y * H - fs * 0.72,
-      width: fs * 0.62 * String(a.v || "").length + unit * 2,
-      height: fs * 1.44,
-      fill: "none",
-      stroke: "var(--primary)",
-      strokeWidth: unit * 0.55,
-      strokeDasharray: unit * 1.6 + " " + unit,
-      rx: unit
-    }), on && dot(a.x * W + fs * 0.62 * String(a.v || "").length + unit, a.y * H + fs * 0.72));
+    }, a.v)), on && selRect(ax - unit, ay - fs * 0.72, tw + unit * 2, fs * 1.44), on && arm(ax + tw / 2, ay - fs * 0.72, ay + fs * 0.72), on && dot(ax + tw + unit, ay + fs * 0.72, "size"));
   }));
 }
 function StickerPicker({
@@ -772,12 +806,17 @@ const ANN_TOOLS = [{
   key: "s",
   th: "เลือก",
   glyph: "✥",
-  hint: "แตะสิ่งที่เขียนไว้เพื่อเลือก · ลากเพื่อย้าย · ลากจุดมุมเพื่อย่อ-ขยาย · กดถังขยะเพื่อลบ"
+  hint: "แตะสิ่งที่เขียนไว้เพื่อเลือก · ลากเพื่อย้าย · จุดขาวมุมล่างขวาย่อ-ขยาย · จุดเขียวด้านบนหมุน · ถังขยะลบ"
 }, {
   key: "a",
   th: "ลูกศร",
   glyph: "↗",
   hint: "ลากจากจุดที่ต้องการชี้ ไปยังปลายลูกศร"
+}, {
+  key: "d",
+  th: "เส้นประ",
+  glyph: "╌",
+  hint: "ลากเพื่อตีเส้นประ ใช้บอกแนวเดินสาย / ขอบเขตพื้นที่"
 }, {
   key: "t",
   th: "ข้อความ",
@@ -787,9 +826,9 @@ const ANN_TOOLS = [{
   key: "i",
   th: "แปะรูป",
   glyph: "🖼",
-  hint: "เลือกรูปอุปกรณ์จากคลังมาแปะทับ แล้วลากย้าย/ย่อขยายได้"
+  hint: "เลือกรูปอุปกรณ์จากคลังมาแปะทับ แล้วลากย้าย/ย่อขยาย/หมุนได้"
 }];
-const HANDLE_PX = 13;
+const HANDLE_PX = 26;
 function AnnEditor({
   shot,
   onSave,
@@ -818,19 +857,20 @@ function AnnEditor({
     if (sel != null && sel >= ann.length) setSel(null);
   }, [ann.length]);
   React.useLayoutEffect(() => {
-    if (sel == null || !svgRef.current) {
+    if (sel == null || !svgRef.current || !boxRef.current) {
       setSelBox(null);
       return;
     }
-    const el = svgRef.current.querySelector('[data-ai="' + sel + '"]');
+    const el = bodyOf(sel);
     if (!el) {
       setSelBox(null);
       return;
     }
-    const b = el.getBBox();
+    const b = el.getBoundingClientRect(),
+      r = boxRef.current.getBoundingClientRect();
     setSelBox({
-      x: b.x,
-      y: b.y,
+      x: b.left - r.left,
+      y: b.top - r.top,
       w: b.width,
       h: b.height
     });
@@ -849,31 +889,54 @@ function AnnEditor({
       bh: r.height
     };
   };
-  const handlesOf = (i, p) => {
-    const a = ann[i];
-    if (!a) return [];
-    if (a.t === "a") return [{
-      k: "p1",
-      x: a.x1 * p.bw,
-      y: a.y1 * p.bh
-    }, {
-      k: "p2",
-      x: a.x2 * p.bw,
-      y: a.y2 * p.bh
-    }];
-    const el = svgRef.current && svgRef.current.querySelector('[data-ai="' + i + '"]');
-    if (!el) return [];
-    const b = el.getBBox();
-    return [{
-      k: "size",
-      x: b.x + b.width,
-      y: b.y + b.height
-    }];
+  const isLine = a => a && (a.t === "a" || a.t === "d");
+  const bodyOf = i => {
+    const g = svgRef.current && svgRef.current.querySelector('[data-ai="' + i + '"]');
+    return g ? g.querySelector("[data-body]") || g : null;
+  };
+  const rotCenter = (a, p) => {
+    if (a.t !== "i") return {
+      x: a.x * p.bw,
+      y: a.y * p.bh
+    };
+    const w = (a.w || 0.35) * p.bw;
+    return {
+      x: a.x * p.bw + w / 2,
+      y: a.y * p.bh + w * (a.r || 0.75) / 2
+    };
+  };
+  const unrot = (a, p) => {
+    const deg = a.rot || 0;
+    if (!deg) return {
+      x: p.px,
+      y: p.py
+    };
+    const c = rotCenter(a, p),
+      th = -deg * Math.PI / 180;
+    const dx = p.px - c.x,
+      dy = p.py - c.y;
+    return {
+      x: c.x + dx * Math.cos(th) - dy * Math.sin(th),
+      y: c.y + dx * Math.sin(th) + dy * Math.cos(th)
+    };
+  };
+  const handlesOf = i => {
+    const g = svgRef.current && svgRef.current.querySelector('[data-ai="' + i + '"]');
+    if (!g || !boxRef.current) return [];
+    const r = boxRef.current.getBoundingClientRect();
+    return Array.prototype.map.call(g.querySelectorAll("[data-h]"), el => {
+      const b = el.getBoundingClientRect();
+      return {
+        k: el.getAttribute("data-h"),
+        x: b.left + b.width / 2 - r.left,
+        y: b.top + b.height / 2 - r.top
+      };
+    });
   };
   const hitAt = p => {
     for (let i = ann.length - 1; i >= 0; i--) {
       const a = ann[i];
-      if (a.t === "a") {
+      if (isLine(a)) {
         const x1 = a.x1 * p.bw,
           y1 = a.y1 * p.bh,
           x2 = a.x2 * p.bw,
@@ -886,10 +949,11 @@ function AnnEditor({
         if (d <= 14) return i;
         continue;
       }
-      const el = svgRef.current && svgRef.current.querySelector('[data-ai="' + i + '"]');
+      const el = bodyOf(i);
       if (!el) continue;
-      const b = el.getBBox();
-      if (p.px >= b.x - 4 && p.px <= b.x + b.width + 4 && p.py >= b.y - 4 && p.py <= b.y + b.height + 4) return i;
+      const b = el.getBBox(),
+        q = unrot(a, p);
+      if (q.x >= b.x - 4 && q.x <= b.x + b.width + 4 && q.y >= b.y - 4 && q.y <= b.y + b.height + 4) return i;
     }
     return null;
   };
@@ -905,11 +969,11 @@ function AnnEditor({
       });
       return;
     }
-    if (tool === "a") {
+    if (tool === "a" || tool === "d") {
       e.preventDefault();
       setSel(null);
       setDrag({
-        t: "a",
+        t: tool,
         x1: p.x,
         y1: p.y,
         x2: p.x,
@@ -919,21 +983,31 @@ function AnnEditor({
       return;
     }
     if (sel != null) {
-      const h = handlesOf(sel, p).find(g => Math.hypot(p.px - g.x, p.py - g.y) <= HANDLE_PX);
+      let h = null,
+        best = HANDLE_PX;
+      handlesOf(sel).forEach(g => {
+        const d = Math.hypot(p.px - g.x, p.py - g.y);
+        if (d <= best) {
+          best = d;
+          h = g;
+        }
+      });
       if (h) {
         e.preventDefault();
         const a = ann[sel];
-        const el = svgRef.current.querySelector('[data-ai="' + sel + '"]');
+        const el = bodyOf(sel);
         const b = el ? el.getBBox() : {
           width: 1
         };
+        const c = rotCenter(a, p);
         setGrab({
           i: sel,
           mode: h.k,
           w0: b.width || 1,
           s0: a.s || 0.055,
-          x0: a.x,
-          y0: a.y
+          cx: c.x,
+          cy: c.y,
+          a0: Math.atan2(p.py - c.y, p.px - c.x) * 180 / Math.PI - (a.rot || 0)
         });
         return;
       }
@@ -943,9 +1017,9 @@ function AnnEditor({
     if (hit == null) return;
     e.preventDefault();
     const a = ann[hit];
-    setGrab(a.t === "a" ? {
+    setGrab(isLine(a) ? {
       i: hit,
-      mode: "moveArrow",
+      mode: "moveLine",
       dx: p.x - a.x1,
       dy: p.y - a.y1,
       span: {
@@ -965,11 +1039,27 @@ function AnnEditor({
       const p = pt(e);
       setAnn(list => list.map((a, j) => {
         if (j !== grab.i) return a;
-        if (grab.mode === "size") {
-          if (a.t === "i") return Object.assign({}, a, {
-            w: Math.min(1.2, Math.max(0.05, p.x - a.x))
+        if (grab.mode === "rot") {
+          let d = Math.atan2(p.py - grab.cy, p.px - grab.cx) * 180 / Math.PI - grab.a0;
+          d = (d % 360 + 360) % 360;
+          const snap = [0, 90, 180, 270, 360].find(s => Math.abs(d - s) <= 4);
+          return Object.assign({}, a, {
+            rot: snap == null ? Math.round(d * 10) / 10 : snap % 360
           });
-          const f = Math.max(0.25, (p.px - grab.x0 * p.bw) / (grab.w0 || 1));
+        }
+        if (grab.mode === "size") {
+          const q = unrot(a, p);
+          if (a.t === "i") {
+            const halfW = Math.max(p.bw * 0.025, Math.abs(q.x - grab.cx));
+            const w = Math.min(1.4, halfW * 2 / p.bw),
+              hh = w * p.bw * (a.r || 0.75);
+            return Object.assign({}, a, {
+              w: w,
+              x: (grab.cx - halfW) / p.bw,
+              y: (grab.cy - hh / 2) / p.bh
+            });
+          }
+          const f = Math.max(0.25, (q.x - grab.cx) / (grab.w0 || 1));
           return Object.assign({}, a, {
             s: Math.min(0.4, Math.max(0.02, grab.s0 * f))
           });
@@ -982,7 +1072,7 @@ function AnnEditor({
           x2: p.x,
           y2: p.y
         });
-        if (grab.mode === "moveArrow") {
+        if (grab.mode === "moveLine") {
           const nx = p.x - grab.dx,
             ny = p.y - grab.dy;
           return Object.assign({}, a, {
