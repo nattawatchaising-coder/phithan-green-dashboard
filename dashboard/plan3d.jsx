@@ -1109,6 +1109,8 @@ function P3Icon({ name, size, w }) {
     doc: <F><path d="M3.6 1.9h5.2l3.6 3.6v8.6H3.6z" /><path d="M8.8 1.9v3.6h3.6" /><path d="M5.9 9h4.2M5.9 11.3h3" /></F>,
     cloud: <F><path d="M4.6 12.2a3 3 0 0 1-.3-6 4.2 4.2 0 0 1 8 .9 2.6 2.6 0 0 1-.5 5.1z" /></F>,
     ruler: <F><path d="M1.9 10.2 10.2 1.9l3.9 3.9-8.3 8.3z" /><path d="m4.2 7.9 1.6 1.6M6.2 5.9l1.6 1.6M8.2 3.9l1.6 1.6" /></F>,
+    eye: <F><path d="M1.4 8S4 3.6 8 3.6 14.6 8 14.6 8 12 12.4 8 12.4 1.4 8 1.4 8Z" /><circle cx="8" cy="8" r="2.1" /></F>,
+    eyeOff: <F><path d="M6.3 4a6.6 6.6 0 0 1 1.7-.2c4 0 6.6 4.2 6.6 4.2a12 12 0 0 1-2 2.5M4 5a12 12 0 0 0-2.6 3S4 12.2 8 12.2a6.3 6.3 0 0 0 2.3-.4" /><path d="m2.3 2.3 11.4 11.4" /></F>,
   };
   return (
     <svg width={s} height={s} viewBox="0 0 16 16" aria-hidden="true"
@@ -1891,6 +1893,9 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     // ── เส้นวัดระยะ + ป้ายตัวเลข ──
     // ป้ายเป็นสไปรต์ที่วาดลง canvas เอง (กว้างตามความยาวข้อความจริง ไม่ตัดคำ) และ depthTest:false
     // เพื่อให้เลขลอยอ่านได้เสมอ แม้เส้นจะพาดผ่านหลังคาหรือสิ่งบดบัง
+    /* ขนาดป้าย/จุด อิงความกว้างผัง — ผังใหญ่ป้ายก็โตตาม แต่ตั้งไว้ให้เล็กพอที่หลาย ๆ เส้น
+       วางใกล้กันแล้วยังไม่บังกันเอง (ตัวเลขบนภาพเป็นของอ่านประกอบ ไม่ใช่พระเอกของผัง) */
+    const tagH = Math.max(0.55, (+st.groundW || 40) / 46);
     const mkTag = (txt, hex, small) => {
       const px = small ? 34 : 42, font = "bold " + px + "px system-ui";
       const mc = document.createElement("canvas").getContext("2d"); mc.font = font;
@@ -1907,7 +1912,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       x.fillStyle = hex; x.fillText(txt, cv2.width / 2, cv2.height / 2 + 1);
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv2), transparent: true, depthTest: false }));
       sp.renderOrder = 30;
-      const H = Math.max(0.8, (+st.groundW || 40) / 30) * (small ? 0.78 : 1);   // ป้ายโตตามขนาดผัง อ่านได้ทั้งไซต์เล็กและใหญ่
+      const H = tagH * (small ? 0.74 : 1);
       sp.scale.set(H * (cv2.width / cv2.height), H, 1);
       return sp;
     };
@@ -1918,7 +1923,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         new THREE.BufferGeometry().setFromPoints(pts.map((p) => new THREE.Vector3(p.x, Y, p.z))),
         new THREE.LineBasicMaterial({ color: color, depthTest: false, transparent: true, opacity: bold ? 1 : 0.8 }));
       line.renderOrder = 22; t.dyn.add(line);
-      const R = Math.max(0.09, (+st.groundW || 40) / 300) * (bold ? 1.4 : 1);
+      const R = Math.max(0.055, (+st.groundW || 40) / 440) * (bold ? 1.45 : 1);
       const dotMat = new THREE.MeshBasicMaterial({ color: color, depthTest: false, transparent: true });
       pts.forEach((p, i) => {
         const d = new THREE.Mesh(new THREE.SphereGeometry(R, 14, 10), dotMat);
@@ -1928,16 +1933,17 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         // ช่วงเดียวไม่ต้องแยกป้าย เพราะป้ายรวมบอกเลขเดียวกันอยู่แล้ว
         if (pts.length > 2 && seg > 0.5) {
           const lb = mkTag(seg.toFixed(2), hex, true);
-          lb.position.set((p.x + q.x) / 2, Y + 0.75, (p.z + q.z) / 2); t.dyn.add(lb);
+          lb.position.set((p.x + q.x) / 2, Y + tagH * 0.62, (p.z + q.z) / 2); t.dyn.add(lb);
         }
       });
       if (tag) {
         const lb = mkTag(tag, hex, false);
         const last = pts[pts.length - 1];
-        lb.position.set(last.x, Y + 2, last.z); t.dyn.add(lb);
+        lb.position.set(last.x, Y + tagH * 1.7, last.z); t.dyn.add(lb);
       }
     };
-    (st.measures || []).forEach((m) => {
+    /* ปิดเส้นไหนไว้ = ไม่วาดเลย (ทั้งเส้น จุด และป้าย) — ผังที่วัดไว้หลายเส้นจะได้เปิดดูทีละอันได้ */
+    (st.measures || []).filter((m) => !m.off).forEach((m) => {
       const km = p3MeasKind(m.kind);
       const hex = "#" + km.c.toString(16).padStart(6, "0");
       const rise = Math.abs(+m.rise || 0);
@@ -1948,7 +1954,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       const run = p3MeasLen({ pts: measPts });
       drawMeasPath(measPts, "#15803D", 0x16A34A, true, measPts.length >= 2 ? run.toFixed(2) + " ม." : null);
       if (measPts.length === 1) {
-        const d = new THREE.Mesh(new THREE.SphereGeometry(Math.max(0.12, (+st.groundW || 40) / 220), 16, 12),
+        const d = new THREE.Mesh(new THREE.SphereGeometry(Math.max(0.08, (+st.groundW || 40) / 320), 16, 12),
           new THREE.MeshBasicMaterial({ color: 0x16A34A, depthTest: false, transparent: true }));
         d.position.set(measPts[0].x, 0.22, measPts[0].z); d.renderOrder = 23; t.dyn.add(d);
       }
@@ -3156,15 +3162,31 @@ function Plan3DEditor({ job, onClose, currentUser }) {
             </div>
           )}
 
+          {/* เปิด/ปิดทีเดียวทั้งชุด — วัดไว้หลายเส้นแล้วอยากเคลียร์ภาพชั่วคราว ไม่ต้องไล่กดทีละอัน */}
+          {(st.measures || []).length > 1 && (
+            <div style={{ display: "flex", gap: 7 }}>
+              <SmallBtn cls="w" icon="eye" onClick={() => set({ measures: (st.measures || []).map((m) => Object.assign({}, m, { off: false })) })}>เปิดทุกเส้น</SmallBtn>
+              <SmallBtn cls="w" icon="eyeOff" onClick={() => set({ measures: (st.measures || []).map((m) => Object.assign({}, m, { off: true })) })}>ปิดทุกเส้น</SmallBtn>
+            </div>
+          )}
+
           {(st.measures || []).map((m) => {
             const km = p3MeasKind(m.kind);
             const hex = "#" + km.c.toString(16).padStart(6, "0");
             const on = selMeas === m.id;
+            const off = !!m.off;
             return (
-              <div key={m.id} className="p3-card" style={on ? { borderColor: hex, boxShadow: "0 0 0 2px " + hex + "22" } : null}>
+              <div key={m.id} className="p3-card" style={Object.assign({},
+                on && !off ? { borderColor: hex, boxShadow: "0 0 0 2px " + hex + "22" } : null,
+                off ? { background: "var(--surface2)" } : null)}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ width: 9, height: 9, borderRadius: 99, background: hex, flex: "0 0 auto" }} />
-                  <input className="p3-inp" style={{ fontWeight: 700 }} value={m.name || ""} placeholder="ชื่อระยะ"
+                  {/* จุดสีหมวด = ปุ่มเปิด/ปิดในตัว · ปิดอยู่ = จุดกลวง ดูปราดเดียวรู้ว่าเส้นนี้ไม่ได้โชว์ */}
+                  <button title={off ? "เปิดแสดงเส้นนี้บนภาพ" : "ซ่อนเส้นนี้จากภาพ"} onClick={() => patchMeas(m.id, { off: !off })}
+                    style={{ flex: "0 0 auto", display: "inline-flex", alignItems: "center", gap: 6, border: "none", background: "none", padding: "2px 0", color: off ? "var(--text-3)" : hex }}>
+                    <span style={{ width: 9, height: 9, borderRadius: 99, background: off ? "transparent" : hex, border: "1.6px solid " + (off ? "var(--text-3)" : hex), boxSizing: "border-box" }} />
+                    <P3Icon name={off ? "eyeOff" : "eye"} size={14} />
+                  </button>
+                  <input className="p3-inp" style={{ fontWeight: 700, opacity: off ? 0.6 : 1 }} value={m.name || ""} placeholder="ชื่อระยะ"
                     onFocus={() => setSelMeas(m.id)} onChange={(e) => patchMeas(m.id, { name: e.target.value })} />
                   <button className="p3-b sm dngr" title="ลบเส้นวัดนี้" onClick={() => delMeas(m.id)} style={{ flex: "0 0 auto", padding: "6px 8px" }}>
                     <P3Icon name="trash" size={13} />
@@ -3186,7 +3208,8 @@ function Plan3DEditor({ job, onClose, currentUser }) {
                 </div>
                 <span className="p3-note">
                   {(m.pts || []).length} จุด · ระยะราบ {p3MeasLen({ pts: m.pts }).toFixed(2)} ม.
-                  {" · "}<button className="p3-lnk" onClick={() => setSelMeas(on ? null : m.id)}>{on ? "เลิกเน้น" : "เน้นบนภาพ"}</button>
+                  {off ? " · ซ่อนอยู่"
+                    : <React.Fragment>{" · "}<button className="p3-lnk" onClick={() => setSelMeas(on ? null : m.id)}>{on ? "เลิกเน้น" : "เน้นบนภาพ"}</button></React.Fragment>}
                 </span>
               </div>
             );
@@ -3206,7 +3229,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
                   </div>
                 );
               })}
-              <span className="p3-note">กด <b>บันทึก</b> แล้วเปิด “ถอดวัสดุ BOQ” จะมีปุ่มดึงระยะเหล่านี้เข้าช่องความยาวให้</span>
+              <span className="p3-note">กด <b>บันทึก</b> แล้วเปิด “ถอดวัสดุ BOQ” จะมีปุ่มดึงระยะเหล่านี้เข้าช่องความยาวให้ · เส้นที่ปิดไว้แค่ไม่โชว์บนภาพ ยังนับรวมและดึงเข้า BOQ ได้ตามปกติ</span>
             </div>
           )}
         </div>

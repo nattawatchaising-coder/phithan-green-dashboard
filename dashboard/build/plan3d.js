@@ -2027,6 +2027,18 @@ function P3Icon({
       d: "M1.9 10.2 10.2 1.9l3.9 3.9-8.3 8.3z"
     }), React.createElement("path", {
       d: "m4.2 7.9 1.6 1.6M6.2 5.9l1.6 1.6M8.2 3.9l1.6 1.6"
+    })),
+    eye: React.createElement(F, null, React.createElement("path", {
+      d: "M1.4 8S4 3.6 8 3.6 14.6 8 14.6 8 12 12.4 8 12.4 1.4 8 1.4 8Z"
+    }), React.createElement("circle", {
+      cx: "8",
+      cy: "8",
+      r: "2.1"
+    })),
+    eyeOff: React.createElement(F, null, React.createElement("path", {
+      d: "M6.3 4a6.6 6.6 0 0 1 1.7-.2c4 0 6.6 4.2 6.6 4.2a12 12 0 0 1-2 2.5M4 5a12 12 0 0 0-2.6 3S4 12.2 8 12.2a6.3 6.3 0 0 0 2.3-.4"
+    }), React.createElement("path", {
+      d: "m2.3 2.3 11.4 11.4"
     }))
   };
   return React.createElement("svg", {
@@ -3256,6 +3268,7 @@ function Plan3DEditor({
         t.dyn.add(dot);
       });
     }
+    const tagH = Math.max(0.55, (+st.groundW || 40) / 46);
     const mkTag = (txt, hex, small) => {
       const px = small ? 34 : 42,
         font = "bold " + px + "px system-ui";
@@ -3286,7 +3299,7 @@ function Plan3DEditor({
         depthTest: false
       }));
       sp.renderOrder = 30;
-      const H = Math.max(0.8, (+st.groundW || 40) / 30) * (small ? 0.78 : 1);
+      const H = tagH * (small ? 0.74 : 1);
       sp.scale.set(H * (cv2.width / cv2.height), H, 1);
       return sp;
     };
@@ -3301,7 +3314,7 @@ function Plan3DEditor({
       }));
       line.renderOrder = 22;
       t.dyn.add(line);
-      const R = Math.max(0.09, (+st.groundW || 40) / 300) * (bold ? 1.4 : 1);
+      const R = Math.max(0.055, (+st.groundW || 40) / 440) * (bold ? 1.45 : 1);
       const dotMat = new THREE.MeshBasicMaterial({
         color: color,
         depthTest: false,
@@ -3317,18 +3330,18 @@ function Plan3DEditor({
           seg = Math.hypot(p.x - q.x, p.z - q.z);
         if (pts.length > 2 && seg > 0.5) {
           const lb = mkTag(seg.toFixed(2), hex, true);
-          lb.position.set((p.x + q.x) / 2, Y + 0.75, (p.z + q.z) / 2);
+          lb.position.set((p.x + q.x) / 2, Y + tagH * 0.62, (p.z + q.z) / 2);
           t.dyn.add(lb);
         }
       });
       if (tag) {
         const lb = mkTag(tag, hex, false);
         const last = pts[pts.length - 1];
-        lb.position.set(last.x, Y + 2, last.z);
+        lb.position.set(last.x, Y + tagH * 1.7, last.z);
         t.dyn.add(lb);
       }
     };
-    (st.measures || []).forEach(m => {
+    (st.measures || []).filter(m => !m.off).forEach(m => {
       const km = p3MeasKind(m.kind);
       const hex = "#" + km.c.toString(16).padStart(6, "0");
       const rise = Math.abs(+m.rise || 0);
@@ -3340,7 +3353,7 @@ function Plan3DEditor({
       });
       drawMeasPath(measPts, "#15803D", 0x16A34A, true, measPts.length >= 2 ? run.toFixed(2) + " ม." : null);
       if (measPts.length === 1) {
-        const d = new THREE.Mesh(new THREE.SphereGeometry(Math.max(0.12, (+st.groundW || 40) / 220), 16, 12), new THREE.MeshBasicMaterial({
+        const d = new THREE.Mesh(new THREE.SphereGeometry(Math.max(0.08, (+st.groundW || 40) / 320), 16, 12), new THREE.MeshBasicMaterial({
           color: 0x16A34A,
           depthTest: false,
           transparent: true
@@ -5937,35 +5950,79 @@ function Plan3DEditor({
       background: "var(--surface2)",
       borderRadius: 12
     }
-  }, "\u0E27\u0E31\u0E14\u0E23\u0E30\u0E22\u0E30\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22 \xB7 \u0E23\u0E30\u0E22\u0E30\u0E40\u0E14\u0E34\u0E19\u0E23\u0E32\u0E07 \xB7 \u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E1A\u0E31\u0E19\u0E44\u0E14\u0E25\u0E34\u0E07/\u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19 \u0E08\u0E32\u0E01\u0E1C\u0E31\u0E07\u0E08\u0E23\u0E34\u0E07", React.createElement("br", null), "\u0E41\u0E25\u0E49\u0E27\u0E14\u0E36\u0E07\u0E40\u0E02\u0E49\u0E32\u0E0A\u0E48\u0E2D\u0E07\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E43\u0E19 ", React.createElement("b", null, "\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38 BOQ"), " \u0E44\u0E14\u0E49\u0E40\u0E25\u0E22"), (st.measures || []).map(m => {
+  }, "\u0E27\u0E31\u0E14\u0E23\u0E30\u0E22\u0E30\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22 \xB7 \u0E23\u0E30\u0E22\u0E30\u0E40\u0E14\u0E34\u0E19\u0E23\u0E32\u0E07 \xB7 \u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E1A\u0E31\u0E19\u0E44\u0E14\u0E25\u0E34\u0E07/\u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19 \u0E08\u0E32\u0E01\u0E1C\u0E31\u0E07\u0E08\u0E23\u0E34\u0E07", React.createElement("br", null), "\u0E41\u0E25\u0E49\u0E27\u0E14\u0E36\u0E07\u0E40\u0E02\u0E49\u0E32\u0E0A\u0E48\u0E2D\u0E07\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E43\u0E19 ", React.createElement("b", null, "\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38 BOQ"), " \u0E44\u0E14\u0E49\u0E40\u0E25\u0E22"), (st.measures || []).length > 1 && React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 7
+    }
+  }, React.createElement(SmallBtn, {
+    cls: "w",
+    icon: "eye",
+    onClick: () => set({
+      measures: (st.measures || []).map(m => Object.assign({}, m, {
+        off: false
+      }))
+    })
+  }, "\u0E40\u0E1B\u0E34\u0E14\u0E17\u0E38\u0E01\u0E40\u0E2A\u0E49\u0E19"), React.createElement(SmallBtn, {
+    cls: "w",
+    icon: "eyeOff",
+    onClick: () => set({
+      measures: (st.measures || []).map(m => Object.assign({}, m, {
+        off: true
+      }))
+    })
+  }, "\u0E1B\u0E34\u0E14\u0E17\u0E38\u0E01\u0E40\u0E2A\u0E49\u0E19")), (st.measures || []).map(m => {
     const km = p3MeasKind(m.kind);
     const hex = "#" + km.c.toString(16).padStart(6, "0");
     const on = selMeas === m.id;
+    const off = !!m.off;
     return React.createElement("div", {
       key: m.id,
       className: "p3-card",
-      style: on ? {
+      style: Object.assign({}, on && !off ? {
         borderColor: hex,
         boxShadow: "0 0 0 2px " + hex + "22"
-      } : null
+      } : null, off ? {
+        background: "var(--surface2)"
+      } : null)
     }, React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "center",
         gap: 8
       }
+    }, React.createElement("button", {
+      title: off ? "เปิดแสดงเส้นนี้บนภาพ" : "ซ่อนเส้นนี้จากภาพ",
+      onClick: () => patchMeas(m.id, {
+        off: !off
+      }),
+      style: {
+        flex: "0 0 auto",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        border: "none",
+        background: "none",
+        padding: "2px 0",
+        color: off ? "var(--text-3)" : hex
+      }
     }, React.createElement("span", {
       style: {
         width: 9,
         height: 9,
         borderRadius: 99,
-        background: hex,
-        flex: "0 0 auto"
+        background: off ? "transparent" : hex,
+        border: "1.6px solid " + (off ? "var(--text-3)" : hex),
+        boxSizing: "border-box"
       }
-    }), React.createElement("input", {
+    }), React.createElement(P3Icon, {
+      name: off ? "eyeOff" : "eye",
+      size: 14
+    })), React.createElement("input", {
       className: "p3-inp",
       style: {
-        fontWeight: 700
+        fontWeight: 700,
+        opacity: off ? 0.6 : 1
       },
       value: m.name || "",
       placeholder: "\u0E0A\u0E37\u0E48\u0E2D\u0E23\u0E30\u0E22\u0E30",
@@ -6039,10 +6096,10 @@ function Plan3DEditor({
       className: "p3-note"
     }, (m.pts || []).length, " \u0E08\u0E38\u0E14 \xB7 \u0E23\u0E30\u0E22\u0E30\u0E23\u0E32\u0E1A ", p3MeasLen({
       pts: m.pts
-    }).toFixed(2), " \u0E21.", " · ", React.createElement("button", {
+    }).toFixed(2), " \u0E21.", off ? " · ซ่อนอยู่" : React.createElement(React.Fragment, null, " · ", React.createElement("button", {
       className: "p3-lnk",
       onClick: () => setSelMeas(on ? null : m.id)
-    }, on ? "เลิกเน้น" : "เน้นบนภาพ")));
+    }, on ? "เลิกเน้น" : "เน้นบนภาพ"))));
   }), (st.measures || []).length > 0 && React.createElement("div", {
     className: "p3-card tint"
   }, React.createElement("span", {
@@ -6069,7 +6126,7 @@ function Plan3DEditor({
     }, "(", list.length, ")")), React.createElement("b", null, (Math.round(sum * 100) / 100).toFixed(2), " \u0E21."));
   }), React.createElement("span", {
     className: "p3-note"
-  }, "\u0E01\u0E14 ", React.createElement("b", null, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01"), " \u0E41\u0E25\u0E49\u0E27\u0E40\u0E1B\u0E34\u0E14 \u201C\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38 BOQ\u201D \u0E08\u0E30\u0E21\u0E35\u0E1B\u0E38\u0E48\u0E21\u0E14\u0E36\u0E07\u0E23\u0E30\u0E22\u0E30\u0E40\u0E2B\u0E25\u0E48\u0E32\u0E19\u0E35\u0E49\u0E40\u0E02\u0E49\u0E32\u0E0A\u0E48\u0E2D\u0E07\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E43\u0E2B\u0E49"))), tab === "sun" && React.createElement("div", {
+  }, "\u0E01\u0E14 ", React.createElement("b", null, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01"), " \u0E41\u0E25\u0E49\u0E27\u0E40\u0E1B\u0E34\u0E14 \u201C\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38 BOQ\u201D \u0E08\u0E30\u0E21\u0E35\u0E1B\u0E38\u0E48\u0E21\u0E14\u0E36\u0E07\u0E23\u0E30\u0E22\u0E30\u0E40\u0E2B\u0E25\u0E48\u0E32\u0E19\u0E35\u0E49\u0E40\u0E02\u0E49\u0E32\u0E0A\u0E48\u0E2D\u0E07\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E43\u0E2B\u0E49 \xB7 \u0E40\u0E2A\u0E49\u0E19\u0E17\u0E35\u0E48\u0E1B\u0E34\u0E14\u0E44\u0E27\u0E49\u0E41\u0E04\u0E48\u0E44\u0E21\u0E48\u0E42\u0E0A\u0E27\u0E4C\u0E1A\u0E19\u0E20\u0E32\u0E1E \u0E22\u0E31\u0E07\u0E19\u0E31\u0E1A\u0E23\u0E27\u0E21\u0E41\u0E25\u0E30\u0E14\u0E36\u0E07\u0E40\u0E02\u0E49\u0E32 BOQ \u0E44\u0E14\u0E49\u0E15\u0E32\u0E21\u0E1B\u0E01\u0E15\u0E34"))), tab === "sun" && React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
