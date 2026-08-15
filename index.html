@@ -150,7 +150,11 @@ input, select, textarea { font-family: inherit; }
 .role-btn.active { background: var(--primary); color: #fff; }
 
 /* ---------- header ---------- */
-.app-header { padding: 18px 26px 0; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+/* ตั้งลำดับชั้นให้แถบหัวเรื่องอยู่เหนือเนื้อหา — กล่องแจ้งเตือน/เมนูที่ห้อยจากปุ่มบนหัวจะได้ไม่ถูกการ์ดในหน้าทะลุขึ้นมาทับ
+   (ธีม aurora ใส่ backdrop-filter ที่แถบนี้ ซึ่งสร้างชั้นซ้อนของมันเอง z-index ข้างในเลยออกไปสู้กับเนื้อหาหน้าไม่ได้)
+   60 = ต่ำกว่าฉากหลังเมนูข้าง (70) และกล่องซ้อนต่าง ๆ (100 ขึ้นไป) */
+.app-header { padding: 18px 26px 0; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0;
+  position: relative; z-index: 60; }
 [data-density="compact"] .app-header { padding: 12px 18px 0; }
 .header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
 /* ชื่อหน้าใช้ฟอนต์หัวเรื่อง + บีบระยะตัวอักษร ให้ดูเป็นงานออกแบบ ไม่ใช่ตัวหนาธรรมดา */
