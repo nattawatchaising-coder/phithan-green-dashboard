@@ -19,6 +19,11 @@ const NAV = [
 ];
 const navForRole = (role) => NAV.filter((n) => !n.roles || n.roles.includes(role));
 
+/* งานนี้เป็นของช่างที่กรองอยู่ไหม — "__none" คือกรองเอาเฉพาะงานที่ยังไม่ได้มอบหมายให้ใคร
+   งานที่ผูกไว้กับช่างที่ถูกลบไปแล้ว (ไม่มีใน known) ให้นับเป็น "ยังไม่มอบหมาย" จะได้ไม่หายไปจากเมนู */
+const techKey = (j, known) => (j.tech && (!known || known.has(j.tech)) ? j.tech : "__none");
+const matchTech = (j, f, known) => techKey(j, known) === f;
+
 const ROLES = [
   { key: "admin",   th: "แอดมิน / ออฟฟิศ", icon: "users" },
   { key: "manager", th: "ผู้จัดการ",        icon: "user" },
@@ -108,6 +113,7 @@ function App() {
   const [typeFilter, setTypeFilter] = React.useState("all");
   const [stageFilter, setStageFilter] = React.useState(null);
   const [quickFilter, setQuickFilter] = React.useState(null);
+  const [techFilter, setTechFilter] = React.useState(null);   // id ช่างผู้รับผิดชอบ · "__none" = ยังไม่มอบหมาย
   const [delayedOnly, setDelayedOnly] = React.useState(false);
   const [selected, setSelected] = React.useState(null);
   const [form, setForm] = React.useState(null); // {job, isNew}
@@ -155,6 +161,8 @@ function App() {
     const f = fileFlags[j.id] || {};
     return { ...j, hasDesign: !!f.design, hasBoq: !!f.boq };
   }), [store.jobs, fileFlags]);
+  /* รายชื่อ id ช่างที่ยังมีอยู่จริง — ใช้เช็คว่างานผูกกับช่างที่ถูกลบไปแล้วหรือเปล่า */
+  const techIds = React.useMemo(() => new Set((techStore.techs || []).map((x) => x.id)), [techStore.techs]);
   const filtered = React.useMemo(() => {
     const q = search.trim().toLowerCase();
     return jobs.filter((j) => {
@@ -166,10 +174,33 @@ function App() {
       if (quickFilter === "delayed" && !j.delayed) return false;
       if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return false;
       if (quickFilter === "battery" && !j.battery) return false;
+      if (techFilter && !matchTech(j, techFilter, techIds)) return false;
       if (role === "tech" && j.tech !== techId) return false; // ช่างเห็นเฉพาะงานตัวเอง
       return true;
     });
-  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, role, techId]);
+  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techFilter, techIds, role, techId]);
+
+  /* นับงานต่อช่าง สำหรับเมนูกรอง "ช่างผู้รับผิดชอบ" — ใช้ฟิลเตอร์อื่นทั้งหมดยกเว้น techFilter เอง
+     จะได้เห็นว่าภายใต้เงื่อนไขที่กรองอยู่ ช่างแต่ละคนมีงานกี่งาน */
+  const techCounts = React.useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const c = {}; let all = 0;
+    jobs.forEach((j) => {
+      if (q && !((j.name + j.code + j.province + j.phone + j.brand).toLowerCase().includes(q))) return;
+      if (typeFilter !== "all" && j.type !== typeFilter) return;
+      if (stageFilter && j.stage !== stageFilter) return;
+      if (delayedOnly && !j.delayed) return;
+      if (quickFilter === "active" && j.stage === "done") return;
+      if (quickFilter === "delayed" && !j.delayed) return;
+      if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return;
+      if (quickFilter === "battery" && !j.battery) return;
+      if (role === "tech" && j.tech !== techId) return;
+      const k = techKey(j, techIds);
+      c[k] = (c[k] || 0) + 1; all++;
+    });
+    c.__all = all;
+    return c;
+  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techIds, role, techId]);
 
   // นับงานต่อขั้น (Flow) สำหรับชิปกรอง — ใช้ฟิลเตอร์อื่นทั้งหมดยกเว้น stageFilter เอง
   const stageCounts = React.useMemo(() => {
@@ -183,12 +214,13 @@ function App() {
       if (quickFilter === "delayed" && !j.delayed) return;
       if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return;
       if (quickFilter === "battery" && !j.battery) return;
+      if (techFilter && !matchTech(j, techFilter, techIds)) return;
       if (role === "tech" && j.tech !== techId) return;
       c[j.stage] = (c[j.stage] || 0) + 1; all++;
     });
     c.__all = all;
     return c;
-  }, [jobs, search, typeFilter, delayedOnly, quickFilter, role, techId]);
+  }, [jobs, search, typeFilter, delayedOnly, quickFilter, techFilter, techIds, role, techId]);
 
   // แจ้งเตือนงานล่าช้าตามขั้น (Flow) — คำนวณสด: tech เห็นเฉพาะงานตัวเอง, admin/manager เห็นทุกงาน
   const lateAlerts = React.useMemo(() => {
@@ -410,6 +442,7 @@ function App() {
           delayedOnly={delayedOnly} setDelayedOnly={setDelayedOnly}
           stageFilter={stageFilter} setStageFilter={setStageFilter} stageCounts={stageCounts}
           quickFilter={quickFilter} setQuickFilter={setQuickFilter}
+          techFilter={techFilter} setTechFilter={setTechFilter} techCounts={techCounts} techs={techStore.techs}
           onAdd={() => setForm({ job: store.blank(), isNew: true })}
           canAdd={can(role, "addJob")}
           onMap={() => setMapOpen(true)}
@@ -583,7 +616,85 @@ function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, aurora, onT
   );
 }
 
-function Header({ view, role, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, quickFilter, setQuickFilter, onAdd, canAdd, onMap, showBell, unread, notifItems, lateAlerts, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen }) {
+/* ── ตัวกรอง "ช่างผู้รับผิดชอบ" ──
+   ปุ่มเม็ดยาแบบเดียวกับตัวกรองขั้นงาน กดแล้วกางรายชื่อช่างพร้อมจำนวนงานของแต่ละคน
+   ตัวเลขคิดจากฟิลเตอร์อื่นที่เปิดอยู่ทั้งหมด จะได้รู้ว่า "ในสิ่งที่ดูอยู่ตอนนี้" ใครมีกี่งาน */
+function TechFilter({ value, onChange, techs, counts, nameOf }) {
+  const [open, setOpen] = React.useState(false);
+  const wrapRef = React.useRef(null);
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  React.useEffect(() => {
+    if (!open) return;
+    const off = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+    const esc = (e) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", off);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", off); document.removeEventListener("keydown", esc); };
+  }, [open]);
+
+  const cur = value ? (techs || []).find((t) => t.id === value) : null;
+  const on = !!value;
+  const none = (counts && counts.__none) || 0;
+  const pick = (v) => { onChange(v); setOpen(false); };
+
+  const row = (active) => ({
+    display: "flex", alignItems: "center", gap: 9, width: "100%", padding: "8px 10px", borderRadius: 10,
+    border: "none", background: active ? "var(--primary-soft)" : "transparent", cursor: "pointer",
+    fontFamily: "inherit", fontSize: 12.5, fontWeight: active ? 700 : 500,
+    color: active ? "var(--primary-dark)" : "var(--text-1)", textAlign: "left",
+  });
+  const tally = (n) => ({ marginLeft: "auto", fontFamily: "var(--display)", fontSize: 11.5, fontWeight: 800,
+    fontVariantNumeric: "tabular-nums", letterSpacing: "-.02em", color: "var(--text-3)", opacity: n ? 1 : .5 });
+  const bead = (bg, txt) => (
+    <span style={{ width: 22, height: 22, borderRadius: 99, background: bg, color: "#fff", flexShrink: 0,
+      display: "grid", placeItems: "center", fontSize: 9.5, fontWeight: 700 }}>{txt}</span>
+  );
+
+  return (
+    <span ref={wrapRef} style={{ position: "relative", display: "inline-flex" }}>
+      <button onClick={() => setOpen((v) => !v)} title="กรองตามช่างผู้รับผิดชอบ"
+        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: isMobile ? "5px 10px" : "6px 13px", borderRadius: 99,
+          border: "1px solid " + (on ? (cur ? cur.color : "var(--primary)") : "var(--border-strong)"),
+          background: on ? ((cur ? cur.color : "#22A35B") + "16") : "var(--surface)",
+          color: on ? (cur ? cur.color : "var(--primary-dark)") : "var(--text-2)",
+          fontSize: isMobile ? 11.5 : 12.5, fontWeight: on ? 700 : 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+        <Icon name="wrench" size={14} color={on ? (cur ? cur.color : "var(--primary-dark)") : "var(--text-2)"} />
+        ช่าง{on ? ": " + nameOf(value) : ""}
+        <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
+      </button>
+      {open && (
+        <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 40, width: 244, maxHeight: 340, overflowY: "auto",
+          background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 6,
+          boxShadow: "0 14px 40px rgba(8,20,14,.18)" }}>
+          <button style={row(!value)} onClick={() => pick(null)}>
+            {bead("var(--surface3)", "")}<span>ช่างทุกคน</span>
+            <span style={tally(1)}>{(counts && counts.__all) || 0}</span>
+          </button>
+          {(techs || []).map((t) => {
+            const n = (counts && counts[t.id]) || 0;
+            const active = value === t.id;
+            return (
+              <button key={t.id} style={Object.assign(row(active), n ? {} : { opacity: .55 })} onClick={() => pick(active ? null : t.id)}>
+                {bead(t.color, (t.nick || t.name || "?").slice(0, 2))}
+                <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name || t.nick}</span>
+                <span style={tally(n)}>{n}</span>
+              </button>
+            );
+          })}
+          {none > 0 && (
+            <button style={Object.assign(row(value === "__none"), { borderTop: "1px solid var(--border)", borderRadius: 0, marginTop: 4, paddingTop: 10 })}
+              onClick={() => pick(value === "__none" ? null : "__none")}>
+              {bead("var(--surface3)", "?")}<span style={{ color: "var(--text-2)" }}>ยังไม่มอบหมาย</span>
+              <span style={tally(none)}>{none}</span>
+            </button>
+          )}
+        </div>
+      )}
+    </span>
+  );
+}
+
+function Header({ view, role, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, quickFilter, setQuickFilter, techFilter, setTechFilter, techCounts, techs, onAdd, canAdd, onMap, showBell, unread, notifItems, lateAlerts, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen }) {
   const nav = NAV.find((n) => n.key === view);
   const QUICK_LABELS = { active: "กำลังดำเนินการ", delayed: "ล่าช้า", ready: "อุปกรณ์พร้อมติดตั้ง", battery: "มีแบตเตอรี่" };
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -595,6 +706,13 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
   const [searchOpen, setSearchOpen] = React.useState(false);
   const searchRef = React.useRef(null);
   React.useEffect(() => { if (searchOpen && searchRef.current) searchRef.current.focus(); }, [searchOpen]);
+  /* กรองตามช่างผู้รับผิดชอบ — ช่างที่ล็อกอินเองเห็นแต่งานตัวเองอยู่แล้ว จึงไม่ต้องมีตัวกรองนี้ */
+  const showTechFilter = role !== "tech" && setTechFilter;
+  const techName = (id) => {
+    if (id === "__none") return "ยังไม่มอบหมาย";
+    const t = (techs || []).find((x) => x.id === id);
+    return t ? (t.nick || t.name) : "—";
+  };
   return (
     <header className="app-header" style={isMobile ? { paddingBottom: 12 } : undefined}>
       <div className="header-top">
@@ -608,6 +726,7 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
             {role === "tech" && " · เฉพาะงานของคุณ"}
             {stageFilter && <span> · กรอง: {stageOf(stageFilter).th} <button onClick={() => setStageFilter(null)} className="clear-chip">ล้าง ✕</button></span>}
             {quickFilter && <span> · กรอง: {QUICK_LABELS[quickFilter]} <button onClick={() => setQuickFilter(null)} className="clear-chip">ล้าง ✕</button></span>}
+            {techFilter && <span> · ช่าง: {techName(techFilter)} <button onClick={() => setTechFilter(null)} className="clear-chip">ล้าง ✕</button></span>}
           </p>
         </div>
         <div className="header-actions">
@@ -658,14 +777,18 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
           )}
         </div>
       </div>
-      {!isMobile && (
+      {/* มือถือ: เหลือไว้แค่ตัวกรองช่าง (ตัวอื่นซ่อนเพื่อประหยัดพื้นที่หัวเหมือนเดิม) */}
+      {(!isMobile || showTechFilter) && (
       <div className="header-filters">
-        <Segmented value={typeFilter} onChange={setTypeFilter}
-          options={[{ value: "all", label: "ทั้งหมด" }, { value: "home", label: "งานบ้าน" }, { value: "project", label: "โครงการ" }]} />
+        {!isMobile && <Segmented value={typeFilter} onChange={setTypeFilter}
+          options={[{ value: "all", label: "ทั้งหมด" }, { value: "home", label: "งานบ้าน" }, { value: "project", label: "โครงการ" }]} />}
+        {!isMobile && (
         <button className={"delay-toggle" + (delayedOnly ? " on" : "")} onClick={() => setDelayedOnly((v) => !v)}>
           <Icon name="alert" size={15} color={delayedOnly ? "#fff" : "#EF4444"} />
           เฉพาะงานล่าช้า
         </button>
+        )}
+        {showTechFilter && <TechFilter value={techFilter} onChange={setTechFilter} techs={techs} counts={techCounts} nameOf={techName} />}
         {/* ปุ่มย่อ/ขยายแถบกรองขั้นงาน — สไตล์เดียวกับ "หมวดหมู่" ฝั่งคลัง (ไม่แสดงบนหน้าภาพรวม / มือถือหน้าบอร์ด) */}
         {showStageBar && (
         <button onClick={toggleStage} title={stageOpen ? "ซ่อนตัวกรองขั้นงาน" : "แสดงตัวกรองขั้นงาน"}

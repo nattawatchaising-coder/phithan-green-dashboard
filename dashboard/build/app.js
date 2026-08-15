@@ -56,6 +56,8 @@ const NAV = [{
   roles: OFFICE
 }];
 const navForRole = role => NAV.filter(n => !n.roles || n.roles.includes(role));
+const techKey = (j, known) => j.tech && (!known || known.has(j.tech)) ? j.tech : "__none";
+const matchTech = (j, f, known) => techKey(j, known) === f;
 const ROLES = [{
   key: "admin",
   th: "แอดมิน / ออฟฟิศ",
@@ -194,6 +196,7 @@ function App() {
   const [typeFilter, setTypeFilter] = React.useState("all");
   const [stageFilter, setStageFilter] = React.useState(null);
   const [quickFilter, setQuickFilter] = React.useState(null);
+  const [techFilter, setTechFilter] = React.useState(null);
   const [delayedOnly, setDelayedOnly] = React.useState(false);
   const [selected, setSelected] = React.useState(null);
   const [form, setForm] = React.useState(null);
@@ -249,6 +252,7 @@ function App() {
       hasBoq: !!f.boq
     };
   }), [store.jobs, fileFlags]);
+  const techIds = React.useMemo(() => new Set((techStore.techs || []).map(x => x.id)), [techStore.techs]);
   const filtered = React.useMemo(() => {
     const q = search.trim().toLowerCase();
     return jobs.filter(j => {
@@ -260,10 +264,32 @@ function App() {
       if (quickFilter === "delayed" && !j.delayed) return false;
       if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return false;
       if (quickFilter === "battery" && !j.battery) return false;
+      if (techFilter && !matchTech(j, techFilter, techIds)) return false;
       if (role === "tech" && j.tech !== techId) return false;
       return true;
     });
-  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, role, techId]);
+  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techFilter, techIds, role, techId]);
+  const techCounts = React.useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const c = {};
+    let all = 0;
+    jobs.forEach(j => {
+      if (q && !(j.name + j.code + j.province + j.phone + j.brand).toLowerCase().includes(q)) return;
+      if (typeFilter !== "all" && j.type !== typeFilter) return;
+      if (stageFilter && j.stage !== stageFilter) return;
+      if (delayedOnly && !j.delayed) return;
+      if (quickFilter === "active" && j.stage === "done") return;
+      if (quickFilter === "delayed" && !j.delayed) return;
+      if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return;
+      if (quickFilter === "battery" && !j.battery) return;
+      if (role === "tech" && j.tech !== techId) return;
+      const k = techKey(j, techIds);
+      c[k] = (c[k] || 0) + 1;
+      all++;
+    });
+    c.__all = all;
+    return c;
+  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techIds, role, techId]);
   const stageCounts = React.useMemo(() => {
     const q = search.trim().toLowerCase();
     const c = {};
@@ -276,13 +302,14 @@ function App() {
       if (quickFilter === "delayed" && !j.delayed) return;
       if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return;
       if (quickFilter === "battery" && !j.battery) return;
+      if (techFilter && !matchTech(j, techFilter, techIds)) return;
       if (role === "tech" && j.tech !== techId) return;
       c[j.stage] = (c[j.stage] || 0) + 1;
       all++;
     });
     c.__all = all;
     return c;
-  }, [jobs, search, typeFilter, delayedOnly, quickFilter, role, techId]);
+  }, [jobs, search, typeFilter, delayedOnly, quickFilter, techFilter, techIds, role, techId]);
   const lateAlerts = React.useMemo(() => {
     const scope = role === "tech" ? jobs.filter(j => j.tech === techId) : can(role, "viewAll") ? jobs : [];
     const out = [];
@@ -628,6 +655,10 @@ function App() {
     stageCounts: stageCounts,
     quickFilter: quickFilter,
     setQuickFilter: setQuickFilter,
+    techFilter: techFilter,
+    setTechFilter: setTechFilter,
+    techCounts: techCounts,
+    techs: techStore.techs,
     onAdd: () => setForm({
       job: store.blank(),
       isNew: true
@@ -1030,6 +1061,169 @@ function Sidebar({
     }
   }, "\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A"))));
 }
+function TechFilter({
+  value,
+  onChange,
+  techs,
+  counts,
+  nameOf
+}) {
+  const [open, setOpen] = React.useState(false);
+  const wrapRef = React.useRef(null);
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  React.useEffect(() => {
+    if (!open) return;
+    const off = e => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    const esc = e => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", off);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("mousedown", off);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [open]);
+  const cur = value ? (techs || []).find(t => t.id === value) : null;
+  const on = !!value;
+  const none = counts && counts.__none || 0;
+  const pick = v => {
+    onChange(v);
+    setOpen(false);
+  };
+  const row = active => ({
+    display: "flex",
+    alignItems: "center",
+    gap: 9,
+    width: "100%",
+    padding: "8px 10px",
+    borderRadius: 10,
+    border: "none",
+    background: active ? "var(--primary-soft)" : "transparent",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    fontSize: 12.5,
+    fontWeight: active ? 700 : 500,
+    color: active ? "var(--primary-dark)" : "var(--text-1)",
+    textAlign: "left"
+  });
+  const tally = n => ({
+    marginLeft: "auto",
+    fontFamily: "var(--display)",
+    fontSize: 11.5,
+    fontWeight: 800,
+    fontVariantNumeric: "tabular-nums",
+    letterSpacing: "-.02em",
+    color: "var(--text-3)",
+    opacity: n ? 1 : .5
+  });
+  const bead = (bg, txt) => React.createElement("span", {
+    style: {
+      width: 22,
+      height: 22,
+      borderRadius: 99,
+      background: bg,
+      color: "#fff",
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 9.5,
+      fontWeight: 700
+    }
+  }, txt);
+  return React.createElement("span", {
+    ref: wrapRef,
+    style: {
+      position: "relative",
+      display: "inline-flex"
+    }
+  }, React.createElement("button", {
+    onClick: () => setOpen(v => !v),
+    title: "\u0E01\u0E23\u0E2D\u0E07\u0E15\u0E32\u0E21\u0E0A\u0E48\u0E32\u0E07\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: isMobile ? "5px 10px" : "6px 13px",
+      borderRadius: 99,
+      border: "1px solid " + (on ? cur ? cur.color : "var(--primary)" : "var(--border-strong)"),
+      background: on ? (cur ? cur.color : "#22A35B") + "16" : "var(--surface)",
+      color: on ? cur ? cur.color : "var(--primary-dark)" : "var(--text-2)",
+      fontSize: isMobile ? 11.5 : 12.5,
+      fontWeight: on ? 700 : 600,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      whiteSpace: "nowrap"
+    }
+  }, React.createElement(Icon, {
+    name: "wrench",
+    size: 14,
+    color: on ? cur ? cur.color : "var(--primary-dark)" : "var(--text-2)"
+  }), "\u0E0A\u0E48\u0E32\u0E07", on ? ": " + nameOf(value) : "", React.createElement(Icon, {
+    name: "chevronDown",
+    size: 14,
+    color: "var(--text-3)",
+    style: {
+      transform: open ? "rotate(180deg)" : "none",
+      transition: "transform .18s"
+    }
+  })), open && React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: "calc(100% + 6px)",
+      left: 0,
+      zIndex: 40,
+      width: 244,
+      maxHeight: 340,
+      overflowY: "auto",
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 14,
+      padding: 6,
+      boxShadow: "0 14px 40px rgba(8,20,14,.18)"
+    }
+  }, React.createElement("button", {
+    style: row(!value),
+    onClick: () => pick(null)
+  }, bead("var(--surface3)", ""), React.createElement("span", null, "\u0E0A\u0E48\u0E32\u0E07\u0E17\u0E38\u0E01\u0E04\u0E19"), React.createElement("span", {
+    style: tally(1)
+  }, counts && counts.__all || 0)), (techs || []).map(t => {
+    const n = counts && counts[t.id] || 0;
+    const active = value === t.id;
+    return React.createElement("button", {
+      key: t.id,
+      style: Object.assign(row(active), n ? {} : {
+        opacity: .55
+      }),
+      onClick: () => pick(active ? null : t.id)
+    }, bead(t.color, (t.nick || t.name || "?").slice(0, 2)), React.createElement("span", {
+      style: {
+        minWidth: 0,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, t.name || t.nick), React.createElement("span", {
+      style: tally(n)
+    }, n));
+  }), none > 0 && React.createElement("button", {
+    style: Object.assign(row(value === "__none"), {
+      borderTop: "1px solid var(--border)",
+      borderRadius: 0,
+      marginTop: 4,
+      paddingTop: 10
+    }),
+    onClick: () => pick(value === "__none" ? null : "__none")
+  }, bead("var(--surface3)", "?"), React.createElement("span", {
+    style: {
+      color: "var(--text-2)"
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E2D\u0E1A\u0E2B\u0E21\u0E32\u0E22"), React.createElement("span", {
+    style: tally(none)
+  }, none))));
+}
 function Header({
   view,
   role,
@@ -1046,6 +1240,10 @@ function Header({
   stageCounts,
   quickFilter,
   setQuickFilter,
+  techFilter,
+  setTechFilter,
+  techCounts,
+  techs,
   onAdd,
   canAdd,
   onMap,
@@ -1079,6 +1277,12 @@ function Header({
   React.useEffect(() => {
     if (searchOpen && searchRef.current) searchRef.current.focus();
   }, [searchOpen]);
+  const showTechFilter = role !== "tech" && setTechFilter;
+  const techName = id => {
+    if (id === "__none") return "ยังไม่มอบหมาย";
+    const t = (techs || []).find(x => x.id === id);
+    return t ? t.nick || t.name : "—";
+  };
   return React.createElement("header", {
     className: "app-header",
     style: isMobile ? {
@@ -1108,6 +1312,9 @@ function Header({
     className: "clear-chip"
   }, "\u0E25\u0E49\u0E32\u0E07 \u2715")), quickFilter && React.createElement("span", null, " \xB7 \u0E01\u0E23\u0E2D\u0E07: ", QUICK_LABELS[quickFilter], " ", React.createElement("button", {
     onClick: () => setQuickFilter(null),
+    className: "clear-chip"
+  }, "\u0E25\u0E49\u0E32\u0E07 \u2715")), techFilter && React.createElement("span", null, " \xB7 \u0E0A\u0E48\u0E32\u0E07: ", techName(techFilter), " ", React.createElement("button", {
+    onClick: () => setTechFilter(null),
     className: "clear-chip"
   }, "\u0E25\u0E49\u0E32\u0E07 \u2715")))), React.createElement("div", {
     className: "header-actions"
@@ -1248,9 +1455,9 @@ function Header({
     size: 17,
     color: "#fff",
     sw: 2.4
-  }), React.createElement("span", null, "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E07\u0E32\u0E19")))), !isMobile && React.createElement("div", {
+  }), React.createElement("span", null, "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E07\u0E32\u0E19")))), (!isMobile || showTechFilter) && React.createElement("div", {
     className: "header-filters"
-  }, React.createElement(Segmented, {
+  }, !isMobile && React.createElement(Segmented, {
     value: typeFilter,
     onChange: setTypeFilter,
     options: [{
@@ -1263,14 +1470,20 @@ function Header({
       value: "project",
       label: "โครงการ"
     }]
-  }), React.createElement("button", {
+  }), !isMobile && React.createElement("button", {
     className: "delay-toggle" + (delayedOnly ? " on" : ""),
     onClick: () => setDelayedOnly(v => !v)
   }, React.createElement(Icon, {
     name: "alert",
     size: 15,
     color: delayedOnly ? "#fff" : "#EF4444"
-  }), "\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E07\u0E32\u0E19\u0E25\u0E48\u0E32\u0E0A\u0E49\u0E32"), showStageBar && React.createElement("button", {
+  }), "\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E07\u0E32\u0E19\u0E25\u0E48\u0E32\u0E0A\u0E49\u0E32"), showTechFilter && React.createElement(TechFilter, {
+    value: techFilter,
+    onChange: setTechFilter,
+    techs: techs,
+    counts: techCounts,
+    nameOf: techName
+  }), showStageBar && React.createElement("button", {
     onClick: toggleStage,
     title: stageOpen ? "ซ่อนตัวกรองขั้นงาน" : "แสดงตัวกรองขั้นงาน",
     style: {
