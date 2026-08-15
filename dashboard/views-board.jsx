@@ -207,8 +207,11 @@ function KanbanView({ jobs, onOpen, onMoveStage }) {
             style={{ width: 264, flexShrink: 0, display: "flex", flexDirection: "column", borderRadius: 18,
               background: isOver ? s.soft : "var(--surface2)", border: "1px solid " + (isOver ? s.color : "var(--border)"),
               transition: "background .15s, border-color .15s" }}>
+            {/* หัวคอลัมน์ค้างอยู่บนสุดเวลาเลื่อน ต้องมีพื้นทึบ ไม่งั้นการ์ดที่เลื่อนลอดใต้หัวจะทะลุขึ้นมาซ้อนตัวหนังสือ */}
             <div style={{ padding: "13px 14px", display: "flex", alignItems: "center", justifyContent: "space-between",
-              borderBottom: "1px solid var(--border)", position: "sticky", top: 0 }}>
+              borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 1,
+              background: isOver ? s.soft : "var(--surface2)", borderRadius: "17px 17px 0 0",
+              transition: "background .15s" }}>
               <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                 <span style={{ width: 7, height: 7, borderRadius: 99, background: s.color, flexShrink: 0 }} />
                 <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: ".05em", color: "var(--text-2)",

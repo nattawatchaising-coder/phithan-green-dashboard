@@ -719,7 +719,11 @@ function KanbanView({
         justifyContent: "space-between",
         borderBottom: "1px solid var(--border)",
         position: "sticky",
-        top: 0
+        top: 0,
+        zIndex: 1,
+        background: isOver ? s.soft : "var(--surface2)",
+        borderRadius: "17px 17px 0 0",
+        transition: "background .15s"
       }
     }, React.createElement("span", {
       style: {
