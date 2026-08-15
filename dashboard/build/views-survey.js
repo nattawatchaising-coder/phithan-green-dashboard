@@ -344,10 +344,7 @@ function LeadsView({
     th: s.th,
     color: s.color
   })));
-  const convert = l => {
-    if (!confirm("ย้าย “" + l.name + "” เข้าฐานข้อมูลงานติดตั้ง?\nแบบสำรวจและรูปถ่ายจะถูกย้ายไปกับงานใหม่ด้วย")) return;
-    onConvert(l);
-  };
+  const [ask, setAsk] = React.useState(null);
   return React.createElement(React.Fragment, null, React.createElement(window.SchedHeader, {
     title: "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E2A\u0E33\u0E23\u0E27\u0E08",
     onMenuOpen: onMenuOpen,
@@ -557,7 +554,45 @@ function LeadsView({
         color: "var(--tint-green-tx)",
         fontWeight: 700
       }
-    }, "\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19 ", job.code, " \xB7 ", job.name, " \u0E41\u0E25\u0E49\u0E27"), React.createElement("div", {
+    }, "\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19 ", job.code, " \xB7 ", job.name, " \u0E41\u0E25\u0E49\u0E27"), ask && ask.id === l.id ? React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 8,
+        alignItems: "center",
+        flexWrap: "wrap",
+        borderTop: "1px solid var(--border)",
+        paddingTop: 10
+      }
+    }, React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 140,
+        fontSize: 12,
+        fontWeight: 700,
+        lineHeight: 1.5,
+        color: ask.kind === "del" ? "#EF4444" : "var(--tint-green-tx)"
+      }
+    }, ask.kind === "del" ? "ลบ “" + (l.name || "รายนี้") + "” ? แบบสำรวจและรูปของรายนี้จะถูกลบด้วย" : "ย้าย “" + (l.name || "รายนี้") + "” เข้าฐานข้อมูลงานติดตั้ง? แบบสำรวจและรูปถ่ายจะถูกย้ายไปกับงานใหม่ด้วย"), ask.kind === "del" ? React.createElement("button", {
+      onClick: () => {
+        leadStore.remove(l.id);
+        setAsk(null);
+      },
+      style: leadBtn("#EF4444", true)
+    }, "\u0E25\u0E1A\u0E40\u0E25\u0E22") : React.createElement("button", {
+      onClick: () => {
+        setAsk(null);
+        onConvert(l);
+      },
+      style: leadBtn("var(--tint-green-tx)", true)
+    }, React.createElement(Icon, {
+      name: "check",
+      size: 14,
+      color: "#fff",
+      sw: 2.4
+    }), " \u0E22\u0E49\u0E32\u0E22\u0E40\u0E25\u0E22"), React.createElement("button", {
+      onClick: () => setAsk(null),
+      style: leadBtn("var(--text-2)")
+    }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01")) : React.createElement("div", {
       style: {
         display: "flex",
         gap: 8,
@@ -580,7 +615,10 @@ function LeadsView({
       size: 14,
       color: "var(--primary-dark)"
     }), " \u0E23\u0E32\u0E22\u0E07\u0E32\u0E19 \xB7 PDF"), canConvert && (l.status || "open") !== "won" && React.createElement("button", {
-      onClick: () => convert(l),
+      onClick: () => setAsk({
+        id: l.id,
+        kind: "conv"
+      }),
       style: leadBtn("var(--tint-green-tx)", true)
     }, React.createElement(Icon, {
       name: "check",
@@ -604,9 +642,10 @@ function LeadsView({
       }),
       style: leadBtn("var(--text-2)")
     }, "\u0E41\u0E01\u0E49\u0E44\u0E02"), React.createElement("button", {
-      onClick: () => {
-        if (confirm("ลบลูกค้าสำรวจ “" + l.name + "” ?\nแบบสำรวจและรูปของรายนี้จะถูกลบด้วย")) leadStore.remove(l.id);
-      },
+      onClick: () => setAsk({
+        id: l.id,
+        kind: "del"
+      }),
       style: leadBtn("#EF4444")
     }, "\u0E25\u0E1A")));
   }))), edit && React.createElement(LeadModal, {

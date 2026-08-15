@@ -139,10 +139,10 @@ function LeadsView({ leadStore, appts, jobs, onMenuOpen, onOpenSurvey, onReport,
 
   const FILTERS = [{ key: "all", th: "ทั้งหมด", color: "var(--text-2)" }].concat(STATUS.map((s) => ({ key: s.key, th: s.th, color: s.color })));
 
-  const convert = (l) => {
-    if (!confirm("ย้าย “" + l.name + "” เข้าฐานข้อมูลงานติดตั้ง?\nแบบสำรวจและรูปถ่ายจะถูกย้ายไปกับงานใหม่ด้วย")) return;
-    onConvert(l);
-  };
+  /* ยืนยันในหน้าเลย ไม่ใช้ confirm() ของเบราว์เซอร์ —
+     ถ้าผู้ใช้เคยติ๊ก "ไม่ให้หน้านี้สร้างกล่องข้อความอีก" หรือเปิดจากแอปที่ฝังเว็บไว้
+     confirm จะคืนค่า false ทันทีโดยไม่ขึ้นกล่องอะไรเลย = กดปุ่มแล้วเงียบ ทำงานไม่ได้ */
+  const [ask, setAsk] = React.useState(null);   // { id, kind: "del" | "conv" }
 
   return (
     <React.Fragment>
@@ -201,16 +201,31 @@ function LeadsView({ leadStore, appts, jobs, onMenuOpen, onOpenSurvey, onReport,
                     <span style={{ fontSize: 11.5, fontWeight: 700, color: st.color, whiteSpace: "nowrap" }}>{st.label} {st.pct}%</span>
                   </div>
                   {job && <div style={{ fontSize: 11.5, color: "var(--tint-green-tx)", fontWeight: 700 }}>เป็นงาน {job.code} · {job.name} แล้ว</div>}
-                  {/* ปุ่มจัดการ */}
+                  {/* ปุ่มจัดการ — ถ้ากำลังถามยืนยันอยู่ ให้แถบยืนยันมาแทนที่แถวปุ่มไปเลย จะได้ไม่กดพลาดปุ่มอื่น */}
+                  {ask && ask.id === l.id ? (
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", borderTop: "1px solid var(--border)", paddingTop: 10 }}>
+                      <span style={{ flex: 1, minWidth: 140, fontSize: 12, fontWeight: 700, lineHeight: 1.5,
+                        color: ask.kind === "del" ? "#EF4444" : "var(--tint-green-tx)" }}>
+                        {ask.kind === "del"
+                          ? "ลบ “" + (l.name || "รายนี้") + "” ? แบบสำรวจและรูปของรายนี้จะถูกลบด้วย"
+                          : "ย้าย “" + (l.name || "รายนี้") + "” เข้าฐานข้อมูลงานติดตั้ง? แบบสำรวจและรูปถ่ายจะถูกย้ายไปกับงานใหม่ด้วย"}
+                      </span>
+                      {ask.kind === "del"
+                        ? <button onClick={() => { leadStore.remove(l.id); setAsk(null); }} style={leadBtn("#EF4444", true)}>ลบเลย</button>
+                        : <button onClick={() => { setAsk(null); onConvert(l); }} style={leadBtn("var(--tint-green-tx)", true)}><Icon name="check" size={14} color="#fff" sw={2.4} /> ย้ายเลย</button>}
+                      <button onClick={() => setAsk(null)} style={leadBtn("var(--text-2)")}>ยกเลิก</button>
+                    </div>
+                  ) : (
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", borderTop: "1px solid var(--border)", paddingTop: 10 }}>
                     {onOpenSurvey && <button onClick={() => onOpenSurvey(window.leadAsJob(l))} style={leadBtn("var(--primary)", true)}><Icon name="list" size={14} color="#fff" /> {st.state === "none" ? "เริ่มแบบสำรวจ" : "ดู / แก้แบบสำรวจ"}</button>}
                     {onReport && st.state !== "none" && <button onClick={() => onReport(window.leadAsJob(l))} style={leadBtn("var(--primary-dark)")}><Icon name="file" size={14} color="var(--primary-dark)" /> รายงาน · PDF</button>}
-                    {canConvert && (l.status || "open") !== "won" && <button onClick={() => convert(l)} style={leadBtn("var(--tint-green-tx)", true)}><Icon name="check" size={14} color="#fff" sw={2.4} /> แปลงเป็นงานติดตั้ง</button>}
+                    {canConvert && (l.status || "open") !== "won" && <button onClick={() => setAsk({ id: l.id, kind: "conv" })} style={leadBtn("var(--tint-green-tx)", true)}><Icon name="check" size={14} color="#fff" sw={2.4} /> แปลงเป็นงานติดตั้ง</button>}
                     {(l.status || "open") === "open" && <button onClick={() => leadStore.patch(l.id, { status: "lost" })} style={leadBtn("var(--text-2)")}>ไม่ติดตั้ง</button>}
                     {(l.status || "open") === "lost" && <button onClick={() => leadStore.patch(l.id, { status: "open" })} style={leadBtn("var(--text-2)")}>กลับมารอตัดสินใจ</button>}
                     <button onClick={() => setEdit({ lead: Object.assign({}, l), isNew: false })} style={leadBtn("var(--text-2)")}>แก้ไข</button>
-                    <button onClick={() => { if (confirm("ลบลูกค้าสำรวจ “" + l.name + "” ?\nแบบสำรวจและรูปของรายนี้จะถูกลบด้วย")) leadStore.remove(l.id); }} style={leadBtn("#EF4444")}>ลบ</button>
+                    <button onClick={() => setAsk({ id: l.id, kind: "del" })} style={leadBtn("#EF4444")}>ลบ</button>
                   </div>
+                  )}
                 </div>
               );
             })}
