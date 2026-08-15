@@ -28,6 +28,7 @@ function pgDxf(opt) {
      และ $HANDSEED ในหัวไฟล์ต้องมากกว่าเลขที่ใช้จริงทั้งหมด */
   let H = 0x100;
   const nh = () => (H++).toString(16).toUpperCase();
+  let PLOT = null;                            // กรอบกระดาษสำหรับตั้งค่าสั่งพิมพ์ (ดู .plot())
 
   const num = (v) => {
     const x = Math.round((+v || 0) * 1e6) / 1e6;
@@ -182,11 +183,18 @@ function pgDxf(opt) {
 
     get extents() { return ext; },
 
+    /* บอกว่ากรอบกระดาษวางอยู่ตรงไหนในแบบ และ 1 มม.บนกระดาษ = k หน่วยในแบบ
+       เพื่อตั้งค่าสั่งพิมพ์ให้พร้อม กด Ctrl+P แล้วออกมาเป็น A3 แนวนอนพอดีเป๊ะ */
+    plot(o) { PLOT = { x0: +o.x0 || 0, y0: +o.y0 || 0, w: +o.w || 420, h: +o.h || 297, k: +o.k || 1 }; },
+
     /* ประกอบเป็นข้อความไฟล์ทั้งก้อน */
     build() {
       const out = [];
       const w = (c, v) => { out.push(String(c), String(v)); };
       const E = isFinite(ext.minX) ? ext : { minX: 0, minY: 0, maxX: 100, maxY: 100 };
+      /* พื้นที่พิมพ์: ถ้ายังไม่ได้บอกกรอบกระดาษไว้ ใช้ขอบเขตของแบบแทน */
+      const P = PLOT || { x0: E.minX, y0: E.minY, w: E.maxX - E.minX, h: E.maxY - E.minY, k: 1 };
+      const PX1 = P.x0 + P.w * P.k, PY1 = P.y0 + P.h * P.k;
 
       /* linetype ที่ระบบต้องมีเสมอ + ที่ผู้เรียกนิยามเพิ่ม */
       const LT = [{ name: "ByBlock", desc: "", pat: [] }, { name: "ByLayer", desc: "", pat: [] },
@@ -208,8 +216,11 @@ function pgDxf(opt) {
       w(9, "$PDSIZE"); w(40, num(opt.ptsize == null ? 0 : opt.ptsize));
       w(9, "$EXTMIN"); w(10, num(E.minX)); w(20, num(E.minY)); w(30, 0);
       w(9, "$EXTMAX"); w(10, num(E.maxX)); w(20, num(E.maxY)); w(30, 0);
-      w(9, "$LIMMIN"); w(10, num(E.minX)); w(20, num(E.minY));
-      w(9, "$LIMMAX"); w(10, num(E.maxX)); w(20, num(E.maxY));
+      w(9, "$LIMMIN"); w(10, num(P.x0)); w(20, num(P.y0));
+      w(9, "$LIMMAX"); w(10, num(PX1)); w(20, num(PY1));
+      w(9, "$LIMCHECK"); w(70, 0);
+      w(9, "$PSLTSCALE"); w(70, 1);
+      w(9, "$PLINEGEN"); w(70, 1);
       w(9, "$HANDSEED"); w(5, (H + 64).toString(16).toUpperCase());
       w(0, "ENDSEC");
 
@@ -233,8 +244,9 @@ function pgDxf(opt) {
       };
 
       // VPORT — มุมมองที่เปิดค้างไว้ ตั้งให้พอดีกับขอบเขตของแบบ จะได้เห็นทั้งแผ่นทันทีที่เปิด
-      const cx = (E.minX + E.maxX) / 2, cy = (E.minY + E.maxY) / 2;
-      const vh = Math.max(1, (E.maxY - E.minY) * 1.08), vw = Math.max(1, (E.maxX - E.minX) * 1.08);
+      /* เปิดไฟล์มาให้เห็นเต็มกรอบกระดาษพอดี ไม่ต้องมานั่ง Zoom Extents เอง */
+      const cx = (P.x0 + PX1) / 2, cy = (P.y0 + PY1) / 2;
+      const vh = Math.max(1e-6, (PY1 - P.y0) * 1.04), vw = Math.max(1e-6, (PX1 - P.x0) * 1.04);
       tabHead("VPORT", hTab.vport, 1);
       recHead("VPORT", hVport, hTab.vport, "AcDbViewportTableRecord", "*ACTIVE", 0);
       w(10, 0); w(20, 0); w(11, "1.0"); w(21, "1.0");
@@ -341,18 +353,34 @@ function pgDxf(opt) {
       w(3, "Model"); w(350, hLayoutModel);
       w(3, "Layout1"); w(350, hLayoutPaper);
 
+      /* ── ค่าสั่งพิมพ์: A3 แนวนอน 420x297 มม. เต็มหน้า ไม่เว้นขอบ ──
+         พิมพ์ตาม Limits (= กรอบกระดาษที่วางไว้) มาตราส่วน 1 มม.กระดาษ = k หน่วยในแบบ
+         แบบผังหน่วยเป็นเมตร k จึงเป็นเศษส่วน · แบบ SLD หน่วยเป็นมิลลิเมตร k = 1 ได้ 1:1 */
+      const std = P.k === 1;                       // 1:1 หรือเปล่า (ใช้เลือกโหมดมาตราส่วนมาตรฐาน)
       const layout = (h, owner, name, order, brec) => {
+        const isModel = order === 0;
         w(0, "LAYOUT"); w(5, h); w(330, owner); w(100, "AcDbPlotSettings");
-        w(1, ""); w(2, ""); w(4, ""); w(6, ""); w(40, "0.0"); w(41, "0.0"); w(42, "0.0"); w(43, "0.0");
-        w(44, "0.0"); w(45, "0.0"); w(46, "0.0"); w(47, "0.0"); w(48, "0.0"); w(49, "0.0");
-        w(140, "0.0"); w(141, "0.0"); w(142, "1.0"); w(143, "1.0");
-        w(70, 688); w(72, 0); w(73, 1); w(74, 5); w(7, ""); w(75, 16); w(147, "1.0");
+        w(1, "PG-A3-LANDSCAPE"); w(2, "DWG To PDF.pc3");
+        w(4, "ISO_full_bleed_A3_(420.00_x_297.00_MM)"); w(6, "");
+        w(40, "0.0"); w(41, "0.0"); w(42, "0.0"); w(43, "0.0");     // ไม่เว้นขอบกระดาษ
+        w(44, num(P.w)); w(45, num(P.h));                            // ขนาดกระดาษ (มม.)
+        w(46, "0.0"); w(47, "0.0");                                  // จุดเริ่มพิมพ์
+        w(48, num(P.x0)); w(49, num(P.y0)); w(140, num(PX1)); w(141, num(PY1));   // กรอบที่พิมพ์
+        w(142, "1.0"); w(143, num(P.k));                             // 1 มม.กระดาษ ต่อ k หน่วยในแบบ
+        w(70, 512 + 128 + 32 + 4 + (std ? 16 : 0));   // เรียงวิวพอร์ตก่อน · พิมพ์ตามน้ำหนักเส้น · ใช้ plot style · จัดกึ่งกลางหน้า · (มาตราส่วนมาตรฐาน)
+        w(72, 1);                            // หน่วยกระดาษ = มิลลิเมตร
+        w(73, 0);                            // ไม่หมุน (420x297 เป็นแนวนอนอยู่แล้ว)
+        w(74, isModel ? 4 : 5);              // 4 = พิมพ์เฉพาะกรอบที่กำหนด · 5 = ตามเลย์เอาต์
+        w(7, ""); w(75, std ? 16 : 0); w(147, num(1 / P.k));
         w(148, "0.0"); w(149, "0.0");
         w(100, "AcDbLayout"); w(1, name); w(70, 1); w(71, order);
-        w(10, "0.0"); w(20, "0.0"); w(11, num(E.maxX - E.minX)); w(21, num(E.maxY - E.minY));
+        /* ขอบเขตของเลย์เอาต์ — โมเดลใช้กรอบกระดาษที่วางไว้จริง ส่วนกระดาษเปล่าใช้ A3 ตรง ๆ */
+        const L = isModel ? { x0: P.x0, y0: P.y0, x1: PX1, y1: PY1 }
+          : { x0: 0, y0: 0, x1: P.w, y1: P.h };
+        w(10, "0.0"); w(20, "0.0"); w(11, num(L.x1 - L.x0)); w(21, num(L.y1 - L.y0));
         w(12, "0.0"); w(22, "0.0"); w(32, "0.0");
-        w(14, num(E.minX)); w(24, num(E.minY)); w(34, "0.0");
-        w(15, num(E.maxX)); w(25, num(E.maxY)); w(35, "0.0");
+        w(14, num(L.x0)); w(24, num(L.y0)); w(34, "0.0");
+        w(15, num(L.x1)); w(25, num(L.y1)); w(35, "0.0");
         w(146, "0.0");
         w(13, "0.0"); w(23, "0.0"); w(33, "0.0");
         w(16, "1.0"); w(26, "0.0"); w(36, "0.0");
@@ -476,8 +504,11 @@ function pgSheet(doc, o) {
   o = o || {};
   const I = o.info || {};
   pgSheetLayers(doc);
-  const pen = pgPen(doc, o.k == null ? 1 : o.k, o.ox || 0, o.oy || 0);
+  const K = o.k == null ? 1 : o.k;
+  const pen = pgPen(doc, K, o.ox || 0, o.oy || 0);
   const S = PG_SHEET, IN = S.IN, F = PG_LAY;
+  /* บอกไฟล์ว่ากระดาษ A3 แนวนอนวางคร่อมตรงไหน → สั่งพิมพ์ได้เลยโดยไม่ต้องตั้งค่าเอง */
+  doc.plot({ x0: o.ox || 0, y0: o.oy || 0, w: S.W, h: S.H, k: K });
 
   pen.rect(F.thin, 5, 5, S.W - 10, S.H - 10);        // เส้นตัดกระดาษ
   pen.rect(F.frame, 20, 10, 390, 277);               // กรอบแบบ (เว้นซ้าย 20 มม. ไว้เข้าเล่ม)

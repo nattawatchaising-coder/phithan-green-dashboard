@@ -17,6 +17,7 @@ function pgDxf(opt) {
   const RASTUNIT = MM ? 1 : 3;
   let H = 0x100;
   const nh = () => (H++).toString(16).toUpperCase();
+  let PLOT = null;
   const num = v => {
     const x = Math.round((+v || 0) * 1e6) / 1e6;
     return (Object.is(x, -0) ? 0 : x).toString();
@@ -249,6 +250,15 @@ function pgDxf(opt) {
     get extents() {
       return ext;
     },
+    plot(o) {
+      PLOT = {
+        x0: +o.x0 || 0,
+        y0: +o.y0 || 0,
+        w: +o.w || 420,
+        h: +o.h || 297,
+        k: +o.k || 1
+      };
+    },
     build() {
       const out = [];
       const w = (c, v) => {
@@ -260,6 +270,15 @@ function pgDxf(opt) {
         maxX: 100,
         maxY: 100
       };
+      const P = PLOT || {
+        x0: E.minX,
+        y0: E.minY,
+        w: E.maxX - E.minX,
+        h: E.maxY - E.minY,
+        k: 1
+      };
+      const PX1 = P.x0 + P.w * P.k,
+        PY1 = P.y0 + P.h * P.k;
       const LT = [{
         name: "ByBlock",
         desc: "",
@@ -315,11 +334,17 @@ function pgDxf(opt) {
       w(20, num(E.maxY));
       w(30, 0);
       w(9, "$LIMMIN");
-      w(10, num(E.minX));
-      w(20, num(E.minY));
+      w(10, num(P.x0));
+      w(20, num(P.y0));
       w(9, "$LIMMAX");
-      w(10, num(E.maxX));
-      w(20, num(E.maxY));
+      w(10, num(PX1));
+      w(20, num(PY1));
+      w(9, "$LIMCHECK");
+      w(70, 0);
+      w(9, "$PSLTSCALE");
+      w(70, 1);
+      w(9, "$PLINEGEN");
+      w(70, 1);
       w(9, "$HANDSEED");
       w(5, (H + 64).toString(16).toUpperCase());
       w(0, "ENDSEC");
@@ -354,10 +379,10 @@ function pgDxf(opt) {
         w(2, name);
         w(70, flags || 0);
       };
-      const cx = (E.minX + E.maxX) / 2,
-        cy = (E.minY + E.maxY) / 2;
-      const vh = Math.max(1, (E.maxY - E.minY) * 1.08),
-        vw = Math.max(1, (E.maxX - E.minX) * 1.08);
+      const cx = (P.x0 + PX1) / 2,
+        cy = (P.y0 + PY1) / 2;
+      const vh = Math.max(1e-6, (PY1 - P.y0) * 1.04),
+        vw = Math.max(1e-6, (PX1 - P.x0) * 1.04);
       tabHead("VPORT", hTab.vport, 1);
       recHead("VPORT", hVport, hTab.vport, "AcDbViewportTableRecord", "*ACTIVE", 0);
       w(10, 0);
@@ -557,54 +582,67 @@ function pgDxf(opt) {
       w(350, hLayoutModel);
       w(3, "Layout1");
       w(350, hLayoutPaper);
+      const std = P.k === 1;
       const layout = (h, owner, name, order, brec) => {
+        const isModel = order === 0;
         w(0, "LAYOUT");
         w(5, h);
         w(330, owner);
         w(100, "AcDbPlotSettings");
-        w(1, "");
-        w(2, "");
-        w(4, "");
+        w(1, "PG-A3-LANDSCAPE");
+        w(2, "DWG To PDF.pc3");
+        w(4, "ISO_full_bleed_A3_(420.00_x_297.00_MM)");
         w(6, "");
         w(40, "0.0");
         w(41, "0.0");
         w(42, "0.0");
         w(43, "0.0");
-        w(44, "0.0");
-        w(45, "0.0");
+        w(44, num(P.w));
+        w(45, num(P.h));
         w(46, "0.0");
         w(47, "0.0");
-        w(48, "0.0");
-        w(49, "0.0");
-        w(140, "0.0");
-        w(141, "0.0");
+        w(48, num(P.x0));
+        w(49, num(P.y0));
+        w(140, num(PX1));
+        w(141, num(PY1));
         w(142, "1.0");
-        w(143, "1.0");
-        w(70, 688);
-        w(72, 0);
-        w(73, 1);
-        w(74, 5);
+        w(143, num(P.k));
+        w(70, 512 + 128 + 32 + 4 + (std ? 16 : 0));
+        w(72, 1);
+        w(73, 0);
+        w(74, isModel ? 4 : 5);
         w(7, "");
-        w(75, 16);
-        w(147, "1.0");
+        w(75, std ? 16 : 0);
+        w(147, num(1 / P.k));
         w(148, "0.0");
         w(149, "0.0");
         w(100, "AcDbLayout");
         w(1, name);
         w(70, 1);
         w(71, order);
+        const L = isModel ? {
+          x0: P.x0,
+          y0: P.y0,
+          x1: PX1,
+          y1: PY1
+        } : {
+          x0: 0,
+          y0: 0,
+          x1: P.w,
+          y1: P.h
+        };
         w(10, "0.0");
         w(20, "0.0");
-        w(11, num(E.maxX - E.minX));
-        w(21, num(E.maxY - E.minY));
+        w(11, num(L.x1 - L.x0));
+        w(21, num(L.y1 - L.y0));
         w(12, "0.0");
         w(22, "0.0");
         w(32, "0.0");
-        w(14, num(E.minX));
-        w(24, num(E.minY));
+        w(14, num(L.x0));
+        w(24, num(L.y0));
         w(34, "0.0");
-        w(15, num(E.maxX));
-        w(25, num(E.maxY));
+        w(15, num(L.x1));
+        w(25, num(L.y1));
         w(35, "0.0");
         w(146, "0.0");
         w(13, "0.0");
@@ -761,10 +799,18 @@ function pgSheet(doc, o) {
   o = o || {};
   const I = o.info || {};
   pgSheetLayers(doc);
-  const pen = pgPen(doc, o.k == null ? 1 : o.k, o.ox || 0, o.oy || 0);
+  const K = o.k == null ? 1 : o.k;
+  const pen = pgPen(doc, K, o.ox || 0, o.oy || 0);
   const S = PG_SHEET,
     IN = S.IN,
     F = PG_LAY;
+  doc.plot({
+    x0: o.ox || 0,
+    y0: o.oy || 0,
+    w: S.W,
+    h: S.H,
+    k: K
+  });
   pen.rect(F.thin, 5, 5, S.W - 10, S.H - 10);
   pen.rect(F.frame, 20, 10, 390, 277);
   pen.rect(F.tb, IN.x0, IN.y0, IN.x1 - IN.x0, IN.y1 - IN.y0);
