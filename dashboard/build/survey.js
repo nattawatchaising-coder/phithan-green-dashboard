@@ -297,22 +297,25 @@ function AnnOverlay({
     ref.current = el;
     if (svgRef) svgRef.current = el;
   };
-  const dot = (cx, cy, k, fill) => React.createElement("g", {
-    key: k
-  }, React.createElement("circle", {
-    cx: cx,
-    cy: cy,
-    r: unit * 4.4,
-    fill: "rgba(34,163,91,.16)"
-  }), React.createElement("circle", {
-    "data-h": k,
-    cx: cx,
-    cy: cy,
-    r: unit * 2.5,
-    fill: fill || "#fff",
-    stroke: fill ? "#fff" : "var(--primary)",
-    strokeWidth: unit * 0.7
-  }));
+  const dot = (cx, cy, k, fill, sc) => {
+    const s = sc || 1;
+    return React.createElement("g", {
+      key: k
+    }, React.createElement("circle", {
+      cx: cx,
+      cy: cy,
+      r: unit * 4.4 * s,
+      fill: "rgba(34,163,91,.16)"
+    }), React.createElement("circle", {
+      "data-h": k,
+      cx: cx,
+      cy: cy,
+      r: unit * 2.5 * s,
+      fill: fill || "#fff",
+      stroke: fill ? "#fff" : "var(--primary)",
+      strokeWidth: unit * 0.7 * s
+    }));
+  };
   const arm = (cx, topY, botY) => {
     const down = topY < unit * 9;
     const ty = down ? botY + unit * 7 : topY - unit * 7;
@@ -325,7 +328,7 @@ function AnnOverlay({
       y2: ty,
       stroke: "var(--primary)",
       strokeWidth: unit * 0.6
-    }), dot(cx, ty, "rot", "var(--primary)"));
+    }), dot(cx, ty, "rot", "var(--primary)", 0.62));
   };
   const anchor = (x, y) => React.createElement("circle", {
     "data-del": "",

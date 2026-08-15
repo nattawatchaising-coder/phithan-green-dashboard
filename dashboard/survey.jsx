@@ -219,13 +219,16 @@ function AnnOverlay({ ann, aw, ah, edit, sel, svgRef }) {
   const setRef = (el) => { ref.current = el; if (svgRef) svgRef.current = el; };
   /* จุดจับ — วงกลมทึบใหญ่พอให้นิ้วโดน มีวงใสรอบนอกเผื่อกดพลาดนิดหน่อย
      ของเดิมเล็กเกินไป กดโดนยากมากบนจอสัมผัส */
-  const dot = (cx, cy, k, fill) => (
-    <g key={k}>
-      <circle cx={cx} cy={cy} r={unit * 4.4} fill="rgba(34,163,91,.16)" />
-      <circle data-h={k} cx={cx} cy={cy} r={unit * 2.5} fill={fill || "#fff"}
-        stroke={fill ? "#fff" : "var(--primary)"} strokeWidth={unit * 0.7} />
-    </g>
-  );
+  const dot = (cx, cy, k, fill, sc) => {
+    const s = sc || 1;
+    return (
+      <g key={k}>
+        <circle cx={cx} cy={cy} r={unit * 4.4 * s} fill="rgba(34,163,91,.16)" />
+        <circle data-h={k} cx={cx} cy={cy} r={unit * 2.5 * s} fill={fill || "#fff"}
+          stroke={fill ? "#fff" : "var(--primary)"} strokeWidth={unit * 0.7 * s} />
+      </g>
+    );
+  };
   /* ก้านหมุน — ยื่นออกจากขอบบน ปลายก้านเป็นจุดสีเขียวทึบ ให้ต่างจากจุดย่อขยาย
      ถ้าของอยู่ชิดขอบบนจนก้านจะโผล่พ้นรูป (โดนตัดหาย กดไม่โดน) ให้สลับไปยื่นลงล่างแทน */
   const arm = (cx, topY, botY) => {
@@ -234,7 +237,7 @@ function AnnOverlay({ ann, aw, ah, edit, sel, svgRef }) {
     return (
       <g key="rot">
         <line x1={cx} y1={down ? botY : topY} x2={cx} y2={ty} stroke="var(--primary)" strokeWidth={unit * 0.6} />
-        {dot(cx, ty, "rot", "var(--primary)")}
+        {dot(cx, ty, "rot", "var(--primary)", 0.62)}
       </g>
     );
   };
