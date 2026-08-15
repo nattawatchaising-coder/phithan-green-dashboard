@@ -119,8 +119,12 @@ function useJobStore() {
     if (!_FB() && raw !== null) _lsSet(SF_STORE_KEY, raw);
   }, [raw]);
 
-  /* ---------- derived jobs ---------- */
-  const jobs = React.useMemo(() => (raw || []).map(window.SF.deriveJob), [raw]);
+  /* ---------- derived jobs ----------
+     งานที่ถูกลบจะไม่หายจากฐานทันที แต่ติดธง deleted ไว้ (ถังขยะ) — เผลอกดลบแล้วกู้คืนได้
+     ทุกหน้าจออ่านจาก jobs เหมือนเดิม จึงไม่เห็นงานในถังขยะ ส่วนรหัสงานเดิมก็ไม่ถูกนำไปใช้ซ้ำ */
+  const jobs = React.useMemo(() => (raw || []).filter((j) => !j.deleted).map(window.SF.deriveJob), [raw]);
+  const trash = React.useMemo(() => (raw || []).filter((j) => j.deleted)
+    .sort((a, b) => String(b.deletedAt || "").localeCompare(String(a.deletedAt || ""))), [raw]);
 
   /* ---------- mutations ---------- */
   const upsert = React.useCallback((rec) => {
@@ -145,12 +149,23 @@ function useJobStore() {
     }
   }, []);
 
-  const remove = React.useCallback((id) => {
-    if (_FB()) {
-      _fbRem("jobs/" + id);
-    } else {
-      setRaw((prev) => prev.filter((j) => j.id !== id));
-    }
+  /* ลบ = ย้ายเข้าถังขยะ (ยังอยู่ในฐาน แต่ไม่แสดงที่ไหน) · by = ชื่อคนที่กดลบ ไว้ดูย้อนหลัง */
+  const remove = React.useCallback((id, by) => {
+    const fields = { deleted: true, deletedAt: new Date().toISOString(), deletedBy: by || "" };
+    if (_FB()) _fbUpd("jobs/" + id, fields);
+    else setRaw((prev) => prev.map((j) => j.id === id ? Object.assign({}, j, fields) : j));
+  }, []);
+
+  const restore = React.useCallback((id) => {
+    const fields = { deleted: null, deletedAt: null, deletedBy: null };
+    if (_FB()) _fbUpd("jobs/" + id, fields);
+    else setRaw((prev) => prev.map((j) => j.id === id ? Object.assign({}, j, { deleted: false }) : j));
+  }, []);
+
+  /* ลบถาวร — ออกจากฐานจริง กู้คืนไม่ได้ (หน้าจอกั้นด้วยรหัสผ่านก่อนเรียกตัวนี้) */
+  const purge = React.useCallback((id) => {
+    if (_FB()) _fbRem("jobs/" + id);
+    else setRaw((prev) => prev.filter((j) => j.id !== id));
   }, []);
 
   /* เปลี่ยนงานไปยัง stage ใดก็ได้ (เลื่อนหน้า/ถอยหลัง/ข้ามขั้น) แล้วบันทึกเวลาจริง
@@ -219,8 +234,8 @@ function useJobStore() {
   }, []);
 
   return {
-    raw: raw || [], jobs, loading,
-    upsert, patch, remove, advance, setStage, setMat, resetDB,
+    raw: raw || [], jobs, trash, loading,
+    upsert, patch, remove, restore, purge, advance, setStage, setMat, resetDB,
     blank: () => blankJob(rawRef.current || []),
   };
 }

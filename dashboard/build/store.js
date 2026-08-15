@@ -139,7 +139,8 @@ function useJobStore() {
   React.useEffect(() => {
     if (!_FB() && raw !== null) _lsSet(SF_STORE_KEY, raw);
   }, [raw]);
-  const jobs = React.useMemo(() => (raw || []).map(window.SF.deriveJob), [raw]);
+  const jobs = React.useMemo(() => (raw || []).filter(j => !j.deleted).map(window.SF.deriveJob), [raw]);
+  const trash = React.useMemo(() => (raw || []).filter(j => j.deleted).sort((a, b) => String(b.deletedAt || "").localeCompare(String(a.deletedAt || ""))), [raw]);
   const upsert = React.useCallback(rec => {
     if (_FB()) {
       _fbSet("jobs/" + rec.id, rec);
@@ -160,12 +161,26 @@ function useJobStore() {
       setRaw(prev => prev.map(j => j.id === id ? Object.assign({}, j, fields) : j));
     }
   }, []);
-  const remove = React.useCallback(id => {
-    if (_FB()) {
-      _fbRem("jobs/" + id);
-    } else {
-      setRaw(prev => prev.filter(j => j.id !== id));
-    }
+  const remove = React.useCallback((id, by) => {
+    const fields = {
+      deleted: true,
+      deletedAt: new Date().toISOString(),
+      deletedBy: by || ""
+    };
+    if (_FB()) _fbUpd("jobs/" + id, fields);else setRaw(prev => prev.map(j => j.id === id ? Object.assign({}, j, fields) : j));
+  }, []);
+  const restore = React.useCallback(id => {
+    const fields = {
+      deleted: null,
+      deletedAt: null,
+      deletedBy: null
+    };
+    if (_FB()) _fbUpd("jobs/" + id, fields);else setRaw(prev => prev.map(j => j.id === id ? Object.assign({}, j, {
+      deleted: false
+    }) : j));
+  }, []);
+  const purge = React.useCallback(id => {
+    if (_FB()) _fbRem("jobs/" + id);else setRaw(prev => prev.filter(j => j.id !== id));
   }, []);
   const setStage = React.useCallback((id, targetKey) => {
     const job = (rawRef.current || []).find(j => j.id === id);
@@ -255,10 +270,13 @@ function useJobStore() {
   return {
     raw: raw || [],
     jobs,
+    trash,
     loading,
     upsert,
     patch,
     remove,
+    restore,
+    purge,
     advance,
     setStage,
     setMat,

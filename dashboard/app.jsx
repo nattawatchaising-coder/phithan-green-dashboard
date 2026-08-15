@@ -378,9 +378,13 @@ function App() {
     }
     setForm(null);
   };
+  /* ลบงาน = ย้ายเข้าถังขยะก่อน กู้คืนได้ · ถามยืนยันในหน้าเอง ไม่ใช้ confirm() ของเบราว์เซอร์
+     (ถ้าผู้ใช้เคยติ๊ก "ไม่ให้หน้านี้สร้างกล่องข้อความอีก" confirm จะคืน false ทันที = กดลบแล้วเงียบ) */
+  const [delAsk, setDelAsk] = React.useState(null);   // งานที่กำลังถามว่าจะย้ายเข้าถังขยะไหม
+  const [trashOpen, setTrashOpen] = React.useState(false);
   const onDelete = (j) => {
     if (!can(role, "delJob")) { alert("คุณไม่มีสิทธิ์ลบงาน"); return; }
-    if (confirm("ลบงาน \"" + j.name + "\" ?")) store.remove(j.id);
+    setDelAsk(j);
   };
   // หน้ารายการงานที่ใช้เจาะดู — table เฉพาะ admin, role อื่นใช้บอร์ดงานแทน
   const listView = () => (navForRole(role).some((n) => n.key === "table") ? "table" : "board");
@@ -456,7 +460,8 @@ function App() {
           {view === "board" && <KanbanView jobs={filtered} onOpen={openJob} onMoveStage={(id, s) => store.setStage(id, s)} />}
           {view === "table" && <TableView jobs={filtered} onOpen={openJob}
             onEdit={(j) => setForm({ job: store.raw.find((r) => r.id === j.id), isNew: false })}
-            onDelete={onDelete} onSetMat={store.setMat} onSetStage={(id, s) => store.setStage(id, s)} />}
+            onDelete={onDelete} onSetMat={store.setMat} onSetStage={(id, s) => store.setStage(id, s)}
+            trashCount={can(role, "delJob") ? store.trash.length : 0} onOpenTrash={can(role, "delJob") ? () => setTrashOpen(true) : null} />}
           {view === "report" && <ReportView jobs={filtered} onOpen={openJob} />}
           {view === "survey" && <SurveyView jobs={filtered} role={role} onOpen={openSurvey}
             onToggleSkip={(can(role, "doSurvey") || can(role, "dispatch") || can(role, "editJob")) ? (j) => {
@@ -498,6 +503,10 @@ function App() {
       {briefingOpen && <DailyBriefing lateAlerts={lateAlerts} todayTasks={todayTasks}
         onOpen={(jobId) => { localStorage.setItem("sf_briefing_seen", window.SF.TODAY); setBriefingOpen(false); setView(listView()); setSelected(jobId); }}
         onClose={() => { localStorage.setItem("sf_briefing_seen", window.SF.TODAY); setBriefingOpen(false); }} />}
+      {delAsk && <DeleteJobAsk job={delAsk} onClose={() => setDelAsk(null)}
+        onConfirm={() => { store.remove(delAsk.id, auth.current ? auth.current.name : ""); setSelected((s) => s === delAsk.id ? null : s); setDelAsk(null); }} />}
+      {trashOpen && <TrashModal trash={store.trash} me={auth.current} onClose={() => setTrashOpen(false)}
+        onRestore={(id) => store.restore(id)} onPurge={(id) => store.purge(id)} />}
       {mapOpen && <MapModal jobs={filtered} onOpen={(j) => { setMapOpen(false); openJob(j); }} onClose={() => setMapOpen(false)} />}
 
       <TweaksPanel>
@@ -896,6 +905,133 @@ function DailyBriefing({ lateAlerts, todayTasks, onOpen, onClose }) {
 }
 
 /* แผนที่งาน — popup เต็มจอ เปิดจากปุ่มใน header */
+/* ============================================================
+   DeleteJobAsk — ถามก่อนย้ายงานเข้าถังขยะ
+   ------------------------------------------------------------
+   ไม่ใช้ confirm() ของเบราว์เซอร์ เพราะถ้าถูกบล็อกกล่องข้อความไว้ มันจะคืน false เงียบ ๆ
+   ปุ่มยืนยันต้องกดสองจังหวะ (ค้างไว้ที่ปุ่มแดง) ไม่ได้ — จึงวางปุ่มยกเลิกไว้ก่อน กันมือลั่น
+   ============================================================ */
+function DeleteJobAsk({ job, onConfirm, onClose }) {
+  const bdClose = window.useBackdropClose(onClose);
+  return (
+    <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)",
+      zIndex: 125, display: "grid", placeItems: "center", padding: 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--surface)", border: "1px solid var(--border)",
+        borderRadius: 16, width: "min(420px, 100%)", padding: 20, boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+          <span style={{ width: 38, height: 38, borderRadius: 11, background: "var(--tint-red-bg)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+            <Icon name="trash" size={18} color="#EF4444" />
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15.5, fontWeight: 800, color: "var(--text-1)" }}>ย้ายงานนี้เข้าถังขยะ?</div>
+            <div style={{ fontSize: 12.5, color: "var(--text-2)", marginTop: 4, lineHeight: 1.55 }}>
+              <b>{job.code}</b> · {job.name || "(ไม่มีชื่อ)"}<br />
+              งานจะหายจากทุกหน้าจอ แต่ยังกู้คืนได้ที่ “ถังขยะ” ในหน้าฐานข้อมูลงาน
+            </div>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 18 }}>
+          <button onClick={onClose} style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid var(--border-strong)",
+            background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>ยกเลิก</button>
+          <button onClick={onConfirm} style={{ padding: "10px 16px", borderRadius: 10, border: "none",
+            background: "#EF4444", color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>ย้ายเข้าถังขยะ</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   TrashModal — ถังขยะงานติดตั้ง: กู้คืน หรือลบถาวร
+   ------------------------------------------------------------
+   ลบถาวรต้องเป็นแอดมิน + ใส่รหัสผ่านของบัญชีที่ล็อกอินอยู่ซ้ำอีกครั้ง
+   (กันเผลอกด และกันคนที่มาใช้เครื่องต่อจากคนอื่นลบทิ้ง)
+   ============================================================ */
+function TrashModal({ trash, me, onRestore, onPurge, onClose }) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const bdClose = window.useBackdropClose(onClose);
+  const isAdmin = !!me && me.role === "admin";
+  const [ask, setAsk] = React.useState(null);   // id ที่กำลังจะลบถาวร
+  const [pw, setPw] = React.useState("");
+  const [err, setErr] = React.useState("");
+
+  const doPurge = (id) => {
+    if (!isAdmin) { setErr("เฉพาะแอดมินเท่านั้นที่ลบถาวรได้"); return; }
+    if (String(me.pin) !== String(pw)) { setErr("รหัสผ่านไม่ถูกต้อง"); return; }
+    onPurge(id); setAsk(null); setPw(""); setErr("");
+  };
+
+  return (
+    <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)",
+      zIndex: 125, display: "grid", placeItems: isMobile ? "stretch" : "center", padding: isMobile ? 0 : 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? 0 : 18,
+        width: isMobile ? "100%" : "min(640px, 100%)", maxHeight: isMobile ? "100%" : "84vh",
+        display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+        <div style={{ padding: "15px 18px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
+            <span style={{ width: 36, height: 36, borderRadius: 10, background: "var(--tint-red-bg)", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="trash" size={17} color="#EF4444" /></span>
+            <div style={{ minWidth: 0 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>ถังขยะ</h2>
+              <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{trash.length} งาน · กู้คืนได้ตลอด · ลบถาวรต้องใส่รหัสผ่าน</span>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
+        </div>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 9 }}>
+          {trash.length === 0 && (
+            <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>ถังขยะว่าง — ยังไม่มีงานที่ถูกลบ</div>
+          )}
+          {trash.map((j) => (
+            <div key={j.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <div style={{ flex: 1, minWidth: 150 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>{j.name || "(ไม่มีชื่อ)"}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>
+                    {j.code}{j.province ? " · " + j.province : ""}{j.kw ? " · " + j.kw + " kW" : ""}
+                    {j.deletedAt ? " · ลบเมื่อ " + thDate(String(j.deletedAt).slice(0, 10), true) : ""}
+                    {j.deletedBy ? " โดย " + j.deletedBy : ""}
+                  </div>
+                </div>
+                <button onClick={() => onRestore(j.id)} style={{ padding: "8px 13px", borderRadius: 9, border: "1px solid var(--primary)",
+                  background: "var(--primary-soft)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>กู้คืน</button>
+                {isAdmin && ask !== j.id && (
+                  <button onClick={() => { setAsk(j.id); setPw(""); setErr(""); }} style={{ padding: "8px 13px", borderRadius: 9, border: "1px solid var(--border-strong)",
+                    background: "var(--surface)", color: "#EF4444", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>ลบถาวร</button>
+                )}
+              </div>
+              {ask === j.id && (
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px dashed var(--border)" }}>
+                  <div style={{ fontSize: 11.5, color: "var(--tint-red-tx)", fontWeight: 700, marginBottom: 7 }}>
+                    ลบถาวรแล้วกู้คืนไม่ได้ — ใส่รหัสผ่านของ {me && me.name ? me.name : "บัญชีนี้"} เพื่อยืนยัน
+                  </div>
+                  <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+                    <input type="password" value={pw} autoFocus autoComplete="off"
+                      onChange={(e) => { setPw(e.target.value); setErr(""); }}
+                      onKeyDown={(e) => { if (e.key === "Enter") doPurge(j.id); }}
+                      placeholder="รหัสผ่าน"
+                      style={{ flex: 1, minWidth: 130, background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-1)",
+                        fontFamily: "inherit", fontSize: 13, padding: "8px 10px", borderRadius: 9, outline: "none" }} />
+                    <button onClick={() => doPurge(j.id)} style={{ padding: "8px 14px", borderRadius: 9, border: "none",
+                      background: "#EF4444", color: "#fff", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>ลบถาวร</button>
+                    <button onClick={() => { setAsk(null); setPw(""); setErr(""); }} style={{ padding: "8px 13px", borderRadius: 9, border: "1px solid var(--border-strong)",
+                      background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>ยกเลิก</button>
+                  </div>
+                  {err && <div style={{ marginTop: 6, fontSize: 11.5, fontWeight: 700, color: "#EF4444" }}>{err}</div>}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        {!isAdmin && trash.length > 0 && (
+          <div style={{ padding: "10px 16px", borderTop: "1px solid var(--border)", background: "var(--surface)", fontSize: 11.5, color: "var(--text-3)" }}>
+            ลบถาวรได้เฉพาะแอดมิน — งานในถังขยะจะอยู่ตรงนี้จนกว่าแอดมินจะจัดการ
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function MapModal({ jobs, onOpen, onClose }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const bdClose = window.useBackdropClose(onClose);

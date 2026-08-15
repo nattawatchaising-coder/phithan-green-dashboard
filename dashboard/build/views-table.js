@@ -40,7 +40,9 @@ function TableView({
   onEdit,
   onDelete,
   onSetMat,
-  onSetStage
+  onSetStage,
+  trashCount,
+  onOpenTrash
 }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -78,7 +80,9 @@ function TableView({
   if (isMobile) return React.createElement(React.Fragment, null, React.createElement(StatusTabs, {
     tab: tab,
     setTab: setTab,
-    counts: counts
+    counts: counts,
+    trashCount: trashCount,
+    onOpenTrash: onOpenTrash
   }), React.createElement(TableMobile, {
     jobs: sorted,
     sort: sort,
@@ -144,7 +148,9 @@ function TableView({
   return React.createElement(React.Fragment, null, React.createElement(StatusTabs, {
     tab: tab,
     setTab: setTab,
-    counts: counts
+    counts: counts,
+    trashCount: trashCount,
+    onOpenTrash: onOpenTrash
   }), React.createElement("div", {
     style: {
       background: "var(--surface)",
@@ -415,7 +421,9 @@ function TableView({
 function StatusTabs({
   tab,
   setTab,
-  counts
+  counts,
+  trashCount,
+  onOpenTrash
 }) {
   const mob = window.matchMedia("(max-width: 860px)").matches;
   const opts = [{
@@ -478,7 +486,38 @@ function StatusTabs({
         opacity: active ? 1 : .5
       }
     }, o.n));
-  }));
+  }), onOpenTrash && React.createElement("button", {
+    onClick: onOpenTrash,
+    title: "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E25\u0E1A\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27 \u2014 \u0E01\u0E39\u0E49\u0E04\u0E37\u0E19\u0E44\u0E14\u0E49",
+    style: {
+      marginLeft: "auto",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      padding: mob ? "8px 10px" : "8px 13px",
+      borderRadius: 99,
+      flexShrink: 0,
+      border: "1px solid transparent",
+      background: "var(--surface2)",
+      color: trashCount ? "#EF4444" : "var(--text-3)",
+      fontWeight: 600,
+      fontSize: mob ? 12 : 13,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      whiteSpace: "nowrap"
+    }
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 14
+  }), !mob && "ถังขยะ", trashCount ? React.createElement("span", {
+    style: {
+      fontFamily: "var(--display)",
+      fontSize: 12,
+      fontWeight: 800,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, trashCount) : null));
 }
 function TableMobile({
   jobs,

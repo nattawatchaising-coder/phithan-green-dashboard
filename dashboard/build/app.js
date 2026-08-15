@@ -534,12 +534,14 @@ function App() {
     }
     setForm(null);
   };
+  const [delAsk, setDelAsk] = React.useState(null);
+  const [trashOpen, setTrashOpen] = React.useState(false);
   const onDelete = j => {
     if (!can(role, "delJob")) {
       alert("คุณไม่มีสิทธิ์ลบงาน");
       return;
     }
-    if (confirm("ลบงาน \"" + j.name + "\" ?")) store.remove(j.id);
+    setDelAsk(j);
   };
   const listView = () => navForRole(role).some(n => n.key === "table") ? "table" : "board";
   const goStage = key => {
@@ -702,7 +704,9 @@ function App() {
     }),
     onDelete: onDelete,
     onSetMat: store.setMat,
-    onSetStage: (id, s) => store.setStage(id, s)
+    onSetStage: (id, s) => store.setStage(id, s),
+    trashCount: can(role, "delJob") ? store.trash.length : 0,
+    onOpenTrash: can(role, "delJob") ? () => setTrashOpen(true) : null
   }), view === "report" && React.createElement(ReportView, {
     jobs: filtered,
     onOpen: openJob
@@ -810,6 +814,20 @@ function App() {
       localStorage.setItem("sf_briefing_seen", window.SF.TODAY);
       setBriefingOpen(false);
     }
+  }), delAsk && React.createElement(DeleteJobAsk, {
+    job: delAsk,
+    onClose: () => setDelAsk(null),
+    onConfirm: () => {
+      store.remove(delAsk.id, auth.current ? auth.current.name : "");
+      setSelected(s => s === delAsk.id ? null : s);
+      setDelAsk(null);
+    }
+  }), trashOpen && React.createElement(TrashModal, {
+    trash: store.trash,
+    me: auth.current,
+    onClose: () => setTrashOpen(false),
+    onRestore: id => store.restore(id),
+    onPurge: id => store.purge(id)
   }), mapOpen && React.createElement(MapModal, {
     jobs: filtered,
     onOpen: j => {
@@ -1808,6 +1826,390 @@ function DailyBriefing({
       cursor: "pointer"
     }
   }, "\u0E23\u0E31\u0E1A\u0E17\u0E23\u0E32\u0E1A"))));
+}
+function DeleteJobAsk({
+  job,
+  onConfirm,
+  onClose
+}) {
+  const bdClose = window.useBackdropClose(onClose);
+  return React.createElement("div", _extends({}, bdClose, {
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(8,20,14,.5)",
+      backdropFilter: "blur(3px)",
+      zIndex: 125,
+      display: "grid",
+      placeItems: "center",
+      padding: 20
+    }
+  }), React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 16,
+      width: "min(420px, 100%)",
+      padding: 20,
+      boxShadow: "0 30px 80px rgba(8,20,14,.3)"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 12,
+      alignItems: "flex-start"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 38,
+      height: 38,
+      borderRadius: 11,
+      background: "var(--tint-red-bg)",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 18,
+    color: "#EF4444"
+  })), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 15.5,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, "\u0E22\u0E49\u0E32\u0E22\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E40\u0E02\u0E49\u0E32\u0E16\u0E31\u0E07\u0E02\u0E22\u0E30?"), React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-2)",
+      marginTop: 4,
+      lineHeight: 1.55
+    }
+  }, React.createElement("b", null, job.code), " \xB7 ", job.name || "(ไม่มีชื่อ)", React.createElement("br", null), "\u0E07\u0E32\u0E19\u0E08\u0E30\u0E2B\u0E32\u0E22\u0E08\u0E32\u0E01\u0E17\u0E38\u0E01\u0E2B\u0E19\u0E49\u0E32\u0E08\u0E2D \u0E41\u0E15\u0E48\u0E22\u0E31\u0E07\u0E01\u0E39\u0E49\u0E04\u0E37\u0E19\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48 \u201C\u0E16\u0E31\u0E07\u0E02\u0E22\u0E30\u201D \u0E43\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E10\u0E32\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E07\u0E32\u0E19"))), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      justifyContent: "flex-end",
+      marginTop: 18
+    }
+  }, React.createElement("button", {
+    onClick: onClose,
+    style: {
+      padding: "10px 16px",
+      borderRadius: 10,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-2)",
+      fontFamily: "inherit",
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("button", {
+    onClick: onConfirm,
+    style: {
+      padding: "10px 16px",
+      borderRadius: 10,
+      border: "none",
+      background: "#EF4444",
+      color: "#fff",
+      fontFamily: "inherit",
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E22\u0E49\u0E32\u0E22\u0E40\u0E02\u0E49\u0E32\u0E16\u0E31\u0E07\u0E02\u0E22\u0E30"))));
+}
+function TrashModal({
+  trash,
+  me,
+  onRestore,
+  onPurge,
+  onClose
+}) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const bdClose = window.useBackdropClose(onClose);
+  const isAdmin = !!me && me.role === "admin";
+  const [ask, setAsk] = React.useState(null);
+  const [pw, setPw] = React.useState("");
+  const [err, setErr] = React.useState("");
+  const doPurge = id => {
+    if (!isAdmin) {
+      setErr("เฉพาะแอดมินเท่านั้นที่ลบถาวรได้");
+      return;
+    }
+    if (String(me.pin) !== String(pw)) {
+      setErr("รหัสผ่านไม่ถูกต้อง");
+      return;
+    }
+    onPurge(id);
+    setAsk(null);
+    setPw("");
+    setErr("");
+  };
+  return React.createElement("div", _extends({}, bdClose, {
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(8,20,14,.5)",
+      backdropFilter: "blur(3px)",
+      zIndex: 125,
+      display: "grid",
+      placeItems: isMobile ? "stretch" : "center",
+      padding: isMobile ? 0 : 20
+    }
+  }), React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "var(--bg)",
+      borderRadius: isMobile ? 0 : 18,
+      width: isMobile ? "100%" : "min(640px, 100%)",
+      maxHeight: isMobile ? "100%" : "84vh",
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
+      boxShadow: "0 30px 80px rgba(8,20,14,.3)"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "15px 18px",
+      borderBottom: "1px solid var(--border)",
+      background: "var(--surface)",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: 10
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 11,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      background: "var(--tint-red-bg)",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 17,
+    color: "#EF4444"
+  })), React.createElement("div", {
+    style: {
+      minWidth: 0
+    }
+  }, React.createElement("h2", {
+    style: {
+      fontSize: 16,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      margin: 0
+    }
+  }, "\u0E16\u0E31\u0E07\u0E02\u0E22\u0E30"), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, trash.length, " \u0E07\u0E32\u0E19 \xB7 \u0E01\u0E39\u0E49\u0E04\u0E37\u0E19\u0E44\u0E14\u0E49\u0E15\u0E25\u0E2D\u0E14 \xB7 \u0E25\u0E1A\u0E16\u0E32\u0E27\u0E23\u0E15\u0E49\u0E2D\u0E07\u0E43\u0E2A\u0E48\u0E23\u0E2B\u0E31\u0E2A\u0E1C\u0E48\u0E32\u0E19"))), React.createElement("button", {
+    onClick: onClose,
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: 9,
+      border: "1px solid var(--border)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 16
+  }))), React.createElement("div", {
+    style: {
+      flex: 1,
+      minHeight: 0,
+      overflowY: "auto",
+      padding: 14,
+      display: "flex",
+      flexDirection: "column",
+      gap: 9
+    }
+  }, trash.length === 0 && React.createElement("div", {
+    style: {
+      padding: 40,
+      textAlign: "center",
+      color: "var(--text-3)",
+      fontSize: 13.5
+    }
+  }, "\u0E16\u0E31\u0E07\u0E02\u0E22\u0E30\u0E27\u0E48\u0E32\u0E07 \u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E16\u0E39\u0E01\u0E25\u0E1A"), trash.map(j => React.createElement("div", {
+    key: j.id,
+    style: {
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 12,
+      padding: 12
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 150
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 700,
+      color: "var(--text-1)"
+    }
+  }, j.name || "(ไม่มีชื่อ)"), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      marginTop: 2
+    }
+  }, j.code, j.province ? " · " + j.province : "", j.kw ? " · " + j.kw + " kW" : "", j.deletedAt ? " · ลบเมื่อ " + thDate(String(j.deletedAt).slice(0, 10), true) : "", j.deletedBy ? " โดย " + j.deletedBy : "")), React.createElement("button", {
+    onClick: () => onRestore(j.id),
+    style: {
+      padding: "8px 13px",
+      borderRadius: 9,
+      border: "1px solid var(--primary)",
+      background: "var(--primary-soft)",
+      color: "var(--primary-dark)",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E01\u0E39\u0E49\u0E04\u0E37\u0E19"), isAdmin && ask !== j.id && React.createElement("button", {
+    onClick: () => {
+      setAsk(j.id);
+      setPw("");
+      setErr("");
+    },
+    style: {
+      padding: "8px 13px",
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "#EF4444",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E25\u0E1A\u0E16\u0E32\u0E27\u0E23")), ask === j.id && React.createElement("div", {
+    style: {
+      marginTop: 10,
+      paddingTop: 10,
+      borderTop: "1px dashed var(--border)"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--tint-red-tx)",
+      fontWeight: 700,
+      marginBottom: 7
+    }
+  }, "\u0E25\u0E1A\u0E16\u0E32\u0E27\u0E23\u0E41\u0E25\u0E49\u0E27\u0E01\u0E39\u0E49\u0E04\u0E37\u0E19\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u2014 \u0E43\u0E2A\u0E48\u0E23\u0E2B\u0E31\u0E2A\u0E1C\u0E48\u0E32\u0E19\u0E02\u0E2D\u0E07 ", me && me.name ? me.name : "บัญชีนี้", " \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19"), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 7,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("input", {
+    type: "password",
+    value: pw,
+    autoFocus: true,
+    autoComplete: "off",
+    onChange: e => {
+      setPw(e.target.value);
+      setErr("");
+    },
+    onKeyDown: e => {
+      if (e.key === "Enter") doPurge(j.id);
+    },
+    placeholder: "\u0E23\u0E2B\u0E31\u0E2A\u0E1C\u0E48\u0E32\u0E19",
+    style: {
+      flex: 1,
+      minWidth: 130,
+      background: "var(--surface2)",
+      border: "1px solid var(--border-strong)",
+      color: "var(--text-1)",
+      fontFamily: "inherit",
+      fontSize: 13,
+      padding: "8px 10px",
+      borderRadius: 9,
+      outline: "none"
+    }
+  }), React.createElement("button", {
+    onClick: () => doPurge(j.id),
+    style: {
+      padding: "8px 14px",
+      borderRadius: 9,
+      border: "none",
+      background: "#EF4444",
+      color: "#fff",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E25\u0E1A\u0E16\u0E32\u0E27\u0E23"), React.createElement("button", {
+    onClick: () => {
+      setAsk(null);
+      setPw("");
+      setErr("");
+    },
+    style: {
+      padding: "8px 13px",
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-2)",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01")), err && React.createElement("div", {
+    style: {
+      marginTop: 6,
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "#EF4444"
+    }
+  }, err))))), !isAdmin && trash.length > 0 && React.createElement("div", {
+    style: {
+      padding: "10px 16px",
+      borderTop: "1px solid var(--border)",
+      background: "var(--surface)",
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E25\u0E1A\u0E16\u0E32\u0E27\u0E23\u0E44\u0E14\u0E49\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19 \u2014 \u0E07\u0E32\u0E19\u0E43\u0E19\u0E16\u0E31\u0E07\u0E02\u0E22\u0E30\u0E08\u0E30\u0E2D\u0E22\u0E39\u0E48\u0E15\u0E23\u0E07\u0E19\u0E35\u0E49\u0E08\u0E19\u0E01\u0E27\u0E48\u0E32\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E08\u0E30\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23")));
 }
 function MapModal({
   jobs,

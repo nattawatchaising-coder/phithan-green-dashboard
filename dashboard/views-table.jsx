@@ -17,7 +17,7 @@ function MatCell({ status, onCycle }) {
   );
 }
 
-function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
+function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trashCount, onOpenTrash }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [sort, setSort] = React.useState({ key: "code", dir: 1 });
@@ -44,7 +44,7 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
 
   if (isMobile) return (
     <React.Fragment>
-      <StatusTabs tab={tab} setTab={setTab} counts={counts} />
+      <StatusTabs tab={tab} setTab={setTab} counts={counts} trashCount={trashCount} onOpenTrash={onOpenTrash} />
       <TableMobile jobs={sorted} sort={sort} setSort={setSort} onOpen={onOpen} onEdit={onEdit} onDelete={onDelete} onSetStage={onSetStage} />
     </React.Fragment>
   );
@@ -74,7 +74,7 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
 
   return (
     <React.Fragment>
-    <StatusTabs tab={tab} setTab={setTab} counts={counts} />
+    <StatusTabs tab={tab} setTab={setTab} counts={counts} trashCount={trashCount} onOpenTrash={onOpenTrash} />
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 920 }}>
@@ -182,7 +182,7 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
 }
 
 /* ── แท็บแยกสถานะงาน: กำลังดำเนินการ / เสร็จแล้ว / ทั้งหมด ── */
-function StatusTabs({ tab, setTab, counts }) {
+function StatusTabs({ tab, setTab, counts, trashCount, onOpenTrash }) {
   const mob = window.matchMedia("(max-width: 860px)").matches;
   const opts = [
     { key: "active", label: "กำลังดำเนินการ", n: counts.active },
@@ -209,6 +209,18 @@ function StatusTabs({ tab, setTab, counts }) {
           </button>
         );
       })}
+      {/* ทางเข้าถังขยะ — งานที่ลบไปยังกู้คืนได้ที่นี่ */}
+      {onOpenTrash && (
+        <button onClick={onOpenTrash} title="งานที่ลบไปแล้ว — กู้คืนได้"
+          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+            padding: mob ? "8px 10px" : "8px 13px", borderRadius: 99, flexShrink: 0, border: "1px solid transparent",
+            background: "var(--surface2)", color: trashCount ? "#EF4444" : "var(--text-3)", fontWeight: 600,
+            fontSize: mob ? 12 : 13, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+          <Icon name="trash" size={14} />
+          {!mob && "ถังขยะ"}
+          {trashCount ? <span style={{ fontFamily: "var(--display)", fontSize: 12, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{trashCount}</span> : null}
+        </button>
+      )}
     </div>
   );
 }
