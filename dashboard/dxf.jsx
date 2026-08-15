@@ -1058,23 +1058,42 @@ function pgSldLayers(doc) {
   doc.layer(PG_SLD.tab, PG_ACI.white, "CONTINUOUS", 20);
 }
 
+/* ── ลากสายแนวตั้ง เว้นช่องให้สัญลักษณ์ที่คร่อมอยู่บนสาย ──
+   สายต้องจบที่ขั้วของสัญลักษณ์ ไม่ใช่ลากทะลุผ่านไปเลย ไม่งั้นดูเหมือนต่อลัดข้ามเบรกเกอร์
+   brk = [{ y, half }] · half = ครึ่งความสูงของสัญลักษณ์ (ไม่ใส่ = 4.15 คือถึงขอบวงกลมขั้วของเบรกเกอร์) */
+function pgWireY(pen, layer, x, yA, yB, brk) {
+  const y0 = Math.min(yA, yB), y1 = Math.max(yA, yB);
+  const gaps = (brk || [])
+    .map((b) => { const h = b.half == null ? 4.15 : b.half; return [b.y - h, b.y + h]; })
+    .filter((g) => g[1] > y0 && g[0] < y1)
+    .sort((a, b) => a[0] - b[0]);
+  let cur = y0;
+  gaps.forEach((g) => { if (g[0] > cur) pen.line(layer, x, cur, x, g[0]); cur = Math.max(cur, g[1]); });
+  if (cur < y1) pen.line(layer, x, cur, x, y1);
+}
+
 /* ── สัญลักษณ์มาตรฐาน ── ทุกตัวรับ (pen, x, y) ที่จุดกึ่งกลางของสัญลักษณ์ */
 const pgSym = {
-  /* เบรกเกอร์/สวิตช์ตัดตอน — ขั้วบน-ล่างเป็นวงกลมเล็ก คั่นด้วยเส้นเฉียง */
+  /* เบรกเกอร์ (MCB/MCCB/RCCB) — ขั้วบน-ล่างเป็นวงกลมเปิดคาอยู่บนเส้นสาย
+     คั่นด้วยส่วนโค้งโป่งไปทางซ้าย (ไม่ใช่เส้นเฉียง — เส้นเฉียงคือสวิตช์ใบมีด คนละตัวกัน)
+     ระยะ g ต้องคงที่ เพราะผู้เรียกลากสายมาจบที่ y±g พอดี */
   breaker(pen, x, y, label, sub) {
     const L = PG_SLD.sym, r = 0.75, g = 3.4;
     pen.circle(L, x, y - g, r); pen.circle(L, x, y + g, r);
-    pen.line(L, x, y - g + r, x + 3.6, y + g - r);
-    if (label) pen.text(PG_SLD.txt, x + 5.4, y + 1.2, 2.1, label, { valign: 2 });
-    if (sub) pen.text(PG_SLD.txt, x + 5.4, y - 2.0, 2.1, sub, { valign: 2 });
+    pen.arc(L, x, y, g * 1.26, 118, 242);
+    if (label) pen.text(PG_SLD.txt, x + 3.0, y + 1.2, 2.1, label, { valign: 2 });
+    if (sub) pen.text(PG_SLD.txt, x + 3.0, y - 2.0, 2.1, sub, { valign: 2 });
   },
-  /* หม้อแปลงกระแส (CT) — สองซีกโค้งคร่อมสายไว้วัดกระแส */
+  /* หม้อแปลงกระแส (CT) — ขดลวดคล้องรอบสายเมน มีสายสัญญาณออกไปทางขวา
+     วาดสองรอบ ให้เห็นว่าเป็นขดคล้อง ไม่ใช่แค่เส้นโค้งลอย ๆ ข้างสาย */
   ct(pen, x, y, label, sub) {
-    const L = PG_SLD.sym;
-    pen.arc(L, x - 1.4, y + 1.6, 1.9, -80, 80);
-    pen.arc(L, x - 1.4, y - 1.6, 1.9, -80, 80);
-    if (label) pen.text(PG_SLD.txt, x + 3.2, y + 1.4, 2.1, label, { valign: 2 });
-    if (sub) pen.text(PG_SLD.txt, x + 3.2, y - 1.6, 2.1, sub, { valign: 2 });
+    const L = PG_SLD.sym, R = 1.9, lead = 4.4;
+    [1.7, -1.7].forEach((dy) => {
+      pen.arc(L, x - 0.9, y + dy, R, -78, 78);       // ขดคล้องคร่อมเส้นสาย
+      pen.line(L, x + 1.0, y + dy + R * 0.98, x + lead, y + dy + R * 0.98);
+    });
+    if (label) pen.text(PG_SLD.txt, x + lead + 0.8, y + 1.4, 2.1, label, { valign: 2 });
+    if (sub) pen.text(PG_SLD.txt, x + lead + 0.8, y - 1.6, 2.1, sub, { valign: 2 });
   },
   /* หลักดิน */
   ground(pen, x, y) {
@@ -1083,39 +1102,58 @@ const pgSym = {
     pen.line(L, x - 1.9, y - 1.3, x + 1.9, y - 1.3);
     pen.line(L, x - 0.8, y - 2.6, x + 0.8, y - 2.6);
   },
-  /* กันเสิร์จ (SPD) — กล่องมีลูกศรเฉียงชี้ลงดิน */
+  /* กันเสิร์จ (SPD) — สัญลักษณ์วาริสเตอร์: กล่องผอมมีเส้นเฉียงทะลุออกนอกกล่อง
+     ปลายเส้นเฉียงมีขีดสั้น ๆ หักมุม (ขีดนี้แหละที่ทำให้เป็นวาริสเตอร์ ไม่ใช่ตัวต้านทานเฉย ๆ)
+     หลักดินผู้เรียกวาดเองด้านล่าง */
   spd(pen, x, y, lines) {
-    const L = PG_SLD.sym;
-    pen.rect(L, x - 1.9, y - 4, 3.8, 8);
-    pen.line(L, x - 1.9, y - 4, x + 1.9, y + 4);
-    (lines || []).forEach((s, i) => pen.text(PG_SLD.txt, x + 3.4, y + 3.2 - i * 2.4, 2.0, s, { valign: 2 }));
+    const L = PG_SLD.sym, w = 3.8, h = 8, ov = 1.5, t = 1.4;
+    pen.rect(L, x - w / 2, y - h / 2, w, h);
+    const x0 = x - w / 2 - ov, y0 = y - h / 2 + t;
+    const x1 = x + w / 2 + ov, y1 = y + h / 2 - t;
+    pen.line(L, x0, y0, x1, y1);
+    pen.line(L, x0, y0, x0, y0 - t);          // ขีดหักลงที่ปลายล่างซ้าย
+    pen.line(L, x1, y1, x1, y1 + t);          // ขีดหักขึ้นที่ปลายบนขวา
+    (lines || []).forEach((s, i) => pen.text(PG_SLD.txt, x + 3.6, y + 3.2 - i * 2.4, 2.0, s, { valign: 2 }));
   },
-  /* อินเวอร์เตอร์ — กล่องแบ่งทแยง ฝั่งหนึ่งเป็นไฟตรง อีกฝั่งเป็นไฟสลับ */
+  /* อินเวอร์เตอร์ — กล่องแบ่งทแยงจากมุมล่างซ้ายขึ้นมุมบนขวา
+     ครึ่งบนซ้าย = ไฟสลับ (คลื่นไซน์) · ครึ่งล่างขวา = ไฟตรง (ขีดทึบคู่ขีดประ)
+     ตรงกับทิศไฟจริงในผัง: แผงเข้าทางล่าง ไฟสลับออกทางบน */
   inverter(pen, x, y, w, h) {
     const L = PG_SLD.sym;
     pen.rect(L, x - w / 2, y - h / 2, w, h);
     pen.line(L, x - w / 2, y - h / 2, x + w / 2, y + h / 2);
-    pen.text(L, x - w * 0.28, y + h * 0.16, h * 0.34, "~", { align: 1, valign: 2 });
-    pen.line(L, x + w * 0.12, y - h * 0.14, x + w * 0.42, y - h * 0.14);
-    pen.line(L, x + w * 0.12, y - h * 0.28, x + w * 0.42, y - h * 0.28);
+    /* คลื่นไซน์ — วาดจริงเป็นสองส่วนโค้ง ไม่ใช้ตัวอักษร "~" ที่ฟอนต์ทำออกมาเล็กและลอยสูง */
+    const a = Math.min(w * 0.11, h * 0.13), sx = x - w * 0.28, sy = y + h * 0.2;
+    pen.arc(L, sx - a, sy, a, 0, 180);
+    pen.arc(L, sx + a, sy, a, 180, 360);
+    /* ไฟตรง — ขีดบนทึบ ขีดล่างเป็นสองท่อน */
+    const dx = x + w * 0.26, dy = y - h * 0.2, dw = Math.min(w * 0.16, h * 0.2);
+    pen.line(L, dx - dw, dy + dw * 0.42, dx + dw, dy + dw * 0.42);
+    pen.line(L, dx - dw, dy - dw * 0.42, dx - dw * 0.25, dy - dw * 0.42);
+    pen.line(L, dx + dw * 0.25, dy - dw * 0.42, dx + dw, dy - dw * 0.42);
   },
-  /* แผงเซลล์แสงอาทิตย์ — กล่องทแยงมุม พร้อมหมายเลขแผงในวงกลม */
+  /* แผงเซลล์แสงอาทิตย์ — กล่องมีหัวลูกศรรูปตัว V ชี้ลง (สื่อว่าแสงตกกระทบเซลล์)
+     หมายเลขแผงอยู่ในวงกลมคร่อมขอบล่างของกล่อง ตามแบบที่บริษัทใช้ */
   pv(pen, x, y, w, h, no) {
     const L = PG_SLD.sym;
     pen.rect(L, x - w / 2, y - h / 2, w, h);
-    pen.line(L, x - w / 2, y + h / 2, x + w / 2, y - h / 2);
+    const vy = y + h / 2, tip = y + h * 0.5 - h * 0.62;
+    pen.line(L, x - w / 2, vy, x, tip);
+    pen.line(L, x + w / 2, vy, x, tip);
     if (no != null) {
-      const r = Math.min(w, h) * 0.3;
-      pen.circle(L, x, y - h / 2 - r - 0.8, r);
-      pen.text(PG_SLD.txt, x, y - h / 2 - r - 0.8, r * 1.15, String(no), { align: 1, valign: 2 });
+      const r = Math.min(w * 0.42, h * 0.3);
+      pen.circle(L, x, y - h / 2, r);
+      pen.text(PG_SLD.txt, x, y - h / 2, r * 1.15, String(no), { align: 1, valign: 2 });
     }
   },
-  /* โหลดในบ้าน — สามเหลี่ยมครึ่งทึบตามแบบเดิมของบริษัท */
+  /* โหลดในบ้าน — กล่องแบ่งทแยง ครึ่งล่างขวาทึบ ตามสัญลักษณ์ LOAD ในแบบของบริษัท */
   home(pen, x, y, s) {
     const L = PG_SLD.sym;
-    pen.rect(L, x - s, y - s * 0.6, s * 2, s * 1.2);
-    pen.solid(PG_SLD.sol, [x - s, y - s * 0.6], [x + s, y - s * 0.6], [x + s, y], [x - s, y]);
-    pen.text(PG_SLD.txt, x, y - s * 0.6 - 2.6, 2.1, "HOME", { align: 1, valign: 1 });
+    const x0 = x - s, x1 = x + s, y0 = y - s * 0.6, y1 = y + s * 0.6;
+    pen.solid(PG_SLD.sol, [x0, y0], [x1, y0], [x1, y1]);
+    pen.rect(L, x0, y0, s * 2, s * 1.2);
+    pen.line(L, x0, y0, x1, y1);
+    pen.text(PG_SLD.txt, x, y0 - 2.6, 2.1, "LOAD", { align: 1, valign: 1 });
   },
   /* จุดจ่ายไฟของการไฟฟ้า — สามเหลี่ยมโปร่ง */
   utility(pen, x, y, s, label) {
@@ -1246,8 +1284,9 @@ function pgSldDraw(doc, sheet, M) {
 
   cols.forEach((u, ui) => {
     const cx = unitX[ui];
-    pen.line(R, cx, pvY + 11.5, cx, invY - ivH / 2);      // แผง → อินเวอร์เตอร์
-    if (M.mode === "string") pgSym.breaker(pen, cx, (pvY + 11.5 + invY - ivH / 2) / 2, "", "");
+    const dcBrkY = (pvY + 11.5 + invY - ivH / 2) / 2;     // แผง → อินเวอร์เตอร์
+    pgWireY(pen, R, cx, pvY + 11.5, invY - ivH / 2, M.mode === "string" ? [{ y: dcBrkY }] : null);
+    if (M.mode === "string") pgSym.breaker(pen, cx, dcBrkY, "", "");
     pgSym.inverter(pen, cx, invY, ivW, ivH);
     if (u.n > 1) pen.text(T, cx + ivW / 2 + 1.4, invY, 2.2, "x" + u.n, { valign: 2 });
   });
@@ -1290,8 +1329,8 @@ function pgSldDraw(doc, sheet, M) {
     const lay = R;
     // วงจรแบตเตอรี่เดินสายมาจากตู้แบตทางขวา ไม่ได้ต่อกับบัสของแผง จึงไม่ลากเส้นตรงนี้
     if (b.solar !== false) pen.line(lay, x, busTop, x, acY0);
+    pgWireY(pen, lay, x, acY0, midBus, [{ y: acY0 + 10 }]);
     pgSym.breaker(pen, x, acY0 + 10, b.mcb);
-    pen.line(lay, x, acY0 + 13.4, x, midBus);
     pen.dot(lay, x, midBus, 0.7);
     pen.text(T, x, acY0 - 3.2, 2.2, b.name, { align: 1, valign: 1 });
   });
@@ -1299,14 +1338,14 @@ function pgSldDraw(doc, sheet, M) {
 
   /* กันเสิร์จลงหลักดิน ทางซ้ายของตู้ */
   const spdX = acX0 + 8;
-  pen.line(R, spdX, midBus, spdX, midBus + 9);
+  pen.line(R, spdX, midBus, spdX, midBus + 11);
   pen.dot(R, spdX, midBus, 0.7);
   pgSym.spd(pen, spdX, midBus + 15, ["SPD", "TYPE II", "In    20kA", "Imax  40kA", "Uc    385V"]);
   pen.line(W, spdX, midBus + 19, spdX, midBus + 23);
   pgSym.ground(pen, spdX, midBus + 23);
 
   /* เมนของตู้: CT วัดกระแส แล้วขึ้นเบรกเกอร์กันดูดตัวใหญ่ */
-  pen.line(R, RISER, midBus, RISER, acY1);
+  pgWireY(pen, R, RISER, midBus, acY1, [{ y: acY0 + 52 }]);
   pen.dot(R, RISER, midBus, 0.7);
   pgSym.ct(pen, RISER, midBus + 12, M.ctBranch, "");
   pgSym.breaker(pen, RISER, acY0 + 52, M.rccb, M.rccbType);
@@ -1335,15 +1374,14 @@ function pgSldDraw(doc, sheet, M) {
   pen.text(LB, RISER - 54, mcY1 + 1.5, 3.4, M.mccbNew ? "ADD NEW" : "EXISTING", { valign: 1 });
 
   const homeX = RISER - 40;
-  pen.line(W, RISER, mcY0, RISER, mcY1);
+  pgWireY(pen, W, RISER, mcY0, mcY1, [{ y: mcY0 + 32 }]);
   pgSym.breaker(pen, RISER, mcY0 + 32, M.mccb[0], M.mccb[1]);
   pen.text(T, RISER - 5, mcY0 + 4, 2.1, "FROM SOLAR CELL TO CONSUMER UNIT", { rot: 90 });
   const tapY = mcY0 + 14;
   pen.dot(W, RISER, tapY, 0.7);
   pen.line(W, homeX, tapY, RISER, tapY);
-  pen.line(W, homeX, tapY, homeX, tapY - 4);
+  pgWireY(pen, W, homeX, tapY, mcY0 + 2, [{ y: tapY - 9 }]);
   pgSym.breaker(pen, homeX, tapY - 9, M.rcbo[0], M.rcbo[1]);
-  pen.line(W, homeX, tapY - 12.4, homeX, mcY0 + 2);
   pgSym.home(pen, homeX, mcY0 - 3, 4.2);
 
   /* ── มิเตอร์ของการไฟฟ้า ── */
