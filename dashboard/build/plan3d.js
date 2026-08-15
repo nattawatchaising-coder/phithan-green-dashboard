@@ -348,6 +348,119 @@ function P3MapPicker({
     }
   }, busy ? "กำลังจับภาพ…" : "✓ ใช้พื้นที่นี้"))));
 }
+function P3SetPreview({
+  prep,
+  onClose,
+  onDownload,
+  busy
+}) {
+  const [i, setI] = React.useState(0);
+  const sheets = prep && prep.sheets || [];
+  const cur = sheets[Math.min(i, sheets.length - 1)];
+  const svg = React.useMemo(() => {
+    if (!cur) return "";
+    try {
+      return cur.make(true);
+    } catch (e) {
+      return '<p style="padding:16px">วาดตัวอย่างไม่สำเร็จ: ' + e.message + "</p>";
+    }
+  }, [cur]);
+  const tab = on => ({
+    padding: "6px 12px",
+    borderRadius: 8,
+    cursor: "pointer",
+    fontSize: 12.5,
+    fontWeight: 700,
+    fontFamily: "inherit",
+    whiteSpace: "nowrap",
+    border: "1px solid " + (on ? "var(--brand,#1f9d3a)" : "var(--border-strong)"),
+    background: on ? "var(--brand,#1f9d3a)" : "var(--surface)",
+    color: on ? "#fff" : "var(--text-1)"
+  });
+  return React.createElement("div", {
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 220,
+      background: "rgba(8,20,14,.6)",
+      display: "flex",
+      padding: 12
+    }
+  }, React.createElement("div", {
+    style: {
+      flex: 1,
+      minHeight: 0,
+      background: "var(--surface)",
+      borderRadius: 14,
+      overflow: "hidden",
+      display: "flex",
+      flexDirection: "column",
+      boxShadow: "0 20px 60px rgba(0,0,0,.4)"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: 10,
+      borderBottom: "1px solid var(--border)",
+      display: "flex",
+      gap: 8,
+      alignItems: "center",
+      flexWrap: "wrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      fontWeight: 800,
+      fontSize: 13.5,
+      color: "var(--text-1)",
+      whiteSpace: "nowrap"
+    }
+  }, "\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E0A\u0E38\u0E14\u0E41\u0E1A\u0E1A"), sheets.map((s, n) => React.createElement("button", {
+    key: s.key,
+    style: tab(n === i),
+    onClick: () => setI(n)
+  }, n + 1, ". ", s.label)), React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }), React.createElement("button", {
+    className: "p3-b",
+    onClick: onDownload,
+    disabled: !!busy
+  }, React.createElement(P3Icon, {
+    name: "doc",
+    size: 14
+  }), busy ? "กำลังโหลด…" : "ดาวน์โหลดทั้งชุด"), React.createElement("button", {
+    className: "p3-b",
+    onClick: onClose,
+    disabled: !!busy
+  }, "\u0E1B\u0E34\u0E14")), React.createElement("div", {
+    style: {
+      flex: 1,
+      minHeight: 0,
+      overflow: "auto",
+      background: "#4a4a4a",
+      padding: 14,
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "flex-start"
+    }
+  }, React.createElement("div", {
+    style: {
+      width: "100%",
+      maxWidth: 1400,
+      boxShadow: "0 6px 24px rgba(0,0,0,.5)"
+    },
+    dangerouslySetInnerHTML: {
+      __html: svg
+    }
+  })), React.createElement("div", {
+    style: {
+      padding: "7px 12px",
+      borderTop: "1px solid var(--border)",
+      fontSize: 11.5,
+      color: "var(--text-2)"
+    }
+  }, "A3 \u0E41\u0E19\u0E27\u0E19\u0E2D\u0E19 420 \xD7 297 \u0E21\u0E21. \xB7 \u0E41\u0E1C\u0E48\u0E19\u0E17\u0E35\u0E48 ", cur ? cur.no : "-", " \xB7 \u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E2A\u0E31\u0E48\u0E07\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E21\u0E32\u0E43\u0E2B\u0E49\u0E41\u0E25\u0E49\u0E27 \u0E40\u0E1B\u0E34\u0E14\u0E43\u0E19 AutoCAD \u0E01\u0E14 Ctrl+P \u0E44\u0E14\u0E49\u0E40\u0E25\u0E22", prep && prep.files.length ? " · มีไฟล์ภาพแนบ " + prep.files.length + " ไฟล์ ต้องเก็บไว้โฟลเดอร์เดียวกับ .dxf" : "")));
+}
 function usePlan3d(jobId) {
   const KEY = "sf_plan3d_" + jobId;
   const [saved, setSaved] = React.useState(null);
@@ -881,10 +994,10 @@ function p3Dxf(st, job, media) {
     needH = Math.max(0.5, B.maxY - B.minY);
   const SC = P3_SCALES.find(s => needW * 1000 <= A.w * 0.94 * s && needH * 1000 <= A.h * 0.94 * s) || P3_SCALES[P3_SCALES.length - 1];
   const k = SC / 1000;
-  const doc = pgDxf({
+  const doc = pgDoc({
     units: "m",
     ltscale: k
-  });
+  }, media.svg);
   P3_DXF_LAYERS.forEach(L => doc.layer(L[0], L[1], "CONTINUOUS", L[2]));
   pgTableLayers(doc);
   const px = IN.x0 + A.w / 2,
@@ -907,6 +1020,7 @@ function p3Dxf(st, job, media) {
     const c = p3ImgCorner(p);
     doc.image("PG-BG", {
       file: p.file,
+      href: p.href,
       pxW: p.pxW,
       pxH: p.pxH,
       x: c.x,
@@ -982,9 +1096,10 @@ function p3Dxf(st, job, media) {
       zs = p.pts.map(q => q[1]);
     return Math.min(Math.max.apply(null, xs) - Math.min.apply(null, xs), Math.max.apply(null, zs) - Math.min.apply(null, zs));
   })) : 0;
-  if (fp.length && pw / k >= 7) {
+  const lh = Math.min(TH * 0.9, pw * 0.34);
+  const labW = ("PV PANEL-" + fp.length).length * (lh / k) * 0.62;
+  if (fp.length && lh / k >= 1.3 && pw / k >= labW) {
     fp.sort((a, b) => a.cz - b.cz || a.cx - b.cx);
-    const lh = Math.min(TH * 0.9, pw * 0.34);
     fp.forEach((p, i) => doc.text("PG-NOTE", p.cx, -p.cz - lh / 2, lh, "PV PANEL-" + (i + 1), {
       align: 1,
       valign: 1
@@ -4490,6 +4605,7 @@ function Plan3DEditor({
     }
     setBusyDxf("");
   };
+  const [setPrep, setSetPrep] = React.useState(null);
   const doSet = async () => {
     setBusyDxf("set");
     try {
@@ -4499,7 +4615,17 @@ function Plan3DEditor({
         const v = s.val() || {};
         photos = Object.keys(v).map(k => v[k]).sort((a, b) => String(a.at || "").localeCompare(String(b.at || "")));
       }
-      const r = await p3ExportSet(st, job, photos);
+      setSetPrep(await p3PrepSet(st, job, photos));
+    } catch (e) {
+      alert("เตรียมชุดแบบไม่สำเร็จ: " + e.message);
+    }
+    setBusyDxf("");
+  };
+  const doSetDownload = async () => {
+    setBusyDxf("setdl");
+    try {
+      const r = await p3ExportSet(st, job, null, setPrep);
+      setSetPrep(null);
       alert("ดาวน์โหลดชุดแบบ " + r.sheets + " แผ่น" + (r.files ? " + ไฟล์ภาพ " + r.files + " ไฟล์" : "") + "\n\nสำคัญ: เก็บไฟล์ .dxf กับไฟล์ภาพไว้ในโฟลเดอร์เดียวกัน\nไม่งั้นเปิดใน AutoCAD แล้วภาพจะไม่ขึ้น");
     } catch (e) {
       alert("ส่งออกชุดแบบไม่สำเร็จ: " + e.message);
@@ -6712,6 +6838,11 @@ function Plan3DEditor({
     initialQuery: jobAddr,
     onPick: onPickMap,
     onClose: () => setMapOpen(false)
+  }), setPrep && React.createElement(P3SetPreview, {
+    prep: setPrep,
+    busy: busyDxf === "setdl",
+    onClose: () => setSetPrep(null),
+    onDownload: doSetDownload
   }), sysOpen && typeof SolarWorkspace === "function" && React.createElement(SolarWorkspace, {
     job: job,
     st: st,
@@ -7220,7 +7351,7 @@ function Plan3DEditor({
     className: "p3-b",
     onClick: doSet,
     disabled: !!busyDxf || !total,
-    title: total ? "ออกทั้งชุด: ผัง · SLD · รูปถ่ายจุดติดตั้ง · ไดอะแกรมต่อสาย DC · วัสดุหน้างาน (A3 แนวนอน มีเลขแผ่นครบ)" : "วางแผงก่อนถึงจะออกชุดแบบได้"
+    title: total ? "ดูตัวอย่างทั้งชุดก่อนโหลด: ผัง · SLD · รูปถ่ายจุดติดตั้ง · ไดอะแกรมต่อสาย DC · วัสดุหน้างาน (A3 แนวนอน มีเลขแผ่นครบ)" : "วางแผงก่อนถึงจะออกชุดแบบได้"
   }, React.createElement(P3Icon, {
     name: "doc",
     size: 14
@@ -7424,10 +7555,10 @@ function p3SldModel(st, job) {
   return M;
 }
 function p3Sld(st, job, media) {
-  const doc = pgDxf({
+  const doc = pgDoc({
     units: "mm",
     ltscale: 1
-  });
+  }, media && media.svg);
   const sheet = pgSheet(doc, {
     k: 1,
     ox: 0,
@@ -7445,10 +7576,10 @@ const P3_PHOTO_MAX = 12;
 function p3PhotoSheet(st, job, media) {
   media = media || {};
   const items = (media.photos || []).slice(0, P3_PHOTO_MAX);
-  const doc = pgDxf({
+  const doc = pgDoc({
     units: "mm",
     ltscale: 1
-  });
+  }, media.svg);
   pgTableLayers(doc);
   const sheet = pgSheet(doc, {
     k: 1,
@@ -7528,10 +7659,10 @@ function p3EquipRows(st, job, M) {
 function p3EquipSheet(st, job, media) {
   media = media || {};
   const M = p3SldModel(st, job);
-  const doc = pgDxf({
+  const doc = pgDoc({
     units: "mm",
     ltscale: 1
-  });
+  }, media.svg);
   pgTableLayers(doc);
   const sheet = pgSheet(doc, {
     k: 1,
@@ -7570,10 +7701,10 @@ function p3EquipSheet(st, job, media) {
 function p3DcSheet(st, job, media) {
   media = media || {};
   const M = p3SldModel(st, job);
-  const doc = pgDxf({
+  const doc = pgDoc({
     units: "mm",
     ltscale: 1
-  });
+  }, media.svg);
   pgTableLayers(doc);
   const sheet = pgSheet(doc, {
     k: 1,
@@ -7728,7 +7859,7 @@ const p3ImgExt = url => {
   const e = m[1].toLowerCase();
   return e === "jpeg" ? "jpg" : e;
 };
-async function p3ExportSet(st, job, photos) {
+async function p3PrepSet(st, job, photos) {
   const base = job && (job.code || job.name) || "plan3d";
   const files = [];
   const want = [];
@@ -7753,6 +7884,7 @@ async function p3ExportSet(st, job, photos) {
     imgs.push({
       kind: w.kind,
       file,
+      href: w.url,
       pxW: sz.w,
       pxH: sz.h,
       fade: w.fade
@@ -7772,6 +7904,7 @@ async function p3ExportSet(st, job, photos) {
     const file = base + "-PHOTO-" + (i + 1) + "." + p3ImgExt(u);
     ph.push({
       file,
+      href: u,
       pxW: sz.w,
       pxH: sz.h,
       caption: String(src[i].caption || "").trim() || "จุดติดตั้งที่ " + (i + 1)
@@ -7781,37 +7914,46 @@ async function p3ExportSet(st, job, photos) {
       url: u
     });
   }
-  const sheets = [["PLAN", no => p3Dxf(st, job, {
-    imgs,
-    sheetNo: no
-  })], ["SLD", no => p3Sld(st, job, {
-    sheetNo: no
-  })]];
-  if (ph.length) sheets.push(["PHOTO", no => p3PhotoSheet(st, job, {
-    photos: ph,
-    sheetNo: no
-  })]);
-  sheets.push(["DC", no => p3DcSheet(st, job, {
-    sheetNo: no
-  })]);
-  sheets.push(["MATERIAL", no => p3EquipSheet(st, job, {
-    sheetNo: no
-  })]);
-  for (let i = 0; i < sheets.length; i++) {
-    const txt = sheets[i][1](i + 1 + "/" + sheets.length);
-    p3SaveBlob(new Blob([txt], {
+  const list = [["PLAN", "ผังติดตั้ง", o => p3Dxf(st, job, Object.assign({
+    imgs
+  }, o))], ["SLD", "ไดอะแกรมเส้นเดียว", o => p3Sld(st, job, o)]];
+  if (ph.length) list.push(["PHOTO", "รูปถ่ายจุดติดตั้ง", o => p3PhotoSheet(st, job, Object.assign({
+    photos: ph
+  }, o))]);
+  list.push(["DC", "ต่อสาย DC", o => p3DcSheet(st, job, o)]);
+  list.push(["MATERIAL", "วัสดุหน้างาน", o => p3EquipSheet(st, job, o)]);
+  const sheets = list.map((s, i) => ({
+    key: s[0],
+    label: s[1],
+    no: i + 1 + "/" + list.length,
+    file: base + "-" + (i + 1) + "-" + s[0] + ".dxf",
+    make: svg => s[2]({
+      sheetNo: i + 1 + "/" + list.length,
+      svg: !!svg
+    })
+  }));
+  return {
+    base,
+    sheets,
+    files
+  };
+}
+async function p3ExportSet(st, job, photos, prep) {
+  const P = prep || (await p3PrepSet(st, job, photos));
+  for (let i = 0; i < P.sheets.length; i++) {
+    p3SaveBlob(new Blob([P.sheets[i].make(false)], {
       type: "application/dxf"
-    }), base + "-" + (i + 1) + "-" + sheets[i][0] + ".dxf");
+    }), P.sheets[i].file);
     await new Promise(r => setTimeout(r, 350));
   }
-  for (let i = 0; i < files.length; i++) {
-    const b = await (await fetch(files[i].url)).blob();
+  for (let i = 0; i < P.files.length; i++) {
+    const b = await (await fetch(P.files[i].url)).blob();
     await new Promise(r => setTimeout(r, 350));
-    p3SaveBlob(b, files[i].name);
+    p3SaveBlob(b, P.files[i].name);
   }
   return {
-    sheets: sheets.length,
-    files: files.length
+    sheets: P.sheets.length,
+    files: P.files.length
   };
 }
 Object.assign(window, {
@@ -7828,6 +7970,7 @@ Object.assign(window, {
   p3SldModel,
   p3SheetInfo,
   p3ExportPlan,
+  p3PrepSet,
   p3ExportSet,
   p3SaveBlob
 });

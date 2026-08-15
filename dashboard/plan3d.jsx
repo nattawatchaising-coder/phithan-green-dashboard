@@ -184,6 +184,53 @@ function P3MapPicker({ initial, initialQuery, onPick, onClose }) {
   );
 }
 
+/* ══ ดูตัวอย่างชุดแบบก่อนโหลด ══
+   วาดด้วยโค้ดชุดเดียวกับที่เขียนไฟล์ DXF แค่คายออกมาเป็น SVG แทน (ดู pgSvg ใน dxf.jsx)
+   สิ่งที่เห็นบนจอจึงเป็นแผ่นเดียวกับที่จะได้ ไม่ใช่ภาพจำลองคนละชุด
+   ตัวอย่างพื้นหลังเป็นสีขาวเหมือนกระดาษ ส่วนใน AutoCAD จะเป็นพื้นดำตามค่าปริยายของโปรแกรม */
+function P3SetPreview({ prep, onClose, onDownload, busy }) {
+  const [i, setI] = React.useState(0);
+  const sheets = (prep && prep.sheets) || [];
+  const cur = sheets[Math.min(i, sheets.length - 1)];
+  /* วาดแผ่นที่กำลังดูเท่านั้น แผ่นผังมีรูปถ่ายฝังอยู่ ทำทุกแผ่นพร้อมกันจะอืด */
+  const svg = React.useMemo(() => {
+    if (!cur) return "";
+    try { return cur.make(true); } catch (e) { return '<p style="padding:16px">วาดตัวอย่างไม่สำเร็จ: ' + e.message + "</p>"; }
+  }, [cur]);
+
+  const tab = (on) => ({
+    padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12.5, fontWeight: 700,
+    fontFamily: "inherit", whiteSpace: "nowrap",
+    border: "1px solid " + (on ? "var(--brand,#1f9d3a)" : "var(--border-strong)"),
+    background: on ? "var(--brand,#1f9d3a)" : "var(--surface)",
+    color: on ? "#fff" : "var(--text-1)",
+  });
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 220, background: "rgba(8,20,14,.6)", display: "flex", padding: 12 }}>
+      <div style={{ flex: 1, minHeight: 0, background: "var(--surface)", borderRadius: 14, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,.4)" }}>
+        <div style={{ padding: 10, borderBottom: "1px solid var(--border)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <span style={{ fontWeight: 800, fontSize: 13.5, color: "var(--text-1)", whiteSpace: "nowrap" }}>ตัวอย่างชุดแบบ</span>
+          {sheets.map((s, n) => (
+            <button key={s.key} style={tab(n === i)} onClick={() => setI(n)}>{n + 1}. {s.label}</button>
+          ))}
+          <span style={{ flex: 1 }} />
+          <button className="p3-b" onClick={onDownload} disabled={!!busy}>
+            <P3Icon name="doc" size={14} />{busy ? "กำลังโหลด…" : "ดาวน์โหลดทั้งชุด"}</button>
+          <button className="p3-b" onClick={onClose} disabled={!!busy}>ปิด</button>
+        </div>
+        <div style={{ flex: 1, minHeight: 0, overflow: "auto", background: "#4a4a4a", padding: 14, display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
+          <div style={{ width: "100%", maxWidth: 1400, boxShadow: "0 6px 24px rgba(0,0,0,.5)" }}
+            dangerouslySetInnerHTML={{ __html: svg }} />
+        </div>
+        <div style={{ padding: "7px 12px", borderTop: "1px solid var(--border)", fontSize: 11.5, color: "var(--text-2)" }}>
+          A3 แนวนอน 420 × 297 มม. · แผ่นที่ {cur ? cur.no : "-"} · ตั้งค่าสั่งพิมพ์มาให้แล้ว เปิดใน AutoCAD กด Ctrl+P ได้เลย
+          {prep && prep.files.length ? " · มีไฟล์ภาพแนบ " + prep.files.length + " ไฟล์ ต้องเก็บไว้โฟลเดอร์เดียวกับ .dxf" : ""}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── โหลด/บันทึกโมเดลของงาน (RTDB หรือ localStorage) ── */
 function usePlan3d(jobId) {
   const KEY = "sf_plan3d_" + jobId;
@@ -513,7 +560,7 @@ function p3Dxf(st, job, media) {
     || P3_SCALES[P3_SCALES.length - 1];
   const k = SC / 1000;                     // 1 มม.บนกระดาษ = k เมตรจริง
 
-  const doc = pgDxf({ units: "m", ltscale: k });
+  const doc = pgDoc({ units: "m", ltscale: k }, media.svg);
   P3_DXF_LAYERS.forEach((L) => doc.layer(L[0], L[1], "CONTINUOUS", L[2]));
   pgTableLayers(doc);
 
@@ -531,7 +578,7 @@ function p3Dxf(st, job, media) {
      ตัวไฟล์รูปไม่ได้ฝังใน .dxf (รูปแบบนี้ไม่รองรับ) — ต้องวางไฟล์รูปไว้โฟลเดอร์เดียวกัน */
   imgs.forEach((p) => {
     const c = p3ImgCorner(p);
-    doc.image("PG-BG", { file: p.file, pxW: p.pxW, pxH: p.pxH, x: c.x, y: c.y, w: p.w, h: p.h, rot: p.rot, fade: p.fade == null ? 72 : p.fade });
+    doc.image("PG-BG", { file: p.file, href: p.href, pxW: p.pxW, pxH: p.pxH, x: c.x, y: c.y, w: p.w, h: p.h, rot: p.rot, fade: p.fade == null ? 72 : p.fade });
   });
 
   /* ── หลังคา — วาดทีละผิว (ผืนลาด/คางหมู/สามเหลี่ยมของปั้นหยา) ที่ฉายลงผัง
@@ -588,9 +635,12 @@ function p3Dxf(st, job, media) {
     return Math.min(Math.max.apply(null, xs) - Math.min.apply(null, xs),
       Math.max.apply(null, zs) - Math.min.apply(null, zs));
   })) : 0;
-  if (fp.length && pw / k >= 7) {                       // แผงกว้างอย่างน้อย 7 มม.บนกระดาษถึงจะใส่ป้าย
+  /* ป้ายต้องกว้างไม่เกินตัวแผง ไม่งั้นชื่อจะเกยกันจนอ่านไม่ออกทั้งผัง
+     วัดจากป้ายที่ยาวที่สุด (แผงใบสุดท้าย) เทียบกับความกว้างแผงบนกระดาษจริง */
+  const lh = Math.min(TH * 0.9, pw * 0.34);
+  const labW = ("PV PANEL-" + fp.length).length * (lh / k) * 0.62;   // มม.บนกระดาษ
+  if (fp.length && lh / k >= 1.3 && pw / k >= labW) {
     fp.sort((a, b) => (a.cz - b.cz) || (a.cx - b.cx));
-    const lh = Math.min(TH * 0.9, pw * 0.34);
     fp.forEach((p, i) => doc.text("PG-NOTE", p.cx, -p.cz - lh / 2, lh, "PV PANEL-" + (i + 1), { align: 1, valign: 1 }));
   }
 
@@ -2806,7 +2856,9 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     setBusyDxf("");
   };
   /* ชุดแบบทั้งชุด — ผัง · SLD · รูปถ่ายจุดติดตั้ง · ต่อสาย DC · วัสดุหน้างาน
+     กดแล้วเปิดตัวอย่างให้ดูก่อน ค่อยตัดสินใจโหลด
      รูปถ่ายดึงจาก jobPhotos ของงานนี้ตอนกดเท่านั้น จะได้ไม่ถ่วงตอนเปิดหน้าจอ */
+  const [setPrep, setSetPrep] = React.useState(null);
   const doSet = async () => {
     setBusyDxf("set");
     try {
@@ -2817,7 +2869,15 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         photos = Object.keys(v).map((k) => v[k])
           .sort((a, b) => String(a.at || "").localeCompare(String(b.at || "")));
       }
-      const r = await p3ExportSet(st, job, photos);
+      setSetPrep(await p3PrepSet(st, job, photos));
+    } catch (e) { alert("เตรียมชุดแบบไม่สำเร็จ: " + e.message); }
+    setBusyDxf("");
+  };
+  const doSetDownload = async () => {
+    setBusyDxf("setdl");
+    try {
+      const r = await p3ExportSet(st, job, null, setPrep);
+      setSetPrep(null);
       alert("ดาวน์โหลดชุดแบบ " + r.sheets + " แผ่น" + (r.files ? " + ไฟล์ภาพ " + r.files + " ไฟล์" : "") +
         "\n\nสำคัญ: เก็บไฟล์ .dxf กับไฟล์ภาพไว้ในโฟลเดอร์เดียวกัน\nไม่งั้นเปิดใน AutoCAD แล้วภาพจะไม่ขึ้น");
     } catch (e) { alert("ส่งออกชุดแบบไม่สำเร็จ: " + e.message); }
@@ -3641,6 +3701,8 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     <div className="p3" style={{ position: "fixed", inset: 0, zIndex: 120, background: "var(--bg)", display: "flex", flexDirection: "column" }}>
       <style>{P3_CSS}</style>
       {mapOpen && <P3MapPicker initial={jobLatLng} initialQuery={jobAddr} onPick={onPickMap} onClose={() => setMapOpen(false)} />}
+      {setPrep && <P3SetPreview prep={setPrep} busy={busyDxf === "setdl"}
+        onClose={() => setSetPrep(null)} onDownload={doSetDownload} />}
       {/* เวิร์กสเปซออกแบบระบบ — ใช้ทิศ/มุมของแผงจากผังนี้ตรง ๆ (solarui.jsx) */}
       {sysOpen && typeof SolarWorkspace === "function" && (
         <SolarWorkspace job={job} st={st} sys={st.sys || scBlankSys()} onClose={() => setSysOpen(false)}
@@ -3820,7 +3882,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
           title={total ? "สร้าง SINGLE LINE DIAGRAM SOLAR CELL SYSTEM จากสเปคที่ออกแบบไว้ พร้อมกรอบ A3 + Title Box" : "วางแผงก่อนถึงจะเขียนไดอะแกรมได้"}>
           <P3Icon name="bolt" size={14} />{busyDxf === "sld" ? "กำลังทำ…" : "SLD DXF"}</button>
         <button className="p3-b" onClick={doSet} disabled={!!busyDxf || !total}
-          title={total ? "ออกทั้งชุด: ผัง · SLD · รูปถ่ายจุดติดตั้ง · ไดอะแกรมต่อสาย DC · วัสดุหน้างาน (A3 แนวนอน มีเลขแผ่นครบ)" : "วางแผงก่อนถึงจะออกชุดแบบได้"}>
+          title={total ? "ดูตัวอย่างทั้งชุดก่อนโหลด: ผัง · SLD · รูปถ่ายจุดติดตั้ง · ไดอะแกรมต่อสาย DC · วัสดุหน้างาน (A3 แนวนอน มีเลขแผ่นครบ)" : "วางแผงก่อนถึงจะออกชุดแบบได้"}>
           <P3Icon name="doc" size={14} />{busyDxf === "set" ? "กำลังทำ…" : "ชุดแบบ DXF"}</button>
         <button className="p3-b" onClick={() => setSysOpen(true)} disabled={!total}
           title={total ? "เลือกแผง/อินเวอร์เตอร์ จัดสตริง และคำนวณผลผลิตจากมุมแผงจริง" : "วางแผงก่อนถึงจะคำนวณระบบได้"}>
@@ -3999,7 +4061,7 @@ function p3SldModel(st, job) {
 }
 
 function p3Sld(st, job, media) {
-  const doc = pgDxf({ units: "mm", ltscale: 1 });
+  const doc = pgDoc({ units: "mm", ltscale: 1 }, media && media.svg);
   const sheet = pgSheet(doc, { k: 1, ox: 0, oy: 0, info: p3SheetInfo(st, job, { sheet: "SLD", scale: "AS SHOW", sheetNo: (media && media.sheetNo) || "1/1" }) });
   pgSldDraw(doc, sheet, p3SldModel(st, job));
   return doc.build();
@@ -4012,7 +4074,7 @@ const P3_PHOTO_MAX = 12;
 function p3PhotoSheet(st, job, media) {
   media = media || {};
   const items = (media.photos || []).slice(0, P3_PHOTO_MAX);
-  const doc = pgDxf({ units: "mm", ltscale: 1 });
+  const doc = pgDoc({ units: "mm", ltscale: 1 }, media.svg);
   pgTableLayers(doc);
   const sheet = pgSheet(doc, { k: 1, ox: 0, oy: 0,
     info: p3SheetInfo(st, job, { sheet: "PHOTO", scale: "NONE", sheetNo: media.sheetNo || "1/1" }) });
@@ -4078,7 +4140,7 @@ function p3EquipRows(st, job, M) {
 function p3EquipSheet(st, job, media) {
   media = media || {};
   const M = p3SldModel(st, job);
-  const doc = pgDxf({ units: "mm", ltscale: 1 });
+  const doc = pgDoc({ units: "mm", ltscale: 1 }, media.svg);
   pgTableLayers(doc);
   const sheet = pgSheet(doc, { k: 1, ox: 0, oy: 0,
     info: p3SheetInfo(st, job, { sheet: "MAT", scale: "NONE", sheetNo: media.sheetNo || "1/1" }) });
@@ -4109,7 +4171,7 @@ function p3EquipSheet(st, job, media) {
 function p3DcSheet(st, job, media) {
   media = media || {};
   const M = p3SldModel(st, job);
-  const doc = pgDxf({ units: "mm", ltscale: 1 });
+  const doc = pgDoc({ units: "mm", ltscale: 1 }, media.svg);
   pgTableLayers(doc);
   const sheet = pgSheet(doc, { k: 1, ox: 0, oy: 0,
     info: p3SheetInfo(st, job, { sheet: "DC", scale: "NONE", sheetNo: media.sheetNo || "1/1" }) });
@@ -4235,7 +4297,9 @@ const p3ImgExt = (url) => {
   const e = m[1].toLowerCase();
   return e === "jpeg" ? "jpg" : e;
 };
-async function p3ExportSet(st, job, photos) {
+/* เตรียมรูปทั้งหมดของชุดแบบ (โหลดขนาดจริงของแต่ละรูป) — ทำครั้งเดียว
+   ใช้ได้ทั้งตอนดูตัวอย่างบนจอและตอนโหลดไฟล์จริง จะได้ไม่ต้องโหลดซ้ำ */
+async function p3PrepSet(st, job, photos) {
   const base = (job && (job.code || job.name)) || "plan3d";
   const files = [];                          // ไฟล์รูปที่ต้องดาวน์โหลดตามไปด้วย
 
@@ -4247,7 +4311,7 @@ async function p3ExportSet(st, job, photos) {
     const w = want[i], sz = await p3ImgSize(w.url);
     if (!sz) continue;
     const file = base + "-" + w.tag + "." + p3ImgExt(w.url);
-    imgs.push({ kind: w.kind, file, pxW: sz.w, pxH: sz.h, fade: w.fade });
+    imgs.push({ kind: w.kind, file, href: w.url, pxW: sz.w, pxH: sz.h, fade: w.fade });
     files.push({ name: file, url: w.url });
   }
 
@@ -4258,33 +4322,44 @@ async function p3ExportSet(st, job, photos) {
     const sz = await p3ImgSize(u);
     if (!sz) continue;
     const file = base + "-PHOTO-" + (i + 1) + "." + p3ImgExt(u);
-    ph.push({ file, pxW: sz.w, pxH: sz.h,
+    ph.push({ file, href: u, pxW: sz.w, pxH: sz.h,
       caption: String(src[i].caption || "").trim() || ("จุดติดตั้งที่ " + (i + 1)) });
     files.push({ name: file, url: u });
   }
 
-  const sheets = [
-    ["PLAN", (no) => p3Dxf(st, job, { imgs, sheetNo: no })],
-    ["SLD", (no) => p3Sld(st, job, { sheetNo: no })],
+  /* รายชื่อแผ่น — make(svg) คืนไฟล์ DXF หรือ SVG (ตัวอย่างบนจอ) จากโค้ดวาดชุดเดียวกัน */
+  const list = [
+    ["PLAN", "ผังติดตั้ง", (o) => p3Dxf(st, job, Object.assign({ imgs }, o))],
+    ["SLD", "ไดอะแกรมเส้นเดียว", (o) => p3Sld(st, job, o)],
   ];
-  if (ph.length) sheets.push(["PHOTO", (no) => p3PhotoSheet(st, job, { photos: ph, sheetNo: no })]);
-  sheets.push(["DC", (no) => p3DcSheet(st, job, { sheetNo: no })]);
-  sheets.push(["MATERIAL", (no) => p3EquipSheet(st, job, { sheetNo: no })]);
+  if (ph.length) list.push(["PHOTO", "รูปถ่ายจุดติดตั้ง", (o) => p3PhotoSheet(st, job, Object.assign({ photos: ph }, o))]);
+  list.push(["DC", "ต่อสาย DC", (o) => p3DcSheet(st, job, o)]);
+  list.push(["MATERIAL", "วัสดุหน้างาน", (o) => p3EquipSheet(st, job, o)]);
 
-  for (let i = 0; i < sheets.length; i++) {
-    const txt = sheets[i][1]((i + 1) + "/" + sheets.length);
-    p3SaveBlob(new Blob([txt], { type: "application/dxf" }),
-      base + "-" + (i + 1) + "-" + sheets[i][0] + ".dxf");
+  const sheets = list.map((s, i) => ({
+    key: s[0], label: s[1],
+    no: (i + 1) + "/" + list.length,
+    file: base + "-" + (i + 1) + "-" + s[0] + ".dxf",
+    make: (svg) => s[2]({ sheetNo: (i + 1) + "/" + list.length, svg: !!svg }),
+  }));
+  return { base, sheets, files };
+}
+
+/* ส่งออกทั้งชุด — prep = ผลจาก p3PrepSet (ส่งมาได้ถ้าเตรียมไว้แล้วตอนดูตัวอย่าง) */
+async function p3ExportSet(st, job, photos, prep) {
+  const P = prep || await p3PrepSet(st, job, photos);
+  for (let i = 0; i < P.sheets.length; i++) {
+    p3SaveBlob(new Blob([P.sheets[i].make(false)], { type: "application/dxf" }), P.sheets[i].file);
     await new Promise((r) => setTimeout(r, 350));   // เบราว์เซอร์บล็อกถ้ายิงดาวน์โหลดรัวเกินไป
   }
-  for (let i = 0; i < files.length; i++) {
-    const b = await (await fetch(files[i].url)).blob();
+  for (let i = 0; i < P.files.length; i++) {
+    const b = await (await fetch(P.files[i].url)).blob();
     await new Promise((r) => setTimeout(r, 350));
-    p3SaveBlob(b, files[i].name);
+    p3SaveBlob(b, P.files[i].name);
   }
-  return { sheets: sheets.length, files: files.length };
+  return { sheets: P.sheets.length, files: P.files.length };
 }
 
 Object.assign(window, { Plan3DEditor, usePlan3d, P3_MEAS_KINDS, p3MeasKind, p3MeasLen,
   p3Dxf, p3Sld, p3PhotoSheet, p3EquipSheet, p3DcSheet, p3SldModel, p3SheetInfo,
-  p3ExportPlan, p3ExportSet, p3SaveBlob });
+  p3ExportPlan, p3PrepSet, p3ExportSet, p3SaveBlob });

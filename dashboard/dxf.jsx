@@ -429,6 +429,161 @@ const PG_SHEET = { W: 420, H: 297, TB: 62, IN: { x0: 26, y0: 16, x1: 404, y1: 28
 const PG_LAY = { frame: "PG-FRAME", tb: "PG-TITLEBLOCK", txt: "PG-TB-TEXT", thin: "PG-TB-THIN", logo: "PG-LOGO" };
 
 /* ปากกาที่แปลง "มม.บนกระดาษ" → พิกัดจริงในไฟล์ (เลื่อน ox,oy แล้วคูณ k) */
+/* ==================================================================
+   pgSvg — ฝาแฝดของ pgDxf ที่คายออกมาเป็น SVG แทนไฟล์ DXF
+
+   มี method ชื่อเดียวกัน รับค่าเหมือนกันทุกตัว โค้ดวาดแบบทุกแผ่นจึงใช้ร่วมกันได้
+   ไม่ต้องเขียนซ้ำสองที่ → ตัวอย่างที่เห็นบนจอตรงกับไฟล์ที่โหลดไปเสมอ
+
+   ต่างกันที่:
+   · DXF แกน Y ชี้ขึ้น · SVG ชี้ลง → พลิกให้ตอนแปลงพิกัด (มุมหมุนจึงกลับทิศด้วย)
+   · ความหนาเส้นในแบบเป็น "มิลลิเมตรบนกระดาษ" ต้องคูณ k (หน่วยแบบต่อ 1 มม.) ก่อนวาด
+   · รูปแรสเตอร์ฝังลงใน SVG ได้เลย (ใช้ o.href ที่ DXF ไม่สนใจ)
+   ================================================================== */
+const PG_ACI_HEX = {
+  1: "#e02020", 2: "#c8a800", 3: "#1f9d3a", 4: "#0f9aa8", 5: "#2255cc", 6: "#a83fb0",
+  7: "#111111", 8: "#7a7a7a", 9: "#a8a8a8", 30: "#d97706", 140: "#2b7bbd", 200: "#8b5cf6",
+};
+function pgSvg(opt) {
+  opt = opt || {};
+  const layers = new Map(), ltypes = new Map(), body = [];
+  let PLOT = null;
+  const ext = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
+  const grow = (x, y) => {
+    if (!isFinite(x) || !isFinite(y)) return;
+    if (x < ext.minX) ext.minX = x; if (x > ext.maxX) ext.maxX = x;
+    if (y < ext.minY) ext.minY = y; if (y > ext.maxY) ext.maxY = y;
+  };
+  const n = (v) => (Math.round((+v || 0) * 1000) / 1000).toString();
+  const enc = (s) => String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  /* %%d คือรหัส "องศา" ของ DXF · %%c เส้นผ่านศูนย์กลาง · %%p บวก/ลบ */
+  const plain = (s) => String(s == null ? "" : s)
+    .replace(/%%d/gi, "°").replace(/%%c/gi, "Ø").replace(/%%p/gi, "±")
+    .replace(/[\r\n]+/g, " ");
+
+  let Y0 = 0;                                  // ค่าที่ใช้พลิกแกน ตั้งตอน build()
+  const X = (v) => +v || 0, Y = (v) => Y0 - (+v || 0);
+
+  const style = (name) => {
+    const L = layers.get(name) || { color: 7, lw: -3, ltype: "CONTINUOUS" };
+    const k = (PLOT && PLOT.k) || 1;
+    const lw = Math.max(0.06, (L.lw > 0 ? L.lw : 18) / 100) * k;
+    const pat = ltypes.get(L.ltype);
+    const dash = pat && pat.pat && pat.pat.length
+      ? ' stroke-dasharray="' + pat.pat.map((d) => n(Math.max(0.2, Math.abs(d) * k))).join(" ") + '"' : "";
+    return { c: PG_ACI_HEX[L.color] || "#111111", w: lw, dash };
+  };
+  const stroke = (layer, extra) => {
+    const s = style(layer);
+    return ' fill="none" stroke="' + s.c + '" stroke-width="' + n(s.w) + '"' + s.dash + (extra || "");
+  };
+
+  const api = {
+    layer(name, color, ltype, lw) {
+      if (!layers.has(name)) layers.set(name, { name, color: color == null ? 7 : color, ltype: ltype || "CONTINUOUS", lw: lw == null ? -3 : lw });
+      return name;
+    },
+    ltype(name, desc, pat) {
+      if (!ltypes.has(name)) ltypes.set(name, { name, desc: desc || "", pat: pat || [] });
+      return name;
+    },
+    line(layer, x1, y1, x2, y2) {
+      grow(x1, y1); grow(x2, y2);
+      body.push(["line", layer, (F) => '<line x1="' + n(F.X(x1)) + '" y1="' + n(F.Y(y1)) +
+        '" x2="' + n(F.X(x2)) + '" y2="' + n(F.Y(y2)) + '"' + stroke(layer) + "/>"]);
+    },
+    pline(layer, pts, closed) {
+      if (!pts || pts.length < 2) return null;
+      pts.forEach((p) => grow(p[0], p[1]));
+      body.push(["pline", layer, (F) => "<" + (closed ? "polygon" : "polyline") + ' points="' +
+        pts.map((p) => n(F.X(p[0])) + "," + n(F.Y(p[1]))).join(" ") + '"' + stroke(layer) + "/>"]);
+    },
+    rect(layer, x, y, w2, h2) {
+      return api.pline(layer, [[x, y], [x + w2, y], [x + w2, y + h2], [x, y + h2]], true);
+    },
+    circle(layer, x, y, r) {
+      grow(x - r, y - r); grow(x + r, y + r);
+      body.push(["circle", layer, (F) => '<circle cx="' + n(F.X(x)) + '" cy="' + n(F.Y(y)) +
+        '" r="' + n(Math.abs(r) || 0.001) + '"' + stroke(layer) + "/>"]);
+    },
+    arc(layer, x, y, r, a1, a2) {
+      r = Math.abs(r) || 0.001;
+      let sw = ((+a2 || 0) - (+a1 || 0)) % 360; if (sw <= 0) sw += 360;
+      const p = (a) => [x + r * Math.cos(a * Math.PI / 180), y + r * Math.sin(a * Math.PI / 180)];
+      const s = p(a1), e = p(a1 + sw);
+      grow(x - r, y - r); grow(x + r, y + r);
+      /* แกน Y พลิกแล้ว ทิศกวาดของ SVG จึงกลับด้าน (sweep-flag = 0) */
+      body.push(["arc", layer, (F) => '<path d="M ' + n(F.X(s[0])) + " " + n(F.Y(s[1])) +
+        " A " + n(r) + " " + n(r) + " 0 " + (sw > 180 ? 1 : 0) + " 0 " +
+        n(F.X(e[0])) + " " + n(F.Y(e[1])) + '"' + stroke(layer) + "/>"]);
+    },
+    solid(layer, p1, p2, p3, p4) {
+      const ring = p4 ? [p1, p2, p3, p4] : [p1, p2, p3];
+      ring.forEach((p) => grow(p[0], p[1]));
+      const s = style(layer);
+      body.push(["solid", layer, (F) => '<polygon points="' +
+        ring.map((p) => n(F.X(p[0])) + "," + n(F.Y(p[1]))).join(" ") +
+        '" fill="' + s.c + '" stroke="none"/>']);
+    },
+    text(layer, x, y, h2, s, o) {
+      o = o || {};
+      const ha = +o.align || 0, va = +o.valign || 0;
+      const anchor = ha === 1 ? "middle" : ha === 2 ? "end" : "start";
+      /* DXF: valign 0 ฐาน · 1 ล่างสุด · 2 กลาง · 3 บนสุด — เลื่อนเองจะได้คุมตำแหน่งเป๊ะ */
+      const dy = va === 2 ? h2 * 0.36 : va === 3 ? h2 * 0.88 : va === 1 ? 0 : 0;
+      const wf = o.wf == null ? 0.85 : o.wf;
+      const col = (PG_ACI_HEX[(layers.get(layer) || {}).color] || "#111111");
+      const txt = enc(plain(s));
+      grow(x, y); grow(x + String(s || "").length * h2 * 0.6, y + h2);
+      body.push(["text", layer, (F) => {
+        const tx = F.X(x), ty = F.Y(y) - dy;
+        const tr = [];
+        if (o.rot) tr.push("rotate(" + n(-o.rot) + " " + n(tx) + " " + n(ty) + ")");
+        tr.push("translate(" + n(tx) + " " + n(ty) + ")");
+        if (wf !== 1) tr.push("scale(" + n(wf) + " 1)");
+        return '<text transform="' + tr.join(" ") + '" font-size="' + n(h2) +
+          '" fill="' + col + '" text-anchor="' + anchor +
+          '" font-family="Tahoma, sans-serif" style="white-space:pre">' + txt + "</text>";
+      }]);
+    },
+    /* o.href = ตัวรูปจริง (data URL) — DXF ไม่สนใจช่องนี้ แต่ SVG ฝังลงไปได้เลย */
+    image(layer, o) {
+      const wM = Math.abs(+o.w || 1), hM = Math.abs(+o.h || 1);
+      const a = (+o.rot || 0) * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a);
+      [[0, 0], [wM, 0], [wM, hM], [0, hM]].forEach(([px, py]) =>
+        grow(o.x + px * ca - py * sa, o.y + px * sa + py * ca));
+      if (!o.href) return null;
+      const op = 1 - Math.max(0, Math.min(100, +o.fade || 0)) / 100;
+      body.push(["image", layer, (F) =>
+        '<g transform="translate(' + n(F.X(o.x)) + " " + n(F.Y(o.y)) + ") rotate(" + n(-(+o.rot || 0)) + ')">' +
+        '<image x="0" y="' + n(-hM) + '" width="' + n(wM) + '" height="' + n(hM) +
+        '" opacity="' + n(op) + '" preserveAspectRatio="none" href="' + enc(o.href) + '"/></g>']);
+    },
+    get extents() { return ext; },
+    plot(o) { PLOT = { x0: +o.x0 || 0, y0: +o.y0 || 0, w: +o.w || 420, h: +o.h || 297, k: +o.k || 1 }; },
+
+    build() {
+      const E = isFinite(ext.minX) ? ext : { minX: 0, minY: 0, maxX: 100, maxY: 100 };
+      const P = PLOT || { x0: E.minX, y0: E.minY, w: E.maxX - E.minX, h: E.maxY - E.minY, k: 1 };
+      const w = Math.max(1e-6, P.w * P.k), h = Math.max(1e-6, P.h * P.k);
+      Y0 = P.y0 + h;                             // มุมบนซ้ายของกระดาษ = จุด (0,0) ของ SVG
+      const F = { X: (v) => X(v) - P.x0, Y };
+      const parts = body.map((b) => b[2](F));
+      /* height:auto ให้เบราว์เซอร์คิดความสูงจากสัดส่วน viewBox เอง กระดาษจะได้ไม่ยืด */
+      return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + n(w) + " " + n(h) +
+        '" width="' + n(w) + '" height="' + n(h) + '" style="width:100%;height:auto;display:block"' +
+        ' preserveAspectRatio="xMidYMid meet">' +
+        '<rect x="0" y="0" width="' + n(w) + '" height="' + n(h) + '" fill="#ffffff"/>' +
+        '<g stroke-linecap="round" stroke-linejoin="round">' + parts.join("") + "</g></svg>";
+    },
+  };
+  return api;
+}
+
+/* เลือกตัวเขียนตามงาน — svg = true คือทำไว้ดูบนจอ ไม่ใช่ไฟล์ที่จะโหลด */
+function pgDoc(opt, svg) { return svg ? pgSvg(opt) : pgDxf(opt); }
+
 function pgPen(doc, k, ox, oy) {
   k = k || 1; ox = ox || 0; oy = oy || 0;
   const X = (v) => ox + v * k, Y = (v) => oy + v * k, S = (v) => v * k;
@@ -811,7 +966,7 @@ function pgPhotoFrame(doc, pen, x, y, w, h, o) {
     let iw2 = w, ih2 = w * ar;
     if (ih2 > ih) { ih2 = ih; iw2 = ih / ar; }
     doc.image("PG-PHOTO", {
-      file: o.file, pxW: o.pxW, pxH: o.pxH,
+      file: o.file, href: o.href, pxW: o.pxW, pxH: o.pxH,
       x: pen.X(x + (w - iw2) / 2), y: pen.Y(iy + (ih - ih2) / 2),
       w: pen.S(iw2), h: pen.S(ih2), rot: 0, fade: o.fade == null ? 0 : o.fade,
     });
@@ -1229,7 +1384,7 @@ function pgSldDraw(doc, sheet, M) {
 }
 
 Object.assign(window, {
-  pgDxf, pgPen, pgSheet, pgSheetTitle, pgSheetLayers, pgLogoMark, pgWrap,
+  pgDxf, pgSvg, pgDoc, pgPen, pgSheet, pgSheetTitle, pgSheetLayers, pgLogoMark, pgWrap,
   pgSldLayers, pgSldDraw, pgSldTable, pgSldEquip, pgSym,
   pgTableLayers, pgGrid, pgSpecBlock, pgCompass, pgModuleDetail, pgPhotoFrame, pgDcString, pgDcSize,
   PG_SHEET, PG_LAY, PG_ACI, PG_SLD, PG_TBL,
