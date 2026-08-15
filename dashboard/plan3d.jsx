@@ -188,15 +188,31 @@ function P3MapPicker({ initial, initialQuery, onPick, onClose }) {
    วาดด้วยโค้ดชุดเดียวกับที่เขียนไฟล์ DXF แค่คายออกมาเป็น SVG แทน (ดู pgSvg ใน dxf.jsx)
    สิ่งที่เห็นบนจอจึงเป็นแผ่นเดียวกับที่จะได้ ไม่ใช่ภาพจำลองคนละชุด
    ตัวอย่างพื้นหลังเป็นสีขาวเหมือนกระดาษ ส่วนใน AutoCAD จะเป็นพื้นดำตามค่าปริยายของโปรแกรม */
-function P3SetPreview({ prep, onClose, onDownload, busy }) {
+function P3SetPreview({ prep, onClose, onDownload, onEdit, busy }) {
   const [i, setI] = React.useState(0);
+  const [open, setOpen] = React.useState(false);
   const sheets = (prep && prep.sheets) || [];
   const cur = sheets[Math.min(i, sheets.length - 1)];
+  const baseSt = (prep && prep.st) || {};
+  /* ค่าที่แก้บนจอ — ยังไม่บันทึกจนกว่าจะกดใช้ค่านี้ */
+  const [edit, setEdit] = React.useState(() => Object.assign({}, baseSt.sldEdit));
+  const stE = React.useMemo(() => Object.assign({}, baseSt, { sldEdit: edit }), [baseSt, edit]);
   /* วาดแผ่นที่กำลังดูเท่านั้น แผ่นผังมีรูปถ่ายฝังอยู่ ทำทุกแผ่นพร้อมกันจะอืด */
   const svg = React.useMemo(() => {
     if (!cur) return "";
-    try { return cur.make(true); } catch (e) { return '<p style="padding:16px">วาดตัวอย่างไม่สำเร็จ: ' + e.message + "</p>"; }
-  }, [cur]);
+    try { return cur.make(true, stE); } catch (e) { return '<p style="padding:16px">วาดตัวอย่างไม่สำเร็จ: ' + e.message + "</p>"; }
+  }, [cur, stE]);
+  /* ช่องที่แก้ได้ อ่านจากโมเดลที่ยังไม่ถูกแก้ จะได้โชว์ค่าอัตโนมัติเป็นตัวเทียบ */
+  const groups = React.useMemo(() => {
+    try { return p3SldFields(p3SldModel(Object.assign({}, baseSt, { sldEdit: null }), prep && prep.job)); }
+    catch (e) { return []; }
+  }, [baseSt, prep]);
+  const nEdit = Object.keys(edit).filter((k) => edit[k] != null && edit[k] !== "").length;
+  const put = (path, v) => setEdit((p) => {
+    const n = Object.assign({}, p);
+    if (v === "") delete n[path]; else n[path] = v;
+    return n;
+  });
 
   const tab = (on) => ({
     padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12.5, fontWeight: 700,
@@ -214,13 +230,46 @@ function P3SetPreview({ prep, onClose, onDownload, busy }) {
             <button key={s.key} style={tab(n === i)} onClick={() => setI(n)}>{n + 1}. {s.label}</button>
           ))}
           <span style={{ flex: 1 }} />
-          <button className="p3-b" onClick={onDownload} disabled={!!busy}>
+          {cur && cur.key === "SLD" && (
+            <button style={tab(open)} onClick={() => setOpen(!open)}>
+              แก้ค่าบนแบบ{nEdit ? " (" + nEdit + ")" : ""}</button>
+          )}
+          <button className="p3-b" onClick={() => onDownload(edit)} disabled={!!busy}>
             <P3Icon name="doc" size={14} />{busy ? "กำลังโหลด…" : "ดาวน์โหลดทั้งชุด"}</button>
           <button className="p3-b" onClick={onClose} disabled={!!busy}>ปิด</button>
         </div>
-        <div style={{ flex: 1, minHeight: 0, overflow: "auto", background: "#4a4a4a", padding: 14, display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
-          <div style={{ width: "100%", maxWidth: 1400, boxShadow: "0 6px 24px rgba(0,0,0,.5)" }}
-            dangerouslySetInnerHTML={{ __html: svg }} />
+        <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
+          <div style={{ flex: 1, minWidth: 0, overflow: "auto", background: "#4a4a4a", padding: 14, display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
+            <div style={{ width: "100%", maxWidth: 1400, boxShadow: "0 6px 24px rgba(0,0,0,.5)" }}
+              dangerouslySetInnerHTML={{ __html: svg }} />
+          </div>
+          {cur && cur.key === "SLD" && open && (
+            <div style={{ width: 320, flexShrink: 0, borderLeft: "1px solid var(--border)", overflow: "auto", padding: 12, background: "var(--surface)" }}>
+              <div style={{ fontSize: 11.5, color: "var(--text-2)", lineHeight: 1.5, marginBottom: 10 }}>
+                ช่องที่เว้นว่างจะใช้ค่าที่ระบบคิดให้ (ตัวสีจาง) พิมพ์ทับได้เมื่อของจริงหน้างานไม่ตรง
+                แก้แล้วตัวอย่างซ้ายมือเปลี่ยนทันที · กด “ใช้ค่านี้” เพื่อเก็บติดไปกับงาน
+              </div>
+              {groups.map((g) => (
+                <div key={g.title} style={{ marginBottom: 12 }}>
+                  <div style={{ fontWeight: 800, fontSize: 12, color: "var(--text-1)", margin: "0 0 6px" }}>{g.title}</div>
+                  {g.items.map((f) => (
+                    <label key={f.path} style={{ display: "block", marginBottom: 6 }}>
+                      <span style={{ fontSize: 11, color: "var(--text-2)" }}>{f.label}</span>
+                      <input style={Object.assign({}, P3_INP, { width: "100%",
+                        borderColor: edit[f.path] ? "var(--brand,#1f9d3a)" : P3_INP.borderColor })}
+                        value={edit[f.path] == null ? "" : edit[f.path]}
+                        placeholder={f.auto || f.hint || "—"}
+                        onChange={(e) => put(f.path, e.target.value)} />
+                    </label>
+                  ))}
+                </div>
+              ))}
+              <div style={{ display: "flex", gap: 6, position: "sticky", bottom: 0, background: "var(--surface)", paddingTop: 8 }}>
+                <button className="p3-b" style={{ flex: 1 }} onClick={() => onEdit(edit)}>ใช้ค่านี้</button>
+                <button className="p3-b" onClick={() => setEdit({})} disabled={!nEdit}>คืนค่าอัตโนมัติ</button>
+              </div>
+            </div>
+          )}
         </div>
         <div style={{ padding: "7px 12px", borderTop: "1px solid var(--border)", fontSize: 11.5, color: "var(--text-2)" }}>
           A3 แนวนอน 420 × 297 มม. · แผ่นที่ {cur ? cur.no : "-"} · ตั้งค่าสั่งพิมพ์มาให้แล้ว เปิดใน AutoCAD กด Ctrl+P ได้เลย
@@ -2873,10 +2922,19 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     } catch (e) { alert("เตรียมชุดแบบไม่สำเร็จ: " + e.message); }
     setBusyDxf("");
   };
-  const doSetDownload = async () => {
+  /* กด "ใช้ค่านี้" ในหน้าตัวอย่าง — เก็บค่าที่แก้ไว้กับงาน (บันทึกจริงตอนกดบันทึกแบบ) */
+  const doSetEdit = (edit) => {
+    const n = Object.keys(edit || {}).length;
+    set({ sldEdit: n ? edit : null });
+    alert(n ? "ใช้ค่าที่แก้ " + n + " ช่องแล้ว\nอย่าลืมกดบันทึกแบบ ค่าจะติดไปกับงานนี้ทุกครั้งที่ออกแบบ"
+      : "คืนค่าอัตโนมัติทุกช่องแล้ว");
+  };
+  const doSetDownload = async (edit) => {
     setBusyDxf("setdl");
     try {
-      const r = await p3ExportSet(st, job, null, setPrep);
+      /* โหลดตามค่าที่เห็นบนจอ ไม่ต้องกดใช้ค่านี้ก่อนก็ได้ */
+      const stE = edit && Object.keys(edit).length ? Object.assign({}, st, { sldEdit: edit }) : st;
+      const r = await p3ExportSet(stE, job, null, setPrep);
       setSetPrep(null);
       alert("ดาวน์โหลดชุดแบบ " + r.sheets + " แผ่น" + (r.files ? " + ไฟล์ภาพ " + r.files + " ไฟล์" : "") +
         "\n\nสำคัญ: เก็บไฟล์ .dxf กับไฟล์ภาพไว้ในโฟลเดอร์เดียวกัน\nไม่งั้นเปิดใน AutoCAD แล้วภาพจะไม่ขึ้น");
@@ -3702,7 +3760,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       <style>{P3_CSS}</style>
       {mapOpen && <P3MapPicker initial={jobLatLng} initialQuery={jobAddr} onPick={onPickMap} onClose={() => setMapOpen(false)} />}
       {setPrep && <P3SetPreview prep={setPrep} busy={busyDxf === "setdl"}
-        onClose={() => setSetPrep(null)} onDownload={doSetDownload} />}
+        onClose={() => setSetPrep(null)} onDownload={doSetDownload} onEdit={doSetEdit} />}
       {/* เวิร์กสเปซออกแบบระบบ — ใช้ทิศ/มุมของแผงจากผังนี้ตรง ๆ (solarui.jsx) */}
       {sysOpen && typeof SolarWorkspace === "function" && (
         <SolarWorkspace job={job} st={st} sys={st.sys || scBlankSys()} onClose={() => setSysOpen(false)}
@@ -4057,7 +4115,63 @@ function p3SldModel(st, job) {
     { brand: panel.brand, model: panel.model, desc: "PV MODULE " + wp + " Wp.", no: nPanel },
   ];
   if (M.batt) M.equip.push({ brand: M.batt.brand, model: M.batt.model, desc: "BATTERY " + M.batt.kwh + " kWh.", no: 1 });
+  return p3SldApply(M, st.sldEdit);
+}
+
+/* ══ แก้ค่าบนแบบเอง ══
+   ค่าที่ระบบคิดให้อาจไม่ตรงของจริงหน้างาน (เปลี่ยนรุ่นเบรกเกอร์ ใช้สายคนละเบอร์ ฯลฯ)
+   จึงเก็บเฉพาะ "ค่าที่ถูกแก้" เป็น map path→ค่า ไว้ที่ st.sldEdit
+   ช่องไหนไม่ได้แก้ก็ยังคิดให้อัตโนมัติเหมือนเดิม ลบค่าที่แก้ทิ้งเมื่อไรก็กลับไปใช้ค่าอัตโนมัติทันที
+   คั่นชั้นด้วย ~ ไม่ใช่จุด เพราะคีย์ของ Firebase ห้ามมีจุด */
+function p3SldApply(M, edit) {
+  if (!edit) return M;
+  Object.keys(edit).forEach((path) => {
+    const v = edit[path];
+    if (v == null || v === "") return;
+    const seg = path.split("~");
+    let o = M;
+    for (let i = 0; i < seg.length - 1; i++) { o = o && o[seg[i]]; if (!o) return; }
+    o[seg[seg.length - 1]] = v;
+  });
   return M;
+}
+
+/* รายการช่องที่แก้ได้ — สร้างจากโมเดลที่คิดอัตโนมัติแล้ว จะได้โชว์ค่าเดิมให้เทียบ */
+function p3SldFields(M) {
+  const g = [];
+  const br = { title: "วงจรย่อยในตู้รวม", items: [] };
+  (M.branches || []).forEach((b, i) => {
+    br.items.push({ path: "branches~" + i + "~name", label: "ชื่อวงจรที่ " + (i + 1), auto: b.name });
+    br.items.push({ path: "branches~" + i + "~mcb", label: "เบรกเกอร์วงจรที่ " + (i + 1), auto: b.mcb });
+  });
+  g.push({ title: "อุปกรณ์หลัก", items: [
+    { path: "inv~model", label: "รุ่นอินเวอร์เตอร์", auto: M.inv.model },
+    { path: "inv~brand", label: "ยี่ห้ออินเวอร์เตอร์", auto: M.inv.brand },
+    { path: "panel~model", label: "รุ่นแผง", auto: M.panel.model },
+    { path: "panel~brand", label: "ยี่ห้อแผง", auto: M.panel.brand },
+    { path: "combinerModel", label: "รุ่นตู้ AC COMBINER", auto: M.combinerModel, hint: "เว้นว่างได้" },
+  ] });
+  g.push(br);
+  g.push({ title: "เมนตู้รวมโซลาร์", items: [
+    { path: "acCable", label: "สาย AC จากอินเวอร์เตอร์", auto: M.acCable },
+    { path: "ctBranch", label: "CT ในตู้รวม", auto: M.ctBranch },
+    { path: "rccb", label: "RCCB", auto: M.rccb },
+    { path: "rccbType", label: "RCCB บรรทัดที่ 2", auto: M.rccbType },
+    { path: "mainCable~0", label: "สายเมนขึ้นตู้ MCCB", auto: M.mainCable[0] },
+    { path: "mainCable~1", label: "สายกราวด์", auto: M.mainCable[1] },
+  ] });
+  g.push({ title: "ตู้ MCCB และมิเตอร์", items: [
+    { path: "mccb~0", label: "MCCB", auto: M.mccb[0] },
+    { path: "mccb~1", label: "MCCB บรรทัดที่ 2", auto: M.mccb[1] },
+    { path: "rcbo~0", label: "RCBO ไปโหลด", auto: M.rcbo[0] },
+    { path: "rcbo~1", label: "RCBO บรรทัดที่ 2", auto: M.rcbo[1] },
+    { path: "ctMain", label: "CT MAIN GRID", auto: M.ctMain },
+  ] });
+  g.push({ title: "ข้อความสรุปใต้แถวแผง", items: [
+    { path: "summary~0", label: "บรรทัดที่ 1", auto: M.summary[0] },
+    { path: "summary~1", label: "บรรทัดที่ 2", auto: M.summary[1] },
+  ] });
+  return g;
 }
 
 function p3Sld(st, job, media) {
@@ -4327,29 +4441,30 @@ async function p3PrepSet(st, job, photos) {
     files.push({ name: file, url: u });
   }
 
-  /* รายชื่อแผ่น — make(svg) คืนไฟล์ DXF หรือ SVG (ตัวอย่างบนจอ) จากโค้ดวาดชุดเดียวกัน */
+  /* รายชื่อแผ่น — make(svg, stOv) คืนไฟล์ DXF หรือ SVG (ตัวอย่างบนจอ) จากโค้ดวาดชุดเดียวกัน
+     stOv คือโมเดลที่ถูกแก้ค่าบนจอแต่ยังไม่บันทึก ส่งเข้ามาเพื่อให้ตัวอย่างอัปเดตทันที */
   const list = [
-    ["PLAN", "ผังติดตั้ง", (o) => p3Dxf(st, job, Object.assign({ imgs }, o))],
-    ["SLD", "ไดอะแกรมเส้นเดียว", (o) => p3Sld(st, job, o)],
+    ["PLAN", "ผังติดตั้ง", (S, o) => p3Dxf(S, job, Object.assign({ imgs }, o))],
+    ["SLD", "ไดอะแกรมเส้นเดียว", (S, o) => p3Sld(S, job, o)],
   ];
-  if (ph.length) list.push(["PHOTO", "รูปถ่ายจุดติดตั้ง", (o) => p3PhotoSheet(st, job, Object.assign({ photos: ph }, o))]);
-  list.push(["DC", "ต่อสาย DC", (o) => p3DcSheet(st, job, o)]);
-  list.push(["MATERIAL", "วัสดุหน้างาน", (o) => p3EquipSheet(st, job, o)]);
+  if (ph.length) list.push(["PHOTO", "รูปถ่ายจุดติดตั้ง", (S, o) => p3PhotoSheet(S, job, Object.assign({ photos: ph }, o))]);
+  list.push(["DC", "ต่อสาย DC", (S, o) => p3DcSheet(S, job, o)]);
+  list.push(["MATERIAL", "วัสดุหน้างาน", (S, o) => p3EquipSheet(S, job, o)]);
 
   const sheets = list.map((s, i) => ({
     key: s[0], label: s[1],
     no: (i + 1) + "/" + list.length,
     file: base + "-" + (i + 1) + "-" + s[0] + ".dxf",
-    make: (svg) => s[2]({ sheetNo: (i + 1) + "/" + list.length, svg: !!svg }),
+    make: (svg, stOv) => s[2](stOv || st, { sheetNo: (i + 1) + "/" + list.length, svg: !!svg }),
   }));
-  return { base, sheets, files };
+  return { base, sheets, files, st, job };
 }
 
 /* ส่งออกทั้งชุด — prep = ผลจาก p3PrepSet (ส่งมาได้ถ้าเตรียมไว้แล้วตอนดูตัวอย่าง) */
 async function p3ExportSet(st, job, photos, prep) {
   const P = prep || await p3PrepSet(st, job, photos);
   for (let i = 0; i < P.sheets.length; i++) {
-    p3SaveBlob(new Blob([P.sheets[i].make(false)], { type: "application/dxf" }), P.sheets[i].file);
+    p3SaveBlob(new Blob([P.sheets[i].make(false, st)], { type: "application/dxf" }), P.sheets[i].file);
     await new Promise((r) => setTimeout(r, 350));   // เบราว์เซอร์บล็อกถ้ายิงดาวน์โหลดรัวเกินไป
   }
   for (let i = 0; i < P.files.length; i++) {
@@ -4361,5 +4476,5 @@ async function p3ExportSet(st, job, photos, prep) {
 }
 
 Object.assign(window, { Plan3DEditor, usePlan3d, P3_MEAS_KINDS, p3MeasKind, p3MeasLen,
-  p3Dxf, p3Sld, p3PhotoSheet, p3EquipSheet, p3DcSheet, p3SldModel, p3SheetInfo,
+  p3Dxf, p3Sld, p3PhotoSheet, p3EquipSheet, p3DcSheet, p3SldModel, p3SldFields, p3SldApply, p3SheetInfo,
   p3ExportPlan, p3PrepSet, p3ExportSet, p3SaveBlob });

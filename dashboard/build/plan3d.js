@@ -352,19 +352,41 @@ function P3SetPreview({
   prep,
   onClose,
   onDownload,
+  onEdit,
   busy
 }) {
   const [i, setI] = React.useState(0);
+  const [open, setOpen] = React.useState(false);
   const sheets = prep && prep.sheets || [];
   const cur = sheets[Math.min(i, sheets.length - 1)];
+  const baseSt = prep && prep.st || {};
+  const [edit, setEdit] = React.useState(() => Object.assign({}, baseSt.sldEdit));
+  const stE = React.useMemo(() => Object.assign({}, baseSt, {
+    sldEdit: edit
+  }), [baseSt, edit]);
   const svg = React.useMemo(() => {
     if (!cur) return "";
     try {
-      return cur.make(true);
+      return cur.make(true, stE);
     } catch (e) {
       return '<p style="padding:16px">วาดตัวอย่างไม่สำเร็จ: ' + e.message + "</p>";
     }
-  }, [cur]);
+  }, [cur, stE]);
+  const groups = React.useMemo(() => {
+    try {
+      return p3SldFields(p3SldModel(Object.assign({}, baseSt, {
+        sldEdit: null
+      }), prep && prep.job));
+    } catch (e) {
+      return [];
+    }
+  }, [baseSt, prep]);
+  const nEdit = Object.keys(edit).filter(k => edit[k] != null && edit[k] !== "").length;
+  const put = (path, v) => setEdit(p => {
+    const n = Object.assign({}, p);
+    if (v === "") delete n[path];else n[path] = v;
+    return n;
+  });
   const tab = on => ({
     padding: "6px 12px",
     borderRadius: 8,
@@ -421,9 +443,12 @@ function P3SetPreview({
     style: {
       flex: 1
     }
-  }), React.createElement("button", {
+  }), cur && cur.key === "SLD" && React.createElement("button", {
+    style: tab(open),
+    onClick: () => setOpen(!open)
+  }, "\u0E41\u0E01\u0E49\u0E04\u0E48\u0E32\u0E1A\u0E19\u0E41\u0E1A\u0E1A", nEdit ? " (" + nEdit + ")" : ""), React.createElement("button", {
     className: "p3-b",
-    onClick: onDownload,
+    onClick: () => onDownload(edit),
     disabled: !!busy
   }, React.createElement(P3Icon, {
     name: "doc",
@@ -436,6 +461,12 @@ function P3SetPreview({
     style: {
       flex: 1,
       minHeight: 0,
+      display: "flex"
+    }
+  }, React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0,
       overflow: "auto",
       background: "#4a4a4a",
       padding: 14,
@@ -452,7 +483,73 @@ function P3SetPreview({
     dangerouslySetInnerHTML: {
       __html: svg
     }
-  })), React.createElement("div", {
+  })), cur && cur.key === "SLD" && open && React.createElement("div", {
+    style: {
+      width: 320,
+      flexShrink: 0,
+      borderLeft: "1px solid var(--border)",
+      overflow: "auto",
+      padding: 12,
+      background: "var(--surface)"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-2)",
+      lineHeight: 1.5,
+      marginBottom: 10
+    }
+  }, "\u0E0A\u0E48\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07\u0E08\u0E30\u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E23\u0E30\u0E1A\u0E1A\u0E04\u0E34\u0E14\u0E43\u0E2B\u0E49 (\u0E15\u0E31\u0E27\u0E2A\u0E35\u0E08\u0E32\u0E07) \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E17\u0E31\u0E1A\u0E44\u0E14\u0E49\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E02\u0E2D\u0E07\u0E08\u0E23\u0E34\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19\u0E44\u0E21\u0E48\u0E15\u0E23\u0E07 \u0E41\u0E01\u0E49\u0E41\u0E25\u0E49\u0E27\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E0B\u0E49\u0E32\u0E22\u0E21\u0E37\u0E2D\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E17\u0E31\u0E19\u0E17\u0E35 \xB7 \u0E01\u0E14 \u201C\u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E19\u0E35\u0E49\u201D \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E01\u0E47\u0E1A\u0E15\u0E34\u0E14\u0E44\u0E1B\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19"), groups.map(g => React.createElement("div", {
+    key: g.title,
+    style: {
+      marginBottom: 12
+    }
+  }, React.createElement("div", {
+    style: {
+      fontWeight: 800,
+      fontSize: 12,
+      color: "var(--text-1)",
+      margin: "0 0 6px"
+    }
+  }, g.title), g.items.map(f => React.createElement("label", {
+    key: f.path,
+    style: {
+      display: "block",
+      marginBottom: 6
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-2)"
+    }
+  }, f.label), React.createElement("input", {
+    style: Object.assign({}, P3_INP, {
+      width: "100%",
+      borderColor: edit[f.path] ? "var(--brand,#1f9d3a)" : P3_INP.borderColor
+    }),
+    value: edit[f.path] == null ? "" : edit[f.path],
+    placeholder: f.auto || f.hint || "—",
+    onChange: e => put(f.path, e.target.value)
+  }))))), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      position: "sticky",
+      bottom: 0,
+      background: "var(--surface)",
+      paddingTop: 8
+    }
+  }, React.createElement("button", {
+    className: "p3-b",
+    style: {
+      flex: 1
+    },
+    onClick: () => onEdit(edit)
+  }, "\u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E19\u0E35\u0E49"), React.createElement("button", {
+    className: "p3-b",
+    onClick: () => setEdit({}),
+    disabled: !nEdit
+  }, "\u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34")))), React.createElement("div", {
     style: {
       padding: "7px 12px",
       borderTop: "1px solid var(--border)",
@@ -4621,10 +4718,20 @@ function Plan3DEditor({
     }
     setBusyDxf("");
   };
-  const doSetDownload = async () => {
+  const doSetEdit = edit => {
+    const n = Object.keys(edit || {}).length;
+    set({
+      sldEdit: n ? edit : null
+    });
+    alert(n ? "ใช้ค่าที่แก้ " + n + " ช่องแล้ว\nอย่าลืมกดบันทึกแบบ ค่าจะติดไปกับงานนี้ทุกครั้งที่ออกแบบ" : "คืนค่าอัตโนมัติทุกช่องแล้ว");
+  };
+  const doSetDownload = async edit => {
     setBusyDxf("setdl");
     try {
-      const r = await p3ExportSet(st, job, null, setPrep);
+      const stE = edit && Object.keys(edit).length ? Object.assign({}, st, {
+        sldEdit: edit
+      }) : st;
+      const r = await p3ExportSet(stE, job, null, setPrep);
       setSetPrep(null);
       alert("ดาวน์โหลดชุดแบบ " + r.sheets + " แผ่น" + (r.files ? " + ไฟล์ภาพ " + r.files + " ไฟล์" : "") + "\n\nสำคัญ: เก็บไฟล์ .dxf กับไฟล์ภาพไว้ในโฟลเดอร์เดียวกัน\nไม่งั้นเปิดใน AutoCAD แล้วภาพจะไม่ขึ้น");
     } catch (e) {
@@ -6842,7 +6949,8 @@ function Plan3DEditor({
     prep: setPrep,
     busy: busyDxf === "setdl",
     onClose: () => setSetPrep(null),
-    onDownload: doSetDownload
+    onDownload: doSetDownload,
+    onEdit: doSetEdit
   }), sysOpen && typeof SolarWorkspace === "function" && React.createElement(SolarWorkspace, {
     job: job,
     st: st,
@@ -7552,7 +7660,132 @@ function p3SldModel(st, job) {
     desc: "BATTERY " + M.batt.kwh + " kWh.",
     no: 1
   });
+  return p3SldApply(M, st.sldEdit);
+}
+function p3SldApply(M, edit) {
+  if (!edit) return M;
+  Object.keys(edit).forEach(path => {
+    const v = edit[path];
+    if (v == null || v === "") return;
+    const seg = path.split("~");
+    let o = M;
+    for (let i = 0; i < seg.length - 1; i++) {
+      o = o && o[seg[i]];
+      if (!o) return;
+    }
+    o[seg[seg.length - 1]] = v;
+  });
   return M;
+}
+function p3SldFields(M) {
+  const g = [];
+  const br = {
+    title: "วงจรย่อยในตู้รวม",
+    items: []
+  };
+  (M.branches || []).forEach((b, i) => {
+    br.items.push({
+      path: "branches~" + i + "~name",
+      label: "ชื่อวงจรที่ " + (i + 1),
+      auto: b.name
+    });
+    br.items.push({
+      path: "branches~" + i + "~mcb",
+      label: "เบรกเกอร์วงจรที่ " + (i + 1),
+      auto: b.mcb
+    });
+  });
+  g.push({
+    title: "อุปกรณ์หลัก",
+    items: [{
+      path: "inv~model",
+      label: "รุ่นอินเวอร์เตอร์",
+      auto: M.inv.model
+    }, {
+      path: "inv~brand",
+      label: "ยี่ห้ออินเวอร์เตอร์",
+      auto: M.inv.brand
+    }, {
+      path: "panel~model",
+      label: "รุ่นแผง",
+      auto: M.panel.model
+    }, {
+      path: "panel~brand",
+      label: "ยี่ห้อแผง",
+      auto: M.panel.brand
+    }, {
+      path: "combinerModel",
+      label: "รุ่นตู้ AC COMBINER",
+      auto: M.combinerModel,
+      hint: "เว้นว่างได้"
+    }]
+  });
+  g.push(br);
+  g.push({
+    title: "เมนตู้รวมโซลาร์",
+    items: [{
+      path: "acCable",
+      label: "สาย AC จากอินเวอร์เตอร์",
+      auto: M.acCable
+    }, {
+      path: "ctBranch",
+      label: "CT ในตู้รวม",
+      auto: M.ctBranch
+    }, {
+      path: "rccb",
+      label: "RCCB",
+      auto: M.rccb
+    }, {
+      path: "rccbType",
+      label: "RCCB บรรทัดที่ 2",
+      auto: M.rccbType
+    }, {
+      path: "mainCable~0",
+      label: "สายเมนขึ้นตู้ MCCB",
+      auto: M.mainCable[0]
+    }, {
+      path: "mainCable~1",
+      label: "สายกราวด์",
+      auto: M.mainCable[1]
+    }]
+  });
+  g.push({
+    title: "ตู้ MCCB และมิเตอร์",
+    items: [{
+      path: "mccb~0",
+      label: "MCCB",
+      auto: M.mccb[0]
+    }, {
+      path: "mccb~1",
+      label: "MCCB บรรทัดที่ 2",
+      auto: M.mccb[1]
+    }, {
+      path: "rcbo~0",
+      label: "RCBO ไปโหลด",
+      auto: M.rcbo[0]
+    }, {
+      path: "rcbo~1",
+      label: "RCBO บรรทัดที่ 2",
+      auto: M.rcbo[1]
+    }, {
+      path: "ctMain",
+      label: "CT MAIN GRID",
+      auto: M.ctMain
+    }]
+  });
+  g.push({
+    title: "ข้อความสรุปใต้แถวแผง",
+    items: [{
+      path: "summary~0",
+      label: "บรรทัดที่ 1",
+      auto: M.summary[0]
+    }, {
+      path: "summary~1",
+      label: "บรรทัดที่ 2",
+      auto: M.summary[1]
+    }]
+  });
+  return g;
 }
 function p3Sld(st, job, media) {
   const doc = pgDoc({
@@ -7914,20 +8147,20 @@ async function p3PrepSet(st, job, photos) {
       url: u
     });
   }
-  const list = [["PLAN", "ผังติดตั้ง", o => p3Dxf(st, job, Object.assign({
+  const list = [["PLAN", "ผังติดตั้ง", (S, o) => p3Dxf(S, job, Object.assign({
     imgs
-  }, o))], ["SLD", "ไดอะแกรมเส้นเดียว", o => p3Sld(st, job, o)]];
-  if (ph.length) list.push(["PHOTO", "รูปถ่ายจุดติดตั้ง", o => p3PhotoSheet(st, job, Object.assign({
+  }, o))], ["SLD", "ไดอะแกรมเส้นเดียว", (S, o) => p3Sld(S, job, o)]];
+  if (ph.length) list.push(["PHOTO", "รูปถ่ายจุดติดตั้ง", (S, o) => p3PhotoSheet(S, job, Object.assign({
     photos: ph
   }, o))]);
-  list.push(["DC", "ต่อสาย DC", o => p3DcSheet(st, job, o)]);
-  list.push(["MATERIAL", "วัสดุหน้างาน", o => p3EquipSheet(st, job, o)]);
+  list.push(["DC", "ต่อสาย DC", (S, o) => p3DcSheet(S, job, o)]);
+  list.push(["MATERIAL", "วัสดุหน้างาน", (S, o) => p3EquipSheet(S, job, o)]);
   const sheets = list.map((s, i) => ({
     key: s[0],
     label: s[1],
     no: i + 1 + "/" + list.length,
     file: base + "-" + (i + 1) + "-" + s[0] + ".dxf",
-    make: svg => s[2]({
+    make: (svg, stOv) => s[2](stOv || st, {
       sheetNo: i + 1 + "/" + list.length,
       svg: !!svg
     })
@@ -7935,13 +8168,15 @@ async function p3PrepSet(st, job, photos) {
   return {
     base,
     sheets,
-    files
+    files,
+    st,
+    job
   };
 }
 async function p3ExportSet(st, job, photos, prep) {
   const P = prep || (await p3PrepSet(st, job, photos));
   for (let i = 0; i < P.sheets.length; i++) {
-    p3SaveBlob(new Blob([P.sheets[i].make(false)], {
+    p3SaveBlob(new Blob([P.sheets[i].make(false, st)], {
       type: "application/dxf"
     }), P.sheets[i].file);
     await new Promise(r => setTimeout(r, 350));
@@ -7968,6 +8203,8 @@ Object.assign(window, {
   p3EquipSheet,
   p3DcSheet,
   p3SldModel,
+  p3SldFields,
+  p3SldApply,
   p3SheetInfo,
   p3ExportPlan,
   p3PrepSet,
