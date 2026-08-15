@@ -712,6 +712,162 @@ function p3MeasLen(m) {
   for (let i = 1; i < pts.length; i++) s += Math.hypot((+pts[i].x || 0) - (+pts[i - 1].x || 0), (+pts[i].z || 0) - (+pts[i - 1].z || 0));
   return Math.round((s + Math.abs(+(m && m.rise) || 0)) * 100) / 100;
 }
+const P3_DXF_LAYERS = [["PG-ROOF", 7], ["PG-PANEL", 5], ["PG-OBSTACLE", 3], ["PG-MEAS-CABLE", 30], ["PG-MEAS-CONDUIT", 140], ["PG-MEAS-TRAY", 200], ["PG-MEAS-LADDER", 6], ["PG-MEAS-WALKWAY", 4], ["PG-MEAS-GUARDRAIL", 1], ["PG-MEAS-OTHER", 8], ["PG-DIM", 1], ["PG-NORTH", 8], ["PG-NOTE", 8]];
+const p3MeasLayer = k => "PG-MEAS-" + String(k || "other").toUpperCase();
+function p3Dxf(st, job) {
+  const O = [];
+  const g = (code, val) => {
+    O.push(String(code), String(val));
+  };
+  const n = v => (Math.round((+v || 0) * 1e6) / 1e6).toString();
+  const PX = x => n(x),
+    PY = z => n(-z);
+  const poly = (layer, pts, closed) => {
+    if (!pts || pts.length < 2) return;
+    g(0, "POLYLINE");
+    g(8, layer);
+    g(66, 1);
+    g(70, closed ? 1 : 0);
+    g(10, 0);
+    g(20, 0);
+    g(30, 0);
+    pts.forEach(p => {
+      g(0, "VERTEX");
+      g(8, layer);
+      g(10, PX(p[0]));
+      g(20, PY(p[1]));
+      g(30, 0);
+    });
+    g(0, "SEQEND");
+    g(8, layer);
+  };
+  const line = (layer, x1, z1, x2, z2) => {
+    g(0, "LINE");
+    g(8, layer);
+    g(10, PX(x1));
+    g(20, PY(z1));
+    g(30, 0);
+    g(11, PX(x2));
+    g(21, PY(z2));
+    g(31, 0);
+  };
+  const circle = (layer, x, z, r) => {
+    g(0, "CIRCLE");
+    g(8, layer);
+    g(10, PX(x));
+    g(20, PY(z));
+    g(30, 0);
+    g(40, n(r));
+  };
+  const text = (layer, x, z, h, s, center) => {
+    g(0, "TEXT");
+    g(8, layer);
+    g(10, PX(x));
+    g(20, PY(z));
+    g(30, 0);
+    g(40, n(h));
+    g(1, String(s == null ? "" : s));
+    if (center) {
+      g(72, 1);
+      g(11, PX(x));
+      g(21, PY(z));
+      g(31, 0);
+    }
+  };
+  const foot = p3FootAll(st);
+  const B = foot.bounds;
+  const span = Math.max(6, B.maxX - B.minX, B.maxZ - B.minZ);
+  const TH = Math.max(0.16, span / 110);
+  g(0, "SECTION");
+  g(2, "HEADER");
+  g(9, "$ACADVER");
+  g(1, "AC1009");
+  g(9, "$INSUNITS");
+  g(70, 6);
+  g(9, "$EXTMIN");
+  g(10, PX(B.minX));
+  g(20, PY(B.maxZ));
+  g(30, 0);
+  g(9, "$EXTMAX");
+  g(10, PX(B.maxX));
+  g(20, PY(B.minZ));
+  g(30, 0);
+  g(0, "ENDSEC");
+  g(0, "SECTION");
+  g(2, "TABLES");
+  g(0, "TABLE");
+  g(2, "LAYER");
+  g(70, P3_DXF_LAYERS.length);
+  P3_DXF_LAYERS.forEach(([nm, col]) => {
+    g(0, "LAYER");
+    g(2, nm);
+    g(70, 0);
+    g(62, col);
+    g(6, "CONTINUOUS");
+  });
+  g(0, "ENDTAB");
+  g(0, "ENDSEC");
+  g(0, "SECTION");
+  g(2, "ENTITIES");
+  (st.roofs || []).forEach(roof => {
+    let faces = [];
+    try {
+      faces = p3RoofSurf(roof) || [];
+    } catch (e) {
+      faces = [];
+    }
+    faces.forEach(f => poly("PG-ROOF", (f.pts || []).map(p => [p.x, p.z]), true));
+    if (!faces.length && roof.kind === "poly" && Array.isArray(roof.pts)) {
+      poly("PG-ROOF", roof.pts.map(p => [(+p.x || 0) + (+roof.x || 0), (+p.z || 0) + (+roof.z || 0)]), true);
+    }
+  });
+  (foot.panels || []).forEach(p => poly("PG-PANEL", p.pts, true));
+  (st.obstacles || []).forEach(o => {
+    const x = +o.x || 0,
+      z = +o.z || 0,
+      w = Math.max(0.1, +o.w || 1),
+      d = Math.max(0.1, +o.d || 1);
+    if (o.kind === "tree") {
+      circle("PG-OBSTACLE", x, z, Math.max(w, d) / 2);
+      return;
+    }
+    const a = (+o.rot || 0) * P3_DEG,
+      ca = Math.cos(a),
+      sa = Math.sin(a);
+    const c = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]];
+    poly("PG-OBSTACLE", c.map(([u, v]) => [x + u * ca - v * sa, z + u * sa + v * ca]), true);
+  });
+  (st.measures || []).forEach(m => {
+    const pts = (m.pts || []).map(p => [+p.x || 0, +p.z || 0]);
+    if (pts.length < 2) return;
+    const lay = p3MeasLayer(m.kind);
+    poly(lay, pts, false);
+    pts.forEach(p => circle(lay, p[0], p[1], TH * 0.35));
+    for (let i = 1; i < pts.length; i++) {
+      const seg = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+      if (seg <= 0.3) continue;
+      text("PG-DIM", (pts[i][0] + pts[i - 1][0]) / 2, (pts[i][1] + pts[i - 1][1]) / 2 - TH * 0.8, TH, seg.toFixed(2), true);
+    }
+    const last = pts[pts.length - 1];
+    text("PG-DIM", last[0], last[1] - TH * 2.4, TH * 1.15, "TOTAL " + p3MeasLen(m).toFixed(2) + " m", true);
+    if ((m.name || "").trim()) text("PG-NOTE", last[0], last[1] - TH * 3.9, TH, m.name.trim(), true);
+  });
+  const nx = B.maxX + span * 0.09,
+    nz = B.minZ;
+  const AR = span * 0.05;
+  line("PG-NORTH", nx, nz + AR, nx, nz - AR);
+  line("PG-NORTH", nx, nz - AR, nx - AR * 0.32, nz - AR * 0.55);
+  line("PG-NORTH", nx, nz - AR, nx + AR * 0.32, nz - AR * 0.55);
+  text("PG-NORTH", nx, nz - AR * 1.9, TH * 1.4, "N", true);
+  const total = p3CountAll(st);
+  const kwp = Math.round(total * (+st.wp || 650) / 10) / 100;
+  const ty = B.maxZ + span * 0.06;
+  if (job && job.name) text("PG-NOTE", B.minX, ty + TH * 2.2, TH * 1.6, String(job.name));
+  text("PG-DIM", B.minX, ty, TH * 1.15, "PV PLAN 1:1 (1 unit = 1 m)  |  " + total + " modules  |  " + kwp.toFixed(2) + " kWp" + (st.baseMap ? "  |  scale from satellite map" : "  |  scale NOT from map"));
+  g(0, "ENDSEC");
+  g(0, "EOF");
+  return O.join("\r\n") + "\r\n";
+}
 function p3Xf(roof, pan) {
   const pitchR = (+roof.pitch || 0) * P3_DEG;
   const rotY = -(((+roof.az || 180) - 180) * P3_DEG);
@@ -4133,6 +4289,23 @@ function Plan3DEditor({
       alert("ส่งออกภาพไม่สำเร็จ: " + e.message);
     }
   };
+  const doDxf = () => {
+    try {
+      const txt = p3Dxf(st, job);
+      const url = URL.createObjectURL(new Blob(["﻿" + txt], {
+        type: "application/dxf"
+      }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = (job ? job.code || job.name || "plan3d" : "plan3d") + "-PLAN.dxf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } catch (e) {
+      alert("ส่งออก DXF ไม่สำเร็จ: " + e.message);
+    }
+  };
   const tryClose = () => {
     if (dirty) {
       const t0 = Date.now();
@@ -6829,6 +7002,13 @@ function Plan3DEditor({
     size: 14
   }), "\u0E20\u0E32\u0E1E PNG"), React.createElement("button", {
     className: "p3-b",
+    onClick: doDxf,
+    title: "\u0E2A\u0E48\u0E07\u0E2D\u0E2D\u0E01\u0E1C\u0E31\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E44\u0E1F\u0E25\u0E4C DXF \u2014 \u0E40\u0E1B\u0E34\u0E14\u0E15\u0E48\u0E2D\u0E43\u0E19 AutoCAD / DraftSight / LibreCAD \u0E44\u0E14\u0E49\u0E40\u0E25\u0E22 \u0E2A\u0E40\u0E01\u0E25 1 \u0E2B\u0E19\u0E48\u0E27\u0E22 = 1 \u0E40\u0E21\u0E15\u0E23 \u0E41\u0E22\u0E01 layer \u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32/\u0E41\u0E1C\u0E07/\u0E2A\u0E34\u0E48\u0E07\u0E1A\u0E14\u0E1A\u0E31\u0E07/\u0E40\u0E2A\u0E49\u0E19\u0E27\u0E31\u0E14"
+  }, React.createElement(P3Icon, {
+    name: "doc",
+    size: 14
+  }), "\u0E41\u0E1A\u0E1A DXF"), React.createElement("button", {
+    className: "p3-b",
     onClick: () => setSysOpen(true),
     disabled: !total,
     title: total ? "เลือกแผง/อินเวอร์เตอร์ จัดสตริง และคำนวณผลผลิตจากมุมแผงจริง" : "วางแผงก่อนถึงจะคำนวณระบบได้"
@@ -6876,5 +7056,6 @@ Object.assign(window, {
   usePlan3d,
   P3_MEAS_KINDS,
   p3MeasKind,
-  p3MeasLen
+  p3MeasLen,
+  p3Dxf
 });

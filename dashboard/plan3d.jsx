@@ -350,6 +350,128 @@ function p3MeasLen(m) {
   return Math.round((s + Math.abs(+(m && m.rise) || 0)) * 100) / 100;
 }
 
+/* ══ ส่งออกผังเป็นไฟล์ DXF (เปิดใน AutoCAD / DraftSight / LibreCAD) ══
+   ทุกอย่างในโหมด 3D เป็นเมตรจริงอยู่แล้ว (ผังพื้นดึงสเกลจากแผนที่ดาวเทียม)
+   จึงเขียนออกได้ตรง ๆ ที่ 1 หน่วยเขียนแบบ = 1 เมตร ไม่ต้องตั้งสเกลซ้ำในโปรแกรม CAD
+
+   ทำไมเป็น R12 (AC1009): เป็นรุ่นที่ทุกโปรแกรมอ่านได้หมดและไม่ต้องมี handle/ตารางอ้อม ๆ
+   ที่ผิดนิดเดียวแล้วไฟล์เปิดไม่ขึ้น — งานนี้ต้องการ "เปิดได้ชัวร์" มากกว่าใช้ของใหม่
+   .dwg เขียนเองไม่ได้ (ไบนารีปิด) ให้เปิดไฟล์นี้แล้ว Save As เอาใน AutoCAD
+
+   แกน: X ของแบบ = X ของผัง · Y ของแบบ = −Z ของผัง → ทิศเหนืออยู่บน (+Y) ตามธรรมเนียมเขียนแบบ
+   ตัวหนังสือที่ระบบสร้างเองเป็นอังกฤษ/ตัวเลขล้วน กันปัญหาโค้ดหน้าภาษาไทยใน CAD บางตัว
+   ส่วนชื่อที่ผู้ใช้พิมพ์เอง (อาจเป็นไทย) แยกไว้ layer PG-NOTE ปิดทิ้งได้ถ้าอ่านไม่ออก */
+const P3_DXF_LAYERS = [
+  ["PG-ROOF", 7], ["PG-PANEL", 5], ["PG-OBSTACLE", 3],
+  ["PG-MEAS-CABLE", 30], ["PG-MEAS-CONDUIT", 140], ["PG-MEAS-TRAY", 200],
+  ["PG-MEAS-LADDER", 6], ["PG-MEAS-WALKWAY", 4], ["PG-MEAS-GUARDRAIL", 1], ["PG-MEAS-OTHER", 8],
+  ["PG-DIM", 1], ["PG-NORTH", 8], ["PG-NOTE", 8],
+];
+const p3MeasLayer = (k) => "PG-MEAS-" + String(k || "other").toUpperCase();
+function p3Dxf(st, job) {
+  const O = [];
+  const g = (code, val) => { O.push(String(code), String(val)); };
+  const n = (v) => (Math.round((+v || 0) * 1e6) / 1e6).toString();
+  // ผัง: เหนือ = −Z → พลิกเป็น +Y ของแบบ
+  const PX = (x) => n(x), PY = (z) => n(-z);
+
+  const poly = (layer, pts, closed) => {
+    if (!pts || pts.length < 2) return;
+    g(0, "POLYLINE"); g(8, layer); g(66, 1); g(70, closed ? 1 : 0);
+    g(10, 0); g(20, 0); g(30, 0);
+    pts.forEach((p) => { g(0, "VERTEX"); g(8, layer); g(10, PX(p[0])); g(20, PY(p[1])); g(30, 0); });
+    g(0, "SEQEND"); g(8, layer);
+  };
+  const line = (layer, x1, z1, x2, z2) => {
+    g(0, "LINE"); g(8, layer); g(10, PX(x1)); g(20, PY(z1)); g(30, 0); g(11, PX(x2)); g(21, PY(z2)); g(31, 0);
+  };
+  const circle = (layer, x, z, r) => { g(0, "CIRCLE"); g(8, layer); g(10, PX(x)); g(20, PY(z)); g(30, 0); g(40, n(r)); };
+  const text = (layer, x, z, h, s, center) => {
+    g(0, "TEXT"); g(8, layer); g(10, PX(x)); g(20, PY(z)); g(30, 0); g(40, n(h)); g(1, String(s == null ? "" : s));
+    if (center) { g(72, 1); g(11, PX(x)); g(21, PY(z)); g(31, 0); }
+  };
+
+  const foot = p3FootAll(st);
+  const B = foot.bounds;
+  const span = Math.max(6, B.maxX - B.minX, B.maxZ - B.minZ);
+  const TH = Math.max(0.16, span / 110);   // ความสูงตัวหนังสือ — โตตามขนาดผัง จะได้อ่านออกทุกสเกล
+
+  g(0, "SECTION"); g(2, "HEADER");
+  g(9, "$ACADVER"); g(1, "AC1009");
+  g(9, "$INSUNITS"); g(70, 6);            // 6 = เมตร
+  g(9, "$EXTMIN"); g(10, PX(B.minX)); g(20, PY(B.maxZ)); g(30, 0);
+  g(9, "$EXTMAX"); g(10, PX(B.maxX)); g(20, PY(B.minZ)); g(30, 0);
+  g(0, "ENDSEC");
+
+  g(0, "SECTION"); g(2, "TABLES");
+  g(0, "TABLE"); g(2, "LAYER"); g(70, P3_DXF_LAYERS.length);
+  P3_DXF_LAYERS.forEach(([nm, col]) => { g(0, "LAYER"); g(2, nm); g(70, 0); g(62, col); g(6, "CONTINUOUS"); });
+  g(0, "ENDTAB"); g(0, "ENDSEC");
+
+  g(0, "SECTION"); g(2, "ENTITIES");
+
+  /* หลังคา — วาดทีละผิว (ผืนลาด/คางหมู/สามเหลี่ยมของปั้นหยา) ที่ฉายลงผัง
+     ได้เส้นสัน/เส้นตะเข้มาด้วยในตัว ไม่ต้องคำนวณแยก และตรงกับที่ระบบใช้วางแผงจริง */
+  (st.roofs || []).forEach((roof) => {
+    let faces = [];
+    try { faces = p3RoofSurf(roof) || []; } catch (e) { faces = []; }
+    faces.forEach((f) => poly("PG-ROOF", (f.pts || []).map((p) => [p.x, p.z]), true));
+    if (!faces.length && roof.kind === "poly" && Array.isArray(roof.pts)) {
+      poly("PG-ROOF", roof.pts.map((p) => [(+p.x || 0) + (+roof.x || 0), (+p.z || 0) + (+roof.z || 0)]), true);
+    }
+  });
+
+  // แผงทีละแผง — รอยเท้าสี่มุมจริง (หลังคาเอียง/ชุดแผงหมุนแล้วไม่ใช่สี่เหลี่ยมมุมฉากเสมอ)
+  (foot.panels || []).forEach((p) => poly("PG-PANEL", p.pts, true));
+
+  // สิ่งบดบัง — ต้นไม้เป็นวงกลม อย่างอื่นเป็นกรอบสี่เหลี่ยมหมุนตามที่ตั้งไว้
+  (st.obstacles || []).forEach((o) => {
+    const x = +o.x || 0, z = +o.z || 0, w = Math.max(0.1, +o.w || 1), d = Math.max(0.1, +o.d || 1);
+    if (o.kind === "tree") { circle("PG-OBSTACLE", x, z, Math.max(w, d) / 2); return; }
+    const a = (+o.rot || 0) * P3_DEG, ca = Math.cos(a), sa = Math.sin(a);
+    const c = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]];
+    poly("PG-OBSTACLE", c.map(([u, v]) => [x + u * ca - v * sa, z + u * sa + v * ca]), true);
+  });
+
+  /* เส้นวัดระยะ — แยก layer ตามหมวด (ปิดสายไฟดูเฉพาะรางได้)
+     ตัวเลขระยะอยู่ layer PG-DIM · ชื่อที่พิมพ์เองอยู่ PG-NOTE */
+  (st.measures || []).forEach((m) => {
+    const pts = (m.pts || []).map((p) => [+p.x || 0, +p.z || 0]);
+    if (pts.length < 2) return;
+    const lay = p3MeasLayer(m.kind);
+    poly(lay, pts, false);
+    pts.forEach((p) => circle(lay, p[0], p[1], TH * 0.35));
+    for (let i = 1; i < pts.length; i++) {
+      const seg = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+      if (seg <= 0.3) continue;
+      text("PG-DIM", (pts[i][0] + pts[i - 1][0]) / 2, (pts[i][1] + pts[i - 1][1]) / 2 - TH * 0.8, TH, seg.toFixed(2), true);
+    }
+    const last = pts[pts.length - 1];
+    text("PG-DIM", last[0], last[1] - TH * 2.4, TH * 1.15, "TOTAL " + p3MeasLen(m).toFixed(2) + " m", true);
+    if ((m.name || "").trim()) text("PG-NOTE", last[0], last[1] - TH * 3.9, TH, m.name.trim(), true);
+  });
+
+  // ลูกศรทิศเหนือ มุมขวาบนของขอบเขตผัง
+  const nx = B.maxX + span * 0.09, nz = B.minZ;
+  const AR = span * 0.05;
+  line("PG-NORTH", nx, nz + AR, nx, nz - AR);
+  line("PG-NORTH", nx, nz - AR, nx - AR * 0.32, nz - AR * 0.55);
+  line("PG-NORTH", nx, nz - AR, nx + AR * 0.32, nz - AR * 0.55);
+  text("PG-NORTH", nx, nz - AR * 1.9, TH * 1.4, "N", true);
+
+  // หัวเรื่อง — ชื่องานอาจเป็นไทย จึงอยู่ PG-NOTE ส่วนบรรทัดตัวเลขเป็นอังกฤษล้วนบน PG-DIM
+  const total = p3CountAll(st);
+  const kwp = Math.round(total * (+st.wp || 650) / 10) / 100;
+  const ty = B.maxZ + span * 0.06;
+  if (job && job.name) text("PG-NOTE", B.minX, ty + TH * 2.2, TH * 1.6, String(job.name));
+  text("PG-DIM", B.minX, ty, TH * 1.15,
+    "PV PLAN 1:1 (1 unit = 1 m)  |  " + total + " modules  |  " + kwp.toFixed(2) + " kWp"
+    + (st.baseMap ? "  |  scale from satellite map" : "  |  scale NOT from map"));
+
+  g(0, "ENDSEC"); g(0, "EOF");
+  return O.join("\r\n") + "\r\n";
+}
+
 /* ── ผังมองจากด้านบน: รอยเท้าของแผงแต่ละแผงในพิกัดโลก (เมตร) ──
    ใช้ทรานส์ฟอร์มชุดเดียวกับที่ renderer ใช้วางแผงจริง (กลุ่มหลังคา → เอียง → หมุนบล็อก → ขาตั้ง)
    คืน [{ key, uid, blk, side, pts:[[x,z]×4], cx, cz }] · pts = สี่มุมของแผงหลังฉายลงระนาบพื้น
@@ -2485,6 +2607,18 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       document.body.appendChild(a); a.click(); a.remove();
     } catch (e) { alert("ส่งออกภาพไม่สำเร็จ: " + e.message); }
   };
+  /* ส่งออกเป็นไฟล์เขียนแบบ — เปิดต่อใน AutoCAD/DraftSight/LibreCAD ได้เลย สเกล 1 หน่วย = 1 เมตร
+     ใส่ BOM ไว้ข้างหน้า เพื่อให้โปรแกรมที่อ่านไฟล์เป็นข้อความรู้ว่าเป็น UTF-8 (ชื่อภาษาไทยจะได้ไม่เพี้ยน) */
+  const doDxf = () => {
+    try {
+      const txt = p3Dxf(st, job);
+      const url = URL.createObjectURL(new Blob(["﻿" + txt], { type: "application/dxf" }));
+      const a = document.createElement("a");
+      a.href = url; a.download = (job ? (job.code || job.name || "plan3d") : "plan3d") + "-PLAN.dxf";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } catch (e) { alert("ส่งออก DXF ไม่สำเร็จ: " + e.message); }
+  };
   /* ถ้าเบราว์เซอร์บล็อก dialog อยู่ confirm จะคืน false กลับมาทันที (<80ms) — ถือว่าไม่มีคนกดยกเลิกจริง ปล่อยให้ปิดได้ จะได้ไม่ติดอยู่ในหน้าจอ */
   const tryClose = () => {
     if (dirty) { const t0 = Date.now(); if (!confirm("มีการแก้ไขที่ยังไม่บันทึก — ปิดโดยไม่บันทึกใช่ไหม?") && Date.now() - t0 > 80) return; }
@@ -3475,6 +3609,9 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       {/* footer */}
       <div style={{ paddingTop: 9, paddingLeft: isMobile ? 12 : 18, paddingRight: isMobile ? 12 : 18, paddingBottom: "calc(9px + env(safe-area-inset-bottom,0px))", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
         <button className="p3-b" onClick={doPng} title="บันทึกภาพหน้าจอ 3D เป็นไฟล์ PNG"><P3Icon name="camera" size={14} />ภาพ PNG</button>
+        <button className="p3-b" onClick={doDxf}
+          title="ส่งออกผังเป็นไฟล์ DXF — เปิดต่อใน AutoCAD / DraftSight / LibreCAD ได้เลย สเกล 1 หน่วย = 1 เมตร แยก layer หลังคา/แผง/สิ่งบดบัง/เส้นวัด">
+          <P3Icon name="doc" size={14} />แบบ DXF</button>
         <button className="p3-b" onClick={() => setSysOpen(true)} disabled={!total}
           title={total ? "เลือกแผง/อินเวอร์เตอร์ จัดสตริง และคำนวณผลผลิตจากมุมแผงจริง" : "วางแผงก่อนถึงจะคำนวณระบบได้"}>
           <P3Icon name="sun" size={14} />ออกแบบระบบ &amp; ผลผลิต
@@ -3496,4 +3633,4 @@ function Plan3DEditor({ job, onClose, currentUser }) {
   );
 }
 
-Object.assign(window, { Plan3DEditor, usePlan3d, P3_MEAS_KINDS, p3MeasKind, p3MeasLen });
+Object.assign(window, { Plan3DEditor, usePlan3d, P3_MEAS_KINDS, p3MeasKind, p3MeasLen, p3Dxf });
