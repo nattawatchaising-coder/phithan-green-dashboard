@@ -900,10 +900,13 @@ ul.find li i{color:#6C7A74}
   body{background:#fff;font-size:10.5px}
   .sec,.foot{max-width:none;margin:0;padding:0 0 10px;page-break-after:auto}
   .sec{padding-top:10px}
-  /* หน้าปกกินเต็มหนึ่งหน้า A4 พอดี แล้วขึ้นหน้าใหม่เสมอ
-     ไม่ใช้ margin ติดลบดันสีเขียวออกนอกขอบกระดาษ เพราะทำให้หน้ากว้างเกินและเบราว์เซอร์แถมหน้าว่างมา */
-  .cover{max-width:none;min-height:auto;height:265mm;margin:0;padding:15mm 14mm 11mm;
-    page-break-after:always;break-after:page}
+  /* หน้าปกสีเขียวกินเต็มแผ่น ไม่มีขอบขาว — ตั้งขอบกระดาษเป็น 0 เฉพาะหน้าปก ด้วย @page ที่ตั้งชื่อไว้
+     (หน้าอื่นยังมีขอบ 14/13 มม. ตามเดิม) แล้วให้ตัวหน้าปกสูงเท่ากระดาษ A4 เป๊ะ
+     ไม่ใช้ margin ติดลบดันสีเขียวออกนอกขอบ เพราะทำให้หน้ากว้างเกินและเบราว์เซอร์แถมหน้าว่างมา
+     297mm เต็ม ๆ จะโดนปัดเศษจนล้นไปอีกหน้า เลยหย่อนไว้นิดหนึ่ง */
+  @page cover{margin:0}
+  .cover{page:cover;max-width:none;min-height:0;width:100%;height:296.6mm;margin:0;
+    padding:19mm 17mm 14mm;page-break-after:always;break-after:page}
   /* บีบช่องว่างส่วนหัวปกลงให้มากที่สุด แล้วยกพื้นที่ที่เหลือทั้งหมดไปให้รูป 3 มิติ
      (ผู้ใช้ต้องการรูปใหญ่เต็มหน้าปก ไม่ใช่รูปเล็ก ๆ กลางหน้า) */
   .cover .cv-mid{padding:22px 0 8px}
