@@ -532,16 +532,12 @@ function p3Dxf(st, job, media) {
      เลือกมาตราส่วนที่เล็กที่สุดที่ผังยังลงคอลัมน์ซ้ายได้ (เว้นขอบไว้หายใจ) */
   const IN = PG_SHEET.IN;
   const AW = IN.x1 - PG_SHEET.TB - IN.x0;                // ความกว้างกรอบเขียนแบบทั้งหมด
-  const P3_COL = 128;                                    // คอลัมน์ขวา (หัวเรื่อง/เข็มทิศ/รูปตัดแผง)
-  const P3_TABW = 196;                                   // แถบตารางล่างขวา กว้างกว่าคอลัมน์ขวา
-
-  /* ต้องรู้ความสูงของแถบตารางก่อน ถึงจะรู้ว่าเหลือที่ให้ผังเท่าไร */
-  const M = p3SldModel(st, job);
+  const P3_COL = 128;                                    // คอลัมน์ขวา (หัวเรื่อง/มาตราส่วน/เข็มทิศ)
   const RH = 4.6;
-  const area = p3AreaRows(st, M), spec = p3PlanSpec(st, job, M);
-  const areaH = area.length * RH, specH = spec.length * RH, tabH = areaH + specH + 8;
 
-  const A = { w: AW - P3_COL - 8, h: (IN.y1 - IN.y0) - tabH };
+  /* ผังกินความสูงเต็มกรอบ — ตารางสรุปโครงการ ตาราง AREA และรูปตัดแผงเอาออกแล้ว
+     จะได้เห็นภาพถ่ายกับผังใหญ่ที่สุดเท่าที่กระดาษ A3 ให้ได้ */
+  const A = { w: AW - P3_COL - 8, h: IN.y1 - IN.y0 };
   const needW = Math.max(0.5, B.maxX - B.minX), needH = Math.max(0.5, B.maxY - B.minY);
   const SC = P3_SCALES.find((s) => needW * 1000 <= A.w * 0.94 * s && needH * 1000 <= A.h * 0.94 * s)
     || P3_SCALES[P3_SCALES.length - 1];
@@ -551,8 +547,8 @@ function p3Dxf(st, job, media) {
   P3_DXF_LAYERS.forEach((L) => doc.layer(L[0], L[1], "CONTINUOUS", L[2]));
   pgTableLayers(doc);
 
-  /* วางกึ่งกลางผังในพื้นที่ที่เหลือ (เหนือแถบตาราง ซ้ายของคอลัมน์ขวา) */
-  const px = IN.x0 + A.w / 2, py = IN.y0 + tabH + A.h / 2;
+  /* วางกึ่งกลางผังในพื้นที่ที่เหลือ (ซ้ายของคอลัมน์ขวา) */
+  const px = IN.x0 + A.w / 2, py = IN.y0 + A.h / 2;
   const ox = (B.minX + B.maxX) / 2 - px * k;
   const oy = (B.minY + B.maxY) / 2 - py * k;
 
@@ -642,11 +638,8 @@ function p3Dxf(st, job, media) {
   [0, 0.5, 1].forEach((f) => pen.text("PG-NORTH", bx + 40 * f, by + 3, 2.2, (barM * f).toFixed(0), { align: 1, valign: 1 }));
   pen.text("PG-NORTH", bx + 44, by + 0.4, 2.2, "METRES   SCALE 1:" + SC);
 
-  /* ── คอลัมน์ขวา: ไล่จากบนลงล่าง ──
-     หัวเรื่อง + มาตราส่วน + เข็มทิศ → รูปตัดแผง → ตารางระยะสาย → บล็อกสรุปโครงการ → ตาราง AREA
-     ความสูงแต่ละก้อนคำนวณล่วงหน้าได้ เพราะความสูงแถวคงที่ จึงจัดให้ชนขอบล่างพอดี */
+  /* ── คอลัมน์ขวา: หัวเรื่อง + มาตราส่วน + เข็มทิศ → ตารางระยะสาย ── */
   const RX1 = AR.x1 - 2, RX0 = RX1 - P3_COL, RW = P3_COL;
-  const TX0 = RX1 - P3_TABW;
 
   pgSheetTitle(pen, RX0, AR.y1 - 12, "OVERALL LAYOUT", 7.4, RW - 30, 0);
   pen.text("PG-NOTE", RX0, AR.y1 - 19, 2.4, "SCALE");
@@ -654,29 +647,12 @@ function p3Dxf(st, job, media) {
   pen.text("PG-NOTE", RX1 - 28, AR.y1 - 22.5, 2.4, "A3=1:" + SC);
   pgCompass(pen, RX1 - 12, AR.y1 - 40, 6.5);
 
-  /* แถบตารางชิดขอบล่างขึ้นมา — กว้างกว่าคอลัมน์ขวา ตามแบบจริง */
-  const yArea = AR.y0 + 3 + areaH;
-  pgGrid(pen, TX0, yArea, P3_TABW, [1.6, 1, 1.2, 1, 1, 1, 1], area, { rh: RH, th: 2.1, headRow: 0 });
-  pgSpecBlock(pen, TX0, yArea + specH, P3_TABW, spec[0][0] + "   :   " + spec[0][1], spec.slice(1),
-    { rh: RH, th: 2.2, split: 0.55 });
-
   /* ตารางระยะสายหน้างาน — ขึ้นเฉพาะเมื่อวัดระยะไว้จริง ไม่มีก็ไม่ต้องมีตารางเปล่า */
-  let topY = AR.y0 + tabH + 4;
   const cab = p3CableRows(st);
   if (cab.length) {
-    topY += pgGrid(pen, RX0, topY + (cab.length + 2) * RH, RW, [2.4, 1, 0.6],
+    pgGrid(pen, RX0, AR.y0 + 4 + (cab.length + 2) * RH, RW, [2.4, 1, 0.6],
       [["#", "ระยะสายหน้างาน โดยประมาณ"], ["ประเภท", "ระยะ", ""]].concat(cab),
-      { rh: RH, th: 2.2, align: [0, 2, 0], headRow: 1 }) + 10;
-  }
-
-  /* รูปตัดแผงโซล่า — ใส่เฉพาะเมื่อยังมีที่เหลือพอ ไม่งั้นจะไปทับหัวเรื่อง */
-  const ps = ((window.BOQ && window.BOQ.PANELS) || []).find((p) => p.model === (st.sys || {}).panelModel) || {};
-  if (topY + 62 < AR.y1 - 52) {
-    pgModuleDetail(pen, RX0 + 10, topY + 14, 44, {
-      wMm: Math.round((+ps.width || 1.134) * 1000), hMm: Math.round((+ps.length || 2.382) * 1000),
-      tMm: +ps.frame || 30,
-      caption: "แผงขนาด " + (+st.wp || 650) + " วัตต์  (" + (M.panel.model || "-") + ")",
-    });
+      { rh: RH, th: 2.2, align: [0, 2, 0], headRow: 1 });
   }
 
   pen.text("PG-NOTE", AR.x0 + 4, AR.y0 + 9, 2.2,

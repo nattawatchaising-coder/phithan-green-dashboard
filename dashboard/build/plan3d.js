@@ -960,17 +960,10 @@ function p3Dxf(st, job, media) {
   const IN = PG_SHEET.IN;
   const AW = IN.x1 - PG_SHEET.TB - IN.x0;
   const P3_COL = 128;
-  const P3_TABW = 196;
-  const M = p3SldModel(st, job);
   const RH = 4.6;
-  const area = p3AreaRows(st, M),
-    spec = p3PlanSpec(st, job, M);
-  const areaH = area.length * RH,
-    specH = spec.length * RH,
-    tabH = areaH + specH + 8;
   const A = {
     w: AW - P3_COL - 8,
-    h: IN.y1 - IN.y0 - tabH
+    h: IN.y1 - IN.y0
   };
   const needW = Math.max(0.5, B.maxX - B.minX),
     needH = Math.max(0.5, B.maxY - B.minY);
@@ -983,7 +976,7 @@ function p3Dxf(st, job, media) {
   P3_DXF_LAYERS.forEach(L => doc.layer(L[0], L[1], "CONTINUOUS", L[2]));
   pgTableLayers(doc);
   const px = IN.x0 + A.w / 2,
-    py = IN.y0 + tabH + A.h / 2;
+    py = IN.y0 + A.h / 2;
   const ox = (B.minX + B.maxX) / 2 - px * k;
   const oy = (B.minY + B.maxY) / 2 - py * k;
   const sheet = pgSheet(doc, {
@@ -1102,40 +1095,18 @@ function p3Dxf(st, job, media) {
   const RX1 = AR.x1 - 2,
     RX0 = RX1 - P3_COL,
     RW = P3_COL;
-  const TX0 = RX1 - P3_TABW;
   pgSheetTitle(pen, RX0, AR.y1 - 12, "OVERALL LAYOUT", 7.4, RW - 30, 0);
   pen.text("PG-NOTE", RX0, AR.y1 - 19, 2.4, "SCALE");
   pen.text("PG-NOTE", RX1 - 28, AR.y1 - 18, 2.4, "A1=1:" + Math.round(SC / 1.414));
   pen.text("PG-NOTE", RX1 - 28, AR.y1 - 22.5, 2.4, "A3=1:" + SC);
   pgCompass(pen, RX1 - 12, AR.y1 - 40, 6.5);
-  const yArea = AR.y0 + 3 + areaH;
-  pgGrid(pen, TX0, yArea, P3_TABW, [1.6, 1, 1.2, 1, 1, 1, 1], area, {
-    rh: RH,
-    th: 2.1,
-    headRow: 0
-  });
-  pgSpecBlock(pen, TX0, yArea + specH, P3_TABW, spec[0][0] + "   :   " + spec[0][1], spec.slice(1), {
-    rh: RH,
-    th: 2.2,
-    split: 0.55
-  });
-  let topY = AR.y0 + tabH + 4;
   const cab = p3CableRows(st);
   if (cab.length) {
-    topY += pgGrid(pen, RX0, topY + (cab.length + 2) * RH, RW, [2.4, 1, 0.6], [["#", "ระยะสายหน้างาน โดยประมาณ"], ["ประเภท", "ระยะ", ""]].concat(cab), {
+    pgGrid(pen, RX0, AR.y0 + 4 + (cab.length + 2) * RH, RW, [2.4, 1, 0.6], [["#", "ระยะสายหน้างาน โดยประมาณ"], ["ประเภท", "ระยะ", ""]].concat(cab), {
       rh: RH,
       th: 2.2,
       align: [0, 2, 0],
       headRow: 1
-    }) + 10;
-  }
-  const ps = (window.BOQ && window.BOQ.PANELS || []).find(p => p.model === (st.sys || {}).panelModel) || {};
-  if (topY + 62 < AR.y1 - 52) {
-    pgModuleDetail(pen, RX0 + 10, topY + 14, 44, {
-      wMm: Math.round((+ps.width || 1.134) * 1000),
-      hMm: Math.round((+ps.length || 2.382) * 1000),
-      tMm: +ps.frame || 30,
-      caption: "แผงขนาด " + (+st.wp || 650) + " วัตต์  (" + (M.panel.model || "-") + ")"
     });
   }
   pen.text("PG-NOTE", AR.x0 + 4, AR.y0 + 9, 2.2, st.baseMap ? "SCALE TAKEN FROM SATELLITE IMAGERY" : "SCALE NOT TAKEN FROM MAP - VERIFY ON SITE");
