@@ -331,25 +331,27 @@ function TableView({
       padding: "13px 14px",
       textAlign: "center"
     }
-  }, React.createElement("select", {
+  }, React.createElement(Dropdown, {
     value: j.stage,
-    onChange: e => onSetStage(j.id, e.target.value),
+    onChange: v => onSetStage(j.id, v),
+    options: SF.STAGES.map(s => ({
+      value: s.key,
+      label: s.th,
+      sub: s.en
+    })),
     style: {
-      fontFamily: "inherit",
+      width: "auto",
+      display: "inline-flex",
+      gap: 4,
       fontSize: 11.5,
       fontWeight: 700,
       color: stageOf(j.stage).fg,
       background: stageOf(j.stage).soft,
       border: "1px solid transparent",
       borderRadius: 99,
-      padding: "5px 10px",
-      cursor: "pointer",
-      outline: "none"
+      padding: "5px 8px 5px 11px"
     }
-  }, SF.STAGES.map(s => React.createElement("option", {
-    key: s.key,
-    value: s.key
-  }, s.th)))), React.createElement("td", {
+  })), React.createElement("td", {
     style: {
       padding: "13px 14px",
       textAlign: "center"
@@ -726,25 +728,27 @@ function TableMobile({
         gap: 8,
         flexWrap: "wrap"
       }
-    }, React.createElement("select", {
+    }, React.createElement(Dropdown, {
       value: j.stage,
-      onChange: e => onSetStage(j.id, e.target.value),
+      onChange: v => onSetStage(j.id, v),
+      options: SF.STAGES.map(st => ({
+        value: st.key,
+        label: st.th,
+        sub: st.en
+      })),
       style: {
-        fontFamily: "inherit",
+        width: "auto",
+        display: "inline-flex",
+        gap: 6,
         fontSize: 12,
         fontWeight: 600,
         color: s.fg,
         background: s.soft,
         border: "1px solid " + s.color + "33",
         borderRadius: 8,
-        padding: "6px 9px",
-        cursor: "pointer",
-        outline: "none"
+        padding: "6px 8px 6px 9px"
       }
-    }, SF.STAGES.map(st => React.createElement("option", {
-      key: st.key,
-      value: st.key
-    }, st.th))), React.createElement("span", {
+    }), React.createElement("span", {
       style: {
         display: "inline-flex",
         alignItems: "center",

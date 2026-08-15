@@ -142,12 +142,14 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage }) {
                 </td>
                 {/* stage */}
                 <td style={{ padding: "13px 14px", textAlign: "center" }}>
-                  <select value={j.stage} onChange={(e) => onSetStage(j.id, e.target.value)}
-                    style={{ fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: stageOf(j.stage).fg,
-                      background: stageOf(j.stage).soft, border: "1px solid transparent", borderRadius: 99,
-                      padding: "5px 10px", cursor: "pointer", outline: "none" }}>
-                    {SF.STAGES.map((s) => <option key={s.key} value={s.key}>{s.th}</option>)}
-                  </select>
+                  {/* ใช้เมนูของแอปเอง ไม่ใช้ select ของเบราว์เซอร์ —
+                      ของเบราว์เซอร์เอาสีป้ายไปทำพื้นของรายการที่กางออกมาด้วย ตัวหนังสือเลยอ่านไม่ออก
+                      แล้วมุมโค้งของป้ายก็กลายเป็นเหลี่ยมตอนกาง */}
+                  <Dropdown value={j.stage} onChange={(v) => onSetStage(j.id, v)}
+                    options={SF.STAGES.map((s) => ({ value: s.key, label: s.th, sub: s.en }))}
+                    style={{ width: "auto", display: "inline-flex", gap: 4, fontSize: 11.5, fontWeight: 700,
+                      color: stageOf(j.stage).fg, background: stageOf(j.stage).soft,
+                      border: "1px solid transparent", borderRadius: 99, padding: "5px 8px 5px 11px" }} />
                 </td>
                 {/* deadline */}
                 <td style={{ padding: "13px 14px", textAlign: "center" }}>
@@ -285,12 +287,12 @@ function TableMobile({ jobs, sort, setSort, onOpen, onEdit, onDelete, onSetStage
 
             {/* ท้าย: ขั้นตอน (select) + วัสดุ% + กำหนดเสร็จ */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-              <select value={j.stage} onChange={(e) => onSetStage(j.id, e.target.value)}
-                style={{ fontFamily: "inherit", fontSize: 12, fontWeight: 600, color: s.fg,
-                  background: s.soft, border: "1px solid " + s.color + "33", borderRadius: 8,
-                  padding: "6px 9px", cursor: "pointer", outline: "none" }}>
-                {SF.STAGES.map((st) => <option key={st.key} value={st.key}>{st.th}</option>)}
-              </select>
+              {/* เมนูของแอปเองเหมือนฝั่งตาราง — ป้ายสีบนมือถือก็เจอปัญหารายการอ่านไม่ออกแบบเดียวกัน */}
+              <Dropdown value={j.stage} onChange={(v) => onSetStage(j.id, v)}
+                options={SF.STAGES.map((st) => ({ value: st.key, label: st.th, sub: st.en }))}
+                style={{ width: "auto", display: "inline-flex", gap: 6, fontSize: 12, fontWeight: 600,
+                  color: s.fg, background: s.soft, border: "1px solid " + s.color + "33",
+                  borderRadius: 8, padding: "6px 8px 6px 9px" }} />
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                 <MatDots mat={j.mat} />
                 <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "var(--mono)", color: j.matReady ? "var(--primary-dark)" : "var(--text-3)" }}>{j.matReadyPct}%</span>
