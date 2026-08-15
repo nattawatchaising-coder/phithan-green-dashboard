@@ -476,18 +476,23 @@ input, select, textarea { font-family: inherit; }
 
 /* พิมพ์ / บันทึกเป็น PDF — ให้เหลือเฉพาะกระดาษรายงาน ไม่มีเมนูหรือปุ่มติดไปด้วย */
 @media print {
-  html, body, #root { height: auto !important; overflow: visible !important; background: #fff !important; }
+  /* ธีมมืดตั้ง color-scheme: dark ไว้ที่ :root — พื้นกระดาษของเบราว์เซอร์เลยเป็นสีดำ
+     ต้องสั่งกลับเป็น light ตอนพิมพ์ ไม่งั้นได้ขอบดำรอบรายงานติดมาในไฟล์ PDF */
+  :root { color-scheme: light !important; }
+  html, body, #root, .app-root { background: #fff !important; }
+  html, body, #root { height: auto !important; overflow: visible !important; }
   .app-root { display: block !important; height: auto !important; overflow: visible !important; }
   .app-root > *:not(.sv-rep-overlay) { display: none !important; }
-  .sv-rep-overlay { position: static !important; inset: auto !important; background: none !important;
+  .sv-rep-overlay { position: static !important; inset: auto !important; background: #fff !important;
     padding: 0 !important; overflow: visible !important; z-index: auto !important; }
   .sv-rep-paper { max-width: none !important; margin: 0 !important; padding: 0 !important;
     border-radius: 0 !important; box-shadow: none !important; }
   .sv-rep-noprint { display: none !important; }
   .sv-rep-shot img { max-height: 165mm; }
   .sv-rep-shot[data-p="1"] img { max-height: 135mm; }
-  /* คงสีป้าย/เส้นคั่นไว้ในไฟล์ PDF ไม่งั้นเบราว์เซอร์ตัดพื้นหลังทิ้งหมด */
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  /* คงสีป้าย/เส้นคั่นไว้ในไฟล์ PDF ไม่งั้นเบราว์เซอร์ตัดพื้นหลังทิ้งหมด
+     บังคับเฉพาะในกระดาษรายงาน ถ้าบังคับทั้งหน้าพื้นมืดของธีมจะติดไปด้วย */
+  .sv-rep-paper, .sv-rep-paper * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   @page { size: A4; margin: 12mm 10mm; }
 }
 
