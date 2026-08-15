@@ -1326,5 +1326,51 @@ function suPrintReport(D) {
   return w;
 }
 
-Object.assign(window, { suReportHTML, suPrintReport, RP_SECTIONS, rpPickAll, rpTable, rpMonthly, rpCash, rpIv,
+/* ── ดูรายงานบนจอก่อน แล้วค่อยกดบันทึกเป็น PDF (แบบเดียวกับรายงานผลสำรวจ) ──
+   วางรายงานไว้ใน iframe เพราะ CSS ของรายงานเขียนทับ body/.sec/.foot ถ้าปล่อยลงหน้าเว็บตรง ๆ จะไปชนกับหน้าจอหลัก
+   สั่งพิมพ์จาก contentWindow ของ iframe → ได้เฉพาะหน้ารายงาน ไม่ติดหน้าจอโปรแกรม */
+function SuReportView({ html, title, onClose }) {
+  const ref = React.useRef(null);
+  const [ready, setReady] = React.useState(false);
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 760;
+
+  /* รอฟอนต์ + รูป (โลโก้/ภาพ 3 มิติ) ในกรอบให้เสร็จก่อนเปิดปุ่มพิมพ์
+     ไม่งั้นตัวอักษรไทยจะเลื่อน หรือได้ PDF ที่ช่องรูปว่างเปล่า */
+  const onLoad = () => {
+    const w = ref.current && ref.current.contentWindow;
+    if (!w) { setReady(true); return; }
+    const imgs = Array.prototype.slice.call(w.document.images || []).filter((im) => !im.complete);
+    const wait = imgs.length ? Promise.all(imgs.map((im) => new Promise((res) => {
+      im.addEventListener("load", res); im.addEventListener("error", res);
+    }))) : Promise.resolve();
+    const fonts = w.document.fonts && w.document.fonts.ready ? w.document.fonts.ready : Promise.resolve();
+    Promise.race([Promise.all([fonts, wait]), new Promise((res) => setTimeout(res, 6000))])
+      .then(() => setReady(true));
+  };
+
+  const doPrint = () => {
+    const w = ref.current && ref.current.contentWindow;
+    if (!w) return;
+    try { w.focus(); w.print(); } catch (e) { alert("สั่งพิมพ์ไม่สำเร็จ: " + e.message); }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 260, background: "rgba(8,20,14,.62)", display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", gap: 9, alignItems: "center", padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
+        <button onClick={onClose} title="ปิด" style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", fontSize: 16, lineHeight: 1, flexShrink: 0 }}>✕</button>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title || "รายงานออกแบบระบบ"}</div>
+          <div style={{ fontSize: 11, color: "var(--text-3)" }}>{ready ? "กดปุ่มแล้วเลือก “บันทึกเป็น PDF”" : "กำลังจัดหน้ารายงาน…"}</div>
+        </div>
+        <button onClick={doPrint} disabled={!ready} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "11px 16px", borderRadius: 11, border: "none", background: ready ? "var(--primary)" : "var(--surface3)", color: ready ? "#fff" : "var(--text-3)", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: ready ? "pointer" : "default", flexShrink: 0 }}>
+          <P3Icon name="doc" size={16} /> บันทึก PDF
+        </button>
+      </div>
+      <iframe ref={ref} srcDoc={html} onLoad={onLoad} title="report"
+        style={{ flex: 1, width: "100%", border: "none", background: "#fff", display: "block", padding: isMobile ? 0 : undefined }} />
+    </div>
+  );
+}
+
+Object.assign(window, { SuReportView, suReportHTML, suPrintReport, RP_SECTIONS, rpPickAll, rpTable, rpMonthly, rpCash, rpIv,
   rpDayPower, rpYearMap, rpIvAll, rpLossFlow, rpSunPath, rpIvFamily, rpFlowDay, rpPxx, RP_FLOW, RP_CSS });

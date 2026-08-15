@@ -1743,8 +1743,9 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   const repCount = (typeof RP_SECTIONS !== "undefined" ? RP_SECTIONS : []).filter((s) => repPick[s.key]).length;
 
   /* รวมทุกอย่างที่คำนวณไว้แล้วส่งให้ตัวสร้างรายงาน — ไม่คำนวณซ้ำ ตัวเลขในรายงานจึงตรงกับบนจอเป๊ะ */
+  const [repHtml, setRepHtml] = React.useState(null);
   const doReport = () => {
-    if (typeof suPrintReport !== "function") { alert("ยังโหลดตัวสร้างรายงานไม่สำเร็จ ลองรีเฟรชหน้าอีกครั้ง"); return; }
+    if (typeof suReportHTML !== "function") { alert("ยังโหลดตัวสร้างรายงานไม่สำเร็จ ลองรีเฟรชหน้าอีกครั้ง"); return; }
     setRepOpen(false);
     /* รายงานต้องมีข้อมูล 12 เดือนเสมอ — ถ้ากดปุ่มตั้งแต่ยังไม่ผ่านขั้นที่ 3 ให้คำนวณตรงนี้เลย
        (ไม่งั้นจะได้รายงานที่หัวข้อทั้งปีหายไปเงียบ ๆ) */
@@ -1754,13 +1755,14 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
     /* กราฟดาต้าชีตในรายงานตรึงเงื่อนไขไว้ ไม่ผูกกับปุ่มที่ผู้ใช้กดค้างไว้บนหน้าจอ */
     const famG = par && typeof ivFamily === "function" ? ivFamily(par, panel, { mode: "irr", nSeries: 1, tc: 25 }) : [];
     const famT = par && typeof ivFamily === "function" ? ivFamily(par, panel, { mode: "temp", nSeries: famStrN, g: 1000 }) : [];
-    suPrintReport({ job, sys: S, panel, inv, groups, plan, microSel, isMicro, energy, life, roi, roiCfg,
+    /* เปิดรายงานให้ดูบนจอก่อน (เหมือนรายงานผลสำรวจ) แล้วค่อยกด "บันทึก PDF" ในแถบด้านบน */
+    setRepHtml(suReportHTML({ job, sys: S, panel, inv, groups, plan, microSel, isMicro, energy, life, roi, roiCfg,
       env, sunPath, isoShade: isoNow, ivFamG: famG, ivFamT: famT,
       dis, prof, px, pxMode, battS, gridCfg, roiP,
       ivRows, ivDone, ivAvg, ivOutliers, site, siteDate, acKw, totalPanels, warns, foot,
       /* โหมดไมโครใช้ผัง "แผงอยู่ไมโครตัวไหน" แทนผังสตริง — ผังในรายงานจะได้ตรงกับที่เห็นบนจอ */
       assign: isMicro ? microAssign : effAssign, microUnits, phases, phaseBins, phaseBal, uidPhase,
-      shade3d, sim, simHour, year: yearNow, snapImg, pick: repPick });
+      shade3d, sim, simHour, year: yearNow, snapImg, pick: repPick }));
   };
 
   return (
@@ -3587,6 +3589,12 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ตัวอย่างรายงานบนจอ — กด "บันทึก PDF" ในแถบด้านบนเพื่อพิมพ์/เก็บเป็นไฟล์ */}
+      {repHtml && typeof SuReportView === "function" && (
+        <SuReportView html={repHtml} onClose={() => setRepHtml(null)}
+          title={"รายงานออกแบบระบบ" + (job && job.code ? " " + job.code : "")} />
       )}
     </div>
   );

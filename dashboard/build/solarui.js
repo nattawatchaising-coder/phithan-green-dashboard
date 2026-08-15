@@ -3328,8 +3328,9 @@ function SolarWorkspace({
     });
   };
   const repCount = (typeof RP_SECTIONS !== "undefined" ? RP_SECTIONS : []).filter(s => repPick[s.key]).length;
+  const [repHtml, setRepHtml] = React.useState(null);
   const doReport = () => {
-    if (typeof suPrintReport !== "function") {
+    if (typeof suReportHTML !== "function") {
       alert("ยังโหลดตัวสร้างรายงานไม่สำเร็จ ลองรีเฟรชหน้าอีกครั้ง");
       return;
     }
@@ -3346,7 +3347,7 @@ function SolarWorkspace({
       nSeries: famStrN,
       g: 1000
     }) : [];
-    suPrintReport({
+    setRepHtml(suReportHTML({
       job,
       sys: S,
       panel,
@@ -3393,7 +3394,7 @@ function SolarWorkspace({
       year: yearNow,
       snapImg,
       pick: repPick
-    });
+    }));
   };
   return React.createElement("div", {
     className: "p3 su"
@@ -7242,7 +7243,11 @@ function SolarWorkspace({
   }, React.createElement(P3Icon, {
     name: "doc",
     size: 14
-  }), "\u0E2D\u0E2D\u0E01\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19")))));
+  }), "\u0E2D\u0E2D\u0E01\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19")))), repHtml && typeof SuReportView === "function" && React.createElement(SuReportView, {
+    html: repHtml,
+    onClose: () => setRepHtml(null),
+    title: "รายงานออกแบบระบบ" + (job && job.code ? " " + job.code : "")
+  }));
 }
 function SolarDesignHost({
   job,

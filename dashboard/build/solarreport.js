@@ -951,7 +951,131 @@ function suPrintReport(D) {
   Promise.race([Promise.all([fonts, imgsReady()]), new Promise(res => setTimeout(res, 6000))]).then(() => setTimeout(go, 250));
   return w;
 }
+function SuReportView({
+  html,
+  title,
+  onClose
+}) {
+  const ref = React.useRef(null);
+  const [ready, setReady] = React.useState(false);
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 760;
+  const onLoad = () => {
+    const w = ref.current && ref.current.contentWindow;
+    if (!w) {
+      setReady(true);
+      return;
+    }
+    const imgs = Array.prototype.slice.call(w.document.images || []).filter(im => !im.complete);
+    const wait = imgs.length ? Promise.all(imgs.map(im => new Promise(res => {
+      im.addEventListener("load", res);
+      im.addEventListener("error", res);
+    }))) : Promise.resolve();
+    const fonts = w.document.fonts && w.document.fonts.ready ? w.document.fonts.ready : Promise.resolve();
+    Promise.race([Promise.all([fonts, wait]), new Promise(res => setTimeout(res, 6000))]).then(() => setReady(true));
+  };
+  const doPrint = () => {
+    const w = ref.current && ref.current.contentWindow;
+    if (!w) return;
+    try {
+      w.focus();
+      w.print();
+    } catch (e) {
+      alert("สั่งพิมพ์ไม่สำเร็จ: " + e.message);
+    }
+  };
+  return React.createElement("div", {
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 260,
+      background: "rgba(8,20,14,.62)",
+      display: "flex",
+      flexDirection: "column"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 9,
+      alignItems: "center",
+      padding: "11px 14px",
+      background: "var(--surface)",
+      borderBottom: "1px solid var(--border)",
+      flexShrink: 0
+    }
+  }, React.createElement("button", {
+    onClick: onClose,
+    title: "\u0E1B\u0E34\u0E14",
+    style: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)",
+      fontSize: 16,
+      lineHeight: 1,
+      flexShrink: 0
+    }
+  }, "\u2715"), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 800,
+      color: "var(--text-1)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, title || "รายงานออกแบบระบบ"), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, ready ? "กดปุ่มแล้วเลือก “บันทึกเป็น PDF”" : "กำลังจัดหน้ารายงาน…")), React.createElement("button", {
+    onClick: doPrint,
+    disabled: !ready,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      padding: "11px 16px",
+      borderRadius: 11,
+      border: "none",
+      background: ready ? "var(--primary)" : "var(--surface3)",
+      color: ready ? "#fff" : "var(--text-3)",
+      fontFamily: "inherit",
+      fontSize: 13.5,
+      fontWeight: 700,
+      cursor: ready ? "pointer" : "default",
+      flexShrink: 0
+    }
+  }, React.createElement(P3Icon, {
+    name: "doc",
+    size: 16
+  }), " \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF")), React.createElement("iframe", {
+    ref: ref,
+    srcDoc: html,
+    onLoad: onLoad,
+    title: "report",
+    style: {
+      flex: 1,
+      width: "100%",
+      border: "none",
+      background: "#fff",
+      display: "block",
+      padding: isMobile ? 0 : undefined
+    }
+  }));
+}
 Object.assign(window, {
+  SuReportView,
   suReportHTML,
   suPrintReport,
   RP_SECTIONS,
