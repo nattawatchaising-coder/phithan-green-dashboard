@@ -352,53 +352,17 @@ function P3SetPreview({
   prep,
   onClose,
   onDownload,
-  onEdit,
   busy
 }) {
-  const [i, setI] = React.useState(0);
-  const [open, setOpen] = React.useState(false);
-  const sheets = prep && prep.sheets || [];
-  const cur = sheets[Math.min(i, sheets.length - 1)];
-  const baseSt = prep && prep.st || {};
-  const [edit, setEdit] = React.useState(() => Object.assign({}, baseSt.sldEdit));
-  const stE = React.useMemo(() => Object.assign({}, baseSt, {
-    sldEdit: edit
-  }), [baseSt, edit]);
+  const cur = (prep && prep.sheets || [])[0];
   const svg = React.useMemo(() => {
     if (!cur) return "";
     try {
-      return cur.make(true, stE);
+      return cur.make(true);
     } catch (e) {
       return '<p style="padding:16px">วาดตัวอย่างไม่สำเร็จ: ' + e.message + "</p>";
     }
-  }, [cur, stE]);
-  const groups = React.useMemo(() => {
-    try {
-      return p3SldFields(p3SldModel(Object.assign({}, baseSt, {
-        sldEdit: null
-      }), prep && prep.job));
-    } catch (e) {
-      return [];
-    }
-  }, [baseSt, prep]);
-  const nEdit = Object.keys(edit).filter(k => edit[k] != null && edit[k] !== "").length;
-  const put = (path, v) => setEdit(p => {
-    const n = Object.assign({}, p);
-    if (v === "") delete n[path];else n[path] = v;
-    return n;
-  });
-  const tab = on => ({
-    padding: "6px 12px",
-    borderRadius: 8,
-    cursor: "pointer",
-    fontSize: 12.5,
-    fontWeight: 700,
-    fontFamily: "inherit",
-    whiteSpace: "nowrap",
-    border: "1px solid " + (on ? "var(--brand,#1f9d3a)" : "var(--border-strong)"),
-    background: on ? "var(--brand,#1f9d3a)" : "var(--surface)",
-    color: on ? "#fff" : "var(--text-1)"
-  });
+  }, [cur]);
   return React.createElement("div", {
     style: {
       position: "fixed",
@@ -435,25 +399,18 @@ function P3SetPreview({
       color: "var(--text-1)",
       whiteSpace: "nowrap"
     }
-  }, "\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E0A\u0E38\u0E14\u0E41\u0E1A\u0E1A"), sheets.map((s, n) => React.createElement("button", {
-    key: s.key,
-    style: tab(n === i),
-    onClick: () => setI(n)
-  }, n + 1, ". ", s.label)), React.createElement("span", {
+  }, "\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E41\u0E1A\u0E1A\u0E1C\u0E31\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"), React.createElement("span", {
     style: {
       flex: 1
     }
-  }), cur && cur.key === "SLD" && React.createElement("button", {
-    style: tab(open),
-    onClick: () => setOpen(!open)
-  }, "\u0E41\u0E01\u0E49\u0E04\u0E48\u0E32\u0E1A\u0E19\u0E41\u0E1A\u0E1A", nEdit ? " (" + nEdit + ")" : ""), React.createElement("button", {
+  }), React.createElement("button", {
     className: "p3-b",
-    onClick: () => onDownload(edit),
+    onClick: onDownload,
     disabled: !!busy
   }, React.createElement(P3Icon, {
     name: "doc",
     size: 14
-  }), busy ? "กำลังโหลด…" : "ดาวน์โหลดทั้งชุด"), React.createElement("button", {
+  }), busy ? "กำลังโหลด…" : "ดาวน์โหลด DXF"), React.createElement("button", {
     className: "p3-b",
     onClick: onClose,
     disabled: !!busy
@@ -461,12 +418,6 @@ function P3SetPreview({
     style: {
       flex: 1,
       minHeight: 0,
-      display: "flex"
-    }
-  }, React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0,
       overflow: "auto",
       background: "#4a4a4a",
       padding: 14,
@@ -483,80 +434,14 @@ function P3SetPreview({
     dangerouslySetInnerHTML: {
       __html: svg
     }
-  })), cur && cur.key === "SLD" && open && React.createElement("div", {
-    style: {
-      width: 320,
-      flexShrink: 0,
-      borderLeft: "1px solid var(--border)",
-      overflow: "auto",
-      padding: 12,
-      background: "var(--surface)"
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: "var(--text-2)",
-      lineHeight: 1.5,
-      marginBottom: 10
-    }
-  }, "\u0E0A\u0E48\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07\u0E08\u0E30\u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E23\u0E30\u0E1A\u0E1A\u0E04\u0E34\u0E14\u0E43\u0E2B\u0E49 (\u0E15\u0E31\u0E27\u0E2A\u0E35\u0E08\u0E32\u0E07) \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E17\u0E31\u0E1A\u0E44\u0E14\u0E49\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E02\u0E2D\u0E07\u0E08\u0E23\u0E34\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19\u0E44\u0E21\u0E48\u0E15\u0E23\u0E07 \u0E41\u0E01\u0E49\u0E41\u0E25\u0E49\u0E27\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E0B\u0E49\u0E32\u0E22\u0E21\u0E37\u0E2D\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E17\u0E31\u0E19\u0E17\u0E35 \xB7 \u0E01\u0E14 \u201C\u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E19\u0E35\u0E49\u201D \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E01\u0E47\u0E1A\u0E15\u0E34\u0E14\u0E44\u0E1B\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19"), groups.map(g => React.createElement("div", {
-    key: g.title,
-    style: {
-      marginBottom: 12
-    }
-  }, React.createElement("div", {
-    style: {
-      fontWeight: 800,
-      fontSize: 12,
-      color: "var(--text-1)",
-      margin: "0 0 6px"
-    }
-  }, g.title), g.items.map(f => React.createElement("label", {
-    key: f.path,
-    style: {
-      display: "block",
-      marginBottom: 6
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-2)"
-    }
-  }, f.label), React.createElement("input", {
-    style: Object.assign({}, P3_INP, {
-      width: "100%",
-      borderColor: edit[f.path] ? "var(--brand,#1f9d3a)" : P3_INP.borderColor
-    }),
-    value: edit[f.path] == null ? "" : edit[f.path],
-    placeholder: f.auto || f.hint || "—",
-    onChange: e => put(f.path, e.target.value)
-  }))))), React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 6,
-      position: "sticky",
-      bottom: 0,
-      background: "var(--surface)",
-      paddingTop: 8
-    }
-  }, React.createElement("button", {
-    className: "p3-b",
-    style: {
-      flex: 1
-    },
-    onClick: () => onEdit(edit)
-  }, "\u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E19\u0E35\u0E49"), React.createElement("button", {
-    className: "p3-b",
-    onClick: () => setEdit({}),
-    disabled: !nEdit
-  }, "\u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34")))), React.createElement("div", {
+  })), React.createElement("div", {
     style: {
       padding: "7px 12px",
       borderTop: "1px solid var(--border)",
       fontSize: 11.5,
       color: "var(--text-2)"
     }
-  }, "A3 \u0E41\u0E19\u0E27\u0E19\u0E2D\u0E19 420 \xD7 297 \u0E21\u0E21. \xB7 \u0E41\u0E1C\u0E48\u0E19\u0E17\u0E35\u0E48 ", cur ? cur.no : "-", " \xB7 \u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E2A\u0E31\u0E48\u0E07\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E21\u0E32\u0E43\u0E2B\u0E49\u0E41\u0E25\u0E49\u0E27 \u0E40\u0E1B\u0E34\u0E14\u0E43\u0E19 AutoCAD \u0E01\u0E14 Ctrl+P \u0E44\u0E14\u0E49\u0E40\u0E25\u0E22", prep && prep.files.length ? " · มีไฟล์ภาพแนบ " + prep.files.length + " ไฟล์ ต้องเก็บไว้โฟลเดอร์เดียวกับ .dxf" : "")));
+  }, "A3 \u0E41\u0E19\u0E27\u0E19\u0E2D\u0E19 420 \xD7 297 \u0E21\u0E21. \xB7 \u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E2A\u0E31\u0E48\u0E07\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E21\u0E32\u0E43\u0E2B\u0E49\u0E41\u0E25\u0E49\u0E27 \u0E40\u0E1B\u0E34\u0E14\u0E43\u0E19 AutoCAD \u0E01\u0E14 Ctrl+P \u0E44\u0E14\u0E49\u0E40\u0E25\u0E22", prep && prep.files.length ? " · มีไฟล์ภาพแนบ " + prep.files.length + " ไฟล์ ต้องเก็บไว้โฟลเดอร์เดียวกับ .dxf" : "")));
 }
 function usePlan3d(jobId) {
   const KEY = "sf_plan3d_" + jobId;
@@ -4681,61 +4566,24 @@ function Plan3DEditor({
     }
   };
   const [busyDxf, setBusyDxf] = React.useState("");
-  const doDxf = async () => {
-    setBusyDxf("plan");
-    try {
-      const n = await p3ExportPlan(st, job);
-      if (n) alert("ดาวน์โหลด " + (n + 1) + " ไฟล์แล้ว\n\nสำคัญ: เก็บไฟล์ .dxf กับไฟล์ภาพไว้ในโฟลเดอร์เดียวกัน\nไม่งั้นเปิดใน AutoCAD แล้วภาพพื้นหลังจะไม่ขึ้น");
-    } catch (e) {
-      alert("ส่งออกผัง DXF ไม่สำเร็จ: " + e.message);
-    }
-    setBusyDxf("");
-  };
-  const doSld = () => {
-    setBusyDxf("sld");
-    try {
-      p3SaveBlob(new Blob([p3Sld(st, job)], {
-        type: "application/dxf"
-      }), (job ? job.code || job.name || "plan3d" : "plan3d") + "-SLD.dxf");
-    } catch (e) {
-      alert("ส่งออก Single Line Diagram ไม่สำเร็จ: " + e.message);
-    }
-    setBusyDxf("");
-  };
   const [setPrep, setSetPrep] = React.useState(null);
   const doSet = async () => {
     setBusyDxf("set");
     try {
-      let photos = [];
-      if (window.FBDB && job && job.id) {
-        const s = await window.FBDB.ref("jobPhotos/" + job.id).once("value");
-        const v = s.val() || {};
-        photos = Object.keys(v).map(k => v[k]).sort((a, b) => String(a.at || "").localeCompare(String(b.at || "")));
-      }
-      setSetPrep(await p3PrepSet(st, job, photos));
+      setSetPrep(await p3PrepSet(st, job, null));
     } catch (e) {
-      alert("เตรียมชุดแบบไม่สำเร็จ: " + e.message);
+      alert("เตรียมแบบผังไม่สำเร็จ: " + e.message);
     }
     setBusyDxf("");
   };
-  const doSetEdit = edit => {
-    const n = Object.keys(edit || {}).length;
-    set({
-      sldEdit: n ? edit : null
-    });
-    alert(n ? "ใช้ค่าที่แก้ " + n + " ช่องแล้ว\nอย่าลืมกดบันทึกแบบ ค่าจะติดไปกับงานนี้ทุกครั้งที่ออกแบบ" : "คืนค่าอัตโนมัติทุกช่องแล้ว");
-  };
-  const doSetDownload = async edit => {
+  const doSetDownload = async () => {
     setBusyDxf("setdl");
     try {
-      const stE = edit && Object.keys(edit).length ? Object.assign({}, st, {
-        sldEdit: edit
-      }) : st;
-      const r = await p3ExportSet(stE, job, null, setPrep);
+      const r = await p3ExportSet(st, job, null, setPrep);
       setSetPrep(null);
-      alert("ดาวน์โหลดชุดแบบ " + r.sheets + " แผ่น" + (r.files ? " + ไฟล์ภาพ " + r.files + " ไฟล์" : "") + "\n\nสำคัญ: เก็บไฟล์ .dxf กับไฟล์ภาพไว้ในโฟลเดอร์เดียวกัน\nไม่งั้นเปิดใน AutoCAD แล้วภาพจะไม่ขึ้น");
+      if (r.files) alert("ดาวน์โหลดแบบผัง 1 แผ่น + ไฟล์ภาพ " + r.files + " ไฟล์" + "\n\nสำคัญ: เก็บไฟล์ .dxf กับไฟล์ภาพไว้ในโฟลเดอร์เดียวกัน\nไม่งั้นเปิดใน AutoCAD แล้วภาพจะไม่ขึ้น");
     } catch (e) {
-      alert("ส่งออกชุดแบบไม่สำเร็จ: " + e.message);
+      alert("ส่งออกแบบผังไม่สำเร็จ: " + e.message);
     }
     setBusyDxf("");
   };
@@ -6949,8 +6797,7 @@ function Plan3DEditor({
     prep: setPrep,
     busy: busyDxf === "setdl",
     onClose: () => setSetPrep(null),
-    onDownload: doSetDownload,
-    onEdit: doSetEdit
+    onDownload: doSetDownload
   }), sysOpen && typeof SolarWorkspace === "function" && React.createElement(SolarWorkspace, {
     job: job,
     st: st,
@@ -7441,29 +7288,13 @@ function Plan3DEditor({
     size: 14
   }), "\u0E20\u0E32\u0E1E PNG"), React.createElement("button", {
     className: "p3-b",
-    onClick: doDxf,
-    disabled: !!busyDxf,
-    title: "\u0E2A\u0E48\u0E07\u0E2D\u0E2D\u0E01\u0E1C\u0E31\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E44\u0E1F\u0E25\u0E4C DXF \u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E01\u0E23\u0E2D\u0E1A A3 + Title Box \u0E41\u0E25\u0E30\u0E20\u0E32\u0E1E\u0E16\u0E48\u0E32\u0E22\u0E17\u0E32\u0E07\u0E2D\u0E32\u0E01\u0E32\u0E28\u0E08\u0E32\u0E07 \u0E46 \u0E40\u0E1B\u0E47\u0E19\u0E1E\u0E37\u0E49\u0E19\u0E2B\u0E25\u0E31\u0E07 (1 \u0E2B\u0E19\u0E48\u0E27\u0E22 = 1 \u0E40\u0E21\u0E15\u0E23)"
-  }, React.createElement(P3Icon, {
-    name: "doc",
-    size: 14
-  }), busyDxf === "plan" ? "กำลังทำ…" : "ผัง DXF"), React.createElement("button", {
-    className: "p3-b",
-    onClick: doSld,
-    disabled: !!busyDxf || !total,
-    title: total ? "สร้าง SINGLE LINE DIAGRAM SOLAR CELL SYSTEM จากสเปคที่ออกแบบไว้ พร้อมกรอบ A3 + Title Box" : "วางแผงก่อนถึงจะเขียนไดอะแกรมได้"
-  }, React.createElement(P3Icon, {
-    name: "bolt",
-    size: 14
-  }), busyDxf === "sld" ? "กำลังทำ…" : "SLD DXF"), React.createElement("button", {
-    className: "p3-b",
     onClick: doSet,
-    disabled: !!busyDxf || !total,
-    title: total ? "ดูตัวอย่างทั้งชุดก่อนโหลด: ผัง · SLD · รูปถ่ายจุดติดตั้ง · ไดอะแกรมต่อสาย DC · วัสดุหน้างาน (A3 แนวนอน มีเลขแผ่นครบ)" : "วางแผงก่อนถึงจะออกชุดแบบได้"
+    disabled: !!busyDxf,
+    title: "\u0E14\u0E39\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E41\u0E1A\u0E1A\u0E1C\u0E31\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E01\u0E48\u0E2D\u0E19\u0E42\u0E2B\u0E25\u0E14 \u2014 A3 \u0E41\u0E19\u0E27\u0E19\u0E2D\u0E19 \u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E01\u0E23\u0E2D\u0E1A + Title Box \u0E41\u0E25\u0E30\u0E20\u0E32\u0E1E\u0E16\u0E48\u0E32\u0E22\u0E17\u0E32\u0E07\u0E2D\u0E32\u0E01\u0E32\u0E28\u0E08\u0E32\u0E07 \u0E46 \u0E40\u0E1B\u0E47\u0E19\u0E1E\u0E37\u0E49\u0E19\u0E2B\u0E25\u0E31\u0E07 (1 \u0E2B\u0E19\u0E48\u0E27\u0E22 = 1 \u0E40\u0E21\u0E15\u0E23)"
   }, React.createElement(P3Icon, {
     name: "doc",
     size: 14
-  }), busyDxf === "set" ? "กำลังทำ…" : "ชุดแบบ DXF"), React.createElement("button", {
+  }), busyDxf === "set" ? "กำลังทำ…" : "ผัง DXF"), React.createElement("button", {
     className: "p3-b",
     onClick: () => setSysOpen(true),
     disabled: !total,
@@ -8147,24 +7978,17 @@ async function p3PrepSet(st, job, photos) {
       url: u
     });
   }
-  const list = [["PLAN", "ผังติดตั้ง", (S, o) => p3Dxf(S, job, Object.assign({
-    imgs
-  }, o))], ["SLD", "ไดอะแกรมเส้นเดียว", (S, o) => p3Sld(S, job, o)]];
-  if (ph.length) list.push(["PHOTO", "รูปถ่ายจุดติดตั้ง", (S, o) => p3PhotoSheet(S, job, Object.assign({
-    photos: ph
-  }, o))]);
-  list.push(["DC", "ต่อสาย DC", (S, o) => p3DcSheet(S, job, o)]);
-  list.push(["MATERIAL", "วัสดุหน้างาน", (S, o) => p3EquipSheet(S, job, o)]);
-  const sheets = list.map((s, i) => ({
-    key: s[0],
-    label: s[1],
-    no: i + 1 + "/" + list.length,
-    file: base + "-" + (i + 1) + "-" + s[0] + ".dxf",
-    make: (svg, stOv) => s[2](stOv || st, {
-      sheetNo: i + 1 + "/" + list.length,
+  const sheets = [{
+    key: "PLAN",
+    label: "ผังติดตั้ง",
+    no: "1/1",
+    file: base + "-PLAN.dxf",
+    make: svg => p3Dxf(st, job, {
+      imgs,
+      sheetNo: "1/1",
       svg: !!svg
     })
-  }));
+  }];
   return {
     base,
     sheets,

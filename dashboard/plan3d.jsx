@@ -184,95 +184,33 @@ function P3MapPicker({ initial, initialQuery, onPick, onClose }) {
   );
 }
 
-/* ══ ดูตัวอย่างชุดแบบก่อนโหลด ══
+/* ══ ดูตัวอย่างแบบผังติดตั้งก่อนโหลด ══
    วาดด้วยโค้ดชุดเดียวกับที่เขียนไฟล์ DXF แค่คายออกมาเป็น SVG แทน (ดู pgSvg ใน dxf.jsx)
    สิ่งที่เห็นบนจอจึงเป็นแผ่นเดียวกับที่จะได้ ไม่ใช่ภาพจำลองคนละชุด
    ตัวอย่างพื้นหลังเป็นสีขาวเหมือนกระดาษ ส่วนใน AutoCAD จะเป็นพื้นดำตามค่าปริยายของโปรแกรม */
-function P3SetPreview({ prep, onClose, onDownload, onEdit, busy }) {
-  const [i, setI] = React.useState(0);
-  const [open, setOpen] = React.useState(false);
-  const sheets = (prep && prep.sheets) || [];
-  const cur = sheets[Math.min(i, sheets.length - 1)];
-  const baseSt = (prep && prep.st) || {};
-  /* ค่าที่แก้บนจอ — ยังไม่บันทึกจนกว่าจะกดใช้ค่านี้ */
-  const [edit, setEdit] = React.useState(() => Object.assign({}, baseSt.sldEdit));
-  const stE = React.useMemo(() => Object.assign({}, baseSt, { sldEdit: edit }), [baseSt, edit]);
-  /* วาดแผ่นที่กำลังดูเท่านั้น แผ่นผังมีรูปถ่ายฝังอยู่ ทำทุกแผ่นพร้อมกันจะอืด */
+function P3SetPreview({ prep, onClose, onDownload, busy }) {
+  const cur = ((prep && prep.sheets) || [])[0];
   const svg = React.useMemo(() => {
     if (!cur) return "";
-    try { return cur.make(true, stE); } catch (e) { return '<p style="padding:16px">วาดตัวอย่างไม่สำเร็จ: ' + e.message + "</p>"; }
-  }, [cur, stE]);
-  /* ช่องที่แก้ได้ อ่านจากโมเดลที่ยังไม่ถูกแก้ จะได้โชว์ค่าอัตโนมัติเป็นตัวเทียบ */
-  const groups = React.useMemo(() => {
-    try { return p3SldFields(p3SldModel(Object.assign({}, baseSt, { sldEdit: null }), prep && prep.job)); }
-    catch (e) { return []; }
-  }, [baseSt, prep]);
-  const nEdit = Object.keys(edit).filter((k) => edit[k] != null && edit[k] !== "").length;
-  const put = (path, v) => setEdit((p) => {
-    const n = Object.assign({}, p);
-    if (v === "") delete n[path]; else n[path] = v;
-    return n;
-  });
+    try { return cur.make(true); } catch (e) { return '<p style="padding:16px">วาดตัวอย่างไม่สำเร็จ: ' + e.message + "</p>"; }
+  }, [cur]);
 
-  const tab = (on) => ({
-    padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12.5, fontWeight: 700,
-    fontFamily: "inherit", whiteSpace: "nowrap",
-    border: "1px solid " + (on ? "var(--brand,#1f9d3a)" : "var(--border-strong)"),
-    background: on ? "var(--brand,#1f9d3a)" : "var(--surface)",
-    color: on ? "#fff" : "var(--text-1)",
-  });
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 220, background: "rgba(8,20,14,.6)", display: "flex", padding: 12 }}>
       <div style={{ flex: 1, minHeight: 0, background: "var(--surface)", borderRadius: 14, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,.4)" }}>
         <div style={{ padding: 10, borderBottom: "1px solid var(--border)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <span style={{ fontWeight: 800, fontSize: 13.5, color: "var(--text-1)", whiteSpace: "nowrap" }}>ตัวอย่างชุดแบบ</span>
-          {sheets.map((s, n) => (
-            <button key={s.key} style={tab(n === i)} onClick={() => setI(n)}>{n + 1}. {s.label}</button>
-          ))}
+          <span style={{ fontWeight: 800, fontSize: 13.5, color: "var(--text-1)", whiteSpace: "nowrap" }}>ตัวอย่างแบบผังติดตั้ง</span>
           <span style={{ flex: 1 }} />
-          {cur && cur.key === "SLD" && (
-            <button style={tab(open)} onClick={() => setOpen(!open)}>
-              แก้ค่าบนแบบ{nEdit ? " (" + nEdit + ")" : ""}</button>
-          )}
-          <button className="p3-b" onClick={() => onDownload(edit)} disabled={!!busy}>
-            <P3Icon name="doc" size={14} />{busy ? "กำลังโหลด…" : "ดาวน์โหลดทั้งชุด"}</button>
+          <button className="p3-b" onClick={onDownload} disabled={!!busy}>
+            <P3Icon name="doc" size={14} />{busy ? "กำลังโหลด…" : "ดาวน์โหลด DXF"}</button>
           <button className="p3-b" onClick={onClose} disabled={!!busy}>ปิด</button>
         </div>
-        <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
-          <div style={{ flex: 1, minWidth: 0, overflow: "auto", background: "#4a4a4a", padding: 14, display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
-            <div style={{ width: "100%", maxWidth: 1400, boxShadow: "0 6px 24px rgba(0,0,0,.5)" }}
-              dangerouslySetInnerHTML={{ __html: svg }} />
-          </div>
-          {cur && cur.key === "SLD" && open && (
-            <div style={{ width: 320, flexShrink: 0, borderLeft: "1px solid var(--border)", overflow: "auto", padding: 12, background: "var(--surface)" }}>
-              <div style={{ fontSize: 11.5, color: "var(--text-2)", lineHeight: 1.5, marginBottom: 10 }}>
-                ช่องที่เว้นว่างจะใช้ค่าที่ระบบคิดให้ (ตัวสีจาง) พิมพ์ทับได้เมื่อของจริงหน้างานไม่ตรง
-                แก้แล้วตัวอย่างซ้ายมือเปลี่ยนทันที · กด “ใช้ค่านี้” เพื่อเก็บติดไปกับงาน
-              </div>
-              {groups.map((g) => (
-                <div key={g.title} style={{ marginBottom: 12 }}>
-                  <div style={{ fontWeight: 800, fontSize: 12, color: "var(--text-1)", margin: "0 0 6px" }}>{g.title}</div>
-                  {g.items.map((f) => (
-                    <label key={f.path} style={{ display: "block", marginBottom: 6 }}>
-                      <span style={{ fontSize: 11, color: "var(--text-2)" }}>{f.label}</span>
-                      <input style={Object.assign({}, P3_INP, { width: "100%",
-                        borderColor: edit[f.path] ? "var(--brand,#1f9d3a)" : P3_INP.borderColor })}
-                        value={edit[f.path] == null ? "" : edit[f.path]}
-                        placeholder={f.auto || f.hint || "—"}
-                        onChange={(e) => put(f.path, e.target.value)} />
-                    </label>
-                  ))}
-                </div>
-              ))}
-              <div style={{ display: "flex", gap: 6, position: "sticky", bottom: 0, background: "var(--surface)", paddingTop: 8 }}>
-                <button className="p3-b" style={{ flex: 1 }} onClick={() => onEdit(edit)}>ใช้ค่านี้</button>
-                <button className="p3-b" onClick={() => setEdit({})} disabled={!nEdit}>คืนค่าอัตโนมัติ</button>
-              </div>
-            </div>
-          )}
+        <div style={{ flex: 1, minHeight: 0, overflow: "auto", background: "#4a4a4a", padding: 14, display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
+          <div style={{ width: "100%", maxWidth: 1400, boxShadow: "0 6px 24px rgba(0,0,0,.5)" }}
+            dangerouslySetInnerHTML={{ __html: svg }} />
         </div>
         <div style={{ padding: "7px 12px", borderTop: "1px solid var(--border)", fontSize: 11.5, color: "var(--text-2)" }}>
-          A3 แนวนอน 420 × 297 มม. · แผ่นที่ {cur ? cur.no : "-"} · ตั้งค่าสั่งพิมพ์มาให้แล้ว เปิดใน AutoCAD กด Ctrl+P ได้เลย
+          A3 แนวนอน 420 × 297 มม. · ตั้งค่าสั่งพิมพ์มาให้แล้ว เปิดใน AutoCAD กด Ctrl+P ได้เลย
           {prep && prep.files.length ? " · มีไฟล์ภาพแนบ " + prep.files.length + " ไฟล์ ต้องเก็บไว้โฟลเดอร์เดียวกับ .dxf" : ""}
         </div>
       </div>
@@ -2887,58 +2825,22 @@ function Plan3DEditor({ job, onClose, currentUser }) {
      ห้ามใส่ BOM เด็ดขาด: DXF ต้องขึ้นต้นด้วยกลุ่มโค้ด "0" พอดี ๆ มีอะไรนำหน้าแม้ตัวเดียว
      AutoCAD จะทิ้งทั้งไฟล์ทันทีโดยไม่บอกว่าเพราะอะไร */
   const [busyDxf, setBusyDxf] = React.useState("");
-  const doDxf = async () => {
-    setBusyDxf("plan");
-    try {
-      const n = await p3ExportPlan(st, job);
-      if (n) alert("ดาวน์โหลด " + (n + 1) + " ไฟล์แล้ว\n\nสำคัญ: เก็บไฟล์ .dxf กับไฟล์ภาพไว้ในโฟลเดอร์เดียวกัน\nไม่งั้นเปิดใน AutoCAD แล้วภาพพื้นหลังจะไม่ขึ้น");
-    } catch (e) { alert("ส่งออกผัง DXF ไม่สำเร็จ: " + e.message); }
-    setBusyDxf("");
-  };
-  /* SINGLE LINE DIAGRAM — เขียนจากสเปคที่ตั้งไว้ในเวิร์กสเปซ "ออกแบบระบบ" */
-  const doSld = () => {
-    setBusyDxf("sld");
-    try {
-      p3SaveBlob(new Blob([p3Sld(st, job)], { type: "application/dxf" }),
-        (job ? (job.code || job.name || "plan3d") : "plan3d") + "-SLD.dxf");
-    } catch (e) { alert("ส่งออก Single Line Diagram ไม่สำเร็จ: " + e.message); }
-    setBusyDxf("");
-  };
-  /* ชุดแบบทั้งชุด — ผัง · SLD · รูปถ่ายจุดติดตั้ง · ต่อสาย DC · วัสดุหน้างาน
-     กดแล้วเปิดตัวอย่างให้ดูก่อน ค่อยตัดสินใจโหลด
-     รูปถ่ายดึงจาก jobPhotos ของงานนี้ตอนกดเท่านั้น จะได้ไม่ถ่วงตอนเปิดหน้าจอ */
+  /* กดแล้วเปิดตัวอย่างแผ่นผังให้ดูก่อน ค่อยตัดสินใจโหลด */
   const [setPrep, setSetPrep] = React.useState(null);
   const doSet = async () => {
     setBusyDxf("set");
-    try {
-      let photos = [];
-      if (window.FBDB && job && job.id) {
-        const s = await window.FBDB.ref("jobPhotos/" + job.id).once("value");
-        const v = s.val() || {};
-        photos = Object.keys(v).map((k) => v[k])
-          .sort((a, b) => String(a.at || "").localeCompare(String(b.at || "")));
-      }
-      setSetPrep(await p3PrepSet(st, job, photos));
-    } catch (e) { alert("เตรียมชุดแบบไม่สำเร็จ: " + e.message); }
+    try { setSetPrep(await p3PrepSet(st, job, null)); }
+    catch (e) { alert("เตรียมแบบผังไม่สำเร็จ: " + e.message); }
     setBusyDxf("");
   };
-  /* กด "ใช้ค่านี้" ในหน้าตัวอย่าง — เก็บค่าที่แก้ไว้กับงาน (บันทึกจริงตอนกดบันทึกแบบ) */
-  const doSetEdit = (edit) => {
-    const n = Object.keys(edit || {}).length;
-    set({ sldEdit: n ? edit : null });
-    alert(n ? "ใช้ค่าที่แก้ " + n + " ช่องแล้ว\nอย่าลืมกดบันทึกแบบ ค่าจะติดไปกับงานนี้ทุกครั้งที่ออกแบบ"
-      : "คืนค่าอัตโนมัติทุกช่องแล้ว");
-  };
-  const doSetDownload = async (edit) => {
+  const doSetDownload = async () => {
     setBusyDxf("setdl");
     try {
-      /* โหลดตามค่าที่เห็นบนจอ ไม่ต้องกดใช้ค่านี้ก่อนก็ได้ */
-      const stE = edit && Object.keys(edit).length ? Object.assign({}, st, { sldEdit: edit }) : st;
-      const r = await p3ExportSet(stE, job, null, setPrep);
+      const r = await p3ExportSet(st, job, null, setPrep);
       setSetPrep(null);
-      alert("ดาวน์โหลดชุดแบบ " + r.sheets + " แผ่น" + (r.files ? " + ไฟล์ภาพ " + r.files + " ไฟล์" : "") +
+      if (r.files) alert("ดาวน์โหลดแบบผัง 1 แผ่น + ไฟล์ภาพ " + r.files + " ไฟล์" +
         "\n\nสำคัญ: เก็บไฟล์ .dxf กับไฟล์ภาพไว้ในโฟลเดอร์เดียวกัน\nไม่งั้นเปิดใน AutoCAD แล้วภาพจะไม่ขึ้น");
-    } catch (e) { alert("ส่งออกชุดแบบไม่สำเร็จ: " + e.message); }
+    } catch (e) { alert("ส่งออกแบบผังไม่สำเร็จ: " + e.message); }
     setBusyDxf("");
   };
   /* ถ้าเบราว์เซอร์บล็อก dialog อยู่ confirm จะคืน false กลับมาทันที (<80ms) — ถือว่าไม่มีคนกดยกเลิกจริง ปล่อยให้ปิดได้ จะได้ไม่ติดอยู่ในหน้าจอ */
@@ -3760,7 +3662,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       <style>{P3_CSS}</style>
       {mapOpen && <P3MapPicker initial={jobLatLng} initialQuery={jobAddr} onPick={onPickMap} onClose={() => setMapOpen(false)} />}
       {setPrep && <P3SetPreview prep={setPrep} busy={busyDxf === "setdl"}
-        onClose={() => setSetPrep(null)} onDownload={doSetDownload} onEdit={doSetEdit} />}
+        onClose={() => setSetPrep(null)} onDownload={doSetDownload} />}
       {/* เวิร์กสเปซออกแบบระบบ — ใช้ทิศ/มุมของแผงจากผังนี้ตรง ๆ (solarui.jsx) */}
       {sysOpen && typeof SolarWorkspace === "function" && (
         <SolarWorkspace job={job} st={st} sys={st.sys || scBlankSys()} onClose={() => setSysOpen(false)}
@@ -3933,15 +3835,9 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       {/* footer */}
       <div style={{ paddingTop: 9, paddingLeft: isMobile ? 12 : 18, paddingRight: isMobile ? 12 : 18, paddingBottom: "calc(9px + env(safe-area-inset-bottom,0px))", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
         <button className="p3-b" onClick={doPng} title="บันทึกภาพหน้าจอ 3D เป็นไฟล์ PNG"><P3Icon name="camera" size={14} />ภาพ PNG</button>
-        <button className="p3-b" onClick={doDxf} disabled={!!busyDxf}
-          title="ส่งออกผังติดตั้งเป็นไฟล์ DXF พร้อมกรอบ A3 + Title Box และภาพถ่ายทางอากาศจาง ๆ เป็นพื้นหลัง (1 หน่วย = 1 เมตร)">
-          <P3Icon name="doc" size={14} />{busyDxf === "plan" ? "กำลังทำ…" : "ผัง DXF"}</button>
-        <button className="p3-b" onClick={doSld} disabled={!!busyDxf || !total}
-          title={total ? "สร้าง SINGLE LINE DIAGRAM SOLAR CELL SYSTEM จากสเปคที่ออกแบบไว้ พร้อมกรอบ A3 + Title Box" : "วางแผงก่อนถึงจะเขียนไดอะแกรมได้"}>
-          <P3Icon name="bolt" size={14} />{busyDxf === "sld" ? "กำลังทำ…" : "SLD DXF"}</button>
-        <button className="p3-b" onClick={doSet} disabled={!!busyDxf || !total}
-          title={total ? "ดูตัวอย่างทั้งชุดก่อนโหลด: ผัง · SLD · รูปถ่ายจุดติดตั้ง · ไดอะแกรมต่อสาย DC · วัสดุหน้างาน (A3 แนวนอน มีเลขแผ่นครบ)" : "วางแผงก่อนถึงจะออกชุดแบบได้"}>
-          <P3Icon name="doc" size={14} />{busyDxf === "set" ? "กำลังทำ…" : "ชุดแบบ DXF"}</button>
+        <button className="p3-b" onClick={doSet} disabled={!!busyDxf}
+          title="ดูตัวอย่างแบบผังติดตั้งก่อนโหลด — A3 แนวนอน พร้อมกรอบ + Title Box และภาพถ่ายทางอากาศจาง ๆ เป็นพื้นหลัง (1 หน่วย = 1 เมตร)">
+          <P3Icon name="doc" size={14} />{busyDxf === "set" ? "กำลังทำ…" : "ผัง DXF"}</button>
         <button className="p3-b" onClick={() => setSysOpen(true)} disabled={!total}
           title={total ? "เลือกแผง/อินเวอร์เตอร์ จัดสตริง และคำนวณผลผลิตจากมุมแผงจริง" : "วางแผงก่อนถึงจะคำนวณระบบได้"}>
           <P3Icon name="sun" size={14} />ออกแบบระบบ &amp; ผลผลิต
@@ -4441,22 +4337,14 @@ async function p3PrepSet(st, job, photos) {
     files.push({ name: file, url: u });
   }
 
-  /* รายชื่อแผ่น — make(svg, stOv) คืนไฟล์ DXF หรือ SVG (ตัวอย่างบนจอ) จากโค้ดวาดชุดเดียวกัน
-     stOv คือโมเดลที่ถูกแก้ค่าบนจอแต่ยังไม่บันทึก ส่งเข้ามาเพื่อให้ตัวอย่างอัปเดตทันที */
-  const list = [
-    ["PLAN", "ผังติดตั้ง", (S, o) => p3Dxf(S, job, Object.assign({ imgs }, o))],
-    ["SLD", "ไดอะแกรมเส้นเดียว", (S, o) => p3Sld(S, job, o)],
-  ];
-  if (ph.length) list.push(["PHOTO", "รูปถ่ายจุดติดตั้ง", (S, o) => p3PhotoSheet(S, job, Object.assign({ photos: ph }, o))]);
-  list.push(["DC", "ต่อสาย DC", (S, o) => p3DcSheet(S, job, o)]);
-  list.push(["MATERIAL", "วัสดุหน้างาน", (S, o) => p3EquipSheet(S, job, o)]);
-
-  const sheets = list.map((s, i) => ({
-    key: s[0], label: s[1],
-    no: (i + 1) + "/" + list.length,
-    file: base + "-" + (i + 1) + "-" + s[0] + ".dxf",
-    make: (svg, stOv) => s[2](stOv || st, { sheetNo: (i + 1) + "/" + list.length, svg: !!svg }),
-  }));
+  /* ออกเฉพาะแผ่นผังติดตั้ง — แผ่น SLD · รูปถ่าย · ต่อสาย DC · วัสดุหน้างาน
+     โค้ดยังอยู่ครบ (p3Sld · p3PhotoSheet · p3DcSheet · p3EquipSheet) แค่ไม่ได้ใส่ในชุดที่ออก
+     make(svg) คืนไฟล์ DXF หรือ SVG (ตัวอย่างบนจอ) จากโค้ดวาดชุดเดียวกัน */
+  const sheets = [{
+    key: "PLAN", label: "ผังติดตั้ง", no: "1/1",
+    file: base + "-PLAN.dxf",
+    make: (svg) => p3Dxf(st, job, { imgs, sheetNo: "1/1", svg: !!svg }),
+  }];
   return { base, sheets, files, st, job };
 }
 
