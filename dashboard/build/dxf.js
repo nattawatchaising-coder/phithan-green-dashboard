@@ -982,17 +982,312 @@ function pgSheet(doc, o) {
     }
   };
 }
-function pgSheetTitle(pen, x, y, s, h, maxW) {
+function pgSheetTitle(pen, x, y, s, h, maxW, align) {
   h = h || 6.5;
   const n = String(s).length || 1;
   if (maxW) h = Math.min(h, maxW / (n * 0.62));
+  const a = align == null ? 1 : align;
   pen.text(PG_LAY.txt, x, y, h, s, {
-    align: 1,
+    align: a,
     valign: 1,
     wf: 1.0
   });
   const w = n * h * 0.62;
-  pen.line(PG_LAY.txt, x - w / 2, y - h * 0.3, x + w / 2, y - h * 0.3);
+  const x0 = a === 0 ? x : a === 2 ? x - w : x - w / 2;
+  pen.line(PG_LAY.txt, x0, y - h * 0.3, x0 + w, y - h * 0.3);
+}
+const PG_TBL = {
+  line: "PG-TB-TABLE",
+  txt: "PG-TB-TXT",
+  head: "PG-TB-HEAD"
+};
+function pgTableLayers(doc) {
+  doc.layer(PG_TBL.line, PG_ACI.white, "CONTINUOUS", 18);
+  doc.layer(PG_TBL.txt, PG_ACI.white, "CONTINUOUS", 13);
+  doc.layer(PG_TBL.head, PG_ACI.ltgrey, "CONTINUOUS", 25);
+  doc.layer("PG-DETAIL", PG_ACI.red, "CONTINUOUS", 30);
+  doc.layer("PG-NORTH", PG_ACI.grey, "CONTINUOUS", 25);
+  doc.layer("PG-PHOTO", PG_ACI.grey, "CONTINUOUS", 9);
+}
+function pgGrid(pen, x, y, w, cols, rows, o) {
+  o = o || {};
+  const L = PG_TBL.line,
+    T = PG_TBL.txt;
+  const rh = o.rh || 5.0,
+    th = o.th || 2.3;
+  const sum = cols.reduce((s, c) => s + c, 0);
+  const CW = cols.map(c => c / sum * w);
+  const AL = o.align || cols.map(() => 1);
+  let cy = y;
+  rows.forEach((r, ri) => {
+    const h = r[0] === "#" ? rh * 1.08 : rh;
+    if (r[0] === "#" || o.headRow === ri) pen.solid(PG_TBL.head, [x, cy - h], [x + w, cy - h], [x + w, cy], [x, cy]);
+    pen.rect(L, x, cy - h, w, h);
+    if (r[0] === "#") {
+      pen.text(T, x + 2, cy - h + (h - th) / 2, th * 1.15, String(r[1] == null ? "" : r[1]));
+    } else {
+      let cx = x;
+      CW.forEach((cw, i) => {
+        if (i) pen.line(L, cx, cy, cx, cy - h);
+        const v = r[i] == null ? "" : String(r[i]);
+        const a = AL[i] == null ? 1 : AL[i];
+        pen.text(T, a === 0 ? cx + 2 : a === 2 ? cx + cw - 2 : cx + cw / 2, cy - h + (h - th) / 2, th, v, {
+          align: a,
+          valign: 1
+        });
+        cx += cw;
+      });
+    }
+    cy -= h;
+  });
+  return y - cy;
+}
+function pgSpecBlock(pen, x, y, w, title, pairs, o) {
+  o = o || {};
+  const L = PG_TBL.line,
+    T = PG_TBL.txt;
+  const rh = o.rh || 5.0,
+    th = o.th || 2.4,
+    half = w * (o.split == null ? 0.55 : o.split);
+  let cy = y;
+  pen.solid(PG_TBL.head, [x, cy - rh], [x + w, cy - rh], [x + w, cy], [x, cy]);
+  pen.rect(L, x, cy - rh, w, rh);
+  pen.text(T, x + 2, cy - rh + (rh - th) / 2, th, title);
+  cy -= rh;
+  pairs.forEach(p => {
+    pen.rect(L, x, cy - rh, w, rh);
+    const cell = (cx, cw, key, val) => {
+      if (key == null) return;
+      pen.text(T, cx + 2, cy - rh + (rh - th) / 2, th, String(key));
+      pen.text(T, cx + cw * 0.34, cy - rh + (rh - th) / 2, th, ":  " + String(val == null ? "" : val));
+    };
+    const wide = p[2] == null;
+    cell(x, wide ? w : half, p[0], p[1]);
+    if (!wide) {
+      pen.line(L, x + half, cy, x + half, cy - rh);
+      cell(x + half, w - half, p[2], p[3]);
+    }
+    cy -= rh;
+  });
+  return y - cy;
+}
+function pgCompass(pen, x, y, r, layer) {
+  const L = layer || "PG-NORTH";
+  pen.circle(L, x, y, r);
+  pen.line(L, x - r * 1.25, y, x + r * 1.25, y);
+  pen.line(L, x, y - r * 1.25, x, y + r * 1.25);
+  const q = r * 0.26;
+  pen.solid(L, [x, y + r * 1.15], [x - q, y - r * 0.55], [x, y - r * 0.3], [x + q, y - r * 0.55]);
+  pen.text(L, x, y + r * 1.9, 2.4, "NORTH", {
+    align: 1,
+    valign: 1
+  });
+  pen.text(L, x, y + r * 1.42, 2.0, "0" + "%%d", {
+    align: 1,
+    valign: 1
+  });
+  pen.text(L, x, y - r * 1.95, 2.0, "180" + "%%d", {
+    align: 1,
+    valign: 1
+  });
+  pen.text(L, x - r * 1.35, y, 2.0, "90" + "%%d", {
+    align: 2,
+    valign: 2
+  });
+  pen.text(L, x + r * 1.35, y, 2.0, "90" + "%%d", {
+    align: 0,
+    valign: 2
+  });
+}
+function pgModuleDetail(pen, x, y, h, o) {
+  o = o || {};
+  const L = PG_TBL.line,
+    T = PG_TBL.txt,
+    R = "PG-DETAIL";
+  const wMm = +o.wMm || 1134,
+    hMm = +o.hMm || 2382,
+    tMm = +o.tMm || 30;
+  const w = h * (wMm / hMm);
+  const tw = Math.max(1.2, h * (tMm / hMm) * 6);
+  const gap = 5;
+  pen.rect(R, x, y, w, h);
+  const nc = 6;
+  for (let i = 1; i < nc; i++) pen.line(L, x + w * i / nc, y + 1, x + w * i / nc, y + h - 1);
+  for (let i = 1; i < 12; i++) pen.line(L, x + 1, y + h * i / 12, x + w - 1, y + h * i / 12);
+  pen.text(T, x + w / 2, y - 4.4, 2.2, "FRONT", {
+    align: 1,
+    valign: 1
+  });
+  pen.line(L, x + w / 2 - 6, y - 5.2, x + w / 2 + 6, y - 5.2);
+  const sx = x + w + gap;
+  pen.rect(R, sx, y, tw, h);
+  pen.text(T, sx + tw / 2, y - 4.4, 2.2, "SIDE", {
+    align: 1,
+    valign: 1
+  });
+  pen.line(L, sx + tw / 2 - 5, y - 5.2, sx + tw / 2 + 5, y - 5.2);
+  const bx = sx + tw + gap;
+  pen.rect(R, bx, y, w, h);
+  const jy = y + h * 0.62,
+    jx = bx + w / 2;
+  pen.dot(L, jx, jy, 0.7);
+  pen.text(T, jx, jy - 3.4, 1.9, "Junction Box", {
+    align: 1,
+    valign: 1
+  });
+  pen.line(L, jx, jy, jx - w * 0.3, jy + h * 0.055);
+  pen.line(L, jx, jy, jx + w * 0.3, jy + h * 0.055);
+  pen.text(T, bx + 2, jy + h * 0.075, 1.9, "+ Anode");
+  pen.text(T, bx + w - 2, jy + h * 0.075, 1.9, "Cathode -", {
+    align: 2
+  });
+  pen.text(T, bx + w / 2, y - 4.4, 2.2, "BACK SIDE", {
+    align: 1,
+    valign: 1
+  });
+  pen.line(L, bx + w / 2 - 8, y - 5.2, bx + w / 2 + 8, y - 5.2);
+  const dim = (x0, y0, x1, y1, txt, vert) => {
+    pen.line(L, x0, y0, x1, y1);
+    pen.dot(L, x0, y0, 0.5);
+    pen.dot(L, x1, y1, 0.5);
+    pen.text(T, vert ? x0 - 1.6 : (x0 + x1) / 2, vert ? (y0 + y1) / 2 : y1 + 0.8, 2.2, txt, vert ? {
+      align: 2,
+      valign: 2
+    } : {
+      align: 1,
+      valign: 1
+    });
+  };
+  dim(x, y + h + 4, x + w, y + h + 4, String(wMm));
+  dim(sx, y + h + 4, sx + tw, y + h + 4, String(tMm));
+  dim(x - 3.5, y, x - 3.5, y + h, String(hMm), true);
+  if (o.caption) {
+    pen.text(T, x, y - 11, 2.6, o.caption);
+    pen.line(L, x, y - 12.6, x + (bx + w - x), y - 12.6);
+  }
+  return bx + w - x;
+}
+function pgPhotoFrame(doc, pen, x, y, w, h, o) {
+  o = o || {};
+  const L = PG_TBL.line,
+    T = PG_TBL.txt;
+  const cap = String(o.caption == null ? "" : o.caption).trim();
+  const capH = cap ? 6.4 : 0;
+  const ih = Math.max(1, h - capH),
+    iy = y + capH;
+  if (o.file) {
+    const ar = (+o.pxH || 3) / (+o.pxW || 4);
+    let iw2 = w,
+      ih2 = w * ar;
+    if (ih2 > ih) {
+      ih2 = ih;
+      iw2 = ih / ar;
+    }
+    doc.image("PG-PHOTO", {
+      file: o.file,
+      pxW: o.pxW,
+      pxH: o.pxH,
+      x: pen.X(x + (w - iw2) / 2),
+      y: pen.Y(iy + (ih - ih2) / 2),
+      w: pen.S(iw2),
+      h: pen.S(ih2),
+      rot: 0,
+      fade: o.fade == null ? 0 : o.fade
+    });
+  }
+  pen.rect(L, x, iy, w, ih);
+  if (cap) {
+    pen.solid(PG_TBL.head, [x, y], [x + w, y], [x + w, y + capH], [x, y + capH]);
+    pen.rect(L, x, y, w, capH);
+    const lines = pgWrap(cap, Math.max(8, Math.floor(w / 1.6)));
+    pen.text(T, x + w / 2, y + (capH - 2.4) / 2, 2.4, lines[0] + (lines.length > 1 ? "…" : ""), {
+      align: 1,
+      valign: 1
+    });
+  }
+}
+function pgDcSize(w, nPanel, maxH) {
+  const nAll = Math.max(1, +nPanel || 1);
+  const n = Math.min(4, nAll),
+    gap = 4;
+  const pw = (w - (n - 1) * gap) / n;
+  const ph = Math.min(pw * 1.9, maxH || 1e9);
+  return {
+    nAll,
+    n,
+    skip: nAll > n,
+    gap,
+    pw,
+    ph,
+    h: 16 + ph + 6
+  };
+}
+function pgDcString(pen, x, y, w, o) {
+  o = o || {};
+  const L = PG_TBL.line,
+    T = PG_TBL.txt,
+    R = "PG-DETAIL";
+  const g = pgDcSize(w, o.n, o.maxH);
+  const nAll = g.nAll,
+    n = g.n,
+    skip = g.skip,
+    gap = g.gap,
+    pw = g.pw,
+    ph = g.ph;
+  const yb = y + 16;
+  for (let i = 0; i < n; i++) {
+    const px = x + i * (pw + gap);
+    pen.rect(R, px, yb, pw, ph);
+    for (let c = 1; c < 3; c++) pen.line(L, px + pw * c / 3, yb + 1, px + pw * c / 3, yb + ph - 1);
+    for (let c = 1; c < 6; c++) pen.line(L, px + 1, yb + ph * c / 6, px + pw - 1, yb + ph * c / 6);
+    pen.text(T, px + pw / 2, yb + ph + 2.2, 2.2, "PV " + (i + 1 === n && skip ? nAll : i + 1), {
+      align: 1,
+      valign: 1
+    });
+    const nx = px + pw * 0.28,
+      cx2 = px + pw * 0.72;
+    pen.text(T, nx - 1.2, yb - 4.6, 2.0, "-", {
+      align: 2,
+      valign: 1
+    });
+    pen.text(T, cx2 + 1.2, yb - 4.6, 2.0, "+", {
+      align: 0,
+      valign: 1
+    });
+    pen.line(L, nx, yb, nx, yb - 6);
+    pen.dot(L, nx, yb - 6, 0.6);
+    pen.line(L, cx2, yb, cx2, yb - 6);
+    pen.dot(L, cx2, yb - 6, 0.6);
+    if (i < n - 1) {
+      const nn = px + pw + gap + pw * 0.28;
+      pen.line(R, cx2, yb - 6, cx2, yb - 9.5);
+      pen.line(R, cx2, yb - 9.5, nn, yb - 9.5);
+      pen.line(R, nn, yb - 9.5, nn, yb - 6);
+    }
+  }
+  const lx = x + pw * 0.28,
+    rx = x + (n - 1) * (pw + gap) + pw * 0.72;
+  const mc = (mx, lab) => {
+    pen.line(R, mx, yb - 6, mx, y + 1.5);
+    pen.circle(L, mx, y + 1.5, 1.4);
+    pen.text(T, mx, y - 3.4, 2.0, lab, {
+      align: 1,
+      valign: 1
+    });
+  };
+  mc(lx, "MC4 -");
+  mc(rx, "MC4 +");
+  if (skip) pen.text(T, x + w / 2, yb + ph / 2, 2.6, "( x " + nAll + " PANEL )", {
+    align: 1,
+    valign: 1
+  });
+  return {
+    h: yb + ph + 6 - y,
+    top: yb + ph + 6,
+    lx,
+    rx,
+    my: y + 1.5
+  };
 }
 const PG_SLD = {
   wire: "SLD-WIRE",
@@ -1395,8 +1690,17 @@ Object.assign(window, {
   pgSldTable,
   pgSldEquip,
   pgSym,
+  pgTableLayers,
+  pgGrid,
+  pgSpecBlock,
+  pgCompass,
+  pgModuleDetail,
+  pgPhotoFrame,
+  pgDcString,
+  pgDcSize,
   PG_SHEET,
   PG_LAY,
   PG_ACI,
-  PG_SLD
+  PG_SLD,
+  PG_TBL
 });
