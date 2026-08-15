@@ -304,21 +304,21 @@ function AnnOverlay({
     }, React.createElement("circle", {
       cx: cx,
       cy: cy,
-      r: unit * 4.4 * s,
+      r: unit * 3.2 * s,
       fill: "rgba(34,163,91,.16)"
     }), React.createElement("circle", {
       "data-h": k,
       cx: cx,
       cy: cy,
-      r: unit * 2.5 * s,
+      r: unit * 1.7 * s,
       fill: fill || "#fff",
       stroke: fill ? "#fff" : "var(--primary)",
-      strokeWidth: unit * 0.7 * s
+      strokeWidth: unit * 0.5 * s
     }));
   };
   const arm = (cx, topY, botY) => {
-    const down = topY < unit * 9;
-    const ty = down ? botY + unit * 7 : topY - unit * 7;
+    const down = topY < unit * 8;
+    const ty = down ? botY + unit * 6 : topY - unit * 6;
     return React.createElement("g", {
       key: "rot"
     }, React.createElement("line", {
@@ -327,8 +327,8 @@ function AnnOverlay({
       x2: cx,
       y2: ty,
       stroke: "var(--primary)",
-      strokeWidth: unit * 0.6
-    }), dot(cx, ty, "rot", "var(--primary)", 0.62));
+      strokeWidth: unit * 0.5
+    }), dot(cx, ty, "rot", "var(--primary)", 0.78));
   };
   const anchor = (x, y) => React.createElement("circle", {
     "data-del": "",
