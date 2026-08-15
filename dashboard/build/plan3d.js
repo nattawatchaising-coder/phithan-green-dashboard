@@ -759,6 +759,7 @@ function p3Dxf(st, job) {
     g(30, 0);
     g(40, n(r));
   };
+  const esc = s => String(s == null ? "" : s).replace(/[^\x20-\x7E]/g, c => "\\U+" + c.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0"));
   const text = (layer, x, z, h, s, center) => {
     g(0, "TEXT");
     g(8, layer);
@@ -766,7 +767,8 @@ function p3Dxf(st, job) {
     g(20, PY(z));
     g(30, 0);
     g(40, n(h));
-    g(1, String(s == null ? "" : s));
+    g(1, esc(s));
+    g(7, "STANDARD");
     if (center) {
       g(72, 1);
       g(11, PX(x));
@@ -782,6 +784,8 @@ function p3Dxf(st, job) {
   g(2, "HEADER");
   g(9, "$ACADVER");
   g(1, "AC1009");
+  g(9, "$DWGCODEPAGE");
+  g(3, "ANSI_1252");
   g(9, "$INSUNITS");
   g(70, 6);
   g(9, "$EXTMIN");
@@ -796,6 +800,17 @@ function p3Dxf(st, job) {
   g(0, "SECTION");
   g(2, "TABLES");
   g(0, "TABLE");
+  g(2, "LTYPE");
+  g(70, 1);
+  g(0, "LTYPE");
+  g(2, "CONTINUOUS");
+  g(70, 0);
+  g(3, "Solid line");
+  g(72, 65);
+  g(73, 0);
+  g(40, "0.0");
+  g(0, "ENDTAB");
+  g(0, "TABLE");
   g(2, "LAYER");
   g(70, P3_DXF_LAYERS.length);
   P3_DXF_LAYERS.forEach(([nm, col]) => {
@@ -805,6 +820,20 @@ function p3Dxf(st, job) {
     g(62, col);
     g(6, "CONTINUOUS");
   });
+  g(0, "ENDTAB");
+  g(0, "TABLE");
+  g(2, "STYLE");
+  g(70, 1);
+  g(0, "STYLE");
+  g(2, "STANDARD");
+  g(70, 0);
+  g(40, "0.0");
+  g(41, "1.0");
+  g(50, "0.0");
+  g(71, 0);
+  g(42, "0.2");
+  g(3, "txt");
+  g(4, "");
   g(0, "ENDTAB");
   g(0, "ENDSEC");
   g(0, "SECTION");
@@ -4292,7 +4321,7 @@ function Plan3DEditor({
   const doDxf = () => {
     try {
       const txt = p3Dxf(st, job);
-      const url = URL.createObjectURL(new Blob(["﻿" + txt], {
+      const url = URL.createObjectURL(new Blob([txt], {
         type: "application/dxf"
       }));
       const a = document.createElement("a");

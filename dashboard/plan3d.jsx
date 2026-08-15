@@ -359,8 +359,7 @@ function p3MeasLen(m) {
    .dwg เขียนเองไม่ได้ (ไบนารีปิด) ให้เปิดไฟล์นี้แล้ว Save As เอาใน AutoCAD
 
    แกน: X ของแบบ = X ของผัง · Y ของแบบ = −Z ของผัง → ทิศเหนืออยู่บน (+Y) ตามธรรมเนียมเขียนแบบ
-   ตัวหนังสือที่ระบบสร้างเองเป็นอังกฤษ/ตัวเลขล้วน กันปัญหาโค้ดหน้าภาษาไทยใน CAD บางตัว
-   ส่วนชื่อที่ผู้ใช้พิมพ์เอง (อาจเป็นไทย) แยกไว้ layer PG-NOTE ปิดทิ้งได้ถ้าอ่านไม่ออก */
+   ชื่อภาษาไทยเขียนเป็น \U+XXXX ตามที่ DXF กำหนดไว้ ไฟล์จึงเป็น ASCII ล้วนและไม่เพี้ยน */
 const P3_DXF_LAYERS = [
   ["PG-ROOF", 7], ["PG-PANEL", 5], ["PG-OBSTACLE", 3],
   ["PG-MEAS-CABLE", 30], ["PG-MEAS-CONDUIT", 140], ["PG-MEAS-TRAY", 200],
@@ -386,8 +385,14 @@ function p3Dxf(st, job) {
     g(0, "LINE"); g(8, layer); g(10, PX(x1)); g(20, PY(z1)); g(30, 0); g(11, PX(x2)); g(21, PY(z2)); g(31, 0);
   };
   const circle = (layer, x, z, r) => { g(0, "CIRCLE"); g(8, layer); g(10, PX(x)); g(20, PY(z)); g(30, 0); g(40, n(r)); };
+  /* DXF R12 เก็บข้อความตาม "หน้ารหัส" ของไฟล์ ซึ่งไม่มีหน้ารหัสไหนครอบคลุมไทย+อังกฤษพร้อมกัน
+     วิธีมาตรฐานคือหนีตัวอักษรนอก ASCII เป็น \U+XXXX แล้วให้ CAD ถอดกลับเอง
+     → ไฟล์เป็น ASCII ล้วน เปิดที่ไหนก็ไม่เพี้ยน และชื่อภาษาไทยแสดงได้จริง */
+  const esc = (s) => String(s == null ? "" : s).replace(/[^\x20-\x7E]/g,
+    (c) => "\\U+" + c.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0"));
   const text = (layer, x, z, h, s, center) => {
-    g(0, "TEXT"); g(8, layer); g(10, PX(x)); g(20, PY(z)); g(30, 0); g(40, n(h)); g(1, String(s == null ? "" : s));
+    g(0, "TEXT"); g(8, layer); g(10, PX(x)); g(20, PY(z)); g(30, 0); g(40, n(h));
+    g(1, esc(s)); g(7, "STANDARD");
     if (center) { g(72, 1); g(11, PX(x)); g(21, PY(z)); g(31, 0); }
   };
 
@@ -398,14 +403,25 @@ function p3Dxf(st, job) {
 
   g(0, "SECTION"); g(2, "HEADER");
   g(9, "$ACADVER"); g(1, "AC1009");
+  g(9, "$DWGCODEPAGE"); g(3, "ANSI_1252"); // ทั้งไฟล์เป็น ASCII ล้วน (ไทยหนีเป็น \U+XXXX แล้ว)
   g(9, "$INSUNITS"); g(70, 6);            // 6 = เมตร
   g(9, "$EXTMIN"); g(10, PX(B.minX)); g(20, PY(B.maxZ)); g(30, 0);
   g(9, "$EXTMAX"); g(10, PX(B.maxX)); g(20, PY(B.minZ)); g(30, 0);
   g(0, "ENDSEC");
 
+  /* ตารางต้องมาตามลำดับ LTYPE → LAYER → STYLE และต้อง "มีจริง" ทุกตัวที่ถูกอ้างถึง
+     AutoCAD เข้มเรื่องนี้: layer อ้าง CONTINUOUS แต่ไม่มีตาราง LTYPE = ไฟล์เปิดไม่ขึ้นทั้งไฟล์
+     (โปรแกรมอื่นปล่อยผ่านให้ เลยไม่รู้ตัวจนกว่าจะเอาไปเปิดกับตัวจริง) */
   g(0, "SECTION"); g(2, "TABLES");
+  g(0, "TABLE"); g(2, "LTYPE"); g(70, 1);
+  g(0, "LTYPE"); g(2, "CONTINUOUS"); g(70, 0); g(3, "Solid line"); g(72, 65); g(73, 0); g(40, "0.0");
+  g(0, "ENDTAB");
   g(0, "TABLE"); g(2, "LAYER"); g(70, P3_DXF_LAYERS.length);
   P3_DXF_LAYERS.forEach(([nm, col]) => { g(0, "LAYER"); g(2, nm); g(70, 0); g(62, col); g(6, "CONTINUOUS"); });
+  g(0, "ENDTAB");
+  g(0, "TABLE"); g(2, "STYLE"); g(70, 1);
+  g(0, "STYLE"); g(2, "STANDARD"); g(70, 0); g(40, "0.0"); g(41, "1.0"); g(50, "0.0"); g(71, 0); g(42, "0.2");
+  g(3, "txt"); g(4, "");
   g(0, "ENDTAB"); g(0, "ENDSEC");
 
   g(0, "SECTION"); g(2, "ENTITIES");
@@ -2608,11 +2624,12 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     } catch (e) { alert("ส่งออกภาพไม่สำเร็จ: " + e.message); }
   };
   /* ส่งออกเป็นไฟล์เขียนแบบ — เปิดต่อใน AutoCAD/DraftSight/LibreCAD ได้เลย สเกล 1 หน่วย = 1 เมตร
-     ใส่ BOM ไว้ข้างหน้า เพื่อให้โปรแกรมที่อ่านไฟล์เป็นข้อความรู้ว่าเป็น UTF-8 (ชื่อภาษาไทยจะได้ไม่เพี้ยน) */
+     ห้ามใส่ BOM เด็ดขาด: DXF ต้องขึ้นต้นด้วยกลุ่มโค้ด "0" พอดี ๆ มีอะไรนำหน้าแม้ตัวเดียว
+     AutoCAD จะทิ้งทั้งไฟล์ทันทีโดยไม่บอกว่าเพราะอะไร */
   const doDxf = () => {
     try {
       const txt = p3Dxf(st, job);
-      const url = URL.createObjectURL(new Blob(["﻿" + txt], { type: "application/dxf" }));
+      const url = URL.createObjectURL(new Blob([txt], { type: "application/dxf" }));
       const a = document.createElement("a");
       a.href = url; a.download = (job ? (job.code || job.name || "plan3d") : "plan3d") + "-PLAN.dxf";
       document.body.appendChild(a); a.click(); a.remove();
