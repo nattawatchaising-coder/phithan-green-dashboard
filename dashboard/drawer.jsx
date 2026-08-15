@@ -313,7 +313,7 @@ function StockShopModal({ stock, job, byName, onClose }) {
   );
 }
 
-function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, stock, onSaveBOQ, onSurvey, onSurveyReport, priceMap }) {
+function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, canDesign, stock, onSaveBOQ, onSurvey, onSurveyReport, priceMap }) {
   const SF = window.SF;
   const open = !!job;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -470,8 +470,8 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               </button>
               )}
 
-              {/* วางแผง 3D */}
-              {window.Plan3DEditor && (
+              {/* วางแผง 3D — เฉพาะคนที่มีสิทธิ์ออกแบบ (วิศวกรไฟฟ้า/เขียนแบบ/หัวหน้า/แอดมิน) */}
+              {window.Plan3DEditor && canDesign && (
               <button onClick={() => setPlan3dOpen(true)}
                 style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
                   background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>

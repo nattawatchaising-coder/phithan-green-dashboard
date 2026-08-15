@@ -31,75 +31,149 @@ const ADMIN_SEED = {
   username: "admin",
   pin: "1234",
   role: "admin",
+  roles: ["admin"],
   techId: null,
   active: true
 };
 const ROLE_INFO = {
   admin: {
-    th: "แอดมิน / ออฟฟิศ",
-    icon: "users",
-    color: "#22A35B"
+    th: "แอดมิน",
+    short: "แอดมิน",
+    icon: "shield",
+    color: "#22A35B",
+    desc: "ควบคุมทั้งระบบ · จัดการผู้ใช้ · ลบงาน"
   },
-  manager: {
-    th: "ผู้จัดการ",
-    icon: "user",
-    color: "#3B82F6"
+  lead: {
+    th: "หัวหน้า",
+    short: "หัวหน้า",
+    icon: "users",
+    color: "#3B82F6",
+    desc: "ดูทุกงาน · สั่งงาน · เห็นราคา"
+  },
+  ee: {
+    th: "วิศวกรไฟฟ้า",
+    short: "วิศวกรไฟฟ้า",
+    icon: "bolt",
+    color: "#8B5CF6",
+    desc: "ออกแบบระบบ · สำรวจหน้างาน · เอกสารขออนุญาต"
+  },
+  draft: {
+    th: "วิศวกรเขียนแบบ",
+    short: "เขียนแบบ",
+    icon: "ruler",
+    color: "#0EA5E9",
+    desc: "เขียนแบบ / ออกไฟล์ DXF"
   },
   tech: {
     th: "ช่างติดตั้ง",
+    short: "ช่าง",
     icon: "wrench",
-    color: "#F59E0B"
+    color: "#F59E0B",
+    desc: "เห็นเฉพาะงานที่ได้รับมอบหมาย"
   },
-  survey: {
-    th: "วิศวกรสำรวจ",
-    icon: "list",
-    color: "#0EA5E9"
+  permit: {
+    th: "แอดมิน ขออนุญาต",
+    short: "ขออนุญาต",
+    icon: "file",
+    color: "#14B8A6",
+    desc: "งานเอกสารยื่นขออนุญาตการไฟฟ้า"
+  },
+  sales: {
+    th: "เซลล์",
+    short: "เซลล์",
+    icon: "trend",
+    color: "#EC4899",
+    desc: "ลูกค้าสำรวจ · เปิดงานใหม่ · เห็นราคา"
   }
 };
+const ROLE_KEYS = Object.keys(ROLE_INFO);
+const ROLE_ALIAS = {
+  manager: "lead",
+  survey: "ee",
+  office: "admin"
+};
+function userRoles(u) {
+  if (!u) return [];
+  const raw = Array.isArray(u.roles) && u.roles.length ? u.roles : u.role ? [u.role] : [];
+  const out = [];
+  raw.forEach(r => {
+    const k = ROLE_ALIAS[r] || r;
+    if (ROLE_INFO[k] && out.indexOf(k) === -1) out.push(k);
+  });
+  return out.length ? out : ["tech"];
+}
 const PERMS = {
   admin: {
-    viewAll: true,
-    addJob: true,
-    editJob: true,
-    delJob: true,
-    stock: true,
-    manageUsers: true,
-    dispatch: true,
-    doSurvey: true
+    viewAll: 1,
+    addJob: 1,
+    editJob: 1,
+    delJob: 1,
+    stock: 1,
+    manageUsers: 1,
+    dispatch: 1,
+    doSurvey: 1,
+    design: 1,
+    permit: 1,
+    price: 1,
+    leads: 1
   },
-  manager: {
-    viewAll: true,
-    addJob: true,
-    editJob: true,
-    delJob: true,
-    stock: true,
-    manageUsers: false,
-    dispatch: true,
-    doSurvey: false
+  lead: {
+    viewAll: 1,
+    addJob: 1,
+    editJob: 1,
+    delJob: 1,
+    stock: 1,
+    dispatch: 1,
+    doSurvey: 1,
+    design: 1,
+    permit: 1,
+    price: 1,
+    leads: 1
+  },
+  ee: {
+    viewAll: 1,
+    editJob: 1,
+    stock: 1,
+    dispatch: 1,
+    doSurvey: 1,
+    design: 1,
+    permit: 1
+  },
+  draft: {
+    viewAll: 1,
+    editJob: 1,
+    stock: 1,
+    design: 1
   },
   tech: {
-    viewAll: false,
-    addJob: false,
-    editJob: true,
-    delJob: false,
-    stock: true,
-    manageUsers: false,
-    dispatch: false,
-    doSurvey: true
+    editJob: 1,
+    stock: 1,
+    doSurvey: 1
   },
-  survey: {
-    viewAll: false,
-    addJob: false,
-    editJob: false,
-    delJob: false,
-    stock: false,
-    manageUsers: false,
-    dispatch: false,
-    doSurvey: true
+  permit: {
+    viewAll: 1,
+    editJob: 1,
+    permit: 1
+  },
+  sales: {
+    viewAll: 1,
+    addJob: 1,
+    dispatch: 1,
+    doSurvey: 1,
+    price: 1,
+    leads: 1
   }
 };
-function can(role, action) {
-  return !!(PERMS[role] && PERMS[role][action]);
+function can(roles, action) {
+  const arr = Array.isArray(roles) ? roles : roles ? [roles] : [];
+  return arr.some(r => {
+    const k = ROLE_ALIAS[r] || r;
+    return !!(PERMS[k] && PERMS[k][action]);
+  });
+}
+function hasRole(roles, key) {
+  const arr = Array.isArray(roles) ? roles : roles ? [roles] : [];
+  return arr.some(r => (ROLE_ALIAS[r] || r) === key);
 }
 function blankUser() {
   return {
@@ -108,6 +182,7 @@ function blankUser() {
     username: "",
     pin: "",
     role: "tech",
+    roles: ["tech"],
     techId: null,
     active: true
   };
@@ -311,9 +386,10 @@ function AField({
   }, " *")), children);
 }
 function RoleBadge({
-  role
+  role,
+  short
 }) {
-  const r = ROLE_INFO[role] || ROLE_INFO.tech;
+  const r = ROLE_INFO[ROLE_ALIAS[role] || role] || ROLE_INFO.tech;
   return React.createElement("span", {
     style: {
       display: "inline-flex",
@@ -331,7 +407,27 @@ function RoleBadge({
     name: r.icon,
     size: 11,
     color: r.color
-  }), " ", r.th);
+  }), " ", short ? r.short : r.th);
+}
+function RoleBadges({
+  roles,
+  short
+}) {
+  const arr = userRoles({
+    roles
+  });
+  return React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      flexWrap: "wrap",
+      gap: 4,
+      alignItems: "center"
+    }
+  }, arr.map(r => React.createElement(RoleBadge, {
+    key: r,
+    role: r,
+    short: short
+  })));
 }
 function LoginScreen({
   authStore
@@ -760,7 +856,63 @@ function UserManager({
   const bdClose = window.useBackdropClose(onClose);
   const users = authStore.users;
   const [editing, setEditing] = React.useState(null);
+  const [q, setQ] = React.useState("");
+  const [filter, setFilter] = React.useState("all");
+  const [delAsk, setDelAsk] = React.useState(null);
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const counts = React.useMemo(() => {
+    const c = {
+      all: users.length,
+      off: 0
+    };
+    users.forEach(u => {
+      if (u.active === false) c.off++;
+      userRoles(u).forEach(r => {
+        c[r] = (c[r] || 0) + 1;
+      });
+    });
+    return c;
+  }, [users]);
+  const shown = React.useMemo(() => {
+    const kw = q.trim().toLowerCase();
+    return users.filter(u => {
+      if (filter === "off") {
+        if (u.active !== false) return false;
+      } else if (filter !== "all" && !hasRole(userRoles(u), filter)) return false;
+      if (!kw) return true;
+      return ((u.name || "") + " " + (u.username || "")).toLowerCase().includes(kw);
+    }).sort((a, b) => {
+      const ra = ROLE_KEYS.indexOf(userRoles(a)[0]),
+        rb = ROLE_KEYS.indexOf(userRoles(b)[0]);
+      if (ra !== rb) return ra - rb;
+      return (a.name || "").localeCompare(b.name || "", "th");
+    });
+  }, [users, q, filter]);
+  const chip = (key, label, n) => React.createElement("button", {
+    key: key,
+    onClick: () => setFilter(key),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      padding: "5px 11px",
+      borderRadius: 99,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      whiteSpace: "nowrap",
+      border: "1px solid " + (filter === key ? "transparent" : "var(--border)"),
+      background: filter === key ? "var(--primary)" : "var(--surface)",
+      color: filter === key ? "#fff" : "var(--text-2)"
+    }
+  }, label, React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 700,
+      opacity: .75
+    }
+  }, n || 0));
   return React.createElement("div", _extends({}, bdClose, {
     style: {
       position: "fixed",
@@ -777,7 +929,7 @@ function UserManager({
     style: {
       background: "var(--bg)",
       borderRadius: isMobile ? "20px 20px 0 0" : 20,
-      width: isMobile ? "100%" : "min(560px,100%)",
+      width: isMobile ? "100%" : "min(720px,100%)",
       maxHeight: isMobile ? "94dvh" : "90vh",
       display: "flex",
       flexDirection: "column",
@@ -786,13 +938,15 @@ function UserManager({
     }
   }, React.createElement("div", {
     style: {
-      padding: "18px 22px",
-      borderBottom: "1px solid var(--border)",
+      padding: "18px 22px 0",
       background: "var(--surface)",
+      flexShrink: 0
+    }
+  }, React.createElement("div", {
+    style: {
       display: "flex",
       justifyContent: "space-between",
-      alignItems: "center",
-      flexShrink: 0
+      alignItems: "center"
     }
   }, React.createElement("div", {
     style: {
@@ -825,7 +979,7 @@ function UserManager({
       fontSize: 12,
       color: "var(--text-3)"
     }
-  }, users.length, " \u0E1A\u0E31\u0E0D\u0E0A\u0E35 \xB7 \u0E01\u0E33\u0E2B\u0E19\u0E14 ID / \u0E23\u0E2B\u0E31\u0E2A\u0E1C\u0E48\u0E32\u0E19 / \u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C"))), React.createElement("button", {
+  }, users.length, " \u0E1A\u0E31\u0E0D\u0E0A\u0E35 \xB7 \u0E2B\u0E19\u0E36\u0E48\u0E07\u0E04\u0E19\u0E16\u0E37\u0E2D\u0E44\u0E14\u0E49\u0E2B\u0E25\u0E32\u0E22\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07"))), React.createElement("button", {
     onClick: onClose,
     style: {
       width: 34,
@@ -843,135 +997,264 @@ function UserManager({
     size: 17
   }))), React.createElement("div", {
     style: {
+      position: "relative",
+      marginTop: 14
+    }
+  }, React.createElement("span", {
+    style: {
+      position: "absolute",
+      left: 12,
+      top: "50%",
+      transform: "translateY(-50%)",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, React.createElement(Icon, {
+    name: "search",
+    size: 15,
+    color: "var(--text-3)"
+  })), React.createElement("input", {
+    value: q,
+    onChange: e => setQ(e.target.value),
+    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32\u0E0A\u0E37\u0E48\u0E2D \u0E2B\u0E23\u0E37\u0E2D \u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u2026",
+    style: Object.assign({}, A_INPUT, {
+      paddingLeft: 36,
+      fontSize: 13.5
+    })
+  })), React.createElement("div", {
+    className: "cat-chip-row",
+    style: {
+      display: "flex",
+      gap: 6,
+      marginTop: 11,
+      paddingBottom: 13,
+      overflowX: "auto"
+    }
+  }, chip("all", "ทั้งหมด", counts.all), ROLE_KEYS.map(r => chip(r, ROLE_INFO[r].short, counts[r])), counts.off > 0 && chip("off", "ระงับอยู่", counts.off))), React.createElement("div", {
+    style: {
       overflowY: "auto",
-      padding: 18,
+      padding: 16,
       display: "flex",
       flexDirection: "column",
-      gap: 9
+      gap: 8,
+      borderTop: "1px solid var(--border)"
     }
-  }, users.map(u => React.createElement("div", {
-    key: u.id,
+  }, shown.length === 0 && React.createElement("div", {
     style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-      padding: "11px 13px",
-      background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 12,
-      opacity: u.active === false ? 0.55 : 1
-    }
-  }, React.createElement("span", {
-    style: {
-      width: 38,
-      height: 38,
-      borderRadius: 99,
-      flexShrink: 0,
-      display: "grid",
-      placeItems: "center",
-      background: (ROLE_INFO[u.role] || ROLE_INFO.tech).color,
-      color: "#fff",
-      fontWeight: 700,
-      fontSize: 14
-    }
-  }, (u.name || "?").slice(0, 1)), React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 700,
-      color: "var(--text-1)"
-    }
-  }, u.name || "(ยังไม่ระบุชื่อ)", u.username && React.createElement("span", {
-    style: {
-      fontSize: 11.5,
+      padding: "34px 0",
+      textAlign: "center",
       color: "var(--text-3)",
-      fontWeight: 600,
-      fontFamily: "var(--mono)"
+      fontSize: 13
     }
-  }, " \xB7 @", u.username), u.active === false && React.createElement("span", {
-    style: {
-      fontSize: 10.5,
-      color: "#EF4444",
-      fontWeight: 600
-    }
-  }, " \xB7 \u0E23\u0E30\u0E07\u0E31\u0E1A")), React.createElement("div", {
-    style: {
-      marginTop: 3,
-      display: "flex",
-      alignItems: "center",
-      gap: 6,
-      minWidth: 0
-    }
-  }, React.createElement("span", {
-    style: {
-      flexShrink: 0
-    }
-  }, React.createElement(RoleBadge, {
-    role: u.role
-  })), u.role === "tech" && u.techId && React.createElement("span", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-3)",
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      minWidth: 0
-    }
-  }, "\u2192 ", (window.SF.TECH_BY_ID[u.techId] || {}).name || u.techId))), React.createElement("button", {
-    onClick: () => setEditing(Object.assign({}, u)),
-    title: "\u0E41\u0E01\u0E49\u0E44\u0E02",
-    style: {
-      background: "#3B82F614",
-      border: "none",
-      color: "#3B82F6",
-      width: 32,
-      height: 32,
-      borderRadius: 8,
-      cursor: "pointer",
-      display: "grid",
-      placeItems: "center"
-    }
-  }, React.createElement(Icon, {
-    name: "settings",
-    size: 15
-  })), React.createElement("button", {
-    onClick: () => {
-      if (u.role === "admin" && users.filter(x => x.role === "admin").length <= 1) {
-        alert("ต้องมีแอดมินอย่างน้อย 1 คน");
-        return;
+  }, "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E17\u0E35\u0E48\u0E15\u0E23\u0E07\u0E01\u0E31\u0E1A\u0E17\u0E35\u0E48\u0E04\u0E49\u0E19\u0E2B\u0E32"), shown.map(u => {
+    const rs = userRoles(u);
+    const head = ROLE_INFO[rs[0]] || ROLE_INFO.tech;
+    const asking = delAsk === u.id;
+    return React.createElement("div", {
+      key: u.id,
+      style: {
+        padding: "11px 13px",
+        background: "var(--surface)",
+        borderRadius: 12,
+        border: "1px solid " + (asking ? "var(--tint-red-bd)" : "var(--border)"),
+        opacity: u.active === false && !asking ? 0.55 : 1
       }
-      if (confirm("ลบผู้ใช้ \"" + u.name + "\" ?")) authStore.removeUser(u.id);
-    },
-    title: "\u0E25\u0E1A",
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 12
+      }
+    }, React.createElement("span", {
+      style: {
+        width: 38,
+        height: 38,
+        borderRadius: 99,
+        flexShrink: 0,
+        display: "grid",
+        placeItems: "center",
+        background: head.color,
+        color: "#fff",
+        fontWeight: 700,
+        fontSize: 14
+      }
+    }, (u.name || "?").slice(0, 1)), React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("div", {
+      style: {
+        fontSize: 14,
+        fontWeight: 700,
+        color: "var(--text-1)"
+      }
+    }, u.name || "(ยังไม่ระบุชื่อ)", u.username && React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--text-3)",
+        fontWeight: 600,
+        fontFamily: "var(--mono)"
+      }
+    }, " \xB7 @", u.username), u.active === false && React.createElement("span", {
+      style: {
+        fontSize: 10.5,
+        color: "#EF4444",
+        fontWeight: 600
+      }
+    }, " \xB7 \u0E23\u0E30\u0E07\u0E31\u0E1A")), React.createElement("div", {
+      style: {
+        marginTop: 4,
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        flexWrap: "wrap"
+      }
+    }, React.createElement(RoleBadges, {
+      roles: rs,
+      short: true
+    }), u.techId && React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: "var(--text-3)"
+      }
+    }, "\u2192 ", (window.SF.TECH_BY_ID[u.techId] || {}).name || u.techId))), !asking && React.createElement(React.Fragment, null, React.createElement("button", {
+      onClick: () => setEditing(Object.assign({}, u)),
+      title: "\u0E41\u0E01\u0E49\u0E44\u0E02",
+      style: {
+        background: "#3B82F614",
+        border: "none",
+        color: "#3B82F6",
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        cursor: "pointer",
+        display: "grid",
+        placeItems: "center",
+        flexShrink: 0
+      }
+    }, React.createElement(Icon, {
+      name: "settings",
+      size: 15
+    })), React.createElement("button", {
+      onClick: () => {
+        if (hasRole(rs, "admin") && users.filter(x => hasRole(userRoles(x), "admin")).length <= 1) {
+          setEditing(null);
+          setDelAsk("__lastadmin");
+          return;
+        }
+        setDelAsk(u.id);
+      },
+      title: "\u0E25\u0E1A",
+      style: {
+        background: "#EF444414",
+        border: "none",
+        color: "#EF4444",
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        cursor: "pointer",
+        display: "grid",
+        placeItems: "center",
+        flexShrink: 0
+      }
+    }, React.createElement(Icon, {
+      name: "x",
+      size: 15
+    })))), asking && React.createElement("div", {
+      style: {
+        marginTop: 11,
+        paddingTop: 11,
+        borderTop: "1px dashed var(--border)",
+        display: "flex",
+        alignItems: "center",
+        gap: 9,
+        flexWrap: "wrap"
+      }
+    }, React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 150,
+        fontSize: 12.5,
+        fontWeight: 600,
+        color: "var(--tint-red-tx)"
+      }
+    }, "\u0E25\u0E1A\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E19\u0E35\u0E49\u0E16\u0E32\u0E27\u0E23? \u0E04\u0E19\u0E19\u0E35\u0E49\u0E08\u0E30\u0E40\u0E02\u0E49\u0E32\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E2D\u0E35\u0E01"), React.createElement("button", {
+      onClick: () => {
+        authStore.removeUser(u.id);
+        setDelAsk(null);
+      },
+      style: {
+        padding: "8px 15px",
+        borderRadius: 9,
+        border: "none",
+        background: "#EF4444",
+        color: "#fff",
+        fontWeight: 700,
+        fontFamily: "inherit",
+        fontSize: 12.5,
+        cursor: "pointer"
+      }
+    }, "\u0E25\u0E1A\u0E40\u0E25\u0E22"), React.createElement("button", {
+      onClick: () => setDelAsk(null),
+      style: {
+        padding: "8px 15px",
+        borderRadius: 9,
+        border: "1px solid var(--border-strong)",
+        background: "var(--surface)",
+        color: "var(--text-2)",
+        fontWeight: 600,
+        fontFamily: "inherit",
+        fontSize: 12.5,
+        cursor: "pointer"
+      }
+    }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01")));
+  }), delAsk === "__lastadmin" && React.createElement("div", {
     style: {
-      background: "#EF444414",
-      border: "none",
-      color: "#EF4444",
-      width: 32,
-      height: 32,
-      borderRadius: 8,
-      cursor: "pointer",
-      display: "grid",
-      placeItems: "center"
+      padding: "11px 13px",
+      borderRadius: 12,
+      background: "var(--tint-amber-bg)",
+      border: "1px solid var(--tint-amber-bd)",
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: "var(--tint-amber-tx)",
+      display: "flex",
+      alignItems: "center",
+      gap: 10
     }
-  }, React.createElement(Icon, {
-    name: "x",
-    size: 15
-  }))))), React.createElement("div", {
+  }, React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }, "\u0E25\u0E1A\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u2014 \u0E15\u0E49\u0E2D\u0E07\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E19\u0E49\u0E2D\u0E22 1 \u0E04\u0E19"), React.createElement("button", {
+    onClick: () => setDelAsk(null),
+    style: {
+      background: "none",
+      border: "none",
+      color: "inherit",
+      fontWeight: 700,
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      cursor: "pointer"
+    }
+  }, "\u0E1B\u0E34\u0E14"))), React.createElement("div", {
     style: {
       padding: "14px 22px",
       paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14,
       borderTop: "1px solid var(--border)",
       background: "var(--surface)",
       display: "flex",
-      justifyContent: "flex-end",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: 12,
       flexShrink: 0
     }
-  }, React.createElement("button", {
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E41\u0E2A\u0E14\u0E07 ", shown.length, " \u0E08\u0E32\u0E01 ", users.length), React.createElement("button", {
     onClick: () => setEditing(authStore.blankUser()),
     style: {
       display: "inline-flex",
@@ -1002,6 +1285,81 @@ function UserManager({
     onClose: () => setEditing(null)
   }));
 }
+function RolePicker({
+  value,
+  onChange
+}) {
+  const sel = value || [];
+  const toggle = k => onChange(sel.indexOf(k) === -1 ? sel.concat([k]) : sel.filter(x => x !== k));
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 6
+    }
+  }, ROLE_KEYS.map(k => {
+    const r = ROLE_INFO[k],
+      on = sel.indexOf(k) !== -1;
+    return React.createElement("button", {
+      type: "button",
+      key: k,
+      onClick: () => toggle(k),
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "9px 11px",
+        borderRadius: 11,
+        cursor: "pointer",
+        textAlign: "left",
+        fontFamily: "inherit",
+        width: "100%",
+        border: "1px solid " + (on ? r.color : "var(--border)"),
+        background: on ? r.color + "14" : "var(--surface)"
+      }
+    }, React.createElement("span", {
+      style: {
+        width: 18,
+        height: 18,
+        borderRadius: 6,
+        flexShrink: 0,
+        display: "grid",
+        placeItems: "center",
+        background: on ? r.color : "transparent",
+        border: "1.5px solid " + (on ? r.color : "var(--border-strong)")
+      }
+    }, on && React.createElement(Icon, {
+      name: "check",
+      size: 12,
+      color: "#fff",
+      sw: 3
+    })), React.createElement(Icon, {
+      name: r.icon,
+      size: 15,
+      color: on ? r.color : "var(--text-3)"
+    }), React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 13.5,
+        fontWeight: 700,
+        color: on ? r.color : "var(--text-1)"
+      }
+    }, r.th), React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 11,
+        color: "var(--text-3)",
+        marginTop: 1,
+        lineHeight: 1.4
+      }
+    }, r.desc)));
+  }));
+}
 function UserEditModal({
   initial,
   existing,
@@ -1011,11 +1369,53 @@ function UserEditModal({
   const SF = window.SF;
   const bdClose = window.useBackdropClose(onClose);
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
-  const [f, setF] = React.useState(() => Object.assign({}, initial));
-  const set = (k, v) => setF(p => Object.assign({}, p, {
-    [k]: v
+  const [f, setF] = React.useState(() => Object.assign({}, initial, {
+    roles: userRoles(initial)
   }));
+  const [err, setErr] = React.useState("");
+  const set = (k, v) => {
+    setF(p => Object.assign({}, p, {
+      [k]: v
+    }));
+    setErr("");
+  };
   const isNew = !existing.some(u => u.id === initial.id);
+  const needTech = f.roles.some(r => r === "tech" || r === "ee" || r === "sales");
+  const save = () => {
+    const uname = String(f.username || "").trim();
+    if (!f.name.trim()) {
+      setErr("กรุณากรอกชื่อ-สกุล");
+      return;
+    }
+    if (!uname) {
+      setErr("กรุณากรอกชื่อผู้ใช้ (ID เข้าระบบ)");
+      return;
+    }
+    if (existing.some(u => u.id !== f.id && (u.username || "").toLowerCase() === uname.toLowerCase())) {
+      setErr("ชื่อผู้ใช้ \"" + uname + "\" ถูกใช้แล้ว กรุณาตั้งใหม่");
+      return;
+    }
+    if (!String(f.pin).trim()) {
+      setErr("กรุณากรอกรหัสผ่าน");
+      return;
+    }
+    if (!f.roles.length) {
+      setErr("เลือกตำแหน่งอย่างน้อย 1 ตำแหน่ง");
+      return;
+    }
+    if (needTech && !f.techId) {
+      setErr("ตำแหน่งที่เลือกต้องผูกกับพนักงานในระบบ เพื่อรับงาน/นัดสำรวจ");
+      return;
+    }
+    const roles = ROLE_KEYS.filter(k => f.roles.indexOf(k) !== -1);
+    onSave(Object.assign({}, f, {
+      name: f.name.trim(),
+      username: uname,
+      pin: String(f.pin).trim(),
+      roles: roles,
+      role: roles[0]
+    }));
+  };
   return React.createElement("div", _extends({}, bdClose, {
     style: {
       position: "fixed",
@@ -1031,7 +1431,7 @@ function UserEditModal({
     style: {
       background: "var(--bg)",
       borderRadius: isMobile ? "20px 20px 0 0" : 18,
-      width: isMobile ? "100%" : "min(440px,100%)",
+      width: isMobile ? "100%" : "min(460px,100%)",
       maxHeight: isMobile ? "94dvh" : "90vh",
       display: "flex",
       flexDirection: "column",
@@ -1108,21 +1508,14 @@ function UserEditModal({
     onChange: e => set("pin", e.target.value),
     placeholder: "\u0E15\u0E31\u0E49\u0E07\u0E23\u0E2B\u0E31\u0E2A\u0E1C\u0E48\u0E32\u0E19"
   })), React.createElement(AField, {
-    label: "\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E01\u0E32\u0E23\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19 (Role)"
-  }, React.createElement("select", {
-    style: A_INPUT,
-    value: f.role,
-    onChange: e => set("role", e.target.value)
-  }, React.createElement("option", {
-    value: "admin"
-  }, "\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19 / \u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28 \u2014 \u0E04\u0E27\u0E1A\u0E04\u0E38\u0E21\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14"), React.createElement("option", {
-    value: "manager"
-  }, "\u0E1C\u0E39\u0E49\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23 \u2014 \u0E14\u0E39\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 + \u0E41\u0E01\u0E49\u0E44\u0E02\u0E07\u0E32\u0E19"), React.createElement("option", {
-    value: "tech"
-  }, "\u0E0A\u0E48\u0E32\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 \u2014 \u0E40\u0E2B\u0E47\u0E19\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E07\u0E32\u0E19\u0E15\u0E31\u0E27\u0E40\u0E2D\u0E07"), React.createElement("option", {
-    value: "survey"
-  }, "\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23\u0E2A\u0E33\u0E23\u0E27\u0E08 \u2014 \u0E40\u0E2B\u0E47\u0E19\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E02\u0E2D\u0E07\u0E15\u0E31\u0E27\u0E40\u0E2D\u0E07"))), (f.role === "tech" || f.role === "survey") && React.createElement(AField, {
-    label: f.role === "survey" ? "ผูกกับวิศวกร/พนักงานในระบบ (เพื่อรับนัดสำรวจ)" : "ผูกกับช่างในระบบ (เพื่อกรองงาน)"
+    label: "ตำแหน่ง — ติ๊กได้หลายอัน (เลือกไว้ " + f.roles.length + ")",
+    required: true
+  }, React.createElement(RolePicker, {
+    value: f.roles,
+    onChange: v => set("roles", v)
+  })), needTech && React.createElement(AField, {
+    label: "\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E1E\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A (\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E23\u0E31\u0E1A\u0E07\u0E32\u0E19 / \u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08)",
+    required: true
   }, React.createElement("select", {
     style: A_INPUT,
     value: f.techId || "",
@@ -1175,7 +1568,13 @@ function UserEditModal({
       fontWeight: 600,
       color: f.active === false ? "var(--text-3)" : "var(--primary-dark)"
     }
-  }, f.active === false ? "ระงับการใช้งาน" : "ใช้งานได้")))), React.createElement("div", {
+  }, f.active === false ? "ระงับการใช้งาน" : "ใช้งานได้"))), err && React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: "#EF4444"
+    }
+  }, "\u26A0 ", err)), React.createElement("div", {
     style: {
       padding: "14px 22px",
       paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14,
@@ -1201,38 +1600,7 @@ function UserEditModal({
       cursor: "pointer"
     }
   }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("button", {
-    onClick: () => {
-      const uname = String(f.username || "").trim();
-      if (!f.name.trim()) {
-        alert("กรุณากรอกชื่อ-สกุล");
-        return;
-      }
-      if (!uname) {
-        alert("กรุณากรอกชื่อผู้ใช้ (ID เข้าระบบ)");
-        return;
-      }
-      if (existing.some(u => u.id !== f.id && (u.username || "").toLowerCase() === uname.toLowerCase())) {
-        alert("ชื่อผู้ใช้ \"" + uname + "\" ถูกใช้แล้ว กรุณาตั้งใหม่");
-        return;
-      }
-      if (!String(f.pin).trim()) {
-        alert("กรุณากรอกรหัสผ่าน");
-        return;
-      }
-      if (f.role === "tech" && !f.techId) {
-        alert("กรุณาเลือกช่างที่ผูกกับบัญชีนี้");
-        return;
-      }
-      if (f.role === "survey" && !f.techId) {
-        alert("กรุณาเลือกวิศวกรที่ผูกกับบัญชีนี้");
-        return;
-      }
-      onSave(Object.assign({}, f, {
-        name: f.name.trim(),
-        username: uname,
-        pin: String(f.pin).trim()
-      }));
-    },
+    onClick: save,
     style: {
       flex: isMobile ? 1 : "none",
       padding: "11px 22px",
@@ -1254,5 +1622,11 @@ Object.assign(window, {
   NotifPanel,
   UserManager,
   can,
-  ROLE_INFO
+  hasRole,
+  userRoles,
+  ROLE_INFO,
+  ROLE_KEYS,
+  ROLE_ALIAS,
+  RoleBadge,
+  RoleBadges
 });

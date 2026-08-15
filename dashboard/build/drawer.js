@@ -830,6 +830,7 @@ function DetailDrawer({
   onEdit,
   currentUser,
   canManage,
+  canDesign,
   stock,
   onSaveBOQ,
   onSurvey,
@@ -1276,7 +1277,7 @@ function DetailDrawer({
     name: "arrowRight",
     size: 16,
     color: "var(--text-3)"
-  })), window.Plan3DEditor && React.createElement("button", {
+  })), window.Plan3DEditor && canDesign && React.createElement("button", {
     onClick: () => setPlan3dOpen(true),
     style: {
       width: "100%",

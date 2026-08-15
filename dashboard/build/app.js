@@ -1,76 +1,59 @@
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
-const OFFICE = ["admin", "manager", "tech"];
 const NAV = [{
   key: "overview",
   th: "ภาพรวม",
   en: "Overview",
-  icon: "grid",
-  roles: OFFICE
+  icon: "grid"
 }, {
   key: "board",
   th: "บอร์ดงาน",
   en: "Workflow",
-  icon: "kanban",
-  roles: OFFICE
+  icon: "kanban"
 }, {
   key: "table",
   th: "ฐานข้อมูลงาน",
   en: "Database",
   icon: "table",
-  roles: ["admin"]
+  perm: "viewAll"
 }, {
   key: "leads",
   th: "ลูกค้าสำรวจ",
   en: "Survey Leads",
   icon: "user",
-  roles: ["admin", "manager"]
+  perm: "leads"
 }, {
   key: "dispatch",
   th: "จัดตารางสำรวจ",
   en: "Dispatch",
   icon: "calendar",
-  roles: ["admin", "manager"]
+  perm: "dispatch"
 }, {
   key: "myschedule",
   th: "ตารางงานของฉัน",
   en: "My Schedule",
   icon: "list",
-  roles: ["survey", "tech"]
+  own: true
 }, {
   key: "calendar",
   th: "ปฏิทินนัด",
   en: "Calendar",
-  icon: "calendar",
-  roles: OFFICE
+  icon: "calendar"
 }, {
   key: "stock",
   th: "คลังสินค้า",
   en: "Inventory",
   icon: "box",
-  roles: OFFICE
+  perm: "stock"
 }, {
   key: "report",
   th: "รายงานสรุป",
   en: "Report",
   icon: "file",
-  roles: OFFICE
+  perm: "viewAll"
 }];
-const navForRole = role => NAV.filter(n => !n.roles || n.roles.includes(role));
+const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm));
 const techKey = (j, known) => j.tech && (!known || known.has(j.tech)) ? j.tech : "__none";
 const matchTech = (j, f, known) => techKey(j, known) === f;
-const ROLES = [{
-  key: "admin",
-  th: "แอดมิน / ออฟฟิศ",
-  icon: "users"
-}, {
-  key: "manager",
-  th: "ผู้จัดการ",
-  icon: "user"
-}, {
-  key: "tech",
-  th: "ช่างติดตั้ง",
-  icon: "wrench"
-}];
 const ACCENTS = {
   phithan: {
     primary: "#22A35B",
@@ -229,16 +212,17 @@ function App() {
     return n;
   }), []);
   const isMobile = useIsMobile();
-  const role = auth.current ? auth.current.role : null;
+  const role = React.useMemo(() => auth.current ? userRoles(auth.current) : [], [auth.current]);
   const techId = auth.current ? auth.current.techId : null;
+  const ownOnly = !!auth.current && !can(role, "viewAll");
   React.useEffect(() => {
     if (!isMobile) setSidebarOpen(false);
   }, [isMobile]);
   React.useEffect(() => {
     if (!auth.current) return;
-    const allowed = navForRole(role).map(n => n.key);
-    if (!allowed.includes(view)) setView(role === "survey" ? "myschedule" : "overview");
-  }, [auth.current, role]);
+    const allowed = navForRole(role, techId).map(n => n.key);
+    if (!allowed.includes(view)) setView(allowed[0] || "overview");
+  }, [auth.current, role, techId]);
   React.useEffect(() => {
     applyTheme(Object.assign({}, t, {
       mode: aurora ? "aurora" : "light"
@@ -265,10 +249,10 @@ function App() {
       if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return false;
       if (quickFilter === "battery" && !j.battery) return false;
       if (techFilter && !matchTech(j, techFilter, techIds)) return false;
-      if (role === "tech" && j.tech !== techId) return false;
+      if (ownOnly && j.tech !== techId) return false;
       return true;
     });
-  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techFilter, techIds, role, techId]);
+  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techFilter, techIds, ownOnly, techId]);
   const techCounts = React.useMemo(() => {
     const q = search.trim().toLowerCase();
     const c = {};
@@ -282,14 +266,14 @@ function App() {
       if (quickFilter === "delayed" && !j.delayed) return;
       if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return;
       if (quickFilter === "battery" && !j.battery) return;
-      if (role === "tech" && j.tech !== techId) return;
+      if (ownOnly && j.tech !== techId) return;
       const k = techKey(j, techIds);
       c[k] = (c[k] || 0) + 1;
       all++;
     });
     c.__all = all;
     return c;
-  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techIds, role, techId]);
+  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techIds, ownOnly, techId]);
   const stageCounts = React.useMemo(() => {
     const q = search.trim().toLowerCase();
     const c = {};
@@ -303,15 +287,15 @@ function App() {
       if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return;
       if (quickFilter === "battery" && !j.battery) return;
       if (techFilter && !matchTech(j, techFilter, techIds)) return;
-      if (role === "tech" && j.tech !== techId) return;
+      if (ownOnly && j.tech !== techId) return;
       c[j.stage] = (c[j.stage] || 0) + 1;
       all++;
     });
     c.__all = all;
     return c;
-  }, [jobs, search, typeFilter, delayedOnly, quickFilter, techFilter, techIds, role, techId]);
+  }, [jobs, search, typeFilter, delayedOnly, quickFilter, techFilter, techIds, ownOnly, techId]);
   const lateAlerts = React.useMemo(() => {
-    const scope = role === "tech" ? jobs.filter(j => j.tech === techId) : can(role, "viewAll") ? jobs : [];
+    const scope = can(role, "viewAll") ? jobs : jobs.filter(j => j.tech === techId);
     const out = [];
     scope.forEach(j => (j.lateStages || []).forEach(ls => out.push({
       jobId: j.id,
@@ -319,9 +303,9 @@ function App() {
       stage: ls
     })));
     return out.sort((a, b) => b.stage.daysLate - a.stage.daysLate);
-  }, [jobs, role, techId]);
+  }, [jobs, role, ownOnly, techId]);
   const todayTasks = React.useMemo(() => {
-    const scope = role === "tech" ? jobs.filter(j => j.tech === techId) : can(role, "viewAll") ? jobs : [];
+    const scope = can(role, "viewAll") ? jobs : jobs.filter(j => j.tech === techId);
     const today = window.SF.TODAY;
     const inst = window.SF.STAGES.find(s => s.key === "install");
     const out = [];
@@ -339,7 +323,7 @@ function App() {
       });
     });
     return out;
-  }, [jobs, role, techId]);
+  }, [jobs, role, ownOnly, techId]);
   const myScheduleItems = React.useMemo(() => {
     const all = window.buildMySchedItems ? window.buildMySchedItems(apptStore.appts, jobs, techId) : [];
     const today = window.SF.TODAY;
@@ -543,7 +527,7 @@ function App() {
     }
     setDelAsk(j);
   };
-  const listView = () => navForRole(role).some(n => n.key === "table") ? "table" : "board";
+  const listView = () => navForRole(role, techId).some(n => n.key === "table") ? "table" : "board";
   const goStage = key => {
     setStageFilter(key);
     setQuickFilter(null);
@@ -588,6 +572,7 @@ function App() {
     view: view,
     onNav: navTo,
     role: role,
+    techId: techId,
     jobs: jobs,
     stock: stock,
     t: t,
@@ -613,7 +598,7 @@ function App() {
     jobs: jobs,
     priceStore: priceStore,
     ampStore: ampStore,
-    canManagePrices: can(role, "delJob")
+    canManagePrices: can(role, "price")
   }) : view === "dispatch" ? React.createElement(DispatchView, {
     appts: apptStore.appts,
     jobs: jobs,
@@ -643,7 +628,7 @@ function App() {
     onAdvance: j => store.advance(j.id)
   }) : React.createElement(React.Fragment, null, React.createElement(Header, {
     view: view,
-    role: role,
+    ownOnly: ownOnly,
     count: filtered.length,
     total: jobs.length,
     search: search,
@@ -742,13 +727,14 @@ function App() {
     onSetMat: store.setMat,
     currentUser: auth.current,
     canManage: can(role, "delJob"),
+    canDesign: can(role, "design"),
     stock: stock,
     onSaveBOQ: (id, boq) => store.patch(id, {
       boq
     }),
     onSurvey: can(role, "doSurvey") || can(role, "dispatch") ? () => openSurvey(selectedJob) : null,
     onSurveyReport: () => setReportJob(selectedJob),
-    priceMap: can(role, "delJob") ? effPriceMap : null,
+    priceMap: can(role, "price") ? effPriceMap : null,
     onEdit: id => {
       setSelected(null);
       setForm({
@@ -879,6 +865,7 @@ function Sidebar({
   view,
   onNav,
   role,
+  techId,
   jobs,
   stock,
   t,
@@ -964,7 +951,7 @@ function Sidebar({
     color: "var(--text-2)"
   }))), React.createElement("nav", {
     className: "sidebar-nav"
-  }, navForRole(role).map(n => {
+  }, navForRole(role, techId).map(n => {
     const active = view === n.key;
     return React.createElement("button", {
       key: n.key,
@@ -1012,7 +999,7 @@ function Sidebar({
       flexShrink: 0,
       display: "grid",
       placeItems: "center",
-      background: (ROLE_INFO[currentUser.role] || ROLE_INFO.tech).color,
+      background: (ROLE_INFO[userRoles(currentUser)[0]] || ROLE_INFO.tech).color,
       color: "#fff",
       fontWeight: 700,
       fontSize: 14
@@ -1036,7 +1023,7 @@ function Sidebar({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, (ROLE_INFO[currentUser.role] || ROLE_INFO.tech).th))), React.createElement("button", {
+  }, userRoles(currentUser).map(r => (ROLE_INFO[r] || ROLE_INFO.tech).short).join(" · ")))), React.createElement("button", {
     onClick: onToggleAurora,
     className: "nav-item",
     title: aurora ? "กลับสู่โหมดปกติ" : "เปิดโหมดกราไฟต์",
@@ -1244,7 +1231,7 @@ function TechFilter({
 }
 function Header({
   view,
-  role,
+  ownOnly,
   count,
   total,
   search,
@@ -1295,7 +1282,7 @@ function Header({
   React.useEffect(() => {
     if (searchOpen && searchRef.current) searchRef.current.focus();
   }, [searchOpen]);
-  const showTechFilter = role !== "tech" && setTechFilter;
+  const showTechFilter = !ownOnly && setTechFilter;
   const techName = id => {
     if (id === "__none") return "ยังไม่มอบหมาย";
     const t = (techs || []).find(x => x.id === id);
@@ -1325,7 +1312,7 @@ function Header({
     className: "page-title"
   }, nav.th), React.createElement("p", {
     className: "page-sub"
-  }, "\u0E41\u0E2A\u0E14\u0E07 ", React.createElement("strong", null, count), " \u0E08\u0E32\u0E01 ", total, " \u0E07\u0E32\u0E19", role === "tech" && " · เฉพาะงานของคุณ", stageFilter && React.createElement("span", null, " \xB7 \u0E01\u0E23\u0E2D\u0E07: ", stageOf(stageFilter).th, " ", React.createElement("button", {
+  }, "\u0E41\u0E2A\u0E14\u0E07 ", React.createElement("strong", null, count), " \u0E08\u0E32\u0E01 ", total, " \u0E07\u0E32\u0E19", ownOnly && " · เฉพาะงานของคุณ", stageFilter && React.createElement("span", null, " \xB7 \u0E01\u0E23\u0E2D\u0E07: ", stageOf(stageFilter).th, " ", React.createElement("button", {
     onClick: () => setStageFilter(null),
     className: "clear-chip"
   }, "\u0E25\u0E49\u0E32\u0E07 \u2715")), quickFilter && React.createElement("span", null, " \xB7 \u0E01\u0E23\u0E2D\u0E07: ", QUICK_LABELS[quickFilter], " ", React.createElement("button", {
@@ -1936,7 +1923,7 @@ function TrashModal({
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const bdClose = window.useBackdropClose(onClose);
-  const isAdmin = !!me && me.role === "admin";
+  const isAdmin = !!me && hasRole(userRoles(me), "admin");
   const [ask, setAsk] = React.useState(null);
   const [pw, setPw] = React.useState("");
   const [err, setErr] = React.useState("");

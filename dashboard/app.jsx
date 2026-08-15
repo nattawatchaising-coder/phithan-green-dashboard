@@ -2,33 +2,27 @@
    SolarFlow / PHITHAN GREEN — main app shell
    ============================================================ */
 
-const OFFICE = ["admin", "manager", "tech"];
+/* เมนูซ้าย — คุมด้วย "สิทธิ์" ไม่ใช่ชื่อตำแหน่ง เพราะคนหนึ่งคนถือได้หลายตำแหน่ง
+   perm ว่าง = ทุกคนที่ล็อกอินเห็น · own = เห็นเมื่อบัญชีผูกกับพนักงานในระบบ (มีงานเป็นของตัวเอง) */
 const NAV = [
-  { key: "overview",   th: "ภาพรวม",         en: "Overview",      icon: "grid",     roles: OFFICE },
-  { key: "board",      th: "บอร์ดงาน",        en: "Workflow",      icon: "kanban",   roles: OFFICE },
-  { key: "table",      th: "ฐานข้อมูลงาน",     en: "Database",      icon: "table",    roles: ["admin"] },
-  { key: "leads",      th: "ลูกค้าสำรวจ",      en: "Survey Leads",  icon: "user",     roles: ["admin", "manager"] },
+  { key: "overview",   th: "ภาพรวม",         en: "Overview",      icon: "grid" },
+  { key: "board",      th: "บอร์ดงาน",        en: "Workflow",      icon: "kanban" },
+  { key: "table",      th: "ฐานข้อมูลงาน",     en: "Database",      icon: "table",    perm: "viewAll" },
+  { key: "leads",      th: "ลูกค้าสำรวจ",      en: "Survey Leads",  icon: "user",     perm: "leads" },
   // "สถานะสำรวจ" (SurveyView) ถอดออกจากเมนูแล้ว — การสำรวจย้ายไปอยู่กับ "ลูกค้าสำรวจ" ทั้งหมด
   // งานในฐานงานมาจากลูกค้าที่แปลงแล้ว (พกแบบสำรวจติดมาด้วย) · โค้ดหน้ายังอยู่ใน views-survey.jsx ถ้าอยากได้คืน
-  // { key: "survey", th: "สถานะสำรวจ", en: "Survey Status", icon: "list", roles: ["admin", "manager"] },
-  { key: "dispatch",   th: "จัดตารางสำรวจ",    en: "Dispatch",      icon: "calendar", roles: ["admin", "manager"] },
-  { key: "myschedule", th: "ตารางงานของฉัน",   en: "My Schedule",   icon: "list",     roles: ["survey", "tech"] },
-  { key: "calendar",   th: "ปฏิทินนัด",        en: "Calendar",      icon: "calendar", roles: OFFICE },
-  { key: "stock",      th: "คลังสินค้า",       en: "Inventory",     icon: "box",      roles: OFFICE },
-  { key: "report",     th: "รายงานสรุป",       en: "Report",        icon: "file",     roles: OFFICE },
+  { key: "dispatch",   th: "จัดตารางสำรวจ",    en: "Dispatch",      icon: "calendar", perm: "dispatch" },
+  { key: "myschedule", th: "ตารางงานของฉัน",   en: "My Schedule",   icon: "list",     own: true },
+  { key: "calendar",   th: "ปฏิทินนัด",        en: "Calendar",      icon: "calendar" },
+  { key: "stock",      th: "คลังสินค้า",       en: "Inventory",     icon: "box",      perm: "stock" },
+  { key: "report",     th: "รายงานสรุป",       en: "Report",        icon: "file",     perm: "viewAll" },
 ];
-const navForRole = (role) => NAV.filter((n) => !n.roles || n.roles.includes(role));
+const navForRole = (roles, techId) => NAV.filter((n) => (n.own ? !!techId : (!n.perm || can(roles, n.perm))));
 
 /* งานนี้เป็นของช่างที่กรองอยู่ไหม — "__none" คือกรองเอาเฉพาะงานที่ยังไม่ได้มอบหมายให้ใคร
    งานที่ผูกไว้กับช่างที่ถูกลบไปแล้ว (ไม่มีใน known) ให้นับเป็น "ยังไม่มอบหมาย" จะได้ไม่หายไปจากเมนู */
 const techKey = (j, known) => (j.tech && (!known || known.has(j.tech)) ? j.tech : "__none");
 const matchTech = (j, f, known) => techKey(j, known) === f;
-
-const ROLES = [
-  { key: "admin",   th: "แอดมิน / ออฟฟิศ", icon: "users" },
-  { key: "manager", th: "ผู้จัดการ",        icon: "user" },
-  { key: "tech",    th: "ช่างติดตั้ง",      icon: "wrench" },
-];
 
 const ACCENTS = {
   phithan: { primary: "#22A35B", dark: "#14663A", soft: "#E1F5E8", bright: "#35B76D" },
@@ -141,9 +135,12 @@ function App() {
   const toggleCollapsed = React.useCallback(() => setCollapsed((c) => { const n = !c; localStorage.setItem("pg-sidebar", n ? "1" : "0"); return n; }), []);
   const isMobile = useIsMobile(); // force App re-render when mobile↔desktop breakpoint changes
 
-  // สิทธิ์/ตัวตนของผู้ใช้ที่ล็อกอินอยู่ (null ถ้ายังไม่ล็อกอิน)
-  const role   = auth.current ? auth.current.role : null;
+  /* สิทธิ์/ตัวตนของผู้ใช้ที่ล็อกอินอยู่ — role เป็น "รายการตำแหน่ง" เพราะคนหนึ่งคนถือได้หลายตำแหน่ง
+     can(role, ...) รับได้ทั้งรายการและตำแหน่งเดียว จึงเรียกเหมือนเดิมได้ทุกที่ */
+  const role   = React.useMemo(() => (auth.current ? userRoles(auth.current) : []), [auth.current]);
   const techId = auth.current ? auth.current.techId : null;
+  /* เห็นเฉพาะงานของตัวเอง = ไม่มีสิทธิ์ดูงานทั้งหมด และบัญชีผูกกับพนักงานอยู่ (เช่น ช่างติดตั้ง) */
+  const ownOnly = !!auth.current && !can(role, "viewAll");
 
   // Auto-close sidebar when resizing to desktop
   React.useEffect(() => { if (!isMobile) setSidebarOpen(false); }, [isMobile]);
@@ -151,9 +148,9 @@ function App() {
   // เมื่อล็อกอิน/เปลี่ยนสิทธิ์ — ถ้าหน้าปัจจุบันไม่อยู่ในสิทธิ์ ให้ไปหน้าเริ่มต้นตาม role
   React.useEffect(() => {
     if (!auth.current) return;
-    const allowed = navForRole(role).map((n) => n.key);
-    if (!allowed.includes(view)) setView(role === "survey" ? "myschedule" : "overview");
-  }, [auth.current, role]);
+    const allowed = navForRole(role, techId).map((n) => n.key);
+    if (!allowed.includes(view)) setView(allowed[0] || "overview");
+  }, [auth.current, role, techId]);
 
   React.useEffect(() => { applyTheme(Object.assign({}, t, { mode: aurora ? "aurora" : "light" })); }, [t, aurora]);
 
@@ -175,10 +172,10 @@ function App() {
       if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return false;
       if (quickFilter === "battery" && !j.battery) return false;
       if (techFilter && !matchTech(j, techFilter, techIds)) return false;
-      if (role === "tech" && j.tech !== techId) return false; // ช่างเห็นเฉพาะงานตัวเอง
+      if (ownOnly && j.tech !== techId) return false; // ไม่มีสิทธิ์ดูทั้งหมด = เห็นเฉพาะงานที่ได้รับมอบหมาย
       return true;
     });
-  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techFilter, techIds, role, techId]);
+  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techFilter, techIds, ownOnly, techId]);
 
   /* นับงานต่อช่าง สำหรับเมนูกรอง "ช่างผู้รับผิดชอบ" — ใช้ฟิลเตอร์อื่นทั้งหมดยกเว้น techFilter เอง
      จะได้เห็นว่าภายใต้เงื่อนไขที่กรองอยู่ ช่างแต่ละคนมีงานกี่งาน */
@@ -194,13 +191,13 @@ function App() {
       if (quickFilter === "delayed" && !j.delayed) return;
       if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return;
       if (quickFilter === "battery" && !j.battery) return;
-      if (role === "tech" && j.tech !== techId) return;
+      if (ownOnly && j.tech !== techId) return;
       const k = techKey(j, techIds);
       c[k] = (c[k] || 0) + 1; all++;
     });
     c.__all = all;
     return c;
-  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techIds, role, techId]);
+  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techIds, ownOnly, techId]);
 
   // นับงานต่อขั้น (Flow) สำหรับชิปกรอง — ใช้ฟิลเตอร์อื่นทั้งหมดยกเว้น stageFilter เอง
   const stageCounts = React.useMemo(() => {
@@ -215,25 +212,25 @@ function App() {
       if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return;
       if (quickFilter === "battery" && !j.battery) return;
       if (techFilter && !matchTech(j, techFilter, techIds)) return;
-      if (role === "tech" && j.tech !== techId) return;
+      if (ownOnly && j.tech !== techId) return;
       c[j.stage] = (c[j.stage] || 0) + 1; all++;
     });
     c.__all = all;
     return c;
-  }, [jobs, search, typeFilter, delayedOnly, quickFilter, techFilter, techIds, role, techId]);
+  }, [jobs, search, typeFilter, delayedOnly, quickFilter, techFilter, techIds, ownOnly, techId]);
 
   // แจ้งเตือนงานล่าช้าตามขั้น (Flow) — คำนวณสด: tech เห็นเฉพาะงานตัวเอง, admin/manager เห็นทุกงาน
   const lateAlerts = React.useMemo(() => {
-    const scope = role === "tech" ? jobs.filter((j) => j.tech === techId) : (can(role, "viewAll") ? jobs : []);
+    const scope = can(role, "viewAll") ? jobs : jobs.filter((j) => j.tech === techId);
     const out = [];
     scope.forEach((j) => (j.lateStages || []).forEach((ls) => out.push({ jobId: j.id, jobName: j.name, stage: ls })));
     return out.sort((a, b) => b.stage.daysLate - a.stage.daysLate);
-  }, [jobs, role, techId]);
+  }, [jobs, role, ownOnly, techId]);
 
   // งานติดตั้งวันนี้ (ตารางงาน) — today อยู่ในช่วงวันนัดติดตั้ง [startDate..deadline]
   // ใช้ "ช่วงวันนัดติดตั้ง" เป็นตารางงานเดียว (ไม่ใช้ stageDates รายขั้นอื่นซึ่งเป็นแค่สถานะ)
   const todayTasks = React.useMemo(() => {
-    const scope = role === "tech" ? jobs.filter((j) => j.tech === techId) : (can(role, "viewAll") ? jobs : []);
+    const scope = can(role, "viewAll") ? jobs : jobs.filter((j) => j.tech === techId);
     const today = window.SF.TODAY;
     const inst = window.SF.STAGES.find((s) => s.key === "install");
     const out = [];
@@ -249,7 +246,7 @@ function App() {
       out.push({ job: j, stage: inst, kind });
     });
     return out;
-  }, [jobs, role, techId]);
+  }, [jobs, role, ownOnly, techId]);
 
   // ตารางงานของฉัน (วันนี้ + กำลังจะถึง) — นัดสำรวจ + งานติดตั้งของคนที่ล็อกอิน → โชว์บนหน้าภาพรวม
   // ยุบงานโปรเจคเดียวกันให้เหลือแถวเดียว (เก็บช่วงวัน start–end) · เอาแค่ 3 แถวแรก
@@ -387,7 +384,7 @@ function App() {
     setDelAsk(j);
   };
   // หน้ารายการงานที่ใช้เจาะดู — table เฉพาะ admin, role อื่นใช้บอร์ดงานแทน
-  const listView = () => (navForRole(role).some((n) => n.key === "table") ? "table" : "board");
+  const listView = () => (navForRole(role, techId).some((n) => n.key === "table") ? "table" : "board");
   const goStage = (key) => { setStageFilter(key); setQuickFilter(null); setView(listView()); };
   const goKpi = (key) => { setQuickFilter(key); setStageFilter(null); setTypeFilter("all"); setDelayedOnly(false); setView(listView()); };
 
@@ -413,7 +410,7 @@ function App() {
   return (
     <div className="app-root">
       {sidebarOpen && <div className="sidebar-overlay" onClick={closeSidebar} />}
-      <Sidebar view={view} onNav={navTo} role={role} jobs={jobs} stock={stock} t={t}
+      <Sidebar view={view} onNav={navTo} role={role} techId={techId} jobs={jobs} stock={stock} t={t}
         open={sidebarOpen} onClose={closeSidebar} aurora={aurora} onToggleAurora={toggleAurora}
         collapsed={collapsed} onToggleCollapsed={toggleCollapsed}
         currentUser={auth.current} onLogout={auth.logout}
@@ -421,7 +418,7 @@ function App() {
       <main className="app-main">
         {view === "stock" ? (
           <StockView stock={stock} onMenuOpen={() => setSidebarOpen(true)} currentUser={auth.current} jobs={jobs}
-            priceStore={priceStore} ampStore={ampStore} canManagePrices={can(role, "delJob")} />
+            priceStore={priceStore} ampStore={ampStore} canManagePrices={can(role, "price")} />
         ) : view === "dispatch" ? (
           <DispatchView appts={apptStore.appts} jobs={jobs} techs={techStore.techs} store={apptStore} leadStore={leadStore}
             onMenuOpen={() => setSidebarOpen(true)} onOpenJob={openJob} />
@@ -440,7 +437,7 @@ function App() {
             onAdvance={(j) => store.advance(j.id)} />
         ) : (
         <React.Fragment>
-        <Header view={view} role={role} count={filtered.length} total={jobs.length}
+        <Header view={view} ownOnly={ownOnly} count={filtered.length} total={jobs.length}
           search={search} setSearch={setSearch}
           typeFilter={typeFilter} setTypeFilter={setTypeFilter}
           delayedOnly={delayedOnly} setDelayedOnly={setDelayedOnly}
@@ -477,11 +474,11 @@ function App() {
       </main>
 
       <DetailDrawer job={selectedJob} onClose={() => setSelected(null)} onAdvance={(id) => store.advance(id)} onSetMat={store.setMat}
-        currentUser={auth.current} canManage={can(role, "delJob")} stock={stock}
+        currentUser={auth.current} canManage={can(role, "delJob")} canDesign={can(role, "design")} stock={stock}
         onSaveBOQ={(id, boq) => store.patch(id, { boq })}
         onSurvey={(can(role, "doSurvey") || can(role, "dispatch")) ? () => openSurvey(selectedJob) : null}
         onSurveyReport={() => setReportJob(selectedJob)}
-        priceMap={can(role, "delJob") ? effPriceMap : null}
+        priceMap={can(role, "price") ? effPriceMap : null}
         onEdit={(id) => { setSelected(null); setForm({ job: store.raw.find((r) => r.id === id), isNew: false }); }} />
       {surveyJob && <SurveyWizard job={surveyJob} currentUser={auth.current} stock={stock}
         onClose={() => { setSurveyJob(null); setSurveyAppt(null); }}
@@ -524,7 +521,7 @@ function App() {
   );
 }
 
-function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, aurora, onToggleAurora, collapsed, onToggleCollapsed, currentUser, onLogout, canManageUsers, onManageUsers }) {
+function Sidebar({ view, onNav, role, techId, jobs, stock, t, open, onClose, aurora, onToggleAurora, collapsed, onToggleCollapsed, currentUser, onLogout, canManageUsers, onManageUsers }) {
   // Read media query synchronously every render — avoids stale state when
   // the preview or device loads at one size then displays at another.
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -565,7 +562,7 @@ function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, aurora, onT
       </div>
 
       <nav className="sidebar-nav">
-        {navForRole(role).map((n) => {
+        {navForRole(role, techId).map((n) => {
           const active = view === n.key;
           return (
             <button key={n.key} onClick={() => onNav(n.key)} className={"nav-item" + (active ? " active" : "")} title={n.th}
@@ -594,13 +591,13 @@ function Sidebar({ view, onNav, role, jobs, stock, t, open, onClose, aurora, onT
         {currentUser && (
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: icons ? 0 : "4px 2px 10px", justifyContent: icons ? "center" : "flex-start" }}>
             <span style={{ width: 36, height: 36, borderRadius: 99, flexShrink: 0, display: "grid", placeItems: "center",
-              background: (ROLE_INFO[currentUser.role] || ROLE_INFO.tech).color, color: "#fff", fontWeight: 700, fontSize: 14 }}>
+              background: (ROLE_INFO[userRoles(currentUser)[0]] || ROLE_INFO.tech).color, color: "#fff", fontWeight: 700, fontSize: 14 }}>
               {(currentUser.name || "?").slice(0, 1)}
             </span>
             {!icons && (
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{currentUser.name}</div>
-                <div style={{ fontSize: 11, color: "var(--text-3)" }}>{(ROLE_INFO[currentUser.role] || ROLE_INFO.tech).th}</div>
+                <div style={{ fontSize: 11, color: "var(--text-3)" }}>{userRoles(currentUser).map((r) => (ROLE_INFO[r] || ROLE_INFO.tech).short).join(" · ")}</div>
               </div>
             )}
           </div>
@@ -703,7 +700,7 @@ function TechFilter({ value, onChange, techs, counts, nameOf }) {
   );
 }
 
-function Header({ view, role, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, quickFilter, setQuickFilter, techFilter, setTechFilter, techCounts, techs, onAdd, canAdd, onMap, showBell, unread, notifItems, lateAlerts, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen }) {
+function Header({ view, ownOnly, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, quickFilter, setQuickFilter, techFilter, setTechFilter, techCounts, techs, onAdd, canAdd, onMap, showBell, unread, notifItems, lateAlerts, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen }) {
   const nav = NAV.find((n) => n.key === view);
   const QUICK_LABELS = { active: "กำลังดำเนินการ", delayed: "ล่าช้า", ready: "อุปกรณ์พร้อมติดตั้ง", battery: "มีแบตเตอรี่" };
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -716,7 +713,7 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
   const searchRef = React.useRef(null);
   React.useEffect(() => { if (searchOpen && searchRef.current) searchRef.current.focus(); }, [searchOpen]);
   /* กรองตามช่างผู้รับผิดชอบ — ช่างที่ล็อกอินเองเห็นแต่งานตัวเองอยู่แล้ว จึงไม่ต้องมีตัวกรองนี้ */
-  const showTechFilter = role !== "tech" && setTechFilter;
+  const showTechFilter = !ownOnly && setTechFilter;
   const techName = (id) => {
     if (id === "__none") return "ยังไม่มอบหมาย";
     const t = (techs || []).find((x) => x.id === id);
@@ -732,7 +729,7 @@ function Header({ view, role, count, total, search, setSearch, typeFilter, setTy
           <h1 className="page-title">{nav.th}</h1>
           <p className="page-sub">
             แสดง <strong>{count}</strong> จาก {total} งาน
-            {role === "tech" && " · เฉพาะงานของคุณ"}
+            {ownOnly && " · เฉพาะงานของคุณ"}
             {stageFilter && <span> · กรอง: {stageOf(stageFilter).th} <button onClick={() => setStageFilter(null)} className="clear-chip">ล้าง ✕</button></span>}
             {quickFilter && <span> · กรอง: {QUICK_LABELS[quickFilter]} <button onClick={() => setQuickFilter(null)} className="clear-chip">ล้าง ✕</button></span>}
             {techFilter && <span> · ช่าง: {techName(techFilter)} <button onClick={() => setTechFilter(null)} className="clear-chip">ล้าง ✕</button></span>}
@@ -950,7 +947,7 @@ function DeleteJobAsk({ job, onConfirm, onClose }) {
 function TrashModal({ trash, me, onRestore, onPurge, onClose }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const bdClose = window.useBackdropClose(onClose);
-  const isAdmin = !!me && me.role === "admin";
+  const isAdmin = !!me && hasRole(userRoles(me), "admin");
   const [ask, setAsk] = React.useState(null);   // id ที่กำลังจะลบถาวร
   const [pw, setPw] = React.useState("");
   const [err, setErr] = React.useState("");
