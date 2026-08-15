@@ -51,7 +51,9 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
   const installDate = (SF.installDate ? SF.installDate(f) : "");      // วันเริ่ม
   const installEnd = (SF.installEnd ? SF.installEnd(f) : installDate); // วันเสร็จ (>= วันเริ่ม)
   const setInstall = (start, end) => setF((p) => Object.assign({}, p, { stageDates: Object.assign({}, p.stageDates, { install: { start: start, end: end } }) }));
-  const setInstallStart = (v) => setInstall(v, (installEnd && installEnd >= v) ? installEnd : v);   // เลื่อนวันเสร็จตามถ้าจำเป็น
+  /* ล้างวันนัดติดตั้งทั้งช่วง — ลงวันไปแล้วต้องถอนออกได้ (งานเลื่อน/ยกเลิกคิว เกิดขึ้นประจำ) */
+  const clearInstall = () => setF((p) => Object.assign({}, p, { stageDates: Object.assign({}, p.stageDates, { install: null }) }));
+  const setInstallStart = (v) => (v ? setInstall(v, (installEnd && installEnd >= v) ? installEnd : v) : clearInstall());   // เลื่อนวันเสร็จตามถ้าจำเป็น
   const setInstallEnd = (v) => setInstall(installDate || v, (v && installDate && v < installDate) ? installDate : v);
   // ขั้นตอนการทำงาน = ตัวบอกสถานะ — กดเลือกขั้นปัจจุบัน
   const setCurStage = (k) => set("stage", k);
@@ -253,12 +255,11 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
           </Section>
 
           {/* materials */}
-          <Section title="สถานะวัสดุ" icon="box">
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 12 }}>
+          {/* ── เช็กลิสต์ของหน้างาน — แตะสถานะได้ตรง ๆ ทีละอย่าง ไม่ต้องเปิดรายการเลือกทั้ง 8 ช่อง ── */}
+          <Section title="สถานะวัสดุ" icon="box" right={<MatTally mat={f.mat} />}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", columnGap: 26 }}>
               {SF.MATERIALS.map((m) => (
-                <Field key={m.key} label={m.th}>
-                  <Dropdown value={f.mat[m.key]} onChange={(v) => setMat(m.key, v)} options={Object.entries(SF.MAT_STATUS).map(([k, v]) => ({ value: k, label: v.icon + " " + v.th }))} />
-                </Field>
+                <MatRow key={m.key} m={m} value={f.mat[m.key]} onChange={(v) => setMat(m.key, v)} />
               ))}
             </div>
           </Section>
@@ -320,8 +321,19 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
 
             {/* ── วันนัดติดตั้ง — ระบุเป็นช่วงได้ (งานติดตั้งหลายวัน) ใช้จัดตารางงาน/ปฏิทิน ── */}
             <div style={{ borderTop: "1px dashed var(--border)", marginTop: 6, paddingTop: 16 }}>
-              <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 10, lineHeight: 1.5 }}>
-                งานที่ติดตั้งหลายวัน ใส่<b style={{ color: "var(--text-2)" }}>วันเริ่ม–วันเสร็จ</b>ได้ · ถ้าวันเดียวใส่แค่วันเริ่ม
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, flex: 1, minWidth: 0 }}>
+                  งานที่ติดตั้งหลายวัน ใส่<b style={{ color: "var(--text-2)" }}>วันเริ่ม–วันเสร็จ</b>ได้ · ถ้าวันเดียวใส่แค่วันเริ่ม
+                </div>
+                {/* ถอนวันที่ลงไว้แล้วได้ — ในปฏิทินก็แตะวันเดิมซ้ำเพื่อยกเลิกได้เหมือนกัน */}
+                {installDate && (
+                  <button type="button" onClick={clearInstall} title="ล้างวันนัดติดตั้งของงานนี้"
+                    style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 8,
+                      border: "1px solid var(--border-strong)", background: "var(--surface2)", color: "var(--text-2)",
+                      fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>
+                    <Icon name="x" size={12} color="var(--text-3)" /> ยกเลิกวันนัด
+                  </button>
+                )}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <Field label="เริ่มติดตั้ง">
@@ -380,8 +392,9 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
                       else if (cnt >= 2) { bg = "var(--tint-red-bg2)"; col = "var(--tint-red-tx)"; bd = "1px solid #FCA5A5"; }
                       else if (cnt === 1) { bg = "var(--tint-amber-bg2)"; col = "var(--tint-amber-tx)"; bd = "1px solid #FCD34D"; }
                       return (
-                        <button type="button" key={i} onClick={() => setInstallStart(k)}
-                          title={(mine ? "วันนัดติดตั้งงานนี้" : cnt ? "ช่างมี " + cnt + " งาน" : "ว่าง") + " · " + d + " " + FLOW_MONTHS[fm.m] + " — แตะเพื่อเลือกวันเริ่มติดตั้ง"}
+                        /* แตะวันที่เป็นวันเริ่มอยู่แล้วซ้ำ = ยกเลิกวันนัด (กดลงไปแล้วต้องถอนออกได้ในที่เดียวกัน) */
+                        <button type="button" key={i} onClick={() => (k === installDate ? clearInstall() : setInstallStart(k))}
+                          title={(mine ? "วันนัดติดตั้งงานนี้" : cnt ? "ช่างมี " + cnt + " งาน" : "ว่าง") + " · " + d + " " + FLOW_MONTHS[fm.m] + (k === installDate ? " — แตะซ้ำเพื่อยกเลิกวันนัด" : " — แตะเพื่อเลือกวันเริ่มติดตั้ง")}
                           style={{ minHeight: 30, borderRadius: 7, border: isToday && !mine ? "1.5px solid var(--primary)" : bd, background: bg, cursor: "pointer", fontFamily: "inherit",
                             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
                           <span style={{ fontSize: 11, fontWeight: isToday ? 800 : 600, color: col }}>{d}</span>
@@ -427,6 +440,63 @@ function Section({ title, icon, right, children }) {
       </div>
       {children}
     </div>
+  );
+}
+
+/* ============================================================
+   เช็กลิสต์วัสดุ — หนึ่งบรรทัดต่อของหนึ่งอย่าง อ่านทั้งหมดได้ในตาเดียว
+   ------------------------------------------------------------
+   ของหน้างานเปลี่ยนสถานะบ่อยและมักเปลี่ยนทีละอย่าง (ของเข้ามาอย่างหนึ่ง ก็แตะอย่างนั้น)
+   ปุ่มเรียงตามลำดับความคืบหน้าจริง: ยังไม่สั่ง → รอของ → ครบ ส่วน "ไม่ใช้" แยกไว้ท้ายสุด
+   ============================================================ */
+const MAT_ORDER = ["none", "waiting", "ready", "na"];
+
+function MatRow({ m, value, onChange }) {
+  const S = window.SF.MAT_STATUS;
+  const cur = S[value] ? value : "none";
+  const off = cur === "na";
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: "1px solid var(--border)" }}>
+      <span style={{ width: 7, height: 7, borderRadius: 99, flexShrink: 0, background: S[cur].color, opacity: off ? 0.45 : 1 }} />
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: off ? "var(--text-3)" : "var(--text-1)",
+          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.th}</span>
+        <span style={{ display: "block", fontFamily: "var(--mono)", fontSize: 9.5, color: "var(--text-3)", letterSpacing: ".02em" }}>{m.en}</span>
+      </span>
+      <span style={{ display: "flex", flexShrink: 0, border: "1px solid var(--border-strong)", borderRadius: 9, overflow: "hidden", background: "var(--surface2)" }}>
+        {MAT_ORDER.map((k, i) => {
+          const on = k === cur;
+          return (
+            <button type="button" key={k} onClick={() => onChange(k)} title={m.th + " — " + S[k].th}
+              style={{ padding: "6px 9px", border: "none", borderLeft: i ? "1px solid var(--border-strong)" : "none",
+                background: on ? S[k].soft : "transparent", color: on ? S[k].fg : "var(--text-3)",
+                fontFamily: "inherit", fontSize: 11, fontWeight: on ? 800 : 600, cursor: "pointer",
+                whiteSpace: "nowrap", transition: "background .12s, color .12s" }}>
+              {S[k].th}
+            </button>
+          );
+        })}
+      </span>
+    </div>
+  );
+}
+
+/* สรุปยอดมุมขวาของหัวข้อ — นับเฉพาะของที่ใช้จริง จะได้รู้ทันทีว่าเหลืออีกกี่อย่างถึงจะครบ */
+function MatTally({ mat }) {
+  const S = window.SF.MAT_STATUS;
+  const used = window.SF.MATERIALS.filter((m) => (mat[m.key] || "none") !== "na");
+  const n = (k) => used.filter((m) => (mat[m.key] || "none") === k).length;
+  const done = n("ready");
+  return (
+    <span style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+      <span style={{ width: 54, height: 5, borderRadius: 99, background: "var(--surface3)", overflow: "hidden" }}>
+        <span style={{ display: "block", height: "100%", width: (used.length ? (done / used.length) * 100 : 0) + "%",
+          background: S.ready.color, transition: "width .2s" }} />
+      </span>
+      <span style={{ fontSize: 11, fontWeight: 700, color: done === used.length && used.length ? S.ready.fg : "var(--text-3)", textTransform: "none", letterSpacing: 0 }}>
+        ครบ {done}/{used.length}
+      </span>
+    </span>
   );
 }
 

@@ -108,7 +108,12 @@ function JobForm({
       }
     })
   }));
-  const setInstallStart = v => setInstall(v, installEnd && installEnd >= v ? installEnd : v);
+  const clearInstall = () => setF(p => Object.assign({}, p, {
+    stageDates: Object.assign({}, p.stageDates, {
+      install: null
+    })
+  }));
+  const setInstallStart = v => v ? setInstall(v, installEnd && installEnd >= v ? installEnd : v) : clearInstall();
   const setInstallEnd = v => setInstall(installDate || v, v && installDate && v < installDate ? installDate : v);
   const setCurStage = k => set("stage", k);
   const setStageEnd = (k, idx, v) => setF(p => {
@@ -674,24 +679,22 @@ function JobForm({
     }
   }, "* \u0E41\u0E1A\u0E23\u0E19\u0E14\u0E4C ", f.brand, " \u0E44\u0E21\u0E48\u0E23\u0E2D\u0E07\u0E23\u0E31\u0E1A\u0E23\u0E30\u0E1A\u0E1A\u0E41\u0E1A\u0E15\u0E40\u0E15\u0E2D\u0E23\u0E35\u0E48/Backup \u2014 \u0E1B\u0E23\u0E31\u0E1A\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48 \u201C\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E41\u0E1A\u0E23\u0E19\u0E14\u0E4C\u201D")), React.createElement(Section, {
     title: "\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E27\u0E31\u0E2A\u0E14\u0E38",
-    icon: "box"
+    icon: "box",
+    right: React.createElement(MatTally, {
+      mat: f.mat
+    })
   }, React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
-      gap: 12
+      gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+      columnGap: 26
     }
-  }, SF.MATERIALS.map(m => React.createElement(Field, {
+  }, SF.MATERIALS.map(m => React.createElement(MatRow, {
     key: m.key,
-    label: m.th
-  }, React.createElement(Dropdown, {
+    m: m,
     value: f.mat[m.key],
-    onChange: v => setMat(m.key, v),
-    options: Object.entries(SF.MAT_STATUS).map(([k, v]) => ({
-      value: k,
-      label: v.icon + " " + v.th
-    }))
-  }))))), React.createElement(Section, {
+    onChange: v => setMat(m.key, v)
+  })))), React.createElement(Section, {
     title: "\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E07\u0E32\u0E19 & \u0E1B\u0E31\u0E0D\u0E2B\u0E32",
     icon: "flow"
   }, React.createElement("div", {
@@ -859,16 +862,47 @@ function JobForm({
     }
   }, React.createElement("div", {
     style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 10
+    }
+  }, React.createElement("div", {
+    style: {
       fontSize: 11.5,
       color: "var(--text-3)",
-      marginBottom: 10,
-      lineHeight: 1.5
+      lineHeight: 1.5,
+      flex: 1,
+      minWidth: 0
     }
   }, "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E2B\u0E25\u0E32\u0E22\u0E27\u0E31\u0E19 \u0E43\u0E2A\u0E48", React.createElement("b", {
     style: {
       color: "var(--text-2)"
     }
-  }, "\u0E27\u0E31\u0E19\u0E40\u0E23\u0E34\u0E48\u0E21\u2013\u0E27\u0E31\u0E19\u0E40\u0E2A\u0E23\u0E47\u0E08"), "\u0E44\u0E14\u0E49 \xB7 \u0E16\u0E49\u0E32\u0E27\u0E31\u0E19\u0E40\u0E14\u0E35\u0E22\u0E27\u0E43\u0E2A\u0E48\u0E41\u0E04\u0E48\u0E27\u0E31\u0E19\u0E40\u0E23\u0E34\u0E48\u0E21"), React.createElement("div", {
+  }, "\u0E27\u0E31\u0E19\u0E40\u0E23\u0E34\u0E48\u0E21\u2013\u0E27\u0E31\u0E19\u0E40\u0E2A\u0E23\u0E47\u0E08"), "\u0E44\u0E14\u0E49 \xB7 \u0E16\u0E49\u0E32\u0E27\u0E31\u0E19\u0E40\u0E14\u0E35\u0E22\u0E27\u0E43\u0E2A\u0E48\u0E41\u0E04\u0E48\u0E27\u0E31\u0E19\u0E40\u0E23\u0E34\u0E48\u0E21"), installDate && React.createElement("button", {
+    type: "button",
+    onClick: clearInstall,
+    title: "\u0E25\u0E49\u0E32\u0E07\u0E27\u0E31\u0E19\u0E19\u0E31\u0E14\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49",
+    style: {
+      flexShrink: 0,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      padding: "5px 10px",
+      borderRadius: 8,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface2)",
+      color: "var(--text-2)",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 12,
+    color: "var(--text-3)"
+  }), " \u0E22\u0E01\u0E40\u0E25\u0E34\u0E01\u0E27\u0E31\u0E19\u0E19\u0E31\u0E14")), React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
@@ -1045,8 +1079,8 @@ function JobForm({
       return React.createElement("button", {
         type: "button",
         key: i,
-        onClick: () => setInstallStart(k),
-        title: (mine ? "วันนัดติดตั้งงานนี้" : cnt ? "ช่างมี " + cnt + " งาน" : "ว่าง") + " · " + d + " " + FLOW_MONTHS[fm.m] + " — แตะเพื่อเลือกวันเริ่มติดตั้ง",
+        onClick: () => k === installDate ? clearInstall() : setInstallStart(k),
+        title: (mine ? "วันนัดติดตั้งงานนี้" : cnt ? "ช่างมี " + cnt + " งาน" : "ว่าง") + " · " + d + " " + FLOW_MONTHS[fm.m] + (k === installDate ? " — แตะซ้ำเพื่อยกเลิกวันนัด" : " — แตะเพื่อเลือกวันเริ่มติดตั้ง"),
         style: {
           minHeight: 30,
           borderRadius: 7,
@@ -1233,6 +1267,127 @@ function Section({
     size: 14,
     color: "var(--primary)"
   }), " ", title), right), children);
+}
+const MAT_ORDER = ["none", "waiting", "ready", "na"];
+function MatRow({
+  m,
+  value,
+  onChange
+}) {
+  const S = window.SF.MAT_STATUS;
+  const cur = S[value] ? value : "none";
+  const off = cur === "na";
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "9px 0",
+      borderBottom: "1px solid var(--border)"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 7,
+      height: 7,
+      borderRadius: 99,
+      flexShrink: 0,
+      background: S[cur].color,
+      opacity: off ? 0.45 : 1
+    }
+  }), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 13,
+      fontWeight: 600,
+      color: off ? "var(--text-3)" : "var(--text-1)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, m.th), React.createElement("span", {
+    style: {
+      display: "block",
+      fontFamily: "var(--mono)",
+      fontSize: 9.5,
+      color: "var(--text-3)",
+      letterSpacing: ".02em"
+    }
+  }, m.en)), React.createElement("span", {
+    style: {
+      display: "flex",
+      flexShrink: 0,
+      border: "1px solid var(--border-strong)",
+      borderRadius: 9,
+      overflow: "hidden",
+      background: "var(--surface2)"
+    }
+  }, MAT_ORDER.map((k, i) => {
+    const on = k === cur;
+    return React.createElement("button", {
+      type: "button",
+      key: k,
+      onClick: () => onChange(k),
+      title: m.th + " — " + S[k].th,
+      style: {
+        padding: "6px 9px",
+        border: "none",
+        borderLeft: i ? "1px solid var(--border-strong)" : "none",
+        background: on ? S[k].soft : "transparent",
+        color: on ? S[k].fg : "var(--text-3)",
+        fontFamily: "inherit",
+        fontSize: 11,
+        fontWeight: on ? 800 : 600,
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+        transition: "background .12s, color .12s"
+      }
+    }, S[k].th);
+  })));
+}
+function MatTally({
+  mat
+}) {
+  const S = window.SF.MAT_STATUS;
+  const used = window.SF.MATERIALS.filter(m => (mat[m.key] || "none") !== "na");
+  const n = k => used.filter(m => (mat[m.key] || "none") === k).length;
+  const done = n("ready");
+  return React.createElement("span", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      flexShrink: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 54,
+      height: 5,
+      borderRadius: 99,
+      background: "var(--surface3)",
+      overflow: "hidden"
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      height: "100%",
+      width: (used.length ? done / used.length * 100 : 0) + "%",
+      background: S.ready.color,
+      transition: "width .2s"
+    }
+  })), React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: done === used.length && used.length ? S.ready.fg : "var(--text-3)",
+      textTransform: "none",
+      letterSpacing: 0
+    }
+  }, "\u0E04\u0E23\u0E1A ", done, "/", used.length));
 }
 function ToggleField({
   on,
