@@ -606,6 +606,249 @@ function WireArt({
     opacity: ".42"
   }))), body);
 }
+const MEAS_KIND_TH = {
+  cable: "สายไฟ",
+  conduit: "ท่อร้อยสาย",
+  tray: "รางเดินสาย",
+  ladder: "บันไดลิง",
+  walkway: "ทางเดิน",
+  guardrail: "ราวกันตก",
+  other: "อื่น ๆ"
+};
+const MEAS_KIND_COLOR = {
+  cable: "#F97316",
+  conduit: "#0EA5E9",
+  tray: "#8B5CF6",
+  ladder: "#D946EF",
+  walkway: "#14B8A6",
+  guardrail: "#E11D48",
+  other: "#64748B"
+};
+function measLen(m) {
+  const pts = m && m.pts || [];
+  let s = 0;
+  for (let i = 1; i < pts.length; i++) s += Math.hypot((+pts[i].x || 0) - (+pts[i - 1].x || 0), (+pts[i].z || 0) - (+pts[i - 1].z || 0));
+  return Math.round((s + Math.abs(+(m && m.rise) || 0)) * 100) / 100;
+}
+function useMeas3D(jobId) {
+  const [ms, setMs] = React.useState([]);
+  React.useEffect(() => {
+    if (!jobId) {
+      setMs([]);
+      return;
+    }
+    const take = v => setMs((v && v.measures || []).filter(m => m && (m.pts || []).length >= 2));
+    if (window.FBDB) {
+      const ref = window.FBDB.ref("plan3d/" + jobId);
+      const h = ref.on("value", s => take(s.val()));
+      return () => ref.off("value", h);
+    }
+    try {
+      take(JSON.parse(localStorage.getItem("sf_plan3d_" + jobId) || "null"));
+    } catch (e) {
+      setMs([]);
+    }
+  }, [jobId]);
+  return ms;
+}
+function Meas3DModal({
+  list,
+  targets,
+  defaultTarget,
+  onApply,
+  onClose
+}) {
+  const bdClose = window.useBackdropClose(onClose);
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const [pick, setPick] = React.useState(() => {
+    const o = {};
+    (list || []).forEach(m => {
+      o[m.id] = defaultTarget(m);
+    });
+    return o;
+  });
+  const rows = (list || []).filter(m => pick[m.id]);
+  const sum = Math.round(rows.reduce((s, m) => s + measLen(m), 0) * 100) / 100;
+  return React.createElement("div", _extends({}, bdClose, {
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(8,20,14,.45)",
+      backdropFilter: "blur(3px)",
+      zIndex: 130,
+      display: "grid",
+      placeItems: isMobile ? "end center" : "center",
+      padding: isMobile ? 0 : 20
+    }
+  }), React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "var(--bg)",
+      borderRadius: isMobile ? "20px 20px 0 0" : 18,
+      width: isMobile ? "100%" : "min(620px,100%)",
+      maxHeight: isMobile ? "92dvh" : "88vh",
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
+      boxShadow: "0 30px 80px rgba(0,0,0,.45)"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "16px 20px",
+      borderBottom: "1px solid var(--border)",
+      background: "var(--surface)",
+      flexShrink: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 800,
+      letterSpacing: ".05em",
+      textTransform: "uppercase",
+      color: "var(--text-3)"
+    }
+  }, "\u0E23\u0E30\u0E22\u0E30\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A 3D"), React.createElement("div", {
+    style: {
+      fontSize: 14.5,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      marginTop: 3
+    }
+  }, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E27\u0E48\u0E32\u0E41\u0E15\u0E48\u0E25\u0E30\u0E23\u0E30\u0E22\u0E30\u0E08\u0E30\u0E25\u0E07\u0E0A\u0E48\u0E2D\u0E07\u0E44\u0E2B\u0E19")), React.createElement("div", {
+    style: {
+      padding: 16,
+      overflowY: "auto",
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, (list || []).length === 0 && React.createElement("div", {
+    style: {
+      padding: 20,
+      textAlign: "center",
+      color: "var(--text-3)",
+      fontSize: 12.5,
+      lineHeight: 1.7
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E40\u0E2A\u0E49\u0E19\u0E27\u0E31\u0E14\u0E43\u0E19\u0E41\u0E1A\u0E1A 3D \u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49", React.createElement("br", null), "\u0E40\u0E1B\u0E34\u0E14 \u201C\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07 3D\u201D \u2192 \u0E41\u0E17\u0E47\u0E1A ", React.createElement("b", null, "\u0E27\u0E31\u0E14\u0E23\u0E30\u0E22\u0E30"), " \u2192 \u0E04\u0E25\u0E34\u0E01\u0E44\u0E25\u0E48\u0E08\u0E38\u0E14\u0E1A\u0E19\u0E1C\u0E31\u0E07 \u0E41\u0E25\u0E49\u0E27\u0E01\u0E14\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01"), (list || []).map(m => {
+    const col = MEAS_KIND_COLOR[m.kind] || MEAS_KIND_COLOR.other;
+    const rise = Math.abs(+m.rise || 0);
+    return React.createElement("div", {
+      key: m.id,
+      style: {
+        border: "1px solid var(--border)",
+        borderRadius: 12,
+        padding: "10px 12px",
+        background: "var(--surface)",
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1fr) 210px",
+        gap: 10,
+        alignItems: "center"
+      }
+    }, React.createElement("div", {
+      style: {
+        minWidth: 0
+      }
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 7
+      }
+    }, React.createElement("span", {
+      style: {
+        width: 8,
+        height: 8,
+        borderRadius: 99,
+        background: col,
+        flexShrink: 0
+      }
+    }), React.createElement("span", {
+      style: {
+        fontSize: 13,
+        fontWeight: 700,
+        color: "var(--text-1)",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, m.name || "ระยะ"), React.createElement("span", {
+      style: {
+        fontSize: 13.5,
+        fontWeight: 800,
+        color: col,
+        marginLeft: "auto",
+        flexShrink: 0
+      }
+    }, measLen(m).toFixed(2), " \u0E21.")), React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "var(--text-3)",
+        marginTop: 3
+      }
+    }, MEAS_KIND_TH[m.kind] || MEAS_KIND_TH.other, " \xB7 ", (m.pts || []).length, " \u0E08\u0E38\u0E14", rise ? " · รวมขึ้น–ลง " + rise + " ม." : "")), React.createElement(Dropdown, {
+      value: pick[m.id] || "",
+      options: targets,
+      placeholder: "\u2014 \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E49 \u2014",
+      onChange: v => setPick(p => Object.assign({}, p, {
+        [m.id]: v
+      }))
+    }));
+  })), React.createElement("div", {
+    style: {
+      padding: "12px 16px",
+      borderTop: "1px solid var(--border)",
+      background: "var(--surface)",
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexShrink: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)",
+      fontWeight: 600
+    }
+  }, "\u0E19\u0E33\u0E40\u0E02\u0E49\u0E32 ", rows.length, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23", rows.length ? " · รวม " + sum.toFixed(2) + " ม." : ""), React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }), React.createElement("button", {
+    onClick: onClose,
+    style: {
+      background: "var(--surface2)",
+      border: "1px solid var(--border-strong)",
+      color: "var(--text-2)",
+      borderRadius: 10,
+      padding: "9px 16px",
+      fontWeight: 700,
+      fontSize: 12.5,
+      cursor: "pointer",
+      fontFamily: "inherit"
+    }
+  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("button", {
+    disabled: !rows.length,
+    onClick: () => {
+      onApply(rows.map(m => ({
+        m: m,
+        target: pick[m.id]
+      })));
+      onClose();
+    },
+    style: {
+      background: rows.length ? "var(--primary)" : "var(--surface3)",
+      border: "none",
+      color: rows.length ? "#fff" : "var(--text-3)",
+      borderRadius: 10,
+      padding: "9px 20px",
+      fontWeight: 800,
+      fontSize: 12.5,
+      cursor: rows.length ? "pointer" : "default",
+      fontFamily: "inherit"
+    }
+  }, "\u0E19\u0E33\u0E40\u0E02\u0E49\u0E32"))));
+}
 function BOQEditor({
   job,
   onClose,
@@ -1192,6 +1435,162 @@ function BOQEditor({
     onToggle: () => setOpenSec(key)
   });
   const [advU, setAdvU] = React.useState(false);
+  const meas3d = useMeas3D(job ? job.id : null);
+  const [measOpen, setMeasOpen] = React.useState(null);
+  const measFor = kinds => meas3d.filter(m => kinds.indexOf(m.kind || "other") >= 0 || (m.kind || "other") === "other");
+  const measTargets = React.useMemo(() => {
+    const IMC = window.BOQ.IMC_SIZES || [],
+      UPVC = window.BOQ.UPVC_SIZES || [];
+    const WAY = window.BOQ.WAY_SIZES || [],
+      TRAY = window.BOQ.TRAY_SIZES || [];
+    const o = (b.cables || []).map((c, i) => ({
+      value: "cab:" + i,
+      group: "สายไฟ — ทับความยาวเดิม",
+      label: (c.name || "สายแถวที่ " + (i + 1)) + (c.length ? " (เดิม " + c.length + " ม.)" : "")
+    }));
+    o.push({
+      value: "cab:new",
+      group: "สายไฟ — ทับความยาวเดิม",
+      label: "+ เพิ่มสายเส้นใหม่ตามชื่อระยะ"
+    });
+    if (IMC[0]) o.push({
+      value: "imc",
+      group: "เพิ่มแถวใหม่",
+      label: "ท่อ IMC (" + IMC[0] + ")"
+    });
+    if (UPVC[0]) o.push({
+      value: "upvc",
+      group: "เพิ่มแถวใหม่",
+      label: "ท่อ uPVC (" + UPVC[0] + ")"
+    });
+    if (WAY[0]) o.push({
+      value: "way",
+      group: "เพิ่มแถวใหม่",
+      label: "Wireway (" + WAY[0] + ")"
+    });
+    if (TRAY[0]) o.push({
+      value: "tray",
+      group: "เพิ่มแถวใหม่",
+      label: "Cable Tray (" + TRAY[0] + ")"
+    });
+    o.push({
+      value: "ladder",
+      group: "เพิ่มแถวใหม่",
+      label: "บันไดลิง (ความสูง)"
+    });
+    o.push({
+      value: "walkway",
+      group: "เพิ่มแถวใหม่",
+      label: "ทางเดิน Walkway (ความยาว)"
+    });
+    o.push({
+      value: "guardrail",
+      group: "เพิ่มแถวใหม่",
+      label: "ราวกันตก (ความยาว)"
+    });
+    return o;
+  }, [b.cables]);
+  const measDefault = m => {
+    const k = m.kind || "other";
+    if (k === "cable") {
+      const key = (m.name || "").trim().toUpperCase();
+      const hit = (b.cables || []).findIndex(c => (c.name || "").trim().toUpperCase() === key);
+      return hit >= 0 ? "cab:" + hit : "cab:new";
+    }
+    if (k === "conduit") return "imc";
+    if (k === "tray") return "way";
+    if (k === "ladder" || k === "walkway" || k === "guardrail") return k;
+    return "";
+  };
+  const applyMeas = rows => {
+    const IMC = window.BOQ.IMC_SIZES || [],
+      UPVC = window.BOQ.UPVC_SIZES || [];
+    const WAY = window.BOQ.WAY_SIZES || [],
+      TRAY = window.BOQ.TRAY_SIZES || [];
+    rows.forEach(({
+      m,
+      target
+    }) => {
+      const L = measLen(m);
+      if (/^cab:\d+$/.test(target)) setCab(+target.slice(4), "length", L);else if (target === "cab:new") setB(p => Object.assign({}, p, {
+        cables: (p.cables || []).concat([{
+          name: (m.name || "").trim(),
+          type: "",
+          length: L
+        }])
+      }));else if (target === "imc") addCond("imc", {
+        size: IMC[0],
+        length: L,
+        cables: []
+      });else if (target === "upvc") addCond("upvc", {
+        size: UPVC[0],
+        length: L,
+        cables: []
+      });else if (target === "way") addTrayRow("way", {
+        size: WAY[0],
+        length: L,
+        cables: []
+      });else if (target === "tray") addTrayRow("tray", {
+        size: TRAY[0],
+        length: L,
+        cables: []
+      });else if (target === "ladder") addStruct("ladder", {
+        h: L
+      });else if (target === "walkway") addStruct("walkway", {
+        len: L
+      });else if (target === "guardrail") addStruct("guardrail", {
+        len: L,
+        corners: 0
+      });
+    });
+  };
+  const MeasBar = ({
+    kinds
+  }) => {
+    const list = measFor(kinds);
+    if (!list.length) return null;
+    const sum = Math.round(list.reduce((s, m) => s + measLen(m), 0) * 100) / 100;
+    return React.createElement("div", {
+      style: {
+        marginBottom: 12,
+        display: "flex",
+        alignItems: "center",
+        flexWrap: "wrap",
+        gap: 9,
+        padding: "9px 12px",
+        background: "var(--tint-blue-bg, rgba(37,99,235,.08))",
+        border: "1px solid rgba(37,99,235,.24)",
+        borderRadius: 11
+      }
+    }, React.createElement(Icon, {
+      name: "grid",
+      size: 15,
+      color: "#2563EB"
+    }), React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: "#1D4ED8"
+      }
+    }, "\u0E27\u0E31\u0E14\u0E44\u0E27\u0E49\u0E43\u0E19\u0E41\u0E1A\u0E1A 3D ", list.length, " \u0E23\u0E30\u0E22\u0E30 \xB7 \u0E23\u0E27\u0E21 ", sum.toFixed(2), " \u0E21."), React.createElement("button", {
+      onClick: () => setMeasOpen(kinds),
+      style: {
+        marginLeft: "auto",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        background: "#2563EB",
+        color: "#fff",
+        border: "none",
+        borderRadius: 8,
+        padding: "6px 12px",
+        fontWeight: 700,
+        fontSize: 12,
+        cursor: "pointer",
+        fontFamily: "inherit"
+      }
+    }, "\u0E14\u0E36\u0E07\u0E23\u0E30\u0E22\u0E30\u0E40\u0E02\u0E49\u0E32\u0E15\u0E32\u0E23\u0E32\u0E07"));
+  };
   const csp = Object.assign({}, SPARE_DEF, b.conduitSpare);
   const KITS = window.BOQ.PROJECT_KITS || [];
   const project = window.BOQ.normProject(b.project);
@@ -4619,6 +5018,8 @@ function BOQEditor({
         color: "var(--primary-dark)"
       }
     }, "\u0E23\u0E27\u0E21 ", cabLenSum, " \u0E21.") : null
+  }), React.createElement(MeasBar, {
+    kinds: ["cable"]
   }), !isMobile && React.createElement("div", {
     style: {
       display: "grid",
@@ -5625,6 +6026,8 @@ function BOQEditor({
         color: "var(--primary-dark)"
       }
     }, "\u0E23\u0E27\u0E21 ", condLen, " \u0E21.") : null
+  }), React.createElement(MeasBar, {
+    kinds: ["conduit"]
   }), React.createElement("div", {
     style: {
       display: "flex",
@@ -5821,6 +6224,8 @@ function BOQEditor({
         color: "var(--primary-dark)"
       }
     }, "\u0E23\u0E27\u0E21 ", trayLen, " \u0E21.") : null
+  }), React.createElement(MeasBar, {
+    kinds: ["tray"]
   }), React.createElement("div", {
     style: {
       display: "flex",
@@ -6503,7 +6908,9 @@ function BOQEditor({
       gap: 14,
       marginTop: 14
     }
-  }, React.createElement(SteelSpecBlock, {
+  }, React.createElement(MeasBar, {
+    kinds: ["ladder", "walkway", "guardrail"]
+  }), React.createElement(SteelSpecBlock, {
     st: st,
     setSteel: setSteel
   }), StructBlock({
@@ -7459,7 +7866,13 @@ function BOQEditor({
     name: "check",
     size: 15,
     color: "#fff"
-  }), " \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 BOQ")), editVar && React.createElement(MatVariantModal, {
+  }), " \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 BOQ")), measOpen && React.createElement(Meas3DModal, {
+    list: measFor(measOpen),
+    targets: measTargets,
+    defaultTarget: measDefault,
+    onApply: applyMeas,
+    onClose: () => setMeasOpen(null)
+  }), editVar && React.createElement(MatVariantModal, {
     item: editVar,
     stock: stock,
     priceMap: priceMap || {},

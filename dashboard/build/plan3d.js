@@ -672,8 +672,45 @@ function p3Blank(job) {
       lat: 13.75,
       lng: 100.5
     },
-    sys: null
+    sys: null,
+    measures: []
   };
+}
+const P3_MEAS_KINDS = [{
+  k: "cable",
+  th: "สายไฟ",
+  c: 0xF97316
+}, {
+  k: "conduit",
+  th: "ท่อร้อยสาย",
+  c: 0x0EA5E9
+}, {
+  k: "tray",
+  th: "รางเดินสาย",
+  c: 0x8B5CF6
+}, {
+  k: "ladder",
+  th: "บันไดลิง",
+  c: 0xD946EF
+}, {
+  k: "walkway",
+  th: "ทางเดิน",
+  c: 0x14B8A6
+}, {
+  k: "guardrail",
+  th: "ราวกันตก",
+  c: 0xE11D48
+}, {
+  k: "other",
+  th: "อื่น ๆ",
+  c: 0x64748B
+}];
+const p3MeasKind = k => P3_MEAS_KINDS.find(x => x.k === k) || P3_MEAS_KINDS[P3_MEAS_KINDS.length - 1];
+function p3MeasLen(m) {
+  const pts = m && m.pts || [];
+  let s = 0;
+  for (let i = 1; i < pts.length; i++) s += Math.hypot((+pts[i].x || 0) - (+pts[i - 1].x || 0), (+pts[i].z || 0) - (+pts[i - 1].z || 0));
+  return Math.round((s + Math.abs(+(m && m.rise) || 0)) * 100) / 100;
 }
 function p3Xf(roof, pan) {
   const pitchR = (+roof.pitch || 0) * P3_DEG;
@@ -1985,6 +2022,11 @@ function P3Icon({
     })),
     cloud: React.createElement(F, null, React.createElement("path", {
       d: "M4.6 12.2a3 3 0 0 1-.3-6 4.2 4.2 0 0 1 8 .9 2.6 2.6 0 0 1-.5 5.1z"
+    })),
+    ruler: React.createElement(F, null, React.createElement("path", {
+      d: "M1.9 10.2 10.2 1.9l3.9 3.9-8.3 8.3z"
+    }), React.createElement("path", {
+      d: "m4.2 7.9 1.6 1.6M6.2 5.9l1.6 1.6M8.2 3.9l1.6 1.6"
     }))
   };
   return React.createElement("svg", {
@@ -2152,6 +2194,9 @@ function Plan3DEditor({
   const [sweepSpd, setSweepSpd] = React.useState(1);
   const [drawing, setDrawing] = React.useState(false);
   const [drawPts, setDrawPts] = React.useState([]);
+  const [measuring, setMeasuring] = React.useState(false);
+  const [measPts, setMeasPts] = React.useState([]);
+  const [selMeas, setSelMeas] = React.useState(null);
   const [showVerts, setShowVerts] = React.useState(true);
   const [locked, setLocked] = React.useState(false);
   const [mapOpen, setMapOpen] = React.useState(false);
@@ -2173,6 +2218,8 @@ function Plan3DEditor({
   photoEditRef.current = photoEdit;
   const tabRef = React.useRef("roof");
   tabRef.current = tab;
+  const measuringRef = React.useRef(false);
+  measuringRef.current = measuring;
   const set = patch => {
     setSt(p => Object.assign({}, p, patch));
     setDirty(true);
@@ -2255,6 +2302,19 @@ function Plan3DEditor({
     }));
     setDirty(true);
   };
+  const patchMeas = (id, patch) => {
+    setSt(p => Object.assign({}, p, {
+      measures: (p.measures || []).map(m => m.id === id ? Object.assign({}, m, patch) : m)
+    }));
+    setDirty(true);
+  };
+  const delMeas = id => {
+    setSt(p => Object.assign({}, p, {
+      measures: (p.measures || []).filter(m => m.id !== id)
+    }));
+    setDirty(true);
+    setSelMeas(s => s === id ? null : s);
+  };
   const setVertHeight = (roofId, idx, H) => {
     setSt(prev => {
       const R = (prev.roofs || []).find(r => r.id === roofId);
@@ -2297,6 +2357,7 @@ function Plan3DEditor({
         pts: r.pts || null
       }));
       merged.obstacles = saved.obstacles || [];
+      merged.measures = saved.measures || [];
       setSt(merged);
       if (merged.roofs[0]) setSelRoof(merged.roofs[0].id);
     } else if (st.roofs[0]) setSelRoof(st.roofs[0].id);
@@ -3195,7 +3256,101 @@ function Plan3DEditor({
         t.dyn.add(dot);
       });
     }
-  }, [st.roofs, st.obstacles, st.groundW, st.buildH, st.photo, st.photoW, st.photoOpacity, st.photoBright, st.photoRot, st.photoX, st.photoZ, st.baseMap, selRoof, selObs, selVert, ready, drawing, drawPts, showVerts, locked, photoEdit, addMode, selBlk, tab, shadowOn]);
+    const mkTag = (txt, hex, small) => {
+      const px = small ? 34 : 42,
+        font = "bold " + px + "px system-ui";
+      const mc = document.createElement("canvas").getContext("2d");
+      mc.font = font;
+      const tw = Math.ceil(mc.measureText(txt).width);
+      const cv2 = document.createElement("canvas");
+      cv2.width = tw + 40;
+      cv2.height = px + 34;
+      const x = cv2.getContext("2d");
+      x.font = font;
+      x.textAlign = "center";
+      x.textBaseline = "middle";
+      x.fillStyle = "rgba(255,255,255,.95)";
+      x.strokeStyle = hex;
+      x.lineWidth = 5;
+      const bw = cv2.width - 10,
+        bh = cv2.height - 10;
+      x.beginPath();
+      if (x.roundRect) x.roundRect(5, 5, bw, bh, 15);else x.rect(5, 5, bw, bh);
+      x.fill();
+      x.stroke();
+      x.fillStyle = hex;
+      x.fillText(txt, cv2.width / 2, cv2.height / 2 + 1);
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: new THREE.CanvasTexture(cv2),
+        transparent: true,
+        depthTest: false
+      }));
+      sp.renderOrder = 30;
+      const H = Math.max(0.8, (+st.groundW || 40) / 30) * (small ? 0.78 : 1);
+      sp.scale.set(H * (cv2.width / cv2.height), H, 1);
+      return sp;
+    };
+    const drawMeasPath = (pts, hex, color, bold, tag) => {
+      if (!pts || pts.length < 2) return;
+      const Y = 0.19;
+      const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts.map(p => new THREE.Vector3(p.x, Y, p.z))), new THREE.LineBasicMaterial({
+        color: color,
+        depthTest: false,
+        transparent: true,
+        opacity: bold ? 1 : 0.8
+      }));
+      line.renderOrder = 22;
+      t.dyn.add(line);
+      const R = Math.max(0.09, (+st.groundW || 40) / 300) * (bold ? 1.4 : 1);
+      const dotMat = new THREE.MeshBasicMaterial({
+        color: color,
+        depthTest: false,
+        transparent: true
+      });
+      pts.forEach((p, i) => {
+        const d = new THREE.Mesh(new THREE.SphereGeometry(R, 14, 10), dotMat);
+        d.position.set(p.x, Y + 0.02, p.z);
+        d.renderOrder = 23;
+        t.dyn.add(d);
+        if (i === 0) return;
+        const q = pts[i - 1],
+          seg = Math.hypot(p.x - q.x, p.z - q.z);
+        if (pts.length > 2 && seg > 0.5) {
+          const lb = mkTag(seg.toFixed(2), hex, true);
+          lb.position.set((p.x + q.x) / 2, Y + 0.75, (p.z + q.z) / 2);
+          t.dyn.add(lb);
+        }
+      });
+      if (tag) {
+        const lb = mkTag(tag, hex, false);
+        const last = pts[pts.length - 1];
+        lb.position.set(last.x, Y + 2, last.z);
+        t.dyn.add(lb);
+      }
+    };
+    (st.measures || []).forEach(m => {
+      const km = p3MeasKind(m.kind);
+      const hex = "#" + km.c.toString(16).padStart(6, "0");
+      const rise = Math.abs(+m.rise || 0);
+      drawMeasPath(m.pts || [], hex, km.c, selMeas === m.id, (m.name || "ระยะ") + " · " + p3MeasLen(m).toFixed(2) + " ม." + (rise ? " (ราบ+ขึ้นลง " + rise + ")" : ""));
+    });
+    if (measuring && measPts.length) {
+      const run = p3MeasLen({
+        pts: measPts
+      });
+      drawMeasPath(measPts, "#15803D", 0x16A34A, true, measPts.length >= 2 ? run.toFixed(2) + " ม." : null);
+      if (measPts.length === 1) {
+        const d = new THREE.Mesh(new THREE.SphereGeometry(Math.max(0.12, (+st.groundW || 40) / 220), 16, 12), new THREE.MeshBasicMaterial({
+          color: 0x16A34A,
+          depthTest: false,
+          transparent: true
+        }));
+        d.position.set(measPts[0].x, 0.22, measPts[0].z);
+        d.renderOrder = 23;
+        t.dyn.add(d);
+      }
+    }
+  }, [st.roofs, st.obstacles, st.groundW, st.buildH, st.photo, st.photoW, st.photoOpacity, st.photoBright, st.photoRot, st.photoX, st.photoZ, st.baseMap, st.measures, selMeas, measuring, measPts, selRoof, selObs, selVert, ready, drawing, drawPts, showVerts, locked, photoEdit, addMode, selBlk, tab, shadowOn]);
   const sunPathKey = [st.sun.month, st.sun.day, st.sun.lat, st.sun.lng].join("|");
   React.useEffect(() => {
     const t = tRef.current;
@@ -3519,7 +3674,7 @@ function Plan3DEditor({
         }
         return;
       }
-      if (drawingRef.current) {
+      if (drawingRef.current || measuringRef.current) {
         down = {
           x: ev.clientX,
           y: ev.clientY,
@@ -3769,7 +3924,7 @@ function Plan3DEditor({
           const gp = groundPoint();
           if (gp) {
             const sp = snapPt(gp, null, null);
-            setDrawPts(p => p.concat([sp]));
+            if (measuringRef.current) setMeasPts(p => p.concat([sp]));else setDrawPts(p => p.concat([sp]));
           }
         }
         down = null;
@@ -3879,6 +4034,40 @@ function Plan3DEditor({
     setSelVert(null);
     setDrawing(false);
     setDrawPts([]);
+  };
+  const startMeas = () => {
+    setMeasuring(true);
+    setMeasPts([]);
+    setDrawing(false);
+    setDrawPts([]);
+    setPhotoEdit(false);
+    setTab("measure");
+    viewTop();
+  };
+  const cancelMeas = () => {
+    setMeasuring(false);
+    setMeasPts([]);
+  };
+  const undoMeasPt = () => setMeasPts(p => p.slice(0, -1));
+  const finishMeas = () => {
+    if (measPts.length < 2) return;
+    const n = (st.measures || []).length + 1;
+    const nm = {
+      id: p3Id("m"),
+      name: "ระยะ " + n,
+      kind: "cable",
+      rise: 0,
+      pts: measPts.map(p => ({
+        x: Math.round(p.x * 100) / 100,
+        z: Math.round(p.z * 100) / 100
+      }))
+    };
+    set({
+      measures: (st.measures || []).concat([nm])
+    });
+    setSelMeas(nm.id);
+    setMeasuring(false);
+    setMeasPts([]);
   };
   const fileRef = React.useRef(null);
   const onPickPhoto = async e => {
@@ -4074,6 +4263,10 @@ function Plan3DEditor({
     k: "obstacle",
     label: "\u0E2A\u0E34\u0E48\u0E07\u0E1A\u0E14\u0E1A\u0E31\u0E07",
     icon: "tree"
+  }), React.createElement(TabBtn, {
+    k: "measure",
+    label: "\u0E27\u0E31\u0E14\u0E23\u0E30\u0E22\u0E30",
+    icon: "ruler"
   }), React.createElement(TabBtn, {
     k: "sun",
     label: "\u0E41\u0E2A\u0E07\u0E41\u0E14\u0E14",
@@ -5701,7 +5894,182 @@ function Plan3DEditor({
     }
   }, "\u0E25\u0E1A\u0E0A\u0E34\u0E49\u0E19\u0E19\u0E35\u0E49")), React.createElement("div", {
     className: "p3-note"
-  }, "\u0E41\u0E15\u0E30\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E25\u0E37\u0E2D\u0E01 \xB7 \u0E25\u0E32\u0E01\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E22\u0E49\u0E32\u0E22\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07")), tab === "sun" && React.createElement("div", {
+  }, "\u0E41\u0E15\u0E30\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E25\u0E37\u0E2D\u0E01 \xB7 \u0E25\u0E32\u0E01\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E22\u0E49\u0E32\u0E22\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07")), tab === "measure" && React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, !st.baseMap && React.createElement("div", {
+    className: "p3-card amber"
+  }, React.createElement("span", {
+    className: "p3-eb"
+  }, React.createElement(P3Icon, {
+    name: "map",
+    size: 13
+  }), "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E15\u0E31\u0E49\u0E07\u0E1C\u0E31\u0E07\u0E1E\u0E37\u0E49\u0E19\u0E08\u0E32\u0E01\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48", React.createElement("span", {
+    className: "ln"
+  })), React.createElement("span", {
+    className: "p3-note"
+  }, "\u0E23\u0E30\u0E22\u0E30\u0E17\u0E35\u0E48\u0E27\u0E31\u0E14\u0E44\u0E14\u0E49\u0E08\u0E30\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E40\u0E01\u0E25\u0E02\u0E2D\u0E07\u0E1C\u0E31\u0E07\u0E17\u0E35\u0E48\u0E15\u0E31\u0E49\u0E07\u0E40\u0E2D\u0E07 \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E23\u0E30\u0E22\u0E30\u0E08\u0E23\u0E34\u0E07\u0E08\u0E32\u0E01\u0E1E\u0E37\u0E49\u0E19\u0E17\u0E35\u0E48 \u2014 \u0E44\u0E1B\u0E41\u0E17\u0E47\u0E1A ", React.createElement("b", null, "\u0E1C\u0E31\u0E07\u0E1E\u0E37\u0E49\u0E19"), " \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E1E\u0E37\u0E49\u0E19\u0E17\u0E35\u0E48\u0E08\u0E32\u0E01\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48\u0E14\u0E32\u0E27\u0E40\u0E17\u0E35\u0E22\u0E21\u0E01\u0E48\u0E2D\u0E19 \u0E41\u0E25\u0E49\u0E27\u0E27\u0E31\u0E14\u0E08\u0E30\u0E44\u0E14\u0E49\u0E40\u0E21\u0E15\u0E23\u0E08\u0E23\u0E34\u0E07")), React.createElement("button", {
+    className: "p3-b w " + (measuring ? "dngr" : "pri"),
+    style: {
+      padding: "11px 8px"
+    },
+    onClick: () => {
+      if (measuring) cancelMeas();else startMeas();
+    }
+  }, React.createElement(P3Icon, {
+    name: measuring ? "reset" : "ruler",
+    size: 16
+  }), measuring ? "หยุดวัด" : "วัดระยะใหม่"), measuring && React.createElement("div", {
+    className: "p3-note",
+    style: {
+      padding: "9px 11px",
+      background: "var(--surface2)",
+      borderRadius: 11
+    }
+  }, "\u0E04\u0E25\u0E34\u0E01\u0E1A\u0E19\u0E1C\u0E31\u0E07\u0E44\u0E25\u0E48\u0E08\u0E38\u0E14\u0E44\u0E1B\u0E15\u0E32\u0E21\u0E41\u0E19\u0E27\u0E17\u0E35\u0E48\u0E08\u0E30\u0E40\u0E14\u0E34\u0E19\u0E08\u0E23\u0E34\u0E07 (\u0E2B\u0E31\u0E01\u0E21\u0E38\u0E21\u0E44\u0E14\u0E49\u0E2B\u0E25\u0E32\u0E22\u0E08\u0E38\u0E14) \u0E41\u0E25\u0E49\u0E27\u0E01\u0E14 ", React.createElement("b", null, "\u0E40\u0E01\u0E47\u0E1A\u0E23\u0E30\u0E22\u0E30"), " \u0E1A\u0E19\u0E41\u0E16\u0E1A\u0E01\u0E25\u0E32\u0E07\u0E20\u0E32\u0E1E"), (st.measures || []).length === 0 && !measuring && React.createElement("div", {
+    className: "p3-note",
+    style: {
+      textAlign: "center",
+      padding: "14px 10px",
+      background: "var(--surface2)",
+      borderRadius: 12
+    }
+  }, "\u0E27\u0E31\u0E14\u0E23\u0E30\u0E22\u0E30\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22 \xB7 \u0E23\u0E30\u0E22\u0E30\u0E40\u0E14\u0E34\u0E19\u0E23\u0E32\u0E07 \xB7 \u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E1A\u0E31\u0E19\u0E44\u0E14\u0E25\u0E34\u0E07/\u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19 \u0E08\u0E32\u0E01\u0E1C\u0E31\u0E07\u0E08\u0E23\u0E34\u0E07", React.createElement("br", null), "\u0E41\u0E25\u0E49\u0E27\u0E14\u0E36\u0E07\u0E40\u0E02\u0E49\u0E32\u0E0A\u0E48\u0E2D\u0E07\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E43\u0E19 ", React.createElement("b", null, "\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38 BOQ"), " \u0E44\u0E14\u0E49\u0E40\u0E25\u0E22"), (st.measures || []).map(m => {
+    const km = p3MeasKind(m.kind);
+    const hex = "#" + km.c.toString(16).padStart(6, "0");
+    const on = selMeas === m.id;
+    return React.createElement("div", {
+      key: m.id,
+      className: "p3-card",
+      style: on ? {
+        borderColor: hex,
+        boxShadow: "0 0 0 2px " + hex + "22"
+      } : null
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8
+      }
+    }, React.createElement("span", {
+      style: {
+        width: 9,
+        height: 9,
+        borderRadius: 99,
+        background: hex,
+        flex: "0 0 auto"
+      }
+    }), React.createElement("input", {
+      className: "p3-inp",
+      style: {
+        fontWeight: 700
+      },
+      value: m.name || "",
+      placeholder: "\u0E0A\u0E37\u0E48\u0E2D\u0E23\u0E30\u0E22\u0E30",
+      onFocus: () => setSelMeas(m.id),
+      onChange: e => patchMeas(m.id, {
+        name: e.target.value
+      })
+    }), React.createElement("button", {
+      className: "p3-b sm dngr",
+      title: "\u0E25\u0E1A\u0E40\u0E2A\u0E49\u0E19\u0E27\u0E31\u0E14\u0E19\u0E35\u0E49",
+      onClick: () => delMeas(m.id),
+      style: {
+        flex: "0 0 auto",
+        padding: "6px 8px"
+      }
+    }, React.createElement(P3Icon, {
+      name: "trash",
+      size: 13
+    }))), React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 5,
+        flexWrap: "wrap"
+      }
+    }, P3_MEAS_KINDS.map(k => React.createElement("button", {
+      key: k.k,
+      className: "p3-chip",
+      "data-on": m.kind === k.k ? "1" : "0",
+      style: m.kind === k.k ? {
+        borderColor: "#" + k.c.toString(16).padStart(6, "0"),
+        color: "#" + k.c.toString(16).padStart(6, "0"),
+        background: "#" + k.c.toString(16).padStart(6, "0") + "14"
+      } : null,
+      onClick: () => {
+        patchMeas(m.id, {
+          kind: k.k
+        });
+        setSelMeas(m.id);
+      }
+    }, k.th))), React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 9,
+        alignItems: "end"
+      }
+    }, React.createElement(Num, {
+      label: "\u0E02\u0E36\u0E49\u0E19\u2013\u0E25\u0E07 \u0E40\u0E1E\u0E34\u0E48\u0E21 (\u0E44\u0E15\u0E48\u0E1C\u0E19\u0E31\u0E07/\u0E02\u0E36\u0E49\u0E19\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32)",
+      value: +m.rise || 0,
+      step: 0.5,
+      min: 0,
+      suffix: "\u0E21.",
+      onChange: v => {
+        patchMeas(m.id, {
+          rise: v
+        });
+        setSelMeas(m.id);
+      }
+    }), React.createElement("div", {
+      className: "p3-stat",
+      style: {
+        justifyContent: "flex-end",
+        paddingBottom: 8
+      }
+    }, "\u0E23\u0E27\u0E21 ", React.createElement("b", {
+      style: {
+        color: hex,
+        fontSize: 16
+      }
+    }, p3MeasLen(m).toFixed(2)), " \u0E21.")), React.createElement("span", {
+      className: "p3-note"
+    }, (m.pts || []).length, " \u0E08\u0E38\u0E14 \xB7 \u0E23\u0E30\u0E22\u0E30\u0E23\u0E32\u0E1A ", p3MeasLen({
+      pts: m.pts
+    }).toFixed(2), " \u0E21.", " · ", React.createElement("button", {
+      className: "p3-lnk",
+      onClick: () => setSelMeas(on ? null : m.id)
+    }, on ? "เลิกเน้น" : "เน้นบนภาพ")));
+  }), (st.measures || []).length > 0 && React.createElement("div", {
+    className: "p3-card tint"
+  }, React.createElement("span", {
+    className: "p3-eb"
+  }, React.createElement(P3Icon, {
+    name: "ruler",
+    size: 13
+  }), "\u0E23\u0E27\u0E21\u0E15\u0E32\u0E21\u0E2B\u0E21\u0E27\u0E14", React.createElement("span", {
+    className: "ln"
+  })), P3_MEAS_KINDS.map(k => {
+    const list = (st.measures || []).filter(m => (m.kind || "other") === k.k);
+    if (!list.length) return null;
+    const sum = list.reduce((s, m) => s + p3MeasLen(m), 0);
+    return React.createElement("div", {
+      key: k.k,
+      className: "p3-stat",
+      style: {
+        justifyContent: "space-between"
+      }
+    }, React.createElement("span", null, k.th, " ", React.createElement("span", {
+      style: {
+        color: "var(--text-3)"
+      }
+    }, "(", list.length, ")")), React.createElement("b", null, (Math.round(sum * 100) / 100).toFixed(2), " \u0E21."));
+  }), React.createElement("span", {
+    className: "p3-note"
+  }, "\u0E01\u0E14 ", React.createElement("b", null, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01"), " \u0E41\u0E25\u0E49\u0E27\u0E40\u0E1B\u0E34\u0E14 \u201C\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38 BOQ\u201D \u0E08\u0E30\u0E21\u0E35\u0E1B\u0E38\u0E48\u0E21\u0E14\u0E36\u0E07\u0E23\u0E30\u0E22\u0E30\u0E40\u0E2B\u0E25\u0E48\u0E32\u0E19\u0E35\u0E49\u0E40\u0E02\u0E49\u0E32\u0E0A\u0E48\u0E2D\u0E07\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E43\u0E2B\u0E49"))), tab === "sun" && React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -6140,6 +6508,15 @@ function Plan3DEditor({
     tone: "warn",
     onClick: () => setLocked(v => !v),
     title: locked ? "ล็อกตัวบ้านอยู่ — หลังคา/มุม/สิ่งบดบัง ขยับไม่ได้ · แผงยังจัดได้ตามปกติ" : "ล็อกตัวบ้านกันเผลอลาก (ยังจัดแผงได้)"
+  }), React.createElement(IconBtn, {
+    icon: "ruler",
+    label: isMobile ? "" : "วัด",
+    on: measuring,
+    tone: "info",
+    title: measuring ? "กำลังวัดระยะ — คลิกไล่จุดตามแนวที่จะเดินสาย/เดินราง" : "วัดระยะจริงบนผัง (ใช้กรอก BOQ ได้)",
+    onClick: () => {
+      if (measuring) cancelMeas();else startMeas();
+    }
   }), React.createElement("span", {
     className: "p3-vr"
   }), React.createElement(IconBtn, {
@@ -6289,6 +6666,57 @@ function Plan3DEditor({
   }), "\u0E08\u0E1A\u0E23\u0E39\u0E1B"), React.createElement("button", {
     className: "p3-b sm dngr",
     onClick: cancelDraw
+  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01")), measuring && React.createElement("div", {
+    className: "p3-tools",
+    style: {
+      position: "absolute",
+      top: 10,
+      left: "50%",
+      transform: "translateX(-50%)",
+      gap: 6,
+      padding: "5px 5px 5px 12px",
+      maxWidth: "calc(100% - 20px)",
+      flexWrap: "wrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--ink)",
+      whiteSpace: "nowrap"
+    }
+  }, React.createElement(P3Icon, {
+    name: "ruler",
+    size: 14
+  }), "\u0E04\u0E25\u0E34\u0E01\u0E44\u0E25\u0E48\u0E08\u0E38\u0E14\u0E15\u0E32\u0E21\u0E41\u0E19\u0E27\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22", React.createElement("b", {
+    style: {
+      fontWeight: 800,
+      color: "#2563EB"
+    }
+  }, measPts.length >= 2 ? p3MeasLen({
+    pts: measPts
+  }).toFixed(2) + " ม." : measPts.length + " จุด")), React.createElement("span", {
+    className: "p3-vr"
+  }), React.createElement("button", {
+    className: "p3-b sm",
+    onClick: undoMeasPt,
+    disabled: !measPts.length
+  }, "\u0E16\u0E2D\u0E22\u0E08\u0E38\u0E14"), React.createElement("button", {
+    className: "p3-b sm pri",
+    onClick: finishMeas,
+    disabled: measPts.length < 2,
+    style: {
+      whiteSpace: "nowrap"
+    }
+  }, React.createElement(P3Icon, {
+    name: "check",
+    size: 13
+  }), "\u0E40\u0E01\u0E47\u0E1A\u0E23\u0E30\u0E22\u0E30"), React.createElement("button", {
+    className: "p3-b sm dngr",
+    onClick: cancelMeas
   }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01")), React.createElement("div", {
     style: {
       position: "absolute",
@@ -6304,7 +6732,7 @@ function Plan3DEditor({
       flexWrap: "wrap",
       rowGap: 3
     }
-  }, (drawing ? [["คลิก", "วางจุด"], [view2D ? "ลาก" : "ลาก", view2D ? "เลื่อนผัง" : "หมุนมุมมอง"], ["ลากแล้วปล่อย", "ไม่วางจุด"]] : locked ? [["สถานะ", "ล็อกตัวบ้านไว้ — จัดแผงได้"], ["ลาก", view2D ? "เลื่อนผัง" : "หมุนมุมมอง"], ["แตะแผง", "เว้นช่อง"], ["ลากจุดน้ำเงิน", "ย้าย/ย่อขยายชุดแผง"]] : tab === "panel" ? [["สถานะ", "ล็อกตัวบ้านไว้"], ["ลาก", view2D ? "เลื่อนผัง" : "หมุนมุมมอง"], ["แตะแผง", "เว้นช่อง"], ["ลากจุดน้ำเงิน", "ย้าย/ย่อขยายชุดแผง"]] : view2D ? [["ลาก", "เลื่อนผัง"], ["ล้อ/บีบ", "ซูม"], ["แตะแผง", "เว้นช่อง"], ["ลากหลังคา", "ย้าย"]] : [["ลาก", "หมุน"], ["ล้อ/บีบ", "ซูม"], ["คลิกขวา/2 นิ้ว", "เลื่อน"], ["แตะแผง", "เว้นช่อง"], ["ลากหลังคา", "ย้าย"]]).map(([k, v], i) => React.createElement(React.Fragment, {
+  }, (measuring ? [["คลิก", "วางจุดวัด"], ["ลาก", view2D ? "เลื่อนผัง" : "หมุนมุมมอง"], ["ดูดเข้ามุมหลังคา", "ในระยะ 0.7 ม."]] : drawing ? [["คลิก", "วางจุด"], [view2D ? "ลาก" : "ลาก", view2D ? "เลื่อนผัง" : "หมุนมุมมอง"], ["ลากแล้วปล่อย", "ไม่วางจุด"]] : locked ? [["สถานะ", "ล็อกตัวบ้านไว้ — จัดแผงได้"], ["ลาก", view2D ? "เลื่อนผัง" : "หมุนมุมมอง"], ["แตะแผง", "เว้นช่อง"], ["ลากจุดน้ำเงิน", "ย้าย/ย่อขยายชุดแผง"]] : tab === "panel" ? [["สถานะ", "ล็อกตัวบ้านไว้"], ["ลาก", view2D ? "เลื่อนผัง" : "หมุนมุมมอง"], ["แตะแผง", "เว้นช่อง"], ["ลากจุดน้ำเงิน", "ย้าย/ย่อขยายชุดแผง"]] : view2D ? [["ลาก", "เลื่อนผัง"], ["ล้อ/บีบ", "ซูม"], ["แตะแผง", "เว้นช่อง"], ["ลากหลังคา", "ย้าย"]] : [["ลาก", "หมุน"], ["ล้อ/บีบ", "ซูม"], ["คลิกขวา/2 นิ้ว", "เลื่อน"], ["แตะแผง", "เว้นช่อง"], ["ลากหลังคา", "ย้าย"]]).map(([k, v], i) => React.createElement(React.Fragment, {
     key: k + i
   }, i > 0 && React.createElement("span", {
     style: {
@@ -6388,5 +6816,8 @@ function Plan3DEditor({
 }
 Object.assign(window, {
   Plan3DEditor,
-  usePlan3d
+  usePlan3d,
+  P3_MEAS_KINDS,
+  p3MeasKind,
+  p3MeasLen
 });

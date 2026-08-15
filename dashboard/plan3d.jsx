@@ -324,7 +324,30 @@ function p3Blank(job) {
     roofs: [], obstacles: [],
     sun: { month: 4, day: 15, hour: 12, lat: 13.75, lng: 100.5 },
     sys: null,   // สเปคอุปกรณ์ + การต่อสตริง/ไมโคร (ตั้งในเวิร์กสเปซ "ออกแบบระบบ") — ดู solarcalc.jsx
+    measures: [],   // เส้นวัดระยะบนผัง — { id, name, kind, pts:[{x,z}], rise } · ดู P3_MEAS_KINDS
   };
+}
+
+/* ── หมวดของเส้นวัดระยะ ──
+   ตั้งใจให้ตรงกับ "ช่องความยาว" ในระบบถอดวัสดุ BOQ ทีละช่อง ไม่ใช่ป้ายกำกับลอย ๆ
+   วัดบนผังดาวเทียม (สเกลจริง) ครั้งเดียว แล้วดึงเข้า BOQ ได้เลย ไม่ต้องพิมพ์ตัวเลขซ้ำ */
+const P3_MEAS_KINDS = [
+  { k: "cable", th: "สายไฟ", c: 0xF97316 },
+  { k: "conduit", th: "ท่อร้อยสาย", c: 0x0EA5E9 },
+  { k: "tray", th: "รางเดินสาย", c: 0x8B5CF6 },
+  { k: "ladder", th: "บันไดลิง", c: 0xD946EF },
+  { k: "walkway", th: "ทางเดิน", c: 0x14B8A6 },
+  { k: "guardrail", th: "ราวกันตก", c: 0xE11D48 },
+  { k: "other", th: "อื่น ๆ", c: 0x64748B },
+];
+const p3MeasKind = (k) => P3_MEAS_KINDS.find((x) => x.k === k) || P3_MEAS_KINDS[P3_MEAS_KINDS.length - 1];
+/* ระยะรวมของเส้นวัด = ผลรวมช่วงบนผัง (ราบ) + ระยะ "ขึ้น–ลง" ที่กรอกเพิ่ม
+   ผังดาวเทียมมองจากบน จึงเห็นแต่ระยะราบ — ช่วงไต่ผนัง/ขึ้นหลังคา ต้องกรอกเองในช่อง rise */
+function p3MeasLen(m) {
+  const pts = (m && m.pts) || [];
+  let s = 0;
+  for (let i = 1; i < pts.length; i++) s += Math.hypot((+pts[i].x || 0) - (+pts[i - 1].x || 0), (+pts[i].z || 0) - (+pts[i - 1].z || 0));
+  return Math.round((s + Math.abs(+(m && m.rise) || 0)) * 100) / 100;
 }
 
 /* ── ผังมองจากด้านบน: รอยเท้าของแผงแต่ละแผงในพิกัดโลก (เมตร) ──
@@ -1085,6 +1108,7 @@ function P3Icon({ name, size, w }) {
     coin: <F><ellipse cx="8" cy="4.4" rx="5.4" ry="2.3" /><path d="M2.6 4.4v7.2c0 1.3 2.4 2.3 5.4 2.3s5.4-1 5.4-2.3V4.4" /><path d="M2.6 8c0 1.3 2.4 2.3 5.4 2.3s5.4-1 5.4-2.3" /></F>,
     doc: <F><path d="M3.6 1.9h5.2l3.6 3.6v8.6H3.6z" /><path d="M8.8 1.9v3.6h3.6" /><path d="M5.9 9h4.2M5.9 11.3h3" /></F>,
     cloud: <F><path d="M4.6 12.2a3 3 0 0 1-.3-6 4.2 4.2 0 0 1 8 .9 2.6 2.6 0 0 1-.5 5.1z" /></F>,
+    ruler: <F><path d="M1.9 10.2 10.2 1.9l3.9 3.9-8.3 8.3z" /><path d="m4.2 7.9 1.6 1.6M6.2 5.9l1.6 1.6M8.2 3.9l1.6 1.6" /></F>,
   };
   return (
     <svg width={s} height={s} viewBox="0 0 16 16" aria-hidden="true"
@@ -1154,12 +1178,15 @@ function Plan3DEditor({ job, onClose, currentUser }) {
   const [selRoof, setSelRoof] = React.useState(null);   // roof id
   const [selObs, setSelObs] = React.useState(null);     // obstacle id
   const [selVert, setSelVert] = React.useState(null);   // { roofId, idx } — มุมที่เลือกไว้ปรับความสูง
-  const [tab, setTab] = React.useState("roof");         // roof | photo | obstacle | sun
+  const [tab, setTab] = React.useState("roof");         // roof | panel | photo | obstacle | measure | sun
   const [dirty, setDirty] = React.useState(false);
   const [animating, setAnimating] = React.useState(false);
   const [sweepSpd, setSweepSpd] = React.useState(1);      // ตัวคูณความเร็วตอนกวาดเงาทั้งวัน
   const [drawing, setDrawing] = React.useState(false);  // โหมดวาดหลังคาทรงอิสระ
   const [drawPts, setDrawPts] = React.useState([]);     // จุดที่วาด (world x,z)
+  const [measuring, setMeasuring] = React.useState(false); // โหมดวัดระยะ (คลิกวางจุดเป็นเส้นหัก)
+  const [measPts, setMeasPts] = React.useState([]);     // จุดของเส้นที่กำลังวัด (world x,z)
+  const [selMeas, setSelMeas] = React.useState(null);   // id เส้นวัดที่เลือกอยู่
   const [showVerts, setShowVerts] = React.useState(true); // แสดงจุดเขียว (มุมแก้ทรง)
   const [locked, setLocked] = React.useState(false);      // ล็อกตัวบ้าน (หลังคา/มุม/สิ่งบดบัง) — แผงยังจัดได้ตามปกติ
   const [mapOpen, setMapOpen] = React.useState(false);    // เปิดโมดัลเลือกพื้นที่จากแผนที่
@@ -1179,6 +1206,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
   const lockedRef = React.useRef(false); lockedRef.current = locked;
   const photoEditRef = React.useRef(false); photoEditRef.current = photoEdit;
   const tabRef = React.useRef("roof"); tabRef.current = tab;   // ตัวจับเหตุการณ์เมาส์ผูกครั้งเดียว จึงต้องอ่านแท็บผ่าน ref
+  const measuringRef = React.useRef(false); measuringRef.current = measuring;
 
   const set = (patch) => { setSt((p) => Object.assign({}, p, patch)); setDirty(true); };
   const setSun = (patch) => { setSt((p) => Object.assign({}, p, { sun: Object.assign({}, p.sun, patch) })); setDirty(true); };
@@ -1216,6 +1244,12 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     patchRoof(roof.id, { blocks: bs });
   };
   const patchObs = (id, patch) => { setSt((p) => Object.assign({}, p, { obstacles: (p.obstacles || []).map((o) => o.id === id ? Object.assign({}, o, patch) : o) })); setDirty(true); };
+  const patchMeas = (id, patch) => { setSt((p) => Object.assign({}, p, { measures: (p.measures || []).map((m) => m.id === id ? Object.assign({}, m, patch) : m) })); setDirty(true); };
+  const delMeas = (id) => {
+    setSt((p) => Object.assign({}, p, { measures: (p.measures || []).filter((m) => m.id !== id) }));
+    setDirty(true);
+    setSelMeas((s) => (s === id ? null : s));
+  };
   /* ตั้งความสูงมุมหนึ่ง + เชื่อมทุกมุมที่ทับตำแหน่งเดียวกัน (ข้ามผืน) ให้สูงเท่ากัน → หลังคาต่อกันเสมอ */
   const setVertHeight = (roofId, idx, H) => {
     setSt((prev) => {
@@ -1245,6 +1279,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
       const merged = Object.assign({}, base, saved, { sun: Object.assign({}, base.sun, saved.sun || {}) });
       merged.roofs = (saved.roofs || base.roofs).map((r) => Object.assign({}, p3NewRoof(1), r, { skips: r.skips || {}, pts: r.pts || null }));
       merged.obstacles = saved.obstacles || [];
+      merged.measures = saved.measures || [];
       setSt(merged);
       if (merged.roofs[0]) setSelRoof(merged.roofs[0].id);
     } else if (st.roofs[0]) setSelRoof(st.roofs[0].id);
@@ -1852,12 +1887,79 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         dot.position.set(p.x, 0.22, p.z); dot.renderOrder = 21; t.dyn.add(dot);
       });
     }
+
+    // ── เส้นวัดระยะ + ป้ายตัวเลข ──
+    // ป้ายเป็นสไปรต์ที่วาดลง canvas เอง (กว้างตามความยาวข้อความจริง ไม่ตัดคำ) และ depthTest:false
+    // เพื่อให้เลขลอยอ่านได้เสมอ แม้เส้นจะพาดผ่านหลังคาหรือสิ่งบดบัง
+    const mkTag = (txt, hex, small) => {
+      const px = small ? 34 : 42, font = "bold " + px + "px system-ui";
+      const mc = document.createElement("canvas").getContext("2d"); mc.font = font;
+      const tw = Math.ceil(mc.measureText(txt).width);
+      const cv2 = document.createElement("canvas");
+      cv2.width = tw + 40; cv2.height = px + 34;
+      const x = cv2.getContext("2d");
+      x.font = font; x.textAlign = "center"; x.textBaseline = "middle";
+      x.fillStyle = "rgba(255,255,255,.95)"; x.strokeStyle = hex; x.lineWidth = 5;
+      const bw = cv2.width - 10, bh = cv2.height - 10;
+      x.beginPath();
+      if (x.roundRect) x.roundRect(5, 5, bw, bh, 15); else x.rect(5, 5, bw, bh);
+      x.fill(); x.stroke();
+      x.fillStyle = hex; x.fillText(txt, cv2.width / 2, cv2.height / 2 + 1);
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv2), transparent: true, depthTest: false }));
+      sp.renderOrder = 30;
+      const H = Math.max(0.8, (+st.groundW || 40) / 30) * (small ? 0.78 : 1);   // ป้ายโตตามขนาดผัง อ่านได้ทั้งไซต์เล็กและใหญ่
+      sp.scale.set(H * (cv2.width / cv2.height), H, 1);
+      return sp;
+    };
+    const drawMeasPath = (pts, hex, color, bold, tag) => {
+      if (!pts || pts.length < 2) return;
+      const Y = 0.19;
+      const line = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(pts.map((p) => new THREE.Vector3(p.x, Y, p.z))),
+        new THREE.LineBasicMaterial({ color: color, depthTest: false, transparent: true, opacity: bold ? 1 : 0.8 }));
+      line.renderOrder = 22; t.dyn.add(line);
+      const R = Math.max(0.09, (+st.groundW || 40) / 300) * (bold ? 1.4 : 1);
+      const dotMat = new THREE.MeshBasicMaterial({ color: color, depthTest: false, transparent: true });
+      pts.forEach((p, i) => {
+        const d = new THREE.Mesh(new THREE.SphereGeometry(R, 14, 10), dotMat);
+        d.position.set(p.x, Y + 0.02, p.z); d.renderOrder = 23; t.dyn.add(d);
+        if (i === 0) return;
+        const q = pts[i - 1], seg = Math.hypot(p.x - q.x, p.z - q.z);
+        // ช่วงเดียวไม่ต้องแยกป้าย เพราะป้ายรวมบอกเลขเดียวกันอยู่แล้ว
+        if (pts.length > 2 && seg > 0.5) {
+          const lb = mkTag(seg.toFixed(2), hex, true);
+          lb.position.set((p.x + q.x) / 2, Y + 0.75, (p.z + q.z) / 2); t.dyn.add(lb);
+        }
+      });
+      if (tag) {
+        const lb = mkTag(tag, hex, false);
+        const last = pts[pts.length - 1];
+        lb.position.set(last.x, Y + 2, last.z); t.dyn.add(lb);
+      }
+    };
+    (st.measures || []).forEach((m) => {
+      const km = p3MeasKind(m.kind);
+      const hex = "#" + km.c.toString(16).padStart(6, "0");
+      const rise = Math.abs(+m.rise || 0);
+      drawMeasPath(m.pts || [], hex, km.c, selMeas === m.id,
+        (m.name || "ระยะ") + " · " + p3MeasLen(m).toFixed(2) + " ม." + (rise ? " (ราบ+ขึ้นลง " + rise + ")" : ""));
+    });
+    if (measuring && measPts.length) {
+      const run = p3MeasLen({ pts: measPts });
+      drawMeasPath(measPts, "#15803D", 0x16A34A, true, measPts.length >= 2 ? run.toFixed(2) + " ม." : null);
+      if (measPts.length === 1) {
+        const d = new THREE.Mesh(new THREE.SphereGeometry(Math.max(0.12, (+st.groundW || 40) / 220), 16, 12),
+          new THREE.MeshBasicMaterial({ color: 0x16A34A, depthTest: false, transparent: true }));
+        d.position.set(measPts[0].x, 0.22, measPts[0].z); d.renderOrder = 23; t.dyn.add(d);
+      }
+    }
     /* ผูกเฉพาะส่วนของ st ที่ฉากนี้ใช้จริง — ห้ามผูกทั้ง st
        เดิมผูกทั้งก้อน พอกดกวาดเงาทั้งวัน (ขยับ st.sun.hour ทุกเฟรม) ฉากทั้งฉากถูกรื้อสร้างใหม่ทุกเฟรม
        ทั้งที่หลังคา/แผง/สิ่งบดบัง ไม่ได้เปลี่ยนอะไรเลย — แดดมีเอฟเฟกต์ของตัวเองอยู่แล้ว
        eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [st.roofs, st.obstacles, st.groundW, st.buildH, st.photo, st.photoW, st.photoOpacity, st.photoBright,
     st.photoRot, st.photoX, st.photoZ, st.baseMap,
+    st.measures, selMeas, measuring, measPts,
     selRoof, selObs, selVert, ready, drawing, drawPts, showVerts, locked, photoEdit, addMode, selBlk, tab, shadowOn]);
 
   /* แนวโคจรขึ้นกับวันที่และพิกัดเท่านั้น — เวลาในวันเปลี่ยนแล้วเส้นเดิมยังใช้ได้ */
@@ -2104,7 +2206,8 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         return;
       }
 
-      if (drawingRef.current) { down = { x: ev.clientX, y: ev.clientY, draw: true, moved: false }; return; }
+      // วาดผืน / วัดระยะ ใช้ท่าเดียวกัน: คลิก = วางจุด · ลาก = หมุน/เลื่อนมุมมองตามปกติ
+      if (drawingRef.current || measuringRef.current) { down = { x: ev.clientX, y: ev.clientY, draw: true, moved: false }; return; }
       const hit = pick(ev);
       if (!hit) return;
       const stNow = stRef.current;
@@ -2252,7 +2355,11 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         if (!down.moved && ev.target === cv) {
           setRay(ev);
           const gp = groundPoint();
-          if (gp) { const sp = snapPt(gp, null, null); setDrawPts((p) => p.concat([sp])); }
+          if (gp) {
+            const sp = snapPt(gp, null, null);
+            if (measuringRef.current) setMeasPts((p) => p.concat([sp]));
+            else setDrawPts((p) => p.concat([sp]));
+          }
         }
         down = null; return;
       }
@@ -2317,6 +2424,27 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     });
     set({ roofs: (st.roofs || []).concat([nr]) });
     setSelRoof(nr.id); setSelVert(null); setDrawing(false); setDrawPts([]);
+  };
+
+  /* ── วัดระยะบนผัง ──
+     ผังพื้นมาจากแผนที่ดาวเทียมที่รู้สเกลจริง (baseMap.widthM) ทุกอย่างในฉากจึงเป็นเมตรจริงอยู่แล้ว
+     คลิกไล่จุดไปตามแนวที่จะเดินสาย/เดินราง แล้วได้ระยะที่เอาไปกรอก BOQ ได้ตรง ๆ ไม่ต้องออกไปวัดหน้างานซ้ำ */
+  const startMeas = () => {
+    setMeasuring(true); setMeasPts([]);
+    setDrawing(false); setDrawPts([]); setPhotoEdit(false);
+    setTab("measure"); viewTop();
+  };
+  const cancelMeas = () => { setMeasuring(false); setMeasPts([]); };
+  const undoMeasPt = () => setMeasPts((p) => p.slice(0, -1));
+  const finishMeas = () => {
+    if (measPts.length < 2) return;
+    const n = (st.measures || []).length + 1;
+    const nm = {
+      id: p3Id("m"), name: "ระยะ " + n, kind: "cable", rise: 0,
+      pts: measPts.map((p) => ({ x: Math.round(p.x * 100) / 100, z: Math.round(p.z * 100) / 100 })),
+    };
+    set({ measures: (st.measures || []).concat([nm]) });
+    setSelMeas(nm.id); setMeasuring(false); setMeasPts([]);
   };
 
   /* ── อัปโหลดรูปโดรน ── */
@@ -2431,6 +2559,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         <TabBtn k="panel" label="แผง" icon="grid" />
         <TabBtn k="photo" label="ผังพื้น" icon="map" />
         <TabBtn k="obstacle" label="สิ่งบดบัง" icon="tree" />
+        <TabBtn k="measure" label="วัดระยะ" icon="ruler" />
         <TabBtn k="sun" label="แสงแดด" icon="sun" />
       </div>
 
@@ -3001,6 +3130,88 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         </div>
       )}
 
+      {tab === "measure" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {!st.baseMap && (
+            <div className="p3-card amber">
+              <span className="p3-eb"><P3Icon name="map" size={13} />ยังไม่ได้ตั้งผังพื้นจากแผนที่<span className="ln" /></span>
+              <span className="p3-note">
+                ระยะที่วัดได้จะเป็นสเกลของผังที่ตั้งเอง ไม่ใช่ระยะจริงจากพื้นที่ — ไปแท็บ <b>ผังพื้น</b> เลือกพื้นที่จากแผนที่ดาวเทียมก่อน แล้ววัดจะได้เมตรจริง
+              </span>
+            </div>
+          )}
+          <button className={"p3-b w " + (measuring ? "dngr" : "pri")} style={{ padding: "11px 8px" }}
+            onClick={() => { if (measuring) cancelMeas(); else startMeas(); }}>
+            <P3Icon name={measuring ? "reset" : "ruler"} size={16} />{measuring ? "หยุดวัด" : "วัดระยะใหม่"}
+          </button>
+          {measuring && (
+            <div className="p3-note" style={{ padding: "9px 11px", background: "var(--surface2)", borderRadius: 11 }}>
+              คลิกบนผังไล่จุดไปตามแนวที่จะเดินจริง (หักมุมได้หลายจุด) แล้วกด <b>เก็บระยะ</b> บนแถบกลางภาพ
+            </div>
+          )}
+
+          {(st.measures || []).length === 0 && !measuring && (
+            <div className="p3-note" style={{ textAlign: "center", padding: "14px 10px", background: "var(--surface2)", borderRadius: 12 }}>
+              วัดระยะเดินสาย · ระยะเดินราง · ความยาวบันไดลิง/ทางเดิน จากผังจริง<br />แล้วดึงเข้าช่องความยาวใน <b>ถอดวัสดุ BOQ</b> ได้เลย
+            </div>
+          )}
+
+          {(st.measures || []).map((m) => {
+            const km = p3MeasKind(m.kind);
+            const hex = "#" + km.c.toString(16).padStart(6, "0");
+            const on = selMeas === m.id;
+            return (
+              <div key={m.id} className="p3-card" style={on ? { borderColor: hex, boxShadow: "0 0 0 2px " + hex + "22" } : null}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: 9, height: 9, borderRadius: 99, background: hex, flex: "0 0 auto" }} />
+                  <input className="p3-inp" style={{ fontWeight: 700 }} value={m.name || ""} placeholder="ชื่อระยะ"
+                    onFocus={() => setSelMeas(m.id)} onChange={(e) => patchMeas(m.id, { name: e.target.value })} />
+                  <button className="p3-b sm dngr" title="ลบเส้นวัดนี้" onClick={() => delMeas(m.id)} style={{ flex: "0 0 auto", padding: "6px 8px" }}>
+                    <P3Icon name="trash" size={13} />
+                  </button>
+                </div>
+                <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                  {P3_MEAS_KINDS.map((k) => (
+                    <button key={k.k} className="p3-chip" data-on={m.kind === k.k ? "1" : "0"}
+                      style={m.kind === k.k ? { borderColor: "#" + k.c.toString(16).padStart(6, "0"), color: "#" + k.c.toString(16).padStart(6, "0"), background: "#" + k.c.toString(16).padStart(6, "0") + "14" } : null}
+                      onClick={() => { patchMeas(m.id, { kind: k.k }); setSelMeas(m.id); }}>{k.th}</button>
+                  ))}
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9, alignItems: "end" }}>
+                  <Num label="ขึ้น–ลง เพิ่ม (ไต่ผนัง/ขึ้นหลังคา)" value={+m.rise || 0} step={0.5} min={0} suffix="ม."
+                    onChange={(v) => { patchMeas(m.id, { rise: v }); setSelMeas(m.id); }} />
+                  <div className="p3-stat" style={{ justifyContent: "flex-end", paddingBottom: 8 }}>
+                    รวม <b style={{ color: hex, fontSize: 16 }}>{p3MeasLen(m).toFixed(2)}</b> ม.
+                  </div>
+                </div>
+                <span className="p3-note">
+                  {(m.pts || []).length} จุด · ระยะราบ {p3MeasLen({ pts: m.pts }).toFixed(2)} ม.
+                  {" · "}<button className="p3-lnk" onClick={() => setSelMeas(on ? null : m.id)}>{on ? "เลิกเน้น" : "เน้นบนภาพ"}</button>
+                </span>
+              </div>
+            );
+          })}
+
+          {(st.measures || []).length > 0 && (
+            <div className="p3-card tint">
+              <span className="p3-eb"><P3Icon name="ruler" size={13} />รวมตามหมวด<span className="ln" /></span>
+              {P3_MEAS_KINDS.map((k) => {
+                const list = (st.measures || []).filter((m) => (m.kind || "other") === k.k);
+                if (!list.length) return null;
+                const sum = list.reduce((s, m) => s + p3MeasLen(m), 0);
+                return (
+                  <div key={k.k} className="p3-stat" style={{ justifyContent: "space-between" }}>
+                    <span>{k.th} <span style={{ color: "var(--text-3)" }}>({list.length})</span></span>
+                    <b>{(Math.round(sum * 100) / 100).toFixed(2)} ม.</b>
+                  </div>
+                );
+              })}
+              <span className="p3-note">กด <b>บันทึก</b> แล้วเปิด “ถอดวัสดุ BOQ” จะมีปุ่มดึงระยะเหล่านี้เข้าช่องความยาวให้</span>
+            </div>
+          )}
+        </div>
+      )}
+
       {tab === "sun" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {/* ตำแหน่งดวงอาทิตย์ตอนนี้ — หน้าปัดเล็ก ๆ แทนบรรทัดตัวเลข */}
@@ -3145,6 +3356,9 @@ function Plan3DEditor({ job, onClose, currentUser }) {
                 title={showVerts ? "ซ่อนจุดมุมหลังคา" : "แสดงจุดมุมหลังคา (ใช้แก้ทรง)"} />
               <IconBtn icon={locked ? "lock" : "unlock"} label={isMobile ? "" : "ล็อก"} on={locked} tone="warn" onClick={() => setLocked((v) => !v)}
                 title={locked ? "ล็อกตัวบ้านอยู่ — หลังคา/มุม/สิ่งบดบัง ขยับไม่ได้ · แผงยังจัดได้ตามปกติ" : "ล็อกตัวบ้านกันเผลอลาก (ยังจัดแผงได้)"} />
+              <IconBtn icon="ruler" label={isMobile ? "" : "วัด"} on={measuring} tone="info"
+                title={measuring ? "กำลังวัดระยะ — คลิกไล่จุดตามแนวที่จะเดินสาย/เดินราง" : "วัดระยะจริงบนผัง (ใช้กรอก BOQ ได้)"}
+                onClick={() => { if (measuring) cancelMeas(); else startMeas(); }} />
               <span className="p3-vr" />
               <IconBtn icon={lightMode === "sun" ? "sunShadow" : lightMode === "noshadow" ? "sun" : "bulb"}
                 label={isMobile ? "" : (lightMode === "sun" ? "แดด+เงา" : lightMode === "noshadow" ? "ไม่มีเงา" : "แสงแบน")}
@@ -3192,10 +3406,27 @@ function Plan3DEditor({ job, onClose, currentUser }) {
               <button className="p3-b sm dngr" onClick={cancelDraw}>ยกเลิก</button>
             </div>
           )}
+          {/* แถบโหมดวัดระยะ ลอยบน canvas */}
+          {measuring && (
+            <div className="p3-tools" style={{ position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", gap: 6, padding: "5px 5px 5px 12px", maxWidth: "calc(100% - 20px)", flexWrap: "wrap" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
+                <P3Icon name="ruler" size={14} />คลิกไล่จุดตามแนวเดินสาย
+                <b style={{ fontWeight: 800, color: "#2563EB" }}>
+                  {measPts.length >= 2 ? p3MeasLen({ pts: measPts }).toFixed(2) + " ม." : measPts.length + " จุด"}
+                </b>
+              </span>
+              <span className="p3-vr" />
+              <button className="p3-b sm" onClick={undoMeasPt} disabled={!measPts.length}>ถอยจุด</button>
+              <button className="p3-b sm pri" onClick={finishMeas} disabled={measPts.length < 2} style={{ whiteSpace: "nowrap" }}>
+                <P3Icon name="check" size={13} />เก็บระยะ</button>
+              <button className="p3-b sm dngr" onClick={cancelMeas}>ยกเลิก</button>
+            </div>
+          )}
           {/* แถบใบ้การใช้งาน — คู่ "ท่าทาง → ผลลัพธ์" คั่นด้วยจุด อ่านเป็นชุด ๆ ไม่ใช่ประโยคยาว */}
           <div style={{ position: "absolute", bottom: 10, left: 10, right: 10, display: "flex", pointerEvents: "none" }}>
             <span className="p3-hint" style={{ flexWrap: "wrap", rowGap: 3 }}>
-              {(drawing ? [["คลิก", "วางจุด"], [view2D ? "ลาก" : "ลาก", view2D ? "เลื่อนผัง" : "หมุนมุมมอง"], ["ลากแล้วปล่อย", "ไม่วางจุด"]]
+              {(measuring ? [["คลิก", "วางจุดวัด"], ["ลาก", view2D ? "เลื่อนผัง" : "หมุนมุมมอง"], ["ดูดเข้ามุมหลังคา", "ในระยะ 0.7 ม."]]
+                : drawing ? [["คลิก", "วางจุด"],[view2D ? "ลาก" : "ลาก", view2D ? "เลื่อนผัง" : "หมุนมุมมอง"], ["ลากแล้วปล่อย", "ไม่วางจุด"]]
                 : locked ? [["สถานะ", "ล็อกตัวบ้านไว้ — จัดแผงได้"], ["ลาก", view2D ? "เลื่อนผัง" : "หมุนมุมมอง"], ["แตะแผง", "เว้นช่อง"], ["ลากจุดน้ำเงิน", "ย้าย/ย่อขยายชุดแผง"]]
                 : tab === "panel" ? [["สถานะ", "ล็อกตัวบ้านไว้"], ["ลาก", view2D ? "เลื่อนผัง" : "หมุนมุมมอง"], ["แตะแผง", "เว้นช่อง"], ["ลากจุดน้ำเงิน", "ย้าย/ย่อขยายชุดแผง"]]
                 : view2D ? [["ลาก", "เลื่อนผัง"], ["ล้อ/บีบ", "ซูม"], ["แตะแผง", "เว้นช่อง"], ["ลากหลังคา", "ย้าย"]]
@@ -3242,4 +3473,4 @@ function Plan3DEditor({ job, onClose, currentUser }) {
   );
 }
 
-Object.assign(window, { Plan3DEditor, usePlan3d });
+Object.assign(window, { Plan3DEditor, usePlan3d, P3_MEAS_KINDS, p3MeasKind, p3MeasLen });

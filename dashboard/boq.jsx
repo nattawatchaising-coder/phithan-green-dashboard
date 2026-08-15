@@ -255,6 +255,99 @@ function WireArt({ art, w, h }) {
   );
 }
 
+/* ══ ระยะที่วัดจากแบบ 3D ══
+   โหมด 3D ดึงผังพื้นจากแผนที่ดาวเทียมที่รู้สเกลจริง เส้นที่วัดไว้บนผังจึงเป็นเมตรจริง
+   ตรงนี้ BOQ อ่านมาใช้อย่างเดียว (ไม่เขียนกลับ) เพื่อกรอกช่องความยาวแทนการพิมพ์มือ */
+const MEAS_KIND_TH = { cable: "สายไฟ", conduit: "ท่อร้อยสาย", tray: "รางเดินสาย", ladder: "บันไดลิง", walkway: "ทางเดิน", guardrail: "ราวกันตก", other: "อื่น ๆ" };
+const MEAS_KIND_COLOR = { cable: "#F97316", conduit: "#0EA5E9", tray: "#8B5CF6", ladder: "#D946EF", walkway: "#14B8A6", guardrail: "#E11D48", other: "#64748B" };
+/* ระยะรวม = ผลรวมช่วงบนผัง (ราบ) + ระยะขึ้น–ลงที่กรอกเพิ่มไว้ในโหมด 3D — สูตรเดียวกับ p3MeasLen */
+function measLen(m) {
+  const pts = (m && m.pts) || [];
+  let s = 0;
+  for (let i = 1; i < pts.length; i++) s += Math.hypot((+pts[i].x || 0) - (+pts[i - 1].x || 0), (+pts[i].z || 0) - (+pts[i - 1].z || 0));
+  return Math.round((s + Math.abs(+(m && m.rise) || 0)) * 100) / 100;
+}
+function useMeas3D(jobId) {
+  const [ms, setMs] = React.useState([]);
+  React.useEffect(() => {
+    if (!jobId) { setMs([]); return; }
+    const take = (v) => setMs((((v && v.measures) || [])).filter((m) => m && (m.pts || []).length >= 2));
+    if (window.FBDB) {
+      const ref = window.FBDB.ref("plan3d/" + jobId);
+      const h = ref.on("value", (s) => take(s.val()));
+      return () => ref.off("value", h);
+    }
+    try { take(JSON.parse(localStorage.getItem("sf_plan3d_" + jobId) || "null")); } catch (e) { setMs([]); }
+  }, [jobId]);
+  return ms;
+}
+
+/* โมดัลเลือกว่า "เส้นวัดไหน → ลงช่องไหน" — ตั้งปลายทางให้ล่วงหน้าตามหมวดที่ติ๊กไว้ตอนวัด
+   ไม่เขียนทับเงียบ ๆ: แถวไหนไม่อยากนำเข้าก็เลือก “— ไม่ใช้ —” ได้ */
+function Meas3DModal({ list, targets, defaultTarget, onApply, onClose }) {
+  const bdClose = window.useBackdropClose(onClose);
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const [pick, setPick] = React.useState(() => {
+    const o = {};
+    (list || []).forEach((m) => { o[m.id] = defaultTarget(m); });
+    return o;
+  });
+  const rows = (list || []).filter((m) => pick[m.id]);
+  const sum = Math.round(rows.reduce((s, m) => s + measLen(m), 0) * 100) / 100;
+  return (
+    <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 130,
+      display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18,
+        width: isMobile ? "100%" : "min(620px,100%)", maxHeight: isMobile ? "92dvh" : "88vh", display: "flex", flexDirection: "column",
+        overflow: "hidden", boxShadow: "0 30px 80px rgba(0,0,0,.45)" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", flexShrink: 0 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>ระยะจากแบบ 3D</div>
+          <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text-1)", marginTop: 3 }}>เลือกว่าแต่ละระยะจะลงช่องไหน</div>
+        </div>
+        <div style={{ padding: 16, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+          {(list || []).length === 0 && (
+            <div style={{ padding: 20, textAlign: "center", color: "var(--text-3)", fontSize: 12.5, lineHeight: 1.7 }}>
+              ยังไม่มีเส้นวัดในแบบ 3D ของงานนี้<br />เปิด “วางแผง 3D” → แท็บ <b>วัดระยะ</b> → คลิกไล่จุดบนผัง แล้วกดบันทึก
+            </div>
+          )}
+          {(list || []).map((m) => {
+            const col = MEAS_KIND_COLOR[m.kind] || MEAS_KIND_COLOR.other;
+            const rise = Math.abs(+m.rise || 0);
+            return (
+              <div key={m.id} style={{ border: "1px solid var(--border)", borderRadius: 12, padding: "10px 12px", background: "var(--surface)",
+                display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1fr) 210px", gap: 10, alignItems: "center" }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: 99, background: col, flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name || "ระยะ"}</span>
+                    <span style={{ fontSize: 13.5, fontWeight: 800, color: col, marginLeft: "auto", flexShrink: 0 }}>{measLen(m).toFixed(2)} ม.</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 3 }}>
+                    {MEAS_KIND_TH[m.kind] || MEAS_KIND_TH.other} · {(m.pts || []).length} จุด{rise ? " · รวมขึ้น–ลง " + rise + " ม." : ""}
+                  </div>
+                </div>
+                <Dropdown value={pick[m.id] || ""} options={targets} placeholder="— ไม่ใช้ —"
+                  onChange={(v) => setPick((p) => Object.assign({}, p, { [m.id]: v }))} />
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ padding: "12px 16px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+          <span style={{ fontSize: 12, color: "var(--text-3)", fontWeight: 600 }}>
+            นำเข้า {rows.length} รายการ{rows.length ? " · รวม " + sum.toFixed(2) + " ม." : ""}
+          </span>
+          <span style={{ flex: 1 }} />
+          <button onClick={onClose} style={{ background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-2)", borderRadius: 10, padding: "9px 16px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>ยกเลิก</button>
+          <button disabled={!rows.length} onClick={() => { onApply(rows.map((m) => ({ m: m, target: pick[m.id] }))); onClose(); }}
+            style={{ background: rows.length ? "var(--primary)" : "var(--surface3)", border: "none", color: rows.length ? "#fff" : "var(--text-3)", borderRadius: 10, padding: "9px 20px", fontWeight: 800, fontSize: 12.5, cursor: rows.length ? "pointer" : "default", fontFamily: "inherit" }}>
+            นำเข้า
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const bdClose = window.useBackdropClose(onClose);
   const baht = (n) => (Math.round((+n || 0) * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
@@ -521,6 +614,79 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const [openSec, setOpenSec] = React.useState("info");
   const secProps = (key) => ({ open: openSec === key, onToggle: () => setOpenSec(key) });
   const [advU, setAdvU] = React.useState(false);
+
+  /* ── ระยะจากแบบ 3D ──
+     3D วัดบนผังดาวเทียมที่รู้สเกลจริง จึงเอาเมตรมากรอกช่องความยาวได้ตรง ๆ
+     แทนที่จะกะเอาหรือเดินวัดหน้างานซ้ำ (เส้นวัดผูกกับงานเดียวกัน จึงไม่มีทางหยิบของงานอื่นมาปน) */
+  const meas3d = useMeas3D(job ? job.id : null);
+  const [measOpen, setMeasOpen] = React.useState(null);   // หมวดที่กดเปิดโมดัลมา (กรองรายการให้ตรงงานที่ทำอยู่)
+  const measFor = (kinds) => meas3d.filter((m) => kinds.indexOf(m.kind || "other") >= 0 || (m.kind || "other") === "other");
+  const measTargets = React.useMemo(() => {
+    const IMC = window.BOQ.IMC_SIZES || [], UPVC = window.BOQ.UPVC_SIZES || [];
+    const WAY = window.BOQ.WAY_SIZES || [], TRAY = window.BOQ.TRAY_SIZES || [];
+    const o = (b.cables || []).map((c, i) => ({
+      value: "cab:" + i, group: "สายไฟ — ทับความยาวเดิม",
+      label: (c.name || "สายแถวที่ " + (i + 1)) + (c.length ? " (เดิม " + c.length + " ม.)" : ""),
+    }));
+    o.push({ value: "cab:new", group: "สายไฟ — ทับความยาวเดิม", label: "+ เพิ่มสายเส้นใหม่ตามชื่อระยะ" });
+    if (IMC[0]) o.push({ value: "imc", group: "เพิ่มแถวใหม่", label: "ท่อ IMC (" + IMC[0] + ")" });
+    if (UPVC[0]) o.push({ value: "upvc", group: "เพิ่มแถวใหม่", label: "ท่อ uPVC (" + UPVC[0] + ")" });
+    if (WAY[0]) o.push({ value: "way", group: "เพิ่มแถวใหม่", label: "Wireway (" + WAY[0] + ")" });
+    if (TRAY[0]) o.push({ value: "tray", group: "เพิ่มแถวใหม่", label: "Cable Tray (" + TRAY[0] + ")" });
+    o.push({ value: "ladder", group: "เพิ่มแถวใหม่", label: "บันไดลิง (ความสูง)" });
+    o.push({ value: "walkway", group: "เพิ่มแถวใหม่", label: "ทางเดิน Walkway (ความยาว)" });
+    o.push({ value: "guardrail", group: "เพิ่มแถวใหม่", label: "ราวกันตก (ความยาว)" });
+    return o;
+  }, [b.cables]);
+  /* ปลายทางตั้งต้น: หมวดที่ติ๊กไว้ตอนวัด → ช่องที่ตรงกัน
+     หมวด "สายไฟ" พยายามจับชื่อระยะให้ตรงชื่อจุดเดินสายที่มีอยู่แล้วก่อน ถึงค่อยเปิดแถวใหม่ */
+  const measDefault = (m) => {
+    const k = m.kind || "other";
+    if (k === "cable") {
+      const key = (m.name || "").trim().toUpperCase();
+      const hit = (b.cables || []).findIndex((c) => (c.name || "").trim().toUpperCase() === key);
+      return hit >= 0 ? "cab:" + hit : "cab:new";
+    }
+    if (k === "conduit") return "imc";
+    if (k === "tray") return "way";
+    if (k === "ladder" || k === "walkway" || k === "guardrail") return k;
+    return "";
+  };
+  const applyMeas = (rows) => {
+    const IMC = window.BOQ.IMC_SIZES || [], UPVC = window.BOQ.UPVC_SIZES || [];
+    const WAY = window.BOQ.WAY_SIZES || [], TRAY = window.BOQ.TRAY_SIZES || [];
+    rows.forEach(({ m, target }) => {
+      const L = measLen(m);
+      if (/^cab:\d+$/.test(target)) setCab(+target.slice(4), "length", L);
+      else if (target === "cab:new") setB((p) => Object.assign({}, p, { cables: (p.cables || []).concat([{ name: (m.name || "").trim(), type: "", length: L }]) }));
+      else if (target === "imc") addCond("imc", { size: IMC[0], length: L, cables: [] });
+      else if (target === "upvc") addCond("upvc", { size: UPVC[0], length: L, cables: [] });
+      else if (target === "way") addTrayRow("way", { size: WAY[0], length: L, cables: [] });
+      else if (target === "tray") addTrayRow("tray", { size: TRAY[0], length: L, cables: [] });
+      else if (target === "ladder") addStruct("ladder", { h: L });
+      else if (target === "walkway") addStruct("walkway", { len: L });
+      else if (target === "guardrail") addStruct("guardrail", { len: L, corners: 0 });
+    });
+  };
+  /* แถบชวนใช้ในหัวข้อที่เกี่ยวข้อง — โผล่เฉพาะตอนงานนี้มีเส้นวัดในแบบ 3D จริง ๆ */
+  const MeasBar = ({ kinds }) => {
+    const list = measFor(kinds);
+    if (!list.length) return null;
+    const sum = Math.round(list.reduce((s, m) => s + measLen(m), 0) * 100) / 100;
+    return (
+      <div style={{ marginBottom: 12, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 9, padding: "9px 12px",
+        background: "var(--tint-blue-bg, rgba(37,99,235,.08))", border: "1px solid rgba(37,99,235,.24)", borderRadius: 11 }}>
+        <Icon name="grid" size={15} color="#2563EB" />
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: "#1D4ED8" }}>
+          วัดไว้ในแบบ 3D {list.length} ระยะ · รวม {sum.toFixed(2)} ม.
+        </span>
+        <button onClick={() => setMeasOpen(kinds)}
+          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, background: "#2563EB", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+          ดึงระยะเข้าตาราง
+        </button>
+      </div>
+    );
+  };
 
   const csp = Object.assign({}, SPARE_DEF, b.conduitSpare);
 
@@ -1873,6 +2039,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           {/* ── สายไฟ ── */}
           <BoqSection title="สายไฟ" icon="power" {...secProps("wire")}
             right={cabLenSum > 0 ? <span style={{ fontSize: 12, fontWeight: 800, color: "var(--primary-dark)" }}>รวม {cabLenSum} ม.</span> : null}>
+            <MeasBar kinds={["cable"]} />
             {/* หัวคอลัมน์ — เดิมไม่มีเลย ต้องเดาเอาว่าช่องไหนคืออะไร */}
             {!isMobile && (
               <div style={{ display: "grid", gridTemplateColumns: CAB_COLS, gap: 8, padding: "0 2px 6px",
@@ -2245,6 +2412,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           {/* ── ท่อร้อยสาย (RACE WAY) ── */}
           <BoqSection title="ท่อร้อยสาย (RACE WAY)" icon="grid" {...secProps("raceway")}
             right={condLen > 0 ? <span style={{ fontSize: 12, fontWeight: 800, color: "var(--primary-dark)" }}>รวม {condLen} ม.</span> : null}>
+            <MeasBar kinds={["conduit"]} />
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {ConduitList({ kind: "imc", label: "ท่อ IMC (3m/ท่อน)", sizes: window.BOQ.IMC_SIZES, valKey: "length", unitText: "ม.", check: true,
                 hint: "ท่อเหล็ก IMC ยาว 3.0 ม./ท่อน — กรอกความยาวรวมของแต่ละขนาด" })}
@@ -2294,6 +2462,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           {/* ── รางไฟ (WIREWAY / CABLE TRAY) ── */}
           <BoqSection title="รางไฟ (Wireway / Cable Tray)" icon="grid" {...secProps("tray")}
             right={trayLen > 0 ? <span style={{ fontSize: 12, fontWeight: 800, color: "var(--primary-dark)" }}>รวม {trayLen} ม.</span> : null}>
+            <MeasBar kinds={["tray"]} />
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {TrayList({ kind: "way", label: "Wireway เหล็กมีฝา", sizes: window.BOQ.WAY_SIZES,
                 hint: "รางเหล็กพับมีฝาปิด ยาว " + window.BOQ.WAY_PIPE_LEN.toFixed(1) + " ม./ท่อน — กรอกความยาวรวมของแต่ละขนาด" })}
@@ -2553,6 +2722,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             </div>
             {advS && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 14 }}>
+                <MeasBar kinds={["ladder", "walkway", "guardrail"]} />
                 <SteelSpecBlock st={st} setSteel={setSteel} />
                 {StructBlock({ kind: "ladder", label: "LADDER (บันไดลิง)", color: "#0D9488", addLabel: "เพิ่มจุด",
                   cols: [{ k: "h", ph: "ความสูง (m)" }], blank: { h: "" },
@@ -2897,6 +3067,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         <button className="bq-btn gh" style={{ marginRight: 8 }} onClick={() => guardRun(exportXlsx)}><Icon name="box" size={15} color="var(--tint-ok-tx)" /> Excel</button>
         {onSave && <button className="bq-btn pri" onClick={() => guardRun(() => onSave(Object.assign({}, b, { project: project })))}><Icon name="check" size={15} color="#fff" /> บันทึก BOQ</button>}
       </div>
+      {measOpen && (
+        <Meas3DModal list={measFor(measOpen)} targets={measTargets} defaultTarget={measDefault}
+          onApply={applyMeas} onClose={() => setMeasOpen(null)} />
+      )}
       {editVar && (
         <MatVariantModal item={editVar} stock={stock} priceMap={priceMap || {}} matOptions={allMatOptions}
           picked={(b.pick || {})[window.BOQ.matKey(editVar.priceName || editVar.name)] || ""}
