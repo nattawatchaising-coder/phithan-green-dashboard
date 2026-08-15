@@ -712,132 +712,165 @@ function p3MeasLen(m) {
   for (let i = 1; i < pts.length; i++) s += Math.hypot((+pts[i].x || 0) - (+pts[i - 1].x || 0), (+pts[i].z || 0) - (+pts[i - 1].z || 0));
   return Math.round((s + Math.abs(+(m && m.rise) || 0)) * 100) / 100;
 }
-const P3_DXF_LAYERS = [["PG-ROOF", 7], ["PG-PANEL", 5], ["PG-OBSTACLE", 3], ["PG-MEAS-CABLE", 30], ["PG-MEAS-CONDUIT", 140], ["PG-MEAS-TRAY", 200], ["PG-MEAS-LADDER", 6], ["PG-MEAS-WALKWAY", 4], ["PG-MEAS-GUARDRAIL", 1], ["PG-MEAS-OTHER", 8], ["PG-DIM", 1], ["PG-NORTH", 8], ["PG-NOTE", 8]];
+const P3_DXF_LAYERS = [["PG-BG", 8, 5], ["PG-ROOF", 7, 35], ["PG-PANEL", 5, 25], ["PG-OBSTACLE", 3, 20], ["PG-MEAS-CABLE", 30, 30], ["PG-MEAS-CONDUIT", 140, 30], ["PG-MEAS-TRAY", 200, 30], ["PG-MEAS-LADDER", 6, 30], ["PG-MEAS-WALKWAY", 4, 30], ["PG-MEAS-GUARDRAIL", 1, 30], ["PG-MEAS-OTHER", 8, 30], ["PG-DIM", 1, 18], ["PG-NORTH", 8, 25], ["PG-NOTE", 8, 18]];
 const p3MeasLayer = k => "PG-MEAS-" + String(k || "other").toUpperCase();
-function p3Dxf(st, job) {
-  const O = [];
-  const g = (code, val) => {
-    O.push(String(code), String(val));
+const P3_SCALES = [50, 100, 150, 200, 250, 300, 400, 500, 600, 800, 1000, 1250, 1500, 2000];
+function p3ImgPlace(kind, st, aspect) {
+  if (kind === "map") {
+    const W = Math.max(2, +(st.baseMap && st.baseMap.widthM) || 30);
+    return {
+      cx: 0,
+      cy: 0,
+      w: W,
+      h: W,
+      rot: 0
+    };
+  }
+  const w = Math.max(2, +st.photoW || 30);
+  return {
+    cx: +st.photoX || 0,
+    cy: -(+st.photoZ || 0),
+    w,
+    h: w * (aspect || 0.75),
+    rot: -(+st.photoRot || 0)
   };
-  const n = v => (Math.round((+v || 0) * 1e6) / 1e6).toString();
-  const PX = x => n(x),
-    PY = z => n(-z);
-  const poly = (layer, pts, closed) => {
-    if (!pts || pts.length < 2) return;
-    g(0, "POLYLINE");
-    g(8, layer);
-    g(66, 1);
-    g(70, closed ? 1 : 0);
-    g(10, 0);
-    g(20, 0);
-    g(30, 0);
-    pts.forEach(p => {
-      g(0, "VERTEX");
-      g(8, layer);
-      g(10, PX(p[0]));
-      g(20, PY(p[1]));
-      g(30, 0);
-    });
-    g(0, "SEQEND");
-    g(8, layer);
+}
+function p3ImgCorner(p) {
+  const a = (p.rot || 0) * P3_DEG,
+    ca = Math.cos(a),
+    sa = Math.sin(a);
+  const ux = -p.w / 2,
+    uy = -p.h / 2;
+  return {
+    x: p.cx + ux * ca - uy * sa,
+    y: p.cy + ux * sa + uy * ca
   };
-  const line = (layer, x1, z1, x2, z2) => {
-    g(0, "LINE");
-    g(8, layer);
-    g(10, PX(x1));
-    g(20, PY(z1));
-    g(30, 0);
-    g(11, PX(x2));
-    g(21, PY(z2));
-    g(31, 0);
+}
+function p3PlanBox(st, imgs) {
+  let a = Infinity,
+    b = Infinity,
+    c = -Infinity,
+    d = -Infinity;
+  const put = (x, y) => {
+    if (x < a) a = x;
+    if (x > c) c = x;
+    if (y < b) b = y;
+    if (y > d) d = y;
   };
-  const circle = (layer, x, z, r) => {
-    g(0, "CIRCLE");
-    g(8, layer);
-    g(10, PX(x));
-    g(20, PY(z));
-    g(30, 0);
-    g(40, n(r));
-  };
-  const esc = s => String(s == null ? "" : s).replace(/[^\x20-\x7E]/g, c => "\\U+" + c.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0"));
-  const text = (layer, x, z, h, s, center) => {
-    g(0, "TEXT");
-    g(8, layer);
-    g(10, PX(x));
-    g(20, PY(z));
-    g(30, 0);
-    g(40, n(h));
-    g(1, esc(s));
-    g(7, "STANDARD");
-    if (center) {
-      g(72, 1);
-      g(11, PX(x));
-      g(21, PY(z));
-      g(31, 0);
-    }
-  };
-  const foot = p3FootAll(st);
-  const B = foot.bounds;
-  const span = Math.max(6, B.maxX - B.minX, B.maxZ - B.minZ);
-  const TH = Math.max(0.16, span / 110);
-  g(0, "SECTION");
-  g(2, "HEADER");
-  g(9, "$ACADVER");
-  g(1, "AC1009");
-  g(9, "$DWGCODEPAGE");
-  g(3, "ANSI_1252");
-  g(9, "$INSUNITS");
-  g(70, 6);
-  g(9, "$EXTMIN");
-  g(10, PX(B.minX));
-  g(20, PY(B.maxZ));
-  g(30, 0);
-  g(9, "$EXTMAX");
-  g(10, PX(B.maxX));
-  g(20, PY(B.minZ));
-  g(30, 0);
-  g(0, "ENDSEC");
-  g(0, "SECTION");
-  g(2, "TABLES");
-  g(0, "TABLE");
-  g(2, "LTYPE");
-  g(70, 1);
-  g(0, "LTYPE");
-  g(2, "CONTINUOUS");
-  g(70, 0);
-  g(3, "Solid line");
-  g(72, 65);
-  g(73, 0);
-  g(40, "0.0");
-  g(0, "ENDTAB");
-  g(0, "TABLE");
-  g(2, "LAYER");
-  g(70, P3_DXF_LAYERS.length);
-  P3_DXF_LAYERS.forEach(([nm, col]) => {
-    g(0, "LAYER");
-    g(2, nm);
-    g(70, 0);
-    g(62, col);
-    g(6, "CONTINUOUS");
+  const add = (x, z) => put(x, -z);
+  (st.roofs || []).forEach(r => {
+    try {
+      (p3RoofSurf(r) || []).forEach(f => (f.pts || []).forEach(p => add(p.x, p.z)));
+    } catch (e) {}
   });
-  g(0, "ENDTAB");
-  g(0, "TABLE");
-  g(2, "STYLE");
-  g(70, 1);
-  g(0, "STYLE");
-  g(2, "STANDARD");
-  g(70, 0);
-  g(40, "0.0");
-  g(41, "1.0");
-  g(50, "0.0");
-  g(71, 0);
-  g(42, "0.2");
-  g(3, "txt");
-  g(4, "");
-  g(0, "ENDTAB");
-  g(0, "ENDSEC");
-  g(0, "SECTION");
-  g(2, "ENTITIES");
+  try {
+    (p3FootAll(st).panels || []).forEach(p => (p.pts || []).forEach(q => add(q[0], q[1])));
+  } catch (e) {}
+  (st.obstacles || []).forEach(o => {
+    const w = Math.max(0.5, +o.w || 1),
+      h = Math.max(0.5, +o.d || 1);
+    add((+o.x || 0) - w, (+o.z || 0) - h);
+    add((+o.x || 0) + w, (+o.z || 0) + h);
+  });
+  (st.measures || []).forEach(m => (m.pts || []).forEach(p => add(+p.x || 0, +p.z || 0)));
+  (imgs || []).forEach(p => {
+    const ang = (p.rot || 0) * P3_DEG,
+      ca = Math.cos(ang),
+      sa = Math.sin(ang);
+    [[-p.w / 2, -p.h / 2], [p.w / 2, -p.h / 2], [p.w / 2, p.h / 2], [-p.w / 2, p.h / 2]].forEach(([u, v]) => put(p.cx + u * ca - v * sa, p.cy + u * sa + v * ca));
+  });
+  if (!isFinite(a)) {
+    a = -10;
+    b = -10;
+    c = 10;
+    d = 10;
+  }
+  return {
+    minX: a,
+    minY: b,
+    maxX: c,
+    maxY: d
+  };
+}
+function p3Dms(v, pos, neg) {
+  const s = v < 0 ? neg : pos,
+    x = Math.abs(+v || 0);
+  const dg = Math.floor(x),
+    mn = Math.floor((x - dg) * 60),
+    sc = ((x - dg) * 60 - mn) * 60;
+  return dg + "%%d" + String(mn).padStart(2, "0") + "'" + sc.toFixed(1) + '"' + s;
+}
+function p3SheetInfo(st, job, o) {
+  o = o || {};
+  const bm = st.baseMap || {};
+  const lat = +bm.lat,
+    lng = +bm.lng;
+  const total = p3CountAll(st);
+  const kwp = Math.round(total * (+st.wp || 650) / 10) / 100;
+  const d = new Date();
+  const dd = n => String(n).padStart(2, "0");
+  return {
+    address: [job && job.address || "", job && job.province || ""].filter(Boolean).join(" "),
+    location: isFinite(lat) && isFinite(lng) ? p3Dms(lat, "N", "S") + "  " + p3Dms(lng, "E", "W") : "-",
+    project: "SOLAR CELL ROOFTOP " + kwp.toFixed(2) + " kWp",
+    owner: job && job.name || "-",
+    status: "construct",
+    projectNo: job && job.code || "-",
+    drawingNo: "PG-" + (job && job.code || "0000") + "-" + (o.sheet || "PLAN"),
+    scale: o.scale || "AS SHOW",
+    date: dd(d.getDate()) + "/" + dd(d.getMonth() + 1) + "/" + d.getFullYear(),
+    sheetNo: o.sheetNo || "1/1",
+    rev: "0"
+  };
+}
+function p3Dxf(st, job, media) {
+  media = media || {};
+  const imgs = (media.imgs || []).map(im => Object.assign({}, im, p3ImgPlace(im.kind, st, (+im.pxH || 3) / (+im.pxW || 4))));
+  const B = p3PlanBox(st, imgs);
+  const A = {
+    w: PG_SHEET.IN.x1 - PG_SHEET.TB - PG_SHEET.IN.x0,
+    h: PG_SHEET.IN.y1 - PG_SHEET.IN.y0
+  };
+  const needW = Math.max(0.5, B.maxX - B.minX),
+    needH = Math.max(0.5, B.maxY - B.minY);
+  const SC = P3_SCALES.find(s => needW * 1000 <= A.w * 0.88 * s && needH * 1000 <= A.h * 0.80 * s) || P3_SCALES[P3_SCALES.length - 1];
+  const k = SC / 1000;
+  const doc = pgDxf({
+    units: "m",
+    ltscale: k
+  });
+  P3_DXF_LAYERS.forEach(L => doc.layer(L[0], L[1], "CONTINUOUS", L[2]));
+  const px = PG_SHEET.IN.x0 + A.w / 2,
+    py = PG_SHEET.IN.y0 + A.h / 2 + 7;
+  const ox = (B.minX + B.maxX) / 2 - px * k;
+  const oy = (B.minY + B.maxY) / 2 - py * k;
+  const sheet = pgSheet(doc, {
+    k,
+    ox,
+    oy,
+    info: p3SheetInfo(st, job, {
+      sheet: "PLAN",
+      scale: "1:" + SC,
+      sheetNo: media.sheetNo || "1/1"
+    })
+  });
+  const pen = sheet.pen;
+  const TH = 2.0 * k;
+  imgs.forEach(p => {
+    const c = p3ImgCorner(p);
+    doc.image("PG-BG", {
+      file: p.file,
+      pxW: p.pxW,
+      pxH: p.pxH,
+      x: c.x,
+      y: c.y,
+      w: p.w,
+      h: p.h,
+      rot: p.rot,
+      fade: p.fade == null ? 72 : p.fade
+    });
+  });
+  const poly = (lay, pts, closed) => doc.pline(lay, pts.map(p => [p[0], -p[1]]), closed);
   (st.roofs || []).forEach(roof => {
     let faces = [];
     try {
@@ -850,6 +883,16 @@ function p3Dxf(st, job) {
       poly("PG-ROOF", roof.pts.map(p => [(+p.x || 0) + (+roof.x || 0), (+p.z || 0) + (+roof.z || 0)]), true);
     }
   });
+  let foot = {
+    panels: []
+  };
+  try {
+    foot = p3FootAll(st);
+  } catch (e) {
+    foot = {
+      panels: []
+    };
+  }
   (foot.panels || []).forEach(p => poly("PG-PANEL", p.pts, true));
   (st.obstacles || []).forEach(o => {
     const x = +o.x || 0,
@@ -857,45 +900,67 @@ function p3Dxf(st, job) {
       w = Math.max(0.1, +o.w || 1),
       d = Math.max(0.1, +o.d || 1);
     if (o.kind === "tree") {
-      circle("PG-OBSTACLE", x, z, Math.max(w, d) / 2);
+      doc.circle("PG-OBSTACLE", x, -z, Math.max(w, d) / 2);
       return;
     }
-    const a = (+o.rot || 0) * P3_DEG,
-      ca = Math.cos(a),
-      sa = Math.sin(a);
-    const c = [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]];
-    poly("PG-OBSTACLE", c.map(([u, v]) => [x + u * ca - v * sa, z + u * sa + v * ca]), true);
+    const a2 = (+o.rot || 0) * P3_DEG,
+      ca = Math.cos(a2),
+      sa = Math.sin(a2);
+    poly("PG-OBSTACLE", [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]].map(([u, v]) => [x + u * ca - v * sa, z + u * sa + v * ca]), true);
   });
   (st.measures || []).forEach(m => {
-    const pts = (m.pts || []).map(p => [+p.x || 0, +p.z || 0]);
+    const pts = (m.pts || []).map(p => [+p.x || 0, -(+p.z || 0)]);
     if (pts.length < 2) return;
     const lay = p3MeasLayer(m.kind);
-    poly(lay, pts, false);
-    pts.forEach(p => circle(lay, p[0], p[1], TH * 0.35));
+    doc.pline(lay, pts, false);
+    pts.forEach(p => doc.circle(lay, p[0], p[1], TH * 0.3));
     for (let i = 1; i < pts.length; i++) {
       const seg = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
-      if (seg <= 0.3) continue;
-      text("PG-DIM", (pts[i][0] + pts[i - 1][0]) / 2, (pts[i][1] + pts[i - 1][1]) / 2 - TH * 0.8, TH, seg.toFixed(2), true);
+      if (seg <= TH * 3) continue;
+      doc.text("PG-DIM", (pts[i][0] + pts[i - 1][0]) / 2, (pts[i][1] + pts[i - 1][1]) / 2 + TH * 0.5, TH, seg.toFixed(2), {
+        align: 1
+      });
     }
     const last = pts[pts.length - 1];
-    text("PG-DIM", last[0], last[1] - TH * 2.4, TH * 1.15, "TOTAL " + p3MeasLen(m).toFixed(2) + " m", true);
-    if ((m.name || "").trim()) text("PG-NOTE", last[0], last[1] - TH * 3.9, TH, m.name.trim(), true);
+    doc.text("PG-DIM", last[0], last[1] - TH * 2.0, TH * 1.15, "TOTAL " + p3MeasLen(m).toFixed(2) + " m", {
+      align: 1
+    });
+    if ((m.name || "").trim()) doc.text("PG-NOTE", last[0], last[1] - TH * 3.5, TH, m.name.trim(), {
+      align: 1
+    });
   });
-  const nx = B.maxX + span * 0.09,
-    nz = B.minZ;
-  const AR = span * 0.05;
-  line("PG-NORTH", nx, nz + AR, nx, nz - AR);
-  line("PG-NORTH", nx, nz - AR, nx - AR * 0.32, nz - AR * 0.55);
-  line("PG-NORTH", nx, nz - AR, nx + AR * 0.32, nz - AR * 0.55);
-  text("PG-NORTH", nx, nz - AR * 1.9, TH * 1.4, "N", true);
+  const AR = sheet.area;
+  const nx = AR.x1 - 14,
+    ny = AR.y1 - 26;
+  pen.line("PG-NORTH", nx, ny, nx, ny + 14);
+  pen.solid("PG-NORTH", [nx, ny + 16], [nx - 2.6, ny + 9.6], [nx + 2.6, ny + 9.6]);
+  pen.text("PG-NORTH", nx, ny - 5.5, 4.2, "N", {
+    align: 1,
+    valign: 1
+  });
+  const barM = SC / 1000 * 40,
+    bx = AR.x0 + 4,
+    by = AR.y0 + 4;
+  pen.rect("PG-NORTH", bx, by, 40, 2.2);
+  pen.solid("PG-NORTH", [bx, by], [bx + 10, by], [bx + 10, by + 2.2], [bx, by + 2.2]);
+  pen.solid("PG-NORTH", [bx + 20, by], [bx + 30, by], [bx + 30, by + 2.2], [bx + 20, by + 2.2]);
+  [0, 0.5, 1].forEach(f => pen.text("PG-NORTH", bx + 40 * f, by + 3, 2.2, (barM * f).toFixed(0), {
+    align: 1,
+    valign: 1
+  }));
+  pen.text("PG-NORTH", bx + 44, by + 0.4, 2.2, "METRES   SCALE 1:" + SC);
+  pgSheetTitle(pen, (AR.x0 + AR.x1) / 2, AR.y0 + 12, "PV MODULE LAYOUT PLAN", 6.2, AR.x1 - AR.x0 - 90);
   const total = p3CountAll(st);
   const kwp = Math.round(total * (+st.wp || 650) / 10) / 100;
-  const ty = B.maxZ + span * 0.06;
-  if (job && job.name) text("PG-NOTE", B.minX, ty + TH * 2.2, TH * 1.6, String(job.name));
-  text("PG-DIM", B.minX, ty, TH * 1.15, "PV PLAN 1:1 (1 unit = 1 m)  |  " + total + " modules  |  " + kwp.toFixed(2) + " kWp" + (st.baseMap ? "  |  scale from satellite map" : "  |  scale NOT from map"));
-  g(0, "ENDSEC");
-  g(0, "EOF");
-  return O.join("\r\n") + "\r\n";
+  pen.text("PG-NOTE", AR.x1 - 2, AR.y0 + 8, 2.6, total + " MODULES x " + (+st.wp || 650) + " Wp = " + kwp.toFixed(2) + " kWp", {
+    align: 2,
+    valign: 1
+  });
+  pen.text("PG-NOTE", AR.x1 - 2, AR.y0 + 4, 2.2, st.baseMap ? "SCALE TAKEN FROM SATELLITE IMAGERY" : "SCALE NOT TAKEN FROM MAP - VERIFY ON SITE", {
+    align: 2,
+    valign: 1
+  });
+  return doc.build();
 }
 function p3Xf(roof, pan) {
   const pitchR = (+roof.pitch || 0) * P3_DEG;
@@ -2207,6 +2272,9 @@ function P3Icon({
     })),
     cloud: React.createElement(F, null, React.createElement("path", {
       d: "M4.6 12.2a3 3 0 0 1-.3-6 4.2 4.2 0 0 1 8 .9 2.6 2.6 0 0 1-.5 5.1z"
+    })),
+    bolt: React.createElement(F, null, React.createElement("path", {
+      d: "M8.9 1.8 3.6 9.1h3.7l-.2 5.1 5.3-7.3H8.7z"
     })),
     ruler: React.createElement(F, null, React.createElement("path", {
       d: "M1.9 10.2 10.2 1.9l3.9 3.9-8.3 8.3z"
@@ -4318,22 +4386,27 @@ function Plan3DEditor({
       alert("ส่งออกภาพไม่สำเร็จ: " + e.message);
     }
   };
-  const doDxf = () => {
+  const [busyDxf, setBusyDxf] = React.useState("");
+  const doDxf = async () => {
+    setBusyDxf("plan");
     try {
-      const txt = p3Dxf(st, job);
-      const url = URL.createObjectURL(new Blob([txt], {
-        type: "application/dxf"
-      }));
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = (job ? job.code || job.name || "plan3d" : "plan3d") + "-PLAN.dxf";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      const n = await p3ExportPlan(st, job);
+      if (n) alert("ดาวน์โหลด " + (n + 1) + " ไฟล์แล้ว\n\nสำคัญ: เก็บไฟล์ .dxf กับไฟล์ภาพไว้ในโฟลเดอร์เดียวกัน\nไม่งั้นเปิดใน AutoCAD แล้วภาพพื้นหลังจะไม่ขึ้น");
     } catch (e) {
-      alert("ส่งออก DXF ไม่สำเร็จ: " + e.message);
+      alert("ส่งออกผัง DXF ไม่สำเร็จ: " + e.message);
     }
+    setBusyDxf("");
+  };
+  const doSld = () => {
+    setBusyDxf("sld");
+    try {
+      p3SaveBlob(new Blob([p3Sld(st, job)], {
+        type: "application/dxf"
+      }), (job ? job.code || job.name || "plan3d" : "plan3d") + "-SLD.dxf");
+    } catch (e) {
+      alert("ส่งออก Single Line Diagram ไม่สำเร็จ: " + e.message);
+    }
+    setBusyDxf("");
   };
   const tryClose = () => {
     if (dirty) {
@@ -7032,11 +7105,20 @@ function Plan3DEditor({
   }), "\u0E20\u0E32\u0E1E PNG"), React.createElement("button", {
     className: "p3-b",
     onClick: doDxf,
-    title: "\u0E2A\u0E48\u0E07\u0E2D\u0E2D\u0E01\u0E1C\u0E31\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E44\u0E1F\u0E25\u0E4C DXF \u2014 \u0E40\u0E1B\u0E34\u0E14\u0E15\u0E48\u0E2D\u0E43\u0E19 AutoCAD / DraftSight / LibreCAD \u0E44\u0E14\u0E49\u0E40\u0E25\u0E22 \u0E2A\u0E40\u0E01\u0E25 1 \u0E2B\u0E19\u0E48\u0E27\u0E22 = 1 \u0E40\u0E21\u0E15\u0E23 \u0E41\u0E22\u0E01 layer \u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32/\u0E41\u0E1C\u0E07/\u0E2A\u0E34\u0E48\u0E07\u0E1A\u0E14\u0E1A\u0E31\u0E07/\u0E40\u0E2A\u0E49\u0E19\u0E27\u0E31\u0E14"
+    disabled: !!busyDxf,
+    title: "\u0E2A\u0E48\u0E07\u0E2D\u0E2D\u0E01\u0E1C\u0E31\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E44\u0E1F\u0E25\u0E4C DXF \u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E01\u0E23\u0E2D\u0E1A A3 + Title Box \u0E41\u0E25\u0E30\u0E20\u0E32\u0E1E\u0E16\u0E48\u0E32\u0E22\u0E17\u0E32\u0E07\u0E2D\u0E32\u0E01\u0E32\u0E28\u0E08\u0E32\u0E07 \u0E46 \u0E40\u0E1B\u0E47\u0E19\u0E1E\u0E37\u0E49\u0E19\u0E2B\u0E25\u0E31\u0E07 (1 \u0E2B\u0E19\u0E48\u0E27\u0E22 = 1 \u0E40\u0E21\u0E15\u0E23)"
   }, React.createElement(P3Icon, {
     name: "doc",
     size: 14
-  }), "\u0E41\u0E1A\u0E1A DXF"), React.createElement("button", {
+  }), busyDxf === "plan" ? "กำลังทำ…" : "ผัง DXF"), React.createElement("button", {
+    className: "p3-b",
+    onClick: doSld,
+    disabled: !!busyDxf || !total,
+    title: total ? "สร้าง SINGLE LINE DIAGRAM SOLAR CELL SYSTEM จากสเปคที่ออกแบบไว้ พร้อมกรอบ A3 + Title Box" : "วางแผงก่อนถึงจะเขียนไดอะแกรมได้"
+  }, React.createElement(P3Icon, {
+    name: "bolt",
+    size: 14
+  }), busyDxf === "sld" ? "กำลังทำ…" : "SLD DXF"), React.createElement("button", {
     className: "p3-b",
     onClick: () => setSysOpen(true),
     disabled: !total,
@@ -7080,11 +7162,256 @@ function Plan3DEditor({
     size: 15
   }), dirty ? "บันทึก" : "บันทึกแล้ว")));
 }
+const P3_AT = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 400];
+const P3_CT = [80, 100, 160, 250, 400];
+const P3_CU = [2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95];
+const p3At = i => P3_AT.find(a => a >= i) || P3_AT[P3_AT.length - 1];
+const p3Ct = i => P3_CT.find(a => a >= i) || P3_CT[P3_CT.length - 1];
+const p3Cu = (i, cores) => {
+  const nC = cores === 2 ? 2 : 4;
+  const amp = window.BOQ && window.BOQ.ampacityOf;
+  if (amp) {
+    const s = P3_CU.find(sz => {
+      const a = amp("CV-FD " + nC + "C-" + sz + " Sq.mm.", {
+        ncond: nC === 2 ? 2 : 3
+      });
+      return a != null && a >= i;
+    });
+    if (s) return s;
+  }
+  return P3_CU.find(s => s * 6.2 + 12 >= i) || P3_CU[P3_CU.length - 1];
+};
+const p3Brand = (model, fb) => {
+  const w = String(model || "").trim().split(/[\s\-_]/)[0];
+  return w ? w.toUpperCase() : fb || "-";
+};
+function p3SldModel(st, job) {
+  const sys = st.sys || {};
+  const B = window.BOQ || {};
+  const nPanel = Math.max(1, p3CountAll(st));
+  const wp = +st.wp || 650;
+  const micro = sys.mode !== "string";
+  const phase = +sys.phases || (job && String(job.phase) === "3" ? 3 : 1);
+  const nPh = phase === 3 ? 3 : 1;
+  const Vll = nPh === 3 ? 400 : 230,
+    kPh = nPh === 3 ? Math.sqrt(3) : 1;
+  const pStock = (B.PANELS || []).find(p => p.model === sys.panelModel) || (B.PANELS || []).find(p => +p.wp === wp) || {};
+  const panel = {
+    model: pStock.model || sys.panelModel || wp + "Wp",
+    wp,
+    count: nPanel
+  };
+  panel.brand = p3Brand(panel.model, job && job.brand || "");
+  let inv,
+    units = [],
+    unitW;
+  if (micro) {
+    const mi = (B.MICRO || []).find(m => m.ratio === sys.microRatio) || (B.MICRO || [])[1] || (B.MICRO || [])[0] || {};
+    const per = Math.max(1, +mi.perInverter || 2);
+    const n = Math.ceil(nPanel / per);
+    unitW = +mi.acW || 1250;
+    inv = {
+      model: mi.model || "MICRO",
+      count: n,
+      w: unitW,
+      v: +mi.acV || 230,
+      spec: mi
+    };
+    for (let i = 0; i < n; i++) units.push({
+      panels: Math.min(per, nPanel - i * per),
+      phase: i % nPh + 1
+    });
+  } else {
+    const iv = (B.INVERTERS || []).find(x => x.model === sys.invModel) || {};
+    const kw = +iv.kw || 5;
+    const n = Math.max(1, +sys.invCount || Math.ceil(nPanel * wp / 1000 / kw));
+    unitW = kw * 1000;
+    inv = {
+      model: iv.model || "INVERTER",
+      count: n,
+      w: unitW,
+      v: Vll,
+      spec: iv
+    };
+    for (let i = 0; i < n; i++) {
+      units.push({
+        panels: Math.round(nPanel / n) + (i < nPanel % n ? 1 : 0),
+        phase: nPh === 3 ? 1 : 1
+      });
+    }
+  }
+  inv.brand = p3Brand(inv.model, job && job.brand || "");
+  const unitA = unitW / ((micro ? inv.v || 230 : Vll) * (micro ? 1 : kPh));
+  const perBr = micro ? Math.max(1, Math.round(+(inv.spec || {}).perBranch || 2)) : 1;
+  const nBr = Math.min(6, Math.max(1, Math.ceil(units.length / perBr)));
+  const branches = [];
+  for (let i = 0; i < nBr; i++) {
+    const cnt = Math.floor(units.length / nBr) + (i < units.length % nBr ? 1 : 0);
+    const I = cnt * unitA;
+    branches.push({
+      name: "PV " + (i + 1),
+      mcb: "MCB " + (nPh === 3 ? "4P," : "2P,") + p3At(I * 1.25) + "AT",
+      units: cnt,
+      amps: I
+    });
+  }
+  const battOn = !!(job && job.battery) || !!sys.batt;
+  const battKwh = sys.batt && +sys.batt.kwh || parseFloat(String(job && job.batSize || "").replace(/[^0-9.]/g, "")) || 0;
+  if (battOn) branches.push({
+    name: "BAT.",
+    mcb: "MCB " + (nPh === 3 ? "4P," : "2P,") + p3At(unitA * 2.5) + "AT",
+    solar: false
+  });
+  const totA = units.length * unitA;
+  const acKw = Math.round(units.length * unitW / 10) / 100;
+  const dcKw = Math.round(nPanel * wp / 10) / 100;
+  const nCore = nPh === 3 ? 4 : 2;
+  const brCu = p3Cu(unitA * perBr * 1.25, nCore);
+  const mainCu = p3Cu(totA * 1.25, nCore);
+  const P = nPh === 3 ? "4P," : "2P,";
+  const M = {
+    mode: micro ? "micro" : "string",
+    phase: nPh,
+    panel,
+    inv,
+    units,
+    acCable: "CV-FD " + (nPh === 3 ? "4C-" : "2C-") + brCu + " Sq.mm. " + (nPh === 3 ? "L1,L2,L3,N" : "L,N"),
+    branches,
+    combinerModel: "",
+    ctBranch: "CTx1 " + p3Ct(totA * 1.5) + "A/40mA",
+    rccb: "RCCB " + Vll + "V " + P + p3At(Math.max(63, totA * 1.25)) + "AT",
+    rccbType: "Type A 100mA",
+    gateway: true,
+    mainCable: ["CV-FD  " + (nPh === 3 ? "4Cx" : "2Cx") + mainCu + " sq.mm. (SOLAR-CELL)", "IEC01 THW(G)  " + Math.max(6, p3Cu(totA * 0.5, 2)) + " sq.mm. (GROUND)"],
+    mccbNew: true,
+    mccb: ["MCCB " + P + p3At(totA * 1.25) + "AT", "NEW"],
+    rcbo: ["RCBO", P + p3At(totA * 1.25) + "AT"],
+    ctMain: "CTx2 " + p3Ct(Math.max(250, totA * 3)) + "A/40mA",
+    batt: battOn && battKwh ? {
+      brand: p3Brand(sys.batt && sys.batt.model || job && job.brand, "ATMOCE"),
+      model: sys.batt && sys.batt.model || (battKwh ? battKwh + " kWh" : "-"),
+      kwh: battKwh
+    } : null,
+    summary: [(micro ? "MICRO INVERTER " : "INVERTER ") + units.length + " EA. x " + Math.round(unitW) + " W. = " + acKw.toFixed(2) + " kWp.", "PV MODULE " + nPanel + " PANEL. x " + wp + " Wp. = " + dcKw.toFixed(2) + " kWp."]
+  };
+  const sp = inv.spec || {};
+  const row = (k, v, u) => v === 0 || v == null || v === "" ? null : [k, v, u];
+  M.invData = [["BRAND", inv.brand], ["MODEL", inv.model], ["#", "INPUT PARAMETERS"], row("MAX. POWER OF COMPATIBLE PV", sp.wpMax || (micro ? Math.round(unitW * 1.3) : ""), "W"), row("MPPT VOLTAGE RANGE", sp.mpptVmin && sp.mpptVmax ? sp.mpptVmin + " TO " + sp.mpptVmax : "", "VDC"), row("MAX. DC VOLTAGE", sp.maxVdc, "VDC"), row("START-UP INPUT VOLTAGE", sp.vStart, "VDC"), row("NUMBER OF INPUT", sp.inputs || sp.perInverter, ""), row("NUMBER OF MPPT", sp.mppt, ""), row("MAX. INPUT CURRENT", sp.maxInA, "A"), row("MAX. INPUT Isc", sp.maxIscA, "A"), ["#", "OUTPUT PARAMETERS"], ["NOMINAL VOLTAGE", micro ? inv.v || 230 : Vll, "VAC"], ["NOMINAL OUTPUT POWER", Math.round(unitW), "W"], ["NOMINAL OUTPUT CURRENT", unitA.toFixed(2), "A"], row("MAX. OUTPUT CURRENT", sp.outA, "A"), ["NUMBER OF UNIT", units.length, "EA"], row("MAX EFFICIENCY", sp.eff, "%")].filter(Boolean);
+  M.battData = M.batt ? [["BRAND", M.batt.brand], ["MODEL", M.batt.model], ["BATTERY ENERGY", M.batt.kwh, "kWh"], ["NOMINAL VOLTAGE", Vll, "VAC"], ["CHEMISTRY", sys.batt && sys.batt.chem || "LiFePO4"]] : [];
+  M.equip = [{
+    brand: inv.brand,
+    model: inv.model,
+    desc: (micro ? "MICRO INVERTER " : "INVERTER ") + Math.round(unitW) + " W. " + nPh + " PHASE.",
+    no: units.length
+  }, {
+    brand: panel.brand,
+    model: panel.model,
+    desc: "PV MODULE " + wp + " Wp.",
+    no: nPanel
+  }];
+  if (M.batt) M.equip.push({
+    brand: M.batt.brand,
+    model: M.batt.model,
+    desc: "BATTERY " + M.batt.kwh + " kWh.",
+    no: 1
+  });
+  return M;
+}
+function p3Sld(st, job) {
+  const doc = pgDxf({
+    units: "mm",
+    ltscale: 1
+  });
+  const sheet = pgSheet(doc, {
+    k: 1,
+    ox: 0,
+    oy: 0,
+    info: p3SheetInfo(st, job, {
+      sheet: "SLD",
+      scale: "AS SHOW",
+      sheetNo: "1/1"
+    })
+  });
+  pgSldDraw(doc, sheet, p3SldModel(st, job));
+  return doc.build();
+}
+function p3ImgSize(url) {
+  return new Promise(res => {
+    const im = new Image();
+    im.onload = () => res({
+      w: im.naturalWidth || 1,
+      h: im.naturalHeight || 1
+    });
+    im.onerror = () => res(null);
+    im.src = url;
+  });
+}
+function p3SaveBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 8000);
+}
+async function p3ExportPlan(st, job) {
+  const base = job && (job.code || job.name) || "plan3d";
+  const want = [];
+  if (st.baseMap && st.baseMap.url) want.push({
+    kind: "map",
+    url: st.baseMap.url,
+    fade: 78
+  });
+  if (st.photo) want.push({
+    kind: "photo",
+    url: st.photo,
+    fade: 62
+  });
+  const imgs = [],
+    files = [];
+  for (let i = 0; i < want.length; i++) {
+    const w = want[i];
+    const sz = await p3ImgSize(w.url);
+    if (!sz) continue;
+    const m = /^data:image\/([a-z0-9+]+)/i.exec(w.url);
+    const ext = m ? m[1].toLowerCase() === "jpeg" ? "jpg" : m[1].toLowerCase() : "png";
+    const file = base + "-" + (w.kind === "map" ? "MAP" : "AERIAL") + "." + ext;
+    imgs.push({
+      kind: w.kind,
+      file,
+      pxW: sz.w,
+      pxH: sz.h,
+      fade: w.fade
+    });
+    files.push({
+      name: file,
+      url: w.url
+    });
+  }
+  p3SaveBlob(new Blob([p3Dxf(st, job, {
+    imgs
+  })], {
+    type: "application/dxf"
+  }), base + "-PLAN.dxf");
+  for (let i = 0; i < files.length; i++) {
+    const b = await (await fetch(files[i].url)).blob();
+    await new Promise(r => setTimeout(r, 350));
+    p3SaveBlob(b, files[i].name);
+  }
+  return files.length;
+}
 Object.assign(window, {
   Plan3DEditor,
   usePlan3d,
   P3_MEAS_KINDS,
   p3MeasKind,
   p3MeasLen,
-  p3Dxf
+  p3Dxf,
+  p3Sld,
+  p3SldModel,
+  p3SheetInfo,
+  p3ExportPlan,
+  p3SaveBlob
 });
