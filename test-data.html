@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex, nofollow" />
+<title>งานทดสอบ — PHITHAN GREEN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#F5F9F6; --surface:#fff; --border:#E3EAE5; --text-1:#15211A; --text-2:#55645B; --text-3:#93A399; --primary:#22A35B; --primary-dark:#14663A; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'IBM Plex Sans Thai',sans-serif; background:var(--bg); color:var(--text-1); padding:20px; line-height:1.55; }
+  .wrap { max-width:760px; margin:0 auto; display:flex; flex-direction:column; gap:14px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:16px 18px; }
+  h1 { font-size:19px; color:var(--primary-dark); }
+  h2 { font-size:14px; margin-bottom:8px; }
+  p, li { font-size:13px; color:var(--text-2); }
+  ul { padding-left:18px; }
+  .row { display:flex; gap:9px; flex-wrap:wrap; align-items:center; margin-top:12px; }
+  button { font-family:inherit; font-size:13.5px; font-weight:700; padding:11px 18px; border-radius:11px; border:none; cursor:pointer; }
+  .go { background:var(--primary); color:#fff; }
+  .del { background:#FEF2F2; color:#B91C1C; border:1px solid #FECACA; }
+  button:disabled { opacity:.5; cursor:default; }
+  input { font-family:inherit; font-size:13.5px; padding:10px 12px; border-radius:10px; border:1px solid #CFDAD3; background:var(--bg); width:150px; }
+  #log { font-family:'JetBrains Mono',monospace; font-size:11.5px; white-space:pre-wrap; background:#0F1A14; color:#B7F0CE; border-radius:12px; padding:13px 15px; max-height:320px; overflow:auto; }
+  .warn { background:#FFFBEB; border:1px solid #FDE68A; color:#B45309; border-radius:12px; padding:11px 14px; font-size:12.5px; }
+  table { width:100%; border-collapse:collapse; margin-top:8px; font-size:12px; }
+  th, td { border:1px solid var(--border); padding:5px 8px; text-align:left; }
+  th { background:var(--bg); color:var(--text-2); font-weight:600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>สร้างงานทดสอบ</h1>
+    <p style="margin-top:6px">งานทดสอบ 10 งาน ไล่ตั้งแต่ยังไม่สำรวจ จนถึงการไฟฟ้าอนุมัติ — ใช้รหัสขึ้นต้น <b>TEST-</b> ทั้งหมด ลบทีเดียวได้</p>
+    <div class="warn" style="margin-top:10px">งานพวกนี้เขียนลงฐานข้อมูลจริง ปนกับงานจริงในหน้าต่าง ๆ · กดสร้างซ้ำได้ ไม่เกิดงานซ้ำ (เขียนทับรหัสเดิม)</div>
+    <div class="row">
+      <button class="go" id="seed">สร้างงานทดสอบ 10 งาน</button>
+      <span id="state" style="font-size:12.5px;color:var(--text-3)"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>ลบงานทดสอบทั้งหมด</h2>
+    <p>ลบเฉพาะงานที่รหัสขึ้นต้นด้วย TEST- พร้อมรูปถ่ายและเอกสารของงานนั้น · งานจริงไม่ถูกแตะ</p>
+    <div class="row">
+      <input id="confirm" placeholder="พิมพ์ TEST เพื่อยืนยัน" />
+      <button class="del" id="wipe">ลบงานทดสอบ</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>งานที่จะถูกสร้าง</h2>
+    <table id="plan"></table>
+  </div>
+
+  <div id="log">พร้อมทำงาน</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="dashboard/data.js"></script>
+<script>
+/* ============================================================
+   ชุดงานทดสอบ — ไล่ครบทุกขั้นของงาน + ทุกสถานะของการขออนุญาต
+   ทุกอย่างในไฟล์นี้แตะเฉพาะสิ่งที่ขึ้นต้นด้วย TEST- เท่านั้น
+   ============================================================ */
+const PREFIX = "TEST-";
+const log = (m) => { const el = document.getElementById("log"); el.textContent += "\n" + m; el.scrollTop = el.scrollHeight; };
+const day = (offset) => { const d = new Date(); d.setDate(d.getDate() + offset); return d.toISOString().slice(0, 10); };
+const iso = (offset) => { const d = new Date(); d.setDate(d.getDate() + offset); return d.toISOString(); };
+
+/* แผนงาน 10 งาน — คอลัมน์ท้ายคือสิ่งที่ตั้งใจให้ทดสอบ */
+const PLAN = [
+  { n: 1,  stage: "design",  survey: null,   permit: null,       th: "เพิ่งเปิดงาน ยังไม่สำรวจ" },
+  { n: 2,  stage: "design",  survey: "part", permit: null,       th: "สำรวจค้างกลางทาง" },
+  { n: 3,  stage: "takeoff", survey: "full", permit: null,       th: "สำรวจครบ พร้อมถอดของ" },
+  { n: 4,  stage: "queue",   survey: "full", permit: null,       th: "รอคิวติดตั้ง" },
+  { n: 5,  stage: "install", survey: "full", permit: null,       th: "กำลังติดตั้ง" },
+  { n: 6,  stage: "done",    survey: "full", permit: null,       th: "ติดตั้งเสร็จ แต่ยังไม่เริ่มเก็บข้อมูลขออนุญาต (ต้องขึ้นเตือนสีเหลือง)" },
+  { n: 7,  stage: "done",    survey: "full", permit: "draft",    th: "ช่างกำลังเก็บข้อมูล ยังไม่ครบ" },
+  { n: 8,  stage: "done",    survey: "full", permit: "sent",     th: "ส่งให้ฝ่ายขออนุญาตแล้ว ข้อมูลครบ" },
+  { n: 9,  stage: "done",    survey: "full", permit: "rejected", th: "ถูกตีกลับ มีเหตุผล" },
+  { n: 10, stage: "done",    survey: "full", permit: "approved", th: "ยื่นแล้ว การไฟฟ้าอนุมัติ มีเลขที่คำขอ" },
+];
+
+const NAMES = ["บ้านทดสอบ ก", "บ้านทดสอบ ข", "บ้านทดสอบ ค", "โกดังทดสอบ ง", "บ้านทดสอบ จ",
+               "บ้านทดสอบ ฉ", "บ้านทดสอบ ช", "โรงงานทดสอบ ซ", "บ้านทดสอบ ฌ", "บ้านทดสอบ ญ"];
+const PROVS = ["ชลบุรี", "ระยอง", "กรุงเทพฯ", "นนทบุรี", "ปทุมธานี"];
+
+/* ตารางสรุปให้ดูก่อนกดสร้าง */
+(function renderPlan() {
+  const t = document.getElementById("plan");
+  t.innerHTML = "<tr><th style='width:88px'>รหัส</th><th style='width:110px'>ขั้นงาน</th><th>ใช้ทดสอบอะไร</th></tr>" +
+    PLAN.map((p) => {
+      const st = (window.SF.STAGES.find((s) => s.key === p.stage) || {}).th || p.stage;
+      return "<tr><td>" + PREFIX + String(p.n).padStart(3, "0") + "</td><td>" + st + "</td><td>" + p.th + "</td></tr>";
+    }).join("");
+})();
+
+function surveyOf(kind, p) {
+  if (!kind) return null;
+  const base = {
+    startedAt: iso(-9), updatedAt: iso(-9), byName: "ผู้สำรวจทดสอบ",
+    gps: { lat: +(12.9 + p.n * 0.01).toFixed(6), lng: +(100.9 + p.n * 0.01).toFixed(6), acc: 8, at: iso(-9) },
+    meterSize: "15(45)", meterAuth: p.n % 3 === 0 ? "MEA" : "PEA",
+    ca: "0200" + String(10000000 + p.n * 137).slice(0, 8),
+    meterNo: String(87650000 + p.n * 41),
+    poleNo: "5FA-" + String(p.n).padStart(2, "0") + "-234",
+    branch: p.n % 3 === 0 ? "กฟน. เขตบางเขน" : "กฟภ. สาขาบางละมุง",
+    permitType: p.n % 4 === 0 ? "biz" : (p.n % 2 === 0 ? "public" : "self"),
+    phase: p.n % 4 === 0 ? "3" : "1",
+    mainCable: "NYY 2x25 sq.mm",
+  };
+  if (kind === "part") return base;
+  return Object.assign(base, {
+    completedAt: iso(-8),
+    mainBreaker: (p.n % 4 === 0 ? "100A, 3P" : "50A, 2P"),
+    buildingType: p.n % 4 === 0 ? "โรงงาน / โกดัง" : "บ้านเดี่ยว",
+    roofType: "เมทัลชีท", roofCondition: "ดี", structureOk: "pass", birdNet: "no",
+    mdbBrand: "Schneider", mdbSpace: "free", mdbLoc: "ข้างบันได", mdbSafety: "yes", mdbRccb: "yes",
+    inverterLoc: "ผนังข้างตู้ MDB",
+    cableDc: "18", cableAc: "9", cableCt: "3", cableGnd: "6",
+    sizeKw: String(5 + p.n), invModel: "HUAWEI SUN2000-" + (5 + p.n) + "KTL-M1",
+    panelModel: "JINKO JKM620N", monitoring: "yes", meterCt: "yes",
+    note: "งานทดสอบ — ข้อมูลสมมติทั้งหมด",
+  });
+}
+
+function permitOf(kind, p, s) {
+  if (!kind) return null;
+  const full = {
+    status: kind,
+    permitType: s.permitType, auth: s.meterAuth, branch: s.branch,
+    ca: s.ca, meterNo: s.meterNo, meterSize: s.meterSize, poleNo: s.poleNo, phase: s.phase,
+    mainAT: (String(s.mainBreaker || "").match(/\d+/) || ["50"])[0], mainAF: "100",
+    mainCable: s.mainCable, mdbBrand: s.mdbBrand, rccb: "yes",
+    kwp: s.sizeKw, kwac: String(Math.round(+s.sizeKw * 0.95)), acBreaker: "32A 2P",
+    dcIsolator: "yes", zeroExport: "yes", eldModel: "Huawei DTSU666-H",
+    invs: [{ model: s.invModel, sn: "INVTEST" + String(p.n).padStart(3, "0") }],
+    panelModel: s.panelModel, panelWatt: "620", panelQty: String(8 + p.n),
+    panelSns: ["PNLTEST" + String(p.n).padStart(3, "0"), ""],
+    trafoKva: s.permitType === "biz" ? "250" : "", trafoVolt: s.permitType === "biz" ? "22 kV" : "",
+    gps: s.gps, doneDate: day(-5), byName: "ช่างทดสอบ",
+    note: "งานทดสอบ", updatedAt: iso(-4),
+  };
+  if (kind === "draft") {
+    /* ตั้งใจให้ไม่ครบ เพื่อทดสอบแถบ "ยังขาด" และปุ่มส่งที่ยังกดไม่ได้ */
+    return Object.assign(full, {
+      acBreaker: "", panelQty: "", doneDate: "", zeroExport: "",
+      invs: [{ model: s.invModel, sn: "" }], panelSns: ["", ""],
+    });
+  }
+  const sent = Object.assign(full, {
+    submittedAt: iso(-3), submittedBy: "ช่างทดสอบ", submittedTechId: "t3",
+  });
+  if (kind === "sent") return sent;
+  if (kind === "rejected") return Object.assign(sent, {
+    status: "rejected", rejectReason: "รูปเนมเพลทอินเวอร์เตอร์อ่าน Serial ไม่ออก ถ่ายใหม่ให้ชัด",
+    byAdmin: "แอดมินทดสอบ", statusAt: iso(-1),
+  });
+  return Object.assign(sent, {
+    status: "approved", byAdmin: "แอดมินทดสอบ", statusAt: iso(-1),
+    reqNo: "REQ-TEST-" + String(p.n).padStart(3, "0"), filedDate: day(-2),
+    inspectDate: day(3), approvedDate: day(-1), adminNote: "งานทดสอบ — อนุมัติเรียบร้อย",
+  });
+}
+
+function jobOf(p) {
+  const code = PREFIX + String(p.n).padStart(3, "0");
+  const s = surveyOf(p.survey, p);
+  const idx = window.SF.STAGE_INDEX[p.stage];
+  const job = {
+    id: code, code, name: NAMES[p.n - 1], phone: "08" + String(10000000 + p.n * 7919),
+    type: p.n % 4 === 0 ? "project" : "home",
+    address: "หมู่บ้านทดสอบ ซอย " + p.n, province: PROVS[p.n % PROVS.length],
+    gps: [0.5, 0.45], map: "", trello: "", contractor: "", laborCost: null,
+    brand: "Huawei", kw: 5 + p.n, panels: 8 + p.n, phase: p.n % 4 === 0 ? "3" : "1",
+    battery: false, batSize: "ไม่มี", connect: "-", backup: false, birdnet: false, comboType: "ready",
+    stage: p.stage, startDate: day(-14 + p.n), deadline: day(p.n), tech: "t" + ((p.n % 5) + 1),
+    problem: null,
+    mat: { panel: "done", inverter: "done", structure: idx >= 2 ? "done" : "none",
+           wiring: idx >= 2 ? "done" : "none", battery: "none", backup: "none", birdnet: "none" },
+    hist: window.SF.STAGES.map((st, i) => ({
+      key: st.key,
+      status: i < idx ? "done" : i === idx ? "current" : "pending",
+      date: i <= idx ? day(-14 + p.n + i * 2) : null,
+      at: i <= idx ? iso(-14 + p.n + i * 2) : null,
+      recorded: i <= idx, blocked: false,
+    })),
+    note: "⚠ งานทดสอบ ลบได้ตลอด",
+  };
+  if (s) job.survey = s;
+  const perm = permitOf(p.permit, p, s || {});
+  if (perm) job.permit = perm;
+  return job;
+}
+
+document.getElementById("seed").onclick = async () => {
+  const btn = document.getElementById("seed");
+  btn.disabled = true; document.getElementById("state").textContent = "กำลังสร้าง…";
+  try {
+    for (const p of PLAN) {
+      const job = jobOf(p);
+      await window.FBDB.ref("jobs/" + job.id).set(job);
+      log("✓ " + job.code + " · " + job.name + " · " + p.th);
+    }
+    log("\nสร้างครบ " + PLAN.length + " งาน — เปิดแดชบอร์ดดูได้เลย");
+    document.getElementById("state").textContent = "เสร็จแล้ว";
+  } catch (e) {
+    log("✗ ผิดพลาด: " + e.message);
+    document.getElementById("state").textContent = "ไม่สำเร็จ";
+  }
+  btn.disabled = false;
+};
+
+document.getElementById("wipe").onclick = async () => {
+  if (document.getElementById("confirm").value.trim().toUpperCase() !== "TEST") {
+    log("✗ ต้องพิมพ์คำว่า TEST ในช่องยืนยันก่อน");
+    return;
+  }
+  const btn = document.getElementById("wipe");
+  btn.disabled = true;
+  try {
+    const snap = await window.FBDB.ref("jobs").once("value");
+    const all = snap.val() || {};
+    const ids = Object.keys(all).filter((k) => String(all[k] && all[k].code || k).indexOf(PREFIX) === 0);
+    if (!ids.length) log("ไม่พบงานทดสอบ — ไม่มีอะไรต้องลบ");
+    for (const id of ids) {
+      await window.FBDB.ref("jobs/" + id).remove();
+      await window.FBDB.ref("surveyPhotos/" + id).remove();
+      await window.FBDB.ref("permitPhotos/" + id).remove();
+      await window.FBDB.ref("permitDocs/" + id).remove();
+      log("🗑 ลบ " + id + " พร้อมรูปและเอกสาร");
+    }
+    /* แจ้งเตือนที่ผูกกับงานทดสอบ ก็เก็บกวาดด้วย ไม่ให้ค้างในกระดิ่ง */
+    const ns = await window.FBDB.ref("notifications").once("value");
+    const nv = ns.val() || {};
+    let nd = 0;
+    for (const k of Object.keys(nv)) {
+      if (String(nv[k] && nv[k].jobId || "").indexOf(PREFIX) === 0) { await window.FBDB.ref("notifications/" + k).remove(); nd++; }
+    }
+    log("\nลบงานทดสอบแล้ว " + ids.length + " งาน · แจ้งเตือน " + nd + " รายการ");
+  } catch (e) {
+    log("✗ ผิดพลาด: " + e.message);
+  }
+  btn.disabled = false;
+};
+</script>
+</body>
+</html>
