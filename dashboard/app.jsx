@@ -127,7 +127,7 @@ function App() {
      รายการ (ที่เดียวที่ทำอะไรกับลูกค้าได้ครบ) · จำมุมล่าสุดไว้ให้แต่ละเครื่อง */
   const [leadMode, setLeadModeRaw] = React.useState(() => {
     const m = localStorage.getItem("pg-leadmode");
-    return (m === "list" || m === "overview") ? m : "board";
+    return m === "list" ? "list" : "board";
   });
   const setLeadMode = React.useCallback((m) => { localStorage.setItem("pg-leadmode", m); setLeadModeRaw(m); }, []);
   /* ลูกค้าที่สั่งให้เปิดใบทันทีหลังสลับมามุมรายการ (กดมาจากภาพรวมงานขาย) */
@@ -499,7 +499,7 @@ function App() {
   /* ปุ่มสลับมุมของหน้า "งานขาย" — วางไว้บนหัวหน้าทั้งสองมุม ตำแหน่งเดียวกันจะได้กดสลับไปมาได้ */
   const leadTabs = (
     <div style={{ display: "inline-flex", gap: 4, padding: 3, borderRadius: 99, background: "var(--surface2)", border: "1px solid var(--border)" }}>
-      {[["overview", "ภาพรวม", "grid"], ["board", "บอร์ด", "kanban"], ["list", "รายการ", "list"]].map(([k, th, ic]) => {
+      {[["board", "บอร์ด", "kanban"], ["list", "รายการ", "list"]].map(([k, th, ic]) => {
         const on = leadMode === k;
         return (
           <button key={k} onClick={() => setLeadMode(k)} title={th}
@@ -514,8 +514,8 @@ function App() {
     </div>
   );
 
-  /* ภาพรวมงานขาย — คนที่เป็นเซลล์อย่างเดียวเห็นแทนภาพรวมงานติดตั้ง (ซึ่งไม่มีแผงไหนเกี่ยวกับเขาเลย)
-     และทุกคนเปิดดูได้จากมุม "ภาพรวม" ในหน้างานขาย */
+  /* ภาพรวมงานขาย — อยู่ที่เมนู "ภาพรวม" ของคนที่เป็นเซลล์อย่างเดียว
+     (ภาพรวมงานติดตั้งไม่มีแผงไหนเกี่ยวกับเขาเลย) — ไม่ทำซ้ำเป็นมุมในหน้างานขายอีกที่ */
   const salesOverview = (
     <SalesOverview leads={leadStore.leads} quotes={quoteStore.quotes} currentUser={auth.current}
       onOpenLead={(l) => { setView("leads"); setLeadMode("list"); setLeadFocus(l.id); }}
@@ -591,11 +591,6 @@ function App() {
         ) : view === "dispatch" ? (
           <DispatchView appts={apptStore.appts} jobs={jobs} techs={techStore.techs} store={apptStore} leadStore={leadStore}
             onMenuOpen={() => setSidebarOpen(true)} onOpenJob={openJob} />
-        ) : (view === "leads" && leadMode === "overview") ? (
-          <React.Fragment>
-            <window.SchedHeader title="งานขาย" sub={salesHead} right={leadTabs} onMenuOpen={() => setSidebarOpen(true)} />
-            <div className="app-content">{salesOverview}</div>
-          </React.Fragment>
         ) : (view === "leads" && leadMode === "board") ? (
           <React.Fragment>
             <window.SchedHeader title="งานขาย" sub={salesHead} right={leadTabs} onMenuOpen={() => setSidebarOpen(true)} />

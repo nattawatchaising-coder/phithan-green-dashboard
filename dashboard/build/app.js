@@ -204,7 +204,7 @@ function App() {
   const [view, setView] = React.useState("overview");
   const [leadMode, setLeadModeRaw] = React.useState(() => {
     const m = localStorage.getItem("pg-leadmode");
-    return m === "list" || m === "overview" ? m : "board";
+    return m === "list" ? "list" : "board";
   });
   const setLeadMode = React.useCallback(m => {
     localStorage.setItem("pg-leadmode", m);
@@ -700,7 +700,7 @@ function App() {
       background: "var(--surface2)",
       border: "1px solid var(--border)"
     }
-  }, [["overview", "ภาพรวม", "grid"], ["board", "บอร์ด", "kanban"], ["list", "รายการ", "list"]].map(([k, th, ic]) => {
+  }, [["board", "บอร์ด", "kanban"], ["list", "รายการ", "list"]].map(([k, th, ic]) => {
     const on = leadMode === k;
     return React.createElement("button", {
       key: k,
@@ -859,14 +859,7 @@ function App() {
     leadStore: leadStore,
     onMenuOpen: () => setSidebarOpen(true),
     onOpenJob: openJob
-  }) : view === "leads" && leadMode === "overview" ? React.createElement(React.Fragment, null, React.createElement(window.SchedHeader, {
-    title: "\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22",
-    sub: salesHead,
-    right: leadTabs,
-    onMenuOpen: () => setSidebarOpen(true)
-  }), React.createElement("div", {
-    className: "app-content"
-  }, salesOverview)) : view === "leads" && leadMode === "board" ? React.createElement(React.Fragment, null, React.createElement(window.SchedHeader, {
+  }) : view === "leads" && leadMode === "board" ? React.createElement(React.Fragment, null, React.createElement(window.SchedHeader, {
     title: "\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22",
     sub: salesHead,
     right: leadTabs,
