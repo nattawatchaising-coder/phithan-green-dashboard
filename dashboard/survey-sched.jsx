@@ -305,7 +305,7 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
         leads={leads} blankLead={leadStore && leadStore.blank}
         onClose={() => setEdit(null)}
         onSave={(rec, newLead) => { if (newLead && leadStore) leadStore.upsert(newLead); store.upsert(rec); setEdit(null); }}
-        onDelete={(id) => { if (confirm("ลบนัดสำรวจนี้?")) { store.remove(id); setEdit(null); } }} />}
+        onDelete={(id) => { askConfirm({ title: "ลบนัดสำรวจนี้?", ok: "ลบนัด" }).then((ok) => { if (ok) { store.remove(id); setEdit(null); } }); }} />}
     </React.Fragment>
   );
 }
@@ -544,7 +544,11 @@ function JobTaskCard({ job, stages, day, dayEnd, onOpen, onAdvance }) {
   const advEarly = isInstall && _instS && _today < _instS;     // ยังไม่ถึงวันเริ่มติดตั้ง → ล็อก
   const advOverdue = isInstall && _instE && _today > _instE;   // เลยวันเสร็จติดตั้ง
   const daysLate = advOverdue ? Math.max(1, Math.round((new Date(_today + "T00:00:00") - new Date(_instE + "T00:00:00")) / 86400000)) : 0;
-  const doAdvance = (e) => { e.stopPropagation(); if (confirm("ขั้น \"" + curStage.th + "\" เสร็จแล้ว เลื่อนไป \"" + nextStage.th + "\" ?")) onAdvance(job); };
+  const doAdvance = (e) => {
+    e.stopPropagation();
+    askConfirm({ title: "เลื่อนไปขั้น “" + nextStage.th + "” ?", body: "ขั้น “" + curStage.th + "” เสร็จแล้ว",
+      ok: "เลื่อนขั้น", danger: false, icon: "check" }).then((ok) => { if (ok) onAdvance(job); });
+  };
   return (
     <div role="button" tabIndex={0} onClick={() => onOpen && onOpen(job)} style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "4px solid " + color, borderRadius: 14, boxShadow: "var(--shadow-sm)", padding: 12, display: "flex", flexDirection: "column", gap: 6 }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>

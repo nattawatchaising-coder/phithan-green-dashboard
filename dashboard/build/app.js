@@ -946,7 +946,7 @@ function App() {
     value: t.cardStyle,
     options: ["soft", "flat"],
     onChange: v => setTweak("cardStyle", v)
-  })));
+  })), React.createElement(ConfirmHost, null));
 }
 function Sidebar({
   view,

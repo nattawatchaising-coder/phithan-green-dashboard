@@ -69,6 +69,18 @@
    ชุดงานทดสอบ — ไล่ครบทุกขั้นของงาน + ทุกสถานะของการขออนุญาต
    ทุกอย่างในไฟล์นี้แตะเฉพาะสิ่งที่ขึ้นต้นด้วย TEST- เท่านั้น
    ============================================================ */
+/* กันพลาด: เครื่องมือนี้เขียน/ลบงานในฐานข้อมูลจริงโดยไม่ต้องล็อกอิน
+   ถ้าหลุดขึ้นเว็บจริงเมื่อไหร่ ให้ตายตรงนี้เลย ไม่ต้องรอ .vercelignore อย่างเดียว */
+(function localOnly() {
+  const h = location.hostname;
+  if (h === "localhost" || h === "127.0.0.1" || h === "" || h === "::1") return;
+  document.body.innerHTML =
+    '<div class="wrap"><div class="card"><h1>ใช้ได้เฉพาะในเครื่องเท่านั้น</h1>' +
+    '<p style="margin-top:8px">หน้านี้สร้างและลบงานในฐานข้อมูลจริง จึงเปิดจากเว็บไม่ได้ ' +
+    'ถ้าต้องใช้ ให้เปิดจากเซิร์ฟเวอร์ทดสอบในเครื่อง (localhost)</p></div></div>';
+  throw new Error("test-data.html: local only");
+})();
+
 const PREFIX = "TEST-";
 const log = (m) => { const el = document.getElementById("log"); el.textContent += "\n" + m; el.scrollTop = el.scrollHeight; };
 const day = (offset) => { const d = new Date(); d.setDate(d.getDate() + offset); return d.toISOString().slice(0, 10); };

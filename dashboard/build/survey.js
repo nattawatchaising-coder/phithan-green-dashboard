@@ -755,7 +755,13 @@ function StickerPicker({
     value: c
   }, c))), React.createElement("button", {
     onClick: () => {
-      if (confirm("ลบ “" + (s.name || "รูปนี้") + "” ออกจากคลัง?")) lib.remove(s.id);
+      askConfirm({
+        title: "ลบออกจากคลังรูป?",
+        body: s.name || "รูปนี้",
+        ok: "ลบออกจากคลัง"
+      }).then(ok => {
+        if (ok) lib.remove(s.id);
+      });
     },
     style: {
       border: "none",
@@ -2751,7 +2757,12 @@ function SurveyWizard({
       n: idx >= 0 ? idx + 1 : null,
       onPick: file => pickPhoto(slot.key, file),
       onRemove: () => {
-        if (confirm("ลบรูปนี้?")) media.removePhoto(slot.key);
+        askConfirm({
+          title: "ลบรูปนี้?",
+          ok: "ลบรูป"
+        }).then(ok => {
+          if (ok) media.removePhoto(slot.key);
+        });
       },
       onAnn: () => setAnnKey(slot.key),
       onField: (k, v) => media.patchPhoto(slot.key, {
@@ -2779,7 +2790,12 @@ function SurveyWizard({
       n: idx + 1,
       onPick: file => pickPhoto(shot.key, file, shot.order),
       onRemove: () => {
-        if (confirm("ลบรูปนี้?")) media.removePhoto(shot.key);
+        askConfirm({
+          title: "ลบรูปนี้?",
+          ok: "ลบรูป"
+        }).then(ok => {
+          if (ok) media.removePhoto(shot.key);
+        });
       },
       onAnn: () => setAnnKey(shot.key),
       onField: (k, v) => media.patchPhoto(shot.key, {

@@ -58,7 +58,13 @@ function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
   // เพิ่มทุกรายการที่ยังไม่มีในคลัง → สร้าง record (qty 0) + รหัสอัตโนมัติตามหมวด
   const addAllNew = () => {
     if (!newCount) return;
-    if (!confirm("เพิ่ม " + newCount + " รายการที่ยังไม่มีในคลังสินค้า\n(จำนวน 0 · สร้างรหัสอัตโนมัติตามหมวด · ราคาที่กรอกไว้จะถูกบันทึกด้วย)")) return;
+    askConfirm({
+      title: "เพิ่ม " + newCount + " รายการที่ยังไม่มีในคลังสินค้า?",
+      body: "จำนวนตั้งต้น 0 · สร้างรหัสอัตโนมัติตามหมวด · ราคาที่กรอกไว้จะถูกบันทึกด้วย",
+      ok: "เพิ่มเข้าคลัง", danger: false, icon: "plus",
+    }).then((ok) => { if (ok) doAddAllNew(); });
+  };
+  const doAddAllNew = () => {
     const ctx = window.newMatSaveCtx(stock);
     newItems.forEach((c) => {
       const l = local[c.name] || {};
@@ -96,7 +102,7 @@ function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
               <input value={l.code} onChange={(e) => set(c.name, "code", e.target.value)} placeholder="รหัส (auto)" style={inStyle} />
               <input type="number" value={l.price} onChange={(e) => set(c.name, "price", e.target.value)} placeholder="0" style={numStyle} />
               {!isMobile && (c.custom && !inStock
-                ? <button onClick={() => { if (confirm("ลบ \"" + c.name + "\" ?")) priceStore.removePrice(c.name); }} title="ลบ" style={{ height: 32, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
+                ? <button onClick={() => { askConfirm({ title: "ลบ “" + c.name + "” ?" }).then((ok) => { if (ok) priceStore.removePrice(c.name); }); }} title="ลบ" style={{ height: 32, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
                 : <span />)}
             </div>
           );

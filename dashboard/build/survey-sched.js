@@ -740,10 +740,15 @@ function DispatchView({
       setEdit(null);
     },
     onDelete: id => {
-      if (confirm("ลบนัดสำรวจนี้?")) {
-        store.remove(id);
-        setEdit(null);
-      }
+      askConfirm({
+        title: "ลบนัดสำรวจนี้?",
+        ok: "ลบนัด"
+      }).then(ok => {
+        if (ok) {
+          store.remove(id);
+          setEdit(null);
+        }
+      });
     }
   }));
 }
@@ -1603,7 +1608,15 @@ function JobTaskCard({
   const daysLate = advOverdue ? Math.max(1, Math.round((new Date(_today + "T00:00:00") - new Date(_instE + "T00:00:00")) / 86400000)) : 0;
   const doAdvance = e => {
     e.stopPropagation();
-    if (confirm("ขั้น \"" + curStage.th + "\" เสร็จแล้ว เลื่อนไป \"" + nextStage.th + "\" ?")) onAdvance(job);
+    askConfirm({
+      title: "เลื่อนไปขั้น “" + nextStage.th + "” ?",
+      body: "ขั้น “" + curStage.th + "” เสร็จแล้ว",
+      ok: "เลื่อนขั้น",
+      danger: false,
+      icon: "check"
+    }).then(ok => {
+      if (ok) onAdvance(job);
+    });
   };
   return React.createElement("div", {
     role: "button",

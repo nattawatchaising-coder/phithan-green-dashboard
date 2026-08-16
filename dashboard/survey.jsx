@@ -421,7 +421,7 @@ function StickerPicker({ onPick, onClose }) {
                       style={{ width: "100%", boxSizing: "border-box", border: "1px solid var(--border)", borderRadius: 7, padding: "4px 5px", fontFamily: "inherit", fontSize: 11, background: "var(--surface2)", color: "var(--text-2)" }}>
                       {cats.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
-                    <button onClick={() => { if (confirm("ลบ “" + (s.name || "รูปนี้") + "” ออกจากคลัง?")) lib.remove(s.id); }}
+                    <button onClick={() => { askConfirm({ title: "ลบออกจากคลังรูป?", body: s.name || "รูปนี้", ok: "ลบออกจากคลัง" }).then((ok) => { if (ok) lib.remove(s.id); }); }}
                       style={{ border: "none", background: "#EF444414", color: "#EF4444", borderRadius: 8, padding: "5px 0", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>🗑 ลบออกจากคลัง</button>
                   </React.Fragment>
                 ) : (
@@ -1197,7 +1197,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
                       <SurveyShotCard key={slot.key} slot={slot} shot={shot} busy={busySlot === slot.key}
                         n={idx >= 0 ? idx + 1 : null}
                         onPick={(file) => pickPhoto(slot.key, file)}
-                        onRemove={() => { if (confirm("ลบรูปนี้?")) media.removePhoto(slot.key); }}
+                        onRemove={() => { askConfirm({ title: "ลบรูปนี้?", ok: "ลบรูป" }).then((ok) => { if (ok) media.removePhoto(slot.key); }); }}
                         onAnn={() => setAnnKey(slot.key)}
                         onField={(k, v) => media.patchPhoto(slot.key, { [k]: v })}
                         onMove={shot ? ((d) => moveShot(slot.key, d)) : null}
@@ -1213,7 +1213,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
                     return (
                       <SurveyShotCard key={shot.key} shot={shot} busy={busySlot === shot.key} n={idx + 1}
                         onPick={(file) => pickPhoto(shot.key, file, shot.order)}
-                        onRemove={() => { if (confirm("ลบรูปนี้?")) media.removePhoto(shot.key); }}
+                        onRemove={() => { askConfirm({ title: "ลบรูปนี้?", ok: "ลบรูป" }).then((ok) => { if (ok) media.removePhoto(shot.key); }); }}
                         onAnn={() => setAnnKey(shot.key)}
                         onField={(k, v) => media.patchPhoto(shot.key, { [k]: v })}
                         onMove={(d) => moveShot(shot.key, d)}

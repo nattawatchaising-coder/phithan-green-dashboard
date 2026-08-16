@@ -1054,7 +1054,11 @@ function StockView({
       size: 14
     })), React.createElement("button", {
       onClick: () => {
-        if (confirm("ลบ \"" + it.name + "\" ?")) stock.removeItem(it.id);
+        askConfirm({
+          title: "ลบ “" + it.name + "” ออกจากคลัง?"
+        }).then(ok => {
+          if (ok) stock.removeItem(it.id);
+        });
       },
       title: "\u0E25\u0E1A",
       style: {
@@ -1604,7 +1608,11 @@ function StockCardList({
       size: 16
     })), !g && React.createElement("button", {
       onClick: () => {
-        if (confirm("ลบ \"" + it.name + "\" ?")) onRemove(it.id);
+        askConfirm({
+          title: "ลบ “" + it.name + "” ออกจากคลัง?"
+        }).then(ok => {
+          if (ok) onRemove(it.id);
+        });
       },
       title: "\u0E25\u0E1A",
       "aria-label": "\u0E25\u0E1A",
@@ -2266,9 +2274,15 @@ function ItemModal({
     type: "button",
     onClick: () => {
       const c = SF.STOCK_CAT_BY[f.cat];
-      if (!confirm('ลบหมวด "' + c.th + '"?' + (c.parent ? "" : "\nหมวดย่อยใต้หมวดนี้จะถูกลบด้วย") + "\nของที่อยู่ในหมวดนี้จะไปแสดงเป็น “อื่นๆ”")) return;
-      onRemoveCat(f.cat);
-      set("cat", c.parent || "other");
+      askConfirm({
+        title: "ลบหมวด “" + c.th + "” ?",
+        ok: "ลบหมวด",
+        body: (c.parent ? "" : "หมวดย่อยใต้หมวดนี้จะถูกลบด้วย\n") + "ของที่อยู่ในหมวดนี้จะไปแสดงเป็น “อื่นๆ”"
+      }).then(ok => {
+        if (!ok) return;
+        onRemoveCat(f.cat);
+        set("cat", c.parent || "other");
+      });
     },
     style: {
       border: 0,
@@ -3180,7 +3194,13 @@ function AmpacityEditor({
     }) : null;
   })(), editedCount > 0 && React.createElement("button", {
     onClick: () => {
-      if (confirm("คืนค่าพิกัดกระแสที่แก้ไว้ทั้งหมด ?\n(ลบ " + editedCount + " ช่อง)")) ampStore.reset();
+      askConfirm({
+        title: "คืนค่าพิกัดกระแสที่แก้ไว้ทั้งหมด?",
+        body: "ค่าที่แก้เองไว้ " + editedCount + " ช่อง จะกลับไปเป็นค่าตั้งต้น",
+        ok: "คืนค่าตั้งต้น"
+      }).then(ok => {
+        if (ok) ampStore.reset();
+      });
     },
     style: {
       marginLeft: "auto",
@@ -4003,10 +4023,16 @@ function ItemDetailModal({
     }
   }, "\u0E40\u0E1B\u0E34\u0E14\u0E40\u0E15\u0E47\u0E21\u0E08\u0E2D"), React.createElement("button", {
     onClick: () => {
-      if (confirm("ลบเอกสารนี้?")) {
-        setDoc(item.id, null);
-        setDocState(null);
-      }
+      askConfirm({
+        title: "ลบเอกสารนี้?",
+        body: "DATA SHEET ที่แนบไว้กับรายการนี้จะหายไป",
+        ok: "ลบเอกสาร"
+      }).then(ok => {
+        if (ok) {
+          setDoc(item.id, null);
+          setDocState(null);
+        }
+      });
     },
     title: "\u0E25\u0E1A",
     style: {
@@ -4547,7 +4573,11 @@ function StockGrid({
       size: 13
     })), React.createElement("button", {
       onClick: () => {
-        if (confirm('ลบ "' + it.name + '" ?')) onRemove(it.id);
+        askConfirm({
+          title: "ลบ “" + it.name + "” ออกจากคลัง?"
+        }).then(ok => {
+          if (ok) onRemove(it.id);
+        });
       },
       title: "\u0E25\u0E1A",
       style: {

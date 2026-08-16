@@ -579,6 +579,9 @@ function App() {
         <TweakRadio label="แถบเมนู" value={t.sidebar} options={["full", "icons"]} onChange={(v) => setTweak("sidebar", v)} />
         <TweakRadio label="สไตล์การ์ด" value={t.cardStyle} options={["soft", "flat"]} onChange={(v) => setTweak("cardStyle", v)} />
       </TweaksPanel>
+
+      {/* กล่องยืนยันกลางของแอป — ทุกที่ที่เรียก askConfirm() มาโผล่ที่ตัวนี้ */}
+      <ConfirmHost />
     </div>
   );
 }

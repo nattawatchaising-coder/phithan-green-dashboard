@@ -545,7 +545,7 @@ function TechManager({ store, onClose }) {
                 <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{t.role}</div>
               </div>
               <button onClick={() => setEditing(Object.assign({}, t))} title="แก้ไข" style={{ background: "#3B82F614", border: "none", color: "#3B82F6", width: 32, height: 32, borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={15} /></button>
-              <button onClick={() => { if (techs.length <= 1) { alert("ต้องมีช่างอย่างน้อย 1 คน"); return; } if (confirm("ลบช่าง \"" + t.name + "\" ?")) store.remove(t.id); }} title="ลบ" style={{ background: "#EF444414", border: "none", color: "#EF4444", width: 32, height: 32, borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={15} /></button>
+              <button onClick={() => { if (techs.length <= 1) { alert("ต้องมีช่างอย่างน้อย 1 คน"); return; } askConfirm({ title: "ลบช่าง “" + t.name + "” ?", ok: "ลบช่าง" }).then((ok) => { if (ok) store.remove(t.id); }); }} title="ลบ" style={{ background: "#EF444414", border: "none", color: "#EF4444", width: 32, height: 32, borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={15} /></button>
             </div>
           ))}
         </div>
@@ -632,7 +632,7 @@ function BrandManager({ store, onClose }) {
                 <div style={{ fontSize: 11.5, color: b.battery ? "var(--primary-dark)" : "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.battery ? "รองรับแบต/Backup" : "ไม่รองรับแบต/Backup"}</div>
               </div>
               <button onClick={() => setEditing({ rec: Object.assign({}, b), origName: b.name })} title="แก้ไข" style={{ flexShrink: 0, background: "#3B82F614", border: "none", color: "#3B82F6", width: 32, height: 32, borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={15} /></button>
-              <button onClick={() => { if (brands.length <= 1) { alert("ต้องมีแบรนด์อย่างน้อย 1 รายการ"); return; } if (confirm("ลบแบรนด์ \"" + b.name + "\" ?\n(งานที่ใช้แบรนด์นี้อยู่จะยังคงค่าเดิมไว้)")) store.remove(b.name); }} title="ลบ" style={{ flexShrink: 0, background: "#EF444414", border: "none", color: "#EF4444", width: 32, height: 32, borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={15} /></button>
+              <button onClick={() => { if (brands.length <= 1) { alert("ต้องมีแบรนด์อย่างน้อย 1 รายการ"); return; } askConfirm({ title: "ลบแบรนด์ “" + b.name + "” ?", body: "งานที่ใช้แบรนด์นี้อยู่จะยังคงค่าเดิมไว้", ok: "ลบแบรนด์" }).then((ok) => { if (ok) store.remove(b.name); }); }} title="ลบ" style={{ flexShrink: 0, background: "#EF444414", border: "none", color: "#EF4444", width: 32, height: 32, borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={15} /></button>
             </div>
           ))}
         </div>

@@ -303,7 +303,12 @@ function JobPhotos({
     }
   }), canDelete(p) && React.createElement("button", {
     onClick: () => {
-      if (confirm("ลบรูปนี้?")) media.removePhoto(p.id);
+      askConfirm({
+        title: "ลบรูปนี้?",
+        ok: "ลบรูป"
+      }).then(ok => {
+        if (ok) media.removePhoto(p.id);
+      });
     },
     title: "\u0E25\u0E1A\u0E23\u0E39\u0E1B",
     style: {
@@ -706,7 +711,13 @@ function JobFiles({
       color: "var(--text-2)"
     })), canDelete(f) && React.createElement("button", {
       onClick: () => {
-        if (confirm("ลบเอกสาร “" + f.name + "” ?")) media.removeFile(f.id);
+        askConfirm({
+          title: "ลบเอกสารนี้?",
+          body: f.name || "",
+          ok: "ลบเอกสาร"
+        }).then(ok => {
+          if (ok) media.removeFile(f.id);
+        });
       },
       title: "\u0E25\u0E1A",
       "aria-label": "\u0E25\u0E1A",
@@ -819,7 +830,12 @@ function JobComments({
     }
   }, thDateTime ? thDateTime(c.at) : ""), canDelete(c) && React.createElement("button", {
     onClick: () => {
-      if (confirm("ลบข้อความนี้?")) media.removeComment(c.id);
+      askConfirm({
+        title: "ลบข้อความนี้?",
+        ok: "ลบข้อความ"
+      }).then(ok => {
+        if (ok) media.removeComment(c.id);
+      });
     },
     style: {
       marginLeft: "auto",

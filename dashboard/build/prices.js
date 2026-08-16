@@ -135,7 +135,17 @@ function PricePanel({
   };
   const addAllNew = () => {
     if (!newCount) return;
-    if (!confirm("เพิ่ม " + newCount + " รายการที่ยังไม่มีในคลังสินค้า\n(จำนวน 0 · สร้างรหัสอัตโนมัติตามหมวด · ราคาที่กรอกไว้จะถูกบันทึกด้วย)")) return;
+    askConfirm({
+      title: "เพิ่ม " + newCount + " รายการที่ยังไม่มีในคลังสินค้า?",
+      body: "จำนวนตั้งต้น 0 · สร้างรหัสอัตโนมัติตามหมวด · ราคาที่กรอกไว้จะถูกบันทึกด้วย",
+      ok: "เพิ่มเข้าคลัง",
+      danger: false,
+      icon: "plus"
+    }).then(ok => {
+      if (ok) doAddAllNew();
+    });
+  };
+  const doAddAllNew = () => {
     const ctx = window.newMatSaveCtx(stock);
     newItems.forEach(c => {
       const l = local[c.name] || {};
@@ -267,7 +277,11 @@ function PricePanel({
       style: numStyle
     }), !isMobile && (c.custom && !inStock ? React.createElement("button", {
       onClick: () => {
-        if (confirm("ลบ \"" + c.name + "\" ?")) priceStore.removePrice(c.name);
+        askConfirm({
+          title: "ลบ “" + c.name + "” ?"
+        }).then(ok => {
+          if (ok) priceStore.removePrice(c.name);
+        });
       },
       title: "\u0E25\u0E1A",
       style: {

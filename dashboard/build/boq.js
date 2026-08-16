@@ -1815,11 +1815,20 @@ function BOQEditor({
   }, [isStringInv, selInv, scfg, result, wcVolt, wcPhase, calcIns, calcMethod, calcGroup, calcNCond]);
   const calcRows = isStringInv ? stringCalcRows : wireCalcRows;
   const guardRun = fn => {
-    if (remaining !== 0) {
-      const msg = remaining > 0 ? "⚠ ยังวางแผงไม่ครบ — ขาดอีก " + remaining + " แผง (วางแล้ว " + result.meta.rowsSum + "/" + result.meta.panelCount + ")\nปริมาณ Mounting จะไม่ครบ ต้องการดำเนินการต่อหรือไม่?" : "⚠ วางแผงเกินจำนวน " + -remaining + " แผง (วางแล้ว " + result.meta.rowsSum + "/" + result.meta.panelCount + ")\nต้องการดำเนินการต่อหรือไม่?";
-      if (!confirm(msg)) return;
+    if (remaining === 0) {
+      fn();
+      return;
     }
-    fn();
+    const placed = "วางแล้ว " + result.meta.rowsSum + "/" + result.meta.panelCount + " แผง";
+    askConfirm({
+      title: remaining > 0 ? "ยังวางแผงไม่ครบ — ขาดอีก " + remaining + " แผง" : "วางแผงเกินไป " + -remaining + " แผง",
+      body: placed + (remaining > 0 ? "\nปริมาณ Mounting ที่ออกมาจะไม่ครบ" : "") + "\nต้องการดำเนินการต่อหรือไม่?",
+      ok: "ดำเนินการต่อ",
+      danger: false,
+      icon: "alert"
+    }).then(ok => {
+      if (ok) fn();
+    });
   };
   const opt = arr => arr.map(x => ({
     value: x,

@@ -504,7 +504,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                         {/* เหลือแค่ แก้ไข/ลบ — รับ/เบิก/คืน ย้ายไปอยู่ในหน้ารายละเอียด */}
                         <td style={{ padding: "11px 12px", whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
                           <button onClick={() => setItemForm({ item: it, isNew: false })} title="แก้ไข" style={{ background: "#3B82F614", border: "none", color: "#3B82F6", width: 28, height: 28, borderRadius: 7, cursor: "pointer", verticalAlign: "middle" }}><Icon name="settings" size={14} /></button>
-                          <button onClick={() => { if (confirm("ลบ \"" + it.name + "\" ?")) stock.removeItem(it.id); }} title="ลบ" style={{ background: "#EF444414", border: "none", color: "#EF4444", width: 28, height: 28, borderRadius: 7, cursor: "pointer", marginLeft: 4, verticalAlign: "middle" }}><Icon name="x" size={14} /></button>
+                          <button onClick={() => { askConfirm({ title: "ลบ “" + it.name + "” ออกจากคลัง?" }).then((ok) => { if (ok) stock.removeItem(it.id); }); }} title="ลบ" style={{ background: "#EF444414", border: "none", color: "#EF4444", width: 28, height: 28, borderRadius: 7, cursor: "pointer", marginLeft: 4, verticalAlign: "middle" }}><Icon name="x" size={14} /></button>
                         </td>
                       </tr>
                     );
@@ -663,7 +663,7 @@ function StockCardList({ rows, imgs, onOpen, onEdit, onRemove }) {
               {/* การ์ดรวมขนาดยังไม่รู้ว่าจะแก้/ลบตัวไหน — เข้าไปเลือกขนาดก่อน */}
               {!g && <button onClick={() => onEdit(it)} title="แก้ไข" aria-label="แก้ไข"
                 style={{ flexShrink: 0, background: "#3B82F614", border: "none", color: "#3B82F6", width: 44, height: 36, borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={16} /></button>}
-              {!g && <button onClick={() => { if (confirm("ลบ \"" + it.name + "\" ?")) onRemove(it.id); }} title="ลบ" aria-label="ลบ"
+              {!g && <button onClick={() => { askConfirm({ title: "ลบ “" + it.name + "” ออกจากคลัง?" }).then((ok) => { if (ok) onRemove(it.id); }); }} title="ลบ" aria-label="ลบ"
                 style={{ flexShrink: 0, background: "#EF444414", border: "none", color: "#EF4444", width: 44, height: 36, borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={16} /></button>}
             </div>
           </div>
@@ -896,8 +896,9 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
             <div style={{ gridColumn: "1 / -1", marginTop: -6 }}>
               <button type="button"
                 onClick={() => { const c = SF.STOCK_CAT_BY[f.cat];
-                  if (!confirm('ลบหมวด "' + c.th + '"?' + (c.parent ? "" : "\nหมวดย่อยใต้หมวดนี้จะถูกลบด้วย") + "\nของที่อยู่ในหมวดนี้จะไปแสดงเป็น “อื่นๆ”")) return;
-                  onRemoveCat(f.cat); set("cat", c.parent || "other"); }}
+                  askConfirm({ title: "ลบหมวด “" + c.th + "” ?", ok: "ลบหมวด",
+                    body: (c.parent ? "" : "หมวดย่อยใต้หมวดนี้จะถูกลบด้วย\n") + "ของที่อยู่ในหมวดนี้จะไปแสดงเป็น “อื่นๆ”",
+                  }).then((ok) => { if (!ok) return; onRemoveCat(f.cat); set("cat", c.parent || "other"); }); }}
                 style={{ border: 0, background: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "#EF4444", textDecoration: "underline", textUnderlineOffset: 3 }}>
                 ลบหมวด “{(SF.STOCK_CAT_BY[f.cat] || {}).th}” ที่สร้างเอง
               </button>
@@ -1183,7 +1184,7 @@ function AmpacityEditor({ ampStore }) {
           return mArt ? <WireArt art={mArt} key={methodKey} w={92} h={54} /> : null;
         })()}
         {editedCount > 0 && (
-          <button onClick={() => { if (confirm("คืนค่าพิกัดกระแสที่แก้ไว้ทั้งหมด ?\n(ลบ " + editedCount + " ช่อง)")) ampStore.reset(); }}
+          <button onClick={() => { askConfirm({ title: "คืนค่าพิกัดกระแสที่แก้ไว้ทั้งหมด?", body: "ค่าที่แก้เองไว้ " + editedCount + " ช่อง จะกลับไปเป็นค่าตั้งต้น", ok: "คืนค่าตั้งต้น" }).then((ok) => { if (ok) ampStore.reset(); }); }}
             style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 99, border: "1px solid var(--tint-red-bd2)", background: "var(--tint-red-bg)", color: "var(--tint-red-tx)", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
             <Icon name="x" size={13} color="var(--tint-red-tx)" /> คืนค่าที่แก้ ({editedCount})
           </button>
@@ -1531,7 +1532,7 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
                 </span>
                 <button onClick={openDoc} style={{ flexShrink: 0, padding: "7px 13px", borderRadius: 9, border: "1px solid var(--border-strong)",
                   background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>เปิดเต็มจอ</button>
-                <button onClick={() => { if (confirm("ลบเอกสารนี้?")) { setDoc(item.id, null); setDocState(null); } }}
+                <button onClick={() => { askConfirm({ title: "ลบเอกสารนี้?", body: "DATA SHEET ที่แนบไว้กับรายการนี้จะหายไป", ok: "ลบเอกสาร" }).then((ok) => { if (ok) { setDoc(item.id, null); setDocState(null); } }); }}
                   title="ลบ" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border-strong)",
                     background: "var(--surface)", color: "#EF4444", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
               </div>
@@ -1714,7 +1715,7 @@ function StockGrid({ rows, imgs, onOpen, onEdit, onRemove, lowState }) {
               ) : (
                 <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 5, marginTop: 7 }}>
                   <button onClick={() => onEdit(it)} title="แก้ไข" style={{ flex: 1, height: 28, background: "#3B82F614", border: "none", color: "#3B82F6", borderRadius: 7, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={13} /></button>
-                  <button onClick={() => { if (confirm('ลบ "' + it.name + '" ?')) onRemove(it.id); }} title="ลบ" style={{ width: 32, height: 28, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 7, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
+                  <button onClick={() => { askConfirm({ title: "ลบ “" + it.name + "” ออกจากคลัง?" }).then((ok) => { if (ok) onRemove(it.id); }); }} title="ลบ" style={{ width: 32, height: 28, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 7, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
                 </div>
               )}
             </div>

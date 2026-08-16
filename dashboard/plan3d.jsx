@@ -2819,10 +2819,10 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     } catch (e) { alert("ส่งออกแบบผังไม่สำเร็จ: " + e.message); }
     setBusyDxf("");
   };
-  /* ถ้าเบราว์เซอร์บล็อก dialog อยู่ confirm จะคืน false กลับมาทันที (<80ms) — ถือว่าไม่มีคนกดยกเลิกจริง ปล่อยให้ปิดได้ จะได้ไม่ติดอยู่ในหน้าจอ */
   const tryClose = () => {
-    if (dirty) { const t0 = Date.now(); if (!confirm("มีการแก้ไขที่ยังไม่บันทึก — ปิดโดยไม่บันทึกใช่ไหม?") && Date.now() - t0 > 80) return; }
-    onClose();
+    if (!dirty) { onClose(); return; }
+    askConfirm({ title: "ปิดโดยไม่บันทึก?", body: "มีการแก้ไขที่ยังไม่ได้บันทึก ถ้าปิดตอนนี้จะหายไป",
+      ok: "ปิดโดยไม่บันทึก" }).then((ok) => { if (ok) onClose(); });
   };
 
   /* ── UI helpers ── (Num/NumRange อ้างถึงตัวนอกไฟล์ เพื่อไม่ให้ input ถูก remount ทุก render) */

@@ -1601,7 +1601,12 @@ function TechManager({
         alert("ต้องมีช่างอย่างน้อย 1 คน");
         return;
       }
-      if (confirm("ลบช่าง \"" + t.name + "\" ?")) store.remove(t.id);
+      askConfirm({
+        title: "ลบช่าง “" + t.name + "” ?",
+        ok: "ลบช่าง"
+      }).then(ok => {
+        if (ok) store.remove(t.id);
+      });
     },
     title: "\u0E25\u0E1A",
     style: {
@@ -2012,7 +2017,13 @@ function BrandManager({
         alert("ต้องมีแบรนด์อย่างน้อย 1 รายการ");
         return;
       }
-      if (confirm("ลบแบรนด์ \"" + b.name + "\" ?\n(งานที่ใช้แบรนด์นี้อยู่จะยังคงค่าเดิมไว้)")) store.remove(b.name);
+      askConfirm({
+        title: "ลบแบรนด์ “" + b.name + "” ?",
+        body: "งานที่ใช้แบรนด์นี้อยู่จะยังคงค่าเดิมไว้",
+        ok: "ลบแบรนด์"
+      }).then(ok => {
+        if (ok) store.remove(b.name);
+      });
     },
     title: "\u0E25\u0E1A",
     style: {

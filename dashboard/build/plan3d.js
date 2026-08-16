@@ -4559,11 +4559,17 @@ function Plan3DEditor({
     setBusyDxf("");
   };
   const tryClose = () => {
-    if (dirty) {
-      const t0 = Date.now();
-      if (!confirm("มีการแก้ไขที่ยังไม่บันทึก — ปิดโดยไม่บันทึกใช่ไหม?") && Date.now() - t0 > 80) return;
+    if (!dirty) {
+      onClose();
+      return;
     }
-    onClose();
+    askConfirm({
+      title: "ปิดโดยไม่บันทึก?",
+      body: "มีการแก้ไขที่ยังไม่ได้บันทึก ถ้าปิดตอนนี้จะหายไป",
+      ok: "ปิดโดยไม่บันทึก"
+    }).then(ok => {
+      if (ok) onClose();
+    });
   };
   const inp = P3_INP;
   const Num = P3Num;

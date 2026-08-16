@@ -414,7 +414,14 @@ function SitePlanEditor({
   };
   const deletePage = i => {
     if (pagesRef.current.length <= 1) return;
-    if (!window.confirm("ลบหน้านี้และทุกอย่างในหน้า?")) return;
+    askConfirm({
+      title: "ลบหน้านี้และทุกอย่างในหน้า?",
+      ok: "ลบหน้านี้"
+    }).then(ok => {
+      if (ok) doDeletePage(i);
+    });
+  };
+  const doDeletePage = i => {
     const committed = commitActive();
     const next = committed.filter((_, j) => j !== i);
     pagesRef.current = next;
@@ -5377,7 +5384,13 @@ function SitePlanEditor({
     onChange: e => {
       const f = e.target.files && e.target.files[0];
       if (f) {
-        if (lines.length || markers.length ? confirm("เปลี่ยนรูปจะล้างเส้น/จุดทั้งหมด ยืนยัน?") : true) pickImage(f);
+        if (lines.length || markers.length) askConfirm({
+          title: "เปลี่ยนรูปพื้นหลัง?",
+          body: "เส้นและจุดที่วางไว้ทั้งหมดจะถูกล้าง",
+          ok: "เปลี่ยนรูป"
+        }).then(ok => {
+          if (ok) pickImage(f);
+        });else pickImage(f);
       }
       e.target.value = "";
     }
@@ -5622,9 +5635,15 @@ function SitePlanEditor({
       }
     }, React.createElement("button", {
       onClick: () => {
-        if (confirm("คืนค่ารับประกัน/ติดต่อ เป็นค่าเริ่มต้น? (โลโก้ไม่ถูกลบ)")) setPdfInfo(p => Object.assign({}, PDF_DEFAULTS, {
-          logo: p.logo
-        }));
+        askConfirm({
+          title: "คืนค่ารับประกัน/ติดต่อ เป็นค่าเริ่มต้น?",
+          body: "โลโก้ที่อัปไว้ไม่ถูกลบ",
+          ok: "คืนค่าตั้งต้น"
+        }).then(ok => {
+          if (ok) setPdfInfo(p => Object.assign({}, PDF_DEFAULTS, {
+            logo: p.logo
+          }));
+        });
       },
       style: {
         padding: "9px 13px",
@@ -6384,7 +6403,12 @@ function SitePlanEditor({
       }
     }, busy ? "กำลังโหลด..." : "＋ เพิ่มรูป"), React.createElement("button", {
       onClick: () => {
-        if (confirm("ลบรูปนี้?")) removeMarkerPhotoAt(m.id, idx);
+        askConfirm({
+          title: "ลบรูปนี้?",
+          ok: "ลบรูป"
+        }).then(ok => {
+          if (ok) removeMarkerPhotoAt(m.id, idx);
+        });
       },
       style: {
         padding: "9px 16px",

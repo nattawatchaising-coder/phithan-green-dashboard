@@ -187,7 +187,7 @@ function JobPhotos({ media, currentUser, canManage }) {
               <img src={p.dataUrl} alt={p.caption || "รูปหน้างาน"} onClick={() => setLbIndex(idx)}
                 style={{ width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }} />
               {canDelete(p) && (
-                <button onClick={() => { if (confirm("ลบรูปนี้?")) media.removePhoto(p.id); }} title="ลบรูป"
+                <button onClick={() => { askConfirm({ title: "ลบรูปนี้?", ok: "ลบรูป" }).then((ok) => { if (ok) media.removePhoto(p.id); }); }} title="ลบรูป"
                   style={{ position: "absolute", top: 4, right: 4, width: 22, height: 22, borderRadius: 6, border: "none",
                     background: "rgba(8,20,14,.55)", color: "#fff", cursor: "pointer", display: "grid", placeItems: "center" }}>
                   <Icon name="x" size={12} color="#fff" />
@@ -339,7 +339,7 @@ function JobFiles({ media, currentUser, canManage }) {
                   <Icon name="download" size={15} color="var(--text-2)" />
                 </button>
                 {canDelete(f) && (
-                  <button onClick={() => { if (confirm("ลบเอกสาร “" + f.name + "” ?")) media.removeFile(f.id); }} title="ลบ" aria-label="ลบ"
+                  <button onClick={() => { askConfirm({ title: "ลบเอกสารนี้?", body: f.name || "", ok: "ลบเอกสาร" }).then((ok) => { if (ok) media.removeFile(f.id); }); }} title="ลบ" aria-label="ลบ"
                     style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-3)" }}>
                     <Icon name="x" size={15} color="var(--text-3)" />
                   </button>
@@ -378,7 +378,7 @@ function JobComments({ media, currentUser, canManage }) {
                 <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{c.userName}</span>
                 <span style={{ fontSize: 11, color: "var(--text-3)" }}>{thDateTime ? thDateTime(c.at) : ""}</span>
                 {canDelete(c) && (
-                  <button onClick={() => { if (confirm("ลบข้อความนี้?")) media.removeComment(c.id); }}
+                  <button onClick={() => { askConfirm({ title: "ลบข้อความนี้?", ok: "ลบข้อความ" }).then((ok) => { if (ok) media.removeComment(c.id); }); }}
                     style={{ marginLeft: "auto", background: "none", border: "none", color: "var(--text-3)", cursor: "pointer", fontSize: 11, padding: 0 }}>ลบ</button>
                 )}
               </div>
