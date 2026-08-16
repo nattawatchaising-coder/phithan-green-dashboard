@@ -986,10 +986,23 @@ function App() {
     onStage: goStage,
     onKpi: goKpi,
     stock: stock
-  })), view === "board" && (permitOnly ? permitView : React.createElement(KanbanView, {
+  })), view === "board" && (permitOnly ? permitView : React.createElement(FlowBoardView, {
     jobs: filtered,
-    onOpen: openJob,
-    onMoveStage: (id, s) => store.setStage(id, s)
+    leads: leadStore.leads,
+    quotes: quoteStore.quotes,
+    search: search,
+    role: role,
+    currentUser: auth.current,
+    onOpenJob: openJob,
+    onOpenLead: l => {
+      setView("leads");
+      setLeadMode("list");
+      setLeadFocus(l.id);
+    },
+    onMoveStage: (id, s) => store.setStage(id, s),
+    onPatchLead: (id, f) => leadStore.patch(id, f),
+    onPatchPermit: patchPermit,
+    onOpenReview: id => setPermitReview(id)
   })), view === "table" && React.createElement(TableView, {
     jobs: filtered,
     onOpen: openJob,

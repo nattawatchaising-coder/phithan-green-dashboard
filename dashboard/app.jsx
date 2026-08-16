@@ -660,7 +660,18 @@ function App() {
                 onGoSales={can(role, "leads") ? () => setView(can(role, "price") ? "saleskpi" : "leads") : null} />
             )
             : <OverviewView jobs={filtered} schedule={myScheduleItems} onOpen={openJob} onStage={goStage} onKpi={goKpi} stock={stock} />)}
-          {view === "board" && (permitOnly ? permitView : <KanbanView jobs={filtered} onOpen={openJob} onMoveStage={(id, s) => store.setStage(id, s)} />)}
+          {/* บอร์ดรวมทั้งวงจร — ขาย → หน้างาน → เอกสาร อยู่ผืนเดียว (ช่วงไหนไม่มีสิทธิ์ก็ไม่ขึ้น)
+              ฝ่ายขออนุญาตอย่างเดียวยังได้บอร์ดขออนุญาตเต็มรูปแบบเหมือนเดิม เพราะเขาต้องใช้มุมรายการด้วย */}
+          {view === "board" && (permitOnly ? permitView : (
+            <FlowBoardView jobs={filtered} leads={leadStore.leads} quotes={quoteStore.quotes} search={search}
+              role={role} currentUser={auth.current}
+              onOpenJob={openJob}
+              onOpenLead={(l) => { setView("leads"); setLeadMode("list"); setLeadFocus(l.id); }}
+              onMoveStage={(id, s) => store.setStage(id, s)}
+              onPatchLead={(id, f) => leadStore.patch(id, f)}
+              onPatchPermit={patchPermit}
+              onOpenReview={(id) => setPermitReview(id)} />
+          ))}
           {view === "table" && <TableView jobs={filtered} onOpen={openJob}
             onEdit={(j) => setForm({ job: store.raw.find((r) => r.id === j.id), isNew: false })}
             onDelete={onDelete} onSetMat={store.setMat} onSetStage={(id, s) => store.setStage(id, s)}
