@@ -649,6 +649,7 @@ function App() {
       notif.addNotif({
         toTechId: backTo,
         type: "permit",
+        event: "reject",
         jobId: id,
         jobName: j.name,
         title: "ข้อมูลขออนุญาตถูกตีกลับ ต้องแก้ไข",
@@ -733,10 +734,11 @@ function App() {
       notif.addNotif({
         toTechId: rec.tech,
         type: "assign",
+        event: "assign",
         jobId: rec.id,
         jobName: rec.name,
         title: "ได้รับมอบหมายงานใหม่",
-        body: (rec.name || "งาน") + " · " + (rec.province || "") + " · " + (rec.kw || "") + " kW"
+        body: [rec.code, rec.province, rec.kw ? rec.kw + " kW" : ""].filter(Boolean).join(" · ")
       });
     }
     setForm(null);
@@ -781,7 +783,9 @@ function App() {
   const unread = myNotifs.filter(n => !n.read).length;
   const bellCount = unread + lateAlerts.length;
   const openFromNotif = n => {
-    if (n.id) notif.markRead(n.id);
+    (n.ids && n.ids.length ? n.ids : [n.id]).forEach(id => {
+      if (id) notif.markRead(id);
+    });
     setNotifOpen(false);
     if (n.jobId) {
       setView(listView());
@@ -1048,10 +1052,11 @@ function App() {
     onSubmit: permit => notif.addNotif({
       toPerm: "permit",
       type: "permit",
+      event: "permit",
       jobId: permitJob.id,
       jobName: permitJob.name,
       title: "ข้อมูลขออนุญาตพร้อมยื่นแล้ว",
-      body: (permitJob.code || "") + " · " + (permitJob.name || "") + " · " + (permit.auth || "") + " · " + (permit.kwp || "") + " kWp"
+      body: [permitJob.code, permit.auth, permit.kwp ? permit.kwp + " kWp" : ""].filter(Boolean).join(" · ")
     })
   }), surveyJob && React.createElement(SurveyWizard, {
     job: surveyJob,

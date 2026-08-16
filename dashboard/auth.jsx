@@ -422,9 +422,36 @@ function LoginScreen({ authStore }) {
 /* ================================================================
    NotifPanel — กล่องแจ้งเตือน (dropdown จากกระดิ่ง)
    ================================================================ */
+/* ชนิดของแจ้งเตือน — ก่อนหน้านี้ทุกใบหน้าตาเหมือนกันหมด (ไอคอนประแจเขียว) เปิดกล่องมาแล้ว
+   แยกไม่ออกว่าเรื่องอะไรงานไหน · เรคอร์ดเก่าไม่มีฟิลด์ event จึงเดาจาก type + หัวข้อแทน */
+const NOTIF_KINDS = {
+  reject:  { icon: "alert",  color: "#EF4444", th: "ถูกตีกลับ" },
+  permit:  { icon: "file",   color: "#14B8A6", th: "ขออนุญาต" },
+  assign:  { icon: "wrench", color: "#F59E0B", th: "มอบหมายงาน" },
+  info:    { icon: "bell",   color: "#22A35B", th: "แจ้งเตือน" },
+};
+function notifKindKey(n) {
+  if (n && n.event && NOTIF_KINDS[n.event]) return n.event;
+  if (n && n.type === "assign") return "assign";
+  if (n && n.type === "permit") return /ตีกลับ|แก้ไข/.test(n.title || "") ? "reject" : "permit";
+  return "info";
+}
+
 function NotifPanel({ items, lateAlerts, onClose, onOpenJob, onMarkAll }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const alerts = lateAlerts || [];
+  /* เรื่องเดียวกันของงานเดียวกันที่เกิดซ้ำ (เช่นถูกตีกลับหลายรอบ) ยุบเป็นใบเดียวแล้วบอกจำนวนครั้ง
+     ไม่งั้นกล่องเต็มไปด้วยบรรทัดที่อ่านแล้วเหมือนกันเป๊ะ · items เรียงใหม่สุดมาก่อนอยู่แล้ว */
+  const groups = React.useMemo(() => {
+    const out = []; const at = {};
+    (items || []).forEach((n) => {
+      const k = (n.jobId || n.id) + "|" + notifKindKey(n);
+      if (at[k] != null) { const g = out[at[k]]; g.count++; g.ids.push(n.id); if (!n.read) g.unread = true; return; }
+      at[k] = out.length;
+      out.push({ n, kind: NOTIF_KINDS[notifKindKey(n)], count: 1, ids: [n.id], unread: !n.read });
+    });
+    return out;
+  }, [items]);
   return (
     <React.Fragment>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 95 }} />
@@ -466,20 +493,36 @@ function NotifPanel({ items, lateAlerts, onClose, onOpenJob, onMarkAll }) {
               {items.length > 0 && <div style={{ height: 1, background: "var(--border)", margin: "4px 2px" }} />}
             </React.Fragment>
           )}
-          {items.map((n) => (
-            <button key={n.id} onClick={() => onOpenJob(n)}
-              style={{ display: "flex", gap: 10, padding: "11px 12px", width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "inherit",
-                background: n.read ? "var(--surface)" : "var(--primary-soft)", border: "1px solid " + (n.read ? "var(--border)" : "var(--primary)"), borderRadius: 11 }}>
-              <span style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: "grid", placeItems: "center",
-                background: "var(--primary)", color: "#fff" }}><Icon name="wrench" size={15} color="#fff" /></span>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{n.title}</span>
-                <span style={{ display: "block", fontSize: 12, color: "var(--text-2)", marginTop: 2, lineHeight: 1.4 }}>{n.body}</span>
-                <span style={{ display: "block", fontSize: 10.5, color: "var(--text-3)", marginTop: 3 }}>{thDateTime ? thDateTime(n.at) : ""}</span>
-              </span>
-              {!n.read && <span style={{ width: 8, height: 8, borderRadius: 99, background: "var(--primary)", flexShrink: 0, marginTop: 4 }} />}
-            </button>
-          ))}
+          {groups.map((g) => {
+            const n = g.n, k = g.kind;
+            /* ชื่องานขึ้นก่อน — เวลาแจ้งเตือนหลายใบกองกัน สิ่งที่ต้องแยกออกให้ได้คือ "งานไหน" */
+            const head = n.jobName || n.title;
+            const sub  = n.jobName ? n.title : "";
+            return (
+              <button key={n.id} onClick={() => onOpenJob(Object.assign({}, n, { ids: g.ids }))}
+                style={{ display: "flex", gap: 10, padding: "11px 12px", width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "inherit",
+                  background: g.unread ? k.color + "12" : "var(--surface)",
+                  border: "1px solid " + (g.unread ? k.color + "55" : "var(--border)"), borderRadius: 11 }}>
+                <span style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: "grid", placeItems: "center",
+                  background: k.color, color: "#fff" }}><Icon name={k.icon} size={15} color="#fff" /></span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{head}</span>
+                    {g.count > 1 && (
+                      <span style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 800, color: k.color, background: k.color + "1A",
+                        borderRadius: 99, padding: "1px 7px", fontVariantNumeric: "tabular-nums" }}>{g.count} ครั้ง</span>
+                    )}
+                  </span>
+                  {sub && <span style={{ display: "block", fontSize: 12, fontWeight: 700, color: k.color, marginTop: 2 }}>{sub}</span>}
+                  <span style={{ display: "block", fontSize: 11.5, color: "var(--text-2)", marginTop: 2, lineHeight: 1.4 }}>{n.body}</span>
+                  <span style={{ display: "block", fontSize: 10.5, color: "var(--text-3)", marginTop: 3 }}>
+                    {g.count > 1 ? "ล่าสุด " : ""}{thDateTime ? thDateTime(n.at) : ""}
+                  </span>
+                </span>
+                {g.unread && <span style={{ width: 8, height: 8, borderRadius: 99, background: k.color, flexShrink: 0, marginTop: 4 }} />}
+              </button>
+            );
+          })}
         </div>
       </div>
     </React.Fragment>

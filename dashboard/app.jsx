@@ -458,7 +458,7 @@ function App() {
     const backTo = cur.submittedTechId || j.tech || null;
     if (fields.status === "rejected" && backTo) {
       notif.addNotif({
-        toTechId: backTo, type: "permit", jobId: id, jobName: j.name,
+        toTechId: backTo, type: "permit", event: "reject", jobId: id, jobName: j.name,
         title: "ข้อมูลขออนุญาตถูกตีกลับ ต้องแก้ไข",
         body: (j.code || "") + " · " + (fields.rejectReason || "ต้องแก้ไขข้อมูล"),
       });
@@ -517,9 +517,10 @@ function App() {
     // แจ้งเตือนช่างเมื่อถูกมอบหมายงาน (ช่างเปลี่ยน หรือเป็นงานใหม่ที่ระบุช่าง)
     if (rec.tech && (!prev || prev.tech !== rec.tech)) {
       notif.addNotif({
-        toTechId: rec.tech, type: "assign", jobId: rec.id, jobName: rec.name,
+        toTechId: rec.tech, type: "assign", event: "assign", jobId: rec.id, jobName: rec.name,
         title: "ได้รับมอบหมายงานใหม่",
-        body: (rec.name || "งาน") + " · " + (rec.province || "") + " · " + (rec.kw || "") + " kW",
+        /* ชื่องานขึ้นเป็นหัวใบแจ้งเตือนอยู่แล้ว บรรทัดนี้จึงบอกรายละเอียดที่เหลือ */
+        body: [rec.code, rec.province, rec.kw ? rec.kw + " kW" : ""].filter(Boolean).join(" · "),
       });
     }
     setForm(null);
@@ -554,7 +555,8 @@ function App() {
   const unread   = myNotifs.filter((n) => !n.read).length;
   const bellCount = unread + lateAlerts.length;
   const openFromNotif = (n) => {
-    if (n.id) notif.markRead(n.id);
+    /* กดใบที่ยุบรวมหลายครั้งไว้ ต้องอ่านครบทุกใบในกอง ไม่งั้นจุดค้างอยู่ทั้งที่กดแล้ว */
+    (n.ids && n.ids.length ? n.ids : [n.id]).forEach((id) => { if (id) notif.markRead(id); });
     setNotifOpen(false);
     if (n.jobId) { setView(listView()); setSelected(n.jobId); }
   };
@@ -684,9 +686,9 @@ function App() {
         onClose={() => setPermitJob(null)}
         onSave={(permit) => store.patch(permitJob.id, { permit })}
         onSubmit={(permit) => notif.addNotif({
-          toPerm: "permit", type: "permit", jobId: permitJob.id, jobName: permitJob.name,
+          toPerm: "permit", type: "permit", event: "permit", jobId: permitJob.id, jobName: permitJob.name,
           title: "ข้อมูลขออนุญาตพร้อมยื่นแล้ว",
-          body: (permitJob.code || "") + " · " + (permitJob.name || "") + " · " + (permit.auth || "") + " · " + (permit.kwp || "") + " kWp",
+          body: [permitJob.code, permit.auth, permit.kwp ? permit.kwp + " kWp" : ""].filter(Boolean).join(" · "),
         })} />}
       {surveyJob && <SurveyWizard job={surveyJob} currentUser={auth.current} stock={stock}
         onClose={() => { setSurveyJob(null); setSurveyAppt(null); }}
