@@ -889,6 +889,175 @@ function SalesKpiView({ leads, quotes, users, currentUser, onMenuOpen }) {
 }
 
 /* ============================================================
+   ภาพรวมงานขาย — หน้าแรกของเซลล์
+   ภาพรวมเดิมพูดภาษาช่าง (ของพร้อมติดตั้ง · BOQ ขาด · ขั้นงานติดตั้ง)
+   เซลล์เปิดมาแล้วไม่มีอะไรให้ทำต่อสักแผง — หน้านี้ตอบคำถามชุดเดียวกัน
+   แต่เป็นภาษาของเขา: วันนี้ต้องโทรหาใคร · ใบไหนค้างรอลูกค้าตอบ · ของค้างขั้นไหน
+   ============================================================ */
+const sPlusDaysISO = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + sPad2(d.getMonth() + 1) + "-" + sPad2(d.getDate()); };
+/* ส่งไปกี่วันแล้ว — ใบที่เงียบนานคือใบที่ต้องตามก่อน */
+const sDaysSince = (v) => {
+  if (!v) return null;
+  const d = new Date(typeof v === "number" ? v : String(v));
+  if (isNaN(d.getTime())) return null;
+  return Math.max(0, Math.floor((Date.now() - d.getTime()) / 86400000));
+};
+
+function SalesOverview({ leads, quotes, currentUser, onOpenLead, onGoBoard, onGoList, onGoKpi }) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const L = leads || [];
+  const Q = quotes || [];
+  const today = sToday10();
+  const month = today.slice(0, 7);
+
+  const num = React.useMemo(() => {
+    let live = 0, late = 0, wonM = 0, sale = 0;
+    L.forEach((l) => {
+      const k = salesStageKey(l);
+      /* ปิดการขายนับตอนที่ "ตัดสิน" ตามแบบหน้ายอดขาย ไม่ใช่ตอนรับลูกค้าเข้ามา */
+      if (k === "won") { if (sMonthKey(l.updatedAt) === month) wonM++; return; }
+      if (k === "lost") return;
+      live++;
+      if (sOverdue(l.nextFollow)) late++;
+    });
+    Q.forEach((q) => {
+      if (q.status === "accepted" && sMonthKey(q.decidedAt || q.updatedAt) === month) sale += quoteTotals(q).grand;
+    });
+    return { live, late, wonM, sale };
+  }, [L, Q, month]);
+
+  /* ต้องติดตาม = เลยกำหนด + ภายใน 7 วัน — เลยกำหนดอยู่บนสุดเสมอ */
+  const follow = React.useMemo(() => {
+    const max = sPlusDaysISO(7);
+    return L.filter((l) => {
+      const k = salesStageKey(l);
+      if (k === "won" || k === "lost") return false;
+      return !!l.nextFollow && String(l.nextFollow) <= max;
+    }).sort((a, b) => String(a.nextFollow).localeCompare(String(b.nextFollow)));
+  }, [L]);
+  const noDate = React.useMemo(() => L.filter((l) => {
+    const k = salesStageKey(l);
+    return k !== "won" && k !== "lost" && !l.nextFollow;
+  }).length, [L]);
+
+  const pipe = React.useMemo(() => SALES_STAGES.map((st) => {
+    const col = L.filter((l) => salesStageKey(l) === st.key);
+    return { st, n: col.length, val: col.reduce((s, l) => s + (+l.expValue || 0), 0) };
+  }), [L]);
+  const pipeMax = Math.max.apply(null, pipe.map((x) => x.n).concat([1]));
+
+  /* ใบที่ส่งไปแล้วยังไม่ตอบ — เรียงใบที่ค้างนานสุดอยู่บน */
+  const waiting = React.useMemo(() => Q.filter((q) => q.status === "sent")
+    .sort((a, b) => String(a.sentAt || a.at || "").localeCompare(String(b.sentAt || b.at || ""))), [Q]);
+  const leadById = React.useMemo(() => { const m = {}; L.forEach((l) => { m[l.id] = l; }); return m; }, [L]);
+
+  const openLead = (l) => { if (l && onOpenLead) onOpenLead(l); };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      {!isMobile && (
+        <StatRail items={[
+          { label: "ลูกค้าที่ยังไล่อยู่", value: num.live, unit: "ราย", accent: "#0EA5E9",
+            sub: <React.Fragment>จากทั้งหมด <b>{L.length}</b> ราย</React.Fragment>, onClick: onGoBoard },
+          { label: "เลยวันติดตาม", value: num.late, unit: "ราย", accent: "var(--text-3)", alert: num.late > 0,
+            sub: num.late ? "ต้องโทรหาก่อนใคร" : "ตามทันทุกราย", onClick: onGoList },
+          { label: "ปิดการขายเดือนนี้", value: num.wonM, unit: "ราย", accent: "var(--primary)",
+            sub: num.sale > 0 ? "ยอด ฿" + fmtBaht(Math.round(num.sale)) : "ยังไม่มีใบที่ลูกค้าตกลง",
+            onClick: onGoKpi || onGoBoard },
+        ]} />
+      )}
+
+      <div className="pnl" style={num.late > 0 ? { borderLeft: "3px solid #EF4444" } : null}>
+        <PanelTitle title="ต้องติดตาม"
+          sub={num.late > 0 ? ("เลยกำหนดแล้ว " + num.late + " ราย · ถึงกำหนดใน 7 วัน " + follow.length + " ราย")
+            : ("ถึงกำหนดใน 7 วัน " + follow.length + " ราย")} />
+        {follow.length === 0 ? <Empty text="ไม่มีลูกค้าที่ต้องติดตามช่วงนี้" /> : (
+          <div className="rows" style={{ maxHeight: 340, overflowY: "auto" }}>
+            {follow.map((l) => {
+              const late = sOverdue(l.nextFollow);
+              const now = String(l.nextFollow) === today;
+              const st = salesStageOf(salesStageKey(l));
+              return (
+                <button key={l.id} onClick={() => openLead(l)}>
+                  <span className="mk" style={{ background: late ? "#D93025" : (now ? "#F59E0B" : st.color) }} />
+                  <span className="bd">
+                    <span className="nm">{l.name || "(ไม่ระบุชื่อ)"}</span>
+                    <span className="mt">{[l.code, l.province, st.th].filter(Boolean).join(" · ")}</span>
+                  </span>
+                  <span className="when" style={late ? { color: "#D93025" } : null}>
+                    <b>{late ? "เลยกำหนด" : (now ? "วันนี้" : "ติดตาม")}</b>{thDate(l.nextFollow)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {noDate > 0 && (
+          <div style={{ marginTop: 12, fontSize: 11.5, color: "var(--text-3)" }}>
+            * อีก <b>{noDate}</b> รายที่ยังไม่ได้ตั้งวันติดตาม — เปิดใบลูกค้าแล้วบันทึกการติดต่อเพื่อตั้งวันนัดถัดไป
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.3fr 1fr", gap: 18 }}>
+        <div className="pnl">
+          <PanelTitle title="ขั้นการขาย" sub="คลิกเพื่อไปที่บอร์ด" />
+          <div style={{ display: "flex", flexDirection: "column", gap: 11, marginTop: 18 }}>
+            {pipe.map((row) => (
+              <button key={row.st.key} onClick={onGoBoard} style={{ display: "flex", alignItems: "center", gap: 10,
+                background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit", textAlign: "left", width: "100%" }}>
+                <span style={{ width: 118, flexShrink: 0, display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 600, color: "var(--text-1)", lineHeight: 1.25 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 99, background: row.st.color, flexShrink: 0 }} />{row.st.th}
+                </span>
+                <span style={{ flex: 1, minWidth: 0, height: 10, background: "var(--surface3)", borderRadius: 99, overflow: "hidden", display: "block" }}>
+                  <span style={{ display: "block", height: "100%", width: Math.max((row.n / pipeMax) * 100, row.n ? 5 : 0) + "%",
+                    background: row.st.color, borderRadius: 99, transition: "width .6s cubic-bezier(.2,.8,.2,1)" }} />
+                </span>
+                <span style={{ width: 30, flexShrink: 0, fontFamily: "var(--display)", fontSize: 15, fontWeight: 700, letterSpacing: "-.03em",
+                  fontVariantNumeric: "tabular-nums", color: row.n ? "var(--text-1)" : "var(--text-3)", textAlign: "right" }}>{row.n}</span>
+              </button>
+            ))}
+          </div>
+          <div style={{ marginTop: 12, fontSize: 11.5, color: "var(--text-3)" }}>
+            มูลค่าที่ยังไล่อยู่รวม ฿{fmtBaht(Math.round(pipe.filter((x) => x.st.key !== "won" && x.st.key !== "lost").reduce((s, x) => s + x.val, 0)))}
+          </div>
+        </div>
+
+        <div className="pnl">
+          <PanelTitle title="ใบเสนอราคาที่รอลูกค้าตอบ" sub={waiting.length + " ใบ"} />
+          {waiting.length === 0 ? <Empty text="ไม่มีใบที่รอลูกค้าตอบอยู่" /> : (
+            <div className="rows" style={{ maxHeight: 340, overflowY: "auto" }}>
+              {waiting.map((q) => {
+                const l = leadById[q.leadId];
+                const days = sDaysSince(q.sentAt || q.at);
+                const old = days != null && days >= 7;
+                return (
+                  <button key={q.id} onClick={() => openLead(l)} style={!l ? { cursor: "default" } : null}>
+                    <span className="mk" style={{ background: old ? "#F59E0B" : QUOTE_STATUS_BY.sent.color }} />
+                    <span className="bd">
+                      <span className="nm">{(q.customer && q.customer.name) || q.refCode || q.no}</span>
+                      <span className="mt">{[q.no, q.ownerName, "฿" + sBaht(quoteTotals(q).grand)].filter(Boolean).join(" · ")}</span>
+                    </span>
+                    <span className="when" style={old ? { color: "#B45309" } : null}>
+                      <b>ส่งแล้ว</b>{days == null ? "—" : (days === 0 ? "วันนี้" : days + " วัน")}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {waiting.length > 0 && (
+            <div style={{ marginTop: 12, fontSize: 11.5, color: "var(--text-3)" }}>
+              * ใบที่ส่งไปเกิน 7 วันขึ้นขีดเหลือง — ควรโทรตามก่อนลูกค้าลืม
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
    SalesJobSummary — บล็อกในใบงานสำหรับเซลล์
    เซลล์ไม่ได้ต้องการสเปคหรือเครื่องมือช่าง แต่ต้องตอบลูกค้าให้ได้ว่า
    "ตอนนี้ถึงไหนแล้ว ติดอะไรอยู่ ติดตั้งวันไหน"
@@ -994,5 +1163,5 @@ Object.assign(window, {
   QUOTE_STATUS, QUOTE_STATUS_BY, QUOTE_TERMS_DEF, QUOTE_WARRANTY_DEF,
   blankQuote, quoteTotals, quoteNo, quotesFor, quoteHTML, useQuoteStore,
   quoteSpec, quoteHasSpec, quoteSpecName, quoteSpecDetail,
-  QuoteEditor, SalesCard, SalesBoardView, SalesKpiView, SalesJobSummary,
+  QuoteEditor, SalesCard, SalesBoardView, SalesKpiView, SalesOverview, SalesJobSummary,
 });

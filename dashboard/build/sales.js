@@ -1727,6 +1727,302 @@ function SalesKpiView({
     }
   }, "\u0E22\u0E2D\u0E14\u0E02\u0E32\u0E22\u0E19\u0E31\u0E1A\u0E08\u0E32\u0E01\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32\u0E17\u0E35\u0E48\u0E2A\u0E16\u0E32\u0E19\u0E30 \u201C\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E15\u0E01\u0E25\u0E07\u201D (\u0E23\u0E32\u0E04\u0E32\u0E23\u0E27\u0E21 VAT) \u0E15\u0E32\u0E21\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E17\u0E35\u0E48\u0E15\u0E31\u0E14\u0E2A\u0E34\u0E19 \xB7 \u201C\u0E22\u0E31\u0E07\u0E44\u0E25\u0E48\u0E2D\u0E22\u0E39\u0E48\u201D \u0E04\u0E37\u0E2D\u0E21\u0E39\u0E25\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E04\u0E32\u0E14\u0E02\u0E2D\u0E07\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E1B\u0E34\u0E14\u0E01\u0E32\u0E23\u0E02\u0E32\u0E22 \u0E19\u0E31\u0E1A\u0E17\u0E38\u0E01\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E44\u0E21\u0E48\u0E02\u0E36\u0E49\u0E19\u0E01\u0E31\u0E1A\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01")));
 }
+const sPlusDaysISO = n => {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d.getFullYear() + "-" + sPad2(d.getMonth() + 1) + "-" + sPad2(d.getDate());
+};
+const sDaysSince = v => {
+  if (!v) return null;
+  const d = new Date(typeof v === "number" ? v : String(v));
+  if (isNaN(d.getTime())) return null;
+  return Math.max(0, Math.floor((Date.now() - d.getTime()) / 86400000));
+};
+function SalesOverview({
+  leads,
+  quotes,
+  currentUser,
+  onOpenLead,
+  onGoBoard,
+  onGoList,
+  onGoKpi
+}) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const L = leads || [];
+  const Q = quotes || [];
+  const today = sToday10();
+  const month = today.slice(0, 7);
+  const num = React.useMemo(() => {
+    let live = 0,
+      late = 0,
+      wonM = 0,
+      sale = 0;
+    L.forEach(l => {
+      const k = salesStageKey(l);
+      if (k === "won") {
+        if (sMonthKey(l.updatedAt) === month) wonM++;
+        return;
+      }
+      if (k === "lost") return;
+      live++;
+      if (sOverdue(l.nextFollow)) late++;
+    });
+    Q.forEach(q => {
+      if (q.status === "accepted" && sMonthKey(q.decidedAt || q.updatedAt) === month) sale += quoteTotals(q).grand;
+    });
+    return {
+      live,
+      late,
+      wonM,
+      sale
+    };
+  }, [L, Q, month]);
+  const follow = React.useMemo(() => {
+    const max = sPlusDaysISO(7);
+    return L.filter(l => {
+      const k = salesStageKey(l);
+      if (k === "won" || k === "lost") return false;
+      return !!l.nextFollow && String(l.nextFollow) <= max;
+    }).sort((a, b) => String(a.nextFollow).localeCompare(String(b.nextFollow)));
+  }, [L]);
+  const noDate = React.useMemo(() => L.filter(l => {
+    const k = salesStageKey(l);
+    return k !== "won" && k !== "lost" && !l.nextFollow;
+  }).length, [L]);
+  const pipe = React.useMemo(() => SALES_STAGES.map(st => {
+    const col = L.filter(l => salesStageKey(l) === st.key);
+    return {
+      st,
+      n: col.length,
+      val: col.reduce((s, l) => s + (+l.expValue || 0), 0)
+    };
+  }), [L]);
+  const pipeMax = Math.max.apply(null, pipe.map(x => x.n).concat([1]));
+  const waiting = React.useMemo(() => Q.filter(q => q.status === "sent").sort((a, b) => String(a.sentAt || a.at || "").localeCompare(String(b.sentAt || b.at || ""))), [Q]);
+  const leadById = React.useMemo(() => {
+    const m = {};
+    L.forEach(l => {
+      m[l.id] = l;
+    });
+    return m;
+  }, [L]);
+  const openLead = l => {
+    if (l && onOpenLead) onOpenLead(l);
+  };
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 18
+    }
+  }, !isMobile && React.createElement(StatRail, {
+    items: [{
+      label: "ลูกค้าที่ยังไล่อยู่",
+      value: num.live,
+      unit: "ราย",
+      accent: "#0EA5E9",
+      sub: React.createElement(React.Fragment, null, "\u0E08\u0E32\u0E01\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 ", React.createElement("b", null, L.length), " \u0E23\u0E32\u0E22"),
+      onClick: onGoBoard
+    }, {
+      label: "เลยวันติดตาม",
+      value: num.late,
+      unit: "ราย",
+      accent: "var(--text-3)",
+      alert: num.late > 0,
+      sub: num.late ? "ต้องโทรหาก่อนใคร" : "ตามทันทุกราย",
+      onClick: onGoList
+    }, {
+      label: "ปิดการขายเดือนนี้",
+      value: num.wonM,
+      unit: "ราย",
+      accent: "var(--primary)",
+      sub: num.sale > 0 ? "ยอด ฿" + fmtBaht(Math.round(num.sale)) : "ยังไม่มีใบที่ลูกค้าตกลง",
+      onClick: onGoKpi || onGoBoard
+    }]
+  }), React.createElement("div", {
+    className: "pnl",
+    style: num.late > 0 ? {
+      borderLeft: "3px solid #EF4444"
+    } : null
+  }, React.createElement(PanelTitle, {
+    title: "\u0E15\u0E49\u0E2D\u0E07\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21",
+    sub: num.late > 0 ? "เลยกำหนดแล้ว " + num.late + " ราย · ถึงกำหนดใน 7 วัน " + follow.length + " ราย" : "ถึงกำหนดใน 7 วัน " + follow.length + " ราย"
+  }), follow.length === 0 ? React.createElement(Empty, {
+    text: "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E0A\u0E48\u0E27\u0E07\u0E19\u0E35\u0E49"
+  }) : React.createElement("div", {
+    className: "rows",
+    style: {
+      maxHeight: 340,
+      overflowY: "auto"
+    }
+  }, follow.map(l => {
+    const late = sOverdue(l.nextFollow);
+    const now = String(l.nextFollow) === today;
+    const st = salesStageOf(salesStageKey(l));
+    return React.createElement("button", {
+      key: l.id,
+      onClick: () => openLead(l)
+    }, React.createElement("span", {
+      className: "mk",
+      style: {
+        background: late ? "#D93025" : now ? "#F59E0B" : st.color
+      }
+    }), React.createElement("span", {
+      className: "bd"
+    }, React.createElement("span", {
+      className: "nm"
+    }, l.name || "(ไม่ระบุชื่อ)"), React.createElement("span", {
+      className: "mt"
+    }, [l.code, l.province, st.th].filter(Boolean).join(" · "))), React.createElement("span", {
+      className: "when",
+      style: late ? {
+        color: "#D93025"
+      } : null
+    }, React.createElement("b", null, late ? "เลยกำหนด" : now ? "วันนี้" : "ติดตาม"), thDate(l.nextFollow)));
+  })), noDate > 0 && React.createElement("div", {
+    style: {
+      marginTop: 12,
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "* \u0E2D\u0E35\u0E01 ", React.createElement("b", null, noDate), " \u0E23\u0E32\u0E22\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E15\u0E31\u0E49\u0E07\u0E27\u0E31\u0E19\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21 \u2014 \u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E41\u0E25\u0E49\u0E27\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E01\u0E32\u0E23\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E15\u0E31\u0E49\u0E07\u0E27\u0E31\u0E19\u0E19\u0E31\u0E14\u0E16\u0E31\u0E14\u0E44\u0E1B")), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr" : "1.3fr 1fr",
+      gap: 18
+    }
+  }, React.createElement("div", {
+    className: "pnl"
+  }, React.createElement(PanelTitle, {
+    title: "\u0E02\u0E31\u0E49\u0E19\u0E01\u0E32\u0E23\u0E02\u0E32\u0E22",
+    sub: "\u0E04\u0E25\u0E34\u0E01\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E44\u0E1B\u0E17\u0E35\u0E48\u0E1A\u0E2D\u0E23\u0E4C\u0E14"
+  }), React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 11,
+      marginTop: 18
+    }
+  }, pipe.map(row => React.createElement("button", {
+    key: row.st.key,
+    onClick: onGoBoard,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      background: "none",
+      border: "none",
+      cursor: "pointer",
+      padding: 0,
+      fontFamily: "inherit",
+      textAlign: "left",
+      width: "100%"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 118,
+      flexShrink: 0,
+      display: "flex",
+      alignItems: "center",
+      gap: 7,
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: "var(--text-1)",
+      lineHeight: 1.25
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 8,
+      height: 8,
+      borderRadius: 99,
+      background: row.st.color,
+      flexShrink: 0
+    }
+  }), row.st.th), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      height: 10,
+      background: "var(--surface3)",
+      borderRadius: 99,
+      overflow: "hidden",
+      display: "block"
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      height: "100%",
+      width: Math.max(row.n / pipeMax * 100, row.n ? 5 : 0) + "%",
+      background: row.st.color,
+      borderRadius: 99,
+      transition: "width .6s cubic-bezier(.2,.8,.2,1)"
+    }
+  })), React.createElement("span", {
+    style: {
+      width: 30,
+      flexShrink: 0,
+      fontFamily: "var(--display)",
+      fontSize: 15,
+      fontWeight: 700,
+      letterSpacing: "-.03em",
+      fontVariantNumeric: "tabular-nums",
+      color: row.n ? "var(--text-1)" : "var(--text-3)",
+      textAlign: "right"
+    }
+  }, row.n)))), React.createElement("div", {
+    style: {
+      marginTop: 12,
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E21\u0E39\u0E25\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E25\u0E48\u0E2D\u0E22\u0E39\u0E48\u0E23\u0E27\u0E21 \u0E3F", fmtBaht(Math.round(pipe.filter(x => x.st.key !== "won" && x.st.key !== "lost").reduce((s, x) => s + x.val, 0))))), React.createElement("div", {
+    className: "pnl"
+  }, React.createElement(PanelTitle, {
+    title: "\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32\u0E17\u0E35\u0E48\u0E23\u0E2D\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E15\u0E2D\u0E1A",
+    sub: waiting.length + " ใบ"
+  }), waiting.length === 0 ? React.createElement(Empty, {
+    text: "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E23\u0E2D\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E15\u0E2D\u0E1A\u0E2D\u0E22\u0E39\u0E48"
+  }) : React.createElement("div", {
+    className: "rows",
+    style: {
+      maxHeight: 340,
+      overflowY: "auto"
+    }
+  }, waiting.map(q => {
+    const l = leadById[q.leadId];
+    const days = sDaysSince(q.sentAt || q.at);
+    const old = days != null && days >= 7;
+    return React.createElement("button", {
+      key: q.id,
+      onClick: () => openLead(l),
+      style: !l ? {
+        cursor: "default"
+      } : null
+    }, React.createElement("span", {
+      className: "mk",
+      style: {
+        background: old ? "#F59E0B" : QUOTE_STATUS_BY.sent.color
+      }
+    }), React.createElement("span", {
+      className: "bd"
+    }, React.createElement("span", {
+      className: "nm"
+    }, q.customer && q.customer.name || q.refCode || q.no), React.createElement("span", {
+      className: "mt"
+    }, [q.no, q.ownerName, "฿" + sBaht(quoteTotals(q).grand)].filter(Boolean).join(" · "))), React.createElement("span", {
+      className: "when",
+      style: old ? {
+        color: "#B45309"
+      } : null
+    }, React.createElement("b", null, "\u0E2A\u0E48\u0E07\u0E41\u0E25\u0E49\u0E27"), days == null ? "—" : days === 0 ? "วันนี้" : days + " วัน"));
+  })), waiting.length > 0 && React.createElement("div", {
+    style: {
+      marginTop: 12,
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "* \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2A\u0E48\u0E07\u0E44\u0E1B\u0E40\u0E01\u0E34\u0E19 7 \u0E27\u0E31\u0E19\u0E02\u0E36\u0E49\u0E19\u0E02\u0E35\u0E14\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E07 \u2014 \u0E04\u0E27\u0E23\u0E42\u0E17\u0E23\u0E15\u0E32\u0E21\u0E01\u0E48\u0E2D\u0E19\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E25\u0E37\u0E21"))));
+}
 function SalesJobSummary({
   job,
   quotes,
@@ -1996,5 +2292,6 @@ Object.assign(window, {
   SalesCard,
   SalesBoardView,
   SalesKpiView,
+  SalesOverview,
   SalesJobSummary
 });

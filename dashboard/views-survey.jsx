@@ -115,7 +115,7 @@ function SurveyView({ jobs, role, onOpen, onToggleSkip }) {
    อยู่คนละฐานกับงานติดตั้ง · ตกลงติดตั้งเมื่อไหร่ค่อยกด "แปลงเป็นงาน"
    ============================================================ */
 function LeadsView({ leadStore, appts, jobs, onMenuOpen, onOpenSurvey, onReport, onConvert, canConvert,
-                     users, currentUser, quotes, onOpenQuote, headRight }) {
+                     users, currentUser, quotes, onOpenQuote, headRight, focusId, onFocusDone }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [filter, setFilter] = React.useState("all");
   const [edit, setEdit] = React.useState(null);
@@ -141,6 +141,15 @@ function LeadsView({ leadStore, appts, jobs, onMenuOpen, onOpenSurvey, onReport,
     const arr = filter === "all" ? leads.slice() : leads.filter((l) => stageKey(l) === filter);
     return arr.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
   }, [leads, filter, stageKey]);
+
+  /* ถูกเจาะมาจากภาพรวมงานขาย — เปิดใบลูกค้ารายนั้นให้เลย แล้วเคลียร์ทันที
+     ไม่งั้นปิดใบแล้วมันเด้งกลับมาเปิดซ้ำทุกครั้งที่หน้านี้เรนเดอร์ใหม่ */
+  React.useEffect(() => {
+    if (!focusId) return;
+    const l = leads.find((x) => x.id === focusId);
+    if (l) setEdit({ lead: l, isNew: false });
+    if (onFocusDone) onFocusDone();
+  }, [focusId, leads]);
 
   const FILTERS = [{ key: "all", th: "ทั้งหมด", color: "var(--text-2)" }].concat(STATUS.map((s) => ({ key: s.key, th: s.th, color: s.color })));
 

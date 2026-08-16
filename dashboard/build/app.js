@@ -202,11 +202,15 @@ function App() {
   const fileFlags = useJobFileFlags();
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [view, setView] = React.useState("overview");
-  const [leadMode, setLeadModeRaw] = React.useState(() => localStorage.getItem("pg-leadmode") === "list" ? "list" : "board");
+  const [leadMode, setLeadModeRaw] = React.useState(() => {
+    const m = localStorage.getItem("pg-leadmode");
+    return m === "list" || m === "overview" ? m : "board";
+  });
   const setLeadMode = React.useCallback(m => {
     localStorage.setItem("pg-leadmode", m);
     setLeadModeRaw(m);
   }, []);
+  const [leadFocus, setLeadFocus] = React.useState(null);
   const [permitReview, setPermitReview] = React.useState(null);
   const [quoteOpen, setQuoteOpen] = React.useState(null);
   const [search, setSearch] = React.useState("");
@@ -696,7 +700,7 @@ function App() {
       background: "var(--surface2)",
       border: "1px solid var(--border)"
     }
-  }, [["board", "บอร์ด", "kanban"], ["list", "รายการ", "list"]].map(([k, th, ic]) => {
+  }, [["overview", "ภาพรวม", "grid"], ["board", "บอร์ด", "kanban"], ["list", "รายการ", "list"]].map(([k, th, ic]) => {
     const on = leadMode === k;
     return React.createElement("button", {
       key: k,
@@ -723,6 +727,25 @@ function App() {
       color: on ? "var(--primary-dark)" : "var(--text-3)"
     }), th);
   }));
+  const salesOverview = React.createElement(SalesOverview, {
+    leads: leadStore.leads,
+    quotes: quoteStore.quotes,
+    currentUser: auth.current,
+    onOpenLead: l => {
+      setView("leads");
+      setLeadMode("list");
+      setLeadFocus(l.id);
+    },
+    onGoBoard: () => {
+      setView("leads");
+      setLeadMode("board");
+    },
+    onGoList: () => {
+      setView("leads");
+      setLeadMode("list");
+    },
+    onGoKpi: can(role, "price") ? () => setView("saleskpi") : null
+  });
   const onSave = rec => {
     const prev = store.raw.find(r => r.id === rec.id);
     if (!prev && !rec.createdBy && auth.current) {
@@ -836,7 +859,14 @@ function App() {
     leadStore: leadStore,
     onMenuOpen: () => setSidebarOpen(true),
     onOpenJob: openJob
-  }) : view === "leads" && leadMode === "board" ? React.createElement(React.Fragment, null, React.createElement(window.SchedHeader, {
+  }) : view === "leads" && leadMode === "overview" ? React.createElement(React.Fragment, null, React.createElement(window.SchedHeader, {
+    title: "\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22",
+    sub: salesHead,
+    right: leadTabs,
+    onMenuOpen: () => setSidebarOpen(true)
+  }), React.createElement("div", {
+    className: "app-content"
+  }, salesOverview)) : view === "leads" && leadMode === "board" ? React.createElement(React.Fragment, null, React.createElement(window.SchedHeader, {
     title: "\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22",
     sub: salesHead,
     right: leadTabs,
@@ -856,6 +886,8 @@ function App() {
     currentUser: auth.current,
     quotes: quoteStore.quotes,
     headRight: leadTabs,
+    focusId: leadFocus,
+    onFocusDone: () => setLeadFocus(null),
     onMenuOpen: () => setSidebarOpen(true),
     onOpenSurvey: can(role, "doSurvey") || can(role, "dispatch") ? pseudo => openSurvey(pseudo) : null,
     onReport: pseudo => setReportJob(pseudo),
@@ -927,14 +959,14 @@ function App() {
       flexDirection: "column",
       minHeight: 0
     } : {}
-  }, view === "overview" && React.createElement(OverviewView, {
+  }, view === "overview" && (salesOnly ? salesOverview : React.createElement(OverviewView, {
     jobs: filtered,
     schedule: myScheduleItems,
     onOpen: openJob,
     onStage: goStage,
     onKpi: goKpi,
     stock: stock
-  }), view === "board" && (permitOnly ? permitView : React.createElement(KanbanView, {
+  })), view === "board" && (permitOnly ? permitView : React.createElement(KanbanView, {
     jobs: filtered,
     onOpen: openJob,
     onMoveStage: (id, s) => store.setStage(id, s)

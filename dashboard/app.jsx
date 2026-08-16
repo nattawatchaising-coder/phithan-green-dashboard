@@ -125,8 +125,13 @@ function App() {
   const [view, setView] = React.useState("overview");
   /* หน้า "งานขาย" มีสองมุมบนข้อมูลชุดเดียวกัน — บอร์ด (ภาพรวมว่าใครค้างขั้นไหน) กับ
      รายการ (ที่เดียวที่ทำอะไรกับลูกค้าได้ครบ) · จำมุมล่าสุดไว้ให้แต่ละเครื่อง */
-  const [leadMode, setLeadModeRaw] = React.useState(() => (localStorage.getItem("pg-leadmode") === "list" ? "list" : "board"));
+  const [leadMode, setLeadModeRaw] = React.useState(() => {
+    const m = localStorage.getItem("pg-leadmode");
+    return (m === "list" || m === "overview") ? m : "board";
+  });
   const setLeadMode = React.useCallback((m) => { localStorage.setItem("pg-leadmode", m); setLeadModeRaw(m); }, []);
+  /* ลูกค้าที่สั่งให้เปิดใบทันทีหลังสลับมามุมรายการ (กดมาจากภาพรวมงานขาย) */
+  const [leadFocus, setLeadFocus] = React.useState(null);
   /* ชุดข้อมูลขออนุญาตที่เปิดอยู่ — อยู่ระดับแอป จะได้เปิดได้ทั้งจากบอร์ดและจากในใบงาน */
   const [permitReview, setPermitReview] = React.useState(null);
   /* ใบเสนอราคาที่เปิดอยู่ — เหตุผลเดียวกัน เปิดได้ทั้งจากหน้าลูกค้าสำรวจและจากในใบงาน */
@@ -494,7 +499,7 @@ function App() {
   /* ปุ่มสลับมุมของหน้า "งานขาย" — วางไว้บนหัวหน้าทั้งสองมุม ตำแหน่งเดียวกันจะได้กดสลับไปมาได้ */
   const leadTabs = (
     <div style={{ display: "inline-flex", gap: 4, padding: 3, borderRadius: 99, background: "var(--surface2)", border: "1px solid var(--border)" }}>
-      {[["board", "บอร์ด", "kanban"], ["list", "รายการ", "list"]].map(([k, th, ic]) => {
+      {[["overview", "ภาพรวม", "grid"], ["board", "บอร์ด", "kanban"], ["list", "รายการ", "list"]].map(([k, th, ic]) => {
         const on = leadMode === k;
         return (
           <button key={k} onClick={() => setLeadMode(k)} title={th}
@@ -507,6 +512,16 @@ function App() {
         );
       })}
     </div>
+  );
+
+  /* ภาพรวมงานขาย — คนที่เป็นเซลล์อย่างเดียวเห็นแทนภาพรวมงานติดตั้ง (ซึ่งไม่มีแผงไหนเกี่ยวกับเขาเลย)
+     และทุกคนเปิดดูได้จากมุม "ภาพรวม" ในหน้างานขาย */
+  const salesOverview = (
+    <SalesOverview leads={leadStore.leads} quotes={quoteStore.quotes} currentUser={auth.current}
+      onOpenLead={(l) => { setView("leads"); setLeadMode("list"); setLeadFocus(l.id); }}
+      onGoBoard={() => { setView("leads"); setLeadMode("board"); }}
+      onGoList={() => { setView("leads"); setLeadMode("list"); }}
+      onGoKpi={can(role, "price") ? () => setView("saleskpi") : null} />
   );
 
   const onSave = (rec) => {
@@ -576,6 +591,11 @@ function App() {
         ) : view === "dispatch" ? (
           <DispatchView appts={apptStore.appts} jobs={jobs} techs={techStore.techs} store={apptStore} leadStore={leadStore}
             onMenuOpen={() => setSidebarOpen(true)} onOpenJob={openJob} />
+        ) : (view === "leads" && leadMode === "overview") ? (
+          <React.Fragment>
+            <window.SchedHeader title="งานขาย" sub={salesHead} right={leadTabs} onMenuOpen={() => setSidebarOpen(true)} />
+            <div className="app-content">{salesOverview}</div>
+          </React.Fragment>
         ) : (view === "leads" && leadMode === "board") ? (
           <React.Fragment>
             <window.SchedHeader title="งานขาย" sub={salesHead} right={leadTabs} onMenuOpen={() => setSidebarOpen(true)} />
@@ -585,6 +605,7 @@ function App() {
           <LeadsView leadStore={leadStore} appts={apptStore.appts} jobs={jobs}
             users={auth.users} currentUser={auth.current} quotes={quoteStore.quotes}
             headRight={leadTabs}
+            focusId={leadFocus} onFocusDone={() => setLeadFocus(null)}
             onMenuOpen={() => setSidebarOpen(true)}
             onOpenSurvey={(can(role, "doSurvey") || can(role, "dispatch")) ? (pseudo) => openSurvey(pseudo) : null}
             onReport={(pseudo) => setReportJob(pseudo)}
@@ -618,7 +639,8 @@ function App() {
           onMenuOpen={() => setSidebarOpen(true)} />
 
         <div className="app-content" style={view === "board" ? { display: "flex", flexDirection: "column", minHeight: 0 } : {}}>
-          {view === "overview" && <OverviewView jobs={filtered} schedule={myScheduleItems} onOpen={openJob} onStage={goStage} onKpi={goKpi} stock={stock} />}
+          {view === "overview" && (salesOnly ? salesOverview
+            : <OverviewView jobs={filtered} schedule={myScheduleItems} onOpen={openJob} onStage={goStage} onKpi={goKpi} stock={stock} />)}
           {view === "board" && (permitOnly ? permitView : <KanbanView jobs={filtered} onOpen={openJob} onMoveStage={(id, s) => store.setStage(id, s)} />)}
           {view === "table" && <TableView jobs={filtered} onOpen={openJob}
             onEdit={(j) => setForm({ job: store.raw.find((r) => r.id === j.id), isNew: false })}

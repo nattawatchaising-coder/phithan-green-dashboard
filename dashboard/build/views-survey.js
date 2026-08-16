@@ -311,7 +311,9 @@ function LeadsView({
   currentUser,
   quotes,
   onOpenQuote,
-  headRight
+  headRight,
+  focusId,
+  onFocusDone
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [filter, setFilter] = React.useState("all");
@@ -342,6 +344,15 @@ function LeadsView({
     const arr = filter === "all" ? leads.slice() : leads.filter(l => stageKey(l) === filter);
     return arr.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
   }, [leads, filter, stageKey]);
+  React.useEffect(() => {
+    if (!focusId) return;
+    const l = leads.find(x => x.id === focusId);
+    if (l) setEdit({
+      lead: l,
+      isNew: false
+    });
+    if (onFocusDone) onFocusDone();
+  }, [focusId, leads]);
   const FILTERS = [{
     key: "all",
     th: "ทั้งหมด",
