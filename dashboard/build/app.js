@@ -220,7 +220,10 @@ function App() {
   const isMobile = useIsMobile();
   const role = React.useMemo(() => auth.current ? userRoles(auth.current) : [], [auth.current]);
   const techId = auth.current ? auth.current.techId : null;
-  const ownOnly = !!auth.current && !can(role, "viewAll");
+  const roleCfg = useRoleConfig();
+  const scope = React.useMemo(() => jobScopeOf(role), [role, roleCfg.rev]);
+  const inScope = React.useCallback(j => !auth.current || jobInScope(j, scope, auth.current), [scope, auth.current]);
+  const ownOnly = !!auth.current && !scope.all;
   React.useEffect(() => {
     if (!isMobile) setSidebarOpen(false);
   }, [isMobile]);
@@ -255,10 +258,10 @@ function App() {
       if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return false;
       if (quickFilter === "battery" && !j.battery) return false;
       if (techFilter && !matchTech(j, techFilter, techIds)) return false;
-      if (ownOnly && j.tech !== techId) return false;
+      if (!inScope(j)) return false;
       return true;
     });
-  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techFilter, techIds, ownOnly, techId]);
+  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techFilter, techIds, inScope]);
   const techCounts = React.useMemo(() => {
     const q = search.trim().toLowerCase();
     const c = {};
@@ -272,14 +275,14 @@ function App() {
       if (quickFilter === "delayed" && !j.delayed) return;
       if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return;
       if (quickFilter === "battery" && !j.battery) return;
-      if (ownOnly && j.tech !== techId) return;
+      if (!inScope(j)) return;
       const k = techKey(j, techIds);
       c[k] = (c[k] || 0) + 1;
       all++;
     });
     c.__all = all;
     return c;
-  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techIds, ownOnly, techId]);
+  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techIds, inScope]);
   const stageCounts = React.useMemo(() => {
     const q = search.trim().toLowerCase();
     const c = {};
@@ -293,29 +296,29 @@ function App() {
       if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return;
       if (quickFilter === "battery" && !j.battery) return;
       if (techFilter && !matchTech(j, techFilter, techIds)) return;
-      if (ownOnly && j.tech !== techId) return;
+      if (!inScope(j)) return;
       c[j.stage] = (c[j.stage] || 0) + 1;
       all++;
     });
     c.__all = all;
     return c;
-  }, [jobs, search, typeFilter, delayedOnly, quickFilter, techFilter, techIds, ownOnly, techId]);
+  }, [jobs, search, typeFilter, delayedOnly, quickFilter, techFilter, techIds, inScope]);
   const lateAlerts = React.useMemo(() => {
-    const scope = can(role, "viewAll") ? jobs : jobs.filter(j => j.tech === techId);
+    const mine = jobs.filter(inScope);
     const out = [];
-    scope.forEach(j => (j.lateStages || []).forEach(ls => out.push({
+    mine.forEach(j => (j.lateStages || []).forEach(ls => out.push({
       jobId: j.id,
       jobName: j.name,
       stage: ls
     })));
     return out.sort((a, b) => b.stage.daysLate - a.stage.daysLate);
-  }, [jobs, role, ownOnly, techId]);
+  }, [jobs, inScope]);
   const todayTasks = React.useMemo(() => {
-    const scope = can(role, "viewAll") ? jobs : jobs.filter(j => j.tech === techId);
+    const mine = jobs.filter(inScope);
     const today = window.SF.TODAY;
     const inst = window.SF.STAGES.find(s => s.key === "install");
     const out = [];
-    scope.forEach(j => {
+    mine.forEach(j => {
       if (j.stage === "done") return;
       const s0 = j.startDate,
         e0 = j.deadline || j.startDate;
@@ -329,7 +332,7 @@ function App() {
       });
     });
     return out;
-  }, [jobs, role, ownOnly, techId]);
+  }, [jobs, inScope]);
   const myScheduleItems = React.useMemo(() => {
     const all = window.buildMySchedItems ? window.buildMySchedItems(apptStore.appts, jobs, techId) : [];
     const today = window.SF.TODAY;
@@ -489,6 +492,10 @@ function App() {
       type: lead.type || "home",
       note: lead.note || ""
     });
+    if (auth.current) {
+      rec.createdBy = auth.current.id;
+      rec.createdByName = auth.current.name || "";
+    }
     if (lead.province) rec.province = lead.province;
     if (lead.phase) rec.phase = lead.phase;
     if (lead.roof) rec.roof = lead.roof;
@@ -511,6 +518,10 @@ function App() {
   const selectedJob = jobs.find(j => j.id === selected) || null;
   const onSave = rec => {
     const prev = store.raw.find(r => r.id === rec.id);
+    if (!prev && !rec.createdBy && auth.current) {
+      rec.createdBy = auth.current.id;
+      rec.createdByName = auth.current.name || "";
+    }
     store.upsert(rec);
     if (rec.tech && (!prev || prev.tech !== rec.tech)) {
       notif.addNotif({
@@ -836,6 +847,7 @@ function App() {
     onClose: () => setBrandMgr(false)
   }), userMgr && can(role, "manageUsers") && React.createElement(UserManager, {
     authStore: auth,
+    roleCfg: roleCfg,
     onClose: () => setUserMgr(false)
   }), briefingOpen && React.createElement(DailyBriefing, {
     lateAlerts: lateAlerts,

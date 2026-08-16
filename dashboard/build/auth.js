@@ -102,7 +102,7 @@ function userRoles(u) {
   });
   return out.length ? out : ["tech"];
 }
-const PERMS = {
+const DEFAULT_PERMS = {
   admin: {
     viewAll: 1,
     addJob: 1,
@@ -164,6 +164,213 @@ const PERMS = {
     leads: 1
   }
 };
+const PERM_LIST = [{
+  key: "viewAll",
+  th: "เข้าหน้าฐานข้อมูลงาน / รายงาน",
+  desc: "ปิดแล้วจะเห็นแค่บอร์ดงานกับตารางของตัวเอง"
+}, {
+  key: "addJob",
+  th: "เปิดงานใหม่",
+  desc: "กดปุ่มเพิ่มงานได้"
+}, {
+  key: "editJob",
+  th: "แก้ไขงาน / เดินขั้นตอน",
+  desc: "แก้ข้อมูลงานและเปลี่ยนขั้นตอนได้"
+}, {
+  key: "delJob",
+  th: "ลบงาน",
+  desc: "ลบลงถังขยะและกู้คืน"
+}, {
+  key: "price",
+  th: "เห็นราคาและต้นทุน",
+  desc: "ราคาขาย ต้นทุนของ ค่าแรง และ BOQ"
+}, {
+  key: "leads",
+  th: "หน้าลูกค้าสำรวจ",
+  desc: "รายชื่อลูกค้าที่ยังไม่เปิดเป็นงาน"
+}, {
+  key: "dispatch",
+  th: "จัดตารางสำรวจ",
+  desc: "นัดวันสำรวจและมอบหมายผู้สำรวจ"
+}, {
+  key: "doSurvey",
+  th: "ทำแบบสำรวจหน้างาน",
+  desc: "กรอกแบบสำรวจและถ่ายรูปหน้างาน"
+}, {
+  key: "design",
+  th: "เขียนแบบ · 3D · ออกไฟล์ DXF",
+  desc: "เครื่องมือออกแบบและออกไฟล์แบบ"
+}, {
+  key: "permit",
+  th: "งานขออนุญาตการไฟฟ้า",
+  desc: "คิวงานขออนุญาต ตรวจงาน เดินสถานะ"
+}, {
+  key: "stock",
+  th: "คลังสินค้า",
+  desc: "ดูและตัดสต๊อก"
+}, {
+  key: "manageUsers",
+  th: "จัดการผู้ใช้และสิทธิ์",
+  desc: "เพิ่ม/ลบบัญชี และแก้ตารางสิทธิ์นี้"
+}];
+const SCOPE_MODES = [{
+  key: "all",
+  th: "ทุกงานในระบบ",
+  desc: "เห็นงานทั้งหมดเหมือนที่เป็นอยู่"
+}, {
+  key: "assigned",
+  th: "เฉพาะงานที่รับผิดชอบ",
+  desc: "งานที่ถูกมอบหมายให้บัญชีนี้ (ต้องผูกกับพนักงานในระบบ)"
+}, {
+  key: "created",
+  th: "เฉพาะงานที่ตัวเองเปิด",
+  desc: "งานที่บัญชีนี้เป็นคนกดเพิ่ม · งานเก่าที่ไม่ได้บันทึกผู้เปิดไว้จะไม่เข้าเงื่อนไข"
+}, {
+  key: "stages",
+  th: "เฉพาะงานในขั้นที่เลือก",
+  desc: "เช่น ฝ่ายขออนุญาตเห็นเฉพาะงานที่ติดตั้งเสร็จแล้ว"
+}];
+const DEFAULT_SCOPE = {
+  admin: {
+    mode: "all",
+    stages: []
+  },
+  lead: {
+    mode: "all",
+    stages: []
+  },
+  ee: {
+    mode: "all",
+    stages: []
+  },
+  draft: {
+    mode: "all",
+    stages: []
+  },
+  tech: {
+    mode: "assigned",
+    stages: []
+  },
+  permit: {
+    mode: "all",
+    stages: []
+  },
+  sales: {
+    mode: "all",
+    stages: []
+  }
+};
+let PERMS = JSON.parse(JSON.stringify(DEFAULT_PERMS));
+let ROLE_SCOPE = JSON.parse(JSON.stringify(DEFAULT_SCOPE));
+function applyRoleConfig(cfg) {
+  PERMS = JSON.parse(JSON.stringify(DEFAULT_PERMS));
+  ROLE_SCOPE = JSON.parse(JSON.stringify(DEFAULT_SCOPE));
+  if (!cfg) return;
+  ROLE_KEYS.forEach(r => {
+    const c = cfg[r];
+    if (!c) return;
+    if (c.perms) {
+      const p = {};
+      PERM_LIST.forEach(x => {
+        if (c.perms[x.key]) p[x.key] = 1;
+      });
+      PERMS[r] = p;
+    }
+    if (c.scope && c.scope.mode) {
+      ROLE_SCOPE[r] = {
+        mode: c.scope.mode,
+        stages: Array.isArray(c.scope.stages) ? c.scope.stages : []
+      };
+    }
+  });
+  PERMS.admin = Object.assign({}, PERMS.admin, {
+    manageUsers: 1
+  });
+}
+function roleConfigNow() {
+  const out = {};
+  ROLE_KEYS.forEach(r => {
+    out[r] = {
+      perms: Object.assign({}, PERMS[r]),
+      scope: Object.assign({}, ROLE_SCOPE[r])
+    };
+  });
+  return out;
+}
+function jobScopeOf(roles) {
+  const arr = Array.isArray(roles) ? roles : roles ? [roles] : [];
+  const out = {
+    all: false,
+    assigned: false,
+    created: false,
+    stages: []
+  };
+  arr.forEach(r => {
+    const k = ROLE_ALIAS[r] || r;
+    const sc = ROLE_SCOPE[k] || DEFAULT_SCOPE[k] || {
+      mode: "all"
+    };
+    if (sc.mode === "all") out.all = true;else if (sc.mode === "assigned") out.assigned = true;else if (sc.mode === "created") out.created = true;else if (sc.mode === "stages") (sc.stages || []).forEach(s => {
+      if (out.stages.indexOf(s) === -1) out.stages.push(s);
+    });
+  });
+  return out;
+}
+function jobInScope(job, scope, user) {
+  if (!scope || scope.all) return true;
+  if (!job) return false;
+  if (scope.assigned && user && user.techId && job.tech === user.techId) return true;
+  if (scope.created && user && job.createdBy && job.createdBy === user.id) return true;
+  if (scope.stages.length && scope.stages.indexOf(job.stage) !== -1) return true;
+  return false;
+}
+function useRoleConfig() {
+  const [cfg, setCfg] = React.useState(null);
+  const [rev, setRev] = React.useState(0);
+  React.useEffect(() => {
+    if (!_AFB()) {
+      applyRoleConfig(null);
+      return;
+    }
+    const ref = _aref("rolePerms");
+    const h = ref.on("value", s => {
+      const v = s.val();
+      applyRoleConfig(v && typeof v === "object" ? v : null);
+      setCfg(v || null);
+      setRev(n => n + 1);
+    });
+    return () => ref.off("value", h);
+  }, []);
+  const saveRole = React.useCallback((roleKey, patch) => {
+    const cur = roleConfigNow()[roleKey] || {
+      perms: {},
+      scope: {
+        mode: "all",
+        stages: []
+      }
+    };
+    const next = Object.assign({}, cur, patch);
+    if (_AFB()) _aref("rolePerms/" + roleKey).set(next);else {
+      applyRoleConfig(Object.assign(roleConfigNow(), {
+        [roleKey]: next
+      }));
+      setRev(n => n + 1);
+    }
+  }, []);
+  const resetAll = React.useCallback(() => {
+    if (_AFB()) _aref("rolePerms").remove();else {
+      applyRoleConfig(null);
+      setRev(n => n + 1);
+    }
+  }, []);
+  return {
+    cfg,
+    rev,
+    saveRole,
+    resetAll,
+    custom: !!cfg
+  };
+}
 function can(roles, action) {
   const arr = Array.isArray(roles) ? roles : roles ? [roles] : [];
   return arr.some(r => {
@@ -849,12 +1056,391 @@ function NotifPanel({
     }
   }))))));
 }
+function RolePermsEditor({
+  roleCfg
+}) {
+  const [open, setOpen] = React.useState(ROLE_KEYS[0]);
+  const [askReset, setAskReset] = React.useState(false);
+  const STAGES = window.SF && window.SF.STAGES || [];
+  const togglePerm = (r, key) => {
+    const perms = Object.assign({}, PERMS[r]);
+    if (perms[key]) delete perms[key];else perms[key] = 1;
+    roleCfg.saveRole(r, {
+      perms
+    });
+  };
+  const setScope = (r, mode) => roleCfg.saveRole(r, {
+    scope: {
+      mode,
+      stages: (ROLE_SCOPE[r] || {}).stages || []
+    }
+  });
+  const toggleStage = (r, key) => {
+    const cur = ((ROLE_SCOPE[r] || {}).stages || []).slice();
+    const i = cur.indexOf(key);
+    if (i === -1) cur.push(key);else cur.splice(i, 1);
+    roleCfg.saveRole(r, {
+      scope: {
+        mode: "stages",
+        stages: cur
+      }
+    });
+  };
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 9
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "10px 13px",
+      borderRadius: 11,
+      background: "var(--tint-amber-bg)",
+      border: "1px solid var(--tint-amber-bd)",
+      fontSize: 11.5,
+      color: "var(--tint-amber-tx)",
+      lineHeight: 1.55
+    }
+  }, "\u0E41\u0E01\u0E49\u0E41\u0E25\u0E49\u0E27\u0E21\u0E35\u0E1C\u0E25\u0E17\u0E31\u0E19\u0E17\u0E35\u0E01\u0E31\u0E1A\u0E17\u0E38\u0E01\u0E04\u0E19\u0E17\u0E35\u0E48\u0E16\u0E37\u0E2D\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07\u0E19\u0E31\u0E49\u0E19 \xB7 \u0E04\u0E19\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E04\u0E19\u0E16\u0E37\u0E2D\u0E44\u0E14\u0E49\u0E2B\u0E25\u0E32\u0E22\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07 \u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E30\u0E23\u0E27\u0E21\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E43\u0E2B\u0E49\u0E41\u0E1A\u0E1A \u201C\u0E01\u0E27\u0E49\u0E32\u0E07\u0E2A\u0E38\u0E14\u0E0A\u0E19\u0E30\u201D", React.createElement("span", {
+    style: {
+      display: "block",
+      marginTop: 2
+    }
+  }, "\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C \u201C\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E41\u0E25\u0E30\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u201D \u0E02\u0E2D\u0E07\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E1B\u0E34\u0E14\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E01\u0E31\u0E19\u0E25\u0E47\u0E2D\u0E01\u0E15\u0E31\u0E27\u0E40\u0E2D\u0E07\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A")), ROLE_KEYS.map(r => {
+    const info = ROLE_INFO[r];
+    const on = open === r;
+    const sc = ROLE_SCOPE[r] || {
+      mode: "all",
+      stages: []
+    };
+    const nPerm = Object.keys(PERMS[r] || {}).length;
+    const scLabel = (SCOPE_MODES.find(m => m.key === sc.mode) || SCOPE_MODES[0]).th;
+    return React.createElement("div", {
+      key: r,
+      style: {
+        borderRadius: 13,
+        border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
+        background: "var(--surface)",
+        overflow: "hidden"
+      }
+    }, React.createElement("button", {
+      onClick: () => setOpen(on ? null : r),
+      style: {
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        gap: 11,
+        padding: "11px 13px",
+        border: "none",
+        background: on ? "var(--primary-soft)" : "var(--surface)",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        textAlign: "left"
+      }
+    }, React.createElement("span", {
+      style: {
+        width: 30,
+        height: 30,
+        borderRadius: 9,
+        flexShrink: 0,
+        display: "grid",
+        placeItems: "center",
+        background: info.color + "22"
+      }
+    }, React.createElement(Icon, {
+      name: info.icon,
+      size: 15,
+      color: info.color
+    })), React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 13.5,
+        fontWeight: 700,
+        color: "var(--text-1)"
+      }
+    }, info.th), React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 11,
+        color: "var(--text-3)",
+        marginTop: 1
+      }
+    }, scLabel, " \xB7 ", nPerm, " \u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C")), React.createElement(Icon, {
+      name: "chevronDown",
+      size: 15,
+      color: "var(--text-3)",
+      style: {
+        flexShrink: 0,
+        transform: on ? "rotate(180deg)" : "none",
+        transition: "transform .18s"
+      }
+    })), on && React.createElement("div", {
+      style: {
+        padding: "4px 13px 14px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 13,
+        borderTop: "1px solid var(--border)"
+      }
+    }, React.createElement("div", null, React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        fontWeight: 800,
+        letterSpacing: ".04em",
+        color: "var(--text-3)",
+        margin: "12px 0 7px"
+      }
+    }, "\u0E40\u0E2B\u0E47\u0E19\u0E07\u0E32\u0E19\u0E41\u0E1A\u0E1A\u0E44\u0E2B\u0E19"), React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 6
+      }
+    }, SCOPE_MODES.map(m => {
+      const sel = sc.mode === m.key;
+      return React.createElement("button", {
+        key: m.key,
+        onClick: () => setScope(r, m.key),
+        style: {
+          display: "flex",
+          gap: 10,
+          alignItems: "flex-start",
+          padding: "9px 11px",
+          borderRadius: 10,
+          cursor: "pointer",
+          fontFamily: "inherit",
+          textAlign: "left",
+          width: "100%",
+          border: "1px solid " + (sel ? "var(--primary)" : "var(--border)"),
+          background: sel ? "var(--primary-soft)" : "var(--surface2)"
+        }
+      }, React.createElement("span", {
+        style: {
+          width: 16,
+          height: 16,
+          borderRadius: 99,
+          flexShrink: 0,
+          marginTop: 1,
+          display: "grid",
+          placeItems: "center",
+          border: "2px solid " + (sel ? "var(--primary)" : "var(--border-strong)")
+        }
+      }, sel && React.createElement("span", {
+        style: {
+          width: 8,
+          height: 8,
+          borderRadius: 99,
+          background: "var(--primary)"
+        }
+      })), React.createElement("span", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, React.createElement("span", {
+        style: {
+          display: "block",
+          fontSize: 12.5,
+          fontWeight: 700,
+          color: sel ? "var(--primary-dark)" : "var(--text-1)"
+        }
+      }, m.th), React.createElement("span", {
+        style: {
+          display: "block",
+          fontSize: 10.5,
+          color: "var(--text-3)",
+          marginTop: 1,
+          lineHeight: 1.45
+        }
+      }, m.desc)));
+    })), sc.mode === "stages" && React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 6,
+        flexWrap: "wrap",
+        marginTop: 9
+      }
+    }, STAGES.map(s => {
+      const sel = (sc.stages || []).indexOf(s.key) !== -1;
+      return React.createElement("button", {
+        key: s.key,
+        onClick: () => toggleStage(r, s.key),
+        style: {
+          padding: "6px 12px",
+          borderRadius: 99,
+          cursor: "pointer",
+          fontFamily: "inherit",
+          fontSize: 11.5,
+          fontWeight: 700,
+          border: "1px solid " + (sel ? "transparent" : "var(--border)"),
+          background: sel ? s.color : "var(--surface2)",
+          color: sel ? "#fff" : "var(--text-2)"
+        }
+      }, s.th);
+    }), (sc.stages || []).length === 0 && React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--tint-red-tx)",
+        fontWeight: 600,
+        alignSelf: "center"
+      }
+    }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E02\u0E31\u0E49\u0E19\u0E44\u0E2B\u0E19\u0E40\u0E25\u0E22 \u2014 \u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49\u0E08\u0E30\u0E44\u0E21\u0E48\u0E40\u0E2B\u0E47\u0E19\u0E07\u0E32\u0E19\u0E2A\u0E31\u0E01\u0E43\u0E1A"))), React.createElement("div", null, React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        fontWeight: 800,
+        letterSpacing: ".04em",
+        color: "var(--text-3)",
+        marginBottom: 7
+      }
+    }, "\u0E17\u0E33\u0E2D\u0E30\u0E44\u0E23\u0E44\u0E14\u0E49\u0E1A\u0E49\u0E32\u0E07"), React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 5
+      }
+    }, PERM_LIST.map(p => {
+      const sel = !!(PERMS[r] || {})[p.key];
+      const locked = r === "admin" && p.key === "manageUsers";
+      return React.createElement("button", {
+        key: p.key,
+        onClick: () => !locked && togglePerm(r, p.key),
+        disabled: locked,
+        style: {
+          display: "flex",
+          gap: 10,
+          alignItems: "flex-start",
+          padding: "8px 11px",
+          borderRadius: 10,
+          cursor: locked ? "default" : "pointer",
+          fontFamily: "inherit",
+          textAlign: "left",
+          width: "100%",
+          border: "1px solid " + (sel ? "var(--primary)" : "var(--border)"),
+          background: sel ? "var(--primary-soft)" : "var(--surface2)",
+          opacity: locked ? .65 : 1
+        }
+      }, React.createElement("span", {
+        style: {
+          width: 17,
+          height: 17,
+          borderRadius: 5,
+          flexShrink: 0,
+          marginTop: 1,
+          display: "grid",
+          placeItems: "center",
+          background: sel ? "var(--primary)" : "var(--surface)",
+          border: "1px solid " + (sel ? "var(--primary)" : "var(--border-strong)")
+        }
+      }, sel && React.createElement(Icon, {
+        name: "check",
+        size: 11,
+        color: "#fff",
+        sw: 3
+      })), React.createElement("span", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, React.createElement("span", {
+        style: {
+          display: "block",
+          fontSize: 12.5,
+          fontWeight: 700,
+          color: sel ? "var(--primary-dark)" : "var(--text-2)"
+        }
+      }, p.th, locked && React.createElement("span", {
+        style: {
+          fontSize: 10,
+          color: "var(--text-3)",
+          fontWeight: 600
+        }
+      }, " \xB7 \u0E25\u0E47\u0E2D\u0E01\u0E44\u0E27\u0E49")), React.createElement("span", {
+        style: {
+          display: "block",
+          fontSize: 10.5,
+          color: "var(--text-3)",
+          marginTop: 1,
+          lineHeight: 1.45
+        }
+      }, p.desc)));
+    })))));
+  }), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "center",
+      flexWrap: "wrap",
+      marginTop: 2
+    }
+  }, askReset ? React.createElement(React.Fragment, null, React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--tint-red-tx)",
+      fontWeight: 700
+    }
+  }, "\u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E17\u0E38\u0E01\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19?"), React.createElement("button", {
+    onClick: () => {
+      roleCfg.resetAll();
+      setAskReset(false);
+    },
+    style: {
+      padding: "8px 15px",
+      borderRadius: 9,
+      border: "none",
+      background: "#EF4444",
+      color: "#fff",
+      fontWeight: 700,
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      cursor: "pointer"
+    }
+  }, "\u0E04\u0E37\u0E19\u0E04\u0E48\u0E32"), React.createElement("button", {
+    onClick: () => setAskReset(false),
+    style: {
+      padding: "8px 15px",
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-2)",
+      fontWeight: 600,
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      cursor: "pointer"
+    }
+  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01")) : React.createElement("button", {
+    onClick: () => setAskReset(true),
+    style: {
+      padding: "8px 15px",
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-2)",
+      fontWeight: 600,
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      cursor: "pointer"
+    }
+  }, "\u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14"), React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, roleCfg.custom ? "ใช้ค่าที่ตั้งเอง" : "ใช้ค่าตั้งต้นของระบบ")));
+}
 function UserManager({
   authStore,
-  onClose
+  onClose,
+  roleCfg
 }) {
   const bdClose = window.useBackdropClose(onClose);
   const users = authStore.users;
+  const [tab, setTab] = React.useState("users");
   const [editing, setEditing] = React.useState(null);
   const [q, setQ] = React.useState("");
   const [filter, setFilter] = React.useState("all");
@@ -974,12 +1560,12 @@ function UserManager({
       color: "var(--text-1)",
       margin: 0
     }
-  }, "\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19"), React.createElement("span", {
+  }, tab === "perms" ? "สิทธิ์ตามตำแหน่ง" : "จัดการผู้ใช้งาน"), React.createElement("span", {
     style: {
       fontSize: 12,
       color: "var(--text-3)"
     }
-  }, users.length, " \u0E1A\u0E31\u0E0D\u0E0A\u0E35 \xB7 \u0E2B\u0E19\u0E36\u0E48\u0E07\u0E04\u0E19\u0E16\u0E37\u0E2D\u0E44\u0E14\u0E49\u0E2B\u0E25\u0E32\u0E22\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07"))), React.createElement("button", {
+  }, tab === "perms" ? "ตั้งเองได้ว่าแต่ละตำแหน่งเห็นงานไหน ทำอะไรได้" : users.length + " บัญชี · หนึ่งคนถือได้หลายตำแหน่ง"))), React.createElement("button", {
     onClick: onClose,
     style: {
       width: 34,
@@ -997,8 +1583,33 @@ function UserManager({
     size: 17
   }))), React.createElement("div", {
     style: {
+      display: "flex",
+      gap: 4,
+      marginTop: 13,
+      padding: 3,
+      borderRadius: 11,
+      background: "var(--surface2)"
+    }
+  }, [["users", "บัญชีผู้ใช้"], ["perms", "สิทธิ์ตำแหน่ง"]].map(([k, th]) => React.createElement("button", {
+    key: k,
+    onClick: () => setTab(k),
+    style: {
+      flex: 1,
+      padding: "8px 10px",
+      borderRadius: 9,
+      border: "none",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 13,
+      fontWeight: 700,
+      background: tab === k ? "var(--surface)" : "transparent",
+      color: tab === k ? "var(--primary-dark)" : "var(--text-3)",
+      boxShadow: tab === k ? "0 1px 3px rgba(8,20,14,.12)" : "none"
+    }
+  }, th))), tab === "users" ? React.createElement(React.Fragment, null, React.createElement("div", {
+    style: {
       position: "relative",
-      marginTop: 14
+      marginTop: 12
     }
   }, React.createElement("span", {
     style: {
@@ -1030,7 +1641,23 @@ function UserManager({
       paddingBottom: 13,
       overflowX: "auto"
     }
-  }, chip("all", "ทั้งหมด", counts.all), ROLE_KEYS.map(r => chip(r, ROLE_INFO[r].short, counts[r])), counts.off > 0 && chip("off", "ระงับอยู่", counts.off))), React.createElement("div", {
+  }, chip("all", "ทั้งหมด", counts.all), ROLE_KEYS.map(r => chip(r, ROLE_INFO[r].short, counts[r])), counts.off > 0 && chip("off", "ระงับอยู่", counts.off))) : React.createElement("div", {
+    style: {
+      height: 14
+    }
+  })), tab === "perms" ? React.createElement("div", {
+    style: {
+      overflowY: "auto",
+      padding: 16,
+      borderTop: "1px solid var(--border)"
+    }
+  }, React.createElement(RolePermsEditor, {
+    roleCfg: roleCfg || {
+      saveRole: () => {},
+      resetAll: () => {},
+      custom: false
+    }
+  })) : React.createElement("div", {
     style: {
       overflowY: "auto",
       padding: 16,
@@ -1237,7 +1864,7 @@ function UserManager({
       fontSize: 12.5,
       cursor: "pointer"
     }
-  }, "\u0E1B\u0E34\u0E14"))), React.createElement("div", {
+  }, "\u0E1B\u0E34\u0E14"))), tab === "users" && React.createElement("div", {
     style: {
       padding: "14px 22px",
       paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14,
@@ -1628,5 +2255,13 @@ Object.assign(window, {
   ROLE_KEYS,
   ROLE_ALIAS,
   RoleBadge,
-  RoleBadges
+  RoleBadges,
+  useRoleConfig,
+  jobScopeOf,
+  jobInScope,
+  PERM_LIST,
+  SCOPE_MODES,
+  DEFAULT_PERMS,
+  applyRoleConfig,
+  roleConfigNow
 });

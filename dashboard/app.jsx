@@ -140,8 +140,12 @@ function App() {
      can(role, ...) รับได้ทั้งรายการและตำแหน่งเดียว จึงเรียกเหมือนเดิมได้ทุกที่ */
   const role   = React.useMemo(() => (auth.current ? userRoles(auth.current) : []), [auth.current]);
   const techId = auth.current ? auth.current.techId : null;
-  /* เห็นเฉพาะงานของตัวเอง = ไม่มีสิทธิ์ดูงานทั้งหมด และบัญชีผูกกับพนักงานอยู่ (เช่น ช่างติดตั้ง) */
-  const ownOnly = !!auth.current && !can(role, "viewAll");
+  /* ขอบเขตงานที่เห็น — ตั้งได้เองในหน้า "สิทธิ์ตำแหน่ง" (ทุกงาน / งานที่รับผิดชอบ / งานที่ตัวเองเปิด / เฉพาะบางขั้น)
+     roleCfg.rev ต้องอยู่ใน deps ด้วย เพราะ PERMS/ROLE_SCOPE เป็นตารางกลางที่ถูกเขียนทับเมื่อมีคนแก้สิทธิ์ */
+  const roleCfg = useRoleConfig();
+  const scope   = React.useMemo(() => jobScopeOf(role), [role, roleCfg.rev]);
+  const inScope = React.useCallback((j) => !auth.current || jobInScope(j, scope, auth.current), [scope, auth.current]);
+  const ownOnly = !!auth.current && !scope.all;
 
   // Auto-close sidebar when resizing to desktop
   React.useEffect(() => { if (!isMobile) setSidebarOpen(false); }, [isMobile]);
@@ -173,10 +177,10 @@ function App() {
       if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return false;
       if (quickFilter === "battery" && !j.battery) return false;
       if (techFilter && !matchTech(j, techFilter, techIds)) return false;
-      if (ownOnly && j.tech !== techId) return false; // ไม่มีสิทธิ์ดูทั้งหมด = เห็นเฉพาะงานที่ได้รับมอบหมาย
+      if (!inScope(j)) return false; // ขอบเขตงานตามตำแหน่ง
       return true;
     });
-  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techFilter, techIds, ownOnly, techId]);
+  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techFilter, techIds, inScope]);
 
   /* นับงานต่อช่าง สำหรับเมนูกรอง "ช่างผู้รับผิดชอบ" — ใช้ฟิลเตอร์อื่นทั้งหมดยกเว้น techFilter เอง
      จะได้เห็นว่าภายใต้เงื่อนไขที่กรองอยู่ ช่างแต่ละคนมีงานกี่งาน */
@@ -192,13 +196,13 @@ function App() {
       if (quickFilter === "delayed" && !j.delayed) return;
       if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return;
       if (quickFilter === "battery" && !j.battery) return;
-      if (ownOnly && j.tech !== techId) return;
+      if (!inScope(j)) return;
       const k = techKey(j, techIds);
       c[k] = (c[k] || 0) + 1; all++;
     });
     c.__all = all;
     return c;
-  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techIds, ownOnly, techId]);
+  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techIds, inScope]);
 
   // นับงานต่อขั้น (Flow) สำหรับชิปกรอง — ใช้ฟิลเตอร์อื่นทั้งหมดยกเว้น stageFilter เอง
   const stageCounts = React.useMemo(() => {
@@ -213,29 +217,29 @@ function App() {
       if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return;
       if (quickFilter === "battery" && !j.battery) return;
       if (techFilter && !matchTech(j, techFilter, techIds)) return;
-      if (ownOnly && j.tech !== techId) return;
+      if (!inScope(j)) return;
       c[j.stage] = (c[j.stage] || 0) + 1; all++;
     });
     c.__all = all;
     return c;
-  }, [jobs, search, typeFilter, delayedOnly, quickFilter, techFilter, techIds, ownOnly, techId]);
+  }, [jobs, search, typeFilter, delayedOnly, quickFilter, techFilter, techIds, inScope]);
 
   // แจ้งเตือนงานล่าช้าตามขั้น (Flow) — คำนวณสด: tech เห็นเฉพาะงานตัวเอง, admin/manager เห็นทุกงาน
   const lateAlerts = React.useMemo(() => {
-    const scope = can(role, "viewAll") ? jobs : jobs.filter((j) => j.tech === techId);
+    const mine = jobs.filter(inScope);
     const out = [];
-    scope.forEach((j) => (j.lateStages || []).forEach((ls) => out.push({ jobId: j.id, jobName: j.name, stage: ls })));
+    mine.forEach((j) => (j.lateStages || []).forEach((ls) => out.push({ jobId: j.id, jobName: j.name, stage: ls })));
     return out.sort((a, b) => b.stage.daysLate - a.stage.daysLate);
-  }, [jobs, role, ownOnly, techId]);
+  }, [jobs, inScope]);
 
   // งานติดตั้งวันนี้ (ตารางงาน) — today อยู่ในช่วงวันนัดติดตั้ง [startDate..deadline]
   // ใช้ "ช่วงวันนัดติดตั้ง" เป็นตารางงานเดียว (ไม่ใช้ stageDates รายขั้นอื่นซึ่งเป็นแค่สถานะ)
   const todayTasks = React.useMemo(() => {
-    const scope = can(role, "viewAll") ? jobs : jobs.filter((j) => j.tech === techId);
+    const mine = jobs.filter(inScope);
     const today = window.SF.TODAY;
     const inst = window.SF.STAGES.find((s) => s.key === "install");
     const out = [];
-    scope.forEach((j) => {
+    mine.forEach((j) => {
       if (j.stage === "done") return;
       const s0 = j.startDate, e0 = j.deadline || j.startDate;
       if (!s0 || today < s0 || today > e0) return;
@@ -247,7 +251,7 @@ function App() {
       out.push({ job: j, stage: inst, kind });
     });
     return out;
-  }, [jobs, role, ownOnly, techId]);
+  }, [jobs, inScope]);
 
   // ตารางงานของฉัน (วันนี้ + กำลังจะถึง) — นัดสำรวจ + งานติดตั้งของคนที่ล็อกอิน → โชว์บนหน้าภาพรวม
   // ยุบงานโปรเจคเดียวกันให้เหลือแถวเดียว (เก็บช่วงวัน start–end) · เอาแค่ 3 แถวแรก
@@ -349,6 +353,7 @@ function App() {
       name: lead.name || "", phone: lead.phone || "", address: lead.address || "",
       type: lead.type || "home", note: lead.note || "",
     });
+    if (auth.current) { rec.createdBy = auth.current.id; rec.createdByName = auth.current.name || ""; }
     if (lead.province) rec.province = lead.province;
     if (lead.phase) rec.phase = lead.phase;
     if (lead.roof) rec.roof = lead.roof;
@@ -365,6 +370,8 @@ function App() {
 
   const onSave = (rec) => {
     const prev = store.raw.find((r) => r.id === rec.id);
+    /* ประทับคนเปิดงานไว้ตอนบันทึกครั้งแรก — ขอบเขต "เฉพาะงานที่ตัวเองเปิด" ใช้ค่านี้ */
+    if (!prev && !rec.createdBy && auth.current) { rec.createdBy = auth.current.id; rec.createdByName = auth.current.name || ""; }
     store.upsert(rec);
     // แจ้งเตือนช่างเมื่อถูกมอบหมายงาน (ช่างเปลี่ยน หรือเป็นงานใหม่ที่ระบุช่าง)
     if (rec.tech && (!prev || prev.tech !== rec.tech)) {
@@ -522,7 +529,7 @@ function App() {
       {form && <JobForm initial={form.job} isNew={form.isNew} jobs={jobs} onSave={onSave} onClose={() => setForm(null)} onManageTechs={() => setTechMgr(true)} onManageBrands={() => setBrandMgr(true)} />}
       {techMgr && <TechManager store={techStore} onClose={() => setTechMgr(false)} />}
       {brandMgr && <BrandManager store={brandStore} onClose={() => setBrandMgr(false)} />}
-      {userMgr && can(role, "manageUsers") && <UserManager authStore={auth} onClose={() => setUserMgr(false)} />}
+      {userMgr && can(role, "manageUsers") && <UserManager authStore={auth} roleCfg={roleCfg} onClose={() => setUserMgr(false)} />}
       {briefingOpen && <DailyBriefing lateAlerts={lateAlerts} todayTasks={todayTasks}
         onOpen={(jobId) => { localStorage.setItem("sf_briefing_seen", window.SF.TODAY); setBriefingOpen(false); setView(listView()); setSelected(jobId); }}
         onClose={() => { localStorage.setItem("sf_briefing_seen", window.SF.TODAY); setBriefingOpen(false); }} />}
