@@ -45,6 +45,8 @@ const navForRole = (roles, techId) => NAV
    งานที่ผูกไว้กับช่างที่ถูกลบไปแล้ว (ไม่มีใน known) ให้นับเป็น "ยังไม่มอบหมาย" จะได้ไม่หายไปจากเมนู */
 const techKey = (j, known) => (j.tech && (!known || known.has(j.tech)) ? j.tech : "__none");
 const matchTech = (j, f, known) => techKey(j, known) === f;
+/* วันเริ่มติดตั้งของงาน — ตัวกรอง "ยังไม่นัดวันติดตั้ง" ใช้ค่านี้ตัดสิน (ไม่ใช้ deadline) */
+const instDate = (j) => (window.SF.installDate ? window.SF.installDate(j) : "");
 
 const ACCENTS = {
   phithan: { primary: "#22A35B", dark: "#14663A", soft: "#E1F5E8", bright: "#35B76D" },
@@ -213,6 +215,8 @@ function App() {
       if (quickFilter === "delayed" && !j.delayed) return false;
       if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return false;
       if (quickFilter === "battery" && !j.battery) return false;
+      if (quickFilter === "problem" && !(j.problem && j.stage !== "done")) return false;
+      if (quickFilter === "noinstall" && !(j.stage !== "done" && !instDate(j))) return false;
       if (techFilter && !matchTech(j, techFilter, techIds)) return false;
       if (!inScope(j)) return false; // ขอบเขตงานตามตำแหน่ง
       return true;
@@ -233,6 +237,8 @@ function App() {
       if (quickFilter === "delayed" && !j.delayed) return;
       if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return;
       if (quickFilter === "battery" && !j.battery) return;
+      if (quickFilter === "problem" && !(j.problem && j.stage !== "done")) return;
+      if (quickFilter === "noinstall" && !(j.stage !== "done" && !instDate(j))) return;
       if (!inScope(j)) return;
       const k = techKey(j, techIds);
       c[k] = (c[k] || 0) + 1; all++;
@@ -253,6 +259,8 @@ function App() {
       if (quickFilter === "delayed" && !j.delayed) return;
       if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return;
       if (quickFilter === "battery" && !j.battery) return;
+      if (quickFilter === "problem" && !(j.problem && j.stage !== "done")) return;
+      if (quickFilter === "noinstall" && !(j.stage !== "done" && !instDate(j))) return;
       if (techFilter && !matchTech(j, techFilter, techIds)) return;
       if (!inScope(j)) return;
       { const k = stageKeyOf(j); c[k] = (c[k] || 0) + 1; all++; }
@@ -528,6 +536,10 @@ function App() {
       onGoKpi={can(role, "price") ? () => setView("saleskpi") : null} />
   );
 
+  /* ภาพรวมของหัวหน้า/แอดมิน — คนที่ต้องตอบว่า "วันนี้ต้องไปดันงานไหน" ไม่ใช่ "งานของฉันมีอะไร"
+     ตำแหน่งอื่น (ช่าง/วิศวกร/เขียนแบบ/ขออนุญาต) ยังได้ภาพรวมเดิมที่เน้นตารางงานตัวเอง */
+  const leadRole = (hasRole(role, "lead") || hasRole(role, "admin")) && can(role, "viewAll");
+
   const onSave = (rec) => {
     const prev = store.raw.find((r) => r.id === rec.id);
     /* ประทับคนเปิดงานไว้ตอนบันทึกครั้งแรก — ขอบเขต "เฉพาะงานที่ตัวเองเปิด" ใช้ค่านี้ */
@@ -640,6 +652,13 @@ function App() {
 
         <div className="app-content" style={view === "board" ? { display: "flex", flexDirection: "column", minHeight: 0 } : {}}>
           {view === "overview" && (salesOnly ? salesOverview
+            : leadRole ? (
+              <LeadOverview jobs={filtered} leads={leadStore.leads} quotes={quoteStore.quotes} stock={stock} techs={techStore.techs}
+                onOpen={openJob} onStage={goStage} onKpi={goKpi}
+                onTech={(id) => { setTechFilter(id); setStageFilter(null); setQuickFilter(null); setView(listView()); }}
+                onGoPermit={can(role, "permit") ? () => setView("permit") : null}
+                onGoSales={can(role, "leads") ? () => setView(can(role, "price") ? "saleskpi" : "leads") : null} />
+            )
             : <OverviewView jobs={filtered} schedule={myScheduleItems} onOpen={openJob} onStage={goStage} onKpi={goKpi} stock={stock} />)}
           {view === "board" && (permitOnly ? permitView : <KanbanView jobs={filtered} onOpen={openJob} onMoveStage={(id, s) => store.setStage(id, s)} />)}
           {view === "table" && <TableView jobs={filtered} onOpen={openJob}
@@ -937,7 +956,8 @@ function TechFilter({ value, onChange, techs, counts, nameOf }) {
 
 function Header({ view, navList, plain, subtitle, ownOnly, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, stageMode, quickFilter, setQuickFilter, techFilter, setTechFilter, techCounts, techs, onAdd, canAdd, onMap, showBell, unread, notifItems, lateAlerts, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen }) {
   const nav = navList.find((n) => n.key === view) || NAV.find((n) => n.key === view);
-  const QUICK_LABELS = { active: "กำลังดำเนินการ", delayed: "ล่าช้า", ready: "อุปกรณ์พร้อมติดตั้ง", battery: "มีแบตเตอรี่" };
+  const QUICK_LABELS = { active: "กำลังดำเนินการ", delayed: "ล่าช้า", ready: "อุปกรณ์พร้อมติดตั้ง", battery: "มีแบตเตอรี่",
+    problem: "ติดปัญหาหน้างาน", noinstall: "ยังไม่นัดวันติดตั้ง" };
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [stageOpen, setStageOpen] = React.useState(() => localStorage.getItem("sf_stage_filteropen") !== "0");
   const toggleStage = () => setStageOpen((v) => { localStorage.setItem("sf_stage_filteropen", v ? "0" : "1"); return !v; });

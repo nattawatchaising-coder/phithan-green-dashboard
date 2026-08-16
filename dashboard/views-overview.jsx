@@ -4,9 +4,11 @@
 
 /* แผงตัวเลขรวม — ผืนเดียวแบ่งด้วยเส้นผม แทนการ์ดสามใบหน้าตาเหมือนกัน
    ตัวเลขใหญ่เป็นพระเอก · สีใช้เฉพาะตอนมีความหมาย (ล่าช้า) ไม่ใช่แถบสีประดับทุกใบ */
-function StatRail({ items }) {
+function StatRail({ items, cols }) {
+  /* CSS ตั้งไว้ 3 ช่องเป็นค่าเริ่มต้น — ภาพรวมของหัวหน้ามี 4 ตัวเลขจึงต้องบอกจำนวนช่องเอง
+     (ส่งมาเฉพาะหน้าที่ซ่อนแถบนี้บนมือถืออยู่แล้ว จึงไม่ทับกฎ media query ของจอเล็ก) */
   return (
-    <div className="stat-rail">
+    <div className="stat-rail" style={cols ? { gridTemplateColumns: "repeat(" + cols + ",1fr)" } : null}>
       {items.map((it) => (
         <button key={it.label} onClick={it.onClick} data-alert={it.alert ? "1" : "0"}
           data-active={it.active ? "1" : null} title={it.onClick ? "ดูรายการ" : undefined}>

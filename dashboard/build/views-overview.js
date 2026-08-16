@@ -1,8 +1,12 @@
 function StatRail({
-  items
+  items,
+  cols
 }) {
   return React.createElement("div", {
-    className: "stat-rail"
+    className: "stat-rail",
+    style: cols ? {
+      gridTemplateColumns: "repeat(" + cols + ",1fr)"
+    } : null
   }, items.map(it => React.createElement("button", {
     key: it.label,
     onClick: it.onClick,

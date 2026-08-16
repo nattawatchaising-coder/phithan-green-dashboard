@@ -80,6 +80,7 @@ const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm
 }) : n);
 const techKey = (j, known) => j.tech && (!known || known.has(j.tech)) ? j.tech : "__none";
 const matchTech = (j, f, known) => techKey(j, known) === f;
+const instDate = j => window.SF.installDate ? window.SF.installDate(j) : "";
 const ACCENTS = {
   phithan: {
     primary: "#22A35B",
@@ -290,6 +291,8 @@ function App() {
       if (quickFilter === "delayed" && !j.delayed) return false;
       if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return false;
       if (quickFilter === "battery" && !j.battery) return false;
+      if (quickFilter === "problem" && !(j.problem && j.stage !== "done")) return false;
+      if (quickFilter === "noinstall" && !(j.stage !== "done" && !instDate(j))) return false;
       if (techFilter && !matchTech(j, techFilter, techIds)) return false;
       if (!inScope(j)) return false;
       return true;
@@ -308,6 +311,8 @@ function App() {
       if (quickFilter === "delayed" && !j.delayed) return;
       if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return;
       if (quickFilter === "battery" && !j.battery) return;
+      if (quickFilter === "problem" && !(j.problem && j.stage !== "done")) return;
+      if (quickFilter === "noinstall" && !(j.stage !== "done" && !instDate(j))) return;
       if (!inScope(j)) return;
       const k = techKey(j, techIds);
       c[k] = (c[k] || 0) + 1;
@@ -328,6 +333,8 @@ function App() {
       if (quickFilter === "delayed" && !j.delayed) return;
       if (quickFilter === "ready" && !(j.matReady && j.stage !== "done")) return;
       if (quickFilter === "battery" && !j.battery) return;
+      if (quickFilter === "problem" && !(j.problem && j.stage !== "done")) return;
+      if (quickFilter === "noinstall" && !(j.stage !== "done" && !instDate(j))) return;
       if (techFilter && !matchTech(j, techFilter, techIds)) return;
       if (!inScope(j)) return;
       {
@@ -748,6 +755,7 @@ function App() {
     },
     onGoKpi: can(role, "price") ? () => setView("saleskpi") : null
   });
+  const leadRole = (hasRole(role, "lead") || hasRole(role, "admin")) && can(role, "viewAll");
   const onSave = rec => {
     const prev = store.raw.find(r => r.id === rec.id);
     if (!prev && !rec.createdBy && auth.current) {
@@ -954,7 +962,24 @@ function App() {
       flexDirection: "column",
       minHeight: 0
     } : {}
-  }, view === "overview" && (salesOnly ? salesOverview : React.createElement(OverviewView, {
+  }, view === "overview" && (salesOnly ? salesOverview : leadRole ? React.createElement(LeadOverview, {
+    jobs: filtered,
+    leads: leadStore.leads,
+    quotes: quoteStore.quotes,
+    stock: stock,
+    techs: techStore.techs,
+    onOpen: openJob,
+    onStage: goStage,
+    onKpi: goKpi,
+    onTech: id => {
+      setTechFilter(id);
+      setStageFilter(null);
+      setQuickFilter(null);
+      setView(listView());
+    },
+    onGoPermit: can(role, "permit") ? () => setView("permit") : null,
+    onGoSales: can(role, "leads") ? () => setView(can(role, "price") ? "saleskpi" : "leads") : null
+  }) : React.createElement(OverviewView, {
     jobs: filtered,
     schedule: myScheduleItems,
     onOpen: openJob,
@@ -1617,7 +1642,9 @@ function Header({
     active: "กำลังดำเนินการ",
     delayed: "ล่าช้า",
     ready: "อุปกรณ์พร้อมติดตั้ง",
-    battery: "มีแบตเตอรี่"
+    battery: "มีแบตเตอรี่",
+    problem: "ติดปัญหาหน้างาน",
+    noinstall: "ยังไม่นัดวันติดตั้ง"
   };
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [stageOpen, setStageOpen] = React.useState(() => localStorage.getItem("sf_stage_filteropen") !== "0");
