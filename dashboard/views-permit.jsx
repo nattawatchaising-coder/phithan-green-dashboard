@@ -122,7 +122,8 @@ function PermitQueueView({ jobs, search, onOpenJob, onPatchPermit, currentUser }
     const p = j.permit || {};
     if (!canDrop(p.status, to)) return;
     if (to === "rejected") { setOpen(j.id); return; }   // ตีกลับต้องมีเหตุผล — เปิดการ์ดให้พิมพ์
-    const extra = { byAdmin: (currentUser && currentUser.name) || "", statusAt: new Date().toISOString() };
+    const extra = { byAdmin: (currentUser && currentUser.name) || "", adminId: (currentUser && currentUser.id) || null,
+      statusAt: new Date().toISOString() };
     if (to === "filing")   { extra.rejectReason = null; if (!p.filedDate) extra.filedDate = today10(); }
     if (to === "approved") { if (!p.approvedDate) extra.approvedDate = today10(); }
     onPatchPermit(j.id, Object.assign({ status: to }, extra));
@@ -376,8 +377,10 @@ function PermitReview({ job, currentUser, onClose, onPatch, onOpenJob }) {
   const st = PERMIT_STATUS[p.status] || PERMIT_STATUS.draft;
   const prog = permitProgress(p, media.photos);
 
+  /* adminId = คนที่รับงานใบนี้ไว้ · ใช้คัดว่างานไหนเป็น "งานของฉัน" ในฐานข้อมูลงาน */
   const stamp = (status, extra) => onPatch(Object.assign({
-    status, byAdmin: (currentUser && currentUser.name) || "", statusAt: new Date().toISOString(),
+    status, byAdmin: (currentUser && currentUser.name) || "", adminId: (currentUser && currentUser.id) || null,
+    statusAt: new Date().toISOString(),
   }, extra || {}));
 
   const row = (label, value) => (

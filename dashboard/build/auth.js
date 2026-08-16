@@ -229,6 +229,10 @@ const SCOPE_MODES = [{
   key: "stages",
   th: "เฉพาะงานในขั้นที่เลือก",
   desc: "เช่น ฝ่ายขออนุญาตเห็นเฉพาะงานที่ติดตั้งเสร็จแล้ว"
+}, {
+  key: "permitMine",
+  th: "เฉพาะงานขออนุญาตที่รับเข้ามา",
+  desc: "งานที่บัญชีนี้กดรับหรือเดินสถานะขออนุญาตไว้ · บอร์ดขออนุญาตยังเห็นคิวงานใหม่ครบเหมือนเดิม"
 }];
 const DEFAULT_SCOPE = {
   admin: {
@@ -252,7 +256,7 @@ const DEFAULT_SCOPE = {
     stages: []
   },
   permit: {
-    mode: "all",
+    mode: "permitMine",
     stages: []
   },
   sales: {
@@ -303,6 +307,7 @@ function jobScopeOf(roles) {
     all: false,
     assigned: false,
     created: false,
+    permitMine: false,
     stages: []
   };
   arr.forEach(r => {
@@ -310,7 +315,7 @@ function jobScopeOf(roles) {
     const sc = ROLE_SCOPE[k] || DEFAULT_SCOPE[k] || {
       mode: "all"
     };
-    if (sc.mode === "all") out.all = true;else if (sc.mode === "assigned") out.assigned = true;else if (sc.mode === "created") out.created = true;else if (sc.mode === "stages") (sc.stages || []).forEach(s => {
+    if (sc.mode === "all") out.all = true;else if (sc.mode === "assigned") out.assigned = true;else if (sc.mode === "created") out.created = true;else if (sc.mode === "permitMine") out.permitMine = true;else if (sc.mode === "stages") (sc.stages || []).forEach(s => {
       if (out.stages.indexOf(s) === -1) out.stages.push(s);
     });
   });
@@ -321,6 +326,7 @@ function jobInScope(job, scope, user) {
   if (!job) return false;
   if (scope.assigned && user && user.techId && job.tech === user.techId) return true;
   if (scope.created && user && job.createdBy && job.createdBy === user.id) return true;
+  if (scope.permitMine && user && job.permit && (job.permit.adminId === user.id || !job.permit.adminId && job.permit.byAdmin && job.permit.byAdmin === user.name)) return true;
   if (scope.stages.length && scope.stages.indexOf(job.stage) !== -1) return true;
   return false;
 }

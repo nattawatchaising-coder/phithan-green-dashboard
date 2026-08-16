@@ -91,6 +91,7 @@ const SCOPE_MODES = [
   { key: "assigned", th: "เฉพาะงานที่รับผิดชอบ",     desc: "งานที่ถูกมอบหมายให้บัญชีนี้ (ต้องผูกกับพนักงานในระบบ)" },
   { key: "created",  th: "เฉพาะงานที่ตัวเองเปิด",    desc: "งานที่บัญชีนี้เป็นคนกดเพิ่ม · งานเก่าที่ไม่ได้บันทึกผู้เปิดไว้จะไม่เข้าเงื่อนไข" },
   { key: "stages",   th: "เฉพาะงานในขั้นที่เลือก",   desc: "เช่น ฝ่ายขออนุญาตเห็นเฉพาะงานที่ติดตั้งเสร็จแล้ว" },
+  { key: "permitMine", th: "เฉพาะงานขออนุญาตที่รับเข้ามา", desc: "งานที่บัญชีนี้กดรับหรือเดินสถานะขออนุญาตไว้ · บอร์ดขออนุญาตยังเห็นคิวงานใหม่ครบเหมือนเดิม" },
 ];
 const DEFAULT_SCOPE = {
   admin:  { mode: "all",      stages: [] },
@@ -98,7 +99,7 @@ const DEFAULT_SCOPE = {
   ee:     { mode: "all",      stages: [] },
   draft:  { mode: "all",      stages: [] },
   tech:   { mode: "assigned", stages: [] },
-  permit: { mode: "all",      stages: [] },
+  permit: { mode: "permitMine", stages: [] },
   sales:  { mode: "all",      stages: [] },
 };
 
@@ -135,13 +136,14 @@ function roleConfigNow() {
 /* ── ขอบเขตงานของ "คนหนึ่งคน" (รวมทุกตำแหน่งที่ถือ) ── */
 function jobScopeOf(roles) {
   const arr = Array.isArray(roles) ? roles : (roles ? [roles] : []);
-  const out = { all: false, assigned: false, created: false, stages: [] };
+  const out = { all: false, assigned: false, created: false, permitMine: false, stages: [] };
   arr.forEach((r) => {
     const k = ROLE_ALIAS[r] || r;
     const sc = ROLE_SCOPE[k] || DEFAULT_SCOPE[k] || { mode: "all" };
     if (sc.mode === "all") out.all = true;
     else if (sc.mode === "assigned") out.assigned = true;
     else if (sc.mode === "created") out.created = true;
+    else if (sc.mode === "permitMine") out.permitMine = true;
     else if (sc.mode === "stages") (sc.stages || []).forEach((s) => { if (out.stages.indexOf(s) === -1) out.stages.push(s); });
   });
   return out;
@@ -152,6 +154,9 @@ function jobInScope(job, scope, user) {
   if (!job) return false;
   if (scope.assigned && user && user.techId && job.tech === user.techId) return true;
   if (scope.created && user && job.createdBy && job.createdBy === user.id) return true;
+  /* งานขออนุญาตที่ "รับเข้ามา" = คนนี้เป็นคนเดินสถานะไว้ · งานเก่าที่มีแต่ชื่อผู้ทำ ให้เทียบชื่อแทน */
+  if (scope.permitMine && user && job.permit &&
+      (job.permit.adminId === user.id || (!job.permit.adminId && job.permit.byAdmin && job.permit.byAdmin === user.name))) return true;
   if (scope.stages.length && scope.stages.indexOf(job.stage) !== -1) return true;
   return false;
 }

@@ -240,6 +240,7 @@ function PermitQueueView({
     }
     const extra = {
       byAdmin: currentUser && currentUser.name || "",
+      adminId: currentUser && currentUser.id || null,
       statusAt: new Date().toISOString()
     };
     if (to === "filing") {
@@ -853,6 +854,7 @@ function PermitReview({
   const stamp = (status, extra) => onPatch(Object.assign({
     status,
     byAdmin: currentUser && currentUser.name || "",
+    adminId: currentUser && currentUser.id || null,
     statusAt: new Date().toISOString()
   }, extra || {}));
   const row = (label, value) => React.createElement("div", {
