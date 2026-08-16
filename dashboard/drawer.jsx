@@ -316,7 +316,7 @@ function StockShopModal({ stock, job, byName, onClose }) {
 /* ── บล็อกสรุปสำหรับฝ่ายขออนุญาต ──
    เขาไม่ได้เข้ามาแก้งาน เข้ามาเพื่อตอบ 2 คำถาม: "ใบนี้เดินไปถึงไหน" กับ "ติดอะไรอยู่"
    ทุกอย่างที่กดแล้วเปลี่ยนข้อมูลงานจึงถูกซ่อน เหลือแต่ของที่ต้องหยิบไปยื่น */
-function PermitJobSummary({ job }) {
+function PermitJobSummary({ job, onOpenReview }) {
   const p = job.permit || null;
   const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
   const FLOW = window.PERMIT_FLOW || [];
@@ -402,6 +402,21 @@ function PermitJobSummary({ job }) {
         })()}
       </div>
 
+      {onOpenReview && (
+        <button onClick={onOpenReview}
+          style={{ width: "100%", marginBottom: 16, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+            background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+          <span style={{ width: 34, height: 34, borderRadius: 9, background: "#14B8A61c", display: "grid", placeItems: "center", flexShrink: 0 }}>
+            <Icon name="file" size={17} color="#14B8A6" />
+          </span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>เปิดชุดข้อมูลขออนุญาต</span>
+            <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>ดูข้อมูล/รูป/เอกสารทั้งชุด · เดินสถานะ · ตีกลับ · ออก PDF</span>
+          </span>
+          <Icon name="arrowRight" size={16} color="var(--text-3)" />
+        </button>
+      )}
+
       {/* ติดอะไรอยู่ */}
       <div style={{ marginBottom: 18 }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", marginBottom: 9 }}>
@@ -440,7 +455,7 @@ function PermitJobSummary({ job }) {
   );
 }
 
-function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, canDesign, stock, onSaveBOQ, onSurvey, onSurveyReport, onPermit, priceMap, permitMode }) {
+function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, canDesign, stock, onSaveBOQ, onSurvey, onSurveyReport, onPermit, priceMap, permitMode, onOpenReview }) {
   const SF = window.SF;
   const open = !!job;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -555,7 +570,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                 )}
               </div>
 
-              {permitMode && <PermitJobSummary job={job} />}
+              {permitMode && <PermitJobSummary job={job} onOpenReview={onOpenReview} />}
 
               {/* spec card */}
               <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: isMobile ? 15 : 18, marginBottom: isMobile ? 18 : 22 }}>
@@ -823,7 +838,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               {permitMode && (
                 <span style={{ flex: 1, minWidth: 0, display: "inline-flex", alignItems: "center", justifyContent: "center",
                   fontSize: 12, color: "var(--text-3)", textAlign: "center", lineHeight: 1.4 }}>
-                  ดูอย่างเดียว · เดินสถานะได้ที่บอร์ดขออนุญาต
+                  ดูอย่างเดียว · แก้สถานะได้ที่ชุดข้อมูลขออนุญาต
                 </span>
               )}
               {!permitMode && job.stage !== "done" && (

@@ -118,6 +118,8 @@ function App() {
   const fileFlags = useJobFileFlags();
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [view, setView] = React.useState("overview");
+  /* ชุดข้อมูลขออนุญาตที่เปิดอยู่ — อยู่ระดับแอป จะได้เปิดได้ทั้งจากบอร์ดและจากในใบงาน */
+  const [permitReview, setPermitReview] = React.useState(null);
   const [search, setSearch] = React.useState("");
   const [typeFilter, setTypeFilter] = React.useState("all");
   const [stageFilter, setStageFilter] = React.useState(null);
@@ -400,23 +402,28 @@ function App() {
   }, [jobs]);
   const permitPage = view === "permit" || (permitOnly && view === "board");
 
+  const patchPermit = (id, fields) => {
+    const j = store.raw.find((r) => r.id === id) || {};
+    const cur = j.permit || {};
+    store.patch(id, { permit: Object.assign({}, cur, fields) });
+    /* ตีกลับแล้วต้องเด้งกลับหาช่างคนที่ส่งมา ไม่งั้นงานค้างจนกว่าเขาจะบังเอิญเปิดดูเอง */
+    /* งานเก่าที่ไม่ได้บันทึกคนส่ง ให้เด้งหาช่างที่รับผิดชอบงานแทน ไม่งั้นไม่มีใครรู้ว่าถูกตีกลับ */
+    const backTo = cur.submittedTechId || j.tech || null;
+    if (fields.status === "rejected" && backTo) {
+      notif.addNotif({
+        toTechId: backTo, type: "permit", jobId: id, jobName: j.name,
+        title: "ข้อมูลขออนุญาตถูกตีกลับ ต้องแก้ไข",
+        body: (j.code || "") + " · " + (fields.rejectReason || "ต้องแก้ไขข้อมูล"),
+      });
+    }
+  };
+
   const permitView = (
-    <PermitQueueView jobs={jobs} search={search} stock={stock} currentUser={auth.current} onOpenJob={(id) => { setView(listView()); setSelected(id); }}
-      onPatchPermit={(id, fields) => {
-        const j = store.raw.find((r) => r.id === id) || {};
-        const cur = j.permit || {};
-        store.patch(id, { permit: Object.assign({}, cur, fields) });
-        /* ตีกลับแล้วต้องเด้งกลับหาช่างคนที่ส่งมา ไม่งั้นงานค้างจนกว่าเขาจะบังเอิญเปิดดูเอง */
-        /* งานเก่าที่ไม่ได้บันทึกคนส่ง ให้เด้งหาช่างที่รับผิดชอบงานแทน ไม่งั้นไม่มีใครรู้ว่าถูกตีกลับ */
-        const backTo = cur.submittedTechId || j.tech || null;
-        if (fields.status === "rejected" && backTo) {
-          notif.addNotif({
-            toTechId: backTo, type: "permit", jobId: id, jobName: j.name,
-            title: "ข้อมูลขออนุญาตถูกตีกลับ ต้องแก้ไข",
-            body: (j.code || "") + " · " + (fields.rejectReason || "ต้องแก้ไขข้อมูล"),
-          });
-        }
-      }} />
+    <PermitQueueView jobs={jobs} search={search} stock={stock} currentUser={auth.current}
+      /* กดการ์ด = เปิดใบงานทับบอร์ดไว้เลย ไม่ต้องสลับหน้า จะได้ปิดแล้วกลับมาที่เดิม */
+      onOpenJob={(id) => setSelected(id)}
+      onOpenReview={(id) => setPermitReview(id)}
+      onPatchPermit={patchPermit} />
   );
 
   const onSave = (rec) => {
@@ -544,8 +551,18 @@ function App() {
         onSurveyReport={() => setReportJob(selectedJob)}
         onPermit={can(role, "editJob") && !permitOnly ? () => setPermitJob(selectedJob) : null}
         permitMode={permitOnly}
+        onOpenReview={permitOnly && selectedJob ? () => setPermitReview(selectedJob.id) : null}
         priceMap={can(role, "price") ? effPriceMap : null}
         onEdit={(id) => { setSelected(null); setForm({ job: store.raw.find((r) => r.id === id), isNew: false }); }} />
+      {/* ชุดข้อมูลขออนุญาต — เปิดทับได้ทั้งจากบอร์ดและจากในใบงาน */}
+      {permitReview && (() => {
+        const rj = jobs.find((x) => x.id === permitReview);
+        if (!rj) return null;
+        return <PermitReview job={rj} currentUser={auth.current} stock={stock}
+          onClose={() => setPermitReview(null)}
+          onOpenJob={() => { setPermitReview(null); setSelected(rj.id); }}
+          onPatch={(fields) => patchPermit(rj.id, fields)} />;
+      })()}
       {permitJob && <PermitWizard job={permitJob} currentUser={auth.current} stock={stock}
         onClose={() => setPermitJob(null)}
         onSave={(permit) => store.patch(permitJob.id, { permit })}

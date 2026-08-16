@@ -31,8 +31,25 @@ const PERMIT_TABS = PERMIT_COLS.filter(c => c.key !== "todo").map(c => ({
 }));
 const PERMIT_MOVES = {
   sent: ["filing", "rejected"],
-  filing: ["approved", "rejected"],
-  rejected: ["filing"]
+  filing: ["approved", "rejected", "sent"],
+  rejected: ["filing", "sent"],
+  approved: ["filing"]
+};
+const PERMIT_BACK = {
+  filing: "sent",
+  approved: "filing",
+  rejected: "sent"
+};
+const PERMIT_BACK_CLEAR = {
+  sent: {
+    filedDate: null,
+    inspectDate: null,
+    approvedDate: null,
+    rejectReason: null
+  },
+  filing: {
+    approvedDate: null
+  }
 };
 const today10 = () => new Date().toISOString().slice(0, 10);
 function permitColOf(j) {
@@ -196,6 +213,7 @@ function PermitQueueView({
   search,
   stock,
   onOpenJob,
+  onOpenReview,
   onPatchPermit,
   currentUser
 }) {
@@ -209,6 +227,7 @@ function PermitQueueView({
   });
   const [tab, setTab] = React.useState("sent");
   const [open, setOpen] = React.useState(null);
+  const openReview = onOpenReview || setOpen;
   const [drag, setDrag] = React.useState(null);
   const [over, setOver] = React.useState(null);
   const setModeSave = m => {
@@ -249,27 +268,30 @@ function PermitQueueView({
     const p = j.permit || {};
     if (!canDrop(p.status, to)) return;
     if (to === "rejected") {
-      setOpen(j.id);
+      openReview(j.id);
       return;
     }
+    const back = PERMIT_BACK[p.status] === to;
     const extra = {
       byAdmin: currentUser && currentUser.name || "",
       adminId: currentUser && currentUser.id || null,
       statusAt: new Date().toISOString()
     };
-    if (to === "filing") {
-      extra.rejectReason = null;
-      if (!p.filedDate) extra.filedDate = today10();
-    }
-    if (to === "approved") {
-      if (!p.approvedDate) extra.approvedDate = today10();
+    if (back) Object.assign(extra, PERMIT_BACK_CLEAR[to] || {});else {
+      if (to === "filing") {
+        extra.rejectReason = null;
+        if (!p.filedDate) extra.filedDate = today10();
+      }
+      if (to === "approved") {
+        if (!p.approvedDate) extra.approvedDate = today10();
+      }
     }
     onPatchPermit(j.id, Object.assign({
       status: to
     }, extra));
   };
   const cardOpen = j => {
-    if (j.permit && j.permit.status) setOpen(j.id);else onOpenJob && onOpenJob(j.id);
+    onOpenJob && onOpenJob(j.id);
   };
   const modeSwitch = React.createElement("div", {
     style: {
@@ -303,7 +325,7 @@ function PermitQueueView({
     size: 13,
     color: mode === x[0] ? "var(--primary-dark)" : "var(--text-3)"
   }), x[1])));
-  const review = openJob ? React.createElement(PermitReview, {
+  const review = !onOpenReview && openJob ? React.createElement(PermitReview, {
     job: openJob,
     currentUser: currentUser,
     stock: stock,
@@ -1570,7 +1592,32 @@ function PermitReview({
       fontSize: 13,
       cursor: "pointer"
     }
-  }, "\u0E40\u0E1B\u0E34\u0E14\u0E07\u0E32\u0E19"), React.createElement("span", {
+  }, "\u0E40\u0E1B\u0E34\u0E14\u0E07\u0E32\u0E19"), PERMIT_BACK[p.status] && React.createElement("button", {
+    onClick: () => {
+      const to = PERMIT_BACK[p.status];
+      const toTh = (PERMIT_COLS.find(c => c.key === to) || {}).th || to;
+      window.askConfirm({
+        title: "ย้อนกลับไปขั้น “" + toTh + "” ?",
+        body: "ใช้เมื่อกดเดินสถานะผิด · วันที่ของขั้นที่ถอยออกมาจะถูกล้าง",
+        ok: "ย้อนกลับ",
+        danger: false,
+        icon: "alert"
+      }).then(ok => {
+        if (ok) stamp(to, PERMIT_BACK_CLEAR[to] || {});
+      });
+    },
+    style: {
+      padding: "10px 15px",
+      borderRadius: 10,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-2)",
+      fontWeight: 600,
+      fontFamily: "inherit",
+      fontSize: 13,
+      cursor: "pointer"
+    }
+  }, "\u21A9 \u0E22\u0E49\u0E2D\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E02\u0E31\u0E49\u0E19"), React.createElement("span", {
     style: {
       flex: 1
     }
@@ -1664,5 +1711,6 @@ Object.assign(window, {
   PermitReview,
   permitReportHTML,
   PermitCard,
-  PERMIT_COLS
+  PERMIT_COLS,
+  PERMIT_BACK
 });

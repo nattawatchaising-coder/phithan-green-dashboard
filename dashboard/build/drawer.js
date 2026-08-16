@@ -823,7 +823,8 @@ function StockShopModal({
   }, "\u0E40\u0E1A\u0E34\u0E01\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19", cartIds.length ? " (" + cartIds.length + " รายการ · " + totalQty + " ชิ้น)" : ""))));
 }
 function PermitJobSummary({
-  job
+  job,
+  onOpenReview
 }) {
   const p = job.permit || null;
   const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
@@ -1009,7 +1010,59 @@ function PermitJobSummary({
         flexWrap: "wrap"
       }
     }, bits);
-  })()), React.createElement("div", {
+  })()), onOpenReview && React.createElement("button", {
+    onClick: onOpenReview,
+    style: {
+      width: "100%",
+      marginBottom: 16,
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "12px 14px",
+      background: "var(--surface)",
+      border: "1px solid var(--border-strong)",
+      borderRadius: 12,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      textAlign: "left"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 34,
+      height: 34,
+      borderRadius: 9,
+      background: "#14B8A61c",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 17,
+    color: "#14B8A6"
+  })), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 13.5,
+      fontWeight: 700,
+      color: "var(--text-1)"
+    }
+  }, "\u0E40\u0E1B\u0E34\u0E14\u0E0A\u0E38\u0E14\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15"), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E14\u0E39\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25/\u0E23\u0E39\u0E1B/\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E17\u0E31\u0E49\u0E07\u0E0A\u0E38\u0E14 \xB7 \u0E40\u0E14\u0E34\u0E19\u0E2A\u0E16\u0E32\u0E19\u0E30 \xB7 \u0E15\u0E35\u0E01\u0E25\u0E31\u0E1A \xB7 \u0E2D\u0E2D\u0E01 PDF")), React.createElement(Icon, {
+    name: "arrowRight",
+    size: 16,
+    color: "var(--text-3)"
+  })), React.createElement("div", {
     style: {
       marginBottom: 18
     }
@@ -1110,7 +1163,8 @@ function DetailDrawer({
   onSurveyReport,
   onPermit,
   priceMap,
-  permitMode
+  permitMode,
+  onOpenReview
 }) {
   const SF = window.SF;
   const open = !!job;
@@ -1392,7 +1446,8 @@ function DetailDrawer({
     size: 13,
     color: "#fff"
   }))))), permitMode && React.createElement(PermitJobSummary, {
-    job: job
+    job: job,
+    onOpenReview: onOpenReview
   }), React.createElement("div", {
     style: {
       background: "var(--surface)",
@@ -2139,7 +2194,7 @@ function DetailDrawer({
       textAlign: "center",
       lineHeight: 1.4
     }
-  }, "\u0E14\u0E39\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27 \xB7 \u0E40\u0E14\u0E34\u0E19\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E1A\u0E2D\u0E23\u0E4C\u0E14\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15"), !permitMode && job.stage !== "done" && React.createElement("button", {
+  }, "\u0E14\u0E39\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27 \xB7 \u0E41\u0E01\u0E49\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E0A\u0E38\u0E14\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15"), !permitMode && job.stage !== "done" && React.createElement("button", {
     onClick: handleAdvance,
     disabled: advancing,
     style: {

@@ -18,7 +18,21 @@ const PERMIT_TABS = PERMIT_COLS.filter((c) => c.key !== "todo").map((c) => ({ ke
 
 /* ลากได้เฉพาะช่วงที่ฝ่ายขออนุญาตเป็นเจ้าของเรื่องเอง
    ตีกลับไม่ให้ลากปิดจบ เพราะต้องพิมพ์เหตุผลก่อน — ลากไปแล้วจะเปิดการ์ดให้พิมพ์แทน */
-const PERMIT_MOVES = { sent: ["filing", "rejected"], filing: ["approved", "rejected"], rejected: ["filing"] };
+/* เดินหน้าได้ตามลำดับ และ "ถอยกลับ" ได้ทุกขั้น เพราะกดพลาดเป็นเรื่องปกติ
+   (เช่นเผลอกดอนุมัติทั้งที่การไฟฟ้ายังไม่อนุมัติ) ถ้าถอยไม่ได้จะต้องไปแก้ที่ฐานข้อมูล */
+const PERMIT_MOVES = {
+  sent:     ["filing", "rejected"],
+  filing:   ["approved", "rejected", "sent"],
+  rejected: ["filing", "sent"],
+  approved: ["filing"],
+};
+/* ถอยกลับ 1 ขั้น = ขั้นก่อนหน้าในสายงานจริง (ตีกลับถือว่าอยู่ระดับเดียวกับ "รอรับ") */
+const PERMIT_BACK = { filing: "sent", approved: "filing", rejected: "sent" };
+/* ถอยแล้วต้องล้างตราประทับของขั้นที่ถอยออกมา ไม่งั้นวันที่จะค้างและอ่านผิด */
+const PERMIT_BACK_CLEAR = {
+  sent:   { filedDate: null, inspectDate: null, approvedDate: null, rejectReason: null },
+  filing: { approvedDate: null },
+};
 const today10 = () => new Date().toISOString().slice(0, 10);
 
 function permitColOf(j) {
@@ -73,11 +87,13 @@ function PermitCard({ job, onOpen, onDragStart, dragging, draggable }) {
   );
 }
 
-function PermitQueueView({ jobs, search, stock, onOpenJob, onPatchPermit, currentUser }) {
+function PermitQueueView({ jobs, search, stock, onOpenJob, onOpenReview, onPatchPermit, currentUser }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [mode, setMode] = React.useState(() => { try { return localStorage.getItem("sf_permit_view") || "board"; } catch (e) { return "board"; } });
   const [tab, setTab] = React.useState("sent");
-  const [open, setOpen] = React.useState(null);   // job ที่กำลังเปิดดู
+  const [open, setOpen] = React.useState(null);   // job ที่กำลังเปิดดู (ใช้เมื่อไม่มีตัวโฮสต์จากหน้าแอป)
+  /* ชุดข้อมูลขออนุญาตย้ายไปเปิดที่ระดับแอป จะได้เรียกจากในใบงานได้ด้วย */
+  const openReview = onOpenReview || setOpen;
   const [drag, setDrag] = React.useState(null);
   const [over, setOver] = React.useState(null);
   const setModeSave = (m) => { setMode(m); try { localStorage.setItem("sf_permit_view", m); } catch (e) {} };
@@ -123,14 +139,20 @@ function PermitQueueView({ jobs, search, stock, onOpenJob, onPatchPermit, curren
     if (!j) return;
     const p = j.permit || {};
     if (!canDrop(p.status, to)) return;
-    if (to === "rejected") { setOpen(j.id); return; }   // ตีกลับต้องมีเหตุผล — เปิดการ์ดให้พิมพ์
+    if (to === "rejected") { openReview(j.id); return; }   // ตีกลับต้องมีเหตุผล — เปิดการ์ดให้พิมพ์
+    const back = PERMIT_BACK[p.status] === to;
     const extra = { byAdmin: (currentUser && currentUser.name) || "", adminId: (currentUser && currentUser.id) || null,
       statusAt: new Date().toISOString() };
-    if (to === "filing")   { extra.rejectReason = null; if (!p.filedDate) extra.filedDate = today10(); }
-    if (to === "approved") { if (!p.approvedDate) extra.approvedDate = today10(); }
+    if (back) Object.assign(extra, PERMIT_BACK_CLEAR[to] || {});
+    else {
+      if (to === "filing")   { extra.rejectReason = null; if (!p.filedDate) extra.filedDate = today10(); }
+      if (to === "approved") { if (!p.approvedDate) extra.approvedDate = today10(); }
+    }
     onPatchPermit(j.id, Object.assign({ status: to }, extra));
   };
-  const cardOpen = (j) => { if (j.permit && j.permit.status) setOpen(j.id); else onOpenJob && onOpenJob(j.id); };
+  /* กดการ์ด = เปิด "ใบงาน" ก่อนเสมอ (เหมือนหน้าฐานข้อมูล) ให้เห็นภาพรวมและขั้นตอน
+     แล้วค่อยกดเข้าชุดข้อมูลขออนุญาตจากในใบงาน — เดิมกระโดดเข้าชุดข้อมูลเลย เห็นแต่ฟอร์ม */
+  const cardOpen = (j) => { onOpenJob && onOpenJob(j.id); };
 
   const modeSwitch = (
     <div style={{ display: "flex", gap: 3, padding: 3, borderRadius: 10, background: "var(--surface2)", flexShrink: 0 }}>
@@ -145,7 +167,7 @@ function PermitQueueView({ jobs, search, stock, onOpenJob, onPatchPermit, curren
     </div>
   );
 
-  const review = openJob ? <PermitReview job={openJob} currentUser={currentUser} stock={stock} onClose={() => setOpen(null)}
+  const review = (!onOpenReview && openJob) ? <PermitReview job={openJob} currentUser={currentUser} stock={stock} onClose={() => setOpen(null)}
     onOpenJob={() => { setOpen(null); onOpenJob && onOpenJob(openJob.id); }}
     onPatch={(fields) => onPatchPermit(openJob.id, fields)} /> : null;
 
@@ -692,6 +714,22 @@ function PermitReview({ job, currentUser, stock, onClose, onPatch, onOpenJob }) 
               </button>
               <button onClick={onOpenJob}
                 style={{ padding: "10px 15px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>เปิดงาน</button>
+              {/* ย้อนกลับขั้น — กดพลาดแล้วต้องแก้เองได้ ไม่ต้องรอใครไปแก้ให้ในฐานข้อมูล */}
+              {PERMIT_BACK[p.status] && (
+                <button onClick={() => {
+                  const to = PERMIT_BACK[p.status];
+                  const toTh = (PERMIT_COLS.find((c) => c.key === to) || {}).th || to;
+                  window.askConfirm({
+                    title: "ย้อนกลับไปขั้น “" + toTh + "” ?",
+                    body: "ใช้เมื่อกดเดินสถานะผิด · วันที่ของขั้นที่ถอยออกมาจะถูกล้าง",
+                    ok: "ย้อนกลับ", danger: false, icon: "alert",
+                  }).then((ok) => { if (ok) stamp(to, PERMIT_BACK_CLEAR[to] || {}); });
+                }}
+                  style={{ padding: "10px 15px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                    color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>
+                  ↩ ย้อนกลับขั้น
+                </button>
+              )}
               <span style={{ flex: 1 }} />
               {p.status !== "approved" && (
                 <button onClick={() => setRejecting(true)}
@@ -868,4 +906,4 @@ function permitReportHTML(job, photos, docs, sheets) {
     "</section>" + photoPages + docPages + sheetPages + "</body></html>";
 }
 
-Object.assign(window, { PermitQueueView, PermitReview, permitReportHTML, PermitCard, PERMIT_COLS });
+Object.assign(window, { PermitQueueView, PermitReview, permitReportHTML, PermitCard, PERMIT_COLS, PERMIT_BACK });

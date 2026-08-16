@@ -194,6 +194,7 @@ function App() {
   const fileFlags = useJobFileFlags();
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [view, setView] = React.useState("overview");
+  const [permitReview, setPermitReview] = React.useState(null);
   const [search, setSearch] = React.useState("");
   const [typeFilter, setTypeFilter] = React.useState("all");
   const [stageFilter, setStageFilter] = React.useState(null);
@@ -545,33 +546,32 @@ function App() {
     return "รอรับงาน " + sent + " · กำลังยื่น " + filing + " · ยังไม่เริ่มเก็บข้อมูล " + todo;
   }, [jobs]);
   const permitPage = view === "permit" || permitOnly && view === "board";
+  const patchPermit = (id, fields) => {
+    const j = store.raw.find(r => r.id === id) || {};
+    const cur = j.permit || {};
+    store.patch(id, {
+      permit: Object.assign({}, cur, fields)
+    });
+    const backTo = cur.submittedTechId || j.tech || null;
+    if (fields.status === "rejected" && backTo) {
+      notif.addNotif({
+        toTechId: backTo,
+        type: "permit",
+        jobId: id,
+        jobName: j.name,
+        title: "ข้อมูลขออนุญาตถูกตีกลับ ต้องแก้ไข",
+        body: (j.code || "") + " · " + (fields.rejectReason || "ต้องแก้ไขข้อมูล")
+      });
+    }
+  };
   const permitView = React.createElement(PermitQueueView, {
     jobs: jobs,
     search: search,
     stock: stock,
     currentUser: auth.current,
-    onOpenJob: id => {
-      setView(listView());
-      setSelected(id);
-    },
-    onPatchPermit: (id, fields) => {
-      const j = store.raw.find(r => r.id === id) || {};
-      const cur = j.permit || {};
-      store.patch(id, {
-        permit: Object.assign({}, cur, fields)
-      });
-      const backTo = cur.submittedTechId || j.tech || null;
-      if (fields.status === "rejected" && backTo) {
-        notif.addNotif({
-          toTechId: backTo,
-          type: "permit",
-          jobId: id,
-          jobName: j.name,
-          title: "ข้อมูลขออนุญาตถูกตีกลับ ต้องแก้ไข",
-          body: (j.code || "") + " · " + (fields.rejectReason || "ต้องแก้ไขข้อมูล")
-        });
-      }
-    }
+    onOpenJob: id => setSelected(id),
+    onOpenReview: id => setPermitReview(id),
+    onPatchPermit: patchPermit
   });
   const onSave = rec => {
     const prev = store.raw.find(r => r.id === rec.id);
@@ -819,6 +819,7 @@ function App() {
     onSurveyReport: () => setReportJob(selectedJob),
     onPermit: can(role, "editJob") && !permitOnly ? () => setPermitJob(selectedJob) : null,
     permitMode: permitOnly,
+    onOpenReview: permitOnly && selectedJob ? () => setPermitReview(selectedJob.id) : null,
     priceMap: can(role, "price") ? effPriceMap : null,
     onEdit: id => {
       setSelected(null);
@@ -827,7 +828,21 @@ function App() {
         isNew: false
       });
     }
-  }), permitJob && React.createElement(PermitWizard, {
+  }), permitReview && (() => {
+    const rj = jobs.find(x => x.id === permitReview);
+    if (!rj) return null;
+    return React.createElement(PermitReview, {
+      job: rj,
+      currentUser: auth.current,
+      stock: stock,
+      onClose: () => setPermitReview(null),
+      onOpenJob: () => {
+        setPermitReview(null);
+        setSelected(rj.id);
+      },
+      onPatch: fields => patchPermit(rj.id, fields)
+    });
+  })(), permitJob && React.createElement(PermitWizard, {
     job: permitJob,
     currentUser: auth.current,
     stock: stock,
