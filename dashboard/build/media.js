@@ -62,6 +62,22 @@ function dataUrlToBlobUrl(dataUrl) {
     type: mime
   }));
 }
+function openJobFileOnce(jobId, kind) {
+  if (!jobId || !_MFB()) return Promise.resolve(false);
+  return _mref("jobFiles/" + jobId).once("value").then(s => {
+    const all = _msnap(s);
+    const hit = all.filter(f => !kind || f.kind === kind).sort((a, b) => (b.at || "").localeCompare(a.at || ""))[0];
+    if (!hit || !hit.dataUrl) return false;
+    let url;
+    try {
+      url = dataUrlToBlobUrl(hit.dataUrl);
+    } catch (e) {
+      url = hit.dataUrl;
+    }
+    window.open(url, "_blank", "noopener");
+    return true;
+  }).catch(() => false);
+}
 function useJobMedia(jobId) {
   const [photos, setPhotos] = React.useState([]);
   const [comments, setComments] = React.useState([]);
@@ -911,6 +927,7 @@ function JobComments({
 }
 Object.assign(window, {
   useJobMedia,
+  openJobFileOnce,
   resizeImageFile,
   readFileAsDataURL,
   dataUrlToBlobUrl,

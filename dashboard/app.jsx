@@ -21,6 +21,14 @@ const NAV = [
 /* คนที่ถือตำแหน่ง "ฝ่ายขออนุญาต" อย่างเดียว — บอร์ดขั้นงานติดตั้งไม่มีความหมายกับเขา
    (งานกองอยู่ขั้น "เสร็จสิ้น" หมด) บอร์ดงานของเขาจึงเป็นบอร์ดขออนุญาตแทน */
 const isPermitOnly = (roles) => (roles || []).length > 0 && roles.every((r) => (ROLE_ALIAS[r] || r) === "permit");
+
+/* ── "ขั้นตอน" ของฝ่ายขออนุญาต ──
+   ช่างเดินงานตามขั้นติดตั้ง (ออกแบบ→ถอดของ→ติดตั้ง→เสร็จสิ้น) แต่ฝ่ายขออนุญาตไม่ได้ทำงานตามแกนนั้น
+   งานที่ "เสร็จสิ้น" ในสายตาช่าง คืองานที่เพิ่งเริ่มต้นในสายตาเขา — ชิปกรองและคอลัมน์ขั้นตอน
+   ของบัญชีขออนุญาตจึงต้องเป็นขั้นของใบขออนุญาตแทน ไม่งั้นทุกงานจะกองอยู่ช่องเดียว */
+const PERMIT_TODO = { key: "todo", th: "ยังไม่เริ่มเก็บข้อมูล", color: "#94A3B8", soft: "var(--surface2)" };
+const permitStageKey = (j) => (j && j.permit && j.permit.status) || "todo";
+const permitStageOf = (key) => (window.PERMIT_COLS || []).find((c) => c.key === key) || PERMIT_TODO;
 const navForRole = (roles, techId) => NAV
   .filter((n) => (n.own ? !!techId : (!n.perm || can(roles, n.perm))))
   .filter((n) => !(isPermitOnly(roles) && n.key === "permit"))
@@ -145,6 +153,8 @@ function App() {
   /* สิทธิ์/ตัวตนของผู้ใช้ที่ล็อกอินอยู่ — role เป็น "รายการตำแหน่ง" เพราะคนหนึ่งคนถือได้หลายตำแหน่ง
      can(role, ...) รับได้ทั้งรายการและตำแหน่งเดียว จึงเรียกเหมือนเดิมได้ทุกที่ */
   const role   = React.useMemo(() => (auth.current ? userRoles(auth.current) : []), [auth.current]);
+  /* บัญชีขออนุญาตกรอง/เรียงด้วยขั้นของใบขออนุญาต ที่เหลือใช้ขั้นติดตั้งตามเดิม */
+  const stageKeyOf = React.useCallback((j) => (isPermitOnly(role) ? permitStageKey(j) : j.stage), [role]);
   const techId = auth.current ? auth.current.techId : null;
   /* ขอบเขตงานที่เห็น — ตั้งได้เองในหน้า "สิทธิ์ตำแหน่ง" (ทุกงาน / งานที่รับผิดชอบ / งานที่ตัวเองเปิด / เฉพาะบางขั้น)
      roleCfg.rev ต้องอยู่ใน deps ด้วย เพราะ PERMS/ROLE_SCOPE เป็นตารางกลางที่ถูกเขียนทับเมื่อมีคนแก้สิทธิ์ */
@@ -176,7 +186,7 @@ function App() {
     return jobs.filter((j) => {
       if (q && !((j.name + j.code + j.province + j.phone + j.brand).toLowerCase().includes(q))) return false;
       if (typeFilter !== "all" && j.type !== typeFilter) return false;
-      if (stageFilter && j.stage !== stageFilter) return false;
+      if (stageFilter && stageKeyOf(j) !== stageFilter) return false;
       if (delayedOnly && !j.delayed) return false;
       if (quickFilter === "active" && j.stage === "done") return false;
       if (quickFilter === "delayed" && !j.delayed) return false;
@@ -186,7 +196,7 @@ function App() {
       if (!inScope(j)) return false; // ขอบเขตงานตามตำแหน่ง
       return true;
     });
-  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techFilter, techIds, inScope]);
+  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techFilter, techIds, inScope, stageKeyOf]);
 
   /* นับงานต่อช่าง สำหรับเมนูกรอง "ช่างผู้รับผิดชอบ" — ใช้ฟิลเตอร์อื่นทั้งหมดยกเว้น techFilter เอง
      จะได้เห็นว่าภายใต้เงื่อนไขที่กรองอยู่ ช่างแต่ละคนมีงานกี่งาน */
@@ -196,7 +206,7 @@ function App() {
     jobs.forEach((j) => {
       if (q && !((j.name + j.code + j.province + j.phone + j.brand).toLowerCase().includes(q))) return;
       if (typeFilter !== "all" && j.type !== typeFilter) return;
-      if (stageFilter && j.stage !== stageFilter) return;
+      if (stageFilter && stageKeyOf(j) !== stageFilter) return;
       if (delayedOnly && !j.delayed) return;
       if (quickFilter === "active" && j.stage === "done") return;
       if (quickFilter === "delayed" && !j.delayed) return;
@@ -208,7 +218,7 @@ function App() {
     });
     c.__all = all;
     return c;
-  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techIds, inScope]);
+  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techIds, inScope, stageKeyOf]);
 
   // นับงานต่อขั้น (Flow) สำหรับชิปกรอง — ใช้ฟิลเตอร์อื่นทั้งหมดยกเว้น stageFilter เอง
   const stageCounts = React.useMemo(() => {
@@ -224,11 +234,11 @@ function App() {
       if (quickFilter === "battery" && !j.battery) return;
       if (techFilter && !matchTech(j, techFilter, techIds)) return;
       if (!inScope(j)) return;
-      c[j.stage] = (c[j.stage] || 0) + 1; all++;
+      { const k = stageKeyOf(j); c[k] = (c[k] || 0) + 1; all++; }
     });
     c.__all = all;
     return c;
-  }, [jobs, search, typeFilter, delayedOnly, quickFilter, techFilter, techIds, inScope]);
+  }, [jobs, search, typeFilter, delayedOnly, quickFilter, techFilter, techIds, inScope, stageKeyOf]);
 
   // แจ้งเตือนงานล่าช้าตามขั้น (Flow) — คำนวณสด: tech เห็นเฉพาะงานตัวเอง, admin/manager เห็นทุกงาน
   const lateAlerts = React.useMemo(() => {
@@ -493,7 +503,7 @@ function App() {
           search={search} setSearch={setSearch}
           typeFilter={typeFilter} setTypeFilter={setTypeFilter}
           delayedOnly={delayedOnly} setDelayedOnly={setDelayedOnly}
-          stageFilter={stageFilter} setStageFilter={setStageFilter} stageCounts={stageCounts}
+          stageFilter={stageFilter} setStageFilter={setStageFilter} stageCounts={stageCounts} stageMode={permitOnly ? "permit" : "job"}
           quickFilter={quickFilter} setQuickFilter={setQuickFilter}
           techFilter={techFilter} setTechFilter={setTechFilter} techCounts={techCounts} techs={techStore.techs}
           onAdd={() => setForm({ job: store.blank(), isNew: true })}
@@ -510,6 +520,7 @@ function App() {
           {view === "table" && <TableView jobs={filtered} onOpen={openJob}
             onEdit={(j) => setForm({ job: store.raw.find((r) => r.id === j.id), isNew: false })}
             onDelete={onDelete} onSetMat={store.setMat} onSetStage={(id, s) => store.setStage(id, s)}
+            permitMode={permitOnly}
             trashCount={can(role, "delJob") ? store.trash.length : 0} onOpenTrash={can(role, "delJob") ? () => setTrashOpen(true) : null} />}
           {view === "permit" && permitView}
           {view === "report" && <ReportView jobs={filtered} onOpen={openJob} />}
@@ -765,7 +776,7 @@ function TechFilter({ value, onChange, techs, counts, nameOf }) {
   );
 }
 
-function Header({ view, navList, plain, subtitle, ownOnly, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, quickFilter, setQuickFilter, techFilter, setTechFilter, techCounts, techs, onAdd, canAdd, onMap, showBell, unread, notifItems, lateAlerts, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen }) {
+function Header({ view, navList, plain, subtitle, ownOnly, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, stageMode, quickFilter, setQuickFilter, techFilter, setTechFilter, techCounts, techs, onAdd, canAdd, onMap, showBell, unread, notifItems, lateAlerts, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen }) {
   const nav = navList.find((n) => n.key === view) || NAV.find((n) => n.key === view);
   const QUICK_LABELS = { active: "กำลังดำเนินการ", delayed: "ล่าช้า", ready: "อุปกรณ์พร้อมติดตั้ง", battery: "มีแบตเตอรี่" };
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -774,6 +785,11 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
   // มือถือ: ซ่อนแถบกรองขั้นงาน (ปุ่ม + ชิป) ทุกหน้า เพื่อประหยัดพื้นที่หัว
   /* หน้าขออนุญาตไม่ใช้ตัวกรองขั้นงานติดตั้ง — งานที่เข้ามาถึงหน้านี้คืองานที่ติดตั้งเสร็จหมดแล้ว */
   const showStageBar = view !== "overview" && !isMobile && !plain;
+  /* บัญชีขออนุญาตกรองด้วยขั้นของใบขออนุญาต — ป้าย/สี/รายชื่อขั้น ต้องสลับตามโหมดทั้งชุด */
+  const pMode = stageMode === "permit";
+  const stList = pMode ? (window.PERMIT_COLS || []) : window.SF.STAGES;
+  const stInfo = (k) => (pMode ? permitStageOf(k) : stageOf(k));
+  const stLabel = pMode ? "ขั้นขออนุญาต" : "ขั้นงาน";
   // มือถือ: ช่องค้นหายุบเป็นปุ่มสีเขียว กดแล้วค่อยขยายเป็นช่องพิมพ์ (ประหยัดพื้นที่หัว)
   const [searchOpen, setSearchOpen] = React.useState(false);
   const searchRef = React.useRef(null);
@@ -795,7 +811,7 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
           <h1 className="page-title">{nav.th}</h1>
           <p className="page-sub">
             {subtitle || <React.Fragment>แสดง <strong>{count}</strong> จาก {total} งาน{ownOnly && " · เฉพาะงานของคุณ"}</React.Fragment>}
-            {stageFilter && <span> · กรอง: {stageOf(stageFilter).th} <button onClick={() => setStageFilter(null)} className="clear-chip">ล้าง ✕</button></span>}
+            {stageFilter && <span> · กรอง: {stInfo(stageFilter).th} <button onClick={() => setStageFilter(null)} className="clear-chip">ล้าง ✕</button></span>}
             {quickFilter && <span> · กรอง: {QUICK_LABELS[quickFilter]} <button onClick={() => setQuickFilter(null)} className="clear-chip">ล้าง ✕</button></span>}
             {techFilter && <span> · ช่าง: {techName(techFilter)} <button onClick={() => setTechFilter(null)} className="clear-chip">ล้าง ✕</button></span>}
           </p>
@@ -864,12 +880,12 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
         {showStageBar && (
         <button onClick={toggleStage} title={stageOpen ? "ซ่อนตัวกรองขั้นงาน" : "แสดงตัวกรองขั้นงาน"}
           style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: isMobile ? "5px 10px" : "6px 13px", borderRadius: 99,
-            border: "1px solid " + (stageFilter ? stageOf(stageFilter).color : "var(--border-strong)"),
-            background: stageFilter ? stageOf(stageFilter).color + "16" : "var(--surface)",
-            color: stageFilter ? stageOf(stageFilter).color : "var(--text-2)",
+            border: "1px solid " + (stageFilter ? stInfo(stageFilter).color : "var(--border-strong)"),
+            background: stageFilter ? stInfo(stageFilter).color + "16" : "var(--surface)",
+            color: stageFilter ? stInfo(stageFilter).color : "var(--text-2)",
             fontSize: isMobile ? 11.5 : 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-          <Icon name="filter" size={14} color={stageFilter ? stageOf(stageFilter).color : "var(--text-2)"} />
-          ขั้นงาน{stageFilter ? ": " + stageOf(stageFilter).th : ""}
+          <Icon name="filter" size={14} color={stageFilter ? stInfo(stageFilter).color : "var(--text-2)"} />
+          {stLabel}{stageFilter ? ": " + stInfo(stageFilter).th : ""}
           <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: stageOpen ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
         </button>
         )}
@@ -881,7 +897,6 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
         paddingBottom: stageOpen ? (isMobile ? 10 : 14) : 0, transition: "max-height .24s ease, opacity .2s ease, padding-bottom .24s ease" }}>
         <div className="cat-chip-row" style={{ display: "flex", alignItems: "center", gap: isMobile ? 5 : 7, flexWrap: "nowrap", overflowX: "auto", overflowY: "hidden", paddingBottom: 2 }}>
           {(() => {
-            const SF = window.SF;
             /* ชิปกรองขั้นงาน — ปกติไม่มีเส้นขอบ ใช้พื้นจางพอให้รู้ว่ากดได้
                ที่เลือกอยู่ค่อยได้สีของขั้นงานนั้นเต็ม ๆ (สีมีความหมายเฉพาะตอนถูกเลือก) */
             const chip = (active, color) => ({
@@ -899,7 +914,7 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
                 <button style={chip(!stageFilter)} onClick={() => setStageFilter(null)}>
                   ทั้งหมด <span style={num(!stageFilter)}>{(stageCounts && stageCounts.__all) || 0}</span>
                 </button>
-                {SF.STAGES.map((s) => {
+                {stList.map((s) => {
                   const active = stageFilter === s.key;
                   const n = (stageCounts && stageCounts[s.key]) || 0;
                   return (

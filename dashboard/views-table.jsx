@@ -5,6 +5,35 @@
 
 const MAT_CYCLE = ["none", "waiting", "ready", "na"];
 
+/* ── มุมมองของฝ่ายขออนุญาต ──
+   เขาไม่ได้ดูว่างานติดตั้งถึงไหน แต่ดูว่า "ใบของงานนี้" เดินไปถึงไหน
+   และต้องหยิบไฟล์แบบ (SLD อยู่ในนั้น) ไปแนบยื่นได้จากตารางเลย ไม่ต้องเปิดใบงานทีละใบ */
+const permitCellOf = (j) => {
+  const st = (j && j.permit && j.permit.status) || "todo";
+  const c = (window.PERMIT_COLS || []).find((x) => x.key === st);
+  return c || { key: "todo", th: "ยังไม่เริ่มเก็บข้อมูล", color: "#94A3B8", soft: "var(--surface2)" };
+};
+const permitDoneOf = (j) => ((j && j.permit && j.permit.status) === "approved");
+
+/* ชิปไฟล์แบบ/BOQ — กดแล้วเปิดไฟล์ล่าสุดของชนิดนั้นเลย (อ่านครั้งเดียว ไม่ค้าง listener) */
+function FileChip({ jobId, kind, has, th, color }) {
+  const [busy, setBusy] = React.useState(false);
+  if (!has) return null;
+  return (
+    <button title={"เปิด" + th} disabled={busy}
+      onClick={(e) => {
+        e.stopPropagation(); setBusy(true);
+        (window.openJobFileOnce ? window.openJobFileOnce(jobId, kind) : Promise.resolve(false))
+          .then((ok) => { setBusy(false); if (!ok) alert("เปิดไฟล์ไม่สำเร็จ — ลองเปิดจากใบงาน"); });
+      }}
+      style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 7, marginRight: 4,
+        border: "1px solid " + color + "44", background: color + "12", color: color,
+        fontFamily: "inherit", fontSize: 10.5, fontWeight: 800, cursor: busy ? "wait" : "pointer", opacity: busy ? .5 : 1 }}>
+      {th}
+    </button>
+  );
+}
+
 function MatCell({ status, onCycle }) {
   const m = window.SF.MAT_STATUS[status] || window.SF.MAT_STATUS.none;
   return (
@@ -17,35 +46,42 @@ function MatCell({ status, onCycle }) {
   );
 }
 
-function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trashCount, onOpenTrash }) {
+function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trashCount, onOpenTrash, permitMode }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [sort, setSort] = React.useState({ key: "code", dir: 1 });
   const [tab, setTab] = React.useState("active"); // active | done | all — แยกงานที่เสร็จแล้วออก
 
+  const isDone = React.useCallback((j) => (permitMode ? permitDoneOf(j) : j.stage === "done"), [permitMode]);
   const counts = React.useMemo(() => ({
-    active: jobs.filter((j) => j.stage !== "done").length,
-    done:   jobs.filter((j) => j.stage === "done").length,
+    active: jobs.filter((j) => !isDone(j)).length,
+    done:   jobs.filter((j) => isDone(j)).length,
     all:    jobs.length,
-  }), [jobs]);
+  }), [jobs, isDone]);
+  const tabLabels = permitMode
+    ? { active: "ยังไม่อนุมัติ", done: "การไฟฟ้าอนุมัติแล้ว" }
+    : { active: "กำลังดำเนินการ", done: "เสร็จแล้ว" };
 
   const sorted = React.useMemo(() => {
-    const arr = jobs.filter((j) => tab === "all" ? true : tab === "done" ? j.stage === "done" : j.stage !== "done");
+    const arr = jobs.filter((j) => tab === "all" ? true : tab === "done" ? isDone(j) : !isDone(j));
     arr.sort((a, b) => {
       let av, bv;
-      if (sort.key === "stage") { av = a.stageIdx; bv = b.stageIdx; }
+      if (sort.key === "stage") {
+        if (permitMode) { const L = (window.PERMIT_COLS || []).map((c) => c.key); av = L.indexOf(permitCellOf(a).key); bv = L.indexOf(permitCellOf(b).key); }
+        else { av = a.stageIdx; bv = b.stageIdx; }
+      }
       else if (sort.key === "kw") { av = a.kw; bv = b.kw; }
       else if (sort.key === "deadline") { av = a.deadline; bv = b.deadline; }
       else { av = a[sort.key]; bv = b[sort.key]; }
       return (av > bv ? 1 : av < bv ? -1 : 0) * sort.dir;
     });
     return arr;
-  }, [jobs, sort, tab]);
+  }, [jobs, sort, tab, isDone, permitMode]);
 
   if (isMobile) return (
     <React.Fragment>
-      <StatusTabs tab={tab} setTab={setTab} counts={counts} trashCount={trashCount} onOpenTrash={onOpenTrash} />
-      <TableMobile jobs={sorted} sort={sort} setSort={setSort} onOpen={onOpen} onEdit={onEdit} onDelete={onDelete} onSetStage={onSetStage} />
+      <StatusTabs tab={tab} setTab={setTab} counts={counts} labels={tabLabels} trashCount={trashCount} onOpenTrash={onOpenTrash} />
+      <TableMobile jobs={sorted} sort={sort} setSort={setSort} onOpen={onOpen} onEdit={onEdit} onDelete={onDelete} onSetStage={onSetStage} permitMode={permitMode} />
     </React.Fragment>
   );
 
@@ -74,7 +110,7 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trash
 
   return (
     <React.Fragment>
-    <StatusTabs tab={tab} setTab={setTab} counts={counts} trashCount={trashCount} onOpenTrash={onOpenTrash} />
+    <StatusTabs tab={tab} setTab={setTab} counts={counts} labels={tabLabels} trashCount={trashCount} onOpenTrash={onOpenTrash} />
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 920 }}>
@@ -84,8 +120,8 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trash
               {th("ประเภท", "type", true)}
               {th("แบรนด์ / สเปก", "brand")}
               {th("ขนาด", "kw", true)}
-              {th("ความพร้อมวัสดุ", "matReadyPct", true)}
-              {th("ขั้นตอน", "stage", true)}
+              {permitMode ? th("แบบ / BOQ", null, true) : th("ความพร้อมวัสดุ", "matReadyPct", true)}
+              {th(permitMode ? "ขั้นขออนุญาต" : "ขั้นตอน", "stage", true)}
               {th("วันติดตั้ง", "deadline", true)}
               {th("จัดการ", null, true)}
             </tr>
@@ -127,7 +163,14 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trash
                     fontVariantNumeric: "tabular-nums", color: "var(--text-1)" }}>{j.kw}<span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--text-3)", marginLeft: 2 }}>kW</span></div>
                   <div style={{ fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap", marginTop: 2 }}>{j.panels} แผง · {(j.phase || "1")} เฟส</div>
                 </td>
-                {/* material readiness — แถบความคืบหน้า + % (แก้รายชิ้นได้ใน drawer/ฟอร์ม) */}
+                {/* ฝ่ายขออนุญาตไม่ได้ยุ่งกับวัสดุ — ช่องนี้ใช้เป็นทางลัดเปิดไฟล์แบบ (SLD) แทน */}
+                {permitMode ? (
+                <td style={{ padding: "13px 14px", textAlign: "center", whiteSpace: "nowrap" }}>
+                  <FileChip jobId={j.id} kind="design" has={j.hasDesign} th="แบบ · SLD" color="#2563EB" />
+                  <FileChip jobId={j.id} kind="boq" has={j.hasBoq} th="BOQ" color="#0D9488" />
+                  {!j.hasDesign && !j.hasBoq && <span style={{ fontSize: 11, color: "var(--text-3)" }}>ยังไม่มีไฟล์แนบ</span>}
+                </td>
+                ) : (
                 <td style={{ padding: "13px 14px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
                     <span style={{ flex: 1, height: 7, borderRadius: 99, background: "var(--surface3)", overflow: "hidden", minWidth: 56 }}>
@@ -140,16 +183,30 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trash
                       color: j.matReady ? "var(--primary-dark)" : "var(--text-2)" }}>{j.matReadyPct}%</span>
                   </div>
                 </td>
+                )}
                 {/* stage */}
                 <td style={{ padding: "13px 14px", textAlign: "center" }}>
                   {/* ใช้เมนูของแอปเอง ไม่ใช้ select ของเบราว์เซอร์ —
                       ของเบราว์เซอร์เอาสีป้ายไปทำพื้นของรายการที่กางออกมาด้วย ตัวหนังสือเลยอ่านไม่ออก
                       แล้วมุมโค้งของป้ายก็กลายเป็นเหลี่ยมตอนกาง */}
+                  {permitMode ? (() => {
+                    /* เดินสถานะได้ที่บอร์ดขออนุญาตเท่านั้น (ตีกลับต้องมีเหตุผล) ตรงนี้จึงเป็นป้ายอ่านอย่างเดียว */
+                    const pc = permitCellOf(j);
+                    const rejected = pc.key === "rejected";
+                    return (
+                      <span title={rejected && j.permit ? (j.permit.rejectReason || "") : ""}
+                        style={{ display: "inline-block", maxWidth: 180, fontSize: 11.5, fontWeight: 700, color: pc.color,
+                          background: pc.color + "14", border: "1px solid " + pc.color + "33", borderRadius: 99, padding: "5px 11px" }}>
+                        {pc.th}
+                      </span>
+                    );
+                  })() : (
                   <Dropdown value={j.stage} onChange={(v) => onSetStage(j.id, v)}
                     options={SF.STAGES.map((s) => ({ value: s.key, label: s.th, sub: s.en }))}
                     style={{ width: "auto", display: "inline-flex", gap: 4, fontSize: 11.5, fontWeight: 700,
                       color: stageOf(j.stage).fg, background: stageOf(j.stage).soft,
                       border: "1px solid transparent", borderRadius: 99, padding: "5px 8px 5px 11px" }} />
+                  )}
                 </td>
                 {/* deadline */}
                 <td style={{ padding: "13px 14px", textAlign: "center" }}>
@@ -182,12 +239,13 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trash
 }
 
 /* ── แท็บแยกสถานะงาน: กำลังดำเนินการ / เสร็จแล้ว / ทั้งหมด ── */
-function StatusTabs({ tab, setTab, counts, trashCount, onOpenTrash }) {
+function StatusTabs({ tab, setTab, counts, labels, trashCount, onOpenTrash }) {
   const mob = window.matchMedia("(max-width: 860px)").matches;
+  const L = labels || {};
   const opts = [
-    { key: "active", label: "กำลังดำเนินการ", n: counts.active },
-    { key: "done",   label: "เสร็จแล้ว",      n: counts.done },
-    { key: "all",    label: "ทั้งหมด",        n: counts.all },
+    { key: "active", label: L.active || "กำลังดำเนินการ", n: counts.active },
+    { key: "done",   label: L.done   || "เสร็จแล้ว",      n: counts.done },
+    { key: "all",    label: "ทั้งหมด",                    n: counts.all },
   ];
   return (
     <div style={{ display: "flex", gap: mob ? 6 : 8, marginBottom: 14, flexWrap: "nowrap" }}>
@@ -226,12 +284,12 @@ function StatusTabs({ tab, setTab, counts, trashCount, onOpenTrash }) {
 }
 
 /* ── Mobile database — card list แทนตาราง 13 คอลัมน์ ── */
-function TableMobile({ jobs, sort, setSort, onOpen, onEdit, onDelete, onSetStage }) {
+function TableMobile({ jobs, sort, setSort, onOpen, onEdit, onDelete, onSetStage, permitMode }) {
   const SF = window.SF;
   const SORTS = [
     { key: "code", th: "รหัสงาน" },
     { key: "name", th: "ชื่อลูกค้า" },
-    { key: "stage", th: "ขั้นตอน" },
+    { key: "stage", th: permitMode ? "ขั้นขออนุญาต" : "ขั้นตอน" },
     { key: "kw", th: "ขนาด (kW)" },
     { key: "deadline", th: "วันติดตั้ง" },
   ];
@@ -257,7 +315,9 @@ function TableMobile({ jobs, sort, setSort, onOpen, onEdit, onDelete, onSetStage
       )}
 
       {jobs.map((j) => {
-        const s = stageOf(j.stage);
+        /* บัญชีขออนุญาตดูขั้นของใบขออนุญาต ไม่ใช่ขั้นติดตั้ง — สีขอบการ์ดก็ต้องตามแกนเดียวกัน */
+        const pc = permitMode ? permitCellOf(j) : null;
+        const s = permitMode ? { color: pc.color, fg: pc.color, soft: pc.color + "14", th: pc.th } : stageOf(j.stage);
         return (
           <div key={j.id} style={{ background: j.delayed ? "#FEF7F7" : "var(--surface)",
             border: "1px solid " + (j.delayed ? "var(--tint-red-bd2)" : "var(--border)"), borderRadius: 14, padding: 13,
@@ -300,15 +360,28 @@ function TableMobile({ jobs, sort, setSort, onOpen, onEdit, onDelete, onSetStage
             {/* ท้าย: ขั้นตอน (select) + วัสดุ% + กำหนดเสร็จ */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
               {/* เมนูของแอปเองเหมือนฝั่งตาราง — ป้ายสีบนมือถือก็เจอปัญหารายการอ่านไม่ออกแบบเดียวกัน */}
-              <Dropdown value={j.stage} onChange={(v) => onSetStage(j.id, v)}
-                options={SF.STAGES.map((st) => ({ value: st.key, label: st.th, sub: st.en }))}
-                style={{ width: "auto", display: "inline-flex", gap: 6, fontSize: 12, fontWeight: 600,
-                  color: s.fg, background: s.soft, border: "1px solid " + s.color + "33",
-                  borderRadius: 8, padding: "6px 8px 6px 9px" }} />
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <MatDots mat={j.mat} />
-                <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "var(--mono)", color: j.matReady ? "var(--primary-dark)" : "var(--text-3)" }}>{j.matReadyPct}%</span>
-              </span>
+              {permitMode ? (
+                <span style={{ display: "inline-block", fontSize: 12, fontWeight: 700, color: s.fg, background: s.soft,
+                  border: "1px solid " + s.color + "33", borderRadius: 8, padding: "6px 10px" }}>{s.th}</span>
+              ) : (
+                <Dropdown value={j.stage} onChange={(v) => onSetStage(j.id, v)}
+                  options={SF.STAGES.map((st) => ({ value: st.key, label: st.th, sub: st.en }))}
+                  style={{ width: "auto", display: "inline-flex", gap: 6, fontSize: 12, fontWeight: 600,
+                    color: s.fg, background: s.soft, border: "1px solid " + s.color + "33",
+                    borderRadius: 8, padding: "6px 8px 6px 9px" }} />
+              )}
+              {permitMode ? (
+                <span style={{ display: "inline-flex", alignItems: "center" }}>
+                  <FileChip jobId={j.id} kind="design" has={j.hasDesign} th="แบบ · SLD" color="#2563EB" />
+                  <FileChip jobId={j.id} kind="boq" has={j.hasBoq} th="BOQ" color="#0D9488" />
+                  {!j.hasDesign && !j.hasBoq && <span style={{ fontSize: 11, color: "var(--text-3)" }}>ไม่มีไฟล์แนบ</span>}
+                </span>
+              ) : (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <MatDots mat={j.mat} />
+                  <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "var(--mono)", color: j.matReady ? "var(--primary-dark)" : "var(--text-3)" }}>{j.matReadyPct}%</span>
+                </span>
+              )}
               <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontFamily: "var(--mono)", fontWeight: 600,
                 color: j.startDate ? (j.delayed ? "#EF4444" : "var(--text-2)") : "var(--text-3)" }}>
                 <Icon name="calendar" size={12} color={j.startDate ? (j.delayed ? "#EF4444" : "var(--text-3)") : "var(--text-3)"} />

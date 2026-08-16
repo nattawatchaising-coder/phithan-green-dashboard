@@ -149,7 +149,25 @@ function PermitCard({
       borderRadius: 7,
       fontFamily: "var(--mono)"
     }
-  }, "\u0E04\u0E33\u0E23\u0E49\u0E2D\u0E07 ", p.reqNo)), p.status === "rejected" && p.rejectReason && React.createElement("div", {
+  }, "\u0E04\u0E33\u0E23\u0E49\u0E2D\u0E07 ", p.reqNo), job.hasDesign && React.createElement("span", {
+    style: {
+      background: "#2563EB14",
+      border: "1px solid #2563EB33",
+      color: "#2563EB",
+      fontWeight: 800,
+      padding: "3px 8px",
+      borderRadius: 7
+    }
+  }, "\uD83D\uDCD0 \u0E41\u0E1A\u0E1A \xB7 SLD"), job.hasBoq && React.createElement("span", {
+    style: {
+      background: "#0D948814",
+      border: "1px solid #0D948833",
+      color: "#0D9488",
+      fontWeight: 800,
+      padding: "3px 8px",
+      borderRadius: 7
+    }
+  }, "BOQ")), p.status === "rejected" && p.rejectReason && React.createElement("div", {
     style: {
       marginTop: 9,
       fontSize: 11,

@@ -55,6 +55,22 @@ function dataUrlToBlobUrl(dataUrl) {
   return URL.createObjectURL(new Blob([arr], { type: mime }));
 }
 
+/* เปิดไฟล์แนบของงานทีละใบ โดยไม่ต้อง subscribe ทั้งงาน
+   ใช้ในตาราง/การ์ด ที่อยากกดดู "แบบ" (มี SLD อยู่ในนั้น) ทันทีโดยไม่ต้องเปิดใบงานก่อน
+   อ่านครั้งเดียวแล้วจบ ไม่ค้าง listener ไว้ — ตารางมีหลายสิบแถว ถ้า subscribe ทุกแถวจะหนักมาก */
+function openJobFileOnce(jobId, kind) {
+  if (!jobId || !_MFB()) return Promise.resolve(false);
+  return _mref("jobFiles/" + jobId).once("value").then((s) => {
+    const all = _msnap(s);
+    const hit = all.filter((f) => !kind || f.kind === kind).sort((a, b) => (b.at || "").localeCompare(a.at || ""))[0];
+    if (!hit || !hit.dataUrl) return false;
+    let url;
+    try { url = dataUrlToBlobUrl(hit.dataUrl); } catch (e) { url = hit.dataUrl; }
+    window.open(url, "_blank", "noopener");
+    return true;
+  }).catch(() => false);
+}
+
 /* hook: โหลดรูป + คอมเมนต์ + ไฟล์แนบ (PDF) ของงานที่เปิดอยู่ */
 function useJobMedia(jobId) {
   const [photos, setPhotos] = React.useState([]);
@@ -405,4 +421,4 @@ function JobComments({ media, currentUser, canManage }) {
   );
 }
 
-Object.assign(window, { useJobMedia, resizeImageFile, readFileAsDataURL, dataUrlToBlobUrl, JobPhotos, JobFiles, JobComments });
+Object.assign(window, { useJobMedia, openJobFileOnce, resizeImageFile, readFileAsDataURL, dataUrlToBlobUrl, JobPhotos, JobFiles, JobComments });

@@ -1,5 +1,54 @@
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 const MAT_CYCLE = ["none", "waiting", "ready", "na"];
+const permitCellOf = j => {
+  const st = j && j.permit && j.permit.status || "todo";
+  const c = (window.PERMIT_COLS || []).find(x => x.key === st);
+  return c || {
+    key: "todo",
+    th: "ยังไม่เริ่มเก็บข้อมูล",
+    color: "#94A3B8",
+    soft: "var(--surface2)"
+  };
+};
+const permitDoneOf = j => (j && j.permit && j.permit.status) === "approved";
+function FileChip({
+  jobId,
+  kind,
+  has,
+  th,
+  color
+}) {
+  const [busy, setBusy] = React.useState(false);
+  if (!has) return null;
+  return React.createElement("button", {
+    title: "เปิด" + th,
+    disabled: busy,
+    onClick: e => {
+      e.stopPropagation();
+      setBusy(true);
+      (window.openJobFileOnce ? window.openJobFileOnce(jobId, kind) : Promise.resolve(false)).then(ok => {
+        setBusy(false);
+        if (!ok) alert("เปิดไฟล์ไม่สำเร็จ — ลองเปิดจากใบงาน");
+      });
+    },
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      padding: "3px 9px",
+      borderRadius: 7,
+      marginRight: 4,
+      border: "1px solid " + color + "44",
+      background: color + "12",
+      color: color,
+      fontFamily: "inherit",
+      fontSize: 10.5,
+      fontWeight: 800,
+      cursor: busy ? "wait" : "pointer",
+      opacity: busy ? .5 : 1
+    }
+  }, th);
+}
 function MatCell({
   status,
   onCycle
@@ -42,7 +91,8 @@ function TableView({
   onSetMat,
   onSetStage,
   trashCount,
-  onOpenTrash
+  onOpenTrash,
+  permitMode
 }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -51,18 +101,32 @@ function TableView({
     dir: 1
   });
   const [tab, setTab] = React.useState("active");
+  const isDone = React.useCallback(j => permitMode ? permitDoneOf(j) : j.stage === "done", [permitMode]);
   const counts = React.useMemo(() => ({
-    active: jobs.filter(j => j.stage !== "done").length,
-    done: jobs.filter(j => j.stage === "done").length,
+    active: jobs.filter(j => !isDone(j)).length,
+    done: jobs.filter(j => isDone(j)).length,
     all: jobs.length
-  }), [jobs]);
+  }), [jobs, isDone]);
+  const tabLabels = permitMode ? {
+    active: "ยังไม่อนุมัติ",
+    done: "การไฟฟ้าอนุมัติแล้ว"
+  } : {
+    active: "กำลังดำเนินการ",
+    done: "เสร็จแล้ว"
+  };
   const sorted = React.useMemo(() => {
-    const arr = jobs.filter(j => tab === "all" ? true : tab === "done" ? j.stage === "done" : j.stage !== "done");
+    const arr = jobs.filter(j => tab === "all" ? true : tab === "done" ? isDone(j) : !isDone(j));
     arr.sort((a, b) => {
       let av, bv;
       if (sort.key === "stage") {
-        av = a.stageIdx;
-        bv = b.stageIdx;
+        if (permitMode) {
+          const L = (window.PERMIT_COLS || []).map(c => c.key);
+          av = L.indexOf(permitCellOf(a).key);
+          bv = L.indexOf(permitCellOf(b).key);
+        } else {
+          av = a.stageIdx;
+          bv = b.stageIdx;
+        }
       } else if (sort.key === "kw") {
         av = a.kw;
         bv = b.kw;
@@ -76,11 +140,12 @@ function TableView({
       return (av > bv ? 1 : av < bv ? -1 : 0) * sort.dir;
     });
     return arr;
-  }, [jobs, sort, tab]);
+  }, [jobs, sort, tab, isDone, permitMode]);
   if (isMobile) return React.createElement(React.Fragment, null, React.createElement(StatusTabs, {
     tab: tab,
     setTab: setTab,
     counts: counts,
+    labels: tabLabels,
     trashCount: trashCount,
     onOpenTrash: onOpenTrash
   }), React.createElement(TableMobile, {
@@ -90,7 +155,8 @@ function TableView({
     onOpen: onOpen,
     onEdit: onEdit,
     onDelete: onDelete,
-    onSetStage: onSetStage
+    onSetStage: onSetStage,
+    permitMode: permitMode
   }));
   const th = (label, key, center) => {
     const active = key && sort.key === key;
@@ -149,6 +215,7 @@ function TableView({
     tab: tab,
     setTab: setTab,
     counts: counts,
+    labels: tabLabels,
     trashCount: trashCount,
     onOpenTrash: onOpenTrash
   }), React.createElement("div", {
@@ -173,7 +240,7 @@ function TableView({
     style: {
       borderBottom: "1px solid var(--border)"
     }
-  }, th("ลูกค้า", "name"), th("ประเภท", "type", true), th("แบรนด์ / สเปก", "brand"), th("ขนาด", "kw", true), th("ความพร้อมวัสดุ", "matReadyPct", true), th("ขั้นตอน", "stage", true), th("วันติดตั้ง", "deadline", true), th("จัดการ", null, true))), React.createElement("tbody", null, sorted.map(j => React.createElement("tr", {
+  }, th("ลูกค้า", "name"), th("ประเภท", "type", true), th("แบรนด์ / สเปก", "brand"), th("ขนาด", "kw", true), permitMode ? th("แบบ / BOQ", null, true) : th("ความพร้อมวัสดุ", "matReadyPct", true), th(permitMode ? "ขั้นขออนุญาต" : "ขั้นตอน", "stage", true), th("วันติดตั้ง", "deadline", true), th("จัดการ", null, true))), React.createElement("tbody", null, sorted.map(j => React.createElement("tr", {
     key: j.id,
     style: {
       borderBottom: "1px solid var(--border)",
@@ -293,7 +360,30 @@ function TableView({
       whiteSpace: "nowrap",
       marginTop: 2
     }
-  }, j.panels, " \u0E41\u0E1C\u0E07 \xB7 ", j.phase || "1", " \u0E40\u0E1F\u0E2A")), React.createElement("td", {
+  }, j.panels, " \u0E41\u0E1C\u0E07 \xB7 ", j.phase || "1", " \u0E40\u0E1F\u0E2A")), permitMode ? React.createElement("td", {
+    style: {
+      padding: "13px 14px",
+      textAlign: "center",
+      whiteSpace: "nowrap"
+    }
+  }, React.createElement(FileChip, {
+    jobId: j.id,
+    kind: "design",
+    has: j.hasDesign,
+    th: "\u0E41\u0E1A\u0E1A \xB7 SLD",
+    color: "#2563EB"
+  }), React.createElement(FileChip, {
+    jobId: j.id,
+    kind: "boq",
+    has: j.hasBoq,
+    th: "BOQ",
+    color: "#0D9488"
+  }), !j.hasDesign && !j.hasBoq && React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E44\u0E1F\u0E25\u0E4C\u0E41\u0E19\u0E1A")) : React.createElement("td", {
     style: {
       padding: "13px 14px"
     }
@@ -337,7 +427,24 @@ function TableView({
       padding: "13px 14px",
       textAlign: "center"
     }
-  }, React.createElement(Dropdown, {
+  }, permitMode ? (() => {
+    const pc = permitCellOf(j);
+    const rejected = pc.key === "rejected";
+    return React.createElement("span", {
+      title: rejected && j.permit ? j.permit.rejectReason || "" : "",
+      style: {
+        display: "inline-block",
+        maxWidth: 180,
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: pc.color,
+        background: pc.color + "14",
+        border: "1px solid " + pc.color + "33",
+        borderRadius: 99,
+        padding: "5px 11px"
+      }
+    }, pc.th);
+  })() : React.createElement(Dropdown, {
     value: j.stage,
     onChange: v => onSetStage(j.id, v),
     options: SF.STAGES.map(s => ({
@@ -422,17 +529,19 @@ function StatusTabs({
   tab,
   setTab,
   counts,
+  labels,
   trashCount,
   onOpenTrash
 }) {
   const mob = window.matchMedia("(max-width: 860px)").matches;
+  const L = labels || {};
   const opts = [{
     key: "active",
-    label: "กำลังดำเนินการ",
+    label: L.active || "กำลังดำเนินการ",
     n: counts.active
   }, {
     key: "done",
-    label: "เสร็จแล้ว",
+    label: L.done || "เสร็จแล้ว",
     n: counts.done
   }, {
     key: "all",
@@ -526,7 +635,8 @@ function TableMobile({
   onOpen,
   onEdit,
   onDelete,
-  onSetStage
+  onSetStage,
+  permitMode
 }) {
   const SF = window.SF;
   const SORTS = [{
@@ -537,7 +647,7 @@ function TableMobile({
     th: "ชื่อลูกค้า"
   }, {
     key: "stage",
-    th: "ขั้นตอน"
+    th: permitMode ? "ขั้นขออนุญาต" : "ขั้นตอน"
   }, {
     key: "kw",
     th: "ขนาด (kW)"
@@ -612,7 +722,13 @@ function TableMobile({
       fontSize: 14
     }
   }, "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E15\u0E23\u0E07\u0E01\u0E31\u0E1A\u0E01\u0E32\u0E23\u0E04\u0E49\u0E19\u0E2B\u0E32"), jobs.map(j => {
-    const s = stageOf(j.stage);
+    const pc = permitMode ? permitCellOf(j) : null;
+    const s = permitMode ? {
+      color: pc.color,
+      fg: pc.color,
+      soft: pc.color + "14",
+      th: pc.th
+    } : stageOf(j.stage);
     return React.createElement("div", {
       key: j.id,
       style: {
@@ -767,7 +883,18 @@ function TableMobile({
         gap: 8,
         flexWrap: "wrap"
       }
-    }, React.createElement(Dropdown, {
+    }, permitMode ? React.createElement("span", {
+      style: {
+        display: "inline-block",
+        fontSize: 12,
+        fontWeight: 700,
+        color: s.fg,
+        background: s.soft,
+        border: "1px solid " + s.color + "33",
+        borderRadius: 8,
+        padding: "6px 10px"
+      }
+    }, s.th) : React.createElement(Dropdown, {
       value: j.stage,
       onChange: v => onSetStage(j.id, v),
       options: SF.STAGES.map(st => ({
@@ -787,7 +914,29 @@ function TableMobile({
         borderRadius: 8,
         padding: "6px 8px 6px 9px"
       }
-    }), React.createElement("span", {
+    }), permitMode ? React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center"
+      }
+    }, React.createElement(FileChip, {
+      jobId: j.id,
+      kind: "design",
+      has: j.hasDesign,
+      th: "\u0E41\u0E1A\u0E1A \xB7 SLD",
+      color: "#2563EB"
+    }), React.createElement(FileChip, {
+      jobId: j.id,
+      kind: "boq",
+      has: j.hasBoq,
+      th: "BOQ",
+      color: "#0D9488"
+    }), !j.hasDesign && !j.hasBoq && React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: "var(--text-3)"
+      }
+    }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E44\u0E1F\u0E25\u0E4C\u0E41\u0E19\u0E1A")) : React.createElement("span", {
       style: {
         display: "inline-flex",
         alignItems: "center",

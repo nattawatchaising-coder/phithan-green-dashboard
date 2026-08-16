@@ -58,6 +58,14 @@ const NAV = [{
   perm: "viewAll"
 }];
 const isPermitOnly = roles => (roles || []).length > 0 && roles.every(r => (ROLE_ALIAS[r] || r) === "permit");
+const PERMIT_TODO = {
+  key: "todo",
+  th: "ยังไม่เริ่มเก็บข้อมูล",
+  color: "#94A3B8",
+  soft: "var(--surface2)"
+};
+const permitStageKey = j => j && j.permit && j.permit.status || "todo";
+const permitStageOf = key => (window.PERMIT_COLS || []).find(c => c.key === key) || PERMIT_TODO;
 const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm)).filter(n => !(isPermitOnly(roles) && n.key === "permit")).map(n => n.key === "board" && isPermitOnly(roles) ? Object.assign({}, n, {
   th: "บอร์ดขออนุญาต",
   en: "Permit Board",
@@ -224,6 +232,7 @@ function App() {
   }), []);
   const isMobile = useIsMobile();
   const role = React.useMemo(() => auth.current ? userRoles(auth.current) : [], [auth.current]);
+  const stageKeyOf = React.useCallback(j => isPermitOnly(role) ? permitStageKey(j) : j.stage, [role]);
   const techId = auth.current ? auth.current.techId : null;
   const roleCfg = useRoleConfig();
   const scope = React.useMemo(() => jobScopeOf(role), [role, roleCfg.rev]);
@@ -256,7 +265,7 @@ function App() {
     return jobs.filter(j => {
       if (q && !(j.name + j.code + j.province + j.phone + j.brand).toLowerCase().includes(q)) return false;
       if (typeFilter !== "all" && j.type !== typeFilter) return false;
-      if (stageFilter && j.stage !== stageFilter) return false;
+      if (stageFilter && stageKeyOf(j) !== stageFilter) return false;
       if (delayedOnly && !j.delayed) return false;
       if (quickFilter === "active" && j.stage === "done") return false;
       if (quickFilter === "delayed" && !j.delayed) return false;
@@ -266,7 +275,7 @@ function App() {
       if (!inScope(j)) return false;
       return true;
     });
-  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techFilter, techIds, inScope]);
+  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techFilter, techIds, inScope, stageKeyOf]);
   const techCounts = React.useMemo(() => {
     const q = search.trim().toLowerCase();
     const c = {};
@@ -274,7 +283,7 @@ function App() {
     jobs.forEach(j => {
       if (q && !(j.name + j.code + j.province + j.phone + j.brand).toLowerCase().includes(q)) return;
       if (typeFilter !== "all" && j.type !== typeFilter) return;
-      if (stageFilter && j.stage !== stageFilter) return;
+      if (stageFilter && stageKeyOf(j) !== stageFilter) return;
       if (delayedOnly && !j.delayed) return;
       if (quickFilter === "active" && j.stage === "done") return;
       if (quickFilter === "delayed" && !j.delayed) return;
@@ -287,7 +296,7 @@ function App() {
     });
     c.__all = all;
     return c;
-  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techIds, inScope]);
+  }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techIds, inScope, stageKeyOf]);
   const stageCounts = React.useMemo(() => {
     const q = search.trim().toLowerCase();
     const c = {};
@@ -302,12 +311,15 @@ function App() {
       if (quickFilter === "battery" && !j.battery) return;
       if (techFilter && !matchTech(j, techFilter, techIds)) return;
       if (!inScope(j)) return;
-      c[j.stage] = (c[j.stage] || 0) + 1;
-      all++;
+      {
+        const k = stageKeyOf(j);
+        c[k] = (c[k] || 0) + 1;
+        all++;
+      }
     });
     c.__all = all;
     return c;
-  }, [jobs, search, typeFilter, delayedOnly, quickFilter, techFilter, techIds, inScope]);
+  }, [jobs, search, typeFilter, delayedOnly, quickFilter, techFilter, techIds, inScope, stageKeyOf]);
   const lateAlerts = React.useMemo(() => {
     const mine = jobs.filter(inScope);
     const out = [];
@@ -707,6 +719,7 @@ function App() {
     stageFilter: stageFilter,
     setStageFilter: setStageFilter,
     stageCounts: stageCounts,
+    stageMode: permitOnly ? "permit" : "job",
     quickFilter: quickFilter,
     setQuickFilter: setQuickFilter,
     techFilter: techFilter,
@@ -759,6 +772,7 @@ function App() {
     onDelete: onDelete,
     onSetMat: store.setMat,
     onSetStage: (id, s) => store.setStage(id, s),
+    permitMode: permitOnly,
     trashCount: can(role, "delJob") ? store.trash.length : 0,
     onOpenTrash: can(role, "delJob") ? () => setTrashOpen(true) : null
   }), view === "permit" && permitView, view === "report" && React.createElement(ReportView, {
@@ -1333,6 +1347,7 @@ function Header({
   stageFilter,
   setStageFilter,
   stageCounts,
+  stageMode,
   quickFilter,
   setQuickFilter,
   techFilter,
@@ -1367,6 +1382,10 @@ function Header({
     return !v;
   });
   const showStageBar = view !== "overview" && !isMobile && !plain;
+  const pMode = stageMode === "permit";
+  const stList = pMode ? window.PERMIT_COLS || [] : window.SF.STAGES;
+  const stInfo = k => pMode ? permitStageOf(k) : stageOf(k);
+  const stLabel = pMode ? "ขั้นขออนุญาต" : "ขั้นงาน";
   const [searchOpen, setSearchOpen] = React.useState(false);
   const searchRef = React.useRef(null);
   React.useEffect(() => {
@@ -1402,7 +1421,7 @@ function Header({
     className: "page-title"
   }, nav.th), React.createElement("p", {
     className: "page-sub"
-  }, subtitle || React.createElement(React.Fragment, null, "\u0E41\u0E2A\u0E14\u0E07 ", React.createElement("strong", null, count), " \u0E08\u0E32\u0E01 ", total, " \u0E07\u0E32\u0E19", ownOnly && " · เฉพาะงานของคุณ"), stageFilter && React.createElement("span", null, " \xB7 \u0E01\u0E23\u0E2D\u0E07: ", stageOf(stageFilter).th, " ", React.createElement("button", {
+  }, subtitle || React.createElement(React.Fragment, null, "\u0E41\u0E2A\u0E14\u0E07 ", React.createElement("strong", null, count), " \u0E08\u0E32\u0E01 ", total, " \u0E07\u0E32\u0E19", ownOnly && " · เฉพาะงานของคุณ"), stageFilter && React.createElement("span", null, " \xB7 \u0E01\u0E23\u0E2D\u0E07: ", stInfo(stageFilter).th, " ", React.createElement("button", {
     onClick: () => setStageFilter(null),
     className: "clear-chip"
   }, "\u0E25\u0E49\u0E32\u0E07 \u2715")), quickFilter && React.createElement("span", null, " \xB7 \u0E01\u0E23\u0E2D\u0E07: ", QUICK_LABELS[quickFilter], " ", React.createElement("button", {
@@ -1588,9 +1607,9 @@ function Header({
       gap: 6,
       padding: isMobile ? "5px 10px" : "6px 13px",
       borderRadius: 99,
-      border: "1px solid " + (stageFilter ? stageOf(stageFilter).color : "var(--border-strong)"),
-      background: stageFilter ? stageOf(stageFilter).color + "16" : "var(--surface)",
-      color: stageFilter ? stageOf(stageFilter).color : "var(--text-2)",
+      border: "1px solid " + (stageFilter ? stInfo(stageFilter).color : "var(--border-strong)"),
+      background: stageFilter ? stInfo(stageFilter).color + "16" : "var(--surface)",
+      color: stageFilter ? stInfo(stageFilter).color : "var(--text-2)",
       fontSize: isMobile ? 11.5 : 12.5,
       fontWeight: 600,
       cursor: "pointer",
@@ -1600,8 +1619,8 @@ function Header({
   }, React.createElement(Icon, {
     name: "filter",
     size: 14,
-    color: stageFilter ? stageOf(stageFilter).color : "var(--text-2)"
-  }), "\u0E02\u0E31\u0E49\u0E19\u0E07\u0E32\u0E19", stageFilter ? ": " + stageOf(stageFilter).th : "", React.createElement(Icon, {
+    color: stageFilter ? stInfo(stageFilter).color : "var(--text-2)"
+  }), stLabel, stageFilter ? ": " + stInfo(stageFilter).th : "", React.createElement(Icon, {
     name: "chevronDown",
     size: 14,
     color: "var(--text-3)",
@@ -1629,7 +1648,6 @@ function Header({
       paddingBottom: 2
     }
   }, (() => {
-    const SF = window.SF;
     const chip = (active, color) => ({
       display: "inline-flex",
       alignItems: "center",
@@ -1660,7 +1678,7 @@ function Header({
       onClick: () => setStageFilter(null)
     }, "\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 ", React.createElement("span", {
       style: num(!stageFilter)
-    }, stageCounts && stageCounts.__all || 0)), SF.STAGES.map(s => {
+    }, stageCounts && stageCounts.__all || 0)), stList.map(s => {
       const active = stageFilter === s.key;
       const n = stageCounts && stageCounts[s.key] || 0;
       return React.createElement("button", {
