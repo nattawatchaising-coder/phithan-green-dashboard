@@ -87,15 +87,10 @@ function blankJob(raw) {
     deadline: window.SF.TODAY,
     tech: "t1",
     problem: null,
-    mat: {
-      panel: "none",
-      inverter: "none",
-      structure: "none",
-      wiring: "none",
-      battery: "none",
-      backup: "none",
-      birdnet: "none"
-    },
+    mat: window.SF.MATERIALS.reduce((acc, m) => {
+      acc[m.key] = "none";
+      return acc;
+    }, {}),
     hist: window.SF.STAGES.map((s, i) => ({
       key: s.key,
       status: i === 0 ? "current" : "pending",

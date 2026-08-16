@@ -183,8 +183,12 @@ function jobOf(p) {
     battery: false, batSize: "ไม่มี", connect: "-", backup: false, birdnet: false, comboType: "ready",
     stage: p.stage, startDate: day(-14 + p.n), deadline: day(p.n), tech: "t" + ((p.n % 5) + 1),
     problem: null,
-    mat: { panel: "done", inverter: "done", structure: idx >= 2 ? "done" : "none",
-           wiring: idx >= 2 ? "done" : "none", battery: "none", backup: "none", birdnet: "none" },
+    /* สถานะวัสดุมีได้แค่ ready / waiting / none / na เท่านั้น และต้องครบทุกคีย์ใน SF.MATERIALS */
+    mat: window.SF.MATERIALS.reduce((acc, m) => {
+      const optional = m.key === "battery" || m.key === "backup" || m.key === "birdnet";
+      acc[m.key] = optional ? "na" : (idx >= 3 ? "ready" : idx >= 1 ? "waiting" : "none");
+      return acc;
+    }, {}),
     hist: window.SF.STAGES.map((st, i) => ({
       key: st.key,
       status: i < idx ? "done" : i === idx ? "current" : "pending",

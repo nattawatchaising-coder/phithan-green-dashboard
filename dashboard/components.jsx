@@ -121,7 +121,8 @@ function TypeBadge({ type }) {
 
 // ---------- Material status chip ----------
 function MatChip({ status, label, compact }) {
-  const m = window.SF.MAT_STATUS[status];
+  /* สถานะแปลก ๆ ที่หลุดมาจากข้อมูลเก่า/ข้อมูลนำเข้า ให้ตกเป็น "ยังไม่สั่ง" แทนที่จะพังทั้งหน้า */
+  const m = window.SF.MAT_STATUS[status] || window.SF.MAT_STATUS.none;
   return (
     /* จุดสีแทนอีโมจิ — อีโมจิเรนเดอร์ไม่เหมือนกันทุกเครื่องและทำให้ความสูงบรรทัดกระตุก */
     <span title={label ? label + " · " + m.th : m.th}
@@ -162,7 +163,7 @@ function MatDots({ mat }) {
   return (
     <span style={{ display: "inline-flex", gap: 3, alignItems: "center" }} title={allReady ? "วัสดุครบ พร้อมติดตั้ง" : undefined}>
       {items.map((m) => {
-        const st = window.SF.MAT_STATUS[mat[m.key]];
+        const st = window.SF.MAT_STATUS[mat[m.key]] || window.SF.MAT_STATUS.none;
         return <span key={m.key} title={m.th + " · " + st.th}
           style={{ width: 7, height: 7, borderRadius: 2, background: st.color }} />;
       })}

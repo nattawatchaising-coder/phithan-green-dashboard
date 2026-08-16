@@ -157,7 +157,7 @@ function MatChip({
   label,
   compact
 }) {
-  const m = window.SF.MAT_STATUS[status];
+  const m = window.SF.MAT_STATUS[status] || window.SF.MAT_STATUS.none;
   return React.createElement("span", {
     title: label ? label + " · " + m.th : m.th,
     style: {
@@ -253,7 +253,7 @@ function MatDots({
     },
     title: allReady ? "วัสดุครบ พร้อมติดตั้ง" : undefined
   }, items.map(m => {
-    const st = window.SF.MAT_STATUS[mat[m.key]];
+    const st = window.SF.MAT_STATUS[mat[m.key]] || window.SF.MAT_STATUS.none;
     return React.createElement("span", {
       key: m.key,
       title: m.th + " · " + st.th,

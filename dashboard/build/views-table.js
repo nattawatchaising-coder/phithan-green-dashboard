@@ -4,7 +4,7 @@ function MatCell({
   status,
   onCycle
 }) {
-  const m = window.SF.MAT_STATUS[status];
+  const m = window.SF.MAT_STATUS[status] || window.SF.MAT_STATUS.none;
   return React.createElement("button", {
     onClick: onCycle,
     title: "\u0E04\u0E25\u0E34\u0E01\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E2A\u0E16\u0E32\u0E19\u0E30",

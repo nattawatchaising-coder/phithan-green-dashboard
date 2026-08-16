@@ -70,8 +70,8 @@ function blankJob(raw) {
     map: "", trello: "", contractor: "", laborCost: null, brand: "ATMOCE", kw: 5, panels: 9, phase: "1",
     battery: false, batSize: "ไม่มี", connect: "-", backup: false, birdnet: false, comboType: "ready",
     stage: "design", startDate: window.SF.TODAY, deadline: window.SF.TODAY, tech: "t1", problem: null,
-    mat: { panel: "none", inverter: "none", structure: "none", wiring: "none",
-           battery: "none", backup: "none", birdnet: "none" },
+    /* ต้องครบทุกคีย์ใน SF.MATERIALS — คีย์ที่ขาดจะกลายเป็น undefined แล้วป้ายสถานะวัสดุพัง */
+    mat: window.SF.MATERIALS.reduce((acc, m) => { acc[m.key] = "none"; return acc; }, {}),
     hist: window.SF.STAGES.map((s, i) => ({
       key: s.key, status: i === 0 ? "current" : "pending",
       date: i === 0 ? window.SF.TODAY : null,

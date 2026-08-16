@@ -6,7 +6,7 @@
 const MAT_CYCLE = ["none", "waiting", "ready", "na"];
 
 function MatCell({ status, onCycle }) {
-  const m = window.SF.MAT_STATUS[status];
+  const m = window.SF.MAT_STATUS[status] || window.SF.MAT_STATUS.none;
   return (
     <button onClick={onCycle} title="คลิกเพื่อเปลี่ยนสถานะ"
       style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 99,
