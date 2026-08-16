@@ -55,7 +55,7 @@ function PermitCard({ job, onOpen, onDragStart, dragging, draggable }) {
         <span style={{ background: "var(--surface2)", padding: "3px 8px", borderRadius: 7, fontFamily: "var(--mono)" }}>{p.kwp || job.kw || "—"} kWp</span>
         {p.reqNo && <span style={{ background: "var(--surface2)", padding: "3px 8px", borderRadius: 7, fontFamily: "var(--mono)" }}>คำร้อง {p.reqNo}</span>}
         {/* SLD อยู่ในไฟล์แบบ — ต้องรู้ตั้งแต่บนการ์ดว่างานนี้มีแบบให้เอาไปแนบยื่นแล้วหรือยัง */}
-        {job.hasDesign && <span style={{ background: "#2563EB14", border: "1px solid #2563EB33", color: "#2563EB", fontWeight: 800, padding: "3px 8px", borderRadius: 7 }}>📐 แบบ · SLD</span>}
+        {job.hasDesign && <span style={{ background: "#2563EB14", border: "1px solid #2563EB33", color: "#2563EB", fontWeight: 800, padding: "3px 8px", borderRadius: 7 }}>แบบ</span>}
         {job.hasBoq && <span style={{ background: "#0D948814", border: "1px solid #0D948833", color: "#0D9488", fontWeight: 800, padding: "3px 8px", borderRadius: 7 }}>BOQ</span>}
       </div>
       {p.status === "rejected" && p.rejectReason && (

@@ -370,7 +370,7 @@ function TableView({
     jobId: j.id,
     kind: "design",
     has: j.hasDesign,
-    th: "\u0E41\u0E1A\u0E1A \xB7 SLD",
+    th: "\u0E41\u0E1A\u0E1A",
     color: "#2563EB"
   }), React.createElement(FileChip, {
     jobId: j.id,
@@ -923,7 +923,7 @@ function TableMobile({
       jobId: j.id,
       kind: "design",
       has: j.hasDesign,
-      th: "\u0E41\u0E1A\u0E1A \xB7 SLD",
+      th: "\u0E41\u0E1A\u0E1A",
       color: "#2563EB"
     }), React.createElement(FileChip, {
       jobId: j.id,

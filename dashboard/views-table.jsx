@@ -166,7 +166,7 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trash
                 {/* ฝ่ายขออนุญาตไม่ได้ยุ่งกับวัสดุ — ช่องนี้ใช้เป็นทางลัดเปิดไฟล์แบบ (SLD) แทน */}
                 {permitMode ? (
                 <td style={{ padding: "13px 14px", textAlign: "center", whiteSpace: "nowrap" }}>
-                  <FileChip jobId={j.id} kind="design" has={j.hasDesign} th="แบบ · SLD" color="#2563EB" />
+                  <FileChip jobId={j.id} kind="design" has={j.hasDesign} th="แบบ" color="#2563EB" />
                   <FileChip jobId={j.id} kind="boq" has={j.hasBoq} th="BOQ" color="#0D9488" />
                   {!j.hasDesign && !j.hasBoq && <span style={{ fontSize: 11, color: "var(--text-3)" }}>ยังไม่มีไฟล์แนบ</span>}
                 </td>
@@ -372,7 +372,7 @@ function TableMobile({ jobs, sort, setSort, onOpen, onEdit, onDelete, onSetStage
               )}
               {permitMode ? (
                 <span style={{ display: "inline-flex", alignItems: "center" }}>
-                  <FileChip jobId={j.id} kind="design" has={j.hasDesign} th="แบบ · SLD" color="#2563EB" />
+                  <FileChip jobId={j.id} kind="design" has={j.hasDesign} th="แบบ" color="#2563EB" />
                   <FileChip jobId={j.id} kind="boq" has={j.hasBoq} th="BOQ" color="#0D9488" />
                   {!j.hasDesign && !j.hasBoq && <span style={{ fontSize: 11, color: "var(--text-3)" }}>ไม่มีไฟล์แนบ</span>}
                 </span>

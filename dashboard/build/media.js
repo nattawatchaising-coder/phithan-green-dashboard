@@ -181,7 +181,8 @@ function useJobMedia(jobId) {
 function JobPhotos({
   media,
   currentUser,
-  canManage
+  canManage,
+  readOnly
 }) {
   const [busy, setBusy] = React.useState(false);
   const [lbIndex, setLbIndex] = React.useState(null);
@@ -204,7 +205,7 @@ function JobPhotos({
     setBusy(false);
     if (fileRef.current) fileRef.current.value = "";
   };
-  const canDelete = p => canManage || currentUser && p.by === currentUser.id;
+  const canDelete = p => !readOnly && (canManage || currentUser && p.by === currentUser.id);
   const prev = () => setLbIndex(i => (i - 1 + n) % n);
   const next = () => setLbIndex(i => (i + 1) % n);
   React.useEffect(() => {
@@ -242,7 +243,7 @@ function JobPhotos({
     name: "image",
     size: 14,
     color: "var(--text-2)"
-  }), " \u0E23\u0E39\u0E1B\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19", n > 0 && " · " + n), React.createElement("button", {
+  }), " \u0E23\u0E39\u0E1B\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19", n > 0 && " · " + n), !readOnly && React.createElement("button", {
     onClick: () => fileRef.current && fileRef.current.click(),
     disabled: busy,
     style: {
@@ -275,7 +276,9 @@ function JobPhotos({
       display: "none"
     }
   })), n === 0 ? React.createElement("div", {
-    onClick: () => fileRef.current && fileRef.current.click(),
+    onClick: () => {
+      if (!readOnly && fileRef.current) fileRef.current.click();
+    },
     style: {
       padding: "22px 0",
       textAlign: "center",
@@ -283,9 +286,9 @@ function JobPhotos({
       color: "var(--text-3)",
       border: "1.5px dashed var(--border-strong)",
       borderRadius: 12,
-      cursor: "pointer"
+      cursor: readOnly ? "default" : "pointer"
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E39\u0E1B \xB7 \u0E41\u0E15\u0E30\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E23\u0E39\u0E1B\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19") : React.createElement("div", {
+  }, readOnly ? "ยังไม่มีรูปหน้างาน" : "ยังไม่มีรูป · แตะเพื่อเพิ่มรูปหน้างาน") : React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,

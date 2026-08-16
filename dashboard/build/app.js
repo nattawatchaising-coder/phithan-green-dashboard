@@ -817,7 +817,8 @@ function App() {
     }),
     onSurvey: can(role, "doSurvey") || can(role, "dispatch") ? () => openSurvey(selectedJob) : null,
     onSurveyReport: () => setReportJob(selectedJob),
-    onPermit: can(role, "editJob") ? () => setPermitJob(selectedJob) : null,
+    onPermit: can(role, "editJob") && !permitOnly ? () => setPermitJob(selectedJob) : null,
+    permitMode: permitOnly,
     priceMap: can(role, "price") ? effPriceMap : null,
     onEdit: id => {
       setSelected(null);

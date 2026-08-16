@@ -134,7 +134,7 @@ function useJobMedia(jobId) {
 }
 
 /* ── รูปหน้างาน — แถวเดียวเลื่อนแนวนอน + ดูรูปใหญ่ (เลื่อน/ปัดดูได้) ── */
-function JobPhotos({ media, currentUser, canManage }) {
+function JobPhotos({ media, currentUser, canManage, readOnly }) {
   const [busy, setBusy] = React.useState(false);
   const [lbIndex, setLbIndex] = React.useState(null); // ดัชนีรูปที่กำลังดูใหญ่ (null = ปิด)
   const fileRef = React.useRef(null);
@@ -156,7 +156,7 @@ function JobPhotos({ media, currentUser, canManage }) {
     if (fileRef.current) fileRef.current.value = "";
   };
 
-  const canDelete = (p) => canManage || (currentUser && p.by === currentUser.id);
+  const canDelete = (p) => !readOnly && (canManage || (currentUser && p.by === currentUser.id));
   const prev = () => setLbIndex((i) => (i - 1 + n) % n);
   const next = () => setLbIndex((i) => (i + 1) % n);
 
@@ -180,20 +180,20 @@ function JobPhotos({ media, currentUser, canManage }) {
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 6 }}>
           <Icon name="image" size={14} color="var(--text-2)" /> รูปหน้างาน{n > 0 && " · " + n}
         </span>
-        <button onClick={() => fileRef.current && fileRef.current.click()} disabled={busy}
+        {!readOnly && <button onClick={() => fileRef.current && fileRef.current.click()} disabled={busy}
           style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9,
             border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--primary-dark)",
             fontWeight: 600, fontFamily: "inherit", fontSize: 12.5, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
           <Icon name="plus" size={14} color="var(--primary-dark)" sw={2.4} /> {busy ? "กำลังเพิ่ม..." : "เพิ่มรูป"}
-        </button>
+        </button>}
         <input ref={fileRef} type="file" accept="image/*" multiple onChange={onPick} style={{ display: "none" }} />
       </div>
 
       {n === 0 ? (
-        <div onClick={() => fileRef.current && fileRef.current.click()}
+        <div onClick={() => { if (!readOnly && fileRef.current) fileRef.current.click(); }}
           style={{ padding: "22px 0", textAlign: "center", fontSize: 12.5, color: "var(--text-3)",
-            border: "1.5px dashed var(--border-strong)", borderRadius: 12, cursor: "pointer" }}>
-          ยังไม่มีรูป · แตะเพื่อเพิ่มรูปหน้างาน
+            border: "1.5px dashed var(--border-strong)", borderRadius: 12, cursor: readOnly ? "default" : "pointer" }}>
+          {readOnly ? "ยังไม่มีรูปหน้างาน" : "ยังไม่มีรูป · แตะเพื่อเพิ่มรูปหน้างาน"}
         </div>
       ) : (
         // แถวเดียว เลื่อนแนวนอน

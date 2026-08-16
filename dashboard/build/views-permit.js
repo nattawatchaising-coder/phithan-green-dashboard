@@ -158,7 +158,7 @@ function PermitCard({
       padding: "3px 8px",
       borderRadius: 7
     }
-  }, "\uD83D\uDCD0 \u0E41\u0E1A\u0E1A \xB7 SLD"), job.hasBoq && React.createElement("span", {
+  }, "\u0E41\u0E1A\u0E1A"), job.hasBoq && React.createElement("span", {
     style: {
       background: "#0D948814",
       border: "1px solid #0D948833",

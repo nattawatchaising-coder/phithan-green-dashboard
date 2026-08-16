@@ -313,7 +313,134 @@ function StockShopModal({ stock, job, byName, onClose }) {
   );
 }
 
-function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, canDesign, stock, onSaveBOQ, onSurvey, onSurveyReport, onPermit, priceMap }) {
+/* ── บล็อกสรุปสำหรับฝ่ายขออนุญาต ──
+   เขาไม่ได้เข้ามาแก้งาน เข้ามาเพื่อตอบ 2 คำถาม: "ใบนี้เดินไปถึงไหน" กับ "ติดอะไรอยู่"
+   ทุกอย่างที่กดแล้วเปลี่ยนข้อมูลงานจึงถูกซ่อน เหลือแต่ของที่ต้องหยิบไปยื่น */
+function PermitJobSummary({ job }) {
+  const p = job.permit || null;
+  const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
+  const FLOW = window.PERMIT_FLOW || [];
+  const idx = window.permitFlowIdx ? window.permitFlowIdx(job) : -1;
+  const rejected = !!(p && p.status === "rejected");
+  const color = pst ? pst.color : "#94A3B8";
+
+  /* ยังขาดอะไร — นับเฉพาะช่องข้อมูล ส่วนรูปไปตรวจกันที่การ์ดบนบอร์ด */
+  const missing = React.useMemo(() => {
+    if (!p || !window.permitMissing) return [];
+    try { return window.permitMissing(p, null).filter((m) => m.kind === "field"); } catch (e) { return []; }
+  }, [p]);
+
+  /* ติดอะไรอยู่ — เรียงจากเรื่องที่ต้องลงมือก่อน */
+  const blockers = [];
+  if (rejected) blockers.push({ tone: "bad", th: "ตีกลับให้ช่างแก้", detail: (p.rejectReason || "ไม่ได้ระบุเหตุผล") + (p.byAdmin ? " · โดย " + p.byAdmin : "") });
+  if (!p || !p.status) blockers.push({ tone: "warn", th: "ช่างยังไม่ได้เริ่มเก็บข้อมูลขออนุญาต", detail: "ยังไม่มีชุดข้อมูลให้ยื่น" });
+  else if (p.status === "draft") blockers.push({ tone: "warn", th: "ช่างยังเก็บข้อมูลไม่ครบ", detail: "ยังไม่ได้กดส่งให้ฝ่ายขออนุญาต" });
+  if (missing.length) blockers.push({ tone: "warn", th: "ข้อมูลยังขาด " + missing.length + " ช่อง", detail: missing.slice(0, 6).map((m) => m.th).join(" · ") + (missing.length > 6 ? " …" : "") });
+  if (!job.hasDesign) blockers.push({ tone: "warn", th: "ยังไม่มีไฟล์แบบแนบกับงาน", detail: "SLD อยู่ในไฟล์แบบ ถ้าไม่มีจะยื่นไม่ได้" });
+  if (job.problem) blockers.push({ tone: "warn", th: "ปัญหาหน้างานที่ช่างบันทึกไว้", detail: String(job.problem) });
+
+  const TONE = { bad: { bg: "var(--tint-red-bg)", bd: "var(--tint-red-bd)", tx: "var(--tint-red-tx)" },
+                 warn: { bg: "var(--tint-amber-bg)", bd: "#F59E0B55", tx: "#B45309" } };
+
+  const Line = ({ label, value }) => (
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "7px 0", boxShadow: "inset 0 -1px 0 var(--border)" }}>
+      <span style={{ fontSize: 11.5, color: "var(--text-3)", flexShrink: 0 }}>{label}</span>
+      <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-1)", textAlign: "right", wordBreak: "break-word" }}>{value || "—"}</span>
+    </div>
+  );
+
+  const s = job.survey || {};
+  const filing = [
+    ["การไฟฟ้า", (p && p.auth) || s.meterAuth],
+    ["สาขา / เขต", (p && p.branch) || s.branch],
+    ["เลขที่ผู้ใช้ไฟ (CA)", (p && p.ca) || s.ca],
+    ["หมายเลขมิเตอร์", (p && p.meterNo) || s.meterNo],
+    ["ขนาดมิเตอร์", (p && p.meterSize) || s.meterSize],
+    ["เสาไฟต้นที่", (p && p.poleNo) || s.poleNo],
+    ["ระบบไฟฟ้า", ((p && p.phase) || s.phase || job.phase || "1") + " เฟส"],
+    ["เมนเบรกเกอร์", p && p.mainAT ? p.mainAT + " AT / " + (p.mainAF || "—") + " AF" : s.mainBreaker],
+    ["กำลังติดตั้ง", (p && p.kwp ? p.kwp : job.kw) + " kWp" + (p && p.kwac ? " · " + p.kwac + " kW AC" : "")],
+    ["แผง", (p && p.panelModel) || s.panelModel ? ((p && p.panelModel) || s.panelModel) + " × " + ((p && p.panelQty) || job.panels || "—") : ""],
+    ["อินเวอร์เตอร์", p && (p.invs || []).length ? p.invs.map((iv) => iv.model || "—").join(" · ") : (s.invModel || "")],
+  ];
+
+  return (
+    <React.Fragment>
+      {/* ขั้นตอนถึงไหน */}
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "3px solid " + color,
+        borderRadius: 14, padding: 16, marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12 }}>
+          <Icon name="shield" size={16} color={color} />
+          <span style={{ fontSize: 14, fontWeight: 800, color: color }}>{pst ? pst.th : "ยังไม่เริ่มเก็บข้อมูล"}</span>
+          {p && p.auth && <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>· {p.auth}{p.branch ? " " + p.branch : ""}</span>}
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          {FLOW.map((st, i) => {
+            const done = i < idx, now = i === idx;
+            const c = rejected && now ? "#EF4444" : (done || now ? "var(--primary)" : "var(--border-strong)");
+            return (
+              <span key={st.key} style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", height: 4, borderRadius: 99, background: c, opacity: done ? .55 : 1 }} />
+                <span style={{ display: "block", marginTop: 5, fontSize: 9.5, lineHeight: 1.3,
+                  fontWeight: now ? 800 : 600, color: now ? (rejected ? "#EF4444" : "var(--primary-dark)") : "var(--text-3)" }}>{st.th}</span>
+              </span>
+            );
+          })}
+        </div>
+        {/* วันยื่น/นัดตรวจ/อนุมัติ แสดงเมื่อไปถึงขั้นนั้นจริงเท่านั้น — ค่าที่ค้างไว้จากตอนกรอกไม่ได้แปลว่ายื่นแล้ว */}
+        {(() => {
+          if (!p) return null;
+          const filed = p.status === "filing" || p.status === "approved";
+          const done = p.status === "approved";
+          const bits = [];
+          if (p.reqNo && filed) bits.push(<span key="r">คำร้อง <b style={{ fontFamily: "var(--mono)" }}>{p.reqNo}</b></span>);
+          if (p.filedDate && filed) bits.push(<span key="f">ยื่น {thDate(p.filedDate, true)}</span>);
+          if (p.inspectDate && filed) bits.push(<span key="i">นัดตรวจ {thDate(p.inspectDate, true)}</span>);
+          if (p.approvedDate && done) bits.push(<span key="a" style={{ color: "var(--primary-dark)", fontWeight: 700 }}>อนุมัติ {thDate(p.approvedDate, true)}</span>);
+          if (!bits.length) return null;
+          return <div style={{ marginTop: 12, fontSize: 11.5, color: "var(--text-2)", display: "flex", gap: 12, flexWrap: "wrap" }}>{bits}</div>;
+        })()}
+      </div>
+
+      {/* ติดอะไรอยู่ */}
+      <div style={{ marginBottom: 18 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", marginBottom: 9 }}>
+          ติดอะไรอยู่
+        </div>
+        {blockers.length === 0 ? (
+          <div style={{ padding: "11px 13px", borderRadius: 11, background: "var(--primary-soft)", border: "1px solid var(--primary)",
+            fontSize: 12.5, fontWeight: 700, color: "var(--primary-dark)" }}>ไม่ติดอะไร · ข้อมูลและไฟล์แบบครบพร้อมยื่น</div>
+        ) : blockers.map((b, i) => {
+          const t = TONE[b.tone];
+          return (
+            <div key={i} style={{ marginBottom: 7, padding: "10px 12px", borderRadius: 11, background: t.bg, border: "1px solid " + t.bd }}>
+              <div style={{ fontSize: 12.5, fontWeight: 800, color: t.tx }}>{b.th}</div>
+              <div style={{ fontSize: 12, color: t.tx, marginTop: 3, lineHeight: 1.55 }}>{b.detail}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ไฟล์แบบที่ต้องหยิบไปแนบ */}
+      <div style={{ marginBottom: 18 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", marginBottom: 9 }}>
+          ไฟล์แบบที่แนบกับงาน
+        </div>
+        {window.PermitJobFiles ? <window.PermitJobFiles jobId={job.id} /> : null}
+      </div>
+
+      {/* ข้อมูลสำหรับกรอกใบคำขอ */}
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 18 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", marginBottom: 6 }}>
+          ข้อมูลสำหรับกรอกใบคำขอ
+        </div>
+        {filing.map(([label, value]) => <Line key={label} label={label} value={value} />)}
+      </div>
+    </React.Fragment>
+  );
+}
+
+function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, canDesign, stock, onSaveBOQ, onSurvey, onSurveyReport, onPermit, priceMap, permitMode }) {
   const SF = window.SF;
   const open = !!job;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -367,9 +494,28 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               </div>
               {/* progress */}
               <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 12 }}>
-                <StageBadge stageKey={job.stage} />
-                <div style={{ flex: 1 }}><ProgressBar pct={job.progressPct} color={stageOf(job.stage).color} /></div>
-                <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 600, color: "var(--text-2)" }}>{job.progressPct}%</span>
+                {permitMode ? (() => {
+                  /* ความคืบหน้าที่ฝ่ายขออนุญาตสนใจคือใบขออนุญาต ไม่ใช่งานติดตั้งที่จบไปแล้ว */
+                  const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
+                  const n = (window.PERMIT_FLOW || []).length || 4;
+                  const idx = window.permitFlowIdx ? window.permitFlowIdx(job) : -1;
+                  const pct = idx < 0 ? 0 : Math.round(((idx + 1) / n) * 100);
+                  const c = pst ? pst.color : "#94A3B8";
+                  return (
+                    <React.Fragment>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: c, background: c + "16", border: "1px solid " + c + "33",
+                        borderRadius: 99, padding: "4px 11px", whiteSpace: "nowrap" }}>{pst ? pst.th : "ยังไม่เริ่มเก็บข้อมูล"}</span>
+                      <div style={{ flex: 1 }}><ProgressBar pct={pct} color={c} /></div>
+                      <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 600, color: "var(--text-2)" }}>{pct}%</span>
+                    </React.Fragment>
+                  );
+                })() : (
+                  <React.Fragment>
+                    <StageBadge stageKey={job.stage} />
+                    <div style={{ flex: 1 }}><ProgressBar pct={job.progressPct} color={stageOf(job.stage).color} /></div>
+                    <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 600, color: "var(--text-2)" }}>{job.progressPct}%</span>
+                  </React.Fragment>
+                )}
               </div>
             </div>
 
@@ -396,8 +542,8 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                 </div>
                 <InfoRow label="ช่างผู้รับผิดชอบ"><TechAvatar techId={job.tech} size={24} showName /></InfoRow>
                 <InfoRow label="ประเภทงาน">{job.type === "home" ? "งานบ้าน" : "งานโครงการ"}</InfoRow>
-                <InfoRow label="ทีมรับเหมา">{job.contractor ? job.contractor : <span style={{ color: "var(--text-3)" }}>—</span>}</InfoRow>
-                <InfoRow label="ค่าแรงติดตั้ง">{job.laborCost ? Number(job.laborCost).toLocaleString() + " บาท" : <span style={{ color: "var(--text-3)" }}>—</span>}</InfoRow>
+                {!permitMode && <InfoRow label="ทีมรับเหมา">{job.contractor ? job.contractor : <span style={{ color: "var(--text-3)" }}>—</span>}</InfoRow>}
+                {!permitMode && <InfoRow label="ค่าแรงติดตั้ง">{job.laborCost ? Number(job.laborCost).toLocaleString() + " บาท" : <span style={{ color: "var(--text-3)" }}>—</span>}</InfoRow>}
                 {job.trello && (
                   <div style={{ gridColumn: "1 / -1" }}>
                     <InfoRow label="การ์ดงาน Trello">
@@ -408,6 +554,8 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   </div>
                 )}
               </div>
+
+              {permitMode && <PermitJobSummary job={job} />}
 
               {/* spec card */}
               <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: isMobile ? 15 : 18, marginBottom: isMobile ? 18 : 22 }}>
@@ -543,7 +691,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               )}
 
               {/* วางแผง 3D — เฉพาะคนที่มีสิทธิ์ออกแบบ (วิศวกรไฟฟ้า/เขียนแบบ/หัวหน้า/แอดมิน) */}
-              {window.Plan3DEditor && canDesign && (
+              {window.Plan3DEditor && canDesign && !permitMode && (
               <button onClick={() => setPlan3dOpen(true)}
                 style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
                   background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
@@ -557,7 +705,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               )}
 
               {/* ออกแบบระบบ + ผลผลิต — เข้าตรง ไม่ต้องเปิดจอ 3 มิติก่อน (ใช้ผังแผงที่บันทึกไว้แล้ว) */}
-              {window.SolarDesignHost && (
+              {window.SolarDesignHost && !permitMode && (
               <button onClick={() => setDesignOpen(true)}
                 style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
                   background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
@@ -571,7 +719,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               )}
 
               {/* ถอดวัสดุ BOQ */}
-              <button onClick={() => setBoqOpen(true)}
+              {!permitMode && <button onClick={() => setBoqOpen(true)}
                 style={{ width: "100%", marginBottom: 22, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
                   background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
                 <span style={{ width: 34, height: 34, borderRadius: 9, background: "var(--primary-soft)", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="box" size={17} color="var(--primary-dark)" /></span>
@@ -580,10 +728,10 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>{job.boq ? "มีรายการแล้ว · แตะเพื่อแก้ไข / ดาวน์โหลด" : "คำนวณปริมาณวัสดุของงานนี้"}</span>
                 </span>
                 <Icon name="arrowRight" size={16} color="var(--text-3)" />
-              </button>
+              </button>}
 
               {/* material checklist */}
-              <div style={{ marginBottom: 24 }}>
+              {!permitMode && <div style={{ marginBottom: 24 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 6 }}>
                     <Icon name="box" size={14} color="var(--text-2)" /> สถานะวัสดุ
@@ -627,24 +775,24 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                     );
                   })}
                 </div>
-              </div>
+              </div>}
 
               {/* อุปกรณ์ที่เบิก/คืน สำหรับงานนี้ */}
-              <JobMaterialUsage job={job} stock={stock} currentUser={currentUser} />
+              {!permitMode && <JobMaterialUsage job={job} stock={stock} currentUser={currentUser} />}
 
-              {/* flow timeline */}
-              <div style={{ marginBottom: 20 }}>
+              {/* flow timeline — ขั้นติดตั้ง ฝ่ายขออนุญาตไม่ได้ใช้ (ของเขาอยู่ในบล็อกสรุปด้านบน) */}
+              {!permitMode && <div style={{ marginBottom: 20 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
                   <Icon name="flow" size={14} color="var(--text-2)" /> Flow การทำงาน
                 </div>
                 <FlowTimeline job={job} />
-              </div>
+              </div>}
 
-              {/* เอกสารแนบ (PDF) — แบบ + BOQ ที่ถอด */}
-              <JobFiles media={media} currentUser={currentUser} canManage={canManage} />
+              {/* เอกสารแนบ (PDF) — แบบ + BOQ ที่ถอด · โหมดขออนุญาตดูได้จากบล็อกสรุปแล้ว (อ่านอย่างเดียว) */}
+              {!permitMode && <JobFiles media={media} currentUser={currentUser} canManage={canManage} />}
 
-              {/* รูปหน้างาน + พูดคุย/บันทึกงาน */}
-              <JobPhotos media={media} currentUser={currentUser} canManage={canManage} />
+              {/* รูปหน้างาน + พูดคุย/บันทึกงาน — คุยได้ (ต้องบอกช่างว่าติดอะไร) แต่รูปดูอย่างเดียว */}
+              <JobPhotos media={media} currentUser={currentUser} canManage={canManage} readOnly={permitMode} />
               <JobComments media={media} currentUser={currentUser} canManage={canManage} />
 
               {job.note && (
@@ -665,14 +813,20 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
                 {isMobile ? <Icon name="x" size={18} color="var(--text-2)" /> : "ปิด"}
               </button>
-              <button onClick={() => onEdit(job.id)} title="แก้ไขข้อมูล" aria-label="แก้ไขข้อมูล"
+              {!permitMode && <button onClick={() => onEdit(job.id)} title="แก้ไขข้อมูล" aria-label="แก้ไขข้อมูล"
                 style={{ flex: "0 0 auto", padding: isMobile ? 0 : "11px 16px", width: isMobile ? 42 : "auto", height: isMobile ? 42 : "auto",
                   borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-1)",
                   fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer",
                   display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
                 <Icon name="settings" size={isMobile ? 17 : 15} color="var(--text-2)" />{!isMobile && " แก้ไขข้อมูล"}
-              </button>
-              {job.stage !== "done" && (
+              </button>}
+              {permitMode && (
+                <span style={{ flex: 1, minWidth: 0, display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 12, color: "var(--text-3)", textAlign: "center", lineHeight: 1.4 }}>
+                  ดูอย่างเดียว · เดินสถานะได้ที่บอร์ดขออนุญาต
+                </span>
+              )}
+              {!permitMode && job.stage !== "done" && (
                 <button onClick={handleAdvance} disabled={advancing}
                   style={{ flex: 1, minWidth: 0, padding: isMobile ? "11px 14px" : "11px 16px", height: isMobile ? 42 : "auto", borderRadius: 11, border: "none",
                     background: advancing ? "var(--primary-dark)" : "var(--primary)",

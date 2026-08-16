@@ -822,6 +822,279 @@ function StockShopModal({
     }
   }, "\u0E40\u0E1A\u0E34\u0E01\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19", cartIds.length ? " (" + cartIds.length + " รายการ · " + totalQty + " ชิ้น)" : ""))));
 }
+function PermitJobSummary({
+  job
+}) {
+  const p = job.permit || null;
+  const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
+  const FLOW = window.PERMIT_FLOW || [];
+  const idx = window.permitFlowIdx ? window.permitFlowIdx(job) : -1;
+  const rejected = !!(p && p.status === "rejected");
+  const color = pst ? pst.color : "#94A3B8";
+  const missing = React.useMemo(() => {
+    if (!p || !window.permitMissing) return [];
+    try {
+      return window.permitMissing(p, null).filter(m => m.kind === "field");
+    } catch (e) {
+      return [];
+    }
+  }, [p]);
+  const blockers = [];
+  if (rejected) blockers.push({
+    tone: "bad",
+    th: "ตีกลับให้ช่างแก้",
+    detail: (p.rejectReason || "ไม่ได้ระบุเหตุผล") + (p.byAdmin ? " · โดย " + p.byAdmin : "")
+  });
+  if (!p || !p.status) blockers.push({
+    tone: "warn",
+    th: "ช่างยังไม่ได้เริ่มเก็บข้อมูลขออนุญาต",
+    detail: "ยังไม่มีชุดข้อมูลให้ยื่น"
+  });else if (p.status === "draft") blockers.push({
+    tone: "warn",
+    th: "ช่างยังเก็บข้อมูลไม่ครบ",
+    detail: "ยังไม่ได้กดส่งให้ฝ่ายขออนุญาต"
+  });
+  if (missing.length) blockers.push({
+    tone: "warn",
+    th: "ข้อมูลยังขาด " + missing.length + " ช่อง",
+    detail: missing.slice(0, 6).map(m => m.th).join(" · ") + (missing.length > 6 ? " …" : "")
+  });
+  if (!job.hasDesign) blockers.push({
+    tone: "warn",
+    th: "ยังไม่มีไฟล์แบบแนบกับงาน",
+    detail: "SLD อยู่ในไฟล์แบบ ถ้าไม่มีจะยื่นไม่ได้"
+  });
+  if (job.problem) blockers.push({
+    tone: "warn",
+    th: "ปัญหาหน้างานที่ช่างบันทึกไว้",
+    detail: String(job.problem)
+  });
+  const TONE = {
+    bad: {
+      bg: "var(--tint-red-bg)",
+      bd: "var(--tint-red-bd)",
+      tx: "var(--tint-red-tx)"
+    },
+    warn: {
+      bg: "var(--tint-amber-bg)",
+      bd: "#F59E0B55",
+      tx: "#B45309"
+    }
+  };
+  const Line = ({
+    label,
+    value
+  }) => React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      gap: 10,
+      padding: "7px 0",
+      boxShadow: "inset 0 -1px 0 var(--border)"
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      flexShrink: 0
+    }
+  }, label), React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: "var(--text-1)",
+      textAlign: "right",
+      wordBreak: "break-word"
+    }
+  }, value || "—"));
+  const s = job.survey || {};
+  const filing = [["การไฟฟ้า", p && p.auth || s.meterAuth], ["สาขา / เขต", p && p.branch || s.branch], ["เลขที่ผู้ใช้ไฟ (CA)", p && p.ca || s.ca], ["หมายเลขมิเตอร์", p && p.meterNo || s.meterNo], ["ขนาดมิเตอร์", p && p.meterSize || s.meterSize], ["เสาไฟต้นที่", p && p.poleNo || s.poleNo], ["ระบบไฟฟ้า", (p && p.phase || s.phase || job.phase || "1") + " เฟส"], ["เมนเบรกเกอร์", p && p.mainAT ? p.mainAT + " AT / " + (p.mainAF || "—") + " AF" : s.mainBreaker], ["กำลังติดตั้ง", (p && p.kwp ? p.kwp : job.kw) + " kWp" + (p && p.kwac ? " · " + p.kwac + " kW AC" : "")], ["แผง", p && p.panelModel || s.panelModel ? (p && p.panelModel || s.panelModel) + " × " + (p && p.panelQty || job.panels || "—") : ""], ["อินเวอร์เตอร์", p && (p.invs || []).length ? p.invs.map(iv => iv.model || "—").join(" · ") : s.invModel || ""]];
+  return React.createElement(React.Fragment, null, React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderLeft: "3px solid " + color,
+      borderRadius: 14,
+      padding: 16,
+      marginBottom: 14
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+      marginBottom: 12
+    }
+  }, React.createElement(Icon, {
+    name: "shield",
+    size: 16,
+    color: color
+  }), React.createElement("span", {
+    style: {
+      fontSize: 14,
+      fontWeight: 800,
+      color: color
+    }
+  }, pst ? pst.th : "ยังไม่เริ่มเก็บข้อมูล"), p && p.auth && React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\xB7 ", p.auth, p.branch ? " " + p.branch : "")), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, FLOW.map((st, i) => {
+    const done = i < idx,
+      now = i === idx;
+    const c = rejected && now ? "#EF4444" : done || now ? "var(--primary)" : "var(--border-strong)";
+    return React.createElement("span", {
+      key: st.key,
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
+        height: 4,
+        borderRadius: 99,
+        background: c,
+        opacity: done ? .55 : 1
+      }
+    }), React.createElement("span", {
+      style: {
+        display: "block",
+        marginTop: 5,
+        fontSize: 9.5,
+        lineHeight: 1.3,
+        fontWeight: now ? 800 : 600,
+        color: now ? rejected ? "#EF4444" : "var(--primary-dark)" : "var(--text-3)"
+      }
+    }, st.th));
+  })), (() => {
+    if (!p) return null;
+    const filed = p.status === "filing" || p.status === "approved";
+    const done = p.status === "approved";
+    const bits = [];
+    if (p.reqNo && filed) bits.push(React.createElement("span", {
+      key: "r"
+    }, "\u0E04\u0E33\u0E23\u0E49\u0E2D\u0E07 ", React.createElement("b", {
+      style: {
+        fontFamily: "var(--mono)"
+      }
+    }, p.reqNo)));
+    if (p.filedDate && filed) bits.push(React.createElement("span", {
+      key: "f"
+    }, "\u0E22\u0E37\u0E48\u0E19 ", thDate(p.filedDate, true)));
+    if (p.inspectDate && filed) bits.push(React.createElement("span", {
+      key: "i"
+    }, "\u0E19\u0E31\u0E14\u0E15\u0E23\u0E27\u0E08 ", thDate(p.inspectDate, true)));
+    if (p.approvedDate && done) bits.push(React.createElement("span", {
+      key: "a",
+      style: {
+        color: "var(--primary-dark)",
+        fontWeight: 700
+      }
+    }, "\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34 ", thDate(p.approvedDate, true)));
+    if (!bits.length) return null;
+    return React.createElement("div", {
+      style: {
+        marginTop: 12,
+        fontSize: 11.5,
+        color: "var(--text-2)",
+        display: "flex",
+        gap: 12,
+        flexWrap: "wrap"
+      }
+    }, bits);
+  })()), React.createElement("div", {
+    style: {
+      marginBottom: 18
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: ".08em",
+      color: "var(--text-3)",
+      textTransform: "uppercase",
+      marginBottom: 9
+    }
+  }, "\u0E15\u0E34\u0E14\u0E2D\u0E30\u0E44\u0E23\u0E2D\u0E22\u0E39\u0E48"), blockers.length === 0 ? React.createElement("div", {
+    style: {
+      padding: "11px 13px",
+      borderRadius: 11,
+      background: "var(--primary-soft)",
+      border: "1px solid var(--primary)",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--primary-dark)"
+    }
+  }, "\u0E44\u0E21\u0E48\u0E15\u0E34\u0E14\u0E2D\u0E30\u0E44\u0E23 \xB7 \u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E41\u0E25\u0E30\u0E44\u0E1F\u0E25\u0E4C\u0E41\u0E1A\u0E1A\u0E04\u0E23\u0E1A\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E22\u0E37\u0E48\u0E19") : blockers.map((b, i) => {
+    const t = TONE[b.tone];
+    return React.createElement("div", {
+      key: i,
+      style: {
+        marginBottom: 7,
+        padding: "10px 12px",
+        borderRadius: 11,
+        background: t.bg,
+        border: "1px solid " + t.bd
+      }
+    }, React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 800,
+        color: t.tx
+      }
+    }, b.th), React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: t.tx,
+        marginTop: 3,
+        lineHeight: 1.55
+      }
+    }, b.detail));
+  })), React.createElement("div", {
+    style: {
+      marginBottom: 18
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: ".08em",
+      color: "var(--text-3)",
+      textTransform: "uppercase",
+      marginBottom: 9
+    }
+  }, "\u0E44\u0E1F\u0E25\u0E4C\u0E41\u0E1A\u0E1A\u0E17\u0E35\u0E48\u0E41\u0E19\u0E1A\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19"), window.PermitJobFiles ? React.createElement(window.PermitJobFiles, {
+    jobId: job.id
+  }) : null), React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 14,
+      padding: 16,
+      marginBottom: 18
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: ".08em",
+      color: "var(--text-3)",
+      textTransform: "uppercase",
+      marginBottom: 6
+    }
+  }, "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A\u0E01\u0E23\u0E2D\u0E01\u0E43\u0E1A\u0E04\u0E33\u0E02\u0E2D"), filing.map(([label, value]) => React.createElement(Line, {
+    key: label,
+    label: label,
+    value: value
+  }))));
+}
 function DetailDrawer({
   job,
   onClose,
@@ -836,7 +1109,8 @@ function DetailDrawer({
   onSurvey,
   onSurveyReport,
   onPermit,
-  priceMap
+  priceMap,
+  permitMode
 }) {
   const SF = window.SF;
   const open = !!job;
@@ -965,7 +1239,39 @@ function DetailDrawer({
       alignItems: "center",
       gap: 12
     }
-  }, React.createElement(StageBadge, {
+  }, permitMode ? (() => {
+    const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
+    const n = (window.PERMIT_FLOW || []).length || 4;
+    const idx = window.permitFlowIdx ? window.permitFlowIdx(job) : -1;
+    const pct = idx < 0 ? 0 : Math.round((idx + 1) / n * 100);
+    const c = pst ? pst.color : "#94A3B8";
+    return React.createElement(React.Fragment, null, React.createElement("span", {
+      style: {
+        fontSize: 12,
+        fontWeight: 700,
+        color: c,
+        background: c + "16",
+        border: "1px solid " + c + "33",
+        borderRadius: 99,
+        padding: "4px 11px",
+        whiteSpace: "nowrap"
+      }
+    }, pst ? pst.th : "ยังไม่เริ่มเก็บข้อมูล"), React.createElement("div", {
+      style: {
+        flex: 1
+      }
+    }, React.createElement(ProgressBar, {
+      pct: pct,
+      color: c
+    })), React.createElement("span", {
+      style: {
+        fontFamily: "var(--mono)",
+        fontSize: 13,
+        fontWeight: 600,
+        color: "var(--text-2)"
+      }
+    }, pct, "%"));
+  })() : React.createElement(React.Fragment, null, React.createElement(StageBadge, {
     stageKey: job.stage
   }), React.createElement("div", {
     style: {
@@ -981,7 +1287,7 @@ function DetailDrawer({
       fontWeight: 600,
       color: "var(--text-2)"
     }
-  }, job.progressPct, "%"))), React.createElement("div", {
+  }, job.progressPct, "%")))), React.createElement("div", {
     style: {
       overflowY: "auto",
       flex: 1,
@@ -1043,13 +1349,13 @@ function DetailDrawer({
     showName: true
   })), React.createElement(InfoRow, {
     label: "\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E07\u0E32\u0E19"
-  }, job.type === "home" ? "งานบ้าน" : "งานโครงการ"), React.createElement(InfoRow, {
+  }, job.type === "home" ? "งานบ้าน" : "งานโครงการ"), !permitMode && React.createElement(InfoRow, {
     label: "\u0E17\u0E35\u0E21\u0E23\u0E31\u0E1A\u0E40\u0E2B\u0E21\u0E32"
   }, job.contractor ? job.contractor : React.createElement("span", {
     style: {
       color: "var(--text-3)"
     }
-  }, "\u2014")), React.createElement(InfoRow, {
+  }, "\u2014")), !permitMode && React.createElement(InfoRow, {
     label: "\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"
   }, job.laborCost ? Number(job.laborCost).toLocaleString() + " บาท" : React.createElement("span", {
     style: {
@@ -1085,7 +1391,9 @@ function DetailDrawer({
     name: "arrowRight",
     size: 13,
     color: "#fff"
-  }))))), React.createElement("div", {
+  }))))), permitMode && React.createElement(PermitJobSummary, {
+    job: job
+  }), React.createElement("div", {
     style: {
       background: "var(--surface)",
       border: "1px solid var(--border)",
@@ -1432,7 +1740,7 @@ function DetailDrawer({
     name: "arrowRight",
     size: 16,
     color: "var(--text-3)"
-  })), window.Plan3DEditor && canDesign && React.createElement("button", {
+  })), window.Plan3DEditor && canDesign && !permitMode && React.createElement("button", {
     onClick: () => setPlan3dOpen(true),
     style: {
       width: "100%",
@@ -1484,7 +1792,7 @@ function DetailDrawer({
     name: "arrowRight",
     size: 16,
     color: "var(--text-3)"
-  })), window.SolarDesignHost && React.createElement("button", {
+  })), window.SolarDesignHost && !permitMode && React.createElement("button", {
     onClick: () => setDesignOpen(true),
     style: {
       width: "100%",
@@ -1536,7 +1844,7 @@ function DetailDrawer({
     name: "arrowRight",
     size: 16,
     color: "var(--text-3)"
-  })), React.createElement("button", {
+  })), !permitMode && React.createElement("button", {
     onClick: () => setBoqOpen(true),
     style: {
       width: "100%",
@@ -1588,7 +1896,7 @@ function DetailDrawer({
     name: "arrowRight",
     size: 16,
     color: "var(--text-3)"
-  })), React.createElement("div", {
+  })), !permitMode && React.createElement("div", {
     style: {
       marginBottom: 24
     }
@@ -1705,11 +2013,11 @@ function DetailDrawer({
     }, m.th), React.createElement(MatChip, {
       status: job.mat[m.key]
     }));
-  }))), React.createElement(JobMaterialUsage, {
+  }))), !permitMode && React.createElement(JobMaterialUsage, {
     job: job,
     stock: stock,
     currentUser: currentUser
-  }), React.createElement("div", {
+  }), !permitMode && React.createElement("div", {
     style: {
       marginBottom: 20
     }
@@ -1731,14 +2039,15 @@ function DetailDrawer({
     color: "var(--text-2)"
   }), " Flow \u0E01\u0E32\u0E23\u0E17\u0E33\u0E07\u0E32\u0E19"), React.createElement(FlowTimeline, {
     job: job
-  })), React.createElement(JobFiles, {
+  })), !permitMode && React.createElement(JobFiles, {
     media: media,
     currentUser: currentUser,
     canManage: canManage
   }), React.createElement(JobPhotos, {
     media: media,
     currentUser: currentUser,
-    canManage: canManage
+    canManage: canManage,
+    readOnly: permitMode
   }), React.createElement(JobComments, {
     media: media,
     currentUser: currentUser,
@@ -1792,7 +2101,7 @@ function DetailDrawer({
     name: "x",
     size: 18,
     color: "var(--text-2)"
-  }) : "ปิด"), React.createElement("button", {
+  }) : "ปิด"), !permitMode && React.createElement("button", {
     onClick: () => onEdit(job.id),
     title: "\u0E41\u0E01\u0E49\u0E44\u0E02\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25",
     "aria-label": "\u0E41\u0E01\u0E49\u0E44\u0E02\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25",
@@ -1818,7 +2127,19 @@ function DetailDrawer({
     name: "settings",
     size: isMobile ? 17 : 15,
     color: "var(--text-2)"
-  }), !isMobile && " แก้ไขข้อมูล"), job.stage !== "done" && React.createElement("button", {
+  }), !isMobile && " แก้ไขข้อมูล"), permitMode && React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 12,
+      color: "var(--text-3)",
+      textAlign: "center",
+      lineHeight: 1.4
+    }
+  }, "\u0E14\u0E39\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27 \xB7 \u0E40\u0E14\u0E34\u0E19\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E1A\u0E2D\u0E23\u0E4C\u0E14\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15"), !permitMode && job.stage !== "done" && React.createElement("button", {
     onClick: handleAdvance,
     disabled: advancing,
     style: {

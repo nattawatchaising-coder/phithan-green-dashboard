@@ -542,7 +542,8 @@ function App() {
         onSaveBOQ={(id, boq) => store.patch(id, { boq })}
         onSurvey={(can(role, "doSurvey") || can(role, "dispatch")) ? () => openSurvey(selectedJob) : null}
         onSurveyReport={() => setReportJob(selectedJob)}
-        onPermit={can(role, "editJob") ? () => setPermitJob(selectedJob) : null}
+        onPermit={can(role, "editJob") && !permitOnly ? () => setPermitJob(selectedJob) : null}
+        permitMode={permitOnly}
         priceMap={can(role, "price") ? effPriceMap : null}
         onEdit={(id) => { setSelected(null); setForm({ job: store.raw.find((r) => r.id === id), isNew: false }); }} />
       {permitJob && <PermitWizard job={permitJob} currentUser={auth.current} stock={stock}
