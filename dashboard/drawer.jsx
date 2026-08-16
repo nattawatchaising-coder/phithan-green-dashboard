@@ -313,7 +313,7 @@ function StockShopModal({ stock, job, byName, onClose }) {
   );
 }
 
-function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, canDesign, stock, onSaveBOQ, onSurvey, onSurveyReport, priceMap }) {
+function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, canDesign, stock, onSaveBOQ, onSurvey, onSurveyReport, onPermit, priceMap }) {
   const SF = window.SF;
   const open = !!job;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -453,6 +453,28 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                     </button>
                   )}
                   </React.Fragment>
+                );
+              })()}
+
+              {/* เก็บข้อมูลขออนุญาตการไฟฟ้า — ช่างกรอกหน้างาน แล้วส่งต่อฝ่ายขออนุญาต
+                  แถบความคืบหน้าคิดจากช่องบังคับ + รูปบังคับ ช่างจะได้รู้ว่าเหลืออีกเท่าไรโดยไม่ต้องเปิดเข้าไปดู */}
+              {onPermit && (() => {
+                const pm = job.permit || null;
+                const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
+                return (
+                  <button onClick={onPermit}
+                    style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+                      background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+                      borderLeft: "3px solid " + (pst ? pst.color : "var(--border-strong)") }}>
+                    <span style={{ width: 34, height: 34, borderRadius: 9, background: "#14B8A61c", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="shield" size={17} color="#14B8A6" /></span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ข้อมูลขออนุญาตการไฟฟ้า</span>
+                      <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>
+                        {pst ? pst.th + (pm && pm.auth ? " · " + pm.auth : "") : "ยังไม่ได้เริ่มเก็บ · แตะเพื่อเริ่ม"}
+                      </span>
+                    </span>
+                    <Icon name="arrowRight" size={16} color="var(--text-3)" />
+                  </button>
                 );
               })()}
 

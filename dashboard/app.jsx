@@ -12,6 +12,7 @@ const NAV = [
   // "สถานะสำรวจ" (SurveyView) ถอดออกจากเมนูแล้ว — การสำรวจย้ายไปอยู่กับ "ลูกค้าสำรวจ" ทั้งหมด
   // งานในฐานงานมาจากลูกค้าที่แปลงแล้ว (พกแบบสำรวจติดมาด้วย) · โค้ดหน้ายังอยู่ใน views-survey.jsx ถ้าอยากได้คืน
   { key: "dispatch",   th: "จัดตารางสำรวจ",    en: "Dispatch",      icon: "calendar", perm: "dispatch" },
+  { key: "permit",     th: "ขออนุญาตการไฟฟ้า", en: "Permit",        icon: "shield",   perm: "permit" },
   { key: "myschedule", th: "ตารางงานของฉัน",   en: "My Schedule",   icon: "list",     own: true },
   { key: "calendar",   th: "ปฏิทินนัด",        en: "Calendar",      icon: "calendar" },
   { key: "stock",      th: "คลังสินค้า",       en: "Inventory",     icon: "box",      perm: "stock" },
@@ -377,6 +378,7 @@ function App() {
   };
   /* ลบงาน = ย้ายเข้าถังขยะก่อน กู้คืนได้ · ถามยืนยันในหน้าเอง ไม่ใช้ confirm() ของเบราว์เซอร์
      (ถ้าผู้ใช้เคยติ๊ก "ไม่ให้หน้านี้สร้างกล่องข้อความอีก" confirm จะคืน false ทันที = กดลบแล้วเงียบ) */
+  const [permitJob, setPermitJob] = React.useState(null);   // งานที่กำลังเปิดแบบเก็บข้อมูลขออนุญาต
   const [delAsk, setDelAsk] = React.useState(null);   // งานที่กำลังถามว่าจะย้ายเข้าถังขยะไหม
   const [trashOpen, setTrashOpen] = React.useState(false);
   const onDelete = (j) => {
@@ -398,7 +400,8 @@ function App() {
   if (!auth.current) return <LoginScreen authStore={auth} />;
 
   // แจ้งเตือนของช่างคนนี้ (admin/manager ไม่มี techId → ไม่มีกระดิ่งส่วนตัว)
-  const myNotifs = techId ? notif.notifs.filter((n) => n.toTechId === techId) : [];
+  /* แจ้งเตือนของฉัน = ที่จ่าหน้าถึงตัวเรา + ที่จ่าหน้าถึง "คนที่มีสิทธิ์นี้" (เช่น งานขออนุญาตส่งถึงทุกคนในฝ่าย) */
+  const myNotifs = notif.notifs.filter((n) => (techId && n.toTechId === techId) || (n.toPerm && can(role, n.toPerm)));
   const unread   = myNotifs.filter((n) => !n.read).length;
   const bellCount = unread + lateAlerts.length;
   const openFromNotif = (n) => {
@@ -449,7 +452,7 @@ function App() {
           onMap={() => setMapOpen(true)}
           showBell={true} unread={bellCount} notifItems={myNotifs} lateAlerts={lateAlerts}
           notifOpen={notifOpen} onBell={() => setNotifOpen((v) => !v)} onCloseNotif={() => setNotifOpen(false)}
-          onOpenNotif={openFromNotif} onMarkAll={() => notif.markAllRead(techId)}
+          onOpenNotif={openFromNotif} onMarkAll={() => myNotifs.forEach((n) => { if (!n.read) notif.markRead(n.id); })}
           onMenuOpen={() => setSidebarOpen(true)} />
 
         <div className="app-content" style={view === "board" ? { display: "flex", flexDirection: "column", minHeight: 0 } : {}}>
@@ -459,6 +462,11 @@ function App() {
             onEdit={(j) => setForm({ job: store.raw.find((r) => r.id === j.id), isNew: false })}
             onDelete={onDelete} onSetMat={store.setMat} onSetStage={(id, s) => store.setStage(id, s)}
             trashCount={can(role, "delJob") ? store.trash.length : 0} onOpenTrash={can(role, "delJob") ? () => setTrashOpen(true) : null} />}
+          {view === "permit" && <PermitQueueView jobs={jobs} currentUser={auth.current} onOpenJob={(id) => { setView(listView()); setSelected(id); }}
+            onPatchPermit={(id, fields) => {
+              const cur = (store.raw.find((r) => r.id === id) || {}).permit || {};
+              store.patch(id, { permit: Object.assign({}, cur, fields) });
+            }} />}
           {view === "report" && <ReportView jobs={filtered} onOpen={openJob} />}
           {view === "survey" && <SurveyView jobs={filtered} role={role} onOpen={openSurvey}
             onToggleSkip={(can(role, "doSurvey") || can(role, "dispatch") || can(role, "editJob")) ? (j) => {
@@ -478,8 +486,17 @@ function App() {
         onSaveBOQ={(id, boq) => store.patch(id, { boq })}
         onSurvey={(can(role, "doSurvey") || can(role, "dispatch")) ? () => openSurvey(selectedJob) : null}
         onSurveyReport={() => setReportJob(selectedJob)}
+        onPermit={can(role, "editJob") ? () => setPermitJob(selectedJob) : null}
         priceMap={can(role, "price") ? effPriceMap : null}
         onEdit={(id) => { setSelected(null); setForm({ job: store.raw.find((r) => r.id === id), isNew: false }); }} />
+      {permitJob && <PermitWizard job={permitJob} currentUser={auth.current} stock={stock}
+        onClose={() => setPermitJob(null)}
+        onSave={(permit) => store.patch(permitJob.id, { permit })}
+        onSubmit={(permit) => notif.addNotif({
+          toPerm: "permit", type: "permit", jobId: permitJob.id, jobName: permitJob.name,
+          title: "ข้อมูลขออนุญาตพร้อมยื่นแล้ว",
+          body: (permitJob.code || "") + " · " + (permitJob.name || "") + " · " + (permit.auth || "") + " · " + (permit.kwp || "") + " kWp",
+        })} />}
       {surveyJob && <SurveyWizard job={surveyJob} currentUser={auth.current} stock={stock}
         onClose={() => { setSurveyJob(null); setSurveyAppt(null); }}
         onSave={(survey, thenReport) => {

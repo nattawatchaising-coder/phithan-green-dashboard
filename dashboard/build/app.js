@@ -28,6 +28,12 @@ const NAV = [{
   icon: "calendar",
   perm: "dispatch"
 }, {
+  key: "permit",
+  th: "ขออนุญาตการไฟฟ้า",
+  en: "Permit",
+  icon: "shield",
+  perm: "permit"
+}, {
   key: "myschedule",
   th: "ตารางงานของฉัน",
   en: "My Schedule",
@@ -518,6 +524,7 @@ function App() {
     }
     setForm(null);
   };
+  const [permitJob, setPermitJob] = React.useState(null);
   const [delAsk, setDelAsk] = React.useState(null);
   const [trashOpen, setTrashOpen] = React.useState(false);
   const onDelete = j => {
@@ -552,7 +559,7 @@ function App() {
   if (!auth.current) return React.createElement(LoginScreen, {
     authStore: auth
   });
-  const myNotifs = techId ? notif.notifs.filter(n => n.toTechId === techId) : [];
+  const myNotifs = notif.notifs.filter(n => techId && n.toTechId === techId || n.toPerm && can(role, n.toPerm));
   const unread = myNotifs.filter(n => !n.read).length;
   const bellCount = unread + lateAlerts.length;
   const openFromNotif = n => {
@@ -660,7 +667,9 @@ function App() {
     onBell: () => setNotifOpen(v => !v),
     onCloseNotif: () => setNotifOpen(false),
     onOpenNotif: openFromNotif,
-    onMarkAll: () => notif.markAllRead(techId),
+    onMarkAll: () => myNotifs.forEach(n => {
+      if (!n.read) notif.markRead(n.id);
+    }),
     onMenuOpen: () => setSidebarOpen(true)
   }), React.createElement("div", {
     className: "app-content",
@@ -692,6 +701,19 @@ function App() {
     onSetStage: (id, s) => store.setStage(id, s),
     trashCount: can(role, "delJob") ? store.trash.length : 0,
     onOpenTrash: can(role, "delJob") ? () => setTrashOpen(true) : null
+  }), view === "permit" && React.createElement(PermitQueueView, {
+    jobs: jobs,
+    currentUser: auth.current,
+    onOpenJob: id => {
+      setView(listView());
+      setSelected(id);
+    },
+    onPatchPermit: (id, fields) => {
+      const cur = (store.raw.find(r => r.id === id) || {}).permit || {};
+      store.patch(id, {
+        permit: Object.assign({}, cur, fields)
+      });
+    }
   }), view === "report" && React.createElement(ReportView, {
     jobs: filtered,
     onOpen: openJob
@@ -734,6 +756,7 @@ function App() {
     }),
     onSurvey: can(role, "doSurvey") || can(role, "dispatch") ? () => openSurvey(selectedJob) : null,
     onSurveyReport: () => setReportJob(selectedJob),
+    onPermit: can(role, "editJob") ? () => setPermitJob(selectedJob) : null,
     priceMap: can(role, "price") ? effPriceMap : null,
     onEdit: id => {
       setSelected(null);
@@ -742,6 +765,22 @@ function App() {
         isNew: false
       });
     }
+  }), permitJob && React.createElement(PermitWizard, {
+    job: permitJob,
+    currentUser: auth.current,
+    stock: stock,
+    onClose: () => setPermitJob(null),
+    onSave: permit => store.patch(permitJob.id, {
+      permit
+    }),
+    onSubmit: permit => notif.addNotif({
+      toPerm: "permit",
+      type: "permit",
+      jobId: permitJob.id,
+      jobName: permitJob.name,
+      title: "ข้อมูลขออนุญาตพร้อมยื่นแล้ว",
+      body: (permitJob.code || "") + " · " + (permitJob.name || "") + " · " + (permit.auth || "") + " · " + (permit.kwp || "") + " kWp"
+    })
   }), surveyJob && React.createElement(SurveyWizard, {
     job: surveyJob,
     currentUser: auth.current,

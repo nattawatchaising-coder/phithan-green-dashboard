@@ -835,6 +835,7 @@ function DetailDrawer({
   onSaveBOQ,
   onSurvey,
   onSurveyReport,
+  onPermit,
   priceMap
 }) {
   const SF = window.SF;
@@ -1225,6 +1226,63 @@ function DetailDrawer({
       size: 15,
       color: "var(--primary-dark)"
     }), " \u0E14\u0E39\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1C\u0E25\u0E2A\u0E33\u0E23\u0E27\u0E08 \xB7 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF"));
+  })(), onPermit && (() => {
+    const pm = job.permit || null;
+    const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
+    return React.createElement("button", {
+      onClick: onPermit,
+      style: {
+        width: "100%",
+        marginBottom: 10,
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "12px 14px",
+        background: "var(--surface)",
+        border: "1px solid var(--border-strong)",
+        borderRadius: 12,
+        cursor: "pointer",
+        fontFamily: "inherit",
+        textAlign: "left",
+        borderLeft: "3px solid " + (pst ? pst.color : "var(--border-strong)")
+      }
+    }, React.createElement("span", {
+      style: {
+        width: 34,
+        height: 34,
+        borderRadius: 9,
+        background: "#14B8A61c",
+        display: "grid",
+        placeItems: "center",
+        flexShrink: 0
+      }
+    }, React.createElement(Icon, {
+      name: "shield",
+      size: 17,
+      color: "#14B8A6"
+    })), React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 13.5,
+        fontWeight: 700,
+        color: "var(--text-1)"
+      }
+    }, "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E01\u0E32\u0E23\u0E44\u0E1F\u0E1F\u0E49\u0E32"), React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 11.5,
+        color: "var(--text-3)"
+      }
+    }, pst ? pst.th + (pm && pm.auth ? " · " + pm.auth : "") : "ยังไม่ได้เริ่มเก็บ · แตะเพื่อเริ่ม")), React.createElement(Icon, {
+      name: "arrowRight",
+      size: 16,
+      color: "var(--text-3)"
+    }));
   })(), false && window.SitePlanEditor && React.createElement("button", {
     onClick: () => setPlanOpen(true),
     style: {
