@@ -536,6 +536,7 @@ function App() {
   const permitView = React.createElement(PermitQueueView, {
     jobs: jobs,
     search: search,
+    stock: stock,
     currentUser: auth.current,
     onOpenJob: id => {
       setView(listView());
@@ -547,9 +548,10 @@ function App() {
       store.patch(id, {
         permit: Object.assign({}, cur, fields)
       });
-      if (fields.status === "rejected" && cur.submittedTechId) {
+      const backTo = cur.submittedTechId || j.tech || null;
+      if (fields.status === "rejected" && backTo) {
         notif.addNotif({
-          toTechId: cur.submittedTechId,
+          toTechId: backTo,
           type: "permit",
           jobId: id,
           jobName: j.name,

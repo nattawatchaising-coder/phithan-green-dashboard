@@ -391,15 +391,17 @@ function App() {
   const permitPage = view === "permit" || (permitOnly && view === "board");
 
   const permitView = (
-    <PermitQueueView jobs={jobs} search={search} currentUser={auth.current} onOpenJob={(id) => { setView(listView()); setSelected(id); }}
+    <PermitQueueView jobs={jobs} search={search} stock={stock} currentUser={auth.current} onOpenJob={(id) => { setView(listView()); setSelected(id); }}
       onPatchPermit={(id, fields) => {
         const j = store.raw.find((r) => r.id === id) || {};
         const cur = j.permit || {};
         store.patch(id, { permit: Object.assign({}, cur, fields) });
         /* ตีกลับแล้วต้องเด้งกลับหาช่างคนที่ส่งมา ไม่งั้นงานค้างจนกว่าเขาจะบังเอิญเปิดดูเอง */
-        if (fields.status === "rejected" && cur.submittedTechId) {
+        /* งานเก่าที่ไม่ได้บันทึกคนส่ง ให้เด้งหาช่างที่รับผิดชอบงานแทน ไม่งั้นไม่มีใครรู้ว่าถูกตีกลับ */
+        const backTo = cur.submittedTechId || j.tech || null;
+        if (fields.status === "rejected" && backTo) {
           notif.addNotif({
-            toTechId: cur.submittedTechId, type: "permit", jobId: id, jobName: j.name,
+            toTechId: backTo, type: "permit", jobId: id, jobName: j.name,
             title: "ข้อมูลขออนุญาตถูกตีกลับ ต้องแก้ไข",
             body: (j.code || "") + " · " + (fields.rejectReason || "ต้องแก้ไขข้อมูล"),
           });

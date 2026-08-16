@@ -169,7 +169,44 @@ function KanbanCard({
       name: "shield",
       size: 10,
       color: "var(--primary-dark)"
-    }), "Backup")), job.problem && React.createElement("div", {
+    }), "Backup")), job.permit && job.permit.status && (() => {
+      const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
+      if (!pst) return null;
+      const rejected = job.permit.status === "rejected";
+      return React.createElement("div", {
+        style: {
+          marginBottom: 10,
+          padding: "6px 9px",
+          borderRadius: 9,
+          background: pst.color + "14",
+          border: "1px solid " + pst.color + (rejected ? "" : "33")
+        }
+      }, React.createElement("div", {
+        style: {
+          fontSize: 10.5,
+          fontWeight: 800,
+          color: pst.color
+        }
+      }, React.createElement(Icon, {
+        name: "shield",
+        size: 10,
+        color: pst.color,
+        style: {
+          verticalAlign: -1
+        }
+      }), " \u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15 \xB7 ", pst.th), rejected && job.permit.rejectReason && React.createElement("div", {
+        style: {
+          fontSize: 10.5,
+          color: pst.color,
+          marginTop: 3,
+          lineHeight: 1.4,
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden"
+        }
+      }, job.permit.rejectReason));
+    })(), job.problem && React.createElement("div", {
       style: {
         fontSize: 11,
         color: "var(--tint-red-tx)",

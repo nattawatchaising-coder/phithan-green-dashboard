@@ -368,6 +368,23 @@ function permitProgress(f, photos) {
   const done = Math.max(0, total - missing.length);
   return { pct: Math.round((done / total) * 100), missing, done, total };
 }
+/* ── ขั้นตอนขออนุญาตในมุมของช่าง ──
+   ช่างไม่ได้สนใจสถานะภายในของฝ่ายขออนุญาต เขาอยากรู้แค่ว่า "ใบของงานนี้เดินไปถึงไหนแล้ว"
+   ตีกลับไม่ใช่ขั้นใหม่ แต่คือถอยกลับมาที่ช่าง จึงชี้กลับไปที่ขั้น "ส่งให้ฝ่ายขออนุญาต" */
+const PERMIT_FLOW = [
+  { key: "draft",    th: "เก็บข้อมูลหน้างาน" },
+  { key: "sent",     th: "ส่งให้ฝ่ายขออนุญาต" },
+  { key: "filing",   th: "ยื่นการไฟฟ้า" },
+  { key: "approved", th: "การไฟฟ้าอนุมัติ" },
+];
+function permitFlowIdx(job) {
+  const st = job && job.permit && job.permit.status;
+  if (!st) return -1;                                   /* ยังไม่เริ่มเก็บ */
+  if (st === "rejected") return 1;
+  const i = PERMIT_FLOW.findIndex((x) => x.key === st);
+  return i < 0 ? 0 : i;
+}
+
 /* สถานะย่อสำหรับแสดงบนการ์ด/ตาราง โดยไม่ต้องโหลดรูปมาทั้งชุด */
 function permitStatusOf(job) {
   const p = job && job.permit;
@@ -384,7 +401,7 @@ const PERMIT_DOC_SLOTS = [
   { key: "poa",      label: "หนังสือมอบอำนาจ + บัตรผู้รับมอบ", hint: "กรณีบริษัทยื่นแทนลูกค้า", req: true },
   { key: "sld",      label: "Single Line Diagram ลงนาม",     hint: "วิศวกรไฟฟ้าเซ็น + แนบสำเนาใบ กว.", req: true },
   { key: "roofCert", label: "หนังสือรับรองโครงสร้างหลังคา",   hint: "วิศวกรโยธาเซ็นรับรองความมั่นคงแข็งแรง", req: true },
-  { key: "catalog",  label: "แคตตาล็อกแผง / อินเวอร์เตอร์",   hint: "อินเวอร์เตอร์ต้องอยู่ในรายชื่อที่การไฟฟ้ารับรอง", req: true },
+  { key: "catalog",  label: "แคตตาล็อกแผง / อินเวอร์เตอร์",   hint: "ดึงจาก DATA SHEET ในคลังตามรุ่นที่บันทึกไว้", req: true, fromStock: true },
   { key: "local",    label: "ใบแจ้งท้องถิ่น / อ.1",          hint: "ต้องมี อ.1 เมื่อพื้นที่แผงเกิน 160 ตร.ม." },
   { key: "erc",      label: "หนังสือรับแจ้งยกเว้น กกพ.",      hint: "ใบรับแจ้งประกอบกิจการพลังงานที่ได้รับยกเว้น" },
   { key: "other",    label: "เอกสารอื่น ๆ",                  hint: "อะไรที่การไฟฟ้าสาขาขอเพิ่มเป็นกรณี" },
@@ -955,6 +972,6 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
 Object.assign(window, {
   PermitWizard, blankPermit, usePermitPhotos, permitProgress, permitMissing, permitStatusOf,
   permitInitial, permitFromSurvey, PermitSampleArt, PermitSampleModal, PERMIT_SAMPLE_TIPS,
-  usePermitDocs, readPermitDoc, PERMIT_DOC_SLOTS,
+  usePermitDocs, readPermitDoc, PERMIT_DOC_SLOTS, PERMIT_FLOW, permitFlowIdx,
   PERMIT_PHOTO_SLOTS, PERMIT_SLOT_BY, PERMIT_STEPS, PERMIT_STATUS, PERMIT_TYPES,
 });

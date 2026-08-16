@@ -461,20 +461,70 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               {onPermit && (() => {
                 const pm = job.permit || null;
                 const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
+                const FLOW = window.PERMIT_FLOW || [];
+                const idx = window.permitFlowIdx ? window.permitFlowIdx(job) : -1;
+                const rejected = !!(pm && pm.status === "rejected");
                 return (
-                  <button onClick={onPermit}
-                    style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
-                      background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left",
-                      borderLeft: "3px solid " + (pst ? pst.color : "var(--border-strong)") }}>
-                    <span style={{ width: 34, height: 34, borderRadius: 9, background: "#14B8A61c", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="shield" size={17} color="#14B8A6" /></span>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ข้อมูลขออนุญาตการไฟฟ้า</span>
-                      <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>
-                        {pst ? pst.th + (pm && pm.auth ? " · " + pm.auth : "") : "ยังไม่ได้เริ่มเก็บ · แตะเพื่อเริ่ม"}
+                  <div style={{ marginBottom: 10, border: "1px solid " + (rejected ? "var(--tint-red-bd)" : "var(--border-strong)"),
+                    borderLeft: "3px solid " + (pst ? pst.color : "var(--border-strong)"), borderRadius: 12, overflow: "hidden",
+                    background: "var(--surface)" }}>
+                    <button onClick={onPermit}
+                      style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+                        background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                      <span style={{ width: 34, height: 34, borderRadius: 9, background: "#14B8A61c", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="shield" size={17} color="#14B8A6" /></span>
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ขออนุญาตการไฟฟ้า</span>
+                        <span style={{ display: "block", fontSize: 11.5, color: pst ? pst.color : "var(--text-3)", fontWeight: pst ? 700 : 400 }}>
+                          {pst ? pst.th + (pm && pm.auth ? " · " + pm.auth : "") : "ยังไม่ได้เริ่มเก็บ · แตะเพื่อเริ่ม"}
+                        </span>
                       </span>
-                    </span>
-                    <Icon name="arrowRight" size={16} color="var(--text-3)" />
-                  </button>
+                      <Icon name="arrowRight" size={16} color="var(--text-3)" />
+                    </button>
+
+                    {/* แถบขั้นตอน — งานติดตั้งจบแล้วยังไม่จบเรื่อง ใบขออนุญาตต้องเดินต่อจนการไฟฟ้าอนุมัติ */}
+                    {idx >= 0 && (
+                      <div style={{ display: "flex", gap: 6, padding: "0 14px 12px" }}>
+                        {FLOW.map((st, i) => {
+                          const done = i < idx, now = i === idx;
+                          const c = rejected && now ? "#EF4444" : (done || now ? "var(--primary)" : "var(--border-strong)");
+                          return (
+                            <span key={st.key} style={{ flex: 1, minWidth: 0 }}>
+                              <span style={{ display: "block", height: 4, borderRadius: 99, background: c, opacity: done ? .55 : 1 }} />
+                              <span style={{ display: "block", marginTop: 5, fontSize: 9.5, lineHeight: 1.3,
+                                fontWeight: now ? 800 : 600, color: now ? (rejected ? "#EF4444" : "var(--primary-dark)") : "var(--text-3)" }}>{st.th}</span>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* ตีกลับ = ช่างต้องลงมือแก้ ต้องเห็นเหตุผลตรงนี้เลย ไม่ใช่ไปตามอ่านในแจ้งเตือน */}
+                    {rejected && (
+                      <div style={{ margin: "0 12px 12px", padding: "10px 12px", borderRadius: 10,
+                        background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)" }}>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: "var(--tint-red-tx)" }}>↩ ฝ่ายขออนุญาตตีกลับ ต้องแก้ไขแล้วส่งใหม่</div>
+                        <div style={{ fontSize: 12, color: "var(--tint-red-tx)", marginTop: 4, lineHeight: 1.55 }}>
+                          {pm.rejectReason || "ไม่ได้ระบุเหตุผล — สอบถามฝ่ายขออนุญาต"}
+                        </div>
+                        {(pm.byAdmin || pm.statusAt) && (
+                          <div style={{ fontSize: 10.5, color: "var(--tint-red-tx)", opacity: .8, marginTop: 4 }}>
+                            {pm.byAdmin ? "โดย " + pm.byAdmin : ""}{pm.statusAt ? " · " + thDate(String(pm.statusAt).slice(0, 10), true) : ""}
+                          </div>
+                        )}
+                        <button onClick={onPermit}
+                          style={{ marginTop: 9, padding: "8px 14px", borderRadius: 9, border: "none", background: "#EF4444", color: "#fff",
+                            fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>แก้ไขแล้วส่งใหม่</button>
+                      </div>
+                    )}
+
+                    {/* อนุมัติแล้ว = ปิดงานได้จริง ให้เห็นเลขที่คำร้อง/วันอนุมัติโดยไม่ต้องเปิดเข้าไป */}
+                    {pm && pm.status === "approved" && (
+                      <div style={{ margin: "0 12px 12px", padding: "9px 12px", borderRadius: 10,
+                        background: "var(--primary-soft)", border: "1px solid var(--primary)", fontSize: 11.5, color: "var(--primary-dark)", fontWeight: 700 }}>
+                        ✔ การไฟฟ้าอนุมัติแล้ว{pm.approvedDate ? " · " + thDate(pm.approvedDate, true) : ""}{pm.reqNo ? " · คำร้อง " + pm.reqNo : ""}
+                      </div>
+                    )}
+                  </div>
                 );
               })()}
 

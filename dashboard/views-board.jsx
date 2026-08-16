@@ -56,6 +56,24 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
           </span>
         )}
       </div>
+      {/* สถานะใบขออนุญาต — งานที่ติดตั้งเสร็จแล้วยังค้างที่ขั้นนี้ได้อีกนาน ช่างต้องเห็นบนการ์ดเลย */}
+      {job.permit && job.permit.status && (() => {
+        const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
+        if (!pst) return null;
+        const rejected = job.permit.status === "rejected";
+        return (
+          <div style={{ marginBottom: 10, padding: "6px 9px", borderRadius: 9, background: pst.color + "14",
+            border: "1px solid " + pst.color + (rejected ? "" : "33") }}>
+            <div style={{ fontSize: 10.5, fontWeight: 800, color: pst.color }}>
+              <Icon name="shield" size={10} color={pst.color} style={{ verticalAlign: -1 }} /> ขออนุญาต · {pst.th}
+            </div>
+            {rejected && job.permit.rejectReason && (
+              <div style={{ fontSize: 10.5, color: pst.color, marginTop: 3, lineHeight: 1.4,
+                display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{job.permit.rejectReason}</div>
+            )}
+          </div>
+        );
+      })()}
       {job.problem && (
         <div style={{ fontSize: 11, color: "var(--tint-red-tx)", background: "var(--tint-red-bg)", borderRadius: 8, padding: "6px 8px", marginBottom: 10, lineHeight: 1.4,
           display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>

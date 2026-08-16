@@ -1053,6 +1053,26 @@ function permitProgress(f, photos) {
     total
   };
 }
+const PERMIT_FLOW = [{
+  key: "draft",
+  th: "เก็บข้อมูลหน้างาน"
+}, {
+  key: "sent",
+  th: "ส่งให้ฝ่ายขออนุญาต"
+}, {
+  key: "filing",
+  th: "ยื่นการไฟฟ้า"
+}, {
+  key: "approved",
+  th: "การไฟฟ้าอนุมัติ"
+}];
+function permitFlowIdx(job) {
+  const st = job && job.permit && job.permit.status;
+  if (!st) return -1;
+  if (st === "rejected") return 1;
+  const i = PERMIT_FLOW.findIndex(x => x.key === st);
+  return i < 0 ? 0 : i;
+}
 function permitStatusOf(job) {
   const p = job && job.permit;
   if (!p || !p.status) return null;
@@ -1088,8 +1108,9 @@ const PERMIT_DOC_SLOTS = [{
 }, {
   key: "catalog",
   label: "แคตตาล็อกแผง / อินเวอร์เตอร์",
-  hint: "อินเวอร์เตอร์ต้องอยู่ในรายชื่อที่การไฟฟ้ารับรอง",
-  req: true
+  hint: "ดึงจาก DATA SHEET ในคลังตามรุ่นที่บันทึกไว้",
+  req: true,
+  fromStock: true
 }, {
   key: "local",
   label: "ใบแจ้งท้องถิ่น / อ.1",
@@ -2407,6 +2428,8 @@ Object.assign(window, {
   usePermitDocs,
   readPermitDoc,
   PERMIT_DOC_SLOTS,
+  PERMIT_FLOW,
+  permitFlowIdx,
   PERMIT_PHOTO_SLOTS,
   PERMIT_SLOT_BY,
   PERMIT_STEPS,

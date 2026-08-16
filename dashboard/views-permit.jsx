@@ -9,7 +9,6 @@
    คอลัมน์แรกไม่ใช่สถานะในข้อมูล แต่คือ "งานที่ติดตั้งเสร็จแล้วยังไม่มีใครแตะ" ซึ่งเป็นของที่ตกหล่นบ่อยที่สุด */
 const PERMIT_COLS = [
   { key: "todo",     th: "ยังไม่เริ่มเก็บข้อมูล", color: "#94A3B8", soft: "var(--surface2)" },
-  { key: "draft",    th: "ช่างกำลังเก็บข้อมูล",  color: "#64748B", soft: "var(--surface2)" },
   { key: "sent",     th: "รอฝ่ายขออนุญาตรับ",   color: "#F59E0B", soft: "var(--tint-amber-bg)" },
   { key: "rejected", th: "ตีกลับให้ช่างแก้",     color: "#EF4444", soft: "var(--tint-red-bg)" },
   { key: "filing",   th: "กำลังยื่นการไฟฟ้า",    color: "#3B82F6", soft: "#3B82F614" },
@@ -71,7 +70,7 @@ function PermitCard({ job, onOpen, onDragStart, dragging, draggable }) {
   );
 }
 
-function PermitQueueView({ jobs, search, onOpenJob, onPatchPermit, currentUser }) {
+function PermitQueueView({ jobs, search, stock, onOpenJob, onPatchPermit, currentUser }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [mode, setMode] = React.useState(() => { try { return localStorage.getItem("sf_permit_view") || "board"; } catch (e) { return "board"; } });
   const [tab, setTab] = React.useState("sent");
@@ -143,7 +142,7 @@ function PermitQueueView({ jobs, search, onOpenJob, onPatchPermit, currentUser }
     </div>
   );
 
-  const review = openJob ? <PermitReview job={openJob} currentUser={currentUser} onClose={() => setOpen(null)}
+  const review = openJob ? <PermitReview job={openJob} currentUser={currentUser} stock={stock} onClose={() => setOpen(null)}
     onOpenJob={() => { setOpen(null); onOpenJob && onOpenJob(openJob.id); }}
     onPatch={(fields) => onPatchPermit(openJob.id, fields)} /> : null;
 
@@ -298,6 +297,96 @@ function PermitBoardMobile({ cols, byCol, counts, onOpen }) {
   );
 }
 
+/* ── แคตตาล็อกแผง / อินเวอร์เตอร์ ──
+   ไม่ต้องอัปซ้ำทุกงาน เพราะเป็นเอกสารของ "รุ่น" ไม่ใช่ของ "งาน"
+   ดึง DATA SHEET ที่แนบไว้กับของในคลังมาตามรุ่นที่บันทึกในชุดขออนุญาต */
+function usePermitCatalog(stock, permit) {
+  const items = (stock && stock.items) || [];
+  const models = [];
+  const push = (x) => { const t = String(x || "").trim(); if (t && models.indexOf(t) === -1) models.push(t); };
+  push((permit || {}).panelModel);
+  ((permit || {}).invs || []).forEach((iv) => push(iv && iv.model));
+  const key = models.join("|").toLowerCase();
+
+  const found = React.useMemo(() => {
+    const norm = (x) => String(x || "").trim().toLowerCase();
+    const want = models.map(norm).filter(Boolean);
+    if (!want.length) return [];
+    return items.filter((it) => it.doc && want.some((w) =>
+      norm(it.name) === w || norm(it.model) === w || (it.aka || []).some((a) => norm(a) === w)));
+  }, [items, key]);
+
+  const [sheets, setSheets] = React.useState([]);
+  const ids = found.map((x) => x.id).join("|");
+  React.useEffect(() => {
+    let dead = false;
+    if (!found.length || !stock || !stock.loadDoc) { setSheets([]); return; }
+    Promise.all(found.map((it) => Promise.resolve(stock.loadDoc(it.id)).then((d) => (d && d.data
+      ? { id: it.id, label: it.name, name: d.name || it.name, dataUrl: d.data, kind: /^data:image/i.test(d.data) ? "image" : "pdf" }
+      : null)).catch(() => null)))
+      .then((list) => { if (!dead) setSheets(list.filter(Boolean)); });
+    return () => { dead = true; };
+  }, [ids]);
+
+  /* รุ่นที่บันทึกไว้แต่หา DATA SHEET ในคลังไม่เจอ — ต้องบอก ไม่งั้นจะนึกว่าครบแล้ว */
+  const missing = models.filter((m) => {
+    const norm = (x) => String(x || "").trim().toLowerCase();
+    return !found.some((it) => norm(it.name) === norm(m) || norm(it.model) === norm(m) || (it.aka || []).some((a) => norm(a) === norm(m)));
+  });
+  return { sheets, missing, models };
+}
+
+/* แถวแคตตาล็อก — มาจากคลัง ไม่ใช่ช่องอัปโหลด */
+function PermitCatalogRow({ slot, sheets, missing, models }) {
+  const has = sheets.length > 0;
+  const openSheet = (sh) => {
+    try {
+      const url = window.dataUrlToBlobUrl ? window.dataUrlToBlobUrl(sh.dataUrl) : sh.dataUrl;
+      window.open(url, "_blank", "noopener");
+    } catch (e) { window.open(sh.dataUrl, "_blank", "noopener"); }
+  };
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 7, padding: "9px 11px", borderRadius: 11,
+      border: "1px solid " + (has ? "var(--border)" : "var(--border-strong)"),
+      borderLeft: "3px solid " + (has ? "var(--primary)" : "var(--tint-red-bd)"),
+      background: has ? "var(--surface)" : "var(--surface2)" }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "grid", placeItems: "center",
+          background: has ? "var(--primary-soft)" : "var(--surface3)" }}>
+          <Icon name={has ? "check" : "box"} size={15} color={has ? "var(--primary-dark)" : "var(--text-3)"} />
+        </span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>
+            {slot.label}<span style={{ color: "#EF4444" }}> *</span>
+          </span>
+          <span style={{ display: "block", fontSize: 10.5, color: "var(--text-3)", marginTop: 1, lineHeight: 1.4 }}>
+            {has ? "ดึงจาก DATA SHEET ในคลังให้อัตโนมัติ" : (models.length ? "ยังไม่ได้แนบ DATA SHEET ของรุ่นนี้ไว้ในคลัง" : "ยังไม่ได้ระบุรุ่นแผง/อินเวอร์เตอร์ในชุดข้อมูล")}
+          </span>
+        </span>
+      </div>
+      {sheets.map((sh) => (
+        <div key={sh.id} style={{ display: "flex", gap: 9, alignItems: "center", padding: "7px 9px", borderRadius: 9, background: "var(--surface2)" }}>
+          <span style={{ fontSize: 9.5, fontWeight: 800, color: sh.kind === "image" ? "var(--primary-dark)" : "#EF4444",
+            background: sh.kind === "image" ? "var(--primary-soft)" : "#EF444414", padding: "3px 7px", borderRadius: 6, flexShrink: 0 }}>
+            {sh.kind === "image" ? "IMG" : "PDF"}
+          </span>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)",
+            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sh.label}</span>
+          <button onClick={() => openSheet(sh)}
+            style={{ flexShrink: 0, padding: "5px 11px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)",
+              color: "var(--text-2)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>เปิดดู</button>
+        </div>
+      ))}
+      {missing.length > 0 && (
+        <div style={{ fontSize: 10.5, lineHeight: 1.5, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg)",
+          border: "1px solid var(--tint-amber-bd)", borderRadius: 8, padding: "6px 9px" }}>
+          ไม่พบ DATA SHEET ในคลังของ: {missing.join(" · ")} — ไปแนบไว้ที่รายการนั้นในหน้าคลังสินค้า แล้วทุกงานที่ใช้รุ่นนี้จะได้ไปด้วยกันหมด
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ช่องบันทึกการยื่น — พิมพ์แล้วเซฟตอนออกจากช่อง จะได้ไม่เขียน Firebase ทุกตัวอักษร
    อยู่นอกคอมโพเนนต์แม่ เพื่อไม่ให้ถูกสร้างใหม่ทุกครั้งที่แม่รีเรนเดอร์แล้วเคอร์เซอร์หลุด */
 function PermitFilingField({ label, value, onSave, type, placeholder }) {
@@ -310,6 +399,45 @@ function PermitFilingField({ label, value, onSave, type, placeholder }) {
         onChange={(e) => setV(e.target.value)}
         onBlur={() => { if ((value || "") !== v) onSave(v); }}
         style={Object.assign({}, P_INPUT, { fontSize: 13 })} />
+    </div>
+  );
+}
+
+/* ไฟล์ที่ฝ่ายออกแบบแนบไว้กับตัวงาน (แบบ / BOQ) — ฝ่ายขออนุญาตดูได้อย่างเดียว ไม่ต้องขอทางแชท */
+function PermitJobFiles({ jobId }) {
+  const media = window.useJobMedia ? window.useJobMedia(jobId) : { files: [] };
+  const KIND = { design: { th: "แบบ", color: "#2563EB" }, boq: { th: "BOQ", color: "#0D9488" }, other: { th: "ไฟล์อื่น", color: "#64748B" } };
+  const files = (media.files || []).filter((f) => f.kind === "design" || f.kind === "boq");
+  const open = (f) => {
+    try {
+      const url = window.dataUrlToBlobUrl ? window.dataUrlToBlobUrl(f.dataUrl) : f.dataUrl;
+      window.open(url, "_blank", "noopener");
+    } catch (e) { window.open(f.dataUrl, "_blank", "noopener"); }
+  };
+  if (!files.length) {
+    return <div style={{ fontSize: 12, color: "var(--text-3)" }}>ยังไม่มีไฟล์แบบหรือ BOQ แนบไว้กับงานนี้</div>;
+  }
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {files.map((f) => {
+        const k = KIND[f.kind] || KIND.other;
+        return (
+          <div key={f.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "9px 11px", borderRadius: 11,
+            background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "3px solid " + k.color }}>
+            <span style={{ fontSize: 9.5, fontWeight: 800, color: k.color, background: k.color + "14", padding: "4px 8px", borderRadius: 6, flexShrink: 0 }}>{k.th}</span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--text-1)",
+                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.name || "ไฟล์"}</span>
+              <span style={{ display: "block", fontSize: 10.5, color: "var(--text-3)", marginTop: 1 }}>
+                {(f.byName ? "โดย " + f.byName : "")}{f.at ? " · " + thDate(String(f.at).slice(0, 10), true) : ""}
+              </span>
+            </span>
+            <button onClick={() => open(f)}
+              style={{ flexShrink: 0, padding: "6px 13px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                color: "var(--text-2)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>เปิดดู</button>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -363,7 +491,7 @@ function PermitDocRow({ slot, doc, busy, onPick, onRemove }) {
 /* ================================================================
    PermitReview — ฝ่ายขออนุญาตเปิดดูชุดข้อมูลที่ช่างส่งมา
    ================================================================ */
-function PermitReview({ job, currentUser, onClose, onPatch, onOpenJob }) {
+function PermitReview({ job, currentUser, stock, onClose, onPatch, onOpenJob }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const bdClose = window.useBackdropClose(onClose);
   const media = usePermitPhotos(job.id);
@@ -391,7 +519,10 @@ function PermitReview({ job, currentUser, onClose, onPatch, onOpenJob }) {
   );
 
   const shots = PERMIT_PHOTO_SLOTS.filter((s) => media.photos[s.key] && media.photos[s.key].dataUrl);
-  const docMissing = PERMIT_DOC_SLOTS.filter((d) => d.req && !(files.docs[d.key] && files.docs[d.key].dataUrl));
+  const cat = usePermitCatalog(stock, p);
+  /* แคตตาล็อกนับว่าครบเมื่อดึงจากคลังได้ ไม่ต้องรออัปไฟล์ */
+  const docHas = (d) => (d.key === "catalog" ? cat.sheets.length > 0 : !!(files.docs[d.key] && files.docs[d.key].dataUrl));
+  const docMissing = PERMIT_DOC_SLOTS.filter((d) => d.req && !docHas(d));
 
   const pickDoc = async (key, file) => {
     if (!file) return;
@@ -486,6 +617,10 @@ function PermitReview({ job, currentUser, onClose, onPatch, onOpenJob }) {
             </div>
           </SurveyBlock>
 
+          <SurveyBlock title="📐 ไฟล์แบบที่แนบกับงาน" sub="แบบและ BOQ ที่ฝ่ายออกแบบอัปไว้กับงานใบนี้ — เปิดดู/บันทึกไปแนบยื่นได้เลย">
+            <PermitJobFiles jobId={job.id} />
+          </SurveyBlock>
+
           <SurveyBlock title={"🗂 เอกสารจากออฟฟิศ " + (PERMIT_DOC_SLOTS.length - docMissing.length) + "/" + PERMIT_DOC_SLOTS.length}
             sub="ช่างเก็บให้ไม่ได้ ต้องขอจากลูกค้า/วิศวกร — แนบไว้ที่นี่ทีเดียว จะได้ไม่ต้องไล่หาในแชท">
             {docMissing.length > 0 && (
@@ -496,9 +631,10 @@ function PermitReview({ job, currentUser, onClose, onPatch, onOpenJob }) {
             )}
             {docErr && <div style={{ fontSize: 12, color: "#EF4444", fontWeight: 600 }}>⚠ {docErr}</div>}
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {PERMIT_DOC_SLOTS.map((d) => (
-                <PermitDocRow key={d.key} slot={d} doc={files.docs[d.key]} busy={busyDoc === d.key}
-                  onPick={(file) => pickDoc(d.key, file)} onRemove={() => files.removeDoc(d.key)} />
+              {PERMIT_DOC_SLOTS.map((d) => (d.key === "catalog"
+                ? <PermitCatalogRow key={d.key} slot={d} sheets={cat.sheets} missing={cat.missing} models={cat.models} />
+                : <PermitDocRow key={d.key} slot={d} doc={files.docs[d.key]} busy={busyDoc === d.key}
+                    onPick={(file) => pickDoc(d.key, file)} onRemove={() => files.removeDoc(d.key)} />
               ))}
             </div>
             <div style={{ fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>
@@ -546,7 +682,7 @@ function PermitReview({ job, currentUser, onClose, onPatch, onOpenJob }) {
             </div>
           ) : (
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button onClick={() => setRepHtml(permitReportHTML(job, media.photos, files.docs))}
+              <button onClick={() => setRepHtml(permitReportHTML(job, media.photos, files.docs, cat.sheets))}
                 style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 15px", borderRadius: 10,
                   border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-1)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>
                 <Icon name="file" size={15} /> ออกเป็น PDF
@@ -582,7 +718,7 @@ function PermitReview({ job, currentUser, onClose, onPatch, onOpenJob }) {
    permitReportHTML — เอกสาร A4 สำหรับแนบยื่นการไฟฟ้า
    หน้าแรกเป็นตารางข้อมูล หน้าถัดไปเป็นแผ่นรูปถ่ายพร้อมคำบรรยาย
    ================================================================ */
-function permitReportHTML(job, photos, docs) {
+function permitReportHTML(job, photos, docs, sheets) {
   const p = (job && job.permit) || {};
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const v = (x) => (x == null || x === "" ? "—" : esc(x));
@@ -593,6 +729,10 @@ function permitReportHTML(job, photos, docs) {
   /* เอกสารที่แนบมาเป็นรูป พิมพ์ต่อท้ายได้เลยหน้าละใบ · ไฟล์ PDF พิมพ์รวมไม่ได้ ต้องแนบแยก */
   const docImgs = PERMIT_DOC_SLOTS.filter((d) => dc[d.key] && dc[d.key].dataUrl && dc[d.key].kind === "image");
   const docPdfs = PERMIT_DOC_SLOTS.filter((d) => dc[d.key] && dc[d.key].dataUrl && dc[d.key].kind !== "image");
+  /* DATA SHEET ของแผง/อินเวอร์เตอร์ มาจากคลัง ไม่ได้อยู่ในชุดเอกสารของงาน */
+  const sh = sheets || [];
+  const shImgs = sh.filter((x) => x.kind === "image");
+  const shPdfs = sh.filter((x) => x.kind !== "image");
 
   const tr = (a, b) => '<tr><th>' + esc(a) + '</th><td>' + b + '</td></tr>';
   const invRows = (p.invs || []).map((iv, i) =>
@@ -608,6 +748,17 @@ function permitReportHTML(job, photos, docs) {
       "<figcaption><b>" + (pi * 4 + k + 1) + ". " + esc(s.label) + "</b><span>" + esc(s.group) + "</span></figcaption></figure>"
     )).join("") + "</div></section>"
   )).join("");
+
+  const sheetPages = shImgs.map((x) => (
+    '<section class="pg"><h2>แคตตาล็อก / DATA SHEET — ' + esc(x.label) + "</h2>" +
+    '<img class="doc" src="' + x.dataUrl + '" alt="" />' +
+    '<div class="foot"><span>' + esc(x.name || "") + "</span><span>จากคลังสินค้า</span></div></section>"
+  )).join("") + (shPdfs.length
+    ? '<section class="pg"><h2>แคตตาล็อก / DATA SHEET (ไฟล์ PDF)</h2><div class="todo">' +
+      "อยู่ในคลังสินค้า พิมพ์แยกจากหน้ารายการของรุ่นนั้น:<br />" +
+      shPdfs.map((x) => "· " + esc(x.label) + (x.name ? " (" + esc(x.name) + ")" : "")).join("<br />") +
+      "</div></section>"
+    : "");
 
   const docPages = docImgs.map((d) => (
     '<section class="pg"><h2>เอกสารแนบ — ' + esc(d.label) + "</h2>" +
@@ -705,13 +856,13 @@ function permitReportHTML(job, photos, docs) {
 
     '<div class="todo"><b>เอกสารประกอบคำขอ (ฝ่ายขออนุญาตรวบรวม):</b><br />' +
     PERMIT_DOC_SLOTS.map((d) => {
-      const on = !!(dc[d.key] && dc[d.key].dataUrl);
+      const on = d.key === "catalog" ? sh.length > 0 : !!(dc[d.key] && dc[d.key].dataUrl);
       return '<span class="' + (on ? "ok" : "no") + '">' + (on ? "✔" : "✗") + " " + esc(d.label) + "</span>";
     }).join(" ") + "</div>" +
 
     '<div class="foot"><span>PHITHAN GREEN · ' + esc(job.code) + "</span><span>พิมพ์เมื่อ " +
     esc(new Date().toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })) + "</span></div>" +
-    "</section>" + photoPages + docPages + "</body></html>";
+    "</section>" + photoPages + docPages + sheetPages + "</body></html>";
 }
 
 Object.assign(window, { PermitQueueView, PermitReview, permitReportHTML, PermitCard, PERMIT_COLS });

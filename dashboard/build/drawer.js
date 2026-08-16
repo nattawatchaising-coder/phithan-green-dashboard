@@ -1229,22 +1229,31 @@ function DetailDrawer({
   })(), onPermit && (() => {
     const pm = job.permit || null;
     const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
-    return React.createElement("button", {
+    const FLOW = window.PERMIT_FLOW || [];
+    const idx = window.permitFlowIdx ? window.permitFlowIdx(job) : -1;
+    const rejected = !!(pm && pm.status === "rejected");
+    return React.createElement("div", {
+      style: {
+        marginBottom: 10,
+        border: "1px solid " + (rejected ? "var(--tint-red-bd)" : "var(--border-strong)"),
+        borderLeft: "3px solid " + (pst ? pst.color : "var(--border-strong)"),
+        borderRadius: 12,
+        overflow: "hidden",
+        background: "var(--surface)"
+      }
+    }, React.createElement("button", {
       onClick: onPermit,
       style: {
         width: "100%",
-        marginBottom: 10,
         display: "flex",
         alignItems: "center",
         gap: 10,
         padding: "12px 14px",
-        background: "var(--surface)",
-        border: "1px solid var(--border-strong)",
-        borderRadius: 12,
+        background: "none",
+        border: "none",
         cursor: "pointer",
         fontFamily: "inherit",
-        textAlign: "left",
-        borderLeft: "3px solid " + (pst ? pst.color : "var(--border-strong)")
+        textAlign: "left"
       }
     }, React.createElement("span", {
       style: {
@@ -1272,17 +1281,105 @@ function DetailDrawer({
         fontWeight: 700,
         color: "var(--text-1)"
       }
-    }, "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E01\u0E32\u0E23\u0E44\u0E1F\u0E1F\u0E49\u0E32"), React.createElement("span", {
+    }, "\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E01\u0E32\u0E23\u0E44\u0E1F\u0E1F\u0E49\u0E32"), React.createElement("span", {
       style: {
         display: "block",
         fontSize: 11.5,
-        color: "var(--text-3)"
+        color: pst ? pst.color : "var(--text-3)",
+        fontWeight: pst ? 700 : 400
       }
     }, pst ? pst.th + (pm && pm.auth ? " · " + pm.auth : "") : "ยังไม่ได้เริ่มเก็บ · แตะเพื่อเริ่ม")), React.createElement(Icon, {
       name: "arrowRight",
       size: 16,
       color: "var(--text-3)"
-    }));
+    })), idx >= 0 && React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 6,
+        padding: "0 14px 12px"
+      }
+    }, FLOW.map((st, i) => {
+      const done = i < idx,
+        now = i === idx;
+      const c = rejected && now ? "#EF4444" : done || now ? "var(--primary)" : "var(--border-strong)";
+      return React.createElement("span", {
+        key: st.key,
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, React.createElement("span", {
+        style: {
+          display: "block",
+          height: 4,
+          borderRadius: 99,
+          background: c,
+          opacity: done ? .55 : 1
+        }
+      }), React.createElement("span", {
+        style: {
+          display: "block",
+          marginTop: 5,
+          fontSize: 9.5,
+          lineHeight: 1.3,
+          fontWeight: now ? 800 : 600,
+          color: now ? rejected ? "#EF4444" : "var(--primary-dark)" : "var(--text-3)"
+        }
+      }, st.th));
+    })), rejected && React.createElement("div", {
+      style: {
+        margin: "0 12px 12px",
+        padding: "10px 12px",
+        borderRadius: 10,
+        background: "var(--tint-red-bg)",
+        border: "1px solid var(--tint-red-bd)"
+      }
+    }, React.createElement("div", {
+      style: {
+        fontSize: 12,
+        fontWeight: 800,
+        color: "var(--tint-red-tx)"
+      }
+    }, "\u21A9 \u0E1D\u0E48\u0E32\u0E22\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E15\u0E35\u0E01\u0E25\u0E31\u0E1A \u0E15\u0E49\u0E2D\u0E07\u0E41\u0E01\u0E49\u0E44\u0E02\u0E41\u0E25\u0E49\u0E27\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E21\u0E48"), React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: "var(--tint-red-tx)",
+        marginTop: 4,
+        lineHeight: 1.55
+      }
+    }, pm.rejectReason || "ไม่ได้ระบุเหตุผล — สอบถามฝ่ายขออนุญาต"), (pm.byAdmin || pm.statusAt) && React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        color: "var(--tint-red-tx)",
+        opacity: .8,
+        marginTop: 4
+      }
+    }, pm.byAdmin ? "โดย " + pm.byAdmin : "", pm.statusAt ? " · " + thDate(String(pm.statusAt).slice(0, 10), true) : ""), React.createElement("button", {
+      onClick: onPermit,
+      style: {
+        marginTop: 9,
+        padding: "8px 14px",
+        borderRadius: 9,
+        border: "none",
+        background: "#EF4444",
+        color: "#fff",
+        fontFamily: "inherit",
+        fontSize: 12.5,
+        fontWeight: 700,
+        cursor: "pointer"
+      }
+    }, "\u0E41\u0E01\u0E49\u0E44\u0E02\u0E41\u0E25\u0E49\u0E27\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E21\u0E48")), pm && pm.status === "approved" && React.createElement("div", {
+      style: {
+        margin: "0 12px 12px",
+        padding: "9px 12px",
+        borderRadius: 10,
+        background: "var(--primary-soft)",
+        border: "1px solid var(--primary)",
+        fontSize: 11.5,
+        color: "var(--primary-dark)",
+        fontWeight: 700
+      }
+    }, "\u2714 \u0E01\u0E32\u0E23\u0E44\u0E1F\u0E1F\u0E49\u0E32\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27", pm.approvedDate ? " · " + thDate(pm.approvedDate, true) : "", pm.reqNo ? " · คำร้อง " + pm.reqNo : ""));
   })(), false && window.SitePlanEditor && React.createElement("button", {
     onClick: () => setPlanOpen(true),
     style: {
