@@ -464,8 +464,17 @@ function App() {
             trashCount={can(role, "delJob") ? store.trash.length : 0} onOpenTrash={can(role, "delJob") ? () => setTrashOpen(true) : null} />}
           {view === "permit" && <PermitQueueView jobs={jobs} currentUser={auth.current} onOpenJob={(id) => { setView(listView()); setSelected(id); }}
             onPatchPermit={(id, fields) => {
-              const cur = (store.raw.find((r) => r.id === id) || {}).permit || {};
+              const j = store.raw.find((r) => r.id === id) || {};
+              const cur = j.permit || {};
               store.patch(id, { permit: Object.assign({}, cur, fields) });
+              /* ตีกลับแล้วต้องเด้งกลับหาช่างคนที่ส่งมา ไม่งั้นงานค้างจนกว่าเขาจะบังเอิญเปิดดูเอง */
+              if (fields.status === "rejected" && cur.submittedTechId) {
+                notif.addNotif({
+                  toTechId: cur.submittedTechId, type: "permit", jobId: id, jobName: j.name,
+                  title: "ข้อมูลขออนุญาตถูกตีกลับ ต้องแก้ไข",
+                  body: (j.code || "") + " · " + (fields.rejectReason || "ต้องแก้ไขข้อมูล"),
+                });
+              }
             }} />}
           {view === "report" && <ReportView jobs={filtered} onOpen={openJob} />}
           {view === "survey" && <SurveyView jobs={filtered} role={role} onOpen={openSurvey}

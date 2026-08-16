@@ -1060,6 +1060,102 @@ function permitStatusOf(job) {
     key: p.status
   }, PERMIT_STATUS[p.status] || PERMIT_STATUS.draft);
 }
+const PERMIT_DOC_SLOTS = [{
+  key: "idCard",
+  label: "สำเนาบัตร ปชช. + ทะเบียนบ้าน",
+  hint: "ของเจ้าของมิเตอร์ · รับรองสำเนาถูกต้อง",
+  req: true
+}, {
+  key: "bill",
+  label: "สำเนาใบแจ้งค่าไฟล่าสุด",
+  hint: "ใช้ยืนยันเลข CA และชื่อผู้ใช้ไฟ",
+  req: true
+}, {
+  key: "poa",
+  label: "หนังสือมอบอำนาจ + บัตรผู้รับมอบ",
+  hint: "กรณีบริษัทยื่นแทนลูกค้า",
+  req: true
+}, {
+  key: "sld",
+  label: "Single Line Diagram ลงนาม",
+  hint: "วิศวกรไฟฟ้าเซ็น + แนบสำเนาใบ กว.",
+  req: true
+}, {
+  key: "roofCert",
+  label: "หนังสือรับรองโครงสร้างหลังคา",
+  hint: "วิศวกรโยธาเซ็นรับรองความมั่นคงแข็งแรง",
+  req: true
+}, {
+  key: "catalog",
+  label: "แคตตาล็อกแผง / อินเวอร์เตอร์",
+  hint: "อินเวอร์เตอร์ต้องอยู่ในรายชื่อที่การไฟฟ้ารับรอง",
+  req: true
+}, {
+  key: "local",
+  label: "ใบแจ้งท้องถิ่น / อ.1",
+  hint: "ต้องมี อ.1 เมื่อพื้นที่แผงเกิน 160 ตร.ม."
+}, {
+  key: "erc",
+  label: "หนังสือรับแจ้งยกเว้น กกพ.",
+  hint: "ใบรับแจ้งประกอบกิจการพลังงานที่ได้รับยกเว้น"
+}, {
+  key: "other",
+  label: "เอกสารอื่น ๆ",
+  hint: "อะไรที่การไฟฟ้าสาขาขอเพิ่มเป็นกรณี"
+}];
+function usePermitDocs(jobId) {
+  const [docs, setDocs] = React.useState({});
+  React.useEffect(() => {
+    if (!jobId || !window.FBDB) {
+      setDocs({});
+      return;
+    }
+    const ref = window.FBDB.ref("permitDocs/" + jobId);
+    const h = ref.on("value", s => {
+      const v = s.val();
+      setDocs(v && typeof v === "object" ? v : {});
+    });
+    return () => ref.off("value", h);
+  }, [jobId]);
+  const setDoc = React.useCallback((key, rec) => {
+    if (!jobId || !window.FBDB) return;
+    window.FBDB.ref("permitDocs/" + jobId + "/" + key).update(Object.assign({
+      key,
+      at: new Date().toISOString()
+    }, rec));
+  }, [jobId]);
+  const removeDoc = React.useCallback(key => {
+    if (jobId && window.FBDB) window.FBDB.ref("permitDocs/" + jobId + "/" + key).remove();
+  }, [jobId]);
+  return {
+    docs,
+    setDoc,
+    removeDoc
+  };
+}
+const PERMIT_DOC_MAX = 1.6 * 1024 * 1024;
+async function readPermitDoc(file) {
+  if (/^image\//.test(file.type)) {
+    const dataUrl = await resizeImageFile(file, 1700, 0.78);
+    return {
+      dataUrl,
+      name: file.name,
+      kind: "image"
+    };
+  }
+  if (file.size > PERMIT_DOC_MAX) throw new Error("ไฟล์ใหญ่เกิน 1.6 MB — ลองบีบอัดหรือสแกนใหม่ที่ความละเอียดต่ำลง");
+  const dataUrl = await new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = () => rej(new Error("อ่านไฟล์ไม่สำเร็จ"));
+    r.readAsDataURL(file);
+  });
+  return {
+    dataUrl,
+    name: file.name,
+    kind: /pdf/i.test(file.type) ? "pdf" : "file"
+  };
+}
 function usePermitPhotos(jobId) {
   const [photos, setPhotos] = React.useState({});
   React.useEffect(() => {
@@ -1526,7 +1622,8 @@ function PermitWizard({
     const rec = save({
       status: "sent",
       submittedAt: new Date().toISOString(),
-      submittedBy: currentUser && currentUser.name || ""
+      submittedBy: currentUser && currentUser.name || "",
+      submittedTechId: currentUser && currentUser.techId || null
     });
     onSubmit && onSubmit(rec);
     onClose();
@@ -2307,6 +2404,9 @@ Object.assign(window, {
   PermitSampleArt,
   PermitSampleModal,
   PERMIT_SAMPLE_TIPS,
+  usePermitDocs,
+  readPermitDoc,
+  PERMIT_DOC_SLOTS,
   PERMIT_PHOTO_SLOTS,
   PERMIT_SLOT_BY,
   PERMIT_STEPS,

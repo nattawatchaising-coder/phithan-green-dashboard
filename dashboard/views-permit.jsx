@@ -114,6 +114,68 @@ function PermitQueueView({ jobs, onOpenJob, onPatchPermit, currentUser }) {
   );
 }
 
+/* ช่องบันทึกการยื่น — พิมพ์แล้วเซฟตอนออกจากช่อง จะได้ไม่เขียน Firebase ทุกตัวอักษร
+   อยู่นอกคอมโพเนนต์แม่ เพื่อไม่ให้ถูกสร้างใหม่ทุกครั้งที่แม่รีเรนเดอร์แล้วเคอร์เซอร์หลุด */
+function PermitFilingField({ label, value, onSave, type, placeholder }) {
+  const [v, setV] = React.useState(value || "");
+  React.useEffect(() => { setV(value || ""); }, [value]);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
+      <label style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".04em", color: "var(--text-3)" }}>{label}</label>
+      <input type={type || "text"} value={v} placeholder={placeholder || ""}
+        onChange={(e) => setV(e.target.value)}
+        onBlur={() => { if ((value || "") !== v) onSave(v); }}
+        style={Object.assign({}, P_INPUT, { fontSize: 13 })} />
+    </div>
+  );
+}
+
+/* แถวเอกสาร 1 รายการ — แนบไฟล์ / เปิดดู / ลบ */
+function PermitDocRow({ slot, doc, busy, onPick, onRemove }) {
+  const inputRef = React.useRef(null);
+  const has = !!(doc && doc.dataUrl);
+  return (
+    <div style={{ display: "flex", gap: 10, alignItems: "center", padding: "9px 11px", borderRadius: 11,
+      border: "1px solid " + (has ? "var(--border)" : "var(--border-strong)"),
+      borderLeft: "3px solid " + (has ? "var(--primary)" : (slot.req ? "var(--tint-red-bd)" : "var(--surface3)")),
+      background: has ? "var(--surface)" : "var(--surface2)" }}>
+      <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "grid", placeItems: "center",
+        background: has ? "var(--primary-soft)" : "var(--surface3)" }}>
+        <Icon name={has ? "check" : "file"} size={15} color={has ? "var(--primary-dark)" : "var(--text-3)"} />
+      </span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>
+          {slot.label}{slot.req && <span style={{ color: "#EF4444" }}> *</span>}
+        </span>
+        <span style={{ display: "block", fontSize: 10.5, color: "var(--text-3)", marginTop: 1, lineHeight: 1.4,
+          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {has ? (doc.name || "แนบแล้ว") + (doc.byName ? " · " + doc.byName : "") : slot.hint}
+        </span>
+      </span>
+      <input ref={inputRef} type="file" accept="image/*,application/pdf" style={{ display: "none" }}
+        onChange={(e) => { const fl = e.target.files && e.target.files[0]; if (fl) onPick(fl); e.target.value = ""; }} />
+      <span style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+        {has && (
+          <a href={doc.dataUrl} target="_blank" rel="noreferrer" download={doc.name || undefined}
+            style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)",
+              color: "var(--text-2)", fontSize: 11.5, fontWeight: 700, textDecoration: "none" }}>เปิด</a>
+        )}
+        <button type="button" onClick={() => inputRef.current && inputRef.current.click()} disabled={busy}
+          style={{ padding: "6px 11px", borderRadius: 8, border: "none", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700,
+            background: has ? "var(--surface3)" : "var(--primary)", color: has ? "var(--text-2)" : "#fff", cursor: busy ? "wait" : "pointer" }}>
+          {busy ? "…" : (has ? "เปลี่ยน" : "แนบไฟล์")}
+        </button>
+        {has && (
+          <button type="button" onClick={onRemove} title="ลบไฟล์"
+            style={{ width: 28, height: 28, borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "#EF4444", cursor: "pointer", display: "grid", placeItems: "center" }}>
+            <Icon name="trash" size={13} />
+          </button>
+        )}
+      </span>
+    </div>
+  );
+}
+
 /* ================================================================
    PermitReview — ฝ่ายขออนุญาตเปิดดูชุดข้อมูลที่ช่างส่งมา
    ================================================================ */
@@ -121,9 +183,12 @@ function PermitReview({ job, currentUser, onClose, onPatch, onOpenJob }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const bdClose = window.useBackdropClose(onClose);
   const media = usePermitPhotos(job.id);
+  const files = usePermitDocs(job.id);
   const [repHtml, setRepHtml] = React.useState(null);
   const [rejecting, setRejecting] = React.useState(false);
   const [reason, setReason] = React.useState("");
+  const [busyDoc, setBusyDoc] = React.useState(null);
+  const [docErr, setDocErr] = React.useState("");
   const p = job.permit || {};
   const st = PERMIT_STATUS[p.status] || PERMIT_STATUS.draft;
   const prog = permitProgress(p, media.photos);
@@ -140,6 +205,17 @@ function PermitReview({ job, currentUser, onClose, onPatch, onOpenJob }) {
   );
 
   const shots = PERMIT_PHOTO_SLOTS.filter((s) => media.photos[s.key] && media.photos[s.key].dataUrl);
+  const docMissing = PERMIT_DOC_SLOTS.filter((d) => d.req && !(files.docs[d.key] && files.docs[d.key].dataUrl));
+
+  const pickDoc = async (key, file) => {
+    if (!file) return;
+    setBusyDoc(key); setDocErr("");
+    try {
+      const rec = await readPermitDoc(file);
+      files.setDoc(key, Object.assign(rec, { byName: (currentUser && currentUser.name) || "" }));
+    } catch (err) { setDocErr(err.message); }
+    setBusyDoc(null);
+  };
 
   return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)",
@@ -224,14 +300,43 @@ function PermitReview({ job, currentUser, onClose, onPatch, onOpenJob }) {
             </div>
           </SurveyBlock>
 
-          <SurveyBlock title="📋 เอกสารที่ออฟฟิศต้องเตรียมเพิ่ม" sub="ช่างเก็บให้ไม่ได้ ต้องขอจากลูกค้า/วิศวกร">
-            <div style={{ fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.85 }}>
-              สำเนาบัตรประชาชน + ทะเบียนบ้าน เจ้าของมิเตอร์ (รับรองสำเนา) · สำเนาใบแจ้งค่าไฟล่าสุด ·
-              หนังสือมอบอำนาจ + สำเนาบัตรผู้รับมอบอำนาจ · Single Line Diagram ลงนามวิศวกรไฟฟ้า + สำเนาใบ กว. ·
-              หนังสือรับรองความมั่นคงแข็งแรงโครงสร้างหลังคา โดยวิศวกรโยธา · แคตตาล็อกแผง/อินเวอร์เตอร์
-              (อินเวอร์เตอร์ต้องอยู่ในรายชื่อที่การไฟฟ้ารับรอง) · ใบแจ้งเทศบาล/อบต. หรือ อ.1 (แผงเกิน 160 ตร.ม.) ·
-              หนังสือรับแจ้งประกอบกิจการพลังงานที่ได้รับยกเว้น จาก กกพ.
+          <SurveyBlock title={"🗂 เอกสารจากออฟฟิศ " + (PERMIT_DOC_SLOTS.length - docMissing.length) + "/" + PERMIT_DOC_SLOTS.length}
+            sub="ช่างเก็บให้ไม่ได้ ต้องขอจากลูกค้า/วิศวกร — แนบไว้ที่นี่ทีเดียว จะได้ไม่ต้องไล่หาในแชท">
+            {docMissing.length > 0 && (
+              <div style={{ padding: "9px 12px", borderRadius: 10, background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)",
+                fontSize: 12, fontWeight: 600, color: "var(--tint-red-tx)", lineHeight: 1.5 }}>
+                ยังขาดเอกสารบังคับ {docMissing.length} รายการ: {docMissing.map((d) => d.label).join(", ")}
+              </div>
+            )}
+            {docErr && <div style={{ fontSize: 12, color: "#EF4444", fontWeight: 600 }}>⚠ {docErr}</div>}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {PERMIT_DOC_SLOTS.map((d) => (
+                <PermitDocRow key={d.key} slot={d} doc={files.docs[d.key]} busy={busyDoc === d.key}
+                  onPick={(file) => pickDoc(d.key, file)} onRemove={() => files.removeDoc(d.key)} />
+              ))}
             </div>
+            <div style={{ fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>
+              รับไฟล์รูปหรือ PDF · รูปจะถูกย่อให้อัตโนมัติ · PDF ไม่เกิน 1.6 MB ต่อไฟล์
+            </div>
+          </SurveyBlock>
+
+          <SurveyBlock title="📮 บันทึกการยื่นการไฟฟ้า" sub="เลขที่คำขอกับวันที่ ใช้ตอนลูกค้าโทรถามความคืบหน้า">
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: 12 }}>
+              <PermitFilingField label="เลขที่คำขอของการไฟฟ้า" value={p.reqNo} placeholder="เลขที่ที่ได้รับตอนยื่น"
+                onSave={(v) => onPatch({ reqNo: v })} />
+              <PermitFilingField label="ยื่นวันที่" type="date" value={p.filedDate} onSave={(v) => onPatch({ filedDate: v })} />
+              <PermitFilingField label="วันที่การไฟฟ้าอนุมัติ" type="date" value={p.approvedDate} onSave={(v) => onPatch({ approvedDate: v })} />
+              <PermitFilingField label="นัดตรวจ / นัดเปลี่ยนมิเตอร์" type="date" value={p.inspectDate} onSave={(v) => onPatch({ inspectDate: v })} />
+              <div style={{ gridColumn: "1 / -1" }}>
+                <PermitFilingField label="บันทึกภายในฝ่ายขออนุญาต" value={p.adminNote}
+                  placeholder="เช่น การไฟฟ้าขอ SLD ฉบับแก้ไข ส่งเพิ่มแล้ว 12 ส.ค." onSave={(v) => onPatch({ adminNote: v })} />
+              </div>
+            </div>
+            {(p.statusAt || p.byAdmin) && (
+              <div style={{ fontSize: 11, color: "var(--text-3)" }}>
+                อัปเดตสถานะล่าสุด {p.statusAt ? thDate(String(p.statusAt).slice(0, 10), true) : "—"}{p.byAdmin ? " โดย " + p.byAdmin : ""}
+              </div>
+            )}
           </SurveyBlock>
 
           {p.rejectReason && (
@@ -255,7 +360,7 @@ function PermitReview({ job, currentUser, onClose, onPatch, onOpenJob }) {
             </div>
           ) : (
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button onClick={() => setRepHtml(permitReportHTML(job, media.photos))}
+              <button onClick={() => setRepHtml(permitReportHTML(job, media.photos, files.docs))}
                 style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 15px", borderRadius: 10,
                   border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-1)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>
                 <Icon name="file" size={15} /> ออกเป็น PDF
@@ -268,11 +373,11 @@ function PermitReview({ job, currentUser, onClose, onPatch, onOpenJob }) {
                   style={{ padding: "10px 15px", borderRadius: 10, border: "1px solid var(--tint-red-bd)", background: "var(--tint-red-bg)", color: "var(--tint-red-tx)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>ตีกลับให้ช่างแก้</button>
               )}
               {(p.status === "sent" || p.status === "rejected") && (
-                <button onClick={() => stamp("filing", { rejectReason: null })}
+                <button onClick={() => stamp("filing", Object.assign({ rejectReason: null }, p.filedDate ? {} : { filedDate: new Date().toISOString().slice(0, 10) }))}
                   style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "#3B82F6", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>รับงาน · เริ่มยื่น</button>
               )}
               {p.status === "filing" && (
-                <button onClick={() => stamp("approved")}
+                <button onClick={() => stamp("approved", p.approvedDate ? {} : { approvedDate: new Date().toISOString().slice(0, 10) })}
                   style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>การไฟฟ้าอนุมัติแล้ว</button>
               )}
             </div>
@@ -291,13 +396,17 @@ function PermitReview({ job, currentUser, onClose, onPatch, onOpenJob }) {
    permitReportHTML — เอกสาร A4 สำหรับแนบยื่นการไฟฟ้า
    หน้าแรกเป็นตารางข้อมูล หน้าถัดไปเป็นแผ่นรูปถ่ายพร้อมคำบรรยาย
    ================================================================ */
-function permitReportHTML(job, photos) {
+function permitReportHTML(job, photos, docs) {
   const p = (job && job.permit) || {};
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const v = (x) => (x == null || x === "" ? "—" : esc(x));
   const typeTh = (PERMIT_TYPES.find((x) => x.key === p.permitType) || {}).th || "—";
   const yn = (x) => (x === "yes" ? "มี" : x === "no" ? "ไม่มี" : "—");
   const shots = PERMIT_PHOTO_SLOTS.filter((s) => photos[s.key] && photos[s.key].dataUrl);
+  const dc = docs || {};
+  /* เอกสารที่แนบมาเป็นรูป พิมพ์ต่อท้ายได้เลยหน้าละใบ · ไฟล์ PDF พิมพ์รวมไม่ได้ ต้องแนบแยก */
+  const docImgs = PERMIT_DOC_SLOTS.filter((d) => dc[d.key] && dc[d.key].dataUrl && dc[d.key].kind === "image");
+  const docPdfs = PERMIT_DOC_SLOTS.filter((d) => dc[d.key] && dc[d.key].dataUrl && dc[d.key].kind !== "image");
 
   const tr = (a, b) => '<tr><th>' + esc(a) + '</th><td>' + b + '</td></tr>';
   const invRows = (p.invs || []).map((iv, i) =>
@@ -313,6 +422,18 @@ function permitReportHTML(job, photos) {
       "<figcaption><b>" + (pi * 4 + k + 1) + ". " + esc(s.label) + "</b><span>" + esc(s.group) + "</span></figcaption></figure>"
     )).join("") + "</div></section>"
   )).join("");
+
+  const docPages = docImgs.map((d) => (
+    '<section class="pg"><h2>เอกสารแนบ — ' + esc(d.label) + "</h2>" +
+    '<img class="doc" src="' + dc[d.key].dataUrl + '" alt="" />' +
+    (dc[d.key].name ? '<div class="foot"><span>' + esc(dc[d.key].name) + "</span></div>" : "") +
+    "</section>"
+  )).join("") + (docPdfs.length
+    ? '<section class="pg"><h2>เอกสารแนบที่เป็นไฟล์ PDF</h2><div class="todo">' +
+      "พิมพ์รวมในชุดนี้ไม่ได้ ต้องพิมพ์แยกจากระบบ:<br />" +
+      docPdfs.map((d) => "· " + esc(d.label) + (dc[d.key].name ? " (" + esc(dc[d.key].name) + ")" : "")).join("<br />") +
+      "</div></section>"
+    : "");
 
   return '<!DOCTYPE html><html lang="th"><head><meta charset="utf-8" />' +
     "<title>ชุดข้อมูลขออนุญาต " + esc(job.code) + "</title>" +
@@ -339,6 +460,9 @@ function permitReportHTML(job, photos) {
     "figcaption b{display:block;color:#15211A}figcaption span{color:#93A399;font-size:9px}" +
     ".note{margin-top:10px;padding:8px 10px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:5px;font-size:10.5px;color:#B45309}" +
     ".todo{margin-top:10px;padding:9px 11px;background:#F5F9F6;border:1px solid #E3EAE5;border-radius:5px;font-size:10.5px;color:#55645B;line-height:1.75}" +
+    "img.doc{display:block;width:100%;max-height:245mm;object-fit:contain;border:1px solid #E3EAE5;border-radius:4px}" +
+    ".todo .ok{color:#14663A;font-weight:600;margin-right:9px;white-space:nowrap}" +
+    ".todo .no{color:#B45309;margin-right:9px;white-space:nowrap}" +
     ".foot{margin-top:14px;padding-top:7px;border-top:1px solid #E3EAE5;font-size:9.5px;color:#93A399;display:flex;justify-content:space-between}" +
     "</style></head><body>" +
 
@@ -383,18 +507,25 @@ function permitReportHTML(job, photos) {
     tr("ช่างผู้เก็บข้อมูล", v(p.submittedBy || p.byName)) +
     "</table>" +
 
-    (p.note ? '<div class="note"><b>หมายเหตุจากหน้างาน:</b> ' + esc(p.note) + "</div>" : "") +
+    "<h2>บันทึกการยื่น</h2><table>" +
+    tr("เลขที่คำขอของการไฟฟ้า", v(p.reqNo)) +
+    tr("ยื่นเมื่อ", p.filedDate ? esc(window.thDate ? window.thDate(p.filedDate, true) : p.filedDate) : "—") +
+    tr("นัดตรวจ / เปลี่ยนมิเตอร์", p.inspectDate ? esc(window.thDate ? window.thDate(p.inspectDate, true) : p.inspectDate) : "—") +
+    tr("การไฟฟ้าอนุมัติเมื่อ", p.approvedDate ? esc(window.thDate ? window.thDate(p.approvedDate, true) : p.approvedDate) : "—") +
+    "</table>" +
 
-    '<div class="todo"><b>เอกสารที่ต้องแนบเพิ่มจากสำนักงาน:</b><br />' +
-    "สำเนาบัตรประชาชนและทะเบียนบ้านของเจ้าของมิเตอร์ (รับรองสำเนา) · สำเนาใบแจ้งค่าไฟฟ้าล่าสุด · " +
-    "หนังสือมอบอำนาจพร้อมสำเนาบัตรผู้รับมอบอำนาจ · Single Line Diagram ลงนามรับรองโดยวิศวกรไฟฟ้า พร้อมสำเนาใบ กว. · " +
-    "หนังสือรับรองความมั่นคงแข็งแรงของโครงสร้างหลังคา โดยวิศวกรโยธา · แคตตาล็อกและใบรับรองมาตรฐานแผง/อินเวอร์เตอร์ · " +
-    "ใบแจ้งต่อองค์กรปกครองส่วนท้องถิ่น หรือใบอนุญาต อ.1 · หนังสือรับแจ้งประกอบกิจการพลังงานที่ได้รับการยกเว้นจาก กกพ." +
-    "</div>" +
+    (p.note ? '<div class="note"><b>หมายเหตุจากหน้างาน:</b> ' + esc(p.note) + "</div>" : "") +
+    (p.adminNote ? '<div class="note"><b>บันทึกฝ่ายขออนุญาต:</b> ' + esc(p.adminNote) + "</div>" : "") +
+
+    '<div class="todo"><b>เอกสารประกอบคำขอ (ฝ่ายขออนุญาตรวบรวม):</b><br />' +
+    PERMIT_DOC_SLOTS.map((d) => {
+      const on = !!(dc[d.key] && dc[d.key].dataUrl);
+      return '<span class="' + (on ? "ok" : "no") + '">' + (on ? "✔" : "✗") + " " + esc(d.label) + "</span>";
+    }).join(" ") + "</div>" +
 
     '<div class="foot"><span>PHITHAN GREEN · ' + esc(job.code) + "</span><span>พิมพ์เมื่อ " +
     esc(new Date().toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })) + "</span></div>" +
-    "</section>" + photoPages + "</body></html>";
+    "</section>" + photoPages + docPages + "</body></html>";
 }
 
 Object.assign(window, { PermitQueueView, PermitReview, permitReportHTML });

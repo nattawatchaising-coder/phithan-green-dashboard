@@ -709,10 +709,21 @@ function App() {
       setSelected(id);
     },
     onPatchPermit: (id, fields) => {
-      const cur = (store.raw.find(r => r.id === id) || {}).permit || {};
+      const j = store.raw.find(r => r.id === id) || {};
+      const cur = j.permit || {};
       store.patch(id, {
         permit: Object.assign({}, cur, fields)
       });
+      if (fields.status === "rejected" && cur.submittedTechId) {
+        notif.addNotif({
+          toTechId: cur.submittedTechId,
+          type: "permit",
+          jobId: id,
+          jobName: j.name,
+          title: "ข้อมูลขออนุญาตถูกตีกลับ ต้องแก้ไข",
+          body: (j.code || "") + " · " + (fields.rejectReason || "ต้องแก้ไขข้อมูล")
+        });
+      }
     }
   }), view === "report" && React.createElement(ReportView, {
     jobs: filtered,
