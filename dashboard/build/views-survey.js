@@ -310,7 +310,8 @@ function LeadsView({
   users,
   currentUser,
   quotes,
-  onOpenQuote
+  onOpenQuote,
+  headRight
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [filter, setFilter] = React.useState("all");
@@ -362,10 +363,10 @@ function LeadsView({
   };
   const [ask, setAsk] = React.useState(null);
   return React.createElement(React.Fragment, null, React.createElement(window.SchedHeader, {
-    title: "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E2A\u0E33\u0E23\u0E27\u0E08",
+    title: "\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22",
     onMenuOpen: onMenuOpen,
     sub: leads.length + " ราย · " + ((counts.new || 0) + (counts.contact || 0) + (counts.survey || 0) + (counts.quoted || 0) + (counts.nego || 0)) + " ยังไล่อยู่ · " + (counts.won || 0) + " ปิดการขายแล้ว · " + leads.filter(l => window.sOverdue && window.sOverdue(l.nextFollow) && stageKey(l) !== "won" && stageKey(l) !== "lost").length + " เลยวันติดตาม",
-    right: React.createElement("button", {
+    right: React.createElement(React.Fragment, null, headRight, React.createElement("button", {
       onClick: () => setEdit({
         lead: leadStore.blank(),
         isNew: true
@@ -376,7 +377,7 @@ function LeadsView({
       size: 17,
       color: "#fff",
       sw: 2.4
-    }), React.createElement("span", null, "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E43\u0E2B\u0E21\u0E48"))
+    }), React.createElement("span", null, "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E43\u0E2B\u0E21\u0E48")))
   }), React.createElement("div", {
     className: "app-content"
   }, React.createElement("div", {

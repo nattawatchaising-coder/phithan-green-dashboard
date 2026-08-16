@@ -115,7 +115,7 @@ function SurveyView({ jobs, role, onOpen, onToggleSkip }) {
    อยู่คนละฐานกับงานติดตั้ง · ตกลงติดตั้งเมื่อไหร่ค่อยกด "แปลงเป็นงาน"
    ============================================================ */
 function LeadsView({ leadStore, appts, jobs, onMenuOpen, onOpenSurvey, onReport, onConvert, canConvert,
-                     users, currentUser, quotes, onOpenQuote }) {
+                     users, currentUser, quotes, onOpenQuote, headRight }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [filter, setFilter] = React.useState("all");
   const [edit, setEdit] = React.useState(null);
@@ -163,11 +163,14 @@ function LeadsView({ leadStore, appts, jobs, onMenuOpen, onOpenSurvey, onReport,
 
   return (
     <React.Fragment>
-      <window.SchedHeader title="ลูกค้าสำรวจ" onMenuOpen={onMenuOpen}
+      <window.SchedHeader title="งานขาย" onMenuOpen={onMenuOpen}
         sub={leads.length + " ราย · " + ((counts.new || 0) + (counts.contact || 0) + (counts.survey || 0) + (counts.quoted || 0) + (counts.nego || 0)) +
           " ยังไล่อยู่ · " + (counts.won || 0) + " ปิดการขายแล้ว · " +
           leads.filter((l) => window.sOverdue && window.sOverdue(l.nextFollow) && stageKey(l) !== "won" && stageKey(l) !== "lost").length + " เลยวันติดตาม"}
-        right={<button onClick={() => setEdit({ lead: leadStore.blank(), isNew: true })} className="btn-add"><Icon name="plus" size={17} color="#fff" sw={2.4} /><span>ลูกค้าใหม่</span></button>} />
+        right={<React.Fragment>
+          {headRight}
+          <button onClick={() => setEdit({ lead: leadStore.blank(), isNew: true })} className="btn-add"><Icon name="plus" size={17} color="#fff" sw={2.4} /><span>ลูกค้าใหม่</span></button>
+        </React.Fragment>} />
       <div className="app-content">
         <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 14 }}>
           {FILTERS.map((ff) => {

@@ -16,16 +16,10 @@ const NAV = [{
   icon: "table",
   perm: "viewAll"
 }, {
-  key: "sales",
-  th: "บอร์ดขาย",
-  en: "Sales Board",
-  icon: "trend",
-  perm: "leads"
-}, {
   key: "leads",
-  th: "ลูกค้าสำรวจ",
-  en: "Survey Leads",
-  icon: "user",
+  th: "งานขาย",
+  en: "Sales",
+  icon: "trend",
   perm: "leads"
 }, {
   key: "saleskpi",
@@ -79,14 +73,10 @@ const PERMIT_TODO = {
 };
 const permitStageKey = j => j && j.permit && j.permit.status || "todo";
 const permitStageOf = key => (window.PERMIT_COLS || []).find(c => c.key === key) || PERMIT_TODO;
-const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm)).filter(n => !(isPermitOnly(roles) && n.key === "permit")).filter(n => !(isSalesOnly(roles) && n.key === "sales")).map(n => n.key === "board" && isPermitOnly(roles) ? Object.assign({}, n, {
+const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm)).filter(n => !(isPermitOnly(roles) && n.key === "permit")).map(n => n.key === "board" && isPermitOnly(roles) ? Object.assign({}, n, {
   th: "บอร์ดขออนุญาต",
   en: "Permit Board",
   icon: "shield"
-}) : n).map(n => n.key === "board" && isSalesOnly(roles) ? Object.assign({}, n, {
-  th: "บอร์ดขาย",
-  en: "Sales Board",
-  icon: "trend"
 }) : n);
 const techKey = (j, known) => j.tech && (!known || known.has(j.tech)) ? j.tech : "__none";
 const matchTech = (j, f, known) => techKey(j, known) === f;
@@ -212,6 +202,11 @@ function App() {
   const fileFlags = useJobFileFlags();
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [view, setView] = React.useState("overview");
+  const [leadMode, setLeadModeRaw] = React.useState(() => localStorage.getItem("pg-leadmode") === "list" ? "list" : "board");
+  const setLeadMode = React.useCallback(m => {
+    localStorage.setItem("pg-leadmode", m);
+    setLeadModeRaw(m);
+  }, []);
   const [permitReview, setPermitReview] = React.useState(null);
   const [quoteOpen, setQuoteOpen] = React.useState(null);
   const [search, setSearch] = React.useState("");
@@ -643,7 +638,6 @@ function App() {
     return "รอรับงาน " + sent + " · กำลังยื่น " + filing + " · ยังไม่เริ่มเก็บข้อมูล " + todo;
   }, [jobs]);
   const permitPage = view === "permit" || permitOnly && view === "board";
-  const salesPage = view === "sales" || isSalesOnly(role) && view === "board";
   const patchPermit = (id, fields) => {
     const j = store.raw.find(r => r.id === id) || {};
     const cur = j.permit || {};
@@ -677,7 +671,7 @@ function App() {
     quotes: quoteStore.quotes,
     search: search,
     currentUser: auth.current,
-    onOpenLead: () => setView("leads"),
+    onOpenLead: () => setLeadMode("list"),
     onPatchLead: (id, fields) => leadStore.patch(id, fields)
   });
   const salesHead = React.useMemo(() => {
@@ -692,6 +686,42 @@ function App() {
     });
     return "ยังไล่อยู่ " + live + " ราย · เลยวันติดตาม " + late + " ราย";
   }, [leadStore.leads]);
+  const leadTabs = React.createElement("div", {
+    style: {
+      display: "inline-flex",
+      gap: 4,
+      padding: 3,
+      borderRadius: 99,
+      background: "var(--surface2)",
+      border: "1px solid var(--border)"
+    }
+  }, [["board", "บอร์ด", "kanban"], ["list", "รายการ", "list"]].map(([k, th, ic]) => {
+    const on = leadMode === k;
+    return React.createElement("button", {
+      key: k,
+      onClick: () => setLeadMode(k),
+      title: th,
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        padding: "6px 12px",
+        borderRadius: 99,
+        border: "none",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 12.5,
+        fontWeight: 700,
+        background: on ? "var(--surface)" : "transparent",
+        color: on ? "var(--primary-dark)" : "var(--text-3)",
+        boxShadow: on ? "0 1px 3px rgba(0,0,0,.08)" : "none"
+      }
+    }, React.createElement(Icon, {
+      name: ic,
+      size: 14,
+      color: on ? "var(--primary-dark)" : "var(--text-3)"
+    }), th);
+  }));
   const onSave = rec => {
     const prev = store.raw.find(r => r.id === rec.id);
     if (!prev && !rec.createdBy && auth.current) {
@@ -802,13 +832,26 @@ function App() {
     leadStore: leadStore,
     onMenuOpen: () => setSidebarOpen(true),
     onOpenJob: openJob
-  }) : view === "leads" ? React.createElement(LeadsView, {
+  }) : view === "leads" && leadMode === "board" ? React.createElement(React.Fragment, null, React.createElement(window.SchedHeader, {
+    title: "\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22",
+    sub: salesHead,
+    right: leadTabs,
+    onMenuOpen: () => setSidebarOpen(true)
+  }), React.createElement("div", {
+    className: "app-content",
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      minHeight: 0
+    }
+  }, salesBoard)) : view === "leads" ? React.createElement(LeadsView, {
     leadStore: leadStore,
     appts: apptStore.appts,
     jobs: jobs,
     users: auth.users,
     currentUser: auth.current,
     quotes: quoteStore.quotes,
+    headRight: leadTabs,
     onMenuOpen: () => setSidebarOpen(true),
     onOpenSurvey: can(role, "doSurvey") || can(role, "dispatch") ? pseudo => openSurvey(pseudo) : null,
     onReport: pseudo => setReportJob(pseudo),
@@ -834,8 +877,8 @@ function App() {
   }) : React.createElement(React.Fragment, null, React.createElement(Header, {
     view: view,
     navList: navItems,
-    plain: permitPage || salesPage,
-    subtitle: permitPage ? permitHead : salesPage ? salesHead : null,
+    plain: permitPage,
+    subtitle: permitPage ? permitHead : null,
     ownOnly: ownOnly,
     count: filtered.length,
     total: jobs.length,
@@ -875,7 +918,7 @@ function App() {
     onMenuOpen: () => setSidebarOpen(true)
   }), React.createElement("div", {
     className: "app-content",
-    style: view === "board" || view === "sales" ? {
+    style: view === "board" ? {
       display: "flex",
       flexDirection: "column",
       minHeight: 0
@@ -887,11 +930,11 @@ function App() {
     onStage: goStage,
     onKpi: goKpi,
     stock: stock
-  }), view === "board" && (permitOnly ? permitView : salesOnly ? salesBoard : React.createElement(KanbanView, {
+  }), view === "board" && (permitOnly ? permitView : React.createElement(KanbanView, {
     jobs: filtered,
     onOpen: openJob,
     onMoveStage: (id, s) => store.setStage(id, s)
-  })), view === "sales" && salesBoard, view === "table" && React.createElement(TableView, {
+  })), view === "table" && React.createElement(TableView, {
     jobs: filtered,
     onOpen: openJob,
     onEdit: j => setForm({

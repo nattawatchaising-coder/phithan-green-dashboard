@@ -8,8 +8,8 @@ const NAV = [
   { key: "overview",   th: "ภาพรวม",         en: "Overview",      icon: "grid" },
   { key: "board",      th: "บอร์ดงาน",        en: "Workflow",      icon: "kanban" },
   { key: "table",      th: "ฐานข้อมูลงาน",     en: "Database",      icon: "table",    perm: "viewAll" },
-  { key: "sales",      th: "บอร์ดขาย",         en: "Sales Board",   icon: "trend",    perm: "leads" },
-  { key: "leads",      th: "ลูกค้าสำรวจ",      en: "Survey Leads",  icon: "user",     perm: "leads" },
+  /* บอร์ดขายกับรายการลูกค้าคือข้อมูลชุดเดียวกันคนละมุม จึงเป็นเมนูเดียว แล้วสลับมุมในหน้า */
+  { key: "leads",      th: "งานขาย",           en: "Sales",         icon: "trend",    perm: "leads" },
   { key: "saleskpi",   th: "ยอดขาย",           en: "Sales KPI",     icon: "grid",     perm: "price" },
   // "สถานะสำรวจ" (SurveyView) ถอดออกจากเมนูแล้ว — การสำรวจย้ายไปอยู่กับ "ลูกค้าสำรวจ" ทั้งหมด
   // งานในฐานงานมาจากลูกค้าที่แปลงแล้ว (พกแบบสำรวจติดมาด้วย) · โค้ดหน้ายังอยู่ใน views-survey.jsx ถ้าอยากได้คืน
@@ -23,8 +23,7 @@ const NAV = [
 /* คนที่ถือตำแหน่ง "ฝ่ายขออนุญาต" อย่างเดียว — บอร์ดขั้นงานติดตั้งไม่มีความหมายกับเขา
    (งานกองอยู่ขั้น "เสร็จสิ้น" หมด) บอร์ดงานของเขาจึงเป็นบอร์ดขออนุญาตแทน */
 const isPermitOnly = (roles) => (roles || []).length > 0 && roles.every((r) => (ROLE_ALIAS[r] || r) === "permit");
-/* เซลล์อย่างเดียวก็เหมือนกัน — บอร์ดขั้นติดตั้งเป็นงานของช่าง ไม่ใช่ของเขา
-   งานของเขาคือลูกค้าที่ยังไม่ปิด บอร์ดงานของเขาจึงเป็นบอร์ดขายแทน */
+/* เซลล์อย่างเดียว — ใช้ตัดสินว่าใบงานเปิดแบบอ่านอย่างเดียว (ไม่มีเครื่องมือช่าง) */
 const isSalesOnly = (roles) => (roles || []).length > 0 && roles.every((r) => (ROLE_ALIAS[r] || r) === "sales");
 
 /* ── "ขั้นตอน" ของฝ่ายขออนุญาต ──
@@ -37,10 +36,7 @@ const permitStageOf = (key) => (window.PERMIT_COLS || []).find((c) => c.key === 
 const navForRole = (roles, techId) => NAV
   .filter((n) => (n.own ? !!techId : (!n.perm || can(roles, n.perm))))
   .filter((n) => !(isPermitOnly(roles) && n.key === "permit"))
-  /* เซลล์อย่างเดียว: บอร์ดงาน = บอร์ดขายอยู่แล้ว จึงไม่ต้องมีเมนู "บอร์ดขาย" ซ้ำอีกอัน */
-  .filter((n) => !(isSalesOnly(roles) && n.key === "sales"))
-  .map((n) => (n.key === "board" && isPermitOnly(roles) ? Object.assign({}, n, { th: "บอร์ดขออนุญาต", en: "Permit Board", icon: "shield" }) : n))
-  .map((n) => (n.key === "board" && isSalesOnly(roles) ? Object.assign({}, n, { th: "บอร์ดขาย", en: "Sales Board", icon: "trend" }) : n));
+  .map((n) => (n.key === "board" && isPermitOnly(roles) ? Object.assign({}, n, { th: "บอร์ดขออนุญาต", en: "Permit Board", icon: "shield" }) : n));
 
 /* งานนี้เป็นของช่างที่กรองอยู่ไหม — "__none" คือกรองเอาเฉพาะงานที่ยังไม่ได้มอบหมายให้ใคร
    งานที่ผูกไว้กับช่างที่ถูกลบไปแล้ว (ไม่มีใน known) ให้นับเป็น "ยังไม่มอบหมาย" จะได้ไม่หายไปจากเมนู */
@@ -127,6 +123,10 @@ function App() {
   const fileFlags = useJobFileFlags();
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [view, setView] = React.useState("overview");
+  /* หน้า "งานขาย" มีสองมุมบนข้อมูลชุดเดียวกัน — บอร์ด (ภาพรวมว่าใครค้างขั้นไหน) กับ
+     รายการ (ที่เดียวที่ทำอะไรกับลูกค้าได้ครบ) · จำมุมล่าสุดไว้ให้แต่ละเครื่อง */
+  const [leadMode, setLeadModeRaw] = React.useState(() => (localStorage.getItem("pg-leadmode") === "list" ? "list" : "board"));
+  const setLeadMode = React.useCallback((m) => { localStorage.setItem("pg-leadmode", m); setLeadModeRaw(m); }, []);
   /* ชุดข้อมูลขออนุญาตที่เปิดอยู่ — อยู่ระดับแอป จะได้เปิดได้ทั้งจากบอร์ดและจากในใบงาน */
   const [permitReview, setPermitReview] = React.useState(null);
   /* ใบเสนอราคาที่เปิดอยู่ — เหตุผลเดียวกัน เปิดได้ทั้งจากหน้าลูกค้าสำรวจและจากในใบงาน */
@@ -448,7 +448,6 @@ function App() {
     return "รอรับงาน " + sent + " · กำลังยื่น " + filing + " · ยังไม่เริ่มเก็บข้อมูล " + todo;
   }, [jobs]);
   const permitPage = view === "permit" || (permitOnly && view === "board");
-  const salesPage  = view === "sales"  || (isSalesOnly(role) && view === "board");
 
   const patchPermit = (id, fields) => {
     const j = store.raw.find((r) => r.id === id) || {};
@@ -477,8 +476,8 @@ function App() {
   const salesOnly = isSalesOnly(role);
   const salesBoard = (
     <SalesBoardView leads={leadStore.leads} quotes={quoteStore.quotes} search={search} currentUser={auth.current}
-      /* กดการ์ด = เปิดหน้าลูกค้าสำรวจ ซึ่งเป็นที่เดียวที่ทำอะไรกับลูกค้ารายนั้นได้ครบ */
-      onOpenLead={() => setView("leads")}
+      /* กดการ์ด = สลับไปมุมรายการ ซึ่งเป็นที่เดียวที่ทำอะไรกับลูกค้ารายนั้นได้ครบ */
+      onOpenLead={() => setLeadMode("list")}
       onPatchLead={(id, fields) => leadStore.patch(id, fields)} />
   );
   const salesHead = React.useMemo(() => {
@@ -492,6 +491,23 @@ function App() {
     });
     return "ยังไล่อยู่ " + live + " ราย · เลยวันติดตาม " + late + " ราย";
   }, [leadStore.leads]);
+  /* ปุ่มสลับมุมของหน้า "งานขาย" — วางไว้บนหัวหน้าทั้งสองมุม ตำแหน่งเดียวกันจะได้กดสลับไปมาได้ */
+  const leadTabs = (
+    <div style={{ display: "inline-flex", gap: 4, padding: 3, borderRadius: 99, background: "var(--surface2)", border: "1px solid var(--border)" }}>
+      {[["board", "บอร์ด", "kanban"], ["list", "รายการ", "list"]].map(([k, th, ic]) => {
+        const on = leadMode === k;
+        return (
+          <button key={k} onClick={() => setLeadMode(k)} title={th}
+            style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 99, border: "none", cursor: "pointer",
+              fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
+              background: on ? "var(--surface)" : "transparent", color: on ? "var(--primary-dark)" : "var(--text-3)",
+              boxShadow: on ? "0 1px 3px rgba(0,0,0,.08)" : "none" }}>
+            <Icon name={ic} size={14} color={on ? "var(--primary-dark)" : "var(--text-3)"} />{th}
+          </button>
+        );
+      })}
+    </div>
+  );
 
   const onSave = (rec) => {
     const prev = store.raw.find((r) => r.id === rec.id);
@@ -558,9 +574,15 @@ function App() {
         ) : view === "dispatch" ? (
           <DispatchView appts={apptStore.appts} jobs={jobs} techs={techStore.techs} store={apptStore} leadStore={leadStore}
             onMenuOpen={() => setSidebarOpen(true)} onOpenJob={openJob} />
+        ) : (view === "leads" && leadMode === "board") ? (
+          <React.Fragment>
+            <window.SchedHeader title="งานขาย" sub={salesHead} right={leadTabs} onMenuOpen={() => setSidebarOpen(true)} />
+            <div className="app-content" style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>{salesBoard}</div>
+          </React.Fragment>
         ) : view === "leads" ? (
           <LeadsView leadStore={leadStore} appts={apptStore.appts} jobs={jobs}
             users={auth.users} currentUser={auth.current} quotes={quoteStore.quotes}
+            headRight={leadTabs}
             onMenuOpen={() => setSidebarOpen(true)}
             onOpenSurvey={(can(role, "doSurvey") || can(role, "dispatch")) ? (pseudo) => openSurvey(pseudo) : null}
             onReport={(pseudo) => setReportJob(pseudo)}
@@ -578,7 +600,7 @@ function App() {
             onAdvance={(j) => store.advance(j.id)} />
         ) : (
         <React.Fragment>
-        <Header view={view} navList={navItems} plain={permitPage || salesPage} subtitle={permitPage ? permitHead : salesPage ? salesHead : null} ownOnly={ownOnly} count={filtered.length} total={jobs.length}
+        <Header view={view} navList={navItems} plain={permitPage} subtitle={permitPage ? permitHead : null} ownOnly={ownOnly} count={filtered.length} total={jobs.length}
           search={search} setSearch={setSearch}
           typeFilter={typeFilter} setTypeFilter={setTypeFilter}
           delayedOnly={delayedOnly} setDelayedOnly={setDelayedOnly}
@@ -593,10 +615,9 @@ function App() {
           onOpenNotif={openFromNotif} onMarkAll={() => myNotifs.forEach((n) => { if (!n.read) notif.markRead(n.id); })}
           onMenuOpen={() => setSidebarOpen(true)} />
 
-        <div className="app-content" style={(view === "board" || view === "sales") ? { display: "flex", flexDirection: "column", minHeight: 0 } : {}}>
+        <div className="app-content" style={view === "board" ? { display: "flex", flexDirection: "column", minHeight: 0 } : {}}>
           {view === "overview" && <OverviewView jobs={filtered} schedule={myScheduleItems} onOpen={openJob} onStage={goStage} onKpi={goKpi} stock={stock} />}
-          {view === "board" && (permitOnly ? permitView : salesOnly ? salesBoard : <KanbanView jobs={filtered} onOpen={openJob} onMoveStage={(id, s) => store.setStage(id, s)} />)}
-          {view === "sales" && salesBoard}
+          {view === "board" && (permitOnly ? permitView : <KanbanView jobs={filtered} onOpen={openJob} onMoveStage={(id, s) => store.setStage(id, s)} />)}
           {view === "table" && <TableView jobs={filtered} onOpen={openJob}
             onEdit={(j) => setForm({ job: store.raw.find((r) => r.id === j.id), isNew: false })}
             onDelete={onDelete} onSetMat={store.setMat} onSetStage={(id, s) => store.setStage(id, s)}
