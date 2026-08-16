@@ -1,41 +1,458 @@
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
-const PERMIT_TABS = [{
-  key: "sent",
-  th: "รอรับงาน"
-}, {
-  key: "filing",
-  th: "กำลังยื่น"
-}, {
-  key: "rejected",
-  th: "ตีกลับ"
-}, {
-  key: "approved",
-  th: "อนุมัติแล้ว"
+const PERMIT_COLS = [{
+  key: "todo",
+  th: "ยังไม่เริ่มเก็บข้อมูล",
+  color: "#94A3B8",
+  soft: "var(--surface2)"
 }, {
   key: "draft",
-  th: "ช่างยังเก็บไม่เสร็จ"
+  th: "ช่างกำลังเก็บข้อมูล",
+  color: "#64748B",
+  soft: "var(--surface2)"
+}, {
+  key: "sent",
+  th: "รอฝ่ายขออนุญาตรับ",
+  color: "#F59E0B",
+  soft: "var(--tint-amber-bg)"
+}, {
+  key: "rejected",
+  th: "ตีกลับให้ช่างแก้",
+  color: "#EF4444",
+  soft: "var(--tint-red-bg)"
+}, {
+  key: "filing",
+  th: "กำลังยื่นการไฟฟ้า",
+  color: "#3B82F6",
+  soft: "#3B82F614"
+}, {
+  key: "approved",
+  th: "การไฟฟ้าอนุมัติแล้ว",
+  color: "#10B981",
+  soft: "var(--primary-soft)"
 }];
+const PERMIT_TABS = PERMIT_COLS.filter(c => c.key !== "todo").map(c => ({
+  key: c.key,
+  th: c.th
+}));
+const PERMIT_MOVES = {
+  sent: ["filing", "rejected"],
+  filing: ["approved", "rejected"],
+  rejected: ["filing"]
+};
+const today10 = () => new Date().toISOString().slice(0, 10);
+function permitColOf(j) {
+  const st = j.permit && j.permit.status;
+  return st ? st : "todo";
+}
+function PermitCard({
+  job,
+  onOpen,
+  onDragStart,
+  dragging,
+  draggable
+}) {
+  const p = job.permit || {};
+  const st = PERMIT_STATUS[p.status] || null;
+  const pt = (PERMIT_TYPES.find(x => x.key === p.permitType) || {}).th || "";
+  const days = p.submittedAt ? Math.floor((Date.now() - new Date(p.submittedAt).getTime()) / 86400000) : 0;
+  const late = p.status === "sent" && days >= 3;
+  return React.createElement("div", {
+    draggable: !!draggable,
+    onDragStart: e => draggable && onDragStart(e, job),
+    onClick: () => onOpen(job),
+    style: {
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 14,
+      padding: "12px 13px",
+      cursor: draggable ? "grab" : "pointer",
+      boxShadow: "var(--shadow-sm)",
+      opacity: dragging ? .4 : 1,
+      borderLeft: "3px solid " + (st ? st.color : "var(--border-strong)"),
+      transition: "box-shadow .16s, transform .16s"
+    },
+    onMouseEnter: e => {
+      e.currentTarget.style.boxShadow = "0 8px 22px rgba(8,20,14,.09)";
+      e.currentTarget.style.transform = "translateY(-2px)";
+    },
+    onMouseLeave: e => {
+      e.currentTarget.style.boxShadow = "var(--shadow-sm)";
+      e.currentTarget.style.transform = "none";
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 6
+    }
+  }, React.createElement("span", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontSize: 11,
+      fontWeight: 600,
+      color: "var(--text-3)"
+    }
+  }, job.code), late && React.createElement("span", {
+    style: {
+      fontSize: 10,
+      fontWeight: 700,
+      color: "#EF4444",
+      background: "var(--tint-red-bg2)",
+      padding: "1px 7px",
+      borderRadius: 99
+    }
+  }, "\u0E04\u0E49\u0E32\u0E07 ", days, " \u0E27\u0E31\u0E19")), React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      lineHeight: 1.3,
+      marginBottom: 3
+    }
+  }, job.name), React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      marginBottom: 9,
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, React.createElement(Icon, {
+    name: "pin",
+    size: 11,
+    style: {
+      verticalAlign: -1
+    }
+  }), " ", job.province || "—", p.auth ? " · " + p.auth : "", p.branch ? " " + p.branch : ""), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 5,
+      flexWrap: "wrap",
+      fontSize: 10.5,
+      color: "var(--text-2)"
+    }
+  }, pt && React.createElement("span", {
+    style: {
+      background: "var(--surface2)",
+      padding: "3px 8px",
+      borderRadius: 7
+    }
+  }, pt), React.createElement("span", {
+    style: {
+      background: "var(--surface2)",
+      padding: "3px 8px",
+      borderRadius: 7,
+      fontFamily: "var(--mono)"
+    }
+  }, p.kwp || job.kw || "—", " kWp"), p.reqNo && React.createElement("span", {
+    style: {
+      background: "var(--surface2)",
+      padding: "3px 8px",
+      borderRadius: 7,
+      fontFamily: "var(--mono)"
+    }
+  }, "\u0E04\u0E33\u0E23\u0E49\u0E2D\u0E07 ", p.reqNo)), p.status === "rejected" && p.rejectReason && React.createElement("div", {
+    style: {
+      marginTop: 9,
+      fontSize: 11,
+      lineHeight: 1.45,
+      color: "var(--tint-red-tx)",
+      background: "var(--tint-red-bg)",
+      borderRadius: 8,
+      padding: "6px 8px",
+      display: "-webkit-box",
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: "vertical",
+      overflow: "hidden"
+    }
+  }, "\u21A9 ", p.rejectReason), React.createElement("div", {
+    style: {
+      marginTop: 9,
+      paddingTop: 9,
+      borderTop: "1px solid var(--border)",
+      fontSize: 10.5,
+      color: "var(--text-3)"
+    }
+  }, !p.status ? "ติดตั้งเสร็จแล้ว · ยังไม่มีชุดข้อมูลขออนุญาต" : p.status === "approved" ? "อนุมัติ " + (p.approvedDate ? thDate(p.approvedDate, true) : "—") : p.status === "filing" ? "ยื่นเมื่อ " + (p.filedDate ? thDate(p.filedDate, true) : "—") : p.submittedAt ? "ช่างส่ง " + thDate(String(p.submittedAt).slice(0, 10), true) + (p.submittedBy ? " · " + p.submittedBy : "") : "ยังไม่ได้ส่ง"));
+}
 function PermitQueueView({
   jobs,
+  search,
   onOpenJob,
   onPatchPermit,
   currentUser
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const [mode, setMode] = React.useState(() => {
+    try {
+      return localStorage.getItem("sf_permit_view") || "board";
+    } catch (e) {
+      return "board";
+    }
+  });
   const [tab, setTab] = React.useState("sent");
   const [open, setOpen] = React.useState(null);
-  const withPermit = React.useMemo(() => jobs.filter(j => j.permit && j.permit.status), [jobs]);
+  const [drag, setDrag] = React.useState(null);
+  const [over, setOver] = React.useState(null);
+  const setModeSave = m => {
+    setMode(m);
+    try {
+      localStorage.setItem("sf_permit_view", m);
+    } catch (e) {}
+  };
+  const pool = React.useMemo(() => {
+    const q = String(search || "").trim().toLowerCase();
+    if (!q) return jobs;
+    return jobs.filter(j => ((j.name || "") + " " + (j.code || "") + " " + (j.province || "") + " " + ((j.permit || {}).reqNo || "") + " " + ((j.permit || {}).ca || "")).toLowerCase().includes(q));
+  }, [jobs, search]);
+  const withPermit = React.useMemo(() => pool.filter(j => j.permit && j.permit.status), [pool]);
+  const notStarted = React.useMemo(() => pool.filter(j => j.stage === "done" && !(j.permit && j.permit.status)), [pool]);
   const counts = React.useMemo(() => {
-    const c = {};
+    const c = {
+      todo: notStarted.length
+    };
     withPermit.forEach(j => {
       const k = j.permit.status;
       c[k] = (c[k] || 0) + 1;
     });
     return c;
-  }, [withPermit]);
-  const shown = React.useMemo(() => withPermit.filter(j => j.permit.status === tab).sort((a, b) => String(b.permit.submittedAt || b.permit.updatedAt || "").localeCompare(String(a.permit.submittedAt || a.permit.updatedAt || ""))), [withPermit, tab]);
-  const notStarted = React.useMemo(() => jobs.filter(j => j.stage === "done" && !(j.permit && j.permit.status)), [jobs]);
+  }, [withPermit, notStarted]);
+  const byCol = React.useCallback(key => {
+    const arr = key === "todo" ? notStarted.slice() : withPermit.filter(j => j.permit.status === key);
+    return arr.sort((a, b) => String((b.permit || {}).submittedAt || (b.permit || {}).updatedAt || b.code || "").localeCompare(String((a.permit || {}).submittedAt || (a.permit || {}).updatedAt || a.code || "")));
+  }, [withPermit, notStarted]);
+  const shown = React.useMemo(() => byCol(tab), [byCol, tab]);
   const openJob = open ? jobs.find(j => j.id === open) || null : null;
+  const canDrop = (from, to) => from !== to && (PERMIT_MOVES[from] || []).indexOf(to) !== -1;
+  const onDrop = to => {
+    const j = drag && jobs.find(x => x.id === drag);
+    setDrag(null);
+    setOver(null);
+    if (!j) return;
+    const p = j.permit || {};
+    if (!canDrop(p.status, to)) return;
+    if (to === "rejected") {
+      setOpen(j.id);
+      return;
+    }
+    const extra = {
+      byAdmin: currentUser && currentUser.name || "",
+      statusAt: new Date().toISOString()
+    };
+    if (to === "filing") {
+      extra.rejectReason = null;
+      if (!p.filedDate) extra.filedDate = today10();
+    }
+    if (to === "approved") {
+      if (!p.approvedDate) extra.approvedDate = today10();
+    }
+    onPatchPermit(j.id, Object.assign({
+      status: to
+    }, extra));
+  };
+  const cardOpen = j => {
+    if (j.permit && j.permit.status) setOpen(j.id);else onOpenJob && onOpenJob(j.id);
+  };
+  const modeSwitch = React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 3,
+      padding: 3,
+      borderRadius: 10,
+      background: "var(--surface2)",
+      flexShrink: 0
+    }
+  }, [["board", "บอร์ด", "kanban"], ["list", "รายการ", "list"]].map(x => React.createElement("button", {
+    key: x[0],
+    onClick: () => setModeSave(x[0]),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      padding: "6px 11px",
+      borderRadius: 8,
+      border: "none",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      background: mode === x[0] ? "var(--surface)" : "transparent",
+      color: mode === x[0] ? "var(--primary-dark)" : "var(--text-3)",
+      boxShadow: mode === x[0] ? "0 1px 3px rgba(8,20,14,.12)" : "none"
+    }
+  }, React.createElement(Icon, {
+    name: x[2],
+    size: 13,
+    color: mode === x[0] ? "var(--primary-dark)" : "var(--text-3)"
+  }), x[1])));
+  const review = openJob ? React.createElement(PermitReview, {
+    job: openJob,
+    currentUser: currentUser,
+    onClose: () => setOpen(null),
+    onOpenJob: () => {
+      setOpen(null);
+      onOpenJob && onOpenJob(openJob.id);
+    },
+    onPatch: fields => onPatchPermit(openJob.id, fields)
+  }) : null;
+  if (mode === "board") {
+    if (isMobile) {
+      return React.createElement("div", {
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          gap: 12
+        }
+      }, React.createElement("div", {
+        style: {
+          display: "flex",
+          justifyContent: "flex-end"
+        }
+      }, modeSwitch), React.createElement(PermitBoardMobile, {
+        cols: PERMIT_COLS,
+        byCol: byCol,
+        counts: counts,
+        onOpen: cardOpen
+      }), review);
+    }
+    return React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+        minHeight: 0,
+        flex: 1
+      }
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        flexShrink: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: "var(--text-3)",
+        flex: 1,
+        minWidth: 0
+      }
+    }, "\u0E25\u0E32\u0E01\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E02\u0E49\u0E32\u0E21\u0E04\u0E2D\u0E25\u0E31\u0E21\u0E19\u0E4C\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E16\u0E32\u0E19\u0E30 \xB7 \u0E25\u0E32\u0E01\u0E44\u0E1B \u201C\u0E15\u0E35\u0E01\u0E25\u0E31\u0E1A\u201D \u0E08\u0E30\u0E40\u0E1B\u0E34\u0E14\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E43\u0E2B\u0E49\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E2B\u0E15\u0E38\u0E1C\u0E25\u0E01\u0E48\u0E2D\u0E19"), modeSwitch), React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 14,
+        overflowX: "auto",
+        paddingBottom: 12,
+        minHeight: 0,
+        flex: 1
+      }
+    }, PERMIT_COLS.map(c => {
+      const col = byCol(c.key);
+      const dragging = drag ? jobs.find(x => x.id === drag) || null : null;
+      const ok = dragging ? canDrop((dragging.permit || {}).status, c.key) : false;
+      const isOver = over === c.key && ok;
+      return React.createElement("div", {
+        key: c.key,
+        onDragOver: e => {
+          if (!ok) return;
+          e.preventDefault();
+          setOver(c.key);
+        },
+        onDragLeave: () => setOver(o => o === c.key ? null : o),
+        onDrop: () => onDrop(c.key),
+        style: {
+          width: 268,
+          flexShrink: 0,
+          display: "flex",
+          flexDirection: "column",
+          borderRadius: 18,
+          background: isOver ? c.soft : "var(--surface2)",
+          border: "1px solid " + (isOver ? c.color : "var(--border)"),
+          opacity: drag && !ok ? .55 : 1,
+          transition: "background .15s, border-color .15s, opacity .15s"
+        }
+      }, React.createElement("div", {
+        style: {
+          padding: "13px 14px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: "1px solid var(--border)",
+          position: "sticky",
+          top: 0,
+          zIndex: 1,
+          background: isOver ? c.soft : "var(--surface2)",
+          borderRadius: "17px 17px 0 0"
+        }
+      }, React.createElement("span", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          minWidth: 0
+        }
+      }, React.createElement("span", {
+        style: {
+          width: 7,
+          height: 7,
+          borderRadius: 99,
+          background: c.color,
+          flexShrink: 0
+        }
+      }), React.createElement("span", {
+        style: {
+          fontSize: 11.5,
+          fontWeight: 700,
+          letterSpacing: ".05em",
+          color: "var(--text-2)",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis"
+        }
+      }, c.th)), React.createElement("span", {
+        style: {
+          fontFamily: "var(--display)",
+          fontSize: 15,
+          fontWeight: 700,
+          letterSpacing: "-.02em",
+          color: col.length ? "var(--text-1)" : "var(--text-3)",
+          fontVariantNumeric: "tabular-nums"
+        }
+      }, col.length)), React.createElement("div", {
+        style: {
+          padding: 11,
+          display: "flex",
+          flexDirection: "column",
+          gap: 11,
+          overflowY: "auto",
+          flex: 1,
+          minHeight: 80
+        }
+      }, col.map(j => React.createElement(PermitCard, {
+        key: j.id,
+        job: j,
+        onOpen: cardOpen,
+        dragging: drag === j.id,
+        draggable: !!PERMIT_MOVES[permitColOf(j)],
+        onDragStart: (e, job) => {
+          setDrag(job.id);
+          e.dataTransfer.effectAllowed = "move";
+        }
+      })), col.length === 0 && React.createElement("div", {
+        style: {
+          padding: "20px 0",
+          textAlign: "center",
+          fontSize: 12,
+          color: "var(--text-3)",
+          border: "1.5px dashed var(--border-strong)",
+          borderRadius: 10
+        }
+      }, isOver ? "วางที่นี่" : "ว่าง")));
+    })), review);
+  }
   return React.createElement("div", {
     style: {
       display: "flex",
@@ -43,12 +460,20 @@ function PermitQueueView({
       gap: 14
     }
   }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, React.createElement("div", {
     className: "cat-chip-row",
     style: {
       display: "flex",
       gap: 6,
       overflowX: "auto",
-      paddingBottom: 2
+      paddingBottom: 2,
+      flex: 1,
+      minWidth: 0
     }
   }, PERMIT_TABS.map(t => {
     const on = tab === t.key,
@@ -80,7 +505,7 @@ function PermitQueueView({
         opacity: .8
       }
     }, counts[t.key] || 0));
-  })), tab === "sent" && notStarted.length > 0 && React.createElement("div", {
+  })), modeSwitch), tab === "sent" && notStarted.length > 0 && React.createElement("div", {
     style: {
       padding: "12px 14px",
       borderRadius: 13,
@@ -116,108 +541,127 @@ function PermitQueueView({
       gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(330px, 1fr))",
       gap: 12
     }
-  }, shown.map(j => {
-    const p = j.permit,
-      st = PERMIT_STATUS[p.status] || PERMIT_STATUS.draft;
-    const pt = (PERMIT_TYPES.find(x => x.key === p.permitType) || {}).th || "—";
-    return React.createElement("button", {
-      key: j.id,
-      onClick: () => setOpen(j.id),
+  }, shown.map(j => React.createElement(PermitCard, {
+    key: j.id,
+    job: j,
+    onOpen: cardOpen,
+    draggable: false,
+    dragging: false,
+    onDragStart: () => {}
+  }))), review);
+}
+function PermitBoardMobile({
+  cols,
+  byCol,
+  counts,
+  onOpen
+}) {
+  const [openCol, setOpenCol] = React.useState("sent");
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, cols.map(c => {
+    const col = byCol(c.key);
+    const isOpen = openCol === c.key;
+    return React.createElement("div", {
+      key: c.key,
       style: {
-        textAlign: "left",
-        fontFamily: "inherit",
-        cursor: "pointer",
-        padding: 14,
-        borderRadius: 15,
-        background: "var(--surface)",
+        borderRadius: 14,
+        background: "var(--surface2)",
         border: "1px solid var(--border)",
-        borderLeft: "3px solid " + st.color,
-        display: "flex",
-        flexDirection: "column",
-        gap: 9
+        overflow: "hidden"
       }
-    }, React.createElement("div", {
+    }, React.createElement("button", {
+      onClick: () => setOpenCol(isOpen ? null : c.key),
       style: {
+        width: "100%",
+        padding: "13px 14px",
         display: "flex",
-        alignItems: "flex-start",
-        gap: 9
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 8,
+        background: "none",
+        border: "none",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        textAlign: "left",
+        borderBottom: isOpen ? "1px solid var(--border)" : "none"
       }
     }, React.createElement("span", {
       style: {
-        flex: 1,
+        display: "flex",
+        alignItems: "center",
+        gap: 9,
         minWidth: 0
       }
     }, React.createElement("span", {
       style: {
-        display: "block",
-        fontSize: 14,
-        fontWeight: 700,
-        color: "var(--text-1)",
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        textOverflow: "ellipsis"
-      }
-    }, j.name), React.createElement("span", {
-      style: {
-        display: "block",
-        fontSize: 11,
-        color: "var(--text-3)",
-        fontFamily: "var(--mono)",
-        marginTop: 2
-      }
-    }, j.code, " \xB7 ", j.province || "—")), React.createElement("span", {
-      style: {
-        fontSize: 10.5,
-        fontWeight: 700,
-        color: st.color,
-        background: st.color + "1a",
-        padding: "3px 9px",
+        width: 10,
+        height: 10,
         borderRadius: 99,
-        whiteSpace: "nowrap",
+        background: c.color,
         flexShrink: 0
       }
-    }, st.th)), React.createElement("div", {
+    }), React.createElement("span", {
+      style: {
+        fontSize: 14,
+        fontWeight: 700,
+        color: "var(--text-1)"
+      }
+    }, c.th)), React.createElement("span", {
       style: {
         display: "flex",
-        gap: 6,
-        flexWrap: "wrap",
-        fontSize: 11,
-        color: "var(--text-2)"
+        alignItems: "center",
+        gap: 10,
+        flexShrink: 0
       }
     }, React.createElement("span", {
       style: {
-        background: "var(--surface2)",
-        padding: "3px 8px",
-        borderRadius: 7
+        fontFamily: "var(--mono)",
+        fontSize: 12,
+        fontWeight: 600,
+        color: c.color,
+        background: c.color + "1a",
+        minWidth: 24,
+        height: 24,
+        borderRadius: 99,
+        display: "grid",
+        placeItems: "center",
+        padding: "0 7px"
       }
-    }, p.auth || "—"), React.createElement("span", {
+    }, counts[c.key] || 0), React.createElement(Icon, {
+      name: "chevronDown",
+      size: 17,
+      color: "var(--text-3)",
       style: {
-        background: "var(--surface2)",
-        padding: "3px 8px",
-        borderRadius: 7
+        transform: isOpen ? "none" : "rotate(-90deg)",
+        transition: "transform .18s"
       }
-    }, pt), React.createElement("span", {
+    }))), isOpen && React.createElement("div", {
       style: {
-        background: "var(--surface2)",
-        padding: "3px 8px",
-        borderRadius: 7,
-        fontFamily: "var(--mono)"
+        padding: 11,
+        display: "flex",
+        flexDirection: "column",
+        gap: 10
       }
-    }, p.kwp || "—", " kWp")), React.createElement("div", {
+    }, col.map(j => React.createElement(PermitCard, {
+      key: j.id,
+      job: j,
+      onOpen: onOpen,
+      draggable: false,
+      dragging: false,
+      onDragStart: () => {}
+    })), col.length === 0 && React.createElement("div", {
       style: {
-        fontSize: 11,
+        padding: "16px 0",
+        textAlign: "center",
+        fontSize: 12,
         color: "var(--text-3)"
       }
-    }, p.submittedAt ? "ช่างส่งเมื่อ " + thDate(String(p.submittedAt).slice(0, 10), true) + (p.submittedBy ? " โดย " + p.submittedBy : "") : "ยังไม่ได้ส่ง"));
-  })), openJob && React.createElement(PermitReview, {
-    job: openJob,
-    currentUser: currentUser,
-    onClose: () => setOpen(null),
-    onOpenJob: () => {
-      setOpen(null);
-      onOpenJob && onOpenJob(openJob.id);
-    },
-    onPatch: fields => onPatchPermit(openJob.id, fields)
+    }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E43\u0E19\u0E2B\u0E21\u0E27\u0E14\u0E19\u0E35\u0E49")));
   }));
 }
 function PermitFilingField({
@@ -903,5 +1347,7 @@ function permitReportHTML(job, photos, docs) {
 Object.assign(window, {
   PermitQueueView,
   PermitReview,
-  permitReportHTML
+  permitReportHTML,
+  PermitCard,
+  PERMIT_COLS
 });

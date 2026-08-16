@@ -18,7 +18,13 @@ const NAV = [
   { key: "stock",      th: "คลังสินค้า",       en: "Inventory",     icon: "box",      perm: "stock" },
   { key: "report",     th: "รายงานสรุป",       en: "Report",        icon: "file",     perm: "viewAll" },
 ];
-const navForRole = (roles, techId) => NAV.filter((n) => (n.own ? !!techId : (!n.perm || can(roles, n.perm))));
+/* คนที่ถือตำแหน่ง "ฝ่ายขออนุญาต" อย่างเดียว — บอร์ดขั้นงานติดตั้งไม่มีความหมายกับเขา
+   (งานกองอยู่ขั้น "เสร็จสิ้น" หมด) บอร์ดงานของเขาจึงเป็นบอร์ดขออนุญาตแทน */
+const isPermitOnly = (roles) => (roles || []).length > 0 && roles.every((r) => (ROLE_ALIAS[r] || r) === "permit");
+const navForRole = (roles, techId) => NAV
+  .filter((n) => (n.own ? !!techId : (!n.perm || can(roles, n.perm))))
+  .filter((n) => !(isPermitOnly(roles) && n.key === "permit"))
+  .map((n) => (n.key === "board" && isPermitOnly(roles) ? Object.assign({}, n, { th: "บอร์ดขออนุญาต", en: "Permit Board", icon: "shield" }) : n));
 
 /* งานนี้เป็นของช่างที่กรองอยู่ไหม — "__none" คือกรองเอาเฉพาะงานที่ยังไม่ได้มอบหมายให้ใคร
    งานที่ผูกไว้กับช่างที่ถูกลบไปแล้ว (ไม่มีใน known) ให้นับเป็น "ยังไม่มอบหมาย" จะได้ไม่หายไปจากเมนู */
@@ -368,6 +374,39 @@ function App() {
   };
   const selectedJob = jobs.find((j) => j.id === selected) || null;
 
+  /* คนที่ถือตำแหน่ง "ฝ่ายขออนุญาต" อย่างเดียว — บอร์ดขั้นงานติดตั้งไม่มีความหมายกับเขา
+     (งานทุกใบจะกองอยู่ขั้น "เสร็จสิ้น" หมด) จึงให้เมนูบอร์ดงานแสดงบอร์ดขออนุญาตแทน */
+  const permitOnly = isPermitOnly(role);
+  /* หัวหน้าขออนุญาต: บอกจำนวนที่ต้องลงมือ ไม่ใช่จำนวนงานติดตั้งทั้งระบบซึ่งไม่เกี่ยวกับเขา */
+  const permitHead = React.useMemo(() => {
+    let sent = 0, filing = 0, todo = 0;
+    jobs.forEach((j) => {
+      const st = j.permit && j.permit.status;
+      if (st === "sent") sent++;
+      else if (st === "filing") filing++;
+      else if (!st && j.stage === "done") todo++;
+    });
+    return "รอรับงาน " + sent + " · กำลังยื่น " + filing + " · ยังไม่เริ่มเก็บข้อมูล " + todo;
+  }, [jobs]);
+  const permitPage = view === "permit" || (permitOnly && view === "board");
+
+  const permitView = (
+    <PermitQueueView jobs={jobs} search={search} currentUser={auth.current} onOpenJob={(id) => { setView(listView()); setSelected(id); }}
+      onPatchPermit={(id, fields) => {
+        const j = store.raw.find((r) => r.id === id) || {};
+        const cur = j.permit || {};
+        store.patch(id, { permit: Object.assign({}, cur, fields) });
+        /* ตีกลับแล้วต้องเด้งกลับหาช่างคนที่ส่งมา ไม่งั้นงานค้างจนกว่าเขาจะบังเอิญเปิดดูเอง */
+        if (fields.status === "rejected" && cur.submittedTechId) {
+          notif.addNotif({
+            toTechId: cur.submittedTechId, type: "permit", jobId: id, jobName: j.name,
+            title: "ข้อมูลขออนุญาตถูกตีกลับ ต้องแก้ไข",
+            body: (j.code || "") + " · " + (fields.rejectReason || "ต้องแก้ไขข้อมูล"),
+          });
+        }
+      }} />
+  );
+
   const onSave = (rec) => {
     const prev = store.raw.find((r) => r.id === rec.id);
     /* ประทับคนเปิดงานไว้ตอนบันทึกครั้งแรก — ขอบเขต "เฉพาะงานที่ตัวเองเปิด" ใช้ค่านี้ */
@@ -393,7 +432,8 @@ function App() {
     setDelAsk(j);
   };
   // หน้ารายการงานที่ใช้เจาะดู — table เฉพาะ admin, role อื่นใช้บอร์ดงานแทน
-  const listView = () => (navForRole(role, techId).some((n) => n.key === "table") ? "table" : "board");
+  const navItems = React.useMemo(() => navForRole(role, techId), [role, techId]);
+  const listView = () => (navItems.some((n) => n.key === "table") ? "table" : "board");
   const goStage = (key) => { setStageFilter(key); setQuickFilter(null); setView(listView()); };
   const goKpi = (key) => { setQuickFilter(key); setStageFilter(null); setTypeFilter("all"); setDelayedOnly(false); setView(listView()); };
 
@@ -447,7 +487,7 @@ function App() {
             onAdvance={(j) => store.advance(j.id)} />
         ) : (
         <React.Fragment>
-        <Header view={view} ownOnly={ownOnly} count={filtered.length} total={jobs.length}
+        <Header view={view} navList={navItems} plain={permitPage} subtitle={permitPage ? permitHead : null} ownOnly={ownOnly} count={filtered.length} total={jobs.length}
           search={search} setSearch={setSearch}
           typeFilter={typeFilter} setTypeFilter={setTypeFilter}
           delayedOnly={delayedOnly} setDelayedOnly={setDelayedOnly}
@@ -464,25 +504,12 @@ function App() {
 
         <div className="app-content" style={view === "board" ? { display: "flex", flexDirection: "column", minHeight: 0 } : {}}>
           {view === "overview" && <OverviewView jobs={filtered} schedule={myScheduleItems} onOpen={openJob} onStage={goStage} onKpi={goKpi} stock={stock} />}
-          {view === "board" && <KanbanView jobs={filtered} onOpen={openJob} onMoveStage={(id, s) => store.setStage(id, s)} />}
+          {view === "board" && (permitOnly ? permitView : <KanbanView jobs={filtered} onOpen={openJob} onMoveStage={(id, s) => store.setStage(id, s)} />)}
           {view === "table" && <TableView jobs={filtered} onOpen={openJob}
             onEdit={(j) => setForm({ job: store.raw.find((r) => r.id === j.id), isNew: false })}
             onDelete={onDelete} onSetMat={store.setMat} onSetStage={(id, s) => store.setStage(id, s)}
             trashCount={can(role, "delJob") ? store.trash.length : 0} onOpenTrash={can(role, "delJob") ? () => setTrashOpen(true) : null} />}
-          {view === "permit" && <PermitQueueView jobs={jobs} currentUser={auth.current} onOpenJob={(id) => { setView(listView()); setSelected(id); }}
-            onPatchPermit={(id, fields) => {
-              const j = store.raw.find((r) => r.id === id) || {};
-              const cur = j.permit || {};
-              store.patch(id, { permit: Object.assign({}, cur, fields) });
-              /* ตีกลับแล้วต้องเด้งกลับหาช่างคนที่ส่งมา ไม่งั้นงานค้างจนกว่าเขาจะบังเอิญเปิดดูเอง */
-              if (fields.status === "rejected" && cur.submittedTechId) {
-                notif.addNotif({
-                  toTechId: cur.submittedTechId, type: "permit", jobId: id, jobName: j.name,
-                  title: "ข้อมูลขออนุญาตถูกตีกลับ ต้องแก้ไข",
-                  body: (j.code || "") + " · " + (fields.rejectReason || "ต้องแก้ไขข้อมูล"),
-                });
-              }
-            }} />}
+          {view === "permit" && permitView}
           {view === "report" && <ReportView jobs={filtered} onOpen={openJob} />}
           {view === "survey" && <SurveyView jobs={filtered} role={role} onOpen={openSurvey}
             onToggleSkip={(can(role, "doSurvey") || can(role, "dispatch") || can(role, "editJob")) ? (j) => {
@@ -733,14 +760,15 @@ function TechFilter({ value, onChange, techs, counts, nameOf }) {
   );
 }
 
-function Header({ view, ownOnly, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, quickFilter, setQuickFilter, techFilter, setTechFilter, techCounts, techs, onAdd, canAdd, onMap, showBell, unread, notifItems, lateAlerts, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen }) {
-  const nav = NAV.find((n) => n.key === view);
+function Header({ view, navList, plain, subtitle, ownOnly, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, quickFilter, setQuickFilter, techFilter, setTechFilter, techCounts, techs, onAdd, canAdd, onMap, showBell, unread, notifItems, lateAlerts, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen }) {
+  const nav = navList.find((n) => n.key === view) || NAV.find((n) => n.key === view);
   const QUICK_LABELS = { active: "กำลังดำเนินการ", delayed: "ล่าช้า", ready: "อุปกรณ์พร้อมติดตั้ง", battery: "มีแบตเตอรี่" };
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [stageOpen, setStageOpen] = React.useState(() => localStorage.getItem("sf_stage_filteropen") !== "0");
   const toggleStage = () => setStageOpen((v) => { localStorage.setItem("sf_stage_filteropen", v ? "0" : "1"); return !v; });
   // มือถือ: ซ่อนแถบกรองขั้นงาน (ปุ่ม + ชิป) ทุกหน้า เพื่อประหยัดพื้นที่หัว
-  const showStageBar = view !== "overview" && !isMobile;
+  /* หน้าขออนุญาตไม่ใช้ตัวกรองขั้นงานติดตั้ง — งานที่เข้ามาถึงหน้านี้คืองานที่ติดตั้งเสร็จหมดแล้ว */
+  const showStageBar = view !== "overview" && !isMobile && !plain;
   // มือถือ: ช่องค้นหายุบเป็นปุ่มสีเขียว กดแล้วค่อยขยายเป็นช่องพิมพ์ (ประหยัดพื้นที่หัว)
   const [searchOpen, setSearchOpen] = React.useState(false);
   const searchRef = React.useRef(null);
@@ -761,8 +789,7 @@ function Header({ view, ownOnly, count, total, search, setSearch, typeFilter, se
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1 className="page-title">{nav.th}</h1>
           <p className="page-sub">
-            แสดง <strong>{count}</strong> จาก {total} งาน
-            {ownOnly && " · เฉพาะงานของคุณ"}
+            {subtitle || <React.Fragment>แสดง <strong>{count}</strong> จาก {total} งาน{ownOnly && " · เฉพาะงานของคุณ"}</React.Fragment>}
             {stageFilter && <span> · กรอง: {stageOf(stageFilter).th} <button onClick={() => setStageFilter(null)} className="clear-chip">ล้าง ✕</button></span>}
             {quickFilter && <span> · กรอง: {QUICK_LABELS[quickFilter]} <button onClick={() => setQuickFilter(null)} className="clear-chip">ล้าง ✕</button></span>}
             {techFilter && <span> · ช่าง: {techName(techFilter)} <button onClick={() => setTechFilter(null)} className="clear-chip">ล้าง ✕</button></span>}
@@ -817,7 +844,7 @@ function Header({ view, ownOnly, count, total, search, setSearch, typeFilter, se
         </div>
       </div>
       {/* มือถือ: เหลือไว้แค่ตัวกรองช่าง (ตัวอื่นซ่อนเพื่อประหยัดพื้นที่หัวเหมือนเดิม) */}
-      {(!isMobile || showTechFilter) && (
+      {!plain && (!isMobile || showTechFilter) && (
       <div className="header-filters">
         {!isMobile && <Segmented value={typeFilter} onChange={setTypeFilter}
           options={[{ value: "all", label: "ทั้งหมด" }, { value: "home", label: "งานบ้าน" }, { value: "project", label: "โครงการ" }]} />}

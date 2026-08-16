@@ -5,59 +5,232 @@
    สั่งออกเป็น PDF ชุดเดียวไปแนบยื่นการไฟฟ้า แล้วเดินสถานะจนอนุมัติ
    ============================================================ */
 
-const PERMIT_TABS = [
-  { key: "sent",     th: "รอรับงาน" },
-  { key: "filing",   th: "กำลังยื่น" },
-  { key: "rejected", th: "ตีกลับ" },
-  { key: "approved", th: "อนุมัติแล้ว" },
-  { key: "draft",    th: "ช่างยังเก็บไม่เสร็จ" },
+/* คอลัมน์บนบอร์ดขออนุญาต = เส้นทางเดินของงานหนึ่งใบ ตั้งแต่ติดตั้งเสร็จจนการไฟฟ้าอนุมัติ
+   คอลัมน์แรกไม่ใช่สถานะในข้อมูล แต่คือ "งานที่ติดตั้งเสร็จแล้วยังไม่มีใครแตะ" ซึ่งเป็นของที่ตกหล่นบ่อยที่สุด */
+const PERMIT_COLS = [
+  { key: "todo",     th: "ยังไม่เริ่มเก็บข้อมูล", color: "#94A3B8", soft: "var(--surface2)" },
+  { key: "draft",    th: "ช่างกำลังเก็บข้อมูล",  color: "#64748B", soft: "var(--surface2)" },
+  { key: "sent",     th: "รอฝ่ายขออนุญาตรับ",   color: "#F59E0B", soft: "var(--tint-amber-bg)" },
+  { key: "rejected", th: "ตีกลับให้ช่างแก้",     color: "#EF4444", soft: "var(--tint-red-bg)" },
+  { key: "filing",   th: "กำลังยื่นการไฟฟ้า",    color: "#3B82F6", soft: "#3B82F614" },
+  { key: "approved", th: "การไฟฟ้าอนุมัติแล้ว",  color: "#10B981", soft: "var(--primary-soft)" },
 ];
+const PERMIT_TABS = PERMIT_COLS.filter((c) => c.key !== "todo").map((c) => ({ key: c.key, th: c.th }));
 
-function PermitQueueView({ jobs, onOpenJob, onPatchPermit, currentUser }) {
+/* ลากได้เฉพาะช่วงที่ฝ่ายขออนุญาตเป็นเจ้าของเรื่องเอง
+   ตีกลับไม่ให้ลากปิดจบ เพราะต้องพิมพ์เหตุผลก่อน — ลากไปแล้วจะเปิดการ์ดให้พิมพ์แทน */
+const PERMIT_MOVES = { sent: ["filing", "rejected"], filing: ["approved", "rejected"], rejected: ["filing"] };
+const today10 = () => new Date().toISOString().slice(0, 10);
+
+function permitColOf(j) {
+  const st = j.permit && j.permit.status;
+  return st ? st : "todo";
+}
+
+/* การ์ดบนบอร์ด — ข้อมูลที่ฝ่ายขออนุญาตต้องใช้ตัดสินใจ ไม่ใช่สเปคงานติดตั้ง */
+function PermitCard({ job, onOpen, onDragStart, dragging, draggable }) {
+  const p = job.permit || {};
+  const st = PERMIT_STATUS[p.status] || null;
+  const pt = (PERMIT_TYPES.find((x) => x.key === p.permitType) || {}).th || "";
+  const days = p.submittedAt ? Math.floor((Date.now() - new Date(p.submittedAt).getTime()) / 86400000) : 0;
+  const late = p.status === "sent" && days >= 3;   /* ค้างเกิน 3 วัน = ควรรีบรับ */
+  return (
+    <div draggable={!!draggable} onDragStart={(e) => draggable && onDragStart(e, job)} onClick={() => onOpen(job)}
+      style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "12px 13px",
+        cursor: draggable ? "grab" : "pointer", boxShadow: "var(--shadow-sm)", opacity: dragging ? .4 : 1,
+        borderLeft: "3px solid " + (st ? st.color : "var(--border-strong)"),
+        transition: "box-shadow .16s, transform .16s" }}
+      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 8px 22px rgba(8,20,14,.09)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "var(--shadow-sm)"; e.currentTarget.style.transform = "none"; }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 6 }}>
+        <span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, color: "var(--text-3)" }}>{job.code}</span>
+        {late && <span style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", background: "var(--tint-red-bg2)", padding: "1px 7px", borderRadius: 99 }}>ค้าง {days} วัน</span>}
+      </div>
+      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3, marginBottom: 3 }}>{job.name}</div>
+      <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 9, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <Icon name="pin" size={11} style={{ verticalAlign: -1 }} /> {job.province || "—"}
+        {p.auth ? " · " + p.auth : ""}{p.branch ? " " + p.branch : ""}
+      </div>
+      <div style={{ display: "flex", gap: 5, flexWrap: "wrap", fontSize: 10.5, color: "var(--text-2)" }}>
+        {pt && <span style={{ background: "var(--surface2)", padding: "3px 8px", borderRadius: 7 }}>{pt}</span>}
+        <span style={{ background: "var(--surface2)", padding: "3px 8px", borderRadius: 7, fontFamily: "var(--mono)" }}>{p.kwp || job.kw || "—"} kWp</span>
+        {p.reqNo && <span style={{ background: "var(--surface2)", padding: "3px 8px", borderRadius: 7, fontFamily: "var(--mono)" }}>คำร้อง {p.reqNo}</span>}
+      </div>
+      {p.status === "rejected" && p.rejectReason && (
+        <div style={{ marginTop: 9, fontSize: 11, lineHeight: 1.45, color: "var(--tint-red-tx)", background: "var(--tint-red-bg)", borderRadius: 8, padding: "6px 8px",
+          display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>↩ {p.rejectReason}</div>
+      )}
+      <div style={{ marginTop: 9, paddingTop: 9, borderTop: "1px solid var(--border)", fontSize: 10.5, color: "var(--text-3)" }}>
+        {!p.status ? "ติดตั้งเสร็จแล้ว · ยังไม่มีชุดข้อมูลขออนุญาต"
+          : p.status === "approved" ? "อนุมัติ " + (p.approvedDate ? thDate(p.approvedDate, true) : "—")
+          : p.status === "filing"   ? "ยื่นเมื่อ " + (p.filedDate ? thDate(p.filedDate, true) : "—")
+          : p.submittedAt ? "ช่างส่ง " + thDate(String(p.submittedAt).slice(0, 10), true) + (p.submittedBy ? " · " + p.submittedBy : "")
+          : "ยังไม่ได้ส่ง"}
+      </div>
+    </div>
+  );
+}
+
+function PermitQueueView({ jobs, search, onOpenJob, onPatchPermit, currentUser }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const [mode, setMode] = React.useState(() => { try { return localStorage.getItem("sf_permit_view") || "board"; } catch (e) { return "board"; } });
   const [tab, setTab] = React.useState("sent");
   const [open, setOpen] = React.useState(null);   // job ที่กำลังเปิดดู
+  const [drag, setDrag] = React.useState(null);
+  const [over, setOver] = React.useState(null);
+  const setModeSave = (m) => { setMode(m); try { localStorage.setItem("sf_permit_view", m); } catch (e) {} };
+
+  /* ช่องค้นหาบนหัวหน้าใช้กับบอร์ดนี้ด้วย — ชื่อลูกค้า รหัสงาน จังหวัด หรือเลขคำร้อง */
+  const pool = React.useMemo(() => {
+    const q = String(search || "").trim().toLowerCase();
+    if (!q) return jobs;
+    return jobs.filter((j) => ((j.name || "") + " " + (j.code || "") + " " + (j.province || "") + " " +
+      ((j.permit || {}).reqNo || "") + " " + ((j.permit || {}).ca || "")).toLowerCase().includes(q));
+  }, [jobs, search]);
 
   /* งานที่มีชุดข้อมูลขออนุญาตแล้วเท่านั้น — งานที่ช่างยังไม่แตะจะไม่มารกคิว */
   const withPermit = React.useMemo(
-    () => jobs.filter((j) => j.permit && j.permit.status),
-    [jobs]
+    () => pool.filter((j) => j.permit && j.permit.status),
+    [pool]
   );
-  const counts = React.useMemo(() => {
-    const c = {};
-    withPermit.forEach((j) => { const k = j.permit.status; c[k] = (c[k] || 0) + 1; });
-    return c;
-  }, [withPermit]);
-
-  const shown = React.useMemo(() => withPermit
-    .filter((j) => j.permit.status === tab)
-    .sort((a, b) => String(b.permit.submittedAt || b.permit.updatedAt || "").localeCompare(String(a.permit.submittedAt || a.permit.updatedAt || ""))),
-    [withPermit, tab]);
-
   /* งานติดตั้งที่เสร็จแล้วแต่ยังไม่มีใครเริ่มเก็บข้อมูลขออนุญาต — เตือนไว้ไม่ให้ตกหล่น */
   const notStarted = React.useMemo(
-    () => jobs.filter((j) => j.stage === "done" && !(j.permit && j.permit.status)),
-    [jobs]
+    () => pool.filter((j) => j.stage === "done" && !(j.permit && j.permit.status)),
+    [pool]
   );
+  const counts = React.useMemo(() => {
+    const c = { todo: notStarted.length };
+    withPermit.forEach((j) => { const k = j.permit.status; c[k] = (c[k] || 0) + 1; });
+    return c;
+  }, [withPermit, notStarted]);
 
+  const byCol = React.useCallback((key) => {
+    const arr = key === "todo" ? notStarted.slice() : withPermit.filter((j) => j.permit.status === key);
+    return arr.sort((a, b) => String((b.permit || {}).submittedAt || (b.permit || {}).updatedAt || b.code || "")
+      .localeCompare(String((a.permit || {}).submittedAt || (a.permit || {}).updatedAt || a.code || "")));
+  }, [withPermit, notStarted]);
+
+  const shown = React.useMemo(() => byCol(tab), [byCol, tab]);
   const openJob = open ? jobs.find((j) => j.id === open) || null : null;
 
+  /* ลากการ์ดข้ามคอลัมน์ = เดินสถานะ · ประทับวันให้อัตโนมัติเหมือนกดปุ่มในการ์ด */
+  const canDrop = (from, to) => from !== to && (PERMIT_MOVES[from] || []).indexOf(to) !== -1;
+  const onDrop = (to) => {
+    const j = drag && jobs.find((x) => x.id === drag);
+    setDrag(null); setOver(null);
+    if (!j) return;
+    const p = j.permit || {};
+    if (!canDrop(p.status, to)) return;
+    if (to === "rejected") { setOpen(j.id); return; }   // ตีกลับต้องมีเหตุผล — เปิดการ์ดให้พิมพ์
+    const extra = { byAdmin: (currentUser && currentUser.name) || "", statusAt: new Date().toISOString() };
+    if (to === "filing")   { extra.rejectReason = null; if (!p.filedDate) extra.filedDate = today10(); }
+    if (to === "approved") { if (!p.approvedDate) extra.approvedDate = today10(); }
+    onPatchPermit(j.id, Object.assign({ status: to }, extra));
+  };
+  const cardOpen = (j) => { if (j.permit && j.permit.status) setOpen(j.id); else onOpenJob && onOpenJob(j.id); };
+
+  const modeSwitch = (
+    <div style={{ display: "flex", gap: 3, padding: 3, borderRadius: 10, background: "var(--surface2)", flexShrink: 0 }}>
+      {[["board", "บอร์ด", "kanban"], ["list", "รายการ", "list"]].map((x) => (
+        <button key={x[0]} onClick={() => setModeSave(x[0])}
+          style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 11px", borderRadius: 8, border: "none", cursor: "pointer",
+            fontFamily: "inherit", fontSize: 12, fontWeight: 700, background: mode === x[0] ? "var(--surface)" : "transparent",
+            color: mode === x[0] ? "var(--primary-dark)" : "var(--text-3)", boxShadow: mode === x[0] ? "0 1px 3px rgba(8,20,14,.12)" : "none" }}>
+          <Icon name={x[2]} size={13} color={mode === x[0] ? "var(--primary-dark)" : "var(--text-3)"} />{x[1]}
+        </button>
+      ))}
+    </div>
+  );
+
+  const review = openJob ? <PermitReview job={openJob} currentUser={currentUser} onClose={() => setOpen(null)}
+    onOpenJob={() => { setOpen(null); onOpenJob && onOpenJob(openJob.id); }}
+    onPatch={(fields) => onPatchPermit(openJob.id, fields)} /> : null;
+
+  /* ── โหมดบอร์ด ── */
+  if (mode === "board") {
+    if (isMobile) {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>{modeSwitch}</div>
+          <PermitBoardMobile cols={PERMIT_COLS} byCol={byCol} counts={counts} onOpen={cardOpen} />
+          {review}
+        </div>
+      );
+    }
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, minHeight: 0, flex: 1 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+          <span style={{ fontSize: 12, color: "var(--text-3)", flex: 1, minWidth: 0 }}>
+            ลากการ์ดข้ามคอลัมน์เพื่อเดินสถานะ · ลากไป “ตีกลับ” จะเปิดการ์ดให้พิมพ์เหตุผลก่อน
+          </span>
+          {modeSwitch}
+        </div>
+        <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 12, minHeight: 0, flex: 1 }}>
+          {PERMIT_COLS.map((c) => {
+            const col = byCol(c.key);
+            const dragging = drag ? (jobs.find((x) => x.id === drag) || null) : null;
+            const ok = dragging ? canDrop((dragging.permit || {}).status, c.key) : false;
+            const isOver = over === c.key && ok;
+            return (
+              <div key={c.key}
+                onDragOver={(e) => { if (!ok) return; e.preventDefault(); setOver(c.key); }}
+                onDragLeave={() => setOver((o) => (o === c.key ? null : o))}
+                onDrop={() => onDrop(c.key)}
+                style={{ width: 268, flexShrink: 0, display: "flex", flexDirection: "column", borderRadius: 18,
+                  background: isOver ? c.soft : "var(--surface2)", border: "1px solid " + (isOver ? c.color : "var(--border)"),
+                  opacity: drag && !ok ? .55 : 1, transition: "background .15s, border-color .15s, opacity .15s" }}>
+                <div style={{ padding: "13px 14px", display: "flex", alignItems: "center", justifyContent: "space-between",
+                  borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 1,
+                  background: isOver ? c.soft : "var(--surface2)", borderRadius: "17px 17px 0 0" }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: 99, background: c.color, flexShrink: 0 }} />
+                    <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: ".05em", color: "var(--text-2)",
+                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.th}</span>
+                  </span>
+                  <span style={{ fontFamily: "var(--display)", fontSize: 15, fontWeight: 700, letterSpacing: "-.02em",
+                    color: col.length ? "var(--text-1)" : "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{col.length}</span>
+                </div>
+                <div style={{ padding: 11, display: "flex", flexDirection: "column", gap: 11, overflowY: "auto", flex: 1, minHeight: 80 }}>
+                  {col.map((j) => (
+                    <PermitCard key={j.id} job={j} onOpen={cardOpen} dragging={drag === j.id}
+                      draggable={!!PERMIT_MOVES[permitColOf(j)]}
+                      onDragStart={(e, job) => { setDrag(job.id); e.dataTransfer.effectAllowed = "move"; }} />
+                  ))}
+                  {col.length === 0 && (
+                    <div style={{ padding: "20px 0", textAlign: "center", fontSize: 12, color: "var(--text-3)", border: "1.5px dashed var(--border-strong)", borderRadius: 10 }}>
+                      {isOver ? "วางที่นี่" : "ว่าง"}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {review}
+      </div>
+    );
+  }
+
+  /* ── โหมดรายการ (ของเดิม) ── */
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <div className="cat-chip-row" style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>
-        {PERMIT_TABS.map((t) => {
-          const on = tab === t.key, st = PERMIT_STATUS[t.key];
-          return (
-            <button key={t.key} onClick={() => setTab(t.key)}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 99, cursor: "pointer",
-                fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0,
-                border: "1px solid " + (on ? "transparent" : "var(--border)"),
-                background: on ? st.color : "var(--surface)", color: on ? "#fff" : "var(--text-2)" }}>
-              {t.th}
-              <span style={{ fontSize: 11, fontFamily: "var(--mono)", fontWeight: 800, opacity: .8 }}>{counts[t.key] || 0}</span>
-            </button>
-          );
-        })}
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div className="cat-chip-row" style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2, flex: 1, minWidth: 0 }}>
+          {PERMIT_TABS.map((t) => {
+            const on = tab === t.key, st = PERMIT_STATUS[t.key];
+            return (
+              <button key={t.key} onClick={() => setTab(t.key)}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 99, cursor: "pointer",
+                  fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0,
+                  border: "1px solid " + (on ? "transparent" : "var(--border)"),
+                  background: on ? st.color : "var(--surface)", color: on ? "#fff" : "var(--text-2)" }}>
+                {t.th}
+                <span style={{ fontSize: 11, fontFamily: "var(--mono)", fontWeight: 800, opacity: .8 }}>{counts[t.key] || 0}</span>
+              </button>
+            );
+          })}
+        </div>
+        {modeSwitch}
       </div>
 
       {tab === "sent" && notStarted.length > 0 && (
@@ -79,37 +252,47 @@ function PermitQueueView({ jobs, onOpenJob, onPatchPermit, currentUser }) {
       )}
 
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(330px, 1fr))", gap: 12 }}>
-        {shown.map((j) => {
-          const p = j.permit, st = PERMIT_STATUS[p.status] || PERMIT_STATUS.draft;
-          const pt = (PERMIT_TYPES.find((x) => x.key === p.permitType) || {}).th || "—";
-          return (
-            <button key={j.id} onClick={() => setOpen(j.id)}
-              style={{ textAlign: "left", fontFamily: "inherit", cursor: "pointer", padding: 14, borderRadius: 15,
-                background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "3px solid " + st.color,
-                display: "flex", flexDirection: "column", gap: 9 }}>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 9 }}>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: "block", fontSize: 14, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{j.name}</span>
-                  <span style={{ display: "block", fontSize: 11, color: "var(--text-3)", fontFamily: "var(--mono)", marginTop: 2 }}>{j.code} · {j.province || "—"}</span>
-                </span>
-                <span style={{ fontSize: 10.5, fontWeight: 700, color: st.color, background: st.color + "1a", padding: "3px 9px", borderRadius: 99, whiteSpace: "nowrap", flexShrink: 0 }}>{st.th}</span>
-              </div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", fontSize: 11, color: "var(--text-2)" }}>
-                <span style={{ background: "var(--surface2)", padding: "3px 8px", borderRadius: 7 }}>{p.auth || "—"}</span>
-                <span style={{ background: "var(--surface2)", padding: "3px 8px", borderRadius: 7 }}>{pt}</span>
-                <span style={{ background: "var(--surface2)", padding: "3px 8px", borderRadius: 7, fontFamily: "var(--mono)" }}>{p.kwp || "—"} kWp</span>
-              </div>
-              <div style={{ fontSize: 11, color: "var(--text-3)" }}>
-                {p.submittedAt ? "ช่างส่งเมื่อ " + thDate(String(p.submittedAt).slice(0, 10), true) + (p.submittedBy ? " โดย " + p.submittedBy : "") : "ยังไม่ได้ส่ง"}
-              </div>
-            </button>
-          );
-        })}
+        {shown.map((j) => <PermitCard key={j.id} job={j} onOpen={cardOpen} draggable={false} dragging={false} onDragStart={() => {}} />)}
       </div>
 
-      {openJob && <PermitReview job={openJob} currentUser={currentUser} onClose={() => setOpen(null)}
-        onOpenJob={() => { setOpen(null); onOpenJob && onOpenJob(openJob.id); }}
-        onPatch={(fields) => onPatchPermit(openJob.id, fields)} />}
+      {review}
+    </div>
+  );
+}
+
+/* บอร์ดบนมือถือ — พับเป็นแถวตามคอลัมน์ ลากไม่ได้ (ใช้ปุ่มในการ์ดแทน) */
+function PermitBoardMobile({ cols, byCol, counts, onOpen }) {
+  const [openCol, setOpenCol] = React.useState("sent");
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {cols.map((c) => {
+        const col = byCol(c.key);
+        const isOpen = openCol === c.key;
+        return (
+          <div key={c.key} style={{ borderRadius: 14, background: "var(--surface2)", border: "1px solid var(--border)", overflow: "hidden" }}>
+            <button onClick={() => setOpenCol(isOpen ? null : c.key)}
+              style={{ width: "100%", padding: "13px 14px", display: "flex", alignItems: "center", justifyContent: "space-between",
+                gap: 8, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+                borderBottom: isOpen ? "1px solid var(--border)" : "none" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
+                <span style={{ width: 10, height: 10, borderRadius: 99, background: c.color, flexShrink: 0 }} />
+                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{c.th}</span>
+              </span>
+              <span style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                <span style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 600, color: c.color, background: c.color + "1a",
+                  minWidth: 24, height: 24, borderRadius: 99, display: "grid", placeItems: "center", padding: "0 7px" }}>{counts[c.key] || 0}</span>
+                <Icon name="chevronDown" size={17} color="var(--text-3)" style={{ transform: isOpen ? "none" : "rotate(-90deg)", transition: "transform .18s" }} />
+              </span>
+            </button>
+            {isOpen && (
+              <div style={{ padding: 11, display: "flex", flexDirection: "column", gap: 10 }}>
+                {col.map((j) => <PermitCard key={j.id} job={j} onOpen={onOpen} draggable={false} dragging={false} onDragStart={() => {}} />)}
+                {col.length === 0 && <div style={{ padding: "16px 0", textAlign: "center", fontSize: 12, color: "var(--text-3)" }}>ไม่มีงานในหมวดนี้</div>}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -528,4 +711,4 @@ function permitReportHTML(job, photos, docs) {
     "</section>" + photoPages + docPages + "</body></html>";
 }
 
-Object.assign(window, { PermitQueueView, PermitReview, permitReportHTML });
+Object.assign(window, { PermitQueueView, PermitReview, permitReportHTML, PermitCard, PERMIT_COLS });

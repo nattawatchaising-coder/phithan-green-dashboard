@@ -57,7 +57,12 @@ const NAV = [{
   icon: "file",
   perm: "viewAll"
 }];
-const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm));
+const isPermitOnly = roles => (roles || []).length > 0 && roles.every(r => (ROLE_ALIAS[r] || r) === "permit");
+const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm)).filter(n => !(isPermitOnly(roles) && n.key === "permit")).map(n => n.key === "board" && isPermitOnly(roles) ? Object.assign({}, n, {
+  th: "บอร์ดขออนุญาต",
+  en: "Permit Board",
+  icon: "shield"
+}) : n);
 const techKey = (j, known) => j.tech && (!known || known.has(j.tech)) ? j.tech : "__none";
 const matchTech = (j, f, known) => techKey(j, known) === f;
 const ACCENTS = {
@@ -516,6 +521,44 @@ function App() {
     setSelected(rec.id);
   };
   const selectedJob = jobs.find(j => j.id === selected) || null;
+  const permitOnly = isPermitOnly(role);
+  const permitHead = React.useMemo(() => {
+    let sent = 0,
+      filing = 0,
+      todo = 0;
+    jobs.forEach(j => {
+      const st = j.permit && j.permit.status;
+      if (st === "sent") sent++;else if (st === "filing") filing++;else if (!st && j.stage === "done") todo++;
+    });
+    return "รอรับงาน " + sent + " · กำลังยื่น " + filing + " · ยังไม่เริ่มเก็บข้อมูล " + todo;
+  }, [jobs]);
+  const permitPage = view === "permit" || permitOnly && view === "board";
+  const permitView = React.createElement(PermitQueueView, {
+    jobs: jobs,
+    search: search,
+    currentUser: auth.current,
+    onOpenJob: id => {
+      setView(listView());
+      setSelected(id);
+    },
+    onPatchPermit: (id, fields) => {
+      const j = store.raw.find(r => r.id === id) || {};
+      const cur = j.permit || {};
+      store.patch(id, {
+        permit: Object.assign({}, cur, fields)
+      });
+      if (fields.status === "rejected" && cur.submittedTechId) {
+        notif.addNotif({
+          toTechId: cur.submittedTechId,
+          type: "permit",
+          jobId: id,
+          jobName: j.name,
+          title: "ข้อมูลขออนุญาตถูกตีกลับ ต้องแก้ไข",
+          body: (j.code || "") + " · " + (fields.rejectReason || "ต้องแก้ไขข้อมูล")
+        });
+      }
+    }
+  });
   const onSave = rec => {
     const prev = store.raw.find(r => r.id === rec.id);
     if (!prev && !rec.createdBy && auth.current) {
@@ -545,7 +588,8 @@ function App() {
     }
     setDelAsk(j);
   };
-  const listView = () => navForRole(role, techId).some(n => n.key === "table") ? "table" : "board";
+  const navItems = React.useMemo(() => navForRole(role, techId), [role, techId]);
+  const listView = () => navItems.some(n => n.key === "table") ? "table" : "board";
   const goStage = key => {
     setStageFilter(key);
     setQuickFilter(null);
@@ -646,6 +690,9 @@ function App() {
     onAdvance: j => store.advance(j.id)
   }) : React.createElement(React.Fragment, null, React.createElement(Header, {
     view: view,
+    navList: navItems,
+    plain: permitPage,
+    subtitle: permitPage ? permitHead : null,
     ownOnly: ownOnly,
     count: filtered.length,
     total: jobs.length,
@@ -696,11 +743,11 @@ function App() {
     onStage: goStage,
     onKpi: goKpi,
     stock: stock
-  }), view === "board" && React.createElement(KanbanView, {
+  }), view === "board" && (permitOnly ? permitView : React.createElement(KanbanView, {
     jobs: filtered,
     onOpen: openJob,
     onMoveStage: (id, s) => store.setStage(id, s)
-  }), view === "table" && React.createElement(TableView, {
+  })), view === "table" && React.createElement(TableView, {
     jobs: filtered,
     onOpen: openJob,
     onEdit: j => setForm({
@@ -712,31 +759,7 @@ function App() {
     onSetStage: (id, s) => store.setStage(id, s),
     trashCount: can(role, "delJob") ? store.trash.length : 0,
     onOpenTrash: can(role, "delJob") ? () => setTrashOpen(true) : null
-  }), view === "permit" && React.createElement(PermitQueueView, {
-    jobs: jobs,
-    currentUser: auth.current,
-    onOpenJob: id => {
-      setView(listView());
-      setSelected(id);
-    },
-    onPatchPermit: (id, fields) => {
-      const j = store.raw.find(r => r.id === id) || {};
-      const cur = j.permit || {};
-      store.patch(id, {
-        permit: Object.assign({}, cur, fields)
-      });
-      if (fields.status === "rejected" && cur.submittedTechId) {
-        notif.addNotif({
-          toTechId: cur.submittedTechId,
-          type: "permit",
-          jobId: id,
-          jobName: j.name,
-          title: "ข้อมูลขออนุญาตถูกตีกลับ ต้องแก้ไข",
-          body: (j.code || "") + " · " + (fields.rejectReason || "ต้องแก้ไขข้อมูล")
-        });
-      }
-    }
-  }), view === "report" && React.createElement(ReportView, {
+  }), view === "permit" && permitView, view === "report" && React.createElement(ReportView, {
     jobs: filtered,
     onOpen: openJob
   }), view === "survey" && React.createElement(SurveyView, {
@@ -1293,6 +1316,9 @@ function TechFilter({
 }
 function Header({
   view,
+  navList,
+  plain,
+  subtitle,
   ownOnly,
   count,
   total,
@@ -1325,7 +1351,7 @@ function Header({
   onMarkAll,
   onMenuOpen
 }) {
-  const nav = NAV.find(n => n.key === view);
+  const nav = navList.find(n => n.key === view) || NAV.find(n => n.key === view);
   const QUICK_LABELS = {
     active: "กำลังดำเนินการ",
     delayed: "ล่าช้า",
@@ -1338,7 +1364,7 @@ function Header({
     localStorage.setItem("sf_stage_filteropen", v ? "0" : "1");
     return !v;
   });
-  const showStageBar = view !== "overview" && !isMobile;
+  const showStageBar = view !== "overview" && !isMobile && !plain;
   const [searchOpen, setSearchOpen] = React.useState(false);
   const searchRef = React.useRef(null);
   React.useEffect(() => {
@@ -1374,7 +1400,7 @@ function Header({
     className: "page-title"
   }, nav.th), React.createElement("p", {
     className: "page-sub"
-  }, "\u0E41\u0E2A\u0E14\u0E07 ", React.createElement("strong", null, count), " \u0E08\u0E32\u0E01 ", total, " \u0E07\u0E32\u0E19", ownOnly && " · เฉพาะงานของคุณ", stageFilter && React.createElement("span", null, " \xB7 \u0E01\u0E23\u0E2D\u0E07: ", stageOf(stageFilter).th, " ", React.createElement("button", {
+  }, subtitle || React.createElement(React.Fragment, null, "\u0E41\u0E2A\u0E14\u0E07 ", React.createElement("strong", null, count), " \u0E08\u0E32\u0E01 ", total, " \u0E07\u0E32\u0E19", ownOnly && " · เฉพาะงานของคุณ"), stageFilter && React.createElement("span", null, " \xB7 \u0E01\u0E23\u0E2D\u0E07: ", stageOf(stageFilter).th, " ", React.createElement("button", {
     onClick: () => setStageFilter(null),
     className: "clear-chip"
   }, "\u0E25\u0E49\u0E32\u0E07 \u2715")), quickFilter && React.createElement("span", null, " \xB7 \u0E01\u0E23\u0E2D\u0E07: ", QUICK_LABELS[quickFilter], " ", React.createElement("button", {
@@ -1522,7 +1548,7 @@ function Header({
     size: 17,
     color: "#fff",
     sw: 2.4
-  }), React.createElement("span", null, "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E07\u0E32\u0E19")))), (!isMobile || showTechFilter) && React.createElement("div", {
+  }), React.createElement("span", null, "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E07\u0E32\u0E19")))), !plain && (!isMobile || showTechFilter) && React.createElement("div", {
     className: "header-filters"
   }, !isMobile && React.createElement(Segmented, {
     value: typeFilter,
