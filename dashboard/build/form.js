@@ -56,7 +56,8 @@ function JobForm({
   onClose,
   onManageTechs,
   onManageBrands,
-  jobs
+  jobs,
+  users
 }) {
   const SF = window.SF;
   const bdClose = window.useBackdropClose(onClose);
@@ -69,6 +70,17 @@ function JobForm({
       [k]: v
     })
   }));
+  const sellers = React.useMemo(() => (users || []).filter(u => u.active !== false && window.hasRole && window.hasRole(window.userRoles(u), "sales")).map(u => ({
+    id: u.id,
+    name: u.name || u.username || "—"
+  })), [users]);
+  const setSales = id => setF(p => {
+    const u = sellers.find(x => x.id === id);
+    return Object.assign({}, p, {
+      salesId: id || "",
+      salesName: u ? u.name : ""
+    });
+  });
   const setStageField = (k, which, v) => setF(p => {
     const prev = p.stageDates && p.stageDates[k];
     const cur = prev && typeof prev === "object" ? prev : {
@@ -423,7 +435,20 @@ function JobForm({
     value: f.laborCost == null ? "" : f.laborCost,
     onChange: e => set("laborCost", e.target.value === "" ? null : Number(e.target.value)),
     placeholder: "\u0E40\u0E0A\u0E48\u0E19 15000"
-  })), React.createElement("div", {
+  })), React.createElement(Field, {
+    label: "\u0E40\u0E0B\u0E25\u0E25\u0E4C\u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19"
+  }, React.createElement("select", {
+    style: inputStyle,
+    value: f.salesId || "",
+    onChange: e => setSales(e.target.value)
+  }, React.createElement("option", {
+    value: ""
+  }, "\u2014 \u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38 \u2014"), f.salesId && !sellers.some(x => x.id === f.salesId) && React.createElement("option", {
+    value: f.salesId
+  }, f.salesName || f.salesId), sellers.map(u => React.createElement("option", {
+    key: u.id,
+    value: u.id
+  }, u.name)))), React.createElement("div", {
     style: {
       gridColumn: "1 / -1"
     }

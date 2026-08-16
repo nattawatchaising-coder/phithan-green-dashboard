@@ -34,12 +34,21 @@ function useFormMobile(bp = 860) {
   return m;
 }
 
-function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrands, jobs }) {
+function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrands, jobs, users }) {
   const SF = window.SF;
   const bdClose = window.useBackdropClose(onClose);
   const [f, setF] = React.useState(() => JSON.parse(JSON.stringify(initial)));
   const set = (k, v) => setF((p) => Object.assign({}, p, { [k]: v }));
   const setMat = (k, v) => setF((p) => Object.assign({}, p, { mat: Object.assign({}, p.mat, { [k]: v }) }));
+  /* เซลล์เจ้าของงาน — งานที่แปลงมาจากลูกค้าสำรวจติดมาเองแล้ว (salesId) ส่วนงานที่เปิดมือต้องเลือกเอง
+     ช่างกับวิศวกรจะได้รู้ว่าถามเรื่องลูกค้ารายนี้ต้องถามใคร */
+  const sellers = React.useMemo(() => (users || [])
+    .filter((u) => u.active !== false && window.hasRole && window.hasRole(window.userRoles(u), "sales"))
+    .map((u) => ({ id: u.id, name: u.name || u.username || "—" })), [users]);
+  const setSales = (id) => setF((p) => {
+    const u = sellers.find((x) => x.id === id);
+    return Object.assign({}, p, { salesId: id || "", salesName: u ? u.name : "" });
+  });
   // stageDates[key] = { start, end } — รองรับค่าเก่าที่เป็น string (= วันเสร็จ)
   const setStageField = (k, which, v) => setF((p) => {
     const prev = p.stageDates && p.stageDates[k];
@@ -172,6 +181,16 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
               <Field label="ลิงก์ Trello (การ์ดงาน)" span><input style={inputStyle} value={f.trello || ""} onChange={(e) => set("trello", e.target.value.trim())} placeholder="https://trello.com/c/..." /></Field>
               <Field label="ทีมรับเหมา"><input style={inputStyle} value={f.contractor || ""} onChange={(e) => set("contractor", e.target.value)} placeholder="เช่น ทีมช่างสมศักดิ์" /></Field>
               <Field label="ค่าแรงติดตั้ง (บาท)"><input style={inputStyle} type="number" min="0" inputMode="numeric" value={f.laborCost == null ? "" : f.laborCost} onChange={(e) => set("laborCost", e.target.value === "" ? null : Number(e.target.value))} placeholder="เช่น 15000" /></Field>
+              <Field label="เซลล์เจ้าของงาน">
+                <select style={inputStyle} value={f.salesId || ""} onChange={(e) => setSales(e.target.value)}>
+                  <option value="">— ไม่ระบุ —</option>
+                  {/* งานเก่าที่เซลล์คนนั้นถูกปิดบัญชี/เปลี่ยนตำแหน่งไปแล้ว ต้องยังเห็นชื่อเดิมอยู่ ไม่ใช่กลายเป็นไม่ระบุ */}
+                  {f.salesId && !sellers.some((x) => x.id === f.salesId) && (
+                    <option value={f.salesId}>{f.salesName || f.salesId}</option>
+                  )}
+                  {sellers.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                </select>
+              </Field>
               <div style={{ gridColumn: "1 / -1" }}>
                 <Field label="ช่างผู้รับผิดชอบ">
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>

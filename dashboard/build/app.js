@@ -1117,6 +1117,7 @@ function App() {
     initial: form.job,
     isNew: form.isNew,
     jobs: jobs,
+    users: auth.users,
     onSave: onSave,
     onClose: () => setForm(null),
     onManageTechs: () => setTechMgr(true),

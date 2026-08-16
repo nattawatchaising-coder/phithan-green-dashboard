@@ -558,6 +558,10 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   </InfoRow>
                 </div>
                 <InfoRow label="ช่างผู้รับผิดชอบ"><TechAvatar techId={job.tech} size={24} showName /></InfoRow>
+                {/* ช่างกับวิศวกรต้องรู้ว่างานนี้ใครขายมา — เรื่องที่ตกลงกับลูกค้าไว้ต้องถามคนนั้น */}
+                <InfoRow label="เซลล์เจ้าของงาน">
+                  {job.salesName ? job.salesName : <span style={{ color: "var(--text-3)" }}>—</span>}
+                </InfoRow>
                 <InfoRow label="ประเภทงาน">{job.type === "home" ? "งานบ้าน" : "งานโครงการ"}</InfoRow>
                 {!roMode && <InfoRow label="ทีมรับเหมา">{job.contractor ? job.contractor : <span style={{ color: "var(--text-3)" }}>—</span>}</InfoRow>}
                 {!roMode && <InfoRow label="ค่าแรงติดตั้ง">{job.laborCost ? Number(job.laborCost).toLocaleString() + " บาท" : <span style={{ color: "var(--text-3)" }}>—</span>}</InfoRow>}

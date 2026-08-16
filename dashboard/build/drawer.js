@@ -1406,6 +1406,12 @@ function DetailDrawer({
     size: 24,
     showName: true
   })), React.createElement(InfoRow, {
+    label: "\u0E40\u0E0B\u0E25\u0E25\u0E4C\u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19"
+  }, job.salesName ? job.salesName : React.createElement("span", {
+    style: {
+      color: "var(--text-3)"
+    }
+  }, "\u2014")), React.createElement(InfoRow, {
     label: "\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E07\u0E32\u0E19"
   }, job.type === "home" ? "งานบ้าน" : "งานโครงการ"), !roMode && React.createElement(InfoRow, {
     label: "\u0E17\u0E35\u0E21\u0E23\u0E31\u0E1A\u0E40\u0E2B\u0E21\u0E32"
