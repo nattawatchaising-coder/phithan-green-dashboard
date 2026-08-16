@@ -125,6 +125,14 @@ function blankLead(leads) {
     status: "open",
     jobId: "",
     survey: null,
+    sstage: "new",
+    ownerId: "",
+    ownerName: "",
+    nextFollow: "",
+    expKwp: "",
+    expValue: "",
+    source: "",
+    contacts: [],
     createdAt: now,
     updatedAt: now
   };

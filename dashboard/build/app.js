@@ -16,11 +16,23 @@ const NAV = [{
   icon: "table",
   perm: "viewAll"
 }, {
+  key: "sales",
+  th: "บอร์ดขาย",
+  en: "Sales Board",
+  icon: "trend",
+  perm: "leads"
+}, {
   key: "leads",
   th: "ลูกค้าสำรวจ",
   en: "Survey Leads",
   icon: "user",
   perm: "leads"
+}, {
+  key: "saleskpi",
+  th: "ยอดขาย",
+  en: "Sales KPI",
+  icon: "grid",
+  perm: "price"
 }, {
   key: "dispatch",
   th: "จัดตารางสำรวจ",
@@ -58,6 +70,7 @@ const NAV = [{
   perm: "viewAll"
 }];
 const isPermitOnly = roles => (roles || []).length > 0 && roles.every(r => (ROLE_ALIAS[r] || r) === "permit");
+const isSalesOnly = roles => (roles || []).length > 0 && roles.every(r => (ROLE_ALIAS[r] || r) === "sales");
 const PERMIT_TODO = {
   key: "todo",
   th: "ยังไม่เริ่มเก็บข้อมูล",
@@ -66,10 +79,14 @@ const PERMIT_TODO = {
 };
 const permitStageKey = j => j && j.permit && j.permit.status || "todo";
 const permitStageOf = key => (window.PERMIT_COLS || []).find(c => c.key === key) || PERMIT_TODO;
-const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm)).filter(n => !(isPermitOnly(roles) && n.key === "permit")).map(n => n.key === "board" && isPermitOnly(roles) ? Object.assign({}, n, {
+const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm)).filter(n => !(isPermitOnly(roles) && n.key === "permit")).filter(n => !(isSalesOnly(roles) && n.key === "sales")).map(n => n.key === "board" && isPermitOnly(roles) ? Object.assign({}, n, {
   th: "บอร์ดขออนุญาต",
   en: "Permit Board",
   icon: "shield"
+}) : n).map(n => n.key === "board" && isSalesOnly(roles) ? Object.assign({}, n, {
+  th: "บอร์ดขาย",
+  en: "Sales Board",
+  icon: "trend"
 }) : n);
 const techKey = (j, known) => j.tech && (!known || known.has(j.tech)) ? j.tech : "__none";
 const matchTech = (j, f, known) => techKey(j, known) === f;
@@ -191,10 +208,12 @@ function App() {
   const ampStore = useAmpacityStore();
   const apptStore = useSurveyApptStore();
   const leadStore = useSurveyLeadStore();
+  const quoteStore = useQuoteStore();
   const fileFlags = useJobFileFlags();
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [view, setView] = React.useState("overview");
   const [permitReview, setPermitReview] = React.useState(null);
+  const [quoteOpen, setQuoteOpen] = React.useState(null);
   const [search, setSearch] = React.useState("");
   const [typeFilter, setTypeFilter] = React.useState("all");
   const [stageFilter, setStageFilter] = React.useState(null);
@@ -518,11 +537,23 @@ function App() {
     if (lead.phase) rec.phase = lead.phase;
     if (lead.roof) rec.roof = lead.roof;
     if (lead.survey) rec.survey = lead.survey;
+    if (+lead.expKwp > 0) rec.kw = +lead.expKwp;
+    if (lead.ownerId) {
+      rec.salesId = lead.ownerId;
+      rec.salesName = lead.ownerName || "";
+    }
     store.upsert(rec);
     if (window.moveSurveyPhotos) window.moveSurveyPhotos(lead.id, rec.id);
-    leadStore.patch(lead.id, {
-      status: "won",
+    leadStore.patch(lead.id, Object.assign({
       jobId: rec.id
+    }, window.salesStagePatch ? window.salesStagePatch("won") : {
+      status: "won"
+    }));
+    (quoteStore.quotes || []).forEach(q => {
+      if (q.leadId === lead.id) quoteStore.patch(q.id, {
+        jobId: rec.id,
+        refCode: rec.code
+      });
     });
     (apptStore.appts || []).forEach(a => {
       if (a.leadId === lead.id) apptStore.upsert(Object.assign({}, a, {
@@ -532,6 +563,54 @@ function App() {
     });
     setView(listView());
     setSelected(rec.id);
+  };
+  const openQuoteForLead = (lead, existing) => {
+    if (existing) {
+      setQuoteOpen({
+        quote: existing,
+        jobId: lead.jobId || ""
+      });
+      return;
+    }
+    setQuoteOpen({
+      jobId: lead.jobId || "",
+      quote: quoteStore.blank({
+        kind: "lead",
+        id: lead.id,
+        code: lead.code,
+        name: lead.name,
+        phone: lead.phone,
+        address: lead.address,
+        province: lead.province,
+        kwp: +lead.expKwp || 0,
+        ownerId: lead.ownerId,
+        ownerName: lead.ownerName
+      }, auth.current)
+    });
+  };
+  const openQuoteForJob = (job, existing) => {
+    if (existing) {
+      setQuoteOpen({
+        quote: existing,
+        jobId: job.id
+      });
+      return;
+    }
+    setQuoteOpen({
+      jobId: job.id,
+      quote: quoteStore.blank({
+        kind: "job",
+        id: job.id,
+        code: job.code,
+        name: job.name,
+        phone: job.phone,
+        address: job.address,
+        province: job.province,
+        kwp: +job.kw || 0,
+        ownerId: job.salesId,
+        ownerName: job.salesName
+      }, auth.current)
+    });
   };
   const selectedJob = jobs.find(j => j.id === selected) || null;
   const permitOnly = isPermitOnly(role);
@@ -546,6 +625,7 @@ function App() {
     return "รอรับงาน " + sent + " · กำลังยื่น " + filing + " · ยังไม่เริ่มเก็บข้อมูล " + todo;
   }, [jobs]);
   const permitPage = view === "permit" || permitOnly && view === "board";
+  const salesPage = view === "sales" || isSalesOnly(role) && view === "board";
   const patchPermit = (id, fields) => {
     const j = store.raw.find(r => r.id === id) || {};
     const cur = j.permit || {};
@@ -573,6 +653,27 @@ function App() {
     onOpenReview: id => setPermitReview(id),
     onPatchPermit: patchPermit
   });
+  const salesOnly = isSalesOnly(role);
+  const salesBoard = React.createElement(SalesBoardView, {
+    leads: leadStore.leads,
+    quotes: quoteStore.quotes,
+    search: search,
+    currentUser: auth.current,
+    onOpenLead: () => setView("leads"),
+    onPatchLead: (id, fields) => leadStore.patch(id, fields)
+  });
+  const salesHead = React.useMemo(() => {
+    const L = leadStore.leads || [];
+    let live = 0,
+      late = 0;
+    L.forEach(l => {
+      const k = window.salesStageKey ? window.salesStageKey(l) : l.status || "open";
+      if (k === "won" || k === "lost") return;
+      live++;
+      if (window.sOverdue && window.sOverdue(l.nextFollow)) late++;
+    });
+    return "ยังไล่อยู่ " + live + " ราย · เลยวันติดตาม " + late + " ราย";
+  }, [leadStore.leads]);
   const onSave = rec => {
     const prev = store.raw.find(r => r.id === rec.id);
     if (!prev && !rec.createdBy && auth.current) {
@@ -687,11 +788,21 @@ function App() {
     leadStore: leadStore,
     appts: apptStore.appts,
     jobs: jobs,
+    users: auth.users,
+    currentUser: auth.current,
+    quotes: quoteStore.quotes,
     onMenuOpen: () => setSidebarOpen(true),
     onOpenSurvey: can(role, "doSurvey") || can(role, "dispatch") ? pseudo => openSurvey(pseudo) : null,
     onReport: pseudo => setReportJob(pseudo),
+    onOpenQuote: can(role, "price") ? openQuoteForLead : null,
     onConvert: convertLead,
     canConvert: can(role, "addJob")
+  }) : view === "saleskpi" ? React.createElement(SalesKpiView, {
+    leads: leadStore.leads,
+    quotes: quoteStore.quotes,
+    users: auth.users,
+    currentUser: auth.current,
+    onMenuOpen: () => setSidebarOpen(true)
   }) : view === "myschedule" ? React.createElement(MyScheduleView, {
     appts: apptStore.appts,
     jobs: jobs,
@@ -705,8 +816,8 @@ function App() {
   }) : React.createElement(React.Fragment, null, React.createElement(Header, {
     view: view,
     navList: navItems,
-    plain: permitPage,
-    subtitle: permitPage ? permitHead : null,
+    plain: permitPage || salesPage,
+    subtitle: permitPage ? permitHead : salesPage ? salesHead : null,
     ownOnly: ownOnly,
     count: filtered.length,
     total: jobs.length,
@@ -746,7 +857,7 @@ function App() {
     onMenuOpen: () => setSidebarOpen(true)
   }), React.createElement("div", {
     className: "app-content",
-    style: view === "board" ? {
+    style: view === "board" || view === "sales" ? {
       display: "flex",
       flexDirection: "column",
       minHeight: 0
@@ -758,11 +869,11 @@ function App() {
     onStage: goStage,
     onKpi: goKpi,
     stock: stock
-  }), view === "board" && (permitOnly ? permitView : React.createElement(KanbanView, {
+  }), view === "board" && (permitOnly ? permitView : salesOnly ? salesBoard : React.createElement(KanbanView, {
     jobs: filtered,
     onOpen: openJob,
     onMoveStage: (id, s) => store.setStage(id, s)
-  })), view === "table" && React.createElement(TableView, {
+  })), view === "sales" && salesBoard, view === "table" && React.createElement(TableView, {
     jobs: filtered,
     onOpen: openJob,
     onEdit: j => setForm({
@@ -820,6 +931,9 @@ function App() {
     onPermit: can(role, "editJob") && !permitOnly ? () => setPermitJob(selectedJob) : null,
     permitMode: permitOnly,
     onOpenReview: permitOnly && selectedJob ? () => setPermitReview(selectedJob.id) : null,
+    salesMode: salesOnly,
+    quotes: quoteStore.quotes,
+    onOpenQuote: can(role, "price") && selectedJob ? q => openQuoteForJob(selectedJob, q) : null,
     priceMap: can(role, "price") ? effPriceMap : null,
     onEdit: id => {
       setSelected(null);
@@ -827,6 +941,25 @@ function App() {
         job: store.raw.find(r => r.id === id),
         isNew: false
       });
+    }
+  }), quoteOpen && React.createElement(QuoteEditor, {
+    quote: quoteOpen.quote,
+    currentUser: auth.current,
+    job: quoteOpen.jobId ? jobs.find(x => x.id === quoteOpen.jobId) : null,
+    onClose: () => setQuoteOpen(null),
+    onSave: q => {
+      quoteStore.upsert(q);
+      const l = q.leadId ? (leadStore.leads || []).find(x => x.id === q.leadId) : null;
+      if (l && window.salesStagePatch) {
+        const cur = window.salesStageKey(l);
+        const to = q.status === "accepted" ? "won" : q.status === "rejected" ? "lost" : q.status === "sent" && (cur === "new" || cur === "contact" || cur === "survey") ? "quoted" : null;
+        if (to && to !== cur) leadStore.patch(l.id, window.salesStagePatch(to));
+      }
+      setQuoteOpen(null);
+    },
+    onDelete: () => {
+      quoteStore.remove(quoteOpen.quote.id);
+      setQuoteOpen(null);
     }
   }), permitReview && (() => {
     const rj = jobs.find(x => x.id === permitReview);

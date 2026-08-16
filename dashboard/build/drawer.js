@@ -1164,9 +1164,13 @@ function DetailDrawer({
   onPermit,
   priceMap,
   permitMode,
-  onOpenReview
+  onOpenReview,
+  salesMode,
+  quotes,
+  onOpenQuote
 }) {
   const SF = window.SF;
+  const roMode = permitMode || salesMode;
   const open = !!job;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const media = useJobMedia(job ? job.id : null);
@@ -1403,13 +1407,13 @@ function DetailDrawer({
     showName: true
   })), React.createElement(InfoRow, {
     label: "\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E07\u0E32\u0E19"
-  }, job.type === "home" ? "งานบ้าน" : "งานโครงการ"), !permitMode && React.createElement(InfoRow, {
+  }, job.type === "home" ? "งานบ้าน" : "งานโครงการ"), !roMode && React.createElement(InfoRow, {
     label: "\u0E17\u0E35\u0E21\u0E23\u0E31\u0E1A\u0E40\u0E2B\u0E21\u0E32"
   }, job.contractor ? job.contractor : React.createElement("span", {
     style: {
       color: "var(--text-3)"
     }
-  }, "\u2014")), !permitMode && React.createElement(InfoRow, {
+  }, "\u2014")), !roMode && React.createElement(InfoRow, {
     label: "\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"
   }, job.laborCost ? Number(job.laborCost).toLocaleString() + " บาท" : React.createElement("span", {
     style: {
@@ -1448,6 +1452,10 @@ function DetailDrawer({
   }))))), permitMode && React.createElement(PermitJobSummary, {
     job: job,
     onOpenReview: onOpenReview
+  }), salesMode && window.SalesJobSummary && React.createElement(window.SalesJobSummary, {
+    job: job,
+    quotes: quotes,
+    onOpenQuote: onOpenQuote
   }), React.createElement("div", {
     style: {
       background: "var(--surface)",
@@ -1795,7 +1803,7 @@ function DetailDrawer({
     name: "arrowRight",
     size: 16,
     color: "var(--text-3)"
-  })), window.Plan3DEditor && canDesign && !permitMode && React.createElement("button", {
+  })), window.Plan3DEditor && canDesign && !roMode && React.createElement("button", {
     onClick: () => setPlan3dOpen(true),
     style: {
       width: "100%",
@@ -1847,7 +1855,7 @@ function DetailDrawer({
     name: "arrowRight",
     size: 16,
     color: "var(--text-3)"
-  })), window.SolarDesignHost && !permitMode && React.createElement("button", {
+  })), window.SolarDesignHost && !roMode && React.createElement("button", {
     onClick: () => setDesignOpen(true),
     style: {
       width: "100%",
@@ -1899,7 +1907,7 @@ function DetailDrawer({
     name: "arrowRight",
     size: 16,
     color: "var(--text-3)"
-  })), !permitMode && React.createElement("button", {
+  })), !roMode && React.createElement("button", {
     onClick: () => setBoqOpen(true),
     style: {
       width: "100%",
@@ -1951,7 +1959,7 @@ function DetailDrawer({
     name: "arrowRight",
     size: 16,
     color: "var(--text-3)"
-  })), !permitMode && React.createElement("div", {
+  })), !roMode && React.createElement("div", {
     style: {
       marginBottom: 24
     }
@@ -2068,11 +2076,11 @@ function DetailDrawer({
     }, m.th), React.createElement(MatChip, {
       status: job.mat[m.key]
     }));
-  }))), !permitMode && React.createElement(JobMaterialUsage, {
+  }))), !roMode && React.createElement(JobMaterialUsage, {
     job: job,
     stock: stock,
     currentUser: currentUser
-  }), !permitMode && React.createElement("div", {
+  }), !roMode && React.createElement("div", {
     style: {
       marginBottom: 20
     }
@@ -2094,7 +2102,7 @@ function DetailDrawer({
     color: "var(--text-2)"
   }), " Flow \u0E01\u0E32\u0E23\u0E17\u0E33\u0E07\u0E32\u0E19"), React.createElement(FlowTimeline, {
     job: job
-  })), !permitMode && React.createElement(JobFiles, {
+  })), !roMode && React.createElement(JobFiles, {
     media: media,
     currentUser: currentUser,
     canManage: canManage
@@ -2102,7 +2110,7 @@ function DetailDrawer({
     media: media,
     currentUser: currentUser,
     canManage: canManage,
-    readOnly: permitMode
+    readOnly: roMode
   }), React.createElement(JobComments, {
     media: media,
     currentUser: currentUser,
@@ -2156,7 +2164,7 @@ function DetailDrawer({
     name: "x",
     size: 18,
     color: "var(--text-2)"
-  }) : "ปิด"), !permitMode && React.createElement("button", {
+  }) : "ปิด"), !roMode && React.createElement("button", {
     onClick: () => onEdit(job.id),
     title: "\u0E41\u0E01\u0E49\u0E44\u0E02\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25",
     "aria-label": "\u0E41\u0E01\u0E49\u0E44\u0E02\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25",
@@ -2194,7 +2202,19 @@ function DetailDrawer({
       textAlign: "center",
       lineHeight: 1.4
     }
-  }, "\u0E14\u0E39\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27 \xB7 \u0E41\u0E01\u0E49\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E0A\u0E38\u0E14\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15"), !permitMode && job.stage !== "done" && React.createElement("button", {
+  }, "\u0E14\u0E39\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27 \xB7 \u0E41\u0E01\u0E49\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E0A\u0E38\u0E14\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15"), salesMode && React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 12,
+      color: "var(--text-3)",
+      textAlign: "center",
+      lineHeight: 1.4
+    }
+  }, "\u0E14\u0E39\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27 \xB7 \u0E44\u0E27\u0E49\u0E15\u0E2D\u0E1A\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E27\u0E48\u0E32\u0E07\u0E32\u0E19\u0E16\u0E36\u0E07\u0E44\u0E2B\u0E19\u0E41\u0E25\u0E49\u0E27"), !roMode && job.stage !== "done" && React.createElement("button", {
     onClick: handleAdvance,
     disabled: advancing,
     style: {

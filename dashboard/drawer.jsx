@@ -455,8 +455,10 @@ function PermitJobSummary({ job, onOpenReview }) {
   );
 }
 
-function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, canDesign, stock, onSaveBOQ, onSurvey, onSurveyReport, onPermit, priceMap, permitMode, onOpenReview }) {
+function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, canDesign, stock, onSaveBOQ, onSurvey, onSurveyReport, onPermit, priceMap, permitMode, onOpenReview, salesMode, quotes, onOpenQuote }) {
   const SF = window.SF;
+  // ฝ่ายขออนุญาตกับเซลล์เปิดใบงานได้ แต่ไม่ใช่คนทำงานหน้างาน — ซ่อนเครื่องมือช่างทั้งชุด
+  const roMode = permitMode || salesMode;
   const open = !!job;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const media = useJobMedia(job ? job.id : null); // รูป + คอมเมนต์ของงานนี้
@@ -557,8 +559,8 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                 </div>
                 <InfoRow label="ช่างผู้รับผิดชอบ"><TechAvatar techId={job.tech} size={24} showName /></InfoRow>
                 <InfoRow label="ประเภทงาน">{job.type === "home" ? "งานบ้าน" : "งานโครงการ"}</InfoRow>
-                {!permitMode && <InfoRow label="ทีมรับเหมา">{job.contractor ? job.contractor : <span style={{ color: "var(--text-3)" }}>—</span>}</InfoRow>}
-                {!permitMode && <InfoRow label="ค่าแรงติดตั้ง">{job.laborCost ? Number(job.laborCost).toLocaleString() + " บาท" : <span style={{ color: "var(--text-3)" }}>—</span>}</InfoRow>}
+                {!roMode && <InfoRow label="ทีมรับเหมา">{job.contractor ? job.contractor : <span style={{ color: "var(--text-3)" }}>—</span>}</InfoRow>}
+                {!roMode && <InfoRow label="ค่าแรงติดตั้ง">{job.laborCost ? Number(job.laborCost).toLocaleString() + " บาท" : <span style={{ color: "var(--text-3)" }}>—</span>}</InfoRow>}
                 {job.trello && (
                   <div style={{ gridColumn: "1 / -1" }}>
                     <InfoRow label="การ์ดงาน Trello">
@@ -571,6 +573,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               </div>
 
               {permitMode && <PermitJobSummary job={job} onOpenReview={onOpenReview} />}
+              {salesMode && window.SalesJobSummary && <window.SalesJobSummary job={job} quotes={quotes} onOpenQuote={onOpenQuote} />}
 
               {/* spec card */}
               <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: isMobile ? 15 : 18, marginBottom: isMobile ? 18 : 22 }}>
@@ -706,7 +709,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               )}
 
               {/* วางแผง 3D — เฉพาะคนที่มีสิทธิ์ออกแบบ (วิศวกรไฟฟ้า/เขียนแบบ/หัวหน้า/แอดมิน) */}
-              {window.Plan3DEditor && canDesign && !permitMode && (
+              {window.Plan3DEditor && canDesign && !roMode && (
               <button onClick={() => setPlan3dOpen(true)}
                 style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
                   background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
@@ -720,7 +723,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               )}
 
               {/* ออกแบบระบบ + ผลผลิต — เข้าตรง ไม่ต้องเปิดจอ 3 มิติก่อน (ใช้ผังแผงที่บันทึกไว้แล้ว) */}
-              {window.SolarDesignHost && !permitMode && (
+              {window.SolarDesignHost && !roMode && (
               <button onClick={() => setDesignOpen(true)}
                 style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
                   background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
@@ -734,7 +737,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               )}
 
               {/* ถอดวัสดุ BOQ */}
-              {!permitMode && <button onClick={() => setBoqOpen(true)}
+              {!roMode && <button onClick={() => setBoqOpen(true)}
                 style={{ width: "100%", marginBottom: 22, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
                   background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
                 <span style={{ width: 34, height: 34, borderRadius: 9, background: "var(--primary-soft)", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="box" size={17} color="var(--primary-dark)" /></span>
@@ -746,7 +749,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               </button>}
 
               {/* material checklist */}
-              {!permitMode && <div style={{ marginBottom: 24 }}>
+              {!roMode && <div style={{ marginBottom: 24 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 6 }}>
                     <Icon name="box" size={14} color="var(--text-2)" /> สถานะวัสดุ
@@ -793,10 +796,10 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               </div>}
 
               {/* อุปกรณ์ที่เบิก/คืน สำหรับงานนี้ */}
-              {!permitMode && <JobMaterialUsage job={job} stock={stock} currentUser={currentUser} />}
+              {!roMode && <JobMaterialUsage job={job} stock={stock} currentUser={currentUser} />}
 
               {/* flow timeline — ขั้นติดตั้ง ฝ่ายขออนุญาตไม่ได้ใช้ (ของเขาอยู่ในบล็อกสรุปด้านบน) */}
-              {!permitMode && <div style={{ marginBottom: 20 }}>
+              {!roMode && <div style={{ marginBottom: 20 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
                   <Icon name="flow" size={14} color="var(--text-2)" /> Flow การทำงาน
                 </div>
@@ -804,10 +807,10 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               </div>}
 
               {/* เอกสารแนบ (PDF) — แบบ + BOQ ที่ถอด · โหมดขออนุญาตดูได้จากบล็อกสรุปแล้ว (อ่านอย่างเดียว) */}
-              {!permitMode && <JobFiles media={media} currentUser={currentUser} canManage={canManage} />}
+              {!roMode && <JobFiles media={media} currentUser={currentUser} canManage={canManage} />}
 
               {/* รูปหน้างาน + พูดคุย/บันทึกงาน — คุยได้ (ต้องบอกช่างว่าติดอะไร) แต่รูปดูอย่างเดียว */}
-              <JobPhotos media={media} currentUser={currentUser} canManage={canManage} readOnly={permitMode} />
+              <JobPhotos media={media} currentUser={currentUser} canManage={canManage} readOnly={roMode} />
               <JobComments media={media} currentUser={currentUser} canManage={canManage} />
 
               {job.note && (
@@ -828,7 +831,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
                 {isMobile ? <Icon name="x" size={18} color="var(--text-2)" /> : "ปิด"}
               </button>
-              {!permitMode && <button onClick={() => onEdit(job.id)} title="แก้ไขข้อมูล" aria-label="แก้ไขข้อมูล"
+              {!roMode && <button onClick={() => onEdit(job.id)} title="แก้ไขข้อมูล" aria-label="แก้ไขข้อมูล"
                 style={{ flex: "0 0 auto", padding: isMobile ? 0 : "11px 16px", width: isMobile ? 42 : "auto", height: isMobile ? 42 : "auto",
                   borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-1)",
                   fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer",
@@ -841,7 +844,13 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   ดูอย่างเดียว · แก้สถานะได้ที่ชุดข้อมูลขออนุญาต
                 </span>
               )}
-              {!permitMode && job.stage !== "done" && (
+              {salesMode && (
+                <span style={{ flex: 1, minWidth: 0, display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 12, color: "var(--text-3)", textAlign: "center", lineHeight: 1.4 }}>
+                  ดูอย่างเดียว · ไว้ตอบลูกค้าว่างานถึงไหนแล้ว
+                </span>
+              )}
+              {!roMode && job.stage !== "done" && (
                 <button onClick={handleAdvance} disabled={advancing}
                   style={{ flex: 1, minWidth: 0, padding: isMobile ? "11px 14px" : "11px 16px", height: isMobile ? 42 : "auto", borderRadius: 11, border: "none",
                     background: advancing ? "var(--primary-dark)" : "var(--primary)",

@@ -71,6 +71,14 @@ function blankLead(leads) {
     code: "LD-" + String(max + 1).padStart(3, "0"),
     name: "", phone: "", address: "", province: "", type: "home", phase: "1", roof: "",
     note: "", status: "open", jobId: "", survey: null,
+    /* ── ช่องของฝ่ายขาย ──
+       sstage = ขั้นการขาย (ดู SALES_STAGES) แยกจาก status เดิมซึ่งบอกแค่จบแล้วหรือยัง
+       ownerId/ownerName = เซลล์เจ้าของราย · ไม่มีเจ้าของ = ไม่มีใครตามต่อ
+       nextFollow = วันติดตามครั้งถัดไป (เลยวันแล้วบอร์ดขายจะขึ้นแดงและดันขึ้นบนสุด)
+       expKwp/expValue = ขนาดและมูลค่าที่คาด ใช้คิด pipeline ตอนยังไม่มีใบเสนอราคา
+       contacts = ประวัติการติดต่อ {id, at, by, byName, how, note} */
+    sstage: "new", ownerId: "", ownerName: "", nextFollow: "",
+    expKwp: "", expValue: "", source: "", contacts: [],
     createdAt: now, updatedAt: now,
   };
 }
