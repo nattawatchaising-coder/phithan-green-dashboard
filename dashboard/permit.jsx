@@ -257,6 +257,8 @@ function permitFromSurvey(job) {
   put("meterNo", s.meterNo);
   put("meterSize", s.meterSize);
   put("poleNo", s.poleNo);
+  put("branch", s.branch);
+  if (PERMIT_TYPES.some((t) => t.key === s.permitType)) out.permitType = s.permitType;
   /* แบบสำรวจจดเมนเบรกเกอร์เป็นข้อความ เช่น "100A, 3P" — AT คือตัวเลขชุดแรก */
   const at = String(s.mainBreaker || "").match(/\d+/);
   if (at) out.mainAT = at[0];
@@ -273,6 +275,7 @@ function permitFromSurvey(job) {
 /* ชื่อช่องที่ดึงมาได้ ใช้ติดป้าย "จากแบบสำรวจ" ให้ช่างรู้ว่าต้องตรวจทานไม่ใช่กรอกใหม่ */
 const PERMIT_SURVEY_LABELS = {
   auth: "การไฟฟ้า", ca: "เลข CA", meterNo: "เลขมิเตอร์", meterSize: "ขนาดมิเตอร์", poleNo: "เลขเสาไฟ",
+  permitType: "แบบที่ยื่น", branch: "การไฟฟ้าสาขา",
   phase: "เฟส", mainAT: "เมนเบรกเกอร์", mainCable: "สายเมน", mdbBrand: "ยี่ห้อตู้ MDB", rccb: "เมนกันดูด",
   kwp: "ขนาดติดตั้ง", panelModel: "รุ่นแผง", invModel: "รุ่นอินเวอร์เตอร์", gps: "พิกัด GPS",
 };
@@ -651,6 +654,11 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
                 </div>
               )}
               <SurveyBlock title="📄 ยื่นแบบไหน" sub="แต่ละแบบใช้เอกสารคนละชุด เลือกให้ตรงก่อน แล้วช่องที่เหลือจะปรับตาม">
+                {fromSurvey("permitType") && (
+                  <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: -4 }}>
+                    เซลล์เลือกไว้ตอนสำรวจ<FromSurveyTag /> — ถ้าตกลงกับลูกค้าเปลี่ยนไป แก้ตรงนี้ได้
+                  </div>
+                )}
                 <PermitTypePicker value={f.permitType} onChange={(v) => set("permitType", v)} />
               </SurveyBlock>
               <SurveyBlock title="⚡ จุดรับไฟ" sub="ลอกจากบิลค่าไฟและตัวมิเตอร์ ต้องตรงเป๊ะ ผิดตัวเดียวการไฟฟ้าตีกลับ">
@@ -673,7 +681,7 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
                   <PField label="หมายเลขเสาไฟต้นที่รับไฟ" required from={fromSurvey("poleNo")} hint="อ่านจากป้ายที่ติดบนเสา">
                     <input style={P_INPUT} value={f.poleNo} onChange={(e) => set("poleNo", e.target.value)} placeholder="เช่น 5FA-01-234" />
                   </PField>
-                  <PField label="การไฟฟ้าสาขา / เขตที่สังกัด" full hint="ดูจากบิลค่าไฟ ใช้ระบุว่าต้องยื่นที่สำนักงานไหน">
+                  <PField label="การไฟฟ้าสาขา / เขตที่สังกัด" full from={fromSurvey("branch")} hint="ดูจากบิลค่าไฟ ใช้ระบุว่าต้องยื่นที่สำนักงานไหน">
                     <input style={P_INPUT} value={f.branch} onChange={(e) => set("branch", e.target.value)} placeholder="เช่น กฟภ. สาขาบางละมุง" />
                   </PField>
                 </PGrid>

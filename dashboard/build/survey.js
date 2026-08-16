@@ -139,6 +139,8 @@ function blankSurvey(job) {
     ca: "",
     meterNo: "",
     poleNo: "",
+    permitType: "",
+    branch: "",
     phase: String(job && job.phase || "1") === "3" ? "3" : "1",
     mainBreaker: "",
     mainCable: "",
@@ -2414,12 +2416,17 @@ function SurveyWizard({
     onChange: e => set("meterNo", e.target.value),
     placeholder: "\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E1A\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E1B\u0E31\u0E14\u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C",
     style: inputStyle
-  }))), fld("หมายเลขเสาไฟต้นที่รับไฟ", React.createElement("input", {
+  })), fld("หมายเลขเสาไฟต้นที่รับไฟ", React.createElement("input", {
     value: f.poleNo,
     onChange: e => set("poleNo", e.target.value),
-    placeholder: "\u0E2D\u0E48\u0E32\u0E19\u0E08\u0E32\u0E01\u0E1B\u0E49\u0E32\u0E22\u0E1A\u0E19\u0E40\u0E2A\u0E32 \u0E40\u0E0A\u0E48\u0E19 5FA-01-234",
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 5FA-01-234",
     style: inputStyle
-  })), React.createElement(SurveyToggle, {
+  })), fld("การไฟฟ้าสาขา / เขตที่สังกัด", React.createElement("input", {
+    value: f.branch,
+    onChange: e => set("branch", e.target.value),
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E01\u0E1F\u0E20. \u0E2A\u0E32\u0E02\u0E32\u0E1A\u0E32\u0E07\u0E25\u0E30\u0E21\u0E38\u0E07",
+    style: inputStyle
+  }))), React.createElement(SurveyToggle, {
     label: "\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E1F\u0E1F\u0E49\u0E32",
     hint: "\u0E08\u0E33\u0E40\u0E1B\u0E47\u0E19\u0E15\u0E49\u0E2D\u0E07\u0E23\u0E30\u0E1A\u0E38",
     value: f.phase,
@@ -2436,6 +2443,18 @@ function SurveyWizard({
     onChange: e => set("mainCable", e.target.value),
     placeholder: "\u0E40\u0E0A\u0E48\u0E19 NYY 50 sq.mm",
     style: inputStyle
+  }))), React.createElement(SurveyBlock, {
+    title: "\uD83D\uDCC4 \u0E08\u0E30\u0E22\u0E37\u0E48\u0E19\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E41\u0E1A\u0E1A\u0E44\u0E2B\u0E19",
+    sub: "\u0E15\u0E01\u0E25\u0E07\u0E01\u0E31\u0E1A\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E44\u0E27\u0E49\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E44\u0E23 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E44\u0E27\u0E49\u0E40\u0E25\u0E22 \u2014 \u0E2B\u0E19\u0E49\u0E32\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E08\u0E30\u0E14\u0E36\u0E07\u0E44\u0E1B\u0E43\u0E0A\u0E49\u0E15\u0E48\u0E2D"
+  }, fld("แบบที่จะยื่น", React.createElement(Dropdown, {
+    value: f.permitType,
+    onChange: v => set("permitType", v),
+    placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E17\u0E35\u0E48\u0E08\u0E30\u0E22\u0E37\u0E48\u0E19 \u2014",
+    options: (window.PERMIT_TYPES || []).map(t => ({
+      value: t.key,
+      label: t.th,
+      sub: t.sub
+    }))
   })))), step === 2 && React.createElement(React.Fragment, null, React.createElement(SurveyBlock, {
     title: "\uD83C\uDFE0 \u0E0A\u0E19\u0E34\u0E14 & \u0E2A\u0E20\u0E32\u0E1E\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32"
   }, fld("พื้นที่ที่จะวางแผงโซลาร์", React.createElement(Dropdown, {
