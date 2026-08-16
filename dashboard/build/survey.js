@@ -136,6 +136,9 @@ function blankSurvey(job) {
     gps: null,
     meterSize: "",
     meterAuth: "",
+    ca: "",
+    meterNo: "",
+    poleNo: "",
     phase: String(job && job.phase || "1") === "3" ? "3" : "1",
     mainBreaker: "",
     mainCable: "",
@@ -2386,7 +2389,8 @@ function SurveyWizard({
     size: 13,
     color: "var(--primary-dark)"
   }), " \u0E14\u0E39\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48"))), React.createElement(SurveyBlock, {
-    title: "\u26A1 \u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C & \u0E40\u0E21\u0E19\u0E44\u0E1F\u0E1F\u0E49\u0E32\u0E40\u0E14\u0E34\u0E21"
+    title: "\u26A1 \u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C & \u0E40\u0E21\u0E19\u0E44\u0E1F\u0E1F\u0E49\u0E32\u0E40\u0E14\u0E34\u0E21",
+    sub: "\u0E25\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E1A\u0E34\u0E25\u0E04\u0E48\u0E32\u0E44\u0E1F\u0E41\u0E25\u0E30\u0E15\u0E31\u0E27\u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E43\u0E2B\u0E49\u0E15\u0E23\u0E07\u0E40\u0E1B\u0E4A\u0E30 \u2014 \u0E2B\u0E19\u0E49\u0E32\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E01\u0E32\u0E23\u0E44\u0E1F\u0E1F\u0E49\u0E32\u0E08\u0E30\u0E14\u0E36\u0E07\u0E0A\u0E38\u0E14\u0E19\u0E35\u0E49\u0E44\u0E1B\u0E43\u0E0A\u0E49\u0E15\u0E48\u0E2D"
   }, React.createElement("div", {
     style: two
   }, fld("ขนาดมิเตอร์ไฟฟ้า", React.createElement("input", {
@@ -2399,7 +2403,23 @@ function SurveyWizard({
     onChange: v => set("meterAuth", v),
     placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01 \u2014",
     options: SURVEY_METER_AUTH
-  }))), React.createElement(SurveyToggle, {
+  })), fld("หมายเลขผู้ใช้ไฟฟ้า (CA)", React.createElement("input", {
+    inputMode: "numeric",
+    value: f.ca,
+    onChange: e => set("ca", e.target.value),
+    placeholder: "\u0E40\u0E25\u0E02 12 \u0E2B\u0E25\u0E31\u0E01\u0E1A\u0E19\u0E1A\u0E34\u0E25\u0E04\u0E48\u0E32\u0E44\u0E1F",
+    style: inputStyle
+  })), fld("หมายเลขมิเตอร์", React.createElement("input", {
+    value: f.meterNo,
+    onChange: e => set("meterNo", e.target.value),
+    placeholder: "\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E1A\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E1B\u0E31\u0E14\u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C",
+    style: inputStyle
+  }))), fld("หมายเลขเสาไฟต้นที่รับไฟ", React.createElement("input", {
+    value: f.poleNo,
+    onChange: e => set("poleNo", e.target.value),
+    placeholder: "\u0E2D\u0E48\u0E32\u0E19\u0E08\u0E32\u0E01\u0E1B\u0E49\u0E32\u0E22\u0E1A\u0E19\u0E40\u0E2A\u0E32 \u0E40\u0E0A\u0E48\u0E19 5FA-01-234",
+    style: inputStyle
+  })), React.createElement(SurveyToggle, {
     label: "\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E1F\u0E1F\u0E49\u0E32",
     hint: "\u0E08\u0E33\u0E40\u0E1B\u0E47\u0E19\u0E15\u0E49\u0E2D\u0E07\u0E23\u0E30\u0E1A\u0E38",
     value: f.phase,

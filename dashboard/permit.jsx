@@ -47,6 +47,186 @@ const PERMIT_PHOTO_SLOTS = [
 const PERMIT_SLOT_BY = Object.fromEntries(PERMIT_PHOTO_SLOTS.map((s) => [s.key, s]));
 const PERMIT_PHOTO_GROUPS = PERMIT_PHOTO_SLOTS.reduce((a, s) => (a.indexOf(s.group) === -1 ? a.concat([s.group]) : a), []);
 
+/* ── ภาพตัวอย่างประจำช่องถ่ายรูป ──
+   วาดเป็นลายเส้นในตัวไฟล์ ไม่ใช้รูปจากภายนอก เพราะหน้างานเน็ตช้าและรูปจริงติดข้อมูลลูกค้า
+   สีเขียว = ส่วนที่ต้องอ่านออกในรูป · เส้นเทา = บริบทรอบ ๆ ที่ควรติดมาด้วย */
+const AS = { l: "var(--text-2)", hi: "var(--primary)", fill: "var(--surface3)", paper: "var(--surface)" };
+const PERMIT_SAMPLE_ART = {
+  meter: () => (<g fill="none" stroke={AS.l} strokeWidth="2">
+    <rect x="30" y="10" width="60" height="70" rx="7" fill={AS.fill} />
+    <rect x="38" y="20" width="44" height="17" rx="3" fill={AS.paper} stroke={AS.hi} />
+    <path d="M44 28.5h32" stroke={AS.hi} strokeWidth="3.5" strokeLinecap="round" />
+    <circle cx="60" cy="55" r="11" /><path d="M60 55l6-5" strokeLinecap="round" />
+    <path d="M36 72h20" strokeWidth="2.5" stroke={AS.hi} strokeLinecap="round" />
+  </g>),
+  house: () => (<g fill="none" stroke={AS.l} strokeWidth="2">
+    <path d="M18 44L60 16l42 28" strokeLinejoin="round" />
+    <path d="M28 42v34h64V42" strokeLinejoin="round" fill={AS.fill} />
+    <rect x="52" y="56" width="18" height="20" fill={AS.paper} />
+    <rect x="34" y="50" width="12" height="10" fill={AS.paper} />
+    <rect x="74" y="46" width="16" height="9" rx="2" fill={AS.paper} stroke={AS.hi} />
+    <path d="M77 50.5h10" stroke={AS.hi} strokeWidth="2.5" strokeLinecap="round" />
+  </g>),
+  pole: () => (<g fill="none" stroke={AS.l} strokeWidth="2">
+    <path d="M58 12v66M36 22h44M42 32h36" strokeLinecap="round" />
+    <circle cx="42" cy="19" r="3" /><circle cx="74" cy="19" r="3" />
+    <rect x="64" y="42" width="20" height="12" rx="2" fill={AS.paper} stroke={AS.hi} />
+    <path d="M68 48h12" stroke={AS.hi} strokeWidth="2.5" strokeLinecap="round" />
+    <path d="M30 78h60" strokeWidth="2.5" strokeLinecap="round" />
+  </g>),
+  mdbClosed: () => (<g fill="none" stroke={AS.l} strokeWidth="2">
+    <path d="M14 78h92" strokeLinecap="round" />
+    <rect x="34" y="14" width="52" height="58" rx="4" fill={AS.fill} stroke={AS.hi} />
+    <path d="M76 40v10" strokeLinecap="round" strokeWidth="3" />
+    <path d="M34 14v58" strokeDasharray="4 4" />
+    <path d="M22 30v42M98 30v42" strokeWidth="1.5" strokeDasharray="3 5" />
+  </g>),
+  mdbOpen: () => (<g fill="none" stroke={AS.l} strokeWidth="2">
+    <rect x="30" y="12" width="58" height="64" rx="4" fill={AS.fill} />
+    <path d="M30 12L10 22v44l20 10" strokeLinejoin="round" />
+    <rect x="40" y="22" width="38" height="16" rx="2" fill={AS.paper} stroke={AS.hi} />
+    <path d="M46 30h10M62 26v8" stroke={AS.hi} strokeWidth="2.5" strokeLinecap="round" />
+    <path d="M40 48h38M40 58h38M40 68h38" strokeLinecap="round" />
+  </g>),
+  acBreaker: () => (<g fill="none" stroke={AS.l} strokeWidth="2">
+    <rect x="24" y="18" width="72" height="54" rx="4" fill={AS.fill} />
+    <rect x="34" y="26" width="24" height="38" rx="3" fill={AS.paper} stroke={AS.hi} />
+    <rect x="40" y="32" width="12" height="12" rx="2" fill={AS.hi} stroke="none" />
+    <path d="M38 54h16" stroke={AS.hi} strokeWidth="2.5" strokeLinecap="round" />
+    <rect x="66" y="26" width="20" height="38" rx="3" />
+  </g>),
+  acWiring: () => (<g fill="none" stroke={AS.l} strokeWidth="2">
+    <rect x="20" y="20" width="80" height="50" rx="4" fill={AS.fill} />
+    <rect x="30" y="34" width="60" height="16" rx="2" fill={AS.paper} />
+    <path d="M40 34v16M56 34v16M72 34v16" />
+    <path d="M40 34C40 22 30 20 26 14M56 34c0-12 8-16 12-22M72 34c0-12 10-14 16-20" stroke={AS.hi} strokeWidth="3" strokeLinecap="round" />
+  </g>),
+  ct: () => (<g fill="none" stroke={AS.l} strokeWidth="2">
+    <path d="M10 45h100" strokeWidth="7" strokeLinecap="round" />
+    <circle cx="60" cy="45" r="20" stroke={AS.hi} strokeWidth="4" />
+    <path d="M60 25v-12" stroke={AS.hi} strokeWidth="2.5" strokeLinecap="round" />
+    <path d="M74 59l14 14" stroke={AS.hi} strokeWidth="2.5" strokeLinecap="round" />
+  </g>),
+  inverter: () => (<g fill="none" stroke={AS.l} strokeWidth="2">
+    <path d="M12 8v76" strokeDasharray="5 5" strokeWidth="1.5" />
+    <rect x="34" y="16" width="52" height="46" rx="6" fill={AS.fill} stroke={AS.hi} />
+    <rect x="44" y="26" width="32" height="12" rx="2" fill={AS.paper} />
+    <path d="M46 48h10M64 48h10" strokeLinecap="round" />
+    <path d="M46 62v14M74 62v14" strokeLinecap="round" />
+    <path d="M12 20h22M12 40h22" strokeWidth="1.5" />
+  </g>),
+  invPlate: () => (<g fill="none" stroke={AS.l} strokeWidth="2">
+    <rect x="16" y="16" width="88" height="58" rx="5" fill={AS.paper} stroke={AS.hi} strokeWidth="2.5" />
+    <path d="M26 30h44M26 40h58M26 50h34" stroke={AS.hi} strokeWidth="3" strokeLinecap="round" />
+    <g stroke={AS.l} strokeWidth="2">
+      <path d="M26 60v8M31 60v8M35 60v8M40 60v8M44 60v8M49 60v8M53 60v8M58 60v8" />
+    </g>
+  </g>),
+  dcIso: () => (<g fill="none" stroke={AS.l} strokeWidth="2">
+    <rect x="34" y="16" width="52" height="58" rx="6" fill={AS.fill} />
+    <circle cx="60" cy="42" r="13" fill={AS.paper} stroke={AS.hi} strokeWidth="2.5" />
+    <path d="M60 42l8-8" stroke={AS.hi} strokeWidth="3" strokeLinecap="round" />
+    <path d="M50 64h20" strokeLinecap="round" />
+    <path d="M46 16V8M74 16V8" strokeLinecap="round" />
+  </g>),
+  arrayWide: () => (<g fill="none" stroke={AS.l} strokeWidth="2">
+    <path d="M8 74h104" strokeLinecap="round" />
+    <path d="M16 74L34 34h58l16 40" strokeLinejoin="round" fill={AS.fill} />
+    <g stroke={AS.hi} strokeWidth="2">
+      <path d="M34 42h60M31 54h68M28 66h74" />
+      <path d="M46 42v24M64 42v24M82 42v24" />
+    </g>
+  </g>),
+  arrayClose: () => (<g fill="none" stroke={AS.l} strokeWidth="2">
+    <rect x="14" y="18" width="42" height="54" rx="3" fill={AS.fill} stroke={AS.hi} />
+    <rect x="64" y="18" width="42" height="54" rx="3" fill={AS.fill} stroke={AS.hi} />
+    <path d="M14 36h42M14 54h42M64 36h42M64 54h42M35 18v54M85 18v54" strokeWidth="1.5" />
+    <rect x="54" y="38" width="12" height="14" rx="2" fill={AS.paper} stroke={AS.l} strokeWidth="2.5" />
+    <path d="M8 78h104" strokeWidth="4" strokeLinecap="round" />
+  </g>),
+  panelPlate: () => (<g fill="none" stroke={AS.l} strokeWidth="2">
+    <rect x="10" y="10" width="100" height="70" rx="4" fill={AS.fill} strokeDasharray="5 4" />
+    <rect x="26" y="26" width="68" height="38" rx="3" fill={AS.paper} stroke={AS.hi} strokeWidth="2.5" />
+    <path d="M34 36h40" stroke={AS.hi} strokeWidth="3" strokeLinecap="round" />
+    <g strokeWidth="2"><path d="M34 46v12M38 46v12M43 46v12M47 46v12M52 46v12M56 46v12M61 46v12M65 46v12" /></g>
+    <path d="M72 52h14" strokeLinecap="round" />
+  </g>),
+  ground: () => (<g fill="none" stroke={AS.l} strokeWidth="2">
+    <path d="M8 46h104" strokeWidth="2.5" />
+    <path d="M14 54l8-8M30 54l8-8M46 54l8-8M78 54l8-8M94 54l8-8" strokeWidth="1.5" />
+    <path d="M60 46v28" stroke={AS.l} strokeWidth="5" strokeLinecap="round" />
+    <rect x="50" y="32" width="20" height="12" rx="3" fill={AS.paper} stroke={AS.hi} strokeWidth="2.5" />
+    <path d="M60 32V16h24" stroke={AS.hi} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+  </g>),
+  warnSign: () => (<g fill="none" stroke={AS.l} strokeWidth="2">
+    <rect x="18" y="14" width="84" height="58" rx="5" fill={AS.fill} />
+    <path d="M40 26h44M40 58h44" strokeWidth="1.5" />
+    <path d="M60 30l16 26H44z" fill={AS.paper} stroke={AS.hi} strokeWidth="2.5" strokeLinejoin="round" />
+    <path d="M60 38v8M60 50v.5" stroke={AS.hi} strokeWidth="3" strokeLinecap="round" />
+    <path d="M18 72h84" strokeDasharray="4 4" strokeWidth="1.5" />
+  </g>),
+};
+/* คำแนะนำสั้น ๆ ต่อช่อง — สิ่งที่ทำให้การไฟฟ้าตีกลับจริง ๆ ไม่ใช่ทฤษฎีการถ่ายรูป */
+const PERMIT_SAMPLE_TIPS = {
+  meter:      ["ยืนห่างประมาณ 1 เมตร ให้เห็นทั้งตัวมิเตอร์", "หมายเลขมิเตอร์และขนาด เช่น 15(45) ต้องอ่านออก", "อย่าถ่ายย้อนแสงจนหน้าปัดสะท้อน"],
+  house:      ["ให้เห็นบ้านเลขที่ในรูปเดียวกับตัวบ้าน", "ถ่ายจากหน้าบ้าน เห็นรั้ว/ทางเข้า"],
+  pole:       ["ถ่ายให้เห็นป้ายหมายเลขเสาชัด ๆ", "ถ้าเป็นหม้อแปลง ให้ติดตัวหม้อแปลงมาด้วย"],
+  mdbClosed:  ["มุมกว้าง เห็นว่าตู้ติดตั้งอยู่ตรงไหนของอาคาร"],
+  mdbOpen:    ["เปิดฝาให้เห็นเมนเบรกเกอร์เต็มตัว", "ขนาดที่พิมพ์บนเบรกเกอร์ต้องอ่านออก"],
+  acBreaker:  ["เจาะเฉพาะเบรกเกอร์ AC ที่เพิ่มใหม่", "ต้องเห็นตัวเลขขนาด เช่น 32A"],
+  acWiring:   ["ให้เห็นปลายสายเข้าเทอร์มินอลและการขันแน่น", "สายต้องเข้าเป็นระเบียบ ไม่มีเปลือกฉีก"],
+  ct:         ["ให้เห็นว่า CT คล้องอยู่บนสายเมนเส้นไหน", "ติดทิศทางลูกศรบน CT มาด้วยถ้ามี"],
+  inverter:   ["มุมกว้าง เห็นตัวเครื่องยึดกับผนังและท่อร้อยสาย", "ถ่ายให้เห็นระยะห่างจากผนัง/หลังคา"],
+  invPlate:   ["ถ่ายใกล้จนอ่านรุ่นและ Serial ออกทุกตัวอักษร", "มีหลายเครื่องให้ถ่ายทีละเครื่อง", "ใช้มือบังแดดถ้าสติกเกอร์สะท้อน"],
+  dcIso:      ["ให้เห็นสวิตช์และตำแหน่งที่ติดตั้ง", "ไม่มีติดตั้งก็ข้ามได้"],
+  arrayWide:  ["ยืนถอยห่างให้เห็นแผงทั้งชุดในรูปเดียว", "เห็นแนวหลังคาและทิศที่วางแผง"],
+  arrayClose: ["ให้เห็นรางอะลูมิเนียมและคลิปจับแผง", "เห็นช่องว่างระหว่างแผงกับหลังคา"],
+  panelPlate: ["พลิกดูสติกเกอร์หลังแผง ถ่ายใกล้", "รุ่นและ Serial ต้องอ่านออกทุกตัว", "เก็บอย่างน้อย 1–2 แผ่นเป็นตัวอย่าง"],
+  ground:     ["เห็นหลักดินตอกลงดินและแคลมป์จุดต่อ", "เห็นสายดินวิ่งออกจากแคลมป์ไปตู้"],
+  warnSign:   ["ถ่ายป้ายที่ติดจริงบนหน้าตู้ ไม่ใช่ป้ายที่ยังไม่ได้ติด", "ตัวหนังสือบนป้ายต้องอ่านออก"],
+};
+/* ภาพตัวอย่างของช่องหนึ่ง — ใช้ทั้งเป็นรูปย่อในการ์ดและรูปใหญ่ในป็อปอัป */
+function PermitSampleArt({ slotKey, size, radius }) {
+  const draw = PERMIT_SAMPLE_ART[slotKey];
+  return (
+    <svg viewBox="0 0 120 90" width={size} height={Math.round((size * 90) / 120)}
+      style={{ display: "block", borderRadius: radius == null ? 10 : radius, background: "var(--surface2)", border: "1px solid var(--border)" }}>
+      {draw ? draw() : <text x="60" y="50" textAnchor="middle" fontSize="12" fill="var(--text-3)">ตัวอย่าง</text>}
+    </svg>
+  );
+}
+/* ป็อปอัปดูตัวอย่างเต็ม ๆ พร้อมข้อควรระวังของช่องนั้น */
+function PermitSampleModal({ slot, onClose }) {
+  const bdClose = window.useBackdropClose(onClose);
+  const tips = PERMIT_SAMPLE_TIPS[slot.key] || [];
+  return (
+    <div {...bdClose} style={{ position: "fixed", inset: 0, zIndex: 2400, background: "rgba(8,15,12,.55)", display: "grid", placeItems: "center", padding: 16 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: "min(420px, 100%)", background: "var(--surface)", borderRadius: 18, border: "1px solid var(--border)", overflow: "hidden" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 15px", borderBottom: "1px solid var(--border)" }}>
+          <Icon name="image" size={16} color="var(--primary)" />
+          <span style={{ flex: 1, fontSize: 14, fontWeight: 800, color: "var(--text-1)" }}>ตัวอย่าง — {slot.label}</span>
+          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 8, border: "none", background: "var(--surface3)", color: "var(--text-2)", cursor: "pointer", display: "grid", placeItems: "center" }}>
+            <Icon name="x" size={14} />
+          </button>
+        </div>
+        <div style={{ padding: 15, display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "grid", placeItems: "center" }}>
+            <PermitSampleArt slotKey={slot.key} size={320} radius={14} />
+          </div>
+          <div style={{ fontSize: 11.5, color: "var(--text-3)", textAlign: "center", marginTop: -4 }}>ภาพจำลอง · เส้นสีเขียวคือส่วนที่ต้องอ่านออกในรูปจริง</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+            {tips.map((t, i) => (
+              <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.5 }}>
+                <span style={{ color: "var(--primary)", fontWeight: 800 }}>•</span><span>{t}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const PERMIT_STEPS = [
   { n: 1, icon: "file",  th: "ประเภท & จุดรับไฟ" },
   { n: 2, icon: "bolt",  th: "ระบบไฟเดิม" },
@@ -64,8 +244,42 @@ const PERMIT_STATUS = {
   rejected: { th: "ตีกลับ ต้องแก้ไข",    color: "#EF4444" },
 };
 
+/* ── ดึงค่าจาก "แบบสำรวจ" ที่เซลล์/ผู้สำรวจกรอกไว้ตั้งแต่ก่อนติดตั้ง ──
+   ของพวกนี้ถูกจดไปแล้วครั้งหนึ่งตอนไปดูหน้างาน ให้ช่างมากรอกซ้ำคือเปิดช่องให้พิมพ์ผิด
+   คืนเฉพาะช่องที่ "มีค่าจริง" เพื่อให้เอาไปเป็นค่าตั้งต้นทับของว่างได้อย่างปลอดภัย */
+function permitFromSurvey(job) {
+  const s = (job && job.survey) || null;
+  const out = {};
+  if (!s) return out;
+  const put = (k, v) => { const t = String(v == null ? "" : v).trim(); if (t) out[k] = t; };
+  put("auth", s.meterAuth);
+  put("ca", s.ca);
+  put("meterNo", s.meterNo);
+  put("meterSize", s.meterSize);
+  put("poleNo", s.poleNo);
+  /* แบบสำรวจจดเมนเบรกเกอร์เป็นข้อความ เช่น "100A, 3P" — AT คือตัวเลขชุดแรก */
+  const at = String(s.mainBreaker || "").match(/\d+/);
+  if (at) out.mainAT = at[0];
+  put("mainCable", s.mainCable);
+  put("mdbBrand", s.mdbBrand);
+  put("rccb", s.mdbRccb);
+  put("kwp", s.sizeKw);
+  put("panelModel", s.panelModel);
+  put("invModel", s.invModel);
+  if (s.phase) out.phase = String(s.phase) === "3" ? "3" : "1";
+  if (s.gps && s.gps.lat) out.gps = s.gps;
+  return out;
+}
+/* ชื่อช่องที่ดึงมาได้ ใช้ติดป้าย "จากแบบสำรวจ" ให้ช่างรู้ว่าต้องตรวจทานไม่ใช่กรอกใหม่ */
+const PERMIT_SURVEY_LABELS = {
+  auth: "การไฟฟ้า", ca: "เลข CA", meterNo: "เลขมิเตอร์", meterSize: "ขนาดมิเตอร์", poleNo: "เลขเสาไฟ",
+  phase: "เฟส", mainAT: "เมนเบรกเกอร์", mainCable: "สายเมน", mdbBrand: "ยี่ห้อตู้ MDB", rccb: "เมนกันดูด",
+  kwp: "ขนาดติดตั้ง", panelModel: "รุ่นแผง", invModel: "รุ่นอินเวอร์เตอร์", gps: "พิกัด GPS",
+};
+
 function blankPermit(job) {
-  return {
+  const seed = permitFromSurvey(job);
+  const base = {
     status: "draft",
     permitType: "", auth: "", ca: "", meterNo: "", meterSize: "", branch: "", poleNo: "",
     phase: String((job && job.phase) || "1") === "3" ? "3" : "1",
@@ -77,6 +291,22 @@ function blankPermit(job) {
     trafoKva: "", trafoVolt: "",
     gps: null, doneDate: "", byName: "", note: "",
   };
+  Object.keys(seed).forEach((k) => { if (k !== "invModel") base[k] = seed[k]; });
+  if (seed.invModel) base.invs = [{ model: seed.invModel, sn: "" }];
+  return base;
+}
+/* รวมค่าที่เคยเซฟไว้ทับค่าตั้งต้น โดย "ค่าว่างไม่ทับ" — งานที่เริ่มเก็บไว้ก่อนหน้านี้
+   จึงยังได้ข้อมูลจากแบบสำรวจเติมเข้ามาในช่องที่ยังไม่ได้กรอก */
+function permitInitial(job) {
+  const base = blankPermit(job);
+  const cur = (job && job.permit) || {};
+  Object.keys(cur).forEach((k) => {
+    const v = cur[k];
+    if (v == null || v === "") return;
+    if (Array.isArray(v) && !v.some((x) => (x && typeof x === "object") ? (x.model || x.sn) : String(x || "").trim())) return;
+    base[k] = v;
+  });
+  return base;
 }
 
 /* ── ช่องที่ต้องกรอกให้ครบก่อนส่งต่อ ──
@@ -170,11 +400,20 @@ const P_INPUT = {
   background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-1)",
   fontFamily: "inherit", fontSize: 14, padding: "10px 12px", borderRadius: 10, outline: "none", width: "100%",
 };
-function PField({ label, hint, required, children, full }) {
+/* ป้ายเล็ก ๆ บอกว่าค่านี้ไม่ได้พิมพ์เอง แต่ดึงมาจากแบบสำรวจ — หายไปเองเมื่อช่างแก้ค่า */
+function FromSurveyTag() {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, marginLeft: 6, padding: "1px 6px", borderRadius: 99,
+      background: "var(--tint-teal-bg, var(--primary-soft))", color: "#0F766E", fontSize: 9.5, fontWeight: 800, letterSpacing: 0, verticalAlign: "middle" }}>
+      จากแบบสำรวจ
+    </span>
+  );
+}
+function PField({ label, hint, required, children, full, from }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 5, gridColumn: full ? "1 / -1" : "auto", minWidth: 0 }}>
       <label style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".04em", color: "var(--text-3)" }}>
-        {label}{required && <span style={{ color: "#EF4444" }}> *</span>}
+        {label}{required && <span style={{ color: "#EF4444" }}> *</span>}{from && <FromSurveyTag />}
       </label>
       {children}
       {hint && <span style={{ fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.4 }}>{hint}</span>}
@@ -216,9 +455,11 @@ function PermitTypePicker({ value, onChange }) {
 /* การ์ดรูป 1 ช่อง — เรียบกว่าของแบบสำรวจ เพราะที่นี่ไม่ต้องเขียนทับรูป */
 function PermitShotCard({ slot, shot, busy, onPick, onRemove }) {
   const inputRef = React.useRef(null);
+  const [sample, setSample] = React.useState(false);
   const has = !!(shot && shot.dataUrl);
   const warn = slot.hint.indexOf("⚠") === 0;
-  return (
+  return (<React.Fragment>
+    {sample && <PermitSampleModal slot={slot} onClose={() => setSample(false)} />}
     <div style={{ border: "1px solid " + (has ? "var(--border)" : "var(--border-strong)"), borderRadius: 13, padding: 11,
       borderLeft: "3px solid " + (has ? "var(--primary)" : (slot.req ? "var(--tint-red-bd)" : "var(--surface3)")),
       background: has ? "var(--surface)" : "var(--surface2)", display: "flex", gap: 11, alignItems: "center" }}>
@@ -227,16 +468,22 @@ function PermitShotCard({ slot, shot, busy, onPick, onRemove }) {
           <img src={shot.dataUrl} alt="" style={{ width: 54, height: 54, borderRadius: 10, objectFit: "cover", border: "1px solid var(--border)" }} />
         </a>
       ) : (
-        <span style={{ width: 54, height: 54, borderRadius: 10, flexShrink: 0, display: "grid", placeItems: "center",
-          background: "var(--surface3)", border: "1px dashed var(--border-strong)" }}>
-          <Icon name="image" size={17} color="var(--text-3)" />
-        </span>
+        /* ยังไม่ได้ถ่าย → โชว์ภาพตัวอย่างแทนกล่องเปล่า ช่างเห็นทันทีว่าต้องได้รูปหน้าตาแบบไหน */
+        <button type="button" onClick={() => setSample(true)} title="ดูตัวอย่างเต็ม"
+          style={{ padding: 0, border: "none", background: "none", cursor: "pointer", flexShrink: 0, lineHeight: 0 }}>
+          <PermitSampleArt slotKey={slot.key} size={62} />
+        </button>
       )}
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>
           {slot.label}{slot.req && <span style={{ color: "#EF4444" }}> *</span>}
         </span>
         <span style={{ display: "block", fontSize: 11, marginTop: 1, lineHeight: 1.4, color: warn ? "var(--tint-red-tx)" : "var(--text-3)", fontWeight: warn ? 600 : 400 }}>{slot.hint}</span>
+        <button type="button" onClick={() => setSample(true)}
+          style={{ marginTop: 4, padding: 0, border: "none", background: "none", cursor: "pointer", fontFamily: "inherit",
+            fontSize: 11, fontWeight: 700, color: "var(--primary-dark)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <Icon name="image" size={12} color="var(--primary-dark)" /> ดูตัวอย่าง
+        </button>
       </span>
       <input ref={inputRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }}
         onChange={(e) => { const fl = e.target.files && e.target.files[0]; if (fl) onPick(fl); e.target.value = ""; }} />
@@ -255,7 +502,7 @@ function PermitShotCard({ slot, shot, busy, onPick, onRemove }) {
         )}
       </span>
     </div>
-  );
+  </React.Fragment>);
 }
 
 /* ================================================================
@@ -269,8 +516,18 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
   const [gpsBusy, setGpsBusy] = React.useState(false);
   const [gpsErr, setGpsErr] = React.useState("");
   const media = usePermitPhotos(job ? job.id : null);
-  const [f, setF] = React.useState(() => Object.assign(blankPermit(job), (job && job.permit) || {}));
+  const [f, setF] = React.useState(() => permitInitial(job));
   const set = (k, v) => setF((p) => Object.assign({}, p, { [k]: v }));
+
+  /* ค่าที่ดึงมาจากแบบสำรวจ — ติดป้ายเฉพาะช่องที่ยังเท่าค่าเดิม พอช่างแก้เองป้ายก็หายไป */
+  const seed = React.useMemo(() => permitFromSurvey(job), [job && job.id]);
+  const seedNames = Object.keys(seed).map((k) => PERMIT_SURVEY_LABELS[k]).filter(Boolean);
+  const fromSurvey = (k) => {
+    if (seed[k] == null) return false;
+    if (k === "gps") return !!(f.gps && seed.gps && f.gps.lat === seed.gps.lat);
+    return String(f[k] || "").trim() !== "" && String(f[k]) === String(seed[k]);
+  };
+  const invFromSurvey = (i) => i === 0 && !!seed.invModel && String((f.invs[0] || {}).model || "") === String(seed.invModel);
 
   const prog = permitProgress(f, media.photos);
   const locked = !!readOnly;
@@ -385,27 +642,35 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
 
           {step === 1 && (
             <React.Fragment>
+              {seedNames.length > 0 && (
+                <div style={{ padding: "11px 13px", borderRadius: 12, background: "var(--primary-soft)", border: "1px solid var(--primary)",
+                  fontSize: 12, color: "var(--primary-dark)", lineHeight: 1.55 }}>
+                  <span style={{ fontWeight: 800 }}>ดึงข้อมูลจากแบบสำรวจมาให้แล้ว {seedNames.length} ช่อง</span>
+                  <span style={{ display: "block", marginTop: 2 }}>{seedNames.join(" · ")}</span>
+                  <span style={{ display: "block", marginTop: 3, color: "var(--text-3)", fontWeight: 600 }}>ช่องที่มีป้าย “จากแบบสำรวจ” ให้ตรวจกับของจริงหน้างานอีกครั้ง แก้ทับได้เลย</span>
+                </div>
+              )}
               <SurveyBlock title="📄 ยื่นแบบไหน" sub="แต่ละแบบใช้เอกสารคนละชุด เลือกให้ตรงก่อน แล้วช่องที่เหลือจะปรับตาม">
                 <PermitTypePicker value={f.permitType} onChange={(v) => set("permitType", v)} />
               </SurveyBlock>
               <SurveyBlock title="⚡ จุดรับไฟ" sub="ลอกจากบิลค่าไฟและตัวมิเตอร์ ต้องตรงเป๊ะ ผิดตัวเดียวการไฟฟ้าตีกลับ">
                 <PGrid>
-                  <PField label="การไฟฟ้าที่ยื่น" required>
+                  <PField label="การไฟฟ้าที่ยื่น" required from={fromSurvey("auth")}>
                     <Segmented value={f.auth} onChange={(v) => set("auth", v)} options={PERMIT_AUTHS} />
                   </PField>
-                  <PField label="เฟส">
+                  <PField label="เฟส" from={fromSurvey("phase")}>
                     <Segmented value={f.phase} onChange={(v) => set("phase", v)} options={PERMIT_PHASES} />
                   </PField>
-                  <PField label="หมายเลขผู้ใช้ไฟฟ้า (CA)" required hint="อยู่บนบิลค่าไฟ มุมบน">
+                  <PField label="หมายเลขผู้ใช้ไฟฟ้า (CA)" required from={fromSurvey("ca")} hint="อยู่บนบิลค่าไฟ มุมบน">
                     <input inputMode="numeric" style={P_INPUT} value={f.ca} onChange={(e) => set("ca", e.target.value)} placeholder="เช่น 020012345678" />
                   </PField>
-                  <PField label="หมายเลขมิเตอร์" required hint="ตัวเลขบนหน้าปัดมิเตอร์">
+                  <PField label="หมายเลขมิเตอร์" required from={fromSurvey("meterNo")} hint="ตัวเลขบนหน้าปัดมิเตอร์">
                     <input style={P_INPUT} value={f.meterNo} onChange={(e) => set("meterNo", e.target.value)} placeholder="เช่น 12345678" />
                   </PField>
-                  <PField label="ขนาดมิเตอร์" required hint="เช่น 15(45), 30(100)">
+                  <PField label="ขนาดมิเตอร์" required from={fromSurvey("meterSize")} hint="เช่น 15(45), 30(100)">
                     <input style={P_INPUT} value={f.meterSize} onChange={(e) => set("meterSize", e.target.value)} placeholder="15(45)" />
                   </PField>
-                  <PField label="หมายเลขเสาไฟต้นที่รับไฟ" required hint="อ่านจากป้ายที่ติดบนเสา">
+                  <PField label="หมายเลขเสาไฟต้นที่รับไฟ" required from={fromSurvey("poleNo")} hint="อ่านจากป้ายที่ติดบนเสา">
                     <input style={P_INPUT} value={f.poleNo} onChange={(e) => set("poleNo", e.target.value)} placeholder="เช่น 5FA-01-234" />
                   </PField>
                   <PField label="การไฟฟ้าสาขา / เขตที่สังกัด" full hint="ดูจากบิลค่าไฟ ใช้ระบุว่าต้องยื่นที่สำนักงานไหน">
@@ -420,16 +685,16 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
             <React.Fragment>
               <SurveyBlock title="🔌 ระบบไฟเดิมของลูกค้า" sub="ตัวเลขพวกนี้ต้องตรงกับที่วิศวกรเขียนใน Single Line Diagram">
                 <PGrid>
-                  <PField label="เมนเบรกเกอร์ AT (แอมป์)" required hint="ตัวเลขที่พิมพ์บนเบรกเกอร์">
+                  <PField label="เมนเบรกเกอร์ AT (แอมป์)" required from={fromSurvey("mainAT")} hint="ตัวเลขที่พิมพ์บนเบรกเกอร์">
                     <input inputMode="numeric" style={P_INPUT} value={f.mainAT} onChange={(e) => set("mainAT", e.target.value)} placeholder="เช่น 50" />
                   </PField>
                   <PField label="เมนเบรกเกอร์ AF (แอมป์)">
                     <input inputMode="numeric" style={P_INPUT} value={f.mainAF} onChange={(e) => set("mainAF", e.target.value)} placeholder="เช่น 100" />
                   </PField>
-                  <PField label="ขนาดสายเมน" required hint="เช่น 2x25 sq.mm THW">
+                  <PField label="ขนาดสายเมน" required from={fromSurvey("mainCable")} hint="เช่น 2x25 sq.mm THW">
                     <input style={P_INPUT} value={f.mainCable} onChange={(e) => set("mainCable", e.target.value)} placeholder="2x25 sq.mm" />
                   </PField>
-                  <PField label="ยี่ห้อตู้ MDB">
+                  <PField label="ยี่ห้อตู้ MDB" from={fromSurvey("mdbBrand")}>
                     <input style={P_INPUT} value={f.mdbBrand} onChange={(e) => set("mdbBrand", e.target.value)} placeholder="เช่น Schneider" />
                   </PField>
                 </PGrid>
@@ -454,7 +719,7 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
             <React.Fragment>
               <SurveyBlock title="☀️ ระบบที่ติดตั้ง">
                 <PGrid>
-                  <PField label="ขนาดติดตั้ง kWp (ฝั่ง DC)" required>
+                  <PField label="ขนาดติดตั้ง kWp (ฝั่ง DC)" required from={fromSurvey("kwp")}>
                     <input inputMode="decimal" style={P_INPUT} value={f.kwp} onChange={(e) => set("kwp", e.target.value)} placeholder="เช่น 10.4" />
                   </PField>
                   <PField label="กำลังผลิต kW (ฝั่ง AC)" hint="ตามพิกัดอินเวอร์เตอร์">
@@ -481,7 +746,7 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
                   {(f.invs || []).map((iv, i) => (
                     <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <PField label={"ตัวที่ " + (i + 1) + " — รุ่น"} required>
+                        <PField label={"ตัวที่ " + (i + 1) + " — รุ่น"} required from={invFromSurvey(i)}>
                           <Dropdown value={iv.model} onChange={(v) => setInv(i, "model", v)} options={modelOptions("inverter", iv.model)} placeholder="เลือกรุ่นจากคลัง" />
                         </PField>
                       </div>
@@ -506,7 +771,7 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
 
               <SurveyBlock title="🔆 แผงโซลาร์" sub="Serial เก็บเป็นตัวอย่าง 1–2 แผ่นพอ ไม่ต้องไล่ทุกแผ่น">
                 <PGrid>
-                  <PField label="รุ่นแผง" required full>
+                  <PField label="รุ่นแผง" required full from={fromSurvey("panelModel")}>
                     <Dropdown value={f.panelModel} onChange={(v) => set("panelModel", v)} options={modelOptions("panel", f.panelModel)} placeholder="เลือกรุ่นจากคลัง" />
                   </PField>
                   <PField label="กำลังต่อแผง (W)">
@@ -525,7 +790,7 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
               </SurveyBlock>
 
               <SurveyBlock title="📍 ปิดงาน">
-                <PField label="พิกัดหน้างาน (GPS)" hint="การไฟฟ้าขอพิกัดจุดติดตั้งประกอบคำขอ">
+                <PField label="พิกัดหน้างาน (GPS)" from={fromSurvey("gps")} hint="การไฟฟ้าขอพิกัดจุดติดตั้งประกอบคำขอ">
                   <div style={{ display: "flex", gap: 9, alignItems: "center", flexWrap: "wrap" }}>
                     <button type="button" onClick={captureGps} disabled={gpsBusy}
                       style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 10, border: "none",
@@ -631,5 +896,6 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
 
 Object.assign(window, {
   PermitWizard, blankPermit, usePermitPhotos, permitProgress, permitMissing, permitStatusOf,
+  permitInitial, permitFromSurvey, PermitSampleArt, PermitSampleModal, PERMIT_SAMPLE_TIPS,
   PERMIT_PHOTO_SLOTS, PERMIT_SLOT_BY, PERMIT_STEPS, PERMIT_STATUS, PERMIT_TYPES,
 });

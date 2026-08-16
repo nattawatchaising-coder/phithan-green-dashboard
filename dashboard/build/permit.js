@@ -130,6 +130,655 @@ const PERMIT_PHOTO_SLOTS = [{
 }];
 const PERMIT_SLOT_BY = Object.fromEntries(PERMIT_PHOTO_SLOTS.map(s => [s.key, s]));
 const PERMIT_PHOTO_GROUPS = PERMIT_PHOTO_SLOTS.reduce((a, s) => a.indexOf(s.group) === -1 ? a.concat([s.group]) : a, []);
+const AS = {
+  l: "var(--text-2)",
+  hi: "var(--primary)",
+  fill: "var(--surface3)",
+  paper: "var(--surface)"
+};
+const PERMIT_SAMPLE_ART = {
+  meter: () => React.createElement("g", {
+    fill: "none",
+    stroke: AS.l,
+    strokeWidth: "2"
+  }, React.createElement("rect", {
+    x: "30",
+    y: "10",
+    width: "60",
+    height: "70",
+    rx: "7",
+    fill: AS.fill
+  }), React.createElement("rect", {
+    x: "38",
+    y: "20",
+    width: "44",
+    height: "17",
+    rx: "3",
+    fill: AS.paper,
+    stroke: AS.hi
+  }), React.createElement("path", {
+    d: "M44 28.5h32",
+    stroke: AS.hi,
+    strokeWidth: "3.5",
+    strokeLinecap: "round"
+  }), React.createElement("circle", {
+    cx: "60",
+    cy: "55",
+    r: "11"
+  }), React.createElement("path", {
+    d: "M60 55l6-5",
+    strokeLinecap: "round"
+  }), React.createElement("path", {
+    d: "M36 72h20",
+    strokeWidth: "2.5",
+    stroke: AS.hi,
+    strokeLinecap: "round"
+  })),
+  house: () => React.createElement("g", {
+    fill: "none",
+    stroke: AS.l,
+    strokeWidth: "2"
+  }, React.createElement("path", {
+    d: "M18 44L60 16l42 28",
+    strokeLinejoin: "round"
+  }), React.createElement("path", {
+    d: "M28 42v34h64V42",
+    strokeLinejoin: "round",
+    fill: AS.fill
+  }), React.createElement("rect", {
+    x: "52",
+    y: "56",
+    width: "18",
+    height: "20",
+    fill: AS.paper
+  }), React.createElement("rect", {
+    x: "34",
+    y: "50",
+    width: "12",
+    height: "10",
+    fill: AS.paper
+  }), React.createElement("rect", {
+    x: "74",
+    y: "46",
+    width: "16",
+    height: "9",
+    rx: "2",
+    fill: AS.paper,
+    stroke: AS.hi
+  }), React.createElement("path", {
+    d: "M77 50.5h10",
+    stroke: AS.hi,
+    strokeWidth: "2.5",
+    strokeLinecap: "round"
+  })),
+  pole: () => React.createElement("g", {
+    fill: "none",
+    stroke: AS.l,
+    strokeWidth: "2"
+  }, React.createElement("path", {
+    d: "M58 12v66M36 22h44M42 32h36",
+    strokeLinecap: "round"
+  }), React.createElement("circle", {
+    cx: "42",
+    cy: "19",
+    r: "3"
+  }), React.createElement("circle", {
+    cx: "74",
+    cy: "19",
+    r: "3"
+  }), React.createElement("rect", {
+    x: "64",
+    y: "42",
+    width: "20",
+    height: "12",
+    rx: "2",
+    fill: AS.paper,
+    stroke: AS.hi
+  }), React.createElement("path", {
+    d: "M68 48h12",
+    stroke: AS.hi,
+    strokeWidth: "2.5",
+    strokeLinecap: "round"
+  }), React.createElement("path", {
+    d: "M30 78h60",
+    strokeWidth: "2.5",
+    strokeLinecap: "round"
+  })),
+  mdbClosed: () => React.createElement("g", {
+    fill: "none",
+    stroke: AS.l,
+    strokeWidth: "2"
+  }, React.createElement("path", {
+    d: "M14 78h92",
+    strokeLinecap: "round"
+  }), React.createElement("rect", {
+    x: "34",
+    y: "14",
+    width: "52",
+    height: "58",
+    rx: "4",
+    fill: AS.fill,
+    stroke: AS.hi
+  }), React.createElement("path", {
+    d: "M76 40v10",
+    strokeLinecap: "round",
+    strokeWidth: "3"
+  }), React.createElement("path", {
+    d: "M34 14v58",
+    strokeDasharray: "4 4"
+  }), React.createElement("path", {
+    d: "M22 30v42M98 30v42",
+    strokeWidth: "1.5",
+    strokeDasharray: "3 5"
+  })),
+  mdbOpen: () => React.createElement("g", {
+    fill: "none",
+    stroke: AS.l,
+    strokeWidth: "2"
+  }, React.createElement("rect", {
+    x: "30",
+    y: "12",
+    width: "58",
+    height: "64",
+    rx: "4",
+    fill: AS.fill
+  }), React.createElement("path", {
+    d: "M30 12L10 22v44l20 10",
+    strokeLinejoin: "round"
+  }), React.createElement("rect", {
+    x: "40",
+    y: "22",
+    width: "38",
+    height: "16",
+    rx: "2",
+    fill: AS.paper,
+    stroke: AS.hi
+  }), React.createElement("path", {
+    d: "M46 30h10M62 26v8",
+    stroke: AS.hi,
+    strokeWidth: "2.5",
+    strokeLinecap: "round"
+  }), React.createElement("path", {
+    d: "M40 48h38M40 58h38M40 68h38",
+    strokeLinecap: "round"
+  })),
+  acBreaker: () => React.createElement("g", {
+    fill: "none",
+    stroke: AS.l,
+    strokeWidth: "2"
+  }, React.createElement("rect", {
+    x: "24",
+    y: "18",
+    width: "72",
+    height: "54",
+    rx: "4",
+    fill: AS.fill
+  }), React.createElement("rect", {
+    x: "34",
+    y: "26",
+    width: "24",
+    height: "38",
+    rx: "3",
+    fill: AS.paper,
+    stroke: AS.hi
+  }), React.createElement("rect", {
+    x: "40",
+    y: "32",
+    width: "12",
+    height: "12",
+    rx: "2",
+    fill: AS.hi,
+    stroke: "none"
+  }), React.createElement("path", {
+    d: "M38 54h16",
+    stroke: AS.hi,
+    strokeWidth: "2.5",
+    strokeLinecap: "round"
+  }), React.createElement("rect", {
+    x: "66",
+    y: "26",
+    width: "20",
+    height: "38",
+    rx: "3"
+  })),
+  acWiring: () => React.createElement("g", {
+    fill: "none",
+    stroke: AS.l,
+    strokeWidth: "2"
+  }, React.createElement("rect", {
+    x: "20",
+    y: "20",
+    width: "80",
+    height: "50",
+    rx: "4",
+    fill: AS.fill
+  }), React.createElement("rect", {
+    x: "30",
+    y: "34",
+    width: "60",
+    height: "16",
+    rx: "2",
+    fill: AS.paper
+  }), React.createElement("path", {
+    d: "M40 34v16M56 34v16M72 34v16"
+  }), React.createElement("path", {
+    d: "M40 34C40 22 30 20 26 14M56 34c0-12 8-16 12-22M72 34c0-12 10-14 16-20",
+    stroke: AS.hi,
+    strokeWidth: "3",
+    strokeLinecap: "round"
+  })),
+  ct: () => React.createElement("g", {
+    fill: "none",
+    stroke: AS.l,
+    strokeWidth: "2"
+  }, React.createElement("path", {
+    d: "M10 45h100",
+    strokeWidth: "7",
+    strokeLinecap: "round"
+  }), React.createElement("circle", {
+    cx: "60",
+    cy: "45",
+    r: "20",
+    stroke: AS.hi,
+    strokeWidth: "4"
+  }), React.createElement("path", {
+    d: "M60 25v-12",
+    stroke: AS.hi,
+    strokeWidth: "2.5",
+    strokeLinecap: "round"
+  }), React.createElement("path", {
+    d: "M74 59l14 14",
+    stroke: AS.hi,
+    strokeWidth: "2.5",
+    strokeLinecap: "round"
+  })),
+  inverter: () => React.createElement("g", {
+    fill: "none",
+    stroke: AS.l,
+    strokeWidth: "2"
+  }, React.createElement("path", {
+    d: "M12 8v76",
+    strokeDasharray: "5 5",
+    strokeWidth: "1.5"
+  }), React.createElement("rect", {
+    x: "34",
+    y: "16",
+    width: "52",
+    height: "46",
+    rx: "6",
+    fill: AS.fill,
+    stroke: AS.hi
+  }), React.createElement("rect", {
+    x: "44",
+    y: "26",
+    width: "32",
+    height: "12",
+    rx: "2",
+    fill: AS.paper
+  }), React.createElement("path", {
+    d: "M46 48h10M64 48h10",
+    strokeLinecap: "round"
+  }), React.createElement("path", {
+    d: "M46 62v14M74 62v14",
+    strokeLinecap: "round"
+  }), React.createElement("path", {
+    d: "M12 20h22M12 40h22",
+    strokeWidth: "1.5"
+  })),
+  invPlate: () => React.createElement("g", {
+    fill: "none",
+    stroke: AS.l,
+    strokeWidth: "2"
+  }, React.createElement("rect", {
+    x: "16",
+    y: "16",
+    width: "88",
+    height: "58",
+    rx: "5",
+    fill: AS.paper,
+    stroke: AS.hi,
+    strokeWidth: "2.5"
+  }), React.createElement("path", {
+    d: "M26 30h44M26 40h58M26 50h34",
+    stroke: AS.hi,
+    strokeWidth: "3",
+    strokeLinecap: "round"
+  }), React.createElement("g", {
+    stroke: AS.l,
+    strokeWidth: "2"
+  }, React.createElement("path", {
+    d: "M26 60v8M31 60v8M35 60v8M40 60v8M44 60v8M49 60v8M53 60v8M58 60v8"
+  }))),
+  dcIso: () => React.createElement("g", {
+    fill: "none",
+    stroke: AS.l,
+    strokeWidth: "2"
+  }, React.createElement("rect", {
+    x: "34",
+    y: "16",
+    width: "52",
+    height: "58",
+    rx: "6",
+    fill: AS.fill
+  }), React.createElement("circle", {
+    cx: "60",
+    cy: "42",
+    r: "13",
+    fill: AS.paper,
+    stroke: AS.hi,
+    strokeWidth: "2.5"
+  }), React.createElement("path", {
+    d: "M60 42l8-8",
+    stroke: AS.hi,
+    strokeWidth: "3",
+    strokeLinecap: "round"
+  }), React.createElement("path", {
+    d: "M50 64h20",
+    strokeLinecap: "round"
+  }), React.createElement("path", {
+    d: "M46 16V8M74 16V8",
+    strokeLinecap: "round"
+  })),
+  arrayWide: () => React.createElement("g", {
+    fill: "none",
+    stroke: AS.l,
+    strokeWidth: "2"
+  }, React.createElement("path", {
+    d: "M8 74h104",
+    strokeLinecap: "round"
+  }), React.createElement("path", {
+    d: "M16 74L34 34h58l16 40",
+    strokeLinejoin: "round",
+    fill: AS.fill
+  }), React.createElement("g", {
+    stroke: AS.hi,
+    strokeWidth: "2"
+  }, React.createElement("path", {
+    d: "M34 42h60M31 54h68M28 66h74"
+  }), React.createElement("path", {
+    d: "M46 42v24M64 42v24M82 42v24"
+  }))),
+  arrayClose: () => React.createElement("g", {
+    fill: "none",
+    stroke: AS.l,
+    strokeWidth: "2"
+  }, React.createElement("rect", {
+    x: "14",
+    y: "18",
+    width: "42",
+    height: "54",
+    rx: "3",
+    fill: AS.fill,
+    stroke: AS.hi
+  }), React.createElement("rect", {
+    x: "64",
+    y: "18",
+    width: "42",
+    height: "54",
+    rx: "3",
+    fill: AS.fill,
+    stroke: AS.hi
+  }), React.createElement("path", {
+    d: "M14 36h42M14 54h42M64 36h42M64 54h42M35 18v54M85 18v54",
+    strokeWidth: "1.5"
+  }), React.createElement("rect", {
+    x: "54",
+    y: "38",
+    width: "12",
+    height: "14",
+    rx: "2",
+    fill: AS.paper,
+    stroke: AS.l,
+    strokeWidth: "2.5"
+  }), React.createElement("path", {
+    d: "M8 78h104",
+    strokeWidth: "4",
+    strokeLinecap: "round"
+  })),
+  panelPlate: () => React.createElement("g", {
+    fill: "none",
+    stroke: AS.l,
+    strokeWidth: "2"
+  }, React.createElement("rect", {
+    x: "10",
+    y: "10",
+    width: "100",
+    height: "70",
+    rx: "4",
+    fill: AS.fill,
+    strokeDasharray: "5 4"
+  }), React.createElement("rect", {
+    x: "26",
+    y: "26",
+    width: "68",
+    height: "38",
+    rx: "3",
+    fill: AS.paper,
+    stroke: AS.hi,
+    strokeWidth: "2.5"
+  }), React.createElement("path", {
+    d: "M34 36h40",
+    stroke: AS.hi,
+    strokeWidth: "3",
+    strokeLinecap: "round"
+  }), React.createElement("g", {
+    strokeWidth: "2"
+  }, React.createElement("path", {
+    d: "M34 46v12M38 46v12M43 46v12M47 46v12M52 46v12M56 46v12M61 46v12M65 46v12"
+  })), React.createElement("path", {
+    d: "M72 52h14",
+    strokeLinecap: "round"
+  })),
+  ground: () => React.createElement("g", {
+    fill: "none",
+    stroke: AS.l,
+    strokeWidth: "2"
+  }, React.createElement("path", {
+    d: "M8 46h104",
+    strokeWidth: "2.5"
+  }), React.createElement("path", {
+    d: "M14 54l8-8M30 54l8-8M46 54l8-8M78 54l8-8M94 54l8-8",
+    strokeWidth: "1.5"
+  }), React.createElement("path", {
+    d: "M60 46v28",
+    stroke: AS.l,
+    strokeWidth: "5",
+    strokeLinecap: "round"
+  }), React.createElement("rect", {
+    x: "50",
+    y: "32",
+    width: "20",
+    height: "12",
+    rx: "3",
+    fill: AS.paper,
+    stroke: AS.hi,
+    strokeWidth: "2.5"
+  }), React.createElement("path", {
+    d: "M60 32V16h24",
+    stroke: AS.hi,
+    strokeWidth: "3",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  })),
+  warnSign: () => React.createElement("g", {
+    fill: "none",
+    stroke: AS.l,
+    strokeWidth: "2"
+  }, React.createElement("rect", {
+    x: "18",
+    y: "14",
+    width: "84",
+    height: "58",
+    rx: "5",
+    fill: AS.fill
+  }), React.createElement("path", {
+    d: "M40 26h44M40 58h44",
+    strokeWidth: "1.5"
+  }), React.createElement("path", {
+    d: "M60 30l16 26H44z",
+    fill: AS.paper,
+    stroke: AS.hi,
+    strokeWidth: "2.5",
+    strokeLinejoin: "round"
+  }), React.createElement("path", {
+    d: "M60 38v8M60 50v.5",
+    stroke: AS.hi,
+    strokeWidth: "3",
+    strokeLinecap: "round"
+  }), React.createElement("path", {
+    d: "M18 72h84",
+    strokeDasharray: "4 4",
+    strokeWidth: "1.5"
+  }))
+};
+const PERMIT_SAMPLE_TIPS = {
+  meter: ["ยืนห่างประมาณ 1 เมตร ให้เห็นทั้งตัวมิเตอร์", "หมายเลขมิเตอร์และขนาด เช่น 15(45) ต้องอ่านออก", "อย่าถ่ายย้อนแสงจนหน้าปัดสะท้อน"],
+  house: ["ให้เห็นบ้านเลขที่ในรูปเดียวกับตัวบ้าน", "ถ่ายจากหน้าบ้าน เห็นรั้ว/ทางเข้า"],
+  pole: ["ถ่ายให้เห็นป้ายหมายเลขเสาชัด ๆ", "ถ้าเป็นหม้อแปลง ให้ติดตัวหม้อแปลงมาด้วย"],
+  mdbClosed: ["มุมกว้าง เห็นว่าตู้ติดตั้งอยู่ตรงไหนของอาคาร"],
+  mdbOpen: ["เปิดฝาให้เห็นเมนเบรกเกอร์เต็มตัว", "ขนาดที่พิมพ์บนเบรกเกอร์ต้องอ่านออก"],
+  acBreaker: ["เจาะเฉพาะเบรกเกอร์ AC ที่เพิ่มใหม่", "ต้องเห็นตัวเลขขนาด เช่น 32A"],
+  acWiring: ["ให้เห็นปลายสายเข้าเทอร์มินอลและการขันแน่น", "สายต้องเข้าเป็นระเบียบ ไม่มีเปลือกฉีก"],
+  ct: ["ให้เห็นว่า CT คล้องอยู่บนสายเมนเส้นไหน", "ติดทิศทางลูกศรบน CT มาด้วยถ้ามี"],
+  inverter: ["มุมกว้าง เห็นตัวเครื่องยึดกับผนังและท่อร้อยสาย", "ถ่ายให้เห็นระยะห่างจากผนัง/หลังคา"],
+  invPlate: ["ถ่ายใกล้จนอ่านรุ่นและ Serial ออกทุกตัวอักษร", "มีหลายเครื่องให้ถ่ายทีละเครื่อง", "ใช้มือบังแดดถ้าสติกเกอร์สะท้อน"],
+  dcIso: ["ให้เห็นสวิตช์และตำแหน่งที่ติดตั้ง", "ไม่มีติดตั้งก็ข้ามได้"],
+  arrayWide: ["ยืนถอยห่างให้เห็นแผงทั้งชุดในรูปเดียว", "เห็นแนวหลังคาและทิศที่วางแผง"],
+  arrayClose: ["ให้เห็นรางอะลูมิเนียมและคลิปจับแผง", "เห็นช่องว่างระหว่างแผงกับหลังคา"],
+  panelPlate: ["พลิกดูสติกเกอร์หลังแผง ถ่ายใกล้", "รุ่นและ Serial ต้องอ่านออกทุกตัว", "เก็บอย่างน้อย 1–2 แผ่นเป็นตัวอย่าง"],
+  ground: ["เห็นหลักดินตอกลงดินและแคลมป์จุดต่อ", "เห็นสายดินวิ่งออกจากแคลมป์ไปตู้"],
+  warnSign: ["ถ่ายป้ายที่ติดจริงบนหน้าตู้ ไม่ใช่ป้ายที่ยังไม่ได้ติด", "ตัวหนังสือบนป้ายต้องอ่านออก"]
+};
+function PermitSampleArt({
+  slotKey,
+  size,
+  radius
+}) {
+  const draw = PERMIT_SAMPLE_ART[slotKey];
+  return React.createElement("svg", {
+    viewBox: "0 0 120 90",
+    width: size,
+    height: Math.round(size * 90 / 120),
+    style: {
+      display: "block",
+      borderRadius: radius == null ? 10 : radius,
+      background: "var(--surface2)",
+      border: "1px solid var(--border)"
+    }
+  }, draw ? draw() : React.createElement("text", {
+    x: "60",
+    y: "50",
+    textAnchor: "middle",
+    fontSize: "12",
+    fill: "var(--text-3)"
+  }, "\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07"));
+}
+function PermitSampleModal({
+  slot,
+  onClose
+}) {
+  const bdClose = window.useBackdropClose(onClose);
+  const tips = PERMIT_SAMPLE_TIPS[slot.key] || [];
+  return React.createElement("div", _extends({}, bdClose, {
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 2400,
+      background: "rgba(8,15,12,.55)",
+      display: "grid",
+      placeItems: "center",
+      padding: 16
+    }
+  }), React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      width: "min(420px, 100%)",
+      background: "var(--surface)",
+      borderRadius: 18,
+      border: "1px solid var(--border)",
+      overflow: "hidden"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "13px 15px",
+      borderBottom: "1px solid var(--border)"
+    }
+  }, React.createElement(Icon, {
+    name: "image",
+    size: 16,
+    color: "var(--primary)"
+  }), React.createElement("span", {
+    style: {
+      flex: 1,
+      fontSize: 14,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, "\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07 \u2014 ", slot.label), React.createElement("button", {
+    onClick: onClose,
+    style: {
+      width: 28,
+      height: 28,
+      borderRadius: 8,
+      border: "none",
+      background: "var(--surface3)",
+      color: "var(--text-2)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 14
+  }))), React.createElement("div", {
+    style: {
+      padding: 15,
+      display: "flex",
+      flexDirection: "column",
+      gap: 12
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "grid",
+      placeItems: "center"
+    }
+  }, React.createElement(PermitSampleArt, {
+    slotKey: slot.key,
+    size: 320,
+    radius: 14
+  })), React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      textAlign: "center",
+      marginTop: -4
+    }
+  }, "\u0E20\u0E32\u0E1E\u0E08\u0E33\u0E25\u0E2D\u0E07 \xB7 \u0E40\u0E2A\u0E49\u0E19\u0E2A\u0E35\u0E40\u0E02\u0E35\u0E22\u0E27\u0E04\u0E37\u0E2D\u0E2A\u0E48\u0E27\u0E19\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E2D\u0E48\u0E32\u0E19\u0E2D\u0E2D\u0E01\u0E43\u0E19\u0E23\u0E39\u0E1B\u0E08\u0E23\u0E34\u0E07"), React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 7
+    }
+  }, tips.map((t, i) => React.createElement("div", {
+    key: i,
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "flex-start",
+      fontSize: 12.5,
+      color: "var(--text-2)",
+      lineHeight: 1.5
+    }
+  }, React.createElement("span", {
+    style: {
+      color: "var(--primary)",
+      fontWeight: 800
+    }
+  }, "\u2022"), React.createElement("span", null, t)))))));
+}
 const PERMIT_STEPS = [{
   n: 1,
   icon: "file",
@@ -173,8 +822,50 @@ const PERMIT_STATUS = {
     color: "#EF4444"
   }
 };
+function permitFromSurvey(job) {
+  const s = job && job.survey || null;
+  const out = {};
+  if (!s) return out;
+  const put = (k, v) => {
+    const t = String(v == null ? "" : v).trim();
+    if (t) out[k] = t;
+  };
+  put("auth", s.meterAuth);
+  put("ca", s.ca);
+  put("meterNo", s.meterNo);
+  put("meterSize", s.meterSize);
+  put("poleNo", s.poleNo);
+  const at = String(s.mainBreaker || "").match(/\d+/);
+  if (at) out.mainAT = at[0];
+  put("mainCable", s.mainCable);
+  put("mdbBrand", s.mdbBrand);
+  put("rccb", s.mdbRccb);
+  put("kwp", s.sizeKw);
+  put("panelModel", s.panelModel);
+  put("invModel", s.invModel);
+  if (s.phase) out.phase = String(s.phase) === "3" ? "3" : "1";
+  if (s.gps && s.gps.lat) out.gps = s.gps;
+  return out;
+}
+const PERMIT_SURVEY_LABELS = {
+  auth: "การไฟฟ้า",
+  ca: "เลข CA",
+  meterNo: "เลขมิเตอร์",
+  meterSize: "ขนาดมิเตอร์",
+  poleNo: "เลขเสาไฟ",
+  phase: "เฟส",
+  mainAT: "เมนเบรกเกอร์",
+  mainCable: "สายเมน",
+  mdbBrand: "ยี่ห้อตู้ MDB",
+  rccb: "เมนกันดูด",
+  kwp: "ขนาดติดตั้ง",
+  panelModel: "รุ่นแผง",
+  invModel: "รุ่นอินเวอร์เตอร์",
+  gps: "พิกัด GPS"
+};
 function blankPermit(job) {
-  return {
+  const seed = permitFromSurvey(job);
+  const base = {
     status: "draft",
     permitType: "",
     auth: "",
@@ -210,6 +901,25 @@ function blankPermit(job) {
     byName: "",
     note: ""
   };
+  Object.keys(seed).forEach(k => {
+    if (k !== "invModel") base[k] = seed[k];
+  });
+  if (seed.invModel) base.invs = [{
+    model: seed.invModel,
+    sn: ""
+  }];
+  return base;
+}
+function permitInitial(job) {
+  const base = blankPermit(job);
+  const cur = job && job.permit || {};
+  Object.keys(cur).forEach(k => {
+    const v = cur[k];
+    if (v == null || v === "") return;
+    if (Array.isArray(v) && !v.some(x => x && typeof x === "object" ? x.model || x.sn : String(x || "").trim())) return;
+    base[k] = v;
+  });
+  return base;
 }
 function permitRequiredFields(f) {
   const req = [{
@@ -390,12 +1100,31 @@ const P_INPUT = {
   outline: "none",
   width: "100%"
 };
+function FromSurveyTag() {
+  return React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 3,
+      marginLeft: 6,
+      padding: "1px 6px",
+      borderRadius: 99,
+      background: "var(--tint-teal-bg, var(--primary-soft))",
+      color: "#0F766E",
+      fontSize: 9.5,
+      fontWeight: 800,
+      letterSpacing: 0,
+      verticalAlign: "middle"
+    }
+  }, "\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A\u0E2A\u0E33\u0E23\u0E27\u0E08");
+}
 function PField({
   label,
   hint,
   required,
   children,
-  full
+  full,
+  from
 }) {
   return React.createElement("div", {
     style: {
@@ -416,7 +1145,7 @@ function PField({
     style: {
       color: "#EF4444"
     }
-  }, " *")), children, hint && React.createElement("span", {
+  }, " *"), from && React.createElement(FromSurveyTag, null)), children, hint && React.createElement("span", {
     style: {
       fontSize: 10.5,
       color: "var(--text-3)",
@@ -513,9 +1242,13 @@ function PermitShotCard({
   onRemove
 }) {
   const inputRef = React.useRef(null);
+  const [sample, setSample] = React.useState(false);
   const has = !!(shot && shot.dataUrl);
   const warn = slot.hint.indexOf("⚠") === 0;
-  return React.createElement("div", {
+  return React.createElement(React.Fragment, null, sample && React.createElement(PermitSampleModal, {
+    slot: slot,
+    onClose: () => setSample(false)
+  }), React.createElement("div", {
     style: {
       border: "1px solid " + (has ? "var(--border)" : "var(--border-strong)"),
       borderRadius: 13,
@@ -544,21 +1277,21 @@ function PermitShotCard({
       objectFit: "cover",
       border: "1px solid var(--border)"
     }
-  })) : React.createElement("span", {
+  })) : React.createElement("button", {
+    type: "button",
+    onClick: () => setSample(true),
+    title: "\u0E14\u0E39\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E40\u0E15\u0E47\u0E21",
     style: {
-      width: 54,
-      height: 54,
-      borderRadius: 10,
+      padding: 0,
+      border: "none",
+      background: "none",
+      cursor: "pointer",
       flexShrink: 0,
-      display: "grid",
-      placeItems: "center",
-      background: "var(--surface3)",
-      border: "1px dashed var(--border-strong)"
+      lineHeight: 0
     }
-  }, React.createElement(Icon, {
-    name: "image",
-    size: 17,
-    color: "var(--text-3)"
+  }, React.createElement(PermitSampleArt, {
+    slotKey: slot.key,
+    size: 62
   })), React.createElement("span", {
     style: {
       flex: 1,
@@ -584,7 +1317,28 @@ function PermitShotCard({
       color: warn ? "var(--tint-red-tx)" : "var(--text-3)",
       fontWeight: warn ? 600 : 400
     }
-  }, slot.hint)), React.createElement("input", {
+  }, slot.hint), React.createElement("button", {
+    type: "button",
+    onClick: () => setSample(true),
+    style: {
+      marginTop: 4,
+      padding: 0,
+      border: "none",
+      background: "none",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 11,
+      fontWeight: 700,
+      color: "var(--primary-dark)",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4
+    }
+  }, React.createElement(Icon, {
+    name: "image",
+    size: 12,
+    color: "var(--primary-dark)"
+  }), " \u0E14\u0E39\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07")), React.createElement("input", {
     ref: inputRef,
     type: "file",
     accept: "image/*",
@@ -643,7 +1397,7 @@ function PermitShotCard({
   }, React.createElement(Icon, {
     name: "trash",
     size: 14
-  }))));
+  })))));
 }
 function PermitWizard({
   job,
@@ -661,10 +1415,18 @@ function PermitWizard({
   const [gpsBusy, setGpsBusy] = React.useState(false);
   const [gpsErr, setGpsErr] = React.useState("");
   const media = usePermitPhotos(job ? job.id : null);
-  const [f, setF] = React.useState(() => Object.assign(blankPermit(job), job && job.permit || {}));
+  const [f, setF] = React.useState(() => permitInitial(job));
   const set = (k, v) => setF(p => Object.assign({}, p, {
     [k]: v
   }));
+  const seed = React.useMemo(() => permitFromSurvey(job), [job && job.id]);
+  const seedNames = Object.keys(seed).map(k => PERMIT_SURVEY_LABELS[k]).filter(Boolean);
+  const fromSurvey = k => {
+    if (seed[k] == null) return false;
+    if (k === "gps") return !!(f.gps && seed.gps && f.gps.lat === seed.gps.lat);
+    return String(f[k] || "").trim() !== "" && String(f[k]) === String(seed[k]);
+  };
+  const invFromSurvey = i => i === 0 && !!seed.invModel && String((f.invs[0] || {}).model || "") === String(seed.invModel);
   const prog = permitProgress(f, media.photos);
   const locked = !!readOnly;
   const stockItems = stock && stock.items || [];
@@ -928,7 +1690,33 @@ function PermitWizard({
       pointerEvents: locked ? "none" : "auto",
       opacity: locked ? .75 : 1
     }
-  }, step === 1 && React.createElement(React.Fragment, null, React.createElement(SurveyBlock, {
+  }, step === 1 && React.createElement(React.Fragment, null, seedNames.length > 0 && React.createElement("div", {
+    style: {
+      padding: "11px 13px",
+      borderRadius: 12,
+      background: "var(--primary-soft)",
+      border: "1px solid var(--primary)",
+      fontSize: 12,
+      color: "var(--primary-dark)",
+      lineHeight: 1.55
+    }
+  }, React.createElement("span", {
+    style: {
+      fontWeight: 800
+    }
+  }, "\u0E14\u0E36\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E21\u0E32\u0E43\u0E2B\u0E49\u0E41\u0E25\u0E49\u0E27 ", seedNames.length, " \u0E0A\u0E48\u0E2D\u0E07"), React.createElement("span", {
+    style: {
+      display: "block",
+      marginTop: 2
+    }
+  }, seedNames.join(" · ")), React.createElement("span", {
+    style: {
+      display: "block",
+      marginTop: 3,
+      color: "var(--text-3)",
+      fontWeight: 600
+    }
+  }, "\u0E0A\u0E48\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E21\u0E35\u0E1B\u0E49\u0E32\u0E22 \u201C\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A\u0E2A\u0E33\u0E23\u0E27\u0E08\u201D \u0E43\u0E2B\u0E49\u0E15\u0E23\u0E27\u0E08\u0E01\u0E31\u0E1A\u0E02\u0E2D\u0E07\u0E08\u0E23\u0E34\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19\u0E2D\u0E35\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07 \u0E41\u0E01\u0E49\u0E17\u0E31\u0E1A\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22")), React.createElement(SurveyBlock, {
     title: "\uD83D\uDCC4 \u0E22\u0E37\u0E48\u0E19\u0E41\u0E1A\u0E1A\u0E44\u0E2B\u0E19",
     sub: "\u0E41\u0E15\u0E48\u0E25\u0E30\u0E41\u0E1A\u0E1A\u0E43\u0E0A\u0E49\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E04\u0E19\u0E25\u0E30\u0E0A\u0E38\u0E14 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E43\u0E2B\u0E49\u0E15\u0E23\u0E07\u0E01\u0E48\u0E2D\u0E19 \u0E41\u0E25\u0E49\u0E27\u0E0A\u0E48\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E08\u0E30\u0E1B\u0E23\u0E31\u0E1A\u0E15\u0E32\u0E21"
   }, React.createElement(PermitTypePicker, {
@@ -939,13 +1727,15 @@ function PermitWizard({
     sub: "\u0E25\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E1A\u0E34\u0E25\u0E04\u0E48\u0E32\u0E44\u0E1F\u0E41\u0E25\u0E30\u0E15\u0E31\u0E27\u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C \u0E15\u0E49\u0E2D\u0E07\u0E15\u0E23\u0E07\u0E40\u0E1B\u0E4A\u0E30 \u0E1C\u0E34\u0E14\u0E15\u0E31\u0E27\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E32\u0E23\u0E44\u0E1F\u0E1F\u0E49\u0E32\u0E15\u0E35\u0E01\u0E25\u0E31\u0E1A"
   }, React.createElement(PGrid, null, React.createElement(PField, {
     label: "\u0E01\u0E32\u0E23\u0E44\u0E1F\u0E1F\u0E49\u0E32\u0E17\u0E35\u0E48\u0E22\u0E37\u0E48\u0E19",
-    required: true
+    required: true,
+    from: fromSurvey("auth")
   }, React.createElement(Segmented, {
     value: f.auth,
     onChange: v => set("auth", v),
     options: PERMIT_AUTHS
   })), React.createElement(PField, {
-    label: "\u0E40\u0E1F\u0E2A"
+    label: "\u0E40\u0E1F\u0E2A",
+    from: fromSurvey("phase")
   }, React.createElement(Segmented, {
     value: f.phase,
     onChange: v => set("phase", v),
@@ -953,6 +1743,7 @@ function PermitWizard({
   })), React.createElement(PField, {
     label: "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E25\u0E02\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E44\u0E1F\u0E1F\u0E49\u0E32 (CA)",
     required: true,
+    from: fromSurvey("ca"),
     hint: "\u0E2D\u0E22\u0E39\u0E48\u0E1A\u0E19\u0E1A\u0E34\u0E25\u0E04\u0E48\u0E32\u0E44\u0E1F \u0E21\u0E38\u0E21\u0E1A\u0E19"
   }, React.createElement("input", {
     inputMode: "numeric",
@@ -963,6 +1754,7 @@ function PermitWizard({
   })), React.createElement(PField, {
     label: "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E25\u0E02\u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C",
     required: true,
+    from: fromSurvey("meterNo"),
     hint: "\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E1A\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E1B\u0E31\u0E14\u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C"
   }, React.createElement("input", {
     style: P_INPUT,
@@ -972,6 +1764,7 @@ function PermitWizard({
   })), React.createElement(PField, {
     label: "\u0E02\u0E19\u0E32\u0E14\u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C",
     required: true,
+    from: fromSurvey("meterSize"),
     hint: "\u0E40\u0E0A\u0E48\u0E19 15(45), 30(100)"
   }, React.createElement("input", {
     style: P_INPUT,
@@ -981,6 +1774,7 @@ function PermitWizard({
   })), React.createElement(PField, {
     label: "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E25\u0E02\u0E40\u0E2A\u0E32\u0E44\u0E1F\u0E15\u0E49\u0E19\u0E17\u0E35\u0E48\u0E23\u0E31\u0E1A\u0E44\u0E1F",
     required: true,
+    from: fromSurvey("poleNo"),
     hint: "\u0E2D\u0E48\u0E32\u0E19\u0E08\u0E32\u0E01\u0E1B\u0E49\u0E32\u0E22\u0E17\u0E35\u0E48\u0E15\u0E34\u0E14\u0E1A\u0E19\u0E40\u0E2A\u0E32"
   }, React.createElement("input", {
     style: P_INPUT,
@@ -1002,6 +1796,7 @@ function PermitWizard({
   }, React.createElement(PGrid, null, React.createElement(PField, {
     label: "\u0E40\u0E21\u0E19\u0E40\u0E1A\u0E23\u0E01\u0E40\u0E01\u0E2D\u0E23\u0E4C AT (\u0E41\u0E2D\u0E21\u0E1B\u0E4C)",
     required: true,
+    from: fromSurvey("mainAT"),
     hint: "\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E17\u0E35\u0E48\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E1A\u0E19\u0E40\u0E1A\u0E23\u0E01\u0E40\u0E01\u0E2D\u0E23\u0E4C"
   }, React.createElement("input", {
     inputMode: "numeric",
@@ -1020,6 +1815,7 @@ function PermitWizard({
   })), React.createElement(PField, {
     label: "\u0E02\u0E19\u0E32\u0E14\u0E2A\u0E32\u0E22\u0E40\u0E21\u0E19",
     required: true,
+    from: fromSurvey("mainCable"),
     hint: "\u0E40\u0E0A\u0E48\u0E19 2x25 sq.mm THW"
   }, React.createElement("input", {
     style: P_INPUT,
@@ -1027,7 +1823,8 @@ function PermitWizard({
     onChange: e => set("mainCable", e.target.value),
     placeholder: "2x25 sq.mm"
   })), React.createElement(PField, {
-    label: "\u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D\u0E15\u0E39\u0E49 MDB"
+    label: "\u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D\u0E15\u0E39\u0E49 MDB",
+    from: fromSurvey("mdbBrand")
   }, React.createElement("input", {
     style: P_INPUT,
     value: f.mdbBrand,
@@ -1063,7 +1860,8 @@ function PermitWizard({
     title: "\u2600\uFE0F \u0E23\u0E30\u0E1A\u0E1A\u0E17\u0E35\u0E48\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"
   }, React.createElement(PGrid, null, React.createElement(PField, {
     label: "\u0E02\u0E19\u0E32\u0E14\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 kWp (\u0E1D\u0E31\u0E48\u0E07 DC)",
-    required: true
+    required: true,
+    from: fromSurvey("kwp")
   }, React.createElement("input", {
     inputMode: "decimal",
     style: P_INPUT,
@@ -1138,7 +1936,8 @@ function PermitWizard({
     }
   }, React.createElement(PField, {
     label: "ตัวที่ " + (i + 1) + " — รุ่น",
-    required: true
+    required: true,
+    from: invFromSurvey(i)
   }, React.createElement(Dropdown, {
     value: iv.model,
     onChange: v => setInv(i, "model", v),
@@ -1204,7 +2003,8 @@ function PermitWizard({
   }, React.createElement(PGrid, null, React.createElement(PField, {
     label: "\u0E23\u0E38\u0E48\u0E19\u0E41\u0E1C\u0E07",
     required: true,
-    full: true
+    full: true,
+    from: fromSurvey("panelModel")
   }, React.createElement(Dropdown, {
     value: f.panelModel,
     onChange: v => set("panelModel", v),
@@ -1248,6 +2048,7 @@ function PermitWizard({
     title: "\uD83D\uDCCD \u0E1B\u0E34\u0E14\u0E07\u0E32\u0E19"
   }, React.createElement(PField, {
     label: "\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 (GPS)",
+    from: fromSurvey("gps"),
     hint: "\u0E01\u0E32\u0E23\u0E44\u0E1F\u0E1F\u0E49\u0E32\u0E02\u0E2D\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E08\u0E38\u0E14\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A\u0E04\u0E33\u0E02\u0E2D"
   }, React.createElement("div", {
     style: {
@@ -1490,6 +2291,11 @@ Object.assign(window, {
   permitProgress,
   permitMissing,
   permitStatusOf,
+  permitInitial,
+  permitFromSurvey,
+  PermitSampleArt,
+  PermitSampleModal,
+  PERMIT_SAMPLE_TIPS,
   PERMIT_PHOTO_SLOTS,
   PERMIT_SLOT_BY,
   PERMIT_STEPS,

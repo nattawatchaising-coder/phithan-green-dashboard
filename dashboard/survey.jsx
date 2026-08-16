@@ -89,6 +89,9 @@ function blankSurvey(job) {
     gps: null,                                  // { lat, lng, at }
     meterSize: "",
     meterAuth: "",                              // MEA / PEA
+    /* 3 ช่องนี้เก็บตั้งแต่ตอนสำรวจ เพราะเป็นของที่อยู่บนบิล/หน้างานอยู่แล้ว
+       แล้วหน้า "ขออนุญาตการไฟฟ้า" จะดึงไปใช้ต่อ ช่างไม่ต้องกรอกซ้ำ */
+    ca: "", meterNo: "", poleNo: "",            // เลขผู้ใช้ไฟฟ้า / เลขมิเตอร์ / เลขเสาไฟต้นที่รับไฟ
     phase: String((job && job.phase) || "1") === "3" ? "3" : "1",
     mainBreaker: "", mainCable: "",             // เมนเบรกเกอร์เดิม / สายเมนเดิม
     buildingType: "",                           // พื้นที่ที่จะวางแผง (บ้านเดี่ยว ฯลฯ)
@@ -1064,11 +1067,14 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
                   </div>
                 )}
               </SurveyBlock>
-              <SurveyBlock title="⚡ มิเตอร์ & เมนไฟฟ้าเดิม">
+              <SurveyBlock title="⚡ มิเตอร์ & เมนไฟฟ้าเดิม" sub="ลอกจากบิลค่าไฟและตัวมิเตอร์ให้ตรงเป๊ะ — หน้าขออนุญาตการไฟฟ้าจะดึงชุดนี้ไปใช้ต่อ">
                 <div style={two}>
                   {fld("ขนาดมิเตอร์ไฟฟ้า", <input value={f.meterSize} onChange={(e) => set("meterSize", e.target.value)} placeholder="เช่น 15(45)A" style={inputStyle} />, true)}
                   {fld("การไฟฟ้า", <Dropdown value={f.meterAuth} onChange={(v) => set("meterAuth", v)} placeholder="— เลือก —" options={SURVEY_METER_AUTH} />)}
+                  {fld("หมายเลขผู้ใช้ไฟฟ้า (CA)", <input inputMode="numeric" value={f.ca} onChange={(e) => set("ca", e.target.value)} placeholder="เลข 12 หลักบนบิลค่าไฟ" style={inputStyle} />)}
+                  {fld("หมายเลขมิเตอร์", <input value={f.meterNo} onChange={(e) => set("meterNo", e.target.value)} placeholder="ตัวเลขบนหน้าปัดมิเตอร์" style={inputStyle} />)}
                 </div>
+                {fld("หมายเลขเสาไฟต้นที่รับไฟ", <input value={f.poleNo} onChange={(e) => set("poleNo", e.target.value)} placeholder="อ่านจากป้ายบนเสา เช่น 5FA-01-234" style={inputStyle} />)}
                 <SurveyToggle label="ระบบไฟฟ้า" hint="จำเป็นต้องระบุ" value={f.phase} onChange={(v) => set("phase", v)} options={[{ value: "1", label: "1 เฟส" }, { value: "3", label: "3 เฟส" }]} />
                 {/* เมนเบรกเกอร์อยู่ในตู้ MDB จึงย้ายไปกรอกพร้อมกันตอนเปิดฝาตู้ (ขั้น "ไฟฟ้า & ตำแหน่ง") */}
                 {fld("สายเมนเดิม", <input value={f.mainCable} onChange={(e) => set("mainCable", e.target.value)} placeholder="เช่น NYY 50 sq.mm" style={inputStyle} />)}
