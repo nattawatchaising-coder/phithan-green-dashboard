@@ -1741,8 +1741,10 @@ const sDaysSince = v => {
 function SalesOverview({
   leads,
   quotes,
+  jobs,
   currentUser,
   onOpenLead,
+  onOpenJob,
   onGoBoard,
   onGoList,
   onGoKpi
@@ -1809,6 +1811,20 @@ function SalesOverview({
   const openLead = l => {
     if (l && onOpenLead) onOpenLead(l);
   };
+  const myJobs = React.useMemo(() => {
+    const me = currentUser && currentUser.id;
+    if (!me) return [];
+    const SF = window.SF;
+    return (jobs || []).filter(j => j.salesId === me || !j.salesId && j.createdBy === me).sort((a, b) => {
+      const da = a.stage === "done" ? 1 : 0,
+        db = b.stage === "done" ? 1 : 0;
+      if (da !== db) return da - db;
+      const ia = SF.installDate && SF.installDate(a) || "9999-99-99";
+      const ib = SF.installDate && SF.installDate(b) || "9999-99-99";
+      return ia.localeCompare(ib);
+    });
+  }, [jobs, currentUser]);
+  const myLive = myJobs.filter(j => j.stage !== "done").length;
   return React.createElement("div", {
     style: {
       display: "flex",
@@ -2021,7 +2037,55 @@ function SalesOverview({
       fontSize: 11.5,
       color: "var(--text-3)"
     }
-  }, "* \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2A\u0E48\u0E07\u0E44\u0E1B\u0E40\u0E01\u0E34\u0E19 7 \u0E27\u0E31\u0E19\u0E02\u0E36\u0E49\u0E19\u0E02\u0E35\u0E14\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E07 \u2014 \u0E04\u0E27\u0E23\u0E42\u0E17\u0E23\u0E15\u0E32\u0E21\u0E01\u0E48\u0E2D\u0E19\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E25\u0E37\u0E21"))));
+  }, "* \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2A\u0E48\u0E07\u0E44\u0E1B\u0E40\u0E01\u0E34\u0E19 7 \u0E27\u0E31\u0E19\u0E02\u0E36\u0E49\u0E19\u0E02\u0E35\u0E14\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E07 \u2014 \u0E04\u0E27\u0E23\u0E42\u0E17\u0E23\u0E15\u0E32\u0E21\u0E01\u0E48\u0E2D\u0E19\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E25\u0E37\u0E21"))), React.createElement("div", {
+    className: "pnl"
+  }, React.createElement(PanelTitle, {
+    title: "\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E02\u0E2D\u0E07\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E09\u0E31\u0E19",
+    sub: myJobs.length ? "กำลังดำเนินการ " + myLive + " งาน · เสร็จแล้ว " + (myJobs.length - myLive) + " งาน" : "หลังปิดการขายแล้วงานจะมาอยู่ที่นี่"
+  }), myJobs.length === 0 ? React.createElement(Empty, {
+    text: "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E17\u0E35\u0E48\u0E21\u0E32\u0E08\u0E32\u0E01\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E02\u0E2D\u0E07\u0E04\u0E38\u0E13"
+  }) : React.createElement("div", {
+    className: "rows",
+    style: {
+      maxHeight: 360,
+      overflowY: "auto"
+    }
+  }, myJobs.map(j => {
+    const SF = window.SF;
+    const st = (SF.STAGES || []).find(x => x.key === j.stage) || {
+      th: j.stage,
+      color: "var(--text-3)"
+    };
+    const ins = SF.installDate ? SF.installDate(j) : "";
+    const end = SF.installEnd ? SF.installEnd(j) : "";
+    const stuck = !!(j.problem || j.delayed);
+    return React.createElement("button", {
+      key: j.id,
+      onClick: () => onOpenJob && onOpenJob(j)
+    }, React.createElement("span", {
+      className: "mk",
+      style: {
+        background: stuck ? "#D93025" : st.color
+      }
+    }), React.createElement("span", {
+      className: "bd"
+    }, React.createElement("span", {
+      className: "nm"
+    }, j.name), React.createElement("span", {
+      className: "mt"
+    }, [j.code, st.th, j.kw ? j.kw + " kW" : ""].filter(Boolean).join(" · "), j.problem ? " · " + j.problem : j.delayed ? " · ล่าช้ากว่ากำหนด" : "")), React.createElement("span", {
+      className: "when",
+      style: j.delayed ? {
+        color: "#D93025"
+      } : null
+    }, React.createElement("b", null, j.stage === "done" ? "ติดตั้งแล้ว" : "ติดตั้ง"), ins ? window._schedRange ? window._schedRange(ins, end) : thDate(ins) : "ยังไม่นัดวัน"));
+  })), React.createElement("div", {
+    style: {
+      marginTop: 12,
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "* \u0E01\u0E14\u0E17\u0E35\u0E48\u0E07\u0E32\u0E19\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E14\u0E39\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14 \u2014 \u0E14\u0E39\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27 \u0E41\u0E01\u0E49\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E07\u0E32\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E17\u0E35\u0E48\u0E02\u0E2D\u0E07\u0E0A\u0E48\u0E32\u0E07")));
 }
 function SalesJobSummary({
   job,

@@ -73,7 +73,7 @@ const PERMIT_TODO = {
 };
 const permitStageKey = j => j && j.permit && j.permit.status || "todo";
 const permitStageOf = key => (window.PERMIT_COLS || []).find(c => c.key === key) || PERMIT_TODO;
-const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm)).filter(n => !(isPermitOnly(roles) && n.key === "permit")).map(n => n.key === "board" && isPermitOnly(roles) ? Object.assign({}, n, {
+const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm)).filter(n => !(isPermitOnly(roles) && n.key === "permit")).filter(n => !(isSalesOnly(roles) && n.key === "board")).map(n => n.key === "board" && isPermitOnly(roles) ? Object.assign({}, n, {
   th: "บอร์ดขออนุญาต",
   en: "Permit Board",
   icon: "shield"
@@ -731,6 +731,8 @@ function App() {
     leads: leadStore.leads,
     quotes: quoteStore.quotes,
     currentUser: auth.current,
+    jobs: jobs,
+    onOpenJob: openJob,
     onOpenLead: l => {
       setView("leads");
       setLeadMode("list");
@@ -777,7 +779,7 @@ function App() {
     setDelAsk(j);
   };
   const navItems = React.useMemo(() => navForRole(role, techId), [role, techId]);
-  const listView = () => navItems.some(n => n.key === "table") ? "table" : "board";
+  const listView = () => navItems.some(n => n.key === "table") ? "table" : navItems.some(n => n.key === "board") ? "board" : view;
   const goStage = key => {
     setStageFilter(key);
     setQuickFilter(null);

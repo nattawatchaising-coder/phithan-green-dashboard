@@ -903,7 +903,7 @@ const sDaysSince = (v) => {
   return Math.max(0, Math.floor((Date.now() - d.getTime()) / 86400000));
 };
 
-function SalesOverview({ leads, quotes, currentUser, onOpenLead, onGoBoard, onGoList, onGoKpi }) {
+function SalesOverview({ leads, quotes, jobs, currentUser, onOpenLead, onOpenJob, onGoBoard, onGoList, onGoKpi }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const L = leads || [];
   const Q = quotes || [];
@@ -952,6 +952,23 @@ function SalesOverview({ leads, quotes, currentUser, onOpenLead, onGoBoard, onGo
   const leadById = React.useMemo(() => { const m = {}; L.forEach((l) => { m[l.id] = l; }); return m; }, [L]);
 
   const openLead = (l) => { if (l && onOpenLead) onOpenLead(l); };
+
+  /* งานติดตั้งที่มาจากลูกค้าของเรา — เซลล์ไม่ต้องเห็นบอร์ดงานทั้งบริษัท
+     แต่ต้องตอบลูกค้าตัวเองได้ว่า "ถึงขั้นไหนแล้ว" · งานที่ยังไม่เสร็จอยู่บน เรียงตามวันติดตั้ง */
+  const myJobs = React.useMemo(() => {
+    const me = currentUser && currentUser.id;
+    if (!me) return [];
+    const SF = window.SF;
+    return (jobs || []).filter((j) => j.salesId === me || (!j.salesId && j.createdBy === me))
+      .sort((a, b) => {
+        const da = a.stage === "done" ? 1 : 0, db = b.stage === "done" ? 1 : 0;
+        if (da !== db) return da - db;
+        const ia = (SF.installDate && SF.installDate(a)) || "9999-99-99";
+        const ib = (SF.installDate && SF.installDate(b)) || "9999-99-99";
+        return ia.localeCompare(ib);
+      });
+  }, [jobs, currentUser]);
+  const myLive = myJobs.filter((j) => j.stage !== "done").length;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -1051,6 +1068,42 @@ function SalesOverview({ leads, quotes, currentUser, onOpenLead, onGoBoard, onGo
               * ใบที่ส่งไปเกิน 7 วันขึ้นขีดเหลือง — ควรโทรตามก่อนลูกค้าลืม
             </div>
           )}
+        </div>
+      </div>
+
+      <div className="pnl">
+        <PanelTitle title="งานติดตั้งของลูกค้าฉัน"
+          sub={myJobs.length ? ("กำลังดำเนินการ " + myLive + " งาน · เสร็จแล้ว " + (myJobs.length - myLive) + " งาน")
+            : "หลังปิดการขายแล้วงานจะมาอยู่ที่นี่"} />
+        {myJobs.length === 0 ? <Empty text="ยังไม่มีงานติดตั้งที่มาจากลูกค้าของคุณ" /> : (
+          <div className="rows" style={{ maxHeight: 360, overflowY: "auto" }}>
+            {myJobs.map((j) => {
+              const SF = window.SF;
+              const st = (SF.STAGES || []).find((x) => x.key === j.stage) || { th: j.stage, color: "var(--text-3)" };
+              const ins = SF.installDate ? SF.installDate(j) : "";
+              const end = SF.installEnd ? SF.installEnd(j) : "";
+              const stuck = !!(j.problem || j.delayed);
+              return (
+                <button key={j.id} onClick={() => onOpenJob && onOpenJob(j)}>
+                  <span className="mk" style={{ background: stuck ? "#D93025" : st.color }} />
+                  <span className="bd">
+                    <span className="nm">{j.name}</span>
+                    <span className="mt">
+                      {[j.code, st.th, j.kw ? j.kw + " kW" : ""].filter(Boolean).join(" · ")}
+                      {j.problem ? " · " + j.problem : (j.delayed ? " · ล่าช้ากว่ากำหนด" : "")}
+                    </span>
+                  </span>
+                  <span className="when" style={j.delayed ? { color: "#D93025" } : null}>
+                    <b>{j.stage === "done" ? "ติดตั้งแล้ว" : "ติดตั้ง"}</b>
+                    {ins ? (window._schedRange ? window._schedRange(ins, end) : thDate(ins)) : "ยังไม่นัดวัน"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+        <div style={{ marginTop: 12, fontSize: 11.5, color: "var(--text-3)" }}>
+          * กดที่งานเพื่อดูรายละเอียด — ดูอย่างเดียว แก้ไม่ได้ งานหน้างานเป็นหน้าที่ของช่าง
         </div>
       </div>
     </div>

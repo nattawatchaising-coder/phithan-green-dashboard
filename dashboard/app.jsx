@@ -36,6 +36,9 @@ const permitStageOf = (key) => (window.PERMIT_COLS || []).find((c) => c.key === 
 const navForRole = (roles, techId) => NAV
   .filter((n) => (n.own ? !!techId : (!n.perm || can(roles, n.perm))))
   .filter((n) => !(isPermitOnly(roles) && n.key === "permit"))
+  /* เซลล์อย่างเดียวไม่ต้องเห็นบอร์ดงานติดตั้งทั้งบริษัท — งานที่เกี่ยวกับเขาคืองานของลูกค้าตัวเอง
+     ซึ่งไปตามได้จากแผง "งานติดตั้งของลูกค้าฉัน" ในภาพรวมงานขาย */
+  .filter((n) => !(isSalesOnly(roles) && n.key === "board"))
   .map((n) => (n.key === "board" && isPermitOnly(roles) ? Object.assign({}, n, { th: "บอร์ดขออนุญาต", en: "Permit Board", icon: "shield" }) : n));
 
 /* งานนี้เป็นของช่างที่กรองอยู่ไหม — "__none" คือกรองเอาเฉพาะงานที่ยังไม่ได้มอบหมายให้ใคร
@@ -518,6 +521,7 @@ function App() {
      (ภาพรวมงานติดตั้งไม่มีแผงไหนเกี่ยวกับเขาเลย) — ไม่ทำซ้ำเป็นมุมในหน้างานขายอีกที่ */
   const salesOverview = (
     <SalesOverview leads={leadStore.leads} quotes={quoteStore.quotes} currentUser={auth.current}
+      jobs={jobs} onOpenJob={openJob}
       onOpenLead={(l) => { setView("leads"); setLeadMode("list"); setLeadFocus(l.id); }}
       onGoBoard={() => { setView("leads"); setLeadMode("board"); }}
       onGoList={() => { setView("leads"); setLeadMode("list"); }}
@@ -551,7 +555,8 @@ function App() {
   };
   // หน้ารายการงานที่ใช้เจาะดู — table เฉพาะ admin, role อื่นใช้บอร์ดงานแทน
   const navItems = React.useMemo(() => navForRole(role, techId), [role, techId]);
-  const listView = () => (navItems.some((n) => n.key === "table") ? "table" : "board");
+  const listView = () => (navItems.some((n) => n.key === "table") ? "table"
+    : navItems.some((n) => n.key === "board") ? "board" : view);
   const goStage = (key) => { setStageFilter(key); setQuickFilter(null); setView(listView()); };
   const goKpi = (key) => { setQuickFilter(key); setStageFilter(null); setTypeFilter("all"); setDelayedOnly(false); setView(listView()); };
 
