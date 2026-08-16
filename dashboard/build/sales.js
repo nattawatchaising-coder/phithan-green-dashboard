@@ -157,12 +157,50 @@ function quoteNo(quotes) {
   });
   return pre + String(max + 1).padStart(3, "0");
 }
+function quoteSpec(t) {
+  const o = t || {};
+  const s = o.survey || {};
+  const num = v => {
+    const n = +v;
+    return n > 0 ? n : 0;
+  };
+  return {
+    kwp: o.kind === "lead" ? num(s.sizeKw) || num(o.kwp) : num(o.kwp) || num(s.sizeKw),
+    panels: num(o.panels),
+    phase: String(o.phase || s.phase || "").replace(/[^13]/g, ""),
+    panel: (s.panelModel || o.panelModel || "").trim(),
+    inv: (s.invModel || o.invModel || "").trim(),
+    roof: (s.roofType || o.roof || "").trim(),
+    monitoring: (s.monitoring || "").trim(),
+    battery: o.battery ? String(o.batSize || "มี").trim() : "",
+    backup: !!o.backup
+  };
+}
+function quoteHasSpec(t) {
+  const sp = quoteSpec(t);
+  return !!(sp.panel || sp.inv || sp.panels);
+}
+function quoteSpecName(t) {
+  const sp = quoteSpec(t);
+  return "ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์ " + (sp.kwp ? sp.kwp + " kWp " : "") + "พร้อมติดตั้ง";
+}
+function quoteSpecDetail(t) {
+  const sp = quoteSpec(t);
+  const out = [];
+  out.push("แผงโซลาร์เซลล์" + (sp.panel ? " " + sp.panel : "") + (sp.panels ? " จำนวน " + sp.panels + " แผง" : ""));
+  out.push("อินเวอร์เตอร์" + (sp.inv ? " " + sp.inv : "") + (sp.phase ? " · ระบบ " + sp.phase + " เฟส" : ""));
+  if (sp.battery) out.push("แบตเตอรี่ " + sp.battery + (sp.backup ? " · ระบบไฟสำรอง" : ""));
+  out.push("โครงสร้างรองรับ" + (sp.roof ? "สำหรับหลังคา" + sp.roof : ""));
+  out.push("ระบบสายไฟและอุปกรณ์ป้องกัน");
+  if (sp.monitoring) out.push("ระบบมอนิเตอร์ " + sp.monitoring);
+  out.push("ค่าแรงติดตั้ง");
+  return out.join(" · ");
+}
 function quoteStdItems(t) {
-  const kwp = +(t && t.kwp) || 0;
   return [{
     id: "qi1",
-    name: "ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์ " + (kwp ? kwp + " kWp " : "") + "พร้อมติดตั้ง",
-    detail: "แผงโซลาร์เซลล์ · อินเวอร์เตอร์ · โครงสร้างรองรับ · ระบบสายไฟและอุปกรณ์ป้องกัน · ค่าแรงติดตั้ง",
+    name: quoteSpecName(t),
+    detail: quoteSpecDetail(t),
     qty: 1,
     unit: "ระบบ",
     price: 0
@@ -303,6 +341,7 @@ function quoteHTML(q) {
 function QuoteEditor({
   quote,
   job,
+  target,
   onClose,
   onSave,
   onDelete,
@@ -360,6 +399,23 @@ function QuoteEditor({
       });
       return Object.assign({}, p, {
         items: a
+      });
+    });
+  };
+  const specSrc = target || job || null;
+  const canPullSpec = !!specSrc && quoteHasSpec(specSrc);
+  const pullSpec = () => {
+    if (!canPullSpec) return;
+    setQ(p => {
+      const a = p.items.slice();
+      if (!a.length) return p;
+      a[0] = Object.assign({}, a[0], {
+        name: quoteSpecName(specSrc),
+        detail: quoteSpecDetail(specSrc)
+      });
+      return Object.assign({}, p, {
+        items: a,
+        kwp: quoteSpec(specSrc).kwp || p.kwp
       });
     });
   };
@@ -619,14 +675,36 @@ function QuoteEditor({
     style: {
       display: "flex",
       alignItems: "center",
-      gap: 9
+      gap: 9,
+      flexWrap: "wrap"
     }
   }, React.createElement("label", {
     style: lbl
-  }, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E17\u0E35\u0E48\u0E40\u0E2A\u0E19\u0E2D"), boqSell > 0 && !locked && React.createElement("button", {
-    onClick: pullBoq,
+  }, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E17\u0E35\u0E48\u0E40\u0E2A\u0E19\u0E2D"), canPullSpec && !locked && React.createElement("button", {
+    onClick: pullSpec,
     style: {
       marginLeft: "auto",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      background: "none",
+      border: "1px solid var(--border-strong)",
+      borderRadius: 8,
+      padding: "5px 10px",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--primary-dark)"
+    }
+  }, React.createElement(Icon, {
+    name: "download",
+    size: 13,
+    color: "var(--primary-dark)"
+  }), " \u0E14\u0E36\u0E07\u0E23\u0E38\u0E48\u0E19\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E08\u0E32\u0E01\u0E1C\u0E25\u0E2A\u0E33\u0E23\u0E27\u0E08"), boqSell > 0 && !locked && React.createElement("button", {
+    onClick: pullBoq,
+    style: {
+      marginLeft: canPullSpec ? 0 : "auto",
       display: "inline-flex",
       alignItems: "center",
       gap: 5,
@@ -688,13 +766,16 @@ function QuoteEditor({
     name: "trash",
     size: 14,
     color: "#EF4444"
-  }))), React.createElement("input", {
+  }))), React.createElement("textarea", {
     value: it.detail || "",
     disabled: locked,
+    rows: 2,
     placeholder: "\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14 (\u0E44\u0E21\u0E48\u0E43\u0E2A\u0E48\u0E01\u0E47\u0E44\u0E14\u0E49)",
     onChange: e => setItem(i, "detail", e.target.value),
     style: Object.assign({}, cell, {
-      fontSize: 12
+      fontSize: 12,
+      resize: "vertical",
+      lineHeight: 1.5
     })
   }), React.createElement("div", {
     style: {
@@ -1907,6 +1988,10 @@ Object.assign(window, {
   quotesFor,
   quoteHTML,
   useQuoteStore,
+  quoteSpec,
+  quoteHasSpec,
+  quoteSpecName,
+  quoteSpecDetail,
   QuoteEditor,
   SalesCard,
   SalesBoardView,

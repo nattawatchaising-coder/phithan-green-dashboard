@@ -564,52 +564,70 @@ function App() {
     setView(listView());
     setSelected(rec.id);
   };
+  const leadQuoteTarget = lead => ({
+    kind: "lead",
+    id: lead.id,
+    code: lead.code,
+    name: lead.name,
+    phone: lead.phone,
+    address: lead.address,
+    province: lead.province,
+    kwp: +lead.expKwp || 0,
+    ownerId: lead.ownerId,
+    ownerName: lead.ownerName,
+    survey: lead.survey || null,
+    phase: lead.phase,
+    roof: lead.roof
+  });
+  const jobQuoteTarget = job => ({
+    kind: "job",
+    id: job.id,
+    code: job.code,
+    name: job.name,
+    phone: job.phone,
+    address: job.address,
+    province: job.province,
+    kwp: +job.kw || 0,
+    ownerId: job.salesId,
+    ownerName: job.salesName,
+    survey: job.survey || null,
+    panels: +job.panels || 0,
+    phase: job.phase,
+    roof: job.roof,
+    battery: job.battery,
+    batSize: job.batSize,
+    backup: job.backup
+  });
   const openQuoteForLead = (lead, existing) => {
+    const t = leadQuoteTarget(lead);
     if (existing) {
       setQuoteOpen({
         quote: existing,
-        jobId: lead.jobId || ""
+        jobId: lead.jobId || "",
+        target: t
       });
       return;
     }
     setQuoteOpen({
       jobId: lead.jobId || "",
-      quote: quoteStore.blank({
-        kind: "lead",
-        id: lead.id,
-        code: lead.code,
-        name: lead.name,
-        phone: lead.phone,
-        address: lead.address,
-        province: lead.province,
-        kwp: +lead.expKwp || 0,
-        ownerId: lead.ownerId,
-        ownerName: lead.ownerName
-      }, auth.current)
+      target: t,
+      quote: quoteStore.blank(t, auth.current)
     });
   };
   const openQuoteForJob = (job, existing) => {
+    const t = jobQuoteTarget(job);
     if (existing) {
       setQuoteOpen({
         quote: existing,
-        jobId: job.id
+        jobId: job.id,
+        target: t
       });
       return;
     }
     setQuoteOpen({
       jobId: job.id,
-      quote: quoteStore.blank({
-        kind: "job",
-        id: job.id,
-        code: job.code,
-        name: job.name,
-        phone: job.phone,
-        address: job.address,
-        province: job.province,
-        kwp: +job.kw || 0,
-        ownerId: job.salesId,
-        ownerName: job.salesName
-      }, auth.current)
+      target: t,
+      quote: quoteStore.blank(t, auth.current)
     });
   };
   const selectedJob = jobs.find(j => j.id === selected) || null;
@@ -945,6 +963,7 @@ function App() {
   }), quoteOpen && React.createElement(QuoteEditor, {
     quote: quoteOpen.quote,
     currentUser: auth.current,
+    target: quoteOpen.target,
     job: quoteOpen.jobId ? jobs.find(x => x.id === quoteOpen.jobId) : null,
     onClose: () => setQuoteOpen(null),
     onSave: q => {

@@ -111,13 +111,50 @@ function quoteNo(quotes) {
   return pre + String(max + 1).padStart(3, "0");
 }
 
+/* สเปกอุปกรณ์ที่จะติดตั้งจริง — ลูกค้าอยากรู้ว่าได้แผงรุ่นไหน อินเวอร์เตอร์ตัวไหน
+   ที่มาหลักคือผลสำรวจหน้างาน (invModel/panelModel เลือกจากคลัง) แล้วเติมด้วยสเปกในใบงาน */
+function quoteSpec(t) {
+  const o = t || {};
+  const s = o.survey || {};
+  const num = (v) => { const n = +v; return n > 0 ? n : 0; };
+  return {
+    /* ฝั่งลูกค้าสำรวจ: ขนาดที่วัดได้จากหน้างานแม่นกว่าตัวเลขที่เซลล์คาดไว้ตอนแรก
+       ฝั่งใบงาน: ขนาดในใบงานคือตัวที่วิศวกรสรุปแล้ว จึงมาก่อนตัวเลขในแบบสำรวจ */
+    kwp: o.kind === "lead" ? (num(s.sizeKw) || num(o.kwp)) : (num(o.kwp) || num(s.sizeKw)),
+    panels: num(o.panels),
+    phase: String(o.phase || s.phase || "").replace(/[^13]/g, ""),
+    panel: (s.panelModel || o.panelModel || "").trim(),
+    inv: (s.invModel || o.invModel || "").trim(),
+    roof: (s.roofType || o.roof || "").trim(),
+    monitoring: (s.monitoring || "").trim(),
+    battery: o.battery ? String(o.batSize || "มี").trim() : "",
+    backup: !!o.backup,
+  };
+}
+/* มีสเปกจริงให้ใส่ในใบเสนอราคาหรือยัง — ถ้ายังก็ใช้ข้อความกลาง ๆ ไปก่อน */
+function quoteHasSpec(t) { const sp = quoteSpec(t); return !!(sp.panel || sp.inv || sp.panels); }
+function quoteSpecName(t) {
+  const sp = quoteSpec(t);
+  return "ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์ " + (sp.kwp ? sp.kwp + " kWp " : "") + "พร้อมติดตั้ง";
+}
+function quoteSpecDetail(t) {
+  const sp = quoteSpec(t);
+  const out = [];
+  out.push("แผงโซลาร์เซลล์" + (sp.panel ? " " + sp.panel : "") + (sp.panels ? " จำนวน " + sp.panels + " แผง" : ""));
+  out.push("อินเวอร์เตอร์" + (sp.inv ? " " + sp.inv : "") + (sp.phase ? " · ระบบ " + sp.phase + " เฟส" : ""));
+  if (sp.battery) out.push("แบตเตอรี่ " + sp.battery + (sp.backup ? " · ระบบไฟสำรอง" : ""));
+  out.push("โครงสร้างรองรับ" + (sp.roof ? "สำหรับหลังคา" + sp.roof : ""));
+  out.push("ระบบสายไฟและอุปกรณ์ป้องกัน");
+  if (sp.monitoring) out.push("ระบบมอนิเตอร์ " + sp.monitoring);
+  out.push("ค่าแรงติดตั้ง");
+  return out.join(" · ");
+}
+
 /* รายการตั้งต้น — เซลล์เสนอเป็นราคาเหมาต่อระบบ ไม่ได้แจกแจงทีละน็อตแบบ BOQ
    จึงตั้งให้ 3 บรรทัด แล้วให้เซลล์แก้/เพิ่มเอง */
 function quoteStdItems(t) {
-  const kwp = +(t && t.kwp) || 0;
   return [
-    { id: "qi1", name: "ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์ " + (kwp ? kwp + " kWp " : "") + "พร้อมติดตั้ง",
-      detail: "แผงโซลาร์เซลล์ · อินเวอร์เตอร์ · โครงสร้างรองรับ · ระบบสายไฟและอุปกรณ์ป้องกัน · ค่าแรงติดตั้ง",
+    { id: "qi1", name: quoteSpecName(t), detail: quoteSpecDetail(t),
       qty: 1, unit: "ระบบ", price: 0 },
     { id: "qi2", name: "ค่าดำเนินการขออนุญาตการไฟฟ้า",
       detail: "จัดทำแบบ ยื่นคำร้อง และประสานงานจนได้รับอนุมัติ", qty: 1, unit: "งาน", price: 0 },
@@ -289,7 +326,7 @@ function quoteHTML(q) {
 /* ============================================================
    QuoteEditor — โมดัลทำ/แก้ใบเสนอราคา
    ============================================================ */
-function QuoteEditor({ quote, job, onClose, onSave, onDelete, currentUser }) {
+function QuoteEditor({ quote, job, target, onClose, onSave, onDelete, currentUser }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [q, setQ] = React.useState(() => Object.assign({}, quote, {
     customer: Object.assign({}, quote.customer),
@@ -312,6 +349,19 @@ function QuoteEditor({ quote, job, onClose, onSave, onDelete, currentUser }) {
   const pullBoq = () => {
     if (!boqSell) return;
     setQ((p) => { const a = p.items.slice(); if (!a.length) return p; a[0] = Object.assign({}, a[0], { price: boqSell, qty: 1 }); return Object.assign({}, p, { items: a }); });
+  };
+
+  /* ดึงรุ่นอุปกรณ์จากผลสำรวจ — ใบที่ทำไว้ก่อนสำรวจจะได้อัปเดตรุ่นแผง/อินเวอร์เตอร์ตามของจริงได้
+     ทับเฉพาะบรรทัดแรก (บรรทัดตัวระบบ) · ราคาที่กรอกไว้ไม่ถูกแตะ */
+  const specSrc = target || job || null;
+  const canPullSpec = !!specSrc && quoteHasSpec(specSrc);
+  const pullSpec = () => {
+    if (!canPullSpec) return;
+    setQ((p) => {
+      const a = p.items.slice(); if (!a.length) return p;
+      a[0] = Object.assign({}, a[0], { name: quoteSpecName(specSrc), detail: quoteSpecDetail(specSrc) });
+      return Object.assign({}, p, { items: a, kwp: quoteSpec(specSrc).kwp || p.kwp });
+    });
   };
 
   const lbl = { fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" };
@@ -388,10 +438,17 @@ function QuoteEditor({ quote, job, onClose, onSave, onDelete, currentUser }) {
 
             {/* รายการ */}
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
                 <label style={lbl}>รายการที่เสนอ</label>
+                {canPullSpec && !locked && (
+                  <button onClick={pullSpec} style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, background: "none",
+                    border: "1px solid var(--border-strong)", borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit",
+                    fontSize: 11.5, fontWeight: 700, color: "var(--primary-dark)" }}>
+                    <Icon name="download" size={13} color="var(--primary-dark)" /> ดึงรุ่นอุปกรณ์จากผลสำรวจ
+                  </button>
+                )}
                 {boqSell > 0 && !locked && (
-                  <button onClick={pullBoq} style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, background: "none",
+                  <button onClick={pullBoq} style={{ marginLeft: canPullSpec ? 0 : "auto", display: "inline-flex", alignItems: "center", gap: 5, background: "none",
                     border: "1px solid var(--border-strong)", borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit",
                     fontSize: 11.5, fontWeight: 700, color: "var(--primary-dark)" }}>
                     <Icon name="download" size={13} color="var(--primary-dark)" /> ดึงราคาขายจาก BOQ (฿{sBaht(boqSell)})
@@ -410,8 +467,9 @@ function QuoteEditor({ quote, job, onClose, onSave, onDelete, currentUser }) {
                       </button>
                     )}
                   </div>
-                  <input value={it.detail || ""} disabled={locked} placeholder="รายละเอียด (ไม่ใส่ก็ได้)" onChange={(e) => setItem(i, "detail", e.target.value)}
-                    style={Object.assign({}, cell, { fontSize: 12 })} />
+                  {/* รายละเอียดเป็นหลายบรรทัดได้ — พอใส่รุ่นอุปกรณ์จริงแล้วข้อความยาวเกินช่องบรรทัดเดียว */}
+                  <textarea value={it.detail || ""} disabled={locked} rows={2} placeholder="รายละเอียด (ไม่ใส่ก็ได้)" onChange={(e) => setItem(i, "detail", e.target.value)}
+                    style={Object.assign({}, cell, { fontSize: 12, resize: "vertical", lineHeight: 1.5 })} />
                   <div style={{ display: "grid", gridTemplateColumns: "70px 80px 1fr auto", gap: 8, alignItems: "center" }}>
                     <input type="number" value={it.qty} disabled={locked} onChange={(e) => setItem(i, "qty", e.target.value === "" ? "" : +e.target.value)} style={num} />
                     <input value={it.unit || ""} disabled={locked} placeholder="หน่วย" onChange={(e) => setItem(i, "unit", e.target.value)} style={cell} />
@@ -935,5 +993,6 @@ Object.assign(window, {
   LEAD_SOURCES, LEAD_SOURCE_TH, CONTACT_WAYS, sOverdue, sBaht,
   QUOTE_STATUS, QUOTE_STATUS_BY, QUOTE_TERMS_DEF, QUOTE_WARRANTY_DEF,
   blankQuote, quoteTotals, quoteNo, quotesFor, quoteHTML, useQuoteStore,
+  quoteSpec, quoteHasSpec, quoteSpecName, quoteSpecDetail,
   QuoteEditor, SalesCard, SalesBoardView, SalesKpiView, SalesJobSummary,
 });

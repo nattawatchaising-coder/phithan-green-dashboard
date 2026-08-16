@@ -406,21 +406,30 @@ function App() {
 
   /* เปิดใบเสนอราคา — ไม่มีใบเดิมก็สร้างใบใหม่จากข้อมูลลูกค้า/งานที่มีอยู่ให้เลย
      เซลล์จะได้ไม่ต้องพิมพ์ชื่อ-ที่อยู่ซ้ำ ซึ่งเป็นจุดที่พิมพ์ผิดบ่อยที่สุดบนเอกสารที่ส่งออกไปข้างนอก */
+  /* target = ที่มาของสเปก (ผลสำรวจ + สเปกในใบงาน) ส่งต่อให้ QuoteEditor ใช้ปุ่ม "ดึงรุ่นอุปกรณ์" ได้
+     ใบเก่าที่ทำไว้ก่อนสำรวจจะได้อัปเดตรุ่นแผง/อินเวอร์เตอร์ตามของจริงทีหลัง */
+  const leadQuoteTarget = (lead) => ({
+    kind: "lead", id: lead.id, code: lead.code, name: lead.name, phone: lead.phone,
+    address: lead.address, province: lead.province, kwp: +lead.expKwp || 0,
+    ownerId: lead.ownerId, ownerName: lead.ownerName,
+    survey: lead.survey || null, phase: lead.phase, roof: lead.roof,
+  });
+  const jobQuoteTarget = (job) => ({
+    kind: "job", id: job.id, code: job.code, name: job.name, phone: job.phone,
+    address: job.address, province: job.province, kwp: +job.kw || 0,
+    ownerId: job.salesId, ownerName: job.salesName,
+    survey: job.survey || null, panels: +job.panels || 0, phase: job.phase, roof: job.roof,
+    battery: job.battery, batSize: job.batSize, backup: job.backup,
+  });
   const openQuoteForLead = (lead, existing) => {
-    if (existing) { setQuoteOpen({ quote: existing, jobId: lead.jobId || "" }); return; }
-    setQuoteOpen({ jobId: lead.jobId || "", quote: quoteStore.blank({
-      kind: "lead", id: lead.id, code: lead.code, name: lead.name, phone: lead.phone,
-      address: lead.address, province: lead.province, kwp: +lead.expKwp || 0,
-      ownerId: lead.ownerId, ownerName: lead.ownerName,
-    }, auth.current) });
+    const t = leadQuoteTarget(lead);
+    if (existing) { setQuoteOpen({ quote: existing, jobId: lead.jobId || "", target: t }); return; }
+    setQuoteOpen({ jobId: lead.jobId || "", target: t, quote: quoteStore.blank(t, auth.current) });
   };
   const openQuoteForJob = (job, existing) => {
-    if (existing) { setQuoteOpen({ quote: existing, jobId: job.id }); return; }
-    setQuoteOpen({ jobId: job.id, quote: quoteStore.blank({
-      kind: "job", id: job.id, code: job.code, name: job.name, phone: job.phone,
-      address: job.address, province: job.province, kwp: +job.kw || 0,
-      ownerId: job.salesId, ownerName: job.salesName,
-    }, auth.current) });
+    const t = jobQuoteTarget(job);
+    if (existing) { setQuoteOpen({ quote: existing, jobId: job.id, target: t }); return; }
+    setQuoteOpen({ jobId: job.id, target: t, quote: quoteStore.blank(t, auth.current) });
   };
   const selectedJob = jobs.find((j) => j.id === selected) || null;
 
@@ -622,7 +631,7 @@ function App() {
         onEdit={(id) => { setSelected(null); setForm({ job: store.raw.find((r) => r.id === id), isNew: false }); }} />
       {/* ใบเสนอราคา — เปิดทับได้ทั้งจากหน้าลูกค้าสำรวจและจากในใบงาน */}
       {quoteOpen && (
-        <QuoteEditor quote={quoteOpen.quote} currentUser={auth.current}
+        <QuoteEditor quote={quoteOpen.quote} currentUser={auth.current} target={quoteOpen.target}
           job={quoteOpen.jobId ? jobs.find((x) => x.id === quoteOpen.jobId) : null}
           onClose={() => setQuoteOpen(null)}
           onSave={(q) => {
