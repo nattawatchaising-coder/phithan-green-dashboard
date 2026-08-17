@@ -493,90 +493,6 @@ function DrSignSlot({ title, sub, sig, canSign, onSign, onClear, saved, onUseSav
 }
 
 /* ══════════════════════════════════════════════════
-   ตั้งค่า → ลายเซ็นของฉัน (เซ็นครั้งเดียว ใช้ได้ตลอด)
-   ══════════════════════════════════════════════════ */
-function DrMySignModal({ user, onClose }) {
-  const mine = window.useDrMySign((user || {}).id);
-  const [pad, setPad] = React.useState(false);
-  const [askDel, setAskDel] = React.useState(false);
-  const has = mine.sign && mine.sign.img;
-
-  return (
-    <React.Fragment>
-      <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(8,20,14,.55)", display: "grid",
-        placeItems: "center", padding: 14 }}>
-        <div style={{ width: "100%", maxWidth: 520, background: "var(--bg)", borderRadius: 16, overflow: "hidden",
-          boxShadow: "0 24px 70px rgba(8,20,14,.34)" }}>
-          <div style={{ padding: "16px 18px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 11 }}>
-            <span style={{ width: 38, height: 38, borderRadius: 11, background: "var(--primary-soft)", display: "grid", placeItems: "center", flexShrink: 0 }}>
-              <Icon name="pen" size={18} color="var(--primary-dark)" />
-            </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-1)" }}>ลายเซ็นของฉัน</div>
-              <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 2 }}>
-                เซ็นเก็บไว้ครั้งเดียว · ใบรายงานทุกวันหลังจากนี้ใช้ลายเซ็นนี้ได้เลย
-              </div>
-            </div>
-            <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border-strong)",
-              background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
-              <Icon name="x" size={16} />
-            </button>
-          </div>
-
-          <div style={{ padding: 18 }}>
-            <div style={{ height: 140, borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)",
-              display: "grid", placeItems: "center", overflow: "hidden" }}>
-              {mine.loading
-                ? <span style={{ fontSize: 12.5, color: "var(--text-3)" }}>กำลังโหลด…</span>
-                : has
-                  ? <img src={mine.sign.img} alt="ลายเซ็นของฉัน" style={{ maxWidth: "88%", maxHeight: 120, objectFit: "contain" }} />
-                  : <span style={{ fontSize: 12.5, color: "var(--text-3)" }}>ยังไม่ได้บันทึกลายเซ็น</span>}
-            </div>
-            <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 9 }}>
-              {has ? "บันทึกเมื่อ " + window.drDateTH(window.drSignDay(mine.sign)) : "ในหน้ารายงานประจำวันจะเห็นปุ่มให้เซ็นสด ๆ ได้เหมือนเดิม"}
-            </div>
-
-            <div style={{ display: "flex", gap: 9, marginTop: 15, flexWrap: "wrap" }}>
-              <button onClick={() => setPad(true)}
-                style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "11px 16px", borderRadius: 11, border: "none",
-                  background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
-                <Icon name="pen" size={15} color="#fff" /> {has ? "เซ็นใหม่" : "เซ็นชื่อ"}
-              </button>
-              {has && !askDel && (
-                <button onClick={() => setAskDel(true)}
-                  style={{ padding: "11px 15px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)",
-                    color: "var(--text-2)", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
-                  ลบลายเซ็น
-                </button>
-              )}
-              {askDel && (
-                <React.Fragment>
-                  <span style={{ flex: 1, minWidth: 140, fontSize: 12.5, fontWeight: 600, color: "var(--tint-red-tx)", alignSelf: "center" }}>
-                    ลบแล้วต้องเซ็นใหม่ทุกใบ · ใบเก่าที่เซ็นไปแล้วไม่กระทบ
-                  </span>
-                  <button onClick={() => { mine.clear(); setAskDel(false); }}
-                    style={{ padding: "11px 15px", borderRadius: 11, border: "none", background: "#EF4444", color: "#fff",
-                      fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>ลบเลย</button>
-                  <button onClick={() => setAskDel(false)}
-                    style={{ padding: "11px 15px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)",
-                      color: "var(--text-2)", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>ยกเลิก</button>
-                </React.Fragment>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {pad && (
-        <DrSignPad title="ลายเซ็นของฉัน" hint="เซ็นให้เหมือนที่เซ็นในเอกสารจริง ระบบจะจำไว้ให้"
-          onClose={() => setPad(false)}
-          onSave={(img) => { mine.save(img); setPad(false); }} />
-      )}
-    </React.Fragment>
-  );
-}
-
-/* ══════════════════════════════════════════════════
    ฟอร์มกรอกรายงานประจำวัน
    ══════════════════════════════════════════════════ */
 function DailyReportModal({ job, role, currentUser, onClose }) {
@@ -1320,4 +1236,4 @@ function DailyJobButton({ job, onOpen }) {
   );
 }
 
-Object.assign(window, { DailyReportModal, DailyPaper, DailyView, DailyJobButton, DrMySignModal });
+Object.assign(window, { DailyReportModal, DailyPaper, DailyView, DailyJobButton });

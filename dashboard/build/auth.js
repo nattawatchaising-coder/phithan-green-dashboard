@@ -512,6 +512,433 @@ function useAuthStore() {
     blankUser: () => blankUser()
   };
 }
+function useUserAvatar(userId) {
+  const [avatar, setAvatar] = React.useState(null);
+  React.useEffect(() => {
+    if (!userId || !_AFB()) {
+      setAvatar(null);
+      return;
+    }
+    const ref = _aref("userAvatars/" + userId);
+    const h = ref.on("value", s => {
+      const v = s.val();
+      setAvatar(v && v.img ? v.img : null);
+    });
+    return () => ref.off("value", h);
+  }, [userId]);
+  const save = React.useCallback(img => {
+    if (!userId || !_AFB() || !img) return;
+    _aref("userAvatars/" + userId).set({
+      img,
+      at: new Date().toISOString()
+    });
+  }, [userId]);
+  const clear = React.useCallback(() => {
+    if (!userId || !_AFB()) return;
+    _aref("userAvatars/" + userId).remove();
+  }, [userId]);
+  return {
+    avatar,
+    save,
+    clear
+  };
+}
+function MyProfileModal({
+  user,
+  onSave,
+  onClose
+}) {
+  const bdClose = window.useBackdropClose(onClose);
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const av = useUserAvatar((user || {}).id);
+  const sig = window.useDrMySign((user || {}).id);
+  const [f, setF] = React.useState(() => Object.assign({}, user));
+  const [pad, setPad] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+  const file = React.useRef(null);
+  const set = (k, v) => {
+    setF(p => Object.assign({}, p, {
+      [k]: v
+    }));
+    setSaved(false);
+  };
+  const rs = userRoles(user);
+  const head = ROLE_INFO[rs[0]] || ROLE_INFO.tech;
+  const pick = async e => {
+    const fl = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!fl) return;
+    setBusy(true);
+    try {
+      av.save(await window.resizeImageFile(fl, 320, 0.78));
+    } catch (err) {}
+    setBusy(false);
+  };
+  const save = () => {
+    onSave(Object.assign({}, f, {
+      name: String(f.name || "").trim() || user.name,
+      phone: String(f.phone || "").trim(),
+      email: String(f.email || "").trim(),
+      line: String(f.line || "").trim()
+    }));
+    setSaved(true);
+  };
+  return React.createElement(React.Fragment, null, React.createElement("div", _extends({}, bdClose, {
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(8,20,14,.45)",
+      zIndex: 120,
+      display: "grid",
+      placeItems: isMobile ? "end center" : "center",
+      padding: isMobile ? 0 : 20
+    }
+  }), React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "var(--bg)",
+      borderRadius: isMobile ? "20px 20px 0 0" : 18,
+      width: isMobile ? "100%" : "min(480px,100%)",
+      maxHeight: isMobile ? "94dvh" : "90vh",
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
+      boxShadow: "0 30px 80px rgba(8,20,14,.35)"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "16px 22px",
+      borderBottom: "1px solid var(--border)",
+      background: "var(--surface)",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      flexShrink: 0
+    }
+  }, React.createElement("h3", {
+    style: {
+      fontSize: 16,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      margin: 0
+    }
+  }, "\u0E42\u0E1B\u0E23\u0E44\u0E1F\u0E25\u0E4C\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19"), React.createElement("button", {
+    onClick: onClose,
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: 8,
+      border: "1px solid var(--border)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 15
+  }))), React.createElement("div", {
+    style: {
+      padding: 22,
+      display: "flex",
+      flexDirection: "column",
+      gap: 15,
+      overflowY: "auto"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 15
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 74,
+      height: 74,
+      borderRadius: 99,
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+      overflow: "hidden",
+      background: head.color,
+      color: "#fff",
+      fontWeight: 700,
+      fontSize: 27
+    }
+  }, av.avatar ? React.createElement("img", {
+    src: av.avatar,
+    alt: "",
+    style: {
+      width: "100%",
+      height: "100%",
+      objectFit: "cover"
+    }
+  }) : (user.name || "?").slice(0, 1)), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("button", {
+    onClick: () => file.current && file.current.click(),
+    disabled: busy,
+    style: {
+      padding: "9px 14px",
+      borderRadius: 10,
+      border: "1px solid var(--primary)",
+      background: "var(--primary-soft)",
+      color: "var(--primary-dark)",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, busy ? "กำลังย่อรูป…" : av.avatar ? "เปลี่ยนรูป" : "ใส่รูป"), av.avatar && React.createElement("button", {
+    onClick: () => av.clear(),
+    style: {
+      padding: "9px 13px",
+      borderRadius: 10,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-3)",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E25\u0E1A\u0E23\u0E39\u0E1B")), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      marginTop: 7
+    }
+  }, "\u0E16\u0E48\u0E32\u0E22\u0E08\u0E32\u0E01\u0E21\u0E37\u0E2D\u0E16\u0E37\u0E2D\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22 \u0E23\u0E30\u0E1A\u0E1A\u0E22\u0E48\u0E2D\u0E23\u0E39\u0E1B\u0E43\u0E2B\u0E49\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34"), React.createElement("input", {
+    ref: file,
+    type: "file",
+    accept: "image/*",
+    onChange: pick,
+    style: {
+      display: "none"
+    }
+  }))), React.createElement(AField, {
+    label: "\u0E0A\u0E37\u0E48\u0E2D-\u0E2A\u0E01\u0E38\u0E25 (\u0E41\u0E2A\u0E14\u0E07\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A)"
+  }, React.createElement("input", {
+    style: A_INPUT,
+    value: f.name || "",
+    onChange: e => set("name", e.target.value),
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E2A\u0E21\u0E0A\u0E32\u0E22 \u0E15\u0E31\u0E49\u0E07\u0E43\u0E08"
+  })), React.createElement(AField, {
+    label: "\u0E40\u0E1A\u0E2D\u0E23\u0E4C\u0E42\u0E17\u0E23"
+  }, React.createElement("input", {
+    style: A_INPUT,
+    value: f.phone || "",
+    inputMode: "tel",
+    onChange: e => set("phone", e.target.value),
+    placeholder: "08x-xxx-xxxx"
+  })), React.createElement(AField, {
+    label: "\u0E2D\u0E35\u0E40\u0E21\u0E25"
+  }, React.createElement("input", {
+    style: A_INPUT,
+    value: f.email || "",
+    inputMode: "email",
+    autoCapitalize: "none",
+    spellCheck: false,
+    onChange: e => set("email", e.target.value),
+    placeholder: "name@example.com"
+  })), React.createElement(AField, {
+    label: "\u0E44\u0E25\u0E19\u0E4C\u0E44\u0E2D\u0E14\u0E35"
+  }, React.createElement("input", {
+    style: A_INPUT,
+    value: f.line || "",
+    autoCapitalize: "none",
+    spellCheck: false,
+    onChange: e => set("line", e.target.value),
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 @somchai"
+  })), React.createElement("div", {
+    style: {
+      padding: "11px 13px",
+      borderRadius: 11,
+      background: "var(--surface2)",
+      border: "1px solid var(--border)"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      flexWrap: "wrap"
+    }
+  }, React.createElement(RoleBadges, {
+    roles: rs,
+    short: true
+  }), user.username && React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      fontFamily: "var(--mono)"
+    }
+  }, "@", user.username)), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      marginTop: 6
+    }
+  }, "\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07\u0E01\u0E31\u0E1A\u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E15\u0E49\u0E2D\u0E07\u0E43\u0E2B\u0E49\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E43\u0E2B\u0E49 \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E41\u0E25\u0E30\u0E01\u0E32\u0E23\u0E21\u0E2D\u0E1A\u0E2B\u0E21\u0E32\u0E22\u0E07\u0E32\u0E19")), React.createElement("div", {
+    style: {
+      padding: "13px 14px",
+      borderRadius: 12,
+      background: "var(--surface)",
+      border: "1px solid var(--border)"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      gap: 8
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 800,
+      color: "var(--text-2)"
+    }
+  }, "\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19"), React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, "\u0E43\u0E0A\u0E49\u0E40\u0E0B\u0E47\u0E19\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E08\u0E33\u0E27\u0E31\u0E19")), React.createElement("div", {
+    style: {
+      height: 92,
+      marginTop: 10,
+      borderRadius: 10,
+      background: "var(--surface2)",
+      border: "1px solid var(--border)",
+      display: "grid",
+      placeItems: "center",
+      overflow: "hidden"
+    }
+  }, sig.sign && sig.sign.img ? React.createElement("img", {
+    src: sig.sign.img,
+    alt: "\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19",
+    style: {
+      maxWidth: "88%",
+      maxHeight: 80,
+      objectFit: "contain"
+    }
+  }) : React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19")), React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginTop: 10,
+      flexWrap: "wrap"
+    }
+  }, sig.sign && sig.sign.img && React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 100,
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E21\u0E37\u0E48\u0E2D ", window.drDateTH(window.drSignDay(sig.sign))), React.createElement("button", {
+    onClick: () => setPad(true),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "9px 14px",
+      borderRadius: 10,
+      border: "none",
+      background: "var(--primary)",
+      color: "#fff",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, React.createElement(Icon, {
+    name: "pen",
+    size: 14,
+    color: "#fff"
+  }), " ", sig.sign && sig.sign.img ? "เซ็นใหม่" : "เซ็นชื่อ"), sig.sign && sig.sign.img && React.createElement("button", {
+    onClick: () => sig.clear(),
+    style: {
+      padding: "9px 13px",
+      borderRadius: 10,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-3)",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E25\u0E1A")))), React.createElement("div", {
+    style: {
+      padding: "14px 22px",
+      paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14,
+      borderTop: "1px solid var(--border)",
+      background: "var(--surface)",
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexShrink: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      flex: 1,
+      fontSize: 11,
+      color: saved ? "var(--primary-dark)" : "var(--text-3)"
+    }
+  }, saved ? "บันทึกแล้ว" : "รูปและลายเซ็นบันทึกทันทีที่เลือก"), React.createElement("button", {
+    onClick: onClose,
+    style: {
+      padding: "11px 18px",
+      borderRadius: 11,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-2)",
+      fontWeight: 600,
+      fontFamily: "inherit",
+      fontSize: 13.5,
+      cursor: "pointer"
+    }
+  }, "\u0E1B\u0E34\u0E14"), React.createElement("button", {
+    onClick: save,
+    style: {
+      padding: "11px 22px",
+      borderRadius: 11,
+      border: "none",
+      background: "var(--primary)",
+      color: "#fff",
+      fontWeight: 700,
+      fontFamily: "inherit",
+      fontSize: 13.5,
+      cursor: "pointer"
+    }
+  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01")))), pad && window.DrSignPad && React.createElement(window.DrSignPad, {
+    title: "\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19",
+    hint: "\u0E40\u0E0B\u0E47\u0E19\u0E43\u0E2B\u0E49\u0E40\u0E2B\u0E21\u0E37\u0E2D\u0E19\u0E17\u0E35\u0E48\u0E40\u0E0B\u0E47\u0E19\u0E43\u0E19\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E08\u0E23\u0E34\u0E07 \u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E30\u0E08\u0E33\u0E44\u0E27\u0E49\u0E43\u0E2B\u0E49",
+    onClose: () => setPad(false),
+    onSave: img => {
+      sig.save(img);
+      setPad(false);
+    }
+  }));
+}
 function useNotifStore() {
   const [notifs, setNotifs] = React.useState(_AFB() ? null : () => _alsGet(SF_NOTIF_KEY, []));
   React.useEffect(() => {
@@ -2342,6 +2769,8 @@ Object.assign(window, {
   LoginScreen,
   NotifPanel,
   UserManager,
+  useUserAvatar,
+  MyProfileModal,
   can,
   hasRole,
   userRoles,

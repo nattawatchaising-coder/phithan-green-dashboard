@@ -276,6 +276,184 @@ function useAuthStore() {
   return { users: list, current, loading, login, loginCred, logout, upsertUser, removeUser, blankUser: () => blankUser() };
 }
 
+/* ── รูปโปรไฟล์ ──
+   เก็บแยกที่ userAvatars/{userId} ไม่ปนกับ users/ เพราะรายชื่อผู้ใช้ถูกโหลดทั้งก้อน
+   ตั้งแต่หน้าล็อกอิน — ถ้าเอารูป base64 ไปแปะในนั้น ทุกคนต้องโหลดรูปของทุกคนก่อนเข้าระบบ */
+function useUserAvatar(userId) {
+  const [avatar, setAvatar] = React.useState(null);
+  React.useEffect(() => {
+    if (!userId || !_AFB()) { setAvatar(null); return; }
+    const ref = _aref("userAvatars/" + userId);
+    const h = ref.on("value", (s) => { const v = s.val(); setAvatar(v && v.img ? v.img : null); });
+    return () => ref.off("value", h);
+  }, [userId]);
+
+  const save = React.useCallback((img) => {
+    if (!userId || !_AFB() || !img) return;
+    _aref("userAvatars/" + userId).set({ img, at: new Date().toISOString() });
+  }, [userId]);
+
+  const clear = React.useCallback(() => {
+    if (!userId || !_AFB()) return;
+    _aref("userAvatars/" + userId).remove();
+  }, [userId]);
+
+  return { avatar, save, clear };
+}
+
+/* ================================================================
+   โปรไฟล์ของฉัน — รูป · ข้อมูลติดต่อ · ลายเซ็น (ทุกตำแหน่งแก้ของตัวเองได้)
+   ================================================================ */
+function MyProfileModal({ user, onSave, onClose }) {
+  const bdClose = window.useBackdropClose(onClose);
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const av = useUserAvatar((user || {}).id);
+  const sig = window.useDrMySign((user || {}).id);
+  const [f, setF] = React.useState(() => Object.assign({}, user));
+  const [pad, setPad] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+  const file = React.useRef(null);
+  const set = (k, v) => { setF((p) => Object.assign({}, p, { [k]: v })); setSaved(false); };
+  const rs = userRoles(user);
+  const head = ROLE_INFO[rs[0]] || ROLE_INFO.tech;
+
+  const pick = async (e) => {
+    const fl = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!fl) return;
+    setBusy(true);
+    /* 320px พอสำหรับรูปกลม ๆ ในเมนู ไม่ต้องเก็บรูปเต็มความละเอียดจากกล้องมือถือ */
+    try { av.save(await window.resizeImageFile(fl, 320, 0.78)); } catch (err) { /* ไฟล์ที่อ่านไม่ได้ ข้ามไป */ }
+    setBusy(false);
+  };
+
+  const save = () => {
+    onSave(Object.assign({}, f, { name: String(f.name || "").trim() || user.name,
+      phone: String(f.phone || "").trim(), email: String(f.email || "").trim(), line: String(f.line || "").trim() }));
+    setSaved(true);
+  };
+
+  return (
+    <React.Fragment>
+      <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", zIndex: 120, display: "grid",
+        placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
+        <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18,
+          width: isMobile ? "100%" : "min(480px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column",
+          overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.35)" }}>
+
+          <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)",
+            display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>โปรไฟล์ของฉัน</h3>
+            <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)",
+              background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={15} /></button>
+          </div>
+
+          <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 15, overflowY: "auto" }}>
+            {/* รูปโปรไฟล์ */}
+            <div style={{ display: "flex", alignItems: "center", gap: 15 }}>
+              <span style={{ width: 74, height: 74, borderRadius: 99, flexShrink: 0, display: "grid", placeItems: "center",
+                overflow: "hidden", background: head.color, color: "#fff", fontWeight: 700, fontSize: 27 }}>
+                {av.avatar
+                  ? <img src={av.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  : (user.name || "?").slice(0, 1)}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button onClick={() => file.current && file.current.click()} disabled={busy}
+                    style={{ padding: "9px 14px", borderRadius: 10, border: "1px solid var(--primary)", background: "var(--primary-soft)",
+                      color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                    {busy ? "กำลังย่อรูป…" : av.avatar ? "เปลี่ยนรูป" : "ใส่รูป"}
+                  </button>
+                  {av.avatar && (
+                    <button onClick={() => av.clear()}
+                      style={{ padding: "9px 13px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                        color: "var(--text-3)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>ลบรูป</button>
+                  )}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 7 }}>ถ่ายจากมือถือได้เลย ระบบย่อรูปให้อัตโนมัติ</div>
+                <input ref={file} type="file" accept="image/*" onChange={pick} style={{ display: "none" }} />
+              </div>
+            </div>
+
+            <AField label="ชื่อ-สกุล (แสดงในระบบ)">
+              <input style={A_INPUT} value={f.name || ""} onChange={(e) => set("name", e.target.value)} placeholder="เช่น สมชาย ตั้งใจ" />
+            </AField>
+            <AField label="เบอร์โทร">
+              <input style={A_INPUT} value={f.phone || ""} inputMode="tel" onChange={(e) => set("phone", e.target.value)} placeholder="08x-xxx-xxxx" />
+            </AField>
+            <AField label="อีเมล">
+              <input style={A_INPUT} value={f.email || ""} inputMode="email" autoCapitalize="none" spellCheck={false}
+                onChange={(e) => set("email", e.target.value)} placeholder="name@example.com" />
+            </AField>
+            <AField label="ไลน์ไอดี">
+              <input style={A_INPUT} value={f.line || ""} autoCapitalize="none" spellCheck={false}
+                onChange={(e) => set("line", e.target.value)} placeholder="เช่น @somchai" />
+            </AField>
+
+            {/* ตำแหน่ง/ชื่อผู้ใช้ — แก้เองไม่ได้ ต้องให้แอดมินเปลี่ยน เพราะผูกกับสิทธิ์และการมอบหมายงาน */}
+            <div style={{ padding: "11px 13px", borderRadius: 11, background: "var(--surface2)", border: "1px solid var(--border)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <RoleBadges roles={rs} short />
+                {user.username && <span style={{ fontSize: 11.5, color: "var(--text-3)", fontFamily: "var(--mono)" }}>@{user.username}</span>}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 6 }}>ตำแหน่งกับชื่อผู้ใช้ต้องให้แอดมินเปลี่ยนให้ เพราะผูกกับสิทธิ์และการมอบหมายงาน</div>
+            </div>
+
+            {/* ลายเซ็น — ใช้ในใบรายงานประจำวัน */}
+            <div style={{ padding: "13px 14px", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-2)" }}>ลายเซ็นของฉัน</span>
+                <span style={{ fontSize: 11, color: "var(--text-3)" }}>ใช้เซ็นใบรายงานประจำวัน</span>
+              </div>
+              <div style={{ height: 92, marginTop: 10, borderRadius: 10, background: "var(--surface2)", border: "1px solid var(--border)",
+                display: "grid", placeItems: "center", overflow: "hidden" }}>
+                {sig.sign && sig.sign.img
+                  ? <img src={sig.sign.img} alt="ลายเซ็น" style={{ maxWidth: "88%", maxHeight: 80, objectFit: "contain" }} />
+                  : <span style={{ fontSize: 12, color: "var(--text-3)" }}>ยังไม่ได้บันทึกลายเซ็น</span>}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                {sig.sign && sig.sign.img && (
+                  <span style={{ flex: 1, minWidth: 100, fontSize: 11, color: "var(--text-3)" }}>
+                    บันทึกเมื่อ {window.drDateTH(window.drSignDay(sig.sign))}
+                  </span>
+                )}
+                <button onClick={() => setPad(true)}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 10, border: "none",
+                    background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                  <Icon name="pen" size={14} color="#fff" /> {sig.sign && sig.sign.img ? "เซ็นใหม่" : "เซ็นชื่อ"}
+                </button>
+                {sig.sign && sig.sign.img && (
+                  <button onClick={() => sig.clear()}
+                    style={{ padding: "9px 13px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                      color: "var(--text-3)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>ลบ</button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ padding: "14px 22px", paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14,
+            borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+            {/* รูปกับลายเซ็นเซฟทันทีที่เลือก ปุ่มนี้เซฟเฉพาะช่องข้อความ — บอกไว้กันงง */}
+            <span style={{ flex: 1, fontSize: 11, color: saved ? "var(--primary-dark)" : "var(--text-3)" }}>
+              {saved ? "บันทึกแล้ว" : "รูปและลายเซ็นบันทึกทันทีที่เลือก"}
+            </span>
+            <button onClick={onClose} style={{ padding: "11px 18px", borderRadius: 11, border: "1px solid var(--border-strong)",
+              background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ปิด</button>
+            <button onClick={save} style={{ padding: "11px 22px", borderRadius: 11, border: "none", background: "var(--primary)",
+              color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>บันทึก</button>
+          </div>
+        </div>
+      </div>
+
+      {pad && window.DrSignPad && (
+        <window.DrSignPad title="ลายเซ็นของฉัน" hint="เซ็นให้เหมือนที่เซ็นในเอกสารจริง ระบบจะจำไว้ให้"
+          onClose={() => setPad(false)} onSave={(img) => { sig.save(img); setPad(false); }} />
+      )}
+    </React.Fragment>
+  );
+}
+
 /* ================================================================
    useNotifStore
    ================================================================ */
@@ -955,5 +1133,6 @@ function UserEditModal({ initial, existing, onSave, onClose }) {
 }
 
 Object.assign(window, { useAuthStore, useNotifStore, LoginScreen, NotifPanel, UserManager,
+  useUserAvatar, MyProfileModal,
   can, hasRole, userRoles, ROLE_INFO, ROLE_KEYS, ROLE_ALIAS, RoleBadge, RoleBadges,
   useRoleConfig, jobScopeOf, jobInScope, PERM_LIST, SCOPE_MODES, DEFAULT_PERMS, applyRoleConfig, roleConfigNow });

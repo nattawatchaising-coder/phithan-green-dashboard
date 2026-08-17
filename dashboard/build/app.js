@@ -1201,8 +1201,9 @@ function App() {
     authStore: auth,
     roleCfg: roleCfg,
     onClose: () => setUserMgr(false)
-  }), mySign && React.createElement(DrMySignModal, {
+  }), mySign && React.createElement(MyProfileModal, {
     user: auth.current,
+    onSave: auth.upsertUser,
     onClose: () => setMySign(false)
   }), briefingOpen && React.createElement(DailyBriefing, {
     lateAlerts: lateAlerts,
@@ -1300,6 +1301,7 @@ function Sidebar({
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const icons = !isMobile && collapsed;
+  const myAvatar = window.useUserAvatar((currentUser || {}).id).avatar;
   const delayed = jobs.filter(j => j.delayed).length;
   const lowStock = stock.items.filter(it => it.qty <= it.min).length;
   const sidebarStyle = isMobile ? {
@@ -1401,24 +1403,23 @@ function Sidebar({
     name: "users",
     size: 19,
     color: "var(--text-2)"
-  }), !icons && React.createElement("span", null, "\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19")), currentUser && onMySign && React.createElement("button", {
+  }), !icons && React.createElement("span", null, "\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19")), currentUser && React.createElement("button", {
     onClick: onMySign,
-    className: "nav-item",
-    title: "\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19",
-    style: {
-      width: "100%"
-    }
-  }, React.createElement(Icon, {
-    name: "pen",
-    size: 18,
-    color: "var(--text-2)"
-  }), !icons && React.createElement("span", null, "\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19")), currentUser && React.createElement("div", {
+    title: "\u0E42\u0E1B\u0E23\u0E44\u0E1F\u0E25\u0E4C\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19",
+    disabled: !onMySign,
     style: {
       display: "flex",
       alignItems: "center",
       gap: 10,
-      padding: icons ? 0 : "4px 2px 10px",
-      justifyContent: icons ? "center" : "flex-start"
+      width: "100%",
+      textAlign: "left",
+      borderRadius: 12,
+      padding: icons ? "6px 0" : "6px 8px 6px 2px",
+      justifyContent: icons ? "center" : "flex-start",
+      background: "none",
+      border: "none",
+      fontFamily: "inherit",
+      cursor: onMySign ? "pointer" : "default"
     }
   }, React.createElement("span", {
     style: {
@@ -1428,12 +1429,21 @@ function Sidebar({
       flexShrink: 0,
       display: "grid",
       placeItems: "center",
+      overflow: "hidden",
       background: (ROLE_INFO[userRoles(currentUser)[0]] || ROLE_INFO.tech).color,
       color: "#fff",
       fontWeight: 700,
       fontSize: 14
     }
-  }, (currentUser.name || "?").slice(0, 1)), !icons && React.createElement("div", {
+  }, myAvatar ? React.createElement("img", {
+    src: myAvatar,
+    alt: "",
+    style: {
+      width: "100%",
+      height: "100%",
+      objectFit: "cover"
+    }
+  }) : (currentUser.name || "?").slice(0, 1)), !icons && React.createElement("div", {
     style: {
       minWidth: 0,
       flex: 1
@@ -1452,7 +1462,11 @@ function Sidebar({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, userRoles(currentUser).map(r => (ROLE_INFO[r] || ROLE_INFO.tech).short).join(" · ")))), React.createElement("button", {
+  }, userRoles(currentUser).map(r => (ROLE_INFO[r] || ROLE_INFO.tech).short).join(" · "))), !icons && onMySign && React.createElement(Icon, {
+    name: "settings",
+    size: 15,
+    color: "var(--text-3)"
+  })), React.createElement("button", {
     onClick: onToggleAurora,
     className: "nav-item",
     title: aurora ? "กลับสู่โหมดปกติ" : "เปิดโหมดกราไฟต์",

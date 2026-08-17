@@ -165,7 +165,7 @@ function App() {
   const [techMgr, setTechMgr] = React.useState(false);
   const [brandMgr, setBrandMgr] = React.useState(false);
   const [userMgr, setUserMgr] = React.useState(false);
-  const [mySign, setMySign] = React.useState(false); // ตั้งค่า → ลายเซ็นของฉัน
+  const [mySign, setMySign] = React.useState(false); // โปรไฟล์ของฉัน (รูป · ติดต่อ · ลายเซ็น)
   const [notifOpen, setNotifOpen] = React.useState(false);
   const [briefingOpen, setBriefingOpen] = React.useState(false); // สรุปงานวันนี้ (เปิดครั้งแรกของวัน)
   const [mapOpen, setMapOpen] = React.useState(false); // แผนที่งาน (popup จากปุ่มใน header)
@@ -785,7 +785,7 @@ function App() {
       {techMgr && <TechManager store={techStore} onClose={() => setTechMgr(false)} />}
       {brandMgr && <BrandManager store={brandStore} onClose={() => setBrandMgr(false)} />}
       {userMgr && can(role, "manageUsers") && <UserManager authStore={auth} roleCfg={roleCfg} onClose={() => setUserMgr(false)} />}
-      {mySign && <DrMySignModal user={auth.current} onClose={() => setMySign(false)} />}
+      {mySign && <MyProfileModal user={auth.current} onSave={auth.upsertUser} onClose={() => setMySign(false)} />}
       {briefingOpen && <DailyBriefing lateAlerts={lateAlerts} todayTasks={todayTasks}
         onOpen={(jobId) => { localStorage.setItem("sf_briefing_seen", window.SF.TODAY); setBriefingOpen(false); setView(listView()); setSelected(jobId); }}
         onClose={() => { localStorage.setItem("sf_briefing_seen", window.SF.TODAY); setBriefingOpen(false); }} />}
@@ -819,6 +819,8 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, open, onClose, aur
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   // โหมดไอคอน = ผู้ใช้ย่อแถบเอง (เฉพาะเดสก์ท็อป — มือถือใช้ drawer เต็มเสมอ)
   const icons = !isMobile && collapsed;
+  /* รูปโปรไฟล์ของคนที่ล็อกอินอยู่ — โหลดเฉพาะของตัวเอง ไม่ลากรูปของทุกคนมาด้วย */
+  const myAvatar = window.useUserAvatar((currentUser || {}).id).avatar;
   const delayed = jobs.filter((j) => j.delayed).length;
   const lowStock = stock.items.filter((it) => it.qty <= it.min).length;
   // On mobile: slide in/out via transform; on desktop: no inline style → always visible in flex flow
@@ -880,18 +882,17 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, open, onClose, aur
             {!icons && <span>จัดการผู้ใช้งาน</span>}
           </button>
         )}
-        {/* ลายเซ็นของฉัน — ทุกตำแหน่งตั้งเองได้ ไม่ใช่ของแอดมิน (ลายเซ็นเป็นของส่วนตัว) */}
-        {currentUser && onMySign && (
-          <button onClick={onMySign} className="nav-item" title="ลายเซ็นของฉัน" style={{ width: "100%" }}>
-            <Icon name="pen" size={18} color="var(--text-2)" />
-            {!icons && <span>ลายเซ็นของฉัน</span>}
-          </button>
-        )}
+        {/* กดที่ชื่อตัวเอง = โปรไฟล์ของฉัน (รูป · ข้อมูลติดต่อ · ลายเซ็น) — ทุกตำแหน่งแก้ของตัวเองได้ */}
         {currentUser && (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: icons ? 0 : "4px 2px 10px", justifyContent: icons ? "center" : "flex-start" }}>
-            <span style={{ width: 36, height: 36, borderRadius: 99, flexShrink: 0, display: "grid", placeItems: "center",
+          <button onClick={onMySign} title="โปรไฟล์ของฉัน" disabled={!onMySign}
+            style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", borderRadius: 12,
+              padding: icons ? "6px 0" : "6px 8px 6px 2px", justifyContent: icons ? "center" : "flex-start",
+              background: "none", border: "none", fontFamily: "inherit", cursor: onMySign ? "pointer" : "default" }}>
+            <span style={{ width: 36, height: 36, borderRadius: 99, flexShrink: 0, display: "grid", placeItems: "center", overflow: "hidden",
               background: (ROLE_INFO[userRoles(currentUser)[0]] || ROLE_INFO.tech).color, color: "#fff", fontWeight: 700, fontSize: 14 }}>
-              {(currentUser.name || "?").slice(0, 1)}
+              {myAvatar
+                ? <img src={myAvatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : (currentUser.name || "?").slice(0, 1)}
             </span>
             {!icons && (
               <div style={{ minWidth: 0, flex: 1 }}>
@@ -899,7 +900,8 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, open, onClose, aur
                 <div style={{ fontSize: 11, color: "var(--text-3)" }}>{userRoles(currentUser).map((r) => (ROLE_INFO[r] || ROLE_INFO.tech).short).join(" · ")}</div>
               </div>
             )}
-          </div>
+            {!icons && onMySign && <Icon name="settings" size={15} color="var(--text-3)" />}
+          </button>
         )}
         {/* โหมดกราไฟต์ — สกินโทนเทาเข้ม (จำค่าไว้) · จุดเขียวด้านขวาบอกว่าเปิดอยู่ */}
         <button onClick={onToggleAurora} className="nav-item" title={aurora ? "กลับสู่โหมดปกติ" : "เปิดโหมดกราไฟต์"}
