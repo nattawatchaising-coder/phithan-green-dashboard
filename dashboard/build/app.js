@@ -73,7 +73,11 @@ const PERMIT_TODO = {
 };
 const permitStageKey = j => j && j.permit && j.permit.status || "todo";
 const permitStageOf = key => (window.PERMIT_COLS || []).find(c => c.key === key) || PERMIT_TODO;
-const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm)).filter(n => !(isPermitOnly(roles) && n.key === "permit")).filter(n => !(isSalesOnly(roles) && n.key === "board")).map(n => n.key === "board" && isPermitOnly(roles) ? Object.assign({}, n, {
+const isBoardBoss = roles => (hasRole(roles, "lead") || hasRole(roles, "admin")) && can(roles, "viewAll");
+const NAV_HIDE_FOR_BOSS = ["leads", "permit"];
+const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm)).filter(n => !(isPermitOnly(roles) && n.key === "permit")).map(n => isBoardBoss(roles) && NAV_HIDE_FOR_BOSS.indexOf(n.key) !== -1 ? Object.assign({}, n, {
+  hidden: true
+}) : n).filter(n => !(isSalesOnly(roles) && n.key === "board")).map(n => n.key === "board" && isPermitOnly(roles) ? Object.assign({}, n, {
   th: "บอร์ดขออนุญาต",
   en: "Permit Board",
   icon: "shield"
@@ -1334,7 +1338,7 @@ function Sidebar({
     color: "var(--text-2)"
   }))), React.createElement("nav", {
     className: "sidebar-nav"
-  }, navForRole(role, techId).map(n => {
+  }, navForRole(role, techId).filter(n => !n.hidden).map(n => {
     const active = view === n.key;
     return React.createElement("button", {
       key: n.key,

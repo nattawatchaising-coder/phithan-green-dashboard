@@ -33,9 +33,17 @@ const isSalesOnly = (roles) => (roles || []).length > 0 && roles.every((r) => (R
 const PERMIT_TODO = { key: "todo", th: "ยังไม่เริ่มเก็บข้อมูล", color: "#94A3B8", soft: "var(--surface2)" };
 const permitStageKey = (j) => (j && j.permit && j.permit.status) || "todo";
 const permitStageOf = (key) => (window.PERMIT_COLS || []).find((c) => c.key === key) || PERMIT_TODO;
+/* หัวหน้า/แอดมิน — บอร์ดงานรวมทั้งสามช่วงไว้ในผืนเดียวแล้ว เมนู "งานขาย" กับ "ขออนุญาตการไฟฟ้า"
+   จึงซ้ำกับบอร์ด เอาออกจากแถบเมนูให้เหลือทางเดียว */
+const isBoardBoss = (roles) => (hasRole(roles, "lead") || hasRole(roles, "admin")) && can(roles, "viewAll");
+/* ซ่อนจากแถบเมนู ไม่ใช่ตัดสิทธิ์ — หน้ายังต้องเข้าได้อยู่ เพราะกดการ์ดลูกค้าในบอร์ดจะพาไปหน้ารายการลูกค้า
+   ถ้าตัดออกจากรายการที่อนุญาต ตัวเช็คสิทธิ์จะเด้งกลับทันทีตอนกดการ์ด */
+const NAV_HIDE_FOR_BOSS = ["leads", "permit"];
 const navForRole = (roles, techId) => NAV
   .filter((n) => (n.own ? !!techId : (!n.perm || can(roles, n.perm))))
   .filter((n) => !(isPermitOnly(roles) && n.key === "permit"))
+  .map((n) => (isBoardBoss(roles) && NAV_HIDE_FOR_BOSS.indexOf(n.key) !== -1
+    ? Object.assign({}, n, { hidden: true }) : n))
   /* เซลล์อย่างเดียวไม่ต้องเห็นบอร์ดงานติดตั้งทั้งบริษัท — งานที่เกี่ยวกับเขาคืองานของลูกค้าตัวเอง
      ซึ่งไปตามได้จากแผง "งานติดตั้งของลูกค้าฉัน" ในภาพรวมงานขาย */
   .filter((n) => !(isSalesOnly(roles) && n.key === "board"))
@@ -827,7 +835,7 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, open, onClose, aur
       </div>
 
       <nav className="sidebar-nav">
-        {navForRole(role, techId).map((n) => {
+        {navForRole(role, techId).filter((n) => !n.hidden).map((n) => {
           const active = view === n.key;
           return (
             <button key={n.key} onClick={() => onNav(n.key)} className={"nav-item" + (active ? " active" : "")} title={n.th}
