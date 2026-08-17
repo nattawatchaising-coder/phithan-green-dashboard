@@ -320,7 +320,7 @@ function drTrimSign(cv) {
   return out.toDataURL("image/png");
 }
 
-function DrSignPad({ title, hint, onSave, onClose }) {
+function DrSignPad({ title, hint, saved, onSave, onClose, remember, onRemember }) {
   const cv = React.useRef(null);
   const wrap = React.useRef(null);
   const dpr = React.useRef(1);
@@ -362,10 +362,11 @@ function DrSignPad({ title, hint, onSave, onClose }) {
     c.getContext("2d").clearRect(0, 0, c.width, c.height);
     setInked(false);
   };
+  /* drawn = เพิ่งเขียนใหม่ (จำไว้ได้) · false = หยิบของที่บันทึกไว้มาใช้ ไม่ต้องเซฟซ้ำ */
   const done = () => {
     const img = drTrimSign(cv.current);
     if (!img) return;
-    onSave(img);
+    onSave(img, true);
   };
 
   const btn = (bg, color, border) => ({
@@ -404,6 +405,33 @@ function DrSignPad({ title, hint, onSave, onClose }) {
           </div>
         </div>
 
+        {/* มีลายเซ็นที่บันทึกไว้ในตั้งค่าอยู่แล้ว — กดใช้ได้เลย ไม่ต้องเซ็นใหม่ */}
+        {saved && saved.img && (
+          <div style={{ margin: "4px 16px 0", padding: "9px 11px", borderRadius: 11, border: "1px solid var(--border)",
+            background: "var(--surface2)", display: "flex", alignItems: "center", gap: 11 }}>
+            <img src={saved.img} alt="" style={{ height: 32, maxWidth: 120, objectFit: "contain" }} />
+            <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: "var(--text-3)" }}>ลายเซ็นที่บันทึกไว้</span>
+            <button onClick={() => onSave(saved.img, false)}
+              style={{ padding: "8px 13px", borderRadius: 9, border: "1px solid var(--primary)", background: "var(--primary-soft)",
+                color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
+              ใช้อันนี้
+            </button>
+          </div>
+        )}
+
+        {onRemember && (
+          <button type="button" onClick={() => onRemember(!remember)}
+            style={{ display: "flex", alignItems: "center", gap: 9, margin: "10px 16px 0", cursor: "pointer",
+              background: "none", border: "none", padding: 0, fontFamily: "inherit", textAlign: "left" }}>
+            <span style={{ width: 19, height: 19, borderRadius: 6, flexShrink: 0, display: "grid", placeItems: "center",
+              background: remember ? "var(--primary)" : "transparent",
+              border: "1.5px solid " + (remember ? "var(--primary)" : "var(--border-strong)") }}>
+              {remember && <Icon name="check" size={12} color="#fff" sw={3} />}
+            </span>
+            <span style={{ fontSize: 12.5, color: "var(--text-2)" }}>จำลายเซ็นนี้ไว้ ใช้ครั้งต่อไปได้เลย</span>
+          </button>
+        )}
+
         <div style={{ padding: "10px 16px 16px", display: "flex", gap: 9, alignItems: "center", flexWrap: "wrap" }}>
           <button onClick={wipe} style={Object.assign(btn("var(--surface)", "var(--text-2)", "1px solid var(--border-strong)"), { flexShrink: 0 })}>
             เขียนใหม่
@@ -420,7 +448,7 @@ function DrSignPad({ title, hint, onSave, onClose }) {
 }
 
 /* ช่องลายเซ็นในฟอร์ม — เซ็นแล้วเห็นภาพจริง ยังไม่เซ็นเห็นปุ่ม */
-function DrSignSlot({ title, sub, sig, canSign, onSign, onClear }) {
+function DrSignSlot({ title, sub, sig, canSign, onSign, onClear, saved, onUseSaved }) {
   return (
     <div style={{ border: "1px solid var(--border)", borderRadius: 12, background: "var(--surface)", padding: "12px 13px" }}>
       <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-2)" }}>{title}</div>
@@ -434,14 +462,22 @@ function DrSignSlot({ title, sub, sig, canSign, onSign, onClear }) {
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 9, flexWrap: "wrap" }}>
         {sig && sig.img && (
           <span style={{ fontSize: 11, color: "var(--text-3)", flex: 1, minWidth: 90 }}>
-            {sig.name || "-"} · {sig.at ? window.drDateTH(String(sig.at).slice(0, 10)) : "-"}
+            {sig.name || "-"} · {window.drDateTH(window.drSignDay(sig))}
           </span>
+        )}
+        {/* บันทึกลายเซ็นไว้ในตั้งค่าแล้ว กดปุ่มเดียวจบ */}
+        {canSign && !(sig && sig.img) && saved && saved.img && (
+          <button onClick={onUseSaved}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9, border: "none",
+              background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+            <Icon name="check" size={13} color="#fff" sw={2.6} /> ใช้ลายเซ็นที่บันทึกไว้
+          </button>
         )}
         {canSign && (
           <button onClick={onSign}
             style={{ padding: "7px 12px", borderRadius: 9, border: "1px solid var(--primary)", background: "var(--primary-soft)",
               color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-            {sig && sig.img ? "เซ็นใหม่" : "เซ็นชื่อ"}
+            {sig && sig.img ? "เซ็นใหม่" : "เซ็นสด"}
           </button>
         )}
         {canSign && sig && sig.img && (
@@ -457,6 +493,90 @@ function DrSignSlot({ title, sub, sig, canSign, onSign, onClear }) {
 }
 
 /* ══════════════════════════════════════════════════
+   ตั้งค่า → ลายเซ็นของฉัน (เซ็นครั้งเดียว ใช้ได้ตลอด)
+   ══════════════════════════════════════════════════ */
+function DrMySignModal({ user, onClose }) {
+  const mine = window.useDrMySign((user || {}).id);
+  const [pad, setPad] = React.useState(false);
+  const [askDel, setAskDel] = React.useState(false);
+  const has = mine.sign && mine.sign.img;
+
+  return (
+    <React.Fragment>
+      <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(8,20,14,.55)", display: "grid",
+        placeItems: "center", padding: 14 }}>
+        <div style={{ width: "100%", maxWidth: 520, background: "var(--bg)", borderRadius: 16, overflow: "hidden",
+          boxShadow: "0 24px 70px rgba(8,20,14,.34)" }}>
+          <div style={{ padding: "16px 18px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 11 }}>
+            <span style={{ width: 38, height: 38, borderRadius: 11, background: "var(--primary-soft)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+              <Icon name="pen" size={18} color="var(--primary-dark)" />
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-1)" }}>ลายเซ็นของฉัน</div>
+              <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 2 }}>
+                เซ็นเก็บไว้ครั้งเดียว · ใบรายงานทุกวันหลังจากนี้ใช้ลายเซ็นนี้ได้เลย
+              </div>
+            </div>
+            <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border-strong)",
+              background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
+              <Icon name="x" size={16} />
+            </button>
+          </div>
+
+          <div style={{ padding: 18 }}>
+            <div style={{ height: 140, borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)",
+              display: "grid", placeItems: "center", overflow: "hidden" }}>
+              {mine.loading
+                ? <span style={{ fontSize: 12.5, color: "var(--text-3)" }}>กำลังโหลด…</span>
+                : has
+                  ? <img src={mine.sign.img} alt="ลายเซ็นของฉัน" style={{ maxWidth: "88%", maxHeight: 120, objectFit: "contain" }} />
+                  : <span style={{ fontSize: 12.5, color: "var(--text-3)" }}>ยังไม่ได้บันทึกลายเซ็น</span>}
+            </div>
+            <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 9 }}>
+              {has ? "บันทึกเมื่อ " + window.drDateTH(window.drSignDay(mine.sign)) : "ในหน้ารายงานประจำวันจะเห็นปุ่มให้เซ็นสด ๆ ได้เหมือนเดิม"}
+            </div>
+
+            <div style={{ display: "flex", gap: 9, marginTop: 15, flexWrap: "wrap" }}>
+              <button onClick={() => setPad(true)}
+                style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "11px 16px", borderRadius: 11, border: "none",
+                  background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
+                <Icon name="pen" size={15} color="#fff" /> {has ? "เซ็นใหม่" : "เซ็นชื่อ"}
+              </button>
+              {has && !askDel && (
+                <button onClick={() => setAskDel(true)}
+                  style={{ padding: "11px 15px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                    color: "var(--text-2)", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
+                  ลบลายเซ็น
+                </button>
+              )}
+              {askDel && (
+                <React.Fragment>
+                  <span style={{ flex: 1, minWidth: 140, fontSize: 12.5, fontWeight: 600, color: "var(--tint-red-tx)", alignSelf: "center" }}>
+                    ลบแล้วต้องเซ็นใหม่ทุกใบ · ใบเก่าที่เซ็นไปแล้วไม่กระทบ
+                  </span>
+                  <button onClick={() => { mine.clear(); setAskDel(false); }}
+                    style={{ padding: "11px 15px", borderRadius: 11, border: "none", background: "#EF4444", color: "#fff",
+                      fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>ลบเลย</button>
+                  <button onClick={() => setAskDel(false)}
+                    style={{ padding: "11px 15px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                      color: "var(--text-2)", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>ยกเลิก</button>
+                </React.Fragment>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {pad && (
+        <DrSignPad title="ลายเซ็นของฉัน" hint="เซ็นให้เหมือนที่เซ็นในเอกสารจริง ระบบจะจำไว้ให้"
+          onClose={() => setPad(false)}
+          onSave={(img) => { mine.save(img); setPad(false); }} />
+      )}
+    </React.Fragment>
+  );
+}
+
+/* ══════════════════════════════════════════════════
    ฟอร์มกรอกรายงานประจำวัน
    ══════════════════════════════════════════════════ */
 function DailyReportModal({ job, role, currentUser, onClose }) {
@@ -466,8 +586,10 @@ function DailyReportModal({ job, role, currentUser, onClose }) {
   const [form, setForm] = React.useState(null);
   const [paper, setPaper] = React.useState(false);
   const sigs = window.useDailySigns(job ? job.id : null, date);
+  const mine = window.useDrMySign((currentUser || {}).id);
   /* pad = { slot, title, then } — เปิดแผ่นเซ็น แล้วทำงานต่อ (ส่ง/อนุมัติ) ให้อัตโนมัติหลังเซ็นเสร็จ */
   const [pad, setPad] = React.useState(null);
+  const [remember, setRemember] = React.useState(true);
   const timer = React.useRef(null);
   const saved = store.byDate[date] || null;
 
@@ -514,13 +636,15 @@ function DailyReportModal({ job, role, currentUser, onClose }) {
     store.save(date, Object.assign({}, form, { status: "approved", approvedAt: new Date().toISOString(),
       appId: (currentUser || {}).id || null, appName: (currentUser || {}).name || "" }));
   };
-  /* ยังไม่ได้เซ็นให้เปิดแผ่นเซ็นก่อน แล้วค่อยส่ง/อนุมัติต่อ — ใบที่ไม่มีลายเซ็นเอาไปใช้เป็นเอกสารไม่ได้ */
-  const send = () => (sigs.signs.by && sigs.signs.by.img
-    ? doSend()
-    : setPad({ slot: "by", title: "ลายเซ็นผู้บันทึก", hint: "เซ็นแล้วระบบจะส่งใบนี้ให้หัวหน้าอนุมัติทันที", then: doSend }));
-  const approve = () => (sigs.signs.app && sigs.signs.app.img
-    ? doApprove()
-    : setPad({ slot: "app", title: "ลายเซ็นผู้อนุมัติ", hint: "เซ็นแล้วระบบจะอนุมัติและล็อกใบนี้ทันที", then: doApprove }));
+  /* ยังไม่ได้เซ็นให้จัดการให้ก่อน แล้วค่อยส่ง/อนุมัติต่อ — ใบที่ไม่มีลายเซ็นเอาไปใช้เป็นเอกสารไม่ได้
+     ใครบันทึกลายเซ็นไว้ในตั้งค่าแล้ว ระบบเซ็นให้เลย ไม่ต้องมานั่งเซ็นซ้ำทุกวัน */
+  const needSign = (slot, title, hint, then) => {
+    if (sigs.signs[slot] && sigs.signs[slot].img) return then();
+    if (mine.sign && mine.sign.img) { sigs.sign(slot, mine.sign.img, currentUser); return then(); }
+    setPad({ slot: slot, title: title, hint: hint, then: then });
+  };
+  const send = () => needSign("by", "ลายเซ็นผู้บันทึก", "เซ็นแล้วระบบจะส่งใบนี้ให้หัวหน้าอนุมัติทันที", doSend);
+  const approve = () => needSign("app", "ลายเซ็นผู้อนุมัติ", "เซ็นแล้วระบบจะอนุมัติและล็อกใบนี้ทันที", doApprove);
   /* ปลดล็อกให้แก้ = ถอนการอนุมัติ ลายเซ็นหัวหน้าต้องหลุดไปด้วย ไม่งั้นใบที่แก้แล้วยังมีลายเซ็นเดิมค้างอยู่ */
   const reopen = () => {
     sigs.clear("app");
@@ -753,11 +877,13 @@ function DailyReportModal({ job, role, currentUser, onClose }) {
             <DrSection n={isProject ? "9" : "5"} title="ลายเซ็น" tone="#7C5CFC" hint="เซ็นด้วยนิ้วบนมือถือ หรือเมาส์บนคอม">
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
                 <DrSignSlot title="ผู้บันทึก (ช่างหน้างาน)" sub={form.byName || (currentUser || {}).name || "-"}
-                  sig={sigs.signs.by} canSign={!locked}
+                  sig={sigs.signs.by} canSign={!locked} saved={mine.sign}
+                  onUseSaved={() => sigs.sign("by", mine.sign.img, currentUser)}
                   onSign={() => setPad({ slot: "by", title: "ลายเซ็นผู้บันทึก" })}
                   onClear={() => sigs.clear("by")} />
                 <DrSignSlot title="ผู้อนุมัติ (หัวหน้างาน)" sub={form.appName || (canApprove ? (currentUser || {}).name || "-" : "รอหัวหน้าเซ็น")}
-                  sig={sigs.signs.app} canSign={canApprove && form.status !== "approved"}
+                  sig={sigs.signs.app} canSign={canApprove && form.status !== "approved"} saved={mine.sign}
+                  onUseSaved={() => sigs.sign("app", mine.sign.img, currentUser)}
                   onSign={() => setPad({ slot: "app", title: "ลายเซ็นผู้อนุมัติ" })}
                   onClear={() => sigs.clear("app")} />
               </div>
@@ -806,8 +932,11 @@ function DailyReportModal({ job, role, currentUser, onClose }) {
 
       {pad && (
         <DrSignPad title={pad.title} hint={pad.hint} onClose={() => setPad(null)}
-          onSave={(img) => {
+          saved={mine.sign} remember={remember} onRemember={setRemember}
+          onSave={(img, drawn) => {
             sigs.sign(pad.slot, img, currentUser);
+            /* ติ๊ก "จำลายเซ็นนี้ไว้" = เก็บเข้าตั้งค่าส่วนตัวด้วย ครั้งหน้ากดส่งได้เลย */
+            if (drawn && remember) mine.save(img);
             const then = pad.then;
             setPad(null);
             if (then) then();
@@ -1051,10 +1180,12 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
                 {s.g && s.g.img && <img src={s.g.img} alt="" style={{ maxWidth: "88%", maxHeight: 40, objectFit: "contain" }} />}
               </div>
               <div style={{ fontSize: 11, marginTop: 6, color: "#15211A" }}>ชื่อ: <b>{(s.g && s.g.name) || s.n || "-"}</b></div>
-              <div style={{ fontSize: 11, color: "#4A5A51" }}>วันที่: {(s.g && s.g.at) || s.d ? window.drDateTH(String((s.g && s.g.at) || s.d).slice(0, 10)) : "-"}</div>
+              <div style={{ fontSize: 11, color: "#4A5A51" }}>
+                วันที่: {window.drDateTH(s.g ? window.drSignDay(s.g) : String(s.d || "").slice(0, 10))}
+              </div>
               {s.g && s.g.img && (
                 <div style={{ fontSize: 8.5, color: "#8A9A91", marginTop: 3 }}>
-                  ลงลายมือชื่ออิเล็กทรอนิกส์ในระบบ {s.g.at ? String(s.g.at).slice(11, 16) + " น." : ""}
+                  ลงลายมือชื่ออิเล็กทรอนิกส์ในระบบ {window.drSignTime(s.g) ? window.drSignTime(s.g) + " น." : ""}
                 </div>
               )}
             </div>
@@ -1189,4 +1320,4 @@ function DailyJobButton({ job, onOpen }) {
   );
 }
 
-Object.assign(window, { DailyReportModal, DailyPaper, DailyView, DailyJobButton });
+Object.assign(window, { DailyReportModal, DailyPaper, DailyView, DailyJobButton, DrMySignModal });

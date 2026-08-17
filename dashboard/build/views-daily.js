@@ -659,8 +659,11 @@ function drTrimSign(cv) {
 function DrSignPad({
   title,
   hint,
+  saved,
   onSave,
-  onClose
+  onClose,
+  remember,
+  onRemember
 }) {
   const cv = React.useRef(null);
   const wrap = React.useRef(null);
@@ -720,7 +723,7 @@ function DrSignPad({
   const done = () => {
     const img = drTrimSign(cv.current);
     if (!img) return;
-    onSave(img);
+    onSave(img, true);
   };
   const btn = (bg, color, border) => ({
     padding: "11px 16px",
@@ -840,7 +843,83 @@ function DrSignPad({
       borderBottom: "1px solid #E3EAE5",
       pointerEvents: "none"
     }
-  }))), React.createElement("div", {
+  }))), saved && saved.img && React.createElement("div", {
+    style: {
+      margin: "4px 16px 0",
+      padding: "9px 11px",
+      borderRadius: 11,
+      border: "1px solid var(--border)",
+      background: "var(--surface2)",
+      display: "flex",
+      alignItems: "center",
+      gap: 11
+    }
+  }, React.createElement("img", {
+    src: saved.img,
+    alt: "",
+    style: {
+      height: 32,
+      maxWidth: 120,
+      objectFit: "contain"
+    }
+  }), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19\u0E17\u0E35\u0E48\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E44\u0E27\u0E49"), React.createElement("button", {
+    onClick: () => onSave(saved.img, false),
+    style: {
+      padding: "8px 13px",
+      borderRadius: 9,
+      border: "1px solid var(--primary)",
+      background: "var(--primary-soft)",
+      color: "var(--primary-dark)",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: "pointer",
+      flexShrink: 0
+    }
+  }, "\u0E43\u0E0A\u0E49\u0E2D\u0E31\u0E19\u0E19\u0E35\u0E49")), onRemember && React.createElement("button", {
+    type: "button",
+    onClick: () => onRemember(!remember),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+      margin: "10px 16px 0",
+      cursor: "pointer",
+      background: "none",
+      border: "none",
+      padding: 0,
+      fontFamily: "inherit",
+      textAlign: "left"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 19,
+      height: 19,
+      borderRadius: 6,
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+      background: remember ? "var(--primary)" : "transparent",
+      border: "1.5px solid " + (remember ? "var(--primary)" : "var(--border-strong)")
+    }
+  }, remember && React.createElement(Icon, {
+    name: "check",
+    size: 12,
+    color: "#fff",
+    sw: 3
+  })), React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-2)"
+    }
+  }, "\u0E08\u0E33\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19\u0E19\u0E35\u0E49\u0E44\u0E27\u0E49 \u0E43\u0E0A\u0E49\u0E04\u0E23\u0E31\u0E49\u0E07\u0E15\u0E48\u0E2D\u0E44\u0E1B\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22")), React.createElement("div", {
     style: {
       padding: "10px 16px 16px",
       display: "flex",
@@ -875,7 +954,9 @@ function DrSignSlot({
   sig,
   canSign,
   onSign,
-  onClear
+  onClear,
+  saved,
+  onUseSaved
 }) {
   return React.createElement("div", {
     style: {
@@ -935,7 +1016,28 @@ function DrSignSlot({
       flex: 1,
       minWidth: 90
     }
-  }, sig.name || "-", " \xB7 ", sig.at ? window.drDateTH(String(sig.at).slice(0, 10)) : "-"), canSign && React.createElement("button", {
+  }, sig.name || "-", " \xB7 ", window.drDateTH(window.drSignDay(sig))), canSign && !(sig && sig.img) && saved && saved.img && React.createElement("button", {
+    onClick: onUseSaved,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "7px 12px",
+      borderRadius: 9,
+      border: "none",
+      background: "var(--primary)",
+      color: "#fff",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, React.createElement(Icon, {
+    name: "check",
+    size: 13,
+    color: "#fff",
+    sw: 2.6
+  }), " \u0E43\u0E0A\u0E49\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19\u0E17\u0E35\u0E48\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E44\u0E27\u0E49"), canSign && React.createElement("button", {
     onClick: onSign,
     style: {
       padding: "7px 12px",
@@ -948,7 +1050,7 @@ function DrSignSlot({
       fontWeight: 700,
       cursor: "pointer"
     }
-  }, sig && sig.img ? "เซ็นใหม่" : "เซ็นชื่อ"), canSign && sig && sig.img && React.createElement("button", {
+  }, sig && sig.img ? "เซ็นใหม่" : "เซ็นสด"), canSign && sig && sig.img && React.createElement("button", {
     onClick: onClear,
     style: {
       padding: "7px 11px",
@@ -963,6 +1065,215 @@ function DrSignSlot({
     }
   }, "\u0E25\u0E1A")));
 }
+function DrMySignModal({
+  user,
+  onClose
+}) {
+  const mine = window.useDrMySign((user || {}).id);
+  const [pad, setPad] = React.useState(false);
+  const [askDel, setAskDel] = React.useState(false);
+  const has = mine.sign && mine.sign.img;
+  return React.createElement(React.Fragment, null, React.createElement("div", {
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 200,
+      background: "rgba(8,20,14,.55)",
+      display: "grid",
+      placeItems: "center",
+      padding: 14
+    }
+  }, React.createElement("div", {
+    style: {
+      width: "100%",
+      maxWidth: 520,
+      background: "var(--bg)",
+      borderRadius: 16,
+      overflow: "hidden",
+      boxShadow: "0 24px 70px rgba(8,20,14,.34)"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "16px 18px",
+      borderBottom: "1px solid var(--border)",
+      display: "flex",
+      alignItems: "center",
+      gap: 11
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 38,
+      height: 38,
+      borderRadius: 11,
+      background: "var(--primary-soft)",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "pen",
+    size: 18,
+    color: "var(--primary-dark)"
+  })), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 16,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, "\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19"), React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      marginTop: 2
+    }
+  }, "\u0E40\u0E0B\u0E47\u0E19\u0E40\u0E01\u0E47\u0E1A\u0E44\u0E27\u0E49\u0E04\u0E23\u0E31\u0E49\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27 \xB7 \u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E17\u0E38\u0E01\u0E27\u0E31\u0E19\u0E2B\u0E25\u0E31\u0E07\u0E08\u0E32\u0E01\u0E19\u0E35\u0E49\u0E43\u0E0A\u0E49\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19\u0E19\u0E35\u0E49\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22")), React.createElement("button", {
+    onClick: onClose,
+    style: {
+      width: 34,
+      height: 34,
+      borderRadius: 10,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 16
+  }))), React.createElement("div", {
+    style: {
+      padding: 18
+    }
+  }, React.createElement("div", {
+    style: {
+      height: 140,
+      borderRadius: 12,
+      border: "1px solid var(--border)",
+      background: "var(--surface)",
+      display: "grid",
+      placeItems: "center",
+      overflow: "hidden"
+    }
+  }, mine.loading ? React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026") : has ? React.createElement("img", {
+    src: mine.sign.img,
+    alt: "\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19",
+    style: {
+      maxWidth: "88%",
+      maxHeight: 120,
+      objectFit: "contain"
+    }
+  }) : React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19")), React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      marginTop: 9
+    }
+  }, has ? "บันทึกเมื่อ " + window.drDateTH(window.drSignDay(mine.sign)) : "ในหน้ารายงานประจำวันจะเห็นปุ่มให้เซ็นสด ๆ ได้เหมือนเดิม"), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 9,
+      marginTop: 15,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("button", {
+    onClick: () => setPad(true),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      padding: "11px 16px",
+      borderRadius: 11,
+      border: "none",
+      background: "var(--primary)",
+      color: "#fff",
+      fontFamily: "inherit",
+      fontSize: 13.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, React.createElement(Icon, {
+    name: "pen",
+    size: 15,
+    color: "#fff"
+  }), " ", has ? "เซ็นใหม่" : "เซ็นชื่อ"), has && !askDel && React.createElement("button", {
+    onClick: () => setAskDel(true),
+    style: {
+      padding: "11px 15px",
+      borderRadius: 11,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-2)",
+      fontFamily: "inherit",
+      fontSize: 13.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E25\u0E1A\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19"), askDel && React.createElement(React.Fragment, null, React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 140,
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: "var(--tint-red-tx)",
+      alignSelf: "center"
+    }
+  }, "\u0E25\u0E1A\u0E41\u0E25\u0E49\u0E27\u0E15\u0E49\u0E2D\u0E07\u0E40\u0E0B\u0E47\u0E19\u0E43\u0E2B\u0E21\u0E48\u0E17\u0E38\u0E01\u0E43\u0E1A \xB7 \u0E43\u0E1A\u0E40\u0E01\u0E48\u0E32\u0E17\u0E35\u0E48\u0E40\u0E0B\u0E47\u0E19\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27\u0E44\u0E21\u0E48\u0E01\u0E23\u0E30\u0E17\u0E1A"), React.createElement("button", {
+    onClick: () => {
+      mine.clear();
+      setAskDel(false);
+    },
+    style: {
+      padding: "11px 15px",
+      borderRadius: 11,
+      border: "none",
+      background: "#EF4444",
+      color: "#fff",
+      fontFamily: "inherit",
+      fontSize: 13.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E25\u0E1A\u0E40\u0E25\u0E22"), React.createElement("button", {
+    onClick: () => setAskDel(false),
+    style: {
+      padding: "11px 15px",
+      borderRadius: 11,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-2)",
+      fontFamily: "inherit",
+      fontSize: 13.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01")))))), pad && React.createElement(DrSignPad, {
+    title: "\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19",
+    hint: "\u0E40\u0E0B\u0E47\u0E19\u0E43\u0E2B\u0E49\u0E40\u0E2B\u0E21\u0E37\u0E2D\u0E19\u0E17\u0E35\u0E48\u0E40\u0E0B\u0E47\u0E19\u0E43\u0E19\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E08\u0E23\u0E34\u0E07 \u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E30\u0E08\u0E33\u0E44\u0E27\u0E49\u0E43\u0E2B\u0E49",
+    onClose: () => setPad(false),
+    onSave: img => {
+      mine.save(img);
+      setPad(false);
+    }
+  }));
+}
 function DailyReportModal({
   job,
   role,
@@ -975,7 +1286,9 @@ function DailyReportModal({
   const [form, setForm] = React.useState(null);
   const [paper, setPaper] = React.useState(false);
   const sigs = window.useDailySigns(job ? job.id : null, date);
+  const mine = window.useDrMySign((currentUser || {}).id);
   const [pad, setPad] = React.useState(null);
+  const [remember, setRemember] = React.useState(true);
   const timer = React.useRef(null);
   const saved = store.byDate[date] || null;
   React.useEffect(() => {
@@ -1022,18 +1335,21 @@ function DailyReportModal({
       appName: (currentUser || {}).name || ""
     }));
   };
-  const send = () => sigs.signs.by && sigs.signs.by.img ? doSend() : setPad({
-    slot: "by",
-    title: "ลายเซ็นผู้บันทึก",
-    hint: "เซ็นแล้วระบบจะส่งใบนี้ให้หัวหน้าอนุมัติทันที",
-    then: doSend
-  });
-  const approve = () => sigs.signs.app && sigs.signs.app.img ? doApprove() : setPad({
-    slot: "app",
-    title: "ลายเซ็นผู้อนุมัติ",
-    hint: "เซ็นแล้วระบบจะอนุมัติและล็อกใบนี้ทันที",
-    then: doApprove
-  });
+  const needSign = (slot, title, hint, then) => {
+    if (sigs.signs[slot] && sigs.signs[slot].img) return then();
+    if (mine.sign && mine.sign.img) {
+      sigs.sign(slot, mine.sign.img, currentUser);
+      return then();
+    }
+    setPad({
+      slot: slot,
+      title: title,
+      hint: hint,
+      then: then
+    });
+  };
+  const send = () => needSign("by", "ลายเซ็นผู้บันทึก", "เซ็นแล้วระบบจะส่งใบนี้ให้หัวหน้าอนุมัติทันที", doSend);
+  const approve = () => needSign("app", "ลายเซ็นผู้อนุมัติ", "เซ็นแล้วระบบจะอนุมัติและล็อกใบนี้ทันที", doApprove);
   const reopen = () => {
     sigs.clear("app");
     store.patch(date, {
@@ -1695,6 +2011,8 @@ function DailyReportModal({
     sub: form.byName || (currentUser || {}).name || "-",
     sig: sigs.signs.by,
     canSign: !locked,
+    saved: mine.sign,
+    onUseSaved: () => sigs.sign("by", mine.sign.img, currentUser),
     onSign: () => setPad({
       slot: "by",
       title: "ลายเซ็นผู้บันทึก"
@@ -1705,6 +2023,8 @@ function DailyReportModal({
     sub: form.appName || (canApprove ? (currentUser || {}).name || "-" : "รอหัวหน้าเซ็น"),
     sig: sigs.signs.app,
     canSign: canApprove && form.status !== "approved",
+    saved: mine.sign,
+    onUseSaved: () => sigs.sign("app", mine.sign.img, currentUser),
     onSign: () => setPad({
       slot: "app",
       title: "ลายเซ็นผู้อนุมัติ"
@@ -1821,8 +2141,12 @@ function DailyReportModal({
     title: pad.title,
     hint: pad.hint,
     onClose: () => setPad(null),
-    onSave: img => {
+    saved: mine.sign,
+    remember: remember,
+    onRemember: setRemember,
+    onSave: (img, drawn) => {
       sigs.sign(pad.slot, img, currentUser);
+      if (drawn && remember) mine.save(img);
       const then = pad.then;
       setPad(null);
       if (then) then();
@@ -2469,13 +2793,13 @@ function DailyPaper({
       fontSize: 11,
       color: "#4A5A51"
     }
-  }, "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48: ", s.g && s.g.at || s.d ? window.drDateTH(String(s.g && s.g.at || s.d).slice(0, 10)) : "-"), s.g && s.g.img && React.createElement("div", {
+  }, "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48: ", window.drDateTH(s.g ? window.drSignDay(s.g) : String(s.d || "").slice(0, 10))), s.g && s.g.img && React.createElement("div", {
     style: {
       fontSize: 8.5,
       color: "#8A9A91",
       marginTop: 3
     }
-  }, "\u0E25\u0E07\u0E25\u0E32\u0E22\u0E21\u0E37\u0E2D\u0E0A\u0E37\u0E48\u0E2D\u0E2D\u0E34\u0E40\u0E25\u0E47\u0E01\u0E17\u0E23\u0E2D\u0E19\u0E34\u0E01\u0E2A\u0E4C\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A ", s.g.at ? String(s.g.at).slice(11, 16) + " น." : "")))), React.createElement("div", {
+  }, "\u0E25\u0E07\u0E25\u0E32\u0E22\u0E21\u0E37\u0E2D\u0E0A\u0E37\u0E48\u0E2D\u0E2D\u0E34\u0E40\u0E25\u0E47\u0E01\u0E17\u0E23\u0E2D\u0E19\u0E34\u0E01\u0E2A\u0E4C\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A ", window.drSignTime(s.g) ? window.drSignTime(s.g) + " น." : "")))), React.createElement("div", {
     style: {
       marginTop: 14,
       fontSize: 9.5,
@@ -2790,5 +3114,6 @@ Object.assign(window, {
   DailyReportModal,
   DailyPaper,
   DailyView,
-  DailyJobButton
+  DailyJobButton,
+  DrMySignModal
 });

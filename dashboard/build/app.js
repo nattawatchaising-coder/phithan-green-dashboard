@@ -238,6 +238,7 @@ function App() {
   const [techMgr, setTechMgr] = React.useState(false);
   const [brandMgr, setBrandMgr] = React.useState(false);
   const [userMgr, setUserMgr] = React.useState(false);
+  const [mySign, setMySign] = React.useState(false);
   const [notifOpen, setNotifOpen] = React.useState(false);
   const [briefingOpen, setBriefingOpen] = React.useState(false);
   const [mapOpen, setMapOpen] = React.useState(false);
@@ -865,6 +866,10 @@ function App() {
     onManageUsers: () => {
       setUserMgr(true);
       closeSidebar();
+    },
+    onMySign: () => {
+      setMySign(true);
+      closeSidebar();
     }
   }), React.createElement("main", {
     className: "app-main"
@@ -1196,6 +1201,9 @@ function App() {
     authStore: auth,
     roleCfg: roleCfg,
     onClose: () => setUserMgr(false)
+  }), mySign && React.createElement(DrMySignModal, {
+    user: auth.current,
+    onClose: () => setMySign(false)
   }), briefingOpen && React.createElement(DailyBriefing, {
     lateAlerts: lateAlerts,
     todayTasks: todayTasks,
@@ -1287,7 +1295,8 @@ function Sidebar({
   currentUser,
   onLogout,
   canManageUsers,
-  onManageUsers
+  onManageUsers,
+  onMySign
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const icons = !isMobile && collapsed;
@@ -1392,7 +1401,18 @@ function Sidebar({
     name: "users",
     size: 19,
     color: "var(--text-2)"
-  }), !icons && React.createElement("span", null, "\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19")), currentUser && React.createElement("div", {
+  }), !icons && React.createElement("span", null, "\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19")), currentUser && onMySign && React.createElement("button", {
+    onClick: onMySign,
+    className: "nav-item",
+    title: "\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19",
+    style: {
+      width: "100%"
+    }
+  }, React.createElement(Icon, {
+    name: "pen",
+    size: 18,
+    color: "var(--text-2)"
+  }), !icons && React.createElement("span", null, "\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19")), currentUser && React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",

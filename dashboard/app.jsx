@@ -165,6 +165,7 @@ function App() {
   const [techMgr, setTechMgr] = React.useState(false);
   const [brandMgr, setBrandMgr] = React.useState(false);
   const [userMgr, setUserMgr] = React.useState(false);
+  const [mySign, setMySign] = React.useState(false); // ตั้งค่า → ลายเซ็นของฉัน
   const [notifOpen, setNotifOpen] = React.useState(false);
   const [briefingOpen, setBriefingOpen] = React.useState(false); // สรุปงานวันนี้ (เปิดครั้งแรกของวัน)
   const [mapOpen, setMapOpen] = React.useState(false); // แผนที่งาน (popup จากปุ่มใน header)
@@ -614,7 +615,8 @@ function App() {
         open={sidebarOpen} onClose={closeSidebar} aurora={aurora} onToggleAurora={toggleAurora}
         collapsed={collapsed} onToggleCollapsed={toggleCollapsed}
         currentUser={auth.current} onLogout={auth.logout}
-        canManageUsers={can(role, "manageUsers")} onManageUsers={() => { setUserMgr(true); closeSidebar(); }} />
+        canManageUsers={can(role, "manageUsers")} onManageUsers={() => { setUserMgr(true); closeSidebar(); }}
+        onMySign={() => { setMySign(true); closeSidebar(); }} />
       <main className="app-main">
         {view === "stock" ? (
           <StockView stock={stock} onMenuOpen={() => setSidebarOpen(true)} currentUser={auth.current} jobs={jobs}
@@ -783,6 +785,7 @@ function App() {
       {techMgr && <TechManager store={techStore} onClose={() => setTechMgr(false)} />}
       {brandMgr && <BrandManager store={brandStore} onClose={() => setBrandMgr(false)} />}
       {userMgr && can(role, "manageUsers") && <UserManager authStore={auth} roleCfg={roleCfg} onClose={() => setUserMgr(false)} />}
+      {mySign && <DrMySignModal user={auth.current} onClose={() => setMySign(false)} />}
       {briefingOpen && <DailyBriefing lateAlerts={lateAlerts} todayTasks={todayTasks}
         onOpen={(jobId) => { localStorage.setItem("sf_briefing_seen", window.SF.TODAY); setBriefingOpen(false); setView(listView()); setSelected(jobId); }}
         onClose={() => { localStorage.setItem("sf_briefing_seen", window.SF.TODAY); setBriefingOpen(false); }} />}
@@ -810,7 +813,7 @@ function App() {
   );
 }
 
-function Sidebar({ view, onNav, role, techId, jobs, stock, t, open, onClose, aurora, onToggleAurora, collapsed, onToggleCollapsed, currentUser, onLogout, canManageUsers, onManageUsers }) {
+function Sidebar({ view, onNav, role, techId, jobs, stock, t, open, onClose, aurora, onToggleAurora, collapsed, onToggleCollapsed, currentUser, onLogout, canManageUsers, onManageUsers, onMySign }) {
   // Read media query synchronously every render — avoids stale state when
   // the preview or device loads at one size then displays at another.
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -875,6 +878,13 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, open, onClose, aur
           <button onClick={onManageUsers} className="nav-item" title="จัดการผู้ใช้งาน" style={{ width: "100%" }}>
             <Icon name="users" size={19} color="var(--text-2)" />
             {!icons && <span>จัดการผู้ใช้งาน</span>}
+          </button>
+        )}
+        {/* ลายเซ็นของฉัน — ทุกตำแหน่งตั้งเองได้ ไม่ใช่ของแอดมิน (ลายเซ็นเป็นของส่วนตัว) */}
+        {currentUser && onMySign && (
+          <button onClick={onMySign} className="nav-item" title="ลายเซ็นของฉัน" style={{ width: "100%" }}>
+            <Icon name="pen" size={18} color="var(--text-2)" />
+            {!icons && <span>ลายเซ็นของฉัน</span>}
           </button>
         )}
         {currentUser && (

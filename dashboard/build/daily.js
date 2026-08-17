@@ -18,6 +18,16 @@ function drDateTH(iso, withDay) {
   const body = d.getDate() + " " + DR_MON_TH[d.getMonth()] + " " + (d.getFullYear() + 543);
   return withDay ? DR_DAY_TH[d.getDay()] + " " + body : body;
 }
+function drStamp() {
+  const d = new Date();
+  return {
+    at: d.toISOString(),
+    day: drISO(d),
+    time: drPad2(d.getHours()) + ":" + drPad2(d.getMinutes())
+  };
+}
+const drSignDay = g => g ? g.day || String(g.at || "").slice(0, 10) : "";
+const drSignTime = g => g ? g.time || String(g.at || "").slice(11, 16) : "";
 const drShort = iso => {
   if (!iso) return "-";
   const d = new Date(String(iso).slice(0, 10) + "T00:00:00");
@@ -378,12 +388,11 @@ function useDailySigns(jobId, date) {
   }, [jobId, date]);
   const sign = React.useCallback((slot, img, user) => {
     if (!jobId || !date || !_DRFB() || !img) return;
-    _drRef("dailySigns/" + jobId + "/" + date + "/" + slot).set({
+    _drRef("dailySigns/" + jobId + "/" + date + "/" + slot).set(Object.assign({
       img,
-      at: new Date().toISOString(),
       by: (user || {}).id || null,
       name: (user || {}).name || ""
-    });
+    }, drStamp()));
   }, [jobId, date]);
   const clear = React.useCallback(slot => {
     if (!jobId || !date || !_DRFB()) return;
@@ -392,6 +401,40 @@ function useDailySigns(jobId, date) {
   return {
     signs,
     sign,
+    clear
+  };
+}
+function useDrMySign(userId) {
+  const [sign, setSign] = React.useState(null);
+  const [loading, setLoading] = React.useState(!!userId);
+  React.useEffect(() => {
+    if (!userId || !_DRFB()) {
+      setSign(null);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const ref = _drRef("userSigns/" + userId);
+    const h = ref.on("value", s => {
+      setSign(s.val() || null);
+      setLoading(false);
+    }, () => setLoading(false));
+    return () => ref.off("value", h);
+  }, [userId]);
+  const save = React.useCallback(img => {
+    if (!userId || !_DRFB() || !img) return;
+    _drRef("userSigns/" + userId).set(Object.assign({
+      img
+    }, drStamp()));
+  }, [userId]);
+  const clear = React.useCallback(() => {
+    if (!userId || !_DRFB()) return;
+    _drRef("userSigns/" + userId).remove();
+  }, [userId]);
+  return {
+    sign,
+    loading,
+    save,
     clear
   };
 }
@@ -439,6 +482,7 @@ Object.assign(window, {
   useDailyReports,
   useDailyPhotos,
   useDailySigns,
+  useDrMySign,
   useDailyAll,
   drNorm,
   drToday,
@@ -447,6 +491,9 @@ Object.assign(window, {
   drDateTH,
   drShort,
   drPad2,
+  drStamp,
+  drSignDay,
+  drSignTime,
   DR_WEATHER,
   drWeatherOf,
   DR_STATUS,

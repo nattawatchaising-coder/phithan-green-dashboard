@@ -39,6 +39,17 @@ function drDateTH(iso, withDay) {
   const body = d.getDate() + " " + DR_MON_TH[d.getMonth()] + " " + (d.getFullYear() + 543);
   return withDay ? DR_DAY_TH[d.getDay()] + " " + body : body;
 }
+/* ตราเวลาแบบ "เวลาบ้านเรา" — toISOString เป็น UTC ซึ่งช้ากว่าไทย 7 ชม.
+   เซ็นตอนเช้ามืดจะกลายเป็นวันก่อนหน้า และเวลาที่โชว์ในใบพิมพ์จะเพี้ยนไป 7 ชม. */
+function drStamp() {
+  const d = new Date();
+  return { at: d.toISOString(), day: drISO(d), time: drPad2(d.getHours()) + ":" + drPad2(d.getMinutes()) };
+}
+
+/* อ่านวัน/เวลาของลายเซ็น — ใบที่เซ็นไว้ก่อนมี day/time ยังต้องอ่านได้ จึงถอยไปใช้ at */
+const drSignDay = (g) => (g ? g.day || String(g.at || "").slice(0, 10) : "");
+const drSignTime = (g) => (g ? g.time || String(g.at || "").slice(11, 16) : "");
+
 const drShort = (iso) => {
   if (!iso) return "-";
   const d = new Date(String(iso).slice(0, 10) + "T00:00:00");
@@ -323,10 +334,8 @@ function useDailySigns(jobId, date) {
 
   const sign = React.useCallback((slot, img, user) => {
     if (!jobId || !date || !_DRFB() || !img) return;
-    _drRef("dailySigns/" + jobId + "/" + date + "/" + slot).set({
-      img, at: new Date().toISOString(),
-      by: (user || {}).id || null, name: (user || {}).name || "",
-    });
+    _drRef("dailySigns/" + jobId + "/" + date + "/" + slot).set(Object.assign({ img,
+      by: (user || {}).id || null, name: (user || {}).name || "" }, drStamp()));
   }, [jobId, date]);
 
   const clear = React.useCallback((slot) => {
@@ -335,6 +344,34 @@ function useDailySigns(jobId, date) {
   }, [jobId, date]);
 
   return { signs, sign, clear };
+}
+
+/* ── ลายเซ็นประจำตัวของผู้ใช้ ──
+   เซ็นเก็บไว้ครั้งเดียวในหน้าตั้งค่า แล้วใบต่อ ๆ ไปกดส่ง/อนุมัติได้เลยไม่ต้องเซ็นซ้ำทุกวัน
+   เก็บแยกที่ userSigns/{userId} ไม่ปนกับ users/ เพราะรายชื่อผู้ใช้ถูกโหลดทั้งก้อนตอนเข้าระบบ
+   ถ้าเอาภาพไปแปะในนั้น ทุกคนจะต้องโหลดลายเซ็นของทุกคนตั้งแต่หน้าล็อกอิน */
+function useDrMySign(userId) {
+  const [sign, setSign] = React.useState(null);
+  const [loading, setLoading] = React.useState(!!userId);
+  React.useEffect(() => {
+    if (!userId || !_DRFB()) { setSign(null); setLoading(false); return; }
+    setLoading(true);
+    const ref = _drRef("userSigns/" + userId);
+    const h = ref.on("value", (s) => { setSign(s.val() || null); setLoading(false); }, () => setLoading(false));
+    return () => ref.off("value", h);
+  }, [userId]);
+
+  const save = React.useCallback((img) => {
+    if (!userId || !_DRFB() || !img) return;
+    _drRef("userSigns/" + userId).set(Object.assign({ img }, drStamp()));
+  }, [userId]);
+
+  const clear = React.useCallback(() => {
+    if (!userId || !_DRFB()) return;
+    _drRef("userSigns/" + userId).remove();
+  }, [userId]);
+
+  return { sign, loading, save, clear };
 }
 
 /* ── รายงานของ "ทุกงาน" สำหรับหน้ารวมของหัวหน้า ──
@@ -371,8 +408,8 @@ function drDayState(byDate, date) {
 }
 
 Object.assign(window, {
-  useDailyReports, useDailyPhotos, useDailySigns, useDailyAll, drNorm,
-  drToday, drISO, drAddDays, drDateTH, drShort, drPad2,
+  useDailyReports, useDailyPhotos, useDailySigns, useDrMySign, useDailyAll, drNorm,
+  drToday, drISO, drAddDays, drDateTH, drShort, drPad2, drStamp, drSignDay, drSignTime,
   DR_WEATHER, drWeatherOf, DR_STATUS, drStatusOf, DR_MANPOWER, DR_JSA, DR_CLEAN,
   drWhaSteps, drHomeSteps, drIsBoardSteps, drRollup, drWeightSum, drModeOf, drDocNo, drBlank,
   drCanApprove, drCanEdit, drPrevOf, drDayState,
