@@ -1457,6 +1457,13 @@ function DailyPaper({
   const wPm = window.drWeatherOf(rec.weatherPm);
   const jsa = (window.DR_JSA || []).find(j => j.key === rec.jsa);
   const pct = +rec.pct || 0;
+  const steps = React.useMemo(() => {
+    const all = rec.steps || [];
+    if (isProject) return all;
+    const now = all.filter(r => r.state === "now");
+    if (now.length) return now;
+    return all.filter(r => r.actStart || r.actEnd || r.planStart || r.planEnd);
+  }, [rec.steps, isProject]);
   const doPrint = () => {
     const old = document.title;
     document.title = "รายงานประจำวัน " + (job.code || "") + " " + date;
@@ -1748,8 +1755,8 @@ function DailyPaper({
     style: {
       color: "#15211A"
     }
-  }, wPm ? wPm.th : "-"))), !!(rec.steps || []).length && React.createElement(DrPBlock, {
-    title: "\u0E04\u0E27\u0E32\u0E21\u0E04\u0E37\u0E1A\u0E2B\u0E19\u0E49\u0E32\u0E15\u0E32\u0E21\u0E02\u0E31\u0E49\u0E19\u0E07\u0E32\u0E19"
+  }, wPm ? wPm.th : "-"))), !!steps.length && React.createElement(DrPBlock, {
+    title: isProject ? "ความคืบหน้าตามขั้นงาน" : "ขั้นงานที่กำลังทำ"
   }, React.createElement("table", {
     style: {
       width: "100%",
@@ -1774,7 +1781,7 @@ function DailyPaper({
       textAlign: "right",
       width: 44
     })
-  }, "%"))), React.createElement("tbody", null, (rec.steps || []).map((r, i) => React.createElement("tr", {
+  }, "%"))), React.createElement("tbody", null, steps.map((r, i) => React.createElement("tr", {
     key: i,
     style: {
       background: r.head ? "#F3F7F4" : "transparent"

@@ -609,6 +609,18 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
   const jsa = (window.DR_JSA || []).find((j) => j.key === rec.jsa);
   const pct = +rec.pct || 0;
 
+  /* งานบ้าน — ในใบพิมพ์เอาเฉพาะขั้นที่งานเดินอยู่ตอนนี้
+     ขั้นที่ยังไม่ถึงเป็นเส้นประทั้งแถว ใส่ไปก็ไม่ได้บอกอะไร
+     (งานโครงการยังพิมพ์ครบทุกหัวข้อ เพราะตารางนั้นคือตัวรายงานเอง) */
+  const steps = React.useMemo(() => {
+    const all = rec.steps || [];
+    if (isProject) return all;
+    const now = all.filter((r) => r.state === "now");
+    if (now.length) return now;
+    /* ไม่รู้ว่าอยู่ขั้นไหน (งานยังไม่เริ่ม/ข้อมูลขั้นหาย) ก็เอาเฉพาะแถวที่มีวันจริง ๆ */
+    return all.filter((r) => r.actStart || r.actEnd || r.planStart || r.planEnd);
+  }, [rec.steps, isProject]);
+
   const doPrint = () => {
     const old = document.title;
     document.title = "รายงานประจำวัน " + (job.code || "") + " " + date;
@@ -701,8 +713,8 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
         </div>
 
         {/* ตารางขั้นงาน */}
-        {!!(rec.steps || []).length && (
-          <DrPBlock title="ความคืบหน้าตามขั้นงาน">
+        {!!steps.length && (
+          <DrPBlock title={isProject ? "ความคืบหน้าตามขั้นงาน" : "ขั้นงานที่กำลังทำ"}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
@@ -716,7 +728,7 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
                 </tr>
               </thead>
               <tbody>
-                {(rec.steps || []).map((r, i) => (
+                {steps.map((r, i) => (
                   <tr key={i} style={{ background: r.head ? "#F3F7F4" : "transparent" }}>
                     <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontWeight: r.head ? 800 : 400, color: r.head ? "#2C6B48" : "#7A8A81" })}>{r.no}</td>
                     <td style={Object.assign({}, td, { fontWeight: r.head ? 700 : 400 })}>{r.th}</td>
