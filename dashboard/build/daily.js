@@ -152,12 +152,37 @@ function drWhaSteps() {
   });
   return out;
 }
-const DR_HOME_WORK = ["เตรียมพื้นที่ & ความปลอดภัย", "ติดตั้งโครงสร้าง / รางแผง", "ยกแผงขึ้นหลังคา & ยึดแผง", "เดินสาย DC & ท่อร้อยสาย", "ติดตั้งอินเวอร์เตอร์", "เดินสาย AC & ตู้ควบคุม", "ระบบกราวด์ & กันฟ้าผ่า", "ทดสอบระบบ & เก็บงานส่งมอบ"];
+const DR_HOME_WORK = [{
+  th: "เตรียมพื้นที่ & ความปลอดภัย",
+  w: 5
+}, {
+  th: "ติดตั้งโครงสร้าง / รางแผง",
+  w: 20
+}, {
+  th: "ยกแผงขึ้นหลังคา & ยึดแผง",
+  w: 20
+}, {
+  th: "เดินสาย DC & ท่อร้อยสาย",
+  w: 15
+}, {
+  th: "ติดตั้งอินเวอร์เตอร์",
+  w: 10
+}, {
+  th: "เดินสาย AC & ตู้ควบคุม",
+  w: 15
+}, {
+  th: "ระบบกราวด์ & กันฟ้าผ่า",
+  w: 5
+}, {
+  th: "ทดสอบระบบ & เก็บงานส่งมอบ",
+  w: 10
+}];
 function drHomeSteps() {
-  return DR_HOME_WORK.map((th, i) => ({
+  return DR_HOME_WORK.map((x, i) => ({
     no: String(i + 1),
-    th,
+    th: x.th,
     head: true,
+    w: x.w,
     planStart: "",
     planEnd: "",
     actStart: "",
@@ -165,6 +190,21 @@ function drHomeSteps() {
     pct: 0
   }));
 }
+function drRollup(steps) {
+  const list = (steps || []).filter(r => r && !(r.head === false));
+  if (!list.length) return 0;
+  const w = r => r.w == null || r.w === "" ? null : +r.w || 0;
+  const hasW = list.some(r => w(r) != null);
+  let sum = 0,
+    tot = 0;
+  list.forEach(r => {
+    const ww = hasW ? w(r) || 0 : 1;
+    tot += ww;
+    sum += ww * Math.max(0, Math.min(100, +r.pct || 0));
+  });
+  return tot > 0 ? Math.round(sum / tot) : 0;
+}
+const drWeightSum = steps => (steps || []).reduce((a, r) => a + (+r.w || 0), 0);
 function drIsBoardSteps(steps) {
   const list = steps || [];
   const stages = (window.SF || {}).STAGES || [];
@@ -382,6 +422,8 @@ Object.assign(window, {
   drWhaSteps,
   drHomeSteps,
   drIsBoardSteps,
+  drRollup,
+  drWeightSum,
   drModeOf,
   drDocNo,
   drBlank,

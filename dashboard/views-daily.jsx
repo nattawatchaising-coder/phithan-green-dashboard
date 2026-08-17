@@ -133,7 +133,7 @@ function DrRows({ cols, rows, onChange, disabled, addLabel }) {
 /* ── ตารางขั้นงาน ──
    งานบ้าน: ระบบเติมให้เอง แก้ได้แค่ % (วันจริงมาจากประวัติการเลื่อนขั้น ไม่ให้พิมพ์ทับ)
    งานโครงการ: กรอก/เพิ่ม/ลบหัวข้อได้เอง เพราะแผนงานแต่ละโครงการไม่เหมือนกัน */
-function DrStepTable({ steps, onChange, disabled, editable, onReset, plan }) {
+function DrStepTable({ steps, onChange, disabled, editable, onReset, plan, dates, weight }) {
   const list = steps || [];
   const set = (i, k, v) => onChange(list.map((r, x) => (x === i ? Object.assign({}, r, { [k]: v }) : r)));
   const cell = { padding: "5px 6px", borderBottom: "1px solid var(--border)", fontSize: 12 };
@@ -148,10 +148,12 @@ function DrStepTable({ steps, onChange, disabled, editable, onReset, plan }) {
   return (
     <div>
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", minWidth: plan ? 640 : 470, borderCollapse: "collapse" }}>
+        <table style={{ width: "100%", minWidth: plan ? 640 : 400, borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              {["ขั้น", "รายละเอียดงาน"].concat(plan ? ["แผน เริ่ม", "แผน จบ"] : []).concat(["จริง เริ่ม", "จริง จบ", "%"]).map((h, i, a) => (
+              {["ขั้น", "รายละเอียดงาน"].concat(plan ? ["แผน เริ่ม", "แผน จบ"] : [])
+                .concat(dates ? ["จริง เริ่ม", "จริง จบ"] : [])
+                .concat(weight ? ["น้ำหนักงาน %"] : []).concat(["ทำไปแล้ว %"]).map((h, i, a) => (
                 <th key={i} style={{ textAlign: i === a.length - 1 ? "right" : "left", padding: "5px 6px", fontSize: 11,
                   color: "var(--text-3)", fontWeight: 700, borderBottom: "1px solid var(--border-strong)", whiteSpace: "nowrap" }}>{h}</th>
               ))}
@@ -173,8 +175,17 @@ function DrStepTable({ steps, onChange, disabled, editable, onReset, plan }) {
                 </td>
                 {plan && <td style={cell}>{dateBox(i, "planStart", r)}</td>}
                 {plan && <td style={cell}>{dateBox(i, "planEnd", r)}</td>}
-                <td style={cell}>{dateBox(i, "actStart", r)}</td>
-                <td style={cell}>{dateBox(i, "actEnd", r)}</td>
+                {dates && <td style={cell}>{dateBox(i, "actStart", r)}</td>}
+                {dates && <td style={cell}>{dateBox(i, "actEnd", r)}</td>}
+                {/* น้ำหนักงาน — หัวข้อไหนสำคัญกว่ากันในภาพรวมของงานนี้ ใช้ถ่วงเป็น % รวม */}
+                {weight && (
+                  <td style={Object.assign({}, cell, { textAlign: "right" })}>
+                    <input value={r.w === 0 || r.w ? String(r.w) : ""} disabled={disabled || !editable} inputMode="numeric"
+                      onChange={(e) => set(i, "w", e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
+                      style={Object.assign({}, DR_INPUT, { padding: "6px 7px", fontSize: 12, fontFamily: "var(--mono)",
+                        textAlign: "right", width: 56, opacity: disabled ? 0.65 : 1 })} />
+                  </td>
+                )}
                 <td style={Object.assign({}, cell, { textAlign: "right" })}>
                   <input value={r.pct === 0 || r.pct ? String(r.pct) : ""} disabled={disabled} inputMode="numeric"
                     onChange={(e) => set(i, "pct", e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
@@ -195,9 +206,20 @@ function DrStepTable({ steps, onChange, disabled, editable, onReset, plan }) {
           </tbody>
         </table>
       </div>
+      {weight && (() => {
+        /* บอกให้เห็นว่าน้ำหนักรวมครบ 100 หรือยัง — ไม่ครบก็ยังคิด % ได้ (หารด้วยยอดที่กรอกจริง)
+           แต่ต้องรู้ตัว ไม่งั้นงานเสร็จหมดแล้วตัวเลขรวมไม่ถึง 100 จะงงกันเปล่า ๆ */
+        const sum = window.drWeightSum(list);
+        const ok = sum === 100;
+        return (
+          <div style={{ marginTop: 7, fontSize: 11.5, fontWeight: 700, color: ok ? "var(--text-3)" : "#B45309" }}>
+            น้ำหนักงานรวม {sum}%{ok ? "" : " · ยังไม่ครบ 100% — ระบบจะเทียบสัดส่วนให้จากยอดนี้"}
+          </div>
+        );
+      })()}
       {editable && !disabled && (
         <div style={{ display: "flex", gap: 8, marginTop: 9, flexWrap: "wrap" }}>
-          <button type="button" onClick={() => onChange(list.concat([{ no: String(list.length + 1), th: "", head: true, pct: 0 }]))}
+          <button type="button" onClick={() => onChange(list.concat([{ no: String(list.length + 1), th: "", head: true, pct: 0, w: 0 }]))}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 9,
               border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
               fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>
@@ -284,6 +306,7 @@ function DailyReportModal({ job, role, currentUser, onClose }) {
     const blank = window.drBlank(job, date, currentUser, window.drPrevOf(store.byDate, date));
     const rec = saved ? Object.assign(blank, saved) : blank;
     if (rec.mode !== "project" && window.drIsBoardSteps(rec.steps)) rec.steps = window.drHomeSteps();
+    if (rec.mode !== "project") rec.pct = window.drRollup(rec.steps);
     setForm(rec);
   }, [job ? job.id : null, date, saved ? saved.updatedAt : null]);
 
@@ -298,6 +321,8 @@ function DailyReportModal({ job, role, currentUser, onClose }) {
     if (locked) return;
     setForm((f) => {
       const next = Object.assign({}, f, fields);
+      /* งานบ้าน — % รวมคิดจากน้ำหนักงานเสมอ แก้ตารางแล้วตัวเลขรวมต้องขยับตาม ไม่ค้างค่าเก่า */
+      if (next.mode !== "project") next.pct = window.drRollup(next.steps);
       clearTimeout(timer.current);
       timer.current = setTimeout(() => store.save(date, next), 600);
       return next;
@@ -408,10 +433,18 @@ function DailyReportModal({ job, role, currentUser, onClose }) {
                 onChange={(v) => edit({ work: v })} />
               <div style={{ display: "flex", alignItems: "center", gap: 11, marginTop: 12, flexWrap: "wrap" }}>
                 <DrLabel>ความคืบหน้ารวมของงาน</DrLabel>
-                <input value={String(form.pct == null ? "" : form.pct)} disabled={locked} inputMode="numeric"
-                  onChange={(e) => edit({ pct: e.target.value.replace(/[^0-9]/g, "").slice(0, 3) })}
-                  style={Object.assign({}, DR_INPUT, { width: 78, padding: "8px 10px", fontFamily: "var(--mono)", textAlign: "right", marginBottom: 6 })} />
+                {/* งานบ้านไม่ให้พิมพ์ตัวเลขรวมเอง — คิดจากน้ำหนักของแต่ละเนื้องานในตารางข้างล่าง
+                    ช่างจะได้ไม่ต้องเดาว่ารวมแล้วกี่ % และตัวเลขจะตรงกับงานที่ทำจริง */}
+                {isProject ? (
+                  <input value={String(form.pct == null ? "" : form.pct)} disabled={locked} inputMode="numeric"
+                    onChange={(e) => edit({ pct: e.target.value.replace(/[^0-9]/g, "").slice(0, 3) })}
+                    style={Object.assign({}, DR_INPUT, { width: 78, padding: "8px 10px", fontFamily: "var(--mono)", textAlign: "right", marginBottom: 6 })} />
+                ) : (
+                  <span style={{ fontFamily: "var(--display)", fontSize: 26, fontWeight: 800, color: "var(--primary-dark)",
+                    lineHeight: 1, marginBottom: 6 }}>{+form.pct || 0}</span>
+                )}
                 <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-2)", marginBottom: 6 }}>%</span>
+                {!isProject && <span style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 6 }}>คิดจากน้ำหนักงานในตารางข้างล่าง</span>}
                 {prev && prev.pct != null && (
                   <span style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 6 }}>
                     เมื่อวาน {prev.pct}% → <b style={{ color: (+form.pct || 0) >= (+prev.pct || 0) ? "#10B981" : "#EF4444" }}>
@@ -420,10 +453,11 @@ function DailyReportModal({ job, role, currentUser, onClose }) {
                 )}
               </div>
               <div style={{ marginTop: 6 }}>
-                <DrLabel hint="เพิ่ม/แก้/ลบหัวข้อได้ตามหน้างานจริง">{isProject ? "ตารางขั้นงาน" : "เนื้องานติดตั้ง"}</DrLabel>
-                {/* งานบ้านไม่มีแผนรายหัวข้อ มีแต่ช่วงวันติดตั้งช่วงเดียว ตัดสองคอลัมน์แผนทิ้ง
-                    เหลือเนื้องาน · วันจริง · % กรอกบนมือถือหน้างานได้จริง */}
-                <DrStepTable steps={form.steps} disabled={locked} editable plan={isProject}
+                <DrLabel hint={isProject ? "เพิ่ม/แก้/ลบหัวข้อได้ตามแผนงานของโครงการนี้" : "น้ำหนักงาน = หัวข้อนี้คิดเป็นกี่ % ของงานทั้งหลัง"}>{isProject ? "ตารางขั้นงาน" : "เนื้องานติดตั้ง"}</DrLabel>
+                {/* งานบ้านไม่มีวันแผน/วันจริงรายหัวข้อ — มีแค่ช่วงวันติดตั้งช่วงเดียวของทั้งงาน
+                    เหลือ เนื้องาน · น้ำหนักงาน · ทำไปแล้ว กี่ % กรอกบนมือถือหน้างานได้จริง */}
+                <DrStepTable steps={form.steps} disabled={locked} editable
+                  plan={isProject} dates={isProject} weight={!isProject}
                   onReset={isProject ? window.drWhaSteps : window.drHomeSteps}
                   onChange={(v) => edit({ steps: v })} />
               </div>
@@ -726,9 +760,10 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
                   <th style={th}>รายละเอียดงาน</th>
                   {isProject && <th style={th}>แผน เริ่ม</th>}
                   {isProject && <th style={th}>แผน จบ</th>}
-                  <th style={th}>จริง เริ่ม</th>
-                  <th style={th}>จริง จบ</th>
-                  <th style={Object.assign({}, th, { textAlign: "right", width: 44 })}>%</th>
+                  {isProject && <th style={th}>จริง เริ่ม</th>}
+                  {isProject && <th style={th}>จริง จบ</th>}
+                  {!isProject && <th style={Object.assign({}, th, { textAlign: "right", width: 78 })}>น้ำหนักงาน</th>}
+                  <th style={Object.assign({}, th, { textAlign: "right", width: 66 })}>ทำไปแล้ว</th>
                 </tr>
               </thead>
               <tbody>
@@ -738,8 +773,9 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
                     <td style={Object.assign({}, td, { fontWeight: r.head ? 700 : 400 })}>{r.th}</td>
                     {isProject && <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.planStart ? window.drShort(r.planStart) : "—"}</td>}
                     {isProject && <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.planEnd ? window.drShort(r.planEnd) : "—"}</td>}
-                    <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.actStart ? window.drShort(r.actStart) : "—"}</td>
-                    <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.actEnd ? window.drShort(r.actEnd) : "—"}</td>
+                    {isProject && <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.actStart ? window.drShort(r.actStart) : "—"}</td>}
+                    {isProject && <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.actEnd ? window.drShort(r.actEnd) : "—"}</td>}
+                    {!isProject && <td style={Object.assign({}, td, { textAlign: "right", fontFamily: "var(--mono)", color: "#7A8A81" })}>{r.w ? r.w + "%" : "—"}</td>}
                     <td style={Object.assign({}, td, { textAlign: "right", fontFamily: "var(--mono)", fontWeight: 700 })}>{r.pct ? r.pct + "%" : "—"}</td>
                   </tr>
                 ))}

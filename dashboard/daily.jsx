@@ -121,21 +121,40 @@ function drWhaSteps() {
    ไม่ใช่สิ่งที่ช่างลงมือทำหน้างาน รายงานประจำวันต้องบอกว่าวันนี้ทำเนื้องานไหนไปกี่ %
    ชุดนี้เป็นค่าตั้งต้น แก้/เพิ่ม/ลบเองได้ เพราะบ้านแต่ละหลังไม่เหมือนกัน */
 const DR_HOME_WORK = [
-  "เตรียมพื้นที่ & ความปลอดภัย",
-  "ติดตั้งโครงสร้าง / รางแผง",
-  "ยกแผงขึ้นหลังคา & ยึดแผง",
-  "เดินสาย DC & ท่อร้อยสาย",
-  "ติดตั้งอินเวอร์เตอร์",
-  "เดินสาย AC & ตู้ควบคุม",
-  "ระบบกราวด์ & กันฟ้าผ่า",
-  "ทดสอบระบบ & เก็บงานส่งมอบ",
+  { th: "เตรียมพื้นที่ & ความปลอดภัย", w: 5 },
+  { th: "ติดตั้งโครงสร้าง / รางแผง", w: 20 },
+  { th: "ยกแผงขึ้นหลังคา & ยึดแผง", w: 20 },
+  { th: "เดินสาย DC & ท่อร้อยสาย", w: 15 },
+  { th: "ติดตั้งอินเวอร์เตอร์", w: 10 },
+  { th: "เดินสาย AC & ตู้ควบคุม", w: 15 },
+  { th: "ระบบกราวด์ & กันฟ้าผ่า", w: 5 },
+  { th: "ทดสอบระบบ & เก็บงานส่งมอบ", w: 10 },
 ];
 function drHomeSteps() {
-  return DR_HOME_WORK.map((th, i) => ({
-    no: String(i + 1), th, head: true,
+  return DR_HOME_WORK.map((x, i) => ({
+    no: String(i + 1), th: x.th, head: true, w: x.w,
     planStart: "", planEnd: "", actStart: "", actEnd: "", pct: 0,
   }));
 }
+
+/* ── ความคืบหน้ารวมของงานบ้าน ──
+   ไม่ให้พิมพ์ตัวเลขรวมเอง แต่ถ่วงน้ำหนักจากเนื้องานแต่ละหัวข้อ
+   ยกแผงเสร็จกับเก็บสายเสร็จไม่ได้มีค่าเท่ากัน ถ้าเฉลี่ยเท่ากันตัวเลขรวมจะหลอกตา
+   น้ำหนักรวมไม่ครบ 100 ก็ยังคิดได้ — หารด้วยน้ำหนักที่กรอกจริง ไม่ใช่ 100 ตายตัว */
+function drRollup(steps) {
+  const list = (steps || []).filter((r) => r && !(r.head === false));
+  if (!list.length) return 0;
+  const w = (r) => (r.w == null || r.w === "" ? null : +r.w || 0);
+  const hasW = list.some((r) => w(r) != null);
+  let sum = 0, tot = 0;
+  list.forEach((r) => {
+    const ww = hasW ? (w(r) || 0) : 1;          /* ไม่มีน้ำหนักเลย = ให้ทุกหัวข้อเท่ากัน */
+    tot += ww;
+    sum += ww * Math.max(0, Math.min(100, +r.pct || 0));
+  });
+  return tot > 0 ? Math.round(sum / tot) : 0;
+}
+const drWeightSum = (steps) => (steps || []).reduce((a, r) => a + (+r.w || 0), 0);
 
 /* ใบที่เขียนไว้ก่อนเปลี่ยนหัวข้อ ยังถือชุด 5 ขั้นของบอร์ดอยู่
    ถ้ายังไม่ได้กรอกอะไรเลยก็สลับเป็นชุดเนื้องานให้ ไม่ต้องมานั่งกดคืนชุดมาตรฐานเอง
@@ -322,6 +341,6 @@ Object.assign(window, {
   useDailyReports, useDailyPhotos, useDailyAll, drNorm,
   drToday, drISO, drAddDays, drDateTH, drShort, drPad2,
   DR_WEATHER, drWeatherOf, DR_STATUS, drStatusOf, DR_MANPOWER, DR_JSA, DR_CLEAN,
-  drWhaSteps, drHomeSteps, drIsBoardSteps, drModeOf, drDocNo, drBlank,
+  drWhaSteps, drHomeSteps, drIsBoardSteps, drRollup, drWeightSum, drModeOf, drDocNo, drBlank,
   drCanApprove, drCanEdit, drPrevOf, drDayState,
 });
