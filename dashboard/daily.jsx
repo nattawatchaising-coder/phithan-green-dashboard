@@ -211,6 +211,16 @@ const drCanEdit = (role, rec) => {
   if (!window.can(role, "editJob")) return false;
   return !(rec && rec.status === "approved");
 };
+/* ลบใบทิ้งได้เฉพาะแอดมิน — เอกสารที่เซ็นแล้วหายไปเฉย ๆ ไม่ได้ ต้องเหลือคนรับผิดชอบคนเดียว
+   (หัวหน้าที่อยากแก้ใบที่อนุมัติไปแล้วให้ใช้ "ปลดล็อกให้แก้" ไม่ใช่ลบทิ้ง) */
+const drCanDelete = (role) => window.hasRole(role, "admin");
+/* ลบใบของวันหนึ่งแบบไม่ต้องผูกกับ useDailyReports — หน้ารวมรายงานอ่านทั้งต้นไม้ ไม่ได้ถือ store รายงาน */
+function drDeleteDay(jobId, date) {
+  if (!jobId || !date || !_DRFB()) return;
+  _drRef("dailyReports/" + jobId + "/" + date).remove();
+  _drRef("dailyPhotos/" + jobId + "/" + date).remove();
+  _drRef("dailySigns/" + jobId + "/" + date).remove();
+}
 
 /* ใบเปล่าของวันหนึ่ง — เปิดฟอร์มวันที่ยังไม่เคยเขียนจะได้ไม่ต้องเช็ค null ทุกช่อง */
 function drBlank(job, date, user, prev) {
@@ -282,12 +292,7 @@ function useDailyReports(jobId) {
     _drRef("dailyReports/" + jobId + "/" + date).update(Object.assign({}, fields, { updatedAt: new Date().toISOString() }));
   }, [jobId]);
 
-  const remove = React.useCallback((date) => {
-    if (!jobId || !_DRFB() || !date) return;
-    _drRef("dailyReports/" + jobId + "/" + date).remove();
-    _drRef("dailyPhotos/" + jobId + "/" + date).remove();
-    _drRef("dailySigns/" + jobId + "/" + date).remove();
-  }, [jobId]);
+  const remove = React.useCallback((date) => drDeleteDay(jobId, date), [jobId]);
 
   return { byDate, dates, loading, save, patch, remove };
 }
@@ -425,5 +430,5 @@ Object.assign(window, {
   drToday, drISO, drAddDays, drDateTH, drShort, drPad2, drStamp, drSignDay, drSignTime, drLocalDay,
   DR_WEATHER, drWeatherOf, DR_STATUS, drStatusOf, DR_MANPOWER, DR_JSA, DR_CLEAN,
   drWhaSteps, drHomeSteps, drIsBoardSteps, drRollup, drWeightSum, drModeOf, drDocNo, drBlank,
-  drCanApprove, drCanEdit, drPrevOf, drDayState,
+  drCanApprove, drCanEdit, drCanDelete, drDeleteDay, drPrevOf, drDayState,
 });

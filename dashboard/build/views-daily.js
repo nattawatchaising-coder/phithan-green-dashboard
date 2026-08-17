@@ -1126,6 +1126,7 @@ function DailyReportModal({
   const mine = window.useDrMySign((currentUser || {}).id);
   const [pad, setPad] = React.useState(null);
   const [remember, setRemember] = React.useState(true);
+  const [delAsk, setDelAsk] = React.useState(false);
   const timer = React.useRef(null);
   const saved = store.byDate[date] || null;
   React.useEffect(() => {
@@ -1136,8 +1137,10 @@ function DailyReportModal({
     if (rec.mode !== "project") rec.pct = window.drRollup(rec.steps);
     setForm(rec);
   }, [job ? job.id : null, date, saved ? saved.updatedAt : null]);
+  React.useEffect(() => setDelAsk(false), [date]);
   const locked = !window.drCanEdit(role, form);
   const canApprove = window.drCanApprove(role);
+  const canDelete = window.drCanDelete(role);
   const prev = window.drPrevOf(store.byDate, date);
   const isProject = form && form.mode === "project";
   const edit = fields => {
@@ -1187,6 +1190,11 @@ function DailyReportModal({
   };
   const send = () => needSign("by", "ลายเซ็นผู้บันทึก", "เซ็นแล้วระบบจะส่งใบนี้ให้หัวหน้าอนุมัติทันที", doSend);
   const approve = () => needSign("app", "ลายเซ็นผู้อนุมัติ", "เซ็นแล้วระบบจะอนุมัติและล็อกใบนี้ทันที", doApprove);
+  const doDelete = () => {
+    clearTimeout(timer.current);
+    store.remove(date);
+    setDelAsk(false);
+  };
   const reopen = () => {
     sigs.clear("app");
     store.patch(date, {
@@ -1882,11 +1890,69 @@ function DailyReportModal({
   }, React.createElement("span", {
     style: {
       fontSize: 11.5,
-      color: "var(--text-3)",
+      color: delAsk ? "#EF4444" : "var(--text-3)",
+      fontWeight: delAsk ? 700 : 400,
       flex: 1,
       minWidth: 100
     }
-  }, locked ? "เอกสารถูกล็อกแล้ว" : "บันทึกอัตโนมัติ ไม่ต้องกดเซฟ"), React.createElement("button", {
+  }, delAsk ? "ลบใบของวันนี้ทั้งใบ (รูปและลายเซ็นด้วย) เรียกคืนไม่ได้" : locked ? "เอกสารถูกล็อกแล้ว" : "บันทึกอัตโนมัติ ไม่ต้องกดเซฟ"), canDelete && saved && (delAsk ? React.createElement(React.Fragment, null, React.createElement("button", {
+    onClick: () => setDelAsk(false),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      padding: "10px 15px",
+      borderRadius: 10,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 13,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("button", {
+    onClick: doDelete,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      padding: "10px 16px",
+      borderRadius: 10,
+      border: "none",
+      background: "#EF4444",
+      color: "#fff",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 13,
+      fontWeight: 700
+    }
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 15,
+    color: "#fff"
+  }), " \u0E25\u0E1A\u0E40\u0E25\u0E22")) : React.createElement("button", {
+    onClick: () => setDelAsk(true),
+    title: "\u0E25\u0E1A\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E02\u0E2D\u0E07\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49 (\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19)",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      padding: "10px 13px",
+      borderRadius: 10,
+      border: "1px solid #EF444455",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#EF4444"
+    }
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 15,
+    color: "#EF4444"
+  }), " \u0E25\u0E1A\u0E43\u0E1A\u0E19\u0E35\u0E49")), React.createElement("button", {
     onClick: () => {
       flush();
       setPaper(true);
@@ -2657,6 +2723,9 @@ function DailyView({
     loading
   } = window.useDailyAll();
   const [date, setDate] = React.useState(window.drToday);
+  const canDelete = window.drCanDelete(role);
+  const [delAsk, setDelAsk] = React.useState(null);
+  React.useEffect(() => setDelAsk(null), [date]);
   const rows = React.useMemo(() => {
     const out = (jobs || []).map(j => ({
       job: j,
@@ -2811,18 +2880,80 @@ function DailyView({
       th: "ยังไม่เขียน",
       color: "#EF4444"
     };
-    return React.createElement("button", {
+    if (canDelete && delAsk === r.job.id) return React.createElement("div", {
       key: r.job.id,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 9,
+        padding: isMobile ? "11px 12px" : "13px 16px",
+        borderBottom: "1px solid var(--border)",
+        background: "#EF44440e",
+        flexWrap: "wrap"
+      }
+    }, React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 140,
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: "#EF4444"
+      }
+    }, "\u0E25\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19 ", r.job.code, " \u0E02\u0E2D\u0E07\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\u0E17\u0E31\u0E49\u0E07\u0E43\u0E1A? \u0E23\u0E39\u0E1B\u0E41\u0E25\u0E30\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19\u0E2B\u0E32\u0E22\u0E44\u0E1B\u0E14\u0E49\u0E27\u0E22 \u0E40\u0E23\u0E35\u0E22\u0E01\u0E04\u0E37\u0E19\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49"), React.createElement("button", {
+      onClick: () => setDelAsk(null),
+      style: {
+        padding: "7px 13px",
+        borderRadius: 9,
+        border: "1px solid var(--border-strong)",
+        background: "var(--surface)",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: "var(--text-2)"
+      }
+    }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("button", {
+      onClick: () => {
+        window.drDeleteDay(r.job.id, date);
+        setDelAsk(null);
+      },
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "7px 13px",
+        borderRadius: 9,
+        border: "none",
+        background: "#EF4444",
+        color: "#fff",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 12.5,
+        fontWeight: 700
+      }
+    }, React.createElement(Icon, {
+      name: "trash",
+      size: 14,
+      color: "#fff"
+    }), " \u0E25\u0E1A\u0E40\u0E25\u0E22"));
+    return React.createElement("div", {
+      key: r.job.id,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        borderBottom: "1px solid var(--border)"
+      }
+    }, React.createElement("button", {
       onClick: () => onOpen(r.job),
       style: {
-        width: "100%",
+        flex: 1,
+        minWidth: 0,
         display: "flex",
         alignItems: "center",
         gap: 11,
         padding: isMobile ? "11px 12px" : "13px 16px",
         background: "none",
         border: "none",
-        borderBottom: "1px solid var(--border)",
         cursor: "pointer",
         fontFamily: "inherit",
         textAlign: "left"
@@ -2875,7 +3006,26 @@ function DailyView({
         flexShrink: 0,
         whiteSpace: "nowrap"
       }
-    }, s.th));
+    }, s.th)), canDelete && r.rec && React.createElement("button", {
+      onClick: () => setDelAsk(r.job.id),
+      title: "\u0E25\u0E1A\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E02\u0E2D\u0E07\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49 (\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19)",
+      style: {
+        width: 34,
+        height: 34,
+        marginRight: isMobile ? 8 : 12,
+        borderRadius: 9,
+        flexShrink: 0,
+        border: "1px solid var(--border)",
+        background: "var(--surface)",
+        cursor: "pointer",
+        display: "grid",
+        placeItems: "center"
+      }
+    }, React.createElement(Icon, {
+      name: "trash",
+      size: 15,
+      color: "#EF4444"
+    })));
   })));
 }
 function DailyJobButton({

@@ -529,6 +529,8 @@ function DailyReportModal({ job, role, currentUser, onClose }) {
   /* pad = { slot, title, then } — เปิดแผ่นเซ็น แล้วทำงานต่อ (ส่ง/อนุมัติ) ให้อัตโนมัติหลังเซ็นเสร็จ */
   const [pad, setPad] = React.useState(null);
   const [remember, setRemember] = React.useState(true);
+  /* ถามยืนยันก่อนลบในแถบปุ่มเลย — ใบทั้งวันหายถาวร กดพลาดแล้วเรียกคืนไม่ได้ */
+  const [delAsk, setDelAsk] = React.useState(false);
   const timer = React.useRef(null);
   const saved = store.byDate[date] || null;
 
@@ -544,8 +546,11 @@ function DailyReportModal({ job, role, currentUser, onClose }) {
     setForm(rec);
   }, [job ? job.id : null, date, saved ? saved.updatedAt : null]);
 
+  React.useEffect(() => setDelAsk(false), [date]);
+
   const locked = !window.drCanEdit(role, form);
   const canApprove = window.drCanApprove(role);
+  const canDelete = window.drCanDelete(role);
   const prev = window.drPrevOf(store.byDate, date);
   const isProject = form && form.mode === "project";
 
@@ -585,6 +590,13 @@ function DailyReportModal({ job, role, currentUser, onClose }) {
   const send = () => needSign("by", "ลายเซ็นผู้บันทึก", "เซ็นแล้วระบบจะส่งใบนี้ให้หัวหน้าอนุมัติทันที", doSend);
   const approve = () => needSign("app", "ลายเซ็นผู้อนุมัติ", "เซ็นแล้วระบบจะอนุมัติและล็อกใบนี้ทันที", doApprove);
   /* ปลดล็อกให้แก้ = ถอนการอนุมัติ ลายเซ็นหัวหน้าต้องหลุดไปด้วย ไม่งั้นใบที่แก้แล้วยังมีลายเซ็นเดิมค้างอยู่ */
+  /* ลบใบทิ้ง = ทั้งใบ รูป และลายเซ็นของวันนั้น
+     ต้องดับตัวเซฟอัตโนมัติที่ค้างอยู่ก่อน ไม่งั้นมันเขียนใบที่เพิ่งลบกลับมาใหม่ */
+  const doDelete = () => {
+    clearTimeout(timer.current);
+    store.remove(date);
+    setDelAsk(false);
+  };
   const reopen = () => {
     sigs.clear("app");
     store.patch(date, { status: "draft", approvedAt: null, appId: null, appName: null });
@@ -832,9 +844,29 @@ function DailyReportModal({ job, role, currentUser, onClose }) {
           {/* แถบปุ่มล่าง */}
           <div style={{ position: "sticky", bottom: 0, background: "var(--surface)", borderTop: "1px solid var(--border)",
             padding: isMobile ? "11px 13px" : "13px 20px", display: "flex", gap: 9, alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ fontSize: 11.5, color: "var(--text-3)", flex: 1, minWidth: 100 }}>
-              {locked ? "เอกสารถูกล็อกแล้ว" : "บันทึกอัตโนมัติ ไม่ต้องกดเซฟ"}
+            <span style={{ fontSize: 11.5, color: delAsk ? "#EF4444" : "var(--text-3)", fontWeight: delAsk ? 700 : 400, flex: 1, minWidth: 100 }}>
+              {delAsk ? "ลบใบของวันนี้ทั้งใบ (รูปและลายเซ็นด้วย) เรียกคืนไม่ได้" : locked ? "เอกสารถูกล็อกแล้ว" : "บันทึกอัตโนมัติ ไม่ต้องกดเซฟ"}
             </span>
+            {canDelete && saved && (delAsk ? (
+              <React.Fragment>
+                <button onClick={() => setDelAsk(false)}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 15px", borderRadius: 10,
+                    border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+                    fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--text-2)" }}>ยกเลิก</button>
+                <button onClick={doDelete}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 16px", borderRadius: 10, border: "none",
+                    background: "#EF4444", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700 }}>
+                  <Icon name="trash" size={15} color="#fff" /> ลบเลย
+                </button>
+              </React.Fragment>
+            ) : (
+              <button onClick={() => setDelAsk(true)} title="ลบใบรายงานของวันนี้ (เฉพาะแอดมิน)"
+                style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 13px", borderRadius: 10,
+                  border: "1px solid #EF444455", background: "var(--surface)", cursor: "pointer",
+                  fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "#EF4444" }}>
+                <Icon name="trash" size={15} color="#EF4444" /> ลบใบนี้
+              </button>
+            ))}
             <button onClick={() => { flush(); setPaper(true); }}
               style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 15px", borderRadius: 10,
                 border: "1px solid var(--primary)", background: "var(--primary-soft)", cursor: "pointer",
@@ -1146,6 +1178,9 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const { all, loading } = window.useDailyAll();
   const [date, setDate] = React.useState(window.drToday);
+  const canDelete = window.drCanDelete(role);
+  const [delAsk, setDelAsk] = React.useState(null);   /* id ของงานที่กำลังถามยืนยันลบ */
+  React.useEffect(() => setDelAsk(null), [date]);
 
   /* เขียนรายงานเฉพาะงานที่กำลังติดตั้งอยู่ — ขั้นออกแบบ/ถอดของ/รอคิว ยังไม่มีใครขึ้นหน้างาน
      แต่ถ้าวันนั้นเคยเขียนไว้ ต้องยังเห็นอยู่ ไม่งั้นรายงานเก่าหายไปเฉย ๆ */
@@ -1206,10 +1241,28 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
         {!loading && !rows.length && <div style={{ padding: 20, textAlign: "center", fontSize: 12.5, color: "var(--text-3)" }}>ไม่มีงานที่ต้องเขียนรายงานวันนี้</div>}
         {rows.map((r) => {
           const s = r.rec ? window.drStatusOf(r.rec.status) : { th: "ยังไม่เขียน", color: "#EF4444" };
+          /* แถวที่กำลังถามยืนยันลบ — ทับทั้งแถวไปเลย จะได้ไม่มีทางกดพลาดโดนปุ่มอื่น */
+          if (canDelete && delAsk === r.job.id) return (
+            <div key={r.job.id} style={{ display: "flex", alignItems: "center", gap: 9, padding: isMobile ? "11px 12px" : "13px 16px",
+              borderBottom: "1px solid var(--border)", background: "#EF44440e", flexWrap: "wrap" }}>
+              <span style={{ flex: 1, minWidth: 140, fontSize: 12.5, fontWeight: 700, color: "#EF4444" }}>
+                ลบรายงาน {r.job.code} ของวันนี้ทั้งใบ? รูปและลายเซ็นหายไปด้วย เรียกคืนไม่ได้
+              </span>
+              <button onClick={() => setDelAsk(null)}
+                style={{ padding: "7px 13px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                  cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>ยกเลิก</button>
+              <button onClick={() => { window.drDeleteDay(r.job.id, date); setDelAsk(null); }}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 9, border: "none",
+                  background: "#EF4444", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700 }}>
+                <Icon name="trash" size={14} color="#fff" /> ลบเลย
+              </button>
+            </div>
+          );
           return (
-            <button key={r.job.id} onClick={() => onOpen(r.job)}
-              style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: isMobile ? "11px 12px" : "13px 16px",
-                background: "none", border: "none", borderBottom: "1px solid var(--border)", cursor: "pointer",
+            <div key={r.job.id} style={{ display: "flex", alignItems: "center", borderBottom: "1px solid var(--border)" }}>
+            <button onClick={() => onOpen(r.job)}
+              style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 11, padding: isMobile ? "11px 12px" : "13px 16px",
+                background: "none", border: "none", cursor: "pointer",
                 fontFamily: "inherit", textAlign: "left" }}>
               <span style={{ width: 8, height: 8, borderRadius: 99, background: s.color, flexShrink: 0 }} />
               <span style={{ flex: 1, minWidth: 0 }}>
@@ -1226,6 +1279,14 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
               <span style={{ fontSize: 11.5, fontWeight: 700, color: s.color, background: s.color + "1a",
                 borderRadius: 99, padding: "3px 10px", flexShrink: 0, whiteSpace: "nowrap" }}>{s.th}</span>
             </button>
+            {canDelete && r.rec && (
+              <button onClick={() => setDelAsk(r.job.id)} title="ลบใบรายงานของวันนี้ (เฉพาะแอดมิน)"
+                style={{ width: 34, height: 34, marginRight: isMobile ? 8 : 12, borderRadius: 9, flexShrink: 0,
+                  border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center" }}>
+                <Icon name="trash" size={15} color="#EF4444" />
+              </button>
+            )}
+            </div>
           );
         })}
       </div>

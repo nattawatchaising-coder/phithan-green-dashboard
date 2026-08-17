@@ -243,6 +243,13 @@ const drCanEdit = (role, rec) => {
   if (!window.can(role, "editJob")) return false;
   return !(rec && rec.status === "approved");
 };
+const drCanDelete = role => window.hasRole(role, "admin");
+function drDeleteDay(jobId, date) {
+  if (!jobId || !date || !_DRFB()) return;
+  _drRef("dailyReports/" + jobId + "/" + date).remove();
+  _drRef("dailyPhotos/" + jobId + "/" + date).remove();
+  _drRef("dailySigns/" + jobId + "/" + date).remove();
+}
 function drBlank(job, date, user, prev) {
   const mode = drModeOf(job);
   return {
@@ -322,12 +329,7 @@ function useDailyReports(jobId) {
       updatedAt: new Date().toISOString()
     }));
   }, [jobId]);
-  const remove = React.useCallback(date => {
-    if (!jobId || !_DRFB() || !date) return;
-    _drRef("dailyReports/" + jobId + "/" + date).remove();
-    _drRef("dailyPhotos/" + jobId + "/" + date).remove();
-    _drRef("dailySigns/" + jobId + "/" + date).remove();
-  }, [jobId]);
+  const remove = React.useCallback(date => drDeleteDay(jobId, date), [jobId]);
   return {
     byDate,
     dates,
@@ -522,6 +524,8 @@ Object.assign(window, {
   drBlank,
   drCanApprove,
   drCanEdit,
+  drCanDelete,
+  drDeleteDay,
   drPrevOf,
   drDayState
 });
