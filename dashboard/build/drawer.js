@@ -1162,6 +1162,7 @@ function DetailDrawer({
   onSurvey,
   onSurveyReport,
   onPermit,
+  onDaily,
   priceMap,
   permitMode,
   onOpenReview,
@@ -1520,7 +1521,10 @@ function DetailDrawer({
   }), (job.brand || "").toUpperCase().includes("ATMOCE") && React.createElement(SpecItem, {
     label: "\u0E15\u0E39\u0E49 Combiner",
     value: job.comboType === "assembled" ? "ตู้ประกอบ" : "ตู้สำเร็จ"
-  }))), onSurvey && (() => {
+  }))), onDaily && React.createElement(DailyJobButton, {
+    job: job,
+    onOpen: onDaily
+  }), onSurvey && (() => {
     const ss = window.surveyStatus ? window.surveyStatus(job) : {
       state: "none",
       pct: 0,

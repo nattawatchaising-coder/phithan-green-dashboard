@@ -455,7 +455,7 @@ function PermitJobSummary({ job, onOpenReview }) {
   );
 }
 
-function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, canDesign, stock, onSaveBOQ, onSurvey, onSurveyReport, onPermit, priceMap, permitMode, onOpenReview, salesMode, quotes, onOpenQuote }) {
+function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, canDesign, stock, onSaveBOQ, onSurvey, onSurveyReport, onPermit, onDaily, priceMap, permitMode, onOpenReview, salesMode, quotes, onOpenQuote }) {
   const SF = window.SF;
   // ฝ่ายขออนุญาตกับเซลล์เปิดใบงานได้ แต่ไม่ใช่คนทำงานหน้างาน — ซ่อนเครื่องมือช่างทั้งชุด
   const roMode = permitMode || salesMode;
@@ -597,6 +597,9 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   )}
                 </div>
               </div>
+
+              {/* รายงานประจำวันหน้างาน — บันทึกรายวัน + ออกเป็น PDF */}
+              {onDaily && <DailyJobButton job={job} onOpen={onDaily} />}
 
               {/* สำรวจหน้างาน (Site Survey) */}
               {onSurvey && (() => {

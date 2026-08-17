@@ -15,6 +15,8 @@ const NAV = [
   // งานในฐานงานมาจากลูกค้าที่แปลงแล้ว (พกแบบสำรวจติดมาด้วย) · โค้ดหน้ายังอยู่ใน views-survey.jsx ถ้าอยากได้คืน
   { key: "dispatch",   th: "จัดตารางสำรวจ",    en: "Dispatch",      icon: "calendar", perm: "dispatch" },
   { key: "permit",     th: "ขออนุญาตการไฟฟ้า", en: "Permit",        icon: "shield",   perm: "permit" },
+  /* รายงานประจำวันหน้างาน — ช่างเขียน หัวหน้าอนุมัติ จึงผูกกับสิทธิ์แก้ใบงาน */
+  { key: "daily",      th: "รายงานประจำวัน",   en: "Daily Report",  icon: "pen",      perm: "editJob" },
   { key: "myschedule", th: "ตารางงานของฉัน",   en: "My Schedule",   icon: "list",     own: true },
   { key: "calendar",   th: "ปฏิทินนัด",        en: "Calendar",      icon: "calendar" },
   { key: "stock",      th: "คลังสินค้า",       en: "Inventory",     icon: "box",      perm: "stock" },
@@ -567,6 +569,10 @@ function App() {
   /* ลบงาน = ย้ายเข้าถังขยะก่อน กู้คืนได้ · ถามยืนยันในหน้าเอง ไม่ใช้ confirm() ของเบราว์เซอร์
      (ถ้าผู้ใช้เคยติ๊ก "ไม่ให้หน้านี้สร้างกล่องข้อความอีก" confirm จะคืน false ทันที = กดลบแล้วเงียบ) */
   const [permitJob, setPermitJob] = React.useState(null);   // งานที่กำลังเปิดแบบเก็บข้อมูลขออนุญาต
+  const [dailyJob, setDailyJob] = React.useState(null);     // งานที่กำลังเปิดรายงานประจำวัน
+  /* ปุ่ม "รายงานวันนี้" อยู่บนการ์ดในบอร์ด ซึ่งลึกเกินกว่าจะส่ง props ลงไปถึง
+     ฝากผู้ใช้ปัจจุบันไว้ให้การ์ดหยิบใช้ ฟอร์มจะได้รู้ว่าใครเขียนและอนุมัติได้ไหม */
+  window.DR_ME = { role, user: auth.current };
   const [delAsk, setDelAsk] = React.useState(null);   // งานที่กำลังถามว่าจะย้ายเข้าถังขยะไหม
   const [trashOpen, setTrashOpen] = React.useState(false);
   const onDelete = (j) => {
@@ -686,6 +692,7 @@ function App() {
             permitMode={permitOnly}
             trashCount={can(role, "delJob") ? store.trash.length : 0} onOpenTrash={can(role, "delJob") ? () => setTrashOpen(true) : null} />}
           {view === "permit" && permitView}
+          {view === "daily" && <DailyView jobs={filtered} role={role} currentUser={auth.current} onOpen={(j) => setDailyJob(j)} />}
           {view === "report" && <ReportView jobs={filtered} onOpen={openJob} />}
           {view === "survey" && <SurveyView jobs={filtered} role={role} onOpen={openSurvey}
             onToggleSkip={(can(role, "doSurvey") || can(role, "dispatch") || can(role, "editJob")) ? (j) => {
@@ -706,6 +713,7 @@ function App() {
         onSurvey={(can(role, "doSurvey") || can(role, "dispatch")) ? () => openSurvey(selectedJob) : null}
         onSurveyReport={() => setReportJob(selectedJob)}
         onPermit={can(role, "editJob") && !permitOnly ? () => setPermitJob(selectedJob) : null}
+        onDaily={can(role, "editJob") && !permitOnly ? () => setDailyJob(selectedJob) : null}
         permitMode={permitOnly}
         onOpenReview={permitOnly && selectedJob ? () => setPermitReview(selectedJob.id) : null}
         salesMode={salesOnly} quotes={quoteStore.quotes}
@@ -763,6 +771,12 @@ function App() {
           setSurveyJob(null); setSurveyAppt(null);
         }} />}
       {reportJob && <SurveyReportHost job={reportJob} stock={stock} onClose={() => setReportJob(null)} />}
+      {/* รายงานประจำวัน — เปิดทับได้ทั้งจากในใบงานและจากหน้ารวมของหัวหน้า
+          อ่านงานสดจาก jobs เสมอ ไม่ยึดก้อนที่กดตอนแรก ไม่งั้นเลื่อนขั้นแล้วตารางในฟอร์มยังเป็นของเก่า */}
+      {dailyJob && (
+        <DailyReportModal job={jobs.find((x) => x.id === dailyJob.id) || dailyJob} role={role}
+          currentUser={auth.current} onClose={() => setDailyJob(null)} />
+      )}
       {form && <JobForm initial={form.job} isNew={form.isNew} jobs={jobs} users={auth.users} onSave={onSave} onClose={() => setForm(null)} onManageTechs={() => setTechMgr(true)} onManageBrands={() => setBrandMgr(true)} />}
       {techMgr && <TechManager store={techStore} onClose={() => setTechMgr(false)} />}
       {brandMgr && <BrandManager store={brandStore} onClose={() => setBrandMgr(false)} />}

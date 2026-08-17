@@ -40,6 +40,12 @@ const NAV = [{
   icon: "shield",
   perm: "permit"
 }, {
+  key: "daily",
+  th: "รายงานประจำวัน",
+  en: "Daily Report",
+  icon: "pen",
+  perm: "editJob"
+}, {
   key: "myschedule",
   th: "ตารางงานของฉัน",
   en: "My Schedule",
@@ -781,6 +787,11 @@ function App() {
     setForm(null);
   };
   const [permitJob, setPermitJob] = React.useState(null);
+  const [dailyJob, setDailyJob] = React.useState(null);
+  window.DR_ME = {
+    role,
+    user: auth.current
+  };
   const [delAsk, setDelAsk] = React.useState(null);
   const [trashOpen, setTrashOpen] = React.useState(false);
   const onDelete = j => {
@@ -1020,7 +1031,12 @@ function App() {
     permitMode: permitOnly,
     trashCount: can(role, "delJob") ? store.trash.length : 0,
     onOpenTrash: can(role, "delJob") ? () => setTrashOpen(true) : null
-  }), view === "permit" && permitView, view === "report" && React.createElement(ReportView, {
+  }), view === "permit" && permitView, view === "daily" && React.createElement(DailyView, {
+    jobs: filtered,
+    role: role,
+    currentUser: auth.current,
+    onOpen: j => setDailyJob(j)
+  }), view === "report" && React.createElement(ReportView, {
     jobs: filtered,
     onOpen: openJob
   }), view === "survey" && React.createElement(SurveyView, {
@@ -1063,6 +1079,7 @@ function App() {
     onSurvey: can(role, "doSurvey") || can(role, "dispatch") ? () => openSurvey(selectedJob) : null,
     onSurveyReport: () => setReportJob(selectedJob),
     onPermit: can(role, "editJob") && !permitOnly ? () => setPermitJob(selectedJob) : null,
+    onDaily: can(role, "editJob") && !permitOnly ? () => setDailyJob(selectedJob) : null,
     permitMode: permitOnly,
     onOpenReview: permitOnly && selectedJob ? () => setPermitReview(selectedJob.id) : null,
     salesMode: salesOnly,
@@ -1155,6 +1172,11 @@ function App() {
     job: reportJob,
     stock: stock,
     onClose: () => setReportJob(null)
+  }), dailyJob && React.createElement(DailyReportModal, {
+    job: jobs.find(x => x.id === dailyJob.id) || dailyJob,
+    role: role,
+    currentUser: auth.current,
+    onClose: () => setDailyJob(null)
   }), form && React.createElement(JobForm, {
     initial: form.job,
     isNew: form.isNew,

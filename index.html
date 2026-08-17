@@ -493,6 +493,8 @@ input, select, textarea { font-family: inherit; }
     border-radius: 0 !important; box-shadow: none !important; }
   .sv-rep-noprint { display: none !important; }
   .sv-rep-shot img { max-height: 165mm; }
+  /* รูปในรายงานประจำวันวางสองคอลัมน์ — จำกัดความสูงไม่ให้รูปเดียวกินทั้งหน้า */
+  .dr-shot img { max-height: 88mm; object-fit: contain; }
   .sv-rep-shot[data-p="1"] img { max-height: 135mm; }
   /* คงสีป้าย/เส้นคั่นไว้ในไฟล์ PDF ไม่งั้นเบราว์เซอร์ตัดพื้นหลังทิ้งหมด
      บังคับเฉพาะในกระดาษรายงาน ถ้าบังคับทั้งหน้าพื้นมืดของธีมจะติดไปด้วย */
@@ -552,11 +554,11 @@ input, select, textarea { font-family: inherit; }
 <script src="dashboard/build/solarui.js?v=61"></script>
 <script src="dashboard/build/dxf.js?v=5"></script>
 <script src="dashboard/build/plan3d.js?v=89"></script>
-<script src="dashboard/build/drawer.js?v=53"></script>
+<script src="dashboard/build/drawer.js?v=54"></script>
 <script src="dashboard/build/views-overview.js?v=31"></script>
 <script src="dashboard/build/views-board.js?v=29"></script>
 <script src="dashboard/build/views-table.js?v=29"></script>
-<script src="dashboard/build/views-report.js?v=5"></script>
+<script src="dashboard/build/views-report.js?v=6"></script>
 <script src="dashboard/build/views-calendar.js?v=27"></script>
 <script src="dashboard/build/views-stock.js?v=94"></script>
 <script src="dashboard/build/form.js?v=33"></script>
@@ -569,7 +571,9 @@ input, select, textarea { font-family: inherit; }
 <script src="dashboard/build/views-permit.js?v=12"></script>
 <script src="dashboard/build/views-lead.js?v=1"></script>
 <script src="dashboard/build/views-flow.js?v=2"></script>
+<script src="dashboard/build/daily.js?v=2"></script>
+<script src="dashboard/build/views-daily.js?v=4"></script>
 <script src="dashboard/build/auth.js?v=17"></script>
-<script src="dashboard/build/app.js?v=115"></script>
+<script src="dashboard/build/app.js?v=117"></script>
 </body>
 </html>
