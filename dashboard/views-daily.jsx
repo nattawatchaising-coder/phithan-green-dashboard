@@ -133,7 +133,7 @@ function DrRows({ cols, rows, onChange, disabled, addLabel }) {
 /* ── ตารางขั้นงาน ──
    งานบ้าน: ระบบเติมให้เอง แก้ได้แค่ % (วันจริงมาจากประวัติการเลื่อนขั้น ไม่ให้พิมพ์ทับ)
    งานโครงการ: กรอก/เพิ่ม/ลบหัวข้อได้เอง เพราะแผนงานแต่ละโครงการไม่เหมือนกัน */
-function DrStepTable({ steps, onChange, disabled, editable, onReset, plan, dates, weight }) {
+function DrStepTable({ steps, onChange, disabled, editable, onReset, plan, dates, weight, rename }) {
   const list = steps || [];
   const set = (i, k, v) => onChange(list.map((r, x) => (x === i ? Object.assign({}, r, { [k]: v }) : r)));
   const cell = { padding: "5px 6px", borderBottom: "1px solid var(--border)", fontSize: 12 };
@@ -165,8 +165,10 @@ function DrStepTable({ steps, onChange, disabled, editable, onReset, plan, dates
               <tr key={i} style={{ background: r.head ? "var(--surface)" : "transparent" }}>
                 <td style={Object.assign({}, cell, { fontFamily: "var(--mono)", fontWeight: r.head ? 800 : 500,
                   color: r.head ? "var(--primary-dark)" : "var(--text-3)", whiteSpace: "nowrap" })}>{r.no}</td>
+                {/* งานบ้านใช้ชุดเนื้องานมาตรฐานชุดเดียวกันทุกหลัง ไม่ต้องมีช่องพิมพ์ชื่อหัวข้อ
+                    หน้างานจะได้กรอกแค่น้ำหนักกับ % ไม่ต้องเลี่ยงกดโดนช่องชื่อ */}
                 <td style={Object.assign({}, cell, { minWidth: 190 })}>
-                  {editable && !disabled ? (
+                  {rename && editable && !disabled ? (
                     <input value={r.th || ""} onChange={(e) => set(i, "th", e.target.value)}
                       style={Object.assign({}, DR_INPUT, { padding: "6px 8px", fontSize: 12.5, fontWeight: r.head ? 700 : 400 })} />
                   ) : (
@@ -219,12 +221,12 @@ function DrStepTable({ steps, onChange, disabled, editable, onReset, plan, dates
       })()}
       {editable && !disabled && (
         <div style={{ display: "flex", gap: 8, marginTop: 9, flexWrap: "wrap" }}>
-          <button type="button" onClick={() => onChange(list.concat([{ no: String(list.length + 1), th: "", head: true, pct: 0, w: 0 }]))}
+          {rename && <button type="button" onClick={() => onChange(list.concat([{ no: String(list.length + 1), th: "", head: true, pct: 0, w: 0 }]))}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 9,
               border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
               fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>
             <Icon name="plus" size={14} /> เพิ่มหัวข้อใหญ่
-          </button>
+          </button>}
           <button type="button" onClick={() => onChange((onReset || window.drWhaSteps)())}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 9,
               border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
@@ -453,11 +455,11 @@ function DailyReportModal({ job, role, currentUser, onClose }) {
                 )}
               </div>
               <div style={{ marginTop: 6 }}>
-                <DrLabel hint={isProject ? "เพิ่ม/แก้/ลบหัวข้อได้ตามแผนงานของโครงการนี้" : "น้ำหนักงาน = หัวข้อนี้คิดเป็นกี่ % ของงานทั้งหลัง"}>{isProject ? "ตารางขั้นงาน" : "เนื้องานติดตั้ง"}</DrLabel>
+                <DrLabel hint={isProject ? "เพิ่ม/แก้/ลบหัวข้อได้ตามแผนงานของโครงการนี้" : "น้ำหนักงาน = หัวข้อนี้คิดเป็นกี่ % ของงานทั้งหลัง · หัวข้อไหนไม่มีในบ้านหลังนี้กดถังขยะทิ้งได้"}>{isProject ? "ตารางขั้นงาน" : "เนื้องานติดตั้ง"}</DrLabel>
                 {/* งานบ้านไม่มีวันแผน/วันจริงรายหัวข้อ — มีแค่ช่วงวันติดตั้งช่วงเดียวของทั้งงาน
                     เหลือ เนื้องาน · น้ำหนักงาน · ทำไปแล้ว กี่ % กรอกบนมือถือหน้างานได้จริง */}
                 <DrStepTable steps={form.steps} disabled={locked} editable
-                  plan={isProject} dates={isProject} weight={!isProject}
+                  plan={isProject} dates={isProject} weight={!isProject} rename={isProject}
                   onReset={isProject ? window.drWhaSteps : window.drHomeSteps}
                   onChange={(v) => edit({ steps: v })} />
               </div>

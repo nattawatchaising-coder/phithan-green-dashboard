@@ -286,7 +286,8 @@ function DrStepTable({
   onReset,
   plan,
   dates,
-  weight
+  weight,
+  rename
 }) {
   const list = steps || [];
   const set = (i, k, v) => onChange(list.map((r, x) => x === i ? Object.assign({}, r, {
@@ -356,7 +357,7 @@ function DrStepTable({
     style: Object.assign({}, cell, {
       minWidth: 190
     })
-  }, editable && !disabled ? React.createElement("input", {
+  }, rename && editable && !disabled ? React.createElement("input", {
     value: r.th || "",
     onChange: e => set(i, "th", e.target.value),
     style: Object.assign({}, DR_INPUT, {
@@ -451,7 +452,7 @@ function DrStepTable({
       marginTop: 9,
       flexWrap: "wrap"
     }
-  }, React.createElement("button", {
+  }, rename && React.createElement("button", {
     type: "button",
     onClick: () => onChange(list.concat([{
       no: String(list.length + 1),
@@ -999,7 +1000,7 @@ function DailyReportModal({
       marginTop: 6
     }
   }, React.createElement(DrLabel, {
-    hint: isProject ? "เพิ่ม/แก้/ลบหัวข้อได้ตามแผนงานของโครงการนี้" : "น้ำหนักงาน = หัวข้อนี้คิดเป็นกี่ % ของงานทั้งหลัง"
+    hint: isProject ? "เพิ่ม/แก้/ลบหัวข้อได้ตามแผนงานของโครงการนี้" : "น้ำหนักงาน = หัวข้อนี้คิดเป็นกี่ % ของงานทั้งหลัง · หัวข้อไหนไม่มีในบ้านหลังนี้กดถังขยะทิ้งได้"
   }, isProject ? "ตารางขั้นงาน" : "เนื้องานติดตั้ง"), React.createElement(DrStepTable, {
     steps: form.steps,
     disabled: locked,
@@ -1007,6 +1008,7 @@ function DailyReportModal({
     plan: isProject,
     dates: isProject,
     weight: !isProject,
+    rename: isProject,
     onReset: isProject ? window.drWhaSteps : window.drHomeSteps,
     onChange: v => edit({
       steps: v
