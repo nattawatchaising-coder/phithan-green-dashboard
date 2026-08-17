@@ -264,7 +264,10 @@ function LoBottleneckPanel({ jobs, onStage }) {
     const ds = list.map(loDaysInStage).filter((x) => x != null);
     return { s, n: list.length, med: loMedian(ds) };
   }), [jobs]);
-  const max = Math.max.apply(null, rows.map((r) => r.n).concat([1]));
+  /* แท่งวัดด้วย "จำนวนวันที่ค้าง" ให้ตรงกับตัวหนังสือใต้แท่งและหัวข้อของแผง
+     ก่อนหน้านี้แท่งยาวตามจำนวนงาน อ่านแล้วขัดกันเอง — ขั้นที่ค้าง 2 วันแท่งยาวกว่าขั้นที่ค้าง 13 วัน
+     จำนวนงานยังอ่านได้จากตัวเลขทางขวาของแถวอยู่แล้ว */
+  const max = Math.max.apply(null, rows.map((r) => r.med || 0).concat([1]));
   const worst = rows.reduce((a, b) => ((b.med || 0) > (a.med || 0) ? b : a), rows[0] || { s: { th: "" }, med: null });
 
   return (
@@ -281,7 +284,7 @@ function LoBottleneckPanel({ jobs, onStage }) {
             </span>
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ display: "block", height: 10, background: "var(--surface3)", borderRadius: 99, overflow: "hidden" }}>
-                <span style={{ display: "block", height: "100%", width: Math.max((r.n / max) * 100, r.n ? 5 : 0) + "%",
+                <span style={{ display: "block", height: "100%", width: Math.max(((r.med || 0) / max) * 100, r.n ? 5 : 0) + "%",
                   background: r.s.color, borderRadius: 99, transition: "width .6s cubic-bezier(.2,.8,.2,1)" }} />
               </span>
               <span style={{ display: "block", fontSize: 11, marginTop: 4,
@@ -366,10 +369,18 @@ function LoSalesPanel({ leads, quotes, onGoSales }) {
     { th: "เลยวันติดตาม", v: n.late + " ราย", sub: n.late ? "เซลล์ต้องโทรก่อนใคร" : "ตามทันทุกราย", color: n.late ? "#D93025" : "var(--text-3)" },
     { th: "ใบเสนอราคารอลูกค้าตอบ", v: n.waiting + " ใบ", sub: "ส่งไปแล้วยังไม่ตัดสิน", color: "#EC4899" },
   ];
+  /* ยังไม่มีลูกค้าและใบเสนอราคาในระบบเลย — โชว์ 0 สี่บรรทัดเหมือนพัง บอกไปตรง ๆ ดีกว่า */
+  const empty = !(leads || []).length && !(quotes || []).length;
   return (
     <div className="pnl">
-      <PanelTitle title="สรุปงานขาย" sub={"เดือน " + window.TH_MONTHS[parseDate(window.SF.TODAY).getMonth()]} />
-      <div className="rows">
+      <PanelTitle title="สรุปงานขาย" sub={empty ? "ยังไม่มีข้อมูล" : "เดือน " + window.TH_MONTHS[parseDate(window.SF.TODAY).getMonth()]} />
+      {empty && (
+        <div style={{ padding: "18px 2px", fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.7 }}>
+          ยังไม่มีลูกค้าและใบเสนอราคาในระบบ<br />
+          <span style={{ fontSize: 11.5 }}>เริ่มบันทึกที่หน้า “งานขาย” แล้วตัวเลขตรงนี้จะขึ้นเอง</span>
+        </div>
+      )}
+      <div className="rows" style={{ display: empty ? "none" : undefined }}>
         {rows.map((r) => (
           <button key={r.th} onClick={() => onGoSales && onGoSales()}>
             <span className="mk" style={{ background: r.color }} />

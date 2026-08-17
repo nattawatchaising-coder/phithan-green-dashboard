@@ -442,7 +442,7 @@ function LoBottleneckPanel({
       med: loMedian(ds)
     };
   }), [jobs]);
-  const max = Math.max.apply(null, rows.map(r => r.n).concat([1]));
+  const max = Math.max.apply(null, rows.map(r => r.med || 0).concat([1]));
   const worst = rows.reduce((a, b) => (b.med || 0) > (a.med || 0) ? b : a, rows[0] || {
     s: {
       th: ""
@@ -513,7 +513,7 @@ function LoBottleneckPanel({
     style: {
       display: "block",
       height: "100%",
-      width: Math.max(r.n / max * 100, r.n ? 5 : 0) + "%",
+      width: Math.max((r.med || 0) / max * 100, r.n ? 5 : 0) + "%",
       background: r.s.color,
       borderRadius: 99,
       transition: "width .6s cubic-bezier(.2,.8,.2,1)"
@@ -687,13 +687,28 @@ function LoSalesPanel({
     sub: "ส่งไปแล้วยังไม่ตัดสิน",
     color: "#EC4899"
   }];
+  const empty = !(leads || []).length && !(quotes || []).length;
   return React.createElement("div", {
     className: "pnl"
   }, React.createElement(PanelTitle, {
     title: "\u0E2A\u0E23\u0E38\u0E1B\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22",
-    sub: "เดือน " + window.TH_MONTHS[parseDate(window.SF.TODAY).getMonth()]
-  }), React.createElement("div", {
-    className: "rows"
+    sub: empty ? "ยังไม่มีข้อมูล" : "เดือน " + window.TH_MONTHS[parseDate(window.SF.TODAY).getMonth()]
+  }), empty && React.createElement("div", {
+    style: {
+      padding: "18px 2px",
+      fontSize: 12.5,
+      color: "var(--text-3)",
+      lineHeight: 1.7
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E41\u0E25\u0E30\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A", React.createElement("br", null), React.createElement("span", {
+    style: {
+      fontSize: 11.5
+    }
+  }, "\u0E40\u0E23\u0E34\u0E48\u0E21\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E17\u0E35\u0E48\u0E2B\u0E19\u0E49\u0E32 \u201C\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22\u201D \u0E41\u0E25\u0E49\u0E27\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E15\u0E23\u0E07\u0E19\u0E35\u0E49\u0E08\u0E30\u0E02\u0E36\u0E49\u0E19\u0E40\u0E2D\u0E07")), React.createElement("div", {
+    className: "rows",
+    style: {
+      display: empty ? "none" : undefined
+    }
   }, rows.map(r => React.createElement("button", {
     key: r.th,
     onClick: () => onGoSales && onGoSales()
