@@ -624,6 +624,345 @@ function DrPhotos({
     }
   })))));
 }
+function drTrimSign(cv) {
+  const g = cv.getContext("2d");
+  const d = g.getImageData(0, 0, cv.width, cv.height).data;
+  let x0 = cv.width,
+    y0 = cv.height,
+    x1 = -1,
+    y1 = -1;
+  for (let y = 0; y < cv.height; y++) {
+    for (let x = 0; x < cv.width; x++) {
+      if (d[(y * cv.width + x) * 4 + 3] > 12) {
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      }
+    }
+  }
+  if (x1 < 0) return null;
+  const pad = 10;
+  x0 = Math.max(0, x0 - pad);
+  y0 = Math.max(0, y0 - pad);
+  x1 = Math.min(cv.width - 1, x1 + pad);
+  y1 = Math.min(cv.height - 1, y1 + pad);
+  const w = x1 - x0 + 1,
+    h = y1 - y0 + 1;
+  const k = Math.min(1, 560 / w);
+  const out = document.createElement("canvas");
+  out.width = Math.max(1, Math.round(w * k));
+  out.height = Math.max(1, Math.round(h * k));
+  out.getContext("2d").drawImage(cv, x0, y0, w, h, 0, 0, out.width, out.height);
+  return out.toDataURL("image/png");
+}
+function DrSignPad({
+  title,
+  hint,
+  onSave,
+  onClose
+}) {
+  const cv = React.useRef(null);
+  const wrap = React.useRef(null);
+  const dpr = React.useRef(1);
+  const down = React.useRef(false);
+  const last = React.useRef(null);
+  const [inked, setInked] = React.useState(false);
+  React.useEffect(() => {
+    const c = cv.current,
+      w = Math.max(240, wrap.current.clientWidth),
+      h = 190;
+    dpr.current = Math.min(window.devicePixelRatio || 1, 2);
+    c.width = Math.round(w * dpr.current);
+    c.height = Math.round(h * dpr.current);
+    c.style.width = w + "px";
+    c.style.height = h + "px";
+    const g = c.getContext("2d");
+    g.scale(dpr.current, dpr.current);
+    g.lineWidth = 2.4;
+    g.lineCap = "round";
+    g.lineJoin = "round";
+    g.strokeStyle = "#15211A";
+  }, []);
+  const at = e => {
+    const r = cv.current.getBoundingClientRect();
+    return [e.clientX - r.left, e.clientY - r.top];
+  };
+  const start = e => {
+    e.preventDefault();
+    down.current = true;
+    last.current = at(e);
+    setInked(true);
+    if (cv.current.setPointerCapture) try {
+      cv.current.setPointerCapture(e.pointerId);
+    } catch (err) {}
+  };
+  const move = e => {
+    if (!down.current) return;
+    e.preventDefault();
+    const p = at(e),
+      g = cv.current.getContext("2d");
+    g.beginPath();
+    g.moveTo(last.current[0], last.current[1]);
+    g.lineTo(p[0], p[1]);
+    g.stroke();
+    last.current = p;
+  };
+  const end = () => {
+    down.current = false;
+    last.current = null;
+  };
+  const wipe = () => {
+    const c = cv.current;
+    c.getContext("2d").clearRect(0, 0, c.width, c.height);
+    setInked(false);
+  };
+  const done = () => {
+    const img = drTrimSign(cv.current);
+    if (!img) return;
+    onSave(img);
+  };
+  const btn = (bg, color, border) => ({
+    padding: "11px 16px",
+    borderRadius: 11,
+    border: border || "none",
+    background: bg,
+    color: color,
+    fontFamily: "inherit",
+    fontSize: 13.5,
+    fontWeight: 700,
+    cursor: "pointer"
+  });
+  return ReactDOM.createPortal(React.createElement("div", {
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 220,
+      background: "rgba(8,20,14,.62)",
+      display: "grid",
+      placeItems: "center",
+      padding: 14
+    }
+  }, React.createElement("div", {
+    style: {
+      width: "100%",
+      maxWidth: 560,
+      background: "var(--bg)",
+      borderRadius: 16,
+      overflow: "hidden",
+      boxShadow: "0 24px 70px rgba(8,20,14,.4)"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "14px 16px",
+      borderBottom: "1px solid var(--border)",
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, title), React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      marginTop: 2
+    }
+  }, hint || "เซ็นด้วยนิ้วหรือเมาส์ในกรอบด้านล่าง")), React.createElement("button", {
+    onClick: onClose,
+    style: {
+      width: 34,
+      height: 34,
+      borderRadius: 10,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 16
+  }))), React.createElement("div", {
+    ref: wrap,
+    style: {
+      padding: "16px 16px 6px"
+    }
+  }, React.createElement("div", {
+    style: {
+      position: "relative",
+      border: "1px dashed var(--border-strong)",
+      borderRadius: 12,
+      background: "#fff",
+      overflow: "hidden"
+    }
+  }, React.createElement("canvas", {
+    ref: cv,
+    onPointerDown: start,
+    onPointerMove: move,
+    onPointerUp: end,
+    onPointerLeave: end,
+    onPointerCancel: end,
+    style: {
+      display: "block",
+      touchAction: "none",
+      cursor: "crosshair"
+    }
+  }), !inked && React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset: 0,
+      display: "grid",
+      placeItems: "center",
+      pointerEvents: "none"
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 13,
+      color: "#B4C2BA"
+    }
+  }, "\u0E40\u0E0B\u0E47\u0E19\u0E0A\u0E37\u0E48\u0E2D\u0E15\u0E23\u0E07\u0E19\u0E35\u0E49")), React.createElement("div", {
+    style: {
+      position: "absolute",
+      left: 22,
+      right: 22,
+      bottom: 34,
+      borderBottom: "1px solid #E3EAE5",
+      pointerEvents: "none"
+    }
+  }))), React.createElement("div", {
+    style: {
+      padding: "10px 16px 16px",
+      display: "flex",
+      gap: 9,
+      alignItems: "center",
+      flexWrap: "wrap"
+    }
+  }, React.createElement("button", {
+    onClick: wipe,
+    style: Object.assign(btn("var(--surface)", "var(--text-2)", "1px solid var(--border-strong)"), {
+      flexShrink: 0
+    })
+  }, "\u0E40\u0E02\u0E35\u0E22\u0E19\u0E43\u0E2B\u0E21\u0E48"), React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }), React.createElement("button", {
+    onClick: onClose,
+    style: btn("var(--surface)", "var(--text-2)", "1px solid var(--border-strong)")
+  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("button", {
+    onClick: done,
+    disabled: !inked,
+    style: Object.assign(btn("var(--primary)", "#fff"), {
+      opacity: inked ? 1 : 0.45,
+      cursor: inked ? "pointer" : "default"
+    })
+  }, "\u0E43\u0E0A\u0E49\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19\u0E19\u0E35\u0E49")))), document.body);
+}
+function DrSignSlot({
+  title,
+  sub,
+  sig,
+  canSign,
+  onSign,
+  onClear
+}) {
+  return React.createElement("div", {
+    style: {
+      border: "1px solid var(--border)",
+      borderRadius: 12,
+      background: "var(--surface)",
+      padding: "12px 13px"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 800,
+      color: "var(--text-2)"
+    }
+  }, title), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      marginTop: 2
+    }
+  }, sub), React.createElement("div", {
+    style: {
+      height: 76,
+      marginTop: 9,
+      borderRadius: 9,
+      background: "var(--surface2)",
+      border: "1px solid var(--border)",
+      display: "grid",
+      placeItems: "center",
+      overflow: "hidden"
+    }
+  }, sig && sig.img ? React.createElement("img", {
+    src: sig.img,
+    alt: "\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19",
+    style: {
+      maxWidth: "94%",
+      maxHeight: 66,
+      objectFit: "contain"
+    }
+  }) : React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E0B\u0E47\u0E19")), React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginTop: 9,
+      flexWrap: "wrap"
+    }
+  }, sig && sig.img && React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      flex: 1,
+      minWidth: 90
+    }
+  }, sig.name || "-", " \xB7 ", sig.at ? window.drDateTH(String(sig.at).slice(0, 10)) : "-"), canSign && React.createElement("button", {
+    onClick: onSign,
+    style: {
+      padding: "7px 12px",
+      borderRadius: 9,
+      border: "1px solid var(--primary)",
+      background: "var(--primary-soft)",
+      color: "var(--primary-dark)",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, sig && sig.img ? "เซ็นใหม่" : "เซ็นชื่อ"), canSign && sig && sig.img && React.createElement("button", {
+    onClick: onClear,
+    style: {
+      padding: "7px 11px",
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-3)",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E25\u0E1A")));
+}
 function DailyReportModal({
   job,
   role,
@@ -635,6 +974,8 @@ function DailyReportModal({
   const [date, setDate] = React.useState(window.drToday);
   const [form, setForm] = React.useState(null);
   const [paper, setPaper] = React.useState(false);
+  const sigs = window.useDailySigns(job ? job.id : null, date);
+  const [pad, setPad] = React.useState(null);
   const timer = React.useRef(null);
   const saved = store.byDate[date] || null;
   React.useEffect(() => {
@@ -664,7 +1005,7 @@ function DailyReportModal({
     clearTimeout(timer.current);
     if (form && !locked) store.save(date, form);
   };
-  const send = () => {
+  const doSend = () => {
     flush();
     store.save(date, Object.assign({}, form, {
       status: "sent",
@@ -673,7 +1014,7 @@ function DailyReportModal({
       byName: (currentUser || {}).name || ""
     }));
   };
-  const approve = () => {
+  const doApprove = () => {
     store.save(date, Object.assign({}, form, {
       status: "approved",
       approvedAt: new Date().toISOString(),
@@ -681,12 +1022,27 @@ function DailyReportModal({
       appName: (currentUser || {}).name || ""
     }));
   };
-  const reopen = () => store.patch(date, {
-    status: "draft",
-    approvedAt: null,
-    appId: null,
-    appName: null
+  const send = () => sigs.signs.by && sigs.signs.by.img ? doSend() : setPad({
+    slot: "by",
+    title: "ลายเซ็นผู้บันทึก",
+    hint: "เซ็นแล้วระบบจะส่งใบนี้ให้หัวหน้าอนุมัติทันที",
+    then: doSend
   });
+  const approve = () => sigs.signs.app && sigs.signs.app.img ? doApprove() : setPad({
+    slot: "app",
+    title: "ลายเซ็นผู้อนุมัติ",
+    hint: "เซ็นแล้วระบบจะอนุมัติและล็อกใบนี้ทันที",
+    then: doApprove
+  });
+  const reopen = () => {
+    sigs.clear("app");
+    store.patch(date, {
+      status: "draft",
+      approvedAt: null,
+      appId: null,
+      appName: null
+    });
+  };
   if (!job || !form) return null;
   const st = window.drStatusOf(form.status);
   return React.createElement(React.Fragment, null, React.createElement("div", {
@@ -1323,7 +1679,38 @@ function DailyReportModal({
       th: "ผู้รับผิดชอบ",
       w: 150
     }]
-  }))))), React.createElement("div", {
+  })))), React.createElement(DrSection, {
+    n: isProject ? "9" : "5",
+    title: "\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19",
+    tone: "#7C5CFC",
+    hint: "\u0E40\u0E0B\u0E47\u0E19\u0E14\u0E49\u0E27\u0E22\u0E19\u0E34\u0E49\u0E27\u0E1A\u0E19\u0E21\u0E37\u0E2D\u0E16\u0E37\u0E2D \u0E2B\u0E23\u0E37\u0E2D\u0E40\u0E21\u0E32\u0E2A\u0E4C\u0E1A\u0E19\u0E04\u0E2D\u0E21"
+  }, React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+      gap: 12
+    }
+  }, React.createElement(DrSignSlot, {
+    title: "\u0E1C\u0E39\u0E49\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 (\u0E0A\u0E48\u0E32\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19)",
+    sub: form.byName || (currentUser || {}).name || "-",
+    sig: sigs.signs.by,
+    canSign: !locked,
+    onSign: () => setPad({
+      slot: "by",
+      title: "ลายเซ็นผู้บันทึก"
+    }),
+    onClear: () => sigs.clear("by")
+  }), React.createElement(DrSignSlot, {
+    title: "\u0E1C\u0E39\u0E49\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34 (\u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19)",
+    sub: form.appName || (canApprove ? (currentUser || {}).name || "-" : "รอหัวหน้าเซ็น"),
+    sig: sigs.signs.app,
+    canSign: canApprove && form.status !== "approved",
+    onSign: () => setPad({
+      slot: "app",
+      title: "ลายเซ็นผู้อนุมัติ"
+    }),
+    onClear: () => sigs.clear("app")
+  })))), React.createElement("div", {
     style: {
       position: "sticky",
       bottom: 0,
@@ -1430,6 +1817,16 @@ function DailyReportModal({
     date: date,
     allDates: store.dates,
     onClose: () => setPaper(false)
+  }), pad && React.createElement(DrSignPad, {
+    title: pad.title,
+    hint: pad.hint,
+    onClose: () => setPad(null),
+    onSave: img => {
+      sigs.sign(pad.slot, img, currentUser);
+      const then = pad.then;
+      setPad(null);
+      if (then) then();
+    }
   }));
 }
 function DrPRow({
@@ -1508,6 +1905,9 @@ function DailyPaper({
   const {
     photos
   } = window.useDailyPhotos(job.id, date);
+  const {
+    signs
+  } = window.useDailySigns(job.id, date);
   const st = window.drStatusOf(rec.status);
   const docNo = window.drDocNo(job, date, allDates);
   const isProject = rec.mode === "project";
@@ -2020,11 +2420,13 @@ function DailyPaper({
   }, [{
     t: "ผู้บันทึก (ช่างหน้างาน)",
     n: rec.byName,
-    d: rec.sentAt || rec.updatedAt || rec.createdAt
+    d: rec.sentAt || rec.updatedAt || rec.createdAt,
+    g: signs.by
   }, {
     t: "ผู้อนุมัติ (หัวหน้างาน)",
     n: rec.appName,
-    d: rec.approvedAt
+    d: rec.approvedAt,
+    g: signs.app
   }].map((s, i) => React.createElement("div", {
     key: i,
     style: {
@@ -2042,20 +2444,38 @@ function DailyPaper({
     style: {
       height: 42,
       borderBottom: "1px solid #C9D5CE",
-      marginTop: 6
+      marginTop: 6,
+      display: "flex",
+      alignItems: "flex-end",
+      justifyContent: "center",
+      overflow: "hidden"
     }
-  }), React.createElement("div", {
+  }, s.g && s.g.img && React.createElement("img", {
+    src: s.g.img,
+    alt: "",
+    style: {
+      maxWidth: "88%",
+      maxHeight: 40,
+      objectFit: "contain"
+    }
+  })), React.createElement("div", {
     style: {
       fontSize: 11,
       marginTop: 6,
       color: "#15211A"
     }
-  }, "\u0E0A\u0E37\u0E48\u0E2D: ", React.createElement("b", null, s.n || "-")), React.createElement("div", {
+  }, "\u0E0A\u0E37\u0E48\u0E2D: ", React.createElement("b", null, s.g && s.g.name || s.n || "-")), React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#4A5A51"
     }
-  }, "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48: ", s.d ? window.drDateTH(String(s.d).slice(0, 10)) : "-")))), React.createElement("div", {
+  }, "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48: ", s.g && s.g.at || s.d ? window.drDateTH(String(s.g && s.g.at || s.d).slice(0, 10)) : "-"), s.g && s.g.img && React.createElement("div", {
+    style: {
+      fontSize: 8.5,
+      color: "#8A9A91",
+      marginTop: 3
+    }
+  }, "\u0E25\u0E07\u0E25\u0E32\u0E22\u0E21\u0E37\u0E2D\u0E0A\u0E37\u0E48\u0E2D\u0E2D\u0E34\u0E40\u0E25\u0E47\u0E01\u0E17\u0E23\u0E2D\u0E19\u0E34\u0E01\u0E2A\u0E4C\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A ", s.g.at ? String(s.g.at).slice(11, 16) + " น." : "")))), React.createElement("div", {
     style: {
       marginTop: 14,
       fontSize: 9.5,

@@ -306,6 +306,7 @@ function useDailyReports(jobId) {
     if (!jobId || !_DRFB() || !date) return;
     _drRef("dailyReports/" + jobId + "/" + date).remove();
     _drRef("dailyPhotos/" + jobId + "/" + date).remove();
+    _drRef("dailySigns/" + jobId + "/" + date).remove();
   }, [jobId]);
   return {
     byDate,
@@ -361,6 +362,39 @@ function useDailyPhotos(jobId, date) {
     remove
   };
 }
+function useDailySigns(jobId, date) {
+  const [signs, setSigns] = React.useState({});
+  React.useEffect(() => {
+    if (!jobId || !date || !_DRFB()) {
+      setSigns({});
+      return;
+    }
+    const ref = _drRef("dailySigns/" + jobId + "/" + date);
+    const h = ref.on("value", s => {
+      const v = s.val();
+      setSigns(v && typeof v === "object" ? v : {});
+    });
+    return () => ref.off("value", h);
+  }, [jobId, date]);
+  const sign = React.useCallback((slot, img, user) => {
+    if (!jobId || !date || !_DRFB() || !img) return;
+    _drRef("dailySigns/" + jobId + "/" + date + "/" + slot).set({
+      img,
+      at: new Date().toISOString(),
+      by: (user || {}).id || null,
+      name: (user || {}).name || ""
+    });
+  }, [jobId, date]);
+  const clear = React.useCallback(slot => {
+    if (!jobId || !date || !_DRFB()) return;
+    _drRef("dailySigns/" + jobId + "/" + date + "/" + slot).remove();
+  }, [jobId, date]);
+  return {
+    signs,
+    sign,
+    clear
+  };
+}
 function useDailyAll() {
   const [all, setAll] = React.useState({});
   const [loading, setLoading] = React.useState(true);
@@ -404,6 +438,7 @@ function drDayState(byDate, date) {
 Object.assign(window, {
   useDailyReports,
   useDailyPhotos,
+  useDailySigns,
   useDailyAll,
   drNorm,
   drToday,

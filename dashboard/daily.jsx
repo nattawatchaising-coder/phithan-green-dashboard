@@ -262,6 +262,7 @@ function useDailyReports(jobId) {
     if (!jobId || !_DRFB() || !date) return;
     _drRef("dailyReports/" + jobId + "/" + date).remove();
     _drRef("dailyPhotos/" + jobId + "/" + date).remove();
+    _drRef("dailySigns/" + jobId + "/" + date).remove();
   }, [jobId]);
 
   return { byDate, dates, loading, save, patch, remove };
@@ -304,6 +305,38 @@ function useDailyPhotos(jobId, date) {
   return { photos, add, setCap, remove };
 }
 
+/* ── ลายเซ็นอิเล็กทรอนิกส์ของใบวันหนึ่ง ──
+   แยกโหนดเหมือนรูป เพราะเป็นภาพ PNG — หน้ารวมของหัวหน้าอ่าน dailyReports ทั้งต้นไม้
+   ถ้าเอาลายเซ็นไปแปะในตัวรายงาน หน้ารวมจะต้องลากภาพของทุกงานทุกวันมาด้วย
+   เก็บสองช่อง: by = ผู้บันทึก (ช่างหน้างาน) · app = ผู้อนุมัติ (หัวหน้างาน) */
+function useDailySigns(jobId, date) {
+  const [signs, setSigns] = React.useState({});
+  React.useEffect(() => {
+    if (!jobId || !date || !_DRFB()) { setSigns({}); return; }
+    const ref = _drRef("dailySigns/" + jobId + "/" + date);
+    const h = ref.on("value", (s) => {
+      const v = s.val();
+      setSigns(v && typeof v === "object" ? v : {});
+    });
+    return () => ref.off("value", h);
+  }, [jobId, date]);
+
+  const sign = React.useCallback((slot, img, user) => {
+    if (!jobId || !date || !_DRFB() || !img) return;
+    _drRef("dailySigns/" + jobId + "/" + date + "/" + slot).set({
+      img, at: new Date().toISOString(),
+      by: (user || {}).id || null, name: (user || {}).name || "",
+    });
+  }, [jobId, date]);
+
+  const clear = React.useCallback((slot) => {
+    if (!jobId || !date || !_DRFB()) return;
+    _drRef("dailySigns/" + jobId + "/" + date + "/" + slot).remove();
+  }, [jobId, date]);
+
+  return { signs, sign, clear };
+}
+
 /* ── รายงานของ "ทุกงาน" สำหรับหน้ารวมของหัวหน้า ──
    อ่านทั้งต้นไม้ได้เพราะรูปไม่ได้อยู่ในนี้ — เรคคอร์ดหนึ่งใบเป็นข้อความล้วน */
 function useDailyAll() {
@@ -338,7 +371,7 @@ function drDayState(byDate, date) {
 }
 
 Object.assign(window, {
-  useDailyReports, useDailyPhotos, useDailyAll, drNorm,
+  useDailyReports, useDailyPhotos, useDailySigns, useDailyAll, drNorm,
   drToday, drISO, drAddDays, drDateTH, drShort, drPad2,
   DR_WEATHER, drWeatherOf, DR_STATUS, drStatusOf, DR_MANPOWER, DR_JSA, DR_CLEAN,
   drWhaSteps, drHomeSteps, drIsBoardSteps, drRollup, drWeightSum, drModeOf, drDocNo, drBlank,
