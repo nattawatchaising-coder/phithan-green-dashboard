@@ -133,7 +133,7 @@ function DrRows({ cols, rows, onChange, disabled, addLabel }) {
 /* ── ตารางขั้นงาน ──
    งานบ้าน: ระบบเติมให้เอง แก้ได้แค่ % (วันจริงมาจากประวัติการเลื่อนขั้น ไม่ให้พิมพ์ทับ)
    งานโครงการ: กรอก/เพิ่ม/ลบหัวข้อได้เอง เพราะแผนงานแต่ละโครงการไม่เหมือนกัน */
-function DrStepTable({ steps, onChange, disabled, editable }) {
+function DrStepTable({ steps, onChange, disabled, editable, onReset, plan }) {
   const list = steps || [];
   const set = (i, k, v) => onChange(list.map((r, x) => (x === i ? Object.assign({}, r, { [k]: v }) : r)));
   const cell = { padding: "5px 6px", borderBottom: "1px solid var(--border)", fontSize: 12 };
@@ -148,11 +148,11 @@ function DrStepTable({ steps, onChange, disabled, editable }) {
   return (
     <div>
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", minWidth: 640, borderCollapse: "collapse" }}>
+        <table style={{ width: "100%", minWidth: plan ? 640 : 470, borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              {["ขั้น", "รายละเอียดงาน", "แผน เริ่ม", "แผน จบ", "จริง เริ่ม", "จริง จบ", "%"].map((h, i) => (
-                <th key={i} style={{ textAlign: i === 6 ? "right" : "left", padding: "5px 6px", fontSize: 11,
+              {["ขั้น", "รายละเอียดงาน"].concat(plan ? ["แผน เริ่ม", "แผน จบ"] : []).concat(["จริง เริ่ม", "จริง จบ", "%"]).map((h, i, a) => (
+                <th key={i} style={{ textAlign: i === a.length - 1 ? "right" : "left", padding: "5px 6px", fontSize: 11,
                   color: "var(--text-3)", fontWeight: 700, borderBottom: "1px solid var(--border-strong)", whiteSpace: "nowrap" }}>{h}</th>
               ))}
               {editable && !disabled && <th style={{ width: 30, borderBottom: "1px solid var(--border-strong)" }} />}
@@ -171,8 +171,8 @@ function DrStepTable({ steps, onChange, disabled, editable }) {
                     <span style={{ fontWeight: r.head ? 700 : 400, color: "var(--text-1)" }}>{r.th}</span>
                   )}
                 </td>
-                <td style={cell}>{dateBox(i, "planStart", r)}</td>
-                <td style={cell}>{dateBox(i, "planEnd", r)}</td>
+                {plan && <td style={cell}>{dateBox(i, "planStart", r)}</td>}
+                {plan && <td style={cell}>{dateBox(i, "planEnd", r)}</td>}
                 <td style={cell}>{dateBox(i, "actStart", r)}</td>
                 <td style={cell}>{dateBox(i, "actEnd", r)}</td>
                 <td style={Object.assign({}, cell, { textAlign: "right" })}>
@@ -203,7 +203,7 @@ function DrStepTable({ steps, onChange, disabled, editable }) {
               fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>
             <Icon name="plus" size={14} /> เพิ่มหัวข้อใหญ่
           </button>
-          <button type="button" onClick={() => onChange(window.drWhaSteps())}
+          <button type="button" onClick={() => onChange((onReset || window.drWhaSteps)())}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 9,
               border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
               fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-3)" }}>
@@ -282,7 +282,9 @@ function DailyReportModal({ job, role, currentUser, onClose }) {
     /* ใบที่มีอยู่แล้ววางทับใบเปล่า — ใบเก่าจากรายงานรุ่นแรกไม่มี mode/steps
        ถ้าเอาใบเก่ามาตรง ๆ ตารางขั้นงานจะหายและโหมดกลายเป็นว่าง */
     const blank = window.drBlank(job, date, currentUser, window.drPrevOf(store.byDate, date));
-    setForm(saved ? Object.assign(blank, saved) : blank);
+    const rec = saved ? Object.assign(blank, saved) : blank;
+    if (rec.mode !== "project" && window.drIsBoardSteps(rec.steps)) rec.steps = window.drHomeSteps();
+    setForm(rec);
   }, [job ? job.id : null, date, saved ? saved.updatedAt : null]);
 
   const locked = !window.drCanEdit(role, form);
@@ -418,8 +420,11 @@ function DailyReportModal({ job, role, currentUser, onClose }) {
                 )}
               </div>
               <div style={{ marginTop: 6 }}>
-                <DrLabel hint={isProject ? "เพิ่ม/แก้/ลบหัวข้อได้ตามแผนงานของโครงการนี้" : "ระบบเติมวันจริงให้จากประวัติการเลื่อนขั้น"}>ตารางขั้นงาน</DrLabel>
-                <DrStepTable steps={form.steps} disabled={locked} editable={isProject}
+                <DrLabel hint="เพิ่ม/แก้/ลบหัวข้อได้ตามหน้างานจริง">{isProject ? "ตารางขั้นงาน" : "เนื้องานติดตั้ง"}</DrLabel>
+                {/* งานบ้านไม่มีแผนรายหัวข้อ มีแต่ช่วงวันติดตั้งช่วงเดียว ตัดสองคอลัมน์แผนทิ้ง
+                    เหลือเนื้องาน · วันจริง · % กรอกบนมือถือหน้างานได้จริง */}
+                <DrStepTable steps={form.steps} disabled={locked} editable plan={isProject}
+                  onReset={isProject ? window.drWhaSteps : window.drHomeSteps}
                   onChange={(v) => edit({ steps: v })} />
               </div>
             </DrSection>
@@ -609,16 +614,15 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
   const jsa = (window.DR_JSA || []).find((j) => j.key === rec.jsa);
   const pct = +rec.pct || 0;
 
-  /* งานบ้าน — ในใบพิมพ์เอาเฉพาะขั้นที่งานเดินอยู่ตอนนี้
-     ขั้นที่ยังไม่ถึงเป็นเส้นประทั้งแถว ใส่ไปก็ไม่ได้บอกอะไร
-     (งานโครงการยังพิมพ์ครบทุกหัวข้อ เพราะตารางนั้นคือตัวรายงานเอง) */
+  /* งานบ้าน — ในใบพิมพ์เอาเฉพาะเนื้องานที่ลงมือไปแล้วจริง
+     หัวข้อที่ยังไม่แตะเป็นเส้นประทั้งแถว ใส่ไปก็ไม่ได้บอกอะไร
+     (งานโครงการยังพิมพ์ครบทุกหัวข้อ เพราะตารางนั้นคือตัวรายงานเอง)
+     ถ้ายังไม่ได้กรอกสักแถว พิมพ์ทั้งชุดไปก่อน จะได้ไม่หายไปทั้งหัวข้อ */
   const steps = React.useMemo(() => {
     const all = rec.steps || [];
     if (isProject) return all;
-    const now = all.filter((r) => r.state === "now");
-    if (now.length) return now;
-    /* ไม่รู้ว่าอยู่ขั้นไหน (งานยังไม่เริ่ม/ข้อมูลขั้นหาย) ก็เอาเฉพาะแถวที่มีวันจริง ๆ */
-    return all.filter((r) => r.actStart || r.actEnd || r.planStart || r.planEnd);
+    const used = all.filter((r) => r.actStart || r.actEnd || r.planStart || r.planEnd || +r.pct > 0);
+    return used.length ? used : all;
   }, [rec.steps, isProject]);
 
   const doPrint = () => {
@@ -714,14 +718,14 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
 
         {/* ตารางขั้นงาน */}
         {!!steps.length && (
-          <DrPBlock title={isProject ? "ความคืบหน้าตามขั้นงาน" : "ขั้นงานที่กำลังทำ"}>
+          <DrPBlock title={isProject ? "ความคืบหน้าตามขั้นงาน" : "เนื้องานติดตั้งที่เดินไปแล้ว"}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
                   <th style={Object.assign({}, th, { width: 38 })}>ขั้น</th>
                   <th style={th}>รายละเอียดงาน</th>
-                  <th style={th}>แผน เริ่ม</th>
-                  <th style={th}>แผน จบ</th>
+                  {isProject && <th style={th}>แผน เริ่ม</th>}
+                  {isProject && <th style={th}>แผน จบ</th>}
                   <th style={th}>จริง เริ่ม</th>
                   <th style={th}>จริง จบ</th>
                   <th style={Object.assign({}, th, { textAlign: "right", width: 44 })}>%</th>
@@ -732,8 +736,8 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
                   <tr key={i} style={{ background: r.head ? "#F3F7F4" : "transparent" }}>
                     <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontWeight: r.head ? 800 : 400, color: r.head ? "#2C6B48" : "#7A8A81" })}>{r.no}</td>
                     <td style={Object.assign({}, td, { fontWeight: r.head ? 700 : 400 })}>{r.th}</td>
-                    <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.planStart ? window.drShort(r.planStart) : "—"}</td>
-                    <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.planEnd ? window.drShort(r.planEnd) : "—"}</td>
+                    {isProject && <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.planStart ? window.drShort(r.planStart) : "—"}</td>}
+                    {isProject && <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.planEnd ? window.drShort(r.planEnd) : "—"}</td>}
                     <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.actStart ? window.drShort(r.actStart) : "—"}</td>
                     <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.actEnd ? window.drShort(r.actEnd) : "—"}</td>
                     <td style={Object.assign({}, td, { textAlign: "right", fontFamily: "var(--mono)", fontWeight: 700 })}>{r.pct ? r.pct + "%" : "—"}</td>
@@ -820,11 +824,11 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
   const { all, loading } = window.useDailyAll();
   const [date, setDate] = React.useState(window.drToday);
 
-  /* งานที่ยังเดินอยู่เท่านั้นที่ต้องเขียนรายงาน — งานที่จบไปแล้วไม่ต้องมารกรายการ
+  /* เขียนรายงานเฉพาะงานที่กำลังติดตั้งอยู่ — ขั้นออกแบบ/ถอดของ/รอคิว ยังไม่มีใครขึ้นหน้างาน
      แต่ถ้าวันนั้นเคยเขียนไว้ ต้องยังเห็นอยู่ ไม่งั้นรายงานเก่าหายไปเฉย ๆ */
   const rows = React.useMemo(() => {
     const out = (jobs || []).map((j) => ({ job: j, rec: ((all || {})[j.id] || {})[date] || null }))
-      .filter((r) => r.job.stage !== "done" || r.rec);
+      .filter((r) => r.job.stage === "install" || r.rec);
     const rank = { sent: 0, draft: 1, approved: 2 };
     out.sort((a, b) => {
       const ka = a.rec ? rank[a.rec.status] != null ? rank[a.rec.status] : 1 : 3;

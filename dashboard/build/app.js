@@ -1079,7 +1079,7 @@ function App() {
     onSurvey: can(role, "doSurvey") || can(role, "dispatch") ? () => openSurvey(selectedJob) : null,
     onSurveyReport: () => setReportJob(selectedJob),
     onPermit: can(role, "editJob") && !permitOnly ? () => setPermitJob(selectedJob) : null,
-    onDaily: can(role, "editJob") && !permitOnly ? () => setDailyJob(selectedJob) : null,
+    onDaily: can(role, "editJob") && !permitOnly && selectedJob && selectedJob.stage === "install" ? () => setDailyJob(selectedJob) : null,
     permitMode: permitOnly,
     onOpenReview: permitOnly && selectedJob ? () => setPermitReview(selectedJob.id) : null,
     salesMode: salesOnly,

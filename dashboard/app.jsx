@@ -713,7 +713,9 @@ function App() {
         onSurvey={(can(role, "doSurvey") || can(role, "dispatch")) ? () => openSurvey(selectedJob) : null}
         onSurveyReport={() => setReportJob(selectedJob)}
         onPermit={can(role, "editJob") && !permitOnly ? () => setPermitJob(selectedJob) : null}
-        onDaily={can(role, "editJob") && !permitOnly ? () => setDailyJob(selectedJob) : null}
+        /* รายงานประจำวันเปิดได้เฉพาะงานที่กำลังติดตั้ง — ขั้นก่อนหน้ายังไม่มีใครขึ้นหน้างาน */
+        onDaily={can(role, "editJob") && !permitOnly && selectedJob && selectedJob.stage === "install"
+          ? () => setDailyJob(selectedJob) : null}
         permitMode={permitOnly}
         onOpenReview={permitOnly && selectedJob ? () => setPermitReview(selectedJob.id) : null}
         salesMode={salesOnly} quotes={quoteStore.quotes}

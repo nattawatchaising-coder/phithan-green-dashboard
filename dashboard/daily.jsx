@@ -116,34 +116,38 @@ function drWhaSteps() {
   return out;
 }
 
-/* ── ขั้นงานของงานบ้าน — ไม่ให้กรอกซ้ำสิ่งที่ระบบรู้อยู่แล้ว ──
-   ระบบเรามีวันที่จริงชุดเดียวคือช่วงวันติดตั้ง (stageDates.install) ขั้นอื่นเป็นสถานะล้วน
-   จึงเติม "วันแผน" ให้เฉพาะขั้นติดตั้ง ขั้นอื่นปล่อยว่าง ไม่เดาวันขึ้นมาเอง */
-function drHomeSteps(job) {
-  const SF = window.SF || {};
-  const stages = SF.STAGES || [];
-  const hist = (job && job.hist) || [];
-  const at = (k) => {
-    const h = hist.find((x) => x && x.key === k);
-    if (!h) return "";
-    const v = h.date || h.at;
-    return v ? String(v).slice(0, 10) : "";
-  };
-  const idx = stages.findIndex((s) => s.key === (job || {}).stage);
-  return stages.map((s, i) => {
-    const inst = s.key === "install";
-    const next = stages[i + 1];
-    return {
-      no: String(i + 1), th: s.th, head: true, color: s.color, key: s.key,
-      planStart: inst && SF.installDate ? SF.installDate(job) || "" : "",
-      planEnd:   inst && SF.installEnd  ? SF.installEnd(job)  || "" : "",
-      actStart: at(s.key),
-      /* ขั้นที่ผ่านไปแล้ว "จบ" ตอนที่ขั้นถัดไปเริ่ม — ระบบไม่ได้เก็บวันจบของแต่ละขั้นแยก */
-      actEnd: idx >= 0 && i < idx && next ? at(next.key) : "",
-      state: idx < 0 ? "wait" : i < idx ? "done" : i === idx ? "now" : "wait",
-      pct: 0,
-    };
-  });
+/* ── เนื้องานติดตั้งของงานบ้าน ──
+   ไม่ใช่ 5 ขั้นของบอร์ด (ออกแบบ/ถอดของ/นัดคิว/ติดตั้ง/เสร็จสิ้น) — นั่นเป็นสถานะเดินงาน
+   ไม่ใช่สิ่งที่ช่างลงมือทำหน้างาน รายงานประจำวันต้องบอกว่าวันนี้ทำเนื้องานไหนไปกี่ %
+   ชุดนี้เป็นค่าตั้งต้น แก้/เพิ่ม/ลบเองได้ เพราะบ้านแต่ละหลังไม่เหมือนกัน */
+const DR_HOME_WORK = [
+  "เตรียมพื้นที่ & ความปลอดภัย",
+  "ติดตั้งโครงสร้าง / รางแผง",
+  "ยกแผงขึ้นหลังคา & ยึดแผง",
+  "เดินสาย DC & ท่อร้อยสาย",
+  "ติดตั้งอินเวอร์เตอร์",
+  "เดินสาย AC & ตู้ควบคุม",
+  "ระบบกราวด์ & กันฟ้าผ่า",
+  "ทดสอบระบบ & เก็บงานส่งมอบ",
+];
+function drHomeSteps() {
+  return DR_HOME_WORK.map((th, i) => ({
+    no: String(i + 1), th, head: true,
+    planStart: "", planEnd: "", actStart: "", actEnd: "", pct: 0,
+  }));
+}
+
+/* ใบที่เขียนไว้ก่อนเปลี่ยนหัวข้อ ยังถือชุด 5 ขั้นของบอร์ดอยู่
+   ถ้ายังไม่ได้กรอกอะไรเลยก็สลับเป็นชุดเนื้องานให้ ไม่ต้องมานั่งกดคืนชุดมาตรฐานเอง
+   (กรอกไปแล้วไม่แตะ ของที่ช่างพิมพ์ไว้ต้องไม่หาย) */
+function drIsBoardSteps(steps) {
+  const list = steps || [];
+  const stages = (window.SF || {}).STAGES || [];
+  if (!list.length || list.length !== stages.length) return false;
+  /* วันในชุดเก่าระบบเติมให้เองจากประวัติการเลื่อนขั้น ไม่ใช่ของที่ช่างพิมพ์ จึงไม่นับ
+     ดูแค่ % ซึ่งเป็นช่องเดียวที่ชุดเก่าให้แก้ได้ */
+  if (list.some((r) => +r.pct > 0)) return false;
+  return list.every((r, i) => r.th === stages[i].th);
 }
 
 /* งานบ้าน = ฟอร์มสั้น · งานโครงการ = ฟอร์มครบ (สลับเองได้ในฟอร์ม จึงจำค่าไว้ในเรคคอร์ด) */
@@ -318,6 +322,6 @@ Object.assign(window, {
   useDailyReports, useDailyPhotos, useDailyAll, drNorm,
   drToday, drISO, drAddDays, drDateTH, drShort, drPad2,
   DR_WEATHER, drWeatherOf, DR_STATUS, drStatusOf, DR_MANPOWER, DR_JSA, DR_CLEAN,
-  drWhaSteps, drHomeSteps, drModeOf, drDocNo, drBlank,
+  drWhaSteps, drHomeSteps, drIsBoardSteps, drModeOf, drDocNo, drBlank,
   drCanApprove, drCanEdit, drPrevOf, drDayState,
 });

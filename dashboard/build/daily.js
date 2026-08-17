@@ -152,34 +152,25 @@ function drWhaSteps() {
   });
   return out;
 }
-function drHomeSteps(job) {
-  const SF = window.SF || {};
-  const stages = SF.STAGES || [];
-  const hist = job && job.hist || [];
-  const at = k => {
-    const h = hist.find(x => x && x.key === k);
-    if (!h) return "";
-    const v = h.date || h.at;
-    return v ? String(v).slice(0, 10) : "";
-  };
-  const idx = stages.findIndex(s => s.key === (job || {}).stage);
-  return stages.map((s, i) => {
-    const inst = s.key === "install";
-    const next = stages[i + 1];
-    return {
-      no: String(i + 1),
-      th: s.th,
-      head: true,
-      color: s.color,
-      key: s.key,
-      planStart: inst && SF.installDate ? SF.installDate(job) || "" : "",
-      planEnd: inst && SF.installEnd ? SF.installEnd(job) || "" : "",
-      actStart: at(s.key),
-      actEnd: idx >= 0 && i < idx && next ? at(next.key) : "",
-      state: idx < 0 ? "wait" : i < idx ? "done" : i === idx ? "now" : "wait",
-      pct: 0
-    };
-  });
+const DR_HOME_WORK = ["เตรียมพื้นที่ & ความปลอดภัย", "ติดตั้งโครงสร้าง / รางแผง", "ยกแผงขึ้นหลังคา & ยึดแผง", "เดินสาย DC & ท่อร้อยสาย", "ติดตั้งอินเวอร์เตอร์", "เดินสาย AC & ตู้ควบคุม", "ระบบกราวด์ & กันฟ้าผ่า", "ทดสอบระบบ & เก็บงานส่งมอบ"];
+function drHomeSteps() {
+  return DR_HOME_WORK.map((th, i) => ({
+    no: String(i + 1),
+    th,
+    head: true,
+    planStart: "",
+    planEnd: "",
+    actStart: "",
+    actEnd: "",
+    pct: 0
+  }));
+}
+function drIsBoardSteps(steps) {
+  const list = steps || [];
+  const stages = (window.SF || {}).STAGES || [];
+  if (!list.length || list.length !== stages.length) return false;
+  if (list.some(r => +r.pct > 0)) return false;
+  return list.every((r, i) => r.th === stages[i].th);
 }
 const drModeOf = job => (job || {}).type === "project" ? "project" : "home";
 function drDocNo(job, date, allDates) {
@@ -390,6 +381,7 @@ Object.assign(window, {
   DR_CLEAN,
   drWhaSteps,
   drHomeSteps,
+  drIsBoardSteps,
   drModeOf,
   drDocNo,
   drBlank,

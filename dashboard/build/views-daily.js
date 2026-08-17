@@ -282,7 +282,9 @@ function DrStepTable({
   steps,
   onChange,
   disabled,
-  editable
+  editable,
+  onReset,
+  plan
 }) {
   const list = steps || [];
   const set = (i, k, v) => onChange(list.map((r, x) => x === i ? Object.assign({}, r, {
@@ -317,13 +319,13 @@ function DrStepTable({
   }, React.createElement("table", {
     style: {
       width: "100%",
-      minWidth: 640,
+      minWidth: plan ? 640 : 470,
       borderCollapse: "collapse"
     }
-  }, React.createElement("thead", null, React.createElement("tr", null, ["ขั้น", "รายละเอียดงาน", "แผน เริ่ม", "แผน จบ", "จริง เริ่ม", "จริง จบ", "%"].map((h, i) => React.createElement("th", {
+  }, React.createElement("thead", null, React.createElement("tr", null, ["ขั้น", "รายละเอียดงาน"].concat(plan ? ["แผน เริ่ม", "แผน จบ"] : []).concat(["จริง เริ่ม", "จริง จบ", "%"]).map((h, i, a) => React.createElement("th", {
     key: i,
     style: {
-      textAlign: i === 6 ? "right" : "left",
+      textAlign: i === a.length - 1 ? "right" : "left",
       padding: "5px 6px",
       fontSize: 11,
       color: "var(--text-3)",
@@ -365,9 +367,9 @@ function DrStepTable({
       fontWeight: r.head ? 700 : 400,
       color: "var(--text-1)"
     }
-  }, r.th)), React.createElement("td", {
+  }, r.th)), plan && React.createElement("td", {
     style: cell
-  }, dateBox(i, "planStart", r)), React.createElement("td", {
+  }, dateBox(i, "planStart", r)), plan && React.createElement("td", {
     style: cell
   }, dateBox(i, "planEnd", r)), React.createElement("td", {
     style: cell
@@ -446,7 +448,7 @@ function DrStepTable({
     size: 14
   }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E43\u0E2B\u0E0D\u0E48"), React.createElement("button", {
     type: "button",
-    onClick: () => onChange(window.drWhaSteps()),
+    onClick: () => onChange((onReset || window.drWhaSteps)()),
     style: {
       display: "inline-flex",
       alignItems: "center",
@@ -606,7 +608,9 @@ function DailyReportModal({
   React.useEffect(() => {
     if (!job) return;
     const blank = window.drBlank(job, date, currentUser, window.drPrevOf(store.byDate, date));
-    setForm(saved ? Object.assign(blank, saved) : blank);
+    const rec = saved ? Object.assign(blank, saved) : blank;
+    if (rec.mode !== "project" && window.drIsBoardSteps(rec.steps)) rec.steps = window.drHomeSteps();
+    setForm(rec);
   }, [job ? job.id : null, date, saved ? saved.updatedAt : null]);
   const locked = !window.drCanEdit(role, form);
   const canApprove = window.drCanApprove(role);
@@ -947,11 +951,13 @@ function DailyReportModal({
       marginTop: 6
     }
   }, React.createElement(DrLabel, {
-    hint: isProject ? "เพิ่ม/แก้/ลบหัวข้อได้ตามแผนงานของโครงการนี้" : "ระบบเติมวันจริงให้จากประวัติการเลื่อนขั้น"
-  }, "\u0E15\u0E32\u0E23\u0E32\u0E07\u0E02\u0E31\u0E49\u0E19\u0E07\u0E32\u0E19"), React.createElement(DrStepTable, {
+    hint: "\u0E40\u0E1E\u0E34\u0E48\u0E21/\u0E41\u0E01\u0E49/\u0E25\u0E1A\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E44\u0E14\u0E49\u0E15\u0E32\u0E21\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19\u0E08\u0E23\u0E34\u0E07"
+  }, isProject ? "ตารางขั้นงาน" : "เนื้องานติดตั้ง"), React.createElement(DrStepTable, {
     steps: form.steps,
     disabled: locked,
-    editable: isProject,
+    editable: true,
+    plan: isProject,
+    onReset: isProject ? window.drWhaSteps : window.drHomeSteps,
     onChange: v => edit({
       steps: v
     })
@@ -1460,9 +1466,8 @@ function DailyPaper({
   const steps = React.useMemo(() => {
     const all = rec.steps || [];
     if (isProject) return all;
-    const now = all.filter(r => r.state === "now");
-    if (now.length) return now;
-    return all.filter(r => r.actStart || r.actEnd || r.planStart || r.planEnd);
+    const used = all.filter(r => r.actStart || r.actEnd || r.planStart || r.planEnd || +r.pct > 0);
+    return used.length ? used : all;
   }, [rec.steps, isProject]);
   const doPrint = () => {
     const old = document.title;
@@ -1756,7 +1761,7 @@ function DailyPaper({
       color: "#15211A"
     }
   }, wPm ? wPm.th : "-"))), !!steps.length && React.createElement(DrPBlock, {
-    title: isProject ? "ความคืบหน้าตามขั้นงาน" : "ขั้นงานที่กำลังทำ"
+    title: isProject ? "ความคืบหน้าตามขั้นงาน" : "เนื้องานติดตั้งที่เดินไปแล้ว"
   }, React.createElement("table", {
     style: {
       width: "100%",
@@ -1768,9 +1773,9 @@ function DailyPaper({
     })
   }, "\u0E02\u0E31\u0E49\u0E19"), React.createElement("th", {
     style: th
-  }, "\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\u0E07\u0E32\u0E19"), React.createElement("th", {
+  }, "\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\u0E07\u0E32\u0E19"), isProject && React.createElement("th", {
     style: th
-  }, "\u0E41\u0E1C\u0E19 \u0E40\u0E23\u0E34\u0E48\u0E21"), React.createElement("th", {
+  }, "\u0E41\u0E1C\u0E19 \u0E40\u0E23\u0E34\u0E48\u0E21"), isProject && React.createElement("th", {
     style: th
   }, "\u0E41\u0E1C\u0E19 \u0E08\u0E1A"), React.createElement("th", {
     style: th
@@ -1796,12 +1801,12 @@ function DailyPaper({
     style: Object.assign({}, td, {
       fontWeight: r.head ? 700 : 400
     })
-  }, r.th), React.createElement("td", {
+  }, r.th), isProject && React.createElement("td", {
     style: Object.assign({}, td, {
       fontFamily: "var(--mono)",
       fontSize: 10
     })
-  }, r.planStart ? window.drShort(r.planStart) : "—"), React.createElement("td", {
+  }, r.planStart ? window.drShort(r.planStart) : "—"), isProject && React.createElement("td", {
     style: Object.assign({}, td, {
       fontFamily: "var(--mono)",
       fontSize: 10
@@ -2012,7 +2017,7 @@ function DailyView({
     const out = (jobs || []).map(j => ({
       job: j,
       rec: ((all || {})[j.id] || {})[date] || null
-    })).filter(r => r.job.stage !== "done" || r.rec);
+    })).filter(r => r.job.stage === "install" || r.rec);
     const rank = {
       sent: 0,
       draft: 1,
