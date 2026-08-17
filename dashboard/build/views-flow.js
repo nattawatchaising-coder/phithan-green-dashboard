@@ -221,7 +221,10 @@ function FlGroup({
       textOverflow: "ellipsis"
     }
   }, g.hint), React.createElement("button", {
-    onClick: onToggle,
+    onClick: e => {
+      e.stopPropagation();
+      onToggle();
+    },
     "aria-label": "พับช่วง " + g.th,
     style: {
       marginLeft: "auto",

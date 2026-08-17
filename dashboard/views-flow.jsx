@@ -79,7 +79,8 @@ function FlGroup({ g, count, collapsed, onToggle, children }) {
         <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".08em", color: "var(--text-2)" }}>{g.th}</span>
         <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>{count}</span>
         <span style={{ fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{g.hint}</span>
-        <button onClick={onToggle} aria-label={"พับช่วง " + g.th}
+        {/* ปุ่มอยู่ในแถบที่กดได้ทั้งแถบ ต้องหยุดไม่ให้คลิกลอยขึ้นไปสั่งพับซ้ำ ไม่งั้นพับแล้วกางทันทีเหมือนกดไม่ติด */}
+        <button onClick={(e) => { e.stopPropagation(); onToggle(); }} aria-label={"พับช่วง " + g.th}
           style={{ marginLeft: "auto", width: 26, height: 26, borderRadius: 8, border: "1px solid var(--border)",
             background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
           <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: "rotate(90deg)" }} />
