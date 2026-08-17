@@ -46,9 +46,22 @@ function drStamp() {
   return { at: d.toISOString(), day: drISO(d), time: drPad2(d.getHours()) + ":" + drPad2(d.getMinutes()) };
 }
 
+/* เวลาที่เก็บเป็น ISO เป็นเวลา UTC — แปลงกลับเป็นวันของบ้านเราก่อนเอาไปแสดง
+   ไม่งั้นอะไรที่บันทึกหลังห้าโมงเย็นจะโชว์เป็นวันก่อนหน้า */
+const drLocalDay = (ts) => {
+  if (!ts) return "";
+  const d = new Date(ts);
+  return isNaN(d.getTime()) ? String(ts).slice(0, 10) : drISO(d);
+};
+
 /* อ่านวัน/เวลาของลายเซ็น — ใบที่เซ็นไว้ก่อนมี day/time ยังต้องอ่านได้ จึงถอยไปใช้ at */
-const drSignDay = (g) => (g ? g.day || String(g.at || "").slice(0, 10) : "");
-const drSignTime = (g) => (g ? g.time || String(g.at || "").slice(11, 16) : "");
+const drSignDay = (g) => (g ? g.day || drLocalDay(g.at) : "");
+const drSignTime = (g) => {
+  if (!g) return "";
+  if (g.time) return g.time;
+  const d = g.at ? new Date(g.at) : null;
+  return d && !isNaN(d.getTime()) ? drPad2(d.getHours()) + ":" + drPad2(d.getMinutes()) : "";
+};
 
 const drShort = (iso) => {
   if (!iso) return "-";
@@ -409,7 +422,7 @@ function drDayState(byDate, date) {
 
 Object.assign(window, {
   useDailyReports, useDailyPhotos, useDailySigns, useDrMySign, useDailyAll, drNorm,
-  drToday, drISO, drAddDays, drDateTH, drShort, drPad2, drStamp, drSignDay, drSignTime,
+  drToday, drISO, drAddDays, drDateTH, drShort, drPad2, drStamp, drSignDay, drSignTime, drLocalDay,
   DR_WEATHER, drWeatherOf, DR_STATUS, drStatusOf, DR_MANPOWER, DR_JSA, DR_CLEAN,
   drWhaSteps, drHomeSteps, drIsBoardSteps, drRollup, drWeightSum, drModeOf, drDocNo, drBlank,
   drCanApprove, drCanEdit, drPrevOf, drDayState,

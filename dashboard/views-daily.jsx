@@ -239,6 +239,32 @@ function DrStepTable({ steps, onChange, disabled, editable, onReset, plan, dates
   );
 }
 
+/* ช่องคำบรรยายใต้รูป — เก็บค่าที่พิมพ์ไว้ในเครื่องก่อน แล้วค่อยเขียนฐานข้อมูลตอนหยุดพิมพ์
+   ถ้าเขียนทุกตัวอักษร ช่างที่เน็ตช้าหน้างานจะพิมพ์แล้วตัวหนังสือกระตุก */
+function DrPhotoCap({ value, disabled, onSave }) {
+  const [v, setV] = React.useState(value || "");
+  const timer = React.useRef(null);
+  const typing = React.useRef(false);
+  React.useEffect(() => { if (!typing.current) setV(value || ""); }, [value]);
+  React.useEffect(() => () => clearTimeout(timer.current), []);
+  const edit = (nv) => {
+    setV(nv); typing.current = true;
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => { typing.current = false; onSave(nv); }, 500);
+  };
+  const flush = () => { clearTimeout(timer.current); typing.current = false; onSave(v); };
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, borderTop: "1px solid var(--border)",
+      padding: "6px 8px", background: "var(--surface2)" }}>
+      <Icon name="pen" size={12} color={v ? "var(--primary-dark)" : "var(--text-3)"} />
+      <input value={v} disabled={disabled} placeholder="พิมพ์คำบรรยายรูปนี้…"
+        onChange={(e) => edit(e.target.value)} onBlur={flush}
+        style={{ width: "100%", border: "none", padding: "3px 0", background: "transparent", color: "var(--text-1)",
+          fontFamily: "inherit", fontSize: 12, boxSizing: "border-box", outline: "none" }} />
+    </div>
+  );
+}
+
 /* ── รูปหน้างานของรายงานวันนี้ ── */
 function DrPhotos({ jobId, date, currentUser, disabled }) {
   const { photos, add, setCap, remove } = window.useDailyPhotos(jobId, date);
@@ -277,10 +303,7 @@ function DrPhotos({ jobId, date, currentUser, disabled }) {
                 </button>
               )}
             </div>
-            <input value={p.cap || ""} disabled={disabled} placeholder="คำบรรยายรูป"
-              onChange={(e) => setCap(p.id, e.target.value)}
-              style={{ width: "100%", border: "none", borderTop: "1px solid var(--border)", padding: "8px 10px",
-                background: "var(--surface)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 12, boxSizing: "border-box" }} />
+            <DrPhotoCap value={p.cap} disabled={disabled} onSave={(v) => setCap(p.id, v)} />
           </div>
         ))}
       </div>
@@ -704,7 +727,7 @@ function DailyReportModal({ job, role, currentUser, onClose }) {
               </div>
             </DrSection>
 
-            <DrSection n="3" title="รูปหน้างาน" tone="#F59E0B" hint="ใส่ได้ไม่จำกัด · ย่อรูปให้อัตโนมัติ">
+            <DrSection n="3" title="รูปหน้างาน" tone="#F59E0B" hint="ใส่ได้ไม่จำกัด · พิมพ์คำบรรยายใต้รูปได้ทุกใบ">
               <DrPhotos jobId={job.id} date={date} currentUser={currentUser} disabled={locked} />
             </DrSection>
 
@@ -1097,7 +1120,7 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
               </div>
               <div style={{ fontSize: 11, marginTop: 6, color: "#15211A" }}>ชื่อ: <b>{(s.g && s.g.name) || s.n || "-"}</b></div>
               <div style={{ fontSize: 11, color: "#4A5A51" }}>
-                วันที่: {window.drDateTH(s.g ? window.drSignDay(s.g) : String(s.d || "").slice(0, 10))}
+                วันที่: {window.drDateTH(s.g ? window.drSignDay(s.g) : window.drLocalDay(s.d))}
               </div>
               {s.g && s.g.img && (
                 <div style={{ fontSize: 8.5, color: "#8A9A91", marginTop: 3 }}>

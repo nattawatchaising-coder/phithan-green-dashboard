@@ -500,6 +500,64 @@ function DrStepTable({
     size: 14
   }), " \u0E04\u0E37\u0E19\u0E0A\u0E38\u0E14\u0E21\u0E32\u0E15\u0E23\u0E10\u0E32\u0E19")));
 }
+function DrPhotoCap({
+  value,
+  disabled,
+  onSave
+}) {
+  const [v, setV] = React.useState(value || "");
+  const timer = React.useRef(null);
+  const typing = React.useRef(false);
+  React.useEffect(() => {
+    if (!typing.current) setV(value || "");
+  }, [value]);
+  React.useEffect(() => () => clearTimeout(timer.current), []);
+  const edit = nv => {
+    setV(nv);
+    typing.current = true;
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      typing.current = false;
+      onSave(nv);
+    }, 500);
+  };
+  const flush = () => {
+    clearTimeout(timer.current);
+    typing.current = false;
+    onSave(v);
+  };
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      borderTop: "1px solid var(--border)",
+      padding: "6px 8px",
+      background: "var(--surface2)"
+    }
+  }, React.createElement(Icon, {
+    name: "pen",
+    size: 12,
+    color: v ? "var(--primary-dark)" : "var(--text-3)"
+  }), React.createElement("input", {
+    value: v,
+    disabled: disabled,
+    placeholder: "\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E04\u0E33\u0E1A\u0E23\u0E23\u0E22\u0E32\u0E22\u0E23\u0E39\u0E1B\u0E19\u0E35\u0E49\u2026",
+    onChange: e => edit(e.target.value),
+    onBlur: flush,
+    style: {
+      width: "100%",
+      border: "none",
+      padding: "3px 0",
+      background: "transparent",
+      color: "var(--text-1)",
+      fontFamily: "inherit",
+      fontSize: 12,
+      boxSizing: "border-box",
+      outline: "none"
+    }
+  }));
+}
 function DrPhotos({
   jobId,
   date,
@@ -606,22 +664,10 @@ function DrPhotos({
     name: "trash",
     size: 13,
     color: "#fff"
-  }))), React.createElement("input", {
-    value: p.cap || "",
+  }))), React.createElement(DrPhotoCap, {
+    value: p.cap,
     disabled: disabled,
-    placeholder: "\u0E04\u0E33\u0E1A\u0E23\u0E23\u0E22\u0E32\u0E22\u0E23\u0E39\u0E1B",
-    onChange: e => setCap(p.id, e.target.value),
-    style: {
-      width: "100%",
-      border: "none",
-      borderTop: "1px solid var(--border)",
-      padding: "8px 10px",
-      background: "var(--surface)",
-      color: "var(--text-1)",
-      fontFamily: "inherit",
-      fontSize: 12,
-      boxSizing: "border-box"
-    }
+    onSave: v => setCap(p.id, v)
   })))));
 }
 function drTrimSign(cv) {
@@ -1519,7 +1565,7 @@ function DailyReportModal({
     n: "3",
     title: "\u0E23\u0E39\u0E1B\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19",
     tone: "#F59E0B",
-    hint: "\u0E43\u0E2A\u0E48\u0E44\u0E14\u0E49\u0E44\u0E21\u0E48\u0E08\u0E33\u0E01\u0E31\u0E14 \xB7 \u0E22\u0E48\u0E2D\u0E23\u0E39\u0E1B\u0E43\u0E2B\u0E49\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34"
+    hint: "\u0E43\u0E2A\u0E48\u0E44\u0E14\u0E49\u0E44\u0E21\u0E48\u0E08\u0E33\u0E01\u0E31\u0E14 \xB7 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E04\u0E33\u0E1A\u0E23\u0E23\u0E22\u0E32\u0E22\u0E43\u0E15\u0E49\u0E23\u0E39\u0E1B\u0E44\u0E14\u0E49\u0E17\u0E38\u0E01\u0E43\u0E1A"
   }, React.createElement(DrPhotos, {
     jobId: job.id,
     date: date,
@@ -2584,7 +2630,7 @@ function DailyPaper({
       fontSize: 11,
       color: "#4A5A51"
     }
-  }, "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48: ", window.drDateTH(s.g ? window.drSignDay(s.g) : String(s.d || "").slice(0, 10))), s.g && s.g.img && React.createElement("div", {
+  }, "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48: ", window.drDateTH(s.g ? window.drSignDay(s.g) : window.drLocalDay(s.d))), s.g && s.g.img && React.createElement("div", {
     style: {
       fontSize: 8.5,
       color: "#8A9A91",

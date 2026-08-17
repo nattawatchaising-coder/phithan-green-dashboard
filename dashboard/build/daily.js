@@ -26,8 +26,18 @@ function drStamp() {
     time: drPad2(d.getHours()) + ":" + drPad2(d.getMinutes())
   };
 }
-const drSignDay = g => g ? g.day || String(g.at || "").slice(0, 10) : "";
-const drSignTime = g => g ? g.time || String(g.at || "").slice(11, 16) : "";
+const drLocalDay = ts => {
+  if (!ts) return "";
+  const d = new Date(ts);
+  return isNaN(d.getTime()) ? String(ts).slice(0, 10) : drISO(d);
+};
+const drSignDay = g => g ? g.day || drLocalDay(g.at) : "";
+const drSignTime = g => {
+  if (!g) return "";
+  if (g.time) return g.time;
+  const d = g.at ? new Date(g.at) : null;
+  return d && !isNaN(d.getTime()) ? drPad2(d.getHours()) + ":" + drPad2(d.getMinutes()) : "";
+};
 const drShort = iso => {
   if (!iso) return "-";
   const d = new Date(String(iso).slice(0, 10) + "T00:00:00");
@@ -494,6 +504,7 @@ Object.assign(window, {
   drStamp,
   drSignDay,
   drSignTime,
+  drLocalDay,
   DR_WEATHER,
   drWeatherOf,
   DR_STATUS,
