@@ -847,10 +847,7 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, open, onClose, aur
       <div className="sidebar-brand">
         <window.BrandMark size={38} style={{ flexShrink: 0 }} />
         {!icons && (
-          <div>
-            <div className="brand-name">flash<span className="plus">+</span>solar</div>
-            <div className="brand-sub">ระบบติดตามงานติดตั้ง</div>
-          </div>
+          <div className="brand-name">flash<span className="plus">+</span>solar</div>
         )}
         <button className="sidebar-close-btn" onClick={onClose} title="ปิดเมนู" aria-label="ปิดเมนู">
           <Icon name="x" size={15} color="var(--text-2)" />

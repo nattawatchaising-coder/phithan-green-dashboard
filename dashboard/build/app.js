@@ -1348,13 +1348,11 @@ function Sidebar({
     style: {
       flexShrink: 0
     }
-  }), !icons && React.createElement("div", null, React.createElement("div", {
+  }), !icons && React.createElement("div", {
     className: "brand-name"
   }, "flash", React.createElement("span", {
     className: "plus"
-  }, "+"), "solar"), React.createElement("div", {
-    className: "brand-sub"
-  }, "\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07")), React.createElement("button", {
+  }, "+"), "solar"), React.createElement("button", {
     className: "sidebar-close-btn",
     onClick: onClose,
     title: "\u0E1B\u0E34\u0E14\u0E40\u0E21\u0E19\u0E39",

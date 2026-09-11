@@ -130,7 +130,6 @@ input, select, textarea { font-family: inherit; }
 .brand-mark { height: 38px; width: 38px; flex-shrink: 0; display: block; }
 .brand-name { font-family: var(--brand-font); font-size: 19px; font-weight: 700; letter-spacing: -.02em; color: var(--brand-ink); line-height: 1.05; white-space: nowrap; }
 .brand-name .plus { color: #22B36A; }
-.brand-sub { font-size: 10px; color: var(--brand-muted); margin-top: 3px; letter-spacing: .02em; }
 
 .sidebar-nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
 .sidebar[data-mode="icons"] .sidebar-nav { width: 100%; align-items: center; }
@@ -367,13 +366,10 @@ input, select, textarea { font-family: inherit; }
 [data-theme="aurora"] .sidebar-brand,
 [data-theme="aurora"] .sidebar-foot { border-color: var(--border); }
 [data-theme="aurora"] .brand-name { color: var(--brand-ink); }
-/* ชื่อหน้าใหญ่แบบ Large Title ของ iOS — บีบระยะตัวอักษร ไม่ใส่สีไล่ */
-[data-theme="aurora"] .page-title { color: var(--text-1); letter-spacing: -.04em; }
-@media (min-width: 861px) { [data-theme="aurora"] .page-title { font-size: 28px; } }
-@media (min-width: 1200px) { [data-theme="aurora"] .page-title { font-size: 32px; } }
+/* ชื่อหน้า: เปลี่ยนแค่สี ขนาดกับระยะตัวอักษรคงเดิม สลับโหมดแล้วหัวหน้าจะได้ไม่ขยับ */
+[data-theme="aurora"] .page-title { color: var(--text-1); }
 
 /* ── เมนู: หน้าที่เปิดอยู่เป็นแถบสีเขียวทึบ ตัวอักษรขาว ── */
-[data-theme="aurora"] .nav-item { border-radius: 12px; }
 [data-theme="aurora"] .nav-item:hover { background: var(--gr-hi); }
 [data-theme="aurora"] .nav-item.active {
   background: var(--primary); color: #fff; box-shadow: none;
@@ -396,7 +392,7 @@ input, select, textarea { font-family: inherit; }
 [data-theme="aurora"] .stat-rail,
 [data-theme="aurora"] .bq-card,
 [data-theme="aurora"] .p3-card {
-  background: var(--gr-card); border: 1px solid var(--border); border-radius: 16px;
+  background: var(--gr-card); border: 1px solid var(--border);
   box-shadow: 0 1px 3px rgba(0,0,0,.4);
 }
 [data-theme="aurora"] .pnl::after { display: none; }
@@ -414,20 +410,18 @@ input, select, textarea { font-family: inherit; }
    จับด้วย attribute selector ทีเดียวจบ ไม่ต้องไล่แก้ 29 จุดใน 15 ไฟล์
    ต้องใช้ !important เพราะของเดิมเป็น inline style ซึ่งชนะกฎ CSS ปกติ */
 [data-theme="aurora"] .app-content [style*="background: var(--surface)"][style*="border: 1px solid var(--border)"] {
-  border-radius: 16px !important;
   box-shadow: 0 1px 3px rgba(0,0,0,.4) !important;
 }
 /* หัวตารางที่ปักหมุดไว้ (position:sticky) ต้องทึบ ไม่งั้นแถวข้อมูลจะวิ่งทะลุขึ้นมาให้เห็น */
 [data-theme="aurora"] .app-content thead th { background: var(--gr-card) !important; }
 
-/* ── ปุ่ม/ช่องกรอก: ทรงแคปซูลแบบ iOS ── */
+/* ── ปุ่ม/ช่องกรอก: เปลี่ยนแค่สีพื้นกับเงา ทรงและระยะขอบเท่าโหมดปกติ ── */
 [data-theme="aurora"] .btn-add {
-  background: var(--primary); color: #fff; border-radius: 99px; padding: 11px 20px;
-  box-shadow: none;
+  background: var(--primary); color: #fff; box-shadow: none;
 }
 [data-theme="aurora"] .btn-add:hover { background: var(--primary-bright); box-shadow: none; transform: none; }
 [data-theme="aurora"] .search-box {
-  background: var(--surface2); border-color: transparent; border-radius: 99px; padding: 9px 15px;
+  background: var(--surface2); border-color: transparent;
 }
 [data-theme="aurora"] .search-box:focus-within {
   background: var(--surface2); border-color: var(--primary);
@@ -435,7 +429,7 @@ input, select, textarea { font-family: inherit; }
 }
 [data-theme="aurora"] .ghost-btn,
 [data-theme="aurora"] .delay-toggle {
-  background: var(--surface2); border-color: transparent; border-radius: 99px; box-shadow: none;
+  background: var(--surface2); border-color: transparent; box-shadow: none;
 }
 [data-theme="aurora"] .ghost-btn:hover,
 [data-theme="aurora"] .hamburger { background: var(--surface2); }
@@ -589,6 +583,6 @@ input, select, textarea { font-family: inherit; }
 <script src="dashboard/build/daily.js?v=11"></script>
 <script src="dashboard/build/views-daily.js?v=20"></script>
 <script src="dashboard/build/auth.js?v=23"></script>
-<script src="dashboard/build/app.js?v=123"></script>
+<script src="dashboard/build/app.js?v=124"></script>
 </body>
 </html>
