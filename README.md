@@ -1,6 +1,6 @@
-# PHITHAN GREEN — ระบบติดตามงานติดตั้งโซล่าเซลล์
+# flash+solar — ระบบติดตามงานติดตั้งโซล่าเซลล์
 
-Dashboard สำหรับติดตาม Flow งานติดตั้งโซล่าเซลล์ของ PHITHAN GREEN
+Dashboard สำหรับติดตาม Flow งานติดตั้งโซล่าเซลล์ของ flash+solar
 (Solar installation workload tracking dashboard).
 
 Implemented from the Claude Design handoff bundle (`design_bundle/`).
@@ -47,7 +47,7 @@ Key features:
 ## Project structure
 
 ```
-index.html              entry point (the "PHITHAN GREEN Dashboard.html" design)
+index.html              entry point
 dashboard/
   data.js               jobs, stages, materials, techs, brands, province lat/lng
   data-stock.js         inventory seed data
@@ -62,7 +62,7 @@ dashboard/
   views-calendar.jsx    Calendar
   views-stock.jsx       Inventory
   app.jsx               app shell, sidebar, routing
-  assets/               PHITHAN GREEN logo + mark
+  assets/               flash+solar logo + mark
 design_bundle/          original Claude Design export (chats, screenshots, source)
 ```
 

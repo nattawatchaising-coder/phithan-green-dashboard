@@ -370,7 +370,7 @@ function ReportView({
     style: btn({
       background: copiedAll ? "var(--primary-dark)" : "var(--primary)",
       color: "#fff",
-      boxShadow: "0 2px 8px rgba(34,163,91,.25)"
+      boxShadow: "0 2px 8px rgba(27,155,117,.25)"
     })
   }, React.createElement(Icon, {
     name: copiedAll ? "check" : "file",

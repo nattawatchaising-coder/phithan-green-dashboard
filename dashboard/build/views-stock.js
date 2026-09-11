@@ -7,7 +7,7 @@ function lowState(it) {
 const STOCK_COLORS = {
   out: "#EF4444",
   low: "#F59E0B",
-  ok: "#22A35B"
+  ok: "#1B9B75"
 };
 const SIZE_RE = /(\d+(?:\.\d+)?\s*[x×]\s*\d+(?:\.\d+)?\s*(?:sq\.?\s*mm\.?|ตร\.?\s*มม\.?|mm\.?|มม\.?)?)|(\d+[\s-]\d+\/\d+\s*(?:"|″|นิ้ว))|(\d+\/\d+\s*(?:"|″|นิ้ว))|(\d+(?:\.\d+)?\s*(?:sq\.?\s*mm\.?|ตร\.?\s*มม\.?))|(\d+(?:\.\d+)?\s*(?:mm\.?|มม\.?|"|″|นิ้ว))/i;
 function sizeOfName(name) {
@@ -53,8 +53,8 @@ const MOVE_TYPES = {
     label: "รับเข้า",
     sym: "+",
     color: "var(--tint-ok-tx)",
-    accent: "#22A35B",
-    bg: "#22A35B16",
+    accent: "#1B9B75",
+    bg: "#1B9B7516",
     title: "รับเข้าคลัง",
     sub: "เพิ่มสต็อกจากการสั่งซื้อ"
   },
@@ -3112,7 +3112,7 @@ function AmpacityEditor({
   }, React.createElement(Icon, {
     name: "check",
     size: 16,
-    color: "#22A35B",
+    color: "#1B9B75",
     style: {
       flexShrink: 0,
       marginTop: 1

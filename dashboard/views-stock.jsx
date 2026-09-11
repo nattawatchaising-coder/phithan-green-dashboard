@@ -7,7 +7,7 @@ function lowState(it) {
   if (it.qty <= it.min) return "low";
   return "ok";
 }
-const STOCK_COLORS = { out: "#EF4444", low: "#F59E0B", ok: "#22A35B" };
+const STOCK_COLORS = { out: "#EF4444", low: "#F59E0B", ok: "#1B9B75" };
 
 /* ── ของชนิดเดียวกันแต่คนละขนาด ──
    ในคลังยังเก็บแยกรายการเหมือนเดิม (คนละรหัส คนละราคา คนละสต็อก)
@@ -49,7 +49,7 @@ function groupSummary(list) {
 
 /* ประเภทการเคลื่อนไหวสต็อก: รับเข้า / เบิกออก / คืนของ */
 const MOVE_TYPES = {
-  in:     { key: "in",     label: "รับเข้า",  sym: "+", color: "var(--tint-ok-tx)", accent: "#22A35B", bg: "#22A35B16", title: "รับเข้าคลัง",      sub: "เพิ่มสต็อกจากการสั่งซื้อ" },
+  in:     { key: "in",     label: "รับเข้า",  sym: "+", color: "var(--tint-ok-tx)", accent: "#1B9B75", bg: "#1B9B7516", title: "รับเข้าคลัง",      sub: "เพิ่มสต็อกจากการสั่งซื้อ" },
   out:    { key: "out",    label: "เบิกออก",  sym: "−", color: "#6645e0", accent: "#7C5CFC", bg: "#7C5CFC16", title: "เบิกออกหน้างาน",   sub: "เลือกงานที่นำไปใช้" },
   return: { key: "return", label: "คืนของ",  sym: "↩", color: "#0784b8", accent: "#0EA5E9", bg: "#0EA5E916", title: "คืนของเข้าคลัง",   sub: "คืนอุปกรณ์ที่เบิกจากงาน" },
 };
@@ -1153,7 +1153,7 @@ function AmpacityEditor({ ampStore }) {
       {/* บอกที่มาของตัวเลขจางในตาราง — ยืมมาจากวิธีอื่น หรือยังไม่มีเลย */}
       {borrowed ? (
         <div style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "11px 14px", background: "var(--tint-ok-bg)", border: "1px solid var(--tint-ok-bd)", borderRadius: 12, marginBottom: 14 }}>
-          <Icon name="check" size={16} color="#22A35B" style={{ flexShrink: 0, marginTop: 1 }} />
+          <Icon name="check" size={16} color="#1B9B75" style={{ flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 12, color: "var(--tint-ok-tx)", lineHeight: 1.55 }}>
             ตัวเลขจางในตารางนี้ <strong>ยืมมาจาก "{methodTh(baseKey)}"</strong> — {methodMeta.baseWhy || "วสท. ให้สองวิธีนี้ใช้ตารางพิกัดชุดเดียวกัน"}
             <br />เครื่องคำนวณ BOQ ใช้ค่าชุดนี้อยู่จริง · กรอกทับได้ถ้ามีตารางเฉพาะของรุ่นที่ใช้

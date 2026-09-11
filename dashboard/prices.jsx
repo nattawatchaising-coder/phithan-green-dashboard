@@ -1,11 +1,11 @@
 /* ============================================================
-   PHITHAN GREEN — จัดการราคาวัสดุ BOQ (รหัส + ราคา/หน่วย)
+   flash+solar — จัดการราคาวัสดุ BOQ (รหัส + ราคา/หน่วย)
    + เพิ่มวัสดุเอง (Accessories) + เชื่อมคลังสินค้า
    แสดงแบบ inline panel (แท็บในหน้าคลังสินค้า)
    ============================================================ */
 
 const PRICE_GROUP_TH = { all: "ทั้งหมด", "PV MODULE": "แผง", INVERTER: "อินเวอร์เตอร์", MOUNTING: "อุปกรณ์ mounting", CABLE: "สายไฟ", "RACE WAY": "ท่อร้อยสาย", GROUNDING: "กราวด์", ACCESSORIES: "Accessories", "LADDER (บันไดลิง)": "LADDER (บันไดลิง)", WALKWAY: "WALKWAY", "GUARD RAIL": "GUARD RAIL" };
-const PRICE_GROUP_COLOR = { "PV MODULE": "#22A35B", INVERTER: "#7C5CFC", MOUNTING: "#F59E0B", CABLE: "#0EA5E9", "RACE WAY": "#64748B", GROUNDING: "#A16207", ACCESSORIES: "#EC4899", "LADDER (บันไดลิง)": "#0D9488", WALKWAY: "#D97706", "GUARD RAIL": "#DB2777" };
+const PRICE_GROUP_COLOR = { "PV MODULE": "#1B9B75", INVERTER: "#7C5CFC", MOUNTING: "#F59E0B", CABLE: "#0EA5E9", "RACE WAY": "#64748B", GROUNDING: "#A16207", ACCESSORIES: "#EC4899", "LADDER (บันไดลิง)": "#0D9488", WALKWAY: "#D97706", "GUARD RAIL": "#DB2777" };
 
 const CAT_TO_GROUP = { panel: "PV MODULE", inverter: "INVERTER", battery: "INVERTER", structure: "MOUNTING", steelwork: "LADDER (บันไดลิง)", wiring: "CABLE", conduit: "RACE WAY", grounding: "GROUNDING", accessory: "ACCESSORIES", other: "ACCESSORIES" };
 
@@ -94,7 +94,7 @@ function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
                   <span style={{ width: 6, height: 6, borderRadius: 99, background: PRICE_GROUP_COLOR[c.group] || "var(--text-3)", flexShrink: 0 }} />
                   <span style={{ fontSize: 12.5, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
                   {inStock
-                    ? <span title="มีในคลังสินค้า" style={{ fontSize: 9.5, fontWeight: 700, color: "var(--tint-ok-tx)", background: "#22A35B16", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>คลัง</span>
+                    ? <span title="มีในคลังสินค้า" style={{ fontSize: 9.5, fontWeight: 700, color: "var(--tint-ok-tx)", background: "#1B9B7516", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>คลัง</span>
                     : <span title="ยังไม่มีในคลัง — บันทึกแล้วจะสร้างให้" style={{ fontSize: 9.5, fontWeight: 700, color: "var(--tint-amber-tx)", background: "#F59E0B1f", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>ใหม่</span>}
                 </div>
                 <span style={{ fontSize: 10.5, color: "var(--text-3)", marginLeft: 12 }}>{(PRICE_GROUP_TH[c.group] || c.group)} · {c.unit || "-"}</span>

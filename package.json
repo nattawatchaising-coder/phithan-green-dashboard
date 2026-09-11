@@ -1,5 +1,5 @@
 {
-  "name": "phithan-green-dashboard",
+  "name": "flash-solar-dashboard",
   "version": "1.0.0",
   "private": true,
   "description": "แปลง JSX เป็น JS ล่วงหน้า — เบราว์เซอร์จะได้ไม่ต้องแปลงเองตอนเปิดเว็บ",

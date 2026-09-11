@@ -1,5 +1,5 @@
 /* ============================================================
-   PHITHAN GREEN — รายงานออกแบบระบบ + ผลตรวจวัด + ผลตอบแทน (PDF)
+   flash+solar — รายงานออกแบบระบบ + ผลตรวจวัด + ผลตอบแทน (PDF)
    ------------------------------------------------------------
    สร้างเป็นหน้าเว็บเดี่ยว ๆ ในหน้าต่างใหม่แล้วสั่งพิมพ์ → "บันทึกเป็น PDF"
    ตั้งใจไม่พึ่งไลบรารีนอก เพราะรายงานต้องออกได้แม้เน็ตหน้างานไม่ดี
@@ -14,7 +14,7 @@ const RP_ESC = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&
 const rpN = (v, d) => { const n = parseFloat(v); return isFinite(n) ? n.toLocaleString("en-US", { minimumFractionDigits: d || 0, maximumFractionDigits: d == null ? 0 : d }) : "—"; };
 
 /* โลโก้จริงของบริษัท — หน้าต่างรายงานเปิดจาก about:blank พาธสัมพัทธ์จึงใช้ไม่ได้ ต้องทำเป็น URL เต็ม */
-const rpLogoURL = () => { try { return new URL("dashboard/assets/phithan-mark.png", location.href).href; } catch (e) { return ""; } };
+const rpLogoURL = () => { try { return new URL("dashboard/assets/flash-mark.png", location.href).href; } catch (e) { return ""; } };
 
 /* ตารางแบบสั้น ๆ: rpTable([หัวคอลัมน์], [[แถว]], ตัวเลือก) */
 function rpTable(head, rows, opt) {
@@ -40,7 +40,7 @@ function rpMonthly(data) {
     data.map((v, i) => {
       const x = W / data.length * i + (W / data.length - bw) / 2;
       const h = Math.max(1, v / max * (H - T - B));
-      return '<rect x="' + x.toFixed(1) + '" y="' + (H - B - h).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="2" fill="#22A35B"/>' +
+      return '<rect x="' + x.toFixed(1) + '" y="' + (H - B - h).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="2" fill="#1B9B75"/>' +
         '<text x="' + (x + bw / 2).toFixed(1) + '" y="' + (H - B - h - 4).toFixed(1) + '" text-anchor="middle" font-size="9" font-weight="700" fill="#5B6B63">' + Math.round(v / 100) / 10 + 'k</text>' +
         '<text x="' + (x + bw / 2).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="9" fill="#8A968F">' + SC_MON[i].replace(".", "") + "</text>";
     }).join("") + "</svg>";
@@ -57,7 +57,7 @@ function rpCash(roi) {
   return '<svg viewBox="0 0 ' + W + " " + H + '" class="chart">' +
     '<line x1="0" y1="' + Y(0).toFixed(1) + '" x2="' + W + '" y2="' + Y(0).toFixed(1) + '" stroke="#C9D3CD" stroke-width="1"/>' +
     rows.map((r, i) => '<rect x="' + X(i).toFixed(1) + '" y="' + Math.min(Y(r.cum), Y(0)).toFixed(1) + '" width="' + bw.toFixed(1) +
-      '" height="' + Math.max(1, Math.abs(Y(r.cum) - Y(0))).toFixed(1) + '" rx="1.5" fill="' + (r.cum >= 0 ? "#22A35B" : "#C9D3CD") + '"/>').join("") +
+      '" height="' + Math.max(1, Math.abs(Y(r.cum) - Y(0))).toFixed(1) + '" rx="1.5" fill="' + (r.cum >= 0 ? "#1B9B75" : "#C9D3CD") + '"/>').join("") +
     (roi.payback != null && roi.payback <= rows.length
       ? '<line x1="' + X(roi.payback).toFixed(1) + '" y1="' + T + '" x2="' + X(roi.payback).toFixed(1) + '" y2="' + (H - B) +
         '" stroke="#B45309" stroke-width="1.4" stroke-dasharray="4 3"/><text x="' + (X(roi.payback) + 5).toFixed(1) + '" y="' + (T + 10) +
@@ -80,8 +80,8 @@ function rpIv(exp, stcRef, meas) {
     '<line x1="' + L + '" y1="' + T + '" x2="' + L + '" y2="' + (H - B) + '" stroke="#C9D3CD"/>' +
     '<line x1="' + L + '" y1="' + (H - B) + '" x2="' + (W - R) + '" y2="' + (H - B) + '" stroke="#C9D3CD"/>' +
     (stcRef ? '<path d="' + line(stcRef) + '" fill="none" stroke="#A8B4AE" stroke-width="1.1" stroke-dasharray="4 3"/>' : "") +
-    '<path d="' + line(exp) + '" fill="none" stroke="#22A35B" stroke-width="1.9"/>' +
-    '<circle cx="' + X(exp.vmp).toFixed(1) + '" cy="' + Y(exp.imp).toFixed(1) + '" r="3.2" fill="#fff" stroke="#22A35B" stroke-width="1.8"/>' +
+    '<path d="' + line(exp) + '" fill="none" stroke="#1B9B75" stroke-width="1.9"/>' +
+    '<circle cx="' + X(exp.vmp).toFixed(1) + '" cy="' + Y(exp.imp).toFixed(1) + '" r="3.2" fill="#fff" stroke="#1B9B75" stroke-width="1.8"/>' +
     (meas && meas.voc ? '<circle cx="' + X(meas.voc).toFixed(1) + '" cy="' + Y(0).toFixed(1) + '" r="3.2" fill="#2563EB"/>' : "") +
     (meas && meas.isc ? '<circle cx="' + X(0).toFixed(1) + '" cy="' + Y(meas.isc).toFixed(1) + '" r="3.2" fill="#2563EB"/>' : "") +
     (meas && meas.vmp && meas.imp ? '<circle cx="' + X(meas.vmp).toFixed(1) + '" cy="' + Y(meas.imp).toFixed(1) + '" r="3.6" fill="#2563EB" stroke="#fff" stroke-width="1.2"/>' : "") +
@@ -140,12 +140,12 @@ function rpDayLight(sim, groups) {
     '<path d="' + path((r) => r.poaAvg) + " " + sim.rows.slice().reverse().map((r) => "L" + X(r.h).toFixed(1) + " " + Y(net(r)).toFixed(1)).join(" ") +
     ' Z" fill="url(#rpHatch)"/>' +
     '<path d="' + path(net) + " L" + X(sim.rows[sim.rows.length - 1].h).toFixed(1) + " " + Y(0) + " L" + X(sim.rows[0].h).toFixed(1) + " " + Y(0) +
-    ' Z" fill="rgba(34,163,91,.18)"/>' +
+    ' Z" fill="rgba(27,155,117,.18)"/>' +
     '<path d="' + path((r) => r.ghi) + '" fill="none" stroke="#A8B4AE" stroke-width="1.2" stroke-dasharray="5 4"/>' +
-    '<path d="' + path(net) + '" fill="none" stroke="#22A35B" stroke-width="2"/>' +
+    '<path d="' + path(net) + '" fill="none" stroke="#1B9B75" stroke-width="2"/>' +
     ticks.map((h) => '<text x="' + X(h).toFixed(1) + '" y="' + (H - B + 13) + '" text-anchor="middle" font-size="8.5" fill="#8A968F">' + h + ":00</text>").join("") +
     '<text x="' + (L - 6) + '" y="' + (T - 2) + '" text-anchor="end" font-size="8" fill="#8A968F">W/m²</text></svg>' +
-    '<p class="legend"><b style="color:#A8B4AE">┅</b> แสงบนพื้นราบ &nbsp;&nbsp; <b style="color:#22A35B">━</b> แสงบนหน้าแผงจริง (หลังหักเงา)' +
+    '<p class="legend"><b style="color:#A8B4AE">┅</b> แสงบนพื้นราบ &nbsp;&nbsp; <b style="color:#1B9B75">━</b> แสงบนหน้าแผงจริง (หลังหักเงา)' +
     (sim.shadeFrom != null ? ' &nbsp;&nbsp; <b style="color:#475569">▨</b> ส่วนที่เงาบังกินไป' : "") + "</p>" +
     /* แถบเงารายชั่วโมงรายกลุ่ม */
     (sim.shadeFrom != null
@@ -198,21 +198,21 @@ function rpDayPower(mo, acKw) {
         '" stroke="#B45309" stroke-width="1.2" stroke-dasharray="5 3"/><text x="' + (W - R - 2) + '" y="' + (Yp(acKw) - 4).toFixed(1) +
         '" text-anchor="end" font-size="8.5" font-weight="700" fill="#B45309">เพดานอินเวอร์เตอร์ ' + acKw + " kW</text>" : "") +
     '<path d="' + path(cs, (c) => c.dc, Yp) + " L" + X(cs[cs.length - 1].h).toFixed(1) + " " + Yp(0) + " L" + X(cs[0].h).toFixed(1) + " " + Yp(0) +
-    ' Z" fill="rgba(34,163,91,.13)"/>' +
-    '<path d="' + path(cs, (c) => c.dc, Yp) + '" fill="none" stroke="#22A35B" stroke-width="1.2" stroke-dasharray="4 3"/>' +
-    '<path d="' + path(cs, (c) => c.ac, Yp) + '" fill="none" stroke="#0F7A43" stroke-width="2.1" stroke-linejoin="round"/>' +
+    ' Z" fill="rgba(27,155,117,.13)"/>' +
+    '<path d="' + path(cs, (c) => c.dc, Yp) + '" fill="none" stroke="#1B9B75" stroke-width="1.2" stroke-dasharray="4 3"/>' +
+    '<path d="' + path(cs, (c) => c.ac, Yp) + '" fill="none" stroke="#148080" stroke-width="2.1" stroke-linejoin="round"/>' +
     (ts.length > 1 ? '<path d="' + path(ts, (c) => c.tCell, Yt) + '" fill="none" stroke="#C4342B" stroke-width="1.5" stroke-linejoin="round"/>' : "") +
-    '<circle cx="' + X(pk.h).toFixed(1) + '" cy="' + Yp(pk.ac).toFixed(1) + '" r="3.2" fill="#fff" stroke="#0F7A43" stroke-width="1.8"/>' +
+    '<circle cx="' + X(pk.h).toFixed(1) + '" cy="' + Yp(pk.ac).toFixed(1) + '" r="3.2" fill="#fff" stroke="#148080" stroke-width="1.8"/>' +
     '<text x="' + clamp(X(pk.h), L + 36, W - R - 36).toFixed(1) + '" y="' + (Yp(pk.ac) - 7).toFixed(1) +
-    '" text-anchor="middle" font-size="9.5" font-weight="700" fill="#0F7A43">สูงสุด ' + (Math.round(pk.ac * 100) / 100) + " kW</text>" +
+    '" text-anchor="middle" font-size="9.5" font-weight="700" fill="#148080">สูงสุด ' + (Math.round(pk.ac * 100) / 100) + " kW</text>" +
     '<circle cx="' + X(tk.h).toFixed(1) + '" cy="' + Yt(tk.tCell).toFixed(1) + '" r="3" fill="#fff" stroke="#C4342B" stroke-width="1.6"/>' +
     '<text x="' + clamp(X(tk.h), L + 32, W - R - 32).toFixed(1) + '" y="' + (Yt(tk.tCell) - 6).toFixed(1) +
     '" text-anchor="middle" font-size="9" font-weight="700" fill="#C4342B">ร้อนสุด ' + Math.round(tk.tCell) + "°C</text>" +
     [6, 8, 10, 12, 14, 16, 18].filter((h) => h >= h0 && h <= h1).map((h) =>
       '<text x="' + X(h).toFixed(1) + '" y="' + (H - B + 13) + '" text-anchor="middle" font-size="8.5" fill="#8A968F">' + h + ":00</text>").join("") +
     "</svg>" +
-    '<p class="legend"><b style="color:#0F7A43">━</b> กำลังไฟที่ออกจากอินเวอร์เตอร์ (AC) &nbsp;&nbsp; ' +
-    '<b style="color:#22A35B">┅</b> กำลังไฟจากแผง (DC) &nbsp;&nbsp; <b style="color:#C4342B">━</b> อุณหภูมิเซลล์ (แกนขวา)</p>';
+    '<p class="legend"><b style="color:#148080">━</b> กำลังไฟที่ออกจากอินเวอร์เตอร์ (AC) &nbsp;&nbsp; ' +
+    '<b style="color:#1B9B75">┅</b> กำลังไฟจากแผง (DC) &nbsp;&nbsp; <b style="color:#C4342B">━</b> อุณหภูมิเซลล์ (แกนขวา)</p>';
 }
 
 /* ── แผนที่ทั้งปี เดือน × ชั่วโมง ──
@@ -340,7 +340,7 @@ function rpLossFlow(chain) {
     " L" + X0 + " " + last.y1.toFixed(1) + " Z";
   return '<svg viewBox="0 0 ' + W + " " + H + '" class="chart">' +
     '<defs><linearGradient id="rpFlowG" x1="0" y1="0" x2="0" y2="1">' +
-    '<stop offset="0%" stop-color="#3ECF84"/><stop offset="55%" stop-color="#22A35B"/><stop offset="100%" stop-color="#0B6B3A"/></linearGradient></defs>' +
+    '<stop offset="0%" stop-color="#3ECF84"/><stop offset="55%" stop-color="#1B9B75"/><stop offset="100%" stop-color="#0B6B3A"/></linearGradient></defs>' +
     '<path d="' + trunk + '" fill="url(#rpFlowG)"/>' +
     seg.map((s) => ((s.r.kind === "loss" || s.r.kind === "gain") && Math.abs(s.wA - s.wB) > 0.2
       ? '<line x1="' + X0 + '" y1="' + ((s.y0 + s.y1) / 2).toFixed(1) + '" x2="' + (X0 + Math.min(s.wA, s.wB)).toFixed(1) +
@@ -375,17 +375,17 @@ function rpLossFlow(chain) {
           (R.note ? '<text x="' + LX + '" y="' + (yc + 14).toFixed(1) + '" font-size="8.5" font-weight="600" fill="#8A968F">' + RP_ESC(cut(R.note, 70)) + "</text>" : "");
       }
       const big = R.kind === "end", first = R.kind === "start";
-      const accent = big ? "#0F7A43" : first ? "#B45309" : "#C9D3CD";
+      const accent = big ? "#148080" : first ? "#B45309" : "#C9D3CD";
       return '<line x1="' + X0 + '" y1="' + s.y1.toFixed(1) + '" x2="' + (XL + 4) + '" y2="' + s.y1.toFixed(1) +
-        '" stroke="' + (big ? "#0F7A43" : "#D8E0DB") + '" stroke-width="' + (big ? 1.4 : 1) + '"' +
+        '" stroke="' + (big ? "#148080" : "#D8E0DB") + '" stroke-width="' + (big ? 1.4 : 1) + '"' +
         (big ? ' stroke-opacity=".7"' : ' stroke-dasharray="3 4"') + "/>" +
         '<rect x="' + (LX - 9) + '" y="' + (s.y1 - 32).toFixed(1) + '" width="3" height="30" rx="1.5" fill="' + accent +
         '" fill-opacity="' + (big || first ? 1 : 0.5) + '"/>' +
         '<text x="' + LX + '" y="' + (s.y1 - 23).toFixed(1) + '" font-size="10.5" font-weight="800" fill="#16211D">' + RP_ESC(cut(R.label, 60)) + "</text>" +
         '<text x="' + LX + '" y="' + (s.y1 - 11).toFixed(1) + '" font-size="9.5" font-weight="800" fill="' +
-        (big ? "#0F7A43" : first ? "#B45309" : "#3A4A43") + '">' + RP_ESC(rpN(R.kwh) + " kWh") +
+        (big ? "#148080" : first ? "#B45309" : "#3A4A43") + '">' + RP_ESC(rpN(R.kwh) + " kWh") +
         (R.unit ? '<tspan fill="#8A968F" font-weight="700">' + RP_ESC("   ·   " + R.unit) + "</tspan>" : "") +
-        (big ? '<tspan fill="#0F7A43" font-weight="800">' + RP_ESC("   ·   PR " + R.pct + "%") + "</tspan>" : "") + "</text>" +
+        (big ? '<tspan fill="#148080" font-weight="800">' + RP_ESC("   ·   PR " + R.pct + "%") + "</tspan>" : "") + "</text>" +
         (R.note ? '<text x="' + LX + '" y="' + (s.y1 - 1).toFixed(1) + '" font-size="8.5" font-weight="600" fill="#8A968F">' + RP_ESC(cut(R.note, 70)) + "</text>" : "");
     }).join("") +
     "</svg>";
@@ -445,8 +445,8 @@ function rpSunPath(path, iso) {
 }
 
 /* ── ชุดเส้น I-V & P-V แบบดาต้าชีต ── */
-const RP_GRAMP = ["#0B5F35", "#15803D", "#22A35B", "#6FC48F", "#B3DEC4"];
-const RP_TRAMP = ["#1D4ED8", "#0F7A43", "#D97706", "#DC2626"];
+const RP_GRAMP = ["#0B5F35", "#15803D", "#1B9B75", "#6FC48F", "#B3DEC4"];
+const RP_TRAMP = ["#1D4ED8", "#148080", "#D97706", "#DC2626"];
 function rpIvFamily(curves, mode) {
   const list = (curves || []).filter(Boolean);
   if (!list.length) return "";
@@ -508,7 +508,7 @@ function rpIvFamily(curves, mode) {
 /* ── ไฟทั้งวันไหลไปไหน (แท่งซ้อน 24 ชั่วโมง) ──
    ใช้ตรรกะเดียวกับ SuFlowDay บนหน้าจอเป๊ะ ๆ เพื่อให้รายงานกับหน้าจอไม่มีทางขัดกัน */
 const RP_FLOW = {
-  direct: { c: "#22A35B", label: "ใช้ตรง ๆ ตอนนั้น" },
+  direct: { c: "#1B9B75", label: "ใช้ตรง ๆ ตอนนั้น" },
   chg: { c: "#2563EB", label: "เก็บเข้าแบต" },
   dis: { c: "#6366F1", label: "จ่ายออกจากแบต" },
   exp: { c: "#EFA53A", label: "ขายคืนการไฟฟ้า" },
@@ -792,7 +792,7 @@ function suReportHTML(D) {
     if (!(r.a && r.a.exp)) return null;
     const ch = Math.max(1, Math.round((r.u.count || 1) / Math.max(1, r.u.n)));
     return { id: r.u.id, name: r.u.name, curve: r.a.exp, watt: r.a.exp.pmax * (D.isMicro ? ch : 1),
-      color: (typeof suColor === "function" ? suColor(r.u.sid || i + 1) : "#22A35B") };
+      color: (typeof suColor === "function" ? suColor(r.u.sid || i + 1) : "#1B9B75") };
   }).filter(Boolean);
   const ivMain = (D.ivRows || [])[0];
   const ivAllSec = ivCurves.length && P.ivAll
@@ -805,7 +805,7 @@ function suReportHTML(D) {
         (D.ivRows || []).filter((r) => r.a && r.a.exp).map((r, i) => {
           /* ไมโคร 1 ตัวมีหลายช่อง MPPT แยกอิสระ — ค่าไฟฟ้าเป็นของ 1 ช่อง กำลังรวมคือทุกช่องบวกกัน */
           const ch = Math.max(1, Math.round((r.u.count || 1) / Math.max(1, r.u.n)));
-          return [{ html: '<span class="dot" style="background:' + (typeof suColor === "function" ? suColor(r.u.sid || i + 1) : "#22A35B") + '"></span><b>' + RP_ESC(r.u.name) + "</b>" }]
+          return [{ html: '<span class="dot" style="background:' + (typeof suColor === "function" ? suColor(r.u.sid || i + 1) : "#1B9B75") + '"></span><b>' + RP_ESC(r.u.name) + "</b>" }]
             .concat(D.isMicro ? [r.u.count || r.u.n, r.u.n + " ใบ"] : [r.u.n])
             .concat([r.a.cond.g, scR(r.a.cond.tc, 0),
               scR(r.a.exp.voc, 1), scR(r.a.exp.isc, 2), scR(r.a.exp.vmp, 1), scR(r.a.exp.imp, 2),
@@ -1072,8 +1072,9 @@ function suReportHTML(D) {
     /* ── หน้าปก: เต็มหน้า A4 หนึ่งหน้า ── */
     '<header class="cover">' +
       '<div class="cv-bar">' +
-        '<div class="brand"><img class="mark" src="' + RP_ESC(rpLogoURL()) + '" alt="PHITHAN GREEN">' +
-        "<div><b>PHITHAN GREEN</b><span>ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์</span></div></div>" +
+        '<div class="brand"><img class="mark" src="' + RP_ESC(rpLogoURL()) + '" alt="' + window.BRANDING.name + '">' +
+        '<div><b style="font-family:Outfit,sans-serif;letter-spacing:-.02em">flash<span style="color:#22B36A">+</span>solar</b>' +
+        "<span>ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์</span></div></div>" +
         '<span class="cv-tag">' + RP_ESC(job.code || "—") + "</span>" +
       "</div>" +
       '<div class="cv-mid">' +
@@ -1112,7 +1113,7 @@ function suReportHTML(D) {
       (D.isMicro && (D.microUnits || []).length
         ? rpTable(["ไมโคร", "แผง", "กลุ่มทิศทาง"].concat(D.phases === 3 ? ["เฟส"] : []).concat(["หมายเหตุ"]),
             D.microUnits.map((u) => [
-              { html: '<span class="dot" style="background:' + (typeof suColor === "function" ? suColor(u.id) : "#22A35B") + '"></span><b>ตัวที่ ' + u.id + "</b>" },
+              { html: '<span class="dot" style="background:' + (typeof suColor === "function" ? suColor(u.id) : "#1B9B75") + '"></span><b>ตัวที่ ' + u.id + "</b>" },
               u.n, u.gLabel]
               .concat(D.phases === 3 ? [{ v: (((D.uidPhase || {})[(u.uids || [])[0]]) || "—"), cls: "ok" }] : [])
               .concat([{ v: u.mixed ? "คร่อมกลุ่มทิศทาง" : u.over ? "ใส่แผงเกินพิกัด" : "ปกติ",
@@ -1153,7 +1154,7 @@ const RP_CSS = `
   --tint-red-tx:#B91C1C; --tint-red-tx2:#DC2626;
   --tint-amber-bd:#FDE68A; --tint-amber-tx:#B45309; --tint-amber-tx2:#92400E;
   --tint-green-tx:#15803D; --tint-green-bd:#BBF7D0;
-  --primary:#22A35B; --primary-dark:#0F7A43; --primary-soft:#E6F5EC;
+  --primary:#1B9B75; --primary-dark:#148080; --primary-soft:#E6F5EC;
   --text-1:#16211D; --text-2:#3A4A43; --text-3:#8A968F;
   --bg:#F4F6F5; --surface:#fff; --surface2:#F7FAF8; --surface3:#EDF1EF;
   --border:#E3E9E6; --border-strong:#D8E0DB; --ln:#E3E9E6;
@@ -1170,7 +1171,7 @@ body{font-family:'IBM Plex Sans Thai','Sarabun','Noto Sans Thai','Segoe UI',sans
 .cover::before{content:"";position:absolute;right:-190px;top:-210px;width:600px;height:600px;border-radius:50%;
   background:radial-gradient(circle,rgba(52,199,123,.34),rgba(52,199,123,0) 68%)}
 .cover::after{content:"";position:absolute;left:0;right:0;bottom:0;height:6px;
-  background:linear-gradient(90deg,#34C77B 0%,#22A35B 45%,#0A3B29 100%)}
+  background:linear-gradient(90deg,#34C77B 0%,#1B9B75 45%,#0A3B29 100%)}
 .cover>*{position:relative}
 .cv-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;
   padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.16)}
@@ -1216,7 +1217,7 @@ table.t thead{display:table-header-group}
 /* กราฟกับคำอธิบายใต้กราฟต้องอยู่หน้าเดียวกัน ไม่ให้เส้นกราฟค้างท้ายหน้าแล้วคำอธิบายไปหน้าใหม่ */
 .chart{break-inside:avoid;page-break-inside:avoid;break-after:avoid;page-break-after:avoid}
 h2{font-size:14.5px;font-weight:700;display:flex;align-items:center;gap:9px;padding-bottom:9px;margin-bottom:13px;border-bottom:2px solid #16211D}
-h2 .no{width:20px;height:20px;border-radius:99px;background:#22A35B;color:#fff;display:grid;place-items:center;font-size:10.5px;font-weight:700}
+h2 .no{width:20px;height:20px;border-radius:99px;background:#1B9B75;color:#fff;display:grid;place-items:center;font-size:10.5px;font-weight:700}
 h2 small{margin-left:auto;font-size:10px;font-weight:600;color:#7A8781}
 h3{font-size:11.5px;font-weight:700;margin:15px 0 7px;color:#3A4A43}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -1269,7 +1270,7 @@ ul.find li{font-size:10.5px;line-height:1.6;padding:8px 11px;border-radius:8px;b
 ul.find li.warn{background:#FDF7EC;border-color:#D9911F}
 ul.find li.bad{background:#FCF0EF;border-color:#B3261E}
 ul.find li i{color:#6C7A74}
-.ok-box{font-size:10.5px;font-weight:600;color:#12794A;background:#F0F9F4;border-left:3px solid #22A35B;border-radius:8px;padding:8px 11px;margin-top:6px}
+.ok-box{font-size:10.5px;font-weight:600;color:#12794A;background:#F0F9F4;border-left:3px solid #1B9B75;border-radius:8px;padding:8px 11px;margin-top:6px}
 .foot{font-size:9.5px;color:#6C7A74;line-height:1.7}
 .foot .sig{margin-top:22px;padding-top:14px;border-top:1px solid #E3E8E6;font-size:10.5px;color:#16211D}
 @media print{

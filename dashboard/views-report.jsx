@@ -1,5 +1,5 @@
 /* ============================================================
-   PHITHAN GREEN — รายงานสรุปสถานะงาน (Report)
+   flash+solar — รายงานสรุปสถานะงาน (Report)
    สร้างข้อความสรุปสถานะงานแต่ละงานในรูปแบบรายการ (สไตล์ Trello)
    พร้อมปุ่ม "คัดลอก/ดาวน์โหลด" เพื่อนำข้อความไปใช้รายงานต่อได้ทันที
    ============================================================ */
@@ -232,7 +232,7 @@ function ReportView({ jobs, onOpen }) {
             <Icon name="download" size={16} color="var(--text-2)" /> ดาวน์โหลด .txt
           </button>
           <button onClick={copyAll}
-            style={btn({ background: copiedAll ? "var(--primary-dark)" : "var(--primary)", color: "#fff", boxShadow: "0 2px 8px rgba(34,163,91,.25)" })}>
+            style={btn({ background: copiedAll ? "var(--primary-dark)" : "var(--primary)", color: "#fff", boxShadow: "0 2px 8px rgba(27,155,117,.25)" })}>
             <Icon name={copiedAll ? "check" : "file"} size={16} color="#fff" /> {copiedAll ? "คัดลอกทั้งหมดแล้ว ✓" : "คัดลอกข้อความทั้งหมด"}
           </button>
         </div>

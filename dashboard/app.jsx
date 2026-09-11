@@ -1,5 +1,5 @@
 /* ============================================================
-   SolarFlow / PHITHAN GREEN — main app shell
+   SolarFlow / flash+solar — main app shell
    ============================================================ */
 
 /* เมนูซ้าย — คุมด้วย "สิทธิ์" ไม่ใช่ชื่อตำแหน่ง เพราะคนหนึ่งคนถือได้หลายตำแหน่ง
@@ -59,14 +59,17 @@ const matchTech = (j, f, known) => techKey(j, known) === f;
 const instDate = (j) => (window.SF.installDate ? window.SF.installDate(j) : "");
 
 const ACCENTS = {
-  phithan: { primary: "#22A35B", dark: "#14663A", soft: "#E1F5E8", bright: "#35B76D" },
+  /* สีหลักของแบรนด์ flash+solar — หยิบจากหกเหลี่ยมในโลโก้โดยตรง
+     (คีย์ phithan ยังอยู่เพื่อให้ค่าที่ผู้ใช้เคยเลือกไว้ก่อนรีแบรนด์ไม่พัง — ชี้มาที่ชุดใหม่) */
+  flash:   { primary: "#1B9B75", dark: "#0A4D68", soft: "#E3F4EE", bright: "#22B36A" },
+  phithan: { primary: "#1B9B75", dark: "#0A4D68", soft: "#E3F4EE", bright: "#22B36A" },
   emerald: { primary: "#10B981", dark: "#047857", soft: "#D6F5E6", bright: "#34D399" },
   amber:   { primary: "#F59E0B", dark: "#B45309", soft: "#FEF1D8", bright: "#FBBF24" },
 };
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "mode": "light",
-  "accent": "phithan",
+  "accent": "flash",
   "density": "comfy",
   "sidebar": "full",
   "cardStyle": "soft"
@@ -75,7 +78,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 /* โหมดกราไฟต์: primary เป็นเขียวแบรนด์ที่สว่างพอสำหรับพื้นเทาเข้ม และยังรองรับตัวอักษรขาวบนปุ่ม
    ส่วน dark ใช้เป็นสีตัวอักษรบนพื้นมืด จึงต้องสว่างกว่า primary (กลับด้านกับโหมดปกติ)
    ต้องตั้งผ่าน JS เพราะตัวแปรพวกนี้ถูกเขียนเป็น inline style บน <html> (ชนะกฎใน CSS) */
-const AURORA = { primary: "#28A85F", dark: "#4CD97B", soft: "rgba(40,168,95,.20)", bright: "#34C759" };
+const AURORA = { primary: "#1B9B75", dark: "#3FD3A6", soft: "rgba(27,155,117,.20)", bright: "#22B36A" };
 
 function applyTheme(t) {
   const root = document.documentElement;
@@ -83,13 +86,13 @@ function applyTheme(t) {
   root.setAttribute("data-density", t.density);
   root.setAttribute("data-cardstyle", t.cardStyle);
   const aurora = t.mode === "aurora";
-  const a = aurora ? AURORA : (ACCENTS[t.accent] || ACCENTS.phithan);
+  const a = aurora ? AURORA : (ACCENTS[t.accent] || ACCENTS.flash);
   root.style.setProperty("--primary", a.primary);
   root.style.setProperty("--primary-dark", aurora ? a.dark : (t.mode === "dark" ? a.bright : a.dark));
-  root.style.setProperty("--primary-soft", aurora ? a.soft : (t.mode === "dark" ? "rgba(53,183,109,.16)" : a.soft));
+  root.style.setProperty("--primary-soft", aurora ? a.soft : (t.mode === "dark" ? "rgba(34,179,106,.16)" : a.soft));
   root.style.setProperty("--primary-bright", a.bright);
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", aurora ? "#131315" : "#22A35B");
+  if (meta) meta.setAttribute("content", aurora ? "#131315" : "#1B9B75");
 }
 
 /* ── responsive helper — uses matchMedia so it works even when resize events
@@ -109,8 +112,7 @@ function LoadingScreen() {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       height: "100vh", background: "transparent", gap: 18 }}>
-      <img src="dashboard/assets/phithan-mark.png" alt="PHITHAN GREEN" style={{ height: 60, borderRadius: 14, padding: 8, background: "#fff", boxShadow: "0 4px 18px rgba(34,163,91,.18)" }} />
-      <div style={{ fontFamily: "var(--display)", fontSize: 22, fontWeight: 800, color: "var(--primary-dark)", letterSpacing: "-.01em" }}>PHITHAN GREEN</div>
+      <window.BrandLockup size={62} stack />
       <div style={{ display: "flex", gap: 7 }}>
         {[0,1,2].map(i => (
           <div key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--primary)",
@@ -799,7 +801,7 @@ function App() {
         <TweakSection label="ธีม / Theme" />
         <TweakRadio label="โหมด" value={t.mode} options={["light", "aurora"]} onChange={(v) => setTweak("mode", v)} />
         <TweakSelect label="โทนสีหลัก" value={t.accent}
-          options={[{ value: "phithan", label: "PHITHAN Green" }, { value: "emerald", label: "Emerald" }, { value: "amber", label: "Command Amber" }]}
+          options={[{ value: "flash", label: "flash+solar" }, { value: "emerald", label: "Emerald" }, { value: "amber", label: "Command Amber" }]}
           onChange={(v) => setTweak("accent", v)} />
         <TweakSection label="เลย์เอาต์ / Layout" />
         <TweakRadio label="ความหนาแน่น" value={t.density} options={["comfy", "compact"]} onChange={(v) => setTweak("density", v)} />
@@ -843,10 +845,10 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, open, onClose, aur
         </button>
       )}
       <div className="sidebar-brand">
-        <img src="dashboard/assets/phithan-mark.png" alt="PHITHAN GREEN" className="brand-mark" />
+        <window.BrandMark size={38} style={{ flexShrink: 0 }} />
         {!icons && (
           <div>
-            <div className="brand-name">PHITHAN GREEN</div>
+            <div className="brand-name">flash<span className="plus">+</span>solar</div>
             <div className="brand-sub">ระบบติดตามงานติดตั้ง</div>
           </div>
         )}
@@ -962,7 +964,7 @@ function TechFilter({ value, onChange, techs, counts, nameOf }) {
       <button onClick={() => setOpen((v) => !v)} title="กรองตามช่างผู้รับผิดชอบ"
         style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: isMobile ? "5px 10px" : "6px 13px", borderRadius: 99,
           border: "1px solid " + (on ? (cur ? cur.color : "var(--primary)") : "var(--border-strong)"),
-          background: on ? ((cur ? cur.color : "#22A35B") + "16") : "var(--surface)",
+          background: on ? ((cur ? cur.color : "#1B9B75") + "16") : "var(--surface)",
           color: on ? (cur ? cur.color : "var(--primary-dark)") : "var(--text-2)",
           fontSize: isMobile ? 11.5 : 12.5, fontWeight: on ? 700 : 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
         <Icon name="wrench" size={14} color={on ? (cur ? cur.color : "var(--primary-dark)") : "var(--text-2)"} />

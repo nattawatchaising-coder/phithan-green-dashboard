@@ -1,5 +1,5 @@
 /* ============================================================
-   PHITHAN GREEN — รายงานประจำวันหน้างาน (Daily Report)
+   flash+solar — รายงานประจำวันหน้างาน (Daily Report)
 
    ต้นแบบคือฟอร์ม Excel 5 หน้าของ WHA (ECTP-INSI-DAILYREPORT) ที่ต้องกรอกมือทั้งใบ
    รอบนี้ย้ายมาเป็นฟอร์มในระบบ กรอกจากมือถือหน้างานได้ แล้วออกเป็น PDF
@@ -197,11 +197,11 @@ function drIsBoardSteps(steps) {
 const drModeOf = (job) => ((job || {}).type === "project" ? "project" : "home");
 
 /* เลขเอกสาร — ระบบยังไม่มีช่องเลขสัญญาแบบ WHA จึงออกเลขของเราเอง
-   PG-DR-{รหัสงาน}-{ครั้งที่} · ครั้งที่นับจากจำนวนรายงานที่มีอยู่ก่อนหน้าวันนี้ */
+   FS-DR-{รหัสงาน}-{ครั้งที่} · ครั้งที่นับจากจำนวนรายงานที่มีอยู่ก่อนหน้าวันนี้ */
 function drDocNo(job, date, allDates) {
   const code = String((job || {}).code || "JOB").replace(/^SF-/, "");
   const n = (allDates || []).filter((d) => d <= date).length || 1;
-  return "PG-DR-" + code + "-" + drPad2(n);
+  return "FS-DR-" + code + "-" + drPad2(n);
 }
 
 /* ── สิทธิ์ ──

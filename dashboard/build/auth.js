@@ -40,7 +40,7 @@ const ROLE_INFO = {
     th: "แอดมิน",
     short: "แอดมิน",
     icon: "shield",
-    color: "#22A35B",
+    color: "#1B9B75",
     desc: "ควบคุมทั้งระบบ · จัดการผู้ใช้ · ลบงาน"
   },
   lead: {
@@ -1102,35 +1102,16 @@ function LoginScreen({
       alignItems: "center",
       gap: 12
     }
-  }, React.createElement("img", {
-    src: "dashboard/assets/phithan-mark.png",
-    alt: "PHITHAN GREEN",
-    style: {
-      height: 56,
-      borderRadius: 14,
-      padding: 8,
-      background: "#fff",
-      boxShadow: "0 4px 18px rgba(34,163,91,.18)"
-    }
+  }, React.createElement(window.BrandLockup, {
+    size: 64,
+    stack: true
   }), React.createElement("div", {
-    style: {
-      textAlign: "center"
-    }
-  }, React.createElement("div", {
-    style: {
-      fontFamily: "var(--display)",
-      fontSize: 22,
-      fontWeight: 800,
-      color: "var(--primary-dark)",
-      letterSpacing: "-.01em"
-    }
-  }, "PHITHAN GREEN"), React.createElement("div", {
     style: {
       fontSize: 13,
       color: "var(--text-3)",
-      marginTop: 2
+      marginTop: -2
     }
-  }, "\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E42\u0E0B\u0E25\u0E48\u0E32\u0E40\u0E0B\u0E25\u0E25\u0E4C"))), React.createElement("div", {
+  }, "\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E42\u0E0B\u0E25\u0E48\u0E32\u0E40\u0E0B\u0E25\u0E25\u0E4C")), React.createElement("div", {
     style: {
       background: "var(--surface)",
       border: "1px solid var(--border)",
@@ -1267,7 +1248,7 @@ const NOTIF_KINDS = {
   },
   info: {
     icon: "bell",
-    color: "#22A35B",
+    color: "#1B9B75",
     th: "แจ้งเตือน"
   }
 };

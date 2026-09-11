@@ -13,7 +13,7 @@ const PRICE_GROUP_TH = {
   "GUARD RAIL": "GUARD RAIL"
 };
 const PRICE_GROUP_COLOR = {
-  "PV MODULE": "#22A35B",
+  "PV MODULE": "#1B9B75",
   INVERTER: "#7C5CFC",
   MOUNTING: "#F59E0B",
   CABLE: "#0EA5E9",
@@ -242,7 +242,7 @@ function PricePanel({
         fontSize: 9.5,
         fontWeight: 700,
         color: "var(--tint-ok-tx)",
-        background: "#22A35B16",
+        background: "#1B9B7516",
         padding: "1px 6px",
         borderRadius: 99,
         flexShrink: 0

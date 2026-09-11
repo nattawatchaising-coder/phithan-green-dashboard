@@ -636,18 +636,15 @@ function pgSheetLayers(doc) {
 /* ── โลโก้บริษัทแบบเส้น ──
    วาดใหม่เป็นเวกเตอร์ ไม่ใช่รูปแปะ จะได้คมทุกมาตราส่วนและไม่ต้องพ่วงไฟล์รูปเพิ่ม
    กรอบมุมมน + ใบไม้สองซีก สื่อความเดียวกับโลโก้จริง */
+/* ตราสัญลักษณ์ flash+solar บนหัวแบบ — หกเหลี่ยมเซลล์แผงโซลาร์ ผ่ากลางด้วยสายฟ้า
+   พิกัดยกมาจากไฟล์โลโก้ (กรอบ 200×200) แล้วกลับแกน y เพราะแบบ DXF นับ y ขึ้น ส่วน SVG นับลง */
+const PG_LOGO_HEX = [[100, 30], [160.6, 65], [160.6, 135], [100, 170], [39.4, 135], [39.4, 65]];
+const PG_LOGO_BOLT = [[104, 55], [74, 101], [92, 101], [84, 145], [120, 91], [98, 91]];
 function pgLogoMark(pen, x, y, s) {
-  const L = PG_LAY.logo, r = s * 0.22;
-  const x0 = x, y0 = y, x1 = x + s, y1 = y + s;
-  pen.line(L, x0 + r, y0, x1 - r, y0); pen.arc(L, x1 - r, y0 + r, r, -90, 0);
-  pen.line(L, x1, y0 + r, x1, y1 - r); pen.arc(L, x1 - r, y1 - r, r, 0, 90);
-  pen.line(L, x1 - r, y1, x0 + r, y1); pen.arc(L, x0 + r, y1 - r, r, 90, 180);
-  pen.line(L, x0, y1 - r, x0, y0 + r); pen.arc(L, x0 + r, y0 + r, r, 180, 270);
-  const cx = x + s / 2, m = s * 0.17;
-  pen.pline(L, [[cx - m, y + s * 0.20], [cx - m, y + s * 0.58], [cx - m * 0.1, y + s * 0.80],
-    [cx - m * 0.1, y + s * 0.42]], true);
-  pen.pline(L, [[cx + m, y + s * 0.80], [cx + m, y + s * 0.42], [cx + m * 0.1, y + s * 0.20],
-    [cx + m * 0.1, y + s * 0.58]], true);
+  const L = PG_LAY.logo;
+  const at = (p) => [x + (p[0] / 200) * s, y + s - (p[1] / 200) * s];
+  pen.pline(L, PG_LOGO_HEX.map(at), true);
+  pen.pline(L, PG_LOGO_BOLT.map(at), true);
 }
 
 /* ── กรอบกระดาษ + แถบพิกัด + Title Box ──
@@ -720,10 +717,11 @@ function pgSheet(doc, o) {
 
   /* 5 · บล็อกบริษัท */
   pgLogoMark(pen, tx0 + 5, Y.logo.top - 15.5, 12);
-  pen.text(F.logo, tx0 + 20, Y.logo.top - 7.5, 4.4, "PHITHAN", { valign: 2 });
-  pen.text(F.logo, tx0 + 20, Y.logo.top - 13.5, 4.4, "GREEN", { valign: 2 });
+  pen.text(F.logo, tx0 + 20, Y.logo.top - 7.5, 4.4, "FLASH +", { valign: 2 });
+  pen.text(F.logo, tx0 + 20, Y.logo.top - 13.5, 4.4, "SOLAR", { valign: 2 });
+  /* เว็บไซต์กับอีเมลดึงจากข้อมูลแบรนด์ที่เดียว (dashboard/brand.jsx) พอเปลี่ยนโดเมนแล้วแบบทุกใบเปลี่ยนตาม */
   ["653/8 Wangthonglang, Wangthonglang,", "Bangkok 10310", "TEL : 065-628-5566",
-    "http://www.phithangreen.com", "E-mail : sales@phithangreen.com"].forEach((ln, i) =>
+    "http://" + ((window.BRANDING || {}).site || ""), "E-mail : " + ((window.BRANDING || {}).email || "")].forEach((ln, i) =>
     mid(Y.logo.top - 21.5 - i * 2.5, 1.7, ln));
 
   /* 6 · สถานะของแบบ — จุดทึบคืออันที่ใช้อยู่ */
@@ -787,7 +785,7 @@ function pgSheet(doc, o) {
 
   /* หมายเหตุประจำแบบ — วางใต้กรอบแบบ ไม่ให้ไปทับแถบพิกัด */
   pen.text(F.txt, 20, 6.4, 2.2,
-    "GENERAL NOTE:  THIS DRAWING IS THE PROPERTY OF PHITHAN GREEN CO., LTD. AND SHALL NOT BE USED OR REPRODUCED WITHOUT PERMISSION."
+    "GENERAL NOTE:  THIS DRAWING IS THE PROPERTY OF FLASH + SOLAR CO., LTD. AND SHALL NOT BE USED OR REPRODUCED WITHOUT PERMISSION."
     + "  DO NOT SCALE THIS DRAWING. USE FIGURED DIMENSION ONLY.", { valign: 1 });
 
   return {

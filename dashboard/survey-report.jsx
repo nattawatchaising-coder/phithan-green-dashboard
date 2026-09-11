@@ -1,5 +1,5 @@
 /* ============================================================
-   PHITHAN GREEN — รายงานผลสำรวจหน้างาน (Solar Site Survey Report)
+   flash+solar — รายงานผลสำรวจหน้างาน (Solar Site Survey Report)
    หน้ารายงานพร้อมพิมพ์ · กด "บันทึก PDF" = สั่งพิมพ์ของเบราว์เซอร์ → Save as PDF
    ใช้วิธีนี้เพราะได้ PDF ภาษาไทยคมชัดจริง เลือกข้อความได้ ไม่ต้องฝังฟอนต์ไทยหลายเมกฯ
    และบนมือถือกดแชร์ต่อจากหน้าพิมพ์ได้เลย
@@ -114,7 +114,10 @@ function SurveyReport({ job, photos, docs, onClose }) {
           <div style={{ minWidth: 0 }}>
             <div style={{ fontFamily: "var(--display)", fontSize: 22, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-.01em" }}>รายงานผลสำรวจหน้างาน</div>
             <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: ".12em", color: "var(--text-3)", marginTop: 3 }}>SOLAR SITE SURVEY REPORT</div>
-            <div style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)", marginTop: 6 }}>PHITHAN GREEN</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}>
+              <window.BrandMark size={22} />
+              <window.BrandWord size={16} color="var(--brand-ink)" />
+            </div>
           </div>
           <div style={{ textAlign: "right", fontSize: 11.5, color: "var(--text-2)", lineHeight: 1.7 }}>
             <div>สำรวจ: {repDate(s.startedAt)}</div>

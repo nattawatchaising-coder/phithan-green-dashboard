@@ -1,5 +1,5 @@
 /* ============================================================
-   PHITHAN GREEN — รายงานประจำวัน: ฟอร์มกรอก · กระดาษ PDF · หน้ารวมของหัวหน้า
+   flash+solar — รายงานประจำวัน: ฟอร์มกรอก · กระดาษ PDF · หน้ารวมของหัวหน้า
 
    PDF ใช้วิธีเดียวกับรายงานสำรวจ (survey-report.jsx) คือสั่งพิมพ์ของเบราว์เซอร์
    แล้วเลือก "บันทึกเป็น PDF" — ได้ภาษาไทยคมชัด เลือกข้อความได้ ไม่ต้องฝังฟอนต์หลายเมกฯ
@@ -924,7 +924,7 @@ function DrPRow({ k, v }) {
   return (
     <React.Fragment>
       <div style={{ padding: "6px 10px", borderRight: "1px solid #DCE4DF", borderBottom: "1px solid #DCE4DF",
-        fontSize: 10.5, fontWeight: 700, color: "#2C6B48", background: "#F3F7F4" }}>{k}</div>
+        fontSize: 10.5, fontWeight: 700, color: "#0A4D68", background: "#F3F7F4" }}>{k}</div>
       <div style={{ padding: "6px 10px", borderBottom: "1px solid #DCE4DF", fontSize: 11, color: "#15211A" }}>{v || "-"}</div>
     </React.Fragment>
   );
@@ -933,7 +933,7 @@ function DrPBlock({ title, children, avoid }) {
   return (
     <div style={{ marginTop: 16, breakInside: avoid ? "avoid" : "auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 7, borderBottom: "1px solid #DCE4DF", paddingBottom: 5, marginBottom: 8 }}>
-        <span style={{ width: 5, height: 5, borderRadius: 99, background: "#22A35B" }} />
+        <span style={{ width: 5, height: 5, borderRadius: 99, background: "#1B9B75" }} />
         <span style={{ fontSize: 12, fontWeight: 800, color: "#15211A" }}>{title}</span>
       </div>
       {children}
@@ -1016,11 +1016,15 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
 
         {/* หัวกระดาษ — พิมพ์ครั้งเดียว ไม่ซ้ำทุกหน้าเหมือนฟอร์ม Excel เดิม */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap",
-          borderBottom: "2px solid #22A35B", paddingBottom: 11 }}>
+          borderBottom: "2px solid #1B9B75", paddingBottom: 11 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.01em" }}>รายงานประจำวันหน้างาน</div>
             <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".12em", color: "#7A8A81", marginTop: 3 }}>PROJECT INSTALLATION — DAILY REPORT</div>
-            <div style={{ fontSize: 12.5, fontWeight: 800, color: "#2C6B48", marginTop: 5 }}>PHITHAN GREEN</div>
+            {/* ตราสัญลักษณ์บริษัท — หกเหลี่ยม + ชื่อในโลโก้ ให้ใบที่พิมพ์ออกมาเป็นเอกสารของบริษัทจริง */}
+            <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}>
+              <window.BrandMark size={22} />
+              <window.BrandWord size={16} color="#0F2B33" />
+            </div>
           </div>
           <div style={{ textAlign: "right", fontSize: 11, color: "#4A5A51", lineHeight: 1.75 }}>
             <div style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "#15211A" }}>{docNo}</div>
@@ -1046,7 +1050,7 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: "#4A5A51" }}>ความคืบหน้ารวม</span>
             <div style={{ flex: 1, minWidth: 160, height: 9, borderRadius: 99, background: "#E8EEEA", overflow: "hidden" }}>
-              <div style={{ width: Math.max(0, Math.min(100, pct)) + "%", height: "100%", background: "#22A35B" }} />
+              <div style={{ width: Math.max(0, Math.min(100, pct)) + "%", height: "100%", background: "#1B9B75" }} />
             </div>
             <span style={{ fontSize: 17, fontWeight: 800, fontFamily: "var(--mono)", color: "#15211A" }}>{pct}%</span>
             {rec.prevPct != null && <span style={{ fontSize: 11, color: "#4A5A51" }}>จากเมื่อวาน {rec.prevPct}%</span>}
@@ -1077,7 +1081,7 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
               <tbody>
                 {steps.map((r, i) => (
                   <tr key={i} style={{ background: r.head ? "#F3F7F4" : "transparent" }}>
-                    <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontWeight: r.head ? 800 : 400, color: r.head ? "#2C6B48" : "#7A8A81" })}>{r.no}</td>
+                    <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontWeight: r.head ? 800 : 400, color: r.head ? "#0A4D68" : "#7A8A81" })}>{r.no}</td>
                     <td style={Object.assign({}, td, { fontWeight: r.head ? 700 : 400 })}>{r.th}</td>
                     {isProject && <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.planStart ? window.drShort(r.planStart) : "—"}</td>}
                     {isProject && <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.planEnd ? window.drShort(r.planEnd) : "—"}</td>}
@@ -1131,7 +1135,7 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
                 <div key={p.id} className="dr-shot" style={{ breakInside: "avoid", border: "1px solid #DCE4DF", borderRadius: 7, overflow: "hidden" }}>
                   <img src={p.dataUrl} alt={p.cap || ""} style={{ width: "100%", display: "block", background: "#F3F7F4" }} />
                   <div style={{ padding: "5px 8px", fontSize: 10.5, color: "#4A5A51", borderTop: "1px solid #ECF1EE" }}>
-                    <b style={{ color: "#2C6B48" }}>รูปที่ {i + 1}</b>{p.cap ? " · " + p.cap : ""}
+                    <b style={{ color: "#0A4D68" }}>รูปที่ {i + 1}</b>{p.cap ? " · " + p.cap : ""}
                   </div>
                 </div>
               ))}
@@ -1164,7 +1168,7 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
         </div>
 
         <div style={{ marginTop: 14, fontSize: 9.5, color: "#8A9A91", textAlign: "center" }}>
-          เอกสารนี้ออกจากระบบติดตามงานติดตั้ง PHITHAN GREEN · {docNo} · พิมพ์เมื่อ {window.drDateTH(window.drToday())}
+          เอกสารนี้ออกจากระบบติดตามงานติดตั้ง flash+solar · {docNo} · พิมพ์เมื่อ {window.drDateTH(window.drToday())}
         </div>
       </div>
     </div>

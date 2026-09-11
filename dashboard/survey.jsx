@@ -1,5 +1,5 @@
 /* ============================================================
-   PHITHAN GREEN — Site Survey Module (สำรวจหน้างาน)
+   flash+solar — Site Survey Module (สำรวจหน้างาน)
    ฟอร์มเก็บข้อมูลวิศวกรรมหน้างาน (mobile-first) — 5 ขั้นตอน
    เก็บข้อมูลไว้กับงาน: job.survey (ผ่าน store.patch) · ลูกค้าสำรวจ: lead.survey
    รูปถ่าย: เก็บ base64 ใน RTDB surveyPhotos/{targetId}/{key}
@@ -227,7 +227,7 @@ function AnnOverlay({ ann, aw, ah, edit, sel, svgRef }) {
     const s = sc || 1;
     return (
       <g key={k}>
-        <circle cx={cx} cy={cy} r={unit * 3.2 * s} fill="rgba(34,163,91,.16)" />
+        <circle cx={cx} cy={cy} r={unit * 3.2 * s} fill="rgba(27,155,117,.16)" />
         <circle data-h={k} cx={cx} cy={cy} r={unit * 1.7 * s} fill={fill || "#fff"}
           stroke={fill ? "#fff" : "var(--primary)"} strokeWidth={unit * 0.5 * s} />
       </g>
@@ -725,7 +725,7 @@ function AnnEditor({ shot, onSave, onClose }) {
         </div>
         <div style={{ padding: "12px 14px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10 }}>
           <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: 12, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
-          <button onClick={() => onSave(ann)} style={{ flex: 1, padding: 12, borderRadius: 12, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer", boxShadow: "0 4px 14px rgba(34,163,91,.3)" }}>บันทึกที่เขียน</button>
+          <button onClick={() => onSave(ann)} style={{ flex: 1, padding: 12, borderRadius: 12, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer", boxShadow: "0 4px 14px rgba(27,155,117,.3)" }}>บันทึกที่เขียน</button>
         </div>
       </div>
       {picker && <StickerPicker onPick={useSticker} onClose={() => setPicker(false)} />}

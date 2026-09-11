@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="flash+solar">
+  <!-- Prism Panel — หกเหลี่ยมเซลล์แผงโซลาร์ 6 เหลี่ยม ผ่ากลางด้วยสายฟ้า -->
+  <polygon points="100,100 160.6,65 100,30" fill="#0A4D68"/>
+  <polygon points="100,100 100,30 39.4,65" fill="#0E6478"/>
+  <polygon points="100,100 39.4,65 39.4,135" fill="#148080"/>
+  <polygon points="100,100 39.4,135 100,170" fill="#1B9B75"/>
+  <polygon points="100,100 100,170 160.6,135" fill="#22B36A"/>
+  <polygon points="100,100 160.6,135 160.6,65" fill="#147A8C"/>
+  <polygon points="104,55 74,101 92,101 84,145 120,91 98,91" fill="#FFFFFF"/>
+</svg>

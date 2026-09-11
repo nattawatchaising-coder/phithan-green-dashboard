@@ -1,5 +1,5 @@
 /* ============================================================
-   PHITHAN GREEN — ผังหน้างาน (Site Plan)
+   flash+solar — ผังหน้างาน (Site Plan)
    เครื่องมือวาดทับรูปหน้างาน: วัดระยะสาย · วางจุดอุปกรณ์ · ประเมินของเบื้องต้น
    - เก็บที่ surveyPlans/{jobId} (RTDB base64) · ไม่มี Firebase → localStorage
    - พิกัดทุกจุดเก็บเป็นสัดส่วน 0..1 ของรูป (สเกลตามจอได้)
@@ -44,7 +44,7 @@ PLAN_MARKER_BY.camera = { key: "camera", label: "จุดกล้อง", colo
 // ค่าเริ่มต้นข้อมูลบน PDF นำเสนอ (แก้ไข + จำไว้ในเครื่องได้)
 const PDF_DEFAULTS = {
   warranties: ["ฟรีล้างแผงโซลาร์เซลล์ 3 ครั้ง", "รับประกันงานติดตั้ง 5 ปี", "รับประกันอินเวอร์เตอร์ 5 ปี", "รับประกันแผงโซลาร์เซลล์ 15 ปี", "สำรวจหน้างานก่อนติดตั้งฟรี"],
-  email: "solar@phithangreen.com", tel: "064-867-5020 (ฝ่ายวิศวกรรม)", logo: "",
+  email: (window.BRANDING || {}).email || "", tel: (window.BRANDING || {}).telNote || "", logo: "",
 };
 
 // แผงโซลาร์ตามขนาดจริง — ค่าตั้งต้น (เมตร) ด้านสั้น × ด้านยาว, ช่องว่างระหว่างแผง
@@ -959,22 +959,31 @@ function SitePlanEditor({ job, onClose, currentUser }) {
     s.onerror = () => rej(new Error("โหลดไลบรารี PDF ไม่ได้ (ต้องต่อเน็ต)"));
     document.head.appendChild(s);
   });
-  // สไลด์ 16:9 สไตล์ PHITHAN GREEN Site Survey
+  // สไลด์ 16:9 สไตล์ flash+solar Site Survey
   const SW = 1600, SH = 900;
   const F = "system-ui, -apple-system, 'Segoe UI', 'Noto Sans Thai', 'Sarabun', sans-serif";
-  const BG = "#0E4D33", BGD = "#0A3123", MINT = "#8FE3B8", SITE_URL = "www.phithangreen.com";
+  const BG = "#0A4D68", BGD = "#072F41", MINT = "#7FE0C0", SITE_URL = (window.BRANDING || {}).site || "";
   const newSlide = (bg) => { const c = document.createElement("canvas"); c.width = SW; c.height = SH; const x = c.getContext("2d"); x.fillStyle = bg || "#ffffff"; x.fillRect(0, 0, SW, SH); return { c, x }; };
   const drawContain = (x, img, bx, by, bw, bh) => { if (!img) return; const iw = img.width || img.naturalWidth, ih = img.height || img.naturalHeight; if (!iw || !ih) return; const r = Math.min(bw / iw, bh / ih); const w = iw * r, h = ih * r; x.drawImage(img, bx + (bw - w) / 2, by + (bh - h) / 2, w, h); };
   const wrapTH = (x, text, maxW) => { const out = []; let cur = ""; for (const ch of (text || "")) { const t = cur + ch; if (x.measureText(t).width > maxW && cur) { out.push(cur); cur = ch; } else cur = t; } if (cur) out.push(cur); return out.length ? out : [""]; };
-  const foot = (x, dark) => { x.textBaseline = "alphabetic"; x.textAlign = "right"; x.fillStyle = dark ? "rgba(255,255,255,.72)" : "#9aa5a0"; x.font = "600 20px " + F; x.fillText(SITE_URL, SW - 44, SH - 30); x.textAlign = "left"; x.fillStyle = dark ? "rgba(255,255,255,.85)" : BG; x.font = "800 20px " + F; x.fillText("PHITHAN GREEN", 44, SH - 30); };
-  // ตราสัญลักษณ์สำรอง (พระอาทิตย์+ใบไม้) เมื่อยังไม่ได้ใส่โลโก้จริง
-  const drawEmblem = (x, cx, cy, r) => { x.save(); x.fillStyle = MINT; x.strokeStyle = MINT; x.lineWidth = Math.max(2, r * 0.14); x.lineCap = "round"; x.beginPath(); x.arc(cx, cy - r * 0.1, r * 0.42, 0, Math.PI * 2); x.fill(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; x.beginPath(); x.moveTo(cx + Math.cos(a) * r * 0.62, cy - r * 0.1 + Math.sin(a) * r * 0.62); x.lineTo(cx + Math.cos(a) * r * 0.92, cy - r * 0.1 + Math.sin(a) * r * 0.92); x.stroke(); } x.beginPath(); x.moveTo(cx, cy + r * 0.5); x.quadraticCurveTo(cx + r * 0.55, cy + r * 0.5, cx + r * 0.55, cy + r * 1.05); x.quadraticCurveTo(cx, cy + r * 0.95, cx, cy + r * 0.5); x.fill(); x.restore(); };
+  const foot = (x, dark) => { x.textBaseline = "alphabetic"; x.textAlign = "right"; x.fillStyle = dark ? "rgba(255,255,255,.72)" : "#9aa5a0"; x.font = "600 20px " + F; x.fillText(SITE_URL, SW - 44, SH - 30); x.textAlign = "left"; x.fillStyle = dark ? "rgba(255,255,255,.85)" : BG; x.font = "800 20px " + F; x.fillText(window.BRANDING.name, 44, SH - 30); };
+  // ตราสัญลักษณ์บนสไลด์ — หกเหลี่ยมเซลล์แผงโซลาร์ ผ่ากลางด้วยสายฟ้า (พิกัดจากไฟล์โลโก้ กรอบ 200×200)
+  const EM_HEX = [[100, 30], [160.6, 65], [160.6, 135], [100, 170], [39.4, 135], [39.4, 65]];
+  const EM_BOLT = [[104, 55], [74, 101], [92, 101], [84, 145], [120, 91], [98, 91]];
+  const drawEmblem = (x, cx, cy, r) => {
+    x.save();
+    const pt = (p) => [cx + (p[0] - 100) / 100 * r, cy + (p[1] - 100) / 100 * r];
+    const poly = (pts, fill) => { x.beginPath(); pts.map(pt).forEach((q, i) => (i ? x.lineTo(q[0], q[1]) : x.moveTo(q[0], q[1]))); x.closePath(); x.fillStyle = fill; x.fill(); };
+    poly(EM_HEX, MINT);
+    poly(EM_BOLT, BGD);
+    x.restore();
+  };
   const pointLabel = (m) => m.kind === "xpage" ? ("จุดต่อรูป #" + (m.n || "")) : m.kind === "camera" ? "จุดกล้อง / ภาพหน้างาน" : ((PLAN_MARKER_BY[m.kind] || {}).label || "จุดอุปกรณ์");
   // สไลด์รูป: ภาพใหญ่ + แถบคำบรรยายด้านล่าง (สไตล์หน้า "การดำเนินงาน")
   const photoSlide = (tag, title, note, img) => {
     const { c, x } = newSlide(BGD); const barH = 172;
     x.textBaseline = "alphabetic"; x.textAlign = "right"; x.fillStyle = "rgba(255,255,255,.6)"; x.font = "600 20px " + F; x.fillText(SITE_URL, SW - 44, 48);  // แบรนด์บนขวา (กันชนแถบล่าง)
-    x.textAlign = "left"; x.fillStyle = "rgba(255,255,255,.85)"; x.font = "800 20px " + F; x.fillText("PHITHAN GREEN", 44, 48);
+    x.textAlign = "left"; x.fillStyle = "rgba(255,255,255,.85)"; x.font = "800 20px " + F; x.fillText(window.BRANDING.name, 44, 48);
     drawContain(x, img, 56, 78, SW - 112, SH - 78 - barH - 18);
     x.fillStyle = BG; x.fillRect(0, SH - barH, SW, barH);
     x.textAlign = "left";
@@ -1295,7 +1304,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
           fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", transition: "background .14s, color .14s, border-color .14s",
           border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
           background: on ? "var(--primary)" : "var(--surface)", color: on ? "#fff" : "var(--text-2)",
-          boxShadow: on ? "0 2px 8px rgba(34,163,91,.28)" : "none" }}>
+          boxShadow: on ? "0 2px 8px rgba(27,155,117,.28)" : "none" }}>
         <Icon name={icon} size={14} color={on ? "#fff" : "var(--text-3)"} />{label}
       </button>
     );

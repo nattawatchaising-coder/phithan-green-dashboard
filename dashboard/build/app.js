@@ -92,11 +92,17 @@ const techKey = (j, known) => j.tech && (!known || known.has(j.tech)) ? j.tech :
 const matchTech = (j, f, known) => techKey(j, known) === f;
 const instDate = j => window.SF.installDate ? window.SF.installDate(j) : "";
 const ACCENTS = {
+  flash: {
+    primary: "#1B9B75",
+    dark: "#0A4D68",
+    soft: "#E3F4EE",
+    bright: "#22B36A"
+  },
   phithan: {
-    primary: "#22A35B",
-    dark: "#14663A",
-    soft: "#E1F5E8",
-    bright: "#35B76D"
+    primary: "#1B9B75",
+    dark: "#0A4D68",
+    soft: "#E3F4EE",
+    bright: "#22B36A"
   },
   emerald: {
     primary: "#10B981",
@@ -113,16 +119,16 @@ const ACCENTS = {
 };
 const TWEAK_DEFAULTS = {
   "mode": "light",
-  "accent": "phithan",
+  "accent": "flash",
   "density": "comfy",
   "sidebar": "full",
   "cardStyle": "soft"
 };
 const AURORA = {
-  primary: "#28A85F",
-  dark: "#4CD97B",
-  soft: "rgba(40,168,95,.20)",
-  bright: "#34C759"
+  primary: "#1B9B75",
+  dark: "#3FD3A6",
+  soft: "rgba(27,155,117,.20)",
+  bright: "#22B36A"
 };
 function applyTheme(t) {
   const root = document.documentElement;
@@ -130,13 +136,13 @@ function applyTheme(t) {
   root.setAttribute("data-density", t.density);
   root.setAttribute("data-cardstyle", t.cardStyle);
   const aurora = t.mode === "aurora";
-  const a = aurora ? AURORA : ACCENTS[t.accent] || ACCENTS.phithan;
+  const a = aurora ? AURORA : ACCENTS[t.accent] || ACCENTS.flash;
   root.style.setProperty("--primary", a.primary);
   root.style.setProperty("--primary-dark", aurora ? a.dark : t.mode === "dark" ? a.bright : a.dark);
-  root.style.setProperty("--primary-soft", aurora ? a.soft : t.mode === "dark" ? "rgba(53,183,109,.16)" : a.soft);
+  root.style.setProperty("--primary-soft", aurora ? a.soft : t.mode === "dark" ? "rgba(34,179,106,.16)" : a.soft);
   root.style.setProperty("--primary-bright", a.bright);
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", aurora ? "#131315" : "#22A35B");
+  if (meta) meta.setAttribute("content", aurora ? "#131315" : "#1B9B75");
 }
 function useIsMobile(bp = 860) {
   const mq = React.useMemo(() => window.matchMedia(`(max-width: ${bp}px)`), [bp]);
@@ -159,25 +165,10 @@ function LoadingScreen() {
       background: "transparent",
       gap: 18
     }
-  }, React.createElement("img", {
-    src: "dashboard/assets/phithan-mark.png",
-    alt: "PHITHAN GREEN",
-    style: {
-      height: 60,
-      borderRadius: 14,
-      padding: 8,
-      background: "#fff",
-      boxShadow: "0 4px 18px rgba(34,163,91,.18)"
-    }
+  }, React.createElement(window.BrandLockup, {
+    size: 62,
+    stack: true
   }), React.createElement("div", {
-    style: {
-      fontFamily: "var(--display)",
-      fontSize: 22,
-      fontWeight: 800,
-      color: "var(--primary-dark)",
-      letterSpacing: "-.01em"
-    }
-  }, "PHITHAN GREEN"), React.createElement("div", {
     style: {
       display: "flex",
       gap: 7
@@ -1250,8 +1241,8 @@ function App() {
     label: "\u0E42\u0E17\u0E19\u0E2A\u0E35\u0E2B\u0E25\u0E31\u0E01",
     value: t.accent,
     options: [{
-      value: "phithan",
-      label: "PHITHAN Green"
+      value: "flash",
+      label: "flash+solar"
     }, {
       value: "emerald",
       label: "Emerald"
@@ -1352,13 +1343,16 @@ function Sidebar({
     }
   })), React.createElement("div", {
     className: "sidebar-brand"
-  }, React.createElement("img", {
-    src: "dashboard/assets/phithan-mark.png",
-    alt: "PHITHAN GREEN",
-    className: "brand-mark"
+  }, React.createElement(window.BrandMark, {
+    size: 38,
+    style: {
+      flexShrink: 0
+    }
   }), !icons && React.createElement("div", null, React.createElement("div", {
     className: "brand-name"
-  }, "PHITHAN GREEN"), React.createElement("div", {
+  }, "flash", React.createElement("span", {
+    className: "plus"
+  }, "+"), "solar"), React.createElement("div", {
     className: "brand-sub"
   }, "\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07")), React.createElement("button", {
     className: "sidebar-close-btn",
@@ -1597,7 +1591,7 @@ function TechFilter({
       padding: isMobile ? "5px 10px" : "6px 13px",
       borderRadius: 99,
       border: "1px solid " + (on ? cur ? cur.color : "var(--primary)" : "var(--border-strong)"),
-      background: on ? (cur ? cur.color : "#22A35B") + "16" : "var(--surface)",
+      background: on ? (cur ? cur.color : "#1B9B75") + "16" : "var(--surface)",
       color: on ? cur ? cur.color : "var(--primary-dark)" : "var(--text-2)",
       fontSize: isMobile ? 11.5 : 12.5,
       fontWeight: on ? 700 : 600,

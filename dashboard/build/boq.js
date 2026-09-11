@@ -62,7 +62,7 @@ const BQ_CSS = `
   color:var(--text-2);font-weight:700;font-family:inherit;font-size:13px;cursor:pointer;
   display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .bq-btn:hover{background:var(--surface2)}
-.bq-btn.gh{border-color:var(--tint-ok-tx);background:rgba(34,163,91,.08);color:var(--tint-ok-tx)}
+.bq-btn.gh{border-color:var(--tint-ok-tx);background:rgba(27,155,117,.08);color:var(--tint-ok-tx)}
 .bq-btn.pri{border:0;background:var(--primary);color:#fff;padding:10px 24px}
 .bq-btn.pri:hover{filter:brightness(1.06)}
 
@@ -1835,7 +1835,7 @@ function BOQEditor({
     label: typeof x === "string" ? x.trim() : x
   }));
   const GROUP_COLOR = {
-    "PV MODULE": "#22A35B",
+    "PV MODULE": "#1B9B75",
     INVERTER: "#7C5CFC",
     "COMBINER BOX": "#4F46E5",
     MOUNTING: "#F59E0B",
@@ -2357,7 +2357,7 @@ function BOQEditor({
       }, React.createElement(Icon, {
         name: "check",
         size: 15,
-        color: "#22A35B"
+        color: "#1B9B75"
       }), React.createElement("span", null, "\u0E1C\u0E48\u0E32\u0E19\u0E40\u0E01\u0E13\u0E11\u0E4C \u2014 \u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E1E\u0E37\u0E49\u0E19\u0E17\u0E35\u0E48\u0E2D\u0E35\u0E01 ", (chk.limit - chk.fillPct).toFixed(1), "% \xB7 \u0E2D\u0E22\u0E48\u0E32\u0E25\u0E37\u0E21\u0E40\u0E2D\u0E32\u0E15\u0E31\u0E27\u0E04\u0E39\u0E13 \xD7", chk.derate.toFixed(2), " \u0E44\u0E1B\u0E2B\u0E32\u0E23\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E02\u0E2D\u0E07\u0E2A\u0E32\u0E22\u0E43\u0E19\u0E15\u0E32\u0E23\u0E32\u0E07\u0E04\u0E33\u0E19\u0E27\u0E13\u0E02\u0E19\u0E32\u0E14\u0E2A\u0E32\u0E22\u0E44\u0E1F")))));
     }), React.createElement("button", {
       onClick: () => addCond(kind, check ? {
@@ -2658,7 +2658,7 @@ function BOQEditor({
       }, React.createElement(Icon, {
         name: "check",
         size: 15,
-        color: "#22A35B"
+        color: "#1B9B75"
       }), React.createElement("span", null, "\u0E1C\u0E48\u0E32\u0E19\u0E40\u0E01\u0E13\u0E11\u0E4C \u2014 \u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E1E\u0E37\u0E49\u0E19\u0E17\u0E35\u0E48\u0E2D\u0E35\u0E01 ", (chk.limit - chk.fillPct).toFixed(1), "% \xB7 \u0E2D\u0E22\u0E48\u0E32\u0E25\u0E37\u0E21\u0E40\u0E2D\u0E32\u0E15\u0E31\u0E27\u0E04\u0E39\u0E13 \xD7", chk.derate.toFixed(2), " \u0E44\u0E1B\u0E2B\u0E32\u0E23\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E02\u0E2D\u0E07\u0E2A\u0E32\u0E22\u0E43\u0E19\u0E15\u0E32\u0E23\u0E32\u0E07\u0E04\u0E33\u0E19\u0E27\u0E13\u0E02\u0E19\u0E32\u0E14\u0E2A\u0E32\u0E22\u0E44\u0E1F")))));
     }), React.createElement("button", {
       onClick: () => addTrayRow(kind, {
@@ -3480,7 +3480,7 @@ function BOQEditor({
       wch: 10
     }];
     const A = mkSheet(lastC, colW);
-    docHead(A, "บัญชีแสดงปริมาณวัสดุ  ·  BILL OF QUANTITIES", "PHITHAN GREEN  —  งานติดตั้งระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์");
+    docHead(A, "บัญชีแสดงปริมาณวัสดุ  ·  BILL OF QUANTITIES", "FLASH + SOLAR  —  งานติดตั้งระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์");
     const mid = Math.ceil((lastC + 1) / 2);
     const info = [["โครงการ", jobName, "รหัสงาน", jobCode], ["ขนาดระบบ", (result.meta.panelCount || 0).toLocaleString("en-US") + " แผง  ·  " + kwTxt, "ระบบไฟ", String(b.phase) === "3" ? "3 เฟส 380V" : "1 เฟส 220V"], ["จำนวนรายการ", itemCount.toLocaleString("en-US") + " รายการ / " + priced.groups.length + " หมวด", "วันที่ออกเอกสาร", window.SF.TODAY || ""]];
     info.forEach(row => {
@@ -3534,7 +3534,7 @@ function BOQEditor({
       A.merge(tr, 0, lastC - 1);
     }
     A.gap(6);
-    const nr = A.band([hasPrice ? "หมายเหตุ  ·  ปริมาณคำนวณจากแบบและรวม % เผื่อแล้ว  ·  ราคาเป็นราคาต้นทุนก่อนภาษีมูลค่าเพิ่ม  ·  ช่องยอดเป็นสูตร แก้จำนวน/ราคา หรือแทรกบรรทัดในหมวด แล้วยอดหมวด ยอดรวม และชีตสรุปราคาคิดใหม่ให้เอง  ·  เอกสารสร้างอัตโนมัติจากระบบ PHITHAN GREEN" : "หมายเหตุ  ·  ปริมาณคำนวณจากแบบและรวม % เผื่อแล้ว  ·  เอกสารสร้างอัตโนมัติจากระบบ PHITHAN GREEN"], "note", 26);
+    const nr = A.band([hasPrice ? "หมายเหตุ  ·  ปริมาณคำนวณจากแบบและรวม % เผื่อแล้ว  ·  ราคาเป็นราคาต้นทุนก่อนภาษีมูลค่าเพิ่ม  ·  ช่องยอดเป็นสูตร แก้จำนวน/ราคา หรือแทรกบรรทัดในหมวด แล้วยอดหมวด ยอดรวม และชีตสรุปราคาคิดใหม่ให้เอง  ·  เอกสารสร้างอัตโนมัติจากระบบ flash+solar" : "หมายเหตุ  ·  ปริมาณคำนวณจากแบบและรวม % เผื่อแล้ว  ·  เอกสารสร้างอัตโนมัติจากระบบ flash+solar"], "note", 26);
     A.merges.push({
       s: {
         r: nr,
@@ -4720,7 +4720,7 @@ function BOQEditor({
   }, React.createElement(Icon, {
     name: "check",
     size: 15,
-    color: "#22A35B"
+    color: "#1B9B75"
   }), React.createElement("span", null, "\u0E41\u0E1A\u0E48\u0E07\u0E25\u0E07\u0E15\u0E31\u0E27 ", plan.strings, " \u0E2A\u0E15\u0E23\u0E34\u0E07 \xD7 ", plan.series, " \u0E41\u0E1C\u0E07 \xB7 \u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E0A\u0E48\u0E2D\u0E07\u0E27\u0E48\u0E32\u0E07\u0E2D\u0E35\u0E01 ", plan.spare, " \u0E0A\u0E48\u0E2D\u0E07"))), scfg.warns.length > 0 && React.createElement("div", {
     style: {
       display: "flex",
@@ -5803,7 +5803,7 @@ function BOQEditor({
   }, React.createElement(Icon, {
     name: ampSrc.borrowed ? "check" : "alert",
     size: 15,
-    color: ampSrc.borrowed ? "#22A35B" : "#F59E0B"
+    color: ampSrc.borrowed ? "#1B9B75" : "#F59E0B"
   }), React.createElement("span", null, ampSrc.borrowed ? "ใช้ตารางพิกัดของ \"" + ampSrcTh(ampSrc.from) + "\" — " + (mtdMeta.baseWhy || "ระบายความร้อนแบบเดียวกัน") : "ยังไม่มีตารางของคอลัมน์นี้ — \"สายแนะนำ\" จะขึ้น \"—\" จนกว่าจะกรอกที่หน้าคลัง › พิกัดสาย วสท.")), React.createElement("div", {
     style: {
       fontSize: 10,
@@ -6698,7 +6698,7 @@ function BOQEditor({
   }, React.createElement(Icon, {
     name: "check",
     size: 15,
-    color: "#22A35B"
+    color: "#1B9B75"
   }), React.createElement("span", null, "\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38\u0E43\u0E2B\u0E49\u0E41\u0E25\u0E49\u0E27 \u2014 \u0E14\u0E39\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E08\u0E23\u0E34\u0E07\u0E44\u0E14\u0E49\u0E43\u0E19\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D \"\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E27\u0E31\u0E2A\u0E14\u0E38\u0E17\u0E35\u0E48\u0E16\u0E2D\u0E14\u0E44\u0E14\u0E49\" \u0E2B\u0E21\u0E27\u0E14 ", window.BOQ.G_SUPPORT, " (\u0E23\u0E27\u0E21\u0E2A\u0E35\u0E01\u0E31\u0E19\u0E2A\u0E19\u0E34\u0E21 \u0E25\u0E27\u0E14\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21 \u0E43\u0E1A\u0E15\u0E31\u0E14\u0E40\u0E2B\u0E25\u0E47\u0E01)"))), React.createElement(BoqSection, _extends({
     title: "\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07",
     icon: "power"

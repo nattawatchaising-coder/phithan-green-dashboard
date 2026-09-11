@@ -1,5 +1,5 @@
 /* ============================================================
-   PHITHAN GREEN — หน้าคิวงานขออนุญาต (ฝ่ายแอดมินขออนุญาต)
+   flash+solar — หน้าคิวงานขออนุญาต (ฝ่ายแอดมินขออนุญาต)
 
    ช่างกดส่งจาก PermitWizard → งานโผล่ที่นี่ · ฝ่ายขออนุญาตเปิดดูข้อมูล+รูปทั้งชุด
    สั่งออกเป็น PDF ชุดเดียวไปแนบยื่นการไฟฟ้า แล้วเดินสถานะจนอนุมัติ
@@ -822,10 +822,10 @@ function permitReportHTML(job, photos, docs, sheets) {
     "*{box-sizing:border-box;margin:0;padding:0}" +
     "body{font-family:'IBM Plex Sans Thai',sans-serif;color:#15211A;font-size:11.5px;line-height:1.5;background:#fff}" +
     ".pg{page-break-after:always;break-after:page}.pg:last-child{page-break-after:auto;break-after:auto}" +
-    ".hd{display:flex;align-items:center;gap:12px;border-bottom:2px solid #22A35B;padding-bottom:9px;margin-bottom:14px}" +
-    ".hd .t{flex:1}.hd h1{font-size:16px;font-weight:700;color:#14663A}.hd .s{font-size:11px;color:#55645B;margin-top:2px}" +
-    ".hd .code{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:#14663A}" +
-    "h2{font-size:12.5px;font-weight:700;color:#14663A;margin:14px 0 7px;padding-bottom:4px;border-bottom:1px solid #CFDAD3}" +
+    ".hd{display:flex;align-items:center;gap:12px;border-bottom:2px solid #1B9B75;padding-bottom:9px;margin-bottom:14px}" +
+    ".hd .t{flex:1}.hd h1{font-size:16px;font-weight:700;color:#0A4D68}.hd .s{font-size:11px;color:#55645B;margin-top:2px}" +
+    ".hd .code{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:#0A4D68}" +
+    "h2{font-size:12.5px;font-weight:700;color:#0A4D68;margin:14px 0 7px;padding-bottom:4px;border-bottom:1px solid #CFDAD3}" +
     ".pg>h2:first-child{margin-top:0}" +
     "table{width:100%;border-collapse:collapse;margin-bottom:2px}" +
     "th,td{border:1px solid #E3EAE5;padding:5px 8px;text-align:left;vertical-align:top}" +
@@ -839,14 +839,14 @@ function permitReportHTML(job, photos, docs, sheets) {
     ".note{margin-top:10px;padding:8px 10px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:5px;font-size:10.5px;color:#B45309}" +
     ".todo{margin-top:10px;padding:9px 11px;background:#F5F9F6;border:1px solid #E3EAE5;border-radius:5px;font-size:10.5px;color:#55645B;line-height:1.75}" +
     "img.doc{display:block;width:100%;max-height:245mm;object-fit:contain;border:1px solid #E3EAE5;border-radius:4px}" +
-    ".todo .ok{color:#14663A;font-weight:600;margin-right:9px;white-space:nowrap}" +
+    ".todo .ok{color:#0A4D68;font-weight:600;margin-right:9px;white-space:nowrap}" +
     ".todo .no{color:#B45309;margin-right:9px;white-space:nowrap}" +
     ".foot{margin-top:14px;padding-top:7px;border-top:1px solid #E3EAE5;font-size:9.5px;color:#93A399;display:flex;justify-content:space-between}" +
     "</style></head><body>" +
 
     '<section class="pg">' +
     '<div class="hd"><div class="t"><h1>ชุดข้อมูลขออนุญาตเชื่อมต่อระบบโครงข่ายไฟฟ้า</h1>' +
-    '<div class="s">PHITHAN GREEN · เก็บข้อมูลหน้างานโดยช่างติดตั้ง</div></div>' +
+    '<div class="s">' + window.BRANDING.name + ' · เก็บข้อมูลหน้างานโดยช่างติดตั้ง</div></div>' +
     '<div class="code">' + esc(job.code) + "</div></div>" +
 
     "<h2>ผู้ขอใช้ไฟ / สถานที่ติดตั้ง</h2><table>" +
@@ -901,7 +901,7 @@ function permitReportHTML(job, photos, docs, sheets) {
       return '<span class="' + (on ? "ok" : "no") + '">' + (on ? "✔" : "✗") + " " + esc(d.label) + "</span>";
     }).join(" ") + "</div>" +
 
-    '<div class="foot"><span>PHITHAN GREEN · ' + esc(job.code) + "</span><span>พิมพ์เมื่อ " +
+    '<div class="foot"><span>' + window.BRANDING.name + ' · ' + esc(job.code) + "</span><span>พิมพ์เมื่อ " +
     esc(new Date().toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })) + "</span></div>" +
     "</section>" + photoPages + docPages + sheetPages + "</body></html>";
 }

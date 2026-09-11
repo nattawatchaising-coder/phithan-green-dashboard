@@ -1,5 +1,5 @@
 /* ============================================================
-   PHITHAN GREEN — งานฝ่ายขาย (เซลล์)
+   flash+solar — งานฝ่ายขาย (เซลล์)
 
    ลูกค้าสำรวจ (surveyLeads) = วัตถุงานของเซลล์ · งานติดตั้ง (jobs) = หลังปิดการขาย
    ไฟล์นี้เก็บ: ขั้นการขาย · ใบเสนอราคา · บอร์ดขาย · ยอดขาย · บล็อกสรุปในใบงาน
@@ -267,22 +267,22 @@ function quoteHTML(q) {
     "@page{size:A4;margin:14mm}" +
     "*{box-sizing:border-box}" +
     "body{font-family:'IBM Plex Sans Thai',sans-serif;color:#111827;font-size:12px;margin:0;line-height:1.55}" +
-    ".hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #22A35B;padding-bottom:12px;margin-bottom:16px}" +
-    ".bd{font-size:20px;font-weight:700;color:#14663A;letter-spacing:.02em}" +
+    ".hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1B9B75;padding-bottom:12px;margin-bottom:16px}" +
+    ".bd{font-size:20px;font-weight:700;color:#0A4D68;letter-spacing:.02em}" +
     ".bs{font-size:11px;color:#6b7280;margin-top:2px}" +
     ".ti{text-align:right}.ti h1{font-size:19px;margin:0;color:#111827}" +
     ".ti .no{font-size:12px;color:#374151;margin-top:3px}" +
     ".two{display:flex;gap:14px;margin-bottom:14px}" +
     ".two>div{flex:1;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px}" +
-    ".two h3,.blk h3{font-size:11px;margin:0 0 6px;color:#14663A;letter-spacing:.04em}" +
+    ".two h3,.blk h3{font-size:11px;margin:0 0 6px;color:#0A4D68;letter-spacing:.04em}" +
     ".kv{display:flex;gap:6px;font-size:11.5px}.kv b{min-width:58px;color:#6b7280;font-weight:500}" +
     "table{width:100%;border-collapse:collapse;font-size:11.5px}" +
-    "th{background:#14663A;color:#fff;padding:7px 8px;text-align:left;font-weight:600;font-size:11px}" +
+    "th{background:#0A4D68;color:#fff;padding:7px 8px;text-align:left;font-weight:600;font-size:11px}" +
     "td{padding:7px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top}" +
     ".c{text-align:center}.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}" +
     ".dt{color:#6b7280;font-size:10.5px;margin-top:2px}" +
     ".sum{margin-top:12px;margin-left:auto;width:290px}" +
-    ".sum td{border:0;padding:4px 8px}.sum .big td{border-top:2px solid #14663A;font-weight:700;font-size:14px;color:#14663A;padding-top:8px}" +
+    ".sum td{border:0;padding:4px 8px}.sum .big td{border-top:2px solid #0A4D68;font-weight:700;font-size:14px;color:#0A4D68;padding-top:8px}" +
     ".blk{margin-top:14px;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;break-inside:avoid}" +
     ".blk ul{margin:0;padding-left:18px}.blk li{margin-bottom:3px}" +
     ".note{margin-top:12px;font-size:11px;color:#374151;white-space:pre-wrap}" +
@@ -291,9 +291,9 @@ function quoteHTML(q) {
     ".sig .rl{font-size:11px;color:#6b7280}" +
     ".ft{margin-top:16px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center}" +
     "</style></head><body>" +
-    '<div class="hd"><div><div class="bd">PHITHAN GREEN</div>' +
+    '<div class="hd"><div>' + window.brandHeadHTML({ size: 40 }) +
     '<div class="bs">ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์ · ออกแบบ · ติดตั้ง · ขออนุญาตการไฟฟ้า</div>' +
-    '<div class="bs">solar@phithangreen.com · 064-867-5020</div></div>' +
+    '<div class="bs">' + window.BRANDING.email + " · " + window.BRANDING.tel + "</div></div>" +
     '<div class="ti"><h1>ใบเสนอราคา</h1><div class="no">เลขที่ <b>' + sEsc(q.no) + "</b></div>" +
     '<div class="no">วันที่ ' + dsp(q.date) + "</div></div></div>" +
     '<div class="two"><div><h3>ลูกค้า</h3>' +
@@ -319,7 +319,7 @@ function quoteHTML(q) {
     '<div class="sig"><div><div class="ln"></div><div class="rl">ผู้เสนอราคา · ' + sEsc(q.ownerName || q.byName || "") +
     '</div></div><div><div class="ln"></div><div class="rl">ผู้อนุมัติ / ลูกค้า</div>' +
     '<div class="rl">วันที่ ______ / ______ / ______</div></div></div>' +
-    '<div class="ft">เอกสารนี้ออกจากระบบติดตามงานติดตั้ง PHITHAN GREEN</div>' +
+    '<div class="ft">เอกสารนี้ออกจากระบบติดตามงานติดตั้ง ' + window.BRANDING.name + "</div>" +
     "</body></html>";
 }
 

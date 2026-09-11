@@ -1,5 +1,5 @@
 /* ============================================================
-   PHITHAN GREEN — BOQ Editor (ถอดวัสดุต่องาน)
+   flash+solar — BOQ Editor (ถอดวัสดุต่องาน)
    กรอกพารามิเตอร์ → คำนวณรายการวัสดุอัตโนมัติ → บันทึก / ดาวน์โหลด Excel
    ============================================================ */
 
@@ -69,7 +69,7 @@ const BQ_CSS = `
   color:var(--text-2);font-weight:700;font-family:inherit;font-size:13px;cursor:pointer;
   display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .bq-btn:hover{background:var(--surface2)}
-.bq-btn.gh{border-color:var(--tint-ok-tx);background:rgba(34,163,91,.08);color:var(--tint-ok-tx)}
+.bq-btn.gh{border-color:var(--tint-ok-tx);background:rgba(27,155,117,.08);color:var(--tint-ok-tx)}
 .bq-btn.pri{border:0;background:var(--primary);color:#fff;padding:10px 24px}
 .bq-btn.pri:hover{filter:brightness(1.06)}
 
@@ -875,7 +875,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
   const opt = (arr) => arr.map((x) => ({ value: x, label: typeof x === "string" ? x.trim() : x }));
 
-  const GROUP_COLOR = { "PV MODULE": "#22A35B", INVERTER: "#7C5CFC", "COMBINER BOX": "#4F46E5", MOUNTING: "#F59E0B", CABLE: "#0EA5E9", "RACE WAY": "#64748B", GROUNDING: "#A16207", "LADDER (บันไดลิง)": "#0D9488", "WALKWAY": "#D97706", "GUARD RAIL": "#DB2777", ACCESSORIES: "#EC4899",
+  const GROUP_COLOR = { "PV MODULE": "#1B9B75", INVERTER: "#7C5CFC", "COMBINER BOX": "#4F46E5", MOUNTING: "#F59E0B", CABLE: "#0EA5E9", "RACE WAY": "#64748B", GROUNDING: "#A16207", "LADDER (บันไดลิง)": "#0D9488", "WALKWAY": "#D97706", "GUARD RAIL": "#DB2777", ACCESSORIES: "#EC4899",
     [window.BOQ.G_TRAY]: "#0891B2", [window.BOQ.G_SUPPORT]: "#78716C",
     [window.BOQ.G_LABOR]: "#2563EB", [window.BOQ.G_PERMIT]: "#9333EA",
     [window.BOQ.G_TRANSPORT]: "#0F766E", [window.BOQ.G_MANAGE]: "var(--tint-amber-tx)",
@@ -1119,7 +1119,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                         )}
                         {chk.ok && (
                           <div className="bq-note ok">
-                            <Icon name="check" size={15} color="#22A35B" />
+                            <Icon name="check" size={15} color="#1B9B75" />
                             <span>ผ่านเกณฑ์ — เหลือพื้นที่อีก {(chk.limit - chk.fillPct).toFixed(1)}% · อย่าลืมเอาตัวคูณ ×{chk.derate.toFixed(2)} ไปหารพิกัดกระแสของสายในตารางคำนวณขนาดสายไฟ</span>
                           </div>
                         )}
@@ -1213,7 +1213,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                         )}
                         {chk.ok && chk.widthOk && (
                           <div className="bq-note ok">
-                            <Icon name="check" size={15} color="#22A35B" />
+                            <Icon name="check" size={15} color="#1B9B75" />
                             <span>ผ่านเกณฑ์ — เหลือพื้นที่อีก {(chk.limit - chk.fillPct).toFixed(1)}% · อย่าลืมเอาตัวคูณ ×{chk.derate.toFixed(2)} ไปหารพิกัดกระแสของสายในตารางคำนวณขนาดสายไฟ</span>
                           </div>
                         )}
@@ -1371,7 +1371,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     const X = window.XLSX;
     const hasPrice = priced.grandTotal > 0;
 
-    // ── จานสี (ธีมเขียว PHITHAN GREEN) ──
+    // ── จานสี (โทนแบรนด์ flash+solar) ──
     const C = {
       brand: "1D854B", brandDk: "0F5233", brandSoft: "EAF6EF",
       group: "D3E9DC", alt: "F6FAF7", white: "FFFFFF",
@@ -1471,7 +1471,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       ? [{ wch: 7 }, { wch: 14 }, { wch: 40 }, { wch: 15 }, { wch: 18 }, { wch: 9.5 }, { wch: 8 }, { wch: 13 }, { wch: 15 }]
       : [{ wch: 7 }, { wch: 16 }, { wch: 46 }, { wch: 16 }, { wch: 20 }, { wch: 11 }, { wch: 10 }];
     const A = mkSheet(lastC, colW);
-    docHead(A, "บัญชีแสดงปริมาณวัสดุ  ·  BILL OF QUANTITIES", "PHITHAN GREEN  —  งานติดตั้งระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์");
+    docHead(A, "บัญชีแสดงปริมาณวัสดุ  ·  BILL OF QUANTITIES", "FLASH + SOLAR  —  งานติดตั้งระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์");
 
     // ข้อมูลงาน — วางเป็น 2 คู่ต่อแถว ไม่ให้เหลือช่องว่างยาว ๆ ทางขวา
     const mid = Math.ceil((lastC + 1) / 2);
@@ -1533,8 +1533,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     }
     A.gap(6);
     const nr = A.band([hasPrice
-      ? "หมายเหตุ  ·  ปริมาณคำนวณจากแบบและรวม % เผื่อแล้ว  ·  ราคาเป็นราคาต้นทุนก่อนภาษีมูลค่าเพิ่ม  ·  ช่องยอดเป็นสูตร แก้จำนวน/ราคา หรือแทรกบรรทัดในหมวด แล้วยอดหมวด ยอดรวม และชีตสรุปราคาคิดใหม่ให้เอง  ·  เอกสารสร้างอัตโนมัติจากระบบ PHITHAN GREEN"
-      : "หมายเหตุ  ·  ปริมาณคำนวณจากแบบและรวม % เผื่อแล้ว  ·  เอกสารสร้างอัตโนมัติจากระบบ PHITHAN GREEN"], "note", 26);
+      ? "หมายเหตุ  ·  ปริมาณคำนวณจากแบบและรวม % เผื่อแล้ว  ·  ราคาเป็นราคาต้นทุนก่อนภาษีมูลค่าเพิ่ม  ·  ช่องยอดเป็นสูตร แก้จำนวน/ราคา หรือแทรกบรรทัดในหมวด แล้วยอดหมวด ยอดรวม และชีตสรุปราคาคิดใหม่ให้เอง  ·  เอกสารสร้างอัตโนมัติจากระบบ flash+solar"
+      : "หมายเหตุ  ·  ปริมาณคำนวณจากแบบและรวม % เผื่อแล้ว  ·  เอกสารสร้างอัตโนมัติจากระบบ flash+solar"], "note", 26);
     A.merges.push({ s: { r: nr, c: 0 }, e: { r: nr, c: lastC } });
 
     const wsA = paint(A, (t, r, c) => {
@@ -1960,7 +1960,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                         </div>
                       ) : (
                         <div className="bq-note ok">
-                          <Icon name="check" size={15} color="#22A35B" />
+                          <Icon name="check" size={15} color="#1B9B75" />
                           <span>แบ่งลงตัว {plan.strings} สตริง × {plan.series} แผง · เหลือช่องว่างอีก {plan.spare} ช่อง</span>
                         </div>
                       )}
@@ -2322,7 +2322,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
                 {(!hasAmpTbl || ampSrc.borrowed) && (
                   <div className="bq-note" style={{ marginTop: 10, background: ampSrc.borrowed ? "var(--tint-ok-bg)" : "var(--tint-amber-bg)", border: "1px solid " + (ampSrc.borrowed ? "var(--tint-ok-bd)" : "var(--tint-amber-bd)"), color: ampSrc.borrowed ? "var(--tint-ok-tx)" : "var(--tint-amber-tx2)" }}>
-                    <Icon name={ampSrc.borrowed ? "check" : "alert"} size={15} color={ampSrc.borrowed ? "#22A35B" : "#F59E0B"} />
+                    <Icon name={ampSrc.borrowed ? "check" : "alert"} size={15} color={ampSrc.borrowed ? "#1B9B75" : "#F59E0B"} />
                     <span>{ampSrc.borrowed
                       ? "ใช้ตารางพิกัดของ \"" + ampSrcTh(ampSrc.from) + "\" — " + (mtdMeta.baseWhy || "ระบายความร้อนแบบเดียวกัน")
                       : "ยังไม่มีตารางของคอลัมน์นี้ — \"สายแนะนำ\" จะขึ้น \"—\" จนกว่าจะกรอกที่หน้าคลัง › พิกัดสาย วสท."}</span>
@@ -2638,7 +2638,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             </div>
             {sup.inv + sup.mdb > 0 && (
               <div className="bq-note ok" style={{ marginTop: 14 }}>
-                <Icon name="check" size={15} color="#22A35B" />
+                <Icon name="check" size={15} color="#1B9B75" />
                 <span>ถอดวัสดุให้แล้ว — ดูรายการจริงได้ในหัวข้อ "รายการวัสดุที่ถอดได้" หมวด {window.BOQ.G_SUPPORT} (รวมสีกันสนิม ลวดเชื่อม ใบตัดเหล็ก)</span>
               </div>
             )}

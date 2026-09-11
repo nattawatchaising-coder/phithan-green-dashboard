@@ -103,7 +103,7 @@ const SU_CSS = `
 .su-phcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px}
 .su-phcard[data-ph="1"]::before{background:#D97706}
 .su-phcard[data-ph="2"]::before{background:#2563EB}
-.su-phcard[data-ph="3"]::before{background:#0F7A43}
+.su-phcard[data-ph="3"]::before{background:#148080}
 .su-phcard .hd{display:flex;align-items:baseline;gap:7px}
 .su-phcard .hd b{font-size:13px;font-weight:800;letter-spacing:.04em}
 .su-phcard .hd i{font-style:normal;font-size:10px;font-weight:700;color:var(--text-3);margin-left:auto}
@@ -114,7 +114,7 @@ const SU_CSS = `
 .su-phcard .bar i{display:block;height:100%;border-radius:99px;background:currentColor;opacity:.75}
 .su-phcard[data-ph="1"] .bar i{background:#D97706}
 .su-phcard[data-ph="2"] .bar i{background:#2563EB}
-.su-phcard[data-ph="3"] .bar i{background:#0F7A43}
+.su-phcard[data-ph="3"] .bar i{background:#148080}
 .su-phcard .us{font-size:9px;font-weight:700;color:var(--text-3);letter-spacing:.02em;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* ปุ่มเลือกเฟสในตาราง */
@@ -237,7 +237,7 @@ const SU_CSS = `
 .su-env-pb{display:flex;align-items:center;gap:11px;padding-top:10px;border-top:1px solid var(--ln)}
 .su-env-pb .l{font-size:10.5px;font-weight:700;color:var(--text-2);white-space:nowrap}
 .su-env-pb .bar{flex:1;height:7px;border-radius:99px;background:var(--surface3);overflow:hidden}
-.su-env-pb .bar span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#22A35B,#0F7A43)}
+.su-env-pb .bar span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#1B9B75,#148080)}
 .su-env-pb .r{font-size:10px;font-weight:700;color:var(--text-3);white-space:nowrap}
 .su-env-pb .r b{font-family:var(--font-num,inherit);font-size:14px;color:var(--text-1);letter-spacing:-.3px}
 @media (max-width:720px){ .su-env{grid-template-columns:1fr} }
@@ -502,7 +502,7 @@ function SuVoltBand({
         width: px(vmax) - px(vmin) + "%",
         top: 0,
         bottom: 0,
-        background: "rgba(34,163,91,.14)"
+        background: "rgba(27,155,117,.14)"
       }
     }), vdc ? React.createElement("span", {
       style: {
@@ -521,7 +521,7 @@ function SuVoltBand({
         top: 4,
         height: 10,
         borderRadius: 99,
-        background: r.ok ? "linear-gradient(90deg,#F59E0B,#22A35B)" : "var(--tint-red-tx)",
+        background: r.ok ? "linear-gradient(90deg,#F59E0B,#1B9B75)" : "var(--tint-red-tx)",
         opacity: r.ok ? 1 : .55
       }
     }), React.createElement("span", {
@@ -558,7 +558,7 @@ function SuVoltBand({
     }
   }, "\u25A0"), " \u0E41\u0E1C\u0E07\u0E23\u0E49\u0E2D\u0E19 (\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E15\u0E48\u0E33\u0E2A\u0E38\u0E14)"), React.createElement("span", null, React.createElement("b", {
     style: {
-      color: "#22A35B"
+      color: "#1B9B75"
     }
   }, "\u25A0"), " \u0E2D\u0E32\u0E01\u0E32\u0E28\u0E40\u0E22\u0E47\u0E19 (\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14)"), React.createElement("span", null, React.createElement("b", {
     style: {
@@ -566,7 +566,7 @@ function SuVoltBand({
     }
   }, "\u2502"), " \u0E40\u0E1E\u0E14\u0E32\u0E19 Voc")));
 }
-const SU_SCOLOR = ["#22A35B", "#2563EB", "#D97706", "#7C3AED", "var(--tint-red-tx2)", "#0891B2", "#DB2777", "#65A30D", "#EA580C", "#4F46E5"];
+const SU_SCOLOR = ["#1B9B75", "#2563EB", "#D97706", "#7C3AED", "var(--tint-red-tx2)", "#0891B2", "#DB2777", "#65A30D", "#EA580C", "#4F46E5"];
 const suColor = i => SU_SCOLOR[(i - 1 + SU_SCOLOR.length) % SU_SCOLOR.length];
 function SuLayout2D({
   foot,
@@ -750,11 +750,11 @@ function SuLifeChart({
     y2: "1"
   }, React.createElement("stop", {
     offset: "0%",
-    stopColor: "#22A35B",
+    stopColor: "#1B9B75",
     stopOpacity: ".28"
   }), React.createElement("stop", {
     offset: "100%",
-    stopColor: "#22A35B",
+    stopColor: "#1B9B75",
     stopOpacity: "0"
   }))), React.createElement("path", {
     d: line + " L" + x(rows.length - 1) + " " + (H - 18) + " L" + x(0) + " " + (H - 18) + " Z",
@@ -762,7 +762,7 @@ function SuLifeChart({
   }), React.createElement("path", {
     d: line,
     fill: "none",
-    stroke: "#22A35B",
+    stroke: "#1B9B75",
     strokeWidth: "2",
     strokeLinejoin: "round"
   }), rows.map((r, i) => (i % 2 === 0 || i === rows.length - 1) && React.createElement("g", {
@@ -772,7 +772,7 @@ function SuLifeChart({
     cy: y(r.kwh),
     r: "2.6",
     fill: "#fff",
-    stroke: "#22A35B",
+    stroke: "#1B9B75",
     strokeWidth: "1.6"
   }), React.createElement("text", {
     x: x(i),
@@ -852,11 +852,11 @@ function SuDayLight({
     y2: "1"
   }, React.createElement("stop", {
     offset: "0%",
-    stopColor: "#22A35B",
+    stopColor: "#1B9B75",
     stopOpacity: ".30"
   }), React.createElement("stop", {
     offset: "100%",
-    stopColor: "#22A35B",
+    stopColor: "#1B9B75",
     stopOpacity: ".02"
   })), React.createElement("pattern", {
     id: "suShadeHatch",
@@ -923,13 +923,13 @@ function SuDayLight({
   }), React.createElement("path", {
     d: path(r => r.poaAvg),
     fill: "none",
-    stroke: "#22A35B",
+    stroke: "#1B9B75",
     strokeWidth: "1.3",
     opacity: ".45"
   }), React.createElement("path", {
     d: path(r => groups.length ? poaNetAvg(r, groups) : 0),
     fill: "none",
-    stroke: "#22A35B",
+    stroke: "#1B9B75",
     strokeWidth: "2.3",
     strokeLinejoin: "round"
   }), React.createElement("line", {
@@ -976,7 +976,7 @@ function SuDayLight({
     }
   }, "\u2505"), " \u0E41\u0E2A\u0E07\u0E1A\u0E19\u0E1E\u0E37\u0E49\u0E19\u0E23\u0E32\u0E1A"), React.createElement("span", null, React.createElement("b", {
     style: {
-      color: "#22A35B"
+      color: "#1B9B75"
     }
   }, "\u2501"), " \u0E41\u0E2A\u0E07\u0E1A\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E41\u0E1C\u0E07\u0E08\u0E23\u0E34\u0E07 (\u0E2B\u0E25\u0E31\u0E07\u0E2B\u0E31\u0E01\u0E40\u0E07\u0E32)"), sim.shadeFrom != null && React.createElement("span", null, React.createElement("b", {
     style: {
@@ -1099,17 +1099,17 @@ function SuDayPower({
     fill: "var(--tint-amber-tx)"
   }, "\u0E40\u0E1E\u0E14\u0E32\u0E19\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C ", acKw, " kW")), React.createElement("path", {
     d: line(r => r.dc, Yp) + " L" + X(sim.rows[sim.rows.length - 1].h).toFixed(1) + " " + Yp(0) + " L" + X(sim.rows[0].h).toFixed(1) + " " + Yp(0) + " Z",
-    fill: "rgba(34,163,91,.14)"
+    fill: "rgba(27,155,117,.14)"
   }), React.createElement("path", {
     d: line(r => r.dc, Yp),
     fill: "none",
-    stroke: "#22A35B",
+    stroke: "#1B9B75",
     strokeWidth: "1.4",
     strokeDasharray: "4 3"
   }), React.createElement("path", {
     d: line(r => r.ac, Yp),
     fill: "none",
-    stroke: "#0F7A43",
+    stroke: "#148080",
     strokeWidth: "2.3",
     strokeLinejoin: "round"
   }), React.createElement("path", {
@@ -1129,7 +1129,7 @@ function SuDayPower({
       cy: Yp(pk.ac),
       r: "3.2",
       fill: "#fff",
-      stroke: "#0F7A43",
+      stroke: "#148080",
       strokeWidth: "1.8"
     }), farP && React.createElement("text", {
       x: scClamp(X(pk.h), L + 34, W - R - 34),
@@ -1137,7 +1137,7 @@ function SuDayPower({
       textAnchor: "middle",
       fontSize: "9.5",
       fontWeight: "800",
-      fill: "#0F7A43"
+      fill: "#148080"
     }, "\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14 ", scR(pk.ac, 2), " kW"), React.createElement("circle", {
       cx: X(tk.h),
       cy: Yt(tOf(tk)),
@@ -1194,7 +1194,7 @@ function SuDayPower({
     textAnchor: "end",
     fontSize: "9.5",
     fontWeight: "800",
-    fill: "#0F7A43"
+    fill: "#148080"
   }, scR(cur.ac, 2), " kW"), React.createElement("text", {
     x: "7",
     y: "25",
@@ -1492,11 +1492,11 @@ function SuIvChart({
     y2: "1"
   }, React.createElement("stop", {
     offset: "0%",
-    stopColor: "#22A35B",
+    stopColor: "#1B9B75",
     stopOpacity: ".16"
   }), React.createElement("stop", {
     offset: "100%",
-    stopColor: "#22A35B",
+    stopColor: "#1B9B75",
     stopOpacity: "0"
   }))), Array.from({
     length: gridI + 1
@@ -1591,7 +1591,7 @@ function SuIvChart({
   }), React.createElement("path", {
     d: ivOf(exp),
     fill: "none",
-    stroke: solo.color || "#22A35B",
+    stroke: solo.color || "#1B9B75",
     strokeWidth: "2.2",
     strokeLinejoin: "round"
   }), React.createElement("path", {
@@ -1605,7 +1605,7 @@ function SuIvChart({
     y1: Yi(exp.imp),
     x2: X(exp.vmp),
     y2: H - B,
-    stroke: solo.color || "#22A35B",
+    stroke: solo.color || "#1B9B75",
     strokeWidth: "1",
     strokeDasharray: "2 3",
     opacity: ".7"
@@ -1614,7 +1614,7 @@ function SuIvChart({
     y1: Yi(exp.imp),
     x2: X(exp.vmp),
     y2: Yi(exp.imp),
-    stroke: solo.color || "#22A35B",
+    stroke: solo.color || "#1B9B75",
     strokeWidth: "1",
     strokeDasharray: "2 3",
     opacity: ".7"
@@ -1623,7 +1623,7 @@ function SuIvChart({
     cy: Yi(exp.imp),
     r: "4",
     fill: "#fff",
-    stroke: solo.color || "#22A35B",
+    stroke: solo.color || "#1B9B75",
     strokeWidth: "2.2"
   }), React.createElement("text", {
     x: X(exp.vmp),
@@ -1743,8 +1743,8 @@ function SuIvChart({
     fill: "#1D4ED8"
   }, "\u0E27\u0E31\u0E14\u0E44\u0E14\u0E49")) : null));
 }
-const SU_GRAMP = ["#0B5F35", "#15803D", "#22A35B", "#6FC48F", "#B3DEC4"];
-const SU_TRAMP = ["#1D4ED8", "#0F7A43", "#D97706", "var(--tint-red-tx2)"];
+const SU_GRAMP = ["#0B5F35", "#15803D", "#1B9B75", "#6FC48F", "#B3DEC4"];
+const SU_TRAMP = ["#1D4ED8", "#148080", "#D97706", "var(--tint-red-tx2)"];
 function SuIvFamily({
   curves,
   mode,
@@ -2182,7 +2182,7 @@ function SuLossFlow({
     stopColor: "#3ECF84"
   }), React.createElement("stop", {
     offset: "55%",
-    stopColor: "#22A35B"
+    stopColor: "#1B9B75"
   }), React.createElement("stop", {
     offset: "100%",
     stopColor: "#0B6B3A"
@@ -2519,7 +2519,7 @@ function SuThermo({
 }
 const SU_FLOW = {
   direct: {
-    c: "#22A35B",
+    c: "#1B9B75",
     label: "ใช้ตรง ๆ ตอนนั้น"
   },
   chg: {
@@ -2791,7 +2791,7 @@ function SuCash({
     width: bw,
     height: Math.max(1, Math.abs(Y(r.cum) - Y(0))),
     rx: "2",
-    fill: r.cum >= 0 ? "#22A35B" : "#CBD5E1",
+    fill: r.cum >= 0 ? "#1B9B75" : "#CBD5E1",
     opacity: r.cum >= 0 ? 0.9 : 0.85
   }, React.createElement("title", null, "ปี " + r.year + " · สะสม " + r.cum.toLocaleString() + " บาท"))), roi.payback != null && roi.payback <= rows.length && React.createElement("g", null, React.createElement("line", {
     x1: X(roi.payback),
@@ -2987,7 +2987,7 @@ function SolarWorkspace({
   const SU_PHCOLOR = {
     L1: "#D97706",
     L2: "#2563EB",
-    L3: "#0F7A43"
+    L3: "#148080"
   };
   const [muColorBy, setMuColorBy] = React.useState("unit");
   const [activeMu, setActiveMu] = React.useState(1);
@@ -4916,11 +4916,11 @@ function SolarWorkspace({
     }
   }, React.createElement("span", null, React.createElement("b", {
     style: {
-      color: "#22A35B"
+      color: "#1B9B75"
     }
   }, "\u2505"), " \u0E01\u0E33\u0E25\u0E31\u0E07 DC \u0E08\u0E32\u0E01\u0E41\u0E1C\u0E07"), React.createElement("span", null, React.createElement("b", {
     style: {
-      color: "#0F7A43"
+      color: "#148080"
     }
   }, "\u2501"), " \u0E01\u0E33\u0E25\u0E31\u0E07 AC \u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E08\u0E23\u0E34\u0E07"), React.createElement("span", null, React.createElement("b", {
     style: {
@@ -5857,7 +5857,7 @@ function SolarWorkspace({
     }, React.createElement("span", {
       style: {
         width: scClamp(v * 5, 0, 100) + "%",
-        background: v >= 8 ? "var(--tint-red-tx2)" : v >= 3 ? "#D97706" : "#22A35B"
+        background: v >= 8 ? "var(--tint-red-tx2)" : v >= 3 ? "#D97706" : "#1B9B75"
       }
     }))));
   })))), !!(shade3d.worst || []).length && React.createElement(React.Fragment, null, React.createElement("span", {

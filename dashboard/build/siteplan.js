@@ -111,8 +111,8 @@ PLAN_MARKER_BY.camera = {
 };
 const PDF_DEFAULTS = {
   warranties: ["ฟรีล้างแผงโซลาร์เซลล์ 3 ครั้ง", "รับประกันงานติดตั้ง 5 ปี", "รับประกันอินเวอร์เตอร์ 5 ปี", "รับประกันแผงโซลาร์เซลล์ 15 ปี", "สำรวจหน้างานก่อนติดตั้งฟรี"],
-  email: "solar@phithangreen.com",
-  tel: "064-867-5020 (ฝ่ายวิศวกรรม)",
+  email: (window.BRANDING || {}).email || "",
+  tel: (window.BRANDING || {}).telNote || "",
   logo: ""
 };
 const PLAN_PANEL_SHORT = 1.13;
@@ -1682,10 +1682,10 @@ function SitePlanEditor({
   const SW = 1600,
     SH = 900;
   const F = "system-ui, -apple-system, 'Segoe UI', 'Noto Sans Thai', 'Sarabun', sans-serif";
-  const BG = "#0E4D33",
-    BGD = "#0A3123",
-    MINT = "#8FE3B8",
-    SITE_URL = "www.phithangreen.com";
+  const BG = "#0A4D68",
+    BGD = "#072F41",
+    MINT = "#7FE0C0",
+    SITE_URL = (window.BRANDING || {}).site || "";
   const newSlide = bg => {
     const c = document.createElement("canvas");
     c.width = SW;
@@ -1730,29 +1730,22 @@ function SitePlanEditor({
     x.textAlign = "left";
     x.fillStyle = dark ? "rgba(255,255,255,.85)" : BG;
     x.font = "800 20px " + F;
-    x.fillText("PHITHAN GREEN", 44, SH - 30);
+    x.fillText(window.BRANDING.name, 44, SH - 30);
   };
+  const EM_HEX = [[100, 30], [160.6, 65], [160.6, 135], [100, 170], [39.4, 135], [39.4, 65]];
+  const EM_BOLT = [[104, 55], [74, 101], [92, 101], [84, 145], [120, 91], [98, 91]];
   const drawEmblem = (x, cx, cy, r) => {
     x.save();
-    x.fillStyle = MINT;
-    x.strokeStyle = MINT;
-    x.lineWidth = Math.max(2, r * 0.14);
-    x.lineCap = "round";
-    x.beginPath();
-    x.arc(cx, cy - r * 0.1, r * 0.42, 0, Math.PI * 2);
-    x.fill();
-    for (let i = 0; i < 8; i++) {
-      const a = i * Math.PI / 4;
+    const pt = p => [cx + (p[0] - 100) / 100 * r, cy + (p[1] - 100) / 100 * r];
+    const poly = (pts, fill) => {
       x.beginPath();
-      x.moveTo(cx + Math.cos(a) * r * 0.62, cy - r * 0.1 + Math.sin(a) * r * 0.62);
-      x.lineTo(cx + Math.cos(a) * r * 0.92, cy - r * 0.1 + Math.sin(a) * r * 0.92);
-      x.stroke();
-    }
-    x.beginPath();
-    x.moveTo(cx, cy + r * 0.5);
-    x.quadraticCurveTo(cx + r * 0.55, cy + r * 0.5, cx + r * 0.55, cy + r * 1.05);
-    x.quadraticCurveTo(cx, cy + r * 0.95, cx, cy + r * 0.5);
-    x.fill();
+      pts.map(pt).forEach((q, i) => i ? x.lineTo(q[0], q[1]) : x.moveTo(q[0], q[1]));
+      x.closePath();
+      x.fillStyle = fill;
+      x.fill();
+    };
+    poly(EM_HEX, MINT);
+    poly(EM_BOLT, BGD);
     x.restore();
   };
   const pointLabel = m => m.kind === "xpage" ? "จุดต่อรูป #" + (m.n || "") : m.kind === "camera" ? "จุดกล้อง / ภาพหน้างาน" : (PLAN_MARKER_BY[m.kind] || {}).label || "จุดอุปกรณ์";
@@ -1770,7 +1763,7 @@ function SitePlanEditor({
     x.textAlign = "left";
     x.fillStyle = "rgba(255,255,255,.85)";
     x.font = "800 20px " + F;
-    x.fillText("PHITHAN GREEN", 44, 48);
+    x.fillText(window.BRANDING.name, 44, 48);
     drawContain(x, img, 56, 78, SW - 112, SH - 78 - barH - 18);
     x.fillStyle = BG;
     x.fillRect(0, SH - barH, SW, barH);
@@ -2509,7 +2502,7 @@ function SitePlanEditor({
         border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
         background: on ? "var(--primary)" : "var(--surface)",
         color: on ? "#fff" : "var(--text-2)",
-        boxShadow: on ? "0 2px 8px rgba(34,163,91,.28)" : "none"
+        boxShadow: on ? "0 2px 8px rgba(27,155,117,.28)" : "none"
       }
     }, React.createElement(Icon, {
       name: icon,

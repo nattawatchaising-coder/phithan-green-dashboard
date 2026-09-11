@@ -306,12 +306,17 @@ function SurveyReport({
     }
   }, "SOLAR SITE SURVEY REPORT"), React.createElement("div", {
     style: {
-      fontSize: 12.5,
-      fontWeight: 800,
-      color: "var(--primary-dark)",
+      display: "flex",
+      alignItems: "center",
+      gap: 7,
       marginTop: 6
     }
-  }, "PHITHAN GREEN")), React.createElement("div", {
+  }, React.createElement(window.BrandMark, {
+    size: 22
+  }), React.createElement(window.BrandWord, {
+    size: 16,
+    color: "var(--brand-ink)"
+  }))), React.createElement("div", {
     style: {
       textAlign: "right",
       fontSize: 11.5,

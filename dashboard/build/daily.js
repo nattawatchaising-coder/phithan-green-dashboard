@@ -236,7 +236,7 @@ const drModeOf = job => (job || {}).type === "project" ? "project" : "home";
 function drDocNo(job, date, allDates) {
   const code = String((job || {}).code || "JOB").replace(/^SF-/, "");
   const n = (allDates || []).filter(d => d <= date).length || 1;
-  return "PG-DR-" + code + "-" + drPad2(n);
+  return "FS-DR-" + code + "-" + drPad2(n);
 }
 const drCanApprove = role => window.hasRole(role, "lead") || window.hasRole(role, "admin");
 const drCanEdit = (role, rec) => {

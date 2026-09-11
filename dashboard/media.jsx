@@ -1,5 +1,5 @@
 /* ============================================================
-   SolarFlow / PHITHAN GREEN — Job media
+   SolarFlow / flash+solar — Job media
    - รูปถ่ายหน้างาน (ย่อรูปแล้วเก็บ base64 ใน RTDB: jobPhotos/{jobId})
    - กล่องข้อความ / บันทึกงาน (jobComments/{jobId})
    โหลดเฉพาะงานที่เปิด drawer เพื่อไม่ให้ job list ช้า

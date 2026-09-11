@@ -310,7 +310,7 @@ function AnnOverlay({
       cx: cx,
       cy: cy,
       r: unit * 3.2 * s,
-      fill: "rgba(34,163,91,.16)"
+      fill: "rgba(27,155,117,.16)"
     }), React.createElement("circle", {
       "data-h": k,
       cx: cx,
@@ -1523,7 +1523,7 @@ function AnnEditor({
       fontFamily: "inherit",
       fontSize: 14,
       cursor: "pointer",
-      boxShadow: "0 4px 14px rgba(34,163,91,.3)"
+      boxShadow: "0 4px 14px rgba(27,155,117,.3)"
     }
   }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E17\u0E35\u0E48\u0E40\u0E02\u0E35\u0E22\u0E19"))), picker && React.createElement(StickerPicker, {
     onPick: useSticker,

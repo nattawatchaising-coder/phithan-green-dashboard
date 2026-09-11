@@ -657,7 +657,7 @@ function exportShortageXlsx(job, rows) {
   const inst = window.SF.installDate ? window.SF.installDate(job) : "";
   pushRow(["รายการวัสดุที่ต้องสั่งเพิ่ม (ของไม่พอ)"], "title", 30);
   fullMerge(R - 1);
-  pushRow(["PHITHAN GREEN · ระบบติดตามงานติดตั้งโซลาร์เซลล์"], "subtitle", 20);
+  pushRow(["flash+solar · ระบบติดตามงานติดตั้งโซลาร์เซลล์"], "subtitle", 20);
   fullMerge(R - 1);
   pushRow([], "spacer", 6);
   const info = [["โครงการ", job ? job.name || "" : ""], ["รหัสงาน", job ? job.code || "" : ""], ["วันติดตั้ง", inst || "-"], ["วันที่ออกเอกสาร", window.SF.TODAY || ""]];

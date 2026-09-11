@@ -1,5 +1,5 @@
 /* ============================================================
-   SolarFlow / PHITHAN GREEN — Auth, Users, Notifications
+   SolarFlow / flash+solar — Auth, Users, Notifications
    - useAuthStore : ผู้ใช้ + เซสชัน + login/logout (รหัส PIN, เก็บใน Firebase)
    - useNotifStore: แจ้งเตือนมอบหมายงาน
    - LoginScreen / UserManager / NotifPanel (UI)
@@ -32,7 +32,7 @@ function _alsSet(key, data) { try { localStorage.setItem(key, JSON.stringify(dat
 const ADMIN_SEED = { id: "u-admin", name: "แอดมิน", username: "admin", pin: "1234", role: "admin", roles: ["admin"], techId: null, active: true };
 
 const ROLE_INFO = {
-  admin:  { th: "แอดมิน",            short: "แอดมิน",   icon: "shield", color: "#22A35B", desc: "ควบคุมทั้งระบบ · จัดการผู้ใช้ · ลบงาน" },
+  admin:  { th: "แอดมิน",            short: "แอดมิน",   icon: "shield", color: "#1B9B75", desc: "ควบคุมทั้งระบบ · จัดการผู้ใช้ · ลบงาน" },
   lead:   { th: "หัวหน้า",            short: "หัวหน้า",   icon: "users",  color: "#3B82F6", desc: "ดูทุกงาน · สั่งงาน · เห็นราคา" },
   ee:     { th: "วิศวกรไฟฟ้า",        short: "วิศวกรไฟฟ้า", icon: "bolt", color: "#8B5CF6", desc: "ออกแบบระบบ · สำรวจหน้างาน · เอกสารขออนุญาต" },
   draft:  { th: "วิศวกรเขียนแบบ",     short: "เขียนแบบ",  icon: "ruler",  color: "#0EA5E9", desc: "เขียนแบบ / ออกไฟล์ DXF" },
@@ -551,12 +551,8 @@ function LoginScreen({ authStore }) {
       background: "transparent", gap: 22,
       padding: "calc(20px + env(safe-area-inset-top, 0px)) 20px calc(20px + env(safe-area-inset-bottom, 0px))" }}>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-        <img src="dashboard/assets/phithan-mark.png" alt="PHITHAN GREEN"
-          style={{ height: 56, borderRadius: 14, padding: 8, background: "#fff", boxShadow: "0 4px 18px rgba(34,163,91,.18)" }} />
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontFamily: "var(--display)", fontSize: 22, fontWeight: 800, color: "var(--primary-dark)", letterSpacing: "-.01em" }}>PHITHAN GREEN</div>
-          <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: 2 }}>ระบบติดตามงานติดตั้งโซล่าเซลล์</div>
-        </div>
+        <window.BrandLockup size={64} stack />
+        <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: -2 }}>ระบบติดตามงานติดตั้งโซล่าเซลล์</div>
       </div>
 
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18,
@@ -606,7 +602,7 @@ const NOTIF_KINDS = {
   reject:  { icon: "alert",  color: "#EF4444", th: "ถูกตีกลับ" },
   permit:  { icon: "file",   color: "#14B8A6", th: "ขออนุญาต" },
   assign:  { icon: "wrench", color: "#F59E0B", th: "มอบหมายงาน" },
-  info:    { icon: "bell",   color: "#22A35B", th: "แจ้งเตือน" },
+  info:    { icon: "bell",   color: "#1B9B75", th: "แจ้งเตือน" },
 };
 function notifKindKey(n) {
   if (n && n.event && NOTIF_KINDS[n.event]) return n.event;

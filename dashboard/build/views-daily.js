@@ -2067,7 +2067,7 @@ function DrPRow({
       borderBottom: "1px solid #DCE4DF",
       fontSize: 10.5,
       fontWeight: 700,
-      color: "#2C6B48",
+      color: "#0A4D68",
       background: "#F3F7F4"
     }
   }, k), React.createElement("div", {
@@ -2103,7 +2103,7 @@ function DrPBlock({
       width: 5,
       height: 5,
       borderRadius: 99,
-      background: "#22A35B"
+      background: "#1B9B75"
     }
   }), React.createElement("span", {
     style: {
@@ -2298,7 +2298,7 @@ function DailyPaper({
       alignItems: "flex-end",
       gap: 16,
       flexWrap: "wrap",
-      borderBottom: "2px solid #22A35B",
+      borderBottom: "2px solid #1B9B75",
       paddingBottom: 11
     }
   }, React.createElement("div", {
@@ -2321,12 +2321,17 @@ function DailyPaper({
     }
   }, "PROJECT INSTALLATION \u2014 DAILY REPORT"), React.createElement("div", {
     style: {
-      fontSize: 12.5,
-      fontWeight: 800,
-      color: "#2C6B48",
-      marginTop: 5
+      display: "flex",
+      alignItems: "center",
+      gap: 7,
+      marginTop: 6
     }
-  }, "PHITHAN GREEN")), React.createElement("div", {
+  }, React.createElement(window.BrandMark, {
+    size: 22
+  }), React.createElement(window.BrandWord, {
+    size: 16,
+    color: "#0F2B33"
+  }))), React.createElement("div", {
     style: {
       textAlign: "right",
       fontSize: 11,
@@ -2411,7 +2416,7 @@ function DailyPaper({
     style: {
       width: Math.max(0, Math.min(100, pct)) + "%",
       height: "100%",
-      background: "#22A35B"
+      background: "#1B9B75"
     }
   })), React.createElement("span", {
     style: {
@@ -2479,7 +2484,7 @@ function DailyPaper({
     style: Object.assign({}, td, {
       fontFamily: "var(--mono)",
       fontWeight: r.head ? 800 : 400,
-      color: r.head ? "#2C6B48" : "#7A8A81"
+      color: r.head ? "#0A4D68" : "#7A8A81"
     })
   }, r.no), React.createElement("td", {
     style: Object.assign({}, td, {
@@ -2634,7 +2639,7 @@ function DailyPaper({
     }
   }, React.createElement("b", {
     style: {
-      color: "#2C6B48"
+      color: "#0A4D68"
     }
   }, "\u0E23\u0E39\u0E1B\u0E17\u0E35\u0E48 ", i + 1), p.cap ? " · " + p.cap : ""))))), React.createElement("div", {
     style: {
@@ -2709,7 +2714,7 @@ function DailyPaper({
       color: "#8A9A91",
       textAlign: "center"
     }
-  }, "\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E19\u0E35\u0E49\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 PHITHAN GREEN \xB7 ", docNo, " \xB7 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E21\u0E37\u0E48\u0E2D ", window.drDateTH(window.drToday()))));
+  }, "\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E19\u0E35\u0E49\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 flash+solar \xB7 ", docNo, " \xB7 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E21\u0E37\u0E48\u0E2D ", window.drDateTH(window.drToday()))));
 }
 function DailyView({
   jobs,

@@ -961,25 +961,13 @@ function pgSheetLayers(doc) {
   doc.layer(PG_LAY.thin, PG_ACI.ltgrey, "CONTINUOUS", 9);
   doc.layer(PG_LAY.logo, PG_ACI.green, "CONTINUOUS", 35);
 }
+const PG_LOGO_HEX = [[100, 30], [160.6, 65], [160.6, 135], [100, 170], [39.4, 135], [39.4, 65]];
+const PG_LOGO_BOLT = [[104, 55], [74, 101], [92, 101], [84, 145], [120, 91], [98, 91]];
 function pgLogoMark(pen, x, y, s) {
-  const L = PG_LAY.logo,
-    r = s * 0.22;
-  const x0 = x,
-    y0 = y,
-    x1 = x + s,
-    y1 = y + s;
-  pen.line(L, x0 + r, y0, x1 - r, y0);
-  pen.arc(L, x1 - r, y0 + r, r, -90, 0);
-  pen.line(L, x1, y0 + r, x1, y1 - r);
-  pen.arc(L, x1 - r, y1 - r, r, 0, 90);
-  pen.line(L, x1 - r, y1, x0 + r, y1);
-  pen.arc(L, x0 + r, y1 - r, r, 90, 180);
-  pen.line(L, x0, y1 - r, x0, y0 + r);
-  pen.arc(L, x0 + r, y0 + r, r, 180, 270);
-  const cx = x + s / 2,
-    m = s * 0.17;
-  pen.pline(L, [[cx - m, y + s * 0.20], [cx - m, y + s * 0.58], [cx - m * 0.1, y + s * 0.80], [cx - m * 0.1, y + s * 0.42]], true);
-  pen.pline(L, [[cx + m, y + s * 0.80], [cx + m, y + s * 0.42], [cx + m * 0.1, y + s * 0.20], [cx + m * 0.1, y + s * 0.58]], true);
+  const L = PG_LAY.logo;
+  const at = p => [x + p[0] / 200 * s, y + s - p[1] / 200 * s];
+  pen.pline(L, PG_LOGO_HEX.map(at), true);
+  pen.pline(L, PG_LOGO_BOLT.map(at), true);
 }
 function pgSheet(doc, o) {
   o = o || {};
@@ -1072,13 +1060,13 @@ function pgSheet(doc, o) {
   lab(Y.own.top, "OWNER :");
   pgWrap(I.owner || "-", 30).slice(0, 2).forEach((ln, i) => mid(Y.own.bot + 6.2 - i * 4.6, 3.0, ln));
   pgLogoMark(pen, tx0 + 5, Y.logo.top - 15.5, 12);
-  pen.text(F.logo, tx0 + 20, Y.logo.top - 7.5, 4.4, "PHITHAN", {
+  pen.text(F.logo, tx0 + 20, Y.logo.top - 7.5, 4.4, "FLASH +", {
     valign: 2
   });
-  pen.text(F.logo, tx0 + 20, Y.logo.top - 13.5, 4.4, "GREEN", {
+  pen.text(F.logo, tx0 + 20, Y.logo.top - 13.5, 4.4, "SOLAR", {
     valign: 2
   });
-  ["653/8 Wangthonglang, Wangthonglang,", "Bangkok 10310", "TEL : 065-628-5566", "http://www.phithangreen.com", "E-mail : sales@phithangreen.com"].forEach((ln, i) => mid(Y.logo.top - 21.5 - i * 2.5, 1.7, ln));
+  ["653/8 Wangthonglang, Wangthonglang,", "Bangkok 10310", "TEL : 065-628-5566", "http://" + ((window.BRANDING || {}).site || ""), "E-mail : " + ((window.BRANDING || {}).email || "")].forEach((ln, i) => mid(Y.logo.top - 21.5 - i * 2.5, 1.7, ln));
   [["FOR PERLIMINARY", "prelim"], ["FOR PERMISSTION", "permit"], ["FOR CONSTRUCTION", "construct"], ["FOR AS-BUILT", "asbuilt"]].forEach((s, i) => {
     const y = Y.stat.top - 5.5 - i * 5.6;
     pen.circle(F.tb, tx0 + 10, y, 1.7);
@@ -1149,7 +1137,7 @@ function pgSheet(doc, o) {
       valign: 1
     });
   });
-  pen.text(F.txt, 20, 6.4, 2.2, "GENERAL NOTE:  THIS DRAWING IS THE PROPERTY OF PHITHAN GREEN CO., LTD. AND SHALL NOT BE USED OR REPRODUCED WITHOUT PERMISSION." + "  DO NOT SCALE THIS DRAWING. USE FIGURED DIMENSION ONLY.", {
+  pen.text(F.txt, 20, 6.4, 2.2, "GENERAL NOTE:  THIS DRAWING IS THE PROPERTY OF FLASH + SOLAR CO., LTD. AND SHALL NOT BE USED OR REPRODUCED WITHOUT PERMISSION." + "  DO NOT SCALE THIS DRAWING. USE FIGURED DIMENSION ONLY.", {
     valign: 1
   });
   return {
