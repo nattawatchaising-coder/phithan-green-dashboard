@@ -116,19 +116,6 @@ function BrandLockup({ size, stack, sub, variant, color, subColor }) {
   );
 }
 
-/* แผ่นตราสัญลักษณ์พื้นไล่สี (ตัวอย่างที่ 3 ในไฟล์ออกแบบ) — ใช้กับหน้าเข้าสู่ระบบ
-   ตราเป็นสีขาวบนพื้นไล่สีของแบรนด์ จึงหน้าตาเหมือนกันทั้งโหมดสว่างและโหมดกราไฟต์ */
-function BrandBadge({ size }) {
-  const s = size || 108;
-  return (
-    <div style={{ width: s, height: s, borderRadius: Math.round(s * 0.26), flexShrink: 0,
-      background: "linear-gradient(135deg," + BRANDING.deep + "," + BRANDING.green + ")",
-      display: "grid", placeItems: "center", boxShadow: "0 10px 30px rgba(10,77,104,.28)" }}>
-      <BrandMark size={Math.round(s * 0.62)} variant="solid" />
-    </div>
-  );
-}
-
 /* หัวกระดาษของเอกสารที่พิมพ์ผ่านหน้าต่างใหม่ (ใบเสนอราคา · ใบขออนุญาต · รายงานออกแบบ)
    คืนเป็นสตริง HTML เพราะเอกสารพวกนั้นประกอบด้วยการต่อสตริง ไม่ได้ render ด้วย React */
 function brandHeadHTML(opts) {
@@ -142,4 +129,4 @@ function brandHeadHTML(opts) {
     BRANDING.tagline + "</span></span></div>";
 }
 
-Object.assign(window, { BRANDING, BRAND_MARK_SVG, BrandMark, BrandWord, BrandLockup, BrandBadge, brandHeadHTML });
+Object.assign(window, { BRANDING, BRAND_MARK_SVG, BrandMark, BrandWord, BrandLockup, brandHeadHTML });

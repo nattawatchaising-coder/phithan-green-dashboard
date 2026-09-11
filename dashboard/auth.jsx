@@ -550,10 +550,9 @@ function LoginScreen({ authStore }) {
     <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       background: "transparent", gap: 22,
       padding: "calc(20px + env(safe-area-inset-top, 0px)) 20px calc(20px + env(safe-area-inset-bottom, 0px))" }}>
-      {/* ตราสัญลักษณ์หน้าเข้าสู่ระบบ — แผ่นไล่สีของแบรนด์ตามตัวอย่างที่ 3 ในชุดออกแบบ
-          ตราเป็นสีขาว จึงเด่นเท่ากันทั้งโหมดสว่างและโหมดกราไฟต์ ไม่ต้องมีสองชุด */}
+      {/* ตราสัญลักษณ์หน้าเข้าสู่ระบบ — ตราเปล่าไม่มีแผ่นรอง สีสลับตามธีมเอง */}
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-        <window.BrandBadge size={124} />
+        <window.BrandMark size={124} />
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
           <window.BrandWord size={40} />
           <div style={{ fontFamily: "var(--brand-font)", fontSize: 12, letterSpacing: ".32em",

@@ -1102,7 +1102,7 @@ function LoginScreen({
       alignItems: "center",
       gap: 16
     }
-  }, React.createElement(window.BrandBadge, {
+  }, React.createElement(window.BrandMark, {
     size: 124
   }), React.createElement("div", {
     style: {

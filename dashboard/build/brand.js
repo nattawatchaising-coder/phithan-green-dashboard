@@ -126,26 +126,6 @@ function BrandLockup({
     }
   }, sub || BRANDING.tagline)));
 }
-function BrandBadge({
-  size
-}) {
-  const s = size || 108;
-  return React.createElement("div", {
-    style: {
-      width: s,
-      height: s,
-      borderRadius: Math.round(s * 0.26),
-      flexShrink: 0,
-      background: "linear-gradient(135deg," + BRANDING.deep + "," + BRANDING.green + ")",
-      display: "grid",
-      placeItems: "center",
-      boxShadow: "0 10px 30px rgba(10,77,104,.28)"
-    }
-  }, React.createElement(BrandMark, {
-    size: Math.round(s * 0.62),
-    variant: "solid"
-  }));
-}
 function brandHeadHTML(opts) {
   const o = opts || {};
   const px = o.size || 38;
@@ -157,6 +137,5 @@ Object.assign(window, {
   BrandMark,
   BrandWord,
   BrandLockup,
-  BrandBadge,
   brandHeadHTML
 });
