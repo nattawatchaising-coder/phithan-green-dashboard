@@ -44,14 +44,27 @@ function calGroupByJob(tasks) {
   return order.map((id) => m[id]);
 }
 
+/* นับงานที่ช่วงวันนัดติดตั้งคาบเกี่ยวกับเดือนนั้น (งานข้ามเดือนนับทั้งสองเดือน) */
+function calMonthCount(jobs, ym) {
+  const SF = window.SF;
+  const pad = (n) => String(n).padStart(2, "0");
+  const from = ym.y + "-" + pad(ym.m + 1) + "-01";
+  const to = ym.y + "-" + pad(ym.m + 1) + "-" + pad(new Date(ym.y, ym.m + 1, 0).getDate());
+  return (jobs || []).filter((j) => {
+    const s = SF.installDate ? SF.installDate(j) : "";
+    if (!s) return false;
+    const e = (SF.installEnd ? SF.installEnd(j) : s) || s;
+    return s <= to && e >= from;
+  }).length;
+}
+
 function CalendarView({ jobs, onOpen, onAddOnDate, canAdd, onAdvance }) {
   const isMobile = useMobileCal();
-  const [ym, setYm] = React.useState({ y: 2026, m: 5 }); // June 2026 (0-indexed)
-  // วันที่เลือก — เดสก์ท็อปแสดงในแถบข้าง, มือถือแสดง bottom sheet. ตั้งต้น = วันนี้ ถ้าอยู่ในเดือนนี้
-  const [selDay, setSelDay] = React.useState(() => {
-    const t = new Date(window.SF.TODAY + "T00:00:00");
-    return (t.getFullYear() === 2026 && t.getMonth() === 5) ? t.getDate() : null;
-  });
+  /* เปิดหน้าปฏิทินมาต้องอยู่ที่เดือนปัจจุบันเสมอ — อ่านจากวันที่จริงของเครื่อง ไม่ใช่เดือนที่ตั้งค่าตายตัวไว้ */
+  const calToday = React.useMemo(() => new Date(window.SF.TODAY + "T00:00:00"), []);
+  const [ym, setYm] = React.useState(() => ({ y: calToday.getFullYear(), m: calToday.getMonth() }));
+  // วันที่เลือก — เดสก์ท็อปแสดงในแถบข้าง, มือถือแสดง bottom sheet. ตั้งต้น = วันนี้
+  const [selDay, setSelDay] = React.useState(() => calToday.getDate());
   const first = new Date(ym.y, ym.m, 1);
   const startDow = first.getDay();
   const days = new Date(ym.y, ym.m + 1, 0).getDate();
@@ -74,8 +87,8 @@ function CalendarView({ jobs, onOpen, onAddOnDate, canAdd, onAdvance }) {
     );
   }
 
-  const monthKey = ym.y + "-" + String(ym.m + 1).padStart(2, "0");
-  const monthCount = jobs.filter((j) => (j.deadline || "").startsWith(monthKey)).length;
+  /* จำนวนงานที่มีคิวติดตั้งคาบเกี่ยวกับเดือนนี้ — ตารางงานยึดวันนัดติดตั้งอย่างเดียว ไม่ใช่ deadline */
+  const monthCount = calMonthCount(jobs, ym);
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 372px", gap: 18, alignItems: "start" }}>
@@ -194,7 +207,7 @@ function DaySidebar({ day, ym, groups, todayKey, keyOf, onOpen, onAdvance, canAd
    แตะวันที่มีงาน → bottom sheet แสดงรายการงานของวันนั้น ── */
 function MobileCalendar({ ym, cells, tasksOn, groupsOn, keyOf, todayKey, shift, selDay, setSelDay, onOpen, onAdvance, jobs }) {
   const monthName = TH_MONTH_FULL[ym.m];
-  const monthCount = jobs.filter((j) => (j.deadline || "").startsWith(ym.y + "-" + String(ym.m + 1).padStart(2, "0"))).length;
+  const monthCount = calMonthCount(jobs, ym);
   const selGroups = selDay ? groupsOn(selDay) : [];
 
   return (

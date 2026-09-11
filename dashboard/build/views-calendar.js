@@ -53,6 +53,18 @@ function calGroupByJob(tasks) {
   });
   return order.map(id => m[id]);
 }
+function calMonthCount(jobs, ym) {
+  const SF = window.SF;
+  const pad = n => String(n).padStart(2, "0");
+  const from = ym.y + "-" + pad(ym.m + 1) + "-01";
+  const to = ym.y + "-" + pad(ym.m + 1) + "-" + pad(new Date(ym.y, ym.m + 1, 0).getDate());
+  return (jobs || []).filter(j => {
+    const s = SF.installDate ? SF.installDate(j) : "";
+    if (!s) return false;
+    const e = (SF.installEnd ? SF.installEnd(j) : s) || s;
+    return s <= to && e >= from;
+  }).length;
+}
 function CalendarView({
   jobs,
   onOpen,
@@ -61,14 +73,12 @@ function CalendarView({
   onAdvance
 }) {
   const isMobile = useMobileCal();
-  const [ym, setYm] = React.useState({
-    y: 2026,
-    m: 5
-  });
-  const [selDay, setSelDay] = React.useState(() => {
-    const t = new Date(window.SF.TODAY + "T00:00:00");
-    return t.getFullYear() === 2026 && t.getMonth() === 5 ? t.getDate() : null;
-  });
+  const calToday = React.useMemo(() => new Date(window.SF.TODAY + "T00:00:00"), []);
+  const [ym, setYm] = React.useState(() => ({
+    y: calToday.getFullYear(),
+    m: calToday.getMonth()
+  }));
+  const [selDay, setSelDay] = React.useState(() => calToday.getDate());
   const first = new Date(ym.y, ym.m, 1);
   const startDow = first.getDay();
   const days = new Date(ym.y, ym.m + 1, 0).getDate();
@@ -106,8 +116,7 @@ function CalendarView({
       jobs: jobs
     });
   }
-  const monthKey = ym.y + "-" + String(ym.m + 1).padStart(2, "0");
-  const monthCount = jobs.filter(j => (j.deadline || "").startsWith(monthKey)).length;
+  const monthCount = calMonthCount(jobs, ym);
   return React.createElement("div", {
     style: {
       display: "grid",
@@ -429,7 +438,7 @@ function MobileCalendar({
   jobs
 }) {
   const monthName = TH_MONTH_FULL[ym.m];
-  const monthCount = jobs.filter(j => (j.deadline || "").startsWith(ym.y + "-" + String(ym.m + 1).padStart(2, "0"))).length;
+  const monthCount = calMonthCount(jobs, ym);
   const selGroups = selDay ? groupsOn(selDay) : [];
   return React.createElement("div", {
     style: {
