@@ -560,7 +560,6 @@ function LoginScreen({ authStore }) {
             {window.BRANDING.tagline}
           </div>
         </div>
-        <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: -4 }}>ระบบติดตามงานติดตั้งโซล่าเซลล์</div>
       </div>
 
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18,
