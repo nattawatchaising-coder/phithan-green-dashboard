@@ -1022,7 +1022,7 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
             <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".12em", color: "#7A8A81", marginTop: 3 }}>PROJECT INSTALLATION — DAILY REPORT</div>
             {/* ตราสัญลักษณ์บริษัท — หกเหลี่ยม + ชื่อในโลโก้ ให้ใบที่พิมพ์ออกมาเป็นเอกสารของบริษัทจริง */}
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}>
-              <window.BrandMark size={22} />
+              <window.BrandMark size={22} variant="light" />
               <window.BrandWord size={16} color="#0F2B33" />
             </div>
           </div>

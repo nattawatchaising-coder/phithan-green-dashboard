@@ -112,7 +112,7 @@ function LoadingScreen() {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       height: "100vh", background: "transparent", gap: 18 }}>
-      <window.BrandLockup size={62} stack />
+      <window.BrandLockup size={92} stack />
       <div style={{ display: "flex", gap: 7 }}>
         {[0,1,2].map(i => (
           <div key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--primary)",

@@ -1100,16 +1100,34 @@ function LoginScreen({
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      gap: 12
+      gap: 16
     }
-  }, React.createElement(window.BrandLockup, {
-    size: 64,
-    stack: true
+  }, React.createElement(window.BrandBadge, {
+    size: 124
   }), React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: 3
+    }
+  }, React.createElement(window.BrandWord, {
+    size: 40
+  }), React.createElement("div", {
+    style: {
+      fontFamily: "var(--brand-font)",
+      fontSize: 12,
+      letterSpacing: ".32em",
+      textTransform: "uppercase",
+      color: "var(--brand-muted)",
+      fontWeight: 500,
+      paddingLeft: ".32em"
+    }
+  }, window.BRANDING.tagline)), React.createElement("div", {
     style: {
       fontSize: 13,
       color: "var(--text-3)",
-      marginTop: -2
+      marginTop: -4
     }
   }, "\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E42\u0E0B\u0E25\u0E48\u0E32\u0E40\u0E0B\u0E25\u0E25\u0E4C")), React.createElement("div", {
     style: {

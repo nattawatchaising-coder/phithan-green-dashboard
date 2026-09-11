@@ -550,9 +550,18 @@ function LoginScreen({ authStore }) {
     <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       background: "transparent", gap: 22,
       padding: "calc(20px + env(safe-area-inset-top, 0px)) 20px calc(20px + env(safe-area-inset-bottom, 0px))" }}>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-        <window.BrandLockup size={64} stack />
-        <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: -2 }}>ระบบติดตามงานติดตั้งโซล่าเซลล์</div>
+      {/* ตราสัญลักษณ์หน้าเข้าสู่ระบบ — แผ่นไล่สีของแบรนด์ตามตัวอย่างที่ 3 ในชุดออกแบบ
+          ตราเป็นสีขาว จึงเด่นเท่ากันทั้งโหมดสว่างและโหมดกราไฟต์ ไม่ต้องมีสองชุด */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+        <window.BrandBadge size={124} />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+          <window.BrandWord size={40} />
+          <div style={{ fontFamily: "var(--brand-font)", fontSize: 12, letterSpacing: ".32em",
+            textTransform: "uppercase", color: "var(--brand-muted)", fontWeight: 500, paddingLeft: ".32em" }}>
+            {window.BRANDING.tagline}
+          </div>
+        </div>
+        <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: -4 }}>ระบบติดตามงานติดตั้งโซล่าเซลล์</div>
       </div>
 
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18,

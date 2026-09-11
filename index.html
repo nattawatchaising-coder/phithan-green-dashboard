@@ -19,6 +19,10 @@
   --display: 'Outfit', 'Sora', 'IBM Plex Sans Thai', sans-serif;
   /* ฟอนต์และสีของตราสัญลักษณ์ flash+solar — ชื่อในโลโก้ต้องเป็น Outfit เสมอ ไม่ว่าธีมไหน */
   --brand-font: 'Outfit', 'Sora', sans-serif; --brand-ink: #0F2B33; --brand-muted: #5B8A8A;
+  /* ด้านทั้งหกของหกเหลี่ยมในตราสัญลักษณ์ + สีสายฟ้า — โหมดกราไฟต์สลับเป็นชุดสว่างข้างล่าง
+     (เอกสารที่พิมพ์ลงกระดาษไม่ได้ใช้ชุดนี้ ใช้ค่าสีตายตัวชุด light ใน brand.jsx) */
+  --fx-1: #0A4D68; --fx-2: #0E6478; --fx-3: #148080;
+  --fx-4: #1B9B75; --fx-5: #22B36A; --fx-6: #147A8C; --fx-cut: #FFFFFF;
   --mono: 'JetBrains Mono', monospace;
   --bg: #F0F4F4; --surface: #FFFFFF; --surface2: #F5F9F8; --surface3: #E8EFEE;
   --border: #E3E9E8; --border-strong: #CCD9D7;
@@ -88,6 +92,9 @@
   --kind-design: #7DB4FF; --kind-boq: #4FD1C5; --kind-other: #A9B7C6;
   --mark-danger: rgba(255,69,58,.55); --mark-warn: rgba(255,159,10,.5);
   --brand-ink: #F2F2F7; --brand-muted: rgba(235,235,245,.45);
+  /* ตราสัญลักษณ์บนพื้นมืด — ใช้เฉดสว่างขึ้นทั้งหกด้าน สายฟ้าเป็นสีเข้มเจาะกลาง ตามตัวอย่างในไฟล์ออกแบบ */
+  --fx-1: #2E9BC4; --fx-2: #37B0C4; --fx-3: #3DC4B4;
+  --fx-4: #4FD79A; --fx-5: #5FE38A; --fx-6: #34AEC4; --fx-cut: #0A2530;
   color-scheme: dark;
 }
 [data-cardstyle="flat"] { --shadow-sm: none; }
@@ -472,7 +479,10 @@ input, select, textarea { font-family: inherit; }
 .sv-rep-info > :nth-child(4n) { border-right: none; }
 .sv-rep-paper { --bg: #fff; --surface: #fff; --surface2: #F7FAFA; --surface3: #EEF3F3;
   --border: #E3E9E8; --border-strong: #CCD9D7; --text-1: #0F2B33; --text-2: #55686C; --text-3: #8FA1A3;
-  --primary: #1B9B75; --primary-dark: #0A4D68; --brand-ink: #0F2B33; --brand-muted: #5B8A8A; color-scheme: light; }
+  --primary: #1B9B75; --primary-dark: #0A4D68; --brand-ink: #0F2B33; --brand-muted: #5B8A8A;
+  /* กระดาษเป็นพื้นขาวเสมอ ตราสัญลักษณ์จึงต้องกลับมาเป็นชุดสีพื้นสว่าง แม้ตอนนั้นจอเปิดโหมดกราไฟต์อยู่ */
+  --fx-1: #0A4D68; --fx-2: #0E6478; --fx-3: #148080;
+  --fx-4: #1B9B75; --fx-5: #22B36A; --fx-6: #147A8C; --fx-cut: #FFFFFF; color-scheme: light; }
 @media (max-width: 700px) {
   .sv-rep-grid2 { grid-template-columns: 1fr; }
   .sv-rep-info { grid-template-columns: 84px 1fr; }
@@ -544,7 +554,7 @@ input, select, textarea { font-family: inherit; }
      เมื่อก่อนโหลด .jsx ดิบแล้วให้ Babel ในเบราว์เซอร์แปลงสดทุกครั้งที่เปิดเว็บ — 2 MB ใช้เวลาหลายสิบวินาที
      ⚠ แก้ไฟล์ .jsx แล้วต้อง `npm run build` ก่อนเสมอ (หรือเปิด `npm run watch` ค้างไว้ตอนพัฒนา)
      ?v= กันเบราว์เซอร์หยิบไฟล์เก่าที่แคชไว้ — บั๊มพ์เลขทุกครั้งที่แก้ -->
-<script src="dashboard/build/brand.js?v=2"></script>
+<script src="dashboard/build/brand.js?v=3"></script>
 <script src="dashboard/build/tweaks-panel.js?v=6"></script>
 <script src="dashboard/build/components.js?v=36"></script>
 <script src="dashboard/build/confirm.js?v=1"></script>
@@ -568,7 +578,7 @@ input, select, textarea { font-family: inherit; }
 <script src="dashboard/build/views-stock.js?v=96"></script>
 <script src="dashboard/build/form.js?v=33"></script>
 <script src="dashboard/build/survey.js?v=17"></script>
-<script src="dashboard/build/survey-report.js?v=5"></script>
+<script src="dashboard/build/survey-report.js?v=6"></script>
 <script src="dashboard/build/sales.js?v=11"></script>
 <script src="dashboard/build/views-survey.js?v=9"></script>
 <script src="dashboard/build/survey-sched.js?v=25"></script>
@@ -577,8 +587,8 @@ input, select, textarea { font-family: inherit; }
 <script src="dashboard/build/views-lead.js?v=3"></script>
 <script src="dashboard/build/views-flow.js?v=2"></script>
 <script src="dashboard/build/daily.js?v=11"></script>
-<script src="dashboard/build/views-daily.js?v=19"></script>
-<script src="dashboard/build/auth.js?v=20"></script>
-<script src="dashboard/build/app.js?v=122"></script>
+<script src="dashboard/build/views-daily.js?v=20"></script>
+<script src="dashboard/build/auth.js?v=21"></script>
+<script src="dashboard/build/app.js?v=123"></script>
 </body>
 </html>

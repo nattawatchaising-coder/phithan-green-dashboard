@@ -312,7 +312,8 @@ function SurveyReport({
       marginTop: 6
     }
   }, React.createElement(window.BrandMark, {
-    size: 22
+    size: 22,
+    variant: "light"
   }), React.createElement(window.BrandWord, {
     size: 16,
     color: "var(--brand-ink)"

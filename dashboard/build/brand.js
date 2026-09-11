@@ -19,11 +19,29 @@ const BRANDING = {
   markPNG: "dashboard/assets/flash-mark.png"
 };
 const BRAND_MARK_SVG = '<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">' + '<polygon points="100,100 160.6,65 100,30" fill="#0A4D68"/>' + '<polygon points="100,100 100,30 39.4,65" fill="#0E6478"/>' + '<polygon points="100,100 39.4,65 39.4,135" fill="#148080"/>' + '<polygon points="100,100 39.4,135 100,170" fill="#1B9B75"/>' + '<polygon points="100,100 100,170 160.6,135" fill="#22B36A"/>' + '<polygon points="100,100 160.6,135 160.6,65" fill="#147A8C"/>' + '<polygon points="104,55 74,101 92,101 84,145 120,91 98,91" fill="#FFFFFF"/></svg>';
+const BRAND_FACETS = {
+  light: ["#0A4D68", "#0E6478", "#148080", "#1B9B75", "#22B36A", "#147A8C"],
+  dark: ["#2E9BC4", "#37B0C4", "#3DC4B4", "#4FD79A", "#5FE38A", "#34AEC4"],
+  theme: ["var(--fx-1)", "var(--fx-2)", "var(--fx-3)", "var(--fx-4)", "var(--fx-5)", "var(--fx-6)"]
+};
+const BRAND_BOLT = {
+  light: "#FFFFFF",
+  dark: "#0A2530",
+  theme: "var(--fx-cut)"
+};
+const BRAND_FACET_PTS = ["100,100 160.6,65 100,30", "100,100 100,30 39.4,65", "100,100 39.4,65 39.4,135", "100,100 39.4,135 100,170", "100,100 100,170 160.6,135", "100,100 160.6,135 160.6,65"];
+const BRAND_BOLT_PTS = "104,55 74,101 92,101 84,145 120,91 98,91";
+const BRAND_SOLID_OP = [1, 0.85, 0.7, 0.85, 1, 0.7];
 function BrandMark({
   size,
-  style
+  style,
+  variant,
+  boltColor
 }) {
   const s = size || 40;
+  const solid = variant === "solid";
+  const set = BRAND_FACETS[variant] || BRAND_FACETS.theme;
+  const bolt = boltColor || (solid ? "#12405A" : BRAND_BOLT[variant] || BRAND_BOLT.theme);
   return React.createElement("svg", {
     width: s,
     height: s,
@@ -31,27 +49,14 @@ function BrandMark({
     style: style,
     "aria-label": BRANDING.name,
     role: "img"
-  }, React.createElement("polygon", {
-    points: "100,100 160.6,65 100,30",
-    fill: "#0A4D68"
-  }), React.createElement("polygon", {
-    points: "100,100 100,30 39.4,65",
-    fill: "#0E6478"
-  }), React.createElement("polygon", {
-    points: "100,100 39.4,65 39.4,135",
-    fill: "#148080"
-  }), React.createElement("polygon", {
-    points: "100,100 39.4,135 100,170",
-    fill: "#1B9B75"
-  }), React.createElement("polygon", {
-    points: "100,100 100,170 160.6,135",
-    fill: "#22B36A"
-  }), React.createElement("polygon", {
-    points: "100,100 160.6,135 160.6,65",
-    fill: "#147A8C"
-  }), React.createElement("polygon", {
-    points: "104,55 74,101 92,101 84,145 120,91 98,91",
-    fill: "#FFFFFF"
+  }, BRAND_FACET_PTS.map((pts, i) => React.createElement("polygon", {
+    key: i,
+    points: pts,
+    fill: solid ? "#FFFFFF" : set[i],
+    opacity: solid ? BRAND_SOLID_OP[i] : undefined
+  })), React.createElement("polygon", {
+    points: BRAND_BOLT_PTS,
+    fill: bolt
   }));
 }
 function BrandWord({
@@ -79,39 +84,67 @@ function BrandWord({
 function BrandLockup({
   size,
   stack,
-  sub
+  sub,
+  variant,
+  color,
+  subColor
 }) {
   const s = size || 46;
+  const word = Math.round(s * (stack ? 0.27 : 0.49));
+  const tag = Math.max(9, Math.round(word * 0.3));
   return React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: stack ? "column" : "row",
       alignItems: "center",
-      gap: stack ? 12 : 14,
+      gap: stack ? Math.round(s * 0.13) : 14,
       justifyContent: "center"
     }
   }, React.createElement(BrandMark, {
-    size: s
+    size: s,
+    variant: variant
   }), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
       alignItems: stack ? "center" : "flex-start",
-      gap: 3
+      gap: 2
     }
   }, React.createElement(BrandWord, {
-    size: s * 0.62
+    size: word,
+    color: color,
+    plusColor: variant === "solid" ? "#DFF7E4" : undefined
   }), React.createElement("div", {
     style: {
       fontFamily: "var(--brand-font)",
-      fontSize: Math.max(9, s * 0.2),
+      fontSize: tag,
       letterSpacing: ".3em",
       textTransform: "uppercase",
-      color: "var(--brand-muted)",
+      color: subColor || "var(--brand-muted)",
       fontWeight: 500,
       paddingLeft: ".3em"
     }
   }, sub || BRANDING.tagline)));
+}
+function BrandBadge({
+  size
+}) {
+  const s = size || 108;
+  return React.createElement("div", {
+    style: {
+      width: s,
+      height: s,
+      borderRadius: Math.round(s * 0.26),
+      flexShrink: 0,
+      background: "linear-gradient(135deg," + BRANDING.deep + "," + BRANDING.green + ")",
+      display: "grid",
+      placeItems: "center",
+      boxShadow: "0 10px 30px rgba(10,77,104,.28)"
+    }
+  }, React.createElement(BrandMark, {
+    size: Math.round(s * 0.62),
+    variant: "solid"
+  }));
 }
 function brandHeadHTML(opts) {
   const o = opts || {};
@@ -124,5 +157,6 @@ Object.assign(window, {
   BrandMark,
   BrandWord,
   BrandLockup,
+  BrandBadge,
   brandHeadHTML
 });

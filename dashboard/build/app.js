@@ -166,7 +166,7 @@ function LoadingScreen() {
       gap: 18
     }
   }, React.createElement(window.BrandLockup, {
-    size: 62,
+    size: 92,
     stack: true
   }), React.createElement("div", {
     style: {
