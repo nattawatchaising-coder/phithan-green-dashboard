@@ -22,7 +22,8 @@ const NAV = [
   { key: "myschedule", th: "ตารางงานของฉัน",   en: "My Schedule",   icon: "list",     own: true },
   { key: "calendar",   th: "ปฏิทินนัด",        en: "Calendar",      icon: "calendar" },
   { key: "stock",      th: "คลังสินค้า",       en: "Inventory",     icon: "box",      perm: "stock" },
-  { key: "report",     th: "รายงานสรุป",       en: "Report",        icon: "file",     perm: "viewAll" },
+  /* "รายงานสรุป" ถอดออกจากเมนูแล้ว — โค้ดหน้ายังอยู่ที่ views-report.jsx ถ้าอยากได้คืนให้เติมแถวนี้กลับ
+     { key: "report", th: "รายงานสรุป", en: "Report", icon: "file", perm: "viewAll" } */
 ];
 /* คนที่ถือตำแหน่ง "ฝ่ายขออนุญาต" อย่างเดียว — บอร์ดขั้นงานติดตั้งไม่มีความหมายกับเขา
    (งานกองอยู่ขั้น "เสร็จสิ้น" หมด) บอร์ดงานของเขาจึงเป็นบอร์ดขออนุญาตแทน */
@@ -880,8 +881,7 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, open, onClose, aur
         {navForRole(role, techId).filter((n) => !n.hidden).map((n) => {
           const active = view === n.key;
           return (
-            <button key={n.key} onClick={() => onNav(n.key)} className={"nav-item" + (active ? " active" : "")} title={n.th}
-              style={n.key === "report" ? { marginTop: "auto" } : undefined}>
+            <button key={n.key} onClick={() => onNav(n.key)} className={"nav-item" + (active ? " active" : "")} title={n.th}>
               <Icon name={n.icon} size={19} color={active ? "var(--primary-dark)" : "var(--text-2)"} />
               {!icons && <span>{n.th}</span>}
               {!icons && n.key === "overview" && delayed > 0 && (

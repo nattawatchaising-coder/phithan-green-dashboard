@@ -68,12 +68,6 @@ const NAV = [{
   en: "Inventory",
   icon: "box",
   perm: "stock"
-}, {
-  key: "report",
-  th: "รายงานสรุป",
-  en: "Report",
-  icon: "file",
-  perm: "viewAll"
 }];
 const isPermitOnly = roles => (roles || []).length > 0 && roles.every(r => (ROLE_ALIAS[r] || r) === "permit");
 const isSalesOnly = roles => (roles || []).length > 0 && roles.every(r => (ROLE_ALIAS[r] || r) === "sales");
@@ -1402,10 +1396,7 @@ function Sidebar({
       key: n.key,
       onClick: () => onNav(n.key),
       className: "nav-item" + (active ? " active" : ""),
-      title: n.th,
-      style: n.key === "report" ? {
-        marginTop: "auto"
-      } : undefined
+      title: n.th
     }, React.createElement(Icon, {
       name: n.icon,
       size: 19,
