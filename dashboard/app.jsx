@@ -17,6 +17,8 @@ const NAV = [
   { key: "permit",     th: "ขออนุญาตการไฟฟ้า", en: "Permit",        icon: "shield",   perm: "permit" },
   /* รายงานประจำวันหน้างาน — ช่างเขียน หัวหน้าอนุมัติ จึงผูกกับสิทธิ์แก้ใบงาน */
   { key: "daily",      th: "รายงานประจำวัน",   en: "Daily Report",  icon: "pen",      perm: "editJob" },
+  /* งานบริการหลังการขาย — ทะเบียนประกัน · รอบล้างแผง · ใบแจ้งซ่อม · ใบรายงานเข้าบริการ */
+  { key: "om",         th: "งานบริการหลังการขาย", en: "O&M",         icon: "wrench",   perm: "om" },
   { key: "myschedule", th: "ตารางงานของฉัน",   en: "My Schedule",   icon: "list",     own: true },
   { key: "calendar",   th: "ปฏิทินนัด",        en: "Calendar",      icon: "calendar" },
   { key: "stock",      th: "คลังสินค้า",       en: "Inventory",     icon: "box",      perm: "stock" },
@@ -653,7 +655,8 @@ function App() {
             onAdvance={(j) => store.advance(j.id)} />
         ) : (
         <React.Fragment>
-        <Header view={view} navList={navItems} plain={permitPage} subtitle={permitPage ? permitHead : null} ownOnly={ownOnly} count={filtered.length} total={jobs.length}
+        <Header view={view} navList={navItems} plain={permitPage || view === "om"}
+          subtitle={permitPage ? permitHead : view === "om" ? "ทะเบียนไซต์ในสัญญาบริการ · ประกัน · รอบล้างแผง" : null} ownOnly={ownOnly} count={filtered.length} total={jobs.length}
           search={search} setSearch={setSearch}
           typeFilter={typeFilter} setTypeFilter={setTypeFilter}
           delayedOnly={delayedOnly} setDelayedOnly={setDelayedOnly}
@@ -697,6 +700,8 @@ function App() {
             trashCount={can(role, "delJob") ? store.trash.length : 0} onOpenTrash={can(role, "delJob") ? () => setTrashOpen(true) : null} />}
           {view === "permit" && permitView}
           {view === "daily" && <DailyView jobs={filtered} role={role} currentUser={auth.current} onOpen={(j) => setDailyJob(j)} />}
+          {/* ทะเบียนบริการเป็นภาระผูกพันของบริษัท ไม่ใช่คิวงานของใครคนหนึ่ง จึงดูจากงานทั้งหมดที่ผู้ใช้เห็น */}
+          {view === "om" && <window.OmView jobs={jobs} role={role} currentUser={auth.current} />}
           {view === "report" && <ReportView jobs={filtered} onOpen={openJob} />}
           {view === "survey" && <SurveyView jobs={filtered} role={role} onOpen={openSurvey}
             onToggleSkip={(can(role, "doSurvey") || can(role, "dispatch") || can(role, "editJob")) ? (j) => {

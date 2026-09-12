@@ -3107,5 +3107,14 @@ Object.assign(window, {
   DailyReportModal,
   DailyPaper,
   DailyView,
-  DailyJobButton
+  DailyJobButton,
+  DrLabel,
+  DrText,
+  DrSection,
+  DrChips,
+  DrRows,
+  DrPhotoCap,
+  DrSignPad,
+  DrSignSlot,
+  DR_INPUT
 });

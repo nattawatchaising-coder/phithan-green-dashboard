@@ -1324,4 +1324,7 @@ function DailyJobButton({ job, onOpen }) {
   );
 }
 
-Object.assign(window, { DailyReportModal, DailyPaper, DailyView, DailyJobButton });
+/* ชิ้นส่วนฟอร์มปล่อยออกไปให้โมดูลอื่นใช้ด้วย (งานบริการหลังการขายใช้ชุดเดียวกัน)
+   หน้าตาฟอร์มทั้งระบบจะได้เหมือนกัน แก้ที่นี่ที่เดียวเปลี่ยนพร้อมกันทุกที่ */
+Object.assign(window, { DailyReportModal, DailyPaper, DailyView, DailyJobButton,
+  DrLabel, DrText, DrSection, DrChips, DrRows, DrPhotoCap, DrSignPad, DrSignSlot, DR_INPUT });

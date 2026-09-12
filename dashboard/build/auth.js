@@ -115,7 +115,8 @@ const DEFAULT_PERMS = {
     design: 1,
     permit: 1,
     price: 1,
-    leads: 1
+    leads: 1,
+    om: 1
   },
   lead: {
     viewAll: 1,
@@ -128,7 +129,8 @@ const DEFAULT_PERMS = {
     design: 1,
     permit: 1,
     price: 1,
-    leads: 1
+    leads: 1,
+    om: 1
   },
   ee: {
     viewAll: 1,
@@ -137,7 +139,8 @@ const DEFAULT_PERMS = {
     dispatch: 1,
     doSurvey: 1,
     design: 1,
-    permit: 1
+    permit: 1,
+    om: 1
   },
   draft: {
     viewAll: 1,
@@ -148,7 +151,8 @@ const DEFAULT_PERMS = {
   tech: {
     editJob: 1,
     stock: 1,
-    doSurvey: 1
+    doSurvey: 1,
+    om: 1
   },
   permit: {
     viewAll: 1,
@@ -204,6 +208,10 @@ const PERM_LIST = [{
   key: "permit",
   th: "งานขออนุญาตการไฟฟ้า",
   desc: "คิวงานขออนุญาต ตรวจงาน เดินสถานะ"
+}, {
+  key: "om",
+  th: "งานบริการหลังการขาย",
+  desc: "ทะเบียนประกัน · ตารางล้างแผง · ใบแจ้งซ่อม · ใบรายงานเข้าบริการ"
 }, {
   key: "stock",
   th: "คลังสินค้า",
@@ -266,6 +274,7 @@ const DEFAULT_SCOPE = {
 };
 let PERMS = JSON.parse(JSON.stringify(DEFAULT_PERMS));
 let ROLE_SCOPE = JSON.parse(JSON.stringify(DEFAULT_SCOPE));
+const PERM_KEYS_V1 = ["viewAll", "addJob", "editJob", "delJob", "price", "leads", "dispatch", "doSurvey", "design", "permit", "stock", "manageUsers"];
 function applyRoleConfig(cfg) {
   PERMS = JSON.parse(JSON.stringify(DEFAULT_PERMS));
   ROLE_SCOPE = JSON.parse(JSON.stringify(DEFAULT_SCOPE));
@@ -274,9 +283,12 @@ function applyRoleConfig(cfg) {
     const c = cfg[r];
     if (!c) return;
     if (c.perms) {
+      const known = Array.isArray(c.known) ? c.known : PERM_KEYS_V1;
       const p = {};
       PERM_LIST.forEach(x => {
-        if (c.perms[x.key]) p[x.key] = 1;
+        if (known.indexOf(x.key) < 0) {
+          if ((DEFAULT_PERMS[r] || {})[x.key]) p[x.key] = 1;
+        } else if (c.perms[x.key]) p[x.key] = 1;
       });
       PERMS[r] = p;
     }
@@ -355,7 +367,9 @@ function useRoleConfig() {
         stages: []
       }
     };
-    const next = Object.assign({}, cur, patch);
+    const next = Object.assign({}, cur, patch, {
+      known: PERM_LIST.map(x => x.key)
+    });
     if (_AFB()) _aref("rolePerms/" + roleKey).set(next);else {
       applyRoleConfig(Object.assign(roleConfigNow(), {
         [roleKey]: next

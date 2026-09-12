@@ -46,6 +46,12 @@ const NAV = [{
   icon: "pen",
   perm: "editJob"
 }, {
+  key: "om",
+  th: "งานบริการหลังการขาย",
+  en: "O&M",
+  icon: "wrench",
+  perm: "om"
+}, {
   key: "myschedule",
   th: "ตารางงานของฉัน",
   en: "My Schedule",
@@ -927,8 +933,8 @@ function App() {
   }) : React.createElement(React.Fragment, null, React.createElement(Header, {
     view: view,
     navList: navItems,
-    plain: permitPage,
-    subtitle: permitPage ? permitHead : null,
+    plain: permitPage || view === "om",
+    subtitle: permitPage ? permitHead : view === "om" ? "ทะเบียนไซต์ในสัญญาบริการ · ประกัน · รอบล้างแผง" : null,
     ownOnly: ownOnly,
     count: filtered.length,
     total: jobs.length,
@@ -1032,6 +1038,10 @@ function App() {
     role: role,
     currentUser: auth.current,
     onOpen: j => setDailyJob(j)
+  }), view === "om" && React.createElement(window.OmView, {
+    jobs: jobs,
+    role: role,
+    currentUser: auth.current
   }), view === "report" && React.createElement(ReportView, {
     jobs: filtered,
     onOpen: openJob

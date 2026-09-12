@@ -58,11 +58,11 @@ function userRoles(u) {
    viewAll ดูงานทั้งหมด · doSurvey ทำแบบสำรวจหน้างาน · dispatch จัดตารางสำรวจ
    design ออกแบบ/ออกไฟล์แบบ · permit เอกสารขออนุญาต · price เห็นราคา-ต้นทุน · leads หน้าลูกค้าสำรวจ */
 const DEFAULT_PERMS = {
-  admin:  { viewAll: 1, addJob: 1, editJob: 1, delJob: 1, stock: 1, manageUsers: 1, dispatch: 1, doSurvey: 1, design: 1, permit: 1, price: 1, leads: 1 },
-  lead:   { viewAll: 1, addJob: 1, editJob: 1, delJob: 1, stock: 1,                 dispatch: 1, doSurvey: 1, design: 1, permit: 1, price: 1, leads: 1 },
-  ee:     { viewAll: 1,            editJob: 1,            stock: 1,                 dispatch: 1, doSurvey: 1, design: 1, permit: 1 },
+  admin:  { viewAll: 1, addJob: 1, editJob: 1, delJob: 1, stock: 1, manageUsers: 1, dispatch: 1, doSurvey: 1, design: 1, permit: 1, price: 1, leads: 1, om: 1 },
+  lead:   { viewAll: 1, addJob: 1, editJob: 1, delJob: 1, stock: 1,                 dispatch: 1, doSurvey: 1, design: 1, permit: 1, price: 1, leads: 1, om: 1 },
+  ee:     { viewAll: 1,            editJob: 1,            stock: 1,                 dispatch: 1, doSurvey: 1, design: 1, permit: 1,                    om: 1 },
   draft:  { viewAll: 1,            editJob: 1,            stock: 1,                                           design: 1 },
-  tech:   {                        editJob: 1,            stock: 1,                              doSurvey: 1 },
+  tech:   {                        editJob: 1,            stock: 1,                              doSurvey: 1,                                         om: 1 },
   permit: { viewAll: 1,            editJob: 1,                                                                            permit: 1 },
   sales:  { viewAll: 1, addJob: 1,                                                  dispatch: 1, doSurvey: 1,                       price: 1, leads: 1 },
 };
@@ -79,6 +79,7 @@ const PERM_LIST = [
   { key: "doSurvey",    th: "ทำแบบสำรวจหน้างาน",            desc: "กรอกแบบสำรวจและถ่ายรูปหน้างาน" },
   { key: "design",      th: "เขียนแบบ · 3D · ออกไฟล์ DXF",  desc: "เครื่องมือออกแบบและออกไฟล์แบบ" },
   { key: "permit",      th: "งานขออนุญาตการไฟฟ้า",          desc: "คิวงานขออนุญาต ตรวจงาน เดินสถานะ" },
+  { key: "om",          th: "งานบริการหลังการขาย",        desc: "ทะเบียนประกัน · ตารางล้างแผง · ใบแจ้งซ่อม · ใบรายงานเข้าบริการ" },
   { key: "stock",       th: "คลังสินค้า",                   desc: "ดูและตัดสต๊อก" },
   { key: "manageUsers", th: "จัดการผู้ใช้และสิทธิ์",          desc: "เพิ่ม/ลบบัญชี และแก้ตารางสิทธิ์นี้" },
 ];
@@ -108,6 +109,12 @@ const DEFAULT_SCOPE = {
 let PERMS = JSON.parse(JSON.stringify(DEFAULT_PERMS));
 let ROLE_SCOPE = JSON.parse(JSON.stringify(DEFAULT_SCOPE));
 
+/* รายการสิทธิ์ที่มีอยู่ "ก่อน" จะเริ่มบันทึกช่อง known ลงไปด้วย
+   ค่าที่แอดมินเคยตั้งไว้แต่เดิมไม่มีช่อง known จึงถือว่ารู้จักแค่ชุดนี้
+   สิทธิ์ที่เพิ่มเข้ามาทีหลังจะได้ตกไปใช้ค่าตั้งต้น ไม่ใช่ปิดเงียบจนไม่มีใครเห็นเมนูใหม่ */
+const PERM_KEYS_V1 = ["viewAll", "addJob", "editJob", "delJob", "price", "leads",
+  "dispatch", "doSurvey", "design", "permit", "stock", "manageUsers"];
+
 function applyRoleConfig(cfg) {
   PERMS = JSON.parse(JSON.stringify(DEFAULT_PERMS));
   ROLE_SCOPE = JSON.parse(JSON.stringify(DEFAULT_SCOPE));
@@ -116,8 +123,14 @@ function applyRoleConfig(cfg) {
     const c = cfg[r];
     if (!c) return;
     if (c.perms) {
+      /* ค่าที่บันทึกไว้เก็บเฉพาะสิทธิ์ที่ติ๊ก — สิทธิ์ที่ยังไม่มีตอนบันทึกจึงแยกไม่ออกจากสิทธิ์ที่ตั้งใจปิด
+         known บอกว่าตอนนั้นในระบบมีสิทธิ์อะไรบ้าง อันที่ไม่อยู่ในนั้น = ของใหม่ ให้ใช้ค่าตั้งต้นไปก่อน */
+      const known = Array.isArray(c.known) ? c.known : PERM_KEYS_V1;
       const p = {};
-      PERM_LIST.forEach((x) => { if (c.perms[x.key]) p[x.key] = 1; });
+      PERM_LIST.forEach((x) => {
+        if (known.indexOf(x.key) < 0) { if ((DEFAULT_PERMS[r] || {})[x.key]) p[x.key] = 1; }
+        else if (c.perms[x.key]) p[x.key] = 1;
+      });
       PERMS[r] = p;
     }
     if (c.scope && c.scope.mode) {
@@ -177,7 +190,8 @@ function useRoleConfig() {
   }, []);
   const saveRole = React.useCallback((roleKey, patch) => {
     const cur = roleConfigNow()[roleKey] || { perms: {}, scope: { mode: "all", stages: [] } };
-    const next = Object.assign({}, cur, patch);
+    /* จดไว้ด้วยว่าตอนบันทึกระบบมีสิทธิ์อะไรบ้าง — สิทธิ์ที่เพิ่มทีหลังจะได้ไม่ถูกปิดเงียบ */
+    const next = Object.assign({}, cur, patch, { known: PERM_LIST.map((x) => x.key) });
     if (_AFB()) _aref("rolePerms/" + roleKey).set(next);
     else { applyRoleConfig(Object.assign(roleConfigNow(), { [roleKey]: next })); setRev((n) => n + 1); }
   }, []);
