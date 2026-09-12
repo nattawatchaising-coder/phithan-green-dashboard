@@ -199,6 +199,170 @@ const omBlankClean = comDate => ({
   price: null,
   note: ""
 });
+const OM_CLEAN_STATUS = {
+  planned: {
+    key: "planned",
+    th: "ถึงรอบแล้ว",
+    color: "#F59E0B"
+  },
+  booked: {
+    key: "booked",
+    th: "จองคิวแล้ว",
+    color: "#0EA5E9"
+  },
+  done: {
+    key: "done",
+    th: "ล้างแล้ว",
+    color: "#10B981"
+  },
+  skipped: {
+    key: "skipped",
+    th: "ข้ามรอบนี้",
+    color: "#94A3B8"
+  },
+  canceled: {
+    key: "canceled",
+    th: "ยกเลิก",
+    color: "#94A3B8"
+  }
+};
+const omCleanStatusOf = k => OM_CLEAN_STATUS[k] || OM_CLEAN_STATUS.planned;
+const omCleanLive = v => !!v && v.status !== "canceled" && v.status !== "skipped";
+const omCleanDone = visits => (visits || []).filter(v => v && v.status === "done" && v.date).sort((a, b) => a.date < b.date ? -1 : 1);
+const omLastClean = visits => {
+  const d = omCleanDone(visits);
+  return d.length ? d[d.length - 1].date : "";
+};
+const omFreeUsed = visits => omCleanDone(visits).filter(v => v.free).length;
+const omFreeLeft = (site, visits) => Math.max(0, (((site || {}).clean || {}).freeCount || 0) - omFreeUsed(visits));
+function omOpenVisit(visits) {
+  const open = (visits || []).filter(v => omCleanLive(v) && v.status !== "done");
+  open.sort((a, b) => String(a.due || a.date || "") < String(b.due || b.date || "") ? -1 : 1);
+  return open[0] || null;
+}
+function omNextCleanDue(site, visits) {
+  const c = (site || {}).clean || {};
+  if (!c.on) return "";
+  const open = omOpenVisit(visits);
+  if (open) return open.date || open.due || "";
+  const last = omLastClean(visits);
+  if (last) return omAddMonths(last, c.everyMon || OM_CLEAN_EVERY);
+  return c.firstDue || (site.comDate ? omAddMonths(site.comDate, c.everyMon || OM_CLEAN_EVERY) : "");
+}
+function omCleanState(site, visits, today) {
+  const t = today || window.drToday();
+  const c = (site || {}).clean || {};
+  if (!c.on) return {
+    key: "off",
+    th: "ไม่อยู่ในรอบล้าง",
+    color: "#94A3B8",
+    due: "",
+    days: 0
+  };
+  const due = omNextCleanDue(site, visits);
+  if (!due) return {
+    key: "off",
+    th: "ยังไม่ได้ตั้งรอบ",
+    color: "#94A3B8",
+    due: "",
+    days: 0
+  };
+  const days = omDiffDays(t, due);
+  const open = omOpenVisit(visits);
+  if (open && open.status === "booked") return {
+    key: "booked",
+    th: "จองคิวแล้ว",
+    color: "#0EA5E9",
+    due,
+    days
+  };
+  if (days < -7) return {
+    key: "overdue",
+    th: "เลยกำหนดล้าง",
+    color: "#EF4444",
+    due,
+    days
+  };
+  if (days <= 0) return {
+    key: "due",
+    th: "ถึงรอบล้างแล้ว",
+    color: "#F59E0B",
+    due,
+    days
+  };
+  if (days <= OM_CLEAN_SOON) return {
+    key: "soon",
+    th: "ใกล้ถึงรอบล้าง",
+    color: "#F59E0B",
+    due,
+    days
+  };
+  return {
+    key: "ok",
+    th: "ยังไม่ถึงรอบ",
+    color: "#10B981",
+    due,
+    days
+  };
+}
+function omCleanBacklog(site, visits, today) {
+  const st = omCleanState(site, visits, today);
+  if (st.key !== "overdue") return 0;
+  const every = ((site || {}).clean || {}).everyMon || OM_CLEAN_EVERY;
+  return Math.max(1, Math.floor(-st.days / Math.max(1, every * 30.4)) + 1);
+}
+function omCleanAgenda(sites, bySite, today) {
+  const t = today || window.drToday();
+  const out = [];
+  (sites || []).forEach(s => {
+    const vs = (bySite || {})[s.id] || [];
+    vs.forEach(v => {
+      if (!omCleanLive(v)) return;
+      const d = v.date || v.due;
+      if (d) out.push({
+        site: s,
+        visit: v,
+        date: d,
+        virtual: false,
+        status: v.status || "booked"
+      });
+    });
+    if (!(s.clean || {}).on) return;
+    if (omOpenVisit(vs)) return;
+    const due = omNextCleanDue(s, vs);
+    if (due) out.push({
+      site: s,
+      visit: null,
+      date: due,
+      virtual: true,
+      status: omDiffDays(t, due) <= 0 ? "planned" : "planned"
+    });
+  });
+  out.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+  return out;
+}
+function omBlankCleanVisit(site, due, visits, user) {
+  const now = new Date().toISOString();
+  return {
+    id: omNewId("OC"),
+    siteId: site.id,
+    due: due || "",
+    date: due || "",
+    timeFrom: "09:00",
+    timeTo: "12:00",
+    techId: site.tech || "",
+    status: "booked",
+    free: omFreeLeft(site, visits) > 0,
+    charge: null,
+    visitId: null,
+    note: "",
+    doneAt: null,
+    doneBy: null,
+    createdAt: now,
+    createdBy: (user || {}).id || null,
+    updatedAt: now
+  };
+}
 const omIsExternal = siteId => /^OMX-/.test(String(siteId || ""));
 function omNextExtId(sites) {
   let max = 0;
@@ -236,6 +400,27 @@ const OM_COMSRC_TH = {
   manual: "กรอกเอง"
 };
 const omComUnsure = site => !!site && site.comSrc !== "install" && site.comSrc !== "confirmed";
+function omSetComDate(site, date, src) {
+  const old = (site || {}).comDate || "";
+  const out = {
+    comDate: date,
+    comSrc: src || "confirmed"
+  };
+  const w = Object.assign({}, (site || {}).warranties || {});
+  Object.keys(w).forEach(k => {
+    if (!w[k].start || w[k].start === old) w[k] = Object.assign({}, w[k], {
+      start: date
+    });
+  });
+  out.warranties = w;
+  const c = (site || {}).clean;
+  if (c && (!c.firstDue || c.firstDue === omAddMonths(old, c.everyMon || 0))) {
+    out.clean = Object.assign({}, c, {
+      firstDue: omAddMonths(date, c.everyMon || 0)
+    });
+  }
+  return out;
+}
 function omSeedWarranties(job, comDate) {
   const out = {};
   OM_WARRANTY_DEF.forEach(d => {
@@ -338,7 +523,7 @@ function omEnrollable(jobs, sites) {
   });
   return (jobs || []).filter(j => j && j.stage === "done" && !have[j.id]);
 }
-function omRollup(sites, today) {
+function omRollup(sites, bySite, today) {
   const t = today || window.drToday();
   const out = {
     total: 0,
@@ -347,7 +532,11 @@ function omRollup(sites, today) {
     warnExpired: 0,
     unsure: 0,
     kw: 0,
-    kwSites: 0
+    kwSites: 0,
+    cleanDue: 0,
+    cleanOverdue: 0,
+    cleanBooked: 0,
+    freeLeft: 0
   };
   (sites || []).forEach(s => {
     out.total++;
@@ -359,6 +548,10 @@ function omRollup(sites, today) {
     }
     const st = omSiteWarrantyState(s, t);
     if (st.key === "soon") out.warnSoon++;else if (st.key === "expired") out.warnExpired++;
+    const vs = (bySite || {})[s.id] || [];
+    const cs = omCleanState(s, vs, t);
+    if (cs.key === "overdue") out.cleanOverdue++;else if (cs.key === "due") out.cleanDue++;else if (cs.key === "booked") out.cleanBooked++;
+    if ((s.clean || {}).on) out.freeLeft += omFreeLeft(s, vs);
   });
   return out;
 }
@@ -411,6 +604,62 @@ function useOmSites() {
     remove
   };
 }
+function useOmCleanVisits() {
+  const [bySite, setBySite] = React.useState({});
+  const [loading, setLoading] = React.useState(true);
+  React.useEffect(() => {
+    if (!_OMFB()) {
+      setLoading(false);
+      return;
+    }
+    const ref = _omRef("omCleanVisits");
+    const h = ref.on("value", s => {
+      const v = s.val() || {};
+      const out = {};
+      Object.keys(v).forEach(sid => {
+        const t = v[sid] || {};
+        out[sid] = Object.keys(t).map(k => Object.assign({
+          id: k,
+          siteId: sid
+        }, t[k]));
+      });
+      setBySite(out);
+      setLoading(false);
+    }, () => setLoading(false));
+    return () => ref.off("value", h);
+  }, []);
+  const all = React.useMemo(() => {
+    const out = [];
+    Object.keys(bySite).forEach(k => {
+      (bySite[k] || []).forEach(v => out.push(v));
+    });
+    return out;
+  }, [bySite]);
+  const save = React.useCallback(v => {
+    if (!v || !v.id || !v.siteId || !_OMFB()) return;
+    _omRef("omCleanVisits/" + v.siteId + "/" + v.id).set(Object.assign({}, v, {
+      updatedAt: new Date().toISOString()
+    }));
+  }, []);
+  const patch = React.useCallback((siteId, id, fields) => {
+    if (!siteId || !id || !_OMFB()) return;
+    _omRef("omCleanVisits/" + siteId + "/" + id).update(Object.assign({}, fields, {
+      updatedAt: new Date().toISOString()
+    }));
+  }, []);
+  const remove = React.useCallback((siteId, id) => {
+    if (!siteId || !id || !_OMFB()) return;
+    _omRef("omCleanVisits/" + siteId + "/" + id).remove();
+  }, []);
+  return {
+    bySite,
+    all,
+    loading,
+    save,
+    patch,
+    remove
+  };
+}
 Object.assign(window, {
   OM_ROOT,
   OM_WARRANTY_DEF,
@@ -422,6 +671,7 @@ Object.assign(window, {
   OM_CLEAN_FREE,
   OM_CLEAN_SOON,
   OM_COMSRC_TH,
+  OM_CLEAN_STATUS,
   omAddMonths,
   omDiffDays,
   omWarrantyEnd,
@@ -432,11 +682,24 @@ Object.assign(window, {
   omSiteWarrantyState,
   omCoverOf,
   omBlankClean,
+  omCleanStatusOf,
+  omCleanLive,
+  omCleanDone,
+  omLastClean,
+  omFreeUsed,
+  omFreeLeft,
+  omOpenVisit,
+  omNextCleanDue,
+  omCleanState,
+  omCleanBacklog,
+  omBlankCleanVisit,
+  omCleanAgenda,
   omIsExternal,
   omNextExtId,
   omNewId,
   omComDateOf,
   omComUnsure,
+  omSetComDate,
   omSeedWarranties,
   omSiteFromJob,
   omBlankSite,
@@ -445,5 +708,6 @@ Object.assign(window, {
   omCanWrite,
   omCanApprove,
   omCanDelete,
-  useOmSites
+  useOmSites,
+  useOmCleanVisits
 });

@@ -171,12 +171,107 @@ function omCoverOf(site, category, today) {
 }
 
 /* ── รอบล้างแผง ──
-   เฟสนี้ยังไม่มีตัวเก็บนัดล้าง (omCleanVisits) ฟังก์ชันจึงรับ visits เป็น array ว่างได้
-   ค่าเริ่มต้นถูกเขียนลงไซต์ตั้งแต่ขึ้นทะเบียน จะได้ไม่ต้องย้ายข้อมูลทีหลัง */
+   ค่าตั้งต้นเขียนลงไซต์ตั้งแต่ขึ้นทะเบียน จะได้ไม่ต้องย้ายข้อมูลทีหลัง */
 const omBlankClean = (comDate) => ({
   on: true, everyMon: OM_CLEAN_EVERY, freeCount: OM_CLEAN_FREE,
   firstDue: comDate ? omAddMonths(comDate, OM_CLEAN_EVERY) : "", price: null, note: "",
 });
+
+const OM_CLEAN_STATUS = {
+  planned:  { key: "planned",  th: "ถึงรอบแล้ว",   color: "#F59E0B" },
+  booked:   { key: "booked",   th: "จองคิวแล้ว",   color: "#0EA5E9" },
+  done:     { key: "done",     th: "ล้างแล้ว",     color: "#10B981" },
+  skipped:  { key: "skipped",  th: "ข้ามรอบนี้",   color: "#94A3B8" },
+  canceled: { key: "canceled", th: "ยกเลิก",       color: "#94A3B8" },
+};
+const omCleanStatusOf = (k) => OM_CLEAN_STATUS[k] || OM_CLEAN_STATUS.planned;
+/* นัดที่ยัง "มีชีวิต" — ยกเลิก/ข้ามแล้วไม่นับเป็นคิวค้าง */
+const omCleanLive = (v) => !!v && v.status !== "canceled" && v.status !== "skipped";
+
+const omCleanDone = (visits) => (visits || []).filter((v) => v && v.status === "done" && v.date).sort((a, b) => a.date < b.date ? -1 : 1);
+const omLastClean = (visits) => { const d = omCleanDone(visits); return d.length ? d[d.length - 1].date : ""; };
+/* โควตาล้างฟรี — นับเฉพาะครั้งที่ล้างเสร็จแล้วและติ๊กว่าเป็นครั้งฟรี */
+const omFreeUsed = (visits) => omCleanDone(visits).filter((v) => v.free).length;
+const omFreeLeft = (site, visits) => Math.max(0, (((site || {}).clean || {}).freeCount || 0) - omFreeUsed(visits));
+
+/* คิวที่ยังไม่ปิด (จองไว้หรือถึงรอบแล้ว) — เอาอันที่ใกล้ที่สุด */
+function omOpenVisit(visits) {
+  const open = (visits || []).filter((v) => omCleanLive(v) && v.status !== "done");
+  open.sort((a, b) => String(a.due || a.date || "") < String(b.due || b.date || "") ? -1 : 1);
+  return open[0] || null;
+}
+
+/* ครบรอบครั้งถัดไปเมื่อไหร่
+   มีคิวเปิดอยู่ → ใช้วันของคิวนั้น · เคยล้างแล้ว → ล้างล่าสุด + รอบ · ยังไม่เคย → วันครบรอบแรก */
+function omNextCleanDue(site, visits) {
+  const c = (site || {}).clean || {};
+  if (!c.on) return "";
+  const open = omOpenVisit(visits);
+  if (open) return open.date || open.due || "";
+  const last = omLastClean(visits);
+  if (last) return omAddMonths(last, c.everyMon || OM_CLEAN_EVERY);
+  return c.firstDue || (site.comDate ? omAddMonths(site.comDate, c.everyMon || OM_CLEAN_EVERY) : "");
+}
+
+/* สถานะรอบล้างของไซต์ — off / booked / overdue / due / soon / ok */
+function omCleanState(site, visits, today) {
+  const t = today || window.drToday();
+  const c = (site || {}).clean || {};
+  if (!c.on) return { key: "off", th: "ไม่อยู่ในรอบล้าง", color: "#94A3B8", due: "", days: 0 };
+  const due = omNextCleanDue(site, visits);
+  if (!due) return { key: "off", th: "ยังไม่ได้ตั้งรอบ", color: "#94A3B8", due: "", days: 0 };
+  const days = omDiffDays(t, due);                       /* เหลืออีกกี่วัน (ติดลบ = เลยมาแล้ว) */
+  const open = omOpenVisit(visits);
+  if (open && open.status === "booked") return { key: "booked", th: "จองคิวแล้ว", color: "#0EA5E9", due, days };
+  if (days < -7) return { key: "overdue", th: "เลยกำหนดล้าง", color: "#EF4444", due, days };
+  if (days <= 0) return { key: "due", th: "ถึงรอบล้างแล้ว", color: "#F59E0B", due, days };
+  if (days <= OM_CLEAN_SOON) return { key: "soon", th: "ใกล้ถึงรอบล้าง", color: "#F59E0B", due, days };
+  return { key: "ok", th: "ยังไม่ถึงรอบ", color: "#10B981", due, days };
+}
+
+/* ข้ามรอบไปกี่ครั้งแล้ว — เลยกำหนดมานานกว่าหนึ่งรอบเต็มถือว่าตกไปหนึ่งครั้ง
+   ใช้บอกไซต์ที่ถูกลืมจริง ๆ แยกจากไซต์ที่แค่เลยกำหนดไม่กี่วัน */
+function omCleanBacklog(site, visits, today) {
+  const st = omCleanState(site, visits, today);
+  if (st.key !== "overdue") return 0;
+  const every = ((site || {}).clean || {}).everyMon || OM_CLEAN_EVERY;
+  return Math.max(1, Math.floor(-st.days / Math.max(1, every * 30.4)) + 1);
+}
+
+/* รายการทั้งหมดที่จะขึ้นบนปฏิทินล้างแผง
+   นัดจริงที่บันทึกไว้ + "วันครบรอบ" ของไซต์ที่ยังไม่มีใครจองคิว (virtual = true)
+   วันครบรอบคำนวณสด ไม่เขียนลงฐานข้อมูล ไม่งั้นทุกไซต์จะมีใบนัดผีเต็มไปหมด
+   ใบจะเกิดจริงตอนคนกดจองคิวเท่านั้น */
+function omCleanAgenda(sites, bySite, today) {
+  const t = today || window.drToday();
+  const out = [];
+  (sites || []).forEach((s) => {
+    const vs = (bySite || {})[s.id] || [];
+    vs.forEach((v) => {
+      if (!omCleanLive(v)) return;
+      const d = v.date || v.due;
+      if (d) out.push({ site: s, visit: v, date: d, virtual: false, status: v.status || "booked" });
+    });
+    if (!(s.clean || {}).on) return;
+    if (omOpenVisit(vs)) return;                 /* มีคิวเปิดอยู่แล้ว ไม่ต้องมีวันครบรอบซ้อน */
+    const due = omNextCleanDue(s, vs);
+    if (due) out.push({ site: s, visit: null, date: due, virtual: true, status: omDiffDays(t, due) <= 0 ? "planned" : "planned" });
+  });
+  out.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  return out;
+}
+
+/* ใบนัดล้างเปล่า — free เดาจากโควตาที่เหลือ คนกดเปลี่ยนได้ */
+function omBlankCleanVisit(site, due, visits, user) {
+  const now = new Date().toISOString();
+  return {
+    id: omNewId("OC"), siteId: site.id, due: due || "", date: due || "",
+    timeFrom: "09:00", timeTo: "12:00", techId: site.tech || "", status: "booked",
+    free: omFreeLeft(site, visits) > 0, charge: null, visitId: null,
+    note: "", doneAt: null, doneBy: null,
+    createdAt: now, createdBy: (user || {}).id || null, updatedAt: now,
+  };
+}
 
 /* ── รหัสไซต์ ── */
 const omIsExternal = (siteId) => /^OMX-/.test(String(siteId || ""));
@@ -211,6 +306,26 @@ const OM_COMSRC_TH = {
 };
 /* วันรับมอบที่ไม่ได้มาจากวันติดตั้งจริง ถือว่ายังไม่ยืนยัน ต้องขึ้นป้ายเตือน */
 const omComUnsure = (site) => !!site && site.comSrc !== "install" && site.comSrc !== "confirmed";
+
+/* แก้วันติดตั้งเสร็จ แล้วเลื่อนวันเริ่มประกันตามไปด้วย
+   ประกันเริ่มนับจากวันติดตั้งเสร็จเสมอ แถวไหนที่วันเริ่มยังเท่ากับวันเดิมของไซต์
+   แปลว่ายังไม่เคยถูกแก้มือ ให้ตามไปด้วย · แถวที่ตั้งวันเองไว้แล้ว (เช่น แผงที่เปลี่ยนทีหลัง)
+   ต้องไม่ถูกเขียนทับ ไม่งั้นการแก้วันเดียวจะลบสิ่งที่คนตั้งใจกรอกไว้ทั้งหมด
+   รอบล้างแผงครั้งแรกก็ขยับตาม ถ้ายังไม่เคยตั้งเอง */
+function omSetComDate(site, date, src) {
+  const old = (site || {}).comDate || "";
+  const out = { comDate: date, comSrc: src || "confirmed" };
+  const w = Object.assign({}, (site || {}).warranties || {});
+  Object.keys(w).forEach((k) => {
+    if (!w[k].start || w[k].start === old) w[k] = Object.assign({}, w[k], { start: date });
+  });
+  out.warranties = w;
+  const c = (site || {}).clean;
+  if (c && (!c.firstDue || c.firstDue === omAddMonths(old, c.everyMon || 0))) {
+    out.clean = Object.assign({}, c, { firstDue: omAddMonths(date, c.everyMon || 0) });
+  }
+  return out;
+}
 
 function omSeedWarranties(job, comDate) {
   const out = {};
@@ -268,10 +383,11 @@ function omEnrollable(jobs, sites) {
 }
 
 /* ── สรุปภาพรวม ──
-   เฟสนี้มีแค่ไซต์กับประกัน ช่องของล้างแผง/ใบแจ้งซ่อมจะเติมในเฟสถัดไป */
-function omRollup(sites, today) {
+   bySite = ตารางนัดล้างแยกตามไซต์ (ไม่ส่งมาก็ได้ ช่องของล้างแผงจะเป็นศูนย์) */
+function omRollup(sites, bySite, today) {
   const t = today || window.drToday();
-  const out = { total: 0, active: 0, warnSoon: 0, warnExpired: 0, unsure: 0, kw: 0, kwSites: 0 };
+  const out = { total: 0, active: 0, warnSoon: 0, warnExpired: 0, unsure: 0, kw: 0, kwSites: 0,
+    cleanDue: 0, cleanOverdue: 0, cleanBooked: 0, freeLeft: 0 };
   (sites || []).forEach((s) => {
     out.total++;
     if (s.active) out.active++;
@@ -280,6 +396,12 @@ function omRollup(sites, today) {
     const st = omSiteWarrantyState(s, t);
     if (st.key === "soon") out.warnSoon++;
     else if (st.key === "expired") out.warnExpired++;
+    const vs = (bySite || {})[s.id] || [];
+    const cs = omCleanState(s, vs, t);
+    if (cs.key === "overdue") out.cleanOverdue++;
+    else if (cs.key === "due") out.cleanDue++;
+    else if (cs.key === "booked") out.cleanBooked++;
+    if ((s.clean || {}).on) out.freeLeft += omFreeLeft(s, vs);
   });
   return out;
 }
@@ -332,12 +454,59 @@ function useOmSites() {
   return { sites, loading, upsert, patch, remove };
 }
 
+/* ── ตัวเก็บนัดล้างแผง ──
+   อ่านทั้งต้นไม้ทีเดียว (ปฏิทินต้องเห็นทุกไซต์พร้อมกัน) — เบา เพราะไม่มีรูปอยู่ในนี้
+   คืนเป็น bySite เพื่อให้ฟังก์ชันคำนวณรอบของแต่ละไซต์หยิบไปใช้ได้ตรง ๆ */
+function useOmCleanVisits() {
+  const [bySite, setBySite] = React.useState({});
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!_OMFB()) { setLoading(false); return; }
+    const ref = _omRef("omCleanVisits");
+    const h = ref.on("value", (s) => {
+      const v = s.val() || {};
+      const out = {};
+      Object.keys(v).forEach((sid) => {
+        const t = v[sid] || {};
+        out[sid] = Object.keys(t).map((k) => Object.assign({ id: k, siteId: sid }, t[k]));
+      });
+      setBySite(out);
+      setLoading(false);
+    }, () => setLoading(false));
+    return () => ref.off("value", h);
+  }, []);
+
+  const all = React.useMemo(() => {
+    const out = [];
+    Object.keys(bySite).forEach((k) => { (bySite[k] || []).forEach((v) => out.push(v)); });
+    return out;
+  }, [bySite]);
+
+  const save = React.useCallback((v) => {
+    if (!v || !v.id || !v.siteId || !_OMFB()) return;
+    _omRef("omCleanVisits/" + v.siteId + "/" + v.id).set(Object.assign({}, v, { updatedAt: new Date().toISOString() }));
+  }, []);
+  const patch = React.useCallback((siteId, id, fields) => {
+    if (!siteId || !id || !_OMFB()) return;
+    _omRef("omCleanVisits/" + siteId + "/" + id).update(Object.assign({}, fields, { updatedAt: new Date().toISOString() }));
+  }, []);
+  const remove = React.useCallback((siteId, id) => {
+    if (!siteId || !id || !_OMFB()) return;
+    _omRef("omCleanVisits/" + siteId + "/" + id).remove();
+  }, []);
+
+  return { bySite, all, loading, save, patch, remove };
+}
+
 Object.assign(window, {
   OM_ROOT, OM_WARRANTY_DEF, OM_WARRANTY_KIND, OM_WARRANTY_KIND_BY, OM_WARRANTY_STATE,
-  OM_WARN_DAYS, OM_CLEAN_EVERY, OM_CLEAN_FREE, OM_CLEAN_SOON, OM_COMSRC_TH,
+  OM_WARN_DAYS, OM_CLEAN_EVERY, OM_CLEAN_FREE, OM_CLEAN_SOON, OM_COMSRC_TH, OM_CLEAN_STATUS,
   omAddMonths, omDiffDays,
   omWarrantyEnd, omWarrantyState, omDaysTH, omWarrantyLeftTH, omWarrantyList, omSiteWarrantyState, omCoverOf,
-  omBlankClean, omIsExternal, omNextExtId, omNewId,
-  omComDateOf, omComUnsure, omSeedWarranties, omSiteFromJob, omBlankSite, omEnrollable, omRollup,
-  omCanWrite, omCanApprove, omCanDelete, useOmSites,
+  omBlankClean, omCleanStatusOf, omCleanLive, omCleanDone, omLastClean, omFreeUsed, omFreeLeft,
+  omOpenVisit, omNextCleanDue, omCleanState, omCleanBacklog, omBlankCleanVisit, omCleanAgenda,
+  omIsExternal, omNextExtId, omNewId,
+  omComDateOf, omComUnsure, omSetComDate, omSeedWarranties, omSiteFromJob, omBlankSite, omEnrollable, omRollup,
+  omCanWrite, omCanApprove, omCanDelete, useOmSites, useOmCleanVisits,
 });

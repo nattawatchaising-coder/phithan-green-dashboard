@@ -362,10 +362,298 @@ function OmWarrantyTable({
     size: 14
   }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E19"));
 }
+function OmCleanVisits({
+  site,
+  visits,
+  store,
+  disabled
+}) {
+  const list = React.useMemo(() => (visits || []).slice().sort((a, b) => String(b.date || b.due || "").localeCompare(String(a.date || a.due || ""))), [visits]);
+  const cs = window.omCleanState(site, visits);
+  const freeLeft = window.omFreeLeft(site, visits);
+  const backlog = window.omCleanBacklog(site, visits);
+  const open = window.omOpenVisit(visits);
+  const book = () => {
+    if (disabled) return;
+    store.save(window.omBlankCleanVisit(site, cs.due || window.drToday(), visits, window.DR_ME && window.DR_ME.user));
+  };
+  const setV = (v, fields) => {
+    if (!disabled) store.patch(site.id, v.id, fields);
+  };
+  const done = v => setV(v, {
+    status: "done",
+    date: v.date || window.drToday(),
+    doneAt: new Date().toISOString(),
+    doneBy: ((window.DR_ME || {}).user || {}).id || null
+  });
+  return React.createElement("div", {
+    style: {
+      marginTop: 14
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+      padding: "10px 12px",
+      flexWrap: "wrap",
+      border: "1px solid " + cs.color + "40",
+      background: cs.color + "12",
+      borderRadius: 11,
+      marginBottom: 12
+    }
+  }, React.createElement(Icon, {
+    name: "panel",
+    size: 16,
+    color: cs.color
+  }), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 150,
+      fontSize: 12.5,
+      color: "var(--text-1)"
+    }
+  }, React.createElement("b", {
+    style: {
+      color: cs.color
+    }
+  }, cs.th), cs.due ? " · " + window.drDateTH(cs.due) : "", backlog > 1 ? " · ตกรอบไปแล้ว " + backlog + " ครั้ง" : "", React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E25\u0E49\u0E32\u0E07\u0E1F\u0E23\u0E35\u0E40\u0E2B\u0E25\u0E37\u0E2D ", freeLeft, " \u0E04\u0E23\u0E31\u0E49\u0E07 \u0E08\u0E32\u0E01 ", omFreeTotal(site), " \u0E04\u0E23\u0E31\u0E49\u0E07", window.omLastClean(visits) ? " · ล้างล่าสุด " + window.drShort(window.omLastClean(visits)) : " · ยังไม่เคยล้าง")), !disabled && !open && React.createElement("button", {
+    onClick: book,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "7px 13px",
+      borderRadius: 9,
+      border: "none",
+      background: cs.color,
+      color: "#fff",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700
+    }
+  }, React.createElement(Icon, {
+    name: "calendar",
+    size: 14,
+    color: "#fff"
+  }), " \u0E08\u0E2D\u0E07\u0E04\u0E34\u0E27\u0E25\u0E49\u0E32\u0E07")), list.map(v => {
+    const s = window.omCleanStatusOf(v.status);
+    const lock = disabled || v.status === "done";
+    return React.createElement("div", {
+      key: v.id,
+      style: {
+        border: "1px solid var(--border)",
+        borderRadius: 12,
+        background: "var(--surface)",
+        padding: "10px 12px",
+        marginBottom: 9
+      }
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: lock ? 0 : 9,
+        flexWrap: "wrap"
+      }
+    }, React.createElement("span", {
+      style: {
+        width: 8,
+        height: 8,
+        borderRadius: 99,
+        background: s.color,
+        flexShrink: 0
+      }
+    }), React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: "var(--text-1)"
+      }
+    }, v.date ? window.drDateTH(v.date) : "—", v.timeFrom ? React.createElement("span", {
+      style: {
+        fontFamily: "var(--mono)",
+        fontWeight: 500,
+        color: "var(--text-3)"
+      }
+    }, " ", v.timeFrom, "\u2013", v.timeTo) : null), React.createElement(OmPill, {
+      th: s.th,
+      color: s.color
+    }), React.createElement(OmPill, {
+      th: v.free ? "ล้างฟรีตามสัญญา" : "คิดค่าบริการ",
+      color: v.free ? "#10B981" : "#F59E0B"
+    }), !disabled && React.createElement("button", {
+      onClick: () => store.remove(site.id, v.id),
+      title: "\u0E25\u0E1A\u0E43\u0E1A\u0E19\u0E31\u0E14\u0E19\u0E35\u0E49",
+      style: {
+        marginLeft: "auto",
+        width: 28,
+        height: 28,
+        borderRadius: 8,
+        border: "1px solid var(--border)",
+        background: "var(--surface2)",
+        cursor: "pointer",
+        display: "grid",
+        placeItems: "center",
+        color: "var(--text-3)"
+      }
+    }, React.createElement(Icon, {
+      name: "trash",
+      size: 13
+    }))), !lock && React.createElement(React.Fragment, null, React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(108px, 1fr))",
+        gap: 8
+      }
+    }, React.createElement("input", {
+      type: "date",
+      value: v.date || "",
+      onChange: e => setV(v, {
+        date: e.target.value
+      }),
+      style: Object.assign({}, OM_INPUT, {
+        padding: "7px 9px",
+        fontSize: 12.5,
+        fontFamily: "var(--mono)"
+      })
+    }), React.createElement("input", {
+      type: "time",
+      value: v.timeFrom || "",
+      onChange: e => setV(v, {
+        timeFrom: e.target.value
+      }),
+      style: Object.assign({}, OM_INPUT, {
+        padding: "7px 9px",
+        fontSize: 12.5,
+        fontFamily: "var(--mono)"
+      })
+    }), React.createElement("input", {
+      type: "time",
+      value: v.timeTo || "",
+      onChange: e => setV(v, {
+        timeTo: e.target.value
+      }),
+      style: Object.assign({}, OM_INPUT, {
+        padding: "7px 9px",
+        fontSize: 12.5,
+        fontFamily: "var(--mono)"
+      })
+    }), React.createElement("input", {
+      value: v.charge == null ? "" : String(v.charge),
+      inputMode: "decimal",
+      placeholder: "\u0E04\u0E48\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23",
+      onChange: e => {
+        const t = e.target.value.replace(/[^0-9.]/g, "");
+        setV(v, {
+          charge: t === "" ? null : +t,
+          free: t === "" ? v.free : false
+        });
+      },
+      style: Object.assign({}, OM_INPUT, {
+        padding: "7px 9px",
+        fontSize: 12.5,
+        fontFamily: "var(--mono)",
+        textAlign: "right"
+      })
+    })), React.createElement("input", {
+      value: v.note || "",
+      placeholder: "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38 \u0E40\u0E0A\u0E48\u0E19 \u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E02\u0E2D\u0E40\u0E25\u0E37\u0E48\u0E2D\u0E19 \xB7 \u0E15\u0E49\u0E2D\u0E07\u0E43\u0E0A\u0E49\u0E01\u0E23\u0E30\u0E40\u0E0A\u0E49\u0E32",
+      onChange: e => setV(v, {
+        note: e.target.value
+      }),
+      style: Object.assign({}, OM_INPUT, {
+        padding: "7px 9px",
+        fontSize: 12.5,
+        marginTop: 8
+      })
+    }), React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 7,
+        marginTop: 9,
+        flexWrap: "wrap"
+      }
+    }, React.createElement("button", {
+      onClick: () => done(v),
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        padding: "7px 13px",
+        borderRadius: 9,
+        border: "none",
+        background: "#10B981",
+        color: "#fff",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 12.5,
+        fontWeight: 700
+      }
+    }, React.createElement(Icon, {
+      name: "check",
+      size: 14,
+      color: "#fff"
+    }), " \u0E25\u0E49\u0E32\u0E07\u0E40\u0E2A\u0E23\u0E47\u0E08\u0E41\u0E25\u0E49\u0E27"), React.createElement("button", {
+      onClick: () => setV(v, {
+        free: !v.free
+      }),
+      style: {
+        padding: "7px 13px",
+        borderRadius: 9,
+        border: "1px solid var(--border-strong)",
+        background: "var(--surface2)",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: "var(--text-2)"
+      }
+    }, v.free ? "เปลี่ยนเป็นคิดเงิน" : "เปลี่ยนเป็นล้างฟรี"), React.createElement("button", {
+      onClick: () => setV(v, {
+        status: "skipped"
+      }),
+      style: {
+        padding: "7px 13px",
+        borderRadius: 9,
+        border: "1px solid var(--border-strong)",
+        background: "var(--surface2)",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: "var(--text-2)"
+      }
+    }, "\u0E02\u0E49\u0E32\u0E21\u0E23\u0E2D\u0E1A\u0E19\u0E35\u0E49"))), v.status === "done" && v.note && React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--text-3)",
+        marginTop: 5
+      }
+    }, v.note));
+  }), !list.length && React.createElement("div", {
+    style: {
+      padding: "12px 6px",
+      textAlign: "center",
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E25\u0E49\u0E32\u0E07\u0E41\u0E1C\u0E07"));
+}
+const omFreeTotal = site => ((site || {}).clean || {}).freeCount || 0;
 function OmSiteModal({
   site,
   job,
   role,
+  visits,
+  cleanStore,
   onClose,
   onPatch,
   onRemove
@@ -616,9 +904,9 @@ function OmSiteModal({
     })
   })))), React.createElement(window.DrSection, {
     n: "2",
-    title: "\u0E27\u0E31\u0E19\u0E23\u0E31\u0E1A\u0E21\u0E2D\u0E1A\u0E07\u0E32\u0E19",
+    title: "\u0E27\u0E31\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E40\u0E2A\u0E23\u0E47\u0E08",
     tone: "#0EA5E9",
-    hint: window.OM_COMSRC_TH[site.comSrc] || ""
+    hint: "ประกันทุกรายการเริ่มนับจากวันนี้ · " + (window.OM_COMSRC_TH[site.comSrc] || "")
   }, React.createElement("div", {
     style: {
       display: "flex",
@@ -630,10 +918,9 @@ function OmSiteModal({
     type: "date",
     value: site.comDate || "",
     disabled: disabled,
-    onChange: e => set({
-      comDate: e.target.value,
-      comSrc: "confirmed"
-    }),
+    onChange: e => {
+      if (e.target.value) set(window.omSetComDate(site, e.target.value, "confirmed"));
+    },
     style: Object.assign({}, OM_INPUT, {
       width: "auto",
       padding: "8px 11px",
@@ -668,9 +955,7 @@ function OmSiteModal({
       color: "var(--text-1)"
     }
   }, "\u0E27\u0E31\u0E19\u0E23\u0E31\u0E1A\u0E21\u0E2D\u0E1A\u0E40\u0E1B\u0E47\u0E19\u0E04\u0E48\u0E32\u0E1B\u0E23\u0E30\u0E21\u0E32\u0E13 (", window.OM_COMSRC_TH[site.comSrc] || "ไม่ทราบที่มา", ") \u0E01\u0E23\u0E38\u0E13\u0E32\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19"), !disabled && React.createElement("button", {
-    onClick: () => set({
-      comSrc: "confirmed"
-    }),
+    onClick: () => set(window.omSetComDate(site, site.comDate, "confirmed")),
     style: {
       padding: "6px 12px",
       borderRadius: 9,
@@ -697,7 +982,10 @@ function OmSiteModal({
     n: "4",
     title: "\u0E23\u0E2D\u0E1A\u0E25\u0E49\u0E32\u0E07\u0E41\u0E1C\u0E07",
     tone: "#0EA5E9",
-    hint: "\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E23\u0E2D\u0E1A\u0E44\u0E27\u0E49\u0E01\u0E48\u0E2D\u0E19 \u2014 \u0E2B\u0E19\u0E49\u0E32\u0E15\u0E32\u0E23\u0E32\u0E07\u0E25\u0E49\u0E32\u0E07\u0E41\u0E1C\u0E07\u0E08\u0E30\u0E21\u0E32\u0E43\u0E19\u0E02\u0E31\u0E49\u0E19\u0E16\u0E31\u0E14\u0E44\u0E1B"
+    hint: (() => {
+      const cs = window.omCleanState(site, visits);
+      return cs.due ? cs.th + " · " + window.drShort(cs.due) : cs.th;
+    })()
   }, React.createElement("div", {
     style: {
       display: "flex",
@@ -768,18 +1056,13 @@ function OmSiteModal({
       fontFamily: "var(--mono)",
       fontSize: 12.5
     })
-  }))), clean.on && site.comDate && React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: "var(--text-3)",
-      marginTop: 9
-    }
-  }, "\u0E19\u0E31\u0E1A\u0E08\u0E32\u0E01\u0E27\u0E31\u0E19\u0E23\u0E31\u0E1A\u0E21\u0E2D\u0E1A ", window.drShort(site.comDate), " + ", clean.everyMon || 0, " \u0E40\u0E14\u0E37\u0E2D\u0E19 = ", " ", React.createElement("b", {
-    style: {
-      color: "var(--text-2)",
-      fontFamily: "var(--mono)"
-    }
-  }, window.drShort(window.omAddMonths(site.comDate, clean.everyMon || 0))))), React.createElement(window.DrSection, {
+  }))), clean.on && React.createElement(OmCleanVisits, {
+    site: site,
+    visits: visits,
+    store: cleanStore,
+    disabled: disabled,
+    role: role
+  })), React.createElement(window.DrSection, {
     n: "5",
     title: "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38",
     tone: "#94A3B8"
@@ -868,6 +1151,342 @@ function OmSiteModal({
     color: "#EF4444"
   }), " \u0E25\u0E1A\u0E17\u0E30\u0E40\u0E1A\u0E35\u0E22\u0E19\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23\u0E19\u0E35\u0E49 (\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19)")))));
 }
+const OM_TH_MONTH = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+function OmCleanView({
+  sites,
+  cleanStore,
+  role,
+  onOpenSite
+}) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const today = window.drToday();
+  const now = React.useMemo(() => new Date(today + "T00:00:00"), [today]);
+  const [ym, setYm] = React.useState(() => ({
+    y: now.getFullYear(),
+    m: now.getMonth()
+  }));
+  const [sel, setSel] = React.useState(today);
+  const canWrite = window.omCanWrite(role, null);
+  const agenda = React.useMemo(() => window.omCleanAgenda(sites, cleanStore.bySite, today), [sites, cleanStore.bySite, today]);
+  const byDate = React.useMemo(() => {
+    const m = {};
+    agenda.forEach(a => {
+      (m[a.date] = m[a.date] || []).push(a);
+    });
+    return m;
+  }, [agenda]);
+  const pad = n => String(n).padStart(2, "0");
+  const keyOf = d => ym.y + "-" + pad(ym.m + 1) + "-" + pad(d);
+  const daysInMonth = new Date(ym.y, ym.m + 1, 0).getDate();
+  const startDow = new Date(ym.y, ym.m, 1).getDay();
+  const cells = [];
+  for (let i = 0; i < startDow; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+  const shift = n => setYm(s => {
+    const d = new Date(s.y, s.m + n, 1);
+    return {
+      y: d.getFullYear(),
+      m: d.getMonth()
+    };
+  });
+  const monthCount = agenda.filter(a => a.date.slice(0, 7) === ym.y + "-" + pad(ym.m + 1)).length;
+  const selList = byDate[sel] || [];
+  const toneOf = a => {
+    if (!a.virtual) return window.omCleanStatusOf(a.status).color;
+    const d = window.omDiffDays(today, a.date);
+    return d < -7 ? "#EF4444" : d <= 0 ? "#F59E0B" : "#94A3B8";
+  };
+  const bookOn = a => {
+    if (!canWrite) return;
+    const vs = (cleanStore.bySite || {})[a.site.id] || [];
+    const rec = window.omBlankCleanVisit(a.site, a.date, vs, window.DR_ME && window.DR_ME.user);
+    cleanStore.save(rec);
+  };
+  const dayPanel = React.createElement("div", {
+    className: "pnl",
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 11
+    }
+  }, React.createElement("div", null, React.createElement("div", {
+    style: {
+      fontSize: 16,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, window.drDateTH(sel, true)), React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, selList.length, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23")), !selList.length && React.createElement("div", {
+    style: {
+      padding: "26px 8px",
+      textAlign: "center",
+      color: "var(--text-3)",
+      fontSize: 12.5
+    }
+  }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\u0E44\u0E21\u0E48\u0E21\u0E35\u0E04\u0E34\u0E27\u0E25\u0E49\u0E32\u0E07\u0E41\u0E1C\u0E07"), selList.map((a, i) => {
+    const c = toneOf(a);
+    return React.createElement("div", {
+      key: a.site.id + "-" + i,
+      style: {
+        border: "1px solid var(--border)",
+        borderLeft: "3px solid " + c,
+        borderRadius: 11,
+        background: "var(--surface)",
+        padding: "10px 12px"
+      }
+    }, React.createElement("div", {
+      style: {
+        fontSize: 13,
+        fontWeight: 700,
+        color: "var(--text-1)"
+      }
+    }, a.site.name || a.site.code), React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--text-3)",
+        marginBottom: 7
+      }
+    }, a.site.code, a.site.province ? " · " + a.site.province : "", a.visit && a.visit.timeFrom ? " · " + a.visit.timeFrom + "–" + a.visit.timeTo : ""), React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 6,
+        flexWrap: "wrap",
+        alignItems: "center"
+      }
+    }, React.createElement(OmPill, {
+      th: a.virtual ? "ถึงรอบ ยังไม่จองคิว" : window.omCleanStatusOf(a.status).th,
+      color: c
+    }), a.visit && React.createElement(OmPill, {
+      th: a.visit.free ? "ล้างฟรี" : "คิดค่าบริการ",
+      color: a.visit.free ? "#10B981" : "#F59E0B"
+    }), a.virtual && canWrite && React.createElement("button", {
+      onClick: () => bookOn(a),
+      style: {
+        padding: "6px 12px",
+        borderRadius: 9,
+        border: "none",
+        background: c,
+        color: "#fff",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 12,
+        fontWeight: 700
+      }
+    }, "\u0E08\u0E2D\u0E07\u0E04\u0E34\u0E27\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49"), React.createElement("button", {
+      onClick: () => onOpenSite(a.site.id),
+      style: {
+        padding: "6px 12px",
+        borderRadius: 9,
+        border: "1px solid var(--border-strong)",
+        background: "var(--surface2)",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 12,
+        fontWeight: 700,
+        color: "var(--text-2)"
+      }
+    }, "\u0E40\u0E1B\u0E34\u0E14\u0E44\u0E0B\u0E15\u0E4C")));
+  }));
+  return React.createElement("div", {
+    style: {
+      display: isMobile ? "flex" : "grid",
+      flexDirection: "column",
+      gridTemplateColumns: isMobile ? undefined : "1fr 360px",
+      gap: 16,
+      alignItems: "start"
+    }
+  }, React.createElement("div", {
+    className: "pnl"
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 14,
+      gap: 10
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      minWidth: 0
+    }
+  }, React.createElement("h2", {
+    style: {
+      fontSize: 17,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      margin: 0
+    }
+  }, OM_TH_MONTH[ym.m], " ", ym.y + 543), React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, "\xB7 ", monthCount, " \u0E04\u0E34\u0E27")), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 7
+    }
+  }, React.createElement("button", {
+    onClick: () => shift(-1),
+    title: "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E01\u0E48\u0E2D\u0E19",
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "chevronRight",
+    size: 15,
+    style: {
+      transform: "rotate(180deg)"
+    }
+  })), React.createElement("button", {
+    onClick: () => shift(1),
+    title: "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E16\u0E31\u0E14\u0E44\u0E1B",
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "chevronRight",
+    size: 15
+  })))), React.createElement("div", {
+    style: {
+      overflowX: "auto"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(7, 1fr)",
+      gap: 4,
+      minWidth: 420
+    }
+  }, window.TH_DAYS.map((d, i) => React.createElement("div", {
+    key: d,
+    style: {
+      textAlign: "center",
+      fontSize: 11.5,
+      fontWeight: 700,
+      paddingBottom: 4,
+      color: i === 0 || i === 6 ? "#EF4444aa" : "var(--text-3)"
+    }
+  }, d)), cells.map((d, i) => {
+    if (d === null) return React.createElement("div", {
+      key: i
+    });
+    const k = keyOf(d);
+    const list = byDate[k] || [];
+    const isToday = k === today;
+    const isSel = k === sel;
+    return React.createElement("button", {
+      key: i,
+      onClick: () => setSel(k),
+      style: {
+        minHeight: isMobile ? 62 : 92,
+        borderRadius: 11,
+        textAlign: "left",
+        fontFamily: "inherit",
+        cursor: "pointer",
+        border: isSel ? "2px solid var(--primary)" : "1px solid " + (isToday ? "var(--primary)" : "var(--border)"),
+        background: isSel || isToday ? "var(--primary-soft)" : "var(--surface2)",
+        padding: 7,
+        display: "flex",
+        flexDirection: "column",
+        gap: 3,
+        overflow: "hidden"
+      }
+    }, React.createElement("span", {
+      style: {
+        fontSize: 12,
+        fontWeight: isToday || isSel ? 800 : 600,
+        color: isToday || isSel ? "var(--primary-dark)" : "var(--text-2)"
+      }
+    }, d), list.slice(0, 3).map((a, k2) => {
+      const c = toneOf(a);
+      return React.createElement("span", {
+        key: k2,
+        title: (a.site.name || a.site.code) + (a.virtual ? " · ถึงรอบ ยังไม่จองคิว" : ""),
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+          borderRadius: 6,
+          padding: "1px 4px",
+          background: c + "1f",
+          overflow: "hidden"
+        }
+      }, React.createElement("span", {
+        style: {
+          width: 6,
+          height: 6,
+          borderRadius: 99,
+          background: c,
+          flexShrink: 0,
+          border: a.virtual ? "1px solid " + c : "none",
+          opacity: a.virtual ? 0.55 : 1
+        }
+      }), React.createElement("span", {
+        style: {
+          fontSize: 9.5,
+          fontWeight: 600,
+          color: "var(--text-2)",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis"
+        }
+      }, String(a.site.name || a.site.code).replace("บ้าน", "").replace("คุณ", "")));
+    }), list.length > 3 && React.createElement("span", {
+      style: {
+        fontSize: 9,
+        color: "var(--text-3)"
+      }
+    }, "+", list.length - 3));
+  }))), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 12,
+      flexWrap: "wrap",
+      marginTop: 12,
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, [["#F59E0B", "ถึงรอบ ยังไม่จองคิว"], ["#EF4444", "เลยกำหนดเกิน 7 วัน"], ["#0EA5E9", "จองคิวแล้ว"], ["#10B981", "ล้างแล้ว"]].map(([c, th]) => React.createElement("span", {
+    key: th,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 8,
+      height: 8,
+      borderRadius: 99,
+      background: c
+    }
+  }), th)))), dayPanel);
+}
 function OmView({
   jobs,
   role,
@@ -881,6 +1500,8 @@ function OmView({
     patch,
     remove
   } = window.useOmSites();
+  const cleanStore = window.useOmCleanVisits();
+  const [tab, setTab] = React.useState("sites");
   const [q, setQ] = React.useState("");
   const [filter, setFilter] = React.useState("");
   const [open, setOpen] = React.useState(null);
@@ -894,15 +1515,20 @@ function OmView({
     return m;
   }, [jobs]);
   const pending = React.useMemo(() => window.omEnrollable(jobs, sites), [jobs, sites]);
-  const roll = React.useMemo(() => window.omRollup(sites), [sites]);
+  const roll = React.useMemo(() => window.omRollup(sites, cleanStore.bySite), [sites, cleanStore.bySite]);
   const rows = React.useMemo(() => {
     const kw = q.trim().toLowerCase();
     const out = (sites || []).map(s => ({
       site: s,
-      st: window.omSiteWarrantyState(s)
+      st: window.omSiteWarrantyState(s),
+      cs: window.omCleanState(s, (cleanStore.bySite || {})[s.id] || [])
     })).filter(r => {
       if (filter === "unsure" && !window.omComUnsure(r.site)) return false;
       if ((filter === "soon" || filter === "expired") && r.st.key !== filter) return false;
+      if (filter === "cleanDue") {
+        const k = window.omCleanState(r.site, (cleanStore.bySite || {})[r.site.id] || []).key;
+        if (k !== "due" && k !== "overdue") return false;
+      }
       if (!kw) return true;
       return [r.site.name, r.site.code, r.site.province, r.site.address, r.site.phone].some(v => String(v || "").toLowerCase().includes(kw));
     });
@@ -914,7 +1540,7 @@ function OmView({
     };
     out.sort((a, b) => rank[a.st.key] - rank[b.st.key] || a.st.days - b.st.days);
     return out;
-  }, [sites, q, filter]);
+  }, [sites, q, filter, cleanStore.bySite]);
   const enrollAll = () => {
     if (!canWrite || !pending.length) return;
     setEnrolling(true);
@@ -961,12 +1587,53 @@ function OmView({
     on: filter === "expired",
     onClick: () => tog("expired")
   }), React.createElement(OmStat, {
-    label: "\u0E27\u0E31\u0E19\u0E23\u0E31\u0E1A\u0E21\u0E2D\u0E1A\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19",
+    label: "\u0E27\u0E31\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E40\u0E2A\u0E23\u0E47\u0E08\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19",
     value: roll.unsure,
     color: "#7C5CFC",
     on: filter === "unsure",
     onClick: () => tog("unsure")
-  })), !!pending.length && React.createElement("div", {
+  }), React.createElement(OmStat, {
+    label: "\u0E16\u0E36\u0E07\u0E23\u0E2D\u0E1A\u0E25\u0E49\u0E32\u0E07\u0E41\u0E1C\u0E07",
+    value: roll.cleanDue + roll.cleanOverdue,
+    color: roll.cleanOverdue ? "#EF4444" : "#F59E0B",
+    hint: roll.cleanOverdue ? "เลยกำหนด " + roll.cleanOverdue + " ไซต์" : "จองคิวแล้ว " + roll.cleanBooked + " ไซต์",
+    on: filter === "cleanDue",
+    onClick: () => {
+      setTab("sites");
+      tog("cleanDue");
+    }
+  })), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 7
+    }
+  }, [["sites", "ทะเบียนไซต์", "list"], ["clean", "ปฏิทินล้างแผง", "calendar"]].map(([k, th, ic]) => React.createElement("button", {
+    key: k,
+    onClick: () => setTab(k),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "8px 14px",
+      borderRadius: 99,
+      border: "1px solid " + (tab === k ? "var(--primary)" : "var(--border-strong)"),
+      background: tab === k ? "var(--primary-soft)" : "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: tab === k ? "var(--primary-dark)" : "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: ic,
+    size: 14,
+    color: tab === k ? "var(--primary-dark)" : "var(--text-3)"
+  }), " ", th))), tab === "clean" && React.createElement(OmCleanView, {
+    sites: sites,
+    cleanStore: cleanStore,
+    role: role,
+    onOpenSite: id => setOpen(id)
+  }), tab === "sites" && !!pending.length && React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -1015,7 +1682,7 @@ function OmView({
     name: "plus",
     size: 14,
     color: "#fff"
-  }), " \u0E02\u0E36\u0E49\u0E19\u0E17\u0E30\u0E40\u0E1A\u0E35\u0E22\u0E19\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14")), React.createElement("div", {
+  }), " \u0E02\u0E36\u0E49\u0E19\u0E17\u0E30\u0E40\u0E1A\u0E35\u0E22\u0E19\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14")), tab === "sites" && React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -1068,7 +1735,7 @@ function OmView({
   }, React.createElement(Icon, {
     name: "plus",
     size: 14
-  }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E44\u0E0B\u0E15\u0E4C\u0E19\u0E2D\u0E01\u0E23\u0E30\u0E1A\u0E1A")), React.createElement("div", {
+  }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E44\u0E0B\u0E15\u0E4C\u0E19\u0E2D\u0E01\u0E23\u0E30\u0E1A\u0E1A")), tab === "sites" && React.createElement("div", {
     style: {
       border: "1px solid var(--border)",
       borderRadius: 14,
@@ -1138,8 +1805,12 @@ function OmView({
         fontSize: 11.5,
         color: "var(--text-3)"
       }
-    }, s.code, s.province ? " · " + s.province : "", typeof s.kw === "number" && s.kw > 0 ? " · " + s.kw + " kW" : "", s.comDate ? " · รับมอบ " + window.drShort(s.comDate) : "")), unsure && React.createElement(OmPill, {
-      th: "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E27\u0E31\u0E19\u0E23\u0E31\u0E1A\u0E21\u0E2D\u0E1A",
+    }, s.code, s.province ? " · " + s.province : "", typeof s.kw === "number" && s.kw > 0 ? " · " + s.kw + " kW" : "", s.comDate ? " · ติดตั้งเสร็จ " + window.drShort(s.comDate) : "")), r.cs && (r.cs.key === "due" || r.cs.key === "overdue" || r.cs.key === "booked") && React.createElement(OmPill, {
+      th: r.cs.th,
+      color: r.cs.color,
+      sub: r.cs.due ? "· " + window.drShort(r.cs.due) : ""
+    }), unsure && React.createElement(OmPill, {
+      th: "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E27\u0E31\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E40\u0E2A\u0E23\u0E47\u0E08",
       color: "#7C5CFC"
     }), React.createElement(OmPill, {
       th: r.st.th,
@@ -1154,6 +1825,8 @@ function OmView({
     site: cur,
     job: jobById[cur.id] || null,
     role: role,
+    visits: (cleanStore.bySite || {})[cur.id] || [],
+    cleanStore: cleanStore,
     onClose: () => setOpen(null),
     onPatch: patch,
     onRemove: remove
@@ -1165,6 +1838,8 @@ Object.assign(window, {
   OmStat,
   OmWarrantyBar,
   OmWarrantyTable,
+  OmCleanVisits,
+  OmCleanView,
   OmSiteModal,
   OmView
 });

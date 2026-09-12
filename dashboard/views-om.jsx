@@ -142,10 +142,123 @@ function OmWarrantyTable({ site, disabled, onChange }) {
   );
 }
 
+/* ── รอบล้างแผงของไซต์หนึ่ง ──
+   ใบนัดเกิดตอนกดจองคิวเท่านั้น "วันครบรอบ" ที่ยังไม่จองเป็นค่าคำนวณสด ไม่ได้เก็บไว้
+   ปิดงานแล้วรอบถัดไปจะเลื่อนเองเป็น วันที่ล้างจริง + รอบ (ไม่ใช่วันครบรอบเดิม)
+   จะได้ไม่สะสมความคลาดเคลื่อนเวลาลูกค้าเลื่อนนัด */
+function OmCleanVisits({ site, visits, store, disabled }) {
+  const list = React.useMemo(() => (visits || []).slice()
+    .sort((a, b) => String(b.date || b.due || "").localeCompare(String(a.date || a.due || ""))), [visits]);
+  const cs = window.omCleanState(site, visits);
+  const freeLeft = window.omFreeLeft(site, visits);
+  const backlog = window.omCleanBacklog(site, visits);
+  const open = window.omOpenVisit(visits);
+
+  const book = () => {
+    if (disabled) return;
+    store.save(window.omBlankCleanVisit(site, cs.due || window.drToday(), visits, window.DR_ME && window.DR_ME.user));
+  };
+  const setV = (v, fields) => { if (!disabled) store.patch(site.id, v.id, fields); };
+  /* ปิดงาน = บันทึกวันที่ล้างจริง แล้วหักโควตาฟรีถ้าครั้งนี้เป็นครั้งฟรี */
+  const done = (v) => setV(v, { status: "done", date: v.date || window.drToday(),
+    doneAt: new Date().toISOString(), doneBy: ((window.DR_ME || {}).user || {}).id || null });
+
+  return (
+    <div style={{ marginTop: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 12px", flexWrap: "wrap",
+        border: "1px solid " + cs.color + "40", background: cs.color + "12", borderRadius: 11, marginBottom: 12 }}>
+        <Icon name="panel" size={16} color={cs.color} />
+        <span style={{ flex: 1, minWidth: 150, fontSize: 12.5, color: "var(--text-1)" }}>
+          <b style={{ color: cs.color }}>{cs.th}</b>
+          {cs.due ? " · " + window.drDateTH(cs.due) : ""}
+          {backlog > 1 ? " · ตกรอบไปแล้ว " + backlog + " ครั้ง" : ""}
+          <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>
+            ล้างฟรีเหลือ {freeLeft} ครั้ง จาก {omFreeTotal(site)} ครั้ง
+            {window.omLastClean(visits) ? " · ล้างล่าสุด " + window.drShort(window.omLastClean(visits)) : " · ยังไม่เคยล้าง"}
+          </span>
+        </span>
+        {!disabled && !open && (
+          <button onClick={book}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 9, border: "none",
+              background: cs.color, color: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700 }}>
+            <Icon name="calendar" size={14} color="#fff" /> จองคิวล้าง
+          </button>
+        )}
+      </div>
+
+      {list.map((v) => {
+        const s = window.omCleanStatusOf(v.status);
+        const lock = disabled || v.status === "done";
+        return (
+          <div key={v.id} style={{ border: "1px solid var(--border)", borderRadius: 12, background: "var(--surface)",
+            padding: "10px 12px", marginBottom: 9 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: lock ? 0 : 9, flexWrap: "wrap" }}>
+              <span style={{ width: 8, height: 8, borderRadius: 99, background: s.color, flexShrink: 0 }} />
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>
+                {v.date ? window.drDateTH(v.date) : "—"}
+                {v.timeFrom ? <span style={{ fontFamily: "var(--mono)", fontWeight: 500, color: "var(--text-3)" }}> {v.timeFrom}–{v.timeTo}</span> : null}
+              </span>
+              <OmPill th={s.th} color={s.color} />
+              <OmPill th={v.free ? "ล้างฟรีตามสัญญา" : "คิดค่าบริการ"} color={v.free ? "#10B981" : "#F59E0B"} />
+              {!disabled && (
+                <button onClick={() => store.remove(site.id, v.id)} title="ลบใบนัดนี้"
+                  style={{ marginLeft: "auto", width: 28, height: 28, borderRadius: 8, border: "1px solid var(--border)",
+                    background: "var(--surface2)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-3)" }}>
+                  <Icon name="trash" size={13} />
+                </button>
+              )}
+            </div>
+            {!lock && (
+              <React.Fragment>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(108px, 1fr))", gap: 8 }}>
+                  <input type="date" value={v.date || ""} onChange={(e) => setV(v, { date: e.target.value })}
+                    style={Object.assign({}, OM_INPUT, { padding: "7px 9px", fontSize: 12.5, fontFamily: "var(--mono)" })} />
+                  <input type="time" value={v.timeFrom || ""} onChange={(e) => setV(v, { timeFrom: e.target.value })}
+                    style={Object.assign({}, OM_INPUT, { padding: "7px 9px", fontSize: 12.5, fontFamily: "var(--mono)" })} />
+                  <input type="time" value={v.timeTo || ""} onChange={(e) => setV(v, { timeTo: e.target.value })}
+                    style={Object.assign({}, OM_INPUT, { padding: "7px 9px", fontSize: 12.5, fontFamily: "var(--mono)" })} />
+                  <input value={v.charge == null ? "" : String(v.charge)} inputMode="decimal" placeholder="ค่าบริการ"
+                    onChange={(e) => { const t = e.target.value.replace(/[^0-9.]/g, ""); setV(v, { charge: t === "" ? null : +t, free: t === "" ? v.free : false }); }}
+                    style={Object.assign({}, OM_INPUT, { padding: "7px 9px", fontSize: 12.5, fontFamily: "var(--mono)", textAlign: "right" })} />
+                </div>
+                <input value={v.note || ""} placeholder="หมายเหตุ เช่น ลูกค้าขอเลื่อน · ต้องใช้กระเช้า"
+                  onChange={(e) => setV(v, { note: e.target.value })}
+                  style={Object.assign({}, OM_INPUT, { padding: "7px 9px", fontSize: 12.5, marginTop: 8 })} />
+                <div style={{ display: "flex", gap: 7, marginTop: 9, flexWrap: "wrap" }}>
+                  <button onClick={() => done(v)}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 13px", borderRadius: 9, border: "none",
+                      background: "#10B981", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700 }}>
+                    <Icon name="check" size={14} color="#fff" /> ล้างเสร็จแล้ว
+                  </button>
+                  <button onClick={() => setV(v, { free: !v.free })}
+                    style={{ padding: "7px 13px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface2)",
+                      cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>
+                    {v.free ? "เปลี่ยนเป็นคิดเงิน" : "เปลี่ยนเป็นล้างฟรี"}
+                  </button>
+                  <button onClick={() => setV(v, { status: "skipped" })}
+                    style={{ padding: "7px 13px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface2)",
+                      cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>ข้ามรอบนี้</button>
+                </div>
+              </React.Fragment>
+            )}
+            {v.status === "done" && v.note && (
+              <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 5 }}>{v.note}</div>
+            )}
+          </div>
+        );
+      })}
+      {!list.length && (
+        <div style={{ padding: "12px 6px", textAlign: "center", fontSize: 12, color: "var(--text-3)" }}>ยังไม่มีประวัติล้างแผง</div>
+      )}
+    </div>
+  );
+}
+const omFreeTotal = (site) => ((site || {}).clean || {}).freeCount || 0;
+
 /* ── แผงไซต์ ──
    เฟสนี้มีข้อมูลไซต์ · วันรับมอบ · ทะเบียนประกัน · ตั้งค่ารอบล้างแผง
    ส่วนนัดล้างจริง ใบแจ้งซ่อม และใบรายงานเข้าบริการ จะมาในเฟสถัดไป */
-function OmSiteModal({ site, job, role, onClose, onPatch, onRemove }) {
+function OmSiteModal({ site, job, role, visits, cleanStore, onClose, onPatch, onRemove }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const disabled = !window.omCanWrite(role, null);
   const canDelete = window.omCanDelete(role);
@@ -248,12 +361,13 @@ function OmSiteModal({ site, job, role, onClose, onPatch, onRemove }) {
             </div>
           </window.DrSection>
 
-          <window.DrSection n="2" title="วันรับมอบงาน" tone="#0EA5E9"
-            hint={window.OM_COMSRC_TH[site.comSrc] || ""}>
-            {/* วันนี้คือจุดตั้งต้นของทั้งประกันและรอบล้างแผง เดาผิดแล้วผิดยาว จึงต้องให้คนยืนยัน */}
+          <window.DrSection n="2" title="วันติดตั้งเสร็จ" tone="#0EA5E9"
+            hint={"ประกันทุกรายการเริ่มนับจากวันนี้ · " + (window.OM_COMSRC_TH[site.comSrc] || "")}>
+            {/* วันนี้คือจุดตั้งต้นของทั้งประกันและรอบล้างแผง เดาผิดแล้วผิดยาว จึงต้องให้คนยืนยัน
+                แก้วันนี้แล้ววันเริ่มประกันทุกแถวที่ยังไม่ถูกแก้มือจะเลื่อนตามไปเอง */}
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <input type="date" value={site.comDate || ""} disabled={disabled}
-                onChange={(e) => set({ comDate: e.target.value, comSrc: "confirmed" })}
+                onChange={(e) => { if (e.target.value) set(window.omSetComDate(site, e.target.value, "confirmed")); }}
                 style={Object.assign({}, OM_INPUT, { width: "auto", padding: "8px 11px", fontFamily: "var(--mono)", fontSize: 13 })} />
               <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{site.comDate ? window.drDateTH(site.comDate, true) : "—"}</span>
             </div>
@@ -265,7 +379,7 @@ function OmSiteModal({ site, job, role, onClose, onPatch, onRemove }) {
                   วันรับมอบเป็นค่าประมาณ ({window.OM_COMSRC_TH[site.comSrc] || "ไม่ทราบที่มา"}) กรุณายืนยัน
                 </span>
                 {!disabled && (
-                  <button onClick={() => set({ comSrc: "confirmed" })}
+                  <button onClick={() => set(window.omSetComDate(site, site.comDate, "confirmed"))}
                     style={{ padding: "6px 12px", borderRadius: 9, border: "none", background: "#F59E0B", color: "#fff",
                       cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>ยืนยันวันนี้ถูกแล้ว</button>
                 )}
@@ -279,7 +393,7 @@ function OmSiteModal({ site, job, role, onClose, onPatch, onRemove }) {
           </window.DrSection>
 
           <window.DrSection n="4" title="รอบล้างแผง" tone="#0EA5E9"
-            hint="ตั้งค่ารอบไว้ก่อน — หน้าตารางล้างแผงจะมาในขั้นถัดไป">
+            hint={(() => { const cs = window.omCleanState(site, visits); return cs.due ? cs.th + " · " + window.drShort(cs.due) : cs.th; })()}>
             <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 13 }}>
               <button type="button" disabled={disabled} onClick={() => setClean({ on: !clean.on })}
                 style={{ padding: "7px 13px", borderRadius: 99, cursor: disabled ? "default" : "pointer", fontFamily: "inherit",
@@ -311,13 +425,8 @@ function OmSiteModal({ site, job, role, onClose, onPatch, onRemove }) {
                 </div>
               </div>
             )}
-            {clean.on && site.comDate && (
-              <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 9 }}>
-                นับจากวันรับมอบ {window.drShort(site.comDate)} + {clean.everyMon || 0} เดือน = {" "}
-                <b style={{ color: "var(--text-2)", fontFamily: "var(--mono)" }}>
-                  {window.drShort(window.omAddMonths(site.comDate, clean.everyMon || 0))}
-                </b>
-              </div>
+            {clean.on && (
+              <OmCleanVisits site={site} visits={visits} store={cleanStore} disabled={disabled} role={role} />
             )}
           </window.DrSection>
 
@@ -358,12 +467,177 @@ function OmSiteModal({ site, job, role, onClose, onPatch, onRemove }) {
   );
 }
 
+/* ── ปฏิทินล้างแผง ──
+   จุดบนปฏิทินมาจาก omCleanAgenda: ใบนัดจริง + วันครบรอบของไซต์ที่ยังไม่มีใครจอง
+   วันครบรอบเป็นค่าคำนวณสด กดแล้วถึงจะเกิดใบนัดจริง */
+const OM_TH_MONTH = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+  "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+
+function OmCleanView({ sites, cleanStore, role, onOpenSite }) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const today = window.drToday();
+  /* เปิดมาต้องอยู่ที่เดือนปัจจุบันเสมอ — อ่านจากวันที่จริงของเครื่อง */
+  const now = React.useMemo(() => new Date(today + "T00:00:00"), [today]);
+  const [ym, setYm] = React.useState(() => ({ y: now.getFullYear(), m: now.getMonth() }));
+  const [sel, setSel] = React.useState(today);
+  const canWrite = window.omCanWrite(role, null);
+
+  const agenda = React.useMemo(() => window.omCleanAgenda(sites, cleanStore.bySite, today),
+    [sites, cleanStore.bySite, today]);
+  const byDate = React.useMemo(() => {
+    const m = {};
+    agenda.forEach((a) => { (m[a.date] = m[a.date] || []).push(a); });
+    return m;
+  }, [agenda]);
+
+  const pad = (n) => String(n).padStart(2, "0");
+  const keyOf = (d) => ym.y + "-" + pad(ym.m + 1) + "-" + pad(d);
+  const daysInMonth = new Date(ym.y, ym.m + 1, 0).getDate();
+  const startDow = new Date(ym.y, ym.m, 1).getDay();
+  const cells = [];
+  for (let i = 0; i < startDow; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+  const shift = (n) => setYm((s) => { const d = new Date(s.y, s.m + n, 1); return { y: d.getFullYear(), m: d.getMonth() }; });
+
+  const monthCount = agenda.filter((a) => a.date.slice(0, 7) === ym.y + "-" + pad(ym.m + 1)).length;
+  const selList = byDate[sel] || [];
+
+  /* สีของจุด — จองแล้วฟ้า · ล้างแล้วเขียว · ครบรอบแล้วยังไม่จองส้ม/แดงถ้าเลยมานาน */
+  const toneOf = (a) => {
+    if (!a.virtual) return window.omCleanStatusOf(a.status).color;
+    const d = window.omDiffDays(today, a.date);
+    return d < -7 ? "#EF4444" : d <= 0 ? "#F59E0B" : "#94A3B8";
+  };
+
+  const bookOn = (a) => {
+    if (!canWrite) return;
+    const vs = (cleanStore.bySite || {})[a.site.id] || [];
+    const rec = window.omBlankCleanVisit(a.site, a.date, vs, window.DR_ME && window.DR_ME.user);
+    cleanStore.save(rec);
+  };
+
+  const dayPanel = (
+    <div className="pnl" style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+      <div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-1)" }}>{window.drDateTH(sel, true)}</div>
+        <div style={{ fontSize: 12, color: "var(--text-3)" }}>{selList.length} รายการ</div>
+      </div>
+      {!selList.length && (
+        <div style={{ padding: "26px 8px", textAlign: "center", color: "var(--text-3)", fontSize: 12.5 }}>วันนี้ไม่มีคิวล้างแผง</div>
+      )}
+      {selList.map((a, i) => {
+        const c = toneOf(a);
+        return (
+          <div key={a.site.id + "-" + i} style={{ border: "1px solid var(--border)", borderLeft: "3px solid " + c,
+            borderRadius: 11, background: "var(--surface)", padding: "10px 12px" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{a.site.name || a.site.code}</div>
+            <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 7 }}>
+              {a.site.code}{a.site.province ? " · " + a.site.province : ""}
+              {a.visit && a.visit.timeFrom ? " · " + a.visit.timeFrom + "–" + a.visit.timeTo : ""}
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+              <OmPill th={a.virtual ? "ถึงรอบ ยังไม่จองคิว" : window.omCleanStatusOf(a.status).th} color={c} />
+              {a.visit && <OmPill th={a.visit.free ? "ล้างฟรี" : "คิดค่าบริการ"} color={a.visit.free ? "#10B981" : "#F59E0B"} />}
+              {a.virtual && canWrite && (
+                <button onClick={() => bookOn(a)}
+                  style={{ padding: "6px 12px", borderRadius: 9, border: "none", background: c, color: "#fff",
+                    cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>จองคิววันนี้</button>
+              )}
+              <button onClick={() => onOpenSite(a.site.id)}
+                style={{ padding: "6px 12px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface2)",
+                  cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>เปิดไซต์</button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  return (
+    <div style={{ display: isMobile ? "flex" : "grid", flexDirection: "column",
+      gridTemplateColumns: isMobile ? undefined : "1fr 360px", gap: 16, alignItems: "start" }}>
+      <div className="pnl">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+            <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>{OM_TH_MONTH[ym.m]} {ym.y + 543}</h2>
+            <span style={{ fontSize: 12, color: "var(--text-3)" }}>· {monthCount} คิว</span>
+          </div>
+          <div style={{ display: "flex", gap: 7 }}>
+            <button onClick={() => shift(-1)} title="เดือนก่อน"
+              style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
+              <Icon name="chevronRight" size={15} style={{ transform: "rotate(180deg)" }} />
+            </button>
+            <button onClick={() => shift(1)} title="เดือนถัดไป"
+              style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
+              <Icon name="chevronRight" size={15} />
+            </button>
+          </div>
+        </div>
+        <div style={{ overflowX: "auto" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, minWidth: 420 }}>
+            {window.TH_DAYS.map((d, i) => (
+              <div key={d} style={{ textAlign: "center", fontSize: 11.5, fontWeight: 700, paddingBottom: 4,
+                color: i === 0 || i === 6 ? "#EF4444aa" : "var(--text-3)" }}>{d}</div>
+            ))}
+            {cells.map((d, i) => {
+              if (d === null) return <div key={i} />;
+              const k = keyOf(d);
+              const list = byDate[k] || [];
+              const isToday = k === today;
+              const isSel = k === sel;
+              return (
+                <button key={i} onClick={() => setSel(k)}
+                  style={{ minHeight: isMobile ? 62 : 92, borderRadius: 11, textAlign: "left", fontFamily: "inherit", cursor: "pointer",
+                    border: isSel ? "2px solid var(--primary)" : "1px solid " + (isToday ? "var(--primary)" : "var(--border)"),
+                    background: isSel || isToday ? "var(--primary-soft)" : "var(--surface2)", padding: 7,
+                    display: "flex", flexDirection: "column", gap: 3, overflow: "hidden" }}>
+                  <span style={{ fontSize: 12, fontWeight: isToday || isSel ? 800 : 600,
+                    color: isToday || isSel ? "var(--primary-dark)" : "var(--text-2)" }}>{d}</span>
+                  {list.slice(0, 3).map((a, k2) => {
+                    const c = toneOf(a);
+                    return (
+                      <span key={k2} title={(a.site.name || a.site.code) + (a.virtual ? " · ถึงรอบ ยังไม่จองคิว" : "")}
+                        style={{ display: "flex", alignItems: "center", gap: 4, borderRadius: 6, padding: "1px 4px",
+                          background: c + "1f", overflow: "hidden" }}>
+                        <span style={{ width: 6, height: 6, borderRadius: 99, background: c, flexShrink: 0,
+                          border: a.virtual ? "1px solid " + c : "none", opacity: a.virtual ? 0.55 : 1 }} />
+                        <span style={{ fontSize: 9.5, fontWeight: 600, color: "var(--text-2)",
+                          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {String(a.site.name || a.site.code).replace("บ้าน", "").replace("คุณ", "")}
+                        </span>
+                      </span>
+                    );
+                  })}
+                  {list.length > 3 && <span style={{ fontSize: 9, color: "var(--text-3)" }}>+{list.length - 3}</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 12, fontSize: 11, color: "var(--text-3)" }}>
+          {[["#F59E0B", "ถึงรอบ ยังไม่จองคิว"], ["#EF4444", "เลยกำหนดเกิน 7 วัน"], ["#0EA5E9", "จองคิวแล้ว"], ["#10B981", "ล้างแล้ว"]].map(([c, th]) => (
+            <span key={th} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <span style={{ width: 8, height: 8, borderRadius: 99, background: c }} />{th}
+            </span>
+          ))}
+        </div>
+      </div>
+      {dayPanel}
+    </div>
+  );
+}
+
 /* ── หน้าหลัก ── */
 function OmView({ jobs, role, currentUser }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const { sites, loading, upsert, patch, remove } = window.useOmSites();
+  const cleanStore = window.useOmCleanVisits();
+  const [tab, setTab] = React.useState("sites");       /* sites | clean */
   const [q, setQ] = React.useState("");
-  const [filter, setFilter] = React.useState("");      /* "" | "soon" | "expired" | "unsure" */
+  const [filter, setFilter] = React.useState("");      /* "" | "soon" | "expired" | "unsure" | "cleanDue" */
   const [open, setOpen] = React.useState(null);        /* siteId ที่เปิดแผงอยู่ */
   const [enrolling, setEnrolling] = React.useState(false);
   const canWrite = window.omCanWrite(role, null);
@@ -375,14 +649,19 @@ function OmView({ jobs, role, currentUser }) {
   }, [jobs]);
 
   const pending = React.useMemo(() => window.omEnrollable(jobs, sites), [jobs, sites]);
-  const roll = React.useMemo(() => window.omRollup(sites), [sites]);
+  const roll = React.useMemo(() => window.omRollup(sites, cleanStore.bySite), [sites, cleanStore.bySite]);
 
   const rows = React.useMemo(() => {
     const kw = q.trim().toLowerCase();
-    const out = (sites || []).map((s) => ({ site: s, st: window.omSiteWarrantyState(s) }))
+    const out = (sites || []).map((s) => ({ site: s, st: window.omSiteWarrantyState(s),
+      cs: window.omCleanState(s, (cleanStore.bySite || {})[s.id] || []) }))
       .filter((r) => {
         if (filter === "unsure" && !window.omComUnsure(r.site)) return false;
         if ((filter === "soon" || filter === "expired") && r.st.key !== filter) return false;
+        if (filter === "cleanDue") {
+          const k = window.omCleanState(r.site, (cleanStore.bySite || {})[r.site.id] || []).key;
+          if (k !== "due" && k !== "overdue") return false;
+        }
         if (!kw) return true;
         return [r.site.name, r.site.code, r.site.province, r.site.address, r.site.phone]
           .some((v) => String(v || "").toLowerCase().includes(kw));
@@ -391,7 +670,7 @@ function OmView({ jobs, role, currentUser }) {
     const rank = { expired: 0, soon: 1, active: 2, none: 3 };
     out.sort((a, b) => (rank[a.st.key] - rank[b.st.key]) || (a.st.days - b.st.days));
     return out;
-  }, [sites, q, filter]);
+  }, [sites, q, filter, cleanStore.bySite]);
 
   const enrollAll = () => {
     if (!canWrite || !pending.length) return;
@@ -416,12 +695,32 @@ function OmView({ jobs, role, currentUser }) {
         <OmStat label="ใกล้หมดประกัน" value={roll.warnSoon} color="#F59E0B"
           hint={"เหลือไม่เกิน " + window.OM_WARN_DAYS + " วัน"} on={filter === "soon"} onClick={() => tog("soon")} />
         <OmStat label="หมดประกันแล้ว" value={roll.warnExpired} color="#EF4444" on={filter === "expired"} onClick={() => tog("expired")} />
-        <OmStat label="วันรับมอบยังไม่ยืนยัน" value={roll.unsure} color="#7C5CFC" on={filter === "unsure"} onClick={() => tog("unsure")} />
+        <OmStat label="วันติดตั้งเสร็จยังไม่ยืนยัน" value={roll.unsure} color="#7C5CFC" on={filter === "unsure"} onClick={() => tog("unsure")} />
+        <OmStat label="ถึงรอบล้างแผง" value={roll.cleanDue + roll.cleanOverdue} color={roll.cleanOverdue ? "#EF4444" : "#F59E0B"}
+          hint={roll.cleanOverdue ? "เลยกำหนด " + roll.cleanOverdue + " ไซต์" : "จองคิวแล้ว " + roll.cleanBooked + " ไซต์"}
+          on={filter === "cleanDue"} onClick={() => { setTab("sites"); tog("cleanDue"); }} />
       </div>
 
+      {/* สลับมุมมอง — รายการไซต์คือทะเบียน · ปฏิทินคือคิวงานที่ต้องออกไปทำ */}
+      <div style={{ display: "flex", gap: 7 }}>
+        {[["sites", "ทะเบียนไซต์", "list"], ["clean", "ปฏิทินล้างแผง", "calendar"]].map(([k, th, ic]) => (
+          <button key={k} onClick={() => setTab(k)}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 99,
+              border: "1px solid " + (tab === k ? "var(--primary)" : "var(--border-strong)"),
+              background: tab === k ? "var(--primary-soft)" : "var(--surface)", cursor: "pointer", fontFamily: "inherit",
+              fontSize: 12.5, fontWeight: 700, color: tab === k ? "var(--primary-dark)" : "var(--text-2)" }}>
+            <Icon name={ic} size={14} color={tab === k ? "var(--primary-dark)" : "var(--text-3)"} /> {th}
+          </button>
+        ))}
+      </div>
+
+      {tab === "clean" && (
+        <OmCleanView sites={sites} cleanStore={cleanStore} role={role} onOpenSite={(id) => setOpen(id)} />
+      )}
+
       {/* แถบขึ้นทะเบียน — คำนวณสดจากงานที่ปิดแล้ว ไม่ได้ผูกกับการเดินขั้นงาน
-          ให้คนกดยืนยันเอง เพราะวันรับมอบ (= วันเริ่มประกัน) เดาเองไม่ได้เสมอ */}
-      {!!pending.length && (
+          ให้คนกดยืนยันเอง เพราะวันติดตั้งเสร็จ (= วันเริ่มประกัน) เดาเองไม่ได้เสมอ */}
+      {tab === "sites" && !!pending.length && (
         <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "12px 14px", flexWrap: "wrap",
           border: "1px solid #1B9B7540", background: "#1B9B7512", borderRadius: 14 }}>
           <Icon name="wrench" size={17} color="#1B9B75" />
@@ -441,6 +740,7 @@ function OmView({ jobs, role, currentUser }) {
         </div>
       )}
 
+      {tab === "sites" && (
       <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
         <div style={{ position: "relative", flex: 1, minWidth: 180 }}>
           <span style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", display: "grid", placeItems: "center" }}>
@@ -458,7 +758,9 @@ function OmView({ jobs, role, currentUser }) {
           </button>
         )}
       </div>
+      )}
 
+      {tab === "sites" && (
       <div style={{ border: "1px solid var(--border)", borderRadius: 14, background: "var(--surface2)", overflow: "hidden" }}>
         {loading && <div style={{ padding: 20, textAlign: "center", fontSize: 12.5, color: "var(--text-3)" }}>กำลังโหลด...</div>}
         {!loading && !rows.length && (
@@ -481,10 +783,13 @@ function OmView({ jobs, role, currentUser }) {
                 <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>
                   {s.code}{s.province ? " · " + s.province : ""}
                   {typeof s.kw === "number" && s.kw > 0 ? " · " + s.kw + " kW" : ""}
-                  {s.comDate ? " · รับมอบ " + window.drShort(s.comDate) : ""}
+                  {s.comDate ? " · ติดตั้งเสร็จ " + window.drShort(s.comDate) : ""}
                 </span>
               </span>
-              {unsure && <OmPill th="ยังไม่ยืนยันวันรับมอบ" color="#7C5CFC" />}
+              {r.cs && (r.cs.key === "due" || r.cs.key === "overdue" || r.cs.key === "booked") && (
+                <OmPill th={r.cs.th} color={r.cs.color} sub={r.cs.due ? "· " + window.drShort(r.cs.due) : ""} />
+              )}
+              {unsure && <OmPill th="ยังไม่ยืนยันวันติดตั้งเสร็จ" color="#7C5CFC" />}
               <OmPill th={r.st.th} color={r.st.color}
                 sub={r.st.key === "none" ? "" : "· " + window.omDaysTH(r.st)} />
               <Icon name="chevronRight" size={15} color="var(--text-3)" />
@@ -492,13 +797,16 @@ function OmView({ jobs, role, currentUser }) {
           );
         })}
       </div>
+      )}
 
       {cur && (
         <OmSiteModal site={cur} job={jobById[cur.id] || null} role={role}
+          visits={(cleanStore.bySite || {})[cur.id] || []} cleanStore={cleanStore}
           onClose={() => setOpen(null)} onPatch={patch} onRemove={remove} />
       )}
     </div>
   );
 }
 
-Object.assign(window, { OM_INPUT, OmPill, OmStat, OmWarrantyBar, OmWarrantyTable, OmSiteModal, OmView });
+Object.assign(window, { OM_INPUT, OmPill, OmStat, OmWarrantyBar, OmWarrantyTable,
+  OmCleanVisits, OmCleanView, OmSiteModal, OmView });
