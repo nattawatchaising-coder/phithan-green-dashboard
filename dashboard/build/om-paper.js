@@ -1,0 +1,1365 @@
+function OmVisitPhotos({
+  visitId,
+  slot,
+  currentUser,
+  disabled
+}) {
+  const store = window.useOmVisitPhotos(visitId);
+  const [busy, setBusy] = React.useState(0);
+  const list = store.photos.filter(p => (p.slot || "before") === slot);
+  const onPick = async e => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (!files.length) return;
+    setBusy(files.length);
+    for (const f of files) {
+      try {
+        store.add(await window.resizeImageFile(f, 1200, 0.72), slot, currentUser);
+      } catch (err) {}
+      setBusy(n => n - 1);
+    }
+  };
+  return React.createElement("div", null, !disabled && React.createElement("label", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      padding: "9px 14px",
+      borderRadius: 10,
+      border: "1px dashed var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-2)",
+      marginBottom: list.length ? 11 : 0
+    }
+  }, React.createElement(Icon, {
+    name: "camera",
+    size: 15
+  }), " ", busy ? "กำลังใส่รูป " + busy + " ใบ..." : "เพิ่มรูป (เลือกได้หลายใบ)", React.createElement("input", {
+    type: "file",
+    accept: "image/*",
+    multiple: true,
+    onChange: onPick,
+    style: {
+      display: "none"
+    }
+  })), !list.length && disabled && React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E39\u0E1B"), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill, minmax(144px, 1fr))",
+      gap: 10
+    }
+  }, list.map(p => React.createElement("div", {
+    key: p.id,
+    style: {
+      border: "1px solid var(--border)",
+      borderRadius: 11,
+      overflow: "hidden",
+      background: "var(--surface)"
+    }
+  }, React.createElement("div", {
+    style: {
+      position: "relative",
+      background: "#0d1512"
+    }
+  }, React.createElement("img", {
+    src: p.dataUrl,
+    alt: p.cap || "รูปหน้างาน",
+    style: {
+      width: "100%",
+      height: 108,
+      objectFit: "cover",
+      display: "block"
+    }
+  }), !disabled && React.createElement("button", {
+    type: "button",
+    onClick: () => store.remove(p.id),
+    title: "\u0E25\u0E1A\u0E23\u0E39\u0E1B\u0E19\u0E35\u0E49",
+    style: {
+      position: "absolute",
+      top: 6,
+      right: 6,
+      width: 26,
+      height: 26,
+      borderRadius: 8,
+      border: "none",
+      background: "rgba(0,0,0,.55)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 13,
+    color: "#fff"
+  }))), React.createElement(window.DrPhotoCap, {
+    value: p.cap,
+    disabled: disabled,
+    onSave: v => store.setCap(p.id, v)
+  })))));
+}
+function OmVisitModal({
+  visit,
+  site,
+  siteVisits,
+  role,
+  currentUser,
+  onClose,
+  onPatch,
+  onRemove
+}) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const sigs = window.useOmVisitSigns(visit ? visit.id : null);
+  const mine = window.useOmMySign((currentUser || {}).id);
+  const [tab, setTab] = React.useState("before");
+  const [paper, setPaper] = React.useState(false);
+  const [delAsk, setDelAsk] = React.useState(false);
+  const [pad, setPad] = React.useState(null);
+  const [remember, setRemember] = React.useState(true);
+  if (!visit) return null;
+  const v = visit;
+  const st = window.omVisitStatusOf(v.status);
+  const kind = window.OM_VISIT_KIND_BY[v.kind] || window.OM_VISIT_KIND_BY.repair;
+  const canApprove = window.omCanApprove(role);
+  const locked = !window.omCanWrite(role, v);
+  const set = fields => {
+    if (!locked) onPatch(v.id, fields);
+  };
+  const doSign = (slot, img) => {
+    sigs.sign(slot, img, currentUser, slot === "cust" ? (site || {}).name || "" : (currentUser || {}).name || "");
+  };
+  const send = () => {
+    if (!(sigs.signs.tech && sigs.signs.tech.img)) {
+      setPad({
+        slot: "tech",
+        title: "ลายเซ็นช่างผู้ให้บริการ",
+        then: markSent
+      });
+      return;
+    }
+    markSent();
+  };
+  const markSent = () => onPatch(v.id, {
+    status: "sent",
+    sentAt: new Date().toISOString(),
+    byId: (currentUser || {}).id || v.byId || null,
+    byName: (currentUser || {}).name || v.byName || ""
+  });
+  const approve = () => onPatch(v.id, {
+    status: "approved",
+    approvedAt: new Date().toISOString(),
+    appId: (currentUser || {}).id || null,
+    appName: (currentUser || {}).name || ""
+  });
+  const unlock = () => onPatch(v.id, {
+    status: "sent",
+    approvedAt: null,
+    appId: null,
+    appName: ""
+  });
+  const btn = (bg, color, border) => ({
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    padding: "9px 14px",
+    borderRadius: 10,
+    border: border || "none",
+    background: bg,
+    color: color,
+    cursor: "pointer",
+    fontFamily: "inherit",
+    fontSize: 12.5,
+    fontWeight: 700
+  });
+  return React.createElement(React.Fragment, null, React.createElement("div", {
+    onClick: onClose,
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 100,
+      background: "rgba(8,20,26,.5)",
+      backdropFilter: "blur(3px)",
+      display: "flex",
+      alignItems: isMobile ? "flex-end" : "center",
+      justifyContent: "center",
+      padding: isMobile ? 0 : 24
+    }
+  }, React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      width: "100%",
+      maxWidth: 780,
+      maxHeight: isMobile ? "94vh" : "88vh",
+      overflowY: "auto",
+      background: "var(--bg)",
+      border: "1px solid var(--border)",
+      borderRadius: isMobile ? "18px 18px 0 0" : 18,
+      boxShadow: "0 24px 60px rgba(0,0,0,.28)"
+    }
+  }, React.createElement("div", {
+    style: {
+      position: "sticky",
+      top: 0,
+      zIndex: 2,
+      background: "var(--bg)",
+      borderBottom: "1px solid var(--border)",
+      padding: isMobile ? "14px 13px" : "16px 20px"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: 11
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      background: kind.color + "1c",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: kind.icon,
+    size: 18,
+    color: kind.color
+  })), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, "\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E40\u0E02\u0E49\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23 \xB7 ", kind.th), React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      fontFamily: "var(--mono)"
+    }
+  }, v.no, " \xB7 ", v.siteCode, v.siteName ? " · " + v.siteName : "")), React.createElement(window.OmPill, {
+    th: st.th,
+    color: st.color
+  }), React.createElement("button", {
+    onClick: onClose,
+    title: "\u0E1B\u0E34\u0E14",
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 15
+  }))), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 7,
+      marginTop: 11,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("button", {
+    onClick: () => setPaper(true),
+    style: btn("var(--surface)", "var(--text-2)", "1px solid var(--border-strong)")
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 14
+  }), " \u0E14\u0E39\u0E43\u0E1A A4 / \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF"), !locked && v.status === "draft" && React.createElement("button", {
+    onClick: send,
+    style: btn("var(--primary)", "#fff")
+  }, React.createElement(Icon, {
+    name: "check",
+    size: 14,
+    color: "#fff",
+    sw: 2.6
+  }), " \u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E49\u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32\u0E15\u0E23\u0E27\u0E08"), canApprove && v.status === "sent" && React.createElement("button", {
+    onClick: approve,
+    style: btn("#10B981", "#fff")
+  }, React.createElement(Icon, {
+    name: "shield",
+    size: 14,
+    color: "#fff"
+  }), " \u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E43\u0E1A\u0E19\u0E35\u0E49"), canApprove && v.status === "approved" && React.createElement("button", {
+    onClick: unlock,
+    style: btn("var(--surface)", "#F59E0B", "1px solid #F59E0B")
+  }, React.createElement(Icon, {
+    name: "lock",
+    size: 14,
+    color: "#F59E0B"
+  }), " \u0E1B\u0E25\u0E14\u0E25\u0E47\u0E2D\u0E01\u0E43\u0E2B\u0E49\u0E41\u0E01\u0E49"))), React.createElement("div", {
+    style: {
+      padding: isMobile ? "14px 13px 24px" : "18px 20px 26px"
+    }
+  }, v.status === "approved" && React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+      padding: "11px 13px",
+      marginBottom: 14,
+      border: "1px solid #10B98140",
+      background: "#10B98114",
+      borderRadius: 12
+    }
+  }, React.createElement(Icon, {
+    name: "lock",
+    size: 15,
+    color: "#10B981"
+  }), React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-1)"
+    }
+  }, "\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\u0E42\u0E14\u0E22 ", React.createElement("b", null, v.appName || "-"), v.approvedAt ? " · " + window.drDateTH(window.drLocalDay(v.approvedAt)) : "", " \xB7 \u0E41\u0E01\u0E49\u0E44\u0E02\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49")), React.createElement(window.DrSection, {
+    n: "1",
+    title: "\u0E01\u0E32\u0E23\u0E40\u0E02\u0E49\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23\u0E04\u0E23\u0E31\u0E49\u0E07\u0E19\u0E35\u0E49",
+    tone: "#7C5CFC"
+  }, React.createElement(window.DrLabel, null, "\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E07\u0E32\u0E19"), React.createElement(window.DrChips, {
+    options: window.OM_VISIT_KIND,
+    value: v.kind,
+    disabled: locked,
+    onChange: x => set({
+      kind: x || "repair"
+    })
+  }), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
+      gap: 10,
+      marginTop: 13
+    }
+  }, React.createElement("div", null, React.createElement(window.DrLabel, null, "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E40\u0E02\u0E49\u0E32"), React.createElement("input", {
+    type: "date",
+    value: v.date || "",
+    disabled: locked,
+    onChange: e => set({
+      date: e.target.value
+    }),
+    style: Object.assign({}, window.OM_INPUT, {
+      padding: "8px 10px",
+      fontFamily: "var(--mono)",
+      fontSize: 12.5
+    })
+  })), React.createElement("div", null, React.createElement(window.DrLabel, null, "\u0E40\u0E27\u0E25\u0E32\u0E40\u0E02\u0E49\u0E32"), React.createElement("input", {
+    type: "time",
+    value: v.timeIn || "",
+    disabled: locked,
+    onChange: e => set({
+      timeIn: e.target.value
+    }),
+    style: Object.assign({}, window.OM_INPUT, {
+      padding: "8px 10px",
+      fontFamily: "var(--mono)",
+      fontSize: 12.5
+    })
+  })), React.createElement("div", null, React.createElement(window.DrLabel, null, "\u0E40\u0E27\u0E25\u0E32\u0E2D\u0E2D\u0E01"), React.createElement("input", {
+    type: "time",
+    value: v.timeOut || "",
+    disabled: locked,
+    onChange: e => set({
+      timeOut: e.target.value
+    }),
+    style: Object.assign({}, window.OM_INPUT, {
+      padding: "8px 10px",
+      fontFamily: "var(--mono)",
+      fontSize: 12.5
+    })
+  })), React.createElement("div", null, React.createElement(window.DrLabel, null, "\u0E17\u0E35\u0E21\u0E0A\u0E48\u0E32\u0E07"), React.createElement("input", {
+    value: v.team || "",
+    disabled: locked,
+    onChange: e => set({
+      team: e.target.value
+    }),
+    placeholder: "\u0E0A\u0E37\u0E48\u0E2D\u0E0A\u0E48\u0E32\u0E07\u0E17\u0E35\u0E48\u0E40\u0E02\u0E49\u0E32",
+    style: Object.assign({}, window.OM_INPUT, {
+      padding: "8px 10px",
+      fontSize: 12.5
+    })
+  })))), React.createElement(window.DrSection, {
+    n: "2",
+    title: "\u0E15\u0E23\u0E27\u0E08\u0E1E\u0E1A / \u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E17\u0E33",
+    tone: "#F59E0B"
+  }, React.createElement(window.DrLabel, {
+    hint: "\u0E2A\u0E20\u0E32\u0E1E\u0E17\u0E35\u0E48\u0E40\u0E08\u0E2D\u0E15\u0E2D\u0E19\u0E44\u0E1B\u0E16\u0E36\u0E07"
+  }, "\u0E15\u0E23\u0E27\u0E08\u0E1E\u0E1A\u0E2D\u0E30\u0E44\u0E23"), React.createElement(window.DrText, {
+    value: v.found,
+    disabled: locked,
+    rows: 2,
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E41\u0E08\u0E49\u0E07 error 2031 \xB7 \u0E1F\u0E34\u0E27\u0E2A\u0E4C DC \u0E2A\u0E15\u0E23\u0E34\u0E07 2 \u0E02\u0E32\u0E14",
+    onChange: x => set({
+      found: x
+    })
+  }), React.createElement("div", {
+    style: {
+      marginTop: 13
+    }
+  }, React.createElement(window.DrLabel, null, "\u0E17\u0E33\u0E2D\u0E30\u0E44\u0E23\u0E44\u0E1B\u0E1A\u0E49\u0E32\u0E07"), React.createElement(window.DrText, {
+    value: v.work,
+    disabled: locked,
+    rows: 3,
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E1F\u0E34\u0E27\u0E2A\u0E4C DC \xB7 \u0E02\u0E31\u0E19\u0E08\u0E38\u0E14\u0E15\u0E48\u0E2D\u0E43\u0E2B\u0E21\u0E48\u0E17\u0E31\u0E49\u0E07\u0E41\u0E16\u0E27 \xB7 \u0E25\u0E49\u0E32\u0E07\u0E41\u0E1C\u0E07\u0E17\u0E31\u0E49\u0E07 18 \u0E41\u0E1C\u0E07",
+    onChange: x => set({
+      work: x
+    })
+  })), React.createElement("div", {
+    style: {
+      marginTop: 13
+    }
+  }, React.createElement(window.DrLabel, {
+    hint: "\u0E2A\u0E23\u0E38\u0E1B\u0E43\u0E2B\u0E49\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E2D\u0E48\u0E32\u0E19\u0E41\u0E25\u0E49\u0E27\u0E40\u0E02\u0E49\u0E32\u0E43\u0E08"
+  }, "\u0E1C\u0E25\u0E2B\u0E25\u0E31\u0E07\u0E17\u0E33\u0E07\u0E32\u0E19\u0E40\u0E2A\u0E23\u0E47\u0E08"), React.createElement(window.DrText, {
+    value: v.result,
+    disabled: locked,
+    rows: 2,
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E17\u0E14\u0E2A\u0E2D\u0E1A\u0E41\u0E25\u0E49\u0E27\u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E48\u0E32\u0E22\u0E44\u0E1F\u0E1B\u0E01\u0E15\u0E34 \u0E01\u0E33\u0E25\u0E31\u0E07\u0E1C\u0E25\u0E34\u0E15\u0E01\u0E25\u0E31\u0E1A\u0E21\u0E32 5.2 kW",
+    onChange: x => set({
+      result: x
+    })
+  }))), React.createElement(window.DrSection, {
+    n: "3",
+    title: "\u0E2D\u0E30\u0E44\u0E2B\u0E25\u0E48 / \u0E27\u0E31\u0E2A\u0E14\u0E38\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49",
+    tone: "#0EA5E9",
+    hint: "\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E43\u0E0A\u0E49\u0E2D\u0E30\u0E44\u0E23\u0E01\u0E47\u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07\u0E44\u0E27\u0E49"
+  }, React.createElement(window.DrRows, {
+    disabled: locked,
+    rows: v.parts,
+    addLabel: "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2D\u0E30\u0E44\u0E2B\u0E25\u0E48",
+    cols: [{
+      k: "name",
+      th: "รายการ"
+    }, {
+      k: "qty",
+      th: "จำนวน",
+      w: 76,
+      type: "num"
+    }, {
+      k: "unit",
+      th: "หน่วย",
+      w: 76
+    }, {
+      k: "note",
+      th: "หมายเหตุ"
+    }],
+    onChange: rows => set({
+      parts: rows
+    })
+  })), React.createElement(window.DrSection, {
+    n: "4",
+    title: "\u0E04\u0E48\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23",
+    tone: "#1B9B75"
+  }, React.createElement(window.DrChips, {
+    disabled: locked,
+    value: v.cover,
+    onChange: x => set({
+      cover: x || "unknown"
+    }),
+    options: ["warranty", "charge", "goodwill", "unknown"].map(k => ({
+      key: k,
+      th: window.omCoverTH(k).th,
+      color: window.omCoverTH(k).color
+    }))
+  }), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+      gap: 12,
+      marginTop: 13
+    }
+  }, React.createElement("div", null, React.createElement(window.DrLabel, {
+    hint: "\u0E1A\u0E32\u0E17 \u2014 \u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E19\u0E43\u0E2B\u0E49\u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07"
+  }, "\u0E22\u0E2D\u0E14\u0E17\u0E35\u0E48\u0E40\u0E23\u0E35\u0E22\u0E01\u0E40\u0E01\u0E47\u0E1A"), React.createElement("input", {
+    value: v.charge == null ? "" : String(v.charge),
+    disabled: locked,
+    inputMode: "decimal",
+    onChange: e => {
+      const x = e.target.value.replace(/[^0-9.]/g, "");
+      set({
+        charge: x === "" ? null : +x
+      });
+    },
+    style: Object.assign({}, window.OM_INPUT, {
+      padding: "8px 11px",
+      fontFamily: "var(--mono)",
+      textAlign: "right"
+    })
+  })), React.createElement("div", null, React.createElement(window.DrLabel, {
+    hint: "\u0E40\u0E0A\u0E48\u0E19 \u0E27\u0E31\u0E19\u0E04\u0E23\u0E1A\u0E23\u0E2D\u0E1A\u0E25\u0E49\u0E32\u0E07\u0E41\u0E1C\u0E07\u0E04\u0E23\u0E31\u0E49\u0E07\u0E15\u0E48\u0E2D\u0E44\u0E1B"
+  }, "\u0E19\u0E31\u0E14\u0E04\u0E23\u0E31\u0E49\u0E07\u0E16\u0E31\u0E14\u0E44\u0E1B"), React.createElement("input", {
+    type: "date",
+    value: v.nextDue || "",
+    disabled: locked,
+    onChange: e => set({
+      nextDue: e.target.value
+    }),
+    style: Object.assign({}, window.OM_INPUT, {
+      padding: "8px 11px",
+      fontFamily: "var(--mono)",
+      fontSize: 13
+    })
+  }))), React.createElement("div", {
+    style: {
+      marginTop: 13
+    }
+  }, React.createElement(window.DrLabel, {
+    hint: "\u0E2A\u0E34\u0E48\u0E07\u0E17\u0E35\u0E48\u0E2D\u0E22\u0E32\u0E01\u0E1A\u0E2D\u0E01\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E43\u0E2B\u0E49\u0E14\u0E39\u0E41\u0E25\u0E15\u0E48\u0E2D"
+  }, "\u0E04\u0E33\u0E41\u0E19\u0E30\u0E19\u0E33"), React.createElement(window.DrText, {
+    value: v.advice,
+    disabled: locked,
+    rows: 2,
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E0A\u0E48\u0E27\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E41\u0E25\u0E49\u0E07\u0E1D\u0E38\u0E48\u0E19\u0E40\u0E22\u0E2D\u0E30 \u0E41\u0E19\u0E30\u0E19\u0E33\u0E25\u0E49\u0E32\u0E07\u0E17\u0E38\u0E01 4 \u0E40\u0E14\u0E37\u0E2D\u0E19",
+    onChange: x => set({
+      advice: x
+    })
+  }))), React.createElement(window.DrSection, {
+    n: "5",
+    title: "\u0E23\u0E39\u0E1B\u0E01\u0E48\u0E2D\u0E19 / \u0E2B\u0E25\u0E31\u0E07",
+    tone: "#0EA5E9",
+    hint: "\u0E23\u0E39\u0E1B\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E37\u0E2D\u0E2B\u0E25\u0E31\u0E01\u0E10\u0E32\u0E19\u0E27\u0E48\u0E32\u0E07\u0E32\u0E19\u0E40\u0E2A\u0E23\u0E47\u0E08\u0E08\u0E23\u0E34\u0E07"
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 7,
+      marginBottom: 12
+    }
+  }, [["before", "ก่อนทำงาน"], ["after", "หลังทำงาน"]].map(([k, th]) => React.createElement("button", {
+    key: k,
+    type: "button",
+    onClick: () => setTab(k),
+    style: {
+      padding: "7px 14px",
+      borderRadius: 99,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      border: "1px solid " + (tab === k ? "var(--primary)" : "var(--border-strong)"),
+      background: tab === k ? "var(--primary-soft)" : "var(--surface)",
+      color: tab === k ? "var(--primary-dark)" : "var(--text-2)"
+    }
+  }, th))), React.createElement(OmVisitPhotos, {
+    visitId: v.id,
+    slot: tab,
+    currentUser: currentUser,
+    disabled: locked
+  })), React.createElement(window.DrSection, {
+    n: "6",
+    title: "\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19",
+    tone: "#10B981",
+    hint: "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E40\u0E0B\u0E47\u0E19\u0E23\u0E31\u0E1A\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22"
+  }, React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+      gap: 12
+    }
+  }, React.createElement(window.DrSignSlot, {
+    title: "\u0E0A\u0E48\u0E32\u0E07\u0E1C\u0E39\u0E49\u0E43\u0E2B\u0E49\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23",
+    sub: "\u0E1C\u0E39\u0E49\u0E40\u0E02\u0E49\u0E32\u0E1B\u0E0F\u0E34\u0E1A\u0E31\u0E15\u0E34\u0E07\u0E32\u0E19",
+    sig: sigs.signs.tech,
+    canSign: !locked,
+    saved: mine.sign,
+    onSign: () => setPad({
+      slot: "tech",
+      title: "ลายเซ็นช่างผู้ให้บริการ"
+    }),
+    onUseSaved: () => doSign("tech", mine.sign.img),
+    onClear: () => sigs.clear("tech")
+  }), React.createElement(window.DrSignSlot, {
+    title: "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23",
+    sub: "\u0E40\u0E0B\u0E47\u0E19\u0E23\u0E31\u0E1A\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19",
+    sig: sigs.signs.cust,
+    canSign: !locked,
+    onSign: () => setPad({
+      slot: "cust",
+      title: "ลายเซ็นลูกค้าผู้รับบริการ",
+      hint: "ให้ลูกค้าเซ็นในกรอบด้านล่างได้เลย"
+    }),
+    onClear: () => sigs.clear("cust")
+  }))), window.omCanDelete(role) && (delAsk ? React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+      padding: "12px 13px",
+      flexWrap: "wrap",
+      border: "1px solid #EF444440",
+      background: "#EF44440e",
+      borderRadius: 12
+    }
+  }, React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 160,
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "#EF4444"
+    }
+  }, "\u0E25\u0E1A\u0E43\u0E1A ", v.no, " \u0E17\u0E31\u0E49\u0E07\u0E43\u0E1A? \u0E23\u0E39\u0E1B\u0E41\u0E25\u0E30\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19\u0E2B\u0E32\u0E22\u0E16\u0E32\u0E27\u0E23 \u0E40\u0E23\u0E35\u0E22\u0E01\u0E04\u0E37\u0E19\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49"), React.createElement("button", {
+    onClick: () => setDelAsk(false),
+    style: btn("var(--surface)", "var(--text-2)", "1px solid var(--border-strong)")
+  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("button", {
+    onClick: () => {
+      onRemove(v.id);
+      onClose();
+    },
+    style: btn("#EF4444", "#fff")
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 14,
+    color: "#fff"
+  }), " \u0E25\u0E1A\u0E40\u0E25\u0E22")) : React.createElement("button", {
+    onClick: () => setDelAsk(true),
+    style: btn("var(--surface)", "#EF4444", "1px solid var(--border)")
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 14,
+    color: "#EF4444"
+  }), " \u0E25\u0E1A\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49 (\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19)"))))), pad && React.createElement(window.DrSignPad, {
+    title: pad.title,
+    hint: pad.hint,
+    onClose: () => setPad(null),
+    saved: pad.slot === "tech" ? mine.sign : null,
+    remember: pad.slot === "tech" ? remember : undefined,
+    onRemember: pad.slot === "tech" ? setRemember : undefined,
+    onSave: (img, drawn) => {
+      doSign(pad.slot, img);
+      if (pad.slot === "tech" && drawn && remember) mine.save(img);
+      const then = pad.then;
+      setPad(null);
+      if (then) then();
+    }
+  }), paper && React.createElement(OmVisitPaper, {
+    visit: v,
+    site: site,
+    signs: sigs.signs,
+    onClose: () => setPaper(false)
+  }));
+}
+function OmPRow({
+  k,
+  v
+}) {
+  return React.createElement(React.Fragment, null, React.createElement("div", {
+    style: {
+      padding: "6px 10px",
+      borderRight: "1px solid #DCE4DF",
+      borderBottom: "1px solid #DCE4DF",
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "#0A4D68",
+      background: "#F3F7F4"
+    }
+  }, k), React.createElement("div", {
+    style: {
+      padding: "6px 10px",
+      borderBottom: "1px solid #DCE4DF",
+      fontSize: 11,
+      color: "#15211A"
+    }
+  }, v || "-"));
+}
+function OmPBlock({
+  title,
+  children,
+  avoid
+}) {
+  return React.createElement("div", {
+    style: {
+      marginTop: 16,
+      breakInside: avoid ? "avoid" : "auto"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 7,
+      borderBottom: "1px solid #DCE4DF",
+      paddingBottom: 5,
+      marginBottom: 8
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 5,
+      height: 5,
+      borderRadius: 99,
+      background: "#1B9B75"
+    }
+  }), React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 800,
+      color: "#15211A"
+    }
+  }, title)), children);
+}
+const omPara = t => React.createElement("div", {
+  style: {
+    fontSize: 11.5,
+    lineHeight: 1.65,
+    color: "#15211A",
+    whiteSpace: "pre-wrap"
+  }
+}, t || "—");
+function OmVisitPaper({
+  visit,
+  site,
+  signs,
+  onClose
+}) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const {
+    photos
+  } = window.useOmVisitPhotos(visit.id);
+  const v = visit;
+  const st = window.omVisitStatusOf(v.status);
+  const kind = window.OM_VISIT_KIND_BY[v.kind] || window.OM_VISIT_KIND_BY.repair;
+  const cov = window.omCoverTH(v.cover);
+  const parts = (v.parts || []).filter(p => p && (p.name || p.qty));
+  const before = photos.filter(p => (p.slot || "before") === "before");
+  const after = photos.filter(p => p.slot === "after");
+  const g = signs || {};
+  const doPrint = () => {
+    const old = document.title;
+    document.title = "ใบรายงานเข้าบริการ " + (v.no || "") + " " + (v.date || "");
+    window.print();
+    setTimeout(() => {
+      document.title = old;
+    }, 800);
+  };
+  const th = {
+    textAlign: "left",
+    padding: "5px 7px",
+    fontSize: 10,
+    fontWeight: 700,
+    color: "#5A6B62",
+    borderBottom: "1px solid #C9D5CE",
+    whiteSpace: "nowrap"
+  };
+  const td = {
+    padding: "5px 7px",
+    fontSize: 10.5,
+    color: "#15211A",
+    borderBottom: "1px solid #ECF1EE",
+    verticalAlign: "top"
+  };
+  const shots = (title, list) => !list.length ? null : React.createElement(OmPBlock, {
+    title: title + " (" + list.length + " รูป)"
+  }, React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12,
+      alignItems: "start"
+    }
+  }, list.map((p, i) => React.createElement("div", {
+    key: p.id,
+    className: "om-shot",
+    style: {
+      breakInside: "avoid",
+      border: "1px solid #DCE4DF",
+      borderRadius: 7,
+      overflow: "hidden"
+    }
+  }, React.createElement("img", {
+    src: p.dataUrl,
+    alt: p.cap || "",
+    style: {
+      width: "100%",
+      display: "block",
+      background: "#F3F7F4"
+    }
+  }), React.createElement("div", {
+    style: {
+      padding: "5px 8px",
+      fontSize: 10.5,
+      color: "#4A5A51",
+      borderTop: "1px solid #ECF1EE"
+    }
+  }, React.createElement("b", {
+    style: {
+      color: "#0A4D68"
+    }
+  }, "\u0E23\u0E39\u0E1B\u0E17\u0E35\u0E48 ", i + 1), p.cap ? " · " + p.cap : "")))));
+  return React.createElement("div", {
+    className: "sv-rep-overlay",
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 160,
+      background: "rgba(8,20,14,.55)",
+      overflow: "auto",
+      padding: isMobile ? 0 : "24px 16px"
+    }
+  }, React.createElement("div", {
+    className: "sv-rep-noprint",
+    style: {
+      position: "sticky",
+      top: 0,
+      zIndex: 2,
+      display: "flex",
+      gap: 9,
+      alignItems: "center",
+      padding: "11px 14px",
+      background: "var(--surface)",
+      borderBottom: "1px solid var(--border)",
+      marginBottom: isMobile ? 0 : 16,
+      borderRadius: isMobile ? 0 : 12,
+      maxWidth: 900,
+      marginLeft: "auto",
+      marginRight: "auto",
+      boxShadow: "var(--shadow-sm)"
+    }
+  }, React.createElement("button", {
+    onClick: onClose,
+    style: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 16
+  })), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, "\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E40\u0E02\u0E49\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23 \xB7 ", window.drDateTH(v.date)), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, photos.length, " \u0E23\u0E39\u0E1B \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19 PDF\u201D")), React.createElement("button", {
+    onClick: doPrint,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      padding: "11px 16px",
+      borderRadius: 11,
+      border: "none",
+      background: "var(--primary)",
+      color: "#fff",
+      fontFamily: "inherit",
+      fontSize: 13.5,
+      fontWeight: 700,
+      cursor: "pointer",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 16,
+    color: "#fff"
+  }), " \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF")), React.createElement("div", {
+    className: "sv-rep-paper",
+    style: {
+      maxWidth: 900,
+      margin: "0 auto",
+      background: "#fff",
+      color: "#15211A",
+      padding: isMobile ? "20px 16px" : "30px 34px",
+      borderRadius: isMobile ? 0 : 12,
+      boxShadow: "0 20px 60px rgba(8,20,14,.28)"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-end",
+      gap: 16,
+      flexWrap: "wrap",
+      borderBottom: "2px solid #1B9B75",
+      paddingBottom: 11
+    }
+  }, React.createElement("div", {
+    style: {
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 21,
+      fontWeight: 800,
+      letterSpacing: "-.01em"
+    }
+  }, "\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E40\u0E02\u0E49\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23"), React.createElement("div", {
+    style: {
+      fontSize: 10,
+      fontWeight: 600,
+      letterSpacing: ".12em",
+      color: "#7A8A81",
+      marginTop: 3
+    }
+  }, "SOLAR O&M \u2014 SERVICE VISIT REPORT"), React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 7,
+      marginTop: 6
+    }
+  }, React.createElement(window.BrandMark, {
+    size: 22,
+    variant: "light"
+  }), React.createElement(window.BrandWord, {
+    size: 16,
+    color: "#0F2B33"
+  }))), React.createElement("div", {
+    style: {
+      textAlign: "right",
+      fontSize: 11,
+      color: "#4A5A51",
+      lineHeight: 1.75
+    }
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontWeight: 700,
+      color: "#15211A"
+    }
+  }, v.no), React.createElement("div", null, window.drDateTH(v.date, true)), React.createElement("div", {
+    style: {
+      display: "inline-block",
+      marginTop: 3,
+      padding: "2px 9px",
+      borderRadius: 99,
+      background: st.color + "22",
+      color: st.color,
+      fontWeight: 700,
+      fontSize: 10.5
+    }
+  }, st.th))), React.createElement("div", {
+    style: {
+      marginTop: 13,
+      display: "grid",
+      gridTemplateColumns: "auto 1fr auto 1fr",
+      border: "1px solid #DCE4DF",
+      borderRadius: 7,
+      overflow: "hidden"
+    }
+  }, React.createElement(OmPRow, {
+    k: "\u0E0A\u0E37\u0E48\u0E2D\u0E44\u0E0B\u0E15\u0E4C",
+    v: v.siteName || (site || {}).name
+  }), React.createElement(OmPRow, {
+    k: "\u0E23\u0E2B\u0E31\u0E2A\u0E44\u0E0B\u0E15\u0E4C",
+    v: v.siteCode
+  }), React.createElement(OmPRow, {
+    k: "\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E07\u0E32\u0E19",
+    v: kind.th
+  }), React.createElement(OmPRow, {
+    k: "\u0E02\u0E19\u0E32\u0E14\u0E23\u0E30\u0E1A\u0E1A",
+    v: (site || {}).kw ? site.kw + " kW" + (site.panels ? " · " + site.panels + " แผง" : "") : "-"
+  }), React.createElement(OmPRow, {
+    k: "\u0E2A\u0E16\u0E32\u0E19\u0E17\u0E35\u0E48",
+    v: [(site || {}).address, (site || {}).province].filter(Boolean).join(" · ")
+  }), React.createElement(OmPRow, {
+    k: "\u0E1C\u0E39\u0E49\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D",
+    v: [(site || {}).phone].filter(Boolean).join(" · ")
+  }), React.createElement(OmPRow, {
+    k: "\u0E40\u0E27\u0E25\u0E32\u0E40\u0E02\u0E49\u0E32\u2013\u0E2D\u0E2D\u0E01",
+    v: (v.timeIn || "-") + " – " + (v.timeOut || "-")
+  }), React.createElement(OmPRow, {
+    k: "\u0E17\u0E35\u0E21\u0E0A\u0E48\u0E32\u0E07",
+    v: v.team || v.byName
+  })), React.createElement("div", {
+    style: {
+      marginTop: 14,
+      border: "1px solid #DCE4DF",
+      borderRadius: 9,
+      padding: "12px 14px",
+      breakInside: "avoid",
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "#4A5A51"
+    }
+  }, "\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E04\u0E48\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23"), React.createElement("span", {
+    style: {
+      padding: "3px 11px",
+      borderRadius: 99,
+      fontSize: 11.5,
+      fontWeight: 800,
+      background: cov.color + "22",
+      color: cov.color
+    }
+  }, cov.th), React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "#4A5A51"
+    }
+  }, "\u0E22\u0E2D\u0E14\u0E40\u0E23\u0E35\u0E22\u0E01\u0E40\u0E01\u0E47\u0E1A"), React.createElement("span", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontSize: 17,
+      fontWeight: 800,
+      color: "#15211A"
+    }
+  }, v.charge == null ? "—" : Number(v.charge).toLocaleString("th-TH") + " บาท")), React.createElement(OmPBlock, {
+    title: "\u0E15\u0E23\u0E27\u0E08\u0E1E\u0E1A",
+    avoid: true
+  }, omPara(v.found)), React.createElement(OmPBlock, {
+    title: "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E17\u0E33",
+    avoid: true
+  }, omPara(v.work)), React.createElement(OmPBlock, {
+    title: "\u0E1C\u0E25\u0E2B\u0E25\u0E31\u0E07\u0E17\u0E33\u0E07\u0E32\u0E19\u0E40\u0E2A\u0E23\u0E47\u0E08",
+    avoid: true
+  }, omPara(v.result)), !!parts.length && React.createElement(OmPBlock, {
+    title: "\u0E2D\u0E30\u0E44\u0E2B\u0E25\u0E48 / \u0E27\u0E31\u0E2A\u0E14\u0E38\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49"
+  }, React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse"
+    }
+  }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", {
+    style: Object.assign({}, th, {
+      width: 26
+    })
+  }, "#"), React.createElement("th", {
+    style: th
+  }, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"), React.createElement("th", {
+    style: th
+  }, "\u0E08\u0E33\u0E19\u0E27\u0E19"), React.createElement("th", {
+    style: th
+  }, "\u0E2B\u0E19\u0E48\u0E27\u0E22"), React.createElement("th", {
+    style: th
+  }, "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38"))), React.createElement("tbody", null, parts.map((p, i) => React.createElement("tr", {
+    key: i
+  }, React.createElement("td", {
+    style: Object.assign({}, td, {
+      fontFamily: "var(--mono)",
+      color: "#7A8A81"
+    })
+  }, i + 1), React.createElement("td", {
+    style: td
+  }, p.name || "-"), React.createElement("td", {
+    style: Object.assign({}, td, {
+      fontFamily: "var(--mono)"
+    })
+  }, p.qty || "-"), React.createElement("td", {
+    style: td
+  }, p.unit || "-"), React.createElement("td", {
+    style: td
+  }, p.note || "-")))))), (v.advice || v.nextDue) && React.createElement(OmPBlock, {
+    title: "\u0E04\u0E33\u0E41\u0E19\u0E30\u0E19\u0E33 / \u0E19\u0E31\u0E14\u0E04\u0E23\u0E31\u0E49\u0E07\u0E16\u0E31\u0E14\u0E44\u0E1B",
+    avoid: true
+  }, omPara(v.advice), v.nextDue && React.createElement("div", {
+    style: {
+      marginTop: 6,
+      fontSize: 11.5,
+      color: "#15211A"
+    }
+  }, "\u0E19\u0E31\u0E14\u0E04\u0E23\u0E31\u0E49\u0E07\u0E16\u0E31\u0E14\u0E44\u0E1B: ", React.createElement("b", null, window.drDateTH(v.nextDue, true)))), shots("รูปก่อนทำงาน", before), shots("รูปหลังทำงาน", after), React.createElement("div", {
+    style: {
+      marginTop: 22,
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 18,
+      breakInside: "avoid"
+    }
+  }, [{
+    t: "ช่างผู้ให้บริการ",
+    n: v.byName,
+    d: v.sentAt || v.updatedAt || v.createdAt,
+    s: g.tech
+  }, {
+    t: "ลูกค้าผู้รับบริการ",
+    n: v.siteName,
+    d: v.date,
+    s: g.cust
+  }].map((x, i) => React.createElement("div", {
+    key: i,
+    style: {
+      border: "1px solid #DCE4DF",
+      borderRadius: 8,
+      padding: "12px 14px"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "#5A6B62"
+    }
+  }, x.t), React.createElement("div", {
+    style: {
+      height: 42,
+      borderBottom: "1px solid #C9D5CE",
+      marginTop: 6,
+      display: "flex",
+      alignItems: "flex-end",
+      justifyContent: "center",
+      overflow: "hidden"
+    }
+  }, x.s && x.s.img && React.createElement("img", {
+    src: x.s.img,
+    alt: "",
+    style: {
+      maxWidth: "88%",
+      maxHeight: 40,
+      objectFit: "contain"
+    }
+  })), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      marginTop: 6,
+      color: "#15211A"
+    }
+  }, "\u0E0A\u0E37\u0E48\u0E2D: ", React.createElement("b", null, x.s && x.s.name || x.n || "-")), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#4A5A51"
+    }
+  }, "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48: ", window.drDateTH(x.s ? window.drSignDay(x.s) : window.drLocalDay(x.d))), x.s && x.s.img && React.createElement("div", {
+    style: {
+      fontSize: 8.5,
+      color: "#8A9A91",
+      marginTop: 3
+    }
+  }, "\u0E25\u0E07\u0E25\u0E32\u0E22\u0E21\u0E37\u0E2D\u0E0A\u0E37\u0E48\u0E2D\u0E2D\u0E34\u0E40\u0E25\u0E47\u0E01\u0E17\u0E23\u0E2D\u0E19\u0E34\u0E01\u0E2A\u0E4C\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A ", window.drSignTime(x.s) ? window.drSignTime(x.s) + " น." : "")))), v.status === "approved" && React.createElement("div", {
+    style: {
+      marginTop: 10,
+      fontSize: 10,
+      color: "#4A5A51",
+      textAlign: "right"
+    }
+  }, "\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E42\u0E14\u0E22 ", React.createElement("b", {
+    style: {
+      color: "#15211A"
+    }
+  }, v.appName || "-"), v.approvedAt ? " · " + window.drDateTH(window.drLocalDay(v.approvedAt)) : ""), React.createElement("div", {
+    style: {
+      marginTop: 14,
+      fontSize: 9.5,
+      color: "#8A9A91",
+      textAlign: "center"
+    }
+  }, "\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E19\u0E35\u0E49\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A\u0E07\u0E32\u0E19\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23\u0E2B\u0E25\u0E31\u0E07\u0E01\u0E32\u0E23\u0E02\u0E32\u0E22 flash+solar \xB7 ", v.no, " \xB7 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E21\u0E37\u0E48\u0E2D ", window.drDateTH(window.drToday()))));
+}
+function OmVisitList({
+  sites,
+  visitStore,
+  role,
+  currentUser
+}) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const {
+    visits,
+    loading,
+    patch,
+    remove
+  } = visitStore;
+  const [openId, setOpenId] = React.useState(null);
+  const [filter, setFilter] = React.useState("");
+  const [q, setQ] = React.useState("");
+  const siteById = React.useMemo(() => {
+    const m = {};
+    (sites || []).forEach(s => {
+      if (s && s.id) m[s.id] = s;
+    });
+    return m;
+  }, [sites]);
+  const roll = React.useMemo(() => window.omVisitRollup(visits), [visits]);
+  const rows = React.useMemo(() => {
+    const kw = q.trim().toLowerCase();
+    return (visits || []).filter(v => {
+      if (filter && (v.status || "draft") !== filter) return false;
+      if (!kw) return true;
+      return [v.no, v.siteName, v.siteCode, v.work, v.found].some(x => String(x || "").toLowerCase().includes(kw));
+    });
+  }, [visits, filter, q]);
+  const cur = visits.find(x => x.id === openId) || null;
+  const tog = k => setFilter(filter === k ? "" : k);
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 14
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 10,
+      flexWrap: "wrap"
+    }
+  }, React.createElement(window.OmStat, {
+    label: "\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14",
+    value: roll.total,
+    color: "var(--text-1)"
+  }), React.createElement(window.OmStat, {
+    label: "\u0E22\u0E31\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E23\u0E48\u0E32\u0E07",
+    value: roll.draft,
+    color: "#94A3B8",
+    on: filter === "draft",
+    onClick: () => tog("draft")
+  }), React.createElement(window.OmStat, {
+    label: "\u0E23\u0E2D\u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32\u0E15\u0E23\u0E27\u0E08",
+    value: roll.sent,
+    color: "#F59E0B",
+    on: filter === "sent",
+    onClick: () => tog("sent")
+  }), React.createElement(window.OmStat, {
+    label: "\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27",
+    value: roll.approved,
+    color: "#10B981",
+    on: filter === "approved",
+    onClick: () => tog("approved")
+  })), React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, React.createElement("span", {
+    style: {
+      position: "absolute",
+      left: 11,
+      top: "50%",
+      transform: "translateY(-50%)",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, React.createElement(Icon, {
+    name: "search",
+    size: 15,
+    color: "var(--text-3)"
+  })), React.createElement("input", {
+    value: q,
+    onChange: e => setQ(e.target.value),
+    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32\u0E40\u0E25\u0E02\u0E43\u0E1A \xB7 \u0E0A\u0E37\u0E48\u0E2D\u0E44\u0E0B\u0E15\u0E4C \xB7 \u0E40\u0E19\u0E37\u0E49\u0E2D\u0E07\u0E32\u0E19",
+    style: Object.assign({}, window.OM_INPUT, {
+      padding: "9px 12px 9px 34px",
+      fontSize: 13
+    })
+  })), React.createElement("div", {
+    style: {
+      border: "1px solid var(--border)",
+      borderRadius: 14,
+      background: "var(--surface2)",
+      overflow: "hidden"
+    }
+  }, loading && React.createElement("div", {
+    style: {
+      padding: 20,
+      textAlign: "center",
+      fontSize: 12.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14..."), !loading && !rows.length && React.createElement("div", {
+    style: {
+      padding: 24,
+      textAlign: "center",
+      fontSize: 12.5,
+      color: "var(--text-3)"
+    }
+  }, visits.length ? "ไม่มีใบที่ตรงกับที่ค้นหา" : "ยังไม่มีใบรายงาน — เปิดจากใบแจ้งซ่อม หรือจากนัดล้างแผงที่ทำเสร็จแล้ว"), rows.map(v => {
+    const st = window.omVisitStatusOf(v.status);
+    const k = window.OM_VISIT_KIND_BY[v.kind] || window.OM_VISIT_KIND_BY.repair;
+    return React.createElement("button", {
+      key: v.id,
+      onClick: () => setOpenId(v.id),
+      style: {
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        gap: 11,
+        padding: isMobile ? "11px 12px" : "13px 16px",
+        borderBottom: "1px solid var(--border)",
+        background: "none",
+        border: "none",
+        borderTop: "none",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        textAlign: "left"
+      }
+    }, React.createElement(Icon, {
+      name: k.icon,
+      size: 16,
+      color: k.color
+    }), React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 13,
+        fontWeight: 700,
+        color: "var(--text-1)",
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis"
+      }
+    }, v.siteName || v.siteCode, " \xB7 ", k.th), React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 11.5,
+        color: "var(--text-3)",
+        fontFamily: "var(--mono)"
+      }
+    }, v.no, " \xB7 ", window.drShort(v.date))), v.charge != null && React.createElement(window.OmPill, {
+      th: Number(v.charge).toLocaleString("th-TH") + " บาท",
+      color: "#F59E0B"
+    }), React.createElement(window.OmPill, {
+      th: st.th,
+      color: st.color
+    }), React.createElement(Icon, {
+      name: "chevronRight",
+      size: 15,
+      color: "var(--text-3)"
+    }));
+  })), cur && React.createElement(OmVisitModal, {
+    visit: cur,
+    site: siteById[cur.siteId] || null,
+    role: role,
+    currentUser: currentUser,
+    onClose: () => setOpenId(null),
+    onPatch: patch,
+    onRemove: remove
+  }));
+}
+Object.assign(window, {
+  OmVisitPhotos,
+  OmVisitModal,
+  OmVisitPaper,
+  OmVisitList,
+  OmPBlock,
+  OmPRow
+});

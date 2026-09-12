@@ -96,7 +96,8 @@ function OmTicketCard({ t, onOpen }) {
 }
 
 /* ── แผงใบแจ้งซ่อม ── */
-function OmTicketModal({ ticket, site, role, currentUser, onClose, onPatch, onMove, onRemove }) {
+function OmTicketModal({ ticket, site, role, currentUser, visits, onOpenVisit, onNewVisit,
+  onClose, onPatch, onMove, onRemove }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const canWrite = window.omCanWrite(role, null);
   const canDelete = window.omCanDelete(role);
@@ -305,8 +306,45 @@ function OmTicketModal({ ticket, site, role, currentUser, onClose, onPatch, onMo
             </div>
           </window.DrSection>
 
+          {/* ใบรายงานเข้าบริการของเรื่องนี้ — เอกสารที่ลูกค้าเซ็นรับงาน ออกได้หลายใบถ้าต้องเข้าซ้ำ */}
+          <window.DrSection n="6" title="ใบรายงานเข้าบริการ" tone="#1B9B75"
+            hint={(visits || []).length ? "ออกไปแล้ว " + (visits || []).length + " ใบ" : ""}>
+            {!(visits || []).length && (
+              <div style={{ fontSize: 12.5, color: "var(--text-3)", marginBottom: onNewVisit ? 11 : 0 }}>ยังไม่ได้ออกใบรายงาน</div>
+            )}
+            {(visits || []).map((v) => {
+              const vs = window.omVisitStatusOf(v.status);
+              return (
+                <button key={v.id} type="button" onClick={() => onOpenVisit && onOpenVisit(v.id)}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", marginBottom: 7,
+                    border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)",
+                    cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                  <Icon name="file" size={14} color="#1B9B75" />
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>
+                    {v.no}
+                    <span style={{ display: "block", fontSize: 11, fontWeight: 400, color: "var(--text-3)" }}>
+                      เข้าหน้างาน {window.drShort(v.date)}{v.charge != null ? " · " + Number(v.charge).toLocaleString("th-TH") + " บาท" : ""}
+                    </span>
+                  </span>
+                  <window.OmPill th={vs.th} color={vs.color} />
+                  <Icon name="chevronRight" size={14} color="var(--text-3)" />
+                </button>
+              );
+            })}
+            {canWrite && onNewVisit && (
+              <button type="button"
+                onClick={() => onNewVisit({ kind: "repair", ticketId: t.id, found: t.detail || t.title,
+                  cover: t.cover, date: t.apptDate || undefined })}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 9,
+                  border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+                  fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>
+                <Icon name="file" size={14} /> ออกใบรายงานเข้าบริการ
+              </button>
+            )}
+          </window.DrSection>
+
           {/* ประวัติการเดินสถานะ — ใช้ตอบลูกค้าว่าเรื่องค้างอยู่ตรงไหนและใครทำอะไรเมื่อไหร่ */}
-          <window.DrSection n="6" title="ประวัติเรื่องนี้" tone="#94A3B8" hint={(t.hist || []).length + " รายการ"}>
+          <window.DrSection n="7" title="ประวัติเรื่องนี้" tone="#94A3B8" hint={(t.hist || []).length + " รายการ"}>
             {(t.hist || []).slice().reverse().map((h, i) => {
               const to = window.omTicketStatusOf(h.to);
               return (
@@ -363,7 +401,7 @@ function OmTicketModal({ ticket, site, role, currentUser, onClose, onPatch, onMo
    ปิดงานกับไม่รับเรื่องยุบรวมเป็นกลุ่มเดียว ไม่งั้นบอร์ดจะยาวขึ้นเรื่อย ๆ ตามเวลา */
 const OM_BOARD_COLS = ["new", "triage", "accepted", "scheduled", "onsite"];
 
-function OmTicketBoard({ sites, ticketStore, role, currentUser, onOpenSite }) {
+function OmTicketBoard({ sites, ticketStore, visitStore, role, currentUser, onNewVisit, onOpenVisit }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const { tickets, loading, save, patch, remove } = ticketStore;
   const [openId, setOpenId] = React.useState(null);
@@ -469,6 +507,9 @@ function OmTicketBoard({ sites, ticketStore, role, currentUser, onOpenSite }) {
 
       {cur && (
         <OmTicketModal ticket={cur} site={siteById[cur.siteId] || null} role={role} currentUser={currentUser}
+          visits={((visitStore || {}).visits || []).filter((v) => v.ticketId === cur.id)}
+          onNewVisit={onNewVisit ? (opts) => onNewVisit(siteById[cur.siteId], opts) : null}
+          onOpenVisit={onOpenVisit}
           onClose={() => setOpenId(null)} onPatch={patch} onMove={move} onRemove={remove} />
       )}
     </div>

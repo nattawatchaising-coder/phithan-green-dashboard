@@ -196,6 +196,9 @@ function OmTicketModal({
   site,
   role,
   currentUser,
+  visits,
+  onOpenVisit,
+  onNewVisit,
   onClose,
   onPatch,
   onMove,
@@ -680,6 +683,90 @@ function OmTicketModal({
     })
   }))), React.createElement(window.DrSection, {
     n: "6",
+    title: "\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E40\u0E02\u0E49\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23",
+    tone: "#1B9B75",
+    hint: (visits || []).length ? "ออกไปแล้ว " + (visits || []).length + " ใบ" : ""
+  }, !(visits || []).length && React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-3)",
+      marginBottom: onNewVisit ? 11 : 0
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E2D\u0E2D\u0E01\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19"), (visits || []).map(v => {
+    const vs = window.omVisitStatusOf(v.status);
+    return React.createElement("button", {
+      key: v.id,
+      type: "button",
+      onClick: () => onOpenVisit && onOpenVisit(v.id),
+      style: {
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        gap: 9,
+        padding: "9px 10px",
+        marginBottom: 7,
+        border: "1px solid var(--border)",
+        borderRadius: 10,
+        background: "var(--surface)",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        textAlign: "left"
+      }
+    }, React.createElement(Icon, {
+      name: "file",
+      size: 14,
+      color: "#1B9B75"
+    }), React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0,
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: "var(--text-1)"
+      }
+    }, v.no, React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 11,
+        fontWeight: 400,
+        color: "var(--text-3)"
+      }
+    }, "\u0E40\u0E02\u0E49\u0E32\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 ", window.drShort(v.date), v.charge != null ? " · " + Number(v.charge).toLocaleString("th-TH") + " บาท" : "")), React.createElement(window.OmPill, {
+      th: vs.th,
+      color: vs.color
+    }), React.createElement(Icon, {
+      name: "chevronRight",
+      size: 14,
+      color: "var(--text-3)"
+    }));
+  }), canWrite && onNewVisit && React.createElement("button", {
+    type: "button",
+    onClick: () => onNewVisit({
+      kind: "repair",
+      ticketId: t.id,
+      found: t.detail || t.title,
+      cover: t.cover,
+      date: t.apptDate || undefined
+    }),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "8px 13px",
+      borderRadius: 9,
+      border: "1px dashed var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 14
+  }), " \u0E2D\u0E2D\u0E01\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E40\u0E02\u0E49\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23")), React.createElement(window.DrSection, {
+    n: "7",
     title: "\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E19\u0E35\u0E49",
     tone: "#94A3B8",
     hint: (t.hist || []).length + " รายการ"
@@ -809,9 +896,11 @@ const OM_BOARD_COLS = ["new", "triage", "accepted", "scheduled", "onsite"];
 function OmTicketBoard({
   sites,
   ticketStore,
+  visitStore,
   role,
   currentUser,
-  onOpenSite
+  onNewVisit,
+  onOpenVisit
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const {
@@ -1034,6 +1123,9 @@ function OmTicketBoard({
     site: siteById[cur.siteId] || null,
     role: role,
     currentUser: currentUser,
+    visits: ((visitStore || {}).visits || []).filter(v => v.ticketId === cur.id),
+    onNewVisit: onNewVisit ? opts => onNewVisit(siteById[cur.siteId], opts) : null,
+    onOpenVisit: onOpenVisit,
     onClose: () => setOpenId(null),
     onPatch: patch,
     onMove: move,

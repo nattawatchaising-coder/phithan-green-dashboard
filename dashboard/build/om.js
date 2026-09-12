@@ -1014,6 +1014,263 @@ function useOmTicketPhotos(ticketId) {
     remove
   };
 }
+const OM_VISIT_KIND = [{
+  key: "repair",
+  th: "เข้าซ่อม",
+  color: "#F59E0B",
+  icon: "wrench"
+}, {
+  key: "clean",
+  th: "ล้างแผง",
+  color: "#0EA5E9",
+  icon: "panel"
+}, {
+  key: "inspect",
+  th: "เข้าตรวจเช็กระบบ",
+  color: "#7C5CFC",
+  icon: "shield"
+}];
+const OM_VISIT_KIND_BY = {};
+OM_VISIT_KIND.forEach(k => {
+  OM_VISIT_KIND_BY[k.key] = k;
+});
+const OM_VISIT_STATUS = {
+  draft: {
+    key: "draft",
+    th: "ร่าง",
+    color: "#94A3B8"
+  },
+  sent: {
+    key: "sent",
+    th: "รอตรวจ",
+    color: "#F59E0B"
+  },
+  approved: {
+    key: "approved",
+    th: "อนุมัติแล้ว",
+    color: "#10B981"
+  }
+};
+const omVisitStatusOf = k => OM_VISIT_STATUS[k] || OM_VISIT_STATUS.draft;
+function omVisitDocNo(site, visits, date) {
+  const code = String((site || {}).code || (site || {}).id || "SITE").replace(/^SF-/, "");
+  const d = date || window.drToday();
+  const n = (visits || []).filter(v => v && String(v.date || "") <= d).length || 1;
+  return "FS-SV-" + code + "-" + window.drPad2(n);
+}
+function omBlankVisit(site, opts, user) {
+  const o = opts || {};
+  const today = window.drToday();
+  const now = new Date().toISOString();
+  return {
+    id: omNewId("SV"),
+    no: omVisitDocNo(site, o.siteVisits, o.date || today),
+    siteId: site.id,
+    siteCode: site.code || site.id,
+    siteName: site.name || "",
+    ticketId: o.ticketId || "",
+    cleanId: o.cleanId || "",
+    kind: o.kind || "repair",
+    date: o.date || today,
+    timeIn: "",
+    timeOut: "",
+    team: site.tech || "",
+    found: o.found || "",
+    work: "",
+    parts: [],
+    result: "",
+    advice: "",
+    nextDue: "",
+    cover: o.cover || "unknown",
+    charge: null,
+    status: "draft",
+    byId: (user || {}).id || null,
+    byName: (user || {}).name || "",
+    sentAt: null,
+    appId: null,
+    appName: "",
+    approvedAt: null,
+    createdAt: now,
+    updatedAt: now
+  };
+}
+function omVisitRollup(visits) {
+  const out = {
+    total: 0,
+    draft: 0,
+    sent: 0,
+    approved: 0
+  };
+  (visits || []).forEach(v => {
+    out.total++;
+    out[v.status === "sent" ? "sent" : v.status === "approved" ? "approved" : "draft"]++;
+  });
+  return out;
+}
+function useOmVisits() {
+  const [visits, setVisits] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  React.useEffect(() => {
+    if (!_OMFB()) {
+      setLoading(false);
+      return;
+    }
+    const ref = _omRef("omVisits");
+    const h = ref.on("value", s => {
+      const v = s.val() || {};
+      const arr = Object.keys(v).map(k => Object.assign({
+        id: k
+      }, v[k]));
+      arr.sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+      setVisits(arr);
+      setLoading(false);
+    }, () => setLoading(false));
+    return () => ref.off("value", h);
+  }, []);
+  const bySite = React.useMemo(() => {
+    const m = {};
+    visits.forEach(v => {
+      (m[v.siteId] = m[v.siteId] || []).push(v);
+    });
+    return m;
+  }, [visits]);
+  const save = React.useCallback(v => {
+    if (!v || !v.id || !_OMFB()) return;
+    _omRef("omVisits/" + v.id).set(Object.assign({}, v, {
+      updatedAt: new Date().toISOString()
+    }));
+  }, []);
+  const patch = React.useCallback((id, fields) => {
+    if (!id || !_OMFB()) return;
+    _omRef("omVisits/" + id).update(Object.assign({}, fields, {
+      updatedAt: new Date().toISOString()
+    }));
+  }, []);
+  const remove = React.useCallback(id => {
+    if (!id || !_OMFB()) return;
+    _omRef("omVisits/" + id).remove();
+    _omRef("omVisitPhotos/" + id).remove();
+    _omRef("omVisitSigns/" + id).remove();
+  }, []);
+  return {
+    visits,
+    bySite,
+    loading,
+    save,
+    patch,
+    remove
+  };
+}
+function useOmVisitPhotos(visitId) {
+  const [photos, setPhotos] = React.useState([]);
+  React.useEffect(() => {
+    if (!visitId || !_OMFB()) {
+      setPhotos([]);
+      return;
+    }
+    const ref = _omRef("omVisitPhotos/" + visitId);
+    const h = ref.on("value", s => {
+      const v = s.val();
+      const arr = v && typeof v === "object" ? Object.values(v) : [];
+      arr.sort((a, b) => String(a.at || "").localeCompare(String(b.at || "")));
+      setPhotos(arr);
+    });
+    return () => ref.off("value", h);
+  }, [visitId]);
+  const add = React.useCallback((dataUrl, slot, user) => {
+    if (!visitId || !_OMFB()) return;
+    const id = "SVP-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    _omRef("omVisitPhotos/" + visitId + "/" + id).set({
+      id,
+      dataUrl,
+      slot: slot || "before",
+      cap: "",
+      at: new Date().toISOString(),
+      by: (user || {}).id || null,
+      byName: (user || {}).name || ""
+    });
+  }, [visitId]);
+  const setCap = React.useCallback((id, cap) => {
+    if (!visitId || !_OMFB()) return;
+    _omRef("omVisitPhotos/" + visitId + "/" + id).update({
+      cap: cap || ""
+    });
+  }, [visitId]);
+  const remove = React.useCallback(id => {
+    if (!visitId || !_OMFB()) return;
+    _omRef("omVisitPhotos/" + visitId + "/" + id).remove();
+  }, [visitId]);
+  return {
+    photos,
+    add,
+    setCap,
+    remove
+  };
+}
+function useOmVisitSigns(visitId) {
+  const [signs, setSigns] = React.useState({});
+  React.useEffect(() => {
+    if (!visitId || !_OMFB()) {
+      setSigns({});
+      return;
+    }
+    const ref = _omRef("omVisitSigns/" + visitId);
+    const h = ref.on("value", s => setSigns(s.val() || {}));
+    return () => ref.off("value", h);
+  }, [visitId]);
+  const sign = React.useCallback((slot, img, user, name) => {
+    if (!visitId || !_OMFB() || !img) return;
+    _omRef("omVisitSigns/" + visitId + "/" + slot).set(Object.assign({
+      img,
+      by: (user || {}).id || null,
+      name: name || (user || {}).name || ""
+    }, window.drStamp()));
+  }, [visitId]);
+  const clear = React.useCallback(slot => {
+    if (!visitId || !_OMFB()) return;
+    _omRef("omVisitSigns/" + visitId + "/" + slot).remove();
+  }, [visitId]);
+  return {
+    signs,
+    sign,
+    clear
+  };
+}
+function useOmMySign(userId) {
+  const [sign, setSign] = React.useState(null);
+  React.useEffect(() => {
+    if (!userId || !_OMFB()) {
+      setSign(null);
+      return;
+    }
+    const ref = _omRef("userSigns/" + userId);
+    const h = ref.on("value", s => setSign(s.val() || null));
+    return () => ref.off("value", h);
+  }, [userId]);
+  const save = React.useCallback(img => {
+    if (!userId || !_OMFB() || !img) return;
+    _omRef("userSigns/" + userId).set(Object.assign({
+      img
+    }, window.drStamp()));
+  }, [userId]);
+  return {
+    sign,
+    save
+  };
+}
+Object.assign(window, {
+  useOmMySign,
+  OM_VISIT_KIND,
+  OM_VISIT_KIND_BY,
+  OM_VISIT_STATUS,
+  omVisitStatusOf,
+  omVisitDocNo,
+  omBlankVisit,
+  omVisitRollup,
+  useOmVisits,
+  useOmVisitPhotos,
+  useOmVisitSigns
+});
 Object.assign(window, {
   OM_TICKET_CAT,
   OM_TICKET_CAT_BY,

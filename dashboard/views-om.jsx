@@ -146,7 +146,13 @@ function OmWarrantyTable({ site, disabled, onChange }) {
    ใบนัดเกิดตอนกดจองคิวเท่านั้น "วันครบรอบ" ที่ยังไม่จองเป็นค่าคำนวณสด ไม่ได้เก็บไว้
    ปิดงานแล้วรอบถัดไปจะเลื่อนเองเป็น วันที่ล้างจริง + รอบ (ไม่ใช่วันครบรอบเดิม)
    จะได้ไม่สะสมความคลาดเคลื่อนเวลาลูกค้าเลื่อนนัด */
-function OmCleanVisits({ site, visits, store, disabled }) {
+function OmCleanVisits({ site, visits, store, disabled, siteVisits, onOpenVisit, onNewVisit }) {
+  /* ใบรายงานที่ออกให้นัดล้างใบไหนแล้วบ้าง — นัดหนึ่งครั้งมีใบรายงานได้ใบเดียว */
+  const svByClean = React.useMemo(() => {
+    const m = {};
+    (siteVisits || []).forEach((v) => { if (v.cleanId) m[v.cleanId] = v; });
+    return m;
+  }, [siteVisits]);
   const list = React.useMemo(() => (visits || []).slice()
     .sort((a, b) => String(b.date || b.due || "").localeCompare(String(a.date || a.due || ""))), [visits]);
   const cs = window.omCleanState(site, visits);
@@ -244,6 +250,25 @@ function OmCleanVisits({ site, visits, store, disabled }) {
             {v.status === "done" && v.note && (
               <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 5 }}>{v.note}</div>
             )}
+            {/* ล้างเสร็จแล้วออกใบรายงานให้ลูกค้าเซ็นรับงานได้ทันที */}
+            {v.status === "done" && (onOpenVisit || onNewVisit) && (
+              svByClean[v.id] ? (
+                <button onClick={() => onOpenVisit && onOpenVisit(svByClean[v.id].id)}
+                  style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9,
+                    border: "1px solid var(--border-strong)", background: "var(--surface2)", cursor: "pointer",
+                    fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>
+                  <Icon name="file" size={13} /> เปิดใบรายงาน {svByClean[v.id].no}
+                </button>
+              ) : (!disabled && onNewVisit && (
+                <button onClick={() => onNewVisit({ kind: "clean", cleanId: v.id, date: v.date,
+                  cover: v.free ? "warranty" : "charge" })}
+                  style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9,
+                    border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+                    fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>
+                  <Icon name="file" size={13} /> ออกใบรายงานเข้าบริการ
+                </button>
+              ))
+            )}
           </div>
         );
       })}
@@ -258,7 +283,8 @@ const omFreeTotal = (site) => ((site || {}).clean || {}).freeCount || 0;
 /* ── แผงไซต์ ──
    เฟสนี้มีข้อมูลไซต์ · วันรับมอบ · ทะเบียนประกัน · ตั้งค่ารอบล้างแผง
    ส่วนนัดล้างจริง ใบแจ้งซ่อม และใบรายงานเข้าบริการ จะมาในเฟสถัดไป */
-function OmSiteModal({ site, job, role, visits, cleanStore, tickets, onOpenTicket, onNewTicket, onClose, onPatch, onRemove }) {
+function OmSiteModal({ site, job, role, visits, cleanStore, tickets, siteVisits,
+  onOpenTicket, onNewTicket, onOpenVisit, onNewVisit, onClose, onPatch, onRemove }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const disabled = !window.omCanWrite(role, null);
   const canDelete = window.omCanDelete(role);
@@ -426,7 +452,8 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, onOpenTicke
               </div>
             )}
             {clean.on && (
-              <OmCleanVisits site={site} visits={visits} store={cleanStore} disabled={disabled} role={role} />
+              <OmCleanVisits site={site} visits={visits} store={cleanStore} disabled={disabled} role={role}
+                siteVisits={siteVisits} onOpenVisit={onOpenVisit} onNewVisit={onNewVisit} />
             )}
           </window.DrSection>
 
@@ -466,7 +493,41 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, onOpenTicke
             )}
           </window.DrSection>
 
-          <window.DrSection n="6" title="หมายเหตุ" tone="#94A3B8">
+          {/* ประวัติเข้าบริการ — ทุกครั้งที่เราออกไปที่ไซต์นี้ ทั้งซ่อม ล้าง และตรวจเช็ก */}
+          <window.DrSection n="6" title="ประวัติเข้าบริการ" tone="#1B9B75"
+            hint={(siteVisits || []).length ? "เข้าไปแล้ว " + (siteVisits || []).length + " ครั้ง" : ""}>
+            {!(siteVisits || []).length && (
+              <div style={{ fontSize: 12.5, color: "var(--text-3)", marginBottom: onNewVisit && !disabled ? 11 : 0 }}>ยังไม่เคยออกใบรายงานเข้าบริการ</div>
+            )}
+            {(siteVisits || []).map((v) => {
+              const vs = window.omVisitStatusOf(v.status);
+              const vk = window.OM_VISIT_KIND_BY[v.kind] || window.OM_VISIT_KIND_BY.repair;
+              return (
+                <button key={v.id} type="button" onClick={() => onOpenVisit && onOpenVisit(v.id)}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", marginBottom: 7,
+                    border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)",
+                    cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                  <Icon name={vk.icon} size={14} color={vk.color} />
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>
+                    {vk.th} · {window.drShort(v.date)}
+                    <span style={{ display: "block", fontFamily: "var(--mono)", fontSize: 11, fontWeight: 400, color: "var(--text-3)" }}>{v.no}</span>
+                  </span>
+                  <OmPill th={vs.th} color={vs.color} />
+                  <Icon name="chevronRight" size={14} color="var(--text-3)" />
+                </button>
+              );
+            })}
+            {!disabled && onNewVisit && (
+              <button type="button" onClick={() => onNewVisit({ kind: "inspect" })}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 9,
+                  border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+                  fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>
+                <Icon name="file" size={14} /> ออกใบรายงานเข้าบริการใหม่
+              </button>
+            )}
+          </window.DrSection>
+
+          <window.DrSection n="7" title="หมายเหตุ" tone="#94A3B8">
             <window.DrText value={site.note} disabled={disabled} rows={2}
               placeholder="เช่น หลังคาสูง ต้องใช้กระเช้า · ลูกค้าสะดวกเฉพาะวันเสาร์"
               onChange={(v) => set({ note: v })} />
@@ -672,8 +733,10 @@ function OmView({ jobs, role, currentUser }) {
   const { sites, loading, upsert, patch, remove } = window.useOmSites();
   const cleanStore = window.useOmCleanVisits();
   const ticketStore = window.useOmTickets();
-  const [tab, setTab] = React.useState("sites");       /* sites | clean | ticket */
+  const visitStore = window.useOmVisits();
+  const [tab, setTab] = React.useState("sites");       /* sites | clean | ticket | visit */
   const [openTicket, setOpenTicket] = React.useState(null);  /* ใบที่เปิดจากแผงไซต์ (บอร์ดมีสถานะของตัวเอง) */
+  const [openVisit, setOpenVisit] = React.useState(null);    /* ใบรายงานที่เปิดจากใบแจ้งซ่อม/นัดล้าง */
   const [q, setQ] = React.useState("");
   const [filter, setFilter] = React.useState("");      /* "" | "soon" | "expired" | "unsure" | "cleanDue" */
   const [open, setOpen] = React.useState(null);        /* siteId ที่เปิดแผงอยู่ */
@@ -691,6 +754,17 @@ function OmView({ jobs, role, currentUser }) {
   const tRoll = React.useMemo(() => window.omTicketRollup(ticketStore.tickets), [ticketStore.tickets]);
   const ticketsOf = React.useCallback(
     (id) => (ticketStore.tickets || []).filter((t) => t.siteId === id), [ticketStore.tickets]);
+
+  /* ออกใบรายงานเข้าบริการใหม่ — เปิดได้จากใบแจ้งซ่อมหรือจากนัดล้างที่ทำเสร็จแล้ว
+     เลขใบนับเฉพาะใบของไซต์นั้น จึงต้องส่ง siteVisits เข้าไปด้วย */
+  const newVisit = React.useCallback((site, opts) => {
+    if (!site || !window.omCanWrite(role, null)) return;
+    const rec = window.omBlankVisit(site,
+      Object.assign({ siteVisits: (visitStore.bySite || {})[site.id] || [] }, opts || {}), currentUser);
+    visitStore.save(rec);
+    setOpen(null); setOpenTicket(null); setOpenVisit(rec.id);
+  }, [role, currentUser, visitStore.bySite, visitStore.save]);
+  const showVisit = React.useCallback((id) => { setOpen(null); setOpenTicket(null); setOpenVisit(id); }, []);
 
   const rows = React.useMemo(() => {
     const kw = q.trim().toLowerCase();
@@ -746,8 +820,9 @@ function OmView({ jobs, role, currentUser }) {
       </div>
 
       {/* สลับมุมมอง — รายการไซต์คือทะเบียน · ปฏิทินคือคิวงานที่ต้องออกไปทำ */}
-      <div style={{ display: "flex", gap: 7 }}>
-        {[["sites", "ทะเบียนไซต์", "list"], ["clean", "ปฏิทินล้างแผง", "calendar"], ["ticket", "ใบแจ้งซ่อม", "wrench"]].map(([k, th, ic]) => (
+      <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+        {[["sites", "ทะเบียนไซต์", "list"], ["clean", "ปฏิทินล้างแผง", "calendar"],
+          ["ticket", "ใบแจ้งซ่อม", "wrench"], ["visit", "ใบรายงานเข้าบริการ", "file"]].map(([k, th, ic]) => (
           <button key={k} onClick={() => setTab(k)}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 99,
               border: "1px solid " + (tab === k ? "var(--primary)" : "var(--border-strong)"),
@@ -763,7 +838,12 @@ function OmView({ jobs, role, currentUser }) {
       )}
 
       {tab === "ticket" && (
-        <window.OmTicketBoard sites={sites} ticketStore={ticketStore} role={role} currentUser={currentUser} />
+        <window.OmTicketBoard sites={sites} ticketStore={ticketStore} visitStore={visitStore}
+          role={role} currentUser={currentUser} onNewVisit={newVisit} onOpenVisit={showVisit} />
+      )}
+
+      {tab === "visit" && (
+        <window.OmVisitList sites={sites} visitStore={visitStore} role={role} currentUser={currentUser} />
       )}
 
       {/* แถบขึ้นทะเบียน — คำนวณสดจากงานที่ปิดแล้ว ไม่ได้ผูกกับการเดินขั้นงาน
@@ -850,7 +930,8 @@ function OmView({ jobs, role, currentUser }) {
       {cur && (
         <OmSiteModal site={cur} job={jobById[cur.id] || null} role={role}
           visits={(cleanStore.bySite || {})[cur.id] || []} cleanStore={cleanStore}
-          tickets={ticketsOf(cur.id)}
+          tickets={ticketsOf(cur.id)} siteVisits={(visitStore.bySite || {})[cur.id] || []}
+          onNewVisit={(opts) => newVisit(cur, opts)} onOpenVisit={showVisit}
           onOpenTicket={(id) => { setOpen(null); setOpenTicket(id); }}
           onNewTicket={() => {
             const rec = window.omBlankTicket(cur, ticketStore.tickets, currentUser);
@@ -864,11 +945,25 @@ function OmView({ jobs, role, currentUser }) {
       {openTicket && (() => {
         const t = (ticketStore.tickets || []).find((x) => x.id === openTicket);
         if (!t) return null;
+        const s = (sites || []).find((x) => x.id === t.siteId) || null;
         return (
-          <window.OmTicketModal ticket={t} site={(sites || []).find((s) => s.id === t.siteId) || null}
+          <window.OmTicketModal ticket={t} site={s}
             role={role} currentUser={currentUser} onClose={() => setOpenTicket(null)}
             onPatch={ticketStore.patch} onRemove={ticketStore.remove}
+            visits={(visitStore.visits || []).filter((x) => x.ticketId === t.id)}
+            onNewVisit={(opts) => newVisit(s, opts)} onOpenVisit={showVisit}
             onMove={(x, to, note) => { const r = window.omTicketMove(x, to, currentUser, note); if (r) ticketStore.save(r); }} />
+        );
+      })()}
+
+      {/* ใบรายงานที่เปิดจากที่อื่น — แท็บใบรายงานมีแผงของตัวเอง */}
+      {openVisit && (() => {
+        const v = (visitStore.visits || []).find((x) => x.id === openVisit);
+        if (!v) return null;
+        return (
+          <window.OmVisitModal visit={v} site={(sites || []).find((s) => s.id === v.siteId) || null}
+            role={role} currentUser={currentUser} onClose={() => setOpenVisit(null)}
+            onPatch={visitStore.patch} onRemove={visitStore.remove} />
         );
       })()}
     </div>

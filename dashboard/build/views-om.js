@@ -366,8 +366,18 @@ function OmCleanVisits({
   site,
   visits,
   store,
-  disabled
+  disabled,
+  siteVisits,
+  onOpenVisit,
+  onNewVisit
 }) {
+  const svByClean = React.useMemo(() => {
+    const m = {};
+    (siteVisits || []).forEach(v => {
+      if (v.cleanId) m[v.cleanId] = v;
+    });
+    return m;
+  }, [siteVisits]);
   const list = React.useMemo(() => (visits || []).slice().sort((a, b) => String(b.date || b.due || "").localeCompare(String(a.date || a.due || ""))), [visits]);
   const cs = window.omCleanState(site, visits);
   const freeLeft = window.omFreeLeft(site, visits);
@@ -637,7 +647,52 @@ function OmCleanVisits({
         color: "var(--text-3)",
         marginTop: 5
       }
-    }, v.note));
+    }, v.note), v.status === "done" && (onOpenVisit || onNewVisit) && (svByClean[v.id] ? React.createElement("button", {
+      onClick: () => onOpenVisit && onOpenVisit(svByClean[v.id].id),
+      style: {
+        marginTop: 8,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "7px 12px",
+        borderRadius: 9,
+        border: "1px solid var(--border-strong)",
+        background: "var(--surface2)",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 12,
+        fontWeight: 700,
+        color: "var(--text-2)"
+      }
+    }, React.createElement(Icon, {
+      name: "file",
+      size: 13
+    }), " \u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19 ", svByClean[v.id].no) : !disabled && onNewVisit && React.createElement("button", {
+      onClick: () => onNewVisit({
+        kind: "clean",
+        cleanId: v.id,
+        date: v.date,
+        cover: v.free ? "warranty" : "charge"
+      }),
+      style: {
+        marginTop: 8,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "7px 12px",
+        borderRadius: 9,
+        border: "1px dashed var(--border-strong)",
+        background: "var(--surface)",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 12,
+        fontWeight: 700,
+        color: "var(--text-2)"
+      }
+    }, React.createElement(Icon, {
+      name: "file",
+      size: 13
+    }), " \u0E2D\u0E2D\u0E01\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E40\u0E02\u0E49\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23")));
   }), !list.length && React.createElement("div", {
     style: {
       padding: "12px 6px",
@@ -655,8 +710,11 @@ function OmSiteModal({
   visits,
   cleanStore,
   tickets,
+  siteVisits,
   onOpenTicket,
   onNewTicket,
+  onOpenVisit,
+  onNewVisit,
   onClose,
   onPatch,
   onRemove
@@ -1064,7 +1122,10 @@ function OmSiteModal({
     visits: visits,
     store: cleanStore,
     disabled: disabled,
-    role: role
+    role: role,
+    siteVisits: siteVisits,
+    onOpenVisit: onOpenVisit,
+    onNewVisit: onNewVisit
   })), React.createElement(window.DrSection, {
     n: "5",
     title: "\u0E43\u0E1A\u0E41\u0E08\u0E49\u0E07\u0E0B\u0E48\u0E2D\u0E21",
@@ -1148,6 +1209,88 @@ function OmSiteModal({
     size: 14
   }), " \u0E41\u0E08\u0E49\u0E07\u0E0B\u0E48\u0E2D\u0E21\u0E43\u0E2B\u0E49\u0E44\u0E0B\u0E15\u0E4C\u0E19\u0E35\u0E49")), React.createElement(window.DrSection, {
     n: "6",
+    title: "\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E40\u0E02\u0E49\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23",
+    tone: "#1B9B75",
+    hint: (siteVisits || []).length ? "เข้าไปแล้ว " + (siteVisits || []).length + " ครั้ง" : ""
+  }, !(siteVisits || []).length && React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-3)",
+      marginBottom: onNewVisit && !disabled ? 11 : 0
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E40\u0E04\u0E22\u0E2D\u0E2D\u0E01\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E40\u0E02\u0E49\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23"), (siteVisits || []).map(v => {
+    const vs = window.omVisitStatusOf(v.status);
+    const vk = window.OM_VISIT_KIND_BY[v.kind] || window.OM_VISIT_KIND_BY.repair;
+    return React.createElement("button", {
+      key: v.id,
+      type: "button",
+      onClick: () => onOpenVisit && onOpenVisit(v.id),
+      style: {
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        gap: 9,
+        padding: "9px 10px",
+        marginBottom: 7,
+        border: "1px solid var(--border)",
+        borderRadius: 10,
+        background: "var(--surface)",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        textAlign: "left"
+      }
+    }, React.createElement(Icon, {
+      name: vk.icon,
+      size: 14,
+      color: vk.color
+    }), React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0,
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: "var(--text-1)"
+      }
+    }, vk.th, " \xB7 ", window.drShort(v.date), React.createElement("span", {
+      style: {
+        display: "block",
+        fontFamily: "var(--mono)",
+        fontSize: 11,
+        fontWeight: 400,
+        color: "var(--text-3)"
+      }
+    }, v.no)), React.createElement(OmPill, {
+      th: vs.th,
+      color: vs.color
+    }), React.createElement(Icon, {
+      name: "chevronRight",
+      size: 14,
+      color: "var(--text-3)"
+    }));
+  }), !disabled && onNewVisit && React.createElement("button", {
+    type: "button",
+    onClick: () => onNewVisit({
+      kind: "inspect"
+    }),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "8px 13px",
+      borderRadius: 9,
+      border: "1px dashed var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 14
+  }), " \u0E2D\u0E2D\u0E01\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E40\u0E02\u0E49\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23\u0E43\u0E2B\u0E21\u0E48")), React.createElement(window.DrSection, {
+    n: "7",
     title: "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38",
     tone: "#94A3B8"
   }, React.createElement(window.DrText, {
@@ -1586,8 +1729,10 @@ function OmView({
   } = window.useOmSites();
   const cleanStore = window.useOmCleanVisits();
   const ticketStore = window.useOmTickets();
+  const visitStore = window.useOmVisits();
   const [tab, setTab] = React.useState("sites");
   const [openTicket, setOpenTicket] = React.useState(null);
+  const [openVisit, setOpenVisit] = React.useState(null);
   const [q, setQ] = React.useState("");
   const [filter, setFilter] = React.useState("");
   const [open, setOpen] = React.useState(null);
@@ -1604,6 +1749,21 @@ function OmView({
   const roll = React.useMemo(() => window.omRollup(sites, cleanStore.bySite), [sites, cleanStore.bySite]);
   const tRoll = React.useMemo(() => window.omTicketRollup(ticketStore.tickets), [ticketStore.tickets]);
   const ticketsOf = React.useCallback(id => (ticketStore.tickets || []).filter(t => t.siteId === id), [ticketStore.tickets]);
+  const newVisit = React.useCallback((site, opts) => {
+    if (!site || !window.omCanWrite(role, null)) return;
+    const rec = window.omBlankVisit(site, Object.assign({
+      siteVisits: (visitStore.bySite || {})[site.id] || []
+    }, opts || {}), currentUser);
+    visitStore.save(rec);
+    setOpen(null);
+    setOpenTicket(null);
+    setOpenVisit(rec.id);
+  }, [role, currentUser, visitStore.bySite, visitStore.save]);
+  const showVisit = React.useCallback(id => {
+    setOpen(null);
+    setOpenTicket(null);
+    setOpenVisit(id);
+  }, []);
   const rows = React.useMemo(() => {
     const kw = q.trim().toLowerCase();
     const out = (sites || []).map(s => ({
@@ -1700,9 +1860,10 @@ function OmView({
   })), React.createElement("div", {
     style: {
       display: "flex",
-      gap: 7
+      gap: 7,
+      flexWrap: "wrap"
     }
-  }, [["sites", "ทะเบียนไซต์", "list"], ["clean", "ปฏิทินล้างแผง", "calendar"], ["ticket", "ใบแจ้งซ่อม", "wrench"]].map(([k, th, ic]) => React.createElement("button", {
+  }, [["sites", "ทะเบียนไซต์", "list"], ["clean", "ปฏิทินล้างแผง", "calendar"], ["ticket", "ใบแจ้งซ่อม", "wrench"], ["visit", "ใบรายงานเข้าบริการ", "file"]].map(([k, th, ic]) => React.createElement("button", {
     key: k,
     onClick: () => setTab(k),
     style: {
@@ -1731,6 +1892,14 @@ function OmView({
   }), tab === "ticket" && React.createElement(window.OmTicketBoard, {
     sites: sites,
     ticketStore: ticketStore,
+    visitStore: visitStore,
+    role: role,
+    currentUser: currentUser,
+    onNewVisit: newVisit,
+    onOpenVisit: showVisit
+  }), tab === "visit" && React.createElement(window.OmVisitList, {
+    sites: sites,
+    visitStore: visitStore,
     role: role,
     currentUser: currentUser
   }), tab === "sites" && !!pending.length && React.createElement("div", {
@@ -1928,6 +2097,9 @@ function OmView({
     visits: (cleanStore.bySite || {})[cur.id] || [],
     cleanStore: cleanStore,
     tickets: ticketsOf(cur.id),
+    siteVisits: (visitStore.bySite || {})[cur.id] || [],
+    onNewVisit: opts => newVisit(cur, opts),
+    onOpenVisit: showVisit,
     onOpenTicket: id => {
       setOpen(null);
       setOpenTicket(id);
@@ -1944,18 +2116,34 @@ function OmView({
   }), openTicket && (() => {
     const t = (ticketStore.tickets || []).find(x => x.id === openTicket);
     if (!t) return null;
+    const s = (sites || []).find(x => x.id === t.siteId) || null;
     return React.createElement(window.OmTicketModal, {
       ticket: t,
-      site: (sites || []).find(s => s.id === t.siteId) || null,
+      site: s,
       role: role,
       currentUser: currentUser,
       onClose: () => setOpenTicket(null),
       onPatch: ticketStore.patch,
       onRemove: ticketStore.remove,
+      visits: (visitStore.visits || []).filter(x => x.ticketId === t.id),
+      onNewVisit: opts => newVisit(s, opts),
+      onOpenVisit: showVisit,
       onMove: (x, to, note) => {
         const r = window.omTicketMove(x, to, currentUser, note);
         if (r) ticketStore.save(r);
       }
+    });
+  })(), openVisit && (() => {
+    const v = (visitStore.visits || []).find(x => x.id === openVisit);
+    if (!v) return null;
+    return React.createElement(window.OmVisitModal, {
+      visit: v,
+      site: (sites || []).find(s => s.id === v.siteId) || null,
+      role: role,
+      currentUser: currentUser,
+      onClose: () => setOpenVisit(null),
+      onPatch: visitStore.patch,
+      onRemove: visitStore.remove
     });
   })());
 }
