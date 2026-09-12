@@ -196,7 +196,8 @@ function OmJobFacts({
   site
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
-  const [plan3d, setPlan3d] = React.useState(false);
+  const [fileBusy, setFileBusy] = React.useState(false);
+  const [fileErr, setFileErr] = React.useState(false);
   const s = site || {};
   const j = job || null;
   const phone = j && j.phone || s.phone || "";
@@ -317,8 +318,15 @@ function OmJobFacts({
     name: "pin",
     size: 13,
     color: "var(--primary-dark)"
-  }), " \u0E40\u0E1B\u0E34\u0E14\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48"), j && window.Plan3DEditor && React.createElement("button", {
-    onClick: () => setPlan3d(true),
+  }), " \u0E40\u0E1B\u0E34\u0E14\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48"), j && j.hasDesign && React.createElement("button", {
+    disabled: fileBusy,
+    onClick: () => {
+      setFileBusy(true);
+      (window.openJobFileOnce ? window.openJobFileOnce(j.id, "design") : Promise.resolve(false)).then(ok => {
+        setFileBusy(false);
+        if (!ok) setFileErr(true);
+      });
+    },
     style: {
       display: "inline-flex",
       alignItems: "center",
@@ -327,17 +335,46 @@ function OmJobFacts({
       borderRadius: 9,
       border: "1px solid var(--border-strong)",
       background: "var(--bg)",
-      cursor: "pointer",
+      cursor: fileBusy ? "wait" : "pointer",
       fontFamily: "inherit",
       fontSize: 12.5,
       fontWeight: 700,
-      color: "#4F46E5"
+      color: "#2563EB",
+      opacity: fileBusy ? .55 : 1
     }
   }, React.createElement(Icon, {
-    name: "panel",
+    name: "file",
     size: 13,
-    color: "#4F46E5"
-  }), " \u0E40\u0E1B\u0E34\u0E14\u0E41\u0E1A\u0E1A\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07")), addr && React.createElement("div", {
+    color: "#2563EB"
+  }), " ", fileBusy ? "กำลังเปิดแบบ…" : "เปิดแบบ (PDF)"), j && !j.hasDesign && React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "7px 12px",
+      borderRadius: 9,
+      border: "1px dashed var(--border-strong)",
+      background: "var(--surface2)",
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 13,
+    color: "var(--text-3)"
+  }), " \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E44\u0E1F\u0E25\u0E4C\u0E41\u0E1A\u0E1A\u0E41\u0E19\u0E1A\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49")), fileErr && React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      lineHeight: 1.5,
+      color: "var(--tint-amber-tx)",
+      background: "var(--tint-amber-bg)",
+      border: "1px solid var(--tint-amber-bd)",
+      borderRadius: 9,
+      padding: "7px 10px",
+      marginBottom: 12
+    }
+  }, "\u0E40\u0E1B\u0E34\u0E14\u0E44\u0E1F\u0E25\u0E4C\u0E41\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E2A\u0E33\u0E40\u0E23\u0E47\u0E08 \u2014 \u0E25\u0E2D\u0E07\u0E40\u0E1B\u0E34\u0E14\u0E08\u0E32\u0E01\u0E43\u0E1A\u0E07\u0E32\u0E19\u0E15\u0E49\u0E19\u0E17\u0E32\u0E07 \u0E2B\u0E23\u0E37\u0E2D\u0E40\u0E0A\u0E47\u0E01\u0E27\u0E48\u0E32\u0E40\u0E1A\u0E23\u0E32\u0E27\u0E4C\u0E40\u0E0B\u0E2D\u0E23\u0E4C\u0E1A\u0E25\u0E47\u0E2D\u0E01\u0E1B\u0E4A\u0E2D\u0E1B\u0E2D\u0E31\u0E1B\u0E2D\u0E22\u0E39\u0E48\u0E2B\u0E23\u0E37\u0E2D\u0E40\u0E1B\u0E25\u0E48\u0E32"), addr && React.createElement("div", {
     style: {
       fontSize: 12.5,
       color: "var(--text-2)",
@@ -357,10 +394,7 @@ function OmJobFacts({
       gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
       gap: 12
     }
-  }, specs.map(([k, v]) => cell(k, v)), j && cell("ช่างที่ติดตั้ง", (window.SF.TECH_BY_ID[j.tech] || {}).name || "—"), j && cell("เซลล์เจ้าของงาน", j.salesName || "—"))), plan3d && j && window.Plan3DEditor && React.createElement(window.Plan3DEditor, {
-    job: j,
-    onClose: () => setPlan3d(false)
-  }));
+  }, specs.map(([k, v]) => cell(k, v)), j && cell("ช่างที่ติดตั้ง", (window.SF.TECH_BY_ID[j.tech] || {}).name || "—"), j && cell("เซลล์เจ้าของงาน", j.salesName || "—"))));
 }
 function OmTicketModal({
   ticket,

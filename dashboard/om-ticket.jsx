@@ -101,7 +101,8 @@ function OmTicketCard({ t, onOpen }) {
    ไซต์นอกระบบไม่มีใบงาน จึงใช้ข้อมูลเท่าที่ทะเบียนไซต์มี */
 function OmJobFacts({ job, site }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
-  const [plan3d, setPlan3d] = React.useState(false);
+  const [fileBusy, setFileBusy] = React.useState(false);
+  const [fileErr, setFileErr] = React.useState(false);
   const s = site || {};
   const j = job || null;
   const phone = (j && j.phone) || s.phone || "";
@@ -148,15 +149,34 @@ function OmJobFacts({ job, site }) {
             <Icon name="pin" size={13} color="var(--primary-dark)" /> เปิดแผนที่
           </a>
         )}
-        {j && window.Plan3DEditor && (
-          <button onClick={() => setPlan3d(true)}
+        {/* แบบที่ฝ่ายออกแบบแนบไว้กับงาน (PDF) — SLD กับผังแผงอยู่ในใบนี้ ช่างซ่อมต้องใช้ตัวจริง ไม่ใช่จอ 3 มิติ
+            อ่านครั้งเดียวตอนกด ไม่ subscribe ค้างไว้ เพราะไฟล์เป็น base64 ก้อนใหญ่ */}
+        {j && j.hasDesign && (
+          <button disabled={fileBusy}
+            onClick={() => {
+              setFileBusy(true);
+              (window.openJobFileOnce ? window.openJobFileOnce(j.id, "design") : Promise.resolve(false))
+                .then((ok) => { setFileBusy(false); if (!ok) setFileErr(true); });
+            }}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9,
-              border: "1px solid var(--border-strong)", background: "var(--bg)", cursor: "pointer",
-              fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "#4F46E5" }}>
-            <Icon name="panel" size={13} color="#4F46E5" /> เปิดแบบวางแผง
+              border: "1px solid var(--border-strong)", background: "var(--bg)", cursor: fileBusy ? "wait" : "pointer",
+              fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "#2563EB", opacity: fileBusy ? .55 : 1 }}>
+            <Icon name="file" size={13} color="#2563EB" /> {fileBusy ? "กำลังเปิดแบบ…" : "เปิดแบบ (PDF)"}
           </button>
         )}
+        {j && !j.hasDesign && (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9,
+            border: "1px dashed var(--border-strong)", background: "var(--surface2)", fontSize: 12, fontWeight: 700, color: "var(--text-3)" }}>
+            <Icon name="file" size={13} color="var(--text-3)" /> ยังไม่มีไฟล์แบบแนบกับงานนี้
+          </span>
+        )}
       </div>
+      {fileErr && (
+        <div style={{ fontSize: 11.5, lineHeight: 1.5, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg)",
+          border: "1px solid var(--tint-amber-bd)", borderRadius: 9, padding: "7px 10px", marginBottom: 12 }}>
+          เปิดไฟล์แบบไม่สำเร็จ — ลองเปิดจากใบงานต้นทาง หรือเช็กว่าเบราว์เซอร์บล็อกป๊อปอัปอยู่หรือเปล่า
+        </div>
+      )}
 
       {addr && (
         <div style={{ fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.5, marginBottom: 12 }}>
@@ -170,7 +190,6 @@ function OmJobFacts({ job, site }) {
         {j && cell("เซลล์เจ้าของงาน", j.salesName || "—")}
       </div>
     </div>
-    {plan3d && j && window.Plan3DEditor && <window.Plan3DEditor job={j} onClose={() => setPlan3d(false)} />}
     </React.Fragment>
   );
 }
