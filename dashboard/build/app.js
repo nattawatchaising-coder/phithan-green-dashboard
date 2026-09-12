@@ -40,12 +40,6 @@ const NAV = [{
   icon: "shield",
   perm: "permit"
 }, {
-  key: "daily",
-  th: "รายงานประจำวัน",
-  en: "Daily Report",
-  icon: "pen",
-  perm: "editJob"
-}, {
   key: "om",
   th: "งานบริการหลังการขาย",
   en: "O&M",
@@ -74,6 +68,13 @@ const NAV = [{
   en: "Inventory",
   icon: "box",
   perm: "stock"
+}, {
+  key: "daily",
+  th: "รายงานประจำวัน",
+  en: "Daily Report",
+  icon: "pen",
+  perm: "editJob",
+  foot: true
 }];
 const isPermitOnly = roles => (roles || []).length > 0 && roles.every(r => (ROLE_ALIAS[r] || r) === "permit");
 const isSalesOnly = roles => (roles || []).length > 0 && roles.every(r => (ROLE_ALIAS[r] || r) === "sales");
@@ -1426,23 +1427,27 @@ function Sidebar({
     color: "var(--text-2)"
   }))), React.createElement("nav", {
     className: "sidebar-nav"
-  }, navForRole(role, techId).filter(n => !n.hidden).map(n => {
-    const active = view === n.key;
-    return React.createElement("button", {
-      key: n.key,
-      onClick: () => onNav(n.key),
-      className: "nav-item" + (active ? " active" : ""),
-      title: n.th
-    }, React.createElement(Icon, {
-      name: n.icon,
-      size: 19,
-      color: active ? "var(--primary-dark)" : "var(--text-2)"
-    }), !icons && React.createElement("span", null, n.th), !icons && n.key === "overview" && delayed > 0 && React.createElement("span", {
-      className: "nav-badge"
-    }, delayed), !icons && n.key === "stock" && lowStock > 0 && React.createElement("span", {
-      className: "nav-badge warn"
-    }, lowStock));
-  })), React.createElement("div", {
+  }, (() => {
+    const items = navForRole(role, techId).filter(n => !n.hidden);
+    const first = items.findIndex(n => n.foot);
+    return items.map((n, i) => {
+      const active = view === n.key;
+      return React.createElement("button", {
+        key: n.key,
+        onClick: () => onNav(n.key),
+        className: "nav-item" + (active ? " active" : "") + (i === first ? " nav-foot" : ""),
+        title: n.th
+      }, React.createElement(Icon, {
+        name: n.icon,
+        size: 19,
+        color: active ? "var(--primary-dark)" : "var(--text-2)"
+      }), !icons && React.createElement("span", null, n.th), !icons && n.key === "overview" && delayed > 0 && React.createElement("span", {
+        className: "nav-badge"
+      }, delayed), !icons && n.key === "stock" && lowStock > 0 && React.createElement("span", {
+        className: "nav-badge warn"
+      }, lowStock));
+    });
+  })()), React.createElement("div", {
     className: "sidebar-foot"
   }, canManageUsers && React.createElement("button", {
     onClick: onManageUsers,

@@ -144,6 +144,10 @@ input, select, textarea { font-family: inherit; }
 .nav-item.active::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 3px;
   border-radius: 0 3px 3px 0; background: var(--primary); }
 .sidebar[data-mode="icons"] .nav-item.active::before { display: none; }
+/* เมนูที่ปักไว้ล่างสุด (nav-foot) — ขีดเส้นคั่นให้เห็นว่าไม่ได้อยู่กลุ่มเดียวกับหัวข้อด้านบน */
+.sidebar-nav > .nav-item.nav-foot { margin-top: auto; }
+.sidebar-nav > .nav-item.nav-foot::after {
+  content: ""; position: absolute; left: 4px; right: 4px; top: -7px; height: 1px; background: var(--border); }
 /* ตัวเลขข้างเมนู: พื้นแดงจาง+ตัวอักษรแดง อ่านง่ายแต่ไม่ตะโกนแข่งกับเนื้อหา */
 .nav-badge { margin-left: auto; background: rgba(239,68,68,.13); color: #D93025; font-size: 11px; font-weight: 800;
   min-width: 21px; height: 20px; border-radius: 99px; display: grid; place-items: center; padding: 0 7px;
@@ -380,10 +384,8 @@ input, select, textarea { font-family: inherit; }
 [data-theme="aurora"] .nav-item.active .nav-badge { background: rgba(255,255,255,.9); color: #B3261E; }
 [data-theme="aurora"] .nav-badge { background: rgba(255,69,58,.22); color: #FF9F99; }
 [data-theme="aurora"] .nav-badge.warn { background: rgba(255,159,10,.20); color: #FFCE7A; }
-/* เมนู "รายงาน" ถูกดันไปล่างสุดด้วย margin-top:auto อยู่แล้ว — เพิ่มเส้นคั่นให้ชัดขึ้น */
-[data-theme="aurora"] .sidebar-nav > .nav-item[style*="margin-top: auto"]::after {
-  content: ""; position: absolute; left: 6px; right: 6px; top: -9px; height: 1px; background: var(--border);
-}
+/* เส้นคั่นเหนือเมนูล่างสุด — โหมดกราไฟต์พื้นมืด ใช้เส้นของธีมนี้เอง */
+[data-theme="aurora"] .sidebar-nav > .nav-item.nav-foot::after { background: var(--border-strong); }
 [data-theme="aurora"] .role-btn.active { background: var(--primary); color: #fff; }
 
 /* ── การ์ด: เทาสว่างกว่าพื้นหนึ่งระดับ + เส้นขอบบาง ไม่ใช้เงาหนัก ──
@@ -590,6 +592,6 @@ input, select, textarea { font-family: inherit; }
 <script src="dashboard/build/views-expense.js?v=10"></script>
 <script src="dashboard/build/ec-paper.js?v=2"></script>
 <script src="dashboard/build/auth.js?v=27"></script>
-<script src="dashboard/build/app.js?v=134"></script>
+<script src="dashboard/build/app.js?v=135"></script>
 </body>
 </html>

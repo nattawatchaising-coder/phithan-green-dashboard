@@ -15,8 +15,6 @@ const NAV = [
   // งานในฐานงานมาจากลูกค้าที่แปลงแล้ว (พกแบบสำรวจติดมาด้วย) · โค้ดหน้ายังอยู่ใน views-survey.jsx ถ้าอยากได้คืน
   { key: "dispatch",   th: "จัดตารางสำรวจ",    en: "Dispatch",      icon: "calendar", perm: "dispatch" },
   { key: "permit",     th: "ขออนุญาตการไฟฟ้า", en: "Permit",        icon: "shield",   perm: "permit" },
-  /* รายงานประจำวันหน้างาน — ช่างเขียน หัวหน้าอนุมัติ จึงผูกกับสิทธิ์แก้ใบงาน */
-  { key: "daily",      th: "รายงานประจำวัน",   en: "Daily Report",  icon: "pen",      perm: "editJob" },
   /* งานบริการหลังการขาย — ทะเบียนประกัน · รอบล้างแผง · ใบแจ้งซ่อม · ใบรายงานเข้าบริการ */
   { key: "om",         th: "งานบริการหลังการขาย", en: "O&M",         icon: "wrench",   perm: "om" },
   /* ใบเบิกเงินหน้างาน — ซื้อของหน้างาน · ค่าขนส่ง · ค่าใช้จ่ายอื่น และยอดค้างจ่ายรายคน */
@@ -24,6 +22,10 @@ const NAV = [
   { key: "myschedule", th: "ตารางงานของฉัน",   en: "My Schedule",   icon: "list",     own: true },
   { key: "calendar",   th: "ปฏิทินนัด",        en: "Calendar",      icon: "calendar" },
   { key: "stock",      th: "คลังสินค้า",       en: "Inventory",     icon: "box",      perm: "stock" },
+  /* รายงานประจำวันหน้างาน — ช่างเขียน วิศวกรผู้รับผิดชอบอนุมัติ จึงผูกกับสิทธิ์แก้ใบงาน
+     foot = ดันไปล่างสุดของแถบเมนู แยกเส้นคั่นออกจากเมนูงาน เพราะเป็นเอกสารที่เข้าทุกวัน
+     ไม่ใช่หน้าดูข้อมูล — วางติดกับตัวเองจะได้กดถึงเร็วโดยไม่ปนกับหัวข้อด้านบน */
+  { key: "daily",      th: "รายงานประจำวัน",   en: "Daily Report",  icon: "pen",      perm: "editJob", foot: true },
   /* "รายงานสรุป" ถอดออกจากเมนูแล้ว — โค้ดหน้ายังอยู่ที่ views-report.jsx ถ้าอยากได้คืนให้เติมแถวนี้กลับ
      { key: "report", th: "รายงานสรุป", en: "Report", icon: "file", perm: "viewAll" } */
 ];
@@ -897,10 +899,16 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, open, onClose, aur
       </div>
 
       <nav className="sidebar-nav">
-        {navForRole(role, techId).filter((n) => !n.hidden).map((n) => {
+        {(() => {
+          const items = navForRole(role, techId).filter((n) => !n.hidden);
+          /* เมนูที่ปักไว้ล่างสุด — ดันด้วย margin-top:auto ที่ "ตัวแรก" ของกลุ่มเท่านั้น
+             ใส่ทุกตัวจะแยกกันกระจายทั้งคอลัมน์ ไม่ได้เกาะกลุ่มอยู่ด้วยกัน */
+          const first = items.findIndex((n) => n.foot);
+          return items.map((n, i) => {
           const active = view === n.key;
           return (
-            <button key={n.key} onClick={() => onNav(n.key)} className={"nav-item" + (active ? " active" : "")} title={n.th}>
+            <button key={n.key} onClick={() => onNav(n.key)} className={"nav-item" + (active ? " active" : "") + (i === first ? " nav-foot" : "")}
+              title={n.th}>
               <Icon name={n.icon} size={19} color={active ? "var(--primary-dark)" : "var(--text-2)"} />
               {!icons && <span>{n.th}</span>}
               {!icons && n.key === "overview" && delayed > 0 && (
@@ -911,7 +919,8 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, open, onClose, aur
               )}
             </button>
           );
-        })}
+          });
+        })()}
       </nav>
 
       <div className="sidebar-foot">
