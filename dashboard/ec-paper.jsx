@@ -43,11 +43,59 @@ function ecBahtText(n) {
   return (raw < 0 ? "ลบ" : "") + out;
 }
 
+/* ── พจนานุกรมใบสำคัญจ่าย (ไทย → [อังกฤษ, จีน]) ──
+   ใบนี้เป็นคอมโพเนนต์ React จึงแปลทีละข้อความด้วย window.pgT (ดู i18n.jsx)
+   จำนวนเงินเป็นตัวอักษรยังเป็นภาษาไทยเสมอ เพราะเป็นถ้อยคำตามแบบเอกสารการเงินไทย
+   ป้ายกำกับบรรทัดนั้นจึงบอกไว้ว่าเป็นภาษาไทย · ชื่อคน ชื่องาน และหมายเหตุเป็นข้อมูล ไม่แปล */
+const EC_PAPER_I18N = {
+  "ใบสำคัญจ่าย": ["Payment Voucher", "付款凭证"],
+  "จ่ายคืนแล้ว": ["Reimbursed", "已报销"],
+  "จ่ายให้": ["Pay to", "收款人"],
+  "วันที่จ่าย": ["Payment date", "付款日期"],
+  "จำนวนใบเบิก": ["Claims in batch", "报销单数"],
+  "เลขสลิป / อ้างอิง": ["Slip / reference no.", "凭证 / 参考编号"],
+  "ผู้ทำรายการ": ["Prepared by", "经办人"],
+  "บันทึกเมื่อ": ["Recorded", "记录时间"],
+  "จำนวนเงินที่จ่าย": ["Amount paid", "付款金额"],
+  "ตัวอักษร": ["In words (Thai)", "金额大写（泰文）"],
+  "เลขที่ใบ": ["Claim no.", "单号"],
+  "วันที่ใช้จ่าย": ["Spent on", "支出日期"],
+  "หมวด": ["Category", "类别"],
+  "งาน / ไซต์": ["Job / site", "项目 / 站点"],
+  "ผู้อนุมัติ": ["Approved by", "批准人"],
+  "จำนวนเงิน": ["Amount", "金额"],
+  "ใบเบิกที่ปิดในรอบนี้": ["Claims settled in this batch", "本批次已结报销单"],
+  "รวมทั้งสิ้น": ["Grand total", "合计"],
+  "หมายเหตุ": ["Note", "备注"],
+  "ผู้รับเงิน": ["Received by", "收款人签字"],
+  "ผู้จ่ายเงิน": ["Paid by", "付款人签字"],
+  "ชื่อ:": ["Name:", "姓名："],
+  "วันที่:": ["Date:", "日期："],
+  "เอกสารนี้ออกจากระบบติดตามงานติดตั้ง": ["Issued by the installation tracking system of", "本文件由安装管理系统开具"],
+  "พิมพ์เมื่อ": ["printed", "打印于"],
+  "บาท": ["THB", "泰铢"],
+  "ใบ": ["claims", "张"],
+  /* หมวดค่าใช้จ่ายจาก expense.jsx */
+  "ซื้อของหน้างาน": ["Site purchase", "现场采购"],
+  "ค่าขนส่งของ": ["Freight", "货运费"],
+  "ค่าน้ำมัน / เดินทาง": ["Fuel / travel", "油费与差旅"],
+  "ค่าอาหาร / ที่พัก": ["Meals / lodging", "餐费与住宿"],
+  "ค่าแรงจ้างช่วง": ["Subcontract labour", "外包人工"],
+  "อื่น ๆ": ["Other", "其他"],
+};
+
 /* ══════════════════════════════════════════════════
    ใบสำคัญจ่าย A4 — หนึ่งรอบจ่าย = หนึ่งใบ
    ══════════════════════════════════════════════════ */
 function EcVoucherPaper({ batch, claims, onClose }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  /* ภาษาของใบ — สลับสดจากแถบด้านบน ซึ่งไม่ติดไปในหน้าพิมพ์อยู่แล้ว
+     วันที่ไทยเป็น พ.ศ. อังกฤษ/จีนเป็น ค.ศ. จึงแยกฟังก์ชันไว้ ห้ามแปลผ่าน T() */
+  const [lang, setLang] = React.useState(() => (window.pgLang ? window.pgLang() : "th"));
+  const pickLang = (id) => { setLang(id); if (window.pgSetLang) window.pgSetLang(id); };
+  const T = React.useMemo(() => (window.pgT ? window.pgT(EC_PAPER_I18N, lang) : (k) => k), [lang]);
+  const DT = (iso) => (!iso ? "—" : lang === "th" || !window.pgDate ? window.drDateTH(iso, true) : window.pgDate(iso, lang));
+  const DTs = (iso) => (!iso ? "—" : lang === "th" || !window.pgDate ? window.drDateTH(iso) : window.pgDate(iso, lang));
   const b = batch || {};
   const list = claims || [];
   /* ยอดบนใบยึดยอดที่บันทึกไว้ในรอบเสมอ ไม่คิดใหม่จากใบที่หาเจอ
@@ -58,7 +106,7 @@ function EcVoucherPaper({ batch, claims, onClose }) {
 
   const doPrint = () => {
     const old = document.title;
-    document.title = "ใบสำคัญจ่าย " + (b.no || "") + " " + (b.toName || "");
+    document.title = T("ใบสำคัญจ่าย") + " " + (b.no || "") + " " + (b.toName || "");
     window.print();
     setTimeout(() => { document.title = old; }, 800);
   };
@@ -85,20 +133,25 @@ function EcVoucherPaper({ batch, claims, onClose }) {
             {b.toName || "-"} · {window.ecBaht(total)} บาท · กดปุ่มแล้วเลือก “บันทึกเป็น PDF”
           </div>
         </div>
+        {typeof window.LangPick === "function" && (
+          <window.LangPick value={lang} onChange={pickLang} />
+        )}
         <button onClick={doPrint} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "11px 16px", borderRadius: 11,
           border: "none", background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
           <Icon name="file" size={16} color="#fff" /> บันทึก PDF
         </button>
       </div>
 
+      {/* ฟอนต์ไทยของแอปไม่มีตัวอักษรจีน — เลือกจีนแล้วต้องระบุชุดฟอนต์ที่มีจีนให้ชัด */}
       <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: "#15211A",
+        fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
         padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "0 20px 60px rgba(8,20,14,.28)" }}>
 
         {/* หัวกระดาษ */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap",
           borderBottom: "2px solid #1B9B75", paddingBottom: 11 }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.01em" }}>ใบสำคัญจ่าย</div>
+            <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.01em" }}>{T("ใบสำคัญจ่าย")}</div>
             <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".12em", color: "#7A8A81", marginTop: 3 }}>PAYMENT VOUCHER — FIELD EXPENSE REIMBURSEMENT</div>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}>
               <window.BrandMark size={22} variant="light" />
@@ -107,48 +160,48 @@ function EcVoucherPaper({ batch, claims, onClose }) {
           </div>
           <div style={{ textAlign: "right", fontSize: 11, color: "#4A5A51", lineHeight: 1.75 }}>
             <div style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "#15211A" }}>{b.no || "-"}</div>
-            <div>{window.drDateTH(b.date, true)}</div>
+            <div>{DT(b.date)}</div>
             <div style={{ display: "inline-block", marginTop: 3, padding: "2px 9px", borderRadius: 99,
-              background: "#10B98122", color: "#10B981", fontWeight: 700, fontSize: 10.5 }}>จ่ายคืนแล้ว</div>
+              background: "#10B98122", color: "#10B981", fontWeight: 700, fontSize: 10.5 }}>{T("จ่ายคืนแล้ว")}</div>
           </div>
         </div>
 
         {/* ผู้รับเงิน + ข้อมูลการจ่าย */}
         <div style={{ marginTop: 13, display: "grid", gridTemplateColumns: "auto 1fr auto 1fr",
           border: "1px solid #DCE4DF", borderRadius: 7, overflow: "hidden" }}>
-          <EcVPRow k="จ่ายให้" v={b.toName || "-"} />
-          <EcVPRow k="วันที่จ่าย" v={window.drDateTH(b.date)} />
-          <EcVPRow k="จำนวนใบเบิก" v={(b.count || 0) + " ใบ"} />
-          <EcVPRow k="เลขสลิป / อ้างอิง" v={b.ref || "—"} />
-          <EcVPRow k="ผู้ทำรายการ" v={b.byName || "-"} />
-          <EcVPRow k="บันทึกเมื่อ" v={b.at ? window.drDateTH(window.drLocalDay(b.at)) : "—"} />
+          <EcVPRow k={T("จ่ายให้")} v={b.toName || "-"} />
+          <EcVPRow k={T("วันที่จ่าย")} v={DTs(b.date)} />
+          <EcVPRow k={T("จำนวนใบเบิก")} v={(b.count || 0) + " " + T("ใบ")} />
+          <EcVPRow k={T("เลขสลิป / อ้างอิง")} v={b.ref || "—"} />
+          <EcVPRow k={T("ผู้ทำรายการ")} v={b.byName || "-"} />
+          <EcVPRow k={T("บันทึกเมื่อ")} v={b.at ? DTs(window.drLocalDay(b.at)) : "—"} />
         </div>
 
         {/* ยอดเงิน — ตัวเลขคู่ตัวอักษร */}
         <div style={{ marginTop: 14, border: "1px solid #1B9B75", borderRadius: 9, overflow: "hidden", breakInside: "avoid" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "11px 14px", background: "#F3F9F6" }}>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: "#4A5A51" }}>จำนวนเงินที่จ่าย</span>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: "#4A5A51" }}>{T("จำนวนเงินที่จ่าย")}</span>
             <span style={{ flex: 1, minWidth: 120 }} />
             <span style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--mono)", color: "#0A4D68" }}>{window.ecBaht(total)}</span>
-            <span style={{ fontSize: 12, color: "#4A5A51" }}>บาท</span>
+            <span style={{ fontSize: 12, color: "#4A5A51" }}>{T("บาท")}</span>
           </div>
           <div style={{ padding: "8px 14px", fontSize: 12, color: "#15211A", borderTop: "1px solid #DCE4DF" }}>
-            ตัวอักษร <b>({ecBahtText(total)})</b>
+            {T("ตัวอักษร")} <b>({ecBahtText(total)})</b>
           </div>
         </div>
 
         {/* รายการใบเบิกในรอบนี้ */}
-        <EcPBlock title={"ใบเบิกที่ปิดในรอบนี้ (" + list.length + " ใบ)"}>
+        <EcPBlock title={T("ใบเบิกที่ปิดในรอบนี้") + " (" + list.length + " " + T("ใบ") + ")"}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
                 <th style={Object.assign({}, th, { width: 26 })}>#</th>
-                <th style={th}>เลขที่ใบ</th>
-                <th style={th}>วันที่ใช้จ่าย</th>
-                <th style={th}>หมวด</th>
-                <th style={th}>งาน / ไซต์</th>
-                <th style={th}>ผู้อนุมัติ</th>
-                <th style={Object.assign({}, th, { textAlign: "right", width: 88 })}>จำนวนเงิน</th>
+                <th style={th}>{T("เลขที่ใบ")}</th>
+                <th style={th}>{T("วันที่ใช้จ่าย")}</th>
+                <th style={th}>{T("หมวด")}</th>
+                <th style={th}>{T("งาน / ไซต์")}</th>
+                <th style={th}>{T("ผู้อนุมัติ")}</th>
+                <th style={Object.assign({}, th, { textAlign: "right", width: 88 })}>{T("จำนวนเงิน")}</th>
               </tr>
             </thead>
             <tbody>
@@ -156,8 +209,8 @@ function EcVoucherPaper({ batch, claims, onClose }) {
                 <tr key={c.id}>
                   <td style={Object.assign({}, td, { fontFamily: "var(--mono)", color: "#7A8A81" })}>{i + 1}</td>
                   <td style={Object.assign({}, td, { fontFamily: "var(--mono)" })}>{c.no || "-"}</td>
-                  <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{c.date ? window.drShort(c.date) : "—"}</td>
-                  <td style={td}>{window.ecKindOf(c.kind).th}</td>
+                  <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{c.date ? (window.pgShort ? window.pgShort(c.date, lang) : window.drShort(c.date)) : "—"}</td>
+                  <td style={td}>{T(window.ecKindOf(c.kind).th)}</td>
                   <td style={td}>{[c.siteCode, c.siteName].filter(Boolean).join(" · ") || "—"}</td>
                   <td style={td}>{c.decidedByName || c.approverName || "—"}</td>
                   <td style={num}>{window.ecBaht(c.amount)}</td>
@@ -165,7 +218,7 @@ function EcVoucherPaper({ batch, claims, onClose }) {
               ))}
               <tr>
                 <td style={Object.assign({}, td, { borderBottom: "none" })} colSpan={6}>
-                  <b style={{ fontSize: 11.5 }}>รวมทั้งสิ้น</b>
+                  <b style={{ fontSize: 11.5 }}>{T("รวมทั้งสิ้น")}</b>
                 </td>
                 <td style={Object.assign({}, num, { borderBottom: "none", fontSize: 13, fontWeight: 800 })}>{window.ecBaht(total)}</td>
               </tr>
@@ -182,7 +235,7 @@ function EcVoucherPaper({ batch, claims, onClose }) {
         </EcPBlock>
 
         {b.note ? (
-          <EcPBlock title="หมายเหตุ" avoid>
+          <EcPBlock title={T("หมายเหตุ")} avoid>
             <div style={{ fontSize: 11.5, lineHeight: 1.65, color: "#15211A", whiteSpace: "pre-wrap" }}>{b.note}</div>
           </EcPBlock>
         ) : null}
@@ -190,20 +243,20 @@ function EcVoucherPaper({ batch, claims, onClose }) {
         {/* ช่องเซ็น — ใบสำคัญจ่ายต้องมีลายมือชื่อผู้รับเงินตัวจริง จึงเว้นเส้นให้เซ็นด้วยปากกาทั้งสามช่อง
             ระบบไม่เติมลายเซ็นอิเล็กทรอนิกส์ให้ที่นี่ เพราะใบนี้คือหลักฐานว่าเงินถึงมือคนรับจริง */}
         <div style={{ marginTop: 22, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, breakInside: "avoid" }}>
-          {[{ t: "ผู้รับเงิน", n: b.toName },
-            { t: "ผู้จ่ายเงิน", n: b.byName },
-            { t: "ผู้อนุมัติ", n: "" }].map((s, i) => (
+          {[{ t: T("ผู้รับเงิน"), n: b.toName },
+            { t: T("ผู้จ่ายเงิน"), n: b.byName },
+            { t: T("ผู้อนุมัติ"), n: "" }].map((s, i) => (
             <div key={i} style={{ border: "1px solid #DCE4DF", borderRadius: 8, padding: "12px 14px" }}>
               <div style={{ fontSize: 10.5, fontWeight: 700, color: "#5A6B62" }}>{s.t}</div>
               <div style={{ height: 42, borderBottom: "1px solid #C9D5CE", marginTop: 6 }} />
-              <div style={{ fontSize: 11, marginTop: 6, color: "#15211A" }}>ชื่อ: <b>{s.n || "…………………………"}</b></div>
-              <div style={{ fontSize: 11, color: "#4A5A51" }}>วันที่: …………………………</div>
+              <div style={{ fontSize: 11, marginTop: 6, color: "#15211A" }}>{T("ชื่อ:")} <b>{s.n || "…………………………"}</b></div>
+              <div style={{ fontSize: 11, color: "#4A5A51" }}>{T("วันที่:")} …………………………</div>
             </div>
           ))}
         </div>
 
         <div style={{ marginTop: 14, fontSize: 9.5, color: "#8A9A91", textAlign: "center" }}>
-          เอกสารนี้ออกจากระบบติดตามงานติดตั้ง flash+solar · {b.no || "-"} · พิมพ์เมื่อ {window.drDateTH(window.drToday())}
+          {T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง")} flash+solar · {b.no || "-"} · {T("พิมพ์เมื่อ")} {DTs(window.drToday())}
         </div>
       </div>
     </div>

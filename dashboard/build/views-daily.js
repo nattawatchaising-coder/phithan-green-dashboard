@@ -2161,6 +2161,82 @@ const drPara = t => React.createElement("div", {
     whiteSpace: "pre-wrap"
   }
 }, t || "—");
+const DR_PAPER_I18N = {
+  "รายงานประจำวันหน้างาน": ["Site Daily Report", "现场日报"],
+  "ชื่องาน": ["Job", "项目名称"],
+  "รหัสงาน": ["Job code", "项目编号"],
+  "ประเภท": ["Type", "类型"],
+  "งานโครงการ": ["Commercial project", "工程项目"],
+  "งานบ้าน": ["Residential", "住宅项目"],
+  "ขนาดติดตั้ง": ["System size", "装机容量"],
+  "สถานที่": ["Location", "地址"],
+  "ทีมช่าง": ["Crew", "施工班组"],
+  "ความคืบหน้ารวม": ["Overall progress", "总体进度"],
+  "จากเมื่อวาน": ["from yesterday", "昨日为"],
+  "สภาพอากาศ · เช้า": ["Weather · morning", "天气 · 上午"],
+  "บ่าย": ["afternoon", "下午"],
+  "ความคืบหน้าตามขั้นงาน": ["Progress by work stage", "各工序进度"],
+  "เนื้องานติดตั้งที่เดินไปแล้ว": ["Installation work carried out", "已完成的安装工作"],
+  "ขั้น": ["No.", "序号"],
+  "รายละเอียดงาน": ["Work item", "工作内容"],
+  "แผน เริ่ม": ["Plan start", "计划开始"],
+  "แผน จบ": ["Plan finish", "计划完成"],
+  "จริง เริ่ม": ["Actual start", "实际开始"],
+  "จริง จบ": ["Actual finish", "实际完成"],
+  "น้ำหนักงาน": ["Weight", "权重"],
+  "ทำไปแล้ว": ["Done", "完成率"],
+  "งานที่ทำวันนี้": ["Work done today", "今日工作"],
+  "ปัญหา / อุปสรรค": ["Issues and obstacles", "问题与障碍"],
+  "สิ่งที่ต้องทำต่อ": ["Next steps", "后续工作"],
+  "วัสดุเข้าหน้างาน": ["Materials received on site", "进场材料"],
+  "รายการวัสดุ": ["Material", "材料名称"],
+  "เครื่องจักร / เครื่องมือ": ["Plant and tools", "机械与工具"],
+  "รายการ": ["Item", "项目"],
+  "จำนวน": ["Qty", "数量"],
+  "หน่วย": ["Unit", "单位"],
+  "จุดจัดเก็บ": ["Stored at", "存放位置"],
+  "ใช้กับงาน": ["Used for", "用途"],
+  "หมายเหตุ": ["Note", "备注"],
+  "กำลังคน": ["Manpower", "人力"],
+  "ตำแหน่ง": ["Role", "岗位"],
+  "ชื่อผู้ปฏิบัติงาน": ["Name", "人员姓名"],
+  "ความปลอดภัย & สิ่งแวดล้อม": ["Safety and environment", "安全与环境"],
+  "ระดับความเสี่ยง (JSA):": ["Risk level (JSA):", "风险等级（JSA）："],
+  "ใบอนุญาตทำงานเย็น:": ["Cold work permit:", "冷作业许可："],
+  "ใบอนุญาตทำงานร้อน:": ["Hot work permit:", "动火作业许可："],
+  "จัดเก็บพื้นที่:": ["Housekeeping:", "场地清理："],
+  "เอกสารรับรอง": ["Certificate", "证明文件"],
+  "ผู้รับผิดชอบ": ["Responsible", "负责人"],
+  "มี": ["Yes", "有"],
+  "ไม่มี": ["No", "无"],
+  "รูปหน้างาน": ["Site photos", "现场照片"],
+  "รูปที่": ["Photo", "照片"],
+  "รูป": ["photos", "张"],
+  "แผง": ["modules", "块组件"],
+  "ผู้บันทึก (ช่างหน้างาน)": ["Recorded by (site technician)", "记录人（现场技师）"],
+  "ผู้อนุมัติ (หัวหน้างาน)": ["Approved by (supervisor)", "批准人（工地主管）"],
+  "ชื่อ:": ["Name:", "姓名："],
+  "วันที่:": ["Date:", "日期："],
+  "ลงลายมือชื่ออิเล็กทรอนิกส์ในระบบ": ["Signed electronically in the system", "已在系统内电子签名"],
+  "เอกสารนี้ออกจากระบบติดตามงานติดตั้ง": ["Issued by the installation tracking system of", "本文件由安装管理系统开具"],
+  "พิมพ์เมื่อ": ["printed", "打印于"],
+  "ร่าง": ["Draft", "草稿"],
+  "รออนุมัติ": ["Pending approval", "待批准"],
+  "อนุมัติแล้ว": ["Approved", "已批准"],
+  "แดดจัด": ["Sunny", "晴"],
+  "เมฆมาก": ["Cloudy", "多云"],
+  "ฝนตก": ["Rain", "雨"],
+  "ฝนฟ้าคะนอง": ["Thunderstorm", "雷雨"],
+  "ต่ำ": ["Low", "低"],
+  "ปานกลาง": ["Medium", "中"],
+  "สูง": ["High", "高"],
+  "สูงมาก": ["Extreme", "极高"],
+  "เก็บพื้นที่ทำงาน": ["Work area cleared", "清理作业区"],
+  "เก็บขยะ": ["Waste removed", "清运垃圾"],
+  "ทำความสะอาดเครื่องมือ": ["Tools cleaned", "工具清洁"],
+  "จัดเก็บวัสดุ": ["Materials stored", "材料归位"],
+  "เก็บงานทั้งหมด": ["Full site clean-up", "全面清场"]
+};
 function DailyPaper({
   job,
   rec,
@@ -2169,6 +2245,14 @@ function DailyPaper({
   onClose
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const [lang, setLang] = React.useState(() => window.pgLang ? window.pgLang() : "th");
+  const pickLang = id => {
+    setLang(id);
+    if (window.pgSetLang) window.pgSetLang(id);
+  };
+  const T = React.useMemo(() => window.pgT ? window.pgT(DR_PAPER_I18N, lang) : k => k, [lang]);
+  const DT = iso => !iso ? "—" : lang === "th" || !window.pgDate ? window.drDateTH(iso, true) : window.pgDate(iso, lang);
+  const DTs = iso => !iso ? "—" : lang === "th" || !window.pgDate ? window.drDateTH(iso) : window.pgDate(iso, lang);
   const {
     photos
   } = window.useDailyPhotos(job.id, date);
@@ -2190,7 +2274,7 @@ function DailyPaper({
   }, [rec.steps, isProject]);
   const doPrint = () => {
     const old = document.title;
-    document.title = "รายงานประจำวัน " + (job.code || "") + " " + date;
+    document.title = T("รายงานประจำวันหน้างาน") + " " + (job.code || "") + " " + date;
     window.print();
     setTimeout(() => {
       document.title = old;
@@ -2213,7 +2297,7 @@ function DailyPaper({
     verticalAlign: "top"
   };
   const rowsTable = (title, cols, rows) => !rows || !rows.length ? null : React.createElement(DrPBlock, {
-    title: title
+    title: T(title)
   }, React.createElement("table", {
     style: {
       width: "100%",
@@ -2226,7 +2310,7 @@ function DailyPaper({
   }, "#"), cols.map(c => React.createElement("th", {
     key: c.k,
     style: th
-  }, c.th)))), React.createElement("tbody", null, rows.map((r, i) => React.createElement("tr", {
+  }, T(c.th))))), React.createElement("tbody", null, rows.map((r, i) => React.createElement("tr", {
     key: i
   }, React.createElement("td", {
     style: Object.assign({}, td, {
@@ -2299,7 +2383,10 @@ function DailyPaper({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, photos.length, " \u0E23\u0E39\u0E1B \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19 PDF\u201D")), React.createElement("button", {
+  }, photos.length, " \u0E23\u0E39\u0E1B \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19 PDF\u201D")), typeof window.LangPick === "function" && React.createElement(window.LangPick, {
+    value: lang,
+    onChange: pickLang
+  }), React.createElement("button", {
     onClick: doPrint,
     style: {
       display: "inline-flex",
@@ -2327,6 +2414,7 @@ function DailyPaper({
       margin: "0 auto",
       background: "#fff",
       color: "#15211A",
+      fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
       padding: isMobile ? "20px 16px" : "30px 34px",
       borderRadius: isMobile ? 0 : 12,
       boxShadow: "0 20px 60px rgba(8,20,14,.28)"
@@ -2351,7 +2439,7 @@ function DailyPaper({
       fontWeight: 800,
       letterSpacing: "-.01em"
     }
-  }, "\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E08\u0E33\u0E27\u0E31\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19"), React.createElement("div", {
+  }, T("รายงานประจำวันหน้างาน")), React.createElement("div", {
     style: {
       fontSize: 10,
       fontWeight: 600,
@@ -2385,7 +2473,7 @@ function DailyPaper({
       fontWeight: 700,
       color: "#15211A"
     }
-  }, docNo), React.createElement("div", null, window.drDateTH(date, true)), React.createElement("div", {
+  }, docNo), React.createElement("div", null, DT(date)), React.createElement("div", {
     style: {
       display: "inline-block",
       marginTop: 3,
@@ -2396,7 +2484,7 @@ function DailyPaper({
       fontWeight: 700,
       fontSize: 10.5
     }
-  }, st.th))), React.createElement("div", {
+  }, T(st.th)))), React.createElement("div", {
     style: {
       marginTop: 13,
       display: "grid",
@@ -2406,22 +2494,22 @@ function DailyPaper({
       overflow: "hidden"
     }
   }, React.createElement(DrPRow, {
-    k: "\u0E0A\u0E37\u0E48\u0E2D\u0E07\u0E32\u0E19",
+    k: T("ชื่องาน"),
     v: job.name
   }), React.createElement(DrPRow, {
-    k: "\u0E23\u0E2B\u0E31\u0E2A\u0E07\u0E32\u0E19",
+    k: T("รหัสงาน"),
     v: job.code
   }), React.createElement(DrPRow, {
-    k: "\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17",
-    v: isProject ? "งานโครงการ" : "งานบ้าน"
+    k: T("ประเภท"),
+    v: T(isProject ? "งานโครงการ" : "งานบ้าน")
   }), React.createElement(DrPRow, {
-    k: "\u0E02\u0E19\u0E32\u0E14\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07",
-    v: (job.kw ? job.kw + " kW" : "") + (job.panels ? " · " + job.panels + " แผง" : "")
+    k: T("ขนาดติดตั้ง"),
+    v: (job.kw ? job.kw + " kW" : "") + (job.panels ? " · " + job.panels + " " + T("แผง") : "")
   }), React.createElement(DrPRow, {
-    k: "\u0E2A\u0E16\u0E32\u0E19\u0E17\u0E35\u0E48",
+    k: T("สถานที่"),
     v: [job.address, job.province].filter(Boolean).join(" · ")
   }), React.createElement(DrPRow, {
-    k: "\u0E17\u0E35\u0E21\u0E0A\u0E48\u0E32\u0E07",
+    k: T("ทีมช่าง"),
     v: rec.team || job.tech && job.tech.name || "-"
   })), React.createElement("div", {
     style: {
@@ -2444,7 +2532,7 @@ function DailyPaper({
       fontWeight: 700,
       color: "#4A5A51"
     }
-  }, "\u0E04\u0E27\u0E32\u0E21\u0E04\u0E37\u0E1A\u0E2B\u0E19\u0E49\u0E32\u0E23\u0E27\u0E21"), React.createElement("div", {
+  }, T("ความคืบหน้ารวม")), React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 160,
@@ -2471,22 +2559,22 @@ function DailyPaper({
       fontSize: 11,
       color: "#4A5A51"
     }
-  }, "\u0E08\u0E32\u0E01\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E27\u0E32\u0E19 ", rec.prevPct, "%")), (wAm || wPm) && React.createElement("div", {
+  }, T("จากเมื่อวาน"), " ", rec.prevPct, "%")), (wAm || wPm) && React.createElement("div", {
     style: {
       marginTop: 9,
       fontSize: 11,
       color: "#4A5A51"
     }
-  }, "\u0E2A\u0E20\u0E32\u0E1E\u0E2D\u0E32\u0E01\u0E32\u0E28 \xB7 \u0E40\u0E0A\u0E49\u0E32 ", React.createElement("b", {
+  }, T("สภาพอากาศ · เช้า"), " ", React.createElement("b", {
     style: {
       color: "#15211A"
     }
-  }, wAm ? wAm.th : "-"), " \xB7 \u0E1A\u0E48\u0E32\u0E22 ", React.createElement("b", {
+  }, wAm ? T(wAm.th) : "-"), " \xB7 ", T("บ่าย"), " ", React.createElement("b", {
     style: {
       color: "#15211A"
     }
-  }, wPm ? wPm.th : "-"))), !!steps.length && React.createElement(DrPBlock, {
-    title: isProject ? "ความคืบหน้าตามขั้นงาน" : "เนื้องานติดตั้งที่เดินไปแล้ว"
+  }, wPm ? T(wPm.th) : "-"))), !!steps.length && React.createElement(DrPBlock, {
+    title: T(isProject ? "ความคืบหน้าตามขั้นงาน" : "เนื้องานติดตั้งที่เดินไปแล้ว")
   }, React.createElement("table", {
     style: {
       width: "100%",
@@ -2496,27 +2584,27 @@ function DailyPaper({
     style: Object.assign({}, th, {
       width: 38
     })
-  }, "\u0E02\u0E31\u0E49\u0E19"), React.createElement("th", {
+  }, T("ขั้น")), React.createElement("th", {
     style: th
-  }, "\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\u0E07\u0E32\u0E19"), isProject && React.createElement("th", {
+  }, T("รายละเอียดงาน")), isProject && React.createElement("th", {
     style: th
-  }, "\u0E41\u0E1C\u0E19 \u0E40\u0E23\u0E34\u0E48\u0E21"), isProject && React.createElement("th", {
+  }, T("แผน เริ่ม")), isProject && React.createElement("th", {
     style: th
-  }, "\u0E41\u0E1C\u0E19 \u0E08\u0E1A"), isProject && React.createElement("th", {
+  }, T("แผน จบ")), isProject && React.createElement("th", {
     style: th
-  }, "\u0E08\u0E23\u0E34\u0E07 \u0E40\u0E23\u0E34\u0E48\u0E21"), isProject && React.createElement("th", {
+  }, T("จริง เริ่ม")), isProject && React.createElement("th", {
     style: th
-  }, "\u0E08\u0E23\u0E34\u0E07 \u0E08\u0E1A"), !isProject && React.createElement("th", {
+  }, T("จริง จบ")), !isProject && React.createElement("th", {
     style: Object.assign({}, th, {
       textAlign: "right",
       width: 78
     })
-  }, "\u0E19\u0E49\u0E33\u0E2B\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19"), React.createElement("th", {
+  }, T("น้ำหนักงาน")), React.createElement("th", {
     style: Object.assign({}, th, {
       textAlign: "right",
       width: 66
     })
-  }, "\u0E17\u0E33\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27"))), React.createElement("tbody", null, steps.map((r, i) => React.createElement("tr", {
+  }, T("ทำไปแล้ว")))), React.createElement("tbody", null, steps.map((r, i) => React.createElement("tr", {
     key: i,
     style: {
       background: r.head ? "#F3F7F4" : "transparent"
@@ -2536,22 +2624,22 @@ function DailyPaper({
       fontFamily: "var(--mono)",
       fontSize: 10
     })
-  }, r.planStart ? window.drShort(r.planStart) : "—"), isProject && React.createElement("td", {
+  }, r.planStart ? window.pgShort ? window.pgShort(r.planStart, lang) : window.drShort(r.planStart) : "—"), isProject && React.createElement("td", {
     style: Object.assign({}, td, {
       fontFamily: "var(--mono)",
       fontSize: 10
     })
-  }, r.planEnd ? window.drShort(r.planEnd) : "—"), isProject && React.createElement("td", {
+  }, r.planEnd ? window.pgShort ? window.pgShort(r.planEnd, lang) : window.drShort(r.planEnd) : "—"), isProject && React.createElement("td", {
     style: Object.assign({}, td, {
       fontFamily: "var(--mono)",
       fontSize: 10
     })
-  }, r.actStart ? window.drShort(r.actStart) : "—"), isProject && React.createElement("td", {
+  }, r.actStart ? window.pgShort ? window.pgShort(r.actStart, lang) : window.drShort(r.actStart) : "—"), isProject && React.createElement("td", {
     style: Object.assign({}, td, {
       fontFamily: "var(--mono)",
       fontSize: 10
     })
-  }, r.actEnd ? window.drShort(r.actEnd) : "—"), !isProject && React.createElement("td", {
+  }, r.actEnd ? window.pgShort ? window.pgShort(r.actEnd, lang) : window.drShort(r.actEnd) : "—"), !isProject && React.createElement("td", {
     style: Object.assign({}, td, {
       textAlign: "right",
       fontFamily: "var(--mono)",
@@ -2564,7 +2652,7 @@ function DailyPaper({
       fontWeight: 700
     })
   }, r.pct ? r.pct + "%" : "—")))))), React.createElement(DrPBlock, {
-    title: "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E17\u0E33\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49",
+    title: T("งานที่ทำวันนี้"),
     avoid: true
   }, drPara(rec.work)), React.createElement("div", {
     style: {
@@ -2573,10 +2661,10 @@ function DailyPaper({
       gap: 18
     }
   }, React.createElement(DrPBlock, {
-    title: "\u0E1B\u0E31\u0E0D\u0E2B\u0E32 / \u0E2D\u0E38\u0E1B\u0E2A\u0E23\u0E23\u0E04",
+    title: T("ปัญหา / อุปสรรค"),
     avoid: true
   }, drPara(rec.problem)), React.createElement(DrPBlock, {
-    title: "\u0E2A\u0E34\u0E48\u0E07\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E17\u0E33\u0E15\u0E48\u0E2D",
+    title: T("สิ่งที่ต้องทำต่อ"),
     avoid: true
   }, drPara(rec.nextDay))), isProject && React.createElement(React.Fragment, null, rowsTable("วัสดุเข้าหน้างาน", [{
     k: "name",
@@ -2621,7 +2709,7 @@ function DailyPaper({
     k: "note",
     th: "หมายเหตุ"
   }], rec.manpower), (jsa || rec.permitCold || rec.permitHot || Object.keys(rec.clean || {}).length || (rec.certs || []).length) && React.createElement(DrPBlock, {
-    title: "\u0E04\u0E27\u0E32\u0E21\u0E1B\u0E25\u0E2D\u0E14\u0E20\u0E31\u0E22 & \u0E2A\u0E34\u0E48\u0E07\u0E41\u0E27\u0E14\u0E25\u0E49\u0E2D\u0E21",
+    title: T("ความปลอดภัย & สิ่งแวดล้อม"),
     avoid: true
   }, React.createElement("div", {
     style: {
@@ -2629,7 +2717,7 @@ function DailyPaper({
       color: "#15211A",
       lineHeight: 1.9
     }
-  }, React.createElement("div", null, "\u0E23\u0E30\u0E14\u0E31\u0E1A\u0E04\u0E27\u0E32\u0E21\u0E40\u0E2A\u0E35\u0E48\u0E22\u0E07 (JSA): ", React.createElement("b", null, jsa ? jsa.th + " (" + jsa.range + ")" : "—")), React.createElement("div", null, "\u0E43\u0E1A\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E17\u0E33\u0E07\u0E32\u0E19\u0E40\u0E22\u0E47\u0E19: ", React.createElement("b", null, rec.permitCold === "yes" ? "มี" : rec.permitCold === "no" ? "ไม่มี" : "—"), "  ·  ", "\u0E43\u0E1A\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E17\u0E33\u0E07\u0E32\u0E19\u0E23\u0E49\u0E2D\u0E19: ", React.createElement("b", null, rec.permitHot === "yes" ? "มี" : rec.permitHot === "no" ? "ไม่มี" : "—")), React.createElement("div", null, "\u0E08\u0E31\u0E14\u0E40\u0E01\u0E47\u0E1A\u0E1E\u0E37\u0E49\u0E19\u0E17\u0E35\u0E48: ", React.createElement("b", null, (window.DR_CLEAN || []).filter(c => (rec.clean || {})[c.key]).map(c => c.th).join(" · ") || "—"))), !!(rec.certs || []).length && React.createElement("table", {
+  }, React.createElement("div", null, T("ระดับความเสี่ยง (JSA):"), " ", React.createElement("b", null, jsa ? T(jsa.th) + " (" + jsa.range + ")" : "—")), React.createElement("div", null, T("ใบอนุญาตทำงานเย็น:"), " ", React.createElement("b", null, rec.permitCold === "yes" ? T("มี") : rec.permitCold === "no" ? T("ไม่มี") : "—"), "  ·  ", T("ใบอนุญาตทำงานร้อน:"), " ", React.createElement("b", null, rec.permitHot === "yes" ? T("มี") : rec.permitHot === "no" ? T("ไม่มี") : "—")), React.createElement("div", null, T("จัดเก็บพื้นที่:"), " ", React.createElement("b", null, (window.DR_CLEAN || []).filter(c => (rec.clean || {})[c.key]).map(c => T(c.th)).join(" · ") || "—"))), !!(rec.certs || []).length && React.createElement("table", {
     style: {
       width: "100%",
       borderCollapse: "collapse",
@@ -2637,16 +2725,16 @@ function DailyPaper({
     }
   }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", {
     style: th
-  }, "\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E23\u0E31\u0E1A\u0E23\u0E2D\u0E07"), React.createElement("th", {
+  }, T("เอกสารรับรอง")), React.createElement("th", {
     style: th
-  }, "\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A"))), React.createElement("tbody", null, rec.certs.map((c, i) => React.createElement("tr", {
+  }, T("ผู้รับผิดชอบ")))), React.createElement("tbody", null, rec.certs.map((c, i) => React.createElement("tr", {
     key: i
   }, React.createElement("td", {
     style: td
   }, c.name || "-"), React.createElement("td", {
     style: td
   }, c.by || "-"))))))), !!photos.length && React.createElement(DrPBlock, {
-    title: "รูปหน้างาน (" + photos.length + " รูป)"
+    title: T("รูปหน้างาน") + " (" + photos.length + " " + T("รูป") + ")"
   }, React.createElement("div", {
     style: {
       display: "grid",
@@ -2682,7 +2770,7 @@ function DailyPaper({
     style: {
       color: "#0A4D68"
     }
-  }, "\u0E23\u0E39\u0E1B\u0E17\u0E35\u0E48 ", i + 1), p.cap ? " · " + p.cap : ""))))), React.createElement("div", {
+  }, T("รูปที่"), " ", i + 1), p.cap ? " · " + p.cap : ""))))), React.createElement("div", {
     style: {
       marginTop: 22,
       display: "grid",
@@ -2691,12 +2779,12 @@ function DailyPaper({
       breakInside: "avoid"
     }
   }, [{
-    t: "ผู้บันทึก (ช่างหน้างาน)",
+    t: T("ผู้บันทึก (ช่างหน้างาน)"),
     n: rec.byName,
     d: rec.sentAt || rec.updatedAt || rec.createdAt,
     g: signs.by
   }, {
-    t: "ผู้อนุมัติ (หัวหน้างาน)",
+    t: T("ผู้อนุมัติ (หัวหน้างาน)"),
     n: rec.appName,
     d: rec.approvedAt,
     g: signs.app
@@ -2737,25 +2825,25 @@ function DailyPaper({
       marginTop: 6,
       color: "#15211A"
     }
-  }, "\u0E0A\u0E37\u0E48\u0E2D: ", React.createElement("b", null, s.g && s.g.name || s.n || "-")), React.createElement("div", {
+  }, T("ชื่อ:"), " ", React.createElement("b", null, s.g && s.g.name || s.n || "-")), React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#4A5A51"
     }
-  }, "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48: ", window.drDateTH(s.g ? window.drSignDay(s.g) : window.drLocalDay(s.d))), s.g && s.g.img && React.createElement("div", {
+  }, T("วันที่:"), " ", DTs(s.g ? window.drSignDay(s.g) : window.drLocalDay(s.d))), s.g && s.g.img && React.createElement("div", {
     style: {
       fontSize: 8.5,
       color: "#8A9A91",
       marginTop: 3
     }
-  }, "\u0E25\u0E07\u0E25\u0E32\u0E22\u0E21\u0E37\u0E2D\u0E0A\u0E37\u0E48\u0E2D\u0E2D\u0E34\u0E40\u0E25\u0E47\u0E01\u0E17\u0E23\u0E2D\u0E19\u0E34\u0E01\u0E2A\u0E4C\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A ", window.drSignTime(s.g) ? window.drSignTime(s.g) + " น." : "")))), React.createElement("div", {
+  }, T("ลงลายมือชื่ออิเล็กทรอนิกส์ในระบบ"), " ", window.drSignTime(s.g) ? window.drSignTime(s.g) + (lang === "th" ? " น." : "") : "")))), React.createElement("div", {
     style: {
       marginTop: 14,
       fontSize: 9.5,
       color: "#8A9A91",
       textAlign: "center"
     }
-  }, "\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E19\u0E35\u0E49\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 flash+solar \xB7 ", docNo, " \xB7 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E21\u0E37\u0E48\u0E2D ", window.drDateTH(window.drToday()))));
+  }, T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง"), " flash+solar \xB7 ", docNo, " \xB7 ", T("พิมพ์เมื่อ"), " ", DTs(window.drToday()))));
 }
 const DR_GRID_CELL = {
   approved: "#10B981",

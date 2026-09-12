@@ -60,8 +60,77 @@ function RepCell({ k, v }) {
   );
 }
 
+/* ── พจนานุกรมรายงานผลสำรวจ (ไทย → [อังกฤษ, จีน]) ──
+   ใบนี้เป็นคอมโพเนนต์ React จึงแปลทีละข้อความด้วย window.pgT (ดู i18n.jsx)
+   ค่าที่ช่างกรอก/เลือกเอง (รุ่นอุปกรณ์ ยี่ห้อ หมายเหตุ คำบรรยายรูป) ไม่อยู่ในตารางนี้ */
+const SV_I18N = {
+  "รายงานผลสำรวจหน้างาน": ["Site Survey Report", "现场勘查报告"],
+  "สำรวจ:": ["Surveyed:", "勘查日期："],
+  "รายงาน:": ["Reported:", "报告日期："],
+  "โครงการ": ["Project", "项目"],
+  "ลูกค้า": ["Customer", "客户"],
+  "ขนาด": ["Size", "规模"],
+  "แผง": ["Modules", "组件"],
+  "รหัสงาน": ["Job code", "项目编号"],
+  "ที่อยู่": ["Address", "地址"],
+  "ผลการตรวจสอบ": ["Survey findings", "勘查结果"],
+  "สภาพหลังคา": ["Roof condition", "屋面状况"],
+  "พื้นที่จะวางแผ่นโซลาร์เซลล์": ["Area for the solar array", "组件安装区域"],
+  "ประเภทหลังคา": ["Roof type", "屋面类型"],
+  "โครงสร้างรับน้ำหนัก": ["Load-bearing structure", "承重结构"],
+  "มีวัตถุที่ส่งผลกระทบต่อการรับแสง": ["Objects that shade the array", "影响采光的物体"],
+  "ตาข่ายกันนก": ["Bird netting", "防鸟网"],
+  "ระบบไฟฟ้า": ["Electrical system", "电气系统"],
+  "สายเมนเดิม": ["Existing main cable", "原主干电缆"],
+  "มิเตอร์": ["Utility meter", "电表"],
+  "ตู้ MDB": ["MDB panel", "总配电柜"],
+  "เซฟตี้คัตในตู้": ["Safety switch in the panel", "柜内安全开关"],
+  "เมนกันดูด (RCD / RCCB)": ["Main earth-leakage device (RCD / RCCB)", "主漏电保护器（RCD / RCCB）"],
+  "ตำแหน่ง MDB": ["MDB location", "配电柜位置"],
+  "จุดติดตั้งอินเวอร์เตอร์": ["Inverter mounting point", "逆变器安装位置"],
+  "พิกัด GPS หน้างาน": ["Site GPS coordinates", "现场 GPS 坐标"],
+  "ความต้องการพิเศษ": ["Special requirements", "特殊要求"],
+  "หมายเหตุ": ["Notes", "备注"],
+  "เงาบัง:": ["Shading:", "遮挡："],
+  "ภาพประกอบการสำรวจ": ["Survey photographs", "勘查照片"],
+  "แนบไฟล์เอกสารแยก:": ["Attached as a separate file:", "另附文件："],
+  "(เปิดดูได้จากหน้าคลังสินค้า)": ["(available from the inventory page)", "（可在库存页面查看）"],
+  "ผู้สำรวจ:": ["Surveyed by:", "勘查人："],
+  "ออกรายงาน:": ["Report issued:", "出具日期："],
+  "รูป": ["photos", "张"],
+  "มี": ["Yes", "有"],
+  "ไม่มี": ["No", "无"],
+  "โทร ": ["Tel ", "电话 "],
+  "ระยะเดินสาย (รวม {} ม.)": ["Cable runs (total {} m)", "线缆路由（合计 {} 米）"],
+  "อื่นๆ ({})": ["Other ({})", "其他（{}）"],
+  /* ค่าที่เลือกจากรายการใน survey.jsx — สภาพหลังคา โครงสร้าง ตาข่ายกันนก จุดติดตั้ง ช่องว่างในตู้ ช่วงเดินสาย */
+  "ดี (แข็งแรง)": ["Good (sound)", "良好（结构稳固）"],
+  "พอใช้": ["Fair", "一般"],
+  "ทรุดโทรม / ต้องเสริม": ["Deteriorated / needs reinforcement", "老化，需加固"],
+  "ผ่าน": ["Pass", "合格"],
+  "ต้องเสริม / แก้ไข": ["Needs reinforcement / rectification", "需加固或整改"],
+  "ติดตั้ง": ["To be installed", "安装"],
+  "ไม่ติดตั้ง": ["Not installed", "不安装"],
+  "ในอาคาร (Indoor)": ["Indoor", "室内"],
+  "นอกอาคาร (Outdoor)": ["Outdoor", "室外"],
+  "มีช่องว่างเพียงพอ": ["Sufficient spare ways", "柜内空间充足"],
+  "มีช่องว่างจำกัด": ["Limited spare ways", "柜内空间有限"],
+  "เต็ม / ต้องเพิ่มตู้": ["Full / additional panel required", "已满，需增柜"],
+  "แผง → อินเวอร์เตอร์ (สาย DC)": ["Modules → inverter (DC cable)", "组件 → 逆变器（直流线）"],
+  "อินเวอร์เตอร์ → ตู้ MDB (สาย AC)": ["Inverter → MDB (AC cable)", "逆变器 → 配电柜（交流线）"],
+  "CT / Meter → อินเวอร์เตอร์": ["CT / meter → inverter", "CT / 电表 → 逆变器"],
+  "สายกราวด์ → หลักดิน": ["Earth cable → ground rod", "接地线 → 接地极"],
+};
+
 function SurveyReport({ job, photos, docs, onClose }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  /* ภาษาของใบ — สลับสดจากแถบด้านบน ซึ่งไม่ติดไปในหน้าพิมพ์อยู่แล้ว
+     วันที่ไทยเป็น พ.ศ. อังกฤษ/จีนเป็น ค.ศ. จึงแยกฟังก์ชันไว้ ห้ามแปลผ่าน T() */
+  const [lang, setLang] = React.useState(() => (window.pgLang ? window.pgLang() : "th"));
+  const pickLang = (id) => { setLang(id); if (window.pgSetLang) window.pgSetLang(id); };
+  const T = React.useMemo(() => (window.pgT ? window.pgT(SV_I18N, lang) : (k) => k), [lang]);
+  const DT = (iso) => (lang === "th" || !window.pgDate ? repDate(iso)
+    : !iso ? "-" : window.pgDate(String(iso).slice(0, 10), lang));
   const s = (job && job.survey) || {};
   const shots = window.sortedShots(photos || {});
   const gps = s.gps && s.gps.lat ? s.gps.lat + ", " + s.gps.lng : "";
@@ -80,7 +149,7 @@ function SurveyReport({ job, photos, docs, onClose }) {
   // เปิดหน้าพิมพ์ของเบราว์เซอร์ → เลือก "บันทึกเป็น PDF" (มือถือมีปุ่มแชร์ต่อในหน้าเดียวกัน)
   const doPrint = () => {
     const old = document.title;
-    document.title = "รายงานสำรวจ " + (job.code || "") + " " + (job.name || "");
+    document.title = T("รายงานผลสำรวจหน้างาน") + " " + (job.code || "") + " " + (job.name || "");
     window.print();
     setTimeout(() => { document.title = old; }, 800);
   };
@@ -102,17 +171,23 @@ function SurveyReport({ job, photos, docs, onClose }) {
           <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>รายงานผลสำรวจหน้างาน</div>
           <div style={{ fontSize: 11, color: "var(--text-3)" }}>{shots.length} รูป{(docs || []).length ? " · DATA SHEET " + docs.length + " ใบ" : ""} · กดปุ่มแล้วเลือก “บันทึกเป็น PDF”</div>
         </div>
+        {typeof window.LangPick === "function" && (
+          <window.LangPick value={lang} onChange={pickLang} />
+        )}
         <button onClick={doPrint} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "11px 16px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
           <Icon name="file" size={16} color="#fff" /> บันทึก PDF
         </button>
       </div>
 
       {/* กระดาษรายงาน */}
-      <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: "#15211A", padding: isMobile ? "20px 16px" : "34px 38px", borderRadius: isMobile ? 0 : 12, boxShadow: "0 20px 60px rgba(8,20,14,.28)" }}>
+      {/* ฟอนต์ไทยของแอปไม่มีตัวอักษรจีน — เลือกจีนแล้วต้องระบุชุดฟอนต์ที่มีจีนให้ชัด */}
+      <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: "#15211A",
+        fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
+        padding: isMobile ? "20px 16px" : "34px 38px", borderRadius: isMobile ? 0 : 12, boxShadow: "0 20px 60px rgba(8,20,14,.28)" }}>
         {/* หัวรายงาน */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap", borderBottom: "2px solid var(--primary)", paddingBottom: 12 }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontFamily: "var(--display)", fontSize: 22, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-.01em" }}>รายงานผลสำรวจหน้างาน</div>
+            <div style={{ fontFamily: "var(--display)", fontSize: 22, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-.01em" }}>{T("รายงานผลสำรวจหน้างาน")}</div>
             <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: ".12em", color: "var(--text-3)", marginTop: 3 }}>SOLAR SITE SURVEY REPORT</div>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}>
               <window.BrandMark size={22} variant="light" />
@@ -120,75 +195,75 @@ function SurveyReport({ job, photos, docs, onClose }) {
             </div>
           </div>
           <div style={{ textAlign: "right", fontSize: 11.5, color: "var(--text-2)", lineHeight: 1.7 }}>
-            <div>สำรวจ: {repDate(s.startedAt)}</div>
-            <div>รายงาน: {repDate(s.completedAt || s.updatedAt || s.startedAt)}</div>
+            <div>{T("สำรวจ:")} {DT(s.startedAt)}</div>
+            <div>{T("รายงาน:")} {DT(s.completedAt || s.updatedAt || s.startedAt)}</div>
           </div>
         </div>
 
         {/* ตารางข้อมูลโครงการ */}
         <div className="sv-rep-info" style={{ marginTop: 16, border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
-          <RepCell k="โครงการ" v={job.name} />
-          <RepCell k="ลูกค้า" v={job.name} />
-          <RepCell k="ขนาด" v={size} />
+          <RepCell k={T("โครงการ")} v={job.name} />
+          <RepCell k={T("ลูกค้า")} v={job.name} />
+          <RepCell k={T("ขนาด")} v={size} />
           <RepCell k="Inverter" v={s.invModel} />
-          <RepCell k="แผง" v={s.panelModel} />
+          <RepCell k={T("แผง")} v={s.panelModel} />
           <RepCell k="Monitoring" v={s.monitoring} />
           <RepCell k="Meter/CT" v={s.meterCt} />
-          <RepCell k="รหัสงาน" v={job.code} />
-          <div style={{ padding: "7px 10px", borderRight: "1px solid var(--border)", fontSize: 11, fontWeight: 700, color: "var(--primary-dark)", background: "var(--surface2)" }}>ที่อยู่</div>
-          <div style={{ padding: "7px 10px", fontSize: 11.5, color: "var(--text-1)" }}>{[job.address, job.province].filter(Boolean).join(" ") || "-"}{job.phone ? " · โทร " + job.phone : ""}</div>
+          <RepCell k={T("รหัสงาน")} v={job.code} />
+          <div style={{ padding: "7px 10px", borderRight: "1px solid var(--border)", fontSize: 11, fontWeight: 700, color: "var(--primary-dark)", background: "var(--surface2)" }}>{T("ที่อยู่")}</div>
+          <div style={{ padding: "7px 10px", fontSize: 11.5, color: "var(--text-1)" }}>{[job.address, job.province].filter(Boolean).join(" ") || "-"}{job.phone ? " · " + T("โทร ") + job.phone : ""}</div>
         </div>
 
         {/* ผลการตรวจสอบ */}
-        <RepSection title="ผลการตรวจสอบ">
-          <RepGroup icon="🏠" title="สภาพหลังคา">
-            <RepCheck label="พื้นที่จะวางแผ่นโซลาร์เซลล์" value={s.buildingType} />
-            <RepCheck label="ประเภทหลังคา" value={s.roofType} />
-            <RepCheck label="สภาพหลังคา" value={roofCond} />
-            <RepCheck label="โครงสร้างรับน้ำหนัก" value={structure} />
-            <RepCheck label="มีวัตถุที่ส่งผลกระทบต่อการรับแสง" value={(s.shadingTags || []).join(", ")} />
-            <RepCheck label="ตาข่ายกันนก" value={birdNet} />
+        <RepSection title={T("ผลการตรวจสอบ")}>
+          <RepGroup icon="🏠" title={T("สภาพหลังคา")}>
+            <RepCheck label={T("พื้นที่จะวางแผ่นโซลาร์เซลล์")} value={s.buildingType} />
+            <RepCheck label={T("ประเภทหลังคา")} value={s.roofType} />
+            <RepCheck label={T("สภาพหลังคา")} value={T(roofCond)} />
+            <RepCheck label={T("โครงสร้างรับน้ำหนัก")} value={T(structure)} />
+            <RepCheck label={T("มีวัตถุที่ส่งผลกระทบต่อการรับแสง")} value={(s.shadingTags || []).join(", ")} />
+            <RepCheck label={T("ตาข่ายกันนก")} value={T(birdNet)} />
           </RepGroup>
 
-          <RepGroup icon="⚡" title="ระบบไฟฟ้า">
-            <RepCheck label="ระบบไฟฟ้า" value={s.phase ? s.phase + " เฟส" : ""} />
+          <RepGroup icon="⚡" title={T("ระบบไฟฟ้า")}>
+            <RepCheck label={T("ระบบไฟฟ้า")} value={s.phase ? s.phase + (lang === "th" ? " เฟส" : " Phase") : ""} />
             <RepCheck label="Main Breaker" value={s.mainBreaker} />
-            <RepCheck label="สายเมนเดิม" value={s.mainCable} />
-            <RepCheck label="มิเตอร์" value={meter} />
-            <RepCheck label="ตู้ MDB" value={[s.mdbBrand, mdbSpace].filter(Boolean).join(" · ")} />
-            <RepCheck label="เซฟตี้คัตในตู้" value={_yn(s.mdbSafety)} />
-            <RepCheck label="เมนกันดูด (RCD / RCCB)" value={_yn(s.mdbRccb)} />
-            <RepCheck label="ตำแหน่ง MDB" value={s.mdbLoc} />
-            <RepCheck label="จุดติดตั้งอินเวอร์เตอร์" value={invLoc} />
-            <RepCheck label="พิกัด GPS หน้างาน" value={gps} />
+            <RepCheck label={T("สายเมนเดิม")} value={s.mainCable} />
+            <RepCheck label={T("มิเตอร์")} value={meter} />
+            <RepCheck label={T("ตู้ MDB")} value={[s.mdbBrand, T(mdbSpace)].filter(Boolean).join(" · ")} />
+            <RepCheck label={T("เซฟตี้คัตในตู้")} value={T(_yn(s.mdbSafety))} />
+            <RepCheck label={T("เมนกันดูด (RCD / RCCB)")} value={T(_yn(s.mdbRccb))} />
+            <RepCheck label={T("ตำแหน่ง MDB")} value={T(s.mdbLoc)} />
+            <RepCheck label={T("จุดติดตั้งอินเวอร์เตอร์")} value={T(invLoc)} />
+            <RepCheck label={T("พิกัด GPS หน้างาน")} value={gps} />
           </RepGroup>
 
           {/* ระยะเดินสายแยกช่วง — ช่วงไหนไม่ได้วัดก็ไม่ต้องขึ้น */}
           {window.SURVEY_CABLE_LEGS.some((l) => +s[l.key] > 0) && (
-            <RepGroup icon="📏" title={"ระยะเดินสาย (รวม " + window.cableTotal(s) + " ม.)"}>
-              {window.SURVEY_CABLE_LEGS.map((l) => <RepCheck key={l.key} label={l.th} value={+s[l.key] > 0 ? s[l.key] + " ม." : ""} />)}
+            <RepGroup icon="📏" title={T("ระยะเดินสาย (รวม {} ม.)").replace("{}", window.cableTotal(s))}>
+              {window.SURVEY_CABLE_LEGS.map((l) => <RepCheck key={l.key} label={T(l.th)} value={+s[l.key] > 0 ? s[l.key] + (lang === "th" ? " ม." : lang === "zh" ? " 米" : " m") : ""} />)}
             </RepGroup>
           )}
 
           {(s.specials || []).filter(Boolean).length > 0 && (
-            <RepGroup icon="⚠️" title="ความต้องการพิเศษ">
-              {(s.specials || []).filter(Boolean).map((v, i) => <RepCheck key={i} label={"อื่นๆ (" + (i + 1) + ")"} value={v} />)}
+            <RepGroup icon="⚠️" title={T("ความต้องการพิเศษ")}>
+              {(s.specials || []).filter(Boolean).map((v, i) => <RepCheck key={i} label={T("อื่นๆ ({})").replace("{}", i + 1)} value={v} />)}
             </RepGroup>
           )}
         </RepSection>
 
         {/* หมายเหตุ */}
         {(s.note || s.shadingNote) && (
-          <RepSection title="หมายเหตุ">
+          <RepSection title={T("หมายเหตุ")}>
             <div style={{ marginTop: 10, background: "#FFF8F1", border: "1px solid #F5E3D3", borderRadius: 8, padding: "12px 14px", fontSize: 11.5, lineHeight: 1.75, whiteSpace: "pre-wrap", color: "var(--text-1)" }}>
-              {[s.note, s.shadingNote ? "เงาบัง: " + s.shadingNote : ""].filter(Boolean).join("\n")}
+              {[s.note, s.shadingNote ? T("เงาบัง:") + " " + s.shadingNote : ""].filter(Boolean).join("\n")}
             </div>
           </RepSection>
         )}
 
         {/* ภาพประกอบ */}
         {shots.length > 0 && (
-          <RepSection title={"ภาพประกอบการสำรวจ (" + shots.length + " รูป)"}>
+          <RepSection title={T("ภาพประกอบการสำรวจ") + " (" + shots.length + " " + T("รูป") + ")"}>
             <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 12 }}>
               {shotGroups.map((g) => (
                 <React.Fragment key={g.cat || "_"}>
@@ -231,7 +306,7 @@ function SurveyReport({ job, photos, docs, onClose }) {
                 {/^image\//.test(d.doc.type || "")
                   ? <img src={d.doc.data} alt={d.name} style={{ width: "100%", display: "block", borderRadius: 8, border: "1px solid var(--border)" }} />
                   : <div style={{ fontSize: 11.5, color: "var(--text-2)", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 14px" }}>
-                      แนบไฟล์เอกสารแยก: <b style={{ color: "var(--text-1)" }}>{d.doc.name}</b> (เปิดดูได้จากหน้าคลังสินค้า)
+                      {T("แนบไฟล์เอกสารแยก:")} <b style={{ color: "var(--text-1)" }}>{d.doc.name}</b> {T("(เปิดดูได้จากหน้าคลังสินค้า)")}
                     </div>}
               </div>
             ))}
@@ -240,8 +315,8 @@ function SurveyReport({ job, photos, docs, onClose }) {
 
         {/* ท้ายรายงาน */}
         <div style={{ marginTop: 22, paddingTop: 12, borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", gap: 14, flexWrap: "wrap", fontSize: 11, color: "var(--text-2)", breakInside: "avoid" }}>
-          <div>ผู้สำรวจ: <b style={{ color: "var(--text-1)" }}>{s.byName || "-"}</b></div>
-          <div>ออกรายงาน: {repDate(new Date().toISOString())}</div>
+          <div>{T("ผู้สำรวจ:")} <b style={{ color: "var(--text-1)" }}>{s.byName || "-"}</b></div>
+          <div>{T("ออกรายงาน:")} {DT(new Date().toISOString())}</div>
         </div>
       </div>
     </div>

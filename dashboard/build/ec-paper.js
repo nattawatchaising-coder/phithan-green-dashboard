@@ -22,12 +22,55 @@ function ecBahtText(n) {
   out += satang ? ecNumTH(String(satang)) + "สตางค์" : baht || !satang ? "ถ้วน" : "";
   return (raw < 0 ? "ลบ" : "") + out;
 }
+const EC_PAPER_I18N = {
+  "ใบสำคัญจ่าย": ["Payment Voucher", "付款凭证"],
+  "จ่ายคืนแล้ว": ["Reimbursed", "已报销"],
+  "จ่ายให้": ["Pay to", "收款人"],
+  "วันที่จ่าย": ["Payment date", "付款日期"],
+  "จำนวนใบเบิก": ["Claims in batch", "报销单数"],
+  "เลขสลิป / อ้างอิง": ["Slip / reference no.", "凭证 / 参考编号"],
+  "ผู้ทำรายการ": ["Prepared by", "经办人"],
+  "บันทึกเมื่อ": ["Recorded", "记录时间"],
+  "จำนวนเงินที่จ่าย": ["Amount paid", "付款金额"],
+  "ตัวอักษร": ["In words (Thai)", "金额大写（泰文）"],
+  "เลขที่ใบ": ["Claim no.", "单号"],
+  "วันที่ใช้จ่าย": ["Spent on", "支出日期"],
+  "หมวด": ["Category", "类别"],
+  "งาน / ไซต์": ["Job / site", "项目 / 站点"],
+  "ผู้อนุมัติ": ["Approved by", "批准人"],
+  "จำนวนเงิน": ["Amount", "金额"],
+  "ใบเบิกที่ปิดในรอบนี้": ["Claims settled in this batch", "本批次已结报销单"],
+  "รวมทั้งสิ้น": ["Grand total", "合计"],
+  "หมายเหตุ": ["Note", "备注"],
+  "ผู้รับเงิน": ["Received by", "收款人签字"],
+  "ผู้จ่ายเงิน": ["Paid by", "付款人签字"],
+  "ชื่อ:": ["Name:", "姓名："],
+  "วันที่:": ["Date:", "日期："],
+  "เอกสารนี้ออกจากระบบติดตามงานติดตั้ง": ["Issued by the installation tracking system of", "本文件由安装管理系统开具"],
+  "พิมพ์เมื่อ": ["printed", "打印于"],
+  "บาท": ["THB", "泰铢"],
+  "ใบ": ["claims", "张"],
+  "ซื้อของหน้างาน": ["Site purchase", "现场采购"],
+  "ค่าขนส่งของ": ["Freight", "货运费"],
+  "ค่าน้ำมัน / เดินทาง": ["Fuel / travel", "油费与差旅"],
+  "ค่าอาหาร / ที่พัก": ["Meals / lodging", "餐费与住宿"],
+  "ค่าแรงจ้างช่วง": ["Subcontract labour", "外包人工"],
+  "อื่น ๆ": ["Other", "其他"]
+};
 function EcVoucherPaper({
   batch,
   claims,
   onClose
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const [lang, setLang] = React.useState(() => window.pgLang ? window.pgLang() : "th");
+  const pickLang = id => {
+    setLang(id);
+    if (window.pgSetLang) window.pgSetLang(id);
+  };
+  const T = React.useMemo(() => window.pgT ? window.pgT(EC_PAPER_I18N, lang) : k => k, [lang]);
+  const DT = iso => !iso ? "—" : lang === "th" || !window.pgDate ? window.drDateTH(iso, true) : window.pgDate(iso, lang);
+  const DTs = iso => !iso ? "—" : lang === "th" || !window.pgDate ? window.drDateTH(iso) : window.pgDate(iso, lang);
   const b = batch || {};
   const list = claims || [];
   const total = window.ecRound(b.total);
@@ -35,7 +78,7 @@ function EcVoucherPaper({
   const missing = list.length !== (b.count || 0);
   const doPrint = () => {
     const old = document.title;
-    document.title = "ใบสำคัญจ่าย " + (b.no || "") + " " + (b.toName || "");
+    document.title = T("ใบสำคัญจ่าย") + " " + (b.no || "") + " " + (b.toName || "");
     window.print();
     setTimeout(() => {
       document.title = old;
@@ -123,7 +166,10 @@ function EcVoucherPaper({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, b.toName || "-", " \xB7 ", window.ecBaht(total), " \u0E1A\u0E32\u0E17 \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19 PDF\u201D")), React.createElement("button", {
+  }, b.toName || "-", " \xB7 ", window.ecBaht(total), " \u0E1A\u0E32\u0E17 \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19 PDF\u201D")), typeof window.LangPick === "function" && React.createElement(window.LangPick, {
+    value: lang,
+    onChange: pickLang
+  }), React.createElement("button", {
     onClick: doPrint,
     style: {
       display: "inline-flex",
@@ -151,6 +197,7 @@ function EcVoucherPaper({
       margin: "0 auto",
       background: "#fff",
       color: "#15211A",
+      fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
       padding: isMobile ? "20px 16px" : "30px 34px",
       borderRadius: isMobile ? 0 : 12,
       boxShadow: "0 20px 60px rgba(8,20,14,.28)"
@@ -175,7 +222,7 @@ function EcVoucherPaper({
       fontWeight: 800,
       letterSpacing: "-.01em"
     }
-  }, "\u0E43\u0E1A\u0E2A\u0E33\u0E04\u0E31\u0E0D\u0E08\u0E48\u0E32\u0E22"), React.createElement("div", {
+  }, T("ใบสำคัญจ่าย")), React.createElement("div", {
     style: {
       fontSize: 10,
       fontWeight: 600,
@@ -209,7 +256,7 @@ function EcVoucherPaper({
       fontWeight: 700,
       color: "#15211A"
     }
-  }, b.no || "-"), React.createElement("div", null, window.drDateTH(b.date, true)), React.createElement("div", {
+  }, b.no || "-"), React.createElement("div", null, DT(b.date)), React.createElement("div", {
     style: {
       display: "inline-block",
       marginTop: 3,
@@ -220,7 +267,7 @@ function EcVoucherPaper({
       fontWeight: 700,
       fontSize: 10.5
     }
-  }, "\u0E08\u0E48\u0E32\u0E22\u0E04\u0E37\u0E19\u0E41\u0E25\u0E49\u0E27"))), React.createElement("div", {
+  }, T("จ่ายคืนแล้ว")))), React.createElement("div", {
     style: {
       marginTop: 13,
       display: "grid",
@@ -230,23 +277,23 @@ function EcVoucherPaper({
       overflow: "hidden"
     }
   }, React.createElement(EcVPRow, {
-    k: "\u0E08\u0E48\u0E32\u0E22\u0E43\u0E2B\u0E49",
+    k: T("จ่ายให้"),
     v: b.toName || "-"
   }), React.createElement(EcVPRow, {
-    k: "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E08\u0E48\u0E32\u0E22",
-    v: window.drDateTH(b.date)
+    k: T("วันที่จ่าย"),
+    v: DTs(b.date)
   }), React.createElement(EcVPRow, {
-    k: "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E43\u0E1A\u0E40\u0E1A\u0E34\u0E01",
-    v: (b.count || 0) + " ใบ"
+    k: T("จำนวนใบเบิก"),
+    v: (b.count || 0) + " " + T("ใบ")
   }), React.createElement(EcVPRow, {
-    k: "\u0E40\u0E25\u0E02\u0E2A\u0E25\u0E34\u0E1B / \u0E2D\u0E49\u0E32\u0E07\u0E2D\u0E34\u0E07",
+    k: T("เลขสลิป / อ้างอิง"),
     v: b.ref || "—"
   }), React.createElement(EcVPRow, {
-    k: "\u0E1C\u0E39\u0E49\u0E17\u0E33\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23",
+    k: T("ผู้ทำรายการ"),
     v: b.byName || "-"
   }), React.createElement(EcVPRow, {
-    k: "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E21\u0E37\u0E48\u0E2D",
-    v: b.at ? window.drDateTH(window.drLocalDay(b.at)) : "—"
+    k: T("บันทึกเมื่อ"),
+    v: b.at ? DTs(window.drLocalDay(b.at)) : "—"
   })), React.createElement("div", {
     style: {
       marginTop: 14,
@@ -270,7 +317,7 @@ function EcVoucherPaper({
       fontWeight: 700,
       color: "#4A5A51"
     }
-  }, "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E40\u0E07\u0E34\u0E19\u0E17\u0E35\u0E48\u0E08\u0E48\u0E32\u0E22"), React.createElement("span", {
+  }, T("จำนวนเงินที่จ่าย")), React.createElement("span", {
     style: {
       flex: 1,
       minWidth: 120
@@ -287,15 +334,15 @@ function EcVoucherPaper({
       fontSize: 12,
       color: "#4A5A51"
     }
-  }, "\u0E1A\u0E32\u0E17")), React.createElement("div", {
+  }, T("บาท"))), React.createElement("div", {
     style: {
       padding: "8px 14px",
       fontSize: 12,
       color: "#15211A",
       borderTop: "1px solid #DCE4DF"
     }
-  }, "\u0E15\u0E31\u0E27\u0E2D\u0E31\u0E01\u0E29\u0E23 ", React.createElement("b", null, "(", ecBahtText(total), ")"))), React.createElement(EcPBlock, {
-    title: "ใบเบิกที่ปิดในรอบนี้ (" + list.length + " ใบ)"
+  }, T("ตัวอักษร"), " ", React.createElement("b", null, "(", ecBahtText(total), ")"))), React.createElement(EcPBlock, {
+    title: T("ใบเบิกที่ปิดในรอบนี้") + " (" + list.length + " " + T("ใบ") + ")"
   }, React.createElement("table", {
     style: {
       width: "100%",
@@ -307,20 +354,20 @@ function EcVoucherPaper({
     })
   }, "#"), React.createElement("th", {
     style: th
-  }, "\u0E40\u0E25\u0E02\u0E17\u0E35\u0E48\u0E43\u0E1A"), React.createElement("th", {
+  }, T("เลขที่ใบ")), React.createElement("th", {
     style: th
-  }, "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49\u0E08\u0E48\u0E32\u0E22"), React.createElement("th", {
+  }, T("วันที่ใช้จ่าย")), React.createElement("th", {
     style: th
-  }, "\u0E2B\u0E21\u0E27\u0E14"), React.createElement("th", {
+  }, T("หมวด")), React.createElement("th", {
     style: th
-  }, "\u0E07\u0E32\u0E19 / \u0E44\u0E0B\u0E15\u0E4C"), React.createElement("th", {
+  }, T("งาน / ไซต์")), React.createElement("th", {
     style: th
-  }, "\u0E1C\u0E39\u0E49\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34"), React.createElement("th", {
+  }, T("ผู้อนุมัติ")), React.createElement("th", {
     style: Object.assign({}, th, {
       textAlign: "right",
       width: 88
     })
-  }, "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E40\u0E07\u0E34\u0E19"))), React.createElement("tbody", null, list.map((c, i) => React.createElement("tr", {
+  }, T("จำนวนเงิน")))), React.createElement("tbody", null, list.map((c, i) => React.createElement("tr", {
     key: c.id
   }, React.createElement("td", {
     style: Object.assign({}, td, {
@@ -336,9 +383,9 @@ function EcVoucherPaper({
       fontFamily: "var(--mono)",
       fontSize: 10
     })
-  }, c.date ? window.drShort(c.date) : "—"), React.createElement("td", {
+  }, c.date ? window.pgShort ? window.pgShort(c.date, lang) : window.drShort(c.date) : "—"), React.createElement("td", {
     style: td
-  }, window.ecKindOf(c.kind).th), React.createElement("td", {
+  }, T(window.ecKindOf(c.kind).th)), React.createElement("td", {
     style: td
   }, [c.siteCode, c.siteName].filter(Boolean).join(" · ") || "—"), React.createElement("td", {
     style: td
@@ -353,7 +400,7 @@ function EcVoucherPaper({
     style: {
       fontSize: 11.5
     }
-  }, "\u0E23\u0E27\u0E21\u0E17\u0E31\u0E49\u0E07\u0E2A\u0E34\u0E49\u0E19")), React.createElement("td", {
+  }, T("รวมทั้งสิ้น"))), React.createElement("td", {
     style: Object.assign({}, num, {
       borderBottom: "none",
       fontSize: 13,
@@ -366,7 +413,7 @@ function EcVoucherPaper({
       color: "#B45309"
     }
   }, "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38: \u0E23\u0E2D\u0E1A\u0E19\u0E35\u0E49\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E44\u0E27\u0E49 ", b.count || 0, " \u0E43\u0E1A \u0E41\u0E15\u0E48\u0E41\u0E2A\u0E14\u0E07\u0E44\u0E14\u0E49 ", list.length, " \u0E43\u0E1A (\u0E1C\u0E25\u0E1A\u0E27\u0E01\u0E17\u0E35\u0E48\u0E41\u0E2A\u0E14\u0E07 ", window.ecBaht(found), " \u0E1A\u0E32\u0E17) \u2014 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E16\u0E39\u0E01\u0E25\u0E1A\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E10\u0E32\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E20\u0E32\u0E22\u0E2B\u0E25\u0E31\u0E07 \u0E22\u0E2D\u0E14\u0E17\u0E35\u0E48\u0E08\u0E48\u0E32\u0E22\u0E08\u0E23\u0E34\u0E07\u0E22\u0E36\u0E14\u0E15\u0E32\u0E21\u0E22\u0E2D\u0E14\u0E23\u0E27\u0E21\u0E14\u0E49\u0E32\u0E19\u0E1A\u0E19")), b.note ? React.createElement(EcPBlock, {
-    title: "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38",
+    title: T("หมายเหตุ"),
     avoid: true
   }, React.createElement("div", {
     style: {
@@ -384,13 +431,13 @@ function EcVoucherPaper({
       breakInside: "avoid"
     }
   }, [{
-    t: "ผู้รับเงิน",
+    t: T("ผู้รับเงิน"),
     n: b.toName
   }, {
-    t: "ผู้จ่ายเงิน",
+    t: T("ผู้จ่ายเงิน"),
     n: b.byName
   }, {
-    t: "ผู้อนุมัติ",
+    t: T("ผู้อนุมัติ"),
     n: ""
   }].map((s, i) => React.createElement("div", {
     key: i,
@@ -417,19 +464,19 @@ function EcVoucherPaper({
       marginTop: 6,
       color: "#15211A"
     }
-  }, "\u0E0A\u0E37\u0E48\u0E2D: ", React.createElement("b", null, s.n || "…………………………")), React.createElement("div", {
+  }, T("ชื่อ:"), " ", React.createElement("b", null, s.n || "…………………………")), React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#4A5A51"
     }
-  }, "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48: \u2026\u2026\u2026\u2026\u2026\u2026\u2026\u2026\u2026\u2026")))), React.createElement("div", {
+  }, T("วันที่:"), " \u2026\u2026\u2026\u2026\u2026\u2026\u2026\u2026\u2026\u2026")))), React.createElement("div", {
     style: {
       marginTop: 14,
       fontSize: 9.5,
       color: "#8A9A91",
       textAlign: "center"
     }
-  }, "\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E19\u0E35\u0E49\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 flash+solar \xB7 ", b.no || "-", " \xB7 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E21\u0E37\u0E48\u0E2D ", window.drDateTH(window.drToday()))));
+  }, T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง"), " flash+solar \xB7 ", b.no || "-", " \xB7 ", T("พิมพ์เมื่อ"), " ", DTs(window.drToday()))));
 }
 function EcVPRow({
   k,

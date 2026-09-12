@@ -33,12 +33,12 @@ const pgSetLang = id => {
   } catch (e) {}
 };
 function pgT(dict, lang) {
-  const i = PG_LANG_IX[lang] != null ? PG_LANG_IX[lang] : 0;
+  const i = PG_LANG_IX[lang] || 0;
   return function (key) {
+    if (!i) return key;
     const row = (dict || {})[key];
     if (!row) return key;
-    if (typeof row === "string") return row;
-    return row[i] || row[0] || key;
+    return (typeof row === "string" ? row : row[i - 1]) || key;
   };
 }
 const PG_MON = {
@@ -58,6 +58,16 @@ function pgDate(iso, lang) {
   return d + " " + PG_MON.th[mo] + " " + (y + 543);
 }
 const pgToday = lang => pgDate(new Date().toISOString().slice(0, 10), lang);
+function pgShort(iso, lang) {
+  if (!iso) return "—";
+  const i = PG_LANG_IX[lang] || 0;
+  if (!i) return window.drShort ? window.drShort(iso) : iso;
+  const p = String(iso).split("-");
+  const m = +p[1] - 1,
+    d = +p[2];
+  if (m < 0 || m > 11) return iso;
+  return lang === "zh" ? m + 1 + "月" + d + "日" : d + " " + PG_MON.en[m];
+}
 const pgFontLink = lang => lang === "zh" ? '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">' : "";
 const pgFontStack = lang => lang === "zh" ? "'Noto Sans SC','IBM Plex Sans Thai','Microsoft YaHei','PingFang SC',sans-serif" : "'IBM Plex Sans Thai','Sarabun','Noto Sans Thai','Segoe UI',sans-serif";
 const PG_TAG_RE = /(<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>)/i;
@@ -165,6 +175,7 @@ Object.assign(window, {
   pgT,
   pgDate,
   pgToday,
+  pgShort,
   pgFontLink,
   pgFontStack,
   pgDocHTML,

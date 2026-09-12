@@ -662,6 +662,53 @@ function OmVisitModal({
     onClose: () => setPaper(false)
   }));
 }
+const OM_PAPER_I18N = {
+  "ใบรายงานเข้าบริการ": ["Service Visit Report", "服务工单"],
+  "ชื่อไซต์": ["Site", "站点名称"],
+  "รหัสไซต์": ["Site code", "站点编号"],
+  "ประเภทงาน": ["Visit type", "工单类型"],
+  "ขนาดระบบ": ["System size", "系统容量"],
+  "สถานที่": ["Location", "地址"],
+  "ผู้ติดต่อ": ["Contact", "联系人"],
+  "เวลาเข้า–ออก": ["Time in – out", "进出场时间"],
+  "ทีมช่าง": ["Technicians", "施工人员"],
+  "สถานะค่าบริการ": ["Charge status", "费用性质"],
+  "ยอดเรียกเก็บ": ["Amount billed", "应收金额"],
+  "ตรวจพบ": ["Findings", "检查发现"],
+  "งานที่ทำ": ["Work performed", "处理内容"],
+  "ผลหลังทำงานเสร็จ": ["Result after service", "处理结果"],
+  "อะไหล่ / วัสดุที่ใช้": ["Parts and materials used", "所用配件与材料"],
+  "รายการ": ["Description", "项目"],
+  "จำนวน": ["Qty", "数量"],
+  "หน่วย": ["Unit", "单位"],
+  "หมายเหตุ": ["Note", "备注"],
+  "คำแนะนำ / นัดครั้งถัดไป": ["Recommendations / next visit", "建议与下次服务"],
+  "นัดครั้งถัดไป:": ["Next visit:", "下次服务："],
+  "รูปก่อนทำงาน": ["Before service", "施工前照片"],
+  "รูปหลังทำงาน": ["After service", "施工后照片"],
+  "ช่างผู้ให้บริการ": ["Service technician", "服务技师"],
+  "ลูกค้าผู้รับบริการ": ["Customer", "客户签收"],
+  "อนุมัติโดย": ["Approved by", "批准人"],
+  "ลงลายมือชื่ออิเล็กทรอนิกส์ในระบบ": ["Signed electronically in the system", "已在系统内电子签名"],
+  "เอกสารนี้ออกจากระบบงานบริการหลังการขาย": ["Issued by the O&M system of", "本文件由售后运维系统开具"],
+  "พิมพ์เมื่อ": ["printed", "打印于"],
+  "ชื่อ:": ["Name:", "姓名："],
+  "วันที่:": ["Date:", "日期："],
+  "รูปที่": ["Photo", "照片"],
+  "บาท": ["THB", "泰铢"],
+  "แผง": ["modules", "块组件"],
+  "รูป": ["photos", "张"],
+  "ร่าง": ["Draft", "草稿"],
+  "รอตรวจ": ["Pending review", "待审核"],
+  "อนุมัติแล้ว": ["Approved", "已批准"],
+  "เข้าซ่อม": ["Repair", "维修"],
+  "ล้างแผง": ["Panel cleaning", "组件清洗"],
+  "เข้าตรวจเช็กระบบ": ["System inspection", "系统巡检"],
+  "อยู่ในประกัน": ["Under warranty", "保修范围内"],
+  "คิดค่าบริการ": ["Chargeable", "收费"],
+  "บริการให้ฟรี": ["Goodwill (free)", "免费服务"],
+  "ยังไม่ได้ตัดสิน": ["Not determined", "未确定"]
+};
 function OmPRow({
   k,
   v
@@ -734,6 +781,14 @@ function OmVisitPaper({
   onClose
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const [lang, setLang] = React.useState(() => window.pgLang ? window.pgLang() : "th");
+  const pickLang = id => {
+    setLang(id);
+    if (window.pgSetLang) window.pgSetLang(id);
+  };
+  const T = React.useMemo(() => window.pgT ? window.pgT(OM_PAPER_I18N, lang) : k => k, [lang]);
+  const DT = iso => !iso ? "-" : lang === "th" || !window.pgDate ? window.drDateTH(iso, true) : window.pgDate(iso, lang);
+  const DTs = iso => !iso ? "-" : lang === "th" || !window.pgDate ? window.drDateTH(iso) : window.pgDate(iso, lang);
   const {
     photos
   } = window.useOmVisitPhotos(visit.id);
@@ -747,7 +802,7 @@ function OmVisitPaper({
   const g = signs || {};
   const doPrint = () => {
     const old = document.title;
-    document.title = "ใบรายงานเข้าบริการ " + (v.no || "") + " " + (v.date || "");
+    document.title = T("ใบรายงานเข้าบริการ") + " " + (v.no || "") + " " + (v.date || "");
     window.print();
     setTimeout(() => {
       document.title = old;
@@ -770,7 +825,7 @@ function OmVisitPaper({
     verticalAlign: "top"
   };
   const shots = (title, list) => !list.length ? null : React.createElement(OmPBlock, {
-    title: title + " (" + list.length + " รูป)"
+    title: T(title) + " (" + list.length + " " + T("รูป") + ")"
   }, React.createElement("div", {
     style: {
       display: "grid",
@@ -806,7 +861,7 @@ function OmVisitPaper({
     style: {
       color: "#0A4D68"
     }
-  }, "\u0E23\u0E39\u0E1B\u0E17\u0E35\u0E48 ", i + 1), p.cap ? " · " + p.cap : "")))));
+  }, T("รูปที่"), " ", i + 1), p.cap ? " · " + p.cap : "")))));
   return React.createElement("div", {
     className: "sv-rep-overlay",
     style: {
@@ -869,7 +924,10 @@ function OmVisitPaper({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, photos.length, " \u0E23\u0E39\u0E1B \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19 PDF\u201D")), React.createElement("button", {
+  }, photos.length, " \u0E23\u0E39\u0E1B \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19 PDF\u201D")), typeof window.LangPick === "function" && React.createElement(window.LangPick, {
+    value: lang,
+    onChange: pickLang
+  }), React.createElement("button", {
     onClick: doPrint,
     style: {
       display: "inline-flex",
@@ -897,6 +955,7 @@ function OmVisitPaper({
       margin: "0 auto",
       background: "#fff",
       color: "#15211A",
+      fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
       padding: isMobile ? "20px 16px" : "30px 34px",
       borderRadius: isMobile ? 0 : 12,
       boxShadow: "0 20px 60px rgba(8,20,14,.28)"
@@ -921,7 +980,7 @@ function OmVisitPaper({
       fontWeight: 800,
       letterSpacing: "-.01em"
     }
-  }, "\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E40\u0E02\u0E49\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23"), React.createElement("div", {
+  }, T("ใบรายงานเข้าบริการ")), React.createElement("div", {
     style: {
       fontSize: 10,
       fontWeight: 600,
@@ -955,7 +1014,7 @@ function OmVisitPaper({
       fontWeight: 700,
       color: "#15211A"
     }
-  }, v.no), React.createElement("div", null, window.drDateTH(v.date, true)), React.createElement("div", {
+  }, v.no), React.createElement("div", null, DT(v.date)), React.createElement("div", {
     style: {
       display: "inline-block",
       marginTop: 3,
@@ -966,7 +1025,7 @@ function OmVisitPaper({
       fontWeight: 700,
       fontSize: 10.5
     }
-  }, st.th))), React.createElement("div", {
+  }, T(st.th)))), React.createElement("div", {
     style: {
       marginTop: 13,
       display: "grid",
@@ -976,28 +1035,28 @@ function OmVisitPaper({
       overflow: "hidden"
     }
   }, React.createElement(OmPRow, {
-    k: "\u0E0A\u0E37\u0E48\u0E2D\u0E44\u0E0B\u0E15\u0E4C",
+    k: T("ชื่อไซต์"),
     v: v.siteName || (site || {}).name
   }), React.createElement(OmPRow, {
-    k: "\u0E23\u0E2B\u0E31\u0E2A\u0E44\u0E0B\u0E15\u0E4C",
+    k: T("รหัสไซต์"),
     v: v.siteCode
   }), React.createElement(OmPRow, {
-    k: "\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E07\u0E32\u0E19",
-    v: kind.th
+    k: T("ประเภทงาน"),
+    v: T(kind.th)
   }), React.createElement(OmPRow, {
-    k: "\u0E02\u0E19\u0E32\u0E14\u0E23\u0E30\u0E1A\u0E1A",
-    v: (site || {}).kw ? site.kw + " kW" + (site.panels ? " · " + site.panels + " แผง" : "") : "-"
+    k: T("ขนาดระบบ"),
+    v: (site || {}).kw ? site.kw + " kW" + (site.panels ? " · " + site.panels + " " + T("แผง") : "") : "-"
   }), React.createElement(OmPRow, {
-    k: "\u0E2A\u0E16\u0E32\u0E19\u0E17\u0E35\u0E48",
+    k: T("สถานที่"),
     v: [(site || {}).address, (site || {}).province].filter(Boolean).join(" · ")
   }), React.createElement(OmPRow, {
-    k: "\u0E1C\u0E39\u0E49\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D",
+    k: T("ผู้ติดต่อ"),
     v: [(site || {}).phone].filter(Boolean).join(" · ")
   }), React.createElement(OmPRow, {
-    k: "\u0E40\u0E27\u0E25\u0E32\u0E40\u0E02\u0E49\u0E32\u2013\u0E2D\u0E2D\u0E01",
+    k: T("เวลาเข้า–ออก"),
     v: (v.timeIn || "-") + " – " + (v.timeOut || "-")
   }), React.createElement(OmPRow, {
-    k: "\u0E17\u0E35\u0E21\u0E0A\u0E48\u0E32\u0E07",
+    k: T("ทีมช่าง"),
     v: v.team || v.byName
   })), React.createElement("div", {
     style: {
@@ -1017,7 +1076,7 @@ function OmVisitPaper({
       fontWeight: 700,
       color: "#4A5A51"
     }
-  }, "\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E04\u0E48\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23"), React.createElement("span", {
+  }, T("สถานะค่าบริการ")), React.createElement("span", {
     style: {
       padding: "3px 11px",
       borderRadius: 99,
@@ -1026,7 +1085,7 @@ function OmVisitPaper({
       background: cov.color + "22",
       color: cov.color
     }
-  }, cov.th), React.createElement("span", {
+  }, T(cov.th)), React.createElement("span", {
     style: {
       flex: 1
     }
@@ -1035,24 +1094,24 @@ function OmVisitPaper({
       fontSize: 11.5,
       color: "#4A5A51"
     }
-  }, "\u0E22\u0E2D\u0E14\u0E40\u0E23\u0E35\u0E22\u0E01\u0E40\u0E01\u0E47\u0E1A"), React.createElement("span", {
+  }, T("ยอดเรียกเก็บ")), React.createElement("span", {
     style: {
       fontFamily: "var(--mono)",
       fontSize: 17,
       fontWeight: 800,
       color: "#15211A"
     }
-  }, v.charge == null ? "—" : Number(v.charge).toLocaleString("th-TH") + " บาท")), React.createElement(OmPBlock, {
-    title: "\u0E15\u0E23\u0E27\u0E08\u0E1E\u0E1A",
+  }, v.charge == null ? "—" : Number(v.charge).toLocaleString("th-TH") + " " + T("บาท"))), React.createElement(OmPBlock, {
+    title: T("ตรวจพบ"),
     avoid: true
   }, omPara(v.found)), React.createElement(OmPBlock, {
-    title: "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E17\u0E33",
+    title: T("งานที่ทำ"),
     avoid: true
   }, omPara(v.work)), React.createElement(OmPBlock, {
-    title: "\u0E1C\u0E25\u0E2B\u0E25\u0E31\u0E07\u0E17\u0E33\u0E07\u0E32\u0E19\u0E40\u0E2A\u0E23\u0E47\u0E08",
+    title: T("ผลหลังทำงานเสร็จ"),
     avoid: true
   }, omPara(v.result)), !!parts.length && React.createElement(OmPBlock, {
-    title: "\u0E2D\u0E30\u0E44\u0E2B\u0E25\u0E48 / \u0E27\u0E31\u0E2A\u0E14\u0E38\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49"
+    title: T("อะไหล่ / วัสดุที่ใช้")
   }, React.createElement("table", {
     style: {
       width: "100%",
@@ -1064,13 +1123,13 @@ function OmVisitPaper({
     })
   }, "#"), React.createElement("th", {
     style: th
-  }, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"), React.createElement("th", {
+  }, T("รายการ")), React.createElement("th", {
     style: th
-  }, "\u0E08\u0E33\u0E19\u0E27\u0E19"), React.createElement("th", {
+  }, T("จำนวน")), React.createElement("th", {
     style: th
-  }, "\u0E2B\u0E19\u0E48\u0E27\u0E22"), React.createElement("th", {
+  }, T("หน่วย")), React.createElement("th", {
     style: th
-  }, "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38"))), React.createElement("tbody", null, parts.map((p, i) => React.createElement("tr", {
+  }, T("หมายเหตุ")))), React.createElement("tbody", null, parts.map((p, i) => React.createElement("tr", {
     key: i
   }, React.createElement("td", {
     style: Object.assign({}, td, {
@@ -1088,7 +1147,7 @@ function OmVisitPaper({
   }, p.unit || "-"), React.createElement("td", {
     style: td
   }, p.note || "-")))))), (v.advice || v.nextDue) && React.createElement(OmPBlock, {
-    title: "\u0E04\u0E33\u0E41\u0E19\u0E30\u0E19\u0E33 / \u0E19\u0E31\u0E14\u0E04\u0E23\u0E31\u0E49\u0E07\u0E16\u0E31\u0E14\u0E44\u0E1B",
+    title: T("คำแนะนำ / นัดครั้งถัดไป"),
     avoid: true
   }, omPara(v.advice), v.nextDue && React.createElement("div", {
     style: {
@@ -1096,7 +1155,7 @@ function OmVisitPaper({
       fontSize: 11.5,
       color: "#15211A"
     }
-  }, "\u0E19\u0E31\u0E14\u0E04\u0E23\u0E31\u0E49\u0E07\u0E16\u0E31\u0E14\u0E44\u0E1B: ", React.createElement("b", null, window.drDateTH(v.nextDue, true)))), shots("รูปก่อนทำงาน", before), shots("รูปหลังทำงาน", after), React.createElement("div", {
+  }, T("นัดครั้งถัดไป:"), " ", React.createElement("b", null, DT(v.nextDue)))), shots("รูปก่อนทำงาน", before), shots("รูปหลังทำงาน", after), React.createElement("div", {
     style: {
       marginTop: 22,
       display: "grid",
@@ -1105,12 +1164,12 @@ function OmVisitPaper({
       breakInside: "avoid"
     }
   }, [{
-    t: "ช่างผู้ให้บริการ",
+    t: T("ช่างผู้ให้บริการ"),
     n: v.byName,
     d: v.sentAt || v.updatedAt || v.createdAt,
     s: g.tech
   }, {
-    t: "ลูกค้าผู้รับบริการ",
+    t: T("ลูกค้าผู้รับบริการ"),
     n: v.siteName,
     d: v.date,
     s: g.cust
@@ -1151,36 +1210,36 @@ function OmVisitPaper({
       marginTop: 6,
       color: "#15211A"
     }
-  }, "\u0E0A\u0E37\u0E48\u0E2D: ", React.createElement("b", null, x.s && x.s.name || x.n || "-")), React.createElement("div", {
+  }, T("ชื่อ:"), " ", React.createElement("b", null, x.s && x.s.name || x.n || "-")), React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#4A5A51"
     }
-  }, "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48: ", window.drDateTH(x.s ? window.drSignDay(x.s) : window.drLocalDay(x.d))), x.s && x.s.img && React.createElement("div", {
+  }, T("วันที่:"), " ", DTs(x.s ? window.drSignDay(x.s) : window.drLocalDay(x.d))), x.s && x.s.img && React.createElement("div", {
     style: {
       fontSize: 8.5,
       color: "#8A9A91",
       marginTop: 3
     }
-  }, "\u0E25\u0E07\u0E25\u0E32\u0E22\u0E21\u0E37\u0E2D\u0E0A\u0E37\u0E48\u0E2D\u0E2D\u0E34\u0E40\u0E25\u0E47\u0E01\u0E17\u0E23\u0E2D\u0E19\u0E34\u0E01\u0E2A\u0E4C\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A ", window.drSignTime(x.s) ? window.drSignTime(x.s) + " น." : "")))), v.status === "approved" && React.createElement("div", {
+  }, T("ลงลายมือชื่ออิเล็กทรอนิกส์ในระบบ"), " ", window.drSignTime(x.s) ? window.drSignTime(x.s) + (lang === "th" ? " น." : "") : "")))), v.status === "approved" && React.createElement("div", {
     style: {
       marginTop: 10,
       fontSize: 10,
       color: "#4A5A51",
       textAlign: "right"
     }
-  }, "\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E42\u0E14\u0E22 ", React.createElement("b", {
+  }, T("อนุมัติโดย"), " ", React.createElement("b", {
     style: {
       color: "#15211A"
     }
-  }, v.appName || "-"), v.approvedAt ? " · " + window.drDateTH(window.drLocalDay(v.approvedAt)) : ""), React.createElement("div", {
+  }, v.appName || "-"), v.approvedAt ? " · " + DTs(window.drLocalDay(v.approvedAt)) : ""), React.createElement("div", {
     style: {
       marginTop: 14,
       fontSize: 9.5,
       color: "#8A9A91",
       textAlign: "center"
     }
-  }, "\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E19\u0E35\u0E49\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A\u0E07\u0E32\u0E19\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23\u0E2B\u0E25\u0E31\u0E07\u0E01\u0E32\u0E23\u0E02\u0E32\u0E22 flash+solar \xB7 ", v.no, " \xB7 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E21\u0E37\u0E48\u0E2D ", window.drDateTH(window.drToday()))));
+  }, T("เอกสารนี้ออกจากระบบงานบริการหลังการขาย"), " flash+solar \xB7 ", v.no, " \xB7 ", T("พิมพ์เมื่อ"), " ", DTs(window.drToday()))));
 }
 function OmVisitList({
   sites,

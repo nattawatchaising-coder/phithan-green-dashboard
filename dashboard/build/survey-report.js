@@ -136,6 +136,63 @@ function RepCell({
     }
   }, v || "-"));
 }
+const SV_I18N = {
+  "รายงานผลสำรวจหน้างาน": ["Site Survey Report", "现场勘查报告"],
+  "สำรวจ:": ["Surveyed:", "勘查日期："],
+  "รายงาน:": ["Reported:", "报告日期："],
+  "โครงการ": ["Project", "项目"],
+  "ลูกค้า": ["Customer", "客户"],
+  "ขนาด": ["Size", "规模"],
+  "แผง": ["Modules", "组件"],
+  "รหัสงาน": ["Job code", "项目编号"],
+  "ที่อยู่": ["Address", "地址"],
+  "ผลการตรวจสอบ": ["Survey findings", "勘查结果"],
+  "สภาพหลังคา": ["Roof condition", "屋面状况"],
+  "พื้นที่จะวางแผ่นโซลาร์เซลล์": ["Area for the solar array", "组件安装区域"],
+  "ประเภทหลังคา": ["Roof type", "屋面类型"],
+  "โครงสร้างรับน้ำหนัก": ["Load-bearing structure", "承重结构"],
+  "มีวัตถุที่ส่งผลกระทบต่อการรับแสง": ["Objects that shade the array", "影响采光的物体"],
+  "ตาข่ายกันนก": ["Bird netting", "防鸟网"],
+  "ระบบไฟฟ้า": ["Electrical system", "电气系统"],
+  "สายเมนเดิม": ["Existing main cable", "原主干电缆"],
+  "มิเตอร์": ["Utility meter", "电表"],
+  "ตู้ MDB": ["MDB panel", "总配电柜"],
+  "เซฟตี้คัตในตู้": ["Safety switch in the panel", "柜内安全开关"],
+  "เมนกันดูด (RCD / RCCB)": ["Main earth-leakage device (RCD / RCCB)", "主漏电保护器（RCD / RCCB）"],
+  "ตำแหน่ง MDB": ["MDB location", "配电柜位置"],
+  "จุดติดตั้งอินเวอร์เตอร์": ["Inverter mounting point", "逆变器安装位置"],
+  "พิกัด GPS หน้างาน": ["Site GPS coordinates", "现场 GPS 坐标"],
+  "ความต้องการพิเศษ": ["Special requirements", "特殊要求"],
+  "หมายเหตุ": ["Notes", "备注"],
+  "เงาบัง:": ["Shading:", "遮挡："],
+  "ภาพประกอบการสำรวจ": ["Survey photographs", "勘查照片"],
+  "แนบไฟล์เอกสารแยก:": ["Attached as a separate file:", "另附文件："],
+  "(เปิดดูได้จากหน้าคลังสินค้า)": ["(available from the inventory page)", "（可在库存页面查看）"],
+  "ผู้สำรวจ:": ["Surveyed by:", "勘查人："],
+  "ออกรายงาน:": ["Report issued:", "出具日期："],
+  "รูป": ["photos", "张"],
+  "มี": ["Yes", "有"],
+  "ไม่มี": ["No", "无"],
+  "โทร ": ["Tel ", "电话 "],
+  "ระยะเดินสาย (รวม {} ม.)": ["Cable runs (total {} m)", "线缆路由（合计 {} 米）"],
+  "อื่นๆ ({})": ["Other ({})", "其他（{}）"],
+  "ดี (แข็งแรง)": ["Good (sound)", "良好（结构稳固）"],
+  "พอใช้": ["Fair", "一般"],
+  "ทรุดโทรม / ต้องเสริม": ["Deteriorated / needs reinforcement", "老化，需加固"],
+  "ผ่าน": ["Pass", "合格"],
+  "ต้องเสริม / แก้ไข": ["Needs reinforcement / rectification", "需加固或整改"],
+  "ติดตั้ง": ["To be installed", "安装"],
+  "ไม่ติดตั้ง": ["Not installed", "不安装"],
+  "ในอาคาร (Indoor)": ["Indoor", "室内"],
+  "นอกอาคาร (Outdoor)": ["Outdoor", "室外"],
+  "มีช่องว่างเพียงพอ": ["Sufficient spare ways", "柜内空间充足"],
+  "มีช่องว่างจำกัด": ["Limited spare ways", "柜内空间有限"],
+  "เต็ม / ต้องเพิ่มตู้": ["Full / additional panel required", "已满，需增柜"],
+  "แผง → อินเวอร์เตอร์ (สาย DC)": ["Modules → inverter (DC cable)", "组件 → 逆变器（直流线）"],
+  "อินเวอร์เตอร์ → ตู้ MDB (สาย AC)": ["Inverter → MDB (AC cable)", "逆变器 → 配电柜（交流线）"],
+  "CT / Meter → อินเวอร์เตอร์": ["CT / meter → inverter", "CT / 电表 → 逆变器"],
+  "สายกราวด์ → หลักดิน": ["Earth cable → ground rod", "接地线 → 接地极"]
+};
 function SurveyReport({
   job,
   photos,
@@ -143,6 +200,13 @@ function SurveyReport({
   onClose
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const [lang, setLang] = React.useState(() => window.pgLang ? window.pgLang() : "th");
+  const pickLang = id => {
+    setLang(id);
+    if (window.pgSetLang) window.pgSetLang(id);
+  };
+  const T = React.useMemo(() => window.pgT ? window.pgT(SV_I18N, lang) : k => k, [lang]);
+  const DT = iso => lang === "th" || !window.pgDate ? repDate(iso) : !iso ? "-" : window.pgDate(String(iso).slice(0, 10), lang);
   const s = job && job.survey || {};
   const shots = window.sortedShots(photos || {});
   const gps = s.gps && s.gps.lat ? s.gps.lat + ", " + s.gps.lng : "";
@@ -164,7 +228,7 @@ function SurveyReport({
   }, [photos]);
   const doPrint = () => {
     const old = document.title;
-    document.title = "รายงานสำรวจ " + (job.code || "") + " " + (job.name || "");
+    document.title = T("รายงานผลสำรวจหน้างาน") + " " + (job.code || "") + " " + (job.name || "");
     window.print();
     setTimeout(() => {
       document.title = old;
@@ -242,7 +306,10 @@ function SurveyReport({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, shots.length, " \u0E23\u0E39\u0E1B", (docs || []).length ? " · DATA SHEET " + docs.length + " ใบ" : "", " \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19 PDF\u201D")), React.createElement("button", {
+  }, shots.length, " \u0E23\u0E39\u0E1B", (docs || []).length ? " · DATA SHEET " + docs.length + " ใบ" : "", " \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19 PDF\u201D")), typeof window.LangPick === "function" && React.createElement(window.LangPick, {
+    value: lang,
+    onChange: pickLang
+  }), React.createElement("button", {
     onClick: doPrint,
     style: {
       display: "inline-flex",
@@ -270,6 +337,7 @@ function SurveyReport({
       margin: "0 auto",
       background: "#fff",
       color: "#15211A",
+      fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
       padding: isMobile ? "20px 16px" : "34px 38px",
       borderRadius: isMobile ? 0 : 12,
       boxShadow: "0 20px 60px rgba(8,20,14,.28)"
@@ -296,7 +364,7 @@ function SurveyReport({
       color: "var(--text-1)",
       letterSpacing: "-.01em"
     }
-  }, "\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1C\u0E25\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19"), React.createElement("div", {
+  }, T("รายงานผลสำรวจหน้างาน")), React.createElement("div", {
     style: {
       fontSize: 10.5,
       fontWeight: 600,
@@ -324,7 +392,7 @@ function SurveyReport({
       color: "var(--text-2)",
       lineHeight: 1.7
     }
-  }, React.createElement("div", null, "\u0E2A\u0E33\u0E23\u0E27\u0E08: ", repDate(s.startedAt)), React.createElement("div", null, "\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19: ", repDate(s.completedAt || s.updatedAt || s.startedAt)))), React.createElement("div", {
+  }, React.createElement("div", null, T("สำรวจ:"), " ", DT(s.startedAt)), React.createElement("div", null, T("รายงาน:"), " ", DT(s.completedAt || s.updatedAt || s.startedAt)))), React.createElement("div", {
     className: "sv-rep-info",
     style: {
       marginTop: 16,
@@ -333,19 +401,19 @@ function SurveyReport({
       overflow: "hidden"
     }
   }, React.createElement(RepCell, {
-    k: "\u0E42\u0E04\u0E23\u0E07\u0E01\u0E32\u0E23",
+    k: T("โครงการ"),
     v: job.name
   }), React.createElement(RepCell, {
-    k: "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32",
+    k: T("ลูกค้า"),
     v: job.name
   }), React.createElement(RepCell, {
-    k: "\u0E02\u0E19\u0E32\u0E14",
+    k: T("ขนาด"),
     v: size
   }), React.createElement(RepCell, {
     k: "Inverter",
     v: s.invModel
   }), React.createElement(RepCell, {
-    k: "\u0E41\u0E1C\u0E07",
+    k: T("แผง"),
     v: s.panelModel
   }), React.createElement(RepCell, {
     k: "Monitoring",
@@ -354,7 +422,7 @@ function SurveyReport({
     k: "Meter/CT",
     v: s.meterCt
   }), React.createElement(RepCell, {
-    k: "\u0E23\u0E2B\u0E31\u0E2A\u0E07\u0E32\u0E19",
+    k: T("รหัสงาน"),
     v: job.code
   }), React.createElement("div", {
     style: {
@@ -365,84 +433,84 @@ function SurveyReport({
       color: "var(--primary-dark)",
       background: "var(--surface2)"
     }
-  }, "\u0E17\u0E35\u0E48\u0E2D\u0E22\u0E39\u0E48"), React.createElement("div", {
+  }, T("ที่อยู่")), React.createElement("div", {
     style: {
       padding: "7px 10px",
       fontSize: 11.5,
       color: "var(--text-1)"
     }
-  }, [job.address, job.province].filter(Boolean).join(" ") || "-", job.phone ? " · โทร " + job.phone : "")), React.createElement(RepSection, {
-    title: "\u0E1C\u0E25\u0E01\u0E32\u0E23\u0E15\u0E23\u0E27\u0E08\u0E2A\u0E2D\u0E1A"
+  }, [job.address, job.province].filter(Boolean).join(" ") || "-", job.phone ? " · " + T("โทร ") + job.phone : "")), React.createElement(RepSection, {
+    title: T("ผลการตรวจสอบ")
   }, React.createElement(RepGroup, {
     icon: "\uD83C\uDFE0",
-    title: "\u0E2A\u0E20\u0E32\u0E1E\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32"
+    title: T("สภาพหลังคา")
   }, React.createElement(RepCheck, {
-    label: "\u0E1E\u0E37\u0E49\u0E19\u0E17\u0E35\u0E48\u0E08\u0E30\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E48\u0E19\u0E42\u0E0B\u0E25\u0E32\u0E23\u0E4C\u0E40\u0E0B\u0E25\u0E25\u0E4C",
+    label: T("พื้นที่จะวางแผ่นโซลาร์เซลล์"),
     value: s.buildingType
   }), React.createElement(RepCheck, {
-    label: "\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32",
+    label: T("ประเภทหลังคา"),
     value: s.roofType
   }), React.createElement(RepCheck, {
-    label: "\u0E2A\u0E20\u0E32\u0E1E\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32",
-    value: roofCond
+    label: T("สภาพหลังคา"),
+    value: T(roofCond)
   }), React.createElement(RepCheck, {
-    label: "\u0E42\u0E04\u0E23\u0E07\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E23\u0E31\u0E1A\u0E19\u0E49\u0E33\u0E2B\u0E19\u0E31\u0E01",
-    value: structure
+    label: T("โครงสร้างรับน้ำหนัก"),
+    value: T(structure)
   }), React.createElement(RepCheck, {
-    label: "\u0E21\u0E35\u0E27\u0E31\u0E15\u0E16\u0E38\u0E17\u0E35\u0E48\u0E2A\u0E48\u0E07\u0E1C\u0E25\u0E01\u0E23\u0E30\u0E17\u0E1A\u0E15\u0E48\u0E2D\u0E01\u0E32\u0E23\u0E23\u0E31\u0E1A\u0E41\u0E2A\u0E07",
+    label: T("มีวัตถุที่ส่งผลกระทบต่อการรับแสง"),
     value: (s.shadingTags || []).join(", ")
   }), React.createElement(RepCheck, {
-    label: "\u0E15\u0E32\u0E02\u0E48\u0E32\u0E22\u0E01\u0E31\u0E19\u0E19\u0E01",
-    value: birdNet
+    label: T("ตาข่ายกันนก"),
+    value: T(birdNet)
   })), React.createElement(RepGroup, {
     icon: "\u26A1",
-    title: "\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E1F\u0E1F\u0E49\u0E32"
+    title: T("ระบบไฟฟ้า")
   }, React.createElement(RepCheck, {
-    label: "\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E1F\u0E1F\u0E49\u0E32",
-    value: s.phase ? s.phase + " เฟส" : ""
+    label: T("ระบบไฟฟ้า"),
+    value: s.phase ? s.phase + (lang === "th" ? " เฟส" : " Phase") : ""
   }), React.createElement(RepCheck, {
     label: "Main Breaker",
     value: s.mainBreaker
   }), React.createElement(RepCheck, {
-    label: "\u0E2A\u0E32\u0E22\u0E40\u0E21\u0E19\u0E40\u0E14\u0E34\u0E21",
+    label: T("สายเมนเดิม"),
     value: s.mainCable
   }), React.createElement(RepCheck, {
-    label: "\u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C",
+    label: T("มิเตอร์"),
     value: meter
   }), React.createElement(RepCheck, {
-    label: "\u0E15\u0E39\u0E49 MDB",
-    value: [s.mdbBrand, mdbSpace].filter(Boolean).join(" · ")
+    label: T("ตู้ MDB"),
+    value: [s.mdbBrand, T(mdbSpace)].filter(Boolean).join(" · ")
   }), React.createElement(RepCheck, {
-    label: "\u0E40\u0E0B\u0E1F\u0E15\u0E35\u0E49\u0E04\u0E31\u0E15\u0E43\u0E19\u0E15\u0E39\u0E49",
-    value: _yn(s.mdbSafety)
+    label: T("เซฟตี้คัตในตู้"),
+    value: T(_yn(s.mdbSafety))
   }), React.createElement(RepCheck, {
-    label: "\u0E40\u0E21\u0E19\u0E01\u0E31\u0E19\u0E14\u0E39\u0E14 (RCD / RCCB)",
-    value: _yn(s.mdbRccb)
+    label: T("เมนกันดูด (RCD / RCCB)"),
+    value: T(_yn(s.mdbRccb))
   }), React.createElement(RepCheck, {
-    label: "\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07 MDB",
-    value: s.mdbLoc
+    label: T("ตำแหน่ง MDB"),
+    value: T(s.mdbLoc)
   }), React.createElement(RepCheck, {
-    label: "\u0E08\u0E38\u0E14\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C",
-    value: invLoc
+    label: T("จุดติดตั้งอินเวอร์เตอร์"),
+    value: T(invLoc)
   }), React.createElement(RepCheck, {
-    label: "\u0E1E\u0E34\u0E01\u0E31\u0E14 GPS \u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19",
+    label: T("พิกัด GPS หน้างาน"),
     value: gps
   })), window.SURVEY_CABLE_LEGS.some(l => +s[l.key] > 0) && React.createElement(RepGroup, {
     icon: "\uD83D\uDCCF",
-    title: "ระยะเดินสาย (รวม " + window.cableTotal(s) + " ม.)"
+    title: T("ระยะเดินสาย (รวม {} ม.)").replace("{}", window.cableTotal(s))
   }, window.SURVEY_CABLE_LEGS.map(l => React.createElement(RepCheck, {
     key: l.key,
-    label: l.th,
-    value: +s[l.key] > 0 ? s[l.key] + " ม." : ""
+    label: T(l.th),
+    value: +s[l.key] > 0 ? s[l.key] + (lang === "th" ? " ม." : lang === "zh" ? " 米" : " m") : ""
   }))), (s.specials || []).filter(Boolean).length > 0 && React.createElement(RepGroup, {
     icon: "\u26A0\uFE0F",
-    title: "\u0E04\u0E27\u0E32\u0E21\u0E15\u0E49\u0E2D\u0E07\u0E01\u0E32\u0E23\u0E1E\u0E34\u0E40\u0E28\u0E29"
+    title: T("ความต้องการพิเศษ")
   }, (s.specials || []).filter(Boolean).map((v, i) => React.createElement(RepCheck, {
     key: i,
-    label: "อื่นๆ (" + (i + 1) + ")",
+    label: T("อื่นๆ ({})").replace("{}", i + 1),
     value: v
   })))), (s.note || s.shadingNote) && React.createElement(RepSection, {
-    title: "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38"
+    title: T("หมายเหตุ")
   }, React.createElement("div", {
     style: {
       marginTop: 10,
@@ -455,8 +523,8 @@ function SurveyReport({
       whiteSpace: "pre-wrap",
       color: "var(--text-1)"
     }
-  }, [s.note, s.shadingNote ? "เงาบัง: " + s.shadingNote : ""].filter(Boolean).join("\n"))), shots.length > 0 && React.createElement(RepSection, {
-    title: "ภาพประกอบการสำรวจ (" + shots.length + " รูป)"
+  }, [s.note, s.shadingNote ? T("เงาบัง:") + " " + s.shadingNote : ""].filter(Boolean).join("\n"))), shots.length > 0 && React.createElement(RepSection, {
+    title: T("ภาพประกอบการสำรวจ") + " (" + shots.length + " " + T("รูป") + ")"
   }, React.createElement("div", {
     style: {
       marginTop: 12,
@@ -575,11 +643,11 @@ function SurveyReport({
       borderRadius: 8,
       padding: "12px 14px"
     }
-  }, "\u0E41\u0E19\u0E1A\u0E44\u0E1F\u0E25\u0E4C\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E41\u0E22\u0E01: ", React.createElement("b", {
+  }, T("แนบไฟล์เอกสารแยก:"), " ", React.createElement("b", {
     style: {
       color: "var(--text-1)"
     }
-  }, d.doc.name), " (\u0E40\u0E1B\u0E34\u0E14\u0E14\u0E39\u0E44\u0E14\u0E49\u0E08\u0E32\u0E01\u0E2B\u0E19\u0E49\u0E32\u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32)")))), React.createElement("div", {
+  }, d.doc.name), " ", T("(เปิดดูได้จากหน้าคลังสินค้า)"))))), React.createElement("div", {
     style: {
       marginTop: 22,
       paddingTop: 12,
@@ -592,11 +660,11 @@ function SurveyReport({
       color: "var(--text-2)",
       breakInside: "avoid"
     }
-  }, React.createElement("div", null, "\u0E1C\u0E39\u0E49\u0E2A\u0E33\u0E23\u0E27\u0E08: ", React.createElement("b", {
+  }, React.createElement("div", null, T("ผู้สำรวจ:"), " ", React.createElement("b", {
     style: {
       color: "var(--text-1)"
     }
-  }, s.byName || "-")), React.createElement("div", null, "\u0E2D\u0E2D\u0E01\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19: ", repDate(new Date().toISOString())))));
+  }, s.byName || "-")), React.createElement("div", null, T("ออกรายงาน:"), " ", DT(new Date().toISOString())))));
 }
 function SurveyReportHost({
   job,

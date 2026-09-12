@@ -34,12 +34,14 @@ const pgSetLang = (id) => {
 /* ตัวแปลของเอกสารหนึ่งใบ — คืนฟังก์ชัน T(key) ที่ปิดทับภาษาไว้แล้ว
    ค่าที่ไม่มีในพจนานุกรมคืนคีย์เดิม เพื่อให้เห็นตอนทดสอบว่าลืมแปลตรงไหน */
 function pgT(dict, lang) {
-  const i = PG_LANG_IX[lang] != null ? PG_LANG_IX[lang] : 0;
+  /* แถวในตารางเก็บแค่ [อังกฤษ, จีน] — ไทยคือคีย์เอง จึงต้องลบหนึ่งก่อนใช้ดัชนี
+     เลือกไทย (0) หรือภาษาที่ไม่รู้จัก = คืนข้อความต้นทาง ไม่แตะ */
+  const i = PG_LANG_IX[lang] || 0;
   return function (key) {
+    if (!i) return key;
     const row = (dict || {})[key];
-    if (!row) return key;
-    if (typeof row === "string") return row;
-    return row[i] || row[0] || key;
+    if (!row) return key;                      /* ยังไม่มีคำแปลของคำนี้ — คงภาษาไทยไว้ ไม่ใช่ช่องว่าง */
+    return (typeof row === "string" ? row : row[i - 1]) || key;
   };
 }
 
@@ -63,6 +65,18 @@ function pgDate(iso, lang) {
 }
 /* วันที่ของ "วันนี้" ในภาษานั้น — ใช้ตอนประทับวันที่ออกเอกสาร */
 const pgToday = (lang) => pgDate(new Date().toISOString().slice(0, 10), lang);
+
+/* วันที่แบบสั้นสำหรับช่องตารางแคบ ๆ — ไม่มีปี
+   ไทยใช้ drShort ของเดิมเพื่อให้หน้าตาเหมือนที่ทีมคุ้นอยู่แล้ว */
+function pgShort(iso, lang) {
+  if (!iso) return "—";
+  const i = PG_LANG_IX[lang] || 0;
+  if (!i) return window.drShort ? window.drShort(iso) : iso;
+  const p = String(iso).split("-");
+  const m = +p[1] - 1, d = +p[2];
+  if (m < 0 || m > 11) return iso;
+  return lang === "zh" ? (m + 1) + "月" + d + "日" : d + " " + PG_MON.en[m];
+}
 
 /* ── ฟอนต์ ──
    IBM Plex Sans Thai ไม่มีตัวอักษรจีน ปล่อยไว้ตัวจีนจะกลายเป็นสี่เหลี่ยม
@@ -176,4 +190,4 @@ function LangPick({ value, onChange, label }) {
   );
 }
 
-Object.assign(window, { PG_LANGS, PG_LANG_IX, pgLang, pgSetLang, pgT, pgDate, pgToday, pgFontLink, pgFontStack, pgDocHTML, LangPick });
+Object.assign(window, { PG_LANGS, PG_LANG_IX, pgLang, pgSetLang, pgT, pgDate, pgToday, pgShort, pgFontLink, pgFontStack, pgDocHTML, LangPick });

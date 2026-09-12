@@ -323,6 +323,59 @@ function OmVisitModal({ visit, site, siteVisits, role, currentUser, onClose, onP
   );
 }
 
+/* ── พจนานุกรมใบรายงานเข้าบริการ (ไทย → [อังกฤษ, จีน]) ──
+   ใบนี้เป็นคอมโพเนนต์ React ไม่ใช่สตริง HTML จึงแปลทีละข้อความด้วย window.pgT
+   ไม่ใช่ pgDocHTML แบบรายงานออกแบบ · ข้อความที่ช่างพิมพ์เอง (ตรวจพบ/งานที่ทำ/ผล
+   /ชื่ออะไหล่/คำแนะนำ) ไม่อยู่ในตารางนี้ ออกตามที่พิมพ์ไว้เสมอ */
+const OM_PAPER_I18N = {
+  "ใบรายงานเข้าบริการ": ["Service Visit Report", "服务工单"],
+  "ชื่อไซต์": ["Site", "站点名称"],
+  "รหัสไซต์": ["Site code", "站点编号"],
+  "ประเภทงาน": ["Visit type", "工单类型"],
+  "ขนาดระบบ": ["System size", "系统容量"],
+  "สถานที่": ["Location", "地址"],
+  "ผู้ติดต่อ": ["Contact", "联系人"],
+  "เวลาเข้า–ออก": ["Time in – out", "进出场时间"],
+  "ทีมช่าง": ["Technicians", "施工人员"],
+  "สถานะค่าบริการ": ["Charge status", "费用性质"],
+  "ยอดเรียกเก็บ": ["Amount billed", "应收金额"],
+  "ตรวจพบ": ["Findings", "检查发现"],
+  "งานที่ทำ": ["Work performed", "处理内容"],
+  "ผลหลังทำงานเสร็จ": ["Result after service", "处理结果"],
+  "อะไหล่ / วัสดุที่ใช้": ["Parts and materials used", "所用配件与材料"],
+  "รายการ": ["Description", "项目"],
+  "จำนวน": ["Qty", "数量"],
+  "หน่วย": ["Unit", "单位"],
+  "หมายเหตุ": ["Note", "备注"],
+  "คำแนะนำ / นัดครั้งถัดไป": ["Recommendations / next visit", "建议与下次服务"],
+  "นัดครั้งถัดไป:": ["Next visit:", "下次服务："],
+  "รูปก่อนทำงาน": ["Before service", "施工前照片"],
+  "รูปหลังทำงาน": ["After service", "施工后照片"],
+  "ช่างผู้ให้บริการ": ["Service technician", "服务技师"],
+  "ลูกค้าผู้รับบริการ": ["Customer", "客户签收"],
+  "อนุมัติโดย": ["Approved by", "批准人"],
+  "ลงลายมือชื่ออิเล็กทรอนิกส์ในระบบ": ["Signed electronically in the system", "已在系统内电子签名"],
+  "เอกสารนี้ออกจากระบบงานบริการหลังการขาย": ["Issued by the O&M system of", "本文件由售后运维系统开具"],
+  "พิมพ์เมื่อ": ["printed", "打印于"],
+  "ชื่อ:": ["Name:", "姓名："],
+  "วันที่:": ["Date:", "日期："],
+  "รูปที่": ["Photo", "照片"],
+  "บาท": ["THB", "泰铢"],
+  "แผง": ["modules", "块组件"],
+  "รูป": ["photos", "张"],
+  /* ค่าที่มาจาก om.jsx — สถานะใบ ประเภทงาน และสถานะค่าบริการ */
+  "ร่าง": ["Draft", "草稿"],
+  "รอตรวจ": ["Pending review", "待审核"],
+  "อนุมัติแล้ว": ["Approved", "已批准"],
+  "เข้าซ่อม": ["Repair", "维修"],
+  "ล้างแผง": ["Panel cleaning", "组件清洗"],
+  "เข้าตรวจเช็กระบบ": ["System inspection", "系统巡检"],
+  "อยู่ในประกัน": ["Under warranty", "保修范围内"],
+  "คิดค่าบริการ": ["Chargeable", "收费"],
+  "บริการให้ฟรี": ["Goodwill (free)", "免费服务"],
+  "ยังไม่ได้ตัดสิน": ["Not determined", "未确定"],
+};
+
 /* ══════════════════════════════════════════════════
    กระดาษ A4 — สั่งพิมพ์ของเบราว์เซอร์แล้วเลือก "บันทึกเป็น PDF"
    ══════════════════════════════════════════════════ */
@@ -352,6 +405,14 @@ const omPara = (t) => (
 
 function OmVisitPaper({ visit, site, signs, onClose }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  /* ภาษาของใบ — สลับได้สดจากแถบด้านบน (แถบนี้ไม่ติดไปในหน้าพิมพ์อยู่แล้ว)
+     T() คืนภาษาไทยเดิมทุกคำที่ไม่มีในตาราง และคืนของเดิมทั้งหมดเมื่อเลือกไทย
+     วันที่: ไทยเป็น พ.ศ. อังกฤษ/จีนเป็น ค.ศ. จึงต้องแยกฟังก์ชันกัน ห้ามแปลด้วย T() */
+  const [lang, setLang] = React.useState(() => (window.pgLang ? window.pgLang() : "th"));
+  const pickLang = (id) => { setLang(id); if (window.pgSetLang) window.pgSetLang(id); };
+  const T = React.useMemo(() => (window.pgT ? window.pgT(OM_PAPER_I18N, lang) : (k) => k), [lang]);
+  const DT = (iso) => (!iso ? "-" : lang === "th" || !window.pgDate ? window.drDateTH(iso, true) : window.pgDate(iso, lang));
+  const DTs = (iso) => (!iso ? "-" : lang === "th" || !window.pgDate ? window.drDateTH(iso) : window.pgDate(iso, lang));
   const { photos } = window.useOmVisitPhotos(visit.id);
   const v = visit;
   const st = window.omVisitStatusOf(v.status);
@@ -364,7 +425,7 @@ function OmVisitPaper({ visit, site, signs, onClose }) {
 
   const doPrint = () => {
     const old = document.title;
-    document.title = "ใบรายงานเข้าบริการ " + (v.no || "") + " " + (v.date || "");
+    document.title = T("ใบรายงานเข้าบริการ") + " " + (v.no || "") + " " + (v.date || "");
     window.print();
     setTimeout(() => { document.title = old; }, 800);
   };
@@ -376,13 +437,13 @@ function OmVisitPaper({ visit, site, signs, onClose }) {
   /* รูปวางสองคอลัมน์ แยกหัวข้อก่อน/หลัง — ลูกค้าเทียบได้ในหน้าเดียว */
   const shots = (title, list) => (
     !list.length ? null : (
-      <OmPBlock title={title + " (" + list.length + " รูป)"}>
+      <OmPBlock title={T(title) + " (" + list.length + " " + T("รูป") + ")"}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, alignItems: "start" }}>
           {list.map((p, i) => (
             <div key={p.id} className="om-shot" style={{ breakInside: "avoid", border: "1px solid #DCE4DF", borderRadius: 7, overflow: "hidden" }}>
               <img src={p.dataUrl} alt={p.cap || ""} style={{ width: "100%", display: "block", background: "#F3F7F4" }} />
               <div style={{ padding: "5px 8px", fontSize: 10.5, color: "#4A5A51", borderTop: "1px solid #ECF1EE" }}>
-                <b style={{ color: "#0A4D68" }}>รูปที่ {i + 1}</b>{p.cap ? " · " + p.cap : ""}
+                <b style={{ color: "#0A4D68" }}>{T("รูปที่")} {i + 1}</b>{p.cap ? " · " + p.cap : ""}
               </div>
             </div>
           ))}
@@ -402,19 +463,24 @@ function OmVisitPaper({ visit, site, signs, onClose }) {
           <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>ใบรายงานเข้าบริการ · {window.drDateTH(v.date)}</div>
           <div style={{ fontSize: 11, color: "var(--text-3)" }}>{photos.length} รูป · กดปุ่มแล้วเลือก “บันทึกเป็น PDF”</div>
         </div>
+        {typeof window.LangPick === "function" && (
+          <window.LangPick value={lang} onChange={pickLang} />
+        )}
         <button onClick={doPrint} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "11px 16px", borderRadius: 11,
           border: "none", background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
           <Icon name="file" size={16} color="#fff" /> บันทึก PDF
         </button>
       </div>
 
+      {/* ฟอนต์ไทยของแอปไม่มีตัวอักษรจีน — เลือกจีนแล้วต้องระบุชุดฟอนต์ที่มีจีนให้ชัด ไม่งั้นเสี่ยงได้สี่เหลี่ยม */}
       <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: "#15211A",
+        fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
         padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "0 20px 60px rgba(8,20,14,.28)" }}>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap",
           borderBottom: "2px solid #1B9B75", paddingBottom: 11 }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.01em" }}>ใบรายงานเข้าบริการ</div>
+            <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.01em" }}>{T("ใบรายงานเข้าบริการ")}</div>
             <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".12em", color: "#7A8A81", marginTop: 3 }}>SOLAR O&amp;M — SERVICE VISIT REPORT</div>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}>
               <window.BrandMark size={22} variant="light" />
@@ -423,47 +489,47 @@ function OmVisitPaper({ visit, site, signs, onClose }) {
           </div>
           <div style={{ textAlign: "right", fontSize: 11, color: "#4A5A51", lineHeight: 1.75 }}>
             <div style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "#15211A" }}>{v.no}</div>
-            <div>{window.drDateTH(v.date, true)}</div>
+            <div>{DT(v.date)}</div>
             <div style={{ display: "inline-block", marginTop: 3, padding: "2px 9px", borderRadius: 99,
-              background: st.color + "22", color: st.color, fontWeight: 700, fontSize: 10.5 }}>{st.th}</div>
+              background: st.color + "22", color: st.color, fontWeight: 700, fontSize: 10.5 }}>{T(st.th)}</div>
           </div>
         </div>
 
         <div style={{ marginTop: 13, display: "grid", gridTemplateColumns: "auto 1fr auto 1fr",
           border: "1px solid #DCE4DF", borderRadius: 7, overflow: "hidden" }}>
-          <OmPRow k="ชื่อไซต์" v={v.siteName || (site || {}).name} />
-          <OmPRow k="รหัสไซต์" v={v.siteCode} />
-          <OmPRow k="ประเภทงาน" v={kind.th} />
-          <OmPRow k="ขนาดระบบ" v={(site || {}).kw ? site.kw + " kW" + (site.panels ? " · " + site.panels + " แผง" : "") : "-"} />
-          <OmPRow k="สถานที่" v={[(site || {}).address, (site || {}).province].filter(Boolean).join(" · ")} />
-          <OmPRow k="ผู้ติดต่อ" v={[(site || {}).phone].filter(Boolean).join(" · ")} />
-          <OmPRow k="เวลาเข้า–ออก" v={(v.timeIn || "-") + " – " + (v.timeOut || "-")} />
-          <OmPRow k="ทีมช่าง" v={v.team || v.byName} />
+          <OmPRow k={T("ชื่อไซต์")} v={v.siteName || (site || {}).name} />
+          <OmPRow k={T("รหัสไซต์")} v={v.siteCode} />
+          <OmPRow k={T("ประเภทงาน")} v={T(kind.th)} />
+          <OmPRow k={T("ขนาดระบบ")} v={(site || {}).kw ? site.kw + " kW" + (site.panels ? " · " + site.panels + " " + T("แผง") : "") : "-"} />
+          <OmPRow k={T("สถานที่")} v={[(site || {}).address, (site || {}).province].filter(Boolean).join(" · ")} />
+          <OmPRow k={T("ผู้ติดต่อ")} v={[(site || {}).phone].filter(Boolean).join(" · ")} />
+          <OmPRow k={T("เวลาเข้า–ออก")} v={(v.timeIn || "-") + " – " + (v.timeOut || "-")} />
+          <OmPRow k={T("ทีมช่าง")} v={v.team || v.byName} />
         </div>
 
         {/* ในประกันหรือคิดเงิน — คำถามแรกที่ลูกค้าถามเสมอ ต้องอยู่บนสุดของใบ */}
         <div style={{ marginTop: 14, border: "1px solid #DCE4DF", borderRadius: 9, padding: "12px 14px", breakInside: "avoid",
           display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: "#4A5A51" }}>สถานะค่าบริการ</span>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: "#4A5A51" }}>{T("สถานะค่าบริการ")}</span>
           <span style={{ padding: "3px 11px", borderRadius: 99, fontSize: 11.5, fontWeight: 800,
-            background: cov.color + "22", color: cov.color }}>{cov.th}</span>
+            background: cov.color + "22", color: cov.color }}>{T(cov.th)}</span>
           <span style={{ flex: 1 }} />
-          <span style={{ fontSize: 11.5, color: "#4A5A51" }}>ยอดเรียกเก็บ</span>
+          <span style={{ fontSize: 11.5, color: "#4A5A51" }}>{T("ยอดเรียกเก็บ")}</span>
           <span style={{ fontFamily: "var(--mono)", fontSize: 17, fontWeight: 800, color: "#15211A" }}>
-            {v.charge == null ? "—" : Number(v.charge).toLocaleString("th-TH") + " บาท"}
+            {v.charge == null ? "—" : Number(v.charge).toLocaleString("th-TH") + " " + T("บาท")}
           </span>
         </div>
 
-        <OmPBlock title="ตรวจพบ" avoid>{omPara(v.found)}</OmPBlock>
-        <OmPBlock title="งานที่ทำ" avoid>{omPara(v.work)}</OmPBlock>
-        <OmPBlock title="ผลหลังทำงานเสร็จ" avoid>{omPara(v.result)}</OmPBlock>
+        <OmPBlock title={T("ตรวจพบ")} avoid>{omPara(v.found)}</OmPBlock>
+        <OmPBlock title={T("งานที่ทำ")} avoid>{omPara(v.work)}</OmPBlock>
+        <OmPBlock title={T("ผลหลังทำงานเสร็จ")} avoid>{omPara(v.result)}</OmPBlock>
 
         {!!parts.length && (
-          <OmPBlock title="อะไหล่ / วัสดุที่ใช้">
+          <OmPBlock title={T("อะไหล่ / วัสดุที่ใช้")}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr>
                 <th style={Object.assign({}, th, { width: 26 })}>#</th>
-                <th style={th}>รายการ</th><th style={th}>จำนวน</th><th style={th}>หน่วย</th><th style={th}>หมายเหตุ</th>
+                <th style={th}>{T("รายการ")}</th><th style={th}>{T("จำนวน")}</th><th style={th}>{T("หน่วย")}</th><th style={th}>{T("หมายเหตุ")}</th>
               </tr></thead>
               <tbody>
                 {parts.map((p, i) => (
@@ -481,11 +547,11 @@ function OmVisitPaper({ visit, site, signs, onClose }) {
         )}
 
         {(v.advice || v.nextDue) && (
-          <OmPBlock title="คำแนะนำ / นัดครั้งถัดไป" avoid>
+          <OmPBlock title={T("คำแนะนำ / นัดครั้งถัดไป")} avoid>
             {omPara(v.advice)}
             {v.nextDue && (
               <div style={{ marginTop: 6, fontSize: 11.5, color: "#15211A" }}>
-                นัดครั้งถัดไป: <b>{window.drDateTH(v.nextDue, true)}</b>
+                {T("นัดครั้งถัดไป:")} <b>{DT(v.nextDue)}</b>
               </div>
             )}
           </OmPBlock>
@@ -497,21 +563,21 @@ function OmVisitPaper({ visit, site, signs, onClose }) {
         {/* ช่องเซ็น — ช่างกับลูกค้า เซ็นในระบบแล้วพิมพ์ลายเซ็นจริงลงบนเส้น
             ยังไม่เซ็นก็เว้นเส้นว่างไว้เซ็นด้วยปากกาที่หน้างาน */}
         <div style={{ marginTop: 22, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, breakInside: "avoid" }}>
-          {[{ t: "ช่างผู้ให้บริการ", n: v.byName, d: v.sentAt || v.updatedAt || v.createdAt, s: g.tech },
-            { t: "ลูกค้าผู้รับบริการ", n: v.siteName, d: v.date, s: g.cust }].map((x, i) => (
+          {[{ t: T("ช่างผู้ให้บริการ"), n: v.byName, d: v.sentAt || v.updatedAt || v.createdAt, s: g.tech },
+            { t: T("ลูกค้าผู้รับบริการ"), n: v.siteName, d: v.date, s: g.cust }].map((x, i) => (
             <div key={i} style={{ border: "1px solid #DCE4DF", borderRadius: 8, padding: "12px 14px" }}>
               <div style={{ fontSize: 10.5, fontWeight: 700, color: "#5A6B62" }}>{x.t}</div>
               <div style={{ height: 42, borderBottom: "1px solid #C9D5CE", marginTop: 6, display: "flex",
                 alignItems: "flex-end", justifyContent: "center", overflow: "hidden" }}>
                 {x.s && x.s.img && <img src={x.s.img} alt="" style={{ maxWidth: "88%", maxHeight: 40, objectFit: "contain" }} />}
               </div>
-              <div style={{ fontSize: 11, marginTop: 6, color: "#15211A" }}>ชื่อ: <b>{(x.s && x.s.name) || x.n || "-"}</b></div>
+              <div style={{ fontSize: 11, marginTop: 6, color: "#15211A" }}>{T("ชื่อ:")} <b>{(x.s && x.s.name) || x.n || "-"}</b></div>
               <div style={{ fontSize: 11, color: "#4A5A51" }}>
-                วันที่: {window.drDateTH(x.s ? window.drSignDay(x.s) : window.drLocalDay(x.d))}
+                {T("วันที่:")} {DTs(x.s ? window.drSignDay(x.s) : window.drLocalDay(x.d))}
               </div>
               {x.s && x.s.img && (
                 <div style={{ fontSize: 8.5, color: "#8A9A91", marginTop: 3 }}>
-                  ลงลายมือชื่ออิเล็กทรอนิกส์ในระบบ {window.drSignTime(x.s) ? window.drSignTime(x.s) + " น." : ""}
+                  {T("ลงลายมือชื่ออิเล็กทรอนิกส์ในระบบ")} {window.drSignTime(x.s) ? window.drSignTime(x.s) + (lang === "th" ? " น." : "") : ""}
                 </div>
               )}
             </div>
@@ -520,13 +586,13 @@ function OmVisitPaper({ visit, site, signs, onClose }) {
 
         {v.status === "approved" && (
           <div style={{ marginTop: 10, fontSize: 10, color: "#4A5A51", textAlign: "right" }}>
-            อนุมัติโดย <b style={{ color: "#15211A" }}>{v.appName || "-"}</b>
-            {v.approvedAt ? " · " + window.drDateTH(window.drLocalDay(v.approvedAt)) : ""}
+            {T("อนุมัติโดย")} <b style={{ color: "#15211A" }}>{v.appName || "-"}</b>
+            {v.approvedAt ? " · " + DTs(window.drLocalDay(v.approvedAt)) : ""}
           </div>
         )}
 
         <div style={{ marginTop: 14, fontSize: 9.5, color: "#8A9A91", textAlign: "center" }}>
-          เอกสารนี้ออกจากระบบงานบริการหลังการขาย flash+solar · {v.no} · พิมพ์เมื่อ {window.drDateTH(window.drToday())}
+          {T("เอกสารนี้ออกจากระบบงานบริการหลังการขาย")} flash+solar · {v.no} · {T("พิมพ์เมื่อ")} {DTs(window.drToday())}
         </div>
       </div>
     </div>

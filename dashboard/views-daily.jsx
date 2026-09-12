@@ -974,8 +974,98 @@ const drPara = (t) => (
   <div style={{ fontSize: 11.5, lineHeight: 1.65, color: "#15211A", whiteSpace: "pre-wrap" }}>{t || "—"}</div>
 );
 
+/* ── พจนานุกรมใบรายงานประจำวัน (ไทย → [อังกฤษ, จีน]) ──
+   ใบนี้เป็นคอมโพเนนต์ React จึงแปลทีละข้อความด้วย window.pgT (ดู i18n.jsx)
+   เนื้อหาที่ช่างพิมพ์เอง — งานที่ทำ ปัญหา สิ่งที่ต้องทำต่อ ชื่อวัสดุ ชื่อคน —
+   ไม่อยู่ในตารางนี้ ออกตามที่พิมพ์ไว้เสมอ ไม่ว่าเลือกภาษาอะไร
+   ชื่อขั้นงาน (r.th) ก็เช่นกัน เพราะมาจากแม่แบบที่ทีมแก้เองได้ */
+const DR_PAPER_I18N = {
+  "รายงานประจำวันหน้างาน": ["Site Daily Report", "现场日报"],
+  "ชื่องาน": ["Job", "项目名称"],
+  "รหัสงาน": ["Job code", "项目编号"],
+  "ประเภท": ["Type", "类型"],
+  "งานโครงการ": ["Commercial project", "工程项目"],
+  "งานบ้าน": ["Residential", "住宅项目"],
+  "ขนาดติดตั้ง": ["System size", "装机容量"],
+  "สถานที่": ["Location", "地址"],
+  "ทีมช่าง": ["Crew", "施工班组"],
+  "ความคืบหน้ารวม": ["Overall progress", "总体进度"],
+  "จากเมื่อวาน": ["from yesterday", "昨日为"],
+  "สภาพอากาศ · เช้า": ["Weather · morning", "天气 · 上午"],
+  "บ่าย": ["afternoon", "下午"],
+  "ความคืบหน้าตามขั้นงาน": ["Progress by work stage", "各工序进度"],
+  "เนื้องานติดตั้งที่เดินไปแล้ว": ["Installation work carried out", "已完成的安装工作"],
+  "ขั้น": ["No.", "序号"],
+  "รายละเอียดงาน": ["Work item", "工作内容"],
+  "แผน เริ่ม": ["Plan start", "计划开始"],
+  "แผน จบ": ["Plan finish", "计划完成"],
+  "จริง เริ่ม": ["Actual start", "实际开始"],
+  "จริง จบ": ["Actual finish", "实际完成"],
+  "น้ำหนักงาน": ["Weight", "权重"],
+  "ทำไปแล้ว": ["Done", "完成率"],
+  "งานที่ทำวันนี้": ["Work done today", "今日工作"],
+  "ปัญหา / อุปสรรค": ["Issues and obstacles", "问题与障碍"],
+  "สิ่งที่ต้องทำต่อ": ["Next steps", "后续工作"],
+  "วัสดุเข้าหน้างาน": ["Materials received on site", "进场材料"],
+  "รายการวัสดุ": ["Material", "材料名称"],
+  "เครื่องจักร / เครื่องมือ": ["Plant and tools", "机械与工具"],
+  "รายการ": ["Item", "项目"],
+  "จำนวน": ["Qty", "数量"],
+  "หน่วย": ["Unit", "单位"],
+  "จุดจัดเก็บ": ["Stored at", "存放位置"],
+  "ใช้กับงาน": ["Used for", "用途"],
+  "หมายเหตุ": ["Note", "备注"],
+  "กำลังคน": ["Manpower", "人力"],
+  "ตำแหน่ง": ["Role", "岗位"],
+  "ชื่อผู้ปฏิบัติงาน": ["Name", "人员姓名"],
+  "ความปลอดภัย & สิ่งแวดล้อม": ["Safety and environment", "安全与环境"],
+  "ระดับความเสี่ยง (JSA):": ["Risk level (JSA):", "风险等级（JSA）："],
+  "ใบอนุญาตทำงานเย็น:": ["Cold work permit:", "冷作业许可："],
+  "ใบอนุญาตทำงานร้อน:": ["Hot work permit:", "动火作业许可："],
+  "จัดเก็บพื้นที่:": ["Housekeeping:", "场地清理："],
+  "เอกสารรับรอง": ["Certificate", "证明文件"],
+  "ผู้รับผิดชอบ": ["Responsible", "负责人"],
+  "มี": ["Yes", "有"],
+  "ไม่มี": ["No", "无"],
+  "รูปหน้างาน": ["Site photos", "现场照片"],
+  "รูปที่": ["Photo", "照片"],
+  "รูป": ["photos", "张"],
+  "แผง": ["modules", "块组件"],
+  "ผู้บันทึก (ช่างหน้างาน)": ["Recorded by (site technician)", "记录人（现场技师）"],
+  "ผู้อนุมัติ (หัวหน้างาน)": ["Approved by (supervisor)", "批准人（工地主管）"],
+  "ชื่อ:": ["Name:", "姓名："],
+  "วันที่:": ["Date:", "日期："],
+  "ลงลายมือชื่ออิเล็กทรอนิกส์ในระบบ": ["Signed electronically in the system", "已在系统内电子签名"],
+  "เอกสารนี้ออกจากระบบติดตามงานติดตั้ง": ["Issued by the installation tracking system of", "本文件由安装管理系统开具"],
+  "พิมพ์เมื่อ": ["printed", "打印于"],
+  /* ค่าที่มาจาก daily.jsx — สถานะใบ สภาพอากาศ ระดับความเสี่ยง และหัวข้อจัดเก็บพื้นที่ */
+  "ร่าง": ["Draft", "草稿"],
+  "รออนุมัติ": ["Pending approval", "待批准"],
+  "อนุมัติแล้ว": ["Approved", "已批准"],
+  "แดดจัด": ["Sunny", "晴"],
+  "เมฆมาก": ["Cloudy", "多云"],
+  "ฝนตก": ["Rain", "雨"],
+  "ฝนฟ้าคะนอง": ["Thunderstorm", "雷雨"],
+  "ต่ำ": ["Low", "低"],
+  "ปานกลาง": ["Medium", "中"],
+  "สูง": ["High", "高"],
+  "สูงมาก": ["Extreme", "极高"],
+  "เก็บพื้นที่ทำงาน": ["Work area cleared", "清理作业区"],
+  "เก็บขยะ": ["Waste removed", "清运垃圾"],
+  "ทำความสะอาดเครื่องมือ": ["Tools cleaned", "工具清洁"],
+  "จัดเก็บวัสดุ": ["Materials stored", "材料归位"],
+  "เก็บงานทั้งหมด": ["Full site clean-up", "全面清场"],
+};
+
 function DailyPaper({ job, rec, date, allDates, onClose }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  /* ภาษาของใบ — สลับสดจากแถบด้านบน ซึ่งไม่ติดไปในหน้าพิมพ์อยู่แล้ว
+     วันที่ไทยเป็น พ.ศ. อังกฤษ/จีนเป็น ค.ศ. จึงแยกฟังก์ชันไว้ ห้ามแปลผ่าน T() */
+  const [lang, setLang] = React.useState(() => (window.pgLang ? window.pgLang() : "th"));
+  const pickLang = (id) => { setLang(id); if (window.pgSetLang) window.pgSetLang(id); };
+  const T = React.useMemo(() => (window.pgT ? window.pgT(DR_PAPER_I18N, lang) : (k) => k), [lang]);
+  const DT = (iso) => (!iso ? "—" : lang === "th" || !window.pgDate ? window.drDateTH(iso, true) : window.pgDate(iso, lang));
+  const DTs = (iso) => (!iso ? "—" : lang === "th" || !window.pgDate ? window.drDateTH(iso) : window.pgDate(iso, lang));
   const { photos } = window.useDailyPhotos(job.id, date);
   const { signs } = window.useDailySigns(job.id, date);
   const st = window.drStatusOf(rec.status);
@@ -999,7 +1089,7 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
 
   const doPrint = () => {
     const old = document.title;
-    document.title = "รายงานประจำวัน " + (job.code || "") + " " + date;
+    document.title = T("รายงานประจำวันหน้างาน") + " " + (job.code || "") + " " + date;
     window.print();
     setTimeout(() => { document.title = old; }, 800);
   };
@@ -1010,9 +1100,9 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
 
   const rowsTable = (title, cols, rows) => (
     !rows || !rows.length ? null : (
-      <DrPBlock title={title}>
+      <DrPBlock title={T(title)}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr><th style={Object.assign({}, th, { width: 26 })}>#</th>{cols.map((c) => <th key={c.k} style={th}>{c.th}</th>)}</tr></thead>
+          <thead><tr><th style={Object.assign({}, th, { width: 26 })}>#</th>{cols.map((c) => <th key={c.k} style={th}>{T(c.th)}</th>)}</tr></thead>
           <tbody>
             {rows.map((r, i) => (
               <tr key={i}><td style={Object.assign({}, td, { fontFamily: "var(--mono)", color: "#7A8A81" })}>{i + 1}</td>
@@ -1035,20 +1125,25 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
           <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>รายงานประจำวัน · {window.drDateTH(date)}</div>
           <div style={{ fontSize: 11, color: "var(--text-3)" }}>{photos.length} รูป · กดปุ่มแล้วเลือก “บันทึกเป็น PDF”</div>
         </div>
+        {typeof window.LangPick === "function" && (
+          <window.LangPick value={lang} onChange={pickLang} />
+        )}
         <button onClick={doPrint} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "11px 16px", borderRadius: 11,
           border: "none", background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
           <Icon name="file" size={16} color="#fff" /> บันทึก PDF
         </button>
       </div>
 
+      {/* ฟอนต์ไทยของแอปไม่มีตัวอักษรจีน — เลือกจีนแล้วต้องระบุชุดฟอนต์ที่มีจีนให้ชัด */}
       <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: "#15211A",
+        fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
         padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "0 20px 60px rgba(8,20,14,.28)" }}>
 
         {/* หัวกระดาษ — พิมพ์ครั้งเดียว ไม่ซ้ำทุกหน้าเหมือนฟอร์ม Excel เดิม */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap",
           borderBottom: "2px solid #1B9B75", paddingBottom: 11 }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.01em" }}>รายงานประจำวันหน้างาน</div>
+            <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.01em" }}>{T("รายงานประจำวันหน้างาน")}</div>
             <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".12em", color: "#7A8A81", marginTop: 3 }}>PROJECT INSTALLATION — DAILY REPORT</div>
             {/* ตราสัญลักษณ์บริษัท — หกเหลี่ยม + ชื่อในโลโก้ ให้ใบที่พิมพ์ออกมาเป็นเอกสารของบริษัทจริง */}
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}>
@@ -1058,54 +1153,54 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
           </div>
           <div style={{ textAlign: "right", fontSize: 11, color: "#4A5A51", lineHeight: 1.75 }}>
             <div style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "#15211A" }}>{docNo}</div>
-            <div>{window.drDateTH(date, true)}</div>
+            <div>{DT(date)}</div>
             <div style={{ display: "inline-block", marginTop: 3, padding: "2px 9px", borderRadius: 99,
-              background: st.color + "22", color: st.color, fontWeight: 700, fontSize: 10.5 }}>{st.th}</div>
+              background: st.color + "22", color: st.color, fontWeight: 700, fontSize: 10.5 }}>{T(st.th)}</div>
           </div>
         </div>
 
         {/* ข้อมูลงาน */}
         <div style={{ marginTop: 13, display: "grid", gridTemplateColumns: "auto 1fr auto 1fr",
           border: "1px solid #DCE4DF", borderRadius: 7, overflow: "hidden" }}>
-          <DrPRow k="ชื่องาน" v={job.name} />
-          <DrPRow k="รหัสงาน" v={job.code} />
-          <DrPRow k="ประเภท" v={isProject ? "งานโครงการ" : "งานบ้าน"} />
-          <DrPRow k="ขนาดติดตั้ง" v={(job.kw ? job.kw + " kW" : "") + (job.panels ? " · " + job.panels + " แผง" : "")} />
-          <DrPRow k="สถานที่" v={[job.address, job.province].filter(Boolean).join(" · ")} />
-          <DrPRow k="ทีมช่าง" v={rec.team || ((job.tech && job.tech.name) || "-")} />
+          <DrPRow k={T("ชื่องาน")} v={job.name} />
+          <DrPRow k={T("รหัสงาน")} v={job.code} />
+          <DrPRow k={T("ประเภท")} v={T(isProject ? "งานโครงการ" : "งานบ้าน")} />
+          <DrPRow k={T("ขนาดติดตั้ง")} v={(job.kw ? job.kw + " kW" : "") + (job.panels ? " · " + job.panels + " " + T("แผง") : "")} />
+          <DrPRow k={T("สถานที่")} v={[job.address, job.province].filter(Boolean).join(" · ")} />
+          <DrPRow k={T("ทีมช่าง")} v={rec.team || ((job.tech && job.tech.name) || "-")} />
         </div>
 
         {/* ความคืบหน้า — ตัวเลขที่ฟอร์มเดิมไม่ได้เทียบให้ */}
         <div style={{ marginTop: 14, border: "1px solid #DCE4DF", borderRadius: 9, padding: "12px 14px", breakInside: "avoid" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: "#4A5A51" }}>ความคืบหน้ารวม</span>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: "#4A5A51" }}>{T("ความคืบหน้ารวม")}</span>
             <div style={{ flex: 1, minWidth: 160, height: 9, borderRadius: 99, background: "#E8EEEA", overflow: "hidden" }}>
               <div style={{ width: Math.max(0, Math.min(100, pct)) + "%", height: "100%", background: "#1B9B75" }} />
             </div>
             <span style={{ fontSize: 17, fontWeight: 800, fontFamily: "var(--mono)", color: "#15211A" }}>{pct}%</span>
-            {rec.prevPct != null && <span style={{ fontSize: 11, color: "#4A5A51" }}>จากเมื่อวาน {rec.prevPct}%</span>}
+            {rec.prevPct != null && <span style={{ fontSize: 11, color: "#4A5A51" }}>{T("จากเมื่อวาน")} {rec.prevPct}%</span>}
           </div>
           {(wAm || wPm) && (
             <div style={{ marginTop: 9, fontSize: 11, color: "#4A5A51" }}>
-              สภาพอากาศ · เช้า <b style={{ color: "#15211A" }}>{wAm ? wAm.th : "-"}</b> · บ่าย <b style={{ color: "#15211A" }}>{wPm ? wPm.th : "-"}</b>
+              {T("สภาพอากาศ · เช้า")} <b style={{ color: "#15211A" }}>{wAm ? T(wAm.th) : "-"}</b> · {T("บ่าย")} <b style={{ color: "#15211A" }}>{wPm ? T(wPm.th) : "-"}</b>
             </div>
           )}
         </div>
 
         {/* ตารางขั้นงาน */}
         {!!steps.length && (
-          <DrPBlock title={isProject ? "ความคืบหน้าตามขั้นงาน" : "เนื้องานติดตั้งที่เดินไปแล้ว"}>
+          <DrPBlock title={T(isProject ? "ความคืบหน้าตามขั้นงาน" : "เนื้องานติดตั้งที่เดินไปแล้ว")}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
-                  <th style={Object.assign({}, th, { width: 38 })}>ขั้น</th>
-                  <th style={th}>รายละเอียดงาน</th>
-                  {isProject && <th style={th}>แผน เริ่ม</th>}
-                  {isProject && <th style={th}>แผน จบ</th>}
-                  {isProject && <th style={th}>จริง เริ่ม</th>}
-                  {isProject && <th style={th}>จริง จบ</th>}
-                  {!isProject && <th style={Object.assign({}, th, { textAlign: "right", width: 78 })}>น้ำหนักงาน</th>}
-                  <th style={Object.assign({}, th, { textAlign: "right", width: 66 })}>ทำไปแล้ว</th>
+                  <th style={Object.assign({}, th, { width: 38 })}>{T("ขั้น")}</th>
+                  <th style={th}>{T("รายละเอียดงาน")}</th>
+                  {isProject && <th style={th}>{T("แผน เริ่ม")}</th>}
+                  {isProject && <th style={th}>{T("แผน จบ")}</th>}
+                  {isProject && <th style={th}>{T("จริง เริ่ม")}</th>}
+                  {isProject && <th style={th}>{T("จริง จบ")}</th>}
+                  {!isProject && <th style={Object.assign({}, th, { textAlign: "right", width: 78 })}>{T("น้ำหนักงาน")}</th>}
+                  <th style={Object.assign({}, th, { textAlign: "right", width: 66 })}>{T("ทำไปแล้ว")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1113,10 +1208,10 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
                   <tr key={i} style={{ background: r.head ? "#F3F7F4" : "transparent" }}>
                     <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontWeight: r.head ? 800 : 400, color: r.head ? "#0A4D68" : "#7A8A81" })}>{r.no}</td>
                     <td style={Object.assign({}, td, { fontWeight: r.head ? 700 : 400 })}>{r.th}</td>
-                    {isProject && <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.planStart ? window.drShort(r.planStart) : "—"}</td>}
-                    {isProject && <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.planEnd ? window.drShort(r.planEnd) : "—"}</td>}
-                    {isProject && <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.actStart ? window.drShort(r.actStart) : "—"}</td>}
-                    {isProject && <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.actEnd ? window.drShort(r.actEnd) : "—"}</td>}
+                    {isProject && <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.planStart ? (window.pgShort ? window.pgShort(r.planStart, lang) : window.drShort(r.planStart)) : "—"}</td>}
+                    {isProject && <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.planEnd ? (window.pgShort ? window.pgShort(r.planEnd, lang) : window.drShort(r.planEnd)) : "—"}</td>}
+                    {isProject && <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.actStart ? (window.pgShort ? window.pgShort(r.actStart, lang) : window.drShort(r.actStart)) : "—"}</td>}
+                    {isProject && <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.actEnd ? (window.pgShort ? window.pgShort(r.actEnd, lang) : window.drShort(r.actEnd)) : "—"}</td>}
                     {!isProject && <td style={Object.assign({}, td, { textAlign: "right", fontFamily: "var(--mono)", color: "#7A8A81" })}>{r.w ? r.w + "%" : "—"}</td>}
                     <td style={Object.assign({}, td, { textAlign: "right", fontFamily: "var(--mono)", fontWeight: 700 })}>{r.pct ? r.pct + "%" : "—"}</td>
                   </tr>
@@ -1126,10 +1221,10 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
           </DrPBlock>
         )}
 
-        <DrPBlock title="งานที่ทำวันนี้" avoid>{drPara(rec.work)}</DrPBlock>
+        <DrPBlock title={T("งานที่ทำวันนี้")} avoid>{drPara(rec.work)}</DrPBlock>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
-          <DrPBlock title="ปัญหา / อุปสรรค" avoid>{drPara(rec.problem)}</DrPBlock>
-          <DrPBlock title="สิ่งที่ต้องทำต่อ" avoid>{drPara(rec.nextDay)}</DrPBlock>
+          <DrPBlock title={T("ปัญหา / อุปสรรค")} avoid>{drPara(rec.problem)}</DrPBlock>
+          <DrPBlock title={T("สิ่งที่ต้องทำต่อ")} avoid>{drPara(rec.nextDay)}</DrPBlock>
         </div>
 
         {isProject && (
@@ -1138,16 +1233,16 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
             {rowsTable("เครื่องจักร / เครื่องมือ", [{ k: "name", th: "รายการ" }, { k: "qty", th: "จำนวน" }, { k: "unit", th: "หน่วย" }, { k: "job", th: "ใช้กับงาน" }, { k: "note", th: "หมายเหตุ" }], rec.machines)}
             {rowsTable("กำลังคน", [{ k: "role", th: "ตำแหน่ง" }, { k: "qty", th: "จำนวน" }, { k: "name", th: "ชื่อผู้ปฏิบัติงาน" }, { k: "note", th: "หมายเหตุ" }], rec.manpower)}
             {(jsa || rec.permitCold || rec.permitHot || Object.keys(rec.clean || {}).length || (rec.certs || []).length) && (
-              <DrPBlock title="ความปลอดภัย & สิ่งแวดล้อม" avoid>
+              <DrPBlock title={T("ความปลอดภัย & สิ่งแวดล้อม")} avoid>
                 <div style={{ fontSize: 11, color: "#15211A", lineHeight: 1.9 }}>
-                  <div>ระดับความเสี่ยง (JSA): <b>{jsa ? jsa.th + " (" + jsa.range + ")" : "—"}</b></div>
-                  <div>ใบอนุญาตทำงานเย็น: <b>{rec.permitCold === "yes" ? "มี" : rec.permitCold === "no" ? "ไม่มี" : "—"}</b>
-                    {"  ·  "}ใบอนุญาตทำงานร้อน: <b>{rec.permitHot === "yes" ? "มี" : rec.permitHot === "no" ? "ไม่มี" : "—"}</b></div>
-                  <div>จัดเก็บพื้นที่: <b>{(window.DR_CLEAN || []).filter((c) => (rec.clean || {})[c.key]).map((c) => c.th).join(" · ") || "—"}</b></div>
+                  <div>{T("ระดับความเสี่ยง (JSA):")} <b>{jsa ? T(jsa.th) + " (" + jsa.range + ")" : "—"}</b></div>
+                  <div>{T("ใบอนุญาตทำงานเย็น:")} <b>{rec.permitCold === "yes" ? T("มี") : rec.permitCold === "no" ? T("ไม่มี") : "—"}</b>
+                    {"  ·  "}{T("ใบอนุญาตทำงานร้อน:")} <b>{rec.permitHot === "yes" ? T("มี") : rec.permitHot === "no" ? T("ไม่มี") : "—"}</b></div>
+                  <div>{T("จัดเก็บพื้นที่:")} <b>{(window.DR_CLEAN || []).filter((c) => (rec.clean || {})[c.key]).map((c) => T(c.th)).join(" · ") || "—"}</b></div>
                 </div>
                 {!!(rec.certs || []).length && (
                   <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 8 }}>
-                    <thead><tr><th style={th}>เอกสารรับรอง</th><th style={th}>ผู้รับผิดชอบ</th></tr></thead>
+                    <thead><tr><th style={th}>{T("เอกสารรับรอง")}</th><th style={th}>{T("ผู้รับผิดชอบ")}</th></tr></thead>
                     <tbody>{rec.certs.map((c, i) => <tr key={i}><td style={td}>{c.name || "-"}</td><td style={td}>{c.by || "-"}</td></tr>)}</tbody>
                   </table>
                 )}
@@ -1158,14 +1253,14 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
 
         {/* รูปหน้างาน — สองคอลัมน์ ไม่บีบรูปให้เบี้ยว */}
         {!!photos.length && (
-          <DrPBlock title={"รูปหน้างาน (" + photos.length + " รูป)"}>
+          <DrPBlock title={T("รูปหน้างาน") + " (" + photos.length + " " + T("รูป") + ")"}>
             {/* alignItems:start — ไม่งั้นรูปนอนถูกยืดสูงเท่ารูปตั้งในแถวเดียวกัน เหลือช่องว่างใต้รูป */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, alignItems: "start" }}>
               {photos.map((p, i) => (
                 <div key={p.id} className="dr-shot" style={{ breakInside: "avoid", border: "1px solid #DCE4DF", borderRadius: 7, overflow: "hidden" }}>
                   <img src={p.dataUrl} alt={p.cap || ""} style={{ width: "100%", display: "block", background: "#F3F7F4" }} />
                   <div style={{ padding: "5px 8px", fontSize: 10.5, color: "#4A5A51", borderTop: "1px solid #ECF1EE" }}>
-                    <b style={{ color: "#0A4D68" }}>รูปที่ {i + 1}</b>{p.cap ? " · " + p.cap : ""}
+                    <b style={{ color: "#0A4D68" }}>{T("รูปที่")} {i + 1}</b>{p.cap ? " · " + p.cap : ""}
                   </div>
                 </div>
               ))}
@@ -1176,21 +1271,21 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
         {/* ช่องเซ็น — ชุดเดียวท้ายเล่ม (ฟอร์มเดิมมี 5 ชุดซ้ำทุกหน้า)
             เซ็นในระบบไว้แล้วให้พิมพ์ลายเซ็นจริงลงบนเส้น · ยังไม่เซ็นก็เว้นเส้นว่างไว้เซ็นด้วยปากกา */}
         <div style={{ marginTop: 22, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, breakInside: "avoid" }}>
-          {[{ t: "ผู้บันทึก (ช่างหน้างาน)", n: rec.byName, d: rec.sentAt || rec.updatedAt || rec.createdAt, g: signs.by },
-            { t: "ผู้อนุมัติ (หัวหน้างาน)", n: rec.appName, d: rec.approvedAt, g: signs.app }].map((s, i) => (
+          {[{ t: T("ผู้บันทึก (ช่างหน้างาน)"), n: rec.byName, d: rec.sentAt || rec.updatedAt || rec.createdAt, g: signs.by },
+            { t: T("ผู้อนุมัติ (หัวหน้างาน)"), n: rec.appName, d: rec.approvedAt, g: signs.app }].map((s, i) => (
             <div key={i} style={{ border: "1px solid #DCE4DF", borderRadius: 8, padding: "12px 14px" }}>
               <div style={{ fontSize: 10.5, fontWeight: 700, color: "#5A6B62" }}>{s.t}</div>
               <div style={{ height: 42, borderBottom: "1px solid #C9D5CE", marginTop: 6, display: "flex",
                 alignItems: "flex-end", justifyContent: "center", overflow: "hidden" }}>
                 {s.g && s.g.img && <img src={s.g.img} alt="" style={{ maxWidth: "88%", maxHeight: 40, objectFit: "contain" }} />}
               </div>
-              <div style={{ fontSize: 11, marginTop: 6, color: "#15211A" }}>ชื่อ: <b>{(s.g && s.g.name) || s.n || "-"}</b></div>
+              <div style={{ fontSize: 11, marginTop: 6, color: "#15211A" }}>{T("ชื่อ:")} <b>{(s.g && s.g.name) || s.n || "-"}</b></div>
               <div style={{ fontSize: 11, color: "#4A5A51" }}>
-                วันที่: {window.drDateTH(s.g ? window.drSignDay(s.g) : window.drLocalDay(s.d))}
+                {T("วันที่:")} {DTs(s.g ? window.drSignDay(s.g) : window.drLocalDay(s.d))}
               </div>
               {s.g && s.g.img && (
                 <div style={{ fontSize: 8.5, color: "#8A9A91", marginTop: 3 }}>
-                  ลงลายมือชื่ออิเล็กทรอนิกส์ในระบบ {window.drSignTime(s.g) ? window.drSignTime(s.g) + " น." : ""}
+                  {T("ลงลายมือชื่ออิเล็กทรอนิกส์ในระบบ")} {window.drSignTime(s.g) ? window.drSignTime(s.g) + (lang === "th" ? " น." : "") : ""}
                 </div>
               )}
             </div>
@@ -1198,7 +1293,7 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
         </div>
 
         <div style={{ marginTop: 14, fontSize: 9.5, color: "#8A9A91", textAlign: "center" }}>
-          เอกสารนี้ออกจากระบบติดตามงานติดตั้ง flash+solar · {docNo} · พิมพ์เมื่อ {window.drDateTH(window.drToday())}
+          {T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง")} flash+solar · {docNo} · {T("พิมพ์เมื่อ")} {DTs(window.drToday())}
         </div>
       </div>
     </div>
