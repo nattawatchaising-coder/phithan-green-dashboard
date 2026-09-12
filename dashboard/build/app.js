@@ -76,6 +76,18 @@ const NAV = [{
   perm: "editJob",
   foot: true
 }];
+const NAV_BADGE_TONE = {
+  stock: "warn",
+  calendar: "info"
+};
+const NAV_BADGE_TIP = {
+  overview: "งานที่ล่าช้ากว่ากำหนด",
+  stock: "ของที่เหลือถึงหรือต่ำกว่าจุดสั่งซื้อ",
+  om: "เรื่องที่ต้องลงมือในงานบริการหลังการขาย",
+  dispatch: "นัดสำรวจที่เลยวันแล้วแต่ยังไม่ปิดสถานะ",
+  calendar: "นัดสำรวจของวันนี้",
+  expense: "ใบเบิกเงินที่รอคุณจัดการ"
+};
 const isPermitOnly = roles => (roles || []).length > 0 && roles.every(r => (ROLE_ALIAS[r] || r) === "permit");
 const isSalesOnly = roles => (roles || []).length > 0 && roles.every(r => (ROLE_ALIAS[r] || r) === "sales");
 const PERMIT_TODO = {
@@ -794,6 +806,31 @@ function App() {
     claims: [],
     byJob: {}
   };
+  const navBadges = React.useMemo(() => {
+    const today = window.drToday ? window.drToday() : "";
+    const ymd = v => {
+      const d = new Date(v);
+      return isNaN(d.getTime()) || !window.drISO ? "" : window.drISO(d);
+    };
+    const live = (apptStore.appts || []).filter(a => a && a.start && a.status !== "done" && a.status !== "canceled" && a.status !== "rescheduled");
+    const claims = ecLive.claims || [];
+    const meId = (auth.current || {}).id || null;
+    let ec = 0;
+    if (window.ecCanApprove && window.ecCanApprove(role)) ec += claims.filter(c => c.status === "sent").length;
+    if (window.ecCanPay && window.ecCanPay(role)) ec += claims.filter(c => c.status === "approved").length;
+    ec += claims.filter(c => meId && c.byId === meId && (c.status === "draft" || c.status === "rejected")).length;
+    const omTick = (omLive.tickets || []).filter(x => !window.omTicketOpen || window.omTicketOpen(x)).length;
+    const omClean = window.omCleanState ? (omLive.sites || []).filter(st => st && st.active !== false && ["due", "overdue"].indexOf(window.omCleanState(st, (omLive.bySite || {})[st.id] || [], today).key) !== -1).length : 0;
+    return {
+      om: omTick + omClean,
+      dispatch: live.filter(a => {
+        const d = ymd(a.start);
+        return d && today && d < today;
+      }).length,
+      calendar: live.filter(a => ymd(a.start) === today).length,
+      expense: ec
+    };
+  }, [omLive.tickets, omLive.sites, omLive.bySite, apptStore.appts, ecLive.claims, auth.current, role]);
   const openExpense = React.useCallback(jobId => {
     setSelected(null);
     setEcFocus({
@@ -878,6 +915,7 @@ function App() {
     jobs: jobs,
     stock: stock,
     t: t,
+    badges: navBadges,
     open: sidebarOpen,
     onClose: closeSidebar,
     aurora: aurora,
@@ -1341,6 +1379,7 @@ function Sidebar({
   jobs,
   stock,
   t,
+  badges,
   open,
   onClose,
   aurora,
@@ -1359,6 +1398,11 @@ function Sidebar({
   const myAvatar = window.useUserAvatar((currentUser || {}).id).avatar;
   const delayed = jobs.filter(j => j.delayed).length;
   const lowStock = stock.items.filter(it => it.qty <= it.min).length;
+  const badgeOf = key => {
+    if (key === "overview") return delayed;
+    if (key === "stock") return lowStock;
+    return (badges || {})[key] || 0;
+  };
   const sidebarStyle = isMobile ? {
     transform: open ? "translateX(0)" : "translateX(-100%)",
     boxShadow: open ? "6px 0 36px rgba(0,0,0,.22)" : "none"
@@ -1441,11 +1485,19 @@ function Sidebar({
         name: n.icon,
         size: 19,
         color: active ? "var(--primary-dark)" : "var(--text-2)"
-      }), !icons && React.createElement("span", null, n.th), !icons && n.key === "overview" && delayed > 0 && React.createElement("span", {
-        className: "nav-badge"
-      }, delayed), !icons && n.key === "stock" && lowStock > 0 && React.createElement("span", {
-        className: "nav-badge warn"
-      }, lowStock));
+      }), !icons && React.createElement("span", null, n.th), (() => {
+        const cnt = badgeOf(n.key);
+        if (!cnt) return null;
+        const tone = NAV_BADGE_TONE[n.key] ? " " + NAV_BADGE_TONE[n.key] : "";
+        const tip = NAV_BADGE_TIP[n.key] || "";
+        return icons ? React.createElement("span", {
+          className: "nav-dot" + tone,
+          title: tip + " " + cnt
+        }) : React.createElement("span", {
+          className: "nav-badge" + tone,
+          title: tip
+        }, cnt);
+      })());
     });
   })()), React.createElement("div", {
     className: "sidebar-foot"

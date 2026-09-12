@@ -31,6 +31,19 @@ const NAV = [
 ];
 /* คนที่ถือตำแหน่ง "ฝ่ายขออนุญาต" อย่างเดียว — บอร์ดขั้นงานติดตั้งไม่มีความหมายกับเขา
    (งานกองอยู่ขั้น "เสร็จสิ้น" หมด) บอร์ดงานของเขาจึงเป็นบอร์ดขออนุญาตแทน */
+/* ── เลขท้ายเมนู ──
+   สีบอกว่าเลขนั้นหมายถึงอะไร ไม่ได้ใส่ให้สวย: แดง = มีเรื่องค้างหรือเลยกำหนด ต้องลงมือ ·
+   เหลือง = ใกล้ถึงเกณฑ์ · ฟ้า = แค่บอกจำนวนของวันนี้ ไม่ใช่ปัญหา
+   ถ้าไม่แยกโทน เลขที่ขึ้นทุกวัน (นัดวันนี้) จะทำให้คนเลิกมองเลขที่สำคัญจริง ๆ ไปด้วย */
+const NAV_BADGE_TONE = { stock: "warn", calendar: "info" };
+const NAV_BADGE_TIP = {
+  overview: "งานที่ล่าช้ากว่ากำหนด",
+  stock:    "ของที่เหลือถึงหรือต่ำกว่าจุดสั่งซื้อ",
+  om:       "เรื่องที่ต้องลงมือในงานบริการหลังการขาย",
+  dispatch: "นัดสำรวจที่เลยวันแล้วแต่ยังไม่ปิดสถานะ",
+  calendar: "นัดสำรวจของวันนี้",
+  expense:  "ใบเบิกเงินที่รอคุณจัดการ",
+};
 const isPermitOnly = (roles) => (roles || []).length > 0 && roles.every((r) => (ROLE_ALIAS[r] || r) === "permit");
 /* เซลล์อย่างเดียว — ใช้ตัดสินว่าใบงานเปิดแบบอ่านอย่างเดียว (ไม่มีเครื่องมือช่าง) */
 const isSalesOnly = (roles) => (roles || []).length > 0 && roles.every((r) => (ROLE_ALIAS[r] || r) === "sales");
@@ -589,6 +602,46 @@ function App() {
      คนที่ไม่มีสิทธิ์ expense ไม่ฟังอะไรเลย */
   const [ecFocus, setEcFocus] = React.useState(null);        // งานที่ให้หน้าเบิกเงินเจาะให้เลย
   const ecLive = window.useEcLive ? window.useEcLive(can(role, "expense")) : { claims: [], byJob: {} };
+  /* ── เลขท้ายเมนูซ้าย ──
+     นับเฉพาะ "เรื่องที่ต้องลงมือ" ไม่ใช่ยอดรวมของหน้า — เลขที่เท่ากับจำนวนแถวในหน้า
+     ไม่ได้บอกอะไรเลยและจะถูกมองข้ามภายในอาทิตย์เดียว
+     ใช้เฉพาะสิ่งที่ App ฟังอยู่แล้ว (งาน · คลัง · O&M · นัดสำรวจ · ใบเบิก)
+     ไม่เปิดโหนดใหม่เพื่อเลขนี้ — ขออนุญาตการไฟฟ้ากับรายงานประจำวันจึงยังไม่มีเลข
+     เพราะต้องฟังทั้งต้นไม้เพิ่มอีกสองอันโดยที่หน้านั้นอาจไม่ถูกเปิดเลยทั้งวัน */
+  const navBadges = React.useMemo(() => {
+    const today = window.drToday ? window.drToday() : "";
+    /* นัดเก็บเป็นเวลาเต็ม ต้องเทียบเฉพาะวันตามเขตเวลาเครื่อง ไม่ใช่ slice ท้าย ISO */
+    const ymd = (v) => { const d = new Date(v); return isNaN(d.getTime()) || !window.drISO ? "" : window.drISO(d); };
+    /* นัดที่ยัง "เปิด" อยู่ — สำรวจเสร็จ/ยกเลิก/เลื่อนแล้ว ถือว่าจบแล้วไม่ต้องเตือน */
+    const live = (apptStore.appts || []).filter((a) => a && a.start
+      && a.status !== "done" && a.status !== "canceled" && a.status !== "rescheduled");
+    const claims = ecLive.claims || [];
+    const meId = (auth.current || {}).id || null;
+    /* ใบเบิกนับตามสิ่งที่ "คนนี้" ต้องทำต่อ ไม่ใช่ยอดใบทั้งระบบ
+       คนอนุมัติเห็นใบที่รออนุมัติ · คนจ่ายเงินเห็นใบที่อนุมัติแล้วรอจ่าย
+       คนทั่วไปเห็นใบของตัวเองที่ถูกตีกลับ ซึ่งต้องแก้แล้วส่งใหม่ */
+    let ec = 0;
+    if (window.ecCanApprove && window.ecCanApprove(role)) ec += claims.filter((c) => c.status === "sent").length;
+    if (window.ecCanPay && window.ecCanPay(role)) ec += claims.filter((c) => c.status === "approved").length;
+    /* ใบของตัวเองที่ยังไม่ได้ส่ง กับใบที่ถูกตีกลับ นับให้เจ้าของใบทุกคน
+       สองสถานะนี้ไม่ซ้อนกับสองบรรทัดบน จึงบวกตรง ๆ ได้ไม่ต้องกลัวนับซ้ำ */
+    ec += claims.filter((c) => meId && c.byId === meId && (c.status === "draft" || c.status === "rejected")).length;
+    /* งานบริการ: นับ "ใบแจ้งซ่อมที่ยังไม่ปิด" กับ "ไซต์ที่ถึงรอบล้างแล้ว" ตรง ๆ
+       ไม่ใช่ omSiteAlerts เพราะอันนั้นเก็บเฉพาะเรื่องที่เลยกำหนดหรือใกล้หมดประกัน
+       ซึ่งทำให้ใบแจ้งซ่อมที่เพิ่งเปิดวันนี้ไม่ขึ้นเลข แม้เป็นงานที่ต้องลงมือที่สุด */
+    const omTick = (omLive.tickets || []).filter((x) => !window.omTicketOpen || window.omTicketOpen(x)).length;
+    const omClean = window.omCleanState
+      ? (omLive.sites || []).filter((st) => st && st.active !== false
+          && ["due", "overdue"].indexOf(window.omCleanState(st, (omLive.bySite || {})[st.id] || [], today).key) !== -1).length
+      : 0;
+    return {
+      om: omTick + omClean,
+      dispatch: live.filter((a) => { const d = ymd(a.start); return d && today && d < today; }).length,
+      calendar: live.filter((a) => ymd(a.start) === today).length,
+      expense: ec,
+    };
+  }, [omLive.tickets, omLive.sites, omLive.bySite, apptStore.appts, ecLive.claims, auth.current, role]);
+
   const openExpense = React.useCallback((jobId) => {
     setSelected(null);
     setEcFocus({ jobId: jobId || null, at: Date.now() });
@@ -641,7 +694,7 @@ function App() {
   return (
     <div className="app-root">
       {sidebarOpen && <div className="sidebar-overlay" onClick={closeSidebar} />}
-      <Sidebar view={view} onNav={navTo} role={role} techId={techId} jobs={jobs} stock={stock} t={t}
+      <Sidebar view={view} onNav={navTo} role={role} techId={techId} jobs={jobs} stock={stock} t={t} badges={navBadges}
         open={sidebarOpen} onClose={closeSidebar} aurora={aurora} onToggleAurora={toggleAurora}
         collapsed={collapsed} onToggleCollapsed={toggleCollapsed}
         currentUser={auth.current} onLogout={auth.logout}
@@ -859,7 +912,7 @@ function App() {
   );
 }
 
-function Sidebar({ view, onNav, role, techId, jobs, stock, t, open, onClose, aurora, onToggleAurora, collapsed, onToggleCollapsed, currentUser, onLogout, canManageUsers, onManageUsers, onManageTechs, onMySign }) {
+function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onClose, aurora, onToggleAurora, collapsed, onToggleCollapsed, currentUser, onLogout, canManageUsers, onManageUsers, onManageTechs, onMySign }) {
   // Read media query synchronously every render — avoids stale state when
   // the preview or device loads at one size then displays at another.
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -869,6 +922,12 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, open, onClose, aur
   const myAvatar = window.useUserAvatar((currentUser || {}).id).avatar;
   const delayed = jobs.filter((j) => j.delayed).length;
   const lowStock = stock.items.filter((it) => it.qty <= it.min).length;
+  /* เลขท้ายเมนู — สองตัวนี้คิดจากของที่ Sidebar ถืออยู่แล้ว ที่เหลือส่งมาจาก App */
+  const badgeOf = (key) => {
+    if (key === "overview") return delayed;
+    if (key === "stock") return lowStock;
+    return ((badges || {})[key]) || 0;
+  };
   // On mobile: slide in/out via transform; on desktop: no inline style → always visible in flex flow
   const sidebarStyle = isMobile
     ? { transform: open ? "translateX(0)" : "translateX(-100%)",
@@ -911,12 +970,17 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, open, onClose, aur
               title={n.th}>
               <Icon name={n.icon} size={19} color={active ? "var(--primary-dark)" : "var(--text-2)"} />
               {!icons && <span>{n.th}</span>}
-              {!icons && n.key === "overview" && delayed > 0 && (
-                <span className="nav-badge">{delayed}</span>
-              )}
-              {!icons && n.key === "stock" && lowStock > 0 && (
-                <span className="nav-badge warn">{lowStock}</span>
-              )}
+              {(() => {
+                const cnt = badgeOf(n.key);
+                if (!cnt) return null;
+                const tone = NAV_BADGE_TONE[n.key] ? " " + NAV_BADGE_TONE[n.key] : "";
+                const tip = NAV_BADGE_TIP[n.key] || "";
+                /* ย่อแถบเมนูแล้วไม่มีที่ให้ตัวเลข เหลือเป็นจุดมุมไอคอน
+                   ให้ยังรู้ว่าเมนูนั้นมีเรื่องค้าง ไม่ใช่หายไปเฉย ๆ */
+                return icons
+                  ? <span className={"nav-dot" + tone} title={tip + " " + cnt} />
+                  : <span className={"nav-badge" + tone} title={tip}>{cnt}</span>;
+              })()}
             </button>
           );
           });

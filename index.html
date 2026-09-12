@@ -153,6 +153,14 @@ input, select, textarea { font-family: inherit; }
   min-width: 21px; height: 20px; border-radius: 99px; display: grid; place-items: center; padding: 0 7px;
   font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
 .nav-badge.warn { background: rgba(245,158,11,.16); color: #B45309; }
+/* ฟ้า = แค่บอกจำนวนของวันนี้ ไม่ใช่เรื่องค้าง จะได้ไม่กลืนกับเลขที่ต้องลงมือ */
+.nav-badge.info { background: rgba(14,165,233,.14); color: #0369A1; }
+/* ย่อแถบเมนูแล้วไม่มีที่ให้ตัวเลข — เหลือจุดมุมขวาบนของปุ่ม */
+.sidebar[data-mode="icons"] .nav-item { position: relative; }
+.nav-dot { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: 99px;
+  background: #D93025; box-shadow: 0 0 0 2px var(--surface); }
+.nav-dot.warn { background: #D97706; }
+.nav-dot.info { background: #0EA5E9; }
 
 .sidebar-foot { padding: 14px 12px; border-top: 1px solid var(--border); width: 100%; }
 .role-label { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); padding: 0 4px 9px; }
@@ -384,6 +392,13 @@ input, select, textarea { font-family: inherit; }
 [data-theme="aurora"] .nav-item.active .nav-badge { background: rgba(255,255,255,.9); color: #B3261E; }
 [data-theme="aurora"] .nav-badge { background: rgba(255,69,58,.22); color: #FF9F99; }
 [data-theme="aurora"] .nav-badge.warn { background: rgba(255,159,10,.20); color: #FFCE7A; }
+[data-theme="aurora"] .nav-badge.info { background: rgba(10,132,255,.22); color: #8FD0FF; }
+[data-theme="aurora"] .nav-item.active .nav-badge.warn,
+[data-theme="aurora"] .nav-item.active .nav-badge.info { background: rgba(255,255,255,.9); color: var(--primary-dark); }
+/* จุดบนพื้นมืด — วงขอบต้องเป็นสีพื้นของแถบเมนู ไม่ใช่สีการ์ด */
+[data-theme="aurora"] .nav-dot { box-shadow: 0 0 0 2px var(--bg); background: #FF453A; }
+[data-theme="aurora"] .nav-dot.warn { background: #FF9F0A; }
+[data-theme="aurora"] .nav-dot.info { background: #0A84FF; }
 /* เส้นคั่นเหนือเมนูล่างสุด — โหมดกราไฟต์พื้นมืด ใช้เส้นของธีมนี้เอง */
 [data-theme="aurora"] .sidebar-nav > .nav-item.nav-foot::after { background: var(--border-strong); }
 [data-theme="aurora"] .role-btn.active { background: var(--primary); color: #fff; }
@@ -594,6 +609,6 @@ input, select, textarea { font-family: inherit; }
 <script src="dashboard/build/views-expense.js?v=10"></script>
 <script src="dashboard/build/ec-paper.js?v=4"></script>
 <script src="dashboard/build/auth.js?v=27"></script>
-<script src="dashboard/build/app.js?v=135"></script>
+<script src="dashboard/build/app.js?v=137"></script>
 </body>
 </html>
