@@ -788,6 +788,19 @@ function App() {
   const [dailyJob, setDailyJob] = React.useState(null);
   const [omFocus, setOmFocus] = React.useState(null);
   const omLive = window.useOmAlerts(can(role, "om"));
+  const [ecFocus, setEcFocus] = React.useState(null);
+  const ecLive = window.useEcLive ? window.useEcLive(can(role, "expense")) : {
+    claims: [],
+    byJob: {}
+  };
+  const openExpense = React.useCallback(jobId => {
+    setSelected(null);
+    setEcFocus({
+      jobId: jobId || null,
+      at: Date.now()
+    });
+    setView("expense");
+  }, []);
   const openOm = React.useCallback(a => {
     setNotifOpen(false);
     setSelected(null);
@@ -1063,7 +1076,8 @@ function App() {
     jobs: jobs,
     users: auth.users,
     role: role,
-    currentUser: auth.current
+    currentUser: auth.current,
+    focus: ecFocus
   }), view === "report" && React.createElement(ReportView, {
     jobs: filtered,
     onOpen: openJob
@@ -1114,6 +1128,8 @@ function App() {
     onOm: can(role, "om") && !permitOnly && selectedJob ? () => openOm({
       siteId: selectedJob.id
     }) : null,
+    ecSum: selectedJob ? (ecLive.byJob || {})[selectedJob.id] || null : null,
+    onExpense: can(role, "expense") && !permitOnly && selectedJob ? () => openExpense(selectedJob.id) : null,
     permitMode: permitOnly,
     onOpenReview: permitOnly && selectedJob ? () => setPermitReview(selectedJob.id) : null,
     salesMode: salesOnly,

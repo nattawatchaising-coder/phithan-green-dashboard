@@ -582,6 +582,15 @@ function App() {
   /* ข้อมูลบริการหลังการขายสำหรับกระดิ่ง + ปุ่มในลิ้นชัก — โหนดเบา ๆ สามอัน เปิดค้างไว้ได้
      คนที่ไม่มีสิทธิ์ om จะไม่ฟังอะไรเลย (ส่ง false เข้าไป) */
   const omLive = window.useOmAlerts(can(role, "om"));
+  /* ใบเบิกเงินสำหรับปุ่มในลิ้นชักใบงาน — โหนดเดียว เบา (รูปบิลแยกอยู่คนละโหนด)
+     คนที่ไม่มีสิทธิ์ expense ไม่ฟังอะไรเลย */
+  const [ecFocus, setEcFocus] = React.useState(null);        // งานที่ให้หน้าเบิกเงินเจาะให้เลย
+  const ecLive = window.useEcLive ? window.useEcLive(can(role, "expense")) : { claims: [], byJob: {} };
+  const openExpense = React.useCallback((jobId) => {
+    setSelected(null);
+    setEcFocus({ jobId: jobId || null, at: Date.now() });
+    setView("expense");
+  }, []);
   const openOm = React.useCallback((a) => {
     setNotifOpen(false); setSelected(null);
     setOmFocus({ siteId: (a || {}).siteId || null, ticketId: (a || {}).ticketId || null, at: Date.now() });
@@ -717,7 +726,7 @@ function App() {
           {view === "daily" && <DailyView jobs={filtered} role={role} currentUser={auth.current} onOpen={(j) => setDailyJob(j)} />}
           {/* ทะเบียนบริการเป็นภาระผูกพันของบริษัท ไม่ใช่คิวงานของใครคนหนึ่ง จึงดูจากงานทั้งหมดที่ผู้ใช้เห็น */}
           {view === "om" && <window.OmView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} focus={omFocus} />}
-          {view === "expense" && <window.ExpenseView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} />}
+          {view === "expense" && <window.ExpenseView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} focus={ecFocus} />}
           {view === "report" && <ReportView jobs={filtered} onOpen={openJob} />}
           {view === "survey" && <SurveyView jobs={filtered} role={role} onOpen={openSurvey}
             onToggleSkip={(can(role, "doSurvey") || can(role, "dispatch") || can(role, "editJob")) ? (j) => {
@@ -746,6 +755,9 @@ function App() {
         omVisits={selectedJob ? (omLive.bySite || {})[selectedJob.id] || [] : []}
         omTickets={selectedJob ? (omLive.tickets || []).filter((t) => t.siteId === selectedJob.id) : []}
         onOm={can(role, "om") && !permitOnly && selectedJob ? () => openOm({ siteId: selectedJob.id }) : null}
+        /* เบิกเงินหน้างาน — เปิดได้ทุกขั้น เพราะค่าขนส่ง/ค่าเดินทางเกิดตั้งแต่ก่อนเริ่มติดตั้ง */
+        ecSum={selectedJob ? (ecLive.byJob || {})[selectedJob.id] || null : null}
+        onExpense={can(role, "expense") && !permitOnly && selectedJob ? () => openExpense(selectedJob.id) : null}
         permitMode={permitOnly}
         onOpenReview={permitOnly && selectedJob ? () => setPermitReview(selectedJob.id) : null}
         salesMode={salesOnly} quotes={quoteStore.quotes}

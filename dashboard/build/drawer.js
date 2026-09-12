@@ -1167,6 +1167,8 @@ function DetailDrawer({
   omSite,
   omVisits,
   omTickets,
+  onExpense,
+  ecSum,
   priceMap,
   permitMode,
   onOpenReview,
@@ -1534,6 +1536,10 @@ function DetailDrawer({
     visits: omVisits,
     tickets: omTickets,
     onOpen: onOm
+  }), onExpense && window.EcJobButton && React.createElement(window.EcJobButton, {
+    job: job,
+    sum: ecSum,
+    onOpen: onExpense
   }), onSurvey && (() => {
     const ss = window.surveyStatus ? window.surveyStatus(job) : {
       state: "none",

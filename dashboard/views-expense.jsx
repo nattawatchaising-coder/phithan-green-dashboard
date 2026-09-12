@@ -261,7 +261,7 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
 }
 
 /* ── แถวใบเบิกในรายการ ── */
-function EcClaimRow({ claim, onOpen }) {
+function EcClaimRow({ claim, onOpen, gone }) {
   const st = window.ecStatusOf(claim.status);
   const kind = window.ecKindOf(claim.kind);
   const pay = window.ecPayOf(claim.payMethod);
@@ -282,6 +282,8 @@ function EcClaimRow({ claim, onOpen }) {
         <span style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 2, fontFamily: "var(--mono)" }}>
           {claim.no} · {claim.byName || "-"} · {window.drShort(claim.date)}
           {claim.siteCode ? " · " + claim.siteCode : ""}
+          {/* ใบเบิกเป็นเอกสารการเงิน ต้องอ่านได้ต่อแม้ใบงานถูกลบ — ชื่อไซต์ถ่ายสำเนาไว้ตอนเปิดใบแล้ว */}
+          {gone && <span style={{ color: "#F59E0B", fontFamily: "inherit" }}> · งานถูกลบจากฐานข้อมูล</span>}
         </span>
       </span>
       <span style={{ textAlign: "right", flexShrink: 0 }}>
@@ -299,7 +301,7 @@ function EcClaimRow({ claim, onOpen }) {
 
 /* ── ตารางยอดรายคน ──
    "ค้างจ่าย" คือตัวเลขเดียวในตารางนี้ที่เอาไปจ่ายเงินจริงได้ ที่เหลือเป็นข้อมูลประกอบ */
-function EcPersonTable({ claims, users }) {
+function EcPersonTable({ claims, users, onPick }) {
   const roll = window.ecRollupByPerson(claims);
   const rows = Object.keys(roll).map((k) => roll[k])
     .sort((a, b) => b.owed - a.owed || b.waiting - a.waiting || b.count - a.count);
@@ -327,7 +329,8 @@ function EcPersonTable({ claims, users }) {
             {rows.map((r) => {
               const u = (users || []).find((x) => x.id === r.id);
               return (
-                <tr key={r.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                <tr key={r.id} onClick={() => onPick && onPick(r)}
+                  style={{ borderBottom: "1px solid var(--border)", cursor: onPick ? "pointer" : "default" }}>
                   <td style={{ padding: "10px", fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>
                     {r.name}
                     {u && !u.active && <span style={{ fontSize: 10.5, color: "var(--text-3)", fontWeight: 500 }}> · ปิดบัญชีแล้ว</span>}
@@ -354,59 +357,136 @@ function EcPersonTable({ claims, users }) {
       <div style={{ padding: "9px 12px", fontSize: 11, color: "var(--text-3)", lineHeight: 1.55, borderTop: "1px solid var(--border)" }}>
         “ค้างจ่าย” นับเฉพาะใบที่อนุมัติแล้วและพนักงานออกเงินตัวเองไปก่อน —
         ใบที่จ่ายด้วยเงินสดกองกลางหรือบัญชีบริษัทไม่ใช่หนี้ที่ต้องคืนใคร จึงไม่ถูกนับ
+        {onPick ? " · กดที่ชื่อเพื่อดูใบของคนนั้น" : ""}
       </div>
     </div>
   );
 }
 
-/* ── ยอดรายไซต์ = ต้นทุนจริงหน้างาน ── */
-function EcJobTable({ claims }) {
+/* ── ยอดรายไซต์ = ต้นทุนจริงหน้างาน ──
+   ค่าแรงผู้รับเหมามาจาก job.laborCost (ที่ตั้งไว้ในใบงาน) ส่วนเงินสดหน้างานมาจากใบเบิก
+   สองก้อนนี้คนละที่มา จึงแยกคอลัมน์ให้เห็น ไม่ยุบเป็นตัวเลขเดียวที่ไม่มีใครตรวจย้อนได้ */
+function EcJobTable({ claims, jobs, onPick }) {
   const roll = window.ecRollupByJob(claims);
-  const rows = Object.keys(roll).map((k) => roll[k]).sort((a, b) => b.total - a.total);
+  const jobById = React.useMemo(() => {
+    const m = {}; (jobs || []).forEach((j) => { if (j && j.id) m[j.id] = j; }); return m;
+  }, [jobs]);
+  const rows = Object.keys(roll).map((k) => {
+    const r = roll[k];
+    const j = jobById[r.jobId] || null;
+    const labor = j && j.laborCost ? Number(j.laborCost) || 0 : 0;
+    return Object.assign({}, r, { job: j, labor: labor, grand: window.ecRound(r.total + labor) });
+  }).sort((a, b) => b.grand - a.grand);
+
   if (!rows.length) {
     return <div style={{ padding: 28, textAlign: "center", fontSize: 13, color: "var(--text-3)" }}>
-      ยังไม่มีใบเบิกที่ผ่านการอนุมัติ — ต้นทุนรายไซต์จะนับเฉพาะใบที่อนุมัติแล้ว
+      ยังไม่มีใบเบิกที่ผูกกับงาน — ต้นทุนรายไซต์นับจากใบที่เลือกงานไว้เท่านั้น
     </div>;
   }
+  const sumCash = rows.reduce((a, r) => a + r.total, 0);
+  const sumLabor = rows.reduce((a, r) => a + r.labor, 0);
+
   return (
     <div>
       {rows.map((r) => (
-        <div key={r.jobId} style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "11px 13px",
-          borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)", marginBottom: 7 }}>
-          <span style={{ flex: 1, minWidth: 180 }}>
-            <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{r.name || "-"}</span>
-            <span style={{ display: "block", fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>
-              {r.code} · {r.count} ใบ
+        <div key={r.jobId} onClick={() => onPick && onPick(r)}
+          style={{ padding: "11px 13px", borderRadius: 12, background: "var(--surface)",
+            border: "1px solid var(--border)", marginBottom: 7, cursor: onPick ? "pointer" : "default" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <span style={{ flex: 1, minWidth: 180 }}>
+              <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{r.name || "-"}</span>
+              <span style={{ display: "block", fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>
+                {r.code} · {r.count} ใบ
+                {r.waitCount > 0 && <span style={{ color: "#F59E0B" }}> · รออนุมัติอีก {r.waitCount} ใบ {window.ecBahtShort(r.waiting)} บาท</span>}
+                {!r.job && <span style={{ color: "#F59E0B", fontFamily: "inherit" }}> · งานถูกลบจากฐานข้อมูล</span>}
+              </span>
             </span>
-          </span>
-          <span style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {Object.keys(r.byKind).map((k) => (
-              <EcPill key={k} th={window.ecKindOf(k).th} color={window.ecKindOf(k).color} sub={window.ecBahtShort(r.byKind[k])} />
-            ))}
-          </span>
-          <span style={{ fontFamily: "var(--mono)", fontSize: 15, fontWeight: 800, color: "var(--text-1)", minWidth: 100, textAlign: "right" }}>
-            {window.ecBaht(r.total)}
-          </span>
+            <span style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {Object.keys(r.byKind).map((k) => (
+                <EcPill key={k} th={window.ecKindOf(k).th} color={window.ecKindOf(k).color} sub={window.ecBahtShort(r.byKind[k])} />
+              ))}
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "flex-end",
+            marginTop: 9, paddingTop: 8, borderTop: "1px dashed var(--border)" }}>
+            <EcMini label="เงินสดหน้างาน" value={window.ecBaht(r.total)} color="var(--text-1)" />
+            <EcMini label="ค่าแรงผู้รับเหมา" value={r.labor ? window.ecBaht(r.labor) : "ยังไม่ตั้ง"} color="var(--text-3)" />
+            <EcMini label="รวม" value={window.ecBaht(r.grand)} color="var(--text-1)" big />
+          </div>
         </div>
       ))}
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "flex-end", padding: "11px 13px",
+        borderRadius: 12, background: "var(--surface2)", border: "1px solid var(--border)" }}>
+        <EcMini label="เงินสดหน้างานรวม" value={window.ecBaht(sumCash)} color="var(--text-1)" />
+        <EcMini label="ค่าแรงผู้รับเหมารวม" value={window.ecBaht(sumLabor)} color="var(--text-3)" />
+        <EcMini label="รวมทั้งหมด" value={window.ecBaht(window.ecRound(sumCash + sumLabor))} color="var(--text-1)" big />
+      </div>
       <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.55, marginTop: 9 }}>
-        ตัวเลขนี้คือเงินสดที่จ่ายหน้างานเท่านั้น ไม่รวมค่าของที่เบิกจากคลังและค่าแรงผู้รับเหมา —
-        ของในคลังบริษัทซื้อไปก่อนแล้ว คนละก้อนเงินกัน เอาไปเทียบกับ BOQ ตรง ๆ ไม่ได้
+        “เงินสดหน้างาน” นับเฉพาะใบที่อนุมัติแล้ว ใบที่ยังรออนุมัติแสดงแยกไว้ ยังไม่ถือเป็นต้นทุน ·
+        ตัวเลขนี้ไม่รวมค่าของที่เบิกจากคลัง เพราะของนั้นบริษัทซื้อไปก่อนแล้ว คนละก้อนเงินกัน
+        เอาไปเทียบกับ BOQ ตรง ๆ ไม่ได้
       </div>
     </div>
+  );
+}
+
+function EcMini({ label, value, color, big }) {
+  return (
+    <span style={{ textAlign: "right" }}>
+      <span style={{ display: "block", fontSize: 10.5, color: "var(--text-3)", fontWeight: 700 }}>{label}</span>
+      <span style={{ display: "block", fontFamily: "var(--mono)", fontSize: big ? 15 : 13,
+        fontWeight: big ? 800 : 700, color: color, marginTop: 1 }}>{value}</span>
+    </span>
+  );
+}
+
+/* ── ปุ่มในลิ้นชักใบงาน ── (ลอกโครงจาก OmJobButton views-om.jsx:848)
+   บอกยอดเงินสดที่ลงไปกับงานนี้แล้ว และเตือนถ้ามีใบค้างรออนุมัติอยู่ */
+function EcJobButton({ job, sum, onOpen }) {
+  const s = sum || { total: 0, count: 0, waiting: 0, waitCount: 0, owed: 0 };
+  const color = s.waitCount ? "#F59E0B" : s.total ? "#0EA5E9" : "#94A3B8";
+  const sub = !s.count && !s.waitCount ? "ยังไม่มีใบเบิกของงานนี้ — กดเพื่อเปิดใบ"
+    : [s.count ? window.ecBaht(s.total) + " บาท · " + s.count + " ใบ" : "",
+       s.waitCount ? "รออนุมัติ " + s.waitCount + " ใบ" : "",
+       s.owed ? "ค้างจ่ายพนักงาน " + window.ecBahtShort(s.owed) : ""].filter(Boolean).join(" · ");
+  return (
+    <button onClick={onOpen}
+      style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+        background: "var(--surface)", border: "1px solid var(--border-strong)", borderLeft: "3px solid " + color,
+        borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+      <span style={{ width: 34, height: 34, borderRadius: 9, background: color + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
+        <Icon name="wallet" size={17} color={color} />
+      </span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>เบิกเงินหน้างาน</span>
+        <span style={{ display: "block", fontSize: 11.5, color: color, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sub}</span>
+      </span>
+      <Icon name="arrowRight" size={16} color="var(--text-3)" />
+    </button>
   );
 }
 
 /* ── หน้าหลัก ── */
-function ExpenseView({ jobs, users, role, currentUser }) {
+function ExpenseView({ jobs, users, role, currentUser, focus }) {
   const store = window.useEcClaims();
   const [tab, setTab] = React.useState("mine");
   const [open, setOpen] = React.useState(null);
   const [q, setQ] = React.useState("");
   const [newJob, setNewJob] = React.useState("");
+  const [jobFilter, setJobFilter] = React.useState("");   /* เจาะดูเฉพาะงานเดียว มาจากปุ่มในลิ้นชักหรือตารางรายไซต์ */
 
   const canApprove = window.ecCanApprove(role);
   const uid = currentUser ? currentUser.id : null;
+
+  /* เปิดมาจากปุ่มในลิ้นชักใบงาน — เจาะให้เห็นเฉพาะงานนั้น และเตรียมงานไว้ให้ปุ่มเปิดใบใหม่ด้วย
+     ผูกกับ focus.at เพื่อให้กดปุ่มเดิมซ้ำแล้วเด้งกลับมาที่งานนั้นอีก ไม่ใช่ครั้งแรกครั้งเดียว */
+  React.useEffect(() => {
+    if (!focus || !focus.jobId) return;
+    setJobFilter(focus.jobId);
+    setNewJob(focus.jobId);
+    setTab(canApprove ? "all" : "mine");
+    setQ("");
+  }, [focus && focus.at]);
 
   /* กรองที่ชั้นข้อมูลก่อนเสมอ — คนที่ไม่มีสิทธิ์อนุมัติต้องไม่ได้ข้อมูลใบของคนอื่นติดมือไปด้วย
      ไม่ใช่แค่ซ่อนปุ่มบนหน้าจอ */
@@ -420,12 +500,13 @@ function ExpenseView({ jobs, users, role, currentUser }) {
   const list = React.useMemo(() => {
     const kw = q.trim().toLowerCase();
     let out = all;
+    if (jobFilter) out = out.filter((c) => (c.jobId || "") === jobFilter);
     if (tab === "mine") out = out.filter((c) => c.byId === uid);
     else if (tab === "inbox") out = out.filter((c) => c.status === "sent" && window.ecApproveCheck(c, currentUser, role).ok);
     if (kw) out = out.filter((c) => [c.no, c.byName, c.siteCode, c.siteName, c.note, window.ecKindOf(c.kind).th]
       .some((v) => String(v || "").toLowerCase().includes(kw)));
     return out;
-  }, [all, tab, q, uid, currentUser, role]);
+  }, [all, tab, q, uid, currentUser, role, jobFilter]);
 
   const openNew = () => {
     const job = newJob ? jobById[newJob] : null;
@@ -517,18 +598,35 @@ function ExpenseView({ jobs, users, role, currentUser }) {
         ))}
       </div>
 
-      {tab === "person" && <EcPersonTable claims={all} users={users} />}
-      {tab === "job" && <EcJobTable claims={all} />}
+      {tab === "person" && <EcPersonTable claims={all} users={users}
+        onPick={(r) => { setJobFilter(""); setQ(r.name || ""); setTab("all"); }} />}
+      {tab === "job" && <EcJobTable claims={all} jobs={jobs}
+        onPick={(r) => { setQ(""); setJobFilter(r.jobId); setNewJob(r.jobId); setTab("all"); }} />}
 
       {tab !== "person" && tab !== "job" && (
         <React.Fragment>
+          {jobFilter && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "8px 12px",
+              borderRadius: 10, background: "var(--surface2)", border: "1px solid var(--border)" }}>
+              <Icon name="sun" size={13} color="#0EA5E9" />
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>
+                เฉพาะงาน {(jobById[jobFilter] || {}).code || jobFilter}
+                {jobById[jobFilter] ? " · " + jobById[jobFilter].name : " · งานถูกลบจากฐานข้อมูล"}
+              </span>
+              <button onClick={() => setJobFilter("")}
+                style={{ marginLeft: "auto", padding: "5px 11px", borderRadius: 8, border: "1px solid var(--border-strong)",
+                  background: "var(--surface)", cursor: "pointer", fontFamily: "inherit", fontSize: 11.5,
+                  fontWeight: 700, color: "var(--text-2)" }}>ดูทั้งหมด</button>
+            </div>
+          )}
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา เลขที่ใบ · ชื่อคน · รหัสงาน · หมายเหตุ"
             style={EC_INPUT} />
           <div>
-            {list.map((c) => <EcClaimRow key={c.id} claim={c} onOpen={setOpen} />)}
+            {list.map((c) => <EcClaimRow key={c.id} claim={c} onOpen={setOpen} gone={!!c.jobId && !jobById[c.jobId]} />)}
             {!list.length && (
               <div style={{ padding: 28, textAlign: "center", fontSize: 13, color: "var(--text-3)" }}>
-                {q ? "ไม่พบใบเบิกที่ตรงกับคำค้น"
+                {jobFilter ? "งานนี้ยังไม่มีใบเบิก — กด “เปิดใบเบิก” ด้านบนได้เลย"
+                  : q ? "ไม่พบใบเบิกที่ตรงกับคำค้น"
                   : tab === "inbox" ? "ไม่มีใบที่รอคุณอนุมัติ"
                   : tab === "mine" ? "ยังไม่มีใบเบิกของคุณ — กด “เปิดใบเบิก” ด้านบน"
                   : "ยังไม่มีใบเบิกในระบบ"}
@@ -546,4 +644,5 @@ function ExpenseView({ jobs, users, role, currentUser }) {
   );
 }
 
-Object.assign(window, { EC_INPUT, EcPill, EcStat, EcClaimModal, EcClaimRow, EcPersonTable, EcJobTable, ExpenseView });
+Object.assign(window, { EC_INPUT, EcPill, EcStat, EcMini, EcClaimModal, EcClaimRow,
+  EcPersonTable, EcJobTable, EcJobButton, ExpenseView });

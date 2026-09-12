@@ -232,15 +232,28 @@ function ecRollupByJob(claims) {
   const out = {};
   (claims || []).forEach((c) => {
     if (!c || !c.jobId) return;
-    if (c.status !== "approved" && c.status !== "paid") return;
-    if (!out[c.jobId]) out[c.jobId] = { jobId: c.jobId, code: c.siteCode || "", name: c.siteName || "", total: 0, count: 0, byKind: {} };
+    if (!out[c.jobId]) out[c.jobId] = { jobId: c.jobId, code: c.siteCode || "", name: c.siteName || "",
+      total: 0, count: 0, byKind: {}, waiting: 0, waitCount: 0, owed: 0 };
     const o = out[c.jobId];
     const amt = ecRound(c.amount);
+    if (c.siteName) o.name = c.siteName;
+    if (c.siteCode) o.code = c.siteCode;
+    /* ใบที่ยังไม่มีใครตรวจ ยังไม่ใช่ต้นทุน แต่ต้องเห็นว่ามีอยู่ ไม่งั้นตัวเลขต้นทุนจะดูต่ำกว่าความจริง
+       ตอนที่กำลังมีใบค้างอยู่ในระบบ — นับแยกช่อง ไม่เอาไปบวกรวม */
+    if (c.status === "sent") { o.waiting = ecRound(o.waiting + amt); o.waitCount += 1; return; }
+    if (c.status !== "approved" && c.status !== "paid") return;
     o.total = ecRound(o.total + amt); o.count += 1;
     o.byKind[c.kind || "other"] = ecRound((o.byKind[c.kind || "other"] || 0) + amt);
-    if (c.siteName) o.name = c.siteName;
+    if (c.status === "approved" && ecPayOf(c.payMethod).owed) o.owed = ecRound(o.owed + amt);
   });
   return out;
+}
+
+/* ยอดของงานเดียว — ให้ปุ่มในลิ้นชักใบงานใช้ ไม่ต้องม้วนทั้งระบบทิ้งทุกครั้งที่เปิดลิ้นชัก */
+function ecJobSum(claims, jobId) {
+  const empty = { jobId: jobId || null, total: 0, count: 0, byKind: {}, waiting: 0, waitCount: 0, owed: 0 };
+  if (!jobId) return empty;
+  return ecRollupByJob((claims || []).filter((c) => c && c.jobId === jobId))[jobId] || empty;
 }
 
 /* ไทล์บนหัวหน้า — waitingMine = ใบที่ "คนนี้" ต้องไปกดอนุมัติ ไม่ใช่ใบที่รออนุมัติทั้งระบบ */
@@ -317,12 +330,30 @@ function ecNotify(n) {
   }, n));
 }
 
+/* ── ข้อมูลใบเบิกแบบเปิดค้างไว้ สำหรับปุ่มในลิ้นชักใบงาน ──
+   โหนดเดียว เบา (รูปบิลแยกอยู่ที่ ecReceipts) เปิดค้างได้เหมือน useOmAlerts
+   คนที่ไม่มีสิทธิ์ expense จะไม่ฟังอะไรเลย — ส่ง false เข้ามา */
+function useEcLive(on) {
+  const [claims, setClaims] = React.useState([]);
+  React.useEffect(() => {
+    if (!on || !_ECFB()) { setClaims([]); return; }
+    const ref = _ecRef("ecClaims");
+    const h = ref.on("value", (s) => {
+      const v = s.val() || {};
+      setClaims(Object.keys(v).map((k) => Object.assign({ id: k }, v[k])));
+    });
+    return () => ref.off("value", h);
+  }, [on]);
+  const byJob = React.useMemo(() => ecRollupByJob(claims), [claims]);
+  return { claims, byJob };
+}
+
 Object.assign(window, {
   EC_ROOT, EC_KIND, EC_KIND_BY, EC_PAY, EC_PAY_BY, EC_STATUS, EC_STATUS_BY,
   ecRound, ecBaht, ecBahtShort, ecKindOf, ecPayOf, ecStatusOf, ecOpen,
   ecCanUse, ecCanApprove, ecCanPay, ecCanDelete,
   ecApproverFor, ecApproveCheck, ecNext, ecCan, ecMove,
   ecDocNo, ecBlank, ecSum, ecVisible,
-  ecRollupByPerson, ecRollupByJob, ecRollup,
-  useEcClaims, ecNotify,
+  ecRollupByPerson, ecRollupByJob, ecJobSum, ecRollup,
+  useEcClaims, useEcLive, ecNotify,
 });

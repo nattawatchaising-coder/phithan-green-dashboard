@@ -540,7 +540,8 @@ function EcClaimModal({
 }
 function EcClaimRow({
   claim,
-  onOpen
+  onOpen,
+  gone
 }) {
   const st = window.ecStatusOf(claim.status);
   const kind = window.ecKindOf(claim.kind);
@@ -599,7 +600,12 @@ function EcClaimRow({
       marginTop: 2,
       fontFamily: "var(--mono)"
     }
-  }, claim.no, " \xB7 ", claim.byName || "-", " \xB7 ", window.drShort(claim.date), claim.siteCode ? " · " + claim.siteCode : "")), React.createElement("span", {
+  }, claim.no, " \xB7 ", claim.byName || "-", " \xB7 ", window.drShort(claim.date), claim.siteCode ? " · " + claim.siteCode : "", gone && React.createElement("span", {
+    style: {
+      color: "#F59E0B",
+      fontFamily: "inherit"
+    }
+  }, " \xB7 \u0E07\u0E32\u0E19\u0E16\u0E39\u0E01\u0E25\u0E1A\u0E08\u0E32\u0E01\u0E10\u0E32\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25"))), React.createElement("span", {
     style: {
       textAlign: "right",
       flexShrink: 0
@@ -630,7 +636,8 @@ function EcClaimRow({
 }
 function EcPersonTable({
   claims,
-  users
+  users,
+  onPick
 }) {
   const roll = window.ecRollupByPerson(claims);
   const rows = Object.keys(roll).map(k => roll[k]).sort((a, b) => b.owed - a.owed || b.waiting - a.waiting || b.count - a.count);
@@ -699,8 +706,10 @@ function EcPersonTable({
     const u = (users || []).find(x => x.id === r.id);
     return React.createElement("tr", {
       key: r.id,
+      onClick: () => onPick && onPick(r),
       style: {
-        borderBottom: "1px solid var(--border)"
+        borderBottom: "1px solid var(--border)",
+        cursor: onPick ? "pointer" : "default"
       }
     }, React.createElement("td", {
       style: {
@@ -763,13 +772,31 @@ function EcPersonTable({
       lineHeight: 1.55,
       borderTop: "1px solid var(--border)"
     }
-  }, "\u201C\u0E04\u0E49\u0E32\u0E07\u0E08\u0E48\u0E32\u0E22\u201D \u0E19\u0E31\u0E1A\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\u0E41\u0E25\u0E30\u0E1E\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19\u0E2D\u0E2D\u0E01\u0E40\u0E07\u0E34\u0E19\u0E15\u0E31\u0E27\u0E40\u0E2D\u0E07\u0E44\u0E1B\u0E01\u0E48\u0E2D\u0E19 \u2014 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E08\u0E48\u0E32\u0E22\u0E14\u0E49\u0E27\u0E22\u0E40\u0E07\u0E34\u0E19\u0E2A\u0E14\u0E01\u0E2D\u0E07\u0E01\u0E25\u0E32\u0E07\u0E2B\u0E23\u0E37\u0E2D\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E2B\u0E19\u0E35\u0E49\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E04\u0E37\u0E19\u0E43\u0E04\u0E23 \u0E08\u0E36\u0E07\u0E44\u0E21\u0E48\u0E16\u0E39\u0E01\u0E19\u0E31\u0E1A"));
+  }, "\u201C\u0E04\u0E49\u0E32\u0E07\u0E08\u0E48\u0E32\u0E22\u201D \u0E19\u0E31\u0E1A\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\u0E41\u0E25\u0E30\u0E1E\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19\u0E2D\u0E2D\u0E01\u0E40\u0E07\u0E34\u0E19\u0E15\u0E31\u0E27\u0E40\u0E2D\u0E07\u0E44\u0E1B\u0E01\u0E48\u0E2D\u0E19 \u2014 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E08\u0E48\u0E32\u0E22\u0E14\u0E49\u0E27\u0E22\u0E40\u0E07\u0E34\u0E19\u0E2A\u0E14\u0E01\u0E2D\u0E07\u0E01\u0E25\u0E32\u0E07\u0E2B\u0E23\u0E37\u0E2D\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E2B\u0E19\u0E35\u0E49\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E04\u0E37\u0E19\u0E43\u0E04\u0E23 \u0E08\u0E36\u0E07\u0E44\u0E21\u0E48\u0E16\u0E39\u0E01\u0E19\u0E31\u0E1A", onPick ? " · กดที่ชื่อเพื่อดูใบของคนนั้น" : ""));
 }
 function EcJobTable({
-  claims
+  claims,
+  jobs,
+  onPick
 }) {
   const roll = window.ecRollupByJob(claims);
-  const rows = Object.keys(roll).map(k => roll[k]).sort((a, b) => b.total - a.total);
+  const jobById = React.useMemo(() => {
+    const m = {};
+    (jobs || []).forEach(j => {
+      if (j && j.id) m[j.id] = j;
+    });
+    return m;
+  }, [jobs]);
+  const rows = Object.keys(roll).map(k => {
+    const r = roll[k];
+    const j = jobById[r.jobId] || null;
+    const labor = j && j.laborCost ? Number(j.laborCost) || 0 : 0;
+    return Object.assign({}, r, {
+      job: j,
+      labor: labor,
+      grand: window.ecRound(r.total + labor)
+    });
+  }).sort((a, b) => b.grand - a.grand);
   if (!rows.length) {
     return React.createElement("div", {
       style: {
@@ -778,20 +805,27 @@ function EcJobTable({
         fontSize: 13,
         color: "var(--text-3)"
       }
-    }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A\u0E40\u0E1A\u0E34\u0E01\u0E17\u0E35\u0E48\u0E1C\u0E48\u0E32\u0E19\u0E01\u0E32\u0E23\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34 \u2014 \u0E15\u0E49\u0E19\u0E17\u0E38\u0E19\u0E23\u0E32\u0E22\u0E44\u0E0B\u0E15\u0E4C\u0E08\u0E30\u0E19\u0E31\u0E1A\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27");
+    }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A\u0E40\u0E1A\u0E34\u0E01\u0E17\u0E35\u0E48\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19 \u2014 \u0E15\u0E49\u0E19\u0E17\u0E38\u0E19\u0E23\u0E32\u0E22\u0E44\u0E0B\u0E15\u0E4C\u0E19\u0E31\u0E1A\u0E08\u0E32\u0E01\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E07\u0E32\u0E19\u0E44\u0E27\u0E49\u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19");
   }
+  const sumCash = rows.reduce((a, r) => a + r.total, 0);
+  const sumLabor = rows.reduce((a, r) => a + r.labor, 0);
   return React.createElement("div", null, rows.map(r => React.createElement("div", {
     key: r.jobId,
+    onClick: () => onPick && onPick(r),
     style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-      flexWrap: "wrap",
       padding: "11px 13px",
       borderRadius: 12,
       background: "var(--surface)",
       border: "1px solid var(--border)",
-      marginBottom: 7
+      marginBottom: 7,
+      cursor: onPick ? "pointer" : "default"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      flexWrap: "wrap"
     }
   }, React.createElement("span", {
     style: {
@@ -813,7 +847,16 @@ function EcJobTable({
       color: "var(--text-3)",
       marginTop: 2
     }
-  }, r.code, " \xB7 ", r.count, " \u0E43\u0E1A")), React.createElement("span", {
+  }, r.code, " \xB7 ", r.count, " \u0E43\u0E1A", r.waitCount > 0 && React.createElement("span", {
+    style: {
+      color: "#F59E0B"
+    }
+  }, " \xB7 \u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E2D\u0E35\u0E01 ", r.waitCount, " \u0E43\u0E1A ", window.ecBahtShort(r.waiting), " \u0E1A\u0E32\u0E17"), !r.job && React.createElement("span", {
+    style: {
+      color: "#F59E0B",
+      fontFamily: "inherit"
+    }
+  }, " \xB7 \u0E07\u0E32\u0E19\u0E16\u0E39\u0E01\u0E25\u0E1A\u0E08\u0E32\u0E01\u0E10\u0E32\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25"))), React.createElement("span", {
     style: {
       display: "flex",
       gap: 6,
@@ -824,37 +867,185 @@ function EcJobTable({
     th: window.ecKindOf(k).th,
     color: window.ecKindOf(k).color,
     sub: window.ecBahtShort(r.byKind[k])
-  }))), React.createElement("span", {
+  })))), React.createElement("div", {
     style: {
-      fontFamily: "var(--mono)",
-      fontSize: 15,
-      fontWeight: 800,
-      color: "var(--text-1)",
-      minWidth: 100,
-      textAlign: "right"
+      display: "flex",
+      gap: 14,
+      flexWrap: "wrap",
+      justifyContent: "flex-end",
+      marginTop: 9,
+      paddingTop: 8,
+      borderTop: "1px dashed var(--border)"
     }
-  }, window.ecBaht(r.total)))), React.createElement("div", {
+  }, React.createElement(EcMini, {
+    label: "\u0E40\u0E07\u0E34\u0E19\u0E2A\u0E14\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19",
+    value: window.ecBaht(r.total),
+    color: "var(--text-1)"
+  }), React.createElement(EcMini, {
+    label: "\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E40\u0E2B\u0E21\u0E32",
+    value: r.labor ? window.ecBaht(r.labor) : "ยังไม่ตั้ง",
+    color: "var(--text-3)"
+  }), React.createElement(EcMini, {
+    label: "\u0E23\u0E27\u0E21",
+    value: window.ecBaht(r.grand),
+    color: "var(--text-1)",
+    big: true
+  })))), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 14,
+      flexWrap: "wrap",
+      justifyContent: "flex-end",
+      padding: "11px 13px",
+      borderRadius: 12,
+      background: "var(--surface2)",
+      border: "1px solid var(--border)"
+    }
+  }, React.createElement(EcMini, {
+    label: "\u0E40\u0E07\u0E34\u0E19\u0E2A\u0E14\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19\u0E23\u0E27\u0E21",
+    value: window.ecBaht(sumCash),
+    color: "var(--text-1)"
+  }), React.createElement(EcMini, {
+    label: "\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E40\u0E2B\u0E21\u0E32\u0E23\u0E27\u0E21",
+    value: window.ecBaht(sumLabor),
+    color: "var(--text-3)"
+  }), React.createElement(EcMini, {
+    label: "\u0E23\u0E27\u0E21\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14",
+    value: window.ecBaht(window.ecRound(sumCash + sumLabor)),
+    color: "var(--text-1)",
+    big: true
+  })), React.createElement("div", {
     style: {
       fontSize: 11,
       color: "var(--text-3)",
       lineHeight: 1.55,
       marginTop: 9
     }
-  }, "\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E19\u0E35\u0E49\u0E04\u0E37\u0E2D\u0E40\u0E07\u0E34\u0E19\u0E2A\u0E14\u0E17\u0E35\u0E48\u0E08\u0E48\u0E32\u0E22\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19\u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \u0E44\u0E21\u0E48\u0E23\u0E27\u0E21\u0E04\u0E48\u0E32\u0E02\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E40\u0E1A\u0E34\u0E01\u0E08\u0E32\u0E01\u0E04\u0E25\u0E31\u0E07\u0E41\u0E25\u0E30\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E40\u0E2B\u0E21\u0E32 \u2014 \u0E02\u0E2D\u0E07\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17\u0E0B\u0E37\u0E49\u0E2D\u0E44\u0E1B\u0E01\u0E48\u0E2D\u0E19\u0E41\u0E25\u0E49\u0E27 \u0E04\u0E19\u0E25\u0E30\u0E01\u0E49\u0E2D\u0E19\u0E40\u0E07\u0E34\u0E19\u0E01\u0E31\u0E19 \u0E40\u0E2D\u0E32\u0E44\u0E1B\u0E40\u0E17\u0E35\u0E22\u0E1A\u0E01\u0E31\u0E1A BOQ \u0E15\u0E23\u0E07 \u0E46 \u0E44\u0E21\u0E48\u0E44\u0E14\u0E49"));
+  }, "\u201C\u0E40\u0E07\u0E34\u0E19\u0E2A\u0E14\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19\u201D \u0E19\u0E31\u0E1A\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E2A\u0E14\u0E07\u0E41\u0E22\u0E01\u0E44\u0E27\u0E49 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E16\u0E37\u0E2D\u0E40\u0E1B\u0E47\u0E19\u0E15\u0E49\u0E19\u0E17\u0E38\u0E19 \xB7 \u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E19\u0E35\u0E49\u0E44\u0E21\u0E48\u0E23\u0E27\u0E21\u0E04\u0E48\u0E32\u0E02\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E40\u0E1A\u0E34\u0E01\u0E08\u0E32\u0E01\u0E04\u0E25\u0E31\u0E07 \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E02\u0E2D\u0E07\u0E19\u0E31\u0E49\u0E19\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17\u0E0B\u0E37\u0E49\u0E2D\u0E44\u0E1B\u0E01\u0E48\u0E2D\u0E19\u0E41\u0E25\u0E49\u0E27 \u0E04\u0E19\u0E25\u0E30\u0E01\u0E49\u0E2D\u0E19\u0E40\u0E07\u0E34\u0E19\u0E01\u0E31\u0E19 \u0E40\u0E2D\u0E32\u0E44\u0E1B\u0E40\u0E17\u0E35\u0E22\u0E1A\u0E01\u0E31\u0E1A BOQ \u0E15\u0E23\u0E07 \u0E46 \u0E44\u0E21\u0E48\u0E44\u0E14\u0E49"));
+}
+function EcMini({
+  label,
+  value,
+  color,
+  big
+}) {
+  return React.createElement("span", {
+    style: {
+      textAlign: "right"
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 10.5,
+      color: "var(--text-3)",
+      fontWeight: 700
+    }
+  }, label), React.createElement("span", {
+    style: {
+      display: "block",
+      fontFamily: "var(--mono)",
+      fontSize: big ? 15 : 13,
+      fontWeight: big ? 800 : 700,
+      color: color,
+      marginTop: 1
+    }
+  }, value));
+}
+function EcJobButton({
+  job,
+  sum,
+  onOpen
+}) {
+  const s = sum || {
+    total: 0,
+    count: 0,
+    waiting: 0,
+    waitCount: 0,
+    owed: 0
+  };
+  const color = s.waitCount ? "#F59E0B" : s.total ? "#0EA5E9" : "#94A3B8";
+  const sub = !s.count && !s.waitCount ? "ยังไม่มีใบเบิกของงานนี้ — กดเพื่อเปิดใบ" : [s.count ? window.ecBaht(s.total) + " บาท · " + s.count + " ใบ" : "", s.waitCount ? "รออนุมัติ " + s.waitCount + " ใบ" : "", s.owed ? "ค้างจ่ายพนักงาน " + window.ecBahtShort(s.owed) : ""].filter(Boolean).join(" · ");
+  return React.createElement("button", {
+    onClick: onOpen,
+    style: {
+      width: "100%",
+      marginBottom: 10,
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "12px 14px",
+      background: "var(--surface)",
+      border: "1px solid var(--border-strong)",
+      borderLeft: "3px solid " + color,
+      borderRadius: 12,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      textAlign: "left"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 34,
+      height: 34,
+      borderRadius: 9,
+      background: color + "1c",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "wallet",
+    size: 17,
+    color: color
+  })), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 13.5,
+      fontWeight: 700,
+      color: "var(--text-1)"
+    }
+  }, "\u0E40\u0E1A\u0E34\u0E01\u0E40\u0E07\u0E34\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19"), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      color: color,
+      fontWeight: 700,
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, sub)), React.createElement(Icon, {
+    name: "arrowRight",
+    size: 16,
+    color: "var(--text-3)"
+  }));
 }
 function ExpenseView({
   jobs,
   users,
   role,
-  currentUser
+  currentUser,
+  focus
 }) {
   const store = window.useEcClaims();
   const [tab, setTab] = React.useState("mine");
   const [open, setOpen] = React.useState(null);
   const [q, setQ] = React.useState("");
   const [newJob, setNewJob] = React.useState("");
+  const [jobFilter, setJobFilter] = React.useState("");
   const canApprove = window.ecCanApprove(role);
   const uid = currentUser ? currentUser.id : null;
+  React.useEffect(() => {
+    if (!focus || !focus.jobId) return;
+    setJobFilter(focus.jobId);
+    setNewJob(focus.jobId);
+    setTab(canApprove ? "all" : "mine");
+    setQ("");
+  }, [focus && focus.at]);
   const all = React.useMemo(() => window.ecVisible(store.claims, currentUser, role), [store.claims, currentUser, role]);
   const jobById = React.useMemo(() => {
     const m = {};
@@ -867,10 +1058,11 @@ function ExpenseView({
   const list = React.useMemo(() => {
     const kw = q.trim().toLowerCase();
     let out = all;
+    if (jobFilter) out = out.filter(c => (c.jobId || "") === jobFilter);
     if (tab === "mine") out = out.filter(c => c.byId === uid);else if (tab === "inbox") out = out.filter(c => c.status === "sent" && window.ecApproveCheck(c, currentUser, role).ok);
     if (kw) out = out.filter(c => [c.no, c.byName, c.siteCode, c.siteName, c.note, window.ecKindOf(c.kind).th].some(v => String(v || "").toLowerCase().includes(kw)));
     return out;
-  }, [all, tab, q, uid, currentUser, role]);
+  }, [all, tab, q, uid, currentUser, role, jobFilter]);
   const openNew = () => {
     const job = newJob ? jobById[newJob] : null;
     const rec = window.ecBlank(job, currentUser, store.claims, users);
@@ -1036,10 +1228,57 @@ function ExpenseView({
     }
   }, n)))), tab === "person" && React.createElement(EcPersonTable, {
     claims: all,
-    users: users
+    users: users,
+    onPick: r => {
+      setJobFilter("");
+      setQ(r.name || "");
+      setTab("all");
+    }
   }), tab === "job" && React.createElement(EcJobTable, {
-    claims: all
-  }), tab !== "person" && tab !== "job" && React.createElement(React.Fragment, null, React.createElement("input", {
+    claims: all,
+    jobs: jobs,
+    onPick: r => {
+      setQ("");
+      setJobFilter(r.jobId);
+      setNewJob(r.jobId);
+      setTab("all");
+    }
+  }), tab !== "person" && tab !== "job" && React.createElement(React.Fragment, null, jobFilter && React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      flexWrap: "wrap",
+      padding: "8px 12px",
+      borderRadius: 10,
+      background: "var(--surface2)",
+      border: "1px solid var(--border)"
+    }
+  }, React.createElement(Icon, {
+    name: "sun",
+    size: 13,
+    color: "#0EA5E9"
+  }), React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-1)"
+    }
+  }, "\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E07\u0E32\u0E19 ", (jobById[jobFilter] || {}).code || jobFilter, jobById[jobFilter] ? " · " + jobById[jobFilter].name : " · งานถูกลบจากฐานข้อมูล"), React.createElement("button", {
+    onClick: () => setJobFilter(""),
+    style: {
+      marginLeft: "auto",
+      padding: "5px 11px",
+      borderRadius: 8,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, "\u0E14\u0E39\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14")), React.createElement("input", {
     value: q,
     onChange: e => setQ(e.target.value),
     placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32 \u0E40\u0E25\u0E02\u0E17\u0E35\u0E48\u0E43\u0E1A \xB7 \u0E0A\u0E37\u0E48\u0E2D\u0E04\u0E19 \xB7 \u0E23\u0E2B\u0E31\u0E2A\u0E07\u0E32\u0E19 \xB7 \u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38",
@@ -1047,7 +1286,8 @@ function ExpenseView({
   }), React.createElement("div", null, list.map(c => React.createElement(EcClaimRow, {
     key: c.id,
     claim: c,
-    onOpen: setOpen
+    onOpen: setOpen,
+    gone: !!c.jobId && !jobById[c.jobId]
   })), !list.length && React.createElement("div", {
     style: {
       padding: 28,
@@ -1055,7 +1295,7 @@ function ExpenseView({
       fontSize: 13,
       color: "var(--text-3)"
     }
-  }, q ? "ไม่พบใบเบิกที่ตรงกับคำค้น" : tab === "inbox" ? "ไม่มีใบที่รอคุณอนุมัติ" : tab === "mine" ? "ยังไม่มีใบเบิกของคุณ — กด “เปิดใบเบิก” ด้านบน" : "ยังไม่มีใบเบิกในระบบ"))), cur && React.createElement(EcClaimModal, {
+  }, jobFilter ? "งานนี้ยังไม่มีใบเบิก — กด “เปิดใบเบิก” ด้านบนได้เลย" : q ? "ไม่พบใบเบิกที่ตรงกับคำค้น" : tab === "inbox" ? "ไม่มีใบที่รอคุณอนุมัติ" : tab === "mine" ? "ยังไม่มีใบเบิกของคุณ — กด “เปิดใบเบิก” ด้านบน" : "ยังไม่มีใบเบิกในระบบ"))), cur && React.createElement(EcClaimModal, {
     claim: cur,
     job: jobById[cur.jobId] || null,
     users: users,
@@ -1071,9 +1311,11 @@ Object.assign(window, {
   EC_INPUT,
   EcPill,
   EcStat,
+  EcMini,
   EcClaimModal,
   EcClaimRow,
   EcPersonTable,
   EcJobTable,
+  EcJobButton,
   ExpenseView
 });

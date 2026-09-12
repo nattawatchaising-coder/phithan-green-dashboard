@@ -455,7 +455,7 @@ function PermitJobSummary({ job, onOpenReview }) {
   );
 }
 
-function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, canDesign, stock, onSaveBOQ, onSurvey, onSurveyReport, onPermit, onDaily, onOm, omSite, omVisits, omTickets, priceMap, permitMode, onOpenReview, salesMode, quotes, onOpenQuote }) {
+function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, canDesign, stock, onSaveBOQ, onSurvey, onSurveyReport, onPermit, onDaily, onOm, omSite, omVisits, omTickets, onExpense, ecSum, priceMap, permitMode, onOpenReview, salesMode, quotes, onOpenQuote }) {
   const SF = window.SF;
   // ฝ่ายขออนุญาตกับเซลล์เปิดใบงานได้ แต่ไม่ใช่คนทำงานหน้างาน — ซ่อนเครื่องมือช่างทั้งชุด
   const roMode = permitMode || salesMode;
@@ -605,6 +605,11 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   โชว์เฉพาะงานที่ติดตั้งเสร็จแล้ว หรือที่ขึ้นทะเบียนบริการไว้แล้ว (งานอื่นยังไม่มีอะไรให้ดู) */}
               {onOm && (job.stage === "done" || omSite) && window.OmJobButton && (
                 <window.OmJobButton job={job} site={omSite} visits={omVisits} tickets={omTickets} onOpen={onOm} />
+              )}
+
+              {/* เบิกเงินหน้างาน — เงินสดที่ลงไปกับงานนี้ และใบที่ยังรออนุมัติ */}
+              {onExpense && window.EcJobButton && (
+                <window.EcJobButton job={job} sum={ecSum} onOpen={onExpense} />
               )}
 
               {/* สำรวจหน้างาน (Site Survey) */}
