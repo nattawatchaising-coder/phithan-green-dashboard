@@ -258,7 +258,7 @@ const omFreeTotal = (site) => ((site || {}).clean || {}).freeCount || 0;
 /* ── แผงไซต์ ──
    เฟสนี้มีข้อมูลไซต์ · วันรับมอบ · ทะเบียนประกัน · ตั้งค่ารอบล้างแผง
    ส่วนนัดล้างจริง ใบแจ้งซ่อม และใบรายงานเข้าบริการ จะมาในเฟสถัดไป */
-function OmSiteModal({ site, job, role, visits, cleanStore, onClose, onPatch, onRemove }) {
+function OmSiteModal({ site, job, role, visits, cleanStore, tickets, onOpenTicket, onNewTicket, onClose, onPatch, onRemove }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const disabled = !window.omCanWrite(role, null);
   const canDelete = window.omCanDelete(role);
@@ -430,7 +430,43 @@ function OmSiteModal({ site, job, role, visits, cleanStore, onClose, onPatch, on
             )}
           </window.DrSection>
 
-          <window.DrSection n="5" title="หมายเหตุ" tone="#94A3B8">
+          {/* ใบแจ้งซ่อมของไซต์นี้ — เห็นประวัติปัญหาคู่กับทะเบียนประกันในหน้าเดียว
+              กดแล้วปิดแผงไซต์ไปเปิดแผงใบแจ้งซ่อม ไม่ซ้อนแผงสองชั้น */}
+          <window.DrSection n="5" title="ใบแจ้งซ่อม" tone="#7C5CFC"
+            hint={(tickets || []).length ? (tickets || []).filter((t) => window.omTicketOpen(t)).length + " ใบที่ยังไม่ปิด" : ""}>
+            {!(tickets || []).length && (
+              <div style={{ fontSize: 12.5, color: "var(--text-3)", marginBottom: onNewTicket ? 11 : 0 }}>ยังไม่เคยมีเรื่องแจ้งซ่อม</div>
+            )}
+            {(tickets || []).map((t) => {
+              const ts = window.omTicketStatusOf(t.status);
+              const ov = window.omTicketOverdue(t);
+              return (
+                <button key={t.id} type="button" onClick={() => onOpenTicket && onOpenTicket(t.id)}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", marginBottom: 7,
+                    border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)",
+                    cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                  <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)", flexShrink: 0 }}>{t.no}</span>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: "var(--text-1)",
+                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {t.title || (window.OM_TICKET_CAT_BY[t.category] || {}).th || "(ยังไม่ได้ใส่หัวเรื่อง)"}
+                  </span>
+                  {ov && <OmPill th={"เกิน " + ov.over + " วัน"} color="#EF4444" />}
+                  <OmPill th={ts.th} color={ts.color} />
+                  <Icon name="chevronRight" size={14} color="var(--text-3)" />
+                </button>
+              );
+            })}
+            {!disabled && onNewTicket && (
+              <button type="button" onClick={onNewTicket}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 9,
+                  border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+                  fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>
+                <Icon name="wrench" size={14} /> แจ้งซ่อมให้ไซต์นี้
+              </button>
+            )}
+          </window.DrSection>
+
+          <window.DrSection n="6" title="หมายเหตุ" tone="#94A3B8">
             <window.DrText value={site.note} disabled={disabled} rows={2}
               placeholder="เช่น หลังคาสูง ต้องใช้กระเช้า · ลูกค้าสะดวกเฉพาะวันเสาร์"
               onChange={(v) => set({ note: v })} />
@@ -635,7 +671,9 @@ function OmView({ jobs, role, currentUser }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const { sites, loading, upsert, patch, remove } = window.useOmSites();
   const cleanStore = window.useOmCleanVisits();
-  const [tab, setTab] = React.useState("sites");       /* sites | clean */
+  const ticketStore = window.useOmTickets();
+  const [tab, setTab] = React.useState("sites");       /* sites | clean | ticket */
+  const [openTicket, setOpenTicket] = React.useState(null);  /* ใบที่เปิดจากแผงไซต์ (บอร์ดมีสถานะของตัวเอง) */
   const [q, setQ] = React.useState("");
   const [filter, setFilter] = React.useState("");      /* "" | "soon" | "expired" | "unsure" | "cleanDue" */
   const [open, setOpen] = React.useState(null);        /* siteId ที่เปิดแผงอยู่ */
@@ -650,6 +688,9 @@ function OmView({ jobs, role, currentUser }) {
 
   const pending = React.useMemo(() => window.omEnrollable(jobs, sites), [jobs, sites]);
   const roll = React.useMemo(() => window.omRollup(sites, cleanStore.bySite), [sites, cleanStore.bySite]);
+  const tRoll = React.useMemo(() => window.omTicketRollup(ticketStore.tickets), [ticketStore.tickets]);
+  const ticketsOf = React.useCallback(
+    (id) => (ticketStore.tickets || []).filter((t) => t.siteId === id), [ticketStore.tickets]);
 
   const rows = React.useMemo(() => {
     const kw = q.trim().toLowerCase();
@@ -699,11 +740,14 @@ function OmView({ jobs, role, currentUser }) {
         <OmStat label="ถึงรอบล้างแผง" value={roll.cleanDue + roll.cleanOverdue} color={roll.cleanOverdue ? "#EF4444" : "#F59E0B"}
           hint={roll.cleanOverdue ? "เลยกำหนด " + roll.cleanOverdue + " ไซต์" : "จองคิวแล้ว " + roll.cleanBooked + " ไซต์"}
           on={filter === "cleanDue"} onClick={() => { setTab("sites"); tog("cleanDue"); }} />
+        <OmStat label="ใบแจ้งซ่อมที่ยังไม่ปิด" value={tRoll.open} color={tRoll.overdue ? "#EF4444" : "var(--text-1)"}
+          hint={tRoll.overdue ? "เกินกำหนดปิดเคส " + tRoll.overdue + " ใบ" : (tRoll.newly ? "แจ้งใหม่ยังไม่ได้ดู " + tRoll.newly : "")}
+          on={tab === "ticket"} onClick={() => setTab("ticket")} />
       </div>
 
       {/* สลับมุมมอง — รายการไซต์คือทะเบียน · ปฏิทินคือคิวงานที่ต้องออกไปทำ */}
       <div style={{ display: "flex", gap: 7 }}>
-        {[["sites", "ทะเบียนไซต์", "list"], ["clean", "ปฏิทินล้างแผง", "calendar"]].map(([k, th, ic]) => (
+        {[["sites", "ทะเบียนไซต์", "list"], ["clean", "ปฏิทินล้างแผง", "calendar"], ["ticket", "ใบแจ้งซ่อม", "wrench"]].map(([k, th, ic]) => (
           <button key={k} onClick={() => setTab(k)}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 99,
               border: "1px solid " + (tab === k ? "var(--primary)" : "var(--border-strong)"),
@@ -716,6 +760,10 @@ function OmView({ jobs, role, currentUser }) {
 
       {tab === "clean" && (
         <OmCleanView sites={sites} cleanStore={cleanStore} role={role} onOpenSite={(id) => setOpen(id)} />
+      )}
+
+      {tab === "ticket" && (
+        <window.OmTicketBoard sites={sites} ticketStore={ticketStore} role={role} currentUser={currentUser} />
       )}
 
       {/* แถบขึ้นทะเบียน — คำนวณสดจากงานที่ปิดแล้ว ไม่ได้ผูกกับการเดินขั้นงาน
@@ -802,8 +850,27 @@ function OmView({ jobs, role, currentUser }) {
       {cur && (
         <OmSiteModal site={cur} job={jobById[cur.id] || null} role={role}
           visits={(cleanStore.bySite || {})[cur.id] || []} cleanStore={cleanStore}
+          tickets={ticketsOf(cur.id)}
+          onOpenTicket={(id) => { setOpen(null); setOpenTicket(id); }}
+          onNewTicket={() => {
+            const rec = window.omBlankTicket(cur, ticketStore.tickets, currentUser);
+            ticketStore.save(rec);
+            setOpen(null); setOpenTicket(rec.id);
+          }}
           onClose={() => setOpen(null)} onPatch={patch} onRemove={remove} />
       )}
+
+      {/* ใบที่เปิดจากแผงไซต์ — บอร์ดมีแผงของตัวเองแยกต่างหาก */}
+      {openTicket && (() => {
+        const t = (ticketStore.tickets || []).find((x) => x.id === openTicket);
+        if (!t) return null;
+        return (
+          <window.OmTicketModal ticket={t} site={(sites || []).find((s) => s.id === t.siteId) || null}
+            role={role} currentUser={currentUser} onClose={() => setOpenTicket(null)}
+            onPatch={ticketStore.patch} onRemove={ticketStore.remove}
+            onMove={(x, to, note) => { const r = window.omTicketMove(x, to, currentUser, note); if (r) ticketStore.save(r); }} />
+        );
+      })()}
     </div>
   );
 }

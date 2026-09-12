@@ -654,6 +654,9 @@ function OmSiteModal({
   role,
   visits,
   cleanStore,
+  tickets,
+  onOpenTicket,
+  onNewTicket,
   onClose,
   onPatch,
   onRemove
@@ -1064,6 +1067,87 @@ function OmSiteModal({
     role: role
   })), React.createElement(window.DrSection, {
     n: "5",
+    title: "\u0E43\u0E1A\u0E41\u0E08\u0E49\u0E07\u0E0B\u0E48\u0E2D\u0E21",
+    tone: "#7C5CFC",
+    hint: (tickets || []).length ? (tickets || []).filter(t => window.omTicketOpen(t)).length + " ใบที่ยังไม่ปิด" : ""
+  }, !(tickets || []).length && React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-3)",
+      marginBottom: onNewTicket ? 11 : 0
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E40\u0E04\u0E22\u0E21\u0E35\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E41\u0E08\u0E49\u0E07\u0E0B\u0E48\u0E2D\u0E21"), (tickets || []).map(t => {
+    const ts = window.omTicketStatusOf(t.status);
+    const ov = window.omTicketOverdue(t);
+    return React.createElement("button", {
+      key: t.id,
+      type: "button",
+      onClick: () => onOpenTicket && onOpenTicket(t.id),
+      style: {
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        gap: 9,
+        padding: "9px 10px",
+        marginBottom: 7,
+        border: "1px solid var(--border)",
+        borderRadius: 10,
+        background: "var(--surface)",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        textAlign: "left"
+      }
+    }, React.createElement("span", {
+      style: {
+        fontFamily: "var(--mono)",
+        fontSize: 11,
+        color: "var(--text-3)",
+        flexShrink: 0
+      }
+    }, t.no), React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0,
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: "var(--text-1)",
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis"
+      }
+    }, t.title || (window.OM_TICKET_CAT_BY[t.category] || {}).th || "(ยังไม่ได้ใส่หัวเรื่อง)"), ov && React.createElement(OmPill, {
+      th: "เกิน " + ov.over + " วัน",
+      color: "#EF4444"
+    }), React.createElement(OmPill, {
+      th: ts.th,
+      color: ts.color
+    }), React.createElement(Icon, {
+      name: "chevronRight",
+      size: 14,
+      color: "var(--text-3)"
+    }));
+  }), !disabled && onNewTicket && React.createElement("button", {
+    type: "button",
+    onClick: onNewTicket,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "8px 13px",
+      borderRadius: 9,
+      border: "1px dashed var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "wrench",
+    size: 14
+  }), " \u0E41\u0E08\u0E49\u0E07\u0E0B\u0E48\u0E2D\u0E21\u0E43\u0E2B\u0E49\u0E44\u0E0B\u0E15\u0E4C\u0E19\u0E35\u0E49")), React.createElement(window.DrSection, {
+    n: "6",
     title: "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38",
     tone: "#94A3B8"
   }, React.createElement(window.DrText, {
@@ -1501,7 +1585,9 @@ function OmView({
     remove
   } = window.useOmSites();
   const cleanStore = window.useOmCleanVisits();
+  const ticketStore = window.useOmTickets();
   const [tab, setTab] = React.useState("sites");
+  const [openTicket, setOpenTicket] = React.useState(null);
   const [q, setQ] = React.useState("");
   const [filter, setFilter] = React.useState("");
   const [open, setOpen] = React.useState(null);
@@ -1516,6 +1602,8 @@ function OmView({
   }, [jobs]);
   const pending = React.useMemo(() => window.omEnrollable(jobs, sites), [jobs, sites]);
   const roll = React.useMemo(() => window.omRollup(sites, cleanStore.bySite), [sites, cleanStore.bySite]);
+  const tRoll = React.useMemo(() => window.omTicketRollup(ticketStore.tickets), [ticketStore.tickets]);
+  const ticketsOf = React.useCallback(id => (ticketStore.tickets || []).filter(t => t.siteId === id), [ticketStore.tickets]);
   const rows = React.useMemo(() => {
     const kw = q.trim().toLowerCase();
     const out = (sites || []).map(s => ({
@@ -1602,12 +1690,19 @@ function OmView({
       setTab("sites");
       tog("cleanDue");
     }
+  }), React.createElement(OmStat, {
+    label: "\u0E43\u0E1A\u0E41\u0E08\u0E49\u0E07\u0E0B\u0E48\u0E2D\u0E21\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E1B\u0E34\u0E14",
+    value: tRoll.open,
+    color: tRoll.overdue ? "#EF4444" : "var(--text-1)",
+    hint: tRoll.overdue ? "เกินกำหนดปิดเคส " + tRoll.overdue + " ใบ" : tRoll.newly ? "แจ้งใหม่ยังไม่ได้ดู " + tRoll.newly : "",
+    on: tab === "ticket",
+    onClick: () => setTab("ticket")
   })), React.createElement("div", {
     style: {
       display: "flex",
       gap: 7
     }
-  }, [["sites", "ทะเบียนไซต์", "list"], ["clean", "ปฏิทินล้างแผง", "calendar"]].map(([k, th, ic]) => React.createElement("button", {
+  }, [["sites", "ทะเบียนไซต์", "list"], ["clean", "ปฏิทินล้างแผง", "calendar"], ["ticket", "ใบแจ้งซ่อม", "wrench"]].map(([k, th, ic]) => React.createElement("button", {
     key: k,
     onClick: () => setTab(k),
     style: {
@@ -1633,6 +1728,11 @@ function OmView({
     cleanStore: cleanStore,
     role: role,
     onOpenSite: id => setOpen(id)
+  }), tab === "ticket" && React.createElement(window.OmTicketBoard, {
+    sites: sites,
+    ticketStore: ticketStore,
+    role: role,
+    currentUser: currentUser
   }), tab === "sites" && !!pending.length && React.createElement("div", {
     style: {
       display: "flex",
@@ -1827,10 +1927,37 @@ function OmView({
     role: role,
     visits: (cleanStore.bySite || {})[cur.id] || [],
     cleanStore: cleanStore,
+    tickets: ticketsOf(cur.id),
+    onOpenTicket: id => {
+      setOpen(null);
+      setOpenTicket(id);
+    },
+    onNewTicket: () => {
+      const rec = window.omBlankTicket(cur, ticketStore.tickets, currentUser);
+      ticketStore.save(rec);
+      setOpen(null);
+      setOpenTicket(rec.id);
+    },
     onClose: () => setOpen(null),
     onPatch: patch,
     onRemove: remove
-  }));
+  }), openTicket && (() => {
+    const t = (ticketStore.tickets || []).find(x => x.id === openTicket);
+    if (!t) return null;
+    return React.createElement(window.OmTicketModal, {
+      ticket: t,
+      site: (sites || []).find(s => s.id === t.siteId) || null,
+      role: role,
+      currentUser: currentUser,
+      onClose: () => setOpenTicket(null),
+      onPatch: ticketStore.patch,
+      onRemove: ticketStore.remove,
+      onMove: (x, to, note) => {
+        const r = window.omTicketMove(x, to, currentUser, note);
+        if (r) ticketStore.save(r);
+      }
+    });
+  })());
 }
 Object.assign(window, {
   OM_INPUT,

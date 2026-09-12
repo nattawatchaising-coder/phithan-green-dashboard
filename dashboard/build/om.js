@@ -555,6 +555,269 @@ function omRollup(sites, bySite, today) {
   });
   return out;
 }
+const OM_TICKET_CAT = [{
+  key: "inverter",
+  th: "อินเวอร์เตอร์",
+  hint: "ไฟไม่เข้า · ขึ้นรหัสผิดพลาด"
+}, {
+  key: "panel",
+  th: "แผงโซลาร์เซลล์",
+  hint: "แผงแตก · ร้อนผิดปกติ"
+}, {
+  key: "mount",
+  th: "โครงสร้าง/ขาตั้ง",
+  hint: "หลวม · สนิม · เสียงดัง"
+}, {
+  key: "wiring",
+  th: "ระบบไฟ/สายไฟ",
+  hint: "เบรกเกอร์ทริป · สายชำรุด"
+}, {
+  key: "leak",
+  th: "หลังคารั่ว",
+  hint: "รั่วตรงจุดยึด"
+}, {
+  key: "app",
+  th: "แอป/การมอนิเตอร์",
+  hint: "ดูค่าไม่ได้ · ตัวเลขไม่ตรง"
+}, {
+  key: "perf",
+  th: "ไฟผลิตได้น้อยลง",
+  hint: "หน่วยตกจากเดิม"
+}, {
+  key: "other",
+  th: "อื่น ๆ",
+  hint: ""
+}];
+const OM_TICKET_CAT_BY = {};
+OM_TICKET_CAT.forEach(c => {
+  OM_TICKET_CAT_BY[c.key] = c;
+});
+const OM_SEVERITY = [{
+  key: "down",
+  th: "ระบบดับทั้งหมด",
+  color: "#EF4444"
+}, {
+  key: "high",
+  th: "เร่งด่วน",
+  color: "#F59E0B"
+}, {
+  key: "normal",
+  th: "ปกติ",
+  color: "#0EA5E9"
+}, {
+  key: "low",
+  th: "ไม่เร่ง",
+  color: "#94A3B8"
+}];
+const OM_SEVERITY_BY = {};
+OM_SEVERITY.forEach(s => {
+  OM_SEVERITY_BY[s.key] = s;
+});
+const OM_SLA_DAYS = {
+  down: 1,
+  high: 3,
+  normal: 7,
+  low: 14
+};
+const OM_COVER = {
+  warranty: {
+    key: "warranty",
+    th: "อยู่ในประกัน",
+    color: "#10B981"
+  },
+  charge: {
+    key: "charge",
+    th: "คิดค่าบริการ",
+    color: "#F59E0B"
+  },
+  goodwill: {
+    key: "goodwill",
+    th: "บริการให้ฟรี",
+    color: "#0EA5E9"
+  },
+  unknown: {
+    key: "unknown",
+    th: "ยังไม่ได้ตัดสิน",
+    color: "#94A3B8"
+  }
+};
+const omCoverTH = k => OM_COVER[k] || OM_COVER.unknown;
+const OM_TICKET_STATUS = [{
+  key: "new",
+  th: "แจ้งเข้ามาใหม่",
+  color: "#7C5CFC",
+  next: ["triage", "rejected"]
+}, {
+  key: "triage",
+  th: "กำลังตรวจสอบ",
+  color: "#0EA5E9",
+  next: ["accepted", "rejected"]
+}, {
+  key: "accepted",
+  th: "รับเรื่องแล้ว",
+  color: "#0EA5E9",
+  next: ["scheduled", "rejected"]
+}, {
+  key: "scheduled",
+  th: "นัดวันเข้าแล้ว",
+  color: "#F59E0B",
+  next: ["onsite", "accepted"]
+}, {
+  key: "onsite",
+  th: "กำลังทำหน้างาน",
+  color: "#F59E0B",
+  next: ["closed", "scheduled"]
+}, {
+  key: "closed",
+  th: "ปิดงานแล้ว",
+  color: "#10B981",
+  next: []
+}, {
+  key: "rejected",
+  th: "ไม่รับเรื่อง",
+  color: "#94A3B8",
+  next: ["triage"]
+}];
+const OM_TICKET_STATUS_BY = {};
+OM_TICKET_STATUS.forEach(s => {
+  OM_TICKET_STATUS_BY[s.key] = s;
+});
+const omTicketStatusOf = k => OM_TICKET_STATUS_BY[k] || OM_TICKET_STATUS_BY.new;
+const omTicketOpen = t => !!t && t.status !== "closed" && t.status !== "rejected";
+function omTicketNext(t, role) {
+  const cur = omTicketStatusOf((t || {}).status);
+  const list = (cur.next || []).slice();
+  if (cur.key === "closed" && omCanApprove(role)) list.push("onsite");
+  return list.map(k => OM_TICKET_STATUS_BY[k]);
+}
+const omTicketCan = (from, to, role) => omTicketNext({
+  status: from
+}, role).some(s => s.key === to);
+function omTicketMove(t, to, user, note) {
+  if (!t) return null;
+  const now = new Date().toISOString();
+  const rec = Object.assign({}, t, {
+    status: to,
+    updatedAt: now
+  });
+  rec.hist = (t.hist || []).concat([{
+    at: now,
+    from: t.status || "new",
+    to: to,
+    by: (user || {}).id || null,
+    byName: (user || {}).name || "",
+    note: note || ""
+  }]);
+  if (to === "closed") {
+    rec.closedAt = now;
+    rec.closedBy = (user || {}).id || null;
+    rec.closedByName = (user || {}).name || "";
+  } else if (t.status === "closed") {
+    rec.closedAt = null;
+    rec.closedBy = null;
+    rec.closedByName = "";
+  }
+  return rec;
+}
+function omTicketOverdue(t, today) {
+  if (!omTicketOpen(t)) return null;
+  const t0 = (t.reportedAt || "").slice(0, 10);
+  if (!t0) return null;
+  const limit = OM_SLA_DAYS[t.severity] != null ? OM_SLA_DAYS[t.severity] : OM_SLA_DAYS.normal;
+  const age = omDiffDays(t0, today || window.drToday());
+  return age > limit ? {
+    age,
+    limit,
+    over: age - limit
+  } : null;
+}
+function omTicketNo(tickets, date) {
+  const d = date || window.drToday();
+  const pre = "OT-" + d.slice(2, 4) + d.slice(5, 7) + "-";
+  let max = 0;
+  (tickets || []).forEach(t => {
+    const m = new RegExp("^" + pre + "(\\d+)$").exec(String((t || {}).no || ""));
+    if (m) max = Math.max(max, parseInt(m[1], 10) || 0);
+  });
+  return pre + String(max + 1).padStart(3, "0");
+}
+function omBlankTicket(site, tickets, user) {
+  const today = window.drToday();
+  const now = new Date().toISOString();
+  return {
+    id: omNewId("OT"),
+    no: omTicketNo(tickets, today),
+    siteId: site.id,
+    siteCode: site.code || site.id,
+    siteName: site.name || "",
+    title: "",
+    detail: "",
+    category: "other",
+    severity: "normal",
+    source: "phone",
+    reportedAt: now,
+    status: "new",
+    cover: "unknown",
+    coverNote: "",
+    coverWid: "",
+    quoteAmt: null,
+    techId: site.tech || "",
+    apptDate: "",
+    apptFrom: "",
+    apptTo: "",
+    closedAt: null,
+    closedBy: null,
+    closedByName: "",
+    closeNote: "",
+    result: "",
+    hist: [{
+      at: now,
+      from: "",
+      to: "new",
+      by: (user || {}).id || null,
+      byName: (user || {}).name || "",
+      note: "เปิดเรื่อง"
+    }],
+    createdAt: now,
+    createdBy: (user || {}).id || null,
+    createdByName: (user || {}).name || "",
+    updatedAt: now
+  };
+}
+const OM_TICKET_SOURCE = [{
+  key: "phone",
+  th: "โทรแจ้ง"
+}, {
+  key: "line",
+  th: "LINE"
+}, {
+  key: "onsite",
+  th: "เจอตอนเข้าไซต์"
+}, {
+  key: "monitor",
+  th: "ระบบมอนิเตอร์แจ้ง"
+}];
+function omTicketRollup(tickets, today) {
+  const t = today || window.drToday();
+  const out = {
+    open: 0,
+    overdue: 0,
+    down: 0,
+    closed: 0,
+    newly: 0
+  };
+  (tickets || []).forEach(x => {
+    if (!omTicketOpen(x)) {
+      if (x.status === "closed") out.closed++;
+      return;
+    }
+    out.open++;
+    if (x.status === "new") out.newly++;
+    if (x.severity === "down") out.down++;
+    if (omTicketOverdue(x, t)) out.overdue++;
+  });
+  return out;
+}
 const omCanWrite = (role, rec) => {
   if (!window.can(role, "om")) return false;
   return !(rec && rec.status === "approved");
@@ -660,6 +923,120 @@ function useOmCleanVisits() {
     remove
   };
 }
+function useOmTickets() {
+  const [tickets, setTickets] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  React.useEffect(() => {
+    if (!_OMFB()) {
+      setLoading(false);
+      return;
+    }
+    const ref = _omRef("omTickets");
+    const h = ref.on("value", s => {
+      const v = s.val() || {};
+      const arr = Object.keys(v).map(k => Object.assign({
+        id: k
+      }, v[k]));
+      arr.sort((a, b) => String(b.reportedAt || "").localeCompare(String(a.reportedAt || "")));
+      setTickets(arr);
+      setLoading(false);
+    }, () => setLoading(false));
+    return () => ref.off("value", h);
+  }, []);
+  const save = React.useCallback(t => {
+    if (!t || !t.id || !_OMFB()) return;
+    _omRef("omTickets/" + t.id).set(Object.assign({}, t, {
+      updatedAt: new Date().toISOString()
+    }));
+  }, []);
+  const patch = React.useCallback((id, fields) => {
+    if (!id || !_OMFB()) return;
+    _omRef("omTickets/" + id).update(Object.assign({}, fields, {
+      updatedAt: new Date().toISOString()
+    }));
+  }, []);
+  const remove = React.useCallback(id => {
+    if (!id || !_OMFB()) return;
+    _omRef("omTickets/" + id).remove();
+    _omRef("omTicketPhotos/" + id).remove();
+  }, []);
+  return {
+    tickets,
+    loading,
+    save,
+    patch,
+    remove
+  };
+}
+function useOmTicketPhotos(ticketId) {
+  const [photos, setPhotos] = React.useState([]);
+  React.useEffect(() => {
+    if (!ticketId || !_OMFB()) {
+      setPhotos([]);
+      return;
+    }
+    const ref = _omRef("omTicketPhotos/" + ticketId);
+    const h = ref.on("value", s => {
+      const v = s.val();
+      const arr = v && typeof v === "object" ? Object.values(v) : [];
+      arr.sort((a, b) => String(a.at || "").localeCompare(String(b.at || "")));
+      setPhotos(arr);
+    });
+    return () => ref.off("value", h);
+  }, [ticketId]);
+  const add = React.useCallback((dataUrl, slot, user) => {
+    if (!ticketId || !_OMFB()) return;
+    const id = "OTP-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    _omRef("omTicketPhotos/" + ticketId + "/" + id).set({
+      id,
+      dataUrl,
+      slot: slot || "before",
+      cap: "",
+      at: new Date().toISOString(),
+      by: (user || {}).id || null,
+      byName: (user || {}).name || ""
+    });
+  }, [ticketId]);
+  const setCap = React.useCallback((id, cap) => {
+    if (!ticketId || !_OMFB()) return;
+    _omRef("omTicketPhotos/" + ticketId + "/" + id).update({
+      cap: cap || ""
+    });
+  }, [ticketId]);
+  const remove = React.useCallback(id => {
+    if (!ticketId || !_OMFB()) return;
+    _omRef("omTicketPhotos/" + ticketId + "/" + id).remove();
+  }, [ticketId]);
+  return {
+    photos,
+    add,
+    setCap,
+    remove
+  };
+}
+Object.assign(window, {
+  OM_TICKET_CAT,
+  OM_TICKET_CAT_BY,
+  OM_SEVERITY,
+  OM_SEVERITY_BY,
+  OM_SLA_DAYS,
+  OM_COVER,
+  OM_TICKET_STATUS,
+  OM_TICKET_STATUS_BY,
+  OM_TICKET_SOURCE,
+  omCoverTH,
+  omTicketStatusOf,
+  omTicketOpen,
+  omTicketNext,
+  omTicketCan,
+  omTicketMove,
+  omTicketOverdue,
+  omTicketNo,
+  omBlankTicket,
+  omTicketRollup,
+  useOmTickets,
+  useOmTicketPhotos
+});
 Object.assign(window, {
   OM_ROOT,
   OM_WARRANTY_DEF,
