@@ -3305,6 +3305,11 @@ function SolarWorkspace({
   }];
   const warns = [].concat(plan ? plan.warns : [], microSel ? microSel.warns : []);
   const [repOpen, setRepOpen] = React.useState(false);
+  const [repLang, setRepLang] = React.useState(() => window.pgLang ? window.pgLang() : "th");
+  const pickRepLang = id => {
+    setRepLang(id);
+    if (window.pgSetLang) window.pgSetLang(id);
+  };
   const repPick = React.useMemo(() => Object.assign(typeof rpPickAll === "function" ? rpPickAll() : {}, S.report || {}), [S.report]);
   const repToggle = k => set({
     report: Object.assign({}, repPick, {
@@ -3393,7 +3398,8 @@ function SolarWorkspace({
       simHour,
       year: yearNow,
       snapImg,
-      pick: repPick
+      pick: repPick,
+      lang: repLang
     }));
   };
   return React.createElement("div", {
@@ -7209,8 +7215,19 @@ function SolarWorkspace({
   })), React.createElement("span", {
     className: "tx"
   }, React.createElement("b", null, b.label), b.note && React.createElement("i", null, b.note))))))), React.createElement("div", {
-    className: "su-sheet-ft"
-  }, React.createElement("button", {
+    className: "su-sheet-ft",
+    style: {
+      flexWrap: "wrap"
+    }
+  }, typeof window.LangPick === "function" && React.createElement("span", {
+    style: {
+      flexBasis: "100%",
+      marginBottom: 4
+    }
+  }, React.createElement(window.LangPick, {
+    value: repLang,
+    onChange: pickRepLang
+  })), React.createElement("button", {
     className: "p3-b sm",
     onClick: () => repPreset(null),
     title: "\u0E40\u0E2D\u0E32\u0E17\u0E38\u0E01\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D"
@@ -7246,7 +7263,7 @@ function SolarWorkspace({
   }), "\u0E2D\u0E2D\u0E01\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19")))), repHtml && typeof SuReportView === "function" && React.createElement(SuReportView, {
     html: repHtml,
     onClose: () => setRepHtml(null),
-    title: "รายงานออกแบบระบบ" + (job && job.code ? " " + job.code : "")
+    title: (repLang === "en" ? "System Design Report" : repLang === "zh" ? "系统设计报告" : "รายงานออกแบบระบบ") + (job && job.code ? " " + job.code : "")
   }));
 }
 function SolarDesignHost({

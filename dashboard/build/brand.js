@@ -129,7 +129,7 @@ function BrandLockup({
 function brandHeadHTML(opts) {
   const o = opts || {};
   const px = o.size || 38;
-  return '<div style="display:flex;align-items:center;gap:11px">' + '<span style="width:' + px + 'px;height:' + px + 'px;flex-shrink:0;display:block">' + BRAND_MARK_SVG + "</span>" + '<span><span style="display:block;font-weight:700;font-size:' + Math.round(px * 0.55) + "px;letter-spacing:-.02em;color:" + BRANDING.ink + '">' + 'flash<span style="color:' + BRANDING.green + '">+</span>solar</span>' + '<span style="display:block;font-size:' + Math.max(7, Math.round(px * 0.21)) + "px;letter-spacing:.26em;color:" + BRANDING.muted + '">' + BRANDING.tagline + "</span></span></div>";
+  return '<div style="display:flex;align-items:center;gap:11px">' + '<span style="width:' + px + 'px;height:' + px + 'px;flex-shrink:0;display:block">' + BRAND_MARK_SVG + "</span>" + '<span><span style="display:block;white-space:nowrap;font-weight:700;font-size:' + Math.round(px * 0.55) + "px;letter-spacing:-.02em;color:" + BRANDING.ink + '">' + 'flash<span style="color:' + BRANDING.green + '">+</span>solar</span>' + '<span style="display:block;font-size:' + Math.max(7, Math.round(px * 0.21)) + "px;letter-spacing:.26em;color:" + BRANDING.muted + '">' + BRANDING.tagline + "</span></span></div>";
 }
 Object.assign(window, {
   BRANDING,

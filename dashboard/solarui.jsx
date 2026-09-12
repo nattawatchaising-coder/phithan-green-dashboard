@@ -1730,6 +1730,10 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   /* ── เลือกเนื้อหาที่จะออกรายงาน ──
      เก็บไว้กับงาน (S.report) เพราะแต่ละงานส่งให้คนละคนดู — ลูกค้าคนเดิมเปิดรายงานซ้ำจะได้เหมือนเดิม */
   const [repOpen, setRepOpen] = React.useState(false);
+  /* ภาษาของไฟล์รายงาน — เลือกก่อนกดออก เอกสารหนึ่งใบมีภาษาเดียว
+     จำค่าล่าสุดไว้ทั้งระบบ ออกให้ลูกค้าจีนติดกันหลายใบจะได้ไม่ต้องเลือกใหม่ทุกครั้ง */
+  const [repLang, setRepLang] = React.useState(() => (window.pgLang ? window.pgLang() : "th"));
+  const pickRepLang = (id) => { setRepLang(id); if (window.pgSetLang) window.pgSetLang(id); };
   const repPick = React.useMemo(() => Object.assign(
     typeof rpPickAll === "function" ? rpPickAll() : {}, S.report || {}), [S.report]);
   const repToggle = (k) => set({ report: Object.assign({}, repPick, { [k]: !repPick[k] }) });
@@ -1762,7 +1766,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
       ivRows, ivDone, ivAvg, ivOutliers, site, siteDate, acKw, totalPanels, warns, foot,
       /* โหมดไมโครใช้ผัง "แผงอยู่ไมโครตัวไหน" แทนผังสตริง — ผังในรายงานจะได้ตรงกับที่เห็นบนจอ */
       assign: isMicro ? microAssign : effAssign, microUnits, phases, phaseBins, phaseBal, uidPhase,
-      shade3d, sim, simHour, year: yearNow, snapImg, pick: repPick }));
+      shade3d, sim, simHour, year: yearNow, snapImg, pick: repPick, lang: repLang }));
   };
 
   return (
@@ -3571,7 +3575,13 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                 </div>
               ))}
             </div>
-            <div className="su-sheet-ft">
+            <div className="su-sheet-ft" style={{ flexWrap: "wrap" }}>
+              {/* ภาษาของเอกสาร — อยู่ในแถวเดียวกับปุ่มออกรายงาน เพราะเป็นการตัดสินใจครั้งเดียวกัน */}
+              {typeof window.LangPick === "function" && (
+                <span style={{ flexBasis: "100%", marginBottom: 4 }}>
+                  <window.LangPick value={repLang} onChange={pickRepLang} />
+                </span>
+              )}
               <button className="p3-b sm" onClick={() => repPreset(null)} title="เอาทุกหัวข้อ">ทั้งเล่ม</button>
               <button className="p3-b sm" onClick={() => repPreset(["cover", "summary", "prod", "shade", "pxx",
                 "env", "load", "loadDay", "loadMon", "battSpec", "roi"])}
@@ -3594,7 +3604,8 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
       {/* ตัวอย่างรายงานบนจอ — กด "บันทึก PDF" ในแถบด้านบนเพื่อพิมพ์/เก็บเป็นไฟล์ */}
       {repHtml && typeof SuReportView === "function" && (
         <SuReportView html={repHtml} onClose={() => setRepHtml(null)}
-          title={"รายงานออกแบบระบบ" + (job && job.code ? " " + job.code : "")} />
+          title={(repLang === "en" ? "System Design Report" : repLang === "zh" ? "系统设计报告" : "รายงานออกแบบระบบ") +
+            (job && job.code ? " " + job.code : "")} />
       )}
     </div>
   );

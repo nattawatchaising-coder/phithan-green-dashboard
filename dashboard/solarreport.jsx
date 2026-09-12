@@ -621,12 +621,595 @@ function rpPickAll() {
   return o;
 }
 
+/* ── พจนานุกรมของรายงานฉบับนี้ (ไทย → [อังกฤษ, จีน]) ──
+   แปลตอนท้ายด้วย window.pgDocHTML — ดูเหตุผลและวิธีเขียนคีย์ที่ i18n.jsx
+   คำที่ยังไม่มีในตารางนี้จะออกเป็นภาษาไทยตามเดิม ไม่ใช่ช่องว่าง */
+const RP_I18N = {
+  /* หัวเอกสาร · หน้าปก */
+  "รายงานระบบโซลาร์": ["Solar PV System Report", "太阳能系统报告"],
+  "รายงานการออกแบบและวิเคราะห์ระบบ": ["SYSTEM DESIGN & ANALYSIS REPORT", "系统设计与分析报告"],
+  "ระบบผลิตไฟฟ้า<br>พลังงานแสงอาทิตย์บนหลังคา": ["Rooftop Solar<br>Power System", "屋顶太阳能<br>发电系统"],
+  "ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์": ["Solar Power Systems", "太阳能发电系统"],
+  "ผลิตได้ปีละราว": ["Approx. annual yield", "年发电量约"],
+  "คืนทุนใน {} ปี": ["payback in {} years", "{} 年回本"],
+  "ผังการติดตั้งจำลอง 3 มิติ — ทุกตัวเลขในรายงานนี้อ้างอิงจากโมเดลนี้":
+    ["3D installation model — every figure in this report is derived from this model", "三维安装模型 — 本报告所有数据均基于此模型"],
+  "ผังการติดตั้ง 3 มิติ": ["3D installation layout", "三维安装布置图"],
+  "ลูกค้า": ["Client", "客户"],
+  "สถานที่ติดตั้ง": ["Site", "安装地点"],
+  "วันที่ออกรายงาน": ["Report date", "报告日期"],
+
+  /* ชื่อหัวข้อใหญ่ */
+  "สรุปผลการออกแบบ": ["Design Summary", "设计总结"],
+  "อุปกรณ์และการจัดวาง": ["Equipment & Layout", "设备与布置"],
+  "การต่อสตริงและตรวจสเปคไฟฟ้า": ["String Configuration & Electrical Check", "组串配置与电气校验"],
+  "ผังแผงบนหลังคา": ["Rooftop Panel Layout", "屋顶组件布置"],
+  "แสง เงา และผลตรวจวัด I-V": ["Irradiance, Shading & I-V Measurements", "辐照、阴影与 I-V 实测"],
+  "ผลผลิตที่คาดการณ์": ["Projected Yield", "预计发电量"],
+  "ผลกระทบต่อสิ่งแวดล้อม": ["Environmental Impact", "环境效益"],
+  "การใช้ไฟ แบตเตอรี่ และการขายคืน": ["Consumption, Battery & Export", "用电、储能与上网"],
+  "ผลตอบแทนการลงทุน": ["Return on Investment", "投资回报"],
+
+  /* การ์ดตัวเลขสรุป */
+  "กำลังติดตั้ง": ["Installed capacity", "装机容量"],
+  "อินเวอร์เตอร์": ["Inverter", "逆变器"],
+  "ผลผลิตปีแรก": ["First-year yield", "首年发电量"],
+  "ต่อกำลังติดตั้ง": ["Specific yield", "单位发电量"],
+  "kWh/kWp/ปี": ["kWh/kWp/yr", "kWh/kWp/年"],
+  "รวม {} ปี": ["{}-year total", "{} 年合计"],
+  "คืนทุนภายใน": ["Payback period", "投资回收期"],
+  "ผลตอบแทน IRR": ["IRR", "内部收益率 IRR"],
+  "% ต่อปี": ["% p.a.", "% /年"],
+
+  /* สเปคอุปกรณ์ */
+  "สเปคแผง (STC)": ["Module specification (STC)", "组件参数（STC）"],
+  "สเปคอินเวอร์เตอร์": ["Inverter specification", "逆变器参数"],
+  "สเปคไมโครอินเวอร์เตอร์": ["Microinverter specification", "微型逆变器参数"],
+  "ค่า": ["Value", "数值"],
+  "รุ่น": ["Model", "型号"],
+  "กำลังสูงสุด Pmax": ["Max power Pmax", "最大功率 Pmax"],
+  "แรงดันวงจรเปิด Voc": ["Open-circuit voltage Voc", "开路电压 Voc"],
+  "กระแสลัดวงจร Isc": ["Short-circuit current Isc", "短路电流 Isc"],
+  "แรงดันทำงาน Vmp": ["Operating voltage Vmp", "工作电压 Vmp"],
+  "กระแสทำงาน Imp": ["Operating current Imp", "工作电流 Imp"],
+  "ค่าอุณหภูมิ Voc": ["Temp. coefficient Voc", "温度系数 Voc"],
+  "ค่าอุณหภูมิ Pmax": ["Temp. coefficient Pmax", "温度系数 Pmax"],
+  "เสื่อมปีแรก / ปีถัดไป": ["Degradation year 1 / thereafter", "首年/逐年衰减"],
+  "อัตราส่วน": ["Ratio", "配比"],
+  "แผง {} : ไมโคร 1 · MPPT {} ช่องอิสระ": ["{} modules : 1 micro · {} independent MPPT", "{} 块组件 : 1 台微逆 · {} 路独立 MPPT"],
+  "แผงต่อ 1 ช่อง MPPT": ["Modules per MPPT input", "每路 MPPT 组件数"],
+  "กำลัง AC ต่อตัว": ["AC power per unit", "单台交流功率"],
+  "แรงดัน DC สูงสุด": ["Max DC voltage", "最大直流电压"],
+  "ช่วง MPPT": ["MPPT range", "MPPT 范围"],
+  "กระแสทำงาน/ลัดวงจร สูงสุดต่อช่อง": ["Max operating / short-circuit current per input", "每路最大工作/短路电流"],
+  "ช่วงกำลังแผงที่รองรับ": ["Supported module power range", "支持组件功率范围"],
+  "จำนวนที่ใช้": ["Quantity used", "使用数量"],
+  "กำลัง AC รวม": ["Total AC power", "交流总功率"],
+  "DC/AC ต่อตัว": ["DC/AC ratio per unit", "单台容配比"],
+  "ประสิทธิภาพ": ["Efficiency", "转换效率"],
+  "จำนวน": ["Quantity", "数量"],
+  "กระแสทำงานสูงสุด/MPPT": ["Max operating current / MPPT", "每路 MPPT 最大工作电流"],
+  "กระแสลัดวงจรสูงสุด/MPPT": ["Max short-circuit current / MPPT", "每路 MPPT 最大短路电流"],
+  "จำนวนช่อง MPPT": ["MPPT inputs", "MPPT 路数"],
+  "ยังไม่ได้เลือก": ["Not selected", "尚未选择"],
+  "ไม่ระบุ": ["Not specified", "未标注"],
+
+  /* ผืนหลังคา */
+  "ผืนหลังคา / กลุ่ม": ["Roof plane / group", "屋面 / 分组"],
+  "ผืนหลังคา": ["Roof plane", "屋面"],
+  "มุมเอียง": ["Tilt", "倾角"],
+  "ทิศ": ["Azimuth", "方位角"],
+  "จำนวนแผง": ["Modules", "组件数"],
+  "กำลัง kWp": ["Capacity kWp", "容量 kWp"],
+  "กลุ่มทิศทาง": ["Orientation group", "朝向分组"],
+  "แผง": ["Modules", "组件"],
+  "ไมโคร": ["Micros", "微逆"],
+  "ช่อง MPPT": ["MPPT inputs", "MPPT 路数"],
+  "หมายเหตุ": ["Note", "备注"],
+  "เหลือแผงเดี่ยว 1 แผง": ["1 module left over", "余 1 块组件"],
+  "ลงตัวพอดี": ["Exact fit", "正好配满"],
+
+  /* ตรวจสเปคไฟฟ้า */
+  "ตรวจสเปคไฟฟ้าต่อ 1 ช่อง MPPT ({} แผง)": ["Electrical check per MPPT input ({} modules)", "每路 MPPT 电气校验（{} 块组件）"],
+  "ได้": ["Actual", "实际值"],
+  "พิกัด": ["Limit", "限值"],
+  "ผล": ["Result", "结果"],
+  "ผลตรวจ": ["Check", "校验结果"],
+  "Voc ตอนอากาศเย็น": ["Voc at low ambient temp.", "低温时 Voc"],
+  "Voc ตอนเย็น": ["Voc when cold", "低温 Voc"],
+  "Vmp ตอนแผงร้อน": ["Vmp at high module temp.", "高温时 Vmp"],
+  "Vmp ตอนอากาศเย็น": ["Vmp at low ambient temp.", "低温时 Vmp"],
+  "ผ่าน · ": ["Pass · ", "合格 · "],
+  "ไม่ผ่าน": ["Fail", "不合格"],
+  "ผ่าน": ["Pass", "合格"],
+  "กระแสลัดวงจร Isc×1.25": ["Short-circuit current Isc×1.25", "短路电流 Isc×1.25"],
+  "สตริง": ["String", "组串"],
+  "ขั้วที่เสียบ (INV / MPPT / ช่อง)": ["Connection (INV / MPPT / input)", "接入位置（逆变器 / MPPT / 路）"],
+  "ช่วงแรงดันทำงาน": ["Operating voltage range", "工作电压范围"],
+  "ไม่มีขั้วเหลือ": ["No input available", "无可用接口"],
+
+  /* เฟส */
+  "การแบ่งเฟส (ระบบ 3 เฟส)": ["Phase distribution (3-phase system)", "相序分配（三相系统）"],
+  "เฟส": ["Phase", "相"],
+  "กำลัง AC": ["AC power", "交流功率"],
+  "กระแส": ["Current", "电流"],
+  "วงจรย่อย": ["Branch circuits", "支路"],
+  "เฟสสมดุลดี — เฟสที่หนักกับเบาต่างกัน {} ตัว ({}% ของกำลัง) อยู่ในเกณฑ์ {}%":
+    ["Phases well balanced — heaviest and lightest differ by {} units ({}% of power), within the {}% tolerance",
+     "三相平衡良好 — 最重与最轻相差 {} 台（占功率 {}%），在 {}% 容差内"],
+  "<b>เฟสไม่สมดุล</b> — ต่างกัน {}% ({} ตัว) เกินเกณฑ์ {}% ควรเกลี่ยใหม่ก่อนติดตั้ง":
+    ["<b>Phases unbalanced</b> — {}% apart ({} units), exceeding the {}% tolerance; redistribute before installation",
+     "<b>三相不平衡</b> — 相差 {}%（{} 台），超过 {}% 容差，安装前应重新分配"],
+
+  /* กำลังไฟและอุณหภูมิตลอดวัน */
+  "กำลังไฟและอุณหภูมิเซลล์ตลอดวัน — ": ["Power output and cell temperature through the day — ", "全天功率与电池片温度 — "],
+  "กำลังไฟ + อุณหภูมิเซลล์ตลอดวัน": ["Power output + cell temperature through the day", "全天功率与电池片温度"],
+  " (เดือนที่ผลิตได้สูงสุดใน 12 เดือน)": [" (highest-yielding month of the year)", "（全年发电量最高的月份）"],
+  "เดือนที่ผลิตได้สูงสุด": ["Highest-yielding month", "发电量最高月份"],
+  "ช่วงเวลา": ["Time", "时段"],
+  "พระอาทิตย์ขึ้น – ตก": ["Sunrise – sunset", "日出 – 日落"],
+  " น.": [" hrs", " 时"],
+  "แสงแรงที่สุดบนหน้าแผง": ["Peak irradiance on module plane", "组件面峰值辐照"],
+  "กำลังไฟสูงสุดของระบบ": ["System peak power", "系统峰值功率"],
+  " (อินเวอร์เตอร์ตัดยอด {} ชม./วัน)": [" (inverter clipping {} hrs/day)", "（逆变器限功率 {} 小时/天）"],
+  "อุณหภูมิเซลล์สูงสุด": ["Peak cell temperature", "电池片最高温度"],
+  "ผลผลิตทั้งวัน": ["Daily yield", "当日发电量"],
+  "ผลผลิตทั้งเดือน": ["Monthly yield", "当月发电量"],
+  "ช่วงที่มีเงาบัง": ["Shaded period", "遮挡时段"],
+  "ไม่มีเงาบังตลอดวัน": ["No shading all day", "全天无遮挡"],
+  "อุณหภูมิเซลล์": ["Cell temperature", "电池片温度"],
+  "ความเข้มแสง": ["Irradiance", "辐照强度"],
+
+  /* ทั้งปี */
+  "แสงที่ได้ทั้งปี — เดือน × ชั่วโมง": ["Annual irradiance — month × hour", "全年辐照 — 月 × 时"],
+  "เงาบังทั้งปี — เดือน × ชั่วโมง": ["Annual shading — month × hour", "全年遮挡 — 月 × 时"],
+  "สรุปทั้งปี 12 เดือน": ["12-month summary", "全年 12 个月汇总"],
+  "แสง/เงาทั้งปี 12 เดือน": ["Irradiance / shading over 12 months", "全年 12 个月辐照与遮挡"],
+  "แผนที่ความร้อน + ตารางสรุป": ["Heat map + summary table", "热力图与汇总表"],
+  "เดือน": ["Month", "月份"],
+  "แดดขึ้น–ตก": ["Sunrise–sunset", "日出–日落"],
+  "แดดแรงสุด": ["Peak irradiance", "峰值辐照"],
+  "กำลังสูงสุด": ["Peak power", "峰值功率"],
+  "ผลิต/วัน": ["Yield/day", "日发电量"],
+  "ผลิต/เดือน": ["Yield/month", "月发电量"],
+  "เงาบัง": ["Shading", "遮挡"],
+  "ช่วงที่โดนบัง": ["Shaded period", "遮挡时段"],
+  "ไม่มีเงา": ["None", "无"],
+  " · เดือนที่โดนหนักสุดคือ ": [" · worst-affected month: ", " · 遮挡最严重的月份："],
+
+  /* ค่าที่ควรวัดได้ · ผลตรวจวัด */
+  "ค่าที่ควรวัดได้ของทุกไมโคร ณ {} น.": ["Expected measured values for every microinverter at {}", "各微逆在 {} 的预期实测值"],
+  "ค่าที่ควรวัดได้ของทุกสตริง ณ {} น.": ["Expected measured values for every string at {}", "各组串在 {} 的预期实测值"],
+  "ค่าที่ควรวัดได้ทุกสตริง/ไมโคร": ["Expected values for every string / microinverter", "各组串/微逆的预期实测值"],
+  "ตารางพกไปเทียบกับเครื่องวัดที่หน้างาน": ["Take this table on site and compare with your meter", "现场可携表对照实测"],
+  "ผลตรวจวัดหน้างาน": ["On-site measurements", "现场实测结果"],
+  "ผลตรวจวัดเทียบกับค่าที่ควรได้": ["Measured vs. expected", "实测值与预期值对比"],
+  "เทียบค่าที่วัดได้กับที่ควรได้": ["Measured vs. expected values", "实测值与预期值对比"],
+  "ต่อช่อง": ["Per input", "每路"],
+  "แสง W/m²": ["Irradiance W/m²", "辐照 W/m²"],
+  "เซลล์ °C": ["Cell °C", "电池片 °C"],
+  "Pmax/ช่อง": ["Pmax/input", "每路 Pmax"],
+  "รวมทั้งตัว": ["Unit total", "整台合计"],
+  "สภาพอากาศตอนตรวจวัด": ["Conditions at time of measurement", "实测时的环境条件"],
+  "วัน–เวลา": ["Date–time", "日期时间"],
+  " (ระบบเลือกช่วงที่เหมาะจะวัดให้)": [" (system-selected measurement window)", "（系统自动选择的适宜测量时段）"],
+  "ความเข้มแสงบนพื้นราบ": ["Horizontal irradiance", "水平面辐照"],
+  " (วัดจริง)": [" (measured)", "（实测）"],
+  " (ประมาณจากแบบจำลอง)": [" (modelled estimate)", "（模型估算）"],
+  "แสงบนหน้าแผง (POA)": ["Plane-of-array irradiance (POA)", "组件面辐照（POA）"],
+  " · หักเงาบัง ": [" · less shading ", " · 扣除遮挡 "],
+  "มุมตกกระทบ / ผ่านผิวกระจก": ["Incidence angle / glass transmission", "入射角 / 玻璃透过率"],
+  "อุณหภูมิอากาศ / ลม": ["Ambient temperature / wind", "环境温度 / 风速"],
+  "วิธียึดแผง": ["Mounting type", "安装方式"],
+  "อุณหภูมิหลังแผง / เซลล์": ["Back-of-module / cell temperature", "组件背板 / 电池片温度"],
+  " °C (ร้อนกว่าอากาศ +": [" °C (above ambient +", " °C（高于环境 +"],
+  "อายุระบบ ณ วันที่วัด": ["System age at measurement", "测量时系统已运行"],
+  "หน่วย": ["Unit", "单元"],
+  "Pmax วัดได้→STC": ["Measured Pmax → STC", "实测 Pmax → STC"],
+  "ควรได้ที่ STC": ["Expected at STC", "STC 预期值"],
+  "ได้กี่ %": ["% of expected", "达标率 %"],
+  "<br><i>ทำต่อ: ": ["<br><i>Action: ", "<br><i>后续处理："],
+  "ทุกหน่วยที่ตรวจวัดผ่านเกณฑ์ ไม่พบความผิดปกติ": ["All measured units passed; no anomalies found", "所有实测单元均合格，未发现异常"],
+  "เทียบ STC": ["vs. STC", "对比 STC"],
+  "เทียบที่ 25 °C": ["vs. 25 °C", "对比 25 °C"],
+
+  /* ดวงอาทิตย์ · เส้น I-V */
+  "เส้นทางเดินดวงอาทิตย์ตลอดปี และทิศทางแสงที่ทำให้แผงโดนบัง":
+    ["Annual sun path and the directions from which shading occurs", "全年太阳轨迹与造成遮挡的方位"],
+  "เส้นทางเดินดวงอาทิตย์ & แผนที่เงาบัง": ["Sun path & shading map", "太阳轨迹与遮挡图"],
+  "ทิศ × มุมสูง — เห็นว่าโดนบังเดือนไหน เวลาไหน": ["Azimuth × elevation — shows which months and hours are shaded", "方位角 × 高度角 — 显示哪些月份与时段被遮挡"],
+  " ทิศทาง ผ่านโมเดล 3 มิติของหน้างานจริง": [" directions, traced through the 3D model of the actual site", " 个方位，基于现场三维模型计算"],
+  "เส้น P-V &amp; I-V ที่ความเข้มแสงต่าง ๆ (ต่อ 1 แผง · เซลล์ 25 °C)":
+    ["P-V &amp; I-V curves at various irradiance levels (per module · cell 25 °C)", "不同辐照下的 P-V 与 I-V 曲线（单块组件 · 电池片 25 °C）"],
+  "เส้น P-V &amp; I-V ที่อุณหภูมิเซลล์ต่าง ๆ (ทั้งสตริง · แสง 1000 W/m²)":
+    ["P-V &amp; I-V curves at various cell temperatures (full string · 1000 W/m²)", "不同电池片温度下的 P-V 与 I-V 曲线（整串 · 1000 W/m²）"],
+  "เส้น P-V & I-V ที่แสง/อุณหภูมิต่าง ๆ": ["P-V & I-V curves at various irradiance / temperature", "不同辐照与温度下的 P-V 与 I-V 曲线"],
+  "แบบเดียวกับกราฟบนดาต้าชีตแผง": ["Same format as the module datasheet curves", "与组件数据表曲线相同"],
+  "ที่มาตรฐาน STC (1000 W/m² · 25°C)": ["at STC (1000 W/m² · 25 °C)", "标准测试条件 STC（1000 W/m² · 25°C）"],
+
+  /* เงาบัง */
+  "เงาบังตลอดทั้งปี (คำนวณจากโมเดล 3 มิติ)": ["Annual shading (computed from the 3D model)", "全年遮挡（基于三维模型计算）"],
+  "เงาบังทั้งปีจากโมเดล 3 มิติ": ["Annual shading from the 3D model", "基于三维模型的全年遮挡"],
+  "ที่มาของการสูญเสียจากเงา": ["Source of shading loss", "遮挡损失来源"],
+  "ทั้งปี": ["Annual", "全年"],
+  "เงาบังตามพื้นที่จริง": ["Geometric shading", "几何遮挡"],
+  "ผลจากการฉุดกำลังทั้งสตริง": ["String mismatch effect", "组串失配影响"],
+  "แผงที่โดนเงาหนักที่สุด": ["Most heavily shaded modules", "遮挡最严重的组件"],
+  "ตำแหน่งแผง": ["Module position", "组件位置"],
+  "เงาบังทั้งปี": ["Annual shading", "全年遮挡"],
+  "ไม่มีแผงใบไหนโดนเงาบังเกิน 3% ต่อปี": ["No module is shaded more than 3% annually", "无组件全年遮挡超过 3%"],
+
+  /* ค่าสูญเสีย · P50/P90 */
+  "แผนภาพค่าสูญเสียของระบบ — จากแสงที่ได้ ถึงไฟที่ส่งออกจริง":
+    ["System loss diagram — from incident irradiance to delivered AC energy", "系统损失图 — 从入射辐照到实际输出"],
+  "แผนภาพค่าสูญเสียของระบบ": ["System loss diagram", "系统损失图"],
+  "ไล่จากแสงที่ได้ลงมาถึงไฟ AC ทีละด่าน": ["Step by step from irradiance down to AC output", "逐级从辐照追踪到交流输出"],
+  "ไม่เสียพลังงานในด่านนี้": ["No loss at this stage", "此环节无损失"],
+  "ความมั่นใจของผลผลิต (P50/P90)": ["Yield confidence (P50/P90)", "发电量置信度（P50/P90）"],
+  "ตัวเลขที่ธนาคารและผู้ลงทุนขอดู": ["The figures banks and investors ask for", "银行与投资方所需数据"],
+  "ค่ากลาง — โอกาสได้มากกว่านี้ครึ่งหนึ่ง": ["Median — 50% chance of exceeding this", "中位值 — 有一半概率高于此值"],
+  "มั่นใจ {}% ว่าผลผลิตจะไม่ต่ำกว่านี้": ["{}% confidence the yield will not fall below this", "{}% 置信度不低于此值"],
+  "ที่มาของความไม่แน่นอน": ["Sources of uncertainty", "不确定性来源"],
+  "<b>รวมทั้งหมด (รากที่สองของผลบวกกำลังสอง)</b>": ["<b>Combined (root sum of squares)</b>", "<b>合计（方和根）</b>"],
+  "kWh/ปี": ["kWh/yr", "kWh/年"],
+
+  /* สิ่งแวดล้อม */
+  "คาร์บอนที่ลดได้ · ค่าเทียบเท่า · คืนทุนทางคาร์บอน": ["Carbon avoided · equivalents · carbon payback", "减碳量 · 等效换算 · 碳回收期"],
+  "ลดคาร์บอนได้ปีละ": ["Carbon avoided per year", "年减碳量"],
+  "เท่ากับปลูกไม้ยืนต้น": ["Equivalent to planting trees", "相当于植树"],
+  "คืนทุนทางคาร์บอน": ["Carbon payback", "碳回收期"],
+  "ปริมาณคาร์บอนที่ลดได้ เทียบเท่ากับ": ["Carbon avoided is equivalent to", "减碳量相当于"],
+  "ต่อปี": ["per year", "每年"],
+  "ก๊าซเรือนกระจกที่ไม่ถูกปล่อย": ["Greenhouse gas avoided", "避免排放的温室气体"],
+  "การปลูกไม้ยืนต้น (ดูดซับ 9.5 kgCO₂/ต้น/ปี)": ["Trees planted (9.5 kgCO₂ absorbed/tree/year)", "植树（每棵每年吸收 9.5 kgCO₂）"],
+  "การไม่ขับรถยนต์นั่งส่วนบุคคล (0.12 kgCO₂/กม.)": ["Car travel avoided (0.12 kgCO₂/km)", "减少小汽车行驶（0.12 kgCO₂/公里）"],
+  "น้ำมันเบนซินที่ไม่ถูกเผา (2.31 kgCO₂/ลิตร)": ["Petrol not burned (2.31 kgCO₂/litre)", "未燃烧的汽油（2.31 kgCO₂/升）"],
+  "ไฟฟ้าที่ครัวเรือนไทยใช้ทั้งปี (~200 หน่วย/เดือน)": ["Annual electricity use of a Thai household (~200 units/month)", "泰国家庭全年用电（约 200 度/月）"],
+  " หลัง": [" households", " 户"],
+  " กม.": [" km", " 公里"],
+  " ลิตร": [" litres", " 升"],
+  "รวมคาร์บอนที่ใช้ผลิต ขนส่ง และติดตั้ง": ["Includes carbon from manufacturing, transport and installation", "含制造、运输与安装的碳排放"],
+  "ระยะเวลาคืนทุนทางคาร์บอน": ["Carbon payback period", "碳回收期"],
+  "ตลอดอายุระบบลดได้กี่เท่าของที่ใช้สร้าง": ["Lifetime carbon avoided vs. carbon invested", "全生命周期减碳量与投入碳排之比"],
+  " เท่า": ["×", " 倍"],
+  " ต้น": [" trees", " 棵"],
+
+  /* การใช้ไฟ · แบตเตอรี่ · ขายคืน */
+  "จำลองทีละชั่วโมงทั้งปี — ผลิตแล้วได้ใช้เองกี่ %": ["Hour-by-hour annual simulation — how much is self-consumed", "全年逐小时模拟 — 自用比例"],
+  "การใช้ไฟ · แบตเตอรี่ · ห้ามไหลย้อน": ["Consumption · battery · zero export", "用电 · 储能 · 防逆流"],
+  "กราฟไฟทั้งวัน": ["Daily energy flow", "全天能量流"],
+  "ไฟที่ผลิตได้ไปไหน + ไฟที่ใช้มาจากไหน": ["Where generation goes and where consumption comes from", "发电去向与用电来源"],
+  "ห้ามไหลย้อนเด็ดขาด (zero export)": ["Strict zero export", "严格防逆流（零上网）"],
+  "ปล่อยออกได้ไม่เกิน ": ["Export limited to ", "上网功率不超过 "],
+  "ขายคืนได้ไม่จำกัด": ["Unlimited export", "上网不受限"],
+  "ผลิตแล้วได้ใช้เอง": ["Self-consumption", "自用率"],
+  "ไฟที่ใช้มาจากโซลาร์": ["Load covered by solar", "太阳能供电占比"],
+  "ยังต้องซื้อไฟ": ["Still purchased from grid", "仍需外购电量"],
+  "ตัดทิ้งเพราะห้ามไหลย้อน": ["Curtailed by export limit", "因防逆流被削减"],
+  "แบตใช้ไปปีละ": ["Battery cycles per year", "电池年循环次数"],
+  "รอบ": ["cycles", "次"],
+  "สมมติฐานการใช้ไฟของลูกค้า": ["Client consumption assumptions", "客户用电假设"],
+  "ลักษณะการใช้ไฟ": ["Load profile", "用电曲线"],
+  "ใช้ไฟทั้งปี": ["Annual consumption", "全年用电量"],
+  "เงื่อนไขฝั่งการไฟฟ้า": ["Utility conditions", "电网侧条件"],
+  "แบตเตอรี่": ["Battery", "储能电池"],
+  "ไม่มีในระบบนี้": ["Not included in this system", "本系统未配置"],
+  "ไฟที่ผลิตได้ในวันเฉลี่ยเดือน{} ถูกเอาไปทำอะไร":
+    ["Where generation goes on an average day in {}", "{}平均日发电量的去向"],
+  "ไฟที่ลูกค้าใช้ในวันเดียวกัน มาจากไหน": ["Where the client's consumption comes from on the same day", "同日客户用电的来源"],
+  "สรุปรายเดือน (kWh)": ["Monthly summary (kWh)", "月度汇总（kWh）"],
+  "ตารางรายเดือน": ["Monthly table", "月度表"],
+  "ผลิตได้": ["Generated", "发电量"],
+  "ลูกค้าใช้ไฟ": ["Consumed", "用电量"],
+  "ใช้ตรง ๆ ตอนนั้น": ["Used directly", "即时自用"],
+  "ใช้ตรง ๆ": ["Direct use", "直接自用"],
+  "เก็บเข้าแบต": ["Charged to battery", "充入电池"],
+  "จ่ายออกจากแบต": ["Discharged from battery", "电池放电"],
+  "จากแบต": ["From battery", "来自电池"],
+  "ขายคืนการไฟฟ้า": ["Exported to grid", "上网售电"],
+  "ขายคืน": ["Exported", "上网"],
+  "ตัดทิ้ง (ห้ามไหลย้อน)": ["Curtailed (zero export)", "削减（防逆流）"],
+  "ตัดทิ้ง": ["Curtailed", "削减"],
+  "ซื้อจากการไฟฟ้า": ["Purchased from grid", "外购电量"],
+  "ใช้เอง %": ["Self-use %", "自用率 %"],
+
+  /* สเปคแบตเตอรี่ */
+  "สเปคแบตเตอรี่ที่ใช้ในการคำนวณ": ["Battery specification used in the calculation", "计算所采用的电池参数"],
+  "สเปคแบตเตอรี่ที่ใช้คิด": ["Battery specification used", "所采用的电池参数"],
+  "รายการ": ["Item", "项目"],
+  "ที่มา / ความหมาย": ["Source / meaning", "来源 / 说明"],
+  "ชนิดเซลล์": ["Cell chemistry", "电芯类型"],
+  "กำหนดอายุ รอบการใช้งาน และ DoD ที่ปลอดภัย": ["Determines lifetime, cycle count and safe depth of discharge", "决定寿命、循环次数与安全放电深度"],
+  "ความจุตามป้าย": ["Nameplate capacity", "标称容量"],
+  "ตัวเลขบนดาต้าชีตของผู้ผลิต": ["Manufacturer datasheet figure", "厂家数据表数值"],
+  "ลึกกว่านี้แบตเสื่อมเร็ว": ["Discharging deeper shortens battery life", "放电更深会加速衰减"],
+  "กันไว้เผื่อไฟดับ": ["Reserved for outage backup", "预留停电备用"],
+  "ส่วนนี้ไม่ถูกใช้ลดค่าไฟ": ["This portion is not used to offset the bill", "此部分不用于节省电费"],
+  "ส่วนที่ใช้ลดค่าไฟได้จริง": ["Usable for bill savings", "可用于节省电费的部分"],
+  "ความจุใช้งาน หักที่กันไว้สำรอง": ["Usable capacity less the reserve", "可用容量扣除备用"],
+  "กำลังชาร์จ / จ่ายสูงสุด": ["Max charge / discharge power", "最大充放电功率"],
+  "เอาค่าที่น้อยกว่าระหว่างตัวแบตกับอินเวอร์เตอร์ไฮบริด": ["Lesser of the battery and the hybrid inverter", "取电池与混合逆变器中的较小值"],
+  "ประสิทธิภาพไป-กลับ": ["Round-trip efficiency", "往返效率"],
+  "ไฟหายไปในการเก็บ-จ่ายปีละ ": ["Energy lost in charge/discharge per year: ", "年充放电损耗："],
+  "แบตกินไฟเองต่อวัน": ["Self-consumption per day", "每日自耗电"],
+  " % ของความจุ": ["% of capacity", "% 容量"],
+  "BMS พัดลม และวงจรสแตนด์บาย": ["BMS, fans and standby circuits", "BMS、风扇与待机电路"],
+  "จำนวนรอบจนหมดอายุ": ["Cycle life", "循环寿命"],
+  " รอบ/ปี": [" cycles/yr", " 次/年"],
+  "ใช้จริงจากการจำลอง ": ["From simulation: ", "模拟结果："],
+  "อายุปฏิทิน": ["Calendar life", "日历寿命"],
+  "เสื่อมตามเวลาแม้ไม่ค่อยได้ใช้": ["Degrades over time even when lightly used", "即使少用也会随时间衰减"],
+  "อายุที่ประเมินได้": ["Estimated service life", "预计使用寿命"],
+  "หมดรอบก่อนหมดอายุปฏิทิน": ["Cycle-limited", "循环次数先到寿"],
+  "หมดอายุปฏิทินก่อนใช้ครบรอบ": ["Calendar-limited", "日历寿命先到"],
+  "ความจุคงเหลือตอนหมดอายุ": ["Remaining capacity at end of life", "寿命终止时剩余容量"],
+  "เกณฑ์สิ้นอายุการใช้งานตามมาตรฐาน": ["Standard end-of-life threshold", "行业标准的寿命终止判据"],
+  "ราคาแบตที่ใช้คิด": ["Battery price used", "计算所用电池价格"],
+  "กรอกเป็นยอดรวมทั้งชุด": ["Entered as a total for the whole pack", "按整套总价录入"],
+  " บาท/kWh": [" THB/kWh", " 泰铢/kWh"],
+  " บาท": [" THB", " 泰铢"],
+
+  /* ผลตอบแทน */
+  "คืนทุน · IRR · กระแสเงินสด": ["Payback · IRR · cash flow", "回收期 · IRR · 现金流"],
+  "พันบาท": ["THB thousand", "千泰铢"],
+  "ต้นทุนไฟที่ผลิตเอง": ["Levelised cost of energy", "自发电度电成本"],
+  "บาท/หน่วย": ["THB/unit", "泰铢/度"],
+  "กำไรสุทธิ ": ["Net profit ", "净收益 "],
+  "ผลผลิต kWh": ["Yield kWh", "发电量 kWh"],
+  "เหลือ %": ["Remaining %", "剩余 %"],
+  "ประหยัดค่าไฟ": ["Bill savings", "节省电费"],
+  "ค่าดูแล": ["O&M cost", "运维费用"],
+  "สุทธิ": ["Net", "净额"],
+  "สะสม": ["Cumulative", "累计"],
+  "คืนทุน {} ปี": ["payback {} years", "回收期 {} 年"],
+
+  /* ผัง · การต่อ */
+  "ผังแผงมองจากด้านบน (สีเดียวกัน = ": ["Top-down module layout (same colour = ", "组件俯视布置图（同色 = "],
+  "ผังแผงมองจากด้านบน": ["Top-down module layout", "组件俯视布置图"],
+  "สีเดียวกัน = สตริง/ไมโครเดียวกัน": ["Same colour = same string / microinverter", "同色 = 同一组串/微逆"],
+  "ไมโครตัวเดียวกัน": ["same microinverter", "同一台微逆"],
+  "สตริงเดียวกัน": ["same string", "同一组串"],
+  "การต่อไมโครอินเวอร์เตอร์": ["Microinverter configuration", "微型逆变器接线"],
+  "การต่อสตริงและช่อง MPPT": ["String and MPPT configuration", "组串与 MPPT 接线"],
+  "ตารางการต่อ · ข้อควรแก้": ["Configuration table · items to address", "接线表 · 待处理事项"],
+  "อุปกรณ์ที่ใช้": ["Equipment used", "所用设备"],
+  "สเปคแผง/อินเวอร์เตอร์ · ผืนหลังคาและทิศทาง": ["Module / inverter specs · roof planes and orientation", "组件与逆变器参数 · 屋面与朝向"],
+  "การ์ดตัวเลขสำคัญทั้งหมดในหน้าเดียว": ["All key figures on one page", "关键数据一页汇总"],
+  "หน้าปก": ["Cover page", "封面"],
+  "โลโก้ · ตัวเลขเด่น · ภาพ 3 มิติ": ["Logo · headline figure · 3D view", "标志 · 核心数据 · 三维视图"],
+  " กลุ่มทิศทาง": [" orientation groups", " 个朝向分组"],
+  "ไม่พบข้อควรแก้ในการออกแบบ": ["No design issues found", "设计未发现问题"],
+
+  /* ทิศ */
+  "ตอ.เฉียงเหนือ": ["NE", "东北"],
+  "ตอ.เฉียงใต้": ["SE", "东南"],
+  "ตต.เฉียงใต้": ["SW", "西南"],
+  "ตต.เฉียงเหนือ": ["NW", "西北"],
+  "ตะวันออก": ["East", "东"],
+  "ตะวันตก": ["West", "西"],
+  "เหนือ": ["North", "北"],
+  "ใต้": ["South", "南"],
+
+  /* เดือนย่อในกราฟ */
+  "ม.ค.": ["Jan", "1月"],
+  "ก.พ.": ["Feb", "2月"],
+  "มี.ค.": ["Mar", "3月"],
+  "เม.ย.": ["Apr", "4月"],
+  "พ.ค.": ["May", "5月"],
+  "มิ.ย.": ["Jun", "6月"],
+  "ก.ค.": ["Jul", "7月"],
+  "ส.ค.": ["Aug", "8月"],
+  "ก.ย.": ["Sep", "9月"],
+  "ต.ค.": ["Oct", "10月"],
+  "พ.ย.": ["Nov", "11月"],
+  "ธ.ค.": ["Dec", "12月"],
+
+  /* ท้ายเอกสาร */
+  "<b>หมายเหตุการใช้งานตัวเลขในรายงานนี้</b>": ["<b>Notes on the figures in this report</b>", "<b>本报告数据使用说明</b>"],
+  "ผู้ออกแบบ / ผู้ตรวจวัด": ["Designer / test engineer", "设计 / 测试工程师"],
+  "ผู้รับมอบงาน": ["Accepted by", "验收方"],
+  "วันที่": ["Date", "日期"],
+  " ปี": [" years", " 年"],
+  " ใบ": [" modules", " 块"],
+  " ตัว": [" units", " 台"],
+  " ช่อง": [" inputs", " 路"],
+  " วงจร": [" circuits", " 条"],
+  " แผง": [" modules", " 块"],
+  " วงจรย่อย AC": [" AC branch circuits", " 条交流支路"],
+
+  /* ── ย่อหน้าอธิบาย ──
+     ประโยคยาวที่มีตัวเลขแทรกกลาง ใช้ {} คร่อมตัวเลข แล้วเรียงใหม่ตามไวยากรณ์ของภาษานั้น
+     คีย์ยาวจะถูกแทนก่อนคีย์สั้นเสมอ ประโยคพวกนี้จึงไม่โดนคำเดี่ยวกัดกินก่อน */
+  "ตัวเลขทั้งหมดมาจากการจำลองตำแหน่งดวงอาทิตย์จริงที่พิกัดของงานนี้ ร่วมกับโมเดล 3 มิติของอาคาร รายละเอียดวิธีคิดและสมมติฐานอยู่ในหัวข้อถัดไปทั้งหมด":
+    ["All figures come from simulating the real sun position at this site's coordinates together with a 3D model of the building. Methods and assumptions are detailed in the sections that follow.",
+     "所有数据均基于本项目所在坐标的真实太阳位置模拟与建筑三维模型计算，计算方法与假设条件详见后续章节。"],
+  "ผืนหลังคาและทิศทางแผง": ["Roof planes and module orientation", "屋面与组件朝向"],
+  "หลังคา {} · เอียง {}° Azimuth {}°": ["Roof {} · tilt {}° · azimuth {}°", "屋面 {} · 倾角 {}° · 方位角 {}°"],
+  "หลังคา ": ["Roof ", "屋面 "],
+  "เอียง ": ["tilt ", "倾角 "],
+
+  "ไมโครติดตั้งใต้แผงและแปลงเป็นไฟ AC ตรงจุดนั้นเลย · รุ่นนี้ให้ MPPT {} ช่องอิสระต่อแผง {} ใบ = 1 ช่องต่อ {} แผง จึงตรวจแรงดัน/กระแสด้วยเกณฑ์เดียวกับสตริงอินเวอร์เตอร์ โดยมองว่า 1 ช่อง MPPT คือ 1 สตริงสั้น ๆ · ":
+    ["Microinverters mount under the modules and convert to AC right there · this model gives {} independent MPPT inputs per {} modules = 1 input per {} module, so voltage and current are checked against the same criteria as a string inverter, treating one MPPT input as a short string · ",
+     "微型逆变器安装于组件背面，就地转换为交流电 · 本型号每 {} 块组件提供 {} 路独立 MPPT = 每 {} 块组件 1 路，因此电压与电流按与组串逆变器相同的标准校验，将 1 路 MPPT 视为一个短组串 · "],
+  "แผงทุกใบหาจุดทำงานของตัวเอง เงาบังใบไหนกำลังตกเฉพาะใบนั้น ไม่ฉุดใบข้างเคียง ค่าสูญเสีย “แผงไม่เท่ากัน” จึงตั้งไว้ที่ 0.3% แทน 2% ของระบบสตริง":
+    ["every module finds its own operating point, so a shaded module loses power alone without dragging its neighbours down; mismatch loss is therefore set to 0.3% instead of the 2% used for string systems",
+     "每块组件独立寻找工作点，被遮挡的组件只影响自身、不拖累相邻组件，因此失配损失按 0.3% 计算，而非组串系统的 2%"],
+  "ช่องนี้มีแผงมากกว่า 1 ใบต่ออนุกรมกัน จึงยังฉุดกันได้ภายในช่องเดียวกัน":
+    ["this input has more than one module in series, so modules can still drag each other down within the same input",
+     "该路串联了一块以上组件，因此同一路内仍会相互影响"],
+  "ไมโครแทบทุกรุ่นเป็นอุปกรณ์ 1 เฟส เมื่อใช้กับระบบ 3 เฟสจึงต้องกระจายตัวลงแต่ละเฟสให้กำลังใกล้เคียงกัน ไม่งั้นเฟสที่หนักกว่าจะแรงดันตกและกระแสในสายนิวทรัลสูงเกินจำเป็น · ดูว่าตัวไหนลงเฟสอะไรได้ที่ตารางใต้ผังแผง":
+    ["Almost all microinverters are single-phase devices. On a three-phase system they must be spread across the phases with roughly equal power, otherwise the heavier phase suffers voltage drop and excessive neutral current. The table below the layout shows which unit goes on which phase.",
+     "绝大多数微型逆变器为单相设备。用于三相系统时必须将各相功率分配均衡，否则重载相会出现电压跌落且中性线电流过大。各台所属相序见布置图下方表格。"],
+  "ตัวหนังสือบนแผง = Phase · ทิศเหนืออยู่บน": ["letter on module = phase · north is up", "组件上的字母 = 相序 · 上方为北"],
+  "ตัวหนังสือบนแผง = ": ["letter on module = ", "组件上的字母 = "],
+  "ทิศเหนืออยู่บน": ["north is up", "上方为北"],
+  "ช่างเดินตามผังนี้ได้เลย — แผงสีเดียวกันเสียบเข้าไมโครตัวเดียวกัน และตัวหนังสือบนแผงบอกเฟสที่ต้องต่อ":
+    ["Installers can work directly from this layout — modules of the same colour connect to the same microinverter, and the letter on each module gives the phase to wire it to.",
+     "施工人员可直接依此图作业 — 同色组件接入同一台微逆，组件上的字母表示应接入的相序。"],
+  "ตัวที่ ": ["Unit ", "第 "],
+  "ปกติ": ["Normal", "正常"],
+  "ข้อควรแก้": ["Items to address", "待处理事项"],
+  "จำลองทั้งวัน · ": ["full-day simulation · ", "全天模拟 · "],
+  "สูงสุด ": ["peak ", "峰值 "],
+  "ร้อนสุด ": ["max ", "最高 "],
+  "กำลังไฟที่ออกจากอินเวอร์เตอร์ (AC)": ["Inverter AC output", "逆变器交流输出"],
+  "กำลังไฟจากแผง (DC) สูงกว่ากำลังที่ออกจากอินเวอร์เตอร์ (AC) เสมอ เพราะมีการสูญเสียในสายและตัวอินเวอร์เตอร์ · อุณหภูมิเซลล์คำนวณจากแบบจำลองความร้อนตามวิธียึดแผงจริง ยิ่งร้อนกำลังยิ่งตกตามสัมประสิทธิ์ของแผง ({} %/°C) จึงเห็นกำลังไฟยอดแบนช่วงบ่ายแม้แดดยังแรง":
+    ["DC power from the modules is always higher than the AC power leaving the inverter because of cable and inverter losses · cell temperature is computed with a thermal model matching the actual mounting method; the hotter the modules, the more power drops according to the module coefficient ({} %/°C), which is why the afternoon peak flattens even while irradiance is still strong",
+     "组件直流功率始终高于逆变器交流输出，差额为线缆与逆变器损耗 · 电池片温度按实际安装方式的热模型计算，温度越高功率按组件温度系数（{} %/°C）下降越多，因此午后即使辐照仍强，功率曲线也会趋平"],
+  "กำลังไฟจากแผง (DC)": ["Module DC power", "组件直流功率"],
+  " (แกนขวา)": [" (right axis)", "（右轴）"],
+  " · เสียไป ": [" · loss ", " · 损失 "],
+  "อ่อน = แดดน้อย": ["light = low irradiance", "浅色 = 辐照低"],
+  "ปานกลาง": ["medium", "中等"],
+  "แรงสุด {} W/m²": ["peak {} W/m²", "峰值 {} W/m²"],
+  " ขวาสุด = ": [" far right = ", " 最右列 = "],
+  "บังบางส่วน": ["partial shading", "部分遮挡"],
+  "บังมาก": ["heavy shading", "遮挡严重"],
+  "บังเกือบหมด": ["almost fully shaded", "几乎全遮挡"],
+  "เสียไปกี่ % ของเดือนนั้น": ["% lost that month", "该月损失百分比"],
+  "คิดจากวันตัวแทนของแต่ละเดือน (วันที่ 15) คูณจำนวนวันในเดือน — ใช้ดูแนวโน้มรายเดือนและช่วงเวลาที่เงามา ส่วนตัวเลขผลผลิตทางการอยู่ในหัวข้อถัดไป ซึ่งเดินครบทุกวันของปี · เงาบังทั้งปีเฉลี่ย {}%":
+    ["Based on a representative day of each month (the 15th) multiplied by the days in that month — use it to read monthly trends and when shading arrives. The formal yield figures in the next section step through every day of the year · average annual shading {}%",
+     "以每月代表日（15 日）乘以当月天数计算 — 用于观察月度趋势与遮挡时段；正式发电量数据见下一章节，按全年逐日计算 · 全年平均遮挡 {}%"],
+  "ระดับสีของเงาบัง": ["Shading colour scale", "遮挡色阶"],
+  " (เข้มขึ้น = โดนบังหนักขึ้น) · เส้นทางเดินเส้นไหนวิ่งผ่านพื้นที่สี แปลว่าเดือนนั้นเวลานั้นแผงโดนเงาบังแน่นอน":
+    [" (darker = more heavily shaded) · wherever a sun-path line crosses a coloured area, the modules are definitely shaded at that month and hour",
+     "（颜色越深遮挡越重）· 太阳轨迹线穿过彩色区域处，即表示该月该时段组件确实被遮挡"],
+  "แกนนอนคือทิศที่ดวงอาทิตย์อยู่ (0° เหนือ · 90° ตะวันออก · 180° ใต้ · 270° ตะวันตก) แกนตั้งคือมุมสูงเหนือขอบฟ้า · เส้นโค้งสีส้ม 7 เส้นคือเส้นทางเดินของดวงอาทิตย์ในวันตัวแทนแต่ละช่วงของปี เส้นประคือเวลา · ที่ละติจูดของประเทศไทย ฤดูร้อนดวงอาทิตย์อ้อมไปทางทิศเหนือ เส้นทางเดินจึงข้ามขอบซ้าย–ขวาของกราฟ":
+    ["The horizontal axis is the sun's azimuth (0° N · 90° E · 180° S · 270° W) and the vertical axis its elevation above the horizon · the seven orange curves are the sun's path on representative days through the year; dashed lines mark the hours · at Thailand's latitude the summer sun swings north, so the paths cross the left and right edges of the chart",
+     "横轴为太阳方位角（0° 北 · 90° 东 · 180° 南 · 270° 西），纵轴为地平线以上高度角 · 七条橙色曲线为全年代表日的太阳轨迹，虚线表示时刻 · 在泰国纬度，夏季太阳偏北，因此轨迹会越过图表左右边缘"],
+  " · แผนที่เงาคิดจากการยิงลำแสงไปทั่วท้องฟ้า {} ทิศทาง ผ่านโมเดล 3 มิติของหน้างานจริง":
+    [" · the shading map is traced by casting rays across the whole sky in {} directions through a 3D model of the actual site",
+     " · 遮挡图通过向全天空 {} 个方向投射光线、穿过现场三维模型计算得出"],
+  "แรงดัน (V)": ["Voltage (V)", "电压 (V)"],
+  "แสงลดลงครึ่งหนึ่ง กระแสลดลงครึ่งหนึ่งตาม แต่แรงดันวงจรเปิดแทบไม่เปลี่ยน (ตกแบบลอการิทึม) — นี่คือเหตุผลที่วันเมฆครึ้มระบบยังจ่ายไฟได้และอินเวอร์เตอร์ยังทำงานในช่วง MPPT · เทียบกับกราฟบนดาต้าชีตของแผงรุ่นนี้ได้ตรง ๆ":
+    ["Halve the irradiance and the current halves with it, but open-circuit voltage barely moves (it falls logarithmically) — which is why the system keeps delivering power on overcast days and the inverter stays within its MPPT range · these curves can be compared directly with the datasheet of this module.",
+     "辐照减半时电流随之减半，而开路电压几乎不变（按对数下降）— 这正是阴天系统仍能发电、逆变器仍工作在 MPPT 范围内的原因 · 本图可直接与该组件数据表曲线对照。"],
+  "ความร้อนกินแรงดัน ไม่ได้กินกระแส — เส้นเลื่อนเข้าหาแกนซ้ายแต่ความสูงเกือบไม่เปลี่ยน · จึงต้องตรวจ Voc ตอนเช้าที่อากาศเย็นที่สุด (แรงดันสูงสุด ห้ามเกินพิกัดอินเวอร์เตอร์) และเป็นเหตุผลที่บ่ายแดดแรงแต่ได้ไฟน้อยกว่าที่คาด":
+    ["Heat costs voltage, not current — the curves shift towards the left axis while their height barely changes · this is why Voc must be checked at the coldest morning conditions (highest voltage, which must not exceed the inverter rating), and why a hot bright afternoon yields less power than expected.",
+     "高温损失的是电压而非电流 — 曲线向左轴移动而高度几乎不变 · 因此必须按清晨最低温工况校验 Voc（此时电压最高，不得超过逆变器额定值），这也是午后烈日下发电量低于预期的原因。"],
+  "ค่าที่ควรวัดได้จริงที่หน้างาน ณ สภาพอากาศเวลานี้ (ไม่ใช่ค่าบนดาต้าชีต) — พกตารางนี้ไปเทียบกับเครื่องวัดได้เลย ถ้าวัดได้ต่างจากนี้เกิน 5% ค่อยไล่หาสาเหตุ · เส้นประคือเส้นที่สภาวะมาตรฐาน STC ไว้เทียบว่าอากาศจริงกินกำลังไปเท่าไหร่":
+    ["These are the values that should actually be measured on site under the present conditions (not datasheet values) — take the table along and compare with your meter; investigate only if a reading differs by more than 5% · the dashed curve is the STC reference, showing how much the real weather costs",
+     "此为当前环境条件下现场应实测的数值（非数据表值）— 可携本表与仪表对照，偏差超过 5% 再排查原因 · 虚线为 STC 标准曲线，用于对比实际气象条件造成的功率损失"],
+  " · ไมโคร 1 ตัวรับแผงหลายใบ แต่แยกเป็นช่อง MPPT อิสระ ค่าไฟฟ้าในตารางจึงเป็นของ 1 ช่อง (ตรงกับที่เครื่องวัดอ่านได้ตอนวัดทีละเส้น) ส่วน “รวมทั้งตัว” คือทุกช่องบวกกัน · แต่ละเส้นคิดจากเงาที่ตกบนแผงของตัวนั้นเอง ตัวที่โดนบังจึงต่ำลงคนเดียว":
+    [" · one microinverter takes several modules but splits them into independent MPPT inputs, so the electrical values in the table are per input (matching what the meter reads when measuring one at a time), while “Unit total” is the sum of all inputs · each row accounts for the shading falling on its own modules, so a shaded unit drops on its own",
+     " · 一台微逆接入多块组件但分为独立 MPPT 路，因此表中电气数值为每路数值（与逐路测量时仪表读数一致），“整台合计”为各路之和 · 每行按其自身组件所受遮挡计算，被遮挡的单元会单独降低"],
+  " ในปีแรก": [" in year 1", " （首年）"],
+  "รวมที่เสียจริง": ["Total actual loss", "实际损失合计"],
+  "แผงกลุ่มนี้ถ้าย้ายตำแหน่งไม่ได้ ควรแยกไปสตริงของตัวเองหรือใช้ออปติไมเซอร์ ไม่งั้นจะฉุดกำลังทั้งสตริงลงมาตามใบที่โดนบัง":
+    ["If these modules cannot be relocated, put them on their own string or fit optimisers; otherwise they will drag the whole string down to the level of the shaded module.",
+     "若这些组件无法移位，应单独成串或加装优化器，否则会将整串功率拖低至被遮挡组件的水平。"],
+  "ผลผลิตรายเดือน ปีแรก (kWh)": ["Monthly yield, year 1 (kWh)", "首年月度发电量（kWh）"],
+  "คำนวณจากตำแหน่งดวงอาทิตย์จริงทุก 30 นาทีตลอดปี ฉายลงระนาบเอียงจริงของแต่ละกลุ่มแผง หักอุณหภูมิเซลล์รายเดือน ค่าสูญเสียระบบรวม {}% เงาบังรายกลุ่มจากโมเดล 3 มิติ (เฉลี่ย {}%) ประสิทธิภาพอินเวอร์เตอร์ {}%":
+    ["Computed from the real sun position every 30 minutes through the year, projected onto each group's actual tilted plane, with monthly cell temperature, total system losses of {}%, per-group shading from the 3D model (average {}%) and inverter efficiency of {}%.",
+     "按全年每 30 分钟的真实太阳位置计算，投影至各分组的实际倾斜面，计入逐月电池片温度、系统总损失 {}%、基于三维模型的分组遮挡（平均 {}%）与逆变器效率 {}%。"],
+  "แสงอาทิตย์บนพื้นราบทั้งปี": ["Annual horizontal irradiation", "全年水平面辐照量"],
+  "ค่าของหน้างานที่พิกัดนี้ ไม่ขึ้นกับการออกแบบ — เป็นเพดานที่ระบบทำได้":
+    ["A property of the site at these coordinates, independent of the design — the ceiling for any system here",
+     "该坐标场地的固有条件，与设计无关 — 是系统可达的上限"],
+  "มุมเอียงและทิศของหลังคา": ["Roof tilt and orientation", "屋面倾角与朝向"],
+  "เอียงเฉลี่ย {}° · แสงที่ตกบนหน้าแผงจริง (ลำแสงตรง + ฟุ้งจากฟ้า + สะท้":
+    ["average tilt {}° · irradiance actually reaching the module plane (direct + sky diffuse + reflec",
+     "平均倾角 {}° · 实际入射到组件面的辐照（直射 + 天空散射 + 反"],
+  "การสะท้อนที่ผิวกระจกตามมุมตกกระทบ (IAM)": ["Glass surface reflection by incidence angle (IAM)", "玻璃表面入射角反射损失（IAM）"],
+  "แดดเฉียงตอนเช้า/เย็นสะท้อนออกจากหน้าแผงมากกว่าแดดตั้งฉาก":
+    ["Low morning and evening sun reflects off the glass more than perpendicular sun",
+     "清晨与傍晚的斜射阳光比垂直入射反射更多"],
+  "พลังงานนามของแผงที่ประสิทธิภาพ STC": ["Nominal module energy at STC efficiency", "按 STC 效率计的组件标称能量"],
+  " · พื้นที่รับแสง ": [" · aperture area ", " · 受光面积 "],
+  "อุณหภูมิเซลล์สูงกว่า 25 °C": ["Cell temperature above 25 °C", "电池片温度高于 25 °C"],
+  "แบบจำลอง Sandia · ยึดชิดหลังคา · ลม {} m/s": ["Sandia model · close roof mount · wind {} m/s", "Sandia 模型 · 贴屋面安装 · 风速 {} m/s"],
+  " (คำนวณจากโมเดล 3 มิติ)": [" (computed from the 3D model)", "（基于三维模型计算）"],
+  "ยิงลำแสงจริงจากแผงทุกใบ รวมผลไดโอดบายพาสฉุดทั้งสตริงแล้ว":
+    ["Ray-traced from every module, including bypass-diode effects on the whole string",
+     "对每块组件进行光线追踪，并计入旁路二极管对整串的影响"],
+  "ฝุ่น/คราบบนหน้าแผง": ["Soiling on the module surface", "组件表面积灰"],
+  "แผงไม่เท่ากัน (mismatch)": ["Module mismatch", "组件失配"],
+  "แผงต่ออนุกรมกัน กระแสไหลได้เท่าใบที่อ่อนที่สุด":
+    ["Modules in series carry only as much current as the weakest one",
+     "串联组件的电流受限于最弱的一块"],
+  "สูญเสียในสาย DC": ["DC cable loss", "直流线损"],
+  "ระบบหยุด/ซ่อมบำรุง": ["Downtime / maintenance", "停机与检修"],
+  "พลังงาน DC ที่เข้าอินเวอร์เตอร์": ["DC energy into the inverter", "进入逆变器的直流电量"],
+  "การแปลง DC → AC ในอินเวอร์เตอร์": ["DC → AC conversion in the inverter", "逆变器直流转交流"],
+  "อินเวอร์เตอร์รับไม่หมด ถูกตัดยอด (clipping)": ["Inverter clipping", "逆变器限功率（削峰）"],
+  " · ตัดที่ ": [" · clipped at ", " · 限制于 "],
+  "พลังงาน AC ที่ส่งออกจากระบบ": ["AC energy delivered by the system", "系统输出的交流电量"],
+  "ลำน้ำสีเขียวคือพลังงานที่ยังเหลืออยู่ ความกว้างแปรตามปริมาณจริง · สายที่แยกออกข้างทางคือที่เสียไปในแต่ละด่าน · ทุกตัวเลขมาจากการเดินเวลาชุดเดียวกับที่คำนวณผลผลิตข้างต้น บรรทัดสุดท้ายจึงเท่ากับผลผลิตปีแรกพอดี · Performance Ratio {}% คือบรรทัดสุดท้ายหารบรรทัดแรก เป็นตัวเลขมาตรฐานที่ใช้เทียบคุณภาพงานติดตั้งข้ามโครงการโดยไม่ต้องสนใจว่าหน้างานไหนแดดแรงกว่ากัน":
+    ["The green stream is the energy still remaining, its width proportional to the actual quantity · the branches leaving it are what is lost at each stage · every figure comes from the same time-series used for the yield above, so the final line matches the first-year yield exactly · Performance Ratio {}% is the last line divided by the first — the standard figure for comparing installation quality across projects regardless of how sunny each site is.",
+     "绿色主流为剩余能量，宽度与实际数值成比例 · 旁支为各环节的损失 · 所有数据均来自与上文发电量相同的时序计算，因此末行与首年发电量完全一致 · 系统效率 PR {}% 为末行除以首行，是跨项目比较安装质量的标准指标，不受各场地辐照差异影响。"],
+  "ผลผลิตนี้มั่นใจได้แค่ไหน — P50 / P90": ["How confident is this yield — P50 / P90", "发电量置信度 — P50 / P90"],
+  "โอกาสตกลงมาต่ำกว่านี้ 10%": ["10% chance of falling below this", "低于此值的概率为 10%"],
+  "แย่กว่าที่คิด": ["Worse than expected", "低于预期"],
+  "ดีกว่าที่คิด": ["Better than expected", "高于预期"],
+  "ระดับความมั่นใจ": ["Confidence level", "置信水平"],
+  "ผลผลิต (kWh/ปี)": ["Yield (kWh/yr)", "发电量（kWh/年）"],
+  "%/ปี": ["%/yr", "%/年"],
+  "ตลอด {} ปี": ["over {} years", "{} 年内"],
+  " ตอน ": [" at ", " 于 "],
+  "บาท/kWh": ["THB/kWh", "泰铢/kWh"],
+  "บาท": ["THB", "泰铢"],
+  "ต้น": ["trees", "棵"],
+  "ปี": ["years", "年"],
+  "% ของค่ากลาง": ["% of median", "占中位值 %"],
+  "ความหมาย": ["Meaning", "含义"],
+  "แสงแต่ละปีไม่เท่ากัน": ["Year-to-year irradiance variability", "年际辐照波动"],
+  "ความคลาดของแบบจำลอง": ["Model uncertainty", "模型误差"],
+  "ฝุ่น/คราบและรอบการล้าง": ["Soiling and cleaning interval", "积灰与清洗周期"],
+  "ระบบหยุดโดยไม่ได้วางแผน": ["Unplanned downtime", "非计划停机"],
+  "ค่าเสื่อมจริงของแผง": ["Actual module degradation", "组件实际衰减"],
+  "ตัวเลขผลผลิตทุกหัวข้อในรายงานนี้เป็นค่ากลาง (P50) — มีโอกาสครึ่งหนึ่งที่ปีจริงจะได้น้อยกว่านั้น ธนาคารและผู้ลงทุนจึงนิยมดู P90 = {} ซึ่งเป็นระดับที่มั่นใจได้ 90% ว่าทำได้ไม่ต่ำกว่านี้ · คิดแบบ “ค่าเฉลี่ยตลอด {}” ความแปรปรวนของแสงเฉลี่ยกันเองไปแล้ว ตัวเลขจึงแคบกว่าการมองปีเดียว":
+    ["Every yield figure in this report is the median (P50) — there is a 50% chance an actual year falls below it. Banks and investors therefore look at P90 = {}, the level that can be met with 90% confidence · computed as an average over {}, so year-to-year irradiance variability partly cancels out and the range is narrower than for a single year.",
+     "本报告所有发电量均为中位值（P50）— 实际年份有一半概率低于该值。银行与投资方通常参考 P90 = {}，即有 90% 把握不低于的水平 · 按{}平均计算，年际辐照波动已相互抵消，因此区间比单一年份更窄。"],
+  "ตลอดอายุ {} ผลิตได้รวม {} · เฉลี่ยปีละ {} · ปีสุดท้ายเหลือ {} ของกำลังเดิม (ดูรายปีพร้อมตัวเงินได้ที่หัวข้อผลตอบแทนการลงทุน)":
+    ["Over {} the system produces {} in total · averaging {} per year · in the final year {} of the original output remains (year-by-year figures with cash values appear in the Return on Investment section)",
+     "在 {} 内系统累计发电 {} · 年均 {} · 末年剩余原始出力的 {}（逐年数据与现金流见“投资回报”章节）"],
+  "ลดคาร์บอน {} tCO₂e ตลอด {}": ["{} tCO₂e avoided over {}", "{} 年内减碳 {} tCO₂e"],
+  "คาร์บอนที่ใช้สร้างระบบ (embodied carbon)": ["Embodied carbon of the system", "系统内含碳（制造阶段）"],
+  "คาร์บอนต่อกำลังติดตั้ง 1 kWp": ["Carbon per kWp installed", "每 kWp 装机碳排放"],
+  "คำนวณจากไฟฟ้าที่ระบบนี้ผลิตได้จริงตามผลจำลองในรายงานฉบับนี้ คูณด้วยค่าการปล่อยก๊าซเรือนกระจกของไฟฟ้าจากระบบสายส่งไทย {} kgCO₂e ต่อหน่วย (อ้างอิงองค์การบริหารจัดการก๊าซเรือนกระจก) · ค่าคาร์บอนที่ใช้สร้างระบบเป็นค่ากลางของแผงผลึกเดี่ยวรุ่นปัจจุบัน ใช้ประเมินว่าระบบเริ่มเป็นบวกต่อสิ่งแวดล้อมเมื่อไหร่":
+    ["Based on the electricity this system actually generates per the simulation in this report, multiplied by the emission factor of the Thai grid, {} kgCO₂e per unit (per the Thailand Greenhouse Gas Management Organization) · embodied carbon is a median value for current monocrystalline modules, used to estimate when the system turns net positive for the environment.",
+     "基于本报告模拟得出的该系统实际发电量，乘以泰国电网排放因子 {} kgCO₂e/度（依据泰国温室气体管理组织）计算 · 内含碳采用当前单晶组件的中位值，用于评估系统何时对环境产生净正效益。"],
+  "เงินลงทุน": ["Investment", "投资额"],
+  "คืนทุนปีที่ {}": ["Payback in year {}", "第 {} 年回本"],
+  "สมมติฐาน: ค่าไฟ {} ปรับขึ้นปีละ {} · ใช้ไฟเอง {} ส่วนที่เหลือ ขายคืนหน่วยละ {} · ค่าดูแลรักษาปีละ {} ของค่าติดตั้ง · อัตราคิดลด {}":
+    ["Assumptions: tariff {} rising {} per year · self-consumption {}, the remainder exported at {} per unit · O&M {} of installed cost per year · discount rate {}",
+     "假设条件：电价 {}，每年上涨 {} · 自用比例 {}，其余按每度 {} 上网 · 运维费为安装成本的 {}/年 · 折现率 {}"],
+  " · คิดที่ผลผลิตค่ากลาง P50": [" · based on median (P50) yield", " · 按中位值 P50 发电量计算"],
+  " · คิดที่ระดับความมั่นใจ P90 คือใช้ผลผลิตต่ำกว่าค่ากลาง ": [" · based on P90 confidence, i.e. yield below the median by ", " · 按 P90 置信度计算，即发电量低于中位值 "],
+  " · เผื่อเปลี่ยนอินเวอร์เตอร์ปีที่ ": [" · inverter replacement allowed for in year ", " · 计入第 "],
+  " เป็นเงิน ": [" costing ", " 年更换逆变器，费用 "],
+  " · เงินลงทุนแยกเป็นโซลาร์ ": [" · investment split: solar ", " · 投资构成：光伏 "],
+  " และแบตเตอรี่ ": [" and battery ", "，储能 "],
+  " ซึ่งเผื่อเปลี่ยนใหม่ทุก ": [", replaced every ", "，每 "],
+  "— ผลผลิตคำนวณจากแบบจำลองท้องฟ้าและสถิติอากาศรายเดือนของประเทศไทย ผลจริงขึ้นกับสภาพอากาศแต่ละปี เงาที่เปลี่ยนไปตามฤดู และการบำรุงรักษา · ผลตรวจวัด I-V เป็นค่าที่ชดเชยกลับสู่สภาวะมาตรฐานแล้ว ความแม่นยำขึ้นกับความแม่นของเครื่องวัดความเข้มแสงและอุณหภูมิหน้างาน · ตัวเลขผลตอบแทนเป็นการประมาณการตามสมมติฐานที่ระบุไว้ ไม่ใช่การรับประกันผลตอบแทน":
+    ["— Yield is computed from a sky model and monthly Thai weather statistics. Actual results depend on each year's weather, seasonal changes in shading, and maintenance · I-V measurements are corrected back to standard test conditions; their accuracy depends on the accuracy of the on-site irradiance and temperature instruments · Financial figures are projections based on the stated assumptions and are not a guarantee of return.",
+     "— 发电量基于天空模型与泰国月度气象统计计算，实际结果取决于各年天气、季节性遮挡变化与维护情况 · I-V 实测值已修正至标准测试条件，其准确度取决于现场辐照与温度仪表的精度 · 财务数据为依据所述假设的预测值，不构成收益保证。"],
+
+  /* เดือนย่อในกราฟแท่ง (โค้ดตัดจุดแรกออก จึงเป็น "มค." ไม่ใช่ "ม.ค.") */
+  "มค.": ["Jan", "1月"],
+  "กพ.": ["Feb", "2月"],
+  "มีค.": ["Mar", "3月"],
+  "เมย.": ["Apr", "4月"],
+  "พค.": ["May", "5月"],
+  "มิย.": ["Jun", "6月"],
+  "กค.": ["Jul", "7月"],
+  "สค.": ["Aug", "8月"],
+  "กย.": ["Sep", "9月"],
+  "ตค.": ["Oct", "10月"],
+  "พย.": ["Nov", "11月"],
+  "ธค.": ["Dec", "12月"],
+};
+
 /* ── ประกอบเนื้อรายงาน ── */
 function suReportHTML(D) {
   const job = D.job || {}, S = D.sys || {}, panel = D.panel || {}, inv = D.inv || {};
   const E = D.energy, L = D.life, roi = D.roi, R = D.roiCfg || {};
   const P = Object.assign(rpPickAll(), D.pick || {});
-  const today = new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" });
+  /* ภาษาของเอกสาร — ประกอบเป็นภาษาไทยตามปกติทั้งใบ แล้วแปลทีเดียวตอนท้าย (ดู i18n.jsx)
+     วันที่ต้องแปลตรงนี้ ไม่ใช่ตอนแทนคำ เพราะไทยเป็น พ.ศ. ส่วนอังกฤษ/จีนเป็น ค.ศ. */
+  const lang = D.lang || "th";
+  const today = window.pgDate ? window.pgToday(lang)
+    : new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" });
   const sec = (n, title, body, sub) =>
     '<section class="sec"><h2><span class="no">' + n + "</span>" + RP_ESC(title) +
     (sub ? '<small>' + RP_ESC(sub) + "</small>" : "") + "</h2>" + body + "</section>";
@@ -1131,11 +1714,14 @@ function suReportHTML(D) {
       DS ? "ผลิตแล้วได้ใช้เอง " + DS.selfPct + "%" + (DS.on ? " · แบต " + (D.battS ? D.battS.cap : "") + " kWh" : "") : "");
   addSec(P.roi, "ผลตอบแทนการลงทุน", roiSec, roi && roi.payback ? "คืนทุน " + roi.payback + " ปี" : "");
 
-  return '<!doctype html><html lang="th"><head><meta charset="utf-8">' +
+  /* ฟอนต์ไทยไม่มีตัวอักษรจีน — ภาษาจีนต้องโหลด Noto Sans SC เพิ่ม ไม่งั้นได้สี่เหลี่ยมทั้งใบ */
+  const fontStack = window.pgFontStack ? window.pgFontStack(lang) : "'IBM Plex Sans Thai',sans-serif";
+  const doc = '<!doctype html><html lang="' + lang + '"><head><meta charset="utf-8">' +
     "<title>รายงานระบบโซลาร์ " + RP_ESC(job.code || "") + "</title>" +
     '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' +
     '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">' +
-    "<style>" + RP_CSS + "</style></head><body>" +
+    (window.pgFontLink ? window.pgFontLink(lang) : "") +
+    "<style>" + RP_CSS + " body{font-family:" + fontStack + "}</style></head><body>" +
     cover + summary + secs.join("") +
     '<footer class="foot">' +
       "<p><b>หมายเหตุการใช้งานตัวเลขในรายงานนี้</b> — ผลผลิตคำนวณจากแบบจำลองท้องฟ้าและสถิติอากาศรายเดือนของประเทศไทย " +
@@ -1145,6 +1731,7 @@ function suReportHTML(D) {
       "<p class='sig'>ผู้ออกแบบ / ผู้ตรวจวัด _______________________&nbsp;&nbsp;&nbsp;&nbsp; วันที่ ____________&nbsp;&nbsp;&nbsp;&nbsp; " +
       "ผู้รับมอบงาน _______________________&nbsp;&nbsp;&nbsp;&nbsp; วันที่ ____________</p>" +
     "</footer></body></html>";
+  return window.pgDocHTML ? window.pgDocHTML(doc, lang, RP_I18N) : doc;
 }
 
 const RP_CSS = `
@@ -1177,8 +1764,13 @@ body{font-family:'IBM Plex Sans Thai','Sarabun','Noto Sans Thai','Segoe UI',sans
   padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.16)}
 .brand{display:flex;align-items:center;gap:11px}
 .brand .mark{width:36px;height:36px;object-fit:contain;display:block;background:#fff;border-radius:9px;padding:4px}
-.brand b{display:block;font-size:13.5px;font-weight:700;letter-spacing:.03em}
-.brand span{display:block;font-size:9.5px;color:rgba(255,255,255,.6)}
+/* ชื่อแบรนด์ต้องอยู่บรรทัดเดียว — เครื่องหมาย + ห่อด้วย <span> เพื่อให้เป็นสีเขียว
+   กฎ .brand span เดิมจับ span ตัวนั้นด้วย จึงดัน + เป็นบล็อก แล้วหักเป็น flash / + / solar สามบรรทัด
+   ต้องเจาะจงเฉพาะบรรทัดคำโปรยที่เป็นลูกตรงของ div และกัน nowrap ไว้อีกชั้น */
+.brand b{display:block;font-size:13.5px;font-weight:700;letter-spacing:.03em;white-space:nowrap}
+.brand b span{display:inline}
+.brand>div>span{display:block;font-size:9.5px;color:rgba(255,255,255,.6);white-space:nowrap}
+.brand>div{min-width:0}
 .cv-tag{font-size:10px;font-weight:700;letter-spacing:.12em;padding:5px 12px;border-radius:99px;
   border:1px solid rgba(255,255,255,.28);color:rgba(255,255,255,.85)}
 .cv-mid{padding:52px 0 30px}
