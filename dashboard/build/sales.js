@@ -323,12 +323,47 @@ function quotesFor(quotes, kind, id) {
   if (!id) return [];
   return (quotes || []).filter(q => kind === "job" ? q.jobId === id : q.leadId === id).sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
 }
-function quoteHTML(q) {
+const QUOTE_I18N = {
+  "ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์ · ออกแบบ · ติดตั้ง · ขออนุญาตการไฟฟ้า": ["Solar power systems · design · installation · utility permitting", "太阳能发电系统 · 设计 · 安装 · 电力报装"],
+  "ยืนราคา {} วัน นับจากวันที่ออกใบเสนอราคา": ["Prices held for {} days from the date of this quotation", "报价自开具之日起 {} 天内有效"],
+  "เอกสารนี้ออกจากระบบติดตามงานติดตั้ง ": ["Issued by the installation tracking system of ", "本文件由安装管理系统开具 · "],
+  "วันที่ ______ / ______ / ______": ["Date ______ / ______ / ______", "日期 ______ / ______ / ______"],
+  "— ยังไม่มีรายการ —": ["— no items —", "— 暂无项目 —"],
+  "ภาษีมูลค่าเพิ่ม {}%": ["VAT {}%", "增值税 {}%"],
+  "ราคาหลังหักส่วนลด": ["Price after discount", "折后金额"],
+  "การรับประกันและบริการ": ["Warranty and service", "质保与服务"],
+  "เงื่อนไขการชำระเงิน": ["Payment terms", "付款条件"],
+  "รายละเอียดข้อเสนอ": ["Proposal details", "报价概要"],
+  "ผู้อนุมัติ / ลูกค้า": ["Approved by / customer", "批准人 / 客户"],
+  "ราคารวมทั้งสิ้น": ["Grand total", "总计"],
+  "ผู้เสนอราคา · ": ["Quoted by · ", "报价人 · "],
+  "ใบเสนอราคา": ["Quotation", "报价单"],
+  "รวมเป็นเงิน": ["Subtotal", "小计"],
+  "หักส่วนลด": ["Discount", "折扣"],
+  "ราคา/หน่วย": ["Unit price", "单价"],
+  "จำนวนเงิน": ["Amount", "金额"],
+  "หมายเหตุ: ": ["Note: ", "备注："],
+  "ผู้เสนอ": ["Prepared by", "报价人"],
+  "อ้างอิง": ["Reference", "关联编号"],
+  "รายการ": ["Description", "项目"],
+  "จำนวน": ["Qty", "数量"],
+  "เลขที่": ["No.", "编号"],
+  "ที่อยู่": ["Address", "地址"],
+  "ลูกค้า": ["Customer", "客户"],
+  "วันที่": ["Date", "日期"],
+  "หน่วย": ["Unit", "单位"],
+  "ขนาด": ["Size", "规模"],
+  "ชื่อ": ["Name", "姓名"],
+  "โทร": ["Tel", "电话"],
+  " บาท": [" THB", " 泰铢"]
+};
+function quoteHTML(q, lang) {
+  const L = lang || "th";
   const T = quoteTotals(q);
   const c = q.customer || {};
   const items = (q.items || []).filter(it => (it.name || "").trim() || +it.price);
   const valid = q.validDays ? "ยืนราคา " + q.validDays + " วัน นับจากวันที่ออกใบเสนอราคา" : "";
-  const dsp = s => s ? thDate(s, true) : "—";
+  const dsp = s => !s ? "—" : L === "th" || !window.pgDate ? thDate(s, true) : window.pgDate(s, L);
   const rows = items.map((it, i) => '<tr><td class="c">' + (i + 1) + '</td><td><b>' + sEsc(it.name) + "</b>" + (it.detail ? '<div class="dt">' + sEsc(it.detail) + "</div>" : "") + "</td>" + '<td class="c">' + sEsc(it.qty) + "</td><td class=\"c\">" + sEsc(it.unit || "") + "</td>" + '<td class="r">' + sBaht(it.price) + '</td><td class="r">' + sBaht((+it.qty || 0) * (+it.price || 0)) + "</td></tr>").join("");
   const money = (label, val, big) => '<tr class="' + (big ? "big" : "") + '"><td>' + label + '</td><td class="r">' + sBaht(val) + " บาท</td></tr>";
   const list = (arr, title) => {
@@ -336,9 +371,11 @@ function quoteHTML(q) {
     if (!a.length) return "";
     return '<div class="blk"><h3>' + title + "</h3><ul>" + a.map(s => "<li>" + sEsc(s) + "</li>").join("") + "</ul></div>";
   };
-  return '<!doctype html><html lang="th"><head><meta charset="utf-8">' + "<title>ใบเสนอราคา " + sEsc(q.no) + "</title>" + '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">' + "<style>" + "@page{size:A4;margin:14mm}" + "*{box-sizing:border-box}" + "body{font-family:'IBM Plex Sans Thai',sans-serif;color:#111827;font-size:12px;margin:0;line-height:1.55}" + ".hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1B9B75;padding-bottom:12px;margin-bottom:16px}" + ".bd{font-size:20px;font-weight:700;color:#0A4D68;letter-spacing:.02em}" + ".bs{font-size:11px;color:#6b7280;margin-top:2px}" + ".ti{text-align:right}.ti h1{font-size:19px;margin:0;color:#111827}" + ".ti .no{font-size:12px;color:#374151;margin-top:3px}" + ".two{display:flex;gap:14px;margin-bottom:14px}" + ".two>div{flex:1;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px}" + ".two h3,.blk h3{font-size:11px;margin:0 0 6px;color:#0A4D68;letter-spacing:.04em}" + ".kv{display:flex;gap:6px;font-size:11.5px}.kv b{min-width:58px;color:#6b7280;font-weight:500}" + "table{width:100%;border-collapse:collapse;font-size:11.5px}" + "th{background:#0A4D68;color:#fff;padding:7px 8px;text-align:left;font-weight:600;font-size:11px}" + "td{padding:7px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top}" + ".c{text-align:center}.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}" + ".dt{color:#6b7280;font-size:10.5px;margin-top:2px}" + ".sum{margin-top:12px;margin-left:auto;width:290px}" + ".sum td{border:0;padding:4px 8px}.sum .big td{border-top:2px solid #0A4D68;font-weight:700;font-size:14px;color:#0A4D68;padding-top:8px}" + ".blk{margin-top:14px;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;break-inside:avoid}" + ".blk ul{margin:0;padding-left:18px}.blk li{margin-bottom:3px}" + ".note{margin-top:12px;font-size:11px;color:#374151;white-space:pre-wrap}" + ".sig{display:flex;gap:40px;margin-top:34px;break-inside:avoid}" + ".sig>div{flex:1;text-align:center}.sig .ln{border-top:1px solid #9ca3af;margin:34px 10px 6px}" + ".sig .rl{font-size:11px;color:#6b7280}" + ".ft{margin-top:16px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center}" + "</style></head><body>" + '<div class="hd"><div>' + window.brandHeadHTML({
+  const fontStack = window.pgFontStack ? window.pgFontStack(L) : "'IBM Plex Sans Thai',sans-serif";
+  const doc = '<!doctype html><html lang="' + L + '"><head><meta charset="utf-8">' + "<title>ใบเสนอราคา " + sEsc(q.no) + "</title>" + '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">' + (window.pgFontLink ? window.pgFontLink(L) : "") + "<style>" + "@page{size:A4;margin:14mm}" + "*{box-sizing:border-box}" + "body{font-family:" + fontStack + ";color:#111827;font-size:12px;margin:0;line-height:1.55}" + ".hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1B9B75;padding-bottom:12px;margin-bottom:16px}" + ".bd{font-size:20px;font-weight:700;color:#0A4D68;letter-spacing:.02em}" + ".bs{font-size:11px;color:#6b7280;margin-top:2px}" + ".ti{text-align:right}.ti h1{font-size:19px;margin:0;color:#111827}" + ".ti .no{font-size:12px;color:#374151;margin-top:3px}" + ".two{display:flex;gap:14px;margin-bottom:14px}" + ".two>div{flex:1;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px}" + ".two h3,.blk h3{font-size:11px;margin:0 0 6px;color:#0A4D68;letter-spacing:.04em}" + ".kv{display:flex;gap:6px;font-size:11.5px}.kv b{min-width:58px;color:#6b7280;font-weight:500}" + "table{width:100%;border-collapse:collapse;font-size:11.5px}" + "th{background:#0A4D68;color:#fff;padding:7px 8px;text-align:left;font-weight:600;font-size:11px}" + "td{padding:7px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top}" + ".c{text-align:center}.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}" + ".dt{color:#6b7280;font-size:10.5px;margin-top:2px}" + ".sum{margin-top:12px;margin-left:auto;width:290px}" + ".sum td{border:0;padding:4px 8px}.sum .big td{border-top:2px solid #0A4D68;font-weight:700;font-size:14px;color:#0A4D68;padding-top:8px}" + ".blk{margin-top:14px;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;break-inside:avoid}" + ".blk ul{margin:0;padding-left:18px}.blk li{margin-bottom:3px}" + ".note{margin-top:12px;font-size:11px;color:#374151;white-space:pre-wrap}" + ".sig{display:flex;gap:40px;margin-top:34px;break-inside:avoid}" + ".sig>div{flex:1;text-align:center}.sig .ln{border-top:1px solid #9ca3af;margin:34px 10px 6px}" + ".sig .rl{font-size:11px;color:#6b7280}" + ".ft{margin-top:16px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center}" + "</style></head><body>" + '<div class="hd"><div>' + window.brandHeadHTML({
     size: 40
   }) + '<div class="bs">ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์ · ออกแบบ · ติดตั้ง · ขออนุญาตการไฟฟ้า</div>' + '<div class="bs">' + window.BRANDING.email + " · " + window.BRANDING.tel + "</div></div>" + '<div class="ti"><h1>ใบเสนอราคา</h1><div class="no">เลขที่ <b>' + sEsc(q.no) + "</b></div>" + '<div class="no">วันที่ ' + dsp(q.date) + "</div></div></div>" + '<div class="two"><div><h3>ลูกค้า</h3>' + '<div class="kv"><b>ชื่อ</b><span>' + sEsc(c.name || "—") + "</span></div>" + '<div class="kv"><b>โทร</b><span>' + sEsc(c.phone || "—") + "</span></div>" + '<div class="kv"><b>ที่อยู่</b><span>' + sEsc((c.address || "") + (c.province ? " " + c.province : "") || "—") + "</span></div></div>" + "<div><h3>รายละเอียดข้อเสนอ</h3>" + '<div class="kv"><b>ขนาด</b><span>' + (q.kwp ? sEsc(q.kwp) + " kWp" : "—") + "</span></div>" + '<div class="kv"><b>อ้างอิง</b><span>' + sEsc(q.refCode || "—") + "</span></div>" + '<div class="kv"><b>ผู้เสนอ</b><span>' + sEsc(q.ownerName || q.byName || "—") + "</span></div></div></div>" + "<table><thead><tr><th class=\"c\" style=\"width:26px\">#</th><th>รายการ</th>" + "<th class=\"c\" style=\"width:46px\">จำนวน</th><th class=\"c\" style=\"width:52px\">หน่วย</th>" + "<th class=\"r\" style=\"width:88px\">ราคา/หน่วย</th><th class=\"r\" style=\"width:96px\">จำนวนเงิน</th></tr></thead>" + "<tbody>" + (rows || '<tr><td colspan="6" class="c">— ยังไม่มีรายการ —</td></tr>') + "</tbody></table>" + '<table class="sum">' + money("รวมเป็นเงิน", T.sub) + (T.disc > 0 ? money("หักส่วนลด", T.disc) + money("ราคาหลังหักส่วนลด", T.afterDisc) : "") + money("ภาษีมูลค่าเพิ่ม " + T.vatRate + "%", T.vat) + money("ราคารวมทั้งสิ้น", T.grand, true) + "</table>" + list(q.terms, "เงื่อนไขการชำระเงิน") + list(q.warranties, "การรับประกันและบริการ") + (valid ? '<div class="note">' + sEsc(valid) + "</div>" : "") + (q.note ? '<div class="note">หมายเหตุ: ' + sEsc(q.note) + "</div>" : "") + '<div class="sig"><div><div class="ln"></div><div class="rl">ผู้เสนอราคา · ' + sEsc(q.ownerName || q.byName || "") + '</div></div><div><div class="ln"></div><div class="rl">ผู้อนุมัติ / ลูกค้า</div>' + '<div class="rl">วันที่ ______ / ______ / ______</div></div></div>' + '<div class="ft">เอกสารนี้ออกจากระบบติดตามงานติดตั้ง ' + window.BRANDING.name + "</div>" + "</body></html>";
+  return window.pgDocHTML ? window.pgDocHTML(doc, L, QUOTE_I18N) : doc;
 }
 function QuoteEditor({
   quote,
@@ -357,6 +394,11 @@ function QuoteEditor({
     warranties: (quote.warranties || []).slice()
   }));
   const [rep, setRep] = React.useState(null);
+  const [qLang, setQLang] = React.useState(() => window.pgLang ? window.pgLang() : "th");
+  const pickQLang = id => {
+    setQLang(id);
+    if (window.pgSetLang) window.pgSetLang(id);
+  };
   const T = quoteTotals(q);
   const set = (k, v) => setQ(p => Object.assign({}, p, {
     [k]: v
@@ -972,8 +1014,16 @@ function QuoteEditor({
       flexWrap: "wrap",
       alignItems: "center"
     }
-  }, React.createElement("button", {
-    onClick: () => setRep(quoteHTML(q)),
+  }, typeof window.LangPick === "function" && React.createElement("span", {
+    style: {
+      flexBasis: "100%",
+      marginBottom: 4
+    }
+  }, React.createElement(window.LangPick, {
+    value: qLang,
+    onChange: pickQLang
+  })), React.createElement("button", {
+    onClick: () => setRep(quoteHTML(q, qLang)),
     style: qBtn()
   }, React.createElement(Icon, {
     name: "file",
@@ -1024,7 +1074,7 @@ function QuoteEditor({
   }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01")))), rep && typeof SuReportView === "function" && React.createElement(SuReportView, {
     html: rep,
     onClose: () => setRep(null),
-    title: "ใบเสนอราคา " + q.no
+    title: (qLang === "en" ? "Quotation" : qLang === "zh" ? "报价单" : "ใบเสนอราคา") + " " + q.no
   }));
 }
 function qBtn(color, solid) {

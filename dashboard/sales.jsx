@@ -237,16 +237,62 @@ function quotesFor(quotes, kind, id) {
     .sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
 }
 
+/* ── พจนานุกรมใบเสนอราคา (ไทย → [อังกฤษ, จีน]) ──
+   แปลทั้งใบตอนท้ายด้วย window.pgDocHTML — วิธีเขียนคีย์ดูที่ i18n.jsx
+   รายการสินค้า เงื่อนไขชำระเงิน และข้อรับประกัน เป็นข้อความที่เซลล์พิมพ์เอง
+   จึงไม่อยู่ในตารางนี้ ออกมาตามที่พิมพ์ไว้เสมอ ไม่ว่าเลือกภาษาอะไร */
+const QUOTE_I18N = {
+  "ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์ · ออกแบบ · ติดตั้ง · ขออนุญาตการไฟฟ้า":
+    ["Solar power systems · design · installation · utility permitting",
+     "太阳能发电系统 · 设计 · 安装 · 电力报装"],
+  "ยืนราคา {} วัน นับจากวันที่ออกใบเสนอราคา":
+    ["Prices held for {} days from the date of this quotation", "报价自开具之日起 {} 天内有效"],
+  "เอกสารนี้ออกจากระบบติดตามงานติดตั้ง ":
+    ["Issued by the installation tracking system of ", "本文件由安装管理系统开具 · "],
+  "วันที่ ______ / ______ / ______": ["Date ______ / ______ / ______", "日期 ______ / ______ / ______"],
+  "— ยังไม่มีรายการ —": ["— no items —", "— 暂无项目 —"],
+  "ภาษีมูลค่าเพิ่ม {}%": ["VAT {}%", "增值税 {}%"],
+  "ราคาหลังหักส่วนลด": ["Price after discount", "折后金额"],
+  "การรับประกันและบริการ": ["Warranty and service", "质保与服务"],
+  "เงื่อนไขการชำระเงิน": ["Payment terms", "付款条件"],
+  "รายละเอียดข้อเสนอ": ["Proposal details", "报价概要"],
+  "ผู้อนุมัติ / ลูกค้า": ["Approved by / customer", "批准人 / 客户"],
+  "ราคารวมทั้งสิ้น": ["Grand total", "总计"],
+  "ผู้เสนอราคา · ": ["Quoted by · ", "报价人 · "],
+  "ใบเสนอราคา": ["Quotation", "报价单"],
+  "รวมเป็นเงิน": ["Subtotal", "小计"],
+  "หักส่วนลด": ["Discount", "折扣"],
+  "ราคา/หน่วย": ["Unit price", "单价"],
+  "จำนวนเงิน": ["Amount", "金额"],
+  "หมายเหตุ: ": ["Note: ", "备注："],
+  "ผู้เสนอ": ["Prepared by", "报价人"],
+  "อ้างอิง": ["Reference", "关联编号"],
+  "รายการ": ["Description", "项目"],
+  "จำนวน": ["Qty", "数量"],
+  "เลขที่": ["No.", "编号"],
+  "ที่อยู่": ["Address", "地址"],
+  "ลูกค้า": ["Customer", "客户"],
+  "วันที่": ["Date", "日期"],
+  "หน่วย": ["Unit", "单位"],
+  "ขนาด": ["Size", "规模"],
+  "ชื่อ": ["Name", "姓名"],
+  "โทร": ["Tel", "电话"],
+  " บาท": [" THB", " 泰铢"],
+};
+
 /* ============================================================
    quoteHTML — ใบเสนอราคา A4 สำหรับพิมพ์/บันทึกเป็น PDF
    เปิดผ่าน SuReportView ตัวเดียวกับรายงานอื่น ๆ จะได้ปุ่มพิมพ์เหมือนกันหมด
    ============================================================ */
-function quoteHTML(q) {
+function quoteHTML(q, lang) {
+  /* ภาษาของเอกสาร — ประกอบเป็นไทยตามปกติทั้งใบ แล้วแปลทีเดียวตอนท้าย (ดู i18n.jsx)
+     วันที่ต้องแปลตรงนี้ เพราะไทยเป็น พ.ศ. ส่วนอังกฤษ/จีนเป็น ค.ศ. */
+  const L = lang || "th";
   const T = quoteTotals(q);
   const c = q.customer || {};
   const items = (q.items || []).filter((it) => (it.name || "").trim() || +it.price);
   const valid = q.validDays ? "ยืนราคา " + q.validDays + " วัน นับจากวันที่ออกใบเสนอราคา" : "";
-  const dsp = (s) => (s ? thDate(s, true) : "—");
+  const dsp = (s) => (!s ? "—" : L === "th" || !window.pgDate ? thDate(s, true) : window.pgDate(s, L));
   const rows = items.map((it, i) =>
     '<tr><td class="c">' + (i + 1) + '</td><td><b>' + sEsc(it.name) + "</b>" +
     (it.detail ? '<div class="dt">' + sEsc(it.detail) + "</div>" : "") + "</td>" +
@@ -260,13 +306,16 @@ function quoteHTML(q) {
     if (!a.length) return "";
     return '<div class="blk"><h3>' + title + "</h3><ul>" + a.map((s) => "<li>" + sEsc(s) + "</li>").join("") + "</ul></div>";
   };
-  return '<!doctype html><html lang="th"><head><meta charset="utf-8">' +
+  /* ฟอนต์ไทยไม่มีตัวอักษรจีน — ภาษาจีนต้องโหลด Noto Sans SC เพิ่ม ไม่งั้นได้สี่เหลี่ยมทั้งใบ */
+  const fontStack = window.pgFontStack ? window.pgFontStack(L) : "'IBM Plex Sans Thai',sans-serif";
+  const doc = '<!doctype html><html lang="' + L + '"><head><meta charset="utf-8">' +
     "<title>ใบเสนอราคา " + sEsc(q.no) + "</title>" +
     '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">' +
+    (window.pgFontLink ? window.pgFontLink(L) : "") +
     "<style>" +
     "@page{size:A4;margin:14mm}" +
     "*{box-sizing:border-box}" +
-    "body{font-family:'IBM Plex Sans Thai',sans-serif;color:#111827;font-size:12px;margin:0;line-height:1.55}" +
+    "body{font-family:" + fontStack + ";color:#111827;font-size:12px;margin:0;line-height:1.55}" +
     ".hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1B9B75;padding-bottom:12px;margin-bottom:16px}" +
     ".bd{font-size:20px;font-weight:700;color:#0A4D68;letter-spacing:.02em}" +
     ".bs{font-size:11px;color:#6b7280;margin-top:2px}" +
@@ -321,6 +370,7 @@ function quoteHTML(q) {
     '<div class="rl">วันที่ ______ / ______ / ______</div></div></div>' +
     '<div class="ft">เอกสารนี้ออกจากระบบติดตามงานติดตั้ง ' + window.BRANDING.name + "</div>" +
     "</body></html>";
+  return window.pgDocHTML ? window.pgDocHTML(doc, L, QUOTE_I18N) : doc;
 }
 
 /* ============================================================
@@ -334,6 +384,10 @@ function QuoteEditor({ quote, job, target, onClose, onSave, onDelete, currentUse
     terms: (quote.terms || []).slice(), warranties: (quote.warranties || []).slice(),
   }));
   const [rep, setRep] = React.useState(null);
+  /* ภาษาของใบที่จะออก — เลือกก่อนกดดู เอกสารหนึ่งใบมีภาษาเดียว
+     จำค่าล่าสุดไว้ทั้งระบบ ออกให้ลูกค้าจีนติดกันหลายใบจะได้ไม่ต้องเลือกใหม่ */
+  const [qLang, setQLang] = React.useState(() => (window.pgLang ? window.pgLang() : "th"));
+  const pickQLang = (id) => { setQLang(id); if (window.pgSetLang) window.pgSetLang(id); };
   const T = quoteTotals(q);
   const set = (k, v) => setQ((p) => Object.assign({}, p, { [k]: v }));
   const setCus = (k, v) => setQ((p) => Object.assign({}, p, { customer: Object.assign({}, p.customer, { [k]: v }) }));
@@ -534,7 +588,12 @@ function QuoteEditor({ quote, job, target, onClose, onSave, onDelete, currentUse
           {/* ท้าย */}
           <div style={{ padding: "12px 18px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
             borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 9, flexWrap: "wrap", alignItems: "center" }}>
-            <button onClick={() => setRep(quoteHTML(q))} style={qBtn()}>
+            {typeof window.LangPick === "function" && (
+              <span style={{ flexBasis: "100%", marginBottom: 4 }}>
+                <window.LangPick value={qLang} onChange={pickQLang} />
+              </span>
+            )}
+            <button onClick={() => setRep(quoteHTML(q, qLang))} style={qBtn()}>
               <Icon name="file" size={15} /> ดู / ออก PDF
             </button>
             {onDelete && (
@@ -557,7 +616,8 @@ function QuoteEditor({ quote, job, target, onClose, onSave, onDelete, currentUse
         </div>
       </div>
       {rep && typeof SuReportView === "function" && (
-        <SuReportView html={rep} onClose={() => setRep(null)} title={"ใบเสนอราคา " + q.no} />
+        <SuReportView html={rep} onClose={() => setRep(null)}
+          title={(qLang === "en" ? "Quotation" : qLang === "zh" ? "报价单" : "ใบเสนอราคา") + " " + q.no} />
       )}
     </React.Fragment>
   );
