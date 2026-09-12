@@ -38,11 +38,81 @@ function EcStat({ label, value, unit, color, hint, on, onClick }) {
   );
 }
 
+/* ── รูปบิล/ใบเสร็จ ── (ลอกโครงจาก DrPhotos views-daily.jsx:269)
+   ย่อที่ 1400px คุณภาพ 0.78 สูงกว่ารูปหน้างาน เพราะต้องอ่านตัวเลขในบิลออก
+   คนอนุมัติต้องเปิดดูได้เสมอ ล็อกเฉพาะการเพิ่ม/ลบ */
+function EcReceipts({ claimId, currentUser, disabled, count, big, onBig }) {
+  const { shots, add, remove, sync } = window.useEcReceipts(claimId);
+  const [busy, setBusy] = React.useState(0);
+
+  /* จำนวนรูปสะท้อนกลับไปที่ตัวใบ ให้รายการบอกได้ว่าใบไหนไม่มีบิลแนบโดยไม่ต้องโหลดรูป */
+  React.useEffect(() => { sync(count); }, [shots.length, count]);
+
+  const onPick = async (e) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (!files.length) return;
+    setBusy(files.length);
+    for (const f of files) {
+      try { add(await window.resizeImageFile(f, 1400, 0.78), currentUser); } catch (err) { /* ข้ามไฟล์ที่อ่านไม่ได้ */ }
+      setBusy((n) => n - 1);
+    }
+  };
+
+  return (
+    <div>
+      {!disabled && (
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: 10,
+          border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+          fontSize: 12.5, fontWeight: 700, color: "var(--text-2)", marginBottom: shots.length ? 12 : 0 }}>
+          <Icon name="camera" size={15} /> {busy ? "กำลังใส่บิล " + busy + " ใบ..." : "ถ่าย/เลือกรูปบิล"}
+          <input type="file" accept="image/*" multiple onChange={onPick} style={{ display: "none" }} />
+        </label>
+      )}
+      {!shots.length && (
+        <div style={{ fontSize: 12, color: disabled ? "var(--text-3)" : "#F59E0B", marginTop: disabled ? 0 : 4 }}>
+          {disabled ? "ใบนี้ไม่มีบิลแนบ" : "ยังไม่มีบิลแนบ — ใบที่ไม่มีบิลคนอนุมัติจะตรวจยอดไม่ได้"}
+        </div>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 11 }}>
+        {shots.map((r) => (
+          <div key={r.id} style={{ border: "1px solid var(--border)", borderRadius: 11, overflow: "hidden",
+            background: "var(--surface)", position: "relative" }}>
+            <img src={r.dataUrl} alt="รูปบิล" onClick={() => onBig && onBig(r.dataUrl)}
+              style={{ width: "100%", height: 130, objectFit: "cover", display: "block", cursor: "zoom-in" }} />
+            {!disabled && (
+              <button type="button" onClick={() => remove(r.id)} title="ลบรูปนี้"
+                style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: 8, border: "none",
+                  background: "rgba(8,20,14,.62)", color: "#fff", cursor: "pointer", display: "grid", placeItems: "center" }}>
+                <Icon name="trash" size={13} color="#fff" />
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ดูบิลเต็มจอ — บิลถ่ายจากมือถือมักตัวเล็ก ดูจากรูปย่อแล้วอ่านตัวเลขไม่ออก */
+function EcBigShot({ src, onClose }) {
+  if (!src) return null;
+  return (
+    <div onClick={onClose}
+      style={{ position: "fixed", inset: 0, zIndex: 120, background: "rgba(8,20,26,.86)",
+        display: "flex", alignItems: "center", justifyContent: "center", padding: 18, cursor: "zoom-out" }}>
+      <img src={src} alt="รูปบิล" style={{ maxWidth: "100%", maxHeight: "100%", borderRadius: 10 }} />
+    </div>
+  );
+}
+
 /* ── แผงใบเบิกหนึ่งใบ ── */
 function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, onMove, onRemove }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [note, setNote] = React.useState("");
   const [delAsk, setDelAsk] = React.useState(false);
+  const [payRef, setPayRef] = React.useState("");   /* เลขสลิป/เลขอ้างอิงการโอน ตอนกดจ่ายคืน */
+  const [bigShot, setBigShot] = React.useState(null);
   if (!claim) return null;
 
   const c = claim;
@@ -180,8 +250,15 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
             </div>
           </window.DrSection>
 
-          {/* 3 · การอนุมัติ */}
-          <window.DrSection n="3" title="การอนุมัติ" tone={st.color}
+          {/* 3 · รูปบิล */}
+          <window.DrSection n="3" title="บิล / ใบเสร็จ" tone={kind.color}
+            hint={c.receiptCount ? c.receiptCount + " ใบ" : "ยังไม่มี"}>
+            <EcReceipts claimId={c.id} currentUser={currentUser} disabled={locked}
+              count={c.receiptCount} onBig={setBigShot} />
+          </window.DrSection>
+
+          {/* 4 · การอนุมัติ */}
+          <window.DrSection n="4" title="การอนุมัติ" tone={st.color}
             hint={c.status === "sent" ? (c.approverName ? "รอ " + c.approverName : "รอหัวหน้าอนุมัติ")
               : (c.decidedByName ? "โดย " + c.decidedByName : "")}>
             {c.status === "sent" && !chk.ok && chk.why && (
@@ -199,6 +276,8 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
             {c.paidAt && (
               <div style={{ fontSize: 12, color: "var(--tint-ok-tx)", marginBottom: 12 }}>
                 จ่ายคืนแล้วโดย <b>{c.paidByName || "-"}</b> · {window.drDateTH(String(c.paidAt).slice(0, 10))}
+                {c.paidRef && <span style={{ fontFamily: "var(--mono)" }}> · อ้างอิง {c.paidRef}</span>}
+                {c.batchId && c.batchNo && <span> · รอบ {c.batchNo}</span>}
               </div>
             )}
 
@@ -207,9 +286,18 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
                 <window.DrLabel hint="ไม่บังคับ · จะถูกบันทึกไว้ในประวัติ">หมายเหตุประกอบการตัดสิน</window.DrLabel>
                 <input value={note} onChange={(e) => setNote(e.target.value)} style={Object.assign({}, EC_INPUT, { marginBottom: 11 })}
                   placeholder="เช่น บิลไม่ชัด ขอถ่ายใหม่" />
+                {/* เลขสลิปขึ้นเฉพาะตอนที่กดจ่ายได้ — เก็บไว้เทียบกับสเตทเมนต์ธนาคารทีหลัง */}
+                {nexts.some((x) => x.key === "paid") && (
+                  <React.Fragment>
+                    <window.DrLabel hint="ไม่บังคับ · แนะนำให้ใส่ไว้เทียบกับสเตทเมนต์ธนาคาร">เลขสลิป / เลขอ้างอิงการโอน</window.DrLabel>
+                    <input value={payRef} onChange={(e) => setPayRef(e.target.value)}
+                      style={Object.assign({}, EC_INPUT, { marginBottom: 11, fontFamily: "var(--mono)" })}
+                      placeholder="เช่น 20260912-104233 หรือเลขท้ายสลิป" />
+                  </React.Fragment>
+                )}
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {nexts.map((s) => (
-                    <button key={s.key} onClick={() => { onMove(c, s.key, note); setNote(""); }}
+                    <button key={s.key} onClick={() => { onMove(c, s.key, { text: note, ref: payRef }); setNote(""); setPayRef(""); }}
                       style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 10,
                         border: "1px solid " + s.color, background: s.color + "16", cursor: "pointer",
                         fontFamily: "inherit", fontSize: 13, fontWeight: 800, color: s.color }}>
@@ -256,6 +344,7 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
           )}
         </div>
       </div>
+      <EcBigShot src={bigShot} onClose={() => setBigShot(null)} />
     </div>
   );
 }
@@ -282,6 +371,11 @@ function EcClaimRow({ claim, onOpen, gone }) {
         <span style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 2, fontFamily: "var(--mono)" }}>
           {claim.no} · {claim.byName || "-"} · {window.drShort(claim.date)}
           {claim.siteCode ? " · " + claim.siteCode : ""}
+          {/* บอกได้ว่าใบไหนไม่มีบิลแนบโดยไม่ต้องโหลดรูป — receiptCount เป็นกระจกเงาเบา ๆ ที่ตัวใบ */}
+          {claim.status !== "draft" && !claim.receiptCount && (
+            <span style={{ color: "#F59E0B", fontFamily: "inherit" }}> · ไม่มีบิลแนบ</span>
+          )}
+          {claim.receiptCount > 0 && <span> · บิล {claim.receiptCount} ใบ</span>}
           {/* ใบเบิกเป็นเอกสารการเงิน ต้องอ่านได้ต่อแม้ใบงานถูกลบ — ชื่อไซต์ถ่ายสำเนาไว้ตอนเปิดใบแล้ว */}
           {gone && <span style={{ color: "#F59E0B", fontFamily: "inherit" }}> · งานถูกลบจากฐานข้อมูล</span>}
         </span>
@@ -301,7 +395,7 @@ function EcClaimRow({ claim, onOpen, gone }) {
 
 /* ── ตารางยอดรายคน ──
    "ค้างจ่าย" คือตัวเลขเดียวในตารางนี้ที่เอาไปจ่ายเงินจริงได้ ที่เหลือเป็นข้อมูลประกอบ */
-function EcPersonTable({ claims, users, onPick }) {
+function EcPersonTable({ claims, users, onPick, onPay, canPay }) {
   const roll = window.ecRollupByPerson(claims);
   const rows = Object.keys(roll).map((k) => roll[k])
     .sort((a, b) => b.owed - a.owed || b.waiting - a.waiting || b.count - a.count);
@@ -323,6 +417,7 @@ function EcPersonTable({ claims, users, onPick }) {
               <th style={th}>ค้างจ่าย</th>
               <th style={th}>จ่ายแล้ว</th>
               <th style={th}>ใบ</th>
+              {canPay && <th style={th} />}
             </tr>
           </thead>
           <tbody>
@@ -340,6 +435,16 @@ function EcPersonTable({ claims, users, onPick }) {
                   <td style={Object.assign({}, td, { fontWeight: 800, color: r.owed ? "#EF4444" : "var(--text-3)" })}>{r.owed ? window.ecBaht(r.owed) : "—"}</td>
                   <td style={Object.assign({}, td, { color: "var(--text-3)" })}>{r.paid ? window.ecBaht(r.paid) : "—"}</td>
                   <td style={Object.assign({}, td, { color: "var(--text-3)" })}>{r.count}</td>
+                  {canPay && (
+                    <td style={{ padding: "8px 10px", textAlign: "right" }}>
+                      {r.owed > 0 && (
+                        <button onClick={(e) => { e.stopPropagation(); onPay && onPay(r); }}
+                          style={{ whiteSpace: "nowrap", padding: "7px 13px", borderRadius: 9, border: "none",
+                            background: "var(--primary)", color: "#fff", cursor: "pointer",
+                            fontFamily: "inherit", fontSize: 12, fontWeight: 800 }}>จ่ายคืน</button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               );
             })}
@@ -347,7 +452,7 @@ function EcPersonTable({ claims, users, onPick }) {
           <tfoot>
             <tr style={{ background: "var(--surface2)" }}>
               <td style={{ padding: "11px 10px", fontSize: 12.5, fontWeight: 800, color: "var(--text-2)" }}>รวมเงินที่บริษัทติดพนักงานอยู่</td>
-              <td colSpan={5} style={Object.assign({}, td, { fontSize: 15, fontWeight: 800, color: sum ? "#EF4444" : "var(--text-3)" })}>
+              <td colSpan={canPay ? 6 : 5} style={Object.assign({}, td, { fontSize: 15, fontWeight: 800, color: sum ? "#EF4444" : "var(--text-3)" })}>
                 {window.ecBaht(sum)} บาท
               </td>
             </tr>
@@ -359,6 +464,138 @@ function EcPersonTable({ claims, users, onPick }) {
         ใบที่จ่ายด้วยเงินสดกองกลางหรือบัญชีบริษัทไม่ใช่หนี้ที่ต้องคืนใคร จึงไม่ถูกนับ
         {onPick ? " · กดที่ชื่อเพื่อดูใบของคนนั้น" : ""}
       </div>
+    </div>
+  );
+}
+
+/* ── ปิดรอบจ่ายเงินคืนพนักงานหนึ่งคน ──
+   จ่ายทีละใบคือการทรมานคนจ่ายและเป็นที่มาของการจ่ายซ้ำ/จ่ายตก
+   หน้าต่างนี้แสดงทุกใบที่จะถูกปิดพร้อมกัน ให้เห็นก่อนกดว่ากำลังโอนเท่าไหร่ให้ใคร แลกกับใบอะไรบ้าง */
+function EcPayModal({ person, claims, batches, currentUser, onClose, onConfirm }) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const [ref, setRef] = React.useState("");
+  const [note, setNote] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const list = claims || [];
+  const total = window.ecRound(list.reduce((a, c) => a + window.ecRound(c.amount), 0));
+  const no = window.ecBatchNo(batches, window.drToday());
+
+  const go = () => {
+    if (busy || !list.length) return;
+    setBusy(true);
+    const batch = window.ecBlankBatch(person, list, currentUser, batches);
+    batch.ref = ref; batch.note = note;
+    Promise.resolve(onConfirm(batch, list)).then((ok) => {
+      setBusy(false);
+      if (ok) onClose();
+    });
+  };
+
+  return (
+    <div onClick={onClose}
+      style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(8,20,26,.5)", backdropFilter: "blur(3px)",
+        display: "flex", alignItems: isMobile ? "flex-end" : "center", justifyContent: "center", padding: isMobile ? 0 : 24 }}>
+      <div onClick={(e) => e.stopPropagation()}
+        style={{ background: "var(--bg)", borderRadius: isMobile ? "16px 16px 0 0" : 18, width: "min(560px, 100%)",
+          maxHeight: isMobile ? "94dvh" : "90dvh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "15px 18px",
+          borderBottom: "1px solid var(--border)", background: "var(--surface)" }}>
+          <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "#10B9811a" }}>
+            <Icon name="wallet" size={17} color="#10B981" />
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14.5, fontWeight: 800, color: "var(--text-1)" }}>จ่ายคืน {(person || {}).name || "-"}</div>
+            <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)" }}>รอบ {no} · {list.length} ใบ</div>
+          </div>
+          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 9, border: "1px solid var(--border)",
+            background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center" }}>
+            <Icon name="x" size={15} color="var(--text-2)" />
+          </button>
+        </div>
+
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px" }}>
+          <div style={{ textAlign: "center", padding: "14px 0 16px" }}>
+            <div style={{ fontFamily: "var(--mono)", fontSize: 30, fontWeight: 800, color: "#10B981", lineHeight: 1.1 }}>
+              {window.ecBaht(total)}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 3 }}>บาท · ยอดที่จะโอนคืนในรอบนี้</div>
+          </div>
+
+          <div style={{ border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", marginBottom: 15 }}>
+            {list.map((c) => (
+              <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px",
+                borderBottom: "1px solid var(--border)", background: "var(--surface)" }}>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>
+                    {window.ecKindOf(c.kind).th}
+                  </span>
+                  <span style={{ display: "block", fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--text-3)" }}>
+                    {c.no} · {window.drShort(c.date)}{c.siteCode ? " · " + c.siteCode : ""}
+                    {!c.receiptCount && <span style={{ color: "#F59E0B", fontFamily: "inherit" }}> · ไม่มีบิลแนบ</span>}
+                  </span>
+                </span>
+                <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 800, color: "var(--text-1)" }}>
+                  {window.ecBaht(c.amount)}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <window.DrLabel hint="ไม่บังคับ · แนะนำให้ใส่ไว้เทียบกับสเตทเมนต์ธนาคาร">เลขสลิป / เลขอ้างอิงการโอน</window.DrLabel>
+          <input value={ref} onChange={(e) => setRef(e.target.value)}
+            style={Object.assign({}, EC_INPUT, { marginBottom: 12, fontFamily: "var(--mono)" })}
+            placeholder="เช่น 20260912-104233" />
+          <window.DrLabel hint="ไม่บังคับ">หมายเหตุ</window.DrLabel>
+          <input value={note} onChange={(e) => setNote(e.target.value)}
+            style={EC_INPUT} placeholder="เช่น โอนพร้อมเงินเดือนงวดนี้" />
+
+          <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.6, marginTop: 12 }}>
+            กดแล้วทุกใบข้างบนจะถูกปิดเป็น “จ่ายคืนแล้ว” พร้อมกันในคำสั่งเดียว และล็อกถาวรเป็นหลักฐานการจ่าย ·
+            เงินต้องโอนจริงก่อนกด ระบบไม่ได้โอนเงินให้
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 9, padding: "13px 18px", borderTop: "1px solid var(--border)", background: "var(--surface)" }}>
+          <button onClick={onClose}
+            style={{ padding: "10px 18px", borderRadius: 10, border: "1px solid var(--border-strong)",
+              background: "var(--surface)", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--text-2)" }}>
+            ยกเลิก
+          </button>
+          <button onClick={go} disabled={busy || !list.length}
+            style={{ flex: 1, padding: "10px 18px", borderRadius: 10, border: "none", background: "#10B981", color: "#fff",
+              cursor: busy ? "default" : "pointer", opacity: busy ? 0.7 : 1,
+              fontFamily: "inherit", fontSize: 13, fontWeight: 800 }}>
+            {busy ? "กำลังบันทึก..." : "ยืนยันว่าโอนเงินแล้ว " + window.ecBaht(total) + " บาท"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── ประวัติรอบจ่าย ── */
+function EcBatchList({ batches }) {
+  const rows = (batches || []).slice(0, 20);
+  if (!rows.length) return null;
+  return (
+    <div style={{ marginTop: 14 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase",
+        color: "var(--text-3)", marginBottom: 8 }}>รอบจ่ายล่าสุด</div>
+      {rows.map((b) => (
+        <div key={b.id} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "9px 12px",
+          borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", marginBottom: 6 }}>
+          <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: "#10B981" }}>{b.no}</span>
+          <span style={{ flex: 1, minWidth: 140, fontSize: 12.5, color: "var(--text-1)", fontWeight: 700 }}>{b.toName || "-"}</span>
+          <span style={{ fontSize: 11, color: "var(--text-3)" }}>
+            {window.drShort(b.date)} · {b.count} ใบ
+            {b.ref ? " · อ้างอิง " + b.ref : ""}
+            {b.byName ? " · โดย " + b.byName : ""}
+          </span>
+          <span style={{ fontFamily: "var(--mono)", fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>
+            {window.ecBaht(b.total)}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -474,8 +711,11 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
   const [q, setQ] = React.useState("");
   const [newJob, setNewJob] = React.useState("");
   const [jobFilter, setJobFilter] = React.useState("");   /* เจาะดูเฉพาะงานเดียว มาจากปุ่มในลิ้นชักหรือตารางรายไซต์ */
+  const [payFor, setPayFor] = React.useState(null);      /* คนที่กำลังจะปิดรอบจ่ายให้ */
+  const batchStore = window.useEcBatches();
 
   const canApprove = window.ecCanApprove(role);
+  const canPay = window.ecCanPay(role);
   const uid = currentUser ? currentUser.id : null;
 
   /* เปิดมาจากปุ่มในลิ้นชักใบงาน — เจาะให้เห็นเฉพาะงานนั้น และเตรียมงานไว้ให้ปุ่มเปิดใบใหม่ด้วย
@@ -535,6 +775,19 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
         body: money + where + (note ? " · " + note : "") });
     }
   };
+
+  /* ปิดรอบ = เขียนรอบ + ปิดทุกใบในคำสั่งเดียว แล้วค่อยยิงแจ้งเตือนหาเจ้าของเงิน
+     แจ้งเตือนยิงหลังเขียนสำเร็จเท่านั้น ไม่งั้นคนจะได้ข้อความว่าโอนแล้วทั้งที่เขียนไม่ผ่าน */
+  const payBatch = (batch, list) => Promise.resolve(batchStore.payBatch(batch, list, currentUser)).then((ok) => {
+    if (ok) {
+      window.ecNotify({ toUserId: batch.toId,
+        title: "จ่ายเงินคืนแล้ว · รอบ " + batch.no,
+        body: window.ecBaht(batch.total) + " บาท · " + batch.count + " ใบ" + (batch.ref ? " · อ้างอิง " + batch.ref : "") });
+    }
+    return ok;
+  });
+
+  const payList = React.useMemo(() => (payFor ? window.ecPayable(all, payFor.id) : []), [all, payFor]);
 
   const cur = (store.claims || []).find((c) => c.id === open) || null;
   const doneJobs = React.useMemo(() => (jobs || []).slice()
@@ -598,8 +851,14 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
         ))}
       </div>
 
-      {tab === "person" && <EcPersonTable claims={all} users={users}
-        onPick={(r) => { setJobFilter(""); setQ(r.name || ""); setTab("all"); }} />}
+      {tab === "person" && (
+        <div>
+          <EcPersonTable claims={all} users={users} canPay={canPay}
+            onPick={(r) => { setJobFilter(""); setQ(r.name || ""); setTab("all"); }}
+            onPay={(r) => setPayFor(r)} />
+          <EcBatchList batches={batchStore.batches} />
+        </div>
+      )}
       {tab === "job" && <EcJobTable claims={all} jobs={jobs}
         onPick={(r) => { setQ(""); setJobFilter(r.jobId); setNewJob(r.jobId); setTab("all"); }} />}
 
@@ -636,6 +895,11 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
         </React.Fragment>
       )}
 
+      {payFor && (
+        <EcPayModal person={payFor} claims={payList} batches={batchStore.batches} currentUser={currentUser}
+          onClose={() => setPayFor(null)} onConfirm={payBatch} />
+      )}
+
       {cur && (
         <EcClaimModal claim={cur} job={jobById[cur.jobId] || null} users={users} role={role} currentUser={currentUser}
           onClose={() => setOpen(null)} onPatch={store.patch} onMove={move} onRemove={store.remove} />
@@ -645,4 +909,5 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
 }
 
 Object.assign(window, { EC_INPUT, EcPill, EcStat, EcMini, EcClaimModal, EcClaimRow,
+  EcReceipts, EcBigShot, EcPayModal, EcBatchList,
   EcPersonTable, EcJobTable, EcJobButton, ExpenseView });

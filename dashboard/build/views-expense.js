@@ -86,6 +86,146 @@ function EcStat({
     }
   }, hint));
 }
+function EcReceipts({
+  claimId,
+  currentUser,
+  disabled,
+  count,
+  big,
+  onBig
+}) {
+  const {
+    shots,
+    add,
+    remove,
+    sync
+  } = window.useEcReceipts(claimId);
+  const [busy, setBusy] = React.useState(0);
+  React.useEffect(() => {
+    sync(count);
+  }, [shots.length, count]);
+  const onPick = async e => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (!files.length) return;
+    setBusy(files.length);
+    for (const f of files) {
+      try {
+        add(await window.resizeImageFile(f, 1400, 0.78), currentUser);
+      } catch (err) {}
+      setBusy(n => n - 1);
+    }
+  };
+  return React.createElement("div", null, !disabled && React.createElement("label", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      padding: "9px 14px",
+      borderRadius: 10,
+      border: "1px dashed var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-2)",
+      marginBottom: shots.length ? 12 : 0
+    }
+  }, React.createElement(Icon, {
+    name: "camera",
+    size: 15
+  }), " ", busy ? "กำลังใส่บิล " + busy + " ใบ..." : "ถ่าย/เลือกรูปบิล", React.createElement("input", {
+    type: "file",
+    accept: "image/*",
+    multiple: true,
+    onChange: onPick,
+    style: {
+      display: "none"
+    }
+  })), !shots.length && React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: disabled ? "var(--text-3)" : "#F59E0B",
+      marginTop: disabled ? 0 : 4
+    }
+  }, disabled ? "ใบนี้ไม่มีบิลแนบ" : "ยังไม่มีบิลแนบ — ใบที่ไม่มีบิลคนอนุมัติจะตรวจยอดไม่ได้"), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+      gap: 11
+    }
+  }, shots.map(r => React.createElement("div", {
+    key: r.id,
+    style: {
+      border: "1px solid var(--border)",
+      borderRadius: 11,
+      overflow: "hidden",
+      background: "var(--surface)",
+      position: "relative"
+    }
+  }, React.createElement("img", {
+    src: r.dataUrl,
+    alt: "\u0E23\u0E39\u0E1B\u0E1A\u0E34\u0E25",
+    onClick: () => onBig && onBig(r.dataUrl),
+    style: {
+      width: "100%",
+      height: 130,
+      objectFit: "cover",
+      display: "block",
+      cursor: "zoom-in"
+    }
+  }), !disabled && React.createElement("button", {
+    type: "button",
+    onClick: () => remove(r.id),
+    title: "\u0E25\u0E1A\u0E23\u0E39\u0E1B\u0E19\u0E35\u0E49",
+    style: {
+      position: "absolute",
+      top: 6,
+      right: 6,
+      width: 26,
+      height: 26,
+      borderRadius: 8,
+      border: "none",
+      background: "rgba(8,20,14,.62)",
+      color: "#fff",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 13,
+    color: "#fff"
+  }))))));
+}
+function EcBigShot({
+  src,
+  onClose
+}) {
+  if (!src) return null;
+  return React.createElement("div", {
+    onClick: onClose,
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 120,
+      background: "rgba(8,20,26,.86)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 18,
+      cursor: "zoom-out"
+    }
+  }, React.createElement("img", {
+    src: src,
+    alt: "\u0E23\u0E39\u0E1B\u0E1A\u0E34\u0E25",
+    style: {
+      maxWidth: "100%",
+      maxHeight: "100%",
+      borderRadius: 10
+    }
+  }));
+}
 function EcClaimModal({
   claim,
   job,
@@ -100,6 +240,8 @@ function EcClaimModal({
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [note, setNote] = React.useState("");
   const [delAsk, setDelAsk] = React.useState(false);
+  const [payRef, setPayRef] = React.useState("");
+  const [bigShot, setBigShot] = React.useState(null);
   if (!claim) return null;
   const c = claim;
   const st = window.ecStatusOf(c.status);
@@ -402,6 +544,17 @@ function EcClaimModal({
     }
   }, "\u0E40\u0E27\u0E49\u0E19\u0E0A\u0E48\u0E2D\u0E07 \u201C\u0E23\u0E27\u0E21\u201D \u0E44\u0E27\u0E49 \u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E30\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01 \u0E08\u0E33\u0E19\u0E27\u0E19 \xD7 \u0E23\u0E32\u0E04\u0E32/\u0E2B\u0E19\u0E48\u0E27\u0E22 \u0E43\u0E2B\u0E49\u0E40\u0E2D\u0E07 \xB7 \u0E22\u0E2D\u0E14\u0E23\u0E27\u0E21\u0E02\u0E2D\u0E07\u0E43\u0E1A\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E40\u0E2A\u0E21\u0E2D \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E17\u0E31\u0E1A\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E43\u0E2B\u0E49\u0E15\u0E23\u0E07\u0E01\u0E31\u0E1A\u0E1A\u0E34\u0E25\u0E17\u0E35\u0E48\u0E41\u0E19\u0E1A")), React.createElement(window.DrSection, {
     n: "3",
+    title: "\u0E1A\u0E34\u0E25 / \u0E43\u0E1A\u0E40\u0E2A\u0E23\u0E47\u0E08",
+    tone: kind.color,
+    hint: c.receiptCount ? c.receiptCount + " ใบ" : "ยังไม่มี"
+  }, React.createElement(EcReceipts, {
+    claimId: c.id,
+    currentUser: currentUser,
+    disabled: locked,
+    count: c.receiptCount,
+    onBig: setBigShot
+  })), React.createElement(window.DrSection, {
+    n: "4",
     title: "\u0E01\u0E32\u0E23\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34",
     tone: st.color,
     hint: c.status === "sent" ? c.approverName ? "รอ " + c.approverName : "รอหัวหน้าอนุมัติ" : c.decidedByName ? "โดย " + c.decidedByName : ""
@@ -433,7 +586,11 @@ function EcClaimModal({
       color: "var(--tint-ok-tx)",
       marginBottom: 12
     }
-  }, "\u0E08\u0E48\u0E32\u0E22\u0E04\u0E37\u0E19\u0E41\u0E25\u0E49\u0E27\u0E42\u0E14\u0E22 ", React.createElement("b", null, c.paidByName || "-"), " \xB7 ", window.drDateTH(String(c.paidAt).slice(0, 10))), nexts.length > 0 && React.createElement(React.Fragment, null, React.createElement(window.DrLabel, {
+  }, "\u0E08\u0E48\u0E32\u0E22\u0E04\u0E37\u0E19\u0E41\u0E25\u0E49\u0E27\u0E42\u0E14\u0E22 ", React.createElement("b", null, c.paidByName || "-"), " \xB7 ", window.drDateTH(String(c.paidAt).slice(0, 10)), c.paidRef && React.createElement("span", {
+    style: {
+      fontFamily: "var(--mono)"
+    }
+  }, " \xB7 \u0E2D\u0E49\u0E32\u0E07\u0E2D\u0E34\u0E07 ", c.paidRef), c.batchId && c.batchNo && React.createElement("span", null, " \xB7 \u0E23\u0E2D\u0E1A ", c.batchNo)), nexts.length > 0 && React.createElement(React.Fragment, null, React.createElement(window.DrLabel, {
     hint: "\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A \xB7 \u0E08\u0E30\u0E16\u0E39\u0E01\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E44\u0E27\u0E49\u0E43\u0E19\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34"
   }, "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A\u0E01\u0E32\u0E23\u0E15\u0E31\u0E14\u0E2A\u0E34\u0E19"), React.createElement("input", {
     value: note,
@@ -442,7 +599,17 @@ function EcClaimModal({
       marginBottom: 11
     }),
     placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E1A\u0E34\u0E25\u0E44\u0E21\u0E48\u0E0A\u0E31\u0E14 \u0E02\u0E2D\u0E16\u0E48\u0E32\u0E22\u0E43\u0E2B\u0E21\u0E48"
-  }), React.createElement("div", {
+  }), nexts.some(x => x.key === "paid") && React.createElement(React.Fragment, null, React.createElement(window.DrLabel, {
+    hint: "\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A \xB7 \u0E41\u0E19\u0E30\u0E19\u0E33\u0E43\u0E2B\u0E49\u0E43\u0E2A\u0E48\u0E44\u0E27\u0E49\u0E40\u0E17\u0E35\u0E22\u0E1A\u0E01\u0E31\u0E1A\u0E2A\u0E40\u0E15\u0E17\u0E40\u0E21\u0E19\u0E15\u0E4C\u0E18\u0E19\u0E32\u0E04\u0E32\u0E23"
+  }, "\u0E40\u0E25\u0E02\u0E2A\u0E25\u0E34\u0E1B / \u0E40\u0E25\u0E02\u0E2D\u0E49\u0E32\u0E07\u0E2D\u0E34\u0E07\u0E01\u0E32\u0E23\u0E42\u0E2D\u0E19"), React.createElement("input", {
+    value: payRef,
+    onChange: e => setPayRef(e.target.value),
+    style: Object.assign({}, EC_INPUT, {
+      marginBottom: 11,
+      fontFamily: "var(--mono)"
+    }),
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 20260912-104233 \u0E2B\u0E23\u0E37\u0E2D\u0E40\u0E25\u0E02\u0E17\u0E49\u0E32\u0E22\u0E2A\u0E25\u0E34\u0E1B"
+  })), React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,
@@ -451,8 +618,12 @@ function EcClaimModal({
   }, nexts.map(s => React.createElement("button", {
     key: s.key,
     onClick: () => {
-      onMove(c, s.key, note);
+      onMove(c, s.key, {
+        text: note,
+        ref: payRef
+      });
       setNote("");
+      setPayRef("");
     },
     style: {
       display: "inline-flex",
@@ -536,7 +707,10 @@ function EcClaimModal({
     name: "trash",
     size: 13,
     color: "var(--tint-red-tx)"
-  }), " \u0E25\u0E1A\u0E43\u0E1A\u0E19\u0E35\u0E49"))));
+  }), " \u0E25\u0E1A\u0E43\u0E1A\u0E19\u0E35\u0E49"))), React.createElement(EcBigShot, {
+    src: bigShot,
+    onClose: () => setBigShot(null)
+  }));
 }
 function EcClaimRow({
   claim,
@@ -600,7 +774,12 @@ function EcClaimRow({
       marginTop: 2,
       fontFamily: "var(--mono)"
     }
-  }, claim.no, " \xB7 ", claim.byName || "-", " \xB7 ", window.drShort(claim.date), claim.siteCode ? " · " + claim.siteCode : "", gone && React.createElement("span", {
+  }, claim.no, " \xB7 ", claim.byName || "-", " \xB7 ", window.drShort(claim.date), claim.siteCode ? " · " + claim.siteCode : "", claim.status !== "draft" && !claim.receiptCount && React.createElement("span", {
+    style: {
+      color: "#F59E0B",
+      fontFamily: "inherit"
+    }
+  }, " \xB7 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E1A\u0E34\u0E25\u0E41\u0E19\u0E1A"), claim.receiptCount > 0 && React.createElement("span", null, " \xB7 \u0E1A\u0E34\u0E25 ", claim.receiptCount, " \u0E43\u0E1A"), gone && React.createElement("span", {
     style: {
       color: "#F59E0B",
       fontFamily: "inherit"
@@ -637,7 +816,9 @@ function EcClaimRow({
 function EcPersonTable({
   claims,
   users,
-  onPick
+  onPick,
+  onPay,
+  canPay
 }) {
   const roll = window.ecRollupByPerson(claims);
   const rows = Object.keys(roll).map(k => roll[k]).sort((a, b) => b.owed - a.owed || b.waiting - a.waiting || b.count - a.count);
@@ -702,7 +883,9 @@ function EcPersonTable({
     style: th
   }, "\u0E08\u0E48\u0E32\u0E22\u0E41\u0E25\u0E49\u0E27"), React.createElement("th", {
     style: th
-  }, "\u0E43\u0E1A"))), React.createElement("tbody", null, rows.map(r => {
+  }, "\u0E43\u0E1A"), canPay && React.createElement("th", {
+    style: th
+  }))), React.createElement("tbody", null, rows.map(r => {
     const u = (users || []).find(x => x.id === r.id);
     return React.createElement("tr", {
       key: r.id,
@@ -745,7 +928,29 @@ function EcPersonTable({
       style: Object.assign({}, td, {
         color: "var(--text-3)"
       })
-    }, r.count));
+    }, r.count), canPay && React.createElement("td", {
+      style: {
+        padding: "8px 10px",
+        textAlign: "right"
+      }
+    }, r.owed > 0 && React.createElement("button", {
+      onClick: e => {
+        e.stopPropagation();
+        onPay && onPay(r);
+      },
+      style: {
+        whiteSpace: "nowrap",
+        padding: "7px 13px",
+        borderRadius: 9,
+        border: "none",
+        background: "var(--primary)",
+        color: "#fff",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 12,
+        fontWeight: 800
+      }
+    }, "\u0E08\u0E48\u0E32\u0E22\u0E04\u0E37\u0E19")));
   })), React.createElement("tfoot", null, React.createElement("tr", {
     style: {
       background: "var(--surface2)"
@@ -758,7 +963,7 @@ function EcPersonTable({
       color: "var(--text-2)"
     }
   }, "\u0E23\u0E27\u0E21\u0E40\u0E07\u0E34\u0E19\u0E17\u0E35\u0E48\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17\u0E15\u0E34\u0E14\u0E1E\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19\u0E2D\u0E22\u0E39\u0E48"), React.createElement("td", {
-    colSpan: 5,
+    colSpan: canPay ? 6 : 5,
     style: Object.assign({}, td, {
       fontSize: 15,
       fontWeight: 800,
@@ -773,6 +978,307 @@ function EcPersonTable({
       borderTop: "1px solid var(--border)"
     }
   }, "\u201C\u0E04\u0E49\u0E32\u0E07\u0E08\u0E48\u0E32\u0E22\u201D \u0E19\u0E31\u0E1A\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\u0E41\u0E25\u0E30\u0E1E\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19\u0E2D\u0E2D\u0E01\u0E40\u0E07\u0E34\u0E19\u0E15\u0E31\u0E27\u0E40\u0E2D\u0E07\u0E44\u0E1B\u0E01\u0E48\u0E2D\u0E19 \u2014 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E08\u0E48\u0E32\u0E22\u0E14\u0E49\u0E27\u0E22\u0E40\u0E07\u0E34\u0E19\u0E2A\u0E14\u0E01\u0E2D\u0E07\u0E01\u0E25\u0E32\u0E07\u0E2B\u0E23\u0E37\u0E2D\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E2B\u0E19\u0E35\u0E49\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E04\u0E37\u0E19\u0E43\u0E04\u0E23 \u0E08\u0E36\u0E07\u0E44\u0E21\u0E48\u0E16\u0E39\u0E01\u0E19\u0E31\u0E1A", onPick ? " · กดที่ชื่อเพื่อดูใบของคนนั้น" : ""));
+}
+function EcPayModal({
+  person,
+  claims,
+  batches,
+  currentUser,
+  onClose,
+  onConfirm
+}) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const [ref, setRef] = React.useState("");
+  const [note, setNote] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const list = claims || [];
+  const total = window.ecRound(list.reduce((a, c) => a + window.ecRound(c.amount), 0));
+  const no = window.ecBatchNo(batches, window.drToday());
+  const go = () => {
+    if (busy || !list.length) return;
+    setBusy(true);
+    const batch = window.ecBlankBatch(person, list, currentUser, batches);
+    batch.ref = ref;
+    batch.note = note;
+    Promise.resolve(onConfirm(batch, list)).then(ok => {
+      setBusy(false);
+      if (ok) onClose();
+    });
+  };
+  return React.createElement("div", {
+    onClick: onClose,
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 100,
+      background: "rgba(8,20,26,.5)",
+      backdropFilter: "blur(3px)",
+      display: "flex",
+      alignItems: isMobile ? "flex-end" : "center",
+      justifyContent: "center",
+      padding: isMobile ? 0 : 24
+    }
+  }, React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "var(--bg)",
+      borderRadius: isMobile ? "16px 16px 0 0" : 18,
+      width: "min(560px, 100%)",
+      maxHeight: isMobile ? "94dvh" : "90dvh",
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "15px 18px",
+      borderBottom: "1px solid var(--border)",
+      background: "var(--surface)"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 34,
+      height: 34,
+      borderRadius: 10,
+      display: "grid",
+      placeItems: "center",
+      background: "#10B9811a"
+    }
+  }, React.createElement(Icon, {
+    name: "wallet",
+    size: 17,
+    color: "#10B981"
+  })), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 14.5,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, "\u0E08\u0E48\u0E32\u0E22\u0E04\u0E37\u0E19 ", (person || {}).name || "-"), React.createElement("div", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, "\u0E23\u0E2D\u0E1A ", no, " \xB7 ", list.length, " \u0E43\u0E1A")), React.createElement("button", {
+    onClick: onClose,
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: 9,
+      border: "1px solid var(--border)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 15,
+    color: "var(--text-2)"
+  }))), React.createElement("div", {
+    style: {
+      flex: 1,
+      overflowY: "auto",
+      padding: "16px 18px"
+    }
+  }, React.createElement("div", {
+    style: {
+      textAlign: "center",
+      padding: "14px 0 16px"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontSize: 30,
+      fontWeight: 800,
+      color: "#10B981",
+      lineHeight: 1.1
+    }
+  }, window.ecBaht(total)), React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)",
+      marginTop: 3
+    }
+  }, "\u0E1A\u0E32\u0E17 \xB7 \u0E22\u0E2D\u0E14\u0E17\u0E35\u0E48\u0E08\u0E30\u0E42\u0E2D\u0E19\u0E04\u0E37\u0E19\u0E43\u0E19\u0E23\u0E2D\u0E1A\u0E19\u0E35\u0E49")), React.createElement("div", {
+    style: {
+      border: "1px solid var(--border)",
+      borderRadius: 12,
+      overflow: "hidden",
+      marginBottom: 15
+    }
+  }, list.map(c => React.createElement("div", {
+    key: c.id,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "9px 12px",
+      borderBottom: "1px solid var(--border)",
+      background: "var(--surface)"
+    }
+  }, React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-1)"
+    }
+  }, window.ecKindOf(c.kind).th), React.createElement("span", {
+    style: {
+      display: "block",
+      fontFamily: "var(--mono)",
+      fontSize: 10.5,
+      color: "var(--text-3)"
+    }
+  }, c.no, " \xB7 ", window.drShort(c.date), c.siteCode ? " · " + c.siteCode : "", !c.receiptCount && React.createElement("span", {
+    style: {
+      color: "#F59E0B",
+      fontFamily: "inherit"
+    }
+  }, " \xB7 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E1A\u0E34\u0E25\u0E41\u0E19\u0E1A"))), React.createElement("span", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontSize: 13,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, window.ecBaht(c.amount))))), React.createElement(window.DrLabel, {
+    hint: "\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A \xB7 \u0E41\u0E19\u0E30\u0E19\u0E33\u0E43\u0E2B\u0E49\u0E43\u0E2A\u0E48\u0E44\u0E27\u0E49\u0E40\u0E17\u0E35\u0E22\u0E1A\u0E01\u0E31\u0E1A\u0E2A\u0E40\u0E15\u0E17\u0E40\u0E21\u0E19\u0E15\u0E4C\u0E18\u0E19\u0E32\u0E04\u0E32\u0E23"
+  }, "\u0E40\u0E25\u0E02\u0E2A\u0E25\u0E34\u0E1B / \u0E40\u0E25\u0E02\u0E2D\u0E49\u0E32\u0E07\u0E2D\u0E34\u0E07\u0E01\u0E32\u0E23\u0E42\u0E2D\u0E19"), React.createElement("input", {
+    value: ref,
+    onChange: e => setRef(e.target.value),
+    style: Object.assign({}, EC_INPUT, {
+      marginBottom: 12,
+      fontFamily: "var(--mono)"
+    }),
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 20260912-104233"
+  }), React.createElement(window.DrLabel, {
+    hint: "\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A"
+  }, "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38"), React.createElement("input", {
+    value: note,
+    onChange: e => setNote(e.target.value),
+    style: EC_INPUT,
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E42\u0E2D\u0E19\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E40\u0E07\u0E34\u0E19\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E07\u0E27\u0E14\u0E19\u0E35\u0E49"
+  }), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      lineHeight: 1.6,
+      marginTop: 12
+    }
+  }, "\u0E01\u0E14\u0E41\u0E25\u0E49\u0E27\u0E17\u0E38\u0E01\u0E43\u0E1A\u0E02\u0E49\u0E32\u0E07\u0E1A\u0E19\u0E08\u0E30\u0E16\u0E39\u0E01\u0E1B\u0E34\u0E14\u0E40\u0E1B\u0E47\u0E19 \u201C\u0E08\u0E48\u0E32\u0E22\u0E04\u0E37\u0E19\u0E41\u0E25\u0E49\u0E27\u201D \u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E01\u0E31\u0E19\u0E43\u0E19\u0E04\u0E33\u0E2A\u0E31\u0E48\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27 \u0E41\u0E25\u0E30\u0E25\u0E47\u0E2D\u0E01\u0E16\u0E32\u0E27\u0E23\u0E40\u0E1B\u0E47\u0E19\u0E2B\u0E25\u0E31\u0E01\u0E10\u0E32\u0E19\u0E01\u0E32\u0E23\u0E08\u0E48\u0E32\u0E22 \xB7 \u0E40\u0E07\u0E34\u0E19\u0E15\u0E49\u0E2D\u0E07\u0E42\u0E2D\u0E19\u0E08\u0E23\u0E34\u0E07\u0E01\u0E48\u0E2D\u0E19\u0E01\u0E14 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E42\u0E2D\u0E19\u0E40\u0E07\u0E34\u0E19\u0E43\u0E2B\u0E49")), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 9,
+      padding: "13px 18px",
+      borderTop: "1px solid var(--border)",
+      background: "var(--surface)"
+    }
+  }, React.createElement("button", {
+    onClick: onClose,
+    style: {
+      padding: "10px 18px",
+      borderRadius: 10,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 13,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("button", {
+    onClick: go,
+    disabled: busy || !list.length,
+    style: {
+      flex: 1,
+      padding: "10px 18px",
+      borderRadius: 10,
+      border: "none",
+      background: "#10B981",
+      color: "#fff",
+      cursor: busy ? "default" : "pointer",
+      opacity: busy ? 0.7 : 1,
+      fontFamily: "inherit",
+      fontSize: 13,
+      fontWeight: 800
+    }
+  }, busy ? "กำลังบันทึก..." : "ยืนยันว่าโอนเงินแล้ว " + window.ecBaht(total) + " บาท"))));
+}
+function EcBatchList({
+  batches
+}) {
+  const rows = (batches || []).slice(0, 20);
+  if (!rows.length) return null;
+  return React.createElement("div", {
+    style: {
+      marginTop: 14
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: ".07em",
+      textTransform: "uppercase",
+      color: "var(--text-3)",
+      marginBottom: 8
+    }
+  }, "\u0E23\u0E2D\u0E1A\u0E08\u0E48\u0E32\u0E22\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14"), rows.map(b => React.createElement("div", {
+    key: b.id,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap",
+      padding: "9px 12px",
+      borderRadius: 10,
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      marginBottom: 6
+    }
+  }, React.createElement("span", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "#10B981"
+    }
+  }, b.no), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 140,
+      fontSize: 12.5,
+      color: "var(--text-1)",
+      fontWeight: 700
+    }
+  }, b.toName || "-"), React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, window.drShort(b.date), " \xB7 ", b.count, " \u0E43\u0E1A", b.ref ? " · อ้างอิง " + b.ref : "", b.byName ? " · โดย " + b.byName : ""), React.createElement("span", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontSize: 13.5,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, window.ecBaht(b.total)))));
 }
 function EcJobTable({
   claims,
@@ -1037,7 +1543,10 @@ function ExpenseView({
   const [q, setQ] = React.useState("");
   const [newJob, setNewJob] = React.useState("");
   const [jobFilter, setJobFilter] = React.useState("");
+  const [payFor, setPayFor] = React.useState(null);
+  const batchStore = window.useEcBatches();
   const canApprove = window.ecCanApprove(role);
+  const canPay = window.ecCanPay(role);
   const uid = currentUser ? currentUser.id : null;
   React.useEffect(() => {
     if (!focus || !focus.jobId) return;
@@ -1094,6 +1603,17 @@ function ExpenseView({
       });
     }
   };
+  const payBatch = (batch, list) => Promise.resolve(batchStore.payBatch(batch, list, currentUser)).then(ok => {
+    if (ok) {
+      window.ecNotify({
+        toUserId: batch.toId,
+        title: "จ่ายเงินคืนแล้ว · รอบ " + batch.no,
+        body: window.ecBaht(batch.total) + " บาท · " + batch.count + " ใบ" + (batch.ref ? " · อ้างอิง " + batch.ref : "")
+      });
+    }
+    return ok;
+  });
+  const payList = React.useMemo(() => payFor ? window.ecPayable(all, payFor.id) : [], [all, payFor]);
   const cur = (store.claims || []).find(c => c.id === open) || null;
   const doneJobs = React.useMemo(() => (jobs || []).slice().sort((a, b) => String(a.code || "").localeCompare(String(b.code || ""))), [jobs]);
   const TABS = [["mine", "ใบของฉัน", "pen", roll.mineOpen]].concat(canApprove ? [["inbox", "รออนุมัติ", "check", roll.waitingMine]] : []).concat(canApprove ? [["person", "ยอดรายคน", "users", 0], ["job", "ต้นทุนรายไซต์", "sun", 0]] : []).concat([["all", canApprove ? "ทั้งหมด" : "ใบที่เกี่ยวกับฉัน", "list", 0]]);
@@ -1226,15 +1746,19 @@ function ExpenseView({
       fontWeight: 800,
       color: tab === k ? "var(--primary-dark)" : "var(--text-3)"
     }
-  }, n)))), tab === "person" && React.createElement(EcPersonTable, {
+  }, n)))), tab === "person" && React.createElement("div", null, React.createElement(EcPersonTable, {
     claims: all,
     users: users,
+    canPay: canPay,
     onPick: r => {
       setJobFilter("");
       setQ(r.name || "");
       setTab("all");
-    }
-  }), tab === "job" && React.createElement(EcJobTable, {
+    },
+    onPay: r => setPayFor(r)
+  }), React.createElement(EcBatchList, {
+    batches: batchStore.batches
+  })), tab === "job" && React.createElement(EcJobTable, {
     claims: all,
     jobs: jobs,
     onPick: r => {
@@ -1295,7 +1819,14 @@ function ExpenseView({
       fontSize: 13,
       color: "var(--text-3)"
     }
-  }, jobFilter ? "งานนี้ยังไม่มีใบเบิก — กด “เปิดใบเบิก” ด้านบนได้เลย" : q ? "ไม่พบใบเบิกที่ตรงกับคำค้น" : tab === "inbox" ? "ไม่มีใบที่รอคุณอนุมัติ" : tab === "mine" ? "ยังไม่มีใบเบิกของคุณ — กด “เปิดใบเบิก” ด้านบน" : "ยังไม่มีใบเบิกในระบบ"))), cur && React.createElement(EcClaimModal, {
+  }, jobFilter ? "งานนี้ยังไม่มีใบเบิก — กด “เปิดใบเบิก” ด้านบนได้เลย" : q ? "ไม่พบใบเบิกที่ตรงกับคำค้น" : tab === "inbox" ? "ไม่มีใบที่รอคุณอนุมัติ" : tab === "mine" ? "ยังไม่มีใบเบิกของคุณ — กด “เปิดใบเบิก” ด้านบน" : "ยังไม่มีใบเบิกในระบบ"))), payFor && React.createElement(EcPayModal, {
+    person: payFor,
+    claims: payList,
+    batches: batchStore.batches,
+    currentUser: currentUser,
+    onClose: () => setPayFor(null),
+    onConfirm: payBatch
+  }), cur && React.createElement(EcClaimModal, {
     claim: cur,
     job: jobById[cur.jobId] || null,
     users: users,
@@ -1314,6 +1845,10 @@ Object.assign(window, {
   EcMini,
   EcClaimModal,
   EcClaimRow,
+  EcReceipts,
+  EcBigShot,
+  EcPayModal,
+  EcBatchList,
   EcPersonTable,
   EcJobTable,
   EcJobButton,

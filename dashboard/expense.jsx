@@ -34,6 +34,8 @@
 const EC_ROOT = (() => { try { return localStorage.getItem("ec_test_root") || ""; } catch (e) { return ""; } })();
 const _ECFB = () => !!window.FBDB;
 const _ecRef = (p) => window.FBDB.ref(EC_ROOT + p);
+/* รากของโมดูล — ใช้กับ update() หลายเส้นทางพร้อมกัน · ref("") ไม่ใช่ path ที่ถูกต้อง ต้องเป็น "/" */
+const _ecRoot = () => window.FBDB.ref(EC_ROOT || "/");
 
 /* ── เงิน ── */
 const ecRound = (n) => Math.round((+n || 0) * 100) / 100;
@@ -139,22 +141,60 @@ function ecMove(claim, to, user, note) {
   const rec = Object.assign({}, claim, { status: to, updatedAt: now });
   rec.hist = (claim.hist || []).concat([{
     at: now, from: claim.status || "draft", to: to,
-    by: (user || {}).id || null, byName: (user || {}).name || "", note: note || "",
+    by: (user || {}).id || null, byName: (user || {}).name || "",
+    note: (note && typeof note === "object" ? note.text : note) || "",
   }]);
   if (to === "sent") { rec.sentAt = now; }
   if (to === "approved" || to === "rejected") {
     /* คนตัดสินเก็บแยกจาก approverId เสมอ — approverId คือ "ใบนี้ส่งถึงใคร" ตามที่ตั้งไว้ในโปรไฟล์
        ถ้าเขียนทับกัน ใบที่ถูกตีกลับมาแก้จะล็อกให้เฉพาะคนที่เคยปฏิเสธเท่านั้นที่อนุมัติได้ */
-    rec.decidedAt = now; rec.decidedNote = note || "";
+    rec.decidedAt = now; rec.decidedNote = (note && typeof note === "object" ? note.text : note) || "";
     rec.decidedById = (user || {}).id || null; rec.decidedByName = (user || {}).name || "";
   }
-  if (to === "paid") { rec.paidAt = now; rec.paidById = (user || {}).id || null; rec.paidByName = (user || {}).name || ""; }
+  if (to === "paid") {
+    rec.paidAt = now; rec.paidById = (user || {}).id || null; rec.paidByName = (user || {}).name || "";
+    /* เลขสลิป/เลขอ้างอิงการโอน — เก็บไว้ให้ตรวจย้อนกับสเตทเมนต์ธนาคารได้
+       ถ้าไม่ส่งมาก็ไม่ลบของเดิมทิ้ง (ใบที่เคยจ่ายแล้วถูกตีกลับ-จ่ายใหม่จะได้ไม่หายเงียบ) */
+    if (note && note.ref != null) rec.paidRef = String(note.ref || "");
+  }
   /* ตีกลับมาแก้ = ล้างผลการตัดสินเดิมทิ้ง ไม่งั้นใบจะโชว์ว่า "อนุมัติโดย X" ทั้งที่ยังรออนุมัติอยู่ */
   if (to === "draft" || to === "sent") {
     rec.decidedAt = null; rec.decidedNote = ""; rec.decidedById = null; rec.decidedByName = "";
     rec.paidAt = null; rec.paidById = null; rec.paidByName = "";
   }
   return rec;
+}
+
+/* ── รอบจ่ายเงิน ──
+   จ่ายคืนพนักงานทีละใบคือการทรมานคนจ่าย — คนหนึ่งมักมีใบค้าง 5-10 ใบ โอนครั้งเดียวจบ
+   รอบจ่ายคือการรวมใบที่อนุมัติแล้วของคนคนหนึ่งเข้าเป็นก้อน แล้วปิดทั้งก้อนด้วยสลิปใบเดียว
+   ใบแต่ละใบยังเก็บ batchId ไว้ ตรวจย้อนจากใบไปหารอบ หรือจากรอบมาหาใบก็ได้ */
+function ecPayable(claims, userId) {
+  return (claims || []).filter((c) => c && c.status === "approved"
+    && ecPayOf(c.payMethod).owed && (!userId || c.byId === userId));
+}
+
+function ecBatchNo(batches, today) {
+  const d = String(today || window.drToday());
+  const ym = d.slice(2, 4) + d.slice(5, 7);
+  const n = (batches || []).filter((b) => b && String(b.no || "").indexOf("PAY-" + ym) === 0).length + 1;
+  return "PAY-" + ym + "-" + window.drPad2(n);
+}
+
+function ecBlankBatch(person, claims, user, batches) {
+  const list = claims || [];
+  return {
+    id: "PB-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+    no: ecBatchNo(batches, window.drToday()),
+    date: window.drToday(),
+    toId: (person || {}).id || null, toName: (person || {}).name || "",
+    claimIds: list.map((c) => c.id),
+    count: list.length,
+    total: ecRound(list.reduce((a, c) => a + ecRound(c.amount), 0)),
+    ref: "", note: "",
+    byId: (user || {}).id || null, byName: (user || {}).name || "",
+    at: new Date().toISOString(),
+  };
 }
 
 /* ── เลขที่ใบ — FS-EX-2446-01 ── (ลอกรูปแบบจาก drDocNo daily.jsx:201) */
@@ -320,6 +360,82 @@ function useEcClaims() {
   return { claims, loading, save, patch, remove };
 }
 
+/* ── รูปบิล ──
+   base64 ก้อนใหญ่ แยกโหนดออกมาเพราะกล่องขาเข้าของคนอนุมัติอ่าน ecClaims ทั้งต้นไม้
+   ถ้าเอารูปไปแปะในตัวใบ หน้ารวมจะลากรูปบิลของทุกใบทั้งบริษัทมาด้วยทุกครั้งที่เปิด
+   จำนวนรูปสะท้อนกลับไปเก็บที่ตัวใบเป็นตัวเลขเบา ๆ (receiptCount) เพื่อให้รายการบอกได้ว่าใบไหนไม่มีบิลแนบ */
+function useEcReceipts(claimId) {
+  const [shots, setShots] = React.useState([]);
+  React.useEffect(() => {
+    if (!claimId || !_ECFB()) { setShots([]); return; }
+    const ref = _ecRef("ecReceipts/" + claimId);
+    const h = ref.on("value", (s) => {
+      const v = s.val();
+      const arr = v && typeof v === "object" ? Object.values(v) : [];
+      arr.sort((a, b) => String(a.at || "").localeCompare(String(b.at || "")));
+      setShots(arr);
+    });
+    return () => ref.off("value", h);
+  }, [claimId]);
+
+  const add = React.useCallback((dataUrl, user) => {
+    if (!claimId || !_ECFB() || !dataUrl) return;
+    const id = "RC-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    _ecRef("ecReceipts/" + claimId + "/" + id).set({
+      id, dataUrl, at: new Date().toISOString(),
+      by: (user || {}).id || null, byName: (user || {}).name || "",
+    });
+  }, [claimId]);
+
+  const remove = React.useCallback((id) => {
+    if (!claimId || !_ECFB() || !id) return;
+    _ecRef("ecReceipts/" + claimId + "/" + id).remove();
+  }, [claimId]);
+
+  /* กระจกเงาจำนวนรูปที่ตัวใบ — เขียนเฉพาะตอนตัวเลขไม่ตรง จะได้ไม่ยิงคำสั่งเขียนทุกครั้งที่เปิดใบ */
+  const sync = React.useCallback((current) => {
+    if (!claimId || !_ECFB()) return;
+    if (Number(current || 0) === shots.length) return;
+    _ecRef("ecClaims/" + claimId).update({ receiptCount: shots.length });
+  }, [claimId, shots.length]);
+
+  return { shots, add, remove, sync };
+}
+
+/* ── รอบจ่าย ── เบา อ่านทั้งต้นไม้ได้ */
+function useEcBatches() {
+  const [batches, setBatches] = React.useState([]);
+  React.useEffect(() => {
+    if (!_ECFB()) return;
+    const ref = _ecRef("ecBatches");
+    const h = ref.on("value", (s) => {
+      const v = s.val() || {};
+      const arr = Object.keys(v).map((k) => Object.assign({ id: k }, v[k]));
+      arr.sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+      setBatches(arr);
+    });
+    return () => ref.off("value", h);
+  }, []);
+
+  /* ปิดทั้งรอบ = เขียนรอบ + ปิดทุกใบในรอบ ยิงเป็นคำสั่งชุดเดียว (update หลายเส้นทางพร้อมกัน)
+     ถ้าแยกยิงทีละใบแล้วเน็ตหลุดกลางคัน จะได้รอบที่บอกว่าจ่ายแล้ว แต่ใบบางใบยังค้าง = ตัวเลขไม่ตรงเงินจริง */
+  const payBatch = React.useCallback((batch, claims, user) => {
+    if (!batch || !_ECFB()) return Promise.resolve(false);
+    const now = new Date().toISOString();
+    const up = {};
+    up["ecBatches/" + batch.id] = batch;
+    (claims || []).forEach((c) => {
+      const rec = ecMove(c, "paid", user, { text: "จ่ายในรอบ " + batch.no, ref: batch.ref });
+      rec.batchId = batch.id; rec.batchNo = batch.no;
+      rec.paidAt = now;
+      up["ecClaims/" + c.id] = rec;
+    });
+    return _ecRoot().update(up).then(() => true).catch(() => false);
+  }, []);
+
+  return { batches, payBatch };
+}
+
 /* แจ้งเตือน — เขียนผ่าน _ecRef เพราะโมดูลนี้ทดสอบใต้ _sandbox/ ได้
    (ผลคือในโหมดทดสอบ แจ้งเตือนจะไม่โผล่ในกระดิ่งจริง ตั้งใจให้เป็นแบบนั้น) */
 function ecNotify(n) {
@@ -354,6 +470,7 @@ Object.assign(window, {
   ecCanUse, ecCanApprove, ecCanPay, ecCanDelete,
   ecApproverFor, ecApproveCheck, ecNext, ecCan, ecMove,
   ecDocNo, ecBlank, ecSum, ecVisible,
+  ecPayable, ecBatchNo, ecBlankBatch, useEcReceipts, useEcBatches,
   ecRollupByPerson, ecRollupByJob, ecJobSum, ecRollup,
   useEcClaims, useEcLive, ecNotify,
 });

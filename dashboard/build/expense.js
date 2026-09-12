@@ -7,6 +7,7 @@ const EC_ROOT = (() => {
 })();
 const _ECFB = () => !!window.FBDB;
 const _ecRef = p => window.FBDB.ref(EC_ROOT + p);
+const _ecRoot = () => window.FBDB.ref(EC_ROOT || "/");
 const ecRound = n => Math.round((+n || 0) * 100) / 100;
 const ecBaht = n => ecRound(n).toLocaleString("en-US", {
   minimumFractionDigits: 2,
@@ -177,14 +178,14 @@ function ecMove(claim, to, user, note) {
     to: to,
     by: (user || {}).id || null,
     byName: (user || {}).name || "",
-    note: note || ""
+    note: (note && typeof note === "object" ? note.text : note) || ""
   }]);
   if (to === "sent") {
     rec.sentAt = now;
   }
   if (to === "approved" || to === "rejected") {
     rec.decidedAt = now;
-    rec.decidedNote = note || "";
+    rec.decidedNote = (note && typeof note === "object" ? note.text : note) || "";
     rec.decidedById = (user || {}).id || null;
     rec.decidedByName = (user || {}).name || "";
   }
@@ -192,6 +193,7 @@ function ecMove(claim, to, user, note) {
     rec.paidAt = now;
     rec.paidById = (user || {}).id || null;
     rec.paidByName = (user || {}).name || "";
+    if (note && note.ref != null) rec.paidRef = String(note.ref || "");
   }
   if (to === "draft" || to === "sent") {
     rec.decidedAt = null;
@@ -203,6 +205,33 @@ function ecMove(claim, to, user, note) {
     rec.paidByName = "";
   }
   return rec;
+}
+function ecPayable(claims, userId) {
+  return (claims || []).filter(c => c && c.status === "approved" && ecPayOf(c.payMethod).owed && (!userId || c.byId === userId));
+}
+function ecBatchNo(batches, today) {
+  const d = String(today || window.drToday());
+  const ym = d.slice(2, 4) + d.slice(5, 7);
+  const n = (batches || []).filter(b => b && String(b.no || "").indexOf("PAY-" + ym) === 0).length + 1;
+  return "PAY-" + ym + "-" + window.drPad2(n);
+}
+function ecBlankBatch(person, claims, user, batches) {
+  const list = claims || [];
+  return {
+    id: "PB-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+    no: ecBatchNo(batches, window.drToday()),
+    date: window.drToday(),
+    toId: (person || {}).id || null,
+    toName: (person || {}).name || "",
+    claimIds: list.map(c => c.id),
+    count: list.length,
+    total: ecRound(list.reduce((a, c) => a + ecRound(c.amount), 0)),
+    ref: "",
+    note: "",
+    byId: (user || {}).id || null,
+    byName: (user || {}).name || "",
+    at: new Date().toISOString()
+  };
 }
 function ecDocNo(job, claims) {
   const code = String((job || {}).code || "GEN").replace(/^SF-/, "");
@@ -408,6 +437,88 @@ function useEcClaims() {
     remove
   };
 }
+function useEcReceipts(claimId) {
+  const [shots, setShots] = React.useState([]);
+  React.useEffect(() => {
+    if (!claimId || !_ECFB()) {
+      setShots([]);
+      return;
+    }
+    const ref = _ecRef("ecReceipts/" + claimId);
+    const h = ref.on("value", s => {
+      const v = s.val();
+      const arr = v && typeof v === "object" ? Object.values(v) : [];
+      arr.sort((a, b) => String(a.at || "").localeCompare(String(b.at || "")));
+      setShots(arr);
+    });
+    return () => ref.off("value", h);
+  }, [claimId]);
+  const add = React.useCallback((dataUrl, user) => {
+    if (!claimId || !_ECFB() || !dataUrl) return;
+    const id = "RC-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    _ecRef("ecReceipts/" + claimId + "/" + id).set({
+      id,
+      dataUrl,
+      at: new Date().toISOString(),
+      by: (user || {}).id || null,
+      byName: (user || {}).name || ""
+    });
+  }, [claimId]);
+  const remove = React.useCallback(id => {
+    if (!claimId || !_ECFB() || !id) return;
+    _ecRef("ecReceipts/" + claimId + "/" + id).remove();
+  }, [claimId]);
+  const sync = React.useCallback(current => {
+    if (!claimId || !_ECFB()) return;
+    if (Number(current || 0) === shots.length) return;
+    _ecRef("ecClaims/" + claimId).update({
+      receiptCount: shots.length
+    });
+  }, [claimId, shots.length]);
+  return {
+    shots,
+    add,
+    remove,
+    sync
+  };
+}
+function useEcBatches() {
+  const [batches, setBatches] = React.useState([]);
+  React.useEffect(() => {
+    if (!_ECFB()) return;
+    const ref = _ecRef("ecBatches");
+    const h = ref.on("value", s => {
+      const v = s.val() || {};
+      const arr = Object.keys(v).map(k => Object.assign({
+        id: k
+      }, v[k]));
+      arr.sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+      setBatches(arr);
+    });
+    return () => ref.off("value", h);
+  }, []);
+  const payBatch = React.useCallback((batch, claims, user) => {
+    if (!batch || !_ECFB()) return Promise.resolve(false);
+    const now = new Date().toISOString();
+    const up = {};
+    up["ecBatches/" + batch.id] = batch;
+    (claims || []).forEach(c => {
+      const rec = ecMove(c, "paid", user, {
+        text: "จ่ายในรอบ " + batch.no,
+        ref: batch.ref
+      });
+      rec.batchId = batch.id;
+      rec.batchNo = batch.no;
+      rec.paidAt = now;
+      up["ecClaims/" + c.id] = rec;
+    });
+    return _ecRoot().update(up).then(() => true).catch(() => false);
+  }, []);
+  return {
+    batches,
+    payBatch
+  };
+}
 function ecNotify(n) {
   if (!_ECFB() || !n) return;
   const id = "N-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
@@ -469,6 +580,11 @@ Object.assign(window, {
   ecBlank,
   ecSum,
   ecVisible,
+  ecPayable,
+  ecBatchNo,
+  ecBlankBatch,
+  useEcReceipts,
+  useEcBatches,
   ecRollupByPerson,
   ecRollupByJob,
   ecJobSum,
