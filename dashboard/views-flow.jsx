@@ -54,7 +54,7 @@ function FlCol({ col, count, isOver, dimmed, sub, onDragOver, onDragLeave, onDro
 
 /* ── แถบหัวช่วง + โหมดพับ ──
    พับแล้วเหลือแท่งแคบแนวตั้ง ยังบอกชื่อช่วงกับจำนวนใบอยู่ จะได้รู้ว่าพับอะไรไว้ */
-function FlGroup({ g, count, collapsed, onToggle, children }) {
+function FlGroup({ g, count, collapsed, onToggle, onAdd, children }) {
   if (collapsed) {
     return (
       <button onClick={onToggle} title={"กางช่วง " + g.th}
@@ -78,6 +78,19 @@ function FlGroup({ g, count, collapsed, onToggle, children }) {
         <span style={{ width: 8, height: 8, borderRadius: 99, background: g.color, flexShrink: 0 }} />
         <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".08em", color: "var(--text-2)" }}>{g.th}</span>
         <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>{count}</span>
+        {/* ปุ่มเพิ่มของช่วงนั้น — ช่วงขายคือจุดเดียวที่สร้างลูกค้าใหม่ได้จากบอร์ด
+            หัวหน้า/แอดมินไม่มีเมนู "งานขาย" ในแถบซ้าย (บอร์ดนี้แทนไปแล้ว) ถ้าไม่มีปุ่มตรงนี้
+            ก็ไม่เหลือทางเปิดฟอร์มลูกค้าใหม่เลยเมื่อยังไม่มีการ์ดให้กด
+            วางชิดชื่อช่วง ไม่ใช่ปลายขวา เพราะแถบหัวช่วงกว้างเท่าทุกคอลัมน์รวมกัน
+            ปุ่มที่ปลายขวาจะเลื่อนพ้นจอไปตั้งแต่ยังไม่ทันเห็น */}
+        {onAdd && (
+          <button onClick={(e) => { e.stopPropagation(); onAdd(); }} title={"เพิ่มลูกค้าใหม่ในช่วง " + g.th}
+            style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 24, padding: "0 10px",
+              borderRadius: 8, border: "1px solid " + g.color + "55", background: g.color + "14", color: g.color,
+              cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, flexShrink: 0, whiteSpace: "nowrap" }}>
+            <Icon name="plus" size={13} color={g.color} sw={2.6} /> ลูกค้าใหม่
+          </button>
+        )}
         <span style={{ fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{g.hint}</span>
         {/* ปุ่มอยู่ในแถบที่กดได้ทั้งแถบ ต้องหยุดไม่ให้คลิกลอยขึ้นไปสั่งพับซ้ำ ไม่งั้นพับแล้วกางทันทีเหมือนกดไม่ติด */}
         <button onClick={(e) => { e.stopPropagation(); onToggle(); }} aria-label={"พับช่วง " + g.th}
@@ -116,7 +129,7 @@ const flSumValue = (leadsArr) => {
 };
 
 function FlowBoardView({ jobs, leads, quotes, search, role, currentUser,
-  onOpenJob, onOpenLead, onMoveStage, onPatchLead, onPatchPermit, onOpenReview }) {
+  onOpenJob, onOpenLead, onNewLead, onMoveStage, onPatchLead, onPatchPermit, onOpenReview }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const groups = React.useMemo(() => flGroups(role), [role]);
@@ -260,7 +273,8 @@ function FlowBoardView({ jobs, leads, quotes, search, role, currentUser,
       </div>
       <div style={{ display: "flex", gap: 18, overflowX: "auto", paddingBottom: 12, minHeight: 0, flex: 1, alignItems: "stretch" }}>
         {groups.map((g) => (
-          <FlGroup key={g.key} g={g} count={groupCount(g)} collapsed={!!collapsed[g.key]} onToggle={() => toggle(g.key)}>
+          <FlGroup key={g.key} g={g} count={groupCount(g)} collapsed={!!collapsed[g.key]} onToggle={() => toggle(g.key)}
+            onAdd={g.kind === "lead" && onNewLead ? onNewLead : null}>
             {g.cols.map((c) => {
               const cards = cardsOf(g, c.key);
               const ok = canDrop(g, c.key);

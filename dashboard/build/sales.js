@@ -1510,7 +1510,8 @@ function SalesKpiView({
   quotes,
   users,
   currentUser,
-  onMenuOpen
+  onMenuOpen,
+  onNewLead
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [month, setMonth] = React.useState(() => sToday10().slice(0, 7));
@@ -1731,7 +1732,29 @@ function SalesKpiView({
       color: "var(--text-3)",
       fontSize: 13.5
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E43\u0E19\u0E0A\u0E48\u0E27\u0E07\u0E19\u0E35\u0E49 \u2014 \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E17\u0E35\u0E48\u0E2B\u0E19\u0E49\u0E32 \u201C\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E2A\u0E33\u0E23\u0E27\u0E08\u201D \u0E41\u0E25\u0E49\u0E27\u0E23\u0E30\u0E1A\u0E38\u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32")), rows.map(r => {
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E43\u0E19\u0E0A\u0E48\u0E27\u0E07\u0E19\u0E35\u0E49 \u2014 \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E41\u0E25\u0E49\u0E27\u0E23\u0E30\u0E1A\u0E38\u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32", onNewLead && React.createElement("button", {
+    onClick: onNewLead,
+    style: {
+      marginLeft: 10,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      padding: "5px 12px",
+      borderRadius: 99,
+      border: "1px solid var(--primary)",
+      background: "var(--primary)",
+      color: "#fff",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700
+    }
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 13,
+    color: "#fff",
+    sw: 2.6
+  }), " \u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E43\u0E2B\u0E21\u0E48"))), rows.map(r => {
     const cr = closeRate(r);
     const me = currentUser && r.id === currentUser.id;
     return React.createElement("tr", {

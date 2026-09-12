@@ -118,6 +118,7 @@ function FlGroup({
   count,
   collapsed,
   onToggle,
+  onAdd,
   children
 }) {
   if (collapsed) {
@@ -212,7 +213,35 @@ function FlGroup({
       fontWeight: 700,
       color: "var(--text-3)"
     }
-  }, count), React.createElement("span", {
+  }, count), onAdd && React.createElement("button", {
+    onClick: e => {
+      e.stopPropagation();
+      onAdd();
+    },
+    title: "เพิ่มลูกค้าใหม่ในช่วง " + g.th,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      height: 24,
+      padding: "0 10px",
+      borderRadius: 8,
+      border: "1px solid " + g.color + "55",
+      background: g.color + "14",
+      color: g.color,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      flexShrink: 0,
+      whiteSpace: "nowrap"
+    }
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 13,
+    color: g.color,
+    sw: 2.6
+  }), " \u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E43\u0E2B\u0E21\u0E48"), React.createElement("span", {
     style: {
       fontSize: 11,
       color: "var(--text-3)",
@@ -296,6 +325,7 @@ function FlowBoardView({
   currentUser,
   onOpenJob,
   onOpenLead,
+  onNewLead,
   onMoveStage,
   onPatchLead,
   onPatchPermit,
@@ -504,7 +534,8 @@ function FlowBoardView({
     g: g,
     count: groupCount(g),
     collapsed: !!collapsed[g.key],
-    onToggle: () => toggle(g.key)
+    onToggle: () => toggle(g.key),
+    onAdd: g.kind === "lead" && onNewLead ? onNewLead : null
   }, g.cols.map(c => {
     const cards = cardsOf(g, c.key);
     const ok = canDrop(g, c.key);

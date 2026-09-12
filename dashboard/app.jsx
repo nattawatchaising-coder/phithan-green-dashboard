@@ -169,6 +169,9 @@ function App() {
   const setLeadMode = React.useCallback((m) => { localStorage.setItem("pg-leadmode", m); setLeadModeRaw(m); }, []);
   /* ลูกค้าที่สั่งให้เปิดใบทันทีหลังสลับมามุมรายการ (กดมาจากภาพรวมงานขาย) */
   const [leadFocus, setLeadFocus] = React.useState(null);
+  /* สัญญาณ "เปิดฟอร์มลูกค้าใหม่" — เก็บเป็นเวลาที่กด เพราะกดซ้ำต้องเปิดได้อีก
+     พาไปหน้างานขายก่อนเสมอ ฟอร์มอยู่ที่นั่นที่เดียว ไม่แยกร่างไปอยู่หลายหน้า */
+  const [leadNew, setLeadNew] = React.useState(0);
   /* ชุดข้อมูลขออนุญาตที่เปิดอยู่ — อยู่ระดับแอป จะได้เปิดได้ทั้งจากบอร์ดและจากในใบงาน */
   const [permitReview, setPermitReview] = React.useState(null);
   /* ใบเสนอราคาที่เปิดอยู่ — เหตุผลเดียวกัน เปิดได้ทั้งจากหน้าลูกค้าสำรวจและจากในใบงาน */
@@ -642,6 +645,10 @@ function App() {
     };
   }, [omLive.tickets, omLive.sites, omLive.bySite, apptStore.appts, ecLive.claims, auth.current, role]);
 
+  const newLead = React.useCallback(() => {
+    setView("leads"); setLeadMode("list"); setLeadNew(Date.now());
+  }, []);
+
   const openExpense = React.useCallback((jobId) => {
     setSelected(null);
     setEcFocus({ jobId: jobId || null, at: Date.now() });
@@ -717,7 +724,7 @@ function App() {
           <LeadsView leadStore={leadStore} appts={apptStore.appts} jobs={jobs}
             users={auth.users} currentUser={auth.current} quotes={quoteStore.quotes}
             headRight={leadTabs}
-            focusId={leadFocus} onFocusDone={() => setLeadFocus(null)}
+            focusId={leadFocus} onFocusDone={() => setLeadFocus(null)} newAt={leadNew}
             onMenuOpen={() => setSidebarOpen(true)}
             onOpenSurvey={(can(role, "doSurvey") || can(role, "dispatch")) ? (pseudo) => openSurvey(pseudo) : null}
             onReport={(pseudo) => setReportJob(pseudo)}
@@ -725,7 +732,7 @@ function App() {
             onConvert={convertLead} canConvert={can(role, "addJob")} />
         ) : view === "saleskpi" ? (
           <SalesKpiView leads={leadStore.leads} quotes={quoteStore.quotes} users={auth.users} currentUser={auth.current}
-            onMenuOpen={() => setSidebarOpen(true)} />
+            onMenuOpen={() => setSidebarOpen(true)} onNewLead={can(role, "leads") ? newLead : null} />
         ) : view === "myschedule" ? (
           <MyScheduleView appts={apptStore.appts} jobs={jobs} leads={leadStore.leads} me={auth.current}
             onMenuOpen={() => setSidebarOpen(true)}
@@ -769,6 +776,7 @@ function App() {
               role={role} currentUser={auth.current}
               onOpenJob={openJob}
               onOpenLead={(l) => { setView("leads"); setLeadMode("list"); setLeadFocus(l.id); }}
+              onNewLead={can(role, "leads") ? newLead : null}
               onMoveStage={(id, s) => store.setStage(id, s)}
               onPatchLead={(id, f) => leadStore.patch(id, f)}
               onPatchPermit={patchPermit}

@@ -115,11 +115,16 @@ function SurveyView({ jobs, role, onOpen, onToggleSkip }) {
    อยู่คนละฐานกับงานติดตั้ง · ตกลงติดตั้งเมื่อไหร่ค่อยกด "แปลงเป็นงาน"
    ============================================================ */
 function LeadsView({ leadStore, appts, jobs, onMenuOpen, onOpenSurvey, onReport, onConvert, canConvert,
-                     users, currentUser, quotes, onOpenQuote, headRight, focusId, onFocusDone }) {
+                     users, currentUser, quotes, onOpenQuote, headRight, focusId, onFocusDone, newAt }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [filter, setFilter] = React.useState("all");
   const [edit, setEdit] = React.useState(null);
   const [log, setLog] = React.useState(null);      // ลูกค้าที่กำลังบันทึกการติดต่อ
+  /* สั่งเปิดฟอร์มลูกค้าใหม่มาจากหน้าอื่น (ปุ่มบนบอร์ดงาน / หน้ายอดขาย)
+     ส่งมาเป็นเวลา ไม่ใช่ true/false เพราะกดซ้ำครั้งที่สองต้องเปิดได้อีก */
+  React.useEffect(() => {
+    if (newAt) setEdit({ lead: leadStore.blank(), isNew: true });
+  }, [newAt]);
   const leads = leadStore.leads || [];
   /* ตัวกรองเปลี่ยนเป็น "ขั้นการขาย" — สถานะเดิม 3 อันบอกได้แค่จบแล้วหรือยัง
      ไม่ได้บอกว่าค้างตรงไหน ซึ่งเป็นสิ่งเดียวที่เซลล์ต้องรู้ตอนเปิดหน้านี้ */

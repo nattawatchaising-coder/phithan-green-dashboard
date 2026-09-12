@@ -801,7 +801,7 @@ function SalesBoardView({ leads, quotes, search, currentUser, onOpenLead, onPatc
 /* ============================================================
    ยอดขาย / KPI
    ============================================================ */
-function SalesKpiView({ leads, quotes, users, currentUser, onMenuOpen }) {
+function SalesKpiView({ leads, quotes, users, currentUser, onMenuOpen, onNewLead }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [month, setMonth] = React.useState(() => sToday10().slice(0, 7));   // "" = ทั้งหมด
 
@@ -912,7 +912,17 @@ function SalesKpiView({ leads, quotes, users, currentUser, onMenuOpen }) {
               <tbody>
                 {rows.length === 0 && (
                   <tr><td colSpan={8} style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>
-                    ยังไม่มีข้อมูลในช่วงนี้ — เพิ่มลูกค้าที่หน้า “ลูกค้าสำรวจ” แล้วระบุเจ้าของลูกค้า
+                    ยังไม่มีข้อมูลในช่วงนี้ — เพิ่มลูกค้าแล้วระบุเจ้าของลูกค้า
+                    {/* เดิมบอกให้ไปหน้าอื่น แต่หัวหน้า/แอดมินไม่มีเมนูนั้นในแถบซ้าย = ทางตัน
+                       จึงเปิดฟอร์มให้จากตรงนี้เลย */}
+                    {onNewLead && (
+                      <button onClick={onNewLead}
+                        style={{ marginLeft: 10, display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px",
+                          borderRadius: 99, border: "1px solid var(--primary)", background: "var(--primary)", color: "#fff",
+                          cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700 }}>
+                        <Icon name="plus" size={13} color="#fff" sw={2.6} /> ลูกค้าใหม่
+                      </button>
+                    )}
                   </td></tr>
                 )}
                 {rows.map((r) => {

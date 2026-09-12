@@ -232,6 +232,7 @@ function App() {
     setLeadModeRaw(m);
   }, []);
   const [leadFocus, setLeadFocus] = React.useState(null);
+  const [leadNew, setLeadNew] = React.useState(0);
   const [permitReview, setPermitReview] = React.useState(null);
   const [quoteOpen, setQuoteOpen] = React.useState(null);
   const [search, setSearch] = React.useState("");
@@ -831,6 +832,11 @@ function App() {
       expense: ec
     };
   }, [omLive.tickets, omLive.sites, omLive.bySite, apptStore.appts, ecLive.claims, auth.current, role]);
+  const newLead = React.useCallback(() => {
+    setView("leads");
+    setLeadMode("list");
+    setLeadNew(Date.now());
+  }, []);
   const openExpense = React.useCallback(jobId => {
     setSelected(null);
     setEcFocus({
@@ -977,6 +983,7 @@ function App() {
     headRight: leadTabs,
     focusId: leadFocus,
     onFocusDone: () => setLeadFocus(null),
+    newAt: leadNew,
     onMenuOpen: () => setSidebarOpen(true),
     onOpenSurvey: can(role, "doSurvey") || can(role, "dispatch") ? pseudo => openSurvey(pseudo) : null,
     onReport: pseudo => setReportJob(pseudo),
@@ -988,7 +995,8 @@ function App() {
     quotes: quoteStore.quotes,
     users: auth.users,
     currentUser: auth.current,
-    onMenuOpen: () => setSidebarOpen(true)
+    onMenuOpen: () => setSidebarOpen(true),
+    onNewLead: can(role, "leads") ? newLead : null
   }) : view === "myschedule" ? React.createElement(MyScheduleView, {
     appts: apptStore.appts,
     jobs: jobs,
@@ -1087,6 +1095,7 @@ function App() {
       setLeadMode("list");
       setLeadFocus(l.id);
     },
+    onNewLead: can(role, "leads") ? newLead : null,
     onMoveStage: (id, s) => store.setStage(id, s),
     onPatchLead: (id, f) => leadStore.patch(id, f),
     onPatchPermit: patchPermit,
