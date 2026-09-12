@@ -58,11 +58,11 @@ function userRoles(u) {
    viewAll ดูงานทั้งหมด · doSurvey ทำแบบสำรวจหน้างาน · dispatch จัดตารางสำรวจ
    design ออกแบบ/ออกไฟล์แบบ · permit เอกสารขออนุญาต · price เห็นราคา-ต้นทุน · leads หน้าลูกค้าสำรวจ */
 const DEFAULT_PERMS = {
-  admin:  { viewAll: 1, addJob: 1, editJob: 1, delJob: 1, stock: 1, manageUsers: 1, dispatch: 1, doSurvey: 1, design: 1, permit: 1, price: 1, leads: 1, om: 1 },
-  lead:   { viewAll: 1, addJob: 1, editJob: 1, delJob: 1, stock: 1,                 dispatch: 1, doSurvey: 1, design: 1, permit: 1, price: 1, leads: 1, om: 1 },
-  ee:     { viewAll: 1,            editJob: 1,            stock: 1,                 dispatch: 1, doSurvey: 1, design: 1, permit: 1,                    om: 1 },
+  admin:  { viewAll: 1, addJob: 1, editJob: 1, delJob: 1, stock: 1, manageUsers: 1, dispatch: 1, doSurvey: 1, design: 1, permit: 1, price: 1, leads: 1, om: 1, expense: 1, expenseApprove: 1, expensePay: 1 },
+  lead:   { viewAll: 1, addJob: 1, editJob: 1, delJob: 1, stock: 1,                 dispatch: 1, doSurvey: 1, design: 1, permit: 1, price: 1, leads: 1, om: 1, expense: 1, expenseApprove: 1 },
+  ee:     { viewAll: 1,            editJob: 1,            stock: 1,                 dispatch: 1, doSurvey: 1, design: 1, permit: 1,                    om: 1, expense: 1 },
   draft:  { viewAll: 1,            editJob: 1,            stock: 1,                                           design: 1 },
-  tech:   {                        editJob: 1,            stock: 1,                              doSurvey: 1,                                         om: 1 },
+  tech:   {                        editJob: 1,            stock: 1,                              doSurvey: 1,                                         om: 1, expense: 1 },
   permit: { viewAll: 1,            editJob: 1,                                                                            permit: 1 },
   sales:  { viewAll: 1, addJob: 1,                                                  dispatch: 1, doSurvey: 1,                       price: 1, leads: 1 },
 };
@@ -80,6 +80,9 @@ const PERM_LIST = [
   { key: "design",      th: "เขียนแบบ · 3D · ออกไฟล์ DXF",  desc: "เครื่องมือออกแบบและออกไฟล์แบบ" },
   { key: "permit",      th: "งานขออนุญาตการไฟฟ้า",          desc: "คิวงานขออนุญาต ตรวจงาน เดินสถานะ" },
   { key: "om",          th: "งานบริการหลังการขาย",        desc: "ทะเบียนประกัน · ตารางล้างแผง · ใบแจ้งซ่อม · ใบรายงานเข้าบริการ" },
+  { key: "expense",        th: "ส่งใบเบิกเงินหน้างาน", desc: "เบิกค่าซื้อของหน้างาน ค่าขนส่ง ค่าน้ำมัน — เห็นเฉพาะใบของตัวเอง" },
+  { key: "expenseApprove", th: "อนุมัติใบเบิกเงิน", desc: "เห็นใบเบิกของทุกคน อนุมัติ/ไม่อนุมัติ และดูยอดรายคน · อนุมัติใบของตัวเองไม่ได้เสมอ" },
+  { key: "expensePay",     th: "บันทึกจ่ายเงินคืน", desc: "กดว่าจ่ายเงินคืนพนักงานแล้ว — แยกจากคนอนุมัติตั้งใจ เป็นการคุมเงินสดขั้นพื้นฐาน" },
   { key: "stock",       th: "คลังสินค้า",                   desc: "ดูและตัดสต๊อก" },
   { key: "manageUsers", th: "จัดการผู้ใช้และสิทธิ์",          desc: "เพิ่ม/ลบบัญชี และแก้ตารางสิทธิ์นี้" },
 ];
@@ -213,7 +216,9 @@ function hasRole(roles, key) {
 }
 
 function blankUser() {
-  return { id: "u-" + Date.now().toString(36), name: "", username: "", pin: "", role: "tech", roles: ["tech"], techId: null, active: true };
+  return { id: "u-" + Date.now().toString(36), name: "", username: "", pin: "", role: "tech", roles: ["tech"], techId: null, active: true,
+    /* ใบเบิกเงินของคนนี้ส่งไปหาใคร (ว่าง = เข้ากองกลาง) และคนนี้อนุมัติได้ไม่เกินกี่บาท (0 = ไม่จำกัด) */
+    approverId: null, approveLimit: 0 };
 }
 
 /* ================================================================
@@ -624,11 +629,13 @@ const NOTIF_KINDS = {
   permit:  { icon: "file",   color: "#14B8A6", th: "ขออนุญาต" },
   assign:  { icon: "wrench", color: "#F59E0B", th: "มอบหมายงาน" },
   om:      { icon: "wrench", color: "#7C5CFC", th: "งานบริการหลังการขาย" },
+  expense: { icon: "wallet", color: "#0EA5E9", th: "ใบเบิกเงิน" },
   info:    { icon: "bell",   color: "#1B9B75", th: "แจ้งเตือน" },
 };
 function notifKindKey(n) {
   if (n && n.event && NOTIF_KINDS[n.event]) return n.event;
   if (n && n.type === "om") return "om";
+  if (n && n.type === "expense") return "expense";
   if (n && n.type === "assign") return "assign";
   if (n && n.type === "permit") return /ตีกลับ|แก้ไข/.test(n.title || "") ? "reject" : "permit";
   return "info";
@@ -1149,6 +1156,28 @@ function UserEditModal({ initial, existing, onSave, onClose }) {
                 <option value="">— เลือกพนักงาน —</option>
                 {SF.TECHS.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.role})</option>)}
               </select>
+            </AField>
+          )}
+          {/* ── ใบเบิกเงินหน้างาน ──
+              เส้นทางอนุมัติผูกกับ "ตัวคน" ไม่ใช่ตำแหน่ง เพราะหัวหน้าแต่ละทีมดูแลคนละชุด
+              วงเงินคือด่านที่สอง: หัวหน้าอนุมัติของจุกจิกได้เอง ก้อนใหญ่เด้งขึ้นแอดมิน */}
+          {can(f.roles, "expense") && (
+            <AField label="ใบเบิกเงิน — ส่งให้ใครอนุมัติ">
+              <select style={A_INPUT} value={f.approverId || ""} onChange={(e) => set("approverId", e.target.value || null)}>
+                <option value="">— ส่งเข้ากองกลาง (ใครที่มีสิทธิ์อนุมัติก็รับได้) —</option>
+                {existing.filter((u) => u.id !== f.id && u.active !== false && can(userRoles(u), "expenseApprove"))
+                  .map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
+            </AField>
+          )}
+          {can(f.roles, "expenseApprove") && (
+            <AField label="วงเงินที่อนุมัติได้เอง (บาท · 0 = ไม่จำกัด)">
+              <input style={Object.assign({}, A_INPUT, { fontFamily: "var(--mono)" })} inputMode="decimal"
+                value={f.approveLimit || ""} onChange={(e) => set("approveLimit", e.target.value.replace(/[^\d.]/g, ""))}
+                placeholder="เช่น 5000" />
+              <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 5, lineHeight: 1.5 }}>
+                ใบที่ยอดเกินวงเงินนี้จะกดอนุมัติไม่ได้ ต้องให้แอดมินอนุมัติแทน
+              </div>
             </AField>
           )}
           <AField label="สถานะบัญชี">

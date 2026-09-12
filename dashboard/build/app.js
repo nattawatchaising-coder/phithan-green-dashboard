@@ -52,6 +52,12 @@ const NAV = [{
   icon: "wrench",
   perm: "om"
 }, {
+  key: "expense",
+  th: "เบิกเงินหน้างาน",
+  en: "Expenses",
+  icon: "wallet",
+  perm: "expense"
+}, {
   key: "myschedule",
   th: "ตารางงานของฉัน",
   en: "My Schedule",
@@ -1053,6 +1059,11 @@ function App() {
     role: role,
     currentUser: auth.current,
     focus: omFocus
+  }), view === "expense" && React.createElement(window.ExpenseView, {
+    jobs: jobs,
+    users: auth.users,
+    role: role,
+    currentUser: auth.current
   }), view === "report" && React.createElement(ReportView, {
     jobs: filtered,
     onOpen: openJob

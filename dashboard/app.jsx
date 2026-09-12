@@ -19,6 +19,8 @@ const NAV = [
   { key: "daily",      th: "รายงานประจำวัน",   en: "Daily Report",  icon: "pen",      perm: "editJob" },
   /* งานบริการหลังการขาย — ทะเบียนประกัน · รอบล้างแผง · ใบแจ้งซ่อม · ใบรายงานเข้าบริการ */
   { key: "om",         th: "งานบริการหลังการขาย", en: "O&M",         icon: "wrench",   perm: "om" },
+  /* ใบเบิกเงินหน้างาน — ซื้อของหน้างาน · ค่าขนส่ง · ค่าใช้จ่ายอื่น และยอดค้างจ่ายรายคน */
+  { key: "expense",    th: "เบิกเงินหน้างาน",  en: "Expenses",     icon: "wallet",   perm: "expense" },
   { key: "myschedule", th: "ตารางงานของฉัน",   en: "My Schedule",   icon: "list",     own: true },
   { key: "calendar",   th: "ปฏิทินนัด",        en: "Calendar",      icon: "calendar" },
   { key: "stock",      th: "คลังสินค้า",       en: "Inventory",     icon: "box",      perm: "stock" },
@@ -715,6 +717,7 @@ function App() {
           {view === "daily" && <DailyView jobs={filtered} role={role} currentUser={auth.current} onOpen={(j) => setDailyJob(j)} />}
           {/* ทะเบียนบริการเป็นภาระผูกพันของบริษัท ไม่ใช่คิวงานของใครคนหนึ่ง จึงดูจากงานทั้งหมดที่ผู้ใช้เห็น */}
           {view === "om" && <window.OmView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} focus={omFocus} />}
+          {view === "expense" && <window.ExpenseView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} />}
           {view === "report" && <ReportView jobs={filtered} onOpen={openJob} />}
           {view === "survey" && <SurveyView jobs={filtered} role={role} onOpen={openSurvey}
             onToggleSkip={(can(role, "doSurvey") || can(role, "dispatch") || can(role, "editJob")) ? (j) => {

@@ -116,7 +116,10 @@ const DEFAULT_PERMS = {
     permit: 1,
     price: 1,
     leads: 1,
-    om: 1
+    om: 1,
+    expense: 1,
+    expenseApprove: 1,
+    expensePay: 1
   },
   lead: {
     viewAll: 1,
@@ -130,7 +133,9 @@ const DEFAULT_PERMS = {
     permit: 1,
     price: 1,
     leads: 1,
-    om: 1
+    om: 1,
+    expense: 1,
+    expenseApprove: 1
   },
   ee: {
     viewAll: 1,
@@ -140,7 +145,8 @@ const DEFAULT_PERMS = {
     doSurvey: 1,
     design: 1,
     permit: 1,
-    om: 1
+    om: 1,
+    expense: 1
   },
   draft: {
     viewAll: 1,
@@ -152,7 +158,8 @@ const DEFAULT_PERMS = {
     editJob: 1,
     stock: 1,
     doSurvey: 1,
-    om: 1
+    om: 1,
+    expense: 1
   },
   permit: {
     viewAll: 1,
@@ -212,6 +219,18 @@ const PERM_LIST = [{
   key: "om",
   th: "งานบริการหลังการขาย",
   desc: "ทะเบียนประกัน · ตารางล้างแผง · ใบแจ้งซ่อม · ใบรายงานเข้าบริการ"
+}, {
+  key: "expense",
+  th: "ส่งใบเบิกเงินหน้างาน",
+  desc: "เบิกค่าซื้อของหน้างาน ค่าขนส่ง ค่าน้ำมัน — เห็นเฉพาะใบของตัวเอง"
+}, {
+  key: "expenseApprove",
+  th: "อนุมัติใบเบิกเงิน",
+  desc: "เห็นใบเบิกของทุกคน อนุมัติ/ไม่อนุมัติ และดูยอดรายคน · อนุมัติใบของตัวเองไม่ได้เสมอ"
+}, {
+  key: "expensePay",
+  th: "บันทึกจ่ายเงินคืน",
+  desc: "กดว่าจ่ายเงินคืนพนักงานแล้ว — แยกจากคนอนุมัติตั้งใจ เป็นการคุมเงินสดขั้นพื้นฐาน"
 }, {
   key: "stock",
   th: "คลังสินค้า",
@@ -411,7 +430,9 @@ function blankUser() {
     role: "tech",
     roles: ["tech"],
     techId: null,
-    active: true
+    active: true,
+    approverId: null,
+    approveLimit: 0
   };
 }
 function useAuthStore() {
@@ -1277,6 +1298,11 @@ const NOTIF_KINDS = {
     color: "#7C5CFC",
     th: "งานบริการหลังการขาย"
   },
+  expense: {
+    icon: "wallet",
+    color: "#0EA5E9",
+    th: "ใบเบิกเงิน"
+  },
   info: {
     icon: "bell",
     color: "#1B9B75",
@@ -1286,6 +1312,7 @@ const NOTIF_KINDS = {
 function notifKindKey(n) {
   if (n && n.event && NOTIF_KINDS[n.event]) return n.event;
   if (n && n.type === "om") return "om";
+  if (n && n.type === "expense") return "expense";
   if (n && n.type === "assign") return "assign";
   if (n && n.type === "permit") return /ตีกลับ|แก้ไข/.test(n.title || "") ? "reject" : "permit";
   return "info";
@@ -2765,7 +2792,35 @@ function UserEditModal({
   }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E1E\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19 \u2014"), SF.TECHS.map(t => React.createElement("option", {
     key: t.id,
     value: t.id
-  }, t.name, " (", t.role, ")")))), React.createElement(AField, {
+  }, t.name, " (", t.role, ")")))), can(f.roles, "expense") && React.createElement(AField, {
+    label: "\u0E43\u0E1A\u0E40\u0E1A\u0E34\u0E01\u0E40\u0E07\u0E34\u0E19 \u2014 \u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E49\u0E43\u0E04\u0E23\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34"
+  }, React.createElement("select", {
+    style: A_INPUT,
+    value: f.approverId || "",
+    onChange: e => set("approverId", e.target.value || null)
+  }, React.createElement("option", {
+    value: ""
+  }, "\u2014 \u0E2A\u0E48\u0E07\u0E40\u0E02\u0E49\u0E32\u0E01\u0E2D\u0E07\u0E01\u0E25\u0E32\u0E07 (\u0E43\u0E04\u0E23\u0E17\u0E35\u0E48\u0E21\u0E35\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E01\u0E47\u0E23\u0E31\u0E1A\u0E44\u0E14\u0E49) \u2014"), existing.filter(u => u.id !== f.id && u.active !== false && can(userRoles(u), "expenseApprove")).map(u => React.createElement("option", {
+    key: u.id,
+    value: u.id
+  }, u.name)))), can(f.roles, "expenseApprove") && React.createElement(AField, {
+    label: "\u0E27\u0E07\u0E40\u0E07\u0E34\u0E19\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E44\u0E14\u0E49\u0E40\u0E2D\u0E07 (\u0E1A\u0E32\u0E17 \xB7 0 = \u0E44\u0E21\u0E48\u0E08\u0E33\u0E01\u0E31\u0E14)"
+  }, React.createElement("input", {
+    style: Object.assign({}, A_INPUT, {
+      fontFamily: "var(--mono)"
+    }),
+    inputMode: "decimal",
+    value: f.approveLimit || "",
+    onChange: e => set("approveLimit", e.target.value.replace(/[^\d.]/g, "")),
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 5000"
+  }), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      marginTop: 5,
+      lineHeight: 1.5
+    }
+  }, "\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E22\u0E2D\u0E14\u0E40\u0E01\u0E34\u0E19\u0E27\u0E07\u0E40\u0E07\u0E34\u0E19\u0E19\u0E35\u0E49\u0E08\u0E30\u0E01\u0E14\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E15\u0E49\u0E2D\u0E07\u0E43\u0E2B\u0E49\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E17\u0E19")), React.createElement(AField, {
     label: "\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E1A\u0E31\u0E0D\u0E0A\u0E35"
   }, React.createElement("button", {
     type: "button",
