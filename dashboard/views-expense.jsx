@@ -574,7 +574,7 @@ function EcPayModal({ person, claims, batches, currentUser, onClose, onConfirm }
 }
 
 /* ── ประวัติรอบจ่าย ── */
-function EcBatchList({ batches }) {
+function EcBatchList({ batches, onPrint }) {
   const rows = (batches || []).slice(0, 20);
   if (!rows.length) return null;
   return (
@@ -594,6 +594,14 @@ function EcBatchList({ batches }) {
           <span style={{ fontFamily: "var(--mono)", fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>
             {window.ecBaht(b.total)}
           </span>
+          {onPrint && (
+            <button onClick={() => onPrint(b)} title="ใบสำคัญจ่าย A4"
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 11px", borderRadius: 9,
+                border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+                fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>
+              <Icon name="file" size={13} color="var(--text-3)" /> ใบสำคัญจ่าย
+            </button>
+          )}
         </div>
       ))}
     </div>
@@ -712,6 +720,7 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
   const [newJob, setNewJob] = React.useState("");
   const [jobFilter, setJobFilter] = React.useState("");   /* เจาะดูเฉพาะงานเดียว มาจากปุ่มในลิ้นชักหรือตารางรายไซต์ */
   const [payFor, setPayFor] = React.useState(null);      /* คนที่กำลังจะปิดรอบจ่ายให้ */
+  const [voucher, setVoucher] = React.useState(null);    /* รอบจ่ายที่กำลังเปิดใบสำคัญจ่าย */
   const batchStore = window.useEcBatches();
 
   const canApprove = window.ecCanApprove(role);
@@ -783,15 +792,36 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
       window.ecNotify({ toUserId: batch.toId,
         title: "จ่ายเงินคืนแล้ว · รอบ " + batch.no,
         body: window.ecBaht(batch.total) + " บาท · " + batch.count + " ใบ" + (batch.ref ? " · อ้างอิง " + batch.ref : "") });
+      /* เปิดใบสำคัญจ่ายให้ทันทีหลังปิดรอบ — บัญชีต้องได้กระดาษที่มีลายเซ็นผู้รับเงินเก็บเข้าแฟ้ม
+         ถ้าไม่เด้งให้ตรงนี้ คนจ่ายจะลืมพิมพ์ แล้วต้องไล่ย้อนหาทีหลัง */
+      setVoucher(batch);
     }
     return ok;
   });
+
+  /* ใบในรอบหาจากรายการที่ถืออยู่แล้ว ไม่ต้องอ่านฐานข้อมูลซ้ำ
+     ใบที่ถูกลบไปแล้วจะหาไม่เจอ — ใบสำคัญจ่ายขึ้นหมายเหตุกำกับไว้เอง */
+  const voucherClaims = React.useMemo(() => {
+    if (!voucher) return [];
+    const ids = voucher.claimIds || [];
+    return ids.map((id) => (store.claims || []).find((c) => c.id === id)).filter(Boolean);
+  }, [voucher, store.claims]);
 
   const payList = React.useMemo(() => (payFor ? window.ecPayable(all, payFor.id) : []), [all, payFor]);
 
   const cur = (store.claims || []).find((c) => c.id === open) || null;
   const doneJobs = React.useMemo(() => (jobs || []).slice()
     .sort((a, b) => String(a.code || "").localeCompare(String(b.code || ""))), [jobs]);
+
+  /* ออก Excel ตามสิ่งที่เห็นอยู่จริง ไม่ใช่ทั้งฐานข้อมูล — คนกดคาดหวังว่าไฟล์จะตรงกับหน้าจอ
+     แท็บสรุป (รายคน/รายไซต์) ไม่มีรายการใบอยู่บนจอ จึงออกทุกใบที่คนนี้มีสิทธิ์เห็น */
+  const doXlsx = () => {
+    const wide = tab === "person" || tab === "job";
+    const scope = [wide ? "ทุกใบที่มีสิทธิ์เห็น" : (TABS.find((t) => t[0] === tab) || [])[1] || "",
+      jobFilter && !wide ? "เฉพาะงาน " + ((jobById[jobFilter] || {}).code || jobFilter) : "",
+      q.trim() && !wide ? "คำค้น “" + q.trim() + "”" : ""].filter(Boolean).join(" · ");
+    window.ecExportXlsx(wide ? all : list, { scope: scope, byName: (currentUser || {}).name || "" });
+  };
 
   const TABS = [["mine", "ใบของฉัน", "pen", roll.mineOpen]]
     .concat(canApprove ? [["inbox", "รออนุมัติ", "check", roll.waitingMine]] : [])
@@ -849,6 +879,12 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
               color: tab === k ? "var(--primary-dark)" : "var(--text-3)" }}>{n}</span>}
           </button>
         ))}
+        <button onClick={doXlsx} title="ออกไฟล์ Excel ตามรายการที่เห็นอยู่"
+          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px",
+            borderRadius: 99, border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+            fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>
+          <Icon name="file" size={14} color="var(--text-3)" /> ออก Excel
+        </button>
       </div>
 
       {tab === "person" && (
@@ -856,7 +892,7 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
           <EcPersonTable claims={all} users={users} canPay={canPay}
             onPick={(r) => { setJobFilter(""); setQ(r.name || ""); setTab("all"); }}
             onPay={(r) => setPayFor(r)} />
-          <EcBatchList batches={batchStore.batches} />
+          <EcBatchList batches={batchStore.batches} onPrint={setVoucher} />
         </div>
       )}
       {tab === "job" && <EcJobTable claims={all} jobs={jobs}
@@ -893,6 +929,10 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
             )}
           </div>
         </React.Fragment>
+      )}
+
+      {voucher && (
+        <window.EcVoucherPaper batch={voucher} claims={voucherClaims} onClose={() => setVoucher(null)} />
       )}
 
       {payFor && (

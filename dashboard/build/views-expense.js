@@ -1221,7 +1221,8 @@ function EcPayModal({
   }, busy ? "กำลังบันทึก..." : "ยืนยันว่าโอนเงินแล้ว " + window.ecBaht(total) + " บาท"))));
 }
 function EcBatchList({
-  batches
+  batches,
+  onPrint
 }) {
   const rows = (batches || []).slice(0, 20);
   if (!rows.length) return null;
@@ -1278,7 +1279,28 @@ function EcBatchList({
       fontWeight: 800,
       color: "var(--text-1)"
     }
-  }, window.ecBaht(b.total)))));
+  }, window.ecBaht(b.total)), onPrint && React.createElement("button", {
+    onClick: () => onPrint(b),
+    title: "\u0E43\u0E1A\u0E2A\u0E33\u0E04\u0E31\u0E0D\u0E08\u0E48\u0E32\u0E22 A4",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      padding: "6px 11px",
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 13,
+    color: "var(--text-3)"
+  }), " \u0E43\u0E1A\u0E2A\u0E33\u0E04\u0E31\u0E0D\u0E08\u0E48\u0E32\u0E22"))));
 }
 function EcJobTable({
   claims,
@@ -1544,6 +1566,7 @@ function ExpenseView({
   const [newJob, setNewJob] = React.useState("");
   const [jobFilter, setJobFilter] = React.useState("");
   const [payFor, setPayFor] = React.useState(null);
+  const [voucher, setVoucher] = React.useState(null);
   const batchStore = window.useEcBatches();
   const canApprove = window.ecCanApprove(role);
   const canPay = window.ecCanPay(role);
@@ -1610,12 +1633,26 @@ function ExpenseView({
         title: "จ่ายเงินคืนแล้ว · รอบ " + batch.no,
         body: window.ecBaht(batch.total) + " บาท · " + batch.count + " ใบ" + (batch.ref ? " · อ้างอิง " + batch.ref : "")
       });
+      setVoucher(batch);
     }
     return ok;
   });
+  const voucherClaims = React.useMemo(() => {
+    if (!voucher) return [];
+    const ids = voucher.claimIds || [];
+    return ids.map(id => (store.claims || []).find(c => c.id === id)).filter(Boolean);
+  }, [voucher, store.claims]);
   const payList = React.useMemo(() => payFor ? window.ecPayable(all, payFor.id) : [], [all, payFor]);
   const cur = (store.claims || []).find(c => c.id === open) || null;
   const doneJobs = React.useMemo(() => (jobs || []).slice().sort((a, b) => String(a.code || "").localeCompare(String(b.code || ""))), [jobs]);
+  const doXlsx = () => {
+    const wide = tab === "person" || tab === "job";
+    const scope = [wide ? "ทุกใบที่มีสิทธิ์เห็น" : (TABS.find(t => t[0] === tab) || [])[1] || "", jobFilter && !wide ? "เฉพาะงาน " + ((jobById[jobFilter] || {}).code || jobFilter) : "", q.trim() && !wide ? "คำค้น “" + q.trim() + "”" : ""].filter(Boolean).join(" · ");
+    window.ecExportXlsx(wide ? all : list, {
+      scope: scope,
+      byName: (currentUser || {}).name || ""
+    });
+  };
   const TABS = [["mine", "ใบของฉัน", "pen", roll.mineOpen]].concat(canApprove ? [["inbox", "รออนุมัติ", "check", roll.waitingMine]] : []).concat(canApprove ? [["person", "ยอดรายคน", "users", 0], ["job", "ต้นทุนรายไซต์", "sun", 0]] : []).concat([["all", canApprove ? "ทั้งหมด" : "ใบที่เกี่ยวกับฉัน", "list", 0]]);
   return React.createElement("div", {
     style: {
@@ -1746,7 +1783,29 @@ function ExpenseView({
       fontWeight: 800,
       color: tab === k ? "var(--primary-dark)" : "var(--text-3)"
     }
-  }, n)))), tab === "person" && React.createElement("div", null, React.createElement(EcPersonTable, {
+  }, n))), React.createElement("button", {
+    onClick: doXlsx,
+    title: "\u0E2D\u0E2D\u0E01\u0E44\u0E1F\u0E25\u0E4C Excel \u0E15\u0E32\u0E21\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E17\u0E35\u0E48\u0E40\u0E2B\u0E47\u0E19\u0E2D\u0E22\u0E39\u0E48",
+    style: {
+      marginLeft: "auto",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "8px 14px",
+      borderRadius: 99,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 14,
+    color: "var(--text-3)"
+  }), " \u0E2D\u0E2D\u0E01 Excel")), tab === "person" && React.createElement("div", null, React.createElement(EcPersonTable, {
     claims: all,
     users: users,
     canPay: canPay,
@@ -1757,7 +1816,8 @@ function ExpenseView({
     },
     onPay: r => setPayFor(r)
   }), React.createElement(EcBatchList, {
-    batches: batchStore.batches
+    batches: batchStore.batches,
+    onPrint: setVoucher
   })), tab === "job" && React.createElement(EcJobTable, {
     claims: all,
     jobs: jobs,
@@ -1819,7 +1879,11 @@ function ExpenseView({
       fontSize: 13,
       color: "var(--text-3)"
     }
-  }, jobFilter ? "งานนี้ยังไม่มีใบเบิก — กด “เปิดใบเบิก” ด้านบนได้เลย" : q ? "ไม่พบใบเบิกที่ตรงกับคำค้น" : tab === "inbox" ? "ไม่มีใบที่รอคุณอนุมัติ" : tab === "mine" ? "ยังไม่มีใบเบิกของคุณ — กด “เปิดใบเบิก” ด้านบน" : "ยังไม่มีใบเบิกในระบบ"))), payFor && React.createElement(EcPayModal, {
+  }, jobFilter ? "งานนี้ยังไม่มีใบเบิก — กด “เปิดใบเบิก” ด้านบนได้เลย" : q ? "ไม่พบใบเบิกที่ตรงกับคำค้น" : tab === "inbox" ? "ไม่มีใบที่รอคุณอนุมัติ" : tab === "mine" ? "ยังไม่มีใบเบิกของคุณ — กด “เปิดใบเบิก” ด้านบน" : "ยังไม่มีใบเบิกในระบบ"))), voucher && React.createElement(window.EcVoucherPaper, {
+    batch: voucher,
+    claims: voucherClaims,
+    onClose: () => setVoucher(null)
+  }), payFor && React.createElement(EcPayModal, {
     person: payFor,
     claims: payList,
     batches: batchStore.batches,
