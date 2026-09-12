@@ -205,8 +205,26 @@ function drDocNo(job, date, allDates) {
 }
 
 /* ── สิทธิ์ ──
-   ช่างเขียน หัวหน้า/แอดมินอนุมัติ · อนุมัติแล้วล็อกทั้งใบ ไม่งั้นเอกสารที่เซ็นไปแล้วถูกแก้ย้อนหลังได้ */
-const drCanApprove = (role) => window.hasRole(role, "lead") || window.hasRole(role, "admin");
+   ช่างเขียน · วิศวกรผู้รับผิดชอบ "งานใบนั้น" เป็นคนตรวจและเซ็นอนุมัติ · อนุมัติแล้วล็อกทั้งใบ
+   ไม่งั้นเอกสารที่เซ็นไปแล้วถูกแก้ย้อนหลังได้
+
+   ดูที่ job.eeId ไม่ใช่ดูแค่ตำแหน่ง — วิศวกรคนอื่นที่ไม่ได้คุมงานนี้ไม่ควรเซ็นรับรองงานที่ตัวเองไม่ได้ตาม
+   แอดมินผ่านได้เสมอ เพราะต้องมีคนแก้ทางตันได้เมื่อวิศวกรลาออก/ถูกปิดบัญชี
+   งานที่ยังไม่ระบุวิศวกรจะไม่มีใครอนุมัติได้นอกจากแอดมิน — ตั้งใจให้สะดุด แล้วขึ้นป้ายเตือนให้ไปใส่ชื่อ
+   ไม่ใช่ปล่อยให้ใครก็ได้เซ็นแทน */
+const drCanApprove = (role, job, user, rec) => {
+  if (window.hasRole(role, "admin")) return true;
+  const uid = (user || {}).id || "";
+  if (!uid || !job || !job.eeId || job.eeId !== uid) return false;
+  /* คนเขียนกับคนอนุมัติต้องเป็นคนละคน — ลายเซ็นสองช่องบนใบเดียวกันจะไม่มีความหมายถ้าเป็นคนเดียวกัน
+     ยกเว้นงานที่ระบุไว้ว่าวิศวกรลงหน้างานเองด้วย (eeIsTech) ซึ่งเป็นคนละคนไม่ได้อยู่แล้ว */
+  if (rec && rec.byId && rec.byId === uid && !job.eeIsTech) return false;
+  return true;
+};
+/* งานที่ยังไม่ได้ระบุวิศวกร — ใบที่ส่งไปจะไม่มีใครรับ ต้องบอกให้เห็นตั้งแต่ตอนเขียน */
+const drNoEe = (job) => !((job || {}).eeId);
+/* วิศวกรที่ลงหน้างานเองด้วย — เขียนใบเองแล้วเซ็นอนุมัติเองได้ในงานนั้น */
+const drEeIsTech = (job) => !!((job || {}).eeIsTech);
 const drCanEdit = (role, rec) => {
   if (!window.can(role, "editJob")) return false;
   return !(rec && rec.status === "approved");
@@ -430,5 +448,5 @@ Object.assign(window, {
   drToday, drISO, drAddDays, drDateTH, drShort, drPad2, drStamp, drSignDay, drSignTime, drLocalDay,
   DR_WEATHER, drWeatherOf, DR_STATUS, drStatusOf, DR_MANPOWER, DR_JSA, DR_CLEAN,
   drWhaSteps, drHomeSteps, drIsBoardSteps, drRollup, drWeightSum, drModeOf, drDocNo, drBlank,
-  drCanApprove, drCanEdit, drCanDelete, drDeleteDay, drPrevOf, drDayState,
+  drCanApprove, drNoEe, drEeIsTech, drCanEdit, drCanDelete, drDeleteDay, drPrevOf, drDayState,
 });

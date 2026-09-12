@@ -1413,6 +1413,22 @@ function DetailDrawer({
     size: 24,
     showName: true
   })), React.createElement(InfoRow, {
+    label: "\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A"
+  }, job.eeName ? React.createElement("span", null, job.eeName, job.eeIsTech && React.createElement("span", {
+    style: {
+      marginLeft: 7,
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "var(--primary-dark)",
+      background: "var(--primary-soft)",
+      borderRadius: 99,
+      padding: "2px 8px"
+    }
+  }, "\u0E25\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19\u0E40\u0E2D\u0E07\u0E14\u0E49\u0E27\u0E22")) : React.createElement("span", {
+    style: {
+      color: "#F59E0B"
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38")), React.createElement(InfoRow, {
     label: "\u0E40\u0E0B\u0E25\u0E25\u0E4C\u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19"
   }, job.salesName ? job.salesName : React.createElement("span", {
     style: {

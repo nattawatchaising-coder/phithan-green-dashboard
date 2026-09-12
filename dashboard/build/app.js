@@ -1069,7 +1069,9 @@ function App() {
     jobs: filtered,
     role: role,
     currentUser: auth.current,
-    onOpen: j => setDailyJob(j)
+    onOpen: (j, d) => setDailyJob(d ? Object.assign({}, j, {
+      _openDate: d
+    }) : j)
   }), view === "om" && React.createElement(window.OmView, {
     jobs: jobs,
     users: auth.users,
@@ -1230,6 +1232,8 @@ function App() {
     job: jobs.find(x => x.id === dailyJob.id) || dailyJob,
     role: role,
     currentUser: auth.current,
+    onNotify: notif.addNotif,
+    openDate: dailyJob._openDate || "",
     onClose: () => setDailyJob(null)
   }), form && React.createElement(JobForm, {
     initial: form.job,

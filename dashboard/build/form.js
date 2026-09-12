@@ -81,6 +81,19 @@ function JobForm({
       salesName: u ? u.name : ""
     });
   });
+  const engineers = React.useMemo(() => (users || []).filter(u => u.active !== false && window.hasRole && (window.hasRole(window.userRoles(u), "ee") || window.hasRole(window.userRoles(u), "admin"))).map(u => ({
+    id: u.id,
+    name: u.name || u.username || "—",
+    techId: u.techId || null
+  })), [users]);
+  const setEe = id => setF(p => {
+    const u = engineers.find(x => x.id === id);
+    return Object.assign({}, p, {
+      eeId: id || "",
+      eeName: u ? u.name : "",
+      eeIsTech: id ? !!p.eeIsTech : false
+    });
+  });
   const setStageField = (k, which, v) => setF(p => {
     const prev = p.stageDates && p.stageDates[k];
     const cur = prev && typeof prev === "object" ? prev : {
@@ -448,7 +461,73 @@ function JobForm({
   }, f.salesName || f.salesId), sellers.map(u => React.createElement("option", {
     key: u.id,
     value: u.id
-  }, u.name)))), React.createElement("div", {
+  }, u.name)))), React.createElement(Field, {
+    label: "\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A"
+  }, React.createElement("select", {
+    style: inputStyle,
+    value: f.eeId || "",
+    onChange: e => setEe(e.target.value)
+  }, React.createElement("option", {
+    value: ""
+  }, "\u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38 \u2014"), f.eeId && !engineers.some(x => x.id === f.eeId) && React.createElement("option", {
+    value: f.eeId
+  }, f.eeName || f.eeId), engineers.map(u => React.createElement("option", {
+    key: u.id,
+    value: u.id
+  }, u.name)))), React.createElement(Field, {
+    label: "\u0E1A\u0E17\u0E1A\u0E32\u0E17\u0E02\u0E2D\u0E07\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23\u0E43\u0E19\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49"
+  }, React.createElement("label", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+      minHeight: 40,
+      opacity: f.eeId ? 1 : 0.5,
+      cursor: f.eeId ? "pointer" : "default"
+    }
+  }, React.createElement("input", {
+    type: "checkbox",
+    checked: !!f.eeIsTech,
+    disabled: !f.eeId,
+    onChange: e => set("eeIsTech", e.target.checked),
+    style: {
+      width: 17,
+      height: 17,
+      accentColor: "var(--primary)",
+      cursor: "inherit"
+    }
+  }), React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-2)",
+      lineHeight: 1.35
+    }
+  }, "\u0E25\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19\u0E40\u0E2D\u0E07\u0E14\u0E49\u0E27\u0E22 \u2014 \u0E40\u0E02\u0E35\u0E22\u0E19\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E44\u0E14\u0E49 \u0E41\u0E25\u0E30\u0E40\u0E0B\u0E47\u0E19\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E43\u0E1A\u0E02\u0E2D\u0E07\u0E15\u0E31\u0E27\u0E40\u0E2D\u0E07\u0E44\u0E14\u0E49"))), !f.eeId && React.createElement("div", {
+    style: {
+      gridColumn: "1 / -1",
+      display: "flex",
+      alignItems: "flex-start",
+      gap: 8,
+      border: "1px solid #F59E0B55",
+      background: "#F59E0B14",
+      borderRadius: 11,
+      padding: "9px 12px"
+    }
+  }, React.createElement(Icon, {
+    name: "alert",
+    size: 15,
+    color: "#F59E0B",
+    style: {
+      flexShrink: 0,
+      marginTop: 1
+    }
+  }), React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-2)",
+      lineHeight: 1.45
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23 \u2014 \u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E08\u0E33\u0E27\u0E31\u0E19\u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E08\u0E30\u0E2A\u0E48\u0E07\u0E44\u0E1B\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E04\u0E23\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E44\u0E14\u0E49 (\u0E19\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19)")), React.createElement("div", {
     style: {
       gridColumn: "1 / -1"
     }

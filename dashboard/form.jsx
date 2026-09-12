@@ -49,6 +49,21 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
     const u = sellers.find((x) => x.id === id);
     return Object.assign({}, p, { salesId: id || "", salesName: u ? u.name : "" });
   });
+  /* วิศวกรผู้รับผิดชอบ — คนตรวจและเซ็นอนุมัติรายงานประจำวันของงานนี้
+     เลือกจากบัญชีผู้ใช้ ไม่ใช่ตาราง techs เพราะคนอนุมัติต้องล็อกอินและมีลายเซ็นของตัวเอง
+     แอดมินอยู่ในรายการด้วย บริษัทเล็กมักมีคนคุมงานคนเดียวที่ถือสิทธิ์แอดมินอยู่แล้ว */
+  const engineers = React.useMemo(() => (users || [])
+    .filter((u) => u.active !== false && window.hasRole &&
+      (window.hasRole(window.userRoles(u), "ee") || window.hasRole(window.userRoles(u), "admin")))
+    .map((u) => ({ id: u.id, name: u.name || u.username || "—", techId: u.techId || null })), [users]);
+  const setEe = (id) => setF((p) => {
+    const u = engineers.find((x) => x.id === id);
+    return Object.assign({}, p, {
+      eeId: id || "", eeName: u ? u.name : "",
+      /* ล้างงานเองเมื่อถอดวิศวกรออก ไม่งั้นค้างเป็น true ในงานที่ไม่มีวิศวกรแล้ว */
+      eeIsTech: id ? !!p.eeIsTech : false,
+    });
+  });
   // stageDates[key] = { start, end } — รองรับค่าเก่าที่เป็น string (= วันเสร็จ)
   const setStageField = (k, which, v) => setF((p) => {
     const prev = p.stageDates && p.stageDates[k];
@@ -191,6 +206,37 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
                   {sellers.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
               </Field>
+              <Field label="วิศวกรผู้รับผิดชอบ">
+                <select style={inputStyle} value={f.eeId || ""} onChange={(e) => setEe(e.target.value)}>
+                  <option value="">— ยังไม่ระบุ —</option>
+                  {/* วิศวกรที่ถูกปิดบัญชี/ย้ายตำแหน่งไปแล้ว ต้องยังเห็นชื่อเดิมค้างอยู่ ไม่ใช่กลายเป็นไม่ระบุ */}
+                  {f.eeId && !engineers.some((x) => x.id === f.eeId) && (
+                    <option value={f.eeId}>{f.eeName || f.eeId}</option>
+                  )}
+                  {engineers.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                </select>
+              </Field>
+              <Field label="บทบาทของวิศวกรในงานนี้">
+                {/* บางงานวิศวกรลงไปทำเองด้วย ถ้าไม่เปิดข้อนี้เขาจะเขียนรายงานใบที่ตัวเองต้องอนุมัติไม่ได้ */}
+                <label style={{ display: "flex", alignItems: "center", gap: 9, minHeight: 40,
+                  opacity: f.eeId ? 1 : 0.5, cursor: f.eeId ? "pointer" : "default" }}>
+                  <input type="checkbox" checked={!!f.eeIsTech} disabled={!f.eeId}
+                    onChange={(e) => set("eeIsTech", e.target.checked)}
+                    style={{ width: 17, height: 17, accentColor: "var(--primary)", cursor: "inherit" }} />
+                  <span style={{ fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.35 }}>
+                    ลงหน้างานเองด้วย — เขียนรายงานได้ และเซ็นอนุมัติใบของตัวเองได้
+                  </span>
+                </label>
+              </Field>
+              {!f.eeId && (
+                <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "flex-start", gap: 8,
+                  border: "1px solid #F59E0B55", background: "#F59E0B14", borderRadius: 11, padding: "9px 12px" }}>
+                  <Icon name="alert" size={15} color="#F59E0B" style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.45 }}>
+                    ยังไม่ระบุวิศวกร — รายงานประจำวันของงานนี้จะส่งไปโดยไม่มีใครอนุมัติได้ (นอกจากแอดมิน)
+                  </span>
+                </div>
+              )}
               <div style={{ gridColumn: "1 / -1" }}>
                 <Field label="ช่างผู้รับผิดชอบ">
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>

@@ -1115,11 +1115,13 @@ function DailyReportModal({
   job,
   role,
   currentUser,
-  onClose
+  onClose,
+  onNotify,
+  openDate
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const store = window.useDailyReports(job ? job.id : null);
-  const [date, setDate] = React.useState(window.drToday);
+  const [date, setDate] = React.useState(() => openDate || window.drToday());
   const [form, setForm] = React.useState(null);
   const [paper, setPaper] = React.useState(false);
   const sigs = window.useDailySigns(job ? job.id : null, date);
@@ -1139,7 +1141,15 @@ function DailyReportModal({
   }, [job ? job.id : null, date, saved ? saved.updatedAt : null]);
   React.useEffect(() => setDelAsk(false), [date]);
   const locked = !window.drCanEdit(role, form);
-  const canApprove = window.drCanApprove(role);
+  const canApprove = window.drCanApprove(role, job, currentUser, form);
+  const noEe = window.drNoEe(job);
+  const whyNoApprove = React.useMemo(() => {
+    if (canApprove || !form || form.status !== "sent") return "";
+    if (noEe) return "งานนี้ยังไม่ระบุวิศวกรผู้รับผิดชอบ — ไปใส่ชื่อในใบงานก่อน จึงจะมีคนอนุมัติได้";
+    const uid = (currentUser || {}).id || "";
+    if (uid && job.eeId === uid && form.byId === uid) return "ใบนี้คุณเป็นคนส่งเอง — ถ้าคุณลงหน้างานงานนี้เองด้วย ให้เปิด “ลงหน้างานเองด้วย” ในใบงาน จึงจะเซ็นอนุมัติใบตัวเองได้";
+    return "รอ" + (job.eeName ? "วิศวกร " + job.eeName : "วิศวกรผู้รับผิดชอบ") + "ตรวจและเซ็นอนุมัติ";
+  }, [canApprove, form && form.status, form && form.byId, noEe, job && job.eeId, job && job.eeName, currentUser && currentUser.id]);
   const canDelete = window.drCanDelete(role);
   const prev = window.drPrevOf(store.byDate, date);
   const isProject = form && form.mode === "project";
@@ -1166,6 +1176,18 @@ function DailyReportModal({
       byId: (currentUser || {}).id || null,
       byName: (currentUser || {}).name || ""
     }));
+    const eeId = (job || {}).eeId || "";
+    if (onNotify && eeId && eeId !== ((currentUser || {}).id || "")) {
+      onNotify({
+        toUserId: eeId,
+        type: "daily",
+        event: "sent",
+        jobId: job.id,
+        jobName: job.name,
+        title: "รายงานประจำวันรออนุมัติ",
+        body: [job.code, window.drDateTH(date), "โดย " + ((currentUser || {}).name || "ช่าง")].filter(Boolean).join(" · ")
+      });
+    }
   };
   const doApprove = () => {
     store.save(date, Object.assign({}, form, {
@@ -1188,7 +1210,7 @@ function DailyReportModal({
       then: then
     });
   };
-  const send = () => needSign("by", "ลายเซ็นผู้บันทึก", "เซ็นแล้วระบบจะส่งใบนี้ให้หัวหน้าอนุมัติทันที", doSend);
+  const send = () => needSign("by", "ลายเซ็นผู้บันทึก", "เซ็นแล้วระบบจะส่งใบนี้ให้" + ((job || {}).eeName ? "วิศวกร " + job.eeName : "วิศวกรผู้รับผิดชอบ") + "อนุมัติทันที", doSend);
   const approve = () => needSign("app", "ลายเซ็นผู้อนุมัติ", "เซ็นแล้วระบบจะอนุมัติและล็อกใบนี้ทันที", doApprove);
   const doDelete = () => {
     clearTimeout(timer.current);
@@ -1977,6 +1999,7 @@ function DailyReportModal({
     color: "var(--primary-dark)"
   }), " \u0E14\u0E39\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19 \xB7 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF"), !locked && form.status !== "sent" && React.createElement("button", {
     onClick: send,
+    title: noEe ? "งานนี้ยังไม่ระบุวิศวกรผู้รับผิดชอบ" : "ส่งให้ " + (job.eeName || "วิศวกร"),
     style: {
       display: "inline-flex",
       alignItems: "center",
@@ -1995,7 +2018,24 @@ function DailyReportModal({
     name: "check",
     size: 15,
     color: "#fff"
-  }), " \u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E49\u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32"), canApprove && form.status === "sent" && React.createElement("button", {
+  }), " \u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E49\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23"), !canApprove && whyNoApprove && React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      maxWidth: 380,
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      lineHeight: 1.4
+    }
+  }, React.createElement(Icon, {
+    name: "alert",
+    size: 14,
+    color: noEe ? "#F59E0B" : "var(--text-3)",
+    style: {
+      flexShrink: 0
+    }
+  }), whyNoApprove), canApprove && form.status === "sent" && React.createElement("button", {
     onClick: approve,
     style: {
       display: "inline-flex",
@@ -2717,6 +2757,371 @@ function DailyPaper({
     }
   }, "\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E19\u0E35\u0E49\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 flash+solar \xB7 ", docNo, " \xB7 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E21\u0E37\u0E48\u0E2D ", window.drDateTH(window.drToday()))));
 }
+const DR_GRID_CELL = {
+  approved: "#10B981",
+  sent: "#F59E0B",
+  draft: "#94A3B8"
+};
+function DrGrid({
+  jobs,
+  all,
+  days,
+  onOpen,
+  onPickJob,
+  sentOnly
+}) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const today = window.drToday();
+  const cols = React.useMemo(() => {
+    const out = [];
+    for (let i = days - 1; i >= 0; i--) out.push(window.drAddDays(today, -i));
+    return out;
+  }, [days, today]);
+  const scroller = React.useRef(null);
+  React.useEffect(() => {
+    const el = scroller.current;
+    if (el) el.scrollLeft = el.scrollWidth;
+  }, [days, jobs.length]);
+  const rows = React.useMemo(() => {
+    const out = (jobs || []).map(j => {
+      const byDate = (all || {})[j.id] || {};
+      const cells = cols.map(d => ({
+        d,
+        rec: byDate[d] || null
+      }));
+      const written = cells.filter(c => c.rec).length;
+      const sent = cells.filter(c => c.rec && c.rec.status === "sent").length;
+      let last = null;
+      for (let i = cells.length - 1; i >= 0; i--) if (cells[i].rec) {
+        last = cells[i];
+        break;
+      }
+      return {
+        job: j,
+        cells,
+        written,
+        sent,
+        last
+      };
+    }).filter(r => r.job.stage === "install" || r.written);
+    const use = sentOnly ? out.filter(r => r.sent) : out;
+    use.sort((a, b) => b.sent - a.sent || a.written - b.written || String(a.job.code || "").localeCompare(String(b.job.code || "")));
+    return use;
+  }, [jobs, all, cols, sentOnly]);
+  const cw = isMobile ? 17 : 21;
+  const nameW = isMobile ? 132 : 200;
+  if (!rows.length) return React.createElement("div", {
+    style: {
+      padding: 22,
+      textAlign: "center",
+      fontSize: 12.5,
+      color: "var(--text-3)"
+    }
+  }, sentOnly ? "ไม่มีใบที่รออนุมัติในช่วงนี้" : "ไม่มีงานที่ต้องเขียนรายงานในช่วงนี้");
+  return React.createElement("div", {
+    ref: scroller,
+    style: {
+      overflowX: "auto"
+    }
+  }, React.createElement("div", {
+    style: {
+      minWidth: nameW + cols.length * cw + 108,
+      width: "max-content"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "flex-end",
+      gap: 0,
+      padding: "0 12px 6px",
+      borderBottom: "1px solid var(--border)"
+    }
+  }, React.createElement("div", {
+    style: {
+      width: nameW,
+      flexShrink: 0,
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "var(--text-3)",
+      position: "sticky",
+      left: 0,
+      background: "var(--surface2)",
+      zIndex: 2
+    }
+  }, "\u0E07\u0E32\u0E19"), cols.map(d => {
+    const dt = new Date(d + "T00:00:00");
+    const mark = dt.getDay() === 1 || dt.getDate() === 1;
+    return React.createElement("div", {
+      key: d,
+      style: {
+        width: cw,
+        flexShrink: 0,
+        textAlign: "center",
+        fontFamily: "var(--mono)",
+        fontSize: 9,
+        color: d === today ? "var(--primary-dark)" : "var(--text-3)",
+        fontWeight: d === today ? 800 : 600
+      }
+    }, d === today ? "วันนี้" : mark ? dt.getDate() : "");
+  }), React.createElement("div", {
+    style: {
+      width: 108,
+      flexShrink: 0,
+      textAlign: "right",
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, "\u0E40\u0E02\u0E35\u0E22\u0E19\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14")), rows.map(r => React.createElement("div", {
+    key: r.job.id,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      padding: "5px 12px",
+      borderBottom: "1px solid var(--border)"
+    }
+  }, React.createElement("button", {
+    onClick: () => onPickJob(r.job),
+    title: "\u0E14\u0E39\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E17\u0E38\u0E01\u0E27\u0E31\u0E19\u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49",
+    style: {
+      width: nameW,
+      flexShrink: 0,
+      textAlign: "left",
+      border: "none",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      padding: "2px 6px 2px 0",
+      minWidth: 0,
+      position: "sticky",
+      left: 0,
+      background: "var(--surface2)",
+      zIndex: 2
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, r.job.name), React.createElement("span", {
+    style: {
+      display: "block",
+      fontFamily: "var(--mono)",
+      fontSize: 10,
+      color: "var(--text-3)"
+    }
+  }, r.job.code, r.job.eeName ? " · " + r.job.eeName : " · ยังไม่ระบุวิศวกร")), r.cells.map(c => {
+    const st = c.rec ? c.rec.status || "draft" : null;
+    const col = st ? DR_GRID_CELL[st] || DR_GRID_CELL.draft : "";
+    return React.createElement("button", {
+      key: c.d,
+      onClick: () => onOpen(r.job, c.d),
+      title: window.drDateTH(c.d) + " · " + (c.rec ? window.drStatusOf(st).th + (c.rec.pct != null ? " · " + (+c.rec.pct || 0) + "%" : "") : "ยังไม่เขียน"),
+      style: {
+        width: cw,
+        flexShrink: 0,
+        height: 24,
+        border: "none",
+        background: "none",
+        cursor: "pointer",
+        display: "grid",
+        placeItems: "center",
+        padding: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        width: cw - 5,
+        height: cw - 5,
+        borderRadius: 5,
+        background: col || "transparent",
+        border: col ? "none" : "1px dashed var(--border-strong)",
+        opacity: col ? 1 : 0.55
+      }
+    }));
+  }), React.createElement("div", {
+    style: {
+      width: 108,
+      flexShrink: 0,
+      textAlign: "right",
+      lineHeight: 1.3
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontFamily: "var(--mono)",
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: r.written ? "var(--text-2)" : "#EF4444"
+    }
+  }, r.written, "/", days, " \u0E27\u0E31\u0E19"), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 10,
+      color: "var(--text-3)"
+    }
+  }, r.sent ? React.createElement("span", {
+    style: {
+      color: "#F59E0B",
+      fontWeight: 700
+    }
+  }, "\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34 ", r.sent) : r.last && r.last.rec.pct != null ? "คืบหน้า " + (+r.last.rec.pct || 0) + "%" : "—"))))));
+}
+function DrJobSummary({
+  job,
+  all,
+  onOpen,
+  onBack
+}) {
+  const byDate = (all || {})[job.id] || {};
+  const dates = Object.keys(byDate).sort().reverse();
+  const n = {
+    sent: 0,
+    approved: 0,
+    draft: 0
+  };
+  dates.forEach(d => {
+    const k = byDate[d].status || "draft";
+    n[k] = (n[k] || 0) + 1;
+  });
+  return React.createElement("div", {
+    style: {
+      border: "1px solid var(--border)",
+      borderRadius: 14,
+      background: "var(--surface2)",
+      overflow: "hidden"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "11px 14px",
+      borderBottom: "1px solid var(--border)"
+    }
+  }, React.createElement("button", {
+    onClick: onBack,
+    title: "\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E15\u0E32\u0E23\u0E32\u0E07\u0E20\u0E32\u0E1E\u0E23\u0E27\u0E21",
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "chevronRight",
+    size: 14,
+    style: {
+      transform: "rotate(180deg)"
+    }
+  })), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 13.5,
+      fontWeight: 800,
+      color: "var(--text-1)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, job.name), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, job.code, " \xB7 \u0E40\u0E02\u0E35\u0E22\u0E19\u0E41\u0E25\u0E49\u0E27 ", dates.length, " \u0E27\u0E31\u0E19", n.sent ? " · รออนุมัติ " + n.sent : "", " · วิศวกร " + (job.eeName || "ยังไม่ระบุ")))), !dates.length && React.createElement("div", {
+    style: {
+      padding: 22,
+      textAlign: "center",
+      fontSize: 12.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E40\u0E04\u0E22\u0E40\u0E02\u0E35\u0E22\u0E19\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19"), dates.map(d => {
+    const rec = byDate[d];
+    const st = window.drStatusOf(rec.status || "draft");
+    return React.createElement("button", {
+      key: d,
+      onClick: () => onOpen(job, d),
+      style: {
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        gap: 11,
+        padding: "11px 14px",
+        border: "none",
+        borderBottom: "1px solid var(--border)",
+        background: "none",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        textAlign: "left"
+      }
+    }, React.createElement("span", {
+      style: {
+        width: 8,
+        height: 8,
+        borderRadius: 99,
+        background: st.color,
+        flexShrink: 0
+      }
+    }), React.createElement("span", {
+      style: {
+        fontFamily: "var(--mono)",
+        fontSize: 11.5,
+        color: "var(--text-2)",
+        flexShrink: 0,
+        width: 92
+      }
+    }, window.drShort(d)), React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0,
+        fontSize: 12.5,
+        color: "var(--text-2)",
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis"
+      }
+    }, rec.work ? String(rec.work) : React.createElement("span", {
+      style: {
+        color: "var(--text-3)"
+      }
+    }, "\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E01\u0E23\u0E2D\u0E01\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E17\u0E33")), rec.pct != null && React.createElement("span", {
+      style: {
+        fontFamily: "var(--mono)",
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: "var(--text-2)",
+        flexShrink: 0
+      }
+    }, +rec.pct || 0, "%"), React.createElement("span", {
+      style: {
+        fontSize: 11,
+        fontWeight: 700,
+        color: st.color,
+        background: st.color + "1a",
+        borderRadius: 99,
+        padding: "3px 9px",
+        flexShrink: 0,
+        whiteSpace: "nowrap"
+      }
+    }, st.th));
+  }));
+}
 function DailyView({
   jobs,
   role,
@@ -2729,6 +3134,14 @@ function DailyView({
     loading
   } = window.useDailyAll();
   const [date, setDate] = React.useState(window.drToday);
+  const [mode, setMode] = React.useState("day");
+  const [days, setDays] = React.useState(14);
+  const [sentOnly, setSentOnly] = React.useState(false);
+  const [jobPick, setJobPick] = React.useState(null);
+  React.useEffect(() => {
+    if (mode !== "grid") setJobPick(null);
+  }, [mode]);
+  const pickedJob = React.useMemo(() => jobPick ? (jobs || []).find(j => j.id === jobPick.id) || jobPick : null, [jobs, jobPick]);
   const canDelete = window.drCanDelete(role);
   const [delAsk, setDelAsk] = React.useState(null);
   React.useEffect(() => setDelAsk(null), [date]);
@@ -2794,6 +3207,144 @@ function DailyView({
       minHeight: 0
     }
   }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 7,
+      flexWrap: "wrap"
+    }
+  }, [["day", "รายวัน", "calendar"], ["grid", "ตารางภาพรวม", "table"]].map(([k, th, ic]) => React.createElement("button", {
+    key: k,
+    onClick: () => setMode(k),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      padding: "7px 14px",
+      borderRadius: 99,
+      border: "1px solid " + (mode === k ? "var(--primary)" : "var(--border-strong)"),
+      background: mode === k ? "var(--primary-soft)" : "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: mode === k ? "var(--primary-dark)" : "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: ic,
+    size: 15,
+    color: mode === k ? "var(--primary-dark)" : "var(--text-2)"
+  }), th))), mode === "grid" ? React.createElement(React.Fragment, null, !pickedJob && React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 7,
+      flexWrap: "wrap"
+    }
+  }, [14, 30].map(d => React.createElement("button", {
+    key: d,
+    onClick: () => setDays(d),
+    style: {
+      padding: "6px 13px",
+      borderRadius: 99,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      border: "1px solid " + (days === d ? "var(--primary)" : "var(--border-strong)"),
+      background: days === d ? "var(--primary-soft)" : "var(--surface)",
+      color: days === d ? "var(--primary-dark)" : "var(--text-2)"
+    }
+  }, d, " \u0E27\u0E31\u0E19\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14")), React.createElement("button", {
+    onClick: () => setSentOnly(v => !v),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "6px 13px",
+      borderRadius: 99,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      border: "1px solid " + (sentOnly ? "#F59E0B" : "var(--border-strong)"),
+      background: sentOnly ? "#F59E0B16" : "var(--surface)",
+      color: sentOnly ? "#B45309" : "var(--text-2)"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 8,
+      height: 8,
+      borderRadius: 3,
+      background: "#F59E0B"
+    }
+  }), "\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E17\u0E35\u0E48\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34"), React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 11,
+      flexWrap: "wrap"
+    }
+  }, [["อนุมัติแล้ว", "#10B981"], ["รออนุมัติ", "#F59E0B"], ["ยังเป็นร่าง", "#94A3B8"]].map(([th, c]) => React.createElement("span", {
+    key: th,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 9,
+      height: 9,
+      borderRadius: 3,
+      background: c
+    }
+  }), th)), React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 9,
+      height: 9,
+      borderRadius: 3,
+      border: "1px dashed var(--border-strong)"
+    }
+  }), "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E40\u0E02\u0E35\u0E22\u0E19"))), React.createElement("div", {
+    style: {
+      border: "1px solid var(--border)",
+      borderRadius: 14,
+      background: "var(--surface2)",
+      overflow: "hidden",
+      padding: pickedJob ? 0 : "12px 0 4px"
+    }
+  }, loading && React.createElement("div", {
+    style: {
+      padding: 20,
+      textAlign: "center",
+      fontSize: 12.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14..."), !loading && (pickedJob ? React.createElement(DrJobSummary, {
+    job: pickedJob,
+    all: all,
+    onOpen: onOpen,
+    onBack: () => setJobPick(null)
+  }) : React.createElement(DrGrid, {
+    jobs: jobs,
+    all: all,
+    days: days,
+    sentOnly: sentOnly,
+    onOpen: onOpen,
+    onPickJob: setJobPick
+  })))) : React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -3032,7 +3583,7 @@ function DailyView({
       size: 15,
       color: "#EF4444"
     })));
-  })));
+  }))));
 }
 function DailyJobButton({
   job,

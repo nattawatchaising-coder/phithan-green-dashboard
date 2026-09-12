@@ -558,6 +558,19 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   </InfoRow>
                 </div>
                 <InfoRow label="ช่างผู้รับผิดชอบ"><TechAvatar techId={job.tech} size={24} showName /></InfoRow>
+                {/* วิศวกรผู้รับผิดชอบ = คนตรวจและเซ็นอนุมัติรายงานประจำวันของงานนี้
+                    ถ้าว่างไว้ ใบที่ช่างส่งมาจะไม่มีใครอนุมัติได้ จึงต้องเห็นตรงนี้ ไม่ใช่ต้องเปิดฟอร์มไปดู */}
+                <InfoRow label="วิศวกรผู้รับผิดชอบ">
+                  {job.eeName ? (
+                    <span>
+                      {job.eeName}
+                      {job.eeIsTech && (
+                        <span style={{ marginLeft: 7, fontSize: 10.5, fontWeight: 700, color: "var(--primary-dark)",
+                          background: "var(--primary-soft)", borderRadius: 99, padding: "2px 8px" }}>ลงหน้างานเองด้วย</span>
+                      )}
+                    </span>
+                  ) : <span style={{ color: "#F59E0B" }}>ยังไม่ระบุ</span>}
+                </InfoRow>
                 {/* ช่างกับวิศวกรต้องรู้ว่างานนี้ใครขายมา — เรื่องที่ตกลงกับลูกค้าไว้ต้องถามคนนั้น */}
                 <InfoRow label="เซลล์เจ้าของงาน">
                   {job.salesName ? job.salesName : <span style={{ color: "var(--text-3)" }}>—</span>}

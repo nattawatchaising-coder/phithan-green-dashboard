@@ -356,6 +356,7 @@ function jobInScope(job, scope, user) {
   if (!scope || scope.all) return true;
   if (!job) return false;
   if (scope.assigned && user && user.techId && job.tech === user.techId) return true;
+  if (scope.assigned && user && job.eeId && job.eeId === user.id) return true;
   if (scope.created && user && job.createdBy && job.createdBy === user.id) return true;
   if (scope.permitMine && user && job.permit && (job.permit.adminId === user.id || !job.permit.adminId && job.permit.byAdmin && job.permit.byAdmin === user.name)) return true;
   if (scope.stages.length && scope.stages.indexOf(job.stage) !== -1) return true;
@@ -1298,6 +1299,11 @@ const NOTIF_KINDS = {
     color: "#7C5CFC",
     th: "งานบริการหลังการขาย"
   },
+  daily: {
+    icon: "pen",
+    color: "#F59E0B",
+    th: "รายงานประจำวัน"
+  },
   expense: {
     icon: "wallet",
     color: "#0EA5E9",
@@ -1311,6 +1317,7 @@ const NOTIF_KINDS = {
 };
 function notifKindKey(n) {
   if (n && n.event && NOTIF_KINDS[n.event]) return n.event;
+  if (n && n.type === "daily") return "daily";
   if (n && n.type === "om") return "om";
   if (n && n.type === "expense") return "expense";
   if (n && n.type === "assign") return "assign";

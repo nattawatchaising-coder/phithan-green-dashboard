@@ -518,10 +518,11 @@ function DrSignSlot({ title, sub, sig, canSign, onSign, onClear, saved, onUseSav
 /* ══════════════════════════════════════════════════
    ฟอร์มกรอกรายงานประจำวัน
    ══════════════════════════════════════════════════ */
-function DailyReportModal({ job, role, currentUser, onClose }) {
+function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const store = window.useDailyReports(job ? job.id : null);
-  const [date, setDate] = React.useState(window.drToday);
+  /* เปิดจากตารางภาพรวมจะระบุวันมาด้วย — ไม่งั้นกดช่องเมื่อวานแล้วเด้งไปวันนี้ */
+  const [date, setDate] = React.useState(() => openDate || window.drToday());
   const [form, setForm] = React.useState(null);
   const [paper, setPaper] = React.useState(false);
   const sigs = window.useDailySigns(job ? job.id : null, date);
@@ -549,7 +550,17 @@ function DailyReportModal({ job, role, currentUser, onClose }) {
   React.useEffect(() => setDelAsk(false), [date]);
 
   const locked = !window.drCanEdit(role, form);
-  const canApprove = window.drCanApprove(role);
+  const canApprove = window.drCanApprove(role, job, currentUser, form);
+  const noEe = window.drNoEe(job);
+  /* บอกเหตุผลเมื่อกดอนุมัติไม่ได้ — ปุ่มที่หายไปเฉย ๆ ทำให้คนเดาว่าระบบเสีย */
+  const whyNoApprove = React.useMemo(() => {
+    if (canApprove || !form || form.status !== "sent") return "";
+    if (noEe) return "งานนี้ยังไม่ระบุวิศวกรผู้รับผิดชอบ — ไปใส่ชื่อในใบงานก่อน จึงจะมีคนอนุมัติได้";
+    const uid = (currentUser || {}).id || "";
+    if (uid && job.eeId === uid && form.byId === uid)
+      return "ใบนี้คุณเป็นคนส่งเอง — ถ้าคุณลงหน้างานงานนี้เองด้วย ให้เปิด “ลงหน้างานเองด้วย” ในใบงาน จึงจะเซ็นอนุมัติใบตัวเองได้";
+    return "รอ" + (job.eeName ? "วิศวกร " + job.eeName : "วิศวกรผู้รับผิดชอบ") + "ตรวจและเซ็นอนุมัติ";
+  }, [canApprove, form && form.status, form && form.byId, noEe, job && job.eeId, job && job.eeName, currentUser && currentUser.id]);
   const canDelete = window.drCanDelete(role);
   const prev = window.drPrevOf(store.byDate, date);
   const isProject = form && form.mode === "project";
@@ -575,6 +586,17 @@ function DailyReportModal({ job, role, currentUser, onClose }) {
     flush();
     store.save(date, Object.assign({}, form, { status: "sent", sentAt: new Date().toISOString(),
       byId: (currentUser || {}).id || null, byName: (currentUser || {}).name || "" }));
+    /* ส่งแล้วต้องมีคนรู้ — เดิมใบไปกองรอจนกว่าคนอนุมัติจะบังเอิญเปิดมาเจอ
+       ยิงตรงไปหาวิศวกรของงานนี้ ไม่ใช่กระจายให้ทุกคนที่มีสิทธิ์ เพราะคนรับผิดชอบมีคนเดียว
+       วิศวกรที่ส่งใบของตัวเอง (ลงหน้างานเองด้วย) ไม่ต้องแจ้งเตือนตัวเอง */
+    const eeId = (job || {}).eeId || "";
+    if (onNotify && eeId && eeId !== ((currentUser || {}).id || "")) {
+      onNotify({
+        toUserId: eeId, type: "daily", event: "sent", jobId: job.id, jobName: job.name,
+        title: "รายงานประจำวันรออนุมัติ",
+        body: [job.code, window.drDateTH(date), "โดย " + ((currentUser || {}).name || "ช่าง")].filter(Boolean).join(" · "),
+      });
+    }
   };
   const doApprove = () => {
     store.save(date, Object.assign({}, form, { status: "approved", approvedAt: new Date().toISOString(),
@@ -587,7 +609,8 @@ function DailyReportModal({ job, role, currentUser, onClose }) {
     if (mine.sign && mine.sign.img) { sigs.sign(slot, mine.sign.img, currentUser); return then(); }
     setPad({ slot: slot, title: title, hint: hint, then: then });
   };
-  const send = () => needSign("by", "ลายเซ็นผู้บันทึก", "เซ็นแล้วระบบจะส่งใบนี้ให้หัวหน้าอนุมัติทันที", doSend);
+  const send = () => needSign("by", "ลายเซ็นผู้บันทึก",
+    "เซ็นแล้วระบบจะส่งใบนี้ให้" + ((job || {}).eeName ? "วิศวกร " + job.eeName : "วิศวกรผู้รับผิดชอบ") + "อนุมัติทันที", doSend);
   const approve = () => needSign("app", "ลายเซ็นผู้อนุมัติ", "เซ็นแล้วระบบจะอนุมัติและล็อกใบนี้ทันที", doApprove);
   /* ปลดล็อกให้แก้ = ถอนการอนุมัติ ลายเซ็นหัวหน้าต้องหลุดไปด้วย ไม่งั้นใบที่แก้แล้วยังมีลายเซ็นเดิมค้างอยู่ */
   /* ลบใบทิ้ง = ทั้งใบ รูป และลายเซ็นของวันนั้น
@@ -874,11 +897,18 @@ function DailyReportModal({ job, role, currentUser, onClose }) {
               <Icon name="file" size={15} color="var(--primary-dark)" /> ดูรายงาน · บันทึก PDF
             </button>
             {!locked && form.status !== "sent" && (
-              <button onClick={send}
+              <button onClick={send} title={noEe ? "งานนี้ยังไม่ระบุวิศวกรผู้รับผิดชอบ" : ("ส่งให้ " + (job.eeName || "วิศวกร"))}
                 style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 16px", borderRadius: 10, border: "none",
                   background: "var(--primary)", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700 }}>
-                <Icon name="check" size={15} color="#fff" /> ส่งให้หัวหน้า
+                <Icon name="check" size={15} color="#fff" /> ส่งให้วิศวกร
               </button>
+            )}
+            {!canApprove && whyNoApprove && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 7, maxWidth: 380, fontSize: 11.5,
+                color: "var(--text-3)", lineHeight: 1.4 }}>
+                <Icon name="alert" size={14} color={noEe ? "#F59E0B" : "var(--text-3)"} style={{ flexShrink: 0 }} />
+                {whyNoApprove}
+              </span>
             )}
             {canApprove && form.status === "sent" && (
               <button onClick={approve}
@@ -1178,10 +1208,198 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
 /* ══════════════════════════════════════════════════
    หน้ารวมของหัวหน้า — วันนี้ใครส่งแล้ว ใครยังไม่ส่ง
    ══════════════════════════════════════════════════ */
+/* ── ตารางภาพรวมหลายวัน ──
+   หน้ารายวันตอบได้แค่ "วันนี้ใครยังไม่เขียน" ส่วนคำถามจริงคือ "งานไหนขาดรายงานไปกี่วันแล้ว"
+   กับ "มีใบไหนค้างรออนุมัติตั้งแต่เมื่อไหร่" ซึ่งเดิมต้องกดย้อนทีละวันเอง
+
+   อ่านจาก useDailyAll ที่หน้ารายวันโหลดอยู่แล้ว — ไม่มีการอ่านฐานข้อมูลเพิ่ม
+   (โหนด dailyReports เป็นของเบา รูปกับลายเซ็นแยกไปอยู่คนละโหนดตั้งแต่แรก) */
+const DR_GRID_CELL = { approved: "#10B981", sent: "#F59E0B", draft: "#94A3B8" };
+
+function DrGrid({ jobs, all, days, onOpen, onPickJob, sentOnly }) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const today = window.drToday();
+  const cols = React.useMemo(() => {
+    const out = [];
+    for (let i = days - 1; i >= 0; i--) out.push(window.drAddDays(today, -i));
+    return out;
+  }, [days, today]);
+
+  const scroller = React.useRef(null);
+  /* เลื่อนไปสุดขวาตั้งแต่เปิด — วันล่าสุดอยู่ขวาสุดตามลำดับเวลา แต่คือช่องที่คนอยากเห็นก่อน */
+  React.useEffect(() => {
+    const el = scroller.current;
+    if (el) el.scrollLeft = el.scrollWidth;
+  }, [days, jobs.length]);
+
+  const rows = React.useMemo(() => {
+    const out = (jobs || []).map((j) => {
+      const byDate = (all || {})[j.id] || {};
+      const cells = cols.map((d) => ({ d, rec: byDate[d] || null }));
+      const written = cells.filter((c) => c.rec).length;
+      const sent = cells.filter((c) => c.rec && c.rec.status === "sent").length;
+      /* ใบล่าสุดใช้บอก %คืบหน้า — ไล่จากขวาไปซ้ายเพราะขวาคือวันล่าสุด */
+      let last = null;
+      for (let i = cells.length - 1; i >= 0; i--) if (cells[i].rec) { last = cells[i]; break; }
+      return { job: j, cells, written, sent, last };
+    }).filter((r) => r.job.stage === "install" || r.written);
+    const use = sentOnly ? out.filter((r) => r.sent) : out;
+    /* ใบค้างรออนุมัติมากสุดขึ้นก่อน แล้วค่อยงานที่ขาดรายงานมากสุด — เรียงตามสิ่งที่ต้องไปตาม */
+    use.sort((a, b) => (b.sent - a.sent) || (a.written - b.written) ||
+      String(a.job.code || "").localeCompare(String(b.job.code || "")));
+    return use;
+  }, [jobs, all, cols, sentOnly]);
+
+  const cw = isMobile ? 17 : 21;
+  const nameW = isMobile ? 132 : 200;
+
+  if (!rows.length) return (
+    <div style={{ padding: 22, textAlign: "center", fontSize: 12.5, color: "var(--text-3)" }}>
+      {sentOnly ? "ไม่มีใบที่รออนุมัติในช่วงนี้" : "ไม่มีงานที่ต้องเขียนรายงานในช่วงนี้"}
+    </div>
+  );
+
+  return (
+    <div ref={scroller} style={{ overflowX: "auto" }}>
+      <div style={{ minWidth: nameW + cols.length * cw + 108, width: "max-content" }}>
+        {/* หัวคอลัมน์ — ขึ้นเลขวันที่เฉพาะวันจันทร์กับวันที่ 1 ไม่งั้นตัวเลขชนกันจนอ่านไม่ออก */}
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 0, padding: "0 12px 6px",
+          borderBottom: "1px solid var(--border)" }}>
+          {/* ชื่องานต้องค้างอยู่กับที่ตอนเลื่อนดูวันย้อนหลัง ไม่งั้นเลื่อนไปแล้วไม่รู้ว่าแถวไหนของใคร */}
+          <div style={{ width: nameW, flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: "var(--text-3)",
+            position: "sticky", left: 0, background: "var(--surface2)", zIndex: 2 }}>งาน</div>
+          {cols.map((d) => {
+            const dt = new Date(d + "T00:00:00");
+            const mark = dt.getDay() === 1 || dt.getDate() === 1;
+            return (
+              <div key={d} style={{ width: cw, flexShrink: 0, textAlign: "center", fontFamily: "var(--mono)",
+                fontSize: 9, color: d === today ? "var(--primary-dark)" : "var(--text-3)",
+                fontWeight: d === today ? 800 : 600 }}>
+                {d === today ? "วันนี้" : mark ? dt.getDate() : ""}
+              </div>
+            );
+          })}
+          <div style={{ width: 108, flexShrink: 0, textAlign: "right", fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>เขียนแล้ว · ล่าสุด</div>
+        </div>
+
+        {rows.map((r) => (
+          <div key={r.job.id} style={{ display: "flex", alignItems: "center", padding: "5px 12px",
+            borderBottom: "1px solid var(--border)" }}>
+            <button onClick={() => onPickJob(r.job)} title="ดูรายงานทุกวันของงานนี้"
+              style={{ width: nameW, flexShrink: 0, textAlign: "left", border: "none",
+                cursor: "pointer", fontFamily: "inherit", padding: "2px 6px 2px 0", minWidth: 0,
+                position: "sticky", left: 0, background: "var(--surface2)", zIndex: 2 }}>
+              <span style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-1)",
+                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.job.name}</span>
+              <span style={{ display: "block", fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-3)" }}>
+                {r.job.code}{r.job.eeName ? " · " + r.job.eeName : " · ยังไม่ระบุวิศวกร"}
+              </span>
+            </button>
+            {r.cells.map((c) => {
+              const st = c.rec ? (c.rec.status || "draft") : null;
+              const col = st ? (DR_GRID_CELL[st] || DR_GRID_CELL.draft) : "";
+              return (
+                <button key={c.d} onClick={() => onOpen(r.job, c.d)}
+                  title={window.drDateTH(c.d) + " · " + (c.rec ? window.drStatusOf(st).th +
+                    (c.rec.pct != null ? " · " + (+c.rec.pct || 0) + "%" : "") : "ยังไม่เขียน")}
+                  style={{ width: cw, flexShrink: 0, height: 24, border: "none", background: "none",
+                    cursor: "pointer", display: "grid", placeItems: "center", padding: 0 }}>
+                  <span style={{ width: cw - 5, height: cw - 5, borderRadius: 5,
+                    background: col || "transparent",
+                    border: col ? "none" : "1px dashed var(--border-strong)",
+                    opacity: col ? 1 : 0.55 }} />
+                </button>
+              );
+            })}
+            <div style={{ width: 108, flexShrink: 0, textAlign: "right", lineHeight: 1.3 }}>
+              <span style={{ display: "block", fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700,
+                color: r.written ? "var(--text-2)" : "#EF4444" }}>
+                {r.written}/{days} วัน
+              </span>
+              <span style={{ display: "block", fontSize: 10, color: "var(--text-3)" }}>
+                {r.sent ? <span style={{ color: "#F59E0B", fontWeight: 700 }}>รออนุมัติ {r.sent}</span>
+                  : r.last && r.last.rec.pct != null ? "คืบหน้า " + (+r.last.rec.pct || 0) + "%" : "—"}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── สรุปรายงานของงานเดียว จบทุกวันในหน้าเดียว ──
+   เวลาลูกค้าถามว่า "งานบ้านผมคืบหน้าถึงไหน" ต้องเปิดทีละวันไล่อ่าน หน้านี้ตอบได้ในจอเดียว */
+function DrJobSummary({ job, all, onOpen, onBack }) {
+  const byDate = (all || {})[job.id] || {};
+  const dates = Object.keys(byDate).sort().reverse();
+  const n = { sent: 0, approved: 0, draft: 0 };
+  dates.forEach((d) => { const k = byDate[d].status || "draft"; n[k] = (n[k] || 0) + 1; });
+
+  return (
+    <div style={{ border: "1px solid var(--border)", borderRadius: 14, background: "var(--surface2)", overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderBottom: "1px solid var(--border)" }}>
+        <button onClick={onBack} title="กลับไปตารางภาพรวม"
+          style={{ width: 30, height: 30, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+            cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
+          <Icon name="chevronRight" size={14} style={{ transform: "rotate(180deg)" }} />
+        </button>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: "block", fontSize: 13.5, fontWeight: 800, color: "var(--text-1)",
+            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{job.name}</span>
+          <span style={{ display: "block", fontSize: 11, color: "var(--text-3)" }}>
+            {job.code} · เขียนแล้ว {dates.length} วัน
+            {n.sent ? " · รออนุมัติ " + n.sent : ""}
+            {" · วิศวกร " + (job.eeName || "ยังไม่ระบุ")}
+          </span>
+        </span>
+      </div>
+      {!dates.length && (
+        <div style={{ padding: 22, textAlign: "center", fontSize: 12.5, color: "var(--text-3)" }}>งานนี้ยังไม่เคยเขียนรายงาน</div>
+      )}
+      {dates.map((d) => {
+        const rec = byDate[d];
+        const st = window.drStatusOf(rec.status || "draft");
+        return (
+          <button key={d} onClick={() => onOpen(job, d)}
+            style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "11px 14px",
+              border: "none", borderBottom: "1px solid var(--border)", background: "none",
+              cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+            <span style={{ width: 8, height: 8, borderRadius: 99, background: st.color, flexShrink: 0 }} />
+            <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: "var(--text-2)", flexShrink: 0, width: 92 }}>
+              {window.drShort(d)}
+            </span>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: "var(--text-2)",
+              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {rec.work ? String(rec.work) : <span style={{ color: "var(--text-3)" }}>ไม่ได้กรอกงานที่ทำ</span>}
+            </span>
+            {rec.pct != null && (
+              <span style={{ fontFamily: "var(--mono)", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)", flexShrink: 0 }}>{+rec.pct || 0}%</span>
+            )}
+            <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.color + "1a",
+              borderRadius: 99, padding: "3px 9px", flexShrink: 0, whiteSpace: "nowrap" }}>{st.th}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function DailyView({ jobs, role, currentUser, onOpen }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const { all, loading } = window.useDailyAll();
   const [date, setDate] = React.useState(window.drToday);
+  /* โหมดดู — รายวันคือของเดิม · ภาพรวมตอบคำถามที่เดิมต้องกดย้อนวันเอง
+     jobPick = เจาะดูงานเดียวจบทุกวัน (ออกมาจากภาพรวม กดชื่องาน) */
+  const [mode, setMode] = React.useState("day");
+  const [days, setDays] = React.useState(14);
+  const [sentOnly, setSentOnly] = React.useState(false);
+  const [jobPick, setJobPick] = React.useState(null);
+  React.useEffect(() => { if (mode !== "grid") setJobPick(null); }, [mode]);
+  /* งานที่เลือกไว้อาจถูกกรองหายไปจากรายการ — ยึดก้อนสดเสมอ ไม่งั้นชื่อค้างเป็นของเก่า */
+  const pickedJob = React.useMemo(
+    () => (jobPick ? (jobs || []).find((j) => j.id === jobPick.id) || jobPick : null),
+    [jobs, jobPick]);
   const canDelete = window.drCanDelete(role);
   const [delAsk, setDelAsk] = React.useState(null);   /* id ของงานที่กำลังถามยืนยันลบ */
   React.useEffect(() => setDelAsk(null), [date]);
@@ -1216,6 +1434,65 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, minHeight: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+        {[["day", "รายวัน", "calendar"], ["grid", "ตารางภาพรวม", "table"]].map(([k, th, ic]) => (
+          <button key={k} onClick={() => setMode(k)}
+            style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 99,
+              border: "1px solid " + (mode === k ? "var(--primary)" : "var(--border-strong)"),
+              background: mode === k ? "var(--primary-soft)" : "var(--surface)", cursor: "pointer",
+              fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
+              color: mode === k ? "var(--primary-dark)" : "var(--text-2)" }}>
+            <Icon name={ic} size={15} color={mode === k ? "var(--primary-dark)" : "var(--text-2)"} />
+            {th}
+          </button>
+        ))}
+      </div>
+
+      {mode === "grid" ? (
+        <React.Fragment>
+          {!pickedJob && (
+            <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+              {[14, 30].map((d) => (
+                <button key={d} onClick={() => setDays(d)}
+                  style={{ padding: "6px 13px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
+                    fontSize: 12, fontWeight: 700,
+                    border: "1px solid " + (days === d ? "var(--primary)" : "var(--border-strong)"),
+                    background: days === d ? "var(--primary-soft)" : "var(--surface)",
+                    color: days === d ? "var(--primary-dark)" : "var(--text-2)" }}>{d} วันล่าสุด</button>
+              ))}
+              {/* ตัวกรองนี้คือคิวงานของวิศวกร — ใบที่ค้างรอเซ็นทุกงานทุกวันมากองรวมกัน */}
+              <button onClick={() => setSentOnly((v) => !v)}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 13px", borderRadius: 99,
+                  cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+                  border: "1px solid " + (sentOnly ? "#F59E0B" : "var(--border-strong)"),
+                  background: sentOnly ? "#F59E0B16" : "var(--surface)",
+                  color: sentOnly ? "#B45309" : "var(--text-2)" }}>
+                <span style={{ width: 8, height: 8, borderRadius: 3, background: "#F59E0B" }} />
+                เฉพาะที่รออนุมัติ
+              </button>
+              <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 11, flexWrap: "wrap" }}>
+                {[["อนุมัติแล้ว", "#10B981"], ["รออนุมัติ", "#F59E0B"], ["ยังเป็นร่าง", "#94A3B8"]].map(([th, c]) => (
+                  <span key={th} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--text-3)" }}>
+                    <span style={{ width: 9, height: 9, borderRadius: 3, background: c }} />{th}
+                  </span>
+                ))}
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--text-3)" }}>
+                  <span style={{ width: 9, height: 9, borderRadius: 3, border: "1px dashed var(--border-strong)" }} />ยังไม่เขียน
+                </span>
+              </span>
+            </div>
+          )}
+          <div style={{ border: "1px solid var(--border)", borderRadius: 14, background: "var(--surface2)",
+            overflow: "hidden", padding: pickedJob ? 0 : "12px 0 4px" }}>
+            {loading && <div style={{ padding: 20, textAlign: "center", fontSize: 12.5, color: "var(--text-3)" }}>กำลังโหลด...</div>}
+            {!loading && (pickedJob
+              ? <DrJobSummary job={pickedJob} all={all} onOpen={onOpen} onBack={() => setJobPick(null)} />
+              : <DrGrid jobs={jobs} all={all} days={days} sentOnly={sentOnly}
+                  onOpen={onOpen} onPickJob={setJobPick} />)}
+          </div>
+        </React.Fragment>
+      ) : (
+      <React.Fragment>
       <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
         <button onClick={() => setDate(window.drAddDays(date, -1))}
           style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
@@ -1294,6 +1571,8 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
           );
         })}
       </div>
+      </React.Fragment>
+      )}
     </div>
   );
 }

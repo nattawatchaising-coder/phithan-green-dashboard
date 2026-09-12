@@ -238,7 +238,15 @@ function drDocNo(job, date, allDates) {
   const n = (allDates || []).filter(d => d <= date).length || 1;
   return "FS-DR-" + code + "-" + drPad2(n);
 }
-const drCanApprove = role => window.hasRole(role, "lead") || window.hasRole(role, "admin");
+const drCanApprove = (role, job, user, rec) => {
+  if (window.hasRole(role, "admin")) return true;
+  const uid = (user || {}).id || "";
+  if (!uid || !job || !job.eeId || job.eeId !== uid) return false;
+  if (rec && rec.byId && rec.byId === uid && !job.eeIsTech) return false;
+  return true;
+};
+const drNoEe = job => !(job || {}).eeId;
+const drEeIsTech = job => !!(job || {}).eeIsTech;
 const drCanEdit = (role, rec) => {
   if (!window.can(role, "editJob")) return false;
   return !(rec && rec.status === "approved");
@@ -523,6 +531,8 @@ Object.assign(window, {
   drDocNo,
   drBlank,
   drCanApprove,
+  drNoEe,
+  drEeIsTech,
   drCanEdit,
   drCanDelete,
   drDeleteDay,

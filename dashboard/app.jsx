@@ -725,7 +725,8 @@ function App() {
             permitMode={permitOnly}
             trashCount={can(role, "delJob") ? store.trash.length : 0} onOpenTrash={can(role, "delJob") ? () => setTrashOpen(true) : null} />}
           {view === "permit" && permitView}
-          {view === "daily" && <DailyView jobs={filtered} role={role} currentUser={auth.current} onOpen={(j) => setDailyJob(j)} />}
+          {view === "daily" && <DailyView jobs={filtered} role={role} currentUser={auth.current}
+            onOpen={(j, d) => setDailyJob(d ? Object.assign({}, j, { _openDate: d }) : j)} />}
           {/* ทะเบียนบริการเป็นภาระผูกพันของบริษัท ไม่ใช่คิวงานของใครคนหนึ่ง จึงดูจากงานทั้งหมดที่ผู้ใช้เห็น */}
           {view === "om" && <window.OmView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} focus={omFocus} />}
           {view === "expense" && <window.ExpenseView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} focus={ecFocus} />}
@@ -821,7 +822,8 @@ function App() {
           อ่านงานสดจาก jobs เสมอ ไม่ยึดก้อนที่กดตอนแรก ไม่งั้นเลื่อนขั้นแล้วตารางในฟอร์มยังเป็นของเก่า */}
       {dailyJob && (
         <DailyReportModal job={jobs.find((x) => x.id === dailyJob.id) || dailyJob} role={role}
-          currentUser={auth.current} onClose={() => setDailyJob(null)} />
+          currentUser={auth.current} onNotify={notif.addNotif} openDate={dailyJob._openDate || ""}
+          onClose={() => setDailyJob(null)} />
       )}
       {form && <JobForm initial={form.job} isNew={form.isNew} jobs={jobs} users={auth.users} onSave={onSave} onClose={() => setForm(null)} onManageTechs={() => setTechMgr(true)} onManageBrands={() => setBrandMgr(true)} />}
       {techMgr && <TechManager store={techStore} onClose={() => setTechMgr(false)} />}

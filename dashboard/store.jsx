@@ -70,6 +70,10 @@ function blankJob(raw) {
     map: "", trello: "", contractor: "", laborCost: null, brand: "ATMOCE", kw: 5, panels: 9, phase: "1",
     battery: false, batSize: "ไม่มี", connect: "-", backup: false, birdnet: false, comboType: "ready",
     stage: "design", startDate: window.SF.TODAY, deadline: window.SF.TODAY, tech: "t1", problem: null,
+    /* ผู้รับผิดชอบมีสองคน — ช่างลงหน้างาน (tech ชี้ไปตาราง techs) กับวิศวกรผู้ตรวจและเซ็นอนุมัติ
+       วิศวกรต้องเป็น "บัญชีผู้ใช้" ไม่ใช่เรคคอร์ดช่าง เพราะคนอนุมัติต้องล็อกอินและมีลายเซ็นของตัวเอง
+       eeIsTech = วิศวกรคนนี้ลงหน้างานเองด้วย จึงเขียนรายงานและอนุมัติใบตัวเองได้ */
+    eeId: "", eeName: "", eeIsTech: false,
     /* ต้องครบทุกคีย์ใน SF.MATERIALS — คีย์ที่ขาดจะกลายเป็น undefined แล้วป้ายสถานะวัสดุพัง */
     mat: window.SF.MATERIALS.reduce((acc, m) => { acc[m.key] = "none"; return acc; }, {}),
     hist: window.SF.STAGES.map((s, i) => ({

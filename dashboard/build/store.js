@@ -87,6 +87,9 @@ function blankJob(raw) {
     deadline: window.SF.TODAY,
     tech: "t1",
     problem: null,
+    eeId: "",
+    eeName: "",
+    eeIsTech: false,
     mat: window.SF.MATERIALS.reduce((acc, m) => {
       acc[m.key] = "none";
       return acc;
