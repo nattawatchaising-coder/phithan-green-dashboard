@@ -48,26 +48,63 @@ function EcReceipts({ claimId, currentUser, disabled, count, big, onBig }) {
   /* จำนวนรูปสะท้อนกลับไปที่ตัวใบ ให้รายการบอกได้ว่าใบไหนไม่มีบิลแนบโดยไม่ต้องโหลดรูป */
   React.useEffect(() => { sync(count); }, [shots.length, count]);
 
-  const onPick = async (e) => {
+  const [err, setErr] = React.useState("");
+
+  /* รูปถ่าย — ย่อก่อนเก็บเสมอ รูปจากมือถือใบเดียวใหญ่กว่าโควตาที่ควรเก็บทั้งใบ */
+  const onPickImg = async (e) => {
     const files = Array.from(e.target.files || []);
     e.target.value = "";
     if (!files.length) return;
+    setErr("");
     setBusy(files.length);
     for (const f of files) {
-      try { add(await window.resizeImageFile(f, 1400, 0.78), currentUser); } catch (err) { /* ข้ามไฟล์ที่อ่านไม่ได้ */ }
+      try { add(await window.resizeImageFile(f, 1400, 0.78), currentUser, { kind: "img", name: f.name, size: f.size }); }
+      catch (e2) { setErr("อ่านรูปไม่สำเร็จ: " + f.name); }
       setBusy((n) => n - 1);
     }
   };
 
+  /* ไฟล์ PDF — ใบเสร็จอิเล็กทรอนิกส์ที่ร้านส่งมาทางอีเมล/ไลน์ แนบทั้งไฟล์ไม่ต้องถ่ายจอ
+     PDF ย่อไม่ได้เหมือนรูป จึงต้องกันขนาดไว้ตั้งแต่ตอนเลือก — ไฟล์ใหญ่ทำให้ใบนี้เปิดช้าไปตลอด */
+  const onPickPdf = async (e) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (!files.length) return;
+    setErr("");
+    setBusy(files.length);
+    for (const f of files) {
+      const isPdf = f.type === "application/pdf" || /\.pdf$/i.test(f.name);
+      if (!isPdf) setErr("รองรับเฉพาะไฟล์ PDF: " + f.name);
+      else if (f.size > window.EC_PDF_MAX_MB * 1024 * 1024)
+        setErr("ไฟล์ใหญ่เกิน " + window.EC_PDF_MAX_MB + " MB — " + f.name + " (" + window.ecFileSize(f.size) + ") ลองบีบอัดหรือถ่ายเป็นรูปแทน");
+      else {
+        try { add(await window.readFileAsDataURL(f), currentUser, { kind: "pdf", name: f.name, size: f.size }); }
+        catch (e2) { setErr("อ่านไฟล์ไม่สำเร็จ: " + f.name); }
+      }
+      setBusy((n) => n - 1);
+    }
+  };
+
+  const pickBtn = { display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: 10,
+    border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+    fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" };
+
   return (
     <div>
       {!disabled && (
-        <label style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: 10,
-          border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
-          fontSize: 12.5, fontWeight: 700, color: "var(--text-2)", marginBottom: shots.length ? 12 : 0 }}>
-          <Icon name="camera" size={15} /> {busy ? "กำลังใส่บิล " + busy + " ใบ..." : "ถ่าย/เลือกรูปบิล"}
-          <input type="file" accept="image/*" multiple onChange={onPick} style={{ display: "none" }} />
-        </label>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: shots.length ? 12 : 0 }}>
+          <label style={pickBtn}>
+            <Icon name="camera" size={15} /> {busy ? "กำลังใส่บิล " + busy + " ใบ..." : "ถ่าย/เลือกรูปบิล"}
+            <input type="file" accept="image/*" multiple onChange={onPickImg} style={{ display: "none" }} />
+          </label>
+          <label style={pickBtn}>
+            <Icon name="file" size={15} /> แนบไฟล์ PDF
+            <input type="file" accept="application/pdf,.pdf" multiple onChange={onPickPdf} style={{ display: "none" }} />
+          </label>
+        </div>
+      )}
+      {err && (
+        <div style={{ fontSize: 12, color: "#EF4444", margin: "6px 0" }}>{err}</div>
       )}
       {!shots.length && (
         <div style={{ fontSize: 12, color: disabled ? "var(--text-3)" : "#F59E0B", marginTop: disabled ? 0 : 4 }}>
@@ -78,10 +115,26 @@ function EcReceipts({ claimId, currentUser, disabled, count, big, onBig }) {
         {shots.map((r) => (
           <div key={r.id} style={{ border: "1px solid var(--border)", borderRadius: 11, overflow: "hidden",
             background: "var(--surface)", position: "relative" }}>
-            <img src={r.dataUrl} alt="รูปบิล" onClick={() => onBig && onBig(r.dataUrl)}
-              style={{ width: "100%", height: 130, objectFit: "cover", display: "block", cursor: "zoom-in" }} />
+            {window.ecReceiptKind(r) === "pdf" ? (
+              <button type="button" onClick={() => onBig && onBig(r)} title="เปิดดูไฟล์"
+                style={{ width: "100%", height: 130, border: "none", background: "var(--surface2)", cursor: "pointer",
+                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 7,
+                  padding: "8px 10px", fontFamily: "inherit" }}>
+                <span style={{ width: 36, height: 36, borderRadius: 10, display: "grid", placeItems: "center",
+                  background: "#EF44441a" }}>
+                  <Icon name="file" size={18} color="#EF4444" />
+                </span>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-1)", textAlign: "center",
+                  overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+                  wordBreak: "break-all", lineHeight: 1.35 }}>{r.name || "ใบเสร็จ.pdf"}</span>
+                <span style={{ fontSize: 10.5, color: "var(--text-3)" }}>PDF{r.size ? " · " + window.ecFileSize(r.size) : ""}</span>
+              </button>
+            ) : (
+              <img src={r.dataUrl} alt="รูปบิล" onClick={() => onBig && onBig(r)}
+                style={{ width: "100%", height: 130, objectFit: "cover", display: "block", cursor: "zoom-in" }} />
+            )}
             {!disabled && (
-              <button type="button" onClick={() => remove(r.id)} title="ลบรูปนี้"
+              <button type="button" onClick={() => remove(r.id)} title="ลบบิลนี้"
                 style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: 8, border: "none",
                   background: "rgba(8,20,14,.62)", color: "#fff", cursor: "pointer", display: "grid", placeItems: "center" }}>
                 <Icon name="trash" size={13} color="#fff" />
@@ -94,14 +147,61 @@ function EcReceipts({ claimId, currentUser, disabled, count, big, onBig }) {
   );
 }
 
-/* ดูบิลเต็มจอ — บิลถ่ายจากมือถือมักตัวเล็ก ดูจากรูปย่อแล้วอ่านตัวเลขไม่ออก */
-function EcBigShot({ src, onClose }) {
-  if (!src) return null;
+/* ดูบิลเต็มจอ — บิลถ่ายจากมือถือมักตัวเล็ก ดูจากรูปย่อแล้วอ่านตัวเลขไม่ออก
+   ไฟล์ PDF เปิดในจอนี้เลย ไม่เด้งแท็บใหม่ — ตัวบล็อกป๊อปอัปของเบราว์เซอร์กินแท็บใหม่ไปเงียบ ๆ
+   คนกดจะนึกว่าปุ่มเสีย ปุ่ม "เปิดแท็บใหม่" ยังมีไว้ให้สำหรับคนที่อยากดูเต็มจอจริง ๆ */
+function EcBigShot({ shot, onClose }) {
+  const isPdf = shot && window.ecReceiptKind(shot) === "pdf";
+  const [url, setUrl] = React.useState("");
+
+  React.useEffect(() => {
+    if (!isPdf || !shot) { setUrl(""); return; }
+    let u = "";
+    try { u = window.dataUrlToBlobUrl(shot.dataUrl); } catch (e) { u = ""; }
+    setUrl(u);
+    /* คืนหน่วยความจำเมื่อปิดจอ — blob URL ค้างอยู่จนกว่าจะรีโหลดหน้า ถ้าไม่เพิกถอนเอง */
+    return () => { if (u) URL.revokeObjectURL(u); };
+  }, [isPdf, shot && shot.id]);
+
+  if (!shot) return null;
+
+  if (!isPdf) {
+    return (
+      <div onClick={onClose}
+        style={{ position: "fixed", inset: 0, zIndex: 120, background: "rgba(8,20,26,.86)",
+          display: "flex", alignItems: "center", justifyContent: "center", padding: 18, cursor: "zoom-out" }}>
+        <img src={shot.dataUrl} alt="รูปบิล" style={{ maxWidth: "100%", maxHeight: "100%", borderRadius: 10 }} />
+      </div>
+    );
+  }
+
   return (
-    <div onClick={onClose}
-      style={{ position: "fixed", inset: 0, zIndex: 120, background: "rgba(8,20,26,.86)",
-        display: "flex", alignItems: "center", justifyContent: "center", padding: 18, cursor: "zoom-out" }}>
-      <img src={src} alt="รูปบิล" style={{ maxWidth: "100%", maxHeight: "100%", borderRadius: 10 }} />
+    <div style={{ position: "fixed", inset: 0, zIndex: 120, background: "rgba(8,20,26,.86)",
+      display: "flex", flexDirection: "column", padding: 18, gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+        <Icon name="file" size={16} color="#fff" />
+        <span style={{ flex: 1, minWidth: 120, fontSize: 13, fontWeight: 700, color: "#fff", wordBreak: "break-all" }}>
+          {shot.name || "ใบเสร็จ.pdf"}{shot.size ? " · " + window.ecFileSize(shot.size) : ""}
+        </span>
+        <a href={url || shot.dataUrl} target="_blank" rel="noopener noreferrer"
+          style={{ padding: "7px 13px", borderRadius: 9, background: "rgba(255,255,255,.16)", color: "#fff",
+            fontSize: 12, fontWeight: 700, textDecoration: "none" }}>เปิดแท็บใหม่</a>
+        <a href={shot.dataUrl} download={shot.name || "ใบเสร็จ.pdf"}
+          style={{ padding: "7px 13px", borderRadius: 9, background: "rgba(255,255,255,.16)", color: "#fff",
+            fontSize: 12, fontWeight: 700, textDecoration: "none" }}>ดาวน์โหลด</a>
+        <button onClick={onClose} title="ปิด"
+          style={{ width: 32, height: 32, borderRadius: 9, border: "none", background: "rgba(255,255,255,.16)",
+            color: "#fff", cursor: "pointer", display: "grid", placeItems: "center" }}>
+          <Icon name="x" size={16} color="#fff" />
+        </button>
+      </div>
+      {url ? (
+        <iframe src={url} title="บิล" style={{ flex: 1, width: "100%", border: "none", borderRadius: 10, background: "#fff" }} />
+      ) : (
+        <div style={{ flex: 1, display: "grid", placeItems: "center", color: "#fff", fontSize: 13 }}>
+          เปิดไฟล์ไม่สำเร็จ — ลองกดดาวน์โหลดแล้วเปิดด้วยโปรแกรมอ่าน PDF
+        </div>
+      )}
     </div>
   );
 }
@@ -344,7 +444,7 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
           )}
         </div>
       </div>
-      <EcBigShot src={bigShot} onClose={() => setBigShot(null)} />
+      <EcBigShot shot={bigShot} onClose={() => setBigShot(null)} />
     </div>
   );
 }

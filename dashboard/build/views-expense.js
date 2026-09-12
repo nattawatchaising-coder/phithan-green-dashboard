@@ -104,33 +104,70 @@ function EcReceipts({
   React.useEffect(() => {
     sync(count);
   }, [shots.length, count]);
-  const onPick = async e => {
+  const [err, setErr] = React.useState("");
+  const onPickImg = async e => {
     const files = Array.from(e.target.files || []);
     e.target.value = "";
     if (!files.length) return;
+    setErr("");
     setBusy(files.length);
     for (const f of files) {
       try {
-        add(await window.resizeImageFile(f, 1400, 0.78), currentUser);
-      } catch (err) {}
+        add(await window.resizeImageFile(f, 1400, 0.78), currentUser, {
+          kind: "img",
+          name: f.name,
+          size: f.size
+        });
+      } catch (e2) {
+        setErr("อ่านรูปไม่สำเร็จ: " + f.name);
+      }
       setBusy(n => n - 1);
     }
   };
-  return React.createElement("div", null, !disabled && React.createElement("label", {
+  const onPickPdf = async e => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (!files.length) return;
+    setErr("");
+    setBusy(files.length);
+    for (const f of files) {
+      const isPdf = f.type === "application/pdf" || /\.pdf$/i.test(f.name);
+      if (!isPdf) setErr("รองรับเฉพาะไฟล์ PDF: " + f.name);else if (f.size > window.EC_PDF_MAX_MB * 1024 * 1024) setErr("ไฟล์ใหญ่เกิน " + window.EC_PDF_MAX_MB + " MB — " + f.name + " (" + window.ecFileSize(f.size) + ") ลองบีบอัดหรือถ่ายเป็นรูปแทน");else {
+        try {
+          add(await window.readFileAsDataURL(f), currentUser, {
+            kind: "pdf",
+            name: f.name,
+            size: f.size
+          });
+        } catch (e2) {
+          setErr("อ่านไฟล์ไม่สำเร็จ: " + f.name);
+        }
+      }
+      setBusy(n => n - 1);
+    }
+  };
+  const pickBtn = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 7,
+    padding: "9px 14px",
+    borderRadius: 10,
+    border: "1px dashed var(--border-strong)",
+    background: "var(--surface)",
+    cursor: "pointer",
+    fontSize: 12.5,
+    fontWeight: 700,
+    color: "var(--text-2)"
+  };
+  return React.createElement("div", null, !disabled && React.createElement("div", {
     style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 7,
-      padding: "9px 14px",
-      borderRadius: 10,
-      border: "1px dashed var(--border-strong)",
-      background: "var(--surface)",
-      cursor: "pointer",
-      fontSize: 12.5,
-      fontWeight: 700,
-      color: "var(--text-2)",
+      display: "flex",
+      gap: 8,
+      flexWrap: "wrap",
       marginBottom: shots.length ? 12 : 0
     }
+  }, React.createElement("label", {
+    style: pickBtn
   }, React.createElement(Icon, {
     name: "camera",
     size: 15
@@ -138,11 +175,30 @@ function EcReceipts({
     type: "file",
     accept: "image/*",
     multiple: true,
-    onChange: onPick,
+    onChange: onPickImg,
     style: {
       display: "none"
     }
-  })), !shots.length && React.createElement("div", {
+  })), React.createElement("label", {
+    style: pickBtn
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 15
+  }), " \u0E41\u0E19\u0E1A\u0E44\u0E1F\u0E25\u0E4C PDF", React.createElement("input", {
+    type: "file",
+    accept: "application/pdf,.pdf",
+    multiple: true,
+    onChange: onPickPdf,
+    style: {
+      display: "none"
+    }
+  }))), err && React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#EF4444",
+      margin: "6px 0"
+    }
+  }, err), !shots.length && React.createElement("div", {
     style: {
       fontSize: 12,
       color: disabled ? "var(--text-3)" : "#F59E0B",
@@ -163,10 +219,59 @@ function EcReceipts({
       background: "var(--surface)",
       position: "relative"
     }
-  }, React.createElement("img", {
+  }, window.ecReceiptKind(r) === "pdf" ? React.createElement("button", {
+    type: "button",
+    onClick: () => onBig && onBig(r),
+    title: "\u0E40\u0E1B\u0E34\u0E14\u0E14\u0E39\u0E44\u0E1F\u0E25\u0E4C",
+    style: {
+      width: "100%",
+      height: 130,
+      border: "none",
+      background: "var(--surface2)",
+      cursor: "pointer",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 7,
+      padding: "8px 10px",
+      fontFamily: "inherit"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      display: "grid",
+      placeItems: "center",
+      background: "#EF44441a"
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 18,
+    color: "#EF4444"
+  })), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      textAlign: "center",
+      overflow: "hidden",
+      display: "-webkit-box",
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: "vertical",
+      wordBreak: "break-all",
+      lineHeight: 1.35
+    }
+  }, r.name || "ใบเสร็จ.pdf"), React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      color: "var(--text-3)"
+    }
+  }, "PDF", r.size ? " · " + window.ecFileSize(r.size) : "")) : React.createElement("img", {
     src: r.dataUrl,
     alt: "\u0E23\u0E39\u0E1B\u0E1A\u0E34\u0E25",
-    onClick: () => onBig && onBig(r.dataUrl),
+    onClick: () => onBig && onBig(r),
     style: {
       width: "100%",
       height: 130,
@@ -177,7 +282,7 @@ function EcReceipts({
   }), !disabled && React.createElement("button", {
     type: "button",
     onClick: () => remove(r.id),
-    title: "\u0E25\u0E1A\u0E23\u0E39\u0E1B\u0E19\u0E35\u0E49",
+    title: "\u0E25\u0E1A\u0E1A\u0E34\u0E25\u0E19\u0E35\u0E49",
     style: {
       position: "absolute",
       top: 6,
@@ -199,32 +304,145 @@ function EcReceipts({
   }))))));
 }
 function EcBigShot({
-  src,
+  shot,
   onClose
 }) {
-  if (!src) return null;
+  const isPdf = shot && window.ecReceiptKind(shot) === "pdf";
+  const [url, setUrl] = React.useState("");
+  React.useEffect(() => {
+    if (!isPdf || !shot) {
+      setUrl("");
+      return;
+    }
+    let u = "";
+    try {
+      u = window.dataUrlToBlobUrl(shot.dataUrl);
+    } catch (e) {
+      u = "";
+    }
+    setUrl(u);
+    return () => {
+      if (u) URL.revokeObjectURL(u);
+    };
+  }, [isPdf, shot && shot.id]);
+  if (!shot) return null;
+  if (!isPdf) {
+    return React.createElement("div", {
+      onClick: onClose,
+      style: {
+        position: "fixed",
+        inset: 0,
+        zIndex: 120,
+        background: "rgba(8,20,26,.86)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 18,
+        cursor: "zoom-out"
+      }
+    }, React.createElement("img", {
+      src: shot.dataUrl,
+      alt: "\u0E23\u0E39\u0E1B\u0E1A\u0E34\u0E25",
+      style: {
+        maxWidth: "100%",
+        maxHeight: "100%",
+        borderRadius: 10
+      }
+    }));
+  }
   return React.createElement("div", {
-    onClick: onClose,
     style: {
       position: "fixed",
       inset: 0,
       zIndex: 120,
       background: "rgba(8,20,26,.86)",
       display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
+      flexDirection: "column",
       padding: 18,
-      cursor: "zoom-out"
+      gap: 10
     }
-  }, React.createElement("img", {
-    src: src,
-    alt: "\u0E23\u0E39\u0E1B\u0E1A\u0E34\u0E25",
+  }, React.createElement("div", {
     style: {
-      maxWidth: "100%",
-      maxHeight: "100%",
-      borderRadius: 10
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+      flexWrap: "wrap"
     }
-  }));
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 16,
+    color: "#fff"
+  }), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 120,
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#fff",
+      wordBreak: "break-all"
+    }
+  }, shot.name || "ใบเสร็จ.pdf", shot.size ? " · " + window.ecFileSize(shot.size) : ""), React.createElement("a", {
+    href: url || shot.dataUrl,
+    target: "_blank",
+    rel: "noopener noreferrer",
+    style: {
+      padding: "7px 13px",
+      borderRadius: 9,
+      background: "rgba(255,255,255,.16)",
+      color: "#fff",
+      fontSize: 12,
+      fontWeight: 700,
+      textDecoration: "none"
+    }
+  }, "\u0E40\u0E1B\u0E34\u0E14\u0E41\u0E17\u0E47\u0E1A\u0E43\u0E2B\u0E21\u0E48"), React.createElement("a", {
+    href: shot.dataUrl,
+    download: shot.name || "ใบเสร็จ.pdf",
+    style: {
+      padding: "7px 13px",
+      borderRadius: 9,
+      background: "rgba(255,255,255,.16)",
+      color: "#fff",
+      fontSize: 12,
+      fontWeight: 700,
+      textDecoration: "none"
+    }
+  }, "\u0E14\u0E32\u0E27\u0E19\u0E4C\u0E42\u0E2B\u0E25\u0E14"), React.createElement("button", {
+    onClick: onClose,
+    title: "\u0E1B\u0E34\u0E14",
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: 9,
+      border: "none",
+      background: "rgba(255,255,255,.16)",
+      color: "#fff",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 16,
+    color: "#fff"
+  }))), url ? React.createElement("iframe", {
+    src: url,
+    title: "\u0E1A\u0E34\u0E25",
+    style: {
+      flex: 1,
+      width: "100%",
+      border: "none",
+      borderRadius: 10,
+      background: "#fff"
+    }
+  }) : React.createElement("div", {
+    style: {
+      flex: 1,
+      display: "grid",
+      placeItems: "center",
+      color: "#fff",
+      fontSize: 13
+    }
+  }, "\u0E40\u0E1B\u0E34\u0E14\u0E44\u0E1F\u0E25\u0E4C\u0E44\u0E21\u0E48\u0E2A\u0E33\u0E40\u0E23\u0E47\u0E08 \u2014 \u0E25\u0E2D\u0E07\u0E01\u0E14\u0E14\u0E32\u0E27\u0E19\u0E4C\u0E42\u0E2B\u0E25\u0E14\u0E41\u0E25\u0E49\u0E27\u0E40\u0E1B\u0E34\u0E14\u0E14\u0E49\u0E27\u0E22\u0E42\u0E1B\u0E23\u0E41\u0E01\u0E23\u0E21\u0E2D\u0E48\u0E32\u0E19 PDF"));
 }
 function EcClaimModal({
   claim,
@@ -708,7 +926,7 @@ function EcClaimModal({
     size: 13,
     color: "var(--tint-red-tx)"
   }), " \u0E25\u0E1A\u0E43\u0E1A\u0E19\u0E35\u0E49"))), React.createElement(EcBigShot, {
-    src: bigShot,
+    shot: bigShot,
     onClose: () => setBigShot(null)
   }));
 }

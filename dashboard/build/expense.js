@@ -453,13 +453,17 @@ function useEcReceipts(claimId) {
     });
     return () => ref.off("value", h);
   }, [claimId]);
-  const add = React.useCallback((dataUrl, user) => {
+  const add = React.useCallback((dataUrl, user, meta) => {
     if (!claimId || !_ECFB() || !dataUrl) return;
+    const m = meta || {};
     const id = "RC-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
     _ecRef("ecReceipts/" + claimId + "/" + id).set({
       id,
       dataUrl,
       at: new Date().toISOString(),
+      kind: m.kind === "pdf" ? "pdf" : "img",
+      name: m.name || "",
+      size: +m.size || 0,
       by: (user || {}).id || null,
       byName: (user || {}).name || ""
     });
@@ -482,6 +486,9 @@ function useEcReceipts(claimId) {
     sync
   };
 }
+const EC_PDF_MAX_MB = 4;
+const ecReceiptKind = r => (r || {}).kind === "pdf" ? "pdf" : "img";
+const ecFileSize = n => !n ? "" : n < 1024 ? n + " B" : n < 1024 * 1024 ? Math.round(n / 1024) + " KB" : (n / 1024 / 1024).toFixed(1) + " MB";
 function useEcBatches() {
   const [batches, setBatches] = React.useState([]);
   React.useEffect(() => {
@@ -585,6 +592,9 @@ Object.assign(window, {
   ecBlankBatch,
   useEcReceipts,
   useEcBatches,
+  EC_PDF_MAX_MB,
+  ecReceiptKind,
+  ecFileSize,
   ecRollupByPerson,
   ecRollupByJob,
   ecJobSum,
