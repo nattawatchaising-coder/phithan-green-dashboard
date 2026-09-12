@@ -54,12 +54,12 @@ function KanbanCard({
         gap: 6,
         flexShrink: 0
       }
-    }, job.trello && React.createElement("a", {
-      href: job.trello,
+    }, job.drive && React.createElement("a", {
+      href: job.drive,
       target: "_blank",
       rel: "noreferrer",
       onClick: e => e.stopPropagation(),
-      title: "\u0E40\u0E1B\u0E34\u0E14\u0E01\u0E32\u0E23\u0E4C\u0E14 Trello",
+      title: "\u0E40\u0E1B\u0E34\u0E14\u0E42\u0E1F\u0E25\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E07\u0E32\u0E19\u0E43\u0E19 Google Drive",
       style: {
         display: "inline-flex",
         alignItems: "center",
@@ -67,16 +67,16 @@ function KanbanCard({
         fontSize: 10.5,
         fontWeight: 700,
         color: "#fff",
-        background: "#0079BF",
+        background: "#1A73E8",
         padding: "3px 8px",
         borderRadius: 6,
         textDecoration: "none"
       }
     }, React.createElement(Icon, {
-      name: "trello",
+      name: "folder",
       size: 11,
       color: "#fff"
-    }), " Trello"), React.createElement(TypeBadge, {
+    }), " Drive"), React.createElement(TypeBadge, {
       type: job.type
     }))), (job.hasDesign || job.hasBoq) && React.createElement("div", {
       style: {

@@ -42,7 +42,7 @@ function rpBullets(j) {
   if (j.province) b.push("พื้นที่: " + j.province + (j.address ? " · " + j.address : ""));
   if (j.problem) b.push("⚠ ปัญหา: " + j.problem);
   if (j.note) b.push("หมายเหตุ: " + j.note);
-  if (j.trello) b.push(j.trello);else if (j.map) b.push(j.map);
+  if (j.drive) b.push(j.drive);else if (j.map) b.push(j.map);
   return b;
 }
 function rpJobText(j) {

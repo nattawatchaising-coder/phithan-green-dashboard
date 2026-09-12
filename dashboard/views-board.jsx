@@ -22,11 +22,11 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7, gap: 8 }}>
         <span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, color: "var(--text-3)", letterSpacing: "-.01em" }}>{job.code}</span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-          {job.trello && (
-            <a href={job.trello} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title="เปิดการ์ด Trello"
+          {job.drive && (
+            <a href={job.drive} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title="เปิดโฟลเดอร์งานใน Google Drive"
               style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 700, color: "#fff",
-                background: "#0079BF", padding: "3px 8px", borderRadius: 6, textDecoration: "none" }}>
-              <Icon name="trello" size={11} color="#fff" /> Trello
+                background: "#1A73E8", padding: "3px 8px", borderRadius: 6, textDecoration: "none" }}>
+              <Icon name="folder" size={11} color="#fff" /> Drive
             </a>
           )}
           <TypeBadge type={job.type} />

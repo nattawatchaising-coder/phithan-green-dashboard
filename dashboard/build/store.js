@@ -69,7 +69,7 @@ function blankJob(raw) {
     province: "กรุงเทพฯ",
     gps: [0.5 + (Math.random() - 0.5) * 0.2, 0.45 + (Math.random() - 0.5) * 0.2],
     map: "",
-    trello: "",
+    drive: "",
     contractor: "",
     laborCost: null,
     brand: "ATMOCE",

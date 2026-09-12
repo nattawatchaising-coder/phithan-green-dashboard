@@ -424,13 +424,13 @@ function JobForm({
     onChange: e => set("map", e.target.value),
     placeholder: "https://maps.app.goo.gl/..."
   })), React.createElement(Field, {
-    label: "\u0E25\u0E34\u0E07\u0E01\u0E4C Trello (\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E07\u0E32\u0E19)",
+    label: "\u0E25\u0E34\u0E07\u0E01\u0E4C\u0E42\u0E1F\u0E25\u0E40\u0E14\u0E2D\u0E23\u0E4C Google Drive",
     span: true
   }, React.createElement("input", {
     style: inputStyle,
-    value: f.trello || "",
-    onChange: e => set("trello", e.target.value.trim()),
-    placeholder: "https://trello.com/c/..."
+    value: f.drive || "",
+    onChange: e => set("drive", e.target.value.trim()),
+    placeholder: "https://drive.google.com/drive/folders/..."
   })), React.createElement(Field, {
     label: "\u0E17\u0E35\u0E21\u0E23\u0E31\u0E1A\u0E40\u0E2B\u0E21\u0E32"
   }, React.createElement("input", {

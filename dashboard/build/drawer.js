@@ -1448,14 +1448,14 @@ function DetailDrawer({
     style: {
       color: "var(--text-3)"
     }
-  }, "\u2014")), job.trello && React.createElement("div", {
+  }, "\u2014")), job.drive && React.createElement("div", {
     style: {
       gridColumn: "1 / -1"
     }
   }, React.createElement(InfoRow, {
-    label: "\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E07\u0E32\u0E19 Trello"
+    label: "\u0E42\u0E1F\u0E25\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E07\u0E32\u0E19 Google Drive"
   }, React.createElement("a", {
-    href: job.trello,
+    href: job.drive,
     target: "_blank",
     rel: "noreferrer",
     style: {
@@ -1463,7 +1463,7 @@ function DetailDrawer({
       alignItems: "center",
       gap: 6,
       color: "#fff",
-      background: "#0079BF",
+      background: "#1A73E8",
       padding: "6px 12px",
       borderRadius: 9,
       textDecoration: "none",
@@ -1471,10 +1471,10 @@ function DetailDrawer({
       fontSize: 12.5
     }
   }, React.createElement(Icon, {
-    name: "trello",
+    name: "folder",
     size: 14,
     color: "#fff"
-  }), " \u0E40\u0E1B\u0E34\u0E14\u0E01\u0E32\u0E23\u0E4C\u0E14 Trello ", React.createElement(Icon, {
+  }), " \u0E40\u0E1B\u0E34\u0E14\u0E42\u0E1F\u0E25\u0E40\u0E14\u0E2D\u0E23\u0E4C Drive ", React.createElement(Icon, {
     name: "arrowRight",
     size: 13,
     color: "#fff"

@@ -578,11 +578,11 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                 <InfoRow label="ประเภทงาน">{job.type === "home" ? "งานบ้าน" : "งานโครงการ"}</InfoRow>
                 {!roMode && <InfoRow label="ทีมรับเหมา">{job.contractor ? job.contractor : <span style={{ color: "var(--text-3)" }}>—</span>}</InfoRow>}
                 {!roMode && <InfoRow label="ค่าแรงติดตั้ง">{job.laborCost ? Number(job.laborCost).toLocaleString() + " บาท" : <span style={{ color: "var(--text-3)" }}>—</span>}</InfoRow>}
-                {job.trello && (
+                {job.drive && (
                   <div style={{ gridColumn: "1 / -1" }}>
-                    <InfoRow label="การ์ดงาน Trello">
-                      <a href={job.trello} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#fff", background: "#0079BF", padding: "6px 12px", borderRadius: 9, textDecoration: "none", fontWeight: 700, fontSize: 12.5 }}>
-                        <Icon name="trello" size={14} color="#fff" /> เปิดการ์ด Trello <Icon name="arrowRight" size={13} color="#fff" />
+                    <InfoRow label="โฟลเดอร์งาน Google Drive">
+                      <a href={job.drive} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#fff", background: "#1A73E8", padding: "6px 12px", borderRadius: 9, textDecoration: "none", fontWeight: 700, fontSize: 12.5 }}>
+                        <Icon name="folder" size={14} color="#fff" /> เปิดโฟลเดอร์ Drive <Icon name="arrowRight" size={13} color="#fff" />
                       </a>
                     </InfoRow>
                   </div>
