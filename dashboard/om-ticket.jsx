@@ -95,8 +95,88 @@ function OmTicketCard({ t, onOpen }) {
   );
 }
 
+/* ── ข้อมูลงานติดตั้งเดิม (ดึงจากฐานข้อมูลงาน) ──
+   ช่างที่รับเรื่องซ่อมต้องรู้ก่อนออกจากออฟฟิศว่า โทรหาใคร ไปที่ไหน ของที่ติดไว้เป็นรุ่นอะไร
+   ไม่ใช่ต้องกลับไปเปิดใบงานอีกหน้าหนึ่ง — ดึงมาโชว์ตรงนี้เลย อ่านอย่างเดียว แก้ที่ใบงานต้นทาง
+   ไซต์นอกระบบไม่มีใบงาน จึงใช้ข้อมูลเท่าที่ทะเบียนไซต์มี */
+function OmJobFacts({ job, site }) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const [plan3d, setPlan3d] = React.useState(false);
+  const s = site || {};
+  const j = job || null;
+  const phone = (j && j.phone) || s.phone || "";
+  const addr = [(j && j.address) || s.address || "", (j && j.province) || s.province || ""].filter(Boolean).join(", ");
+  const map = j && j.map;
+  const kw = (j && j.kw) || s.kw || null;
+  const specs = j ? [
+    ["แบรนด์", j.brand || "—"], ["ขนาดระบบ", (j.kw || "—") + " kW"], ["จำนวนแผง", (j.panels || "—") + " แผง"],
+    ["ระบบไฟฟ้า", (j.phase || "1") + " เฟส"], ["แบตเตอรี่", j.battery ? (j.batSize || "มี") : "ไม่มี"],
+    ["ระบบ / ออฟติไมเซอร์", j.connect || "—"], ["ระบบ Backup", j.backup ? "มี" : "ไม่มี"],
+  ] : [["ขนาดระบบ", kw ? kw + " kW" : "—"], ["จำนวนแผง", s.panels ? s.panels + " แผง" : "—"], ["แบรนด์", s.brand || "—"]];
+
+  const cell = (label, value) => (
+    <div key={label}>
+      <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".04em", color: "var(--text-3)" }}>{label}</div>
+      <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", marginTop: 2 }}>{value}</div>
+    </div>
+  );
+
+  return (
+    <React.Fragment>
+    <div style={{ border: "1px solid var(--border)", background: "var(--surface)", borderRadius: 13,
+      padding: isMobile ? 13 : 15, marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 12, flexWrap: "wrap" }}>
+        <Icon name="sun" size={14} color="var(--primary)" />
+        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".07em", textTransform: "uppercase", color: "var(--text-3)" }}>ข้อมูลงานติดตั้งเดิม</span>
+        <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: "var(--primary-dark)", background: "var(--primary-soft)", padding: "2px 8px", borderRadius: 6 }}>{s.code || (j && j.code) || ""}</span>
+        {j && <window.OmPill th={j.type === "home" ? "งานบ้าน" : "งานโครงการ"} color="#0EA5E9" />}
+        {!j && <window.OmPill th="ไซต์นอกระบบ · ไม่มีใบงาน" color="#94A3B8" />}
+        {s.comDate && <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>ติดตั้งเสร็จ {window.drDateTH(s.comDate)}</span>}
+      </div>
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+        {phone && (
+          <a href={"tel:" + phone} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9,
+            border: "1px solid var(--border-strong)", background: "var(--bg)", textDecoration: "none",
+            fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", fontFamily: "var(--mono)" }}>
+            <Icon name="phone" size={13} color="var(--text-3)" /> {phone}
+          </a>
+        )}
+        {map && (
+          <a href={map} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9,
+            border: "1px solid var(--border-strong)", background: "var(--bg)", textDecoration: "none", fontSize: 12.5, fontWeight: 700, color: "var(--primary-dark)" }}>
+            <Icon name="pin" size={13} color="var(--primary-dark)" /> เปิดแผนที่
+          </a>
+        )}
+        {j && window.Plan3DEditor && (
+          <button onClick={() => setPlan3d(true)}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9,
+              border: "1px solid var(--border-strong)", background: "var(--bg)", cursor: "pointer",
+              fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "#4F46E5" }}>
+            <Icon name="panel" size={13} color="#4F46E5" /> เปิดแบบวางแผง
+          </button>
+        )}
+      </div>
+
+      {addr && (
+        <div style={{ fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.5, marginBottom: 12 }}>
+          <Icon name="pin" size={12} color="var(--text-3)" style={{ verticalAlign: -1 }} /> {addr}
+        </div>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 12 }}>
+        {specs.map(([k, v]) => cell(k, v))}
+        {j && cell("ช่างที่ติดตั้ง", (window.SF.TECH_BY_ID[j.tech] || {}).name || "—")}
+        {j && cell("เซลล์เจ้าของงาน", j.salesName || "—")}
+      </div>
+    </div>
+    {plan3d && j && window.Plan3DEditor && <window.Plan3DEditor job={j} onClose={() => setPlan3d(false)} />}
+    </React.Fragment>
+  );
+}
+
 /* ── แผงใบแจ้งซ่อม ── */
-function OmTicketModal({ ticket, site, role, currentUser, visits, onOpenVisit, onNewVisit,
+function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, onOpenVisit, onNewVisit,
   onClose, onPatch, onMove, onRemove }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const canWrite = window.omCanWrite(role, null);
@@ -110,7 +190,7 @@ function OmTicketModal({ ticket, site, role, currentUser, visits, onOpenVisit, o
   const st = window.omTicketStatusOf(t.status);
   const over = window.omTicketOverdue(t);
   /* ใบที่ปิดแล้วล็อก — เป็นเอกสารที่ลูกค้ารับทราบแล้ว หัวหน้าเปิดกลับมาแก้ได้ที่ปุ่มเดินสถานะ */
-  const locked = !canWrite || t.status === "closed";
+  const locked = !canWrite || window.omTicketKey(t.status) === "closed";
   const set = (fields) => { if (!locked) onPatch(t.id, fields); };
   const nexts = window.omTicketNext(t, role);
 
@@ -173,7 +253,7 @@ function OmTicketModal({ ticket, site, role, currentUser, visits, onOpenVisit, o
               </span>
             </div>
           )}
-          {t.status === "closed" && (
+          {window.omTicketKey(t.status) === "closed" && (
             <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "11px 13px", marginBottom: 14,
               border: "1px solid #10B98140", background: "#10B98114", borderRadius: 12 }}>
               <Icon name="lock" size={15} color="#10B981" />
@@ -184,6 +264,8 @@ function OmTicketModal({ ticket, site, role, currentUser, visits, onOpenVisit, o
               </span>
             </div>
           )}
+
+          <OmJobFacts job={job} site={site} />
 
           <window.DrSection n="1" title="ลูกค้าแจ้งว่าอะไร" tone="#7C5CFC">
             <window.DrLabel hint="สรุปสั้น ๆ ให้อ่านแล้วรู้เรื่องทันที">หัวเรื่อง</window.DrLabel>
@@ -277,24 +359,34 @@ function OmTicketModal({ ticket, site, role, currentUser, visits, onOpenVisit, o
             {t.apptDate && (
               <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 8 }}>{window.drDateTH(t.apptDate, true)}</div>
             )}
-            {/* มอบหมายช่าง — เปลี่ยนตัวคนแล้วเด้งแจ้งเตือนหาคนใหม่ทันที
+            {/* มอบหมายผู้รับผิดชอบ — เลือกได้จากผู้ใช้ทุกคนในระบบ ไม่ใช่เฉพาะช่าง
+                (งานซ่อมบางเรื่องคนที่ต้องตามคือแอดมินหรือวิศวกร) · เปลี่ยนตัวคนแล้วเด้งแจ้งเตือนทันที
                 ไม่งั้นคนที่ถูกมอบหมายจะไม่รู้เรื่องจนกว่าจะบังเอิญเปิดบอร์ดมาดู */}
             <div style={{ marginTop: 12 }}>
-              <window.DrLabel>ช่างผู้รับผิดชอบ</window.DrLabel>
-              <select value={t.techId || ""} disabled={locked}
+              <window.DrLabel>ผู้รับผิดชอบ</window.DrLabel>
+              <select value={t.assigneeId || ""} disabled={locked}
                 onChange={(e) => {
                   const id = e.target.value;
-                  set({ techId: id || null });
-                  if (id && window.omNotify) {
-                    window.omNotify({ toTechId: id, omSiteId: t.siteId,
+                  const u = (users || []).find((x) => x.id === id) || null;
+                  set({ assigneeId: id || null, assigneeName: u ? u.name : "", techId: u ? (u.techId || null) : null });
+                  if (u && window.omNotify) {
+                    window.omNotify({ toUserId: u.id, toTechId: u.techId || null, omSiteId: t.siteId,
                       title: "มอบหมายงานบริการ · " + (t.title || t.no),
                       body: (t.siteName || t.siteCode || "") + (t.apptDate ? " · นัด " + window.drShort(t.apptDate) : " · ยังไม่ได้นัดวัน") });
                   }
                 }}
                 style={Object.assign({}, window.OM_INPUT, { padding: "8px 10px", fontSize: 12.5 })}>
                 <option value="">— ยังไม่ได้มอบหมาย —</option>
-                {(window.SF.TECHS || []).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+                {(users || []).filter((u) => u.active !== false).map((u) => (
+                  <option key={u.id} value={u.id}>{u.name}{u.techId ? "" : " (ไม่ใช่ช่าง)"}</option>
+                ))}
               </select>
+              {/* ใบเก่าที่เคยเลือกไว้ตอนยังเลือกได้แค่ช่าง — บอกให้รู้ว่าใครถืออยู่ จะได้เลือกใหม่ได้ถูก */}
+              {!t.assigneeId && t.techId && (
+                <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 5 }}>
+                  เดิมมอบหมายให้ช่าง {(window.SF.TECH_BY_ID[t.techId] || {}).name || t.techId}
+                </div>
+              )}
             </div>
           </window.DrSection>
 
@@ -418,9 +510,11 @@ function OmTicketModal({ ticket, site, role, currentUser, visits, onOpenVisit, o
 /* ── บอร์ดใบแจ้งซ่อม ──
    จอใหญ่เป็นคอลัมน์ตามสถานะ จอเล็กเป็นรายการจัดกลุ่ม (คอลัมน์แนวนอนบนมือถือใช้ไม่ได้จริง)
    ปิดงานกับไม่รับเรื่องยุบรวมเป็นกลุ่มเดียว ไม่งั้นบอร์ดจะยาวขึ้นเรื่อย ๆ ตามเวลา */
-const OM_BOARD_COLS = ["new", "triage", "accepted", "scheduled", "onsite"];
+/* บอร์ดเหลือ 3 ช่อง: แจ้งเข้ามาใหม่ → รับเรื่อง → นัดวันเข้าแก้ไข
+   (ปิดงานแล้วไปอยู่ในรายการ "ปิดไปแล้ว" ด้านล่าง ไม่ต้องมีช่องของตัวเอง) */
+const OM_BOARD_COLS = ["new", "accepted", "scheduled"];
 
-function OmTicketBoard({ sites, ticketStore, visitStore, role, currentUser, onNewVisit, onOpenVisit }) {
+function OmTicketBoard({ sites, jobById, users, ticketStore, visitStore, role, currentUser, onNewVisit, onOpenVisit }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const { tickets, loading, save, patch, remove } = ticketStore;
   const [openId, setOpenId] = React.useState(null);
@@ -454,7 +548,7 @@ function OmTicketBoard({ sites, ticketStore, visitStore, role, currentUser, onNe
 
   const col = (key) => {
     const st = window.omTicketStatusOf(key);
-    const list = tickets.filter((t) => t.status === key);
+    const list = tickets.filter((t) => window.omTicketKey(t.status) === key);
     return (
       <div key={key} style={{ minWidth: isMobile ? 0 : 240, flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 9 }}>
@@ -527,7 +621,8 @@ function OmTicketBoard({ sites, ticketStore, visitStore, role, currentUser, onNe
       )}
 
       {cur && (
-        <OmTicketModal ticket={cur} site={siteById[cur.siteId] || null} role={role} currentUser={currentUser}
+        <OmTicketModal ticket={cur} site={siteById[cur.siteId] || null} job={(jobById || {})[cur.siteId] || null}
+          users={users} role={role} currentUser={currentUser}
           visits={((visitStore || {}).visits || []).filter((v) => v.ticketId === cur.id)}
           onNewVisit={onNewVisit ? (opts) => onNewVisit(siteById[cur.siteId], opts) : null}
           onOpenVisit={onOpenVisit}

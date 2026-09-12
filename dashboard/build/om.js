@@ -646,11 +646,6 @@ const OM_TICKET_STATUS = [{
   key: "new",
   th: "แจ้งเข้ามาใหม่",
   color: "#7C5CFC",
-  next: ["triage", "rejected"]
-}, {
-  key: "triage",
-  th: "กำลังตรวจสอบ",
-  color: "#0EA5E9",
   next: ["accepted", "rejected"]
 }, {
   key: "accepted",
@@ -659,14 +654,9 @@ const OM_TICKET_STATUS = [{
   next: ["scheduled", "rejected"]
 }, {
   key: "scheduled",
-  th: "นัดวันเข้าแล้ว",
+  th: "นัดวันเข้าแก้ไข",
   color: "#F59E0B",
-  next: ["onsite", "accepted"]
-}, {
-  key: "onsite",
-  th: "กำลังทำหน้างาน",
-  color: "#F59E0B",
-  next: ["closed", "scheduled"]
+  next: ["closed", "accepted"]
 }, {
   key: "closed",
   th: "ปิดงานแล้ว",
@@ -676,18 +666,26 @@ const OM_TICKET_STATUS = [{
   key: "rejected",
   th: "ไม่รับเรื่อง",
   color: "#94A3B8",
-  next: ["triage"]
+  next: ["new"]
 }];
 const OM_TICKET_STATUS_BY = {};
 OM_TICKET_STATUS.forEach(s => {
   OM_TICKET_STATUS_BY[s.key] = s;
 });
-const omTicketStatusOf = k => OM_TICKET_STATUS_BY[k] || OM_TICKET_STATUS_BY.new;
-const omTicketOpen = t => !!t && t.status !== "closed" && t.status !== "rejected";
+const OM_TICKET_LEGACY = {
+  triage: "accepted",
+  onsite: "scheduled"
+};
+const omTicketKey = k => OM_TICKET_LEGACY[k] || k;
+const omTicketStatusOf = k => OM_TICKET_STATUS_BY[omTicketKey(k)] || OM_TICKET_STATUS_BY.new;
+const omTicketOpen = t => {
+  const k = omTicketKey((t || {}).status);
+  return !!t && k !== "closed" && k !== "rejected";
+};
 function omTicketNext(t, role) {
   const cur = omTicketStatusOf((t || {}).status);
   const list = (cur.next || []).slice();
-  if (cur.key === "closed" && omCanApprove(role)) list.push("onsite");
+  if (cur.key === "closed" && omCanApprove(role)) list.push("scheduled");
   return list.map(k => OM_TICKET_STATUS_BY[k]);
 }
 const omTicketCan = (from, to, role) => omTicketNext({
@@ -702,7 +700,7 @@ function omTicketMove(t, to, user, note) {
   });
   rec.hist = (t.hist || []).concat([{
     at: now,
-    from: t.status || "new",
+    from: omTicketKey(t.status) || "new",
     to: to,
     by: (user || {}).id || null,
     byName: (user || {}).name || "",
@@ -712,7 +710,7 @@ function omTicketMove(t, to, user, note) {
     rec.closedAt = now;
     rec.closedBy = (user || {}).id || null;
     rec.closedByName = (user || {}).name || "";
-  } else if (t.status === "closed") {
+  } else if (omTicketKey(t.status) === "closed") {
     rec.closedAt = null;
     rec.closedBy = null;
     rec.closedByName = "";
@@ -761,6 +759,8 @@ function omBlankTicket(site, tickets, user) {
     coverNote: "",
     coverWid: "",
     quoteAmt: null,
+    assigneeId: null,
+    assigneeName: "",
     techId: site.tech || "",
     apptDate: "",
     apptFrom: "",
@@ -812,7 +812,7 @@ function omTicketRollup(tickets, today) {
       return;
     }
     out.open++;
-    if (x.status === "new") out.newly++;
+    if (omTicketKey(x.status) === "new") out.newly++;
     if (x.severity === "down") out.down++;
     if (omTicketOverdue(x, t)) out.overdue++;
   });
@@ -1430,6 +1430,7 @@ Object.assign(window, {
   omTicketNext,
   omTicketCan,
   omTicketMove,
+  omTicketKey,
   omTicketOverdue,
   omTicketNo,
   omBlankTicket,

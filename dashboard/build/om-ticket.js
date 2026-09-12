@@ -191,9 +191,182 @@ function OmTicketCard({
     color: "#0EA5E9"
   })));
 }
+function OmJobFacts({
+  job,
+  site
+}) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const [plan3d, setPlan3d] = React.useState(false);
+  const s = site || {};
+  const j = job || null;
+  const phone = j && j.phone || s.phone || "";
+  const addr = [j && j.address || s.address || "", j && j.province || s.province || ""].filter(Boolean).join(", ");
+  const map = j && j.map;
+  const kw = j && j.kw || s.kw || null;
+  const specs = j ? [["แบรนด์", j.brand || "—"], ["ขนาดระบบ", (j.kw || "—") + " kW"], ["จำนวนแผง", (j.panels || "—") + " แผง"], ["ระบบไฟฟ้า", (j.phase || "1") + " เฟส"], ["แบตเตอรี่", j.battery ? j.batSize || "มี" : "ไม่มี"], ["ระบบ / ออฟติไมเซอร์", j.connect || "—"], ["ระบบ Backup", j.backup ? "มี" : "ไม่มี"]] : [["ขนาดระบบ", kw ? kw + " kW" : "—"], ["จำนวนแผง", s.panels ? s.panels + " แผง" : "—"], ["แบรนด์", s.brand || "—"]];
+  const cell = (label, value) => React.createElement("div", {
+    key: label
+  }, React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 700,
+      letterSpacing: ".04em",
+      color: "var(--text-3)"
+    }
+  }, label), React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      marginTop: 2
+    }
+  }, value));
+  return React.createElement(React.Fragment, null, React.createElement("div", {
+    style: {
+      border: "1px solid var(--border)",
+      background: "var(--surface)",
+      borderRadius: 13,
+      padding: isMobile ? 13 : 15,
+      marginBottom: 16
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 7,
+      marginBottom: 12,
+      flexWrap: "wrap"
+    }
+  }, React.createElement(Icon, {
+    name: "sun",
+    size: 14,
+    color: "var(--primary)"
+  }), React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 800,
+      letterSpacing: ".07em",
+      textTransform: "uppercase",
+      color: "var(--text-3)"
+    }
+  }, "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E40\u0E14\u0E34\u0E21"), React.createElement("span", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontSize: 11.5,
+      color: "var(--primary-dark)",
+      background: "var(--primary-soft)",
+      padding: "2px 8px",
+      borderRadius: 6
+    }
+  }, s.code || j && j.code || ""), j && React.createElement(window.OmPill, {
+    th: j.type === "home" ? "งานบ้าน" : "งานโครงการ",
+    color: "#0EA5E9"
+  }), !j && React.createElement(window.OmPill, {
+    th: "\u0E44\u0E0B\u0E15\u0E4C\u0E19\u0E2D\u0E01\u0E23\u0E30\u0E1A\u0E1A \xB7 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A\u0E07\u0E32\u0E19",
+    color: "#94A3B8"
+  }), s.comDate && React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E40\u0E2A\u0E23\u0E47\u0E08 ", window.drDateTH(s.comDate))), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      flexWrap: "wrap",
+      marginBottom: 12
+    }
+  }, phone && React.createElement("a", {
+    href: "tel:" + phone,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "7px 12px",
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--bg)",
+      textDecoration: "none",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      fontFamily: "var(--mono)"
+    }
+  }, React.createElement(Icon, {
+    name: "phone",
+    size: 13,
+    color: "var(--text-3)"
+  }), " ", phone), map && React.createElement("a", {
+    href: map,
+    target: "_blank",
+    rel: "noreferrer",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "7px 12px",
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--bg)",
+      textDecoration: "none",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--primary-dark)"
+    }
+  }, React.createElement(Icon, {
+    name: "pin",
+    size: 13,
+    color: "var(--primary-dark)"
+  }), " \u0E40\u0E1B\u0E34\u0E14\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48"), j && window.Plan3DEditor && React.createElement("button", {
+    onClick: () => setPlan3d(true),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "7px 12px",
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--bg)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "#4F46E5"
+    }
+  }, React.createElement(Icon, {
+    name: "panel",
+    size: 13,
+    color: "#4F46E5"
+  }), " \u0E40\u0E1B\u0E34\u0E14\u0E41\u0E1A\u0E1A\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07")), addr && React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-2)",
+      lineHeight: 1.5,
+      marginBottom: 12
+    }
+  }, React.createElement(Icon, {
+    name: "pin",
+    size: 12,
+    color: "var(--text-3)",
+    style: {
+      verticalAlign: -1
+    }
+  }), " ", addr), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
+      gap: 12
+    }
+  }, specs.map(([k, v]) => cell(k, v)), j && cell("ช่างที่ติดตั้ง", (window.SF.TECH_BY_ID[j.tech] || {}).name || "—"), j && cell("เซลล์เจ้าของงาน", j.salesName || "—"))), plan3d && j && window.Plan3DEditor && React.createElement(window.Plan3DEditor, {
+    job: j,
+    onClose: () => setPlan3d(false)
+  }));
+}
 function OmTicketModal({
   ticket,
   site,
+  job,
+  users,
   role,
   currentUser,
   visits,
@@ -214,7 +387,7 @@ function OmTicketModal({
   const t = ticket;
   const st = window.omTicketStatusOf(t.status);
   const over = window.omTicketOverdue(t);
-  const locked = !canWrite || t.status === "closed";
+  const locked = !canWrite || window.omTicketKey(t.status) === "closed";
   const set = fields => {
     if (!locked) onPatch(t.id, fields);
   };
@@ -367,7 +540,7 @@ function OmTicketModal({
       fontSize: 12.5,
       color: "var(--text-1)"
     }
-  }, "\u0E41\u0E08\u0E49\u0E07\u0E21\u0E32\u0E41\u0E25\u0E49\u0E27 ", React.createElement("b", null, over.age, " \u0E27\u0E31\u0E19"), " \xB7 \u0E23\u0E30\u0E14\u0E31\u0E1A", (window.OM_SEVERITY_BY[t.severity] || {}).th, " \u0E04\u0E27\u0E23\u0E1B\u0E34\u0E14\u0E20\u0E32\u0E22\u0E43\u0E19 ", over.limit, " \u0E27\u0E31\u0E19")), t.status === "closed" && React.createElement("div", {
+  }, "\u0E41\u0E08\u0E49\u0E07\u0E21\u0E32\u0E41\u0E25\u0E49\u0E27 ", React.createElement("b", null, over.age, " \u0E27\u0E31\u0E19"), " \xB7 \u0E23\u0E30\u0E14\u0E31\u0E1A", (window.OM_SEVERITY_BY[t.severity] || {}).th, " \u0E04\u0E27\u0E23\u0E1B\u0E34\u0E14\u0E20\u0E32\u0E22\u0E43\u0E19 ", over.limit, " \u0E27\u0E31\u0E19")), window.omTicketKey(t.status) === "closed" && React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -387,7 +560,10 @@ function OmTicketModal({
       fontSize: 12.5,
       color: "var(--text-1)"
     }
-  }, "\u0E1B\u0E34\u0E14\u0E07\u0E32\u0E19\u0E41\u0E25\u0E49\u0E27\u0E42\u0E14\u0E22 ", React.createElement("b", null, t.closedByName || "-"), t.closedAt ? " · " + window.drDateTH(t.closedAt.slice(0, 10)) : "", " \xB7 \u0E41\u0E01\u0E49\u0E44\u0E02\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49", window.omCanApprove(role) ? " — หัวหน้ากดเปิดกลับมาทำต่อได้ที่ปุ่มด้านบน" : "")), React.createElement(window.DrSection, {
+  }, "\u0E1B\u0E34\u0E14\u0E07\u0E32\u0E19\u0E41\u0E25\u0E49\u0E27\u0E42\u0E14\u0E22 ", React.createElement("b", null, t.closedByName || "-"), t.closedAt ? " · " + window.drDateTH(t.closedAt.slice(0, 10)) : "", " \xB7 \u0E41\u0E01\u0E49\u0E44\u0E02\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49", window.omCanApprove(role) ? " — หัวหน้ากดเปิดกลับมาทำต่อได้ที่ปุ่มด้านบน" : "")), React.createElement(OmJobFacts, {
+    job: job,
+    site: site
+  }), React.createElement(window.DrSection, {
     n: "1",
     title: "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E41\u0E08\u0E49\u0E07\u0E27\u0E48\u0E32\u0E2D\u0E30\u0E44\u0E23",
     tone: "#7C5CFC"
@@ -623,17 +799,21 @@ function OmTicketModal({
     style: {
       marginTop: 12
     }
-  }, React.createElement(window.DrLabel, null, "\u0E0A\u0E48\u0E32\u0E07\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A"), React.createElement("select", {
-    value: t.techId || "",
+  }, React.createElement(window.DrLabel, null, "\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A"), React.createElement("select", {
+    value: t.assigneeId || "",
     disabled: locked,
     onChange: e => {
       const id = e.target.value;
+      const u = (users || []).find(x => x.id === id) || null;
       set({
-        techId: id || null
+        assigneeId: id || null,
+        assigneeName: u ? u.name : "",
+        techId: u ? u.techId || null : null
       });
-      if (id && window.omNotify) {
+      if (u && window.omNotify) {
         window.omNotify({
-          toTechId: id,
+          toUserId: u.id,
+          toTechId: u.techId || null,
           omSiteId: t.siteId,
           title: "มอบหมายงานบริการ · " + (t.title || t.no),
           body: (t.siteName || t.siteCode || "") + (t.apptDate ? " · นัด " + window.drShort(t.apptDate) : " · ยังไม่ได้นัดวัน")
@@ -646,10 +826,16 @@ function OmTicketModal({
     })
   }, React.createElement("option", {
     value: ""
-  }, "\u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E21\u0E2D\u0E1A\u0E2B\u0E21\u0E32\u0E22 \u2014"), (window.SF.TECHS || []).map(x => React.createElement("option", {
-    key: x.id,
-    value: x.id
-  }, x.name))))), React.createElement(window.DrSection, {
+  }, "\u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E21\u0E2D\u0E1A\u0E2B\u0E21\u0E32\u0E22 \u2014"), (users || []).filter(u => u.active !== false).map(u => React.createElement("option", {
+    key: u.id,
+    value: u.id
+  }, u.name, u.techId ? "" : " (ไม่ใช่ช่าง)"))), !t.assigneeId && t.techId && React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      marginTop: 5
+    }
+  }, "\u0E40\u0E14\u0E34\u0E21\u0E21\u0E2D\u0E1A\u0E2B\u0E21\u0E32\u0E22\u0E43\u0E2B\u0E49\u0E0A\u0E48\u0E32\u0E07 ", (window.SF.TECH_BY_ID[t.techId] || {}).name || t.techId))), React.createElement(window.DrSection, {
     n: "4",
     title: "\u0E23\u0E39\u0E1B\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A",
     tone: "#0EA5E9",
@@ -922,9 +1108,11 @@ function OmTicketModal({
     color: "#EF4444"
   }), " \u0E25\u0E1A\u0E43\u0E1A\u0E41\u0E08\u0E49\u0E07\u0E0B\u0E48\u0E2D\u0E21\u0E19\u0E35\u0E49 (\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19)")))));
 }
-const OM_BOARD_COLS = ["new", "triage", "accepted", "scheduled", "onsite"];
+const OM_BOARD_COLS = ["new", "accepted", "scheduled"];
 function OmTicketBoard({
   sites,
+  jobById,
+  users,
   ticketStore,
   visitStore,
   role,
@@ -973,7 +1161,7 @@ function OmTicketBoard({
   };
   const col = key => {
     const st = window.omTicketStatusOf(key);
-    const list = tickets.filter(t => t.status === key);
+    const list = tickets.filter(t => window.omTicketKey(t.status) === key);
     return React.createElement("div", {
       key: key,
       style: {
@@ -1157,6 +1345,8 @@ function OmTicketBoard({
   })))), cur && React.createElement(OmTicketModal, {
     ticket: cur,
     site: siteById[cur.siteId] || null,
+    job: (jobById || {})[cur.siteId] || null,
+    users: users,
     role: role,
     currentUser: currentUser,
     visits: ((visitStore || {}).visits || []).filter(v => v.ticketId === cur.id),

@@ -611,7 +611,9 @@ function App() {
 
   // แจ้งเตือนของช่างคนนี้ (admin/manager ไม่มี techId → ไม่มีกระดิ่งส่วนตัว)
   /* แจ้งเตือนของฉัน = ที่จ่าหน้าถึงตัวเรา + ที่จ่าหน้าถึง "คนที่มีสิทธิ์นี้" (เช่น งานขออนุญาตส่งถึงทุกคนในฝ่าย) */
-  const myNotifs = notif.notifs.filter((n) => (techId && n.toTechId === techId) || (n.toPerm && can(role, n.toPerm)));
+  /* จ่าหน้าถึง "ผู้ใช้คนนี้" ด้วย — งานบริการมอบหมายให้ใครก็ได้ในระบบ ไม่ใช่เฉพาะคนที่ผูกกับช่าง */
+  const myUid = auth.current ? auth.current.id : null;
+  const myNotifs = notif.notifs.filter((n) => (techId && n.toTechId === techId) || (myUid && n.toUserId === myUid) || (n.toPerm && can(role, n.toPerm)));
   const unread   = myNotifs.filter((n) => !n.read).length;
   const bellCount = unread + lateAlerts.length + omLive.alerts.length;
   const openFromNotif = (n) => {
@@ -711,7 +713,7 @@ function App() {
           {view === "permit" && permitView}
           {view === "daily" && <DailyView jobs={filtered} role={role} currentUser={auth.current} onOpen={(j) => setDailyJob(j)} />}
           {/* ทะเบียนบริการเป็นภาระผูกพันของบริษัท ไม่ใช่คิวงานของใครคนหนึ่ง จึงดูจากงานทั้งหมดที่ผู้ใช้เห็น */}
-          {view === "om" && <window.OmView jobs={jobs} role={role} currentUser={auth.current} focus={omFocus} />}
+          {view === "om" && <window.OmView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} focus={omFocus} />}
           {view === "report" && <ReportView jobs={filtered} onOpen={openJob} />}
           {view === "survey" && <SurveyView jobs={filtered} role={role} onOpen={openSurvey}
             onToggleSkip={(can(role, "doSurvey") || can(role, "dispatch") || can(role, "editJob")) ? (j) => {

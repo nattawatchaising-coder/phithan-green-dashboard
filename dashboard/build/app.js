@@ -837,7 +837,8 @@ function App() {
   if (!auth.current) return React.createElement(LoginScreen, {
     authStore: auth
   });
-  const myNotifs = notif.notifs.filter(n => techId && n.toTechId === techId || n.toPerm && can(role, n.toPerm));
+  const myUid = auth.current ? auth.current.id : null;
+  const myNotifs = notif.notifs.filter(n => techId && n.toTechId === techId || myUid && n.toUserId === myUid || n.toPerm && can(role, n.toPerm));
   const unread = myNotifs.filter(n => !n.read).length;
   const bellCount = unread + lateAlerts.length + omLive.alerts.length;
   const openFromNotif = n => {
@@ -1054,6 +1055,7 @@ function App() {
     onOpen: j => setDailyJob(j)
   }), view === "om" && React.createElement(window.OmView, {
     jobs: jobs,
+    users: auth.users,
     role: role,
     currentUser: auth.current,
     focus: omFocus

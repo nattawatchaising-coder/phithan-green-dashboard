@@ -444,24 +444,26 @@ const omCoverTH = (k) => OM_COVER[k] || OM_COVER.unknown;
    ประกาศเป็นตารางข้อมูล ไม่ใช่ if ซ้อน — เพิ่มสถานะทีหลังจะได้ไม่ต้องไล่แก้หลายที่
    และหน้าจอสร้างปุ่มจากตารางนี้โดยตรง ปุ่มที่ขึ้นจึงเป็นทางที่เดินได้จริงเสมอ */
 const OM_TICKET_STATUS = [
-  { key: "new",       th: "แจ้งเข้ามาใหม่", color: "#7C5CFC", next: ["triage", "rejected"] },
-  { key: "triage",    th: "กำลังตรวจสอบ",  color: "#0EA5E9", next: ["accepted", "rejected"] },
+  { key: "new",       th: "แจ้งเข้ามาใหม่", color: "#7C5CFC", next: ["accepted", "rejected"] },
   { key: "accepted",  th: "รับเรื่องแล้ว",  color: "#0EA5E9", next: ["scheduled", "rejected"] },
-  { key: "scheduled", th: "นัดวันเข้าแล้ว", color: "#F59E0B", next: ["onsite", "accepted"] },
-  { key: "onsite",    th: "กำลังทำหน้างาน", color: "#F59E0B", next: ["closed", "scheduled"] },
+  { key: "scheduled", th: "นัดวันเข้าแก้ไข", color: "#F59E0B", next: ["closed", "accepted"] },
   { key: "closed",    th: "ปิดงานแล้ว",    color: "#10B981", next: [] },
-  { key: "rejected",  th: "ไม่รับเรื่อง",   color: "#94A3B8", next: ["triage"] },
+  { key: "rejected",  th: "ไม่รับเรื่อง",   color: "#94A3B8", next: ["new"] },
 ];
 const OM_TICKET_STATUS_BY = {};
 OM_TICKET_STATUS.forEach((s) => { OM_TICKET_STATUS_BY[s.key] = s; });
-const omTicketStatusOf = (k) => OM_TICKET_STATUS_BY[k] || OM_TICKET_STATUS_BY.new;
-const omTicketOpen = (t) => !!t && t.status !== "closed" && t.status !== "rejected";
+/* เคยมีขั้น "กำลังตรวจสอบ" กับ "กำลังทำหน้างาน" แล้วตัดออกเพราะซ้ำซ้อน
+   ใบเก่าที่ค้างอยู่ในสองขั้นนั้นต้องอ่านได้ต่อ ไม่ใช่เด้งกลับไปเป็น "แจ้งเข้ามาใหม่" */
+const OM_TICKET_LEGACY = { triage: "accepted", onsite: "scheduled" };
+const omTicketKey = (k) => OM_TICKET_LEGACY[k] || k;
+const omTicketStatusOf = (k) => OM_TICKET_STATUS_BY[omTicketKey(k)] || OM_TICKET_STATUS_BY.new;
+const omTicketOpen = (t) => { const k = omTicketKey((t || {}).status); return !!t && k !== "closed" && k !== "rejected"; };
 
 /* ปิดงานแล้วย้อนไม่ได้เอง ต้องให้หัวหน้าปลดล็อก — ใบที่ปิดไปแล้วคือเอกสารที่ลูกค้ารับทราบแล้ว */
 function omTicketNext(t, role) {
   const cur = omTicketStatusOf((t || {}).status);
   const list = (cur.next || []).slice();
-  if (cur.key === "closed" && omCanApprove(role)) list.push("onsite");
+  if (cur.key === "closed" && omCanApprove(role)) list.push("scheduled");
   return list.map((k) => OM_TICKET_STATUS_BY[k]);
 }
 const omTicketCan = (from, to, role) => omTicketNext({ status: from }, role).some((s) => s.key === to);
@@ -473,11 +475,11 @@ function omTicketMove(t, to, user, note) {
   const now = new Date().toISOString();
   const rec = Object.assign({}, t, { status: to, updatedAt: now });
   rec.hist = (t.hist || []).concat([{
-    at: now, from: t.status || "new", to: to,
+    at: now, from: omTicketKey(t.status) || "new", to: to,
     by: (user || {}).id || null, byName: (user || {}).name || "", note: note || "",
   }]);
   if (to === "closed") { rec.closedAt = now; rec.closedBy = (user || {}).id || null; rec.closedByName = (user || {}).name || ""; }
-  else if (t.status === "closed") { rec.closedAt = null; rec.closedBy = null; rec.closedByName = ""; }
+  else if (omTicketKey(t.status) === "closed") { rec.closedAt = null; rec.closedBy = null; rec.closedByName = ""; }
   return rec;
 }
 
@@ -512,6 +514,9 @@ function omBlankTicket(site, tickets, user) {
     title: "", detail: "", category: "other", severity: "normal", source: "phone",
     reportedAt: now, status: "new",
     cover: "unknown", coverNote: "", coverWid: "", quoteAmt: null,
+    /* ผู้รับผิดชอบเป็น "ผู้ใช้ในระบบ" ไม่ใช่เฉพาะช่าง — งานซ่อมบางเรื่องคนดูแลคือแอดมินหรือวิศวกร
+       techId ยังเก็บไว้เพื่อความเข้ากันได้กับใบเก่า (เดิมเลือกได้แค่ช่าง) */
+    assigneeId: null, assigneeName: "",
     techId: site.tech || "", apptDate: "", apptFrom: "", apptTo: "",
     closedAt: null, closedBy: null, closedByName: "", closeNote: "", result: "",
     hist: [{ at: now, from: "", to: "new", by: (user || {}).id || null, byName: (user || {}).name || "", note: "เปิดเรื่อง" }],
@@ -530,7 +535,7 @@ function omTicketRollup(tickets, today) {
   (tickets || []).forEach((x) => {
     if (!omTicketOpen(x)) { if (x.status === "closed") out.closed++; return; }
     out.open++;
-    if (x.status === "new") out.newly++;
+    if (omTicketKey(x.status) === "new") out.newly++;
     if (x.severity === "down") out.down++;
     if (omTicketOverdue(x, t)) out.overdue++;
   });
@@ -988,7 +993,7 @@ Object.assign(window, {
   OM_TICKET_CAT, OM_TICKET_CAT_BY, OM_SEVERITY, OM_SEVERITY_BY, OM_SLA_DAYS, OM_COVER,
   OM_TICKET_STATUS, OM_TICKET_STATUS_BY, OM_TICKET_SOURCE,
   omCoverTH, omTicketStatusOf, omTicketOpen, omTicketNext, omTicketCan, omTicketMove,
-  omTicketOverdue, omTicketNo, omBlankTicket, omTicketRollup,
+  omTicketKey, omTicketOverdue, omTicketNo, omBlankTicket, omTicketRollup,
   useOmTickets, useOmTicketPhotos,
 });
 

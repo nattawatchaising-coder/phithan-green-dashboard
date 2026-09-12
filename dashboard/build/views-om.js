@@ -2137,6 +2137,7 @@ function OmJobButton({
 }
 function OmView({
   jobs,
+  users,
   role,
   currentUser,
   focus
@@ -2152,7 +2153,7 @@ function OmView({
   const cleanStore = window.useOmCleanVisits();
   const ticketStore = window.useOmTickets();
   const visitStore = window.useOmVisits();
-  const [tab, setTab] = React.useState("sites");
+  const [tab, setTab] = React.useState("ticket");
   const [openTicket, setOpenTicket] = React.useState(null);
   const [openVisit, setOpenVisit] = React.useState(null);
   const [q, setQ] = React.useState("");
@@ -2313,7 +2314,7 @@ function OmView({
       gap: 7,
       flexWrap: "wrap"
     }
-  }, [["sites", "ทะเบียนไซต์", "list"], ["clean", "ปฏิทินล้างแผง", "calendar"], ["ticket", "ใบแจ้งซ่อม", "wrench"], ["visit", "ใบรายงานเข้าบริการ", "file"]].map(([k, th, ic]) => React.createElement("button", {
+  }, [["ticket", "ใบแจ้งซ่อม", "wrench"], ["visit", "ใบรายงานเข้าบริการ", "file"], ["sites", "ทะเบียนไซต์", "list"], ["clean", "ปฏิทินล้างแผง", "calendar"]].map(([k, th, ic]) => React.createElement("button", {
     key: k,
     onClick: () => setTab(k),
     style: {
@@ -2341,6 +2342,8 @@ function OmView({
     onOpenSite: id => setOpen(id)
   }), tab === "ticket" && React.createElement(window.OmTicketBoard, {
     sites: sites,
+    jobById: jobById,
+    users: users,
     ticketStore: ticketStore,
     visitStore: visitStore,
     role: role,
@@ -2597,6 +2600,8 @@ function OmView({
     return React.createElement(window.OmTicketModal, {
       ticket: t,
       site: s,
+      job: jobById[t.siteId] || null,
+      users: users,
       role: role,
       currentUser: currentUser,
       onClose: () => setOpenTicket(null),

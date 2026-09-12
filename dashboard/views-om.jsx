@@ -859,13 +859,14 @@ function OmJobButton({ job, site, visits, tickets, onOpen }) {
 }
 
 /* ── หน้าหลัก ── */
-function OmView({ jobs, role, currentUser, focus }) {
+function OmView({ jobs, users, role, currentUser, focus }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const { sites, loading, upsert, patch, remove } = window.useOmSites();
   const cleanStore = window.useOmCleanVisits();
   const ticketStore = window.useOmTickets();
   const visitStore = window.useOmVisits();
-  const [tab, setTab] = React.useState("sites");       /* sites | clean | ticket | visit */
+  /* เปิดหน้ามาเจอใบแจ้งซ่อมก่อน — เป็นงานที่มีคนรออยู่จริง ส่วนทะเบียนไซต์เป็นข้อมูลอ้างอิง */
+  const [tab, setTab] = React.useState("ticket");      /* ticket | visit | sites | clean */
   const [openTicket, setOpenTicket] = React.useState(null);  /* ใบที่เปิดจากแผงไซต์ (บอร์ดมีสถานะของตัวเอง) */
   const [openVisit, setOpenVisit] = React.useState(null);    /* ใบรายงานที่เปิดจากใบแจ้งซ่อม/นัดล้าง */
   const [q, setQ] = React.useState("");
@@ -969,8 +970,8 @@ function OmView({ jobs, role, currentUser, focus }) {
 
       {/* สลับมุมมอง — รายการไซต์คือทะเบียน · ปฏิทินคือคิวงานที่ต้องออกไปทำ */}
       <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
-        {[["sites", "ทะเบียนไซต์", "list"], ["clean", "ปฏิทินล้างแผง", "calendar"],
-          ["ticket", "ใบแจ้งซ่อม", "wrench"], ["visit", "ใบรายงานเข้าบริการ", "file"]].map(([k, th, ic]) => (
+        {[["ticket", "ใบแจ้งซ่อม", "wrench"], ["visit", "ใบรายงานเข้าบริการ", "file"],
+          ["sites", "ทะเบียนไซต์", "list"], ["clean", "ปฏิทินล้างแผง", "calendar"]].map(([k, th, ic]) => (
           <button key={k} onClick={() => setTab(k)}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 99,
               border: "1px solid " + (tab === k ? "var(--primary)" : "var(--border-strong)"),
@@ -986,7 +987,7 @@ function OmView({ jobs, role, currentUser, focus }) {
       )}
 
       {tab === "ticket" && (
-        <window.OmTicketBoard sites={sites} ticketStore={ticketStore} visitStore={visitStore}
+        <window.OmTicketBoard sites={sites} jobById={jobById} users={users} ticketStore={ticketStore} visitStore={visitStore}
           role={role} currentUser={currentUser} onNewVisit={newVisit} onOpenVisit={showVisit} />
       )}
 
@@ -1104,7 +1105,7 @@ function OmView({ jobs, role, currentUser, focus }) {
         if (!t) return null;
         const s = (sites || []).find((x) => x.id === t.siteId) || null;
         return (
-          <window.OmTicketModal ticket={t} site={s}
+          <window.OmTicketModal ticket={t} site={s} job={jobById[t.siteId] || null} users={users}
             role={role} currentUser={currentUser} onClose={() => setOpenTicket(null)}
             onPatch={ticketStore.patch} onRemove={ticketStore.remove}
             visits={(visitStore.visits || []).filter((x) => x.ticketId === t.id)}
