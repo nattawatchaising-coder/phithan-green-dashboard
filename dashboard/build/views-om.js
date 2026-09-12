@@ -9,6 +9,21 @@ const OM_INPUT = {
   fontSize: 13.5,
   boxSizing: "border-box"
 };
+const OM_SITE_TYPE = [{
+  key: "home",
+  th: "งานบ้าน",
+  color: "#1B9B75"
+}, {
+  key: "project",
+  th: "งานโครงการ",
+  color: "#7C5CFC"
+}];
+const OM_SITE_TYPE_BY = {};
+OM_SITE_TYPE.forEach(x => {
+  OM_SITE_TYPE_BY[x.key] = x;
+});
+const omSiteType = (site, job) => ((site || {}).type || (job || {}).type) === "project" ? "project" : "home";
+const omSiteTypeTH = (site, job) => OM_SITE_TYPE_BY[omSiteType(site, job)];
 function OmPill({
   th,
   color,
@@ -802,7 +817,7 @@ function OmSiteModal({
       fontSize: 11.5,
       color: "var(--text-3)"
     }
-  }, site.code, " \xB7 ", window.omIsExternal(site.id) ? "ไซต์นอกระบบ" : "งานติดตั้งของเรา", typeof site.kw === "number" && site.kw > 0 ? " · " + site.kw + " kW" : "")), React.createElement(OmPill, {
+  }, site.code, " \xB7 ", omSiteTypeTH(site, job).th, " \xB7 ", window.omIsExternal(site.id) ? "ไซต์นอกระบบ" : "งานติดตั้งของเรา", typeof site.kw === "number" && site.kw > 0 ? " · " + site.kw + " kW" : "")), React.createElement(OmPill, {
     th: st.th,
     color: st.color
   }), React.createElement("button", {
@@ -963,7 +978,20 @@ function OmSiteModal({
       padding: "8px 10px",
       fontSize: 12.5
     })
-  })))), React.createElement(window.DrSection, {
+  }))), React.createElement("div", {
+    style: {
+      marginTop: 12
+    }
+  }, React.createElement(window.DrLabel, {
+    hint: job ? "ตั้งต้นตามใบงาน แก้ได้ถ้าจำแนกใหม่" : ""
+  }, "\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E07\u0E32\u0E19"), React.createElement(window.DrChips, {
+    options: OM_SITE_TYPE,
+    value: omSiteType(site, job),
+    disabled: disabled,
+    onChange: v => set({
+      type: v || "home"
+    })
+  }))), React.createElement(window.DrSection, {
     n: "2",
     title: "\u0E27\u0E31\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E40\u0E2A\u0E23\u0E47\u0E08",
     tone: "#0EA5E9",
@@ -1714,7 +1742,7 @@ function OmCleanView({
     }
   }), th)))), dayPanel);
 }
-function omExportXlsx(sites, bySite, tickets, today) {
+function omExportXlsx(sites, bySite, tickets, today, kind) {
   if (!window.XLSX) {
     alert("ไม่พบไลบรารี Excel (ลองโหลดหน้าใหม่)");
     return;
@@ -1748,7 +1776,7 @@ function omExportXlsx(sites, bySite, tickets, today) {
     left: thin,
     right: thin
   };
-  const cols = ["ลำดับ", "รหัสไซต์", "ชื่อไซต์", "จังหวัด", "ขนาด (kW)", "วันติดตั้งเสร็จ", "สถานะประกัน", "ประกันหมดวันที่", "รอบล้างถัดไป", "สถานะรอบล้าง", "ล้างฟรีคงเหลือ", "ใบแจ้งซ่อมค้าง", "เบอร์ติดต่อ"];
+  const cols = ["ลำดับ", "รหัสไซต์", "ชื่อไซต์", "ประเภทงาน", "จังหวัด", "ขนาด (kW)", "วันติดตั้งเสร็จ", "สถานะประกัน", "ประกันหมดวันที่", "รอบล้างถัดไป", "สถานะรอบล้าง", "ล้างฟรีคงเหลือ", "ใบแจ้งซ่อมค้าง", "เบอร์ติดต่อ"];
   const lastC = cols.length - 1;
   const colW = [{
     wch: 7
@@ -1756,6 +1784,8 @@ function omExportXlsx(sites, bySite, tickets, today) {
     wch: 12
   }, {
     wch: 34
+  }, {
+    wch: 12
   }, {
     wch: 12
   }, {
@@ -1807,7 +1837,8 @@ function omExportXlsx(sites, bySite, tickets, today) {
     if (window.omTicketOpen(x)) openBy[x.siteId] = (openBy[x.siteId] || 0) + 1;
   });
   const roll = window.omRollup(sites, bySite, t);
-  pushRow(["ทะเบียนงานบริการหลังการขาย (O&M)"], "title", 30);
+  const kindTH = (OM_SITE_TYPE_BY[kind] || {}).th || "";
+  pushRow(["ทะเบียนงานบริการหลังการขาย (O&M)" + (kindTH ? " — เฉพาะ" + kindTH : "")], "title", 30);
   fullMerge(R - 1);
   pushRow(["flash+solar · ประกัน · รอบล้างแผง · ใบแจ้งซ่อม"], "subtitle", 20);
   fullMerge(R - 1);
@@ -1846,7 +1877,7 @@ function omExportXlsx(sites, bySite, tickets, today) {
   }).sort((a, b) => rank[a.st.key] - rank[b.st.key] || a.st.days - b.st.days);
   list.forEach((r, i) => {
     const s = r.s;
-    pushRow([i + 1, s.code || "", s.name || "", s.province || "", typeof s.kw === "number" && s.kw > 0 ? s.kw : "", s.comDate ? window.drDateTH(s.comDate) : "", r.st.th || "", r.st.end ? window.drDateTH(r.st.end) : "", r.cs.due ? window.drDateTH(r.cs.due) : "", r.cs.th || "", (s.clean || {}).on ? window.omFreeLeft(s, r.vs) : "", openBy[s.id] || "", s.phone || ""], i % 2 === 0 ? "item" : "itemAlt");
+    pushRow([i + 1, s.code || "", s.name || "", omSiteTypeTH(s).th, s.province || "", typeof s.kw === "number" && s.kw > 0 ? s.kw : "", s.comDate ? window.drDateTH(s.comDate) : "", r.st.th || "", r.st.end ? window.drDateTH(r.st.end) : "", r.cs.due ? window.drDateTH(r.cs.due) : "", r.cs.th || "", (s.clean || {}).on ? window.omFreeLeft(s, r.vs) : "", openBy[s.id] || "", s.phone || ""], i % 2 === 0 ? "item" : "itemAlt");
     wKey[R - 1] = r.st.key;
     cKey[R - 1] = r.cs.key;
   });
@@ -1971,17 +2002,17 @@ function omExportXlsx(sites, bySite, tickets, today) {
         horizontal: c === 2 ? "left" : "center",
         vertical: "center"
       };
-      if (c === 1 || c === 12) s.font = {
+      if (c === 1 || c === 13) s.font = {
         name: FONT,
         sz: 10,
         color: {
           rgb: C.sub
         }
       };
-      if (c === 4) s.numFmt = "#,##0.##";
+      if (c === 5) s.numFmt = "#,##0.##";
       const wk = wKey[r],
         ck = cKey[r];
-      if (c === 6 && (wk === "expired" || wk === "soon")) {
+      if (c === 7 && (wk === "expired" || wk === "soon")) {
         s.font = {
           name: FONT,
           sz: 11,
@@ -1997,7 +2028,7 @@ function omExportXlsx(sites, bySite, tickets, today) {
           }
         };
       }
-      if (c === 9 && (ck === "overdue" || ck === "due")) {
+      if (c === 10 && (ck === "overdue" || ck === "due")) {
         s.font = {
           name: FONT,
           sz: 11,
@@ -2013,7 +2044,7 @@ function omExportXlsx(sites, bySite, tickets, today) {
           }
         };
       }
-      if (c === 11 && aoa[r][11]) {
+      if (c === 12 && aoa[r][12]) {
         s.font = {
           name: FONT,
           sz: 11,
@@ -2062,7 +2093,7 @@ function omExportXlsx(sites, bySite, tickets, today) {
   };
   const wb = X.utils.book_new();
   X.utils.book_append_sheet(wb, ws, "ทะเบียนบริการ");
-  X.writeFile(wb, "ทะเบียนงานบริการ_" + t.replace(/-/g, "") + ".xlsx");
+  X.writeFile(wb, "ทะเบียนงานบริการ" + (kindTH ? "_" + kindTH : "") + "_" + t.replace(/-/g, "") + ".xlsx");
 }
 function OmJobButton({
   job,
@@ -2168,10 +2199,53 @@ function OmView({
     });
     return m;
   }, [jobs]);
-  const pending = React.useMemo(() => window.omEnrollable(jobs, sites), [jobs, sites]);
-  const roll = React.useMemo(() => window.omRollup(sites, cleanStore.bySite), [sites, cleanStore.bySite]);
-  const tRoll = React.useMemo(() => window.omTicketRollup(ticketStore.tickets), [ticketStore.tickets]);
-  const vRoll = React.useMemo(() => window.omVisitRollup(visitStore.visits), [visitStore.visits]);
+  const [kind, setKind] = React.useState(() => {
+    try {
+      return localStorage.getItem("om_kind") || "all";
+    } catch (e) {
+      return "all";
+    }
+  });
+  const pickKind = k => {
+    setKind(k);
+    try {
+      localStorage.setItem("om_kind", k);
+    } catch (e) {}
+  };
+  const typeOf = React.useCallback(s => omSiteType(s, jobById[(s || {}).id]), [jobById]);
+  const inKind = React.useCallback(s => kind === "all" || typeOf(s) === kind, [kind, typeOf]);
+  const sitesK = React.useMemo(() => (sites || []).filter(inKind), [sites, inKind]);
+  const kindCount = React.useMemo(() => {
+    const c = {
+      all: (sites || []).length,
+      home: 0,
+      project: 0
+    };
+    (sites || []).forEach(s => {
+      c[typeOf(s)]++;
+    });
+    return c;
+  }, [sites, typeOf]);
+  const siteKindBy = React.useMemo(() => {
+    const m = {};
+    (sites || []).forEach(s => {
+      m[s.id] = typeOf(s);
+    });
+    return m;
+  }, [sites, typeOf]);
+  const inKindRec = React.useCallback(r => kind === "all" || !siteKindBy[(r || {}).siteId] || siteKindBy[r.siteId] === kind, [kind, siteKindBy]);
+  const ticketsK = React.useMemo(() => (ticketStore.tickets || []).filter(inKindRec), [ticketStore.tickets, inKindRec]);
+  const visitsK = React.useMemo(() => (visitStore.visits || []).filter(inKindRec), [visitStore.visits, inKindRec]);
+  const ticketStoreK = React.useMemo(() => Object.assign({}, ticketStore, {
+    tickets: ticketsK
+  }), [ticketStore, ticketsK]);
+  const visitStoreK = React.useMemo(() => Object.assign({}, visitStore, {
+    visits: visitsK
+  }), [visitStore, visitsK]);
+  const pending = React.useMemo(() => window.omEnrollable(jobs, sites).filter(j => kind === "all" || (j.type === "project" ? "project" : "home") === kind), [jobs, sites, kind]);
+  const roll = React.useMemo(() => window.omRollup(sitesK, cleanStore.bySite), [sitesK, cleanStore.bySite]);
+  const tRoll = React.useMemo(() => window.omTicketRollup(ticketsK), [ticketsK]);
+  const vRoll = React.useMemo(() => window.omVisitRollup(visitsK), [visitsK]);
   const ticketsOf = React.useCallback(id => (ticketStore.tickets || []).filter(t => t.siteId === id), [ticketStore.tickets]);
   const newVisit = React.useCallback((site, opts) => {
     if (!site || !window.omCanWrite(role, null)) return;
@@ -2190,7 +2264,7 @@ function OmView({
   }, []);
   const rows = React.useMemo(() => {
     const kw = q.trim().toLowerCase();
-    const out = (sites || []).map(s => ({
+    const out = (sitesK || []).map(s => ({
       site: s,
       st: window.omSiteWarrantyState(s),
       cs: window.omCleanState(s, (cleanStore.bySite || {})[s.id] || [])
@@ -2212,7 +2286,7 @@ function OmView({
     };
     out.sort((a, b) => rank[a.st.key] - rank[b.st.key] || a.st.days - b.st.days);
     return out;
-  }, [sites, q, filter, cleanStore.bySite]);
+  }, [sitesK, q, filter, cleanStore.bySite]);
   const enrollAll = () => {
     if (!canWrite || !pending.length) return;
     setEnrolling(true);
@@ -2250,6 +2324,37 @@ function OmView({
       minHeight: 0
     }
   }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 7,
+      flexWrap: "wrap",
+      alignItems: "center"
+    }
+  }, [["all", "ทั้งหมด", "var(--primary-dark)"], ["home", "งานบ้าน", OM_SITE_TYPE_BY.home.color], ["project", "งานโครงการ", OM_SITE_TYPE_BY.project.color]].map(([k, th, c]) => React.createElement("button", {
+    key: k,
+    onClick: () => pickKind(k),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      padding: "7px 14px",
+      borderRadius: 99,
+      border: "1px solid " + (kind === k ? c : "var(--border-strong)"),
+      background: kind === k ? c + "16" : "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: kind === k ? c : "var(--text-2)"
+    }
+  }, th, React.createElement("span", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontSize: 11.5,
+      fontWeight: 800,
+      color: kind === k ? c : "var(--text-3)"
+    }
+  }, kindCount[k])))), React.createElement("div", {
     style: {
       display: "flex",
       gap: 10,
@@ -2336,23 +2441,23 @@ function OmView({
     size: 14,
     color: tab === k ? "var(--primary-dark)" : "var(--text-3)"
   }), " ", th))), tab === "clean" && React.createElement(OmCleanView, {
-    sites: sites,
+    sites: sitesK,
     cleanStore: cleanStore,
     role: role,
     onOpenSite: id => setOpen(id)
   }), tab === "ticket" && React.createElement(window.OmTicketBoard, {
-    sites: sites,
+    sites: sitesK,
     jobById: jobById,
     users: users,
-    ticketStore: ticketStore,
+    ticketStore: ticketStoreK,
     visitStore: visitStore,
     role: role,
     currentUser: currentUser,
     onNewVisit: newVisit,
     onOpenVisit: showVisit
   }), tab === "visit" && React.createElement(window.OmVisitList, {
-    sites: sites,
-    visitStore: visitStore,
+    sites: sitesK,
+    visitStore: visitStoreK,
     role: role,
     currentUser: currentUser
   }), tab === "sites" && !!pending.length && React.createElement("div", {
@@ -2458,8 +2563,8 @@ function OmView({
     name: "plus",
     size: 14
   }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E44\u0E0B\u0E15\u0E4C\u0E19\u0E2D\u0E01\u0E23\u0E30\u0E1A\u0E1A"), React.createElement("button", {
-    onClick: () => omExportXlsx(sites, cleanStore.bySite, ticketStore.tickets),
-    disabled: !sites.length,
+    onClick: () => omExportXlsx(sitesK, cleanStore.bySite, ticketsK, null, kind),
+    disabled: !sitesK.length,
     style: {
       display: "inline-flex",
       alignItems: "center",
@@ -2468,8 +2573,8 @@ function OmView({
       borderRadius: 10,
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
-      cursor: sites.length ? "pointer" : "not-allowed",
-      opacity: sites.length ? 1 : .5,
+      cursor: sitesK.length ? "pointer" : "not-allowed",
+      opacity: sitesK.length ? 1 : .5,
       fontFamily: "inherit",
       fontSize: 12.5,
       fontWeight: 700,
@@ -2499,7 +2604,7 @@ function OmView({
       fontSize: 12.5,
       color: "var(--text-3)"
     }
-  }, sites.length ? "ไม่มีไซต์ที่ตรงกับที่ค้นหา" : "ยังไม่มีไซต์ในสัญญาบริการ — ขึ้นทะเบียนจากงานที่ติดตั้งเสร็จ หรือเพิ่มไซต์นอกระบบ"), rows.map(r => {
+  }, sites.length ? sitesK.length ? "ไม่มีไซต์ที่ตรงกับที่ค้นหา" : "ไม่มีไซต์ในหมวด" + (OM_SITE_TYPE_BY[kind] || {}).th : "ยังไม่มีไซต์ในสัญญาบริการ — ขึ้นทะเบียนจากงานที่ติดตั้งเสร็จ หรือเพิ่มไซต์นอกระบบ"), rows.map(r => {
     const s = r.site;
     const unsure = window.omComUnsure(s);
     return React.createElement("button", {
@@ -2548,7 +2653,12 @@ function OmView({
         fontSize: 11.5,
         color: "var(--text-3)"
       }
-    }, s.code, s.province ? " · " + s.province : "", typeof s.kw === "number" && s.kw > 0 ? " · " + s.kw + " kW" : "", s.comDate ? " · ติดตั้งเสร็จ " + window.drShort(s.comDate) : "")), r.cs && (r.cs.key === "due" || r.cs.key === "overdue" || r.cs.key === "booked") && React.createElement(OmPill, {
+    }, s.code, " \xB7 ", React.createElement("span", {
+      style: {
+        color: omSiteTypeTH(s, jobById[s.id]).color,
+        fontWeight: 700
+      }
+    }, omSiteTypeTH(s, jobById[s.id]).th), s.province ? " · " + s.province : "", typeof s.kw === "number" && s.kw > 0 ? " · " + s.kw + " kW" : "", s.comDate ? " · ติดตั้งเสร็จ " + window.drShort(s.comDate) : "")), r.cs && (r.cs.key === "due" || r.cs.key === "overdue" || r.cs.key === "booked") && React.createElement(OmPill, {
       th: r.cs.th,
       color: r.cs.color,
       sub: r.cs.due ? "· " + window.drShort(r.cs.due) : ""
@@ -2640,5 +2750,9 @@ Object.assign(window, {
   OmSiteModal,
   OmView,
   OmJobButton,
-  omExportXlsx
+  omExportXlsx,
+  OM_SITE_TYPE,
+  OM_SITE_TYPE_BY,
+  omSiteType,
+  omSiteTypeTH
 });

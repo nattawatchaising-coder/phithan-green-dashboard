@@ -13,6 +13,16 @@ const OM_INPUT = {
   background: "var(--surface)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13.5, boxSizing: "border-box",
 };
 
+/* ประเภทงาน — งานบ้านกับงานโครงการดูแลกันคนละแบบ (รอบเข้าตรวจ · คนที่ต้องติดต่อ · เอกสาร)
+   ไซต์ที่มาจากใบงานตั้งต้นตาม job.type · ไซต์นอกระบบตั้งเอง · ใบงานเก่าที่ไม่มีค่าถือเป็นงานบ้าน */
+const OM_SITE_TYPE = [
+  { key: "home",    th: "งานบ้าน",    color: "#1B9B75" },
+  { key: "project", th: "งานโครงการ", color: "#7C5CFC" },
+];
+const OM_SITE_TYPE_BY = {}; OM_SITE_TYPE.forEach((x) => { OM_SITE_TYPE_BY[x.key] = x; });
+const omSiteType = (site, job) => ((site || {}).type || (job || {}).type) === "project" ? "project" : "home";
+const omSiteTypeTH = (site, job) => OM_SITE_TYPE_BY[omSiteType(site, job)];
+
 /* ป้ายสถานะกลม ๆ ใช้ทั้งในรายการและในแผงไซต์ */
 function OmPill({ th, color, sub }) {
   return (
@@ -314,7 +324,7 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, siteVisits,
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)" }}>{site.name || "(ยังไม่ได้ตั้งชื่อไซต์)"}</div>
               <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>
-                {site.code} · {window.omIsExternal(site.id) ? "ไซต์นอกระบบ" : "งานติดตั้งของเรา"}
+                {site.code} · {omSiteTypeTH(site, job).th} · {window.omIsExternal(site.id) ? "ไซต์นอกระบบ" : "งานติดตั้งของเรา"}
                 {typeof site.kw === "number" && site.kw > 0 ? " · " + site.kw + " kW" : ""}
               </div>
             </div>
@@ -384,6 +394,12 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, siteVisits,
                 <input value={site.brand || ""} disabled={disabled} onChange={(e) => set({ brand: e.target.value })}
                   style={Object.assign({}, OM_INPUT, { padding: "8px 10px", fontSize: 12.5 })} />
               </div>
+            </div>
+            {/* งานบ้านกับงานโครงการดูแลกันคนละแบบ — แยกไว้ตั้งแต่ทะเบียน หน้าภาพรวมจะได้กรองได้ */}
+            <div style={{ marginTop: 12 }}>
+              <window.DrLabel hint={job ? "ตั้งต้นตามใบงาน แก้ได้ถ้าจำแนกใหม่" : ""}>ประเภทงาน</window.DrLabel>
+              <window.DrChips options={OM_SITE_TYPE} value={omSiteType(site, job)} disabled={disabled}
+                onChange={(v) => set({ type: v || "home" })} />
             </div>
           </window.DrSection>
 
@@ -731,7 +747,7 @@ function OmCleanView({ sites, cleanStore, role, onOpenSite }) {
    ทะเบียนบริการทั้งชุดในแผ่นเดียว: ประกัน · รอบล้าง · โควตาฟรี · เคสที่ยังไม่ปิด
    สไตล์ตารางลอกจากใบสั่งซื้อ (views-overview.jsx) ให้เอกสารทั้งระบบหน้าตาเดียวกัน
    วันที่ในไฟล์เป็น พ.ศ. ทั้งหมด เพราะเป็นด่านแสดงผล ไม่ใช่ตัวเลขที่เอาไปคำนวณต่อ */
-function omExportXlsx(sites, bySite, tickets, today) {
+function omExportXlsx(sites, bySite, tickets, today, kind) {
   if (!window.XLSX) { alert("ไม่พบไลบรารี Excel (ลองโหลดหน้าใหม่)"); return; }
   const X = window.XLSX;
   const t = today || window.drToday();
@@ -741,10 +757,10 @@ function omExportXlsx(sites, bySite, tickets, today) {
   const FONT = "Tahoma";
   const thin = { style: "thin", color: { rgb: C.border } };
   const boxAll = { top: thin, bottom: thin, left: thin, right: thin };
-  const cols = ["ลำดับ", "รหัสไซต์", "ชื่อไซต์", "จังหวัด", "ขนาด (kW)", "วันติดตั้งเสร็จ",
+  const cols = ["ลำดับ", "รหัสไซต์", "ชื่อไซต์", "ประเภทงาน", "จังหวัด", "ขนาด (kW)", "วันติดตั้งเสร็จ",
     "สถานะประกัน", "ประกันหมดวันที่", "รอบล้างถัดไป", "สถานะรอบล้าง", "ล้างฟรีคงเหลือ", "ใบแจ้งซ่อมค้าง", "เบอร์ติดต่อ"];
   const lastC = cols.length - 1;
-  const colW = [{ wch: 7 }, { wch: 12 }, { wch: 34 }, { wch: 12 }, { wch: 10 }, { wch: 14 },
+  const colW = [{ wch: 7 }, { wch: 12 }, { wch: 34 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 14 },
     { wch: 16 }, { wch: 15 }, { wch: 14 }, { wch: 16 }, { wch: 13 }, { wch: 13 }, { wch: 14 }];
   const aoa = [], merges = [], meta = [], rowsH = []; let R = 0;
   const wKey = {}, cKey = {};          /* สถานะประกัน/รอบล้างของแต่ละแถว เอาไว้ระบายสีตอนท้าย */
@@ -755,7 +771,8 @@ function omExportXlsx(sites, bySite, tickets, today) {
   (tickets || []).forEach((x) => { if (window.omTicketOpen(x)) openBy[x.siteId] = (openBy[x.siteId] || 0) + 1; });
   const roll = window.omRollup(sites, bySite, t);
 
-  pushRow(["ทะเบียนงานบริการหลังการขาย (O&M)"], "title", 30); fullMerge(R - 1);
+  const kindTH = (OM_SITE_TYPE_BY[kind] || {}).th || "";
+  pushRow(["ทะเบียนงานบริการหลังการขาย (O&M)" + (kindTH ? " — เฉพาะ" + kindTH : "")], "title", 30); fullMerge(R - 1);
   pushRow(["flash+solar · ประกัน · รอบล้างแผง · ใบแจ้งซ่อม"], "subtitle", 20); fullMerge(R - 1);
   pushRow([], "spacer", 6);
   [["วันที่ออกเอกสาร", window.drDateTH(t, true)],
@@ -778,7 +795,7 @@ function omExportXlsx(sites, bySite, tickets, today) {
 
   list.forEach((r, i) => {
     const s = r.s;
-    pushRow([i + 1, s.code || "", s.name || "", s.province || "",
+    pushRow([i + 1, s.code || "", s.name || "", omSiteTypeTH(s).th, s.province || "",
       (typeof s.kw === "number" && s.kw > 0) ? s.kw : "",
       /* ในไฟล์ต้องมีปีเสมอ — ไฟล์ถูกเปิดข้ามปีและวางคู่กับไฟล์เก่า "8 ส.ค." เฉย ๆ อ่านแล้วเดาผิดได้ */
       s.comDate ? window.drDateTH(s.comDate) : "",
@@ -803,13 +820,13 @@ function omExportXlsx(sites, bySite, tickets, today) {
       if (ty === "itemAlt") s.fill = { patternType: "solid", fgColor: { rgb: C.alt } };
       s.border = boxAll;
       s.alignment = { horizontal: c === 2 ? "left" : "center", vertical: "center" };
-      if (c === 1 || c === 12) s.font = { name: FONT, sz: 10, color: { rgb: C.sub } };
-      if (c === 4) s.numFmt = "#,##0.##";
+      if (c === 1 || c === 13) s.font = { name: FONT, sz: 10, color: { rgb: C.sub } };
+      if (c === 5) s.numFmt = "#,##0.##";
       /* ระบายสีเฉพาะช่องสถานะ — เปิดไฟล์มาแล้วต้องเห็นงานที่ต้องรีบก่อนโดยไม่ต้องอ่านทุกบรรทัด */
       const wk = wKey[r], ck = cKey[r];
-      if (c === 6 && (wk === "expired" || wk === "soon")) { s.font = { name: FONT, sz: 11, bold: true, color: { rgb: wk === "expired" ? C.bad : C.warn } }; s.fill = { patternType: "solid", fgColor: { rgb: wk === "expired" ? C.badBg : C.warnBg } }; }
-      if (c === 9 && (ck === "overdue" || ck === "due")) { s.font = { name: FONT, sz: 11, bold: true, color: { rgb: ck === "overdue" ? C.bad : C.warn } }; s.fill = { patternType: "solid", fgColor: { rgb: ck === "overdue" ? C.badBg : C.warnBg } }; }
-      if (c === 11 && aoa[r][11]) { s.font = { name: FONT, sz: 11, bold: true, color: { rgb: C.warn } }; s.fill = { patternType: "solid", fgColor: { rgb: C.warnBg } }; }
+      if (c === 7 && (wk === "expired" || wk === "soon")) { s.font = { name: FONT, sz: 11, bold: true, color: { rgb: wk === "expired" ? C.bad : C.warn } }; s.fill = { patternType: "solid", fgColor: { rgb: wk === "expired" ? C.badBg : C.warnBg } }; }
+      if (c === 10 && (ck === "overdue" || ck === "due")) { s.font = { name: FONT, sz: 11, bold: true, color: { rgb: ck === "overdue" ? C.bad : C.warn } }; s.fill = { patternType: "solid", fgColor: { rgb: ck === "overdue" ? C.badBg : C.warnBg } }; }
+      if (c === 12 && aoa[r][12]) { s.font = { name: FONT, sz: 11, bold: true, color: { rgb: C.warn } }; s.fill = { patternType: "solid", fgColor: { rgb: C.warnBg } }; }
     }
     return s;
   };
@@ -823,7 +840,7 @@ function omExportXlsx(sites, bySite, tickets, today) {
   ws["!autofilter"] = { ref: X.utils.encode_range({ s: { r: R - list.length - 1, c: 0 }, e: { r: R - 1, c: lastC } }) };
   const wb = X.utils.book_new();
   X.utils.book_append_sheet(wb, ws, "ทะเบียนบริการ");
-  X.writeFile(wb, "ทะเบียนงานบริการ_" + t.replace(/-/g, "") + ".xlsx");
+  X.writeFile(wb, "ทะเบียนงานบริการ" + (kindTH ? "_" + kindTH : "") + "_" + t.replace(/-/g, "") + ".xlsx");
 }
 
 /* ── ปุ่มในลิ้นชักใบงาน ──
@@ -881,10 +898,39 @@ function OmView({ jobs, users, role, currentUser, focus }) {
     return m;
   }, [jobs]);
 
-  const pending = React.useMemo(() => window.omEnrollable(jobs, sites), [jobs, sites]);
-  const roll = React.useMemo(() => window.omRollup(sites, cleanStore.bySite), [sites, cleanStore.bySite]);
-  const tRoll = React.useMemo(() => window.omTicketRollup(ticketStore.tickets), [ticketStore.tickets]);
-  const vRoll = React.useMemo(() => window.omVisitRollup(visitStore.visits), [visitStore.visits]);
+  /* แยกงานบ้าน / งานโครงการ — กรองทั้งหน้า (ไทล์ · บอร์ด · ใบรายงาน · ทะเบียน · ปฏิทิน)
+     จำค่าไว้ เพราะคนที่ดูแลงานโครงการอย่างเดียวไม่ควรต้องมากดใหม่ทุกครั้งที่เปิดหน้า */
+  const [kind, setKind] = React.useState(() => {
+    try { return localStorage.getItem("om_kind") || "all"; } catch (e) { return "all"; }
+  });
+  const pickKind = (k) => { setKind(k); try { localStorage.setItem("om_kind", k); } catch (e) { /* โหมดส่วนตัวเขียนไม่ได้ ไม่เป็นไร */ } };
+  const typeOf = React.useCallback((s) => omSiteType(s, jobById[(s || {}).id]), [jobById]);
+  const inKind = React.useCallback((s) => kind === "all" || typeOf(s) === kind, [kind, typeOf]);
+
+  const sitesK = React.useMemo(() => (sites || []).filter(inKind), [sites, inKind]);
+  const kindCount = React.useMemo(() => {
+    const c = { all: (sites || []).length, home: 0, project: 0 };
+    (sites || []).forEach((s) => { c[typeOf(s)]++; });
+    return c;
+  }, [sites, typeOf]);
+  /* ใบแจ้งซ่อม/ใบรายงานเกาะกับไซต์ จึงกรองตามประเภทของไซต์ที่มันอ้างถึง
+     ใบที่ไซต์ถูกลบไปแล้วให้ติดมาด้วยเสมอ ไม่งั้นมันหายไปเฉย ๆ โดยไม่มีใครเห็น */
+  const siteKindBy = React.useMemo(() => {
+    const m = {}; (sites || []).forEach((s) => { m[s.id] = typeOf(s); }); return m;
+  }, [sites, typeOf]);
+  const inKindRec = React.useCallback(
+    (r) => kind === "all" || !siteKindBy[(r || {}).siteId] || siteKindBy[r.siteId] === kind, [kind, siteKindBy]);
+  const ticketsK = React.useMemo(() => (ticketStore.tickets || []).filter(inKindRec), [ticketStore.tickets, inKindRec]);
+  const visitsK = React.useMemo(() => (visitStore.visits || []).filter(inKindRec), [visitStore.visits, inKindRec]);
+  const ticketStoreK = React.useMemo(() => Object.assign({}, ticketStore, { tickets: ticketsK }), [ticketStore, ticketsK]);
+  const visitStoreK = React.useMemo(() => Object.assign({}, visitStore, { visits: visitsK }), [visitStore, visitsK]);
+
+  const pending = React.useMemo(
+    () => window.omEnrollable(jobs, sites).filter((j) => kind === "all" || (j.type === "project" ? "project" : "home") === kind),
+    [jobs, sites, kind]);
+  const roll = React.useMemo(() => window.omRollup(sitesK, cleanStore.bySite), [sitesK, cleanStore.bySite]);
+  const tRoll = React.useMemo(() => window.omTicketRollup(ticketsK), [ticketsK]);
+  const vRoll = React.useMemo(() => window.omVisitRollup(visitsK), [visitsK]);
   const ticketsOf = React.useCallback(
     (id) => (ticketStore.tickets || []).filter((t) => t.siteId === id), [ticketStore.tickets]);
 
@@ -901,7 +947,7 @@ function OmView({ jobs, users, role, currentUser, focus }) {
 
   const rows = React.useMemo(() => {
     const kw = q.trim().toLowerCase();
-    const out = (sites || []).map((s) => ({ site: s, st: window.omSiteWarrantyState(s),
+    const out = (sitesK || []).map((s) => ({ site: s, st: window.omSiteWarrantyState(s),
       cs: window.omCleanState(s, (cleanStore.bySite || {})[s.id] || []) }))
       .filter((r) => {
         if (filter === "unsure" && !window.omComUnsure(r.site)) return false;
@@ -918,7 +964,7 @@ function OmView({ jobs, users, role, currentUser, focus }) {
     const rank = { expired: 0, soon: 1, active: 2, none: 3 };
     out.sort((a, b) => (rank[a.st.key] - rank[b.st.key]) || (a.st.days - b.st.days));
     return out;
-  }, [sites, q, filter, cleanStore.bySite]);
+  }, [sitesK, q, filter, cleanStore.bySite]);
 
   const enrollAll = () => {
     if (!canWrite || !pending.length) return;
@@ -948,6 +994,22 @@ function OmView({ jobs, users, role, currentUser, focus }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, minHeight: 0 }}>
+      {/* แยกงานบ้าน / งานโครงการ — กรองทั้งหน้า ตัวเลขบนไทล์เปลี่ยนตามที่เลือกด้วย */}
+      <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
+        {[["all", "ทั้งหมด", "var(--primary-dark)"], ["home", "งานบ้าน", OM_SITE_TYPE_BY.home.color],
+          ["project", "งานโครงการ", OM_SITE_TYPE_BY.project.color]].map(([k, th, c]) => (
+          <button key={k} onClick={() => pickKind(k)}
+            style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 99,
+              border: "1px solid " + (kind === k ? c : "var(--border-strong)"),
+              background: kind === k ? c + "16" : "var(--surface)", cursor: "pointer", fontFamily: "inherit",
+              fontSize: 12.5, fontWeight: 700, color: kind === k ? c : "var(--text-2)" }}>
+            {th}
+            <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 800,
+              color: kind === k ? c : "var(--text-3)" }}>{kindCount[k]}</span>
+          </button>
+        ))}
+      </div>
+
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <OmStat label="ไซต์ในสัญญาบริการ" value={roll.total} color="var(--text-1)"
           hint={roll.kwSites ? roll.kw.toFixed(1) + " kW (เฉพาะไซต์ที่มีข้อมูลขนาดระบบ)" : ""} />
@@ -983,16 +1045,16 @@ function OmView({ jobs, users, role, currentUser, focus }) {
       </div>
 
       {tab === "clean" && (
-        <OmCleanView sites={sites} cleanStore={cleanStore} role={role} onOpenSite={(id) => setOpen(id)} />
+        <OmCleanView sites={sitesK} cleanStore={cleanStore} role={role} onOpenSite={(id) => setOpen(id)} />
       )}
 
       {tab === "ticket" && (
-        <window.OmTicketBoard sites={sites} jobById={jobById} users={users} ticketStore={ticketStore} visitStore={visitStore}
+        <window.OmTicketBoard sites={sitesK} jobById={jobById} users={users} ticketStore={ticketStoreK} visitStore={visitStore}
           role={role} currentUser={currentUser} onNewVisit={newVisit} onOpenVisit={showVisit} />
       )}
 
       {tab === "visit" && (
-        <window.OmVisitList sites={sites} visitStore={visitStore} role={role} currentUser={currentUser} />
+        <window.OmVisitList sites={sitesK} visitStore={visitStoreK} role={role} currentUser={currentUser} />
       )}
 
       {/* แถบขึ้นทะเบียน — คำนวณสดจากงานที่ปิดแล้ว ไม่ได้ผูกกับการเดินขั้นงาน
@@ -1035,10 +1097,10 @@ function OmView({ jobs, users, role, currentUser, focus }) {
           </button>
         )}
         {/* ออกเป็น Excel — เอาทะเบียนทั้งชุดไปวางแผนงานนอกระบบหรือส่งให้ลูกค้าดู */}
-        <button onClick={() => omExportXlsx(sites, cleanStore.bySite, ticketStore.tickets)} disabled={!sites.length}
+        <button onClick={() => omExportXlsx(sitesK, cleanStore.bySite, ticketsK, null, kind)} disabled={!sitesK.length}
           style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 10,
-            border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: sites.length ? "pointer" : "not-allowed",
-            opacity: sites.length ? 1 : .5, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>
+            border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: sitesK.length ? "pointer" : "not-allowed",
+            opacity: sitesK.length ? 1 : .5, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>
           <Icon name="download" size={14} /> ออก Excel
         </button>
       </div>
@@ -1049,7 +1111,9 @@ function OmView({ jobs, users, role, currentUser, focus }) {
         {loading && <div style={{ padding: 20, textAlign: "center", fontSize: 12.5, color: "var(--text-3)" }}>กำลังโหลด...</div>}
         {!loading && !rows.length && (
           <div style={{ padding: 24, textAlign: "center", fontSize: 12.5, color: "var(--text-3)" }}>
-            {sites.length ? "ไม่มีไซต์ที่ตรงกับที่ค้นหา" : "ยังไม่มีไซต์ในสัญญาบริการ — ขึ้นทะเบียนจากงานที่ติดตั้งเสร็จ หรือเพิ่มไซต์นอกระบบ"}
+            {sites.length
+              ? (sitesK.length ? "ไม่มีไซต์ที่ตรงกับที่ค้นหา" : "ไม่มีไซต์ในหมวด" + (OM_SITE_TYPE_BY[kind] || {}).th)
+              : "ยังไม่มีไซต์ในสัญญาบริการ — ขึ้นทะเบียนจากงานที่ติดตั้งเสร็จ หรือเพิ่มไซต์นอกระบบ"}
           </div>
         )}
         {rows.map((r) => {
@@ -1065,7 +1129,8 @@ function OmView({ jobs, users, role, currentUser, focus }) {
                 <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)",
                   whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.name || "(ยังไม่ได้ตั้งชื่อไซต์)"}</span>
                 <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>
-                  {s.code}{s.province ? " · " + s.province : ""}
+                  {s.code} · <span style={{ color: omSiteTypeTH(s, jobById[s.id]).color, fontWeight: 700 }}>{omSiteTypeTH(s, jobById[s.id]).th}</span>
+                  {s.province ? " · " + s.province : ""}
                   {typeof s.kw === "number" && s.kw > 0 ? " · " + s.kw + " kW" : ""}
                   {s.comDate ? " · ติดตั้งเสร็จ " + window.drShort(s.comDate) : ""}
                 </span>
@@ -1129,4 +1194,5 @@ function OmView({ jobs, users, role, currentUser, focus }) {
 }
 
 Object.assign(window, { OM_INPUT, OmPill, OmStat, OmWarrantyBar, OmWarrantyTable,
-  OmCleanVisits, OmCleanView, OmSiteModal, OmView, OmJobButton, omExportXlsx });
+  OmCleanVisits, OmCleanView, OmSiteModal, OmView, OmJobButton, omExportXlsx,
+  OM_SITE_TYPE, OM_SITE_TYPE_BY, omSiteType, omSiteTypeTH });
