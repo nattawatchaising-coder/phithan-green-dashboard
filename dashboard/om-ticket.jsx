@@ -599,12 +599,10 @@ function OmTicketBoard({ sites, jobById, users, ticketStore, visitStore, role, c
         <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap",
           border: "1px solid var(--border)", background: "var(--surface2)", borderRadius: 12, padding: "10px 12px" }}>
           <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>เปิดเรื่องใหม่ให้ไซต์</span>
-          <select value={newFor} onChange={(e) => setNewFor(e.target.value)}
-            style={Object.assign({}, window.OM_INPUT, { width: "auto", flex: 1, minWidth: 180, padding: "8px 10px", fontSize: 12.5 })}>
-            <option value="">— เลือกไซต์ —</option>
-            {(sites || []).slice().sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "th"))
-              .map((s) => <option key={s.id} value={s.id}>{(s.name || s.code) + " · " + s.code}</option>)}
-          </select>
+          <window.SearchPick value={newFor} onChange={setNewFor} minWidth={180}
+            items={(sites || []).slice().sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "th"))}
+            emptyLabel="— ยังไม่เลือกไซต์ —"
+            placeholder="พิมพ์ชื่อลูกค้าหรือรหัสไซต์เพื่อค้นหา" />
           <button onClick={openNew} disabled={!newFor}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, border: "none",
               background: newFor ? "var(--primary)" : "var(--surface3)", color: newFor ? "#fff" : "var(--text-3)",

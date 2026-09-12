@@ -1291,22 +1291,14 @@ function OmTicketBoard({
       fontWeight: 700,
       color: "var(--text-2)"
     }
-  }, "\u0E40\u0E1B\u0E34\u0E14\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E43\u0E2B\u0E21\u0E48\u0E43\u0E2B\u0E49\u0E44\u0E0B\u0E15\u0E4C"), React.createElement("select", {
+  }, "\u0E40\u0E1B\u0E34\u0E14\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E43\u0E2B\u0E21\u0E48\u0E43\u0E2B\u0E49\u0E44\u0E0B\u0E15\u0E4C"), React.createElement(window.SearchPick, {
     value: newFor,
-    onChange: e => setNewFor(e.target.value),
-    style: Object.assign({}, window.OM_INPUT, {
-      width: "auto",
-      flex: 1,
-      minWidth: 180,
-      padding: "8px 10px",
-      fontSize: 12.5
-    })
-  }, React.createElement("option", {
-    value: ""
-  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E44\u0E0B\u0E15\u0E4C \u2014"), (sites || []).slice().sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "th")).map(s => React.createElement("option", {
-    key: s.id,
-    value: s.id
-  }, (s.name || s.code) + " · " + s.code))), React.createElement("button", {
+    onChange: setNewFor,
+    minWidth: 180,
+    items: (sites || []).slice().sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "th")),
+    emptyLabel: "\u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E44\u0E0B\u0E15\u0E4C \u2014",
+    placeholder: "\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E0A\u0E37\u0E48\u0E2D\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E2B\u0E23\u0E37\u0E2D\u0E23\u0E2B\u0E31\u0E2A\u0E44\u0E0B\u0E15\u0E4C\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E04\u0E49\u0E19\u0E2B\u0E32"
+  }), React.createElement("button", {
     onClick: openNew,
     disabled: !newFor,
     style: {

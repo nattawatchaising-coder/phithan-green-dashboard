@@ -773,9 +773,167 @@ function saveMatPrice(stock, opt, ctx) {
   }, vf));
   return id;
 }
+function SearchPick({
+  items,
+  value,
+  onChange,
+  placeholder,
+  emptyLabel,
+  allowEmpty,
+  minWidth
+}) {
+  const [q, setQ] = React.useState("");
+  const [open, setOpen] = React.useState(false);
+  const [hi, setHi] = React.useState(0);
+  const boxRef = React.useRef(null);
+  const inputRef = React.useRef(null);
+  const all = items || [];
+  const cur = all.find(it => it && it.id === value) || null;
+  const none = allowEmpty !== false;
+  React.useEffect(() => {
+    const h = e => {
+      if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+  const list = React.useMemo(() => {
+    const kw = q.trim().toLowerCase();
+    if (!kw) return all.slice(0, 60);
+    return all.filter(it => ((it.code || "") + " " + (it.name || "")).toLowerCase().indexOf(kw) >= 0).slice(0, 60);
+  }, [all, q]);
+  const pick = it => {
+    onChange(it ? it.id : "");
+    setQ("");
+    setOpen(false);
+    if (inputRef.current) inputRef.current.blur();
+  };
+  const onKey = e => {
+    if (e.key === "Escape") {
+      setOpen(false);
+      return;
+    }
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!open) {
+        setOpen(true);
+        return;
+      }
+      setHi(n => Math.max(0, Math.min(list.length - 1, n + (e.key === "ArrowDown" ? 1 : -1))));
+      return;
+    }
+    if (e.key === "Enter" && open) {
+      e.preventDefault();
+      pick(list[hi] || null);
+    }
+  };
+  const shown = cur ? [cur.code, cur.name].filter(Boolean).join(" · ") : "";
+  const row = (it, i) => React.createElement("button", {
+    key: it ? it.id : "_none",
+    type: "button",
+    onMouseEnter: () => setHi(i),
+    onClick: () => pick(it),
+    style: {
+      display: "block",
+      width: "100%",
+      textAlign: "left",
+      padding: "8px 11px",
+      border: "none",
+      background: i === hi ? "var(--surface2)" : "transparent",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      color: it ? "var(--text-1)" : "var(--text-3)"
+    }
+  }, it ? React.createElement(React.Fragment, null, it.code ? React.createElement("span", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontWeight: 700,
+      color: "var(--primary-dark)"
+    }
+  }, it.code) : null, React.createElement("span", null, it.code && it.name ? " · " : "", it.name || "")) : emptyLabel || "— ไม่เลือก —");
+  return React.createElement("div", {
+    ref: boxRef,
+    style: {
+      position: "relative",
+      flex: 1,
+      minWidth: minWidth || 200
+    }
+  }, React.createElement("input", {
+    ref: inputRef,
+    value: open ? q : shown,
+    onChange: e => {
+      setQ(e.target.value);
+      setHi(0);
+      setOpen(true);
+    },
+    onFocus: () => {
+      setQ("");
+      setHi(0);
+      setOpen(true);
+    },
+    onKeyDown: onKey,
+    placeholder: placeholder || "พิมพ์เพื่อค้นหา",
+    style: {
+      width: "100%",
+      padding: "8px 10px",
+      paddingRight: cur && !open ? 30 : 10,
+      borderRadius: 10,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-1)",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      boxSizing: "border-box"
+    }
+  }), cur && !open && React.createElement("button", {
+    type: "button",
+    onClick: () => pick(null),
+    title: "\u0E25\u0E49\u0E32\u0E07\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E44\u0E27\u0E49",
+    style: {
+      position: "absolute",
+      top: "50%",
+      right: 7,
+      transform: "translateY(-50%)",
+      width: 20,
+      height: 20,
+      borderRadius: 6,
+      border: "none",
+      background: "transparent",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 13,
+    color: "var(--text-3)"
+  })), open && React.createElement("div", {
+    style: {
+      position: "absolute",
+      zIndex: 30,
+      top: "calc(100% + 4px)",
+      left: 0,
+      right: 0,
+      maxHeight: 280,
+      overflowY: "auto",
+      background: "var(--surface)",
+      border: "1px solid var(--border-strong)",
+      borderRadius: 11,
+      boxShadow: "0 12px 28px rgba(8,20,26,.18)"
+    }
+  }, none && row(null, -1), list.map((it, i) => row(it, i)), !list.length && React.createElement("div", {
+    style: {
+      padding: "10px 11px",
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E17\u0E35\u0E48\u0E15\u0E23\u0E07\u0E01\u0E31\u0E1A\u0E04\u0E33\u0E04\u0E49\u0E19")));
+}
 Object.assign(window, {
   Icon,
   ICONS,
+  SearchPick,
   StageBadge,
   TypeBadge,
   MatChip,

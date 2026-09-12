@@ -206,96 +206,6 @@ function EcBigShot({ shot, onClose }) {
   );
 }
 
-/* ── ช่องเลือกงานแบบพิมพ์ค้นหา ──
-   รายการงานยาวหลายสิบงานและยาวขึ้นทุกเดือน dropdown ธรรมดาต้องเลื่อนหาทีละบรรทัด
-   คนเปิดใบมักจำได้แต่ชื่อลูกค้า ไม่ได้จำรหัสงาน จึงต้องค้นด้วยชื่อได้ด้วย
-   ค่าที่ส่งออกยังเป็น job.id เหมือนเดิม ตัวที่เปลี่ยนคือวิธีหา ไม่ใช่ข้อมูล */
-function EcJobPick({ jobs, value, onChange }) {
-  const [q, setQ] = React.useState("");
-  const [open, setOpen] = React.useState(false);
-  const [hi, setHi] = React.useState(0);
-  const boxRef = React.useRef(null);
-  const inputRef = React.useRef(null);
-  const all = jobs || [];
-  const cur = all.find((j) => j.id === value) || null;
-
-  /* คลิกที่อื่นแล้วต้องปิดรายการ ไม่งั้นมันค้างทับเนื้อหาข้างล่าง */
-  React.useEffect(() => {
-    const h = (e) => { if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
-
-  const list = React.useMemo(() => {
-    const kw = q.trim().toLowerCase();
-    if (!kw) return all.slice(0, 60);
-    return all.filter((j) => ((j.code || "") + " " + (j.name || "")).toLowerCase().indexOf(kw) >= 0).slice(0, 60);
-  }, [all, q]);
-
-  const pick = (j) => {
-    onChange(j ? j.id : "");
-    setQ(""); setOpen(false);
-    if (inputRef.current) inputRef.current.blur();
-  };
-
-  const onKey = (e) => {
-    if (e.key === "Escape") { setOpen(false); return; }
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-      e.preventDefault();
-      if (!open) { setOpen(true); return; }
-      setHi((n) => Math.max(0, Math.min(list.length - 1, n + (e.key === "ArrowDown" ? 1 : -1))));
-      return;
-    }
-    if (e.key === "Enter" && open) { e.preventDefault(); pick(list[hi] || null); }
-  };
-
-  const row = (j, i) => (
-    <button key={j ? j.id : "_none"} type="button"
-      onMouseEnter={() => setHi(i)} onClick={() => pick(j)}
-      style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 11px", border: "none",
-        background: i === hi ? "var(--surface2)" : "transparent", cursor: "pointer", fontFamily: "inherit",
-        fontSize: 12.5, color: j ? "var(--text-1)" : "var(--text-3)" }}>
-      {j ? (
-        <React.Fragment>
-          <span style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "var(--primary-dark)" }}>{j.code}</span>
-          <span> · {j.name}</span>
-        </React.Fragment>
-      ) : "— ไม่ผูกกับงาน (ค่าใช้จ่ายทั่วไป) —"}
-    </button>
-  );
-
-  return (
-    <div ref={boxRef} style={{ position: "relative", flex: 1, minWidth: 200 }}>
-      <input ref={inputRef}
-        value={open ? q : (cur ? cur.code + " · " + cur.name : "")}
-        onChange={(e) => { setQ(e.target.value); setHi(0); setOpen(true); }}
-        onFocus={() => { setQ(""); setHi(0); setOpen(true); }}
-        onKeyDown={onKey}
-        placeholder="พิมพ์ชื่อลูกค้าหรือรหัสงานเพื่อค้นหา · เว้นว่าง = ค่าใช้จ่ายทั่วไป"
-        style={Object.assign({}, EC_INPUT, { padding: "8px 10px", fontSize: 12.5,
-          paddingRight: cur && !open ? 30 : 10 })} />
-      {cur && !open && (
-        <button type="button" onClick={() => pick(null)} title="ล้างงานที่เลือก"
-          style={{ position: "absolute", top: "50%", right: 7, transform: "translateY(-50%)", width: 20, height: 20,
-            borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", display: "grid", placeItems: "center" }}>
-          <Icon name="x" size={13} color="var(--text-3)" />
-        </button>
-      )}
-      {open && (
-        <div style={{ position: "absolute", zIndex: 30, top: "calc(100% + 4px)", left: 0, right: 0, maxHeight: 280,
-          overflowY: "auto", background: "var(--surface)", border: "1px solid var(--border-strong)",
-          borderRadius: 11, boxShadow: "0 12px 28px rgba(8,20,26,.18)" }}>
-          {row(null, -1)}
-          {list.map((j, i) => row(j, i))}
-          {!list.length && (
-            <div style={{ padding: "10px 11px", fontSize: 12, color: "var(--text-3)" }}>ไม่พบงานที่ตรงกับคำค้น</div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 /* ── แผงใบเบิกหนึ่งใบ ── */
 function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, onMove, onRemove }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -1047,7 +957,9 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center",
         padding: "11px 13px", borderRadius: 12, background: "var(--surface2)", border: "1px solid var(--border)" }}>
         <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>เปิดใบเบิกใหม่</span>
-        <EcJobPick jobs={doneJobs} value={newJob} onChange={setNewJob} />
+        <window.SearchPick items={doneJobs} value={newJob} onChange={setNewJob} minWidth={200}
+          emptyLabel="— ไม่ผูกกับงาน (ค่าใช้จ่ายทั่วไป) —"
+          placeholder="พิมพ์ชื่อลูกค้าหรือรหัสงานเพื่อค้นหา · เว้นว่าง = ค่าใช้จ่ายทั่วไป" />
         <button onClick={openNew}
           style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: 10,
             border: "none", background: "var(--primary)", color: "#fff", cursor: "pointer",
@@ -1139,5 +1051,5 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
 }
 
 Object.assign(window, { EC_INPUT, EcPill, EcStat, EcMini, EcClaimModal, EcClaimRow,
-  EcReceipts, EcBigShot, EcPayModal, EcBatchList, EcJobPick,
+  EcReceipts, EcBigShot, EcPayModal, EcBatchList,
   EcPersonTable, EcJobTable, EcJobButton, ExpenseView });

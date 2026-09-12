@@ -490,7 +490,7 @@ input, select, textarea { font-family: inherit; }
 @media print {
   /* ธีมมืดตั้ง color-scheme: dark ไว้ที่ :root — พื้นกระดาษของเบราว์เซอร์เลยเป็นสีดำ
      ต้องสั่งกลับเป็น light ตอนพิมพ์ ไม่งั้นได้ขอบดำรอบรายงานติดมาในไฟล์ PDF */
-  :root { color-scheme: light !important; }
+  :root { color-scheme: light !important; zoom: 1 !important; }
   html, body, #root, .app-root { background: #fff !important; }
   html, body, #root { height: auto !important; overflow: visible !important; }
   .app-root { display: block !important; height: auto !important; overflow: visible !important; }
@@ -550,7 +550,7 @@ input, select, textarea { font-family: inherit; }
      ?v= กันเบราว์เซอร์หยิบไฟล์เก่าที่แคชไว้ — บั๊มพ์เลขทุกครั้งที่แก้ -->
 <script src="dashboard/build/brand.js?v=4"></script>
 <script src="dashboard/build/tweaks-panel.js?v=6"></script>
-<script src="dashboard/build/components.js?v=37"></script>
+<script src="dashboard/build/components.js?v=38"></script>
 <script src="dashboard/build/confirm.js?v=1"></script>
 <script src="dashboard/build/store.js?v=41"></script>
 <script src="dashboard/build/media.js?v=11"></script>
@@ -584,10 +584,10 @@ input, select, textarea { font-family: inherit; }
 <script src="dashboard/build/views-daily.js?v=21"></script>
 <script src="dashboard/build/om.js?v=6"></script>
 <script src="dashboard/build/views-om.js?v=7"></script>
-<script src="dashboard/build/om-ticket.js?v=5"></script>
+<script src="dashboard/build/om-ticket.js?v=6"></script>
 <script src="dashboard/build/om-paper.js?v=2"></script>
 <script src="dashboard/build/expense.js?v=6"></script>
-<script src="dashboard/build/views-expense.js?v=9"></script>
+<script src="dashboard/build/views-expense.js?v=10"></script>
 <script src="dashboard/build/ec-paper.js?v=2"></script>
 <script src="dashboard/build/auth.js?v=26"></script>
 <script src="dashboard/build/app.js?v=131"></script>

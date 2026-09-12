@@ -415,5 +415,98 @@ function saveMatPrice(stock, opt, ctx) {
   return id;
 }
 
-Object.assign(window, { Icon, ICONS, StageBadge, TypeBadge, MatChip, TechAvatar, ProgressBar, MatDots, Segmented, Dropdown, useBackdropClose,
+/* ── ช่องเลือกรายการยาว ๆ แบบพิมพ์ค้นหา ──
+   ใช้แทน <select> ตรงที่ตัวเลือกมีหลายสิบรายการและยาวขึ้นเรื่อย ๆ (งานติดตั้ง · ไซต์บริการ)
+   dropdown ของเบราว์เซอร์ต้องเลื่อนหาทีละบรรทัด และคนใช้มักจำได้แต่ชื่อลูกค้า ไม่ได้จำรหัส
+   items = [{ id, code, name }] · ค่าที่ส่งออกคือ id เหมือน <select> เดิมทุกประการ */
+function SearchPick({ items, value, onChange, placeholder, emptyLabel, allowEmpty, minWidth }) {
+  const [q, setQ] = React.useState("");
+  const [open, setOpen] = React.useState(false);
+  const [hi, setHi] = React.useState(0);
+  const boxRef = React.useRef(null);
+  const inputRef = React.useRef(null);
+  const all = items || [];
+  const cur = all.find((it) => it && it.id === value) || null;
+  const none = allowEmpty !== false;
+
+  /* คลิกที่อื่นแล้วต้องปิดรายการ ไม่งั้นมันค้างทับเนื้อหาข้างล่าง */
+  React.useEffect(() => {
+    const h = (e) => { if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+
+  const list = React.useMemo(() => {
+    const kw = q.trim().toLowerCase();
+    if (!kw) return all.slice(0, 60);
+    return all.filter((it) => ((it.code || "") + " " + (it.name || "")).toLowerCase().indexOf(kw) >= 0).slice(0, 60);
+  }, [all, q]);
+
+  const pick = (it) => {
+    onChange(it ? it.id : "");
+    setQ(""); setOpen(false);
+    if (inputRef.current) inputRef.current.blur();
+  };
+
+  const onKey = (e) => {
+    if (e.key === "Escape") { setOpen(false); return; }
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!open) { setOpen(true); return; }
+      setHi((n) => Math.max(0, Math.min(list.length - 1, n + (e.key === "ArrowDown" ? 1 : -1))));
+      return;
+    }
+    if (e.key === "Enter" && open) { e.preventDefault(); pick(list[hi] || null); }
+  };
+
+  const shown = cur ? [cur.code, cur.name].filter(Boolean).join(" · ") : "";
+  const row = (it, i) => (
+    <button key={it ? it.id : "_none"} type="button"
+      onMouseEnter={() => setHi(i)} onClick={() => pick(it)}
+      style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 11px", border: "none",
+        background: i === hi ? "var(--surface2)" : "transparent", cursor: "pointer", fontFamily: "inherit",
+        fontSize: 12.5, color: it ? "var(--text-1)" : "var(--text-3)" }}>
+      {it ? (
+        <React.Fragment>
+          {it.code ? <span style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "var(--primary-dark)" }}>{it.code}</span> : null}
+          <span>{it.code && it.name ? " · " : ""}{it.name || ""}</span>
+        </React.Fragment>
+      ) : (emptyLabel || "— ไม่เลือก —")}
+    </button>
+  );
+
+  return (
+    <div ref={boxRef} style={{ position: "relative", flex: 1, minWidth: minWidth || 200 }}>
+      <input ref={inputRef}
+        value={open ? q : shown}
+        onChange={(e) => { setQ(e.target.value); setHi(0); setOpen(true); }}
+        onFocus={() => { setQ(""); setHi(0); setOpen(true); }}
+        onKeyDown={onKey}
+        placeholder={placeholder || "พิมพ์เพื่อค้นหา"}
+        style={{ width: "100%", padding: "8px 10px", paddingRight: cur && !open ? 30 : 10, borderRadius: 10,
+          border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-1)",
+          fontFamily: "inherit", fontSize: 12.5, boxSizing: "border-box" }} />
+      {cur && !open && (
+        <button type="button" onClick={() => pick(null)} title="ล้างที่เลือกไว้"
+          style={{ position: "absolute", top: "50%", right: 7, transform: "translateY(-50%)", width: 20, height: 20,
+            borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", display: "grid", placeItems: "center" }}>
+          <Icon name="x" size={13} color="var(--text-3)" />
+        </button>
+      )}
+      {open && (
+        <div style={{ position: "absolute", zIndex: 30, top: "calc(100% + 4px)", left: 0, right: 0, maxHeight: 280,
+          overflowY: "auto", background: "var(--surface)", border: "1px solid var(--border-strong)",
+          borderRadius: 11, boxShadow: "0 12px 28px rgba(8,20,26,.18)" }}>
+          {none && row(null, -1)}
+          {list.map((it, i) => row(it, i))}
+          {!list.length && (
+            <div style={{ padding: "10px 11px", fontSize: 12, color: "var(--text-3)" }}>ไม่พบรายการที่ตรงกับคำค้น</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+Object.assign(window, { Icon, ICONS, SearchPick, StageBadge, TypeBadge, MatChip, TechAvatar, ProgressBar, MatDots, Segmented, Dropdown, useBackdropClose,
   thDate, thDateTime, fmtBaht, stageOf, parseDate, TH_MONTHS, TH_DAYS, saveMatPrice, newMatSaveCtx });

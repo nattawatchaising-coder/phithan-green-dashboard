@@ -444,150 +444,6 @@ function EcBigShot({
     }
   }, "\u0E40\u0E1B\u0E34\u0E14\u0E44\u0E1F\u0E25\u0E4C\u0E44\u0E21\u0E48\u0E2A\u0E33\u0E40\u0E23\u0E47\u0E08 \u2014 \u0E25\u0E2D\u0E07\u0E01\u0E14\u0E14\u0E32\u0E27\u0E19\u0E4C\u0E42\u0E2B\u0E25\u0E14\u0E41\u0E25\u0E49\u0E27\u0E40\u0E1B\u0E34\u0E14\u0E14\u0E49\u0E27\u0E22\u0E42\u0E1B\u0E23\u0E41\u0E01\u0E23\u0E21\u0E2D\u0E48\u0E32\u0E19 PDF"));
 }
-function EcJobPick({
-  jobs,
-  value,
-  onChange
-}) {
-  const [q, setQ] = React.useState("");
-  const [open, setOpen] = React.useState(false);
-  const [hi, setHi] = React.useState(0);
-  const boxRef = React.useRef(null);
-  const inputRef = React.useRef(null);
-  const all = jobs || [];
-  const cur = all.find(j => j.id === value) || null;
-  React.useEffect(() => {
-    const h = e => {
-      if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
-  const list = React.useMemo(() => {
-    const kw = q.trim().toLowerCase();
-    if (!kw) return all.slice(0, 60);
-    return all.filter(j => ((j.code || "") + " " + (j.name || "")).toLowerCase().indexOf(kw) >= 0).slice(0, 60);
-  }, [all, q]);
-  const pick = j => {
-    onChange(j ? j.id : "");
-    setQ("");
-    setOpen(false);
-    if (inputRef.current) inputRef.current.blur();
-  };
-  const onKey = e => {
-    if (e.key === "Escape") {
-      setOpen(false);
-      return;
-    }
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-      e.preventDefault();
-      if (!open) {
-        setOpen(true);
-        return;
-      }
-      setHi(n => Math.max(0, Math.min(list.length - 1, n + (e.key === "ArrowDown" ? 1 : -1))));
-      return;
-    }
-    if (e.key === "Enter" && open) {
-      e.preventDefault();
-      pick(list[hi] || null);
-    }
-  };
-  const row = (j, i) => React.createElement("button", {
-    key: j ? j.id : "_none",
-    type: "button",
-    onMouseEnter: () => setHi(i),
-    onClick: () => pick(j),
-    style: {
-      display: "block",
-      width: "100%",
-      textAlign: "left",
-      padding: "8px 11px",
-      border: "none",
-      background: i === hi ? "var(--surface2)" : "transparent",
-      cursor: "pointer",
-      fontFamily: "inherit",
-      fontSize: 12.5,
-      color: j ? "var(--text-1)" : "var(--text-3)"
-    }
-  }, j ? React.createElement(React.Fragment, null, React.createElement("span", {
-    style: {
-      fontFamily: "var(--mono)",
-      fontWeight: 700,
-      color: "var(--primary-dark)"
-    }
-  }, j.code), React.createElement("span", null, " \xB7 ", j.name)) : "— ไม่ผูกกับงาน (ค่าใช้จ่ายทั่วไป) —");
-  return React.createElement("div", {
-    ref: boxRef,
-    style: {
-      position: "relative",
-      flex: 1,
-      minWidth: 200
-    }
-  }, React.createElement("input", {
-    ref: inputRef,
-    value: open ? q : cur ? cur.code + " · " + cur.name : "",
-    onChange: e => {
-      setQ(e.target.value);
-      setHi(0);
-      setOpen(true);
-    },
-    onFocus: () => {
-      setQ("");
-      setHi(0);
-      setOpen(true);
-    },
-    onKeyDown: onKey,
-    placeholder: "\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E0A\u0E37\u0E48\u0E2D\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E2B\u0E23\u0E37\u0E2D\u0E23\u0E2B\u0E31\u0E2A\u0E07\u0E32\u0E19\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E04\u0E49\u0E19\u0E2B\u0E32 \xB7 \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07 = \u0E04\u0E48\u0E32\u0E43\u0E0A\u0E49\u0E08\u0E48\u0E32\u0E22\u0E17\u0E31\u0E48\u0E27\u0E44\u0E1B",
-    style: Object.assign({}, EC_INPUT, {
-      padding: "8px 10px",
-      fontSize: 12.5,
-      paddingRight: cur && !open ? 30 : 10
-    })
-  }), cur && !open && React.createElement("button", {
-    type: "button",
-    onClick: () => pick(null),
-    title: "\u0E25\u0E49\u0E32\u0E07\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01",
-    style: {
-      position: "absolute",
-      top: "50%",
-      right: 7,
-      transform: "translateY(-50%)",
-      width: 20,
-      height: 20,
-      borderRadius: 6,
-      border: "none",
-      background: "transparent",
-      cursor: "pointer",
-      display: "grid",
-      placeItems: "center"
-    }
-  }, React.createElement(Icon, {
-    name: "x",
-    size: 13,
-    color: "var(--text-3)"
-  })), open && React.createElement("div", {
-    style: {
-      position: "absolute",
-      zIndex: 30,
-      top: "calc(100% + 4px)",
-      left: 0,
-      right: 0,
-      maxHeight: 280,
-      overflowY: "auto",
-      background: "var(--surface)",
-      border: "1px solid var(--border-strong)",
-      borderRadius: 11,
-      boxShadow: "0 12px 28px rgba(8,20,26,.18)"
-    }
-  }, row(null, -1), list.map((j, i) => row(j, i)), !list.length && React.createElement("div", {
-    style: {
-      padding: "10px 11px",
-      fontSize: 12,
-      color: "var(--text-3)"
-    }
-  }, "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E15\u0E23\u0E07\u0E01\u0E31\u0E1A\u0E04\u0E33\u0E04\u0E49\u0E19")));
-}
 function EcClaimModal({
   claim,
   job,
@@ -2085,10 +1941,13 @@ function ExpenseView({
       fontWeight: 700,
       color: "var(--text-2)"
     }
-  }, "\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A\u0E40\u0E1A\u0E34\u0E01\u0E43\u0E2B\u0E21\u0E48"), React.createElement(EcJobPick, {
-    jobs: doneJobs,
+  }, "\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A\u0E40\u0E1A\u0E34\u0E01\u0E43\u0E2B\u0E21\u0E48"), React.createElement(window.SearchPick, {
+    items: doneJobs,
     value: newJob,
-    onChange: setNewJob
+    onChange: setNewJob,
+    minWidth: 200,
+    emptyLabel: "\u2014 \u0E44\u0E21\u0E48\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19 (\u0E04\u0E48\u0E32\u0E43\u0E0A\u0E49\u0E08\u0E48\u0E32\u0E22\u0E17\u0E31\u0E48\u0E27\u0E44\u0E1B) \u2014",
+    placeholder: "\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E0A\u0E37\u0E48\u0E2D\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E2B\u0E23\u0E37\u0E2D\u0E23\u0E2B\u0E31\u0E2A\u0E07\u0E32\u0E19\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E04\u0E49\u0E19\u0E2B\u0E32 \xB7 \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07 = \u0E04\u0E48\u0E32\u0E43\u0E0A\u0E49\u0E08\u0E48\u0E32\u0E22\u0E17\u0E31\u0E48\u0E27\u0E44\u0E1B"
   }), React.createElement("button", {
     onClick: openNew,
     style: {
@@ -2273,7 +2132,6 @@ Object.assign(window, {
   EcBigShot,
   EcPayModal,
   EcBatchList,
-  EcJobPick,
   EcPersonTable,
   EcJobTable,
   EcJobButton,
