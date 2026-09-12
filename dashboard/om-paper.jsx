@@ -94,8 +94,13 @@ function OmVisitModal({ visit, site, siteVisits, role, currentUser, onClose, onP
     }
     markSent();
   };
-  const markSent = () => onPatch(v.id, { status: "sent", sentAt: new Date().toISOString(),
-    byId: (currentUser || {}).id || v.byId || null, byName: (currentUser || {}).name || v.byName || "" });
+  const markSent = () => {
+    onPatch(v.id, { status: "sent", sentAt: new Date().toISOString(),
+      byId: (currentUser || {}).id || v.byId || null, byName: (currentUser || {}).name || v.byName || "" });
+    /* ส่งให้หัวหน้าตรวจ — ถ้าไม่เตือน ใบจะค้างอยู่ในสถานะ "รอตรวจ" ไปเรื่อย ๆ */
+    window.omNotify({ toPerm: "om", omSiteId: v.siteId, title: "ใบรายงานเข้าบริการรอตรวจ · " + (v.no || ""),
+      body: ((site || {}).name || v.siteName || "") + " — ส่งโดย " + ((currentUser || {}).name || "") });
+  };
   const approve = () => onPatch(v.id, { status: "approved", approvedAt: new Date().toISOString(),
     appId: (currentUser || {}).id || null, appName: (currentUser || {}).name || "" });
   const unlock = () => onPatch(v.id, { status: "sent", approvedAt: null, appId: null, appName: "" });

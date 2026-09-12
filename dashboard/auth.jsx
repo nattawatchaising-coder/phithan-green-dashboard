@@ -623,24 +623,28 @@ const NOTIF_KINDS = {
   reject:  { icon: "alert",  color: "#EF4444", th: "ถูกตีกลับ" },
   permit:  { icon: "file",   color: "#14B8A6", th: "ขออนุญาต" },
   assign:  { icon: "wrench", color: "#F59E0B", th: "มอบหมายงาน" },
+  om:      { icon: "wrench", color: "#7C5CFC", th: "งานบริการหลังการขาย" },
   info:    { icon: "bell",   color: "#1B9B75", th: "แจ้งเตือน" },
 };
 function notifKindKey(n) {
   if (n && n.event && NOTIF_KINDS[n.event]) return n.event;
+  if (n && n.type === "om") return "om";
   if (n && n.type === "assign") return "assign";
   if (n && n.type === "permit") return /ตีกลับ|แก้ไข/.test(n.title || "") ? "reject" : "permit";
   return "info";
 }
 
-function NotifPanel({ items, lateAlerts, onClose, onOpenJob, onMarkAll }) {
+function NotifPanel({ items, lateAlerts, omAlerts, onOpenOm, onClose, onOpenJob, onMarkAll }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const alerts = lateAlerts || [];
+  /* เตือนงานบริการหลังการขาย — คำนวณสดเหมือนงานล่าช้า ไม่ใช่เรคคอร์ดที่กดอ่านได้ */
+  const oms = (onOpenOm ? (omAlerts || []) : []);
   /* เรื่องเดียวกันของงานเดียวกันที่เกิดซ้ำ (เช่นถูกตีกลับหลายรอบ) ยุบเป็นใบเดียวแล้วบอกจำนวนครั้ง
      ไม่งั้นกล่องเต็มไปด้วยบรรทัดที่อ่านแล้วเหมือนกันเป๊ะ · items เรียงใหม่สุดมาก่อนอยู่แล้ว */
   const groups = React.useMemo(() => {
     const out = []; const at = {};
     (items || []).forEach((n) => {
-      const k = (n.jobId || n.id) + "|" + notifKindKey(n);
+      const k = (n.omSiteId || n.jobId || n.id) + "|" + notifKindKey(n);
       if (at[k] != null) { const g = out[at[k]]; g.count++; g.ids.push(n.id); if (!n.read) g.unread = true; return; }
       at[k] = out.length;
       out.push({ n, kind: NOTIF_KINDS[notifKindKey(n)], count: 1, ids: [n.id], unread: !n.read });
@@ -668,7 +672,7 @@ function NotifPanel({ items, lateAlerts, onClose, onOpenJob, onMarkAll }) {
         </div>
         <div style={{ overflowY: "auto", padding: 10, display: "flex", flexDirection: "column", gap: 8,
           paddingBottom: isMobile ? "calc(10px + env(safe-area-inset-bottom, 0px))" : 10 }}>
-          {items.length === 0 && alerts.length === 0 && <div style={{ padding: "28px 0", textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>ยังไม่มีการแจ้งเตือน</div>}
+          {items.length === 0 && alerts.length === 0 && oms.length === 0 && <div style={{ padding: "28px 0", textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>ยังไม่มีการแจ้งเตือน</div>}
           {/* งานล่าช้าตามขั้น (Flow) — คำนวณสด */}
           {alerts.length > 0 && (
             <React.Fragment>
@@ -682,6 +686,25 @@ function NotifPanel({ items, lateAlerts, onClose, onOpenJob, onMarkAll }) {
                     <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.jobName}</span>
                     <span style={{ display: "block", fontSize: 12, color: "var(--tint-red-tx)", marginTop: 2, lineHeight: 1.4 }}>ขั้น "{a.stage.th}" เลยกำหนด {a.stage.daysLate} วัน</span>
                     <span style={{ display: "block", fontSize: 10.5, color: "var(--text-3)", marginTop: 3 }}>กำหนดเสร็จ {thDate ? thDate(a.stage.end, true) : a.stage.end}</span>
+                  </span>
+                </button>
+              ))}
+              {(items.length > 0 || oms.length > 0) && <div style={{ height: 1, background: "var(--border)", margin: "4px 2px" }} />}
+            </React.Fragment>
+          )}
+          {/* งานบริการหลังการขายที่ค้างอยู่ — เลยรอบล้าง · ประกันใกล้หมด · เคสเกินกำหนด */}
+          {oms.length > 0 && (
+            <React.Fragment>
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "#7C5CFC", padding: "2px 4px" }}>🔧 งานบริการหลังการขายค้างอยู่ ({oms.length})</div>
+              {oms.map((a) => (
+                <button key={a.key} onClick={() => onOpenOm(a)}
+                  style={{ display: "flex", gap: 10, padding: "11px 12px", width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "inherit",
+                    background: a.color + "12", border: "1px solid " + a.color + "55", borderRadius: 11 }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: "grid", placeItems: "center", background: a.color, color: "#fff" }}><Icon name={a.icon} size={15} color="#fff" /></span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.title}</span>
+                    <span style={{ display: "block", fontSize: 12, color: a.color, fontWeight: 600, marginTop: 2, lineHeight: 1.4 }}>{a.body}</span>
+                    <span style={{ display: "block", fontSize: 10.5, color: "var(--text-3)", marginTop: 3 }}>{a.foot}</span>
                   </span>
                 </button>
               ))}

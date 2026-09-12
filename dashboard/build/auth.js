@@ -1272,6 +1272,11 @@ const NOTIF_KINDS = {
     color: "#F59E0B",
     th: "มอบหมายงาน"
   },
+  om: {
+    icon: "wrench",
+    color: "#7C5CFC",
+    th: "งานบริการหลังการขาย"
+  },
   info: {
     icon: "bell",
     color: "#1B9B75",
@@ -1280,6 +1285,7 @@ const NOTIF_KINDS = {
 };
 function notifKindKey(n) {
   if (n && n.event && NOTIF_KINDS[n.event]) return n.event;
+  if (n && n.type === "om") return "om";
   if (n && n.type === "assign") return "assign";
   if (n && n.type === "permit") return /ตีกลับ|แก้ไข/.test(n.title || "") ? "reject" : "permit";
   return "info";
@@ -1287,17 +1293,20 @@ function notifKindKey(n) {
 function NotifPanel({
   items,
   lateAlerts,
+  omAlerts,
+  onOpenOm,
   onClose,
   onOpenJob,
   onMarkAll
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const alerts = lateAlerts || [];
+  const oms = onOpenOm ? omAlerts || [] : [];
   const groups = React.useMemo(() => {
     const out = [];
     const at = {};
     (items || []).forEach(n => {
-      const k = (n.jobId || n.id) + "|" + notifKindKey(n);
+      const k = (n.omSiteId || n.jobId || n.id) + "|" + notifKindKey(n);
       if (at[k] != null) {
         const g = out[at[k]];
         g.count++;
@@ -1395,7 +1404,7 @@ function NotifPanel({
       gap: 8,
       paddingBottom: isMobile ? "calc(10px + env(safe-area-inset-bottom, 0px))" : 10
     }
-  }, items.length === 0 && alerts.length === 0 && React.createElement("div", {
+  }, items.length === 0 && alerts.length === 0 && oms.length === 0 && React.createElement("div", {
     style: {
       padding: "28px 0",
       textAlign: "center",
@@ -1473,7 +1482,83 @@ function NotifPanel({
       color: "var(--text-3)",
       marginTop: 3
     }
-  }, "\u0E01\u0E33\u0E2B\u0E19\u0E14\u0E40\u0E2A\u0E23\u0E47\u0E08 ", thDate ? thDate(a.stage.end, true) : a.stage.end)))), items.length > 0 && React.createElement("div", {
+  }, "\u0E01\u0E33\u0E2B\u0E19\u0E14\u0E40\u0E2A\u0E23\u0E47\u0E08 ", thDate ? thDate(a.stage.end, true) : a.stage.end)))), (items.length > 0 || oms.length > 0) && React.createElement("div", {
+    style: {
+      height: 1,
+      background: "var(--border)",
+      margin: "4px 2px"
+    }
+  })), oms.length > 0 && React.createElement(React.Fragment, null, React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 700,
+      letterSpacing: ".05em",
+      textTransform: "uppercase",
+      color: "#7C5CFC",
+      padding: "2px 4px"
+    }
+  }, "\uD83D\uDD27 \u0E07\u0E32\u0E19\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23\u0E2B\u0E25\u0E31\u0E07\u0E01\u0E32\u0E23\u0E02\u0E32\u0E22\u0E04\u0E49\u0E32\u0E07\u0E2D\u0E22\u0E39\u0E48 (", oms.length, ")"), oms.map(a => React.createElement("button", {
+    key: a.key,
+    onClick: () => onOpenOm(a),
+    style: {
+      display: "flex",
+      gap: 10,
+      padding: "11px 12px",
+      width: "100%",
+      textAlign: "left",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      background: a.color + "12",
+      border: "1px solid " + a.color + "55",
+      borderRadius: 11
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: 8,
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+      background: a.color,
+      color: "#fff"
+    }
+  }, React.createElement(Icon, {
+    name: a.icon,
+    size: 15,
+    color: "#fff"
+  })), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 13,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, a.title), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 12,
+      color: a.color,
+      fontWeight: 600,
+      marginTop: 2,
+      lineHeight: 1.4
+    }
+  }, a.body), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 10.5,
+      color: "var(--text-3)",
+      marginTop: 3
+    }
+  }, a.foot)))), items.length > 0 && React.createElement("div", {
     style: {
       height: 1,
       background: "var(--border)",

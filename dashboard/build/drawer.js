@@ -1163,6 +1163,10 @@ function DetailDrawer({
   onSurveyReport,
   onPermit,
   onDaily,
+  onOm,
+  omSite,
+  omVisits,
+  omTickets,
   priceMap,
   permitMode,
   onOpenReview,
@@ -1524,6 +1528,12 @@ function DetailDrawer({
   }))), onDaily && React.createElement(DailyJobButton, {
     job: job,
     onOpen: onDaily
+  }), onOm && (job.stage === "done" || omSite) && window.OmJobButton && React.createElement(window.OmJobButton, {
+    job: job,
+    site: omSite,
+    visits: omVisits,
+    tickets: omTickets,
+    onOpen: onOm
   }), onSurvey && (() => {
     const ss = window.surveyStatus ? window.surveyStatus(job) : {
       state: "none",

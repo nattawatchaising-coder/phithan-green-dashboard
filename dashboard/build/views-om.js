@@ -1714,10 +1714,432 @@ function OmCleanView({
     }
   }), th)))), dayPanel);
 }
+function omExportXlsx(sites, bySite, tickets, today) {
+  if (!window.XLSX) {
+    alert("ไม่พบไลบรารี Excel (ลองโหลดหน้าใหม่)");
+    return;
+  }
+  const X = window.XLSX;
+  const t = today || window.drToday();
+  const C = {
+    brand: "1D854B",
+    brandDk: "12603A",
+    brandSoft: "EAF6EF",
+    alt: "F4FAF6",
+    white: "FFFFFF",
+    border: "CBD8D0",
+    text: "16241D",
+    sub: "5A6B62",
+    warn: "B45309",
+    warnBg: "FDEBD0",
+    bad: "B91C1C",
+    badBg: "FBE3E3"
+  };
+  const FONT = "Tahoma";
+  const thin = {
+    style: "thin",
+    color: {
+      rgb: C.border
+    }
+  };
+  const boxAll = {
+    top: thin,
+    bottom: thin,
+    left: thin,
+    right: thin
+  };
+  const cols = ["ลำดับ", "รหัสไซต์", "ชื่อไซต์", "จังหวัด", "ขนาด (kW)", "วันติดตั้งเสร็จ", "สถานะประกัน", "ประกันหมดวันที่", "รอบล้างถัดไป", "สถานะรอบล้าง", "ล้างฟรีคงเหลือ", "ใบแจ้งซ่อมค้าง", "เบอร์ติดต่อ"];
+  const lastC = cols.length - 1;
+  const colW = [{
+    wch: 7
+  }, {
+    wch: 12
+  }, {
+    wch: 34
+  }, {
+    wch: 12
+  }, {
+    wch: 10
+  }, {
+    wch: 14
+  }, {
+    wch: 16
+  }, {
+    wch: 15
+  }, {
+    wch: 14
+  }, {
+    wch: 16
+  }, {
+    wch: 13
+  }, {
+    wch: 13
+  }, {
+    wch: 14
+  }];
+  const aoa = [],
+    merges = [],
+    meta = [],
+    rowsH = [];
+  let R = 0;
+  const wKey = {},
+    cKey = {};
+  const pushRow = (cells, type, hpt) => {
+    aoa.push(cells);
+    meta[R] = type;
+    if (hpt) rowsH[R] = {
+      hpt: hpt
+    };
+    R += 1;
+  };
+  const fullMerge = r => merges.push({
+    s: {
+      r: r,
+      c: 0
+    },
+    e: {
+      r: r,
+      c: lastC
+    }
+  });
+  const openBy = {};
+  (tickets || []).forEach(x => {
+    if (window.omTicketOpen(x)) openBy[x.siteId] = (openBy[x.siteId] || 0) + 1;
+  });
+  const roll = window.omRollup(sites, bySite, t);
+  pushRow(["ทะเบียนงานบริการหลังการขาย (O&M)"], "title", 30);
+  fullMerge(R - 1);
+  pushRow(["flash+solar · ประกัน · รอบล้างแผง · ใบแจ้งซ่อม"], "subtitle", 20);
+  fullMerge(R - 1);
+  pushRow([], "spacer", 6);
+  [["วันที่ออกเอกสาร", window.drDateTH(t, true)], ["ไซต์ในสัญญาบริการ", roll.total + " ไซต์" + (roll.kwSites ? " · " + roll.kw.toFixed(1) + " kW (เฉพาะไซต์ที่มีข้อมูลขนาดระบบ)" : "")], ["ใกล้หมดประกัน / หมดแล้ว", roll.warnSoon + " / " + roll.warnExpired + " ไซต์"], ["ถึงรอบล้าง / เลยกำหนด", roll.cleanDue + " / " + roll.cleanOverdue + " ไซต์"]].forEach(row => {
+    const cells = [row[0]];
+    for (let i = 1; i <= lastC; i++) cells.push(i === 1 ? row[1] : "");
+    pushRow(cells, "info", 19);
+    merges.push({
+      s: {
+        r: R - 1,
+        c: 1
+      },
+      e: {
+        r: R - 1,
+        c: lastC
+      }
+    });
+  });
+  pushRow([], "spacer", 8);
+  pushRow(cols, "head", 24);
+  const rank = {
+    expired: 0,
+    soon: 1,
+    active: 2,
+    none: 3
+  };
+  const list = (sites || []).map(s => {
+    const vs = (bySite || {})[s.id] || [];
+    return {
+      s,
+      st: window.omSiteWarrantyState(s, t),
+      cs: window.omCleanState(s, vs, t),
+      vs
+    };
+  }).sort((a, b) => rank[a.st.key] - rank[b.st.key] || a.st.days - b.st.days);
+  list.forEach((r, i) => {
+    const s = r.s;
+    pushRow([i + 1, s.code || "", s.name || "", s.province || "", typeof s.kw === "number" && s.kw > 0 ? s.kw : "", s.comDate ? window.drDateTH(s.comDate) : "", r.st.th || "", r.st.end ? window.drDateTH(r.st.end) : "", r.cs.due ? window.drDateTH(r.cs.due) : "", r.cs.th || "", (s.clean || {}).on ? window.omFreeLeft(s, r.vs) : "", openBy[s.id] || "", s.phone || ""], i % 2 === 0 ? "item" : "itemAlt");
+    wKey[R - 1] = r.st.key;
+    cKey[R - 1] = r.cs.key;
+  });
+  const ws = X.utils.aoa_to_sheet(aoa);
+  ws["!merges"] = merges;
+  ws["!cols"] = colW;
+  ws["!rows"] = rowsH;
+  const styleCell = (r, c) => {
+    const ty = meta[r];
+    if (ty === "spacer") return null;
+    const s = {
+      font: {
+        name: FONT,
+        sz: 11,
+        color: {
+          rgb: C.text
+        }
+      },
+      alignment: {
+        vertical: "center"
+      }
+    };
+    if (ty === "title") {
+      s.font = {
+        name: FONT,
+        sz: 15,
+        bold: true,
+        color: {
+          rgb: C.white
+        }
+      };
+      s.fill = {
+        patternType: "solid",
+        fgColor: {
+          rgb: C.brand
+        }
+      };
+      s.alignment = {
+        horizontal: "center",
+        vertical: "center"
+      };
+    } else if (ty === "subtitle") {
+      s.font = {
+        name: FONT,
+        sz: 10.5,
+        bold: true,
+        color: {
+          rgb: C.brandDk
+        }
+      };
+      s.fill = {
+        patternType: "solid",
+        fgColor: {
+          rgb: C.brandSoft
+        }
+      };
+      s.alignment = {
+        horizontal: "center",
+        vertical: "center"
+      };
+    } else if (ty === "info") {
+      if (c === 0) {
+        s.font = {
+          name: FONT,
+          sz: 10.5,
+          bold: true,
+          color: {
+            rgb: C.sub
+          }
+        };
+        s.alignment = {
+          horizontal: "right",
+          vertical: "center"
+        };
+      } else {
+        s.font = {
+          name: FONT,
+          sz: 11.5,
+          bold: true,
+          color: {
+            rgb: C.text
+          }
+        };
+        s.alignment = {
+          horizontal: "left",
+          vertical: "center"
+        };
+      }
+      s.border = {
+        bottom: thin
+      };
+    } else if (ty === "head") {
+      s.font = {
+        name: FONT,
+        sz: 11,
+        bold: true,
+        color: {
+          rgb: C.white
+        }
+      };
+      s.fill = {
+        patternType: "solid",
+        fgColor: {
+          rgb: C.brand
+        }
+      };
+      s.alignment = {
+        horizontal: c === 2 ? "left" : "center",
+        vertical: "center",
+        wrapText: true
+      };
+      s.border = boxAll;
+    } else if (ty === "item" || ty === "itemAlt") {
+      if (ty === "itemAlt") s.fill = {
+        patternType: "solid",
+        fgColor: {
+          rgb: C.alt
+        }
+      };
+      s.border = boxAll;
+      s.alignment = {
+        horizontal: c === 2 ? "left" : "center",
+        vertical: "center"
+      };
+      if (c === 1 || c === 12) s.font = {
+        name: FONT,
+        sz: 10,
+        color: {
+          rgb: C.sub
+        }
+      };
+      if (c === 4) s.numFmt = "#,##0.##";
+      const wk = wKey[r],
+        ck = cKey[r];
+      if (c === 6 && (wk === "expired" || wk === "soon")) {
+        s.font = {
+          name: FONT,
+          sz: 11,
+          bold: true,
+          color: {
+            rgb: wk === "expired" ? C.bad : C.warn
+          }
+        };
+        s.fill = {
+          patternType: "solid",
+          fgColor: {
+            rgb: wk === "expired" ? C.badBg : C.warnBg
+          }
+        };
+      }
+      if (c === 9 && (ck === "overdue" || ck === "due")) {
+        s.font = {
+          name: FONT,
+          sz: 11,
+          bold: true,
+          color: {
+            rgb: ck === "overdue" ? C.bad : C.warn
+          }
+        };
+        s.fill = {
+          patternType: "solid",
+          fgColor: {
+            rgb: ck === "overdue" ? C.badBg : C.warnBg
+          }
+        };
+      }
+      if (c === 11 && aoa[r][11]) {
+        s.font = {
+          name: FONT,
+          sz: 11,
+          bold: true,
+          color: {
+            rgb: C.warn
+          }
+        };
+        s.fill = {
+          patternType: "solid",
+          fgColor: {
+            rgb: C.warnBg
+          }
+        };
+      }
+    }
+    return s;
+  };
+  const range = X.utils.decode_range(ws["!ref"]);
+  for (let r = range.s.r; r <= range.e.r; r++) {
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const ref = X.utils.encode_cell({
+        r: r,
+        c: c
+      });
+      const s = styleCell(r, c);
+      if (!s) continue;
+      if (!ws[ref]) ws[ref] = {
+        t: "s",
+        v: ""
+      };
+      ws[ref].s = s;
+    }
+  }
+  ws["!autofilter"] = {
+    ref: X.utils.encode_range({
+      s: {
+        r: R - list.length - 1,
+        c: 0
+      },
+      e: {
+        r: R - 1,
+        c: lastC
+      }
+    })
+  };
+  const wb = X.utils.book_new();
+  X.utils.book_append_sheet(wb, ws, "ทะเบียนบริการ");
+  X.writeFile(wb, "ทะเบียนงานบริการ_" + t.replace(/-/g, "") + ".xlsx");
+}
+function OmJobButton({
+  job,
+  site,
+  visits,
+  tickets,
+  onOpen
+}) {
+  const open = (tickets || []).filter(t => window.omTicketOpen(t)).length;
+  const st = site ? window.omSiteWarrantyState(site) : null;
+  const cs = site ? window.omCleanState(site, visits || []) : null;
+  const color = !site ? "#94A3B8" : open ? "#EF4444" : cs && (cs.key === "overdue" || cs.key === "due") ? cs.color : st && st.key !== "active" ? st.color : "#10B981";
+  const sub = !site ? "ยังไม่ขึ้นทะเบียนบริการ — กดเพื่อขึ้นทะเบียน" : [st && st.key !== "none" ? st.th + " · " + window.omDaysTH(st) : "ยังไม่ได้ตั้งประกัน", cs && cs.key !== "off" ? cs.th : "", open ? "ใบแจ้งซ่อมค้าง " + open + " ใบ" : ""].filter(Boolean).join(" · ");
+  return React.createElement("button", {
+    onClick: onOpen,
+    style: {
+      width: "100%",
+      marginBottom: 10,
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "12px 14px",
+      background: "var(--surface)",
+      border: "1px solid var(--border-strong)",
+      borderLeft: "3px solid " + color,
+      borderRadius: 12,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      textAlign: "left"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 34,
+      height: 34,
+      borderRadius: 9,
+      background: color + "1c",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "wrench",
+    size: 17,
+    color: color
+  })), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 13.5,
+      fontWeight: 700,
+      color: "var(--text-1)"
+    }
+  }, "\u0E07\u0E32\u0E19\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23\u0E2B\u0E25\u0E31\u0E07\u0E01\u0E32\u0E23\u0E02\u0E32\u0E22"), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      color: color,
+      fontWeight: 700,
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, sub)), React.createElement(Icon, {
+    name: "arrowRight",
+    size: 16,
+    color: "var(--text-3)"
+  }));
+}
 function OmView({
   jobs,
   role,
-  currentUser
+  currentUser,
+  focus
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const {
@@ -1748,6 +2170,7 @@ function OmView({
   const pending = React.useMemo(() => window.omEnrollable(jobs, sites), [jobs, sites]);
   const roll = React.useMemo(() => window.omRollup(sites, cleanStore.bySite), [sites, cleanStore.bySite]);
   const tRoll = React.useMemo(() => window.omTicketRollup(ticketStore.tickets), [ticketStore.tickets]);
+  const vRoll = React.useMemo(() => window.omVisitRollup(visitStore.visits), [visitStore.visits]);
   const ticketsOf = React.useCallback(id => (ticketStore.tickets || []).filter(t => t.siteId === id), [ticketStore.tickets]);
   const newVisit = React.useCallback((site, opts) => {
     if (!site || !window.omCanWrite(role, null)) return;
@@ -1801,6 +2224,21 @@ function OmView({
     upsert(rec);
     setOpen(rec.id);
   };
+  const focusDone = React.useRef(null);
+  React.useEffect(() => {
+    if (!focus || focusDone.current === focus) return;
+    if (focus.ticketId) {
+      focusDone.current = focus;
+      setTab("ticket");
+      setOpenTicket(focus.ticketId);
+      return;
+    }
+    if (focus.siteId && (sites || []).some(s => s.id === focus.siteId)) {
+      focusDone.current = focus;
+      setTab("sites");
+      setOpen(focus.siteId);
+    }
+  }, [focus, sites]);
   const tog = k => setFilter(filter === k ? "" : k);
   const cur = (sites || []).find(s => s.id === open) || null;
   return React.createElement("div", {
@@ -1857,6 +2295,18 @@ function OmView({
     hint: tRoll.overdue ? "เกินกำหนดปิดเคส " + tRoll.overdue + " ใบ" : tRoll.newly ? "แจ้งใหม่ยังไม่ได้ดู " + tRoll.newly : "",
     on: tab === "ticket",
     onClick: () => setTab("ticket")
+  }), React.createElement(OmStat, {
+    label: "\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E23\u0E2D\u0E15\u0E23\u0E27\u0E08",
+    value: vRoll.sent,
+    color: vRoll.sent ? "#F59E0B" : "var(--text-1)",
+    hint: "ออกใบแล้วทั้งหมด " + vRoll.total + " ใบ" + (vRoll.draft ? " · ร่างค้าง " + vRoll.draft : ""),
+    on: tab === "visit",
+    onClick: () => setTab("visit")
+  }), React.createElement(OmStat, {
+    label: "\u0E42\u0E04\u0E27\u0E15\u0E32\u0E25\u0E49\u0E32\u0E07\u0E1F\u0E23\u0E35\u0E04\u0E07\u0E40\u0E2B\u0E25\u0E37\u0E2D",
+    value: roll.freeLeft,
+    color: "#0EA5E9",
+    hint: "รวมทุกไซต์ที่อยู่ในรอบล้าง" + (roll.active !== roll.total ? " · ไซต์ที่ยังใช้งาน " + roll.active + "/" + roll.total : "")
   })), React.createElement("div", {
     style: {
       display: "flex",
@@ -2004,7 +2454,28 @@ function OmView({
   }, React.createElement(Icon, {
     name: "plus",
     size: 14
-  }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E44\u0E0B\u0E15\u0E4C\u0E19\u0E2D\u0E01\u0E23\u0E30\u0E1A\u0E1A")), tab === "sites" && React.createElement("div", {
+  }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E44\u0E0B\u0E15\u0E4C\u0E19\u0E2D\u0E01\u0E23\u0E30\u0E1A\u0E1A"), React.createElement("button", {
+    onClick: () => omExportXlsx(sites, cleanStore.bySite, ticketStore.tickets),
+    disabled: !sites.length,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "9px 14px",
+      borderRadius: 10,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: sites.length ? "pointer" : "not-allowed",
+      opacity: sites.length ? 1 : .5,
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "download",
+    size: 14
+  }), " \u0E2D\u0E2D\u0E01 Excel")), tab === "sites" && React.createElement("div", {
     style: {
       border: "1px solid var(--border)",
       borderRadius: 14,
@@ -2107,6 +2578,12 @@ function OmView({
     onNewTicket: () => {
       const rec = window.omBlankTicket(cur, ticketStore.tickets, currentUser);
       ticketStore.save(rec);
+      window.omNotify({
+        toPerm: "om",
+        omSiteId: cur.id,
+        title: "ใบแจ้งซ่อมใหม่ · " + rec.no,
+        body: (cur.name || cur.code || "") + " — เปิดเรื่องโดย " + ((currentUser || {}).name || "")
+      });
       setOpen(null);
       setOpenTicket(rec.id);
     },
@@ -2156,5 +2633,7 @@ Object.assign(window, {
   OmCleanVisits,
   OmCleanView,
   OmSiteModal,
-  OmView
+  OmView,
+  OmJobButton,
+  omExportXlsx
 });

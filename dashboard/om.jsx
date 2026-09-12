@@ -880,8 +880,105 @@ function useOmMySign(userId) {
   return { sign, save };
 }
 
+/* ส่งแจ้งเตือนแบบเก็บเป็นเรคคอร์ด (เปิดเคสใหม่ · มอบหมายช่าง · ส่งใบรายงานให้ตรวจ)
+   เขียนลง notifications/{id} รูปแบบเดียวกับ addNotif (auth.jsx) แต่ผ่าน _omRef
+   เพราะโมดูลนี้ทดสอบใต้ _sandbox/ — ถ้าเรียก addNotif ตรง ๆ ทุกครั้งที่ทดสอบจะเด้งหาคนจริง
+   ไม่ใช้เป็น hook เพราะต้องยิงจากตรงกลางการกดปุ่ม ไม่ใช่ตอนเรนเดอร์ */
+function omNotify(n) {
+  if (!_OMFB() || !n) return;
+  const id = "N-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  _omRef("notifications/" + id).set(Object.assign({ id, read: false, at: new Date().toISOString(), type: "om", event: "om" }, n));
+}
+
+/* ══════════════ เตือนสด (ไม่เก็บลงฐานข้อมูล) ══════════════
+   เลยรอบล้าง · ประกันใกล้หมด/หมดแล้ว · ใบแจ้งซ่อมเกิน SLA
+   คำนวณใหม่ทุกครั้งที่ข้อมูลเปลี่ยน แบบเดียวกับ lateAlerts ของงานล่าช้า (app.jsx)
+   ไม่เขียนเป็นเรคคอร์ดแจ้งเตือน เพราะสถานะพวกนี้ "หายเองได้" พอมีคนไปจัดการ
+   ถ้าเก็บไว้จะกลายเป็นแจ้งเตือนซากที่กดอ่านแล้วก็ยังผิดอยู่ดี */
+function omSiteAlerts(sites, bySite, tickets, today) {
+  const t = today || window.drToday();
+  const out = [];
+  const siteBy = {};
+  (sites || []).forEach((s) => { if (s && s.id) siteBy[s.id] = s; });
+
+  (sites || []).forEach((s) => {
+    if (!s || s.active === false) return;
+    const vs = (bySite || {})[s.id] || [];
+    const cs = omCleanState(s, vs, t);
+    if (cs.key === "overdue") {
+      const back = omCleanBacklog(s, vs, t);
+      out.push({ key: "clean-" + s.id, kind: "clean", color: "#EF4444", icon: "panel", rank: 2,
+        siteId: s.id, title: s.name || s.code || "",
+        body: "เลยรอบล้างแผงมา " + (-cs.days) + " วัน" + (back > 1 ? " (ข้ามไปแล้ว " + back + " รอบ)" : ""),
+        foot: "ครบรอบ " + window.drShort(cs.due), days: -cs.days });
+    } else if (cs.key === "due") {
+      out.push({ key: "clean-" + s.id, kind: "clean", color: "#F59E0B", icon: "panel", rank: 4,
+        siteId: s.id, title: s.name || s.code || "", body: "ถึงรอบล้างแผงแล้ว ยังไม่มีใครจองคิว",
+        foot: "ครบรอบ " + window.drShort(cs.due), days: -cs.days });
+    }
+    omWarrantyList(s).forEach((w) => {
+      const st = omWarrantyState(w, t);
+      if (st.key === "soon") {
+        out.push({ key: "warn-" + s.id + "-" + w.id, kind: "warranty", color: "#F59E0B", icon: "shield", rank: 3,
+          siteId: s.id, title: s.name || s.code || "",
+          body: (w.label || "ประกัน") + " ใกล้หมด เหลืออีก " + st.days + " วัน",
+          foot: "หมดประกัน " + window.drShort(st.end), days: st.days });
+      }
+    });
+  });
+
+  (tickets || []).forEach((x) => {
+    if (!omTicketOpen(x)) return;
+    const ov = omTicketOverdue(x, t);
+    if (!ov) return;
+    const sv = (OM_SEVERITY_BY[x.severity] || {});
+    out.push({ key: "tick-" + x.id, kind: "ticket", color: "#EF4444", icon: "wrench", rank: 1,
+      siteId: x.siteId, ticketId: x.id, title: (x.siteName || x.siteCode || "") + " · " + (x.title || ""),
+      body: "ใบแจ้งซ่อม " + (x.no || x.id) + " เกินกำหนดแก้ไข " + ov.over + " วัน" + (sv.th ? " (" + sv.th + ")" : ""),
+      foot: "แจ้งเมื่อ " + window.drShort((x.reportedAt || "").slice(0, 10)), days: ov.over });
+  });
+
+  /* หนักสุดขึ้นก่อน · ชนิดเดียวกันเรียงตามความสาหัส (เลยกำหนดมานานสุด / เหลือเวลาน้อยสุด) */
+  return out.sort((a, b) => a.rank - b.rank
+    || (a.kind === "warranty" ? a.days - b.days : b.days - a.days));
+}
+
+/* ตัวฟังข้อมูลสำหรับ "กระดิ่ง" บนหัวหน้าจอ — เปิดเฉพาะคนที่มีสิทธิ์ om
+   ฟังเฉพาะโหนดเบาสามอัน (ไม่มีรูป/ลายเซ็น) เลยถูกพอที่จะเปิดค้างไว้ทั้งแอป
+   คืน sites/bySite/tickets ออกไปด้วย ปุ่มในลิ้นชักใบงานจะได้ไม่ต้องฟังซ้ำอีกรอบ */
+function useOmAlerts(on) {
+  const [sites, setSites] = React.useState([]);
+  const [visits, setVisits] = React.useState([]);
+  const [tickets, setTickets] = React.useState([]);
+
+  React.useEffect(() => {
+    if (!on || !_OMFB()) { setSites([]); setVisits([]); setTickets([]); return; }
+    const rs = _omRef("omSites"), rv = _omRef("omCleanVisits"), rt = _omRef("omTickets");
+    const toList = (val) => Object.keys(val || {}).map((k) => Object.assign({ id: k }, val[k]));
+    const hs = rs.on("value", (s) => setSites(toList(s.val())));
+    const ht = rt.on("value", (s) => setTickets(toList(s.val())));
+    const hv = rv.on("value", (s) => {
+      const val = s.val() || {}; const out = [];
+      Object.keys(val).forEach((sid) => Object.keys(val[sid] || {}).forEach((vid) => {
+        out.push(Object.assign({ id: vid, siteId: sid }, val[sid][vid]));
+      }));
+      setVisits(out);
+    });
+    return () => { rs.off("value", hs); rv.off("value", hv); rt.off("value", ht); };
+  }, [on]);
+
+  const bySite = React.useMemo(() => {
+    const m = {};
+    visits.forEach((v) => { (m[v.siteId] || (m[v.siteId] = [])).push(v); });
+    return m;
+  }, [visits]);
+
+  const alerts = React.useMemo(() => omSiteAlerts(sites, bySite, tickets), [sites, bySite, tickets]);
+  return { alerts, sites, bySite, tickets };
+}
+
 Object.assign(window, {
-  useOmMySign,
+  useOmMySign, omNotify, omSiteAlerts, useOmAlerts,
   OM_VISIT_KIND, OM_VISIT_KIND_BY, OM_VISIT_STATUS, omVisitStatusOf,
   omVisitDocNo, omBlankVisit, omVisitRollup,
   useOmVisits, useOmVisitPhotos, useOmVisitSigns,

@@ -786,6 +786,18 @@ function App() {
   };
   const [permitJob, setPermitJob] = React.useState(null);
   const [dailyJob, setDailyJob] = React.useState(null);
+  const [omFocus, setOmFocus] = React.useState(null);
+  const omLive = window.useOmAlerts(can(role, "om"));
+  const openOm = React.useCallback(a => {
+    setNotifOpen(false);
+    setSelected(null);
+    setOmFocus({
+      siteId: (a || {}).siteId || null,
+      ticketId: (a || {}).ticketId || null,
+      at: Date.now()
+    });
+    setView("om");
+  }, []);
   window.DR_ME = {
     role,
     user: auth.current
@@ -827,7 +839,7 @@ function App() {
   });
   const myNotifs = notif.notifs.filter(n => techId && n.toTechId === techId || n.toPerm && can(role, n.toPerm));
   const unread = myNotifs.filter(n => !n.read).length;
-  const bellCount = unread + lateAlerts.length;
+  const bellCount = unread + lateAlerts.length + omLive.alerts.length;
   const openFromNotif = n => {
     (n.ids && n.ids.length ? n.ids : [n.id]).forEach(id => {
       if (id) notif.markRead(id);
@@ -964,6 +976,8 @@ function App() {
     unread: bellCount,
     notifItems: myNotifs,
     lateAlerts: lateAlerts,
+    omAlerts: omLive.alerts,
+    onOpenOm: can(role, "om") ? openOm : null,
     notifOpen: notifOpen,
     onBell: () => setNotifOpen(v => !v),
     onCloseNotif: () => setNotifOpen(false),
@@ -1041,7 +1055,8 @@ function App() {
   }), view === "om" && React.createElement(window.OmView, {
     jobs: jobs,
     role: role,
-    currentUser: auth.current
+    currentUser: auth.current,
+    focus: omFocus
   }), view === "report" && React.createElement(ReportView, {
     jobs: filtered,
     onOpen: openJob
@@ -1086,6 +1101,12 @@ function App() {
     onSurveyReport: () => setReportJob(selectedJob),
     onPermit: can(role, "editJob") && !permitOnly ? () => setPermitJob(selectedJob) : null,
     onDaily: can(role, "editJob") && !permitOnly && selectedJob && selectedJob.stage === "install" ? () => setDailyJob(selectedJob) : null,
+    omSite: selectedJob ? (omLive.sites || []).find(s => s.id === selectedJob.id) || null : null,
+    omVisits: selectedJob ? (omLive.bySite || {})[selectedJob.id] || [] : [],
+    omTickets: selectedJob ? (omLive.tickets || []).filter(t => t.siteId === selectedJob.id) : [],
+    onOm: can(role, "om") && !permitOnly && selectedJob ? () => openOm({
+      siteId: selectedJob.id
+    }) : null,
     permitMode: permitOnly,
     onOpenReview: permitOnly && selectedJob ? () => setPermitReview(selectedJob.id) : null,
     salesMode: salesOnly,
@@ -1705,6 +1726,8 @@ function Header({
   unread,
   notifItems,
   lateAlerts,
+  omAlerts,
+  onOpenOm,
   notifOpen,
   onBell,
   onCloseNotif,
@@ -1904,6 +1927,8 @@ function Header({
   }, unread)), notifOpen && React.createElement(NotifPanel, {
     items: notifItems,
     lateAlerts: lateAlerts,
+    omAlerts: omAlerts,
+    onOpenOm: onOpenOm,
     onClose: onCloseNotif,
     onOpenJob: onOpenNotif,
     onMarkAll: onMarkAll

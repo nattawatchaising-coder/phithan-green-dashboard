@@ -146,12 +146,20 @@ function OmVisitModal({
     }
     markSent();
   };
-  const markSent = () => onPatch(v.id, {
-    status: "sent",
-    sentAt: new Date().toISOString(),
-    byId: (currentUser || {}).id || v.byId || null,
-    byName: (currentUser || {}).name || v.byName || ""
-  });
+  const markSent = () => {
+    onPatch(v.id, {
+      status: "sent",
+      sentAt: new Date().toISOString(),
+      byId: (currentUser || {}).id || v.byId || null,
+      byName: (currentUser || {}).name || v.byName || ""
+    });
+    window.omNotify({
+      toPerm: "om",
+      omSiteId: v.siteId,
+      title: "ใบรายงานเข้าบริการรอตรวจ · " + (v.no || ""),
+      body: ((site || {}).name || v.siteName || "") + " — ส่งโดย " + ((currentUser || {}).name || "")
+    });
+  };
   const approve = () => onPatch(v.id, {
     status: "approved",
     approvedAt: new Date().toISOString(),

@@ -575,6 +575,15 @@ function App() {
      (ถ้าผู้ใช้เคยติ๊ก "ไม่ให้หน้านี้สร้างกล่องข้อความอีก" confirm จะคืน false ทันที = กดลบแล้วเงียบ) */
   const [permitJob, setPermitJob] = React.useState(null);   // งานที่กำลังเปิดแบบเก็บข้อมูลขออนุญาต
   const [dailyJob, setDailyJob] = React.useState(null);     // งานที่กำลังเปิดรายงานประจำวัน
+  const [omFocus, setOmFocus] = React.useState(null);       // ไซต์บริการที่ให้หน้า O&M เปิดขึ้นมาให้เลย
+  /* ข้อมูลบริการหลังการขายสำหรับกระดิ่ง + ปุ่มในลิ้นชัก — โหนดเบา ๆ สามอัน เปิดค้างไว้ได้
+     คนที่ไม่มีสิทธิ์ om จะไม่ฟังอะไรเลย (ส่ง false เข้าไป) */
+  const omLive = window.useOmAlerts(can(role, "om"));
+  const openOm = React.useCallback((a) => {
+    setNotifOpen(false); setSelected(null);
+    setOmFocus({ siteId: (a || {}).siteId || null, ticketId: (a || {}).ticketId || null, at: Date.now() });
+    setView("om");
+  }, []);
   /* ปุ่ม "รายงานวันนี้" อยู่บนการ์ดในบอร์ด ซึ่งลึกเกินกว่าจะส่ง props ลงไปถึง
      ฝากผู้ใช้ปัจจุบันไว้ให้การ์ดหยิบใช้ ฟอร์มจะได้รู้ว่าใครเขียนและอนุมัติได้ไหม */
   window.DR_ME = { role, user: auth.current };
@@ -604,7 +613,7 @@ function App() {
   /* แจ้งเตือนของฉัน = ที่จ่าหน้าถึงตัวเรา + ที่จ่าหน้าถึง "คนที่มีสิทธิ์นี้" (เช่น งานขออนุญาตส่งถึงทุกคนในฝ่าย) */
   const myNotifs = notif.notifs.filter((n) => (techId && n.toTechId === techId) || (n.toPerm && can(role, n.toPerm)));
   const unread   = myNotifs.filter((n) => !n.read).length;
-  const bellCount = unread + lateAlerts.length;
+  const bellCount = unread + lateAlerts.length + omLive.alerts.length;
   const openFromNotif = (n) => {
     /* กดใบที่ยุบรวมหลายครั้งไว้ ต้องอ่านครบทุกใบในกอง ไม่งั้นจุดค้างอยู่ทั้งที่กดแล้ว */
     (n.ids && n.ids.length ? n.ids : [n.id]).forEach((id) => { if (id) notif.markRead(id); });
@@ -667,6 +676,7 @@ function App() {
           canAdd={can(role, "addJob")}
           onMap={() => setMapOpen(true)}
           showBell={true} unread={bellCount} notifItems={myNotifs} lateAlerts={lateAlerts}
+          omAlerts={omLive.alerts} onOpenOm={can(role, "om") ? openOm : null}
           notifOpen={notifOpen} onBell={() => setNotifOpen((v) => !v)} onCloseNotif={() => setNotifOpen(false)}
           onOpenNotif={openFromNotif} onMarkAll={() => myNotifs.forEach((n) => { if (!n.read) notif.markRead(n.id); })}
           onMenuOpen={() => setSidebarOpen(true)} />
@@ -701,7 +711,7 @@ function App() {
           {view === "permit" && permitView}
           {view === "daily" && <DailyView jobs={filtered} role={role} currentUser={auth.current} onOpen={(j) => setDailyJob(j)} />}
           {/* ทะเบียนบริการเป็นภาระผูกพันของบริษัท ไม่ใช่คิวงานของใครคนหนึ่ง จึงดูจากงานทั้งหมดที่ผู้ใช้เห็น */}
-          {view === "om" && <window.OmView jobs={jobs} role={role} currentUser={auth.current} />}
+          {view === "om" && <window.OmView jobs={jobs} role={role} currentUser={auth.current} focus={omFocus} />}
           {view === "report" && <ReportView jobs={filtered} onOpen={openJob} />}
           {view === "survey" && <SurveyView jobs={filtered} role={role} onOpen={openSurvey}
             onToggleSkip={(can(role, "doSurvey") || can(role, "dispatch") || can(role, "editJob")) ? (j) => {
@@ -725,6 +735,11 @@ function App() {
         /* รายงานประจำวันเปิดได้เฉพาะงานที่กำลังติดตั้ง — ขั้นก่อนหน้ายังไม่มีใครขึ้นหน้างาน */
         onDaily={can(role, "editJob") && !permitOnly && selectedJob && selectedJob.stage === "install"
           ? () => setDailyJob(selectedJob) : null}
+        /* งานบริการหลังการขาย — เปิดได้เมื่อติดตั้งเสร็จแล้ว หรือไซต์นี้ขึ้นทะเบียนบริการไว้แล้ว */
+        omSite={selectedJob ? (omLive.sites || []).find((s) => s.id === selectedJob.id) || null : null}
+        omVisits={selectedJob ? (omLive.bySite || {})[selectedJob.id] || [] : []}
+        omTickets={selectedJob ? (omLive.tickets || []).filter((t) => t.siteId === selectedJob.id) : []}
+        onOm={can(role, "om") && !permitOnly && selectedJob ? () => openOm({ siteId: selectedJob.id }) : null}
         permitMode={permitOnly}
         onOpenReview={permitOnly && selectedJob ? () => setPermitReview(selectedJob.id) : null}
         salesMode={salesOnly} quotes={quoteStore.quotes}
@@ -1005,7 +1020,7 @@ function TechFilter({ value, onChange, techs, counts, nameOf }) {
   );
 }
 
-function Header({ view, navList, plain, subtitle, ownOnly, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, stageMode, quickFilter, setQuickFilter, techFilter, setTechFilter, techCounts, techs, onAdd, canAdd, onMap, showBell, unread, notifItems, lateAlerts, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen }) {
+function Header({ view, navList, plain, subtitle, ownOnly, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, stageMode, quickFilter, setQuickFilter, techFilter, setTechFilter, techCounts, techs, onAdd, canAdd, onMap, showBell, unread, notifItems, lateAlerts, omAlerts, onOpenOm, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen }) {
   const nav = navList.find((n) => n.key === view) || NAV.find((n) => n.key === view);
   const QUICK_LABELS = { active: "กำลังดำเนินการ", delayed: "ล่าช้า", ready: "อุปกรณ์พร้อมติดตั้ง", battery: "มีแบตเตอรี่",
     problem: "ติดปัญหาหน้างาน", noinstall: "ยังไม่นัดวันติดตั้ง" };
@@ -1084,7 +1099,8 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
                     background: "#EF4444", color: "#fff", fontSize: 10.5, fontWeight: 700, display: "grid", placeItems: "center", border: "2px solid var(--bg)" }}>{unread}</span>
                 )}
               </button>
-              {notifOpen && <NotifPanel items={notifItems} lateAlerts={lateAlerts} onClose={onCloseNotif} onOpenJob={onOpenNotif} onMarkAll={onMarkAll} />}
+              {notifOpen && <NotifPanel items={notifItems} lateAlerts={lateAlerts} omAlerts={omAlerts} onOpenOm={onOpenOm}
+                onClose={onCloseNotif} onOpenJob={onOpenNotif} onMarkAll={onMarkAll} />}
             </div>
           )}
           {canAdd && !(isMobile && searchOpen) && (

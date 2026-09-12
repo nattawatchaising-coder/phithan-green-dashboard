@@ -277,6 +277,25 @@ function OmTicketModal({ ticket, site, role, currentUser, visits, onOpenVisit, o
             {t.apptDate && (
               <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 8 }}>{window.drDateTH(t.apptDate, true)}</div>
             )}
+            {/* มอบหมายช่าง — เปลี่ยนตัวคนแล้วเด้งแจ้งเตือนหาคนใหม่ทันที
+                ไม่งั้นคนที่ถูกมอบหมายจะไม่รู้เรื่องจนกว่าจะบังเอิญเปิดบอร์ดมาดู */}
+            <div style={{ marginTop: 12 }}>
+              <window.DrLabel>ช่างผู้รับผิดชอบ</window.DrLabel>
+              <select value={t.techId || ""} disabled={locked}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  set({ techId: id || null });
+                  if (id && window.omNotify) {
+                    window.omNotify({ toTechId: id, omSiteId: t.siteId,
+                      title: "มอบหมายงานบริการ · " + (t.title || t.no),
+                      body: (t.siteName || t.siteCode || "") + (t.apptDate ? " · นัด " + window.drShort(t.apptDate) : " · ยังไม่ได้นัดวัน") });
+                  }
+                }}
+                style={Object.assign({}, window.OM_INPUT, { padding: "8px 10px", fontSize: 12.5 })}>
+                <option value="">— ยังไม่ได้มอบหมาย —</option>
+                {(window.SF.TECHS || []).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+              </select>
+            </div>
           </window.DrSection>
 
           <window.DrSection n="4" title="รูปประกอบ" tone="#0EA5E9" hint="ก่อนซ่อม = สภาพตอนลูกค้าแจ้ง">
@@ -424,6 +443,8 @@ function OmTicketBoard({ sites, ticketStore, visitStore, role, currentUser, onNe
     if (!canWrite || !s) return;
     const rec = window.omBlankTicket(s, tickets, currentUser);
     save(rec);
+    window.omNotify({ toPerm: "om", omSiteId: s.id, title: "ใบแจ้งซ่อมใหม่ · " + rec.no,
+      body: (s.name || s.code || "") + " — เปิดเรื่องโดย " + ((currentUser || {}).name || "") });
     setOpenId(rec.id);
   };
   const move = (t, to, note) => {

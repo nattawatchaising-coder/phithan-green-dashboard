@@ -619,7 +619,37 @@ function OmTicketModal({
       color: "var(--text-3)",
       marginTop: 8
     }
-  }, window.drDateTH(t.apptDate, true))), React.createElement(window.DrSection, {
+  }, window.drDateTH(t.apptDate, true)), React.createElement("div", {
+    style: {
+      marginTop: 12
+    }
+  }, React.createElement(window.DrLabel, null, "\u0E0A\u0E48\u0E32\u0E07\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A"), React.createElement("select", {
+    value: t.techId || "",
+    disabled: locked,
+    onChange: e => {
+      const id = e.target.value;
+      set({
+        techId: id || null
+      });
+      if (id && window.omNotify) {
+        window.omNotify({
+          toTechId: id,
+          omSiteId: t.siteId,
+          title: "มอบหมายงานบริการ · " + (t.title || t.no),
+          body: (t.siteName || t.siteCode || "") + (t.apptDate ? " · นัด " + window.drShort(t.apptDate) : " · ยังไม่ได้นัดวัน")
+        });
+      }
+    },
+    style: Object.assign({}, window.OM_INPUT, {
+      padding: "8px 10px",
+      fontSize: 12.5
+    })
+  }, React.createElement("option", {
+    value: ""
+  }, "\u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E21\u0E2D\u0E1A\u0E2B\u0E21\u0E32\u0E22 \u2014"), (window.SF.TECHS || []).map(x => React.createElement("option", {
+    key: x.id,
+    value: x.id
+  }, x.name))))), React.createElement(window.DrSection, {
     n: "4",
     title: "\u0E23\u0E39\u0E1B\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A",
     tone: "#0EA5E9",
@@ -929,6 +959,12 @@ function OmTicketBoard({
     if (!canWrite || !s) return;
     const rec = window.omBlankTicket(s, tickets, currentUser);
     save(rec);
+    window.omNotify({
+      toPerm: "om",
+      omSiteId: s.id,
+      title: "ใบแจ้งซ่อมใหม่ · " + rec.no,
+      body: (s.name || s.code || "") + " — เปิดเรื่องโดย " + ((currentUser || {}).name || "")
+    });
     setOpenId(rec.id);
   };
   const move = (t, to, note) => {
