@@ -1251,12 +1251,9 @@ function OmTicketBoard({
       flexDirection: "column",
       gap: 14
     }
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 10,
-      flexWrap: "wrap"
-    }
+  }, React.createElement(window.OmStatRow, {
+    id: "om-ticket",
+    title: "\u0E2A\u0E23\u0E38\u0E1B\u0E43\u0E1A\u0E41\u0E08\u0E49\u0E07\u0E0B\u0E48\u0E2D\u0E21"
   }, React.createElement(window.OmStat, {
     label: "\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E1B\u0E34\u0E14",
     value: roll.open,

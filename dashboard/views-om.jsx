@@ -47,6 +47,60 @@ function OmStat({ label, value, color, hint, on, onClick }) {
   );
 }
 
+/* ── แถบไทล์สถิติที่พับเก็บได้ ──
+   ไทล์แปดช่องกินพื้นที่เกือบครึ่งจอ ทั้งที่ส่วนใหญ่เป็นเลข 0 ที่ไม่ต้องทำอะไร
+   คนที่รู้อยู่แล้วว่าจะมาดูรายการข้างล่าง ควรพับเก็บทิ้งไว้ได้ถาวร
+   พับแล้วยังเหลือบรรทัดเดียวที่โชว์เฉพาะช่องที่ "ไม่เป็นศูนย์" และยังกดกรองได้เหมือนเดิม
+   จำค่าแยกตาม id — แถบบนกับแถบในแท็บพับคนละอันได้ */
+function OmStatRow({ id, title, children }) {
+  const key = "om-fold-" + id;
+  const [open, setOpen] = React.useState(() => {
+    try { return localStorage.getItem(key) !== "0"; } catch (e) { return true; }
+  });
+  const toggle = () => setOpen((o) => {
+    const n = !o;
+    try { localStorage.setItem(key, n ? "1" : "0"); } catch (e) { /* โหมดส่วนตัวเขียนไม่ได้ */ }
+    return n;
+  });
+
+  const kids = React.Children.toArray(children).filter(Boolean);
+  /* ตอนพับ เอาเฉพาะช่องที่มีค่า — ศูนย์แปลว่าไม่มีอะไรต้องทำ ไม่ต้องเปลืองที่บอก */
+  const hot = kids.filter((c) => c && c.props && +c.props.value > 0);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: open ? 9 : 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <button type="button" onClick={toggle} title={open ? "พับเก็บแถบสรุป" : "กางแถบสรุป"}
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 9px 3px 5px", borderRadius: 99,
+            border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer",
+            fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>
+          <Icon name="chevronDown" size={14} color="var(--text-3)"
+            style={{ transform: open ? "none" : "rotate(-90deg)", transition: "transform .18s" }} />
+          {title || "สรุป"}
+        </button>
+        {!open && (hot.length ? hot.map((c, i) => {
+          const p = c.props;
+          return (
+            <button key={i} type="button" onClick={p.onClick} disabled={!p.onClick}
+              title={p.hint || p.label}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 10px", borderRadius: 99,
+                border: "1px solid " + (p.on ? (p.color || "var(--primary)") : "var(--border)"),
+                background: p.on ? (p.color || "var(--primary)") + "16" : "var(--surface2)",
+                cursor: p.onClick ? "pointer" : "default", fontFamily: "inherit", fontSize: 11.5,
+                fontWeight: 700, color: "var(--text-2)" }}>
+              {p.label}
+              <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 800, color: p.color }}>{p.value}</span>
+            </button>
+          );
+        }) : (
+          <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>ไม่มีรายการค้าง</span>
+        ))}
+      </div>
+      {open && <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>{children}</div>}
+    </div>
+  );
+}
+
 /* แถบเวลาประกันที่เหลือ — เห็นด้วยตาว่าเหลือมากน้อยแค่ไหน ไม่ต้องอ่านตัวเลข */
 function OmWarrantyBar({ w }) {
   const st = window.omWarrantyState(w);
@@ -1010,7 +1064,7 @@ function OmView({ jobs, users, role, currentUser, focus }) {
         ))}
       </div>
 
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+      <OmStatRow id="om-head" title="สรุปภาพรวม">
         <OmStat label="ไซต์ในสัญญาบริการ" value={roll.total} color="var(--text-1)"
           hint={roll.kwSites ? roll.kw.toFixed(1) + " kW (เฉพาะไซต์ที่มีข้อมูลขนาดระบบ)" : ""} />
         <OmStat label="ใกล้หมดประกัน" value={roll.warnSoon} color="#F59E0B"
@@ -1028,7 +1082,7 @@ function OmView({ jobs, users, role, currentUser, focus }) {
           on={tab === "visit"} onClick={() => setTab("visit")} />
         <OmStat label="โควตาล้างฟรีคงเหลือ" value={roll.freeLeft} color="#0EA5E9"
           hint={"รวมทุกไซต์ที่อยู่ในรอบล้าง" + (roll.active !== roll.total ? " · ไซต์ที่ยังใช้งาน " + roll.active + "/" + roll.total : "")} />
-      </div>
+      </OmStatRow>
 
       {/* สลับมุมมอง — รายการไซต์คือทะเบียน · ปฏิทินคือคิวงานที่ต้องออกไปทำ */}
       <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
@@ -1193,6 +1247,6 @@ function OmView({ jobs, users, role, currentUser, focus }) {
   );
 }
 
-Object.assign(window, { OM_INPUT, OmPill, OmStat, OmWarrantyBar, OmWarrantyTable,
+Object.assign(window, { OM_INPUT, OmPill, OmStat, OmStatRow, OmWarrantyBar, OmWarrantyTable,
   OmCleanVisits, OmCleanView, OmSiteModal, OmView, OmJobButton, omExportXlsx,
   OM_SITE_TYPE, OM_SITE_TYPE_BY, omSiteType, omSiteTypeTH });

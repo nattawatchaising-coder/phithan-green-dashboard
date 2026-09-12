@@ -93,6 +93,110 @@ function OmStat({
     }
   }, hint));
 }
+function OmStatRow({
+  id,
+  title,
+  children
+}) {
+  const key = "om-fold-" + id;
+  const [open, setOpen] = React.useState(() => {
+    try {
+      return localStorage.getItem(key) !== "0";
+    } catch (e) {
+      return true;
+    }
+  });
+  const toggle = () => setOpen(o => {
+    const n = !o;
+    try {
+      localStorage.setItem(key, n ? "1" : "0");
+    } catch (e) {}
+    return n;
+  });
+  const kids = React.Children.toArray(children).filter(Boolean);
+  const hot = kids.filter(c => c && c.props && +c.props.value > 0);
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: open ? 9 : 0
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("button", {
+    type: "button",
+    onClick: toggle,
+    title: open ? "พับเก็บแถบสรุป" : "กางแถบสรุป",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "3px 9px 3px 5px",
+      borderRadius: 99,
+      border: "1px solid var(--border)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "chevronDown",
+    size: 14,
+    color: "var(--text-3)",
+    style: {
+      transform: open ? "none" : "rotate(-90deg)",
+      transition: "transform .18s"
+    }
+  }), title || "สรุป"), !open && (hot.length ? hot.map((c, i) => {
+    const p = c.props;
+    return React.createElement("button", {
+      key: i,
+      type: "button",
+      onClick: p.onClick,
+      disabled: !p.onClick,
+      title: p.hint || p.label,
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "3px 10px",
+        borderRadius: 99,
+        border: "1px solid " + (p.on ? p.color || "var(--primary)" : "var(--border)"),
+        background: p.on ? (p.color || "var(--primary)") + "16" : "var(--surface2)",
+        cursor: p.onClick ? "pointer" : "default",
+        fontFamily: "inherit",
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: "var(--text-2)"
+      }
+    }, p.label, React.createElement("span", {
+      style: {
+        fontFamily: "var(--mono)",
+        fontSize: 11.5,
+        fontWeight: 800,
+        color: p.color
+      }
+    }, p.value));
+  }) : React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E04\u0E49\u0E32\u0E07"))), open && React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 10,
+      flexWrap: "wrap"
+    }
+  }, children));
+}
 function OmWarrantyBar({
   w
 }) {
@@ -2354,12 +2458,9 @@ function OmView({
       fontWeight: 800,
       color: kind === k ? c : "var(--text-3)"
     }
-  }, kindCount[k])))), React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 10,
-      flexWrap: "wrap"
-    }
+  }, kindCount[k])))), React.createElement(OmStatRow, {
+    id: "om-head",
+    title: "\u0E2A\u0E23\u0E38\u0E1B\u0E20\u0E32\u0E1E\u0E23\u0E27\u0E21"
   }, React.createElement(OmStat, {
     label: "\u0E44\u0E0B\u0E15\u0E4C\u0E43\u0E19\u0E2A\u0E31\u0E0D\u0E0D\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23",
     value: roll.total,
@@ -2743,6 +2844,7 @@ Object.assign(window, {
   OM_INPUT,
   OmPill,
   OmStat,
+  OmStatRow,
   OmWarrantyBar,
   OmWarrantyTable,
   OmCleanVisits,

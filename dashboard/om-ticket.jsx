@@ -586,13 +586,13 @@ function OmTicketBoard({ sites, jobById, users, ticketStore, visitStore, role, c
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+      <window.OmStatRow id="om-ticket" title="สรุปใบแจ้งซ่อม">
         <window.OmStat label="เรื่องที่ยังไม่ปิด" value={roll.open} color="var(--text-1)"
           hint={roll.newly ? "แจ้งใหม่ยังไม่ได้ดู " + roll.newly : ""} />
         <window.OmStat label="เกินกำหนดปิดเคส" value={roll.overdue} color="#EF4444" />
         <window.OmStat label="ระบบดับทั้งหมด" value={roll.down} color="#EF4444" />
         <window.OmStat label="ปิดไปแล้ว" value={roll.closed} color="#10B981" />
-      </div>
+      </window.OmStatRow>
 
       {/* เปิดเรื่องใหม่ต้องเลือกไซต์ก่อนเสมอ — ใบแจ้งซ่อมที่ไม่ผูกไซต์ตรวจประกันไม่ได้ */}
       {canWrite && (
