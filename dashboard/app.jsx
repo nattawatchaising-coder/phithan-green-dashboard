@@ -184,23 +184,6 @@ function App() {
   });
   const toggleAurora = React.useCallback(() => setAurora((d) => { const n = !d; localStorage.setItem("pg-aurora", n ? "1" : "0"); return n; }), []);
 
-  /* ── ย่อ/ขยายทั้งหน้าจอ ──
-     จอกว้างอยากเห็นข้อมูลพร้อมกันมากขึ้น จอแคบ/คนสายตายาวอยากให้ตัวหนังสือใหญ่ขึ้น
-     ใช้ zoom ที่ราก ไม่ใช่ transform:scale เพราะ zoom เปลี่ยนความกว้างจริงของหน้า
-     ตารางกับเลย์เอาต์จึงจัดใหม่ตามพื้นที่ที่เหลือ ไม่ใช่ถูกยืดจนเบลอ
-     (พิมพ์เอกสารไม่กระทบ — index.html สั่ง zoom:1 ในโหมดพิมพ์ไว้แล้ว) */
-  const [zoom, setZoom] = React.useState(() => {
-    const n = +localStorage.getItem("pg-zoom");
-    return ZOOM_STEPS.indexOf(n) >= 0 ? n : 100;
-  });
-  React.useEffect(() => {
-    try { localStorage.setItem("pg-zoom", String(zoom)); } catch (e) { /* โหมดส่วนตัวของเบราว์เซอร์เขียนไม่ได้ */ }
-    document.documentElement.style.zoom = zoom === 100 ? "" : (zoom / 100);
-  }, [zoom]);
-  const stepZoom = React.useCallback((dir) => setZoom((z) => {
-    const i = ZOOM_STEPS.indexOf(z);
-    return ZOOM_STEPS[Math.max(0, Math.min(ZOOM_STEPS.length - 1, (i < 0 ? ZOOM_STEPS.indexOf(100) : i) + dir))];
-  }), []);
   // ย่อ/ขยายแถบเมนูด้านข้าง (เดสก์ท็อป) — จำค่าใน localStorage
   const [collapsed, setCollapsed] = React.useState(() => {
     const s = localStorage.getItem("pg-sidebar");
@@ -662,7 +645,6 @@ function App() {
         currentUser={auth.current} onLogout={auth.logout}
         canManageUsers={can(role, "manageUsers")} onManageUsers={() => { setUserMgr(true); closeSidebar(); }}
         onManageTechs={() => { setTechMgr(true); closeSidebar(); }}
-        zoom={zoom} onZoom={stepZoom} onZoomReset={() => setZoom(100)}
         onMySign={() => { setMySign(true); closeSidebar(); }} />
       <main className="app-main">
         {view === "stock" ? (
@@ -873,9 +855,7 @@ function App() {
   );
 }
 
-const ZOOM_STEPS = [80, 90, 100, 110, 125, 150];
-
-function Sidebar({ view, onNav, role, techId, jobs, stock, t, open, onClose, aurora, onToggleAurora, collapsed, onToggleCollapsed, currentUser, onLogout, canManageUsers, onManageUsers, onManageTechs, onMySign, zoom, onZoom, onZoomReset }) {
+function Sidebar({ view, onNav, role, techId, jobs, stock, t, open, onClose, aurora, onToggleAurora, collapsed, onToggleCollapsed, currentUser, onLogout, canManageUsers, onManageUsers, onManageTechs, onMySign }) {
   // Read media query synchronously every render — avoids stale state when
   // the preview or device loads at one size then displays at another.
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -947,35 +927,6 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, open, onClose, aur
             <Icon name="wrench" size={19} color="var(--text-2)" />
             {!icons && <span>ทีมช่าง</span>}
           </button>
-        )}
-
-        {/* ย่อ/ขยายหน้าจอ — กดค้างที่ตัวเลขเพื่อกลับ 100% */}
-        {onZoom && (
-          icons ? (
-            <button onClick={() => onZoom(1)} onContextMenu={(e) => { e.preventDefault(); onZoomReset(); }}
-              className="nav-item" title={"ขนาดหน้าจอ " + zoom + "% (คลิกขวา = 100%)"} style={{ width: "100%" }}>
-              <Icon name="search" size={18} color="var(--text-2)" />
-            </button>
-          ) : (
-            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 8px" }}>
-              <Icon name="search" size={17} color="var(--text-2)" />
-              <span style={{ fontSize: 13, color: "var(--text-2)", flex: 1 }}>ขนาดหน้าจอ</span>
-              <button onClick={() => onZoom(-1)} disabled={zoom <= ZOOM_STEPS[0]} title="ย่อ"
-                style={{ width: 26, height: 26, borderRadius: 8, border: "1px solid var(--border-strong)",
-                  background: "var(--surface)", cursor: zoom <= ZOOM_STEPS[0] ? "default" : "pointer",
-                  opacity: zoom <= ZOOM_STEPS[0] ? 0.45 : 1, fontFamily: "inherit", fontSize: 15, fontWeight: 700,
-                  color: "var(--text-2)", lineHeight: 1, padding: 0 }}>−</button>
-              <button onClick={onZoomReset} title="กลับเป็นขนาดปกติ"
-                style={{ minWidth: 44, padding: "4px 4px", borderRadius: 8, border: "none", background: "transparent",
-                  cursor: "pointer", fontFamily: "var(--mono)", fontSize: 12, fontWeight: 700,
-                  color: zoom === 100 ? "var(--text-3)" : "var(--primary-dark)" }}>{zoom}%</button>
-              <button onClick={() => onZoom(1)} disabled={zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]} title="ขยาย"
-                style={{ width: 26, height: 26, borderRadius: 8, border: "1px solid var(--border-strong)",
-                  background: "var(--surface)", cursor: zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1] ? "default" : "pointer",
-                  opacity: zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1] ? 0.45 : 1, fontFamily: "inherit", fontSize: 15,
-                  fontWeight: 700, color: "var(--text-2)", lineHeight: 1, padding: 0 }}>+</button>
-            </div>
-          )
         )}
 
         {/* กดที่ชื่อตัวเอง = โปรไฟล์ของฉัน (รูป · ข้อมูลติดต่อ · ลายเซ็น) — ทุกตำแหน่งแก้ของตัวเองได้ */}
