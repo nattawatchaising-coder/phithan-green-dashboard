@@ -249,6 +249,20 @@ function App() {
     localStorage.setItem("pg-aurora", n ? "1" : "0");
     return n;
   }), []);
+  const [zoom, setZoom] = React.useState(() => {
+    const n = +localStorage.getItem("pg-zoom");
+    return ZOOM_STEPS.indexOf(n) >= 0 ? n : 100;
+  });
+  React.useEffect(() => {
+    try {
+      localStorage.setItem("pg-zoom", String(zoom));
+    } catch (e) {}
+    document.documentElement.style.zoom = zoom === 100 ? "" : zoom / 100;
+  }, [zoom]);
+  const stepZoom = React.useCallback(dir => setZoom(z => {
+    const i = ZOOM_STEPS.indexOf(z);
+    return ZOOM_STEPS[Math.max(0, Math.min(ZOOM_STEPS.length - 1, (i < 0 ? ZOOM_STEPS.indexOf(100) : i) + dir))];
+  }), []);
   const [collapsed, setCollapsed] = React.useState(() => {
     const s = localStorage.getItem("pg-sidebar");
     return s == null ? TWEAK_DEFAULTS.sidebar === "icons" : s === "1";
@@ -890,6 +904,13 @@ function App() {
       setUserMgr(true);
       closeSidebar();
     },
+    onManageTechs: () => {
+      setTechMgr(true);
+      closeSidebar();
+    },
+    zoom: zoom,
+    onZoom: stepZoom,
+    onZoomReset: () => setZoom(100),
     onMySign: () => {
       setMySign(true);
       closeSidebar();
@@ -1324,6 +1345,7 @@ function App() {
     onChange: v => setTweak("cardStyle", v)
   })), React.createElement(ConfirmHost, null));
 }
+const ZOOM_STEPS = [80, 90, 100, 110, 125, 150];
 function Sidebar({
   view,
   onNav,
@@ -1342,7 +1364,11 @@ function Sidebar({
   onLogout,
   canManageUsers,
   onManageUsers,
-  onMySign
+  onManageTechs,
+  onMySign,
+  zoom,
+  onZoom,
+  onZoomReset
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const icons = !isMobile && collapsed;
@@ -1446,7 +1472,103 @@ function Sidebar({
     name: "users",
     size: 19,
     color: "var(--text-2)"
-  }), !icons && React.createElement("span", null, "\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19")), currentUser && React.createElement("button", {
+  }), !icons && React.createElement("span", null, "\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19")), canManageUsers && onManageTechs && React.createElement("button", {
+    onClick: onManageTechs,
+    className: "nav-item",
+    title: "\u0E17\u0E35\u0E21\u0E0A\u0E48\u0E32\u0E07\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A",
+    style: {
+      width: "100%"
+    }
+  }, React.createElement(Icon, {
+    name: "wrench",
+    size: 19,
+    color: "var(--text-2)"
+  }), !icons && React.createElement("span", null, "\u0E17\u0E35\u0E21\u0E0A\u0E48\u0E32\u0E07")), onZoom && (icons ? React.createElement("button", {
+    onClick: () => onZoom(1),
+    onContextMenu: e => {
+      e.preventDefault();
+      onZoomReset();
+    },
+    className: "nav-item",
+    title: "ขนาดหน้าจอ " + zoom + "% (คลิกขวา = 100%)",
+    style: {
+      width: "100%"
+    }
+  }, React.createElement(Icon, {
+    name: "search",
+    size: 18,
+    color: "var(--text-2)"
+  })) : React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "6px 8px"
+    }
+  }, React.createElement(Icon, {
+    name: "search",
+    size: 17,
+    color: "var(--text-2)"
+  }), React.createElement("span", {
+    style: {
+      fontSize: 13,
+      color: "var(--text-2)",
+      flex: 1
+    }
+  }, "\u0E02\u0E19\u0E32\u0E14\u0E2B\u0E19\u0E49\u0E32\u0E08\u0E2D"), React.createElement("button", {
+    onClick: () => onZoom(-1),
+    disabled: zoom <= ZOOM_STEPS[0],
+    title: "\u0E22\u0E48\u0E2D",
+    style: {
+      width: 26,
+      height: 26,
+      borderRadius: 8,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: zoom <= ZOOM_STEPS[0] ? "default" : "pointer",
+      opacity: zoom <= ZOOM_STEPS[0] ? 0.45 : 1,
+      fontFamily: "inherit",
+      fontSize: 15,
+      fontWeight: 700,
+      color: "var(--text-2)",
+      lineHeight: 1,
+      padding: 0
+    }
+  }, "\u2212"), React.createElement("button", {
+    onClick: onZoomReset,
+    title: "\u0E01\u0E25\u0E31\u0E1A\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E19\u0E32\u0E14\u0E1B\u0E01\u0E15\u0E34",
+    style: {
+      minWidth: 44,
+      padding: "4px 4px",
+      borderRadius: 8,
+      border: "none",
+      background: "transparent",
+      cursor: "pointer",
+      fontFamily: "var(--mono)",
+      fontSize: 12,
+      fontWeight: 700,
+      color: zoom === 100 ? "var(--text-3)" : "var(--primary-dark)"
+    }
+  }, zoom, "%"), React.createElement("button", {
+    onClick: () => onZoom(1),
+    disabled: zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1],
+    title: "\u0E02\u0E22\u0E32\u0E22",
+    style: {
+      width: 26,
+      height: 26,
+      borderRadius: 8,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1] ? "default" : "pointer",
+      opacity: zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1] ? 0.45 : 1,
+      fontFamily: "inherit",
+      fontSize: 15,
+      fontWeight: 700,
+      color: "var(--text-2)",
+      lineHeight: 1,
+      padding: 0
+    }
+  }, "+"))), currentUser && React.createElement("button", {
     onClick: onMySign,
     title: "\u0E42\u0E1B\u0E23\u0E44\u0E1F\u0E25\u0E4C\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19",
     disabled: !onMySign,
