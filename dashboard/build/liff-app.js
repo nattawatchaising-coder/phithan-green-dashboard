@@ -27,6 +27,44 @@ const LN_TAB = [{
   th: "ฉัน",
   icon: "user"
 }];
+const LN_NOTIF_KIND = {
+  assign: {
+    th: "งานติดตั้ง",
+    icon: "wrench",
+    color: "#1B9B75"
+  },
+  om: {
+    th: "งานซ่อม",
+    icon: "alert",
+    color: "#F59E0B"
+  },
+  ot: {
+    th: "โอที",
+    icon: "clock",
+    color: "#6366F1"
+  },
+  daily: {
+    th: "รายงาน",
+    icon: "pen",
+    color: "#0EA5E9"
+  },
+  expense: {
+    th: "เบิกเงิน",
+    icon: "wallet",
+    color: "#8B5CF6"
+  },
+  permit: {
+    th: "ขออนุญาต",
+    icon: "file",
+    color: "#64748B"
+  }
+};
+const LN_NOTIF_ANY = {
+  th: "แจ้งเตือน",
+  icon: "bell",
+  color: "#94A3B8"
+};
+const lnNotifKind = n => LN_NOTIF_KIND[(n || {}).type] || LN_NOTIF_ANY;
 const LN_START = (() => {
   let t = "";
   try {
@@ -476,7 +514,7 @@ function LnClock({
   const [busy, setBusy] = React.useState(false);
   const [msg, setMsg] = React.useState(null);
   const [jobId, setJobId] = React.useState("");
-  const [place, setPlace] = React.useState("site");
+  const [place, setPlace] = React.useState("office");
   const [jobType, setJobType] = React.useState("all");
   const [nowHM, setNowHM] = React.useState(window.tmNowHM);
   React.useEffect(() => {
@@ -825,7 +863,7 @@ function LnClock({
       lineHeight: 1.7,
       textAlign: "center"
     }
-  }, "\u0E23\u0E30\u0E1A\u0E1A\u0E02\u0E2D\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E15\u0E2D\u0E19\u0E01\u0E14 \u2014 \u0E16\u0E49\u0E32\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E01\u0E47\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E43\u0E2B\u0E49\u0E15\u0E32\u0E21\u0E1B\u0E01\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E44\u0E27\u0E49\u0E27\u0E48\u0E32\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14", React.createElement("br", null), "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E17\u0E35\u0E48\u0E04\u0E38\u0E13\u0E41\u0E08\u0E49\u0E07\u0E40\u0E2D\u0E07 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E15\u0E23\u0E27\u0E08\u0E23\u0E30\u0E22\u0E30\u0E17\u0E32\u0E07"), (at.rows || []).length > 0 && React.createElement("div", {
+  }, "\u0E23\u0E30\u0E1A\u0E1A\u0E02\u0E2D\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E15\u0E2D\u0E19\u0E01\u0E14 \u2014 \u0E16\u0E49\u0E32\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E01\u0E47\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E43\u0E2B\u0E49\u0E15\u0E32\u0E21\u0E1B\u0E01\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E44\u0E27\u0E49\u0E27\u0E48\u0E32\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14", place === "site" && React.createElement(React.Fragment, null, React.createElement("br", null), "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E17\u0E35\u0E48\u0E04\u0E38\u0E13\u0E41\u0E08\u0E49\u0E07\u0E40\u0E2D\u0E07 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E15\u0E23\u0E27\u0E08\u0E23\u0E30\u0E22\u0E30\u0E17\u0E32\u0E07")), (at.rows || []).length > 0 && React.createElement("div", {
     style: {
       marginTop: 18
     }
@@ -2152,42 +2190,94 @@ function LnApp() {
       color: "var(--text-3)",
       fontSize: 13.5
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E41\u0E08\u0E49\u0E07\u0E40\u0E15\u0E37\u0E2D\u0E19") : myNotifs.map(n => React.createElement("div", {
-    key: n.id,
-    onClick: () => {
-      if (!n.read) notif.markRead(n.id);
-      const j = (store.jobs || []).find(x => x.id === n.jobId);
-      if (j) {
-        setOpen(j);
-        setTab("jobs");
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E41\u0E08\u0E49\u0E07\u0E40\u0E15\u0E37\u0E2D\u0E19") : myNotifs.map(n => {
+    const k = lnNotifKind(n);
+    return React.createElement("div", {
+      key: n.id,
+      onClick: () => {
+        if (!n.read) notif.markRead(n.id);
+        if (n.type === "om") {
+          setTab("fix");
+          return;
+        }
+        const j = (store.jobs || []).find(x => x.id === n.jobId);
+        if (j) {
+          setOpen(j);
+          setTab("jobs");
+        }
+      },
+      style: {
+        display: "flex",
+        gap: 11,
+        padding: "13px 16px",
+        cursor: "pointer",
+        borderBottom: "1px solid var(--border)",
+        borderLeft: "3px solid " + (n.read ? "transparent" : k.color),
+        background: n.read ? "var(--surface)" : k.color + "12"
       }
-    },
-    style: {
-      padding: "13px 16px",
-      borderBottom: "1px solid var(--border)",
-      cursor: "pointer",
-      background: n.read ? "var(--surface)" : "var(--primary-soft)"
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 700,
-      color: "var(--text-1)"
-    }
-  }, n.title || "แจ้งเตือน"), n.body && React.createElement("div", {
-    style: {
-      marginTop: 3,
-      fontSize: 12.5,
-      color: "var(--text-2)",
-      lineHeight: 1.5
-    }
-  }, n.body), React.createElement("div", {
-    style: {
-      marginTop: 4,
-      fontSize: 11,
-      color: "var(--text-3)"
-    }
-  }, n.at ? window.drShort(String(n.at).slice(0, 10)) + " " + String(n.at).slice(11, 16) : "")))), tab === "me" && React.createElement("div", {
+    }, React.createElement("div", {
+      style: {
+        flexShrink: 0,
+        width: 32,
+        height: 32,
+        borderRadius: 99,
+        display: "grid",
+        placeItems: "center",
+        background: k.color + "1F"
+      }
+    }, React.createElement(Icon, {
+      name: k.icon,
+      size: 16,
+      color: k.color
+    })), React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("div", {
+      style: {
+        fontSize: 14,
+        fontWeight: 700,
+        color: "var(--text-1)"
+      }
+    }, n.title || "แจ้งเตือน"), n.body && React.createElement("div", {
+      style: {
+        marginTop: 3,
+        fontSize: 12.5,
+        color: "var(--text-2)",
+        lineHeight: 1.5
+      }
+    }, n.body), React.createElement("div", {
+      style: {
+        marginTop: 5,
+        display: "flex",
+        alignItems: "center",
+        gap: 7
+      }
+    }, React.createElement("span", {
+      style: {
+        padding: "2px 8px",
+        borderRadius: 99,
+        background: k.color + "1A",
+        color: k.color,
+        fontSize: 10.5,
+        fontWeight: 800
+      }
+    }, k.th), React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: "var(--text-3)"
+      }
+    }, n.at ? window.drShort(String(n.at).slice(0, 10)) + " " + String(n.at).slice(11, 16) : ""), !n.read && React.createElement("span", {
+      style: {
+        marginLeft: "auto",
+        width: 8,
+        height: 8,
+        borderRadius: 99,
+        background: k.color
+      }
+    }))));
+  })), tab === "me" && React.createElement("div", {
     style: {
       padding: 18
     }
@@ -2251,6 +2341,8 @@ function LnApp() {
   }));
 }
 Object.assign(window, {
+  LN_NOTIF_KIND,
+  lnNotifKind,
   LnApp,
   LnJobRow,
   LnJobSheet,

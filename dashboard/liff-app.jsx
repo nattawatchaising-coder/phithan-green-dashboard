@@ -26,6 +26,25 @@ const LN_TAB = [
   { key: "me",    th: "ฉัน",     icon: "user" },
 ];
 
+/* ── แจ้งเตือนแต่ละเรื่องมีสีและไอคอนของตัวเอง ──
+   รายการแจ้งเตือนที่เป็นตัวหนังสือสีเดียวกันทั้งหน้า ต้องอ่านทุกบรรทัดถึงจะรู้ว่าเรื่องอะไร
+   ทั้งที่ 90% ของการเปิดดูคือกวาดตาหาว่า "มีอะไรที่ต้องรีบไหม"
+   สี+ไอคอนใช้ชุดเดียวกับแท็บที่เรื่องนั้นอยู่ เห็นไอคอนประแจ = เรื่องงานติดตั้ง
+   จะได้ไม่ต้องจำรหัสสีชุดใหม่ และกดต่อได้ถูกที่
+
+   ⚠ คีย์ต้องตรงกับ n.type ที่ฝั่งคนสร้างแจ้งเตือนเขียนลงไป (addNotif · omNotify · ecNotify · tmNotify)
+     type ที่ไม่รู้จักตกมาที่ค่าปริยาย ไม่ใช่หายไปจากรายการ */
+const LN_NOTIF_KIND = {
+  assign:  { th: "งานติดตั้ง",  icon: "wrench", color: "#1B9B75" },
+  om:      { th: "งานซ่อม",    icon: "alert",  color: "#F59E0B" },
+  ot:      { th: "โอที",       icon: "clock",  color: "#6366F1" },
+  daily:   { th: "รายงาน",     icon: "pen",    color: "#0EA5E9" },
+  expense: { th: "เบิกเงิน",    icon: "wallet", color: "#8B5CF6" },
+  permit:  { th: "ขออนุญาต",   icon: "file",   color: "#64748B" },
+};
+const LN_NOTIF_ANY = { th: "แจ้งเตือน", icon: "bell", color: "#94A3B8" };
+const lnNotifKind = (n) => LN_NOTIF_KIND[(n || {}).type] || LN_NOTIF_ANY;
+
 /* ปุ่มบนเมนูล่างของ LINE ส่ง ?tab= ติดมากับ URL ของหน้า LIFF
    (LIFF ต่อ query ที่ผู้ใช้กดเข้ากับ endpoint ให้เอง)
    ช่างกด "ลงเวลา" แล้วต้องเจอหน้าลงเวลา ไม่ใช่มาเจอหน้างานแล้วต้องหาแท็บเอง
@@ -248,7 +267,10 @@ function LnClock({ me, cfg, jobs, onAskOt }) {
   const [busy, setBusy] = React.useState(false);
   const [msg, setMsg] = React.useState(null);
   const [jobId, setJobId] = React.useState("");
-  const [place, setPlace] = React.useState("site");
+  /* ตั้งต้นที่ "ออฟฟิศ" เพราะวันปกติเริ่มที่ออฟฟิศก่อนแล้วค่อยออกไซต์
+     ค่าตั้งต้นที่ตรงกับสิ่งที่เกิดบ่อยที่สุด = คนส่วนใหญ่กดปุ่มเดียวจบ
+     (ถ้าวันนี้ลงเวลาไปแล้ว useEffect ข้างล่างจะทับด้วยค่าที่บันทึกไว้จริง) */
+  const [place, setPlace] = React.useState("office");
   /* งานบ้านกับงานโครงการปนกันอยู่ในช่องเดียว ช่างหนึ่งคนมักทำอย่างเดียวทั้งสัปดาห์
      กรองก่อนแล้วรายการสั้นลงจนหาด้วยตาได้ — บนมือถือกลางแดดที่ไซต์ รายการยาวเลื่อนหายากกว่าที่คิด */
   const [jobType, setJobType] = React.useState("all");
@@ -486,7 +508,9 @@ function LnClock({ me, cfg, jobs, onAskOt }) {
           และต้องไม่เข้าใจผิดว่าระบบตรวจว่าอยู่หน้างานจริงหรือไม่ (ยังไม่มีพิกัดไซต์ที่เชื่อถือได้) */}
       <div style={{ marginTop: 10, fontSize: 11, color: "var(--text-3)", lineHeight: 1.7, textAlign: "center" }}>
         ระบบขอพิกัดตอนกด — ถ้าไม่ได้ ก็ลงเวลาให้ตามปกติแล้วบันทึกไว้ว่าไม่มีพิกัด
-        <br />งานที่เลือกเป็นข้อมูลที่คุณแจ้งเอง ระบบไม่ได้ตรวจระยะทาง
+        {/* บรรทัดเรื่อง "งานที่เลือก" ขึ้นเฉพาะตอนอยู่โหมดหน้างาน
+            โหมดออฟฟิศไม่มีช่องเลือกงานให้กรอก คำเตือนเรื่องงานจึงเป็นตัวหนังสือที่ไม่มีที่อ้างถึง */}
+        {place === "site" && <React.Fragment><br />งานที่เลือกเป็นข้อมูลที่คุณแจ้งเอง ระบบไม่ได้ตรวจระยะทาง</React.Fragment>}
       </div>
 
       {(at.rows || []).length > 0 && (
@@ -1225,21 +1249,42 @@ function LnApp() {
       {tab === "bell" && (
         myNotifs.length === 0
           ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>ยังไม่มีแจ้งเตือน</div>
-          : myNotifs.map((n) => (
-              <div key={n.id} onClick={() => {
-                  if (!n.read) notif.markRead(n.id);
-                  const j = (store.jobs || []).find((x) => x.id === n.jobId);
-                  if (j) { setOpen(j); setTab("jobs"); }
-                }}
-                style={{ padding: "13px 16px", borderBottom: "1px solid var(--border)", cursor: "pointer",
-                  background: n.read ? "var(--surface)" : "var(--primary-soft)" }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{n.title || "แจ้งเตือน"}</div>
-                {n.body && <div style={{ marginTop: 3, fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.5 }}>{n.body}</div>}
-                <div style={{ marginTop: 4, fontSize: 11, color: "var(--text-3)" }}>
-                  {n.at ? window.drShort(String(n.at).slice(0, 10)) + " " + String(n.at).slice(11, 16) : ""}
+          : myNotifs.map((n) => {
+              const k = lnNotifKind(n);
+              return (
+                <div key={n.id} onClick={() => {
+                    if (!n.read) notif.markRead(n.id);
+                    /* เรื่องซ่อมพาไปแท็บซ่อม เรื่องงานพาไปใบงาน — แจ้งเตือนที่กดแล้วไม่ไปไหน
+                       คือแจ้งเตือนที่อ่านแล้วต้องไปหาเองอยู่ดี */
+                    if (n.type === "om") { setTab("fix"); return; }
+                    const j = (store.jobs || []).find((x) => x.id === n.jobId);
+                    if (j) { setOpen(j); setTab("jobs"); }
+                  }}
+                  style={{ display: "flex", gap: 11, padding: "13px 16px", cursor: "pointer",
+                    borderBottom: "1px solid var(--border)",
+                    /* ยังไม่อ่าน = พื้นอ่อน ๆ สีของเรื่องนั้น + ขีดข้างซ้าย
+                       อ่านแล้วเหลือแค่ไอคอนสี เพื่อให้ "ยังไม่อ่าน" ยังเด่นกว่า "แยกเรื่อง" */
+                    borderLeft: "3px solid " + (n.read ? "transparent" : k.color),
+                    background: n.read ? "var(--surface)" : k.color + "12" }}>
+                  <div style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 99, display: "grid",
+                    placeItems: "center", background: k.color + "1F" }}>
+                    <Icon name={k.icon} size={16} color={k.color} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{n.title || "แจ้งเตือน"}</div>
+                    {n.body && <div style={{ marginTop: 3, fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.5 }}>{n.body}</div>}
+                    <div style={{ marginTop: 5, display: "flex", alignItems: "center", gap: 7 }}>
+                      <span style={{ padding: "2px 8px", borderRadius: 99, background: k.color + "1A",
+                        color: k.color, fontSize: 10.5, fontWeight: 800 }}>{k.th}</span>
+                      <span style={{ fontSize: 11, color: "var(--text-3)" }}>
+                        {n.at ? window.drShort(String(n.at).slice(0, 10)) + " " + String(n.at).slice(11, 16) : ""}
+                      </span>
+                      {!n.read && <span style={{ marginLeft: "auto", width: 8, height: 8, borderRadius: 99, background: k.color }} />}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
       )}
 
       {tab === "me" && (
@@ -1271,4 +1316,4 @@ function LnApp() {
   );
 }
 
-Object.assign(window, { LnApp, LnJobRow, LnJobSheet, LnJobFiles, LnHead, LnClock, LnOtForm, LnTimeTab, LnFixTab, LnFixSheet, LnFixNew, LnPick });
+Object.assign(window, { LN_NOTIF_KIND, lnNotifKind, LnApp, LnJobRow, LnJobSheet, LnJobFiles, LnHead, LnClock, LnOtForm, LnTimeTab, LnFixTab, LnFixSheet, LnFixNew, LnPick });
