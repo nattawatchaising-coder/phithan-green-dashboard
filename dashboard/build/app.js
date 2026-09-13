@@ -75,6 +75,20 @@ const NAV = [{
   icon: "pen",
   perm: "editJob",
   foot: true
+}, {
+  key: "attend",
+  th: "เวลาทำงาน",
+  en: "Attendance",
+  icon: "clock",
+  perm: "attend",
+  foot: true
+}, {
+  key: "line",
+  th: "แจ้งเตือน LINE",
+  en: "LINE",
+  icon: "message",
+  perm: "manageUsers",
+  foot: true
 }];
 const NAV_BADGE_TONE = {
   stock: "warn",
@@ -1132,6 +1146,13 @@ function App() {
     role: role,
     currentUser: auth.current,
     focus: ecFocus
+  }), view === "attend" && React.createElement(window.AttendView, {
+    jobs: jobs,
+    users: auth.users,
+    role: role,
+    currentUser: auth.current
+  }), view === "line" && React.createElement(window.LineAdminView, {
+    users: auth.users
   }), view === "report" && React.createElement(ReportView, {
     jobs: filtered,
     onOpen: openJob

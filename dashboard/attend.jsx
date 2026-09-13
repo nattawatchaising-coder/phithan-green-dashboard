@@ -1,0 +1,501 @@
+/* ============================================================
+   flash+solar — ลงเวลาเข้า-ออกงาน และขอ OT (Attendance & Overtime)
+
+   ก่อนหน้านี้ระบบไม่มีอะไรเกี่ยวกับเวลาทำงานเลยสักอย่าง ทุกอย่างอยู่ในแชทและกระดาษ
+   ไฟล์นี้เป็นตรรกะล้วนกับ hooks — หน้าจอเดสก์ท็อปอยู่ที่ views-attend.jsx
+   หน้าจอมือถืออยู่ใน liff-app.jsx
+
+   ── กฎที่ไม่มีข้อยกเว้น: การลงเวลา "ห้ามบล็อก" ──
+   จับพิกัดไม่ได้ · ปิดสิทธิ์ตำแหน่ง · อยู่ใต้ดินไม่มีสัญญาณ — ลงเวลาได้หมด
+   ระบบเก็บไว้แค่ว่า "ใบนี้ไม่มีพิกัดเพราะอะไร" แล้วให้ออฟฟิศเห็นธงนั้น
+   เหตุผล: ถ้าบล็อก ช่างจะเลิกใช้แล้วกลับไปแจ้งเวลาทางแชทเหมือนเดิม ระบบก็ตายทันที
+
+   ── jobId บนใบลงเวลาคือ "คำบอกของช่าง" ไม่ใช่ข้อเท็จจริงที่ตรวจแล้ว ──
+   ระบบนี้ยังไม่มีพิกัดไซต์ที่เชื่อถือได้ (job.gps เป็นค่าสุ่ม · หมุดบนปฏิทินปั้นจาก
+   ชื่อจังหวัด + แฮชรหัสงาน) จึงเทียบระยะไม่ได้ และ **ห้ามสร้างอะไรที่บอกเป็นนัยว่าตรวจระยะได้**
+   พิกัดที่เก็บทุกวันนี่แหละที่จะค่อย ๆ กลายเป็นพิกัดไซต์จริงในอนาคต
+
+   ── โครงข้อมูล ──
+     attend/{userId}/{YYYY-MM-DD}  ใบลงเวลาของคนหนึ่งในวันหนึ่ง (คีย์ซ้ำ = กดซ้ำไม่พัง)
+     attendDay/{YYYY-MM-DD}/{userId}  ดัชนีเบา ให้ออฟฟิศเปิดแผ่นรายวันโดยไม่ลากประวัติทั้งบริษัท
+     tmOt/{id}                     ใบขอ OT (แบน เหมือน ecClaims)
+     config/workHours              เวลาทำงานมาตรฐาน
+
+   ── ปีไทย ──
+   ทุกฟังก์ชันรับ-คืนเป็น ค.ศ. (YYYY-MM-DD) เท่านั้น แปลงเป็น พ.ศ. ตอนแสดงผลด้วย drDateTH
+
+   ตั้งชื่อ top-level ขึ้นต้นด้วย tm/Tm/TM เพราะทุกไฟล์โหลดเป็นสคริปต์ธรรมดา
+   (ชื่อระดับบนสุดอยู่ scope เดียวกันหมด ชนเมื่อไหร่ = ทั้งเว็บพัง)
+   ============================================================ */
+
+/* ── โหมดทดสอบ ──
+   รับสองทาง: localStorage.tm_test_root (เดสก์ท็อป) หรือ ?test=1 (ในแอป LINE ซึ่งตั้ง
+   localStorage ไม่สะดวก) — ติดไปกับ URL จึงทำ LIFF app ตัวที่สองชี้ไปหน้าเดียวกันได้
+   ค่าปกติต้องเป็นค่าว่างเสมอ */
+const TM_ROOT = (() => {
+  try {
+    if (new URLSearchParams(location.search).get("test") === "1") return "_sandbox/";
+    return localStorage.getItem("tm_test_root") || "";
+  } catch (e) { return ""; }
+})();
+const _TMFB = () => !!window.FBDB;
+const _tmRef = (p) => window.FBDB.ref(TM_ROOT + p);
+const _tmRoot = () => window.FBDB.ref(TM_ROOT || "/");
+
+/* ================================================================
+   เวลา — ตรรกะล้วน ทดสอบได้โดยไม่ต้องมี Firebase
+   ================================================================ */
+
+/* "08:30" → 510 นาที · ค่าที่อ่านไม่ออกคืน null ไม่ใช่ 0 เพราะ 0 คือเที่ยงคืนจริง ๆ */
+function tmHM(str) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(str || "").trim());
+  if (!m) return null;
+  const h = +m[1], mi = +m[2];
+  if (h > 23 || mi > 59) return null;
+  return h * 60 + mi;
+}
+const tmHHMM = (mins) => {
+  const n = Math.max(0, Math.round(+mins || 0)) % 1440;
+  return window.drPad2(Math.floor(n / 60)) + ":" + window.drPad2(n % 60);
+};
+/* เวลาตอนนี้แบบ "เวลาบ้านเรา" — ห้ามใช้ UTC ตรงนี้ ช่างเข้างานหกโมงเช้าจะกลายเป็นวันก่อนหน้า */
+const tmNowHM = () => { const d = new Date(); return window.drPad2(d.getHours()) + ":" + window.drPad2(d.getMinutes()); };
+
+/* ช่วงเวลาข้ามเที่ยงคืนได้ — งานกลางคืนจบตีสองคือเรื่องปกติของงานติดตั้ง
+   ปลาย < ต้น จึงแปลว่าข้ามวัน ไม่ใช่กรอกผิด */
+function tmSpanMins(from, to) {
+  const a = tmHM(from), b = tmHM(to);
+  if (a == null || b == null) return 0;
+  return b >= a ? b - a : b + 1440 - a;
+}
+
+/* ชั่วโมงอ่านคน — 450 → "7 ชม. 30 น." (ไม่ใช่ 7.5 ซึ่งอ่านผิดเป็นเจ็ดโมงครึ่งได้) */
+function tmDur(mins) {
+  const n = Math.max(0, Math.round(+mins || 0));
+  const h = Math.floor(n / 60), m = n % 60;
+  if (!n) return "—";
+  return (h ? h + " ชม." : "") + (h && m ? " " : "") + (m ? m + " น." : "");
+}
+
+/* ── เวลาทำงานมาตรฐาน ──
+   days = วันในสัปดาห์ที่ถือเป็นวันทำงาน (0=อาทิตย์) · ตั้งต้นจันทร์-เสาร์ ตามที่ทีมนี้ทำจริง
+   holidays = { "2026-12-10": "วันรัฐธรรมนูญ" } — วันหยุดพิเศษที่บริษัทประกาศเอง */
+const TM_WH_DEFAULT = {
+  start: "08:00", end: "17:00", days: [1, 2, 3, 4, 5, 6],
+  lunchMins: 60, minOtMins: 30, roundMins: 30, holidays: {},
+};
+function tmWhNorm(cfg) {
+  const c = Object.assign({}, TM_WH_DEFAULT, cfg || {});
+  c.days = Array.isArray(c.days) && c.days.length ? c.days.map(Number) : TM_WH_DEFAULT.days;
+  c.lunchMins = Math.max(0, +c.lunchMins || 0);
+  c.minOtMins = Math.max(0, +c.minOtMins || 0);
+  /* roundMins = 0 แปลว่าไม่ปัด — ต้องยอมให้ตั้งได้ ไม่งั้นหารด้วยศูนย์ */
+  c.roundMins = Math.max(0, +c.roundMins || 0);
+  c.holidays = c.holidays && typeof c.holidays === "object" ? c.holidays : {};
+  if (tmHM(c.start) == null) c.start = TM_WH_DEFAULT.start;
+  if (tmHM(c.end) == null) c.end = TM_WH_DEFAULT.end;
+  return c;
+}
+const tmIsHoliday = (dateISO, cfg) => !!tmWhNorm(cfg).holidays[String(dateISO || "").slice(0, 10)];
+function tmIsWorkday(dateISO, cfg) {
+  const c = tmWhNorm(cfg);
+  if (c.holidays[String(dateISO || "").slice(0, 10)]) return false;
+  const d = new Date(String(dateISO || "").slice(0, 10) + "T00:00:00");
+  if (isNaN(d.getTime())) return true;
+  return c.days.indexOf(d.getDay()) >= 0;
+}
+
+/* ── ประเภทของ OT ──
+   แยกประเภทเพราะอัตราค่าตอบแทนต่างกันตามกฎหมายแรงงาน แต่ **ไฟล์นี้ไม่คิดเงิน**
+   ตั้งใจ: อัตราค่าแรงของแต่ละคนไม่ได้อยู่ในระบบนี้ และการเดาแทนฝ่ายบุคคลอันตรายกว่าไม่บอกเลย
+   ระบบนี้ตอบแค่ "ใครทำนอกเวลากี่นาที เมื่อไหร่ ที่ไหน และใครอนุมัติ" */
+const TM_OT_KIND = [
+  { key: "ot",      th: "ล่วงเวลาวันทำงาน", color: "#F59E0B", hint: "ทำต่อหลังเลิกงาน หรือมาก่อนเวลา" },
+  { key: "holiday", th: "ทำงานวันหยุด",     color: "#EF4444", hint: "เสาร์-อาทิตย์ หรือวันหยุดที่บริษัทประกาศ" },
+  { key: "night",   th: "งานกลางคืน",       color: "#6366F1", hint: "งานที่ต้องทำหลังพระอาทิตย์ตกถึงเช้า" },
+];
+const TM_OT_KIND_BY = {}; TM_OT_KIND.forEach((k) => { TM_OT_KIND_BY[k.key] = k; });
+const tmOtKindOf = (k) => TM_OT_KIND_BY[k] || TM_OT_KIND_BY.ot;
+
+/* เดาประเภทให้จากวันที่ — เดาเฉย ๆ ช่างแก้ทับได้เสมอ */
+function tmOtKindGuess(dateISO, from, cfg) {
+  if (!tmIsWorkday(dateISO, cfg)) return "holiday";
+  const a = tmHM(from);
+  if (a != null && (a >= 20 * 60 || a < 5 * 60)) return "night";
+  return "ot";
+}
+
+/* ── นาที OT = เวลาที่อยู่ "นอก" เวลางานมาตรฐาน ──
+   วันหยุด/วันไม่ทำงาน = นับทั้งช่วง · วันทำงาน = ตัดส่วนที่ทับเวลางานออก
+   ปัดลงเป็นช่วงละ roundMins แล้วตัดทิ้งถ้าไม่ถึง minOtMins
+   ปัด "ลง" ตั้งใจ — ปัดขึ้นทำให้บริษัทจ่ายเกินจริงทุกใบ และคนจะเริ่มยืดเวลาให้ถึงขั้นถัดไป */
+function tmOtMinutes(dateISO, from, to, cfg) {
+  const c = tmWhNorm(cfg);
+  const span = tmSpanMins(from, to);
+  if (span <= 0) return 0;
+
+  let outside = span;
+  if (tmIsWorkday(dateISO, c)) {
+    const ws = tmHM(c.start), we = tmHM(c.end);
+    const a = tmHM(from);
+    /* คิดบนแกนนาทีที่ยืดข้ามเที่ยงคืนได้ แล้วหาส่วนที่ทับกับเวลางานของวันนั้น */
+    const s = a, e = a + span;
+    const lo = Math.max(s, ws), hi = Math.min(e, we);
+    outside = span - Math.max(0, hi - lo);
+  }
+  if (c.roundMins > 0) outside = Math.floor(outside / c.roundMins) * c.roundMins;
+  return outside >= c.minOtMins ? outside : 0;
+}
+
+/* ================================================================
+   ใบลงเวลา
+   ================================================================ */
+
+/* ชั่วโมงทำงานของใบหนึ่ง — หักพักกลางวันเฉพาะช่วงที่คร่อมมันจริง ๆ
+   คนที่เข้าบ่ายโมงเลิกห้าโมงไม่ควรโดนหักข้าวเที่ยง ซึ่งเป็นบั๊กคลาสสิกของระบบลงเวลา */
+function tmWorkedMins(rec, cfg) {
+  const c = tmWhNorm(cfg);
+  const spans = [];
+  if (rec && rec.in && rec.in.hm && rec.out && rec.out.hm) spans.push([rec.in.hm, rec.out.hm]);
+  (rec && Array.isArray(rec.extra) ? rec.extra : []).forEach((x) => {
+    if (x && x.in && x.in.hm && x.out && x.out.hm) spans.push([x.in.hm, x.out.hm]);
+  });
+  let total = 0;
+  spans.forEach(([a, b]) => {
+    let m = tmSpanMins(a, b);
+    /* พักกลางวันสมมติว่าอยู่กลางช่วงเวลางาน — หักเมื่อช่วงนั้นกินเวลาเกิน 6 ชม.
+       ซึ่งแปลว่าคร่อมเที่ยงแน่ ๆ ไม่ว่าจะเริ่มกี่โมง */
+    if (c.lunchMins > 0 && m > 360) m -= c.lunchMins;
+    total += Math.max(0, m);
+  });
+  return total;
+}
+
+const tmOpen = (rec) => !!(rec && rec.in && rec.in.hm && !(rec.out && rec.out.hm));
+
+function tmAttendBlank(user, dateISO) {
+  return {
+    id: (user || {}).id + "_" + dateISO,
+    userId: (user || {}).id || null, userName: (user || {}).name || "",
+    techId: (user || {}).techId || null,
+    date: dateISO, in: null, out: null, extra: [],
+    jobId: null, jobCode: "", note: "", mins: 0,
+    src: "web", hist: [], updatedAt: new Date().toISOString(),
+  };
+}
+
+/* ปั๊มเวลาหนึ่งครั้ง — พิกัดเป็นของแถม ไม่ใช่เงื่อนไข
+   gps ที่ส่งเข้ามาคือผลจาก window.captureGps() ซึ่งคืน { err, msg } เมื่อจับไม่ได้ */
+function tmPunch(gps, src) {
+  const d = new Date();
+  const p = {
+    at: d.toISOString(),
+    hm: window.drPad2(d.getHours()) + ":" + window.drPad2(d.getMinutes()),
+    src: src || "web",
+  };
+  if (gps && !gps.err) { p.lat = gps.lat; p.lng = gps.lng; p.acc = gps.acc || 0; }
+  /* เก็บเหตุผลไว้ด้วยว่าทำไมไม่มีพิกัด — ใบที่ไม่มีพิกัด "เฉย ๆ" กับใบที่ผู้ใช้ปฏิเสธสิทธิ์
+     เป็นคนละเรื่องกันโดยสิ้นเชิงตอนออฟฟิศมาตรวจย้อนหลัง */
+  else if (gps && gps.err) { p.err = gps.err; }
+  return p;
+}
+
+/* ดัชนีเบาสำหรับแผ่นรายวัน — ตั้งใจเก็บซ้ำ เพราะหน้ารวมต้องไม่ลาก attend ทั้งต้นไม้มาอ่าน */
+const tmDayIndex = (rec, cfg) => ({
+  userId: rec.userId, name: rec.userName || "", techId: rec.techId || null,
+  in: (rec.in && rec.in.hm) || "", out: (rec.out && rec.out.hm) || "",
+  mins: tmWorkedMins(rec, cfg),
+  gps: !!(rec.in && rec.in.lat), jobCode: rec.jobCode || "",
+});
+
+/* ================================================================
+   ใบขอ OT — ลอกโครงสถานะจาก EC_STATUS (expense.jsx) ตั้งใจให้เหมือนกัน
+   คนใช้เรียนรู้ครั้งเดียวใช้ได้สองที่ และโค้ดที่เดินสถานะมีรูปแบบเดียว
+   ================================================================ */
+const TM_OT_STATUS = [
+  { key: "draft",    th: "ร่าง",        color: "#94A3B8", next: ["sent"] },
+  { key: "sent",     th: "รออนุมัติ",   color: "#F59E0B", next: ["approved", "rejected"] },
+  { key: "approved", th: "อนุมัติแล้ว", color: "#10B981", next: [] },
+  { key: "rejected", th: "ไม่อนุมัติ",  color: "#EF4444", next: ["draft"] },
+];
+const TM_OT_STATUS_BY = {}; TM_OT_STATUS.forEach((s) => { TM_OT_STATUS_BY[s.key] = s; });
+const tmOtStatusOf = (k) => TM_OT_STATUS_BY[k] || TM_OT_STATUS_BY.draft;
+const tmOtOpen = (r) => { const k = ((r || {}).status) || "draft"; return k === "draft" || k === "sent"; };
+
+/* ── สิทธิ์ ──
+   ⚠ คีย์สิทธิ์ห้ามมีจุด — มันถูกเก็บเป็นคีย์ใน Firebase (rolePerms/{role}/perms/{key})
+     และ RTDB ไม่ยอมรับ . $ # [ ] / ในชื่อคีย์ ถ้าใช้ "attend.use" การบันทึกหน้าสิทธิ์จะล้มทั้งหน้า */
+const tmCanAttend    = (role) => window.can(role, "attend");
+const tmCanAttendAll = (role) => window.can(role, "attendAll");
+const tmCanOt        = (role) => window.can(role, "ot");
+const tmCanOtApprove = (role) => window.can(role, "otApprove");
+
+/* ใช้สายอนุมัติเดิม (user.approverId) ไม่สร้างชุดที่สอง —
+   ถ้าแยกกัน วันที่หัวหน้าลาออกจะต้องไล่แก้สองที่ และจะมีที่หนึ่งถูกลืมเสมอ */
+function tmOtApproveCheck(rec, user, role) {
+  if (!rec || !user) return { ok: false, why: "" };
+  if (!tmCanOtApprove(role)) return { ok: false, why: "ไม่มีสิทธิ์อนุมัติใบ OT" };
+  if (rec.userId && rec.userId === user.id) return { ok: false, why: "อนุมัติใบของตัวเองไม่ได้ — ต้องให้คนอื่นอนุมัติ" };
+  if (rec.approverId && rec.approverId !== user.id && !window.hasRole(role, "admin")) {
+    return { ok: false, why: "ใบนี้ส่งถึง " + (rec.approverName || "คนอื่น") + " โดยตรง" };
+  }
+  /* ไม่มีเพดานเหมือนใบเบิกเงิน เพราะนี่คือชั่วโมง ไม่ใช่จำนวนเงิน
+     คนอนุมัติชั่วโมงคือคนที่รู้ว่างานนั้นจำเป็นต้องทำจริงไหม ซึ่งไม่เกี่ยวกับวงเงิน */
+  return { ok: true, why: "" };
+}
+
+function tmOtNext(rec, role, user) {
+  const cur = tmOtStatusOf((rec || {}).status);
+  const mine = rec && user && rec.userId === user.id;
+  const appr = tmOtApproveCheck(rec, user, role).ok;
+  return (cur.next || []).filter((k) => {
+    if (k === "sent")     return mine;
+    if (k === "approved") return appr;
+    if (k === "rejected") return appr;
+    if (k === "draft")    return mine || appr;
+    return false;
+  }).map((k) => TM_OT_STATUS_BY[k]);
+}
+
+/* เดินสถานะ = คืนเรคคอร์ดใหม่พร้อมต่อประวัติ ไม่เขียนฐานข้อมูลเอง
+   (ให้ที่เรียกเป็นคนเขียน จะได้ทดสอบตรรกะได้โดยไม่ต้องมี Firebase) */
+function tmOtMove(rec, to, user, note) {
+  if (!rec) return null;
+  const now = new Date().toISOString();
+  const out = Object.assign({}, rec, { status: to, updatedAt: now });
+  const txt = (note && typeof note === "object" ? note.text : note) || "";
+  out.hist = (rec.hist || []).concat([{
+    at: now, from: rec.status || "draft", to: to,
+    by: (user || {}).id || null, byName: (user || {}).name || "", note: txt,
+  }]);
+  if (to === "sent") out.sentAt = now;
+  if (to === "approved" || to === "rejected") {
+    out.decidedAt = now; out.decidedNote = txt;
+    out.decidedById = (user || {}).id || null; out.decidedByName = (user || {}).name || "";
+  }
+  /* ตีกลับมาแก้ = ล้างผลตัดสินเดิมทิ้ง ไม่งั้นใบจะโชว์ว่า "ไม่อนุมัติโดย X" ทั้งที่ยังเป็นร่างอยู่
+     (กฎเดียวกับ ecMove — ถ้าลืมข้อนี้ ใบที่เดินวนรอบสองจะอ่านไม่รู้เรื่อง) */
+  if (to === "draft") {
+    out.decidedAt = null; out.decidedNote = ""; out.decidedById = null; out.decidedByName = "";
+  }
+  return out;
+}
+
+/* เลขที่ใบ — OT-6809-0007 (ปี พ.ศ. สองหลัก + เดือน + ลำดับในเดือนนั้น) */
+function tmOtDocNo(list, dateISO) {
+  const d = String(dateISO || window.drToday());
+  const be = String(+d.slice(0, 4) + 543).slice(2);
+  const ym = be + d.slice(5, 7);
+  const n = (list || []).filter((r) => r && String(r.no || "").indexOf("OT-" + ym) === 0).length + 1;
+  return "OT-" + ym + "-" + window.drPad2(n);
+}
+
+function tmOtBlank(user, users, list, job, cfg) {
+  const now = new Date().toISOString();
+  const date = window.drToday();
+  const approver = ((user || {}).approverId && (users || []).find((u) => u.id === user.approverId)) || null;
+  return {
+    id: "OT-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+    no: tmOtDocNo(list, date),
+    userId: (user || {}).id || null, userName: (user || {}).name || "",
+    techId: (user || {}).techId || null,
+    jobId: (job || {}).id || null, jobCode: (job || {}).code || "",
+    date, from: "17:00", to: "20:00", mins: 0,
+    kind: tmOtKindGuess(date, "17:00", cfg), reason: "",
+    /* ชื่อคนอนุมัติถ่ายสำเนาไว้ตอนเปิดใบ เพื่อให้ใบเก่ายังอ่านออกแม้บัญชีนั้นถูกลบทีหลัง */
+    approverId: (user || {}).approverId || null, approverName: (approver || {}).name || "",
+    status: "draft", createdAt: now, hist: [],
+  };
+}
+
+/* ── ขอบเขตการมองเห็น ──
+   คนที่ไม่มีสิทธิ์อนุมัติเห็นเฉพาะใบของตัวเอง — กรองที่ชั้นข้อมูล ไม่ใช่ซ่อนปุ่มบนหน้าจอ
+   (กฎเดียวกับ ecVisible — เวลาทำงานของคนอื่นเป็นข้อมูลส่วนบุคคล) */
+function tmOtVisible(list, user, role) {
+  if (tmCanOtApprove(role) || tmCanAttendAll(role)) return list || [];
+  const uid = (user || {}).id || null;
+  return (list || []).filter((r) => r && r.userId === uid);
+}
+
+function tmOtRollup(list, user, role) {
+  const r = { total: 0, draft: 0, sent: 0, approved: 0, rejected: 0, waitingMine: 0, minsApproved: 0, mineOpen: 0 };
+  (list || []).forEach((x) => {
+    if (!x) return;
+    r.total += 1;
+    const k = x.status || "draft";
+    if (r[k] != null) r[k] += 1;
+    if (k === "sent" && tmOtApproveCheck(x, user, role).ok) r.waitingMine += 1;
+    if (k === "approved") r.minsApproved += Math.max(0, +x.mins || 0);
+    if (user && x.userId === user.id && tmOtOpen(x)) r.mineOpen += 1;
+  });
+  return r;
+}
+
+/* ================================================================
+   hooks
+   ================================================================ */
+
+/* ใบลงเวลาของ "คนเดียว" — หน้ามือถือกับการ์ดในโปรไฟล์ใช้ตัวนี้
+   ฟังเฉพาะใต้ userId ของตัวเอง ไม่ใช่ทั้ง attend/ ซึ่งจะโตขึ้นทุกวันไม่มีเพดาน */
+function useAttend(userId, days) {
+  const [rows, setRows] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const n = Math.max(1, +days || 45);
+
+  React.useEffect(() => {
+    if (!userId || !_TMFB()) { setRows([]); setLoading(false); return; }
+    const ref = _tmRef("attend/" + userId).orderByKey().limitToLast(n);
+    const h = ref.on("value", (s) => {
+      const v = s.val() || {};
+      const arr = Object.keys(v).map((k) => Object.assign({ date: k }, v[k]));
+      arr.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      setRows(arr); setLoading(false);
+    }, () => setLoading(false));
+    return () => ref.off("value", h);
+  }, [userId, n]);
+
+  return { rows, loading, today: rows.find((r) => r.date === window.drToday()) || null };
+}
+
+/* แผ่นเวลารายวันของทั้งบริษัท — อ่านจากดัชนีเบา ไม่ใช่ต้นไม้ใบเต็ม */
+function useAttendDay(dateISO) {
+  const [rows, setRows] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  React.useEffect(() => {
+    if (!dateISO || !_TMFB()) { setRows([]); setLoading(false); return; }
+    const ref = _tmRef("attendDay/" + dateISO);
+    const h = ref.on("value", (s) => {
+      const v = s.val() || {};
+      const arr = Object.keys(v).map((k) => Object.assign({ userId: k }, v[k]));
+      arr.sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "th"));
+      setRows(arr); setLoading(false);
+    }, () => setLoading(false));
+    return () => ref.off("value", h);
+  }, [dateISO]);
+  return { rows, loading };
+}
+
+/* เขียนใบลงเวลา — คืนฟังก์ชันปั๊มเข้า/ออก ที่ **ไม่เคยปฏิเสธเพราะไม่มีพิกัด** */
+function useAttendWriter(user, cfg) {
+  const uid = (user || {}).id || null;
+
+  const punch = React.useCallback(async (which, opt) => {
+    if (!uid || !_TMFB()) return { ok: false, why: "ยังเชื่อมต่อฐานข้อมูลไม่ได้" };
+    const o = opt || {};
+    const date = window.drToday();
+    const gps = o.skipGps ? { err: "skipped" } : await window.captureGps();
+    const p = tmPunch(gps, o.src || "web");
+
+    const snap = await _tmRef("attend/" + uid + "/" + date).once("value").catch(() => null);
+    const cur = (snap && snap.val()) || tmAttendBlank(user, date);
+    const rec = Object.assign({}, tmAttendBlank(user, date), cur);
+
+    if (which === "in") {
+      /* เข้างานซ้ำทั้งที่ยังไม่ได้ออก = ไม่ทำอะไร ไม่ใช่เขียนทับ
+         เวลาเข้างานครั้งแรกของวันคือข้อมูลที่แก้ไม่ได้ด้วยการกดผิด */
+      if (rec.in && rec.in.hm && !(rec.out && rec.out.hm)) return { ok: false, why: "ลงเวลาเข้างานไปแล้วเมื่อ " + rec.in.hm, rec };
+      if (rec.in && rec.in.hm && rec.out && rec.out.hm) {
+        /* เข้ารอบสองของวันเดียวกัน — งานที่กลับไปไซต์ตอนเย็นมีจริง เก็บเป็นกะเพิ่ม */
+        rec.extra = (rec.extra || []).concat([{ in: p, out: null }]);
+      } else { rec.in = p; }
+    } else {
+      const ex = rec.extra || [];
+      const openIdx = ex.findIndex((x) => x && x.in && !(x.out && x.out.hm));
+      if (openIdx >= 0) ex[openIdx] = Object.assign({}, ex[openIdx], { out: p });
+      else if (rec.in && rec.in.hm && !(rec.out && rec.out.hm)) rec.out = p;
+      else return { ok: false, why: "ยังไม่ได้ลงเวลาเข้างานของวันนี้", rec };
+      rec.extra = ex;
+    }
+
+    if (o.jobId !== undefined) { rec.jobId = o.jobId || null; rec.jobCode = o.jobCode || ""; }
+    if (o.note !== undefined) rec.note = o.note || "";
+    rec.src = o.src || rec.src || "web";
+    rec.mins = tmWorkedMins(rec, cfg);
+    rec.updatedAt = new Date().toISOString();
+    rec.hist = (rec.hist || []).concat([{ at: rec.updatedAt, what: which, hm: p.hm, gps: !p.err }]);
+
+    /* เขียนใบกับดัชนีในคำสั่งเดียว — ถ้าแยกสองคำสั่งแล้วเน็ตหลุดกลางทาง
+       แผ่นรายวันของออฟฟิศจะไม่ตรงกับใบจริง โดยไม่มีใครรู้ */
+    const patch = {};
+    patch["attend/" + uid + "/" + date] = rec;
+    patch["attendDay/" + date + "/" + uid] = tmDayIndex(rec, cfg);
+    await _tmRoot().update(patch);
+    return { ok: true, rec, punch: p };
+  }, [uid, user, cfg]);
+
+  return { punch };
+}
+
+/* ใบ OT — แบน อ่านทั้งต้นไม้ได้ (ใบละไม่กี่ร้อยไบต์ ไม่มีรูป) */
+function useOtClaims() {
+  const [rows, setRows] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!_TMFB()) { setLoading(false); return; }
+    const ref = _tmRef("tmOt");
+    const h = ref.on("value", (s) => {
+      const v = s.val() || {};
+      const arr = Object.keys(v).map((k) => Object.assign({ id: k }, v[k]));
+      arr.sort((a, b) => String(b.date || "").localeCompare(String(a.date || ""))
+        || String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+      setRows(arr); setLoading(false);
+    }, () => setLoading(false));
+    return () => ref.off("value", h);
+  }, []);
+
+  const save = React.useCallback((r) => {
+    if (!r || !r.id || !_TMFB()) return;
+    _tmRef("tmOt/" + r.id).set(Object.assign({}, r, { updatedAt: new Date().toISOString() }));
+  }, []);
+  const patch = React.useCallback((id, fields) => {
+    if (!id || !_TMFB()) return;
+    _tmRef("tmOt/" + id).update(Object.assign({}, fields, { updatedAt: new Date().toISOString() }));
+  }, []);
+  const remove = React.useCallback((id) => {
+    if (!id || !_TMFB()) return;
+    _tmRef("tmOt/" + id).remove();
+  }, []);
+
+  return { rows, loading, save, patch, remove };
+}
+
+/* เวลาทำงานมาตรฐาน — ไม่ใส่ TM_ROOT เพราะเป็นค่าตั้งของบริษัท ไม่ใช่ข้อมูลรายการ
+   โหมดทดสอบต้องเห็นเวลาทำงานชุดเดียวกับของจริง ไม่งั้นตัวเลข OT ที่ทดสอบจะไม่มีความหมาย */
+function useWorkHours() {
+  const [cfg, setCfg] = React.useState(TM_WH_DEFAULT);
+  const [loading, setLoading] = React.useState(true);
+  React.useEffect(() => {
+    if (!_TMFB()) { setLoading(false); return; }
+    const ref = window.FBDB.ref("config/workHours");
+    const h = ref.on("value", (s) => { setCfg(tmWhNorm(s.val())); setLoading(false); }, () => setLoading(false));
+    return () => ref.off("value", h);
+  }, []);
+  const save = React.useCallback((next) => {
+    if (!_TMFB()) return;
+    window.FBDB.ref("config/workHours").set(tmWhNorm(next));
+  }, []);
+  return { cfg, loading, save };
+}
+
+/* แจ้งเตือน — เขียนลง notifications/ ของจริงเสมอ (ไม่ใส่ TM_ROOT)
+   แล้วส่งต่อเข้า LINE · ข้ามการส่งในโหมดทดสอบ ไม่งั้นใบทดสอบจะเด้งเข้ามือถือคนจริง */
+function tmNotify(n) {
+  if (!_TMFB() || !n) return;
+  const id = "N-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  window.FBDB.ref("notifications/" + id).set(Object.assign({
+    id, read: false, at: new Date().toISOString(), type: "ot", event: "ot",
+  }, n));
+  if (!TM_ROOT && window.lnPush) window.lnPush(id);
+}
+
+Object.assign(window, {
+  tmNotify,
+  TM_ROOT, TM_WH_DEFAULT, TM_OT_KIND, TM_OT_STATUS,
+  tmHM, tmHHMM, tmNowHM, tmSpanMins, tmDur, tmWhNorm, tmIsHoliday, tmIsWorkday,
+  tmOtKindOf, tmOtKindGuess, tmOtMinutes,
+  tmWorkedMins, tmOpen, tmAttendBlank, tmPunch, tmDayIndex,
+  tmOtStatusOf, tmOtOpen, tmCanAttend, tmCanAttendAll, tmCanOt, tmCanOtApprove,
+  tmOtApproveCheck, tmOtNext, tmOtMove, tmOtDocNo, tmOtBlank, tmOtVisible, tmOtRollup,
+  useAttend, useAttendDay, useAttendWriter, useOtClaims, useWorkHours,
+});

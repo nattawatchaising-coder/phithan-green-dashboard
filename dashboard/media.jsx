@@ -421,4 +421,33 @@ function JobComments({ media, currentUser, canManage }) {
   );
 }
 
-Object.assign(window, { useJobMedia, openJobFileOnce, resizeImageFile, readFileAsDataURL, dataUrlToBlobUrl, JobPhotos, JobFiles, JobComments });
+/* ============================================================
+   จับพิกัด GPS — ที่เดียวของทั้งระบบ
+   ใช้ร่วมกันสามที่: แบบสำรวจหน้างาน · เอกสารขออนุญาต · ลงเวลาเข้า-ออก
+   (เดิมก๊อปกันอยู่สองที่แบบไบต์ต่อไบต์ ใน permit.jsx กับ survey.jsx)
+
+   ⚠ ไม่โยน error ทิ้ง และไม่ reject เด็ดขาด — คืน { err, msg } กลับมาเสมอ
+     เพราะหน้าลงเวลา "ห้ามบล็อก" ช่างที่ปิดสิทธิ์ตำแหน่งไว้ต้องลงเวลาได้อยู่ดี
+     โดยระบบเก็บไว้ว่าใบนั้นไม่มีพิกัดเพราะอะไร
+
+   บน iOS ตัวแอป LINE เองต้องได้รับสิทธิ์ตำแหน่งจากระบบก่อน
+   ถ้าผู้ใช้เคยปฏิเสธไว้ หน้าเว็บข้างในขอใหม่ไม่ได้ จะได้ err:"denied" ทันทีโดยไม่มีป๊อปอัป
+   ============================================================ */
+function captureGps(opt) {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) return resolve({ err: "unsupported", msg: "อุปกรณ์ไม่รองรับ GPS" });
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({
+        lat: +pos.coords.latitude.toFixed(6), lng: +pos.coords.longitude.toFixed(6),
+        acc: Math.round(pos.coords.accuracy || 0), at: new Date().toISOString(),
+      }),
+      (err) => resolve({
+        err: err && err.code === 1 ? "denied" : err && err.code === 3 ? "timeout" : "fail",
+        msg: err && err.code === 1 ? "ไม่ได้รับอนุญาตให้เข้าถึงตำแหน่ง" : "จับพิกัดไม่สำเร็จ ลองใหม่อีกครั้ง",
+      }),
+      Object.assign({ enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }, opt || {})
+    );
+  });
+}
+
+Object.assign(window, { useJobMedia, openJobFileOnce, resizeImageFile, readFileAsDataURL, dataUrlToBlobUrl, JobPhotos, JobFiles, JobComments, captureGps });

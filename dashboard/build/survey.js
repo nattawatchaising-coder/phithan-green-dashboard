@@ -1965,29 +1965,12 @@ function SurveyWizard({
   };
   const invOptions = React.useMemo(() => modelOptions("inverter", f.invModel), [stockItems, f.invModel]);
   const panelOptions = React.useMemo(() => modelOptions("panel", f.panelModel), [stockItems, f.panelModel]);
-  const captureGps = () => {
-    if (!navigator.geolocation) {
-      setGpsErr("อุปกรณ์ไม่รองรับ GPS");
-      return;
-    }
+  const captureGps = async () => {
     setGpsBusy(true);
     setGpsErr("");
-    navigator.geolocation.getCurrentPosition(pos => {
-      set("gps", {
-        lat: +pos.coords.latitude.toFixed(6),
-        lng: +pos.coords.longitude.toFixed(6),
-        acc: Math.round(pos.coords.accuracy || 0),
-        at: new Date().toISOString()
-      });
-      setGpsBusy(false);
-    }, err => {
-      setGpsErr(err.code === 1 ? "ไม่ได้รับอนุญาตให้เข้าถึงตำแหน่ง" : "จับพิกัดไม่สำเร็จ ลองใหม่อีกครั้ง");
-      setGpsBusy(false);
-    }, {
-      enableHighAccuracy: true,
-      timeout: 12000,
-      maximumAge: 0
-    });
+    const g = await window.captureGps();
+    if (g.err) setGpsErr(g.msg);else set("gps", g);
+    setGpsBusy(false);
   };
   const pickPhoto = async (slotKey, file, order) => {
     if (!file) return;

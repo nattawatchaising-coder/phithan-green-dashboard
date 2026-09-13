@@ -26,6 +26,11 @@ const NAV = [
      foot = ดันไปล่างสุดของแถบเมนู แยกเส้นคั่นออกจากเมนูงาน เพราะเป็นเอกสารที่เข้าทุกวัน
      ไม่ใช่หน้าดูข้อมูล — วางติดกับตัวเองจะได้กดถึงเร็วโดยไม่ปนกับหัวข้อด้านบน */
   { key: "daily",      th: "รายงานประจำวัน",   en: "Daily Report",  icon: "pen",      perm: "editJob", foot: true },
+  /* เวลาทำงาน — ลงเวลาเข้า-ออก และใบขอ OT · ปั๊มเวลาทำจากแอปในไลน์ หน้านี้คือฝั่งออฟฟิศ
+     foot เหมือนรายงานประจำวัน เพราะเป็นเอกสารที่เข้าทุกวัน ไม่ใช่หน้าดูข้อมูล */
+  { key: "attend",     th: "เวลาทำงาน",       en: "Attendance",    icon: "clock",    perm: "attend", foot: true },
+  /* หน้าแอดมินล้วน — โควตาข้อความของ LINE กับสวิตช์เลือกว่าเรื่องไหนส่งเข้าแชต */
+  { key: "line",       th: "แจ้งเตือน LINE",  en: "LINE",          icon: "message",  perm: "manageUsers", foot: true },
   /* "รายงานสรุป" ถอดออกจากเมนูแล้ว — โค้ดหน้ายังอยู่ที่ views-report.jsx ถ้าอยากได้คืนให้เติมแถวนี้กลับ
      { key: "report", th: "รายงานสรุป", en: "Report", icon: "file", perm: "viewAll" } */
 ];
@@ -793,6 +798,8 @@ function App() {
           {/* ทะเบียนบริการเป็นภาระผูกพันของบริษัท ไม่ใช่คิวงานของใครคนหนึ่ง จึงดูจากงานทั้งหมดที่ผู้ใช้เห็น */}
           {view === "om" && <window.OmView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} focus={omFocus} />}
           {view === "expense" && <window.ExpenseView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} focus={ecFocus} />}
+          {view === "attend" && <window.AttendView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} />}
+          {view === "line" && <window.LineAdminView users={auth.users} />}
           {view === "report" && <ReportView jobs={filtered} onOpen={openJob} />}
           {view === "survey" && <SurveyView jobs={filtered} role={role} onOpen={openSurvey}
             onToggleSkip={(can(role, "doSurvey") || can(role, "dispatch") || can(role, "editJob")) ? (j) => {

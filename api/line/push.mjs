@@ -50,15 +50,17 @@ function canDo(user, key, cfg) {
 
 /* ชนิดของแจ้งเตือน — ตรงกับ notifKindKey (auth.jsx) */
 function kindOf(n) {
-  if (n.event && ["reject", "permit", "assign", "om", "daily", "expense", "info"].indexOf(n.event) >= 0) return n.event;
+  if (n.event && ["reject", "permit", "assign", "om", "daily", "expense", "ot", "attend", "info"].indexOf(n.event) >= 0) return n.event;
   if (n.type === "daily") return "daily";
   if (n.type === "om") return "om";
   if (n.type === "expense") return "expense";
+  if (n.type === "ot") return "ot";
+  if (n.type === "attend") return "attend";
   if (n.type === "assign") return "assign";
   if (n.type === "permit") return /ตีกลับ|แก้ไข/.test(n.title || "") ? "reject" : "permit";
   return "info";
 }
-const KIND_ICON = { reject: "⚠️", permit: "📄", assign: "🔧", om: "🛠️", daily: "📝", expense: "💸", info: "🔔" };
+const KIND_ICON = { reject: "⚠️", permit: "📄", assign: "🔧", om: "🛠️", daily: "📝", expense: "💸", ot: "⏱️", attend: "📍", info: "🔔" };
 
 /* ชื่อ export ต้องเป็น POST ห้ามใช้ `export default`
    Vercel ตีความ default export ว่าเป็นลายเซ็นเก่า (req, res) => void

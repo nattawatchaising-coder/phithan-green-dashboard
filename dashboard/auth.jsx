@@ -58,14 +58,15 @@ function userRoles(u) {
    viewAll ดูงานทั้งหมด · doSurvey ทำแบบสำรวจหน้างาน · dispatch จัดตารางสำรวจ
    design ออกแบบ/ออกไฟล์แบบ · permit เอกสารขออนุญาต · price เห็นราคา-ต้นทุน · leads หน้าลูกค้าสำรวจ */
 const DEFAULT_PERMS = {
-  admin:  { viewAll: 1, addJob: 1, editJob: 1, delJob: 1, stock: 1, manageUsers: 1, dispatch: 1, doSurvey: 1, design: 1, permit: 1, price: 1, leads: 1, om: 1, expense: 1, expenseApprove: 1, expensePay: 1 },
-  lead:   { viewAll: 1, addJob: 1, editJob: 1, delJob: 1, stock: 1,                 dispatch: 1, doSurvey: 1, design: 1, permit: 1, price: 1, leads: 1, om: 1, expense: 1, expenseApprove: 1 },
-  ee:     { viewAll: 1,            editJob: 1,            stock: 1,                 dispatch: 1, doSurvey: 1, design: 1, permit: 1,                    om: 1, expense: 1 },
-  draft:  { viewAll: 1,            editJob: 1,            stock: 1,                                           design: 1 },
-  tech:   {                        editJob: 1,            stock: 1,                              doSurvey: 1,                                         om: 1, expense: 1 },
-  permit: { viewAll: 1,            editJob: 1,                                                                            permit: 1 },
-  sales:  { viewAll: 1, addJob: 1,                                                  dispatch: 1, doSurvey: 1,                       price: 1, leads: 1 },
+  admin:  { viewAll: 1, addJob: 1, editJob: 1, delJob: 1, stock: 1, manageUsers: 1, dispatch: 1, doSurvey: 1, design: 1, permit: 1, price: 1, leads: 1, om: 1, expense: 1, expenseApprove: 1, expensePay: 1, attend: 1, attendAll: 1, ot: 1, otApprove: 1 },
+  lead:   { viewAll: 1, addJob: 1, editJob: 1, delJob: 1, stock: 1,                 dispatch: 1, doSurvey: 1, design: 1, permit: 1, price: 1, leads: 1, om: 1, expense: 1, expenseApprove: 1,                attend: 1, attendAll: 1, ot: 1, otApprove: 1 },
+  ee:     { viewAll: 1,            editJob: 1,            stock: 1,                 dispatch: 1, doSurvey: 1, design: 1, permit: 1,                    om: 1, expense: 1,                                   attend: 1,               ot: 1 },
+  draft:  { viewAll: 1,            editJob: 1,            stock: 1,                                           design: 1,                                                                                     attend: 1,               ot: 1 },
+  tech:   {                        editJob: 1,            stock: 1,                              doSurvey: 1,                                         om: 1, expense: 1,                                   attend: 1,               ot: 1 },
+  permit: { viewAll: 1,            editJob: 1,                                                                            permit: 1,                                                                         attend: 1,               ot: 1 },
+  sales:  { viewAll: 1, addJob: 1,                                                  dispatch: 1, doSurvey: 1,                       price: 1, leads: 1,                                                      attend: 1,               ot: 1 },
 };
+
 
 /* รายการสิทธิ์ที่ติ๊กได้ในหน้าตั้งค่า — เรียงตามลำดับที่คนอ่านเข้าใจง่าย ไม่ใช่ตามตัวอักษร */
 const PERM_LIST = [
@@ -83,6 +84,10 @@ const PERM_LIST = [
   { key: "expense",        th: "ส่งใบเบิกเงินหน้างาน", desc: "เบิกค่าซื้อของหน้างาน ค่าขนส่ง ค่าน้ำมัน — เห็นเฉพาะใบของตัวเอง" },
   { key: "expenseApprove", th: "อนุมัติใบเบิกเงิน", desc: "เห็นใบเบิกของทุกคน อนุมัติ/ไม่อนุมัติ และดูยอดรายคน · อนุมัติใบของตัวเองไม่ได้เสมอ" },
   { key: "expensePay",     th: "บันทึกจ่ายเงินคืน", desc: "กดว่าจ่ายเงินคืนพนักงานแล้ว — แยกจากคนอนุมัติตั้งใจ เป็นการคุมเงินสดขั้นพื้นฐาน" },
+  { key: "attend",      th: "ลงเวลาเข้า-ออกงาน", desc: "ปั๊มเวลาเข้า-ออกจากมือถือ พร้อมบันทึกพิกัด — เห็นเฉพาะเวลาของตัวเอง" },
+  { key: "attendAll",   th: "ดูเวลาทำงานของทุกคน", desc: "แผ่นเวลารายวันทั้งบริษัท · เวลาทำงานของคนอื่นเป็นข้อมูลส่วนบุคคล เปิดเท่าที่จำเป็น" },
+  { key: "ot",          th: "ขอ OT นอกเวลางาน", desc: "เปิดใบขอทำงานล่วงเวลา — เห็นเฉพาะใบของตัวเอง" },
+  { key: "otApprove",   th: "อนุมัติใบ OT", desc: "เห็นใบ OT ของทุกคนและตัดสิน · อนุมัติใบของตัวเองไม่ได้เสมอ" },
   { key: "stock",       th: "คลังสินค้า",                   desc: "ดูและตัดสต๊อก" },
   { key: "manageUsers", th: "จัดการผู้ใช้และสิทธิ์",          desc: "เพิ่ม/ลบบัญชี และแก้ตารางสิทธิ์นี้" },
 ];

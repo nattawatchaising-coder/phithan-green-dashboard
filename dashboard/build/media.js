@@ -928,6 +928,27 @@ function JobComments({
     color: text.trim() ? "#fff" : "var(--text-3)"
   }))));
 }
+function captureGps(opt) {
+  return new Promise(resolve => {
+    if (!navigator.geolocation) return resolve({
+      err: "unsupported",
+      msg: "อุปกรณ์ไม่รองรับ GPS"
+    });
+    navigator.geolocation.getCurrentPosition(pos => resolve({
+      lat: +pos.coords.latitude.toFixed(6),
+      lng: +pos.coords.longitude.toFixed(6),
+      acc: Math.round(pos.coords.accuracy || 0),
+      at: new Date().toISOString()
+    }), err => resolve({
+      err: err && err.code === 1 ? "denied" : err && err.code === 3 ? "timeout" : "fail",
+      msg: err && err.code === 1 ? "ไม่ได้รับอนุญาตให้เข้าถึงตำแหน่ง" : "จับพิกัดไม่สำเร็จ ลองใหม่อีกครั้ง"
+    }), Object.assign({
+      enableHighAccuracy: true,
+      timeout: 12000,
+      maximumAge: 0
+    }, opt || {}));
+  });
+}
 Object.assign(window, {
   useJobMedia,
   openJobFileOnce,
@@ -936,5 +957,6 @@ Object.assign(window, {
   dataUrlToBlobUrl,
   JobPhotos,
   JobFiles,
-  JobComments
+  JobComments,
+  captureGps
 });

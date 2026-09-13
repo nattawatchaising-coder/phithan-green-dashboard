@@ -119,7 +119,11 @@ const DEFAULT_PERMS = {
     om: 1,
     expense: 1,
     expenseApprove: 1,
-    expensePay: 1
+    expensePay: 1,
+    attend: 1,
+    attendAll: 1,
+    ot: 1,
+    otApprove: 1
   },
   lead: {
     viewAll: 1,
@@ -135,7 +139,11 @@ const DEFAULT_PERMS = {
     leads: 1,
     om: 1,
     expense: 1,
-    expenseApprove: 1
+    expenseApprove: 1,
+    attend: 1,
+    attendAll: 1,
+    ot: 1,
+    otApprove: 1
   },
   ee: {
     viewAll: 1,
@@ -146,25 +154,33 @@ const DEFAULT_PERMS = {
     design: 1,
     permit: 1,
     om: 1,
-    expense: 1
+    expense: 1,
+    attend: 1,
+    ot: 1
   },
   draft: {
     viewAll: 1,
     editJob: 1,
     stock: 1,
-    design: 1
+    design: 1,
+    attend: 1,
+    ot: 1
   },
   tech: {
     editJob: 1,
     stock: 1,
     doSurvey: 1,
     om: 1,
-    expense: 1
+    expense: 1,
+    attend: 1,
+    ot: 1
   },
   permit: {
     viewAll: 1,
     editJob: 1,
-    permit: 1
+    permit: 1,
+    attend: 1,
+    ot: 1
   },
   sales: {
     viewAll: 1,
@@ -172,7 +188,9 @@ const DEFAULT_PERMS = {
     dispatch: 1,
     doSurvey: 1,
     price: 1,
-    leads: 1
+    leads: 1,
+    attend: 1,
+    ot: 1
   }
 };
 const PERM_LIST = [{
@@ -231,6 +249,22 @@ const PERM_LIST = [{
   key: "expensePay",
   th: "บันทึกจ่ายเงินคืน",
   desc: "กดว่าจ่ายเงินคืนพนักงานแล้ว — แยกจากคนอนุมัติตั้งใจ เป็นการคุมเงินสดขั้นพื้นฐาน"
+}, {
+  key: "attend",
+  th: "ลงเวลาเข้า-ออกงาน",
+  desc: "ปั๊มเวลาเข้า-ออกจากมือถือ พร้อมบันทึกพิกัด — เห็นเฉพาะเวลาของตัวเอง"
+}, {
+  key: "attendAll",
+  th: "ดูเวลาทำงานของทุกคน",
+  desc: "แผ่นเวลารายวันทั้งบริษัท · เวลาทำงานของคนอื่นเป็นข้อมูลส่วนบุคคล เปิดเท่าที่จำเป็น"
+}, {
+  key: "ot",
+  th: "ขอ OT นอกเวลางาน",
+  desc: "เปิดใบขอทำงานล่วงเวลา — เห็นเฉพาะใบของตัวเอง"
+}, {
+  key: "otApprove",
+  th: "อนุมัติใบ OT",
+  desc: "เห็นใบ OT ของทุกคนและตัดสิน · อนุมัติใบของตัวเองไม่ได้เสมอ"
 }, {
   key: "stock",
   th: "คลังสินค้า",

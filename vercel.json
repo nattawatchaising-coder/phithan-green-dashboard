@@ -4,6 +4,9 @@
   "outputDirectory": ".",
   "installCommand": null,
   "framework": null,
+  "crons": [
+    { "path": "/api/cron/daily", "schedule": "30 13 * * *" }
+  ],
   "headers": [
     {
       "source": "/api/(.*)",

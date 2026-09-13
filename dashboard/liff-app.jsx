@@ -1,9 +1,11 @@
 /* ============================================================
    flash+solar — หน้าจอในแอป LINE (LIFF) · คำนำหน้า ln / Ln
 
-   เฟส 1 มีสองเรื่องเท่านั้น: ค้นหา/ดูข้อมูลงาน กับ แจ้งเตือนของฉัน
-   ทั้งคู่ "อ่านอย่างเดียว" — ยังไม่มีหน้าไหนเขียนข้อมูลลงฐาน
-   (ลงเวลา · OT · เบิกเงิน · รายงานประจำวัน อยู่เฟสถัดไป)
+   เฟส 1: ค้นหา/ดูข้อมูลงาน · แจ้งเตือนของฉัน (อ่านอย่างเดียว)
+   เฟส 2: ลงเวลาเข้า-ออกพร้อมพิกัด · ขอ OT  ← หน้าจอชุดแรกที่เขียนข้อมูลลงฐานจริง
+   (เบิกเงิน · รายงานประจำวัน อยู่เฟสถัดไป)
+
+   ⚠ ปุ่มลงเวลา **ห้ามปฏิเสธ** ไม่ว่าจะจับพิกัดได้หรือไม่ — ดูเหตุผลที่หัวไฟล์ attend.jsx
 
    หน้าจอชุดนี้ไม่ได้เขียนตรรกะสิทธิ์ใหม่เลย — ใช้ jobScopeOf/jobInScope/can
    ชุดเดียวกับเว็บเดสก์ท็อป ฉะนั้น "ช่างเห็นงานอะไรบ้าง" ตอบเหมือนกันทั้งสองที่เสมอ
@@ -11,6 +13,7 @@
 
 const LN_TAB = [
   { key: "jobs",  th: "งาน",       icon: "wrench" },
+  { key: "time",  th: "เวลา",      icon: "clock" },
   { key: "bell",  th: "แจ้งเตือน", icon: "bell" },
   { key: "me",    th: "ฉัน",       icon: "user" },
 ];
@@ -129,6 +132,295 @@ function LnJobSheet({ job, techs, onClose }) {
 }
 
 /* ================================================================
+   ลงเวลา + ขอ OT (เฟส 2) — หน้าจอชุดแรกที่เขียนข้อมูลลงฐานจริงจากมือถือ
+   ================================================================ */
+
+const LN_BTN = { width: "100%", padding: "16px 18px", borderRadius: 15, border: "none",
+  fontFamily: "inherit", fontSize: 16, fontWeight: 800, cursor: "pointer" };
+const LN_FIELD = { width: "100%", padding: "12px 13px", borderRadius: 12, border: "1px solid var(--border-strong)",
+  background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 16, outline: "none" };
+
+/* ── ปุ่มลงเวลา ──
+   ปุ่มเดียวที่เปลี่ยนความหมายตามสถานะของวันนี้ ไม่ใช่สองปุ่มวางข้างกัน
+   ช่างกดตอนรีบและมือเปื้อน — สองปุ่มคือเวลาที่ผิดแล้วเจ้าตัวแก้เองไม่ได้ */
+function LnClock({ me, cfg, jobs }) {
+  const at = window.useAttend(me ? me.id : null, 14);
+  const writer = window.useAttendWriter(me, cfg);
+  const [busy, setBusy] = React.useState(false);
+  const [msg, setMsg] = React.useState(null);
+  const [jobId, setJobId] = React.useState("");
+
+  const today = at.today;
+  const open = window.tmOpen(today);
+  const worked = window.tmWorkedMins(today, cfg);
+
+  React.useEffect(() => {
+    if (today && today.jobId) setJobId(today.jobId);
+  }, [today && today.jobId]);
+
+  const go = async () => {
+    if (busy) return;
+    setBusy(true); setMsg(null);
+    const j = (jobs || []).find((x) => x.id === jobId);
+    const res = await writer.punch(open ? "out" : "in", {
+      src: "liff", jobId: j ? j.id : null, jobCode: j ? j.code : "",
+    });
+    setBusy(false);
+    if (!res.ok) { setMsg({ bad: true, text: res.why }); return; }
+    const p = res.punch || {};
+    setMsg({ bad: false, text: (open ? "ลงเวลาออกงาน " : "ลงเวลาเข้างาน ") + p.hm
+      + (p.err ? " · ไม่ได้พิกัด บันทึกไว้แล้วว่าไม่มี" : " · บันทึกพิกัดแล้ว") });
+  };
+
+  return (
+    <div style={{ padding: 18 }}>
+      <div style={{ padding: "18px 16px", borderRadius: 17, background: "var(--surface)",
+        border: "1px solid var(--border)", textAlign: "center" }}>
+        <div style={{ fontSize: 12.5, color: "var(--text-3)", fontWeight: 700 }}>{window.drDateTH(window.drToday())}</div>
+        <div style={{ marginTop: 9, display: "flex", justifyContent: "center", gap: 26 }}>
+          <div>
+            <div style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 700 }}>เข้างาน</div>
+            <div style={{ fontFamily: "var(--mono)", fontSize: 26, fontWeight: 800,
+              color: today && today.in ? "var(--text-1)" : "var(--text-3)" }}>
+              {(today && today.in && today.in.hm) || "--:--"}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 700 }}>ออกงาน</div>
+            <div style={{ fontFamily: "var(--mono)", fontSize: 26, fontWeight: 800,
+              color: today && today.out ? "var(--text-1)" : "var(--text-3)" }}>
+              {(today && today.out && today.out.hm) || "--:--"}
+            </div>
+          </div>
+        </div>
+        {worked > 0 && <div style={{ marginTop: 4, fontSize: 12.5, color: "var(--text-2)" }}>ทำงานแล้ว {window.tmDur(worked)}</div>}
+      </div>
+
+      <div style={{ marginTop: 14 }}>
+        <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 5 }}>วันนี้ไปงานไหน (ไม่บังคับ)</div>
+        <select value={jobId} onChange={(e) => setJobId(e.target.value)} style={LN_FIELD}>
+          <option value="">— ไม่ระบุ —</option>
+          {(jobs || []).slice(0, 80).map((j) => <option key={j.id} value={j.id}>{j.code} · {j.name}</option>)}
+        </select>
+      </div>
+
+      <button onClick={go} disabled={busy}
+        style={Object.assign({}, LN_BTN, { marginTop: 14,
+          background: busy ? "var(--surface3)" : open ? "#EF4444" : "var(--primary)",
+          color: busy ? "var(--text-3)" : "#fff" })}>
+        {busy ? "กำลังบันทึก…" : open ? "ลงเวลาออกงาน" : "ลงเวลาเข้างาน"}
+      </button>
+
+      {msg && (
+        <div style={{ marginTop: 11, padding: "11px 13px", borderRadius: 12, fontSize: 13, fontWeight: 700, textAlign: "center",
+          background: msg.bad ? "var(--tint-amber-bg)" : "var(--primary-soft)",
+          color: msg.bad ? "var(--tint-amber-tx)" : "var(--primary-dark)" }}>{msg.text}</div>
+      )}
+
+      {/* ข้อความนี้ไม่ใช่คำโฆษณา — ช่างต้องรู้ล่วงหน้าว่าระบบเก็บพิกัด
+          และต้องไม่เข้าใจผิดว่าระบบตรวจว่าอยู่หน้างานจริงหรือไม่ (ยังไม่มีพิกัดไซต์ที่เชื่อถือได้) */}
+      <div style={{ marginTop: 10, fontSize: 11, color: "var(--text-3)", lineHeight: 1.7, textAlign: "center" }}>
+        ระบบขอพิกัดตอนกด — ถ้าไม่ได้ ก็ลงเวลาให้ตามปกติแล้วบันทึกไว้ว่าไม่มีพิกัด
+        <br />งานที่เลือกเป็นข้อมูลที่คุณแจ้งเอง ระบบไม่ได้ตรวจระยะทาง
+      </div>
+
+      {(at.rows || []).length > 0 && (
+        <div style={{ marginTop: 18 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)", marginBottom: 7 }}>ย้อนหลัง</div>
+          <div style={{ border: "1px solid var(--border)", borderRadius: 13, overflow: "hidden", background: "var(--surface)" }}>
+            {(at.rows || []).slice(0, 10).map((r) => (
+              <div key={r.date} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 13px",
+                borderBottom: "1px solid var(--border)" }}>
+                <span style={{ fontSize: 12.5, color: "var(--text-2)", minWidth: 84 }}>{window.drShort(r.date)}</span>
+                <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>
+                  {(r.in && r.in.hm) || "—"} → {(r.out && r.out.hm) || "—"}
+                </span>
+                <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--text-3)" }}>
+                  {window.tmDur(window.tmWorkedMins(r, cfg))}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── ใบขอ OT บนมือถือ ──
+   ฟอร์มสั้นที่สุดที่ยังมีความหมาย: วัน · ตั้งแต่-ถึง · เหตุผล
+   ประเภท (ปกติ/วันหยุด/กลางคืน) เดาให้จากวันและเวลา ไม่ถาม —
+   ช่างไม่ควรต้องจำว่าระเบียบบริษัทนับ "กลางคืน" เริ่มกี่โมง */
+function LnOtForm({ me, users, cfg, jobs, otStore, onClose }) {
+  const [f, setF] = React.useState(() => window.tmOtBlank(me, users, otStore.rows, null, cfg));
+  const [sending, setSending] = React.useState(false);
+
+  const set = (k, v) => setF((p) => {
+    const n = Object.assign({}, p, { [k]: v });
+    if (k === "date" || k === "from") n.kind = window.tmOtKindGuess(n.date, n.from, cfg);
+    return n;
+  });
+
+  const mins = window.tmOtMinutes(f.date, f.from, f.to, cfg);
+  const ready = mins > 0 && !!f.reason.trim();
+
+  const send = () => {
+    if (!ready || sending) return;
+    setSending(true);
+    const j = (jobs || []).find((x) => x.id === f.jobId);
+    const rec = window.tmOtMove(Object.assign({}, f, { mins, jobCode: j ? j.code : "" }), "sent", me, "");
+    otStore.save(rec);
+    const when = window.drShort(rec.date) + " " + rec.from + "-" + rec.to;
+    /* เตือนคนอนุมัติ — ถ้าโปรไฟล์ไม่ได้ตั้งผู้อนุมัติไว้ ส่งเข้ากองกลางแทน
+       (กฎเดียวกับหน้าเดสก์ท็อป ใบต้องไม่ค้างเงียบรอคนที่ไม่มีอยู่จริง) */
+    if (rec.approverId) {
+      window.tmNotify({ toUserId: rec.approverId, title: "ขออนุมัติ OT · " + rec.no,
+        body: rec.userName + " · " + when + " · " + window.tmDur(rec.mins) });
+    } else {
+      window.tmNotify({ toPerm: "otApprove", title: "ขออนุมัติ OT · " + rec.no,
+        body: rec.userName + " · " + when + " · " + window.tmDur(rec.mins) });
+    }
+    onClose();
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 60, background: "var(--bg)", overflow: "auto" }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", alignItems: "center", gap: 10,
+        padding: "13px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)",
+        paddingTop: "calc(13px + env(safe-area-inset-top, 0px))" }}>
+        <button onClick={onClose} style={{ border: "none", background: "none", cursor: "pointer", padding: 4, lineHeight: 0 }}>
+          <Icon name="x" size={20} color="var(--text-2)" />
+        </button>
+        <b style={{ fontSize: 15.5, color: "var(--text-1)" }}>ขอทำงานล่วงเวลา</b>
+        <span style={{ marginLeft: "auto", fontFamily: "var(--mono)", fontSize: 11.5, color: "var(--text-3)" }}>{f.no}</span>
+      </div>
+
+      <div style={{ padding: 18, display: "grid", gap: 13 }}>
+        <label style={{ display: "grid", gap: 5 }}>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>วันที่</span>
+          <input type="date" value={f.date} onChange={(e) => set("date", e.target.value)} style={LN_FIELD} />
+        </label>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
+          <label style={{ display: "grid", gap: 5 }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ตั้งแต่</span>
+            <input type="time" value={f.from} onChange={(e) => set("from", e.target.value)} style={LN_FIELD} />
+          </label>
+          <label style={{ display: "grid", gap: 5 }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ถึง</span>
+            <input type="time" value={f.to} onChange={(e) => set("to", e.target.value)} style={LN_FIELD} />
+          </label>
+        </div>
+
+        <div style={{ padding: "12px 14px", borderRadius: 13, background: "var(--surface)", border: "1px solid var(--border)" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+            <span style={{ fontSize: 12, color: "var(--text-3)", fontWeight: 700 }}>นับเป็น OT</span>
+            <span style={{ fontFamily: "var(--mono)", fontSize: 20, fontWeight: 800,
+              color: mins ? "var(--primary-dark)" : "var(--text-3)" }}>{window.tmDur(mins)}</span>
+          </div>
+          <div style={{ marginTop: 4, fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
+            {window.tmOtKindOf(f.kind).th}
+            {window.tmIsWorkday(f.date, cfg) ? " · ตัดช่วงที่ทับเวลางานปกติออกแล้ว" : " · นอกวันทำงาน นับทั้งช่วง"}
+          </div>
+        </div>
+
+        <label style={{ display: "grid", gap: 5 }}>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>งานที่เกี่ยวข้อง (ไม่บังคับ)</span>
+          <select value={f.jobId || ""} onChange={(e) => set("jobId", e.target.value || null)} style={LN_FIELD}>
+            <option value="">— ไม่ระบุ —</option>
+            {(jobs || []).slice(0, 80).map((j) => <option key={j.id} value={j.id}>{j.code} · {j.name}</option>)}
+          </select>
+        </label>
+
+        <label style={{ display: "grid", gap: 5 }}>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>เหตุผล</span>
+          <textarea rows={3} value={f.reason} onChange={(e) => set("reason", e.target.value)}
+            placeholder="เช่น ต้องปิดงานให้ทันก่อนการไฟฟ้าเข้าตรวจพรุ่งนี้เช้า"
+            style={Object.assign({}, LN_FIELD, { resize: "vertical", lineHeight: 1.6 })} />
+        </label>
+
+        <button onClick={send} disabled={!ready || sending}
+          style={Object.assign({}, LN_BTN, {
+            background: ready && !sending ? "var(--primary)" : "var(--surface3)",
+            color: ready && !sending ? "#fff" : "var(--text-3)" })}>
+          {sending ? "กำลังส่ง…" : "ส่งขออนุมัติ"}
+        </button>
+
+        {mins <= 0 && (
+          <div style={{ fontSize: 11.5, color: "var(--text-3)", textAlign: "center", lineHeight: 1.7 }}>
+            ช่วงเวลานี้ยังไม่นับเป็น OT — ต้องอยู่นอกเวลางานปกติ และนานพอตามที่บริษัทตั้งไว้
+          </div>
+        )}
+        {mins > 0 && !f.reason.trim() && (
+          <div style={{ fontSize: 11.5, color: "var(--text-3)", textAlign: "center", lineHeight: 1.7 }}>
+            ต้องกรอกเหตุผล — คนอนุมัติตัดสินจากบรรทัดนี้บรรทัดเดียว
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── แท็บ "เวลา" = ลงเวลา + ใบ OT ของฉัน ── */
+function LnTimeTab({ me, users, role, jobs }) {
+  const wh = window.useWorkHours();
+  const otStore = window.useOtClaims();
+  const [form, setForm] = React.useState(false);
+
+  /* กรองที่ชั้นข้อมูล ไม่ใช่แค่ซ่อนบนหน้าจอ — ใบ OT ของคนอื่นไม่ใช่เรื่องของคนนี้ */
+  const myOt = React.useMemo(
+    () => (otStore.rows || []).filter((r) => r && r.userId === (me || {}).id),
+    [otStore.rows, me]);
+
+  return (
+    <React.Fragment>
+      {window.tmCanAttend(role)
+        ? <LnClock me={me} cfg={wh.cfg} jobs={jobs} />
+        : <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>
+            บัญชีนี้ยังไม่ได้เปิดสิทธิ์ลงเวลา
+          </div>}
+
+      {window.tmCanOt(role) && (
+        <div style={{ padding: "0 18px 28px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8 }}>
+            <b style={{ fontSize: 13, color: "var(--text-1)" }}>ใบขอ OT ของฉัน</b>
+            <button onClick={() => setForm(true)}
+              style={{ marginLeft: "auto", padding: "8px 14px", borderRadius: 10, border: "none",
+                background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 12.5,
+                fontWeight: 800, cursor: "pointer" }}>+ ขอ OT</button>
+          </div>
+
+          <div style={{ border: "1px solid var(--border)", borderRadius: 13, overflow: "hidden", background: "var(--surface)" }}>
+            {myOt.length === 0
+              ? <div style={{ padding: 22, textAlign: "center", color: "var(--text-3)", fontSize: 12.5 }}>ยังไม่มีใบขอ OT</div>
+              : myOt.slice(0, 15).map((r) => {
+                  const st = window.tmOtStatusOf(r.status);
+                  return (
+                    <div key={r.id} style={{ padding: "11px 13px", borderBottom: "1px solid var(--border)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>
+                          {window.drShort(r.date)} · {r.from}-{r.to}
+                        </span>
+                        <span style={{ padding: "2px 8px", borderRadius: 99, background: st.color + "1A",
+                          color: st.color, fontSize: 10.5, fontWeight: 800 }}>{st.th}</span>
+                        <span style={{ marginLeft: "auto", fontFamily: "var(--mono)", fontSize: 12.5, fontWeight: 800,
+                          color: "var(--text-1)" }}>{window.tmDur(r.mins)}</span>
+                      </div>
+                      {r.reason && <div style={{ marginTop: 3, fontSize: 11.5, color: "var(--text-3)" }}>{r.reason}</div>}
+                      {r.decidedNote && <div style={{ marginTop: 3, fontSize: 11.5, color: st.color }}>“{r.decidedNote}”</div>}
+                    </div>
+                  );
+                })}
+          </div>
+        </div>
+      )}
+
+      {form && <LnOtForm me={me} users={users} cfg={wh.cfg} jobs={jobs} otStore={otStore} onClose={() => setForm(false)} />}
+    </React.Fragment>
+  );
+}
+
+/* ================================================================
    LnApp — ตัวแอปทั้งหมดของหน้า LIFF
    ================================================================ */
 function LnApp() {
@@ -201,6 +493,8 @@ function LnApp() {
         </React.Fragment>
       )}
 
+      {tab === "time" && <LnTimeTab me={me} users={auth.users} role={role} jobs={mine} />}
+
       {tab === "bell" && (
         myNotifs.length === 0
           ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>ยังไม่มีแจ้งเตือน</div>
@@ -243,7 +537,7 @@ function LnApp() {
           )}
 
           <div style={{ marginTop: 16, fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.7, textAlign: "center" }}>
-            ลงเวลาเข้า-ออกงาน · ขอ OT · เบิกเงิน · รายงานประจำวัน
+            เบิกเงิน · รายงานประจำวัน
             <br />กำลังทยอยเปิดใช้ในเฟสถัดไป
           </div>
         </div>
@@ -254,4 +548,4 @@ function LnApp() {
   );
 }
 
-Object.assign(window, { LnApp, LnJobRow, LnJobSheet, LnHead });
+Object.assign(window, { LnApp, LnJobRow, LnJobSheet, LnHead, LnClock, LnOtForm, LnTimeTab });
