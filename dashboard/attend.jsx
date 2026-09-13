@@ -553,6 +553,19 @@ function useAttendWriter(user, cfg) {
       const openIdx = ex.findIndex((x) => x && x.in && !(x.out && x.out.hm));
       if (openIdx >= 0) ex[openIdx] = Object.assign({}, ex[openIdx], { out: p });
       else if (rec.in && rec.in.hm && !(rec.out && rec.out.hm)) rec.out = p;
+      else if (rec.in && rec.in.hm && o.redo) {
+        /* กดออกงานผิดเวลา — เขียนทับครั้งล่าสุด ไม่ใช่เปิดกะใหม่
+           ต่างจากเวลาเข้างานตรงที่แก้ไม่ได้เด็ดขาด — เวลาออกกดพลาดได้ง่ายกว่าเยอะ
+           เพราะคนกดตอนจะกลับ และกดไปแล้วก็เห็นทันทีว่าผิด แต่แก้เองไม่ได้ */
+        const lastIdx = ex.map((x, i) => (x && x.in && x.in.hm ? i : -1)).filter((i) => i >= 0).pop();
+        const inHM = lastIdx >= 0 ? ex[lastIdx].in.hm : rec.in.hm;
+        if (tmSpanMins(inHM, p.hm) <= 0) return { ok: false, why: "เวลาออกงานต้องอยู่หลังเวลาเข้างาน " + inHM, rec };
+        /* เก็บค่าเก่าไว้ในปั๊มใหม่ เป็นร่องรอยว่าเคยกดออกไว้กี่โมง แล้วมาแก้ทีหลัง */
+        const prev = lastIdx >= 0 ? ex[lastIdx].out : rec.out;
+        const fix = Object.assign({}, p, { redoOf: (prev && prev.hm) || "" });
+        if (lastIdx >= 0) ex[lastIdx] = Object.assign({}, ex[lastIdx], { out: fix });
+        else rec.out = fix;
+      }
       else return { ok: false, why: "ยังไม่ได้ลงเวลาเข้างานของวันนี้", rec };
       rec.extra = ex;
     }
@@ -563,7 +576,7 @@ function useAttendWriter(user, cfg) {
     rec.src = o.src || rec.src || "web";
     rec.mins = tmWorkedMins(rec, cfg);
     rec.updatedAt = new Date().toISOString();
-    rec.hist = (rec.hist || []).concat([{ at: rec.updatedAt, what: which, hm: p.hm, gps: !p.err }]);
+    rec.hist = (rec.hist || []).concat([{ at: rec.updatedAt, what: which === "out" && o.redo ? "out-fix" : which, hm: p.hm, gps: !p.err }]);
 
     /* เขียนใบกับดัชนีในคำสั่งเดียว — ถ้าแยกสองคำสั่งแล้วเน็ตหลุดกลางทาง
        แผ่นรายวันของออฟฟิศจะไม่ตรงกับใบจริง โดยไม่มีใครรู้ */

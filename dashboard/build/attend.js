@@ -551,7 +551,22 @@ function useAttendWriter(user, cfg) {
       const openIdx = ex.findIndex(x => x && x.in && !(x.out && x.out.hm));
       if (openIdx >= 0) ex[openIdx] = Object.assign({}, ex[openIdx], {
         out: p
-      });else if (rec.in && rec.in.hm && !(rec.out && rec.out.hm)) rec.out = p;else return {
+      });else if (rec.in && rec.in.hm && !(rec.out && rec.out.hm)) rec.out = p;else if (rec.in && rec.in.hm && o.redo) {
+        const lastIdx = ex.map((x, i) => x && x.in && x.in.hm ? i : -1).filter(i => i >= 0).pop();
+        const inHM = lastIdx >= 0 ? ex[lastIdx].in.hm : rec.in.hm;
+        if (tmSpanMins(inHM, p.hm) <= 0) return {
+          ok: false,
+          why: "เวลาออกงานต้องอยู่หลังเวลาเข้างาน " + inHM,
+          rec
+        };
+        const prev = lastIdx >= 0 ? ex[lastIdx].out : rec.out;
+        const fix = Object.assign({}, p, {
+          redoOf: prev && prev.hm || ""
+        });
+        if (lastIdx >= 0) ex[lastIdx] = Object.assign({}, ex[lastIdx], {
+          out: fix
+        });else rec.out = fix;
+      } else return {
         ok: false,
         why: "ยังไม่ได้ลงเวลาเข้างานของวันนี้",
         rec
@@ -569,7 +584,7 @@ function useAttendWriter(user, cfg) {
     rec.updatedAt = new Date().toISOString();
     rec.hist = (rec.hist || []).concat([{
       at: rec.updatedAt,
-      what: which,
+      what: which === "out" && o.redo ? "out-fix" : which,
       hm: p.hm,
       gps: !p.err
     }]);

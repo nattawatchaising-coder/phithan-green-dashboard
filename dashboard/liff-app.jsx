@@ -169,6 +169,9 @@ function LnClock({ me, cfg, jobs, onAskOt }) {
   const [msg, setMsg] = React.useState(null);
   const [jobId, setJobId] = React.useState("");
   const [place, setPlace] = React.useState("site");
+  /* งานบ้านกับงานโครงการปนกันอยู่ในช่องเดียว ช่างหนึ่งคนมักทำอย่างเดียวทั้งสัปดาห์
+     กรองก่อนแล้วรายการสั้นลงจนหาด้วยตาได้ — บนมือถือกลางแดดที่ไซต์ รายการยาวเลื่อนหายากกว่าที่คิด */
+  const [jobType, setJobType] = React.useState("all");
 
   /* นาฬิกาเดินเอง — ตัวเลข "ทำงานแล้วกี่ชั่วโมง" ต้องขยับโดยไม่ต้องปิดเปิดแอป
      ยี่สิบวินาทีพอ ตัวเลขแสดงเป็นนาทีอยู่แล้ว ถี่กว่านี้คือกินแบตเปล่า */
@@ -182,25 +185,34 @@ function LnClock({ me, cfg, jobs, onAskOt }) {
   const open = window.tmOpen(today);
   const worked = window.tmWorkedMins(today, cfg, open ? nowHM : null);
   const win = window.tmDayWindow(today, cfg);
-  const earned = window.tmOtEarned(today, cfg, nowHM);
+  /* OT คิดจาก "เวลาที่กดจริง" เท่านั้น — ไม่ส่ง nowHM เข้าไปโดยตั้งใจ
+     กะที่ยังไม่กดออกจึงยังไม่มีตัวเลข OT เพราะตัวเลขที่เดินตามเวลาจริงบอกอะไรไม่ได้
+     ลืมกดออกค้างไว้แล้วกลับบ้าน เลขก็จะวิ่งขึ้นเรื่อย ๆ จนกลายเป็นตัวเลขที่ไม่มีความหมาย */
+  const earned = window.tmOtEarned(today, cfg);
   const left = Math.max(0, window.tmWhNorm(cfg).workMins - worked);
+  const jobPick = React.useMemo(
+    () => (jobs || []).filter((j) => jobType === "all" || j.type === jobType).slice(0, 80),
+    [jobs, jobType]);
 
   React.useEffect(() => {
     if (today && today.jobId) setJobId(today.jobId);
     if (today && today.place) setPlace(today.place);
   }, [today && today.jobId, today && today.place]);
 
-  const go = async () => {
+  const go = async (redo) => {
     if (busy) return;
     setBusy(true); setMsg(null);
     const j = place === "office" ? null : (jobs || []).find((x) => x.id === jobId);
-    const res = await writer.punch(open ? "out" : "in", {
-      src: "liff", place: place, jobId: j ? j.id : null, jobCode: j ? j.code : "",
+    const which = redo ? "out" : open ? "out" : "in";
+    const res = await writer.punch(which, {
+      src: "liff", place: place, jobId: j ? j.id : null, jobCode: j ? j.code : "", redo: !!redo,
     });
     setBusy(false);
     if (!res.ok) { setMsg({ bad: true, text: res.why }); return; }
     const p = res.punch || {};
-    setMsg({ bad: false, text: (open ? "ลงเวลาออกงาน " : "ลงเวลาเข้างาน ") + p.hm
+    const head = redo ? "แก้เวลาออกงานเป็น " : open ? "ลงเวลาออกงาน " : "ลงเวลาเข้างาน ";
+    setMsg({ bad: false, text: head + p.hm
+      + (p.redoOf ? " (จากเดิม " + p.redoOf + ")" : "")
       + (p.err ? " · ไม่ได้พิกัด บันทึกไว้แล้วว่าไม่มี" : " · บันทึกพิกัดแล้ว") });
   };
 
@@ -241,6 +253,13 @@ function LnClock({ me, cfg, jobs, onAskOt }) {
                 ? <React.Fragment>ครบ {window.tmDur(window.tmWhNorm(cfg).workMins)} เวลา <b>{win.end}</b> · เหลืออีก {window.tmDur(left)}</React.Fragment>
                 : <React.Fragment>ครบเวลางานปกติแล้วตั้งแต่ <b>{win.end}</b></React.Fragment>}
             </div>
+            {/* OT ขึ้นตอนกดออกงาน ไม่ใช่ตอนนาฬิกาเดินเลยเวลาเลิก — ต้องบอกไว้
+                ไม่งั้นช่างจะรอดูการ์ด OT ที่ไม่มีวันขึ้น แล้วคิดว่าระบบไม่นับ OT ให้ */}
+            {open && left === 0 && (
+              <div style={{ marginTop: 5, fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.6 }}>
+                เลยเวลางานปกติมาแล้ว · กดออกงานก่อน แล้วค่อยขอ OT ตามเวลาที่กดจริง
+              </div>
+            )}
             {win.late && (
               <div style={{ marginTop: 5, fontSize: 11.5, color: "#F59E0B", fontWeight: 700 }}>
                 เข้างานหลัง {window.tmWhNorm(cfg).startLate} · สาย {window.tmDur(win.lateMins)} — เวลาเลิกเลื่อนตามจริง
@@ -304,19 +323,58 @@ function LnClock({ me, cfg, jobs, onAskOt }) {
       {place !== "office" && (
         <div style={{ marginTop: 12 }}>
           <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 5 }}>วันนี้ไปงานไหน (ไม่บังคับ)</div>
+          {/* ชิปประเภทงาน — ตัดรายการใน select ให้สั้นลงก่อนหา
+              ไม่ได้กรองใบลงเวลา — เลือกงานไหนก็บันทึกงานนั้น ชิปนี้แค่ช่วยหา */}
+          <div style={{ display: "flex", gap: 7, marginBottom: 7 }}>
+            {[{ key: "all", th: "ทั้งหมด" }].concat(window.SF.TYPES).map((t) => (
+              <button key={t.key} onClick={() => {
+                setJobType(t.key);
+                /* งานที่เลือกค้างไว้หลุดจากรายการแล้วต้องล้าง ไม่งั้นจะค้างอยู่แบบมองไม่เห็น */
+                const cur = (jobs || []).find((x) => x.id === jobId);
+                if (cur && t.key !== "all" && cur.type !== t.key) setJobId("");
+              }}
+                style={{ flex: 1, padding: "8px 6px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
+                  fontSize: 12.5, fontWeight: 800,
+                  border: "1px solid " + (jobType === t.key ? "var(--primary)" : "var(--border-strong)"),
+                  background: jobType === t.key ? "var(--primary-soft)" : "var(--surface)",
+                  color: jobType === t.key ? "var(--primary-dark)" : "var(--text-2)" }}>
+                {t.th}
+              </button>
+            ))}
+          </div>
           <select value={jobId} onChange={(e) => setJobId(e.target.value)} style={LN_FIELD}>
             <option value="">— ไม่ระบุ —</option>
-            {(jobs || []).slice(0, 80).map((j) => <option key={j.id} value={j.id}>{j.code} · {j.name}</option>)}
+            {jobPick.map((j) => <option key={j.id} value={j.id}>{j.code} · {j.name}</option>)}
           </select>
+          {jobPick.length === 0 && (
+            <div style={{ marginTop: 5, fontSize: 11, color: "var(--text-3)" }}>ไม่มีงานประเภทนี้ในมือ — ลงเวลาโดยไม่ระบุงานก็ได้</div>
+          )}
         </div>
       )}
 
-      <button onClick={go} disabled={busy}
+      <button onClick={() => go(false)} disabled={busy}
         style={Object.assign({}, LN_BTN, { marginTop: 14,
           background: busy ? "var(--surface3)" : open ? "#EF4444" : "var(--primary)",
           color: busy ? "var(--text-3)" : "#fff" })}>
         {busy ? "กำลังบันทึก…" : open ? "ลงเวลาออกงาน" : "ลงเวลาเข้างาน"}
       </button>
+
+      {/* ── กดออกงานทับ ──
+          กดออกเร็วไปเพราะนึกว่าจะกลับแล้วไม่ได้กลับ เป็นเรื่องที่เกิดทุกวัน
+          กดเข้าใหม่จะกลายเป็นกะที่สอง ซึ่งไม่ใช่สิ่งที่เกิดขึ้นจริง — ต้องเขียนทับเวลาเดิม */}
+      {!open && today && today.in && today.in.hm && (
+        <React.Fragment>
+          <button onClick={() => go(true)} disabled={busy}
+            style={{ marginTop: 9, width: "100%", padding: "12px 14px", borderRadius: 13, cursor: "pointer",
+              fontFamily: "inherit", fontSize: 13.5, fontWeight: 800,
+              border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)" }}>
+            กดออกงานใหม่ · ทับเวลาเดิม
+          </button>
+          <div style={{ marginTop: 6, fontSize: 11, color: "var(--text-3)", lineHeight: 1.7, textAlign: "center" }}>
+            กดออกเร็วไปกดทับได้เลย · เวลาเข้างานแก้ไม่ได้ ต้องแจ้งออฟฟิศ
+          </div>
+        </React.Fragment>
+      )}
 
       {msg && (
         <div style={{ marginTop: 11, padding: "11px 13px", borderRadius: 12, fontSize: 13, fontWeight: 700, textAlign: "center",

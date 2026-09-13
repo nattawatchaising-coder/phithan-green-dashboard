@@ -340,6 +340,7 @@ function LnClock({
   const [msg, setMsg] = React.useState(null);
   const [jobId, setJobId] = React.useState("");
   const [place, setPlace] = React.useState("site");
+  const [jobType, setJobType] = React.useState("all");
   const [nowHM, setNowHM] = React.useState(window.tmNowHM);
   React.useEffect(() => {
     const t = setInterval(() => setNowHM(window.tmNowHM()), 20000);
@@ -349,22 +350,25 @@ function LnClock({
   const open = window.tmOpen(today);
   const worked = window.tmWorkedMins(today, cfg, open ? nowHM : null);
   const win = window.tmDayWindow(today, cfg);
-  const earned = window.tmOtEarned(today, cfg, nowHM);
+  const earned = window.tmOtEarned(today, cfg);
   const left = Math.max(0, window.tmWhNorm(cfg).workMins - worked);
+  const jobPick = React.useMemo(() => (jobs || []).filter(j => jobType === "all" || j.type === jobType).slice(0, 80), [jobs, jobType]);
   React.useEffect(() => {
     if (today && today.jobId) setJobId(today.jobId);
     if (today && today.place) setPlace(today.place);
   }, [today && today.jobId, today && today.place]);
-  const go = async () => {
+  const go = async redo => {
     if (busy) return;
     setBusy(true);
     setMsg(null);
     const j = place === "office" ? null : (jobs || []).find(x => x.id === jobId);
-    const res = await writer.punch(open ? "out" : "in", {
+    const which = redo ? "out" : open ? "out" : "in";
+    const res = await writer.punch(which, {
       src: "liff",
       place: place,
       jobId: j ? j.id : null,
-      jobCode: j ? j.code : ""
+      jobCode: j ? j.code : "",
+      redo: !!redo
     });
     setBusy(false);
     if (!res.ok) {
@@ -375,9 +379,10 @@ function LnClock({
       return;
     }
     const p = res.punch || {};
+    const head = redo ? "แก้เวลาออกงานเป็น " : open ? "ลงเวลาออกงาน " : "ลงเวลาเข้างาน ";
     setMsg({
       bad: false,
-      text: (open ? "ลงเวลาออกงาน " : "ลงเวลาเข้างาน ") + p.hm + (p.err ? " · ไม่ได้พิกัด บันทึกไว้แล้วว่าไม่มี" : " · บันทึกพิกัดแล้ว")
+      text: head + p.hm + (p.redoOf ? " (จากเดิม " + p.redoOf + ")" : "") + (p.err ? " · ไม่ได้พิกัด บันทึกไว้แล้วว่าไม่มี" : " · บันทึกพิกัดแล้ว")
     });
   };
   return React.createElement("div", {
@@ -458,7 +463,14 @@ function LnClock({
       color: "var(--text-2)",
       lineHeight: 1.7
     }
-  }, open && left > 0 ? React.createElement(React.Fragment, null, "\u0E04\u0E23\u0E1A ", window.tmDur(window.tmWhNorm(cfg).workMins), " \u0E40\u0E27\u0E25\u0E32 ", React.createElement("b", null, win.end), " \xB7 \u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E2D\u0E35\u0E01 ", window.tmDur(left)) : React.createElement(React.Fragment, null, "\u0E04\u0E23\u0E1A\u0E40\u0E27\u0E25\u0E32\u0E07\u0E32\u0E19\u0E1B\u0E01\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48 ", React.createElement("b", null, win.end))), win.late && React.createElement("div", {
+  }, open && left > 0 ? React.createElement(React.Fragment, null, "\u0E04\u0E23\u0E1A ", window.tmDur(window.tmWhNorm(cfg).workMins), " \u0E40\u0E27\u0E25\u0E32 ", React.createElement("b", null, win.end), " \xB7 \u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E2D\u0E35\u0E01 ", window.tmDur(left)) : React.createElement(React.Fragment, null, "\u0E04\u0E23\u0E1A\u0E40\u0E27\u0E25\u0E32\u0E07\u0E32\u0E19\u0E1B\u0E01\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48 ", React.createElement("b", null, win.end))), open && left === 0 && React.createElement("div", {
+    style: {
+      marginTop: 5,
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      lineHeight: 1.6
+    }
+  }, "\u0E40\u0E25\u0E22\u0E40\u0E27\u0E25\u0E32\u0E07\u0E32\u0E19\u0E1B\u0E01\u0E15\u0E34\u0E21\u0E32\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E01\u0E14\u0E2D\u0E2D\u0E01\u0E07\u0E32\u0E19\u0E01\u0E48\u0E2D\u0E19 \u0E41\u0E25\u0E49\u0E27\u0E04\u0E48\u0E2D\u0E22\u0E02\u0E2D OT \u0E15\u0E32\u0E21\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E01\u0E14\u0E08\u0E23\u0E34\u0E07"), win.late && React.createElement("div", {
     style: {
       marginTop: 5,
       fontSize: 11.5,
@@ -576,24 +588,82 @@ function LnClock({
       color: "var(--text-3)",
       marginBottom: 5
     }
-  }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\u0E44\u0E1B\u0E07\u0E32\u0E19\u0E44\u0E2B\u0E19 (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A)"), React.createElement("select", {
+  }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\u0E44\u0E1B\u0E07\u0E32\u0E19\u0E44\u0E2B\u0E19 (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A)"), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 7,
+      marginBottom: 7
+    }
+  }, [{
+    key: "all",
+    th: "ทั้งหมด"
+  }].concat(window.SF.TYPES).map(t => React.createElement("button", {
+    key: t.key,
+    onClick: () => {
+      setJobType(t.key);
+      const cur = (jobs || []).find(x => x.id === jobId);
+      if (cur && t.key !== "all" && cur.type !== t.key) setJobId("");
+    },
+    style: {
+      flex: 1,
+      padding: "8px 6px",
+      borderRadius: 10,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 800,
+      border: "1px solid " + (jobType === t.key ? "var(--primary)" : "var(--border-strong)"),
+      background: jobType === t.key ? "var(--primary-soft)" : "var(--surface)",
+      color: jobType === t.key ? "var(--primary-dark)" : "var(--text-2)"
+    }
+  }, t.th))), React.createElement("select", {
     value: jobId,
     onChange: e => setJobId(e.target.value),
     style: LN_FIELD
   }, React.createElement("option", {
     value: ""
-  }, "\u2014 \u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38 \u2014"), (jobs || []).slice(0, 80).map(j => React.createElement("option", {
+  }, "\u2014 \u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38 \u2014"), jobPick.map(j => React.createElement("option", {
     key: j.id,
     value: j.id
-  }, j.code, " \xB7 ", j.name)))), React.createElement("button", {
-    onClick: go,
+  }, j.code, " \xB7 ", j.name))), jobPick.length === 0 && React.createElement("div", {
+    style: {
+      marginTop: 5,
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E19\u0E35\u0E49\u0E43\u0E19\u0E21\u0E37\u0E2D \u2014 \u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E07\u0E32\u0E19\u0E01\u0E47\u0E44\u0E14\u0E49")), React.createElement("button", {
+    onClick: () => go(false),
     disabled: busy,
     style: Object.assign({}, LN_BTN, {
       marginTop: 14,
       background: busy ? "var(--surface3)" : open ? "#EF4444" : "var(--primary)",
       color: busy ? "var(--text-3)" : "#fff"
     })
-  }, busy ? "กำลังบันทึก…" : open ? "ลงเวลาออกงาน" : "ลงเวลาเข้างาน"), msg && React.createElement("div", {
+  }, busy ? "กำลังบันทึก…" : open ? "ลงเวลาออกงาน" : "ลงเวลาเข้างาน"), !open && today && today.in && today.in.hm && React.createElement(React.Fragment, null, React.createElement("button", {
+    onClick: () => go(true),
+    disabled: busy,
+    style: {
+      marginTop: 9,
+      width: "100%",
+      padding: "12px 14px",
+      borderRadius: 13,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 13.5,
+      fontWeight: 800,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-2)"
+    }
+  }, "\u0E01\u0E14\u0E2D\u0E2D\u0E01\u0E07\u0E32\u0E19\u0E43\u0E2B\u0E21\u0E48 \xB7 \u0E17\u0E31\u0E1A\u0E40\u0E27\u0E25\u0E32\u0E40\u0E14\u0E34\u0E21"), React.createElement("div", {
+    style: {
+      marginTop: 6,
+      fontSize: 11,
+      color: "var(--text-3)",
+      lineHeight: 1.7,
+      textAlign: "center"
+    }
+  }, "\u0E01\u0E14\u0E2D\u0E2D\u0E01\u0E40\u0E23\u0E47\u0E27\u0E44\u0E1B\u0E01\u0E14\u0E17\u0E31\u0E1A\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22 \xB7 \u0E40\u0E27\u0E25\u0E32\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19\u0E41\u0E01\u0E49\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E15\u0E49\u0E2D\u0E07\u0E41\u0E08\u0E49\u0E07\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28")), msg && React.createElement("div", {
     style: {
       marginTop: 11,
       padding: "11px 13px",
