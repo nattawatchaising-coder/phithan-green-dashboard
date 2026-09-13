@@ -95,8 +95,164 @@ function useLnLinks() {
   return links;
 }
 const lnMonthOf = at => String(at || "").slice(0, 7);
+function lnLocalParts(t) {
+  const d = new Date(t);
+  const iso = new Date(t - d.getTimezoneOffset() * 60000).toISOString();
+  return {
+    date: iso.slice(0, 10),
+    time: iso.slice(11, 16)
+  };
+}
+function lnLeftText(ms) {
+  const m = Math.max(0, Math.round(ms / 60000));
+  if (m < 60) return m + " นาที";
+  const h = Math.floor(m / 60);
+  return h + " ชม." + (m % 60 ? " " + m % 60 + " น." : "");
+}
+function LnWebSwitch({
+  currentUser
+}) {
+  const gate = window.useLnWebGate ? window.useLnWebGate() : {
+    cfg: null,
+    loading: true,
+    open: false,
+    now: Date.now(),
+    save: function () {}
+  };
+  const [hours, setHours] = React.useState("8");
+  const cfg = gate.cfg || {};
+  const hrs = window.LN_WEB_HOURS || [];
+  const openIt = hKey => {
+    const h = (hrs.find(x => x.key === hKey) || {}).h || 0;
+    gate.save({
+      on: 1,
+      until: h ? new Date(Date.now() + h * 3600000).toISOString() : null,
+      at: new Date().toISOString(),
+      byId: (currentUser || {}).id || "",
+      byName: (currentUser || {}).name || ""
+    });
+  };
+  const shut = () => gate.save({
+    on: 0,
+    until: null,
+    at: new Date().toISOString(),
+    byId: (currentUser || {}).id || "",
+    byName: (currentUser || {}).name || ""
+  });
+  const left = gate.open && cfg.until ? Date.parse(cfg.until) - gate.now : 0;
+  const until = cfg.until ? lnLocalParts(Date.parse(cfg.until)) : null;
+  const tone = gate.open ? "#F59E0B" : "var(--text-3)";
+  return React.createElement("div", null, React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, "\u0E17\u0E32\u0E07\u0E40\u0E02\u0E49\u0E32\u0E2B\u0E19\u0E49\u0E32\u0E0A\u0E48\u0E32\u0E07\u0E08\u0E32\u0E01\u0E40\u0E1A\u0E23\u0E32\u0E27\u0E4C\u0E40\u0E0B\u0E2D\u0E23\u0E4C"), React.createElement("div", {
+    style: {
+      marginTop: 4,
+      marginBottom: 10,
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      lineHeight: 1.7
+    }
+  }, "\u0E2B\u0E19\u0E49\u0E32 ", React.createElement("b", null, "/liff.html"), " \u0E40\u0E1B\u0E34\u0E14\u0E1A\u0E19\u0E04\u0E2D\u0E21\u0E44\u0E14\u0E49\u0E14\u0E49\u0E27\u0E22\u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E01\u0E31\u0E1A\u0E23\u0E2B\u0E31\u0E2A\u0E40\u0E14\u0E34\u0E21 \u2014 \u0E21\u0E35\u0E44\u0E27\u0E49\u0E14\u0E39\u0E41\u0E25\u0E30\u0E41\u0E01\u0E49\u0E2B\u0E19\u0E49\u0E32\u0E08\u0E2D\u0E21\u0E37\u0E2D\u0E16\u0E37\u0E2D\u0E15\u0E2D\u0E19\u0E1E\u0E31\u0E12\u0E19\u0E32\u0E23\u0E30\u0E1A\u0E1A", React.createElement("br", null), "\u0E0A\u0E48\u0E32\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E43\u0E0A\u0E49\u0E17\u0E32\u0E07\u0E19\u0E35\u0E49 (\u0E40\u0E02\u0E32\u0E40\u0E02\u0E49\u0E32\u0E08\u0E32\u0E01\u0E40\u0E21\u0E19\u0E39\u0E43\u0E19\u0E41\u0E0A\u0E15) \u0E1B\u0E01\u0E15\u0E34\u0E08\u0E36\u0E07\u0E04\u0E27\u0E23\u0E1B\u0E34\u0E14\u0E44\u0E27\u0E49 \u0E41\u0E25\u0E49\u0E27\u0E40\u0E1B\u0E34\u0E14\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E15\u0E2D\u0E19\u0E08\u0E30\u0E43\u0E0A\u0E49"), React.createElement("div", {
+    style: {
+      padding: "15px 17px",
+      borderRadius: 15,
+      background: "var(--surface)",
+      border: "1px solid " + (gate.open ? tone : "var(--border)")
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 800,
+      color: gate.open ? tone : "var(--text-2)"
+    }
+  }, gate.loading ? "กำลังอ่านค่า…" : gate.open ? "เปิดอยู่" : "ปิดอยู่"), React.createElement("div", {
+    style: {
+      marginTop: 3,
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      lineHeight: 1.6
+    }
+  }, gate.loading ? "\u00a0" : gate.open ? cfg.until ? "ปิดเองอัตโนมัติ " + window.drShort(until.date) + " " + until.time + " น. · เหลืออีก " + lnLeftText(left) : "เปิดค้างไว้จนกว่าจะกดปิดเอง" : "ใครเปิด /liff.html บนเบราว์เซอร์จะเจอจอแจ้งว่าทางเข้านี้ปิดอยู่", cfg.byName ? React.createElement(React.Fragment, null, React.createElement("br", null), gate.open ? "เปิดโดย " : "ปิดโดย ", cfg.byName) : null)), React.createElement("button", {
+    onClick: () => gate.open ? shut() : openIt(hours),
+    disabled: gate.loading,
+    style: {
+      width: 46,
+      height: 26,
+      borderRadius: 99,
+      border: "none",
+      cursor: gate.loading ? "default" : "pointer",
+      padding: 3,
+      background: gate.open ? tone : "var(--surface3)",
+      display: "flex",
+      justifyContent: gate.open ? "flex-end" : "flex-start",
+      transition: "background .15s"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 20,
+      height: 20,
+      borderRadius: 99,
+      background: "#fff",
+      display: "block"
+    }
+  }))), React.createElement("div", {
+    style: {
+      marginTop: 13,
+      display: "flex",
+      gap: 7,
+      flexWrap: "wrap",
+      alignItems: "center"
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      fontWeight: 700
+    }
+  }, gate.open ? "ต่อเวลาเป็น" : "เปิดครั้งนี้นาน"), hrs.map(x => React.createElement("button", {
+    key: x.key,
+    onClick: () => {
+      setHours(x.key);
+      if (gate.open) openIt(x.key);
+    },
+    style: {
+      padding: "5px 12px",
+      borderRadius: 99,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      border: "1px solid " + (hours === x.key ? "var(--primary)" : "var(--border)"),
+      background: hours === x.key ? "var(--primary-soft)" : "var(--surface2)",
+      color: hours === x.key ? "var(--primary)" : "var(--text-2)"
+    }
+  }, x.th)))), React.createElement("div", {
+    style: {
+      marginTop: 9,
+      fontSize: 11,
+      color: "var(--text-3)",
+      lineHeight: 1.7
+    }
+  }, "\u0E19\u0E35\u0E48\u0E04\u0E37\u0E2D", React.createElement("b", null, "\u0E25\u0E47\u0E2D\u0E01\u0E01\u0E31\u0E19\u0E40\u0E1C\u0E25\u0E2D \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E01\u0E33\u0E41\u0E1E\u0E07\u0E04\u0E27\u0E32\u0E21\u0E1B\u0E25\u0E2D\u0E14\u0E20\u0E31\u0E22"), " \u2014 \u0E2A\u0E34\u0E48\u0E07\u0E17\u0E35\u0E48\u0E01\u0E31\u0E19\u0E04\u0E19\u0E41\u0E1B\u0E25\u0E01\u0E2B\u0E19\u0E49\u0E32\u0E08\u0E23\u0E34\u0E07 \u0E46 \u0E22\u0E31\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E23\u0E2B\u0E31\u0E2A\u0E1C\u0E48\u0E32\u0E19 \u0E2A\u0E27\u0E34\u0E15\u0E0A\u0E4C\u0E19\u0E35\u0E49\u0E41\u0E04\u0E48\u0E40\u0E2D\u0E32\u0E1F\u0E2D\u0E23\u0E4C\u0E21\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01 URL \u0E2A\u0E32\u0E18\u0E32\u0E23\u0E13\u0E30\u0E43\u0E19\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E43\u0E0A\u0E49", React.createElement("br", null), "\u0E1B\u0E34\u0E14\u0E2D\u0E22\u0E39\u0E48", React.createElement("b", null, "\u0E44\u0E21\u0E48\u0E01\u0E23\u0E30\u0E17\u0E1A\u0E43\u0E04\u0E23\u0E40\u0E25\u0E22"), " \u2014 \u0E0A\u0E48\u0E32\u0E07\u0E40\u0E02\u0E49\u0E32\u0E08\u0E32\u0E01\u0E40\u0E21\u0E19\u0E39\u0E43\u0E19\u0E41\u0E0A\u0E15\u0E44\u0E14\u0E49\u0E15\u0E32\u0E21\u0E1B\u0E01\u0E15\u0E34 \u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E40\u0E02\u0E49\u0E32\u0E40\u0E27\u0E47\u0E1A\u0E19\u0E35\u0E49\u0E44\u0E14\u0E49\u0E15\u0E32\u0E21\u0E1B\u0E01\u0E15\u0E34"));
+}
 function LineAdminView({
-  users
+  users,
+  currentUser
 }) {
   const log = useLnPushLog(800);
   const {
@@ -411,7 +567,9 @@ function LineAdminView({
       color: "var(--text-2)",
       fontWeight: 600
     }
-  }, u.name)))), React.createElement("div", {
+  }, u.name)))), React.createElement(LnWebSwitch, {
+    currentUser: currentUser
+  }), React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",
@@ -421,8 +579,11 @@ function LineAdminView({
 }
 Object.assign(window, {
   LineAdminView,
+  LnWebSwitch,
   LN_KIND,
   useLnPushLog,
   useLnConfig,
-  useLnLinks
+  useLnLinks,
+  lnLocalParts,
+  lnLeftText
 });

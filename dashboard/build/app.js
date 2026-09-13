@@ -1159,7 +1159,8 @@ function App() {
     role: role,
     currentUser: auth.current
   }), view === "line" && React.createElement(window.LineAdminView, {
-    users: auth.users
+    users: auth.users,
+    currentUser: auth.current
   }), view === "report" && React.createElement(ReportView, {
     jobs: filtered,
     onOpen: openJob

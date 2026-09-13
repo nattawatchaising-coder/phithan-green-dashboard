@@ -192,6 +192,89 @@ function LnBindScreen({ profile, onBind }) {
   );
 }
 
+/* ── สวิตช์เปิด/ปิด "ทางเข้าด้วยรหัสเว็บ" ──
+   ทางเข้านั้นมีไว้ให้ทีมพัฒนาเปิดหน้าช่างบนคอมตอนแก้โค้ด ไม่ใช่ทางเข้าประจำวันของใคร
+   วันปกติจึงควรปิดไว้ แล้วเปิดเฉพาะตอนจะใช้จริง — น้อยวันที่เปิด = น้อยวันที่ต้องเดา
+
+   ⚠ พูดกันตรง ๆ ว่านี่คือ "ล็อกกันเผลอ" ไม่ใช่กำแพงความปลอดภัย
+     กฎ RTDB ของโปรเจกต์นี้ยังเปิดอยู่ ค่าสวิตช์จึงเป็นค่าที่ฝั่งเบราว์เซอร์อ่านมาเชื่อ
+     สิ่งที่กันคนแปลกหน้าจริง ๆ ยังเป็นรหัสผ่านเหมือนเดิม สวิตช์นี้แค่เอาฟอร์มออกจาก URL สาธารณะ
+     (ถ้าจะให้เป็นกำแพงจริงต้องรัดกฎฐานข้อมูล ซึ่งเป็นงานคนละก้อนและกระทบทั้งเว็บ)
+
+   ยังไม่เคยตั้งค่า = ปิด — ค่าปริยายที่ปลอดภัยกว่าคือค่าที่ไม่เปิดอะไรทิ้งไว้โดยไม่มีใครสั่ง
+   และการปิดอยู่ไม่เคยทำให้ใครเข้าไม่ได้ ช่างเข้าจากเมนูในแชตได้ตามปกติ
+   แอดมินเข้าเว็บเดสก์ท็อปได้ตามปกติ */
+const LN_WEB_NODE = "config/lnWebLogin";
+
+/* ตัวเลือกเวลาปิดเอง — เปิดแล้วลืมปิดคือสิ่งที่จะเกิดจริงถ้าไม่มีตัวนี้ */
+const LN_WEB_HOURS = [
+  { key: "1",  th: "1 ชั่วโมง", h: 1 },
+  { key: "8",  th: "8 ชั่วโมง", h: 8 },
+  { key: "24", th: "1 วัน",     h: 24 },
+  { key: "0",  th: "ไม่ปิดเอง", h: 0 },
+];
+
+/* ฟังก์ชันล้วน ใช้ร่วมกันทั้งหน้า LIFF และหน้าแอดมิน จะได้ไม่มีกฎสองชุด */
+function lnWebOpen(cfg) {
+  if (!cfg || !cfg.on) return false;
+  if (!cfg.until) return true;
+  const t = Date.parse(cfg.until);
+  return !t || Date.now() < t;
+}
+
+function useLnWebGate() {
+  /* undefined = ยังไม่รู้ · null = ไม่มีค่า(ปิด) — ต้องแยกกัน ไม่งั้นจอจะกะพริบเป็น "ปิดอยู่"
+     หนึ่งเฟรมก่อนข้อมูลมาถึง แล้วคนที่เปิดไว้จะคิดว่าพัง */
+  const [cfg, setCfg] = React.useState(undefined);
+  const [now, setNow] = React.useState(Date.now());
+
+  React.useEffect(() => {
+    if (!window.firebase || !window.firebase.apps || !window.firebase.apps.length) { setCfg(null); return; }
+    const ref = window.firebase.database().ref(LN_WEB_NODE);
+    const h = ref.on("value", (snap) => setCfg(snap.val() || null), () => setCfg(null));
+    return () => ref.off("value", h);
+  }, []);
+
+  /* เดินนาฬิกาทุกนาที เพื่อให้ "หมดเวลาแล้ว" เกิดขึ้นเองโดยไม่ต้องรีเฟรช
+     (ค่าใน cfg ไม่เปลี่ยน ฐานข้อมูลจึงไม่ยิงอะไรกลับมาให้ re-render) */
+  React.useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(t);
+  }, []);
+
+  const save = React.useCallback((next) => {
+    if (window.firebase && window.firebase.apps && window.firebase.apps.length)
+      window.firebase.database().ref(LN_WEB_NODE).set(next);
+  }, []);
+
+  return { cfg: cfg || null, loading: cfg === undefined, open: lnWebOpen(cfg), now: now, save: save };
+}
+
+/* ── จอตอนทางเข้านี้ถูกปิดไว้ ──
+   ต้องบอกให้ครบว่า "ปิดเพราะตั้งใจปิด" · "ใครเปิดได้" · "ช่างยังใช้งานได้ตามปกติ"
+   ไม่ใช่จอ error ที่ทำให้คนคิดว่าระบบล่มแล้วโทรตามกันทั้งบริษัท */
+function LnWebShut() {
+  return (
+    <div style={{ minHeight: "100dvh", background: "var(--bg)", padding: "34px 22px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+      <div style={{ maxWidth: 400, width: "100%", margin: "0 auto", textAlign: "center" }}>
+        {window.BrandLockup ? <window.BrandLockup size={30} /> : <div style={{ fontWeight: 800, fontSize: 22 }}>flash+solar</div>}
+
+        <div style={{ marginTop: 20, padding: "22px 20px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)" }}>ทางเข้านี้ปิดอยู่</div>
+          <div style={{ marginTop: 9, fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.75 }}>
+            หน้าช่างเปิดได้จากแอป LINE — กดเมนูด้านล่างในแชต flash+solar
+            <br />ทางเข้าด้วยรหัสผ่านบนเบราว์เซอร์มีไว้ตอนทีมพัฒนาแก้ระบบเท่านั้น จึงปิดไว้เป็นปกติ
+          </div>
+        </div>
+
+        <div style={{ marginTop: 14, fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.7 }}>
+          ต้องใช้จริง? แอดมินเปิดให้ได้ที่หน้าเว็บ → “แจ้งเตือน LINE” → ทางเข้าหน้าช่างจากเบราว์เซอร์
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── เข้าหน้าช่างจากเบราว์เซอร์ธรรมดา ──
    มีไว้ให้ดูและทดสอบหน้าจอมือถือบนคอม โดยไม่ต้องถือโทรศัพท์เปิดแอป LINE
 
@@ -203,6 +286,15 @@ function LnBindScreen({ profile, onBind }) {
    ทางนี้ไม่ผูกบัญชี LINE ให้ และไม่แตะ lineLinks — การผูกต้องมี ID token จริงเท่านั้น
    จึงใช้แทนการผูกครั้งแรกของช่างไม่ได้ ตั้งใจ */
 function LnWebLogin({ reason, onDone }) {
+  const gate = useLnWebGate();
+  /* รอค่าก่อน ไม่เดา — เดาผิดทางไหนก็แย่ทั้งคู่
+     (เดาว่าเปิด = ฟอร์มโผล่แวบหนึ่งทั้งที่สั่งปิด · เดาว่าปิด = คนที่เปิดไว้เห็นจอปิดแล้วสับสน) */
+  if (gate.loading) return <LnSplash text="กำลังเข้าสู่ระบบ…" />;
+  if (!gate.open) return <LnWebShut />;
+  return <LnWebForm reason={reason} onDone={onDone} />;
+}
+
+function LnWebForm({ reason, onDone }) {
   const [users, setUsers] = React.useState(null);
   const [u, setU] = React.useState("");
   const [p, setP] = React.useState("");
@@ -289,4 +381,5 @@ function LnGate({ children }) {
   return children;
 }
 
-Object.assign(window, { LN_TEST, LN_SESSION_KEY, lnPush, useLnSession, LnGate, LnSplash, LnBindScreen, LnWebLogin });
+Object.assign(window, { LN_TEST, LN_SESSION_KEY, LN_WEB_NODE, LN_WEB_HOURS, lnPush, lnWebOpen, useLnSession,
+  useLnWebGate, LnGate, LnSplash, LnBindScreen, LnWebLogin, LnWebForm, LnWebShut });

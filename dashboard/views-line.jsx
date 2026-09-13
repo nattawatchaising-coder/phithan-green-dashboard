@@ -79,7 +79,104 @@ function useLnLinks() {
 
 const lnMonthOf = (at) => String(at || "").slice(0, 7);
 
-function LineAdminView({ users }) {
+/* เวลาไทยของ timestamp — toISOString() เป็น UTC จึงต้องเลื่อนก่อนตัดเอาวันที่
+   ห้ามใช้ toLocaleDateString("th-TH") เพราะรันไทม์คนละตัวคืน พ.ศ./ค.ศ. ไม่เหมือนกัน */
+function lnLocalParts(t) {
+  const d = new Date(t);
+  const iso = new Date(t - d.getTimezoneOffset() * 60000).toISOString();
+  return { date: iso.slice(0, 10), time: iso.slice(11, 16) };
+}
+
+function lnLeftText(ms) {
+  const m = Math.max(0, Math.round(ms / 60000));
+  if (m < 60) return m + " นาที";
+  const h = Math.floor(m / 60);
+  return h + " ชม." + (m % 60 ? " " + (m % 60) + " น." : "");
+}
+
+/* ── ทางเข้าหน้าช่างจากเบราว์เซอร์ — เปิด/ปิด/ตั้งเวลาปิดเอง ──
+   กฎว่า "เปิดอยู่ไหม" อยู่ที่ lnWebOpen ใน line.jsx ที่เดียว หน้านี้ไม่ตัดสินเอง */
+function LnWebSwitch({ currentUser }) {
+  const gate = window.useLnWebGate ? window.useLnWebGate() : { cfg: null, loading: true, open: false, now: Date.now(), save: function () {} };
+  const [hours, setHours] = React.useState("8");
+  const cfg = gate.cfg || {};
+  const hrs = (window.LN_WEB_HOURS || []);
+
+  const openIt = (hKey) => {
+    const h = (hrs.find((x) => x.key === hKey) || {}).h || 0;
+    gate.save({
+      on: 1,
+      until: h ? new Date(Date.now() + h * 3600000).toISOString() : null,
+      at: new Date().toISOString(),
+      byId: (currentUser || {}).id || "",
+      byName: (currentUser || {}).name || "",
+    });
+  };
+  const shut = () => gate.save({ on: 0, until: null, at: new Date().toISOString(),
+    byId: (currentUser || {}).id || "", byName: (currentUser || {}).name || "" });
+
+  const left = gate.open && cfg.until ? Date.parse(cfg.until) - gate.now : 0;
+  const until = cfg.until ? lnLocalParts(Date.parse(cfg.until)) : null;
+  const tone = gate.open ? "#F59E0B" : "var(--text-3)";
+
+  return (
+    <div>
+      <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>ทางเข้าหน้าช่างจากเบราว์เซอร์</div>
+      <div style={{ marginTop: 4, marginBottom: 10, fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.7 }}>
+        หน้า <b>/liff.html</b> เปิดบนคอมได้ด้วยชื่อผู้ใช้กับรหัสเดิม — มีไว้ดูและแก้หน้าจอมือถือตอนพัฒนาระบบ
+        <br />ช่างไม่ได้ใช้ทางนี้ (เขาเข้าจากเมนูในแชต) ปกติจึงควรปิดไว้ แล้วเปิดเฉพาะตอนจะใช้
+      </div>
+
+      <div style={{ padding: "15px 17px", borderRadius: 15, background: "var(--surface)",
+        border: "1px solid " + (gate.open ? tone : "var(--border)") }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: gate.open ? tone : "var(--text-2)" }}>
+              {gate.loading ? "กำลังอ่านค่า…" : gate.open ? "เปิดอยู่" : "ปิดอยู่"}
+            </div>
+            <div style={{ marginTop: 3, fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.6 }}>
+              {gate.loading ? "\u00a0"
+                : gate.open
+                  ? (cfg.until
+                      ? "ปิดเองอัตโนมัติ " + window.drShort(until.date) + " " + until.time + " น. · เหลืออีก " + lnLeftText(left)
+                      : "เปิดค้างไว้จนกว่าจะกดปิดเอง")
+                  : "ใครเปิด /liff.html บนเบราว์เซอร์จะเจอจอแจ้งว่าทางเข้านี้ปิดอยู่"}
+              {cfg.byName ? <React.Fragment><br />{gate.open ? "เปิดโดย " : "ปิดโดย "}{cfg.byName}</React.Fragment> : null}
+            </div>
+          </div>
+          <button onClick={() => (gate.open ? shut() : openIt(hours))} disabled={gate.loading}
+            style={{ width: 46, height: 26, borderRadius: 99, border: "none", cursor: gate.loading ? "default" : "pointer", padding: 3,
+              background: gate.open ? tone : "var(--surface3)", display: "flex",
+              justifyContent: gate.open ? "flex-end" : "flex-start", transition: "background .15s" }}>
+            <span style={{ width: 20, height: 20, borderRadius: 99, background: "#fff", display: "block" }} />
+          </button>
+        </div>
+
+        {/* เลือกอายุก่อนเปิด — พอเปิดแล้วกดปุ่มเดิมซ้ำได้เพื่อต่อเวลา */}
+        <div style={{ marginTop: 13, display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
+          <span style={{ fontSize: 11.5, color: "var(--text-3)", fontWeight: 700 }}>
+            {gate.open ? "ต่อเวลาเป็น" : "เปิดครั้งนี้นาน"}
+          </span>
+          {hrs.map((x) => (
+            <button key={x.key} onClick={() => { setHours(x.key); if (gate.open) openIt(x.key); }}
+              style={{ padding: "5px 12px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+                border: "1px solid " + (hours === x.key ? "var(--primary)" : "var(--border)"),
+                background: hours === x.key ? "var(--primary-soft)" : "var(--surface2)",
+                color: hours === x.key ? "var(--primary)" : "var(--text-2)" }}>{x.th}</button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 9, fontSize: 11, color: "var(--text-3)", lineHeight: 1.7 }}>
+        นี่คือ<b>ล็อกกันเผลอ ไม่ใช่กำแพงความปลอดภัย</b> — สิ่งที่กันคนแปลกหน้าจริง ๆ ยังเป็นรหัสผ่าน
+        สวิตช์นี้แค่เอาฟอร์มออกจาก URL สาธารณะในวันที่ไม่ได้ใช้
+        <br />ปิดอยู่<b>ไม่กระทบใครเลย</b> — ช่างเข้าจากเมนูในแชตได้ตามปกติ แอดมินเข้าเว็บนี้ได้ตามปกติ
+      </div>
+    </div>
+  );
+}
+
+function LineAdminView({ users, currentUser }) {
   const log = useLnPushLog(800);
   const { cfg, save } = useLnConfig();
   const links = useLnLinks();
@@ -247,6 +344,8 @@ function LineAdminView({ users }) {
         </div>
       )}
 
+      <LnWebSwitch currentUser={currentUser} />
+
       <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.8 }}>
         <b>ถ้าโควตาใกล้เต็ม</b> ลำดับที่ควรทำ: ปิด “รายงานประจำวัน” กับ “อื่น ๆ” ก่อน (คนเปิดแอปเจออยู่แล้ว) →
         ปิด “ใบเบิกเงิน” เฉพาะช่วงสิ้นเดือน → เก็บ “มอบหมายงาน” กับ “เอกสารถูกตีกลับ” ไว้จนถึงที่สุด
@@ -257,4 +356,4 @@ function LineAdminView({ users }) {
   );
 }
 
-Object.assign(window, { LineAdminView, LN_KIND, useLnPushLog, useLnConfig, useLnLinks });
+Object.assign(window, { LineAdminView, LnWebSwitch, LN_KIND, useLnPushLog, useLnConfig, useLnLinks, lnLocalParts, lnLeftText });

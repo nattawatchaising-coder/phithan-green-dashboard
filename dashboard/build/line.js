@@ -360,7 +360,126 @@ function LnBindScreen({
     }
   }, "\u0E25\u0E37\u0E21\u0E23\u0E2B\u0E31\u0E2A\u0E1C\u0E48\u0E32\u0E19 \u0E2B\u0E23\u0E37\u0E2D\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1A\u0E31\u0E0D\u0E0A\u0E35 \u2014 \u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E02\u0E2D\u0E07\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17")));
 }
+const LN_WEB_NODE = "config/lnWebLogin";
+const LN_WEB_HOURS = [{
+  key: "1",
+  th: "1 ชั่วโมง",
+  h: 1
+}, {
+  key: "8",
+  th: "8 ชั่วโมง",
+  h: 8
+}, {
+  key: "24",
+  th: "1 วัน",
+  h: 24
+}, {
+  key: "0",
+  th: "ไม่ปิดเอง",
+  h: 0
+}];
+function lnWebOpen(cfg) {
+  if (!cfg || !cfg.on) return false;
+  if (!cfg.until) return true;
+  const t = Date.parse(cfg.until);
+  return !t || Date.now() < t;
+}
+function useLnWebGate() {
+  const [cfg, setCfg] = React.useState(undefined);
+  const [now, setNow] = React.useState(Date.now());
+  React.useEffect(() => {
+    if (!window.firebase || !window.firebase.apps || !window.firebase.apps.length) {
+      setCfg(null);
+      return;
+    }
+    const ref = window.firebase.database().ref(LN_WEB_NODE);
+    const h = ref.on("value", snap => setCfg(snap.val() || null), () => setCfg(null));
+    return () => ref.off("value", h);
+  }, []);
+  React.useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(t);
+  }, []);
+  const save = React.useCallback(next => {
+    if (window.firebase && window.firebase.apps && window.firebase.apps.length) window.firebase.database().ref(LN_WEB_NODE).set(next);
+  }, []);
+  return {
+    cfg: cfg || null,
+    loading: cfg === undefined,
+    open: lnWebOpen(cfg),
+    now: now,
+    save: save
+  };
+}
+function LnWebShut() {
+  return React.createElement("div", {
+    style: {
+      minHeight: "100dvh",
+      background: "var(--bg)",
+      padding: "34px 22px",
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "center"
+    }
+  }, React.createElement("div", {
+    style: {
+      maxWidth: 400,
+      width: "100%",
+      margin: "0 auto",
+      textAlign: "center"
+    }
+  }, window.BrandLockup ? React.createElement(window.BrandLockup, {
+    size: 30
+  }) : React.createElement("div", {
+    style: {
+      fontWeight: 800,
+      fontSize: 22
+    }
+  }, "flash+solar"), React.createElement("div", {
+    style: {
+      marginTop: 20,
+      padding: "22px 20px",
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 16
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, "\u0E17\u0E32\u0E07\u0E40\u0E02\u0E49\u0E32\u0E19\u0E35\u0E49\u0E1B\u0E34\u0E14\u0E2D\u0E22\u0E39\u0E48"), React.createElement("div", {
+    style: {
+      marginTop: 9,
+      fontSize: 12.5,
+      color: "var(--text-2)",
+      lineHeight: 1.75
+    }
+  }, "\u0E2B\u0E19\u0E49\u0E32\u0E0A\u0E48\u0E32\u0E07\u0E40\u0E1B\u0E34\u0E14\u0E44\u0E14\u0E49\u0E08\u0E32\u0E01\u0E41\u0E2D\u0E1B LINE \u2014 \u0E01\u0E14\u0E40\u0E21\u0E19\u0E39\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07\u0E43\u0E19\u0E41\u0E0A\u0E15 flash+solar", React.createElement("br", null), "\u0E17\u0E32\u0E07\u0E40\u0E02\u0E49\u0E32\u0E14\u0E49\u0E27\u0E22\u0E23\u0E2B\u0E31\u0E2A\u0E1C\u0E48\u0E32\u0E19\u0E1A\u0E19\u0E40\u0E1A\u0E23\u0E32\u0E27\u0E4C\u0E40\u0E0B\u0E2D\u0E23\u0E4C\u0E21\u0E35\u0E44\u0E27\u0E49\u0E15\u0E2D\u0E19\u0E17\u0E35\u0E21\u0E1E\u0E31\u0E12\u0E19\u0E32\u0E41\u0E01\u0E49\u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \u0E08\u0E36\u0E07\u0E1B\u0E34\u0E14\u0E44\u0E27\u0E49\u0E40\u0E1B\u0E47\u0E19\u0E1B\u0E01\u0E15\u0E34")), React.createElement("div", {
+    style: {
+      marginTop: 14,
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      lineHeight: 1.7
+    }
+  }, "\u0E15\u0E49\u0E2D\u0E07\u0E43\u0E0A\u0E49\u0E08\u0E23\u0E34\u0E07? \u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E2B\u0E49\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E27\u0E47\u0E1A \u2192 \u201C\u0E41\u0E08\u0E49\u0E07\u0E40\u0E15\u0E37\u0E2D\u0E19 LINE\u201D \u2192 \u0E17\u0E32\u0E07\u0E40\u0E02\u0E49\u0E32\u0E2B\u0E19\u0E49\u0E32\u0E0A\u0E48\u0E32\u0E07\u0E08\u0E32\u0E01\u0E40\u0E1A\u0E23\u0E32\u0E27\u0E4C\u0E40\u0E0B\u0E2D\u0E23\u0E4C")));
+}
 function LnWebLogin({
+  reason,
+  onDone
+}) {
+  const gate = useLnWebGate();
+  if (gate.loading) return React.createElement(LnSplash, {
+    text: "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E40\u0E02\u0E49\u0E32\u0E2A\u0E39\u0E48\u0E23\u0E30\u0E1A\u0E1A\u2026"
+  });
+  if (!gate.open) return React.createElement(LnWebShut, null);
+  return React.createElement(LnWebForm, {
+    reason: reason,
+    onDone: onDone
+  });
+}
+function LnWebForm({
   reason,
   onDone
 }) {
@@ -550,10 +669,16 @@ function LnGate({
 Object.assign(window, {
   LN_TEST,
   LN_SESSION_KEY,
+  LN_WEB_NODE,
+  LN_WEB_HOURS,
   lnPush,
+  lnWebOpen,
   useLnSession,
+  useLnWebGate,
   LnGate,
   LnSplash,
   LnBindScreen,
-  LnWebLogin
+  LnWebLogin,
+  LnWebForm,
+  LnWebShut
 });
