@@ -31,7 +31,14 @@
 /* ── โหมดทดสอบ ──
    ตั้ง localStorage.ec_test_root = "_sandbox/" แล้วรีโหลด — ข้อมูลทุกอย่างของโมดูลนี้
    จะไปอยู่ใต้ _sandbox/ ไม่แตะข้อมูลจริง ค่าปกติต้องเป็นค่าว่างเสมอ */
-const EC_ROOT = (() => { try { return localStorage.getItem("ec_test_root") || ""; } catch (e) { return ""; } })();
+/* กล่องทราย — รับได้สองทาง เพราะ localStorage ตั้งใน WebView ของ LINE ไม่ได้สะดวก
+   ?test=1 ติดไปกับ URL ของหน้า LIFF จึงใช้กับ LIFF app ตัวทดสอบได้ (กฎเดียวกับ TM_ROOT) */
+const EC_ROOT = (() => {
+  try {
+    if (/(^|[?&])test=1(&|$)/.test(window.location.search || "")) return "_sandbox/";
+    return localStorage.getItem("ec_test_root") || "";
+  } catch (e) { return ""; }
+})();
 const _ECFB = () => !!window.FBDB;
 const _ecRef = (p) => window.FBDB.ref(EC_ROOT + p);
 /* รากของโมดูล — ใช้กับ update() หลายเส้นทางพร้อมกัน · ref("") ไม่ใช่ path ที่ถูกต้อง ต้องเป็น "/" */

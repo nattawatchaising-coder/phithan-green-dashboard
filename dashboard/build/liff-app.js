@@ -7,6 +7,10 @@ const LN_TAB = [{
   th: "เวลา",
   icon: "clock"
 }, {
+  key: "ec",
+  th: "เบิกเงิน",
+  icon: "wallet"
+}, {
   key: "bell",
   th: "แจ้งเตือน",
   icon: "bell"
@@ -66,38 +70,47 @@ function LnHead({
       style: {
         flex: 1,
         position: "relative",
-        padding: "9px 0 11px",
+        padding: "8px 0 9px",
         border: "none",
         background: "none",
         cursor: "pointer",
         fontFamily: "inherit",
-        fontSize: 12.5,
+        fontSize: 10.5,
         fontWeight: 700,
         color: on ? "var(--primary-dark)" : "var(--text-3)",
         boxShadow: on ? "inset 0 -2.5px 0 var(--primary)" : "none",
-        display: "inline-flex",
+        display: "flex",
+        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: 6
+        gap: 3
+      }
+    }, React.createElement("span", {
+      style: {
+        position: "relative",
+        lineHeight: 0
       }
     }, React.createElement(Icon, {
       name: t.icon,
-      size: 15,
+      size: 18,
       color: on ? "var(--primary-dark)" : "var(--text-3)"
-    }), t.th, t.key === "bell" && unread > 0 && React.createElement("span", {
+    }), t.key === "bell" && unread > 0 && React.createElement("span", {
       style: {
-        minWidth: 17,
-        height: 17,
-        padding: "0 5px",
+        position: "absolute",
+        top: -6,
+        right: -11,
+        minWidth: 16,
+        height: 16,
+        padding: "0 4px",
         borderRadius: 99,
         background: "#D93025",
         color: "#fff",
-        fontSize: 10.5,
+        fontSize: 10,
         fontWeight: 800,
         display: "inline-grid",
         placeItems: "center"
       }
-    }, unread));
+    }, unread)), t.th);
   })));
 }
 function LnJobRow({
@@ -970,6 +983,11 @@ function LnApp() {
     role: role,
     jobs: mine,
     startOt: LN_START.ot
+  }), tab === "ec" && React.createElement(window.LnEcTab, {
+    me: me,
+    users: auth.users,
+    role: role,
+    jobs: mine
   }), tab === "bell" && (myNotifs.length === 0 ? React.createElement("div", {
     style: {
       padding: 40,
@@ -1077,7 +1095,7 @@ function LnApp() {
       lineHeight: 1.7,
       textAlign: "center"
     }
-  }, "\u0E40\u0E1A\u0E34\u0E01\u0E40\u0E07\u0E34\u0E19 \xB7 \u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E08\u0E33\u0E27\u0E31\u0E19", React.createElement("br", null), "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E17\u0E22\u0E2D\u0E22\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E0A\u0E49\u0E43\u0E19\u0E40\u0E1F\u0E2A\u0E16\u0E31\u0E14\u0E44\u0E1B")), React.createElement(LnJobSheet, {
+  }, "\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E08\u0E33\u0E27\u0E31\u0E19", React.createElement("br", null), "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E17\u0E22\u0E2D\u0E22\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E0A\u0E49\u0E43\u0E19\u0E40\u0E1F\u0E2A\u0E16\u0E31\u0E14\u0E44\u0E1B")), React.createElement(LnJobSheet, {
     job: open,
     techs: techStore.techs,
     onClose: () => setOpen(null)

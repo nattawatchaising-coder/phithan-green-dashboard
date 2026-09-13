@@ -14,6 +14,7 @@
 const LN_TAB = [
   { key: "jobs",  th: "งาน",       icon: "wrench" },
   { key: "time",  th: "เวลา",      icon: "clock" },
+  { key: "ec",    th: "เบิกเงิน",  icon: "wallet" },
   { key: "bell",  th: "แจ้งเตือน", icon: "bell" },
   { key: "me",    th: "ฉัน",       icon: "user" },
 ];
@@ -41,17 +42,21 @@ function LnHead({ tab, setTab, unread }) {
         {LN_TAB.map((t) => {
           const on = tab === t.key;
           return (
+            /* ไอคอนบน ตัวหนังสือล่าง — ห้าแท็บเรียงบรรทัดเดียวล้นจอ 360px ซึ่งเป็นจอที่ช่างใช้จริง */
             <button key={t.key} onClick={() => setTab(t.key)}
-              style={{ flex: 1, position: "relative", padding: "9px 0 11px", border: "none", background: "none", cursor: "pointer",
-                fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: on ? "var(--primary-dark)" : "var(--text-3)",
+              style={{ flex: 1, position: "relative", padding: "8px 0 9px", border: "none", background: "none", cursor: "pointer",
+                fontFamily: "inherit", fontSize: 10.5, fontWeight: 700, color: on ? "var(--primary-dark)" : "var(--text-3)",
                 boxShadow: on ? "inset 0 -2.5px 0 var(--primary)" : "none",
-                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-              <Icon name={t.icon} size={15} color={on ? "var(--primary-dark)" : "var(--text-3)"} />
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3 }}>
+              <span style={{ position: "relative", lineHeight: 0 }}>
+                <Icon name={t.icon} size={18} color={on ? "var(--primary-dark)" : "var(--text-3)"} />
+                {t.key === "bell" && unread > 0 && (
+                  <span style={{ position: "absolute", top: -6, right: -11, minWidth: 16, height: 16, padding: "0 4px",
+                    borderRadius: 99, background: "#D93025", color: "#fff", fontSize: 10, fontWeight: 800,
+                    display: "inline-grid", placeItems: "center" }}>{unread}</span>
+                )}
+              </span>
               {t.th}
-              {t.key === "bell" && unread > 0 && (
-                <span style={{ minWidth: 17, height: 17, padding: "0 5px", borderRadius: 99, background: "#D93025", color: "#fff",
-                  fontSize: 10.5, fontWeight: 800, display: "inline-grid", placeItems: "center" }}>{unread}</span>
-              )}
             </button>
           );
         })}
@@ -508,6 +513,8 @@ function LnApp() {
 
       {tab === "time" && <LnTimeTab me={me} users={auth.users} role={role} jobs={mine} startOt={LN_START.ot} />}
 
+      {tab === "ec" && <window.LnEcTab me={me} users={auth.users} role={role} jobs={mine} />}
+
       {tab === "bell" && (
         myNotifs.length === 0
           ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>ยังไม่มีแจ้งเตือน</div>
@@ -550,7 +557,7 @@ function LnApp() {
           )}
 
           <div style={{ marginTop: 16, fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.7, textAlign: "center" }}>
-            เบิกเงิน · รายงานประจำวัน
+            รายงานประจำวัน
             <br />กำลังทยอยเปิดใช้ในเฟสถัดไป
           </div>
         </div>

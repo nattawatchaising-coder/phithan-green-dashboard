@@ -1,5 +1,6 @@
 const EC_ROOT = (() => {
   try {
+    if (/(^|[?&])test=1(&|$)/.test(window.location.search || "")) return "_sandbox/";
     return localStorage.getItem("ec_test_root") || "";
   } catch (e) {
     return "";
