@@ -12,12 +12,14 @@
 import crypto from "node:crypto";
 
 /* ---------- ค่าลับ — อยู่ใน Vercel Environment Variables เท่านั้น ---------- */
+/* .trim() ทุกตัว — ค่าที่ก๊อปจากคอนโซลมักติดช่องว่างหรือขึ้นบรรทัดใหม่มาด้วย
+   ซึ่งทำให้ลายเซ็นไม่ตรงและ token ใช้ไม่ได้ โดยที่มองด้วยตาไม่มีทางเห็น */
 export const ENV = {
-  token:    () => process.env.LINE_CHANNEL_ACCESS_TOKEN || "",
-  secret:   () => process.env.LINE_CHANNEL_SECRET || "",
-  loginId:  () => process.env.LINE_LOGIN_CHANNEL_ID || "",
-  rtdb:     () => (process.env.RTDB_URL || "").replace(/\/+$/, ""),
-  cron:     () => process.env.CRON_SECRET || "",
+  token:    () => (process.env.LINE_CHANNEL_ACCESS_TOKEN || "").trim(),
+  secret:   () => (process.env.LINE_CHANNEL_SECRET || "").trim(),
+  loginId:  () => (process.env.LINE_LOGIN_CHANNEL_ID || "").trim(),
+  rtdb:     () => (process.env.RTDB_URL || "").trim().replace(/\/+$/, ""),
+  cron:     () => (process.env.CRON_SECRET || "").trim(),
 };
 
 /* ---------- ตอบกลับแบบสั้น ---------- */
@@ -112,10 +114,23 @@ export async function pushMessage(to, messages) {
    JSON.parse แล้ว stringify ใหม่ให้ไบต์ไม่ตรงเดิม ลายเซ็นจะไม่ผ่าน */
 export function verifySignature(rawBody, signature) {
   const secret = ENV.secret();
-  if (!secret || !signature) return false;
+  if (!secret || !signature) { sigWhy("ยังไม่ได้ตั้ง secret หรือคำขอไม่มีหัวลายเซ็น", secret); return false; }
   const mine = crypto.createHmac("sha256", secret).update(rawBody || "", "utf8").digest("base64");
   const a = Buffer.from(mine), b = Buffer.from(String(signature));
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
+  const ok = a.length === b.length && crypto.timingSafeEqual(a, b);
+  if (!ok) sigWhy("ลายเซ็นไม่ตรง — secret น่าจะเป็นของช่องอื่น", secret);
+  return ok;
+}
+
+/* พิมพ์เบาะแสลง log ของ Vercel โดย **ไม่เปิดเผยค่าลับ** — บอกแค่ความยาวกับรูปแบบ
+   channel secret ของ LINE ยาว 32 ตัว เป็นเลขฐานสิบหกตัวพิมพ์เล็กเสมอ
+   ถ้าเห็นเลขอื่น = ก๊อปผิดช่องหรือก๊อปไม่ครบ ซึ่งดูจากหน้าคอนโซลไม่ออกเลย */
+function sigWhy(reason, secret) {
+  const raw = process.env.LINE_CHANNEL_SECRET || "";
+  console.warn("[line/webhook] " + reason +
+    " · ความยาว=" + secret.length +
+    " · รูปแบบ 32 hex=" + /^[0-9a-f]{32}$/.test(secret) +
+    " · มีช่องว่างติดมา=" + (raw !== raw.trim()));
 }
 
 /* ================================================================
