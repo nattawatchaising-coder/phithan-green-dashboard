@@ -1048,13 +1048,8 @@ function LnOtForm({
   })), React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)",
-      gap: 11
-    }
-  }, React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 5
+      gap: 5,
+      minWidth: 0
     }
   }, React.createElement("span", {
     style: {
@@ -1062,21 +1057,24 @@ function LnOtForm({
       fontWeight: 700,
       color: "var(--text-3)"
     }
-  }, "\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48"), React.createElement("input", {
+  }, "\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E17\u0E33"), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "minmax(0,1fr) auto minmax(0,1fr)",
+      gap: 9,
+      alignItems: "center"
+    }
+  }, React.createElement("input", {
     type: "time",
     value: f.from,
     min: locked ? limit.lo : undefined,
     max: locked ? limit.hi : undefined,
+    "aria-label": "\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48",
     onChange: e => set("from", e.target.value),
     style: LN_FIELD
-  })), React.createElement("label", {
+  }), React.createElement("span", {
     style: {
-      display: "grid",
-      gap: 5
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 11.5,
+      fontSize: 12.5,
       fontWeight: 700,
       color: "var(--text-3)"
     }
@@ -1085,6 +1083,7 @@ function LnOtForm({
     value: f.to,
     min: locked ? limit.lo : undefined,
     max: locked ? limit.hi : undefined,
+    "aria-label": "\u0E16\u0E36\u0E07",
     onChange: e => set("to", e.target.value),
     style: LN_FIELD
   }))), locked && React.createElement("div", {
