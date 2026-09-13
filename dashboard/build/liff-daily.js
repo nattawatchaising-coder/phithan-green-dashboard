@@ -173,7 +173,11 @@ function LnDailyForm({
     }
   }, React.createElement("span", {
     style: LN_DR_LABEL
-  }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\u0E17\u0E33\u0E2D\u0E30\u0E44\u0E23\u0E44\u0E1B\u0E1A\u0E49\u0E32\u0E07"), React.createElement("textarea", {
+  }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\u0E17\u0E33\u0E2D\u0E30\u0E44\u0E23\u0E44\u0E1B\u0E1A\u0E49\u0E32\u0E07 ", React.createElement("span", {
+    style: {
+      color: "#EF4444"
+    }
+  }, "*")), React.createElement("textarea", {
     rows: 4,
     value: form.work || "",
     disabled: locked,
@@ -650,7 +654,7 @@ function LnDailyTab({
       fontSize: 13.5,
       lineHeight: 1.7
     }
-  }, (jobs || []).length === 0 ? "ยังไม่มีงานที่กำลังดำเนินอยู่ของคุณ — รายการนี้ตัดงานที่ติดตั้งเสร็จแล้วออก" : "เลือกงานก่อน แล้วฟอร์มรายงานของวันนั้นจะขึ้นมา") : React.createElement(LnDailyForm, {
+  }, (jobs || []).length === 0 ? "ยังไม่มีงานที่อยู่ระหว่างติดตั้งของคุณ — รายการนี้มีเฉพาะงานที่อยู่ขั้น “ดำเนินการติดตั้ง”" : "เลือกงานก่อน แล้วฟอร์มรายงานของวันนั้นจะขึ้นมา") : React.createElement(LnDailyForm, {
     me: me,
     role: role,
     job: job,

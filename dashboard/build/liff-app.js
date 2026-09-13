@@ -1375,6 +1375,228 @@ function LnPick({
     }, it.th, it.n != null ? " " + it.n : "");
   }));
 }
+function LnFixNew({
+  me,
+  tickets,
+  onSave,
+  onClose
+}) {
+  const siteStore = window.useOmSites();
+  const [f, setF] = React.useState({
+    siteId: "",
+    title: "",
+    detail: "",
+    category: "other",
+    severity: "normal"
+  });
+  const set = patch => setF(o => Object.assign({}, o, patch));
+  const sites = React.useMemo(() => (siteStore.sites || []).slice().sort((a, b) => String(a.name || a.code || "").localeCompare(String(b.name || b.code || ""), "th")), [siteStore.sites]);
+  const site = sites.filter(x => x.id === f.siteId)[0] || null;
+  const ready = !!site && !!f.title.trim();
+  const submit = () => {
+    if (!ready) return;
+    const rec = window.omBlankTicket(site, tickets || [], me);
+    rec.title = f.title.trim();
+    rec.detail = f.detail.trim();
+    rec.category = f.category;
+    rec.severity = f.severity;
+    rec.source = "onsite";
+    rec.assigneeId = (me || {}).id || null;
+    rec.assigneeName = (me || {}).name || "";
+    if (!rec.techId) rec.techId = (me || {}).techId || "";
+    onSave(rec);
+  };
+  const field = {
+    width: "100%",
+    padding: "12px 13px",
+    borderRadius: 12,
+    border: "1px solid var(--border-strong)",
+    background: "var(--surface2)",
+    color: "var(--text-1)",
+    fontFamily: "inherit",
+    fontSize: 16,
+    outline: "none"
+  };
+  const label = {
+    fontSize: 11.5,
+    fontWeight: 800,
+    color: "var(--text-3)"
+  };
+  return React.createElement("div", {
+    onClick: onClose,
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 60,
+      background: "rgba(15,43,51,.42)",
+      display: "flex",
+      alignItems: "flex-end"
+    }
+  }, React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      width: "100%",
+      maxHeight: "88dvh",
+      overflowY: "auto",
+      overflowX: "hidden",
+      background: "var(--surface)",
+      borderRadius: "18px 18px 0 0",
+      padding: "16px 18px",
+      paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))"
+    }
+  }, React.createElement("div", {
+    style: {
+      width: 38,
+      height: 4,
+      borderRadius: 99,
+      background: "var(--border-strong)",
+      margin: "0 auto 14px"
+    }
+  }), React.createElement("div", {
+    style: {
+      fontSize: 18,
+      fontWeight: 800,
+      color: "var(--text-1)",
+      marginBottom: 12
+    }
+  }, "\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A\u0E41\u0E08\u0E49\u0E07\u0E0B\u0E48\u0E2D\u0E21"), React.createElement("div", {
+    style: {
+      display: "grid",
+      gap: 12
+    }
+  }, React.createElement("label", {
+    style: {
+      display: "grid",
+      gap: 5
+    }
+  }, React.createElement("span", {
+    style: label
+  }, "\u0E44\u0E0B\u0E15\u0E4C\u0E17\u0E35\u0E48\u0E40\u0E01\u0E34\u0E14\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07"), React.createElement("select", {
+    value: f.siteId,
+    onChange: e => set({
+      siteId: e.target.value
+    }),
+    style: field
+  }, React.createElement("option", {
+    value: ""
+  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E44\u0E0B\u0E15\u0E4C \u2014"), sites.map(x => React.createElement("option", {
+    key: x.id,
+    value: x.id
+  }, (x.code || x.id) + " · " + (x.name || ""))))), React.createElement("label", {
+    style: {
+      display: "grid",
+      gap: 5
+    }
+  }, React.createElement("span", {
+    style: label
+  }, "\u0E2D\u0E32\u0E01\u0E32\u0E23\u0E17\u0E35\u0E48\u0E40\u0E08\u0E2D"), React.createElement("input", {
+    value: f.title,
+    onChange: e => set({
+      title: e.target.value
+    }),
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E02\u0E36\u0E49\u0E19\u0E23\u0E2B\u0E31\u0E2A\u0E1C\u0E34\u0E14\u0E1E\u0E25\u0E32\u0E14 \u0E44\u0E1F\u0E44\u0E21\u0E48\u0E40\u0E02\u0E49\u0E32",
+    style: field
+  })), React.createElement("label", {
+    style: {
+      display: "grid",
+      gap: 5
+    }
+  }, React.createElement("span", {
+    style: label
+  }, "\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E40\u0E15\u0E34\u0E21"), React.createElement("textarea", {
+    value: f.detail,
+    onChange: e => set({
+      detail: e.target.value
+    }),
+    rows: 3,
+    placeholder: "\u0E15\u0E2D\u0E19\u0E44\u0E2B\u0E19 \xB7 \u0E40\u0E01\u0E34\u0E14\u0E16\u0E35\u0E48\u0E41\u0E04\u0E48\u0E44\u0E2B\u0E19 \xB7 \u0E25\u0E2D\u0E07\u0E17\u0E33\u0E2D\u0E30\u0E44\u0E23\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27\u0E1A\u0E49\u0E32\u0E07",
+    style: Object.assign({}, field, {
+      resize: "vertical",
+      lineHeight: 1.6
+    })
+  })), React.createElement("div", {
+    style: {
+      display: "grid",
+      gap: 6
+    }
+  }, React.createElement("span", {
+    style: label
+  }, "\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17"), React.createElement(LnPick, {
+    items: (window.OM_TICKET_CAT || []).map(c => ({
+      key: c.key,
+      th: c.th
+    })),
+    value: f.category,
+    onPick: k => set({
+      category: k
+    })
+  })), React.createElement("div", {
+    style: {
+      display: "grid",
+      gap: 6
+    }
+  }, React.createElement("span", {
+    style: label
+  }, "\u0E04\u0E27\u0E32\u0E21\u0E40\u0E23\u0E48\u0E07\u0E14\u0E48\u0E27\u0E19"), React.createElement(LnPick, {
+    items: (window.OM_SEVERITY || []).map(x => ({
+      key: x.key,
+      th: x.th
+    })),
+    value: f.severity,
+    onPick: k => set({
+      severity: k
+    })
+  }), React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      lineHeight: 1.6
+    }
+  }, "\u0E15\u0E31\u0E49\u0E07\u0E01\u0E33\u0E2B\u0E19\u0E14\u0E1B\u0E34\u0E14\u0E40\u0E04\u0E2A\u0E43\u0E2B\u0E49\u0E40\u0E2D\u0E07 \u2014 ", (window.OM_SEVERITY || []).map(x => x.th + " " + (window.OM_SLA_DAYS || {})[x.key] + " วัน").join(" · ")))), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginTop: 16
+    }
+  }, React.createElement("button", {
+    onClick: onClose,
+    style: {
+      flex: 1,
+      padding: "13px 14px",
+      borderRadius: 11,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-2)",
+      fontFamily: "inherit",
+      fontSize: 13.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("button", {
+    onClick: submit,
+    disabled: !ready,
+    style: {
+      flex: 2,
+      padding: "13px 14px",
+      borderRadius: 11,
+      border: "none",
+      background: ready ? "var(--primary)" : "var(--border-strong)",
+      color: "#fff",
+      fontFamily: "inherit",
+      fontSize: 13.5,
+      fontWeight: 800,
+      cursor: ready ? "pointer" : "default"
+    }
+  }, "\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A\u0E19\u0E35\u0E49")), !ready && React.createElement("div", {
+    style: {
+      marginTop: 8,
+      fontSize: 11,
+      color: "var(--text-3)",
+      textAlign: "center",
+      lineHeight: 1.6
+    }
+  }, siteStore.loading ? "กำลังโหลดรายชื่อไซต์…" : sites.length === 0 ? "ยังไม่มีไซต์ในทะเบียนบริการ — ต้องขึ้นทะเบียนไซต์ที่หน้า O&M บนเว็บก่อน" : !site ? "เลือกไซต์ก่อน" : "เขียนอาการที่เจอก่อน")));
+}
 function LnFixTab({
   me,
   role
@@ -1386,6 +1608,7 @@ function LnFixTab({
   };
   const [filter, setFilter] = React.useState("open");
   const [open, setOpen] = React.useState(null);
+  const [newing, setNewing] = React.useState(false);
   const today = window.drToday();
   const canAll = window.can(role, "om");
   const uid = (me || {}).id || null;
@@ -1420,6 +1643,13 @@ function LnFixTab({
     store.save(next);
     setOpen(next);
   };
+  const create = rec => {
+    if (!store.save) return;
+    store.save(rec);
+    setNewing(false);
+    setFilter("open");
+    setOpen(rec);
+  };
   if (store.loading) return React.createElement("div", {
     style: {
       padding: 40,
@@ -1440,11 +1670,33 @@ function LnFixTab({
     onPick: setFilter
   }), React.createElement("div", {
     style: {
-      marginTop: 8,
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      marginTop: 9
+    }
+  }, React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0,
       fontSize: 11.5,
       color: "var(--text-3)"
     }
-  }, filter === "all" ? "ใบแจ้งซ่อมทั้งบริษัท" : "เฉพาะใบที่คุณรับผิดชอบ", " \xB7 ", list.length, " \u0E43\u0E1A")), list.length === 0 ? React.createElement("div", {
+  }, filter === "all" ? "ใบแจ้งซ่อมทั้งบริษัท" : "เฉพาะใบที่คุณรับผิดชอบ", " \xB7 ", list.length, " \u0E43\u0E1A"), React.createElement("button", {
+    onClick: () => setNewing(true),
+    style: {
+      padding: "8px 14px",
+      borderRadius: 99,
+      border: "none",
+      background: "var(--primary)",
+      color: "#fff",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 800,
+      cursor: "pointer",
+      whiteSpace: "nowrap"
+    }
+  }, "+ \u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A\u0E41\u0E08\u0E49\u0E07\u0E0B\u0E48\u0E2D\u0E21"))), list.length === 0 ? React.createElement("div", {
     style: {
       padding: 40,
       textAlign: "center",
@@ -1456,7 +1708,7 @@ function LnFixTab({
     style: {
       fontSize: 12
     }
-  }, "\u0E43\u0E1A\u0E41\u0E08\u0E49\u0E07\u0E0B\u0E48\u0E2D\u0E21\u0E40\u0E1B\u0E34\u0E14\u0E08\u0E32\u0E01\u0E2B\u0E19\u0E49\u0E32 O&M \u0E1A\u0E19\u0E40\u0E27\u0E47\u0E1A \u0E41\u0E25\u0E49\u0E27\u0E08\u0E30\u0E21\u0E32\u0E42\u0E1C\u0E25\u0E48\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E23\u0E30\u0E1A\u0E38\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A\u0E40\u0E1B\u0E47\u0E19\u0E04\u0E38\u0E13")) : list.map(t => {
+  }, "\u0E01\u0E14 \u201C\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A\u0E41\u0E08\u0E49\u0E07\u0E0B\u0E48\u0E2D\u0E21\u201D \u0E44\u0E14\u0E49\u0E40\u0E25\u0E22\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E40\u0E08\u0E2D\u0E02\u0E2D\u0E07\u0E40\u0E2A\u0E35\u0E22\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \xB7 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E2B\u0E49\u0E08\u0E30\u0E21\u0E32\u0E42\u0E1C\u0E25\u0E48\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E23\u0E30\u0E1A\u0E38\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A\u0E40\u0E1B\u0E47\u0E19\u0E04\u0E38\u0E13")) : list.map(t => {
     const st = window.omTicketStatusOf(t.status);
     const sev = window.OM_SEVERITY_BY[t.severity] || {};
     const late = window.omTicketOverdue(t, today);
@@ -1517,6 +1769,11 @@ function LnFixTab({
     role: role,
     onMove: move,
     onClose: () => setOpen(null)
+  }), newing && React.createElement(LnFixNew, {
+    me: me,
+    tickets: store.tickets,
+    onSave: create,
+    onClose: () => setNewing(false)
   }));
 }
 function LnFixSheet({
@@ -1770,6 +2027,7 @@ function LnApp() {
     if (!me) return [];
     return mine.filter(j => j.stage !== "done" && window.jobIsMine(j, me));
   }, [mine, me]);
+  const siteWork = React.useMemo(() => work.filter(j => j.stage === "install"), [work]);
   const myNotifs = React.useMemo(() => {
     if (!me) return [];
     const tid = me.techId;
@@ -1880,7 +2138,7 @@ function LnApp() {
   }), tab === "daily" && React.createElement(window.LnDailyTab, {
     me: me,
     role: role,
-    jobs: work,
+    jobs: siteWork,
     notify: notif.addNotif
   }), tab === "ec" && React.createElement(window.LnEcTab, {
     me: me,
@@ -2003,5 +2261,6 @@ Object.assign(window, {
   LnTimeTab,
   LnFixTab,
   LnFixSheet,
+  LnFixNew,
   LnPick
 });

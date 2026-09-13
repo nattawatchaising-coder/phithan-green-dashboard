@@ -782,16 +782,124 @@ function LnPick({ items, value, onPick }) {
   );
 }
 
+/* ── ฟอร์มเปิดใบแจ้งซ่อมจากหน้างาน ──
+   แยกเป็นคอมโพเนนต์ลูกโดยตั้งใจ เพื่อให้ useOmSites ทำงานเฉพาะตอนเปิดฟอร์ม
+   ไม่ใช่ทุกครั้งที่เข้าแท็บซ่อม — คนส่วนใหญ่เข้ามาดูใบของตัวเอง ไม่ได้เปิดใบใหม่
+
+   กรอกแค่สิ่งที่คนยืนอยู่หน้างานรู้จริง: ไซต์ไหน · อาการอะไร · ด่วนแค่ไหน
+   เรื่องประกัน/ค่าบริการและใบเสนอราคาปล่อยเป็น "ยังไม่ได้ตัดสิน" ไว้ให้ออฟฟิศ
+   เพราะคนหน้างานตอบไม่ได้ และเดาผิดแล้วจะกลายเป็นคำสัญญากับลูกค้า */
+function LnFixNew({ me, tickets, onSave, onClose }) {
+  const siteStore = window.useOmSites();
+  const [f, setF] = React.useState({ siteId: "", title: "", detail: "", category: "other", severity: "normal" });
+  const set = (patch) => setF((o) => Object.assign({}, o, patch));
+
+  const sites = React.useMemo(() => (siteStore.sites || []).slice().sort((a, b) =>
+    String(a.name || a.code || "").localeCompare(String(b.name || b.code || ""), "th")), [siteStore.sites]);
+  const site = sites.filter((x) => x.id === f.siteId)[0] || null;
+  const ready = !!site && !!f.title.trim();
+
+  const submit = () => {
+    if (!ready) return;
+    const rec = window.omBlankTicket(site, tickets || [], me);
+    rec.title = f.title.trim();
+    rec.detail = f.detail.trim();
+    rec.category = f.category;
+    rec.severity = f.severity;
+    /* เปิดจากไลน์ = คนของเราเป็นคนเจอเอง ไม่ใช่ลูกค้าโทรเข้าออฟฟิศ */
+    rec.source = "onsite";
+    /* คนเปิดใบรับไปก่อนจนกว่าออฟฟิศจะเปลี่ยนตัว — ถ้าปล่อยผู้รับผิดชอบว่างไว้
+       ใบจะไม่ขึ้นในรายการของใครเลยบนมือถือ (รายการกรองด้วยผู้รับผิดชอบ/ช่างประจำไซต์) */
+    rec.assigneeId = (me || {}).id || null;
+    rec.assigneeName = (me || {}).name || "";
+    if (!rec.techId) rec.techId = (me || {}).techId || "";
+    onSave(rec);
+  };
+
+  const field = { width: "100%", padding: "12px 13px", borderRadius: 12, border: "1px solid var(--border-strong)",
+    background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 16, outline: "none" };
+  const label = { fontSize: 11.5, fontWeight: 800, color: "var(--text-3)" };
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(15,43,51,.42)", display: "flex", alignItems: "flex-end" }}>
+      <div onClick={(e) => e.stopPropagation()}
+        style={{ width: "100%", maxHeight: "88dvh", overflowY: "auto", overflowX: "hidden", background: "var(--surface)",
+          borderRadius: "18px 18px 0 0", padding: "16px 18px", paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))" }}>
+        <div style={{ width: 38, height: 4, borderRadius: 99, background: "var(--border-strong)", margin: "0 auto 14px" }} />
+        <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text-1)", marginBottom: 12 }}>เปิดใบแจ้งซ่อม</div>
+
+        <div style={{ display: "grid", gap: 12 }}>
+          <label style={{ display: "grid", gap: 5 }}>
+            <span style={label}>ไซต์ที่เกิดเรื่อง</span>
+            <select value={f.siteId} onChange={(e) => set({ siteId: e.target.value })} style={field}>
+              <option value="">— เลือกไซต์ —</option>
+              {sites.map((x) => <option key={x.id} value={x.id}>{(x.code || x.id) + " · " + (x.name || "")}</option>)}
+            </select>
+          </label>
+
+          <label style={{ display: "grid", gap: 5 }}>
+            <span style={label}>อาการที่เจอ</span>
+            <input value={f.title} onChange={(e) => set({ title: e.target.value })}
+              placeholder="เช่น อินเวอร์เตอร์ขึ้นรหัสผิดพลาด ไฟไม่เข้า" style={field} />
+          </label>
+
+          <label style={{ display: "grid", gap: 5 }}>
+            <span style={label}>รายละเอียดเพิ่มเติม</span>
+            <textarea value={f.detail} onChange={(e) => set({ detail: e.target.value })} rows={3}
+              placeholder="ตอนไหน · เกิดถี่แค่ไหน · ลองทำอะไรไปแล้วบ้าง"
+              style={Object.assign({}, field, { resize: "vertical", lineHeight: 1.6 })} />
+          </label>
+
+          <div style={{ display: "grid", gap: 6 }}>
+            <span style={label}>ประเภท</span>
+            <LnPick items={(window.OM_TICKET_CAT || []).map((c) => ({ key: c.key, th: c.th }))}
+              value={f.category} onPick={(k) => set({ category: k })} />
+          </div>
+
+          <div style={{ display: "grid", gap: 6 }}>
+            <span style={label}>ความเร่งด่วน</span>
+            <LnPick items={(window.OM_SEVERITY || []).map((x) => ({ key: x.key, th: x.th }))}
+              value={f.severity} onPick={(k) => set({ severity: k })} />
+            {/* ความเร่งด่วนไม่ใช่แค่ป้ายสี มันตั้งนาฬิกานับวันของใบนี้ ต้องบอกให้รู้ตอนเลือก */}
+            <span style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
+              ตั้งกำหนดปิดเคสให้เอง — {(window.OM_SEVERITY || []).map((x) =>
+                x.th + " " + (window.OM_SLA_DAYS || {})[x.key] + " วัน").join(" · ")}
+            </span>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+          <button onClick={onClose}
+            style={{ flex: 1, padding: "13px 14px", borderRadius: 11, border: "1px solid var(--border-strong)",
+              background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13.5,
+              fontWeight: 700, cursor: "pointer" }}>ยกเลิก</button>
+          <button onClick={submit} disabled={!ready}
+            style={{ flex: 2, padding: "13px 14px", borderRadius: 11, border: "none",
+              background: ready ? "var(--primary)" : "var(--border-strong)", color: "#fff",
+              fontFamily: "inherit", fontSize: 13.5, fontWeight: 800, cursor: ready ? "pointer" : "default" }}>
+            เปิดใบนี้
+          </button>
+        </div>
+        {!ready && (
+          <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)", textAlign: "center", lineHeight: 1.6 }}>
+            {siteStore.loading ? "กำลังโหลดรายชื่อไซต์…"
+              : sites.length === 0 ? "ยังไม่มีไซต์ในทะเบียนบริการ — ต้องขึ้นทะเบียนไซต์ที่หน้า O&M บนเว็บก่อน"
+              : !site ? "เลือกไซต์ก่อน" : "เขียนอาการที่เจอก่อน"}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ── แท็บงานซ่อม ──
    อ่านใบแจ้งซ่อมจาก omTickets ชุดเดียวกับหน้า O&M บนเดสก์ท็อป และเดินสถานะ
-   ด้วย omTicketNext/omTicketMove ตัวเดียวกัน — ไม่มีตรรกะสถานะชุดที่สองในไฟล์นี้
-
-   เปิดใบใหม่ยังต้องทำจากเดสก์ท็อป เพราะการเปิดใบต้องเลือกไซต์ในสัญญาบริการ
-   และตัดสินเรื่องประกัน/ค่าใช้จ่าย ซึ่งไม่ใช่สิ่งที่ทำบนจอ 360px ตอนอยู่หน้างาน */
+   ด้วย omTicketNext/omTicketMove ตัวเดียวกัน — ไม่มีตรรกะสถานะชุดที่สองในไฟล์นี้ */
 function LnFixTab({ me, role }) {
   const store = window.useOmTickets ? window.useOmTickets() : { tickets: [], loading: false, save: null };
   const [filter, setFilter] = React.useState("open");
   const [open, setOpen] = React.useState(null);
+  const [newing, setNewing] = React.useState(false);
   const today = window.drToday();
 
   const canAll = window.can(role, "om");
@@ -829,21 +937,39 @@ function LnFixTab({ me, role }) {
     setOpen(next);
   };
 
+  /* เปิดใบเสร็จแล้วเด้งเข้าใบนั้นเลย เพื่อให้เห็นกับตาว่าใบถูกสร้างจริงและอยู่สถานะไหน
+     และสลับไปกรอง "ที่ต้องทำ" ไม่งั้นใบใหม่จะไม่โผล่ถ้าค้างอยู่ที่ "ปิดแล้ว" */
+  const create = (rec) => {
+    if (!store.save) return;
+    store.save(rec);
+    setNewing(false);
+    setFilter("open");
+    setOpen(rec);
+  };
+
   if (store.loading) return <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>กำลังโหลด…</div>;
 
   return (
     <React.Fragment>
       <div style={{ padding: "12px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
         <LnPick items={chips} value={filter} onPick={setFilter} />
-        <div style={{ marginTop: 8, fontSize: 11.5, color: "var(--text-3)" }}>
-          {filter === "all" ? "ใบแจ้งซ่อมทั้งบริษัท" : "เฉพาะใบที่คุณรับผิดชอบ"} · {list.length} ใบ
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 9 }}>
+          <div style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: "var(--text-3)" }}>
+            {filter === "all" ? "ใบแจ้งซ่อมทั้งบริษัท" : "เฉพาะใบที่คุณรับผิดชอบ"} · {list.length} ใบ
+          </div>
+          {/* เจอของเสียตอนอยู่หน้างานต้องเปิดใบได้ทันที ไม่ใช่จำไว้แล้วมาเปิดตอนกลับออฟฟิศ
+              ซึ่งแปลว่าหลายเรื่องหายไประหว่างทาง */}
+          <button onClick={() => setNewing(true)}
+            style={{ padding: "8px 14px", borderRadius: 99, border: "none", background: "var(--primary)",
+              color: "#fff", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800, cursor: "pointer",
+              whiteSpace: "nowrap" }}>+ เปิดใบแจ้งซ่อม</button>
         </div>
       </div>
 
       {list.length === 0
         ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5, lineHeight: 1.7 }}>
             {filter === "done" ? "ยังไม่มีใบที่ปิดแล้ว" : "ไม่มีใบแจ้งซ่อมที่ค้างอยู่"}
-            <br /><span style={{ fontSize: 12 }}>ใบแจ้งซ่อมเปิดจากหน้า O&amp;M บนเว็บ แล้วจะมาโผล่ที่นี่เมื่อระบุผู้รับผิดชอบเป็นคุณ</span>
+            <br /><span style={{ fontSize: 12 }}>กด “เปิดใบแจ้งซ่อม” ได้เลยเมื่อเจอของเสียหน้างาน · ใบที่ออฟฟิศเปิดให้จะมาโผล่ที่นี่เมื่อระบุผู้รับผิดชอบเป็นคุณ</span>
           </div>
         : list.map((t) => {
             const st = window.omTicketStatusOf(t.status);
@@ -869,6 +995,7 @@ function LnFixTab({ me, role }) {
           })}
 
       {open && <LnFixSheet t={open} role={role} onMove={move} onClose={() => setOpen(null)} />}
+      {newing && <LnFixNew me={me} tickets={store.tickets} onSave={create} onClose={() => setNewing(false)} />}
     </React.Fragment>
   );
 }
@@ -1020,6 +1147,13 @@ function LnApp() {
     return mine.filter((j) => j.stage !== "done" && window.jobIsMine(j, me));
   }, [mine, me]);
 
+  /* งานสำหรับเขียนรายงานประจำวัน — แคบกว่า work อีกชั้น
+     รายงานประจำวันคือบันทึกว่า "วันนี้ที่ไซต์ทำอะไรไป" ซึ่งมีความหมายเฉพาะตอน
+     งานอยู่ในขั้น "ดำเนินการติดตั้ง" จริง ๆ งานที่ยังออกแบบ/ถอดของ/รอคิว
+     ยังไม่มีใครไปยืนที่ไซต์ ใบที่เขียนให้งานพวกนั้นคือใบที่กดผิดงาน
+     (ลงเวลากับเบิกเงินยังใช้ work เหมือนเดิม เพราะไปสำรวจหรือซื้อของก่อนเริ่มติดตั้งได้) */
+  const siteWork = React.useMemo(() => work.filter((j) => j.stage === "install"), [work]);
+
   /* แจ้งเตือนของฉัน — เงื่อนไขเดียวกับ myNotifs ใน app.jsx เป๊ะ */
   const myNotifs = React.useMemo(() => {
     if (!me) return [];
@@ -1084,7 +1218,7 @@ function LnApp() {
 
       {tab === "time" && <LnTimeTab me={me} users={auth.users} role={role} jobs={work} startOt={LN_START.ot} />}
 
-      {tab === "daily" && <window.LnDailyTab me={me} role={role} jobs={work} notify={notif.addNotif} />}
+      {tab === "daily" && <window.LnDailyTab me={me} role={role} jobs={siteWork} notify={notif.addNotif} />}
 
       {tab === "ec" && <window.LnEcTab me={me} users={auth.users} role={role} jobs={work} />}
 
@@ -1137,4 +1271,4 @@ function LnApp() {
   );
 }
 
-Object.assign(window, { LnApp, LnJobRow, LnJobSheet, LnJobFiles, LnHead, LnClock, LnOtForm, LnTimeTab, LnFixTab, LnFixSheet, LnPick });
+Object.assign(window, { LnApp, LnJobRow, LnJobSheet, LnJobFiles, LnHead, LnClock, LnOtForm, LnTimeTab, LnFixTab, LnFixSheet, LnFixNew, LnPick });

@@ -133,7 +133,9 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
       </div>
 
       <label style={{ display: "grid", gap: 5 }}>
-        <span style={LN_DR_LABEL}>วันนี้ทำอะไรไปบ้าง</span>
+        {/* ป้ายบอกว่าบังคับกรอก — ปุ่มส่งจะกดไม่ได้จนกว่าช่องนี้มีข้อความ
+            ปุ่มที่กดไม่ลงโดยไม่บอกสาเหตุ คนอ่านว่าแอปพัง ไม่ได้อ่านว่ากรอกไม่ครบ */}
+        <span style={LN_DR_LABEL}>วันนี้ทำอะไรไปบ้าง <span style={{ color: "#EF4444" }}>*</span></span>
         <textarea rows={4} value={form.work || ""} disabled={locked} onChange={(e) => set({ work: e.target.value })}
           placeholder="เช่น ยกแผงขึ้นหลังคาแถวที่ 1-3 เสร็จ · เดินสาย DC ฝั่งตะวันออก"
           style={Object.assign({}, LN_DR_FIELD, { resize: "vertical", lineHeight: 1.6 })} />
@@ -356,7 +358,7 @@ function LnDailyTab({ me, role, jobs, notify }) {
             {(jobs || []).length === 0
               /* รายการนี้ตัดงานที่ติดตั้งเสร็จแล้วออก และเหลือเฉพาะของตัวเอง
                  ว่างเปล่าจึงไม่ได้แปลว่าพัง แต่ต้องบอก ไม่งั้นอ่านเหมือนโหลดไม่ขึ้น */
-              ? "ยังไม่มีงานที่กำลังดำเนินอยู่ของคุณ — รายการนี้ตัดงานที่ติดตั้งเสร็จแล้วออก"
+              ? "ยังไม่มีงานที่อยู่ระหว่างติดตั้งของคุณ — รายการนี้มีเฉพาะงานที่อยู่ขั้น “ดำเนินการติดตั้ง”"
               : "เลือกงานก่อน แล้วฟอร์มรายงานของวันนั้นจะขึ้นมา"}
           </div>
         : <LnDailyForm me={me} role={role} job={job} date={date} store={store} notify={notify} />}
