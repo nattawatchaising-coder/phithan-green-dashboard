@@ -10,8 +10,11 @@
 
 import { ENV, json, body, verifyIdToken, rtdbGet } from "../_lib/line.mjs";
 
-export default async function handler(request) {
-  if (request.method !== "POST") return json({ error: "method" }, 405);
+/* ชื่อ export ต้องเป็น POST ห้ามใช้ `export default`
+   Vercel ตีความ default export ว่าเป็นลายเซ็นเก่า (req, res) => void
+   ซึ่ง req เป็น IncomingMessage ไม่มี .text() และค่าที่ return ถูกทิ้ง → 500 ทุกครั้ง
+   ตั้งชื่อตามเมธอดแทน จึงได้ Request/Response แบบเว็บมาตรฐาน ที่อ่าน body ดิบได้ */
+export async function POST(request) {
   if (!ENV.loginId() || !ENV.rtdb()) return json({ error: "server not configured" }, 500);
 
   const b = await body(request);
