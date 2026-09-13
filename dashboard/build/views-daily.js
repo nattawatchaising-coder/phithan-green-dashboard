@@ -2016,6 +2016,7 @@ function DailyPaper({
       display: "flex",
       gap: 9,
       alignItems: "center",
+      flexWrap: "wrap",
       padding: "11px 14px",
       background: "var(--surface)",
       borderBottom: "1px solid var(--border)",
@@ -2045,7 +2046,7 @@ function DailyPaper({
     size: 16
   })), React.createElement("div", {
     style: {
-      flex: 1,
+      flex: "1 1 170px",
       minWidth: 0
     }
   }, React.createElement("div", {
@@ -2059,7 +2060,17 @@ function DailyPaper({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, photos.length, " \u0E23\u0E39\u0E1B \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19 PDF\u201D")), typeof window.LangPick === "function" && React.createElement(window.LangPick, {
+  }, photos.length, " \u0E23\u0E39\u0E1B \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19 PDF\u201D")), React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+      flexWrap: "wrap",
+      minWidth: 0,
+      marginLeft: "auto",
+      justifyContent: "flex-end"
+    }
+  }, typeof window.LangPick === "function" && React.createElement(window.LangPick, {
     value: lang,
     onChange: pickLang
   }), React.createElement("button", {
@@ -2083,7 +2094,7 @@ function DailyPaper({
     name: "file",
     size: 16,
     color: "#fff"
-  }), " \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF")), React.createElement("div", {
+  }), " \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF"))), React.createElement("div", {
     className: "sv-rep-paper",
     style: {
       maxWidth: 900,

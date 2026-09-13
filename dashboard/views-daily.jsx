@@ -969,22 +969,31 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
 
   return (
     <div className="sv-rep-overlay" style={{ position: "fixed", inset: 0, zIndex: 160, background: "rgba(8,20,14,.55)", overflow: "auto", padding: isMobile ? 0 : "24px 16px" }}>
-      <div className="sv-rep-noprint" style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", gap: 9, alignItems: "center",
+      {/* แถบหัวต้องขึ้นบรรทัดใหม่ได้ตอนจอแคบ — ปุ่มปิดกับปุ่ม PDF หดไม่ได้ (flexShrink 0)
+          ถ้าไม่ให้ wrap กล่องชื่อเรื่องจะเป็นชิ้นเดียวที่ยอมหด แล้วหดจนตัวหนังสือไทย
+          ตัดทีละตัวอักษร ดันแถบสูงเป็นสามร้อยกว่าพิกเซล — flexBasis กันไม่ให้แคบกว่าอ่านออก */}
+      <div className="sv-rep-noprint" style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", gap: 9,
+        alignItems: "center", flexWrap: "wrap",
         padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--border)",
         marginBottom: isMobile ? 0 : 16, borderRadius: isMobile ? 0 : 12, maxWidth: 900, marginLeft: "auto", marginRight: "auto", boxShadow: "var(--shadow-sm)" }}>
         <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border-strong)",
           background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: "1 1 170px", minWidth: 0 }}>
           <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>รายงานประจำวัน · {window.drDateTH(date)}</div>
           <div style={{ fontSize: 11, color: "var(--text-3)" }}>{photos.length} รูป · กดปุ่มแล้วเลือก “บันทึกเป็น PDF”</div>
         </div>
-        {typeof window.LangPick === "function" && (
-          <window.LangPick value={lang} onChange={pickLang} />
-        )}
-        <button onClick={doPrint} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "11px 16px", borderRadius: 11,
-          border: "none", background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
-          <Icon name="file" size={16} color="#fff" /> บันทึก PDF
-        </button>
+        {/* กลุ่มปุ่มต้องหดและขึ้นบรรทัดในตัวเองได้ ไม่ใช่ flexShrink 0
+            ไม่งั้นพอจอ 375px ปุ่ม "บันทึก PDF" จะถูกดันตกขอบขวาจนกดไม่ได้ */}
+        <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap",
+          minWidth: 0, marginLeft: "auto", justifyContent: "flex-end" }}>
+          {typeof window.LangPick === "function" && (
+            <window.LangPick value={lang} onChange={pickLang} />
+          )}
+          <button onClick={doPrint} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "11px 16px", borderRadius: 11,
+            border: "none", background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
+            <Icon name="file" size={16} color="#fff" /> บันทึก PDF
+          </button>
+        </div>
       </div>
 
       {/* ฟอนต์ไทยของแอปไม่มีตัวอักษรจีน — เลือกจีนแล้วต้องระบุชุดฟอนต์ที่มีจีนให้ชัด */}
