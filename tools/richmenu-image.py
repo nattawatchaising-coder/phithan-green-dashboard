@@ -131,9 +131,13 @@ def draw_icon(d, kind, cx, cy, r, color):
                 cx + s * int(r * (dx + 0.38)), cy, color, w)
             seg(d, cx + s * int(r * (dx + 0.38)), cy,
                 cx + s * int(r * dx), cy + int(r * 0.38), color, w)
-    else:  # search — แว่นขยาย: วงแหวนเปิดมุมล่างขวา + ด้าม
-        d.arc([cx - r, cy - r, cx + int(r * 0.1), cy + int(r * 0.1)], 120, 60, fill=color, width=w)
-        seg(d, cx - int(r * 0.24), cy - int(r * 0.24), cx + int(r * 0.72), cy + int(r * 0.72), color, w)
+    else:  # search — แว่นขยาย: วงแหวนเต็มวง + ด้ามต่อออกจาก "ขอบ" วง
+        # ของเดิมลากด้ามจากจุดกึ่งกลางวง ด้ามเลยพาดทะลุเลนส์ ดูเป็นอมยิ้มมากกว่าแว่นขยาย
+        ox, oy = cx - r * 0.24, cy - r * 0.24      # ศูนย์กลางเลนส์ เยื้องขึ้นซ้ายให้มีที่ให้ด้าม
+        R = r * 0.6
+        k = 0.7071
+        d.ellipse([ox - R, oy - R, ox + R, oy + R], outline=color, width=w)
+        seg(d, ox + R * k, oy + R * k, cx + int(r * 0.76), cy + int(r * 0.76), color, int(w * 1.2))
 
 
 def centered(d, txt, fnt, cx, cy, fill):
