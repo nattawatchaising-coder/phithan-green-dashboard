@@ -318,157 +318,10 @@ function DrPhotos({ jobId, date, currentUser, disabled }) {
 /* ตัดขอบขาวรอบลายเซ็นออกก่อนเก็บ — คนเซ็นมุมไหนของกรอบก็ได้
    ถ้าเก็บทั้งกรอบ เวลาเอาไปวางในใบพิมพ์ลายเซ็นจะลอยไปอยู่มุมกระดาษ
    ย่อกว้างสุด 560px พอสำหรับพิมพ์ และไม่ทำให้ฐานข้อมูลบวม */
-function drTrimSign(cv) {
-  const g = cv.getContext("2d");
-  const d = g.getImageData(0, 0, cv.width, cv.height).data;
-  let x0 = cv.width, y0 = cv.height, x1 = -1, y1 = -1;
-  for (let y = 0; y < cv.height; y++) {
-    for (let x = 0; x < cv.width; x++) {
-      if (d[(y * cv.width + x) * 4 + 3] > 12) {
-        if (x < x0) x0 = x; if (x > x1) x1 = x;
-        if (y < y0) y0 = y; if (y > y1) y1 = y;
-      }
-    }
-  }
-  if (x1 < 0) return null;
-  const pad = 10;
-  x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad);
-  x1 = Math.min(cv.width - 1, x1 + pad); y1 = Math.min(cv.height - 1, y1 + pad);
-  const w = x1 - x0 + 1, h = y1 - y0 + 1;
-  const k = Math.min(1, 560 / w);
-  const out = document.createElement("canvas");
-  out.width = Math.max(1, Math.round(w * k));
-  out.height = Math.max(1, Math.round(h * k));
-  out.getContext("2d").drawImage(cv, x0, y0, w, h, 0, 0, out.width, out.height);
-  return out.toDataURL("image/png");
-}
-
-function DrSignPad({ title, hint, saved, onSave, onClose, remember, onRemember }) {
-  const cv = React.useRef(null);
-  const wrap = React.useRef(null);
-  const dpr = React.useRef(1);
-  const down = React.useRef(false);
-  const last = React.useRef(null);
-  const [inked, setInked] = React.useState(false);
-
-  React.useEffect(() => {
-    const c = cv.current, w = Math.max(240, wrap.current.clientWidth), h = 190;
-    /* วาดด้วยความละเอียดจริงของจอ ไม่งั้นเส้นเป็นขั้นบันไดบนมือถือ */
-    dpr.current = Math.min(window.devicePixelRatio || 1, 2);
-    c.width = Math.round(w * dpr.current); c.height = Math.round(h * dpr.current);
-    c.style.width = w + "px"; c.style.height = h + "px";
-    const g = c.getContext("2d");
-    g.scale(dpr.current, dpr.current);
-    g.lineWidth = 2.4; g.lineCap = "round"; g.lineJoin = "round"; g.strokeStyle = "#15211A";
-  }, []);
-
-  const at = (e) => {
-    const r = cv.current.getBoundingClientRect();
-    return [e.clientX - r.left, e.clientY - r.top];
-  };
-  const start = (e) => {
-    e.preventDefault();
-    down.current = true; last.current = at(e); setInked(true);
-    if (cv.current.setPointerCapture) try { cv.current.setPointerCapture(e.pointerId); } catch (err) { /* บางเบราว์เซอร์ไม่รองรับ ปล่อยผ่าน */ }
-  };
-  const move = (e) => {
-    if (!down.current) return;
-    e.preventDefault();
-    const p = at(e), g = cv.current.getContext("2d");
-    g.beginPath(); g.moveTo(last.current[0], last.current[1]); g.lineTo(p[0], p[1]); g.stroke();
-    last.current = p;
-  };
-  const end = () => { down.current = false; last.current = null; };
-
-  const wipe = () => {
-    const c = cv.current;
-    c.getContext("2d").clearRect(0, 0, c.width, c.height);
-    setInked(false);
-  };
-  /* drawn = เพิ่งเขียนใหม่ (จำไว้ได้) · false = หยิบของที่บันทึกไว้มาใช้ ไม่ต้องเซฟซ้ำ */
-  const done = () => {
-    const img = drTrimSign(cv.current);
-    if (!img) return;
-    onSave(img, true);
-  };
-
-  const btn = (bg, color, border) => ({
-    padding: "11px 16px", borderRadius: 11, border: border || "none", background: bg, color: color,
-    fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer",
-  });
-
-  return ReactDOM.createPortal(
-    <div style={{ position: "fixed", inset: 0, zIndex: 220, background: "rgba(8,20,14,.62)", display: "grid",
-      placeItems: "center", padding: 14 }}>
-      <div style={{ width: "100%", maxWidth: 560, background: "var(--bg)", borderRadius: 16, overflow: "hidden",
-        boxShadow: "0 24px 70px rgba(8,20,14,.4)" }}>
-        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)" }}>{title}</div>
-            <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 2 }}>{hint || "เซ็นด้วยนิ้วหรือเมาส์ในกรอบด้านล่าง"}</div>
-          </div>
-          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border-strong)",
-            background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
-            <Icon name="x" size={16} />
-          </button>
-        </div>
-
-        <div ref={wrap} style={{ padding: "16px 16px 6px" }}>
-          <div style={{ position: "relative", border: "1px dashed var(--border-strong)", borderRadius: 12,
-            background: "#fff", overflow: "hidden" }}>
-            <canvas ref={cv}
-              onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerLeave={end} onPointerCancel={end}
-              style={{ display: "block", touchAction: "none", cursor: "crosshair" }} />
-            {!inked && (
-              <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
-                <span style={{ fontSize: 13, color: "#B4C2BA" }}>เซ็นชื่อตรงนี้</span>
-              </div>
-            )}
-            <div style={{ position: "absolute", left: 22, right: 22, bottom: 34, borderBottom: "1px solid #E3EAE5", pointerEvents: "none" }} />
-          </div>
-        </div>
-
-        {/* มีลายเซ็นที่บันทึกไว้ในตั้งค่าอยู่แล้ว — กดใช้ได้เลย ไม่ต้องเซ็นใหม่ */}
-        {saved && saved.img && (
-          <div style={{ margin: "4px 16px 0", padding: "9px 11px", borderRadius: 11, border: "1px solid var(--border)",
-            background: "var(--surface2)", display: "flex", alignItems: "center", gap: 11 }}>
-            <img src={saved.img} alt="" style={{ height: 32, maxWidth: 120, objectFit: "contain" }} />
-            <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: "var(--text-3)" }}>ลายเซ็นที่บันทึกไว้</span>
-            <button onClick={() => onSave(saved.img, false)}
-              style={{ padding: "8px 13px", borderRadius: 9, border: "1px solid var(--primary)", background: "var(--primary-soft)",
-                color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
-              ใช้อันนี้
-            </button>
-          </div>
-        )}
-
-        {onRemember && (
-          <button type="button" onClick={() => onRemember(!remember)}
-            style={{ display: "flex", alignItems: "center", gap: 9, margin: "10px 16px 0", cursor: "pointer",
-              background: "none", border: "none", padding: 0, fontFamily: "inherit", textAlign: "left" }}>
-            <span style={{ width: 19, height: 19, borderRadius: 6, flexShrink: 0, display: "grid", placeItems: "center",
-              background: remember ? "var(--primary)" : "transparent",
-              border: "1.5px solid " + (remember ? "var(--primary)" : "var(--border-strong)") }}>
-              {remember && <Icon name="check" size={12} color="#fff" sw={3} />}
-            </span>
-            <span style={{ fontSize: 12.5, color: "var(--text-2)" }}>จำลายเซ็นนี้ไว้ ใช้ครั้งต่อไปได้เลย</span>
-          </button>
-        )}
-
-        <div style={{ padding: "10px 16px 16px", display: "flex", gap: 9, alignItems: "center", flexWrap: "wrap" }}>
-          <button onClick={wipe} style={Object.assign(btn("var(--surface)", "var(--text-2)", "1px solid var(--border-strong)"), { flexShrink: 0 })}>
-            เขียนใหม่
-          </button>
-          <span style={{ flex: 1 }} />
-          <button onClick={onClose} style={btn("var(--surface)", "var(--text-2)", "1px solid var(--border-strong)")}>ยกเลิก</button>
-          <button onClick={done} disabled={!inked}
-            style={Object.assign(btn("var(--primary)", "#fff"), { opacity: inked ? 1 : 0.45, cursor: inked ? "pointer" : "default" })}>
-            ใช้ลายเซ็นนี้
-          </button>
-        </div>
-      </div>
-    </div>, document.body);
-}
+/* drTrimSign กับ DrSignPad ย้ายไปอยู่ daily.jsx แล้ว
+   เหตุผล: หน้า LIFF โหลด daily.js แต่ไม่ได้โหลด views-daily.js (ไฟล์เดสก์ท็อปทั้งก้อน)
+   แผ่นเซ็นจึงต้องอยู่ในโมดูลที่ทั้งสองหน้าจอโหลดร่วมกัน — ไม่ใช่ก๊อปไปไว้อีกชุด
+   ยังเรียกผ่าน window.DrSignPad เหมือนเดิมทุกที่ */
 
 /* ช่องลายเซ็นในฟอร์ม — เซ็นแล้วเห็นภาพจริง ยังไม่เซ็นเห็นปุ่ม */
 function DrSignSlot({ title, sub, sig, canSign, onSign, onClear, saved, onUseSaved }) {
@@ -932,7 +785,7 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
       {paper && <DailyPaper job={job} rec={form} date={date} allDates={store.dates} onClose={() => setPaper(false)} />}
 
       {pad && (
-        <DrSignPad title={pad.title} hint={pad.hint} onClose={() => setPad(null)}
+        <window.DrSignPad title={pad.title} hint={pad.hint} onClose={() => setPad(null)}
           saved={mine.sign} remember={remember} onRemember={setRemember}
           onSave={(img, drawn) => {
             sigs.sign(pad.slot, img, currentUser);
@@ -1701,4 +1554,4 @@ function DailyJobButton({ job, onOpen }) {
 /* ชิ้นส่วนฟอร์มปล่อยออกไปให้โมดูลอื่นใช้ด้วย (งานบริการหลังการขายใช้ชุดเดียวกัน)
    หน้าตาฟอร์มทั้งระบบจะได้เหมือนกัน แก้ที่นี่ที่เดียวเปลี่ยนพร้อมกันทุกที่ */
 Object.assign(window, { DailyReportModal, DailyPaper, DailyView, DailyJobButton,
-  DrLabel, DrText, DrSection, DrChips, DrRows, DrPhotoCap, DrSignPad, DrSignSlot, DR_INPUT });
+  DrLabel, DrText, DrSection, DrChips, DrRows, DrPhotoCap, DrSignSlot, DR_INPUT });

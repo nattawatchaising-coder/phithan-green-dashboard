@@ -11,12 +11,15 @@
    ชุดเดียวกับเว็บเดสก์ท็อป ฉะนั้น "ช่างเห็นงานอะไรบ้าง" ตอบเหมือนกันทั้งสองที่เสมอ
    ============================================================ */
 
+/* หกแท็บบนจอ 360px ได้ช่องละ 60px — ตัวหนังสือจึงต้องสั้นกว่าเดิม
+   "เบิกเงิน"/"แจ้งเตือน" ยาวเกินจนตัดกลางคำ ใช้คำสั้นคู่กับไอคอนแทน */
 const LN_TAB = [
-  { key: "jobs",  th: "งาน",       icon: "wrench" },
-  { key: "time",  th: "เวลา",      icon: "clock" },
-  { key: "ec",    th: "เบิกเงิน",  icon: "wallet" },
-  { key: "bell",  th: "แจ้งเตือน", icon: "bell" },
-  { key: "me",    th: "ฉัน",       icon: "user" },
+  { key: "jobs",  th: "งาน",     icon: "wrench" },
+  { key: "time",  th: "เวลา",    icon: "clock" },
+  { key: "daily", th: "รายงาน",  icon: "pen" },
+  { key: "ec",    th: "เบิก",    icon: "wallet" },
+  { key: "bell",  th: "เตือน",   icon: "bell" },
+  { key: "me",    th: "ฉัน",     icon: "user" },
 ];
 
 /* ปุ่มบนเมนูล่างของ LINE ส่ง ?tab= ติดมากับ URL ของหน้า LIFF
@@ -513,6 +516,8 @@ function LnApp() {
 
       {tab === "time" && <LnTimeTab me={me} users={auth.users} role={role} jobs={mine} startOt={LN_START.ot} />}
 
+      {tab === "daily" && <window.LnDailyTab me={me} role={role} jobs={mine} notify={notif.addNotif} />}
+
       {tab === "ec" && <window.LnEcTab me={me} users={auth.users} role={role} jobs={mine} />}
 
       {tab === "bell" && (
@@ -556,10 +561,6 @@ function LnApp() {
             </div>
           )}
 
-          <div style={{ marginTop: 16, fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.7, textAlign: "center" }}>
-            รายงานประจำวัน
-            <br />กำลังทยอยเปิดใช้ในเฟสถัดไป
-          </div>
         </div>
       )}
 
