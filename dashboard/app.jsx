@@ -40,6 +40,16 @@ const NAV = [
    สีบอกว่าเลขนั้นหมายถึงอะไร ไม่ได้ใส่ให้สวย: แดง = มีเรื่องค้างหรือเลยกำหนด ต้องลงมือ ·
    เหลือง = ใกล้ถึงเกณฑ์ · ฟ้า = แค่บอกจำนวนของวันนี้ ไม่ใช่ปัญหา
    ถ้าไม่แยกโทน เลขที่ขึ้นทุกวัน (นัดวันนี้) จะทำให้คนเลิกมองเลขที่สำคัญจริง ๆ ไปด้วย */
+/* หน้าที่ไม่ได้ไล่รายการงาน — ตัวกรองประเภทงาน/ช่าง/ขั้นงาน และบรรทัด "แสดง n จาก n งาน"
+   ไม่มีความหมายบนหน้าเหล่านี้ กดกรองไปก็ไม่มีอะไรบนจอเปลี่ยน ได้แต่กินที่หัว
+   ใส่คำอธิบายหน้าแทน เพราะหัวหน้าที่ว่างเปล่าอ่านเหมือนหน้าโหลดค้าง */
+const PLAIN_SUB = {
+  om: "ทะเบียนไซต์ในสัญญาบริการ · ประกัน · รอบล้างแผง",
+  attend: "ลงเวลาเข้า-ออกรายวัน · ใบขอ OT · ตั้งค่าเวลาทำงาน",
+  expense: "ใบเบิกเงินหน้างาน · คิวอนุมัติ · ยอดค้างจ่ายรายคน",
+  daily: "ใบรายงานหน้างานรายวัน · รูปหน้างาน · ลายเซ็น",
+  line: "โควตาข้อความ · เลือกเรื่องที่ส่งเข้าแชต · บัญชีที่ผูกไว้",
+};
 const NAV_BADGE_TONE = { stock: "warn", calendar: "info" };
 const NAV_BADGE_TIP = {
   overview: "งานที่ล่าช้ากว่ากำหนด",
@@ -747,8 +757,8 @@ function App() {
             onAdvance={(j) => store.advance(j.id)} />
         ) : (
         <React.Fragment>
-        <Header view={view} navList={navItems} plain={permitPage || view === "om"}
-          subtitle={permitPage ? permitHead : view === "om" ? "ทะเบียนไซต์ในสัญญาบริการ · ประกัน · รอบล้างแผง" : null} ownOnly={ownOnly} count={filtered.length} total={jobs.length}
+        <Header view={view} navList={navItems} plain={permitPage || !!PLAIN_SUB[view]}
+          subtitle={permitPage ? permitHead : PLAIN_SUB[view] || null} ownOnly={ownOnly} count={filtered.length} total={jobs.length}
           search={search} setSearch={setSearch}
           typeFilter={typeFilter} setTypeFilter={setTypeFilter}
           delayedOnly={delayedOnly} setDelayedOnly={setDelayedOnly}

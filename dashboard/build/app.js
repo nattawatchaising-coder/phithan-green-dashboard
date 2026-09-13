@@ -90,6 +90,13 @@ const NAV = [{
   perm: "manageUsers",
   foot: true
 }];
+const PLAIN_SUB = {
+  om: "ทะเบียนไซต์ในสัญญาบริการ · ประกัน · รอบล้างแผง",
+  attend: "ลงเวลาเข้า-ออกรายวัน · ใบขอ OT · ตั้งค่าเวลาทำงาน",
+  expense: "ใบเบิกเงินหน้างาน · คิวอนุมัติ · ยอดค้างจ่ายรายคน",
+  daily: "ใบรายงานหน้างานรายวัน · รูปหน้างาน · ลายเซ็น",
+  line: "โควตาข้อความ · เลือกเรื่องที่ส่งเข้าแชต · บัญชีที่ผูกไว้"
+};
 const NAV_BADGE_TONE = {
   stock: "warn",
   calendar: "info"
@@ -1024,8 +1031,8 @@ function App() {
   }) : React.createElement(React.Fragment, null, React.createElement(Header, {
     view: view,
     navList: navItems,
-    plain: permitPage || view === "om",
-    subtitle: permitPage ? permitHead : view === "om" ? "ทะเบียนไซต์ในสัญญาบริการ · ประกัน · รอบล้างแผง" : null,
+    plain: permitPage || !!PLAIN_SUB[view],
+    subtitle: permitPage ? permitHead : PLAIN_SUB[view] || null,
     ownOnly: ownOnly,
     count: filtered.length,
     total: jobs.length,
