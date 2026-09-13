@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0" />
+<title>flash+solar · งานช่าง</title>
+<link rel="icon" type="image/svg+xml" href="dashboard/assets/favicon.svg" />
+<meta name="theme-color" content="#1B9B75" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+<!-- ตัวแปรสี/ระยะชุดเดียวกับเว็บเดสก์ท็อป — แก้ที่ไฟล์เดียว ทั้งสองหน้าเปลี่ยนตาม -->
+<link rel="stylesheet" href="dashboard/tokens.css?v=1" />
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: var(--sans); background: var(--bg); color: var(--text-1); font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  /* ปิดการดีเลย์ 300ms กับการซูมสองนิ้วในแอป LINE — ปุ่มบนมือถือต้องตอบสนองทันที */
+  touch-action: manipulation;
+}
+/* ช่องกรอกบน iOS: ถ้าตัวอักษรเล็กกว่า 16px Safari จะซูมหน้าจอเข้าไปเองตอนโฟกัส แล้วซูมออกไม่กลับ */
+input, select, textarea, button { font-family: inherit; font-size: 16px; }
+a { color: var(--primary-dark); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+/* LIFF ID ไม่ใช่ค่าลับ — มันอยู่ใน URL liff.line.me/<id> ที่ผู้ใช้กดอยู่แล้วโดยธรรมชาติ
+   จึงฝังตรงนี้ได้ ไม่ต้องทำกลไกส่ง env มาฝั่งหน้าเว็บให้โปรเจกต์ที่ไม่มี build step
+   ⚠ ค่าลับจริง (channel secret / access token) อยู่ใน Vercel Environment Variables เท่านั้น */
+window.LN_LIFF_ID = "";   /* ← ใส่ LIFF ID จากคอนโซล LINE Developers ตรงนี้ (เฟส 0 ข้อ 3) */
+</script>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<script src="dashboard/data.js?v=23"></script>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" integrity="sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" integrity="sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1" crossorigin="anonymous"></script>
+
+<!-- ── ชุดสคริปต์ของหน้า LIFF ──
+     ตั้งใจโหลดน้อยกว่า index.html มาก (ตัดเครื่องมือออกแบบ · BOQ · 3D · รายงาน · หน้าจอเดสก์ท็อปทั้งหมด)
+     เพราะช่างเปิดบนมือถือผ่าน 4G · สคริปต์เป็น classic script ใช้ขอบเขตตัวแปรร่วมกัน
+     ⚠ ลำดับสำคัญ และเลข ?v= ต้องตรงกับ index.html เสมอ
+        (มีตัวเช็กที่ tools/check-versions.mjs — รันก่อน deploy ทุกครั้ง) -->
+<script src="dashboard/build/brand.js?v=5"></script>
+<script src="dashboard/build/components.js?v=39"></script>
+<script src="dashboard/build/confirm.js?v=1"></script>
+<script src="dashboard/build/store.js?v=44"></script>
+<script src="dashboard/build/media.js?v=11"></script>
+<script src="dashboard/build/daily.js?v=12"></script>
+<script src="dashboard/build/auth.js?v=28"></script>
+<script src="dashboard/build/line.js?v=1"></script>
+<script src="dashboard/build/liff-app.js?v=1"></script>
+
+<script>
+(function () {
+  var root = ReactDOM.createRoot(document.getElementById("root"));
+  root.render(React.createElement(window.LnGate, null, React.createElement(window.LnApp)));
+})();
+</script>
+</body>
+</html>

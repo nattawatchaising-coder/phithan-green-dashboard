@@ -457,6 +457,9 @@ function ecNotify(n) {
   _ecRef("notifications/" + id).set(Object.assign({
     id, read: false, at: new Date().toISOString(), type: "expense", event: "expense",
   }, n));
+  /* ส่งต่อเข้า LINE — ข้ามในโหมดทดสอบ เพราะเซิร์ฟเวอร์อ่านจาก notifications/ ของจริงเสมอ
+     ถ้าไม่กันไว้ ใบทดสอบจะเด้งเข้ามือถือคนจริง */
+  if (!EC_ROOT && window.lnPush) window.lnPush(id);
 }
 
 /* ── ข้อมูลใบเบิกแบบเปิดค้างไว้ สำหรับปุ่มในลิ้นชักใบงาน ──

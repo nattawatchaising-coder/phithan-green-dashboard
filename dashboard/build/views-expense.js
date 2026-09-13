@@ -1835,6 +1835,7 @@ function ExpenseView({
     store.save(rec);
     const money = window.ecBaht(rec.amount) + " บาท";
     const where = rec.siteCode ? " · " + rec.siteCode : "";
+    const noteText = (note && typeof note === "object" ? note.text : note) || "";
     if (to === "sent") {
       window.ecNotify(rec.approverId ? {
         toUserId: rec.approverId,
@@ -1849,7 +1850,7 @@ function ExpenseView({
       window.ecNotify({
         toUserId: rec.byId,
         title: (to === "approved" ? "อนุมัติใบเบิกแล้ว · " : to === "rejected" ? "ไม่อนุมัติใบเบิก · " : "จ่ายเงินคืนแล้ว · ") + rec.no,
-        body: money + where + (note ? " · " + note : "")
+        body: money + where + (noteText ? " · " + noteText : "")
       });
     }
   };

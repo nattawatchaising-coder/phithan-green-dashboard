@@ -536,6 +536,7 @@ function ecNotify(n) {
     type: "expense",
     event: "expense"
   }, n));
+  if (!EC_ROOT && window.lnPush) window.lnPush(id);
 }
 function useEcLive(on) {
   const [claims, setClaims] = React.useState([]);

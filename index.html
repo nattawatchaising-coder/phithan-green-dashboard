@@ -13,92 +13,8 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Sora:wght@600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="dashboard/tokens.css?v=1" />
 <style>
-:root {
-  --sans: 'IBM Plex Sans Thai', sans-serif;
-  --display: 'Outfit', 'Sora', 'IBM Plex Sans Thai', sans-serif;
-  /* ฟอนต์และสีของตราสัญลักษณ์ flash+solar — ชื่อในโลโก้ต้องเป็น Outfit เสมอ ไม่ว่าธีมไหน */
-  --brand-font: 'Outfit', 'Sora', sans-serif; --brand-ink: #0F2B33; --brand-muted: #5B8A8A;
-  /* ด้านทั้งหกของหกเหลี่ยมในตราสัญลักษณ์ + สีสายฟ้า — โหมดกราไฟต์สลับเป็นชุดสว่างข้างล่าง
-     (เอกสารที่พิมพ์ลงกระดาษไม่ได้ใช้ชุดนี้ ใช้ค่าสีตายตัวชุด light ใน brand.jsx) */
-  --fx-1: #0A4D68; --fx-2: #0E6478; --fx-3: #148080;
-  --fx-4: #1B9B75; --fx-5: #22B36A; --fx-6: #147A8C; --fx-cut: #FFFFFF;
-  --mono: 'JetBrains Mono', monospace;
-  --bg: #F0F4F4; --surface: #FFFFFF; --surface2: #F5F9F8; --surface3: #E8EFEE;
-  --border: #E3E9E8; --border-strong: #CCD9D7;
-  --text-1: #0F2B33; --text-2: #55686C; --text-3: #8FA1A3;
-  --shadow-sm: 0 1px 2px rgba(15,43,51,.04), 0 1px 3px rgba(15,43,51,.05);
-  /* สีหลัก = เขียวอมฟ้าจากหกเหลี่ยมในโลโก้ · dark = น้ำเงินเข้มสุดของหกเหลี่ยม · bright = เขียวของเครื่องหมายบวก */
-  --primary: #1B9B75; --primary-dark: #0A4D68; --primary-soft: #E3F4EE; --primary-bright: #22B36A;
-  --sidebar-w: 250px;
-  /* ── สีป้ายสถานะ (เตือน/ผิดพลาด/ผ่าน) ──
-     เดิมเขียนเป็นรหัสสีตายตัวกระจายอยู่ทั่วโค้ด ทำให้พอเปลี่ยนเป็นพื้นมืดแล้วกลายเป็นแผ่นสีอ่อนโดดขึ้นมา
-     ย้ายมาเป็นตัวแปรตรงนี้ ค่าชุดนี้เท่าของเดิมเป๊ะ โหมดปกติจึงไม่เปลี่ยนอะไรเลย */
-  --tint-red-bg: #FEF2F2; --tint-red-bg2: #FDE2E2; --tint-red-bd: #FECACA; --tint-red-bd2: #FBD3D3;
-  --tint-red-tx: #B91C1C; --tint-red-tx2: #DC2626;
-  --tint-amber-bg: #FFFBEB; --tint-amber-bg2: #FEF3C7; --tint-amber-bd: #FDE68A;
-  --tint-amber-tx: #B45309; --tint-amber-tx2: #92400E;
-  --tint-green-tx: #16A34A;
-  --tint-ok-bg: rgba(27,155,117,.07); --tint-ok-bd: #B7E4D6; --tint-ok-tx: #147F62;
-  /* ── สีขั้นตองาน + สถานะวัสดุ ──
-     soft = พื้นป้าย · fg = สีตัวอักษรบนป้าย (แยกจาก color ที่ใช้กับจุด/แถบ ซึ่งต้องคงเดิม) */
-  --st-design-soft: #EEE9FF;  --st-design-fg: #7C5CFC;
-  --st-takeoff-soft: #E5EFFF; --st-takeoff-fg: #3B82F6;
-  --st-queue-soft: #FEF1D8;   --st-queue-fg: #F59E0B;
-  --st-install-soft: #ECF8D4; --st-install-fg: #84CC16;
-  --st-done-soft: #D6F5E6;    --st-done-fg: #10B981;
-  --mat-ready-soft: #D6F5E6;  --mat-ready-fg: #10B981;
-  --mat-waiting-soft: #FEF1D8;--mat-waiting-fg: #F59E0B;
-  --mat-none-soft: #FDE2E2;   --mat-none-fg: #EF4444;
-  --mat-na-soft: #EEF1F5;     --mat-na-fg: #94A3B8;
-  --kind-design: #2563EB; --kind-boq: #0D9488; --kind-other: #64748B;
-  /* ขีดสีที่ขอบการ์ด (มีปัญหา/ล่าช้า) — บนพื้นมืดต้องหรี่ลง ไม่งั้นเป็นเส้นนีออนแย่งสายตา */
-  --mark-danger: #EF4444; --mark-warn: #F59E0B;
-}
-/* ── โหมดกราไฟต์ (GRAPHITE) ───────────────────────────────────
-   สกินพิเศษโทนเทาเข้ม แนวทางเดียวกับ iOS: พื้นเทาไล่ระดับความสว่าง
-   ไม่ใช้สีฉูดฉาดและไม่มีเอฟเฟกต์เคลื่อนไหว จ้องนาน ๆ ไม่ล้าตา
-   ระดับความสูงของชั้นบอกด้วย "ความสว่าง" ไม่ใช่เงา — เป็นวิธีของ UI พื้นมืด
-   (คีย์ภายในยังใช้ชื่อ aurora เพื่อให้ค่าที่ผู้ใช้เคยเลือกไว้ไม่หาย)
-   ────────────────────────────────────────────────────────────── */
-[data-theme="aurora"] {
-  --bg: #131315; --surface: #232327; --surface2: #2E2E34; --surface3: #3A3A41;
-  --border: rgba(255,255,255,.09); --border-strong: rgba(255,255,255,.18);
-  --text-1: #F2F2F7; --text-2: rgba(235,235,245,.62); --text-3: rgba(235,235,245,.36);
-  --shadow-sm: 0 1px 2px rgba(0,0,0,.45);
-  /* แถบที่ต้องเบลอพื้นหลัง (หัวหน้า/แถบเมนู) — โปร่งพอให้เห็นเนื้อหาเลื่อนผ่านราง ๆ */
-  --gr-bar: rgba(32,32,36,.80);
-  --gr-card: #232327;
-  --gr-hi: rgba(255,255,255,.055);
-  /* ป้ายสถานะบนพื้นมืด: พื้นเป็นสีเดิมแต่จาง ๆ (ไม่ใช่แผ่นสีอ่อนทึบ) ตัวอักษรกลับด้านเป็นโทนสว่าง */
-  --tint-red-bg: rgba(255,69,58,.13); --tint-red-bg2: rgba(255,69,58,.20);
-  --tint-red-bd: rgba(255,69,58,.32); --tint-red-bd2: rgba(255,69,58,.38);
-  --tint-red-tx: #FF8B84; --tint-red-tx2: #FF7A72;
-  --tint-amber-bg: rgba(255,159,10,.12); --tint-amber-bg2: rgba(255,159,10,.18);
-  --tint-amber-bd: rgba(255,159,10,.32);
-  --tint-amber-tx: #FFC46B; --tint-amber-tx2: #FFD08A;
-  --tint-green-tx: #4CD97B;
-  --tint-ok-bg: rgba(48,209,88,.13); --tint-ok-bd: rgba(48,209,88,.30); --tint-ok-tx: #5FE08D;
-  /* ป้ายขั้นตอน/สถานะวัสดุบนพื้นมืด: พื้นเป็นสีเดิมแบบจาง ตัวอักษรใช้เฉดสว่างของสีเดียวกัน */
-  --st-design-soft: rgba(124,92,252,.22);  --st-design-fg: #B9A6FF;
-  --st-takeoff-soft: rgba(59,130,246,.22); --st-takeoff-fg: #7DB4FF;
-  --st-queue-soft: rgba(245,158,11,.20);   --st-queue-fg: #FFC356;
-  --st-install-soft: rgba(132,204,22,.20); --st-install-fg: #B6E85C;
-  --st-done-soft: rgba(16,185,129,.20);    --st-done-fg: #46DDA9;
-  --mat-ready-soft: rgba(16,185,129,.20);  --mat-ready-fg: #46DDA9;
-  --mat-waiting-soft: rgba(245,158,11,.20);--mat-waiting-fg: #FFC356;
-  --mat-none-soft: rgba(239,68,68,.20);    --mat-none-fg: #FF8B84;
-  --mat-na-soft: rgba(148,163,184,.20);    --mat-na-fg: #A9B7C6;
-  --kind-design: #7DB4FF; --kind-boq: #4FD1C5; --kind-other: #A9B7C6;
-  --mark-danger: rgba(255,69,58,.55); --mark-warn: rgba(255,159,10,.5);
-  --brand-ink: #F2F2F7; --brand-muted: rgba(235,235,245,.45);
-  /* ตราสัญลักษณ์บนพื้นมืด — ใช้เฉดสว่างขึ้นทั้งหกด้าน สายฟ้าเป็นสีเข้มเจาะกลาง ตามตัวอย่างในไฟล์ออกแบบ */
-  --fx-1: #2E9BC4; --fx-2: #37B0C4; --fx-3: #3DC4B4;
-  --fx-4: #4FD79A; --fx-5: #5FE38A; --fx-6: #34AEC4; --fx-cut: #0A2530;
-  color-scheme: dark;
-}
-[data-cardstyle="flat"] { --shadow-sm: none; }
-[data-density="compact"] { --sidebar-w: 230px; }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
@@ -571,7 +487,7 @@ input, select, textarea { font-family: inherit; }
 <script src="dashboard/build/tweaks-panel.js?v=6"></script>
 <script src="dashboard/build/components.js?v=39"></script>
 <script src="dashboard/build/confirm.js?v=1"></script>
-<script src="dashboard/build/store.js?v=43"></script>
+<script src="dashboard/build/store.js?v=44"></script>
 <script src="dashboard/build/media.js?v=11"></script>
 <script src="dashboard/build/boq.js?v=121"></script>
 <script src="dashboard/build/prices.js?v=17"></script>
@@ -601,14 +517,15 @@ input, select, textarea { font-family: inherit; }
 <script src="dashboard/build/views-flow.js?v=4"></script>
 <script src="dashboard/build/daily.js?v=12"></script>
 <script src="dashboard/build/views-daily.js?v=25"></script>
-<script src="dashboard/build/om.js?v=6"></script>
+<script src="dashboard/build/om.js?v=7"></script>
 <script src="dashboard/build/views-om.js?v=8"></script>
 <script src="dashboard/build/om-ticket.js?v=7"></script>
 <script src="dashboard/build/om-paper.js?v=3"></script>
-<script src="dashboard/build/expense.js?v=6"></script>
-<script src="dashboard/build/views-expense.js?v=10"></script>
+<script src="dashboard/build/expense.js?v=7"></script>
+<script src="dashboard/build/views-expense.js?v=11"></script>
 <script src="dashboard/build/ec-paper.js?v=4"></script>
-<script src="dashboard/build/auth.js?v=27"></script>
-<script src="dashboard/build/app.js?v=138"></script>
+<script src="dashboard/build/auth.js?v=28"></script>
+<script src="dashboard/build/line.js?v=1"></script>
+<script src="dashboard/build/app.js?v=139"></script>
 </body>
 </html>

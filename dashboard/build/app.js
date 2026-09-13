@@ -305,7 +305,7 @@ function App() {
   const filtered = React.useMemo(() => {
     const q = search.trim().toLowerCase();
     return jobs.filter(j => {
-      if (q && !(j.name + j.code + j.province + j.phone + j.brand).toLowerCase().includes(q)) return false;
+      if (!jobMatchQ(j, q)) return false;
       if (typeFilter !== "all" && j.type !== typeFilter) return false;
       if (stageFilter && stageKeyOf(j) !== stageFilter) return false;
       if (delayedOnly && !j.delayed) return false;
@@ -325,7 +325,7 @@ function App() {
     const c = {};
     let all = 0;
     jobs.forEach(j => {
-      if (q && !(j.name + j.code + j.province + j.phone + j.brand).toLowerCase().includes(q)) return;
+      if (!jobMatchQ(j, q)) return;
       if (typeFilter !== "all" && j.type !== typeFilter) return;
       if (stageFilter && stageKeyOf(j) !== stageFilter) return;
       if (delayedOnly && !j.delayed) return;
@@ -348,7 +348,7 @@ function App() {
     const c = {};
     let all = 0;
     jobs.forEach(j => {
-      if (q && !(j.name + j.code + j.province + j.phone + j.brand).toLowerCase().includes(q)) return;
+      if (!jobMatchQ(j, q)) return;
       if (typeFilter !== "all" && j.type !== typeFilter) return;
       if (delayedOnly && !j.delayed) return;
       if (quickFilter === "active" && j.stage === "done") return;

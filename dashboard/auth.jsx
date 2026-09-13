@@ -412,6 +412,33 @@ function MyProfileModal({ user, onSave, onClose }) {
                 onChange={(e) => set("line", e.target.value)} placeholder="เช่น @somchai" />
             </AField>
 
+            {/* ── สถานะการเชื่อมกับแอป LINE ──
+                คนละเรื่องกับช่อง "ไลน์ไอดี" ข้างบน ซึ่งเป็นแค่ข้อความให้คนอ่าน
+                ช่องนี้คือการผูกจริงที่ทำให้แจ้งเตือนเด้งเข้า LINE และเปิดแอปในไลน์ได้
+                ปลดแล้วต้องไปกรอกชื่อผู้ใช้/รหัสผ่านในแอป LINE ใหม่อีกครั้ง */}
+            <div style={{ gridColumn: "1 / -1", padding: "11px 13px", borderRadius: 11,
+              background: user.lineUserId ? "var(--tint-ok-bg)" : "var(--surface2)",
+              border: "1px solid " + (user.lineUserId ? "var(--tint-ok-bd)" : "var(--border)"),
+              display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ flex: 1, minWidth: 160, fontSize: 12.5, fontWeight: 600,
+                color: user.lineUserId ? "var(--tint-ok-tx)" : "var(--text-3)" }}>
+                {user.lineUserId ? "เชื่อมกับแอป LINE แล้ว — แจ้งเตือนจะเด้งเข้าไลน์" : "ยังไม่ได้เชื่อมกับแอป LINE"}
+              </span>
+              {user.lineUserId && (
+                <button onClick={async () => {
+                    if (!await window.askConfirm({ title: "ปลดการเชื่อม LINE",
+                      body: "แจ้งเตือนจะไม่เด้งเข้าไลน์อีก และต้องกรอกชื่อผู้ใช้กับรหัสผ่านใหม่เมื่อเปิดแอปในไลน์ครั้งต่อไป",
+                      ok: "ปลดการเชื่อม", danger: true, icon: "link" })) return;
+                    if (_AFB()) {
+                      _aref("lineLinks/" + user.lineUserId).remove();
+                      _aref("users/" + user.id + "/lineUserId").remove();
+                    }
+                  }}
+                  style={{ padding: "8px 13px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                    color: "var(--text-2)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>ปลดการเชื่อม</button>
+              )}
+            </div>
+
             {/* ตำแหน่ง/ชื่อผู้ใช้ — แก้เองไม่ได้ ต้องให้แอดมินเปลี่ยน เพราะผูกกับสิทธิ์และการมอบหมายงาน */}
             <div style={{ padding: "11px 13px", borderRadius: 11, background: "var(--surface2)", border: "1px solid var(--border)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -483,7 +510,10 @@ function useNotifStore() {
 
   React.useEffect(() => {
     if (!_AFB()) return;
-    const ref = _aref("notifications");
+    /* ฟังเฉพาะ 200 ใบล่าสุด — เดิมฟังทั้งต้นไม้ ซึ่งบนเดสก์ท็อปแค่ช้า
+       แต่บนมือถือผ่าน 4G (หน้า LIFF) คือค่าเน็ตของช่างที่โตขึ้นเรื่อย ๆ ไม่มีเพดาน
+       กล่องแจ้งเตือนไม่เคยแสดงเกินสองสามสิบใบอยู่แล้ว */
+    const ref = _aref("notifications").limitToLast(200);
     const h = ref.on("value", (snap) => {
       let arr = _asnap(snap) || [];
       arr.sort((a, b) => (b.at || "").localeCompare(a.at || ""));
@@ -497,7 +527,12 @@ function useNotifStore() {
   const addNotif = React.useCallback((n) => {
     const id  = "N-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
     const rec = Object.assign({ id, read: false, at: new Date().toISOString() }, n);
-    if (_AFB()) { _aref("notifications/" + id).set(rec); }
+    if (_AFB()) {
+      _aref("notifications/" + id).set(rec);
+      /* ส่งต่อเข้า LINE — ยิงแล้วไม่รอผล ถ้าเซิร์ฟเวอร์ล่มหรือโควตาหมด
+         ก็แค่ไม่มี LINE เด้ง ใบแจ้งเตือนในเว็บยังอยู่ครบเหมือนเดิม */
+      if (window.lnPush) window.lnPush(id);
+    }
     else setNotifs((prev) => [rec, ...(prev || [])]);
   }, []);
 
@@ -506,10 +541,13 @@ function useNotifStore() {
     else setNotifs((prev) => (prev || []).map((n) => n.id === id ? Object.assign({}, n, { read: true }) : n));
   }, []);
 
-  const markAllRead = React.useCallback((toTechId) => {
-    const target = (notifs || []).filter((n) => n.toTechId === toTechId && !n.read);
-    if (_AFB()) { target.forEach((n) => _aref("notifications/" + n.id + "/read").set(true)); }
-    else setNotifs((prev) => (prev || []).map((n) => n.toTechId === toTechId ? Object.assign({}, n, { read: true }) : n));
+  /* เดิมกรอง n.toTechId อย่างเดียว แต่ผู้ส่งแจ้งเตือนเขียนช่องผู้รับไม่เหมือนกัน
+     (app.jsx เขียน toTechId · om-ticket.jsx เขียน toUserId) ทำให้ตัวนี้แทบไม่เคยจับใบไหนได้เลย
+     รับทั้งสองช่องแทน แล้วค่าที่ส่งเข้ามาจะเป็น techId หรือ id ของบัญชีก็ใช้ได้ */
+  const markAllRead = React.useCallback((who) => {
+    const hit = (n) => n && (n.toTechId === who || n.toUserId === who);
+    if (_AFB()) { (notifs || []).filter((n) => hit(n) && !n.read).forEach((n) => _aref("notifications/" + n.id + "/read").set(true)); }
+    else setNotifs((prev) => (prev || []).map((n) => hit(n) ? Object.assign({}, n, { read: true }) : n));
   }, [notifs]);
 
   return { notifs: notifs || [], addNotif, markRead, markAllRead };

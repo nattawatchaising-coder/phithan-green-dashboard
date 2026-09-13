@@ -783,8 +783,18 @@ function useAmpacityStore() {
 /* ================================================================
    Export to window (same pattern as original)
    ================================================================ */
+/* ── คำค้นหนึ่งคำ ตรงกับงานใบนี้ไหม ──
+   อยู่ที่นี่เพราะทั้งเว็บเดสก์ท็อป (app.jsx: รายการงาน · ตัวนับต่อช่าง · ตัวนับต่อขั้น)
+   และหน้า LIFF (liff-app.jsx) ต้องค้นด้วยเงื่อนไขเดียวกัน
+   เดิมเขียนซ้ำสามที่ พอเพิ่มช่องที่ค้นได้ก็ลืมแก้ให้ครบ แล้วเลขบนชิปกรองไม่ตรงกับแถวที่เห็นจริง */
+function jobMatchQ(j, q) {
+  if (!q) return true;
+  return ((j.name || "") + (j.code || "") + (j.province || "") + (j.phone || "") + (j.brand || "") + (j.address || ""))
+    .toLowerCase().includes(q);
+}
+
 Object.assign(window, {
   useJobStore, useStockStore, useTechStore, useBrandStore, usePriceStore, useAmpacityStore,
-  blankJob, blankItem, blankTech, nextCode,
+  blankJob, blankItem, blankTech, nextCode, jobMatchQ,
   SF_STORE_KEY,
 });

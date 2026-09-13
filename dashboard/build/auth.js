@@ -799,6 +799,51 @@ function MyProfileModal({
     placeholder: "\u0E40\u0E0A\u0E48\u0E19 @somchai"
   })), React.createElement("div", {
     style: {
+      gridColumn: "1 / -1",
+      padding: "11px 13px",
+      borderRadius: 11,
+      background: user.lineUserId ? "var(--tint-ok-bg)" : "var(--surface2)",
+      border: "1px solid " + (user.lineUserId ? "var(--tint-ok-bd)" : "var(--border)"),
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 160,
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: user.lineUserId ? "var(--tint-ok-tx)" : "var(--text-3)"
+    }
+  }, user.lineUserId ? "เชื่อมกับแอป LINE แล้ว — แจ้งเตือนจะเด้งเข้าไลน์" : "ยังไม่ได้เชื่อมกับแอป LINE"), user.lineUserId && React.createElement("button", {
+    onClick: async () => {
+      if (!(await window.askConfirm({
+        title: "ปลดการเชื่อม LINE",
+        body: "แจ้งเตือนจะไม่เด้งเข้าไลน์อีก และต้องกรอกชื่อผู้ใช้กับรหัสผ่านใหม่เมื่อเปิดแอปในไลน์ครั้งต่อไป",
+        ok: "ปลดการเชื่อม",
+        danger: true,
+        icon: "link"
+      }))) return;
+      if (_AFB()) {
+        _aref("lineLinks/" + user.lineUserId).remove();
+        _aref("users/" + user.id + "/lineUserId").remove();
+      }
+    },
+    style: {
+      padding: "8px 13px",
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-2)",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E1B\u0E25\u0E14\u0E01\u0E32\u0E23\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21")), React.createElement("div", {
+    style: {
       padding: "11px 13px",
       borderRadius: 11,
       background: "var(--surface2)",
@@ -979,7 +1024,7 @@ function useNotifStore() {
   const [notifs, setNotifs] = React.useState(_AFB() ? null : () => _alsGet(SF_NOTIF_KEY, []));
   React.useEffect(() => {
     if (!_AFB()) return;
-    const ref = _aref("notifications");
+    const ref = _aref("notifications").limitToLast(200);
     const h = ref.on("value", snap => {
       let arr = _asnap(snap) || [];
       arr.sort((a, b) => (b.at || "").localeCompare(a.at || ""));
@@ -999,6 +1044,7 @@ function useNotifStore() {
     }, n);
     if (_AFB()) {
       _aref("notifications/" + id).set(rec);
+      if (window.lnPush) window.lnPush(id);
     } else setNotifs(prev => [rec, ...(prev || [])]);
   }, []);
   const markRead = React.useCallback(id => {
@@ -1008,11 +1054,11 @@ function useNotifStore() {
       read: true
     }) : n));
   }, []);
-  const markAllRead = React.useCallback(toTechId => {
-    const target = (notifs || []).filter(n => n.toTechId === toTechId && !n.read);
+  const markAllRead = React.useCallback(who => {
+    const hit = n => n && (n.toTechId === who || n.toUserId === who);
     if (_AFB()) {
-      target.forEach(n => _aref("notifications/" + n.id + "/read").set(true));
-    } else setNotifs(prev => (prev || []).map(n => n.toTechId === toTechId ? Object.assign({}, n, {
+      (notifs || []).filter(n => hit(n) && !n.read).forEach(n => _aref("notifications/" + n.id + "/read").set(true));
+    } else setNotifs(prev => (prev || []).map(n => hit(n) ? Object.assign({}, n, {
       read: true
     }) : n));
   }, [notifs]);

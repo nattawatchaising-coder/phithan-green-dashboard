@@ -1268,6 +1268,7 @@ function omNotify(n) {
     type: "om",
     event: "om"
   }, n));
+  if (!OM_ROOT && window.lnPush) window.lnPush(id);
 }
 function omSiteAlerts(sites, bySite, tickets, today) {
   const t = today || window.drToday();

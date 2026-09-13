@@ -951,6 +951,10 @@ function useAmpacityStore() {
     reset
   };
 }
+function jobMatchQ(j, q) {
+  if (!q) return true;
+  return ((j.name || "") + (j.code || "") + (j.province || "") + (j.phone || "") + (j.brand || "") + (j.address || "")).toLowerCase().includes(q);
+}
 Object.assign(window, {
   useJobStore,
   useStockStore,
@@ -962,5 +966,6 @@ Object.assign(window, {
   blankItem,
   blankTech,
   nextCode,
+  jobMatchQ,
   SF_STORE_KEY
 });

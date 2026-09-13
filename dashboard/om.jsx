@@ -893,6 +893,8 @@ function omNotify(n) {
   if (!_OMFB() || !n) return;
   const id = "N-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
   _omRef("notifications/" + id).set(Object.assign({ id, read: false, at: new Date().toISOString(), type: "om", event: "om" }, n));
+  /* ส่งต่อเข้า LINE — ข้ามในโหมดทดสอบ (ดูเหตุผลเดียวกันที่ ecNotify ใน expense.jsx) */
+  if (!OM_ROOT && window.lnPush) window.lnPush(id);
 }
 
 /* ══════════════ เตือนสด (ไม่เก็บลงฐานข้อมูล) ══════════════

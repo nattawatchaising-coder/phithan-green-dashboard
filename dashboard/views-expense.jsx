@@ -876,6 +876,10 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
     store.save(rec);
     const money = window.ecBaht(rec.amount) + " บาท";
     const where = rec.siteCode ? " · " + rec.siteCode : "";
+    /* note ที่ส่งเข้ามาเป็นออบเจ็กต์ { text, ref } (ดูปุ่มเดินสถานะใน EcClaimModal)
+       ecMove แกะ .text ให้อยู่แล้ว แต่ตรงนี้เอามาต่อสตริงตรง ๆ จนได้ "[object Object]"
+       ติดไปกับข้อความแจ้งเตือน — และตอนนี้ข้อความเดียวกันถูกส่งเข้า LINE ด้วย */
+    const noteText = (note && typeof note === "object" ? note.text : note) || "";
     if (to === "sent") {
       window.ecNotify(rec.approverId
         ? { toUserId: rec.approverId, title: "ใบเบิกเงินรออนุมัติ · " + rec.no,
@@ -885,7 +889,7 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
     } else if (to === "approved" || to === "rejected" || to === "paid") {
       window.ecNotify({ toUserId: rec.byId,
         title: (to === "approved" ? "อนุมัติใบเบิกแล้ว · " : to === "rejected" ? "ไม่อนุมัติใบเบิก · " : "จ่ายเงินคืนแล้ว · ") + rec.no,
-        body: money + where + (note ? " · " + note : "") });
+        body: money + where + (noteText ? " · " + noteText : "") });
     }
   };
 
