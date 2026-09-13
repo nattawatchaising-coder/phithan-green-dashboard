@@ -7,7 +7,7 @@
    ทุกอย่างในนี้ตอบด้วย **reply** ซึ่งไม่นับโควตา ต่างจาก push
    ============================================================ */
 
-import { ENV, json, verifySignature, replyMessage, rtdbGet, rtdbUpdate } from "../_lib/line.mjs";
+import { json, verifySignature, replyMessage, rtdbGet, rtdbUpdate } from "../_lib/line.mjs";
 
 const liffUrl = () => (process.env.LIFF_ID ? "https://liff.line.me/" + process.env.LIFF_ID : "");
 

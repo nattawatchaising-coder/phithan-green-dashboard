@@ -156,13 +156,18 @@ export function shortTH(iso) {
 /* ตอบกลับข้อความที่ผู้ใช้ทักเข้ามา — **ไม่นับโควตา** ต่างจาก push
    อะไรที่ตอบกลับได้ ให้ตอบกลับ อย่าไปใช้ push */
 export async function replyMessage(replyToken, messages) {
-  if (!replyToken || !ENV.token()) return { ok: false, status: 0 };
+  if (!replyToken) { console.warn("[line/reply] คำขอไม่มี replyToken"); return { ok: false, status: 0 }; }
+  if (!ENV.token()) { console.warn("[line/reply] ยังไม่ได้ตั้ง LINE_CHANNEL_ACCESS_TOKEN"); return { ok: false, status: 0 }; }
   try {
     const r = await fetch("https://api.line.me/v2/bot/message/reply", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: "Bearer " + ENV.token() },
       body: JSON.stringify({ replyToken, messages }),
     });
+    /* LINE อธิบายสาเหตุไว้ใน body เสมอ และเป็นข้อมูลชิ้นเดียวที่บอกได้ว่าพลาดเพราะอะไร
+       ถ้ากลืนทิ้ง อาการจะเหลือแค่ "บอทเงียบ" ซึ่งไล่หาสาเหตุไม่ได้เลย
+       ข้อความจาก LINE ไม่มีค่าลับปนอยู่ · token ไม่เคยถูกพิมพ์ลง log */
+    if (!r.ok) console.warn("[line/reply] LINE ปฏิเสธ " + r.status + " · " + (await r.text().catch(() => "")).slice(0, 300));
     return { ok: r.ok, status: r.status };
-  } catch (e) { return { ok: false, status: 0 }; }
+  } catch (e) { console.warn("[line/reply] ต่อ LINE ไม่ได้ · " + (e && e.message)); return { ok: false, status: 0 }; }
 }
