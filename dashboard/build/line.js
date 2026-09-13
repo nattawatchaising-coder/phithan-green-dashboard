@@ -360,18 +360,187 @@ function LnBindScreen({
     }
   }, "\u0E25\u0E37\u0E21\u0E23\u0E2B\u0E31\u0E2A\u0E1C\u0E48\u0E32\u0E19 \u0E2B\u0E23\u0E37\u0E2D\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1A\u0E31\u0E0D\u0E0A\u0E35 \u2014 \u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E02\u0E2D\u0E07\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17")));
 }
+function LnWebLogin({
+  reason,
+  onDone
+}) {
+  const [users, setUsers] = React.useState(null);
+  const [u, setU] = React.useState("");
+  const [p, setP] = React.useState("");
+  const [err, setErr] = React.useState("");
+  React.useEffect(() => {
+    if (!window.firebase || !window.firebase.apps || !window.firebase.apps.length) {
+      setUsers([]);
+      return;
+    }
+    const ref = window.firebase.database().ref("users");
+    const h = ref.on("value", snap => {
+      const v = snap.val() || {};
+      setUsers(Object.keys(v).map(k => Object.assign({
+        id: k
+      }, v[k])));
+    }, () => setUsers([]));
+    return () => ref.off("value", h);
+  }, []);
+  const submit = () => {
+    if (!users) return;
+    const m = window.sfMatchCred(users, u, p);
+    if (!m.ok) return setErr(m.error);
+    try {
+      localStorage.setItem(LN_SESSION_KEY, m.user.id);
+    } catch (e) {}
+    onDone(m.user.id);
+  };
+  const inp = {
+    width: "100%",
+    padding: "13px 14px",
+    borderRadius: 12,
+    border: "1px solid var(--border-strong)",
+    background: "var(--surface2)",
+    color: "var(--text-1)",
+    fontFamily: "inherit",
+    fontSize: 16,
+    outline: "none"
+  };
+  return React.createElement("div", {
+    style: {
+      minHeight: "100dvh",
+      background: "var(--bg)",
+      padding: "34px 22px",
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "center"
+    }
+  }, React.createElement("div", {
+    style: {
+      maxWidth: 400,
+      width: "100%",
+      margin: "0 auto"
+    }
+  }, React.createElement("div", {
+    style: {
+      textAlign: "center",
+      marginBottom: 22
+    }
+  }, window.BrandLockup ? React.createElement(window.BrandLockup, {
+    size: 30
+  }) : React.createElement("div", {
+    style: {
+      fontWeight: 800,
+      fontSize: 22
+    }
+  }, "flash+solar"), React.createElement("div", {
+    style: {
+      marginTop: 12,
+      fontSize: 13.5,
+      color: "var(--text-2)",
+      lineHeight: 1.6
+    }
+  }, "\u0E40\u0E1B\u0E34\u0E14\u0E2B\u0E19\u0E49\u0E32\u0E0A\u0E48\u0E32\u0E07\u0E08\u0E32\u0E01\u0E40\u0E1A\u0E23\u0E32\u0E27\u0E4C\u0E40\u0E0B\u0E2D\u0E23\u0E4C", React.createElement("br", null), React.createElement("span", {
+    style: {
+      color: "var(--text-3)",
+      fontSize: 12.5
+    }
+  }, reason))), React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 16,
+      padding: 18
+    }
+  }, React.createElement("label", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "var(--text-3)",
+      letterSpacing: ".04em"
+    }
+  }, "\u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49"), React.createElement("input", {
+    value: u,
+    onChange: e => {
+      setU(e.target.value);
+      setErr("");
+    },
+    autoCapitalize: "none",
+    autoCorrect: "off",
+    autoComplete: "username",
+    spellCheck: false,
+    style: Object.assign({
+      marginTop: 6,
+      marginBottom: 14
+    }, inp),
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 somchai"
+  }), React.createElement("label", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "var(--text-3)",
+      letterSpacing: ".04em"
+    }
+  }, "\u0E23\u0E2B\u0E31\u0E2A\u0E1C\u0E48\u0E32\u0E19"), React.createElement("input", {
+    value: p,
+    type: "password",
+    inputMode: "numeric",
+    autoComplete: "current-password",
+    onChange: e => {
+      setP(e.target.value);
+      setErr("");
+    },
+    onKeyDown: e => {
+      if (e.key === "Enter") submit();
+    },
+    style: Object.assign({
+      marginTop: 6
+    }, inp),
+    placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022"
+  }), err && React.createElement("div", {
+    style: {
+      marginTop: 12,
+      fontSize: 12.5,
+      color: "#EF4444",
+      fontWeight: 600
+    }
+  }, "\u26A0 ", err), React.createElement("button", {
+    onClick: submit,
+    disabled: !users,
+    style: {
+      marginTop: 16,
+      width: "100%",
+      padding: "14px 16px",
+      borderRadius: 12,
+      border: "none",
+      background: users ? "var(--primary)" : "var(--text-3)",
+      color: "#fff",
+      fontWeight: 700,
+      fontFamily: "inherit",
+      fontSize: 15,
+      cursor: users ? "pointer" : "default"
+    }
+  }, users ? "เข้าหน้าช่าง" : "กำลังโหลดรายชื่อ…")), React.createElement("div", {
+    style: {
+      marginTop: 14,
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      textAlign: "center",
+      lineHeight: 1.6
+    }
+  }, "\u0E17\u0E32\u0E07\u0E19\u0E35\u0E49\u0E44\u0E21\u0E48\u0E1C\u0E39\u0E01\u0E1A\u0E31\u0E0D\u0E0A\u0E35 LINE \u0E43\u0E2B\u0E49 \xB7 \u0E0A\u0E48\u0E32\u0E07\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E40\u0E04\u0E22\u0E1C\u0E39\u0E01 \u0E15\u0E49\u0E2D\u0E07\u0E40\u0E1B\u0E34\u0E14\u0E08\u0E32\u0E01\u0E40\u0E21\u0E19\u0E39\u0E43\u0E19\u0E41\u0E0A\u0E15\u0E04\u0E23\u0E31\u0E49\u0E07\u0E41\u0E23\u0E01\u0E40\u0E2A\u0E21\u0E2D")));
+}
 function LnGate({
   children
 }) {
   const s = useLnSession();
+  const [webId, setWebId] = React.useState(null);
+  if (webId) return children;
   if (s.phase === "loading") return React.createElement(LnSplash, {
     text: "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E40\u0E02\u0E49\u0E32\u0E2A\u0E39\u0E48\u0E23\u0E30\u0E1A\u0E1A\u2026"
   });
-  if (s.phase === "error") return React.createElement(LnSplash, {
-    tone: "bad",
-    text: "\u0E40\u0E1B\u0E34\u0E14\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E2A\u0E33\u0E40\u0E23\u0E47\u0E08",
-    sub: s.error
-  });
+  if (s.phase === "error") {
+    return React.createElement(LnWebLogin, {
+      reason: s.error,
+      onDone: setWebId
+    });
+  }
   if (s.phase === "bind") return React.createElement(LnBindScreen, {
     profile: s.profile,
     onBind: s.bind
@@ -385,5 +554,6 @@ Object.assign(window, {
   useLnSession,
   LnGate,
   LnSplash,
-  LnBindScreen
+  LnBindScreen,
+  LnWebLogin
 });

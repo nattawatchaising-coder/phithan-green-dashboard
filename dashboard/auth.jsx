@@ -228,6 +228,22 @@ function blankUser() {
     approverId: null, approveLimit: 0 };
 }
 
+/* ── เทียบชื่อผู้ใช้ + รหัสผ่าน ──
+   แยกออกมาเป็นฟังก์ชันล้วนเพราะมีสองทางเข้าที่ต้องใช้กฎชุดเดียวกัน:
+   หน้าล็อกอินเดสก์ท็อป กับหน้า LIFF ตอนเปิดนอกแอป LINE
+   ถ้าปล่อยให้ต่างคนต่างเทียบ กฎอย่าง active !== false จะหลุดไปข้างหนึ่งโดยไม่มีใครรู้ */
+function sfMatchCred(users, username, password) {
+  const uname = String(username || "").trim().toLowerCase();
+  if (!uname) return { ok: false, error: "กรุณากรอกชื่อผู้ใช้" };
+  const u = (users || []).find((x) => (x.username || "").toLowerCase() === uname)
+         || (users || []).find((x) => !x.username && (x.name || "").trim().toLowerCase() === uname)
+         || (uname === "admin" ? (users || []).find((x) => !x.username && x.role === "admin") : null);  // บัญชีแอดมินเก่าที่ยังไม่ตั้ง ID
+  if (!u) return { ok: false, error: "ไม่พบบัญชีนี้" };
+  if (u.active === false) return { ok: false, error: "บัญชีถูกระงับการใช้งาน" };
+  if (String(u.pin) !== String(password)) return { ok: false, error: "รหัสผ่านไม่ถูกต้อง" };
+  return { ok: true, user: u };
+}
+
 /* ================================================================
    useAuthStore
    ================================================================ */
@@ -267,16 +283,10 @@ function useAuthStore() {
 
   // เข้าระบบด้วย ชื่อผู้ใช้ (ID) + รหัสผ่าน — fallback: จับคู่ด้วย "ชื่อ" สำหรับบัญชีเก่าที่ยังไม่ตั้ง ID
   const loginCred = React.useCallback((username, password) => {
-    const uname = String(username || "").trim().toLowerCase();
-    if (!uname) return { ok: false, error: "กรุณากรอกชื่อผู้ใช้" };
-    const u = (users || []).find((x) => (x.username || "").toLowerCase() === uname)
-           || (users || []).find((x) => !x.username && (x.name || "").trim().toLowerCase() === uname)
-           || (uname === "admin" ? (users || []).find((x) => !x.username && x.role === "admin") : null);  // บัญชีแอดมินเก่าที่ยังไม่ตั้ง ID
-    if (!u) return { ok: false, error: "ไม่พบบัญชีนี้" };
-    if (u.active === false) return { ok: false, error: "บัญชีถูกระงับการใช้งาน" };
-    if (String(u.pin) !== String(password)) return { ok: false, error: "รหัสผ่านไม่ถูกต้อง" };
-    try { localStorage.setItem(SF_SESSION_KEY, u.id); } catch (e) {}
-    setSession(u.id);
+    const m = sfMatchCred(users, username, password);
+    if (!m.ok) return m;
+    try { localStorage.setItem(SF_SESSION_KEY, m.user.id); } catch (e) {}
+    setSession(m.user.id);
     return { ok: true };
   }, [users]);
 
@@ -1247,6 +1257,8 @@ function UserEditModal({ initial, existing, onSave, onClose }) {
     </div>
   );
 }
+
+Object.assign(window, { sfMatchCred, SF_SESSION_KEY });
 
 Object.assign(window, { useAuthStore, useNotifStore, LoginScreen, NotifPanel, UserManager,
   useUserAvatar, MyProfileModal,

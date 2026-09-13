@@ -192,15 +192,101 @@ function LnBindScreen({ profile, onBind }) {
   );
 }
 
+/* ── เข้าหน้าช่างจากเบราว์เซอร์ธรรมดา ──
+   มีไว้ให้ดูและทดสอบหน้าจอมือถือบนคอม โดยไม่ต้องถือโทรศัพท์เปิดแอป LINE
+
+   ⚠ นี่ไม่ใช่ "บายพาส" และตั้งใจไม่ทำให้เป็น — มันขอชื่อผู้ใช้กับรหัสผ่านชุดเดียว
+      กับที่เข้าเว็บเดสก์ท็อป ผ่าน sfMatchCred ตัวเดียวกัน กฎเดียวกัน (รวมบัญชีถูกระงับ)
+      ถ้าปล่อยผ่านโดยไม่ถามรหัส ใครก็ตามที่เดา URL ได้จะเปิดหน้าช่างของบริษัทได้ทันที
+      ซึ่งหลวมกว่าหน้าเว็บปกติที่ยังต้องใส่รหัส — repo นี้เป็นสาธารณะ URL ไม่ใช่ความลับ
+
+   ทางนี้ไม่ผูกบัญชี LINE ให้ และไม่แตะ lineLinks — การผูกต้องมี ID token จริงเท่านั้น
+   จึงใช้แทนการผูกครั้งแรกของช่างไม่ได้ ตั้งใจ */
+function LnWebLogin({ reason, onDone }) {
+  const [users, setUsers] = React.useState(null);
+  const [u, setU] = React.useState("");
+  const [p, setP] = React.useState("");
+  const [err, setErr] = React.useState("");
+
+  React.useEffect(() => {
+    if (!window.firebase || !window.firebase.apps || !window.firebase.apps.length) { setUsers([]); return; }
+    const ref = window.firebase.database().ref("users");
+    const h = ref.on("value", (snap) => {
+      const v = snap.val() || {};
+      setUsers(Object.keys(v).map((k) => Object.assign({ id: k }, v[k])));
+    }, () => setUsers([]));
+    return () => ref.off("value", h);
+  }, []);
+
+  const submit = () => {
+    if (!users) return;
+    const m = window.sfMatchCred(users, u, p);
+    if (!m.ok) return setErr(m.error);
+    try { localStorage.setItem(LN_SESSION_KEY, m.user.id); } catch (e) {}
+    onDone(m.user.id);
+  };
+
+  const inp = { width: "100%", padding: "13px 14px", borderRadius: 12, border: "1px solid var(--border-strong)",
+    background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 16, outline: "none" };
+
+  return (
+    <div style={{ minHeight: "100dvh", background: "var(--bg)", padding: "34px 22px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+      <div style={{ maxWidth: 400, width: "100%", margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 22 }}>
+          {window.BrandLockup ? <window.BrandLockup size={30} /> : <div style={{ fontWeight: 800, fontSize: 22 }}>flash+solar</div>}
+          <div style={{ marginTop: 12, fontSize: 13.5, color: "var(--text-2)", lineHeight: 1.6 }}>
+            เปิดหน้าช่างจากเบราว์เซอร์
+            <br /><span style={{ color: "var(--text-3)", fontSize: 12.5 }}>{reason}</span>
+          </div>
+        </div>
+
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 18 }}>
+          <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", letterSpacing: ".04em" }}>ชื่อผู้ใช้</label>
+          <input value={u} onChange={(e) => { setU(e.target.value); setErr(""); }}
+            autoCapitalize="none" autoCorrect="off" autoComplete="username" spellCheck={false}
+            style={Object.assign({ marginTop: 6, marginBottom: 14 }, inp)} placeholder="เช่น somchai" />
+
+          <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", letterSpacing: ".04em" }}>รหัสผ่าน</label>
+          <input value={p} type="password" inputMode="numeric" autoComplete="current-password"
+            onChange={(e) => { setP(e.target.value); setErr(""); }}
+            onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+            style={Object.assign({ marginTop: 6 }, inp)} placeholder="••••••" />
+
+          {err && <div style={{ marginTop: 12, fontSize: 12.5, color: "#EF4444", fontWeight: 600 }}>⚠ {err}</div>}
+
+          <button onClick={submit} disabled={!users}
+            style={{ marginTop: 16, width: "100%", padding: "14px 16px", borderRadius: 12, border: "none",
+              background: users ? "var(--primary)" : "var(--text-3)", color: "#fff", fontWeight: 700,
+              fontFamily: "inherit", fontSize: 15, cursor: users ? "pointer" : "default" }}>
+            {users ? "เข้าหน้าช่าง" : "กำลังโหลดรายชื่อ…"}
+          </button>
+        </div>
+
+        <div style={{ marginTop: 14, fontSize: 11.5, color: "var(--text-3)", textAlign: "center", lineHeight: 1.6 }}>
+          ทางนี้ไม่ผูกบัญชี LINE ให้ · ช่างที่ยังไม่เคยผูก ต้องเปิดจากเมนูในแชตครั้งแรกเสมอ
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── ประตูหน้า LIFF ── ผ่านแล้วค่อย render แอปจริง
    ต้องรอให้ localStorage ถูกตั้งก่อน children ถึงจะ mount ได้
    เพราะ useAuthStore อ่านค่าเซสชันตอน mount ครั้งแรกครั้งเดียว */
 function LnGate({ children }) {
   const s = useLnSession();
+  /* ผ่านด้วยรหัสเว็บแล้ว — เก็บไว้ใน state ไม่ใช่รอ useLnSession รอบใหม่
+     เพราะทางนั้นต้องมี ID token ของ LINE ซึ่งเบราว์เซอร์ธรรมดาไม่มีวันมี */
+  const [webId, setWebId] = React.useState(null);
+  if (webId) return children;
   if (s.phase === "loading") return <LnSplash text="กำลังเข้าสู่ระบบ…" />;
-  if (s.phase === "error")   return <LnSplash tone="bad" text="เปิดระบบไม่สำเร็จ" sub={s.error} />;
+  if (s.phase === "error") {
+    /* LIFF ใช้ไม่ได้ = เปิดนอกแอป LINE เกือบทุกครั้ง ให้ทางเข้าด้วยรหัสเว็บแทน
+       ไม่ใช่จอตายที่บอกว่า "เปิดจากแอป LINE เท่านั้น" แล้วจบ */
+    return <LnWebLogin reason={s.error} onDone={setWebId} />;
+  }
   if (s.phase === "bind")    return <LnBindScreen profile={s.profile} onBind={s.bind} />;
   return children;
 }
 
-Object.assign(window, { LN_TEST, LN_SESSION_KEY, lnPush, useLnSession, LnGate, LnSplash, LnBindScreen });
+Object.assign(window, { LN_TEST, LN_SESSION_KEY, lnPush, useLnSession, LnGate, LnSplash, LnBindScreen, LnWebLogin });

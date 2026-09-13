@@ -470,6 +470,30 @@ function blankUser() {
     approveLimit: 0
   };
 }
+function sfMatchCred(users, username, password) {
+  const uname = String(username || "").trim().toLowerCase();
+  if (!uname) return {
+    ok: false,
+    error: "กรุณากรอกชื่อผู้ใช้"
+  };
+  const u = (users || []).find(x => (x.username || "").toLowerCase() === uname) || (users || []).find(x => !x.username && (x.name || "").trim().toLowerCase() === uname) || (uname === "admin" ? (users || []).find(x => !x.username && x.role === "admin") : null);
+  if (!u) return {
+    ok: false,
+    error: "ไม่พบบัญชีนี้"
+  };
+  if (u.active === false) return {
+    ok: false,
+    error: "บัญชีถูกระงับการใช้งาน"
+  };
+  if (String(u.pin) !== String(password)) return {
+    ok: false,
+    error: "รหัสผ่านไม่ถูกต้อง"
+  };
+  return {
+    ok: true,
+    user: u
+  };
+}
 function useAuthStore() {
   const [users, setUsers] = React.useState(_AFB() ? null : () => _alsGet(SF_USERS_KEY, [ADMIN_SEED]));
   const [sessionId, setSession] = React.useState(() => {
@@ -522,28 +546,12 @@ function useAuthStore() {
     };
   }, [users]);
   const loginCred = React.useCallback((username, password) => {
-    const uname = String(username || "").trim().toLowerCase();
-    if (!uname) return {
-      ok: false,
-      error: "กรุณากรอกชื่อผู้ใช้"
-    };
-    const u = (users || []).find(x => (x.username || "").toLowerCase() === uname) || (users || []).find(x => !x.username && (x.name || "").trim().toLowerCase() === uname) || (uname === "admin" ? (users || []).find(x => !x.username && x.role === "admin") : null);
-    if (!u) return {
-      ok: false,
-      error: "ไม่พบบัญชีนี้"
-    };
-    if (u.active === false) return {
-      ok: false,
-      error: "บัญชีถูกระงับการใช้งาน"
-    };
-    if (String(u.pin) !== String(password)) return {
-      ok: false,
-      error: "รหัสผ่านไม่ถูกต้อง"
-    };
+    const m = sfMatchCred(users, username, password);
+    if (!m.ok) return m;
     try {
-      localStorage.setItem(SF_SESSION_KEY, u.id);
+      localStorage.setItem(SF_SESSION_KEY, m.user.id);
     } catch (e) {}
-    setSession(u.id);
+    setSession(m.user.id);
     return {
       ok: true
     };
@@ -2997,6 +3005,10 @@ function UserEditModal({
     }
   }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01"))));
 }
+Object.assign(window, {
+  sfMatchCred,
+  SF_SESSION_KEY
+});
 Object.assign(window, {
   useAuthStore,
   useNotifStore,
