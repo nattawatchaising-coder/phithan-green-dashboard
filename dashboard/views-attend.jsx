@@ -98,7 +98,11 @@ function TmDaySheet({ date, setDate, cfg, users }) {
                 <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)", fontWeight: 700,
                   color: r.in && !r.out ? "#EF4444" : "var(--text-1)" }}>{r.out || (r.in ? "ยังไม่ออก" : "—")}</td>
                 <td style={{ padding: "9px 13px", textAlign: "center", color: "var(--text-2)" }}>{window.tmDur(r.mins)}</td>
-                <td style={{ padding: "9px 13px", fontFamily: "var(--mono)", fontSize: 12, color: "var(--text-2)" }}>{r.jobCode || "—"}</td>
+                <td style={{ padding: "9px 13px", fontFamily: "var(--mono)", fontSize: 12, color: "var(--text-2)" }}>
+                  {/* คนที่กด "ออฟฟิศ" ไม่มีรหัสงานให้แสดง และช่องว่างเปล่า ๆ อ่านเหมือนลืมกรอก */}
+                  {r.place === "office" ? <span style={{ fontFamily: "inherit", fontSize: 11.5, color: "var(--text-3)" }}>ออฟฟิศ</span>
+                    : (r.jobCode || "—")}
+                </td>
                 <td style={{ padding: "9px 13px" }}>
                   {r.gps ? <span style={{ fontSize: 11.5, color: "#10B981", fontWeight: 700 }}>มีพิกัด</span>
                     : <span style={{ fontSize: 11.5, color: "#F59E0B", fontWeight: 700 }}>ไม่มีพิกัด</span>}
@@ -325,7 +329,7 @@ function tmExportMonthXlsx(rows, days, ym) {
 }
 
 /* ── ใบ OT หนึ่งใบ ── */
-function TmOtModal({ rec, cfg, jobs, role, currentUser, onSave, onMove, onDelete, onClose }) {
+function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, onDelete, onClose }) {
   const [f, setF] = React.useState(rec);
   React.useEffect(() => { setF(rec); }, [rec && rec.id]);
   const box = window.useBackdropClose ? window.useBackdropClose(onClose) : {};
@@ -389,7 +393,10 @@ function TmOtModal({ rec, cfg, jobs, role, currentUser, onSave, onMove, onDelete
           </div>
           <div style={{ marginTop: 5, fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
             {window.tmIsWorkday(f.date, cfg)
-              ? "วันทำงานปกติ — ตัดช่วงที่ทับเวลางาน " + window.tmWhNorm(cfg).start + "-" + window.tmWhNorm(cfg).end + " ออกแล้ว"
+              /* หน้านี้ไม่ได้ถือใบลงเวลาของเจ้าของใบไว้ จึงใช้ช่วงอนุมานจากเวลาเข้างานเร็วสุด
+                 ตัวเลขที่ช่างเห็นตอนกดขอในไลน์คิดจากเวลาที่เขากดเข้าจริง อาจต่างกันได้เมื่อเข้าสาย */
+              ? "วันทำงานปกติ — ตัดช่วงที่ทับเวลางาน " + window.tmWhNorm(cfg).start + "-" + window.tmWhNorm(cfg).end
+                + " ออกแล้ว (ช่วงนี้เลื่อนตามเวลาที่เข้างานจริง)"
               : "นอกวันทำงาน — นับทั้งช่วง"}
             {window.tmWhNorm(cfg).roundMins > 0 ? " · ปัดลงทีละ " + window.tmWhNorm(cfg).roundMins + " นาที" : ""}
             {window.tmWhNorm(cfg).minOtMins > 0 ? " · ไม่ถึง " + window.tmWhNorm(cfg).minOtMins + " นาทีไม่นับ" : ""}
@@ -416,8 +423,38 @@ function TmOtModal({ rec, cfg, jobs, role, currentUser, onSave, onMove, onDelete
             style={Object.assign({}, TM_IN, { resize: "vertical", lineHeight: 1.6 })} />
         </label>
 
-        {f.approverName && (
-          <div style={{ marginTop: 10, fontSize: 12, color: "var(--text-3)" }}>ส่งถึง {f.approverName}</div>
+        {/* ── คนอนุมัติ ──
+            ต้องเลือกก่อนส่ง ไม่ใช่ปล่อยเข้ากองกลาง — ใบที่ไม่มีชื่อใครกำกับ
+            ทุกคนคิดว่าเป็นหน้าที่คนอื่น แล้วก็ค้างจนเจ้าของใบลืมไปเอง */}
+        <label style={{ marginTop: 10, display: "grid", gap: 4 }}>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ส่งให้ใครอนุมัติ</span>
+          {editable ? (
+            <select value={f.approverId || ""}
+              onChange={(e) => {
+                const u = (users || []).find((x) => x.id === e.target.value);
+                setF((p) => Object.assign({}, p, { approverId: u ? u.id : null, approverName: u ? u.name : "" }));
+              }} style={TM_IN}>
+              <option value="">— ยังไม่เลือก (เข้ากองกลาง) —</option>
+              {window.tmOtApprovers(users, { id: f.userId }).map((u) => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </select>
+          ) : (
+            <span style={{ fontSize: 12.5, color: f.approverName ? "var(--text-1)" : "#F59E0B", fontWeight: 700 }}>
+              {f.approverName || "ไม่ได้ระบุคนอนุมัติ — ใบนี้อยู่ในกองกลาง"}
+            </span>
+          )}
+        </label>
+        {editable && !f.approverId && (
+          <div style={{ marginTop: 4, fontSize: 11, color: "#F59E0B", lineHeight: 1.6 }}>
+            ส่งได้โดยไม่เลือก แต่ใบจะเข้ากองกลางให้ใครก็ได้ที่มีสิทธิ์หยิบ — ระบุชื่อไว้ใบจะไม่ค้าง
+          </div>
+        )}
+        {f.cancelledAt && (
+          <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 11, background: "var(--surface2)",
+            fontSize: 12, color: "var(--text-2)" }}>
+            ยกเลิกโดยเจ้าของใบ · {window.drShort(String(f.cancelledAt).slice(0, 10))}
+          </div>
         )}
         {f.decidedAt && (
           <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 11, background: "var(--surface2)", fontSize: 12, color: "var(--text-2)", lineHeight: 1.7 }}>
@@ -432,13 +469,25 @@ function TmOtModal({ rec, cfg, jobs, role, currentUser, onSave, onMove, onDelete
               style={{ padding: "9px 16px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)",
                 cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>บันทึกร่าง</button>
           )}
-          {nexts.map((s) => (
-            <button key={s.key} onClick={() => { onMove(Object.assign({}, f, { mins }), s.key); onClose(); }}
-              style={{ padding: "9px 16px", borderRadius: 10, border: "none", background: s.color, color: "#fff",
-                cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800 }}>
-              {s.key === "sent" ? "ส่งขออนุมัติ" : s.key === "approved" ? "อนุมัติ" : s.key === "rejected" ? "ไม่อนุมัติ" : "เอากลับมาแก้"}
-            </button>
-          ))}
+          {nexts.map((s) => {
+            /* "ตีกลับ" กับ "เอากลับมาแก้" เป็นการเดินสถานะเดียวกัน (→ draft) แต่คนละเรื่องกัน
+               สำหรับคนอ่าน — คำบนปุ่มจึงต้องเปลี่ยนตามว่าใครกด ไม่ใช่ตามชื่อสถานะ */
+            const soft = s.key === "cancelled" || (s.key === "draft" && f.status === "sent" && !mine);
+            const label = s.key === "sent" ? "ส่งขออนุมัติ"
+              : s.key === "approved" ? "อนุมัติ"
+              : s.key === "rejected" ? "ไม่อนุมัติ"
+              : s.key === "cancelled" ? "ยกเลิกใบนี้"
+              : mine ? "เอากลับมาแก้" : "ตีกลับให้แก้";
+            return (
+              <button key={s.key} onClick={() => { onMove(Object.assign({}, f, { mins }), s.key); onClose(); }}
+                style={{ padding: "9px 16px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
+                  fontSize: 12.5, fontWeight: 800,
+                  border: soft ? "1px solid var(--border-strong)" : "none",
+                  background: soft ? "var(--surface)" : s.color, color: soft ? s.color : "#fff" }}>
+                {label}
+              </button>
+            );
+          })}
           {f.status === "sent" && !mine && why && (
             <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{why}</span>
           )}
@@ -487,12 +536,16 @@ function TmWorkHours({ cfg, onSave }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 14, maxWidth: 640 }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 10 }}>
         <label style={{ display: "grid", gap: 4 }}>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>เข้างาน</span>
-          <input type="time" value={f.start} onChange={(e) => set("start", e.target.value)} style={TM_IN} />
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>เข้างานได้ตั้งแต่</span>
+          <input type="time" value={f.startEarly} onChange={(e) => set("startEarly", e.target.value)} style={TM_IN} />
         </label>
         <label style={{ display: "grid", gap: 4 }}>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>เลิกงาน</span>
-          <input type="time" value={f.end} onChange={(e) => set("end", e.target.value)} style={TM_IN} />
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>เข้างานช้าสุด</span>
+          <input type="time" value={f.startLate} onChange={(e) => set("startLate", e.target.value)} style={TM_IN} />
+        </label>
+        <label style={{ display: "grid", gap: 4 }}>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ทำงานวันละ (นาที)</span>
+          <input type="number" min={0} step={30} value={f.workMins} onChange={(e) => set("workMins", +e.target.value)} style={TM_IN} />
         </label>
         <label style={{ display: "grid", gap: 4 }}>
           <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>พักกลางวัน (นาที)</span>
@@ -506,6 +559,18 @@ function TmWorkHours({ cfg, onSave }) {
           <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ปัดเศษ OT ทีละ (นาที)</span>
           <input type="number" min={0} value={f.roundMins} onChange={(e) => set("roundMins", +e.target.value)} style={TM_IN} />
         </label>
+      </div>
+
+      {/* ตัวอย่างจริงสองเคส — ค่าตั้งชุดนี้อ่านจากช่องเปล่า ๆ แล้วนึกภาพไม่ออกว่าแปลว่าอะไร */}
+      <div style={{ padding: "11px 13px", borderRadius: 12, background: "var(--surface2)",
+        border: "1px solid var(--border)", fontSize: 12, color: "var(--text-2)", lineHeight: 1.8 }}>
+        เข้า {f.startEarly} → เลิก <b>{window.tmWhNorm(f).end}</b>
+        <span style={{ color: "var(--text-3)" }}> (ทำงาน {window.tmDur(f.workMins)} + พัก {window.tmDur(f.lunchMins)})</span>
+        <br />เข้า {f.startLate} → เลิก <b>{window.tmDayWindow({ in: { hm: f.startLate } }, f).end}</b>
+        <br /><span style={{ color: "var(--text-3)" }}>
+          กดเข้าก่อน {f.startEarly} ไม่ทำให้เลิกเร็วขึ้น · เข้าหลัง {f.startLate} ถือว่าสายและเวลาเลิกเลื่อนตามจริง
+          เพราะหน้าที่คือทำให้ครบ {window.tmDur(f.workMins)} ไม่ใช่อยู่ถึงเวลาที่กำหนด
+        </span>
       </div>
 
       <div>
@@ -607,6 +672,14 @@ function AttendView({ jobs, users, role, currentUser }) {
     } else if (to === "approved" || to === "rejected") {
       window.tmNotify({ toUserId: next.userId, title: (to === "approved" ? "อนุมัติ OT แล้ว · " : "ไม่อนุมัติ OT · ") + next.no,
         body: when + " · " + window.tmDur(next.mins) + " · โดย " + ((currentUser || {}).name || "") });
+    } else if (to === "draft" && rec.status === "sent" && next.userId !== uid) {
+      /* คนอนุมัติตีกลับ — เจ้าของใบต้องรู้ ไม่งั้นใบจะกลับไปเป็นร่างเงียบ ๆ แล้วไม่มีใครส่งอีก */
+      window.tmNotify({ toUserId: next.userId, title: "ตีกลับใบ OT · " + next.no,
+        body: when + " · แก้แล้วส่งใหม่ได้ · โดย " + ((currentUser || {}).name || "") });
+    } else if (to === "cancelled" && rec.status === "sent" && next.approverId) {
+      /* ยกเลิกใบที่ส่งไปแล้ว — คนอนุมัติต้องรู้ว่าไม่ต้องรออีก */
+      window.tmNotify({ toUserId: next.approverId, title: "ยกเลิกใบขอ OT · " + next.no,
+        body: next.userName + " · " + when + " · ไม่ต้องพิจารณาแล้ว" });
     }
   };
 
@@ -684,7 +757,7 @@ function AttendView({ jobs, users, role, currentUser }) {
         </React.Fragment>
       )}
 
-      {cur && <TmOtModal rec={cur} cfg={wh.cfg} jobs={jobSorted} role={role} currentUser={currentUser}
+      {cur && <TmOtModal rec={cur} cfg={wh.cfg} jobs={jobSorted} users={users} role={role} currentUser={currentUser}
         onSave={ot.save} onMove={move} onDelete={ot.remove} onClose={() => setOpen(null)} />}
     </div>
   );

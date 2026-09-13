@@ -78,22 +78,43 @@ function tmDur(mins) {
 }
 
 /* ── เวลาทำงานมาตรฐาน ──
+   ที่นี่ไม่ได้เข้างานเวลาตายตัวแบบโรงงาน — เข้าได้ตั้งแต่ 08:30 ถึง 09:00
+   แล้วนับไปอีก 8 ชม. ทำงาน + 1 ชม. พัก จากเวลาที่กดเข้าจริง
+   จึงเก็บเป็น "ช่วงเข้างาน + จำนวนชั่วโมงที่ต้องทำ" ไม่ใช่ start/end ตายตัว
+
    days = วันในสัปดาห์ที่ถือเป็นวันทำงาน (0=อาทิตย์) · ตั้งต้นจันทร์-เสาร์ ตามที่ทีมนี้ทำจริง
    holidays = { "2026-12-10": "วันรัฐธรรมนูญ" } — วันหยุดพิเศษที่บริษัทประกาศเอง */
 const TM_WH_DEFAULT = {
-  start: "08:00", end: "17:00", days: [1, 2, 3, 4, 5, 6],
-  lunchMins: 60, minOtMins: 30, roundMins: 30, holidays: {},
+  startEarly: "08:30",   // เข้างานได้ตั้งแต่
+  startLate: "09:00",    // เข้าช้ากว่านี้ถือว่าสาย (ยังลงเวลาได้ ระบบแค่ติดธงไว้)
+  workMins: 480,         // เวลาทำงานจริงต่อวัน
+  lunchMins: 60,         // พัก — อยู่ที่ทำงานแต่ไม่นับเป็นเวลาทำงาน
+  days: [1, 2, 3, 4, 5, 6],
+  minOtMins: 30, roundMins: 30, holidays: {},
 };
 function tmWhNorm(cfg) {
   const c = Object.assign({}, TM_WH_DEFAULT, cfg || {});
+  /* ค่าชุดเก่าเก็บเป็น start/end ตายตัว — ย้ายมาเป็นชุดใหม่ให้อัตโนมัติ
+     ไม่ทำตรงนี้ = บริษัทที่ตั้งค่าไว้แล้วจะเด้งกลับไปใช้ค่าดีฟอลต์เงียบ ๆ */
+  if (cfg && cfg.start && !cfg.startEarly) {
+    if (tmHM(cfg.start) != null) c.startEarly = cfg.start;
+    c.startLate = tmHHMM(tmHM(c.startEarly) + 30);
+    const span = cfg.end ? tmSpanMins(cfg.start, cfg.end) : 0;
+    if (span > 0) c.workMins = Math.max(0, span - Math.max(0, +cfg.lunchMins || 0));
+  }
   c.days = Array.isArray(c.days) && c.days.length ? c.days.map(Number) : TM_WH_DEFAULT.days;
   c.lunchMins = Math.max(0, +c.lunchMins || 0);
+  c.workMins = Math.max(0, +c.workMins || 0) || TM_WH_DEFAULT.workMins;
   c.minOtMins = Math.max(0, +c.minOtMins || 0);
   /* roundMins = 0 แปลว่าไม่ปัด — ต้องยอมให้ตั้งได้ ไม่งั้นหารด้วยศูนย์ */
   c.roundMins = Math.max(0, +c.roundMins || 0);
   c.holidays = c.holidays && typeof c.holidays === "object" ? c.holidays : {};
-  if (tmHM(c.start) == null) c.start = TM_WH_DEFAULT.start;
-  if (tmHM(c.end) == null) c.end = TM_WH_DEFAULT.end;
+  if (tmHM(c.startEarly) == null) c.startEarly = TM_WH_DEFAULT.startEarly;
+  if (tmHM(c.startLate) == null || tmHM(c.startLate) < tmHM(c.startEarly)) c.startLate = c.startEarly;
+  /* start/end เป็นค่า "อนุมาน" ของวันที่ยังไม่มีใบลงเวลา — ของวันที่มีใบจริงให้ใช้ tmDayWindow
+     ยังคงชื่อเดิมไว้เพื่อให้โค้ดที่อ่าน cfg.start/cfg.end อยู่แล้วไม่พัง */
+  c.start = c.startEarly;
+  c.end = tmHHMM(tmHM(c.startEarly) + c.workMins + c.lunchMins);
   return c;
 }
 const tmIsHoliday = (dateISO, cfg) => !!tmWhNorm(cfg).holidays[String(dateISO || "").slice(0, 10)];
@@ -103,6 +124,26 @@ function tmIsWorkday(dateISO, cfg) {
   const d = new Date(String(dateISO || "").slice(0, 10) + "T00:00:00");
   if (isNaN(d.getTime())) return true;
   return c.days.indexOf(d.getDay()) >= 0;
+}
+
+/* ── ช่วง "เวลางานปกติ" ของวันหนึ่ง — คิดจากเวลาที่กดเข้าจริง ──
+   กดเข้าก่อน 08:30 ไม่ทำให้เลิกเร็วขึ้น ไม่งั้นจะมีคนมาตีห้าเพื่อกลับบ่ายสอง
+   กดเข้าหลัง 09:00 เลื่อนเวลาเลิกออกไปตามจริง เพราะหน้าที่คือ "ทำให้ครบ 8 ชม."
+   ไม่ใช่ "อยู่ถึงห้าโมง" — มาสายแล้วได้กลับเวลาเดิมเท่ากับทำงานน้อยกว่าคนอื่นฟรี ๆ
+   วันที่ยังไม่มีใบลงเวลา (เช่นคนกรอกใบ OT ล่วงหน้า) ใช้ช่วงอนุมานจากค่าตั้ง */
+function tmDayWindow(rec, cfg) {
+  const c = tmWhNorm(cfg);
+  const lo = tmHM(c.startEarly), hi = tmHM(c.startLate);
+  const inHM = rec && rec.in && rec.in.hm ? tmHM(rec.in.hm) : null;
+  const base = inHM == null ? lo : Math.max(inHM, lo);
+  const end = base + c.workMins + c.lunchMins;
+  return {
+    startMins: base, endMins: end,
+    start: tmHHMM(base), end: tmHHMM(end),
+    inMins: inHM, late: inHM != null && inHM > hi,
+    lateMins: inHM != null && inHM > hi ? inHM - hi : 0,
+    cfg: c,
+  };
 }
 
 /* ── ประเภทของ OT ──
@@ -129,14 +170,17 @@ function tmOtKindGuess(dateISO, from, cfg) {
    วันหยุด/วันไม่ทำงาน = นับทั้งช่วง · วันทำงาน = ตัดส่วนที่ทับเวลางานออก
    ปัดลงเป็นช่วงละ roundMins แล้วตัดทิ้งถ้าไม่ถึง minOtMins
    ปัด "ลง" ตั้งใจ — ปัดขึ้นทำให้บริษัทจ่ายเกินจริงทุกใบ และคนจะเริ่มยืดเวลาให้ถึงขั้นถัดไป */
-function tmOtMinutes(dateISO, from, to, cfg) {
+function tmOtMinutes(dateISO, from, to, cfg, win) {
   const c = tmWhNorm(cfg);
   const span = tmSpanMins(from, to);
   if (span <= 0) return 0;
 
   let outside = span;
   if (tmIsWorkday(dateISO, c)) {
-    const ws = tmHM(c.start), we = tmHM(c.end);
+    /* win = ช่วงเวลางานจริงของวันนั้นจาก tmDayWindow — ส่งมาเมื่อมีใบลงเวลาให้อ้างอิง
+       ไม่ส่งมาก็ถอยไปใช้ช่วงอนุมานจากค่าตั้ง (คนกรอกใบล่วงหน้าก่อนถึงวันนั้น) */
+    const ws = win && win.startMins != null ? win.startMins : tmHM(c.start);
+    const we = win && win.endMins != null ? win.endMins : tmHM(c.end);
     const a = tmHM(from);
     /* คิดบนแกนนาทีที่ยืดข้ามเที่ยงคืนได้ แล้วหาส่วนที่ทับกับเวลางานของวันนั้น */
     const s = a, e = a + span;
@@ -153,13 +197,18 @@ function tmOtMinutes(dateISO, from, to, cfg) {
 
 /* ชั่วโมงทำงานของใบหนึ่ง — หักพักกลางวันเฉพาะช่วงที่คร่อมมันจริง ๆ
    คนที่เข้าบ่ายโมงเลิกห้าโมงไม่ควรโดนหักข้าวเที่ยง ซึ่งเป็นบั๊กคลาสสิกของระบบลงเวลา */
-function tmWorkedMins(rec, cfg) {
+function tmWorkedMins(rec, cfg, nowHM) {
   const c = tmWhNorm(cfg);
   const spans = [];
-  if (rec && rec.in && rec.in.hm && rec.out && rec.out.hm) spans.push([rec.in.hm, rec.out.hm]);
-  (rec && Array.isArray(rec.extra) ? rec.extra : []).forEach((x) => {
-    if (x && x.in && x.in.hm && x.out && x.out.hm) spans.push([x.in.hm, x.out.hm]);
-  });
+  /* nowHM = "นับกะที่ยังไม่ปิดถึงเวลานี้" — หน้าจอมือถือส่งเวลาปัจจุบันเข้ามาเพื่อเดินตัวเลขสด
+     ไม่ส่งมาก็นับเฉพาะกะที่ปิดแล้ว ซึ่งเป็นพฤติกรรมเดิมของทุกที่ที่เรียกอยู่ */
+  const push = (s) => {
+    if (!s || !s.in || !s.in.hm) return;
+    const b = (s.out && s.out.hm) || nowHM || null;
+    if (b) spans.push([s.in.hm, b]);
+  };
+  push(rec);
+  (rec && Array.isArray(rec.extra) ? rec.extra : []).forEach(push);
   let total = 0;
   spans.forEach(([a, b]) => {
     let m = tmSpanMins(a, b);
@@ -172,6 +221,62 @@ function tmWorkedMins(rec, cfg) {
 }
 
 const tmOpen = (rec) => !!(rec && rec.in && rec.in.hm && !(rec.out && rec.out.hm));
+
+/* เวลาปั๊มล่าสุดของใบ — กะเพิ่มมาทีหลังเสมอ จึงดูกะสุดท้ายก่อน */
+function tmLastHM(rec, nowHM) {
+  if (!rec || !rec.in || !rec.in.hm) return "";
+  const ex = Array.isArray(rec.extra) ? rec.extra : [];
+  const last = ex.length ? ex[ex.length - 1] : null;
+  if (last && last.in && last.in.hm) return (last.out && last.out.hm) || nowHM || "";
+  return (rec.out && rec.out.hm) || nowHM || "";
+}
+
+/* ── OT ที่ "ทำไปแล้วจริง" ของวันนั้น ตามใบลงเวลา ──
+   คืนเป็นช่วงเวลา ไม่ใช่แค่จำนวนนาที เพราะฟอร์มขอ OT ต้องเอาไปล็อกไม่ให้ขอเกินที่ทำจริง
+   ระบบ **ไม่เปิดใบให้เอง** — ทำเกินเวลาแล้วจะขอหรือไม่ขอเป็นสิทธิ์ของเจ้าตัว
+   lo/hi = ขอบนอกสุดที่ยอมให้กรอก (เวลาเข้าจริง ถึง เวลาปั๊มล่าสุด) */
+function tmOtEarned(rec, cfg, nowHM) {
+  const c = tmWhNorm(cfg);
+  const none = { has: false, mins: 0, before: 0, after: 0, from: "", to: "", lo: "", hi: "", date: "" };
+  if (!rec || !rec.in || !rec.in.hm) return none;
+  const endHM = tmLastHM(rec, nowHM);
+  if (!endHM) return none;
+
+  const w = tmDayWindow(rec, cfg);
+  const inM = w.inMins;
+  const outAbs = inM + tmSpanMins(rec.in.hm, endHM);   /* แกนนาทีที่ยืดข้ามเที่ยงคืนได้ */
+  const round = (m) => (c.roundMins > 0 ? Math.floor(Math.max(0, m) / c.roundMins) * c.roundMins : Math.max(0, m));
+  const keep = (m) => (m >= c.minOtMins ? m : 0);
+  const base = { has: true, lo: rec.in.hm, hi: tmHHMM(outAbs), date: rec.date || "" };
+
+  /* วันหยุด/วันไม่ทำงาน — อยู่ที่ทำงานนาทีไหนก็เป็น OT นาทีนั้น ไม่มีช่วงงานปกติให้ตัดออก */
+  if (!tmIsWorkday(rec.date, c)) {
+    const all = keep(round(outAbs - inM));
+    return Object.assign(base, { mins: all, before: 0, after: all, from: rec.in.hm, to: tmHHMM(outAbs) });
+  }
+
+  const before = keep(round(w.startMins - inM));   /* มาก่อนเวลาเปิดงาน */
+  const after = keep(round(outAbs - w.endMins));   /* อยู่ต่อหลังเวลาเลิก */
+  /* เสนอช่วงที่ยาวกว่าเป็นค่าตั้งต้นของฟอร์ม — เกือบทั้งหมดคือช่วงหลังเลิกงาน
+     อีกช่วงยังกรอกเองได้ ตราบใดที่ยังอยู่ใน lo–hi และไม่ทับเวลางานปกติ */
+  const useAfter = after >= before;
+  return Object.assign(base, {
+    mins: useAfter ? after : before, before: before, after: after,
+    from: useAfter ? w.end : rec.in.hm,
+    to: useAfter ? tmHHMM(outAbs) : w.start,
+  });
+}
+
+/* ช่วงที่กรอกอยู่ในเวลาที่ "อยู่ที่ทำงานจริง" หรือเปล่า
+   ใบของวันอื่นไม่ล็อก — ออฟฟิศต้องแก้ใบย้อนหลังได้ และเราไม่มีใบลงเวลาวันนั้นอยู่ในมือ */
+function tmOtInLimit(date, from, to, lim) {
+  if (!lim || !lim.has || !lim.date || date !== lim.date) return true;
+  const lo = tmHM(lim.lo), hi = tmHM(lim.lo) + tmSpanMins(lim.lo, lim.hi);
+  const a = tmHM(from);
+  if (a == null || lo == null) return false;
+  const s = a < lo ? a + 1440 : a;
+  return s >= lo && s + tmSpanMins(from, to) <= hi;
+}
 
 function tmAttendBlank(user, dateISO) {
   return {
@@ -186,12 +291,21 @@ function tmAttendBlank(user, dateISO) {
 
 /* ปั๊มเวลาหนึ่งครั้ง — พิกัดเป็นของแถม ไม่ใช่เงื่อนไข
    gps ที่ส่งเข้ามาคือผลจาก window.captureGps() ซึ่งคืน { err, msg } เมื่อจับไม่ได้ */
-function tmPunch(gps, src) {
+/* ที่ลงเวลา — ช่างส่วนใหญ่อยู่หน้างาน แต่คนที่เข้าออฟฟิศทั้งวันก็ต้องลงเวลาเหมือนกัน
+   เก็บเป็นคำบอกของคนกด เหมือน jobId — ระบบยังไม่มีพิกัดออฟฟิศให้เทียบ */
+const TM_PLACE = [
+  { key: "site",   th: "หน้างาน", icon: "wrench" },
+  { key: "office", th: "ออฟฟิศ",  icon: "box" },
+];
+const tmPlaceOf = (k) => TM_PLACE.find((p) => p.key === k) || TM_PLACE[0];
+
+function tmPunch(gps, src, place) {
   const d = new Date();
   const p = {
     at: d.toISOString(),
     hm: window.drPad2(d.getHours()) + ":" + window.drPad2(d.getMinutes()),
     src: src || "web",
+    place: tmPlaceOf(place).key,
   };
   if (gps && !gps.err) { p.lat = gps.lat; p.lng = gps.lng; p.acc = gps.acc || 0; }
   /* เก็บเหตุผลไว้ด้วยว่าทำไมไม่มีพิกัด — ใบที่ไม่มีพิกัด "เฉย ๆ" กับใบที่ผู้ใช้ปฏิเสธสิทธิ์
@@ -206,6 +320,7 @@ const tmDayIndex = (rec, cfg) => ({
   in: (rec.in && rec.in.hm) || "", out: (rec.out && rec.out.hm) || "",
   mins: tmWorkedMins(rec, cfg),
   gps: !!(rec.in && rec.in.lat), jobCode: rec.jobCode || "",
+  place: (rec.in && rec.in.place) || rec.place || "",
 });
 
 /* ================================================================
@@ -213,10 +328,14 @@ const tmDayIndex = (rec, cfg) => ({
    คนใช้เรียนรู้ครั้งเดียวใช้ได้สองที่ และโค้ดที่เดินสถานะมีรูปแบบเดียว
    ================================================================ */
 const TM_OT_STATUS = [
-  { key: "draft",    th: "ร่าง",        color: "#94A3B8", next: ["sent"] },
-  { key: "sent",     th: "รออนุมัติ",   color: "#F59E0B", next: ["approved", "rejected"] },
-  { key: "approved", th: "อนุมัติแล้ว", color: "#10B981", next: [] },
-  { key: "rejected", th: "ไม่อนุมัติ",  color: "#EF4444", next: ["draft"] },
+  { key: "draft",     th: "ร่าง",        color: "#94A3B8", next: ["sent", "cancelled"] },
+  /* sent → draft คือ "ตีกลับให้แก้" ของคนอนุมัติ และ "เอากลับมาแก้" ของเจ้าของใบ
+     ต้องมีทางนี้ ไม่งั้นใบที่กรอกเวลาผิดนิดเดียวต้องถูกปัดตกเป็น "ไม่อนุมัติ"
+     ซึ่งอ่านย้อนหลังแล้วเหมือนคนนั้นถูกปฏิเสธ ทั้งที่แค่พิมพ์ผิด */
+  { key: "sent",      th: "รออนุมัติ",   color: "#F59E0B", next: ["approved", "rejected", "draft", "cancelled"] },
+  { key: "approved",  th: "อนุมัติแล้ว", color: "#10B981", next: [] },
+  { key: "rejected",  th: "ไม่อนุมัติ",  color: "#EF4444", next: ["draft"] },
+  { key: "cancelled", th: "ยกเลิกแล้ว",  color: "#64748B", next: ["draft"] },
 ];
 const TM_OT_STATUS_BY = {}; TM_OT_STATUS.forEach((s) => { TM_OT_STATUS_BY[s.key] = s; });
 const tmOtStatusOf = (k) => TM_OT_STATUS_BY[k] || TM_OT_STATUS_BY.draft;
@@ -249,10 +368,13 @@ function tmOtNext(rec, role, user) {
   const mine = rec && user && rec.userId === user.id;
   const appr = tmOtApproveCheck(rec, user, role).ok;
   return (cur.next || []).filter((k) => {
-    if (k === "sent")     return mine;
-    if (k === "approved") return appr;
-    if (k === "rejected") return appr;
-    if (k === "draft")    return mine || appr;
+    if (k === "sent")      return mine;
+    if (k === "approved")  return appr;
+    if (k === "rejected")  return appr;
+    /* ยกเลิกเป็นสิทธิ์ของเจ้าของใบเท่านั้น — คนอนุมัติที่ไม่เห็นด้วยต้องตีกลับหรือไม่อนุมัติ
+       ซึ่งทิ้งร่องรอยว่าใครตัดสิน ต่างจากยกเลิกที่แปลว่า "เจ้าตัวไม่ขอแล้ว" */
+    if (k === "cancelled") return mine;
+    if (k === "draft")     return mine || appr;
     return false;
   }).map((k) => TM_OT_STATUS_BY[k]);
 }
@@ -269,6 +391,10 @@ function tmOtMove(rec, to, user, note) {
     by: (user || {}).id || null, byName: (user || {}).name || "", note: txt,
   }]);
   if (to === "sent") out.sentAt = now;
+  if (to === "cancelled") {
+    out.cancelledAt = now;
+    out.cancelNote = txt;
+  }
   if (to === "approved" || to === "rejected") {
     out.decidedAt = now; out.decidedNote = txt;
     out.decidedById = (user || {}).id || null; out.decidedByName = (user || {}).name || "";
@@ -277,6 +403,7 @@ function tmOtMove(rec, to, user, note) {
      (กฎเดียวกับ ecMove — ถ้าลืมข้อนี้ ใบที่เดินวนรอบสองจะอ่านไม่รู้เรื่อง) */
   if (to === "draft") {
     out.decidedAt = null; out.decidedNote = ""; out.decidedById = null; out.decidedByName = "";
+    out.cancelledAt = null; out.cancelNote = "";
   }
   return out;
 }
@@ -290,10 +417,32 @@ function tmOtDocNo(list, dateISO) {
   return "OT-" + ym + "-" + window.drPad2(n);
 }
 
+/* ── ใครกดอนุมัติใบ OT ได้บ้าง ──
+   เอาไว้ให้เลือกตอนเปิดใบ ไม่ใช่ปล่อยให้ใบลอยอยู่ในกองกลาง
+   ใบที่ไม่มีชื่อคนอนุมัติ = ทุกคนคิดว่าเป็นหน้าที่คนอื่น แล้วใบก็ค้างจนเจ้าตัวลืม
+   ตัดตัวเองออกเสมอ เพราะ tmOtApproveCheck ห้ามอนุมัติใบตัวเองอยู่แล้ว */
+function tmOtApprovers(users, forUser) {
+  const skip = (forUser || {}).id || null;
+  return (users || [])
+    .filter((u) => u && u.id && u.active !== false && u.id !== skip
+      && window.can(window.userRoles(u), "otApprove"))
+    .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "th"));
+}
+
+/* คนอนุมัติตั้งต้นของใบใหม่ — ใช้สายอนุมัติในโปรไฟล์ก่อน
+   ถ้าคนนั้นไม่มีสิทธิ์อนุมัติ OT (หรือไม่ได้ตั้งไว้) แล้วทั้งบริษัทมีคนอนุมัติได้คนเดียว
+   ก็เลือกให้เลย — ไม่มีอะไรให้ตัดสินใจ แต่ยังแก้ได้ถ้าอยากส่งให้คนอื่น */
+function tmOtPickApprover(user, users) {
+  const all = tmOtApprovers(users, user);
+  const mine = ((user || {}).approverId && all.find((u) => u.id === user.approverId)) || null;
+  if (mine) return mine;
+  return all.length === 1 ? all[0] : null;
+}
+
 function tmOtBlank(user, users, list, job, cfg) {
   const now = new Date().toISOString();
   const date = window.drToday();
-  const approver = ((user || {}).approverId && (users || []).find((u) => u.id === user.approverId)) || null;
+  const approver = tmOtPickApprover(user, users);
   return {
     id: "OT-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
     no: tmOtDocNo(list, date),
@@ -303,7 +452,7 @@ function tmOtBlank(user, users, list, job, cfg) {
     date, from: "17:00", to: "20:00", mins: 0,
     kind: tmOtKindGuess(date, "17:00", cfg), reason: "",
     /* ชื่อคนอนุมัติถ่ายสำเนาไว้ตอนเปิดใบ เพื่อให้ใบเก่ายังอ่านออกแม้บัญชีนั้นถูกลบทีหลัง */
-    approverId: (user || {}).approverId || null, approverName: (approver || {}).name || "",
+    approverId: (approver || {}).id || null, approverName: (approver || {}).name || "",
     status: "draft", createdAt: now, hist: [],
   };
 }
@@ -318,7 +467,8 @@ function tmOtVisible(list, user, role) {
 }
 
 function tmOtRollup(list, user, role) {
-  const r = { total: 0, draft: 0, sent: 0, approved: 0, rejected: 0, waitingMine: 0, minsApproved: 0, mineOpen: 0 };
+  const r = { total: 0, draft: 0, sent: 0, approved: 0, rejected: 0, cancelled: 0,
+    waitingMine: 0, minsApproved: 0, mineOpen: 0 };
   (list || []).forEach((x) => {
     if (!x) return;
     r.total += 1;
@@ -384,7 +534,7 @@ function useAttendWriter(user, cfg) {
     const o = opt || {};
     const date = window.drToday();
     const gps = o.skipGps ? { err: "skipped" } : await window.captureGps();
-    const p = tmPunch(gps, o.src || "web");
+    const p = tmPunch(gps, o.src || "web", o.place);
 
     const snap = await _tmRef("attend/" + uid + "/" + date).once("value").catch(() => null);
     const cur = (snap && snap.val()) || tmAttendBlank(user, date);
@@ -408,6 +558,7 @@ function useAttendWriter(user, cfg) {
     }
 
     if (o.jobId !== undefined) { rec.jobId = o.jobId || null; rec.jobCode = o.jobCode || ""; }
+    if (o.place !== undefined) rec.place = tmPlaceOf(o.place).key;
     if (o.note !== undefined) rec.note = o.note || "";
     rec.src = o.src || rec.src || "web";
     rec.mins = tmWorkedMins(rec, cfg);
@@ -577,12 +728,13 @@ function tmMonthRollup(byDate, users, cfg, otRows, ym) {
 
 Object.assign(window, {
   tmNotify,
-  TM_ROOT, TM_WH_DEFAULT, TM_OT_KIND, TM_OT_STATUS,
+  TM_ROOT, TM_WH_DEFAULT, TM_OT_KIND, TM_OT_STATUS, TM_PLACE,
   tmHM, tmHHMM, tmNowHM, tmSpanMins, tmDur, tmWhNorm, tmIsHoliday, tmIsWorkday,
-  tmOtKindOf, tmOtKindGuess, tmOtMinutes,
-  tmWorkedMins, tmOpen, tmAttendBlank, tmPunch, tmDayIndex,
+  tmOtKindOf, tmOtKindGuess, tmOtMinutes, tmDayWindow, tmOtEarned, tmOtInLimit, tmLastHM,
+  tmWorkedMins, tmOpen, tmAttendBlank, tmPunch, tmDayIndex, tmPlaceOf,
   tmOtStatusOf, tmOtOpen, tmCanAttend, tmCanAttendAll, tmCanOt, tmCanOtApprove,
   tmOtApproveCheck, tmOtNext, tmOtMove, tmOtDocNo, tmOtBlank, tmOtVisible, tmOtRollup,
+  tmOtApprovers, tmOtPickApprover,
   useAttend, useAttendDay, useAttendWriter, useOtClaims, useWorkHours, useAttendMonth,
   tmYm, tmYmNow, tmYmShift, tmYmTH, tmMonthDays, tmMonthRollup, TM_MONTH_TH,
 });

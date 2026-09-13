@@ -272,7 +272,13 @@ function TmDaySheet({
       fontSize: 12,
       color: "var(--text-2)"
     }
-  }, r.jobCode || "—"), React.createElement("td", {
+  }, r.place === "office" ? React.createElement("span", {
+    style: {
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28") : r.jobCode || "—"), React.createElement("td", {
     style: {
       padding: "9px 13px"
     }
@@ -882,6 +888,7 @@ function TmOtModal({
   rec,
   cfg,
   jobs,
+  users,
   role,
   currentUser,
   onSave,
@@ -1082,7 +1089,7 @@ function TmOtModal({
       color: "var(--text-3)",
       lineHeight: 1.6
     }
-  }, window.tmIsWorkday(f.date, cfg) ? "วันทำงานปกติ — ตัดช่วงที่ทับเวลางาน " + window.tmWhNorm(cfg).start + "-" + window.tmWhNorm(cfg).end + " ออกแล้ว" : "นอกวันทำงาน — นับทั้งช่วง", window.tmWhNorm(cfg).roundMins > 0 ? " · ปัดลงทีละ " + window.tmWhNorm(cfg).roundMins + " นาที" : "", window.tmWhNorm(cfg).minOtMins > 0 ? " · ไม่ถึง " + window.tmWhNorm(cfg).minOtMins + " นาทีไม่นับ" : "")), React.createElement("label", {
+  }, window.tmIsWorkday(f.date, cfg) ? "วันทำงานปกติ — ตัดช่วงที่ทับเวลางาน " + window.tmWhNorm(cfg).start + "-" + window.tmWhNorm(cfg).end + " ออกแล้ว (ช่วงนี้เลื่อนตามเวลาที่เข้างานจริง)" : "นอกวันทำงาน — นับทั้งช่วง", window.tmWhNorm(cfg).roundMins > 0 ? " · ปัดลงทีละ " + window.tmWhNorm(cfg).roundMins + " นาที" : "", window.tmWhNorm(cfg).minOtMins > 0 ? " · ไม่ถึง " + window.tmWhNorm(cfg).minOtMins + " นาทีไม่นับ" : "")), React.createElement("label", {
     style: {
       marginTop: 12,
       display: "grid",
@@ -1132,13 +1139,58 @@ function TmOtModal({
       resize: "vertical",
       lineHeight: 1.6
     })
-  })), f.approverName && React.createElement("div", {
+  })), React.createElement("label", {
     style: {
       marginTop: 10,
-      fontSize: 12,
+      display: "grid",
+      gap: 4
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
       color: "var(--text-3)"
     }
-  }, "\u0E2A\u0E48\u0E07\u0E16\u0E36\u0E07 ", f.approverName), f.decidedAt && React.createElement("div", {
+  }, "\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E49\u0E43\u0E04\u0E23\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34"), editable ? React.createElement("select", {
+    value: f.approverId || "",
+    onChange: e => {
+      const u = (users || []).find(x => x.id === e.target.value);
+      setF(p => Object.assign({}, p, {
+        approverId: u ? u.id : null,
+        approverName: u ? u.name : ""
+      }));
+    },
+    style: TM_IN
+  }, React.createElement("option", {
+    value: ""
+  }, "\u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01 (\u0E40\u0E02\u0E49\u0E32\u0E01\u0E2D\u0E07\u0E01\u0E25\u0E32\u0E07) \u2014"), window.tmOtApprovers(users, {
+    id: f.userId
+  }).map(u => React.createElement("option", {
+    key: u.id,
+    value: u.id
+  }, u.name))) : React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      color: f.approverName ? "var(--text-1)" : "#F59E0B",
+      fontWeight: 700
+    }
+  }, f.approverName || "ไม่ได้ระบุคนอนุมัติ — ใบนี้อยู่ในกองกลาง")), editable && !f.approverId && React.createElement("div", {
+    style: {
+      marginTop: 4,
+      fontSize: 11,
+      color: "#F59E0B",
+      lineHeight: 1.6
+    }
+  }, "\u0E2A\u0E48\u0E07\u0E44\u0E14\u0E49\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01 \u0E41\u0E15\u0E48\u0E43\u0E1A\u0E08\u0E30\u0E40\u0E02\u0E49\u0E32\u0E01\u0E2D\u0E07\u0E01\u0E25\u0E32\u0E07\u0E43\u0E2B\u0E49\u0E43\u0E04\u0E23\u0E01\u0E47\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E21\u0E35\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E2B\u0E22\u0E34\u0E1A \u2014 \u0E23\u0E30\u0E1A\u0E38\u0E0A\u0E37\u0E48\u0E2D\u0E44\u0E27\u0E49\u0E43\u0E1A\u0E08\u0E30\u0E44\u0E21\u0E48\u0E04\u0E49\u0E32\u0E07"), f.cancelledAt && React.createElement("div", {
+    style: {
+      marginTop: 10,
+      padding: "10px 12px",
+      borderRadius: 11,
+      background: "var(--surface2)",
+      fontSize: 12,
+      color: "var(--text-2)"
+    }
+  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01\u0E42\u0E14\u0E22\u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07\u0E43\u0E1A \xB7 ", window.drShort(String(f.cancelledAt).slice(0, 10))), f.decidedAt && React.createElement("div", {
     style: {
       marginTop: 10,
       padding: "10px 12px",
@@ -1178,26 +1230,30 @@ function TmOtModal({
       fontWeight: 800,
       color: "var(--text-1)"
     }
-  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E23\u0E48\u0E32\u0E07"), nexts.map(s => React.createElement("button", {
-    key: s.key,
-    onClick: () => {
-      onMove(Object.assign({}, f, {
-        mins
-      }), s.key);
-      onClose();
-    },
-    style: {
-      padding: "9px 16px",
-      borderRadius: 10,
-      border: "none",
-      background: s.color,
-      color: "#fff",
-      cursor: "pointer",
-      fontFamily: "inherit",
-      fontSize: 12.5,
-      fontWeight: 800
-    }
-  }, s.key === "sent" ? "ส่งขออนุมัติ" : s.key === "approved" ? "อนุมัติ" : s.key === "rejected" ? "ไม่อนุมัติ" : "เอากลับมาแก้")), f.status === "sent" && !mine && why && React.createElement("span", {
+  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E23\u0E48\u0E32\u0E07"), nexts.map(s => {
+    const soft = s.key === "cancelled" || s.key === "draft" && f.status === "sent" && !mine;
+    const label = s.key === "sent" ? "ส่งขออนุมัติ" : s.key === "approved" ? "อนุมัติ" : s.key === "rejected" ? "ไม่อนุมัติ" : s.key === "cancelled" ? "ยกเลิกใบนี้" : mine ? "เอากลับมาแก้" : "ตีกลับให้แก้";
+    return React.createElement("button", {
+      key: s.key,
+      onClick: () => {
+        onMove(Object.assign({}, f, {
+          mins
+        }), s.key);
+        onClose();
+      },
+      style: {
+        padding: "9px 16px",
+        borderRadius: 10,
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 12.5,
+        fontWeight: 800,
+        border: soft ? "1px solid var(--border-strong)" : "none",
+        background: soft ? "var(--surface)" : s.color,
+        color: soft ? s.color : "#fff"
+      }
+    }, label);
+  }), f.status === "sent" && !mine && why && React.createElement("span", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)"
@@ -1325,10 +1381,10 @@ function TmWorkHours({
       fontWeight: 700,
       color: "var(--text-3)"
     }
-  }, "\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19"), React.createElement("input", {
+  }, "\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19\u0E44\u0E14\u0E49\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48"), React.createElement("input", {
     type: "time",
-    value: f.start,
-    onChange: e => set("start", e.target.value),
+    value: f.startEarly,
+    onChange: e => set("startEarly", e.target.value),
     style: TM_IN
   })), React.createElement("label", {
     style: {
@@ -1341,10 +1397,28 @@ function TmWorkHours({
       fontWeight: 700,
       color: "var(--text-3)"
     }
-  }, "\u0E40\u0E25\u0E34\u0E01\u0E07\u0E32\u0E19"), React.createElement("input", {
+  }, "\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19\u0E0A\u0E49\u0E32\u0E2A\u0E38\u0E14"), React.createElement("input", {
     type: "time",
-    value: f.end,
-    onChange: e => set("end", e.target.value),
+    value: f.startLate,
+    onChange: e => set("startLate", e.target.value),
+    style: TM_IN
+  })), React.createElement("label", {
+    style: {
+      display: "grid",
+      gap: 4
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, "\u0E17\u0E33\u0E07\u0E32\u0E19\u0E27\u0E31\u0E19\u0E25\u0E30 (\u0E19\u0E32\u0E17\u0E35)"), React.createElement("input", {
+    type: "number",
+    min: 0,
+    step: 30,
+    value: f.workMins,
+    onChange: e => set("workMins", +e.target.value),
     style: TM_IN
   })), React.createElement("label", {
     style: {
@@ -1397,7 +1471,29 @@ function TmWorkHours({
     value: f.roundMins,
     onChange: e => set("roundMins", +e.target.value),
     style: TM_IN
-  }))), React.createElement("div", null, React.createElement("div", {
+  }))), React.createElement("div", {
+    style: {
+      padding: "11px 13px",
+      borderRadius: 12,
+      background: "var(--surface2)",
+      border: "1px solid var(--border)",
+      fontSize: 12,
+      color: "var(--text-2)",
+      lineHeight: 1.8
+    }
+  }, "\u0E40\u0E02\u0E49\u0E32 ", f.startEarly, " \u2192 \u0E40\u0E25\u0E34\u0E01 ", React.createElement("b", null, window.tmWhNorm(f).end), React.createElement("span", {
+    style: {
+      color: "var(--text-3)"
+    }
+  }, " (\u0E17\u0E33\u0E07\u0E32\u0E19 ", window.tmDur(f.workMins), " + \u0E1E\u0E31\u0E01 ", window.tmDur(f.lunchMins), ")"), React.createElement("br", null), "\u0E40\u0E02\u0E49\u0E32 ", f.startLate, " \u2192 \u0E40\u0E25\u0E34\u0E01 ", React.createElement("b", null, window.tmDayWindow({
+    in: {
+      hm: f.startLate
+    }
+  }, f).end), React.createElement("br", null), React.createElement("span", {
+    style: {
+      color: "var(--text-3)"
+    }
+  }, "\u0E01\u0E14\u0E40\u0E02\u0E49\u0E32\u0E01\u0E48\u0E2D\u0E19 ", f.startEarly, " \u0E44\u0E21\u0E48\u0E17\u0E33\u0E43\u0E2B\u0E49\u0E40\u0E25\u0E34\u0E01\u0E40\u0E23\u0E47\u0E27\u0E02\u0E36\u0E49\u0E19 \xB7 \u0E40\u0E02\u0E49\u0E32\u0E2B\u0E25\u0E31\u0E07 ", f.startLate, " \u0E16\u0E37\u0E2D\u0E27\u0E48\u0E32\u0E2A\u0E32\u0E22\u0E41\u0E25\u0E30\u0E40\u0E27\u0E25\u0E32\u0E40\u0E25\u0E34\u0E01\u0E40\u0E25\u0E37\u0E48\u0E2D\u0E19\u0E15\u0E32\u0E21\u0E08\u0E23\u0E34\u0E07 \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E2B\u0E19\u0E49\u0E32\u0E17\u0E35\u0E48\u0E04\u0E37\u0E2D\u0E17\u0E33\u0E43\u0E2B\u0E49\u0E04\u0E23\u0E1A ", window.tmDur(f.workMins), " \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E2D\u0E22\u0E39\u0E48\u0E16\u0E36\u0E07\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E01\u0E33\u0E2B\u0E19\u0E14")), React.createElement("div", null, React.createElement("div", {
     style: {
       fontSize: 11.5,
       fontWeight: 700,
@@ -1591,6 +1687,18 @@ function AttendView({
         title: (to === "approved" ? "อนุมัติ OT แล้ว · " : "ไม่อนุมัติ OT · ") + next.no,
         body: when + " · " + window.tmDur(next.mins) + " · โดย " + ((currentUser || {}).name || "")
       });
+    } else if (to === "draft" && rec.status === "sent" && next.userId !== uid) {
+      window.tmNotify({
+        toUserId: next.userId,
+        title: "ตีกลับใบ OT · " + next.no,
+        body: when + " · แก้แล้วส่งใหม่ได้ · โดย " + ((currentUser || {}).name || "")
+      });
+    } else if (to === "cancelled" && rec.status === "sent" && next.approverId) {
+      window.tmNotify({
+        toUserId: next.approverId,
+        title: "ยกเลิกใบขอ OT · " + next.no,
+        body: next.userName + " · " + when + " · ไม่ต้องพิจารณาแล้ว"
+      });
     }
   };
   const TABS = [["day", "แผ่นเวลารายวัน", "calendar", 0]].concat(canAll ? [["month", "สรุปรายเดือน", "table", 0]] : []).concat([["mine", "ใบ OT ของฉัน", "pen", roll.mineOpen]]).concat(canApprove ? [["inbox", "รอฉันอนุมัติ", "check", roll.waitingMine]] : []).concat(canApprove || canAll ? [["all", "ใบ OT ทั้งหมด", "list", 0]] : []).concat(window.can(role, "manageUsers") ? [["cfg", "ตั้งค่าเวลาทำงาน", "settings", 0]] : []);
@@ -1753,6 +1861,7 @@ function AttendView({
     rec: cur,
     cfg: wh.cfg,
     jobs: jobSorted,
+    users: users,
     role: role,
     currentUser: currentUser,
     onSave: ot.save,

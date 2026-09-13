@@ -331,26 +331,38 @@ const LN_FIELD = {
 function LnClock({
   me,
   cfg,
-  jobs
+  jobs,
+  onAskOt
 }) {
   const at = window.useAttend(me ? me.id : null, 14);
   const writer = window.useAttendWriter(me, cfg);
   const [busy, setBusy] = React.useState(false);
   const [msg, setMsg] = React.useState(null);
   const [jobId, setJobId] = React.useState("");
+  const [place, setPlace] = React.useState("site");
+  const [nowHM, setNowHM] = React.useState(window.tmNowHM);
+  React.useEffect(() => {
+    const t = setInterval(() => setNowHM(window.tmNowHM()), 20000);
+    return () => clearInterval(t);
+  }, []);
   const today = at.today;
   const open = window.tmOpen(today);
-  const worked = window.tmWorkedMins(today, cfg);
+  const worked = window.tmWorkedMins(today, cfg, open ? nowHM : null);
+  const win = window.tmDayWindow(today, cfg);
+  const earned = window.tmOtEarned(today, cfg, nowHM);
+  const left = Math.max(0, window.tmWhNorm(cfg).workMins - worked);
   React.useEffect(() => {
     if (today && today.jobId) setJobId(today.jobId);
-  }, [today && today.jobId]);
+    if (today && today.place) setPlace(today.place);
+  }, [today && today.jobId, today && today.place]);
   const go = async () => {
     if (busy) return;
     setBusy(true);
     setMsg(null);
-    const j = (jobs || []).find(x => x.id === jobId);
+    const j = place === "office" ? null : (jobs || []).find(x => x.id === jobId);
     const res = await writer.punch(open ? "out" : "in", {
       src: "liff",
+      place: place,
       jobId: j ? j.id : null,
       jobCode: j ? j.code : ""
     });
@@ -419,15 +431,143 @@ function LnClock({
       fontWeight: 800,
       color: today && today.out ? "var(--text-1)" : "var(--text-3)"
     }
-  }, today && today.out && today.out.hm || "--:--"))), worked > 0 && React.createElement("div", {
+  }, today && today.out && today.out.hm || "--:--"))), today && today.in && React.createElement("div", {
     style: {
-      marginTop: 4,
-      fontSize: 12.5,
-      color: "var(--text-2)"
+      marginTop: 10,
+      paddingTop: 10,
+      borderTop: "1px solid var(--border)"
     }
-  }, "\u0E17\u0E33\u0E07\u0E32\u0E19\u0E41\u0E25\u0E49\u0E27 ", window.tmDur(worked))), React.createElement("div", {
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontSize: 30,
+      fontWeight: 800,
+      color: "var(--text-1)",
+      lineHeight: 1.1
+    }
+  }, window.tmDur(worked)), React.createElement("div", {
+    style: {
+      marginTop: 2,
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, open ? "ทำงานแล้ว · กำลังนับอยู่" : "ทำงานทั้งวัน"), React.createElement("div", {
+    style: {
+      marginTop: 7,
+      fontSize: 12.5,
+      color: "var(--text-2)",
+      lineHeight: 1.7
+    }
+  }, open && left > 0 ? React.createElement(React.Fragment, null, "\u0E04\u0E23\u0E1A ", window.tmDur(window.tmWhNorm(cfg).workMins), " \u0E40\u0E27\u0E25\u0E32 ", React.createElement("b", null, win.end), " \xB7 \u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E2D\u0E35\u0E01 ", window.tmDur(left)) : React.createElement(React.Fragment, null, "\u0E04\u0E23\u0E1A\u0E40\u0E27\u0E25\u0E32\u0E07\u0E32\u0E19\u0E1B\u0E01\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48 ", React.createElement("b", null, win.end))), win.late && React.createElement("div", {
+    style: {
+      marginTop: 5,
+      fontSize: 11.5,
+      color: "#F59E0B",
+      fontWeight: 700
+    }
+  }, "\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19\u0E2B\u0E25\u0E31\u0E07 ", window.tmWhNorm(cfg).startLate, " \xB7 \u0E2A\u0E32\u0E22 ", window.tmDur(win.lateMins), " \u2014 \u0E40\u0E27\u0E25\u0E32\u0E40\u0E25\u0E34\u0E01\u0E40\u0E25\u0E37\u0E48\u0E2D\u0E19\u0E15\u0E32\u0E21\u0E08\u0E23\u0E34\u0E07"))), earned.mins > 0 && React.createElement("div", {
+    style: {
+      marginTop: 12,
+      padding: "13px 15px",
+      borderRadius: 14,
+      background: "var(--tint-amber-bg)",
+      border: "1px solid #F59E0B44"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      gap: 8,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 800,
+      color: "var(--tint-amber-tx)"
+    }
+  }, "\u0E17\u0E33\u0E40\u0E01\u0E34\u0E19\u0E40\u0E27\u0E25\u0E32\u0E07\u0E32\u0E19\u0E41\u0E25\u0E49\u0E27"), React.createElement("span", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontSize: 19,
+      fontWeight: 800,
+      color: "var(--tint-amber-tx)"
+    }
+  }, window.tmDur(earned.mins))), React.createElement("div", {
+    style: {
+      marginTop: 3,
+      fontFamily: "var(--mono)",
+      fontSize: 12,
+      color: "var(--tint-amber-tx)",
+      opacity: .85
+    }
+  }, earned.from, " \u2013 ", earned.to), onAskOt && React.createElement("button", {
+    onClick: () => onAskOt(Object.assign({}, earned, {
+      win: win
+    })),
+    style: {
+      marginTop: 10,
+      width: "100%",
+      padding: "12px 14px",
+      borderRadius: 12,
+      border: "none",
+      background: "#F59E0B",
+      color: "#fff",
+      fontFamily: "inherit",
+      fontSize: 14,
+      fontWeight: 800,
+      cursor: "pointer"
+    }
+  }, "\u0E02\u0E2D OT \u0E0A\u0E48\u0E27\u0E07\u0E19\u0E35\u0E49"), React.createElement("div", {
+    style: {
+      marginTop: 7,
+      fontSize: 11,
+      color: "var(--tint-amber-tx)",
+      opacity: .8,
+      lineHeight: 1.6
+    }
+  }, "\u0E08\u0E30\u0E02\u0E2D\u0E2B\u0E23\u0E37\u0E2D\u0E44\u0E21\u0E48\u0E02\u0E2D\u0E01\u0E47\u0E44\u0E14\u0E49 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A\u0E43\u0E2B\u0E49\u0E40\u0E2D\u0E07 \u2014 \u0E02\u0E2D\u0E44\u0E14\u0E49\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E0A\u0E48\u0E27\u0E07\u0E17\u0E35\u0E48\u0E17\u0E33\u0E40\u0E01\u0E34\u0E19\u0E08\u0E23\u0E34\u0E07\u0E15\u0E32\u0E21\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E25\u0E07\u0E44\u0E27\u0E49")), React.createElement("div", {
     style: {
       marginTop: 14
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-3)",
+      marginBottom: 5
+    }
+  }, "\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E44\u0E2B\u0E19"), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 9
+    }
+  }, window.TM_PLACE.map(p => React.createElement("button", {
+    key: p.key,
+    onClick: () => setPlace(p.key),
+    style: {
+      flex: 1,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 7,
+      padding: "13px 10px",
+      borderRadius: 13,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 14,
+      fontWeight: 800,
+      border: "1px solid " + (place === p.key ? "var(--primary)" : "var(--border-strong)"),
+      background: place === p.key ? "var(--primary-soft)" : "var(--surface)",
+      color: place === p.key ? "var(--primary-dark)" : "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: p.icon,
+    size: 16,
+    color: place === p.key ? "var(--primary-dark)" : "var(--text-3)"
+  }), p.th)))), place !== "office" && React.createElement("div", {
+    style: {
+      marginTop: 12
     }
   }, React.createElement("div", {
     style: {
@@ -526,9 +666,20 @@ function LnOtForm({
   cfg,
   jobs,
   otStore,
+  limit,
   onClose
 }) {
-  const [f, setF] = React.useState(() => window.tmOtBlank(me, users, otStore.rows, null, cfg));
+  const locked = !!(limit && limit.has && limit.mins > 0);
+  const [f, setF] = React.useState(() => {
+    const b = window.tmOtBlank(me, users, otStore.rows, null, cfg);
+    if (!locked) return b;
+    return Object.assign(b, {
+      date: limit.date || b.date,
+      from: limit.from,
+      to: limit.to,
+      kind: window.tmOtKindGuess(limit.date || b.date, limit.from, cfg)
+    });
+  });
   const [sending, setSending] = React.useState(false);
   const set = (k, v) => setF(p => {
     const n = Object.assign({}, p, {
@@ -537,8 +688,11 @@ function LnOtForm({
     if (k === "date" || k === "from") n.kind = window.tmOtKindGuess(n.date, n.from, cfg);
     return n;
   });
-  const mins = window.tmOtMinutes(f.date, f.from, f.to, cfg);
-  const ready = mins > 0 && !!f.reason.trim();
+  const win = locked && f.date === limit.date ? limit.win : null;
+  const mins = window.tmOtMinutes(f.date, f.from, f.to, cfg, win);
+  const inLimit = window.tmOtInLimit(f.date, f.from, f.to, limit);
+  const approvers = React.useMemo(() => window.tmOtApprovers(users, me), [users, me]);
+  const ready = mins > 0 && inLimit && !!f.reason.trim();
   const send = () => {
     if (!ready || sending) return;
     setSending(true);
@@ -630,6 +784,7 @@ function LnOtForm({
   }, "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48"), React.createElement("input", {
     type: "date",
     value: f.date,
+    disabled: locked,
     onChange: e => set("date", e.target.value),
     style: LN_FIELD
   })), React.createElement("div", {
@@ -652,6 +807,8 @@ function LnOtForm({
   }, "\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48"), React.createElement("input", {
     type: "time",
     value: f.from,
+    min: locked ? limit.lo : undefined,
+    max: locked ? limit.hi : undefined,
     onChange: e => set("from", e.target.value),
     style: LN_FIELD
   })), React.createElement("label", {
@@ -668,9 +825,20 @@ function LnOtForm({
   }, "\u0E16\u0E36\u0E07"), React.createElement("input", {
     type: "time",
     value: f.to,
+    min: locked ? limit.lo : undefined,
+    max: locked ? limit.hi : undefined,
     onChange: e => set("to", e.target.value),
     style: LN_FIELD
-  }))), React.createElement("div", {
+  }))), locked && React.createElement("div", {
+    style: {
+      padding: "10px 13px",
+      borderRadius: 12,
+      fontSize: 11.5,
+      lineHeight: 1.7,
+      background: inLimit ? "var(--surface2)" : "var(--tint-amber-bg)",
+      color: inLimit ? "var(--text-3)" : "var(--tint-amber-tx)"
+    }
+  }, inLimit ? "ขอได้เฉพาะช่วงที่อยู่ที่ทำงานจริงวันนี้ — ลงเวลา " + limit.lo + " ถึง " + limit.hi : "ช่วงนี้อยู่นอกเวลาที่ลงไว้ (" + limit.lo + " – " + limit.hi + ") ขอไม่ได้"), React.createElement("div", {
     style: {
       padding: "12px 14px",
       borderRadius: 13,
@@ -734,6 +902,32 @@ function LnOtForm({
       fontWeight: 700,
       color: "var(--text-3)"
     }
+  }, "\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E49\u0E43\u0E04\u0E23\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34"), React.createElement("select", {
+    value: f.approverId || "",
+    onChange: e => {
+      const u = approvers.find(x => x.id === e.target.value);
+      setF(p => Object.assign({}, p, {
+        approverId: u ? u.id : null,
+        approverName: u ? u.name : ""
+      }));
+    },
+    style: LN_FIELD
+  }, React.createElement("option", {
+    value: ""
+  }, "\u2014 \u0E43\u0E04\u0E23\u0E01\u0E47\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E21\u0E35\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C \u2014"), approvers.map(u => React.createElement("option", {
+    key: u.id,
+    value: u.id
+  }, u.name)))), React.createElement("label", {
+    style: {
+      display: "grid",
+      gap: 5
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
   }, "\u0E40\u0E2B\u0E15\u0E38\u0E1C\u0E25"), React.createElement("textarea", {
     rows: 3,
     value: f.reason,
@@ -757,7 +951,7 @@ function LnOtForm({
       textAlign: "center",
       lineHeight: 1.7
     }
-  }, "\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E19\u0E31\u0E1A\u0E40\u0E1B\u0E47\u0E19 OT \u2014 \u0E15\u0E49\u0E2D\u0E07\u0E2D\u0E22\u0E39\u0E48\u0E19\u0E2D\u0E01\u0E40\u0E27\u0E25\u0E32\u0E07\u0E32\u0E19\u0E1B\u0E01\u0E15\u0E34 \u0E41\u0E25\u0E30\u0E19\u0E32\u0E19\u0E1E\u0E2D\u0E15\u0E32\u0E21\u0E17\u0E35\u0E48\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49"), mins > 0 && !f.reason.trim() && React.createElement("div", {
+  }, "\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E19\u0E31\u0E1A\u0E40\u0E1B\u0E47\u0E19 OT \u2014 \u0E15\u0E49\u0E2D\u0E07\u0E2D\u0E22\u0E39\u0E48\u0E19\u0E2D\u0E01\u0E40\u0E27\u0E25\u0E32\u0E07\u0E32\u0E19\u0E1B\u0E01\u0E15\u0E34 \u0E41\u0E25\u0E30\u0E19\u0E32\u0E19\u0E1E\u0E2D\u0E15\u0E32\u0E21\u0E17\u0E35\u0E48\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49", win ? " (วันนี้เวลางานปกติจบ " + win.end + " เพราะเข้างาน " + limit.lo + ")" : ""), mins > 0 && !f.reason.trim() && React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",
@@ -776,11 +970,32 @@ function LnTimeTab({
   const wh = window.useWorkHours();
   const otStore = window.useOtClaims();
   const [form, setForm] = React.useState(!!startOt && window.tmCanOt(role));
+  const [limit, setLimit] = React.useState(null);
+  const closeForm = () => {
+    setForm(false);
+    setLimit(null);
+  };
+  const cancelOt = r => {
+    const next = window.tmOtMove(r, "cancelled", me, "");
+    if (!next) return;
+    otStore.save(next);
+    if (r.status === "sent" && r.approverId) {
+      window.tmNotify({
+        toUserId: r.approverId,
+        title: "ยกเลิกใบขอ OT · " + r.no,
+        body: r.userName + " · " + window.drShort(r.date) + " " + r.from + "-" + r.to + " · ไม่ต้องพิจารณาแล้ว"
+      });
+    }
+  };
   const myOt = React.useMemo(() => (otStore.rows || []).filter(r => r && r.userId === (me || {}).id), [otStore.rows, me]);
   return React.createElement(React.Fragment, null, window.tmCanAttend(role) ? React.createElement(LnClock, {
     me: me,
     cfg: wh.cfg,
-    jobs: jobs
+    jobs: jobs,
+    onAskOt: window.tmCanOt(role) ? lim => {
+      setLimit(lim);
+      setForm(true);
+    } : null
   }) : React.createElement("div", {
     style: {
       padding: 34,
@@ -805,7 +1020,10 @@ function LnTimeTab({
       color: "var(--text-1)"
     }
   }, "\u0E43\u0E1A\u0E02\u0E2D OT \u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19"), React.createElement("button", {
-    onClick: () => setForm(true),
+    onClick: () => {
+      setLimit(null);
+      setForm(true);
+    },
     style: {
       marginLeft: "auto",
       padding: "8px 14px",
@@ -869,7 +1087,13 @@ function LnTimeTab({
         fontWeight: 800,
         color: "var(--text-1)"
       }
-    }, window.tmDur(r.mins))), r.reason && React.createElement("div", {
+    }, window.tmDur(r.mins))), r.approverName && React.createElement("div", {
+      style: {
+        marginTop: 3,
+        fontSize: 11.5,
+        color: "var(--text-3)"
+      }
+    }, "\u0E2A\u0E48\u0E07\u0E16\u0E36\u0E07 ", r.approverName), r.reason && React.createElement("div", {
       style: {
         marginTop: 3,
         fontSize: 11.5,
@@ -881,14 +1105,29 @@ function LnTimeTab({
         fontSize: 11.5,
         color: st.color
       }
-    }, "\u201C", r.decidedNote, "\u201D"));
+    }, "\u201C", r.decidedNote, "\u201D"), window.tmOtOpen(r) && React.createElement("button", {
+      onClick: () => cancelOt(r),
+      style: {
+        marginTop: 7,
+        padding: "7px 13px",
+        borderRadius: 9,
+        border: "1px solid var(--border-strong)",
+        background: "var(--surface)",
+        color: "#EF4444",
+        fontFamily: "inherit",
+        fontSize: 12,
+        fontWeight: 700,
+        cursor: "pointer"
+      }
+    }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01\u0E43\u0E1A\u0E19\u0E35\u0E49"));
   }))), form && React.createElement(LnOtForm, {
     me: me,
     users: users,
     cfg: wh.cfg,
     jobs: jobs,
     otStore: otStore,
-    onClose: () => setForm(false)
+    limit: limit,
+    onClose: closeForm
   }));
 }
 function LnApp() {

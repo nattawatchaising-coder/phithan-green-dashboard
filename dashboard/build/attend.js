@@ -39,23 +39,33 @@ function tmDur(mins) {
   return (h ? h + " ชม." : "") + (h && m ? " " : "") + (m ? m + " น." : "");
 }
 const TM_WH_DEFAULT = {
-  start: "08:00",
-  end: "17:00",
-  days: [1, 2, 3, 4, 5, 6],
+  startEarly: "08:30",
+  startLate: "09:00",
+  workMins: 480,
   lunchMins: 60,
+  days: [1, 2, 3, 4, 5, 6],
   minOtMins: 30,
   roundMins: 30,
   holidays: {}
 };
 function tmWhNorm(cfg) {
   const c = Object.assign({}, TM_WH_DEFAULT, cfg || {});
+  if (cfg && cfg.start && !cfg.startEarly) {
+    if (tmHM(cfg.start) != null) c.startEarly = cfg.start;
+    c.startLate = tmHHMM(tmHM(c.startEarly) + 30);
+    const span = cfg.end ? tmSpanMins(cfg.start, cfg.end) : 0;
+    if (span > 0) c.workMins = Math.max(0, span - Math.max(0, +cfg.lunchMins || 0));
+  }
   c.days = Array.isArray(c.days) && c.days.length ? c.days.map(Number) : TM_WH_DEFAULT.days;
   c.lunchMins = Math.max(0, +c.lunchMins || 0);
+  c.workMins = Math.max(0, +c.workMins || 0) || TM_WH_DEFAULT.workMins;
   c.minOtMins = Math.max(0, +c.minOtMins || 0);
   c.roundMins = Math.max(0, +c.roundMins || 0);
   c.holidays = c.holidays && typeof c.holidays === "object" ? c.holidays : {};
-  if (tmHM(c.start) == null) c.start = TM_WH_DEFAULT.start;
-  if (tmHM(c.end) == null) c.end = TM_WH_DEFAULT.end;
+  if (tmHM(c.startEarly) == null) c.startEarly = TM_WH_DEFAULT.startEarly;
+  if (tmHM(c.startLate) == null || tmHM(c.startLate) < tmHM(c.startEarly)) c.startLate = c.startEarly;
+  c.start = c.startEarly;
+  c.end = tmHHMM(tmHM(c.startEarly) + c.workMins + c.lunchMins);
   return c;
 }
 const tmIsHoliday = (dateISO, cfg) => !!tmWhNorm(cfg).holidays[String(dateISO || "").slice(0, 10)];
@@ -65,6 +75,24 @@ function tmIsWorkday(dateISO, cfg) {
   const d = new Date(String(dateISO || "").slice(0, 10) + "T00:00:00");
   if (isNaN(d.getTime())) return true;
   return c.days.indexOf(d.getDay()) >= 0;
+}
+function tmDayWindow(rec, cfg) {
+  const c = tmWhNorm(cfg);
+  const lo = tmHM(c.startEarly),
+    hi = tmHM(c.startLate);
+  const inHM = rec && rec.in && rec.in.hm ? tmHM(rec.in.hm) : null;
+  const base = inHM == null ? lo : Math.max(inHM, lo);
+  const end = base + c.workMins + c.lunchMins;
+  return {
+    startMins: base,
+    endMins: end,
+    start: tmHHMM(base),
+    end: tmHHMM(end),
+    inMins: inHM,
+    late: inHM != null && inHM > hi,
+    lateMins: inHM != null && inHM > hi ? inHM - hi : 0,
+    cfg: c
+  };
 }
 const TM_OT_KIND = [{
   key: "ot",
@@ -93,14 +121,14 @@ function tmOtKindGuess(dateISO, from, cfg) {
   if (a != null && (a >= 20 * 60 || a < 5 * 60)) return "night";
   return "ot";
 }
-function tmOtMinutes(dateISO, from, to, cfg) {
+function tmOtMinutes(dateISO, from, to, cfg, win) {
   const c = tmWhNorm(cfg);
   const span = tmSpanMins(from, to);
   if (span <= 0) return 0;
   let outside = span;
   if (tmIsWorkday(dateISO, c)) {
-    const ws = tmHM(c.start),
-      we = tmHM(c.end);
+    const ws = win && win.startMins != null ? win.startMins : tmHM(c.start);
+    const we = win && win.endMins != null ? win.endMins : tmHM(c.end);
     const a = tmHM(from);
     const s = a,
       e = a + span;
@@ -111,13 +139,16 @@ function tmOtMinutes(dateISO, from, to, cfg) {
   if (c.roundMins > 0) outside = Math.floor(outside / c.roundMins) * c.roundMins;
   return outside >= c.minOtMins ? outside : 0;
 }
-function tmWorkedMins(rec, cfg) {
+function tmWorkedMins(rec, cfg, nowHM) {
   const c = tmWhNorm(cfg);
   const spans = [];
-  if (rec && rec.in && rec.in.hm && rec.out && rec.out.hm) spans.push([rec.in.hm, rec.out.hm]);
-  (rec && Array.isArray(rec.extra) ? rec.extra : []).forEach(x => {
-    if (x && x.in && x.in.hm && x.out && x.out.hm) spans.push([x.in.hm, x.out.hm]);
-  });
+  const push = s => {
+    if (!s || !s.in || !s.in.hm) return;
+    const b = s.out && s.out.hm || nowHM || null;
+    if (b) spans.push([s.in.hm, b]);
+  };
+  push(rec);
+  (rec && Array.isArray(rec.extra) ? rec.extra : []).forEach(push);
   let total = 0;
   spans.forEach(([a, b]) => {
     let m = tmSpanMins(a, b);
@@ -127,6 +158,70 @@ function tmWorkedMins(rec, cfg) {
   return total;
 }
 const tmOpen = rec => !!(rec && rec.in && rec.in.hm && !(rec.out && rec.out.hm));
+function tmLastHM(rec, nowHM) {
+  if (!rec || !rec.in || !rec.in.hm) return "";
+  const ex = Array.isArray(rec.extra) ? rec.extra : [];
+  const last = ex.length ? ex[ex.length - 1] : null;
+  if (last && last.in && last.in.hm) return last.out && last.out.hm || nowHM || "";
+  return rec.out && rec.out.hm || nowHM || "";
+}
+function tmOtEarned(rec, cfg, nowHM) {
+  const c = tmWhNorm(cfg);
+  const none = {
+    has: false,
+    mins: 0,
+    before: 0,
+    after: 0,
+    from: "",
+    to: "",
+    lo: "",
+    hi: "",
+    date: ""
+  };
+  if (!rec || !rec.in || !rec.in.hm) return none;
+  const endHM = tmLastHM(rec, nowHM);
+  if (!endHM) return none;
+  const w = tmDayWindow(rec, cfg);
+  const inM = w.inMins;
+  const outAbs = inM + tmSpanMins(rec.in.hm, endHM);
+  const round = m => c.roundMins > 0 ? Math.floor(Math.max(0, m) / c.roundMins) * c.roundMins : Math.max(0, m);
+  const keep = m => m >= c.minOtMins ? m : 0;
+  const base = {
+    has: true,
+    lo: rec.in.hm,
+    hi: tmHHMM(outAbs),
+    date: rec.date || ""
+  };
+  if (!tmIsWorkday(rec.date, c)) {
+    const all = keep(round(outAbs - inM));
+    return Object.assign(base, {
+      mins: all,
+      before: 0,
+      after: all,
+      from: rec.in.hm,
+      to: tmHHMM(outAbs)
+    });
+  }
+  const before = keep(round(w.startMins - inM));
+  const after = keep(round(outAbs - w.endMins));
+  const useAfter = after >= before;
+  return Object.assign(base, {
+    mins: useAfter ? after : before,
+    before: before,
+    after: after,
+    from: useAfter ? w.end : rec.in.hm,
+    to: useAfter ? tmHHMM(outAbs) : w.start
+  });
+}
+function tmOtInLimit(date, from, to, lim) {
+  if (!lim || !lim.has || !lim.date || date !== lim.date) return true;
+  const lo = tmHM(lim.lo),
+    hi = tmHM(lim.lo) + tmSpanMins(lim.lo, lim.hi);
+  const a = tmHM(from);
+  if (a == null || lo == null) return false;
+  const s = a < lo ? a + 1440 : a;
+  return s >= lo && s + tmSpanMins(from, to) <= hi;
+}
 function tmAttendBlank(user, dateISO) {
   return {
     id: (user || {}).id + "_" + dateISO,
@@ -146,12 +241,23 @@ function tmAttendBlank(user, dateISO) {
     updatedAt: new Date().toISOString()
   };
 }
-function tmPunch(gps, src) {
+const TM_PLACE = [{
+  key: "site",
+  th: "หน้างาน",
+  icon: "wrench"
+}, {
+  key: "office",
+  th: "ออฟฟิศ",
+  icon: "box"
+}];
+const tmPlaceOf = k => TM_PLACE.find(p => p.key === k) || TM_PLACE[0];
+function tmPunch(gps, src, place) {
   const d = new Date();
   const p = {
     at: d.toISOString(),
     hm: window.drPad2(d.getHours()) + ":" + window.drPad2(d.getMinutes()),
-    src: src || "web"
+    src: src || "web",
+    place: tmPlaceOf(place).key
   };
   if (gps && !gps.err) {
     p.lat = gps.lat;
@@ -170,18 +276,19 @@ const tmDayIndex = (rec, cfg) => ({
   out: rec.out && rec.out.hm || "",
   mins: tmWorkedMins(rec, cfg),
   gps: !!(rec.in && rec.in.lat),
-  jobCode: rec.jobCode || ""
+  jobCode: rec.jobCode || "",
+  place: rec.in && rec.in.place || rec.place || ""
 });
 const TM_OT_STATUS = [{
   key: "draft",
   th: "ร่าง",
   color: "#94A3B8",
-  next: ["sent"]
+  next: ["sent", "cancelled"]
 }, {
   key: "sent",
   th: "รออนุมัติ",
   color: "#F59E0B",
-  next: ["approved", "rejected"]
+  next: ["approved", "rejected", "draft", "cancelled"]
 }, {
   key: "approved",
   th: "อนุมัติแล้ว",
@@ -191,6 +298,11 @@ const TM_OT_STATUS = [{
   key: "rejected",
   th: "ไม่อนุมัติ",
   color: "#EF4444",
+  next: ["draft"]
+}, {
+  key: "cancelled",
+  th: "ยกเลิกแล้ว",
+  color: "#64748B",
   next: ["draft"]
 }];
 const TM_OT_STATUS_BY = {};
@@ -238,6 +350,7 @@ function tmOtNext(rec, role, user) {
     if (k === "sent") return mine;
     if (k === "approved") return appr;
     if (k === "rejected") return appr;
+    if (k === "cancelled") return mine;
     if (k === "draft") return mine || appr;
     return false;
   }).map(k => TM_OT_STATUS_BY[k]);
@@ -259,6 +372,10 @@ function tmOtMove(rec, to, user, note) {
     note: txt
   }]);
   if (to === "sent") out.sentAt = now;
+  if (to === "cancelled") {
+    out.cancelledAt = now;
+    out.cancelNote = txt;
+  }
   if (to === "approved" || to === "rejected") {
     out.decidedAt = now;
     out.decidedNote = txt;
@@ -270,6 +387,8 @@ function tmOtMove(rec, to, user, note) {
     out.decidedNote = "";
     out.decidedById = null;
     out.decidedByName = "";
+    out.cancelledAt = null;
+    out.cancelNote = "";
   }
   return out;
 }
@@ -280,10 +399,20 @@ function tmOtDocNo(list, dateISO) {
   const n = (list || []).filter(r => r && String(r.no || "").indexOf("OT-" + ym) === 0).length + 1;
   return "OT-" + ym + "-" + window.drPad2(n);
 }
+function tmOtApprovers(users, forUser) {
+  const skip = (forUser || {}).id || null;
+  return (users || []).filter(u => u && u.id && u.active !== false && u.id !== skip && window.can(window.userRoles(u), "otApprove")).sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "th"));
+}
+function tmOtPickApprover(user, users) {
+  const all = tmOtApprovers(users, user);
+  const mine = (user || {}).approverId && all.find(u => u.id === user.approverId) || null;
+  if (mine) return mine;
+  return all.length === 1 ? all[0] : null;
+}
 function tmOtBlank(user, users, list, job, cfg) {
   const now = new Date().toISOString();
   const date = window.drToday();
-  const approver = (user || {}).approverId && (users || []).find(u => u.id === user.approverId) || null;
+  const approver = tmOtPickApprover(user, users);
   return {
     id: "OT-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
     no: tmOtDocNo(list, date),
@@ -298,7 +427,7 @@ function tmOtBlank(user, users, list, job, cfg) {
     mins: 0,
     kind: tmOtKindGuess(date, "17:00", cfg),
     reason: "",
-    approverId: (user || {}).approverId || null,
+    approverId: (approver || {}).id || null,
     approverName: (approver || {}).name || "",
     status: "draft",
     createdAt: now,
@@ -317,6 +446,7 @@ function tmOtRollup(list, user, role) {
     sent: 0,
     approved: 0,
     rejected: 0,
+    cancelled: 0,
     waitingMine: 0,
     minsApproved: 0,
     mineOpen: 0
@@ -398,7 +528,7 @@ function useAttendWriter(user, cfg) {
     const gps = o.skipGps ? {
       err: "skipped"
     } : await window.captureGps();
-    const p = tmPunch(gps, o.src || "web");
+    const p = tmPunch(gps, o.src || "web", o.place);
     const snap = await _tmRef("attend/" + uid + "/" + date).once("value").catch(() => null);
     const cur = snap && snap.val() || tmAttendBlank(user, date);
     const rec = Object.assign({}, tmAttendBlank(user, date), cur);
@@ -432,6 +562,7 @@ function useAttendWriter(user, cfg) {
       rec.jobId = o.jobId || null;
       rec.jobCode = o.jobCode || "";
     }
+    if (o.place !== undefined) rec.place = tmPlaceOf(o.place).key;
     if (o.note !== undefined) rec.note = o.note || "";
     rec.src = o.src || rec.src || "web";
     rec.mins = tmWorkedMins(rec, cfg);
@@ -633,6 +764,7 @@ Object.assign(window, {
   TM_WH_DEFAULT,
   TM_OT_KIND,
   TM_OT_STATUS,
+  TM_PLACE,
   tmHM,
   tmHHMM,
   tmNowHM,
@@ -644,11 +776,16 @@ Object.assign(window, {
   tmOtKindOf,
   tmOtKindGuess,
   tmOtMinutes,
+  tmDayWindow,
+  tmOtEarned,
+  tmOtInLimit,
+  tmLastHM,
   tmWorkedMins,
   tmOpen,
   tmAttendBlank,
   tmPunch,
   tmDayIndex,
+  tmPlaceOf,
   tmOtStatusOf,
   tmOtOpen,
   tmCanAttend,
@@ -662,6 +799,8 @@ Object.assign(window, {
   tmOtBlank,
   tmOtVisible,
   tmOtRollup,
+  tmOtApprovers,
+  tmOtPickApprover,
   useAttend,
   useAttendDay,
   useAttendWriter,
