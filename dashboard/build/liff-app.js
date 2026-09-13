@@ -15,6 +15,22 @@ const LN_TAB = [{
   th: "ฉัน",
   icon: "user"
 }];
+const LN_START = (() => {
+  let t = "";
+  try {
+    t = new URLSearchParams(window.location.search).get("tab") || "";
+  } catch (e) {
+    t = "";
+  }
+  if (t === "ot") return {
+    tab: "time",
+    ot: true
+  };
+  return {
+    tab: LN_TAB.some(x => x.key === t) ? t : "jobs",
+    ot: false
+  };
+})();
 function LnHead({
   tab,
   setTab,
@@ -737,11 +753,12 @@ function LnTimeTab({
   me,
   users,
   role,
-  jobs
+  jobs,
+  startOt
 }) {
   const wh = window.useWorkHours();
   const otStore = window.useOtClaims();
-  const [form, setForm] = React.useState(false);
+  const [form, setForm] = React.useState(!!startOt && window.tmCanOt(role));
   const myOt = React.useMemo(() => (otStore.rows || []).filter(r => r && r.userId === (me || {}).id), [otStore.rows, me]);
   return React.createElement(React.Fragment, null, window.tmCanAttend(role) ? React.createElement(LnClock, {
     me: me,
@@ -863,7 +880,7 @@ function LnApp() {
   const techStore = window.useTechStore();
   const notif = window.useNotifStore();
   const roleCfg = window.useRoleConfig();
-  const [tab, setTab] = React.useState("jobs");
+  const [tab, setTab] = React.useState(LN_START.tab);
   const [q, setQ] = React.useState("");
   const [open, setOpen] = React.useState(null);
   const me = auth.current;
@@ -951,7 +968,8 @@ function LnApp() {
     me: me,
     users: auth.users,
     role: role,
-    jobs: mine
+    jobs: mine,
+    startOt: LN_START.ot
   }), tab === "bell" && (myNotifs.length === 0 ? React.createElement("div", {
     style: {
       padding: 40,

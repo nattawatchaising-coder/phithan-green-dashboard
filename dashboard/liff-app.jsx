@@ -18,6 +18,17 @@ const LN_TAB = [
   { key: "me",    th: "ฉัน",       icon: "user" },
 ];
 
+/* ปุ่มบนเมนูล่างของ LINE ส่ง ?tab= ติดมากับ URL ของหน้า LIFF
+   (LIFF ต่อ query ที่ผู้ใช้กดเข้ากับ endpoint ให้เอง)
+   ช่างกด "ลงเวลา" แล้วต้องเจอหน้าลงเวลา ไม่ใช่มาเจอหน้างานแล้วต้องหาแท็บเอง
+   ค่าที่ไม่รู้จัก = กลับไปหน้าแรก ไม่ใช่หน้าขาว */
+const LN_START = (() => {
+  let t = "";
+  try { t = new URLSearchParams(window.location.search).get("tab") || ""; } catch (e) { t = ""; }
+  if (t === "ot") return { tab: "time", ot: true };
+  return { tab: LN_TAB.some((x) => x.key === t) ? t : "jobs", ot: false };
+})();
+
 /* ── แถบหัว ── */
 function LnHead({ tab, setTab, unread }) {
   return (
@@ -362,10 +373,12 @@ function LnOtForm({ me, users, cfg, jobs, otStore, onClose }) {
 }
 
 /* ── แท็บ "เวลา" = ลงเวลา + ใบ OT ของฉัน ── */
-function LnTimeTab({ me, users, role, jobs }) {
+function LnTimeTab({ me, users, role, jobs, startOt }) {
   const wh = window.useWorkHours();
   const otStore = window.useOtClaims();
-  const [form, setForm] = React.useState(false);
+  /* เปิดฟอร์มทันทีเมื่อมาจากปุ่ม "ขอ OT" บนเมนูล่าง — แต่ยังต้องผ่านสิทธิ์
+     ลิงก์ไม่ใช่ใบอนุญาต ใครก็พิมพ์ ?tab=ot เองได้ */
+  const [form, setForm] = React.useState(!!startOt && window.tmCanOt(role));
 
   /* กรองที่ชั้นข้อมูล ไม่ใช่แค่ซ่อนบนหน้าจอ — ใบ OT ของคนอื่นไม่ใช่เรื่องของคนนี้ */
   const myOt = React.useMemo(
@@ -430,7 +443,7 @@ function LnApp() {
   const notif = window.useNotifStore();
   const roleCfg = window.useRoleConfig();
 
-  const [tab, setTab]   = React.useState("jobs");
+  const [tab, setTab]   = React.useState(LN_START.tab);
   const [q, setQ]       = React.useState("");
   const [open, setOpen] = React.useState(null);
 
@@ -493,7 +506,7 @@ function LnApp() {
         </React.Fragment>
       )}
 
-      {tab === "time" && <LnTimeTab me={me} users={auth.users} role={role} jobs={mine} />}
+      {tab === "time" && <LnTimeTab me={me} users={auth.users} role={role} jobs={mine} startOt={LN_START.ot} />}
 
       {tab === "bell" && (
         myNotifs.length === 0
