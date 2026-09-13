@@ -96,6 +96,80 @@ function LnJobRow({ job, onOpen }) {
 
 /* ── แผ่นรายละเอียดงาน ──
    เบอร์โทรกับแผนที่เป็นลิงก์จริง เพราะสองอย่างนี้คือเหตุผลที่ช่างเปิดดูงานบนมือถือ */
+/* ── ไฟล์แนบของงาน (แบบ · BOQ) ──
+   ไฟล์ถูกแนบไว้จากเว็บอยู่แล้ว (jobFiles/{jobId} เก็บ base64) ที่ขาดคือทางเปิดบนมือถือ
+   ช่างที่ยืนอยู่หน้างานต้องเปิดแบบดูได้ ไม่ใช่โทรกลับมาให้ออฟฟิศส่งไลน์ให้
+
+   ⚠ ไม่ subscribe jobFiles ตรง ๆ เพราะโหนดนั้นมี base64 ของทุกไฟล์อยู่ข้างใน
+     เปิดใบงานทีก็จะดูดมาทั้งก้อนบน 4G — อ่าน jobFileFlags (บูลีนสองตัว) ก่อน
+     แล้วค่อยโหลดไฟล์จริงตอนกด */
+function LnJobFiles({ jobId }) {
+  const flags = window.useJobFileFlag(jobId);
+  const [busy, setBusy] = React.useState("");
+  const [got, setGot] = React.useState(null);      /* {kind,url,name,size} ที่โหลดมาแล้ว */
+  const [err, setErr] = React.useState("");
+
+  React.useEffect(() => { setGot(null); setErr(""); setBusy(""); }, [jobId]);
+
+  const kinds = [{ key: "design", th: "แบบติดตั้ง" }, { key: "boq", th: "ใบ BOQ" }];
+  const have = kinds.filter((k) => flags && flags[k.key]);
+
+  const grab = async (kind, th) => {
+    setBusy(kind); setErr(""); setGot(null);
+    const f = await window.loadJobFileOnce(jobId, kind);
+    setBusy("");
+    if (!f) return setErr("เปิด" + th + "ไม่สำเร็จ — ไฟล์อาจถูกลบไปแล้ว");
+    setGot(Object.assign({ kind: kind, th: th }, f));
+    /* ลองเปิดให้เลย ถ้าแอปบล็อกก็ยังมีปุ่มให้กดเองอยู่ข้างล่าง ไม่ใช่ทางตัน */
+    try { window.open(f.url, "_blank", "noopener"); } catch (e) { /* ปล่อยให้กดเอง */ }
+  };
+
+  if (flags === null) return null;                 /* ยังอ่านไม่เสร็จ — อย่าเพิ่งโชว์ว่าไม่มีไฟล์ */
+
+  return (
+    <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+      <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-3)", marginBottom: 8 }}>ไฟล์แนบ</div>
+
+      {have.length === 0
+        ? <div style={{ fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.6 }}>
+            งานนี้ยังไม่มีแบบหรือ BOQ แนบไว้ — แนบได้จากใบงานบนเว็บ
+          </div>
+        : <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {have.map((k) => (
+              <button key={k.key} onClick={() => grab(k.key, k.th)} disabled={!!busy}
+                style={{ flex: 1, minWidth: 140, padding: "12px 14px", borderRadius: 11,
+                  border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-1)",
+                  fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: busy ? "default" : "pointer" }}>
+                {busy === k.key ? "กำลังโหลด…" : "เปิด" + k.th + " (PDF)"}
+              </button>
+            ))}
+          </div>}
+
+      {err && <div style={{ marginTop: 9, fontSize: 12.5, color: "#EF4444", fontWeight: 700 }}>{err}</div>}
+
+      {got && (
+        <div style={{ marginTop: 10, padding: "11px 13px", borderRadius: 12, background: "var(--surface2)",
+          border: "1px solid var(--border)" }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", wordBreak: "break-all" }}>{got.name}</div>
+          <div style={{ marginTop: 2, fontSize: 11.5, color: "var(--text-3)" }}>
+            {got.size ? (got.size / 1048576).toFixed(1) + " MB" : ""} · โหลดเสร็จแล้ว
+          </div>
+          {/* ลิงก์ที่ผู้ใช้กดเอง ไม่ใช่ window.open จากสคริปต์ —
+              WebView ของแอป LINE บล็อกการเปิดหน้าต่างด้วยสคริปต์บ่อย แต่ปล่อยให้กดลิงก์ผ่าน */}
+          <a href={got.url} target="_blank" rel="noopener noreferrer"
+            style={{ display: "block", marginTop: 9, padding: "12px 0", borderRadius: 11, background: "var(--primary)",
+              color: "#fff", fontWeight: 800, fontSize: 13.5, textAlign: "center", textDecoration: "none" }}>
+            เปิด{got.th}
+          </a>
+          <div style={{ marginTop: 7, fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
+            ถ้าไฟล์ไม่ขึ้น ให้กด ⋯ มุมขวาบนของไลน์ แล้วเลือก “เปิดในเบราว์เซอร์”
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function LnJobSheet({ job, techs, onClose }) {
   if (!job) return null;
   const tech = (techs || []).find((t) => t.id === job.tech);
@@ -145,6 +219,8 @@ function LnJobSheet({ job, techs, onClose }) {
             <div style={{ flex: 1, fontSize: 13.5, color: "var(--text-1)", fontWeight: 600, wordBreak: "break-word" }}>{v}</div>
           </div>
         ))}
+
+        <LnJobFiles jobId={job.id} />
 
         <button onClick={onClose}
           style={{ marginTop: 16, width: "100%", padding: "13px 0", borderRadius: 12, border: "1px solid var(--border-strong)",
@@ -742,9 +818,13 @@ function LnFixTab({ me, role }) {
   const chips = [{ key: "open", th: "ที่ต้องทำ", n: mineOpen }, { key: "done", th: "ปิดแล้ว" }];
   if (canAll) chips.push({ key: "all", th: "ทั้งบริษัท" });
 
-  const move = (t, to) => {
-    const next = window.omTicketMove(t, to, me, "");
+  /* ปิดงาน = ต้องเขียนว่าแก้อะไรไป ไม่ใช่กดปิดเฉย ๆ
+     ใบที่ปิดโดยไม่มีผลการแก้ไข ตอนลูกค้าโทรมาถามซ้ำอีกสามเดือนจะไม่มีใครตอบได้
+     สถานะอื่นไม่บังคับ เพราะยังไม่จบเรื่อง เขียนตอนปิดทีเดียวพอ */
+  const move = (t, to, note) => {
+    const next = window.omTicketMove(t, to, me, note || "");
     if (!next || !store.save) return;
+    if (to === "closed") next.result = note || "";
     store.save(next);
     setOpen(next);
   };
@@ -795,6 +875,10 @@ function LnFixTab({ me, role }) {
 
 /* ── แผ่นรายละเอียดใบแจ้งซ่อม ── */
 function LnFixSheet({ t, role, onMove, onClose }) {
+  const [closing, setClosing] = React.useState(false);
+  const [note, setNote] = React.useState("");
+  /* ปิดงานสำเร็จแล้วต้องพับฟอร์มเอง — ปุ่ม "ปิดงานนี้" ที่ยังค้างอยู่อ่านเหมือนว่ายังไม่สำเร็จ */
+  React.useEffect(() => { setClosing(false); setNote(""); }, [t.id, t.status]);
   const st = window.omTicketStatusOf(t.status);
   const sev = window.OM_SEVERITY_BY[t.severity] || {};
   const cat = window.OM_TICKET_CAT_BY[t.category] || {};
@@ -835,10 +919,34 @@ function LnFixSheet({ t, role, onMove, onClose }) {
 
         {/* ปุ่มสร้างจากตารางสถานะ ปุ่มที่ขึ้นจึงเป็นทางที่เดินได้จริงเสมอ
             ปิดงานจากหน้างานได้เลย ไม่ต้องรอกลับออฟฟิศ — แต่หมายเหตุ/รูปยังทำที่เว็บ */}
-        {nexts.length > 0 && (
+        {closing ? (
+          <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
+            <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--text-3)" }}>แก้ไขอะไรไปบ้าง</span>
+            <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3}
+              placeholder="เช่น เปลี่ยนเบรกเกอร์ DC ตัวที่ไหม้ · รีเซ็ตอินเวอร์เตอร์แล้วจ่ายไฟปกติ"
+              style={{ width: "100%", padding: "12px 13px", borderRadius: 12, border: "1px solid var(--border-strong)",
+                background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 16,
+                outline: "none", resize: "vertical" }} />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => setClosing(false)}
+                style={{ flex: 1, padding: "12px 14px", borderRadius: 11, border: "1px solid var(--border-strong)",
+                  background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13.5,
+                  fontWeight: 700, cursor: "pointer" }}>ย้อนกลับ</button>
+              <button onClick={() => onMove(t, "closed", note.trim())} disabled={!note.trim()}
+                style={{ flex: 2, padding: "12px 14px", borderRadius: 11, border: "none",
+                  background: note.trim() ? "var(--primary)" : "var(--border-strong)", color: "#fff",
+                  fontFamily: "inherit", fontSize: 13.5, fontWeight: 800, cursor: note.trim() ? "pointer" : "default" }}>
+                ปิดงานนี้
+              </button>
+            </div>
+            {!note.trim() && <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
+              ต้องเขียนผลการแก้ไขก่อนถึงจะปิดได้ — ใบที่ปิดแล้วคือเอกสารที่ลูกค้ารับทราบ
+            </div>}
+          </div>
+        ) : nexts.length > 0 && (
           <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
             {nexts.map((n) => (
-              <button key={n.key} onClick={() => onMove(t, n.key)}
+              <button key={n.key} onClick={() => (n.key === "closed" ? setClosing(true) : onMove(t, n.key))}
                 style={{ flex: 1, minWidth: 120, padding: "12px 14px", borderRadius: 11, border: "none",
                   background: n.key === "closed" ? "var(--primary)" : n.color, color: "#fff",
                   fontFamily: "inherit", fontSize: 13.5, fontWeight: 800, cursor: "pointer" }}>
@@ -902,6 +1010,16 @@ function LnApp() {
     });
   }, [mine, q, jobType, onlyMine, scope.all, me]);
 
+  /* งานที่เอาไว้ "ลงมือทำกับมัน" — ลงเวลา · เขียนรายงาน · เบิกเงิน
+     ต่างจากรายการในแท็บงานที่ไว้ค้นหาข้อมูล ตรงที่
+     · ตัดงานที่ติดตั้งเสร็จแล้วออก — ไม่มีใครไปลงเวลาหรือเขียนรายงานให้งานที่ปิดไปแล้ว
+       และงานเก่าที่ค้างอยู่ในลิสต์คือโอกาสกดผิดใบ ซึ่งรู้ตัวอีกทีตอนสิ้นเดือน
+     · ยึดของตัวเองเสมอ ไม่ขึ้นกับปุ่ม "ทั้งบริษัท" ที่ใช้ตอนไล่ดูงานแทนคนอื่น */
+  const work = React.useMemo(() => {
+    if (!me) return [];
+    return mine.filter((j) => j.stage !== "done" && window.jobIsMine(j, me));
+  }, [mine, me]);
+
   /* แจ้งเตือนของฉัน — เงื่อนไขเดียวกับ myNotifs ใน app.jsx เป๊ะ */
   const myNotifs = React.useMemo(() => {
     if (!me) return [];
@@ -964,11 +1082,11 @@ function LnApp() {
 
       {tab === "fix" && <LnFixTab me={me} role={role} />}
 
-      {tab === "time" && <LnTimeTab me={me} users={auth.users} role={role} jobs={mine} startOt={LN_START.ot} />}
+      {tab === "time" && <LnTimeTab me={me} users={auth.users} role={role} jobs={work} startOt={LN_START.ot} />}
 
-      {tab === "daily" && <window.LnDailyTab me={me} role={role} jobs={mine} notify={notif.addNotif} />}
+      {tab === "daily" && <window.LnDailyTab me={me} role={role} jobs={work} notify={notif.addNotif} />}
 
-      {tab === "ec" && <window.LnEcTab me={me} users={auth.users} role={role} jobs={mine} />}
+      {tab === "ec" && <window.LnEcTab me={me} users={auth.users} role={role} jobs={work} />}
 
       {tab === "bell" && (
         myNotifs.length === 0
@@ -1019,4 +1137,4 @@ function LnApp() {
   );
 }
 
-Object.assign(window, { LnApp, LnJobRow, LnJobSheet, LnHead, LnClock, LnOtForm, LnTimeTab, LnFixTab, LnFixSheet, LnPick });
+Object.assign(window, { LnApp, LnJobRow, LnJobSheet, LnJobFiles, LnHead, LnClock, LnOtForm, LnTimeTab, LnFixTab, LnFixSheet, LnPick });

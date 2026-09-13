@@ -185,6 +185,137 @@ function LnJobRow({
     }
   }, [job.province, job.kw ? job.kw + " kW" : "", job.brand].filter(Boolean).join(" · ")));
 }
+function LnJobFiles({
+  jobId
+}) {
+  const flags = window.useJobFileFlag(jobId);
+  const [busy, setBusy] = React.useState("");
+  const [got, setGot] = React.useState(null);
+  const [err, setErr] = React.useState("");
+  React.useEffect(() => {
+    setGot(null);
+    setErr("");
+    setBusy("");
+  }, [jobId]);
+  const kinds = [{
+    key: "design",
+    th: "แบบติดตั้ง"
+  }, {
+    key: "boq",
+    th: "ใบ BOQ"
+  }];
+  const have = kinds.filter(k => flags && flags[k.key]);
+  const grab = async (kind, th) => {
+    setBusy(kind);
+    setErr("");
+    setGot(null);
+    const f = await window.loadJobFileOnce(jobId, kind);
+    setBusy("");
+    if (!f) return setErr("เปิด" + th + "ไม่สำเร็จ — ไฟล์อาจถูกลบไปแล้ว");
+    setGot(Object.assign({
+      kind: kind,
+      th: th
+    }, f));
+    try {
+      window.open(f.url, "_blank", "noopener");
+    } catch (e) {}
+  };
+  if (flags === null) return null;
+  return React.createElement("div", {
+    style: {
+      marginTop: 14,
+      paddingTop: 12,
+      borderTop: "1px solid var(--border)"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 800,
+      color: "var(--text-3)",
+      marginBottom: 8
+    }
+  }, "\u0E44\u0E1F\u0E25\u0E4C\u0E41\u0E19\u0E1A"), have.length === 0 ? React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-3)",
+      lineHeight: 1.6
+    }
+  }, "\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E41\u0E1A\u0E1A\u0E2B\u0E23\u0E37\u0E2D BOQ \u0E41\u0E19\u0E1A\u0E44\u0E27\u0E49 \u2014 \u0E41\u0E19\u0E1A\u0E44\u0E14\u0E49\u0E08\u0E32\u0E01\u0E43\u0E1A\u0E07\u0E32\u0E19\u0E1A\u0E19\u0E40\u0E27\u0E47\u0E1A") : React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      flexWrap: "wrap"
+    }
+  }, have.map(k => React.createElement("button", {
+    key: k.key,
+    onClick: () => grab(k.key, k.th),
+    disabled: !!busy,
+    style: {
+      flex: 1,
+      minWidth: 140,
+      padding: "12px 14px",
+      borderRadius: 11,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-1)",
+      fontFamily: "inherit",
+      fontSize: 13.5,
+      fontWeight: 700,
+      cursor: busy ? "default" : "pointer"
+    }
+  }, busy === k.key ? "กำลังโหลด…" : "เปิด" + k.th + " (PDF)"))), err && React.createElement("div", {
+    style: {
+      marginTop: 9,
+      fontSize: 12.5,
+      color: "#EF4444",
+      fontWeight: 700
+    }
+  }, err), got && React.createElement("div", {
+    style: {
+      marginTop: 10,
+      padding: "11px 13px",
+      borderRadius: 12,
+      background: "var(--surface2)",
+      border: "1px solid var(--border)"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      wordBreak: "break-all"
+    }
+  }, got.name), React.createElement("div", {
+    style: {
+      marginTop: 2,
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, got.size ? (got.size / 1048576).toFixed(1) + " MB" : "", " \xB7 \u0E42\u0E2B\u0E25\u0E14\u0E40\u0E2A\u0E23\u0E47\u0E08\u0E41\u0E25\u0E49\u0E27"), React.createElement("a", {
+    href: got.url,
+    target: "_blank",
+    rel: "noopener noreferrer",
+    style: {
+      display: "block",
+      marginTop: 9,
+      padding: "12px 0",
+      borderRadius: 11,
+      background: "var(--primary)",
+      color: "#fff",
+      fontWeight: 800,
+      fontSize: 13.5,
+      textAlign: "center",
+      textDecoration: "none"
+    }
+  }, "\u0E40\u0E1B\u0E34\u0E14", got.th), React.createElement("div", {
+    style: {
+      marginTop: 7,
+      fontSize: 11,
+      color: "var(--text-3)",
+      lineHeight: 1.6
+    }
+  }, "\u0E16\u0E49\u0E32\u0E44\u0E1F\u0E25\u0E4C\u0E44\u0E21\u0E48\u0E02\u0E36\u0E49\u0E19 \u0E43\u0E2B\u0E49\u0E01\u0E14 \u22EF \u0E21\u0E38\u0E21\u0E02\u0E27\u0E32\u0E1A\u0E19\u0E02\u0E2D\u0E07\u0E44\u0E25\u0E19\u0E4C \u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E19\u0E40\u0E1A\u0E23\u0E32\u0E27\u0E4C\u0E40\u0E0B\u0E2D\u0E23\u0E4C\u201D")));
+}
 function LnJobSheet({
   job,
   techs,
@@ -294,7 +425,9 @@ function LnJobSheet({
       fontWeight: 600,
       wordBreak: "break-word"
     }
-  }, v))), React.createElement("button", {
+  }, v))), React.createElement(LnJobFiles, {
+    jobId: job.id
+  }), React.createElement("button", {
     onClick: onClose,
     style: {
       marginTop: 16,
@@ -1280,9 +1413,10 @@ function LnFixTab({
     key: "all",
     th: "ทั้งบริษัท"
   });
-  const move = (t, to) => {
-    const next = window.omTicketMove(t, to, me, "");
+  const move = (t, to, note) => {
+    const next = window.omTicketMove(t, to, me, note || "");
     if (!next || !store.save) return;
+    if (to === "closed") next.result = note || "";
     store.save(next);
     setOpen(next);
   };
@@ -1391,6 +1525,12 @@ function LnFixSheet({
   onMove,
   onClose
 }) {
+  const [closing, setClosing] = React.useState(false);
+  const [note, setNote] = React.useState("");
+  React.useEffect(() => {
+    setClosing(false);
+    setNote("");
+  }, [t.id, t.status]);
   const st = window.omTicketStatusOf(t.status);
   const sev = window.OM_SEVERITY_BY[t.severity] || {};
   const cat = window.OM_TICKET_CAT_BY[t.category] || {};
@@ -1486,7 +1626,76 @@ function LnFixSheet({
       lineHeight: 1.6,
       wordBreak: "break-word"
     }
-  }, r[1])))), nexts.length > 0 && React.createElement("div", {
+  }, r[1])))), closing ? React.createElement("div", {
+    style: {
+      marginTop: 14,
+      display: "grid",
+      gap: 8
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 800,
+      color: "var(--text-3)"
+    }
+  }, "\u0E41\u0E01\u0E49\u0E44\u0E02\u0E2D\u0E30\u0E44\u0E23\u0E44\u0E1B\u0E1A\u0E49\u0E32\u0E07"), React.createElement("textarea", {
+    value: note,
+    onChange: e => setNote(e.target.value),
+    rows: 3,
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E40\u0E1A\u0E23\u0E01\u0E40\u0E01\u0E2D\u0E23\u0E4C DC \u0E15\u0E31\u0E27\u0E17\u0E35\u0E48\u0E44\u0E2B\u0E21\u0E49 \xB7 \u0E23\u0E35\u0E40\u0E0B\u0E47\u0E15\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E41\u0E25\u0E49\u0E27\u0E08\u0E48\u0E32\u0E22\u0E44\u0E1F\u0E1B\u0E01\u0E15\u0E34",
+    style: {
+      width: "100%",
+      padding: "12px 13px",
+      borderRadius: 12,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface2)",
+      color: "var(--text-1)",
+      fontFamily: "inherit",
+      fontSize: 16,
+      outline: "none",
+      resize: "vertical"
+    }
+  }), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, React.createElement("button", {
+    onClick: () => setClosing(false),
+    style: {
+      flex: 1,
+      padding: "12px 14px",
+      borderRadius: 11,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-2)",
+      fontFamily: "inherit",
+      fontSize: 13.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E22\u0E49\u0E2D\u0E19\u0E01\u0E25\u0E31\u0E1A"), React.createElement("button", {
+    onClick: () => onMove(t, "closed", note.trim()),
+    disabled: !note.trim(),
+    style: {
+      flex: 2,
+      padding: "12px 14px",
+      borderRadius: 11,
+      border: "none",
+      background: note.trim() ? "var(--primary)" : "var(--border-strong)",
+      color: "#fff",
+      fontFamily: "inherit",
+      fontSize: 13.5,
+      fontWeight: 800,
+      cursor: note.trim() ? "pointer" : "default"
+    }
+  }, "\u0E1B\u0E34\u0E14\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49")), !note.trim() && React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      lineHeight: 1.6
+    }
+  }, "\u0E15\u0E49\u0E2D\u0E07\u0E40\u0E02\u0E35\u0E22\u0E19\u0E1C\u0E25\u0E01\u0E32\u0E23\u0E41\u0E01\u0E49\u0E44\u0E02\u0E01\u0E48\u0E2D\u0E19\u0E16\u0E36\u0E07\u0E08\u0E30\u0E1B\u0E34\u0E14\u0E44\u0E14\u0E49 \u2014 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E1B\u0E34\u0E14\u0E41\u0E25\u0E49\u0E27\u0E04\u0E37\u0E2D\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E17\u0E35\u0E48\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E23\u0E31\u0E1A\u0E17\u0E23\u0E32\u0E1A")) : nexts.length > 0 && React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,
@@ -1495,7 +1704,7 @@ function LnFixSheet({
     }
   }, nexts.map(n => React.createElement("button", {
     key: n.key,
-    onClick: () => onMove(t, n.key),
+    onClick: () => n.key === "closed" ? setClosing(true) : onMove(t, n.key),
     style: {
       flex: 1,
       minWidth: 120,
@@ -1557,6 +1766,10 @@ function LnApp() {
       return String(a.startDate || "9999").localeCompare(String(b.startDate || "9999"));
     });
   }, [mine, q, jobType, onlyMine, scope.all, me]);
+  const work = React.useMemo(() => {
+    if (!me) return [];
+    return mine.filter(j => j.stage !== "done" && window.jobIsMine(j, me));
+  }, [mine, me]);
   const myNotifs = React.useMemo(() => {
     if (!me) return [];
     const tid = me.techId;
@@ -1662,18 +1875,18 @@ function LnApp() {
     me: me,
     users: auth.users,
     role: role,
-    jobs: mine,
+    jobs: work,
     startOt: LN_START.ot
   }), tab === "daily" && React.createElement(window.LnDailyTab, {
     me: me,
     role: role,
-    jobs: mine,
+    jobs: work,
     notify: notif.addNotif
   }), tab === "ec" && React.createElement(window.LnEcTab, {
     me: me,
     users: auth.users,
     role: role,
-    jobs: mine
+    jobs: work
   }), tab === "bell" && (myNotifs.length === 0 ? React.createElement("div", {
     style: {
       padding: 40,
@@ -1783,6 +1996,7 @@ Object.assign(window, {
   LnApp,
   LnJobRow,
   LnJobSheet,
+  LnJobFiles,
   LnHead,
   LnClock,
   LnOtForm,

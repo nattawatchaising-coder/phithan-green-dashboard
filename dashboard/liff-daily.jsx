@@ -192,17 +192,29 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
             {photos.photos.length}/{LN_DR_MAX} รูป
           </span>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {/* รูปเรียงเป็นแถวละใบพร้อมช่องคำอธิบาย ไม่ใช่ตารางรูปเล็ก ๆ
+            รูปหน้างานที่ไม่มีคำอธิบาย คนอ่านใบตอนอนุมัติไม่รู้ว่ากำลังดูอะไรอยู่
+            และสามเดือนให้หลังคนถ่ายเองก็จำไม่ได้ — ช่องนี้บันทึกทันทีที่ละสายตา */}
+        <div style={{ display: "grid", gap: 9 }}>
           {photos.photos.map((p) => (
-            <div key={p.id} style={{ position: "relative" }}>
-              <img src={p.dataUrl} alt="" onClick={() => setZoom(p.dataUrl)}
-                style={{ width: 84, height: 84, objectFit: "cover", borderRadius: 10, border: "1px solid var(--border)" }} />
-              {!locked && (
-                <button onClick={() => photos.remove(p.id)}
-                  style={{ position: "absolute", top: -6, right: -6, width: 24, height: 24, borderRadius: 99, border: "none",
-                    background: "#EF4444", color: "#fff", fontSize: 14, fontWeight: 800, cursor: "pointer",
-                    lineHeight: "24px", padding: 0 }}>×</button>
-              )}
+            <div key={p.id} style={{ display: "flex", gap: 9, alignItems: "flex-start" }}>
+              <div style={{ position: "relative", flexShrink: 0 }}>
+                <img src={p.dataUrl} alt="" onClick={() => setZoom(p.dataUrl)}
+                  style={{ width: 84, height: 84, objectFit: "cover", borderRadius: 10, border: "1px solid var(--border)" }} />
+                {!locked && (
+                  <button onClick={() => photos.remove(p.id)}
+                    style={{ position: "absolute", top: -6, right: -6, width: 24, height: 24, borderRadius: 99, border: "none",
+                      background: "#EF4444", color: "#fff", fontSize: 14, fontWeight: 800, cursor: "pointer",
+                      lineHeight: "24px", padding: 0 }}>×</button>
+                )}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {locked
+                  ? <div style={{ fontSize: 12.5, color: p.cap ? "var(--text-1)" : "var(--text-3)", lineHeight: 1.6 }}>
+                      {p.cap || "ไม่ได้เขียนคำอธิบายไว้"}
+                    </div>
+                  : <LnPhotoCap value={p.cap || ""} onSave={(v) => photos.setCap(p.id, v)} />}
+              </div>
             </div>
           ))}
           {!locked && !full && (
@@ -280,6 +292,25 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
 /* ── แท็บ "รายงาน" ──
    เลือกงานก่อนเสมอ — รายงานประจำวันผูกกับงาน ไม่ใช่ผูกกับคน
    (dailyReports/{jobId}/{date} คือคีย์จริงในฐานข้อมูล) */
+/* ── คำอธิบายใต้รูปหนึ่งใบ ──
+   เก็บค่าไว้ใน state ระหว่างพิมพ์ แล้วค่อยเขียนลงฐานตอนละสายตา (onBlur)
+   เขียนทุกตัวอักษรที่พิมพ์ = ยิง RTDB รัวบน 4G และตัวหนังสือจะกระตุกตามเน็ต */
+function LnPhotoCap({ value, onSave }) {
+  const [v, setV] = React.useState(value || "");
+  /* ค่าจากฐานเปลี่ยนเอง (คนอื่นแก้ หรือโหลดเสร็จทีหลัง) แต่ห้ามทับตอนกำลังพิมพ์อยู่ */
+  const [focus, setFocus] = React.useState(false);
+  React.useEffect(() => { if (!focus) setV(value || ""); }, [value, focus]);
+
+  return (
+    <input value={v} onChange={(e) => setV(e.target.value)}
+      onFocus={() => setFocus(true)}
+      onBlur={() => { setFocus(false); if ((value || "") !== v) onSave(v); }}
+      placeholder="คำอธิบายรูปนี้ เช่น ติดตั้งรางเสร็จแถวที่ 1"
+      style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border-strong)",
+        background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 16, outline: "none" }} />
+  );
+}
+
 function LnDailyTab({ me, role, jobs, notify }) {
   const [jobId, setJobId] = React.useState(() => ((jobs || [])[0] || {}).id || "");
   const [date, setDate] = React.useState(window.drToday());
@@ -321,8 +352,12 @@ function LnDailyTab({ me, role, jobs, notify }) {
       )}
 
       {!job
-        ? <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>
-            เลือกงานก่อน แล้วฟอร์มรายงานของวันนั้นจะขึ้นมา
+        ? <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13.5, lineHeight: 1.7 }}>
+            {(jobs || []).length === 0
+              /* รายการนี้ตัดงานที่ติดตั้งเสร็จแล้วออก และเหลือเฉพาะของตัวเอง
+                 ว่างเปล่าจึงไม่ได้แปลว่าพัง แต่ต้องบอก ไม่งั้นอ่านเหมือนโหลดไม่ขึ้น */
+              ? "ยังไม่มีงานที่กำลังดำเนินอยู่ของคุณ — รายการนี้ตัดงานที่ติดตั้งเสร็จแล้วออก"
+              : "เลือกงานก่อน แล้วฟอร์มรายงานของวันนั้นจะขึ้นมา"}
           </div>
         : <LnDailyForm me={me} role={role} job={job} date={date} store={store} notify={notify} />}
 

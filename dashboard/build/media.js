@@ -78,6 +78,50 @@ function openJobFileOnce(jobId, kind) {
     return true;
   }).catch(() => false);
 }
+function loadJobFileOnce(jobId, kind) {
+  if (!jobId || !_MFB()) return Promise.resolve(null);
+  return _mref("jobFiles/" + jobId).once("value").then(s => {
+    const all = _msnap(s);
+    const hit = all.filter(f => !kind || f.kind === kind).sort((a, b) => (b.at || "").localeCompare(a.at || ""))[0];
+    if (!hit || !hit.dataUrl) return null;
+    let url;
+    try {
+      url = dataUrlToBlobUrl(hit.dataUrl);
+    } catch (e) {
+      url = hit.dataUrl;
+    }
+    return {
+      url,
+      name: hit.name || "ไฟล์",
+      size: +hit.size || 0,
+      kind: hit.kind || "other",
+      at: hit.at || ""
+    };
+  }).catch(() => null);
+}
+function useJobFileFlag(jobId) {
+  const [flags, setFlags] = React.useState(null);
+  React.useEffect(() => {
+    let dead = false;
+    setFlags(null);
+    if (!jobId || !_MFB()) return;
+    _mref("jobFileFlags/" + jobId).once("value").then(s => {
+      if (!dead) setFlags(s.val() || {
+        design: false,
+        boq: false
+      });
+    }).catch(() => {
+      if (!dead) setFlags({
+        design: false,
+        boq: false
+      });
+    });
+    return () => {
+      dead = true;
+    };
+  }, [jobId]);
+  return flags;
+}
 function useJobMedia(jobId) {
   const [photos, setPhotos] = React.useState([]);
   const [comments, setComments] = React.useState([]);
@@ -952,6 +996,8 @@ function captureGps(opt) {
 Object.assign(window, {
   useJobMedia,
   openJobFileOnce,
+  loadJobFileOnce,
+  useJobFileFlag,
   resizeImageFile,
   readFileAsDataURL,
   dataUrlToBlobUrl,

@@ -71,6 +71,42 @@ function openJobFileOnce(jobId, kind) {
   }).catch(() => false);
 }
 
+/* ── โหลดไฟล์แนบหนึ่งใบ คืน Blob URL ให้ที่เรียกเป็นคนเปิดเอง ──
+   ต่างจาก openJobFileOnce ตรงที่ไม่เรียก window.open ให้
+   เพราะใน WebView ของแอป LINE การเปิดหน้าต่างใหม่ด้วยสคริปต์มักถูกบล็อกเงียบ ๆ
+   หน้าจอฝั่ง LIFF จึงต้องได้ URL มาผูกกับ <a> ให้ผู้ใช้กดเอง ซึ่งผ่านเกือบทุกที่ */
+function loadJobFileOnce(jobId, kind) {
+  if (!jobId || !_MFB()) return Promise.resolve(null);
+  return _mref("jobFiles/" + jobId).once("value").then((s) => {
+    const all = _msnap(s);
+    const hit = all.filter((f) => !kind || f.kind === kind).sort((a, b) => (b.at || "").localeCompare(a.at || ""))[0];
+    if (!hit || !hit.dataUrl) return null;
+    let url;
+    try { url = dataUrlToBlobUrl(hit.dataUrl); } catch (e) { url = hit.dataUrl; }
+    return { url, name: hit.name || "ไฟล์", size: +hit.size || 0, kind: hit.kind || "other", at: hit.at || "" };
+  }).catch(() => null);
+}
+
+/* ── มีไฟล์แบบ/BOQ แนบไว้หรือยัง ──
+   ⚠ ชื่อต้องเป็น useJobFileFlag เอกพจน์ เพราะ useJobFileFlags (มี s) ถูกใช้ไปแล้วใน store.jsx
+     ซึ่งโหลดก่อนไฟล์นี้ — สคริปต์ชุดนี้ใช้ขอบเขตร่วมกัน ตั้งชื่อซ้ำคือทับของเดิมเงียบ ๆ
+   อ่านจาก jobFileFlags ซึ่งเป็นแค่บูลีนสองตัว ไม่ใช่ jobFiles ที่มี base64 อยู่ข้างใน
+   ปุ่มบนมือถือจึงรู้ล่วงหน้าได้ว่ากดแล้วจะมีไฟล์ โดยไม่ต้องโหลดไฟล์มาก่อน
+   อ่านครั้งเดียวตอนเปิด ไม่ค้าง listener — หน้านี้เปิดแล้วปิดถี่มาก */
+function useJobFileFlag(jobId) {
+  const [flags, setFlags] = React.useState(null);
+  React.useEffect(() => {
+    let dead = false;
+    setFlags(null);
+    if (!jobId || !_MFB()) return;
+    _mref("jobFileFlags/" + jobId).once("value")
+      .then((s) => { if (!dead) setFlags(s.val() || { design: false, boq: false }); })
+      .catch(() => { if (!dead) setFlags({ design: false, boq: false }); });
+    return () => { dead = true; };
+  }, [jobId]);
+  return flags;
+}
+
 /* hook: โหลดรูป + คอมเมนต์ + ไฟล์แนบ (PDF) ของงานที่เปิดอยู่ */
 function useJobMedia(jobId) {
   const [photos, setPhotos] = React.useState([]);
@@ -450,4 +486,4 @@ function captureGps(opt) {
   });
 }
 
-Object.assign(window, { useJobMedia, openJobFileOnce, resizeImageFile, readFileAsDataURL, dataUrlToBlobUrl, JobPhotos, JobFiles, JobComments, captureGps });
+Object.assign(window, { useJobMedia, openJobFileOnce, loadJobFileOnce, useJobFileFlag, resizeImageFile, readFileAsDataURL, dataUrlToBlobUrl, JobPhotos, JobFiles, JobComments, captureGps });
