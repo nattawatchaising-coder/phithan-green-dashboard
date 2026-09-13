@@ -220,7 +220,16 @@ function tmWorkedMins(rec, cfg, nowHM) {
   return total;
 }
 
-const tmOpen = (rec) => !!(rec && rec.in && rec.in.hm && !(rec.out && rec.out.hm));
+/* วันนี้ยังไม่ได้กดออกหรือเปล่า
+   ⚠ ต้องดู extra ด้วย ไม่ใช่แค่ rec.in/rec.out — เดิมดูแค่คู่แรก ปุ่มบนมือถือจึงค้าง
+   อยู่ที่ "ลงเวลาเข้างาน" ทั้งที่มีกะเปิดค้างอยู่ กดอีกทีก็เปิดกะใหม่ซ้อนไปเรื่อย ๆ
+   จนชั่วโมงรวมบวมเป็นห้าสิบแปดชั่วโมงในวันเดียว */
+const tmOpen = (rec) => {
+  if (!rec || !rec.in || !rec.in.hm) return false;
+  const ex = Array.isArray(rec.extra) ? rec.extra : [];
+  if (ex.some((x) => x && x.in && x.in.hm && !(x.out && x.out.hm))) return true;
+  return !(rec.out && rec.out.hm);
+};
 
 /* เวลาปั๊มล่าสุดของใบ — กะเพิ่มมาทีหลังเสมอ จึงดูกะสุดท้ายก่อน */
 function tmLastHM(rec, nowHM) {
@@ -541,17 +550,22 @@ function useAttendWriter(user, cfg) {
     const rec = Object.assign({}, tmAttendBlank(user, date), cur);
 
     if (which === "in") {
-      /* เข้างานซ้ำทั้งที่ยังไม่ได้ออก = ไม่ทำอะไร ไม่ใช่เขียนทับ
-         เวลาเข้างานครั้งแรกของวันคือข้อมูลที่แก้ไม่ได้ด้วยการกดผิด */
-      if (rec.in && rec.in.hm && !(rec.out && rec.out.hm)) return { ok: false, why: "ลงเวลาเข้างานไปแล้วเมื่อ " + rec.in.hm, rec };
-      if (rec.in && rec.in.hm && rec.out && rec.out.hm) {
-        /* เข้ารอบสองของวันเดียวกัน — งานที่กลับไปไซต์ตอนเย็นมีจริง เก็บเป็นกะเพิ่ม */
-        rec.extra = (rec.extra || []).concat([{ in: p, out: null }]);
-      } else { rec.in = p; }
+      /* หนึ่งวัน = เข้าครั้งเดียว ออกครั้งเดียว
+         เดิมกดเข้าซ้ำหลังปิดวันแล้วจะเปิด "กะที่สอง" ให้ ซึ่งการ์ดลงเวลาไม่แสดงเลย
+         คนกดจึงไม่เห็นว่ามีอะไรเกิดขึ้น กดซ้ำอีก แล้วชั่วโมงรวมก็บวมขึ้นเงียบ ๆ
+         กดออกผิดเวลาให้ใช้ redo ทับ ไม่ใช่เปิดกะใหม่ */
+      if (tmOpen(rec)) return { ok: false, why: "ลงเวลาเข้างานไปแล้วเมื่อ " + rec.in.hm, rec };
+      if (rec.in && rec.in.hm) return { ok: false, why: "วันนี้ลงเวลาครบแล้ว " + rec.in.hm + " – " + ((rec.out && rec.out.hm) || "?") + " · ถ้ากดออกผิดเวลา ใช้ปุ่มกดออกงานใหม่", rec };
+      rec.in = p;
     } else {
       const ex = rec.extra || [];
-      const openIdx = ex.findIndex((x) => x && x.in && !(x.out && x.out.hm));
-      if (openIdx >= 0) ex[openIdx] = Object.assign({}, ex[openIdx], { out: p });
+      /* กะที่เปิดค้างมาจากใบเก่าก่อนเลิกใช้ระบบกะเพิ่ม — ปิดให้หมดในครั้งเดียว
+         ปิดทีละกะแปลว่าคนกดต้องกดเท่าจำนวนกะที่ตัวเองไม่รู้ว่ามี */
+      let closed = false;
+      ex.forEach((x, i) => {
+        if (x && x.in && x.in.hm && !(x.out && x.out.hm)) { ex[i] = Object.assign({}, x, { out: p }); closed = true; }
+      });
+      if (closed) { /* ปิดครบแล้ว */ }
       else if (rec.in && rec.in.hm && !(rec.out && rec.out.hm)) rec.out = p;
       else if (rec.in && rec.in.hm && o.redo) {
         /* กดออกงานผิดเวลา — เขียนทับครั้งล่าสุด ไม่ใช่เปิดกะใหม่

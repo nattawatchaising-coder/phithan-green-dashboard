@@ -72,7 +72,17 @@ function useLnSession() {
         });
         const j = await r.json().catch(() => null);
         if (dead) return;
-        if (!r.ok || !j) return setState({ phase: "error", error: (j && j.error) || "เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ", idToken, profile });
+        if (!r.ok || !j) {
+          /* "invalid token" ดิบ ๆ อ่านเหมือนระบบพัง ทั้งที่สาเหตุปกติมีแค่สองอย่าง:
+             เปิดหน้านี้นอกแอป LINE (ไม่มี token จริง) หรือค้างหน้าไว้จน token หมดอายุ
+             ทั้งคู่แก้ได้ด้วยตัวเอง จึงต้องบอกวิธีแก้ ไม่ใช่โยนชื่อ error ใส่หน้าช่าง */
+          const inLine = (function () { try { return window.liff.isInClient(); } catch (e) { return false; } })();
+          const why = r.status === 401
+            ? (inLine ? "เซสชันหมดอายุ — ปิดหน้านี้แล้วกดเมนูด้านล่างในแชตใหม่อีกครั้ง"
+                      : "หน้านี้เปิดได้จากแอป LINE เท่านั้น — กดเมนูด้านล่างในแชต flash+solar")
+            : ((j && j.error) || "เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ");
+          return setState({ phase: "error", error: why, idToken, profile });
+        }
         if (j.bound) {
           try { localStorage.setItem(LN_SESSION_KEY, j.userId); } catch (e) {}
           return setState({ phase: "ready", userId: j.userId, idToken, profile, error: "" });

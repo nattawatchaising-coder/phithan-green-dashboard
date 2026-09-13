@@ -157,7 +157,12 @@ function tmWorkedMins(rec, cfg, nowHM) {
   });
   return total;
 }
-const tmOpen = rec => !!(rec && rec.in && rec.in.hm && !(rec.out && rec.out.hm));
+const tmOpen = rec => {
+  if (!rec || !rec.in || !rec.in.hm) return false;
+  const ex = Array.isArray(rec.extra) ? rec.extra : [];
+  if (ex.some(x => x && x.in && x.in.hm && !(x.out && x.out.hm))) return true;
+  return !(rec.out && rec.out.hm);
+};
 function tmLastHM(rec, nowHM) {
   if (!rec || !rec.in || !rec.in.hm) return "";
   const ex = Array.isArray(rec.extra) ? rec.extra : [];
@@ -533,25 +538,29 @@ function useAttendWriter(user, cfg) {
     const cur = snap && snap.val() || tmAttendBlank(user, date);
     const rec = Object.assign({}, tmAttendBlank(user, date), cur);
     if (which === "in") {
-      if (rec.in && rec.in.hm && !(rec.out && rec.out.hm)) return {
+      if (tmOpen(rec)) return {
         ok: false,
         why: "ลงเวลาเข้างานไปแล้วเมื่อ " + rec.in.hm,
         rec
       };
-      if (rec.in && rec.in.hm && rec.out && rec.out.hm) {
-        rec.extra = (rec.extra || []).concat([{
-          in: p,
-          out: null
-        }]);
-      } else {
-        rec.in = p;
-      }
+      if (rec.in && rec.in.hm) return {
+        ok: false,
+        why: "วันนี้ลงเวลาครบแล้ว " + rec.in.hm + " – " + (rec.out && rec.out.hm || "?") + " · ถ้ากดออกผิดเวลา ใช้ปุ่มกดออกงานใหม่",
+        rec
+      };
+      rec.in = p;
     } else {
       const ex = rec.extra || [];
-      const openIdx = ex.findIndex(x => x && x.in && !(x.out && x.out.hm));
-      if (openIdx >= 0) ex[openIdx] = Object.assign({}, ex[openIdx], {
-        out: p
-      });else if (rec.in && rec.in.hm && !(rec.out && rec.out.hm)) rec.out = p;else if (rec.in && rec.in.hm && o.redo) {
+      let closed = false;
+      ex.forEach((x, i) => {
+        if (x && x.in && x.in.hm && !(x.out && x.out.hm)) {
+          ex[i] = Object.assign({}, x, {
+            out: p
+          });
+          closed = true;
+        }
+      });
+      if (closed) {} else if (rec.in && rec.in.hm && !(rec.out && rec.out.hm)) rec.out = p;else if (rec.in && rec.in.hm && o.redo) {
         const lastIdx = ex.map((x, i) => x && x.in && x.in.hm ? i : -1).filter(i => i >= 0).pop();
         const inHM = lastIdx >= 0 ? ex[lastIdx].in.hm : rec.in.hm;
         if (tmSpanMins(inHM, p.hm) <= 0) return {

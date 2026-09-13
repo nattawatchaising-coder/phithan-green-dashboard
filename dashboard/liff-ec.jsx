@@ -92,7 +92,7 @@ function LnEcForm({ me, users, role, jobs, store, claim, onClose }) {
   const noBill = rec.shots.length === 0;
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 60, background: "var(--bg)", overflow: "auto" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 60, background: "var(--bg)", overflowY: "auto", overflowX: "hidden" }}>
       <div style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", alignItems: "center", gap: 10,
         padding: "13px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)",
         paddingTop: "calc(13px + env(safe-area-inset-top, 0px))" }}>

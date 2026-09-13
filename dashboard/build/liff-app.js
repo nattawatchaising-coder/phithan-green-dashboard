@@ -352,6 +352,8 @@ function LnClock({
   const win = window.tmDayWindow(today, cfg);
   const earned = window.tmOtEarned(today, cfg);
   const left = Math.max(0, window.tmWhNorm(cfg).workMins - worked);
+  const closed = !open && !!(today && today.in && today.in.hm);
+  const shifts = (today && Array.isArray(today.extra) ? today.extra : []).filter(x => x && x.in && x.in.hm);
   const jobPick = React.useMemo(() => (jobs || []).filter(j => jobType === "all" || j.type === jobType).slice(0, 80), [jobs, jobType]);
   React.useEffect(() => {
     if (today && today.jobId) setJobId(today.jobId);
@@ -470,7 +472,18 @@ function LnClock({
       color: "var(--text-3)",
       lineHeight: 1.6
     }
-  }, "\u0E40\u0E25\u0E22\u0E40\u0E27\u0E25\u0E32\u0E07\u0E32\u0E19\u0E1B\u0E01\u0E15\u0E34\u0E21\u0E32\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E01\u0E14\u0E2D\u0E2D\u0E01\u0E07\u0E32\u0E19\u0E01\u0E48\u0E2D\u0E19 \u0E41\u0E25\u0E49\u0E27\u0E04\u0E48\u0E2D\u0E22\u0E02\u0E2D OT \u0E15\u0E32\u0E21\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E01\u0E14\u0E08\u0E23\u0E34\u0E07"), win.late && React.createElement("div", {
+  }, "\u0E40\u0E25\u0E22\u0E40\u0E27\u0E25\u0E32\u0E07\u0E32\u0E19\u0E1B\u0E01\u0E15\u0E34\u0E21\u0E32\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E01\u0E14\u0E2D\u0E2D\u0E01\u0E07\u0E32\u0E19\u0E01\u0E48\u0E2D\u0E19 \u0E41\u0E25\u0E49\u0E27\u0E04\u0E48\u0E2D\u0E22\u0E02\u0E2D OT \u0E15\u0E32\u0E21\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E01\u0E14\u0E08\u0E23\u0E34\u0E07"), shifts.length > 0 && React.createElement("div", {
+    style: {
+      marginTop: 7,
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      lineHeight: 1.7
+    }
+  }, "\u0E21\u0E35\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E0B\u0E49\u0E2D\u0E19\u0E43\u0E19\u0E43\u0E1A\u0E19\u0E35\u0E49\u0E2D\u0E35\u0E01 ", shifts.length, " \u0E0A\u0E48\u0E27\u0E07 \xB7", " ", React.createElement("span", {
+    style: {
+      fontFamily: "var(--mono)"
+    }
+  }, shifts.map(x => x.in.hm + "–" + (x.out && x.out.hm || "?")).join(", ")), " ", "\u2014 \u0E23\u0E27\u0E21\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E02\u0E49\u0E32\u0E07\u0E1A\u0E19\u0E41\u0E25\u0E49\u0E27 \u0E16\u0E49\u0E32\u0E44\u0E21\u0E48\u0E16\u0E39\u0E01\u0E15\u0E49\u0E2D\u0E07\u0E41\u0E08\u0E49\u0E07\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28"), win.late && React.createElement("div", {
     style: {
       marginTop: 5,
       fontSize: 11.5,
@@ -631,7 +644,7 @@ function LnClock({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E19\u0E35\u0E49\u0E43\u0E19\u0E21\u0E37\u0E2D \u2014 \u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E07\u0E32\u0E19\u0E01\u0E47\u0E44\u0E14\u0E49")), React.createElement("button", {
+  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E19\u0E35\u0E49\u0E43\u0E19\u0E21\u0E37\u0E2D \u2014 \u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E07\u0E32\u0E19\u0E01\u0E47\u0E44\u0E14\u0E49")), !closed && React.createElement("button", {
     onClick: () => go(false),
     disabled: busy,
     style: Object.assign({}, LN_BTN, {
@@ -639,31 +652,24 @@ function LnClock({
       background: busy ? "var(--surface3)" : open ? "#EF4444" : "var(--primary)",
       color: busy ? "var(--text-3)" : "#fff"
     })
-  }, busy ? "กำลังบันทึก…" : open ? "ลงเวลาออกงาน" : "ลงเวลาเข้างาน"), !open && today && today.in && today.in.hm && React.createElement(React.Fragment, null, React.createElement("button", {
+  }, busy ? "กำลังบันทึก…" : open ? "ลงเวลาออกงาน" : "ลงเวลาเข้างาน"), closed && React.createElement(React.Fragment, null, React.createElement("button", {
     onClick: () => go(true),
     disabled: busy,
+    style: Object.assign({}, LN_BTN, {
+      marginTop: 14,
+      background: busy ? "var(--surface3)" : "var(--surface)",
+      color: busy ? "var(--text-3)" : "var(--text-1)",
+      border: "1px solid var(--border-strong)"
+    })
+  }, busy ? "กำลังบันทึก…" : "กดออกงานใหม่ · ทับเวลาเดิม"), React.createElement("div", {
     style: {
-      marginTop: 9,
-      width: "100%",
-      padding: "12px 14px",
-      borderRadius: 13,
-      cursor: "pointer",
-      fontFamily: "inherit",
-      fontSize: 13.5,
-      fontWeight: 800,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
-      color: "var(--text-2)"
-    }
-  }, "\u0E01\u0E14\u0E2D\u0E2D\u0E01\u0E07\u0E32\u0E19\u0E43\u0E2B\u0E21\u0E48 \xB7 \u0E17\u0E31\u0E1A\u0E40\u0E27\u0E25\u0E32\u0E40\u0E14\u0E34\u0E21"), React.createElement("div", {
-    style: {
-      marginTop: 6,
-      fontSize: 11,
+      marginTop: 8,
+      fontSize: 11.5,
       color: "var(--text-3)",
       lineHeight: 1.7,
       textAlign: "center"
     }
-  }, "\u0E01\u0E14\u0E2D\u0E2D\u0E01\u0E40\u0E23\u0E47\u0E27\u0E44\u0E1B\u0E01\u0E14\u0E17\u0E31\u0E1A\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22 \xB7 \u0E40\u0E27\u0E25\u0E32\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19\u0E41\u0E01\u0E49\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E15\u0E49\u0E2D\u0E07\u0E41\u0E08\u0E49\u0E07\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28")), msg && React.createElement("div", {
+  }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E04\u0E23\u0E1A\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E01\u0E14\u0E2D\u0E2D\u0E01\u0E40\u0E23\u0E47\u0E27\u0E44\u0E1B\u0E01\u0E14\u0E17\u0E31\u0E1A\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22 \u0E44\u0E21\u0E48\u0E40\u0E1B\u0E34\u0E14\u0E23\u0E2D\u0E1A\u0E43\u0E2B\u0E21\u0E48", React.createElement("br", null), "\u0E40\u0E27\u0E25\u0E32\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19\u0E41\u0E01\u0E49\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E15\u0E49\u0E2D\u0E07\u0E41\u0E08\u0E49\u0E07\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28")), msg && React.createElement("div", {
     style: {
       marginTop: 11,
       padding: "11px 13px",
@@ -794,7 +800,8 @@ function LnOtForm({
       inset: 0,
       zIndex: 60,
       background: "var(--bg)",
-      overflow: "auto"
+      overflowY: "auto",
+      overflowX: "hidden"
     }
   }, React.createElement("div", {
     style: {
@@ -860,7 +867,7 @@ function LnOtForm({
   })), React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateColumns: "1fr 1fr",
+      gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)",
       gap: 11
     }
   }, React.createElement("label", {

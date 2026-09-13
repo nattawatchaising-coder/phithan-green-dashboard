@@ -121,7 +121,8 @@ function LnEcForm({
       inset: 0,
       zIndex: 60,
       background: "var(--bg)",
-      overflow: "auto"
+      overflowY: "auto",
+      overflowX: "hidden"
     }
   }, React.createElement("div", {
     style: {

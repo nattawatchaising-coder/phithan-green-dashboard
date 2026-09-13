@@ -76,12 +76,22 @@ function useLnSession() {
         });
         const j = await r.json().catch(() => null);
         if (dead) return;
-        if (!r.ok || !j) return setState({
-          phase: "error",
-          error: j && j.error || "เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ",
-          idToken,
-          profile
-        });
+        if (!r.ok || !j) {
+          const inLine = function () {
+            try {
+              return window.liff.isInClient();
+            } catch (e) {
+              return false;
+            }
+          }();
+          const why = r.status === 401 ? inLine ? "เซสชันหมดอายุ — ปิดหน้านี้แล้วกดเมนูด้านล่างในแชตใหม่อีกครั้ง" : "หน้านี้เปิดได้จากแอป LINE เท่านั้น — กดเมนูด้านล่างในแชต flash+solar" : j && j.error || "เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ";
+          return setState({
+            phase: "error",
+            error: why,
+            idToken,
+            profile
+          });
+        }
         if (j.bound) {
           try {
             localStorage.setItem(LN_SESSION_KEY, j.userId);

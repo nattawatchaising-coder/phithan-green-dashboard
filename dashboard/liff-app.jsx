@@ -190,6 +190,11 @@ function LnClock({ me, cfg, jobs, onAskOt }) {
      ลืมกดออกค้างไว้แล้วกลับบ้าน เลขก็จะวิ่งขึ้นเรื่อย ๆ จนกลายเป็นตัวเลขที่ไม่มีความหมาย */
   const earned = window.tmOtEarned(today, cfg);
   const left = Math.max(0, window.tmWhNorm(cfg).workMins - worked);
+  /* ปิดวันแล้ว = กดเข้าไปแล้วและกดออกไปแล้ว เหลืออย่างเดียวที่ทำได้คือแก้เวลาออก
+     ไม่โชว์ปุ่มเข้างานค้างไว้ให้กด เพราะกดแล้วได้แต่ข้อความปฏิเสธ ซึ่งอ่านเหมือนระบบพัง */
+  const closed = !open && !!(today && today.in && today.in.hm);
+  const shifts = (today && Array.isArray(today.extra) ? today.extra : [])
+    .filter((x) => x && x.in && x.in.hm);
   const jobPick = React.useMemo(
     () => (jobs || []).filter((j) => jobType === "all" || j.type === jobType).slice(0, 80),
     [jobs, jobType]);
@@ -258,6 +263,17 @@ function LnClock({ me, cfg, jobs, onAskOt }) {
             {open && left === 0 && (
               <div style={{ marginTop: 5, fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.6 }}>
                 เลยเวลางานปกติมาแล้ว · กดออกงานก่อน แล้วค่อยขอ OT ตามเวลาที่กดจริง
+              </div>
+            )}
+            {/* ใบเก่าที่มีกะซ้อน — การ์ดนี้เคยโชว์แค่คู่แรก ชั่วโมงรวมจึงไม่ตรงกับตัวเลขข้างบน
+                โดยไม่มีอะไรบอก ระบบไม่เปิดกะใหม่แล้ว แต่ของเดิมต้องมองเห็นได้ */}
+            {shifts.length > 0 && (
+              <div style={{ marginTop: 7, fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.7 }}>
+                มีช่วงเวลาซ้อนในใบนี้อีก {shifts.length} ช่วง ·{" "}
+                <span style={{ fontFamily: "var(--mono)" }}>
+                  {shifts.map((x) => x.in.hm + "–" + ((x.out && x.out.hm) || "?")).join(", ")}
+                </span>
+                {" "}— รวมอยู่ในชั่วโมงข้างบนแล้ว ถ้าไม่ถูกต้องแจ้งออฟฟิศ
               </div>
             )}
             {win.late && (
@@ -352,26 +368,30 @@ function LnClock({ me, cfg, jobs, onAskOt }) {
         </div>
       )}
 
-      <button onClick={() => go(false)} disabled={busy}
-        style={Object.assign({}, LN_BTN, { marginTop: 14,
-          background: busy ? "var(--surface3)" : open ? "#EF4444" : "var(--primary)",
-          color: busy ? "var(--text-3)" : "#fff" })}>
-        {busy ? "กำลังบันทึก…" : open ? "ลงเวลาออกงาน" : "ลงเวลาเข้างาน"}
-      </button>
+      {!closed && (
+        <button onClick={() => go(false)} disabled={busy}
+          style={Object.assign({}, LN_BTN, { marginTop: 14,
+            background: busy ? "var(--surface3)" : open ? "#EF4444" : "var(--primary)",
+            color: busy ? "var(--text-3)" : "#fff" })}>
+          {busy ? "กำลังบันทึก…" : open ? "ลงเวลาออกงาน" : "ลงเวลาเข้างาน"}
+        </button>
+      )}
 
       {/* ── กดออกงานทับ ──
           กดออกเร็วไปเพราะนึกว่าจะกลับแล้วไม่ได้กลับ เป็นเรื่องที่เกิดทุกวัน
           กดเข้าใหม่จะกลายเป็นกะที่สอง ซึ่งไม่ใช่สิ่งที่เกิดขึ้นจริง — ต้องเขียนทับเวลาเดิม */}
-      {!open && today && today.in && today.in.hm && (
+      {closed && (
         <React.Fragment>
           <button onClick={() => go(true)} disabled={busy}
-            style={{ marginTop: 9, width: "100%", padding: "12px 14px", borderRadius: 13, cursor: "pointer",
-              fontFamily: "inherit", fontSize: 13.5, fontWeight: 800,
-              border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)" }}>
-            กดออกงานใหม่ · ทับเวลาเดิม
+            style={Object.assign({}, LN_BTN, { marginTop: 14,
+              background: busy ? "var(--surface3)" : "var(--surface)",
+              color: busy ? "var(--text-3)" : "var(--text-1)",
+              border: "1px solid var(--border-strong)" })}>
+            {busy ? "กำลังบันทึก…" : "กดออกงานใหม่ · ทับเวลาเดิม"}
           </button>
-          <div style={{ marginTop: 6, fontSize: 11, color: "var(--text-3)", lineHeight: 1.7, textAlign: "center" }}>
-            กดออกเร็วไปกดทับได้เลย · เวลาเข้างานแก้ไม่ได้ ต้องแจ้งออฟฟิศ
+          <div style={{ marginTop: 8, fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.7, textAlign: "center" }}>
+            วันนี้ลงเวลาครบแล้ว · กดออกเร็วไปกดทับได้เลย ไม่เปิดรอบใหม่
+            <br />เวลาเข้างานแก้ไม่ได้ ต้องแจ้งออฟฟิศ
           </div>
         </React.Fragment>
       )}
@@ -463,7 +483,7 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 60, background: "var(--bg)", overflow: "auto" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 60, background: "var(--bg)", overflowY: "auto", overflowX: "hidden" }}>
       <div style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", alignItems: "center", gap: 10,
         padding: "13px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)",
         paddingTop: "calc(13px + env(safe-area-inset-top, 0px))" }}>
@@ -480,7 +500,7 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
           <input type="date" value={f.date} disabled={locked} onChange={(e) => set("date", e.target.value)} style={LN_FIELD} />
         </label>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 11 }}>
           <label style={{ display: "grid", gap: 5 }}>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ตั้งแต่</span>
             <input type="time" value={f.from} min={locked ? limit.lo : undefined} max={locked ? limit.hi : undefined}
