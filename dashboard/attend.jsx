@@ -604,6 +604,35 @@ function useAttendWriter(user, cfg) {
   return { punch };
 }
 
+/* ── ลบใบลงเวลาทั้งใบ (สำหรับแอดมิน) ──
+   ช่างแก้เวลาของตัวเองไม่ได้โดยตั้งใจ เพราะใบลงเวลาคือหลักฐานค่าแรง —
+   กดผิดเวลาจึงต้องมีคนที่เห็นทั้งบริษัทเป็นคนลบให้
+
+   ⚙ ลบทั้งใบจริงและดัชนีในคำสั่งเดียว ถ้าแยกสองคำสั่งแล้วเน็ตหลุดกลางทาง
+     แผ่นรายวันของออฟฟิศจะไม่ตรงกับใบจริง โดยไม่มีใครรู้
+   เก็บสำเนาใบที่ลบไว้ที่ attendVoid — การลบข้อมูลค่าแรงต้องมีร่องรอยเสมอ
+   ว่าใครลบของใครตอนไหน ไม่งั้นข้อโต้เถียงเรื่องชั่วโมงตอนสิ้นเดือนจะไม่มีทางพิสูจน์ */
+function useAttendAdmin(actor) {
+  const removeDay = React.useCallback(async (userId, date) => {
+    if (!userId || !date) return { ok: false, why: "ข้อมูลไม่ครบ" };
+    if (!_TMFB()) return { ok: false, why: "ยังเชื่อมต่อฐานข้อมูลไม่ได้" };
+    const snap = await _tmRef("attend/" + userId + "/" + date).once("value").catch(() => null);
+    const old = (snap && snap.val()) || null;
+    const patch = {};
+    patch["attend/" + userId + "/" + date] = null;
+    patch["attendDay/" + date + "/" + userId] = null;
+    patch["attendVoid/" + date + "/" + userId] = {
+      at: new Date().toISOString(),
+      byId: (actor || {}).id || null, byName: (actor || {}).name || "",
+      rec: old,
+    };
+    await _tmRoot().update(patch);
+    return { ok: true, rec: old };
+  }, [actor]);
+
+  return { removeDay };
+}
+
 /* ใบ OT — แบน อ่านทั้งต้นไม้ได้ (ใบละไม่กี่ร้อยไบต์ ไม่มีรูป) */
 function useOtClaims() {
   const [rows, setRows] = React.useState([]);
@@ -762,6 +791,6 @@ Object.assign(window, {
   tmOtStatusOf, tmOtOpen, tmCanAttend, tmCanAttendAll, tmCanOt, tmCanOtApprove,
   tmOtApproveCheck, tmOtNext, tmOtMove, tmOtDocNo, tmOtBlank, tmOtVisible, tmOtRollup,
   tmOtApprovers, tmOtPickApprover,
-  useAttend, useAttendDay, useAttendWriter, useOtClaims, useWorkHours, useAttendMonth,
+  useAttend, useAttendDay, useAttendWriter, useAttendAdmin, useOtClaims, useWorkHours, useAttendMonth,
   tmYm, tmYmNow, tmYmShift, tmYmTH, tmMonthDays, tmMonthRollup, TM_MONTH_TH,
 });

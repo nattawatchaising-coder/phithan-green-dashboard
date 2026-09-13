@@ -105,7 +105,11 @@ const SCOPE_MODES = [
 const DEFAULT_SCOPE = {
   admin:  { mode: "all",      stages: [] },
   lead:   { mode: "all",      stages: [] },
-  ee:     { mode: "all",      stages: [] },
+  /* วิศวกรเห็นเฉพาะงานที่ตัวเองคุม — ผูกกันด้วย job.eeId (เลือกในใบงาน ช่อง "วิศวกรผู้รับผิดชอบ")
+     ⚠ งานที่ยังไม่ได้เลือกวิศวกร จะไม่ขึ้นให้วิศวกรคนไหนเห็นเลย ไม่ใช่ขึ้นให้ทุกคน
+        นั่นคือเจตนา แต่แปลว่าถ้าออฟฟิศไม่กรอกช่องนี้ วิศวกรจะเปิดมาเจอหน้าว่าง
+        หน้ารายการจึงต้องบอกสาเหตุให้ชัด ไม่ใช่ปล่อยว่างเปล่า */
+  ee:     { mode: "assigned", stages: [] },
   draft:  { mode: "all",      stages: [] },
   tech:   { mode: "assigned", stages: [] },
   permit: { mode: "permitMine", stages: [] },
@@ -170,6 +174,15 @@ function jobScopeOf(roles) {
   return out;
 }
 /* งานหนึ่งใบ คนนี้เห็นไหม — เงื่อนไขไหนผ่านสักข้อก็เห็น */
+/* งานที่ "เป็นของคนนี้จริง ๆ" โดยไม่สนว่าสิทธิ์จะกว้างแค่ไหน
+   แอดมิน/หัวหน้าเห็นทั้งบริษัทโดยตั้งใจ — จำเป็นตอนตามงานแทนคนอื่น
+   แต่เวลาเปิดในไลน์เพื่อทำงานของตัวเอง รายการยาวทั้งบริษัทคือสิ่งกีดขวาง
+   จึงให้สลับดูเฉพาะของตัวเองได้ โดยใช้กฎเดียวกับที่ใช้จำกัดสิทธิ์คนอื่น
+   ไม่ใช่เขียนเงื่อนไข "ของฉัน" ขึ้นมาอีกชุดที่จะเพี้ยนจากกันภายหลัง */
+function jobIsMine(job, user) {
+  return jobInScope(job, { assigned: true, created: true, permitMine: true, stages: [] }, user);
+}
+
 function jobInScope(job, scope, user) {
   if (!scope || scope.all) return true;
   if (!job) return false;
@@ -1258,7 +1271,7 @@ function UserEditModal({ initial, existing, onSave, onClose }) {
   );
 }
 
-Object.assign(window, { sfMatchCred, SF_SESSION_KEY });
+Object.assign(window, { sfMatchCred, SF_SESSION_KEY, jobIsMine });
 
 Object.assign(window, { useAuthStore, useNotifStore, LoginScreen, NotifPanel, UserManager,
   useUserAvatar, MyProfileModal,

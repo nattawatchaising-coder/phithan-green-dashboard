@@ -15,6 +15,10 @@
    "เบิกเงิน"/"แจ้งเตือน" ยาวเกินจนตัดกลางคำ ใช้คำสั้นคู่กับไอคอนแทน */
 const LN_TAB = [
   { key: "jobs",  th: "งาน",     icon: "wrench" },
+  /* งานซ่อมแยกแท็บ ไม่ใช่ปนอยู่ในรายการงานติดตั้ง — มันคนละเรื่องกันจริง ๆ
+     งานติดตั้งคือใบงานที่มีวันนัดและขั้นตอน ส่วนงานซ่อมคือเรื่องที่ลูกค้าแจ้งเข้ามา
+     มีนาฬิกา SLA ของตัวเอง ปนกันแล้วงานซ่อมที่เลยกำหนดจะจมอยู่กลางรายการ */
+  { key: "fix",   th: "ซ่อม",    icon: "alert" },
   { key: "time",  th: "เวลา",    icon: "clock" },
   { key: "daily", th: "รายงาน",  icon: "pen" },
   { key: "ec",    th: "เบิก",    icon: "wallet" },
@@ -679,6 +683,180 @@ function LnTimeTab({ me, users, role, jobs, startOt }) {
   );
 }
 
+/* ชื่อ LnChips ถูกใช้ไปแล้วใน liff-ec.js ซึ่งโหลดก่อนไฟล์นี้ — สคริปต์ชุดนี้ใช้ขอบเขตร่วมกัน
+   ตั้งชื่อซ้ำ = ตัวหลังทับตัวหน้าเงียบ ๆ แล้วฟอร์มใบเบิกจะเพี้ยนโดยไม่มี error */
+/* ── ปุ่มกรองทรงเม็ดยา ── ใช้ซ้ำทั้งแท็บงานและแท็บซ่อม */
+function LnPick({ items, value, onPick }) {
+  return (
+    <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+      {items.map((it) => {
+        const on = value === it.key;
+        return (
+          <button key={it.key} onClick={() => onPick(it.key)}
+            style={{ padding: "7px 13px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
+              fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap",
+              border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+              background: on ? "var(--primary-soft)" : "var(--surface2)",
+              color: on ? "var(--primary-dark)" : "var(--text-2)" }}>
+            {it.th}{it.n != null ? " " + it.n : ""}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── แท็บงานซ่อม ──
+   อ่านใบแจ้งซ่อมจาก omTickets ชุดเดียวกับหน้า O&M บนเดสก์ท็อป และเดินสถานะ
+   ด้วย omTicketNext/omTicketMove ตัวเดียวกัน — ไม่มีตรรกะสถานะชุดที่สองในไฟล์นี้
+
+   เปิดใบใหม่ยังต้องทำจากเดสก์ท็อป เพราะการเปิดใบต้องเลือกไซต์ในสัญญาบริการ
+   และตัดสินเรื่องประกัน/ค่าใช้จ่าย ซึ่งไม่ใช่สิ่งที่ทำบนจอ 360px ตอนอยู่หน้างาน */
+function LnFixTab({ me, role }) {
+  const store = window.useOmTickets ? window.useOmTickets() : { tickets: [], loading: false, save: null };
+  const [filter, setFilter] = React.useState("open");
+  const [open, setOpen] = React.useState(null);
+  const today = window.drToday();
+
+  const canAll = window.can(role, "om");
+  const uid = (me || {}).id || null;
+  const tid = (me || {}).techId || null;
+
+  /* ใบที่ "เป็นของคนนี้" — ผู้รับผิดชอบที่เลือกไว้ หรือช่างที่ผูกกับไซต์
+     คนที่มีสิทธิ์ O&M เห็นได้ทั้งหมด แต่ตั้งต้นที่ใบของตัวเองเสมอ */
+  const visible = React.useMemo(() => {
+    const all = store.tickets || [];
+    if (filter === "all" && canAll) return all;
+    return all.filter((t) => t && ((uid && t.assigneeId === uid) || (tid && t.techId === tid)));
+  }, [store.tickets, filter, canAll, uid, tid]);
+
+  const list = React.useMemo(() => {
+    if (filter === "done") return visible.filter((t) => !window.omTicketOpen(t));
+    if (filter === "open") return visible.filter((t) => window.omTicketOpen(t));
+    return visible;
+  }, [visible, filter]);
+
+  const mineOpen = (store.tickets || []).filter((t) =>
+    window.omTicketOpen(t) && ((uid && t.assigneeId === uid) || (tid && t.techId === tid))).length;
+
+  const chips = [{ key: "open", th: "ที่ต้องทำ", n: mineOpen }, { key: "done", th: "ปิดแล้ว" }];
+  if (canAll) chips.push({ key: "all", th: "ทั้งบริษัท" });
+
+  const move = (t, to) => {
+    const next = window.omTicketMove(t, to, me, "");
+    if (!next || !store.save) return;
+    store.save(next);
+    setOpen(next);
+  };
+
+  if (store.loading) return <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>กำลังโหลด…</div>;
+
+  return (
+    <React.Fragment>
+      <div style={{ padding: "12px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
+        <LnPick items={chips} value={filter} onPick={setFilter} />
+        <div style={{ marginTop: 8, fontSize: 11.5, color: "var(--text-3)" }}>
+          {filter === "all" ? "ใบแจ้งซ่อมทั้งบริษัท" : "เฉพาะใบที่คุณรับผิดชอบ"} · {list.length} ใบ
+        </div>
+      </div>
+
+      {list.length === 0
+        ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5, lineHeight: 1.7 }}>
+            {filter === "done" ? "ยังไม่มีใบที่ปิดแล้ว" : "ไม่มีใบแจ้งซ่อมที่ค้างอยู่"}
+            <br /><span style={{ fontSize: 12 }}>ใบแจ้งซ่อมเปิดจากหน้า O&amp;M บนเว็บ แล้วจะมาโผล่ที่นี่เมื่อระบุผู้รับผิดชอบเป็นคุณ</span>
+          </div>
+        : list.map((t) => {
+            const st = window.omTicketStatusOf(t.status);
+            const sev = window.OM_SEVERITY_BY[t.severity] || {};
+            const late = window.omTicketOverdue(t, today);
+            return (
+              <div key={t.id} onClick={() => setOpen(t)}
+                style={{ padding: "13px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>{t.no || t.id}</span>
+                  <span style={{ padding: "2px 8px", borderRadius: 99, background: st.color + "1A", color: st.color,
+                    fontSize: 10.5, fontWeight: 800 }}>{st.th}</span>
+                  {late && <span style={{ marginLeft: "auto", fontSize: 10.5, fontWeight: 800, color: "#EF4444" }}>เลย {late.over} วัน</span>}
+                </div>
+                <div style={{ marginTop: 4, fontSize: 14.5, fontWeight: 700, color: "var(--text-1)" }}>{t.title || "ไม่ได้ระบุอาการ"}</div>
+                <div style={{ marginTop: 3, fontSize: 12, color: "var(--text-3)" }}>
+                  {t.siteName || t.siteCode || "—"}
+                  {sev.th ? " · " + sev.th : ""}
+                  {t.apptDate ? " · นัด " + window.drShort(t.apptDate) : ""}
+                </div>
+              </div>
+            );
+          })}
+
+      {open && <LnFixSheet t={open} role={role} onMove={move} onClose={() => setOpen(null)} />}
+    </React.Fragment>
+  );
+}
+
+/* ── แผ่นรายละเอียดใบแจ้งซ่อม ── */
+function LnFixSheet({ t, role, onMove, onClose }) {
+  const st = window.omTicketStatusOf(t.status);
+  const sev = window.OM_SEVERITY_BY[t.severity] || {};
+  const cat = window.OM_TICKET_CAT_BY[t.category] || {};
+  const nexts = window.omTicketNext(t, role);
+  const rows = [
+    ["ไซต์", t.siteName || t.siteCode],
+    ["อาการ", t.detail],
+    ["ประเภท", cat.th],
+    ["ความเร่งด่วน", sev.th],
+    ["ความคุ้มครอง", window.omCoverTH(t.cover).th],
+    ["ผู้รับผิดชอบ", t.assigneeName],
+    ["วันนัด", t.apptDate ? window.drDateTH(t.apptDate) + (t.apptFrom ? " " + t.apptFrom + "-" + t.apptTo : "") : ""],
+    ["แจ้งเมื่อ", t.reportedAt ? window.drDateTH(String(t.reportedAt).slice(0, 10)) : ""],
+    ["ผลการแก้ไข", t.result],
+  ].filter((r) => r[1]);
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(15,43,51,.42)", display: "flex", alignItems: "flex-end" }}>
+      <div onClick={(e) => e.stopPropagation()}
+        style={{ width: "100%", maxHeight: "88dvh", overflowY: "auto", overflowX: "hidden", background: "var(--surface)",
+          borderRadius: "18px 18px 0 0", padding: "16px 18px", paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))" }}>
+        <div style={{ width: 38, height: 4, borderRadius: 99, background: "var(--border-strong)", margin: "0 auto 14px" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 700, color: "var(--text-3)" }}>{t.no || t.id}</span>
+          <span style={{ padding: "2px 9px", borderRadius: 99, background: st.color + "1A", color: st.color, fontSize: 11, fontWeight: 800 }}>{st.th}</span>
+        </div>
+        <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text-1)", margin: "4px 0 12px" }}>{t.title || "ไม่ได้ระบุอาการ"}</div>
+
+        <div style={{ border: "1px solid var(--border)", borderRadius: 13, overflow: "hidden" }}>
+          {rows.map((r, i) => (
+            <div key={r[0]} style={{ display: "flex", gap: 10, padding: "10px 13px",
+              borderTop: i ? "1px solid var(--border)" : "none", background: i % 2 ? "var(--surface2)" : "var(--surface)" }}>
+              <div style={{ flex: "0 0 104px", fontSize: 12, color: "var(--text-3)", fontWeight: 700 }}>{r[0]}</div>
+              <div style={{ flex: 1, minWidth: 0, fontSize: 13, color: "var(--text-1)", lineHeight: 1.6, wordBreak: "break-word" }}>{r[1]}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* ปุ่มสร้างจากตารางสถานะ ปุ่มที่ขึ้นจึงเป็นทางที่เดินได้จริงเสมอ
+            ปิดงานจากหน้างานได้เลย ไม่ต้องรอกลับออฟฟิศ — แต่หมายเหตุ/รูปยังทำที่เว็บ */}
+        {nexts.length > 0 && (
+          <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+            {nexts.map((n) => (
+              <button key={n.key} onClick={() => onMove(t, n.key)}
+                style={{ flex: 1, minWidth: 120, padding: "12px 14px", borderRadius: 11, border: "none",
+                  background: n.key === "closed" ? "var(--primary)" : n.color, color: "#fff",
+                  fontFamily: "inherit", fontSize: 13.5, fontWeight: 800, cursor: "pointer" }}>
+                {n.th}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <button onClick={onClose}
+          style={{ marginTop: 10, width: "100%", padding: "12px 14px", borderRadius: 11,
+            border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)",
+            fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>ปิด</button>
+      </div>
+    </div>
+  );
+}
+
 /* ================================================================
    LnApp — ตัวแอปทั้งหมดของหน้า LIFF
    ================================================================ */
@@ -692,6 +870,11 @@ function LnApp() {
   const [tab, setTab]   = React.useState(LN_START.tab);
   const [q, setQ]       = React.useState("");
   const [open, setOpen] = React.useState(null);
+  const [jobType, setJobType] = React.useState("all");
+  /* คนที่เห็นทั้งบริษัท (แอดมิน/หัวหน้า/ขาย) ตั้งต้นที่ "ของฉัน"
+     เพราะเปิดในไลน์คือกำลังจะไปทำงาน ไม่ใช่กำลังนั่งตรวจงานคนอื่น
+     คนที่สิทธิ์แคบอยู่แล้วไม่เห็นปุ่มนี้ — มันจะเป็นปุ่มที่กดแล้วไม่มีอะไรเปลี่ยน */
+  const [onlyMine, setOnlyMine] = React.useState(true);
 
   const me    = auth.current;
   const role  = React.useMemo(() => (me ? window.userRoles(me) : []), [me]);
@@ -707,14 +890,17 @@ function LnApp() {
      จะได้ไม่เป็นคนละพฤติกรรมเวลาเพิ่มช่องที่ค้นได้ */
   const list = React.useMemo(() => {
     const s = q.trim().toLowerCase();
-    const hit = mine.filter((j) => window.jobMatchQ(j, s));
+    let base = mine;
+    if (scope.all && onlyMine) base = base.filter((j) => window.jobIsMine(j, me));
+    if (jobType !== "all") base = base.filter((j) => j.type === jobType);
+    const hit = base.filter((j) => window.jobMatchQ(j, s));
     /* ยังไม่เสร็จขึ้นก่อน แล้วเรียงตามวันติดตั้งที่ใกล้ที่สุด — งานที่ต้องไปพรุ่งนี้ต้องอยู่บนสุด */
     return hit.slice().sort((a, b) => {
       const ad = a.stage === "done" ? 1 : 0, bd = b.stage === "done" ? 1 : 0;
       if (ad !== bd) return ad - bd;
       return String(a.startDate || "9999").localeCompare(String(b.startDate || "9999"));
     });
-  }, [mine, q]);
+  }, [mine, q, jobType, onlyMine, scope.all, me]);
 
   /* แจ้งเตือนของฉัน — เงื่อนไขเดียวกับ myNotifs ใน app.jsx เป๊ะ */
   const myNotifs = React.useMemo(() => {
@@ -740,17 +926,43 @@ function LnApp() {
               placeholder="ค้นหา ชื่อ · รหัสงาน · จังหวัด · เบอร์ · ที่อยู่"
               style={{ width: "100%", padding: "11px 13px", borderRadius: 11, border: "1px solid var(--border-strong)",
                 background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 15, outline: "none" }} />
-            <div style={{ marginTop: 7, fontSize: 11.5, color: "var(--text-3)" }}>
-              {scope.all ? "ทุกงานในระบบ" : "เฉพาะงานที่คุณรับผิดชอบ"} · {list.length} งาน
+            {/* แยกงานติดตั้งตามประเภท — งานบ้านกับงานโครงการทำกันคนละแบบ
+                ของที่ต้องเตรียมและคนที่ต้องคุยด้วยคนละชุด ปนกันแล้วไล่หายาก */}
+            <div style={{ marginTop: 9 }}>
+              <LnPick items={[{ key: "all", th: "ทั้งหมด" }].concat(
+                  (window.SF.TYPES || []).map((t) => ({ key: t.key, th: t.th })))}
+                value={jobType} onPick={setJobType} />
+            </div>
+
+            {scope.all && (
+              <div style={{ marginTop: 7 }}>
+                <LnPick items={[{ key: "mine", th: "ของฉัน" }, { key: "all", th: "ทั้งบริษัท" }]}
+                  value={onlyMine ? "mine" : "all"} onPick={(k) => setOnlyMine(k === "mine")} />
+              </div>
+            )}
+
+            <div style={{ marginTop: 8, fontSize: 11.5, color: "var(--text-3)" }}>
+              {(!scope.all || onlyMine) ? "เฉพาะงานที่คุณรับผิดชอบ" : "ทุกงานในระบบ"} · {list.length} งาน
             </div>
           </div>
           {list.length === 0
-            ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>
-                {q ? "ไม่พบงานที่ตรงกับคำค้น" : "ยังไม่มีงานที่คุณรับผิดชอบ"}
+            ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5, lineHeight: 1.7 }}>
+                {q ? "ไม่พบงานที่ตรงกับคำค้น"
+                  : jobType !== "all" ? "ไม่มีงานประเภทนี้ที่คุณรับผิดชอบ"
+                  : "ยังไม่มีงานที่คุณรับผิดชอบ"}
+                {/* หน้าว่างเพราะยังไม่มีใครถูกระบุเป็นผู้รับผิดชอบ อ่านเหมือนระบบพัง
+                    ต้องบอกให้ชัดว่าต้องไปแก้ที่ใบงาน ไม่ใช่ที่หน้านี้ */}
+                {!q && jobType === "all" && !scope.all && (
+                  <div style={{ marginTop: 6, fontSize: 12 }}>
+                    งานจะขึ้นที่นี่เมื่อออฟฟิศระบุคุณเป็นช่างหรือวิศวกรผู้รับผิดชอบในใบงาน
+                  </div>
+                )}
               </div>
             : list.map((j) => <LnJobRow key={j.id} job={j} onOpen={setOpen} />)}
         </React.Fragment>
       )}
+
+      {tab === "fix" && <LnFixTab me={me} role={role} />}
 
       {tab === "time" && <LnTimeTab me={me} users={auth.users} role={role} jobs={mine} startOt={LN_START.ot} />}
 
@@ -807,4 +1019,4 @@ function LnApp() {
   );
 }
 
-Object.assign(window, { LnApp, LnJobRow, LnJobSheet, LnHead, LnClock, LnOtForm, LnTimeTab });
+Object.assign(window, { LnApp, LnJobRow, LnJobSheet, LnHead, LnClock, LnOtForm, LnTimeTab, LnFixTab, LnFixSheet, LnPick });

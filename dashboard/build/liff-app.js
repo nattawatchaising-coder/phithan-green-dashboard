@@ -3,6 +3,10 @@ const LN_TAB = [{
   th: "งาน",
   icon: "wrench"
 }, {
+  key: "fix",
+  th: "ซ่อม",
+  icon: "alert"
+}, {
   key: "time",
   th: "เวลา",
   icon: "clock"
@@ -1207,6 +1211,321 @@ function LnTimeTab({
     onClose: closeForm
   }));
 }
+function LnPick({
+  items,
+  value,
+  onPick
+}) {
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 7,
+      flexWrap: "wrap"
+    }
+  }, items.map(it => {
+    const on = value === it.key;
+    return React.createElement("button", {
+      key: it.key,
+      onClick: () => onPick(it.key),
+      style: {
+        padding: "7px 13px",
+        borderRadius: 99,
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 12.5,
+        fontWeight: 700,
+        whiteSpace: "nowrap",
+        border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+        background: on ? "var(--primary-soft)" : "var(--surface2)",
+        color: on ? "var(--primary-dark)" : "var(--text-2)"
+      }
+    }, it.th, it.n != null ? " " + it.n : "");
+  }));
+}
+function LnFixTab({
+  me,
+  role
+}) {
+  const store = window.useOmTickets ? window.useOmTickets() : {
+    tickets: [],
+    loading: false,
+    save: null
+  };
+  const [filter, setFilter] = React.useState("open");
+  const [open, setOpen] = React.useState(null);
+  const today = window.drToday();
+  const canAll = window.can(role, "om");
+  const uid = (me || {}).id || null;
+  const tid = (me || {}).techId || null;
+  const visible = React.useMemo(() => {
+    const all = store.tickets || [];
+    if (filter === "all" && canAll) return all;
+    return all.filter(t => t && (uid && t.assigneeId === uid || tid && t.techId === tid));
+  }, [store.tickets, filter, canAll, uid, tid]);
+  const list = React.useMemo(() => {
+    if (filter === "done") return visible.filter(t => !window.omTicketOpen(t));
+    if (filter === "open") return visible.filter(t => window.omTicketOpen(t));
+    return visible;
+  }, [visible, filter]);
+  const mineOpen = (store.tickets || []).filter(t => window.omTicketOpen(t) && (uid && t.assigneeId === uid || tid && t.techId === tid)).length;
+  const chips = [{
+    key: "open",
+    th: "ที่ต้องทำ",
+    n: mineOpen
+  }, {
+    key: "done",
+    th: "ปิดแล้ว"
+  }];
+  if (canAll) chips.push({
+    key: "all",
+    th: "ทั้งบริษัท"
+  });
+  const move = (t, to) => {
+    const next = window.omTicketMove(t, to, me, "");
+    if (!next || !store.save) return;
+    store.save(next);
+    setOpen(next);
+  };
+  if (store.loading) return React.createElement("div", {
+    style: {
+      padding: 40,
+      textAlign: "center",
+      color: "var(--text-3)",
+      fontSize: 13.5
+    }
+  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026");
+  return React.createElement(React.Fragment, null, React.createElement("div", {
+    style: {
+      padding: "12px 16px",
+      background: "var(--surface)",
+      borderBottom: "1px solid var(--border)"
+    }
+  }, React.createElement(LnPick, {
+    items: chips,
+    value: filter,
+    onPick: setFilter
+  }), React.createElement("div", {
+    style: {
+      marginTop: 8,
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, filter === "all" ? "ใบแจ้งซ่อมทั้งบริษัท" : "เฉพาะใบที่คุณรับผิดชอบ", " \xB7 ", list.length, " \u0E43\u0E1A")), list.length === 0 ? React.createElement("div", {
+    style: {
+      padding: 40,
+      textAlign: "center",
+      color: "var(--text-3)",
+      fontSize: 13.5,
+      lineHeight: 1.7
+    }
+  }, filter === "done" ? "ยังไม่มีใบที่ปิดแล้ว" : "ไม่มีใบแจ้งซ่อมที่ค้างอยู่", React.createElement("br", null), React.createElement("span", {
+    style: {
+      fontSize: 12
+    }
+  }, "\u0E43\u0E1A\u0E41\u0E08\u0E49\u0E07\u0E0B\u0E48\u0E2D\u0E21\u0E40\u0E1B\u0E34\u0E14\u0E08\u0E32\u0E01\u0E2B\u0E19\u0E49\u0E32 O&M \u0E1A\u0E19\u0E40\u0E27\u0E47\u0E1A \u0E41\u0E25\u0E49\u0E27\u0E08\u0E30\u0E21\u0E32\u0E42\u0E1C\u0E25\u0E48\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E23\u0E30\u0E1A\u0E38\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A\u0E40\u0E1B\u0E47\u0E19\u0E04\u0E38\u0E13")) : list.map(t => {
+    const st = window.omTicketStatusOf(t.status);
+    const sev = window.OM_SEVERITY_BY[t.severity] || {};
+    const late = window.omTicketOverdue(t, today);
+    return React.createElement("div", {
+      key: t.id,
+      onClick: () => setOpen(t),
+      style: {
+        padding: "13px 16px",
+        borderBottom: "1px solid var(--border)",
+        background: "var(--surface)",
+        cursor: "pointer"
+      }
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8
+      }
+    }, React.createElement("span", {
+      style: {
+        fontFamily: "var(--mono)",
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: "var(--text-3)"
+      }
+    }, t.no || t.id), React.createElement("span", {
+      style: {
+        padding: "2px 8px",
+        borderRadius: 99,
+        background: st.color + "1A",
+        color: st.color,
+        fontSize: 10.5,
+        fontWeight: 800
+      }
+    }, st.th), late && React.createElement("span", {
+      style: {
+        marginLeft: "auto",
+        fontSize: 10.5,
+        fontWeight: 800,
+        color: "#EF4444"
+      }
+    }, "\u0E40\u0E25\u0E22 ", late.over, " \u0E27\u0E31\u0E19")), React.createElement("div", {
+      style: {
+        marginTop: 4,
+        fontSize: 14.5,
+        fontWeight: 700,
+        color: "var(--text-1)"
+      }
+    }, t.title || "ไม่ได้ระบุอาการ"), React.createElement("div", {
+      style: {
+        marginTop: 3,
+        fontSize: 12,
+        color: "var(--text-3)"
+      }
+    }, t.siteName || t.siteCode || "—", sev.th ? " · " + sev.th : "", t.apptDate ? " · นัด " + window.drShort(t.apptDate) : ""));
+  }), open && React.createElement(LnFixSheet, {
+    t: open,
+    role: role,
+    onMove: move,
+    onClose: () => setOpen(null)
+  }));
+}
+function LnFixSheet({
+  t,
+  role,
+  onMove,
+  onClose
+}) {
+  const st = window.omTicketStatusOf(t.status);
+  const sev = window.OM_SEVERITY_BY[t.severity] || {};
+  const cat = window.OM_TICKET_CAT_BY[t.category] || {};
+  const nexts = window.omTicketNext(t, role);
+  const rows = [["ไซต์", t.siteName || t.siteCode], ["อาการ", t.detail], ["ประเภท", cat.th], ["ความเร่งด่วน", sev.th], ["ความคุ้มครอง", window.omCoverTH(t.cover).th], ["ผู้รับผิดชอบ", t.assigneeName], ["วันนัด", t.apptDate ? window.drDateTH(t.apptDate) + (t.apptFrom ? " " + t.apptFrom + "-" + t.apptTo : "") : ""], ["แจ้งเมื่อ", t.reportedAt ? window.drDateTH(String(t.reportedAt).slice(0, 10)) : ""], ["ผลการแก้ไข", t.result]].filter(r => r[1]);
+  return React.createElement("div", {
+    onClick: onClose,
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 60,
+      background: "rgba(15,43,51,.42)",
+      display: "flex",
+      alignItems: "flex-end"
+    }
+  }, React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      width: "100%",
+      maxHeight: "88dvh",
+      overflowY: "auto",
+      overflowX: "hidden",
+      background: "var(--surface)",
+      borderRadius: "18px 18px 0 0",
+      padding: "16px 18px",
+      paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))"
+    }
+  }, React.createElement("div", {
+    style: {
+      width: 38,
+      height: 4,
+      borderRadius: 99,
+      background: "var(--border-strong)",
+      margin: "0 auto 14px"
+    }
+  }), React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, React.createElement("span", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, t.no || t.id), React.createElement("span", {
+    style: {
+      padding: "2px 9px",
+      borderRadius: 99,
+      background: st.color + "1A",
+      color: st.color,
+      fontSize: 11,
+      fontWeight: 800
+    }
+  }, st.th)), React.createElement("div", {
+    style: {
+      fontSize: 18,
+      fontWeight: 800,
+      color: "var(--text-1)",
+      margin: "4px 0 12px"
+    }
+  }, t.title || "ไม่ได้ระบุอาการ"), React.createElement("div", {
+    style: {
+      border: "1px solid var(--border)",
+      borderRadius: 13,
+      overflow: "hidden"
+    }
+  }, rows.map((r, i) => React.createElement("div", {
+    key: r[0],
+    style: {
+      display: "flex",
+      gap: 10,
+      padding: "10px 13px",
+      borderTop: i ? "1px solid var(--border)" : "none",
+      background: i % 2 ? "var(--surface2)" : "var(--surface)"
+    }
+  }, React.createElement("div", {
+    style: {
+      flex: "0 0 104px",
+      fontSize: 12,
+      color: "var(--text-3)",
+      fontWeight: 700
+    }
+  }, r[0]), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 13,
+      color: "var(--text-1)",
+      lineHeight: 1.6,
+      wordBreak: "break-word"
+    }
+  }, r[1])))), nexts.length > 0 && React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginTop: 14,
+      flexWrap: "wrap"
+    }
+  }, nexts.map(n => React.createElement("button", {
+    key: n.key,
+    onClick: () => onMove(t, n.key),
+    style: {
+      flex: 1,
+      minWidth: 120,
+      padding: "12px 14px",
+      borderRadius: 11,
+      border: "none",
+      background: n.key === "closed" ? "var(--primary)" : n.color,
+      color: "#fff",
+      fontFamily: "inherit",
+      fontSize: 13.5,
+      fontWeight: 800,
+      cursor: "pointer"
+    }
+  }, n.th))), React.createElement("button", {
+    onClick: onClose,
+    style: {
+      marginTop: 10,
+      width: "100%",
+      padding: "12px 14px",
+      borderRadius: 11,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-2)",
+      fontFamily: "inherit",
+      fontSize: 13.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E1B\u0E34\u0E14")));
+}
 function LnApp() {
   const auth = window.useAuthStore();
   const store = window.useJobStore();
@@ -1216,6 +1535,8 @@ function LnApp() {
   const [tab, setTab] = React.useState(LN_START.tab);
   const [q, setQ] = React.useState("");
   const [open, setOpen] = React.useState(null);
+  const [jobType, setJobType] = React.useState("all");
+  const [onlyMine, setOnlyMine] = React.useState(true);
   const me = auth.current;
   const role = React.useMemo(() => me ? window.userRoles(me) : [], [me]);
   const scope = React.useMemo(() => window.jobScopeOf(role), [role, roleCfg.rev]);
@@ -1225,14 +1546,17 @@ function LnApp() {
   }, [store.jobs, scope, me]);
   const list = React.useMemo(() => {
     const s = q.trim().toLowerCase();
-    const hit = mine.filter(j => window.jobMatchQ(j, s));
+    let base = mine;
+    if (scope.all && onlyMine) base = base.filter(j => window.jobIsMine(j, me));
+    if (jobType !== "all") base = base.filter(j => j.type === jobType);
+    const hit = base.filter(j => window.jobMatchQ(j, s));
     return hit.slice().sort((a, b) => {
       const ad = a.stage === "done" ? 1 : 0,
         bd = b.stage === "done" ? 1 : 0;
       if (ad !== bd) return ad - bd;
       return String(a.startDate || "9999").localeCompare(String(b.startDate || "9999"));
     });
-  }, [mine, q]);
+  }, [mine, q, jobType, onlyMine, scope.all, me]);
   const myNotifs = React.useMemo(() => {
     if (!me) return [];
     const tid = me.techId;
@@ -1282,22 +1606,59 @@ function LnApp() {
     }
   }), React.createElement("div", {
     style: {
-      marginTop: 7,
+      marginTop: 9
+    }
+  }, React.createElement(LnPick, {
+    items: [{
+      key: "all",
+      th: "ทั้งหมด"
+    }].concat((window.SF.TYPES || []).map(t => ({
+      key: t.key,
+      th: t.th
+    }))),
+    value: jobType,
+    onPick: setJobType
+  })), scope.all && React.createElement("div", {
+    style: {
+      marginTop: 7
+    }
+  }, React.createElement(LnPick, {
+    items: [{
+      key: "mine",
+      th: "ของฉัน"
+    }, {
+      key: "all",
+      th: "ทั้งบริษัท"
+    }],
+    value: onlyMine ? "mine" : "all",
+    onPick: k => setOnlyMine(k === "mine")
+  })), React.createElement("div", {
+    style: {
+      marginTop: 8,
       fontSize: 11.5,
       color: "var(--text-3)"
     }
-  }, scope.all ? "ทุกงานในระบบ" : "เฉพาะงานที่คุณรับผิดชอบ", " \xB7 ", list.length, " \u0E07\u0E32\u0E19")), list.length === 0 ? React.createElement("div", {
+  }, !scope.all || onlyMine ? "เฉพาะงานที่คุณรับผิดชอบ" : "ทุกงานในระบบ", " \xB7 ", list.length, " \u0E07\u0E32\u0E19")), list.length === 0 ? React.createElement("div", {
     style: {
       padding: 40,
       textAlign: "center",
       color: "var(--text-3)",
-      fontSize: 13.5
+      fontSize: 13.5,
+      lineHeight: 1.7
     }
-  }, q ? "ไม่พบงานที่ตรงกับคำค้น" : "ยังไม่มีงานที่คุณรับผิดชอบ") : list.map(j => React.createElement(LnJobRow, {
+  }, q ? "ไม่พบงานที่ตรงกับคำค้น" : jobType !== "all" ? "ไม่มีงานประเภทนี้ที่คุณรับผิดชอบ" : "ยังไม่มีงานที่คุณรับผิดชอบ", !q && jobType === "all" && !scope.all && React.createElement("div", {
+    style: {
+      marginTop: 6,
+      fontSize: 12
+    }
+  }, "\u0E07\u0E32\u0E19\u0E08\u0E30\u0E02\u0E36\u0E49\u0E19\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u0E23\u0E30\u0E1A\u0E38\u0E04\u0E38\u0E13\u0E40\u0E1B\u0E47\u0E19\u0E0A\u0E48\u0E32\u0E07\u0E2B\u0E23\u0E37\u0E2D\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A\u0E43\u0E19\u0E43\u0E1A\u0E07\u0E32\u0E19")) : list.map(j => React.createElement(LnJobRow, {
     key: j.id,
     job: j,
     onOpen: setOpen
-  }))), tab === "time" && React.createElement(LnTimeTab, {
+  }))), tab === "fix" && React.createElement(LnFixTab, {
+    me: me,
+    role: role
+  }), tab === "time" && React.createElement(LnTimeTab, {
     me: me,
     users: auth.users,
     role: role,
@@ -1425,5 +1786,8 @@ Object.assign(window, {
   LnHead,
   LnClock,
   LnOtForm,
-  LnTimeTab
+  LnTimeTab,
+  LnFixTab,
+  LnFixSheet,
+  LnPick
 });

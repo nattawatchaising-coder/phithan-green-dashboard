@@ -305,7 +305,7 @@ const DEFAULT_SCOPE = {
     stages: []
   },
   ee: {
-    mode: "all",
+    mode: "assigned",
     stages: []
   },
   draft: {
@@ -385,6 +385,14 @@ function jobScopeOf(roles) {
     });
   });
   return out;
+}
+function jobIsMine(job, user) {
+  return jobInScope(job, {
+    assigned: true,
+    created: true,
+    permitMine: true,
+    stages: []
+  }, user);
 }
 function jobInScope(job, scope, user) {
   if (!scope || scope.all) return true;
@@ -3007,7 +3015,8 @@ function UserEditModal({
 }
 Object.assign(window, {
   sfMatchCred,
-  SF_SESSION_KEY
+  SF_SESSION_KEY,
+  jobIsMine
 });
 Object.assign(window, {
   useAuthStore,

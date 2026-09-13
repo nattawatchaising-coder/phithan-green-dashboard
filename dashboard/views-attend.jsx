@@ -38,8 +38,24 @@ function TmStat({ label, value, unit, color, hint, on, onClick }) {
 }
 
 /* ── แผ่นเวลารายวัน ── */
-function TmDaySheet({ date, setDate, cfg, users }) {
+function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
   const day = window.useAttendDay(date);
+  const admin = window.useAttendAdmin(currentUser);
+  /* ข้อความผลลัพธ์ของการลบ — ลบแล้วแถวหายไปเฉย ๆ อ่านเหมือนกดพลาดแล้วจอเพี้ยน
+     ต้องมีบรรทัดบอกว่าลบของใครไปแล้ว ไม่ใช่ให้เดาจากตารางที่สั้นลงหนึ่งแถว */
+  const [msg, setMsg] = React.useState("");
+
+  const del = async (r) => {
+    const ok = await window.askConfirm({
+      title: "ลบใบลงเวลาของ " + (r.name || r.userId) + "?",
+      body: window.drDateTH(date, true) + " · " + (r.in || "—") + " – " + (r.out || "—") +
+        " · " + window.tmDur(r.mins) + "\nลบแล้วคนคนนี้กดลงเวลาของวันนี้ใหม่ได้ตั้งแต่ต้น",
+      ok: "ลบใบนี้", danger: true, icon: "trash",
+    });
+    if (!ok) return;
+    const res = await admin.removeDay(r.userId, date);
+    setMsg(res.ok ? "ลบใบลงเวลาของ " + (r.name || r.userId) + " แล้ว" : "ลบไม่สำเร็จ — " + res.why);
+  };
   const holiday = window.tmIsHoliday(date, cfg);
   const workday = window.tmIsWorkday(date, cfg);
 
@@ -80,16 +96,16 @@ function TmDaySheet({ date, setDate, cfg, users }) {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ background: "var(--surface2)" }}>
-              {["ชื่อ", "เข้า", "ออก", "ชั่วโมง", "งานที่แจ้ง", "พิกัด"].map((h, i) => (
-                <th key={h} style={{ textAlign: i >= 1 && i <= 3 ? "center" : "left", padding: "10px 13px", fontSize: 11.5,
+              {["ชื่อ", "เข้า", "ออก", "ชั่วโมง", "งานที่แจ้ง", "พิกัด", ""].map((h, i) => (
+                <th key={i} style={{ textAlign: i >= 1 && i <= 3 ? "center" : "left", padding: "10px 13px", fontSize: 11.5,
                   fontWeight: 800, color: "var(--text-3)", borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {day.loading && <tr><td colSpan={6} style={{ padding: 26, textAlign: "center", color: "var(--text-3)" }}>กำลังโหลด…</td></tr>}
+            {day.loading && <tr><td colSpan={7} style={{ padding: 26, textAlign: "center", color: "var(--text-3)" }}>กำลังโหลด…</td></tr>}
             {!day.loading && (day.rows || []).length === 0 && (
-              <tr><td colSpan={6} style={{ padding: 26, textAlign: "center", color: "var(--text-3)" }}>ยังไม่มีใครลงเวลาในวันนี้</td></tr>
+              <tr><td colSpan={7} style={{ padding: 26, textAlign: "center", color: "var(--text-3)" }}>ยังไม่มีใครลงเวลาในวันนี้</td></tr>
             )}
             {(day.rows || []).map((r) => (
               <tr key={r.userId} style={{ borderBottom: "1px solid var(--border)" }}>
@@ -107,20 +123,32 @@ function TmDaySheet({ date, setDate, cfg, users }) {
                   {r.gps ? <span style={{ fontSize: 11.5, color: "#10B981", fontWeight: 700 }}>มีพิกัด</span>
                     : <span style={{ fontSize: 11.5, color: "#F59E0B", fontWeight: 700 }}>ไม่มีพิกัด</span>}
                 </td>
+                <td style={{ padding: "9px 13px", textAlign: "right" }}>
+                  {/* ลบทั้งใบ ไม่ใช่แก้เวลาทีละช่อง — เวลาที่พิมพ์เองไม่ใช่หลักฐาน
+                      ให้เจ้าตัวกดใหม่จะได้พิกัดกับเวลาจริงติดมาด้วยเหมือนเดิม */}
+                  <button onClick={() => del(r)} title="ลบใบลงเวลาของคนนี้"
+                    style={{ padding: "5px 11px", borderRadius: 8, border: "1px solid var(--border-strong)",
+                      background: "var(--surface)", color: "#EF4444", cursor: "pointer", fontFamily: "inherit",
+                      fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap" }}>ลบ</button>
+                </td>
               </tr>
             ))}
             {missing.map((u) => (
               <tr key={u.id} style={{ borderBottom: "1px solid var(--border)", background: "var(--surface2)" }}>
                 <td style={{ padding: "9px 13px", fontWeight: 700, color: "var(--text-3)" }}>{u.name}</td>
-                <td colSpan={5} style={{ padding: "9px 13px", fontSize: 12, color: "var(--text-3)" }}>ยังไม่ได้ลงเวลา</td>
+                <td colSpan={6} style={{ padding: "9px 13px", fontSize: 12, color: "var(--text-3)" }}>ยังไม่ได้ลงเวลา</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
+      {msg && <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>{msg}</div>}
+
       <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.7 }}>
-        ช่อง “งานที่แจ้ง” คือสิ่งที่ผู้ลงเวลาเลือกเอง ระบบไม่ได้ตรวจว่าอยู่ที่ไซต์นั้นจริงหรือไม่ —
+        ปุ่ม “ลบ” ลบใบลงเวลาของวันนั้นทั้งใบ แล้วให้เจ้าตัวกดเข้า-ออกใหม่ —
+        ระบบเก็บสำเนาใบที่ลบไว้พร้อมชื่อคนลบ เผื่อมีข้อโต้เถียงเรื่องชั่วโมงตอนสิ้นเดือน
+        <br />ช่อง “งานที่แจ้ง” คือสิ่งที่ผู้ลงเวลาเลือกเอง ระบบไม่ได้ตรวจว่าอยู่ที่ไซต์นั้นจริงหรือไม่ —
         ยังไม่มีพิกัดไซต์ที่เชื่อถือได้ในระบบ จึงเทียบระยะไม่ได้
         <br />“ไม่มีพิกัด” เกิดได้ทั้งจากปิดสิทธิ์ตำแหน่ง สัญญาณไม่ถึง หรืออยู่ในอาคาร — ระบบไม่เคยบล็อกการลงเวลาด้วยเหตุนี้
       </div>
@@ -736,7 +764,7 @@ function AttendView({ jobs, users, role, currentUser }) {
       </div>
 
       {tab === "day" && (canAll
-        ? <TmDaySheet date={date} setDate={setDate} cfg={wh.cfg} users={users} />
+        ? <TmDaySheet date={date} setDate={setDate} cfg={wh.cfg} users={users} currentUser={currentUser} />
         : <TmMyDays rows={me.rows} cfg={wh.cfg} />)}
 
       {tab === "month" && canAll && <TmMonth cfg={wh.cfg} users={users} ot={ot} />}

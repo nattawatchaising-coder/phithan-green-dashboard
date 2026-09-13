@@ -611,6 +611,37 @@ function useAttendWriter(user, cfg) {
     punch
   };
 }
+function useAttendAdmin(actor) {
+  const removeDay = React.useCallback(async (userId, date) => {
+    if (!userId || !date) return {
+      ok: false,
+      why: "ข้อมูลไม่ครบ"
+    };
+    if (!_TMFB()) return {
+      ok: false,
+      why: "ยังเชื่อมต่อฐานข้อมูลไม่ได้"
+    };
+    const snap = await _tmRef("attend/" + userId + "/" + date).once("value").catch(() => null);
+    const old = snap && snap.val() || null;
+    const patch = {};
+    patch["attend/" + userId + "/" + date] = null;
+    patch["attendDay/" + date + "/" + userId] = null;
+    patch["attendVoid/" + date + "/" + userId] = {
+      at: new Date().toISOString(),
+      byId: (actor || {}).id || null,
+      byName: (actor || {}).name || "",
+      rec: old
+    };
+    await _tmRoot().update(patch);
+    return {
+      ok: true,
+      rec: old
+    };
+  }, [actor]);
+  return {
+    removeDay
+  };
+}
 function useOtClaims() {
   const [rows, setRows] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -828,6 +859,7 @@ Object.assign(window, {
   useAttend,
   useAttendDay,
   useAttendWriter,
+  useAttendAdmin,
   useOtClaims,
   useWorkHours,
   useAttendMonth,
