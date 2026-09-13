@@ -1342,6 +1342,69 @@ function DrJobSummary({ job, all, onOpen, onBack }) {
   );
 }
 
+/* ── คิวใบที่รอ "คนคนนี้" เซ็น ── ข้ามทุกงานทุกวัน
+   ตารางภาพรวมกรอง "เฉพาะที่รออนุมัติ" ได้อยู่แล้ว แต่มันคือใบที่รอ *ใครสักคน*
+   วิศวกรที่ถืองานสิบงานยังต้องไล่หาเองว่าใบไหนของตัวเอง — หน้านี้ตอบคำถามนั้นโดยตรง
+   ใบเก่าที่สุดอยู่บนสุด เพราะใบที่ค้างนานคือใบที่ลืม ไม่ใช่ใบที่เพิ่งส่ง */
+function drApproveQueue(jobs, all, role, currentUser) {
+  const out = [];
+  (jobs || []).forEach((job) => {
+    const byDate = (all || {})[job.id] || {};
+    Object.keys(byDate).forEach((d) => {
+      const rec = byDate[d];
+      if (!rec || rec.status !== "sent") return;
+      if (!window.drCanApprove(role, job, currentUser, rec)) return;
+      out.push({ job: job, date: d, rec: rec });
+    });
+  });
+  out.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  return out;
+}
+
+function DrInbox({ rows, onOpen }) {
+  if (!rows.length) {
+    return (
+      <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>
+        ไม่มีใบรอคุณอนุมัติ
+        <div style={{ marginTop: 6, fontSize: 11.5 }}>ใบจะเข้ามาที่นี่เมื่อช่างกดส่งในงานที่คุณเป็นวิศวกรผู้รับผิดชอบ</div>
+      </div>
+    );
+  }
+  const today = window.drToday();
+  return (
+    <div>
+      {rows.map((r) => {
+        /* ค้างมากี่วันแล้ว — นับจากวันของใบ ไม่ใช่เวลาที่กดส่ง เพราะรายงานผูกกับวันทำงาน */
+        const late = Math.round((new Date(today) - new Date(r.date)) / 86400000);
+        return (
+          <button key={r.job.id + "|" + r.date} onClick={() => onOpen(r.job, r.date)}
+            style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "13px 16px",
+              background: "none", border: "none", borderBottom: "1px solid var(--border)", cursor: "pointer",
+              fontFamily: "inherit", textAlign: "left" }}>
+            <span style={{ width: 8, height: 8, borderRadius: 99, background: "#F59E0B", flexShrink: 0 }} />
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)",
+                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.job.name}</span>
+              <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>
+                {r.job.code} · {window.drDateTH(r.date)} · โดย {r.rec.byName || "—"}
+                {r.rec.work ? " · " + String(r.rec.work).slice(0, 40) : ""}
+              </span>
+            </span>
+            <span style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 800, color: "var(--text-2)", flexShrink: 0 }}>
+              {(+r.rec.pct || 0) + "%"}
+            </span>
+            {late >= 2 && (
+              <span style={{ padding: "3px 9px", borderRadius: 99, background: "var(--tint-amber-bg)", color: "var(--tint-amber-tx)",
+                fontSize: 11, fontWeight: 800, flexShrink: 0 }}>ค้าง {late} วัน</span>
+            )}
+            <Icon name="chevronRight" size={15} />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function DailyView({ jobs, role, currentUser, onOpen }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const { all, loading } = window.useDailyAll();
@@ -1357,6 +1420,9 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
   const pickedJob = React.useMemo(
     () => (jobPick ? (jobs || []).find((j) => j.id === jobPick.id) || jobPick : null),
     [jobs, jobPick]);
+  const inbox = React.useMemo(
+    () => drApproveQueue(jobs, all, role, currentUser),
+    [jobs, all, role, currentUser]);
   const canDelete = window.drCanDelete(role);
   const [delAsk, setDelAsk] = React.useState(null);   /* id ของงานที่กำลังถามยืนยันลบ */
   React.useEffect(() => setDelAsk(null), [date]);
@@ -1392,7 +1458,7 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, minHeight: 0 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-        {[["day", "รายวัน", "calendar"], ["grid", "ตารางภาพรวม", "table"]].map(([k, th, ic]) => (
+        {[["day", "รายวัน", "calendar"], ["grid", "ตารางภาพรวม", "table"], ["inbox", "รอฉันอนุมัติ", "check"]].map(([k, th, ic]) => (
           <button key={k} onClick={() => setMode(k)}
             style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 99,
               border: "1px solid " + (mode === k ? "var(--primary)" : "var(--border-strong)"),
@@ -1401,11 +1467,21 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
               color: mode === k ? "var(--primary-dark)" : "var(--text-2)" }}>
             <Icon name={ic} size={15} color={mode === k ? "var(--primary-dark)" : "var(--text-2)"} />
             {th}
+            {k === "inbox" && inbox.length > 0 && (
+              <span style={{ minWidth: 18, padding: "0 6px", borderRadius: 99, background: "#F59E0B", color: "#fff",
+                fontFamily: "var(--mono)", fontSize: 11, fontWeight: 800 }}>{inbox.length}</span>
+            )}
           </button>
         ))}
       </div>
 
-      {mode === "grid" ? (
+      {mode === "inbox" ? (
+        <div style={{ border: "1px solid var(--border)", borderRadius: 14, background: "var(--surface)", overflow: "hidden" }}>
+          {loading
+            ? <div style={{ padding: 20, textAlign: "center", fontSize: 12.5, color: "var(--text-3)" }}>กำลังโหลด...</div>
+            : <DrInbox rows={inbox} onOpen={onOpen} />}
+        </div>
+      ) : mode === "grid" ? (
         <React.Fragment>
           {!pickedJob && (
             <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
@@ -1562,5 +1638,5 @@ function DailyJobButton({ job, onOpen }) {
 
 /* ชิ้นส่วนฟอร์มปล่อยออกไปให้โมดูลอื่นใช้ด้วย (งานบริการหลังการขายใช้ชุดเดียวกัน)
    หน้าตาฟอร์มทั้งระบบจะได้เหมือนกัน แก้ที่นี่ที่เดียวเปลี่ยนพร้อมกันทุกที่ */
-Object.assign(window, { DailyReportModal, DailyPaper, DailyView, DailyJobButton,
+Object.assign(window, { DailyReportModal, DailyPaper, DailyView, DailyJobButton, DrInbox, drApproveQueue,
   DrLabel, DrText, DrSection, DrChips, DrRows, DrPhotoCap, DrSignSlot, DR_INPUT });

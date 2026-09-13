@@ -537,6 +537,96 @@ function tmNotify(n) {
   }, n));
   if (!TM_ROOT && window.lnPush) window.lnPush(id);
 }
+const TM_MONTH_TH = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+const tmYm = iso => String(iso || "").slice(0, 7);
+const tmYmNow = () => tmYm(window.drToday());
+function tmYmShift(ym, n) {
+  const y = +String(ym || "").slice(0, 4),
+    m = +String(ym || "").slice(5, 7);
+  if (!y || !m) return tmYmNow();
+  const t = y * 12 + (m - 1) + (+n || 0);
+  return Math.floor(t / 12) + "-" + window.drPad2(t % 12 + 1);
+}
+function tmYmTH(ym) {
+  const y = +String(ym || "").slice(0, 4),
+    m = +String(ym || "").slice(5, 7);
+  if (!y || !m) return "—";
+  return (TM_MONTH_TH[m - 1] || "") + " " + (y + 543);
+}
+function tmMonthDays(ym) {
+  const y = +String(ym || "").slice(0, 4),
+    m = +String(ym || "").slice(5, 7);
+  if (!y || !m) return [];
+  const last = new Date(y, m, 0).getDate();
+  const out = [];
+  for (let d = 1; d <= last; d++) out.push(ym + "-" + window.drPad2(d));
+  return out;
+}
+function useAttendMonth(ym) {
+  const [byDate, setByDate] = React.useState({});
+  const [loading, setLoading] = React.useState(true);
+  React.useEffect(() => {
+    if (!ym || !_TMFB()) {
+      setByDate({});
+      setLoading(false);
+      return;
+    }
+    const ref = _tmRef("attendDay").orderByKey().startAt(ym + "-00").endAt(ym + "-99");
+    const h = ref.on("value", s => {
+      setByDate(s.val() || {});
+      setLoading(false);
+    }, () => setLoading(false));
+    return () => ref.off("value", h);
+  }, [ym]);
+  return {
+    byDate,
+    loading
+  };
+}
+function tmMonthRollup(byDate, users, cfg, otRows, ym) {
+  const map = {};
+  const touch = (id, name) => {
+    const u = map[id] || (map[id] = {
+      userId: id,
+      name: "",
+      days: 0,
+      mins: 0,
+      noOut: 0,
+      noGps: 0,
+      otMins: 0,
+      byDay: {}
+    });
+    if (name && !u.name) u.name = name;
+    return u;
+  };
+  tmMonthDays(ym).forEach(d => {
+    const row = (byDate || {})[d] || {};
+    Object.keys(row).forEach(uid => {
+      const r = row[uid] || {};
+      const u = touch(uid, r.name);
+      u.byDay[d] = r;
+      if (r.in) u.days += 1;
+      u.mins += +r.mins || 0;
+      if (r.in && !r.out) u.noOut += 1;
+      if (r.in && !r.gps) u.noGps += 1;
+    });
+  });
+  (otRows || []).forEach(o => {
+    if (!o || o.status !== "approved" || tmYm(o.date) !== ym) return;
+    touch(o.userId, o.userName).otMins += +o.mins || 0;
+  });
+  (users || []).forEach(u => {
+    if (!u || u.active === false || !u.id) return;
+    if (!window.can(window.userRoles(u), "attend")) return;
+    touch(u.id, u.name);
+  });
+  const rows = Object.keys(map).map(k => map[k]);
+  rows.forEach(r => {
+    if (!r.name) r.name = r.userId;
+  });
+  rows.sort((a, b) => String(a.name).localeCompare(String(b.name), "th"));
+  return rows;
+}
 Object.assign(window, {
   tmNotify,
   TM_ROOT,
@@ -576,5 +666,13 @@ Object.assign(window, {
   useAttendDay,
   useAttendWriter,
   useOtClaims,
-  useWorkHours
+  useWorkHours,
+  useAttendMonth,
+  tmYm,
+  tmYmNow,
+  tmYmShift,
+  tmYmTH,
+  tmMonthDays,
+  tmMonthRollup,
+  TM_MONTH_TH
 });

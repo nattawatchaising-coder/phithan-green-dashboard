@@ -2897,6 +2897,115 @@ function DrJobSummary({
     }, st.th));
   }));
 }
+function drApproveQueue(jobs, all, role, currentUser) {
+  const out = [];
+  (jobs || []).forEach(job => {
+    const byDate = (all || {})[job.id] || {};
+    Object.keys(byDate).forEach(d => {
+      const rec = byDate[d];
+      if (!rec || rec.status !== "sent") return;
+      if (!window.drCanApprove(role, job, currentUser, rec)) return;
+      out.push({
+        job: job,
+        date: d,
+        rec: rec
+      });
+    });
+  });
+  out.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  return out;
+}
+function DrInbox({
+  rows,
+  onOpen
+}) {
+  if (!rows.length) {
+    return React.createElement("div", {
+      style: {
+        padding: 40,
+        textAlign: "center",
+        color: "var(--text-3)",
+        fontSize: 13
+      }
+    }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A\u0E23\u0E2D\u0E04\u0E38\u0E13\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34", React.createElement("div", {
+      style: {
+        marginTop: 6,
+        fontSize: 11.5
+      }
+    }, "\u0E43\u0E1A\u0E08\u0E30\u0E40\u0E02\u0E49\u0E32\u0E21\u0E32\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E0A\u0E48\u0E32\u0E07\u0E01\u0E14\u0E2A\u0E48\u0E07\u0E43\u0E19\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E04\u0E38\u0E13\u0E40\u0E1B\u0E47\u0E19\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A"));
+  }
+  const today = window.drToday();
+  return React.createElement("div", null, rows.map(r => {
+    const late = Math.round((new Date(today) - new Date(r.date)) / 86400000);
+    return React.createElement("button", {
+      key: r.job.id + "|" + r.date,
+      onClick: () => onOpen(r.job, r.date),
+      style: {
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        gap: 11,
+        padding: "13px 16px",
+        background: "none",
+        border: "none",
+        borderBottom: "1px solid var(--border)",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        textAlign: "left"
+      }
+    }, React.createElement("span", {
+      style: {
+        width: 8,
+        height: 8,
+        borderRadius: 99,
+        background: "#F59E0B",
+        flexShrink: 0
+      }
+    }), React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 13.5,
+        fontWeight: 700,
+        color: "var(--text-1)",
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis"
+      }
+    }, r.job.name), React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 11.5,
+        color: "var(--text-3)"
+      }
+    }, r.job.code, " \xB7 ", window.drDateTH(r.date), " \xB7 \u0E42\u0E14\u0E22 ", r.rec.byName || "—", r.rec.work ? " · " + String(r.rec.work).slice(0, 40) : "")), React.createElement("span", {
+      style: {
+        fontFamily: "var(--mono)",
+        fontSize: 12,
+        fontWeight: 800,
+        color: "var(--text-2)",
+        flexShrink: 0
+      }
+    }, (+r.rec.pct || 0) + "%"), late >= 2 && React.createElement("span", {
+      style: {
+        padding: "3px 9px",
+        borderRadius: 99,
+        background: "var(--tint-amber-bg)",
+        color: "var(--tint-amber-tx)",
+        fontSize: 11,
+        fontWeight: 800,
+        flexShrink: 0
+      }
+    }, "\u0E04\u0E49\u0E32\u0E07 ", late, " \u0E27\u0E31\u0E19"), React.createElement(Icon, {
+      name: "chevronRight",
+      size: 15
+    }));
+  }));
+}
 function DailyView({
   jobs,
   role,
@@ -2917,6 +3026,7 @@ function DailyView({
     if (mode !== "grid") setJobPick(null);
   }, [mode]);
   const pickedJob = React.useMemo(() => jobPick ? (jobs || []).find(j => j.id === jobPick.id) || jobPick : null, [jobs, jobPick]);
+  const inbox = React.useMemo(() => drApproveQueue(jobs, all, role, currentUser), [jobs, all, role, currentUser]);
   const canDelete = window.drCanDelete(role);
   const [delAsk, setDelAsk] = React.useState(null);
   React.useEffect(() => setDelAsk(null), [date]);
@@ -2988,7 +3098,7 @@ function DailyView({
       gap: 7,
       flexWrap: "wrap"
     }
-  }, [["day", "รายวัน", "calendar"], ["grid", "ตารางภาพรวม", "table"]].map(([k, th, ic]) => React.createElement("button", {
+  }, [["day", "รายวัน", "calendar"], ["grid", "ตารางภาพรวม", "table"], ["inbox", "รอฉันอนุมัติ", "check"]].map(([k, th, ic]) => React.createElement("button", {
     key: k,
     onClick: () => setMode(k),
     style: {
@@ -3009,7 +3119,35 @@ function DailyView({
     name: ic,
     size: 15,
     color: mode === k ? "var(--primary-dark)" : "var(--text-2)"
-  }), th))), mode === "grid" ? React.createElement(React.Fragment, null, !pickedJob && React.createElement("div", {
+  }), th, k === "inbox" && inbox.length > 0 && React.createElement("span", {
+    style: {
+      minWidth: 18,
+      padding: "0 6px",
+      borderRadius: 99,
+      background: "#F59E0B",
+      color: "#fff",
+      fontFamily: "var(--mono)",
+      fontSize: 11,
+      fontWeight: 800
+    }
+  }, inbox.length)))), mode === "inbox" ? React.createElement("div", {
+    style: {
+      border: "1px solid var(--border)",
+      borderRadius: 14,
+      background: "var(--surface)",
+      overflow: "hidden"
+    }
+  }, loading ? React.createElement("div", {
+    style: {
+      padding: 20,
+      textAlign: "center",
+      fontSize: 12.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14...") : React.createElement(DrInbox, {
+    rows: inbox,
+    onOpen: onOpen
+  })) : mode === "grid" ? React.createElement(React.Fragment, null, !pickedJob && React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -3434,6 +3572,8 @@ Object.assign(window, {
   DailyPaper,
   DailyView,
   DailyJobButton,
+  DrInbox,
+  drApproveQueue,
   DrLabel,
   DrText,
   DrSection,

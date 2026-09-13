@@ -124,6 +124,206 @@ function TmDaySheet({ date, setDate, cfg, users }) {
   );
 }
 
+/* ── สรุปรายเดือน ── ตารางที่ออฟฟิศเอาไปคิดค่าแรง
+   ตัวเลขทุกช่องมาจากใบที่ช่างปั๊มเอง ไม่ได้เดาให้ — ช่องว่างคือไม่มีใบ ไม่ใช่ศูนย์ชั่วโมง */
+function TmMonth({ cfg, users, ot }) {
+  const [ym, setYm] = React.useState(window.tmYmNow);
+  const { byDate, loading } = window.useAttendMonth(ym);
+  const [pick, setPick] = React.useState(null);
+
+  const days = React.useMemo(() => window.tmMonthDays(ym), [ym]);
+  const rows = React.useMemo(
+    () => window.tmMonthRollup(byDate, users, cfg, (ot || {}).rows, ym),
+    [byDate, users, cfg, ot, ym]);
+
+  const tot = React.useMemo(() => rows.reduce((a, r) => ({
+    days: a.days + r.days, mins: a.mins + r.mins, noOut: a.noOut + r.noOut,
+    noGps: a.noGps + r.noGps, otMins: a.otMins + r.otMins,
+  }), { days: 0, mins: 0, noOut: 0, noGps: 0, otMins: 0 }), [rows]);
+
+  const worked = rows.filter((r) => r.days > 0).length;
+  const hrs = (m) => (!m ? "—" : (Math.round((m / 60) * 10) / 10).toLocaleString("en-US"));
+
+  const th = (t, align) => (
+    <th key={t} style={{ textAlign: align || "left", padding: "10px 13px", fontSize: 11.5, fontWeight: 800,
+      color: "var(--text-3)", borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" }}>{t}</th>
+  );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <button onClick={() => setYm(window.tmYmShift(ym, -1))} style={Object.assign({}, TM_IN, { cursor: "pointer", fontWeight: 700 })}>‹ เดือนก่อน</button>
+        <input type="month" value={ym} onChange={(e) => setYm(e.target.value || window.tmYmNow())} style={TM_IN} />
+        <button onClick={() => setYm(window.tmYmShift(ym, 1))} style={Object.assign({}, TM_IN, { cursor: "pointer", fontWeight: 700 })}>เดือนถัดไป ›</button>
+        <button onClick={() => setYm(window.tmYmNow())} style={Object.assign({}, TM_IN, { cursor: "pointer", fontWeight: 700 })}>เดือนนี้</button>
+        <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{window.tmYmTH(ym)}</div>
+        <button onClick={() => tmExportMonthXlsx(rows, days, ym)}
+          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: 10,
+            border: "none", background: "var(--primary)", color: "#fff", cursor: "pointer", fontFamily: "inherit",
+            fontSize: 12.5, fontWeight: 800 }}>
+          <Icon name="file" size={14} color="#fff" /> ออกไฟล์ Excel
+        </button>
+      </div>
+
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <TmStat label="มีใบลงเวลา" value={worked} unit={"/ " + rows.length + " คน"} />
+        <TmStat label="วัน-คนที่ลงเวลา" value={tot.days} unit="วัน" />
+        <TmStat label="ชั่วโมงรวมทั้งเดือน" value={hrs(tot.mins)} unit="ชม." />
+        <TmStat label="OT ที่อนุมัติแล้ว" value={hrs(tot.otMins)} unit="ชม." />
+        <TmStat label="ลืมกดออกงาน" value={tot.noOut} unit="ใบ" color={tot.noOut ? "#EF4444" : "var(--text-1)"}
+          hint={tot.noOut ? "ใบพวกนี้ชั่วโมงเป็นศูนย์ ต้องทักถามก่อนคิดค่าแรง" : ""} />
+      </div>
+
+      <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 13, background: "var(--surface)" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead>
+            <tr style={{ background: "var(--surface2)" }}>
+              {th("ชื่อ")}{th("วันที่ลงเวลา", "center")}{th("ชั่วโมงรวม", "center")}
+              {th("OT อนุมัติแล้ว", "center")}{th("ลืมกดออก", "center")}{th("ไม่มีพิกัด", "center")}{th("")}
+            </tr>
+          </thead>
+          <tbody>
+            {loading && <tr><td colSpan={7} style={{ padding: 26, textAlign: "center", color: "var(--text-3)" }}>กำลังโหลด…</td></tr>}
+            {!loading && rows.length === 0 && (
+              <tr><td colSpan={7} style={{ padding: 26, textAlign: "center", color: "var(--text-3)" }}>ยังไม่มีใครลงเวลาในเดือนนี้</td></tr>
+            )}
+            {!loading && rows.map((r) => (
+              <React.Fragment key={r.userId}>
+                <tr style={{ borderBottom: "1px solid var(--border)", background: r.days ? "transparent" : "var(--surface2)" }}>
+                  <td style={{ padding: "9px 13px", fontWeight: 700, color: r.days ? "var(--text-1)" : "var(--text-3)" }}>{r.name}</td>
+                  <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)", fontWeight: 700 }}>{r.days || "—"}</td>
+                  <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)", fontWeight: 700 }}>{hrs(r.mins)}</td>
+                  <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)", color: "var(--text-2)" }}>{hrs(r.otMins)}</td>
+                  <td style={{ padding: "9px 13px", textAlign: "center", fontWeight: 700, color: r.noOut ? "#EF4444" : "var(--text-3)" }}>{r.noOut || "—"}</td>
+                  <td style={{ padding: "9px 13px", textAlign: "center", fontWeight: 700, color: r.noGps ? "#F59E0B" : "var(--text-3)" }}>{r.noGps || "—"}</td>
+                  <td style={{ padding: "9px 13px", textAlign: "right" }}>
+                    {r.days > 0 && (
+                      <button onClick={() => setPick(pick === r.userId ? null : r.userId)}
+                        style={{ padding: "6px 12px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                          cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>
+                        {pick === r.userId ? "ซ่อนรายวัน" : "ดูรายวัน"}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+                {pick === r.userId && (
+                  <tr>
+                    <td colSpan={7} style={{ padding: "10px 13px 14px", background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                        {days.map((d) => {
+                          const x = r.byDay[d];
+                          const open = x && x.in && !x.out;
+                          return (
+                            <div key={d} title={d}
+                              style={{ minWidth: 92, padding: "7px 9px", borderRadius: 9, background: "var(--surface)",
+                                border: "1px solid " + (open ? "var(--tint-red-bd)" : x ? "var(--border)" : "transparent"),
+                                opacity: x ? 1 : 0.45 }}>
+                              <div style={{ fontSize: 10.5, color: "var(--text-3)", fontWeight: 700 }}>{+d.slice(8)}</div>
+                              <div style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700,
+                                color: open ? "#EF4444" : "var(--text-1)" }}>
+                                {x ? (x.in || "—") + " – " + (x.out || "?") : "—"}
+                              </div>
+                              <div style={{ fontSize: 10.5, color: "var(--text-3)" }}>{x ? window.tmDur(x.mins) : ""}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.7 }}>
+        ชั่วโมงคิดจากเวลาเข้า-ออกที่ปั๊มไว้ หักพักกลางวันเฉพาะใบที่ทำงานเกินหกชั่วโมง ตามที่ตั้งไว้ในหน้า “ตั้งค่าเวลาทำงาน”
+        <br />ใบที่ “ลืมกดออก” ชั่วโมงจะเป็นศูนย์ เพราะระบบไม่เดาเวลาเลิกงานให้ — ต้องถามเจ้าตัวแล้วแก้ที่ต้นทาง
+        <br />OT นับเฉพาะใบที่อนุมัติแล้วและอยู่ในเดือนนี้ · ตัวเลขทั้งหมดยังไม่ใช่ยอดจ่าย ต้องผ่านการตรวจของผู้มีอำนาจก่อน
+      </div>
+    </div>
+  );
+}
+
+/* ออกไฟล์ Excel — ตารางคน × วัน แบบใบลงเวลากระดาษ ที่ฝ่ายบัญชีอ่านออกโดยไม่ต้องอธิบาย */
+function tmExportMonthXlsx(rows, days, ym) {
+  if (!window.XLSX) { alert("ไม่พบไลบรารี Excel (ลองโหลดหน้าใหม่)"); return; }
+  if (!rows || !rows.length) { alert("เดือนนี้ยังไม่มีข้อมูลให้ออกไฟล์"); return; }
+  const X = window.XLSX;
+  const FONT = "Tahoma";
+  const C = { brand: "1D854B", brandDk: "12603A", brandSoft: "EAF6EF", white: "FFFFFF",
+    border: "CBD8D0", text: "16241D", sub: "5A6B62", alt: "F4FAF6", warn: "FDECEA", warnTx: "B42318" };
+  const thin = { style: "thin", color: { rgb: C.border } };
+  const boxAll = { top: thin, bottom: thin, left: thin, right: thin };
+  const H = (m) => (!m ? "" : Math.round((m / 60) * 100) / 100);
+
+  const cols = ["ชื่อ"].concat(days.map((d) => +d.slice(8)))
+    .concat(["วันที่ลงเวลา", "ชั่วโมงรวม", "OT อนุมัติแล้ว", "ลืมกดออก", "ไม่มีพิกัด"]);
+  const lastC = cols.length - 1;
+  const aoa = [], merges = [], meta = [], rowsH = []; let R = 0;
+  const push = (cells, type, hpt) => { aoa.push(cells); meta[R] = type; if (hpt) rowsH[R] = { hpt: hpt }; R += 1; };
+  const full = (r) => merges.push({ s: { r: r, c: 0 }, e: { r: r, c: lastC } });
+
+  push(["สรุปเวลาทำงานรายเดือน · " + window.tmYmTH(ym)], "title", 30); full(R - 1);
+  push(["flash+solar · ตัวเลขจากใบลงเวลาที่พนักงานปั๊มเอง ยังไม่ใช่ยอดจ่าย"], "subtitle", 20); full(R - 1);
+  push([], "spacer", 6);
+  push(cols, "head", 26);
+
+  let alt = false;
+  rows.forEach((r) => {
+    const line = [r.name].concat(days.map((d) => (r.byDay[d] ? H(r.byDay[d].mins) : "")))
+      .concat([r.days || "", H(r.mins), H(r.otMins), r.noOut || "", r.noGps || ""]);
+    push(line, alt ? "itemAlt" : "item", 19);
+    alt = !alt;
+  });
+
+  const sum = (k) => rows.reduce((a, r) => a + (+r[k] || 0), 0);
+  push(["รวมทั้งสิ้น"].concat(days.map(() => ""))
+    .concat([sum("days"), H(sum("mins")), H(sum("otMins")), sum("noOut") || "", sum("noGps") || ""]), "total", 24);
+  merges.push({ s: { r: R - 1, c: 1 }, e: { r: R - 1, c: days.length } });
+  push([], "spacer", 8);
+  push(["ช่องว่าง = ไม่มีใบลงเวลาในวันนั้น · ใบที่ลืมกดออกงานชั่วโมงเป็นศูนย์ ระบบไม่เดาเวลาเลิกงานให้"], "foot", 18);
+  full(R - 1);
+
+  const ws = X.utils.aoa_to_sheet(aoa);
+  ws["!merges"] = merges;
+  ws["!cols"] = [{ wch: 22 }].concat(days.map(() => ({ wch: 5.2 })))
+    .concat([{ wch: 12 }, { wch: 11 }, { wch: 13 }, { wch: 10 }, { wch: 10 }]);
+  ws["!rows"] = rowsH;
+  /* ตรึงชื่อคนกับหัวตารางไว้ ตารางกว้างสามสิบกว่าคอลัมน์ เลื่อนไปกลางเดือนแล้วจะไม่รู้ว่าแถวไหนของใคร */
+  ws["!freeze"] = { xSplit: 1, ySplit: 4 };
+  ws["!autofilter"] = null;
+
+  const styleCell = (r, c) => {
+    const t = meta[r]; if (t === "spacer") return null;
+    const s = { font: { name: FONT, sz: 10.5, color: { rgb: C.text } }, alignment: { vertical: "center" } };
+    if (t === "title") { s.font = { name: FONT, sz: 15, bold: true, color: { rgb: C.white } }; s.fill = { patternType: "solid", fgColor: { rgb: C.brand } }; s.alignment = { horizontal: "center", vertical: "center" }; }
+    else if (t === "subtitle") { s.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.brandDk } }; s.fill = { patternType: "solid", fgColor: { rgb: C.brandSoft } }; s.alignment = { horizontal: "center", vertical: "center" }; }
+    else if (t === "head") { s.font = { name: FONT, sz: 10, bold: true, color: { rgb: C.white } }; s.fill = { patternType: "solid", fgColor: { rgb: C.brand } }; s.alignment = { horizontal: c === 0 ? "left" : "center", vertical: "center", wrapText: true }; s.border = boxAll; }
+    else if (t === "total") { s.font = { name: FONT, sz: 11, bold: true, color: { rgb: C.white } }; s.fill = { patternType: "solid", fgColor: { rgb: C.brandDk } }; s.alignment = { horizontal: c === 0 ? "left" : "center", vertical: "center" }; s.border = boxAll; if (c > days.length + 1) s.numFmt = "#,##0.00"; }   /* ข้ามช่องจำนวนวัน — วันต้องเป็นจำนวนเต็ม ไม่ใช่ 24.00 วัน */
+    else if (t === "foot") { s.font = { name: FONT, sz: 9.5, color: { rgb: C.sub } }; }
+    else if (t === "item" || t === "itemAlt") {
+      if (t === "itemAlt") s.fill = { patternType: "solid", fgColor: { rgb: C.alt } };
+      s.border = boxAll;
+      if (c === 0) { s.alignment = { horizontal: "left", vertical: "center" }; s.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.text } }; }
+      else { s.alignment = { horizontal: "center", vertical: "center" }; if (c !== lastC - 1 && c !== lastC && c !== days.length + 1) s.numFmt = "0.00"; }
+      if (c === lastC - 1 && aoa[r][c]) { s.fill = { patternType: "solid", fgColor: { rgb: C.warn } }; s.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.warnTx } }; }
+    }
+    return s;
+  };
+  const range = X.utils.decode_range(ws["!ref"]);
+  for (let r = range.s.r; r <= range.e.r; r++) {
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const ref = X.utils.encode_cell({ r: r, c: c }); const st = styleCell(r, c);
+      if (!st) continue; if (!ws[ref]) ws[ref] = { t: "s", v: "" }; ws[ref].s = st;
+    }
+  }
+  const wb = X.utils.book_new();
+  X.utils.book_append_sheet(wb, ws, "เวลาทำงาน");
+  X.writeFile(wb, "สรุปเวลาทำงาน_" + ym + ".xlsx");
+}
+
 /* ── ใบ OT หนึ่งใบ ── */
 function TmOtModal({ rec, cfg, jobs, role, currentUser, onSave, onMove, onDelete, onClose }) {
   const [f, setF] = React.useState(rec);
@@ -411,6 +611,7 @@ function AttendView({ jobs, users, role, currentUser }) {
   };
 
   const TABS = [["day", "แผ่นเวลารายวัน", "calendar", 0]]
+    .concat(canAll ? [["month", "สรุปรายเดือน", "table", 0]] : [])
     .concat([["mine", "ใบ OT ของฉัน", "pen", roll.mineOpen]])
     .concat(canApprove ? [["inbox", "รอฉันอนุมัติ", "check", roll.waitingMine]] : [])
     .concat(canApprove || canAll ? [["all", "ใบ OT ทั้งหมด", "list", 0]] : [])
@@ -465,6 +666,8 @@ function AttendView({ jobs, users, role, currentUser }) {
         ? <TmDaySheet date={date} setDate={setDate} cfg={wh.cfg} users={users} />
         : <TmMyDays rows={me.rows} cfg={wh.cfg} />)}
 
+      {tab === "month" && canAll && <TmMonth cfg={wh.cfg} users={users} ot={ot} />}
+
       {tab === "cfg" && <TmWorkHours cfg={wh.cfg} onSave={wh.save} />}
 
       {(tab === "mine" || tab === "inbox" || tab === "all") && (
@@ -509,4 +712,5 @@ function TmMyDays({ rows, cfg }) {
   );
 }
 
-Object.assign(window, { AttendView, TmDaySheet, TmMyDays, TmOtModal, TmOtRow, TmWorkHours, TmStat, TmPill, TM_IN });
+Object.assign(window, { AttendView, TmDaySheet, TmMonth, TmMyDays, TmOtModal, TmOtRow, TmWorkHours,
+  TmStat, TmPill, TM_IN, tmExportMonthXlsx });
