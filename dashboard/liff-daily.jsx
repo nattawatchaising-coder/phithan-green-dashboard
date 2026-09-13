@@ -316,8 +316,13 @@ function LnPhotoCap({ value, onSave }) {
 function LnDailyTab({ me, role, jobs, notify }) {
   const [jobId, setJobId] = React.useState(() => ((jobs || [])[0] || {}).id || "");
   const [date, setDate] = React.useState(window.drToday());
+  /* งานบ้าน/งานโครงการ เขียนรายงานคนละแบบ (ขั้นงานคนละชุด — ดู drBlank)
+     ปุ่มกรองขึ้นเฉพาะตอนมีงานให้เลือกมากกว่าหนึ่ง ไม่งั้นเป็นปุ่มที่กดแล้วไม่มีอะไรเปลี่ยน */
+  const [jobType, setJobType] = React.useState("all");
   const store = window.useDailyReports(jobId || null);
 
+  const show = React.useMemo(() => (jobs || [])
+    .filter((j) => jobType === "all" || (j.type || "home") === jobType), [jobs, jobType]);
   const job = (jobs || []).find((j) => j.id === jobId) || null;
   const day = window.drDayState(store.byDate, date);
 
@@ -330,13 +335,18 @@ function LnDailyTab({ me, role, jobs, notify }) {
   return (
     <div style={{ padding: 18 }}>
       <div style={{ display: "grid", gap: 9 }}>
-        <label style={{ display: "grid", gap: 5 }}>
+        <div style={{ display: "grid", gap: 6 }}>
           <span style={LN_DR_LABEL}>งาน</span>
+          {(jobs || []).length > 1 && window.LnPick && (
+            <window.LnPick items={[{ key: "all", th: "ทั้งหมด" }].concat(
+                ((window.SF || {}).TYPES || []).map((t) => ({ key: t.key, th: t.th })))}
+              value={jobType} onPick={(k) => { setJobType(k); setJobId(""); }} />
+          )}
           <select value={jobId} onChange={(e) => setJobId(e.target.value)} style={LN_DR_FIELD}>
             <option value="">— เลือกงาน —</option>
-            {(jobs || []).slice(0, 80).map((j) => <option key={j.id} value={j.id}>{j.code} · {j.name}</option>)}
+            {show.slice(0, 80).map((j) => <option key={j.id} value={j.id}>{j.code} · {j.name}</option>)}
           </select>
-        </label>
+        </div>
         <label style={{ display: "grid", gap: 5 }}>
           <span style={LN_DR_LABEL}>วันที่</span>
           <input type="date" value={date} onChange={(e) => setDate(e.target.value || window.drToday())} style={LN_DR_FIELD} />
@@ -355,16 +365,18 @@ function LnDailyTab({ me, role, jobs, notify }) {
 
       {!job
         ? <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13.5, lineHeight: 1.7 }}>
-            {(jobs || []).length === 0
+            {show.length === 0 && (jobs || []).length > 0
+              ? "ไม่มีงานประเภทนี้ที่คุณรับผิดชอบ — กด “ทั้งหมด” เพื่อดูทุกงาน"
+              : (jobs || []).length === 0
               /* รายการนี้ตัดงานที่ติดตั้งเสร็จแล้วออก และเหลือเฉพาะของตัวเอง
                  ว่างเปล่าจึงไม่ได้แปลว่าพัง แต่ต้องบอก ไม่งั้นอ่านเหมือนโหลดไม่ขึ้น */
-              ? "ยังไม่มีงานที่อยู่ระหว่างติดตั้งของคุณ — รายการนี้มีเฉพาะงานที่อยู่ขั้น “ดำเนินการติดตั้ง”"
-              : "เลือกงานก่อน แล้วฟอร์มรายงานของวันนั้นจะขึ้นมา"}
+                ? "ยังไม่มีงานที่อยู่ระหว่างติดตั้งของคุณ — รายการนี้มีเฉพาะงานที่อยู่ขั้น “ดำเนินการติดตั้ง”"
+                : "เลือกงานก่อน แล้วฟอร์มรายงานของวันนั้นจะขึ้นมา"}
           </div>
         : <LnDailyForm me={me} role={role} job={job} date={date} store={store} notify={notify} />}
 
       <div style={{ marginTop: 16, fontSize: 11, color: "var(--text-3)", lineHeight: 1.7, textAlign: "center" }}>
-        การอนุมัติและการพิมพ์ใบ A4 ทำที่หน้าเว็บบนคอมพิวเตอร์
+        คนอนุมัติเซ็นรับรองใบนี้ได้จากแท็บ “อนุมัติ” · การพิมพ์ใบ A4 ทำที่หน้าเว็บ
         <br />ใบที่ส่งจากที่นี่เป็นใบเดียวกับในระบบ ไม่ต้องกรอกซ้ำ
       </div>
     </div>

@@ -19,6 +19,10 @@ const LN_TAB = [{
   th: "เบิก",
   icon: "wallet"
 }, {
+  key: "appr",
+  th: "อนุมัติ",
+  icon: "check"
+}, {
   key: "bell",
   th: "เตือน",
   icon: "bell"
@@ -84,8 +88,10 @@ const LN_START = (() => {
 function LnHead({
   tab,
   setTab,
-  unread
+  unread,
+  tabs
 }) {
+  const list = tabs && tabs.length ? tabs : LN_TAB;
   return React.createElement("div", {
     style: {
       position: "sticky",
@@ -108,7 +114,7 @@ function LnHead({
     style: {
       display: "flex"
     }
-  }, LN_TAB.map(t => {
+  }, list.map(t => {
     const on = tab === t.key;
     return React.createElement("button", {
       key: t.key,
@@ -1428,7 +1434,8 @@ function LnFixNew({
     severity: "normal"
   });
   const set = patch => setF(o => Object.assign({}, o, patch));
-  const sites = React.useMemo(() => (siteStore.sites || []).slice().sort((a, b) => String(a.name || a.code || "").localeCompare(String(b.name || b.code || ""), "th")), [siteStore.sites]);
+  const [siteType, setSiteType] = React.useState("all");
+  const sites = React.useMemo(() => (siteStore.sites || []).filter(x => siteType === "all" || (x.type || "home") === siteType).slice().sort((a, b) => String(a.name || a.code || "").localeCompare(String(b.name || b.code || ""), "th")), [siteStore.sites, siteType]);
   const site = sites.filter(x => x.id === f.siteId)[0] || null;
   const ready = !!site && !!f.title.trim();
   const submit = () => {
@@ -1502,14 +1509,29 @@ function LnFixNew({
       display: "grid",
       gap: 12
     }
-  }, React.createElement("label", {
+  }, React.createElement("div", {
     style: {
       display: "grid",
-      gap: 5
+      gap: 6
     }
   }, React.createElement("span", {
     style: label
-  }, "\u0E44\u0E0B\u0E15\u0E4C\u0E17\u0E35\u0E48\u0E40\u0E01\u0E34\u0E14\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07"), React.createElement("select", {
+  }, "\u0E44\u0E0B\u0E15\u0E4C\u0E17\u0E35\u0E48\u0E40\u0E01\u0E34\u0E14\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07"), React.createElement(LnPick, {
+    items: [{
+      key: "all",
+      th: "ทั้งหมด"
+    }].concat((window.SF.TYPES || []).map(t => ({
+      key: t.key,
+      th: t.th
+    }))),
+    value: siteType,
+    onPick: k => {
+      setSiteType(k);
+      set({
+        siteId: ""
+      });
+    }
+  }), React.createElement("select", {
     value: f.siteId,
     onChange: e => set({
       siteId: e.target.value
@@ -1633,7 +1655,7 @@ function LnFixNew({
       textAlign: "center",
       lineHeight: 1.6
     }
-  }, siteStore.loading ? "กำลังโหลดรายชื่อไซต์…" : sites.length === 0 ? "ยังไม่มีไซต์ในทะเบียนบริการ — ต้องขึ้นทะเบียนไซต์ที่หน้า O&M บนเว็บก่อน" : !site ? "เลือกไซต์ก่อน" : "เขียนอาการที่เจอก่อน")));
+  }, siteStore.loading ? "กำลังโหลดรายชื่อไซต์…" : sites.length === 0 ? siteType === "all" ? "ยังไม่มีไซต์ในทะเบียนบริการ — ต้องขึ้นทะเบียนไซต์ที่หน้า O&M บนเว็บก่อน" : "ไม่มีไซต์ประเภทนี้ในทะเบียน — กด “ทั้งหมด” เพื่อดูทุกไซต์" : !site ? "เลือกไซต์ก่อน" : "เขียนอาการที่เจอก่อน")));
 }
 function LnFixTab({
   me,
@@ -2066,6 +2088,8 @@ function LnApp() {
     return mine.filter(j => j.stage !== "done" && window.jobIsMine(j, me));
   }, [mine, me]);
   const siteWork = React.useMemo(() => work.filter(j => j.stage === "install"), [work]);
+  const canAppr = React.useMemo(() => me && window.lnCanApproveAny ? window.lnCanApproveAny(role, mine, me) : false, [role, mine, me]);
+  const tabs = React.useMemo(() => LN_TAB.filter(t => t.key !== "appr" || canAppr), [canAppr]);
   const myNotifs = React.useMemo(() => {
     if (!me) return [];
     const tid = me.techId;
@@ -2088,7 +2112,8 @@ function LnApp() {
   }, React.createElement(LnHead, {
     tab: tab,
     setTab: setTab,
-    unread: unread
+    unread: unread,
+    tabs: tabs
   }), tab === "jobs" && React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
       padding: "12px 16px",
@@ -2183,7 +2208,19 @@ function LnApp() {
     users: auth.users,
     role: role,
     jobs: work
-  }), tab === "bell" && (myNotifs.length === 0 ? React.createElement("div", {
+  }), tab === "appr" && (canAppr && window.LnApproveTab ? React.createElement(window.LnApproveTab, {
+    me: me,
+    role: role,
+    jobs: mine,
+    notify: notif.addNotif
+  }) : React.createElement("div", {
+    style: {
+      padding: 40,
+      textAlign: "center",
+      color: "var(--text-3)",
+      fontSize: 13.5
+    }
+  }, "\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E1B\u0E34\u0E14\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23")), tab === "bell" && (myNotifs.length === 0 ? React.createElement("div", {
     style: {
       padding: 40,
       textAlign: "center",

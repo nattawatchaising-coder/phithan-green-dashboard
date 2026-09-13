@@ -573,7 +573,9 @@ function LnDailyTab({
 }) {
   const [jobId, setJobId] = React.useState(() => ((jobs || [])[0] || {}).id || "");
   const [date, setDate] = React.useState(window.drToday());
+  const [jobType, setJobType] = React.useState("all");
   const store = window.useDailyReports(jobId || null);
+  const show = React.useMemo(() => (jobs || []).filter(j => jobType === "all" || (j.type || "home") === jobType), [jobs, jobType]);
   const job = (jobs || []).find(j => j.id === jobId) || null;
   const day = window.drDayState(store.byDate, date);
   if (!window.can(role, "editJob")) {
@@ -595,20 +597,33 @@ function LnDailyTab({
       display: "grid",
       gap: 9
     }
-  }, React.createElement("label", {
+  }, React.createElement("div", {
     style: {
       display: "grid",
-      gap: 5
+      gap: 6
     }
   }, React.createElement("span", {
     style: LN_DR_LABEL
-  }, "\u0E07\u0E32\u0E19"), React.createElement("select", {
+  }, "\u0E07\u0E32\u0E19"), (jobs || []).length > 1 && window.LnPick && React.createElement(window.LnPick, {
+    items: [{
+      key: "all",
+      th: "ทั้งหมด"
+    }].concat(((window.SF || {}).TYPES || []).map(t => ({
+      key: t.key,
+      th: t.th
+    }))),
+    value: jobType,
+    onPick: k => {
+      setJobType(k);
+      setJobId("");
+    }
+  }), React.createElement("select", {
     value: jobId,
     onChange: e => setJobId(e.target.value),
     style: LN_DR_FIELD
   }, React.createElement("option", {
     value: ""
-  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E07\u0E32\u0E19 \u2014"), (jobs || []).slice(0, 80).map(j => React.createElement("option", {
+  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E07\u0E32\u0E19 \u2014"), show.slice(0, 80).map(j => React.createElement("option", {
     key: j.id,
     value: j.id
   }, j.code, " \xB7 ", j.name)))), React.createElement("label", {
@@ -654,7 +669,7 @@ function LnDailyTab({
       fontSize: 13.5,
       lineHeight: 1.7
     }
-  }, (jobs || []).length === 0 ? "ยังไม่มีงานที่อยู่ระหว่างติดตั้งของคุณ — รายการนี้มีเฉพาะงานที่อยู่ขั้น “ดำเนินการติดตั้ง”" : "เลือกงานก่อน แล้วฟอร์มรายงานของวันนั้นจะขึ้นมา") : React.createElement(LnDailyForm, {
+  }, show.length === 0 && (jobs || []).length > 0 ? "ไม่มีงานประเภทนี้ที่คุณรับผิดชอบ — กด “ทั้งหมด” เพื่อดูทุกงาน" : (jobs || []).length === 0 ? "ยังไม่มีงานที่อยู่ระหว่างติดตั้งของคุณ — รายการนี้มีเฉพาะงานที่อยู่ขั้น “ดำเนินการติดตั้ง”" : "เลือกงานก่อน แล้วฟอร์มรายงานของวันนั้นจะขึ้นมา") : React.createElement(LnDailyForm, {
     me: me,
     role: role,
     job: job,
@@ -669,7 +684,7 @@ function LnDailyTab({
       lineHeight: 1.7,
       textAlign: "center"
     }
-  }, "\u0E01\u0E32\u0E23\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E30\u0E01\u0E32\u0E23\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E43\u0E1A A4 \u0E17\u0E33\u0E17\u0E35\u0E48\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E27\u0E47\u0E1A\u0E1A\u0E19\u0E04\u0E2D\u0E21\u0E1E\u0E34\u0E27\u0E40\u0E15\u0E2D\u0E23\u0E4C", React.createElement("br", null), "\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2A\u0E48\u0E07\u0E08\u0E32\u0E01\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48\u0E40\u0E1B\u0E47\u0E19\u0E43\u0E1A\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E1A\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A \u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E01\u0E23\u0E2D\u0E01\u0E0B\u0E49\u0E33"));
+  }, "\u0E04\u0E19\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E40\u0E0B\u0E47\u0E19\u0E23\u0E31\u0E1A\u0E23\u0E2D\u0E07\u0E43\u0E1A\u0E19\u0E35\u0E49\u0E44\u0E14\u0E49\u0E08\u0E32\u0E01\u0E41\u0E17\u0E47\u0E1A \u201C\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u201D \xB7 \u0E01\u0E32\u0E23\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E43\u0E1A A4 \u0E17\u0E33\u0E17\u0E35\u0E48\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E27\u0E47\u0E1A", React.createElement("br", null), "\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2A\u0E48\u0E07\u0E08\u0E32\u0E01\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48\u0E40\u0E1B\u0E47\u0E19\u0E43\u0E1A\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E1A\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A \u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E01\u0E23\u0E2D\u0E01\u0E0B\u0E49\u0E33"));
 }
 Object.assign(window, {
   LnDailyTab,

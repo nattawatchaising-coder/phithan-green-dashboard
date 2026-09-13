@@ -22,6 +22,10 @@ const LN_TAB = [
   { key: "time",  th: "เวลา",    icon: "clock" },
   { key: "daily", th: "รายงาน",  icon: "pen" },
   { key: "ec",    th: "เบิก",    icon: "wallet" },
+  /* แท็บอนุมัติขึ้นเฉพาะคนที่อนุมัติอะไรได้จริง (ดู lnCanApproveAny ใน liff-approve)
+     ช่างที่ไม่ได้อนุมัติอะไรเลยจะเหลือเจ็ดแท็บเท่าเดิม — และไม่ต้องแบกค่าเน็ต
+     ของโหนดใบเบิก/OT/รายงานทั้งบริษัทที่แท็บนั้น subscribe */
+  { key: "appr",  th: "อนุมัติ",  icon: "check" },
   { key: "bell",  th: "เตือน",   icon: "bell" },
   { key: "me",    th: "ฉัน",     icon: "user" },
 ];
@@ -57,7 +61,8 @@ const LN_START = (() => {
 })();
 
 /* ── แถบหัว ── */
-function LnHead({ tab, setTab, unread }) {
+function LnHead({ tab, setTab, unread, tabs }) {
+  const list = tabs && tabs.length ? tabs : LN_TAB;
   return (
     <div style={{ position: "sticky", top: 0, zIndex: 20, background: "var(--surface)", borderBottom: "1px solid var(--border)",
       paddingTop: "env(safe-area-inset-top, 0px)" }}>
@@ -65,7 +70,7 @@ function LnHead({ tab, setTab, unread }) {
         {window.BrandLockup ? <window.BrandLockup size={19} /> : <b>flash+solar</b>}
       </div>
       <div style={{ display: "flex" }}>
-        {LN_TAB.map((t) => {
+        {list.map((t) => {
           const on = tab === t.key;
           return (
             /* ไอคอนบน ตัวหนังสือล่าง — ห้าแท็บเรียงบรรทัดเดียวล้นจอ 360px ซึ่งเป็นจอที่ช่างใช้จริง */
@@ -817,9 +822,14 @@ function LnFixNew({ me, tickets, onSave, onClose }) {
   const siteStore = window.useOmSites();
   const [f, setF] = React.useState({ siteId: "", title: "", detail: "", category: "other", severity: "normal" });
   const set = (patch) => setF((o) => Object.assign({}, o, patch));
+  /* งานบ้านกับงานโครงการอยู่คนละโลก ทั้งคนที่ต้องคุยด้วยและของที่ต้องเตรียม
+     ทะเบียนไซต์ยาวเป็นยี่สิบกว่ารายการในช่องเดียว เลื่อนหาบนมือถือกลางแดดคือทางที่กดผิดไซต์ */
+  const [siteType, setSiteType] = React.useState("all");
 
-  const sites = React.useMemo(() => (siteStore.sites || []).slice().sort((a, b) =>
-    String(a.name || a.code || "").localeCompare(String(b.name || b.code || ""), "th")), [siteStore.sites]);
+  const sites = React.useMemo(() => (siteStore.sites || [])
+    .filter((x) => siteType === "all" || (x.type || "home") === siteType)
+    .slice().sort((a, b) =>
+    String(a.name || a.code || "").localeCompare(String(b.name || b.code || ""), "th")), [siteStore.sites, siteType]);
   const site = sites.filter((x) => x.id === f.siteId)[0] || null;
   const ready = !!site && !!f.title.trim();
 
@@ -853,13 +863,16 @@ function LnFixNew({ me, tickets, onSave, onClose }) {
         <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text-1)", marginBottom: 12 }}>เปิดใบแจ้งซ่อม</div>
 
         <div style={{ display: "grid", gap: 12 }}>
-          <label style={{ display: "grid", gap: 5 }}>
+          <div style={{ display: "grid", gap: 6 }}>
             <span style={label}>ไซต์ที่เกิดเรื่อง</span>
+            <LnPick items={[{ key: "all", th: "ทั้งหมด" }].concat(
+                (window.SF.TYPES || []).map((t) => ({ key: t.key, th: t.th })))}
+              value={siteType} onPick={(k) => { setSiteType(k); set({ siteId: "" }); }} />
             <select value={f.siteId} onChange={(e) => set({ siteId: e.target.value })} style={field}>
               <option value="">— เลือกไซต์ —</option>
               {sites.map((x) => <option key={x.id} value={x.id}>{(x.code || x.id) + " · " + (x.name || "")}</option>)}
             </select>
-          </label>
+          </div>
 
           <label style={{ display: "grid", gap: 5 }}>
             <span style={label}>อาการที่เจอ</span>
@@ -907,7 +920,9 @@ function LnFixNew({ me, tickets, onSave, onClose }) {
         {!ready && (
           <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)", textAlign: "center", lineHeight: 1.6 }}>
             {siteStore.loading ? "กำลังโหลดรายชื่อไซต์…"
-              : sites.length === 0 ? "ยังไม่มีไซต์ในทะเบียนบริการ — ต้องขึ้นทะเบียนไซต์ที่หน้า O&M บนเว็บก่อน"
+              : sites.length === 0 ? (siteType === "all"
+                  ? "ยังไม่มีไซต์ในทะเบียนบริการ — ต้องขึ้นทะเบียนไซต์ที่หน้า O&M บนเว็บก่อน"
+                  : "ไม่มีไซต์ประเภทนี้ในทะเบียน — กด “ทั้งหมด” เพื่อดูทุกไซต์")
               : !site ? "เลือกไซต์ก่อน" : "เขียนอาการที่เจอก่อน"}
           </div>
         )}
@@ -1178,6 +1193,14 @@ function LnApp() {
      (ลงเวลากับเบิกเงินยังใช้ work เหมือนเดิม เพราะไปสำรวจหรือซื้อของก่อนเริ่มติดตั้งได้) */
   const siteWork = React.useMemo(() => work.filter((j) => j.stage === "install"), [work]);
 
+  /* แท็บอนุมัติขึ้นกับใคร — คิดจากงานที่คนนี้เห็น (mine) ไม่ใช่ work
+     เพราะวิศวกรอนุมัติใบของงานที่ตัวเองคุม ซึ่งรวมถึงงานที่ปิดไปแล้วแต่ใบยังค้างอยู่ */
+  const canAppr = React.useMemo(
+    () => (me && window.lnCanApproveAny ? window.lnCanApproveAny(role, mine, me) : false),
+    [role, mine, me]);
+  const tabs = React.useMemo(
+    () => LN_TAB.filter((t) => t.key !== "appr" || canAppr), [canAppr]);
+
   /* แจ้งเตือนของฉัน — เงื่อนไขเดียวกับ myNotifs ใน app.jsx เป๊ะ */
   const myNotifs = React.useMemo(() => {
     if (!me) return [];
@@ -1192,7 +1215,7 @@ function LnApp() {
 
   return (
     <div style={{ minHeight: "100dvh", background: "var(--bg)" }}>
-      <LnHead tab={tab} setTab={setTab} unread={unread} />
+      <LnHead tab={tab} setTab={setTab} unread={unread} tabs={tabs} />
 
       {tab === "jobs" && (
         <React.Fragment>
@@ -1245,6 +1268,14 @@ function LnApp() {
       {tab === "daily" && <window.LnDailyTab me={me} role={role} jobs={siteWork} notify={notif.addNotif} />}
 
       {tab === "ec" && <window.LnEcTab me={me} users={auth.users} role={role} jobs={work} />}
+
+      {/* ⚠ ต้องเช็ก canAppr ด้วย ไม่ใช่เช็กแค่ค่า tab — คนที่เคยมีสิทธิ์แล้วถูกถอด
+          อาจค้างอยู่ที่แท็บนี้จาก ?tab= ในลิงก์เมนูล่าง */}
+      {tab === "appr" && (canAppr && window.LnApproveTab
+        ? <window.LnApproveTab me={me} role={role} jobs={mine} notify={notif.addNotif} />
+        : <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>
+            บัญชีนี้ยังไม่ได้เปิดสิทธิ์อนุมัติเอกสาร
+          </div>)}
 
       {tab === "bell" && (
         myNotifs.length === 0
