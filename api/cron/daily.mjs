@@ -19,6 +19,7 @@
    ============================================================ */
 
 import { ENV, json, rtdbGet, rtdbSet, pushMessage, todayTH, shortTH } from "../_lib/line.mjs";
+import { flexDigest, pushCard } from "../_lib/flex.mjs";
 
 /* แปลงนาทีเป็น "3 ชม. 30 น." — สำเนาเล็ก ๆ ของ tmDur (dashboard/attend.jsx)
    ตั้งใจไม่ import ข้ามฝั่ง เพราะโค้ดฝั่งหน้าเว็บเป็น JSX ที่ยังไม่ผ่าน build */
@@ -89,9 +90,11 @@ export async function GET(request) {
 
     if (!lines.length) continue;
 
+    /* การ์ดใบเดียวต่อคนต่อวันเหมือนเดิม — เปลี่ยนแค่หน้าตา ไม่ได้เปลี่ยนจำนวนที่ส่ง
+       ตัวหนังสือชุดเดิมยังประกอบไว้ ใช้เป็นตาข่ายรับเวลาการ์ดถูกปฏิเสธ (ดู pushCard) */
     const text = ["📍 สรุปตอนเย็น " + shortTH(date)].concat(lines).join("\n");
-    const r = await pushMessage(u.lineUserId, [{ type: "text", text: text.slice(0, 4900) }]);
-    results.push({ userId: u.id, ok: r.ok, status: r.status, err: r.err || "" });
+    const r = await pushCard(pushMessage, u.lineUserId, flexDigest(shortTH(date), lines), text);
+    results.push({ userId: u.id, ok: r.ok, status: r.status, err: r.err || "", fellback: !!r.fellback });
   }
 
   const at = new Date().toISOString();

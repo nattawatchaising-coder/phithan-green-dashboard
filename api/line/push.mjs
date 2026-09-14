@@ -14,6 +14,7 @@
    ============================================================ */
 
 import { ENV, json, body, rtdbGet, rtdbSet, pushMessage } from "../_lib/line.mjs";
+import { flexNotif, pushCard } from "../_lib/flex.mjs";
 
 /* ── สำเนาของ DEFAULT_PERMS (dashboard/auth.jsx) เฉพาะเท่าที่ใช้ตัดสิน toPerm ──
    ทุกวันนี้มีที่เดียวที่ใช้ toPerm คือ "permit" (app.jsx ตอนส่งข้อมูลขออนุญาต)
@@ -108,10 +109,14 @@ export async function POST(request) {
     n.jobName ? "งาน: " + n.jobName : "",
   ].filter(Boolean).join("\n");
 
+  /* ส่งเป็นการ์ด Flex — กดได้ทั้งใบ เข้าตรงแท็บที่เกี่ยวกับเรื่องนั้นในแอป
+     ตัวหนังสือชุดเดิมยังประกอบไว้ ใช้เป็นตาข่ายรับเวลาการ์ดถูกปฏิเสธ (ดู pushCard) */
+  const card = flexNotif(kind, n);
+
   const results = [];
   for (const u of targets) {
-    const r = await pushMessage(u.lineUserId, [{ type: "text", text: text.slice(0, 4900) }]);
-    results.push({ userId: u.id, ok: r.ok, status: r.status, err: r.err || "" });
+    const r = await pushCard(pushMessage, u.lineUserId, card, text);
+    results.push({ userId: u.id, ok: r.ok, status: r.status, err: r.err || "", fellback: !!r.fellback });
   }
 
   /* บันทึกไว้เสมอ แม้ไม่มีใครให้ส่ง — ตัวนับโควตารายเดือนกับการกันส่งซ้ำอ่านจากตรงนี้ */
