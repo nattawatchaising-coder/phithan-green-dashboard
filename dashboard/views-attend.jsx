@@ -719,6 +719,23 @@ function TmWorkHours({ cfg, onSave }) {
           <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ปัดเศษ OT ทีละ (นาที)</span>
           <input type="number" min={0} value={f.roundMins} onChange={(e) => set("roundMins", +e.target.value)} style={TM_IN_W} />
         </label>
+        <label style={TM_LB}>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ตัดยอด OT ทุกวันที่</span>
+          <input type="number" min={0} max={28} value={f.cutoffDay} onChange={(e) => set("cutoffDay", +e.target.value)} style={TM_IN_W} />
+        </label>
+      </div>
+
+      {/* วันตัดยอดเป็นค่าที่กรอกแล้วนึกภาพไม่ออกที่สุดในหน้านี้ — โชว์รอบปัจจุบันจริงให้ดูเลย */}
+      <div style={{ padding: "11px 13px", borderRadius: 12, background: "var(--surface2)",
+        border: "1px solid var(--border)", fontSize: 12, color: "var(--text-2)", lineHeight: 1.8 }}>
+        รอบตัดยอดตอนนี้ <b>{window.tmPeriodTH(window.tmPeriodOf(window.drToday(), f))}</b>
+        <br /><span style={{ color: "var(--text-3)" }}>
+          {window.tmWhNorm(f).cutoffDay
+            ? "ใบ OT ของวันที่ " + window.tmWhNorm(f).cutoffDay + " นับเข้ารอบนี้ · วันที่ " +
+              (window.tmWhNorm(f).cutoffDay + 1) + " เป็นต้นไปนับเข้ารอบถัดไป"
+            : "ใส่ 0 = ใช้เดือนปฏิทิน (วันที่ 1 ถึงสิ้นเดือน) · ถ้าฝ่ายบุคคลปิดยอดวันที่ 25 ให้ใส่ 25"}
+          <br />ตั้งได้ไม่เกินวันที่ 28 เพราะเดือนกุมภาพันธ์ไม่มีวันที่ 29-31 ทุกปี รอบจะหายไปเงียบ ๆ
+        </span>
       </div>
 
       {/* ตัวอย่างจริงสองเคส — ค่าตั้งชุดนี้อ่านจากช่องเปล่า ๆ แล้วนึกภาพไม่ออกว่าแปลว่าอะไร */}
@@ -770,7 +787,8 @@ function TmWorkHours({ cfg, onSave }) {
       </div>
 
       <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.7 }}>
-        ค่าพวกนี้ใช้คำนวณว่า “ช่วงเวลาที่ขอมานับเป็น OT กี่นาที” เท่านั้น
+        วันตัดยอดใช้แบ่งรอบในแท็บ “สรุป OT รายคน” และบนใบ OT ที่พิมพ์ออกไป ไม่ได้เปลี่ยนตัวใบที่เปิดไปแล้ว
+        <br />ค่าพวกนี้ใช้คำนวณว่า “ช่วงเวลาที่ขอมานับเป็น OT กี่นาที” เท่านั้น
         ระบบไม่คิดค่าตอบแทนให้ เพราะอัตราค่าแรงรายคนไม่ได้อยู่ในระบบนี้ — การเดาแทนฝ่ายบุคคลอันตรายกว่าไม่บอกเลย
         <br />การแก้ค่าที่นี่ไม่ย้อนไปเปลี่ยนใบเก่า ใบที่อนุมัติไปแล้วเก็บจำนวนนาทีไว้ในตัวใบของมันเอง
       </div>
@@ -780,6 +798,110 @@ function TmWorkHours({ cfg, onSave }) {
           style={{ padding: "10px 20px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff",
             cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 800 }}>บันทึกเวลาทำงาน</button>
       </div>
+    </div>
+  );
+}
+
+/* ── สรุป OT รายคน ตามรอบตัดยอด ──
+   แท็บนี้มีไว้ทำอย่างเดียว: หยิบใบ OT ของคนหนึ่งในรอบหนึ่ง แล้วพิมพ์ให้หัวหน้าเซ็น
+   แยกจาก "สรุปรายเดือน" เพราะรอบจ่ายเงินไม่จำเป็นต้องตรงกับเดือนปฏิทิน
+   (ตั้งวันตัดยอดได้ในหน้า "ตั้งค่าเวลาทำงาน") */
+function TmOtPeriod({ cfg, users, jobs, rows, byName }) {
+  const cut = window.tmWhNorm(cfg).cutoffDay;
+  const [period, setPeriod] = React.useState(() => window.tmPeriodOf(window.drToday(), cfg));
+  /* แอดมินเปลี่ยนวันตัดยอดแล้วรอบที่ค้างอยู่บนจอจะเป็นรอบของกติกาเก่า — ตั้งใหม่ให้เลย */
+  React.useEffect(() => { setPeriod(window.tmPeriodOf(window.drToday(), cfg)); }, [cut]);
+  const [onlyApproved, setOnlyApproved] = React.useState(false);
+  const [paper, setPaper] = React.useState(null);
+
+  const inRange = React.useMemo(() => (rows || []).filter((r) => window.tmInPeriod(r && r.date, period)), [rows, period]);
+  const people = React.useMemo(() => {
+    const src = onlyApproved ? inRange.filter((r) => r.status === "approved") : inRange;
+    return window.tmOtByPerson(src, users);
+  }, [inRange, users, onlyApproved]);
+
+  const tot = React.useMemo(() => people.reduce((a, g) => ({
+    slips: a.slips + g.rows.length, approved: a.approved + g.minsApproved, waiting: a.waiting + g.minsWaiting,
+  }), { slips: 0, approved: 0, waiting: 0 }), [people]);
+
+  const nav = (n) => setPeriod((p) => window.tmPeriodShift(p, n, cfg));
+  const hrs = (m) => (!m ? "—" : (Math.round((m / 60) * 100) / 100).toFixed(2));
+  const th = (t, align) => (
+    <th key={t} style={{ textAlign: align || "left", padding: "10px 13px", fontSize: 11.5, fontWeight: 800,
+      color: "var(--text-3)", borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" }}>{t}</th>
+  );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <button onClick={() => nav(-1)} style={Object.assign({}, TM_IN, { cursor: "pointer", fontWeight: 700 })}>‹ รอบก่อน</button>
+        <button onClick={() => setPeriod(window.tmPeriodOf(window.drToday(), cfg))}
+          style={Object.assign({}, TM_IN, { cursor: "pointer", fontWeight: 700 })}>รอบปัจจุบัน</button>
+        <button onClick={() => nav(1)} style={Object.assign({}, TM_IN, { cursor: "pointer", fontWeight: 700 })}>รอบถัดไป ›</button>
+        <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{window.tmPeriodTH(period)}</div>
+        <label style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5,
+          fontWeight: 700, color: "var(--text-2)", cursor: "pointer" }}>
+          <input type="checkbox" checked={onlyApproved} onChange={(e) => setOnlyApproved(e.target.checked)} style={{ width: 15, height: 15 }} />
+          พิมพ์เฉพาะใบที่อนุมัติแล้ว
+        </label>
+      </div>
+
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <TmStat label="คนที่มี OT ในรอบนี้" value={people.length} unit="คน" />
+        <TmStat label="ใบ OT ในรอบนี้" value={tot.slips} unit="ใบ" />
+        <TmStat label="อนุมัติแล้ว" value={hrs(tot.approved)} unit="ชม." />
+        <TmStat label="ยังรออนุมัติ" value={hrs(tot.waiting)} unit="ชม."
+          color={tot.waiting ? "#F59E0B" : "var(--text-1)"}
+          hint={tot.waiting ? "ต้องกดอนุมัติในระบบก่อน ไม่ใช่แค่เซ็นบนกระดาษ" : ""} />
+      </div>
+
+      <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 13, background: "var(--surface)" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead>
+            <tr style={{ background: "var(--surface2)" }}>
+              {th("ชื่อ")}{th("ใบ OT", "center")}{th("อนุมัติแล้ว (ชม.)", "center")}{th("รออนุมัติ (ชม.)", "center")}{th("")}
+            </tr>
+          </thead>
+          <tbody>
+            {people.length === 0 && (
+              <tr><td colSpan={5} style={{ padding: 26, textAlign: "center", color: "var(--text-3)" }}>
+                ไม่มีใบ OT ในรอบนี้{onlyApproved ? " (ที่อนุมัติแล้ว)" : ""}
+              </td></tr>
+            )}
+            {people.map((g) => (
+              <tr key={g.id || g.name} style={{ borderBottom: "1px solid var(--border)" }}>
+                <td style={{ padding: "9px 13px", fontWeight: 700, color: "var(--text-1)" }}>{g.name}</td>
+                <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)", fontWeight: 700 }}>{g.rows.length}</td>
+                <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)", fontWeight: 700 }}>{hrs(g.minsApproved)}</td>
+                <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)",
+                  color: g.minsWaiting ? "#F59E0B" : "var(--text-3)", fontWeight: g.minsWaiting ? 700 : 400 }}>{hrs(g.minsWaiting)}</td>
+                <td style={{ padding: "9px 13px", textAlign: "right" }}>
+                  <button onClick={() => setPaper(g)}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 9,
+                      border: "none", background: "var(--primary)", color: "#fff", cursor: "pointer",
+                      fontFamily: "inherit", fontSize: 12, fontWeight: 800 }}>
+                    <Icon name="file" size={13} color="#fff" /> พิมพ์ / PDF
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.7 }}>
+        ใบที่พิมพ์เป็นของคนละหนึ่งใบต่อหนึ่งรอบ มีวัน · ช่วงเวลา · งานที่ไปทำ · หน้าที่ที่ปฏิบัติ · และช่องเซ็นสามช่อง
+        (ผู้ขอ · หัวหน้างานผู้อนุมัติ · ฝ่ายบุคคล)
+        <br />รอบแบ่งตามวันตัดยอดที่ตั้งไว้ในหน้า “ตั้งค่าเวลาทำงาน”
+        {cut ? " — ตอนนี้ตัดทุกวันที่ " + cut : " — ตอนนี้ใช้เดือนปฏิทิน (ยังไม่ได้ตั้งวันตัดยอด)"}
+        <br />ใบที่ยังไม่อนุมัติก็พิมพ์ติดไปด้วยและขึ้นสถานะกำกับ เพื่อให้หัวหน้าเห็นครบว่าลูกน้องขออะไรมาบ้าง
+        — แต่ยอดรวมที่อนุมัติแล้วกับยอดที่ยังรอ แยกคนละบรรทัดบนกระดาษเสมอ
+      </div>
+
+      {paper && window.TmOtPaper && (
+        <window.TmOtPaper person={paper} period={period} rows={paper.rows} jobs={jobs} users={users}
+          byName={byName} onClose={() => setPaper(null)} />
+      )}
     </div>
   );
 }
@@ -848,6 +970,7 @@ function AttendView({ jobs, users, role, currentUser }) {
     .concat([["mine", "ใบ OT ของฉัน", "pen", roll.mineOpen]])
     .concat(canApprove ? [["inbox", "รอฉันอนุมัติ", "check", roll.waitingMine]] : [])
     .concat(canApprove || canAll ? [["all", "ใบ OT ทั้งหมด", "list", 0]] : [])
+    .concat([["otsum", "สรุป OT รายคน", "file", 0]])
     .concat(window.can(role, "manageUsers") ? [["cfg", "ตั้งค่าเวลาทำงาน", "settings", 0]] : []);
 
   const cur = (ot.rows || []).find((r) => r.id === open) || null;
@@ -901,6 +1024,9 @@ function AttendView({ jobs, users, role, currentUser }) {
 
       {tab === "month" && canAll && <TmMonth cfg={wh.cfg} users={users} ot={ot} />}
 
+      {tab === "otsum" && <TmOtPeriod cfg={wh.cfg} users={users} jobs={jobSorted} rows={visible}
+        byName={(currentUser || {}).name || ""} />}
+
       {tab === "cfg" && <TmWorkHours cfg={wh.cfg} onSave={wh.save} />}
 
       {(tab === "mine" || tab === "inbox" || tab === "all") && (
@@ -946,5 +1072,6 @@ function TmMyDays({ rows, cfg }) {
 }
 
 Object.assign(window, { TM_IN, TM_IN_W, TM_LB, AttendView, TmDaySheet, TmMonth, TmMyDays, TmOtModal, TmOtRow, TmWorkHours,
+  TmOtPeriod,
   tmExportMonthXlsx, tmOtSheetFor, tmSheetName,
   TmStat, TmPill, TM_IN, tmExportMonthXlsx });

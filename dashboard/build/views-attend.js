@@ -1876,7 +1876,36 @@ function TmWorkHours({
     value: f.roundMins,
     onChange: e => set("roundMins", +e.target.value),
     style: TM_IN_W
+  })), React.createElement("label", {
+    style: TM_LB
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, "\u0E15\u0E31\u0E14\u0E22\u0E2D\u0E14 OT \u0E17\u0E38\u0E01\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48"), React.createElement("input", {
+    type: "number",
+    min: 0,
+    max: 28,
+    value: f.cutoffDay,
+    onChange: e => set("cutoffDay", +e.target.value),
+    style: TM_IN_W
   }))), React.createElement("div", {
+    style: {
+      padding: "11px 13px",
+      borderRadius: 12,
+      background: "var(--surface2)",
+      border: "1px solid var(--border)",
+      fontSize: 12,
+      color: "var(--text-2)",
+      lineHeight: 1.8
+    }
+  }, "\u0E23\u0E2D\u0E1A\u0E15\u0E31\u0E14\u0E22\u0E2D\u0E14\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49 ", React.createElement("b", null, window.tmPeriodTH(window.tmPeriodOf(window.drToday(), f))), React.createElement("br", null), React.createElement("span", {
+    style: {
+      color: "var(--text-3)"
+    }
+  }, window.tmWhNorm(f).cutoffDay ? "ใบ OT ของวันที่ " + window.tmWhNorm(f).cutoffDay + " นับเข้ารอบนี้ · วันที่ " + (window.tmWhNorm(f).cutoffDay + 1) + " เป็นต้นไปนับเข้ารอบถัดไป" : "ใส่ 0 = ใช้เดือนปฏิทิน (วันที่ 1 ถึงสิ้นเดือน) · ถ้าฝ่ายบุคคลปิดยอดวันที่ 25 ให้ใส่ 25", React.createElement("br", null), "\u0E15\u0E31\u0E49\u0E07\u0E44\u0E14\u0E49\u0E44\u0E21\u0E48\u0E40\u0E01\u0E34\u0E19\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48 28 \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E01\u0E38\u0E21\u0E20\u0E32\u0E1E\u0E31\u0E19\u0E18\u0E4C\u0E44\u0E21\u0E48\u0E21\u0E35\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48 29-31 \u0E17\u0E38\u0E01\u0E1B\u0E35 \u0E23\u0E2D\u0E1A\u0E08\u0E30\u0E2B\u0E32\u0E22\u0E44\u0E1B\u0E40\u0E07\u0E35\u0E22\u0E1A \u0E46")), React.createElement("div", {
     style: {
       padding: "11px 13px",
       borderRadius: 12,
@@ -2023,7 +2052,7 @@ function TmWorkHours({
       color: "var(--text-3)",
       lineHeight: 1.7
     }
-  }, "\u0E04\u0E48\u0E32\u0E1E\u0E27\u0E01\u0E19\u0E35\u0E49\u0E43\u0E0A\u0E49\u0E04\u0E33\u0E19\u0E27\u0E13\u0E27\u0E48\u0E32 \u201C\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E02\u0E2D\u0E21\u0E32\u0E19\u0E31\u0E1A\u0E40\u0E1B\u0E47\u0E19 OT \u0E01\u0E35\u0E48\u0E19\u0E32\u0E17\u0E35\u201D \u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E04\u0E34\u0E14\u0E04\u0E48\u0E32\u0E15\u0E2D\u0E1A\u0E41\u0E17\u0E19\u0E43\u0E2B\u0E49 \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E2D\u0E31\u0E15\u0E23\u0E32\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E23\u0E32\u0E22\u0E04\u0E19\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A\u0E19\u0E35\u0E49 \u2014 \u0E01\u0E32\u0E23\u0E40\u0E14\u0E32\u0E41\u0E17\u0E19\u0E1D\u0E48\u0E32\u0E22\u0E1A\u0E38\u0E04\u0E04\u0E25\u0E2D\u0E31\u0E19\u0E15\u0E23\u0E32\u0E22\u0E01\u0E27\u0E48\u0E32\u0E44\u0E21\u0E48\u0E1A\u0E2D\u0E01\u0E40\u0E25\u0E22", React.createElement("br", null), "\u0E01\u0E32\u0E23\u0E41\u0E01\u0E49\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48\u0E44\u0E21\u0E48\u0E22\u0E49\u0E2D\u0E19\u0E44\u0E1B\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E43\u0E1A\u0E40\u0E01\u0E48\u0E32 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27\u0E40\u0E01\u0E47\u0E1A\u0E08\u0E33\u0E19\u0E27\u0E19\u0E19\u0E32\u0E17\u0E35\u0E44\u0E27\u0E49\u0E43\u0E19\u0E15\u0E31\u0E27\u0E43\u0E1A\u0E02\u0E2D\u0E07\u0E21\u0E31\u0E19\u0E40\u0E2D\u0E07"), React.createElement("div", null, React.createElement("button", {
+  }, "\u0E27\u0E31\u0E19\u0E15\u0E31\u0E14\u0E22\u0E2D\u0E14\u0E43\u0E0A\u0E49\u0E41\u0E1A\u0E48\u0E07\u0E23\u0E2D\u0E1A\u0E43\u0E19\u0E41\u0E17\u0E47\u0E1A \u201C\u0E2A\u0E23\u0E38\u0E1B OT \u0E23\u0E32\u0E22\u0E04\u0E19\u201D \u0E41\u0E25\u0E30\u0E1A\u0E19\u0E43\u0E1A OT \u0E17\u0E35\u0E48\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E2D\u0E2D\u0E01\u0E44\u0E1B \u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E15\u0E31\u0E27\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E40\u0E1B\u0E34\u0E14\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27", React.createElement("br", null), "\u0E04\u0E48\u0E32\u0E1E\u0E27\u0E01\u0E19\u0E35\u0E49\u0E43\u0E0A\u0E49\u0E04\u0E33\u0E19\u0E27\u0E13\u0E27\u0E48\u0E32 \u201C\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E02\u0E2D\u0E21\u0E32\u0E19\u0E31\u0E1A\u0E40\u0E1B\u0E47\u0E19 OT \u0E01\u0E35\u0E48\u0E19\u0E32\u0E17\u0E35\u201D \u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E04\u0E34\u0E14\u0E04\u0E48\u0E32\u0E15\u0E2D\u0E1A\u0E41\u0E17\u0E19\u0E43\u0E2B\u0E49 \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E2D\u0E31\u0E15\u0E23\u0E32\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E23\u0E32\u0E22\u0E04\u0E19\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A\u0E19\u0E35\u0E49 \u2014 \u0E01\u0E32\u0E23\u0E40\u0E14\u0E32\u0E41\u0E17\u0E19\u0E1D\u0E48\u0E32\u0E22\u0E1A\u0E38\u0E04\u0E04\u0E25\u0E2D\u0E31\u0E19\u0E15\u0E23\u0E32\u0E22\u0E01\u0E27\u0E48\u0E32\u0E44\u0E21\u0E48\u0E1A\u0E2D\u0E01\u0E40\u0E25\u0E22", React.createElement("br", null), "\u0E01\u0E32\u0E23\u0E41\u0E01\u0E49\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48\u0E44\u0E21\u0E48\u0E22\u0E49\u0E2D\u0E19\u0E44\u0E1B\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E43\u0E1A\u0E40\u0E01\u0E48\u0E32 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27\u0E40\u0E01\u0E47\u0E1A\u0E08\u0E33\u0E19\u0E27\u0E19\u0E19\u0E32\u0E17\u0E35\u0E44\u0E27\u0E49\u0E43\u0E19\u0E15\u0E31\u0E27\u0E43\u0E1A\u0E02\u0E2D\u0E07\u0E21\u0E31\u0E19\u0E40\u0E2D\u0E07"), React.createElement("div", null, React.createElement("button", {
     onClick: () => onSave(f),
     style: {
       padding: "10px 20px",
@@ -2037,6 +2066,226 @@ function TmWorkHours({
       fontWeight: 800
     }
   }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E27\u0E25\u0E32\u0E17\u0E33\u0E07\u0E32\u0E19")));
+}
+function TmOtPeriod({
+  cfg,
+  users,
+  jobs,
+  rows,
+  byName
+}) {
+  const cut = window.tmWhNorm(cfg).cutoffDay;
+  const [period, setPeriod] = React.useState(() => window.tmPeriodOf(window.drToday(), cfg));
+  React.useEffect(() => {
+    setPeriod(window.tmPeriodOf(window.drToday(), cfg));
+  }, [cut]);
+  const [onlyApproved, setOnlyApproved] = React.useState(false);
+  const [paper, setPaper] = React.useState(null);
+  const inRange = React.useMemo(() => (rows || []).filter(r => window.tmInPeriod(r && r.date, period)), [rows, period]);
+  const people = React.useMemo(() => {
+    const src = onlyApproved ? inRange.filter(r => r.status === "approved") : inRange;
+    return window.tmOtByPerson(src, users);
+  }, [inRange, users, onlyApproved]);
+  const tot = React.useMemo(() => people.reduce((a, g) => ({
+    slips: a.slips + g.rows.length,
+    approved: a.approved + g.minsApproved,
+    waiting: a.waiting + g.minsWaiting
+  }), {
+    slips: 0,
+    approved: 0,
+    waiting: 0
+  }), [people]);
+  const nav = n => setPeriod(p => window.tmPeriodShift(p, n, cfg));
+  const hrs = m => !m ? "—" : (Math.round(m / 60 * 100) / 100).toFixed(2);
+  const th = (t, align) => React.createElement("th", {
+    key: t,
+    style: {
+      textAlign: align || "left",
+      padding: "10px 13px",
+      fontSize: 11.5,
+      fontWeight: 800,
+      color: "var(--text-3)",
+      borderBottom: "1px solid var(--border)",
+      whiteSpace: "nowrap"
+    }
+  }, t);
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 12
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "center",
+      flexWrap: "wrap"
+    }
+  }, React.createElement("button", {
+    onClick: () => nav(-1),
+    style: Object.assign({}, TM_IN, {
+      cursor: "pointer",
+      fontWeight: 700
+    })
+  }, "\u2039 \u0E23\u0E2D\u0E1A\u0E01\u0E48\u0E2D\u0E19"), React.createElement("button", {
+    onClick: () => setPeriod(window.tmPeriodOf(window.drToday(), cfg)),
+    style: Object.assign({}, TM_IN, {
+      cursor: "pointer",
+      fontWeight: 700
+    })
+  }, "\u0E23\u0E2D\u0E1A\u0E1B\u0E31\u0E08\u0E08\u0E38\u0E1A\u0E31\u0E19"), React.createElement("button", {
+    onClick: () => nav(1),
+    style: Object.assign({}, TM_IN, {
+      cursor: "pointer",
+      fontWeight: 700
+    })
+  }, "\u0E23\u0E2D\u0E1A\u0E16\u0E31\u0E14\u0E44\u0E1B \u203A"), React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, window.tmPeriodTH(period)), React.createElement("label", {
+    style: {
+      marginLeft: "auto",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-2)",
+      cursor: "pointer"
+    }
+  }, React.createElement("input", {
+    type: "checkbox",
+    checked: onlyApproved,
+    onChange: e => setOnlyApproved(e.target.checked),
+    style: {
+      width: 15,
+      height: 15
+    }
+  }), "\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27")), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 10,
+      flexWrap: "wrap"
+    }
+  }, React.createElement(TmStat, {
+    label: "\u0E04\u0E19\u0E17\u0E35\u0E48\u0E21\u0E35 OT \u0E43\u0E19\u0E23\u0E2D\u0E1A\u0E19\u0E35\u0E49",
+    value: people.length,
+    unit: "\u0E04\u0E19"
+  }), React.createElement(TmStat, {
+    label: "\u0E43\u0E1A OT \u0E43\u0E19\u0E23\u0E2D\u0E1A\u0E19\u0E35\u0E49",
+    value: tot.slips,
+    unit: "\u0E43\u0E1A"
+  }), React.createElement(TmStat, {
+    label: "\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27",
+    value: hrs(tot.approved),
+    unit: "\u0E0A\u0E21."
+  }), React.createElement(TmStat, {
+    label: "\u0E22\u0E31\u0E07\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34",
+    value: hrs(tot.waiting),
+    unit: "\u0E0A\u0E21.",
+    color: tot.waiting ? "#F59E0B" : "var(--text-1)",
+    hint: tot.waiting ? "ต้องกดอนุมัติในระบบก่อน ไม่ใช่แค่เซ็นบนกระดาษ" : ""
+  })), React.createElement("div", {
+    style: {
+      overflowX: "auto",
+      border: "1px solid var(--border)",
+      borderRadius: 13,
+      background: "var(--surface)"
+    }
+  }, React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 13
+    }
+  }, React.createElement("thead", null, React.createElement("tr", {
+    style: {
+      background: "var(--surface2)"
+    }
+  }, th("ชื่อ"), th("ใบ OT", "center"), th("อนุมัติแล้ว (ชม.)", "center"), th("รออนุมัติ (ชม.)", "center"), th(""))), React.createElement("tbody", null, people.length === 0 && React.createElement("tr", null, React.createElement("td", {
+    colSpan: 5,
+    style: {
+      padding: 26,
+      textAlign: "center",
+      color: "var(--text-3)"
+    }
+  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A OT \u0E43\u0E19\u0E23\u0E2D\u0E1A\u0E19\u0E35\u0E49", onlyApproved ? " (ที่อนุมัติแล้ว)" : "")), people.map(g => React.createElement("tr", {
+    key: g.id || g.name,
+    style: {
+      borderBottom: "1px solid var(--border)"
+    }
+  }, React.createElement("td", {
+    style: {
+      padding: "9px 13px",
+      fontWeight: 700,
+      color: "var(--text-1)"
+    }
+  }, g.name), React.createElement("td", {
+    style: {
+      padding: "9px 13px",
+      textAlign: "center",
+      fontFamily: "var(--mono)",
+      fontWeight: 700
+    }
+  }, g.rows.length), React.createElement("td", {
+    style: {
+      padding: "9px 13px",
+      textAlign: "center",
+      fontFamily: "var(--mono)",
+      fontWeight: 700
+    }
+  }, hrs(g.minsApproved)), React.createElement("td", {
+    style: {
+      padding: "9px 13px",
+      textAlign: "center",
+      fontFamily: "var(--mono)",
+      color: g.minsWaiting ? "#F59E0B" : "var(--text-3)",
+      fontWeight: g.minsWaiting ? 700 : 400
+    }
+  }, hrs(g.minsWaiting)), React.createElement("td", {
+    style: {
+      padding: "9px 13px",
+      textAlign: "right"
+    }
+  }, React.createElement("button", {
+    onClick: () => setPaper(g),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "7px 13px",
+      borderRadius: 9,
+      border: "none",
+      background: "var(--primary)",
+      color: "#fff",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 800
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 13,
+    color: "#fff"
+  }), " \u0E1E\u0E34\u0E21\u0E1E\u0E4C / PDF"))))))), React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      lineHeight: 1.7
+    }
+  }, "\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E2D\u0E07\u0E04\u0E19\u0E25\u0E30\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E43\u0E1A\u0E15\u0E48\u0E2D\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E23\u0E2D\u0E1A \u0E21\u0E35\u0E27\u0E31\u0E19 \xB7 \u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32 \xB7 \u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E44\u0E1B\u0E17\u0E33 \xB7 \u0E2B\u0E19\u0E49\u0E32\u0E17\u0E35\u0E48\u0E17\u0E35\u0E48\u0E1B\u0E0F\u0E34\u0E1A\u0E31\u0E15\u0E34 \xB7 \u0E41\u0E25\u0E30\u0E0A\u0E48\u0E2D\u0E07\u0E40\u0E0B\u0E47\u0E19\u0E2A\u0E32\u0E21\u0E0A\u0E48\u0E2D\u0E07 (\u0E1C\u0E39\u0E49\u0E02\u0E2D \xB7 \u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19\u0E1C\u0E39\u0E49\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34 \xB7 \u0E1D\u0E48\u0E32\u0E22\u0E1A\u0E38\u0E04\u0E04\u0E25)", React.createElement("br", null), "\u0E23\u0E2D\u0E1A\u0E41\u0E1A\u0E48\u0E07\u0E15\u0E32\u0E21\u0E27\u0E31\u0E19\u0E15\u0E31\u0E14\u0E22\u0E2D\u0E14\u0E17\u0E35\u0E48\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49\u0E43\u0E19\u0E2B\u0E19\u0E49\u0E32 \u201C\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E40\u0E27\u0E25\u0E32\u0E17\u0E33\u0E07\u0E32\u0E19\u201D", cut ? " — ตอนนี้ตัดทุกวันที่ " + cut : " — ตอนนี้ใช้เดือนปฏิทิน (ยังไม่ได้ตั้งวันตัดยอด)", React.createElement("br", null), "\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E01\u0E47\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E15\u0E34\u0E14\u0E44\u0E1B\u0E14\u0E49\u0E27\u0E22\u0E41\u0E25\u0E30\u0E02\u0E36\u0E49\u0E19\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E01\u0E33\u0E01\u0E31\u0E1A \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E43\u0E2B\u0E49\u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E2B\u0E47\u0E19\u0E04\u0E23\u0E1A\u0E27\u0E48\u0E32\u0E25\u0E39\u0E01\u0E19\u0E49\u0E2D\u0E07\u0E02\u0E2D\u0E2D\u0E30\u0E44\u0E23\u0E21\u0E32\u0E1A\u0E49\u0E32\u0E07 \u2014 \u0E41\u0E15\u0E48\u0E22\u0E2D\u0E14\u0E23\u0E27\u0E21\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\u0E01\u0E31\u0E1A\u0E22\u0E2D\u0E14\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E23\u0E2D \u0E41\u0E22\u0E01\u0E04\u0E19\u0E25\u0E30\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E1A\u0E19\u0E01\u0E23\u0E30\u0E14\u0E32\u0E29\u0E40\u0E2A\u0E21\u0E2D"), paper && window.TmOtPaper && React.createElement(window.TmOtPaper, {
+    person: paper,
+    period: period,
+    rows: paper.rows,
+    jobs: jobs,
+    users: users,
+    byName: byName,
+    onClose: () => setPaper(null)
+  }));
 }
 function AttendView({
   jobs,
@@ -2106,7 +2355,7 @@ function AttendView({
       });
     }
   };
-  const TABS = [["day", "แผ่นเวลารายวัน", "calendar", 0]].concat(canAll ? [["month", "สรุปรายเดือน", "table", 0]] : []).concat([["mine", "ใบ OT ของฉัน", "pen", roll.mineOpen]]).concat(canApprove ? [["inbox", "รอฉันอนุมัติ", "check", roll.waitingMine]] : []).concat(canApprove || canAll ? [["all", "ใบ OT ทั้งหมด", "list", 0]] : []).concat(window.can(role, "manageUsers") ? [["cfg", "ตั้งค่าเวลาทำงาน", "settings", 0]] : []);
+  const TABS = [["day", "แผ่นเวลารายวัน", "calendar", 0]].concat(canAll ? [["month", "สรุปรายเดือน", "table", 0]] : []).concat([["mine", "ใบ OT ของฉัน", "pen", roll.mineOpen]]).concat(canApprove ? [["inbox", "รอฉันอนุมัติ", "check", roll.waitingMine]] : []).concat(canApprove || canAll ? [["all", "ใบ OT ทั้งหมด", "list", 0]] : []).concat([["otsum", "สรุป OT รายคน", "file", 0]]).concat(window.can(role, "manageUsers") ? [["cfg", "ตั้งค่าเวลาทำงาน", "settings", 0]] : []);
   const cur = (ot.rows || []).find(r => r.id === open) || null;
   const jobSorted = React.useMemo(() => (jobs || []).slice().sort((a, b) => String(a.code || "").localeCompare(String(b.code || ""))), [jobs]);
   return React.createElement("div", {
@@ -2234,6 +2483,12 @@ function AttendView({
     cfg: wh.cfg,
     users: users,
     ot: ot
+  }), tab === "otsum" && React.createElement(TmOtPeriod, {
+    cfg: wh.cfg,
+    users: users,
+    jobs: jobSorted,
+    rows: visible,
+    byName: (currentUser || {}).name || ""
   }), tab === "cfg" && React.createElement(TmWorkHours, {
     cfg: wh.cfg,
     onSave: wh.save
@@ -2348,6 +2603,7 @@ Object.assign(window, {
   TmOtModal,
   TmOtRow,
   TmWorkHours,
+  TmOtPeriod,
   tmExportMonthXlsx,
   tmOtSheetFor,
   tmSheetName,

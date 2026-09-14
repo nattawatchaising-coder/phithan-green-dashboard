@@ -91,6 +91,9 @@ const TM_WH_DEFAULT = {
   lunchMins: 60,         // พัก — อยู่ที่ทำงานแต่ไม่นับเป็นเวลาทำงาน
   days: [1, 2, 3, 4, 5, 6],
   minOtMins: 30, roundMins: 30, holidays: {},
+  /* วันตัดยอด OT — 0 = ใช้เดือนปฏิทิน (1 ถึงสิ้นเดือน)
+     ตั้ง 25 = รอบหนึ่งคือ 26 ของเดือนก่อน ถึง 25 ของเดือนนี้ */
+  cutoffDay: 0,
 };
 function tmWhNorm(cfg) {
   const c = Object.assign({}, TM_WH_DEFAULT, cfg || {});
@@ -109,6 +112,9 @@ function tmWhNorm(cfg) {
   /* roundMins = 0 แปลว่าไม่ปัด — ต้องยอมให้ตั้งได้ ไม่งั้นหารด้วยศูนย์ */
   c.roundMins = Math.max(0, +c.roundMins || 0);
   c.holidays = c.holidays && typeof c.holidays === "object" ? c.holidays : {};
+  /* เพดาน 28 ไม่ใช่ 31 — ตั้งวันที่ 30 แล้วรอบของกุมภาพันธ์จะไม่มีวันนั้นอยู่จริง
+     ต้องไปเดาแทนผู้ใช้ว่าหมายถึงสิ้นเดือนหรือวันที่ 28 ซึ่งเดาผิดแล้วยอดเงินเดือนเพี้ยนเงียบ ๆ */
+  c.cutoffDay = Math.min(28, Math.max(0, Math.round(+c.cutoffDay || 0)));
   if (tmHM(c.startEarly) == null) c.startEarly = TM_WH_DEFAULT.startEarly;
   if (tmHM(c.startLate) == null || tmHM(c.startLate) < tmHM(c.startEarly)) c.startLate = c.startEarly;
   /* start/end เป็นค่า "อนุมาน" ของวันที่ยังไม่มีใบลงเวลา — ของวันที่มีใบจริงให้ใช้ tmDayWindow
@@ -118,6 +124,65 @@ function tmWhNorm(cfg) {
   return c;
 }
 const tmIsHoliday = (dateISO, cfg) => !!tmWhNorm(cfg).holidays[String(dateISO || "").slice(0, 10)];
+
+/* ══ รอบตัดยอด OT ══
+   ฝ่ายบุคคลไม่ได้ปิดยอดวันสิ้นเดือนเสมอไป หลายที่ตัดวันที่ 25 เพื่อให้ทันรอบจ่ายเงินเดือน
+   ถ้าระบบยึดเดือนปฏิทินอย่างเดียว OT ปลายเดือนจะตกไปอยู่คนละรอบกับที่เขาจ่ายจริง
+   ทุกฟังก์ชันรับ-คืนเป็น ค.ศ. (YYYY-MM-DD) เสมอ · to อยู่ในรอบด้วย (รวมวันนั้น) */
+const tmDaysInMonth = (y, m) => new Date(y, m, 0).getDate();
+/* เลื่อนเดือนด้วยเลขล้วนแล้วหนีบวันที่ให้อยู่ในเดือนนั้นจริง (m เกิน 12 หรือ ต่ำกว่า 1 ได้) */
+function tmDayIn(y, m, d) {
+  const t = y * 12 + (m - 1);
+  const yy = Math.floor(t / 12), mm = (t % 12 + 12) % 12 + 1;
+  return yy + "-" + window.drPad2(mm) + "-" + window.drPad2(Math.min(Math.max(1, d), tmDaysInMonth(yy, mm)));
+}
+/* วันถัดไป — ใช้ Date เพราะต้องข้ามสิ้นเดือน/สิ้นปีให้ถูก แต่สร้างแบบเวลาท้องถิ่น ไม่ใช่ UTC */
+function tmNextDay(iso) {
+  const s = String(iso || "").slice(0, 10);
+  const d = new Date(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10) + 1);
+  return d.getFullYear() + "-" + window.drPad2(d.getMonth() + 1) + "-" + window.drPad2(d.getDate());
+}
+function tmPrevDay(iso) {
+  const s = String(iso || "").slice(0, 10);
+  const d = new Date(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10) - 1);
+  return d.getFullYear() + "-" + window.drPad2(d.getMonth() + 1) + "-" + window.drPad2(d.getDate());
+}
+
+/* รอบที่ครอบวันที่ที่ให้มา → { from, to, key, cut } · key = เดือนที่รอบไปจบ ใช้เป็นชื่อรอบ */
+function tmPeriodOf(dateISO, cfg) {
+  const cut = tmWhNorm(cfg).cutoffDay;
+  const iso = String(dateISO || window.drToday()).slice(0, 10);
+  const y = +iso.slice(0, 4), m = +iso.slice(5, 7), d = +iso.slice(8, 10);
+  if (!y || !m || !d) return tmPeriodOf(window.drToday(), cfg);
+  if (!cut) {
+    const from = tmDayIn(y, m, 1);
+    return { from: from, to: tmDayIn(y, m, 31), key: from.slice(0, 7), cut: 0 };
+  }
+  /* กดดูวันที่เลยวันตัดไปแล้ว = อยู่ในรอบที่จะไปจบเดือนหน้า */
+  const em = m + (d <= cut ? 0 : 1);
+  const to = tmDayIn(y, em, cut);
+  /* ต้นรอบ = วันถัดจากวันตัดของรอบก่อน ไม่ใช่ "วันที่ cut+1" ตรง ๆ
+     เพราะถ้าตัดวันที่ 28 เดือนกุมภาพันธ์จะไม่มีวันที่ 29 แล้วต้นรอบจะทับท้ายรอบก่อน */
+  return { from: tmNextDay(tmDayIn(y, em - 1, cut)), to: to, key: to.slice(0, 7), cut: cut };
+}
+/* เลื่อนรอบไปข้างหน้า/ถอยหลังทีละรอบ — เดินผ่านวันจริง ไม่ใช่บวกเดือน จึงไม่มีรอบหายหรือซ้ำ */
+function tmPeriodShift(p, n, cfg) {
+  let cur = p || tmPeriodOf(window.drToday(), cfg);
+  let k = Math.round(+n || 0);
+  while (k > 0) { cur = tmPeriodOf(tmNextDay(cur.to), cfg); k -= 1; }
+  while (k < 0) { cur = tmPeriodOf(tmPrevDay(cur.from), cfg); k += 1; }
+  return cur;
+}
+const tmInPeriod = (dateISO, p) => {
+  const s = String(dateISO || "").slice(0, 10);
+  return !!p && !!s && s >= p.from && s <= p.to;
+};
+/* ชื่อรอบบนหน้าจอและบนกระดาษ — พ.ศ. ตอนแสดงเท่านั้น */
+function tmPeriodTH(p) {
+  if (!p) return "—";
+  if (!p.cut) return tmYmTH(p.key);
+  return window.drDateTH(p.from) + " – " + window.drDateTH(p.to);
+}
 function tmIsWorkday(dateISO, cfg) {
   const c = tmWhNorm(cfg);
   if (c.holidays[String(dateISO || "").slice(0, 10)]) return false;
@@ -809,4 +874,5 @@ Object.assign(window, { tmNameOf,
   tmOtApprovers, tmOtPickApprover,
   useAttend, useAttendDay, useAttendWriter, useAttendAdmin, useOtClaims, useWorkHours, useAttendMonth,
   tmYm, tmYmNow, tmYmShift, tmYmTH, tmMonthDays, tmMonthRollup, TM_MONTH_TH,
+  tmDaysInMonth, tmDayIn, tmNextDay, tmPrevDay, tmPeriodOf, tmPeriodShift, tmInPeriod, tmPeriodTH,
 });

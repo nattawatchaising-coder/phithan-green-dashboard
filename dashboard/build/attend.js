@@ -46,7 +46,8 @@ const TM_WH_DEFAULT = {
   days: [1, 2, 3, 4, 5, 6],
   minOtMins: 30,
   roundMins: 30,
-  holidays: {}
+  holidays: {},
+  cutoffDay: 0
 };
 function tmWhNorm(cfg) {
   const c = Object.assign({}, TM_WH_DEFAULT, cfg || {});
@@ -62,6 +63,7 @@ function tmWhNorm(cfg) {
   c.minOtMins = Math.max(0, +c.minOtMins || 0);
   c.roundMins = Math.max(0, +c.roundMins || 0);
   c.holidays = c.holidays && typeof c.holidays === "object" ? c.holidays : {};
+  c.cutoffDay = Math.min(28, Math.max(0, Math.round(+c.cutoffDay || 0)));
   if (tmHM(c.startEarly) == null) c.startEarly = TM_WH_DEFAULT.startEarly;
   if (tmHM(c.startLate) == null || tmHM(c.startLate) < tmHM(c.startEarly)) c.startLate = c.startEarly;
   c.start = c.startEarly;
@@ -69,6 +71,70 @@ function tmWhNorm(cfg) {
   return c;
 }
 const tmIsHoliday = (dateISO, cfg) => !!tmWhNorm(cfg).holidays[String(dateISO || "").slice(0, 10)];
+const tmDaysInMonth = (y, m) => new Date(y, m, 0).getDate();
+function tmDayIn(y, m, d) {
+  const t = y * 12 + (m - 1);
+  const yy = Math.floor(t / 12),
+    mm = (t % 12 + 12) % 12 + 1;
+  return yy + "-" + window.drPad2(mm) + "-" + window.drPad2(Math.min(Math.max(1, d), tmDaysInMonth(yy, mm)));
+}
+function tmNextDay(iso) {
+  const s = String(iso || "").slice(0, 10);
+  const d = new Date(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10) + 1);
+  return d.getFullYear() + "-" + window.drPad2(d.getMonth() + 1) + "-" + window.drPad2(d.getDate());
+}
+function tmPrevDay(iso) {
+  const s = String(iso || "").slice(0, 10);
+  const d = new Date(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10) - 1);
+  return d.getFullYear() + "-" + window.drPad2(d.getMonth() + 1) + "-" + window.drPad2(d.getDate());
+}
+function tmPeriodOf(dateISO, cfg) {
+  const cut = tmWhNorm(cfg).cutoffDay;
+  const iso = String(dateISO || window.drToday()).slice(0, 10);
+  const y = +iso.slice(0, 4),
+    m = +iso.slice(5, 7),
+    d = +iso.slice(8, 10);
+  if (!y || !m || !d) return tmPeriodOf(window.drToday(), cfg);
+  if (!cut) {
+    const from = tmDayIn(y, m, 1);
+    return {
+      from: from,
+      to: tmDayIn(y, m, 31),
+      key: from.slice(0, 7),
+      cut: 0
+    };
+  }
+  const em = m + (d <= cut ? 0 : 1);
+  const to = tmDayIn(y, em, cut);
+  return {
+    from: tmNextDay(tmDayIn(y, em - 1, cut)),
+    to: to,
+    key: to.slice(0, 7),
+    cut: cut
+  };
+}
+function tmPeriodShift(p, n, cfg) {
+  let cur = p || tmPeriodOf(window.drToday(), cfg);
+  let k = Math.round(+n || 0);
+  while (k > 0) {
+    cur = tmPeriodOf(tmNextDay(cur.to), cfg);
+    k -= 1;
+  }
+  while (k < 0) {
+    cur = tmPeriodOf(tmPrevDay(cur.from), cfg);
+    k += 1;
+  }
+  return cur;
+}
+const tmInPeriod = (dateISO, p) => {
+  const s = String(dateISO || "").slice(0, 10);
+  return !!p && !!s && s >= p.from && s <= p.to;
+};
+function tmPeriodTH(p) {
+  if (!p) return "—";
+  if (!p.cut) return tmYmTH(p.key);
+  return window.drDateTH(p.from) + " – " + window.drDateTH(p.to);
+}
 function tmIsWorkday(dateISO, cfg) {
   const c = tmWhNorm(cfg);
   if (c.holidays[String(dateISO || "").slice(0, 10)]) return false;
@@ -878,5 +944,13 @@ Object.assign(window, {
   tmYmTH,
   tmMonthDays,
   tmMonthRollup,
-  TM_MONTH_TH
+  TM_MONTH_TH,
+  tmDaysInMonth,
+  tmDayIn,
+  tmNextDay,
+  tmPrevDay,
+  tmPeriodOf,
+  tmPeriodShift,
+  tmInPeriod,
+  tmPeriodTH
 });
