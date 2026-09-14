@@ -180,7 +180,7 @@ function RoofHandoverPaper({
       color: RP_SOFT,
       lineHeight: 1.6
     }
-  }, B.tel ? React.createElement("div", null, "\u0E42\u0E17\u0E23 ", B.tel) : null, B.site ? React.createElement("div", null, B.site) : null, React.createElement("div", {
+  }, B.tel ? React.createElement("div", null, "\u0E42\u0E17\u0E23 ", B.tel) : null, B.email ? React.createElement("div", null, B.email) : null, React.createElement("div", {
     style: {
       marginTop: 3
     }

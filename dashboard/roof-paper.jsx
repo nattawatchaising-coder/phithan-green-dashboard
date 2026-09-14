@@ -96,7 +96,7 @@ function RoofHandoverPaper({ job, rec, photos, onClose }) {
       </div>
       <div style={{ flexShrink: 0, textAlign: "right", fontSize: 9.5, color: RP_SOFT, lineHeight: 1.6 }}>
         {B.tel ? <div>โทร {B.tel}</div> : null}
-        {B.site ? <div>{B.site}</div> : null}
+        {B.email ? <div>{B.email}</div> : null}
         <div style={{ marginTop: 3 }}>Rev. <b style={{ color: RP_INK }}>{rev}</b></div>
         <div>Approved By: <b style={{ color: RP_INK }}>{r.approvedBy || "—"}</b></div>
       </div>
