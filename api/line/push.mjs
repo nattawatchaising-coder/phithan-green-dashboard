@@ -63,6 +63,38 @@ function kindOf(n) {
 }
 const KIND_ICON = { reject: "⚠️", permit: "📄", assign: "🔧", om: "🛠️", daily: "📝", expense: "💸", ot: "⏱️", attend: "📍", info: "🔔" };
 
+/* ── เติมชื่องานให้ใบแจ้งเตือน ──
+   ใบส่วนใหญ่ไม่ได้พกชื่องานมาด้วย พกแค่ id (omNotify ส่ง omSiteId · บางที่ส่ง jobId)
+   ผลคือการ์ดขึ้นแต่หัวเรื่องกับเวลา อ่านแล้วไม่รู้ว่าเป็นงานของใคร
+   เติมที่นี่จุดเดียวได้ผลกับใบเก่าทุกใบที่ยังไม่ได้ส่งด้วย ต่างจากการไล่แก้คนสร้างใบทีละที่
+   ซึ่งมีห้าไฟล์และแก้แล้วก็ยังช่วยใบที่เขียนไปแล้วไม่ได้
+
+   id มาจากฐานข้อมูลก็จริง แต่ต่อเข้า path ตรง ๆ ไม่ได้ — ตัวที่มี / หรือ . จะเปลี่ยน
+   ความหมายของ path ทั้งเส้น จึงรับเฉพาะรูปแบบ id ที่ระบบนี้ออกจริง */
+const idOk = (v) => /^[A-Za-z0-9_-]{1,60}$/.test(String(v || ""));
+
+export async function fillJob(n) {
+  if (n.jobName) return n;                       /* คนสร้างใบใส่มาแล้ว ไม่ต้องยุ่ง */
+  const grab = async (path, id) => {
+    if (!idOk(id)) return null;
+    return await rtdbGet(path + "/" + id).catch(() => null);
+  };
+  if (n.omSiteId) {
+    const site = await grab("omSites", n.omSiteId);
+    /* ไซต์ที่เปิดไว้โดยยังไม่ได้ตั้งชื่อจะมี name เป็นค่าว่าง — ใช้รหัสแทน
+       รหัสยังพาไปหาใบที่ถูกได้ ดีกว่าการ์ดที่ไม่บอกอะไรเลย */
+    n.jobName = (site && site.name) || "";
+    n.jobCode = n.jobCode || (site && site.code) || (idOk(n.omSiteId) ? n.omSiteId : "");
+    return n;
+  }
+  if (n.jobId) {
+    const job = await grab("jobs", n.jobId);
+    n.jobName = (job && job.name) || "";
+    n.jobCode = n.jobCode || (job && job.code) || (idOk(n.jobId) ? n.jobId : "");
+  }
+  return n;
+}
+
 /* ชื่อ export ต้องเป็น POST ห้ามใช้ `export default`
    Vercel ตีความ default export ว่าเป็นลายเซ็นเก่า (req, res) => void
    ซึ่ง req เป็น IncomingMessage ไม่มี .text() และค่าที่ return ถูกทิ้ง → 500 ทุกครั้ง
@@ -103,10 +135,13 @@ export async function POST(request) {
       (n.toPerm && canDo(u, n.toPerm, cfg))
     ));
 
+  /* เติมชื่องานก่อนประกอบทั้งการ์ดและตัวหนังสือสำรอง จะได้ไม่ต่างกันสองแบบ */
+  await fillJob(n).catch(() => {});
+
   const text = [
     (KIND_ICON[kind] || "🔔") + " " + (n.title || "แจ้งเตือน"),
     n.body || "",
-    n.jobName ? "งาน: " + n.jobName : "",
+    n.jobName ? "งาน: " + n.jobName : (n.jobCode ? "งาน: " + n.jobCode : ""),
   ].filter(Boolean).join("\n");
 
   /* ส่งเป็นการ์ด Flex — กดได้ทั้งใบ เข้าตรงแท็บที่เกี่ยวกับเรื่องนั้นในแอป
