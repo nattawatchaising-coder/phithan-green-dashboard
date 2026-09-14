@@ -6810,7 +6810,7 @@ function Plan3DEditor({
   }), sysOpen && typeof SolarWorkspace === "function" && React.createElement(SolarWorkspace, {
     job: job,
     st: st,
-    sys: st.sys || scBlankSys(),
+    sys: st.sys || suBlankSys(),
     onClose: () => setSysOpen(false),
     snap: () => {
       const t = tRef.current;

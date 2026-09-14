@@ -2824,6 +2824,10 @@ function SuCash({
     fill: "var(--text-3)"
   }, "\u0E1B\u0E35"));
 }
+let SU_BLANK = null;
+function suBlankSys() {
+  return SU_BLANK = SU_BLANK || scBlankSys();
+}
 function SolarWorkspace({
   job,
   st,
@@ -2840,14 +2844,14 @@ function SolarWorkspace({
       if (u) setSnapImg(u);
     }
   }, []);
-  const S = sys || scBlankSys();
+  const S = React.useMemo(() => sys || scBlankSys(), [sys]);
   const set = patch => onChange(Object.assign({}, S, patch));
   const B = window.BOQ || {};
   const stockPanels = B.PANELS || [],
     stockInv = B.INVERTERS || [],
     micros = B.MICRO || [];
-  const panel = scPanelSpec(S),
-    inv = scInvSpec(S);
+  const panel = React.useMemo(() => scPanelSpec(S), [S.panelModel, S.panel, stockPanels]);
+  const inv = React.useMemo(() => scInvSpec(S), [S.invModel, S.inv, stockInv]);
   const stockPanel = stockPanels.find(p => p.model === S.panelModel) || {};
   const stockInvRow = stockInv.find(p => p.model === S.invModel) || {};
   const srcOf = (ov, stock, key) => ov && ov[key] != null ? "edit" : stock[key] != null && stock[key] !== 0 ? "stock" : "def";
@@ -3082,7 +3086,7 @@ function SolarWorkspace({
       date: siteDate
     }, p)
   });
-  const meas = S.meas || {};
+  const meas = React.useMemo(() => S.meas || {}, [S.meas]);
   const setMeas = (id, p) => set({
     meas: Object.assign({}, meas, {
       [id]: Object.assign({}, meas[id] || {}, p)
@@ -7330,7 +7334,7 @@ function SolarDesignHost({
   return React.createElement(React.Fragment, null, React.createElement("style", null, typeof P3_CSS === "string" ? P3_CSS : ""), React.createElement(SolarWorkspace, {
     job: job,
     st: st,
-    sys: sysLocal || st.sys || scBlankSys(),
+    sys: sysLocal || st.sys || suBlankSys(),
     onClose: () => {
       flush();
       onClose();
@@ -7344,6 +7348,7 @@ function SolarDesignHost({
   }));
 }
 Object.assign(window, {
+  suBlankSys,
   SolarWorkspace,
   SolarDesignHost,
   SuVoltBand,

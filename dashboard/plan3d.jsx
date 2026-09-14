@@ -3675,7 +3675,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
         onClose={() => setSetPrep(null)} onDownload={doSetDownload} />}
       {/* เวิร์กสเปซออกแบบระบบ — ใช้ทิศ/มุมของแผงจากผังนี้ตรง ๆ (solarui.jsx) */}
       {sysOpen && typeof SolarWorkspace === "function" && (
-        <SolarWorkspace job={job} st={st} sys={st.sys || scBlankSys()} onClose={() => setSysOpen(false)}
+        <SolarWorkspace job={job} st={st} sys={st.sys || suBlankSys()} onClose={() => setSysOpen(false)}
           /* ถ่ายภาพฉาก 3 มิติตามมุมกล้องที่ผู้ใช้ตั้งไว้ ไปแปะในรายงาน (renderer เปิด preserveDrawingBuffer ไว้แล้ว) */
           snap={() => {
             const t = tRef.current;

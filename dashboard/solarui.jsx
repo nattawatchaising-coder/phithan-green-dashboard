@@ -1384,18 +1384,34 @@ function SuCash({ roi }) {
 /* ============================================================
    SolarWorkspace
    ============================================================ */
+/* กล่องระบบเปล่าใบเดียว ใช้ร่วมกันทุกที่
+   scBlankSys() คืนก้อนใหม่ทุกครั้งที่เรียก — ถ้าเรียกมันตรง ๆ ตอนส่ง prop
+   งานที่ยังไม่เคยออกแบบจะได้ "ข้อมูลชุดใหม่" ทุก render แล้วสั่งคิดเงาใหม่ทั้งชุดฟรี ๆ
+   (ไม่มีใครแก้ก้อนนี้ มีแต่ Object.assign({}, S, ...) สร้างใบใหม่ จึงใช้ใบเดียวร่วมกันได้) */
+let SU_BLANK = null;
+function suBlankSys() { return (SU_BLANK = SU_BLANK || scBlankSys()); }
+
 function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   const [step, setStep] = React.useState(0);
   /* ภาพฉาก 3 มิติสำหรับรายงาน — ถ่ายตอนเปิดหน้านี้ ตามมุมกล้องที่ผู้ใช้ตั้งไว้ล่าสุด */
   const [snapImg, setSnapImg] = React.useState(null);
   React.useEffect(() => { if (typeof snap === "function") { const u = snap(); if (u) setSnapImg(u); } }, []);
-  const S = sys || scBlankSys();
+  /* sys ว่าง = งานที่ยังไม่เคยออกแบบ — ต้องจำกล่องเปล่าใบเดิมไว้
+     ถ้าสร้างใหม่ทุก render ทุกการคำนวณข้างล่างจะเห็นว่า "ข้อมูลเปลี่ยน" แล้วคิดใหม่ทั้งหมด */
+  const S = React.useMemo(() => sys || scBlankSys(), [sys]);
   const set = (patch) => onChange(Object.assign({}, S, patch));
   const B = window.BOQ || {};
   const stockPanels = B.PANELS || [], stockInv = B.INVERTERS || [], micros = B.MICRO || [];
 
-  /* ── สเปคที่ใช้จริง (คลัง → แก้ทับ → ค่ากลาง) ── */
-  const panel = scPanelSpec(S), inv = scInvSpec(S);
+  /* ── สเปคที่ใช้จริง (คลัง → แก้ทับ → ค่ากลาง) ──
+     ⚠ ต้องจำก้อนนี้ไว้ ห้ามสร้างใหม่ทุก render
+     scPanelSpec/scInvSpec คืน Object.assign({}, ...) = ก้อนใหม่ทุกครั้งที่เรียก
+     แม้ค่าข้างในจะเหมือนเดิมเป๊ะ React เทียบ deps ด้วย === จึงถือว่า "เปลี่ยนแล้ว"
+     ทุก useMemo ที่มี panel/inv อยู่ใน deps จึงเสียเปล่า — คิดใหม่ทุกครั้งที่กดอะไรก็ตาม
+     ของหนักคือ ivYearSim (จำลอง 12 วัน ยิงลำแสงทุกแผง) · ivDaySim · scEnergy
+     งานหลังคาใหญ่หลักพันแผง = ค้างเป็นวินาทีทุกครั้งที่แตะปุ่ม */
+  const panel = React.useMemo(() => scPanelSpec(S), [S.panelModel, S.panel, stockPanels]);
+  const inv = React.useMemo(() => scInvSpec(S), [S.invModel, S.inv, stockInv]);
   const stockPanel = stockPanels.find((p) => p.model === S.panelModel) || {};
   const stockInvRow = stockInv.find((p) => p.model === S.invModel) || {};
   const srcOf = (ov, stock, key) => (ov && ov[key] != null ? "edit" : (stock[key] != null && stock[key] !== 0 ? "stock" : "def"));
@@ -1575,7 +1591,8 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   const site = Object.assign({ date: "", hour: null, wind: 1, mount: "close", tAmb: null, ghi: null, shade: 0, age: 0 }, S.site || {});
   const siteDate = site.date || new Date().toISOString().slice(0, 10);
   const setSite = (p) => set({ site: Object.assign({}, site, { date: siteDate }, p) });
-  const meas = S.meas || {};
+  /* S.meas ว่าง = ยังไม่เคยกรอกผลวัด — จำกล่องเปล่าใบเดิมไว้ ไม่งั้นตาราง I-V คิดใหม่ทุก render */
+  const meas = React.useMemo(() => S.meas || {}, [S.meas]);
   const setMeas = (id, p) => set({ meas: Object.assign({}, meas, { [id]: Object.assign({}, meas[id] || {}, p) }) });
   const par = React.useMemo(() => (typeof ivExtract === "function" ? ivExtract(panel) : null),
     [panel.voc, panel.isc, panel.vmp, panel.imp, panel.wp, panel.cells]);
@@ -3658,7 +3675,7 @@ function SolarDesignHost({ job, onClose }) {
     <React.Fragment>
       {/* เวิร์กสเปซใช้คลาส .p3-* ซึ่งปกติ Plan3DEditor เป็นคนใส่ CSS ให้ — เข้าตรงจึงต้องใส่เอง */}
       <style>{typeof P3_CSS === "string" ? P3_CSS : ""}</style>
-    <SolarWorkspace job={job} st={st} sys={sysLocal || st.sys || scBlankSys()} onClose={() => { flush(); onClose(); }}
+    <SolarWorkspace job={job} st={st} sys={sysLocal || st.sys || suBlankSys()} onClose={() => { flush(); onClose(); }}
       onChange={(s) => {
         setSysLocal(s);
         pend.current = s;
@@ -3669,4 +3686,4 @@ function SolarDesignHost({ job, onClose }) {
   );
 }
 
-Object.assign(window, { SolarWorkspace, SolarDesignHost, SuVoltBand, SuFacing, SU_CSS });
+Object.assign(window, { suBlankSys, SolarWorkspace, SolarDesignHost, SuVoltBand, SuFacing, SU_CSS });
