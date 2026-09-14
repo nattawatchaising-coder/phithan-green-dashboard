@@ -140,6 +140,28 @@ function rfSummary(rec, photoCount) {
     color: r.color
   };
 }
+function RfField({
+  label,
+  thai,
+  wide,
+  lbl,
+  sub,
+  children
+}) {
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 5,
+      gridColumn: wide ? "1 / -1" : "auto",
+      minWidth: 0
+    }
+  }, React.createElement("label", {
+    style: lbl
+  }, label, " ", React.createElement("span", {
+    style: sub
+  }, "(", thai, ")")), children);
+}
 function RoofHandoverModal({
   job,
   currentUser,
@@ -185,24 +207,6 @@ function RoofHandoverModal({
     padding: "9px 11px",
     fontSize: 13
   });
-  const Field = ({
-    label,
-    thai,
-    children,
-    wide
-  }) => React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 5,
-      gridColumn: wide ? "1 / -1" : "auto",
-      minWidth: 0
-    }
-  }, React.createElement("label", {
-    style: lbl
-  }, label, " ", React.createElement("span", {
-    style: sub
-  }, "(", thai, ")")), children);
   if (!f) {
     return React.createElement("div", {
       style: {
@@ -311,7 +315,9 @@ function RoofHandoverModal({
       gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
       gap: 12
     }
-  }, React.createElement(Field, {
+  }, React.createElement(RfField, {
+    lbl: lbl,
+    sub: sub,
     label: "To",
     thai: "\u0E40\u0E23\u0E35\u0E22\u0E19"
   }, React.createElement("input", {
@@ -319,21 +325,27 @@ function RoofHandoverModal({
     onChange: e => set("to", e.target.value),
     placeholder: "\u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A / \u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07\u0E2D\u0E32\u0E04\u0E32\u0E23",
     style: inp
-  })), React.createElement(Field, {
+  })), React.createElement(RfField, {
+    lbl: lbl,
+    sub: sub,
     label: "Project Name",
     thai: "\u0E0A\u0E37\u0E48\u0E2D\u0E42\u0E04\u0E23\u0E07\u0E01\u0E32\u0E23"
   }, React.createElement("input", {
     value: f.project,
     onChange: e => set("project", e.target.value),
     style: inp
-  })), React.createElement(Field, {
+  })), React.createElement(RfField, {
+    lbl: lbl,
+    sub: sub,
     label: "Contractor",
     thai: "\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E40\u0E2B\u0E21\u0E32"
   }, React.createElement("input", {
     value: f.contractor,
     onChange: e => set("contractor", e.target.value),
     style: inp
-  })), React.createElement(Field, {
+  })), React.createElement(RfField, {
+    lbl: lbl,
+    sub: sub,
     label: "Request Date",
     thai: "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E02\u0E2D"
   }, React.createElement("input", {
@@ -341,7 +353,9 @@ function RoofHandoverModal({
     value: f.reqDate,
     onChange: e => set("reqDate", e.target.value),
     style: inp
-  })), React.createElement(Field, {
+  })), React.createElement(RfField, {
+    lbl: lbl,
+    sub: sub,
     label: "Request to inspect",
     thai: "\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E01\u0E32\u0E23\u0E15\u0E23\u0E27\u0E08\u0E2A\u0E2D\u0E1A",
     wide: true
@@ -353,7 +367,9 @@ function RoofHandoverModal({
       resize: "vertical",
       lineHeight: 1.5
     })
-  })), React.createElement(Field, {
+  })), React.createElement(RfField, {
+    lbl: lbl,
+    sub: sub,
     label: "Inspection Date and Time",
     thai: "\u0E27\u0E31\u0E19\u0E41\u0E25\u0E30\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E15\u0E23\u0E27\u0E08\u0E2A\u0E2D\u0E1A"
   }, React.createElement("input", {
@@ -361,7 +377,9 @@ function RoofHandoverModal({
     value: f.inspAt,
     onChange: e => set("inspAt", e.target.value),
     style: inp
-  })), React.createElement(Field, {
+  })), React.createElement(RfField, {
+    lbl: lbl,
+    sub: sub,
     label: "Ref IR No.",
     thai: "\u0E2D\u0E49\u0E32\u0E07\u0E2D\u0E34\u0E07\u0E08\u0E32\u0E01 IR \u0E40\u0E25\u0E02\u0E17\u0E35\u0E48"
   }, React.createElement("input", {
@@ -369,7 +387,9 @@ function RoofHandoverModal({
     onChange: e => set("refIr", e.target.value),
     placeholder: "\u0E16\u0E49\u0E32\u0E21\u0E35",
     style: inp
-  })), React.createElement(Field, {
+  })), React.createElement(RfField, {
+    lbl: lbl,
+    sub: sub,
     label: "Request by",
     thai: "\u0E02\u0E2D\u0E42\u0E14\u0E22"
   }, React.createElement("input", {
@@ -377,7 +397,9 @@ function RoofHandoverModal({
     onChange: e => set("reqBy", e.target.value),
     placeholder: "\u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E02\u0E2D\u0E15\u0E23\u0E27\u0E08",
     style: inp
-  })), React.createElement(Field, {
+  })), React.createElement(RfField, {
+    lbl: lbl,
+    sub: sub,
     label: "Others",
     thai: "\u0E2D\u0E37\u0E48\u0E19 \u0E46"
   }, React.createElement("input", {
@@ -435,7 +457,9 @@ function RoofHandoverModal({
     onChange: e => set("resultOther", e.target.value),
     placeholder: "\u0E23\u0E30\u0E1A\u0E38\u0E1C\u0E25\u0E01\u0E32\u0E23\u0E15\u0E23\u0E27\u0E08",
     style: inp
-  })), React.createElement(Field, {
+  })), React.createElement(RfField, {
+    lbl: lbl,
+    sub: sub,
     label: "Note",
     thai: "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38",
     wide: true
@@ -464,28 +488,36 @@ function RoofHandoverModal({
       gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
       gap: 12
     }
-  }, React.createElement(Field, {
+  }, React.createElement(RfField, {
+    lbl: lbl,
+    sub: sub,
     label: "Issue By",
     thai: "\u0E1C\u0E39\u0E49\u0E2D\u0E2D\u0E01\u0E43\u0E1A \xB7 EPC"
   }, React.createElement("input", {
     value: f.issueBy,
     onChange: e => set("issueBy", e.target.value),
     style: inp
-  })), React.createElement(Field, {
+  })), React.createElement(RfField, {
+    lbl: lbl,
+    sub: sub,
     label: "Inspected By",
     thai: "\u0E1C\u0E39\u0E49\u0E15\u0E23\u0E27\u0E08\u0E2A\u0E2D\u0E1A \xB7 EPC"
   }, React.createElement("input", {
     value: f.inspectedBy,
     onChange: e => set("inspectedBy", e.target.value),
     style: inp
-  })), React.createElement(Field, {
+  })), React.createElement(RfField, {
+    lbl: lbl,
+    sub: sub,
     label: "Approved By",
     thai: "\u0E1C\u0E39\u0E49\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34 \xB7 Project Manager"
   }, React.createElement("input", {
     value: f.approvedBy,
     onChange: e => set("approvedBy", e.target.value),
     style: inp
-  })), React.createElement(Field, {
+  })), React.createElement(RfField, {
+    lbl: lbl,
+    sub: sub,
     label: "Approved by Client",
     thai: "\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E42\u0E14\u0E22\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32"
   }, React.createElement("input", {

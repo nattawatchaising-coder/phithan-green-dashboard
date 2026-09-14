@@ -113,6 +113,21 @@ function rfSummary(rec, photoCount) {
 /* ══════════════════════════════════════════════════
    ฟอร์มกรอกใบส่งมอบหลังคา
    ══════════════════════════════════════════════════ */
+
+/* หนึ่งช่องกรอก: หัวข้ออังกฤษ + ไทยในวงเล็บ ตามหน้าตาแบบฟอร์มจริง
+
+   ต้องประกาศไว้นอกคอมโพเนนต์แม่เท่านั้น — ถ้าไปประกาศข้างในฟอร์ม
+   ทุกครั้งที่พิมพ์ตัวอักษรมันจะกลายเป็นคอมโพเนนต์ "ชนิดใหม่" ในสายตา React
+   React จึงถอดของเก่าทิ้งแล้วสร้างใหม่ ทำให้เคอร์เซอร์หลุดออกจากช่องทุกตัวอักษร */
+function RfField({ label, thai, wide, lbl, sub, children }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 5, gridColumn: wide ? "1 / -1" : "auto", minWidth: 0 }}>
+      <label style={lbl}>{label} <span style={sub}>({thai})</span></label>
+      {children}
+    </div>
+  );
+}
+
 function RoofHandoverModal({ job, currentUser, onClose }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const store = useRoofHandover(job ? job.id : null);
@@ -141,13 +156,6 @@ function RoofHandoverModal({ job, currentUser, onClose }) {
   const sub = { fontSize: 10.5, color: "var(--text-3)", fontWeight: 500, textTransform: "none", letterSpacing: 0 };
   /* inputStyle เป็น const ระดับบนสุดของ form.jsx — สคริปต์ทุกไฟล์ใช้ขอบเขตร่วมกัน จึงเรียกตรงได้ */
   const inp = Object.assign({}, inputStyle, { padding: "9px 11px", fontSize: 13 });
-
-  const Field = ({ label, thai, children, wide }) => (
-    <div style={{ display: "flex", flexDirection: "column", gap: 5, gridColumn: wide ? "1 / -1" : "auto", minWidth: 0 }}>
-      <label style={lbl}>{label} <span style={sub}>({thai})</span></label>
-      {children}
-    </div>
-  );
 
   if (!f) {
     return (
@@ -181,34 +189,34 @@ function RoofHandoverModal({ job, currentUser, onClose }) {
           <div style={{ padding: 16, overflowY: "auto", display: "flex", flexDirection: "column", gap: 16 }}>
 
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
-              <Field label="To" thai="เรียน">
+              <RfField lbl={lbl} sub={sub} label="To" thai="เรียน">
                 <input value={f.to} onChange={(e) => set("to", e.target.value)} placeholder="ชื่อผู้รับ / เจ้าของอาคาร" style={inp} />
-              </Field>
-              <Field label="Project Name" thai="ชื่อโครงการ">
+              </RfField>
+              <RfField lbl={lbl} sub={sub} label="Project Name" thai="ชื่อโครงการ">
                 <input value={f.project} onChange={(e) => set("project", e.target.value)} style={inp} />
-              </Field>
-              <Field label="Contractor" thai="ผู้รับเหมา">
+              </RfField>
+              <RfField lbl={lbl} sub={sub} label="Contractor" thai="ผู้รับเหมา">
                 <input value={f.contractor} onChange={(e) => set("contractor", e.target.value)} style={inp} />
-              </Field>
-              <Field label="Request Date" thai="วันที่ขอ">
+              </RfField>
+              <RfField lbl={lbl} sub={sub} label="Request Date" thai="วันที่ขอ">
                 <input type="date" value={f.reqDate} onChange={(e) => set("reqDate", e.target.value)} style={inp} />
-              </Field>
-              <Field label="Request to inspect" thai="หัวข้อการตรวจสอบ" wide>
+              </RfField>
+              <RfField lbl={lbl} sub={sub} label="Request to inspect" thai="หัวข้อการตรวจสอบ" wide>
                 <textarea value={f.reqItems} onChange={(e) => set("reqItems", e.target.value)} rows={2}
                   style={Object.assign({}, inp, { resize: "vertical", lineHeight: 1.5 })} />
-              </Field>
-              <Field label="Inspection Date and Time" thai="วันและเวลาที่ตรวจสอบ">
+              </RfField>
+              <RfField lbl={lbl} sub={sub} label="Inspection Date and Time" thai="วันและเวลาที่ตรวจสอบ">
                 <input type="datetime-local" value={f.inspAt} onChange={(e) => set("inspAt", e.target.value)} style={inp} />
-              </Field>
-              <Field label="Ref IR No." thai="อ้างอิงจาก IR เลขที่">
+              </RfField>
+              <RfField lbl={lbl} sub={sub} label="Ref IR No." thai="อ้างอิงจาก IR เลขที่">
                 <input value={f.refIr} onChange={(e) => set("refIr", e.target.value)} placeholder="ถ้ามี" style={inp} />
-              </Field>
-              <Field label="Request by" thai="ขอโดย">
+              </RfField>
+              <RfField lbl={lbl} sub={sub} label="Request by" thai="ขอโดย">
                 <input value={f.reqBy} onChange={(e) => set("reqBy", e.target.value)} placeholder="ชื่อผู้ขอตรวจ" style={inp} />
-              </Field>
-              <Field label="Others" thai="อื่น ๆ">
+              </RfField>
+              <RfField lbl={lbl} sub={sub} label="Others" thai="อื่น ๆ">
                 <input value={f.others} onChange={(e) => set("others", e.target.value)} style={inp} />
-              </Field>
+              </RfField>
             </div>
 
             {/* ผลการตรวจสอบ — ติ๊กช่องเดียว เหมือนในแบบฟอร์มกระดาษ */}
@@ -235,28 +243,28 @@ function RoofHandoverModal({ job, currentUser, onClose }) {
               )}
             </div>
 
-            <Field label="Note" thai="หมายเหตุ" wide>
+            <RfField lbl={lbl} sub={sub} label="Note" thai="หมายเหตุ" wide>
               <textarea value={f.note} onChange={(e) => set("note", e.target.value)} rows={3}
                 placeholder='เช่น "หลังคาโซน B มีรอยรั่วเดิม 2 จุด ถ่ายรูปไว้แล้ว"'
                 style={Object.assign({}, inp, { resize: "vertical", lineHeight: 1.5 })} />
-            </Field>
+            </RfField>
 
             {/* ชื่อผู้ลงนาม — พิมพ์ลงบนใบให้ ส่วนลายเซ็นเซ็นบนกระดาษตามแบบฟอร์มเดิม */}
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <label style={lbl}>ผู้ลงนามท้ายใบ <span style={sub}>(เว้นว่างได้ — พิมพ์ออกมาเป็นช่องให้เซ็นสด)</span></label>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
-                <Field label="Issue By" thai="ผู้ออกใบ · EPC">
+                <RfField lbl={lbl} sub={sub} label="Issue By" thai="ผู้ออกใบ · EPC">
                   <input value={f.issueBy} onChange={(e) => set("issueBy", e.target.value)} style={inp} />
-                </Field>
-                <Field label="Inspected By" thai="ผู้ตรวจสอบ · EPC">
+                </RfField>
+                <RfField lbl={lbl} sub={sub} label="Inspected By" thai="ผู้ตรวจสอบ · EPC">
                   <input value={f.inspectedBy} onChange={(e) => set("inspectedBy", e.target.value)} style={inp} />
-                </Field>
-                <Field label="Approved By" thai="ผู้อนุมัติ · Project Manager">
+                </RfField>
+                <RfField lbl={lbl} sub={sub} label="Approved By" thai="ผู้อนุมัติ · Project Manager">
                   <input value={f.approvedBy} onChange={(e) => set("approvedBy", e.target.value)} style={inp} />
-                </Field>
-                <Field label="Approved by Client" thai="อนุมัติโดยลูกค้า">
+                </RfField>
+                <RfField lbl={lbl} sub={sub} label="Approved by Client" thai="อนุมัติโดยลูกค้า">
                   <input value={f.clientBy} onChange={(e) => set("clientBy", e.target.value)} style={inp} />
-                </Field>
+                </RfField>
               </div>
             </div>
 
