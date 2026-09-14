@@ -94,9 +94,10 @@ function TmDaySheet({
   const day = window.useAttendDay(date);
   const admin = window.useAttendAdmin(currentUser);
   const [msg, setMsg] = React.useState("");
+  const nameOf = r => window.tmNameOf(users, r.userId, r.name);
   const del = async r => {
     const ok = await window.askConfirm({
-      title: "ลบใบลงเวลาของ " + (r.name || r.userId) + "?",
+      title: "ลบใบลงเวลาของ " + nameOf(r) + "?",
       body: window.drDateTH(date, true) + " · " + (r.in || "—") + " – " + (r.out || "—") + " · " + window.tmDur(r.mins) + "\nลบแล้วคนคนนี้กดลงเวลาของวันนี้ใหม่ได้ตั้งแต่ต้น",
       ok: "ลบใบนี้",
       danger: true,
@@ -104,7 +105,7 @@ function TmDaySheet({
     });
     if (!ok) return;
     const res = await admin.removeDay(r.userId, date);
-    setMsg(res.ok ? "ลบใบลงเวลาของ " + (r.name || r.userId) + " แล้ว" : "ลบไม่สำเร็จ — " + res.why);
+    setMsg(res.ok ? "ลบใบลงเวลาของ " + nameOf(r) + " แล้ว" : "ลบไม่สำเร็จ — " + res.why);
   };
   const holiday = window.tmIsHoliday(date, cfg);
   const workday = window.tmIsWorkday(date, cfg);
@@ -259,7 +260,7 @@ function TmDaySheet({
       fontWeight: 700,
       color: "var(--text-1)"
     }
-  }, r.name || r.userId), React.createElement("td", {
+  }, nameOf(r)), React.createElement("td", {
     style: {
       padding: "9px 13px",
       textAlign: "center",
@@ -445,7 +446,7 @@ function TmMonth({
       color: "var(--text-1)"
     }
   }, window.tmYmTH(ym)), React.createElement("button", {
-    onClick: () => tmExportMonthXlsx(rows, days, ym),
+    onClick: () => tmExportMonthXlsx(rows, days, ym, (ot || {}).rows, users),
     style: {
       marginLeft: "auto",
       display: "inline-flex",
@@ -466,6 +467,13 @@ function TmMonth({
     size: 14,
     color: "#fff"
   }), " \u0E2D\u0E2D\u0E01\u0E44\u0E1F\u0E25\u0E4C Excel")), React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      lineHeight: 1.7,
+      marginTop: -4
+    }
+  }, "\u0E44\u0E1F\u0E25\u0E4C\u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E01\u0E21\u0E35\u0E41\u0E1C\u0E48\u0E19\u0E2A\u0E23\u0E38\u0E1B\u0E40\u0E27\u0E25\u0E32\u0E17\u0E33\u0E07\u0E32\u0E19\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E41\u0E1C\u0E48\u0E19 + ", React.createElement("b", null, "\u0E41\u0E1C\u0E48\u0E19 OT \u0E41\u0E22\u0E01\u0E23\u0E32\u0E22\u0E04\u0E19"), " \u0E04\u0E19\u0E25\u0E30\u0E41\u0E1C\u0E48\u0E19 (\u0E27\u0E31\u0E19 \xB7 \u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32 \xB7 \u0E2B\u0E19\u0E49\u0E32\u0E17\u0E35\u0E48\u0E17\u0E35\u0E48\u0E1B\u0E0F\u0E34\u0E1A\u0E31\u0E15\u0E34 \xB7 \u0E0A\u0E48\u0E2D\u0E07\u0E40\u0E0B\u0E47\u0E19\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E02\u0E2D\u0E07\u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32) \u0E40\u0E09\u0E1E\u0E32\u0E30\u0E04\u0E19\u0E17\u0E35\u0E48\u0E21\u0E35\u0E43\u0E1A OT \u0E43\u0E19\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E31\u0E49\u0E19"), React.createElement("div", {
     style: {
       display: "flex",
       gap: 10,
@@ -644,7 +652,7 @@ function TmMonth({
     }
   }, "\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E40\u0E27\u0E25\u0E32\u0E40\u0E02\u0E49\u0E32-\u0E2D\u0E2D\u0E01\u0E17\u0E35\u0E48\u0E1B\u0E31\u0E4A\u0E21\u0E44\u0E27\u0E49 \u0E2B\u0E31\u0E01\u0E1E\u0E31\u0E01\u0E01\u0E25\u0E32\u0E07\u0E27\u0E31\u0E19\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E17\u0E33\u0E07\u0E32\u0E19\u0E40\u0E01\u0E34\u0E19\u0E2B\u0E01\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07 \u0E15\u0E32\u0E21\u0E17\u0E35\u0E48\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49\u0E43\u0E19\u0E2B\u0E19\u0E49\u0E32 \u201C\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E40\u0E27\u0E25\u0E32\u0E17\u0E33\u0E07\u0E32\u0E19\u201D", React.createElement("br", null), "\u0E43\u0E1A\u0E17\u0E35\u0E48 \u201C\u0E25\u0E37\u0E21\u0E01\u0E14\u0E2D\u0E2D\u0E01\u201D \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E08\u0E30\u0E40\u0E1B\u0E47\u0E19\u0E28\u0E39\u0E19\u0E22\u0E4C \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E40\u0E14\u0E32\u0E40\u0E27\u0E25\u0E32\u0E40\u0E25\u0E34\u0E01\u0E07\u0E32\u0E19\u0E43\u0E2B\u0E49 \u2014 \u0E15\u0E49\u0E2D\u0E07\u0E16\u0E32\u0E21\u0E40\u0E08\u0E49\u0E32\u0E15\u0E31\u0E27\u0E41\u0E25\u0E49\u0E27\u0E41\u0E01\u0E49\u0E17\u0E35\u0E48\u0E15\u0E49\u0E19\u0E17\u0E32\u0E07", React.createElement("br", null), "OT \u0E19\u0E31\u0E1A\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\u0E41\u0E25\u0E30\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49 \xB7 \u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E22\u0E2D\u0E14\u0E08\u0E48\u0E32\u0E22 \u0E15\u0E49\u0E2D\u0E07\u0E1C\u0E48\u0E32\u0E19\u0E01\u0E32\u0E23\u0E15\u0E23\u0E27\u0E08\u0E02\u0E2D\u0E07\u0E1C\u0E39\u0E49\u0E21\u0E35\u0E2D\u0E33\u0E19\u0E32\u0E08\u0E01\u0E48\u0E2D\u0E19"));
 }
-function tmExportMonthXlsx(rows, days, ym) {
+function tmExportMonthXlsx(rows, days, ym, otRows, users) {
   if (!window.XLSX) {
     alert("ไม่พบไลบรารี Excel (ลองโหลดหน้าใหม่)");
     return;
@@ -923,7 +931,384 @@ function tmExportMonthXlsx(rows, days, ym) {
   }
   const wb = X.utils.book_new();
   X.utils.book_append_sheet(wb, ws, "เวลาทำงาน");
+  const otMine = {};
+  (otRows || []).forEach(o => {
+    if (!o || !o.userId) return;
+    if (window.tmYm(o.date) !== ym) return;
+    if (o.status !== "sent" && o.status !== "approved") return;
+    (otMine[o.userId] || (otMine[o.userId] = [])).push(o);
+  });
+  const used = {};
+  rows.forEach(r => {
+    const list = otMine[r.userId];
+    if (!list || !list.length) return;
+    list.sort((a, b) => String(a.date + a.from).localeCompare(String(b.date + b.from)));
+    X.utils.book_append_sheet(wb, tmOtSheetFor(X, r.name, list, ym, FONT, C), tmSheetName("OT " + r.name, used));
+  });
   X.writeFile(wb, "สรุปเวลาทำงาน_" + ym + ".xlsx");
+}
+function tmSheetName(raw, used) {
+  let n = String(raw || "OT").replace(/[:\\/?*[\]]/g, " ").trim().slice(0, 31) || "OT";
+  if (used[n]) {
+    let i = 2;
+    while (used[n.slice(0, 28) + " " + i]) i += 1;
+    n = n.slice(0, 28) + " " + i;
+  }
+  used[n] = 1;
+  return n;
+}
+function tmOtSheetFor(X, name, list, ym, FONT, C) {
+  const thin = {
+    style: "thin",
+    color: {
+      rgb: C.border
+    }
+  };
+  const boxAll = {
+    top: thin,
+    bottom: thin,
+    left: thin,
+    right: thin
+  };
+  const H = m => !m ? 0 : Math.round(m / 60 * 100) / 100;
+  const cols = ["ลำดับ", "วันที่", "ตั้งแต่", "ถึง", "รวม (ชม.)", "ประเภท", "งาน", "ปฏิบัติหน้าที่", "สถานะในระบบ", "ผู้อนุมัติในระบบ"];
+  const lastC = cols.length - 1;
+  const aoa = [],
+    merges = [],
+    meta = [],
+    rowsH = [];
+  let R = 0;
+  const push = (cells, type, hpt) => {
+    aoa.push(cells);
+    meta[R] = type;
+    if (hpt) rowsH[R] = {
+      hpt: hpt
+    };
+    R += 1;
+  };
+  const full = r => merges.push({
+    s: {
+      r: r,
+      c: 0
+    },
+    e: {
+      r: r,
+      c: lastC
+    }
+  });
+  push(["ใบขออนุมัติทำงานล่วงเวลา (OT)"], "title", 30);
+  full(R - 1);
+  push([name + " · " + window.tmYmTH(ym)], "subtitle", 22);
+  full(R - 1);
+  push([], "spacer", 6);
+  push(cols, "head", 26);
+  let approved = 0,
+    waiting = 0,
+    alt = false;
+  list.forEach((o, i) => {
+    const mins = +o.mins || 0;
+    if (o.status === "approved") approved += mins;else waiting += mins;
+    push([i + 1, window.drDateTH(o.date), o.from || "", o.to || "", H(mins), window.tmOtKindOf(o.kind).th, o.jobCode || "—", o.reason || "", window.tmOtStatusOf(o.status).th, o.approverName || "—"], alt ? "itemAlt" : "item", 19);
+    alt = !alt;
+  });
+  push(["รวมที่อนุมัติแล้วในระบบ", "", "", "", H(approved), "ชั่วโมง", "", "", "", ""], "total", 24);
+  merges.push({
+    s: {
+      r: R - 1,
+      c: 0
+    },
+    e: {
+      r: R - 1,
+      c: 3
+    }
+  });
+  push(["ยังรออนุมัติในระบบ", "", "", "", H(waiting), "ชั่วโมง", "", "", "", ""], waiting ? "warnRow" : "muted", 22);
+  merges.push({
+    s: {
+      r: R - 1,
+      c: 0
+    },
+    e: {
+      r: R - 1,
+      c: 3
+    }
+  });
+  push([], "spacer", 14);
+  push(["ลงชื่อผู้ขอ ..............................................", "", "", "", "ลงชื่อหัวหน้างานผู้อนุมัติ ..............................................", "", "", "", "", ""], "sign", 34);
+  merges.push({
+    s: {
+      r: R - 1,
+      c: 0
+    },
+    e: {
+      r: R - 1,
+      c: 3
+    }
+  });
+  merges.push({
+    s: {
+      r: R - 1,
+      c: 4
+    },
+    e: {
+      r: R - 1,
+      c: lastC
+    }
+  });
+  push(["(" + name + ")", "", "", "", "(..............................................)  วันที่ ........./........./.........", "", "", "", "", ""], "signSub", 22);
+  merges.push({
+    s: {
+      r: R - 1,
+      c: 0
+    },
+    e: {
+      r: R - 1,
+      c: 3
+    }
+  });
+  merges.push({
+    s: {
+      r: R - 1,
+      c: 4
+    },
+    e: {
+      r: R - 1,
+      c: lastC
+    }
+  });
+  push([], "spacer", 8);
+  push(["เวลาในใบนี้เป็นเวลาที่ผู้ขอกรอกเอง ไม่ใช่เวลาที่ระบบจับได้ — ถ้าไม่แน่ใจให้เทียบกับแผ่น “เวลาทำงาน” ของวันนั้น"], "foot", 16);
+  full(R - 1);
+  push(["การเซ็นบนกระดาษไม่ได้เปลี่ยนสถานะในระบบ ใบที่ยังรออนุมัติต้องกดอนุมัติในระบบด้วย"], "foot", 16);
+  full(R - 1);
+  const ws = X.utils.aoa_to_sheet(aoa);
+  ws["!merges"] = merges;
+  ws["!cols"] = [{
+    wch: 6
+  }, {
+    wch: 15
+  }, {
+    wch: 8
+  }, {
+    wch: 8
+  }, {
+    wch: 10
+  }, {
+    wch: 17
+  }, {
+    wch: 12
+  }, {
+    wch: 42
+  }, {
+    wch: 13
+  }, {
+    wch: 18
+  }];
+  ws["!rows"] = rowsH;
+  const styleCell = (r, c) => {
+    const t = meta[r];
+    if (t === "spacer") return null;
+    const s = {
+      font: {
+        name: FONT,
+        sz: 10.5,
+        color: {
+          rgb: C.text
+        }
+      },
+      alignment: {
+        vertical: "center"
+      }
+    };
+    if (t === "title") {
+      s.font = {
+        name: FONT,
+        sz: 15,
+        bold: true,
+        color: {
+          rgb: C.white
+        }
+      };
+      s.fill = {
+        patternType: "solid",
+        fgColor: {
+          rgb: C.brand
+        }
+      };
+      s.alignment = {
+        horizontal: "center",
+        vertical: "center"
+      };
+    } else if (t === "subtitle") {
+      s.font = {
+        name: FONT,
+        sz: 12,
+        bold: true,
+        color: {
+          rgb: C.brandDk
+        }
+      };
+      s.fill = {
+        patternType: "solid",
+        fgColor: {
+          rgb: C.brandSoft
+        }
+      };
+      s.alignment = {
+        horizontal: "center",
+        vertical: "center"
+      };
+    } else if (t === "head") {
+      s.font = {
+        name: FONT,
+        sz: 10,
+        bold: true,
+        color: {
+          rgb: C.white
+        }
+      };
+      s.fill = {
+        patternType: "solid",
+        fgColor: {
+          rgb: C.brand
+        }
+      };
+      s.alignment = {
+        horizontal: "center",
+        vertical: "center",
+        wrapText: true
+      };
+      s.border = boxAll;
+    } else if (t === "total") {
+      s.font = {
+        name: FONT,
+        sz: 11,
+        bold: true,
+        color: {
+          rgb: C.white
+        }
+      };
+      s.fill = {
+        patternType: "solid",
+        fgColor: {
+          rgb: C.brandDk
+        }
+      };
+      s.alignment = {
+        horizontal: c <= 3 ? "left" : "center",
+        vertical: "center"
+      };
+      s.border = boxAll;
+      if (c === 4) s.numFmt = "0.00";
+    } else if (t === "warnRow") {
+      s.font = {
+        name: FONT,
+        sz: 10.5,
+        bold: true,
+        color: {
+          rgb: C.warnTx
+        }
+      };
+      s.fill = {
+        patternType: "solid",
+        fgColor: {
+          rgb: C.warn
+        }
+      };
+      s.alignment = {
+        horizontal: c <= 3 ? "left" : "center",
+        vertical: "center"
+      };
+      s.border = boxAll;
+      if (c === 4) s.numFmt = "0.00";
+    } else if (t === "muted") {
+      s.font = {
+        name: FONT,
+        sz: 10.5,
+        color: {
+          rgb: C.sub
+        }
+      };
+      s.alignment = {
+        horizontal: c <= 3 ? "left" : "center",
+        vertical: "center"
+      };
+      s.border = boxAll;
+      if (c === 4) s.numFmt = "0.00";
+    } else if (t === "sign") {
+      s.font = {
+        name: FONT,
+        sz: 11,
+        color: {
+          rgb: C.text
+        }
+      };
+      s.alignment = {
+        horizontal: "left",
+        vertical: "bottom"
+      };
+    } else if (t === "signSub") {
+      s.font = {
+        name: FONT,
+        sz: 10,
+        color: {
+          rgb: C.sub
+        }
+      };
+      s.alignment = {
+        horizontal: "left",
+        vertical: "top"
+      };
+    } else if (t === "foot") {
+      s.font = {
+        name: FONT,
+        sz: 9.5,
+        color: {
+          rgb: C.sub
+        }
+      };
+    } else if (t === "item" || t === "itemAlt") {
+      if (t === "itemAlt") s.fill = {
+        patternType: "solid",
+        fgColor: {
+          rgb: C.alt
+        }
+      };
+      s.border = boxAll;
+      if (c === 7) s.alignment = {
+        horizontal: "left",
+        vertical: "center",
+        wrapText: true
+      };else if (c === 1 || c === 5) s.alignment = {
+        horizontal: "left",
+        vertical: "center"
+      };else {
+        s.alignment = {
+          horizontal: "center",
+          vertical: "center"
+        };
+        if (c === 4) s.numFmt = "0.00";
+      }
+    }
+    return s;
+  };
+  const range = X.utils.decode_range(ws["!ref"]);
+  for (let r = range.s.r; r <= range.e.r; r++) {
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const ref = X.utils.encode_cell({
+        r: r,
+        c: c
+      });
+      const st = styleCell(r, c);
+      if (!st) continue;
+      if (!ws[ref]) ws[ref] = {
+        t: "s",
+        v: ""
+      };
+      ws[ref].s = st;
+    }
+  }
+  return ws;
 }
 function TmOtModal({
   rec,
@@ -999,7 +1384,7 @@ function TmOtModal({
       fontWeight: 800,
       color: "var(--text-1)"
     }
-  }, f.userName)), React.createElement(TmPill, {
+  }, window.tmNameOf(users, f.userId, f.userName))), React.createElement(TmPill, {
     s: f.status
   }), React.createElement("button", {
     onClick: onClose,
@@ -1320,6 +1705,7 @@ function TmOtModal({
 }
 function TmOtRow({
   rec,
+  users,
   onOpen
 }) {
   const k = window.tmOtKindOf(rec.kind);
@@ -1356,7 +1742,7 @@ function TmOtRow({
       fontWeight: 800,
       color: "var(--text-1)"
     }
-  }, rec.userName), React.createElement("span", {
+  }, window.tmNameOf(users, rec.userId, rec.userName)), React.createElement("span", {
     style: {
       padding: "2px 8px",
       borderRadius: 99,
@@ -1898,6 +2284,7 @@ function AttendView({
   }, tab === "inbox" ? "ไม่มีใบรอคุณอนุมัติ" : "ยังไม่มีใบ OT") : list.map(r => React.createElement(TmOtRow, {
     key: r.id,
     rec: r,
+    users: users,
     onOpen: x => setOpen(x.id)
   })))), cur && React.createElement(TmOtModal, {
     rec: cur,
@@ -1980,6 +2367,9 @@ Object.assign(window, {
   TmOtModal,
   TmOtRow,
   TmWorkHours,
+  tmExportMonthXlsx,
+  tmOtSheetFor,
+  tmSheetName,
   TmStat,
   TmPill,
   TM_IN,

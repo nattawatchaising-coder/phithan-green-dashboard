@@ -45,16 +45,19 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
      ต้องมีบรรทัดบอกว่าลบของใครไปแล้ว ไม่ใช่ให้เดาจากตารางที่สั้นลงหนึ่งแถว */
   const [msg, setMsg] = React.useState("");
 
+  /* ชื่อจากทะเบียนผู้ใช้ ไม่ใช่ชื่อที่ถ่ายสำเนาไว้ในใบตอนปั๊มเวลา — ดู tmNameOf */
+  const nameOf = (r) => window.tmNameOf(users, r.userId, r.name);
+
   const del = async (r) => {
     const ok = await window.askConfirm({
-      title: "ลบใบลงเวลาของ " + (r.name || r.userId) + "?",
+      title: "ลบใบลงเวลาของ " + nameOf(r) + "?",
       body: window.drDateTH(date, true) + " · " + (r.in || "—") + " – " + (r.out || "—") +
         " · " + window.tmDur(r.mins) + "\nลบแล้วคนคนนี้กดลงเวลาของวันนี้ใหม่ได้ตั้งแต่ต้น",
       ok: "ลบใบนี้", danger: true, icon: "trash",
     });
     if (!ok) return;
     const res = await admin.removeDay(r.userId, date);
-    setMsg(res.ok ? "ลบใบลงเวลาของ " + (r.name || r.userId) + " แล้ว" : "ลบไม่สำเร็จ — " + res.why);
+    setMsg(res.ok ? "ลบใบลงเวลาของ " + nameOf(r) + " แล้ว" : "ลบไม่สำเร็จ — " + res.why);
   };
   const holiday = window.tmIsHoliday(date, cfg);
   const workday = window.tmIsWorkday(date, cfg);
@@ -109,7 +112,7 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
             )}
             {(day.rows || []).map((r) => (
               <tr key={r.userId} style={{ borderBottom: "1px solid var(--border)" }}>
-                <td style={{ padding: "9px 13px", fontWeight: 700, color: "var(--text-1)" }}>{r.name || r.userId}</td>
+                <td style={{ padding: "9px 13px", fontWeight: 700, color: "var(--text-1)" }}>{nameOf(r)}</td>
                 <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)", fontWeight: 700 }}>{r.in || "—"}</td>
                 <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)", fontWeight: 700,
                   color: r.in && !r.out ? "#EF4444" : "var(--text-1)" }}>{r.out || (r.in ? "ยังไม่ออก" : "—")}</td>
@@ -189,12 +192,18 @@ function TmMonth({ cfg, users, ot }) {
         <button onClick={() => setYm(window.tmYmShift(ym, 1))} style={Object.assign({}, TM_IN, { cursor: "pointer", fontWeight: 700 })}>เดือนถัดไป ›</button>
         <button onClick={() => setYm(window.tmYmNow())} style={Object.assign({}, TM_IN, { cursor: "pointer", fontWeight: 700 })}>เดือนนี้</button>
         <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{window.tmYmTH(ym)}</div>
-        <button onClick={() => tmExportMonthXlsx(rows, days, ym)}
+        <button onClick={() => tmExportMonthXlsx(rows, days, ym, (ot || {}).rows, users)}
           style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: 10,
             border: "none", background: "var(--primary)", color: "#fff", cursor: "pointer", fontFamily: "inherit",
             fontSize: 12.5, fontWeight: 800 }}>
           <Icon name="file" size={14} color="#fff" /> ออกไฟล์ Excel
         </button>
+      </div>
+
+      {/* บอกไว้ตรงนี้เลยว่าในไฟล์มีอะไร ไม่ใช่ให้เปิดไฟล์แล้วค่อยเซอร์ไพรส์ว่ามีกี่แผ่น */}
+      <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.7, marginTop: -4 }}>
+        ไฟล์ที่ออกมีแผ่นสรุปเวลาทำงานหนึ่งแผ่น + <b>แผ่น OT แยกรายคน</b> คนละแผ่น
+        (วัน · ช่วงเวลา · หน้าที่ที่ปฏิบัติ · ช่องเซ็นอนุมัติของหัวหน้า) เฉพาะคนที่มีใบ OT ในเดือนนั้น
       </div>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -278,8 +287,9 @@ function TmMonth({ cfg, users, ot }) {
   );
 }
 
-/* ออกไฟล์ Excel — ตารางคน × วัน แบบใบลงเวลากระดาษ ที่ฝ่ายบัญชีอ่านออกโดยไม่ต้องอธิบาย */
-function tmExportMonthXlsx(rows, days, ym) {
+/* ออกไฟล์ Excel — ตารางคน × วัน แบบใบลงเวลากระดาษ ที่ฝ่ายบัญชีอ่านออกโดยไม่ต้องอธิบาย
+   + แผ่น OT แยกรายคน คนละแผ่น สำหรับพิมพ์ให้หัวหน้าเซ็น (ดู tmOtSheetFor ข้างล่าง) */
+function tmExportMonthXlsx(rows, days, ym, otRows, users) {
   if (!window.XLSX) { alert("ไม่พบไลบรารี Excel (ลองโหลดหน้าใหม่)"); return; }
   if (!rows || !rows.length) { alert("เดือนนี้ยังไม่มีข้อมูลให้ออกไฟล์"); return; }
   const X = window.XLSX;
@@ -353,7 +363,125 @@ function tmExportMonthXlsx(rows, days, ym) {
   }
   const wb = X.utils.book_new();
   X.utils.book_append_sheet(wb, ws, "เวลาทำงาน");
+
+  /* ── แผ่น OT แยกรายคน ──
+     รวมทุกคนไว้แผ่นเดียวแล้วให้หัวหน้าเซ็นท้ายแผ่น = เซ็นทีเดียวครอบคนที่ไม่ได้อ่าน
+     แยกคนละแผ่นแล้วพิมพ์ออกมาจะได้คนละใบ เซ็นได้ทีละคน และแจกให้เจ้าตัวเก็บได้
+     เอาเฉพาะใบที่ส่งแล้ว (รออนุมัติ/อนุมัติแล้ว) — ใบร่างยังไม่ใช่คำขอ ใบที่ถูกปัดตกไม่ต้องเซ็น */
+  const otMine = {};
+  (otRows || []).forEach((o) => {
+    if (!o || !o.userId) return;
+    if (window.tmYm(o.date) !== ym) return;
+    if (o.status !== "sent" && o.status !== "approved") return;
+    (otMine[o.userId] || (otMine[o.userId] = [])).push(o);
+  });
+
+  /* เรียงคนตามลำดับเดียวกับแผ่นสรุป เพื่อให้แท็บล่างของ Excel ไล่ตามตารางข้างบน */
+  const used = {};
+  rows.forEach((r) => {
+    const list = otMine[r.userId];
+    if (!list || !list.length) return;
+    list.sort((a, b) => String(a.date + a.from).localeCompare(String(b.date + b.from)));
+    X.utils.book_append_sheet(wb, tmOtSheetFor(X, r.name, list, ym, FONT, C),
+      tmSheetName("OT " + r.name, used));
+  });
+
   X.writeFile(wb, "สรุปเวลาทำงาน_" + ym + ".xlsx");
+}
+
+/* ชื่อแผ่นของ Excel: ห้ามเกิน 31 ตัว ห้ามมี : \\ / ? * [ ] และห้ามซ้ำกัน
+   ถ้าซ้ำหรือยาวเกิน Excel จะไม่เปิดไฟล์เลย ไม่ใช่แค่เพี้ยน */
+function tmSheetName(raw, used) {
+  let n = String(raw || "OT").replace(/[:\\/?*[\]]/g, " ").trim().slice(0, 31) || "OT";
+  if (used[n]) { let i = 2; while (used[n.slice(0, 28) + " " + i]) i += 1; n = n.slice(0, 28) + " " + i; }
+  used[n] = 1;
+  return n;
+}
+
+/* ── ใบ OT ของคนหนึ่งคน หนึ่งเดือน ──
+   ต้องตอบคำถามของคนเซ็นให้ครบในแผ่นเดียว: ขอวันไหน · กี่โมงถึงกี่โมง · ไปทำอะไร · รวมกี่ชั่วโมง
+   "ปฏิบัติหน้าที่" คือเหตุผลที่เจ้าตัวกรอกไว้ตอนขอ ไม่ใช่ช่องที่ออฟฟิศมาเติมทีหลัง */
+function tmOtSheetFor(X, name, list, ym, FONT, C) {
+  const thin = { style: "thin", color: { rgb: C.border } };
+  const boxAll = { top: thin, bottom: thin, left: thin, right: thin };
+  const H = (m) => (!m ? 0 : Math.round((m / 60) * 100) / 100);
+  const cols = ["ลำดับ", "วันที่", "ตั้งแต่", "ถึง", "รวม (ชม.)", "ประเภท", "งาน", "ปฏิบัติหน้าที่", "สถานะในระบบ", "ผู้อนุมัติในระบบ"];
+  const lastC = cols.length - 1;
+
+  const aoa = [], merges = [], meta = [], rowsH = []; let R = 0;
+  const push = (cells, type, hpt) => { aoa.push(cells); meta[R] = type; if (hpt) rowsH[R] = { hpt: hpt }; R += 1; };
+  const full = (r) => merges.push({ s: { r: r, c: 0 }, e: { r: r, c: lastC } });
+
+  push(["ใบขออนุมัติทำงานล่วงเวลา (OT)"], "title", 30); full(R - 1);
+  push([name + " · " + window.tmYmTH(ym)], "subtitle", 22); full(R - 1);
+  push([], "spacer", 6);
+  push(cols, "head", 26);
+
+  let approved = 0, waiting = 0, alt = false;
+  list.forEach((o, i) => {
+    const mins = +o.mins || 0;
+    if (o.status === "approved") approved += mins; else waiting += mins;
+    push([i + 1, window.drDateTH(o.date), o.from || "", o.to || "", H(mins),
+      window.tmOtKindOf(o.kind).th, o.jobCode || "—", o.reason || "",
+      window.tmOtStatusOf(o.status).th, o.approverName || "—"], alt ? "itemAlt" : "item", 19);
+    alt = !alt;
+  });
+
+  push(["รวมที่อนุมัติแล้วในระบบ", "", "", "", H(approved), "ชั่วโมง", "", "", "", ""], "total", 24);
+  merges.push({ s: { r: R - 1, c: 0 }, e: { r: R - 1, c: 3 } });
+  /* ยอดที่ยังรออนุมัติต้องแยกบรรทัด ไม่ใช่บวกรวมกับยอดที่อนุมัติแล้ว
+     ไม่งั้นแผ่นนี้จะกลายเป็นยอดจ่ายที่ยังไม่มีใครอนุมัติ */
+  push(["ยังรออนุมัติในระบบ", "", "", "", H(waiting), "ชั่วโมง", "", "", "", ""], waiting ? "warnRow" : "muted", 22);
+  merges.push({ s: { r: R - 1, c: 0 }, e: { r: R - 1, c: 3 } });
+
+  push([], "spacer", 14);
+  push(["ลงชื่อผู้ขอ ..............................................", "", "", "",
+        "ลงชื่อหัวหน้างานผู้อนุมัติ ..............................................", "", "", "", "", ""], "sign", 34);
+  merges.push({ s: { r: R - 1, c: 0 }, e: { r: R - 1, c: 3 } });
+  merges.push({ s: { r: R - 1, c: 4 }, e: { r: R - 1, c: lastC } });
+  push(["(" + name + ")", "", "", "", "(..............................................)  วันที่ ........./........./.........", "", "", "", "", ""], "signSub", 22);
+  merges.push({ s: { r: R - 1, c: 0 }, e: { r: R - 1, c: 3 } });
+  merges.push({ s: { r: R - 1, c: 4 }, e: { r: R - 1, c: lastC } });
+
+  push([], "spacer", 8);
+  push(["เวลาในใบนี้เป็นเวลาที่ผู้ขอกรอกเอง ไม่ใช่เวลาที่ระบบจับได้ — ถ้าไม่แน่ใจให้เทียบกับแผ่น “เวลาทำงาน” ของวันนั้น"], "foot", 16); full(R - 1);
+  push(["การเซ็นบนกระดาษไม่ได้เปลี่ยนสถานะในระบบ ใบที่ยังรออนุมัติต้องกดอนุมัติในระบบด้วย"], "foot", 16); full(R - 1);
+
+  const ws = X.utils.aoa_to_sheet(aoa);
+  ws["!merges"] = merges;
+  ws["!cols"] = [{ wch: 6 }, { wch: 15 }, { wch: 8 }, { wch: 8 }, { wch: 10 }, { wch: 17 }, { wch: 12 }, { wch: 42 }, { wch: 13 }, { wch: 18 }];
+  ws["!rows"] = rowsH;
+
+  const styleCell = (r, c) => {
+    const t = meta[r]; if (t === "spacer") return null;
+    const s = { font: { name: FONT, sz: 10.5, color: { rgb: C.text } }, alignment: { vertical: "center" } };
+    if (t === "title") { s.font = { name: FONT, sz: 15, bold: true, color: { rgb: C.white } }; s.fill = { patternType: "solid", fgColor: { rgb: C.brand } }; s.alignment = { horizontal: "center", vertical: "center" }; }
+    else if (t === "subtitle") { s.font = { name: FONT, sz: 12, bold: true, color: { rgb: C.brandDk } }; s.fill = { patternType: "solid", fgColor: { rgb: C.brandSoft } }; s.alignment = { horizontal: "center", vertical: "center" }; }
+    else if (t === "head") { s.font = { name: FONT, sz: 10, bold: true, color: { rgb: C.white } }; s.fill = { patternType: "solid", fgColor: { rgb: C.brand } }; s.alignment = { horizontal: "center", vertical: "center", wrapText: true }; s.border = boxAll; }
+    else if (t === "total") { s.font = { name: FONT, sz: 11, bold: true, color: { rgb: C.white } }; s.fill = { patternType: "solid", fgColor: { rgb: C.brandDk } }; s.alignment = { horizontal: c <= 3 ? "left" : "center", vertical: "center" }; s.border = boxAll; if (c === 4) s.numFmt = "0.00"; }
+    else if (t === "warnRow") { s.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.warnTx } }; s.fill = { patternType: "solid", fgColor: { rgb: C.warn } }; s.alignment = { horizontal: c <= 3 ? "left" : "center", vertical: "center" }; s.border = boxAll; if (c === 4) s.numFmt = "0.00"; }
+    else if (t === "muted") { s.font = { name: FONT, sz: 10.5, color: { rgb: C.sub } }; s.alignment = { horizontal: c <= 3 ? "left" : "center", vertical: "center" }; s.border = boxAll; if (c === 4) s.numFmt = "0.00"; }
+    else if (t === "sign") { s.font = { name: FONT, sz: 11, color: { rgb: C.text } }; s.alignment = { horizontal: "left", vertical: "bottom" }; }
+    else if (t === "signSub") { s.font = { name: FONT, sz: 10, color: { rgb: C.sub } }; s.alignment = { horizontal: "left", vertical: "top" }; }
+    else if (t === "foot") { s.font = { name: FONT, sz: 9.5, color: { rgb: C.sub } }; }
+    else if (t === "item" || t === "itemAlt") {
+      if (t === "itemAlt") s.fill = { patternType: "solid", fgColor: { rgb: C.alt } };
+      s.border = boxAll;
+      /* คอลัมน์ "ปฏิบัติหน้าที่" ต้องตัดบรรทัดในช่อง ไม่ใช่ล้นทับช่องข้าง ๆ ตอนพิมพ์ */
+      if (c === 7) s.alignment = { horizontal: "left", vertical: "center", wrapText: true };
+      else if (c === 1 || c === 5) s.alignment = { horizontal: "left", vertical: "center" };
+      else { s.alignment = { horizontal: "center", vertical: "center" }; if (c === 4) s.numFmt = "0.00"; }
+    }
+    return s;
+  };
+  const range = X.utils.decode_range(ws["!ref"]);
+  for (let r = range.s.r; r <= range.e.r; r++) {
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const ref = X.utils.encode_cell({ r: r, c: c }); const st = styleCell(r, c);
+      if (!st) continue; if (!ws[ref]) ws[ref] = { t: "s", v: "" }; ws[ref].s = st;
+    }
+  }
+  return ws;
 }
 
 /* ── ใบ OT หนึ่งใบ ── */
@@ -383,7 +511,7 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--text-3)", fontWeight: 700 }}>{f.no}</div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: "var(--text-1)" }}>{f.userName}</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: "var(--text-1)" }}>{window.tmNameOf(users, f.userId, f.userName)}</div>
           </div>
           <TmPill s={f.status} />
           <button onClick={onClose} style={{ border: "none", background: "none", cursor: "pointer", padding: 4 }}>
@@ -530,7 +658,7 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
   );
 }
 
-function TmOtRow({ rec, onOpen }) {
+function TmOtRow({ rec, users, onOpen }) {
   const k = window.tmOtKindOf(rec.kind);
   return (
     <button onClick={() => onOpen(rec)}
@@ -538,7 +666,7 @@ function TmOtRow({ rec, onOpen }) {
         borderBottom: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", fontFamily: "inherit" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
         <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>{rec.no}</span>
-        <span style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{rec.userName}</span>
+        <span style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{window.tmNameOf(users, rec.userId, rec.userName)}</span>
         <span style={{ padding: "2px 8px", borderRadius: 99, background: k.color + "1A", color: k.color, fontSize: 10.5, fontWeight: 800 }}>{k.th}</span>
         <TmPill s={rec.status} size="sm" />
         <span style={{ marginLeft: "auto", fontFamily: "var(--mono)", fontSize: 13, fontWeight: 800, color: "var(--text-1)" }}>{window.tmDur(rec.mins)}</span>
@@ -780,7 +908,7 @@ function AttendView({ jobs, users, role, currentUser }) {
               ? <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>
                   {tab === "inbox" ? "ไม่มีใบรอคุณอนุมัติ" : "ยังไม่มีใบ OT"}
                 </div>
-              : list.map((r) => <TmOtRow key={r.id} rec={r} onOpen={(x) => setOpen(x.id)} />)}
+              : list.map((r) => <TmOtRow key={r.id} rec={r} users={users} onOpen={(x) => setOpen(x.id)} />)}
           </div>
         </React.Fragment>
       )}
@@ -814,4 +942,5 @@ function TmMyDays({ rows, cfg }) {
 }
 
 Object.assign(window, { AttendView, TmDaySheet, TmMonth, TmMyDays, TmOtModal, TmOtRow, TmWorkHours,
+  tmExportMonthXlsx, tmOtSheetFor, tmSheetName,
   TmStat, TmPill, TM_IN, tmExportMonthXlsx });

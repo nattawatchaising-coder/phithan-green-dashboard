@@ -466,6 +466,20 @@ function tmOtBlank(user, users, list, job, cfg) {
   };
 }
 
+/* ── ชื่อคนบนหน้าจอ ──
+   ใบลงเวลาและใบ OT ถ่ายสำเนาชื่อไว้ตอนสร้าง (attendDay ช่อง name · tmOt ช่อง userName)
+   สำเนานั้นมีไว้ให้ใบเก่ายังอ่านออกแม้บัญชีถูกลบ — แต่มัน **ไม่ตามการเปลี่ยนชื่อ**
+   แก้ชื่อในหน้าผู้ใช้แล้ว ตารางเวลายังขึ้นชื่อเดิมค้างอยู่ ดูเหมือนเป็นคนละคน
+
+   เวลาแสดงผลจึงต้องถามทะเบียนผู้ใช้ก่อนเสมอ แล้วค่อยตกมาที่สำเนาในใบ
+   (ไม่ไล่แก้ข้อมูลเก่าในฐาน เพราะสำเนานั้นถูกของมันแล้ว — มันคือชื่อ ณ วันที่ปั๊ม
+    และเอกสารที่เซ็นไปแล้วต้องคงชื่อตอนเซ็นไว้ ห้ามให้ย้อนหลังเปลี่ยนตาม) */
+function tmNameOf(users, id, fallback) {
+  if (!id) return fallback || "";
+  const u = (users || []).find((x) => x && x.id === id);
+  return (u && u.name) || fallback || id;
+}
+
 /* ── ขอบเขตการมองเห็น ──
    คนที่ไม่มีสิทธิ์อนุมัติเห็นเฉพาะใบของตัวเอง — กรองที่ชั้นข้อมูล ไม่ใช่ซ่อนปุ่มบนหน้าจอ
    (กฎเดียวกับ ecVisible — เวลาทำงานของคนอื่นเป็นข้อมูลส่วนบุคคล) */
@@ -776,13 +790,15 @@ function tmMonthRollup(byDate, users, cfg, otRows, ym) {
     if (!window.can(window.userRoles(u), "attend")) return;
     touch(u.id, u.name);
   });
+  /* ทับด้วยชื่อปัจจุบันจากทะเบียน — map ข้างบนเก็บชื่อจากใบใบแรกที่เจอ ซึ่งอาจเป็นชื่อเก่า */
+  Object.keys(map).forEach((k) => { map[k].name = tmNameOf(users, k, map[k].name); });
   const rows = Object.keys(map).map((k) => map[k]);
   rows.forEach((r) => { if (!r.name) r.name = r.userId; });
   rows.sort((a, b) => String(a.name).localeCompare(String(b.name), "th"));
   return rows;
 }
 
-Object.assign(window, {
+Object.assign(window, { tmNameOf,
   tmNotify,
   TM_ROOT, TM_WH_DEFAULT, TM_OT_KIND, TM_OT_STATUS, TM_PLACE,
   tmHM, tmHHMM, tmNowHM, tmSpanMins, tmDur, tmWhNorm, tmIsHoliday, tmIsWorkday,

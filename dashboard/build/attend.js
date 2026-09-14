@@ -439,6 +439,11 @@ function tmOtBlank(user, users, list, job, cfg) {
     hist: []
   };
 }
+function tmNameOf(users, id, fallback) {
+  if (!id) return fallback || "";
+  const u = (users || []).find(x => x && x.id === id);
+  return u && u.name || fallback || id;
+}
 function tmOtVisible(list, user, role) {
   if (tmCanOtApprove(role) || tmCanAttendAll(role)) return list || [];
   const uid = (user || {}).id || null;
@@ -806,6 +811,9 @@ function tmMonthRollup(byDate, users, cfg, otRows, ym) {
     if (!window.can(window.userRoles(u), "attend")) return;
     touch(u.id, u.name);
   });
+  Object.keys(map).forEach(k => {
+    map[k].name = tmNameOf(users, k, map[k].name);
+  });
   const rows = Object.keys(map).map(k => map[k]);
   rows.forEach(r => {
     if (!r.name) r.name = r.userId;
@@ -814,6 +822,7 @@ function tmMonthRollup(byDate, users, cfg, otRows, ym) {
   return rows;
 }
 Object.assign(window, {
+  tmNameOf,
   tmNotify,
   TM_ROOT,
   TM_WH_DEFAULT,
