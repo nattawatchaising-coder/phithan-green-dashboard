@@ -21,6 +21,23 @@ Then open <http://localhost:8765/>.
 > Requires an internet connection on first load to pull React, Babel, Leaflet
 > and the web fonts from their CDNs.
 
+### เครื่องที่เบราว์เซอร์ออกเน็ตตรงไม่ได้
+
+บางเครื่อง (คอนเทนเนอร์ CI, เครื่องหลัง proxy ขององค์กร) เบราว์เซอร์ต่อ CDN
+และ Firebase ตรง ๆ ไม่ได้ เปิดเว็บแล้วจะค้างที่หน้าโลโก้ ใช้ dev server แทน:
+
+```bash
+npm run dev            # http://localhost:8765
+npm run dev -- --port 3000
+```
+
+เสิร์ฟไฟล์เหมือนเดิม แต่เพิ่มให้อีกสองอย่าง — ต่อ Firebase Realtime DB ตัวจริง
+ให้ผ่าน relay ในเครื่อง (ทั้ง websocket และ long-polling จึงอ่าน/แก้ข้อมูลจริง
+ได้ตามปกติ) และดึงไฟล์จาก CDN/ฟอนต์/แผนที่มาแคชไว้ที่ `.devcache/` เบราว์เซอร์
+จะคุยกับ localhost อย่างเดียว ถ้ามี `HTTPS_PROXY` ตั้งไว้ก็จะวิ่งออกผ่านตัวนั้น
+
+เป็นเครื่องมือสำหรับตอนพัฒนาเท่านั้น ของที่ deploy จริงไม่เกี่ยวกับไฟล์นี้เลย
+
 ## What's included
 
 Six views (left sidebar):

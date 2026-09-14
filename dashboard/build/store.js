@@ -19,14 +19,17 @@ const SF_STOCKDOC_KEY = "solarflow_stockdoc_v1";
 const SF_TECH_KEY = "solarflow_techs_v1";
 const SF_BRAND_KEY = "solarflow_brands_v1";
 function _lsGet(key, seed) {
+  const isArr = Array.isArray(seed);
   try {
     const s = localStorage.getItem(key);
     if (s) {
       const a = JSON.parse(s);
-      if (Array.isArray(a) && a.length) return a;
+      if (isArr) {
+        if (Array.isArray(a) && a.length) return a;
+      } else if (a && typeof a === "object" && !Array.isArray(a)) return a;
     }
   } catch (e) {}
-  return seed.map(x => Object.assign({}, x));
+  return isArr ? seed.map(x => Object.assign({}, x)) : Object.assign({}, seed);
 }
 function _lsGetRaw(key) {
   try {

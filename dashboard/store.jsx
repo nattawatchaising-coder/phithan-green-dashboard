@@ -32,12 +32,19 @@ const SF_STOCKDOC_KEY = "solarflow_stockdoc_v1";
 const SF_TECH_KEY  = "solarflow_techs_v1";
 const SF_BRAND_KEY = "solarflow_brands_v1";
 
+/* seed เป็นได้ทั้ง array (รายการ) และ object (แผนที่ key→ค่า เช่น รูปสินค้า/ราคา)
+   เดิมรองรับแต่ array แล้วเรียก seed.map() ตรง ๆ พอโหมด offline ส่ง {} เข้ามาจึงพังทั้งแอป */
 function _lsGet(key, seed) {
+  const isArr = Array.isArray(seed);
   try {
     const s = localStorage.getItem(key);
-    if (s) { const a = JSON.parse(s); if (Array.isArray(a) && a.length) return a; }
+    if (s) {
+      const a = JSON.parse(s);
+      if (isArr) { if (Array.isArray(a) && a.length) return a; }
+      else if (a && typeof a === "object" && !Array.isArray(a)) return a;
+    }
   } catch (e) {}
-  return seed.map((x) => Object.assign({}, x));
+  return isArr ? seed.map((x) => Object.assign({}, x)) : Object.assign({}, seed);
 }
 function _lsGetRaw(key) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
 function _lsSetRaw(key, data) { try { if (data) localStorage.setItem(key, JSON.stringify(data)); else localStorage.removeItem(key); } catch (e) {} }

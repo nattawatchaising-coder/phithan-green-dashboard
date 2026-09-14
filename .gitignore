@@ -1,6 +1,9 @@
 # ไม่ต้องส่ง design source ขึ้น Git
 design_bundle/
 
+# แคชไฟล์ภายนอกของ tools/dev-server.js
+.devcache/
+
 # logs / temp
 *.log
 *.tmp
