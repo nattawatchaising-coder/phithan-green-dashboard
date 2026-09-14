@@ -25,16 +25,37 @@ const LN_TEST = (() => {
 
 /* ── บอกเซิร์ฟเวอร์ให้ส่งแจ้งเตือนใบนี้เข้า LINE ──
    ส่งไปแค่ id · เนื้อความเซิร์ฟเวอร์อ่านจากฐานข้อมูลเอง (ดูเหตุผลใน api/line/push.mjs)
-   keepalive เพื่อให้คำขอไปถึงแม้ผู้ใช้ปิดแท็บทันทีหลังกด */
+   keepalive เพื่อให้คำขอไปถึงแม้ผู้ใช้ปิดแท็บทันทีหลังกด
+
+   ── ทำไมต้องบันทึกตอนล้ม ──
+   เดิมเขียน .catch(() => {}) ทิ้งเงียบ ด้วยเหตุผลที่ยังถูกอยู่ว่า "ส่ง LINE ไม่ได้
+   ต้องไม่ทำให้การกดปุ่มในเว็บพัง" — แต่ผลคือไม่มีร่องรอยอยู่ที่ไหนเลยว่าเคยพยายามส่ง
+   เวลามีคนบอกว่า "ไม่เห็นมีแจ้งเตือน" จึงแยกไม่ออกระหว่างสามอย่างที่ต่างกันสิ้นเชิง:
+     ไม่ได้ยิง · ยิงแล้วไปไม่ถึง · ถึงแล้วแต่เซิร์ฟเวอร์ข้ามเพราะปิดสวิตช์ชนิดนั้นไว้
+   กรณีที่เจอจริง: เปิดแดชบอร์ดจาก localhost ของนักพัฒนา ซึ่ง **ไม่มี /api อยู่**
+   คำขอเลยได้ 404 แล้วหายไปเฉย ๆ ทั้งที่ทุกอย่างอื่นดูปกติดี
+   ⇒ ยังไม่ขวางการทำงานเหมือนเดิม แต่ทิ้งบรรทัดไว้ให้ตามได้
+   lnPushLog = ส่งถึงแล้ว (เซิร์ฟเวอร์เขียน) · lnPushFail = ไปไม่ถึง (หน้าเว็บเขียน) */
 function lnPush(notifId) {
   if (!notifId) return;
+  const why = (status, err) => {
+    try { console.warn("[lnPush] ส่งไม่ถึงเซิร์ฟเวอร์:", status, err || "", "· origin =", location.origin); } catch (e) {}
+    /* บันทึกแบบไม่รอผลและไม่โยนต่อ — ตัวบันทึกความล้มเหลวต้องไม่กลายเป็นความล้มเหลวเสียเอง */
+    try {
+      if (window.FBDB) window.FBDB.ref("lnPushFail/" + notifId).set({
+        at: new Date().toISOString(), status: status, err: String(err || "").slice(0, 200),
+        origin: location.origin, api: location.origin + "/api/line/push",
+      });
+    } catch (e) {}
+  };
   try {
     fetch("/api/line/push", {
       method: "POST", keepalive: true,
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ notifId: notifId }),
-    }).catch(() => {});
-  } catch (e) {}
+    }).then((r) => { if (!r.ok) why(r.status, ""); })
+      .catch((e) => why(0, e && e.message));
+  } catch (e) { why(0, e && e.message); }
 }
 
 /* ================================================================

@@ -8,6 +8,20 @@ const LN_TEST = (() => {
 })();
 function lnPush(notifId) {
   if (!notifId) return;
+  const why = (status, err) => {
+    try {
+      console.warn("[lnPush] ส่งไม่ถึงเซิร์ฟเวอร์:", status, err || "", "· origin =", location.origin);
+    } catch (e) {}
+    try {
+      if (window.FBDB) window.FBDB.ref("lnPushFail/" + notifId).set({
+        at: new Date().toISOString(),
+        status: status,
+        err: String(err || "").slice(0, 200),
+        origin: location.origin,
+        api: location.origin + "/api/line/push"
+      });
+    } catch (e) {}
+  };
   try {
     fetch("/api/line/push", {
       method: "POST",
@@ -18,8 +32,12 @@ function lnPush(notifId) {
       body: JSON.stringify({
         notifId: notifId
       })
-    }).catch(() => {});
-  } catch (e) {}
+    }).then(r => {
+      if (!r.ok) why(r.status, "");
+    }).catch(e => why(0, e && e.message));
+  } catch (e) {
+    why(0, e && e.message);
+  }
 }
 function useLnSession() {
   const [state, setState] = React.useState({
