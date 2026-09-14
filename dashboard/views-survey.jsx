@@ -130,7 +130,7 @@ function leadAddContact(leadStore, l, rec) {
    LEADS — หน้ารวม "ลูกค้าสำรวจ" (ยังไม่เป็นงาน)
    อยู่คนละฐานกับงานติดตั้ง · ตกลงติดตั้งเมื่อไหร่ค่อยกด "แปลงเป็นงาน"
    ============================================================ */
-function LeadsView({ leadStore, appts, jobs, onMenuOpen, onOpenSurvey, onReport, onConvert, canConvert,
+function LeadsView({ leadStore, appts, jobs, onMenuOpen, onOpenSurvey, onReport, onPlan3d, onConvert, canConvert,
                      users, currentUser, quotes, onOpenQuote, headRight, focusId, onFocusDone, newAt }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [filter, setFilter] = React.useState("all");
@@ -180,7 +180,7 @@ function LeadsView({ leadStore, appts, jobs, onMenuOpen, onOpenSurvey, onReport,
   /* ของที่ใบลูกค้าต้องใช้ — รวมเป็นก้อนเดียว แผงบนบอร์ดงานก็ประกอบก้อนนี้เหมือนกัน */
   const cardCtx = {
     leadStore, jobs, quotes, apptsOf, STATUS, STATUS_BY, stageKey,
-    onOpenSurvey, onReport, onOpenQuote, onConvert, canConvert,
+    onOpenSurvey, onReport, onOpenQuote, onPlan3d, onConvert, canConvert,
     setEdit, setLog, setStage,
   };
 
@@ -370,7 +370,7 @@ function LeadModal({ initial, isNew, users, onClose, onSave }) {
    ctx = ของที่ใบนี้ต้องใช้ทั้งหมด (ฐานข้อมูล · งาน · ใบเสนอราคา · ปุ่มต่างๆ) */
 function LeadCard({ l, ctx }) {
   const { leadStore, jobs, quotes, apptsOf, STATUS, STATUS_BY, stageKey,
-          onOpenSurvey, onReport, onOpenQuote, onConvert, canConvert, setEdit, setLog, setStage } = ctx;
+          onOpenSurvey, onReport, onOpenQuote, onPlan3d, onConvert, canConvert, setEdit, setLog, setStage } = ctx;
 
   /* ยืนยันในใบเลย ไม่ใช้ confirm() ของเบราว์เซอร์ —
      ถ้าผู้ใช้เคยติ๊ก "ไม่ให้หน้านี้สร้างกล่องข้อความอีก" หรือเปิดจากแอปที่ฝังเว็บไว้
@@ -454,6 +454,9 @@ function LeadCard({ l, ctx }) {
         <button onClick={() => setLog(l)} style={leadBtn("var(--primary)", true)}><Icon name="phone" size={14} color="#fff" /> บันทึกการติดต่อ</button>
         {onOpenQuote && <button onClick={() => onOpenQuote(l, lq || null)} style={leadBtn("#EC4899")}><Icon name="file" size={14} color="#EC4899" /> {lq ? "ใบเสนอราคา " + lq.no : "ทำใบเสนอราคา"}</button>}
         {onOpenSurvey && <button onClick={() => onOpenSurvey(window.leadAsJob(l))} style={leadBtn("var(--text-2)")}><Icon name="list" size={14} color="var(--text-2)" /> {st.state === "none" ? "เริ่มแบบสำรวจ" : "ดู / แก้แบบสำรวจ"}</button>}
+        {/* วางแผง 3D ตั้งแต่ยังเป็นงานขาย — เซลล์ต้องเอาภาพหลังคาจริงไปคุยกับลูกค้าก่อนปิดการขาย
+            แบบที่ปั้นไว้จะตามไปกับงานเองตอนกดแปลงเป็นงานติดตั้ง */}
+        {onPlan3d && <button onClick={() => onPlan3d(window.leadAsJob(l))} style={leadBtn("#4F46E5")}><Icon name="panel" size={14} color="#4F46E5" /> วางแผง 3D</button>}
         {onReport && st.state !== "none" && <button onClick={() => onReport(window.leadAsJob(l))} style={leadBtn("var(--primary-dark)")}><Icon name="file" size={14} color="var(--primary-dark)" /> รายงาน · PDF</button>}
         {canConvert && sKey !== "won" && <button onClick={() => setAsk({ id: l.id, kind: "conv" })} style={leadBtn("var(--tint-green-tx)", true)}><Icon name="check" size={14} color="#fff" sw={2.4} /> แปลงเป็นงานติดตั้ง</button>}
         {sKey !== "lost" && sKey !== "won" && <button onClick={() => setStage(l, "lost")} style={leadBtn("var(--text-2)")}>ไม่ติดตั้ง</button>}
@@ -470,7 +473,7 @@ function LeadCard({ l, ctx }) {
    กดการ์ดขายบนบอร์ดแล้วได้ใบเต็มทันที ไม่ต้องเด้งออกไปหน้ารายชื่อลูกค้าแล้วหาใหม่
    ข้างในคือ LeadCard ใบเดียวกับหน้ารายชื่อ ปุ่มจึงครบเหมือนกันทุกปุ่ม */
 function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, onClose,
-                      onOpenSurvey, onReport, onOpenQuote, onConvert, canConvert }) {
+                      onOpenSurvey, onReport, onOpenQuote, onPlan3d, onConvert, canConvert }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const bdClose = window.useBackdropClose(onClose);
   const [edit, setEdit] = React.useState(null);
@@ -492,7 +495,7 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
   const ctx = {
     leadStore, jobs, quotes, apptsOf,
     STATUS: window.SALES_STAGES || [], STATUS_BY: window.SALES_BY || {}, stageKey,
-    onOpenSurvey, onReport, onOpenQuote, onConvert, canConvert,
+    onOpenSurvey, onReport, onOpenQuote, onPlan3d, onConvert, canConvert,
     setEdit, setLog, setStage: (l, key) => leadSetStage(leadStore, l, key),
   };
 

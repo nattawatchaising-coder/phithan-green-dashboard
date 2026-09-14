@@ -484,6 +484,24 @@ function usePlan3d(jobId) {
     save
   };
 }
+function movePlan3d(fromId, toId) {
+  if (!fromId || !toId || fromId === toId) return Promise.resolve();
+  if (!window.FBDB) {
+    try {
+      const v = localStorage.getItem("sf_plan3d_" + fromId);
+      if (v) {
+        localStorage.setItem("sf_plan3d_" + toId, v);
+        localStorage.removeItem("sf_plan3d_" + fromId);
+      }
+    } catch (e) {}
+    return Promise.resolve();
+  }
+  return window.FBDB.ref("plan3d/" + fromId).once("value").then(s => {
+    const v = s.val();
+    if (!v) return null;
+    return window.FBDB.ref("plan3d/" + toId).set(v).then(() => window.FBDB.ref("plan3d/" + fromId).remove());
+  }).catch(() => null);
+}
 let _p3Seq = 0;
 const p3Id = p => (p || "x") + Date.now().toString(36) + _p3Seq++;
 function p3NextRoofNo(roofs) {
@@ -7995,6 +8013,7 @@ async function p3ExportSet(st, job, photos, prep) {
 Object.assign(window, {
   Plan3DEditor,
   usePlan3d,
+  movePlan3d,
   P3_MEAS_KINDS,
   p3MeasKind,
   p3MeasLen,

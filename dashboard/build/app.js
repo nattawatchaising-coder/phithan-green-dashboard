@@ -233,6 +233,7 @@ function App() {
   }, []);
   const [leadFocus, setLeadFocus] = React.useState(null);
   const [boardLead, setBoardLead] = React.useState(null);
+  const [plan3dLead, setPlan3dLead] = React.useState(null);
   const [leadNew, setLeadNew] = React.useState(0);
   const [permitReview, setPermitReview] = React.useState(null);
   const [quoteOpen, setQuoteOpen] = React.useState(null);
@@ -573,6 +574,7 @@ function App() {
     }
     store.upsert(rec);
     if (window.moveSurveyPhotos) window.moveSurveyPhotos(lead.id, rec.id);
+    if (window.movePlan3d) window.movePlan3d(lead.id, rec.id);
     leadStore.patch(lead.id, Object.assign({
       jobId: rec.id
     }, window.salesStagePatch ? window.salesStagePatch("won") : {
@@ -989,6 +991,7 @@ function App() {
     onOpenSurvey: can(role, "doSurvey") || can(role, "dispatch") ? pseudo => openSurvey(pseudo) : null,
     onReport: pseudo => setReportJob(pseudo),
     onOpenQuote: can(role, "price") ? openQuoteForLead : null,
+    onPlan3d: can(role, "design") && window.Plan3DEditor ? pseudo => setPlan3dLead(pseudo) : null,
     onConvert: convertLead,
     canConvert: can(role, "addJob")
   }) : view === "saleskpi" ? React.createElement(SalesKpiView, {
@@ -1178,11 +1181,16 @@ function App() {
       setBoardLead(null);
       openQuoteForLead(l, q);
     } : null,
+    onPlan3d: can(role, "design") && window.Plan3DEditor ? pseudo => setPlan3dLead(pseudo) : null,
     onConvert: l => {
       setBoardLead(null);
       convertLead(l);
     },
     canConvert: can(role, "addJob")
+  }), plan3dLead && window.Plan3DEditor && React.createElement(window.Plan3DEditor, {
+    job: plan3dLead,
+    currentUser: auth.current,
+    onClose: () => setPlan3dLead(null)
   }), React.createElement(DetailDrawer, {
     job: selectedJob,
     onClose: () => setSelected(null),

@@ -171,6 +171,8 @@ function App() {
   const [leadFocus, setLeadFocus] = React.useState(null);
   /* ลูกค้าที่กดมาจากการ์ดขายบนบอร์ดงาน — เปิดเป็นแผงทับบอร์ด ไม่ต้องเด้งออกไปหน้าอื่น */
   const [boardLead, setBoardLead] = React.useState(null);
+  /* วางแผง 3D ของลูกค้าที่ยังไม่เป็นงาน — เปิดทับแผงลูกค้า ปิดแล้วกลับมาที่ใบเดิม */
+  const [plan3dLead, setPlan3dLead] = React.useState(null);
   /* สัญญาณ "เปิดฟอร์มลูกค้าใหม่" — เก็บเป็นเวลาที่กด เพราะกดซ้ำต้องเปิดได้อีก
      พาไปหน้างานขายก่อนเสมอ ฟอร์มอยู่ที่นั่นที่เดียว ไม่แยกร่างไปอยู่หลายหน้า */
   const [leadNew, setLeadNew] = React.useState(0);
@@ -448,6 +450,8 @@ function App() {
     if (lead.ownerId) { rec.salesId = lead.ownerId; rec.salesName = lead.ownerName || ""; }
     store.upsert(rec);
     if (window.moveSurveyPhotos) window.moveSurveyPhotos(lead.id, rec.id);
+    /* แบบ 3D ที่ปั้นไว้ตอนยังเป็นงานขายต้องตามไปกับงานด้วย ไม่งั้นต้องปั้นใหม่ทั้งหมด */
+    if (window.movePlan3d) window.movePlan3d(lead.id, rec.id);
     leadStore.patch(lead.id, Object.assign({ jobId: rec.id }, window.salesStagePatch ? window.salesStagePatch("won") : { status: "won" }));
     /* ใบเสนอราคาที่ลูกค้าตกลงแล้วต้องตามมาที่งาน ไม่งั้นเปิดใบงานแล้วไม่รู้ว่าขายไปเท่าไร */
     (quoteStore.quotes || []).forEach((q) => {
@@ -731,6 +735,7 @@ function App() {
             onOpenSurvey={(can(role, "doSurvey") || can(role, "dispatch")) ? (pseudo) => openSurvey(pseudo) : null}
             onReport={(pseudo) => setReportJob(pseudo)}
             onOpenQuote={can(role, "price") ? openQuoteForLead : null}
+            onPlan3d={can(role, "design") && window.Plan3DEditor ? (pseudo) => setPlan3dLead(pseudo) : null}
             onConvert={convertLead} canConvert={can(role, "addJob")} />
         ) : view === "saleskpi" ? (
           <SalesKpiView leads={leadStore.leads} quotes={quoteStore.quotes} users={auth.users} currentUser={auth.current}
@@ -819,7 +824,11 @@ function App() {
         onOpenSurvey={(can(role, "doSurvey") || can(role, "dispatch")) ? (pseudo) => { setBoardLead(null); openSurvey(pseudo); } : null}
         onReport={(pseudo) => { setBoardLead(null); setReportJob(pseudo); }}
         onOpenQuote={can(role, "price") ? (l, q) => { setBoardLead(null); openQuoteForLead(l, q); } : null}
+        /* วางแผง 3D เปิดทับแผงลูกค้า — ปิดจอ 3D แล้วกลับมาที่ใบเดิม ไม่ต้องหาการ์ดใหม่ */
+        onPlan3d={can(role, "design") && window.Plan3DEditor ? (pseudo) => setPlan3dLead(pseudo) : null}
         onConvert={(l) => { setBoardLead(null); convertLead(l); }} canConvert={can(role, "addJob")} />}
+
+      {plan3dLead && window.Plan3DEditor && <window.Plan3DEditor job={plan3dLead} currentUser={auth.current} onClose={() => setPlan3dLead(null)} />}
 
       <DetailDrawer job={selectedJob} onClose={() => setSelected(null)} onAdvance={(id) => store.advance(id)} onSetMat={store.setMat}
         currentUser={auth.current} canManage={can(role, "delJob")} canDesign={can(role, "design")} stock={stock}

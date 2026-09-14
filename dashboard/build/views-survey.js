@@ -318,6 +318,7 @@ function LeadsView({
   onMenuOpen,
   onOpenSurvey,
   onReport,
+  onPlan3d,
   onConvert,
   canConvert,
   users,
@@ -395,6 +396,7 @@ function LeadsView({
     onOpenSurvey,
     onReport,
     onOpenQuote,
+    onPlan3d,
     onConvert,
     canConvert,
     setEdit,
@@ -1099,6 +1101,7 @@ function LeadCard({
     onOpenSurvey,
     onReport,
     onOpenQuote,
+    onPlan3d,
     onConvert,
     canConvert,
     setEdit,
@@ -1429,7 +1432,14 @@ function LeadCard({
     name: "list",
     size: 14,
     color: "var(--text-2)"
-  }), " ", st.state === "none" ? "เริ่มแบบสำรวจ" : "ดู / แก้แบบสำรวจ"), onReport && st.state !== "none" && React.createElement("button", {
+  }), " ", st.state === "none" ? "เริ่มแบบสำรวจ" : "ดู / แก้แบบสำรวจ"), onPlan3d && React.createElement("button", {
+    onClick: () => onPlan3d(window.leadAsJob(l)),
+    style: leadBtn("#4F46E5")
+  }, React.createElement(Icon, {
+    name: "panel",
+    size: 14,
+    color: "#4F46E5"
+  }), " \u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07 3D"), onReport && st.state !== "none" && React.createElement("button", {
     onClick: () => onReport(window.leadAsJob(l)),
     style: leadBtn("var(--primary-dark)")
   }, React.createElement(Icon, {
@@ -1479,6 +1489,7 @@ function LeadDrawer({
   onOpenSurvey,
   onReport,
   onOpenQuote,
+  onPlan3d,
   onConvert,
   canConvert
 }) {
@@ -1510,6 +1521,7 @@ function LeadDrawer({
     onOpenSurvey,
     onReport,
     onOpenQuote,
+    onPlan3d,
     onConvert,
     canConvert,
     setEdit,
