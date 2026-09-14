@@ -17,3 +17,6 @@ dist/
 .env.local
 
 .vercel
+
+# cache ของไฟล์ CDN ที่โหลดไว้ใช้ตอนพัฒนาในเครื่อง
+.devcache/
