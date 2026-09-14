@@ -79,16 +79,25 @@ function RoofHandoverPaper({ job, rec, photos, onClose }) {
   const pages = [];
   for (let i = 0; i < list.length; i += 6) pages.push(list.slice(i, i + 6));
 
+  /* หัวกระดาษ — ตราบริษัทมาก่อนชื่อเอกสาร เพราะใบนี้ส่งออกไปถึงมือลูกค้าและผู้จัดการโครงการ
+     ต้องดูออกตั้งแต่แวบแรกว่าใครเป็นคนออกใบ · โครงเดียวกับหัวใบสำคัญจ่าย (ec-paper.jsx) */
   const headBar = (title, rev) => (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, borderBottom: "2px solid " + RP_INK, paddingBottom: 8, marginBottom: 12 }}>
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 14, flexWrap: "wrap",
+      borderBottom: "2px solid " + RP_INK, paddingBottom: 9, marginBottom: 12 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
+          {window.BrandMark ? <window.BrandMark size={26} variant="light" /> : null}
+          {window.BrandWord ? <window.BrandWord size={18} color={B.ink || RP_INK} /> : null}
+        </div>
         <div style={{ fontSize: 15, fontWeight: 800, color: RP_INK, letterSpacing: "-.2px" }}>{title}</div>
         <div style={{ fontSize: 10, color: RP_SOFT, marginTop: 2 }}>
           {B.legal || ""}{j.code ? " · " + j.code : ""}
         </div>
       </div>
       <div style={{ flexShrink: 0, textAlign: "right", fontSize: 9.5, color: RP_SOFT, lineHeight: 1.6 }}>
-        <div>Rev. <b style={{ color: RP_INK }}>{rev}</b></div>
+        {B.tel ? <div>โทร {B.tel}</div> : null}
+        {B.site ? <div>{B.site}</div> : null}
+        <div style={{ marginTop: 3 }}>Rev. <b style={{ color: RP_INK }}>{rev}</b></div>
         <div>Approved By: <b style={{ color: RP_INK }}>{r.approvedBy || "—"}</b></div>
       </div>
     </div>

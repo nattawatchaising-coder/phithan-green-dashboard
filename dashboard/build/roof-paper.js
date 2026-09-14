@@ -134,10 +134,11 @@ function RoofHandoverPaper({
   const headBar = (title, rev) => React.createElement("div", {
     style: {
       display: "flex",
-      alignItems: "flex-start",
-      gap: 12,
+      alignItems: "flex-end",
+      gap: 14,
+      flexWrap: "wrap",
       borderBottom: "2px solid " + RP_INK,
-      paddingBottom: 8,
+      paddingBottom: 9,
       marginBottom: 12
     }
   }, React.createElement("div", {
@@ -146,6 +147,19 @@ function RoofHandoverPaper({
       minWidth: 0
     }
   }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 7
+    }
+  }, window.BrandMark ? React.createElement(window.BrandMark, {
+    size: 26,
+    variant: "light"
+  }) : null, window.BrandWord ? React.createElement(window.BrandWord, {
+    size: 18,
+    color: B.ink || RP_INK
+  }) : null), React.createElement("div", {
     style: {
       fontSize: 15,
       fontWeight: 800,
@@ -166,7 +180,11 @@ function RoofHandoverPaper({
       color: RP_SOFT,
       lineHeight: 1.6
     }
-  }, React.createElement("div", null, "Rev. ", React.createElement("b", {
+  }, B.tel ? React.createElement("div", null, "\u0E42\u0E17\u0E23 ", B.tel) : null, B.site ? React.createElement("div", null, B.site) : null, React.createElement("div", {
+    style: {
+      marginTop: 3
+    }
+  }, "Rev. ", React.createElement("b", {
     style: {
       color: RP_INK
     }
