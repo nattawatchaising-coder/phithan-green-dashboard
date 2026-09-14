@@ -18,6 +18,12 @@ const RP_INK = "#15211A";
 const RP_LINE = "#C9D5CE";
 const RP_SOFT = "#5A6B62";
 
+/* ช่องตารางรายการตรวจ — เส้นบาง ตัวเล็ก ให้ลงกระดาษ A4 ได้หลายข้อโดยยังอ่านออก */
+const rpTh = { textAlign: "left", padding: "5px 7px", fontSize: 10, fontWeight: 700, color: RP_SOFT,
+  borderBottom: "1px solid " + RP_LINE, borderTop: "1px solid " + RP_LINE, whiteSpace: "nowrap" };
+const rpTd = { padding: "5px 7px", fontSize: 10.5, color: RP_INK, borderBottom: "1px solid #ECF1EE",
+  verticalAlign: "top", wordBreak: "break-word" };
+
 /* วันที่บนเอกสาร — ใบนี้เป็นเอกสารที่ส่งให้ลูกค้าและผู้จัดการโครงการซึ่งอ่านไทย
    จึงใช้รูปแบบไทยเหมือนเอกสารใบอื่นของระบบ */
 const rpDate = (v) => (!v ? "" : window.drDateTH ? window.drDateTH(String(v).slice(0, 10)) : String(v).slice(0, 10));
@@ -67,6 +73,8 @@ function InspectionPaper({ job, rec, photos, onClose }) {
   const r = rec || {};
   const list = photos || [];
   const res = (window.IR_RESULT_BY || {})[r.result] || null;
+  const items = Array.isArray(r.items) ? r.items : [];
+  const tally = window.irItemTally ? window.irItemTally(items) : { pass: 0, fail: 0, na: 0, blank: 0, total: items.length };
 
   const doPrint = () => {
     const old = document.title;
@@ -157,6 +165,49 @@ function InspectionPaper({ job, rec, photos, onClose }) {
           <RpRow en="Request by" th="ขอโดย" value={r.reqBy} />
         </div>
 
+        {/* ตารางรายการตรวจ — บอกว่าตรวจอะไรไปบ้างและข้อไหนไม่ผ่าน
+            ผลรวมข้างล่างบอกได้แค่ผ่าน/ไม่ผ่านทั้งใบ แต่บอกไม่ได้ว่าติดตรงไหน */}
+        {items.length > 0 && (
+          <div style={{ marginBottom: 12, breakInside: "avoid", pageBreakInside: "avoid" }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 9, marginBottom: 5 }}>
+              <span style={{ fontSize: 11, fontWeight: 700 }}>
+                Checklist <span style={{ fontSize: 10, color: RP_SOFT, fontWeight: 500 }}>(รายการตรวจ)</span>
+              </span>
+              <span style={{ fontSize: 10, color: RP_SOFT }}>
+                ผ่าน {tally.pass} · ไม่ผ่าน {tally.fail}
+                {tally.na ? " · ไม่เกี่ยวข้อง " + tally.na : ""}
+                {tally.blank ? " · ยังไม่ระบุ " + tally.blank : ""}
+                {" จากทั้งหมด " + tally.total + " ข้อ"}
+              </span>
+            </div>
+            <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+              <thead>
+                <tr>
+                  <th style={Object.assign({}, rpTh, { width: 30 })}>#</th>
+                  <th style={rpTh}>รายการตรวจ (Item)</th>
+                  <th style={Object.assign({}, rpTh, { width: 96, textAlign: "center" })}>ผล (Result)</th>
+                  <th style={Object.assign({}, rpTh, { width: "31%" })}>หมายเหตุ (Remark)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((it, i) => {
+                  const m = (window.IR_ITEM_BY || {})[it.result] || null;
+                  return (
+                    <tr key={it.id || i}>
+                      <td style={Object.assign({}, rpTd, { textAlign: "center", color: RP_SOFT })}>{i + 1}</td>
+                      <td style={rpTd}>{it.name || " "}</td>
+                      <td style={Object.assign({}, rpTd, { textAlign: "center", fontWeight: 700, color: m ? m.color : RP_SOFT })}>
+                        {m ? m.mark + " " + m.th : "—"}
+                      </td>
+                      <td style={Object.assign({}, rpTd, { color: RP_SOFT })}>{it.note || " "}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         {/* ผลการตรวจสอบ — ช่องติ๊กสี่ช่องตามต้นฉบับ ช่องที่เลือกไว้ในระบบจะถูกกาให้ */}
         <div style={{ border: "1px solid " + RP_LINE, borderRadius: 4, padding: "10px 12px", marginBottom: 12 }}>
           <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 8 }}>
@@ -215,14 +266,8 @@ function InspectionPaper({ job, rec, photos, onClose }) {
               ))}
             </div>
 
-            {/* ช่องเซ็นท้ายใบรูป — มีเฉพาะหน้าสุดท้าย ไม่งั้นจะซ้ำทุกหน้าโดยไม่จำเป็น */}
-            {pi === pages.length - 1 && (
-              <div style={{ display: "flex", gap: 14, marginTop: 20, breakInside: "avoid", pageBreakInside: "avoid" }}>
-                <RpSign en="Inspected by" th="ตรวจสอบโดย" role="EPC" name={r.inspectedBy} />
-                <RpSign en="Approved by" th="อนุมัติโดย" role={B.legal || "Contractor"} name={r.approvedBy} />
-                <RpSign en="Approved by Client" th="อนุมัติโดยลูกค้า" role="Client" name={r.clientBy} />
-              </div>
-            )}
+            {/* ไม่มีช่องเซ็นท้ายหน้ารูป — เซ็นครั้งเดียวที่หน้าแรกซึ่งเป็นหน้าที่บันทึกผลก็พอ
+                เซ็นซ้ำอีกชุดไม่ได้เพิ่มน้ำหนักอะไร มีแต่ทำให้ต้องไล่เซ็นหลายที่ */}
           </div>
         ))}
       </div>

@@ -28,6 +28,70 @@ const IR_KINDS = [
   "ก่อนส่งมอบงาน (Final Inspection)",
 ];
 
+/* ผลของ "รายการตรวจ" ทีละข้อ — คนละชั้นกับผลรวมของทั้งใบ
+   ใบที่มีแต่ผลรวมบอกได้แค่ผ่าน/ไม่ผ่าน แต่บอกไม่ได้ว่าไม่ผ่านเพราะข้อไหน
+   พอมีรายการทีละข้อ ตอนตรวจซ้ำจะรู้ทันทีว่าต้องกลับไปดูอะไรบ้าง */
+const IR_ITEM_RESULTS = [
+  { key: "pass", en: "Pass", th: "ผ่าน", mark: "✓", color: "#16A34A" },
+  { key: "fail", en: "Fail", th: "ไม่ผ่าน", mark: "✗", color: "#EF4444" },
+  { key: "na", en: "N/A", th: "ไม่เกี่ยวข้อง", mark: "–", color: "#64748B" },
+];
+const IR_ITEM_BY = {};
+IR_ITEM_RESULTS.forEach((r) => { IR_ITEM_BY[r.key] = r; });
+
+/* หัวข้อที่ต้องตรวจของแต่ละประเภท — กดใส่ทีเดียวได้ทั้งชุด ไม่ต้องพิมพ์เองทุกครั้ง
+   ตั้งให้ครบตามที่ตรวจจริงหน้างาน แล้วลบข้อที่ไม่เกี่ยวออกทีหลังได้ */
+const IR_ITEM_PRESETS = {
+  "ส่งมอบหลังคา (Roof Handover)": [
+    "สภาพแผ่นหลังคา (รอยบุบ/รอยขีดข่วน)",
+    "รอยรั่ว / คราบน้ำที่มีอยู่เดิม",
+    "สภาพโครงสร้างรองรับหลังคา",
+    "ทางขึ้น-ลงหลังคาและจุดยึดเชือกนิรภัย",
+    "สิ่งกีดขวางบนหลังคา (ท่อ/พัดลม/สกายไลท์)",
+    "ความสะอาดพื้นที่ก่อนรับมอบ",
+  ],
+  "โครงสร้างรองรับแผง (Mounting Structure)": [
+    "ระยะและแนวรางตามแบบ",
+    "จุดยึดและการซีลกันรั่ว",
+    "แรงขันน็อตตามสเปก",
+    "การต่อลงดินของโครงสร้าง",
+  ],
+  "ติดตั้งแผง (PV Module Installation)": [
+    "จำนวนแผงและตำแหน่งตามผัง",
+    "ระยะห่างและแนวแผงเรียบร้อย",
+    "คลิปยึดแผงครบและแน่น",
+    "สภาพแผง (ไม่มีรอยร้าว/รอยกระแทก)",
+    "การเก็บสายใต้แผง",
+  ],
+  "งานระบบไฟฟ้า (Electrical Works)": [
+    "การเดินสาย DC และการรัดสาย",
+    "ขั้วต่อ MC4 แน่นและถูกขั้ว",
+    "ตู้ DC/AC และอุปกรณ์ป้องกัน",
+    "การต่อลงดินและระบบกันฟ้าผ่า",
+    "ป้ายเตือนและป้ายระบุวงจร",
+  ],
+  "ก่อนส่งมอบงาน (Final Inspection)": [
+    "ทดสอบการทำงานของระบบ",
+    "ค่าที่วัดได้ตรงกับที่ออกแบบ",
+    "ความสะอาดและเก็บงานหน้างาน",
+    "เอกสารส่งมอบครบถ้วน",
+  ],
+};
+const IR_ITEM_FALLBACK = ["ความถูกต้องตามแบบ", "คุณภาพงานติดตั้ง", "ความปลอดภัยหน้างาน", "ความสะอาดเรียบร้อย"];
+
+const irPresetItems = (kind) => (IR_ITEM_PRESETS[kind] || IR_ITEM_FALLBACK);
+const irNewItem = (name) => ({
+  id: "it-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+  name: name || "", result: "", note: "",
+});
+
+/* นับผลรายข้อ ไว้โชว์สรุปสั้น ๆ ทั้งในฟอร์มและบนกระดาษ */
+function irItemTally(items) {
+  const t = { pass: 0, fail: 0, na: 0, blank: 0, total: (items || []).length };
+  (items || []).forEach((x) => { t[x.result || "blank"] = (t[x.result || "blank"] || 0) + 1; });
+  return t;
+}
+
 /* ผลการตรวจสอบ — ตรงตามช่องติ๊กสี่ช่องในแบบฟอร์มจริง */
 const IR_RESULTS = [
   { key: "approved", en: "Approved", th: "อนุมัติ", color: "#16A34A" },
@@ -55,6 +119,7 @@ function irBlank(job, no, kind) {
     to: "", project: j.name || "", contractor: B.legal || "",
     reqDate: new Date().toISOString().slice(0, 10),
     reqItems: "", inspAt: "", refIr: "", others: "", reqBy: "",
+    items: [],
     result: "", resultOther: "", note: "",
     issueBy: "", inspectedBy: "", approvedBy: "", clientBy: "",
   };
@@ -320,15 +385,55 @@ function IrField({ label, thai, wide, lbl, sub, children }) {
   );
 }
 
+/* หนึ่งแถวของตารางรายการตรวจ — อยู่นอกฟอร์มด้วยเหตุผลเดียวกับ IrField (เคอร์เซอร์หลุด) */
+function IrItemRow({ item, no, inp, onChange, onRemove, isMobile }) {
+  return (
+    <div style={{ display: "flex", gap: 8, alignItems: isMobile ? "stretch" : "center", flexDirection: isMobile ? "column" : "row",
+      padding: "9px 10px", borderTop: "1px solid var(--border)" }}>
+      <span style={{ flexShrink: 0, fontSize: 11, fontFamily: "var(--mono)", color: "var(--text-3)", minWidth: 20 }}>{no}.</span>
+      <input value={item.name} onChange={(e) => onChange({ name: e.target.value })} placeholder="หัวข้อที่ตรวจ"
+        style={Object.assign({}, inp, { flex: 2, minWidth: 0 })} />
+      <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
+        {IR_ITEM_RESULTS.map((r) => {
+          const on = item.result === r.key;
+          return (
+            <button key={r.key} type="button" onClick={() => onChange({ result: on ? "" : r.key })}
+              title={r.th}
+              style={{ padding: "8px 11px", borderRadius: 9, cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700,
+                border: "1px solid " + (on ? r.color : "var(--border-strong)"),
+                background: on ? r.color + "16" : "var(--surface)", color: on ? r.color : "var(--text-3)", whiteSpace: "nowrap" }}>
+              {r.mark} {r.th}
+            </button>
+          );
+        })}
+      </div>
+      <input value={item.note} onChange={(e) => onChange({ note: e.target.value })} placeholder="หมายเหตุ"
+        style={Object.assign({}, inp, { flex: 1.4, minWidth: 0 })} />
+      <button type="button" onClick={onRemove} title="ลบข้อนี้"
+        style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border-strong)",
+          background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center" }}>
+        <Icon name="trash" size={13} color="#EF4444" />
+      </button>
+    </div>
+  );
+}
+
 function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const path = irPhotoPath(job ? job.id : "", rec);
   const photos = useIrPhotos(path);
-  const [f, setF] = React.useState(() => Object.assign(irBlank(job), rec || {}, { photoPath: path }));
+  const [f, setF] = React.useState(() => {
+    const base = Object.assign(irBlank(job), rec || {}, { photoPath: path });
+    /* firebase ไม่เก็บ array ว่าง — ใบที่ยังไม่มีรายการตรวจจะกลับมาเป็น undefined */
+    base.items = Array.isArray(base.items) ? base.items : [];
+    return base;
+  });
   const [paper, setPaper] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
+  const tally = irItemTally(f.items);
 
   const set = (k, v) => { setF((p) => Object.assign({}, p, { [k]: v })); setSaved(false); };
+  const fillPreset = () => set("items", irPresetItems(f.kind).map((n) => irNewItem(n)));
   const doSave = () => {
     onSave(f);
     setSaved(true);
@@ -413,6 +518,45 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
               <IrField label="Others" thai="อื่น ๆ" wide lbl={lbl} sub={sub}>
                 <input value={f.others} onChange={(e) => set("others", e.target.value)} style={inp} />
               </IrField>
+            </div>
+
+            {/* ตารางรายการตรวจทีละข้อ — ตัวที่บอกว่า "ไม่ผ่านเพราะข้อไหน" ผลรวมข้างล่างบอกไม่ได้ */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+                <label style={lbl}>รายการตรวจ <span style={sub}>(Checklist)</span></label>
+                {tally.total > 0 && (
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>
+                    <span style={{ color: "#16A34A" }}>ผ่าน {tally.pass}</span>
+                    {tally.fail ? <span style={{ color: "#EF4444" }}> · ไม่ผ่าน {tally.fail}</span> : null}
+                    {tally.blank ? <span style={{ color: "var(--text-3)" }}> · ยังไม่ได้ติ๊ก {tally.blank}</span> : null}
+                  </span>
+                )}
+                <span style={{ flex: 1 }} />
+                {!f.items.length && (
+                  <button type="button" onClick={fillPreset}
+                    style={{ padding: "6px 11px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                      color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>
+                    ใส่รายการมาตรฐานของประเภทนี้
+                  </button>
+                )}
+                <button type="button" onClick={() => set("items", f.items.concat([irNewItem("")]))}
+                  style={{ padding: "6px 11px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                    color: "var(--text-2)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>
+                  + เพิ่มข้อ
+                </button>
+              </div>
+
+              <div style={{ border: "1px solid var(--border)", borderRadius: 11, background: "var(--surface)", overflow: "hidden" }}>
+                {!f.items.length ? (
+                  <div style={{ padding: 20, textAlign: "center", fontSize: 12, color: "var(--text-3)" }}>
+                    ยังไม่มีรายการตรวจ — กด “ใส่รายการมาตรฐานของประเภทนี้” แล้วแก้ทีหลังได้
+                  </div>
+                ) : f.items.map((it, i) => (
+                  <IrItemRow key={it.id || i} item={it} no={i + 1} inp={inp} isMobile={isMobile}
+                    onChange={(patch) => set("items", f.items.map((x, j) => (j === i ? Object.assign({}, x, patch) : x)))}
+                    onRemove={() => set("items", f.items.filter((x, j) => j !== i))} />
+                ))}
+              </div>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -543,6 +687,7 @@ function IrPhotoPicker({ store, currentUser }) {
 }
 
 Object.assign(window, {
-  IR_KINDS, IR_RESULTS, IR_RESULT_BY, irBlank, irNextNo, irPhotoPath, irJobSummary,
+  IR_KINDS, IR_RESULTS, IR_RESULT_BY, IR_ITEM_RESULTS, IR_ITEM_BY, IR_ITEM_PRESETS,
+  irBlank, irNextNo, irPhotoPath, irJobSummary, irPresetItems, irNewItem, irItemTally,
   useJobInspections, useIrPhotos, InspectionListModal, InspectionFormModal, IrPhotoPicker,
 });

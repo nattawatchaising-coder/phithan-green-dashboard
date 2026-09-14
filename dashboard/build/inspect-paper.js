@@ -1,6 +1,24 @@
 const RP_INK = "#15211A";
 const RP_LINE = "#C9D5CE";
 const RP_SOFT = "#5A6B62";
+const rpTh = {
+  textAlign: "left",
+  padding: "5px 7px",
+  fontSize: 10,
+  fontWeight: 700,
+  color: RP_SOFT,
+  borderBottom: "1px solid " + RP_LINE,
+  borderTop: "1px solid " + RP_LINE,
+  whiteSpace: "nowrap"
+};
+const rpTd = {
+  padding: "5px 7px",
+  fontSize: 10.5,
+  color: RP_INK,
+  borderBottom: "1px solid #ECF1EE",
+  verticalAlign: "top",
+  wordBreak: "break-word"
+};
 const rpDate = v => !v ? "" : window.drDateTH ? window.drDateTH(String(v).slice(0, 10)) : String(v).slice(0, 10);
 const rpDateTime = v => !v ? "" : window.drDateTH ? window.drDateTH(String(v).replace("T", " "), true) : String(v).replace("T", " ");
 function RpFill({
@@ -121,6 +139,14 @@ function InspectionPaper({
   const r = rec || {};
   const list = photos || [];
   const res = (window.IR_RESULT_BY || {})[r.result] || null;
+  const items = Array.isArray(r.items) ? r.items : [];
+  const tally = window.irItemTally ? window.irItemTally(items) : {
+    pass: 0,
+    fail: 0,
+    na: 0,
+    blank: 0,
+    total: items.length
+  };
   const doPrint = () => {
     const old = document.title;
     document.title = (r.no || "IR") + " " + (r.kind || "Inspection Report") + " " + (j.code || "");
@@ -366,7 +392,79 @@ function InspectionPaper({
     en: "Request by",
     th: "\u0E02\u0E2D\u0E42\u0E14\u0E22",
     value: r.reqBy
-  })), React.createElement("div", {
+  })), items.length > 0 && React.createElement("div", {
+    style: {
+      marginBottom: 12,
+      breakInside: "avoid",
+      pageBreakInside: "avoid"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      gap: 9,
+      marginBottom: 5
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700
+    }
+  }, "Checklist ", React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: RP_SOFT,
+      fontWeight: 500
+    }
+  }, "(\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E15\u0E23\u0E27\u0E08)")), React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: RP_SOFT
+    }
+  }, "\u0E1C\u0E48\u0E32\u0E19 ", tally.pass, " \xB7 \u0E44\u0E21\u0E48\u0E1C\u0E48\u0E32\u0E19 ", tally.fail, tally.na ? " · ไม่เกี่ยวข้อง " + tally.na : "", tally.blank ? " · ยังไม่ระบุ " + tally.blank : "", " จากทั้งหมด " + tally.total + " ข้อ")), React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      tableLayout: "fixed"
+    }
+  }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", {
+    style: Object.assign({}, rpTh, {
+      width: 30
+    })
+  }, "#"), React.createElement("th", {
+    style: rpTh
+  }, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E15\u0E23\u0E27\u0E08 (Item)"), React.createElement("th", {
+    style: Object.assign({}, rpTh, {
+      width: 96,
+      textAlign: "center"
+    })
+  }, "\u0E1C\u0E25 (Result)"), React.createElement("th", {
+    style: Object.assign({}, rpTh, {
+      width: "31%"
+    })
+  }, "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38 (Remark)"))), React.createElement("tbody", null, items.map((it, i) => {
+    const m = (window.IR_ITEM_BY || {})[it.result] || null;
+    return React.createElement("tr", {
+      key: it.id || i
+    }, React.createElement("td", {
+      style: Object.assign({}, rpTd, {
+        textAlign: "center",
+        color: RP_SOFT
+      })
+    }, i + 1), React.createElement("td", {
+      style: rpTd
+    }, it.name || " "), React.createElement("td", {
+      style: Object.assign({}, rpTd, {
+        textAlign: "center",
+        fontWeight: 700,
+        color: m ? m.color : RP_SOFT
+      })
+    }, m ? m.mark + " " + m.th : "—"), React.createElement("td", {
+      style: Object.assign({}, rpTd, {
+        color: RP_SOFT
+      })
+    }, it.note || " "));
+  })))), React.createElement("div", {
     style: {
       border: "1px solid " + RP_LINE,
       borderRadius: 4,
@@ -528,30 +626,7 @@ function InspectionPaper({
     style: {
       color: RP_SOFT
     }
-  }, pi * 6 + i + 1, "."), " ", p.cap || " ")))), pi === pages.length - 1 && React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 14,
-      marginTop: 20,
-      breakInside: "avoid",
-      pageBreakInside: "avoid"
-    }
-  }, React.createElement(RpSign, {
-    en: "Inspected by",
-    th: "\u0E15\u0E23\u0E27\u0E08\u0E2A\u0E2D\u0E1A\u0E42\u0E14\u0E22",
-    role: "EPC",
-    name: r.inspectedBy
-  }), React.createElement(RpSign, {
-    en: "Approved by",
-    th: "\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E42\u0E14\u0E22",
-    role: B.legal || "Contractor",
-    name: r.approvedBy
-  }), React.createElement(RpSign, {
-    en: "Approved by Client",
-    th: "\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E42\u0E14\u0E22\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32",
-    role: "Client",
-    name: r.clientBy
-  }))))));
+  }, pi * 6 + i + 1, "."), " ", p.cap || " "))))))));
 }
 Object.assign(window, {
   InspectionPaper,

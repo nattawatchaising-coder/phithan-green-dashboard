@@ -1,6 +1,57 @@
 const _IRFB = () => window.FBDB || null;
 const _irRef = p => window.FBDB.ref(p);
 const IR_KINDS = ["ส่งมอบหลังคา (Roof Handover)", "โครงสร้างรองรับแผง (Mounting Structure)", "ติดตั้งแผง (PV Module Installation)", "งานระบบไฟฟ้า (Electrical Works)", "ก่อนส่งมอบงาน (Final Inspection)"];
+const IR_ITEM_RESULTS = [{
+  key: "pass",
+  en: "Pass",
+  th: "ผ่าน",
+  mark: "✓",
+  color: "#16A34A"
+}, {
+  key: "fail",
+  en: "Fail",
+  th: "ไม่ผ่าน",
+  mark: "✗",
+  color: "#EF4444"
+}, {
+  key: "na",
+  en: "N/A",
+  th: "ไม่เกี่ยวข้อง",
+  mark: "–",
+  color: "#64748B"
+}];
+const IR_ITEM_BY = {};
+IR_ITEM_RESULTS.forEach(r => {
+  IR_ITEM_BY[r.key] = r;
+});
+const IR_ITEM_PRESETS = {
+  "ส่งมอบหลังคา (Roof Handover)": ["สภาพแผ่นหลังคา (รอยบุบ/รอยขีดข่วน)", "รอยรั่ว / คราบน้ำที่มีอยู่เดิม", "สภาพโครงสร้างรองรับหลังคา", "ทางขึ้น-ลงหลังคาและจุดยึดเชือกนิรภัย", "สิ่งกีดขวางบนหลังคา (ท่อ/พัดลม/สกายไลท์)", "ความสะอาดพื้นที่ก่อนรับมอบ"],
+  "โครงสร้างรองรับแผง (Mounting Structure)": ["ระยะและแนวรางตามแบบ", "จุดยึดและการซีลกันรั่ว", "แรงขันน็อตตามสเปก", "การต่อลงดินของโครงสร้าง"],
+  "ติดตั้งแผง (PV Module Installation)": ["จำนวนแผงและตำแหน่งตามผัง", "ระยะห่างและแนวแผงเรียบร้อย", "คลิปยึดแผงครบและแน่น", "สภาพแผง (ไม่มีรอยร้าว/รอยกระแทก)", "การเก็บสายใต้แผง"],
+  "งานระบบไฟฟ้า (Electrical Works)": ["การเดินสาย DC และการรัดสาย", "ขั้วต่อ MC4 แน่นและถูกขั้ว", "ตู้ DC/AC และอุปกรณ์ป้องกัน", "การต่อลงดินและระบบกันฟ้าผ่า", "ป้ายเตือนและป้ายระบุวงจร"],
+  "ก่อนส่งมอบงาน (Final Inspection)": ["ทดสอบการทำงานของระบบ", "ค่าที่วัดได้ตรงกับที่ออกแบบ", "ความสะอาดและเก็บงานหน้างาน", "เอกสารส่งมอบครบถ้วน"]
+};
+const IR_ITEM_FALLBACK = ["ความถูกต้องตามแบบ", "คุณภาพงานติดตั้ง", "ความปลอดภัยหน้างาน", "ความสะอาดเรียบร้อย"];
+const irPresetItems = kind => IR_ITEM_PRESETS[kind] || IR_ITEM_FALLBACK;
+const irNewItem = name => ({
+  id: "it-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+  name: name || "",
+  result: "",
+  note: ""
+});
+function irItemTally(items) {
+  const t = {
+    pass: 0,
+    fail: 0,
+    na: 0,
+    blank: 0,
+    total: (items || []).length
+  };
+  (items || []).forEach(x => {
+    t[x.result || "blank"] = (t[x.result || "blank"] || 0) + 1;
+  });
+  return t;
+}
 const IR_RESULTS = [{
   key: "approved",
   en: "Approved",
@@ -50,6 +101,7 @@ function irBlank(job, no, kind) {
     refIr: "",
     others: "",
     reqBy: "",
+    items: [],
     result: "",
     resultOther: "",
     note: "",
@@ -564,6 +616,100 @@ function IrField({
     style: sub
   }, "(", thai, ")")), children);
 }
+function IrItemRow({
+  item,
+  no,
+  inp,
+  onChange,
+  onRemove,
+  isMobile
+}) {
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: isMobile ? "stretch" : "center",
+      flexDirection: isMobile ? "column" : "row",
+      padding: "9px 10px",
+      borderTop: "1px solid var(--border)"
+    }
+  }, React.createElement("span", {
+    style: {
+      flexShrink: 0,
+      fontSize: 11,
+      fontFamily: "var(--mono)",
+      color: "var(--text-3)",
+      minWidth: 20
+    }
+  }, no, "."), React.createElement("input", {
+    value: item.name,
+    onChange: e => onChange({
+      name: e.target.value
+    }),
+    placeholder: "\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E17\u0E35\u0E48\u0E15\u0E23\u0E27\u0E08",
+    style: Object.assign({}, inp, {
+      flex: 2,
+      minWidth: 0
+    })
+  }), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 5,
+      flexShrink: 0
+    }
+  }, IR_ITEM_RESULTS.map(r => {
+    const on = item.result === r.key;
+    return React.createElement("button", {
+      key: r.key,
+      type: "button",
+      onClick: () => onChange({
+        result: on ? "" : r.key
+      }),
+      title: r.th,
+      style: {
+        padding: "8px 11px",
+        borderRadius: 9,
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 11.5,
+        fontWeight: 700,
+        border: "1px solid " + (on ? r.color : "var(--border-strong)"),
+        background: on ? r.color + "16" : "var(--surface)",
+        color: on ? r.color : "var(--text-3)",
+        whiteSpace: "nowrap"
+      }
+    }, r.mark, " ", r.th);
+  })), React.createElement("input", {
+    value: item.note,
+    onChange: e => onChange({
+      note: e.target.value
+    }),
+    placeholder: "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38",
+    style: Object.assign({}, inp, {
+      flex: 1.4,
+      minWidth: 0
+    })
+  }), React.createElement("button", {
+    type: "button",
+    onClick: onRemove,
+    title: "\u0E25\u0E1A\u0E02\u0E49\u0E2D\u0E19\u0E35\u0E49",
+    style: {
+      flexShrink: 0,
+      width: 32,
+      height: 32,
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 13,
+    color: "#EF4444"
+  })));
+}
 function InspectionFormModal({
   job,
   rec,
@@ -574,17 +720,23 @@ function InspectionFormModal({
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const path = irPhotoPath(job ? job.id : "", rec);
   const photos = useIrPhotos(path);
-  const [f, setF] = React.useState(() => Object.assign(irBlank(job), rec || {}, {
-    photoPath: path
-  }));
+  const [f, setF] = React.useState(() => {
+    const base = Object.assign(irBlank(job), rec || {}, {
+      photoPath: path
+    });
+    base.items = Array.isArray(base.items) ? base.items : [];
+    return base;
+  });
   const [paper, setPaper] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
+  const tally = irItemTally(f.items);
   const set = (k, v) => {
     setF(p => Object.assign({}, p, {
       [k]: v
     }));
     setSaved(false);
   };
+  const fillPreset = () => set("items", irPresetItems(f.kind).map(n => irNewItem(n)));
   const doSave = () => {
     onSave(f);
     setSaved(true);
@@ -836,6 +988,95 @@ function InspectionFormModal({
     onChange: e => set("others", e.target.value),
     style: inp
   }))), React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("label", {
+    style: lbl
+  }, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E15\u0E23\u0E27\u0E08 ", React.createElement("span", {
+    style: sub
+  }, "(Checklist)")), tally.total > 0 && React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, React.createElement("span", {
+    style: {
+      color: "#16A34A"
+    }
+  }, "\u0E1C\u0E48\u0E32\u0E19 ", tally.pass), tally.fail ? React.createElement("span", {
+    style: {
+      color: "#EF4444"
+    }
+  }, " \xB7 \u0E44\u0E21\u0E48\u0E1C\u0E48\u0E32\u0E19 ", tally.fail) : null, tally.blank ? React.createElement("span", {
+    style: {
+      color: "var(--text-3)"
+    }
+  }, " \xB7 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E15\u0E34\u0E4A\u0E01 ", tally.blank) : null), React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }), !f.items.length && React.createElement("button", {
+    type: "button",
+    onClick: fillPreset,
+    style: {
+      padding: "6px 11px",
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--primary-dark)",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E43\u0E2A\u0E48\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E21\u0E32\u0E15\u0E23\u0E10\u0E32\u0E19\u0E02\u0E2D\u0E07\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E19\u0E35\u0E49"), React.createElement("button", {
+    type: "button",
+    onClick: () => set("items", f.items.concat([irNewItem("")])),
+    style: {
+      padding: "6px 11px",
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-2)",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "+ \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E02\u0E49\u0E2D")), React.createElement("div", {
+    style: {
+      border: "1px solid var(--border)",
+      borderRadius: 11,
+      background: "var(--surface)",
+      overflow: "hidden"
+    }
+  }, !f.items.length ? React.createElement("div", {
+    style: {
+      padding: 20,
+      textAlign: "center",
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E15\u0E23\u0E27\u0E08 \u2014 \u0E01\u0E14 \u201C\u0E43\u0E2A\u0E48\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E21\u0E32\u0E15\u0E23\u0E10\u0E32\u0E19\u0E02\u0E2D\u0E07\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E19\u0E35\u0E49\u201D \u0E41\u0E25\u0E49\u0E27\u0E41\u0E01\u0E49\u0E17\u0E35\u0E2B\u0E25\u0E31\u0E07\u0E44\u0E14\u0E49") : f.items.map((it, i) => React.createElement(IrItemRow, {
+    key: it.id || i,
+    item: it,
+    no: i + 1,
+    inp: inp,
+    isMobile: isMobile,
+    onChange: patch => set("items", f.items.map((x, j) => j === i ? Object.assign({}, x, patch) : x)),
+    onRemove: () => set("items", f.items.filter((x, j) => j !== i))
+  })))), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -1138,10 +1379,16 @@ Object.assign(window, {
   IR_KINDS,
   IR_RESULTS,
   IR_RESULT_BY,
+  IR_ITEM_RESULTS,
+  IR_ITEM_BY,
+  IR_ITEM_PRESETS,
   irBlank,
   irNextNo,
   irPhotoPath,
   irJobSummary,
+  irPresetItems,
+  irNewItem,
+  irItemTally,
   useJobInspections,
   useIrPhotos,
   InspectionListModal,
