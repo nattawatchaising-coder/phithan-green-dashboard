@@ -1430,6 +1430,26 @@ function suRunHere(m) {
   if (m.job === "iso") return ivIsoShade(m.st, o);
   return null;
 }
+/* สั่งงานชิ้นเดียวแล้วรอผล — ใช้ตอนกดปุ่มที่ต้องมีตัวเลขครบก่อนถึงทำงานต่อได้
+   worker พังหรือไม่มีให้ใช้ ก็ถอยไปคิดในเธรดเดิม (ช้าแต่ยังได้ของ) */
+function suJobOnce(msg, lane) {
+  const here = () => { try { return { out: suRunHere(msg) }; } catch (e) { return { err: String(e && e.message || e) }; } };
+  return new Promise((resolve) => {
+    const w = suWorker(lane);
+    if (!w) { setTimeout(() => resolve(here()), 0); return; }
+    const id = ++SU_WK_SEQ;
+    const onMsg = (e) => {
+      const d = e.data || {};
+      if (d.id !== id) return;
+      w.removeEventListener("message", onMsg);
+      if (d.err) { SU_WKS[lane || "main"] = false; resolve(here()); return; }
+      resolve({ out: d.out });
+    };
+    w.addEventListener("message", onMsg);
+    w.postMessage(Object.assign({ id: id }, msg));
+  });
+}
+
 /* คืน { v, busy } — ระหว่างคิดใหม่ยังคืนผลเดิมไว้ก่อน จอจะได้ไม่กะพริบเป็นช่องว่าง
    on = false แปลว่า "ยังไม่ถึงขั้นที่ต้องใช้" จึงไม่คิด และไม่ทิ้งของเดิม
    (กลับมาดูขั้นเดิมซ้ำจะได้ขึ้นทันที ไม่ต้องรอใหม่) */
@@ -1862,14 +1882,25 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
 
   /* รวมทุกอย่างที่คำนวณไว้แล้วส่งให้ตัวสร้างรายงาน — ไม่คำนวณซ้ำ ตัวเลขในรายงานจึงตรงกับบนจอเป๊ะ */
   const [repHtml, setRepHtml] = React.useState(null);
-  const doReport = () => {
+  /* ข้อความบอกว่ากำลังเตรียมอะไรอยู่ — null = ไม่ได้เตรียมอยู่ */
+  const [repBusy, setRepBusy] = React.useState(null);
+  const doReport = async () => {
     if (typeof suReportHTML !== "function") { alert("ยังโหลดตัวสร้างรายงานไม่สำเร็จ ลองรีเฟรชหน้าอีกครั้ง"); return; }
     setRepOpen(false);
-    /* รายงานต้องมีข้อมูล 12 เดือนเสมอ — ถ้ากดปุ่มตั้งแต่ยังไม่ผ่านขั้นที่ 3 ให้คำนวณตรงนี้เลย
-       (ไม่งั้นจะได้รายงานที่หัวข้อทั้งปีหายไปเงียบ ๆ) */
-    const yearNow = year || (canYear ? ivYearSim(st, panel, groups, idx.byPanel, yearOpt) : null);
-    /* แผนที่เงาคิดต่อเมื่อเปิดถึงขั้นที่ 3 — ถ้ากดออกรายงานตั้งแต่ขั้นแรก ต้องคิดตรงนี้ให้ครบ */
-    const isoNow = isoShade || (typeof ivIsoShade === "function" && totalPanels ? ivIsoShade(st, {}) : null);
+    /* รายงานต้องมีข้อมูล 12 เดือนเสมอ — ถ้ากดปุ่มตั้งแต่ยังไม่ผ่านขั้นที่ 3 ต้องคำนวณตรงนี้
+       (ไม่งั้นจะได้รายงานที่หัวข้อทั้งปีหายไปเงียบ ๆ)
+       แต่ห้ามคิดในเธรดหน้าจอ — ผังใหญ่กินเวลาเป็นสิบวินาที กดแล้วจอจะค้างยาว
+       ส่งไปเข้าคิวของตัวเอง ("rep") จะได้ไม่ต้องรอคิวแผนที่เงาที่อาจกำลังคิดค้างอยู่ */
+    let yearNow = year, isoNow = isoShade;
+    if (!yearNow && canYear) {
+      setRepBusy("กำลังจำลองแสงและเงาทั้ง 12 เดือน");
+      yearNow = (await suJobOnce({ job: "year", st: st, panel: panel, groups: groups, byPanel: idx.byPanel, opt: yearOpt }, "rep")).out || null;
+    }
+    if (!isoNow && typeof ivIsoShade === "function" && totalPanels) {
+      setRepBusy("กำลังทำแผนที่เงารอบทิศ");
+      isoNow = (await suJobOnce({ job: "iso", st: st, opt: {} }, "rep")).out || null;
+    }
+    setRepBusy(null);
     /* กราฟดาต้าชีตในรายงานตรึงเงื่อนไขไว้ ไม่ผูกกับปุ่มที่ผู้ใช้กดค้างไว้บนหน้าจอ */
     const famG = par && typeof ivFamily === "function" ? ivFamily(par, panel, { mode: "irr", nSeries: 1, tc: 25 }) : [];
     const famT = par && typeof ivFamily === "function" ? ivFamily(par, panel, { mode: "temp", nSeries: famStrN, g: 1000 }) : [];
@@ -3719,6 +3750,17 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
         </div>
       )}
 
+      {/* กำลังเตรียมตัวเลขให้รายงาน — งานคิดอยู่นอกเธรด หน้าจอจึงยังกดได้ตามปกติ */}
+      {repBusy && (
+        <div style={{ position: "fixed", left: 0, right: 0, bottom: 18, display: "grid", placeItems: "center", zIndex: 90, pointerEvents: "none" }}>
+          <div className="p3-card" style={{ pointerEvents: "auto", maxWidth: 420, gap: 5, padding: "11px 14px",
+            boxShadow: "0 10px 30px rgba(0,0,0,.18)" }}>
+            <span className="p3-eb"><P3Icon name="doc" size={12} />{repBusy}…</span>
+            <span className="p3-note">รายงานจะเปิดขึ้นเองเมื่อตัวเลขครบ ระหว่างนี้ใช้งานหน้านี้ต่อได้ตามปกติ</span>
+          </div>
+        </div>
+      )}
+
       {/* ตัวอย่างรายงานบนจอ — กด "บันทึก PDF" ในแถบด้านบนเพื่อพิมพ์/เก็บเป็นไฟล์ */}
       {repHtml && typeof SuReportView === "function" && (
         <SuReportView html={repHtml} onClose={() => setRepHtml(null)}
@@ -3787,4 +3829,4 @@ function SolarDesignHost({ job, onClose }) {
   );
 }
 
-Object.assign(window, { suBlankSys, suWorker, useSuJob, SuBusy, SolarWorkspace, SolarDesignHost, SuVoltBand, SuFacing, SU_CSS });
+Object.assign(window, { suBlankSys, suWorker, suJobOnce, useSuJob, SuBusy, SolarWorkspace, SolarDesignHost, SuVoltBand, SuFacing, SU_CSS });

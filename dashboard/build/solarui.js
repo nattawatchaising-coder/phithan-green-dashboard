@@ -2862,6 +2862,44 @@ function suRunHere(m) {
   if (m.job === "iso") return ivIsoShade(m.st, o);
   return null;
 }
+function suJobOnce(msg, lane) {
+  const here = () => {
+    try {
+      return {
+        out: suRunHere(msg)
+      };
+    } catch (e) {
+      return {
+        err: String(e && e.message || e)
+      };
+    }
+  };
+  return new Promise(resolve => {
+    const w = suWorker(lane);
+    if (!w) {
+      setTimeout(() => resolve(here()), 0);
+      return;
+    }
+    const id = ++SU_WK_SEQ;
+    const onMsg = e => {
+      const d = e.data || {};
+      if (d.id !== id) return;
+      w.removeEventListener("message", onMsg);
+      if (d.err) {
+        SU_WKS[lane || "main"] = false;
+        resolve(here());
+        return;
+      }
+      resolve({
+        out: d.out
+      });
+    };
+    w.addEventListener("message", onMsg);
+    w.postMessage(Object.assign({
+      id: id
+    }, msg));
+  });
+}
 function useSuJob(make, deps, on, lane) {
   const [res, setRes] = React.useState({
     v: null,
@@ -3480,14 +3518,35 @@ function SolarWorkspace({
   };
   const repCount = (typeof RP_SECTIONS !== "undefined" ? RP_SECTIONS : []).filter(s => repPick[s.key]).length;
   const [repHtml, setRepHtml] = React.useState(null);
-  const doReport = () => {
+  const [repBusy, setRepBusy] = React.useState(null);
+  const doReport = async () => {
     if (typeof suReportHTML !== "function") {
       alert("ยังโหลดตัวสร้างรายงานไม่สำเร็จ ลองรีเฟรชหน้าอีกครั้ง");
       return;
     }
     setRepOpen(false);
-    const yearNow = year || (canYear ? ivYearSim(st, panel, groups, idx.byPanel, yearOpt) : null);
-    const isoNow = isoShade || (typeof ivIsoShade === "function" && totalPanels ? ivIsoShade(st, {}) : null);
+    let yearNow = year,
+      isoNow = isoShade;
+    if (!yearNow && canYear) {
+      setRepBusy("กำลังจำลองแสงและเงาทั้ง 12 เดือน");
+      yearNow = (await suJobOnce({
+        job: "year",
+        st: st,
+        panel: panel,
+        groups: groups,
+        byPanel: idx.byPanel,
+        opt: yearOpt
+      }, "rep")).out || null;
+    }
+    if (!isoNow && typeof ivIsoShade === "function" && totalPanels) {
+      setRepBusy("กำลังทำแผนที่เงารอบทิศ");
+      isoNow = (await suJobOnce({
+        job: "iso",
+        st: st,
+        opt: {}
+      }, "rep")).out || null;
+    }
+    setRepBusy(null);
     const famG = par && typeof ivFamily === "function" ? ivFamily(par, panel, {
       mode: "irr",
       nSeries: 1,
@@ -7412,7 +7471,34 @@ function SolarWorkspace({
   }, React.createElement(P3Icon, {
     name: "doc",
     size: 14
-  }), "\u0E2D\u0E2D\u0E01\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19")))), repHtml && typeof SuReportView === "function" && React.createElement(SuReportView, {
+  }), "\u0E2D\u0E2D\u0E01\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19")))), repBusy && React.createElement("div", {
+    style: {
+      position: "fixed",
+      left: 0,
+      right: 0,
+      bottom: 18,
+      display: "grid",
+      placeItems: "center",
+      zIndex: 90,
+      pointerEvents: "none"
+    }
+  }, React.createElement("div", {
+    className: "p3-card",
+    style: {
+      pointerEvents: "auto",
+      maxWidth: 420,
+      gap: 5,
+      padding: "11px 14px",
+      boxShadow: "0 10px 30px rgba(0,0,0,.18)"
+    }
+  }, React.createElement("span", {
+    className: "p3-eb"
+  }, React.createElement(P3Icon, {
+    name: "doc",
+    size: 12
+  }), repBusy, "\u2026"), React.createElement("span", {
+    className: "p3-note"
+  }, "\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E08\u0E30\u0E40\u0E1B\u0E34\u0E14\u0E02\u0E36\u0E49\u0E19\u0E40\u0E2D\u0E07\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E04\u0E23\u0E1A \u0E23\u0E30\u0E2B\u0E27\u0E48\u0E32\u0E07\u0E19\u0E35\u0E49\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E19\u0E35\u0E49\u0E15\u0E48\u0E2D\u0E44\u0E14\u0E49\u0E15\u0E32\u0E21\u0E1B\u0E01\u0E15\u0E34"))), repHtml && typeof SuReportView === "function" && React.createElement(SuReportView, {
     html: repHtml,
     onClose: () => setRepHtml(null),
     title: (repLang === "en" ? "System Design Report" : repLang === "zh" ? "系统设计报告" : "รายงานออกแบบระบบ") + (job && job.code ? " " + job.code : "")
@@ -7498,6 +7584,7 @@ function SolarDesignHost({
 Object.assign(window, {
   suBlankSys,
   suWorker,
+  suJobOnce,
   useSuJob,
   SuBusy,
   SolarWorkspace,
