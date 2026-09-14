@@ -5,3 +5,6 @@ test-data.html
 # ของที่ไม่จำเป็นต้องอัปขึ้น
 node_modules
 .claude
+
+# cache ตอนพัฒนาในเครื่อง
+.devcache

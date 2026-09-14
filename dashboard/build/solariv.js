@@ -846,11 +846,70 @@ function ivGeom(st) {
     buildings: blockers.filter(b => b.t === "t" || b.t === "w").length
   };
 }
+function ivShadeGrid(B, dir) {
+  const up = Math.abs(dir.y) > 0.9 ? {
+    x: 1,
+    y: 0,
+    z: 0
+  } : {
+    x: 0,
+    y: 1,
+    z: 0
+  };
+  let ux = dir.y * up.z - dir.z * up.y,
+    uy = dir.z * up.x - dir.x * up.z,
+    uz = dir.x * up.y - dir.y * up.x;
+  const ul = Math.sqrt(ux * ux + uy * uy + uz * uz) || 1;
+  ux /= ul;
+  uy /= ul;
+  uz /= ul;
+  const vx = dir.y * uz - dir.z * uy,
+    vy = dir.z * ux - dir.x * uz,
+    vz = dir.x * uy - dir.y * ux;
+  let med = 0;
+  for (let k = 0; k < B.length; k++) med += B[k].br || 0;
+  const cell = Math.max(0.5, Math.min(6, (B.length ? med / B.length : 1) * 2));
+  const big = [],
+    map = new Map();
+  for (let k = 0; k < B.length; k++) {
+    const b = B[k],
+      br = b.br || 0;
+    if (br > cell * 6) {
+      big.push(b);
+      continue;
+    }
+    const cu = b.bc.x * ux + b.bc.y * uy + b.bc.z * uz;
+    const cv = b.bc.x * vx + b.bc.y * vy + b.bc.z * vz;
+    const i0 = Math.floor((cu - br) / cell),
+      i1 = Math.floor((cu + br) / cell);
+    const j0 = Math.floor((cv - br) / cell),
+      j1 = Math.floor((cv + br) / cell);
+    for (let i = i0; i <= i1; i++) {
+      for (let j = j0; j <= j1; j++) {
+        const key = i * 4194304 + j;
+        const arr = map.get(key);
+        if (arr) arr.push(b);else map.set(key, [b]);
+      }
+    }
+  }
+  return {
+    ux: ux,
+    uy: uy,
+    uz: uz,
+    vx: vx,
+    vy: vy,
+    vz: vz,
+    cell: cell,
+    map: map,
+    big: big
+  };
+}
 function ivShadeAt(geo, dir) {
   const out = {};
   let sum = 0,
     n = 0;
   const B = geo.blockers;
+  const G = ivShadeGrid(B, dir);
   for (let i = 0; i < geo.panels.length; i++) {
     const p = geo.panels[i];
     if (ivDot(p.n, dir) <= 0.01) {
@@ -862,28 +921,36 @@ function ivShadeAt(geo, dir) {
     let blocked = 0;
     for (let s = 0; s < S.length; s++) {
       const o = S[s];
-      for (let k = 0; k < B.length; k++) {
-        const b = B[k];
-        if (b.uid === p.uid) continue;
-        if (b.t === "t" && b.rid === p.roofId && b.sd === (p.side || null)) continue;
-        const dx = b.bc.x - o.x,
-          dy = b.bc.y - o.y,
-          dz = b.bc.z - o.z;
-        if (dx * dir.x + dy * dir.y + dz * dir.z < -b.br) continue;
-        let hit = false;
-        if (b.t === "s") hit = ivHitSphere(o, dir, b.c, b.r);else if (b.t === "b") hit = b.rot ? ivHitBoxRot(o, dir, b) : ivHitBox(o, dir, b.lo, b.hi);else if (b.t === "q") hit = ivHitQuad(o, dir, b);else if (b.t === "w") hit = ivHitWall(o, dir, b.poly, b.top);else if (b.t === "t") {
-          for (let j = 0; j < b.tris.length; j++) {
-            if (ivHitTri(o, dir, b.tris[j].a, b.tris[j].e1, b.tris[j].e2)) {
-              hit = true;
-              break;
+      const key = Math.floor((o.x * G.ux + o.y * G.uy + o.z * G.uz) / G.cell) * 4194304 + Math.floor((o.x * G.vx + o.y * G.vy + o.z * G.vz) / G.cell);
+      const near = G.map.get(key);
+      let hitAny = false;
+      for (let pass = 0; pass < 2 && !hitAny; pass++) {
+        const list = pass === 0 ? near : G.big;
+        if (!list) continue;
+        for (let k = 0; k < list.length; k++) {
+          const b = list[k];
+          if (b.uid === p.uid) continue;
+          if (b.t === "t" && b.rid === p.roofId && b.sd === (p.side || null)) continue;
+          const dx = b.bc.x - o.x,
+            dy = b.bc.y - o.y,
+            dz = b.bc.z - o.z;
+          if (dx * dir.x + dy * dir.y + dz * dir.z < -b.br) continue;
+          let hit = false;
+          if (b.t === "s") hit = ivHitSphere(o, dir, b.c, b.r);else if (b.t === "b") hit = b.rot ? ivHitBoxRot(o, dir, b) : ivHitBox(o, dir, b.lo, b.hi);else if (b.t === "q") hit = ivHitQuad(o, dir, b);else if (b.t === "w") hit = ivHitWall(o, dir, b.poly, b.top);else if (b.t === "t") {
+            for (let j = 0; j < b.tris.length; j++) {
+              if (ivHitTri(o, dir, b.tris[j].a, b.tris[j].e1, b.tris[j].e2)) {
+                hit = true;
+                break;
+              }
             }
           }
-        }
-        if (hit) {
-          blocked++;
-          break;
+          if (hit) {
+            hitAny = true;
+            break;
+          }
         }
       }
+      if (hitAny) blocked++;
     }
     const f = blocked / S.length;
     out[p.uid] = f;

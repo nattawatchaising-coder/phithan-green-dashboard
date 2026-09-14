@@ -1,0 +1,32 @@
+# เช็คว่า dashboard/build/ ที่ commit ขึ้นมา ตรงกับไฟล์ .jsx ล่าสุดจริง
+# ถ้าลืม `npm run build` ก่อน push — workflow นี้จะฟ้อง (เว็บจริงจะได้ไม่ค้างโค้ดเก่าแบบเงียบๆ)
+name: build-check
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  build-is-current:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: ไฟล์ที่ build ออกมาต้องไม่ต่างจากที่ commit ไว้
+        run: |
+          if ! git diff --quiet -- dashboard/build; then
+            echo "::error::dashboard/build/ ไม่ตรงกับไฟล์ .jsx — รัน 'npm run build' แล้ว commit ไฟล์ใน dashboard/build/ ขึ้นมาด้วย"
+            git diff --stat -- dashboard/build
+            exit 1
+          fi
+          echo "dashboard/build/ ตรงกับ .jsx ล่าสุดแล้ว"

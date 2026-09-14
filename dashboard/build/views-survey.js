@@ -298,6 +298,19 @@ function SurveyView({
     }), " \u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E2A\u0E33\u0E23\u0E27\u0E08"))));
   })));
 }
+function leadSetStage(leadStore, l, key) {
+  leadStore.patch(l.id, (window.salesStagePatch || (() => ({})))(key));
+}
+function leadAddContact(leadStore, l, rec) {
+  const stageKey = window.salesStageKey || (x => x.status || "open");
+  const list = (l.contacts || []).concat([rec]);
+  const patch = {
+    contacts: list
+  };
+  if (stageKey(l) === "new") Object.assign(patch, (window.salesStagePatch || (() => ({})))("contact"));
+  if (rec.nextFollow != null) patch.nextFollow = rec.nextFollow;
+  leadStore.patch(l.id, patch);
+}
 function LeadsView({
   leadStore,
   appts,
@@ -305,6 +318,7 @@ function LeadsView({
   onMenuOpen,
   onOpenSurvey,
   onReport,
+  onPlan3d,
   onConvert,
   canConvert,
   users,
@@ -369,17 +383,26 @@ function LeadsView({
     th: s.th,
     color: s.color
   })));
-  const setStage = (l, key) => leadStore.patch(l.id, (window.salesStagePatch || (() => ({})))(key));
-  const addContact = (l, rec) => {
-    const list = (l.contacts || []).concat([rec]);
-    const patch = {
-      contacts: list
-    };
-    if (stageKey(l) === "new") Object.assign(patch, (window.salesStagePatch || (() => ({})))("contact"));
-    if (rec.nextFollow != null) patch.nextFollow = rec.nextFollow;
-    leadStore.patch(l.id, patch);
+  const setStage = (l, key) => leadSetStage(leadStore, l, key);
+  const addContact = (l, rec) => leadAddContact(leadStore, l, rec);
+  const cardCtx = {
+    leadStore,
+    jobs,
+    quotes,
+    apptsOf,
+    STATUS,
+    STATUS_BY,
+    stageKey,
+    onOpenSurvey,
+    onReport,
+    onOpenQuote,
+    onPlan3d,
+    onConvert,
+    canConvert,
+    setEdit,
+    setLog,
+    setStage
   };
-  const [ask, setAsk] = React.useState(null);
   return React.createElement(React.Fragment, null, React.createElement(window.SchedHeader, {
     title: "\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22",
     onMenuOpen: onMenuOpen,
@@ -456,368 +479,11 @@ function LeadsView({
       flexDirection: "column",
       gap: 11
     }
-  }, shown.map(l => {
-    const st = window.surveyStatus({
-      survey: l.survey
-    });
-    const sKey = stageKey(l);
-    const sc = STATUS_BY[sKey] || STATUS[0] || {
-      th: "—",
-      color: "var(--text-3)"
-    };
-    const list = (apptsOf[l.id] || []).slice().sort((a, b) => String(a.start || "").localeCompare(String(b.start || "")));
-    const next = list.find(a => a.status !== "canceled" && a.status !== "done") || list[list.length - 1];
-    const job = l.jobId ? (jobs || []).find(j => j.id === l.jobId) : null;
-    const lq = (window.quotesFor ? window.quotesFor(quotes, "lead", l.id) : [])[0];
-    const late = window.sOverdue && window.sOverdue(l.nextFollow) && sKey !== "won" && sKey !== "lost";
-    return React.createElement("div", {
-      key: l.id,
-      style: {
-        background: "var(--surface)",
-        border: "1px solid var(--border)",
-        borderLeft: "4px solid " + sc.color,
-        borderRadius: 14,
-        boxShadow: "var(--shadow-sm)",
-        padding: 14,
-        display: "flex",
-        flexDirection: "column",
-        gap: 9
-      }
-    }, React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 10
-      }
-    }, React.createElement("div", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, React.createElement("div", {
-      style: {
-        fontSize: 15,
-        fontWeight: 800,
-        color: "var(--text-1)",
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        textOverflow: "ellipsis"
-      }
-    }, l.name || "(ไม่ระบุชื่อ)"), React.createElement("div", {
-      style: {
-        fontSize: 11.5,
-        color: "var(--text-3)",
-        marginTop: 2
-      }
-    }, l.code, l.province ? " · " + l.province : "", l.phone ? " · " + l.phone : "")), React.createElement("span", {
-      style: {
-        fontSize: 10.5,
-        fontWeight: 700,
-        color: sc.color,
-        background: sc.color + "16",
-        padding: "3px 9px",
-        borderRadius: 99,
-        whiteSpace: "nowrap",
-        flexShrink: 0
-      }
-    }, sc.th)), React.createElement("div", {
-      style: {
-        display: "flex",
-        gap: 6,
-        flexWrap: "wrap",
-        fontSize: 10.5
-      }
-    }, l.ownerName && React.createElement("span", {
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 4,
-        background: "var(--surface2)",
-        color: "var(--text-2)",
-        fontWeight: 700,
-        padding: "3px 9px",
-        borderRadius: 99
-      }
-    }, React.createElement(Icon, {
-      name: "user",
-      size: 11,
-      color: "var(--text-3)"
-    }), l.ownerName), l.nextFollow && React.createElement("span", {
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 4,
-        fontWeight: 700,
-        padding: "3px 9px",
-        borderRadius: 99,
-        background: late ? "var(--tint-red-bg2)" : "var(--surface2)",
-        color: late ? "#EF4444" : "var(--text-2)"
-      }
-    }, React.createElement(Icon, {
-      name: "clock",
-      size: 11,
-      color: late ? "#EF4444" : "var(--text-3)"
-    }), "\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21 ", thDate(l.nextFollow, true), late ? " · เลยแล้ว" : ""), +l.expKwp > 0 && React.createElement("span", {
-      style: {
-        background: "var(--surface2)",
-        color: "var(--text-2)",
-        fontWeight: 700,
-        padding: "3px 9px",
-        borderRadius: 99,
-        fontFamily: "var(--mono)"
-      }
-    }, l.expKwp, " kWp"), +l.expValue > 0 && React.createElement("span", {
-      style: {
-        background: "var(--primary-soft)",
-        color: "var(--primary-dark)",
-        fontWeight: 800,
-        padding: "3px 9px",
-        borderRadius: 99
-      }
-    }, "\u0E3F", fmtBaht(+l.expValue)), l.source && window.LEAD_SOURCE_TH && React.createElement("span", {
-      style: {
-        background: "var(--surface2)",
-        color: "var(--text-3)",
-        fontWeight: 700,
-        padding: "3px 9px",
-        borderRadius: 99
-      }
-    }, window.LEAD_SOURCE_TH(l.source)), lq && (() => {
-      const qs = (window.QUOTE_STATUS_BY || {})[lq.status] || {
-        th: lq.status,
-        color: "var(--text-3)"
-      };
-      return React.createElement("span", {
-        style: {
-          background: qs.color + "16",
-          color: qs.color,
-          fontWeight: 800,
-          padding: "3px 9px",
-          borderRadius: 99,
-          fontFamily: "var(--mono)"
-        }
-      }, lq.no, " \xB7 ", qs.th);
-    })()), l.address && React.createElement("div", {
-      style: {
-        fontSize: 12,
-        color: "var(--text-2)",
-        display: "flex",
-        gap: 6
-      }
-    }, React.createElement(Icon, {
-      name: "pin",
-      size: 13,
-      color: "var(--text-3)",
-      style: {
-        flexShrink: 0,
-        marginTop: 1
-      }
-    }), React.createElement("span", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, l.address)), next && React.createElement("div", {
-      style: {
-        fontSize: 12,
-        color: "var(--text-2)",
-        display: "flex",
-        alignItems: "center",
-        gap: 6
-      }
-    }, React.createElement(Icon, {
-      name: "clock",
-      size: 13,
-      color: "var(--text-3)"
-    }), "\u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08 ", next.start ? thDate(next.start.slice(0, 10), true) : "-", list.length > 1 ? " · ทั้งหมด " + list.length + " นัด" : ""), l.note && React.createElement("div", {
-      style: {
-        fontSize: 12,
-        color: "var(--text-2)",
-        background: "var(--surface2)",
-        borderRadius: 8,
-        padding: "7px 10px"
-      }
-    }, "\uD83D\uDCDD ", l.note), (l.contacts || []).length > 0 && (() => {
-      const c = l.contacts[l.contacts.length - 1];
-      const w = (window.CONTACT_WAYS || []).find(x => x.key === c.how) || {
-        th: "ติดต่อ",
-        icon: "list"
-      };
-      return React.createElement("div", {
-        style: {
-          fontSize: 11.5,
-          color: "var(--text-2)",
-          display: "flex",
-          gap: 7,
-          alignItems: "flex-start"
-        }
-      }, React.createElement(Icon, {
-        name: w.icon,
-        size: 13,
-        color: "var(--text-3)",
-        style: {
-          flexShrink: 0,
-          marginTop: 2
-        }
-      }), React.createElement("span", {
-        style: {
-          flex: 1,
-          minWidth: 0
-        }
-      }, React.createElement("b", {
-        style: {
-          color: "var(--text-1)"
-        }
-      }, w.th), " ", thDateTime(c.at), c.byName ? " · " + c.byName : "", c.note ? React.createElement("span", {
-        style: {
-          display: "block",
-          color: "var(--text-3)"
-        }
-      }, c.note) : null, l.contacts.length > 1 ? React.createElement("span", {
-        style: {
-          color: "var(--text-3)"
-        }
-      }, "\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27 ", l.contacts.length, " \u0E04\u0E23\u0E31\u0E49\u0E07") : null));
-    })(), React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 9
-      }
-    }, React.createElement("span", {
-      style: {
-        flex: 1,
-        height: 5,
-        borderRadius: 99,
-        background: "var(--surface3)",
-        overflow: "hidden"
-      }
-    }, React.createElement("span", {
-      style: {
-        display: "block",
-        height: "100%",
-        width: st.pct + "%",
-        background: st.color,
-        borderRadius: 99
-      }
-    })), React.createElement("span", {
-      style: {
-        fontSize: 11.5,
-        fontWeight: 700,
-        color: st.color,
-        whiteSpace: "nowrap"
-      }
-    }, st.label, " ", st.pct, "%")), job && React.createElement("div", {
-      style: {
-        fontSize: 11.5,
-        color: "var(--tint-green-tx)",
-        fontWeight: 700
-      }
-    }, "\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19 ", job.code, " \xB7 ", job.name, " \u0E41\u0E25\u0E49\u0E27"), ask && ask.id === l.id ? React.createElement("div", {
-      style: {
-        display: "flex",
-        gap: 8,
-        alignItems: "center",
-        flexWrap: "wrap",
-        borderTop: "1px solid var(--border)",
-        paddingTop: 10
-      }
-    }, React.createElement("span", {
-      style: {
-        flex: 1,
-        minWidth: 140,
-        fontSize: 12,
-        fontWeight: 700,
-        lineHeight: 1.5,
-        color: ask.kind === "del" ? "#EF4444" : "var(--tint-green-tx)"
-      }
-    }, ask.kind === "del" ? "ลบ “" + (l.name || "รายนี้") + "” ? แบบสำรวจและรูปของรายนี้จะถูกลบด้วย" : "ย้าย “" + (l.name || "รายนี้") + "” เข้าฐานข้อมูลงานติดตั้ง? แบบสำรวจและรูปถ่ายจะถูกย้ายไปกับงานใหม่ด้วย"), ask.kind === "del" ? React.createElement("button", {
-      onClick: () => {
-        leadStore.remove(l.id);
-        setAsk(null);
-      },
-      style: leadBtn("#EF4444", true)
-    }, "\u0E25\u0E1A\u0E40\u0E25\u0E22") : React.createElement("button", {
-      onClick: () => {
-        setAsk(null);
-        onConvert(l);
-      },
-      style: leadBtn("var(--tint-green-tx)", true)
-    }, React.createElement(Icon, {
-      name: "check",
-      size: 14,
-      color: "#fff",
-      sw: 2.4
-    }), " \u0E22\u0E49\u0E32\u0E22\u0E40\u0E25\u0E22"), React.createElement("button", {
-      onClick: () => setAsk(null),
-      style: leadBtn("var(--text-2)")
-    }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01")) : React.createElement("div", {
-      style: {
-        display: "flex",
-        gap: 8,
-        flexWrap: "wrap",
-        borderTop: "1px solid var(--border)",
-        paddingTop: 10
-      }
-    }, React.createElement("button", {
-      onClick: () => setLog(l),
-      style: leadBtn("var(--primary)", true)
-    }, React.createElement(Icon, {
-      name: "phone",
-      size: 14,
-      color: "#fff"
-    }), " \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E01\u0E32\u0E23\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D"), onOpenQuote && React.createElement("button", {
-      onClick: () => onOpenQuote(l, lq || null),
-      style: leadBtn("#EC4899")
-    }, React.createElement(Icon, {
-      name: "file",
-      size: 14,
-      color: "#EC4899"
-    }), " ", lq ? "ใบเสนอราคา " + lq.no : "ทำใบเสนอราคา"), onOpenSurvey && React.createElement("button", {
-      onClick: () => onOpenSurvey(window.leadAsJob(l)),
-      style: leadBtn("var(--text-2)")
-    }, React.createElement(Icon, {
-      name: "list",
-      size: 14,
-      color: "var(--text-2)"
-    }), " ", st.state === "none" ? "เริ่มแบบสำรวจ" : "ดู / แก้แบบสำรวจ"), onReport && st.state !== "none" && React.createElement("button", {
-      onClick: () => onReport(window.leadAsJob(l)),
-      style: leadBtn("var(--primary-dark)")
-    }, React.createElement(Icon, {
-      name: "file",
-      size: 14,
-      color: "var(--primary-dark)"
-    }), " \u0E23\u0E32\u0E22\u0E07\u0E32\u0E19 \xB7 PDF"), canConvert && sKey !== "won" && React.createElement("button", {
-      onClick: () => setAsk({
-        id: l.id,
-        kind: "conv"
-      }),
-      style: leadBtn("var(--tint-green-tx)", true)
-    }, React.createElement(Icon, {
-      name: "check",
-      size: 14,
-      color: "#fff",
-      sw: 2.4
-    }), " \u0E41\u0E1B\u0E25\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"), sKey !== "lost" && sKey !== "won" && React.createElement("button", {
-      onClick: () => setStage(l, "lost"),
-      style: leadBtn("var(--text-2)")
-    }, "\u0E44\u0E21\u0E48\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"), sKey === "lost" && React.createElement("button", {
-      onClick: () => setStage(l, "nego"),
-      style: leadBtn("var(--text-2)")
-    }, "\u0E01\u0E25\u0E31\u0E1A\u0E21\u0E32\u0E44\u0E25\u0E48\u0E15\u0E48\u0E2D"), React.createElement("button", {
-      onClick: () => setEdit({
-        lead: Object.assign({}, l),
-        isNew: false
-      }),
-      style: leadBtn("var(--text-2)")
-    }, "\u0E41\u0E01\u0E49\u0E44\u0E02"), React.createElement("button", {
-      onClick: () => setAsk({
-        id: l.id,
-        kind: "del"
-      }),
-      style: leadBtn("#EF4444")
-    }, "\u0E25\u0E1A")));
-  }))), edit && React.createElement(LeadModal, {
+  }, shown.map(l => React.createElement(LeadCard, {
+    key: l.id,
+    l: l,
+    ctx: cardCtx
+  })))), edit && React.createElement(LeadModal, {
     initial: edit.lead,
     isNew: edit.isNew,
     users: users,
@@ -1420,9 +1086,548 @@ function LeadModal({
     }
   }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01"))));
 }
+function LeadCard({
+  l,
+  ctx
+}) {
+  const {
+    leadStore,
+    jobs,
+    quotes,
+    apptsOf,
+    STATUS,
+    STATUS_BY,
+    stageKey,
+    onOpenSurvey,
+    onReport,
+    onOpenQuote,
+    onPlan3d,
+    onConvert,
+    canConvert,
+    setEdit,
+    setLog,
+    setStage
+  } = ctx;
+  const [ask, setAsk] = React.useState(null);
+  const st = window.surveyStatus({
+    survey: l.survey
+  });
+  const sKey = stageKey(l);
+  const sc = STATUS_BY[sKey] || STATUS[0] || {
+    th: "—",
+    color: "var(--text-3)"
+  };
+  const list = (apptsOf[l.id] || []).slice().sort((a, b) => String(a.start || "").localeCompare(String(b.start || "")));
+  const next = list.find(a => a.status !== "canceled" && a.status !== "done") || list[list.length - 1];
+  const job = l.jobId ? (jobs || []).find(j => j.id === l.jobId) : null;
+  const lq = (window.quotesFor ? window.quotesFor(quotes, "lead", l.id) : [])[0];
+  const late = window.sOverdue && window.sOverdue(l.nextFollow) && sKey !== "won" && sKey !== "lost";
+  return React.createElement("div", {
+    key: l.id,
+    style: {
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderLeft: "4px solid " + sc.color,
+      borderRadius: 14,
+      boxShadow: "var(--shadow-sm)",
+      padding: 14,
+      display: "flex",
+      flexDirection: "column",
+      gap: 9
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: 10
+    }
+  }, React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 800,
+      color: "var(--text-1)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, l.name || "(ไม่ระบุชื่อ)"), React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      marginTop: 2
+    }
+  }, l.code, l.province ? " · " + l.province : "", l.phone ? " · " + l.phone : "")), React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: sc.color,
+      background: sc.color + "16",
+      padding: "3px 9px",
+      borderRadius: 99,
+      whiteSpace: "nowrap",
+      flexShrink: 0
+    }
+  }, sc.th)), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      flexWrap: "wrap",
+      fontSize: 10.5
+    }
+  }, l.ownerName && React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      background: "var(--surface2)",
+      color: "var(--text-2)",
+      fontWeight: 700,
+      padding: "3px 9px",
+      borderRadius: 99
+    }
+  }, React.createElement(Icon, {
+    name: "user",
+    size: 11,
+    color: "var(--text-3)"
+  }), l.ownerName), l.nextFollow && React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      fontWeight: 700,
+      padding: "3px 9px",
+      borderRadius: 99,
+      background: late ? "var(--tint-red-bg2)" : "var(--surface2)",
+      color: late ? "#EF4444" : "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "clock",
+    size: 11,
+    color: late ? "#EF4444" : "var(--text-3)"
+  }), "\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21 ", thDate(l.nextFollow, true), late ? " · เลยแล้ว" : ""), +l.expKwp > 0 && React.createElement("span", {
+    style: {
+      background: "var(--surface2)",
+      color: "var(--text-2)",
+      fontWeight: 700,
+      padding: "3px 9px",
+      borderRadius: 99,
+      fontFamily: "var(--mono)"
+    }
+  }, l.expKwp, " kWp"), +l.expValue > 0 && React.createElement("span", {
+    style: {
+      background: "var(--primary-soft)",
+      color: "var(--primary-dark)",
+      fontWeight: 800,
+      padding: "3px 9px",
+      borderRadius: 99
+    }
+  }, "\u0E3F", fmtBaht(+l.expValue)), l.source && window.LEAD_SOURCE_TH && React.createElement("span", {
+    style: {
+      background: "var(--surface2)",
+      color: "var(--text-3)",
+      fontWeight: 700,
+      padding: "3px 9px",
+      borderRadius: 99
+    }
+  }, window.LEAD_SOURCE_TH(l.source)), lq && (() => {
+    const qs = (window.QUOTE_STATUS_BY || {})[lq.status] || {
+      th: lq.status,
+      color: "var(--text-3)"
+    };
+    return React.createElement("span", {
+      style: {
+        background: qs.color + "16",
+        color: qs.color,
+        fontWeight: 800,
+        padding: "3px 9px",
+        borderRadius: 99,
+        fontFamily: "var(--mono)"
+      }
+    }, lq.no, " \xB7 ", qs.th);
+  })()), l.address && React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-2)",
+      display: "flex",
+      gap: 6
+    }
+  }, React.createElement(Icon, {
+    name: "pin",
+    size: 13,
+    color: "var(--text-3)",
+    style: {
+      flexShrink: 0,
+      marginTop: 1
+    }
+  }), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, l.address)), next && React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-2)",
+      display: "flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, React.createElement(Icon, {
+    name: "clock",
+    size: 13,
+    color: "var(--text-3)"
+  }), "\u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08 ", next.start ? thDate(next.start.slice(0, 10), true) : "-", list.length > 1 ? " · ทั้งหมด " + list.length + " นัด" : ""), l.note && React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-2)",
+      background: "var(--surface2)",
+      borderRadius: 8,
+      padding: "7px 10px"
+    }
+  }, "\uD83D\uDCDD ", l.note), (l.contacts || []).length > 0 && (() => {
+    const c = l.contacts[l.contacts.length - 1];
+    const w = (window.CONTACT_WAYS || []).find(x => x.key === c.how) || {
+      th: "ติดต่อ",
+      icon: "list"
+    };
+    return React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--text-2)",
+        display: "flex",
+        gap: 7,
+        alignItems: "flex-start"
+      }
+    }, React.createElement(Icon, {
+      name: w.icon,
+      size: 13,
+      color: "var(--text-3)",
+      style: {
+        flexShrink: 0,
+        marginTop: 2
+      }
+    }), React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("b", {
+      style: {
+        color: "var(--text-1)"
+      }
+    }, w.th), " ", thDateTime(c.at), c.byName ? " · " + c.byName : "", c.note ? React.createElement("span", {
+      style: {
+        display: "block",
+        color: "var(--text-3)"
+      }
+    }, c.note) : null, l.contacts.length > 1 ? React.createElement("span", {
+      style: {
+        color: "var(--text-3)"
+      }
+    }, "\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27 ", l.contacts.length, " \u0E04\u0E23\u0E31\u0E49\u0E07") : null));
+  })(), React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 9
+    }
+  }, React.createElement("span", {
+    style: {
+      flex: 1,
+      height: 5,
+      borderRadius: 99,
+      background: "var(--surface3)",
+      overflow: "hidden"
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      height: "100%",
+      width: st.pct + "%",
+      background: st.color,
+      borderRadius: 99
+    }
+  })), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: st.color,
+      whiteSpace: "nowrap"
+    }
+  }, st.label, " ", st.pct, "%")), job && React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--tint-green-tx)",
+      fontWeight: 700
+    }
+  }, "\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19 ", job.code, " \xB7 ", job.name, " \u0E41\u0E25\u0E49\u0E27"), ask && ask.id === l.id ? React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "center",
+      flexWrap: "wrap",
+      borderTop: "1px solid var(--border)",
+      paddingTop: 10
+    }
+  }, React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 140,
+      fontSize: 12,
+      fontWeight: 700,
+      lineHeight: 1.5,
+      color: ask.kind === "del" ? "#EF4444" : "var(--tint-green-tx)"
+    }
+  }, ask.kind === "del" ? "ลบ “" + (l.name || "รายนี้") + "” ? แบบสำรวจและรูปของรายนี้จะถูกลบด้วย" : "ย้าย “" + (l.name || "รายนี้") + "” เข้าฐานข้อมูลงานติดตั้ง? แบบสำรวจและรูปถ่ายจะถูกย้ายไปกับงานใหม่ด้วย"), ask.kind === "del" ? React.createElement("button", {
+    onClick: () => {
+      leadStore.remove(l.id);
+      setAsk(null);
+    },
+    style: leadBtn("#EF4444", true)
+  }, "\u0E25\u0E1A\u0E40\u0E25\u0E22") : React.createElement("button", {
+    onClick: () => {
+      setAsk(null);
+      onConvert(l);
+    },
+    style: leadBtn("var(--tint-green-tx)", true)
+  }, React.createElement(Icon, {
+    name: "check",
+    size: 14,
+    color: "#fff",
+    sw: 2.4
+  }), " \u0E22\u0E49\u0E32\u0E22\u0E40\u0E25\u0E22"), React.createElement("button", {
+    onClick: () => setAsk(null),
+    style: leadBtn("var(--text-2)")
+  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01")) : React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      flexWrap: "wrap",
+      borderTop: "1px solid var(--border)",
+      paddingTop: 10
+    }
+  }, React.createElement("button", {
+    onClick: () => setLog(l),
+    style: leadBtn("var(--primary)", true)
+  }, React.createElement(Icon, {
+    name: "phone",
+    size: 14,
+    color: "#fff"
+  }), " \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E01\u0E32\u0E23\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D"), onOpenQuote && React.createElement("button", {
+    onClick: () => onOpenQuote(l, lq || null),
+    style: leadBtn("#EC4899")
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 14,
+    color: "#EC4899"
+  }), " ", lq ? "ใบเสนอราคา " + lq.no : "ทำใบเสนอราคา"), onOpenSurvey && React.createElement("button", {
+    onClick: () => onOpenSurvey(window.leadAsJob(l)),
+    style: leadBtn("var(--text-2)")
+  }, React.createElement(Icon, {
+    name: "list",
+    size: 14,
+    color: "var(--text-2)"
+  }), " ", st.state === "none" ? "เริ่มแบบสำรวจ" : "ดู / แก้แบบสำรวจ"), onPlan3d && React.createElement("button", {
+    onClick: () => onPlan3d(job || window.leadAsJob(l)),
+    style: leadBtn("#4F46E5")
+  }, React.createElement(Icon, {
+    name: "panel",
+    size: 14,
+    color: "#4F46E5"
+  }), " \u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07 3D"), onReport && st.state !== "none" && React.createElement("button", {
+    onClick: () => onReport(window.leadAsJob(l)),
+    style: leadBtn("var(--primary-dark)")
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 14,
+    color: "var(--primary-dark)"
+  }), " \u0E23\u0E32\u0E22\u0E07\u0E32\u0E19 \xB7 PDF"), canConvert && sKey !== "won" && React.createElement("button", {
+    onClick: () => setAsk({
+      id: l.id,
+      kind: "conv"
+    }),
+    style: leadBtn("var(--tint-green-tx)", true)
+  }, React.createElement(Icon, {
+    name: "check",
+    size: 14,
+    color: "#fff",
+    sw: 2.4
+  }), " \u0E41\u0E1B\u0E25\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"), sKey !== "lost" && sKey !== "won" && React.createElement("button", {
+    onClick: () => setStage(l, "lost"),
+    style: leadBtn("var(--text-2)")
+  }, "\u0E44\u0E21\u0E48\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"), sKey === "lost" && React.createElement("button", {
+    onClick: () => setStage(l, "nego"),
+    style: leadBtn("var(--text-2)")
+  }, "\u0E01\u0E25\u0E31\u0E1A\u0E21\u0E32\u0E44\u0E25\u0E48\u0E15\u0E48\u0E2D"), React.createElement("button", {
+    onClick: () => setEdit({
+      lead: Object.assign({}, l),
+      isNew: false
+    }),
+    style: leadBtn("var(--text-2)")
+  }, "\u0E41\u0E01\u0E49\u0E44\u0E02"), React.createElement("button", {
+    onClick: () => setAsk({
+      id: l.id,
+      kind: "del"
+    }),
+    style: leadBtn("#EF4444")
+  }, "\u0E25\u0E1A")));
+}
+function LeadDrawer({
+  lead,
+  leadStore,
+  appts,
+  jobs,
+  quotes,
+  users,
+  currentUser,
+  onClose,
+  onOpenSurvey,
+  onReport,
+  onOpenQuote,
+  onPlan3d,
+  onConvert,
+  canConvert
+}) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const bdClose = window.useBackdropClose(onClose);
+  const [edit, setEdit] = React.useState(null);
+  const [log, setLog] = React.useState(null);
+  React.useEffect(() => {
+    const onKey = e => {
+      if (e.key === "Escape" && !edit && !log) onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose, edit, log]);
+  if (!lead) return null;
+  const stageKey = window.salesStageKey || (l => l.status || "open");
+  const apptsOf = {};
+  (appts || []).forEach(a => {
+    if (a.leadId === lead.id) (apptsOf[a.leadId] = apptsOf[a.leadId] || []).push(a);
+  });
+  const ctx = {
+    leadStore,
+    jobs,
+    quotes,
+    apptsOf,
+    STATUS: window.SALES_STAGES || [],
+    STATUS_BY: window.SALES_BY || {},
+    stageKey,
+    onOpenSurvey,
+    onReport,
+    onOpenQuote,
+    onPlan3d,
+    onConvert,
+    canConvert,
+    setEdit,
+    setLog,
+    setStage: (l, key) => leadSetStage(leadStore, l, key)
+  };
+  return React.createElement(React.Fragment, null, React.createElement("div", _extends({}, bdClose, {
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(8,20,14,.45)",
+      backdropFilter: "blur(3px)",
+      zIndex: 116,
+      display: "grid",
+      placeItems: isMobile ? "end center" : "center",
+      padding: isMobile ? 0 : 20
+    }
+  }), React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "var(--bg)",
+      borderRadius: isMobile ? "20px 20px 0 0" : 18,
+      width: isMobile ? "100%" : "min(680px,100%)",
+      maxHeight: isMobile ? "94dvh" : "90vh",
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
+      boxShadow: "0 30px 80px rgba(8,20,14,.3)"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "13px 16px",
+      borderBottom: "1px solid var(--border)",
+      background: "var(--surface)",
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 14.5,
+      fontWeight: 800,
+      color: "var(--text-1)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, lead.name || "(ไม่ระบุชื่อ)"), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      marginTop: 1
+    }
+  }, lead.code)), React.createElement("button", {
+    onClick: onClose,
+    "aria-label": "\u0E1B\u0E34\u0E14",
+    style: {
+      flexShrink: 0,
+      width: 32,
+      height: 32,
+      borderRadius: 10,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-2)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 16,
+      lineHeight: 1
+    }
+  }, "\xD7")), React.createElement("div", {
+    style: {
+      padding: 14,
+      overflowY: "auto"
+    }
+  }, React.createElement(LeadCard, {
+    l: lead,
+    ctx: ctx
+  })))), edit && React.createElement(LeadModal, {
+    initial: edit.lead,
+    isNew: edit.isNew,
+    users: users,
+    onClose: () => setEdit(null),
+    onSave: rec => {
+      leadStore.upsert(rec);
+      setEdit(null);
+    }
+  }), log && React.createElement(ContactLogModal, {
+    lead: log,
+    currentUser: currentUser,
+    onClose: () => setLog(null),
+    onSave: rec => {
+      leadAddContact(leadStore, log, rec);
+      setLog(null);
+    }
+  }));
+}
 Object.assign(window, {
   SurveyView,
   LeadsView,
+  LeadCard,
+  LeadDrawer,
   LeadModal,
   ContactLogModal
 });

@@ -1,0 +1,32 @@
+#!/bin/sh
+# push ขึ้น GitHub ให้เองทุกครั้งที่ commit
+#
+# เคยเกิดมาแล้ว: เครื่องหนึ่ง commit ไว้หลายตัวแล้ว deploy ขึ้นเว็บจริงตรงๆ โดยไม่ push
+# งานเลยอยู่เครื่องเดียว ไม่มีใครเห็น และกู้กลับมาได้ยากมาก
+#
+# ปิดชั่วคราวได้ด้วยการสร้างไฟล์  .git/no-autopush
+# เปิดกลับด้วยการลบไฟล์นั้นทิ้ง
+
+GITDIR=$(git rev-parse --git-dir)
+
+if [ -f "$GITDIR/no-autopush" ]; then
+  echo "[post-commit] ยังไม่ push — ปิดไว้อยู่ (ลบไฟล์ .git/no-autopush เพื่อเปิดใช้)"
+  exit 0
+fi
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+if [ "$BRANCH" = "HEAD" ]; then
+  echo "[post-commit] ยังไม่ push — ตอนนี้ไม่ได้อยู่บน branch ไหน"
+  exit 0
+fi
+
+echo "[post-commit] push $BRANCH ขึ้น origin…"
+if git push origin "$BRANCH"; then
+  echo "[post-commit] push แล้ว"
+else
+  echo "[post-commit] push ไม่สำเร็จ — อย่าลืม push เองก่อนย้ายเครื่อง"
+fi
+
+# ไม่ว่าจะ push ได้หรือไม่ ต้องไม่ทำให้ commit ล้มเหลว
+exit 0

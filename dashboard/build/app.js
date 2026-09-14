@@ -253,6 +253,8 @@ function App() {
     setLeadModeRaw(m);
   }, []);
   const [leadFocus, setLeadFocus] = React.useState(null);
+  const [boardLead, setBoardLead] = React.useState(null);
+  const [plan3dLead, setPlan3dLead] = React.useState(null);
   const [leadNew, setLeadNew] = React.useState(0);
   const [permitReview, setPermitReview] = React.useState(null);
   const [quoteOpen, setQuoteOpen] = React.useState(null);
@@ -593,6 +595,7 @@ function App() {
     }
     store.upsert(rec);
     if (window.moveSurveyPhotos) window.moveSurveyPhotos(lead.id, rec.id);
+    if (window.movePlan3d) window.movePlan3d(lead.id, rec.id);
     leadStore.patch(lead.id, Object.assign({
       jobId: rec.id
     }, window.salesStagePatch ? window.salesStagePatch("won") : {
@@ -1009,6 +1012,7 @@ function App() {
     onOpenSurvey: can(role, "doSurvey") || can(role, "dispatch") ? pseudo => openSurvey(pseudo) : null,
     onReport: pseudo => setReportJob(pseudo),
     onOpenQuote: can(role, "price") ? openQuoteForLead : null,
+    onPlan3d: can(role, "design") && window.Plan3DEditor ? pseudo => setPlan3dLead(pseudo) : null,
     onConvert: convertLead,
     canConvert: can(role, "addJob")
   }) : view === "saleskpi" ? React.createElement(SalesKpiView, {
@@ -1111,11 +1115,7 @@ function App() {
     role: role,
     currentUser: auth.current,
     onOpenJob: openJob,
-    onOpenLead: l => {
-      setView("leads");
-      setLeadMode("list");
-      setLeadFocus(l.id);
-    },
+    onOpenLead: l => setBoardLead(l.id),
     onNewLead: can(role, "leads") ? newLead : null,
     onMoveStage: (id, s) => store.setStage(id, s),
     onPatchLead: (id, f) => leadStore.patch(id, f),
@@ -1189,7 +1189,38 @@ function App() {
       }),
       isNew: true
     })
-  })))), React.createElement(DetailDrawer, {
+  })))), boardLead && React.createElement(LeadDrawer, {
+    lead: (leadStore.leads || []).find(x => x.id === boardLead) || null,
+    leadStore: leadStore,
+    appts: apptStore.appts,
+    jobs: jobs,
+    quotes: quoteStore.quotes,
+    users: auth.users,
+    currentUser: auth.current,
+    onClose: () => setBoardLead(null),
+    onOpenSurvey: can(role, "doSurvey") || can(role, "dispatch") ? pseudo => {
+      setBoardLead(null);
+      openSurvey(pseudo);
+    } : null,
+    onReport: pseudo => {
+      setBoardLead(null);
+      setReportJob(pseudo);
+    },
+    onOpenQuote: can(role, "price") ? (l, q) => {
+      setBoardLead(null);
+      openQuoteForLead(l, q);
+    } : null,
+    onPlan3d: can(role, "design") && window.Plan3DEditor ? pseudo => setPlan3dLead(pseudo) : null,
+    onConvert: l => {
+      setBoardLead(null);
+      convertLead(l);
+    },
+    canConvert: can(role, "addJob")
+  }), plan3dLead && window.Plan3DEditor && React.createElement(window.Plan3DEditor, {
+    job: plan3dLead,
+    currentUser: auth.current,
+    onClose: () => setPlan3dLead(null)
+  }), React.createElement(DetailDrawer, {
     job: selectedJob,
     onClose: () => setSelected(null),
     onAdvance: id => store.advance(id),

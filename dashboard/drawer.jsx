@@ -2,6 +2,11 @@
    SolarFlow — Detail Drawer (flow timeline + full customer info)
    ============================================================ */
 
+/* ใบตรวจสอบงาน — inspect.jsx โหลดก่อนไฟล์นี้เสมอ (ดูลำดับ script ใน index.html)
+   ผูกตอนโหลดไฟล์ ไม่เช็คตอนเรนเดอร์ เพราะ hook ต้องถูกเรียกทุกครั้งเท่ากัน */
+const useDrInspections = window.useJobInspections
+  || (() => ({ list: [], loading: false, save: () => {}, create: () => null, remove: () => {} }));
+
 function FlowTimeline({ job }) {
   const SF = window.SF;
   return (
@@ -466,7 +471,10 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
   const [planOpen, setPlanOpen] = React.useState(false);
   const [plan3dOpen, setPlan3dOpen] = React.useState(false);
   const [designOpen, setDesignOpen] = React.useState(false);   // ออกแบบระบบ/ผลผลิต — เข้าตรงไม่ผ่านจอ 3 มิติ
-  React.useEffect(() => { setBoqOpen(false); setPlanOpen(false); setPlan3dOpen(false); setDesignOpen(false); }, [job ? job.id : null]);
+  const [irOpen, setIrOpen] = React.useState(false);            // รายการใบตรวจสอบงาน
+  /* อ่านรายการใบตรวจไว้ตั้งแต่เปิดใบงาน เพื่อโชว์จำนวนใบกับผลล่าสุดบนปุ่มโดยไม่ต้องกดเข้าไปดู */
+  const inspections = useDrInspections(job ? job.id : null);
+  React.useEffect(() => { setBoqOpen(false); setPlanOpen(false); setPlan3dOpen(false); setDesignOpen(false); setIrOpen(false); }, [job ? job.id : null]);
 
   /* loading state — กดปุ่มแล้วแสดง "กำลังบันทึก..." ทันที
      reset เมื่อ Firebase confirm แล้ว (job.stage เปลี่ยน) */
@@ -650,6 +658,28 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                     </button>
                   )}
                   </React.Fragment>
+                );
+              })()}
+
+              {/* ใบตรวจสอบงาน — งานหนึ่งงานถูกตรวจหลายรอบ (รับมอบหลังคา · โครงสร้าง · ติดตั้งแผง · ไฟฟ้า)
+                  ใบพวกนี้คือหลักฐานว่างานผ่านเป็นขั้น ๆ วางไว้ก่อนขออนุญาตการไฟฟ้าตามลำดับที่ทำจริง */}
+              {window.InspectionListModal && !roMode && (() => {
+                const st = window.irJobSummary ? window.irJobSummary(inspections.list) : null;
+                return (
+                  <button onClick={() => setIrOpen(true)}
+                    style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+                      background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                    <span style={{ width: 34, height: 34, borderRadius: 9, background: "#0EA5E91c", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                      <Icon name="list" size={17} color="#0284C7" />
+                    </span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ใบตรวจสอบงาน (Inspection Report)</span>
+                      <span style={{ display: "block", fontSize: 11.5, color: st ? st.color : "var(--text-3)", fontWeight: st && st.bold ? 700 : 400 }}>
+                        {st ? st.label : "แตะเพื่อสร้าง"}
+                      </span>
+                    </span>
+                    <Icon name="arrowRight" size={16} color="var(--text-3)" />
+                  </button>
                 );
               })()}
 
@@ -909,6 +939,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
       {planOpen && job && window.SitePlanEditor && <window.SitePlanEditor job={job} currentUser={currentUser} onClose={() => setPlanOpen(false)} />}
       {plan3dOpen && job && window.Plan3DEditor && <window.Plan3DEditor job={job} currentUser={currentUser} onClose={() => setPlan3dOpen(false)} />}
       {designOpen && job && window.SolarDesignHost && <window.SolarDesignHost job={job} onClose={() => setDesignOpen(false)} />}
+      {irOpen && job && window.InspectionListModal && <window.InspectionListModal job={job} currentUser={currentUser} onClose={() => setIrOpen(false)} />}
     </React.Fragment>
   );
 }

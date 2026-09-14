@@ -5,6 +5,10 @@
    ไฟล์นี้เก็บ: ขั้นการขาย · ใบเสนอราคา · บอร์ดขาย · ยอดขาย · บล็อกสรุปในใบงาน
    ============================================================ */
 
+/* อ่านแบบ 3D ที่บันทึกไว้ — plan3d.js โหลดก่อนไฟล์นี้เสมอ (ดูลำดับ script ใน index.html)
+   ผูกตอนโหลดไฟล์ ไม่เช็คตอนเรนเดอร์ เพราะ hook ต้องถูกเรียกทุกครั้งเท่ากัน */
+const useQuotePlan3d = window.usePlan3d || (() => ({ saved: null, loading: false, save: () => {} }));
+
 /* ── ขั้นการขาย ──
    เดิมลูกค้าสำรวจมีแค่ 3 สถานะ (open/won/lost) ซึ่งบอกได้แค่ "จบแล้วหรือยัง"
    ไม่ได้บอกว่าค้างอยู่ตรงไหน — เซลล์เลยไม่รู้ว่าวันนี้ต้องไปดันงานไหนต่อ
@@ -418,6 +422,28 @@ function QuoteEditor({ quote, job, target, onClose, onSave, onDelete, currentUse
     });
   };
 
+  /* ดึงจากแบบ 3D — จำนวนแผงบนผังคือตัวเลขที่จริงที่สุด (วางจริงทีละแผงบนหลังคาจริง)
+     แม่นกว่าขนาดที่เซลล์คาดไว้ตอนแรก และไม่ต้องนั่งนับแผงเองแล้วพิมพ์ผิด
+     ทับเฉพาะบรรทัดแรก (บรรทัดตัวระบบ) เหมือนปุ่มดึงสเปก · ราคาที่กรอกไว้ไม่ถูกแตะ */
+  /* แบบผูกกับเลข id — ลูกค้าที่แปลงเป็นงานแล้ว แบบจะย้ายไปอยู่ที่เลขงาน (ดู movePlan3d)
+     จึงถามเลขงานก่อนเสมอ ถ้ายังไม่เป็นงานค่อยใช้เลขลูกค้า */
+  const planId = (job && job.id) || (specSrc && specSrc.id) || null;
+  const plan3d = useQuotePlan3d(planId);
+  const planSum = window.p3PlanSummary ? window.p3PlanSummary(plan3d.saved) : null;
+  const pullPlan = () => {
+    if (!planSum) return;
+    const src = Object.assign({}, specSrc || {}, { kwp: planSum.kwp, panels: planSum.panels });
+    /* รุ่นที่เลือกไว้ในจอ 3D ต้องชนะรุ่นในแบบสำรวจ — มันคือรุ่นที่ใช้คิดผังจริง */
+    src.survey = Object.assign({}, (specSrc && specSrc.survey) || {}, { sizeKw: planSum.kwp });
+    if (planSum.panelModel) src.survey.panelModel = planSum.panelModel;
+    if (planSum.invModel) src.survey.invModel = planSum.invModel;
+    setQ((p) => {
+      const a = p.items.slice(); if (!a.length) return p;
+      a[0] = Object.assign({}, a[0], { name: quoteSpecName(src), detail: quoteSpecDetail(src) });
+      return Object.assign({}, p, { items: a, kwp: planSum.kwp });
+    });
+  };
+
   const lbl = { fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" };
   const cell = Object.assign({}, inputStyle, { padding: "8px 9px", fontSize: 12.5 });
   const num = Object.assign({}, cell, { textAlign: "right", fontVariantNumeric: "tabular-nums" });
@@ -501,8 +527,15 @@ function QuoteEditor({ quote, job, target, onClose, onSave, onDelete, currentUse
                     <Icon name="download" size={13} color="var(--primary-dark)" /> ดึงรุ่นอุปกรณ์จากผลสำรวจ
                   </button>
                 )}
+                {planSum && !locked && (
+                  <button onClick={pullPlan} style={{ marginLeft: canPullSpec ? 0 : "auto", display: "inline-flex", alignItems: "center", gap: 5, background: "none",
+                    border: "1px solid var(--border-strong)", borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit",
+                    fontSize: 11.5, fontWeight: 700, color: "#4F46E5" }}>
+                    <Icon name="download" size={13} color="#4F46E5" /> ดึงจากแบบ 3D ({planSum.panels} แผง · {planSum.kwp} kWp)
+                  </button>
+                )}
                 {boqSell > 0 && !locked && (
-                  <button onClick={pullBoq} style={{ marginLeft: canPullSpec ? 0 : "auto", display: "inline-flex", alignItems: "center", gap: 5, background: "none",
+                  <button onClick={pullBoq} style={{ marginLeft: (canPullSpec || planSum) ? 0 : "auto", display: "inline-flex", alignItems: "center", gap: 5, background: "none",
                     border: "1px solid var(--border-strong)", borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit",
                     fontSize: 11.5, fontWeight: 700, color: "var(--primary-dark)" }}>
                     <Icon name="download" size={13} color="var(--primary-dark)" /> ดึงราคาขายจาก BOQ (฿{sBaht(boqSell)})

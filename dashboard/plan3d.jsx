@@ -241,6 +241,40 @@ function usePlan3d(jobId) {
   return { saved, loading, save };
 }
 
+/* สรุปแบบ 3D ที่บันทึกไว้ ให้ที่อื่นหยิบไปใช้ได้ — จำนวนแผงบนผังคือตัวเลขที่จริงที่สุดที่เรามี
+   คืน null ถ้ายังไม่ได้วางแผงสักแผง (จะได้ไม่ต้องขึ้นปุ่มดึงให้เกะกะ) */
+function p3PlanSummary(saved) {
+  if (!saved || !Array.isArray(saved.roofs) || !saved.roofs.length) return null;
+  const panels = p3CountAll(saved);
+  if (!panels) return null;
+  const wp = +saved.wp || 650;
+  const sys = saved.sys || {};
+  return {
+    panels: panels, wp: wp,
+    kwp: Math.round(panels * wp / 10) / 100,
+    panelModel: String(sys.panelModel || "").trim(),
+    invModel: String(sys.invModel || "").trim(),
+  };
+}
+
+/* ย้ายแบบ 3D ตามไปกับงาน — ลูกค้าที่แปลงเป็นงานติดตั้งจะได้เลข id ใหม่
+   ถ้าไม่ย้าย แบบที่ปั้นไว้ตอนยังเป็นงานขายจะหายไปเงียบ ๆ เหมือนไม่เคยทำ */
+function movePlan3d(fromId, toId) {
+  if (!fromId || !toId || fromId === toId) return Promise.resolve();
+  if (!window.FBDB) {
+    try {
+      const v = localStorage.getItem("sf_plan3d_" + fromId);
+      if (v) { localStorage.setItem("sf_plan3d_" + toId, v); localStorage.removeItem("sf_plan3d_" + fromId); }
+    } catch (e) {}
+    return Promise.resolve();
+  }
+  return window.FBDB.ref("plan3d/" + fromId).once("value").then((s) => {
+    const v = s.val();
+    if (!v) return null;
+    return window.FBDB.ref("plan3d/" + toId).set(v).then(() => window.FBDB.ref("plan3d/" + fromId).remove());
+  }).catch(() => null);
+}
+
 let _p3Seq = 0;
 const p3Id = (p) => (p || "x") + Date.now().toString(36) + (_p3Seq++);
 
@@ -4339,6 +4373,6 @@ async function p3ExportSet(st, job, photos, prep) {
   return { sheets: P.sheets.length, files: P.files.length };
 }
 
-Object.assign(window, { Plan3DEditor, usePlan3d, P3_MEAS_KINDS, p3MeasKind, p3MeasLen,
+Object.assign(window, { Plan3DEditor, usePlan3d, movePlan3d, p3PlanSummary, P3_MEAS_KINDS, p3MeasKind, p3MeasLen,
   p3Dxf, p3Sld, p3PhotoSheet, p3EquipSheet, p3DcSheet, p3SldModel, p3SldFields, p3SldApply, p3SheetInfo,
   p3ExportPlan, p3PrepSet, p3ExportSet, p3SaveBlob });
