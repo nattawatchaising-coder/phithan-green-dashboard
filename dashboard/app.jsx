@@ -753,7 +753,7 @@ function App() {
             onPlan3d={can(role, "design") && window.Plan3DEditor ? (pseudo) => setPlan3dLead(pseudo) : null}
             onConvert={convertLead} canConvert={can(role, "addJob")} />
         ) : view === "saleskpi" ? (
-          <SalesKpiView leads={leadStore.leads} quotes={quoteStore.quotes} users={auth.users} currentUser={auth.current}
+          <SalesKpiView leads={leadStore.leads} quotes={quoteStore.quotes} appts={apptStore.appts} techs={techStore.techs} currentUser={auth.current}
             onMenuOpen={() => setSidebarOpen(true)} onNewLead={can(role, "leads") ? newLead : null} />
         ) : view === "myschedule" ? (
           <MyScheduleView appts={apptStore.appts} jobs={jobs} leads={leadStore.leads} me={auth.current}

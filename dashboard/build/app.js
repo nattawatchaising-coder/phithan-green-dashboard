@@ -1018,7 +1018,8 @@ function App() {
   }) : view === "saleskpi" ? React.createElement(SalesKpiView, {
     leads: leadStore.leads,
     quotes: quoteStore.quotes,
-    users: auth.users,
+    appts: apptStore.appts,
+    techs: techStore.techs,
     currentUser: auth.current,
     onMenuOpen: () => setSidebarOpen(true),
     onNewLead: can(role, "leads") ? newLead : null

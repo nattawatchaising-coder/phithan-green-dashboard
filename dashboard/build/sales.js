@@ -1561,64 +1561,87 @@ function SalesBoardView({
 function SalesKpiView({
   leads,
   quotes,
-  users,
+  appts,
+  techs,
   currentUser,
   onMenuOpen,
   onNewLead
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [month, setMonth] = React.useState(() => sToday10().slice(0, 7));
+  const [kind, setKind] = React.useState("all");
   const inMonth = React.useCallback(iso => {
     if (!month) return true;
     return sMonthKey(iso) === month;
   }, [month]);
-  const sellers = React.useMemo(() => {
-    const arr = (users || []).filter(u => u.active !== false && window.hasRole(window.userRoles(u), "sales")).map(u => ({
-      id: u.id,
-      name: u.name || u.username || "—"
-    }));
-    return arr;
-  }, [users]);
-  const rows = React.useMemo(() => {
-    const mk = (id, name) => ({
-      id,
-      name,
-      fresh: 0,
-      quoted: 0,
-      won: 0,
-      lost: 0,
-      sales: 0,
-      pipe: 0
+  const engOfLead = React.useMemo(() => {
+    const byId = {};
+    (techs || []).forEach(t => {
+      byId[t.id] = t.name || t.username || "";
     });
-    const map = {};
-    const order = [];
-    sellers.forEach(s => {
-      map[s.id] = mk(s.id, s.name);
-      order.push(s.id);
+    const out = {};
+    (appts || []).forEach(a => {
+      if (!a || !a.leadId || a.status === "canceled") return;
+      const cur = out[a.leadId];
+      if (!cur || String(a.start || "") > String(cur.start || "")) out[a.leadId] = {
+        start: a.start,
+        name: byId[a.engineerId] || ""
+      };
     });
-    const bucket = (id, name) => {
-      const k = id || "__none";
-      if (!map[k]) {
-        map[k] = mk(k, name || "ไม่ระบุเจ้าของ");
-        order.push(k);
-      }
-      return map[k];
-    };
-    (leads || []).forEach(l => {
-      const b = bucket(l.ownerId, l.ownerName);
-      const st = salesStageKey(l);
-      if (inMonth(l.createdAt)) b.fresh++;
-      if (st === "won" && inMonth(l.updatedAt)) b.won++;
-      if (st === "lost" && inMonth(l.updatedAt)) b.lost++;
-      if (st !== "won" && st !== "lost") b.pipe += +l.expValue || 0;
-    });
+    return out;
+  }, [appts, techs]);
+  const qByLead = React.useMemo(() => {
+    const m = {};
     (quotes || []).forEach(q => {
-      const b = bucket(q.ownerId || q.byId, q.ownerName || q.byName);
-      if (q.status !== "draft" && inMonth(q.sentAt || q.at)) b.quoted++;
-      if (q.status === "accepted" && inMonth(q.decidedAt || q.updatedAt)) b.sales += quoteTotals(q).grand;
+      const k = q && q.leadId;
+      if (!k) return;
+      (m[k] = m[k] || []).push(q);
     });
-    return order.map(k => map[k]).filter(r => r.fresh || r.quoted || r.won || r.lost || r.sales || r.pipe || sellers.some(s => s.id === r.id));
-  }, [leads, quotes, sellers, inMonth]);
+    return m;
+  }, [quotes]);
+  const allRows = React.useMemo(() => {
+    return (leads || []).map(l => {
+      const st = salesStageKey(l);
+      const done = st === "won" || st === "lost";
+      let quoted = 0,
+        sales = 0;
+      (qByLead[l.id] || []).forEach(q => {
+        if (q.status !== "draft" && inMonth(q.sentAt || q.at)) quoted++;
+        if (q.status === "accepted" && inMonth(q.decidedAt || q.updatedAt)) sales += quoteTotals(q).grand;
+      });
+      const eng = engOfLead[l.id];
+      return {
+        id: l.id,
+        code: l.code || "",
+        name: l.name || "(ยังไม่ได้ตั้งชื่อโครงการ)",
+        type: l.type === "project" ? "project" : "home",
+        ownerId: l.ownerId || "",
+        owner: l.ownerName || "",
+        eng: eng && eng.name || "",
+        booked: !!eng,
+        stage: st,
+        at: l.updatedAt || l.createdAt || "",
+        fresh: inMonth(l.createdAt) ? 1 : 0,
+        won: st === "won" && inMonth(l.updatedAt) ? 1 : 0,
+        lost: st === "lost" && inMonth(l.updatedAt) ? 1 : 0,
+        quoted: quoted,
+        sales: sales,
+        pipe: done ? 0 : +l.expValue || 0
+      };
+    });
+  }, [leads, qByLead, engOfLead, inMonth]);
+  const kindCount = React.useMemo(() => {
+    const c = {
+      all: allRows.length,
+      home: 0,
+      project: 0
+    };
+    allRows.forEach(r => {
+      c[r.type]++;
+    });
+    return c;
+  }, [allRows]);
+  const rows = React.useMemo(() => allRows.filter(r => kind === "all" || r.type === kind).filter(r => r.fresh || r.quoted || r.won || r.lost || r.sales || r.pipe).sort((a, b) => String(b.at).localeCompare(String(a.at))), [allRows, kind]);
   const tot = React.useMemo(() => rows.reduce((a, r) => ({
     fresh: a.fresh + r.fresh,
     quoted: a.quoted + r.quoted,
@@ -1634,10 +1657,8 @@ function SalesKpiView({
     sales: 0,
     pipe: 0
   }), [rows]);
-  const closeRate = r => {
-    const d = r.won + r.lost;
-    return d > 0 ? Math.round(r.won / d * 100) : null;
-  };
+  const noOwner = React.useMemo(() => rows.filter(r => !r.owner && r.stage !== "won" && r.stage !== "lost").length, [rows]);
+  const noEng = React.useMemo(() => rows.filter(r => !r.booked && r.stage !== "won" && r.stage !== "lost").length, [rows]);
   const months = React.useMemo(() => {
     const out = [];
     const d = new Date();
@@ -1701,6 +1722,35 @@ function SalesKpiView({
     borderBottom: "1px solid var(--border)",
     whiteSpace: "nowrap"
   };
+  const pill = (text, color) => React.createElement("span", {
+    style: {
+      display: "inline-block",
+      padding: "2px 9px",
+      borderRadius: 99,
+      fontSize: 11,
+      fontWeight: 700,
+      background: color + "18",
+      color: color,
+      whiteSpace: "nowrap"
+    }
+  }, text);
+  const TYPE_TH = {
+    home: {
+      th: "งานบ้าน",
+      color: "#1B9B75"
+    },
+    project: {
+      th: "งานโครงการ",
+      color: "#7C5CFC"
+    }
+  };
+  const todo = text => React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: "#F59E0B"
+    }
+  }, text);
   return React.createElement(React.Fragment, null, React.createElement(window.SchedHeader, {
     title: "\u0E22\u0E2D\u0E14\u0E02\u0E32\u0E22",
     onMenuOpen: onMenuOpen,
@@ -1714,7 +1764,7 @@ function SalesKpiView({
       gap: 6,
       overflowX: "auto",
       paddingBottom: 4,
-      marginBottom: 14
+      marginBottom: 11
     }
   }, [""].concat(months).map(m => {
     const on = month === m;
@@ -1738,11 +1788,43 @@ function SalesKpiView({
   })), React.createElement("div", {
     style: {
       display: "flex",
+      gap: 7,
+      flexWrap: "wrap",
+      alignItems: "center",
+      marginBottom: 14
+    }
+  }, [["all", "ทั้งหมด", "var(--primary-dark)"], ["home", TYPE_TH.home.th, TYPE_TH.home.color], ["project", TYPE_TH.project.th, TYPE_TH.project.color]].map(([k, label, c]) => React.createElement("button", {
+    key: k,
+    onClick: () => setKind(k),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      padding: "7px 14px",
+      borderRadius: 99,
+      border: "1px solid " + (kind === k ? c : "var(--border-strong)"),
+      background: kind === k ? c + "16" : "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: kind === k ? c : "var(--text-2)"
+    }
+  }, label, React.createElement("span", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontSize: 11.5,
+      fontWeight: 800,
+      color: kind === k ? c : "var(--text-3)"
+    }
+  }, kindCount[k])))), React.createElement("div", {
+    style: {
+      display: "flex",
       gap: 11,
       flexWrap: "wrap",
       marginBottom: 16
     }
-  }, kpi("ยอดขายที่ปิดได้", "฿" + fmtBaht(Math.round(tot.sales)), "จากใบเสนอราคาที่ลูกค้าตกลง", "var(--primary-dark)"), kpi("ปิดการขาย", tot.won + " ราย", tot.won + tot.lost > 0 ? "อัตราปิด " + Math.round(tot.won / (tot.won + tot.lost) * 100) + "%" : "ยังไม่มีรายที่ตัดสิน"), kpi("เสนอราคา", tot.quoted + " ใบ", "ที่ส่งให้ลูกค้าแล้ว"), kpi("ลูกค้าใหม่", tot.fresh + " ราย", "รับเข้ามาในช่วงนี้"), kpi("มูลค่าที่ยังไล่อยู่", "฿" + fmtBaht(Math.round(tot.pipe)), "ลูกค้าที่ยังไม่ปิด (ทุกช่วงเวลา)", "#F59E0B")), React.createElement("div", {
+  }, kpi("ยอดขายที่ปิดได้", "฿" + fmtBaht(Math.round(tot.sales)), "จากใบเสนอราคาที่ลูกค้าตกลง", "var(--primary-dark)"), kpi("ปิดการขาย", tot.won + " ราย", tot.won + tot.lost > 0 ? "อัตราปิด " + Math.round(tot.won / (tot.won + tot.lost) * 100) + "%" : "ยังไม่มีรายที่ตัดสิน"), kpi("รอมอบหมายผู้ดูแล", noOwner + " โครงการ", noOwner ? "ยังไม่มีใครตามต่อ" : "มอบหมายครบแล้ว", noOwner ? "#F59E0B" : undefined), kpi("ยังไม่ได้นัดสำรวจ", noEng + " โครงการ", noEng ? "ยังไม่มีช่างลงนัด" : "นัดครบแล้ว", noEng ? "#F59E0B" : undefined), kpi("มูลค่าที่ยังไล่อยู่", "฿" + fmtBaht(Math.round(tot.pipe)), "โครงการที่ยังไม่ปิด (ทุกช่วงเวลา)", "#F59E0B")), React.createElement("div", {
     style: {
       background: "var(--surface)",
       border: "1px solid var(--border)",
@@ -1757,23 +1839,31 @@ function SalesKpiView({
     style: {
       width: "100%",
       borderCollapse: "collapse",
-      minWidth: 640
+      minWidth: 760
     }
   }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", {
     style: Object.assign({}, th, {
       textAlign: "left"
     })
-  }, "\u0E40\u0E0B\u0E25\u0E25\u0E4C"), React.createElement("th", {
-    style: th
-  }, "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E43\u0E2B\u0E21\u0E48"), React.createElement("th", {
+  }, "\u0E42\u0E04\u0E23\u0E07\u0E01\u0E32\u0E23"), React.createElement("th", {
+    style: Object.assign({}, th, {
+      textAlign: "left"
+    })
+  }, "\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17"), React.createElement("th", {
+    style: Object.assign({}, th, {
+      textAlign: "left"
+    })
+  }, "\u0E1C\u0E39\u0E49\u0E14\u0E39\u0E41\u0E25"), React.createElement("th", {
+    style: Object.assign({}, th, {
+      textAlign: "left"
+    })
+  }, "\u0E1C\u0E39\u0E49\u0E2A\u0E33\u0E23\u0E27\u0E08"), React.createElement("th", {
+    style: Object.assign({}, th, {
+      textAlign: "left"
+    })
+  }, "\u0E02\u0E31\u0E49\u0E19\u0E01\u0E32\u0E23\u0E02\u0E32\u0E22"), React.createElement("th", {
     style: th
   }, "\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32"), React.createElement("th", {
-    style: th
-  }, "\u0E1B\u0E34\u0E14\u0E44\u0E14\u0E49"), React.createElement("th", {
-    style: th
-  }, "\u0E44\u0E21\u0E48\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"), React.createElement("th", {
-    style: th
-  }, "\u0E2D\u0E31\u0E15\u0E23\u0E32\u0E1B\u0E34\u0E14"), React.createElement("th", {
     style: th
   }, "\u0E22\u0E2D\u0E14\u0E02\u0E32\u0E22"), React.createElement("th", {
     style: th
@@ -1785,7 +1875,7 @@ function SalesKpiView({
       color: "var(--text-3)",
       fontSize: 13.5
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E43\u0E19\u0E0A\u0E48\u0E27\u0E07\u0E19\u0E35\u0E49 \u2014 \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E41\u0E25\u0E49\u0E27\u0E23\u0E30\u0E1A\u0E38\u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32", onNewLead && React.createElement("button", {
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E42\u0E04\u0E23\u0E07\u0E01\u0E32\u0E23\u0E43\u0E19\u0E0A\u0E48\u0E27\u0E07\u0E19\u0E35\u0E49 \u2014 \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E41\u0E25\u0E49\u0E27\u0E23\u0E30\u0E1A\u0E38\u0E27\u0E48\u0E32\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19\u0E1A\u0E49\u0E32\u0E19\u0E2B\u0E23\u0E37\u0E2D\u0E07\u0E32\u0E19\u0E42\u0E04\u0E23\u0E07\u0E01\u0E32\u0E23", onNewLead && React.createElement("button", {
     onClick: onNewLead,
     style: {
       marginLeft: 10,
@@ -1808,35 +1898,52 @@ function SalesKpiView({
     color: "#fff",
     sw: 2.6
   }), " \u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E43\u0E2B\u0E21\u0E48"))), rows.map(r => {
-    const cr = closeRate(r);
-    const me = currentUser && r.id === currentUser.id;
+    const sg = salesStageOf(r.stage);
+    const ty = TYPE_TH[r.type];
+    const mine = currentUser && r.ownerId && r.ownerId === currentUser.id;
+    const open = r.stage !== "won" && r.stage !== "lost";
     return React.createElement("tr", {
       key: r.id,
-      style: me ? {
+      style: mine ? {
         background: "var(--primary-soft)"
       } : undefined
     }, React.createElement("td", {
       style: Object.assign({}, td, {
         textAlign: "left",
         fontWeight: 700,
-        color: "var(--text-1)"
+        color: "var(--text-1)",
+        whiteSpace: "normal",
+        minWidth: 160
       })
-    }, r.name, me ? " (คุณ)" : ""), React.createElement("td", {
-      style: td
-    }, r.fresh || "—"), React.createElement("td", {
+    }, r.name, r.code && React.createElement("span", {
+      style: {
+        display: "block",
+        fontFamily: "var(--mono)",
+        fontSize: 11,
+        fontWeight: 600,
+        color: "var(--text-3)"
+      }
+    }, r.code)), React.createElement("td", {
+      style: Object.assign({}, td, {
+        textAlign: "left"
+      })
+    }, pill(ty.th, ty.color)), React.createElement("td", {
+      style: Object.assign({}, td, {
+        textAlign: "left",
+        color: "var(--text-2)"
+      })
+    }, r.owner ? r.owner + (mine ? " (คุณ)" : "") : open ? todo("ยังไม่มอบหมาย") : "—"), React.createElement("td", {
+      style: Object.assign({}, td, {
+        textAlign: "left",
+        color: "var(--text-2)"
+      })
+    }, r.eng ? r.eng : r.booked ? todo("นัดแล้ว · ยังไม่ระบุช่าง") : open ? todo("ยังไม่ได้นัด") : "—"), React.createElement("td", {
+      style: Object.assign({}, td, {
+        textAlign: "left"
+      })
+    }, pill(sg.th, sg.color)), React.createElement("td", {
       style: td
     }, r.quoted || "—"), React.createElement("td", {
-      style: Object.assign({}, td, {
-        fontWeight: 700,
-        color: r.won ? "var(--tint-green-tx)" : "var(--text-3)"
-      })
-    }, r.won || "—"), React.createElement("td", {
-      style: Object.assign({}, td, {
-        color: "var(--text-3)"
-      })
-    }, r.lost || "—"), React.createElement("td", {
-      style: td
-    }, cr == null ? "—" : cr + "%"), React.createElement("td", {
       style: Object.assign({}, td, {
         fontWeight: 800,
         color: r.sales ? "var(--primary-dark)" : "var(--text-3)"
@@ -1853,7 +1960,7 @@ function SalesKpiView({
       marginTop: 11,
       lineHeight: 1.6
     }
-  }, "\u0E22\u0E2D\u0E14\u0E02\u0E32\u0E22\u0E19\u0E31\u0E1A\u0E08\u0E32\u0E01\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32\u0E17\u0E35\u0E48\u0E2A\u0E16\u0E32\u0E19\u0E30 \u201C\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E15\u0E01\u0E25\u0E07\u201D (\u0E23\u0E32\u0E04\u0E32\u0E23\u0E27\u0E21 VAT) \u0E15\u0E32\u0E21\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E17\u0E35\u0E48\u0E15\u0E31\u0E14\u0E2A\u0E34\u0E19 \xB7 \u201C\u0E22\u0E31\u0E07\u0E44\u0E25\u0E48\u0E2D\u0E22\u0E39\u0E48\u201D \u0E04\u0E37\u0E2D\u0E21\u0E39\u0E25\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E04\u0E32\u0E14\u0E02\u0E2D\u0E07\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E1B\u0E34\u0E14\u0E01\u0E32\u0E23\u0E02\u0E32\u0E22 \u0E19\u0E31\u0E1A\u0E17\u0E38\u0E01\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E44\u0E21\u0E48\u0E02\u0E36\u0E49\u0E19\u0E01\u0E31\u0E1A\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01")));
+  }, "\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E41\u0E16\u0E27\u0E04\u0E37\u0E2D\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E42\u0E04\u0E23\u0E07\u0E01\u0E32\u0E23 \xB7 \u0E22\u0E2D\u0E14\u0E02\u0E32\u0E22\u0E19\u0E31\u0E1A\u0E08\u0E32\u0E01\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32\u0E17\u0E35\u0E48\u0E2A\u0E16\u0E32\u0E19\u0E30 \u201C\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E15\u0E01\u0E25\u0E07\u201D (\u0E23\u0E32\u0E04\u0E32\u0E23\u0E27\u0E21 VAT) \u0E15\u0E32\u0E21\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E17\u0E35\u0E48\u0E15\u0E31\u0E14\u0E2A\u0E34\u0E19 \xB7 \u201C\u0E22\u0E31\u0E07\u0E44\u0E25\u0E48\u0E2D\u0E22\u0E39\u0E48\u201D \u0E04\u0E37\u0E2D\u0E21\u0E39\u0E25\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E04\u0E32\u0E14\u0E02\u0E2D\u0E07\u0E42\u0E04\u0E23\u0E07\u0E01\u0E32\u0E23\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E1B\u0E34\u0E14\u0E01\u0E32\u0E23\u0E02\u0E32\u0E22 \u0E19\u0E31\u0E1A\u0E17\u0E38\u0E01\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E44\u0E21\u0E48\u0E02\u0E36\u0E49\u0E19\u0E01\u0E31\u0E1A\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01 \xB7 \u0E1C\u0E39\u0E49\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E21\u0E32\u0E08\u0E32\u0E01\u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14\u0E02\u0E2D\u0E07\u0E42\u0E04\u0E23\u0E07\u0E01\u0E32\u0E23\u0E19\u0E31\u0E49\u0E19")));
 }
 const sPlusDaysISO = n => {
   const d = new Date();

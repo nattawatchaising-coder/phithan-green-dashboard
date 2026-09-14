@@ -834,54 +834,85 @@ function SalesBoardView({ leads, quotes, search, currentUser, onOpenLead, onPatc
 /* ============================================================
    ยอดขาย / KPI
    ============================================================ */
-function SalesKpiView({ leads, quotes, users, currentUser, onMenuOpen, onNewLead }) {
+function SalesKpiView({ leads, quotes, appts, techs, currentUser, onMenuOpen, onNewLead }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [month, setMonth] = React.useState(() => sToday10().slice(0, 7));   // "" = ทั้งหมด
+  /* งานบ้านกับงานโครงการเป็นคนละงานกันจริง ๆ — ขนาด ราคา และคนที่ต้องคุยด้วยคนละชุด
+     ดูรวมกันแล้วตัวเลขไม่บอกอะไร จึงกรองทั้งหน้าเหมือนหน้า O&M */
+  const [kind, setKind] = React.useState("all");
 
   const inMonth = React.useCallback((iso) => {
     if (!month) return true;
     return sMonthKey(iso) === month;
   }, [month]);
 
-  /* รายชื่อเซลล์ = ผู้ใช้ที่ถือตำแหน่งเซลล์ · บวก "ไม่ระบุเจ้าของ" ไว้ท้ายสุดถ้ามีของค้าง */
-  const sellers = React.useMemo(() => {
-    const arr = (users || []).filter((u) => u.active !== false && window.hasRole(window.userRoles(u), "sales"))
-      .map((u) => ({ id: u.id, name: u.name || u.username || "—" }));
-    return arr;
-  }, [users]);
+  /* ชื่อช่างที่ไปสำรวจ — นัดสำรวจผูกกับลูกค้าด้วย leadId ถ้ามีหลายนัดเอานัดล่าสุด */
+  const engOfLead = React.useMemo(() => {
+    const byId = {};
+    (techs || []).forEach((t) => { byId[t.id] = t.name || t.username || ""; });
+    const out = {};
+    (appts || []).forEach((a) => {
+      if (!a || !a.leadId || a.status === "canceled") return;
+      const cur = out[a.leadId];
+      if (!cur || String(a.start || "") > String(cur.start || "")) out[a.leadId] = { start: a.start, name: byId[a.engineerId] || "" };
+    });
+    return out;
+  }, [appts, techs]);
 
-  const rows = React.useMemo(() => {
-    const mk = (id, name) => ({ id, name, fresh: 0, quoted: 0, won: 0, lost: 0, sales: 0, pipe: 0 });
-    const map = {}; const order = [];
-    sellers.forEach((s) => { map[s.id] = mk(s.id, s.name); order.push(s.id); });
-    const bucket = (id, name) => {
-      const k = id || "__none";
-      if (!map[k]) { map[k] = mk(k, name || "ไม่ระบุเจ้าของ"); order.push(k); }
-      return map[k];
-    };
-    (leads || []).forEach((l) => {
-      const b = bucket(l.ownerId, l.ownerName);
+  /* ใบเสนอราคาของลูกค้าแต่ละราย — ใบหนึ่งผูกได้ทั้งกับลูกค้าสำรวจ (leadId) และงานจริง (jobId) */
+  const qByLead = React.useMemo(() => {
+    const m = {};
+    (quotes || []).forEach((q) => { const k = q && q.leadId; if (!k) return; (m[k] = m[k] || []).push(q); });
+    return m;
+  }, [quotes]);
+
+  /* หนึ่งแถว = หนึ่งโครงการ (ไม่ใช่หนึ่งเซลล์ — ระบบนี้ยังไม่มีตำแหน่งเซลล์)
+     ตัวเลขในแถวยังนับตามเดือนที่เลือกเหมือนเดิมทุกช่อง ยกเว้น "ยังไล่อยู่" ที่เป็นยอดคงค้างทุกช่วงเวลา */
+  const allRows = React.useMemo(() => {
+    return (leads || []).map((l) => {
       const st = salesStageKey(l);
-      if (inMonth(l.createdAt)) b.fresh++;
-      /* ปิดได้/เสียนับตอนที่ "ตัดสิน" ไม่ใช่ตอนรับลูกค้าเข้ามา — เดือนที่ปิดคือเดือนที่ควรได้เครดิต */
-      if (st === "won" && inMonth(l.updatedAt)) b.won++;
-      if (st === "lost" && inMonth(l.updatedAt)) b.lost++;
-      if (st !== "won" && st !== "lost") b.pipe += +l.expValue || 0;
+      const done = st === "won" || st === "lost";
+      let quoted = 0, sales = 0;
+      (qByLead[l.id] || []).forEach((q) => {
+        if (q.status !== "draft" && inMonth(q.sentAt || q.at)) quoted++;
+        if (q.status === "accepted" && inMonth(q.decidedAt || q.updatedAt)) sales += quoteTotals(q).grand;
+      });
+      const eng = engOfLead[l.id];
+      return {
+        id: l.id, code: l.code || "", name: l.name || "(ยังไม่ได้ตั้งชื่อโครงการ)",
+        type: l.type === "project" ? "project" : "home",
+        ownerId: l.ownerId || "", owner: l.ownerName || "",
+        eng: (eng && eng.name) || "", booked: !!eng,
+        stage: st, at: l.updatedAt || l.createdAt || "",
+        fresh: inMonth(l.createdAt) ? 1 : 0,
+        won: st === "won" && inMonth(l.updatedAt) ? 1 : 0,
+        lost: st === "lost" && inMonth(l.updatedAt) ? 1 : 0,
+        quoted: quoted, sales: sales,
+        pipe: done ? 0 : +l.expValue || 0,
+      };
     });
-    (quotes || []).forEach((q) => {
-      const b = bucket(q.ownerId || q.byId, q.ownerName || q.byName);
-      if (q.status !== "draft" && inMonth(q.sentAt || q.at)) b.quoted++;
-      if (q.status === "accepted" && inMonth(q.decidedAt || q.updatedAt)) b.sales += quoteTotals(q).grand;
-    });
-    return order.map((k) => map[k]).filter((r) => r.fresh || r.quoted || r.won || r.lost || r.sales || r.pipe || sellers.some((s) => s.id === r.id));
-  }, [leads, quotes, sellers, inMonth]);
+  }, [leads, qByLead, engOfLead, inMonth]);
+
+  const kindCount = React.useMemo(() => {
+    const c = { all: allRows.length, home: 0, project: 0 };
+    allRows.forEach((r) => { c[r.type]++; });
+    return c;
+  }, [allRows]);
+
+  const rows = React.useMemo(() => allRows
+    .filter((r) => kind === "all" || r.type === kind)
+    /* ไม่มีความเคลื่อนไหวในเดือนที่เลือกและไม่มียอดค้าง = ไม่ต้องกินที่ในตาราง */
+    .filter((r) => r.fresh || r.quoted || r.won || r.lost || r.sales || r.pipe)
+    .sort((a, b) => String(b.at).localeCompare(String(a.at))), [allRows, kind]);
 
   const tot = React.useMemo(() => rows.reduce((a, r) => ({
     fresh: a.fresh + r.fresh, quoted: a.quoted + r.quoted, won: a.won + r.won, lost: a.lost + r.lost,
     sales: a.sales + r.sales, pipe: a.pipe + r.pipe,
   }), { fresh: 0, quoted: 0, won: 0, lost: 0, sales: 0, pipe: 0 }), [rows]);
 
-  const closeRate = (r) => { const d = r.won + r.lost; return d > 0 ? Math.round(r.won / d * 100) : null; };
+  /* ยังไม่มอบหมาย = ไม่มีใครตามต่อ ตัวเลขนี้คือของที่จะหล่นหายถ้าไม่มีใครเห็น */
+  const noOwner = React.useMemo(() => rows.filter((r) => !r.owner && r.stage !== "won" && r.stage !== "lost").length, [rows]);
+  const noEng = React.useMemo(() => rows.filter((r) => !r.booked && r.stage !== "won" && r.stage !== "lost").length, [rows]);
 
   const months = React.useMemo(() => {
     const out = []; const d = new Date();
@@ -899,13 +930,20 @@ function SalesKpiView({ leads, quotes, users, currentUser, onMenuOpen, onNewLead
   );
   const th = { padding: "9px 11px", fontSize: 11, fontWeight: 700, color: "var(--text-3)", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid var(--border)" };
   const td = { padding: "11px", fontSize: 13, textAlign: "right", fontVariantNumeric: "tabular-nums", borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" };
+  const pill = (text, color) => (
+    <span style={{ display: "inline-block", padding: "2px 9px", borderRadius: 99, fontSize: 11, fontWeight: 700,
+      background: color + "18", color: color, whiteSpace: "nowrap" }}>{text}</span>
+  );
+  const TYPE_TH = { home: { th: "งานบ้าน", color: "#1B9B75" }, project: { th: "งานโครงการ", color: "#7C5CFC" } };
+  /* ช่องที่ยังไม่ได้มอบหมาย ต้องอ่านออกว่า "ยังว่าง" ไม่ใช่ขีดกลางที่ดูเหมือนไม่มีข้อมูล */
+  const todo = (text) => <span style={{ fontSize: 12, fontWeight: 700, color: "#F59E0B" }}>{text}</span>;
 
   return (
     <React.Fragment>
       <window.SchedHeader title="ยอดขาย" onMenuOpen={onMenuOpen}
         sub={monthTh(month) + " · ปิดการขาย " + tot.won + " ราย · ยอด ฿" + fmtBaht(Math.round(tot.sales)) + " · pipeline ฿" + fmtBaht(Math.round(tot.pipe))} />
       <div className="app-content">
-        <div className="cat-chip-row" style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, marginBottom: 14 }}>
+        <div className="cat-chip-row" style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, marginBottom: 11 }}>
           {[""].concat(months).map((m) => {
             const on = month === m;
             return (
@@ -919,25 +957,40 @@ function SalesKpiView({ leads, quotes, users, currentUser, onMenuOpen, onNewLead
           })}
         </div>
 
+        {/* แยกงานบ้าน / งานโครงการ — กรองทั้งหน้า ตัวเลขในการ์ดสรุปเปลี่ยนตามที่เลือกด้วย */}
+        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
+          {[["all", "ทั้งหมด", "var(--primary-dark)"], ["home", TYPE_TH.home.th, TYPE_TH.home.color],
+            ["project", TYPE_TH.project.th, TYPE_TH.project.color]].map(([k, label, c]) => (
+            <button key={k} onClick={() => setKind(k)}
+              style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 99,
+                border: "1px solid " + (kind === k ? c : "var(--border-strong)"),
+                background: kind === k ? c + "16" : "var(--surface)", cursor: "pointer", fontFamily: "inherit",
+                fontSize: 12.5, fontWeight: 700, color: kind === k ? c : "var(--text-2)" }}>
+              {label}
+              <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 800, color: kind === k ? c : "var(--text-3)" }}>{kindCount[k]}</span>
+            </button>
+          ))}
+        </div>
+
         <div style={{ display: "flex", gap: 11, flexWrap: "wrap", marginBottom: 16 }}>
           {kpi("ยอดขายที่ปิดได้", "฿" + fmtBaht(Math.round(tot.sales)), "จากใบเสนอราคาที่ลูกค้าตกลง", "var(--primary-dark)")}
           {kpi("ปิดการขาย", tot.won + " ราย", tot.won + tot.lost > 0 ? "อัตราปิด " + Math.round(tot.won / (tot.won + tot.lost) * 100) + "%" : "ยังไม่มีรายที่ตัดสิน")}
-          {kpi("เสนอราคา", tot.quoted + " ใบ", "ที่ส่งให้ลูกค้าแล้ว")}
-          {kpi("ลูกค้าใหม่", tot.fresh + " ราย", "รับเข้ามาในช่วงนี้")}
-          {kpi("มูลค่าที่ยังไล่อยู่", "฿" + fmtBaht(Math.round(tot.pipe)), "ลูกค้าที่ยังไม่ปิด (ทุกช่วงเวลา)", "#F59E0B")}
+          {kpi("รอมอบหมายผู้ดูแล", noOwner + " โครงการ", noOwner ? "ยังไม่มีใครตามต่อ" : "มอบหมายครบแล้ว", noOwner ? "#F59E0B" : undefined)}
+          {kpi("ยังไม่ได้นัดสำรวจ", noEng + " โครงการ", noEng ? "ยังไม่มีช่างลงนัด" : "นัดครบแล้ว", noEng ? "#F59E0B" : undefined)}
+          {kpi("มูลค่าที่ยังไล่อยู่", "฿" + fmtBaht(Math.round(tot.pipe)), "โครงการที่ยังไม่ปิด (ทุกช่วงเวลา)", "#F59E0B")}
         </div>
 
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
               <thead>
                 <tr>
-                  <th style={Object.assign({}, th, { textAlign: "left" })}>เซลล์</th>
-                  <th style={th}>ลูกค้าใหม่</th>
+                  <th style={Object.assign({}, th, { textAlign: "left" })}>โครงการ</th>
+                  <th style={Object.assign({}, th, { textAlign: "left" })}>ประเภท</th>
+                  <th style={Object.assign({}, th, { textAlign: "left" })}>ผู้ดูแล</th>
+                  <th style={Object.assign({}, th, { textAlign: "left" })}>ผู้สำรวจ</th>
+                  <th style={Object.assign({}, th, { textAlign: "left" })}>ขั้นการขาย</th>
                   <th style={th}>เสนอราคา</th>
-                  <th style={th}>ปิดได้</th>
-                  <th style={th}>ไม่ติดตั้ง</th>
-                  <th style={th}>อัตราปิด</th>
                   <th style={th}>ยอดขาย</th>
                   <th style={th}>ยังไล่อยู่</th>
                 </tr>
@@ -945,7 +998,7 @@ function SalesKpiView({ leads, quotes, users, currentUser, onMenuOpen, onNewLead
               <tbody>
                 {rows.length === 0 && (
                   <tr><td colSpan={8} style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>
-                    ยังไม่มีข้อมูลในช่วงนี้ — เพิ่มลูกค้าแล้วระบุเจ้าของลูกค้า
+                    ยังไม่มีโครงการในช่วงนี้ — เพิ่มลูกค้าแล้วระบุว่าเป็นงานบ้านหรืองานโครงการ
                     {/* เดิมบอกให้ไปหน้าอื่น แต่หัวหน้า/แอดมินไม่มีเมนูนั้นในแถบซ้าย = ทางตัน
                        จึงเปิดฟอร์มให้จากตรงนี้เลย */}
                     {onNewLead && (
@@ -959,18 +1012,26 @@ function SalesKpiView({ leads, quotes, users, currentUser, onMenuOpen, onNewLead
                   </td></tr>
                 )}
                 {rows.map((r) => {
-                  const cr = closeRate(r);
-                  const me = currentUser && r.id === currentUser.id;
+                  const sg = salesStageOf(r.stage);
+                  const ty = TYPE_TH[r.type];
+                  const mine = currentUser && r.ownerId && r.ownerId === currentUser.id;
+                  /* ปิดไปแล้วไม่ต้องทวงว่ายังไม่มอบหมาย — ป้ายสีส้มมีไว้บอกของที่ยังต้องทำเท่านั้น */
+                  const open = r.stage !== "won" && r.stage !== "lost";
                   return (
-                    <tr key={r.id} style={me ? { background: "var(--primary-soft)" } : undefined}>
-                      <td style={Object.assign({}, td, { textAlign: "left", fontWeight: 700, color: "var(--text-1)" })}>
-                        {r.name}{me ? " (คุณ)" : ""}
+                    <tr key={r.id} style={mine ? { background: "var(--primary-soft)" } : undefined}>
+                      <td style={Object.assign({}, td, { textAlign: "left", fontWeight: 700, color: "var(--text-1)", whiteSpace: "normal", minWidth: 160 })}>
+                        {r.name}
+                        {r.code && <span style={{ display: "block", fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, color: "var(--text-3)" }}>{r.code}</span>}
                       </td>
-                      <td style={td}>{r.fresh || "—"}</td>
+                      <td style={Object.assign({}, td, { textAlign: "left" })}>{pill(ty.th, ty.color)}</td>
+                      <td style={Object.assign({}, td, { textAlign: "left", color: "var(--text-2)" })}>
+                        {r.owner ? (r.owner + (mine ? " (คุณ)" : "")) : open ? todo("ยังไม่มอบหมาย") : "—"}
+                      </td>
+                      <td style={Object.assign({}, td, { textAlign: "left", color: "var(--text-2)" })}>
+                        {r.eng ? r.eng : r.booked ? todo("นัดแล้ว · ยังไม่ระบุช่าง") : open ? todo("ยังไม่ได้นัด") : "—"}
+                      </td>
+                      <td style={Object.assign({}, td, { textAlign: "left" })}>{pill(sg.th, sg.color)}</td>
                       <td style={td}>{r.quoted || "—"}</td>
-                      <td style={Object.assign({}, td, { fontWeight: 700, color: r.won ? "var(--tint-green-tx)" : "var(--text-3)" })}>{r.won || "—"}</td>
-                      <td style={Object.assign({}, td, { color: "var(--text-3)" })}>{r.lost || "—"}</td>
-                      <td style={td}>{cr == null ? "—" : cr + "%"}</td>
                       <td style={Object.assign({}, td, { fontWeight: 800, color: r.sales ? "var(--primary-dark)" : "var(--text-3)" })}>
                         {r.sales ? "฿" + fmtBaht(Math.round(r.sales)) : "—"}
                       </td>
@@ -983,8 +1044,9 @@ function SalesKpiView({ leads, quotes, users, currentUser, onMenuOpen, onNewLead
           </div>
         </div>
         <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 11, lineHeight: 1.6 }}>
-          ยอดขายนับจากใบเสนอราคาที่สถานะ “ลูกค้าตกลง” (ราคารวม VAT) ตามเดือนที่ตัดสิน ·
-          “ยังไล่อยู่” คือมูลค่าที่คาดของลูกค้าที่ยังไม่ปิดการขาย นับทุกช่วงเวลาไม่ขึ้นกับเดือนที่เลือก
+          หนึ่งแถวคือหนึ่งโครงการ · ยอดขายนับจากใบเสนอราคาที่สถานะ “ลูกค้าตกลง” (ราคารวม VAT) ตามเดือนที่ตัดสิน ·
+          “ยังไล่อยู่” คือมูลค่าที่คาดของโครงการที่ยังไม่ปิดการขาย นับทุกช่วงเวลาไม่ขึ้นกับเดือนที่เลือก ·
+          ผู้สำรวจมาจากนัดสำรวจล่าสุดของโครงการนั้น
         </div>
       </div>
     </React.Fragment>
