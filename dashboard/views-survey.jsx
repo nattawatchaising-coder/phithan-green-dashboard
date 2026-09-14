@@ -456,7 +456,9 @@ function LeadCard({ l, ctx }) {
         {onOpenSurvey && <button onClick={() => onOpenSurvey(window.leadAsJob(l))} style={leadBtn("var(--text-2)")}><Icon name="list" size={14} color="var(--text-2)" /> {st.state === "none" ? "เริ่มแบบสำรวจ" : "ดู / แก้แบบสำรวจ"}</button>}
         {/* วางแผง 3D ตั้งแต่ยังเป็นงานขาย — เซลล์ต้องเอาภาพหลังคาจริงไปคุยกับลูกค้าก่อนปิดการขาย
             แบบที่ปั้นไว้จะตามไปกับงานเองตอนกดแปลงเป็นงานติดตั้ง */}
-        {onPlan3d && <button onClick={() => onPlan3d(window.leadAsJob(l))} style={leadBtn("#4F46E5")}><Icon name="panel" size={14} color="#4F46E5" /> วางแผง 3D</button>}
+        {/* แปลงเป็นงานแล้วให้เปิดแบบของ "งาน" — แบบผูกกับเลข id และย้ายไปอยู่ที่เลขงานตอนแปลง (ดู movePlan3d)
+            ถ้าเปิดด้วยเลขลูกค้าจะได้ผังเปล่า ทั้งที่ปั้นแบบไว้แล้ว */}
+        {onPlan3d && <button onClick={() => onPlan3d(job || window.leadAsJob(l))} style={leadBtn("#4F46E5")}><Icon name="panel" size={14} color="#4F46E5" /> วางแผง 3D</button>}
         {onReport && st.state !== "none" && <button onClick={() => onReport(window.leadAsJob(l))} style={leadBtn("var(--primary-dark)")}><Icon name="file" size={14} color="var(--primary-dark)" /> รายงาน · PDF</button>}
         {canConvert && sKey !== "won" && <button onClick={() => setAsk({ id: l.id, kind: "conv" })} style={leadBtn("var(--tint-green-tx)", true)}><Icon name="check" size={14} color="#fff" sw={2.4} /> แปลงเป็นงานติดตั้ง</button>}
         {sKey !== "lost" && sKey !== "won" && <button onClick={() => setStage(l, "lost")} style={leadBtn("var(--text-2)")}>ไม่ติดตั้ง</button>}

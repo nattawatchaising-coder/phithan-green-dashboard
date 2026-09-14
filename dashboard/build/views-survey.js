@@ -1433,7 +1433,7 @@ function LeadCard({
     size: 14,
     color: "var(--text-2)"
   }), " ", st.state === "none" ? "เริ่มแบบสำรวจ" : "ดู / แก้แบบสำรวจ"), onPlan3d && React.createElement("button", {
-    onClick: () => onPlan3d(window.leadAsJob(l)),
+    onClick: () => onPlan3d(job || window.leadAsJob(l)),
     style: leadBtn("#4F46E5")
   }, React.createElement(Icon, {
     name: "panel",
