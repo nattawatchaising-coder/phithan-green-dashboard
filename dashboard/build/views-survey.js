@@ -909,15 +909,12 @@ function LeadModal({
   }, React.createElement("label", {
     style: lbl
   }, "\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17"), React.createElement(Segmented, {
-    value: f.type || "home",
+    value: f.type === "biz" ? "project" : f.type || "home",
     onChange: v => set("type", v),
-    options: [{
-      value: "home",
-      label: "บ้าน"
-    }, {
-      value: "biz",
-      label: "โรงงาน / ธุรกิจ"
-    }]
+    options: window.SF.TYPES.map(t => ({
+      value: t.key,
+      label: t.key === "home" ? "บ้าน" : t.key === "project" ? "โรงงาน / ธุรกิจ" : t.th
+    }))
   })), React.createElement("div", {
     style: {
       borderTop: "1px solid var(--border)",

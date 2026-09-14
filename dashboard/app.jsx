@@ -6,6 +6,9 @@
    perm ว่าง = ทุกคนที่ล็อกอินเห็น · own = เห็นเมื่อบัญชีผูกกับพนักงานในระบบ (มีงานเป็นของตัวเอง) */
 const NAV = [
   { key: "overview",   th: "ภาพรวม",         en: "Overview",      icon: "grid" },
+  /* สรุปรายงานประจำวัน/สัปดาห์/เดือน — สำรวจ · ติดตั้ง · บริการ กี่บ้าน รวมและแยกงานบ้าน/Tesla/โครงการ
+     สิทธิ์เดียวกับหน้าฐานข้อมูลงาน เพราะเห็นงานทั้งบริษัทเหมือนกัน */
+  { key: "summary",    th: "สรุปรายงาน",      en: "Summary",       icon: "file",     perm: "viewAll" },
   { key: "board",      th: "บอร์ดงาน",        en: "Workflow",      icon: "kanban" },
   { key: "table",      th: "ฐานข้อมูลงาน",     en: "Database",      icon: "table",    perm: "viewAll" },
   /* บอร์ดขายกับรายการลูกค้าคือข้อมูลชุดเดียวกันคนละมุม จึงเป็นเมนูเดียว แล้วสลับมุมในหน้า */
@@ -44,6 +47,7 @@ const NAV = [
    ไม่มีความหมายบนหน้าเหล่านี้ กดกรองไปก็ไม่มีอะไรบนจอเปลี่ยน ได้แต่กินที่หัว
    ใส่คำอธิบายหน้าแทน เพราะหัวหน้าที่ว่างเปล่าอ่านเหมือนหน้าโหลดค้าง */
 const PLAIN_SUB = {
+  summary: "สำรวจ · ติดตั้ง · บริการ กี่บ้าน — ประจำวัน / สัปดาห์ / เดือน · รวมและแยกประเภทงาน",
   om: "ทะเบียนไซต์ในสัญญาบริการ · ประกัน · รอบล้างแผง",
   attend: "ลงเวลาเข้า-ออกรายวัน · ใบขอ OT · ตั้งค่าเวลาทำงาน",
   expense: "ใบเบิกเงินหน้างาน · คิวอนุมัติ · ยอดค้างจ่ายรายคน",
@@ -279,6 +283,10 @@ function App() {
     });
   }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techFilter, techIds, inScope, stageKeyOf]);
 
+  /* งานทั้งหมดในขอบเขตที่ผู้ใช้เห็น (ไม่ผ่านตัวกรองหัวหน้า) — หน้าสรุปรายงานมีตัวเลือกช่วงเวลา/ประเภทของตัวเอง
+     ถ้าใช้ filtered ตัวกรองประเภทบนหัวจะไปหักตัวเลขในตาราง "แยกประเภท" ให้ผิดโดยไม่มีอะไรบอก */
+  const scopedJobs = React.useMemo(() => jobs.filter(inScope), [jobs, inScope]);
+
   /* นับงานต่อช่าง สำหรับเมนูกรอง "ช่างผู้รับผิดชอบ" — ใช้ฟิลเตอร์อื่นทั้งหมดยกเว้น techFilter เอง
      จะได้เห็นว่าภายใต้เงื่อนไขที่กรองอยู่ ช่างแต่ละคนมีงานกี่งาน */
   const techCounts = React.useMemo(() => {
@@ -452,7 +460,8 @@ function App() {
     if (!can(role, "addJob")) { alert("คุณไม่มีสิทธิ์สร้างงาน"); return; }
     const rec = Object.assign(store.blank(), {
       name: lead.name || "", phone: lead.phone || "", address: lead.address || "",
-      type: lead.type || "home", note: lead.note || "",
+      /* ฟอร์มลูกค้ารุ่นเก่าเก็บ "biz" ซึ่งไม่มีในประเภทงาน — ต้องกลายเป็นโครงการ ไม่งั้นป้ายประเภทในใบงานพัง */
+      type: lead.type === "biz" ? "project" : (lead.type || "home"), note: lead.note || "",
     });
     if (auth.current) { rec.createdBy = auth.current.id; rec.createdByName = auth.current.name || ""; }
     if (lead.province) rec.province = lead.province;
@@ -819,6 +828,7 @@ function App() {
           {view === "attend" && <window.AttendView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} />}
           {view === "line" && <window.LineAdminView users={auth.users} currentUser={auth.current} />}
           {view === "report" && <ReportView jobs={filtered} onOpen={openJob} />}
+          {view === "summary" && <window.SummaryView jobs={scopedJobs} appts={apptStore.appts} leads={leadStore.leads} onOpen={openJob} />}
           {view === "survey" && <SurveyView jobs={filtered} role={role} onOpen={openSurvey}
             onToggleSkip={(can(role, "doSurvey") || can(role, "dispatch") || can(role, "editJob")) ? (j) => {
               const cur = j.survey || {};
@@ -1264,8 +1274,9 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
       {/* มือถือ: เหลือไว้แค่ตัวกรองช่าง (ตัวอื่นซ่อนเพื่อประหยัดพื้นที่หัวเหมือนเดิม) */}
       {!plain && (!isMobile || showTechFilter) && (
       <div className="header-filters">
+        {/* ประเภทงานอ่านจาก SF.TYPES — เพิ่มประเภทใหม่ (เช่น Tesla) แล้วตัวกรองนี้ตามให้เอง */}
         {!isMobile && <Segmented value={typeFilter} onChange={setTypeFilter}
-          options={[{ value: "all", label: "ทั้งหมด" }, { value: "home", label: "งานบ้าน" }, { value: "project", label: "โครงการ" }]} />}
+          options={[{ value: "all", label: "ทั้งหมด" }].concat(window.SF.TYPES.map((t) => ({ value: t.key, label: t.key === "project" ? "โครงการ" : t.th })))} />}
         {!isMobile && (
         <button className={"delay-toggle" + (delayedOnly ? " on" : "")} onClick={() => setDelayedOnly((v) => !v)}>
           <Icon name="alert" size={15} color={delayedOnly ? "#fff" : "#EF4444"} />

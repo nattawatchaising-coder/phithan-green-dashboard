@@ -113,7 +113,8 @@ function StageBadge({ stageKey, size = "md" }) {
 }
 
 function TypeBadge({ type }) {
-  const t = window.SF.TYPES.find((x) => x.key === type);
+  /* ประเภทที่ไม่อยู่ในตาราง (ข้อมูลเก่า/นำเข้า) แสดงเป็นป้ายเทา ไม่ใช่พังทั้งตาราง */
+  const t = window.SF.TYPES.find((x) => x.key === type) || { th: type || "—", color: "#94A3B8" };
   return (
     <span style={{ fontSize: 11, fontWeight: 600, color: t.color, background: t.color + "1A",
       padding: "3px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>{t.th}</span>

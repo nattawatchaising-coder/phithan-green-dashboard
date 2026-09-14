@@ -140,7 +140,10 @@ function StageBadge({
 function TypeBadge({
   type
 }) {
-  const t = window.SF.TYPES.find(x => x.key === type);
+  const t = window.SF.TYPES.find(x => x.key === type) || {
+    th: type || "—",
+    color: "#94A3B8"
+  };
   return React.createElement("span", {
     style: {
       fontSize: 11,

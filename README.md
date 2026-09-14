@@ -28,6 +28,7 @@ Six views (left sidebar):
 | View | ไทย | Notes |
 |------|-----|-------|
 | Overview | ภาพรวม | Clickable KPI cards → filter table, 6-stage pipeline, alerts, appointments, brand mix |
+| Summary | สรุปรายงาน | Daily / weekly / monthly counts of survey · install · service (houses done vs. appointments), total and split by job type (งานบ้าน / Tesla / งานโครงการ), with per-job detail and copy-to-LINE text |
 | Board | บอร์ดงาน | Kanban across the 6 workflow stages, drag cards between stages |
 | Table | ฐานข้อมูลงาน | Editable material-status chips, edit/delete |
 | Calendar | ปฏิทินนัด | Appointments with per-stage colour + flow legend |

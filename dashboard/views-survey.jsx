@@ -326,7 +326,10 @@ function LeadModal({ initial, isNew, users, onClose, onSave }) {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>ที่อยู่หน้างาน</label><input value={f.address} onChange={(e) => set("address", e.target.value)} placeholder="บ้านเลขที่ / ถนน / ตำบล" style={inputStyle} /></div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>ประเภท</label>
-            <Segmented value={f.type || "home"} onChange={(v) => set("type", v)} options={[{ value: "home", label: "บ้าน" }, { value: "biz", label: "โรงงาน / ธุรกิจ" }]} /></div>
+            {/* ประเภทเดียวกับใบงาน (SF.TYPES) — ตอน "แปลงเป็นงาน" ค่าจะติดไปตรง ๆ ไม่ต้องแปลง
+                รายเก่าที่เคยเลือก "โรงงาน / ธุรกิจ" (biz) ให้แสดงเป็นโครงการ */}
+            <Segmented value={f.type === "biz" ? "project" : (f.type || "home")} onChange={(v) => set("type", v)}
+              options={window.SF.TYPES.map((t) => ({ value: t.key, label: t.key === "home" ? "บ้าน" : t.key === "project" ? "โรงงาน / ธุรกิจ" : t.th }))} /></div>
           {/* ── ข้อมูลของฝ่ายขาย ── */}
           <div style={{ borderTop: "1px solid var(--border)", paddingTop: 14, display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".05em", color: "var(--primary-dark)" }}>ข้อมูลฝ่ายขาย</div>

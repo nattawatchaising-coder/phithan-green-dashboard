@@ -5,6 +5,12 @@ const NAV = [{
   en: "Overview",
   icon: "grid"
 }, {
+  key: "summary",
+  th: "สรุปรายงาน",
+  en: "Summary",
+  icon: "file",
+  perm: "viewAll"
+}, {
   key: "board",
   th: "บอร์ดงาน",
   en: "Workflow",
@@ -91,6 +97,7 @@ const NAV = [{
   foot: true
 }];
 const PLAIN_SUB = {
+  summary: "สำรวจ · ติดตั้ง · บริการ กี่บ้าน — ประจำวัน / สัปดาห์ / เดือน · รวมและแยกประเภทงาน",
   om: "ทะเบียนไซต์ในสัญญาบริการ · ประกัน · รอบล้างแผง",
   attend: "ลงเวลาเข้า-ออกรายวัน · ใบขอ OT · ตั้งค่าเวลาทำงาน",
   expense: "ใบเบิกเงินหน้างาน · คิวอนุมัติ · ยอดค้างจ่ายรายคน",
@@ -343,6 +350,7 @@ function App() {
       return true;
     });
   }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techFilter, techIds, inScope, stageKeyOf]);
+  const scopedJobs = React.useMemo(() => jobs.filter(inScope), [jobs, inScope]);
   const techCounts = React.useMemo(() => {
     const q = search.trim().toLowerCase();
     const c = {};
@@ -577,7 +585,7 @@ function App() {
       name: lead.name || "",
       phone: lead.phone || "",
       address: lead.address || "",
-      type: lead.type || "home",
+      type: lead.type === "biz" ? "project" : lead.type || "home",
       note: lead.note || ""
     });
     if (auth.current) {
@@ -1164,6 +1172,11 @@ function App() {
     currentUser: auth.current
   }), view === "report" && React.createElement(ReportView, {
     jobs: filtered,
+    onOpen: openJob
+  }), view === "summary" && React.createElement(window.SummaryView, {
+    jobs: scopedJobs,
+    appts: apptStore.appts,
+    leads: leadStore.leads,
     onOpen: openJob
   }), view === "survey" && React.createElement(SurveyView, {
     jobs: filtered,
@@ -2115,13 +2128,10 @@ function Header({
     options: [{
       value: "all",
       label: "ทั้งหมด"
-    }, {
-      value: "home",
-      label: "งานบ้าน"
-    }, {
-      value: "project",
-      label: "โครงการ"
-    }]
+    }].concat(window.SF.TYPES.map(t => ({
+      value: t.key,
+      label: t.key === "project" ? "โครงการ" : t.th
+    })))
   }), !isMobile && React.createElement("button", {
     className: "delay-toggle" + (delayedOnly ? " on" : ""),
     onClick: () => setDelayedOnly(v => !v)
