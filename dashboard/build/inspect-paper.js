@@ -109,7 +109,7 @@ function RpSign({
     }
   }, "\u2026\u2026\u2026. / \u2026\u2026\u2026. / \u2026\u2026\u2026."));
 }
-function RoofHandoverPaper({
+function InspectionPaper({
   job,
   rec,
   photos,
@@ -120,10 +120,10 @@ function RoofHandoverPaper({
   const j = job || {};
   const r = rec || {};
   const list = photos || [];
-  const res = (window.RF_RESULT_BY || {})[r.result] || null;
+  const res = (window.IR_RESULT_BY || {})[r.result] || null;
   const doPrint = () => {
     const old = document.title;
-    document.title = "Roof Handover " + (j.code || "") + " " + (j.name || "");
+    document.title = (r.no || "IR") + " " + (r.kind || "Inspection Report") + " " + (j.code || "");
     window.print();
     setTimeout(() => {
       document.title = old;
@@ -166,13 +166,20 @@ function RoofHandoverPaper({
       color: RP_INK,
       letterSpacing: "-.2px"
     }
-  }, title), React.createElement("div", {
+  }, title), r.kind ? React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: RP_INK,
+      marginTop: 1
+    }
+  }, r.kind) : null, React.createElement("div", {
     style: {
       fontSize: 10,
       color: RP_SOFT,
       marginTop: 2
     }
-  }, B.legal || "", j.code ? " · " + j.code : "")), React.createElement("div", {
+  }, B.legal || "", j.code ? " · " + j.code : "", r.no ? " · " + r.no : "")), React.createElement("div", {
     style: {
       flexShrink: 0,
       textAlign: "right",
@@ -250,7 +257,7 @@ function RoofHandoverPaper({
       fontWeight: 800,
       color: "var(--text-1)"
     }
-  }, "\u0E43\u0E1A\u0E2A\u0E48\u0E07\u0E21\u0E2D\u0E1A\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 \xB7 ", j.code || "-"), React.createElement("div", {
+  }, r.no || "ใบตรวจ", " \xB7 ", r.kind || "Inspection Report"), React.createElement("div", {
     style: {
       fontSize: 11,
       color: "var(--text-3)"
@@ -287,7 +294,7 @@ function RoofHandoverPaper({
       borderRadius: isMobile ? 0 : 12,
       boxShadow: "0 20px 60px rgba(8,20,14,.28)"
     }
-  }, headBar("Inspection Report of Roof Handover", "00"), React.createElement("div", {
+  }, headBar("Inspection Report", "00"), React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
@@ -384,7 +391,7 @@ function RoofHandoverPaper({
       gap: 22,
       flexWrap: "wrap"
     }
-  }, (window.RF_RESULTS || []).map(o => {
+  }, (window.IR_RESULTS || []).map(o => {
     const on = r.result === o.key;
     return React.createElement("span", {
       key: o.key,
@@ -471,7 +478,7 @@ function RoofHandoverPaper({
       pageBreakBefore: "always",
       paddingTop: 26
     }
-  }, headBar("Photo Report · Roof Handover Report", "00"), React.createElement("div", {
+  }, headBar("Photo Report", "00"), React.createElement("div", {
     style: {
       fontSize: 11,
       marginBottom: 10
@@ -501,7 +508,7 @@ function RoofHandoverPaper({
     }
   }, React.createElement("img", {
     src: p.dataUrl,
-    alt: p.cap || "รูปหลังคา",
+    alt: p.cap || "รูปประกอบการตรวจ",
     style: {
       width: "100%",
       height: 186,
@@ -547,7 +554,7 @@ function RoofHandoverPaper({
   }))))));
 }
 Object.assign(window, {
-  RoofHandoverPaper,
+  InspectionPaper,
   RpRow,
   RpSign,
   RpFill

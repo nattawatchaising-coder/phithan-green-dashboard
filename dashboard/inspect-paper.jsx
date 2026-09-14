@@ -1,9 +1,9 @@
 /* ══════════════════════════════════════════════════
-   ส่งมอบหลังคา — เอกสารที่ออกจากระบบ (A4 พิมพ์/บันทึก PDF)
+   ใบตรวจสอบงาน — เอกสารที่ออกจากระบบ (A4 พิมพ์/บันทึก PDF)
 
    หนึ่งชุดมีสองส่วนตามแบบฟอร์มจริง แล้วพิมพ์ออกมาเป็นไฟล์เดียว
-   ── หน้าแรก  Inspection Report of Roof Handover (ใบขอตรวจรับมอบ + ผลการตรวจ + ช่องเซ็น)
-   ── หน้าถัดไป Photo Report (ใบรายงานรูปถ่ายสภาพหลังคา ณ วันรับมอบ)
+   ── หน้าแรก  Inspection Report (ใบขอตรวจ + ผลการตรวจ + ช่องเซ็น) — ชื่อเรื่องมาจากประเภทที่เลือกในใบ
+   ── หน้าถัดไป Photo Report (ใบรายงานรูปถ่ายประกอบการตรวจ)
 
    ใบนี้ต้องมีลายเซ็นจริงของสามฝ่าย (ผู้รับเหมา · ผู้จัดการโครงการ · ลูกค้า)
    จึงพิมพ์ช่องเซ็นเปล่าไว้เสมอ ต่อให้พิมพ์ชื่อผู้ลงนามมาจากในระบบแล้วก็ตาม
@@ -11,7 +11,7 @@
    หัวข้อในใบเป็นอังกฤษ/ไทยคู่กันตามต้นฉบับ จึงไม่มีปุ่มเลือกภาษาเหมือนเอกสารใบอื่น
    ลอกโครงหน้ากระดาษ/ปุ่มพิมพ์มาจาก EcVoucherPaper (ec-paper.jsx)
 
-   ชื่อระดับบนสุดทุกตัวในไฟล์นี้ขึ้นต้นด้วย rp / Rp / Roof
+   ชื่อระดับบนสุดทุกตัวในไฟล์นี้ขึ้นต้นด้วย rp / Rp
    ══════════════════════════════════════════════════ */
 
 const RP_INK = "#15211A";
@@ -60,17 +60,17 @@ function RpSign({ en, th, role, name }) {
   );
 }
 
-function RoofHandoverPaper({ job, rec, photos, onClose }) {
+function InspectionPaper({ job, rec, photos, onClose }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const B = window.BRANDING || {};
   const j = job || {};
   const r = rec || {};
   const list = photos || [];
-  const res = (window.RF_RESULT_BY || {})[r.result] || null;
+  const res = (window.IR_RESULT_BY || {})[r.result] || null;
 
   const doPrint = () => {
     const old = document.title;
-    document.title = "Roof Handover " + (j.code || "") + " " + (j.name || "");
+    document.title = (r.no || "IR") + " " + (r.kind || "Inspection Report") + " " + (j.code || "");
     window.print();
     setTimeout(() => { document.title = old; }, 800);
   };
@@ -90,8 +90,10 @@ function RoofHandoverPaper({ job, rec, photos, onClose }) {
           {window.BrandWord ? <window.BrandWord size={18} color={B.ink || RP_INK} /> : null}
         </div>
         <div style={{ fontSize: 15, fontWeight: 800, color: RP_INK, letterSpacing: "-.2px" }}>{title}</div>
+        {/* ประเภทการตรวจคือหัวเรื่องจริงของใบ — คนอ่านต้องรู้ตั้งแต่บรรทัดแรกว่าตรวจเรื่องอะไร */}
+        {r.kind ? <div style={{ fontSize: 12, fontWeight: 700, color: RP_INK, marginTop: 1 }}>{r.kind}</div> : null}
         <div style={{ fontSize: 10, color: RP_SOFT, marginTop: 2 }}>
-          {B.legal || ""}{j.code ? " · " + j.code : ""}
+          {B.legal || ""}{j.code ? " · " + j.code : ""}{r.no ? " · " + r.no : ""}
         </div>
       </div>
       <div style={{ flexShrink: 0, textAlign: "right", fontSize: 9.5, color: RP_SOFT, lineHeight: 1.6 }}>
@@ -115,7 +117,7 @@ function RoofHandoverPaper({ job, rec, photos, onClose }) {
           <Icon name="x" size={16} />
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>ใบส่งมอบหลังคา · {j.code || "-"}</div>
+          <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{r.no || "ใบตรวจ"} · {r.kind || "Inspection Report"}</div>
           <div style={{ fontSize: 11, color: "var(--text-3)" }}>
             {list.length ? list.length + " รูป · " + pages.length + " หน้ารูป" : "ยังไม่มีรูป — ใบรายงานรูปถ่ายจะไม่ถูกพิมพ์"} · กดปุ่มแล้วเลือก “บันทึกเป็น PDF”
           </div>
@@ -130,7 +132,7 @@ function RoofHandoverPaper({ job, rec, photos, onClose }) {
         padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "0 20px 60px rgba(8,20,14,.28)" }}>
 
         {/* ══ หน้าแรก — ใบขอตรวจรับมอบ ══ */}
-        {headBar("Inspection Report of Roof Handover", "00")}
+        {headBar("Inspection Report", "00")}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 26px", marginBottom: 10 }}>
           <RpRow en="To" th="เรียน" value={r.to} />
@@ -161,7 +163,7 @@ function RoofHandoverPaper({ job, rec, photos, onClose }) {
             The result of inspection <span style={{ fontSize: 10, color: RP_SOFT, fontWeight: 500 }}>(ผลการตรวจสอบ)</span>
           </div>
           <div style={{ display: "flex", gap: 22, flexWrap: "wrap" }}>
-            {(window.RF_RESULTS || []).map((o) => {
+            {(window.IR_RESULTS || []).map((o) => {
               const on = r.result === o.key;
               return (
                 <span key={o.key} style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11 }}>
@@ -195,7 +197,7 @@ function RoofHandoverPaper({ job, rec, photos, onClose }) {
         {/* ══ หน้าถัดไป — ใบรายงานรูปถ่าย ══ */}
         {pages.map((page, pi) => (
           <div key={pi} style={{ breakBefore: "page", pageBreakBefore: "always", paddingTop: 26 }}>
-            {headBar("Photo Report · Roof Handover Report", "00")}
+            {headBar("Photo Report", "00")}
             <div style={{ fontSize: 11, marginBottom: 10 }}>
               PROJECT : <b>{r.project || j.name || "—"}</b>
               {j.address ? <span style={{ color: RP_SOFT }}> · {j.address}</span> : null}
@@ -205,7 +207,7 @@ function RoofHandoverPaper({ job, rec, photos, onClose }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               {page.map((p, i) => (
                 <div key={p.id} style={{ border: "1px solid " + RP_LINE, borderRadius: 4, overflow: "hidden", breakInside: "avoid", pageBreakInside: "avoid" }}>
-                  <img src={p.dataUrl} alt={p.cap || "รูปหลังคา"} style={{ width: "100%", height: 186, objectFit: "cover", display: "block", background: "#EEF3F3" }} />
+                  <img src={p.dataUrl} alt={p.cap || "รูปประกอบการตรวจ"} style={{ width: "100%", height: 186, objectFit: "cover", display: "block", background: "#EEF3F3" }} />
                   <div style={{ padding: "6px 9px", fontSize: 10, color: RP_INK, borderTop: "1px solid " + RP_LINE, minHeight: 26 }}>
                     <b style={{ color: RP_SOFT }}>{pi * 6 + i + 1}.</b> {p.cap || " "}
                   </div>
@@ -228,4 +230,4 @@ function RoofHandoverPaper({ job, rec, photos, onClose }) {
   );
 }
 
-Object.assign(window, { RoofHandoverPaper, RpRow, RpSign, RpFill });
+Object.assign(window, { InspectionPaper, RpRow, RpSign, RpFill });
