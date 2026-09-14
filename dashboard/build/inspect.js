@@ -665,20 +665,24 @@ function IrItemRow({
       onClick: () => onChange({
         result: on ? "" : r.key
       }),
-      title: r.th,
+      title: r.th + " (" + r.en + ")",
+      "aria-label": r.th,
       style: {
-        padding: "8px 11px",
+        width: 34,
+        height: 34,
         borderRadius: 9,
         cursor: "pointer",
         fontFamily: "inherit",
-        fontSize: 11.5,
-        fontWeight: 700,
+        fontSize: 14,
+        fontWeight: 800,
+        display: "grid",
+        placeItems: "center",
+        lineHeight: 1,
         border: "1px solid " + (on ? r.color : "var(--border-strong)"),
         background: on ? r.color + "16" : "var(--surface)",
-        color: on ? r.color : "var(--text-3)",
-        whiteSpace: "nowrap"
+        color: on ? r.color : "var(--text-3)"
       }
-    }, r.mark, " ", r.th);
+    }, r.mark);
   })), React.createElement("input", {
     value: item.note,
     onChange: e => onChange({
@@ -1004,7 +1008,19 @@ function InspectionFormModal({
     style: lbl
   }, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E15\u0E23\u0E27\u0E08 ", React.createElement("span", {
     style: sub
-  }, "(Checklist)")), tally.total > 0 && React.createElement("span", {
+  }, "(Checklist)")), React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      fontWeight: 600
+    }
+  }, IR_ITEM_RESULTS.map((r, i) => React.createElement("span", {
+    key: r.key
+  }, i ? " · " : "", React.createElement("b", {
+    style: {
+      color: r.color
+    }
+  }, r.mark), " ", r.th))), tally.total > 0 && React.createElement("span", {
     style: {
       fontSize: 11.5,
       fontWeight: 700,

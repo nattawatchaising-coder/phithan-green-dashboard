@@ -393,16 +393,19 @@ function IrItemRow({ item, no, inp, onChange, onRemove, isMobile }) {
       <span style={{ flexShrink: 0, fontSize: 11, fontFamily: "var(--mono)", color: "var(--text-3)", minWidth: 20 }}>{no}.</span>
       <input value={item.name} onChange={(e) => onChange({ name: e.target.value })} placeholder="หัวข้อที่ตรวจ"
         style={Object.assign({}, inp, { flex: 2, minWidth: 0 })} />
+      {/* ช่องติ๊กอย่างเดียว ไม่ต้องมีคำกำกับ — ตารางนี้มีหลายสิบแถว ปุ่มมีคำทำให้แถวยาวจนอ่านยาก
+          ความหมายของแต่ละช่องอยู่ที่หัวตารางและใน title ตอนเอาเมาส์ชี้ */}
       <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
         {IR_ITEM_RESULTS.map((r) => {
           const on = item.result === r.key;
           return (
             <button key={r.key} type="button" onClick={() => onChange({ result: on ? "" : r.key })}
-              title={r.th}
-              style={{ padding: "8px 11px", borderRadius: 9, cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700,
+              title={r.th + " (" + r.en + ")"} aria-label={r.th}
+              style={{ width: 34, height: 34, borderRadius: 9, cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 800,
+                display: "grid", placeItems: "center", lineHeight: 1,
                 border: "1px solid " + (on ? r.color : "var(--border-strong)"),
-                background: on ? r.color + "16" : "var(--surface)", color: on ? r.color : "var(--text-3)", whiteSpace: "nowrap" }}>
-              {r.mark} {r.th}
+                background: on ? r.color + "16" : "var(--surface)", color: on ? r.color : "var(--text-3)" }}>
+              {r.mark}
             </button>
           );
         })}
@@ -524,6 +527,12 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
                 <label style={lbl}>รายการตรวจ <span style={sub}>(Checklist)</span></label>
+                {/* คำอธิบายช่องติ๊ก — ปุ่มในแถวเหลือแค่เครื่องหมาย ความหมายจึงต้องบอกไว้ตรงนี้ */}
+                <span style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 600 }}>
+                  {IR_ITEM_RESULTS.map((r, i) => (
+                    <span key={r.key}>{i ? " · " : ""}<b style={{ color: r.color }}>{r.mark}</b> {r.th}</span>
+                  ))}
+                </span>
                 {tally.total > 0 && (
                   <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>
                     <span style={{ color: "#16A34A" }}>ผ่าน {tally.pass}</span>
