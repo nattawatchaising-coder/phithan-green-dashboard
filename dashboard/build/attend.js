@@ -47,7 +47,13 @@ const TM_WH_DEFAULT = {
   minOtMins: 30,
   roundMins: 30,
   holidays: {},
-  cutoffDay: 0
+  cutoffDay: 0,
+  otRates: {
+    ot: 1.5,
+    holiday: 2,
+    holidayOt: 3,
+    night: 1.5
+  }
 };
 function tmWhNorm(cfg) {
   const c = Object.assign({}, TM_WH_DEFAULT, cfg || {});
@@ -64,6 +70,13 @@ function tmWhNorm(cfg) {
   c.roundMins = Math.max(0, +c.roundMins || 0);
   c.holidays = c.holidays && typeof c.holidays === "object" ? c.holidays : {};
   c.cutoffDay = Math.min(28, Math.max(0, Math.round(+c.cutoffDay || 0)));
+  const rr = c.otRates && typeof c.otRates === "object" ? c.otRates : {};
+  const rates = {};
+  TM_OT_KIND.forEach(k => {
+    const v = rr[k.key];
+    rates[k.key] = v === 0 ? 0 : Math.min(10, Math.max(0, +v || TM_WH_DEFAULT.otRates[k.key] || 1));
+  });
+  c.otRates = rates;
   if (tmHM(c.startEarly) == null) c.startEarly = TM_WH_DEFAULT.startEarly;
   if (tmHM(c.startLate) == null || tmHM(c.startLate) < tmHM(c.startEarly)) c.startLate = c.startEarly;
   c.start = c.startEarly;
@@ -171,6 +184,11 @@ const TM_OT_KIND = [{
   color: "#EF4444",
   hint: "เสาร์-อาทิตย์ หรือวันหยุดที่บริษัทประกาศ"
 }, {
+  key: "holidayOt",
+  th: "ล่วงเวลาในวันหยุด",
+  color: "#B91C1C",
+  hint: "วันหยุดที่ทำเกินชั่วโมงงานปกติไปอีก"
+}, {
   key: "night",
   th: "งานกลางคืน",
   color: "#6366F1",
@@ -181,6 +199,14 @@ TM_OT_KIND.forEach(k => {
   TM_OT_KIND_BY[k.key] = k;
 });
 const tmOtKindOf = k => TM_OT_KIND_BY[k] || TM_OT_KIND_BY.ot;
+function tmOtRate(recOrKind, cfg) {
+  if (recOrKind && typeof recOrKind === "object" && recOrKind.rate != null && +recOrKind.rate >= 0) return +recOrKind.rate;
+  const key = recOrKind && typeof recOrKind === "object" ? recOrKind.kind : recOrKind;
+  const r = tmWhNorm(cfg).otRates[tmOtKindOf(key).key];
+  return r == null ? 1 : r;
+}
+const tmOtPayMins = (rec, cfg) => Math.round((+(rec || {}).mins || 0) * tmOtRate(rec, cfg));
+const tmRateTH = r => (Math.round((+r || 0) * 100) / 100).toString().replace(/\.00$/, "") + " เท่า";
 function tmOtKindGuess(dateISO, from, cfg) {
   if (!tmIsWorkday(dateISO, cfg)) return "holiday";
   const a = tmHM(from);
@@ -498,6 +524,7 @@ function tmOtBlank(user, users, list, job, cfg) {
     mins: 0,
     kind: tmOtKindGuess(date, "17:00", cfg),
     reason: "",
+    rate: tmOtRate(tmOtKindGuess(date, "17:00", cfg), cfg),
     approverId: (approver || {}).id || null,
     approverName: (approver || {}).name || "",
     status: "draft",
@@ -910,6 +937,9 @@ Object.assign(window, {
   tmOtEarned,
   tmOtInLimit,
   tmLastHM,
+  tmOtRate,
+  tmOtPayMins,
+  tmRateTH,
   tmWorkedMins,
   tmOpen,
   tmAttendBlank,

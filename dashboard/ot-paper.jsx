@@ -21,19 +21,20 @@ const tmHrDec = (mins) => (Math.round(((+mins || 0) / 60) * 100) / 100).toFixed(
 
 /* จัดกลุ่มใบ OT ตามคน — คืนรายการเรียงตามชื่อไทย
    ใช้ทะเบียนผู้ใช้เป็นแหล่งชื่อก่อนเสมอ (ดูเหตุผลที่ tmNameOf ใน attend.jsx) */
-function tmOtByPerson(rows, users) {
+function tmOtByPerson(rows, users, cfg) {
   const map = {};
   (rows || []).forEach((r) => {
     if (!r) return;
     const k = r.userId || ("name:" + (r.userName || "ไม่ระบุชื่อ"));
     if (!map[k]) map[k] = { id: r.userId || null, name: window.tmNameOf(users, r.userId, r.userName) || "ไม่ระบุชื่อ", rows: [],
-      mins: 0, minsApproved: 0, minsWaiting: 0 };
+      mins: 0, minsApproved: 0, minsWaiting: 0, payApproved: 0, payWaiting: 0 };
     const g = map[k];
     g.rows.push(r);
     const m = +r.mins || 0;
+    const pay = window.tmOtPayMins(r, cfg);
     g.mins += m;
-    if (r.status === "approved") g.minsApproved += m;
-    else if (r.status === "draft" || r.status === "sent") g.minsWaiting += m;
+    if (r.status === "approved") { g.minsApproved += m; g.payApproved += pay; }
+    else if (r.status === "draft" || r.status === "sent") { g.minsWaiting += m; g.payWaiting += pay; }
   });
   const out = Object.keys(map).map((k) => map[k]);
   out.forEach((g) => g.rows.sort((a, b) => String(a.date || "").localeCompare(String(b.date || ""))
@@ -43,7 +44,7 @@ function tmOtByPerson(rows, users) {
 }
 
 /* ── ใบสรุป OT รายคน ── */
-function TmOtPaper({ person, period, rows, jobs, users, byName, onClose }) {
+function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const list = React.useMemo(() => (rows || []).slice()
     .sort((a, b) => String(a.date || "").localeCompare(String(b.date || ""))
@@ -58,15 +59,16 @@ function TmOtPaper({ person, period, rows, jobs, users, byName, onClose }) {
   }, [jobs]);
 
   const sum = React.useMemo(() => {
-    let approved = 0, waiting = 0, rejected = 0;
+    let approved = 0, waiting = 0, rejected = 0, payApproved = 0, payWaiting = 0;
     list.forEach((o) => {
       const m = +o.mins || 0;
-      if (o.status === "approved") approved += m;
+      const pay = window.tmOtPayMins(o, cfg);
+      if (o.status === "approved") { approved += m; payApproved += pay; }
       else if (o.status === "rejected" || o.status === "cancelled") rejected += m;
-      else waiting += m;
+      else { waiting += m; payWaiting += pay; }
     });
-    return { approved: approved, waiting: waiting, rejected: rejected };
-  }, [list]);
+    return { approved: approved, waiting: waiting, rejected: rejected, payApproved: payApproved, payWaiting: payWaiting };
+  }, [list, cfg]);
 
   const doPrint = () => {
     const old = document.title;
@@ -131,6 +133,7 @@ function TmOtPaper({ person, period, rows, jobs, users, byName, onClose }) {
           <TmPRow k="ชื่อ-สกุล" v={(person || {}).name || "-"} />
           <TmPRow k="รอบตัดยอด" v={window.tmPeriodTH(period)} />
           <TmPRow k="รวมชั่วโมงที่อนุมัติแล้ว" v={window.tmDur(sum.approved) + "  (" + tmHrDec(sum.approved) + " ชม.)"} />
+          <TmPRow k="รวมชั่วโมงคิดค่าแรง" v={tmHrDec(sum.payApproved) + " ชม.  (คูณอัตราแต่ละประเภทแล้ว)"} />
           <TmPRow k="ยังรออนุมัติในระบบ" v={sum.waiting ? window.tmDur(sum.waiting) + "  (" + tmHrDec(sum.waiting) + " ชม.)" : "—"} />
           <TmPRow k="ผู้ออกเอกสาร" v={byName || "-"} />
           <TmPRow k="วันที่ออกเอกสาร" v={window.drDateTH(window.drToday(), true)} />
@@ -151,6 +154,8 @@ function TmOtPaper({ person, period, rows, jobs, users, byName, onClose }) {
                 <th style={Object.assign({}, th, { width: 52 })}>ถึง</th>
                 <th style={Object.assign({}, th, { width: 54 })}>รวม (ชม.)</th>
                 <th style={Object.assign({}, th, { width: 86 })}>ประเภท</th>
+                <th style={Object.assign({}, th, { width: 44 })}>อัตรา</th>
+                <th style={Object.assign({}, th, { width: 58 })}>ชม.คิดค่าแรง</th>
                 <th style={Object.assign({}, th, { textAlign: "left" })}>งานที่ทำ OT</th>
                 <th style={Object.assign({}, th, { textAlign: "left" })}>ปฏิบัติหน้าที่</th>
                 <th style={Object.assign({}, th, { width: 72 })}>สถานะ</th>
@@ -158,10 +163,11 @@ function TmOtPaper({ person, period, rows, jobs, users, byName, onClose }) {
             </thead>
             <tbody>
               {list.length === 0 && (
-                <tr><td colSpan={9} style={Object.assign({}, td, { padding: 20, color: "#7A8A81" })}>ไม่มีใบ OT ในรอบนี้</td></tr>
+                <tr><td colSpan={11} style={Object.assign({}, td, { padding: 20, color: "#7A8A81" })}>ไม่มีใบ OT ในรอบนี้</td></tr>
               )}
               {list.map((o, i) => {
                 const nm = jobName(o);
+                const rt = window.tmOtRate(o, cfg);
                 return (
                   <tr key={o.id} style={i % 2 ? { background: "#F7FAF8" } : undefined}>
                     <td style={td}>{i + 1}</td>
@@ -170,6 +176,8 @@ function TmOtPaper({ person, period, rows, jobs, users, byName, onClose }) {
                     <td style={Object.assign({}, td, { fontFamily: "var(--mono)" })}>{o.to || "—"}</td>
                     <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontWeight: 700 })}>{tmHrDec(o.mins)}</td>
                     <td style={td}>{window.tmOtKindOf(o.kind).th}</td>
+                    <td style={Object.assign({}, td, { fontFamily: "var(--mono)" })}>×{Math.round(rt * 100) / 100}</td>
+                    <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontWeight: 700 })}>{tmHrDec((+o.mins || 0) * rt)}</td>
                     <td style={tdL}>
                       {o.jobCode ? <span style={{ fontFamily: "var(--mono)", fontWeight: 700 }}>{o.jobCode}</span> : <span style={{ color: "#7A8A81" }}>ไม่ระบุงาน</span>}
                       {nm && <span style={{ display: "block", color: "#4A5A51" }}>{nm}</span>}
@@ -187,7 +195,9 @@ function TmOtPaper({ person, period, rows, jobs, users, byName, onClose }) {
               <tr>
                 <td colSpan={4} style={Object.assign({}, td, { textAlign: "right", fontWeight: 800, background: "#0A4D68", color: "#fff" })}>รวมที่อนุมัติแล้วในระบบ</td>
                 <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontWeight: 800, background: "#0A4D68", color: "#fff" })}>{tmHrDec(sum.approved)}</td>
-                <td colSpan={4} style={Object.assign({}, td, { textAlign: "left", background: "#0A4D68", color: "#fff" })}>ชั่วโมง ({window.tmDur(sum.approved)})</td>
+                <td colSpan={2} style={Object.assign({}, td, { textAlign: "right", background: "#0A4D68", color: "#fff" })}>รวมชั่วโมงคิดค่าแรง</td>
+                <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontWeight: 800, background: "#0A4D68", color: "#fff" })}>{tmHrDec(sum.payApproved)}</td>
+                <td colSpan={3} style={Object.assign({}, td, { textAlign: "left", background: "#0A4D68", color: "#fff" })}>ชั่วโมง (ชั่วโมงจริง {window.tmDur(sum.approved)})</td>
               </tr>
               {/* ยอดที่ยังรออนุมัติต้องแยกบรรทัด ไม่ใช่บวกรวมกับยอดที่อนุมัติแล้ว
                   ไม่งั้นกระดาษใบนี้จะกลายเป็นยอดจ่ายที่ยังไม่มีใครอนุมัติ */}
@@ -196,7 +206,11 @@ function TmOtPaper({ person, period, rows, jobs, users, byName, onClose }) {
                   background: sum.waiting ? "#FEF3C7" : "#F7FAF8", color: sum.waiting ? "#92400E" : "#7A8A81" })}>ยังรออนุมัติในระบบ</td>
                 <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontWeight: 700,
                   background: sum.waiting ? "#FEF3C7" : "#F7FAF8", color: sum.waiting ? "#92400E" : "#7A8A81" })}>{tmHrDec(sum.waiting)}</td>
-                <td colSpan={4} style={Object.assign({}, td, { textAlign: "left",
+                <td colSpan={2} style={Object.assign({}, td, { textAlign: "right",
+                  background: sum.waiting ? "#FEF3C7" : "#F7FAF8", color: sum.waiting ? "#92400E" : "#7A8A81" })}>คิดค่าแรงได้</td>
+                <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontWeight: 700,
+                  background: sum.waiting ? "#FEF3C7" : "#F7FAF8", color: sum.waiting ? "#92400E" : "#7A8A81" })}>{tmHrDec(sum.payWaiting)}</td>
+                <td colSpan={3} style={Object.assign({}, td, { textAlign: "left",
                   background: sum.waiting ? "#FEF3C7" : "#F7FAF8", color: sum.waiting ? "#92400E" : "#7A8A81" })}>
                   ชั่วโมง {sum.waiting ? "— ต้องกดอนุมัติในระบบก่อนจึงจะนับเป็นยอดจ่าย" : ""}
                 </td>
@@ -223,7 +237,10 @@ function TmOtPaper({ person, period, rows, jobs, users, byName, onClose }) {
           fontSize: 9.5, color: "#5A6B62", lineHeight: 1.8 }}>
           เวลาในใบนี้เป็นเวลาที่ผู้ขอกรอกเอง ไม่ใช่เวลาที่ระบบจับได้ — ถ้าไม่แน่ใจให้เทียบกับแผ่น “เวลาทำงาน” ของวันนั้น
           <br />การเซ็นบนกระดาษไม่ได้เปลี่ยนสถานะในระบบ ใบที่ยังรออนุมัติต้องกดอนุมัติในระบบด้วย
-          <br />ใบนี้สรุปเฉพาะชั่วโมง ไม่ได้คิดค่าตอบแทน เพราะอัตราค่าแรงรายคนไม่ได้อยู่ในระบบนี้
+          <br />“ชม.คิดค่าแรง” = ชั่วโมงจริง × อัตราของประเภทนั้น ตามที่บริษัทตั้งไว้ในระบบ ณ วันที่เปิดใบ
+          (แต่ละใบตรึงอัตราของตัวเองไว้ การแก้อัตราทีหลังไม่ย้อนมาเปลี่ยนใบนี้)
+          <br />ใบนี้สรุปถึงชั่วโมงคิดค่าแรงเท่านั้น ยังไม่ใช่จำนวนเงิน เพราะอัตราค่าจ้างรายคนไม่ได้อยู่ในระบบนี้
+          — ฝ่ายบุคคลต้องคูณอัตราค่าจ้างของพนักงานคนนี้อีกที
         </div>
 
         <div style={{ marginTop: 12, fontSize: 9.5, color: "#8A9A91", textAlign: "center" }}>

@@ -500,9 +500,13 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
   const set = (k, v) => setF((p) => {
     const next = Object.assign({}, p, { [k]: v });
     next.mins = window.tmOtMinutes(next.date, next.from, next.to, cfg);
+    /* เปลี่ยนประเภทแล้วตัวคูณต้องตามไปด้วย — ใบที่ยังเป็นร่างยังไม่มีใครเซ็น จึงยึดอัตราปัจจุบัน
+       (ใบที่ส่งไปแล้วแก้ไม่ได้อยู่แล้ว อัตราที่ถ่ายไว้ตอนนั้นจึงถูกตรึงไปเอง) */
+    if (k === "kind") next.rate = window.tmOtRate(v, cfg);
     return next;
   });
   const mins = window.tmOtMinutes(f.date, f.from, f.to, cfg);
+  const rate = window.tmOtRate(f, cfg);
   const span = window.tmSpanMins(f.from, f.to);
   const nexts = window.tmOtNext(f, role, currentUser);
   const why = window.tmOtApproveCheck(f, currentUser, role).why;
@@ -550,6 +554,16 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
             <span style={{ fontFamily: "var(--mono)", fontSize: 20, fontWeight: 800,
               color: mins ? "var(--primary-dark)" : "var(--text-3)" }}>{window.tmDur(mins)}</span>
             <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>จากช่วงที่กรอกทั้งหมด {window.tmDur(span)}</span>
+          </div>
+          {/* ชั่วโมงคิดค่าแรง = นาทีจริง × ตัวคูณของประเภทนั้น — ตัวเลขที่ฝ่ายบุคคลเอาไปใช้ต่อ */}
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
+            <span style={{ fontSize: 12, color: "var(--text-3)", fontWeight: 700 }}>คิดค่าแรง</span>
+            <span style={{ fontFamily: "var(--mono)", fontSize: 15, fontWeight: 800, color: "var(--text-1)" }}>
+              {window.tmRateTH(rate)}
+            </span>
+            <span style={{ fontSize: 12, color: "var(--text-2)" }}>
+              = {(Math.round((mins * rate / 60) * 100) / 100).toFixed(2)} ชม.คิดค่าแรง
+            </span>
           </div>
           <div style={{ marginTop: 5, fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
             {window.tmIsWorkday(f.date, cfg)
@@ -750,6 +764,41 @@ function TmWorkHours({ cfg, onSave }) {
         </span>
       </div>
 
+      {/* ── ตัวคูณค่าแรง OT ──
+          แยกเป็นบล็อกของตัวเอง ไม่ปนกับช่องเวลา เพราะคนละเรื่องกัน:
+          ช่องข้างบนตอบว่า "นับเป็น OT กี่นาที" ส่วนตรงนี้ตอบว่า "นาทีนั้นคิดค่าแรงกี่เท่า" */}
+      <div>
+        <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 6 }}>อัตราค่าแรง OT (ตัวคูณ)</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10 }}>
+          {window.TM_OT_KIND.map((k) => (
+            <label key={k.key} style={TM_LB}>
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: k.color }}>{k.th}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                <input type="number" min={0} max={10} step={0.5}
+                  value={(f.otRates || {})[k.key] != null ? (f.otRates || {})[k.key] : ""}
+                  onChange={(e) => set("otRates", Object.assign({}, f.otRates, { [k.key]: e.target.value === "" ? "" : +e.target.value }))}
+                  style={Object.assign({}, TM_IN, { width: 88 })} />
+                <span style={{ fontSize: 12, color: "var(--text-3)", fontWeight: 700 }}>เท่า</span>
+              </div>
+              <span style={{ fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>{k.hint}</span>
+            </label>
+          ))}
+        </div>
+        <div style={{ marginTop: 9, padding: "11px 13px", borderRadius: 12, background: "var(--surface2)",
+          border: "1px solid var(--border)", fontSize: 11.5, color: "var(--text-2)", lineHeight: 1.8 }}>
+          ค่าตั้งต้นเป็นอัตราตามกฎหมายแรงงานไทย (พ.ร.บ.คุ้มครองแรงงาน ม.61-63) —
+          ล่วงเวลาวันทำงาน 1.5 เท่า · ทำงานวันหยุด 2 เท่า · ล่วงเวลาในวันหยุด 3 เท่า
+          <br /><span style={{ color: "var(--text-3)" }}>
+            “ทำงานวันหยุด” ตั้ง 2 เท่าไว้สำหรับลูกจ้างรายวัน — ถ้าเป็นลูกจ้างรายเดือนที่ได้ค่าจ้างวันหยุดอยู่แล้ว
+            กฎหมายให้จ่ายเพิ่มอีก 1 เท่า ให้ตั้งเป็น 1 · “งานกลางคืน” กฎหมายไม่ได้กำหนดอัตราไว้ต่างหาก แต่ละที่ตกลงกันเอง
+            <br />บริษัทจ่ายสูงกว่ากฎหมายได้ แต่ต่ำกว่าไม่ได้ — ระบบไม่ได้กันไว้ให้ ตั้งเท่าไหร่ก็ได้ตามที่ตกลงกันจริง
+            <br /><b>ระบบคิดให้แค่ “ชั่วโมงคิดค่าแรง” (นาทีจริง × ตัวคูณ) ไม่ได้คิดเป็นเงิน</b>
+            เพราะอัตราค่าจ้างรายคนไม่ได้อยู่ในระบบนี้ — ฝ่ายบุคคลเอาตัวเลขนี้ไปคูณอัตราของแต่ละคนต่อ
+            <br />แก้อัตราที่นี่ไม่ย้อนไปเปลี่ยนใบเก่า ใบแต่ละใบถ่ายตัวคูณ ณ วันที่เปิดใบติดตัวไว้แล้ว
+          </span>
+        </div>
+      </div>
+
       <div>
         <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 6 }}>วันทำงานประจำสัปดาห์</div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -817,12 +866,13 @@ function TmOtPeriod({ cfg, users, jobs, rows, byName }) {
   const inRange = React.useMemo(() => (rows || []).filter((r) => window.tmInPeriod(r && r.date, period)), [rows, period]);
   const people = React.useMemo(() => {
     const src = onlyApproved ? inRange.filter((r) => r.status === "approved") : inRange;
-    return window.tmOtByPerson(src, users);
-  }, [inRange, users, onlyApproved]);
+    return window.tmOtByPerson(src, users, cfg);
+  }, [inRange, users, onlyApproved, cfg]);
 
   const tot = React.useMemo(() => people.reduce((a, g) => ({
     slips: a.slips + g.rows.length, approved: a.approved + g.minsApproved, waiting: a.waiting + g.minsWaiting,
-  }), { slips: 0, approved: 0, waiting: 0 }), [people]);
+    pay: a.pay + g.payApproved,
+  }), { slips: 0, approved: 0, waiting: 0, pay: 0 }), [people]);
 
   const nav = (n) => setPeriod((p) => window.tmPeriodShift(p, n, cfg));
   const hrs = (m) => (!m ? "—" : (Math.round((m / 60) * 100) / 100).toFixed(2));
@@ -849,7 +899,9 @@ function TmOtPeriod({ cfg, users, jobs, rows, byName }) {
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <TmStat label="คนที่มี OT ในรอบนี้" value={people.length} unit="คน" />
         <TmStat label="ใบ OT ในรอบนี้" value={tot.slips} unit="ใบ" />
-        <TmStat label="อนุมัติแล้ว" value={hrs(tot.approved)} unit="ชม." />
+        <TmStat label="อนุมัติแล้ว" value={hrs(tot.approved)} unit="ชม." hint="ชั่วโมงจริงที่ทำ" />
+        <TmStat label="ชั่วโมงคิดค่าแรง" value={hrs(tot.pay)} unit="ชม." color="var(--primary-dark)"
+          hint="คูณตัวคูณของแต่ละประเภทแล้ว (เฉพาะใบที่อนุมัติ)" />
         <TmStat label="ยังรออนุมัติ" value={hrs(tot.waiting)} unit="ชม."
           color={tot.waiting ? "#F59E0B" : "var(--text-1)"}
           hint={tot.waiting ? "ต้องกดอนุมัติในระบบก่อน ไม่ใช่แค่เซ็นบนกระดาษ" : ""} />
@@ -859,12 +911,12 @@ function TmOtPeriod({ cfg, users, jobs, rows, byName }) {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ background: "var(--surface2)" }}>
-              {th("ชื่อ")}{th("ใบ OT", "center")}{th("อนุมัติแล้ว (ชม.)", "center")}{th("รออนุมัติ (ชม.)", "center")}{th("")}
+              {th("ชื่อ")}{th("ใบ OT", "center")}{th("อนุมัติแล้ว (ชม.)", "center")}{th("ชม.คิดค่าแรง", "center")}{th("รออนุมัติ (ชม.)", "center")}{th("")}
             </tr>
           </thead>
           <tbody>
             {people.length === 0 && (
-              <tr><td colSpan={5} style={{ padding: 26, textAlign: "center", color: "var(--text-3)" }}>
+              <tr><td colSpan={6} style={{ padding: 26, textAlign: "center", color: "var(--text-3)" }}>
                 ไม่มีใบ OT ในรอบนี้{onlyApproved ? " (ที่อนุมัติแล้ว)" : ""}
               </td></tr>
             )}
@@ -873,6 +925,8 @@ function TmOtPeriod({ cfg, users, jobs, rows, byName }) {
                 <td style={{ padding: "9px 13px", fontWeight: 700, color: "var(--text-1)" }}>{g.name}</td>
                 <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)", fontWeight: 700 }}>{g.rows.length}</td>
                 <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)", fontWeight: 700 }}>{hrs(g.minsApproved)}</td>
+                <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)", fontWeight: 800,
+                  color: g.payApproved ? "var(--primary-dark)" : "var(--text-3)" }}>{hrs(g.payApproved)}</td>
                 <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)",
                   color: g.minsWaiting ? "#F59E0B" : "var(--text-3)", fontWeight: g.minsWaiting ? 700 : 400 }}>{hrs(g.minsWaiting)}</td>
                 <td style={{ padding: "9px 13px", textAlign: "right" }}>
@@ -890,7 +944,9 @@ function TmOtPeriod({ cfg, users, jobs, rows, byName }) {
       </div>
 
       <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.7 }}>
-        ใบที่พิมพ์เป็นของคนละหนึ่งใบต่อหนึ่งรอบ มีวัน · ช่วงเวลา · งานที่ไปทำ · หน้าที่ที่ปฏิบัติ · และช่องเซ็นสามช่อง
+        “ชม.คิดค่าแรง” = ชั่วโมงจริง × ตัวคูณของประเภท OT นั้น (ตั้งได้ในหน้า “ตั้งค่าเวลาทำงาน”)
+        นับเฉพาะใบที่อนุมัติแล้ว · ยังไม่ใช่จำนวนเงิน ฝ่ายบุคคลต้องคูณอัตราค่าจ้างของแต่ละคนอีกที
+        <br />ใบที่พิมพ์เป็นของคนละหนึ่งใบต่อหนึ่งรอบ มีวัน · ช่วงเวลา · งานที่ไปทำ · หน้าที่ที่ปฏิบัติ · และช่องเซ็นสามช่อง
         (ผู้ขอ · หัวหน้างานผู้อนุมัติ · ฝ่ายบุคคล)
         <br />รอบแบ่งตามวันตัดยอดที่ตั้งไว้ในหน้า “ตั้งค่าเวลาทำงาน”
         {cut ? " — ตอนนี้ตัดทุกวันที่ " + cut : " — ตอนนี้ใช้เดือนปฏิทิน (ยังไม่ได้ตั้งวันตัดยอด)"}
@@ -900,7 +956,7 @@ function TmOtPeriod({ cfg, users, jobs, rows, byName }) {
 
       {paper && window.TmOtPaper && (
         <window.TmOtPaper person={paper} period={period} rows={paper.rows} jobs={jobs} users={users}
-          byName={byName} onClose={() => setPaper(null)} />
+          cfg={cfg} byName={byName} onClose={() => setPaper(null)} />
       )}
     </div>
   );

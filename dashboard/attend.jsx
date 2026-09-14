@@ -94,6 +94,15 @@ const TM_WH_DEFAULT = {
   /* วันตัดยอด OT — 0 = ใช้เดือนปฏิทิน (1 ถึงสิ้นเดือน)
      ตั้ง 25 = รอบหนึ่งคือ 26 ของเดือนก่อน ถึง 25 ของเดือนนี้ */
   cutoffDay: 0,
+  /* ── ตัวคูณค่าแรงของ OT แต่ละประเภท ──
+     ค่าตั้งต้นเป็นอัตราตามกฎหมายแรงงานไทย (พ.ร.บ.คุ้มครองแรงงาน ม.61-63)
+       ล่วงเวลาวันทำงาน   1.5 เท่า
+       ทำงานวันหยุด       2 เท่า  (ลูกจ้างรายวัน · ถ้าเป็นรายเดือนที่ได้ค่าจ้างวันหยุดอยู่แล้วให้ตั้ง 1)
+       ล่วงเวลาในวันหยุด  3 เท่า
+       งานกลางคืน        1.5 เท่า (กฎหมายไม่ได้กำหนดอัตรากลางคืนไว้ต่างหาก แต่ละที่ตกลงกันเอง)
+     บริษัทตกลงกับพนักงานสูงกว่ากฎหมายได้ จึงต้องแก้ได้ทุกช่อง
+     ระบบใช้ตัวคูณนี้คิดแค่ "ชั่วโมงคิดค่าแรง" ไม่ได้คิดเป็นเงิน เพราะอัตราค่าจ้างรายคนไม่ได้อยู่ในระบบนี้ */
+  otRates: { ot: 1.5, holiday: 2, holidayOt: 3, night: 1.5 },
 };
 function tmWhNorm(cfg) {
   const c = Object.assign({}, TM_WH_DEFAULT, cfg || {});
@@ -115,6 +124,15 @@ function tmWhNorm(cfg) {
   /* เพดาน 28 ไม่ใช่ 31 — ตั้งวันที่ 30 แล้วรอบของกุมภาพันธ์จะไม่มีวันนั้นอยู่จริง
      ต้องไปเดาแทนผู้ใช้ว่าหมายถึงสิ้นเดือนหรือวันที่ 28 ซึ่งเดาผิดแล้วยอดเงินเดือนเพี้ยนเงียบ ๆ */
   c.cutoffDay = Math.min(28, Math.max(0, Math.round(+c.cutoffDay || 0)));
+  /* ตัวคูณ: เติมให้ครบทุกประเภทเสมอ ประเภทที่เพิ่มทีหลังจะได้ไม่กลายเป็น 0 เงียบ ๆ
+     (0 = ไม่คิดค่าแรงให้เลย ซึ่งไม่มีทางเป็นสิ่งที่ใครตั้งใจ แต่ยอมให้ตั้งได้ถ้าจงใจ) */
+  const rr = c.otRates && typeof c.otRates === "object" ? c.otRates : {};
+  const rates = {};
+  TM_OT_KIND.forEach((k) => {
+    const v = rr[k.key];
+    rates[k.key] = v === 0 ? 0 : Math.min(10, Math.max(0, +v || TM_WH_DEFAULT.otRates[k.key] || 1));
+  });
+  c.otRates = rates;
   if (tmHM(c.startEarly) == null) c.startEarly = TM_WH_DEFAULT.startEarly;
   if (tmHM(c.startLate) == null || tmHM(c.startLate) < tmHM(c.startEarly)) c.startLate = c.startEarly;
   /* start/end เป็นค่า "อนุมาน" ของวันที่ยังไม่มีใบลงเวลา — ของวันที่มีใบจริงให้ใช้ tmDayWindow
@@ -218,10 +236,27 @@ function tmDayWindow(rec, cfg) {
 const TM_OT_KIND = [
   { key: "ot",      th: "ล่วงเวลาวันทำงาน", color: "#F59E0B", hint: "ทำต่อหลังเลิกงาน หรือมาก่อนเวลา" },
   { key: "holiday", th: "ทำงานวันหยุด",     color: "#EF4444", hint: "เสาร์-อาทิตย์ หรือวันหยุดที่บริษัทประกาศ" },
+  /* กฎหมายแยกสองอัตราในวันหยุด — ช่วงเท่าเวลางานปกติอัตราหนึ่ง ส่วนที่เกินไปอีกอัตราหนึ่ง
+     ระบบเดาให้ไม่ได้ เพราะวันหยุดไม่มี "เวลางานปกติ" ให้เทียบ ผู้ขอเลือกเองเมื่อทำเกินวันปกติ */
+  { key: "holidayOt", th: "ล่วงเวลาในวันหยุด", color: "#B91C1C", hint: "วันหยุดที่ทำเกินชั่วโมงงานปกติไปอีก" },
   { key: "night",   th: "งานกลางคืน",       color: "#6366F1", hint: "งานที่ต้องทำหลังพระอาทิตย์ตกถึงเช้า" },
 ];
 const TM_OT_KIND_BY = {}; TM_OT_KIND.forEach((k) => { TM_OT_KIND_BY[k.key] = k; });
 const tmOtKindOf = (k) => TM_OT_KIND_BY[k] || TM_OT_KIND_BY.ot;
+
+/* ── ตัวคูณค่าแรงของใบหนึ่ง ──
+   ใบเก่าที่เก็บ rate ติดตัวไว้แล้วให้ยึดของตัวเอง ไม่ใช่ค่าตั้งปัจจุบัน
+   (แอดมินปรับอัตราวันนี้ ต้องไม่ย้อนไปเปลี่ยนใบที่หัวหน้าเซ็นไปแล้วเมื่อเดือนก่อน) */
+function tmOtRate(recOrKind, cfg) {
+  if (recOrKind && typeof recOrKind === "object" && recOrKind.rate != null && +recOrKind.rate >= 0) return +recOrKind.rate;
+  const key = recOrKind && typeof recOrKind === "object" ? recOrKind.kind : recOrKind;
+  const r = tmWhNorm(cfg).otRates[tmOtKindOf(key).key];
+  return r == null ? 1 : r;
+}
+/* นาทีคิดค่าแรง = นาทีจริง × ตัวคูณ — ฝ่ายบุคคลเอาไปคูณอัตราต่อชั่วโมงของคนนั้นได้เลย
+   ระบบไม่คูณเป็นเงินให้ เพราะค่าจ้างรายคนไม่ได้อยู่ในระบบนี้ (ดูหมายเหตุที่ TM_OT_KIND) */
+const tmOtPayMins = (rec, cfg) => Math.round((+((rec || {}).mins) || 0) * tmOtRate(rec, cfg));
+const tmRateTH = (r) => (Math.round((+r || 0) * 100) / 100).toString().replace(/\.00$/, "") + " เท่า";
 
 /* เดาประเภทให้จากวันที่ — เดาเฉย ๆ ช่างแก้ทับได้เสมอ */
 function tmOtKindGuess(dateISO, from, cfg) {
@@ -525,6 +560,9 @@ function tmOtBlank(user, users, list, job, cfg) {
     jobId: (job || {}).id || null, jobCode: (job || {}).code || "",
     date, from: "17:00", to: "20:00", mins: 0,
     kind: tmOtKindGuess(date, "17:00", cfg), reason: "",
+    /* ถ่ายตัวคูณ ณ วันที่เปิดใบติดไว้ในใบ — อัตราที่หัวหน้าเซ็นอนุมัติต้องไม่เปลี่ยนย้อนหลัง
+       ตอนเปลี่ยนประเภทในฟอร์ม ตัวคูณจะถูกเขียนทับให้ตรงกับประเภทใหม่ (ดู TmOtModal) */
+    rate: tmOtRate(tmOtKindGuess(date, "17:00", cfg), cfg),
     /* ชื่อคนอนุมัติถ่ายสำเนาไว้ตอนเปิดใบ เพื่อให้ใบเก่ายังอ่านออกแม้บัญชีนั้นถูกลบทีหลัง */
     approverId: (approver || {}).id || null, approverName: (approver || {}).name || "",
     status: "draft", createdAt: now, hist: [],
@@ -868,6 +906,7 @@ Object.assign(window, { tmNameOf,
   TM_ROOT, TM_WH_DEFAULT, TM_OT_KIND, TM_OT_STATUS, TM_PLACE,
   tmHM, tmHHMM, tmNowHM, tmSpanMins, tmDur, tmWhNorm, tmIsHoliday, tmIsWorkday,
   tmOtKindOf, tmOtKindGuess, tmOtMinutes, tmDayWindow, tmOtEarned, tmOtInLimit, tmLastHM,
+  tmOtRate, tmOtPayMins, tmRateTH,
   tmWorkedMins, tmOpen, tmAttendBlank, tmPunch, tmDayIndex, tmPlaceOf,
   tmOtStatusOf, tmOtOpen, tmCanAttend, tmCanAttendAll, tmCanOt, tmCanOtApprove,
   tmOtApproveCheck, tmOtNext, tmOtMove, tmOtDocNo, tmOtBlank, tmOtVisible, tmOtRollup,
