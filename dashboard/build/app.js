@@ -88,7 +88,7 @@ const NAV = [{
   en: "LINE",
   icon: "message",
   perm: "manageUsers",
-  foot: true
+  inSettings: true
 }];
 const PLAIN_SUB = {
   om: "ทะเบียนไซต์ในสัญญาบริการ · ประกัน · รอบล้างแผง",
@@ -1542,7 +1542,7 @@ function Sidebar({
   }))), React.createElement("nav", {
     className: "sidebar-nav"
   }, (() => {
-    const items = navForRole(role, techId).filter(n => !n.hidden);
+    const items = navForRole(role, techId).filter(n => !n.hidden && !n.inSettings);
     const first = items.findIndex(n => n.foot);
     return items.map((n, i) => {
       const active = view === n.key;
@@ -1571,29 +1571,7 @@ function Sidebar({
     });
   })()), React.createElement("div", {
     className: "sidebar-foot"
-  }, canManageUsers && React.createElement("button", {
-    onClick: onManageUsers,
-    className: "nav-item",
-    title: "\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19",
-    style: {
-      width: "100%"
-    }
-  }, React.createElement(Icon, {
-    name: "users",
-    size: 19,
-    color: "var(--text-2)"
-  }), !icons && React.createElement("span", null, "\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19")), canManageUsers && onManageTechs && React.createElement("button", {
-    onClick: onManageTechs,
-    className: "nav-item",
-    title: "\u0E17\u0E35\u0E21\u0E0A\u0E48\u0E32\u0E07\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A",
-    style: {
-      width: "100%"
-    }
-  }, React.createElement(Icon, {
-    name: "wrench",
-    size: 19,
-    color: "var(--text-2)"
-  }), !icons && React.createElement("span", null, "\u0E17\u0E35\u0E21\u0E0A\u0E48\u0E32\u0E07")), currentUser && React.createElement("button", {
+  }, currentUser && React.createElement("button", {
     onClick: onMySign,
     title: "\u0E42\u0E1B\u0E23\u0E44\u0E1F\u0E25\u0E4C\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19",
     disabled: !onMySign,
@@ -1656,48 +1634,153 @@ function Sidebar({
     name: "settings",
     size: 15,
     color: "var(--text-3)"
-  })), React.createElement("button", {
-    onClick: onToggleAurora,
-    className: "nav-item",
-    title: aurora ? "กลับสู่โหมดปกติ" : "เปิดโหมดกราไฟต์",
+  })), React.createElement(SidebarSettings, {
+    icons: icons,
+    view: view,
+    onNav: onNav,
+    aurora: aurora,
+    onToggleAurora: onToggleAurora,
+    settingsNav: navForRole(role, techId).filter(n => n.inSettings && !n.hidden),
+    canManageUsers: canManageUsers,
+    onManageUsers: onManageUsers,
+    onManageTechs: onManageTechs,
+    onLogout: onLogout
+  })));
+}
+function SidebarSettings({
+  icons,
+  view,
+  onNav,
+  aurora,
+  onToggleAurora,
+  settingsNav,
+  canManageUsers,
+  onManageUsers,
+  onManageTechs,
+  onLogout
+}) {
+  const [open, setOpen] = React.useState(false);
+  const wrapRef = React.useRef(null);
+  React.useEffect(() => {
+    if (!open) return;
+    const off = e => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    const esc = e => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", off);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("mousedown", off);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [open]);
+  const inHere = (settingsNav || []).some(n => n.key === view);
+  const row = (key, icon, label, onClick, opt) => {
+    const o = opt || {};
+    return React.createElement("button", {
+      key: key,
+      onClick: () => {
+        setOpen(false);
+        onClick();
+      },
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        width: "100%",
+        textAlign: "left",
+        padding: "9px 11px",
+        borderRadius: 9,
+        border: "none",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 13,
+        fontWeight: o.active ? 700 : 600,
+        background: o.active ? "var(--primary-soft)" : "none",
+        color: o.danger ? "#EF4444" : o.active ? "var(--primary-dark)" : "var(--text-2)"
+      },
+      onMouseEnter: e => {
+        if (!o.active) e.currentTarget.style.background = "var(--surface2)";
+      },
+      onMouseLeave: e => {
+        if (!o.active) e.currentTarget.style.background = "none";
+      }
+    }, React.createElement(Icon, {
+      name: icon,
+      size: 17,
+      color: o.danger ? "#EF4444" : o.active ? "var(--primary-dark)" : "var(--text-2)",
+      style: o.flip ? {
+        transform: "scaleX(-1)"
+      } : null
+    }), React.createElement("span", null, label), o.dot && React.createElement("span", {
+      style: {
+        marginLeft: "auto",
+        width: 7,
+        height: 7,
+        borderRadius: 99,
+        flexShrink: 0,
+        background: "var(--primary-bright)"
+      }
+    }));
+  };
+  const sep = k => React.createElement("div", {
+    key: k,
     style: {
-      width: "100%",
-      color: aurora ? "var(--primary-dark)" : "var(--text-2)"
+      height: 1,
+      background: "var(--border)",
+      margin: "5px 4px"
+    }
+  });
+  return React.createElement("div", {
+    ref: wrapRef,
+    style: {
+      position: "relative",
+      width: "100%"
+    }
+  }, React.createElement("button", {
+    onClick: () => setOpen(v => !v),
+    className: "nav-item" + (inHere ? " active" : ""),
+    title: "\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E41\u0E25\u0E30\u0E1A\u0E31\u0E0D\u0E0A\u0E35",
+    "aria-expanded": open,
+    style: {
+      width: "100%"
     }
   }, React.createElement(Icon, {
-    name: "moon",
-    size: 18,
-    color: aurora ? "var(--primary-dark)" : "var(--text-2)"
-  }), !icons && React.createElement("span", null, "\u0E42\u0E2B\u0E21\u0E14\u0E01\u0E23\u0E32\u0E44\u0E1F\u0E15\u0E4C"), !icons && aurora && React.createElement("span", {
+    name: "settings",
+    size: 19,
+    color: inHere ? "var(--primary-dark)" : "var(--text-2)"
+  }), !icons && React.createElement("span", null, "\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32"), !icons && React.createElement(Icon, {
+    name: "chevronDown",
+    size: 14,
+    color: "var(--text-3)",
     style: {
       marginLeft: "auto",
-      width: 7,
-      height: 7,
-      borderRadius: 99,
-      flexShrink: 0,
-      background: "var(--primary-bright)"
+      transform: open ? "rotate(180deg)" : "none",
+      transition: "transform .15s"
     }
-  })), React.createElement("button", {
-    onClick: onLogout,
-    className: "nav-item",
-    title: "\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A",
+  })), open && React.createElement("div", {
     style: {
-      width: "100%",
-      color: "#EF4444"
+      position: "absolute",
+      bottom: "calc(100% + 6px)",
+      left: 0,
+      minWidth: 232,
+      zIndex: 60,
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 13,
+      padding: 6,
+      boxShadow: "0 12px 36px rgba(20,40,28,.20)"
     }
-  }, React.createElement(Icon, {
-    name: "history",
-    size: 18,
-    color: "#EF4444",
-    style: {
-      transform: "scaleX(-1)"
-    }
-  }), !icons && React.createElement("span", {
-    style: {
-      color: "#EF4444",
-      fontWeight: 600
-    }
-  }, "\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A"))));
+  }, canManageUsers && onManageUsers && row("users", "users", "จัดการผู้ใช้งาน", onManageUsers), canManageUsers && onManageTechs && row("techs", "wrench", "ทีมช่าง", onManageTechs), (settingsNav || []).map(n => row(n.key, n.icon, n.th, () => onNav(n.key), {
+    active: view === n.key
+  })), sep("s1"), row("aurora", "moon", "โหมดกราไฟต์", onToggleAurora, {
+    dot: aurora
+  }), sep("s2"), row("logout", "history", "ออกจากระบบ", onLogout, {
+    danger: true,
+    flip: true
+  })));
 }
 function TechFilter({
   value,

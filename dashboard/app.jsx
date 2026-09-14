@@ -29,8 +29,11 @@ const NAV = [
   /* เวลาทำงาน — ลงเวลาเข้า-ออก และใบขอ OT · ปั๊มเวลาทำจากแอปในไลน์ หน้านี้คือฝั่งออฟฟิศ
      foot เหมือนรายงานประจำวัน เพราะเป็นเอกสารที่เข้าทุกวัน ไม่ใช่หน้าดูข้อมูล */
   { key: "attend",     th: "เวลาทำงาน",       en: "Attendance",    icon: "clock",    perm: "attend", foot: true },
-  /* หน้าแอดมินล้วน — โควตาข้อความของ LINE กับสวิตช์เลือกว่าเรื่องไหนส่งเข้าแชต */
-  { key: "line",       th: "แจ้งเตือน LINE",  en: "LINE",          icon: "message",  perm: "manageUsers", foot: true },
+  /* หน้าแอดมินล้วน — โควตาข้อความของ LINE กับสวิตช์เลือกว่าเรื่องไหนส่งเข้าแชต
+     inSettings = ไม่ขึ้นในเมนูหลัก ไปอยู่ในเมนู "ตั้งค่า" ท้ายแถบแทน
+     ยังอยู่ใน navForRole ตามปกติ เพราะ allowed ใช้ลิสต์นี้ตัดสินว่าหน้าไหนเข้าได้ —
+     ถอดออกจาก NAV ตรง ๆ แล้วคนที่ค้างอยู่หน้านี้จะถูกเด้งออกตอนรีเฟรช */
+  { key: "line",       th: "แจ้งเตือน LINE",  en: "LINE",          icon: "message",  perm: "manageUsers", inSettings: true },
   /* "รายงานสรุป" ถอดออกจากเมนูแล้ว — โค้ดหน้ายังอยู่ที่ views-report.jsx ถ้าอยากได้คืนให้เติมแถวนี้กลับ
      { key: "report", th: "รายงานสรุป", en: "Report", icon: "file", perm: "viewAll" } */
 ];
@@ -1007,7 +1010,7 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onCl
 
       <nav className="sidebar-nav">
         {(() => {
-          const items = navForRole(role, techId).filter((n) => !n.hidden);
+          const items = navForRole(role, techId).filter((n) => !n.hidden && !n.inSettings);
           /* เมนูที่ปักไว้ล่างสุด — ดันด้วย margin-top:auto ที่ "ตัวแรก" ของกลุ่มเท่านั้น
              ใส่ทุกตัวจะแยกกันกระจายทั้งคอลัมน์ ไม่ได้เกาะกลุ่มอยู่ด้วยกัน */
           const first = items.findIndex((n) => n.foot);
@@ -1036,22 +1039,6 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onCl
       </nav>
 
       <div className="sidebar-foot">
-        {/* เมนูจัดการผู้ใช้ — เฉพาะแอดมิน (แยกจากเมนูงาน) */}
-        {canManageUsers && (
-          <button onClick={onManageUsers} className="nav-item" title="จัดการผู้ใช้งาน" style={{ width: "100%" }}>
-            <Icon name="users" size={19} color="var(--text-2)" />
-            {!icons && <span>จัดการผู้ใช้งาน</span>}
-          </button>
-        )}
-        {/* ทีมช่าง — เดิมเข้าได้จากในฟอร์มใบงานเท่านั้น ซึ่งหาไม่เจอถ้าไม่ได้กำลังเปิดงานอยู่
-            ชื่อช่างไปโผล่ในตัวกรองหัวหน้าจอและใบงานทุกใบ จึงควรตั้งค่าได้จากที่เดียวกับผู้ใช้งาน */}
-        {canManageUsers && onManageTechs && (
-          <button onClick={onManageTechs} className="nav-item" title="ทีมช่างในระบบ" style={{ width: "100%" }}>
-            <Icon name="wrench" size={19} color="var(--text-2)" />
-            {!icons && <span>ทีมช่าง</span>}
-          </button>
-        )}
-
         {/* กดที่ชื่อตัวเอง = โปรไฟล์ของฉัน (รูป · ข้อมูลติดต่อ · ลายเซ็น) — ทุกตำแหน่งแก้ของตัวเองได้ */}
         {currentUser && (
           <button onClick={onMySign} title="โปรไฟล์ของฉัน" disabled={!onMySign}
@@ -1073,23 +1060,82 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onCl
             {!icons && onMySign && <Icon name="settings" size={15} color="var(--text-3)" />}
           </button>
         )}
-        {/* โหมดกราไฟต์ — สกินโทนเทาเข้ม (จำค่าไว้) · จุดเขียวด้านขวาบอกว่าเปิดอยู่ */}
-        <button onClick={onToggleAurora} className="nav-item" title={aurora ? "กลับสู่โหมดปกติ" : "เปิดโหมดกราไฟต์"}
-          style={{ width: "100%", color: aurora ? "var(--primary-dark)" : "var(--text-2)" }}>
-          <Icon name="moon" size={18} color={aurora ? "var(--primary-dark)" : "var(--text-2)"} />
-          {!icons && <span>โหมดกราไฟต์</span>}
-          {!icons && aurora && (
-            <span style={{ marginLeft: "auto", width: 7, height: 7, borderRadius: 99, flexShrink: 0,
-              background: "var(--primary-bright)" }} />
-          )}
-        </button>
-        <button onClick={onLogout} className="nav-item" title="ออกจากระบบ"
-          style={{ width: "100%", color: "#EF4444" }}>
-          <Icon name="history" size={18} color="#EF4444" style={{ transform: "scaleX(-1)" }} />
-          {!icons && <span style={{ color: "#EF4444", fontWeight: 600 }}>ออกจากระบบ</span>}
-        </button>
+        {/* ── ตั้งค่าและบัญชี ──
+            เดิมเป็นห้าปุ่มเรียงกันท้ายแถบ (ผู้ใช้งาน · ทีมช่าง · แจ้งเตือน LINE · โหมดกราไฟต์ · ออกจากระบบ)
+            ซึ่งกินพื้นที่เท่ากับเมนูงานจริงทั้งที่เป็นของที่กดเดือนละครั้ง — ยุบเป็นปุ่มเดียวที่กางขึ้น */}
+        <SidebarSettings icons={icons} view={view} onNav={onNav} aurora={aurora} onToggleAurora={onToggleAurora}
+          settingsNav={navForRole(role, techId).filter((n) => n.inSettings && !n.hidden)}
+          canManageUsers={canManageUsers} onManageUsers={onManageUsers} onManageTechs={onManageTechs}
+          onLogout={onLogout} />
       </div>
     </aside>
+  );
+}
+
+/* ── เมนู "ตั้งค่าและบัญชี" ท้ายแถบเมนู ──
+   รวมของที่กดนาน ๆ ครั้งไว้ที่เดียว: หน้าตั้งค่าของแอดมิน · สกินจอ · ออกจากระบบ
+   กางขึ้นเพราะปุ่มอยู่ล่างสุดของจอ กางลงจะตกขอบ */
+function SidebarSettings({ icons, view, onNav, aurora, onToggleAurora, settingsNav, canManageUsers, onManageUsers, onManageTechs, onLogout }) {
+  const [open, setOpen] = React.useState(false);
+  const wrapRef = React.useRef(null);
+  React.useEffect(() => {
+    if (!open) return;
+    const off = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+    const esc = (e) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", off);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", off); document.removeEventListener("keydown", esc); };
+  }, [open]);
+
+  /* ปุ่มต้องขึ้น active ตอนอยู่ในหน้าที่ย้ายเข้ามาอยู่ในเมนูนี้
+     ไม่งั้นเปิดหน้าแจ้งเตือน LINE อยู่แล้วทั้งแถบเมนูไม่มีอะไรไฮไลต์ อ่านเหมือนหลงทาง */
+  const inHere = (settingsNav || []).some((n) => n.key === view);
+
+  const row = (key, icon, label, onClick, opt) => {
+    const o = opt || {};
+    return (
+      <button key={key} onClick={() => { setOpen(false); onClick(); }}
+        style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left",
+          padding: "9px 11px", borderRadius: 9, border: "none", cursor: "pointer", fontFamily: "inherit",
+          fontSize: 13, fontWeight: o.active ? 700 : 600,
+          background: o.active ? "var(--primary-soft)" : "none",
+          color: o.danger ? "#EF4444" : o.active ? "var(--primary-dark)" : "var(--text-2)" }}
+        onMouseEnter={(e) => { if (!o.active) e.currentTarget.style.background = "var(--surface2)"; }}
+        onMouseLeave={(e) => { if (!o.active) e.currentTarget.style.background = "none"; }}>
+        <Icon name={icon} size={17} color={o.danger ? "#EF4444" : o.active ? "var(--primary-dark)" : "var(--text-2)"}
+          style={o.flip ? { transform: "scaleX(-1)" } : null} />
+        <span>{label}</span>
+        {o.dot && <span style={{ marginLeft: "auto", width: 7, height: 7, borderRadius: 99, flexShrink: 0,
+          background: "var(--primary-bright)" }} />}
+      </button>
+    );
+  };
+  const sep = (k) => <div key={k} style={{ height: 1, background: "var(--border)", margin: "5px 4px" }} />;
+
+  return (
+    <div ref={wrapRef} style={{ position: "relative", width: "100%" }}>
+      <button onClick={() => setOpen((v) => !v)} className={"nav-item" + (inHere ? " active" : "")}
+        title="ตั้งค่าและบัญชี" aria-expanded={open} style={{ width: "100%" }}>
+        <Icon name="settings" size={19} color={inHere ? "var(--primary-dark)" : "var(--text-2)"} />
+        {!icons && <span>ตั้งค่า</span>}
+        {!icons && <Icon name="chevronDown" size={14} color="var(--text-3)"
+          style={{ marginLeft: "auto", transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }} />}
+      </button>
+
+      {open && (
+        <div style={{ position: "absolute", bottom: "calc(100% + 6px)", left: 0, minWidth: 232, zIndex: 60,
+          background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 13, padding: 6,
+          boxShadow: "0 12px 36px rgba(20,40,28,.20)" }}>
+          {canManageUsers && onManageUsers && row("users", "users", "จัดการผู้ใช้งาน", onManageUsers)}
+          {canManageUsers && onManageTechs && row("techs", "wrench", "ทีมช่าง", onManageTechs)}
+          {(settingsNav || []).map((n) => row(n.key, n.icon, n.th, () => onNav(n.key), { active: view === n.key }))}
+          {sep("s1")}
+          {row("aurora", "moon", "โหมดกราไฟต์", onToggleAurora, { dot: aurora })}
+          {sep("s2")}
+          {row("logout", "history", "ออกจากระบบ", onLogout, { danger: true, flip: true })}
+        </div>
+      )}
+    </div>
   );
 }
 
