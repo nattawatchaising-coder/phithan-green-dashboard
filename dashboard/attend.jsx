@@ -423,6 +423,24 @@ function tmPunch(gps, src, place) {
   return p;
 }
 
+/* ── พิกัดของการปั๊มหนึ่งครั้ง ในรูปที่คนอ่านออก ──
+   "ไม่มีพิกัด" ต้องบอกด้วยว่าเพราะอะไร — ปิดสิทธิ์ตำแหน่ง กับ สัญญาณไม่ถึง
+   เป็นคนละเรื่องกันตอนออฟฟิศมาตรวจย้อนหลัง (ดูเหตุผลที่ tmPunch) */
+const TM_GPS_ERR = {
+  denied: "ไม่ได้ให้สิทธิ์ตำแหน่ง", timeout: "จับสัญญาณไม่ทัน",
+  unavailable: "หาสัญญาณไม่ได้", skipped: "ข้ามการจับพิกัด", none: "อุปกรณ์ไม่รองรับ",
+};
+function tmGpsTH(pt) {
+  const p = pt || {};
+  if (p.lat != null && p.lng != null) return (+p.lat).toFixed(6) + ", " + (+p.lng).toFixed(6);
+  if (!p.at) return "";
+  return TM_GPS_ERR[p.err] || "ไม่มีพิกัด";
+}
+/* ลิงก์แผนที่ — เปิดจาก Excel ได้เลย ไม่ต้องก๊อปตัวเลขไปวาง
+   ใช้ query ธรรมดา ไม่ใช่ API key เพราะไฟล์นี้ออกจากเครื่องบริษัทไปที่ไหนก็ได้ */
+const tmGpsUrl = (pt) => (pt && pt.lat != null && pt.lng != null
+  ? "https://www.google.com/maps?q=" + (+pt.lat).toFixed(6) + "," + (+pt.lng).toFixed(6) : "");
+
 /* ดัชนีเบาสำหรับแผ่นรายวัน — ตั้งใจเก็บซ้ำ เพราะหน้ารวมต้องไม่ลาก attend ทั้งต้นไม้มาอ่าน */
 const tmDayIndex = (rec, cfg) => ({
   userId: rec.userId, name: rec.userName || "", techId: rec.techId || null,
@@ -861,6 +879,24 @@ function useAttendMonth(ym) {
   return { byDate, loading };
 }
 
+/* ── ใบลงเวลาฉบับเต็มของคนหลายคนในเดือนหนึ่ง ──
+   ดัชนี attendDay เก็บแค่ธง "มีพิกัดไหม" ไม่ได้เก็บพิกัดจริง เพราะหน้าจอรายวันไม่ต้องใช้
+   แต่ไฟล์ Excel ต้องการพิกัดจริง จึงต้องลงไปอ่านใบเต็มทีละคน
+   อ่านครั้งเดียวตอนกดปุ่ม ไม่ใช่ subscribe — ไม่งั้นทั้งเดือนของทุกคนจะค้างอยู่ในหน่วยความจำตลอดเวลา
+   ตัดช่วงด้วย orderByKey เพราะคีย์เป็น YYYY-MM-DD เรียงตามตัวอักษรได้ตรงกับเรียงตามเวลา */
+async function tmFetchMonthDetail(userIds, ym) {
+  const out = {};
+  if (!_TMFB() || !ym) return out;
+  const ids = [];
+  (userIds || []).forEach((u) => { if (u && ids.indexOf(u) < 0) ids.push(u); });
+  await Promise.all(ids.map(async (uid) => {
+    const snap = await _tmRef("attend/" + uid).orderByKey().startAt(ym + "-00").endAt(ym + "-99")
+      .once("value").catch(() => null);
+    out[uid] = (snap && snap.val()) || {};
+  }));
+  return out;
+}
+
 /* รวมยอดรายคน — ฟังก์ชันล้วน ทดสอบได้โดยไม่ต้องมีฐานข้อมูล
    otRows คือใบ OT ทั้งหมดที่หน้าเห็นอยู่แล้ว นับเฉพาะใบที่อนุมัติแล้วและอยู่ในเดือนนั้น */
 function tmMonthRollup(byDate, users, cfg, otRows, ym) {
@@ -908,10 +944,12 @@ Object.assign(window, { tmNameOf,
   tmOtKindOf, tmOtKindGuess, tmOtMinutes, tmDayWindow, tmOtEarned, tmOtInLimit, tmLastHM,
   tmOtRate, tmOtPayMins, tmRateTH,
   tmWorkedMins, tmOpen, tmAttendBlank, tmPunch, tmDayIndex, tmPlaceOf,
+  TM_GPS_ERR, tmGpsTH, tmGpsUrl,
   tmOtStatusOf, tmOtOpen, tmCanAttend, tmCanAttendAll, tmCanOt, tmCanOtApprove,
   tmOtApproveCheck, tmOtNext, tmOtMove, tmOtDocNo, tmOtBlank, tmOtVisible, tmOtRollup,
   tmOtApprovers, tmOtPickApprover,
   useAttend, useAttendDay, useAttendWriter, useAttendAdmin, useOtClaims, useWorkHours, useAttendMonth,
+  tmFetchMonthDetail,
   tmYm, tmYmNow, tmYmShift, tmYmTH, tmMonthDays, tmMonthRollup, TM_MONTH_TH,
   tmDaysInMonth, tmDayIn, tmNextDay, tmPrevDay, tmPeriodOf, tmPeriodShift, tmInPeriod, tmPeriodTH,
 });

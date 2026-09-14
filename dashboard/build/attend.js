@@ -365,6 +365,20 @@ function tmPunch(gps, src, place) {
   }
   return p;
 }
+const TM_GPS_ERR = {
+  denied: "ไม่ได้ให้สิทธิ์ตำแหน่ง",
+  timeout: "จับสัญญาณไม่ทัน",
+  unavailable: "หาสัญญาณไม่ได้",
+  skipped: "ข้ามการจับพิกัด",
+  none: "อุปกรณ์ไม่รองรับ"
+};
+function tmGpsTH(pt) {
+  const p = pt || {};
+  if (p.lat != null && p.lng != null) return (+p.lat).toFixed(6) + ", " + (+p.lng).toFixed(6);
+  if (!p.at) return "";
+  return TM_GPS_ERR[p.err] || "ไม่มีพิกัด";
+}
+const tmGpsUrl = pt => pt && pt.lat != null && pt.lng != null ? "https://www.google.com/maps?q=" + (+pt.lat).toFixed(6) + "," + (+pt.lng).toFixed(6) : "";
 const tmDayIndex = (rec, cfg) => ({
   userId: rec.userId,
   name: rec.userName || "",
@@ -867,6 +881,19 @@ function useAttendMonth(ym) {
     loading
   };
 }
+async function tmFetchMonthDetail(userIds, ym) {
+  const out = {};
+  if (!_TMFB() || !ym) return out;
+  const ids = [];
+  (userIds || []).forEach(u => {
+    if (u && ids.indexOf(u) < 0) ids.push(u);
+  });
+  await Promise.all(ids.map(async uid => {
+    const snap = await _tmRef("attend/" + uid).orderByKey().startAt(ym + "-00").endAt(ym + "-99").once("value").catch(() => null);
+    out[uid] = snap && snap.val() || {};
+  }));
+  return out;
+}
 function tmMonthRollup(byDate, users, cfg, otRows, ym) {
   const map = {};
   const touch = (id, name) => {
@@ -946,6 +973,9 @@ Object.assign(window, {
   tmPunch,
   tmDayIndex,
   tmPlaceOf,
+  TM_GPS_ERR,
+  tmGpsTH,
+  tmGpsUrl,
   tmOtStatusOf,
   tmOtOpen,
   tmCanAttend,
@@ -968,6 +998,7 @@ Object.assign(window, {
   useOtClaims,
   useWorkHours,
   useAttendMonth,
+  tmFetchMonthDetail,
   tmYm,
   tmYmNow,
   tmYmShift,

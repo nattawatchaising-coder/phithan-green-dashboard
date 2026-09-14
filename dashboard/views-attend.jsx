@@ -169,6 +169,9 @@ function TmMonth({ cfg, users, ot }) {
   const [ym, setYm] = React.useState(window.tmYmNow);
   const { byDate, loading } = window.useAttendMonth(ym);
   const [pick, setPick] = React.useState(null);
+  /* ออกไฟล์ต้องลงไปอ่านใบลงเวลาฉบับเต็มของทุกคนก่อน (ดัชนีรายวันไม่มีพิกัดจริง)
+     กดซ้ำระหว่างนั้นจะได้ไฟล์ซ้อนสองไฟล์ จึงล็อกปุ่มไว้ */
+  const [busy, setBusy] = React.useState(false);
 
   const days = React.useMemo(() => window.tmMonthDays(ym), [ym]);
   const rows = React.useMemo(
@@ -196,18 +199,24 @@ function TmMonth({ cfg, users, ot }) {
         <button onClick={() => setYm(window.tmYmShift(ym, 1))} style={Object.assign({}, TM_IN, { cursor: "pointer", fontWeight: 700 })}>เดือนถัดไป ›</button>
         <button onClick={() => setYm(window.tmYmNow())} style={Object.assign({}, TM_IN, { cursor: "pointer", fontWeight: 700 })}>เดือนนี้</button>
         <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{window.tmYmTH(ym)}</div>
-        <button onClick={() => tmExportMonthXlsx(rows, days, ym, (ot || {}).rows, users)}
+        <button onClick={async () => {
+          if (busy) return;
+          setBusy(true);
+          try { await tmExportMonthXlsx(rows, days, ym, (ot || {}).rows, users, cfg); }
+          finally { setBusy(false); }
+        }} disabled={busy}
           style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: 10,
-            border: "none", background: "var(--primary)", color: "#fff", cursor: "pointer", fontFamily: "inherit",
-            fontSize: 12.5, fontWeight: 800 }}>
-          <Icon name="file" size={14} color="#fff" /> ออกไฟล์ Excel
+            border: "none", background: busy ? "var(--text-3)" : "var(--primary)", color: "#fff",
+            cursor: busy ? "default" : "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800 }}>
+          <Icon name="file" size={14} color="#fff" /> {busy ? "กำลังเตรียมไฟล์…" : "ออกไฟล์ Excel"}
         </button>
       </div>
 
       {/* บอกไว้ตรงนี้เลยว่าในไฟล์มีอะไร ไม่ใช่ให้เปิดไฟล์แล้วค่อยเซอร์ไพรส์ว่ามีกี่แผ่น */}
       <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.7, marginTop: -4 }}>
-        ไฟล์ที่ออกมีแผ่นสรุปเวลาทำงานหนึ่งแผ่น + <b>แผ่น OT แยกรายคน</b> คนละแผ่น
-        (วัน · ช่วงเวลา · หน้าที่ที่ปฏิบัติ · ช่องเซ็นอนุมัติของหัวหน้า) เฉพาะคนที่มีใบ OT ในเดือนนั้น
+        ไฟล์ที่ออกมีแผ่นสรุปเวลาทำงานหนึ่งแผ่น + <b>แผ่นรายละเอียดแยกรายคน</b> คนละแท็บด้านล่าง —
+        ทุกวันที่ลงเวลา (เข้า · ออก · ชั่วโมง · งานที่แจ้ง · <b>พิกัดตอนเข้าและตอนออก พร้อมลิงก์แผนที่</b>)
+        ต่อด้วยใบ OT ของเดือนนั้นว่าขอวันไหนบ้าง ประเภทอะไร อัตราเท่าไร และช่องเซ็นอนุมัติ
       </div>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -292,8 +301,11 @@ function TmMonth({ cfg, users, ot }) {
 }
 
 /* ออกไฟล์ Excel — ตารางคน × วัน แบบใบลงเวลากระดาษ ที่ฝ่ายบัญชีอ่านออกโดยไม่ต้องอธิบาย
-   + แผ่น OT แยกรายคน คนละแผ่น สำหรับพิมพ์ให้หัวหน้าเซ็น (ดู tmOtSheetFor ข้างล่าง) */
-function tmExportMonthXlsx(rows, days, ym, otRows, users) {
+   + แท็บรายละเอียดแยกรายคน คนละแท็บ (ดู tmPersonSheet ข้างล่าง)
+
+   เป็น async เพราะต้องลงไปอ่าน attend/{uid}/{date} ฉบับเต็มก่อน —
+   ดัชนี attendDay ที่หน้าจอใช้เก็บแค่ธง "มีพิกัดไหม" ไม่ได้เก็บตัวเลขพิกัดจริง */
+async function tmExportMonthXlsx(rows, days, ym, otRows, users, cfg) {
   if (!window.XLSX) { alert("ไม่พบไลบรารี Excel (ลองโหลดหน้าใหม่)"); return; }
   if (!rows || !rows.length) { alert("เดือนนี้ยังไม่มีข้อมูลให้ออกไฟล์"); return; }
   const X = window.XLSX;
@@ -372,6 +384,10 @@ function tmExportMonthXlsx(rows, days, ym, otRows, users) {
      รวมทุกคนไว้แผ่นเดียวแล้วให้หัวหน้าเซ็นท้ายแผ่น = เซ็นทีเดียวครอบคนที่ไม่ได้อ่าน
      แยกคนละแผ่นแล้วพิมพ์ออกมาจะได้คนละใบ เซ็นได้ทีละคน และแจกให้เจ้าตัวเก็บได้
      เอาเฉพาะใบที่ส่งแล้ว (รออนุมัติ/อนุมัติแล้ว) — ใบร่างยังไม่ใช่คำขอ ใบที่ถูกปัดตกไม่ต้องเซ็น */
+  /* ── แท็บรายละเอียดรายคน ──
+     รวมทุกคนไว้แผ่นเดียวแล้วให้หัวหน้าเซ็นท้ายแผ่น = เซ็นทีเดียวครอบคนที่ไม่ได้อ่าน
+     แยกคนละแท็บแล้วพิมพ์ออกมาจะได้คนละใบ เซ็นได้ทีละคน และแจกให้เจ้าตัวเก็บได้
+     ใบ OT เอาเฉพาะที่ส่งแล้ว (รออนุมัติ/อนุมัติแล้ว) — ใบร่างยังไม่ใช่คำขอ ใบที่ถูกปัดตกไม่ต้องเซ็น */
   const otMine = {};
   (otRows || []).forEach((o) => {
     if (!o || !o.userId) return;
@@ -380,14 +396,23 @@ function tmExportMonthXlsx(rows, days, ym, otRows, users) {
     (otMine[o.userId] || (otMine[o.userId] = [])).push(o);
   });
 
+  /* คนที่ต้องมีแท็บ = มีวันลงเวลา หรือมีใบ OT — คนที่ทั้งเดือนไม่มีอะไรเลยยังอยู่ในแผ่นสรุป
+     (เป็นแถวศูนย์ ซึ่งต้องเห็น) แต่ไม่ต้องมีแท็บเปล่า ๆ ให้ไล่หา */
+  const want = rows.filter((r) => (r.days > 0) || (otMine[r.userId] || []).length);
+  /* อ่านใบเต็มของทุกคนพร้อมกันครั้งเดียว ไม่ใช่ทีละคนตอนสร้างแผ่น
+     คนสิบห้าคน = สิบห้าคำขอที่วิ่งขนานกัน ไม่ใช่สิบห้ารอบที่ต่อคิวกัน */
+  let detail = {};
+  try { detail = await window.tmFetchMonthDetail(want.map((r) => r.userId), ym); }
+  catch (e) { detail = {}; }   /* อ่านไม่ได้ก็ยังออกไฟล์ได้ แค่ช่องพิกัดจะว่าง ดีกว่าไม่ได้ไฟล์เลย */
+
   /* เรียงคนตามลำดับเดียวกับแผ่นสรุป เพื่อให้แท็บล่างของ Excel ไล่ตามตารางข้างบน */
-  const used = {};
-  rows.forEach((r) => {
-    const list = otMine[r.userId];
-    if (!list || !list.length) return;
-    list.sort((a, b) => String(a.date + a.from).localeCompare(String(b.date + b.from)));
-    X.utils.book_append_sheet(wb, tmOtSheetFor(X, r.name, list, ym, FONT, C),
-      tmSheetName("OT " + r.name, used));
+  /* จองชื่อแผ่นสรุปไว้ก่อน — คนที่บังเอิญชื่อซ้ำกับแผ่นสรุปจะทำให้ Excel ปฏิเสธทั้งไฟล์ ไม่ใช่แค่แท็บเดียว */
+  const used = { "เวลาทำงาน": 1 };
+  want.forEach((r) => {
+    const list = (otMine[r.userId] || []).slice();
+    list.sort((a2, b2) => String(a2.date + a2.from).localeCompare(String(b2.date + b2.from)));
+    X.utils.book_append_sheet(wb, tmPersonSheet(X, r, list, detail[r.userId] || {}, days, ym, cfg, FONT, C),
+      tmSheetName(r.name, used));
   });
 
   X.writeFile(wb, "สรุปเวลาทำงาน_" + ym + ".xlsx");
@@ -396,87 +421,187 @@ function tmExportMonthXlsx(rows, days, ym, otRows, users) {
 /* ชื่อแผ่นของ Excel: ห้ามเกิน 31 ตัว ห้ามมี : \\ / ? * [ ] และห้ามซ้ำกัน
    ถ้าซ้ำหรือยาวเกิน Excel จะไม่เปิดไฟล์เลย ไม่ใช่แค่เพี้ยน */
 function tmSheetName(raw, used) {
-  let n = String(raw || "OT").replace(/[:\\/?*[\]]/g, " ").trim().slice(0, 31) || "OT";
+  let n = String(raw || "พนักงาน").replace(/[:\\/?*[\]]/g, " ").trim().slice(0, 31) || "พนักงาน";
   if (used[n]) { let i = 2; while (used[n.slice(0, 28) + " " + i]) i += 1; n = n.slice(0, 28) + " " + i; }
   used[n] = 1;
   return n;
 }
 
-/* ── ใบ OT ของคนหนึ่งคน หนึ่งเดือน ──
-   ต้องตอบคำถามของคนเซ็นให้ครบในแผ่นเดียว: ขอวันไหน · กี่โมงถึงกี่โมง · ไปทำอะไร · รวมกี่ชั่วโมง
+const TM_DOW_TH = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+
+/* ── แท็บรายละเอียดของคนหนึ่งคน หนึ่งเดือน ──
+   ต้องตอบคำถามที่ออฟฟิศถามย้อนหลังให้ครบในแผ่นเดียว:
+   วันไหนมาบ้าง · เข้า-ออกกี่โมง · ตอนปั๊มอยู่ตรงไหน · วันไหนขอ OT และขอทำอะไร
    "ปฏิบัติหน้าที่" คือเหตุผลที่เจ้าตัวกรอกไว้ตอนขอ ไม่ใช่ช่องที่ออฟฟิศมาเติมทีหลัง */
-function tmOtSheetFor(X, name, list, ym, FONT, C) {
+function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
   const thin = { style: "thin", color: { rgb: C.border } };
   const boxAll = { top: thin, bottom: thin, left: thin, right: thin };
   const H = (m) => (!m ? 0 : Math.round((m / 60) * 100) / 100);
-  const cols = ["ลำดับ", "วันที่", "ตั้งแต่", "ถึง", "รวม (ชม.)", "ประเภท", "งาน", "ปฏิบัติหน้าที่", "สถานะในระบบ", "ผู้อนุมัติในระบบ"];
-  const lastC = cols.length - 1;
+  const name = person.name || person.userId;
+  const lastC = 11;   /* สิบสองคอลัมน์ ใช้ร่วมกันทั้งตารางรายวันและตาราง OT เพื่อให้ความกว้างคงที่ */
 
-  const aoa = [], merges = [], meta = [], rowsH = []; let R = 0;
+  const aoa = [], merges = [], meta = [], rowsH = [], links = {}; let R = 0;
   const push = (cells, type, hpt) => { aoa.push(cells); meta[R] = type; if (hpt) rowsH[R] = { hpt: hpt }; R += 1; };
   const full = (r) => merges.push({ s: { r: r, c: 0 }, e: { r: r, c: lastC } });
 
-  push(["ใบขออนุมัติทำงานล่วงเวลา (OT)"], "title", 30); full(R - 1);
+  /* ── หัวใบ ── */
+  push(["ใบลงเวลาและการทำงานล่วงเวลา รายบุคคล"], "title", 30); full(R - 1);
   push([name + " · " + window.tmYmTH(ym)], "subtitle", 22); full(R - 1);
   push([], "spacer", 6);
-  push(cols, "head", 26);
 
-  let approved = 0, waiting = 0, alt = false;
+  /* OT รายวัน — ใช้ทั้งในตารางรายวันและยอดรวม จึงรวมไว้ก่อนครั้งเดียว */
+  const otByDay = {};
+  list.forEach((o) => { (otByDay[o.date] || (otByDay[o.date] = [])).push(o); });
+
+  let otApproved = 0, otWaiting = 0, payApproved = 0;
+  list.forEach((o) => {
+    const m = +o.mins || 0;
+    if (o.status === "approved") { otApproved += m; payApproved += window.tmOtPayMins(o, cfg); }
+    else otWaiting += m;
+  });
+
+  push(["วันที่ลงเวลา", person.days || 0, "ชั่วโมงรวม", H(person.mins), "OT อนุมัติแล้ว", H(otApproved),
+        "ชม.คิดค่าแรง", H(payApproved), "ลืมกดออกงาน", person.noOut || 0, "ไม่มีพิกัด", person.noGps || 0], "kv", 21);
+  push([], "spacer", 8);
+
+  /* ── ตารางรายวัน ── */
+  push(["รายวัน — เวลาเข้า-ออก และตำแหน่งตอนปั๊ม"], "sec", 22); full(R - 1);
+  push(["วันที่", "วัน", "เข้า", "ออก", "รวม (ชม.)", "ที่ทำงาน", "งานที่แจ้ง",
+        "พิกัดตอนเข้า", "พิกัดตอนออก", "แผนที่", "OT วันนี้ (ชม.)", "OT ประเภท / เรื่องที่ทำ"], "head", 28);
+
+  const dayStart = R;
+  let alt = false, shown = 0;
+  (days || []).forEach((d) => {
+    const rec = recs[d] || null;
+    const idx = person.byDay ? person.byDay[d] : null;
+    const ots = otByDay[d] || [];
+    /* แถวมีได้สองเหตุ: มีใบลงเวลา หรือมีใบ OT ของวันนั้น
+       วันที่ไม่มีทั้งสองอย่างไม่ต้องขึ้นแถว ไม่งั้นแผ่นจะยาวสามสิบแถวที่ว่างเปล่ายี่สิบแถว */
+    if (!rec && !idx && !ots.length) return;
+    shown += 1;
+    const IN = (rec && rec.in) || null, OUT = (rec && rec.out) || null;
+    const otMins = ots.reduce((a2, o) => a2 + (+o.mins || 0), 0);
+    const otTxt = ots.map((o) => window.tmOtKindOf(o.kind).th
+      + (o.reason ? " — " + o.reason : "")
+      + (o.status === "approved" ? "" : " (" + window.tmOtStatusOf(o.status).th + ")")).join(" · ");
+    const place = (idx && idx.place) || (rec && ((rec.in && rec.in.place) || rec.place)) || "";
+    const hm = (x, k) => (x && x.hm) || (idx && idx[k]) || "";
+    push([window.drDateTH(d), TM_DOW_TH[new Date(d + "T00:00:00").getDay()],
+      hm(IN, "in"), hm(OUT, "out"),
+      /* วันที่ขึ้นแถวเพราะมีใบ OT อย่างเดียว ต้องปล่อยช่องชั่วโมงว่าง ไม่ใช่ 0.00
+         ช่องว่าง = ไม่มีใบลงเวลา · 0.00 = มีใบแต่ลืมกดออกงาน สองอย่างนี้ห้ามอ่านเหมือนกัน */
+      (rec || idx) ? H(rec ? window.tmWorkedMins(rec, cfg) : (idx && idx.mins) || 0) : "",
+      place ? window.tmPlaceOf(place).th : "",
+      (rec && rec.jobCode) || (idx && idx.jobCode) || "",
+      window.tmGpsTH(IN), window.tmGpsTH(OUT),
+      window.tmGpsUrl(IN) ? "เปิดแผนที่" : "", otMins ? H(otMins) : "", otTxt], alt ? "itemAlt" : "item", 19);
+    if (window.tmGpsUrl(IN)) links[(R - 1) + ":9"] = window.tmGpsUrl(IN);
+    alt = !alt;
+  });
+  if (!shown) { push(["เดือนนี้ไม่มีใบลงเวลาเลย"], "muted", 20); full(R - 1); }
+  else {
+    push(["รวมทั้งเดือน", "", "", "", H(person.mins), "", "", "", "", "", H(otApproved), "ชั่วโมง OT ที่อนุมัติแล้ว"], "total", 24);
+    merges.push({ s: { r: R - 1, c: 0 }, e: { r: R - 1, c: 3 } });
+    merges.push({ s: { r: R - 1, c: 5 }, e: { r: R - 1, c: 9 } });
+  }
+
+  push([], "spacer", 10);
+
+  /* ── ตารางใบ OT ── */
+  push(["ใบขออนุมัติทำงานล่วงเวลา (OT) ในเดือนนี้"], "sec", 22); full(R - 1);
+  push(["ลำดับ", "วันที่", "ตั้งแต่", "ถึง", "รวม (ชม.)", "ประเภท", "อัตรา", "ชม.คิดค่าแรง",
+        "งาน", "ปฏิบัติหน้าที่", "สถานะในระบบ", "ผู้อนุมัติในระบบ"], "head", 28);
+
+  const otStart = R;
+  if (!list.length) { push(["เดือนนี้ไม่มีใบ OT ที่ส่งขออนุมัติ"], "muted", 20); full(R - 1); }
+  alt = false;
   list.forEach((o, i) => {
     const mins = +o.mins || 0;
-    if (o.status === "approved") approved += mins; else waiting += mins;
+    const rt = window.tmOtRate(o, cfg);
     push([i + 1, window.drDateTH(o.date), o.from || "", o.to || "", H(mins),
-      window.tmOtKindOf(o.kind).th, o.jobCode || "—", o.reason || "",
-      window.tmOtStatusOf(o.status).th, o.approverName || "—"], alt ? "itemAlt" : "item", 19);
+      window.tmOtKindOf(o.kind).th, rt, H(mins * rt), o.jobCode || "—", o.reason || "",
+      window.tmOtStatusOf(o.status).th, o.approverName || "—"], alt ? "itemAlt2" : "item2", 19);
     alt = !alt;
   });
 
-  push(["รวมที่อนุมัติแล้วในระบบ", "", "", "", H(approved), "ชั่วโมง", "", "", "", ""], "total", 24);
-  merges.push({ s: { r: R - 1, c: 0 }, e: { r: R - 1, c: 3 } });
-  /* ยอดที่ยังรออนุมัติต้องแยกบรรทัด ไม่ใช่บวกรวมกับยอดที่อนุมัติแล้ว
-     ไม่งั้นแผ่นนี้จะกลายเป็นยอดจ่ายที่ยังไม่มีใครอนุมัติ */
-  push(["ยังรออนุมัติในระบบ", "", "", "", H(waiting), "ชั่วโมง", "", "", "", ""], waiting ? "warnRow" : "muted", 22);
-  merges.push({ s: { r: R - 1, c: 0 }, e: { r: R - 1, c: 3 } });
+  if (list.length) {
+    push(["รวมที่อนุมัติแล้วในระบบ", "", "", "", H(otApproved), "ชั่วโมง", "", H(payApproved), "ชม.คิดค่าแรง", "", "", ""], "total2", 24);
+    merges.push({ s: { r: R - 1, c: 0 }, e: { r: R - 1, c: 3 } });
+    merges.push({ s: { r: R - 1, c: 8 }, e: { r: R - 1, c: lastC } });
+    /* ยอดที่ยังรออนุมัติต้องแยกบรรทัด ไม่ใช่บวกรวมกับยอดที่อนุมัติแล้ว
+       ไม่งั้นแผ่นนี้จะกลายเป็นยอดจ่ายที่ยังไม่มีใครอนุมัติ */
+    push(["ยังรออนุมัติในระบบ", "", "", "", H(otWaiting), "ชั่วโมง", "", "", "ต้องกดอนุมัติในระบบก่อนจึงจะนับเป็นยอดจ่าย", "", "", ""],
+      otWaiting ? "warnRow" : "muted2", 22);
+    merges.push({ s: { r: R - 1, c: 0 }, e: { r: R - 1, c: 3 } });
+    merges.push({ s: { r: R - 1, c: 8 }, e: { r: R - 1, c: lastC } });
+  }
 
+  /* ── ช่องเซ็น ── สามช่องเท่ากับใบ A4 ที่พิมพ์จากหน้าจอ เพื่อให้สองทางออกเป็นเอกสารเดียวกัน */
   push([], "spacer", 14);
-  push(["ลงชื่อผู้ขอ ..............................................", "", "", "",
-        "ลงชื่อหัวหน้างานผู้อนุมัติ ..............................................", "", "", "", "", ""], "sign", 34);
-  merges.push({ s: { r: R - 1, c: 0 }, e: { r: R - 1, c: 3 } });
-  merges.push({ s: { r: R - 1, c: 4 }, e: { r: R - 1, c: lastC } });
-  push(["(" + name + ")", "", "", "", "(..............................................)  วันที่ ........./........./.........", "", "", "", "", ""], "signSub", 22);
-  merges.push({ s: { r: R - 1, c: 0 }, e: { r: R - 1, c: 3 } });
-  merges.push({ s: { r: R - 1, c: 4 }, e: { r: R - 1, c: lastC } });
+  const sign3 = (r) => {
+    merges.push({ s: { r: r, c: 0 }, e: { r: r, c: 3 } });
+    merges.push({ s: { r: r, c: 4 }, e: { r: r, c: 7 } });
+    merges.push({ s: { r: r, c: 8 }, e: { r: r, c: lastC } });
+  };
+  push(["ลงชื่อผู้ปฏิบัติงาน ....................................", "", "", "",
+        "ลงชื่อหัวหน้างานผู้อนุมัติ ....................................", "", "", "",
+        "ลงชื่อฝ่ายบุคคล / ผู้ตรวจสอบ ....................................", "", "", ""], "sign", 34);
+  sign3(R - 1);
+  push(["(" + name + ")", "", "", "",
+        "(....................................)  วันที่ ......./......./.......", "", "", "",
+        "(....................................)  วันที่ ......./......./.......", "", "", ""], "signSub", 22);
+  sign3(R - 1);
 
   push([], "spacer", 8);
-  push(["เวลาในใบนี้เป็นเวลาที่ผู้ขอกรอกเอง ไม่ใช่เวลาที่ระบบจับได้ — ถ้าไม่แน่ใจให้เทียบกับแผ่น “เวลาทำงาน” ของวันนั้น"], "foot", 16); full(R - 1);
+  push(["พิกัดคือตำแหน่งของ “เครื่องที่กดปั๊ม” ตอนกด ไม่ใช่การยืนยันว่าอยู่ที่ไซต์นั้นจริง — ระบบยังไม่มีพิกัดไซต์ให้เทียบระยะ"], "foot", 16); full(R - 1);
+  push(["ช่องพิกัดที่ว่างหรือขึ้นเหตุผล แปลว่าจับพิกัดไม่ได้ตอนนั้น ระบบไม่เคยบล็อกการลงเวลาด้วยเหตุนี้"], "foot", 16); full(R - 1);
+  push(["เวลาในใบ OT เป็นเวลาที่ผู้ขอกรอกเอง ไม่ใช่เวลาที่ระบบจับได้ — เทียบกับตารางรายวันข้างบนได้"], "foot", 16); full(R - 1);
   push(["การเซ็นบนกระดาษไม่ได้เปลี่ยนสถานะในระบบ ใบที่ยังรออนุมัติต้องกดอนุมัติในระบบด้วย"], "foot", 16); full(R - 1);
 
   const ws = X.utils.aoa_to_sheet(aoa);
   ws["!merges"] = merges;
-  ws["!cols"] = [{ wch: 6 }, { wch: 15 }, { wch: 8 }, { wch: 8 }, { wch: 10 }, { wch: 17 }, { wch: 12 }, { wch: 42 }, { wch: 13 }, { wch: 18 }];
+  ws["!cols"] = [{ wch: 14 }, { wch: 5 }, { wch: 8 }, { wch: 8 }, { wch: 10 }, { wch: 11 }, { wch: 13 },
+    { wch: 19 }, { wch: 19 }, { wch: 11 }, { wch: 13 }, { wch: 40 }];
   ws["!rows"] = rowsH;
+  /* ตรึงหัวตารางรายวันไว้ — แผ่นเดียวมีทั้งเดือนบวกใบ OT เลื่อนลงไปแล้วจะไม่รู้ว่าคอลัมน์ไหนคืออะไร */
+  ws["!freeze"] = { xSplit: 1, ySplit: dayStart };
 
   const styleCell = (r, c) => {
     const t = meta[r]; if (t === "spacer") return null;
-    const s = { font: { name: FONT, sz: 10.5, color: { rgb: C.text } }, alignment: { vertical: "center" } };
-    if (t === "title") { s.font = { name: FONT, sz: 15, bold: true, color: { rgb: C.white } }; s.fill = { patternType: "solid", fgColor: { rgb: C.brand } }; s.alignment = { horizontal: "center", vertical: "center" }; }
-    else if (t === "subtitle") { s.font = { name: FONT, sz: 12, bold: true, color: { rgb: C.brandDk } }; s.fill = { patternType: "solid", fgColor: { rgb: C.brandSoft } }; s.alignment = { horizontal: "center", vertical: "center" }; }
-    else if (t === "head") { s.font = { name: FONT, sz: 10, bold: true, color: { rgb: C.white } }; s.fill = { patternType: "solid", fgColor: { rgb: C.brand } }; s.alignment = { horizontal: "center", vertical: "center", wrapText: true }; s.border = boxAll; }
-    else if (t === "total") { s.font = { name: FONT, sz: 11, bold: true, color: { rgb: C.white } }; s.fill = { patternType: "solid", fgColor: { rgb: C.brandDk } }; s.alignment = { horizontal: c <= 3 ? "left" : "center", vertical: "center" }; s.border = boxAll; if (c === 4) s.numFmt = "0.00"; }
-    else if (t === "warnRow") { s.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.warnTx } }; s.fill = { patternType: "solid", fgColor: { rgb: C.warn } }; s.alignment = { horizontal: c <= 3 ? "left" : "center", vertical: "center" }; s.border = boxAll; if (c === 4) s.numFmt = "0.00"; }
-    else if (t === "muted") { s.font = { name: FONT, sz: 10.5, color: { rgb: C.sub } }; s.alignment = { horizontal: c <= 3 ? "left" : "center", vertical: "center" }; s.border = boxAll; if (c === 4) s.numFmt = "0.00"; }
-    else if (t === "sign") { s.font = { name: FONT, sz: 11, color: { rgb: C.text } }; s.alignment = { horizontal: "left", vertical: "bottom" }; }
-    else if (t === "signSub") { s.font = { name: FONT, sz: 10, color: { rgb: C.sub } }; s.alignment = { horizontal: "left", vertical: "top" }; }
-    else if (t === "foot") { s.font = { name: FONT, sz: 9.5, color: { rgb: C.sub } }; }
-    else if (t === "item" || t === "itemAlt") {
-      if (t === "itemAlt") s.fill = { patternType: "solid", fgColor: { rgb: C.alt } };
-      s.border = boxAll;
-      /* คอลัมน์ "ปฏิบัติหน้าที่" ต้องตัดบรรทัดในช่อง ไม่ใช่ล้นทับช่องข้าง ๆ ตอนพิมพ์ */
-      if (c === 7) s.alignment = { horizontal: "left", vertical: "center", wrapText: true };
-      else if (c === 1 || c === 5) s.alignment = { horizontal: "left", vertical: "center" };
-      else { s.alignment = { horizontal: "center", vertical: "center" }; if (c === 4) s.numFmt = "0.00"; }
+    const s2 = { font: { name: FONT, sz: 10.5, color: { rgb: C.text } }, alignment: { vertical: "center" } };
+    if (t === "title") { s2.font = { name: FONT, sz: 15, bold: true, color: { rgb: C.white } }; s2.fill = { patternType: "solid", fgColor: { rgb: C.brand } }; s2.alignment = { horizontal: "center", vertical: "center" }; }
+    else if (t === "subtitle") { s2.font = { name: FONT, sz: 12, bold: true, color: { rgb: C.brandDk } }; s2.fill = { patternType: "solid", fgColor: { rgb: C.brandSoft } }; s2.alignment = { horizontal: "center", vertical: "center" }; }
+    else if (t === "sec") { s2.font = { name: FONT, sz: 11.5, bold: true, color: { rgb: C.brandDk } }; s2.alignment = { horizontal: "left", vertical: "center" }; }
+    else if (t === "kv") {
+      s2.border = boxAll;
+      /* ช่องคู่: เลขคี่คือค่า เลขคู่คือป้าย — ป้ายต้องจางกว่าค่า ไม่งั้นตาไปหาผิดตัว */
+      if (c % 2 === 0) { s2.font = { name: FONT, sz: 9.5, color: { rgb: C.sub } }; s2.fill = { patternType: "solid", fgColor: { rgb: C.brandSoft } }; s2.alignment = { horizontal: "right", vertical: "center" }; }
+      else { s2.font = { name: FONT, sz: 11.5, bold: true, color: { rgb: C.text } }; s2.alignment = { horizontal: "center", vertical: "center" }; if (c === 3 || c === 5 || c === 7) s2.numFmt = "0.00"; }
     }
-    return s;
+    else if (t === "head") { s2.font = { name: FONT, sz: 10, bold: true, color: { rgb: C.white } }; s2.fill = { patternType: "solid", fgColor: { rgb: C.brand } }; s2.alignment = { horizontal: "center", vertical: "center", wrapText: true }; s2.border = boxAll; }
+    else if (t === "total" || t === "total2") { s2.font = { name: FONT, sz: 11, bold: true, color: { rgb: C.white } }; s2.fill = { patternType: "solid", fgColor: { rgb: C.brandDk } }; s2.alignment = { horizontal: c <= 3 ? "left" : "center", vertical: "center" }; s2.border = boxAll; if (c === 4 || (t === "total" && c === 10) || (t === "total2" && c === 7)) s2.numFmt = "0.00"; }
+    else if (t === "warnRow") { s2.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.warnTx } }; s2.fill = { patternType: "solid", fgColor: { rgb: C.warn } }; s2.alignment = { horizontal: c <= 3 ? "left" : "center", vertical: "center" }; s2.border = boxAll; if (c === 4) s2.numFmt = "0.00"; }
+    else if (t === "muted" || t === "muted2") { s2.font = { name: FONT, sz: 10.5, color: { rgb: C.sub } }; s2.alignment = { horizontal: c <= 3 ? "left" : "center", vertical: "center" }; if (t === "muted2") s2.border = boxAll; if (t === "muted2" && c === 4) s2.numFmt = "0.00"; }
+    else if (t === "sign") { s2.font = { name: FONT, sz: 11, color: { rgb: C.text } }; s2.alignment = { horizontal: "left", vertical: "bottom" }; }
+    else if (t === "signSub") { s2.font = { name: FONT, sz: 10, color: { rgb: C.sub } }; s2.alignment = { horizontal: "left", vertical: "top" }; }
+    else if (t === "foot") { s2.font = { name: FONT, sz: 9.5, color: { rgb: C.sub } }; }
+    else if (t === "item" || t === "itemAlt" || t === "item2" || t === "itemAlt2") {
+      const two = t === "item2" || t === "itemAlt2";
+      if (t === "itemAlt" || t === "itemAlt2") s2.fill = { patternType: "solid", fgColor: { rgb: C.alt } };
+      s2.border = boxAll;
+      /* ช่องข้อความยาวต้องตัดบรรทัดในช่อง ไม่ใช่ล้นทับช่องข้าง ๆ ตอนพิมพ์ */
+      const wrapCol = two ? 9 : 11;
+      if (c === wrapCol) s2.alignment = { horizontal: "left", vertical: "center", wrapText: true };
+      else if (c === 0 || (!two && (c === 6 || c === 7 || c === 8)) || (two && c === 8)) s2.alignment = { horizontal: "left", vertical: "center" };
+      else { s2.alignment = { horizontal: "center", vertical: "center" }; }
+      if (c === 4) s2.numFmt = "0.00";
+      if (two && c === 7) s2.numFmt = "0.00";
+      if (two && c === 6) s2.numFmt = '0.##" เท่า"';
+      if (!two && c === 10 && aoa[r][c]) { s2.numFmt = "0.00"; s2.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.brandDk } }; }
+      /* พิกัดเป็นตัวเลขยาว ต้องเป็นฟอนต์เดียวกันทุกแถวถึงจะไล่สายตาลงมาเทียบกันได้ */
+      if (!two && (c === 7 || c === 8)) s2.font = { name: "Consolas", sz: 9.5, color: { rgb: C.sub } };
+    }
+    return s2;
   };
   const range = X.utils.decode_range(ws["!ref"]);
   for (let r = range.s.r; r <= range.e.r; r++) {
@@ -485,6 +610,15 @@ function tmOtSheetFor(X, name, list, ym, FONT, C) {
       if (!st) continue; if (!ws[ref]) ws[ref] = { t: "s", v: "" }; ws[ref].s = st;
     }
   }
+  /* ลิงก์แผนที่ — ใส่หลังลงสไตล์ ไม่งั้นสีลิงก์จะถูกสไตล์ของแถวทับจนดูไม่ออกว่ากดได้ */
+  Object.keys(links).forEach((k) => {
+    const rc = k.split(":");
+    const ref = X.utils.encode_cell({ r: +rc[0], c: +rc[1] });
+    if (!ws[ref]) return;
+    ws[ref].l = { Target: links[k], Tooltip: "เปิดตำแหน่งนี้ใน Google Maps" };
+    ws[ref].s = Object.assign({}, ws[ref].s, {
+      font: { name: FONT, sz: 10, bold: true, underline: true, color: { rgb: "1155CC" } } });
+  });
   return ws;
 }
 
@@ -1129,5 +1263,5 @@ function TmMyDays({ rows, cfg }) {
 
 Object.assign(window, { TM_IN, TM_IN_W, TM_LB, AttendView, TmDaySheet, TmMonth, TmMyDays, TmOtModal, TmOtRow, TmWorkHours,
   TmOtPeriod,
-  tmExportMonthXlsx, tmOtSheetFor, tmSheetName,
+  tmExportMonthXlsx, tmPersonSheet, tmSheetName,
   TmStat, TmPill, TM_IN, tmExportMonthXlsx });

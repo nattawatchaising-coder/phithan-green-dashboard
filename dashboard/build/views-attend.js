@@ -382,6 +382,7 @@ function TmMonth({
     loading
   } = window.useAttendMonth(ym);
   const [pick, setPick] = React.useState(null);
+  const [busy, setBusy] = React.useState(false);
   const days = React.useMemo(() => window.tmMonthDays(ym), [ym]);
   const rows = React.useMemo(() => window.tmMonthRollup(byDate, users, cfg, (ot || {}).rows, ym), [byDate, users, cfg, ot, ym]);
   const tot = React.useMemo(() => rows.reduce((a, r) => ({
@@ -454,7 +455,16 @@ function TmMonth({
       color: "var(--text-1)"
     }
   }, window.tmYmTH(ym)), React.createElement("button", {
-    onClick: () => tmExportMonthXlsx(rows, days, ym, (ot || {}).rows, users),
+    onClick: async () => {
+      if (busy) return;
+      setBusy(true);
+      try {
+        await tmExportMonthXlsx(rows, days, ym, (ot || {}).rows, users, cfg);
+      } finally {
+        setBusy(false);
+      }
+    },
+    disabled: busy,
     style: {
       marginLeft: "auto",
       display: "inline-flex",
@@ -463,9 +473,9 @@ function TmMonth({
       padding: "9px 15px",
       borderRadius: 10,
       border: "none",
-      background: "var(--primary)",
+      background: busy ? "var(--text-3)" : "var(--primary)",
       color: "#fff",
-      cursor: "pointer",
+      cursor: busy ? "default" : "pointer",
       fontFamily: "inherit",
       fontSize: 12.5,
       fontWeight: 800
@@ -474,14 +484,14 @@ function TmMonth({
     name: "file",
     size: 14,
     color: "#fff"
-  }), " \u0E2D\u0E2D\u0E01\u0E44\u0E1F\u0E25\u0E4C Excel")), React.createElement("div", {
+  }), " ", busy ? "กำลังเตรียมไฟล์…" : "ออกไฟล์ Excel")), React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",
       lineHeight: 1.7,
       marginTop: -4
     }
-  }, "\u0E44\u0E1F\u0E25\u0E4C\u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E01\u0E21\u0E35\u0E41\u0E1C\u0E48\u0E19\u0E2A\u0E23\u0E38\u0E1B\u0E40\u0E27\u0E25\u0E32\u0E17\u0E33\u0E07\u0E32\u0E19\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E41\u0E1C\u0E48\u0E19 + ", React.createElement("b", null, "\u0E41\u0E1C\u0E48\u0E19 OT \u0E41\u0E22\u0E01\u0E23\u0E32\u0E22\u0E04\u0E19"), " \u0E04\u0E19\u0E25\u0E30\u0E41\u0E1C\u0E48\u0E19 (\u0E27\u0E31\u0E19 \xB7 \u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32 \xB7 \u0E2B\u0E19\u0E49\u0E32\u0E17\u0E35\u0E48\u0E17\u0E35\u0E48\u0E1B\u0E0F\u0E34\u0E1A\u0E31\u0E15\u0E34 \xB7 \u0E0A\u0E48\u0E2D\u0E07\u0E40\u0E0B\u0E47\u0E19\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E02\u0E2D\u0E07\u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32) \u0E40\u0E09\u0E1E\u0E32\u0E30\u0E04\u0E19\u0E17\u0E35\u0E48\u0E21\u0E35\u0E43\u0E1A OT \u0E43\u0E19\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E31\u0E49\u0E19"), React.createElement("div", {
+  }, "\u0E44\u0E1F\u0E25\u0E4C\u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E01\u0E21\u0E35\u0E41\u0E1C\u0E48\u0E19\u0E2A\u0E23\u0E38\u0E1B\u0E40\u0E27\u0E25\u0E32\u0E17\u0E33\u0E07\u0E32\u0E19\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E41\u0E1C\u0E48\u0E19 + ", React.createElement("b", null, "\u0E41\u0E1C\u0E48\u0E19\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\u0E41\u0E22\u0E01\u0E23\u0E32\u0E22\u0E04\u0E19"), " \u0E04\u0E19\u0E25\u0E30\u0E41\u0E17\u0E47\u0E1A\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07 \u2014 \u0E17\u0E38\u0E01\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32 (\u0E40\u0E02\u0E49\u0E32 \xB7 \u0E2D\u0E2D\u0E01 \xB7 \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07 \xB7 \u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E41\u0E08\u0E49\u0E07 \xB7 ", React.createElement("b", null, "\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E15\u0E2D\u0E19\u0E40\u0E02\u0E49\u0E32\u0E41\u0E25\u0E30\u0E15\u0E2D\u0E19\u0E2D\u0E2D\u0E01 \u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E25\u0E34\u0E07\u0E01\u0E4C\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48"), ") \u0E15\u0E48\u0E2D\u0E14\u0E49\u0E27\u0E22\u0E43\u0E1A OT \u0E02\u0E2D\u0E07\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E31\u0E49\u0E19\u0E27\u0E48\u0E32\u0E02\u0E2D\u0E27\u0E31\u0E19\u0E44\u0E2B\u0E19\u0E1A\u0E49\u0E32\u0E07 \u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E2D\u0E30\u0E44\u0E23 \u0E2D\u0E31\u0E15\u0E23\u0E32\u0E40\u0E17\u0E48\u0E32\u0E44\u0E23 \u0E41\u0E25\u0E30\u0E0A\u0E48\u0E2D\u0E07\u0E40\u0E0B\u0E47\u0E19\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34"), React.createElement("div", {
     style: {
       display: "flex",
       gap: 10,
@@ -660,7 +670,7 @@ function TmMonth({
     }
   }, "\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E40\u0E27\u0E25\u0E32\u0E40\u0E02\u0E49\u0E32-\u0E2D\u0E2D\u0E01\u0E17\u0E35\u0E48\u0E1B\u0E31\u0E4A\u0E21\u0E44\u0E27\u0E49 \u0E2B\u0E31\u0E01\u0E1E\u0E31\u0E01\u0E01\u0E25\u0E32\u0E07\u0E27\u0E31\u0E19\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E17\u0E33\u0E07\u0E32\u0E19\u0E40\u0E01\u0E34\u0E19\u0E2B\u0E01\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07 \u0E15\u0E32\u0E21\u0E17\u0E35\u0E48\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49\u0E43\u0E19\u0E2B\u0E19\u0E49\u0E32 \u201C\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E40\u0E27\u0E25\u0E32\u0E17\u0E33\u0E07\u0E32\u0E19\u201D", React.createElement("br", null), "\u0E43\u0E1A\u0E17\u0E35\u0E48 \u201C\u0E25\u0E37\u0E21\u0E01\u0E14\u0E2D\u0E2D\u0E01\u201D \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E08\u0E30\u0E40\u0E1B\u0E47\u0E19\u0E28\u0E39\u0E19\u0E22\u0E4C \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E40\u0E14\u0E32\u0E40\u0E27\u0E25\u0E32\u0E40\u0E25\u0E34\u0E01\u0E07\u0E32\u0E19\u0E43\u0E2B\u0E49 \u2014 \u0E15\u0E49\u0E2D\u0E07\u0E16\u0E32\u0E21\u0E40\u0E08\u0E49\u0E32\u0E15\u0E31\u0E27\u0E41\u0E25\u0E49\u0E27\u0E41\u0E01\u0E49\u0E17\u0E35\u0E48\u0E15\u0E49\u0E19\u0E17\u0E32\u0E07", React.createElement("br", null), "OT \u0E19\u0E31\u0E1A\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\u0E41\u0E25\u0E30\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49 \xB7 \u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E22\u0E2D\u0E14\u0E08\u0E48\u0E32\u0E22 \u0E15\u0E49\u0E2D\u0E07\u0E1C\u0E48\u0E32\u0E19\u0E01\u0E32\u0E23\u0E15\u0E23\u0E27\u0E08\u0E02\u0E2D\u0E07\u0E1C\u0E39\u0E49\u0E21\u0E35\u0E2D\u0E33\u0E19\u0E32\u0E08\u0E01\u0E48\u0E2D\u0E19"));
 }
-function tmExportMonthXlsx(rows, days, ym, otRows, users) {
+async function tmExportMonthXlsx(rows, days, ym, otRows, users, cfg) {
   if (!window.XLSX) {
     alert("ไม่พบไลบรารี Excel (ลองโหลดหน้าใหม่)");
     return;
@@ -946,17 +956,25 @@ function tmExportMonthXlsx(rows, days, ym, otRows, users) {
     if (o.status !== "sent" && o.status !== "approved") return;
     (otMine[o.userId] || (otMine[o.userId] = [])).push(o);
   });
-  const used = {};
-  rows.forEach(r => {
-    const list = otMine[r.userId];
-    if (!list || !list.length) return;
-    list.sort((a, b) => String(a.date + a.from).localeCompare(String(b.date + b.from)));
-    X.utils.book_append_sheet(wb, tmOtSheetFor(X, r.name, list, ym, FONT, C), tmSheetName("OT " + r.name, used));
+  const want = rows.filter(r => r.days > 0 || (otMine[r.userId] || []).length);
+  let detail = {};
+  try {
+    detail = await window.tmFetchMonthDetail(want.map(r => r.userId), ym);
+  } catch (e) {
+    detail = {};
+  }
+  const used = {
+    "เวลาทำงาน": 1
+  };
+  want.forEach(r => {
+    const list = (otMine[r.userId] || []).slice();
+    list.sort((a2, b2) => String(a2.date + a2.from).localeCompare(String(b2.date + b2.from)));
+    X.utils.book_append_sheet(wb, tmPersonSheet(X, r, list, detail[r.userId] || {}, days, ym, cfg, FONT, C), tmSheetName(r.name, used));
   });
   X.writeFile(wb, "สรุปเวลาทำงาน_" + ym + ".xlsx");
 }
 function tmSheetName(raw, used) {
-  let n = String(raw || "OT").replace(/[:\\/?*[\]]/g, " ").trim().slice(0, 31) || "OT";
+  let n = String(raw || "พนักงาน").replace(/[:\\/?*[\]]/g, " ").trim().slice(0, 31) || "พนักงาน";
   if (used[n]) {
     let i = 2;
     while (used[n.slice(0, 28) + " " + i]) i += 1;
@@ -965,7 +983,8 @@ function tmSheetName(raw, used) {
   used[n] = 1;
   return n;
 }
-function tmOtSheetFor(X, name, list, ym, FONT, C) {
+const TM_DOW_TH = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
   const thin = {
     style: "thin",
     color: {
@@ -979,12 +998,13 @@ function tmOtSheetFor(X, name, list, ym, FONT, C) {
     right: thin
   };
   const H = m => !m ? 0 : Math.round(m / 60 * 100) / 100;
-  const cols = ["ลำดับ", "วันที่", "ตั้งแต่", "ถึง", "รวม (ชม.)", "ประเภท", "งาน", "ปฏิบัติหน้าที่", "สถานะในระบบ", "ผู้อนุมัติในระบบ"];
-  const lastC = cols.length - 1;
+  const name = person.name || person.userId;
+  const lastC = 11;
   const aoa = [],
     merges = [],
     meta = [],
-    rowsH = [];
+    rowsH = [],
+    links = {};
   let R = 0;
   const push = (cells, type, hpt) => {
     aoa.push(cells);
@@ -1004,97 +1024,187 @@ function tmOtSheetFor(X, name, list, ym, FONT, C) {
       c: lastC
     }
   });
-  push(["ใบขออนุมัติทำงานล่วงเวลา (OT)"], "title", 30);
+  push(["ใบลงเวลาและการทำงานล่วงเวลา รายบุคคล"], "title", 30);
   full(R - 1);
   push([name + " · " + window.tmYmTH(ym)], "subtitle", 22);
   full(R - 1);
   push([], "spacer", 6);
-  push(cols, "head", 26);
-  let approved = 0,
-    waiting = 0,
-    alt = false;
-  list.forEach((o, i) => {
-    const mins = +o.mins || 0;
-    if (o.status === "approved") approved += mins;else waiting += mins;
-    push([i + 1, window.drDateTH(o.date), o.from || "", o.to || "", H(mins), window.tmOtKindOf(o.kind).th, o.jobCode || "—", o.reason || "", window.tmOtStatusOf(o.status).th, o.approverName || "—"], alt ? "itemAlt" : "item", 19);
+  const otByDay = {};
+  list.forEach(o => {
+    (otByDay[o.date] || (otByDay[o.date] = [])).push(o);
+  });
+  let otApproved = 0,
+    otWaiting = 0,
+    payApproved = 0;
+  list.forEach(o => {
+    const m = +o.mins || 0;
+    if (o.status === "approved") {
+      otApproved += m;
+      payApproved += window.tmOtPayMins(o, cfg);
+    } else otWaiting += m;
+  });
+  push(["วันที่ลงเวลา", person.days || 0, "ชั่วโมงรวม", H(person.mins), "OT อนุมัติแล้ว", H(otApproved), "ชม.คิดค่าแรง", H(payApproved), "ลืมกดออกงาน", person.noOut || 0, "ไม่มีพิกัด", person.noGps || 0], "kv", 21);
+  push([], "spacer", 8);
+  push(["รายวัน — เวลาเข้า-ออก และตำแหน่งตอนปั๊ม"], "sec", 22);
+  full(R - 1);
+  push(["วันที่", "วัน", "เข้า", "ออก", "รวม (ชม.)", "ที่ทำงาน", "งานที่แจ้ง", "พิกัดตอนเข้า", "พิกัดตอนออก", "แผนที่", "OT วันนี้ (ชม.)", "OT ประเภท / เรื่องที่ทำ"], "head", 28);
+  const dayStart = R;
+  let alt = false,
+    shown = 0;
+  (days || []).forEach(d => {
+    const rec = recs[d] || null;
+    const idx = person.byDay ? person.byDay[d] : null;
+    const ots = otByDay[d] || [];
+    if (!rec && !idx && !ots.length) return;
+    shown += 1;
+    const IN = rec && rec.in || null,
+      OUT = rec && rec.out || null;
+    const otMins = ots.reduce((a2, o) => a2 + (+o.mins || 0), 0);
+    const otTxt = ots.map(o => window.tmOtKindOf(o.kind).th + (o.reason ? " — " + o.reason : "") + (o.status === "approved" ? "" : " (" + window.tmOtStatusOf(o.status).th + ")")).join(" · ");
+    const place = idx && idx.place || rec && (rec.in && rec.in.place || rec.place) || "";
+    const hm = (x, k) => x && x.hm || idx && idx[k] || "";
+    push([window.drDateTH(d), TM_DOW_TH[new Date(d + "T00:00:00").getDay()], hm(IN, "in"), hm(OUT, "out"), rec || idx ? H(rec ? window.tmWorkedMins(rec, cfg) : idx && idx.mins || 0) : "", place ? window.tmPlaceOf(place).th : "", rec && rec.jobCode || idx && idx.jobCode || "", window.tmGpsTH(IN), window.tmGpsTH(OUT), window.tmGpsUrl(IN) ? "เปิดแผนที่" : "", otMins ? H(otMins) : "", otTxt], alt ? "itemAlt" : "item", 19);
+    if (window.tmGpsUrl(IN)) links[R - 1 + ":9"] = window.tmGpsUrl(IN);
     alt = !alt;
   });
-  push(["รวมที่อนุมัติแล้วในระบบ", "", "", "", H(approved), "ชั่วโมง", "", "", "", ""], "total", 24);
-  merges.push({
-    s: {
-      r: R - 1,
-      c: 0
-    },
-    e: {
-      r: R - 1,
-      c: 3
-    }
+  if (!shown) {
+    push(["เดือนนี้ไม่มีใบลงเวลาเลย"], "muted", 20);
+    full(R - 1);
+  } else {
+    push(["รวมทั้งเดือน", "", "", "", H(person.mins), "", "", "", "", "", H(otApproved), "ชั่วโมง OT ที่อนุมัติแล้ว"], "total", 24);
+    merges.push({
+      s: {
+        r: R - 1,
+        c: 0
+      },
+      e: {
+        r: R - 1,
+        c: 3
+      }
+    });
+    merges.push({
+      s: {
+        r: R - 1,
+        c: 5
+      },
+      e: {
+        r: R - 1,
+        c: 9
+      }
+    });
+  }
+  push([], "spacer", 10);
+  push(["ใบขออนุมัติทำงานล่วงเวลา (OT) ในเดือนนี้"], "sec", 22);
+  full(R - 1);
+  push(["ลำดับ", "วันที่", "ตั้งแต่", "ถึง", "รวม (ชม.)", "ประเภท", "อัตรา", "ชม.คิดค่าแรง", "งาน", "ปฏิบัติหน้าที่", "สถานะในระบบ", "ผู้อนุมัติในระบบ"], "head", 28);
+  const otStart = R;
+  if (!list.length) {
+    push(["เดือนนี้ไม่มีใบ OT ที่ส่งขออนุมัติ"], "muted", 20);
+    full(R - 1);
+  }
+  alt = false;
+  list.forEach((o, i) => {
+    const mins = +o.mins || 0;
+    const rt = window.tmOtRate(o, cfg);
+    push([i + 1, window.drDateTH(o.date), o.from || "", o.to || "", H(mins), window.tmOtKindOf(o.kind).th, rt, H(mins * rt), o.jobCode || "—", o.reason || "", window.tmOtStatusOf(o.status).th, o.approverName || "—"], alt ? "itemAlt2" : "item2", 19);
+    alt = !alt;
   });
-  push(["ยังรออนุมัติในระบบ", "", "", "", H(waiting), "ชั่วโมง", "", "", "", ""], waiting ? "warnRow" : "muted", 22);
-  merges.push({
-    s: {
-      r: R - 1,
-      c: 0
-    },
-    e: {
-      r: R - 1,
-      c: 3
-    }
-  });
+  if (list.length) {
+    push(["รวมที่อนุมัติแล้วในระบบ", "", "", "", H(otApproved), "ชั่วโมง", "", H(payApproved), "ชม.คิดค่าแรง", "", "", ""], "total2", 24);
+    merges.push({
+      s: {
+        r: R - 1,
+        c: 0
+      },
+      e: {
+        r: R - 1,
+        c: 3
+      }
+    });
+    merges.push({
+      s: {
+        r: R - 1,
+        c: 8
+      },
+      e: {
+        r: R - 1,
+        c: lastC
+      }
+    });
+    push(["ยังรออนุมัติในระบบ", "", "", "", H(otWaiting), "ชั่วโมง", "", "", "ต้องกดอนุมัติในระบบก่อนจึงจะนับเป็นยอดจ่าย", "", "", ""], otWaiting ? "warnRow" : "muted2", 22);
+    merges.push({
+      s: {
+        r: R - 1,
+        c: 0
+      },
+      e: {
+        r: R - 1,
+        c: 3
+      }
+    });
+    merges.push({
+      s: {
+        r: R - 1,
+        c: 8
+      },
+      e: {
+        r: R - 1,
+        c: lastC
+      }
+    });
+  }
   push([], "spacer", 14);
-  push(["ลงชื่อผู้ขอ ..............................................", "", "", "", "ลงชื่อหัวหน้างานผู้อนุมัติ ..............................................", "", "", "", "", ""], "sign", 34);
-  merges.push({
-    s: {
-      r: R - 1,
-      c: 0
-    },
-    e: {
-      r: R - 1,
-      c: 3
-    }
-  });
-  merges.push({
-    s: {
-      r: R - 1,
-      c: 4
-    },
-    e: {
-      r: R - 1,
-      c: lastC
-    }
-  });
-  push(["(" + name + ")", "", "", "", "(..............................................)  วันที่ ........./........./.........", "", "", "", "", ""], "signSub", 22);
-  merges.push({
-    s: {
-      r: R - 1,
-      c: 0
-    },
-    e: {
-      r: R - 1,
-      c: 3
-    }
-  });
-  merges.push({
-    s: {
-      r: R - 1,
-      c: 4
-    },
-    e: {
-      r: R - 1,
-      c: lastC
-    }
-  });
+  const sign3 = r => {
+    merges.push({
+      s: {
+        r: r,
+        c: 0
+      },
+      e: {
+        r: r,
+        c: 3
+      }
+    });
+    merges.push({
+      s: {
+        r: r,
+        c: 4
+      },
+      e: {
+        r: r,
+        c: 7
+      }
+    });
+    merges.push({
+      s: {
+        r: r,
+        c: 8
+      },
+      e: {
+        r: r,
+        c: lastC
+      }
+    });
+  };
+  push(["ลงชื่อผู้ปฏิบัติงาน ....................................", "", "", "", "ลงชื่อหัวหน้างานผู้อนุมัติ ....................................", "", "", "", "ลงชื่อฝ่ายบุคคล / ผู้ตรวจสอบ ....................................", "", "", ""], "sign", 34);
+  sign3(R - 1);
+  push(["(" + name + ")", "", "", "", "(....................................)  วันที่ ......./......./.......", "", "", "", "(....................................)  วันที่ ......./......./.......", "", "", ""], "signSub", 22);
+  sign3(R - 1);
   push([], "spacer", 8);
-  push(["เวลาในใบนี้เป็นเวลาที่ผู้ขอกรอกเอง ไม่ใช่เวลาที่ระบบจับได้ — ถ้าไม่แน่ใจให้เทียบกับแผ่น “เวลาทำงาน” ของวันนั้น"], "foot", 16);
+  push(["พิกัดคือตำแหน่งของ “เครื่องที่กดปั๊ม” ตอนกด ไม่ใช่การยืนยันว่าอยู่ที่ไซต์นั้นจริง — ระบบยังไม่มีพิกัดไซต์ให้เทียบระยะ"], "foot", 16);
+  full(R - 1);
+  push(["ช่องพิกัดที่ว่างหรือขึ้นเหตุผล แปลว่าจับพิกัดไม่ได้ตอนนั้น ระบบไม่เคยบล็อกการลงเวลาด้วยเหตุนี้"], "foot", 16);
+  full(R - 1);
+  push(["เวลาในใบ OT เป็นเวลาที่ผู้ขอกรอกเอง ไม่ใช่เวลาที่ระบบจับได้ — เทียบกับตารางรายวันข้างบนได้"], "foot", 16);
   full(R - 1);
   push(["การเซ็นบนกระดาษไม่ได้เปลี่ยนสถานะในระบบ ใบที่ยังรออนุมัติต้องกดอนุมัติในระบบด้วย"], "foot", 16);
   full(R - 1);
   const ws = X.utils.aoa_to_sheet(aoa);
   ws["!merges"] = merges;
   ws["!cols"] = [{
-    wch: 6
+    wch: 14
   }, {
-    wch: 15
+    wch: 5
   }, {
     wch: 8
   }, {
@@ -1102,21 +1212,29 @@ function tmOtSheetFor(X, name, list, ym, FONT, C) {
   }, {
     wch: 10
   }, {
-    wch: 17
-  }, {
-    wch: 12
-  }, {
-    wch: 42
+    wch: 11
   }, {
     wch: 13
   }, {
-    wch: 18
+    wch: 19
+  }, {
+    wch: 19
+  }, {
+    wch: 11
+  }, {
+    wch: 13
+  }, {
+    wch: 40
   }];
   ws["!rows"] = rowsH;
+  ws["!freeze"] = {
+    xSplit: 1,
+    ySplit: dayStart
+  };
   const styleCell = (r, c) => {
     const t = meta[r];
     if (t === "spacer") return null;
-    const s = {
+    const s2 = {
       font: {
         name: FONT,
         sz: 10.5,
@@ -1129,7 +1247,7 @@ function tmOtSheetFor(X, name, list, ym, FONT, C) {
       }
     };
     if (t === "title") {
-      s.font = {
+      s2.font = {
         name: FONT,
         sz: 15,
         bold: true,
@@ -1137,18 +1255,18 @@ function tmOtSheetFor(X, name, list, ym, FONT, C) {
           rgb: C.white
         }
       };
-      s.fill = {
+      s2.fill = {
         patternType: "solid",
         fgColor: {
           rgb: C.brand
         }
       };
-      s.alignment = {
+      s2.alignment = {
         horizontal: "center",
         vertical: "center"
       };
     } else if (t === "subtitle") {
-      s.font = {
+      s2.font = {
         name: FONT,
         sz: 12,
         bold: true,
@@ -1156,18 +1274,66 @@ function tmOtSheetFor(X, name, list, ym, FONT, C) {
           rgb: C.brandDk
         }
       };
-      s.fill = {
+      s2.fill = {
         patternType: "solid",
         fgColor: {
           rgb: C.brandSoft
         }
       };
-      s.alignment = {
+      s2.alignment = {
         horizontal: "center",
         vertical: "center"
       };
+    } else if (t === "sec") {
+      s2.font = {
+        name: FONT,
+        sz: 11.5,
+        bold: true,
+        color: {
+          rgb: C.brandDk
+        }
+      };
+      s2.alignment = {
+        horizontal: "left",
+        vertical: "center"
+      };
+    } else if (t === "kv") {
+      s2.border = boxAll;
+      if (c % 2 === 0) {
+        s2.font = {
+          name: FONT,
+          sz: 9.5,
+          color: {
+            rgb: C.sub
+          }
+        };
+        s2.fill = {
+          patternType: "solid",
+          fgColor: {
+            rgb: C.brandSoft
+          }
+        };
+        s2.alignment = {
+          horizontal: "right",
+          vertical: "center"
+        };
+      } else {
+        s2.font = {
+          name: FONT,
+          sz: 11.5,
+          bold: true,
+          color: {
+            rgb: C.text
+          }
+        };
+        s2.alignment = {
+          horizontal: "center",
+          vertical: "center"
+        };
+        if (c === 3 || c === 5 || c === 7) s2.numFmt = "0.00";
+      }
     } else if (t === "head") {
-      s.font = {
+      s2.font = {
         name: FONT,
         sz: 10,
         bold: true,
@@ -1175,20 +1341,20 @@ function tmOtSheetFor(X, name, list, ym, FONT, C) {
           rgb: C.white
         }
       };
-      s.fill = {
+      s2.fill = {
         patternType: "solid",
         fgColor: {
           rgb: C.brand
         }
       };
-      s.alignment = {
+      s2.alignment = {
         horizontal: "center",
         vertical: "center",
         wrapText: true
       };
-      s.border = boxAll;
-    } else if (t === "total") {
-      s.font = {
+      s2.border = boxAll;
+    } else if (t === "total" || t === "total2") {
+      s2.font = {
         name: FONT,
         sz: 11,
         bold: true,
@@ -1196,20 +1362,20 @@ function tmOtSheetFor(X, name, list, ym, FONT, C) {
           rgb: C.white
         }
       };
-      s.fill = {
+      s2.fill = {
         patternType: "solid",
         fgColor: {
           rgb: C.brandDk
         }
       };
-      s.alignment = {
+      s2.alignment = {
         horizontal: c <= 3 ? "left" : "center",
         vertical: "center"
       };
-      s.border = boxAll;
-      if (c === 4) s.numFmt = "0.00";
+      s2.border = boxAll;
+      if (c === 4 || t === "total" && c === 10 || t === "total2" && c === 7) s2.numFmt = "0.00";
     } else if (t === "warnRow") {
-      s.font = {
+      s2.font = {
         name: FONT,
         sz: 10.5,
         bold: true,
@@ -1217,88 +1383,110 @@ function tmOtSheetFor(X, name, list, ym, FONT, C) {
           rgb: C.warnTx
         }
       };
-      s.fill = {
+      s2.fill = {
         patternType: "solid",
         fgColor: {
           rgb: C.warn
         }
       };
-      s.alignment = {
+      s2.alignment = {
         horizontal: c <= 3 ? "left" : "center",
         vertical: "center"
       };
-      s.border = boxAll;
-      if (c === 4) s.numFmt = "0.00";
-    } else if (t === "muted") {
-      s.font = {
+      s2.border = boxAll;
+      if (c === 4) s2.numFmt = "0.00";
+    } else if (t === "muted" || t === "muted2") {
+      s2.font = {
         name: FONT,
         sz: 10.5,
         color: {
           rgb: C.sub
         }
       };
-      s.alignment = {
+      s2.alignment = {
         horizontal: c <= 3 ? "left" : "center",
         vertical: "center"
       };
-      s.border = boxAll;
-      if (c === 4) s.numFmt = "0.00";
+      if (t === "muted2") s2.border = boxAll;
+      if (t === "muted2" && c === 4) s2.numFmt = "0.00";
     } else if (t === "sign") {
-      s.font = {
+      s2.font = {
         name: FONT,
         sz: 11,
         color: {
           rgb: C.text
         }
       };
-      s.alignment = {
+      s2.alignment = {
         horizontal: "left",
         vertical: "bottom"
       };
     } else if (t === "signSub") {
-      s.font = {
+      s2.font = {
         name: FONT,
         sz: 10,
         color: {
           rgb: C.sub
         }
       };
-      s.alignment = {
+      s2.alignment = {
         horizontal: "left",
         vertical: "top"
       };
     } else if (t === "foot") {
-      s.font = {
+      s2.font = {
         name: FONT,
         sz: 9.5,
         color: {
           rgb: C.sub
         }
       };
-    } else if (t === "item" || t === "itemAlt") {
-      if (t === "itemAlt") s.fill = {
+    } else if (t === "item" || t === "itemAlt" || t === "item2" || t === "itemAlt2") {
+      const two = t === "item2" || t === "itemAlt2";
+      if (t === "itemAlt" || t === "itemAlt2") s2.fill = {
         patternType: "solid",
         fgColor: {
           rgb: C.alt
         }
       };
-      s.border = boxAll;
-      if (c === 7) s.alignment = {
+      s2.border = boxAll;
+      const wrapCol = two ? 9 : 11;
+      if (c === wrapCol) s2.alignment = {
         horizontal: "left",
         vertical: "center",
         wrapText: true
-      };else if (c === 1 || c === 5) s.alignment = {
+      };else if (c === 0 || !two && (c === 6 || c === 7 || c === 8) || two && c === 8) s2.alignment = {
         horizontal: "left",
         vertical: "center"
       };else {
-        s.alignment = {
+        s2.alignment = {
           horizontal: "center",
           vertical: "center"
         };
-        if (c === 4) s.numFmt = "0.00";
       }
+      if (c === 4) s2.numFmt = "0.00";
+      if (two && c === 7) s2.numFmt = "0.00";
+      if (two && c === 6) s2.numFmt = '0.##" เท่า"';
+      if (!two && c === 10 && aoa[r][c]) {
+        s2.numFmt = "0.00";
+        s2.font = {
+          name: FONT,
+          sz: 10.5,
+          bold: true,
+          color: {
+            rgb: C.brandDk
+          }
+        };
+      }
+      if (!two && (c === 7 || c === 8)) s2.font = {
+        name: "Consolas",
+        sz: 9.5,
+        color: {
+          rgb: C.sub
+        }
+      };
     }
-    return s;
+    return s2;
   };
   const range = X.utils.decode_range(ws["!ref"]);
   for (let r = range.s.r; r <= range.e.r; r++) {
@@ -1316,6 +1504,29 @@ function tmOtSheetFor(X, name, list, ym, FONT, C) {
       ws[ref].s = st;
     }
   }
+  Object.keys(links).forEach(k => {
+    const rc = k.split(":");
+    const ref = X.utils.encode_cell({
+      r: +rc[0],
+      c: +rc[1]
+    });
+    if (!ws[ref]) return;
+    ws[ref].l = {
+      Target: links[k],
+      Tooltip: "เปิดตำแหน่งนี้ใน Google Maps"
+    };
+    ws[ref].s = Object.assign({}, ws[ref].s, {
+      font: {
+        name: FONT,
+        sz: 10,
+        bold: true,
+        underline: true,
+        color: {
+          rgb: "1155CC"
+        }
+      }
+    });
+  });
   return ws;
 }
 function TmOtModal({
@@ -2718,7 +2929,7 @@ Object.assign(window, {
   TmWorkHours,
   TmOtPeriod,
   tmExportMonthXlsx,
-  tmOtSheetFor,
+  tmPersonSheet,
   tmSheetName,
   TmStat,
   TmPill,
