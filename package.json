@@ -5,7 +5,8 @@
   "description": "แปลง JSX เป็น JS ล่วงหน้า — เบราว์เซอร์จะได้ไม่ต้องแปลงเองตอนเปิดเว็บ",
   "scripts": {
     "build": "babel dashboard --out-dir dashboard/build --extensions .jsx",
-    "watch": "babel dashboard --out-dir dashboard/build --extensions .jsx --watch"
+    "watch": "babel dashboard --out-dir dashboard/build --extensions .jsx --watch",
+    "dev": "node tools/dev-server.js"
   },
   "devDependencies": {
     "@babel/cli": "^7.28.0",
