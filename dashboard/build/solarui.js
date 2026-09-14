@@ -2828,6 +2828,134 @@ let SU_BLANK = null;
 function suBlankSys() {
   return SU_BLANK = SU_BLANK || scBlankSys();
 }
+const SU_WKS = {};
+let SU_WK_SEQ = 0;
+function suWorker(lane) {
+  lane = lane || "main";
+  if (SU_WKS[lane] !== undefined) return SU_WKS[lane];
+  let SU_WK = false;
+  SU_WKS[lane] = false;
+  try {
+    if (typeof Worker !== "function" || typeof document === "undefined") return SU_WK;
+    const srcs = ["solarcalc", "plan3d", "solariv"].map(n => {
+      const el = document.querySelector('script[src*="' + n + '.js"]');
+      return el ? new URL(el.getAttribute("src"), document.baseURI).href : null;
+    });
+    if (srcs.some(x => !x)) return SU_WKS[lane];
+    const q = srcs[2].split("?")[1] || "";
+    SU_WK = new Worker("solarworker.js" + (q ? "?" + q : ""));
+    SU_WK.postMessage({
+      init: srcs
+    });
+  } catch (e) {
+    SU_WKS[lane] = false;
+    return false;
+  }
+  SU_WKS[lane] = SU_WK;
+  return SU_WK;
+}
+function suRunHere(m) {
+  const o = m.opt || {};
+  if (m.job === "annual") return ivShadeAnnual(m.st, m.byPanel, m.groups, o);
+  if (m.job === "day") return ivDaySim(m.st, m.panel, m.groups, m.byPanel, o);
+  if (m.job === "year") return ivYearSim(m.st, m.panel, m.groups, m.byPanel, o);
+  if (m.job === "iso") return ivIsoShade(m.st, o);
+  return null;
+}
+function useSuJob(make, deps, on, lane) {
+  const [res, setRes] = React.useState({
+    v: null,
+    busy: false,
+    err: null
+  });
+  React.useEffect(() => {
+    if (!on) return;
+    const msg = make();
+    const w = suWorker(lane);
+    let dead = false;
+    setRes(prev => ({
+      v: prev.v,
+      busy: true,
+      err: null
+    }));
+    if (!w) {
+      const t = setTimeout(() => {
+        if (dead) return;
+        let v = null,
+          err = null;
+        try {
+          v = suRunHere(msg);
+        } catch (e) {
+          err = String(e && e.message || e);
+        }
+        setRes({
+          v: v,
+          busy: false,
+          err: err
+        });
+      }, 30);
+      return () => {
+        dead = true;
+        clearTimeout(t);
+      };
+    }
+    const id = ++SU_WK_SEQ;
+    const onMsg = e => {
+      const d = e.data || {};
+      if (d.id !== id) return;
+      w.removeEventListener("message", onMsg);
+      if (dead) return;
+      if (!d.err) {
+        setRes({
+          v: d.out,
+          busy: false,
+          err: null
+        });
+        return;
+      }
+      SU_WKS[lane || "main"] = false;
+      let v = null,
+        err = null;
+      try {
+        v = suRunHere(msg);
+      } catch (e2) {
+        err = String(e2 && e2.message || e2);
+      }
+      setRes({
+        v: v,
+        busy: false,
+        err: err
+      });
+    };
+    w.addEventListener("message", onMsg);
+    w.postMessage(Object.assign({
+      id: id
+    }, msg));
+    return () => {
+      dead = true;
+      w.removeEventListener("message", onMsg);
+    };
+  }, deps);
+  return res;
+}
+function SuBusy({
+  what
+}) {
+  return React.createElement("div", {
+    className: "p3-card",
+    style: {
+      gap: 6,
+      padding: "12px 13px"
+    }
+  }, React.createElement("span", {
+    className: "p3-eb"
+  }, React.createElement(P3Icon, {
+    name: "sun",
+    size: 12
+  }), "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E04\u0E33\u0E19\u0E27\u0E13", what ? " — " + what : ""), React.createElement("span", {
+    className: "p3-note"
+  }, "\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E43\u0E2B\u0E0D\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E22\u0E34\u0E07\u0E25\u0E33\u0E41\u0E2A\u0E07\u0E08\u0E32\u0E01\u0E41\u0E1C\u0E07\u0E17\u0E38\u0E01\u0E43\u0E1A\u0E44\u0E1B\u0E2B\u0E32\u0E14\u0E27\u0E07\u0E2D\u0E32\u0E17\u0E34\u0E15\u0E22\u0E4C\u0E17\u0E35\u0E25\u0E30\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32 \u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E01\u0E34\u0E19\u0E40\u0E27\u0E25\u0E32\u0E2A\u0E34\u0E1A\u0E01\u0E27\u0E48\u0E32\u0E27\u0E34\u0E19\u0E32\u0E17\u0E35 \u0E23\u0E30\u0E1A\u0E1A\u0E04\u0E34\u0E14\u0E43\u0E2B\u0E49\u0E2D\u0E22\u0E39\u0E48\u0E40\u0E1A\u0E37\u0E49\u0E2D\u0E07\u0E2B\u0E25\u0E31\u0E07 ", React.createElement("b", null, "\u0E23\u0E30\u0E2B\u0E27\u0E48\u0E32\u0E07\u0E19\u0E35\u0E49\u0E01\u0E14\u0E14\u0E39\u0E02\u0E31\u0E49\u0E19\u0E15\u0E2D\u0E19\u0E2D\u0E37\u0E48\u0E19\u0E2B\u0E23\u0E37\u0E2D\u0E41\u0E01\u0E49\u0E04\u0E48\u0E32\u0E15\u0E48\u0E2D\u0E44\u0E14\u0E49\u0E15\u0E32\u0E21\u0E1B\u0E01\u0E15\u0E34"), " \u0E1C\u0E25\u0E08\u0E30\u0E02\u0E36\u0E49\u0E19\u0E40\u0E2D\u0E07\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E40\u0E2A\u0E23\u0E47\u0E08"));
+}
 function SolarWorkspace({
   job,
   st,
@@ -3016,12 +3144,20 @@ function SolarWorkspace({
   const setElec = p => set({
     elec: Object.assign({}, elecCfg, p)
   });
-  const shade3d = React.useMemo(() => use3d && typeof ivShadeAnnual === "function" && groups.length ? ivShadeAnnual(st, idx.byPanel, groups, {
-    lat: st.sun && st.sun.lat,
-    lng: st.sun && st.sun.lng,
-    albedo: S.env && S.env.albedo,
-    elec: elecCfg
-  }) : null, [use3d, st, idx, groups, S.env, S.elec, hc.half]);
+  const shadeJob = useSuJob(() => ({
+    job: "annual",
+    st: st,
+    byPanel: idx.byPanel,
+    groups: groups,
+    opt: {
+      lat: st.sun && st.sun.lat,
+      lng: st.sun && st.sun.lng,
+      albedo: S.env && S.env.albedo,
+      elec: elecCfg
+    }
+  }), [use3d, st, idx, groups, S.env, S.elec, hc.half], use3d && typeof ivShadeAnnual === "function" && groups.length > 0);
+  const shade3d = use3d ? shadeJob.v : null;
+  const shadeBusy = use3d && shadeJob.busy;
   const lossEff = React.useMemo(() => {
     const base = Object.assign({}, SC_LOSS, S.loss || {});
     if (microIndep && base.mismatch === SC_LOSS.mismatch) base.mismatch = 0.3;
@@ -3129,19 +3265,27 @@ function SolarWorkspace({
     date: (siteDate.slice(0, 4) || "2026") + "-" + String((m % 12 + 12) % 12 + 1).padStart(2, "0") + "-15"
   });
   const stepMonth = d => setMonth((isFinite(monthNow) ? monthNow : 6) + d);
-  const sim = React.useMemo(() => typeof ivDaySim === "function" && groups.length && panel.wp ? ivDaySim(st, panel, groups, idx.byPanel, {
-    lat: st.sun && st.sun.lat,
-    lng: st.sun && st.sun.lng,
-    date: siteDate,
-    tAmb: site.tAmb,
-    ghi: site.ghi,
-    refHour: site.hour == null ? 12 : site.hour,
-    albedo: S.env && S.env.albedo,
-    elec: elecCfg,
-    acKw,
-    invEff: isMicro ? microSel ? microSel.eff : 96.5 : invEffUse,
-    dcLoss: energy ? 1 - energy.dcLoss / 100 : 0.92
-  }) : null, [st, panel, groups, idx, siteDate, site.tAmb, site.ghi, site.hour, S.env, acKw, S.inv, isMicro, inv.eff, energy && energy.dcLoss, S.elec, hc.half]);
+  const simJob = useSuJob(() => ({
+    job: "day",
+    st: st,
+    panel: panel,
+    groups: groups,
+    byPanel: idx.byPanel,
+    opt: {
+      lat: st.sun && st.sun.lat,
+      lng: st.sun && st.sun.lng,
+      date: siteDate,
+      tAmb: site.tAmb,
+      ghi: site.ghi,
+      refHour: site.hour == null ? 12 : site.hour,
+      albedo: S.env && S.env.albedo,
+      elec: elecCfg,
+      acKw,
+      invEff: isMicro ? microSel ? microSel.eff : 96.5 : invEffUse,
+      dcLoss: energy ? 1 - energy.dcLoss / 100 : 0.92
+    }
+  }), [st, panel, groups, idx, siteDate, site.tAmb, site.ghi, site.hour, S.env, acKw, S.inv, isMicro, inv.eff, energy && energy.dcLoss, S.elec, hc.half], typeof ivDaySim === "function" && groups.length > 0 && panel.wp > 0);
+  const sim = simJob.v;
   const hourAuto = site.hour == null || site.hour === "";
   const simHour = hourAuto ? sim ? sim.bestHour : 12 : scNum(site.hour, 12);
   const [mapMode, setMapMode] = React.useState("light");
@@ -3157,28 +3301,26 @@ function SolarWorkspace({
     dcLoss: energy ? 1 - energy.dcLoss / 100 : 0.92
   };
   const canYear = typeof ivYearSim === "function" && groups.length > 0 && panel.wp > 0;
-  const year = React.useMemo(() => step >= 2 && canYear ? ivYearSim(st, panel, groups, idx.byPanel, yearOpt) : null, [step >= 2, st, panel, groups, idx, siteDate.slice(0, 4), site.tAmb, S.env, acKw, S.inv, isMicro, inv.eff, energy && energy.dcLoss, S.elec, hc.half]);
+  const yearJob = useSuJob(() => ({
+    job: "year",
+    st: st,
+    panel: panel,
+    groups: groups,
+    byPanel: idx.byPanel,
+    opt: yearOpt
+  }), [step >= 2, st, panel, groups, idx, siteDate.slice(0, 4), site.tAmb, S.env, acKw, S.inv, isMicro, inv.eff, energy && energy.dcLoss, S.elec, hc.half], step >= 2 && canYear);
+  const year = yearJob.v;
   const sunPath = React.useMemo(() => typeof ivSunPath === "function" ? ivSunPath({
     lat: st.sun && st.sun.lat,
     lng: st.sun && st.sun.lng
   }) : null, [st.sun && st.sun.lat, st.sun && st.sun.lng]);
-  const [isoOn, setIsoOn] = React.useState(true);
-  const [isoShade, setIsoShade] = React.useState(null);
-  React.useEffect(() => {
-    if (!(step >= 2 && isoOn && typeof ivIsoShade === "function")) {
-      setIsoShade(null);
-      return;
-    }
-    let dead = false;
-    const t = setTimeout(() => {
-      const r = ivIsoShade(st, {});
-      if (!dead) setIsoShade(r);
-    }, 30);
-    return () => {
-      dead = true;
-      clearTimeout(t);
-    };
-  }, [step >= 2, isoOn, st]);
+  const [isoOn, setIsoOn] = React.useState(() => foot.panels.length <= 1200);
+  const isoJob = useSuJob(() => ({
+    job: "iso",
+    st: st,
+    opt: {}
+  }), [step >= 2, isoOn, st], step >= 2 && isoOn && typeof ivIsoShade === "function", "iso");
+  const isoShade = isoOn ? isoJob.v : null;
   const simRow = sim ? sim.rows.reduce((a, r) => Math.abs(r.h - simHour) < Math.abs(a.h - simHour) ? r : a, sim.rows[0]) : null;
   const shadeAuto = site.shadeAuto !== false;
   const shadeUid = React.useMemo(() => typeof ivShadeMoment === "function" && groups.length ? ivShadeMoment(st, idx.byPanel, groups, {
@@ -4818,7 +4960,9 @@ function SolarWorkspace({
   }, React.createElement(P3Icon, {
     name: "height",
     size: 14
-  }), "\u0E22\u0E31\u0E07\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E40\u0E2A\u0E49\u0E19 I-V \u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u2014 \u0E15\u0E49\u0E2D\u0E07\u0E21\u0E35 Voc / Isc / Vmp / Imp \u0E02\u0E2D\u0E07\u0E41\u0E1C\u0E07\u0E04\u0E23\u0E1A\u0E01\u0E48\u0E2D\u0E19 (\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E01\u0E23\u0E2D\u0E01\u0E17\u0E35\u0E48\u0E02\u0E31\u0E49\u0E19\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C)"), sim && React.createElement("div", {
+  }), "\u0E22\u0E31\u0E07\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E40\u0E2A\u0E49\u0E19 I-V \u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u2014 \u0E15\u0E49\u0E2D\u0E07\u0E21\u0E35 Voc / Isc / Vmp / Imp \u0E02\u0E2D\u0E07\u0E41\u0E1C\u0E07\u0E04\u0E23\u0E1A\u0E01\u0E48\u0E2D\u0E19 (\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E01\u0E23\u0E2D\u0E01\u0E17\u0E35\u0E48\u0E02\u0E31\u0E49\u0E19\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C)"), !sim && simJob.busy && React.createElement(SuBusy, {
+    what: "\u0E01\u0E32\u0E23\u0E08\u0E33\u0E25\u0E2D\u0E07\u0E41\u0E2A\u0E07\u0E41\u0E25\u0E30\u0E40\u0E07\u0E32\u0E17\u0E31\u0E49\u0E07\u0E27\u0E31\u0E19"
+  }), sim && React.createElement("div", {
     className: "p3-card"
   }, React.createElement("span", {
     className: "p3-eb"
@@ -4936,7 +5080,9 @@ function SolarWorkspace({
     style: {
       color: "var(--tint-red-tx2)"
     }
-  }, "\u2501"), " \u0E2D\u0E38\u0E13\u0E2B\u0E20\u0E39\u0E21\u0E34\u0E40\u0E0B\u0E25\u0E25\u0E4C (\u0E41\u0E01\u0E19\u0E02\u0E27\u0E32)"))), year && React.createElement("div", {
+  }, "\u2501"), " \u0E2D\u0E38\u0E13\u0E2B\u0E20\u0E39\u0E21\u0E34\u0E40\u0E0B\u0E25\u0E25\u0E4C (\u0E41\u0E01\u0E19\u0E02\u0E27\u0E32)"))), !year && yearJob.busy && React.createElement(SuBusy, {
+    what: "\u0E01\u0E32\u0E23\u0E08\u0E33\u0E25\u0E2D\u0E07\u0E17\u0E31\u0E49\u0E07 12 \u0E40\u0E14\u0E37\u0E2D\u0E19"
+  }), year && React.createElement("div", {
     className: "p3-card"
   }, React.createElement("span", {
     className: "p3-eb"
@@ -5719,7 +5865,9 @@ function SolarWorkspace({
     style: {
       fontWeight: 600
     }
-  }, shade3d ? "คำนวณจากโมเดล 3 มิติแล้ว" : "ยังใช้ค่า % ที่กรอกมือ")), !shade3d ? React.createElement(React.Fragment, null, React.createElement("span", {
+  }, shadeBusy ? "กำลังคำนวณเงาทั้งปี…" : shade3d ? "คำนวณจากโมเดล 3 มิติแล้ว" : "ยังใช้ค่า % ที่กรอกมือ")), shadeBusy && !shade3d ? React.createElement(SuBusy, {
+    what: "\u0E40\u0E07\u0E32\u0E1A\u0E31\u0E07\u0E17\u0E31\u0E49\u0E07\u0E1B\u0E35\u0E08\u0E32\u0E01\u0E42\u0E21\u0E40\u0E14\u0E25 3 \u0E21\u0E34\u0E15\u0E34"
+  }) : !shade3d ? React.createElement(React.Fragment, null, React.createElement("span", {
     className: "p3-note",
     style: {
       marginTop: -2
@@ -7349,6 +7497,9 @@ function SolarDesignHost({
 }
 Object.assign(window, {
   suBlankSys,
+  suWorker,
+  useSuJob,
+  SuBusy,
   SolarWorkspace,
   SolarDesignHost,
   SuVoltBand,

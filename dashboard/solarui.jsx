@@ -1391,6 +1391,99 @@ function SuCash({ roi }) {
 let SU_BLANK = null;
 function suBlankSys() { return (SU_BLANK = SU_BLANK || scBlankSys()); }
 
+/* ══ โรงคำนวณนอกเธรดหน้าจอ ══
+   จำลองเงาของหลังคาใหญ่กินเวลาสิบกว่าวินาที ถ้าคิดในเธรดเดียวกับหน้าจอ
+   เบราว์เซอร์จะวาดอะไรไม่ได้เลยตลอดเวลานั้น กดปุ่มก็ไม่ตอบ = "ค้าง"
+   ส่งไปคิดใน worker แทน หน้าจอจึงลื่นตลอด งานคิดนานเท่าเดิมแต่ไม่ขวางใคร */
+/* สองคิวแยกกัน — worker หนึ่งตัวทำได้ทีละงาน
+   "แผนที่เงารอบทิศ" กินเวลาเป็นสิบวินาที ถ้าอยู่คิวเดียวกับที่เหลือ
+   แค่เปลี่ยนเดือนก็ต้องรอมันเสร็จก่อน ทั้งที่ไม่เกี่ยวกันเลย */
+const SU_WKS = {};
+let SU_WK_SEQ = 0;
+function suWorker(lane) {
+  lane = lane || "main";
+  if (SU_WKS[lane] !== undefined) return SU_WKS[lane];
+  let SU_WK = false;
+  SU_WKS[lane] = false;
+  try {
+    if (typeof Worker !== "function" || typeof document === "undefined") return SU_WK;
+    /* อ่าน src จริงของไฟล์คำนวณที่หน้านี้โหลดอยู่ แล้วส่งให้ worker import ชุดเดียวกัน
+       ?v= จึงตรงกันเสมอโดยไม่ต้องไปบัมพ์เลขรุ่นซ้ำอีกที่ (ลืมเมื่อไหร่ = คิดด้วยสูตรเก่า) */
+    const srcs = ["solarcalc", "plan3d", "solariv"].map((n) => {
+      const el = document.querySelector('script[src*="' + n + '.js"]');
+      return el ? new URL(el.getAttribute("src"), document.baseURI).href : null;
+    });
+    if (srcs.some((x) => !x)) return SU_WKS[lane];
+    const q = srcs[2].split("?")[1] || "";
+    SU_WK = new Worker("solarworker.js" + (q ? "?" + q : ""));
+    SU_WK.postMessage({ init: srcs });
+  } catch (e) { SU_WKS[lane] = false; return false; }
+  SU_WKS[lane] = SU_WK;
+  return SU_WK;
+}
+/* เบราว์เซอร์ที่ไม่มี Worker (หรือเปิดไฟล์ตรง ๆ) ต้องยังใช้งานได้ — คิดในเธรดเดิมเหมือนเดิม */
+function suRunHere(m) {
+  const o = m.opt || {};
+  if (m.job === "annual") return ivShadeAnnual(m.st, m.byPanel, m.groups, o);
+  if (m.job === "day") return ivDaySim(m.st, m.panel, m.groups, m.byPanel, o);
+  if (m.job === "year") return ivYearSim(m.st, m.panel, m.groups, m.byPanel, o);
+  if (m.job === "iso") return ivIsoShade(m.st, o);
+  return null;
+}
+/* คืน { v, busy } — ระหว่างคิดใหม่ยังคืนผลเดิมไว้ก่อน จอจะได้ไม่กะพริบเป็นช่องว่าง
+   on = false แปลว่า "ยังไม่ถึงขั้นที่ต้องใช้" จึงไม่คิด และไม่ทิ้งของเดิม
+   (กลับมาดูขั้นเดิมซ้ำจะได้ขึ้นทันที ไม่ต้องรอใหม่) */
+function useSuJob(make, deps, on, lane) {
+  const [res, setRes] = React.useState({ v: null, busy: false, err: null });
+  React.useEffect(() => {
+    if (!on) return;
+    const msg = make();
+    const w = suWorker(lane);
+    let dead = false;
+    setRes((prev) => ({ v: prev.v, busy: true, err: null }));
+    if (!w) {
+      const t = setTimeout(() => { if (dead) return;
+        let v = null, err = null;
+        try { v = suRunHere(msg); } catch (e) { err = String(e && e.message || e); }
+        setRes({ v: v, busy: false, err: err });
+      }, 30);
+      return () => { dead = true; clearTimeout(t); };
+    }
+    const id = ++SU_WK_SEQ;
+    const onMsg = (e) => {
+      const d = e.data || {};
+      if (d.id !== id) return;
+      w.removeEventListener("message", onMsg);
+      if (dead) return;
+      if (!d.err) { setRes({ v: d.out, busy: false, err: null }); return; }
+      /* เธรดแยกทำไม่ได้ (โหลดไฟล์ไม่ขึ้น/เบราว์เซอร์กันไว้) — ถอยไปคิดเองเหมือนก่อนมี worker
+         ช้าเท่าเดิมแต่ผู้ใช้ยังได้ตัวเลข ดีกว่าหน้าว่างโดยไม่บอกอะไร */
+      SU_WKS[lane || "main"] = false;
+      let v = null, err = null;
+      try { v = suRunHere(msg); } catch (e2) { err = String(e2 && e2.message || e2); }
+      setRes({ v: v, busy: false, err: err });
+    };
+    w.addEventListener("message", onMsg);
+    w.postMessage(Object.assign({ id: id }, msg));
+    return () => { dead = true; w.removeEventListener("message", onMsg); };
+  }, deps);
+  return res;
+}
+
+/* ป้ายบอกว่ากำลังคิดอยู่นอกเธรด — ต้องบอกด้วยว่าระหว่างนี้กดอย่างอื่นได้
+   ไม่งั้นผู้ใช้จะนึกว่าค้างเหมือนเดิมแล้วนั่งรอโดยไม่กล้าแตะอะไร */
+function SuBusy({ what }) {
+  return (
+    <div className="p3-card" style={{ gap: 6, padding: "12px 13px" }}>
+      <span className="p3-eb"><P3Icon name="sun" size={12} />กำลังคำนวณ{what ? " — " + what : ""}</span>
+      <span className="p3-note">
+        หลังคาใหญ่ต้องยิงลำแสงจากแผงทุกใบไปหาดวงอาทิตย์ทีละช่วงเวลา งานนี้กินเวลาสิบกว่าวินาที
+        ระบบคิดให้อยู่เบื้องหลัง <b>ระหว่างนี้กดดูขั้นตอนอื่นหรือแก้ค่าต่อได้ตามปกติ</b> ผลจะขึ้นเองเมื่อเสร็จ
+      </span>
+    </div>
+  );
+}
+
 function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   const [step, setStep] = React.useState(0);
   /* ภาพฉาก 3 มิติสำหรับรายงาน — ถ่ายตอนเปิดหน้านี้ ตามมุมกล้องที่ผู้ใช้ตั้งไว้ล่าสุด */
@@ -1531,9 +1624,12 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   const microIndep = isMicro && microSel ? microSel.nSeries <= 1 : false;
   const elecCfg = Object.assign({}, IV_ELEC, { halfCut: hc.half }, S.elec || {});
   const setElec = (p) => set({ elec: Object.assign({}, elecCfg, p) });
-  const shade3d = React.useMemo(() => (use3d && typeof ivShadeAnnual === "function" && groups.length
-    ? ivShadeAnnual(st, idx.byPanel, groups, { lat: st.sun && st.sun.lat, lng: st.sun && st.sun.lng, albedo: S.env && S.env.albedo, elec: elecCfg })
-    : null), [use3d, st, idx, groups, S.env, S.elec, hc.half]);
+  const shadeJob = useSuJob(() => ({ job: "annual", st: st, byPanel: idx.byPanel, groups: groups,
+    opt: { lat: st.sun && st.sun.lat, lng: st.sun && st.sun.lng, albedo: S.env && S.env.albedo, elec: elecCfg } }),
+    [use3d, st, idx, groups, S.env, S.elec, hc.half],
+    use3d && typeof ivShadeAnnual === "function" && groups.length > 0);
+  const shade3d = use3d ? shadeJob.v : null;
+  const shadeBusy = use3d && shadeJob.busy;
   /* ค่าสูญเสีย "แผงไม่เท่ากัน" (mismatch) มาจากการที่ทุกแผงในสตริงถูกบังคับให้ใช้กระแสเท่ากัน
      ใบที่อ่อนกว่าจึงฉุดทั้งสตริง — ไมโครที่ให้ MPPT แผงละช่องไม่มีปัญหานี้ เหลือแค่ความคลาดของตัวแปลงเอง
      (แนวทางเดียวกับที่ PVsyst/อุตสาหกรรมใช้: สตริง ~2% · ไมโคร/ออปติไมเซอร์ ~0.3%) */
@@ -1619,13 +1715,15 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   const stepMonth = (d) => setMonth((isFinite(monthNow) ? monthNow : 6) + d);
   /* ── จำลองทั้งวันอัตโนมัติ: แสง เงา อุณหภูมิ กำลังไฟ ทุก 15 นาที ตั้งแต่เช้าถึงเย็น ──
      ทุกอย่างในขั้นนี้อ่านจากผลจำลองชุดเดียวกัน ตัวเลขบนกราฟกับในตารางจึงตรงกันเสมอ */
-  const sim = React.useMemo(() => (typeof ivDaySim === "function" && groups.length && panel.wp
-    ? ivDaySim(st, panel, groups, idx.byPanel, {
+  const simJob = useSuJob(() => ({ job: "day", st: st, panel: panel, groups: groups, byPanel: idx.byPanel,
+    opt: {
         lat: st.sun && st.sun.lat, lng: st.sun && st.sun.lng, date: siteDate,
         tAmb: site.tAmb, ghi: site.ghi, refHour: site.hour == null ? 12 : site.hour,
         albedo: S.env && S.env.albedo, elec: elecCfg, acKw, invEff: isMicro ? (microSel ? microSel.eff : 96.5) : invEffUse,
-        dcLoss: energy ? 1 - energy.dcLoss / 100 : 0.92 })
-    : null), [st, panel, groups, idx, siteDate, site.tAmb, site.ghi, site.hour, S.env, acKw, S.inv, isMicro, inv.eff, energy && energy.dcLoss, S.elec, hc.half]);
+        dcLoss: energy ? 1 - energy.dcLoss / 100 : 0.92 } }),
+    [st, panel, groups, idx, siteDate, site.tAmb, site.ghi, site.hour, S.env, acKw, S.inv, isMicro, inv.eff, energy && energy.dcLoss, S.elec, hc.half],
+    typeof ivDaySim === "function" && groups.length > 0 && panel.wp > 0);
+  const sim = simJob.v;
   /* เวลาที่ใช้ดู — ถ้ายังไม่ได้เลือกเอง ระบบเลือก "ช่วงที่เหมาะจะออกไปวัดที่สุด" ให้ (แดดแรง ไม่มีเงา) */
   const hourAuto = site.hour == null || site.hour === "";
   const simHour = hourAuto ? (sim ? sim.bestHour : 12) : scNum(site.hour, 12);
@@ -1639,24 +1737,23 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
     dcLoss: energy ? 1 - energy.dcLoss / 100 : 0.92,
   };
   const canYear = typeof ivYearSim === "function" && groups.length > 0 && panel.wp > 0;
-  const year = React.useMemo(() => (step >= 2 && canYear ? ivYearSim(st, panel, groups, idx.byPanel, yearOpt) : null),
-    [step >= 2, st, panel, groups, idx, siteDate.slice(0, 4), site.tAmb, S.env, acKw, S.inv, isMicro, inv.eff, energy && energy.dcLoss, S.elec, hc.half]);
+  const yearJob = useSuJob(() => ({ job: "year", st: st, panel: panel, groups: groups, byPanel: idx.byPanel, opt: yearOpt }),
+    [step >= 2, st, panel, groups, idx, siteDate.slice(0, 4), site.tAmb, S.env, acKw, S.inv, isMicro, inv.eff, energy && energy.dcLoss, S.elec, hc.half],
+    step >= 2 && canYear);
+  const year = yearJob.v;
   /* ── เส้นทางเดินดวงอาทิตย์ + แผนที่เงาบนแกน ทิศ × มุมสูง ──
      เส้นทางเดินขึ้นกับละติจูดอย่างเดียว คิดเร็วมาก · แผนที่เงาต้องยิงลำแสงหลายร้อยทิศ
      จึงคิดต่อเมื่อเปิดมาถึงขั้นนี้จริง ๆ และจำผลไว้จนกว่าผัง 3 มิติจะเปลี่ยน */
   const sunPath = React.useMemo(() => (typeof ivSunPath === "function"
     ? ivSunPath({ lat: st.sun && st.sun.lat, lng: st.sun && st.sun.lng }) : null),
     [st.sun && st.sun.lat, st.sun && st.sun.lng]);
-  const [isoOn, setIsoOn] = React.useState(true);
-  const [isoShade, setIsoShade] = React.useState(null);
-  /* ยิงลำแสงพันกว่าทิศทาง — งานใหญ่ใช้เวลาเกินครึ่งวินาที ถ้าคิดตอน render จอจะค้าง
-     จึงให้การ์ดขึ้นก่อนแล้วค่อยคิดในคิวถัดไป ผู้ใช้เห็นหัวข้อกับคำอธิบายทันที */
-  React.useEffect(() => {
-    if (!(step >= 2 && isoOn && typeof ivIsoShade === "function")) { setIsoShade(null); return; }
-    let dead = false;
-    const t = setTimeout(() => { const r = ivIsoShade(st, {}); if (!dead) setIsoShade(r); }, 30);
-    return () => { dead = true; clearTimeout(t); };
-  }, [step >= 2, isoOn, st]);
+  /* ผังใหญ่ ๆ แผนที่เงารอบทิศใช้เวลาเป็นสิบวินาทีต่อการเปลี่ยนผังหนึ่งครั้ง
+     ไม่เปิดให้เองตั้งแต่แรก ให้ผู้ใช้กดเองเมื่ออยากดู (ปุ่ม "ซ้อนแผนที่เงา" อยู่ข้างกราฟ) */
+  const [isoOn, setIsoOn] = React.useState(() => foot.panels.length <= 1200);
+  /* ยิงลำแสงพันกว่าทิศทาง — งานใหญ่ใช้เวลาหลายวินาที ส่งไปคิดนอกเธรดเช่นกัน */
+  const isoJob = useSuJob(() => ({ job: "iso", st: st, opt: {} }),
+    [step >= 2, isoOn, st], step >= 2 && isoOn && typeof ivIsoShade === "function", "iso");
+  const isoShade = isoOn ? isoJob.v : null;
   const simRow = sim ? sim.rows.reduce((a, r) => (Math.abs(r.h - simHour) < Math.abs(a.h - simHour) ? r : a), sim.rows[0]) : null;
   const shadeAuto = site.shadeAuto !== false;
   /* เงารายแผง ณ เวลาที่ดู — ใช้สร้างเส้น I-V แบบมีขั้นบันไดของสตริงที่โดนบัง */
@@ -2445,6 +2542,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                 )}
 
                 {/* ── จำลองทั้งวันอัตโนมัติ ── */}
+                {!sim && simJob.busy && <SuBusy what="การจำลองแสงและเงาทั้งวัน" />}
                 {sim && (
                   <div className="p3-card">
                     <span className="p3-eb"><P3Icon name="sun" size={13} />จำลองแสงตลอดวัน<span className="ln" />
@@ -2485,6 +2583,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                 )}
 
                 {/* ── ทั้ง 12 เดือน ── */}
+                {!year && yearJob.busy && <SuBusy what="การจำลองทั้ง 12 เดือน" />}
                 {year && (
                   <div className="p3-card">
                     <span className="p3-eb"><P3Icon name="map" size={13} />ทั้งปี 12 เดือน<span className="ln" />
@@ -2884,8 +2983,10 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                 {/* ── เงาบังทั้งปี คำนวณจากโมเดล 3 มิติ ── */}
                 <div className="p3-card">
                   <span className="p3-eb"><P3Icon name="tree" size={13} />เงาบังตลอดทั้งปี<span className="ln" />
-                    <span style={{ fontWeight: 600 }}>{shade3d ? "คำนวณจากโมเดล 3 มิติแล้ว" : "ยังใช้ค่า % ที่กรอกมือ"}</span></span>
-                  {!shade3d ? (
+                    <span style={{ fontWeight: 600 }}>{shadeBusy ? "กำลังคำนวณเงาทั้งปี…" : shade3d ? "คำนวณจากโมเดล 3 มิติแล้ว" : "ยังใช้ค่า % ที่กรอกมือ"}</span></span>
+                  {shadeBusy && !shade3d ? (
+                    <SuBusy what="เงาบังทั้งปีจากโมเดล 3 มิติ" />
+                  ) : !shade3d ? (
                     <React.Fragment>
                       <span className="p3-note" style={{ marginTop: -2 }}>
                         ตอนนี้ปิดการคิดเงาจากโมเดลไว้ ใช้ % ที่กรอกเองด้านล่างแทน
@@ -3686,4 +3787,4 @@ function SolarDesignHost({ job, onClose }) {
   );
 }
 
-Object.assign(window, { suBlankSys, SolarWorkspace, SolarDesignHost, SuVoltBand, SuFacing, SU_CSS });
+Object.assign(window, { suBlankSys, suWorker, useSuJob, SuBusy, SolarWorkspace, SolarDesignHost, SuVoltBand, SuFacing, SU_CSS });

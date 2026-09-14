@@ -868,16 +868,21 @@ function ivShadeGrid(B, dir) {
     vz = dir.x * uy - dir.y * ux;
   let med = 0;
   for (let k = 0; k < B.length; k++) med += B[k].br || 0;
-  const cell = Math.max(0.5, Math.min(6, (B.length ? med / B.length : 1) * 2));
+  const cell = Math.max(0.5, Math.min(6, (B.length ? med / B.length : 1) * 0.6));
   const big = [],
     map = new Map();
+  const SPREAD = 40000;
+  let budget = 900000;
   for (let k = 0; k < B.length; k++) {
     const b = B[k],
       br = b.br || 0;
-    if (br > cell * 6) {
+    const span = Math.floor(2 * br / cell) + 2;
+    const need = span * span;
+    if (need > SPREAD || need > budget) {
       big.push(b);
       continue;
     }
+    budget -= need;
     const cu = b.bc.x * ux + b.bc.y * uy + b.bc.z * uz;
     const cv = b.bc.x * vx + b.bc.y * vy + b.bc.z * vz;
     const i0 = Math.floor((cu - br) / cell),
