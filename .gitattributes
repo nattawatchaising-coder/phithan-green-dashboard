@@ -2,3 +2,6 @@
 # ถ้าปล่อยให้ git แปลงเป็น CRLF บน Windows ทุกครั้งที่ build เสร็จ
 # git status จะขึ้นว่าแก้ครบ 44 ไฟล์ทั้งที่โค้ดไม่ได้เปลี่ยนอะไรเลย
 dashboard/build/** text eol=lf
+
+# สคริปต์ hook ต้องเป็น LF เสมอ — ถ้ากลายเป็น CRLF บน Windows จะรันไม่ออก (bad interpreter)
+.githooks/** text eol=lf
