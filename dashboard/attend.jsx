@@ -103,6 +103,12 @@ const TM_WH_DEFAULT = {
      บริษัทตกลงกับพนักงานสูงกว่ากฎหมายได้ จึงต้องแก้ได้ทุกช่อง
      ระบบใช้ตัวคูณนี้คิดแค่ "ชั่วโมงคิดค่าแรง" ไม่ได้คิดเป็นเงิน เพราะอัตราค่าจ้างรายคนไม่ได้อยู่ในระบบนี้ */
   otRates: { ot: 1.5, holiday: 2, holidayOt: 3, night: 1.5 },
+  /* ── พิกัดออฟฟิศ ──
+     มีไว้ตอบคำถามเดียว: คนที่กด "ออฟฟิศ" ตอนนั้นอยู่ห่างออฟฟิศเท่าไร
+     lat/lng = null แปลว่ายังไม่ได้ตั้ง ระบบจะไม่โชว์ระยะเลย ไม่ใช่โชว์ระยะจากจุด 0,0
+     radius คือรัศมีที่ถือว่า "อยู่ที่ออฟฟิศ" ใช้แค่ระบายสีให้ดูง่าย **ไม่เคยใช้บล็อกการลงเวลา**
+     เพราะ GPS ในอาคารคลาดเคลื่อนได้เป็นร้อยเมตร คนมาทำงานจริงจะกดเข้างานไม่ได้ */
+  office: { name: "", lat: null, lng: null, radius: 150 },
 };
 function tmWhNorm(cfg) {
   const c = Object.assign({}, TM_WH_DEFAULT, cfg || {});
@@ -133,6 +139,13 @@ function tmWhNorm(cfg) {
     rates[k.key] = v === 0 ? 0 : Math.min(10, Math.max(0, +v || TM_WH_DEFAULT.otRates[k.key] || 1));
   });
   c.otRates = rates;
+  /* พิกัดออฟฟิศ: ค่าที่กรอกมั่วต้องกลายเป็น "ยังไม่ได้ตั้ง" ไม่ใช่พิกัดกลางมหาสมุทร */
+  const of = c.office && typeof c.office === "object" ? c.office : {};
+  const num = (v) => (v === 0 || (v && isFinite(+v)) ? +v : null);
+  c.office = { name: String(of.name || "").slice(0, 60), lat: num(of.lat), lng: num(of.lng),
+    radius: Math.min(5000, Math.max(20, Math.round(+of.radius || TM_WH_DEFAULT.office.radius))) };
+  if (c.office.lat == null || c.office.lng == null
+    || Math.abs(c.office.lat) > 90 || Math.abs(c.office.lng) > 180) { c.office.lat = null; c.office.lng = null; }
   if (tmHM(c.startEarly) == null) c.startEarly = TM_WH_DEFAULT.startEarly;
   if (tmHM(c.startLate) == null || tmHM(c.startLate) < tmHM(c.startEarly)) c.startLate = c.startEarly;
   /* start/end เป็นค่า "อนุมาน" ของวันที่ยังไม่มีใบลงเวลา — ของวันที่มีใบจริงให้ใช้ tmDayWindow
@@ -436,6 +449,30 @@ function tmGpsTH(pt) {
   if (!p.at) return "";
   return TM_GPS_ERR[p.err] || "ไม่มีพิกัด";
 }
+/* ── ระยะระหว่างสองพิกัด เป็นเมตร (haversine) ──
+   ไม่ได้ใช้ไลบรารีแผนที่ เพราะต้องใช้ได้ทั้งบนหน้าจอและตอนสร้างไฟล์ Excel
+   ระยะไม่กี่กิโลเมตรบนโลกทรงกลมคลาดเคลื่อนน้อยกว่าความแม่นของ GPS เองอยู่แล้ว */
+function tmDistM(a, b) {
+  if (!a || !b || a.lat == null || a.lng == null || b.lat == null || b.lng == null) return null;
+  const rad = Math.PI / 180, R = 6371000;
+  const dLat = (+b.lat - +a.lat) * rad, dLng = (+b.lng - +a.lng) * rad;
+  const sLat = Math.sin(dLat / 2), sLng = Math.sin(dLng / 2);
+  const h = sLat * sLat + Math.cos(+a.lat * rad) * Math.cos(+b.lat * rad) * sLng * sLng;
+  return Math.round(2 * R * Math.asin(Math.min(1, Math.sqrt(h))));
+}
+/* ห่างจากออฟฟิศเท่าไร — คืน null เมื่อยังไม่ได้ตั้งพิกัดออฟฟิศ หรือการปั๊มครั้งนั้นไม่มีพิกัด
+   null กับ 0 ต้องแยกกันให้ขาด: null = ไม่รู้ · 0 = อยู่ตรงนั้นพอดี */
+function tmOfficeDist(pt, cfg) {
+  const o = tmWhNorm(cfg).office;
+  if (o.lat == null || o.lng == null) return null;
+  return tmDistM(pt, o);
+}
+const tmOfficeNear = (pt, cfg) => {
+  const d = tmOfficeDist(pt, cfg);
+  return d == null ? null : d <= tmWhNorm(cfg).office.radius;
+};
+const tmDistTH = (m) => (m == null ? "" : m < 1000 ? m + " ม." : (Math.round(m / 100) / 10) + " กม.");
+
 /* ลิงก์แผนที่ — เปิดจาก Excel ได้เลย ไม่ต้องก๊อปตัวเลขไปวาง
    ใช้ query ธรรมดา ไม่ใช่ API key เพราะไฟล์นี้ออกจากเครื่องบริษัทไปที่ไหนก็ได้ */
 const tmGpsUrl = (pt) => (pt && pt.lat != null && pt.lng != null
@@ -447,6 +484,11 @@ const tmDayIndex = (rec, cfg) => ({
   in: (rec.in && rec.in.hm) || "", out: (rec.out && rec.out.hm) || "",
   mins: tmWorkedMins(rec, cfg),
   gps: !!(rec.in && rec.in.lat), jobCode: rec.jobCode || "",
+  /* เก็บพิกัดตอนเข้าไว้ในดัชนีด้วย (สองตัวเลข) — แผ่นรายวันจะได้บอกระยะห่างจากออฟฟิศได้
+     โดยไม่ต้องลงไปอ่านใบเต็มของทุกคน ซึ่งเป็นเหตุผลที่ดัชนีนี้มีอยู่ตั้งแต่แรก
+     ใบเก่าที่ปั๊มก่อนรุ่นนี้จะไม่มีสองช่องนี้ หน้าจอต้องรับค่าว่างได้ ไม่ใช่ขึ้น 0 */
+  lat: (rec.in && rec.in.lat) != null ? rec.in.lat : null,
+  lng: (rec.in && rec.in.lng) != null ? rec.in.lng : null,
   place: (rec.in && rec.in.place) || rec.place || "",
 });
 
@@ -944,7 +986,7 @@ Object.assign(window, { tmNameOf,
   tmOtKindOf, tmOtKindGuess, tmOtMinutes, tmDayWindow, tmOtEarned, tmOtInLimit, tmLastHM,
   tmOtRate, tmOtPayMins, tmRateTH,
   tmWorkedMins, tmOpen, tmAttendBlank, tmPunch, tmDayIndex, tmPlaceOf,
-  TM_GPS_ERR, tmGpsTH, tmGpsUrl,
+  TM_GPS_ERR, tmGpsTH, tmGpsUrl, tmDistM, tmOfficeDist, tmOfficeNear, tmDistTH,
   tmOtStatusOf, tmOtOpen, tmCanAttend, tmCanAttendAll, tmCanOt, tmCanOtApprove,
   tmOtApproveCheck, tmOtNext, tmOtMove, tmOtDocNo, tmOtBlank, tmOtVisible, tmOtRollup,
   tmOtApprovers, tmOtPickApprover,

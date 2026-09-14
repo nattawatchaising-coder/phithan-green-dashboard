@@ -53,6 +53,12 @@ const TM_WH_DEFAULT = {
     holiday: 2,
     holidayOt: 3,
     night: 1.5
+  },
+  office: {
+    name: "",
+    lat: null,
+    lng: null,
+    radius: 150
   }
 };
 function tmWhNorm(cfg) {
@@ -77,6 +83,18 @@ function tmWhNorm(cfg) {
     rates[k.key] = v === 0 ? 0 : Math.min(10, Math.max(0, +v || TM_WH_DEFAULT.otRates[k.key] || 1));
   });
   c.otRates = rates;
+  const of = c.office && typeof c.office === "object" ? c.office : {};
+  const num = v => v === 0 || v && isFinite(+v) ? +v : null;
+  c.office = {
+    name: String(of.name || "").slice(0, 60),
+    lat: num(of.lat),
+    lng: num(of.lng),
+    radius: Math.min(5000, Math.max(20, Math.round(+of.radius || TM_WH_DEFAULT.office.radius)))
+  };
+  if (c.office.lat == null || c.office.lng == null || Math.abs(c.office.lat) > 90 || Math.abs(c.office.lng) > 180) {
+    c.office.lat = null;
+    c.office.lng = null;
+  }
   if (tmHM(c.startEarly) == null) c.startEarly = TM_WH_DEFAULT.startEarly;
   if (tmHM(c.startLate) == null || tmHM(c.startLate) < tmHM(c.startEarly)) c.startLate = c.startEarly;
   c.start = c.startEarly;
@@ -378,6 +396,27 @@ function tmGpsTH(pt) {
   if (!p.at) return "";
   return TM_GPS_ERR[p.err] || "ไม่มีพิกัด";
 }
+function tmDistM(a, b) {
+  if (!a || !b || a.lat == null || a.lng == null || b.lat == null || b.lng == null) return null;
+  const rad = Math.PI / 180,
+    R = 6371000;
+  const dLat = (+b.lat - +a.lat) * rad,
+    dLng = (+b.lng - +a.lng) * rad;
+  const sLat = Math.sin(dLat / 2),
+    sLng = Math.sin(dLng / 2);
+  const h = sLat * sLat + Math.cos(+a.lat * rad) * Math.cos(+b.lat * rad) * sLng * sLng;
+  return Math.round(2 * R * Math.asin(Math.min(1, Math.sqrt(h))));
+}
+function tmOfficeDist(pt, cfg) {
+  const o = tmWhNorm(cfg).office;
+  if (o.lat == null || o.lng == null) return null;
+  return tmDistM(pt, o);
+}
+const tmOfficeNear = (pt, cfg) => {
+  const d = tmOfficeDist(pt, cfg);
+  return d == null ? null : d <= tmWhNorm(cfg).office.radius;
+};
+const tmDistTH = m => m == null ? "" : m < 1000 ? m + " ม." : Math.round(m / 100) / 10 + " กม.";
 const tmGpsUrl = pt => pt && pt.lat != null && pt.lng != null ? "https://www.google.com/maps?q=" + (+pt.lat).toFixed(6) + "," + (+pt.lng).toFixed(6) : "";
 const tmDayIndex = (rec, cfg) => ({
   userId: rec.userId,
@@ -388,6 +427,8 @@ const tmDayIndex = (rec, cfg) => ({
   mins: tmWorkedMins(rec, cfg),
   gps: !!(rec.in && rec.in.lat),
   jobCode: rec.jobCode || "",
+  lat: (rec.in && rec.in.lat) != null ? rec.in.lat : null,
+  lng: (rec.in && rec.in.lng) != null ? rec.in.lng : null,
   place: rec.in && rec.in.place || rec.place || ""
 });
 const TM_OT_STATUS = [{
@@ -976,6 +1017,10 @@ Object.assign(window, {
   TM_GPS_ERR,
   tmGpsTH,
   tmGpsUrl,
+  tmDistM,
+  tmOfficeDist,
+  tmOfficeNear,
+  tmDistTH,
   tmOtStatusOf,
   tmOtOpen,
   tmCanAttend,

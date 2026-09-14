@@ -103,6 +103,45 @@ function TmDaySheet({
   const admin = window.useAttendAdmin(currentUser);
   const [msg, setMsg] = React.useState("");
   const nameOf = r => window.tmNameOf(users, r.userId, r.name);
+  const gpsCell = r => {
+    if (!r.gps) return React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        color: "#F59E0B",
+        fontWeight: 700
+      }
+    }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14");
+    const ok = React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        color: "#10B981",
+        fontWeight: 700
+      }
+    }, "\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14");
+    if (r.lat == null || r.lng == null) return ok;
+    const d = window.tmOfficeDist(r, cfg);
+    const link = kid => React.createElement("a", {
+      href: window.tmGpsUrl(r),
+      target: "_blank",
+      rel: "noreferrer",
+      title: "พิกัดตอนเข้างาน " + window.tmGpsTH(r),
+      style: {
+        fontSize: 11.5,
+        fontWeight: 700,
+        textDecoration: "none"
+      }
+    }, kid);
+    if (d == null) return link(ok);
+    const near = d <= window.tmWhNorm(cfg).office.radius;
+    const office = r.place === "office";
+    const color = !office ? "var(--text-3)" : near ? "#10B981" : "#EF4444";
+    const txt = office ? (near ? "ถึงออฟฟิศ · " : "ห่างออฟฟิศ ") + window.tmDistTH(d) : "ห่างออฟฟิศ " + window.tmDistTH(d);
+    return link(React.createElement("span", {
+      style: {
+        color: color
+      }
+    }, txt));
+  };
   const del = async r => {
     const ok = await window.askConfirm({
       title: "ลบใบลงเวลาของ " + nameOf(r) + "?",
@@ -232,7 +271,7 @@ function TmDaySheet({
     style: {
       background: "var(--surface2)"
     }
-  }, ["ชื่อ", "เข้า", "ออก", "ชั่วโมง", "งานที่แจ้ง", "พิกัด", ""].map((h, i) => React.createElement("th", {
+  }, ["ชื่อ", "เข้า", "ออก", "ชั่วโมง", "งานที่แจ้ง", "พิกัด / ห่างจากออฟฟิศ", ""].map((h, i) => React.createElement("th", {
     key: i,
     style: {
       textAlign: i >= 1 && i <= 3 ? "center" : "left",
@@ -306,19 +345,7 @@ function TmDaySheet({
     style: {
       padding: "9px 13px"
     }
-  }, r.gps ? React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      color: "#10B981",
-      fontWeight: 700
-    }
-  }, "\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14") : React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      color: "#F59E0B",
-      fontWeight: 700
-    }
-  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14")), React.createElement("td", {
+  }, gpsCell(r)), React.createElement("td", {
     style: {
       padding: "9px 13px",
       textAlign: "right"
@@ -369,7 +396,7 @@ function TmDaySheet({
       color: "var(--text-3)",
       lineHeight: 1.7
     }
-  }, "\u0E1B\u0E38\u0E48\u0E21 \u201C\u0E25\u0E1A\u201D \u0E25\u0E1A\u0E43\u0E1A\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E02\u0E2D\u0E07\u0E27\u0E31\u0E19\u0E19\u0E31\u0E49\u0E19\u0E17\u0E31\u0E49\u0E07\u0E43\u0E1A \u0E41\u0E25\u0E49\u0E27\u0E43\u0E2B\u0E49\u0E40\u0E08\u0E49\u0E32\u0E15\u0E31\u0E27\u0E01\u0E14\u0E40\u0E02\u0E49\u0E32-\u0E2D\u0E2D\u0E01\u0E43\u0E2B\u0E21\u0E48 \u2014 \u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E01\u0E47\u0E1A\u0E2A\u0E33\u0E40\u0E19\u0E32\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E25\u0E1A\u0E44\u0E27\u0E49\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E0A\u0E37\u0E48\u0E2D\u0E04\u0E19\u0E25\u0E1A \u0E40\u0E1C\u0E37\u0E48\u0E2D\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E42\u0E15\u0E49\u0E40\u0E16\u0E35\u0E22\u0E07\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E15\u0E2D\u0E19\u0E2A\u0E34\u0E49\u0E19\u0E40\u0E14\u0E37\u0E2D\u0E19", React.createElement("br", null), "\u0E0A\u0E48\u0E2D\u0E07 \u201C\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E41\u0E08\u0E49\u0E07\u201D \u0E04\u0E37\u0E2D\u0E2A\u0E34\u0E48\u0E07\u0E17\u0E35\u0E48\u0E1C\u0E39\u0E49\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E2D\u0E07 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E15\u0E23\u0E27\u0E08\u0E27\u0E48\u0E32\u0E2D\u0E22\u0E39\u0E48\u0E17\u0E35\u0E48\u0E44\u0E0B\u0E15\u0E4C\u0E19\u0E31\u0E49\u0E19\u0E08\u0E23\u0E34\u0E07\u0E2B\u0E23\u0E37\u0E2D\u0E44\u0E21\u0E48 \u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E44\u0E0B\u0E15\u0E4C\u0E17\u0E35\u0E48\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E16\u0E37\u0E2D\u0E44\u0E14\u0E49\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A \u0E08\u0E36\u0E07\u0E40\u0E17\u0E35\u0E22\u0E1A\u0E23\u0E30\u0E22\u0E30\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49", React.createElement("br", null), "\u201C\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14\u201D \u0E40\u0E01\u0E34\u0E14\u0E44\u0E14\u0E49\u0E17\u0E31\u0E49\u0E07\u0E08\u0E32\u0E01\u0E1B\u0E34\u0E14\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07 \u0E2A\u0E31\u0E0D\u0E0D\u0E32\u0E13\u0E44\u0E21\u0E48\u0E16\u0E36\u0E07 \u0E2B\u0E23\u0E37\u0E2D\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E2D\u0E32\u0E04\u0E32\u0E23 \u2014 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E40\u0E04\u0E22\u0E1A\u0E25\u0E47\u0E2D\u0E01\u0E01\u0E32\u0E23\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E14\u0E49\u0E27\u0E22\u0E40\u0E2B\u0E15\u0E38\u0E19\u0E35\u0E49"));
+  }, "\u0E1B\u0E38\u0E48\u0E21 \u201C\u0E25\u0E1A\u201D \u0E25\u0E1A\u0E43\u0E1A\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E02\u0E2D\u0E07\u0E27\u0E31\u0E19\u0E19\u0E31\u0E49\u0E19\u0E17\u0E31\u0E49\u0E07\u0E43\u0E1A \u0E41\u0E25\u0E49\u0E27\u0E43\u0E2B\u0E49\u0E40\u0E08\u0E49\u0E32\u0E15\u0E31\u0E27\u0E01\u0E14\u0E40\u0E02\u0E49\u0E32-\u0E2D\u0E2D\u0E01\u0E43\u0E2B\u0E21\u0E48 \u2014 \u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E01\u0E47\u0E1A\u0E2A\u0E33\u0E40\u0E19\u0E32\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E25\u0E1A\u0E44\u0E27\u0E49\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E0A\u0E37\u0E48\u0E2D\u0E04\u0E19\u0E25\u0E1A \u0E40\u0E1C\u0E37\u0E48\u0E2D\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E42\u0E15\u0E49\u0E40\u0E16\u0E35\u0E22\u0E07\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E15\u0E2D\u0E19\u0E2A\u0E34\u0E49\u0E19\u0E40\u0E14\u0E37\u0E2D\u0E19", React.createElement("br", null), "\u0E0A\u0E48\u0E2D\u0E07 \u201C\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E41\u0E08\u0E49\u0E07\u201D \u0E04\u0E37\u0E2D\u0E2A\u0E34\u0E48\u0E07\u0E17\u0E35\u0E48\u0E1C\u0E39\u0E49\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E2D\u0E07 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E15\u0E23\u0E27\u0E08\u0E27\u0E48\u0E32\u0E2D\u0E22\u0E39\u0E48\u0E17\u0E35\u0E48\u0E44\u0E0B\u0E15\u0E4C\u0E19\u0E31\u0E49\u0E19\u0E08\u0E23\u0E34\u0E07\u0E2B\u0E23\u0E37\u0E2D\u0E44\u0E21\u0E48 \u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E44\u0E0B\u0E15\u0E4C\u0E17\u0E35\u0E48\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E16\u0E37\u0E2D\u0E44\u0E14\u0E49\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A \u0E08\u0E36\u0E07\u0E40\u0E17\u0E35\u0E22\u0E1A\u0E23\u0E30\u0E22\u0E30\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49", React.createElement("br", null), "\u201C\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14\u201D \u0E40\u0E01\u0E34\u0E14\u0E44\u0E14\u0E49\u0E17\u0E31\u0E49\u0E07\u0E08\u0E32\u0E01\u0E1B\u0E34\u0E14\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07 \u0E2A\u0E31\u0E0D\u0E0D\u0E32\u0E13\u0E44\u0E21\u0E48\u0E16\u0E36\u0E07 \u0E2B\u0E23\u0E37\u0E2D\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E2D\u0E32\u0E04\u0E32\u0E23 \u2014 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E40\u0E04\u0E22\u0E1A\u0E25\u0E47\u0E2D\u0E01\u0E01\u0E32\u0E23\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E14\u0E49\u0E27\u0E22\u0E40\u0E2B\u0E15\u0E38\u0E19\u0E35\u0E49", React.createElement("br", null), "\u0E23\u0E30\u0E22\u0E30\u0E2B\u0E48\u0E32\u0E07\u0E08\u0E32\u0E01\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E17\u0E35\u0E48\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49\u0E43\u0E19\u0E2B\u0E19\u0E49\u0E32 \u201C\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E40\u0E27\u0E25\u0E32\u0E17\u0E33\u0E07\u0E32\u0E19\u201D \u0E40\u0E17\u0E35\u0E22\u0E1A\u0E01\u0E31\u0E1A\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07\u0E15\u0E2D\u0E19\u0E01\u0E14\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19 \u2014 \u0E02\u0E36\u0E49\u0E19\u0E2A\u0E35\u0E41\u0E14\u0E07\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E04\u0E19\u0E17\u0E35\u0E48\u0E01\u0E14 \u201C\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u201D \u0E41\u0E15\u0E48\u0E2D\u0E22\u0E39\u0E48\u0E19\u0E2D\u0E01\u0E23\u0E31\u0E28\u0E21\u0E35 \u0E2A\u0E48\u0E27\u0E19\u0E07\u0E32\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E44\u0E0B\u0E15\u0E4C\u0E2B\u0E48\u0E32\u0E07\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u0E40\u0E1B\u0E47\u0E19\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E1B\u0E01\u0E15\u0E34", React.createElement("br", null), "\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E1B\u0E31\u0E4A\u0E21\u0E01\u0E48\u0E2D\u0E19\u0E23\u0E38\u0E48\u0E19\u0E17\u0E35\u0E48\u0E40\u0E01\u0E47\u0E1A\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E25\u0E07\u0E14\u0E31\u0E0A\u0E19\u0E35\u0E08\u0E30\u0E02\u0E36\u0E49\u0E19\u0E27\u0E48\u0E32 \u201C\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14\u201D \u0E40\u0E09\u0E22 \u0E46 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E30\u0E22\u0E30 \u2014 \u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E43\u0E1A\u0E40\u0E15\u0E47\u0E21 \u0E14\u0E39\u0E44\u0E14\u0E49\u0E08\u0E32\u0E01\u0E44\u0E1F\u0E25\u0E4C Excel"));
 }
 function TmMonth({
   cfg,
@@ -999,7 +1026,8 @@ function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
   };
   const H = m => !m ? 0 : Math.round(m / 60 * 100) / 100;
   const name = person.name || person.userId;
-  const lastC = 11;
+  const office = window.tmWhNorm(cfg).office;
+  const lastC = 12;
   const aoa = [],
     merges = [],
     meta = [],
@@ -1043,11 +1071,11 @@ function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
       payApproved += window.tmOtPayMins(o, cfg);
     } else otWaiting += m;
   });
-  push(["วันที่ลงเวลา", person.days || 0, "ชั่วโมงรวม", H(person.mins), "OT อนุมัติแล้ว", H(otApproved), "ชม.คิดค่าแรง", H(payApproved), "ลืมกดออกงาน", person.noOut || 0, "ไม่มีพิกัด", person.noGps || 0], "kv", 21);
+  push(["วันที่ลงเวลา", person.days || 0, "ชั่วโมงรวม", H(person.mins), "OT อนุมัติแล้ว", H(otApproved), "ชม.คิดค่าแรง", H(payApproved), "ลืมกดออกงาน", person.noOut || 0, "ไม่มีพิกัด", person.noGps || 0, ""], "kv", 21);
   push([], "spacer", 8);
   push(["รายวัน — เวลาเข้า-ออก และตำแหน่งตอนปั๊ม"], "sec", 22);
   full(R - 1);
-  push(["วันที่", "วัน", "เข้า", "ออก", "รวม (ชม.)", "ที่ทำงาน", "งานที่แจ้ง", "พิกัดตอนเข้า", "พิกัดตอนออก", "แผนที่", "OT วันนี้ (ชม.)", "OT ประเภท / เรื่องที่ทำ"], "head", 28);
+  push(["วันที่", "วัน", "เข้า", "ออก", "รวม (ชม.)", "ที่ทำงาน", "งานที่แจ้ง", "พิกัดตอนเข้า", "พิกัดตอนออก", "ห่างจากออฟฟิศ", "แผนที่", "OT วันนี้ (ชม.)", "OT ประเภท / เรื่องที่ทำ"], "head", 28);
   const dayStart = R;
   let alt = false,
     shown = 0;
@@ -1063,15 +1091,15 @@ function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
     const otTxt = ots.map(o => window.tmOtKindOf(o.kind).th + (o.reason ? " — " + o.reason : "") + (o.status === "approved" ? "" : " (" + window.tmOtStatusOf(o.status).th + ")")).join(" · ");
     const place = idx && idx.place || rec && (rec.in && rec.in.place || rec.place) || "";
     const hm = (x, k) => x && x.hm || idx && idx[k] || "";
-    push([window.drDateTH(d), TM_DOW_TH[new Date(d + "T00:00:00").getDay()], hm(IN, "in"), hm(OUT, "out"), rec || idx ? H(rec ? window.tmWorkedMins(rec, cfg) : idx && idx.mins || 0) : "", place ? window.tmPlaceOf(place).th : "", rec && rec.jobCode || idx && idx.jobCode || "", window.tmGpsTH(IN), window.tmGpsTH(OUT), window.tmGpsUrl(IN) ? "เปิดแผนที่" : "", otMins ? H(otMins) : "", otTxt], alt ? "itemAlt" : "item", 19);
-    if (window.tmGpsUrl(IN)) links[R - 1 + ":9"] = window.tmGpsUrl(IN);
+    push([window.drDateTH(d), TM_DOW_TH[new Date(d + "T00:00:00").getDay()], hm(IN, "in"), hm(OUT, "out"), rec || idx ? H(rec ? window.tmWorkedMins(rec, cfg) : idx && idx.mins || 0) : "", place ? window.tmPlaceOf(place).th : "", rec && rec.jobCode || idx && idx.jobCode || "", window.tmGpsTH(IN), window.tmGpsTH(OUT), window.tmDistTH(window.tmOfficeDist(IN, cfg)), window.tmGpsUrl(IN) ? "เปิดแผนที่" : "", otMins ? H(otMins) : "", otTxt], alt ? "itemAlt" : "item", 19);
+    if (window.tmGpsUrl(IN)) links[R - 1 + ":10"] = window.tmGpsUrl(IN);
     alt = !alt;
   });
   if (!shown) {
     push(["เดือนนี้ไม่มีใบลงเวลาเลย"], "muted", 20);
     full(R - 1);
   } else {
-    push(["รวมทั้งเดือน", "", "", "", H(person.mins), "", "", "", "", "", H(otApproved), "ชั่วโมง OT ที่อนุมัติแล้ว"], "total", 24);
+    push(["รวมทั้งเดือน", "", "", "", H(person.mins), "", "", "", "", "", "", H(otApproved), "ชั่วโมง OT ที่อนุมัติแล้ว"], "total", 24);
     merges.push({
       s: {
         r: R - 1,
@@ -1089,14 +1117,14 @@ function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
       },
       e: {
         r: R - 1,
-        c: 9
+        c: 10
       }
     });
   }
   push([], "spacer", 10);
   push(["ใบขออนุมัติทำงานล่วงเวลา (OT) ในเดือนนี้"], "sec", 22);
   full(R - 1);
-  push(["ลำดับ", "วันที่", "ตั้งแต่", "ถึง", "รวม (ชม.)", "ประเภท", "อัตรา", "ชม.คิดค่าแรง", "งาน", "ปฏิบัติหน้าที่", "สถานะในระบบ", "ผู้อนุมัติในระบบ"], "head", 28);
+  push(["ลำดับ", "วันที่", "ตั้งแต่", "ถึง", "รวม (ชม.)", "ประเภท", "อัตรา", "ชม.คิดค่าแรง", "งาน", "ปฏิบัติหน้าที่", "สถานะในระบบ", "ผู้อนุมัติในระบบ", ""], "head", 28);
   const otStart = R;
   if (!list.length) {
     push(["เดือนนี้ไม่มีใบ OT ที่ส่งขออนุมัติ"], "muted", 20);
@@ -1106,11 +1134,11 @@ function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
   list.forEach((o, i) => {
     const mins = +o.mins || 0;
     const rt = window.tmOtRate(o, cfg);
-    push([i + 1, window.drDateTH(o.date), o.from || "", o.to || "", H(mins), window.tmOtKindOf(o.kind).th, rt, H(mins * rt), o.jobCode || "—", o.reason || "", window.tmOtStatusOf(o.status).th, o.approverName || "—"], alt ? "itemAlt2" : "item2", 19);
+    push([i + 1, window.drDateTH(o.date), o.from || "", o.to || "", H(mins), window.tmOtKindOf(o.kind).th, rt, H(mins * rt), o.jobCode || "—", o.reason || "", window.tmOtStatusOf(o.status).th, o.approverName || "—", ""], alt ? "itemAlt2" : "item2", 19);
     alt = !alt;
   });
   if (list.length) {
-    push(["รวมที่อนุมัติแล้วในระบบ", "", "", "", H(otApproved), "ชั่วโมง", "", H(payApproved), "ชม.คิดค่าแรง", "", "", ""], "total2", 24);
+    push(["รวมที่อนุมัติแล้วในระบบ", "", "", "", H(otApproved), "ชั่วโมง", "", H(payApproved), "ชม.คิดค่าแรง", "", "", "", ""], "total2", 24);
     merges.push({
       s: {
         r: R - 1,
@@ -1131,7 +1159,7 @@ function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
         c: lastC
       }
     });
-    push(["ยังรออนุมัติในระบบ", "", "", "", H(otWaiting), "ชั่วโมง", "", "", "ต้องกดอนุมัติในระบบก่อนจึงจะนับเป็นยอดจ่าย", "", "", ""], otWaiting ? "warnRow" : "muted2", 22);
+    push(["ยังรออนุมัติในระบบ", "", "", "", H(otWaiting), "ชั่วโมง", "", "", "ต้องกดอนุมัติในระบบก่อนจึงจะนับเป็นยอดจ่าย", "", "", "", ""], otWaiting ? "warnRow" : "muted2", 22);
     merges.push({
       s: {
         r: R - 1,
@@ -1186,14 +1214,16 @@ function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
       }
     });
   };
-  push(["ลงชื่อผู้ปฏิบัติงาน ....................................", "", "", "", "ลงชื่อหัวหน้างานผู้อนุมัติ ....................................", "", "", "", "ลงชื่อฝ่ายบุคคล / ผู้ตรวจสอบ ....................................", "", "", ""], "sign", 34);
+  push(["ลงชื่อผู้ปฏิบัติงาน ....................................", "", "", "", "ลงชื่อหัวหน้างานผู้อนุมัติ ....................................", "", "", "", "ลงชื่อฝ่ายบุคคล / ผู้ตรวจสอบ ....................................", "", "", "", ""], "sign", 34);
   sign3(R - 1);
-  push(["(" + name + ")", "", "", "", "(....................................)  วันที่ ......./......./.......", "", "", "", "(....................................)  วันที่ ......./......./.......", "", "", ""], "signSub", 22);
+  push(["(" + name + ")", "", "", "", "(....................................)  วันที่ ......./......./.......", "", "", "", "(....................................)  วันที่ ......./......./.......", "", "", "", ""], "signSub", 22);
   sign3(R - 1);
   push([], "spacer", 8);
   push(["พิกัดคือตำแหน่งของ “เครื่องที่กดปั๊ม” ตอนกด ไม่ใช่การยืนยันว่าอยู่ที่ไซต์นั้นจริง — ระบบยังไม่มีพิกัดไซต์ให้เทียบระยะ"], "foot", 16);
   full(R - 1);
   push(["ช่องพิกัดที่ว่างหรือขึ้นเหตุผล แปลว่าจับพิกัดไม่ได้ตอนนั้น ระบบไม่เคยบล็อกการลงเวลาด้วยเหตุนี้"], "foot", 16);
+  full(R - 1);
+  push([office.lat != null ? "ระยะวัดจากพิกัดออฟฟิศที่ตั้งไว้ " + (office.name ? office.name + " " : "") + (+office.lat).toFixed(6) + ", " + (+office.lng).toFixed(6) + " (รัศมีที่ถือว่าถึงออฟฟิศ " + office.radius + " ม.)" : "ยังไม่ได้ตั้งพิกัดออฟฟิศในระบบ ช่อง “ห่างจากออฟฟิศ” จึงว่างทั้งคอลัมน์"], "foot", 16);
   full(R - 1);
   push(["เวลาในใบ OT เป็นเวลาที่ผู้ขอกรอกเอง ไม่ใช่เวลาที่ระบบจับได้ — เทียบกับตารางรายวันข้างบนได้"], "foot", 16);
   full(R - 1);
@@ -1219,6 +1249,8 @@ function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
     wch: 19
   }, {
     wch: 19
+  }, {
+    wch: 14
   }, {
     wch: 11
   }, {
@@ -1373,7 +1405,7 @@ function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
         vertical: "center"
       };
       s2.border = boxAll;
-      if (c === 4 || t === "total" && c === 10 || t === "total2" && c === 7) s2.numFmt = "0.00";
+      if (c === 4 || t === "total" && c === 11 || t === "total2" && c === 7) s2.numFmt = "0.00";
     } else if (t === "warnRow") {
       s2.font = {
         name: FONT,
@@ -1450,7 +1482,7 @@ function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
         }
       };
       s2.border = boxAll;
-      const wrapCol = two ? 9 : 11;
+      const wrapCol = two ? 9 : 12;
       if (c === wrapCol) s2.alignment = {
         horizontal: "left",
         vertical: "center",
@@ -1467,7 +1499,7 @@ function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
       if (c === 4) s2.numFmt = "0.00";
       if (two && c === 7) s2.numFmt = "0.00";
       if (two && c === 6) s2.numFmt = '0.##" เท่า"';
-      if (!two && c === 10 && aoa[r][c]) {
+      if (!two && c === 11 && aoa[r][c]) {
         s2.numFmt = "0.00";
         s2.font = {
           name: FONT,
@@ -1478,7 +1510,7 @@ function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
           }
         };
       }
-      if (!two && (c === 7 || c === 8)) s2.font = {
+      if (!two && (c === 7 || c === 8 || c === 9)) s2.font = {
         name: "Consolas",
         sz: 9.5,
         color: {
@@ -2005,6 +2037,182 @@ function TmOtRow({
     }
   }, window.drDateTH(rec.date), " \xB7 ", rec.from, "-", rec.to, rec.jobCode ? " · " + rec.jobCode : "", rec.reason ? " · " + rec.reason : ""));
 }
+function TmOfficeCfg({
+  office,
+  onChange
+}) {
+  const o = office || {};
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState("");
+  const set = (k, v) => onChange(Object.assign({}, o, {
+    [k]: v
+  }));
+  const has = o.lat != null && o.lng != null && o.lat !== "" && o.lng !== "";
+  const useHere = async () => {
+    setBusy(true);
+    setErr("");
+    const g = await window.captureGps();
+    setBusy(false);
+    if (!g || g.err) {
+      setErr(g && g.msg ? g.msg : "จับพิกัดไม่สำเร็จ");
+      return;
+    }
+    onChange(Object.assign({}, o, {
+      lat: g.lat,
+      lng: g.lng
+    }));
+  };
+  const numIn = (k, ph) => React.createElement("input", {
+    type: "number",
+    step: "0.000001",
+    value: o[k] == null ? "" : o[k],
+    placeholder: ph,
+    onChange: e => set(k, e.target.value === "" ? null : +e.target.value),
+    style: TM_IN_W
+  });
+  return React.createElement("div", null, React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-3)",
+      marginBottom: 6
+    }
+  }, "\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28"), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))",
+      gap: 10
+    }
+  }, React.createElement("label", {
+    style: TM_LB
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, "\u0E0A\u0E37\u0E48\u0E2D\u0E17\u0E35\u0E48\u0E40\u0E23\u0E35\u0E22\u0E01"), React.createElement("input", {
+    value: o.name || "",
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u0E43\u0E2B\u0E0D\u0E48",
+    maxLength: 60,
+    onChange: e => set("name", e.target.value),
+    style: TM_IN_W
+  })), React.createElement("label", {
+    style: TM_LB
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, "\u0E25\u0E30\u0E15\u0E34\u0E08\u0E39\u0E14 (lat)"), numIn("lat", "13.736717")), React.createElement("label", {
+    style: TM_LB
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, "\u0E25\u0E2D\u0E07\u0E08\u0E34\u0E08\u0E39\u0E14 (lng)"), numIn("lng", "100.523186")), React.createElement("label", {
+    style: TM_LB
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, "\u0E23\u0E31\u0E28\u0E21\u0E35\u0E17\u0E35\u0E48\u0E16\u0E37\u0E2D\u0E27\u0E48\u0E32\u0E16\u0E36\u0E07\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28 (\u0E21.)"), React.createElement("input", {
+    type: "number",
+    min: 20,
+    max: 5000,
+    step: 10,
+    value: o.radius == null ? 150 : o.radius,
+    onChange: e => set("radius", +e.target.value),
+    style: TM_IN_W
+  }))), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "center",
+      flexWrap: "wrap",
+      marginTop: 9
+    }
+  }, React.createElement("button", {
+    onClick: useHere,
+    disabled: busy,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "8px 14px",
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-1)",
+      cursor: busy ? "default" : "pointer",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 800
+    }
+  }, React.createElement(Icon, {
+    name: "pin",
+    size: 13
+  }), " ", busy ? "กำลังจับพิกัด…" : "ใช้ตำแหน่งที่ยืนอยู่ตอนนี้"), has && React.createElement("a", {
+    href: window.tmGpsUrl(o),
+    target: "_blank",
+    rel: "noreferrer",
+    style: {
+      fontSize: 12,
+      fontWeight: 800,
+      color: "var(--primary)"
+    }
+  }, "\u0E40\u0E1B\u0E34\u0E14\u0E14\u0E39\u0E43\u0E19\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48 \u2197"), has && React.createElement("button", {
+    onClick: () => onChange(Object.assign({}, o, {
+      lat: null,
+      lng: null
+    })),
+    style: {
+      padding: "7px 12px",
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "#EF4444",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700
+    }
+  }, "\u0E25\u0E49\u0E32\u0E07\u0E1E\u0E34\u0E01\u0E31\u0E14"), err && React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "#EF4444"
+    }
+  }, err)), React.createElement("div", {
+    style: {
+      marginTop: 9,
+      padding: "11px 13px",
+      borderRadius: 12,
+      background: "var(--surface2)",
+      border: "1px solid var(--border)",
+      fontSize: 11.5,
+      color: "var(--text-2)",
+      lineHeight: 1.8
+    }
+  }, has ? React.createElement("span", null, "\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49\u0E17\u0E35\u0E48 ", React.createElement("b", {
+    style: {
+      fontFamily: "var(--mono)"
+    }
+  }, (+o.lat).toFixed(6), ", ", (+o.lng).toFixed(6)), " ", "\xB7 \u0E1B\u0E31\u0E4A\u0E21\u0E17\u0E35\u0E48\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E23\u0E31\u0E28\u0E21\u0E35 ", React.createElement("b", null, o.radius == null ? 150 : o.radius, " \u0E21."), " \u0E08\u0E30\u0E02\u0E36\u0E49\u0E19\u0E27\u0E48\u0E32 \u201C\u0E16\u0E36\u0E07\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u201D") : React.createElement("b", {
+    style: {
+      color: "#B45309"
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E15\u0E31\u0E49\u0E07\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28 \u2014 \u0E41\u0E1C\u0E48\u0E19\u0E40\u0E27\u0E25\u0E32\u0E08\u0E30\u0E44\u0E21\u0E48\u0E41\u0E2A\u0E14\u0E07\u0E23\u0E30\u0E22\u0E30\u0E2B\u0E48\u0E32\u0E07"), React.createElement("br", null), React.createElement("span", {
+    style: {
+      color: "var(--text-3)"
+    }
+  }, "\u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21 \u201C\u0E43\u0E0A\u0E49\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07\u0E17\u0E35\u0E48\u0E22\u0E37\u0E19\u0E2D\u0E22\u0E39\u0E48\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49\u201D \u0E44\u0E14\u0E49\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E15\u0E2D\u0E19\u0E17\u0E35\u0E48\u0E22\u0E37\u0E19\u0E2D\u0E22\u0E39\u0E48\u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u0E08\u0E23\u0E34\u0E07 \u2014 \u0E01\u0E14\u0E08\u0E32\u0E01\u0E17\u0E35\u0E48\u0E1A\u0E49\u0E32\u0E19\u0E41\u0E25\u0E49\u0E27\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u0E08\u0E30\u0E01\u0E25\u0E32\u0E22\u0E40\u0E1B\u0E47\u0E19\u0E1A\u0E49\u0E32\u0E19 \u0E42\u0E14\u0E22\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E21\u0E35\u0E2D\u0E30\u0E44\u0E23\u0E40\u0E15\u0E37\u0E2D\u0E19", React.createElement("br", null), "\u0E23\u0E30\u0E22\u0E30\u0E17\u0E35\u0E48\u0E41\u0E2A\u0E14\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E43\u0E2B\u0E49\u0E04\u0E19\u0E2D\u0E48\u0E32\u0E19\u0E15\u0E31\u0E14\u0E2A\u0E34\u0E19\u0E40\u0E2D\u0E07 ", React.createElement("b", null, "\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E40\u0E04\u0E22\u0E1A\u0E25\u0E47\u0E2D\u0E01\u0E01\u0E32\u0E23\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E40\u0E1E\u0E23\u0E32\u0E30\u0E2D\u0E22\u0E39\u0E48\u0E44\u0E01\u0E25"), " \u2014 GPS \u0E43\u0E19\u0E2D\u0E32\u0E04\u0E32\u0E23\u0E04\u0E25\u0E32\u0E14\u0E40\u0E04\u0E25\u0E37\u0E48\u0E2D\u0E19\u0E44\u0E14\u0E49\u0E40\u0E1B\u0E47\u0E19\u0E23\u0E49\u0E2D\u0E22\u0E40\u0E21\u0E15\u0E23 \u0E04\u0E19\u0E17\u0E35\u0E48\u0E21\u0E32\u0E17\u0E33\u0E07\u0E32\u0E19\u0E08\u0E23\u0E34\u0E07\u0E08\u0E30\u0E01\u0E14\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49", React.createElement("br", null), "\u0E43\u0E0A\u0E49\u0E01\u0E31\u0E1A\u0E04\u0E19\u0E17\u0E35\u0E48\u0E01\u0E14 \u201C\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u201D \u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \xB7 \u0E07\u0E32\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E44\u0E0B\u0E15\u0E4C\u0E40\u0E17\u0E35\u0E22\u0E1A\u0E23\u0E30\u0E22\u0E30\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E23\u0E30\u0E1A\u0E1A\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E44\u0E0B\u0E15\u0E4C\u0E17\u0E35\u0E48\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E16\u0E37\u0E2D\u0E44\u0E14\u0E49")));
+}
 function TmWorkHours({
   cfg,
   onSave
@@ -2166,7 +2374,10 @@ function TmWorkHours({
     style: {
       color: "var(--text-3)"
     }
-  }, "\u0E01\u0E14\u0E40\u0E02\u0E49\u0E32\u0E01\u0E48\u0E2D\u0E19 ", f.startEarly, " \u0E44\u0E21\u0E48\u0E17\u0E33\u0E43\u0E2B\u0E49\u0E40\u0E25\u0E34\u0E01\u0E40\u0E23\u0E47\u0E27\u0E02\u0E36\u0E49\u0E19 \xB7 \u0E40\u0E02\u0E49\u0E32\u0E2B\u0E25\u0E31\u0E07 ", f.startLate, " \u0E16\u0E37\u0E2D\u0E27\u0E48\u0E32\u0E2A\u0E32\u0E22\u0E41\u0E25\u0E30\u0E40\u0E27\u0E25\u0E32\u0E40\u0E25\u0E34\u0E01\u0E40\u0E25\u0E37\u0E48\u0E2D\u0E19\u0E15\u0E32\u0E21\u0E08\u0E23\u0E34\u0E07 \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E2B\u0E19\u0E49\u0E32\u0E17\u0E35\u0E48\u0E04\u0E37\u0E2D\u0E17\u0E33\u0E43\u0E2B\u0E49\u0E04\u0E23\u0E1A ", window.tmDur(f.workMins), " \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E2D\u0E22\u0E39\u0E48\u0E16\u0E36\u0E07\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E01\u0E33\u0E2B\u0E19\u0E14")), React.createElement("div", null, React.createElement("div", {
+  }, "\u0E01\u0E14\u0E40\u0E02\u0E49\u0E32\u0E01\u0E48\u0E2D\u0E19 ", f.startEarly, " \u0E44\u0E21\u0E48\u0E17\u0E33\u0E43\u0E2B\u0E49\u0E40\u0E25\u0E34\u0E01\u0E40\u0E23\u0E47\u0E27\u0E02\u0E36\u0E49\u0E19 \xB7 \u0E40\u0E02\u0E49\u0E32\u0E2B\u0E25\u0E31\u0E07 ", f.startLate, " \u0E16\u0E37\u0E2D\u0E27\u0E48\u0E32\u0E2A\u0E32\u0E22\u0E41\u0E25\u0E30\u0E40\u0E27\u0E25\u0E32\u0E40\u0E25\u0E34\u0E01\u0E40\u0E25\u0E37\u0E48\u0E2D\u0E19\u0E15\u0E32\u0E21\u0E08\u0E23\u0E34\u0E07 \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E2B\u0E19\u0E49\u0E32\u0E17\u0E35\u0E48\u0E04\u0E37\u0E2D\u0E17\u0E33\u0E43\u0E2B\u0E49\u0E04\u0E23\u0E1A ", window.tmDur(f.workMins), " \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E2D\u0E22\u0E39\u0E48\u0E16\u0E36\u0E07\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E01\u0E33\u0E2B\u0E19\u0E14")), React.createElement(TmOfficeCfg, {
+    office: f.office,
+    onChange: o => set("office", o)
+  }), React.createElement("div", null, React.createElement("div", {
     style: {
       fontSize: 11.5,
       fontWeight: 700,

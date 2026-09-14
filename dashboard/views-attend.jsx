@@ -52,6 +52,32 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
   /* ชื่อจากทะเบียนผู้ใช้ ไม่ใช่ชื่อที่ถ่ายสำเนาไว้ในใบตอนปั๊มเวลา — ดู tmNameOf */
   const nameOf = (r) => window.tmNameOf(users, r.userId, r.name);
 
+  /* ช่องพิกัด — สี่สภาพที่ต้องแยกให้ขาด ไม่ใช่ยุบเป็น มี/ไม่มี:
+       ไม่มีพิกัดเลย · มีพิกัดแต่เป็นใบเก่าที่ยังไม่ได้เก็บตัวเลขไว้ในดัชนี ·
+       มีพิกัดแต่ยังไม่ได้ตั้งพิกัดออฟฟิศ · มีครบทั้งสองฝั่งจึงบอกระยะได้
+     ระยะเป็นข้อมูลให้คนอ่านตัดสิน ไม่ได้แปลว่าใบนั้นใช้ไม่ได้ */
+  const gpsCell = (r) => {
+    if (!r.gps) return <span style={{ fontSize: 11.5, color: "#F59E0B", fontWeight: 700 }}>ไม่มีพิกัด</span>;
+    const ok = <span style={{ fontSize: 11.5, color: "#10B981", fontWeight: 700 }}>มีพิกัด</span>;
+    if (r.lat == null || r.lng == null) return ok;
+    const d = window.tmOfficeDist(r, cfg);
+    const link = (kid) => (
+      <a href={window.tmGpsUrl(r)} target="_blank" rel="noreferrer"
+        title={"พิกัดตอนเข้างาน " + window.tmGpsTH(r)}
+        style={{ fontSize: 11.5, fontWeight: 700, textDecoration: "none" }}>{kid}</a>
+    );
+    if (d == null) return link(ok);
+    const near = d <= window.tmWhNorm(cfg).office.radius;
+    const office = r.place === "office";
+    /* คนที่กด "ออฟฟิศ" แต่อยู่นอกรัศมี คือเรื่องเดียวที่ควรสะดุดตา
+       คนที่กด "หน้างาน" ห่างออฟฟิศเป็นเรื่องปกติ ต้องไม่ระบายสีเตือน */
+    const color = !office ? "var(--text-3)" : near ? "#10B981" : "#EF4444";
+    const txt = office
+      ? (near ? "ถึงออฟฟิศ · " : "ห่างออฟฟิศ ") + window.tmDistTH(d)
+      : "ห่างออฟฟิศ " + window.tmDistTH(d);
+    return link(<span style={{ color: color }}>{txt}</span>);
+  };
+
   const del = async (r) => {
     const ok = await window.askConfirm({
       title: "ลบใบลงเวลาของ " + nameOf(r) + "?",
@@ -103,7 +129,7 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ background: "var(--surface2)" }}>
-              {["ชื่อ", "เข้า", "ออก", "ชั่วโมง", "งานที่แจ้ง", "พิกัด", ""].map((h, i) => (
+              {["ชื่อ", "เข้า", "ออก", "ชั่วโมง", "งานที่แจ้ง", "พิกัด / ห่างจากออฟฟิศ", ""].map((h, i) => (
                 <th key={i} style={{ textAlign: i >= 1 && i <= 3 ? "center" : "left", padding: "10px 13px", fontSize: 11.5,
                   fontWeight: 800, color: "var(--text-3)", borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" }}>{h}</th>
               ))}
@@ -126,10 +152,7 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
                   {r.place === "office" ? <span style={{ fontFamily: "inherit", fontSize: 11.5, color: "var(--text-3)" }}>ออฟฟิศ</span>
                     : (r.jobCode || "—")}
                 </td>
-                <td style={{ padding: "9px 13px" }}>
-                  {r.gps ? <span style={{ fontSize: 11.5, color: "#10B981", fontWeight: 700 }}>มีพิกัด</span>
-                    : <span style={{ fontSize: 11.5, color: "#F59E0B", fontWeight: 700 }}>ไม่มีพิกัด</span>}
-                </td>
+                <td style={{ padding: "9px 13px" }}>{gpsCell(r)}</td>
                 <td style={{ padding: "9px 13px", textAlign: "right" }}>
                   {/* ลบทั้งใบ ไม่ใช่แก้เวลาทีละช่อง — เวลาที่พิมพ์เองไม่ใช่หลักฐาน
                       ให้เจ้าตัวกดใหม่จะได้พิกัดกับเวลาจริงติดมาด้วยเหมือนเดิม */}
@@ -158,6 +181,9 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
         <br />ช่อง “งานที่แจ้ง” คือสิ่งที่ผู้ลงเวลาเลือกเอง ระบบไม่ได้ตรวจว่าอยู่ที่ไซต์นั้นจริงหรือไม่ —
         ยังไม่มีพิกัดไซต์ที่เชื่อถือได้ในระบบ จึงเทียบระยะไม่ได้
         <br />“ไม่มีพิกัด” เกิดได้ทั้งจากปิดสิทธิ์ตำแหน่ง สัญญาณไม่ถึง หรืออยู่ในอาคาร — ระบบไม่เคยบล็อกการลงเวลาด้วยเหตุนี้
+        <br />ระยะห่างจากออฟฟิศคิดจากพิกัดที่ตั้งไว้ในหน้า “ตั้งค่าเวลาทำงาน” เทียบกับตำแหน่งตอนกดเข้างาน —
+        ขึ้นสีแดงเฉพาะคนที่กด “ออฟฟิศ” แต่อยู่นอกรัศมี ส่วนงานหน้าไซต์ห่างออฟฟิศเป็นเรื่องปกติ
+        <br />ใบที่ปั๊มก่อนรุ่นที่เก็บพิกัดลงดัชนีจะขึ้นว่า “มีพิกัด” เฉย ๆ ไม่มีระยะ — ตัวเลขอยู่ในใบเต็ม ดูได้จากไฟล์ Excel
       </div>
     </div>
   );
@@ -438,7 +464,8 @@ function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
   const boxAll = { top: thin, bottom: thin, left: thin, right: thin };
   const H = (m) => (!m ? 0 : Math.round((m / 60) * 100) / 100);
   const name = person.name || person.userId;
-  const lastC = 11;   /* สิบสองคอลัมน์ ใช้ร่วมกันทั้งตารางรายวันและตาราง OT เพื่อให้ความกว้างคงที่ */
+  const office = window.tmWhNorm(cfg).office;
+  const lastC = 12;   /* สิบสามคอลัมน์ ใช้ร่วมกันทั้งตารางรายวันและตาราง OT เพื่อให้ความกว้างคงที่ */
 
   const aoa = [], merges = [], meta = [], rowsH = [], links = {}; let R = 0;
   const push = (cells, type, hpt) => { aoa.push(cells); meta[R] = type; if (hpt) rowsH[R] = { hpt: hpt }; R += 1; };
@@ -461,13 +488,13 @@ function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
   });
 
   push(["วันที่ลงเวลา", person.days || 0, "ชั่วโมงรวม", H(person.mins), "OT อนุมัติแล้ว", H(otApproved),
-        "ชม.คิดค่าแรง", H(payApproved), "ลืมกดออกงาน", person.noOut || 0, "ไม่มีพิกัด", person.noGps || 0], "kv", 21);
+        "ชม.คิดค่าแรง", H(payApproved), "ลืมกดออกงาน", person.noOut || 0, "ไม่มีพิกัด", person.noGps || 0, ""], "kv", 21);
   push([], "spacer", 8);
 
   /* ── ตารางรายวัน ── */
   push(["รายวัน — เวลาเข้า-ออก และตำแหน่งตอนปั๊ม"], "sec", 22); full(R - 1);
   push(["วันที่", "วัน", "เข้า", "ออก", "รวม (ชม.)", "ที่ทำงาน", "งานที่แจ้ง",
-        "พิกัดตอนเข้า", "พิกัดตอนออก", "แผนที่", "OT วันนี้ (ชม.)", "OT ประเภท / เรื่องที่ทำ"], "head", 28);
+        "พิกัดตอนเข้า", "พิกัดตอนออก", "ห่างจากออฟฟิศ", "แผนที่", "OT วันนี้ (ชม.)", "OT ประเภท / เรื่องที่ทำ"], "head", 28);
 
   const dayStart = R;
   let alt = false, shown = 0;
@@ -493,16 +520,16 @@ function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
       (rec || idx) ? H(rec ? window.tmWorkedMins(rec, cfg) : (idx && idx.mins) || 0) : "",
       place ? window.tmPlaceOf(place).th : "",
       (rec && rec.jobCode) || (idx && idx.jobCode) || "",
-      window.tmGpsTH(IN), window.tmGpsTH(OUT),
+      window.tmGpsTH(IN), window.tmGpsTH(OUT), window.tmDistTH(window.tmOfficeDist(IN, cfg)),
       window.tmGpsUrl(IN) ? "เปิดแผนที่" : "", otMins ? H(otMins) : "", otTxt], alt ? "itemAlt" : "item", 19);
-    if (window.tmGpsUrl(IN)) links[(R - 1) + ":9"] = window.tmGpsUrl(IN);
+    if (window.tmGpsUrl(IN)) links[(R - 1) + ":10"] = window.tmGpsUrl(IN);
     alt = !alt;
   });
   if (!shown) { push(["เดือนนี้ไม่มีใบลงเวลาเลย"], "muted", 20); full(R - 1); }
   else {
-    push(["รวมทั้งเดือน", "", "", "", H(person.mins), "", "", "", "", "", H(otApproved), "ชั่วโมง OT ที่อนุมัติแล้ว"], "total", 24);
+    push(["รวมทั้งเดือน", "", "", "", H(person.mins), "", "", "", "", "", "", H(otApproved), "ชั่วโมง OT ที่อนุมัติแล้ว"], "total", 24);
     merges.push({ s: { r: R - 1, c: 0 }, e: { r: R - 1, c: 3 } });
-    merges.push({ s: { r: R - 1, c: 5 }, e: { r: R - 1, c: 9 } });
+    merges.push({ s: { r: R - 1, c: 5 }, e: { r: R - 1, c: 10 } });
   }
 
   push([], "spacer", 10);
@@ -510,7 +537,7 @@ function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
   /* ── ตารางใบ OT ── */
   push(["ใบขออนุมัติทำงานล่วงเวลา (OT) ในเดือนนี้"], "sec", 22); full(R - 1);
   push(["ลำดับ", "วันที่", "ตั้งแต่", "ถึง", "รวม (ชม.)", "ประเภท", "อัตรา", "ชม.คิดค่าแรง",
-        "งาน", "ปฏิบัติหน้าที่", "สถานะในระบบ", "ผู้อนุมัติในระบบ"], "head", 28);
+        "งาน", "ปฏิบัติหน้าที่", "สถานะในระบบ", "ผู้อนุมัติในระบบ", ""], "head", 28);
 
   const otStart = R;
   if (!list.length) { push(["เดือนนี้ไม่มีใบ OT ที่ส่งขออนุมัติ"], "muted", 20); full(R - 1); }
@@ -520,17 +547,17 @@ function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
     const rt = window.tmOtRate(o, cfg);
     push([i + 1, window.drDateTH(o.date), o.from || "", o.to || "", H(mins),
       window.tmOtKindOf(o.kind).th, rt, H(mins * rt), o.jobCode || "—", o.reason || "",
-      window.tmOtStatusOf(o.status).th, o.approverName || "—"], alt ? "itemAlt2" : "item2", 19);
+      window.tmOtStatusOf(o.status).th, o.approverName || "—", ""], alt ? "itemAlt2" : "item2", 19);
     alt = !alt;
   });
 
   if (list.length) {
-    push(["รวมที่อนุมัติแล้วในระบบ", "", "", "", H(otApproved), "ชั่วโมง", "", H(payApproved), "ชม.คิดค่าแรง", "", "", ""], "total2", 24);
+    push(["รวมที่อนุมัติแล้วในระบบ", "", "", "", H(otApproved), "ชั่วโมง", "", H(payApproved), "ชม.คิดค่าแรง", "", "", "", ""], "total2", 24);
     merges.push({ s: { r: R - 1, c: 0 }, e: { r: R - 1, c: 3 } });
     merges.push({ s: { r: R - 1, c: 8 }, e: { r: R - 1, c: lastC } });
     /* ยอดที่ยังรออนุมัติต้องแยกบรรทัด ไม่ใช่บวกรวมกับยอดที่อนุมัติแล้ว
        ไม่งั้นแผ่นนี้จะกลายเป็นยอดจ่ายที่ยังไม่มีใครอนุมัติ */
-    push(["ยังรออนุมัติในระบบ", "", "", "", H(otWaiting), "ชั่วโมง", "", "", "ต้องกดอนุมัติในระบบก่อนจึงจะนับเป็นยอดจ่าย", "", "", ""],
+    push(["ยังรออนุมัติในระบบ", "", "", "", H(otWaiting), "ชั่วโมง", "", "", "ต้องกดอนุมัติในระบบก่อนจึงจะนับเป็นยอดจ่าย", "", "", "", ""],
       otWaiting ? "warnRow" : "muted2", 22);
     merges.push({ s: { r: R - 1, c: 0 }, e: { r: R - 1, c: 3 } });
     merges.push({ s: { r: R - 1, c: 8 }, e: { r: R - 1, c: lastC } });
@@ -545,23 +572,29 @@ function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
   };
   push(["ลงชื่อผู้ปฏิบัติงาน ....................................", "", "", "",
         "ลงชื่อหัวหน้างานผู้อนุมัติ ....................................", "", "", "",
-        "ลงชื่อฝ่ายบุคคล / ผู้ตรวจสอบ ....................................", "", "", ""], "sign", 34);
+        "ลงชื่อฝ่ายบุคคล / ผู้ตรวจสอบ ....................................", "", "", "", ""], "sign", 34);
   sign3(R - 1);
   push(["(" + name + ")", "", "", "",
         "(....................................)  วันที่ ......./......./.......", "", "", "",
-        "(....................................)  วันที่ ......./......./.......", "", "", ""], "signSub", 22);
+        "(....................................)  วันที่ ......./......./.......", "", "", "", ""], "signSub", 22);
   sign3(R - 1);
 
   push([], "spacer", 8);
   push(["พิกัดคือตำแหน่งของ “เครื่องที่กดปั๊ม” ตอนกด ไม่ใช่การยืนยันว่าอยู่ที่ไซต์นั้นจริง — ระบบยังไม่มีพิกัดไซต์ให้เทียบระยะ"], "foot", 16); full(R - 1);
   push(["ช่องพิกัดที่ว่างหรือขึ้นเหตุผล แปลว่าจับพิกัดไม่ได้ตอนนั้น ระบบไม่เคยบล็อกการลงเวลาด้วยเหตุนี้"], "foot", 16); full(R - 1);
+  /* บอกจุดอ้างอิงไว้บนแผ่นด้วย — กระดาษที่พิมพ์ออกไปแล้วต้องอ่านเข้าใจโดยไม่ต้องเปิดระบบ
+     และถ้าออฟฟิศย้ายที่ ใบเก่ากับใบใหม่จะอ้างคนละจุด ต้องดูออกจากตัวเลขบนแผ่น */
+  push([office.lat != null
+    ? "ระยะวัดจากพิกัดออฟฟิศที่ตั้งไว้ " + (office.name ? office.name + " " : "")
+      + (+office.lat).toFixed(6) + ", " + (+office.lng).toFixed(6) + " (รัศมีที่ถือว่าถึงออฟฟิศ " + office.radius + " ม.)"
+    : "ยังไม่ได้ตั้งพิกัดออฟฟิศในระบบ ช่อง “ห่างจากออฟฟิศ” จึงว่างทั้งคอลัมน์"], "foot", 16); full(R - 1);
   push(["เวลาในใบ OT เป็นเวลาที่ผู้ขอกรอกเอง ไม่ใช่เวลาที่ระบบจับได้ — เทียบกับตารางรายวันข้างบนได้"], "foot", 16); full(R - 1);
   push(["การเซ็นบนกระดาษไม่ได้เปลี่ยนสถานะในระบบ ใบที่ยังรออนุมัติต้องกดอนุมัติในระบบด้วย"], "foot", 16); full(R - 1);
 
   const ws = X.utils.aoa_to_sheet(aoa);
   ws["!merges"] = merges;
   ws["!cols"] = [{ wch: 14 }, { wch: 5 }, { wch: 8 }, { wch: 8 }, { wch: 10 }, { wch: 11 }, { wch: 13 },
-    { wch: 19 }, { wch: 19 }, { wch: 11 }, { wch: 13 }, { wch: 40 }];
+    { wch: 19 }, { wch: 19 }, { wch: 14 }, { wch: 11 }, { wch: 13 }, { wch: 40 }];
   ws["!rows"] = rowsH;
   /* ตรึงหัวตารางรายวันไว้ — แผ่นเดียวมีทั้งเดือนบวกใบ OT เลื่อนลงไปแล้วจะไม่รู้ว่าคอลัมน์ไหนคืออะไร */
   ws["!freeze"] = { xSplit: 1, ySplit: dayStart };
@@ -579,7 +612,7 @@ function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
       else { s2.font = { name: FONT, sz: 11.5, bold: true, color: { rgb: C.text } }; s2.alignment = { horizontal: "center", vertical: "center" }; if (c === 3 || c === 5 || c === 7) s2.numFmt = "0.00"; }
     }
     else if (t === "head") { s2.font = { name: FONT, sz: 10, bold: true, color: { rgb: C.white } }; s2.fill = { patternType: "solid", fgColor: { rgb: C.brand } }; s2.alignment = { horizontal: "center", vertical: "center", wrapText: true }; s2.border = boxAll; }
-    else if (t === "total" || t === "total2") { s2.font = { name: FONT, sz: 11, bold: true, color: { rgb: C.white } }; s2.fill = { patternType: "solid", fgColor: { rgb: C.brandDk } }; s2.alignment = { horizontal: c <= 3 ? "left" : "center", vertical: "center" }; s2.border = boxAll; if (c === 4 || (t === "total" && c === 10) || (t === "total2" && c === 7)) s2.numFmt = "0.00"; }
+    else if (t === "total" || t === "total2") { s2.font = { name: FONT, sz: 11, bold: true, color: { rgb: C.white } }; s2.fill = { patternType: "solid", fgColor: { rgb: C.brandDk } }; s2.alignment = { horizontal: c <= 3 ? "left" : "center", vertical: "center" }; s2.border = boxAll; if (c === 4 || (t === "total" && c === 11) || (t === "total2" && c === 7)) s2.numFmt = "0.00"; }
     else if (t === "warnRow") { s2.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.warnTx } }; s2.fill = { patternType: "solid", fgColor: { rgb: C.warn } }; s2.alignment = { horizontal: c <= 3 ? "left" : "center", vertical: "center" }; s2.border = boxAll; if (c === 4) s2.numFmt = "0.00"; }
     else if (t === "muted" || t === "muted2") { s2.font = { name: FONT, sz: 10.5, color: { rgb: C.sub } }; s2.alignment = { horizontal: c <= 3 ? "left" : "center", vertical: "center" }; if (t === "muted2") s2.border = boxAll; if (t === "muted2" && c === 4) s2.numFmt = "0.00"; }
     else if (t === "sign") { s2.font = { name: FONT, sz: 11, color: { rgb: C.text } }; s2.alignment = { horizontal: "left", vertical: "bottom" }; }
@@ -590,16 +623,16 @@ function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
       if (t === "itemAlt" || t === "itemAlt2") s2.fill = { patternType: "solid", fgColor: { rgb: C.alt } };
       s2.border = boxAll;
       /* ช่องข้อความยาวต้องตัดบรรทัดในช่อง ไม่ใช่ล้นทับช่องข้าง ๆ ตอนพิมพ์ */
-      const wrapCol = two ? 9 : 11;
+      const wrapCol = two ? 9 : 12;
       if (c === wrapCol) s2.alignment = { horizontal: "left", vertical: "center", wrapText: true };
       else if (c === 0 || (!two && (c === 6 || c === 7 || c === 8)) || (two && c === 8)) s2.alignment = { horizontal: "left", vertical: "center" };
       else { s2.alignment = { horizontal: "center", vertical: "center" }; }
       if (c === 4) s2.numFmt = "0.00";
       if (two && c === 7) s2.numFmt = "0.00";
       if (two && c === 6) s2.numFmt = '0.##" เท่า"';
-      if (!two && c === 10 && aoa[r][c]) { s2.numFmt = "0.00"; s2.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.brandDk } }; }
+      if (!two && c === 11 && aoa[r][c]) { s2.numFmt = "0.00"; s2.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.brandDk } }; }
       /* พิกัดเป็นตัวเลขยาว ต้องเป็นฟอนต์เดียวกันทุกแถวถึงจะไล่สายตาลงมาเทียบกันได้ */
-      if (!two && (c === 7 || c === 8)) s2.font = { name: "Consolas", sz: 9.5, color: { rgb: C.sub } };
+      if (!two && (c === 7 || c === 8 || c === 9)) s2.font = { name: "Consolas", sz: 9.5, color: { rgb: C.sub } };
     }
     return s2;
   };
@@ -832,6 +865,93 @@ function TmOtRow({ rec, users, onOpen }) {
 }
 
 /* ── ตั้งค่าเวลาทำงาน ── */
+/* ── ตั้งพิกัดออฟฟิศ ──
+   จุดประสงค์เดียว: ให้แผ่นเวลาบอกได้ว่าคนที่กด "ออฟฟิศ" ตอนนั้นอยู่ห่างออฟฟิศเท่าไร
+   ตั้งใจไม่ทำให้บล็อกการลงเวลา — ดูเหตุผลที่ TM_WH_DEFAULT.office */
+function TmOfficeCfg({ office, onChange }) {
+  const o = office || {};
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState("");
+  const set = (k, v) => onChange(Object.assign({}, o, { [k]: v }));
+  const has = o.lat != null && o.lng != null && o.lat !== "" && o.lng !== "";
+
+  /* ปุ่มนี้ต้องยืนอยู่ที่ออฟฟิศตอนกดถึงจะได้ค่าที่ถูก — เขียนบอกไว้ใต้ปุ่ม
+     ไม่งั้นแอดมินกดจากบ้านแล้วพิกัด "ออฟฟิศ" จะกลายเป็นบ้านแอดมินเงียบ ๆ */
+  const useHere = async () => {
+    setBusy(true); setErr("");
+    const g = await window.captureGps();
+    setBusy(false);
+    if (!g || g.err) { setErr(g && g.msg ? g.msg : "จับพิกัดไม่สำเร็จ"); return; }
+    onChange(Object.assign({}, o, { lat: g.lat, lng: g.lng }));
+  };
+
+  const numIn = (k, ph) => (
+    <input type="number" step="0.000001" value={o[k] == null ? "" : o[k]} placeholder={ph}
+      onChange={(e) => set(k, e.target.value === "" ? null : +e.target.value)} style={TM_IN_W} />
+  );
+
+  return (
+    <div>
+      <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 6 }}>พิกัดออฟฟิศ</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 10 }}>
+        <label style={TM_LB}>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ชื่อที่เรียก</span>
+          <input value={o.name || ""} placeholder="เช่น ออฟฟิศใหญ่" maxLength={60}
+            onChange={(e) => set("name", e.target.value)} style={TM_IN_W} />
+        </label>
+        <label style={TM_LB}>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ละติจูด (lat)</span>
+          {numIn("lat", "13.736717")}
+        </label>
+        <label style={TM_LB}>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ลองจิจูด (lng)</span>
+          {numIn("lng", "100.523186")}
+        </label>
+        <label style={TM_LB}>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>รัศมีที่ถือว่าถึงออฟฟิศ (ม.)</span>
+          <input type="number" min={20} max={5000} step={10} value={o.radius == null ? 150 : o.radius}
+            onChange={(e) => set("radius", +e.target.value)} style={TM_IN_W} />
+        </label>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 9 }}>
+        <button onClick={useHere} disabled={busy}
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9,
+            border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-1)",
+            cursor: busy ? "default" : "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 800 }}>
+          <Icon name="pin" size={13} /> {busy ? "กำลังจับพิกัด…" : "ใช้ตำแหน่งที่ยืนอยู่ตอนนี้"}
+        </button>
+        {has && (
+          <a href={window.tmGpsUrl(o)} target="_blank" rel="noreferrer"
+            style={{ fontSize: 12, fontWeight: 800, color: "var(--primary)" }}>เปิดดูในแผนที่ ↗</a>
+        )}
+        {has && (
+          <button onClick={() => onChange(Object.assign({}, o, { lat: null, lng: null }))}
+            style={{ padding: "7px 12px", borderRadius: 9, border: "1px solid var(--border-strong)",
+              background: "var(--surface)", color: "#EF4444", cursor: "pointer", fontFamily: "inherit",
+              fontSize: 11.5, fontWeight: 700 }}>ล้างพิกัด</button>
+        )}
+        {err && <span style={{ fontSize: 11.5, fontWeight: 700, color: "#EF4444" }}>{err}</span>}
+      </div>
+
+      <div style={{ marginTop: 9, padding: "11px 13px", borderRadius: 12, background: "var(--surface2)",
+        border: "1px solid var(--border)", fontSize: 11.5, color: "var(--text-2)", lineHeight: 1.8 }}>
+        {has
+          ? <span>ตั้งไว้ที่ <b style={{ fontFamily: "var(--mono)" }}>{(+o.lat).toFixed(6)}, {(+o.lng).toFixed(6)}</b>
+              {" "}· ปั๊มที่อยู่ในรัศมี <b>{o.radius == null ? 150 : o.radius} ม.</b> จะขึ้นว่า “ถึงออฟฟิศ”</span>
+          : <b style={{ color: "#B45309" }}>ยังไม่ได้ตั้งพิกัดออฟฟิศ — แผ่นเวลาจะไม่แสดงระยะห่าง</b>}
+        <br /><span style={{ color: "var(--text-3)" }}>
+          กดปุ่ม “ใช้ตำแหน่งที่ยืนอยู่ตอนนี้” ได้เฉพาะตอนที่ยืนอยู่ที่ออฟฟิศจริง —
+          กดจากที่บ้านแล้วพิกัดออฟฟิศจะกลายเป็นบ้าน โดยที่ไม่มีอะไรเตือน
+          <br />ระยะที่แสดงเป็นข้อมูลให้คนอ่านตัดสินเอง <b>ระบบไม่เคยบล็อกการลงเวลาเพราะอยู่ไกล</b> —
+          GPS ในอาคารคลาดเคลื่อนได้เป็นร้อยเมตร คนที่มาทำงานจริงจะกดเข้างานไม่ได้
+          <br />ใช้กับคนที่กด “ออฟฟิศ” เท่านั้น · งานหน้าไซต์เทียบระยะไม่ได้ เพราะระบบยังไม่มีพิกัดไซต์ที่เชื่อถือได้
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function TmWorkHours({ cfg, onSave }) {
   const [f, setF] = React.useState(window.tmWhNorm(cfg));
   React.useEffect(() => { setF(window.tmWhNorm(cfg)); }, [cfg]);
@@ -897,6 +1017,10 @@ function TmWorkHours({ cfg, onSave }) {
           เพราะหน้าที่คือทำให้ครบ {window.tmDur(f.workMins)} ไม่ใช่อยู่ถึงเวลาที่กำหนด
         </span>
       </div>
+
+      {/* ── พิกัดออฟฟิศ ──
+          อยู่คนละบล็อกกับเวลาเพราะตอบคนละคำถาม: ตรงนี้คือ "ที่ไหน" ไม่ใช่ "กี่โมง" */}
+      <TmOfficeCfg office={f.office} onChange={(o) => set("office", o)} />
 
       {/* ── ตัวคูณค่าแรง OT ──
           แยกเป็นบล็อกของตัวเอง ไม่ปนกับช่องเวลา เพราะคนละเรื่องกัน:
