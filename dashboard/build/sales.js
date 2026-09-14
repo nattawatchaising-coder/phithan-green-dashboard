@@ -1,3 +1,8 @@
+const useQuotePlan3d = window.usePlan3d || (() => ({
+  saved: null,
+  loading: false,
+  save: () => {}
+}));
 const SALES_STAGES = [{
   key: "new",
   th: "ลูกค้าใหม่",
@@ -463,6 +468,33 @@ function QuoteEditor({
       });
     });
   };
+  const planId = job && job.id || specSrc && specSrc.id || null;
+  const plan3d = useQuotePlan3d(planId);
+  const planSum = window.p3PlanSummary ? window.p3PlanSummary(plan3d.saved) : null;
+  const pullPlan = () => {
+    if (!planSum) return;
+    const src = Object.assign({}, specSrc || {}, {
+      kwp: planSum.kwp,
+      panels: planSum.panels
+    });
+    src.survey = Object.assign({}, specSrc && specSrc.survey || {}, {
+      sizeKw: planSum.kwp
+    });
+    if (planSum.panelModel) src.survey.panelModel = planSum.panelModel;
+    if (planSum.invModel) src.survey.invModel = planSum.invModel;
+    setQ(p => {
+      const a = p.items.slice();
+      if (!a.length) return p;
+      a[0] = Object.assign({}, a[0], {
+        name: quoteSpecName(src),
+        detail: quoteSpecDetail(src)
+      });
+      return Object.assign({}, p, {
+        items: a,
+        kwp: planSum.kwp
+      });
+    });
+  };
   const lbl = {
     fontSize: 10.5,
     fontWeight: 700,
@@ -745,10 +777,31 @@ function QuoteEditor({
     name: "download",
     size: 13,
     color: "var(--primary-dark)"
-  }), " \u0E14\u0E36\u0E07\u0E23\u0E38\u0E48\u0E19\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E08\u0E32\u0E01\u0E1C\u0E25\u0E2A\u0E33\u0E23\u0E27\u0E08"), boqSell > 0 && !locked && React.createElement("button", {
-    onClick: pullBoq,
+  }), " \u0E14\u0E36\u0E07\u0E23\u0E38\u0E48\u0E19\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E08\u0E32\u0E01\u0E1C\u0E25\u0E2A\u0E33\u0E23\u0E27\u0E08"), planSum && !locked && React.createElement("button", {
+    onClick: pullPlan,
     style: {
       marginLeft: canPullSpec ? 0 : "auto",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      background: "none",
+      border: "1px solid var(--border-strong)",
+      borderRadius: 8,
+      padding: "5px 10px",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "#4F46E5"
+    }
+  }, React.createElement(Icon, {
+    name: "download",
+    size: 13,
+    color: "#4F46E5"
+  }), " \u0E14\u0E36\u0E07\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A 3D (", planSum.panels, " \u0E41\u0E1C\u0E07 \xB7 ", planSum.kwp, " kWp)"), boqSell > 0 && !locked && React.createElement("button", {
+    onClick: pullBoq,
+    style: {
+      marginLeft: canPullSpec || planSum ? 0 : "auto",
       display: "inline-flex",
       alignItems: "center",
       gap: 5,

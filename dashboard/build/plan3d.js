@@ -484,6 +484,20 @@ function usePlan3d(jobId) {
     save
   };
 }
+function p3PlanSummary(saved) {
+  if (!saved || !Array.isArray(saved.roofs) || !saved.roofs.length) return null;
+  const panels = p3CountAll(saved);
+  if (!panels) return null;
+  const wp = +saved.wp || 650;
+  const sys = saved.sys || {};
+  return {
+    panels: panels,
+    wp: wp,
+    kwp: Math.round(panels * wp / 10) / 100,
+    panelModel: String(sys.panelModel || "").trim(),
+    invModel: String(sys.invModel || "").trim()
+  };
+}
 function movePlan3d(fromId, toId) {
   if (!fromId || !toId || fromId === toId) return Promise.resolve();
   if (!window.FBDB) {
@@ -8014,6 +8028,7 @@ Object.assign(window, {
   Plan3DEditor,
   usePlan3d,
   movePlan3d,
+  p3PlanSummary,
   P3_MEAS_KINDS,
   p3MeasKind,
   p3MeasLen,
