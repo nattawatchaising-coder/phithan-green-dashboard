@@ -1,4 +1,15 @@
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+const useDrRoof = window.useRoofHandover || (() => ({
+  rec: null,
+  loading: false,
+  save: () => {}
+}));
+const useDrRoofPhotos = window.useRoofPhotos || (() => ({
+  photos: [],
+  add: () => {},
+  setCap: () => {},
+  remove: () => {}
+}));
 function FlowTimeline({
   job
 }) {
@@ -1185,11 +1196,15 @@ function DetailDrawer({
   const [planOpen, setPlanOpen] = React.useState(false);
   const [plan3dOpen, setPlan3dOpen] = React.useState(false);
   const [designOpen, setDesignOpen] = React.useState(false);
+  const [roofOpen, setRoofOpen] = React.useState(false);
+  const roof = useDrRoof(job ? job.id : null);
+  const roofPhotos = useDrRoofPhotos(job ? job.id : null);
   React.useEffect(() => {
     setBoqOpen(false);
     setPlanOpen(false);
     setPlan3dOpen(false);
     setDesignOpen(false);
+    setRoofOpen(false);
   }, [job ? job.id : null]);
   const [advancing, setAdvancing] = React.useState(false);
   React.useEffect(() => {
@@ -1639,6 +1654,62 @@ function DetailDrawer({
       size: 15,
       color: "var(--primary-dark)"
     }), " \u0E14\u0E39\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1C\u0E25\u0E2A\u0E33\u0E23\u0E27\u0E08 \xB7 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF"));
+  })(), window.RoofHandoverModal && !roMode && (() => {
+    const st = window.rfSummary ? window.rfSummary(roof.rec, (roofPhotos.photos || []).length) : null;
+    return React.createElement("button", {
+      onClick: () => setRoofOpen(true),
+      style: {
+        width: "100%",
+        marginBottom: 10,
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "12px 14px",
+        background: "var(--surface)",
+        border: "1px solid var(--border-strong)",
+        borderRadius: 12,
+        cursor: "pointer",
+        fontFamily: "inherit",
+        textAlign: "left"
+      }
+    }, React.createElement("span", {
+      style: {
+        width: 34,
+        height: 34,
+        borderRadius: 9,
+        background: "#0EA5E91c",
+        display: "grid",
+        placeItems: "center",
+        flexShrink: 0
+      }
+    }, React.createElement(Icon, {
+      name: "list",
+      size: 17,
+      color: "#0284C7"
+    })), React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 13.5,
+        fontWeight: 700,
+        color: "var(--text-1)"
+      }
+    }, "\u0E2A\u0E48\u0E07\u0E21\u0E2D\u0E1A\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 (Roof Handover)"), React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 11.5,
+        color: st ? st.color : "var(--text-3)",
+        fontWeight: st && st.state !== "none" ? 700 : 400
+      }
+    }, st ? st.label : "แตะเพื่อเริ่ม")), React.createElement(Icon, {
+      name: "arrowRight",
+      size: 16,
+      color: "var(--text-3)"
+    }));
   })(), onPermit && (() => {
     const pm = job.permit || null;
     const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
@@ -2312,6 +2383,10 @@ function DetailDrawer({
   }), designOpen && job && window.SolarDesignHost && React.createElement(window.SolarDesignHost, {
     job: job,
     onClose: () => setDesignOpen(false)
+  }), roofOpen && job && window.RoofHandoverModal && React.createElement(window.RoofHandoverModal, {
+    job: job,
+    currentUser: currentUser,
+    onClose: () => setRoofOpen(false)
   }));
 }
 function SpecItem({
