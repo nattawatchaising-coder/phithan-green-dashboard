@@ -516,7 +516,33 @@ function InspectionPaper({
       fontSize: 11,
       marginTop: 8
     }
-  }, "\u0E23\u0E30\u0E1A\u0E38: ", r.resultOther) : null), React.createElement("div", {
+  }, "\u0E23\u0E30\u0E1A\u0E38: ", r.resultOther) : null), r.summary ? React.createElement("div", {
+    style: {
+      marginBottom: 12
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      marginBottom: 5
+    }
+  }, "Summary ", React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: RP_SOFT,
+      fontWeight: 500
+    }
+  }, "(\u0E2A\u0E23\u0E38\u0E1B\u0E1C\u0E25\u0E01\u0E32\u0E23\u0E15\u0E23\u0E27\u0E08)")), React.createElement("div", {
+    style: {
+      border: "1px solid " + RP_LINE,
+      borderRadius: 4,
+      padding: "9px 11px",
+      fontSize: 11,
+      whiteSpace: "pre-wrap",
+      lineHeight: 1.7,
+      background: "#F7FAF9"
+    }
+  }, r.summary)) : null, React.createElement("div", {
     style: {
       marginBottom: 16
     }

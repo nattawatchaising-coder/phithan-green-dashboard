@@ -120,7 +120,7 @@ function irBlank(job, no, kind) {
     reqDate: new Date().toISOString().slice(0, 10),
     reqItems: "", inspAt: "", refIr: "", others: "", reqBy: "",
     items: [],
-    result: "", resultOther: "", note: "",
+    result: "", resultOther: "", summary: "", note: "",
     issueBy: "", inspectedBy: "", approvedBy: "", clientBy: "",
   };
 }
@@ -590,6 +590,14 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
                 <input value={f.resultOther} onChange={(e) => set("resultOther", e.target.value)} placeholder="ระบุผลการตรวจ" style={inp} />
               )}
             </div>
+
+            {/* สรุปผลเป็นข้อความ — ช่องติ๊กบอกได้แค่ผ่าน/ไม่ผ่าน ส่วนนี้คือคำอธิบายที่คนอ่านใบต้องการจริง
+                เช่น ไม่ผ่านเพราะอะไร ต้องแก้อะไรก่อนตรวจซ้ำ หรือผ่านโดยมีเงื่อนไขอะไร */}
+            <IrField label="Summary" thai="สรุปผลการตรวจ" wide lbl={lbl} sub={sub}>
+              <textarea value={f.summary} onChange={(e) => set("summary", e.target.value)} rows={4}
+                placeholder='สรุปเป็นข้อความ เช่น "ตรวจแล้วผ่าน 5 จาก 6 ข้อ ติดที่รอยรั่วโซน B ให้ผู้รับเหมาซ่อมแล้วนัดตรวจซ้ำ"'
+                style={Object.assign({}, inp, { resize: "vertical", lineHeight: 1.6 })} />
+            </IrField>
 
             <IrField label="Note" thai="หมายเหตุ" wide lbl={lbl} sub={sub}>
               <textarea value={f.note} onChange={(e) => set("note", e.target.value)} rows={3}

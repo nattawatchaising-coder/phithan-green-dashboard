@@ -229,6 +229,20 @@ function InspectionPaper({ job, rec, photos, onClose }) {
             ? <div style={{ fontSize: 11, marginTop: 8 }}>ระบุ: {r.resultOther}</div> : null}
         </div>
 
+        {/* สรุปผลเป็นข้อความ — ส่วนที่คนอ่านใบอ่านจริงก่อนอย่างอื่น จึงวางไว้ใต้ผลการตรวจทันที
+            ไม่มีข้อความก็ไม่ต้องพิมพ์กล่องเปล่าให้เปลืองที่ */}
+        {r.summary ? (
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 5 }}>
+              Summary <span style={{ fontSize: 10, color: RP_SOFT, fontWeight: 500 }}>(สรุปผลการตรวจ)</span>
+            </div>
+            <div style={{ border: "1px solid " + RP_LINE, borderRadius: 4, padding: "9px 11px", fontSize: 11,
+              whiteSpace: "pre-wrap", lineHeight: 1.7, background: "#F7FAF9" }}>
+              {r.summary}
+            </div>
+          </div>
+        ) : null}
+
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 5 }}>
             Note <span style={{ fontSize: 10, color: RP_SOFT, fontWeight: 500 }}>(หมายเหตุ)</span>
