@@ -22,6 +22,14 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text-1); fo
 #root { height: 100dvh; }
 button { font-family: inherit; }
 input, select, textarea { font-family: inherit; }
+/* ⚠ ต้นเหตุที่ช่องกรอกในตารางสองสามคอลัมน์ซ้อนทับกัน
+   input (โดยเฉพาะ type=number/date/time) มีความกว้างขั้นต่ำในตัวราว 180px
+   และ min-width ของ grid/flex item ดีฟอลต์เป็น auto = "ห้ามเล็กกว่าเนื้อใน"
+   ช่องจึงไม่ยอมหดตามรางที่กว้าง 140-150px แต่ล้นออกไปทับช่องข้าง ๆ
+   ต้องแก้ที่นี่ที่เดียว ไม่ใช่ไล่ใส่ทีละฟอร์ม เพราะฟอร์มใหม่ทุกอันจะพังแบบเดียวกันหมด
+   (หน้า liff.html มีกฎคู่นี้อยู่ก่อนแล้ว ตอนนี้สองหน้าประพฤติตัวเหมือนกัน) */
+input, select, textarea { min-width: 0; max-width: 100%; }
+label { min-width: 0; }
 ::-webkit-scrollbar { width: 9px; height: 9px; }
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 9px; border: 2px solid transparent; background-clip: padding-box; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-3); background-clip: padding-box; }
@@ -529,7 +537,7 @@ input, select, textarea { font-family: inherit; }
 <script src="dashboard/build/attend.js?v=7"></script>
 <script src="dashboard/build/auth.js?v=31"></script>
 <script src="dashboard/build/line.js?v=4"></script>
-<script src="dashboard/build/views-attend.js?v=7"></script>
+<script src="dashboard/build/views-attend.js?v=8"></script>
 <script src="dashboard/build/views-line.js?v=2"></script>
 <script src="dashboard/build/app.js?v=143"></script>
 </body>

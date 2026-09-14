@@ -14,6 +14,10 @@
 
 const TM_IN = { padding: "9px 11px", borderRadius: 10, border: "1px solid var(--border-strong)",
   background: "var(--surface)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13, outline: "none" };
+/* สำหรับช่องที่อยู่ในตารางหลายคอลัมน์ — ต้องกว้างเต็มรางของตัวเอง ไม่ใช่กว้างตามความกว้างในตัวของ input
+   (TM_IN เปล่า ๆ ยังใช้กับปุ่มและช่องในแถว flex ที่ควรกว้างตามเนื้อ จึงแยกเป็นคนละตัว) */
+const TM_IN_W = Object.assign({}, TM_IN, { width: "100%" });
+const TM_LB = { display: "grid", gap: 4, minWidth: 0 };
 
 function TmPill({ s, size }) {
   const st = window.tmOtStatusOf(s);
@@ -520,21 +524,21 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
         </div>
 
         <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10 }}>
-          <label style={{ display: "grid", gap: 4 }}>
+          <label style={TM_LB}>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>วันที่</span>
-            <input type="date" value={f.date} disabled={!editable} onChange={(e) => set("date", e.target.value)} style={TM_IN} />
+            <input type="date" value={f.date} disabled={!editable} onChange={(e) => set("date", e.target.value)} style={TM_IN_W} />
           </label>
-          <label style={{ display: "grid", gap: 4 }}>
+          <label style={TM_LB}>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ตั้งแต่</span>
-            <input type="time" value={f.from} disabled={!editable} onChange={(e) => set("from", e.target.value)} style={TM_IN} />
+            <input type="time" value={f.from} disabled={!editable} onChange={(e) => set("from", e.target.value)} style={TM_IN_W} />
           </label>
-          <label style={{ display: "grid", gap: 4 }}>
+          <label style={TM_LB}>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ถึง</span>
-            <input type="time" value={f.to} disabled={!editable} onChange={(e) => set("to", e.target.value)} style={TM_IN} />
+            <input type="time" value={f.to} disabled={!editable} onChange={(e) => set("to", e.target.value)} style={TM_IN_W} />
           </label>
-          <label style={{ display: "grid", gap: 4 }}>
+          <label style={TM_LB}>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ประเภท</span>
-            <select value={f.kind} disabled={!editable} onChange={(e) => set("kind", e.target.value)} style={TM_IN}>
+            <select value={f.kind} disabled={!editable} onChange={(e) => set("kind", e.target.value)} style={TM_IN_W}>
               {window.TM_OT_KIND.map((k) => <option key={k.key} value={k.key}>{k.th}</option>)}
             </select>
           </label>
@@ -691,29 +695,29 @@ function TmWorkHours({ cfg, onSave }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, maxWidth: 640 }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 10 }}>
-        <label style={{ display: "grid", gap: 4 }}>
+        <label style={TM_LB}>
           <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>เข้างานได้ตั้งแต่</span>
-          <input type="time" value={f.startEarly} onChange={(e) => set("startEarly", e.target.value)} style={TM_IN} />
+          <input type="time" value={f.startEarly} onChange={(e) => set("startEarly", e.target.value)} style={TM_IN_W} />
         </label>
-        <label style={{ display: "grid", gap: 4 }}>
+        <label style={TM_LB}>
           <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>เข้างานช้าสุด</span>
-          <input type="time" value={f.startLate} onChange={(e) => set("startLate", e.target.value)} style={TM_IN} />
+          <input type="time" value={f.startLate} onChange={(e) => set("startLate", e.target.value)} style={TM_IN_W} />
         </label>
-        <label style={{ display: "grid", gap: 4 }}>
+        <label style={TM_LB}>
           <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ทำงานวันละ (นาที)</span>
-          <input type="number" min={0} step={30} value={f.workMins} onChange={(e) => set("workMins", +e.target.value)} style={TM_IN} />
+          <input type="number" min={0} step={30} value={f.workMins} onChange={(e) => set("workMins", +e.target.value)} style={TM_IN_W} />
         </label>
-        <label style={{ display: "grid", gap: 4 }}>
+        <label style={TM_LB}>
           <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>พักกลางวัน (นาที)</span>
-          <input type="number" min={0} value={f.lunchMins} onChange={(e) => set("lunchMins", +e.target.value)} style={TM_IN} />
+          <input type="number" min={0} value={f.lunchMins} onChange={(e) => set("lunchMins", +e.target.value)} style={TM_IN_W} />
         </label>
-        <label style={{ display: "grid", gap: 4 }}>
+        <label style={TM_LB}>
           <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>OT ขั้นต่ำที่นับ (นาที)</span>
-          <input type="number" min={0} value={f.minOtMins} onChange={(e) => set("minOtMins", +e.target.value)} style={TM_IN} />
+          <input type="number" min={0} value={f.minOtMins} onChange={(e) => set("minOtMins", +e.target.value)} style={TM_IN_W} />
         </label>
-        <label style={{ display: "grid", gap: 4 }}>
+        <label style={TM_LB}>
           <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ปัดเศษ OT ทีละ (นาที)</span>
-          <input type="number" min={0} value={f.roundMins} onChange={(e) => set("roundMins", +e.target.value)} style={TM_IN} />
+          <input type="number" min={0} value={f.roundMins} onChange={(e) => set("roundMins", +e.target.value)} style={TM_IN_W} />
         </label>
       </div>
 
@@ -941,6 +945,6 @@ function TmMyDays({ rows, cfg }) {
   );
 }
 
-Object.assign(window, { AttendView, TmDaySheet, TmMonth, TmMyDays, TmOtModal, TmOtRow, TmWorkHours,
+Object.assign(window, { TM_IN, TM_IN_W, TM_LB, AttendView, TmDaySheet, TmMonth, TmMyDays, TmOtModal, TmOtRow, TmWorkHours,
   tmExportMonthXlsx, tmOtSheetFor, tmSheetName,
   TmStat, TmPill, TM_IN, tmExportMonthXlsx });

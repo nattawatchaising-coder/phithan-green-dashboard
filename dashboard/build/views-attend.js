@@ -9,6 +9,14 @@ const TM_IN = {
   fontSize: 13,
   outline: "none"
 };
+const TM_IN_W = Object.assign({}, TM_IN, {
+  width: "100%"
+});
+const TM_LB = {
+  display: "grid",
+  gap: 4,
+  minWidth: 0
+};
 function TmPill({
   s,
   size
@@ -1406,10 +1414,7 @@ function TmOtModal({
       gap: 10
     }
   }, React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 4
-    }
+    style: TM_LB
   }, React.createElement("span", {
     style: {
       fontSize: 11.5,
@@ -1421,12 +1426,9 @@ function TmOtModal({
     value: f.date,
     disabled: !editable,
     onChange: e => set("date", e.target.value),
-    style: TM_IN
+    style: TM_IN_W
   })), React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 4
-    }
+    style: TM_LB
   }, React.createElement("span", {
     style: {
       fontSize: 11.5,
@@ -1438,12 +1440,9 @@ function TmOtModal({
     value: f.from,
     disabled: !editable,
     onChange: e => set("from", e.target.value),
-    style: TM_IN
+    style: TM_IN_W
   })), React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 4
-    }
+    style: TM_LB
   }, React.createElement("span", {
     style: {
       fontSize: 11.5,
@@ -1455,12 +1454,9 @@ function TmOtModal({
     value: f.to,
     disabled: !editable,
     onChange: e => set("to", e.target.value),
-    style: TM_IN
+    style: TM_IN_W
   })), React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 4
-    }
+    style: TM_LB
   }, React.createElement("span", {
     style: {
       fontSize: 11.5,
@@ -1471,7 +1467,7 @@ function TmOtModal({
     value: f.kind,
     disabled: !editable,
     onChange: e => set("kind", e.target.value),
-    style: TM_IN
+    style: TM_IN_W
   }, window.TM_OT_KIND.map(k => React.createElement("option", {
     key: k.key,
     value: k.key
@@ -1798,10 +1794,7 @@ function TmWorkHours({
       gap: 10
     }
   }, React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 4
-    }
+    style: TM_LB
   }, React.createElement("span", {
     style: {
       fontSize: 11.5,
@@ -1812,12 +1805,9 @@ function TmWorkHours({
     type: "time",
     value: f.startEarly,
     onChange: e => set("startEarly", e.target.value),
-    style: TM_IN
+    style: TM_IN_W
   })), React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 4
-    }
+    style: TM_LB
   }, React.createElement("span", {
     style: {
       fontSize: 11.5,
@@ -1828,12 +1818,9 @@ function TmWorkHours({
     type: "time",
     value: f.startLate,
     onChange: e => set("startLate", e.target.value),
-    style: TM_IN
+    style: TM_IN_W
   })), React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 4
-    }
+    style: TM_LB
   }, React.createElement("span", {
     style: {
       fontSize: 11.5,
@@ -1846,12 +1833,9 @@ function TmWorkHours({
     step: 30,
     value: f.workMins,
     onChange: e => set("workMins", +e.target.value),
-    style: TM_IN
+    style: TM_IN_W
   })), React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 4
-    }
+    style: TM_LB
   }, React.createElement("span", {
     style: {
       fontSize: 11.5,
@@ -1863,12 +1847,9 @@ function TmWorkHours({
     min: 0,
     value: f.lunchMins,
     onChange: e => set("lunchMins", +e.target.value),
-    style: TM_IN
+    style: TM_IN_W
   })), React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 4
-    }
+    style: TM_LB
   }, React.createElement("span", {
     style: {
       fontSize: 11.5,
@@ -1880,12 +1861,9 @@ function TmWorkHours({
     min: 0,
     value: f.minOtMins,
     onChange: e => set("minOtMins", +e.target.value),
-    style: TM_IN
+    style: TM_IN_W
   })), React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 4
-    }
+    style: TM_LB
   }, React.createElement("span", {
     style: {
       fontSize: 11.5,
@@ -1897,7 +1875,7 @@ function TmWorkHours({
     min: 0,
     value: f.roundMins,
     onChange: e => set("roundMins", +e.target.value),
-    style: TM_IN
+    style: TM_IN_W
   }))), React.createElement("div", {
     style: {
       padding: "11px 13px",
@@ -2360,6 +2338,9 @@ function TmMyDays({
   }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14"))));
 }
 Object.assign(window, {
+  TM_IN,
+  TM_IN_W,
+  TM_LB,
   AttendView,
   TmDaySheet,
   TmMonth,
