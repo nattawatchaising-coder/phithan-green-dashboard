@@ -169,6 +169,8 @@ function App() {
   const setLeadMode = React.useCallback((m) => { localStorage.setItem("pg-leadmode", m); setLeadModeRaw(m); }, []);
   /* ลูกค้าที่สั่งให้เปิดใบทันทีหลังสลับมามุมรายการ (กดมาจากภาพรวมงานขาย) */
   const [leadFocus, setLeadFocus] = React.useState(null);
+  /* ลูกค้าที่กดมาจากการ์ดขายบนบอร์ดงาน — เปิดเป็นแผงทับบอร์ด ไม่ต้องเด้งออกไปหน้าอื่น */
+  const [boardLead, setBoardLead] = React.useState(null);
   /* สัญญาณ "เปิดฟอร์มลูกค้าใหม่" — เก็บเป็นเวลาที่กด เพราะกดซ้ำต้องเปิดได้อีก
      พาไปหน้างานขายก่อนเสมอ ฟอร์มอยู่ที่นั่นที่เดียว ไม่แยกร่างไปอยู่หลายหน้า */
   const [leadNew, setLeadNew] = React.useState(0);
@@ -775,7 +777,8 @@ function App() {
             <FlowBoardView jobs={filtered} leads={leadStore.leads} quotes={quoteStore.quotes} search={search}
               role={role} currentUser={auth.current}
               onOpenJob={openJob}
-              onOpenLead={(l) => { setView("leads"); setLeadMode("list"); setLeadFocus(l.id); }}
+              /* กดการ์ดขาย = เปิดใบลูกค้าทับบอร์ดเลย จะได้ไม่เสียตำแหน่งที่ไล่ดูอยู่ */
+              onOpenLead={(l) => setBoardLead(l.id)}
               onNewLead={can(role, "leads") ? newLead : null}
               onMoveStage={(id, s) => store.setStage(id, s)}
               onPatchLead={(id, f) => leadStore.patch(id, f)}
@@ -806,6 +809,17 @@ function App() {
         </React.Fragment>
         )}
       </main>
+
+      {/* ใบลูกค้าที่เปิดจากการ์ดขายบนบอร์ดงาน — ปุ่มครบเหมือนหน้ารายชื่อลูกค้า
+          ปุ่มที่พาไปหน้าอื่น (แบบสำรวจ · รายงาน · ใบเสนอราคา · แปลงเป็นงาน) ให้ปิดแผงก่อน ไม่งั้นมันค้างทับอยู่ */}
+      {boardLead && <LeadDrawer lead={(leadStore.leads || []).find((x) => x.id === boardLead) || null}
+        leadStore={leadStore} appts={apptStore.appts} jobs={jobs} quotes={quoteStore.quotes}
+        users={auth.users} currentUser={auth.current}
+        onClose={() => setBoardLead(null)}
+        onOpenSurvey={(can(role, "doSurvey") || can(role, "dispatch")) ? (pseudo) => { setBoardLead(null); openSurvey(pseudo); } : null}
+        onReport={(pseudo) => { setBoardLead(null); setReportJob(pseudo); }}
+        onOpenQuote={can(role, "price") ? (l, q) => { setBoardLead(null); openQuoteForLead(l, q); } : null}
+        onConvert={(l) => { setBoardLead(null); convertLead(l); }} canConvert={can(role, "addJob")} />}
 
       <DetailDrawer job={selectedJob} onClose={() => setSelected(null)} onAdvance={(id) => store.advance(id)} onSetMat={store.setMat}
         currentUser={auth.current} canManage={can(role, "delJob")} canDesign={can(role, "design")} stock={stock}

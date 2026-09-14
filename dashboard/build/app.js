@@ -232,6 +232,7 @@ function App() {
     setLeadModeRaw(m);
   }, []);
   const [leadFocus, setLeadFocus] = React.useState(null);
+  const [boardLead, setBoardLead] = React.useState(null);
   const [leadNew, setLeadNew] = React.useState(0);
   const [permitReview, setPermitReview] = React.useState(null);
   const [quoteOpen, setQuoteOpen] = React.useState(null);
@@ -1090,11 +1091,7 @@ function App() {
     role: role,
     currentUser: auth.current,
     onOpenJob: openJob,
-    onOpenLead: l => {
-      setView("leads");
-      setLeadMode("list");
-      setLeadFocus(l.id);
-    },
+    onOpenLead: l => setBoardLead(l.id),
     onNewLead: can(role, "leads") ? newLead : null,
     onMoveStage: (id, s) => store.setStage(id, s),
     onPatchLead: (id, f) => leadStore.patch(id, f),
@@ -1160,7 +1157,33 @@ function App() {
       }),
       isNew: true
     })
-  })))), React.createElement(DetailDrawer, {
+  })))), boardLead && React.createElement(LeadDrawer, {
+    lead: (leadStore.leads || []).find(x => x.id === boardLead) || null,
+    leadStore: leadStore,
+    appts: apptStore.appts,
+    jobs: jobs,
+    quotes: quoteStore.quotes,
+    users: auth.users,
+    currentUser: auth.current,
+    onClose: () => setBoardLead(null),
+    onOpenSurvey: can(role, "doSurvey") || can(role, "dispatch") ? pseudo => {
+      setBoardLead(null);
+      openSurvey(pseudo);
+    } : null,
+    onReport: pseudo => {
+      setBoardLead(null);
+      setReportJob(pseudo);
+    },
+    onOpenQuote: can(role, "price") ? (l, q) => {
+      setBoardLead(null);
+      openQuoteForLead(l, q);
+    } : null,
+    onConvert: l => {
+      setBoardLead(null);
+      convertLead(l);
+    },
+    canConvert: can(role, "addJob")
+  }), React.createElement(DetailDrawer, {
     job: selectedJob,
     onClose: () => setSelected(null),
     onAdvance: id => store.advance(id),
