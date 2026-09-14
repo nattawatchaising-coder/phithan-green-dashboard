@@ -18,6 +18,24 @@
 
 let _openAsk = null;      /* ตัวรับคำขอจาก ConfirmHost ที่ mount อยู่ */
 
+/* ── askText — ถามข้อความสั้น ๆ หนึ่งช่อง ──
+   เหตุผลที่ไม่ใช้ prompt() ของเบราว์เซอร์ เหมือนกับ confirm() ทุกข้อด้านบน
+   บวกอีกข้อ: prompt() ถูกบล็อกใน WebView ของแอปหลายตัว รวมถึงของ LINE
+
+   คืนข้อความที่ตัดช่องว่างหัวท้ายแล้ว · คืน null เมื่อกดยกเลิก
+   null กับ "" ต้องแยกกันให้ขาด — null = ไม่เอาแล้ว · "" = ตั้งใจเว้นว่าง
+   ตั้ง required: true เมื่อช่องว่างไม่ใช่คำตอบที่รับได้ (ปุ่มตกลงจะกดไม่ได้จนกว่าจะพิมพ์)
+
+   วิธีใช้ :  askText({ title: "ชื่อไซต์", required: true }).then((v) => { if (v) สร้าง(v); }); */
+function askText(opts) {
+  const o = typeof opts === "string" ? { title: opts } : (opts || {});
+  if (!_openAsk) {
+    const v = window.prompt(o.title || o.label || "", o.value || "");
+    return Promise.resolve(v == null ? null : String(v).trim());
+  }
+  return new Promise((resolve) => _openAsk(Object.assign({}, o, { input: true, resolve })));
+}
+
 function askConfirm(opts) {
   const o = typeof opts === "string" ? { title: opts } : (opts || {});
   if (!_openAsk) return Promise.resolve(window.confirm(o.title || o.body || "ยืนยัน?"));
@@ -26,31 +44,44 @@ function askConfirm(opts) {
 
 function ConfirmHost() {
   const [req, setReq] = React.useState(null);
+  const [text, setText] = React.useState("");
 
   React.useEffect(() => {
-    _openAsk = (r) => setReq(r);
+    _openAsk = (r) => { setText(r && r.value ? String(r.value) : ""); setReq(r); };
     return () => { _openAsk = null; };
   }, []);
 
+  /* โหมดถามข้อความคืนสตริง (หรือ null) · โหมดยืนยันคืน true/false เหมือนเดิม
+     ตัว resolve ตัวเดียวกันจึงต้องดูจาก req.input ว่าคนเรียกรออะไรอยู่ */
   const done = React.useCallback((ok) => {
-    setReq((cur) => { if (cur && cur.resolve) cur.resolve(ok); return null; });
-  }, []);
+    setReq((cur) => {
+      if (cur && cur.resolve) cur.resolve(cur.input ? (ok ? String(text).trim() : null) : ok);
+      return null;
+    });
+  }, [text]);
 
   /* Esc = ยกเลิก · Enter = ตกลง (ปุ่มตกลงโฟกัสอยู่แล้ว แต่เผื่อโฟกัสหลุด) */
   React.useEffect(() => {
     if (!req) return;
     const onKey = (e) => {
       if (e.key === "Escape") { e.preventDefault(); done(false); }
-      else if (e.key === "Enter") { e.preventDefault(); done(true); }
+      /* Enter ต้องไม่ผ่านตอนช่องบังคับยังว่าง ไม่งั้นกด Enter รัว ๆ จะได้ค่าว่างไปเงียบ ๆ
+         ทั้งที่ปุ่มบนจอกดไม่ได้อยู่ — สองทางต้องตัดสินเหมือนกัน */
+      else if (e.key === "Enter") {
+        if (req.input && req.required && !String(text).trim()) return;
+        e.preventDefault(); done(true);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [req, done]);
 
   if (!req) return null;
-  const danger = req.danger !== false;                 /* ส่วนใหญ่คือปุ่มลบ ให้แดงเป็นค่าตั้งต้น */
+  /* โหมดถามข้อความไม่ใช่การลบ จึงไม่ควรแดงเป็นค่าตั้งต้นเหมือนโหมดยืนยัน */
+  const danger = req.input ? req.danger === true : req.danger !== false;
   const accent = danger ? "#EF4444" : "var(--primary)";
-  const icon = req.icon || (danger ? "trash" : "alert");
+  const icon = req.icon || (req.input ? "pen" : danger ? "trash" : "alert");
+  const blocked = !!(req.input && req.required && !String(text).trim());
 
   return (
     <div onClick={() => done(false)}
@@ -75,15 +106,33 @@ function ConfirmHost() {
             )}
           </div>
         </div>
+
+        {req.input && (
+          <div style={{ marginTop: 14 }}>
+            {req.label && (
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", marginBottom: 5 }}>
+                {req.label}{req.required && <span style={{ color: "#EF4444" }}> *</span>}
+              </div>
+            )}
+            <input autoFocus value={text} maxLength={req.maxLength || 120} placeholder={req.placeholder || ""}
+              onChange={(e) => setText(e.target.value)}
+              style={{ width: "100%", boxSizing: "border-box", background: "var(--surface2)",
+                border: "1px solid var(--border-strong)", borderRadius: 10, padding: "10px 12px",
+                color: "var(--text-1)", fontFamily: "inherit", fontSize: 14, outline: "none" }} />
+          </div>
+        )}
+
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 18 }}>
           <button onClick={() => done(false)}
             style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)",
               color: "var(--text-2)", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
             {req.cancel || "ยกเลิก"}
           </button>
-          <button autoFocus onClick={() => done(true)}
-            style={{ padding: "10px 16px", borderRadius: 10, border: "none", background: accent, color: "#fff",
-              fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+          <button autoFocus={!req.input} disabled={blocked} onClick={() => done(true)}
+            style={{ padding: "10px 16px", borderRadius: 10, border: "none",
+              background: blocked ? "var(--border-strong)" : accent, color: "#fff",
+              fontFamily: "inherit", fontSize: 13, fontWeight: 700,
+              cursor: blocked ? "not-allowed" : "pointer" }}>
             {req.ok || (danger ? "ลบ" : "ตกลง")}
           </button>
         </div>
@@ -92,4 +141,4 @@ function ConfirmHost() {
   );
 }
 
-Object.assign(window, { askConfirm, ConfirmHost });
+Object.assign(window, { askConfirm, askText, ConfirmHost });

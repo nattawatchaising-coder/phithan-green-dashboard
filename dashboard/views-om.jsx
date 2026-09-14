@@ -413,7 +413,15 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, siteVisits,
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
               <div>
                 <window.DrLabel>ชื่อไซต์ / ลูกค้า</window.DrLabel>
-                <input value={site.name || ""} disabled={disabled} onChange={(e) => set({ name: e.target.value })} style={OM_INPUT} />
+                <input value={site.name || ""} disabled={disabled} onChange={(e) => set({ name: e.target.value })}
+                  style={Object.assign({}, OM_INPUT, String(site.name || "").trim() ? null : { borderColor: "#F59E0B" })} />
+                {/* ลบชื่อจนว่างคือทางที่สองที่พาไปสภาพเดียวกับไซต์เปล่า — ไม่บล็อกการพิมพ์
+                    (แผงนี้บันทึกทุกตัวอักษร บล็อกแล้วจะลบเพื่อพิมพ์ใหม่ไม่ได้) แต่ต้องเห็นว่าผิดปกติ */}
+                {!String(site.name || "").trim() && (
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#B45309", marginTop: 5 }}>
+                    ยังไม่มีชื่อ — ไซต์นี้จะขึ้นเป็นรหัสเปล่าในรายการและในแจ้งเตือน LINE
+                  </div>
+                )}
               </div>
               <div>
                 <window.DrLabel>เบอร์ติดต่อ</window.DrLabel>
@@ -1026,9 +1034,20 @@ function OmView({ jobs, users, role, currentUser, focus }) {
     pending.forEach((j) => upsert(window.omSiteFromJob(j, currentUser)));
     setEnrolling(false);
   };
-  const addExternal = () => {
+  /* ── ถามชื่อก่อน แล้วค่อยสร้าง ──
+     เดิมเขียนเรคคอร์ดเปล่าลงฐานข้อมูลทันทีแล้วค่อยเปิดฟอร์มให้กรอก
+     ใครกดแล้วเปลี่ยนใจปิดไป จะเหลือไซต์ที่มีแต่รหัสไม่มีชื่อค้างอยู่ถาวร
+     และไม่มีอะไรบอกว่ามันคือของใคร — แจ้งเตือนเข้า LINE ก็เลยบอกไม่ได้ว่างานของใคร
+     ชื่อคือสิ่งเดียวที่ระบบเดาแทนไม่ได้ ที่เหลือกรอกทีหลังได้หมด */
+  const addExternal = async () => {
     if (!canWrite) return;
-    const rec = window.omBlankSite(sites, currentUser);
+    const name = await window.askText({
+      title: "เปิดทะเบียนไซต์ใหม่", icon: "plus", ok: "สร้างไซต์",
+      body: "ตั้งชื่อไว้ก่อนเพื่อให้หาเจอในรายการและในแจ้งเตือน · รายละเอียดที่เหลือกรอกทีหลังได้",
+      label: "ชื่อไซต์ / ลูกค้า", placeholder: "เช่น คุณศิริการย์ · บจก. เวิลด์ลิงก์", required: true, maxLength: 120,
+    });
+    if (!name) return;
+    const rec = Object.assign(window.omBlankSite(sites, currentUser), { name: name });
     upsert(rec);
     setOpen(rec.id);
   };
