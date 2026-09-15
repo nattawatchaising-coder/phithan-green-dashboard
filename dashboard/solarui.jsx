@@ -391,11 +391,23 @@ function SuLayout2D({ foot, assign, active, onPaint, height, labels, colorOf, un
   const [hand, setHand] = React.useState(false);   // โหมดลากเลื่อน (ปิด = ลากแล้วทาสีแผง)
   const zoomed = !!view && Math.abs(v.w - base.w) > 0.001;
 
+  /* ── แปลงหน่วยจอ ↔ หน่วยผัง ──
+     svg ใช้ preserveAspectRatio ค่าปริยาย (meet) = ผังถูกย่อให้พอดีด้านที่คับกว่า
+     แล้วเหลือขอบว่างอีกด้าน · สัดส่วนกรอบ svg (กว้าง 100% สูง 340px) แทบไม่เคยเท่าสัดส่วนผัง
+
+     ถ้าคิดง่าย ๆ ว่า 1 กรอบ = 1 viewBox (หารด้วยความกว้างกรอบตรง ๆ) จะเพี้ยนตามส่วนต่างของสัดส่วน
+     ยิ่งซูมยิ่งเห็นชัด — ลากนิดเดียวผังกระเด็นไปไกล และซูมที่เคอร์เซอร์ก็ไม่ตรงจุดที่ชี้ */
+  const scaleOf = () => {
+    const r = svgRef.current ? svgRef.current.getBoundingClientRect() : null;
+    if (!r || !r.width || !r.height) return null;
+    const s = Math.min(r.width / v.w, r.height / v.h);   // พิกเซลต่อหนึ่งหน่วยผัง
+    return { r: r, s: s, offX: (r.width - v.w * s) / 2, offY: (r.height - v.h * s) / 2 };
+  };
   /* จุดบนจอ → พิกัดในผัง (ใช้ตอนซูมให้จุดใต้เมาส์อยู่กับที่) */
   const ptOf = (clientX, clientY) => {
-    const r = svgRef.current ? svgRef.current.getBoundingClientRect() : null;
-    if (!r || !r.width || !r.height) return { x: v.x + v.w / 2, y: v.y + v.h / 2 };
-    return { x: v.x + ((clientX - r.left) / r.width) * v.w, y: v.y + ((clientY - r.top) / r.height) * v.h };
+    const m = scaleOf();
+    if (!m) return { x: v.x + v.w / 2, y: v.y + v.h / 2 };
+    return { x: v.x + (clientX - m.r.left - m.offX) / m.s, y: v.y + (clientY - m.r.top - m.offY) / m.s };
   };
   /* ซูมเข้าได้ลึกสุด 40 เท่า · ออกได้กว้างสุดเท่าผังเต็ม (ซูมออกกว่านั้นไม่มีอะไรให้ดู) */
   const zoomAt = (mul, cx, cy) => {
@@ -408,9 +420,9 @@ function SuLayout2D({ foot, assign, active, onPaint, height, labels, colorOf, un
     setView(w >= base.w ? null : { x: p.x - (p.x - v.x) * k, y: p.y - (p.y - v.y) * k, w: w, h: h });
   };
   const panBy = (dxPx, dyPx) => {
-    const r = svgRef.current ? svgRef.current.getBoundingClientRect() : null;
-    if (!r || !r.width) return;
-    setView({ x: v.x - (dxPx / r.width) * v.w, y: v.y - (dyPx / r.height) * v.h, w: v.w, h: v.h });
+    const m = scaleOf();
+    if (!m) return;
+    setView({ x: v.x - dxPx / m.s, y: v.y - dyPx / m.s, w: v.w, h: v.h });
   };
 
   /* ลากผ่านแผงไหนก็ทาแผงนั้น — ใช้ elementFromPoint เพื่อให้ลากยาว ๆ ได้ลื่น ไม่ต้องแตะทีละแผง */

@@ -599,15 +599,26 @@ function SuLayout2D({
   const v = view || base;
   const [hand, setHand] = React.useState(false);
   const zoomed = !!view && Math.abs(v.w - base.w) > 0.001;
-  const ptOf = (clientX, clientY) => {
+  const scaleOf = () => {
     const r = svgRef.current ? svgRef.current.getBoundingClientRect() : null;
-    if (!r || !r.width || !r.height) return {
+    if (!r || !r.width || !r.height) return null;
+    const s = Math.min(r.width / v.w, r.height / v.h);
+    return {
+      r: r,
+      s: s,
+      offX: (r.width - v.w * s) / 2,
+      offY: (r.height - v.h * s) / 2
+    };
+  };
+  const ptOf = (clientX, clientY) => {
+    const m = scaleOf();
+    if (!m) return {
       x: v.x + v.w / 2,
       y: v.y + v.h / 2
     };
     return {
-      x: v.x + (clientX - r.left) / r.width * v.w,
-      y: v.y + (clientY - r.top) / r.height * v.h
+      x: v.x + (clientX - m.r.left - m.offX) / m.s,
+      y: v.y + (clientY - m.r.top - m.offY) / m.s
     };
   };
   const zoomAt = (mul, cx, cy) => {
@@ -636,11 +647,11 @@ function SuLayout2D({
     });
   };
   const panBy = (dxPx, dyPx) => {
-    const r = svgRef.current ? svgRef.current.getBoundingClientRect() : null;
-    if (!r || !r.width) return;
+    const m = scaleOf();
+    if (!m) return;
     setView({
-      x: v.x - dxPx / r.width * v.w,
-      y: v.y - dyPx / r.height * v.h,
+      x: v.x - dxPx / m.s,
+      y: v.y - dyPx / m.s,
       w: v.w,
       h: v.h
     });
