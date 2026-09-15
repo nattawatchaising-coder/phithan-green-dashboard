@@ -1695,28 +1695,27 @@ function scOptPlan(opt, panel, totalPanels, invModel) {
   const voc = scNum(panel && panel.voc, 0);
   const isc = scNum(panel && panel.isc, 0);
   const warns = [];
-  let per = 0;
-  if (opt.w > 0 && wp > 0) per = Math.floor(opt.w / wp);
-  if (!per) {
-    per = 1;
-    if (wp > 0 && opt.w > 0) warns.push("แผง " + wp + "W เกินกำลังที่ตัวคุมรับได้ (" + opt.w + "W) — รุ่นนี้ใช้กับแผงนี้ไม่ได้");
+  const per = opt.perPanel > 0 ? Math.round(opt.perPanel) : 2;
+  const wPerUnit = scR(per * wp, 0);
+  let usable = true;
+  if (opt.w > 0 && wp > 0 && wPerUnit > opt.w) {
+    usable = false;
+    warns.push("แผง " + wp + "W " + per + " ใบ = " + wPerUnit + "W เกินกำลังที่ตัวคุมรับได้ (" + opt.w + "W) — รุ่นนี้ใช้กับแผงนี้ไม่ได้ ต้องเปลี่ยนรุ่นตัวคุมหรือเปลี่ยนแผง");
   }
-  if (opt.perPanel > 0 && per > opt.perPanel) per = opt.perPanel;
-  if (opt.vInMax > 0 && voc > 0) {
-    const byV = Math.floor(opt.vInMax / voc);
-    if (byV < per) {
-      per = Math.max(1, byV);
-      warns.push("ลดเหลือ " + per + " แผง/ตัว เพราะแรงดันรวมเกิน " + opt.vInMax + "V");
-    }
+  if (opt.vInMax > 0 && voc > 0 && per * voc > opt.vInMax) {
+    usable = false;
+    warns.push("แรงดันรวมของแผง " + per + " ใบ = " + scR(per * voc, 1) + "V เกินแรงดันเข้าสูงสุดของตัวคุม " + opt.vInMax + "V");
   }
   if (opt.iscMax > 0 && isc > 0 && isc > opt.iscMax) {
+    usable = false;
     warns.push("Isc ของแผง " + isc + "A เกินที่ตัวคุมรับได้ " + opt.iscMax + "A");
   }
   const units = per > 0 ? Math.ceil(scNum(totalPanels, 0) / per) : 0;
   return {
     per: per,
     units: units,
-    wPerUnit: scR(per * wp, 0),
+    usable: usable,
+    wPerUnit: wPerUnit,
     vIn: scR(per * voc, 1),
     headroomW: scR(opt.w - per * wp, 0),
     vOff: scNum(opt.vOff, 0),

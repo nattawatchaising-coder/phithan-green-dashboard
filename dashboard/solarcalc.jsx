@@ -1260,14 +1260,13 @@ function scOptSpec(sys) {
   return (B.OPTIMIZERS || []).find((o) => o.model === m) || null;
 }
 
-/* ── ต่อได้กี่แผงต่อตัวคุมหนึ่งตัว ──
-   กติกาหน้างาน: เอากำลังแผงมารวมกันต่อ 1 ตัว ห้ามเกินกำลังที่ตัวคุมรับได้
-   เช่น ตัวรับ 1300W กับแผง 650W ต่อได้ 2 ใบ (650+650) · ตัวรับ 1100W กับแผงเดียวกันได้ใบเดียว
+/* ── ตัวคุมหนึ่งตัวต่อกี่แผง ──
+   อุปกรณ์ชนิดนี้ต่อ "1 ตัวต่อ 2 แผง" เป็นมาตรฐาน ไม่มีการต่อ 1 หรือ 3 แผง
+   (รุ่นที่ออกแบบมาต่อแผงเดียวมีอยู่ แต่ต้องระบุไว้ในคลังว่าแผงต่อตัว = 1)
 
-   ต่อให้กำลังผ่านแล้ว ยังต้องไม่เกินพิกัดไฟฟ้าฝั่งเข้าอีกสองข้อ
-     · แผงที่ต่ออนุกรมเข้าตัวเดียวกัน แรงดันรวม (Voc) ต้องไม่เกินแรงดันเข้าสูงสุด
-     · กระแสลัดวงจรของแผง (Isc) ต้องไม่เกินที่ตัวคุมรับได้
-   ถ้าข้อไหนไม่ผ่าน ลดจำนวนแผงต่อตัวลงจนผ่าน — ไม่ใช่ปล่อยผ่านแล้วไปพังหน้างาน */
+   กำลังวัตต์เป็นตัวตัดสินว่า "รุ่นนี้ใช้กับแผงรุ่นนี้ได้ไหม" ไม่ใช่ตัวลดจำนวนแผงต่อตัว
+     แผง 650W สองใบ = 1300W → รุ่น 1300W ใช้ได้ · รุ่น 1100W ใช้ไม่ได้ ต้องเปลี่ยนรุ่น
+   แรงดัน/กระแสฝั่งเข้าก็เช็คด้วยเหตุผลเดียวกัน — ไม่ผ่านคือใช้คู่นี้ไม่ได้ ไม่ใช่ลดแผงลง */
 function scOptPlan(opt, panel, totalPanels, invModel) {
   if (!opt) return null;
   /* ข้อจำกัดความยาวสตริงมาจากตารางจับคู่กับอินเวอร์เตอร์รุ่นที่เลือกไว้
@@ -1278,24 +1277,28 @@ function scOptPlan(opt, panel, totalPanels, invModel) {
   const isc = scNum(panel && panel.isc, 0);
   const warns = [];
 
-  let per = 0;
-  if (opt.w > 0 && wp > 0) per = Math.floor(opt.w / wp);
-  if (!per) { per = 1; if (wp > 0 && opt.w > 0) warns.push("แผง " + wp + "W เกินกำลังที่ตัวคุมรับได้ (" + opt.w + "W) — รุ่นนี้ใช้กับแผงนี้ไม่ได้"); }
-  if (opt.perPanel > 0 && per > opt.perPanel) per = opt.perPanel;   // เพดานของรุ่น (ถ้าระบุไว้)
+  /* 2 แผงต่อตัวเป็นค่ามาตรฐาน — ตั้งเป็นอย่างอื่นได้ที่ช่อง "แผงต่อ 1 ตัว" ในคลัง */
+  const per = opt.perPanel > 0 ? Math.round(opt.perPanel) : 2;
+  const wPerUnit = scR(per * wp, 0);
 
-  /* แรงดัน/กระแสฝั่งเข้า — ลดจำนวนแผงต่อตัวลงจนอยู่ในพิกัด */
-  if (opt.vInMax > 0 && voc > 0) {
-    const byV = Math.floor(opt.vInMax / voc);
-    if (byV < per) { per = Math.max(1, byV); warns.push("ลดเหลือ " + per + " แผง/ตัว เพราะแรงดันรวมเกิน " + opt.vInMax + "V"); }
+  let usable = true;
+  if (opt.w > 0 && wp > 0 && wPerUnit > opt.w) {
+    usable = false;
+    warns.push("แผง " + wp + "W " + per + " ใบ = " + wPerUnit + "W เกินกำลังที่ตัวคุมรับได้ (" + opt.w + "W) — รุ่นนี้ใช้กับแผงนี้ไม่ได้ ต้องเปลี่ยนรุ่นตัวคุมหรือเปลี่ยนแผง");
+  }
+  if (opt.vInMax > 0 && voc > 0 && per * voc > opt.vInMax) {
+    usable = false;
+    warns.push("แรงดันรวมของแผง " + per + " ใบ = " + scR(per * voc, 1) + "V เกินแรงดันเข้าสูงสุดของตัวคุม " + opt.vInMax + "V");
   }
   if (opt.iscMax > 0 && isc > 0 && isc > opt.iscMax) {
+    usable = false;
     warns.push("Isc ของแผง " + isc + "A เกินที่ตัวคุมรับได้ " + opt.iscMax + "A");
   }
 
   const units = per > 0 ? Math.ceil(scNum(totalPanels, 0) / per) : 0;
   return {
-    per: per, units: units,
-    wPerUnit: scR(per * wp, 0),
+    per: per, units: units, usable: usable,
+    wPerUnit: wPerUnit,
     vIn: scR(per * voc, 1),
     headroomW: scR(opt.w - per * wp, 0),
     /* แรงดันที่เหลือบนสายตอนสั่งหยุดฉุกเฉิน — จุดขายหลักของอุปกรณ์นี้
