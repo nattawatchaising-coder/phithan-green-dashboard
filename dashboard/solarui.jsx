@@ -367,7 +367,23 @@ const suColor = (i) => SU_SCOLOR[(i - 1 + SU_SCOLOR.length) % SU_SCOLOR.length];
 /* ── ผังแผง 2D (มองจากด้านบน) — แตะ/ลากเพื่อจัดแผงเข้าสตริง ──
    foot = ผลจาก p3FootAll(st) · assign = { uid: หมายเลขสตริง } */
 /* labels = { uid: "L1" } เขียนทับบนแผง · colorOf(uid, กลุ่ม) = แทนที่สีประจำกลุ่ม · unitName = คำเรียกในทูลทิป */
-function SuLayout2D({ foot, assign, active, onPaint, height, labels, colorOf, unitName }) {
+/* มุมของขอบยาวของแผง — ใช้หมุนผังให้แถวแผงนอนตรง จะได้ลากกรอบเลือกเป็นบล็อกได้ง่าย
+   หลังคาส่วนใหญ่ไม่ได้วางตรงกับทิศเหนือ ผังเลยเอียง ทำให้กรอบสี่เหลี่ยมคร่อมแถวไม่ลงตัว */
+function suPanelAngle(foot) {
+  const p = (foot.panels || [])[0];
+  if (!p || !p.pts || p.pts.length < 2) return 0;
+  let best = null, bestLen = 0;
+  for (let i = 0; i < p.pts.length; i++) {
+    const a = p.pts[i], b = p.pts[(i + 1) % p.pts.length];
+    const dx = b[0] - a[0], dy = b[1] - a[1];
+    const len = dx * dx + dy * dy;
+    if (len > bestLen) { bestLen = len; best = [dx, dy]; }
+  }
+  if (!best) return 0;
+  return Math.round(Math.atan2(best[1], best[0]) * 180 / Math.PI * 10) / 10;
+}
+
+function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels, colorOf, unitName }) {
   const wrapRef = React.useRef(null);
   const svgRef = React.useRef(null);
   const [drag, setDrag] = React.useState(false);
@@ -378,7 +394,15 @@ function SuLayout2D({ foot, assign, active, onPaint, height, labels, colorOf, un
   /* ── ซูม/เลื่อนผัง ──
      ผังใหญ่ ๆ (หลักพันแผง) แผงหนึ่งใบเล็กกว่าปลายนิ้วบนจอ แตะให้โดนใบที่ต้องการแทบไม่ได้
      จึงต้องซูมได้ · null = ยังไม่เคยซูม ใช้กรอบพอดีผังตามเดิม */
-  const base = { x: b.minX - pad, y: b.minZ - pad, w: W, h: H };
+  /* ── หมุนผัง + ลากกรอบเลือก ──
+     ผัง 4,000 แผงจะแตะทีละใบไม่ไหว ต้องเลือกยกบล็อก
+     แต่กรอบสี่เหลี่ยมจะคร่อมแถวได้พอดีก็ต่อเมื่อแถวแผงนอนตรง จึงต้องหมุนผังให้ตรงก่อน */
+  const [rot, setRot] = React.useState(0);
+  const cx = (b.minX + b.maxX) / 2, cz = (b.minZ + b.maxZ) / 2;
+  /* หมุนแล้วผังกินพื้นที่กว้างขึ้น กรอบมองต้องขยายตาม ไม่งั้นมุมผังโดนตัดหาย */
+  const th = rot * Math.PI / 180, ca = Math.abs(Math.cos(th)), sa = Math.abs(Math.sin(th));
+  const RW = W * ca + H * sa, RH = W * sa + H * ca;
+  const base = { x: cx - RW / 2, y: cz - RH / 2, w: RW, h: RH };
   const [view, setView] = React.useState(null);
   /* ผังเปลี่ยนรูปร่างจริง ๆ (เพิ่ม/ลบแผง หรือขอบเขตเลื่อน) ค่อยกลับไปมองทั้งผัง
 
@@ -434,7 +458,42 @@ function SuLayout2D({ foot, assign, active, onPaint, height, labels, colorOf, un
   /* สถานะ "กำลังลากอยู่" เก็บใน ref ด้วย — ตัวที่เป็น state ยังไม่ทันอัปเดตถ้า pointermove
      มาถึงในเฟรมเดียวกับ pointerdown (ลากเร็ว ๆ หรือจอสัมผัส) แล้วจะกลายเป็นลากไม่ติด */
   const dragRef = React.useRef(false);
-  const panning = hand || !active;
+
+  const [box, setBox] = React.useState(false);            // โหมดลากกรอบเลือกยกบล็อก
+  const [rect, setRect] = React.useState(null);           // กรอบที่กำลังลาก (พิกัดเทียบกรอบ svg) — ไว้วาดให้เห็น
+  /* ตัวจริงที่ใช้ตัดสินว่าแผงไหนอยู่ในกรอบต้องเก็บใน ref ด้วย
+     state ของ React ยังไม่ทันอัปเดตถ้า pointermove กับ pointerup มาถึงในจังหวะเดียวกัน
+     ตอนปล่อยนิ้วจะได้กรอบของ move ก่อนหน้า = เลือกผิดแถว (เจอมาแล้วตอนลากเลื่อนผัง) */
+  const rectRef = React.useRef(null);
+  /* หมุนให้ตรง = หันขอบยาวของแผงให้นอนราบ · กดซ้ำ = กลับไปมุมจริงของหลังคา
+     ต้องล้างกรอบมองด้วย เพราะขนาดผังหลังหมุนไม่เท่าเดิม */
+  const straighten = () => { setRot((r) => (Math.abs(r) > 0.01 ? 0 : -suPanelAngle(foot))); setView(null); };
+
+  /* จุดในผัง → จุดหลังหมุน (ต้องผ่านมุมเดียวกับ <g> ที่ครอบผังอยู่) */
+  const rotPt = (x, z) => ({
+    x: cx + (x - cx) * Math.cos(th) - (z - cz) * Math.sin(th),
+    y: cz + (x - cx) * Math.sin(th) + (z - cz) * Math.cos(th),
+  });
+  /* ปล่อยนิ้ว = เก็บทุกใบที่จุดกึ่งกลางตกในกรอบ แล้วบันทึกรวดเดียว
+     ทาทีละใบเป็นร้อยครั้งจะช้าและทับกันเอง เพราะแต่ละครั้งอ่านผังชุดเก่า */
+  const applyBox = (r) => {
+    const m = scaleOf();
+    if (!m || !r || !onPaintMany) return;
+    const x0 = Math.min(r.x0, r.x1), x1 = Math.max(r.x0, r.x1);
+    const y0 = Math.min(r.y0, r.y1), y1 = Math.max(r.y0, r.y1);
+    if (x1 - x0 < 4 && y1 - y0 < 4) return;               // แค่แตะ ไม่ได้ลากกรอบ
+    const hit = [];
+    foot.panels.forEach((q) => {
+      const px = q.pts.reduce((a, t) => a + t[0], 0) / q.pts.length;
+      const pz = q.pts.reduce((a, t) => a + t[1], 0) / q.pts.length;
+      const rp = rotPt(px, pz);
+      const sx = m.offX + (rp.x - v.x) * m.s, sy = m.offY + (rp.y - v.y) * m.s;
+      if (sx >= x0 && sx <= x1 && sy >= y0 && sy <= y1) hit.push(q.uid);
+    });
+    if (hit.length) onPaintMany(hit);
+  };
+
+  const panning = (hand || !active) && !box;
 
   /* ลูกกลิ้ง = ซูมผัง ไม่ใช่เลื่อนหน้า
      ต้องผูกเองแบบ passive:false — React ผูก wheel ให้แบบ passive ซึ่งสั่ง preventDefault ไม่ได้
@@ -464,8 +523,14 @@ function SuLayout2D({ foot, assign, active, onPaint, height, labels, colorOf, un
             {Math.round(base.w / v.w * 10) / 10}×
           </span>
         )}
+        <button type="button" onClick={straighten} style={btn(Math.abs(rot) > 0.01)}
+          title={Math.abs(rot) > 0.01 ? "กลับไปมุมจริงของหลังคา" : "หมุนผังให้แถวแผงนอนตรง (ลากกรอบเลือกง่ายขึ้น)"}>⟲</button>
+        {active && onPaintMany && (
+          <button type="button" onClick={() => { setBox((x) => !x); setHand(false); }} style={btn(box)}
+            title={box ? "ตอนนี้ลากเป็นกรอบเลือกทีละหลายใบ — กดเพื่อกลับไปทาทีละใบ" : "ลากกรอบเลือกแผงทีละหลายใบ"}>▢</button>
+        )}
         {active && (
-          <button type="button" onClick={() => setHand((x) => !x)} style={btn(hand)}
+          <button type="button" onClick={() => { setHand((x) => !x); setBox(false); }} style={btn(hand)}
             title={hand ? "ตอนนี้ลากเพื่อเลื่อนผัง — กดเพื่อกลับไปทาสีแผง" : "ลากเพื่อเลื่อนผัง (ไม่ทาสีแผง)"}>✥</button>
         )}
         <button type="button" onClick={() => zoomAt(1 / 1.4)} style={btn(false)} title="ซูมออก">−</button>
@@ -481,6 +546,12 @@ function SuLayout2D({ foot, assign, active, onPaint, height, labels, colorOf, un
           try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
           setDrag(true); dragRef.current = true;
           if (panning) { last.current = { x: e.clientX, y: e.clientY }; return; }
+          if (box) {
+            const m = scaleOf();
+            if (m) { const x = e.clientX - m.r.left, y = e.clientY - m.r.top;
+              rectRef.current = { x0: x, y0: y, x1: x, y1: y }; setRect(rectRef.current); }
+            return;
+          }
           paintAt(e);
         }}
         onPointerMove={(e) => {
@@ -491,10 +562,20 @@ function SuLayout2D({ foot, assign, active, onPaint, height, labels, colorOf, un
             last.current = { x: e.clientX, y: e.clientY };
             return;
           }
+          if (box) {
+            const m = scaleOf();
+            const r0 = rectRef.current;
+            if (m && r0) { rectRef.current = { x0: r0.x0, y0: r0.y0, x1: e.clientX - m.r.left, y1: e.clientY - m.r.top };
+              setRect(rectRef.current); }
+            return;
+          }
           if (active) paintAt(e);
         }}
-        onPointerUp={() => { setDrag(false); dragRef.current = false; last.current = null; }}
-        onPointerCancel={() => { setDrag(false); dragRef.current = false; last.current = null; }}>
+        onPointerUp={() => { setDrag(false); dragRef.current = false; last.current = null;
+          if (rectRef.current) { applyBox(rectRef.current); rectRef.current = null; setRect(null); } }}
+        onPointerCancel={() => { setDrag(false); dragRef.current = false; last.current = null; rectRef.current = null; setRect(null); }}>
+        {/* ทั้งผังอยู่ในกลุ่มเดียวเพื่อหมุนพร้อมกัน — หมุนรอบจุดกึ่งกลางผัง */}
+        <g transform={"rotate(" + rot + " " + cx + " " + cz + ")"}>
         {/* เส้นขอบผืนหลังคา */}
         {foot.outlines.map((o, i) => (
           <polygon key={i} points={o.pts.map((p) => p[0] + "," + p[1]).join(" ")}
@@ -528,12 +609,20 @@ function SuLayout2D({ foot, assign, active, onPaint, height, labels, colorOf, un
               style={{ pointerEvents: "none", userSelect: "none" }}>{t}</text>
           );
         })}
-        {/* เข็มทิศ: บนจอ +Z = ทิศใต้ ตามฉาก 3 มิติ */}
-        <g transform={"translate(" + (b.minX - pad + 0.7) + "," + (b.minZ - pad + 0.7) + ")"}>
+        </g>
+        {/* เข็มทิศ: บนจอ +Z = ทิศใต้ ตามฉาก 3 มิติ — เข็มหมุนตามผัง จะได้ยังชี้เหนือจริง */}
+        <g transform={"translate(" + (base.x + 0.7) + "," + (base.y + 0.7) + ") rotate(" + rot + ")"}>
           <line x1="0" y1="0" x2="0" y2="1.1" stroke="var(--tint-red-tx)" strokeWidth="0.09" />
           <text x="0" y="-0.15" fontSize="0.62" fontWeight="800" fill="var(--tint-red-tx)" textAnchor="middle">N</text>
         </g>
       </svg>
+      {/* กรอบที่กำลังลาก — วาดทับเป็น div เพราะพิกัดเป็นพิกเซลบนจอ ไม่ใช่หน่วยผัง */}
+      {rect && (
+        <div style={{ position: "absolute", pointerEvents: "none",
+          left: Math.min(rect.x0, rect.x1), top: Math.min(rect.y0, rect.y1),
+          width: Math.abs(rect.x1 - rect.x0), height: Math.abs(rect.y1 - rect.y0),
+          border: "1.5px dashed var(--acd)", background: "rgba(79,70,229,.12)", borderRadius: 4 }} />
+      )}
     </div>
   );
 }
@@ -1698,6 +1787,14 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
     if (!activeStr) delete a[uid]; else a[uid] = activeStr;
     set({ assign: a, manual: true });
   };
+  /* ทาทีละหลายใบในครั้งเดียว (ลากกรอบ) — ต้องรวมเป็นการบันทึกครั้งเดียว
+     เรียก paint() ทีละใบร้อยครั้งจะช้าและทับกันเอง เพราะแต่ละครั้งอ่าน assign ชุดเก่า */
+  const paintMany = (uids) => {
+    if (!uids || !uids.length) return;
+    const a = Object.assign({}, effAssign);
+    uids.forEach((uid) => { if (!activeStr) delete a[uid]; else a[uid] = activeStr; });
+    set({ assign: a, manual: true });
+  };
   const strIds = plan && plan.strings ? plan.strings.map((s) => s.id || 0).filter(Boolean) : [];
   const nextStr = (strIds.length ? Math.max.apply(null, strIds) : 0) + 1;
   const microPlans = React.useMemo(() => (isMicro ? scMicroPlan(groups, panel, micros, S.env, S) : null),
@@ -1759,6 +1856,12 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   const paintMu = (uid) => {
     const a = Object.assign({}, microAssign);
     if (!activeMu) delete a[uid]; else a[uid] = activeMu;
+    set({ microAssign: a, microManual: true });
+  };
+  const paintMuMany = (uids) => {
+    if (!uids || !uids.length) return;
+    const a = Object.assign({}, microAssign);
+    uids.forEach((uid) => { if (!activeMu) delete a[uid]; else a[uid] = activeMu; });
     set({ microAssign: a, microManual: true });
   };
 
@@ -2457,7 +2560,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                         )}
                       </span>
                     </div>
-                    <SuLayout2D foot={foot} assign={effAssign} active={activeStr !== null} onPaint={paint} />
+                    <SuLayout2D foot={foot} assign={effAssign} active={activeStr !== null} onPaint={paint} onPaintMany={paintMany} />
                     <span className="p3-note">
                       {isManual
                         ? "กำลังใช้ผังที่แก้เอง · เลือกสตริงด้านบนแล้วแตะหรือลากบนแผงเพื่อย้ายเข้าสตริงนั้น · แผงเทาประ = ยังไม่อยู่สตริงไหน"
@@ -2639,7 +2742,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                         )}
                       </span>
                     </div>
-                    <SuLayout2D foot={foot} assign={microAssign} active={activeMu !== null} onPaint={paintMu}
+                    <SuLayout2D foot={foot} assign={microAssign} active={activeMu !== null} onPaint={paintMu} onPaintMany={paintMuMany}
                       unitName="ไมโคร"
                       labels={phases === 3 ? uidPhase : null}
                       colorOf={phases === 3 && muColorBy === "phase"

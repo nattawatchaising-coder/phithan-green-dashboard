@@ -568,11 +568,31 @@ function SuVoltBand({
 }
 const SU_SCOLOR = ["#1B9B75", "#2563EB", "#D97706", "#7C3AED", "var(--tint-red-tx2)", "#0891B2", "#DB2777", "#65A30D", "#EA580C", "#4F46E5"];
 const suColor = i => SU_SCOLOR[(i - 1 + SU_SCOLOR.length) % SU_SCOLOR.length];
+function suPanelAngle(foot) {
+  const p = (foot.panels || [])[0];
+  if (!p || !p.pts || p.pts.length < 2) return 0;
+  let best = null,
+    bestLen = 0;
+  for (let i = 0; i < p.pts.length; i++) {
+    const a = p.pts[i],
+      b = p.pts[(i + 1) % p.pts.length];
+    const dx = b[0] - a[0],
+      dy = b[1] - a[1];
+    const len = dx * dx + dy * dy;
+    if (len > bestLen) {
+      bestLen = len;
+      best = [dx, dy];
+    }
+  }
+  if (!best) return 0;
+  return Math.round(Math.atan2(best[1], best[0]) * 180 / Math.PI * 10) / 10;
+}
 function SuLayout2D({
   foot,
   assign,
   active,
   onPaint,
+  onPaintMany,
   height,
   labels,
   colorOf,
@@ -585,11 +605,19 @@ function SuLayout2D({
   const pad = 1.2;
   const W = Math.max(1, b.maxX - b.minX + pad * 2),
     H = Math.max(1, b.maxZ - b.minZ + pad * 2);
+  const [rot, setRot] = React.useState(0);
+  const cx = (b.minX + b.maxX) / 2,
+    cz = (b.minZ + b.maxZ) / 2;
+  const th = rot * Math.PI / 180,
+    ca = Math.abs(Math.cos(th)),
+    sa = Math.abs(Math.sin(th));
+  const RW = W * ca + H * sa,
+    RH = W * sa + H * ca;
   const base = {
-    x: b.minX - pad,
-    y: b.minZ - pad,
-    w: W,
-    h: H
+    x: cx - RW / 2,
+    y: cz - RH / 2,
+    w: RW,
+    h: RH
   };
   const [view, setView] = React.useState(null);
   const sig = foot.panels.length + "|" + b.minX + "," + b.maxX + "," + b.minZ + "," + b.maxZ;
@@ -662,7 +690,37 @@ function SuLayout2D({
   };
   const last = React.useRef(null);
   const dragRef = React.useRef(false);
-  const panning = hand || !active;
+  const [box, setBox] = React.useState(false);
+  const [rect, setRect] = React.useState(null);
+  const rectRef = React.useRef(null);
+  const straighten = () => {
+    setRot(r => Math.abs(r) > 0.01 ? 0 : -suPanelAngle(foot));
+    setView(null);
+  };
+  const rotPt = (x, z) => ({
+    x: cx + (x - cx) * Math.cos(th) - (z - cz) * Math.sin(th),
+    y: cz + (x - cx) * Math.sin(th) + (z - cz) * Math.cos(th)
+  });
+  const applyBox = r => {
+    const m = scaleOf();
+    if (!m || !r || !onPaintMany) return;
+    const x0 = Math.min(r.x0, r.x1),
+      x1 = Math.max(r.x0, r.x1);
+    const y0 = Math.min(r.y0, r.y1),
+      y1 = Math.max(r.y0, r.y1);
+    if (x1 - x0 < 4 && y1 - y0 < 4) return;
+    const hit = [];
+    foot.panels.forEach(q => {
+      const px = q.pts.reduce((a, t) => a + t[0], 0) / q.pts.length;
+      const pz = q.pts.reduce((a, t) => a + t[1], 0) / q.pts.length;
+      const rp = rotPt(px, pz);
+      const sx = m.offX + (rp.x - v.x) * m.s,
+        sy = m.offY + (rp.y - v.y) * m.s;
+      if (sx >= x0 && sx <= x1 && sy >= y0 && sy <= y1) hit.push(q.uid);
+    });
+    if (hit.length) onPaintMany(hit);
+  };
+  const panning = (hand || !active) && !box;
   React.useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
@@ -720,9 +778,25 @@ function SuLayout2D({
       borderRadius: 8,
       padding: "5px 8px"
     }
-  }, Math.round(base.w / v.w * 10) / 10, "\xD7"), active && React.createElement("button", {
+  }, Math.round(base.w / v.w * 10) / 10, "\xD7"), React.createElement("button", {
     type: "button",
-    onClick: () => setHand(x => !x),
+    onClick: straighten,
+    style: btn(Math.abs(rot) > 0.01),
+    title: Math.abs(rot) > 0.01 ? "กลับไปมุมจริงของหลังคา" : "หมุนผังให้แถวแผงนอนตรง (ลากกรอบเลือกง่ายขึ้น)"
+  }, "\u27F2"), active && onPaintMany && React.createElement("button", {
+    type: "button",
+    onClick: () => {
+      setBox(x => !x);
+      setHand(false);
+    },
+    style: btn(box),
+    title: box ? "ตอนนี้ลากเป็นกรอบเลือกทีละหลายใบ — กดเพื่อกลับไปทาทีละใบ" : "ลากกรอบเลือกแผงทีละหลายใบ"
+  }, "\u25A2"), active && React.createElement("button", {
+    type: "button",
+    onClick: () => {
+      setHand(x => !x);
+      setBox(false);
+    },
     style: btn(hand),
     title: hand ? "ตอนนี้ลากเพื่อเลื่อนผัง — กดเพื่อกลับไปทาสีแผง" : "ลากเพื่อเลื่อนผัง (ไม่ทาสีแผง)"
   }, "\u2725"), React.createElement("button", {
@@ -769,6 +843,21 @@ function SuLayout2D({
         };
         return;
       }
+      if (box) {
+        const m = scaleOf();
+        if (m) {
+          const x = e.clientX - m.r.left,
+            y = e.clientY - m.r.top;
+          rectRef.current = {
+            x0: x,
+            y0: y,
+            x1: x,
+            y1: y
+          };
+          setRect(rectRef.current);
+        }
+        return;
+      }
       paintAt(e);
     },
     onPointerMove: e => {
@@ -782,18 +871,41 @@ function SuLayout2D({
         };
         return;
       }
+      if (box) {
+        const m = scaleOf();
+        const r0 = rectRef.current;
+        if (m && r0) {
+          rectRef.current = {
+            x0: r0.x0,
+            y0: r0.y0,
+            x1: e.clientX - m.r.left,
+            y1: e.clientY - m.r.top
+          };
+          setRect(rectRef.current);
+        }
+        return;
+      }
       if (active) paintAt(e);
     },
     onPointerUp: () => {
       setDrag(false);
       dragRef.current = false;
       last.current = null;
+      if (rectRef.current) {
+        applyBox(rectRef.current);
+        rectRef.current = null;
+        setRect(null);
+      }
     },
     onPointerCancel: () => {
       setDrag(false);
       dragRef.current = false;
       last.current = null;
+      rectRef.current = null;
+      setRect(null);
     }
+  }, React.createElement("g", {
+    transform: "rotate(" + rot + " " + cx + " " + cz + ")"
   }, foot.outlines.map((o, i) => React.createElement("polygon", {
     key: i,
     points: o.pts.map(p => p[0] + "," + p[1]).join(" "),
@@ -838,8 +950,8 @@ function SuLayout2D({
         userSelect: "none"
       }
     }, t);
-  }), React.createElement("g", {
-    transform: "translate(" + (b.minX - pad + 0.7) + "," + (b.minZ - pad + 0.7) + ")"
+  })), React.createElement("g", {
+    transform: "translate(" + (base.x + 0.7) + "," + (base.y + 0.7) + ") rotate(" + rot + ")"
   }, React.createElement("line", {
     x1: "0",
     y1: "0",
@@ -854,7 +966,19 @@ function SuLayout2D({
     fontWeight: "800",
     fill: "var(--tint-red-tx)",
     textAnchor: "middle"
-  }, "N"))));
+  }, "N"))), rect && React.createElement("div", {
+    style: {
+      position: "absolute",
+      pointerEvents: "none",
+      left: Math.min(rect.x0, rect.x1),
+      top: Math.min(rect.y0, rect.y1),
+      width: Math.abs(rect.x1 - rect.x0),
+      height: Math.abs(rect.y1 - rect.y0),
+      border: "1.5px dashed var(--acd)",
+      background: "rgba(79,70,229,.12)",
+      borderRadius: 4
+    }
+  }));
 }
 function SuChipBox({
   nodes,
@@ -3295,6 +3419,17 @@ function SolarWorkspace({
       manual: true
     });
   };
+  const paintMany = uids => {
+    if (!uids || !uids.length) return;
+    const a = Object.assign({}, effAssign);
+    uids.forEach(uid => {
+      if (!activeStr) delete a[uid];else a[uid] = activeStr;
+    });
+    set({
+      assign: a,
+      manual: true
+    });
+  };
   const strIds = plan && plan.strings ? plan.strings.map(s => s.id || 0).filter(Boolean) : [];
   const nextStr = (strIds.length ? Math.max.apply(null, strIds) : 0) + 1;
   const microPlans = React.useMemo(() => isMicro ? scMicroPlan(groups, panel, micros, S.env, S) : null, [isMicro, groups, panel, micros, S.env, S.microRatio, S.micro]);
@@ -3380,6 +3515,17 @@ function SolarWorkspace({
   const paintMu = uid => {
     const a = Object.assign({}, microAssign);
     if (!activeMu) delete a[uid];else a[uid] = activeMu;
+    set({
+      microAssign: a,
+      microManual: true
+    });
+  };
+  const paintMuMany = uids => {
+    if (!uids || !uids.length) return;
+    const a = Object.assign({}, microAssign);
+    uids.forEach(uid => {
+      if (!activeMu) delete a[uid];else a[uid] = activeMu;
+    });
     set({
       microAssign: a,
       microManual: true
@@ -4887,7 +5033,8 @@ function SolarWorkspace({
     foot: foot,
     assign: effAssign,
     active: activeStr !== null,
-    onPaint: paint
+    onPaint: paint,
+    onPaintMany: paintMany
   }), React.createElement("span", {
     className: "p3-note"
   }, isManual ? "กำลังใช้ผังที่แก้เอง · เลือกสตริงด้านบนแล้วแตะหรือลากบนแผงเพื่อย้ายเข้าสตริงนั้น · แผงเทาประ = ยังไม่อยู่สตริงไหน" : "ระบบแบ่งสตริงให้แล้วตามที่เห็น — แตะหรือลากบนแผงได้เลยถ้าจะแก้ (แก้ครั้งแรกระบบจะยึดผังนี้เป็นของคุณทันที)", " · มองจากด้านบน ทิศเหนืออยู่บน")), !isMicro && plan && React.createElement("div", {
@@ -5164,6 +5311,7 @@ function SolarWorkspace({
     assign: microAssign,
     active: activeMu !== null,
     onPaint: paintMu,
+    onPaintMany: paintMuMany,
     unitName: "\u0E44\u0E21\u0E42\u0E04\u0E23",
     labels: phases === 3 ? uidPhase : null,
     colorOf: phases === 3 && muColorBy === "phase" ? uid => SU_PHCOLOR[uidPhase[uid]] || "#94A3B8" : null
