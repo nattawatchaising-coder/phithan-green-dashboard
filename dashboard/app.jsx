@@ -7,8 +7,9 @@
 const NAV = [
   { key: "overview",   th: "ภาพรวม",         en: "Overview",      icon: "grid" },
   /* สรุปรายงานประจำวัน/สัปดาห์/เดือน — สำรวจ · ติดตั้ง · บริการ กี่บ้าน รวมและแยกงานบ้าน/Tesla/โครงการ
+     sub = เป็นเมนูย่อยใต้ "ภาพรวม" (เยื้องเข้าไปในแถบเมนู) เพราะเป็นอีกมุมของภาพรวมเดียวกัน ไม่ใช่หน้างานใหม่
      สิทธิ์เดียวกับหน้าฐานข้อมูลงาน เพราะเห็นงานทั้งบริษัทเหมือนกัน */
-  { key: "summary",    th: "สรุปรายงาน",      en: "Summary",       icon: "file",     perm: "viewAll" },
+  { key: "summary",    th: "สรุปรายงาน",      en: "Summary",       icon: "file",     perm: "viewAll", sub: "overview" },
   { key: "board",      th: "บอร์ดงาน",        en: "Workflow",      icon: "kanban" },
   { key: "table",      th: "ฐานข้อมูลงาน",     en: "Database",      icon: "table",    perm: "viewAll" },
   /* บอร์ดขายกับรายการลูกค้าคือข้อมูลชุดเดียวกันคนละมุม จึงเป็นเมนูเดียว แล้วสลับมุมในหน้า */
@@ -1023,10 +1024,13 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onCl
           const first = items.findIndex((n) => n.foot);
           return items.map((n, i) => {
           const active = view === n.key;
+          /* เมนูแม่ที่ลูกของมันเปิดอยู่ — เข้มขึ้นนิดให้รู้ว่าอยู่ในหมวดนี้ แต่ไม่ใช่ปุ่มที่เลือก */
+          const childOn = !n.sub && items.some((c) => c.sub === n.key && view === c.key);
           return (
-            <button key={n.key} onClick={() => onNav(n.key)} className={"nav-item" + (active ? " active" : "") + (i === first ? " nav-foot" : "")}
+            <button key={n.key} onClick={() => onNav(n.key)}
+              className={"nav-item" + (active ? " active" : "") + (i === first ? " nav-foot" : "") + (n.sub ? " nav-sub" : "") + (childOn ? " nav-parent-on" : "")}
               title={n.th}>
-              <Icon name={n.icon} size={19} color={active ? "var(--primary-dark)" : "var(--text-2)"} />
+              <Icon name={n.icon} size={n.sub ? 16 : 19} color={active ? "var(--primary-dark)" : "var(--text-2)"} />
               {!icons && <span>{n.th}</span>}
               {(() => {
                 const cnt = badgeOf(n.key);

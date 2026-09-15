@@ -9,7 +9,8 @@ const NAV = [{
   th: "สรุปรายงาน",
   en: "Summary",
   icon: "file",
-  perm: "viewAll"
+  perm: "viewAll",
+  sub: "overview"
 }, {
   key: "board",
   th: "บอร์ดงาน",
@@ -1559,14 +1560,15 @@ function Sidebar({
     const first = items.findIndex(n => n.foot);
     return items.map((n, i) => {
       const active = view === n.key;
+      const childOn = !n.sub && items.some(c => c.sub === n.key && view === c.key);
       return React.createElement("button", {
         key: n.key,
         onClick: () => onNav(n.key),
-        className: "nav-item" + (active ? " active" : "") + (i === first ? " nav-foot" : ""),
+        className: "nav-item" + (active ? " active" : "") + (i === first ? " nav-foot" : "") + (n.sub ? " nav-sub" : "") + (childOn ? " nav-parent-on" : ""),
         title: n.th
       }, React.createElement(Icon, {
         name: n.icon,
-        size: 19,
+        size: n.sub ? 16 : 19,
         color: active ? "var(--primary-dark)" : "var(--text-2)"
       }), !icons && React.createElement("span", null, n.th), (() => {
         const cnt = badgeOf(n.key);

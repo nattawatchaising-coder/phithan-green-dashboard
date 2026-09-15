@@ -68,6 +68,13 @@ label { min-width: 0; }
 .nav-item.active::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 3px;
   border-radius: 0 3px 3px 0; background: var(--primary); }
 .sidebar[data-mode="icons"] .nav-item.active::before { display: none; }
+/* เมนูย่อย (nav-sub) — เยื้องเข้าใต้เมนูแม่ มีเส้นงอเชื่อมจากแถวบน ให้อ่านออกว่าเป็นลูกของ "ภาพรวม" */
+.sidebar-nav > .nav-item.nav-sub { padding: 8px 13px 8px 38px; font-size: 12.5px; margin-top: -3px; }
+.sidebar-nav > .nav-item.nav-sub::after { content: ""; position: absolute; left: 22px; top: -4px; bottom: 50%; width: 9px;
+  border-left: 1.5px solid var(--border-strong); border-bottom: 1.5px solid var(--border-strong); border-radius: 0 0 0 6px; }
+.nav-item.nav-parent-on { color: var(--text-1); }
+.sidebar[data-mode="icons"] .nav-item.nav-sub { padding: 0; height: 40px; margin-top: -4px; }
+.sidebar[data-mode="icons"] .nav-item.nav-sub::after { display: none; }
 /* เมนูที่ปักไว้ล่างสุด (nav-foot) — ขีดเส้นคั่นให้เห็นว่าไม่ได้อยู่กลุ่มเดียวกับหัวข้อด้านบน */
 .sidebar-nav > .nav-item.nav-foot { margin-top: auto; }
 .sidebar-nav > .nav-item.nav-foot::after {
@@ -553,6 +560,6 @@ label { min-width: 0; }
 <script src="dashboard/build/ot-paper.js?v=1"></script>
 <script src="dashboard/build/views-line.js?v=2"></script>
 <script src="dashboard/build/views-summary.js?v=1"></script>
-<script src="dashboard/build/app.js?v=145"></script>
+<script src="dashboard/build/app.js?v=146"></script>
 </body>
 </html>
