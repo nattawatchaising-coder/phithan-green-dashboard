@@ -1684,8 +1684,8 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   const effAssign = isManual ? (S.assign || {}) : autoSeed;
   /* ตาราง/ผัง/จานสี อ่านจากชุดข้อมูลเดียวกันทั้งหมด จะได้ไม่มีทางขัดกันเอง */
   const plan = React.useMemo(() => (!isMicro && panel.voc
-    ? scStringsFromAssign(effAssign, idx.byPanel, groups, panel, inv, S.env, { invCount: S.invCount, totalPanels, mpptPick: S.mpptPick })
-    : null), [isMicro, effAssign, idx, groups, panel, inv, S.env, S.invCount, totalPanels, S.mpptPick]);
+    ? scStringsFromAssign(effAssign, idx.byPanel, groups, panel, inv, S.env, { invCount: S.invCount, totalPanels, mpptPick: S.mpptPick, optimizer: optPlan })
+    : null), [isMicro, effAssign, idx, groups, panel, inv, S.env, S.invCount, totalPanels, S.mpptPick, optPlan]);
   /* ปักช่อง MPPT เอง: เก็บเป็น { สตริงที่: ช่องที่ } · null = คืนให้ระบบไล่ลงช่องว่างให้ */
   const pickMppt = (sid, slot) => {
     const next = Object.assign({}, S.mpptPick || {});
@@ -2463,7 +2463,11 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                       <span style={{ fontWeight: 600 }}>{plan.strings.length} สตริง · {plan.panels} แผง</span></span>
                     <div className="su-scroll">
                       <table className="su-tb">
-                        <thead><tr><th>สตริง</th><th>แผง</th><th>กลุ่ม</th><th>ขั้วที่เสียบ · INV / MPPT / ช่อง</th><th>Voc เย็น</th><th>ช่วงทำงาน</th><th>สถานะ</th></tr></thead>
+                        {/* ติดตัวคุมแผงแล้วสองคอลัมน์นี้คนละความหมายกับตอนไม่มี — ต้องเปลี่ยนหัวตารางด้วย
+                            ไม่งั้นคนอ่านจะนึกว่าเป็น Voc ของแผงที่ลดลงมาเอง */}
+                        <thead><tr><th>สตริง</th><th>แผง</th><th>กลุ่ม</th><th>ขั้วที่เสียบ · INV / MPPT / ช่อง</th>
+                          <th>{optPlan ? "แรงดันตอนปิด" : "Voc เย็น"}</th>
+                          <th>{optPlan ? "ช่วงที่อินเวอร์เตอร์คุม" : "ช่วงทำงาน"}</th><th>สถานะ</th></tr></thead>
                         <tbody>
                           {plan.strings.map((s, i) => (
                             <tr key={i} data-on={s.id && activeStr === s.id ? "1" : "0"}>

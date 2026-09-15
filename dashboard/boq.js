@@ -1915,6 +1915,9 @@
         iscMax: +p.iscMax || 0, vOutMax: +p.vOutMax || 0, iOutMax: +p.iOutMax || 0,
         eff: +p.eff || 0, vOff: +p.vOff || 0, /* 0 = ไม่ได้กำหนดเพดานไว้ ให้กติกากำลังวัตต์เป็นตัวตัดสินอย่างเดียว */
         perPanel: Math.max(0, Math.round(+p.perPanel || 0)),
+        /* ช่วงจำนวนตัวคุมต่อสตริงตามคู่มือของรุ่นนั้น — 0 = ยังไม่ระบุ ระบบจะไม่เอาไปตัดสิน */
+        minPerStr: Math.max(0, Math.round(+p.minPerStr || 0)),
+        maxPerStr: Math.max(0, Math.round(+p.maxPerStr || 0)),
       });
     });
     OPTIMIZERS.length = 0;

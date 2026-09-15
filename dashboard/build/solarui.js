@@ -3273,8 +3273,9 @@ function SolarWorkspace({
   const plan = React.useMemo(() => !isMicro && panel.voc ? scStringsFromAssign(effAssign, idx.byPanel, groups, panel, inv, S.env, {
     invCount: S.invCount,
     totalPanels,
-    mpptPick: S.mpptPick
-  }) : null, [isMicro, effAssign, idx, groups, panel, inv, S.env, S.invCount, totalPanels, S.mpptPick]);
+    mpptPick: S.mpptPick,
+    optimizer: optPlan
+  }) : null, [isMicro, effAssign, idx, groups, panel, inv, S.env, S.invCount, totalPanels, S.mpptPick, optPlan]);
   const pickMppt = (sid, slot) => {
     const next = Object.assign({}, S.mpptPick || {});
     if (slot == null) delete next[sid];else next[sid] = slot;
@@ -4896,7 +4897,7 @@ function SolarWorkspace({
     className: "su-scroll"
   }, React.createElement("table", {
     className: "su-tb"
-  }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", null, "\u0E2A\u0E15\u0E23\u0E34\u0E07"), React.createElement("th", null, "\u0E41\u0E1C\u0E07"), React.createElement("th", null, "\u0E01\u0E25\u0E38\u0E48\u0E21"), React.createElement("th", null, "\u0E02\u0E31\u0E49\u0E27\u0E17\u0E35\u0E48\u0E40\u0E2A\u0E35\u0E22\u0E1A \xB7 INV / MPPT / \u0E0A\u0E48\u0E2D\u0E07"), React.createElement("th", null, "Voc \u0E40\u0E22\u0E47\u0E19"), React.createElement("th", null, "\u0E0A\u0E48\u0E27\u0E07\u0E17\u0E33\u0E07\u0E32\u0E19"), React.createElement("th", null, "\u0E2A\u0E16\u0E32\u0E19\u0E30"))), React.createElement("tbody", null, plan.strings.map((s, i) => React.createElement("tr", {
+  }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", null, "\u0E2A\u0E15\u0E23\u0E34\u0E07"), React.createElement("th", null, "\u0E41\u0E1C\u0E07"), React.createElement("th", null, "\u0E01\u0E25\u0E38\u0E48\u0E21"), React.createElement("th", null, "\u0E02\u0E31\u0E49\u0E27\u0E17\u0E35\u0E48\u0E40\u0E2A\u0E35\u0E22\u0E1A \xB7 INV / MPPT / \u0E0A\u0E48\u0E2D\u0E07"), React.createElement("th", null, optPlan ? "แรงดันตอนปิด" : "Voc เย็น"), React.createElement("th", null, optPlan ? "ช่วงที่อินเวอร์เตอร์คุม" : "ช่วงทำงาน"), React.createElement("th", null, "\u0E2A\u0E16\u0E32\u0E19\u0E30"))), React.createElement("tbody", null, plan.strings.map((s, i) => React.createElement("tr", {
     key: i,
     "data-on": s.id && activeStr === s.id ? "1" : "0"
   }, React.createElement("td", null, React.createElement("span", {

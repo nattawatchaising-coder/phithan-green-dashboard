@@ -209,7 +209,64 @@ function scVmpAt(panel, tC) {
   const tc = panel.tcVmp != null ? scNum(panel.tcVmp) : scNum(panel.tcVoc, SC_PANEL_EXTRA.tcVoc);
   return scNum(panel.vmp) * (1 + tc / 100 * (tC - 25));
 }
-function scStringCheck(panel, inv, n, env) {
+function scOptStringCheck(panel, inv, n, opt) {
+  const per = Math.max(1, scNum(opt.per, 1));
+  const units = Math.ceil(scNum(n, 0) / per);
+  const vmin = scNum(inv.mpptVmin),
+    vmax = scNum(inv.mpptVmax),
+    maxVdc = scNum(inv.maxVdc);
+  const checks = [];
+  if (opt.minPerStr > 0) checks.push({
+    k: "optmin",
+    ok: units >= opt.minPerStr,
+    v: units,
+    lim: opt.minPerStr,
+    msg: "สตริงนี้มีตัวคุม " + units + " ตัว น้อยกว่าที่คู่มือกำหนดไว้อย่างน้อย " + opt.minPerStr + " ตัว"
+  });
+  if (opt.maxPerStr > 0) checks.push({
+    k: "optmax",
+    ok: units <= opt.maxPerStr,
+    v: units,
+    lim: opt.maxPerStr,
+    msg: "สตริงนี้มีตัวคุม " + units + " ตัว เกินที่คู่มือกำหนดไว้สูงสุด " + opt.maxPerStr + " ตัว"
+  });
+  const vOff = scR(units * scNum(opt.vOff, 0), 1);
+  if (maxVdc && vOff > maxVdc) checks.push({
+    k: "voff",
+    ok: false,
+    v: vOff,
+    lim: maxVdc,
+    msg: "แรงดันตอนสั่งปิด " + vOff + " V เกินแรงดันสูงสุดของอินเวอร์เตอร์ " + maxVdc + " V — ตรวจค่าที่กรอกในคลัง"
+  });
+  const ok = checks.every(c => c.ok);
+  const both = opt.minPerStr > 0 && opt.maxPerStr > 0;
+  let score = 0,
+    band = "-";
+  if (ok) {
+    if (both) {
+      const pos = (units - opt.minPerStr) / Math.max(1, opt.maxPerStr - opt.minPerStr);
+      score = Math.round(100 * scClamp(1 - Math.abs(pos - 0.6) / 0.6, 0, 1));
+    } else score = 60;
+    band = score >= 75 ? "ดีมาก" : score >= 50 ? "ใช้ได้" : "พอไหว";
+  }
+  return {
+    n: scNum(n, 0),
+    ok: ok,
+    checks: checks,
+    score: score,
+    band: band,
+    viaOpt: true,
+    units: units,
+    vOff: vOff,
+    vocCold: vOff,
+    vmpHot: scR(vmin, 0),
+    vmpCold: scR(Math.min(vmax || maxVdc || 0, maxVdc || vmax || 0) || vmax, 0),
+    vmpNom: 0,
+    fails: checks.filter(c => !c.ok).map(c => c.msg)
+  };
+}
+function scStringCheck(panel, inv, n, env, opt) {
+  if (opt && opt.per > 0) return scOptStringCheck(panel, inv, n, opt);
   env = Object.assign({}, SC_ENV, env || {});
   const vocCold = scVocAt(panel, env.tMin) * n;
   const vmpHot = scVmpAt(panel, env.tCellHot) * n;
@@ -288,10 +345,11 @@ function scSeriesRange(panel, inv, env) {
     bestRow: best
   };
 }
-function scCurrent(panel, inv, nPar) {
+function scCurrent(panel, inv, nPar, opt) {
   const n = Math.max(1, Math.round(nPar || 1));
-  const imp = scNum(panel.imp),
-    isc = scNum(panel.isc);
+  const capOut = opt && opt.per > 0 ? scNum(opt.iOutMax, 0) : 0;
+  const imp = capOut ? Math.min(scNum(panel.imp), capOut) : scNum(panel.imp);
+  const isc = capOut ? Math.min(scNum(panel.isc), capOut) : scNum(panel.isc);
   const limIn = scNum(inv.maxInA);
   const limOp = scNum(inv.maxMpptA) || limIn * (n > 1 ? 1 : 1);
   const limSc = scNum(inv.maxIscA);
@@ -503,7 +561,7 @@ function scStringsFromAssign(assign, byPanel, groups, panel, inv, env, opt) {
     const gks = Object.keys(b.gset);
     const main = gks.sort((x, y) => b.gset[y] - b.gset[x])[0];
     const g = gMap[main] || {};
-    const chk = scStringCheck(panel, inv, b.keys.length, env);
+    const chk = scStringCheck(panel, inv, b.keys.length, env, opt.optimizer);
     const mixed = gks.length > 1;
     return {
       id: +sid,
@@ -570,7 +628,7 @@ function scStringsFromAssign(assign, byPanel, groups, panel, inv, env, opt) {
     slots = slots0,
     perMppt = perMppt0;
   const parMax = Math.max(1, Math.max.apply(null, [1].concat(Object.keys(load).map(k => load[k]))));
-  const current = scCurrent(panel, inv, parMax);
+  const current = scCurrent(panel, inv, parMax, opt.optimizer);
   current.warns.forEach(w => warns.push(w));
   const fuse = scStringFuse(panel, parMax, strings.length);
   if (fuse.need) warns.push("ต้องมีฟิวส์สตริง " + fuse.count + " ตัว" + (fuse.amp ? " (" + fuse.amp + " A)" : "") + " — " + fuse.why);
@@ -1625,6 +1683,11 @@ function scOptPlan(opt, panel, totalPanels) {
     vIn: scR(per * voc, 1),
     headroomW: scR(opt.w - per * wp, 0),
     vOffPerUnit: scNum(opt.vOff, 0),
+    minPerStr: scNum(opt.minPerStr, 0),
+    maxPerStr: scNum(opt.maxPerStr, 0),
+    iOutMax: scNum(opt.iOutMax, 0),
+    vOutMax: scNum(opt.vOutMax, 0),
+    eff: scNum(opt.eff, 0),
     warns: warns
   };
 }

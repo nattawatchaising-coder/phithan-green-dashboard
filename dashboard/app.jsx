@@ -440,7 +440,8 @@ function App() {
     /* ตัวคุมแผง (Smart Module Controller) — สเปคมาจากคลังเหมือนแผงและอินเวอร์เตอร์ */
     if (window.BOQ.setOptimizers) window.BOQ.setOptimizers((stock.items || []).filter((s) => inCat(s, "optimizer") && s.name)
       .map((s) => ({ model: s.name, group: subTh(s), w: s.optW, vInMax: s.optVinMax, mpptMin: s.optMpptMin, mpptMax: s.optMpptMax,
-        iscMax: s.optIscMax, vOutMax: s.optVoutMax, iOutMax: s.optIoutMax, eff: s.optEff, vOff: s.optVoff, perPanel: s.optPerPanel })));
+        iscMax: s.optIscMax, vOutMax: s.optVoutMax, iOutMax: s.optIoutMax, eff: s.optEff, vOff: s.optVoff, perPanel: s.optPerPanel,
+        minPerStr: s.optMinPerStr, maxPerStr: s.optMaxPerStr })));
     /* ต้องผูกกับ stock.cats ด้วย — ถ้ารายชื่อหมวดย่อยมาถึงทีหลังรายการของ mainCatOf() จะยังแปลงคีย์ไม่ออก */
   }, [stock.items, stock.cats]);
 

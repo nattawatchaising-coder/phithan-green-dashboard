@@ -993,6 +993,8 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
                 <Field label="กระแสออกสูงสุด (A)"><input type="number" style={inputStyle} value={f.optIoutMax != null ? f.optIoutMax : ""} onChange={(e) => set("optIoutMax", parseFloat(e.target.value) || 0)} placeholder="22" /></Field>
                 <Field label="ประสิทธิภาพ (%)"><input type="number" style={inputStyle} value={f.optEff != null ? f.optEff : ""} onChange={(e) => set("optEff", parseFloat(e.target.value) || 0)} placeholder="99.5" /></Field>
                 <Field label="แรงดันตอนสั่งปิด (V/ตัว)"><input type="number" style={inputStyle} value={f.optVoff != null ? f.optVoff : ""} onChange={(e) => set("optVoff", parseFloat(e.target.value) || 0)} placeholder="1" /></Field>
+                <Field label="ตัวคุมต่อสตริง ต่ำสุด"><input type="number" style={inputStyle} value={f.optMinPerStr != null ? f.optMinPerStr : ""} onChange={(e) => set("optMinPerStr", parseInt(e.target.value) || 0)} placeholder="จากคู่มือ" /></Field>
+                <Field label="ตัวคุมต่อสตริง สูงสุด"><input type="number" style={inputStyle} value={f.optMaxPerStr != null ? f.optMaxPerStr : ""} onChange={(e) => set("optMaxPerStr", parseInt(e.target.value) || 0)} placeholder="จากคู่มือ" /></Field>
               </div>
               <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 9, lineHeight: 1.7 }}>
                 แรงดันตอนสั่งปิด × จำนวนตัวในสตริง = แรงดันที่เหลือบนสายตอนกดหยุดฉุกเฉิน —
@@ -1362,6 +1364,7 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
     { k: "optIscMax", th: "Isc สูงสุด (A)" }, { k: "optVoutMax", th: "แรงดันออกสูงสุด (V)" },
     { k: "optIoutMax", th: "กระแสออกสูงสุด (A)" }, { k: "optEff", th: "ประสิทธิภาพ (%)" },
     { k: "optVoff", th: "แรงดันตอนสั่งปิด (V/ตัว)" }, { k: "optPerPanel", th: "แผงต่อ 1 ตัว" },
+    { k: "optMinPerStr", th: "ตัวคุมต่อสตริง ต่ำสุด" }, { k: "optMaxPerStr", th: "ตัวคุมต่อสตริง สูงสุด" },
   ];
   const specs = SPEC_FIELDS.filter((f) => item[f.k] != null && item[f.k] !== "" && +item[f.k] !== 0);
 

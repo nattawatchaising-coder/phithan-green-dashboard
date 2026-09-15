@@ -570,7 +570,9 @@ function App() {
       iOutMax: s.optIoutMax,
       eff: s.optEff,
       vOff: s.optVoff,
-      perPanel: s.optPerPanel
+      perPanel: s.optPerPanel,
+      minPerStr: s.optMinPerStr,
+      maxPerStr: s.optMaxPerStr
     })));
   }, [stock.items, stock.cats]);
   React.useEffect(() => {

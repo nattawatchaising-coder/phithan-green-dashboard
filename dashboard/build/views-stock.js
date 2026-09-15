@@ -2695,6 +2695,22 @@ function ItemModal({
     value: f.optVoff != null ? f.optVoff : "",
     onChange: e => set("optVoff", parseFloat(e.target.value) || 0),
     placeholder: "1"
+  })), React.createElement(Field, {
+    label: "\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21\u0E15\u0E48\u0E2D\u0E2A\u0E15\u0E23\u0E34\u0E07 \u0E15\u0E48\u0E33\u0E2A\u0E38\u0E14"
+  }, React.createElement("input", {
+    type: "number",
+    style: inputStyle,
+    value: f.optMinPerStr != null ? f.optMinPerStr : "",
+    onChange: e => set("optMinPerStr", parseInt(e.target.value) || 0),
+    placeholder: "\u0E08\u0E32\u0E01\u0E04\u0E39\u0E48\u0E21\u0E37\u0E2D"
+  })), React.createElement(Field, {
+    label: "\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21\u0E15\u0E48\u0E2D\u0E2A\u0E15\u0E23\u0E34\u0E07 \u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14"
+  }, React.createElement("input", {
+    type: "number",
+    style: inputStyle,
+    value: f.optMaxPerStr != null ? f.optMaxPerStr : "",
+    onChange: e => set("optMaxPerStr", parseInt(e.target.value) || 0),
+    placeholder: "\u0E08\u0E32\u0E01\u0E04\u0E39\u0E48\u0E21\u0E37\u0E2D"
   }))), React.createElement("div", {
     style: {
       fontSize: 11,
@@ -3637,6 +3653,12 @@ function ItemDetailModal({
   }, {
     k: "optPerPanel",
     th: "แผงต่อ 1 ตัว"
+  }, {
+    k: "optMinPerStr",
+    th: "ตัวคุมต่อสตริง ต่ำสุด"
+  }, {
+    k: "optMaxPerStr",
+    th: "ตัวคุมต่อสตริง สูงสุด"
   }];
   const specs = SPEC_FIELDS.filter(f => item[f.k] != null && item[f.k] !== "" && +item[f.k] !== 0);
   const [doc, setDocState] = React.useState(undefined);
