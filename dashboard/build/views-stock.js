@@ -1998,6 +1998,143 @@ function MoveModal({
     }
   }, mt.sym, " ", mt.label))));
 }
+function StkOptPairs({
+  pairs,
+  invNames,
+  onChange,
+  isMobile
+}) {
+  const list = Array.isArray(pairs) ? pairs : [];
+  const setRow = (i, patch) => onChange(list.map((r, j) => j === i ? Object.assign({}, r, patch) : r));
+  const add = () => onChange(list.concat([{
+    inv: "",
+    min: 0,
+    max: 0,
+    maxW: 0
+  }]));
+  const del = i => onChange(list.filter((r, j) => j !== i));
+  const cell = Object.assign({}, inputStyle, {
+    padding: "7px 9px",
+    fontSize: 12
+  });
+  return React.createElement("div", {
+    style: {
+      marginTop: 11,
+      borderTop: "1px dashed var(--border-strong)",
+      paddingTop: 11
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      flexWrap: "wrap",
+      marginBottom: 8
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, "\u0E43\u0E0A\u0E49\u0E04\u0E39\u0E48\u0E01\u0E31\u0E1A\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E23\u0E38\u0E48\u0E19\u0E44\u0E2B\u0E19\u0E44\u0E14\u0E49\u0E1A\u0E49\u0E32\u0E07"), React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, "\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E15\u0E32\u0E21\u0E04\u0E39\u0E48\u0E21\u0E37\u0E2D \xB7 \u0E41\u0E15\u0E48\u0E25\u0E30\u0E23\u0E38\u0E48\u0E19\u0E44\u0E21\u0E48\u0E40\u0E17\u0E48\u0E32\u0E01\u0E31\u0E19"), React.createElement("button", {
+    type: "button",
+    onClick: add,
+    style: {
+      marginLeft: "auto",
+      padding: "6px 11px",
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--primary-dark)",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "+ \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E23\u0E38\u0E48\u0E19")), !list.length ? React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      padding: "10px 0"
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E08\u0E31\u0E1A\u0E04\u0E39\u0E48\u0E01\u0E31\u0E1A\u0E23\u0E38\u0E48\u0E19\u0E44\u0E2B\u0E19 \u2014 \u0E15\u0E2D\u0E19\u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E30\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E08\u0E33\u0E01\u0E31\u0E14\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E43\u0E2B\u0E49\u0E15\u0E23\u0E27\u0E08") : list.map((r, i) => React.createElement("div", {
+    key: i,
+    style: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr 1fr" : "2.2fr .8fr .8fr 1fr auto",
+      gap: 8,
+      marginBottom: 8,
+      alignItems: "center"
+    }
+  }, React.createElement("select", {
+    style: cell,
+    value: r.inv || "",
+    onChange: e => setRow(i, {
+      inv: e.target.value
+    })
+  }, React.createElement("option", {
+    value: ""
+  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E38\u0E48\u0E19\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \u2014"), (invNames || []).map(n => React.createElement("option", {
+    key: n,
+    value: n
+  }, n)), r.inv && (invNames || []).indexOf(r.inv) < 0 && React.createElement("option", {
+    value: r.inv
+  }, r.inv, " (\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07\u0E41\u0E25\u0E49\u0E27)")), React.createElement("input", {
+    type: "number",
+    style: cell,
+    value: r.min || "",
+    placeholder: "\u0E15\u0E48\u0E33\u0E2A\u0E38\u0E14",
+    onChange: e => setRow(i, {
+      min: parseInt(e.target.value) || 0
+    })
+  }), React.createElement("input", {
+    type: "number",
+    style: cell,
+    value: r.max || "",
+    placeholder: "\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14",
+    onChange: e => setRow(i, {
+      max: parseInt(e.target.value) || 0
+    })
+  }), React.createElement("input", {
+    type: "number",
+    style: cell,
+    value: r.maxW || "",
+    placeholder: "W/\u0E2A\u0E15\u0E23\u0E34\u0E07",
+    onChange: e => setRow(i, {
+      maxW: parseInt(e.target.value) || 0
+    })
+  }), React.createElement("button", {
+    type: "button",
+    onClick: () => del(i),
+    title: "\u0E25\u0E1A\u0E41\u0E16\u0E27\u0E19\u0E35\u0E49",
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 13,
+    color: "#EF4444"
+  })))), !!list.length && React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      lineHeight: 1.7
+    }
+  }, "\u0E15\u0E48\u0E33\u0E2A\u0E38\u0E14/\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14 = \u0E08\u0E33\u0E19\u0E27\u0E19", React.createElement("b", null, "\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21"), "\u0E15\u0E48\u0E2D\u0E2A\u0E15\u0E23\u0E34\u0E07 (\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07) \xB7 W/\u0E2A\u0E15\u0E23\u0E34\u0E07 = \u0E01\u0E33\u0E25\u0E31\u0E07 DC \u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14\u0E15\u0E48\u0E2D\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E15\u0E32\u0E21\u0E04\u0E39\u0E48\u0E21\u0E37\u0E2D"));
+}
 function ItemModal({
   initial,
   isNew,
@@ -2018,6 +2155,7 @@ function ItemModal({
     [k]: v
   }));
   const suggestCode = SF.genMatCode(f.cat, items || []);
+  const invNames = (items || []).filter(x => SF.mainCatOf(x.cat) === "inverter" && x.name).map(x => x.name);
   const mainCat = SF.mainCatOf(f.cat);
   const subCat = mainCat === f.cat ? "" : f.cat;
   const subList = SF.STOCK_SUB_BY_CAT[mainCat] || [];
@@ -2718,7 +2856,12 @@ function ItemModal({
       marginTop: 9,
       lineHeight: 1.7
     }
-  }, "\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E15\u0E2D\u0E19\u0E2A\u0E31\u0E48\u0E07\u0E1B\u0E34\u0E14 \xD7 \u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27\u0E43\u0E19\u0E2A\u0E15\u0E23\u0E34\u0E07 = \u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E17\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E1A\u0E19\u0E2A\u0E32\u0E22\u0E15\u0E2D\u0E19\u0E01\u0E14\u0E2B\u0E22\u0E38\u0E14\u0E09\u0E38\u0E01\u0E40\u0E09\u0E34\u0E19 \u2014 \u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E19\u0E35\u0E49\u0E04\u0E37\u0E2D\u0E40\u0E2B\u0E15\u0E38\u0E1C\u0E25\u0E14\u0E49\u0E32\u0E19\u0E04\u0E27\u0E32\u0E21\u0E1B\u0E25\u0E2D\u0E14\u0E20\u0E31\u0E22\u0E17\u0E35\u0E48\u0E42\u0E23\u0E07\u0E07\u0E32\u0E19\u0E2B\u0E25\u0E32\u0E22\u0E41\u0E2B\u0E48\u0E07\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A\u0E43\u0E2B\u0E49\u0E15\u0E34\u0E14")), mainCat === "inverter" && React.createElement("div", {
+  }, "\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E15\u0E2D\u0E19\u0E2A\u0E31\u0E48\u0E07\u0E1B\u0E34\u0E14 \xD7 \u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27\u0E43\u0E19\u0E2A\u0E15\u0E23\u0E34\u0E07 = \u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E17\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E1A\u0E19\u0E2A\u0E32\u0E22\u0E15\u0E2D\u0E19\u0E01\u0E14\u0E2B\u0E22\u0E38\u0E14\u0E09\u0E38\u0E01\u0E40\u0E09\u0E34\u0E19 \u2014 \u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E19\u0E35\u0E49\u0E04\u0E37\u0E2D\u0E40\u0E2B\u0E15\u0E38\u0E1C\u0E25\u0E14\u0E49\u0E32\u0E19\u0E04\u0E27\u0E32\u0E21\u0E1B\u0E25\u0E2D\u0E14\u0E20\u0E31\u0E22\u0E17\u0E35\u0E48\u0E42\u0E23\u0E07\u0E07\u0E32\u0E19\u0E2B\u0E25\u0E32\u0E22\u0E41\u0E2B\u0E48\u0E07\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A\u0E43\u0E2B\u0E49\u0E15\u0E34\u0E14"), React.createElement(StkOptPairs, {
+    pairs: f.optPairs,
+    invNames: invNames,
+    onChange: v => set("optPairs", v),
+    isMobile: isMobile
+  })), mainCat === "inverter" && React.createElement("div", {
     style: {
       gridColumn: "1 / -1",
       marginTop: 2,

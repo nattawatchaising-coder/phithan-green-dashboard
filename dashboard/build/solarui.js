@@ -3261,7 +3261,7 @@ function SolarWorkspace({
   }, [st]);
   const totalPanels = groups.reduce((a, g) => a + g.count, 0);
   const optSel = typeof scOptSpec === "function" ? scOptSpec(S) : null;
-  const optPlan = optSel && typeof scOptPlan === "function" ? scOptPlan(optSel, panel, totalPanels) : null;
+  const optPlan = optSel && typeof scOptPlan === "function" ? scOptPlan(optSel, panel, totalPanels, S.invModel) : null;
   const isMicro = S.mode === "micro";
   const [activeStr, setActiveStr] = React.useState(1);
   const range = React.useMemo(() => panel.voc && inv.mpptVmin ? scSeriesRange(panel, inv, S.env, optPlan) : null, [panel.voc, panel.vmp, panel.tcVoc, inv.mpptVmin, inv.mpptVmax, inv.maxVdc, S.env, optPlan]);
@@ -4247,12 +4247,22 @@ function SolarWorkspace({
     className: "p3-stat"
   }, "\u0E43\u0E0A\u0E49\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 ", React.createElement("b", null, optPlan.units), " \u0E15\u0E31\u0E27"), optSel.eff > 0 && React.createElement("span", {
     className: "p3-stat"
-  }, "\u0E1B\u0E23\u0E30\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E20\u0E32\u0E1E ", React.createElement("b", null, optSel.eff, "%"))), optPlan.vOffPerUnit > 0 && React.createElement("span", {
+  }, "\u0E1B\u0E23\u0E30\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E20\u0E32\u0E1E ", React.createElement("b", null, optSel.eff, "%")), optPlan.paired ? React.createElement("span", {
+    className: "p3-stat",
+    style: {
+      color: "var(--acd)"
+    }
+  }, "\u0E04\u0E39\u0E48\u0E21\u0E37\u0E2D\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49: \u0E2A\u0E15\u0E23\u0E34\u0E07\u0E25\u0E30 ", React.createElement("b", null, optPlan.minPerStr || "—", "\u2013", optPlan.maxPerStr || "—"), " \u0E15\u0E31\u0E27", optPlan.maxWPerStr > 0 ? React.createElement(React.Fragment, null, " \xB7 \u0E44\u0E21\u0E48\u0E40\u0E01\u0E34\u0E19 ", React.createElement("b", null, optPlan.maxWPerStr.toLocaleString()), " W/\u0E2A\u0E15\u0E23\u0E34\u0E07") : null) : React.createElement("span", {
+    className: "p3-stat",
+    style: {
+      color: "var(--tint-amber-tx)"
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E08\u0E31\u0E1A\u0E04\u0E39\u0E48\u0E01\u0E31\u0E1A\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07 \u2014 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E08\u0E33\u0E01\u0E31\u0E14\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E43\u0E2B\u0E49\u0E15\u0E23\u0E27\u0E08")), optPlan.vOffPerUnit > 0 && React.createElement("span", {
     className: "p3-note",
     style: {
       color: "var(--acd)"
     }
-  }, "\u0E01\u0E14\u0E2B\u0E22\u0E38\u0E14\u0E09\u0E38\u0E01\u0E40\u0E09\u0E34\u0E19\u0E41\u0E25\u0E49\u0E27\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E1A\u0E19\u0E2A\u0E32\u0E22 ", React.createElement("b", null, optPlan.vOffPerUnit, " V \u0E15\u0E48\u0E2D\u0E15\u0E31\u0E27"), " \u2014 \u0E2A\u0E15\u0E23\u0E34\u0E07\u0E25\u0E30 ", scStringsPerMppt ? "" : "", optPlan.per > 0 ? Math.ceil((S.series || 0) / optPlan.per) || "—" : "—", " \u0E15\u0E31\u0E27 \u0E40\u0E17\u0E48\u0E32\u0E01\u0E31\u0E1A\u0E44\u0E21\u0E48\u0E16\u0E36\u0E07\u0E2A\u0E34\u0E1A\u0E42\u0E27\u0E25\u0E15\u0E4C \u0E41\u0E17\u0E19\u0E17\u0E35\u0E48\u0E08\u0E30\u0E40\u0E1B\u0E47\u0E19\u0E2B\u0E25\u0E32\u0E22\u0E23\u0E49\u0E2D\u0E22\u0E42\u0E27\u0E25\u0E15\u0E4C\u0E41\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E21\u0E35\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21"), optPlan.warns.map((w, i) => React.createElement("span", {
+  }, "\u0E01\u0E14\u0E2B\u0E22\u0E38\u0E14\u0E09\u0E38\u0E01\u0E40\u0E09\u0E34\u0E19\u0E41\u0E25\u0E49\u0E27\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E1A\u0E19\u0E2A\u0E32\u0E22 ", React.createElement("b", null, optPlan.vOffPerUnit, " V \u0E15\u0E48\u0E2D\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21 1 \u0E15\u0E31\u0E27"), " \u2014 \u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E35\u0E48\u0E21\u0E35\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21 9 \u0E15\u0E31\u0E27\u0E01\u0E47\u0E40\u0E2B\u0E25\u0E37\u0E2D 9 V \u0E41\u0E17\u0E19\u0E17\u0E35\u0E48\u0E08\u0E30\u0E40\u0E1B\u0E47\u0E19\u0E2B\u0E25\u0E32\u0E22\u0E23\u0E49\u0E2D\u0E22\u0E42\u0E27\u0E25\u0E15\u0E4C\u0E41\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E21\u0E35\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21"), optPlan.warns.map((w, i) => React.createElement("span", {
     key: i,
     className: "p3-note",
     style: {
@@ -4897,7 +4907,7 @@ function SolarWorkspace({
     className: "su-scroll"
   }, React.createElement("table", {
     className: "su-tb"
-  }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", null, "\u0E2A\u0E15\u0E23\u0E34\u0E07"), React.createElement("th", null, "\u0E41\u0E1C\u0E07"), React.createElement("th", null, "\u0E01\u0E25\u0E38\u0E48\u0E21"), React.createElement("th", null, "\u0E02\u0E31\u0E49\u0E27\u0E17\u0E35\u0E48\u0E40\u0E2A\u0E35\u0E22\u0E1A \xB7 INV / MPPT / \u0E0A\u0E48\u0E2D\u0E07"), React.createElement("th", null, optPlan ? "แรงดันตอนปิด" : "Voc เย็น"), React.createElement("th", null, optPlan ? "ช่วงที่อินเวอร์เตอร์คุม" : "ช่วงทำงาน"), React.createElement("th", null, "\u0E2A\u0E16\u0E32\u0E19\u0E30"))), React.createElement("tbody", null, plan.strings.map((s, i) => React.createElement("tr", {
+  }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", null, "\u0E2A\u0E15\u0E23\u0E34\u0E07"), React.createElement("th", null, "\u0E41\u0E1C\u0E07"), React.createElement("th", null, "\u0E01\u0E25\u0E38\u0E48\u0E21"), React.createElement("th", null, "\u0E02\u0E31\u0E49\u0E27\u0E17\u0E35\u0E48\u0E40\u0E2A\u0E35\u0E22\u0E1A \xB7 INV / MPPT / \u0E0A\u0E48\u0E2D\u0E07"), React.createElement("th", null, optPlan ? "ตัวคุมแผง" : "Voc เย็น"), React.createElement("th", null, optPlan ? "แรงดันตอนปิด" : "ช่วงทำงาน"), React.createElement("th", null, "\u0E2A\u0E16\u0E32\u0E19\u0E30"))), React.createElement("tbody", null, plan.strings.map((s, i) => React.createElement("tr", {
     key: i,
     "data-on": s.id && activeStr === s.id ? "1" : "0"
   }, React.createElement("td", null, React.createElement("span", {
@@ -4952,7 +4962,7 @@ function SolarWorkspace({
       fontWeight: 800,
       fontSize: 11
     }
-  }, "\u25CF"))), React.createElement("td", null, s.chk.vocCold, " V"), React.createElement("td", null, s.chk.vmpHot, "\u2013", s.chk.vmpCold, " V"), React.createElement("td", {
+  }, "\u25CF"))), React.createElement("td", null, s.chk.viaOpt ? React.createElement(React.Fragment, null, React.createElement("b", null, s.chk.units), " \u0E15\u0E31\u0E27") : s.chk.vocCold + " V"), React.createElement("td", null, s.chk.viaOpt ? s.chk.vOff + " V" : s.chk.vmpHot + "–" + s.chk.vmpCold + " V"), React.createElement("td", {
     style: {
       color: s.chk.ok ? "var(--acd)" : "var(--tint-red-tx)",
       fontWeight: 800

@@ -1918,6 +1918,10 @@
         /* ช่วงจำนวนตัวคุมต่อสตริงตามคู่มือของรุ่นนั้น — 0 = ยังไม่ระบุ ระบบจะไม่เอาไปตัดสิน */
         minPerStr: Math.max(0, Math.round(+p.minPerStr || 0)),
         maxPerStr: Math.max(0, Math.round(+p.maxPerStr || 0)),
+        /* ตารางจับคู่กับอินเวอร์เตอร์ — คู่มือกำหนดความยาวสตริงไว้ต่อรุ่น ไม่ใช่ค่าเดียวทั้งยี่ห้อ */
+        pairs: (Array.isArray(p.pairs) ? p.pairs : []).filter((r) => r && r.inv)
+          .map((r) => ({ inv: String(r.inv), min: Math.max(0, Math.round(+r.min || 0)),
+            max: Math.max(0, Math.round(+r.max || 0)), maxW: Math.max(0, Math.round(+r.maxW || 0)) })),
       });
     });
     OPTIMIZERS.length = 0;

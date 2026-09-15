@@ -178,15 +178,12 @@ function scOptStringCheck(panel, inv, n, opt) {
   if (rem) checks.push({ k: "optodd", ok: false, v: scNum(n, 0), lim: per,
     msg: "สตริงนี้มี " + scNum(n, 0) + " แผง หารด้วย " + per + " ไม่ลงตัว — เหลือตัวคุมที่เสียบแผงเดียว " + rem + " ใบ" });
 
-  /* ── แรงดันสตริง ──
-     ตัวคุมหนึ่งตัวจ่ายออกได้สูงสุด vOutMax ต่อกันเป็นอนุกรม แรงดันสูงสุดของสตริงจึงเท่ากับ
-     จำนวนตัวคุม × vOutMax (เช่น 9 ตัว × 80 V = 720 V) ไม่ใช่ Voc ของแผงคูณจำนวนแผง
-     ต้องไม่เกินแรงดันสูงสุดของอินเวอร์เตอร์ และต้องขึ้นถึงช่วง MPPT ให้ได้ ไม่งั้นจุดไม่ติด */
-  const vTop = scR(units * scNum(opt.vOutMax, 0), 1);
-  if (vTop > 0 && maxVdc) checks.push({ k: "optvdc", ok: vTop <= maxVdc, v: vTop, lim: maxVdc,
-    msg: "แรงดันสตริงสูงสุด " + vTop + " V (ตัวคุม " + units + " ตัว × " + opt.vOutMax + " V) เกินแรงดันสูงสุดของอินเวอร์เตอร์ " + maxVdc + " V" });
-  if (vTop > 0 && vmin) checks.push({ k: "optvmin", ok: vTop >= vmin, v: vTop, lim: vmin,
-    msg: "แรงดันสตริงสูงสุด " + vTop + " V ยังไม่ถึง MPPT ต่ำสุดของอินเวอร์เตอร์ " + vmin + " V — สตริงสั้นเกินไป" });
+  /* ── กำลัง DC ต่อสตริง ──
+     คู่มือกำหนดไว้ต่อรุ่นอินเวอร์เตอร์ (เช่น 20,000 W ต่อสตริง) นี่คือเพดานจริงของความยาวสตริง
+     ไม่ต้องคิดแรงดันเองอีก เพราะตัวคุมจัดการแรงดันให้อยู่ในช่วงที่อินเวอร์เตอร์รับได้อยู่แล้ว */
+  const wStr = scR(scNum(n, 0) * scNum(opt.wp, 0), 0);
+  if (opt.maxWPerStr > 0 && wStr > 0) checks.push({ k: "optw", ok: wStr <= opt.maxWPerStr, v: wStr, lim: opt.maxWPerStr,
+    msg: "กำลัง DC ของสตริงนี้ " + wStr.toLocaleString() + " W เกินที่คู่มือกำหนดไว้ " + opt.maxWPerStr.toLocaleString() + " W ต่อสตริง" });
 
   /* แรงดันตอนสั่งปิด — ต้องไม่เกินพิกัดของอินเวอร์เตอร์อยู่แล้ว (ปกติต่ำมากจนไม่มีทางเกิน)
      แต่เช็คไว้กันกรณีกรอก vOff ผิดหน่วย */
@@ -207,13 +204,10 @@ function scOptStringCheck(panel, inv, n, opt) {
   }
   return {
     n: scNum(n, 0), ok: ok, checks: checks, score: score, band: band, viaOpt: true,
-    units: units, vOff: vOff, vTop: vTop, per: per,
-    /* ช่องเดิมในตารางยังต้องมีค่า —
-       vocCold = แรงดันตอนสั่งปิด · ช่วงทำงาน = จาก MPPT ต่ำสุด ถึงเพดานของสตริงนี้เอง */
-    vocCold: vOff,
-    vmpHot: scR(vmin, 0),
-    vmpCold: scR(Math.min(vTop || vmax || 0, vmax || vTop || 0) || vTop, 0),
-    vmpNom: 0,
+    units: units, vOff: vOff, per: per, wStr: wStr,
+    /* ช่องเดิมในตารางยังต้องมีค่า — แต่ไม่มีความหมายแล้วเมื่อมีตัวคุม
+       หน้าจอจะไปแสดง "จำนวนตัวคุม" กับ "แรงดันตอนปิด" แทน (ดูตารางสตริงใน solarui) */
+    vocCold: vOff, vmpHot: 0, vmpCold: 0, vmpNom: 0,
     fails: checks.filter((c) => !c.ok).map((c) => c.msg),
   };
 }
@@ -266,7 +260,9 @@ function scSeriesRange(panel, inv, env, opt) {
   if (opt && opt.per > 0) {
     const per = Math.max(1, Math.round(opt.per));
     const uMax = opt.maxPerStr > 0 ? opt.maxPerStr
-      : Math.max(1, Math.floor(scNum(inv.maxVdc, 1000) / Math.max(1, scNum(opt.vOutMax, 80))));
+      : (opt.maxWPerStr > 0 && opt.wp > 0 && per > 0
+          ? Math.max(1, Math.floor(opt.maxWPerStr / (per * opt.wp)))
+          : 40);
     const uMin = opt.minPerStr > 0 ? opt.minPerStr : 1;
     for (let u = Math.max(1, uMin); u <= Math.min(120, Math.max(uMin, uMax)); u++) rows.push(scStringCheck(panel, inv, u * per, env, opt));
     const okR = rows.filter((r) => r.ok);
@@ -1272,8 +1268,11 @@ function scOptSpec(sys) {
      · แผงที่ต่ออนุกรมเข้าตัวเดียวกัน แรงดันรวม (Voc) ต้องไม่เกินแรงดันเข้าสูงสุด
      · กระแสลัดวงจรของแผง (Isc) ต้องไม่เกินที่ตัวคุมรับได้
    ถ้าข้อไหนไม่ผ่าน ลดจำนวนแผงต่อตัวลงจนผ่าน — ไม่ใช่ปล่อยผ่านแล้วไปพังหน้างาน */
-function scOptPlan(opt, panel, totalPanels) {
+function scOptPlan(opt, panel, totalPanels, invModel) {
   if (!opt) return null;
+  /* ข้อจำกัดความยาวสตริงมาจากตารางจับคู่กับอินเวอร์เตอร์รุ่นที่เลือกไว้
+     ไม่เจอรุ่นในตาราง = ไม่มีข้อจำกัดให้ตรวจ (ดีกว่าเอาค่าของรุ่นอื่นมาใช้แล้วตรวจผิด) */
+  const pair = (opt.pairs || []).find((r) => r.inv === invModel) || null;
   const wp = scNum(panel && panel.wp, 0);
   const voc = scNum(panel && panel.voc, 0);
   const isc = scNum(panel && panel.isc, 0);
@@ -1299,9 +1298,15 @@ function scOptPlan(opt, panel, totalPanels) {
     wPerUnit: scR(per * wp, 0),
     vIn: scR(per * voc, 1),
     headroomW: scR(opt.w - per * wp, 0),
-    /* แรงดันที่เหลือบนสายตอนสั่งหยุดฉุกเฉิน — จุดขายหลักของอุปกรณ์นี้ */
-    vOffPerUnit: scNum(opt.vOff, 0),
-    minPerStr: scNum(opt.minPerStr, 0), maxPerStr: scNum(opt.maxPerStr, 0),
+    /* แรงดันที่เหลือบนสายตอนสั่งหยุดฉุกเฉิน — จุดขายหลักของอุปกรณ์นี้
+       เก็บสองชื่อ: vOff ไว้ให้ตัวตรวจสตริงอ่าน · vOffPerUnit ไว้ให้หน้าจออ่าน */
+    vOff: scNum(opt.vOff, 0), vOffPerUnit: scNum(opt.vOff, 0),
+    /* ค่าจากตารางจับคู่มาก่อนเสมอ ค่าที่ตั้งไว้กลาง ๆ ในตัวอุปกรณ์เป็นตัวสำรอง */
+    minPerStr: pair ? scNum(pair.min, 0) : scNum(opt.minPerStr, 0),
+    maxPerStr: pair ? scNum(pair.max, 0) : scNum(opt.maxPerStr, 0),
+    maxWPerStr: pair ? scNum(pair.maxW, 0) : 0,
+    pairInv: pair ? pair.inv : "", paired: !!pair,
+    wp: wp,
     iOutMax: scNum(opt.iOutMax, 0), vOutMax: scNum(opt.vOutMax, 0), eff: scNum(opt.eff, 0),
     warns: warns,
   };

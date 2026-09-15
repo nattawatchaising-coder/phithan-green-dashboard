@@ -799,6 +799,56 @@ function MoveModal({ info, onSave, onClose, byName, jobs, lockedJob, maxQty }) {
   );
 }
 
+/* ── ตารางจับคู่ตัวคุมแผง ↔ อินเวอร์เตอร์ ──
+   หนึ่งแถว = อินเวอร์เตอร์หนึ่งรุ่น พร้อมข้อจำกัดของสตริงตามคู่มือ
+     min/max = จำนวนตัวคุมต่อสตริง ต่ำสุด/สูงสุด · maxW = กำลัง DC สูงสุดต่อสตริง
+   เก็บเป็นอาเรย์ในตัวของใช้เอง ไม่ต้องมีตารางแยก เพราะข้อมูลชุดนี้เป็นของอุปกรณ์ตัวนั้นโดยตรง */
+function StkOptPairs({ pairs, invNames, onChange, isMobile }) {
+  const list = Array.isArray(pairs) ? pairs : [];
+  const setRow = (i, patch) => onChange(list.map((r, j) => (j === i ? Object.assign({}, r, patch) : r)));
+  const add = () => onChange(list.concat([{ inv: "", min: 0, max: 0, maxW: 0 }]));
+  const del = (i) => onChange(list.filter((r, j) => j !== i));
+  const cell = Object.assign({}, inputStyle, { padding: "7px 9px", fontSize: 12 });
+
+  return (
+    <div style={{ marginTop: 11, borderTop: "1px dashed var(--border-strong)", paddingTop: 11 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>ใช้คู่กับอินเวอร์เตอร์รุ่นไหนได้บ้าง</span>
+        <span style={{ fontSize: 11, color: "var(--text-3)" }}>ความยาวสตริงตามคู่มือ · แต่ละรุ่นไม่เท่ากัน</span>
+        <button type="button" onClick={add} style={{ marginLeft: "auto", padding: "6px 11px", borderRadius: 9,
+          border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--primary-dark)",
+          fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>+ เพิ่มรุ่น</button>
+      </div>
+      {!list.length ? (
+        <div style={{ fontSize: 11.5, color: "var(--text-3)", padding: "10px 0" }}>
+          ยังไม่ได้จับคู่กับรุ่นไหน — ตอนออกแบบระบบจะไม่มีข้อจำกัดความยาวสตริงให้ตรวจ
+        </div>
+      ) : list.map((r, i) => (
+        <div key={i} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "2.2fr .8fr .8fr 1fr auto", gap: 8, marginBottom: 8, alignItems: "center" }}>
+          <select style={cell} value={r.inv || ""} onChange={(e) => setRow(i, { inv: e.target.value })}>
+            <option value="">— เลือกรุ่นอินเวอร์เตอร์ —</option>
+            {(invNames || []).map((n) => <option key={n} value={n}>{n}</option>)}
+            {r.inv && (invNames || []).indexOf(r.inv) < 0 && <option value={r.inv}>{r.inv} (ไม่มีในคลังแล้ว)</option>}
+          </select>
+          <input type="number" style={cell} value={r.min || ""} placeholder="ต่ำสุด" onChange={(e) => setRow(i, { min: parseInt(e.target.value) || 0 })} />
+          <input type="number" style={cell} value={r.max || ""} placeholder="สูงสุด" onChange={(e) => setRow(i, { max: parseInt(e.target.value) || 0 })} />
+          <input type="number" style={cell} value={r.maxW || ""} placeholder="W/สตริง" onChange={(e) => setRow(i, { maxW: parseInt(e.target.value) || 0 })} />
+          <button type="button" onClick={() => del(i)} title="ลบแถวนี้"
+            style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+              cursor: "pointer", display: "grid", placeItems: "center" }}>
+            <Icon name="trash" size={13} color="#EF4444" />
+          </button>
+        </div>
+      ))}
+      {!!list.length && (
+        <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.7 }}>
+          ต่ำสุด/สูงสุด = จำนวน<b>ตัวคุม</b>ต่อสตริง (ไม่ใช่จำนวนแผง) · W/สตริง = กำลัง DC สูงสุดต่อสตริงตามคู่มือ
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveCat, img, onImage, hint }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -806,6 +856,9 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
   const [f, setF] = React.useState(() => Object.assign({}, initial));
   const set = (k, v) => setF((p) => Object.assign({}, p, { [k]: v }));
   const suggestCode = SF.genMatCode(f.cat, items || []); // รหัสถัดไปตามหมวด
+  /* รายชื่ออินเวอร์เตอร์ในคลัง — ใช้เป็นตัวเลือกตอนจับคู่กับตัวคุมแผง
+     ต้องเลือกจากรุ่นที่มีอยู่จริง ไม่ใช่พิมพ์เอง ไม่งั้นชื่อไม่ตรงแล้วจับคู่ไม่ติดตอนออกแบบ */
+  const invNames = (items || []).filter((x) => SF.mainCatOf(x.cat) === "inverter" && x.name).map((x) => x.name);
 
   /* หมวด — f.cat เก็บคีย์ที่ละเอียดที่สุด แยกกลับเป็นหลัก/ย่อยตอนแสดง
      ช่องสเปค (แผง/อินเวอร์เตอร์/อุปกรณ์ไฟฟ้า/สาย) ต้องดูจาก mainCat ไม่ใช่ f.cat
@@ -1000,6 +1053,12 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
                 แรงดันตอนสั่งปิด × จำนวนตัวในสตริง = แรงดันที่เหลือบนสายตอนกดหยุดฉุกเฉิน —
                 ตัวเลขนี้คือเหตุผลด้านความปลอดภัยที่โรงงานหลายแห่งบังคับให้ติด
               </div>
+
+              {/* ── ตารางจับคู่กับอินเวอร์เตอร์ ──
+                  คู่มือผู้ผลิตกำหนดความยาวสตริงไว้ "ต่ออินเวอร์เตอร์แต่ละรุ่น" ไม่ใช่ค่าเดียวทั้งยี่ห้อ
+                  (เช่น SUN2000-30~40KTL-M3 ได้ 8-25 ตัว แต่ SUN2000-50KTL-M3 ได้ 8-20 ตัว)
+                  จึงต้องเก็บเป็นตาราง ไม่ใช่ช่องเดียว ไม่งั้นจะตรวจผิดทันทีที่เปลี่ยนรุ่นอินเวอร์เตอร์ */}
+              <StkOptPairs pairs={f.optPairs} invNames={invNames} onChange={(v) => set("optPairs", v)} isMobile={isMobile} />
             </div>
           )}
           {mainCat === "inverter" && (

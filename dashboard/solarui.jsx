@@ -1669,7 +1669,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   const totalPanels = groups.reduce((a, g) => a + g.count, 0);
   /* ตัวคุมแผงที่เลือกไว้ + แผนการต่อ (กี่แผงต่อตัว / ใช้กี่ตัว / เกินพิกัดตรงไหนไหม) */
   const optSel = typeof scOptSpec === "function" ? scOptSpec(S) : null;
-  const optPlan = optSel && typeof scOptPlan === "function" ? scOptPlan(optSel, panel, totalPanels) : null;
+  const optPlan = optSel && typeof scOptPlan === "function" ? scOptPlan(optSel, panel, totalPanels, S.invModel) : null;
   const isMicro = S.mode === "micro";
   const [activeStr, setActiveStr] = React.useState(1);
 
@@ -2200,12 +2200,22 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                           </span>
                           <span className="p3-stat">ใช้ทั้งหมด <b>{optPlan.units}</b> ตัว</span>
                           {optSel.eff > 0 && <span className="p3-stat">ประสิทธิภาพ <b>{optSel.eff}%</b></span>}
+                          {/* ข้อจำกัดสตริงมาจากตารางจับคู่ในคลัง — บอกให้เห็นว่าจับคู่ติดหรือยัง */}
+                          {optPlan.paired ? (
+                            <span className="p3-stat" style={{ color: "var(--acd)" }}>
+                              คู่มือรุ่นนี้: สตริงละ <b>{optPlan.minPerStr || "—"}–{optPlan.maxPerStr || "—"}</b> ตัว
+                              {optPlan.maxWPerStr > 0 ? <React.Fragment> · ไม่เกิน <b>{optPlan.maxWPerStr.toLocaleString()}</b> W/สตริง</React.Fragment> : null}
+                            </span>
+                          ) : (
+                            <span className="p3-stat" style={{ color: "var(--tint-amber-tx)" }}>
+                              ยังไม่ได้จับคู่กับอินเวอร์เตอร์รุ่นนี้ในคลัง — ไม่มีข้อจำกัดความยาวสตริงให้ตรวจ
+                            </span>
+                          )}
                         </div>
                         {optPlan.vOffPerUnit > 0 && (
                           <span className="p3-note" style={{ color: "var(--acd)" }}>
-                            กดหยุดฉุกเฉินแล้วเหลือแรงดันบนสาย <b>{optPlan.vOffPerUnit} V ต่อตัว</b> —
-                            สตริงละ {scStringsPerMppt ? "" : ""}{optPlan.per > 0 ? Math.ceil((S.series || 0) / optPlan.per) || "—" : "—"} ตัว
-                            เท่ากับไม่ถึงสิบโวลต์ แทนที่จะเป็นหลายร้อยโวลต์แบบไม่มีตัวคุม
+                            กดหยุดฉุกเฉินแล้วเหลือแรงดันบนสาย <b>{optPlan.vOffPerUnit} V ต่อตัวคุม 1 ตัว</b> —
+                            สตริงที่มีตัวคุม 9 ตัวก็เหลือ 9 V แทนที่จะเป็นหลายร้อยโวลต์แบบไม่มีตัวคุม
                           </span>
                         )}
                         {optPlan.warns.map((w, i) => (
@@ -2466,8 +2476,8 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                         {/* ติดตัวคุมแผงแล้วสองคอลัมน์นี้คนละความหมายกับตอนไม่มี — ต้องเปลี่ยนหัวตารางด้วย
                             ไม่งั้นคนอ่านจะนึกว่าเป็น Voc ของแผงที่ลดลงมาเอง */}
                         <thead><tr><th>สตริง</th><th>แผง</th><th>กลุ่ม</th><th>ขั้วที่เสียบ · INV / MPPT / ช่อง</th>
-                          <th>{optPlan ? "แรงดันตอนปิด" : "Voc เย็น"}</th>
-                          <th>{optPlan ? "ช่วงที่อินเวอร์เตอร์คุม" : "ช่วงทำงาน"}</th><th>สถานะ</th></tr></thead>
+                          <th>{optPlan ? "ตัวคุมแผง" : "Voc เย็น"}</th>
+                          <th>{optPlan ? "แรงดันตอนปิด" : "ช่วงทำงาน"}</th><th>สถานะ</th></tr></thead>
                         <tbody>
                           {plan.strings.map((s, i) => (
                             <tr key={i} data-on={s.id && activeStr === s.id ? "1" : "0"}>
@@ -2497,8 +2507,8 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                                   {s.picked && <span title="ปักช่องเอง" style={{ color: "var(--acd)", fontWeight: 800, fontSize: 11 }}>●</span>}
                                 </span>
                               </td>
-                              <td>{s.chk.vocCold} V</td>
-                              <td>{s.chk.vmpHot}–{s.chk.vmpCold} V</td>
+                              <td>{s.chk.viaOpt ? <React.Fragment><b>{s.chk.units}</b> ตัว</React.Fragment> : s.chk.vocCold + " V"}</td>
+                              <td>{s.chk.viaOpt ? s.chk.vOff + " V" : s.chk.vmpHot + "–" + s.chk.vmpCold + " V"}</td>
                               <td style={{ color: s.chk.ok ? "var(--acd)" : "var(--tint-red-tx)", fontWeight: 800 }}>{s.chk.ok ? s.chk.band : "ไม่ผ่าน"}</td>
                             </tr>
                           ))}

@@ -238,20 +238,13 @@ function scOptStringCheck(panel, inv, n, opt) {
     lim: per,
     msg: "สตริงนี้มี " + scNum(n, 0) + " แผง หารด้วย " + per + " ไม่ลงตัว — เหลือตัวคุมที่เสียบแผงเดียว " + rem + " ใบ"
   });
-  const vTop = scR(units * scNum(opt.vOutMax, 0), 1);
-  if (vTop > 0 && maxVdc) checks.push({
-    k: "optvdc",
-    ok: vTop <= maxVdc,
-    v: vTop,
-    lim: maxVdc,
-    msg: "แรงดันสตริงสูงสุด " + vTop + " V (ตัวคุม " + units + " ตัว × " + opt.vOutMax + " V) เกินแรงดันสูงสุดของอินเวอร์เตอร์ " + maxVdc + " V"
-  });
-  if (vTop > 0 && vmin) checks.push({
-    k: "optvmin",
-    ok: vTop >= vmin,
-    v: vTop,
-    lim: vmin,
-    msg: "แรงดันสตริงสูงสุด " + vTop + " V ยังไม่ถึง MPPT ต่ำสุดของอินเวอร์เตอร์ " + vmin + " V — สตริงสั้นเกินไป"
+  const wStr = scR(scNum(n, 0) * scNum(opt.wp, 0), 0);
+  if (opt.maxWPerStr > 0 && wStr > 0) checks.push({
+    k: "optw",
+    ok: wStr <= opt.maxWPerStr,
+    v: wStr,
+    lim: opt.maxWPerStr,
+    msg: "กำลัง DC ของสตริงนี้ " + wStr.toLocaleString() + " W เกินที่คู่มือกำหนดไว้ " + opt.maxWPerStr.toLocaleString() + " W ต่อสตริง"
   });
   const vOff = scR(units * scNum(opt.vOff, 0), 1);
   if (maxVdc && vOff > maxVdc) checks.push({
@@ -281,11 +274,11 @@ function scOptStringCheck(panel, inv, n, opt) {
     viaOpt: true,
     units: units,
     vOff: vOff,
-    vTop: vTop,
     per: per,
+    wStr: wStr,
     vocCold: vOff,
-    vmpHot: scR(vmin, 0),
-    vmpCold: scR(Math.min(vTop || vmax || 0, vmax || vTop || 0) || vTop, 0),
+    vmpHot: 0,
+    vmpCold: 0,
     vmpNom: 0,
     fails: checks.filter(c => !c.ok).map(c => c.msg)
   };
@@ -359,7 +352,7 @@ function scSeriesRange(panel, inv, env, opt) {
   const rows = [];
   if (opt && opt.per > 0) {
     const per = Math.max(1, Math.round(opt.per));
-    const uMax = opt.maxPerStr > 0 ? opt.maxPerStr : Math.max(1, Math.floor(scNum(inv.maxVdc, 1000) / Math.max(1, scNum(opt.vOutMax, 80))));
+    const uMax = opt.maxPerStr > 0 ? opt.maxPerStr : opt.maxWPerStr > 0 && opt.wp > 0 && per > 0 ? Math.max(1, Math.floor(opt.maxWPerStr / (per * opt.wp))) : 40;
     const uMin = opt.minPerStr > 0 ? opt.minPerStr : 1;
     for (let u = Math.max(1, uMin); u <= Math.min(120, Math.max(uMin, uMax)); u++) rows.push(scStringCheck(panel, inv, u * per, env, opt));
     const okR = rows.filter(r => r.ok);
@@ -1695,8 +1688,9 @@ function scOptSpec(sys) {
   if (!m) return null;
   return (B.OPTIMIZERS || []).find(o => o.model === m) || null;
 }
-function scOptPlan(opt, panel, totalPanels) {
+function scOptPlan(opt, panel, totalPanels, invModel) {
   if (!opt) return null;
+  const pair = (opt.pairs || []).find(r => r.inv === invModel) || null;
   const wp = scNum(panel && panel.wp, 0);
   const voc = scNum(panel && panel.voc, 0);
   const isc = scNum(panel && panel.isc, 0);
@@ -1725,9 +1719,14 @@ function scOptPlan(opt, panel, totalPanels) {
     wPerUnit: scR(per * wp, 0),
     vIn: scR(per * voc, 1),
     headroomW: scR(opt.w - per * wp, 0),
+    vOff: scNum(opt.vOff, 0),
     vOffPerUnit: scNum(opt.vOff, 0),
-    minPerStr: scNum(opt.minPerStr, 0),
-    maxPerStr: scNum(opt.maxPerStr, 0),
+    minPerStr: pair ? scNum(pair.min, 0) : scNum(opt.minPerStr, 0),
+    maxPerStr: pair ? scNum(pair.max, 0) : scNum(opt.maxPerStr, 0),
+    maxWPerStr: pair ? scNum(pair.maxW, 0) : 0,
+    pairInv: pair ? pair.inv : "",
+    paired: !!pair,
+    wp: wp,
     iOutMax: scNum(opt.iOutMax, 0),
     vOutMax: scNum(opt.vOutMax, 0),
     eff: scNum(opt.eff, 0),
