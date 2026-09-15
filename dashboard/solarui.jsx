@@ -1674,7 +1674,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   const [activeStr, setActiveStr] = React.useState(1);
 
   /* ── สตริง / ไมโคร ── */
-  const range = React.useMemo(() => (panel.voc && inv.mpptVmin ? scSeriesRange(panel, inv, S.env) : null), [panel.voc, panel.vmp, panel.tcVoc, inv.mpptVmin, inv.mpptVmax, inv.maxVdc, S.env]);
+  const range = React.useMemo(() => (panel.voc && inv.mpptVmin ? scSeriesRange(panel, inv, S.env, optPlan) : null), [panel.voc, panel.vmp, panel.tcVoc, inv.mpptVmin, inv.mpptVmax, inv.maxVdc, S.env, optPlan]);
   /* ระบบจัดสตริงให้เองตั้งแต่เปิดเข้ามา — ผังจึงมีสีและแตะแก้ได้ทันที ไม่ต้องกดปุ่มก่อน
      ยังไม่เขียนลง state จนกว่าผู้ใช้จะแตะแก้จริง (จะได้ไม่ขึ้น "ยังไม่บันทึก" ทั้งที่ยังไม่ได้แตะอะไร) */
   const isManual = !!S.manual;

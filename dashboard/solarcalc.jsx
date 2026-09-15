@@ -172,6 +172,22 @@ function scOptStringCheck(panel, inv, n, opt) {
   if (opt.maxPerStr > 0) checks.push({ k: "optmax", ok: units <= opt.maxPerStr, v: units, lim: opt.maxPerStr,
     msg: "สตริงนี้มีตัวคุม " + units + " ตัว เกินที่คู่มือกำหนดไว้สูงสุด " + opt.maxPerStr + " ตัว" });
 
+  /* จำนวนแผงต้องลงตัวกับจำนวนแผงต่อตัวคุม — ตัวคุมรับ 2 แผง สตริงก็ต้องลงเลขคู่
+     เศษที่เหลือแปลว่ามีตัวคุมตัวหนึ่งเสียบแผงเดียว ซึ่งเสียของและไม่ตรงกับแบบที่ยื่น */
+  const rem = per > 1 ? scNum(n, 0) % per : 0;
+  if (rem) checks.push({ k: "optodd", ok: false, v: scNum(n, 0), lim: per,
+    msg: "สตริงนี้มี " + scNum(n, 0) + " แผง หารด้วย " + per + " ไม่ลงตัว — เหลือตัวคุมที่เสียบแผงเดียว " + rem + " ใบ" });
+
+  /* ── แรงดันสตริง ──
+     ตัวคุมหนึ่งตัวจ่ายออกได้สูงสุด vOutMax ต่อกันเป็นอนุกรม แรงดันสูงสุดของสตริงจึงเท่ากับ
+     จำนวนตัวคุม × vOutMax (เช่น 9 ตัว × 80 V = 720 V) ไม่ใช่ Voc ของแผงคูณจำนวนแผง
+     ต้องไม่เกินแรงดันสูงสุดของอินเวอร์เตอร์ และต้องขึ้นถึงช่วง MPPT ให้ได้ ไม่งั้นจุดไม่ติด */
+  const vTop = scR(units * scNum(opt.vOutMax, 0), 1);
+  if (vTop > 0 && maxVdc) checks.push({ k: "optvdc", ok: vTop <= maxVdc, v: vTop, lim: maxVdc,
+    msg: "แรงดันสตริงสูงสุด " + vTop + " V (ตัวคุม " + units + " ตัว × " + opt.vOutMax + " V) เกินแรงดันสูงสุดของอินเวอร์เตอร์ " + maxVdc + " V" });
+  if (vTop > 0 && vmin) checks.push({ k: "optvmin", ok: vTop >= vmin, v: vTop, lim: vmin,
+    msg: "แรงดันสตริงสูงสุด " + vTop + " V ยังไม่ถึง MPPT ต่ำสุดของอินเวอร์เตอร์ " + vmin + " V — สตริงสั้นเกินไป" });
+
   /* แรงดันตอนสั่งปิด — ต้องไม่เกินพิกัดของอินเวอร์เตอร์อยู่แล้ว (ปกติต่ำมากจนไม่มีทางเกิน)
      แต่เช็คไว้กันกรณีกรอก vOff ผิดหน่วย */
   const vOff = scR(units * scNum(opt.vOff, 0), 1);
@@ -191,9 +207,13 @@ function scOptStringCheck(panel, inv, n, opt) {
   }
   return {
     n: scNum(n, 0), ok: ok, checks: checks, score: score, band: band, viaOpt: true,
-    units: units, vOff: vOff,
-    /* ช่องเดิมในตารางยังต้องมีค่า — ใส่ช่วงที่อินเวอร์เตอร์คุมให้แทนตัวเลขจากแผง */
-    vocCold: vOff, vmpHot: scR(vmin, 0), vmpCold: scR(Math.min(vmax || maxVdc || 0, maxVdc || vmax || 0) || vmax, 0), vmpNom: 0,
+    units: units, vOff: vOff, vTop: vTop, per: per,
+    /* ช่องเดิมในตารางยังต้องมีค่า —
+       vocCold = แรงดันตอนสั่งปิด · ช่วงทำงาน = จาก MPPT ต่ำสุด ถึงเพดานของสตริงนี้เอง */
+    vocCold: vOff,
+    vmpHot: scR(vmin, 0),
+    vmpCold: scR(Math.min(vTop || vmax || 0, vmax || vTop || 0) || vTop, 0),
+    vmpNom: 0,
     fails: checks.filter((c) => !c.ok).map((c) => c.msg),
   };
 }
@@ -238,8 +258,22 @@ function scStringCheck(panel, inv, n, env, opt) {
 }
 
 /* ไล่ทุกจำนวนแผงต่ออนุกรมที่เป็นไปได้ → { rows, min, max, best } */
-function scSeriesRange(panel, inv, env) {
+function scSeriesRange(panel, inv, env, opt) {
   const rows = [];
+  /* ติดตัวคุมแผง: จำนวนแผงที่ต่อได้ต้องเป็น "จำนวนเท่าของแผงต่อตัวคุม" เสมอ
+     (ตัวคุมรับ 2 แผง = สตริงต้องลงเลขคู่ ไม่งั้นตัวสุดท้ายเหลือแผงเดียว เสียของและผิดแบบ)
+     จึงไล่ทีละตัวคุม แล้วคูณกลับเป็นจำนวนแผง แทนที่จะไล่ทีละแผง */
+  if (opt && opt.per > 0) {
+    const per = Math.max(1, Math.round(opt.per));
+    const uMax = opt.maxPerStr > 0 ? opt.maxPerStr
+      : Math.max(1, Math.floor(scNum(inv.maxVdc, 1000) / Math.max(1, scNum(opt.vOutMax, 80))));
+    const uMin = opt.minPerStr > 0 ? opt.minPerStr : 1;
+    for (let u = Math.max(1, uMin); u <= Math.min(120, Math.max(uMin, uMax)); u++) rows.push(scStringCheck(panel, inv, u * per, env, opt));
+    const okR = rows.filter((r) => r.ok);
+    const bestR = okR.slice().sort((a, b) => b.score - a.score || b.n - a.n)[0] || null;
+    return { rows, ok: okR, min: okR.length ? okR[0].n : 0, max: okR.length ? okR[okR.length - 1].n : 0,
+      best: bestR ? bestR.n : 0, bestRow: bestR, viaOpt: true, per: per };
+  }
   const cap = Math.max(2, Math.ceil(scNum(inv.maxVdc, 1000) / Math.max(1, scNum(panel.voc, 40))) + 2);
   for (let n = 1; n <= Math.min(40, cap); n++) rows.push(scStringCheck(panel, inv, n, env));
   const okRows = rows.filter((r) => r.ok);
@@ -339,7 +373,8 @@ function scMpptName(pin, inv, nInv) {
           และพยายามไม่เอาคนละกลุ่มมาอยู่ MPPT เดียวกัน */
 function scAutoStrings(groups, panel, inv, env, opt) {
   opt = opt || {};
-  const R = scSeriesRange(panel, inv, env);
+  /* ตัวคุมแผงเปลี่ยนชุดขนาดสตริงที่ยอมรับได้ทั้งหมด (ต้องเป็นจำนวนเท่าของแผงต่อตัวคุม) */
+  const R = scSeriesRange(panel, inv, env, opt.optimizer);
   const nInv = Math.max(1, Math.round(scNum(opt.invCount, 1)));
   const mpptPerInv = Math.max(1, Math.round(scNum(inv.inputs, 2)));
   const perMppt = scStringsPerMppt(panel, inv);
@@ -488,7 +523,7 @@ function scStringsFromAssign(assign, byPanel, groups, panel, inv, env, opt) {
   const dcKw = scR(assigned * scNum(panel.wp) / 1000, 2), acKw = scR(nInv * scNum(inv.kw), 2);
   if (acKw && dcKw / acKw > 1.4) warns.push("DC/AC = " + scR(dcKw / acKw, 2) + " สูงไป อินเวอร์เตอร์จะตัดยอด (clipping) ช่วงเที่ยง — เพิ่มขนาด/จำนวนอินเวอร์เตอร์");
   return { strings, warns, notes: current.notes, current, panels: assigned, dcKw, acKw, dcAc: acKw ? scR(dcKw / acKw, 2) : 0,
-    range: scSeriesRange(panel, inv, env), perMppt, mppt: slots, mpptPerInv, pins: LAY.pins, phys: LAY.phys,
+    range: scSeriesRange(panel, inv, env, opt.optimizer), perMppt, mppt: slots, mpptPerInv, pins: LAY.pins, phys: LAY.phys,
     load, owner, nInv, fuse, manual: true };
 }
 

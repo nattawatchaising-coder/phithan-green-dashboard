@@ -3264,7 +3264,7 @@ function SolarWorkspace({
   const optPlan = optSel && typeof scOptPlan === "function" ? scOptPlan(optSel, panel, totalPanels) : null;
   const isMicro = S.mode === "micro";
   const [activeStr, setActiveStr] = React.useState(1);
-  const range = React.useMemo(() => panel.voc && inv.mpptVmin ? scSeriesRange(panel, inv, S.env) : null, [panel.voc, panel.vmp, panel.tcVoc, inv.mpptVmin, inv.mpptVmax, inv.maxVdc, S.env]);
+  const range = React.useMemo(() => panel.voc && inv.mpptVmin ? scSeriesRange(panel, inv, S.env, optPlan) : null, [panel.voc, panel.vmp, panel.tcVoc, inv.mpptVmin, inv.mpptVmax, inv.maxVdc, S.env, optPlan]);
   const isManual = !!S.manual;
   const autoSeed = React.useMemo(() => !isMicro && panel.voc && inv.mpptVmin && foot.panels.length ? scAutoAssign(foot.panels, idx.byPanel, groups, panel, inv, S.env, {
     invCount: S.invCount
