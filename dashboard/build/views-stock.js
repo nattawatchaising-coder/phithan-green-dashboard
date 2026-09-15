@@ -2586,7 +2586,123 @@ function ItemModal({
       color: "var(--text-3)",
       lineHeight: 1.55
     }
-  }, "\u0E04\u0E27\u0E32\u0E21\u0E2B\u0E19\u0E32\u0E40\u0E1F\u0E23\u0E21 \u2192 \u0E40\u0E25\u0E37\u0E2D\u0E01 MID/END CLAMP KIT (30/35mm) \xB7 \u0E04\u0E27\u0E32\u0E21\u0E01\u0E27\u0E49\u0E32\u0E07/\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27 \u2192 \u0E04\u0E33\u0E19\u0E27\u0E13\u0E23\u0E32\u0E07 + \u0E02\u0E19\u0E32\u0E14\u0E41\u0E1C\u0E07\u0E43\u0E19\u0E1C\u0E31\u0E07 3 \u0E21\u0E34\u0E15\u0E34 \xB7 Wp \u2192 \u0E02\u0E19\u0E32\u0E14\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 (kW) \xB7 Voc/Isc/Vmp/Imp \u2192 \u0E01\u0E32\u0E23\u0E15\u0E48\u0E2D\u0E2D\u0E19\u0E38\u0E01\u0E23\u0E21 String + \u0E2A\u0E32\u0E22 DC \xB7 \u0E04\u0E48\u0E32\u0E2D\u0E38\u0E13\u0E2B\u0E20\u0E39\u0E21\u0E34 Voc \u2192 Voc \u0E15\u0E2D\u0E19\u0E2D\u0E32\u0E01\u0E32\u0E28\u0E40\u0E22\u0E47\u0E19 (\u0E15\u0E31\u0E27\u0E01\u0E33\u0E2B\u0E19\u0E14\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14\u0E15\u0E48\u0E2D\u0E2A\u0E15\u0E23\u0E34\u0E07) \xB7 Pmax + NOCT \u2192 \u0E01\u0E33\u0E25\u0E31\u0E07\u0E17\u0E35\u0E48\u0E2B\u0E32\u0E22\u0E44\u0E1B\u0E15\u0E2D\u0E19\u0E41\u0E1C\u0E07\u0E23\u0E49\u0E2D\u0E19 \xB7 \u0E40\u0E2A\u0E37\u0E48\u0E2D\u0E21\u0E1B\u0E35\u0E41\u0E23\u0E01/\u0E1B\u0E35\u0E16\u0E31\u0E14\u0E44\u0E1B \u2192 \u0E1C\u0E25\u0E1C\u0E25\u0E34\u0E15\u0E15\u0E25\u0E2D\u0E14\u0E2D\u0E32\u0E22\u0E38\u0E41\u0E25\u0E30\u0E01\u0E32\u0E23\u0E04\u0E37\u0E19\u0E17\u0E38\u0E19 \xB7 \u0E08\u0E33\u0E19\u0E27\u0E19\u0E40\u0E0B\u0E25\u0E25\u0E4C + \u0E0A\u0E19\u0E34\u0E14\u0E40\u0E0B\u0E25\u0E25\u0E4C \u2192 \u0E40\u0E2A\u0E49\u0E19 I-V \u0E41\u0E25\u0E30\u0E01\u0E32\u0E23\u0E04\u0E34\u0E14\u0E40\u0E07\u0E32\u0E1A\u0E31\u0E07\u0E1C\u0E48\u0E32\u0E19\u0E44\u0E14\u0E42\u0E2D\u0E14\u0E1A\u0E32\u0E22\u0E1E\u0E32\u0E2A \xB7 \u0E44\u0E21\u0E48\u0E01\u0E23\u0E2D\u0E01 = \u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E01\u0E25\u0E32\u0E07\u0E02\u0E2D\u0E07\u0E2D\u0E38\u0E15\u0E2A\u0E32\u0E2B\u0E01\u0E23\u0E23\u0E21")), mainCat === "inverter" && React.createElement("div", {
+  }, "\u0E04\u0E27\u0E32\u0E21\u0E2B\u0E19\u0E32\u0E40\u0E1F\u0E23\u0E21 \u2192 \u0E40\u0E25\u0E37\u0E2D\u0E01 MID/END CLAMP KIT (30/35mm) \xB7 \u0E04\u0E27\u0E32\u0E21\u0E01\u0E27\u0E49\u0E32\u0E07/\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27 \u2192 \u0E04\u0E33\u0E19\u0E27\u0E13\u0E23\u0E32\u0E07 + \u0E02\u0E19\u0E32\u0E14\u0E41\u0E1C\u0E07\u0E43\u0E19\u0E1C\u0E31\u0E07 3 \u0E21\u0E34\u0E15\u0E34 \xB7 Wp \u2192 \u0E02\u0E19\u0E32\u0E14\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 (kW) \xB7 Voc/Isc/Vmp/Imp \u2192 \u0E01\u0E32\u0E23\u0E15\u0E48\u0E2D\u0E2D\u0E19\u0E38\u0E01\u0E23\u0E21 String + \u0E2A\u0E32\u0E22 DC \xB7 \u0E04\u0E48\u0E32\u0E2D\u0E38\u0E13\u0E2B\u0E20\u0E39\u0E21\u0E34 Voc \u2192 Voc \u0E15\u0E2D\u0E19\u0E2D\u0E32\u0E01\u0E32\u0E28\u0E40\u0E22\u0E47\u0E19 (\u0E15\u0E31\u0E27\u0E01\u0E33\u0E2B\u0E19\u0E14\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14\u0E15\u0E48\u0E2D\u0E2A\u0E15\u0E23\u0E34\u0E07) \xB7 Pmax + NOCT \u2192 \u0E01\u0E33\u0E25\u0E31\u0E07\u0E17\u0E35\u0E48\u0E2B\u0E32\u0E22\u0E44\u0E1B\u0E15\u0E2D\u0E19\u0E41\u0E1C\u0E07\u0E23\u0E49\u0E2D\u0E19 \xB7 \u0E40\u0E2A\u0E37\u0E48\u0E2D\u0E21\u0E1B\u0E35\u0E41\u0E23\u0E01/\u0E1B\u0E35\u0E16\u0E31\u0E14\u0E44\u0E1B \u2192 \u0E1C\u0E25\u0E1C\u0E25\u0E34\u0E15\u0E15\u0E25\u0E2D\u0E14\u0E2D\u0E32\u0E22\u0E38\u0E41\u0E25\u0E30\u0E01\u0E32\u0E23\u0E04\u0E37\u0E19\u0E17\u0E38\u0E19 \xB7 \u0E08\u0E33\u0E19\u0E27\u0E19\u0E40\u0E0B\u0E25\u0E25\u0E4C + \u0E0A\u0E19\u0E34\u0E14\u0E40\u0E0B\u0E25\u0E25\u0E4C \u2192 \u0E40\u0E2A\u0E49\u0E19 I-V \u0E41\u0E25\u0E30\u0E01\u0E32\u0E23\u0E04\u0E34\u0E14\u0E40\u0E07\u0E32\u0E1A\u0E31\u0E07\u0E1C\u0E48\u0E32\u0E19\u0E44\u0E14\u0E42\u0E2D\u0E14\u0E1A\u0E32\u0E22\u0E1E\u0E32\u0E2A \xB7 \u0E44\u0E21\u0E48\u0E01\u0E23\u0E2D\u0E01 = \u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E01\u0E25\u0E32\u0E07\u0E02\u0E2D\u0E07\u0E2D\u0E38\u0E15\u0E2A\u0E32\u0E2B\u0E01\u0E23\u0E23\u0E21")), mainCat === "optimizer" && React.createElement("div", {
+    style: {
+      gridColumn: "1 / -1",
+      marginTop: 2,
+      padding: 14,
+      background: "var(--surface2)",
+      border: "1px dashed var(--border-strong)",
+      borderRadius: 12
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-2)",
+      marginBottom: 10
+    }
+  }, React.createElement(Icon, {
+    name: "bolt",
+    size: 14,
+    color: "#0891B2"
+  }), " \u0E2A\u0E40\u0E1B\u0E04\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21\u0E41\u0E1C\u0E07 (\u0E01\u0E23\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E14\u0E32\u0E15\u0E49\u0E32\u0E0A\u0E35\u0E15)"), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)",
+      gap: 12
+    }
+  }, React.createElement(Field, {
+    label: "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14 (W)"
+  }, React.createElement("input", {
+    type: "number",
+    style: inputStyle,
+    value: f.optW != null ? f.optW : "",
+    onChange: e => set("optW", parseFloat(e.target.value) || 0),
+    placeholder: "1100"
+  })), React.createElement(Field, {
+    label: "\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E40\u0E02\u0E49\u0E32\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14 (V)"
+  }, React.createElement("input", {
+    type: "number",
+    style: inputStyle,
+    value: f.optVinMax != null ? f.optVinMax : "",
+    onChange: e => set("optVinMax", parseFloat(e.target.value) || 0),
+    placeholder: "125"
+  })), React.createElement(Field, {
+    label: "Isc \u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14 (A)"
+  }, React.createElement("input", {
+    type: "number",
+    style: inputStyle,
+    value: f.optIscMax != null ? f.optIscMax : "",
+    onChange: e => set("optIscMax", parseFloat(e.target.value) || 0),
+    placeholder: "20"
+  })), React.createElement(Field, {
+    label: "MPPT \u0E15\u0E48\u0E33\u0E2A\u0E38\u0E14 (V)"
+  }, React.createElement("input", {
+    type: "number",
+    style: inputStyle,
+    value: f.optMpptMin != null ? f.optMpptMin : "",
+    onChange: e => set("optMpptMin", parseFloat(e.target.value) || 0),
+    placeholder: "12.5"
+  })), React.createElement(Field, {
+    label: "MPPT \u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14 (V)"
+  }, React.createElement("input", {
+    type: "number",
+    style: inputStyle,
+    value: f.optMpptMax != null ? f.optMpptMax : "",
+    onChange: e => set("optMpptMax", parseFloat(e.target.value) || 0),
+    placeholder: "105"
+  })), React.createElement(Field, {
+    label: "\u0E41\u0E1C\u0E07\u0E15\u0E48\u0E2D 1 \u0E15\u0E31\u0E27"
+  }, React.createElement("input", {
+    type: "number",
+    style: inputStyle,
+    value: f.optPerPanel != null ? f.optPerPanel : "",
+    onChange: e => set("optPerPanel", parseInt(e.target.value) || 0),
+    placeholder: "1"
+  })), React.createElement(Field, {
+    label: "\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E2D\u0E2D\u0E01\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14 (V)"
+  }, React.createElement("input", {
+    type: "number",
+    style: inputStyle,
+    value: f.optVoutMax != null ? f.optVoutMax : "",
+    onChange: e => set("optVoutMax", parseFloat(e.target.value) || 0),
+    placeholder: "80"
+  })), React.createElement(Field, {
+    label: "\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14 (A)"
+  }, React.createElement("input", {
+    type: "number",
+    style: inputStyle,
+    value: f.optIoutMax != null ? f.optIoutMax : "",
+    onChange: e => set("optIoutMax", parseFloat(e.target.value) || 0),
+    placeholder: "22"
+  })), React.createElement(Field, {
+    label: "\u0E1B\u0E23\u0E30\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E20\u0E32\u0E1E (%)"
+  }, React.createElement("input", {
+    type: "number",
+    style: inputStyle,
+    value: f.optEff != null ? f.optEff : "",
+    onChange: e => set("optEff", parseFloat(e.target.value) || 0),
+    placeholder: "99.5"
+  })), React.createElement(Field, {
+    label: "\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E15\u0E2D\u0E19\u0E2A\u0E31\u0E48\u0E07\u0E1B\u0E34\u0E14 (V/\u0E15\u0E31\u0E27)"
+  }, React.createElement("input", {
+    type: "number",
+    style: inputStyle,
+    value: f.optVoff != null ? f.optVoff : "",
+    onChange: e => set("optVoff", parseFloat(e.target.value) || 0),
+    placeholder: "1"
+  }))), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      marginTop: 9,
+      lineHeight: 1.7
+    }
+  }, "\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E15\u0E2D\u0E19\u0E2A\u0E31\u0E48\u0E07\u0E1B\u0E34\u0E14 \xD7 \u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27\u0E43\u0E19\u0E2A\u0E15\u0E23\u0E34\u0E07 = \u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E17\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E1A\u0E19\u0E2A\u0E32\u0E22\u0E15\u0E2D\u0E19\u0E01\u0E14\u0E2B\u0E22\u0E38\u0E14\u0E09\u0E38\u0E01\u0E40\u0E09\u0E34\u0E19 \u2014 \u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E19\u0E35\u0E49\u0E04\u0E37\u0E2D\u0E40\u0E2B\u0E15\u0E38\u0E1C\u0E25\u0E14\u0E49\u0E32\u0E19\u0E04\u0E27\u0E32\u0E21\u0E1B\u0E25\u0E2D\u0E14\u0E20\u0E31\u0E22\u0E17\u0E35\u0E48\u0E42\u0E23\u0E07\u0E07\u0E32\u0E19\u0E2B\u0E25\u0E32\u0E22\u0E41\u0E2B\u0E48\u0E07\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A\u0E43\u0E2B\u0E49\u0E15\u0E34\u0E14")), mainCat === "inverter" && React.createElement("div", {
     style: {
       gridColumn: "1 / -1",
       marginTop: 2,
@@ -3491,6 +3607,36 @@ function ItemDetailModal({
   }, {
     k: "mppt",
     th: "MPPT"
+  }, {
+    k: "optW",
+    th: "กำลังแผงสูงสุด (W)"
+  }, {
+    k: "optVinMax",
+    th: "แรงดันเข้าสูงสุด (V)"
+  }, {
+    k: "optMpptMin",
+    th: "MPPT ต่ำสุด (V)"
+  }, {
+    k: "optMpptMax",
+    th: "MPPT สูงสุด (V)"
+  }, {
+    k: "optIscMax",
+    th: "Isc สูงสุด (A)"
+  }, {
+    k: "optVoutMax",
+    th: "แรงดันออกสูงสุด (V)"
+  }, {
+    k: "optIoutMax",
+    th: "กระแสออกสูงสุด (A)"
+  }, {
+    k: "optEff",
+    th: "ประสิทธิภาพ (%)"
+  }, {
+    k: "optVoff",
+    th: "แรงดันตอนสั่งปิด (V/ตัว)"
+  }, {
+    k: "optPerPanel",
+    th: "แผงต่อ 1 ตัว"
   }];
   const specs = SPEC_FIELDS.filter(f => item[f.k] != null && item[f.k] !== "" && +item[f.k] !== 0);
   const [doc, setDocState] = React.useState(undefined);

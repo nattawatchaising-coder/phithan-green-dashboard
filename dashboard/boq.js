@@ -38,6 +38,18 @@
   // อินเวอร์เตอร์ String/Hybrid (ตั้งสเปคจากคลัง) — setInverters() จะ rebuild อาเรย์นี้
   const INVERTERS = [];
 
+  /* ── Smart Module Controller / Optimizer ──
+     ติดหลังแผงทีละใบ แปลงแรงดันของแผงใบนั้นก่อนส่งเข้าสตริง ทำให้
+       · แผงในสตริงเดียวกันไม่ต้องทิศ/มุมเดียวกัน และเงาบังใบเดียวไม่ฉุดทั้งสตริง
+       · แรงดันสตริงไม่ใช่ Voc ของแผง × จำนวนแผงอีกต่อไป — ตัวคุมจะปรับให้อยู่ในช่วงที่อินเวอร์เตอร์รับได้
+       · ตอนสั่งปิด (rapid shutdown) เหลือแรงดันแค่ vOff ต่อตัว ซึ่งคือเหตุผลด้านความปลอดภัยที่คนติดกัน
+
+     ฟิลด์: w = กำลังแผงสูงสุดที่รับได้ · vInMax/mpptMin/mpptMax/iscMax = ฝั่งเข้า (ต้องครอบสเปคแผง)
+            vOutMax/iOutMax = ฝั่งออก (ใช้คิดว่าต่อได้กี่ตัวต่อสตริง) · eff = ประสิทธิภาพ
+            vOff = แรงดันคงเหลือต่อตัวตอนปิด · perPanel = 1 ตัวคุมกี่แผง
+     ว่างไว้ทั้งอาเรย์ — setOptimizers() จะเติมจากคลังสินค้าเหมือน PANELS/INVERTERS */
+  const OPTIMIZERS = [];
+
   // ── ชื่อรุ่นอุปกรณ์ Huawei (ต้องตรงกับชื่อในคลังสินค้า เพื่อจับคู่ราคา) ──
   const HW = {
     meter1: "Smart Meter DDSU666-H + CT 100A/40mA (1 เฟส)",
@@ -1890,7 +1902,26 @@
     out.forEach((x) => INVERTERS.push(x));
   }
 
-  window.BOQ = { PANELS, MICRO, INVERTERS, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
+  /* ── ตัวคุมแผงจากคลัง → OPTIMIZERS ──
+     ค่าที่ยังไม่กรอกปล่อยเป็น 0 แล้วให้หน้าจอขึ้นว่า "ยังไม่ระบุ"
+     ห้ามเดาค่ากลางแทน เพราะตัวเลขพวกนี้ตัดสินว่าต่อกี่ตัวต่อสตริงถึงจะไม่เกินพิกัด */
+  function setOptimizers(list) {
+    const out = [];
+    (list || []).forEach((p) => {
+      if (!p || !p.model) return;
+      out.push({
+        model: String(p.model).trim(), group: p.group || "",
+        w: +p.w || 0, vInMax: +p.vInMax || 0, mpptMin: +p.mpptMin || 0, mpptMax: +p.mpptMax || 0,
+        iscMax: +p.iscMax || 0, vOutMax: +p.vOutMax || 0, iOutMax: +p.iOutMax || 0,
+        eff: +p.eff || 0, vOff: +p.vOff || 0, perPanel: Math.max(1, Math.round(+p.perPanel || 1)),
+      });
+    });
+    OPTIMIZERS.length = 0;
+    out.forEach((x) => OPTIMIZERS.push(x));
+  }
+  const findOptimizer = (model) => OPTIMIZERS.find((o) => o.model === model) || null;
+
+  window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, WAY_PIPE_LEN, TRAY_PIPE_LEN, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
     COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings,
     STEEL_SPECS, steelName, steelBarLen, steelSel, steelOf,

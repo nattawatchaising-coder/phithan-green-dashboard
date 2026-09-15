@@ -558,6 +558,20 @@ function App() {
       vRated: s.vRated,
       maxAcKw: s.invMaxAcKw
     })));
+    if (window.BOQ.setOptimizers) window.BOQ.setOptimizers((stock.items || []).filter(s => inCat(s, "optimizer") && s.name).map(s => ({
+      model: s.name,
+      group: subTh(s),
+      w: s.optW,
+      vInMax: s.optVinMax,
+      mpptMin: s.optMpptMin,
+      mpptMax: s.optMpptMax,
+      iscMax: s.optIscMax,
+      vOutMax: s.optVoutMax,
+      iOutMax: s.optIoutMax,
+      eff: s.optEff,
+      vOff: s.optVoff,
+      perPanel: s.optPerPanel
+    })));
   }, [stock.items, stock.cats]);
   React.useEffect(() => {
     if (window.BOQ && window.BOQ.setAmpacity) window.BOQ.setAmpacity(ampStore.overrides || {});

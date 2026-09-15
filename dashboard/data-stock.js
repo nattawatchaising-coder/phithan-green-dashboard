@@ -8,6 +8,9 @@
     { key: "panel",     th: "แผงโซล่าเซลล์",  color: "#3B82F6", icon: "panel" },
     { key: "inverter",  th: "อินเวอร์เตอร์",   color: "#7C5CFC", icon: "bolt" },
     { key: "invacc",    th: "อุปกรณ์อินเวอร์เตอร์", color: "#9333EA", icon: "settings" },
+    /* Smart Module Controller / Optimizer — ติดหลังแผงทีละใบ ปรับแรงดันของแผงใบนั้นเอง
+       ต้องแยกเป็นหมวดของตัวเอง เพราะสเปคคนละชุดกับอินเวอร์เตอร์ และมีผลกับการคิดแรงดันสตริงโดยตรง */
+    { key: "optimizer", th: "Smart Module Controller", color: "#0891B2", icon: "bolt" },
     { key: "battery",   th: "แบตเตอรี่",       color: "#14B8A6", icon: "battery" },
     { key: "structure", th: "Solar Mounting",    color: "#F59E0B", icon: "box" },
     { key: "steelwork", th: "งานโครงสร้าง",       color: "#475569", icon: "box" },
@@ -35,6 +38,16 @@
     { id: "IV-13", sku: "WIR-AC16",  name: "สายไฟ AC 16 sq.", cat: "wiring", unit: "เมตร", qty: 880, min: 500, loc: "คลัง E-01" },
     { id: "IV-14", sku: "WIR-DCB",   name: "เบรกเกอร์ DC 1000V", cat: "wiring", unit: "ตัว", qty: 18, min: 20, loc: "คลัง E-02" },
     { id: "IV-15", sku: "BRD-NET30", name: "ตาข่ายกันนก (ม้วน 30 ม.)", cat: "other", unit: "ม้วน", qty: 16, min: 10, loc: "คลัง F-01" },
+    /* ── Smart Module Controller (optimizer) ──
+       สเปคจากดาต้าชีต Huawei MERC-1100W-P / MERC-1300W-P
+       optVoff = แรงดันที่เหลือต่อตัวตอนสั่งปิด (rapid shutdown) — ตัวเลขนี้คือเหตุผลที่ต้องมีหมวดนี้
+       เพราะสตริงที่ติดออปติไมเซอร์ แรงดันตอนปิดคือ 1V × จำนวนตัว ไม่ใช่ Voc ของแผงคูณกัน */
+    { id: "IV-28", sku: "OPT-MERC11", name: "Huawei MERC-1100W-P (Smart Module Controller)", cat: "optimizer", unit: "ตัว", qty: 0, min: 0, loc: "",
+      optW: 1100, optVinMax: 125, optMpptMin: 12.5, optMpptMax: 105, optIscMax: 20,
+      optVoutMax: 80, optIoutMax: 22, optEff: 99.5, optVoff: 1, optPerPanel: 1 },
+    { id: "IV-29", sku: "OPT-MERC13", name: "Huawei MERC-1300W-P (Smart Module Controller)", cat: "optimizer", unit: "ตัว", qty: 0, min: 0, loc: "",
+      optW: 1300, optVinMax: 125, optMpptMin: 12.5, optMpptMax: 105, optIscMax: 20,
+      optVoutMax: 80, optIoutMax: 22, optEff: 99.5, optVoff: 1, optPerPanel: 1 },
     // ── งานโครงสร้าง (LADDER / WALKWAY / GUARD RAIL) — ถอดจากสูตร BOQ ──
     { id: "IV-16", sku: "STW-0001", name: 'เหล็กกล่องดำ 2"x2"', cat: "steelwork", unit: "เส้น", qty: 0, min: 0, loc: "" },
     { id: "IV-17", sku: "STW-0002", name: 'เหล็กกลมดำ 1"', cat: "steelwork", unit: "เส้น", qty: 0, min: 0, loc: "" },

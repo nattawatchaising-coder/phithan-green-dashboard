@@ -974,6 +974,32 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
               </div>
             </div>
           )}
+          {/* ── Smart Module Controller / Optimizer ──
+              สเปคฝั่งเข้าไว้ตรวจว่าครอบแผงที่ใช้ไหม · ฝั่งออกไว้คิดว่าต่อได้กี่ตัวต่อสตริง
+              แรงดันตอนปิดคือตัวเลขความปลอดภัยที่ลูกค้าโรงงานมักถามถึง จึงต้องเก็บไว้ด้วย */}
+          {mainCat === "optimizer" && (
+            <div style={{ gridColumn: "1 / -1", marginTop: 2, padding: 14, background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 10 }}>
+                <Icon name="bolt" size={14} color="#0891B2" /> สเปคตัวคุมแผง (กรอกจากดาต้าชีต)
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: 12 }}>
+                <Field label="กำลังแผงสูงสุด (W)"><input type="number" style={inputStyle} value={f.optW != null ? f.optW : ""} onChange={(e) => set("optW", parseFloat(e.target.value) || 0)} placeholder="1100" /></Field>
+                <Field label="แรงดันเข้าสูงสุด (V)"><input type="number" style={inputStyle} value={f.optVinMax != null ? f.optVinMax : ""} onChange={(e) => set("optVinMax", parseFloat(e.target.value) || 0)} placeholder="125" /></Field>
+                <Field label="Isc สูงสุด (A)"><input type="number" style={inputStyle} value={f.optIscMax != null ? f.optIscMax : ""} onChange={(e) => set("optIscMax", parseFloat(e.target.value) || 0)} placeholder="20" /></Field>
+                <Field label="MPPT ต่ำสุด (V)"><input type="number" style={inputStyle} value={f.optMpptMin != null ? f.optMpptMin : ""} onChange={(e) => set("optMpptMin", parseFloat(e.target.value) || 0)} placeholder="12.5" /></Field>
+                <Field label="MPPT สูงสุด (V)"><input type="number" style={inputStyle} value={f.optMpptMax != null ? f.optMpptMax : ""} onChange={(e) => set("optMpptMax", parseFloat(e.target.value) || 0)} placeholder="105" /></Field>
+                <Field label="แผงต่อ 1 ตัว"><input type="number" style={inputStyle} value={f.optPerPanel != null ? f.optPerPanel : ""} onChange={(e) => set("optPerPanel", parseInt(e.target.value) || 0)} placeholder="1" /></Field>
+                <Field label="แรงดันออกสูงสุด (V)"><input type="number" style={inputStyle} value={f.optVoutMax != null ? f.optVoutMax : ""} onChange={(e) => set("optVoutMax", parseFloat(e.target.value) || 0)} placeholder="80" /></Field>
+                <Field label="กระแสออกสูงสุด (A)"><input type="number" style={inputStyle} value={f.optIoutMax != null ? f.optIoutMax : ""} onChange={(e) => set("optIoutMax", parseFloat(e.target.value) || 0)} placeholder="22" /></Field>
+                <Field label="ประสิทธิภาพ (%)"><input type="number" style={inputStyle} value={f.optEff != null ? f.optEff : ""} onChange={(e) => set("optEff", parseFloat(e.target.value) || 0)} placeholder="99.5" /></Field>
+                <Field label="แรงดันตอนสั่งปิด (V/ตัว)"><input type="number" style={inputStyle} value={f.optVoff != null ? f.optVoff : ""} onChange={(e) => set("optVoff", parseFloat(e.target.value) || 0)} placeholder="1" /></Field>
+              </div>
+              <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 9, lineHeight: 1.7 }}>
+                แรงดันตอนสั่งปิด × จำนวนตัวในสตริง = แรงดันที่เหลือบนสายตอนกดหยุดฉุกเฉิน —
+                ตัวเลขนี้คือเหตุผลด้านความปลอดภัยที่โรงงานหลายแห่งบังคับให้ติด
+              </div>
+            </div>
+          )}
           {mainCat === "inverter" && (
             <div style={{ gridColumn: "1 / -1", marginTop: 2, padding: 14, background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 10 }}>
@@ -1330,6 +1356,12 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
     { k: "width", th: "กว้าง (ม.)" }, { k: "length", th: "ยาว (ม.)" },
     { k: "tcVoc", th: "TC Voc (%/°C)" }, { k: "tcIsc", th: "TC Isc (%/°C)" }, { k: "tcPmax", th: "TC Pmax (%/°C)" },
     { k: "noct", th: "NOCT (°C)" }, { k: "maxPv", th: "PV สูงสุด (kW)" }, { k: "mppt", th: "MPPT" },
+    /* ตัวคุมแผง (Smart Module Controller) */
+    { k: "optW", th: "กำลังแผงสูงสุด (W)" }, { k: "optVinMax", th: "แรงดันเข้าสูงสุด (V)" },
+    { k: "optMpptMin", th: "MPPT ต่ำสุด (V)" }, { k: "optMpptMax", th: "MPPT สูงสุด (V)" },
+    { k: "optIscMax", th: "Isc สูงสุด (A)" }, { k: "optVoutMax", th: "แรงดันออกสูงสุด (V)" },
+    { k: "optIoutMax", th: "กระแสออกสูงสุด (A)" }, { k: "optEff", th: "ประสิทธิภาพ (%)" },
+    { k: "optVoff", th: "แรงดันตอนสั่งปิด (V/ตัว)" }, { k: "optPerPanel", th: "แผงต่อ 1 ตัว" },
   ];
   const specs = SPEC_FIELDS.filter((f) => item[f.k] != null && item[f.k] !== "" && +item[f.k] !== 0);
 
