@@ -3260,6 +3260,8 @@ function SolarWorkspace({
     }
   }, [st]);
   const totalPanels = groups.reduce((a, g) => a + g.count, 0);
+  const optSel = typeof scOptSpec === "function" ? scOptSpec(S) : null;
+  const optPlan = optSel && typeof scOptPlan === "function" ? scOptPlan(optSel, panel, totalPanels) : null;
   const isMicro = S.mode === "micro";
   const [activeStr, setActiveStr] = React.useState(1);
   const range = React.useMemo(() => panel.voc && inv.mpptVmin ? scSeriesRange(panel, inv, S.env) : null, [panel.voc, panel.vmp, panel.tcVoc, inv.mpptVmin, inv.mpptVmax, inv.maxVdc, S.env]);
@@ -4186,7 +4188,77 @@ function SolarWorkspace({
     onReset: () => setP("degY", null)
   })), React.createElement("span", {
     className: "p3-note"
-  }, "\u0E01\u0E23\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E04\u0E2D\u0E25\u0E31\u0E21\u0E19\u0E4C ", React.createElement("b", null, "STC"), " \u0E43\u0E19\u0E14\u0E32\u0E15\u0E49\u0E32\u0E0A\u0E35\u0E15\u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \u2014 \u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E30\u0E41\u0E1B\u0E25\u0E07\u0E44\u0E1B\u0E17\u0E35\u0E48\u0E2D\u0E38\u0E13\u0E2B\u0E20\u0E39\u0E21\u0E34\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19\u0E08\u0E23\u0E34\u0E07\u0E40\u0E2D\u0E07\u0E14\u0E49\u0E27\u0E22\u0E04\u0E48\u0E32\u0E2D\u0E38\u0E13\u0E2B\u0E20\u0E39\u0E21\u0E34\u0E41\u0E25\u0E30 NOCT \u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07 \xB7 \u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E04\u0E25\u0E31\u0E07\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E08\u0E30\u0E40\u0E15\u0E34\u0E21\u0E04\u0E48\u0E32\u0E01\u0E25\u0E32\u0E07\u0E43\u0E2B\u0E49\u0E01\u0E48\u0E2D\u0E19 \u0E41\u0E01\u0E49\u0E17\u0E31\u0E1A\u0E44\u0E14\u0E49 \u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E07\u0E32\u0E19\u0E40\u0E14\u0E35\u0E22\u0E27 \u0E44\u0E21\u0E48\u0E01\u0E23\u0E30\u0E17\u0E1A\u0E04\u0E25\u0E31\u0E07")), !isMicro ? React.createElement("div", {
+  }, "\u0E01\u0E23\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E04\u0E2D\u0E25\u0E31\u0E21\u0E19\u0E4C ", React.createElement("b", null, "STC"), " \u0E43\u0E19\u0E14\u0E32\u0E15\u0E49\u0E32\u0E0A\u0E35\u0E15\u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \u2014 \u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E30\u0E41\u0E1B\u0E25\u0E07\u0E44\u0E1B\u0E17\u0E35\u0E48\u0E2D\u0E38\u0E13\u0E2B\u0E20\u0E39\u0E21\u0E34\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19\u0E08\u0E23\u0E34\u0E07\u0E40\u0E2D\u0E07\u0E14\u0E49\u0E27\u0E22\u0E04\u0E48\u0E32\u0E2D\u0E38\u0E13\u0E2B\u0E20\u0E39\u0E21\u0E34\u0E41\u0E25\u0E30 NOCT \u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07 \xB7 \u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E04\u0E25\u0E31\u0E07\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E08\u0E30\u0E40\u0E15\u0E34\u0E21\u0E04\u0E48\u0E32\u0E01\u0E25\u0E32\u0E07\u0E43\u0E2B\u0E49\u0E01\u0E48\u0E2D\u0E19 \u0E41\u0E01\u0E49\u0E17\u0E31\u0E1A\u0E44\u0E14\u0E49 \u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E07\u0E32\u0E19\u0E40\u0E14\u0E35\u0E22\u0E27 \u0E44\u0E21\u0E48\u0E01\u0E23\u0E30\u0E17\u0E1A\u0E04\u0E25\u0E31\u0E07")), !isMicro && React.createElement("div", {
+    className: "p3-card"
+  }, React.createElement("span", {
+    className: "p3-eb"
+  }, React.createElement(P3Icon, {
+    name: "bolt",
+    size: 13
+  }), "\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21\u0E41\u0E1C\u0E07 (Smart Module Controller)", React.createElement("span", {
+    className: "ln"
+  }), React.createElement("span", {
+    style: {
+      fontWeight: 600
+    }
+  }, optSel ? "ติดตั้ง" : "ไม่ได้ใช้")), React.createElement("select", {
+    className: "p3-inp",
+    value: S.optModel || "",
+    onChange: e => set({
+      optModel: e.target.value
+    })
+  }, React.createElement("option", {
+    value: ""
+  }, "\u2014 \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E49\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21\u0E41\u0E1C\u0E07 \u2014"), ((window.BOQ || {}).OPTIMIZERS || []).map(o => React.createElement("option", {
+    key: o.model,
+    value: o.model
+  }, o.model))), !((window.BOQ || {}).OPTIMIZERS || []).length && React.createElement("span", {
+    className: "p3-note"
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E38\u0E48\u0E19\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07 \u2014 \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E17\u0E35\u0E48 \u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 \u203A Smart Module Controller \u0E41\u0E25\u0E49\u0E27\u0E01\u0E23\u0E2D\u0E01\u0E2A\u0E40\u0E1B\u0E04\u0E08\u0E32\u0E01\u0E14\u0E32\u0E15\u0E49\u0E32\u0E0A\u0E35\u0E15"), optSel && optPlan && React.createElement(React.Fragment, null, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 14,
+      flexWrap: "wrap",
+      borderTop: "1px solid var(--ln)",
+      paddingTop: 9,
+      marginTop: 3
+    }
+  }, React.createElement("span", {
+    className: "p3-stat",
+    title: "\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07\u0E23\u0E27\u0E21\u0E15\u0E48\u0E2D 1 \u0E15\u0E31\u0E27 \u0E2B\u0E49\u0E32\u0E21\u0E40\u0E01\u0E34\u0E19\u0E17\u0E35\u0E48\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21\u0E23\u0E31\u0E1A\u0E44\u0E14\u0E49"
+  }, "\u0E15\u0E48\u0E2D\u0E44\u0E14\u0E49 ", React.createElement("b", null, optPlan.per), " \u0E41\u0E1C\u0E07/\u0E15\u0E31\u0E27"), React.createElement("span", {
+    className: "p3-stat",
+    title: "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07\u0E23\u0E27\u0E21\u0E15\u0E48\u0E2D 1 \u0E15\u0E31\u0E27 \u0E40\u0E17\u0E35\u0E22\u0E1A\u0E01\u0E31\u0E1A\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E02\u0E2D\u0E07\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21"
+  }, optPlan.wPerUnit, " W ", React.createElement("span", {
+    style: {
+      color: "var(--text-3)",
+      fontWeight: 700
+    }
+  }, "/ ", optSel.w || "—", " W")), React.createElement("span", {
+    className: "p3-stat",
+    title: "\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E23\u0E27\u0E21\u0E02\u0E2D\u0E07\u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E15\u0E48\u0E2D\u0E40\u0E02\u0E49\u0E32\u0E15\u0E31\u0E27\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E19"
+  }, "\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E40\u0E02\u0E49\u0E32 ", React.createElement("b", null, optPlan.vIn), " V ", React.createElement("span", {
+    style: {
+      color: "var(--text-3)",
+      fontWeight: 700
+    }
+  }, "/ ", optSel.vInMax || "—", " V")), React.createElement("span", {
+    className: "p3-stat"
+  }, "\u0E43\u0E0A\u0E49\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 ", React.createElement("b", null, optPlan.units), " \u0E15\u0E31\u0E27"), optSel.eff > 0 && React.createElement("span", {
+    className: "p3-stat"
+  }, "\u0E1B\u0E23\u0E30\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E20\u0E32\u0E1E ", React.createElement("b", null, optSel.eff, "%"))), optPlan.vOffPerUnit > 0 && React.createElement("span", {
+    className: "p3-note",
+    style: {
+      color: "var(--acd)"
+    }
+  }, "\u0E01\u0E14\u0E2B\u0E22\u0E38\u0E14\u0E09\u0E38\u0E01\u0E40\u0E09\u0E34\u0E19\u0E41\u0E25\u0E49\u0E27\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E1A\u0E19\u0E2A\u0E32\u0E22 ", React.createElement("b", null, optPlan.vOffPerUnit, " V \u0E15\u0E48\u0E2D\u0E15\u0E31\u0E27"), " \u2014 \u0E2A\u0E15\u0E23\u0E34\u0E07\u0E25\u0E30 ", scStringsPerMppt ? "" : "", optPlan.per > 0 ? Math.ceil((S.series || 0) / optPlan.per) || "—" : "—", " \u0E15\u0E31\u0E27 \u0E40\u0E17\u0E48\u0E32\u0E01\u0E31\u0E1A\u0E44\u0E21\u0E48\u0E16\u0E36\u0E07\u0E2A\u0E34\u0E1A\u0E42\u0E27\u0E25\u0E15\u0E4C \u0E41\u0E17\u0E19\u0E17\u0E35\u0E48\u0E08\u0E30\u0E40\u0E1B\u0E47\u0E19\u0E2B\u0E25\u0E32\u0E22\u0E23\u0E49\u0E2D\u0E22\u0E42\u0E27\u0E25\u0E15\u0E4C\u0E41\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E21\u0E35\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21"), optPlan.warns.map((w, i) => React.createElement("span", {
+    key: i,
+    className: "p3-note",
+    style: {
+      color: "var(--tint-red-tx)",
+      fontWeight: 700
+    }
+  }, "\u26A0 ", w)))), !isMicro ? React.createElement("div", {
     className: "p3-card"
   }, React.createElement("span", {
     className: "p3-eb"

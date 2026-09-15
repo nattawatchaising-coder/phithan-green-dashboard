@@ -1588,6 +1588,46 @@ function scBlankSys() {
     unc: null
   };
 }
+function scOptSpec(sys) {
+  const B = window.BOQ || {};
+  const m = sys && sys.optModel;
+  if (!m) return null;
+  return (B.OPTIMIZERS || []).find(o => o.model === m) || null;
+}
+function scOptPlan(opt, panel, totalPanels) {
+  if (!opt) return null;
+  const wp = scNum(panel && panel.wp, 0);
+  const voc = scNum(panel && panel.voc, 0);
+  const isc = scNum(panel && panel.isc, 0);
+  const warns = [];
+  let per = 0;
+  if (opt.w > 0 && wp > 0) per = Math.floor(opt.w / wp);
+  if (!per) {
+    per = 1;
+    if (wp > 0 && opt.w > 0) warns.push("แผง " + wp + "W เกินกำลังที่ตัวคุมรับได้ (" + opt.w + "W) — รุ่นนี้ใช้กับแผงนี้ไม่ได้");
+  }
+  if (opt.perPanel > 0 && per > opt.perPanel) per = opt.perPanel;
+  if (opt.vInMax > 0 && voc > 0) {
+    const byV = Math.floor(opt.vInMax / voc);
+    if (byV < per) {
+      per = Math.max(1, byV);
+      warns.push("ลดเหลือ " + per + " แผง/ตัว เพราะแรงดันรวมเกิน " + opt.vInMax + "V");
+    }
+  }
+  if (opt.iscMax > 0 && isc > 0 && isc > opt.iscMax) {
+    warns.push("Isc ของแผง " + isc + "A เกินที่ตัวคุมรับได้ " + opt.iscMax + "A");
+  }
+  const units = per > 0 ? Math.ceil(scNum(totalPanels, 0) / per) : 0;
+  return {
+    per: per,
+    units: units,
+    wPerUnit: scR(per * wp, 0),
+    vIn: scR(per * voc, 1),
+    headroomW: scR(opt.w - per * wp, 0),
+    vOffPerUnit: scNum(opt.vOff, 0),
+    warns: warns
+  };
+}
 function scPanelSpec(sys) {
   const B = window.BOQ || {};
   const stock = (B.PANELS || []).find(p => p.model === (sys && sys.panelModel)) || {};
@@ -1673,6 +1713,8 @@ Object.assign(window, {
   scBlankSys,
   scPanelSpec,
   scInvSpec,
+  scOptSpec,
+  scOptPlan,
   scHalfCut,
   scR,
   scNum,

@@ -1667,6 +1667,9 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   const groups = idx.groups;
   const foot = React.useMemo(() => (typeof p3FootAll === "function" ? p3FootAll(st) : { panels: [], outlines: [], bounds: { minX: -5, maxX: 5, minZ: -5, maxZ: 5 } }), [st]);
   const totalPanels = groups.reduce((a, g) => a + g.count, 0);
+  /* ตัวคุมแผงที่เลือกไว้ + แผนการต่อ (กี่แผงต่อตัว / ใช้กี่ตัว / เกินพิกัดตรงไหนไหม) */
+  const optSel = typeof scOptSpec === "function" ? scOptSpec(S) : null;
+  const optPlan = optSel && typeof scOptPlan === "function" ? scOptPlan(optSel, panel, totalPanels) : null;
   const isMicro = S.mode === "micro";
   const [activeStr, setActiveStr] = React.useState(1);
 
@@ -2168,6 +2171,50 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                     ค่าที่คลังยังไม่มีจะเติมค่ากลางให้ก่อน แก้ทับได้ ผูกกับงานนี้งานเดียว ไม่กระทบคลัง
                   </span>
                 </div>
+
+                {/* ── ตัวคุมแผง (Smart Module Controller / optimizer) ──
+                    ใช้กับสตริงอินเวอร์เตอร์เท่านั้น — ไมโครแปลงไฟที่แผงอยู่แล้ว ไม่ต้องมีตัวคุมซ้อน
+                    จำนวนแผงต่อตัวคิดจากกำลังวัตต์ที่ตัวคุมรับได้ แล้วเช็คแรงดัน/กระแสฝั่งเข้าซ้ำอีกชั้น */}
+                {!isMicro && (
+                  <div className="p3-card">
+                    <span className="p3-eb"><P3Icon name="bolt" size={13} />ตัวคุมแผง (Smart Module Controller)<span className="ln" />
+                      <span style={{ fontWeight: 600 }}>{optSel ? "ติดตั้ง" : "ไม่ได้ใช้"}</span></span>
+                    <select className="p3-inp" value={S.optModel || ""} onChange={(e) => set({ optModel: e.target.value })}>
+                      <option value="">— ไม่ใช้ตัวคุมแผง —</option>
+                      {(((window.BOQ || {}).OPTIMIZERS) || []).map((o) => <option key={o.model} value={o.model}>{o.model}</option>)}
+                    </select>
+                    {!((window.BOQ || {}).OPTIMIZERS || []).length && (
+                      <span className="p3-note">ยังไม่มีรุ่นในคลัง — เพิ่มที่ คลังสินค้า › Smart Module Controller แล้วกรอกสเปคจากดาต้าชีต</span>
+                    )}
+                    {optSel && optPlan && (
+                      <React.Fragment>
+                        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", borderTop: "1px solid var(--ln)", paddingTop: 9, marginTop: 3 }}>
+                          <span className="p3-stat" title="คิดจากกำลังแผงรวมต่อ 1 ตัว ห้ามเกินที่ตัวคุมรับได้">
+                            ต่อได้ <b>{optPlan.per}</b> แผง/ตัว
+                          </span>
+                          <span className="p3-stat" title="กำลังแผงรวมต่อ 1 ตัว เทียบกับพิกัดของตัวคุม">
+                            {optPlan.wPerUnit} W <span style={{ color: "var(--text-3)", fontWeight: 700 }}>/ {optSel.w || "—"} W</span>
+                          </span>
+                          <span className="p3-stat" title="แรงดันรวมของแผงที่ต่อเข้าตัวเดียวกัน">
+                            แรงดันเข้า <b>{optPlan.vIn}</b> V <span style={{ color: "var(--text-3)", fontWeight: 700 }}>/ {optSel.vInMax || "—"} V</span>
+                          </span>
+                          <span className="p3-stat">ใช้ทั้งหมด <b>{optPlan.units}</b> ตัว</span>
+                          {optSel.eff > 0 && <span className="p3-stat">ประสิทธิภาพ <b>{optSel.eff}%</b></span>}
+                        </div>
+                        {optPlan.vOffPerUnit > 0 && (
+                          <span className="p3-note" style={{ color: "var(--acd)" }}>
+                            กดหยุดฉุกเฉินแล้วเหลือแรงดันบนสาย <b>{optPlan.vOffPerUnit} V ต่อตัว</b> —
+                            สตริงละ {scStringsPerMppt ? "" : ""}{optPlan.per > 0 ? Math.ceil((S.series || 0) / optPlan.per) || "—" : "—"} ตัว
+                            เท่ากับไม่ถึงสิบโวลต์ แทนที่จะเป็นหลายร้อยโวลต์แบบไม่มีตัวคุม
+                          </span>
+                        )}
+                        {optPlan.warns.map((w, i) => (
+                          <span key={i} className="p3-note" style={{ color: "var(--tint-red-tx)", fontWeight: 700 }}>⚠ {w}</span>
+                        ))}
+                      </React.Fragment>
+                    )}
+                  </div>
+                )}
 
                 {/* ── อินเวอร์เตอร์ ── */}
                 {!isMicro ? (

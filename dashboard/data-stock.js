@@ -44,10 +44,10 @@
        เพราะสตริงที่ติดออปติไมเซอร์ แรงดันตอนปิดคือ 1V × จำนวนตัว ไม่ใช่ Voc ของแผงคูณกัน */
     { id: "IV-28", sku: "OPT-MERC11", name: "Huawei MERC-1100W-P (Smart Module Controller)", cat: "optimizer", unit: "ตัว", qty: 0, min: 0, loc: "",
       optW: 1100, optVinMax: 125, optMpptMin: 12.5, optMpptMax: 105, optIscMax: 20,
-      optVoutMax: 80, optIoutMax: 22, optEff: 99.5, optVoff: 1, optPerPanel: 1 },
+      optVoutMax: 80, optIoutMax: 22, optEff: 99.5, optVoff: 1, optPerPanel: 0 },
     { id: "IV-29", sku: "OPT-MERC13", name: "Huawei MERC-1300W-P (Smart Module Controller)", cat: "optimizer", unit: "ตัว", qty: 0, min: 0, loc: "",
       optW: 1300, optVinMax: 125, optMpptMin: 12.5, optMpptMax: 105, optIscMax: 20,
-      optVoutMax: 80, optIoutMax: 22, optEff: 99.5, optVoff: 1, optPerPanel: 1 },
+      optVoutMax: 80, optIoutMax: 22, optEff: 99.5, optVoff: 1, optPerPanel: 0 },
     // ── งานโครงสร้าง (LADDER / WALKWAY / GUARD RAIL) — ถอดจากสูตร BOQ ──
     { id: "IV-16", sku: "STW-0001", name: 'เหล็กกล่องดำ 2"x2"', cat: "steelwork", unit: "เส้น", qty: 0, min: 0, loc: "" },
     { id: "IV-17", sku: "STW-0002", name: 'เหล็กกลมดำ 1"', cat: "steelwork", unit: "เส้น", qty: 0, min: 0, loc: "" },

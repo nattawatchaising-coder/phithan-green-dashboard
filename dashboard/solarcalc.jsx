@@ -1170,6 +1170,56 @@ function scBlankSys() {
 }
 
 /* รวมสเปคจากคลัง + ค่าที่แก้ทับเฉพาะงาน + ค่ากลาง (ลำดับความสำคัญจากซ้ายไปขวา) */
+/* ── ตัวคุมแผง (Smart Module Controller / optimizer) ──
+   สเปคมาจากคลัง (หมวด optimizer) เหมือนแผงและอินเวอร์เตอร์ */
+function scOptSpec(sys) {
+  const B = window.BOQ || {};
+  const m = sys && sys.optModel;
+  if (!m) return null;
+  return (B.OPTIMIZERS || []).find((o) => o.model === m) || null;
+}
+
+/* ── ต่อได้กี่แผงต่อตัวคุมหนึ่งตัว ──
+   กติกาหน้างาน: เอากำลังแผงมารวมกันต่อ 1 ตัว ห้ามเกินกำลังที่ตัวคุมรับได้
+   เช่น ตัวรับ 1300W กับแผง 650W ต่อได้ 2 ใบ (650+650) · ตัวรับ 1100W กับแผงเดียวกันได้ใบเดียว
+
+   ต่อให้กำลังผ่านแล้ว ยังต้องไม่เกินพิกัดไฟฟ้าฝั่งเข้าอีกสองข้อ
+     · แผงที่ต่ออนุกรมเข้าตัวเดียวกัน แรงดันรวม (Voc) ต้องไม่เกินแรงดันเข้าสูงสุด
+     · กระแสลัดวงจรของแผง (Isc) ต้องไม่เกินที่ตัวคุมรับได้
+   ถ้าข้อไหนไม่ผ่าน ลดจำนวนแผงต่อตัวลงจนผ่าน — ไม่ใช่ปล่อยผ่านแล้วไปพังหน้างาน */
+function scOptPlan(opt, panel, totalPanels) {
+  if (!opt) return null;
+  const wp = scNum(panel && panel.wp, 0);
+  const voc = scNum(panel && panel.voc, 0);
+  const isc = scNum(panel && panel.isc, 0);
+  const warns = [];
+
+  let per = 0;
+  if (opt.w > 0 && wp > 0) per = Math.floor(opt.w / wp);
+  if (!per) { per = 1; if (wp > 0 && opt.w > 0) warns.push("แผง " + wp + "W เกินกำลังที่ตัวคุมรับได้ (" + opt.w + "W) — รุ่นนี้ใช้กับแผงนี้ไม่ได้"); }
+  if (opt.perPanel > 0 && per > opt.perPanel) per = opt.perPanel;   // เพดานของรุ่น (ถ้าระบุไว้)
+
+  /* แรงดัน/กระแสฝั่งเข้า — ลดจำนวนแผงต่อตัวลงจนอยู่ในพิกัด */
+  if (opt.vInMax > 0 && voc > 0) {
+    const byV = Math.floor(opt.vInMax / voc);
+    if (byV < per) { per = Math.max(1, byV); warns.push("ลดเหลือ " + per + " แผง/ตัว เพราะแรงดันรวมเกิน " + opt.vInMax + "V"); }
+  }
+  if (opt.iscMax > 0 && isc > 0 && isc > opt.iscMax) {
+    warns.push("Isc ของแผง " + isc + "A เกินที่ตัวคุมรับได้ " + opt.iscMax + "A");
+  }
+
+  const units = per > 0 ? Math.ceil(scNum(totalPanels, 0) / per) : 0;
+  return {
+    per: per, units: units,
+    wPerUnit: scR(per * wp, 0),
+    vIn: scR(per * voc, 1),
+    headroomW: scR(opt.w - per * wp, 0),
+    /* แรงดันที่เหลือบนสายตอนสั่งหยุดฉุกเฉิน — จุดขายหลักของอุปกรณ์นี้ */
+    vOffPerUnit: scNum(opt.vOff, 0),
+    warns: warns,
+  };
+}
+
 function scPanelSpec(sys) {
   const B = window.BOQ || {};
   const stock = (B.PANELS || []).find((p) => p.model === (sys && sys.panelModel)) || {};
@@ -1201,7 +1251,7 @@ Object.assign(window, {
   scSunPos, scNormalToTiltAz, scPanelNormal, scGroupsFromPlan, scPanelIndex, scStringsFromAssign, scAutoAssign,
   scVocAt, scVmpAt, scStringCheck, scSeriesRange, scCurrent, scStringsPerMppt, scMpptName, scPinLayout, scPinAddr, scAutoStrings,
   scMicroPlan, scMicroSpec, scMicroPerMppt, scMicroAssign, scMicroPhases, scPhaseBalance, SC_MICRO_EXTRA,
-  scYearOneGroup, scDcAt, scEnergy, scLife, scBlankSys, scPanelSpec, scInvSpec, scHalfCut, scR, scNum, scClamp,
+  scYearOneGroup, scDcAt, scEnergy, scLife, scBlankSys, scPanelSpec, scInvSpec, scOptSpec, scOptPlan, scHalfCut, scR, scNum, scClamp,
   scEnviron, SC_ENVF,
   SC_LOADS, SC_LOAD, SC_MONSCALE_AC, scLoadProfile,
   SC_BATT, SC_CHEM, scBattSpec, scDispatch,
