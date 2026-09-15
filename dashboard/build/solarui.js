@@ -592,9 +592,10 @@ function SuLayout2D({
     h: H
   };
   const [view, setView] = React.useState(null);
+  const sig = foot.panels.length + "|" + b.minX + "," + b.maxX + "," + b.minZ + "," + b.maxZ;
   React.useEffect(() => {
     setView(null);
-  }, [foot]);
+  }, [sig]);
   const v = view || base;
   const [hand, setHand] = React.useState(false);
   const zoomed = !!view && Math.abs(v.w - base.w) > 0.001;
@@ -651,6 +652,18 @@ function SuLayout2D({
   const last = React.useRef(null);
   const dragRef = React.useRef(false);
   const panning = hand || !active;
+  React.useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const onWheel = e => {
+      e.preventDefault();
+      zoomAt(e.deltaY < 0 ? 1.18 : 1 / 1.18, e.clientX, e.clientY);
+    };
+    el.addEventListener("wheel", onWheel, {
+      passive: false
+    });
+    return () => el.removeEventListener("wheel", onWheel);
+  });
   const btn = on => ({
     width: 30,
     height: 30,
@@ -731,10 +744,6 @@ function SuLayout2D({
       height: height || 340,
       display: "block",
       cursor: panning ? drag ? "grabbing" : "grab" : "crosshair"
-    },
-    onWheel: e => {
-      e.preventDefault();
-      zoomAt(e.deltaY < 0 ? 1.18 : 1 / 1.18, e.clientX, e.clientY);
     },
     onPointerDown: e => {
       try {
@@ -4739,7 +4748,25 @@ function SolarWorkspace({
   }, React.createElement(P3Icon, {
     name: "trash",
     size: 12
-  }), "\u0E40\u0E2D\u0E32\u0E2D\u0E2D\u0E01"), React.createElement("span", {
+  }), "\u0E40\u0E2D\u0E32\u0E2D\u0E2D\u0E01"), Object.keys(effAssign || {}).length > 0 && React.createElement("button", {
+    className: "p3-chip",
+    onClick: () => {
+      set({
+        assign: {},
+        manual: true
+      });
+      setActiveStr(1);
+    },
+    title: "\u0E40\u0E2D\u0E32\u0E41\u0E1C\u0E07\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 \u0E41\u0E25\u0E49\u0E27\u0E40\u0E23\u0E34\u0E48\u0E21\u0E08\u0E31\u0E14\u0E40\u0E2D\u0E07\u0E08\u0E32\u0E01\u0E1C\u0E31\u0E07\u0E27\u0E48\u0E32\u0E07",
+    style: {
+      borderStyle: "dashed",
+      color: "var(--tint-red-tx)",
+      borderColor: "var(--tint-red-tx)"
+    }
+  }, React.createElement(P3Icon, {
+    name: "trash",
+    size: 12
+  }), "\u0E25\u0E49\u0E32\u0E07\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14"), React.createElement("span", {
     style: {
       marginLeft: "auto",
       display: "flex",

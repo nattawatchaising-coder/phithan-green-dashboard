@@ -380,8 +380,13 @@ function SuLayout2D({ foot, assign, active, onPaint, height, labels, colorOf, un
      จึงต้องซูมได้ · null = ยังไม่เคยซูม ใช้กรอบพอดีผังตามเดิม */
   const base = { x: b.minX - pad, y: b.minZ - pad, w: W, h: H };
   const [view, setView] = React.useState(null);
-  /* ผังเปลี่ยน (เพิ่ม/ลบแผง) ให้กลับไปมองทั้งผัง ไม่งั้นค้างอยู่ที่มุมเดิมซึ่งอาจไม่มีอะไรแล้ว */
-  React.useEffect(() => { setView(null); }, [foot]);
+  /* ผังเปลี่ยนรูปร่างจริง ๆ (เพิ่ม/ลบแผง หรือขอบเขตเลื่อน) ค่อยกลับไปมองทั้งผัง
+
+     ต้องดูจาก "ลายเซ็นของผัง" ไม่ใช่ตัว object — ทุกครั้งที่ทาสีแผง คอมโพเนนต์แม่เรนเดอร์ใหม่
+     และส่ง foot ก้อนใหม่ลงมา ถ้าเทียบด้วย identity จะเด้งกลับไปเต็มผังทุกครั้งที่แตะแผง
+     ซึ่งทำให้ซูมเข้าไปจัดสตริงไม่ได้เลย */
+  const sig = foot.panels.length + "|" + b.minX + "," + b.maxX + "," + b.minZ + "," + b.maxZ;
+  React.useEffect(() => { setView(null); }, [sig]);
   const v = view || base;
   const [hand, setHand] = React.useState(false);   // โหมดลากเลื่อน (ปิด = ลากแล้วทาสีแผง)
   const zoomed = !!view && Math.abs(v.w - base.w) > 0.001;
@@ -419,6 +424,20 @@ function SuLayout2D({ foot, assign, active, onPaint, height, labels, colorOf, un
   const dragRef = React.useRef(false);
   const panning = hand || !active;
 
+  /* ลูกกลิ้ง = ซูมผัง ไม่ใช่เลื่อนหน้า
+     ต้องผูกเองแบบ passive:false — React ผูก wheel ให้แบบ passive ซึ่งสั่ง preventDefault ไม่ได้
+     ผลคือหน้าเลื่อนตามไปด้วยทุกครั้งที่ซูม */
+  React.useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const onWheel = (e) => {
+      e.preventDefault();
+      zoomAt(e.deltaY < 0 ? 1.18 : 1 / 1.18, e.clientX, e.clientY);
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  });
+
   const btn = (on) => ({ width: 30, height: 30, borderRadius: 8, display: "grid", placeItems: "center",
     border: "1px solid " + (on ? "var(--acd)" : "var(--ln2)"), background: on ? "var(--acd)" : "var(--surface)",
     color: on ? "#fff" : "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 800, lineHeight: 1 });
@@ -445,7 +464,6 @@ function SuLayout2D({ foot, assign, active, onPaint, height, labels, colorOf, un
       <svg ref={svgRef} viewBox={v.x + " " + v.y + " " + v.w + " " + v.h}
         style={{ width: "100%", height: height || 340, display: "block",
           cursor: panning ? (drag ? "grabbing" : "grab") : "crosshair" }}
-        onWheel={(e) => { e.preventDefault(); zoomAt(e.deltaY < 0 ? 1.18 : 1 / 1.18, e.clientX, e.clientY); }}
         onPointerDown={(e) => {
           /* จับ pointer ไว้เพื่อให้ลากออกนอก svg แล้วยังทำงานต่อได้ — บางเบราว์เซอร์โยน error ถ้า pointer ไม่ active */
           try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
@@ -2347,6 +2365,15 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                         title="แตะแผงเพื่อเอาออกจากสตริง" style={{ borderStyle: "dashed" }}>
                         <P3Icon name="trash" size={12} />เอาออก
                       </button>
+                      {/* ล้างทั้งผังในปุ่มเดียว — ของเดิมต้องเลือก "เอาออก" แล้วไล่แตะทีละแผง
+                          ผัง 4,584 แผงคือแตะสี่พันครั้ง ซึ่งเท่ากับทำไม่ได้ */}
+                      {Object.keys(effAssign || {}).length > 0 && (
+                        <button className="p3-chip" onClick={() => { set({ assign: {}, manual: true }); setActiveStr(1); }}
+                          title="เอาแผงออกจากสตริงทั้งหมด แล้วเริ่มจัดเองจากผังว่าง"
+                          style={{ borderStyle: "dashed", color: "var(--tint-red-tx)", borderColor: "var(--tint-red-tx)" }}>
+                          <P3Icon name="trash" size={12} />ล้างสตริงทั้งหมด
+                        </button>
+                      )}
                       <span style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
                         {isManual && (
                           <button className="p3-b sm" onClick={() => set({ assign: {}, manual: false })}
