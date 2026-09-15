@@ -201,6 +201,31 @@ function quoteTotals(q) {
   return { sub, disc, afterDisc, vatRate: rate, vat, grand: r2(afterDisc + vat) };
 }
 
+/* ── แตกเงื่อนไขการชำระเงินเป็นจำนวนเงินรายงวด ──
+   เซลล์พิมพ์เป็น % ("งวดที่ 1 · มัดจำ 30% เมื่อตกลงทำสัญญา") แล้วลูกค้าถามกลับมาทุกครั้งว่า
+   "งวดแรกโอนเท่าไร" — ให้ระบบคิดให้ ไม่ต้องมานั่งกดเครื่องคิดเลขแล้วพิมพ์ผิดกันเอง
+
+   บรรทัดที่ไม่มี % ถือว่าเป็นข้อความอธิบาย ไม่ต้องคิดเงิน
+   งวดสุดท้ายที่มี % ใช้ "ยอดรวมลบงวดก่อนหน้า" ไม่ใช่คิด % ตรง ๆ — ไม่งั้นเศษสตางค์จากการปัด
+   ทำให้ผลรวมรายงวดไม่เท่ากับยอดท้ายใบ ซึ่งลูกค้าจับได้ทันทีและกลายเป็นเรื่องความน่าเชื่อถือ */
+function quoteTermSplit(terms, grand) {
+  const total = Math.round((+grand || 0) * 100) / 100;
+  const rows = (terms || []).map((s) => {
+    const line = String(s || "");
+    const m = line.match(/(\d+(?:[.,]\d+)?)\s*%/);
+    const pct = m ? +String(m[1]).replace(",", ".") : null;
+    return { line: line, pct: pct != null && isFinite(pct) ? pct : null, amount: null };
+  });
+  const paid = rows.filter((r) => r.pct != null);
+  const pctTotal = Math.round(paid.reduce((a, r) => a + r.pct, 0) * 100) / 100;
+  let acc = 0;
+  paid.forEach((r, i) => {
+    if (i === paid.length - 1 && pctTotal === 100) r.amount = Math.round((total - acc) * 100) / 100;
+    else { r.amount = Math.round(total * r.pct) / 100; acc = Math.round((acc + r.amount) * 100) / 100; }
+  });
+  return { rows: rows, pctTotal: pctTotal, count: paid.length, full: pctTotal === 100 };
+}
+
 const SF_QUOTE_KEY = "solarflow_quotes_v1";
 
 function useQuoteStore() {
@@ -310,6 +335,19 @@ function quoteHTML(q, lang) {
     if (!a.length) return "";
     return '<div class="blk"><h3>' + title + "</h3><ul>" + a.map((s) => "<li>" + sEsc(s) + "</li>").join("") + "</ul></div>";
   };
+  /* เงื่อนไขการชำระเงิน — งวดที่ระบุ % ไว้ พิมพ์จำนวนเงินต่อท้ายให้ด้วย
+     ลูกค้าจะได้ไม่ต้องคิดเองว่าโอนงวดแรกเท่าไร และไม่มีใครคิดเลขผิดคนละแบบ
+     บรรทัดที่ไม่มี % (ข้อความอธิบาย) พิมพ์ตามเดิม */
+  const termList = (arr, grand) => {
+    const a = (arr || []).map((s) => String(s || "").trim()).filter(Boolean);
+    if (!a.length) return "";
+    const sp = quoteTermSplit(a, grand);
+    /* เขียนเป็นไทยไว้ก่อนเหมือนทั้งใบ แล้วให้ตัวแปลตอนท้ายจัดการ (" บาท" อยู่ในพจนานุกรมแล้ว) */
+    const li = sp.rows.map((r) => "<li>" + sEsc(r.line)
+      + (r.amount != null ? ' <b style="white-space:nowrap">= ' + sBaht(r.amount) + " บาท</b>" : "")
+      + "</li>").join("");
+    return '<div class="blk"><h3>เงื่อนไขการชำระเงิน</h3><ul>' + li + "</ul></div>";
+  };
   /* ฟอนต์ไทยไม่มีตัวอักษรจีน — ภาษาจีนต้องโหลด Noto Sans SC เพิ่ม ไม่งั้นได้สี่เหลี่ยมทั้งใบ */
   const fontStack = window.pgFontStack ? window.pgFontStack(L) : "'IBM Plex Sans Thai',sans-serif";
   const doc = '<!doctype html><html lang="' + L + '"><head><meta charset="utf-8">' +
@@ -365,7 +403,7 @@ function quoteHTML(q, lang) {
     (T.disc > 0 ? money("หักส่วนลด", T.disc) + money("ราคาหลังหักส่วนลด", T.afterDisc) : "") +
     money("ภาษีมูลค่าเพิ่ม " + T.vatRate + "%", T.vat) +
     money("ราคารวมทั้งสิ้น", T.grand, true) + "</table>" +
-    list(q.terms, "เงื่อนไขการชำระเงิน") +
+    termList(q.terms, T.grand) +
     list(q.warranties, "การรับประกันและบริการ") +
     (valid ? '<div class="note">' + sEsc(valid) + "</div>" : "") +
     (q.note ? '<div class="note">หมายเหตุ: ' + sEsc(q.note) + "</div>" : "") +
@@ -456,13 +494,40 @@ function QuoteEditor({ quote, job, target, onClose, onSave, onDelete, currentUse
 
   const save = (extra) => { onSave(Object.assign({}, q, extra || {})); };
 
-  const lineList = (key, title, hint) => (
+  const lineList = (key, title, hint, extra) => (
     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
       <label style={lbl}>{title}</label>
       <div style={{ fontSize: 11, color: "var(--text-3)" }}>{hint}</div>
       <textarea rows={4} value={(q[key] || []).join("\n")} disabled={locked}
         onChange={(e) => set(key, e.target.value.split("\n"))}
         style={Object.assign({}, inputStyle, { resize: "vertical", lineHeight: 1.6, fontSize: 12.5 })} />
+      {extra}
+    </div>
+  );
+
+  /* ตารางเงินรายงวด — คิดสดจากยอดท้ายใบทุกครั้งที่แก้ราคาหรือแก้ % จะได้ไม่มีทางค้างเลขเก่า */
+  const split = quoteTermSplit(q.terms, T.grand);
+  const termMoney = !split.count ? null : (
+    <div style={{ marginTop: 3, border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden", background: "var(--surface)" }}>
+      {split.rows.filter((r) => r.pct != null).map((r, i) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 11px",
+          borderTop: i ? "1px solid var(--border)" : "none" }}>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: "var(--text-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.line}</span>
+          <span style={{ flexShrink: 0, fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", fontFamily: "var(--mono)" }}>{r.pct}%</span>
+          <span style={{ flexShrink: 0, fontSize: 12.5, fontWeight: 800, color: "var(--text-1)", fontFamily: "var(--mono)", minWidth: 96, textAlign: "right" }}>
+            ฿{sBaht(r.amount)}
+          </span>
+        </div>
+      ))}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 11px", borderTop: "1px solid var(--border-strong)",
+        background: split.full ? "var(--surface2)" : "var(--tint-red-bg2)" }}>
+        <span style={{ flex: 1, fontSize: 11.5, fontWeight: 700, color: split.full ? "var(--text-2)" : "#EF4444" }}>
+          {split.full ? "รวมทุกงวด" : "รวมได้ " + split.pctTotal + "% — ยังไม่ครบ 100% ตรวจตัวเลขในบรรทัดอีกที"}
+        </span>
+        {split.full && (
+          <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)", fontFamily: "var(--mono)" }}>฿{sBaht(T.grand)}</span>
+        )}
+      </div>
     </div>
   );
 
@@ -609,7 +674,7 @@ function QuoteEditor({ quote, job, target, onClose, onSave, onDelete, currentUse
               )}
             </div>
 
-            {lineList("terms", "เงื่อนไขการชำระเงิน", "บรรทัดละ 1 งวด")}
+            {lineList("terms", "เงื่อนไขการชำระเงิน", "บรรทัดละ 1 งวด · ใส่ % ไว้ในบรรทัด ระบบจะคิดเป็นเงินให้เอง", termMoney)}
             {lineList("warranties", "การรับประกันและบริการ", "บรรทัดละ 1 ข้อ")}
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
               <label style={lbl}>หมายเหตุ</label>
@@ -1378,7 +1443,7 @@ function SalesJobSummary({ job, quotes, onOpenQuote }) {
 Object.assign(window, {
   SALES_STAGES, SALES_BY, SALES_BACK, salesStageKey, salesStageOf, salesStagePatch,
   LEAD_SOURCES, LEAD_SOURCE_TH, CONTACT_WAYS, sOverdue, sBaht,
-  QUOTE_STATUS, QUOTE_STATUS_BY, QUOTE_TERMS_DEF, QUOTE_WARRANTY_DEF,
+  QUOTE_STATUS, QUOTE_STATUS_BY, QUOTE_TERMS_DEF, QUOTE_WARRANTY_DEF, quoteTermSplit,
   blankQuote, quoteTotals, quoteNo, quotesFor, quoteHTML, useQuoteStore,
   quoteSpec, quoteHasSpec, quoteSpecName, quoteSpecDetail,
   QuoteEditor, SalesCard, SalesBoardView, SalesKpiView, SalesOverview, SalesJobSummary,
