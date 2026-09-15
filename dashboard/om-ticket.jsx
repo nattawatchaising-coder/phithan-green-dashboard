@@ -556,7 +556,10 @@ function OmTicketBoard({ sites, jobById, users, ticketStore, visitStore, role, c
     if (!canWrite || !s) return;
     const rec = window.omBlankTicket(s, tickets, currentUser);
     save(rec);
-    window.omNotify({ toPerm: "om", omSiteId: s.id, title: "ใบแจ้งซ่อมใหม่ · " + rec.no,
+    /* push: false — ใบเพิ่งเปิด ยังไม่รู้ว่าเป็นงานของใคร จึงไม่เด้ง LINE หาใคร
+       ยังขึ้นในกระดิ่งของทุกคนที่มีสิทธิ์ om เหมือนเดิม และอยู่บนบอร์ดนี้ให้เห็นอยู่แล้ว
+       คนที่ถูกมอบหมายจะได้ LINE ตอนเลือกผู้รับผิดชอบ (ใบ "มอบหมายงานบริการ" ด้านบน) */
+    window.omNotify({ toPerm: "om", omSiteId: s.id, push: false, title: "ใบแจ้งซ่อมใหม่ · " + rec.no,
       body: (s.name || s.code || "") + " — เปิดเรื่องโดย " + ((currentUser || {}).name || "") });
     setOpenId(rec.id);
   };

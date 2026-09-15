@@ -2817,6 +2817,7 @@ function OmView({
       window.omNotify({
         toPerm: "om",
         omSiteId: cur.id,
+        push: false,
         title: "ใบแจ้งซ่อมใหม่ · " + rec.no,
         body: (cur.name || cur.code || "") + " — เปิดเรื่องโดย " + ((currentUser || {}).name || "")
       });

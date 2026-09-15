@@ -114,6 +114,13 @@ export async function POST(request) {
   const prev = await rtdbGet("lnPushLog/" + notifId).catch(() => null);
   if (prev) return json({ sent: 0, skipped: "already" });
 
+  /* ใบที่ต้นทางบอกว่าอย่าเด้ง — ใบที่ยังไม่มีเจ้าของ (ดู omNotify ใน om.jsx)
+     ด่านนี้ซ้ำกับฝั่งหน้าเว็บโดยตั้งใจ เพราะ endpoint นี้ยิงซ้ำจากที่อื่นได้
+     (cron · เรียกมือตอนไล่ใบค้าง) ซึ่งไม่ได้ผ่านการตัดสินใจฝั่งหน้าเว็บเลย
+     ไม่เขียน lnPushLog ไว้ เพราะร่องรอยอยู่ในตัวเรคคอร์ดเองแล้ว (push: false)
+     และถ้าเขียนไว้ ใบนี้จะถูกกันไม่ให้ส่งตลอดไปแม้ภายหลังจะเปลี่ยนใจ */
+  if (n.push === false) return json({ sent: 0, skipped: "no-push" });
+
   const kind = kindOf(n);
   const allow = await rtdbGet("config/linePush").catch(() => null);
   /* ยังไม่ตั้งค่า = ส่งทุกชนิด · ตั้งแล้วให้ยึดตามนั้น (ปรับได้โดยไม่ต้อง deploy ใหม่) */

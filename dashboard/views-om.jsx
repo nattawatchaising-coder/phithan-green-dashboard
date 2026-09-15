@@ -1230,7 +1230,8 @@ function OmView({ jobs, users, role, currentUser, focus }) {
           onNewTicket={() => {
             const rec = window.omBlankTicket(cur, ticketStore.tickets, currentUser);
             ticketStore.save(rec);
-            window.omNotify({ toPerm: "om", omSiteId: cur.id, title: "ใบแจ้งซ่อมใหม่ · " + rec.no,
+            /* push: false — เหตุผลเดียวกับปุ่มเปิดใบบนบอร์ด (om-ticket.jsx) */
+            window.omNotify({ toPerm: "om", omSiteId: cur.id, push: false, title: "ใบแจ้งซ่อมใหม่ · " + rec.no,
               body: (cur.name || cur.code || "") + " — เปิดเรื่องโดย " + ((currentUser || {}).name || "") });
             setOpen(null); setOpenTicket(rec.id);
           }}

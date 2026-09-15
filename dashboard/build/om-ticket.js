@@ -1184,6 +1184,7 @@ function OmTicketBoard({
     window.omNotify({
       toPerm: "om",
       omSiteId: s.id,
+      push: false,
       title: "ใบแจ้งซ่อมใหม่ · " + rec.no,
       body: (s.name || s.code || "") + " — เปิดเรื่องโดย " + ((currentUser || {}).name || "")
     });

@@ -893,8 +893,16 @@ function omNotify(n) {
   if (!_OMFB() || !n) return;
   const id = "N-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
   _omRef("notifications/" + id).set(Object.assign({ id, read: false, at: new Date().toISOString(), type: "om", event: "om" }, n));
-  /* ส่งต่อเข้า LINE — ข้ามในโหมดทดสอบ (ดูเหตุผลเดียวกันที่ ecNotify ใน expense.jsx) */
-  if (!OM_ROOT && window.lnPush) window.lnPush(id);
+  /* ส่งต่อเข้า LINE — ข้ามในโหมดทดสอบ (ดูเหตุผลเดียวกันที่ ecNotify ใน expense.jsx)
+
+     ── push: false ──
+     ใบที่ยังไม่มีเจ้าของ (toPerm เฉย ๆ ไม่มี toUserId) จะเด้งหาทุกคนที่มีสิทธิ์นั้น
+     ซึ่งสำหรับสิทธิ์ om แปลว่าช่างทุกคน ทั้งที่ยังไม่รู้เลยว่าเป็นงานของใคร
+     ⇒ ใบพวกนี้ตั้ง push: false ไว้ = เก็บเป็นเรคคอร์ดให้ขึ้นกระดิ่งในเว็บและใน LIFF
+        เหมือนเดิมทุกอย่าง แต่ไม่ยิงเข้า LINE ของใคร รอจนมอบหมายแล้วค่อยเด้งเข้าคนเดียว
+     ค่า push ติดไปกับเรคคอร์ดด้วย ไม่ได้กันแค่ตรงนี้ เพราะ /api/line/push ยิงซ้ำจากที่อื่น
+     ได้ (cron · เรียกมือ) แล้วจะข้ามการตัดสินใจตรงนี้ไปเลย */
+  if (!OM_ROOT && n.push !== false && window.lnPush) window.lnPush(id);
 }
 
 /* ══════════════ เตือนสด (ไม่เก็บลงฐานข้อมูล) ══════════════
