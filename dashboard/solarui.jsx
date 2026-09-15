@@ -369,25 +369,102 @@ const suColor = (i) => SU_SCOLOR[(i - 1 + SU_SCOLOR.length) % SU_SCOLOR.length];
 /* labels = { uid: "L1" } เขียนทับบนแผง · colorOf(uid, กลุ่ม) = แทนที่สีประจำกลุ่ม · unitName = คำเรียกในทูลทิป */
 function SuLayout2D({ foot, assign, active, onPaint, height, labels, colorOf, unitName }) {
   const wrapRef = React.useRef(null);
+  const svgRef = React.useRef(null);
   const [drag, setDrag] = React.useState(false);
   const b = foot.bounds;
   const pad = 1.2;
-  const W = (b.maxX - b.minX) + pad * 2, H = (b.maxZ - b.minZ) + pad * 2;
-  const vb = (b.minX - pad) + " " + (b.minZ - pad) + " " + Math.max(1, W) + " " + Math.max(1, H);
+  const W = Math.max(1, (b.maxX - b.minX) + pad * 2), H = Math.max(1, (b.maxZ - b.minZ) + pad * 2);
+
+  /* ── ซูม/เลื่อนผัง ──
+     ผังใหญ่ ๆ (หลักพันแผง) แผงหนึ่งใบเล็กกว่าปลายนิ้วบนจอ แตะให้โดนใบที่ต้องการแทบไม่ได้
+     จึงต้องซูมได้ · null = ยังไม่เคยซูม ใช้กรอบพอดีผังตามเดิม */
+  const base = { x: b.minX - pad, y: b.minZ - pad, w: W, h: H };
+  const [view, setView] = React.useState(null);
+  /* ผังเปลี่ยน (เพิ่ม/ลบแผง) ให้กลับไปมองทั้งผัง ไม่งั้นค้างอยู่ที่มุมเดิมซึ่งอาจไม่มีอะไรแล้ว */
+  React.useEffect(() => { setView(null); }, [foot]);
+  const v = view || base;
+  const [hand, setHand] = React.useState(false);   // โหมดลากเลื่อน (ปิด = ลากแล้วทาสีแผง)
+  const zoomed = !!view && Math.abs(v.w - base.w) > 0.001;
+
+  /* จุดบนจอ → พิกัดในผัง (ใช้ตอนซูมให้จุดใต้เมาส์อยู่กับที่) */
+  const ptOf = (clientX, clientY) => {
+    const r = svgRef.current ? svgRef.current.getBoundingClientRect() : null;
+    if (!r || !r.width || !r.height) return { x: v.x + v.w / 2, y: v.y + v.h / 2 };
+    return { x: v.x + ((clientX - r.left) / r.width) * v.w, y: v.y + ((clientY - r.top) / r.height) * v.h };
+  };
+  /* ซูมเข้าได้ลึกสุด 40 เท่า · ออกได้กว้างสุดเท่าผังเต็ม (ซูมออกกว่านั้นไม่มีอะไรให้ดู) */
+  const zoomAt = (mul, cx, cy) => {
+    const p = cx == null ? { x: v.x + v.w / 2, y: v.y + v.h / 2 } : ptOf(cx, cy);
+    let w = v.w / mul, h = v.h / mul;
+    const minW = base.w / 40, maxW = base.w;
+    if (w > maxW) { w = base.w; h = base.h; }
+    if (w < minW) { w = minW; h = base.h / 40; }
+    const k = w / v.w;
+    setView(w >= base.w ? null : { x: p.x - (p.x - v.x) * k, y: p.y - (p.y - v.y) * k, w: w, h: h });
+  };
+  const panBy = (dxPx, dyPx) => {
+    const r = svgRef.current ? svgRef.current.getBoundingClientRect() : null;
+    if (!r || !r.width) return;
+    setView({ x: v.x - (dxPx / r.width) * v.w, y: v.y - (dyPx / r.height) * v.h, w: v.w, h: v.h });
+  };
+
   /* ลากผ่านแผงไหนก็ทาแผงนั้น — ใช้ elementFromPoint เพื่อให้ลากยาว ๆ ได้ลื่น ไม่ต้องแตะทีละแผง */
   const paintAt = (e) => {
     const el = document.elementFromPoint(e.clientX, e.clientY);
     if (el && el.dataset && el.dataset.uid) onPaint(el.dataset.uid);
   };
+  const last = React.useRef(null);
+  /* สถานะ "กำลังลากอยู่" เก็บใน ref ด้วย — ตัวที่เป็น state ยังไม่ทันอัปเดตถ้า pointermove
+     มาถึงในเฟรมเดียวกับ pointerdown (ลากเร็ว ๆ หรือจอสัมผัส) แล้วจะกลายเป็นลากไม่ติด */
+  const dragRef = React.useRef(false);
+  const panning = hand || !active;
+
+  const btn = (on) => ({ width: 30, height: 30, borderRadius: 8, display: "grid", placeItems: "center",
+    border: "1px solid " + (on ? "var(--acd)" : "var(--ln2)"), background: on ? "var(--acd)" : "var(--surface)",
+    color: on ? "#fff" : "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 800, lineHeight: 1 });
+
   return (
     <div ref={wrapRef} style={{ position: "relative", borderRadius: 12, border: "1px solid var(--ln)", background: "var(--surface2)", overflow: "hidden", touchAction: "none" }}>
-      <svg viewBox={vb} style={{ width: "100%", height: height || 340, display: "block", cursor: active ? "crosshair" : "default" }}
-        onPointerDown={(e) => { if (!active) return;
-          /* จับ pointer ไว้เพื่อให้ลากออกนอก svg แล้วยังทาต่อได้ — บางเบราว์เซอร์โยน error ถ้า pointer ไม่ active */
+      {/* แถบซูม — ลอยมุมขวาบน ไม่กินพื้นที่ผัง */}
+      <div style={{ position: "absolute", top: 8, right: 8, zIndex: 2, display: "flex", gap: 6, alignItems: "center" }}>
+        {zoomed && (
+          <span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)", background: "var(--surface)",
+            border: "1px solid var(--ln2)", borderRadius: 8, padding: "5px 8px" }}>
+            {Math.round(base.w / v.w * 10) / 10}×
+          </span>
+        )}
+        {active && (
+          <button type="button" onClick={() => setHand((x) => !x)} style={btn(hand)}
+            title={hand ? "ตอนนี้ลากเพื่อเลื่อนผัง — กดเพื่อกลับไปทาสีแผง" : "ลากเพื่อเลื่อนผัง (ไม่ทาสีแผง)"}>✥</button>
+        )}
+        <button type="button" onClick={() => zoomAt(1 / 1.4)} style={btn(false)} title="ซูมออก">−</button>
+        <button type="button" onClick={() => zoomAt(1.4)} style={btn(false)} title="ซูมเข้า">+</button>
+        {zoomed && <button type="button" onClick={() => { setView(null); setHand(false); }} style={Object.assign({}, btn(false), { width: "auto", padding: "0 9px", fontSize: 11 })} title="กลับไปมองทั้งผัง">เต็มผัง</button>}
+      </div>
+
+      <svg ref={svgRef} viewBox={v.x + " " + v.y + " " + v.w + " " + v.h}
+        style={{ width: "100%", height: height || 340, display: "block",
+          cursor: panning ? (drag ? "grabbing" : "grab") : "crosshair" }}
+        onWheel={(e) => { e.preventDefault(); zoomAt(e.deltaY < 0 ? 1.18 : 1 / 1.18, e.clientX, e.clientY); }}
+        onPointerDown={(e) => {
+          /* จับ pointer ไว้เพื่อให้ลากออกนอก svg แล้วยังทำงานต่อได้ — บางเบราว์เซอร์โยน error ถ้า pointer ไม่ active */
           try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
-          setDrag(true); paintAt(e); }}
-        onPointerMove={(e) => { if (drag && active) paintAt(e); }}
-        onPointerUp={() => setDrag(false)} onPointerCancel={() => setDrag(false)}>
+          setDrag(true); dragRef.current = true;
+          if (panning) { last.current = { x: e.clientX, y: e.clientY }; return; }
+          paintAt(e);
+        }}
+        onPointerMove={(e) => {
+          if (!dragRef.current) return;
+          if (panning) {
+            const l = last.current;
+            if (l) panBy(e.clientX - l.x, e.clientY - l.y);
+            last.current = { x: e.clientX, y: e.clientY };
+            return;
+          }
+          if (active) paintAt(e);
+        }}
+        onPointerUp={() => { setDrag(false); dragRef.current = false; last.current = null; }}
+        onPointerCancel={() => { setDrag(false); dragRef.current = false; last.current = null; }}>
         {/* เส้นขอบผืนหลังคา */}
         {foot.outlines.map((o, i) => (
           <polygon key={i} points={o.pts.map((p) => p[0] + "," + p[1]).join(" ")}
@@ -427,6 +504,30 @@ function SuLayout2D({ foot, assign, active, onPaint, height, labels, colorOf, un
           <text x="0" y="-0.15" fontSize="0.62" fontWeight="800" fill="var(--tint-red-tx)" textAnchor="middle">N</text>
         </g>
       </svg>
+    </div>
+  );
+}
+
+/* ── กล่องชิปที่ยุบได้ ──
+   ผังใหญ่มีสตริงเป็นร้อย (เคสจริง 256 สตริง) โชว์หมดทุกตัวหน้าจอยาวเป็นพันพิกเซล
+   จนเลื่อนหาอย่างอื่นไม่เจอ — ย่อไว้ก่อน กดดูทั้งหมดเมื่อจำเป็น
+   keep = ลำดับที่ต้องเห็นเสมอแม้ตอนย่อ (ตัวที่กำลังเลือกอยู่) ไม่งั้นกดเลือกแล้วมันหายไปจากจอ */
+function SuChipBox({ nodes, cap, keep, more }) {
+  const [open, setOpen] = React.useState(false);
+  const all = nodes || [];
+  const lim = cap || 24;
+  if (all.length <= lim) {
+    return <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>{all}</div>;
+  }
+  let shown = open ? all : all.slice(0, lim);
+  if (!open && keep != null && keep >= lim && all[keep]) shown = shown.slice(0, lim - 1).concat([all[keep]]);
+  return (
+    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+      {shown}
+      <button type="button" className="p3-chip" onClick={() => setOpen((x) => !x)}
+        style={{ borderStyle: "dashed", fontWeight: 800 }}>
+        {open ? "ย่อรายการ" : "ดูทั้งหมด " + all.length + " " + (more || "รายการ")}
+      </button>
     </div>
   );
 }
@@ -2220,9 +2321,11 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                   <div className="p3-card">
                     <span className="p3-eb"><P3Icon name="plan" size={13} />ผังแผง 2 มิติ<span className="ln" />
                       <span style={{ fontWeight: 600 }}>{isManual ? "แก้เอง" : "ระบบจัดให้"}</span></span>
-                    {/* จานสี = เลือกสตริงที่จะทา แล้วแตะ/ลากบนแผงในผัง (ใช้ได้ทันที ไม่ต้องกดปุ่มก่อน) */}
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-                      {(plan && plan.strings ? plan.strings : []).map((s) => (
+                    {/* จานสี = เลือกสตริงที่จะทา แล้วแตะ/ลากบนแผงในผัง (ใช้ได้ทันที ไม่ต้องกดปุ่มก่อน)
+                        ผังใหญ่มีสตริงเป็นร้อย จึงย่อไว้ก่อน — ตัวที่เลือกอยู่จะถูกดึงมาให้เห็นเสมอ */}
+                    <SuChipBox cap={24} more="สตริง"
+                      keep={(plan && plan.strings ? plan.strings : []).findIndex((x) => x.id === activeStr)}
+                      nodes={(plan && plan.strings ? plan.strings : []).map((s) => (
                         <button key={s.id} className="p3-chip" data-on={activeStr === s.id ? "1" : "0"}
                           onClick={() => setActiveStr(s.id)}
                           title={s.chk.ok ? "สตริง " + s.id + " · " + s.chk.band + " — กดแล้วแตะแผงในผังเพื่อย้ายเข้าสตริงนี้" : s.chk.fails.join(" · ")}
@@ -2234,7 +2337,8 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                           {!s.chk.ok && <span style={{ color: "var(--tint-red-tx)", fontWeight: 800 }}>!</span>}
                           {s.mixed && <span style={{ color: "var(--tint-amber-tx)", fontWeight: 800 }}>⌇</span>}
                         </button>
-                      ))}
+                      ))} />
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginTop: 7 }}>
                       <button className="p3-chip" onClick={() => setActiveStr(nextStr)} data-on={activeStr === nextStr ? "1" : "0"}
                         title="เริ่มสตริงใหม่ แล้วแตะแผงที่จะใส่">
                         <P3Icon name="plus" size={12} />สตริงใหม่
@@ -2789,14 +2893,30 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                       </span>
                       {shadeAuto ? (
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", minHeight: 30 }}>
-                          {ivRows.map((r) => (
-                            <span key={r.u.id} className="p3-stat" style={{ color: r.shade >= 10 ? "var(--tint-red-tx)" : r.shade > 0 ? "var(--tint-amber-tx)" : undefined }}>
-                              {r.u.name} <b>{scR(r.shade, 1)}%</b>
-                            </span>
-                          ))}
-                          {!ivRows.some((r) => r.shade > 0.5) && (
-                            <span className="p3-stat" style={{ color: "var(--acd)" }}><P3Icon name="check" size={12} />ไม่มีเงาบังเลยในเวลานี้</span>
-                          )}
+                          {/* ทุกสตริงเงาเท่ากัน (ซึ่งเป็นเรื่องปกติมาก) = พูดครั้งเดียวพอ
+                              ไม่งั้นผัง 256 สตริงจะได้ชิป "0%" เรียงกัน 256 อัน ซึ่งไม่ได้บอกอะไรเพิ่มเลย */}
+                          {(() => {
+                            if (!ivRows.length) return null;
+                            const vals = ivRows.map((r) => scR(r.shade, 1));
+                            const same = vals.every((x) => x === vals[0]);
+                            if (same) {
+                              return (
+                                <span className="p3-stat" style={{ color: vals[0] >= 10 ? "var(--tint-red-tx)" : vals[0] > 0 ? "var(--tint-amber-tx)" : "var(--acd)" }}>
+                                  {vals[0] > 0.05
+                                    ? <React.Fragment>ทุกสตริง ({ivRows.length}) โดนเงาเท่ากัน <b>{vals[0]}%</b></React.Fragment>
+                                    : <React.Fragment><P3Icon name="check" size={12} />ไม่มีเงาบังเลยในเวลานี้ · ทั้ง {ivRows.length} สตริง</React.Fragment>}
+                                </span>
+                              );
+                            }
+                            return (
+                              <SuChipBox cap={12} more="สตริง"
+                                nodes={ivRows.map((r) => (
+                                  <span key={r.u.id} className="p3-stat" style={{ color: r.shade >= 10 ? "var(--tint-red-tx)" : r.shade > 0 ? "var(--tint-amber-tx)" : undefined }}>
+                                    {r.u.name} <b>{scR(r.shade, 1)}%</b>
+                                  </span>
+                                ))} />
+                            );
+                          })()}
                         </div>
                       ) : (
                         <P3NumRange span label="" value={site.shade} min={0} max={60} step={1} suffix="%" onChange={(v) => setSite({ shade: v })} />

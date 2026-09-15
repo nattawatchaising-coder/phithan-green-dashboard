@@ -579,16 +579,93 @@ function SuLayout2D({
   unitName
 }) {
   const wrapRef = React.useRef(null);
+  const svgRef = React.useRef(null);
   const [drag, setDrag] = React.useState(false);
   const b = foot.bounds;
   const pad = 1.2;
-  const W = b.maxX - b.minX + pad * 2,
-    H = b.maxZ - b.minZ + pad * 2;
-  const vb = b.minX - pad + " " + (b.minZ - pad) + " " + Math.max(1, W) + " " + Math.max(1, H);
+  const W = Math.max(1, b.maxX - b.minX + pad * 2),
+    H = Math.max(1, b.maxZ - b.minZ + pad * 2);
+  const base = {
+    x: b.minX - pad,
+    y: b.minZ - pad,
+    w: W,
+    h: H
+  };
+  const [view, setView] = React.useState(null);
+  React.useEffect(() => {
+    setView(null);
+  }, [foot]);
+  const v = view || base;
+  const [hand, setHand] = React.useState(false);
+  const zoomed = !!view && Math.abs(v.w - base.w) > 0.001;
+  const ptOf = (clientX, clientY) => {
+    const r = svgRef.current ? svgRef.current.getBoundingClientRect() : null;
+    if (!r || !r.width || !r.height) return {
+      x: v.x + v.w / 2,
+      y: v.y + v.h / 2
+    };
+    return {
+      x: v.x + (clientX - r.left) / r.width * v.w,
+      y: v.y + (clientY - r.top) / r.height * v.h
+    };
+  };
+  const zoomAt = (mul, cx, cy) => {
+    const p = cx == null ? {
+      x: v.x + v.w / 2,
+      y: v.y + v.h / 2
+    } : ptOf(cx, cy);
+    let w = v.w / mul,
+      h = v.h / mul;
+    const minW = base.w / 40,
+      maxW = base.w;
+    if (w > maxW) {
+      w = base.w;
+      h = base.h;
+    }
+    if (w < minW) {
+      w = minW;
+      h = base.h / 40;
+    }
+    const k = w / v.w;
+    setView(w >= base.w ? null : {
+      x: p.x - (p.x - v.x) * k,
+      y: p.y - (p.y - v.y) * k,
+      w: w,
+      h: h
+    });
+  };
+  const panBy = (dxPx, dyPx) => {
+    const r = svgRef.current ? svgRef.current.getBoundingClientRect() : null;
+    if (!r || !r.width) return;
+    setView({
+      x: v.x - dxPx / r.width * v.w,
+      y: v.y - dyPx / r.height * v.h,
+      w: v.w,
+      h: v.h
+    });
+  };
   const paintAt = e => {
     const el = document.elementFromPoint(e.clientX, e.clientY);
     if (el && el.dataset && el.dataset.uid) onPaint(el.dataset.uid);
   };
+  const last = React.useRef(null);
+  const dragRef = React.useRef(false);
+  const panning = hand || !active;
+  const btn = on => ({
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    display: "grid",
+    placeItems: "center",
+    border: "1px solid " + (on ? "var(--acd)" : "var(--ln2)"),
+    background: on ? "var(--acd)" : "var(--surface)",
+    color: on ? "#fff" : "var(--text-2)",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    fontSize: 14,
+    fontWeight: 800,
+    lineHeight: 1
+  });
   return React.createElement("div", {
     ref: wrapRef,
     style: {
@@ -599,27 +676,104 @@ function SuLayout2D({
       overflow: "hidden",
       touchAction: "none"
     }
-  }, React.createElement("svg", {
-    viewBox: vb,
+  }, React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: 8,
+      right: 8,
+      zIndex: 2,
+      display: "flex",
+      gap: 6,
+      alignItems: "center"
+    }
+  }, zoomed && React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 800,
+      color: "var(--text-3)",
+      background: "var(--surface)",
+      border: "1px solid var(--ln2)",
+      borderRadius: 8,
+      padding: "5px 8px"
+    }
+  }, Math.round(base.w / v.w * 10) / 10, "\xD7"), active && React.createElement("button", {
+    type: "button",
+    onClick: () => setHand(x => !x),
+    style: btn(hand),
+    title: hand ? "ตอนนี้ลากเพื่อเลื่อนผัง — กดเพื่อกลับไปทาสีแผง" : "ลากเพื่อเลื่อนผัง (ไม่ทาสีแผง)"
+  }, "\u2725"), React.createElement("button", {
+    type: "button",
+    onClick: () => zoomAt(1 / 1.4),
+    style: btn(false),
+    title: "\u0E0B\u0E39\u0E21\u0E2D\u0E2D\u0E01"
+  }, "\u2212"), React.createElement("button", {
+    type: "button",
+    onClick: () => zoomAt(1.4),
+    style: btn(false),
+    title: "\u0E0B\u0E39\u0E21\u0E40\u0E02\u0E49\u0E32"
+  }, "+"), zoomed && React.createElement("button", {
+    type: "button",
+    onClick: () => {
+      setView(null);
+      setHand(false);
+    },
+    style: Object.assign({}, btn(false), {
+      width: "auto",
+      padding: "0 9px",
+      fontSize: 11
+    }),
+    title: "\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E21\u0E2D\u0E07\u0E17\u0E31\u0E49\u0E07\u0E1C\u0E31\u0E07"
+  }, "\u0E40\u0E15\u0E47\u0E21\u0E1C\u0E31\u0E07")), React.createElement("svg", {
+    ref: svgRef,
+    viewBox: v.x + " " + v.y + " " + v.w + " " + v.h,
     style: {
       width: "100%",
       height: height || 340,
       display: "block",
-      cursor: active ? "crosshair" : "default"
+      cursor: panning ? drag ? "grabbing" : "grab" : "crosshair"
+    },
+    onWheel: e => {
+      e.preventDefault();
+      zoomAt(e.deltaY < 0 ? 1.18 : 1 / 1.18, e.clientX, e.clientY);
     },
     onPointerDown: e => {
-      if (!active) return;
       try {
         e.currentTarget.setPointerCapture(e.pointerId);
       } catch (err) {}
       setDrag(true);
+      dragRef.current = true;
+      if (panning) {
+        last.current = {
+          x: e.clientX,
+          y: e.clientY
+        };
+        return;
+      }
       paintAt(e);
     },
     onPointerMove: e => {
-      if (drag && active) paintAt(e);
+      if (!dragRef.current) return;
+      if (panning) {
+        const l = last.current;
+        if (l) panBy(e.clientX - l.x, e.clientY - l.y);
+        last.current = {
+          x: e.clientX,
+          y: e.clientY
+        };
+        return;
+      }
+      if (active) paintAt(e);
     },
-    onPointerUp: () => setDrag(false),
-    onPointerCancel: () => setDrag(false)
+    onPointerUp: () => {
+      setDrag(false);
+      dragRef.current = false;
+      last.current = null;
+    },
+    onPointerCancel: () => {
+      setDrag(false);
+      dragRef.current = false;
+      last.current = null;
+    }
   }, foot.outlines.map((o, i) => React.createElement("polygon", {
     key: i,
     points: o.pts.map(p => p[0] + "," + p[1]).join(" "),
@@ -681,6 +835,44 @@ function SuLayout2D({
     fill: "var(--tint-red-tx)",
     textAnchor: "middle"
   }, "N"))));
+}
+function SuChipBox({
+  nodes,
+  cap,
+  keep,
+  more
+}) {
+  const [open, setOpen] = React.useState(false);
+  const all = nodes || [];
+  const lim = cap || 24;
+  if (all.length <= lim) {
+    return React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 6,
+        flexWrap: "wrap",
+        alignItems: "center"
+      }
+    }, all);
+  }
+  let shown = open ? all : all.slice(0, lim);
+  if (!open && keep != null && keep >= lim && all[keep]) shown = shown.slice(0, lim - 1).concat([all[keep]]);
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      flexWrap: "wrap",
+      alignItems: "center"
+    }
+  }, shown, React.createElement("button", {
+    type: "button",
+    className: "p3-chip",
+    onClick: () => setOpen(x => !x),
+    style: {
+      borderStyle: "dashed",
+      fontWeight: 800
+    }
+  }, open ? "ย่อรายการ" : "ดูทั้งหมด " + all.length + " " + (more || "รายการ")));
 }
 function SuMonthly({
   data
@@ -4487,42 +4679,48 @@ function SolarWorkspace({
     style: {
       fontWeight: 600
     }
-  }, isManual ? "แก้เอง" : "ระบบจัดให้")), React.createElement("div", {
+  }, isManual ? "แก้เอง" : "ระบบจัดให้")), React.createElement(SuChipBox, {
+    cap: 24,
+    more: "\u0E2A\u0E15\u0E23\u0E34\u0E07",
+    keep: (plan && plan.strings ? plan.strings : []).findIndex(x => x.id === activeStr),
+    nodes: (plan && plan.strings ? plan.strings : []).map(s => React.createElement("button", {
+      key: s.id,
+      className: "p3-chip",
+      "data-on": activeStr === s.id ? "1" : "0",
+      onClick: () => setActiveStr(s.id),
+      title: s.chk.ok ? "สตริง " + s.id + " · " + s.chk.band + " — กดแล้วแตะแผงในผังเพื่อย้ายเข้าสตริงนี้" : s.chk.fails.join(" · "),
+      style: {
+        borderColor: activeStr === s.id ? suColor(s.id) : "var(--ln2)",
+        background: activeStr === s.id ? suColor(s.id) + "1E" : "var(--surface)",
+        color: activeStr === s.id ? suColor(s.id) : "var(--text-2)"
+      }
+    }, React.createElement("span", {
+      className: "dot",
+      style: {
+        background: suColor(s.id),
+        width: 9,
+        height: 9
+      }
+    }), "\u0E2A\u0E15\u0E23\u0E34\u0E07 ", s.id, " \xB7 ", React.createElement("b", null, s.n), !s.chk.ok && React.createElement("span", {
+      style: {
+        color: "var(--tint-red-tx)",
+        fontWeight: 800
+      }
+    }, "!"), s.mixed && React.createElement("span", {
+      style: {
+        color: "var(--tint-amber-tx)",
+        fontWeight: 800
+      }
+    }, "\u2307")))
+  }), React.createElement("div", {
     style: {
       display: "flex",
       gap: 6,
       flexWrap: "wrap",
-      alignItems: "center"
+      alignItems: "center",
+      marginTop: 7
     }
-  }, (plan && plan.strings ? plan.strings : []).map(s => React.createElement("button", {
-    key: s.id,
-    className: "p3-chip",
-    "data-on": activeStr === s.id ? "1" : "0",
-    onClick: () => setActiveStr(s.id),
-    title: s.chk.ok ? "สตริง " + s.id + " · " + s.chk.band + " — กดแล้วแตะแผงในผังเพื่อย้ายเข้าสตริงนี้" : s.chk.fails.join(" · "),
-    style: {
-      borderColor: activeStr === s.id ? suColor(s.id) : "var(--ln2)",
-      background: activeStr === s.id ? suColor(s.id) + "1E" : "var(--surface)",
-      color: activeStr === s.id ? suColor(s.id) : "var(--text-2)"
-    }
-  }, React.createElement("span", {
-    className: "dot",
-    style: {
-      background: suColor(s.id),
-      width: 9,
-      height: 9
-    }
-  }), "\u0E2A\u0E15\u0E23\u0E34\u0E07 ", s.id, " \xB7 ", React.createElement("b", null, s.n), !s.chk.ok && React.createElement("span", {
-    style: {
-      color: "var(--tint-red-tx)",
-      fontWeight: 800
-    }
-  }, "!"), s.mixed && React.createElement("span", {
-    style: {
-      color: "var(--tint-amber-tx)",
-      fontWeight: 800
-    }
-  }, "\u2307"))), React.createElement("button", {
+  }, React.createElement("button", {
     className: "p3-chip",
     onClick: () => setActiveStr(nextStr),
     "data-on": activeStr === nextStr ? "1" : "0",
@@ -5549,21 +5747,33 @@ function SolarWorkspace({
       alignItems: "center",
       minHeight: 30
     }
-  }, ivRows.map(r => React.createElement("span", {
-    key: r.u.id,
-    className: "p3-stat",
-    style: {
-      color: r.shade >= 10 ? "var(--tint-red-tx)" : r.shade > 0 ? "var(--tint-amber-tx)" : undefined
+  }, (() => {
+    if (!ivRows.length) return null;
+    const vals = ivRows.map(r => scR(r.shade, 1));
+    const same = vals.every(x => x === vals[0]);
+    if (same) {
+      return React.createElement("span", {
+        className: "p3-stat",
+        style: {
+          color: vals[0] >= 10 ? "var(--tint-red-tx)" : vals[0] > 0 ? "var(--tint-amber-tx)" : "var(--acd)"
+        }
+      }, vals[0] > 0.05 ? React.createElement(React.Fragment, null, "\u0E17\u0E38\u0E01\u0E2A\u0E15\u0E23\u0E34\u0E07 (", ivRows.length, ") \u0E42\u0E14\u0E19\u0E40\u0E07\u0E32\u0E40\u0E17\u0E48\u0E32\u0E01\u0E31\u0E19 ", React.createElement("b", null, vals[0], "%")) : React.createElement(React.Fragment, null, React.createElement(P3Icon, {
+        name: "check",
+        size: 12
+      }), "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E40\u0E07\u0E32\u0E1A\u0E31\u0E07\u0E40\u0E25\u0E22\u0E43\u0E19\u0E40\u0E27\u0E25\u0E32\u0E19\u0E35\u0E49 \xB7 \u0E17\u0E31\u0E49\u0E07 ", ivRows.length, " \u0E2A\u0E15\u0E23\u0E34\u0E07"));
     }
-  }, r.u.name, " ", React.createElement("b", null, scR(r.shade, 1), "%"))), !ivRows.some(r => r.shade > 0.5) && React.createElement("span", {
-    className: "p3-stat",
-    style: {
-      color: "var(--acd)"
-    }
-  }, React.createElement(P3Icon, {
-    name: "check",
-    size: 12
-  }), "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E40\u0E07\u0E32\u0E1A\u0E31\u0E07\u0E40\u0E25\u0E22\u0E43\u0E19\u0E40\u0E27\u0E25\u0E32\u0E19\u0E35\u0E49")) : React.createElement(P3NumRange, {
+    return React.createElement(SuChipBox, {
+      cap: 12,
+      more: "\u0E2A\u0E15\u0E23\u0E34\u0E07",
+      nodes: ivRows.map(r => React.createElement("span", {
+        key: r.u.id,
+        className: "p3-stat",
+        style: {
+          color: r.shade >= 10 ? "var(--tint-red-tx)" : r.shade > 0 ? "var(--tint-amber-tx)" : undefined
+        }
+      }, r.u.name, " ", React.createElement("b", null, scR(r.shade, 1), "%")))
+    });
+  })()) : React.createElement(P3NumRange, {
     span: true,
     label: "",
     value: site.shade,
