@@ -58,7 +58,8 @@ const TM_WH_DEFAULT = {
     name: "",
     lat: null,
     lng: null,
-    radius: 150
+    radius: 150,
+    lock: false
   }
 };
 function tmWhNorm(cfg) {
@@ -89,12 +90,14 @@ function tmWhNorm(cfg) {
     name: String(of.name || "").slice(0, 60),
     lat: num(of.lat),
     lng: num(of.lng),
-    radius: Math.min(5000, Math.max(20, Math.round(+of.radius || TM_WH_DEFAULT.office.radius)))
+    radius: Math.min(5000, Math.max(20, Math.round(+of.radius || TM_WH_DEFAULT.office.radius))),
+    lock: !!of.lock
   };
   if (c.office.lat == null || c.office.lng == null || Math.abs(c.office.lat) > 90 || Math.abs(c.office.lng) > 180) {
     c.office.lat = null;
     c.office.lng = null;
   }
+  if (c.office.lat == null || c.office.lng == null) c.office.lock = false;
   if (tmHM(c.startEarly) == null) c.startEarly = TM_WH_DEFAULT.startEarly;
   if (tmHM(c.startLate) == null || tmHM(c.startLate) < tmHM(c.startEarly)) c.startLate = c.startEarly;
   c.start = c.startEarly;
@@ -417,6 +420,17 @@ const tmOfficeNear = (pt, cfg) => {
   return d == null ? null : d <= tmWhNorm(cfg).office.radius;
 };
 const tmDistTH = m => m == null ? "" : m < 1000 ? m + " ม." : Math.round(m / 100) / 10 + " กม.";
+function tmLockDeny(p, cfg) {
+  const o = tmWhNorm(cfg).office;
+  if (!o.lock || o.lat == null || o.lng == null) return null;
+  if (!p || p.lat == null || p.lng == null) {
+    const why = p && p.err ? TM_GPS_ERR[p.err] || p.err : "ไม่มีพิกัด";
+    return "เปิดล็อกพิกัดไว้ ต้องรู้ตำแหน่งก่อนถึงจะลงเวลาเข้างานได้ — " + why;
+  }
+  const d = tmDistM(p, o);
+  if (d != null && d <= o.radius) return null;
+  return "อยู่ห่าง" + (o.name ? o.name : "ออฟฟิศ") + " " + tmDistTH(d) + " เกินรัศมีที่ตั้งไว้ " + o.radius + " ม. — ลงเวลาเข้างานไม่ได้";
+}
 const tmGpsUrl = pt => pt && pt.lat != null && pt.lng != null ? "https://www.google.com/maps?q=" + (+pt.lat).toFixed(6) + "," + (+pt.lng).toFixed(6) : "";
 const tmDayIndex = (rec, cfg) => ({
   userId: rec.userId,
@@ -687,6 +701,13 @@ function useAttendWriter(user, cfg) {
       err: "skipped"
     } : await window.captureGps();
     const p = tmPunch(gps, o.src || "web", o.place);
+    if (which === "in") {
+      const deny = tmLockDeny(p, cfg);
+      if (deny) return {
+        ok: false,
+        why: deny
+      };
+    }
     const snap = await _tmRef("attend/" + uid + "/" + date).once("value").catch(() => null);
     const cur = snap && snap.val() || tmAttendBlank(user, date);
     const rec = Object.assign({}, tmAttendBlank(user, date), cur);
@@ -1021,6 +1042,7 @@ Object.assign(window, {
   tmOfficeDist,
   tmOfficeNear,
   tmDistTH,
+  tmLockDeny,
   tmOtStatusOf,
   tmOtOpen,
   tmCanAttend,

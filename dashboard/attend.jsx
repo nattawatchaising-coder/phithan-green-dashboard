@@ -106,9 +106,12 @@ const TM_WH_DEFAULT = {
   /* ── พิกัดออฟฟิศ ──
      มีไว้ตอบคำถามเดียว: คนที่กด "ออฟฟิศ" ตอนนั้นอยู่ห่างออฟฟิศเท่าไร
      lat/lng = null แปลว่ายังไม่ได้ตั้ง ระบบจะไม่โชว์ระยะเลย ไม่ใช่โชว์ระยะจากจุด 0,0
-     radius คือรัศมีที่ถือว่า "อยู่ที่ออฟฟิศ" ใช้แค่ระบายสีให้ดูง่าย **ไม่เคยใช้บล็อกการลงเวลา**
-     เพราะ GPS ในอาคารคลาดเคลื่อนได้เป็นร้อยเมตร คนมาทำงานจริงจะกดเข้างานไม่ได้ */
-  office: { name: "", lat: null, lng: null, radius: 150 },
+     radius คือรัศมีที่ถือว่า "อยู่ที่ออฟฟิศ" ปกติใช้แค่ระบายสีให้ดูง่าย
+
+     lock = เปิดล็อกพิกัด: กดเข้างานได้เฉพาะตอนอยู่ในรัศมี (ดู tmLockDeny)
+     ปิดไว้เป็นค่าเริ่มต้นเสมอ เพราะ GPS ในอาคารคลาดเคลื่อนได้เป็นร้อยเมตร
+     เปิดแล้วคนที่มาทำงานจริงอาจกดเข้างานไม่ได้ — เป็นการตัดสินใจของบริษัท ไม่ใช่ค่าที่ควรเปิดเอง */
+  office: { name: "", lat: null, lng: null, radius: 150, lock: false },
 };
 function tmWhNorm(cfg) {
   const c = Object.assign({}, TM_WH_DEFAULT, cfg || {});
@@ -143,9 +146,12 @@ function tmWhNorm(cfg) {
   const of = c.office && typeof c.office === "object" ? c.office : {};
   const num = (v) => (v === 0 || (v && isFinite(+v)) ? +v : null);
   c.office = { name: String(of.name || "").slice(0, 60), lat: num(of.lat), lng: num(of.lng),
-    radius: Math.min(5000, Math.max(20, Math.round(+of.radius || TM_WH_DEFAULT.office.radius))) };
+    radius: Math.min(5000, Math.max(20, Math.round(+of.radius || TM_WH_DEFAULT.office.radius))),
+    lock: !!of.lock };
   if (c.office.lat == null || c.office.lng == null
     || Math.abs(c.office.lat) > 90 || Math.abs(c.office.lng) > 180) { c.office.lat = null; c.office.lng = null; }
+  /* ไม่มีพิกัดออฟฟิศ = ล็อกไม่ได้ ไม่งั้นทุกคนจะกดเข้างานไม่ได้ทั้งบริษัทเพราะเทียบกับ "ไม่มีที่ไหน" */
+  if (c.office.lat == null || c.office.lng == null) c.office.lock = false;
   if (tmHM(c.startEarly) == null) c.startEarly = TM_WH_DEFAULT.startEarly;
   if (tmHM(c.startLate) == null || tmHM(c.startLate) < tmHM(c.startEarly)) c.startLate = c.startEarly;
   /* start/end เป็นค่า "อนุมาน" ของวันที่ยังไม่มีใบลงเวลา — ของวันที่มีใบจริงให้ใช้ tmDayWindow
@@ -473,6 +479,26 @@ const tmOfficeNear = (pt, cfg) => {
 };
 const tmDistTH = (m) => (m == null ? "" : m < 1000 ? m + " ม." : (Math.round(m / 100) / 10) + " กม.");
 
+/* ── ล็อกพิกัดตอนลงเวลาเข้างาน ──
+   คืน null = กดได้ · คืนข้อความ = กดไม่ได้ พร้อมเหตุผลที่คนกดอ่านแล้วรู้ว่าต้องทำอะไรต่อ
+
+   ใช้กับ "เข้างาน" เท่านั้น ไม่เคยบล็อกตอนกดออกงาน — คนที่ออกจากออฟฟิศไปแล้วต้องปิดกะได้เสมอ
+   ไม่งั้นจะเหลือกะค้างที่ต้องให้แอดมินตามแก้ย้อนหลัง ซึ่งแย่กว่าการปล่อยให้กดออกจากที่ไหนก็ได้
+
+   ปิดล็อกไว้ (ค่าเริ่มต้น) = ฟังก์ชันนี้คืน null เสมอ พฤติกรรมเดิมทุกอย่าง */
+function tmLockDeny(p, cfg) {
+  const o = tmWhNorm(cfg).office;
+  if (!o.lock || o.lat == null || o.lng == null) return null;
+  if (!p || p.lat == null || p.lng == null) {
+    const why = p && p.err ? TM_GPS_ERR[p.err] || p.err : "ไม่มีพิกัด";
+    return "เปิดล็อกพิกัดไว้ ต้องรู้ตำแหน่งก่อนถึงจะลงเวลาเข้างานได้ — " + why;
+  }
+  const d = tmDistM(p, o);
+  if (d != null && d <= o.radius) return null;
+  return "อยู่ห่าง" + (o.name ? o.name : "ออฟฟิศ") + " " + tmDistTH(d)
+    + " เกินรัศมีที่ตั้งไว้ " + o.radius + " ม. — ลงเวลาเข้างานไม่ได้";
+}
+
 /* ลิงก์แผนที่ — เปิดจาก Excel ได้เลย ไม่ต้องก๊อปตัวเลขไปวาง
    ใช้ query ธรรมดา ไม่ใช่ API key เพราะไฟล์นี้ออกจากเครื่องบริษัทไปที่ไหนก็ได้ */
 const tmGpsUrl = (pt) => (pt && pt.lat != null && pt.lng != null
@@ -721,6 +747,12 @@ function useAttendWriter(user, cfg) {
     const date = window.drToday();
     const gps = o.skipGps ? { err: "skipped" } : await window.captureGps();
     const p = tmPunch(gps, o.src || "web", o.place);
+
+    /* ล็อกพิกัด — ตรวจก่อนแตะฐานข้อมูล ถูกปฏิเสธแล้วต้องไม่มีอะไรถูกเขียนลงไปเลย */
+    if (which === "in") {
+      const deny = tmLockDeny(p, cfg);
+      if (deny) return { ok: false, why: deny };
+    }
 
     const snap = await _tmRef("attend/" + uid + "/" + date).once("value").catch(() => null);
     const cur = (snap && snap.val()) || tmAttendBlank(user, date);
@@ -986,7 +1018,7 @@ Object.assign(window, { tmNameOf,
   tmOtKindOf, tmOtKindGuess, tmOtMinutes, tmDayWindow, tmOtEarned, tmOtInLimit, tmLastHM,
   tmOtRate, tmOtPayMins, tmRateTH,
   tmWorkedMins, tmOpen, tmAttendBlank, tmPunch, tmDayIndex, tmPlaceOf,
-  TM_GPS_ERR, tmGpsTH, tmGpsUrl, tmDistM, tmOfficeDist, tmOfficeNear, tmDistTH,
+  TM_GPS_ERR, tmGpsTH, tmGpsUrl, tmDistM, tmOfficeDist, tmOfficeNear, tmDistTH, tmLockDeny,
   tmOtStatusOf, tmOtOpen, tmCanAttend, tmCanAttendAll, tmCanOt, tmCanOtApprove,
   tmOtApproveCheck, tmOtNext, tmOtMove, tmOtDocNo, tmOtBlank, tmOtVisible, tmOtRollup,
   tmOtApprovers, tmOtPickApprover,

@@ -934,6 +934,43 @@ function TmOfficeCfg({ office, onChange }) {
         {err && <span style={{ fontSize: 11.5, fontWeight: 700, color: "#EF4444" }}>{err}</span>}
       </div>
 
+      {/* ── สวิตช์ล็อกพิกัด ──
+          เปิดแล้วเปลี่ยนพฤติกรรมของทั้งบริษัท จึงต้องเห็นชัดว่าตอนนี้เปิดหรือปิด
+          และต้องตั้งพิกัดก่อน ไม่งั้นจะล็อกเทียบกับ "ไม่มีที่ไหน" แล้วทุกคนกดเข้างานไม่ได้ */}
+      <div style={{ marginTop: 11, padding: "11px 13px", borderRadius: 12,
+        border: "1px solid " + (o.lock ? "#F59E0B66" : "var(--border)"),
+        background: o.lock ? "rgba(245,158,11,.07)" : "var(--surface)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 11, flexWrap: "wrap" }}>
+          <button onClick={() => has && set("lock", !o.lock)} disabled={!has}
+            aria-pressed={!!o.lock}
+            title={has ? "" : "ตั้งพิกัดออฟฟิศก่อนถึงจะเปิดล็อกได้"}
+            style={{ position: "relative", width: 52, height: 30, borderRadius: 99, flexShrink: 0,
+              border: "1px solid " + (o.lock ? "#F59E0B" : "var(--border-strong)"),
+              background: !has ? "var(--surface2)" : o.lock ? "#F59E0B" : "var(--surface2)",
+              cursor: has ? "pointer" : "not-allowed", padding: 0 }}>
+            <span style={{ position: "absolute", top: 3, left: o.lock ? 25 : 3, width: 22, height: 22, borderRadius: 99,
+              background: "#fff", boxShadow: "0 1px 3px rgba(8,20,14,.3)", transition: "left .15s" }} />
+          </button>
+          <span style={{ flex: 1, minWidth: 180 }}>
+            <span style={{ display: "block", fontSize: 13, fontWeight: 800, color: "var(--text-1)" }}>
+              ล็อกพิกัดตอนลงเวลาเข้างาน {o.lock ? "· เปิดอยู่" : "· ปิดอยู่"}
+            </span>
+            <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)", marginTop: 1 }}>
+              {!has ? "ตั้งพิกัดออฟฟิศก่อนถึงจะเปิดได้"
+                : o.lock ? "กดเข้างานได้เฉพาะตอนอยู่ในรัศมี " + (o.radius == null ? 150 : o.radius) + " ม. จากพิกัดนี้"
+                : "กดเข้างานได้จากทุกที่ ระบบบันทึกระยะห่างไว้ให้ดูเฉย ๆ"}
+            </span>
+          </span>
+        </div>
+        {o.lock && (
+          <div style={{ marginTop: 9, fontSize: 11.5, color: "#B45309", lineHeight: 1.75 }}>
+            <b>เปิดแล้วต้องรู้ไว้</b> — GPS ในอาคารคลาดเคลื่อนได้เป็นร้อยเมตร คนที่มาทำงานจริงอาจกดเข้างานไม่ได้
+            ถ้าเจอบ่อยให้เพิ่มรัศมีแทนการปิดทิ้ง · คนที่ไม่ให้สิทธิ์ตำแหน่งจะกดเข้างานไม่ได้เลย
+            <br />การ<b>กดออกงานไม่เคยถูกล็อก</b> — คนที่ออกจากออฟฟิศไปแล้วต้องปิดกะได้เสมอ ไม่งั้นจะเหลือกะค้างให้ตามแก้
+          </div>
+        )}
+      </div>
+
       <div style={{ marginTop: 9, padding: "11px 13px", borderRadius: 12, background: "var(--surface2)",
         border: "1px solid var(--border)", fontSize: 11.5, color: "var(--text-2)", lineHeight: 1.8 }}>
         {has
@@ -943,8 +980,8 @@ function TmOfficeCfg({ office, onChange }) {
         <br /><span style={{ color: "var(--text-3)" }}>
           กดปุ่ม “ใช้ตำแหน่งที่ยืนอยู่ตอนนี้” ได้เฉพาะตอนที่ยืนอยู่ที่ออฟฟิศจริง —
           กดจากที่บ้านแล้วพิกัดออฟฟิศจะกลายเป็นบ้าน โดยที่ไม่มีอะไรเตือน
-          <br />ระยะที่แสดงเป็นข้อมูลให้คนอ่านตัดสินเอง <b>ระบบไม่เคยบล็อกการลงเวลาเพราะอยู่ไกล</b> —
-          GPS ในอาคารคลาดเคลื่อนได้เป็นร้อยเมตร คนที่มาทำงานจริงจะกดเข้างานไม่ได้
+          <br />ปกติระยะที่แสดงเป็นข้อมูลให้คนอ่านตัดสินเอง ระบบไม่บล็อกการลงเวลาเพราะอยู่ไกล
+          จะบล็อกก็ต่อเมื่อเปิด <b>ล็อกพิกัด</b> ในกล่องข้างล่างเท่านั้น
           <br />ใช้กับคนที่กด “ออฟฟิศ” เท่านั้น · งานหน้าไซต์เทียบระยะไม่ได้ เพราะระบบยังไม่มีพิกัดไซต์ที่เชื่อถือได้
         </span>
       </div>
