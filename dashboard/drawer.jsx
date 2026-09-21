@@ -460,7 +460,7 @@ function PermitJobSummary({ job, onOpenReview }) {
   );
 }
 
-function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, canDesign, stock, onSaveBOQ, onSurvey, onSurveyReport, onPermit, onDaily, onOm, omSite, omVisits, omTickets, onExpense, ecSum, priceMap, permitMode, onOpenReview, salesMode, quotes, onOpenQuote }) {
+function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, canDesign, stock, onSaveBOQ, onSurvey, onSurveyReport, onPermit, onDaily, onOm, omSite, omVisits, omTickets, onExpense, ecSum, priceMap, permitMode, onOpenReview, salesMode, quotes, leads, onOpenQuote }) {
   const SF = window.SF;
   // ฝ่ายขออนุญาตกับเซลล์เปิดใบงานได้ แต่ไม่ใช่คนทำงานหน้างาน — ซ่อนเครื่องมือช่างทั้งชุด
   const roMode = permitMode || salesMode;
@@ -598,7 +598,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               </div>
 
               {permitMode && <PermitJobSummary job={job} onOpenReview={onOpenReview} />}
-              {salesMode && window.SalesJobSummary && <window.SalesJobSummary job={job} quotes={quotes} onOpenQuote={onOpenQuote} />}
+              {salesMode && window.SalesJobSummary && <window.SalesJobSummary job={job} quotes={quotes} leads={leads} onOpenQuote={onOpenQuote} />}
 
               {/* spec card */}
               <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: isMobile ? 15 : 18, marginBottom: isMobile ? 18 : 22 }}>
@@ -618,6 +618,13 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   )}
                 </div>
               </div>
+
+              {/* ใบเสนอราคาที่เสนอลูกค้าไป — ราคาที่ตกลงกันต้องอยู่ในใบงานด้วย ไม่ใช่มีแต่ที่หน้าขาย
+                  โหมดเซลล์มีรายการนี้อยู่ในบล็อกสรุปข้างบนแล้ว จึงไม่ต้องซ้ำ
+                  ผูกกับสิทธิ์ดูราคา (onOpenQuote มีค่าเมื่อเปิดใบเสนอราคาได้) — ช่างไม่ต้องเห็นยอดเงิน */}
+              {!salesMode && onOpenQuote && window.SalesQuoteList && (
+                <window.SalesQuoteList job={job} quotes={quotes} leads={leads} onOpenQuote={onOpenQuote} card />
+              )}
 
               {/* รายงานประจำวันหน้างาน — บันทึกรายวัน + ออกเป็น PDF */}
               {onDaily && <DailyJobButton job={job} onOpen={onDaily} />}

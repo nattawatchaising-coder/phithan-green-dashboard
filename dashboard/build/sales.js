@@ -356,6 +356,132 @@ function quotesFor(quotes, kind, id) {
   if (!id) return [];
   return (quotes || []).filter(q => kind === "job" ? q.jobId === id : q.leadId === id).sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
 }
+function quotesOfJob(quotes, job, leads) {
+  if (!job) return [];
+  const lid = {};
+  (leads || []).forEach(l => {
+    if (l.jobId === job.id) lid[l.id] = 1;
+  });
+  return (quotes || []).filter(q => q.jobId === job.id || q.leadId && lid[q.leadId]).sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+}
+function SalesQuoteList({
+  job,
+  quotes,
+  leads,
+  onOpenQuote,
+  card
+}) {
+  const qs = quotesOfJob(quotes, job, leads);
+  const body = React.createElement(React.Fragment, null, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 7
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: ".05em",
+      color: "var(--text-3)"
+    }
+  }, "\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32"), onOpenQuote && React.createElement("button", {
+    onClick: () => onOpenQuote(null),
+    style: {
+      marginLeft: "auto",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      background: "none",
+      border: "1px solid var(--border-strong)",
+      borderRadius: 8,
+      padding: "5px 10px",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--primary-dark)"
+    }
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 13,
+    color: "var(--primary-dark)"
+  }), " \u0E17\u0E33\u0E43\u0E1A\u0E43\u0E2B\u0E21\u0E48")), qs.length === 0 ? React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49") : qs.map(q => {
+    const s = QUOTE_STATUS_BY[q.status] || QUOTE_STATUS_BY.draft;
+    const T = quoteTotals(q);
+    return React.createElement("button", {
+      key: q.id,
+      onClick: () => onOpenQuote && onOpenQuote(q),
+      disabled: !onOpenQuote,
+      style: {
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "10px 12px",
+        marginBottom: 6,
+        background: "var(--surface2)",
+        border: "1px solid var(--border)",
+        borderRadius: 11,
+        cursor: onOpenQuote ? "pointer" : "default",
+        fontFamily: "inherit",
+        textAlign: "left"
+      }
+    }, React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: "var(--text-1)",
+        fontFamily: "var(--mono)"
+      }
+    }, q.no), React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 11,
+        color: "var(--text-3)"
+      }
+    }, thDate(q.date, true), q.ownerName ? " · " + q.ownerName : "")), React.createElement("span", {
+      style: {
+        fontSize: 13,
+        fontWeight: 800,
+        color: "var(--text-1)",
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, "\u0E3F", sBaht(T.grand)), React.createElement("span", {
+      style: {
+        fontSize: 10.5,
+        fontWeight: 700,
+        color: s.color,
+        background: s.color + "16",
+        padding: "3px 9px",
+        borderRadius: 99,
+        whiteSpace: "nowrap"
+      }
+    }, s.th));
+  }));
+  if (!card) return React.createElement("div", null, body);
+  return React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 14,
+      padding: 16,
+      marginBottom: 10
+    }
+  }, body);
+}
 const QUOTE_I18N = {
   "ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์ · ออกแบบ · ติดตั้ง · ขออนุญาตการไฟฟ้า": ["Solar power systems · design · installation · utility permitting", "太阳能发电系统 · 设计 · 安装 · 电力报装"],
   "ยืนราคา {} วัน นับจากวันที่ออกใบเสนอราคา": ["Prices held for {} days from the date of this quotation", "报价自开具之日起 {} 天内有效"],
@@ -2430,12 +2556,12 @@ function SalesOverview({
 function SalesJobSummary({
   job,
   quotes,
+  leads,
   onOpenQuote
 }) {
   const SF = window.SF;
   const idx = SF.STAGE_INDEX[job.stage] != null ? SF.STAGE_INDEX[job.stage] : 0;
   const st = stageOf(job.stage);
-  const qs = quotesFor(quotes, "job", job.id);
   const p = job.permit || {};
   const pst = p.status ? window.permitStatusOf ? window.permitStatusOf(job) : null : null;
   const blockers = [];
@@ -2566,105 +2692,12 @@ function SalesJobSummary({
       marginBottom: 6,
       lineHeight: 1.5
     }
-  }, "\u26A0 ", b.th))), React.createElement("div", null, React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      marginBottom: 7
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: ".05em",
-      color: "var(--text-3)"
-    }
-  }, "\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32"), onOpenQuote && React.createElement("button", {
-    onClick: () => onOpenQuote(null),
-    style: {
-      marginLeft: "auto",
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 4,
-      background: "none",
-      border: "1px solid var(--border-strong)",
-      borderRadius: 8,
-      padding: "5px 10px",
-      cursor: "pointer",
-      fontFamily: "inherit",
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--primary-dark)"
-    }
-  }, React.createElement(Icon, {
-    name: "plus",
-    size: 13,
-    color: "var(--primary-dark)"
-  }), " \u0E17\u0E33\u0E43\u0E1A\u0E43\u0E2B\u0E21\u0E48")), qs.length === 0 ? React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      color: "var(--text-3)"
-    }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49") : qs.map(q => {
-    const s = QUOTE_STATUS_BY[q.status] || QUOTE_STATUS_BY.draft;
-    const T = quoteTotals(q);
-    return React.createElement("button", {
-      key: q.id,
-      onClick: () => onOpenQuote && onOpenQuote(q),
-      disabled: !onOpenQuote,
-      style: {
-        width: "100%",
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: "10px 12px",
-        marginBottom: 6,
-        background: "var(--surface2)",
-        border: "1px solid var(--border)",
-        borderRadius: 11,
-        cursor: onOpenQuote ? "pointer" : "default",
-        fontFamily: "inherit",
-        textAlign: "left"
-      }
-    }, React.createElement("span", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, React.createElement("span", {
-      style: {
-        display: "block",
-        fontSize: 12.5,
-        fontWeight: 700,
-        color: "var(--text-1)",
-        fontFamily: "var(--mono)"
-      }
-    }, q.no), React.createElement("span", {
-      style: {
-        display: "block",
-        fontSize: 11,
-        color: "var(--text-3)"
-      }
-    }, thDate(q.date, true), q.ownerName ? " · " + q.ownerName : "")), React.createElement("span", {
-      style: {
-        fontSize: 13,
-        fontWeight: 800,
-        color: "var(--text-1)",
-        fontVariantNumeric: "tabular-nums"
-      }
-    }, "\u0E3F", sBaht(T.grand)), React.createElement("span", {
-      style: {
-        fontSize: 10.5,
-        fontWeight: 700,
-        color: s.color,
-        background: s.color + "16",
-        padding: "3px 9px",
-        borderRadius: 99,
-        whiteSpace: "nowrap"
-      }
-    }, s.th));
-  })));
+  }, "\u26A0 ", b.th))), React.createElement(SalesQuoteList, {
+    job: job,
+    quotes: quotes,
+    leads: leads,
+    onOpenQuote: onOpenQuote
+  }));
 }
 Object.assign(window, {
   SALES_STAGES,
@@ -2687,6 +2720,7 @@ Object.assign(window, {
   quoteTotals,
   quoteNo,
   quotesFor,
+  quotesOfJob,
   quoteHTML,
   useQuoteStore,
   quoteSpec,
@@ -2698,5 +2732,6 @@ Object.assign(window, {
   SalesBoardView,
   SalesKpiView,
   SalesOverview,
-  SalesJobSummary
+  SalesJobSummary,
+  SalesQuoteList
 });

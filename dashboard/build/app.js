@@ -1291,6 +1291,7 @@ function App() {
     onOpenReview: permitOnly && selectedJob ? () => setPermitReview(selectedJob.id) : null,
     salesMode: salesOnly,
     quotes: quoteStore.quotes,
+    leads: leadStore.leads,
     onOpenQuote: can(role, "price") && selectedJob ? q => openQuoteForJob(selectedJob, q) : null,
     priceMap: can(role, "price") ? effPriceMap : null,
     onEdit: id => {

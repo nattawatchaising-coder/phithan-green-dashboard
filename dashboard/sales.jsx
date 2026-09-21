@@ -266,6 +266,62 @@ function quotesFor(quotes, kind, id) {
     .sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
 }
 
+/* ── ใบเสนอราคาของ "งาน" หนึ่งใบ ──
+   ใบที่ทำตอนยังเป็นลูกค้าสำรวจจะมีแต่ leadId · ถ้าดูแค่ jobId จะไม่เห็นใบที่เสนอลูกค้าไปจริง ๆ
+   ซึ่งเป็นใบที่สำคัญที่สุด (ราคาที่ตกลงกัน) จึงไล่ผ่าน lead.jobId ที่ผูกกันอยู่แล้วด้วย
+   ไม่ไปเขียน jobId ทับของเก่า เพราะใบเสนอราคาเป็นเอกสารที่ออกไปแล้ว ไม่ควรแก้ย้อนหลังเอง */
+function quotesOfJob(quotes, job, leads) {
+  if (!job) return [];
+  const lid = {};
+  (leads || []).forEach((l) => { if (l.jobId === job.id) lid[l.id] = 1; });
+  return (quotes || []).filter((q) => q.jobId === job.id || (q.leadId && lid[q.leadId]))
+    .sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+}
+
+/* ── รายการใบเสนอราคาของงาน — ใช้ทั้งในบล็อกของเซลล์ และในใบงานหน้าฐานข้อมูล ──
+   ใบเสนอราคาคือ "ราคาที่ตกลงกับลูกค้า" ซึ่งคนดูใบงานต้องเปิดดูได้โดยไม่ต้องไปหาที่หน้าขาย
+   card = วาดกรอบของตัวเอง (ตอนอยู่ในใบงาน) · ในบล็อกเซลล์มีกรอบอยู่แล้วจึงไม่ต้องซ้อน */
+function SalesQuoteList({ job, quotes, leads, onOpenQuote, card }) {
+  const qs = quotesOfJob(quotes, job, leads);
+  const body = (
+    <React.Fragment>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".05em", color: "var(--text-3)" }}>ใบเสนอราคา</span>
+        {onOpenQuote && (
+          <button onClick={() => onOpenQuote(null)} style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4,
+            background: "none", border: "1px solid var(--border-strong)", borderRadius: 8, padding: "5px 10px", cursor: "pointer",
+            fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--primary-dark)" }}>
+            <Icon name="plus" size={13} color="var(--primary-dark)" /> ทำใบใหม่
+          </button>
+        )}
+      </div>
+      {qs.length === 0 ? (
+        <div style={{ fontSize: 12.5, color: "var(--text-3)" }}>ยังไม่มีใบเสนอราคาผูกกับงานนี้</div>
+      ) : qs.map((q) => {
+        const s = QUOTE_STATUS_BY[q.status] || QUOTE_STATUS_BY.draft;
+        const T = quoteTotals(q);
+        return (
+          <button key={q.id} onClick={() => onOpenQuote && onOpenQuote(q)} disabled={!onOpenQuote}
+            style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", marginBottom: 6,
+              background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 11,
+              cursor: onOpenQuote ? "pointer" : "default", fontFamily: "inherit", textAlign: "left" }}>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", fontFamily: "var(--mono)" }}>{q.no}</span>
+              <span style={{ display: "block", fontSize: 11, color: "var(--text-3)" }}>{thDate(q.date, true)}{q.ownerName ? " · " + q.ownerName : ""}</span>
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)", fontVariantNumeric: "tabular-nums" }}>฿{sBaht(T.grand)}</span>
+            <span style={{ fontSize: 10.5, fontWeight: 700, color: s.color, background: s.color + "16", padding: "3px 9px", borderRadius: 99, whiteSpace: "nowrap" }}>{s.th}</span>
+          </button>
+        );
+      })}
+    </React.Fragment>
+  );
+  if (!card) return <div>{body}</div>;
+  return (
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 10 }}>{body}</div>
+  );
+}
+
 /* ── พจนานุกรมใบเสนอราคา (ไทย → [อังกฤษ, จีน]) ──
    แปลทั้งใบตอนท้ายด้วย window.pgDocHTML — วิธีเขียนคีย์ดูที่ i18n.jsx
    รายการสินค้า เงื่อนไขชำระเงิน และข้อรับประกัน เป็นข้อความที่เซลล์พิมพ์เอง
@@ -1345,11 +1401,10 @@ function SalesOverview({ leads, quotes, jobs, currentUser, onOpenLead, onOpenJob
    เซลล์ไม่ได้ต้องการสเปคหรือเครื่องมือช่าง แต่ต้องตอบลูกค้าให้ได้ว่า
    "ตอนนี้ถึงไหนแล้ว ติดอะไรอยู่ ติดตั้งวันไหน"
    ============================================================ */
-function SalesJobSummary({ job, quotes, onOpenQuote }) {
+function SalesJobSummary({ job, quotes, leads, onOpenQuote }) {
   const SF = window.SF;
   const idx = SF.STAGE_INDEX[job.stage] != null ? SF.STAGE_INDEX[job.stage] : 0;
   const st = stageOf(job.stage);
-  const qs = quotesFor(quotes, "job", job.id);
   const p = job.permit || {};
   const pst = p.status ? (window.permitStatusOf ? window.permitStatusOf(job) : null) : null;
 
@@ -1405,37 +1460,7 @@ function SalesJobSummary({ job, quotes, onOpenQuote }) {
       </div>
 
       {/* ใบเสนอราคาของงานนี้ */}
-      <div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".05em", color: "var(--text-3)" }}>ใบเสนอราคา</span>
-          {onOpenQuote && (
-            <button onClick={() => onOpenQuote(null)} style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4,
-              background: "none", border: "1px solid var(--border-strong)", borderRadius: 8, padding: "5px 10px", cursor: "pointer",
-              fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--primary-dark)" }}>
-              <Icon name="plus" size={13} color="var(--primary-dark)" /> ทำใบใหม่
-            </button>
-          )}
-        </div>
-        {qs.length === 0 ? (
-          <div style={{ fontSize: 12.5, color: "var(--text-3)" }}>ยังไม่มีใบเสนอราคาผูกกับงานนี้</div>
-        ) : qs.map((q) => {
-          const s = QUOTE_STATUS_BY[q.status] || QUOTE_STATUS_BY.draft;
-          const T = quoteTotals(q);
-          return (
-            <button key={q.id} onClick={() => onOpenQuote && onOpenQuote(q)} disabled={!onOpenQuote}
-              style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", marginBottom: 6,
-                background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 11,
-                cursor: onOpenQuote ? "pointer" : "default", fontFamily: "inherit", textAlign: "left" }}>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", fontFamily: "var(--mono)" }}>{q.no}</span>
-                <span style={{ display: "block", fontSize: 11, color: "var(--text-3)" }}>{thDate(q.date, true)}{q.ownerName ? " · " + q.ownerName : ""}</span>
-              </span>
-              <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)", fontVariantNumeric: "tabular-nums" }}>฿{sBaht(T.grand)}</span>
-              <span style={{ fontSize: 10.5, fontWeight: 700, color: s.color, background: s.color + "16", padding: "3px 9px", borderRadius: 99, whiteSpace: "nowrap" }}>{s.th}</span>
-            </button>
-          );
-        })}
-      </div>
+      <SalesQuoteList job={job} quotes={quotes} leads={leads} onOpenQuote={onOpenQuote} />
     </div>
   );
 }
@@ -1444,7 +1469,7 @@ Object.assign(window, {
   SALES_STAGES, SALES_BY, SALES_BACK, salesStageKey, salesStageOf, salesStagePatch,
   LEAD_SOURCES, LEAD_SOURCE_TH, CONTACT_WAYS, sOverdue, sBaht,
   QUOTE_STATUS, QUOTE_STATUS_BY, QUOTE_TERMS_DEF, QUOTE_WARRANTY_DEF, quoteTermSplit,
-  blankQuote, quoteTotals, quoteNo, quotesFor, quoteHTML, useQuoteStore,
+  blankQuote, quoteTotals, quoteNo, quotesFor, quotesOfJob, quoteHTML, useQuoteStore,
   quoteSpec, quoteHasSpec, quoteSpecName, quoteSpecDetail,
-  QuoteEditor, SalesCard, SalesBoardView, SalesKpiView, SalesOverview, SalesJobSummary,
+  QuoteEditor, SalesCard, SalesBoardView, SalesKpiView, SalesOverview, SalesJobSummary, SalesQuoteList,
 });

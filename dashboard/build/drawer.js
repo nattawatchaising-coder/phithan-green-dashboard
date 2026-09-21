@@ -1181,6 +1181,7 @@ function DetailDrawer({
   onOpenReview,
   salesMode,
   quotes,
+  leads,
   onOpenQuote
 }) {
   const SF = window.SF;
@@ -1494,6 +1495,7 @@ function DetailDrawer({
   }), salesMode && window.SalesJobSummary && React.createElement(window.SalesJobSummary, {
     job: job,
     quotes: quotes,
+    leads: leads,
     onOpenQuote: onOpenQuote
   }), React.createElement("div", {
     style: {
@@ -1553,7 +1555,13 @@ function DetailDrawer({
   }), (job.brand || "").toUpperCase().includes("ATMOCE") && React.createElement(SpecItem, {
     label: "\u0E15\u0E39\u0E49 Combiner",
     value: job.comboType === "assembled" ? "ตู้ประกอบ" : "ตู้สำเร็จ"
-  }))), onDaily && React.createElement(DailyJobButton, {
+  }))), !salesMode && onOpenQuote && window.SalesQuoteList && React.createElement(window.SalesQuoteList, {
+    job: job,
+    quotes: quotes,
+    leads: leads,
+    onOpenQuote: onOpenQuote,
+    card: true
+  }), onDaily && React.createElement(DailyJobButton, {
     job: job,
     onOpen: onDaily
   }), onOm && (job.stage === "done" || omSite) && window.OmJobButton && React.createElement(window.OmJobButton, {

@@ -897,7 +897,7 @@ function App() {
         onExpense={can(role, "expense") && !permitOnly && selectedJob ? () => openExpense(selectedJob.id) : null}
         permitMode={permitOnly}
         onOpenReview={permitOnly && selectedJob ? () => setPermitReview(selectedJob.id) : null}
-        salesMode={salesOnly} quotes={quoteStore.quotes}
+        salesMode={salesOnly} quotes={quoteStore.quotes} leads={leadStore.leads}
         onOpenQuote={can(role, "price") && selectedJob ? (q) => openQuoteForJob(selectedJob, q) : null}
         priceMap={can(role, "price") ? effPriceMap : null}
         onEdit={(id) => { setSelected(null); setForm({ job: store.raw.find((r) => r.id === id), isNew: false }); }} />
