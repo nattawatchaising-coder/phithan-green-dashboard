@@ -1091,6 +1091,10 @@ function SalesCard({ lead, quotes, onOpen, onDragStart, dragging }) {
   const st = salesStageOf(salesStageKey(lead));
   const qs = quotesFor(quotes, "lead", lead.id);
   const q0 = qs[0];
+  /* ไฟล์แบบ/BOQ ที่แนบไว้ตั้งแต่ยังเป็นลูกค้า — ป้ายชุดเดียวกับการ์ดงาน กดดูไฟล์ได้จากบอร์ดเลย
+     (เก็บอยู่ใต้เลขลูกค้า แล้วย้ายไปใต้เลขงานตอนกดแปลง — ดู moveJobFiles) */
+  const flags = window.useJobFileFlag ? window.useJobFileFlag(lead.id) : null;
+  const docJob = { id: lead.id, code: lead.code, name: lead.name };
   const late = sOverdue(lead.nextFollow) && salesStageKey(lead) !== "won" && salesStageKey(lead) !== "lost";
   const val = +lead.expValue || 0;
   return (
@@ -1113,13 +1117,30 @@ function SalesCard({ lead, quotes, onOpen, onDragStart, dragging }) {
           <TypeBadge type={lead.type} />
         </span>
       </div>
+      {/* ป้ายไฟล์แนบ — วางที่เดิมกับการ์ดงาน (เหนือชื่อ) */}
+      {flags && (flags.design || flags.boq) && window.DocChip && (
+        <div style={{ display: "flex", gap: 5, marginBottom: 6, flexWrap: "wrap" }}>
+          {flags.design && <window.DocChip job={docJob} kind="design" label="แบบ" color="#2563EB" soft="#2563EB14" />}
+          {flags.boq && <window.DocChip job={docJob} kind="boq" label="BOQ" color="#0D9488" soft="#0D948814" />}
+        </div>
+      )}
       <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3, marginBottom: 3 }}>{lead.name || "(ไม่ระบุชื่อ)"}</div>
       <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 9, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
         <Icon name="pin" size={11} style={{ verticalAlign: -1 }} /> {lead.province || "—"}
         {lead.source ? " · " + LEAD_SOURCE_TH(lead.source) : ""}
       </div>
+      {/* บรรทัดสเปก — รูปแบบเดียวกับการ์ดงาน (ขนาด · เฟส) จะได้กวาดตาอ่านบอร์ดเดียวกันได้แบบเดียวกัน
+         ของลูกค้ายังเป็น "ขนาดที่คาด" ไม่ใช่ขนาดที่วิศวกรสรุป จำนวนแผงจึงยังไม่มี */}
+      {(+lead.expKwp > 0 || lead.phase) && (
+        <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 9, flexWrap: "wrap", fontSize: 11.5 }}>
+          <span style={{ color: "var(--text-2)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+            {+lead.expKwp > 0 && <React.Fragment><b style={{ color: "var(--text-1)", fontWeight: 700 }}>{lead.expKwp}</b> kWp</React.Fragment>}
+            {+lead.expKwp > 0 && lead.phase && <span style={{ color: "var(--text-3)", margin: "0 5px" }}>·</span>}
+            {lead.phase && (lead.phase + " เฟส")}
+          </span>
+        </div>
+      )}
       <div style={{ display: "flex", gap: 5, flexWrap: "wrap", fontSize: 10.5, color: "var(--text-2)" }}>
-        {lead.expKwp > 0 && <span style={{ background: "var(--surface2)", padding: "3px 8px", borderRadius: 7, fontFamily: "var(--mono)" }}>{lead.expKwp} kWp</span>}
         {val > 0 && <span style={{ background: "var(--primary-soft)", color: "var(--primary-dark)", fontWeight: 800, padding: "3px 8px", borderRadius: 7, fontVariantNumeric: "tabular-nums" }}>฿{fmtBaht(val)}</span>}
         {q0 && (() => { const s = QUOTE_STATUS_BY[q0.status] || QUOTE_STATUS_BY.draft; return (
           <span style={{ background: s.color + "14", border: "1px solid " + s.color + "33", color: s.color, fontWeight: 800, padding: "3px 8px", borderRadius: 7 }}>

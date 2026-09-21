@@ -970,5 +970,6 @@ function KanbanMobile({
 Object.assign(window, {
   KanbanView,
   KanbanCard,
-  KanbanMobile
+  KanbanMobile,
+  DocChip
 });

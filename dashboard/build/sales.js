@@ -1794,6 +1794,12 @@ function SalesCard({
   const st = salesStageOf(salesStageKey(lead));
   const qs = quotesFor(quotes, "lead", lead.id);
   const q0 = qs[0];
+  const flags = window.useJobFileFlag ? window.useJobFileFlag(lead.id) : null;
+  const docJob = {
+    id: lead.id,
+    code: lead.code,
+    name: lead.name
+  };
   const late = sOverdue(lead.nextFollow) && salesStageKey(lead) !== "won" && salesStageKey(lead) !== "lost";
   const val = +lead.expValue || 0;
   return React.createElement("div", {
@@ -1869,7 +1875,26 @@ function SalesCard({
     }
   }, "\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22"), React.createElement(TypeBadge, {
     type: lead.type
-  }))), React.createElement("div", {
+  }))), flags && (flags.design || flags.boq) && window.DocChip && React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 5,
+      marginBottom: 6,
+      flexWrap: "wrap"
+    }
+  }, flags.design && React.createElement(window.DocChip, {
+    job: docJob,
+    kind: "design",
+    label: "\u0E41\u0E1A\u0E1A",
+    color: "#2563EB",
+    soft: "#2563EB14"
+  }), flags.boq && React.createElement(window.DocChip, {
+    job: docJob,
+    kind: "boq",
+    label: "BOQ",
+    color: "#0D9488",
+    soft: "#0D948814"
+  })), React.createElement("div", {
     style: {
       fontSize: 14,
       fontWeight: 700,
@@ -1892,7 +1917,32 @@ function SalesCard({
     style: {
       verticalAlign: -1
     }
-  }), " ", lead.province || "—", lead.source ? " · " + LEAD_SOURCE_TH(lead.source) : ""), React.createElement("div", {
+  }), " ", lead.province || "—", lead.source ? " · " + LEAD_SOURCE_TH(lead.source) : ""), (+lead.expKwp > 0 || lead.phase) && React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 7,
+      marginBottom: 9,
+      flexWrap: "wrap",
+      fontSize: 11.5
+    }
+  }, React.createElement("span", {
+    style: {
+      color: "var(--text-2)",
+      fontWeight: 600,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, +lead.expKwp > 0 && React.createElement(React.Fragment, null, React.createElement("b", {
+    style: {
+      color: "var(--text-1)",
+      fontWeight: 700
+    }
+  }, lead.expKwp), " kWp"), +lead.expKwp > 0 && lead.phase && React.createElement("span", {
+    style: {
+      color: "var(--text-3)",
+      margin: "0 5px"
+    }
+  }, "\xB7"), lead.phase && lead.phase + " เฟส")), React.createElement("div", {
     style: {
       display: "flex",
       gap: 5,
@@ -1900,14 +1950,7 @@ function SalesCard({
       fontSize: 10.5,
       color: "var(--text-2)"
     }
-  }, lead.expKwp > 0 && React.createElement("span", {
-    style: {
-      background: "var(--surface2)",
-      padding: "3px 8px",
-      borderRadius: 7,
-      fontFamily: "var(--mono)"
-    }
-  }, lead.expKwp, " kWp"), val > 0 && React.createElement("span", {
+  }, val > 0 && React.createElement("span", {
     style: {
       background: "var(--primary-soft)",
       color: "var(--primary-dark)",

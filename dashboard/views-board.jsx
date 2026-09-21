@@ -308,4 +308,4 @@ function KanbanMobile({ jobs, onOpen }) {
   );
 }
 
-Object.assign(window, { KanbanView, KanbanCard, KanbanMobile });
+Object.assign(window, { KanbanView, KanbanCard, KanbanMobile, DocChip });
