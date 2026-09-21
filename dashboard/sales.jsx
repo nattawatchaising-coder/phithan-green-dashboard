@@ -279,6 +279,41 @@ function useQuoteStore() {
   return { quotes: quotes || [], upsert, patch, remove, blank: (target, user) => blankQuote(target, user, ref.current || []) };
 }
 
+/* ── หน้ากระดาษของไฟล์ PDF → รูป ──
+   เบราว์เซอร์พิมพ์ไฟล์ PDF รวมกับหน้า HTML ไม่ได้ (คนละเครื่องพิมพ์เอกสารกันคนละตัว)
+   จึงวาดทีละหน้าลง canvas ด้วย pdf.js แล้วเอารูปไปวางเป็นหน้าในชุดเดียวกัน
+   — ลูกค้าได้ใบเสนอราคาพร้อม DATA SHEET เป็นไฟล์เดียวจบ ไม่ต้องสั่งพิมพ์สองรอบแล้วเอามาแนบเอง
+   กว้าง 1240px ≈ A4 ที่ 150dpi อ่านตัวเลขในตารางสเปกออกตอนพิมพ์ · JPEG 0.82 คุมขนาดไฟล์
+   loadPdfJs อยู่ใน views-stock.jsx (หน้าคลังใช้เปิดดู DATA SHEET อยู่แล้ว) โหลดจาก CDN ตอนเรียกครั้งแรก */
+const QUOTE_SHEET_MAXPG = 8;
+function quotePdfPages(dataUrl, maxPages) {
+  const lim = maxPages || QUOTE_SHEET_MAXPG;
+  if (!window.loadPdfJs) return Promise.reject(new Error("no pdfjs"));
+  return window.loadPdfJs()
+    .then((lib) => {
+      const b64 = String(dataUrl).split(",")[1] || "";
+      const bin = atob(b64);
+      const arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      return lib.getDocument({ data: arr }).promise;
+    })
+    .then((pdf) => {
+      const out = [];
+      const one = (n) => {
+        if (n > Math.min(pdf.numPages, lim)) return Promise.resolve(out);
+        return pdf.getPage(n).then((page) => {
+          const v1 = page.getViewport({ scale: 1 });
+          const vp = page.getViewport({ scale: Math.min(2.2, 1240 / v1.width) });
+          const canvas = document.createElement("canvas");
+          canvas.width = vp.width; canvas.height = vp.height;
+          return page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise
+            .then(() => { out.push(canvas.toDataURL("image/jpeg", 0.82)); return one(n + 1); });
+        });
+      };
+      return one(1).then(() => ({ pages: out, total: pdf.numPages }));
+    });
+}
+
 /* ── ใบใหม่ที่ตั้งต้นจากใบเก่า ──
    เสนอรอบสองมักแก้จากรอบแรกไม่กี่จุด (ลดราคา · เปลี่ยนรุ่นแผง · แก้งวดจ่าย)
    ถ้าเปิดใบเปล่าทุกครั้ง เซลล์ต้องพิมพ์รายการกับเงื่อนไขใหม่ทั้งใบ แล้วมักตกหล่นไม่ตรงกับรอบก่อน
@@ -456,15 +491,25 @@ function quoteHTML(q, lang, sheets) {
   const shPdfs = sh.filter((x) => x.kind !== "image");
   /* ใบเสนอราคาต้องจบในตัวมันเอง — DATA SHEET เป็นเอกสารแนบ ไปขึ้นแผ่นใหม่ต่อท้าย
      ไม่แทรกรายการไว้กลางใบให้ลูกค้าสับสนว่าเป็นของที่ต้องจ่ายเพิ่มหรือเปล่า */
+  /* หน้ากระดาษของเอกสารแนบ — ถ้าแปลงหน้า PDF มาเป็นรูปได้แล้ว (pages) ก็พิมพ์ไปในชุดเดียวกันเลย
+     แปลงไม่ได้ (ต่อเน็ตไม่ได้ / ไฟล์เสีย) ค่อยขึ้นเป็นบรรทัดบอกว่าต้องพิมพ์แยก จะได้ไม่เงียบหาย */
+  const pagesOf = (x) => (x.pages && x.pages.length ? x.pages : (x.kind === "image" ? [x.dataUrl] : []));
   const shPages = sh.length
     ? '<div class="shpg"><h3>เอกสารแนบ · DATA SHEET</h3>' +
       '<div class="shsub">แนบท้ายใบเสนอราคาเลขที่ ' + sEsc(q.no) + " · " + sEsc(c.name || "") + "</div><ul class=\"shls\">" +
-      sh.map((x) => "<li>" + sEsc(x.label) + (x.kind === "image" ? "" : ' <span class="pdf">ไฟล์ PDF · พิมพ์แยกจากไฟล์ต้นฉบับ</span>') + "</li>").join("") +
+      sh.map((x) => {
+        const pg = pagesOf(x);
+        const more = x.total && x.total > pg.length ? " (จาก " + x.total + " หน้า)" : "";
+        return "<li>" + sEsc(x.label) +
+          (pg.length ? ' <span class="pdf">แนบมาด้วย ' + pg.length + " หน้า" + more + "</span>"
+                     : ' <span class="pdf">ไฟล์ PDF · พิมพ์แยกจากไฟล์ต้นฉบับ</span>') + "</li>";
+      }).join("") +
       "</ul></div>" +
-      shImgs.map((x) => (
-        '<div class="shpg"><h3>DATA SHEET — ' + sEsc(x.label) + "</h3>" +
-        '<img class="shimg" src="' + x.dataUrl + '" alt="" /></div>'
-      )).join("")
+      sh.map((x) => pagesOf(x).map((src, i, all) => (
+        '<div class="shpg"><h3>DATA SHEET — ' + sEsc(x.label) +
+        (all.length > 1 ? " (หน้า " + (i + 1) + "/" + all.length + ")" : "") + "</h3>" +
+        '<img class="shimg" src="' + src + '" alt="" /></div>'
+      )).join("")).join("")
     : "";
   const money = (label, val, big) =>
     '<tr class="' + (big ? "big" : "") + '"><td>' + label + '</td><td class="r">' + sBaht(val) + " บาท</td></tr>";
@@ -515,7 +560,7 @@ function quoteHTML(q, lang, sheets) {
     ".shpg .shsub{font-size:11px;color:#6b7280;margin:-4px 0 10px}" +
     ".shls{margin:0;padding-left:18px}.shls li{margin-bottom:4px}" +
     ".shls .pdf{color:#6b7280;font-size:10.5px}" +
-    ".shimg{width:100%;height:auto;border:1px solid #e5e7eb;border-radius:6px}" +
+    ".shimg{width:100%;height:auto;max-height:248mm;object-fit:contain;border:1px solid #e5e7eb;border-radius:6px}" +
     ".sum{margin-top:12px;margin-left:auto;width:290px}" +
     ".sum td{border:0;padding:4px 8px}.sum .big td{border-top:2px solid #0A4D68;font-weight:700;font-size:14px;color:#0A4D68;padding-top:8px}" +
     ".blk{margin-top:14px;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;break-inside:avoid}" +
@@ -681,6 +726,23 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
   }, [sheetKey]);
   /* ข้อความที่ใช้เดาว่าใบนี้พูดถึงรุ่นไหนบ้าง — ชื่อกับรายละเอียดของทุกรายการรวมกัน */
   const sheetHint = (q.items || []).map((it) => (it.name || "") + " " + (it.detail || "")).join(" ");
+
+  /* ── เปิดเอกสาร ──
+     แปลงหน้า PDF ของ DATA SHEET เป็นรูปก่อน (ใช้เวลาหลักวินาที) แล้วค่อยประกอบเป็นชุดเดียว
+     ทำตอนกดดูเท่านั้น ไม่ทำตอนติ๊กเลือก — ติ๊กเล่นไปมาแล้วเครื่องจะหน่วงทุกครั้งโดยไม่ได้ใช้ */
+  const [repBusy, setRepBusy] = React.useState(false);
+  const openDoc = () => {
+    if (!sheetDocs.length) { setRep(quoteHTML(q, qLang, [])); return; }
+    setRepBusy(true);
+    Promise.all(sheetDocs.map((sd) => (sd.kind === "image"
+      ? Promise.resolve(Object.assign({}, sd, { pages: [sd.dataUrl], total: 1 }))
+      : quotePdfPages(sd.dataUrl)
+          .then((r) => Object.assign({}, sd, { pages: r.pages, total: r.total }))
+          .catch(() => Object.assign({}, sd, { pages: [] })))))
+      .then((list) => { setRep(quoteHTML(q, qLang, list)); })
+      .catch(() => { setRep(quoteHTML(q, qLang, sheetDocs)); })
+      .then(() => setRepBusy(false));
+  };
   const pickQLang = (id) => { setQLang(id); if (window.pgSetLang) window.pgSetLang(id); };
   const T = quoteTotals(q);
   const set = (k, v) => setQ((p) => Object.assign({}, p, { [k]: v }));
@@ -987,8 +1049,8 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
                 <window.LangPick value={qLang} onChange={pickQLang} />
               </span>
             )}
-            <button onClick={() => setRep(quoteHTML(q, qLang, sheetDocs))} style={qBtn()}>
-              <Icon name="file" size={15} /> ดู / ออก PDF
+            <button onClick={openDoc} disabled={repBusy} style={qBtn()}>
+              <Icon name="file" size={15} /> {repBusy ? "กำลังเตรียมเอกสารแนบ…" : "ดู / ออก PDF"}
             </button>
             {onDelete && (
               <button onClick={() => window.askConfirm({ title: "ลบใบเสนอราคา " + q.no + " ?", body: "ลบแล้วเอากลับมาไม่ได้", ok: "ลบเลย" })
@@ -1710,7 +1772,7 @@ Object.assign(window, {
   LEAD_SOURCES, LEAD_SOURCE_TH, CONTACT_WAYS, sOverdue, sBaht,
   QUOTE_STATUS, QUOTE_STATUS_BY, QUOTE_TERMS_DEF, QUOTE_WARRANTY_DEF, quoteTermSplit,
   blankQuote, quoteFrom, quoteTotals, quoteNo, quotesFor, quotesOfJob, quotesOfLead,
-  quoteDetailLines, quoteHTML, useQuoteStore,
+  quoteDetailLines, quotePdfPages, quoteHTML, useQuoteStore,
   quoteSpec, quoteHasSpec, quoteSpecName, quoteSpecDetail,
   QuoteEditor, QuoteSheetPick, SalesCard, SalesBoardView, SalesKpiView, SalesOverview, SalesJobSummary, SalesQuoteList,
 });
