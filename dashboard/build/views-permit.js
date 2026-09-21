@@ -30,17 +30,27 @@ const PERMIT_TABS = PERMIT_COLS.filter(c => c.key !== "todo").map(c => ({
   th: c.th
 }));
 const PERMIT_MOVES = {
-  sent: ["filing", "rejected"],
+  todo: ["sent", "filing", "approved"],
+  sent: ["filing", "rejected", "todo"],
   filing: ["approved", "rejected", "sent"],
   rejected: ["filing", "sent"],
   approved: ["filing"]
 };
 const PERMIT_BACK = {
+  sent: "todo",
   filing: "sent",
   approved: "filing",
   rejected: "sent"
 };
 const PERMIT_BACK_CLEAR = {
+  todo: {
+    status: null,
+    submittedAt: null,
+    filedDate: null,
+    inspectDate: null,
+    approvedDate: null,
+    rejectReason: null
+  },
   sent: {
     filedDate: null,
     inspectDate: null,
@@ -52,9 +62,27 @@ const PERMIT_BACK_CLEAR = {
   }
 };
 const today10 = () => new Date().toISOString().slice(0, 10);
+function permitMovePatch(from, to, p, currentUser) {
+  const f = {
+    status: to,
+    byAdmin: currentUser && currentUser.name || "",
+    adminId: currentUser && currentUser.id || null,
+    statusAt: new Date().toISOString()
+  };
+  if (PERMIT_BACK[from] === to) return Object.assign(f, PERMIT_BACK_CLEAR[to] || {});
+  if (!p.submittedAt) f.submittedAt = new Date().toISOString();
+  if (to === "filing") {
+    f.rejectReason = null;
+    if (!p.filedDate) f.filedDate = today10();
+  }
+  if (to === "approved") {
+    if (!p.approvedDate) f.approvedDate = today10();
+  }
+  return f;
+}
 function permitColOf(j) {
   const st = j.permit && j.permit.status;
-  return st ? st : "todo";
+  return st && PERMIT_COLS.some(c => c.key === st) ? st : "todo";
 }
 function PermitCard({
   job,
@@ -241,20 +269,20 @@ function PermitQueueView({
     if (!q) return jobs;
     return jobs.filter(j => ((j.name || "") + " " + (j.code || "") + " " + (j.province || "") + " " + ((j.permit || {}).reqNo || "") + " " + ((j.permit || {}).ca || "")).toLowerCase().includes(q));
   }, [jobs, search]);
-  const withPermit = React.useMemo(() => pool.filter(j => j.permit && j.permit.status), [pool]);
-  const notStarted = React.useMemo(() => pool.filter(j => j.stage === "done" && !(j.permit && j.permit.status)), [pool]);
+  const withPermit = React.useMemo(() => pool.filter(j => permitColOf(j) !== "todo"), [pool]);
+  const notStarted = React.useMemo(() => pool.filter(j => j.stage === "done" && permitColOf(j) === "todo"), [pool]);
   const counts = React.useMemo(() => {
     const c = {
       todo: notStarted.length
     };
     withPermit.forEach(j => {
-      const k = j.permit.status;
+      const k = permitColOf(j);
       c[k] = (c[k] || 0) + 1;
     });
     return c;
   }, [withPermit, notStarted]);
   const byCol = React.useCallback(key => {
-    const arr = key === "todo" ? notStarted.slice() : withPermit.filter(j => j.permit.status === key);
+    const arr = key === "todo" ? notStarted.slice() : withPermit.filter(j => permitColOf(j) === key);
     return arr.sort((a, b) => String((b.permit || {}).submittedAt || (b.permit || {}).updatedAt || b.code || "").localeCompare(String((a.permit || {}).submittedAt || (a.permit || {}).updatedAt || a.code || "")));
   }, [withPermit, notStarted]);
   const shown = React.useMemo(() => byCol(tab), [byCol, tab]);
@@ -266,29 +294,13 @@ function PermitQueueView({
     setOver(null);
     if (!j) return;
     const p = j.permit || {};
-    if (!canDrop(p.status, to)) return;
+    const from = permitColOf(j);
+    if (!canDrop(from, to)) return;
     if (to === "rejected") {
       openReview(j.id);
       return;
     }
-    const back = PERMIT_BACK[p.status] === to;
-    const extra = {
-      byAdmin: currentUser && currentUser.name || "",
-      adminId: currentUser && currentUser.id || null,
-      statusAt: new Date().toISOString()
-    };
-    if (back) Object.assign(extra, PERMIT_BACK_CLEAR[to] || {});else {
-      if (to === "filing") {
-        extra.rejectReason = null;
-        if (!p.filedDate) extra.filedDate = today10();
-      }
-      if (to === "approved") {
-        if (!p.approvedDate) extra.approvedDate = today10();
-      }
-    }
-    onPatchPermit(j.id, Object.assign({
-      status: to
-    }, extra));
+    onPatchPermit(j.id, permitMovePatch(from, to, p, currentUser));
   };
   const cardOpen = j => {
     onOpenJob && onOpenJob(j.id);
@@ -379,6 +391,10 @@ function PermitQueueView({
         minWidth: 0
       }
     }, "\u0E25\u0E32\u0E01\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E02\u0E49\u0E32\u0E21\u0E04\u0E2D\u0E25\u0E31\u0E21\u0E19\u0E4C\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E16\u0E32\u0E19\u0E30 \xB7 \u0E25\u0E32\u0E01\u0E44\u0E1B \u201C\u0E15\u0E35\u0E01\u0E25\u0E31\u0E1A\u201D \u0E08\u0E30\u0E40\u0E1B\u0E34\u0E14\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E43\u0E2B\u0E49\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E2B\u0E15\u0E38\u0E1C\u0E25\u0E01\u0E48\u0E2D\u0E19"), modeSwitch), React.createElement("div", {
+      onDragEnd: () => {
+        setDrag(null);
+        setOver(null);
+      },
       style: {
         display: "flex",
         gap: 14,
@@ -390,7 +406,7 @@ function PermitQueueView({
     }, PERMIT_COLS.map(c => {
       const col = byCol(c.key);
       const dragging = drag ? jobs.find(x => x.id === drag) || null : null;
-      const ok = dragging ? canDrop((dragging.permit || {}).status, c.key) : false;
+      const ok = dragging ? canDrop(permitColOf(dragging), c.key) : false;
       const isOver = over === c.key && ok;
       return React.createElement("div", {
         key: c.key,
@@ -1712,5 +1728,6 @@ Object.assign(window, {
   permitReportHTML,
   PermitCard,
   PERMIT_COLS,
-  PERMIT_BACK
+  PERMIT_BACK,
+  permitMovePatch
 });

@@ -678,6 +678,27 @@ function App() {
     setView("leads"); setLeadMode("list"); setLeadNew(Date.now());
   }, []);
 
+  /* ── เปิดใบงานขออนุญาตโดยตรง ──
+     งานเก่า/งานที่รับช่วงต่อติดตั้งเสร็จไปแล้ว ไม่เคยเดินผ่านบอร์ดขายและบอร์ดหน้างาน
+     แต่ยังต้องเดินเรื่องการไฟฟ้า — ถ้าเปิดงานแบบปกติจะไปโผล่ขั้น "ออกแบบ"
+     แล้วต้องลากผ่านทุกคอลัมน์กว่าจะถึงช่วงเอกสาร จึงเปิดที่ขั้นสุดท้ายให้เลย
+     (ขั้นก่อนหน้าประทับว่าเสร็จแต่ไม่ใส่วันที่ปลอม — ไม่มีใครรู้ว่าทำวันไหนจริง) */
+  const newPermitJob = React.useCallback(() => {
+    if (!can(role, "addJob")) { alert("คุณไม่มีสิทธิ์สร้างงาน"); return; }
+    const stages = window.SF.STAGES;
+    const last = stages.length - 1;
+    const rec = Object.assign(store.blank(), {
+      stage: stages[last].key,
+      hist: stages.map((sg, i) => ({
+        key: sg.key, status: i < last ? "done" : "current",
+        date: i === last ? window.SF.TODAY : null,
+        at: i === last ? new Date().toISOString() : null,
+        recorded: i === last, blocked: false,
+      })),
+    });
+    setForm({ job: rec, isNew: true });
+  }, [role, store]);
+
   const openExpense = React.useCallback((jobId) => {
     setSelected(null);
     setEcFocus({ jobId: jobId || null, at: Date.now() });
@@ -808,6 +829,7 @@ function App() {
               /* กดการ์ดขาย = เปิดใบลูกค้าทับบอร์ดเลย จะได้ไม่เสียตำแหน่งที่ไล่ดูอยู่ */
               onOpenLead={(l) => setBoardLead(l.id)}
               onNewLead={can(role, "leads") ? newLead : null}
+              onNewPermitJob={can(role, "addJob") ? newPermitJob : null}
               onMoveStage={(id, s) => store.setStage(id, s)}
               onPatchLead={(id, f) => leadStore.patch(id, f)}
               onPatchPermit={patchPermit}

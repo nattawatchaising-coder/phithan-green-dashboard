@@ -20,24 +20,49 @@ const PERMIT_TABS = PERMIT_COLS.filter((c) => c.key !== "todo").map((c) => ({ ke
    ตีกลับไม่ให้ลากปิดจบ เพราะต้องพิมพ์เหตุผลก่อน — ลากไปแล้วจะเปิดการ์ดให้พิมพ์แทน */
 /* เดินหน้าได้ตามลำดับ และ "ถอยกลับ" ได้ทุกขั้น เพราะกดพลาดเป็นเรื่องปกติ
    (เช่นเผลอกดอนุมัติทั้งที่การไฟฟ้ายังไม่อนุมัติ) ถ้าถอยไม่ได้จะต้องไปแก้ที่ฐานข้อมูล */
+/* "ยังไม่เริ่มเก็บข้อมูล" ลากออกได้ด้วย — งานเก่าหรืองานที่รับช่วงต่อติดตั้งเสร็จไปแล้ว
+   บางใบยื่นการไฟฟ้าไปแล้วหรืออนุมัติแล้วด้วยซ้ำ แต่ไม่เคยเดินผ่านหน้าเก็บข้อมูลของช่าง
+   เดิมการ์ดกองนี้ลากไม่ได้เลย = ต้องไปแก้ที่ฐานข้อมูล ซึ่งฝ่ายขออนุญาตทำเองไม่ได้ */
 const PERMIT_MOVES = {
-  sent:     ["filing", "rejected"],
+  todo:     ["sent", "filing", "approved"],
+  sent:     ["filing", "rejected", "todo"],
   filing:   ["approved", "rejected", "sent"],
   rejected: ["filing", "sent"],
   approved: ["filing"],
 };
 /* ถอยกลับ 1 ขั้น = ขั้นก่อนหน้าในสายงานจริง (ตีกลับถือว่าอยู่ระดับเดียวกับ "รอรับ") */
-const PERMIT_BACK = { filing: "sent", approved: "filing", rejected: "sent" };
-/* ถอยแล้วต้องล้างตราประทับของขั้นที่ถอยออกมา ไม่งั้นวันที่จะค้างและอ่านผิด */
+const PERMIT_BACK = { sent: "todo", filing: "sent", approved: "filing", rejected: "sent" };
+/* ถอยแล้วต้องล้างตราประทับของขั้นที่ถอยออกมา ไม่งั้นวันที่จะค้างและอ่านผิด
+   ถอยสุดทางถึง "ยังไม่เริ่ม" = ไม่มีสถานะเลย (permitColOf อ่านว่า todo) จึงต้องล้าง status ด้วย */
 const PERMIT_BACK_CLEAR = {
+  todo:   { status: null, submittedAt: null, filedDate: null, inspectDate: null, approvedDate: null, rejectReason: null },
   sent:   { filedDate: null, inspectDate: null, approvedDate: null, rejectReason: null },
   filing: { approvedDate: null },
 };
 const today10 = () => new Date().toISOString().slice(0, 10);
 
+/* ตราประทับตอนเดินสถานะ — บอร์ดขออนุญาตกับบอร์ดรวมใช้ก้อนเดียวกัน
+   เดิมคัดลอกไว้สองที่ พอเพิ่มเส้นทางใหม่ทีต้องไล่แก้สองแห่ง แล้วลืมแห่งหนึ่งทุกที
+   from = คอลัมน์ต้นทาง (todo ได้) · p = ใบขออนุญาตเดิมของงาน */
+function permitMovePatch(from, to, p, currentUser) {
+  const f = { status: to, byAdmin: (currentUser && currentUser.name) || "",
+    adminId: (currentUser && currentUser.id) || null, statusAt: new Date().toISOString() };
+  if (PERMIT_BACK[from] === to) return Object.assign(f, PERMIT_BACK_CLEAR[to] || {});
+  /* งานที่ช่างไม่ได้กดส่งเข้ามาเอง จะไม่มีวันที่ส่ง — ประทับให้ตอนแอดมินดึงเข้าคิว
+     ไม่งั้นการ์ดเรียงมั่ว (เรียงตามวันส่ง) และตัวนับ "ค้างกี่วัน" จะนับจากศูนย์ */
+  if (!p.submittedAt) f.submittedAt = new Date().toISOString();
+  if (to === "filing")   { f.rejectReason = null; if (!p.filedDate) f.filedDate = today10(); }
+  if (to === "approved") { if (!p.approvedDate) f.approvedDate = today10(); }
+  return f;
+}
+
+/* สถานะในข้อมูล → คอลัมน์บนบอร์ด
+   "draft" = ช่างเปิดฟอร์มค้างไว้ยังไม่กดส่ง ซึ่งไม่ใช่คอลัมน์บนบอร์ด
+   ต้องนับเป็น "ยังไม่เริ่ม" เหมือนงานที่ไม่มีใบเลย ไม่งั้นการ์ดไปกองอยู่คอลัมน์แรก
+   แต่ลากไม่ได้และหายไปจากคิวของฝ่ายขออนุญาต เพราะไม่มีเส้นทางของ draft อยู่ที่ไหนเลย */
 function permitColOf(j) {
   const st = j.permit && j.permit.status;
-  return st ? st : "todo";
+  return st && PERMIT_COLS.some((c) => c.key === st) ? st : "todo";
 }
 
 /* การ์ดบนบอร์ด — ข้อมูลที่ฝ่ายขออนุญาตต้องใช้ตัดสินใจ ไม่ใช่สเปคงานติดตั้ง */
@@ -106,24 +131,26 @@ function PermitQueueView({ jobs, search, stock, onOpenJob, onOpenReview, onPatch
       ((j.permit || {}).reqNo || "") + " " + ((j.permit || {}).ca || "")).toLowerCase().includes(q));
   }, [jobs, search]);
 
-  /* งานที่มีชุดข้อมูลขออนุญาตแล้วเท่านั้น — งานที่ช่างยังไม่แตะจะไม่มารกคิว */
+  /* งานที่เข้าคิวฝ่ายขออนุญาตแล้วเท่านั้น — งานที่ช่างยังไม่กดส่งจะไม่มารกคิว
+     เทียบด้วย permitColOf ไม่ใช่ status ดิบ ๆ ไม่งั้นใบที่ค้างเป็น draft หายไปจากบอร์ดทั้งใบ
+     (มี status เลยไม่เข้าพวก "ยังไม่เริ่ม" แต่ status ไม่ตรงคอลัมน์ไหนเลย) */
   const withPermit = React.useMemo(
-    () => pool.filter((j) => j.permit && j.permit.status),
+    () => pool.filter((j) => permitColOf(j) !== "todo"),
     [pool]
   );
   /* งานติดตั้งที่เสร็จแล้วแต่ยังไม่มีใครเริ่มเก็บข้อมูลขออนุญาต — เตือนไว้ไม่ให้ตกหล่น */
   const notStarted = React.useMemo(
-    () => pool.filter((j) => j.stage === "done" && !(j.permit && j.permit.status)),
+    () => pool.filter((j) => j.stage === "done" && permitColOf(j) === "todo"),
     [pool]
   );
   const counts = React.useMemo(() => {
     const c = { todo: notStarted.length };
-    withPermit.forEach((j) => { const k = j.permit.status; c[k] = (c[k] || 0) + 1; });
+    withPermit.forEach((j) => { const k = permitColOf(j); c[k] = (c[k] || 0) + 1; });
     return c;
   }, [withPermit, notStarted]);
 
   const byCol = React.useCallback((key) => {
-    const arr = key === "todo" ? notStarted.slice() : withPermit.filter((j) => j.permit.status === key);
+    const arr = key === "todo" ? notStarted.slice() : withPermit.filter((j) => permitColOf(j) === key);
     return arr.sort((a, b) => String((b.permit || {}).submittedAt || (b.permit || {}).updatedAt || b.code || "")
       .localeCompare(String((a.permit || {}).submittedAt || (a.permit || {}).updatedAt || a.code || "")));
   }, [withPermit, notStarted]);
@@ -133,22 +160,16 @@ function PermitQueueView({ jobs, search, stock, onOpenJob, onOpenReview, onPatch
 
   /* ลากการ์ดข้ามคอลัมน์ = เดินสถานะ · ประทับวันให้อัตโนมัติเหมือนกดปุ่มในการ์ด */
   const canDrop = (from, to) => from !== to && (PERMIT_MOVES[from] || []).indexOf(to) !== -1;
+  /* ลากได้แม้ยังไม่มีสถานะ — ใบไม่มีสถานะคือคอลัมน์ todo */
   const onDrop = (to) => {
     const j = drag && jobs.find((x) => x.id === drag);
     setDrag(null); setOver(null);
     if (!j) return;
     const p = j.permit || {};
-    if (!canDrop(p.status, to)) return;
+    const from = permitColOf(j);
+    if (!canDrop(from, to)) return;
     if (to === "rejected") { openReview(j.id); return; }   // ตีกลับต้องมีเหตุผล — เปิดการ์ดให้พิมพ์
-    const back = PERMIT_BACK[p.status] === to;
-    const extra = { byAdmin: (currentUser && currentUser.name) || "", adminId: (currentUser && currentUser.id) || null,
-      statusAt: new Date().toISOString() };
-    if (back) Object.assign(extra, PERMIT_BACK_CLEAR[to] || {});
-    else {
-      if (to === "filing")   { extra.rejectReason = null; if (!p.filedDate) extra.filedDate = today10(); }
-      if (to === "approved") { if (!p.approvedDate) extra.approvedDate = today10(); }
-    }
-    onPatchPermit(j.id, Object.assign({ status: to }, extra));
+    onPatchPermit(j.id, permitMovePatch(from, to, p, currentUser));
   };
   /* กดการ์ด = เปิด "ใบงาน" ก่อนเสมอ (เหมือนหน้าฐานข้อมูล) ให้เห็นภาพรวมและขั้นตอน
      แล้วค่อยกดเข้าชุดข้อมูลขออนุญาตจากในใบงาน — เดิมกระโดดเข้าชุดข้อมูลเลย เห็นแต่ฟอร์ม */
@@ -190,11 +211,12 @@ function PermitQueueView({ jobs, search, stock, onOpenJob, onOpenReview, onPatch
           </span>
           {modeSwitch}
         </div>
-        <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 12, minHeight: 0, flex: 1 }}>
+        <div onDragEnd={() => { setDrag(null); setOver(null); }}
+          style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 12, minHeight: 0, flex: 1 }}>
           {PERMIT_COLS.map((c) => {
             const col = byCol(c.key);
             const dragging = drag ? (jobs.find((x) => x.id === drag) || null) : null;
-            const ok = dragging ? canDrop((dragging.permit || {}).status, c.key) : false;
+            const ok = dragging ? canDrop(permitColOf(dragging), c.key) : false;
             const isOver = over === c.key && ok;
             return (
               <div key={c.key}
@@ -906,4 +928,4 @@ function permitReportHTML(job, photos, docs, sheets) {
     "</section>" + photoPages + docPages + sheetPages + "</body></html>";
 }
 
-Object.assign(window, { PermitQueueView, PermitReview, permitReportHTML, PermitCard, PERMIT_COLS, PERMIT_BACK });
+Object.assign(window, { PermitQueueView, PermitReview, permitReportHTML, PermitCard, PERMIT_COLS, PERMIT_BACK, permitMovePatch });

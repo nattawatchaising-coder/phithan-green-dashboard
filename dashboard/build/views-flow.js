@@ -119,6 +119,7 @@ function FlGroup({
   collapsed,
   onToggle,
   onAdd,
+  addLabel,
   children
 }) {
   if (collapsed) {
@@ -218,7 +219,7 @@ function FlGroup({
       e.stopPropagation();
       onAdd();
     },
-    title: "เพิ่มลูกค้าใหม่ในช่วง " + g.th,
+    title: "เพิ่ม" + (addLabel || "ลูกค้าใหม่") + "ในช่วง " + g.th,
     style: {
       display: "inline-flex",
       alignItems: "center",
@@ -241,7 +242,7 @@ function FlGroup({
     size: 13,
     color: g.color,
     sw: 2.6
-  }), " \u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E43\u0E2B\u0E21\u0E48"), React.createElement("span", {
+  }), " ", addLabel || "ลูกค้าใหม่"), React.createElement("span", {
     style: {
       fontSize: 11,
       color: "var(--text-3)",
@@ -326,6 +327,7 @@ function FlowBoardView({
   onOpenJob,
   onOpenLead,
   onNewLead,
+  onNewPermitJob,
   onMoveStage,
   onPatchLead,
   onPatchPermit,
@@ -441,24 +443,7 @@ function FlowBoardView({
       if (onOpenReview) onOpenReview(rec.id);
       return;
     }
-    const back = PERMIT_BACK[from] === key;
-    const extra = {
-      byAdmin: currentUser && currentUser.name || "",
-      adminId: currentUser && currentUser.id || null,
-      statusAt: new Date().toISOString()
-    };
-    if (back) Object.assign(extra, PERMIT_BACK_CLEAR[key] || {});else {
-      if (key === "filing") {
-        extra.rejectReason = null;
-        if (!p.filedDate) extra.filedDate = new Date().toISOString().slice(0, 10);
-      }
-      if (key === "approved") {
-        if (!p.approvedDate) extra.approvedDate = new Date().toISOString().slice(0, 10);
-      }
-    }
-    onPatchPermit(rec.id, Object.assign({
-      status: key
-    }, extra));
+    onPatchPermit(rec.id, permitMovePatch(from, key, p, currentUser));
   };
   const startDrag = (e, rec, g) => {
     setDrag({
@@ -520,6 +505,7 @@ function FlowBoardView({
       flexShrink: 0
     }
   }, "\u0E25\u0E32\u0E01\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E02\u0E49\u0E32\u0E21\u0E04\u0E2D\u0E25\u0E31\u0E21\u0E19\u0E4C\u0E44\u0E14\u0E49\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E20\u0E32\u0E22\u0E43\u0E19\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E19 \xB7 \u0E01\u0E14\u0E2B\u0E31\u0E27\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E1E\u0E31\u0E1A\u0E40\u0E01\u0E47\u0E1A\u0E0A\u0E48\u0E27\u0E07\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E40\u0E01\u0E35\u0E48\u0E22\u0E27\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19\u0E02\u0E2D\u0E07\u0E04\u0E38\u0E13"), React.createElement("div", {
+    onDragEnd: clearDrag,
     style: {
       display: "flex",
       gap: 18,
@@ -535,7 +521,8 @@ function FlowBoardView({
     count: groupCount(g),
     collapsed: !!collapsed[g.key],
     onToggle: () => toggle(g.key),
-    onAdd: g.kind === "lead" && onNewLead ? onNewLead : null
+    onAdd: g.kind === "lead" ? onNewLead || null : g.kind === "permit" ? onNewPermitJob || null : null,
+    addLabel: g.kind === "permit" ? "งานขออนุญาต" : "ลูกค้าใหม่"
   }, g.cols.map(c => {
     const cards = cardsOf(g, c.key);
     const ok = canDrop(g, c.key);

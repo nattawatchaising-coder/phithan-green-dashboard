@@ -878,6 +878,29 @@ function App() {
     setLeadMode("list");
     setLeadNew(Date.now());
   }, []);
+  const newPermitJob = React.useCallback(() => {
+    if (!can(role, "addJob")) {
+      alert("คุณไม่มีสิทธิ์สร้างงาน");
+      return;
+    }
+    const stages = window.SF.STAGES;
+    const last = stages.length - 1;
+    const rec = Object.assign(store.blank(), {
+      stage: stages[last].key,
+      hist: stages.map((sg, i) => ({
+        key: sg.key,
+        status: i < last ? "done" : "current",
+        date: i === last ? window.SF.TODAY : null,
+        at: i === last ? new Date().toISOString() : null,
+        recorded: i === last,
+        blocked: false
+      }))
+    });
+    setForm({
+      job: rec,
+      isNew: true
+    });
+  }, [role, store]);
   const openExpense = React.useCallback(jobId => {
     setSelected(null);
     setEcFocus({
@@ -1135,6 +1158,7 @@ function App() {
     onOpenJob: openJob,
     onOpenLead: l => setBoardLead(l.id),
     onNewLead: can(role, "leads") ? newLead : null,
+    onNewPermitJob: can(role, "addJob") ? newPermitJob : null,
     onMoveStage: (id, s) => store.setStage(id, s),
     onPatchLead: (id, f) => leadStore.patch(id, f),
     onPatchPermit: patchPermit,

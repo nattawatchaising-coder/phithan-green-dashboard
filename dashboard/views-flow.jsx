@@ -54,7 +54,7 @@ function FlCol({ col, count, isOver, dimmed, sub, onDragOver, onDragLeave, onDro
 
 /* ── แถบหัวช่วง + โหมดพับ ──
    พับแล้วเหลือแท่งแคบแนวตั้ง ยังบอกชื่อช่วงกับจำนวนใบอยู่ จะได้รู้ว่าพับอะไรไว้ */
-function FlGroup({ g, count, collapsed, onToggle, onAdd, children }) {
+function FlGroup({ g, count, collapsed, onToggle, onAdd, addLabel, children }) {
   if (collapsed) {
     return (
       <button onClick={onToggle} title={"กางช่วง " + g.th}
@@ -84,11 +84,11 @@ function FlGroup({ g, count, collapsed, onToggle, onAdd, children }) {
             วางชิดชื่อช่วง ไม่ใช่ปลายขวา เพราะแถบหัวช่วงกว้างเท่าทุกคอลัมน์รวมกัน
             ปุ่มที่ปลายขวาจะเลื่อนพ้นจอไปตั้งแต่ยังไม่ทันเห็น */}
         {onAdd && (
-          <button onClick={(e) => { e.stopPropagation(); onAdd(); }} title={"เพิ่มลูกค้าใหม่ในช่วง " + g.th}
+          <button onClick={(e) => { e.stopPropagation(); onAdd(); }} title={"เพิ่ม" + (addLabel || "ลูกค้าใหม่") + "ในช่วง " + g.th}
             style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 24, padding: "0 10px",
               borderRadius: 8, border: "1px solid " + g.color + "55", background: g.color + "14", color: g.color,
               cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, flexShrink: 0, whiteSpace: "nowrap" }}>
-            <Icon name="plus" size={13} color={g.color} sw={2.6} /> ลูกค้าใหม่
+            <Icon name="plus" size={13} color={g.color} sw={2.6} /> {addLabel || "ลูกค้าใหม่"}
           </button>
         )}
         <span style={{ fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{g.hint}</span>
@@ -129,7 +129,7 @@ const flSumValue = (leadsArr) => {
 };
 
 function FlowBoardView({ jobs, leads, quotes, search, role, currentUser,
-  onOpenJob, onOpenLead, onNewLead, onMoveStage, onPatchLead, onPatchPermit, onOpenReview }) {
+  onOpenJob, onOpenLead, onNewLead, onNewPermitJob, onMoveStage, onPatchLead, onPatchPermit, onOpenReview }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const groups = React.useMemo(() => flGroups(role), [role]);
@@ -234,15 +234,7 @@ function FlowBoardView({ jobs, leads, quotes, search, role, currentUser,
     const from = permitColOf(rec);
     if (from === key || (PERMIT_MOVES[from] || []).indexOf(key) === -1) return;
     if (key === "rejected") { if (onOpenReview) onOpenReview(rec.id); return; }   // ตีกลับต้องมีเหตุผลก่อน
-    const back = PERMIT_BACK[from] === key;
-    const extra = { byAdmin: (currentUser && currentUser.name) || "", adminId: (currentUser && currentUser.id) || null,
-      statusAt: new Date().toISOString() };
-    if (back) Object.assign(extra, PERMIT_BACK_CLEAR[key] || {});
-    else {
-      if (key === "filing") { extra.rejectReason = null; if (!p.filedDate) extra.filedDate = new Date().toISOString().slice(0, 10); }
-      if (key === "approved") { if (!p.approvedDate) extra.approvedDate = new Date().toISOString().slice(0, 10); }
-    }
-    onPatchPermit(rec.id, Object.assign({ status: key }, extra));
+    onPatchPermit(rec.id, permitMovePatch(from, key, p, currentUser));
   };
 
   const startDrag = (e, rec, g) => { setDrag({ id: rec.id, rec: rec, group: g.key }); e.dataTransfer.effectAllowed = "move"; };
@@ -271,10 +263,17 @@ function FlowBoardView({ jobs, leads, quotes, search, role, currentUser,
       <div style={{ fontSize: 12, color: "var(--text-3)", flexShrink: 0 }}>
         ลากการ์ดข้ามคอลัมน์ได้เฉพาะภายในช่วงเดียวกัน · กดหัวช่วงเพื่อพับเก็บช่วงที่ไม่เกี่ยวกับงานของคุณ
       </div>
-      <div style={{ display: "flex", gap: 18, overflowX: "auto", paddingBottom: 12, minHeight: 0, flex: 1, alignItems: "stretch" }}>
+      {/* ปล่อยการ์ดนอกคอลัมน์ = เลิกลาก — ไม่มีอันนี้ คอลัมน์ที่วางไม่ได้จะค้างหรี่ทั้งบอร์ด
+          จนกว่าจะเริ่มลากใหม่แล้ววางให้สำเร็จสักครั้ง */}
+      <div onDragEnd={clearDrag}
+        style={{ display: "flex", gap: 18, overflowX: "auto", paddingBottom: 12, minHeight: 0, flex: 1, alignItems: "stretch" }}>
+        {/* ปุ่มเพิ่มของแต่ละช่วง — ช่วงขายเปิดใบลูกค้าใหม่
+            ช่วงเอกสารเปิดใบงานที่ติดตั้งเสร็จไปแล้ว (งานเก่า/รับช่วงต่อ) ที่ไม่เคยเดินผ่านบอร์ดหน้างาน
+            แต่ยังต้องเดินเรื่องการไฟฟ้า */}
         {groups.map((g) => (
           <FlGroup key={g.key} g={g} count={groupCount(g)} collapsed={!!collapsed[g.key]} onToggle={() => toggle(g.key)}
-            onAdd={g.kind === "lead" && onNewLead ? onNewLead : null}>
+            onAdd={g.kind === "lead" ? (onNewLead || null) : g.kind === "permit" ? (onNewPermitJob || null) : null}
+            addLabel={g.kind === "permit" ? "งานขออนุญาต" : "ลูกค้าใหม่"}>
             {g.cols.map((c) => {
               const cards = cardsOf(g, c.key);
               const ok = canDrop(g, c.key);
