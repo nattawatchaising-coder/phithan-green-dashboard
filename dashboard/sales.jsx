@@ -573,7 +573,10 @@ function quoteHTML(q, lang, sheets) {
     ".vbx{margin-top:14px;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;break-inside:avoid}" +
     ".vbx h3{font-size:11px;margin:0 0 6px;color:#0A4D68;letter-spacing:.04em}" +
     ".vbx .vl{font-size:11.5px;color:#374151;white-space:pre-wrap}" +
-    ".vbx .vd{border-bottom:1px dotted #9ca3af;display:inline-block;min-width:150px}" +
+    /* หน้าแรกสูงเต็มพื้นที่พิมพ์ของ A4 (297mm − ขอบบน/ล่าง 14mm) แล้วดัน .pgft ลงไปชิดขอบล่าง
+       ราคากับลายเซ็นจะได้อยู่ที่เดิมทุกใบ ไม่ลอยตามจำนวนรายการ */
+    ".pg1{display:flex;flex-direction:column;min-height:269mm}" +
+    ".pgft{margin-top:auto}" +
     ".tmpg{page-break-before:always;break-before:page;padding-top:6mm}" +
     ".tmpg h2{font-size:13px;color:#0A4D68;margin:0 0 2px}" +
     ".tmpg .sub{font-size:11px;color:#6b7280;margin-bottom:10px}" +
@@ -582,6 +585,7 @@ function quoteHTML(q, lang, sheets) {
     ".sig .rl{font-size:11px;color:#6b7280}" +
     ".ft{margin-top:16px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center}" +
     "</style></head><body>" +
+    '<div class="pg1">' +
     '<div class="hd"><div>' + window.brandHeadHTML({ size: 40 }) +
     /* ชื่อนิติบุคคล + เลขผู้เสียภาษี + ที่อยู่จดทะเบียน — ลูกค้านิติบุคคลต้องใช้ตั้งเบิก */
     (window.BRANDING.legalTH ? '<div class="bs bl">' + sEsc(window.BRANDING.legalTH) +
@@ -602,6 +606,7 @@ function quoteHTML(q, lang, sheets) {
     "<th class=\"c\" style=\"width:46px\">จำนวน</th><th class=\"c\" style=\"width:52px\">หน่วย</th>" +
     "<th class=\"r\" style=\"width:88px\">ราคา/หน่วย</th><th class=\"r\" style=\"width:96px\">จำนวนเงิน</th></tr></thead>" +
     "<tbody>" + (rows || '<tr><td colspan="6" class="c">— ยังไม่มีรายการ —</td></tr>') + "</tbody></table>" +
+    '<div class="pgft">' +
     '<table class="sum">' + money("รวมเป็นเงิน", T.sub) +
     (T.disc > 0 ? money(T.discMode === "pct" ? "หักส่วนลด " + T.discPct + "%" : "หักส่วนลด", T.disc)
       + money("ราคาหลังหักส่วนลด", T.afterDisc) : "") +
@@ -610,8 +615,7 @@ function quoteHTML(q, lang, sheets) {
     /* ช่องยืนราคา — เดิมเป็นบรรทัดเล็ก ๆ ลอยอยู่ ลูกค้ามองข้าม
        ทำเป็นช่องให้เห็นชัดว่าราคานี้มีวันหมดอายุ และเว้นที่ให้เขียนวันครบกำหนดด้วยมือได้ */
     '<div class="vbx"><h3>การยืนราคา</h3>' +
-    '<div class="vl">' + (valid ? sEsc(valid) : "ยืนราคาตามที่ตกลงกัน") +
-    '<br/>ครบกำหนดยืนราคาวันที่ <span class="vd"></span></div>' +
+    '<div class="vl">' + (valid ? sEsc(valid) : "ยืนราคาตามที่ตกลงกัน") + "</div>" +
     (q.note ? '<div class="vl" style="margin-top:6px">หมายเหตุ: ' + sEsc(q.note) + "</div>" : "") +
     "</div>" +
     '<div class="sig"><div><div class="ln"></div><div class="rl">ผู้เสนอราคา · ' + sEsc(q.ownerName || q.byName || "") +
@@ -619,6 +623,7 @@ function quoteHTML(q, lang, sheets) {
     '<div class="rl">วันที่ ______ / ______ / ______</div></div></div>' +
     /* ท้ายใบบอกขอบเขตงานที่บริษัททำ — ย้ายมาจากหัวใบ หัวใบจะได้เหลือแต่ตัวตนนิติบุคคลล้วน ๆ */
     '<div class="ft">ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์ · ออกแบบ · ติดตั้ง · ขออนุญาตการไฟฟ้า</div>' +
+    "</div></div>" +
     /* เงื่อนไขชำระเงิน + การรับประกัน ขึ้นแผ่นใหม่
        หน้าแรกจะได้เหลือแค่ของกับราคา ลูกค้าเซ็นจบในแผ่นเดียว ส่วนเงื่อนไขอ่านต่อแผ่นหลังได้เต็ม ๆ */
     (termList(q.terms, T.grand) || list(q.warranties, "การรับประกันและบริการ")
