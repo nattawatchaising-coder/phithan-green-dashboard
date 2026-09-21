@@ -831,6 +831,7 @@ function App() {
               onNewLead={can(role, "leads") ? newLead : null}
               onNewPermitJob={can(role, "addJob") ? newPermitJob : null}
               onMoveStage={(id, s) => store.setStage(id, s)}
+              onPatchJob={can(role, "editJob") ? (id, f) => store.patch(id, f) : null}
               onPatchLead={(id, f) => leadStore.patch(id, f)}
               onPatchPermit={patchPermit}
               onOpenReview={(id) => setPermitReview(id)} />

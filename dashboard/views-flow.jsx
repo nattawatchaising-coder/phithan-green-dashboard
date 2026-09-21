@@ -129,11 +129,12 @@ const flSumValue = (leadsArr) => {
 };
 
 function FlowBoardView({ jobs, leads, quotes, search, role, currentUser,
-  onOpenJob, onOpenLead, onNewLead, onNewPermitJob, onMoveStage, onPatchLead, onPatchPermit, onOpenReview }) {
+  onOpenJob, onOpenLead, onNewLead, onNewPermitJob, onMoveStage, onPatchJob, onPatchLead, onPatchPermit, onOpenReview }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const groups = React.useMemo(() => flGroups(role), [role]);
   const hasDoc = groups.some((g) => g.key === "doc");
+  const hasSales = groups.some((g) => g.key === "sales");
   const canMoveJob = window.can(role, "editJob");
 
   const [collapsed, setCollapsed] = React.useState(flReadCollapsed);
@@ -162,10 +163,16 @@ function FlowBoardView({ jobs, leads, quotes, search, role, currentUser,
      งานที่ติดตั้งเสร็จแล้วไปอยู่ช่วงเอกสาร (ตามสถานะใบขออนุญาต) ถ้าผู้ใช้เห็นช่วงนั้น
      ถ้าไม่เห็น งาน done กลับไปอยู่คอลัมน์ "เสร็จสิ้น" ของช่วงหน้างานตามเดิม */
   const jobCols = React.useMemo(() => {
-    const site = {}, doc = {};
+    const site = {}, doc = {}, pend = [];
     (SF.STAGES || []).forEach((s) => { site[s.key] = []; });
     PERMIT_COLS.forEach((c) => { doc[c.key] = []; });
     (jobs || []).forEach((j) => {
+      /* ── งานที่ออกแบบให้ดูก่อน ลูกค้ายังไม่ตัดสินใจ ──
+         เป็นใบงานเต็มใบ (มีแบบ · BOQ · ผังแผง) แต่ยังไม่ใช่งานที่ขายได้
+         ถ้าปล่อยไว้ในช่วงหน้างานจะอ่านว่า "ลูกค้าตกลงติดตั้งกับเราแล้ว" ซึ่งยังไม่จริง
+         จึงไปยืนที่ "ต่อรอง / รอตัดสินใจ" ของช่วงขายแทน โดยยังเป็นการ์ดงานเหมือนเดิมทุกอย่าง
+         ติดตั้งเสร็จแล้ว (done) ไม่ต้องสนธงนี้ — เถียงกันไปแล้วว่าตกลง */
+      if (hasSales && j.pendingApproval && j.stage !== "done") { pend.push(j); return; }
       if (hasDoc && j.stage === "done") {
         const pk = permitColOf(j);
         (doc[pk] || doc.todo).push(j);   // สถานะที่ไม่รู้จักไปกองที่ "ยังไม่เริ่ม" ดีกว่าหายไปจากบอร์ด
@@ -174,12 +181,13 @@ function FlowBoardView({ jobs, leads, quotes, search, role, currentUser,
       if (site[j.stage]) site[j.stage].push(j);
       else site[(SF.STAGES[0] || {}).key].push(j);   // ขั้นที่ไม่รู้จัก ต้องไม่หายไปจากบอร์ด
     });
+    pend.sort(byInstallDate);
     Object.keys(site).forEach((k) => site[k].sort(byInstallDate));
     Object.keys(doc).forEach((k) => doc[k].sort((a, b) =>
       String((b.permit || {}).submittedAt || (b.permit || {}).updatedAt || b.code || "")
         .localeCompare(String((a.permit || {}).submittedAt || (a.permit || {}).updatedAt || a.code || ""))));
-    return { site, doc };
-  }, [jobs, hasDoc]);
+    return { site, doc, pend };
+  }, [jobs, hasDoc, hasSales]);
 
   const leadCols = React.useMemo(() => {
     const m = {};
@@ -194,15 +202,25 @@ function FlowBoardView({ jobs, leads, quotes, search, role, currentUser,
     return m;
   }, [leadPool]);
 
-  const cardsOf = (g, key) => (g.kind === "lead" ? leadCols[key]
+  /* คอลัมน์ "ต่อรอง" มีทั้งลูกค้าที่ยังไม่เป็นงาน และใบงานที่รอลูกค้าอนุมัติ ปนกันได้
+     ทั้งคู่คือ "ยังไม่รู้ว่าจะได้ทำไหม" เหมือนกัน เซลล์จึงควรเห็นอยู่กองเดียว */
+  const cardsOf = (g, key) => (g.kind === "lead"
+    ? (key === "nego" ? (leadCols[key] || []).concat(jobCols.pend) : leadCols[key])
     : g.kind === "permit" ? jobCols.doc[key]
     : jobCols.site[key]) || [];
 
-  /* วางลงคอลัมน์นี้ได้ไหม — ลากข้ามช่วงไม่ได้เสมอ */
+  /* วางลงคอลัมน์นี้ได้ไหม — ลากข้ามช่วงไม่ได้ ยกเว้นใบงานที่รอลูกค้าอนุมัติ
+     ใบนั้นข้ามไปมาระหว่าง "ต่อรอง" กับช่วงหน้างานได้ เพราะเป็นใบเดียวกัน ต่างแค่ลูกค้าตกลงหรือยัง */
   const canDrop = (g, key) => {
-    if (!drag || drag.group !== g.key) return false;
+    if (!drag) return false;
+    if (drag.kind === "job") {
+      if (!canMoveJob) return false;
+      if (g.kind === "lead") return key === "nego" && !drag.rec.pendingApproval;
+      if (g.kind === "job") return drag.rec.pendingApproval || drag.rec.stage !== key;
+      return false;
+    }
+    if (drag.group !== g.key) return false;
     if (g.kind === "lead") return salesStageKey(drag.rec) !== key;
-    if (g.kind === "job") return canMoveJob && drag.rec.stage !== key;
     const from = permitColOf(drag.rec);
     return from !== key && (PERMIT_MOVES[from] || []).indexOf(key) !== -1;
   };
@@ -210,8 +228,18 @@ function FlowBoardView({ jobs, leads, quotes, search, role, currentUser,
   const doDrop = (g, key) => {
     const d = drag;
     clearDrag();
-    if (!d || d.group !== g.key) return;
+    if (!d) return;
     const rec = d.rec;
+    /* ใบงานรออนุมัติ — ลากเข้า "ต่อรอง" = ติดธง · ลากกลับช่วงหน้างาน = ปลดธงแล้วเดินขั้นตามคอลัมน์
+       ปลดธงเสมอแม้ขั้นไม่เปลี่ยน ไม่งั้นลากกลับที่เดิมแล้วการ์ดเด้งไปช่วงขายอีก */
+    if (d.kind === "job" && canMoveJob) {
+      if (g.kind === "lead") { if (key === "nego" && onPatchJob) onPatchJob(rec.id, { pendingApproval: true }); return; }
+      if (g.kind !== "job") return;
+      if (rec.pendingApproval && onPatchJob) onPatchJob(rec.id, { pendingApproval: false });
+      if (rec.stage !== key) onMoveStage(rec.id, key);
+      return;
+    }
+    if (d.group !== g.key) return;
     if (g.kind === "lead") {
       if (salesStageKey(rec) === key) return;
       if (key === "won") {
@@ -225,11 +253,6 @@ function FlowBoardView({ jobs, leads, quotes, search, role, currentUser,
       onPatchLead(rec.id, salesStagePatch(key));
       return;
     }
-    if (g.kind === "job") {
-      if (!canMoveJob || rec.stage === key) return;
-      onMoveStage(rec.id, key);
-      return;
-    }
     const p = rec.permit || {};
     const from = permitColOf(rec);
     if (from === key || (PERMIT_MOVES[from] || []).indexOf(key) === -1) return;
@@ -237,11 +260,16 @@ function FlowBoardView({ jobs, leads, quotes, search, role, currentUser,
     onPatchPermit(rec.id, permitMovePatch(from, key, p, currentUser));
   };
 
-  const startDrag = (e, rec, g) => { setDrag({ id: rec.id, rec: rec, group: g.key }); e.dataTransfer.effectAllowed = "move"; };
+  /* kind ติดมากับการ์ด ไม่ใช่กับช่วง — ใบงานรออนุมัติไปนั่งอยู่ในช่วงขาย แต่ยังเป็นงาน ไม่ใช่ลูกค้า */
+  const kindOf = (g, rec) => (g.kind === "lead" && rec.pendingApproval ? "job" : g.kind);
+  const startDrag = (e, rec, g) => {
+    setDrag({ id: rec.id, rec: rec, group: g.key, kind: kindOf(g, rec) });
+    e.dataTransfer.effectAllowed = "move";
+  };
 
   const renderCard = (g, rec) => {
     const dragging = !!drag && drag.id === rec.id && drag.group === g.key;
-    if (g.kind === "lead")
+    if (g.kind === "lead" && !rec.pendingApproval)
       return <SalesCard key={g.key + rec.id} lead={rec} quotes={quotes} onOpen={onOpenLead}
         dragging={dragging} onDragStart={(e, l) => startDrag(e, l, g)} />;
     if (g.kind === "permit")
@@ -261,7 +289,8 @@ function FlowBoardView({ jobs, leads, quotes, search, role, currentUser,
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, minHeight: 0, flex: 1 }}>
       <div style={{ fontSize: 12, color: "var(--text-3)", flexShrink: 0 }}>
-        ลากการ์ดข้ามคอลัมน์ได้เฉพาะภายในช่วงเดียวกัน · กดหัวช่วงเพื่อพับเก็บช่วงที่ไม่เกี่ยวกับงานของคุณ
+        ลากการ์ดข้ามคอลัมน์ได้ภายในช่วงเดียวกัน · ใบงานที่ลูกค้ายังไม่ตัดสินใจ ลากไปไว้ “ต่อรอง / รอตัดสินใจ” ของช่วงขายได้
+        · กดหัวช่วงเพื่อพับเก็บช่วงที่ไม่เกี่ยวกับงานของคุณ
       </div>
       {/* ปล่อยการ์ดนอกคอลัมน์ = เลิกลาก — ไม่มีอันนี้ คอลัมน์ที่วางไม่ได้จะค้างหรี่ทั้งบอร์ด
           จนกว่าจะเริ่มลากใหม่แล้ววางให้สำเร็จสักครั้ง */}

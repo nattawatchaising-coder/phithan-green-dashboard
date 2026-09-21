@@ -329,6 +329,7 @@ function FlowBoardView({
   onNewLead,
   onNewPermitJob,
   onMoveStage,
+  onPatchJob,
   onPatchLead,
   onPatchPermit,
   onOpenReview
@@ -337,6 +338,7 @@ function FlowBoardView({
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const groups = React.useMemo(() => flGroups(role), [role]);
   const hasDoc = groups.some(g => g.key === "doc");
+  const hasSales = groups.some(g => g.key === "sales");
   const canMoveJob = window.can(role, "editJob");
   const [collapsed, setCollapsed] = React.useState(flReadCollapsed);
   const toggle = k => setCollapsed(c => {
@@ -362,7 +364,8 @@ function FlowBoardView({
   }, [leads, search]);
   const jobCols = React.useMemo(() => {
     const site = {},
-      doc = {};
+      doc = {},
+      pend = [];
     (SF.STAGES || []).forEach(s => {
       site[s.key] = [];
     });
@@ -370,6 +373,10 @@ function FlowBoardView({
       doc[c.key] = [];
     });
     (jobs || []).forEach(j => {
+      if (hasSales && j.pendingApproval && j.stage !== "done") {
+        pend.push(j);
+        return;
+      }
       if (hasDoc && j.stage === "done") {
         const pk = permitColOf(j);
         (doc[pk] || doc.todo).push(j);
@@ -377,13 +384,15 @@ function FlowBoardView({
       }
       if (site[j.stage]) site[j.stage].push(j);else site[(SF.STAGES[0] || {}).key].push(j);
     });
+    pend.sort(byInstallDate);
     Object.keys(site).forEach(k => site[k].sort(byInstallDate));
     Object.keys(doc).forEach(k => doc[k].sort((a, b) => String((b.permit || {}).submittedAt || (b.permit || {}).updatedAt || b.code || "").localeCompare(String((a.permit || {}).submittedAt || (a.permit || {}).updatedAt || a.code || ""))));
     return {
       site,
-      doc
+      doc,
+      pend
     };
-  }, [jobs, hasDoc]);
+  }, [jobs, hasDoc, hasSales]);
   const leadCols = React.useMemo(() => {
     const m = {};
     SALES_STAGES.forEach(s => {
@@ -401,19 +410,40 @@ function FlowBoardView({
     }));
     return m;
   }, [leadPool]);
-  const cardsOf = (g, key) => (g.kind === "lead" ? leadCols[key] : g.kind === "permit" ? jobCols.doc[key] : jobCols.site[key]) || [];
+  const cardsOf = (g, key) => (g.kind === "lead" ? key === "nego" ? (leadCols[key] || []).concat(jobCols.pend) : leadCols[key] : g.kind === "permit" ? jobCols.doc[key] : jobCols.site[key]) || [];
   const canDrop = (g, key) => {
-    if (!drag || drag.group !== g.key) return false;
+    if (!drag) return false;
+    if (drag.kind === "job") {
+      if (!canMoveJob) return false;
+      if (g.kind === "lead") return key === "nego" && !drag.rec.pendingApproval;
+      if (g.kind === "job") return drag.rec.pendingApproval || drag.rec.stage !== key;
+      return false;
+    }
+    if (drag.group !== g.key) return false;
     if (g.kind === "lead") return salesStageKey(drag.rec) !== key;
-    if (g.kind === "job") return canMoveJob && drag.rec.stage !== key;
     const from = permitColOf(drag.rec);
     return from !== key && (PERMIT_MOVES[from] || []).indexOf(key) !== -1;
   };
   const doDrop = (g, key) => {
     const d = drag;
     clearDrag();
-    if (!d || d.group !== g.key) return;
+    if (!d) return;
     const rec = d.rec;
+    if (d.kind === "job" && canMoveJob) {
+      if (g.kind === "lead") {
+        if (key === "nego" && onPatchJob) onPatchJob(rec.id, {
+          pendingApproval: true
+        });
+        return;
+      }
+      if (g.kind !== "job") return;
+      if (rec.pendingApproval && onPatchJob) onPatchJob(rec.id, {
+        pendingApproval: false
+      });
+      if (rec.stage !== key) onMoveStage(rec.id, key);
+      return;
+    }
+    if (d.group !== g.key) return;
     if (g.kind === "lead") {
       if (salesStageKey(rec) === key) return;
       if (key === "won") {
@@ -431,11 +461,6 @@ function FlowBoardView({
       onPatchLead(rec.id, salesStagePatch(key));
       return;
     }
-    if (g.kind === "job") {
-      if (!canMoveJob || rec.stage === key) return;
-      onMoveStage(rec.id, key);
-      return;
-    }
     const p = rec.permit || {};
     const from = permitColOf(rec);
     if (from === key || (PERMIT_MOVES[from] || []).indexOf(key) === -1) return;
@@ -445,17 +470,19 @@ function FlowBoardView({
     }
     onPatchPermit(rec.id, permitMovePatch(from, key, p, currentUser));
   };
+  const kindOf = (g, rec) => g.kind === "lead" && rec.pendingApproval ? "job" : g.kind;
   const startDrag = (e, rec, g) => {
     setDrag({
       id: rec.id,
       rec: rec,
-      group: g.key
+      group: g.key,
+      kind: kindOf(g, rec)
     });
     e.dataTransfer.effectAllowed = "move";
   };
   const renderCard = (g, rec) => {
     const dragging = !!drag && drag.id === rec.id && drag.group === g.key;
-    if (g.kind === "lead") return React.createElement(SalesCard, {
+    if (g.kind === "lead" && !rec.pendingApproval) return React.createElement(SalesCard, {
       key: g.key + rec.id,
       lead: rec,
       quotes: quotes,
@@ -504,7 +531,7 @@ function FlowBoardView({
       color: "var(--text-3)",
       flexShrink: 0
     }
-  }, "\u0E25\u0E32\u0E01\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E02\u0E49\u0E32\u0E21\u0E04\u0E2D\u0E25\u0E31\u0E21\u0E19\u0E4C\u0E44\u0E14\u0E49\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E20\u0E32\u0E22\u0E43\u0E19\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E19 \xB7 \u0E01\u0E14\u0E2B\u0E31\u0E27\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E1E\u0E31\u0E1A\u0E40\u0E01\u0E47\u0E1A\u0E0A\u0E48\u0E27\u0E07\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E40\u0E01\u0E35\u0E48\u0E22\u0E27\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19\u0E02\u0E2D\u0E07\u0E04\u0E38\u0E13"), React.createElement("div", {
+  }, "\u0E25\u0E32\u0E01\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E02\u0E49\u0E32\u0E21\u0E04\u0E2D\u0E25\u0E31\u0E21\u0E19\u0E4C\u0E44\u0E14\u0E49\u0E20\u0E32\u0E22\u0E43\u0E19\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E19 \xB7 \u0E43\u0E1A\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E15\u0E31\u0E14\u0E2A\u0E34\u0E19\u0E43\u0E08 \u0E25\u0E32\u0E01\u0E44\u0E1B\u0E44\u0E27\u0E49 \u201C\u0E15\u0E48\u0E2D\u0E23\u0E2D\u0E07 / \u0E23\u0E2D\u0E15\u0E31\u0E14\u0E2A\u0E34\u0E19\u0E43\u0E08\u201D \u0E02\u0E2D\u0E07\u0E0A\u0E48\u0E27\u0E07\u0E02\u0E32\u0E22\u0E44\u0E14\u0E49 \xB7 \u0E01\u0E14\u0E2B\u0E31\u0E27\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E1E\u0E31\u0E1A\u0E40\u0E01\u0E47\u0E1A\u0E0A\u0E48\u0E27\u0E07\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E40\u0E01\u0E35\u0E48\u0E22\u0E27\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19\u0E02\u0E2D\u0E07\u0E04\u0E38\u0E13"), React.createElement("div", {
     onDragEnd: clearDrag,
     style: {
       display: "flex",

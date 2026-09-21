@@ -22,6 +22,13 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7, gap: 8 }}>
         <span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, color: "var(--text-3)", letterSpacing: "-.01em" }}>{job.code}</span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          {/* งานโครงการที่ออกแบบให้ก่อนแล้วลูกค้าค่อยตัดสินใจ — ต้องอ่านออกทันทีว่ายังไม่ได้ขาย
+              ไม่งั้นทั้งบอร์ดดูเหมือนงานที่ปิดการขายแล้วทั้งหมด */}
+          {job.pendingApproval && (
+            <span title="ลูกค้ายังไม่ตัดสินใจ — ออกแบบให้ดูก่อน"
+              style={{ fontSize: 10.5, fontWeight: 800, color: "#A16207", background: "#EAB30820",
+                border: "1px solid #EAB30855", padding: "2px 7px", borderRadius: 99, whiteSpace: "nowrap" }}>รออนุมัติ</span>
+          )}
           {job.drive && (
             <a href={job.drive} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title="เปิดโฟลเดอร์งานใน Google Drive"
               style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 700, color: "#fff",
