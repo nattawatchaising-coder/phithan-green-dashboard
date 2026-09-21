@@ -570,6 +570,13 @@ function quoteHTML(q, lang, sheets) {
     ".blk{margin-top:14px;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;break-inside:avoid}" +
     ".blk ul{margin:0;padding-left:18px}.blk li{margin-bottom:3px}" +
     ".note{margin-top:12px;font-size:11px;color:#374151;white-space:pre-wrap}" +
+    ".vbx{margin-top:14px;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;break-inside:avoid}" +
+    ".vbx h3{font-size:11px;margin:0 0 6px;color:#0A4D68;letter-spacing:.04em}" +
+    ".vbx .vl{font-size:11.5px;color:#374151;white-space:pre-wrap}" +
+    ".vbx .vd{border-bottom:1px dotted #9ca3af;display:inline-block;min-width:150px}" +
+    ".tmpg{page-break-before:always;break-before:page;padding-top:6mm}" +
+    ".tmpg h2{font-size:13px;color:#0A4D68;margin:0 0 2px}" +
+    ".tmpg .sub{font-size:11px;color:#6b7280;margin-bottom:10px}" +
     ".sig{display:flex;gap:40px;margin-top:34px;break-inside:avoid}" +
     ".sig>div{flex:1;text-align:center}.sig .ln{border-top:1px solid #9ca3af;margin:34px 10px 6px}" +
     ".sig .rl{font-size:11px;color:#6b7280}" +
@@ -580,7 +587,6 @@ function quoteHTML(q, lang, sheets) {
     (window.BRANDING.legalTH ? '<div class="bs bl">' + sEsc(window.BRANDING.legalTH) +
       (window.BRANDING.taxId ? " · เลขประจำตัวผู้เสียภาษี " + sEsc(window.BRANDING.taxId) : "") + "</div>" : "") +
     (window.BRANDING.addrTH ? '<div class="bs">' + sEsc(window.BRANDING.addrTH) + "</div>" : "") +
-    '<div class="bs">ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์ · ออกแบบ · ติดตั้ง · ขออนุญาตการไฟฟ้า</div>' +
     '<div class="bs">' + window.BRANDING.email + " · " + window.BRANDING.tel + "</div></div>" +
     '<div class="ti"><h1>ใบเสนอราคา</h1><div class="no">เลขที่ <b>' + sEsc(q.no) + "</b></div>" +
     '<div class="no">วันที่ ' + dsp(q.date) + "</div></div></div>" +
@@ -601,14 +607,25 @@ function quoteHTML(q, lang, sheets) {
       + money("ราคาหลังหักส่วนลด", T.afterDisc) : "") +
     money("ภาษีมูลค่าเพิ่ม " + T.vatRate + "%", T.vat) +
     money("ราคารวมทั้งสิ้น", T.grand, true) + "</table>" +
-    termList(q.terms, T.grand) +
-    list(q.warranties, "การรับประกันและบริการ") +
-    (valid ? '<div class="note">' + sEsc(valid) + "</div>" : "") +
-    (q.note ? '<div class="note">หมายเหตุ: ' + sEsc(q.note) + "</div>" : "") +
+    /* ช่องยืนราคา — เดิมเป็นบรรทัดเล็ก ๆ ลอยอยู่ ลูกค้ามองข้าม
+       ทำเป็นช่องให้เห็นชัดว่าราคานี้มีวันหมดอายุ และเว้นที่ให้เขียนวันครบกำหนดด้วยมือได้ */
+    '<div class="vbx"><h3>การยืนราคา</h3>' +
+    '<div class="vl">' + (valid ? sEsc(valid) : "ยืนราคาตามที่ตกลงกัน") +
+    '<br/>ครบกำหนดยืนราคาวันที่ <span class="vd"></span></div>' +
+    (q.note ? '<div class="vl" style="margin-top:6px">หมายเหตุ: ' + sEsc(q.note) + "</div>" : "") +
+    "</div>" +
     '<div class="sig"><div><div class="ln"></div><div class="rl">ผู้เสนอราคา · ' + sEsc(q.ownerName || q.byName || "") +
     '</div></div><div><div class="ln"></div><div class="rl">ผู้อนุมัติ / ลูกค้า</div>' +
     '<div class="rl">วันที่ ______ / ______ / ______</div></div></div>' +
-    '<div class="ft">เอกสารนี้ออกจากระบบติดตามงานติดตั้ง ' + window.BRANDING.name + "</div>" +
+    /* ท้ายใบบอกขอบเขตงานที่บริษัททำ — ย้ายมาจากหัวใบ หัวใบจะได้เหลือแต่ตัวตนนิติบุคคลล้วน ๆ */
+    '<div class="ft">ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์ · ออกแบบ · ติดตั้ง · ขออนุญาตการไฟฟ้า</div>' +
+    /* เงื่อนไขชำระเงิน + การรับประกัน ขึ้นแผ่นใหม่
+       หน้าแรกจะได้เหลือแค่ของกับราคา ลูกค้าเซ็นจบในแผ่นเดียว ส่วนเงื่อนไขอ่านต่อแผ่นหลังได้เต็ม ๆ */
+    (termList(q.terms, T.grand) || list(q.warranties, "การรับประกันและบริการ")
+      ? '<div class="tmpg"><h2>เงื่อนไขการชำระเงินและการรับประกัน</h2>' +
+        '<div class="sub">แนบท้ายใบเสนอราคาเลขที่ ' + sEsc(q.no) + " · " + sEsc(c.name || "") + "</div>" +
+        termList(q.terms, T.grand) + list(q.warranties, "การรับประกันและบริการ") + "</div>"
+      : "") +
     shPages +
     "</body></html>";
   return window.pgDocHTML ? window.pgDocHTML(doc, L, QUOTE_I18N) : doc;
