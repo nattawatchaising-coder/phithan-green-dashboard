@@ -19,9 +19,12 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
         transition: "box-shadow .16s, transform .16s, border-color .16s" }}
       onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 8px 22px rgba(8,20,14,.09)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
       onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "var(--shadow-sm)"; e.currentTarget.style.transform = "none"; }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7, gap: 8 }}>
-        <span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, color: "var(--text-3)", letterSpacing: "-.01em" }}>{job.code}</span>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+      {/* แถวหัวการ์ด — ให้ขึ้นบรรทัดใหม่ได้
+         การ์ดกว้าง ~200px พอมีป้ายสองใบ (รออนุมัติ + ประเภทงาน) ป้ายท้ายสุดจะล้นออกนอกการ์ด
+         แล้วถูกขอบการ์ดตัดจนอ่านไม่ออก · ตกลงมาอีกบรรทัดดีกว่าโดนตัด */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7, gap: 8, flexWrap: "wrap" }}>
+        <span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, color: "var(--text-3)", letterSpacing: "-.01em", flexShrink: 0 }}>{job.code}</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "flex-end", marginLeft: "auto" }}>
           {/* งานโครงการที่ออกแบบให้ก่อนแล้วลูกค้าค่อยตัดสินใจ — ต้องอ่านออกทันทีว่ายังไม่ได้ขาย
               ไม่งั้นทั้งบอร์ดดูเหมือนงานที่ปิดการขายแล้วทั้งหมด */}
           {job.pendingApproval && (

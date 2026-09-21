@@ -37,7 +37,8 @@ function KanbanCard({
         justifyContent: "space-between",
         alignItems: "center",
         marginBottom: 7,
-        gap: 8
+        gap: 8,
+        flexWrap: "wrap"
       }
     }, React.createElement("span", {
       style: {
@@ -45,14 +46,17 @@ function KanbanCard({
         fontSize: 11,
         fontWeight: 600,
         color: "var(--text-3)",
-        letterSpacing: "-.01em"
+        letterSpacing: "-.01em",
+        flexShrink: 0
       }
     }, job.code), React.createElement("span", {
       style: {
         display: "inline-flex",
         alignItems: "center",
         gap: 6,
-        flexShrink: 0
+        flexWrap: "wrap",
+        justifyContent: "flex-end",
+        marginLeft: "auto"
       }
     }, job.pendingApproval && React.createElement("span", {
       title: "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E15\u0E31\u0E14\u0E2A\u0E34\u0E19\u0E43\u0E08 \u2014 \u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E43\u0E2B\u0E49\u0E14\u0E39\u0E01\u0E48\u0E2D\u0E19",
