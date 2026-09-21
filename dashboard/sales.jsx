@@ -161,9 +161,12 @@ function quoteSpecDetail(t) {
 function quoteDetailLines(detail) {
   const s = String(detail || "").trim();
   if (!s) return [];
-  const nl = s.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+  /* เซลล์หลายคนพิมพ์ขีด/จุดนำหน้าเองติดมาด้วย พอเอกสารใส่จุดให้อีกจะกลายเป็น "· - ข้อความ"
+     ตัดตัวนำหน้าที่พิมพ์มาออกก่อนเสมอ ให้เหลือจุดของเอกสารตัวเดียว */
+  const clean = (x) => String(x).trim().replace(/^[-–—·•*]+\s*/, "").trim();
+  const nl = s.split(/\r?\n/).map(clean).filter(Boolean);
   if (nl.length > 1) return nl;
-  return s.split(/\s+·\s+/).map((x) => x.trim()).filter(Boolean);
+  return s.split(/\s+·\s+/).map(clean).filter(Boolean);
 }
 
 /* รายการตั้งต้น — เซลล์เสนอเป็นราคาเหมาต่อระบบ ไม่ได้แจกแจงทีละน็อตแบบ BOQ
@@ -544,6 +547,7 @@ function quoteHTML(q, lang, sheets) {
     ".hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1B9B75;padding-bottom:12px;margin-bottom:16px}" +
     ".bd{font-size:20px;font-weight:700;color:#0A4D68;letter-spacing:.02em}" +
     ".bs{font-size:11px;color:#6b7280;margin-top:2px}" +
+    ".bl{color:#374151;font-weight:600;margin-top:5px}" +
     ".ti{text-align:right}.ti h1{font-size:19px;margin:0;color:#111827}" +
     ".ti .no{font-size:12px;color:#374151;margin-top:3px}" +
     ".two{display:flex;gap:14px;margin-bottom:14px}" +
@@ -572,6 +576,10 @@ function quoteHTML(q, lang, sheets) {
     ".ft{margin-top:16px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center}" +
     "</style></head><body>" +
     '<div class="hd"><div>' + window.brandHeadHTML({ size: 40 }) +
+    /* ชื่อนิติบุคคล + เลขผู้เสียภาษี + ที่อยู่จดทะเบียน — ลูกค้านิติบุคคลต้องใช้ตั้งเบิก */
+    (window.BRANDING.legalTH ? '<div class="bs bl">' + sEsc(window.BRANDING.legalTH) +
+      (window.BRANDING.taxId ? " · เลขประจำตัวผู้เสียภาษี " + sEsc(window.BRANDING.taxId) : "") + "</div>" : "") +
+    (window.BRANDING.addrTH ? '<div class="bs">' + sEsc(window.BRANDING.addrTH) + "</div>" : "") +
     '<div class="bs">ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์ · ออกแบบ · ติดตั้ง · ขออนุญาตการไฟฟ้า</div>' +
     '<div class="bs">' + window.BRANDING.email + " · " + window.BRANDING.tel + "</div></div>" +
     '<div class="ti"><h1>ใบเสนอราคา</h1><div class="no">เลขที่ <b>' + sEsc(q.no) + "</b></div>" +
