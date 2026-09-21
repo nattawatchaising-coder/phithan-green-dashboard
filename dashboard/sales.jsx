@@ -514,6 +514,17 @@ function quoteHTML(q, lang, sheets) {
     (all.length > 1 ? " (หน้า " + (i + 1) + "/" + all.length + ")" : "") + "</h3>" +
     '<img class="shimg" src="' + src + '" alt="" /></div>'
   )).join("")).join("");
+  /* หัวจดหมาย — ใช้ทั้งแผ่นใบเสนอราคาและแผ่นแนบ ต่างกันแค่ชื่อเอกสารมุมขวา
+     แผ่นแนบที่หลุดจากชุดต้องอ่านออกว่าเป็นของบริษัทไหน ใบเลขที่อะไร */
+  const headHTML = (title) =>
+    '<div class="hd"><div>' + window.brandHeadHTML({ size: 40 }) +
+    (window.BRANDING.legalTH ? '<div class="bs bl">' + sEsc(window.BRANDING.legalTH) +
+      (window.BRANDING.taxId ? " · เลขประจำตัวผู้เสียภาษี " + sEsc(window.BRANDING.taxId) : "") + "</div>" : "") +
+    (window.BRANDING.addrTH ? '<div class="bs">' + sEsc(window.BRANDING.addrTH) + "</div>" : "") +
+    '<div class="bs">' + window.BRANDING.email + " · " + window.BRANDING.tel + "</div></div>" +
+    '<div class="ti"><h1>' + title + '</h1><div class="no">เลขที่ <b>' + sEsc(q.no) + "</b></div>" +
+    '<div class="no">วันที่ ' + dsp(q.date) + "</div></div></div>";
+  const footHTML = '<div class="ft">ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์ · ออกแบบ · ติดตั้ง · ขออนุญาตการไฟฟ้า</div>';
   const money = (label, val, big) =>
     '<tr class="' + (big ? "big" : "") + '"><td>' + label + '</td><td class="r">' + sBaht(val) + " บาท</td></tr>";
   const list = (arr, title) => {
@@ -578,7 +589,8 @@ function quoteHTML(q, lang, sheets) {
        ราคากับลายเซ็นจะได้อยู่ที่เดิมทุกใบ ไม่ลอยตามจำนวนรายการ */
     ".pg1{display:flex;flex-direction:column;min-height:269mm}" +
     ".pgft{margin-top:auto}" +
-    ".tmpg{page-break-before:always;break-before:page;padding-top:6mm}" +
+    ".tmpg{page-break-before:always;break-before:page;display:flex;flex-direction:column;min-height:269mm}" +
+    ".tmpg .ft{margin-top:auto}" +
     ".tmpg h2{font-size:13px;color:#0A4D68;margin:0 0 2px}" +
     ".tmpg .sub{font-size:11px;color:#6b7280;margin-bottom:10px}" +
     ".sig{display:flex;gap:40px;margin-top:34px;break-inside:avoid}" +
@@ -586,15 +598,7 @@ function quoteHTML(q, lang, sheets) {
     ".sig .rl{font-size:11px;color:#6b7280}" +
     ".ft{margin-top:16px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center}" +
     "</style></head><body>" +
-    '<div class="pg1">' +
-    '<div class="hd"><div>' + window.brandHeadHTML({ size: 40 }) +
-    /* ชื่อนิติบุคคล + เลขผู้เสียภาษี + ที่อยู่จดทะเบียน — ลูกค้านิติบุคคลต้องใช้ตั้งเบิก */
-    (window.BRANDING.legalTH ? '<div class="bs bl">' + sEsc(window.BRANDING.legalTH) +
-      (window.BRANDING.taxId ? " · เลขประจำตัวผู้เสียภาษี " + sEsc(window.BRANDING.taxId) : "") + "</div>" : "") +
-    (window.BRANDING.addrTH ? '<div class="bs">' + sEsc(window.BRANDING.addrTH) + "</div>" : "") +
-    '<div class="bs">' + window.BRANDING.email + " · " + window.BRANDING.tel + "</div></div>" +
-    '<div class="ti"><h1>ใบเสนอราคา</h1><div class="no">เลขที่ <b>' + sEsc(q.no) + "</b></div>" +
-    '<div class="no">วันที่ ' + dsp(q.date) + "</div></div></div>" +
+    '<div class="pg1">' + headHTML("ใบเสนอราคา") +
     '<div class="two"><div><h3>ลูกค้า</h3>' +
     '<div class="kv"><b>ชื่อ</b><span>' + sEsc(c.name || "—") + "</span></div>" +
     '<div class="kv"><b>โทร</b><span>' + sEsc(c.phone || "—") + "</span></div>" +
@@ -623,14 +627,15 @@ function quoteHTML(q, lang, sheets) {
     '</div></div><div><div class="ln"></div><div class="rl">ผู้อนุมัติ / ลูกค้า</div>' +
     '<div class="rl">วันที่ ______ / ______ / ______</div></div></div>' +
     /* ท้ายใบบอกขอบเขตงานที่บริษัททำ — ย้ายมาจากหัวใบ หัวใบจะได้เหลือแต่ตัวตนนิติบุคคลล้วน ๆ */
-    '<div class="ft">ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์ · ออกแบบ · ติดตั้ง · ขออนุญาตการไฟฟ้า</div>' +
+    footHTML +
     "</div></div>" +
     /* เงื่อนไขชำระเงิน + การรับประกัน ขึ้นแผ่นใหม่
        หน้าแรกจะได้เหลือแค่ของกับราคา ลูกค้าเซ็นจบในแผ่นเดียว ส่วนเงื่อนไขอ่านต่อแผ่นหลังได้เต็ม ๆ */
     (termList(q.terms, T.grand) || list(q.warranties, "การรับประกันและบริการ") || shList
-      ? '<div class="tmpg"><h2>เงื่อนไขการชำระเงินและการรับประกัน</h2>' +
+      ? '<div class="tmpg">' + headHTML("เอกสารแนบ") +
+        "<h2>เงื่อนไขการชำระเงินและการรับประกัน</h2>" +
         '<div class="sub">แนบท้ายใบเสนอราคาเลขที่ ' + sEsc(q.no) + " · " + sEsc(c.name || "") + "</div>" +
-        termList(q.terms, T.grand) + list(q.warranties, "การรับประกันและบริการ") + shList + "</div>"
+        termList(q.terms, T.grand) + list(q.warranties, "การรับประกันและบริการ") + shList + footHTML + "</div>"
       : "") +
     shPages +
     "</body></html>";
