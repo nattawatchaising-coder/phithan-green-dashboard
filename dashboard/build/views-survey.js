@@ -1458,6 +1458,424 @@ function LeadCard({
     style: leadBtn("#EF4444")
   }, "\u0E25\u0E1A")));
 }
+function LeadActionRow({
+  icon,
+  color,
+  title,
+  sub,
+  onClick
+}) {
+  return React.createElement("button", {
+    onClick: onClick,
+    style: {
+      width: "100%",
+      marginBottom: 10,
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "12px 14px",
+      background: "var(--surface)",
+      border: "1px solid var(--border-strong)",
+      borderRadius: 12,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      textAlign: "left"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 34,
+      height: 34,
+      borderRadius: 9,
+      background: color + "1c",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: icon,
+    size: 17,
+    color: color
+  })), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 13.5,
+      fontWeight: 700,
+      color: "var(--text-1)"
+    }
+  }, title), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, sub)), React.createElement(Icon, {
+    name: "arrowRight",
+    size: 16,
+    color: "var(--text-3)"
+  }));
+}
+function LeadDetail({
+  l,
+  ctx
+}) {
+  const {
+    leadStore,
+    jobs,
+    quotes,
+    apptsOf,
+    STATUS,
+    STATUS_BY,
+    stageKey,
+    onOpenSurvey,
+    onReport,
+    onOpenQuote,
+    onPlan3d,
+    onConvert,
+    canConvert,
+    setEdit,
+    setLog,
+    setStage
+  } = ctx;
+  const [ask, setAsk] = React.useState(null);
+  const st = window.surveyStatus({
+    survey: l.survey
+  });
+  const sKey = stageKey(l);
+  const sc = STATUS_BY[sKey] || STATUS[0] || {
+    th: "—",
+    color: "var(--text-3)"
+  };
+  const list = (apptsOf[l.id] || []).slice().sort((a, b) => String(a.start || "").localeCompare(String(b.start || "")));
+  const next = list.find(a => a.status !== "canceled" && a.status !== "done") || list[list.length - 1];
+  const job = l.jobId ? (jobs || []).find(j => j.id === l.jobId) : null;
+  const late = window.sOverdue && window.sOverdue(l.nextFollow) && sKey !== "won" && sKey !== "lost";
+  const contacts = (l.contacts || []).slice().reverse();
+  const lastC = contacts[0] || null;
+  const wayOf = k => (window.CONTACT_WAYS || []).find(x => x.key === k) || {
+    th: "ติดต่อ",
+    icon: "list"
+  };
+  const card = {
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 10
+  };
+  const capt = {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: ".08em",
+    color: "var(--text-3)",
+    textTransform: "uppercase",
+    marginBottom: 12,
+    display: "flex",
+    alignItems: "center",
+    gap: 6
+  };
+  return React.createElement(React.Fragment, null, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 18,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      fontSize: 12.5,
+      fontWeight: 800,
+      color: sc.color,
+      background: sc.color + "16",
+      padding: "5px 12px",
+      borderRadius: 99,
+      flexShrink: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 8,
+      height: 8,
+      borderRadius: 99,
+      background: sc.color
+    }
+  }), sc.th), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 90,
+      height: 6,
+      borderRadius: 99,
+      background: "var(--surface3)",
+      overflow: "hidden"
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      height: "100%",
+      width: st.pct + "%",
+      background: st.color,
+      borderRadius: 99
+    }
+  })), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: st.color,
+      whiteSpace: "nowrap"
+    }
+  }, st.label, " ", st.pct, "%")), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 16,
+      marginBottom: 22
+    }
+  }, React.createElement(InfoRow, {
+    label: "\u0E40\u0E1A\u0E2D\u0E23\u0E4C\u0E42\u0E17\u0E23"
+  }, l.phone || "—"), React.createElement(InfoRow, {
+    label: "\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E04\u0E23\u0E31\u0E49\u0E07\u0E16\u0E31\u0E14\u0E44\u0E1B"
+  }, l.nextFollow ? React.createElement("span", {
+    style: {
+      color: late ? "#EF4444" : "var(--text-1)",
+      fontWeight: late ? 700 : 500
+    }
+  }, thDate(l.nextFollow, true), late ? " · เลยแล้ว" : "") : "—"), React.createElement("div", {
+    style: {
+      gridColumn: "1 / -1"
+    }
+  }, React.createElement(InfoRow, {
+    label: "\u0E17\u0E35\u0E48\u0E2D\u0E22\u0E39\u0E48 / \u0E1E\u0E34\u0E01\u0E31\u0E14"
+  }, [l.address, l.province].filter(x => x && String(x).trim() !== "-" && String(x).trim() !== "—").join(", ") || "—")), React.createElement(InfoRow, {
+    label: "\u0E40\u0E0B\u0E25\u0E25\u0E4C\u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07\u0E23\u0E32\u0E22"
+  }, l.ownerName || "—"), React.createElement(InfoRow, {
+    label: "\u0E17\u0E35\u0E48\u0E21\u0E32\u0E02\u0E2D\u0E07\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32"
+  }, (l.source && window.LEAD_SOURCE_TH ? window.LEAD_SOURCE_TH(l.source) : "") || "—"), React.createElement(InfoRow, {
+    label: "\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E07\u0E32\u0E19"
+  }, l.type === "biz" ? "โรงงาน / ธุรกิจ" : "บ้าน"), React.createElement(InfoRow, {
+    label: "\u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08"
+  }, next ? (next.start ? thDate(next.start.slice(0, 10), true) : "-") + (list.length > 1 ? " · ทั้งหมด " + list.length + " นัด" : "") : "ยังไม่มีนัด"), job && React.createElement("div", {
+    style: {
+      gridColumn: "1 / -1"
+    }
+  }, React.createElement(InfoRow, {
+    label: "\u0E41\u0E1B\u0E25\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E41\u0E25\u0E49\u0E27"
+  }, React.createElement("span", {
+    style: {
+      color: "var(--tint-green-tx)",
+      fontWeight: 700
+    }
+  }, job.code, " \xB7 ", job.name))), l.note && React.createElement("div", {
+    style: {
+      gridColumn: "1 / -1"
+    }
+  }, React.createElement(InfoRow, {
+    label: "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38"
+  }, l.note))), React.createElement("div", {
+    style: card
+  }, React.createElement("div", {
+    style: capt
+  }, React.createElement(Icon, {
+    name: "sun",
+    size: 14,
+    color: "var(--primary)"
+  }), " \u0E2A\u0E40\u0E1B\u0E01\u0E17\u0E35\u0E48\u0E40\u0E2A\u0E19\u0E2D\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32"), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(3, 1fr)",
+      gap: 16
+    }
+  }, React.createElement(SpecItem, {
+    label: "\u0E02\u0E19\u0E32\u0E14\u0E17\u0E35\u0E48\u0E04\u0E32\u0E14",
+    value: +l.expKwp > 0 ? l.expKwp + " kWp" : "—",
+    mono: true
+  }), React.createElement(SpecItem, {
+    label: "\u0E21\u0E39\u0E25\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E04\u0E32\u0E14",
+    value: +l.expValue > 0 ? "฿" + fmtBaht(+l.expValue) : "—",
+    accent: +l.expValue > 0
+  }), React.createElement(SpecItem, {
+    label: "\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E1F\u0E1F\u0E49\u0E32",
+    value: l.phase ? l.phase + " เฟส" : "—"
+  }))), onOpenQuote && window.SalesQuoteList && React.createElement(window.SalesQuoteList, {
+    lead: l,
+    quotes: quotes,
+    onOpenQuote: q => onOpenQuote(l, q),
+    card: true
+  }), React.createElement(LeadActionRow, {
+    icon: "phone",
+    color: "var(--primary)",
+    title: "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E01\u0E32\u0E23\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D",
+    sub: lastC ? "ล่าสุด " + wayOf(lastC.how).th + " " + thDateTime(lastC.at) + " · ติดต่อไปแล้ว " + contacts.length + " ครั้ง" : "ยังไม่เคยบันทึกการติดต่อ",
+    onClick: () => setLog(l)
+  }), onOpenSurvey && React.createElement(LeadActionRow, {
+    icon: "list",
+    color: st.color,
+    title: "\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 (Site Survey)",
+    sub: st.state === "none" ? "ยังไม่ได้สำรวจ · แตะเพื่อเริ่ม" : st.label + " · " + st.pct + "% · แตะเพื่อแก้ไข",
+    onClick: () => onOpenSurvey(window.leadAsJob(l))
+  }), onReport && st.state !== "none" && React.createElement("button", {
+    onClick: () => onReport(window.leadAsJob(l)),
+    style: {
+      width: "100%",
+      marginBottom: 10,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 7,
+      padding: "10px 14px",
+      background: "var(--primary-soft)",
+      border: "1px solid var(--primary)",
+      borderRadius: 11,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 13,
+      fontWeight: 700,
+      color: "var(--primary-dark)"
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 15,
+    color: "var(--primary-dark)"
+  }), " \u0E14\u0E39\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1C\u0E25\u0E2A\u0E33\u0E23\u0E27\u0E08 \xB7 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF"), onPlan3d && React.createElement(LeadActionRow, {
+    icon: "panel",
+    color: "#4F46E5",
+    title: "\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07 3D",
+    sub: "\u0E1B\u0E31\u0E49\u0E19\u0E1C\u0E31\u0E07\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E44\u0E1B\u0E04\u0E38\u0E22\u0E01\u0E31\u0E1A\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32 \xB7 \u0E14\u0E36\u0E07\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07\u0E40\u0E02\u0E49\u0E32\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32\u0E44\u0E14\u0E49",
+    onClick: () => onPlan3d(job || window.leadAsJob(l))
+  }), contacts.length > 0 && React.createElement("div", {
+    style: card
+  }, React.createElement("div", {
+    style: capt
+  }, React.createElement(Icon, {
+    name: "message",
+    size: 14,
+    color: "var(--text-3)"
+  }), " \u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E01\u0E32\u0E23\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D (", contacts.length, ")"), contacts.slice(0, 8).map((c, i) => {
+    const w = wayOf(c.how);
+    return React.createElement("div", {
+      key: i,
+      style: {
+        display: "flex",
+        gap: 9,
+        alignItems: "flex-start",
+        padding: "8px 0",
+        borderTop: i ? "1px solid var(--border)" : "none"
+      }
+    }, React.createElement(Icon, {
+      name: w.icon,
+      size: 14,
+      color: "var(--text-3)",
+      style: {
+        flexShrink: 0,
+        marginTop: 2
+      }
+    }), React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0,
+        fontSize: 12,
+        color: "var(--text-2)"
+      }
+    }, React.createElement("b", {
+      style: {
+        color: "var(--text-1)"
+      }
+    }, w.th), " ", thDateTime(c.at), c.byName ? " · " + c.byName : "", c.note ? React.createElement("span", {
+      style: {
+        display: "block",
+        color: "var(--text-3)",
+        lineHeight: 1.5
+      }
+    }, c.note) : null));
+  }), contacts.length > 8 && React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      paddingTop: 8
+    }
+  }, "\xB7 \u0E41\u0E25\u0E30\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E19\u0E35\u0E49\u0E2D\u0E35\u0E01 ", contacts.length - 8, " \u0E04\u0E23\u0E31\u0E49\u0E07")), React.createElement("div", {
+    style: {
+      position: "sticky",
+      bottom: 0,
+      background: "var(--bg)",
+      borderTop: "1px solid var(--border)",
+      padding: "12px 0 14px",
+      marginTop: 6,
+      display: "flex",
+      gap: 8,
+      flexWrap: "wrap",
+      alignItems: "center"
+    }
+  }, ask ? React.createElement(React.Fragment, null, React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 140,
+      fontSize: 12,
+      fontWeight: 700,
+      lineHeight: 1.5,
+      color: ask.kind === "del" ? "#EF4444" : "var(--tint-green-tx)"
+    }
+  }, ask.kind === "del" ? "ลบ “" + (l.name || "รายนี้") + "” ? แบบสำรวจและรูปของรายนี้จะถูกลบด้วย" : "ย้าย “" + (l.name || "รายนี้") + "” เข้าฐานข้อมูลงานติดตั้ง? แบบสำรวจและรูปถ่ายจะถูกย้ายไปกับงานใหม่ด้วย"), ask.kind === "del" ? React.createElement("button", {
+    onClick: () => {
+      leadStore.remove(l.id);
+      setAsk(null);
+    },
+    style: leadBtn("#EF4444", true)
+  }, "\u0E25\u0E1A\u0E40\u0E25\u0E22") : React.createElement("button", {
+    onClick: () => {
+      setAsk(null);
+      onConvert(l);
+    },
+    style: leadBtn("var(--tint-green-tx)", true)
+  }, React.createElement(Icon, {
+    name: "check",
+    size: 14,
+    color: "#fff",
+    sw: 2.4
+  }), " \u0E22\u0E49\u0E32\u0E22\u0E40\u0E25\u0E22"), React.createElement("button", {
+    onClick: () => setAsk(null),
+    style: leadBtn("var(--text-2)")
+  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01")) : React.createElement(React.Fragment, null, React.createElement("button", {
+    onClick: () => setEdit({
+      lead: Object.assign({}, l),
+      isNew: false
+    }),
+    style: leadBtn("var(--text-2)")
+  }, React.createElement(Icon, {
+    name: "settings",
+    size: 14,
+    color: "var(--text-2)"
+  }), " \u0E41\u0E01\u0E49\u0E44\u0E02\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25"), sKey !== "lost" && sKey !== "won" && React.createElement("button", {
+    onClick: () => setStage(l, "lost"),
+    style: leadBtn("var(--text-2)")
+  }, "\u0E44\u0E21\u0E48\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"), sKey === "lost" && React.createElement("button", {
+    onClick: () => setStage(l, "nego"),
+    style: leadBtn("var(--text-2)")
+  }, "\u0E01\u0E25\u0E31\u0E1A\u0E21\u0E32\u0E44\u0E25\u0E48\u0E15\u0E48\u0E2D"), React.createElement("button", {
+    onClick: () => setAsk({
+      kind: "del"
+    }),
+    style: leadBtn("#EF4444")
+  }, "\u0E25\u0E1A"), canConvert && sKey !== "won" && React.createElement("button", {
+    onClick: () => setAsk({
+      kind: "conv"
+    }),
+    style: Object.assign({}, leadBtn("var(--tint-green-tx)", true), {
+      marginLeft: "auto"
+    })
+  }, React.createElement(Icon, {
+    name: "check",
+    size: 14,
+    color: "#fff",
+    sw: 2.4
+  }), " \u0E41\u0E1B\u0E25\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"))));
+}
 function LeadDrawer({
   lead,
   leadStore,
@@ -1579,10 +1997,10 @@ function LeadDrawer({
     }
   }, "\xD7")), React.createElement("div", {
     style: {
-      padding: 14,
+      padding: "14px 16px 0",
       overflowY: "auto"
     }
-  }, React.createElement(LeadCard, {
+  }, React.createElement(LeadDetail, {
     l: lead,
     ctx: ctx
   })))), edit && React.createElement(LeadModal, {
@@ -1608,6 +2026,7 @@ Object.assign(window, {
   SurveyView,
   LeadsView,
   LeadCard,
+  LeadDetail,
   LeadDrawer,
   LeadModal,
   ContactLogModal

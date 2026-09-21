@@ -472,9 +472,203 @@ function LeadCard({ l, ctx }) {
   );
 }
 
+/* ── แถวปุ่มงานแบบเดียวกับในใบงาน (ไอคอน · หัวข้อ · บรรทัดรอง · ลูกศร) ── */
+function LeadActionRow({ icon, color, title, sub, onClick }) {
+  return (
+    <button onClick={onClick}
+      style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+        background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer",
+        fontFamily: "inherit", textAlign: "left" }}>
+      <span style={{ width: 34, height: 34, borderRadius: 9, background: color + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
+        <Icon name={icon} size={17} color={color} />
+      </span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>{title}</span>
+        <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>{sub}</span>
+      </span>
+      <Icon name="arrowRight" size={16} color="var(--text-3)" />
+    </button>
+  );
+}
+
+/* ── ใบลูกค้าแบบเต็มหน้า — วางโครงเดียวกับใบงานในฐานข้อมูล ──
+   เซลล์ต้องเห็นของชุดเดียวกับที่เปิดใบงานแล้วเห็น: ข้อมูลติดต่อ · สเปกที่เสนอ · ใบเสนอราคาทุกฉบับ
+   · แบบสำรวจ · ผังแผง 3D · ประวัติการติดต่อ
+   ตัดของที่เป็นของงานติดตั้งจริงออกทั้งหมด — เบิกเงินหน้างาน · ใบตรวจสอบงาน · ขออนุญาตการไฟฟ้า
+   · สถานะวัสดุ · อุปกรณ์ที่เบิก/คืน · ลำดับขั้นการทำงาน
+   ลูกค้าที่ยังไม่ปิดการขายไม่มีของพวกนี้ ใส่ไปก็เป็นช่องว่างที่กดแล้วไม่มีอะไร
+   (ใบย่อในหน้ารายชื่อยังเป็น LeadCard เหมือนเดิม — รายชื่อยาว ๆ ต้องอ่านเร็ว ไม่ใช่อ่านครบ) */
+function LeadDetail({ l, ctx }) {
+  const { leadStore, jobs, quotes, apptsOf, STATUS, STATUS_BY, stageKey,
+          onOpenSurvey, onReport, onOpenQuote, onPlan3d, onConvert, canConvert, setEdit, setLog, setStage } = ctx;
+  const [ask, setAsk] = React.useState(null);   // { kind: "del" | "conv" }
+
+  const st = window.surveyStatus({ survey: l.survey });
+  const sKey = stageKey(l);
+  const sc = STATUS_BY[sKey] || STATUS[0] || { th: "—", color: "var(--text-3)" };
+  const list = (apptsOf[l.id] || []).slice().sort((a, b) => String(a.start || "").localeCompare(String(b.start || "")));
+  const next = list.find((a) => a.status !== "canceled" && a.status !== "done") || list[list.length - 1];
+  const job = l.jobId ? (jobs || []).find((j) => j.id === l.jobId) : null;
+  const late = window.sOverdue && window.sOverdue(l.nextFollow) && sKey !== "won" && sKey !== "lost";
+  /* ประวัติการติดต่อเรียงครั้งล่าสุดไว้บน — เปิดมาต้องเห็นว่าคุยอะไรไปล่าสุดก่อน */
+  const contacts = (l.contacts || []).slice().reverse();
+  const lastC = contacts[0] || null;
+  const wayOf = (k) => (window.CONTACT_WAYS || []).find((x) => x.key === k) || { th: "ติดต่อ", icon: "list" };
+
+  const card = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 10 };
+  const capt = { fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase",
+    marginBottom: 12, display: "flex", alignItems: "center", gap: 6 };
+
+  return (
+    <React.Fragment>
+      {/* ขั้นการขาย + ความคืบหน้าแบบสำรวจ — แทนที่แถบลำดับขั้นงานของใบงาน */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 800, color: sc.color,
+          background: sc.color + "16", padding: "5px 12px", borderRadius: 99, flexShrink: 0 }}>
+          <span style={{ width: 8, height: 8, borderRadius: 99, background: sc.color }} />{sc.th}
+        </span>
+        <span style={{ flex: 1, minWidth: 90, height: 6, borderRadius: 99, background: "var(--surface3)", overflow: "hidden" }}>
+          <span style={{ display: "block", height: "100%", width: st.pct + "%", background: st.color, borderRadius: 99 }} />
+        </span>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: st.color, whiteSpace: "nowrap" }}>{st.label} {st.pct}%</span>
+      </div>
+
+      {/* ข้อมูลติดต่อ — ตารางเดียวกับหัวใบงาน */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 22 }}>
+        <InfoRow label="เบอร์โทร">{l.phone || "—"}</InfoRow>
+        <InfoRow label="ติดตามครั้งถัดไป">
+          {l.nextFollow
+            ? <span style={{ color: late ? "#EF4444" : "var(--text-1)", fontWeight: late ? 700 : 500 }}>
+                {thDate(l.nextFollow, true)}{late ? " · เลยแล้ว" : ""}</span>
+            : "—"}
+        </InfoRow>
+        <div style={{ gridColumn: "1 / -1" }}>
+          {/* ที่อยู่ว่าง ๆ บางใบกรอกเป็นขีดไว้ — อย่าเอามาต่อกับจังหวัดจนกลายเป็น "-, กรุงเทพฯ" */}
+          <InfoRow label="ที่อยู่ / พิกัด">
+            {[l.address, l.province].filter((x) => x && String(x).trim() !== "-" && String(x).trim() !== "—").join(", ") || "—"}
+          </InfoRow>
+        </div>
+        <InfoRow label="เซลล์เจ้าของราย">{l.ownerName || "—"}</InfoRow>
+        <InfoRow label="ที่มาของลูกค้า">{(l.source && window.LEAD_SOURCE_TH ? window.LEAD_SOURCE_TH(l.source) : "") || "—"}</InfoRow>
+        <InfoRow label="ประเภทงาน">{l.type === "biz" ? "โรงงาน / ธุรกิจ" : "บ้าน"}</InfoRow>
+        <InfoRow label="นัดสำรวจ">
+          {next ? (next.start ? thDate(next.start.slice(0, 10), true) : "-") + (list.length > 1 ? " · ทั้งหมด " + list.length + " นัด" : "") : "ยังไม่มีนัด"}
+        </InfoRow>
+        {job && (
+          <div style={{ gridColumn: "1 / -1" }}>
+            <InfoRow label="แปลงเป็นงานติดตั้งแล้ว">
+              <span style={{ color: "var(--tint-green-tx)", fontWeight: 700 }}>{job.code} · {job.name}</span>
+            </InfoRow>
+          </div>
+        )}
+        {l.note && (
+          <div style={{ gridColumn: "1 / -1" }}>
+            <InfoRow label="หมายเหตุ">{l.note}</InfoRow>
+          </div>
+        )}
+      </div>
+
+      {/* สเปกที่เสนอลูกค้า — ของจริงยังไม่มี มีแต่ที่คาดไว้ ต้องเขียนให้ชัดว่าเป็นค่าคาด */}
+      <div style={card}>
+        <div style={capt}><Icon name="sun" size={14} color="var(--primary)" /> สเปกที่เสนอลูกค้า</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+          <SpecItem label="ขนาดที่คาด" value={+l.expKwp > 0 ? l.expKwp + " kWp" : "—"} mono />
+          <SpecItem label="มูลค่าที่คาด" value={+l.expValue > 0 ? "฿" + fmtBaht(+l.expValue) : "—"} accent={+l.expValue > 0} />
+          <SpecItem label="ระบบไฟฟ้า" value={l.phase ? l.phase + " เฟส" : "—"} />
+        </div>
+      </div>
+
+      {/* ใบเสนอราคาทุกฉบับ — ชุดเดียวกับในใบงาน */}
+      {onOpenQuote && window.SalesQuoteList && (
+        <window.SalesQuoteList lead={l} quotes={quotes} onOpenQuote={(q) => onOpenQuote(l, q)} card />
+      )}
+
+      {/* ปุ่มงานของเซลล์ */}
+      <LeadActionRow icon="phone" color="var(--primary)" title="บันทึกการติดต่อ"
+        sub={lastC ? "ล่าสุด " + wayOf(lastC.how).th + " " + thDateTime(lastC.at) + " · ติดต่อไปแล้ว " + contacts.length + " ครั้ง" : "ยังไม่เคยบันทึกการติดต่อ"}
+        onClick={() => setLog(l)} />
+      {onOpenSurvey && (
+        <LeadActionRow icon="list" color={st.color} title="สำรวจหน้างาน (Site Survey)"
+          sub={st.state === "none" ? "ยังไม่ได้สำรวจ · แตะเพื่อเริ่ม" : st.label + " · " + st.pct + "% · แตะเพื่อแก้ไข"}
+          onClick={() => onOpenSurvey(window.leadAsJob(l))} />
+      )}
+      {onReport && st.state !== "none" && (
+        <button onClick={() => onReport(window.leadAsJob(l))}
+          style={{ width: "100%", marginBottom: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7,
+            padding: "10px 14px", background: "var(--primary-soft)", border: "1px solid var(--primary)", borderRadius: 11,
+            cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--primary-dark)" }}>
+          <Icon name="file" size={15} color="var(--primary-dark)" /> ดูรายงานผลสำรวจ · บันทึก PDF
+        </button>
+      )}
+      {/* แบบที่ปั้นไว้ตอนยังเป็นลูกค้าจะตามไปกับงานเองตอนกดแปลง จึงเปิดด้วยเลขงานถ้าแปลงแล้ว */}
+      {onPlan3d && (
+        <LeadActionRow icon="panel" color="#4F46E5" title="วางแผง 3D"
+          sub="ปั้นผังหลังคาไปคุยกับลูกค้า · ดึงจำนวนแผงเข้าใบเสนอราคาได้"
+          onClick={() => onPlan3d(job || window.leadAsJob(l))} />
+      )}
+
+      {/* ประวัติการติดต่อทั้งหมด */}
+      {contacts.length > 0 && (
+        <div style={card}>
+          <div style={capt}><Icon name="message" size={14} color="var(--text-3)" /> ประวัติการติดต่อ ({contacts.length})</div>
+          {contacts.slice(0, 8).map((c, i) => {
+            const w = wayOf(c.how);
+            return (
+              <div key={i} style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "8px 0",
+                borderTop: i ? "1px solid var(--border)" : "none" }}>
+                <Icon name={w.icon} size={14} color="var(--text-3)" style={{ flexShrink: 0, marginTop: 2 }} />
+                <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: "var(--text-2)" }}>
+                  <b style={{ color: "var(--text-1)" }}>{w.th}</b> {thDateTime(c.at)}{c.byName ? " · " + c.byName : ""}
+                  {c.note ? <span style={{ display: "block", color: "var(--text-3)", lineHeight: 1.5 }}>{c.note}</span> : null}
+                </span>
+              </div>
+            );
+          })}
+          {contacts.length > 8 && (
+            <div style={{ fontSize: 11.5, color: "var(--text-3)", paddingTop: 8 }}>· และก่อนหน้านี้อีก {contacts.length - 8} ครั้ง</div>
+          )}
+        </div>
+      )}
+
+      {/* แถบปุ่มล่าง — ค้างอยู่ก้นใบเหมือนใบงาน จะได้กดได้โดยไม่ต้องเลื่อนกลับลงมา */}
+      <div style={{ position: "sticky", bottom: 0, background: "var(--bg)", borderTop: "1px solid var(--border)",
+        padding: "12px 0 14px", marginTop: 6, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        {ask ? (
+          <React.Fragment>
+            <span style={{ flex: 1, minWidth: 140, fontSize: 12, fontWeight: 700, lineHeight: 1.5,
+              color: ask.kind === "del" ? "#EF4444" : "var(--tint-green-tx)" }}>
+              {ask.kind === "del"
+                ? "ลบ “" + (l.name || "รายนี้") + "” ? แบบสำรวจและรูปของรายนี้จะถูกลบด้วย"
+                : "ย้าย “" + (l.name || "รายนี้") + "” เข้าฐานข้อมูลงานติดตั้ง? แบบสำรวจและรูปถ่ายจะถูกย้ายไปกับงานใหม่ด้วย"}
+            </span>
+            {ask.kind === "del"
+              ? <button onClick={() => { leadStore.remove(l.id); setAsk(null); }} style={leadBtn("#EF4444", true)}>ลบเลย</button>
+              : <button onClick={() => { setAsk(null); onConvert(l); }} style={leadBtn("var(--tint-green-tx)", true)}><Icon name="check" size={14} color="#fff" sw={2.4} /> ย้ายเลย</button>}
+            <button onClick={() => setAsk(null)} style={leadBtn("var(--text-2)")}>ยกเลิก</button>
+          </React.Fragment>
+        ) : (
+          <React.Fragment>
+            <button onClick={() => setEdit({ lead: Object.assign({}, l), isNew: false })} style={leadBtn("var(--text-2)")}>
+              <Icon name="settings" size={14} color="var(--text-2)" /> แก้ไขข้อมูล
+            </button>
+            {sKey !== "lost" && sKey !== "won" && <button onClick={() => setStage(l, "lost")} style={leadBtn("var(--text-2)")}>ไม่ติดตั้ง</button>}
+            {sKey === "lost" && <button onClick={() => setStage(l, "nego")} style={leadBtn("var(--text-2)")}>กลับมาไล่ต่อ</button>}
+            <button onClick={() => setAsk({ kind: "del" })} style={leadBtn("#EF4444")}>ลบ</button>
+            {canConvert && sKey !== "won" && (
+              <button onClick={() => setAsk({ kind: "conv" })} style={Object.assign({}, leadBtn("var(--tint-green-tx)", true), { marginLeft: "auto" })}>
+                <Icon name="check" size={14} color="#fff" sw={2.4} /> แปลงเป็นงานติดตั้ง
+              </button>
+            )}
+          </React.Fragment>
+        )}
+      </div>
+    </React.Fragment>
+  );
+}
+
 /* ── แผงลูกค้าที่เด้งจากบอร์ดงาน ──
    กดการ์ดขายบนบอร์ดแล้วได้ใบเต็มทันที ไม่ต้องเด้งออกไปหน้ารายชื่อลูกค้าแล้วหาใหม่
-   ข้างในคือ LeadCard ใบเดียวกับหน้ารายชื่อ ปุ่มจึงครบเหมือนกันทุกปุ่ม */
+   ข้างในเป็นใบเต็มแบบเดียวกับใบงาน (LeadDetail) ปุ่มครบเหมือนใบย่อในหน้ารายชื่อ */
 function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, onClose,
                       onOpenSurvey, onReport, onOpenQuote, onPlan3d, onConvert, canConvert }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -516,8 +710,8 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
             </div>
             <button onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 16, lineHeight: 1 }}>×</button>
           </div>
-          <div style={{ padding: 14, overflowY: "auto" }}>
-            <LeadCard l={lead} ctx={ctx} />
+          <div style={{ padding: "14px 16px 0", overflowY: "auto" }}>
+            <LeadDetail l={lead} ctx={ctx} />
           </div>
         </div>
       </div>
@@ -529,4 +723,4 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
   );
 }
 
-Object.assign(window, { SurveyView, LeadsView, LeadCard, LeadDrawer, LeadModal, ContactLogModal });
+Object.assign(window, { SurveyView, LeadsView, LeadCard, LeadDetail, LeadDrawer, LeadModal, ContactLogModal });
