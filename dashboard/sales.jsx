@@ -277,12 +277,19 @@ function quotesOfJob(quotes, job, leads) {
   return (quotes || []).filter((q) => q.jobId === job.id || (q.leadId && lid[q.leadId]))
     .sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
 }
+/* ใบเสนอราคาของลูกค้าสำรวจหนึ่งราย — รวมใบที่ออกหลังแปลงเป็นงานแล้วด้วย
+   ลูกค้ารายเดียวกันต้องเห็นใบครบทุกฉบับไม่ว่าจะออกตอนไหน */
+function quotesOfLead(quotes, lead) {
+  if (!lead) return [];
+  return (quotes || []).filter((q) => q.leadId === lead.id || (lead.jobId && q.jobId === lead.jobId))
+    .sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+}
 
 /* ── รายการใบเสนอราคาของงาน — ใช้ทั้งในบล็อกของเซลล์ และในใบงานหน้าฐานข้อมูล ──
    ใบเสนอราคาคือ "ราคาที่ตกลงกับลูกค้า" ซึ่งคนดูใบงานต้องเปิดดูได้โดยไม่ต้องไปหาที่หน้าขาย
    card = วาดกรอบของตัวเอง (ตอนอยู่ในใบงาน) · ในบล็อกเซลล์มีกรอบอยู่แล้วจึงไม่ต้องซ้อน */
-function SalesQuoteList({ job, quotes, leads, onOpenQuote, card }) {
-  const qs = quotesOfJob(quotes, job, leads);
+function SalesQuoteList({ job, lead, quotes, leads, onOpenQuote, card }) {
+  const qs = lead ? quotesOfLead(quotes, lead) : quotesOfJob(quotes, job, leads);
   const body = (
     <React.Fragment>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
@@ -296,17 +303,30 @@ function SalesQuoteList({ job, quotes, leads, onOpenQuote, card }) {
         )}
       </div>
       {qs.length === 0 ? (
-        <div style={{ fontSize: 12.5, color: "var(--text-3)" }}>ยังไม่มีใบเสนอราคาผูกกับงานนี้</div>
-      ) : qs.map((q) => {
+        <div style={{ fontSize: 12.5, color: "var(--text-3)" }}>
+          {lead ? "ยังไม่มีใบเสนอราคาของลูกค้ารายนี้" : "ยังไม่มีใบเสนอราคาผูกกับงานนี้"}
+        </div>
+      ) : qs.map((q, i) => {
         const s = QUOTE_STATUS_BY[q.status] || QUOTE_STATUS_BY.draft;
         const T = quoteTotals(q);
+        /* เรียงใบใหม่อยู่บน — ฉบับที่เท่าไรจึงนับจากท้ายรายการขึ้นมา
+           เสนอไปหลายรอบแล้วต้องรู้ว่ากำลังคุยกันอยู่ที่ฉบับไหน ไม่ใช่เห็นแต่เลขที่ใบซึ่งดูไม่ออกว่าใบไหนก่อนหลัง */
+        const ver = qs.length - i;
         return (
           <button key={q.id} onClick={() => onOpenQuote && onOpenQuote(q)} disabled={!onOpenQuote}
             style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", marginBottom: 6,
-              background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 11,
+              background: i === 0 ? "var(--surface2)" : "transparent", border: "1px solid var(--border)", borderRadius: 11,
               cursor: onOpenQuote ? "pointer" : "default", fontFamily: "inherit", textAlign: "left" }}>
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", fontFamily: "var(--mono)" }}>{q.no}</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", fontFamily: "var(--mono)" }}>{q.no}</span>
+                {qs.length > 1 && (
+                  <span style={{ fontSize: 10, fontWeight: 800, color: i === 0 ? "var(--primary-dark)" : "var(--text-3)",
+                    background: i === 0 ? "var(--primary-soft)" : "var(--surface2)", padding: "1px 7px", borderRadius: 99 }}>
+                    ฉบับที่ {ver}{i === 0 ? " · ล่าสุด" : ""}
+                  </span>
+                )}
+              </span>
               <span style={{ display: "block", fontSize: 11, color: "var(--text-3)" }}>{thDate(q.date, true)}{q.ownerName ? " · " + q.ownerName : ""}</span>
             </span>
             <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)", fontVariantNumeric: "tabular-nums" }}>฿{sBaht(T.grand)}</span>
@@ -1469,7 +1489,7 @@ Object.assign(window, {
   SALES_STAGES, SALES_BY, SALES_BACK, salesStageKey, salesStageOf, salesStagePatch,
   LEAD_SOURCES, LEAD_SOURCE_TH, CONTACT_WAYS, sOverdue, sBaht,
   QUOTE_STATUS, QUOTE_STATUS_BY, QUOTE_TERMS_DEF, QUOTE_WARRANTY_DEF, quoteTermSplit,
-  blankQuote, quoteTotals, quoteNo, quotesFor, quotesOfJob, quoteHTML, useQuoteStore,
+  blankQuote, quoteTotals, quoteNo, quotesFor, quotesOfJob, quotesOfLead, quoteHTML, useQuoteStore,
   quoteSpec, quoteHasSpec, quoteSpecName, quoteSpecDetail,
   QuoteEditor, SalesCard, SalesBoardView, SalesKpiView, SalesOverview, SalesJobSummary, SalesQuoteList,
 });

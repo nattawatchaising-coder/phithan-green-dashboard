@@ -364,14 +364,19 @@ function quotesOfJob(quotes, job, leads) {
   });
   return (quotes || []).filter(q => q.jobId === job.id || q.leadId && lid[q.leadId]).sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
 }
+function quotesOfLead(quotes, lead) {
+  if (!lead) return [];
+  return (quotes || []).filter(q => q.leadId === lead.id || lead.jobId && q.jobId === lead.jobId).sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+}
 function SalesQuoteList({
   job,
+  lead,
   quotes,
   leads,
   onOpenQuote,
   card
 }) {
-  const qs = quotesOfJob(quotes, job, leads);
+  const qs = lead ? quotesOfLead(quotes, lead) : quotesOfJob(quotes, job, leads);
   const body = React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
       display: "flex",
@@ -412,9 +417,10 @@ function SalesQuoteList({
       fontSize: 12.5,
       color: "var(--text-3)"
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49") : qs.map(q => {
+  }, lead ? "ยังไม่มีใบเสนอราคาของลูกค้ารายนี้" : "ยังไม่มีใบเสนอราคาผูกกับงานนี้") : qs.map((q, i) => {
     const s = QUOTE_STATUS_BY[q.status] || QUOTE_STATUS_BY.draft;
     const T = quoteTotals(q);
+    const ver = qs.length - i;
     return React.createElement("button", {
       key: q.id,
       onClick: () => onOpenQuote && onOpenQuote(q),
@@ -426,7 +432,7 @@ function SalesQuoteList({
         gap: 10,
         padding: "10px 12px",
         marginBottom: 6,
-        background: "var(--surface2)",
+        background: i === 0 ? "var(--surface2)" : "transparent",
         border: "1px solid var(--border)",
         borderRadius: 11,
         cursor: onOpenQuote ? "pointer" : "default",
@@ -440,13 +446,28 @@ function SalesQuoteList({
       }
     }, React.createElement("span", {
       style: {
-        display: "block",
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        flexWrap: "wrap"
+      }
+    }, React.createElement("span", {
+      style: {
         fontSize: 12.5,
         fontWeight: 700,
         color: "var(--text-1)",
         fontFamily: "var(--mono)"
       }
-    }, q.no), React.createElement("span", {
+    }, q.no), qs.length > 1 && React.createElement("span", {
+      style: {
+        fontSize: 10,
+        fontWeight: 800,
+        color: i === 0 ? "var(--primary-dark)" : "var(--text-3)",
+        background: i === 0 ? "var(--primary-soft)" : "var(--surface2)",
+        padding: "1px 7px",
+        borderRadius: 99
+      }
+    }, "\u0E09\u0E1A\u0E31\u0E1A\u0E17\u0E35\u0E48 ", ver, i === 0 ? " · ล่าสุด" : "")), React.createElement("span", {
       style: {
         display: "block",
         fontSize: 11,
@@ -2721,6 +2742,7 @@ Object.assign(window, {
   quoteNo,
   quotesFor,
   quotesOfJob,
+  quotesOfLead,
   quoteHTML,
   useQuoteStore,
   quoteSpec,

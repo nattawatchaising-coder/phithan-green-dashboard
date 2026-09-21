@@ -1120,7 +1120,6 @@ function LeadCard({
   const list = (apptsOf[l.id] || []).slice().sort((a, b) => String(a.start || "").localeCompare(String(b.start || "")));
   const next = list.find(a => a.status !== "canceled" && a.status !== "done") || list[list.length - 1];
   const job = l.jobId ? (jobs || []).find(j => j.id === l.jobId) : null;
-  const lq = (window.quotesFor ? window.quotesFor(quotes, "lead", l.id) : [])[0];
   const late = window.sOverdue && window.sOverdue(l.nextFollow) && sKey !== "won" && sKey !== "lost";
   return React.createElement("div", {
     key: l.id,
@@ -1234,22 +1233,7 @@ function LeadCard({
       padding: "3px 9px",
       borderRadius: 99
     }
-  }, window.LEAD_SOURCE_TH(l.source)), lq && (() => {
-    const qs = (window.QUOTE_STATUS_BY || {})[lq.status] || {
-      th: lq.status,
-      color: "var(--text-3)"
-    };
-    return React.createElement("span", {
-      style: {
-        background: qs.color + "16",
-        color: qs.color,
-        fontWeight: 800,
-        padding: "3px 9px",
-        borderRadius: 99,
-        fontFamily: "var(--mono)"
-      }
-    }, lq.no, " \xB7 ", qs.th);
-  })()), l.address && React.createElement("div", {
+  }, window.LEAD_SOURCE_TH(l.source))), l.address && React.createElement("div", {
     style: {
       fontSize: 12,
       color: "var(--text-2)",
@@ -1365,7 +1349,11 @@ function LeadCard({
       color: "var(--tint-green-tx)",
       fontWeight: 700
     }
-  }, "\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19 ", job.code, " \xB7 ", job.name, " \u0E41\u0E25\u0E49\u0E27"), ask && ask.id === l.id ? React.createElement("div", {
+  }, "\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19 ", job.code, " \xB7 ", job.name, " \u0E41\u0E25\u0E49\u0E27"), onOpenQuote && window.SalesQuoteList && React.createElement(window.SalesQuoteList, {
+    lead: l,
+    quotes: quotes,
+    onOpenQuote: q => onOpenQuote(l, q)
+  }), ask && ask.id === l.id ? React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,
@@ -1418,14 +1406,7 @@ function LeadCard({
     name: "phone",
     size: 14,
     color: "#fff"
-  }), " \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E01\u0E32\u0E23\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D"), onOpenQuote && React.createElement("button", {
-    onClick: () => onOpenQuote(l, lq || null),
-    style: leadBtn("#EC4899")
-  }, React.createElement(Icon, {
-    name: "file",
-    size: 14,
-    color: "#EC4899"
-  }), " ", lq ? "ใบเสนอราคา " + lq.no : "ทำใบเสนอราคา"), onOpenSurvey && React.createElement("button", {
+  }), " \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E01\u0E32\u0E23\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D"), onOpenSurvey && React.createElement("button", {
     onClick: () => onOpenSurvey(window.leadAsJob(l)),
     style: leadBtn("var(--text-2)")
   }, React.createElement(Icon, {

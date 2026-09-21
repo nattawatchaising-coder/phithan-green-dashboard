@@ -383,7 +383,7 @@ function LeadCard({ l, ctx }) {
   const list = (apptsOf[l.id] || []).slice().sort((a, b) => String(a.start || "").localeCompare(String(b.start || "")));
   const next = list.find((a) => a.status !== "canceled" && a.status !== "done") || list[list.length - 1];
   const job = l.jobId ? (jobs || []).find((j) => j.id === l.jobId) : null;
-  const lq = (window.quotesFor ? window.quotesFor(quotes, "lead", l.id) : [])[0];
+
   const late = window.sOverdue && window.sOverdue(l.nextFollow) && sKey !== "won" && sKey !== "lost";
   return (
     <div key={l.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "4px solid " + sc.color, borderRadius: 14, boxShadow: "var(--shadow-sm)", padding: 14, display: "flex", flexDirection: "column", gap: 9 }}>
@@ -405,9 +405,6 @@ function LeadCard({ l, ctx }) {
         {+l.expKwp > 0 && <span style={{ background: "var(--surface2)", color: "var(--text-2)", fontWeight: 700, padding: "3px 9px", borderRadius: 99, fontFamily: "var(--mono)" }}>{l.expKwp} kWp</span>}
         {+l.expValue > 0 && <span style={{ background: "var(--primary-soft)", color: "var(--primary-dark)", fontWeight: 800, padding: "3px 9px", borderRadius: 99 }}>฿{fmtBaht(+l.expValue)}</span>}
         {l.source && window.LEAD_SOURCE_TH && <span style={{ background: "var(--surface2)", color: "var(--text-3)", fontWeight: 700, padding: "3px 9px", borderRadius: 99 }}>{window.LEAD_SOURCE_TH(l.source)}</span>}
-        {lq && (() => { const qs = (window.QUOTE_STATUS_BY || {})[lq.status] || { th: lq.status, color: "var(--text-3)" }; return (
-          <span style={{ background: qs.color + "16", color: qs.color, fontWeight: 800, padding: "3px 9px", borderRadius: 99, fontFamily: "var(--mono)" }}>{lq.no} · {qs.th}</span>
-        ); })()}
       </div>
       {l.address && <div style={{ fontSize: 12, color: "var(--text-2)", display: "flex", gap: 6 }}><Icon name="pin" size={13} color="var(--text-3)" style={{ flexShrink: 0, marginTop: 1 }} /><span style={{ flex: 1, minWidth: 0 }}>{l.address}</span></div>}
       {next && <div style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "center", gap: 6 }}><Icon name="clock" size={13} color="var(--text-3)" />นัดสำรวจ {next.start ? thDate(next.start.slice(0, 10), true) : "-"}{list.length > 1 ? " · ทั้งหมด " + list.length + " นัด" : ""}</div>}
@@ -435,6 +432,11 @@ function LeadCard({ l, ctx }) {
         <span style={{ fontSize: 11.5, fontWeight: 700, color: st.color, whiteSpace: "nowrap" }}>{st.label} {st.pct}%</span>
       </div>
       {job && <div style={{ fontSize: 11.5, color: "var(--tint-green-tx)", fontWeight: 700 }}>เป็นงาน {job.code} · {job.name} แล้ว</div>}
+      {/* ใบเสนอราคาทุกฉบับของรายนี้ — ชุดเดียวกับที่ใบงานใช้
+          เดิมเห็นแค่ใบล่าสุดใบเดียว เสนอไปหลายรอบแล้วดูไม่ออกว่าคุยกันอยู่ที่ฉบับไหน */}
+      {onOpenQuote && window.SalesQuoteList && (
+        <window.SalesQuoteList lead={l} quotes={quotes} onOpenQuote={(q) => onOpenQuote(l, q)} />
+      )}
       {/* ปุ่มจัดการ — ถ้ากำลังถามยืนยันอยู่ ให้แถบยืนยันมาแทนที่แถวปุ่มไปเลย จะได้ไม่กดพลาดปุ่มอื่น */}
       {ask && ask.id === l.id ? (
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", borderTop: "1px solid var(--border)", paddingTop: 10 }}>
@@ -452,7 +454,6 @@ function LeadCard({ l, ctx }) {
       ) : (
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", borderTop: "1px solid var(--border)", paddingTop: 10 }}>
         <button onClick={() => setLog(l)} style={leadBtn("var(--primary)", true)}><Icon name="phone" size={14} color="#fff" /> บันทึกการติดต่อ</button>
-        {onOpenQuote && <button onClick={() => onOpenQuote(l, lq || null)} style={leadBtn("#EC4899")}><Icon name="file" size={14} color="#EC4899" /> {lq ? "ใบเสนอราคา " + lq.no : "ทำใบเสนอราคา"}</button>}
         {onOpenSurvey && <button onClick={() => onOpenSurvey(window.leadAsJob(l))} style={leadBtn("var(--text-2)")}><Icon name="list" size={14} color="var(--text-2)" /> {st.state === "none" ? "เริ่มแบบสำรวจ" : "ดู / แก้แบบสำรวจ"}</button>}
         {/* วางแผง 3D ตั้งแต่ยังเป็นงานขาย — เซลล์ต้องเอาภาพหลังคาจริงไปคุยกับลูกค้าก่อนปิดการขาย
             แบบที่ปั้นไว้จะตามไปกับงานเองตอนกดแปลงเป็นงานติดตั้ง */}
