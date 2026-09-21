@@ -1825,25 +1825,51 @@ function SalesCard({
       justifyContent: "space-between",
       alignItems: "center",
       gap: 8,
-      marginBottom: 6
+      marginBottom: 6,
+      flexWrap: "wrap"
     }
   }, React.createElement("span", {
     style: {
       fontFamily: "var(--mono)",
       fontSize: 11,
       fontWeight: 600,
-      color: "var(--text-3)"
+      color: "var(--text-3)",
+      flexShrink: 0
     }
-  }, lead.code), late && React.createElement("span", {
+  }, lead.code), React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      flexWrap: "wrap",
+      justifyContent: "flex-end",
+      marginLeft: "auto"
+    }
+  }, late && React.createElement("span", {
     style: {
       fontSize: 10,
       fontWeight: 700,
       color: "#EF4444",
       background: "var(--tint-red-bg2)",
       padding: "1px 7px",
-      borderRadius: 99
+      borderRadius: 99,
+      whiteSpace: "nowrap"
     }
-  }, "\u0E40\u0E25\u0E22\u0E27\u0E31\u0E19\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21")), React.createElement("div", {
+  }, "\u0E40\u0E25\u0E22\u0E27\u0E31\u0E19\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21"), React.createElement("span", {
+    title: "\u0E22\u0E31\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E41\u0E1B\u0E25\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07",
+    style: {
+      fontSize: 10.5,
+      fontWeight: 800,
+      color: "var(--text-3)",
+      background: "var(--surface2)",
+      border: "1px solid var(--border)",
+      padding: "2px 7px",
+      borderRadius: 99,
+      whiteSpace: "nowrap"
+    }
+  }, "\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22"), React.createElement(TypeBadge, {
+    type: lead.type
+  }))), React.createElement("div", {
     style: {
       fontSize: 14,
       fontWeight: 700,

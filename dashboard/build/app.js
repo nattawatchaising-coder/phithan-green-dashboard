@@ -594,7 +594,7 @@ function App() {
       name: lead.name || "",
       phone: lead.phone || "",
       address: lead.address || "",
-      type: lead.type || "home",
+      type: lead.type === "biz" ? "project" : lead.type || "home",
       note: lead.note || ""
     });
     if (auth.current) {

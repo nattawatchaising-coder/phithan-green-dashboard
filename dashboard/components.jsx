@@ -112,8 +112,13 @@ function StageBadge({ stageKey, size = "md" }) {
   );
 }
 
+/* ลูกค้าสำรวจเก็บประเภทเป็น home/biz ส่วนงานเก็บเป็น home/project — ป้ายใบเดียวกันต้องอ่านออกทั้งสองแบบ
+   และประเภทที่ไม่รู้จัก (ข้อมูลเก่า/นำเข้า) ต้องไม่ทำให้ทั้งบอร์ดพัง
+   เดิม find ไม่เจอแล้วไปอ่าน .color ของ undefined = จอขาวทั้งหน้า */
 function TypeBadge({ type }) {
-  const t = window.SF.TYPES.find((x) => x.key === type);
+  const key = type === "biz" ? "project" : type;
+  const t = window.SF.TYPES.find((x) => x.key === key) || window.SF.TYPES[0];
+  if (!t) return null;
   return (
     <span style={{ fontSize: 11, fontWeight: 600, color: t.color, background: t.color + "1A",
       padding: "3px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>{t.th}</span>

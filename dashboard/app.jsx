@@ -460,7 +460,9 @@ function App() {
     if (!can(role, "addJob")) { alert("คุณไม่มีสิทธิ์สร้างงาน"); return; }
     const rec = Object.assign(store.blank(), {
       name: lead.name || "", phone: lead.phone || "", address: lead.address || "",
-      type: lead.type || "home", note: lead.note || "",
+      /* ฝั่งลูกค้าเรียก biz (โรงงาน/ธุรกิจ) ฝั่งงานเรียก project — เก็บเป็นคำของฝั่งงานตั้งแต่ตอนแปลง
+         ไม่งั้นใบงานจะมีประเภทที่ตารางงานไม่รู้จัก แล้วตัวกรอง/ป้ายประเภทอ่านไม่ออก */
+      type: lead.type === "biz" ? "project" : (lead.type || "home"), note: lead.note || "",
     });
     if (auth.current) { rec.createdBy = auth.current.id; rec.createdByName = auth.current.name || ""; }
     if (lead.province) rec.province = lead.province;

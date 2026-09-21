@@ -1100,9 +1100,18 @@ function SalesCard({ lead, quotes, onOpen, onDragStart, dragging }) {
         borderLeft: "3px solid " + (late ? "#EF4444" : st.color), transition: "box-shadow .16s, transform .16s" }}
       onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 8px 22px rgba(8,20,14,.09)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
       onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "var(--shadow-sm)"; e.currentTarget.style.transform = "none"; }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 6 }}>
-        <span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, color: "var(--text-3)" }}>{lead.code}</span>
-        {late && <span style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", background: "var(--tint-red-bg2)", padding: "1px 7px", borderRadius: 99 }}>เลยวันติดตาม</span>}
+      {/* หัวการ์ด — รหัส + ป้าย ชุดเดียวกับการ์ดงาน จะได้กวาดตาอ่านบอร์ดเดียวกันได้แบบเดียวกัน
+          ป้ายตกบรรทัดใหม่ได้ ไม่งั้นการ์ดแคบ ๆ จะโดนขอบตัดจนอ่านไม่ออก */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
+        <span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, color: "var(--text-3)", flexShrink: 0 }}>{lead.code}</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "flex-end", marginLeft: "auto" }}>
+          {late && <span style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", background: "var(--tint-red-bg2)", padding: "1px 7px", borderRadius: 99, whiteSpace: "nowrap" }}>เลยวันติดตาม</span>}
+          {/* ยังไม่เป็นงาน — บอกไว้ว่าเป็นลูกค้าที่ยังไล่อยู่ ไม่ใช่งานที่ขายได้แล้ว */}
+          <span title="ยังเป็นลูกค้า ยังไม่ได้แปลงเป็นงานติดตั้ง"
+            style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)", background: "var(--surface2)",
+              border: "1px solid var(--border)", padding: "2px 7px", borderRadius: 99, whiteSpace: "nowrap" }}>งานขาย</span>
+          <TypeBadge type={lead.type} />
+        </span>
       </div>
       <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3, marginBottom: 3 }}>{lead.name || "(ไม่ระบุชื่อ)"}</div>
       <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 9, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>

@@ -140,7 +140,9 @@ function StageBadge({
 function TypeBadge({
   type
 }) {
-  const t = window.SF.TYPES.find(x => x.key === type);
+  const key = type === "biz" ? "project" : type;
+  const t = window.SF.TYPES.find(x => x.key === key) || window.SF.TYPES[0];
+  if (!t) return null;
   return React.createElement("span", {
     style: {
       fontSize: 11,
