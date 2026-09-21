@@ -189,10 +189,29 @@ function FlowBoardView({ jobs, leads, quotes, search, role, currentUser,
     return { site, doc, pend };
   }, [jobs, hasDoc, hasSales]);
 
+  /* ── ลูกค้ารายเดียวกันต้องมีการ์ดใบเดียวในช่วงขาย ──
+     ลูกค้าที่แปลงเป็นใบงานแล้วผูกกันด้วย lead.jobId · พอใบงานนั้นถูกติดธง "รออนุมัติ"
+     มันจะมายืนในช่วงขายด้วย ถ้าไม่ซ่อนการ์ดลูกค้า รายเดียวกันจะโผล่สองใบ
+     (ใบลูกค้าค้างที่ "เสนอราคาแล้ว" ใบงานอยู่ "ต่อรอง") แล้วเซลล์ต้องไล่ดันทั้งสองใบ
+     ใบงานมีข้อมูลมากกว่า (แบบ · BOQ · ผังแผง) จึงให้ใบงานแทนที่ใบลูกค้าไปเลย */
+  const leadByJob = React.useMemo(() => {
+    const m = {};
+    (leads || []).forEach((l) => { if (l.jobId) m[l.jobId] = l; });
+    return m;
+  }, [leads]);
+  const pendIds = React.useMemo(() => {
+    const m = {};
+    jobCols.pend.forEach((j) => { m[j.id] = 1; });
+    return m;
+  }, [jobCols.pend]);
+
   const leadCols = React.useMemo(() => {
     const m = {};
     SALES_STAGES.forEach((s) => { m[s.key] = []; });
-    leadPool.forEach((l) => { const k = salesStageKey(l); (m[k] || (m[k] = [])).push(l); });
+    leadPool.forEach((l) => {
+      if (l.jobId && pendIds[l.jobId]) return;   // ใบงานของรายนี้ยืนแทนอยู่แล้ว
+      const k = salesStageKey(l); (m[k] || (m[k] = [])).push(l);
+    });
     Object.keys(m).forEach((k) => m[k].sort((a, b) => {
       /* คนที่เลยวันติดตามอยู่บนสุด — บอร์ดนี้มีไว้บอกว่าวันนี้ต้องโทรหาใคร */
       const la = sOverdue(a.nextFollow) ? 0 : 1, lb = sOverdue(b.nextFollow) ? 0 : 1;
@@ -200,7 +219,7 @@ function FlowBoardView({ jobs, leads, quotes, search, role, currentUser,
       return String(a.nextFollow || "9999-99-99").localeCompare(String(b.nextFollow || "9999-99-99"));
     }));
     return m;
-  }, [leadPool]);
+  }, [leadPool, pendIds]);
 
   /* คอลัมน์ "ต่อรอง" มีทั้งลูกค้าที่ยังไม่เป็นงาน และใบงานที่รอลูกค้าอนุมัติ ปนกันได้
      ทั้งคู่คือ "ยังไม่รู้ว่าจะได้ทำไหม" เหมือนกัน เซลล์จึงควรเห็นอยู่กองเดียว */
@@ -233,9 +252,25 @@ function FlowBoardView({ jobs, leads, quotes, search, role, currentUser,
     /* ใบงานรออนุมัติ — ลากเข้า "ต่อรอง" = ติดธง · ลากกลับช่วงหน้างาน = ปลดธงแล้วเดินขั้นตามคอลัมน์
        ปลดธงเสมอแม้ขั้นไม่เปลี่ยน ไม่งั้นลากกลับที่เดิมแล้วการ์ดเด้งไปช่วงขายอีก */
     if (d.kind === "job" && canMoveJob) {
-      if (g.kind === "lead") { if (key === "nego" && onPatchJob) onPatchJob(rec.id, { pendingApproval: true }); return; }
+      /* ขั้นการขายของลูกค้าต้องตรงกับความจริงด้วย ไม่ใช่แค่ธงบนใบงาน
+         ตอนแปลงลูกค้าเป็นงาน ใบลูกค้าถูกประทับว่า "ปิดการขาย" ไปแล้ว
+         ถ้าที่จริงยังรอลูกค้าตัดสินใจ ต้องถอยใบลูกค้ากลับมาที่ "ต่อรอง" ด้วย
+         ไม่งั้นยอดปิดการขายจะนับงานที่ยังไม่ได้ขาย */
+      const lead = leadByJob[rec.id] || null;
+      const syncLead = (k) => {
+        if (lead && onPatchLead && salesStageKey(lead) !== k) onPatchLead(lead.id, salesStagePatch(k));
+      };
+      if (g.kind === "lead") {
+        if (key !== "nego" || !onPatchJob) return;
+        onPatchJob(rec.id, { pendingApproval: true });
+        syncLead("nego");
+        return;
+      }
       if (g.kind !== "job") return;
-      if (rec.pendingApproval && onPatchJob) onPatchJob(rec.id, { pendingApproval: false });
+      if (rec.pendingApproval) {
+        if (onPatchJob) onPatchJob(rec.id, { pendingApproval: false });
+        syncLead("won");   // ลากกลับเข้าช่วงหน้างาน = ลูกค้าอนุมัติแล้ว
+      }
       if (rec.stage !== key) onMoveStage(rec.id, key);
       return;
     }

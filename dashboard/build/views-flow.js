@@ -393,12 +393,27 @@ function FlowBoardView({
       pend
     };
   }, [jobs, hasDoc, hasSales]);
+  const leadByJob = React.useMemo(() => {
+    const m = {};
+    (leads || []).forEach(l => {
+      if (l.jobId) m[l.jobId] = l;
+    });
+    return m;
+  }, [leads]);
+  const pendIds = React.useMemo(() => {
+    const m = {};
+    jobCols.pend.forEach(j => {
+      m[j.id] = 1;
+    });
+    return m;
+  }, [jobCols.pend]);
   const leadCols = React.useMemo(() => {
     const m = {};
     SALES_STAGES.forEach(s => {
       m[s.key] = [];
     });
     leadPool.forEach(l => {
+      if (l.jobId && pendIds[l.jobId]) return;
       const k = salesStageKey(l);
       (m[k] || (m[k] = [])).push(l);
     });
@@ -409,7 +424,7 @@ function FlowBoardView({
       return String(a.nextFollow || "9999-99-99").localeCompare(String(b.nextFollow || "9999-99-99"));
     }));
     return m;
-  }, [leadPool]);
+  }, [leadPool, pendIds]);
   const cardsOf = (g, key) => (g.kind === "lead" ? key === "nego" ? (leadCols[key] || []).concat(jobCols.pend) : leadCols[key] : g.kind === "permit" ? jobCols.doc[key] : jobCols.site[key]) || [];
   const canDrop = (g, key) => {
     if (!drag) return false;
@@ -430,16 +445,25 @@ function FlowBoardView({
     if (!d) return;
     const rec = d.rec;
     if (d.kind === "job" && canMoveJob) {
+      const lead = leadByJob[rec.id] || null;
+      const syncLead = k => {
+        if (lead && onPatchLead && salesStageKey(lead) !== k) onPatchLead(lead.id, salesStagePatch(k));
+      };
       if (g.kind === "lead") {
-        if (key === "nego" && onPatchJob) onPatchJob(rec.id, {
+        if (key !== "nego" || !onPatchJob) return;
+        onPatchJob(rec.id, {
           pendingApproval: true
         });
+        syncLead("nego");
         return;
       }
       if (g.kind !== "job") return;
-      if (rec.pendingApproval && onPatchJob) onPatchJob(rec.id, {
-        pendingApproval: false
-      });
+      if (rec.pendingApproval) {
+        if (onPatchJob) onPatchJob(rec.id, {
+          pendingApproval: false
+        });
+        syncLead("won");
+      }
       if (rec.stage !== key) onMoveStage(rec.id, key);
       return;
     }
