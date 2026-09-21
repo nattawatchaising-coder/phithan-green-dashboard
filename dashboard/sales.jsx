@@ -497,9 +497,8 @@ function quoteHTML(q, lang, sheets) {
   /* หน้ากระดาษของเอกสารแนบ — ถ้าแปลงหน้า PDF มาเป็นรูปได้แล้ว (pages) ก็พิมพ์ไปในชุดเดียวกันเลย
      แปลงไม่ได้ (ต่อเน็ตไม่ได้ / ไฟล์เสีย) ค่อยขึ้นเป็นบรรทัดบอกว่าต้องพิมพ์แยก จะได้ไม่เงียบหาย */
   const pagesOf = (x) => (x.pages && x.pages.length ? x.pages : (x.kind === "image" ? [x.dataUrl] : []));
-  const shPages = sh.length
-    ? '<div class="shpg"><h3>เอกสารแนบ · DATA SHEET</h3>' +
-      '<div class="shsub">แนบท้ายใบเสนอราคาเลขที่ ' + sEsc(q.no) + " · " + sEsc(c.name || "") + "</div><ul class=\"shls\">" +
+  const shList = sh.length
+    ? '<div class="blk"><h3>เอกสารแนบ · DATA SHEET</h3><ul>' +
       sh.map((x) => {
         const pg = pagesOf(x);
         const more = x.total && x.total > pg.length ? " (จาก " + x.total + " หน้า)" : "";
@@ -507,13 +506,14 @@ function quoteHTML(q, lang, sheets) {
           (pg.length ? ' <span class="pdf">แนบมาด้วย ' + pg.length + " หน้า" + more + "</span>"
                      : ' <span class="pdf">ไฟล์ PDF · พิมพ์แยกจากไฟล์ต้นฉบับ</span>') + "</li>";
       }).join("") +
-      "</ul></div>" +
-      sh.map((x) => pagesOf(x).map((src, i, all) => (
-        '<div class="shpg"><h3>DATA SHEET — ' + sEsc(x.label) +
-        (all.length > 1 ? " (หน้า " + (i + 1) + "/" + all.length + ")" : "") + "</h3>" +
-        '<img class="shimg" src="' + src + '" alt="" /></div>'
-      )).join("")).join("")
+      "</ul></div>"
     : "";
+  /* ตัวหน้า DATA SHEET จริง ๆ ยังขึ้นแผ่นใหม่แผ่นละหน้า เพราะเป็นรูปเต็มหน้ากระดาษ */
+  const shPages = sh.map((x) => pagesOf(x).map((src, i, all) => (
+    '<div class="shpg"><h3>DATA SHEET — ' + sEsc(x.label) +
+    (all.length > 1 ? " (หน้า " + (i + 1) + "/" + all.length + ")" : "") + "</h3>" +
+    '<img class="shimg" src="' + src + '" alt="" /></div>'
+  )).join("")).join("");
   const money = (label, val, big) =>
     '<tr class="' + (big ? "big" : "") + '"><td>' + label + '</td><td class="r">' + sBaht(val) + " บาท</td></tr>";
   const list = (arr, title) => {
@@ -564,6 +564,7 @@ function quoteHTML(q, lang, sheets) {
     ".shpg .shsub{font-size:11px;color:#6b7280;margin:-4px 0 10px}" +
     ".shls{margin:0;padding-left:18px}.shls li{margin-bottom:4px}" +
     ".shls .pdf{color:#6b7280;font-size:10.5px}" +
+    ".blk .pdf{color:#6b7280;font-size:10.5px}" +
     ".shimg{width:100%;height:auto;max-height:248mm;object-fit:contain;border:1px solid #e5e7eb;border-radius:6px}" +
     ".sum{margin-top:12px;margin-left:auto;width:290px}" +
     ".sum td{border:0;padding:4px 8px}.sum .big td{border-top:2px solid #0A4D68;font-weight:700;font-size:14px;color:#0A4D68;padding-top:8px}" +
@@ -626,10 +627,10 @@ function quoteHTML(q, lang, sheets) {
     "</div></div>" +
     /* เงื่อนไขชำระเงิน + การรับประกัน ขึ้นแผ่นใหม่
        หน้าแรกจะได้เหลือแค่ของกับราคา ลูกค้าเซ็นจบในแผ่นเดียว ส่วนเงื่อนไขอ่านต่อแผ่นหลังได้เต็ม ๆ */
-    (termList(q.terms, T.grand) || list(q.warranties, "การรับประกันและบริการ")
+    (termList(q.terms, T.grand) || list(q.warranties, "การรับประกันและบริการ") || shList
       ? '<div class="tmpg"><h2>เงื่อนไขการชำระเงินและการรับประกัน</h2>' +
         '<div class="sub">แนบท้ายใบเสนอราคาเลขที่ ' + sEsc(q.no) + " · " + sEsc(c.name || "") + "</div>" +
-        termList(q.terms, T.grand) + list(q.warranties, "การรับประกันและบริการ") + "</div>"
+        termList(q.terms, T.grand) + list(q.warranties, "การรับประกันและบริการ") + shList + "</div>"
       : "") +
     shPages +
     "</body></html>";
