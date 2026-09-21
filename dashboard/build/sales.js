@@ -585,8 +585,7 @@ function quoteHTML(q, lang, sheets) {
   const sh = (sheets || []).filter(Boolean);
   const shImgs = sh.filter(x => x.kind === "image");
   const shPdfs = sh.filter(x => x.kind !== "image");
-  const shList = sh.length ? '<div class="blk"><h3>เอกสารแนบ (DATA SHEET)</h3><ul>' + sh.map(x => "<li>" + sEsc(x.label) + (x.kind === "image" ? "" : " (ไฟล์ PDF · แนบแยก)") + "</li>").join("") + "</ul></div>" : "";
-  const shPages = shImgs.map(x => '<div class="shpg"><h3>DATA SHEET — ' + sEsc(x.label) + "</h3>" + '<img class="shimg" src="' + x.dataUrl + '" alt="" /></div>').join("");
+  const shPages = sh.length ? '<div class="shpg"><h3>เอกสารแนบ · DATA SHEET</h3>' + '<div class="shsub">แนบท้ายใบเสนอราคาเลขที่ ' + sEsc(q.no) + " · " + sEsc(c.name || "") + "</div><ul class=\"shls\">" + sh.map(x => "<li>" + sEsc(x.label) + (x.kind === "image" ? "" : ' <span class="pdf">ไฟล์ PDF · พิมพ์แยกจากไฟล์ต้นฉบับ</span>') + "</li>").join("") + "</ul></div>" + shImgs.map(x => '<div class="shpg"><h3>DATA SHEET — ' + sEsc(x.label) + "</h3>" + '<img class="shimg" src="' + x.dataUrl + '" alt="" /></div>').join("") : "";
   const money = (label, val, big) => '<tr class="' + (big ? "big" : "") + '"><td>' + label + '</td><td class="r">' + sBaht(val) + " บาท</td></tr>";
   const list = (arr, title) => {
     const a = (arr || []).map(s => String(s || "").trim()).filter(Boolean);
@@ -601,9 +600,9 @@ function quoteHTML(q, lang, sheets) {
     return '<div class="blk"><h3>เงื่อนไขการชำระเงิน</h3><ul>' + li + "</ul></div>";
   };
   const fontStack = window.pgFontStack ? window.pgFontStack(L) : "'IBM Plex Sans Thai',sans-serif";
-  const doc = '<!doctype html><html lang="' + L + '"><head><meta charset="utf-8">' + "<title>ใบเสนอราคา " + sEsc(q.no) + "</title>" + '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">' + (window.pgFontLink ? window.pgFontLink(L) : "") + "<style>" + "@page{size:A4;margin:14mm}" + "*{box-sizing:border-box}" + "body{font-family:" + fontStack + ";color:#111827;font-size:12px;margin:0;line-height:1.55}" + ".hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1B9B75;padding-bottom:12px;margin-bottom:16px}" + ".bd{font-size:20px;font-weight:700;color:#0A4D68;letter-spacing:.02em}" + ".bs{font-size:11px;color:#6b7280;margin-top:2px}" + ".ti{text-align:right}.ti h1{font-size:19px;margin:0;color:#111827}" + ".ti .no{font-size:12px;color:#374151;margin-top:3px}" + ".two{display:flex;gap:14px;margin-bottom:14px}" + ".two>div{flex:1;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px}" + ".two h3,.blk h3{font-size:11px;margin:0 0 6px;color:#0A4D68;letter-spacing:.04em}" + ".kv{display:flex;gap:6px;font-size:11.5px}.kv b{min-width:58px;color:#6b7280;font-weight:500}" + "table{width:100%;border-collapse:collapse;font-size:11.5px}" + "th{background:#0A4D68;color:#fff;padding:7px 8px;text-align:left;font-weight:600;font-size:11px}" + "td{padding:7px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top}" + ".c{text-align:center}.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}" + ".dt{color:#6b7280;font-size:10.5px;margin-top:2px;line-height:1.45}" + ".shpg{page-break-before:always;break-before:page;padding-top:6mm}" + ".shpg h3{font-size:12px;color:#0A4D68;margin:0 0 8px}" + ".shimg{width:100%;height:auto;border:1px solid #e5e7eb;border-radius:6px}" + ".sum{margin-top:12px;margin-left:auto;width:290px}" + ".sum td{border:0;padding:4px 8px}.sum .big td{border-top:2px solid #0A4D68;font-weight:700;font-size:14px;color:#0A4D68;padding-top:8px}" + ".blk{margin-top:14px;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;break-inside:avoid}" + ".blk ul{margin:0;padding-left:18px}.blk li{margin-bottom:3px}" + ".note{margin-top:12px;font-size:11px;color:#374151;white-space:pre-wrap}" + ".sig{display:flex;gap:40px;margin-top:34px;break-inside:avoid}" + ".sig>div{flex:1;text-align:center}.sig .ln{border-top:1px solid #9ca3af;margin:34px 10px 6px}" + ".sig .rl{font-size:11px;color:#6b7280}" + ".ft{margin-top:16px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center}" + "</style></head><body>" + '<div class="hd"><div>' + window.brandHeadHTML({
+  const doc = '<!doctype html><html lang="' + L + '"><head><meta charset="utf-8">' + "<title>ใบเสนอราคา " + sEsc(q.no) + "</title>" + '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">' + (window.pgFontLink ? window.pgFontLink(L) : "") + "<style>" + "@page{size:A4;margin:14mm}" + "*{box-sizing:border-box}" + "body{font-family:" + fontStack + ";color:#111827;font-size:12px;margin:0;line-height:1.55}" + ".hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1B9B75;padding-bottom:12px;margin-bottom:16px}" + ".bd{font-size:20px;font-weight:700;color:#0A4D68;letter-spacing:.02em}" + ".bs{font-size:11px;color:#6b7280;margin-top:2px}" + ".ti{text-align:right}.ti h1{font-size:19px;margin:0;color:#111827}" + ".ti .no{font-size:12px;color:#374151;margin-top:3px}" + ".two{display:flex;gap:14px;margin-bottom:14px}" + ".two>div{flex:1;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px}" + ".two h3,.blk h3{font-size:11px;margin:0 0 6px;color:#0A4D68;letter-spacing:.04em}" + ".kv{display:flex;gap:6px;font-size:11.5px}.kv b{min-width:58px;color:#6b7280;font-weight:500}" + "table{width:100%;border-collapse:collapse;font-size:11.5px}" + "th{background:#0A4D68;color:#fff;padding:7px 8px;text-align:left;font-weight:600;font-size:11px}" + "td{padding:7px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top}" + ".c{text-align:center}.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}" + ".dt{color:#6b7280;font-size:10.5px;margin-top:2px;line-height:1.45}" + ".shpg{page-break-before:always;break-before:page;padding-top:6mm}" + ".shpg h3{font-size:12px;color:#0A4D68;margin:0 0 8px}" + ".shpg .shsub{font-size:11px;color:#6b7280;margin:-4px 0 10px}" + ".shls{margin:0;padding-left:18px}.shls li{margin-bottom:4px}" + ".shls .pdf{color:#6b7280;font-size:10.5px}" + ".shimg{width:100%;height:auto;border:1px solid #e5e7eb;border-radius:6px}" + ".sum{margin-top:12px;margin-left:auto;width:290px}" + ".sum td{border:0;padding:4px 8px}.sum .big td{border-top:2px solid #0A4D68;font-weight:700;font-size:14px;color:#0A4D68;padding-top:8px}" + ".blk{margin-top:14px;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;break-inside:avoid}" + ".blk ul{margin:0;padding-left:18px}.blk li{margin-bottom:3px}" + ".note{margin-top:12px;font-size:11px;color:#374151;white-space:pre-wrap}" + ".sig{display:flex;gap:40px;margin-top:34px;break-inside:avoid}" + ".sig>div{flex:1;text-align:center}.sig .ln{border-top:1px solid #9ca3af;margin:34px 10px 6px}" + ".sig .rl{font-size:11px;color:#6b7280}" + ".ft{margin-top:16px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center}" + "</style></head><body>" + '<div class="hd"><div>' + window.brandHeadHTML({
     size: 40
-  }) + '<div class="bs">ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์ · ออกแบบ · ติดตั้ง · ขออนุญาตการไฟฟ้า</div>' + '<div class="bs">' + window.BRANDING.email + " · " + window.BRANDING.tel + "</div></div>" + '<div class="ti"><h1>ใบเสนอราคา</h1><div class="no">เลขที่ <b>' + sEsc(q.no) + "</b></div>" + '<div class="no">วันที่ ' + dsp(q.date) + "</div></div></div>" + '<div class="two"><div><h3>ลูกค้า</h3>' + '<div class="kv"><b>ชื่อ</b><span>' + sEsc(c.name || "—") + "</span></div>" + '<div class="kv"><b>โทร</b><span>' + sEsc(c.phone || "—") + "</span></div>" + '<div class="kv"><b>ที่อยู่</b><span>' + sEsc((c.address || "") + (c.province ? " " + c.province : "") || "—") + "</span></div></div>" + "<div><h3>รายละเอียดข้อเสนอ</h3>" + '<div class="kv"><b>ขนาด</b><span>' + (q.kwp ? sEsc(q.kwp) + " kWp" : "—") + "</span></div>" + '<div class="kv"><b>อ้างอิง</b><span>' + sEsc(q.refCode || "—") + "</span></div>" + '<div class="kv"><b>ผู้เสนอ</b><span>' + sEsc(q.ownerName || q.byName || "—") + "</span></div></div></div>" + "<table><thead><tr><th class=\"c\" style=\"width:26px\">#</th><th>รายการ</th>" + "<th class=\"c\" style=\"width:46px\">จำนวน</th><th class=\"c\" style=\"width:52px\">หน่วย</th>" + "<th class=\"r\" style=\"width:88px\">ราคา/หน่วย</th><th class=\"r\" style=\"width:96px\">จำนวนเงิน</th></tr></thead>" + "<tbody>" + (rows || '<tr><td colspan="6" class="c">— ยังไม่มีรายการ —</td></tr>') + "</tbody></table>" + '<table class="sum">' + money("รวมเป็นเงิน", T.sub) + (T.disc > 0 ? money(T.discMode === "pct" ? "หักส่วนลด " + T.discPct + "%" : "หักส่วนลด", T.disc) + money("ราคาหลังหักส่วนลด", T.afterDisc) : "") + money("ภาษีมูลค่าเพิ่ม " + T.vatRate + "%", T.vat) + money("ราคารวมทั้งสิ้น", T.grand, true) + "</table>" + termList(q.terms, T.grand) + list(q.warranties, "การรับประกันและบริการ") + (valid ? '<div class="note">' + sEsc(valid) + "</div>" : "") + (q.note ? '<div class="note">หมายเหตุ: ' + sEsc(q.note) + "</div>" : "") + shList + '<div class="sig"><div><div class="ln"></div><div class="rl">ผู้เสนอราคา · ' + sEsc(q.ownerName || q.byName || "") + '</div></div><div><div class="ln"></div><div class="rl">ผู้อนุมัติ / ลูกค้า</div>' + '<div class="rl">วันที่ ______ / ______ / ______</div></div></div>' + '<div class="ft">เอกสารนี้ออกจากระบบติดตามงานติดตั้ง ' + window.BRANDING.name + "</div>" + shPages + "</body></html>";
+  }) + '<div class="bs">ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์ · ออกแบบ · ติดตั้ง · ขออนุญาตการไฟฟ้า</div>' + '<div class="bs">' + window.BRANDING.email + " · " + window.BRANDING.tel + "</div></div>" + '<div class="ti"><h1>ใบเสนอราคา</h1><div class="no">เลขที่ <b>' + sEsc(q.no) + "</b></div>" + '<div class="no">วันที่ ' + dsp(q.date) + "</div></div></div>" + '<div class="two"><div><h3>ลูกค้า</h3>' + '<div class="kv"><b>ชื่อ</b><span>' + sEsc(c.name || "—") + "</span></div>" + '<div class="kv"><b>โทร</b><span>' + sEsc(c.phone || "—") + "</span></div>" + '<div class="kv"><b>ที่อยู่</b><span>' + sEsc((c.address || "") + (c.province ? " " + c.province : "") || "—") + "</span></div></div>" + "<div><h3>รายละเอียดข้อเสนอ</h3>" + '<div class="kv"><b>ขนาด</b><span>' + (q.kwp ? sEsc(q.kwp) + " kWp" : "—") + "</span></div>" + '<div class="kv"><b>อ้างอิง</b><span>' + sEsc(q.refCode || "—") + "</span></div>" + '<div class="kv"><b>ผู้เสนอ</b><span>' + sEsc(q.ownerName || q.byName || "—") + "</span></div></div></div>" + "<table><thead><tr><th class=\"c\" style=\"width:26px\">#</th><th>รายการ</th>" + "<th class=\"c\" style=\"width:46px\">จำนวน</th><th class=\"c\" style=\"width:52px\">หน่วย</th>" + "<th class=\"r\" style=\"width:88px\">ราคา/หน่วย</th><th class=\"r\" style=\"width:96px\">จำนวนเงิน</th></tr></thead>" + "<tbody>" + (rows || '<tr><td colspan="6" class="c">— ยังไม่มีรายการ —</td></tr>') + "</tbody></table>" + '<table class="sum">' + money("รวมเป็นเงิน", T.sub) + (T.disc > 0 ? money(T.discMode === "pct" ? "หักส่วนลด " + T.discPct + "%" : "หักส่วนลด", T.disc) + money("ราคาหลังหักส่วนลด", T.afterDisc) : "") + money("ภาษีมูลค่าเพิ่ม " + T.vatRate + "%", T.vat) + money("ราคารวมทั้งสิ้น", T.grand, true) + "</table>" + termList(q.terms, T.grand) + list(q.warranties, "การรับประกันและบริการ") + (valid ? '<div class="note">' + sEsc(valid) + "</div>" : "") + (q.note ? '<div class="note">หมายเหตุ: ' + sEsc(q.note) + "</div>" : "") + '<div class="sig"><div><div class="ln"></div><div class="rl">ผู้เสนอราคา · ' + sEsc(q.ownerName || q.byName || "") + '</div></div><div><div class="ln"></div><div class="rl">ผู้อนุมัติ / ลูกค้า</div>' + '<div class="rl">วันที่ ______ / ______ / ______</div></div></div>' + '<div class="ft">เอกสารนี้ออกจากระบบติดตามงานติดตั้ง ' + window.BRANDING.name + "</div>" + shPages + "</body></html>";
   return window.pgDocHTML ? window.pgDocHTML(doc, L, QUOTE_I18N) : doc;
 }
 function QuoteSheetPick({
@@ -625,11 +624,12 @@ function QuoteSheetPick({
     };
   });
   const f = norm(qs);
-  const shown = scored.filter(x => !f || norm(x.it.name).indexOf(f) !== -1 || norm(x.it.model).indexOf(f) !== -1).sort((a, b) => {
+  const shown = scored.filter(x => f ? norm(x.it.name).indexOf(f) !== -1 || norm(x.it.model).indexOf(f) !== -1 : x.hit || sel.indexOf(x.it.id) !== -1).sort((a, b) => {
     const sa = sel.indexOf(a.it.id) !== -1 ? 0 : a.hit ? 1 : 2,
       sb = sel.indexOf(b.it.id) !== -1 ? 0 : b.hit ? 1 : 2;
     return sa !== sb ? sa - sb : String(a.it.name || "").localeCompare(String(b.it.name || ""));
   });
+  const hitCount = scored.filter(x => x.hit).length;
   const toggle = id => {
     if (locked) return;
     onChange(sel.indexOf(id) !== -1 ? sel.filter(x => x !== id) : sel.concat([id]));
@@ -658,15 +658,15 @@ function QuoteSheetPick({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E17\u0E35\u0E48\u0E40\u0E01\u0E35\u0E48\u0E22\u0E27\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49 \xB7 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E44\u0E27\u0E49 ", sel.length, " \u0E44\u0E1F\u0E25\u0E4C")), (items || []).length === 0 ? React.createElement("div", {
+  }, qs ? "ค้นทั้งคลัง" : "แสดงเฉพาะรุ่นที่ระบุในใบนี้", " \xB7 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E44\u0E27\u0E49 ", sel.length, " \u0E44\u0E1F\u0E25\u0E4C")), (items || []).length === 0 ? React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)"
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E2D\u0E07\u0E0A\u0E34\u0E49\u0E19\u0E44\u0E2B\u0E19\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07\u0E17\u0E35\u0E48\u0E41\u0E19\u0E1A DATA SHEET \u0E44\u0E27\u0E49 \u2014 \u0E44\u0E1B\u0E41\u0E19\u0E1A\u0E17\u0E35\u0E48\u0E2B\u0E19\u0E49\u0E32\u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E01\u0E48\u0E2D\u0E19") : React.createElement(React.Fragment, null, (items || []).length > 6 && React.createElement("input", {
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E2D\u0E07\u0E0A\u0E34\u0E49\u0E19\u0E44\u0E2B\u0E19\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07\u0E17\u0E35\u0E48\u0E41\u0E19\u0E1A DATA SHEET \u0E44\u0E27\u0E49 \u2014 \u0E44\u0E1B\u0E41\u0E19\u0E1A\u0E17\u0E35\u0E48\u0E2B\u0E19\u0E49\u0E32\u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E01\u0E48\u0E2D\u0E19") : React.createElement(React.Fragment, null, React.createElement("input", {
     value: qs,
     onChange: e => setQs(e.target.value),
-    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32\u0E23\u0E38\u0E48\u0E19 / \u0E0A\u0E37\u0E48\u0E2D\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32",
+    placeholder: "\u0E2D\u0E22\u0E32\u0E01\u0E41\u0E19\u0E1A\u0E23\u0E38\u0E48\u0E19\u0E2D\u0E37\u0E48\u0E19\u0E14\u0E49\u0E27\u0E22 \u2014 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E04\u0E49\u0E19\u0E2B\u0E32\u0E08\u0E32\u0E01\u0E17\u0E31\u0E49\u0E07\u0E04\u0E25\u0E31\u0E07",
     style: {
       padding: "7px 10px",
       borderRadius: 9,
@@ -751,9 +751,10 @@ function QuoteSheetPick({
   }), shown.length === 0 && React.createElement("div", {
     style: {
       fontSize: 11.5,
-      color: "var(--text-3)"
+      color: "var(--text-3)",
+      lineHeight: 1.6
     }
-  }, "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E23\u0E38\u0E48\u0E19\u0E17\u0E35\u0E48\u0E04\u0E49\u0E19\u0E2B\u0E32"))));
+  }, qs ? "ไม่พบรุ่นที่ค้นหา" : hitCount === 0 ? "รุ่นที่ระบุในใบนี้ยังไม่มี DATA SHEET ในคลัง — พิมพ์ค้นหาเพื่อเลือกรุ่นอื่นได้" : ""))));
 }
 function QuoteEditor({
   quote,
@@ -1567,7 +1568,48 @@ function QuoteEditor({
     hintText: sheetHint,
     locked: locked,
     onChange: v => set("sheetIds", v)
-  }), React.createElement("div", {
+  }), sheetDocs.length > 0 && React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 7,
+      flexWrap: "wrap",
+      alignItems: "center"
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, "\u0E40\u0E1B\u0E34\u0E14\u0E44\u0E1F\u0E25\u0E4C\u0E44\u0E1B\u0E2A\u0E31\u0E48\u0E07\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E41\u0E19\u0E1A\u0E17\u0E49\u0E32\u0E22:"), sheetDocs.map(sd => React.createElement("button", {
+    key: sd.id,
+    type: "button",
+    onClick: () => {
+      try {
+        const url = window.dataUrlToBlobUrl ? window.dataUrlToBlobUrl(sd.dataUrl) : sd.dataUrl;
+        window.open(url, "_blank", "noopener");
+      } catch (e) {
+        window.open(sd.dataUrl, "_blank", "noopener");
+      }
+    },
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      padding: "5px 10px",
+      borderRadius: 8,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 13,
+    color: sd.kind === "image" ? "var(--primary-dark)" : "#EF4444"
+  }), " ", sd.label))), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",

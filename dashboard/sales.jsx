@@ -454,15 +454,18 @@ function quoteHTML(q, lang, sheets) {
   const sh = (sheets || []).filter(Boolean);
   const shImgs = sh.filter((x) => x.kind === "image");
   const shPdfs = sh.filter((x) => x.kind !== "image");
-  const shList = sh.length
-    ? '<div class="blk"><h3>เอกสารแนบ (DATA SHEET)</h3><ul>' +
-      sh.map((x) => "<li>" + sEsc(x.label) + (x.kind === "image" ? "" : " (ไฟล์ PDF · แนบแยก)") + "</li>").join("") +
-      "</ul></div>"
+  /* ใบเสนอราคาต้องจบในตัวมันเอง — DATA SHEET เป็นเอกสารแนบ ไปขึ้นแผ่นใหม่ต่อท้าย
+     ไม่แทรกรายการไว้กลางใบให้ลูกค้าสับสนว่าเป็นของที่ต้องจ่ายเพิ่มหรือเปล่า */
+  const shPages = sh.length
+    ? '<div class="shpg"><h3>เอกสารแนบ · DATA SHEET</h3>' +
+      '<div class="shsub">แนบท้ายใบเสนอราคาเลขที่ ' + sEsc(q.no) + " · " + sEsc(c.name || "") + "</div><ul class=\"shls\">" +
+      sh.map((x) => "<li>" + sEsc(x.label) + (x.kind === "image" ? "" : ' <span class="pdf">ไฟล์ PDF · พิมพ์แยกจากไฟล์ต้นฉบับ</span>') + "</li>").join("") +
+      "</ul></div>" +
+      shImgs.map((x) => (
+        '<div class="shpg"><h3>DATA SHEET — ' + sEsc(x.label) + "</h3>" +
+        '<img class="shimg" src="' + x.dataUrl + '" alt="" /></div>'
+      )).join("")
     : "";
-  const shPages = shImgs.map((x) => (
-    '<div class="shpg"><h3>DATA SHEET — ' + sEsc(x.label) + "</h3>" +
-    '<img class="shimg" src="' + x.dataUrl + '" alt="" /></div>'
-  )).join("");
   const money = (label, val, big) =>
     '<tr class="' + (big ? "big" : "") + '"><td>' + label + '</td><td class="r">' + sBaht(val) + " บาท</td></tr>";
   const list = (arr, title) => {
@@ -509,6 +512,9 @@ function quoteHTML(q, lang, sheets) {
     ".dt{color:#6b7280;font-size:10.5px;margin-top:2px;line-height:1.45}" +
     ".shpg{page-break-before:always;break-before:page;padding-top:6mm}" +
     ".shpg h3{font-size:12px;color:#0A4D68;margin:0 0 8px}" +
+    ".shpg .shsub{font-size:11px;color:#6b7280;margin:-4px 0 10px}" +
+    ".shls{margin:0;padding-left:18px}.shls li{margin-bottom:4px}" +
+    ".shls .pdf{color:#6b7280;font-size:10.5px}" +
     ".shimg{width:100%;height:auto;border:1px solid #e5e7eb;border-radius:6px}" +
     ".sum{margin-top:12px;margin-left:auto;width:290px}" +
     ".sum td{border:0;padding:4px 8px}.sum .big td{border-top:2px solid #0A4D68;font-weight:700;font-size:14px;color:#0A4D68;padding-top:8px}" +
@@ -546,7 +552,6 @@ function quoteHTML(q, lang, sheets) {
     list(q.warranties, "การรับประกันและบริการ") +
     (valid ? '<div class="note">' + sEsc(valid) + "</div>" : "") +
     (q.note ? '<div class="note">หมายเหตุ: ' + sEsc(q.note) + "</div>" : "") +
-    shList +
     '<div class="sig"><div><div class="ln"></div><div class="rl">ผู้เสนอราคา · ' + sEsc(q.ownerName || q.byName || "") +
     '</div></div><div><div class="ln"></div><div class="rl">ผู้อนุมัติ / ลูกค้า</div>' +
     '<div class="rl">วันที่ ______ / ______ / ______</div></div></div>' +
@@ -572,13 +577,19 @@ function QuoteSheetPick({ ids, items, hintText, locked, onChange }) {
     const keys = [it.model, it.name].concat(it.aka || []).map(norm).filter(Boolean);
     return { it: it, hit: keys.some((k) => k.length > 2 && hay.indexOf(k) !== -1) };
   });
+  /* ตั้งต้นโชว์เฉพาะรุ่นที่ระบุไว้ในใบนี้ (บวกที่เลือกไว้แล้ว)
+     คลังมีของเป็นร้อยชิ้น เอามากองให้เลือกหมดทุกครั้งคือให้ไล่หาเองในกองที่ไม่เกี่ยวกับงาน
+     อยากได้รุ่นอื่นค่อยพิมพ์ค้นหา — ซึ่งค้นทั้งคลัง */
   const f = norm(qs);
   const shown = scored
-    .filter((x) => !f || norm(x.it.name).indexOf(f) !== -1 || norm(x.it.model).indexOf(f) !== -1)
+    .filter((x) => (f
+      ? (norm(x.it.name).indexOf(f) !== -1 || norm(x.it.model).indexOf(f) !== -1)
+      : (x.hit || sel.indexOf(x.it.id) !== -1)))
     .sort((a, b) => {
       const sa = (sel.indexOf(a.it.id) !== -1 ? 0 : a.hit ? 1 : 2), sb = (sel.indexOf(b.it.id) !== -1 ? 0 : b.hit ? 1 : 2);
       return sa !== sb ? sa - sb : String(a.it.name || "").localeCompare(String(b.it.name || ""));
     });
+  const hitCount = scored.filter((x) => x.hit).length;
   const toggle = (id) => {
     if (locked) return;
     onChange(sel.indexOf(id) !== -1 ? sel.filter((x) => x !== id) : sel.concat([id]));
@@ -587,17 +598,17 @@ function QuoteSheetPick({ ids, items, hintText, locked, onChange }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
         <label style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>DATA SHEET ที่แนบไปกับใบนี้</label>
-        <span style={{ fontSize: 11, color: "var(--text-3)" }}>เลือกเฉพาะที่เกี่ยวกับงานนี้ · เลือกไว้ {sel.length} ไฟล์</span>
+        <span style={{ fontSize: 11, color: "var(--text-3)" }}>
+          {qs ? "ค้นทั้งคลัง" : "แสดงเฉพาะรุ่นที่ระบุในใบนี้"} · เลือกไว้ {sel.length} ไฟล์
+        </span>
       </div>
       {(items || []).length === 0 ? (
         <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>ยังไม่มีของชิ้นไหนในคลังที่แนบ DATA SHEET ไว้ — ไปแนบที่หน้าคลังสินค้าก่อน</div>
       ) : (
         <React.Fragment>
-          {(items || []).length > 6 && (
-            <input value={qs} onChange={(e) => setQs(e.target.value)} placeholder="ค้นหารุ่น / ชื่อสินค้า"
-              style={{ padding: "7px 10px", borderRadius: 9, border: "1px solid var(--border-strong)",
-                background: "var(--surface)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 12 }} />
-          )}
+          <input value={qs} onChange={(e) => setQs(e.target.value)} placeholder="อยากแนบรุ่นอื่นด้วย — พิมพ์ค้นหาจากทั้งคลัง"
+            style={{ padding: "7px 10px", borderRadius: 9, border: "1px solid var(--border-strong)",
+              background: "var(--surface)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 12 }} />
           <div style={{ display: "flex", flexDirection: "column", gap: 5, maxHeight: 190, overflowY: "auto" }}>
             {shown.map((x) => {
               const on = sel.indexOf(x.it.id) !== -1;
@@ -625,7 +636,12 @@ function QuoteSheetPick({ ids, items, hintText, locked, onChange }) {
                 </button>
               );
             })}
-            {shown.length === 0 && <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>ไม่พบรุ่นที่ค้นหา</div>}
+            {shown.length === 0 && (
+              <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.6 }}>
+                {qs ? "ไม่พบรุ่นที่ค้นหา"
+                  : (hitCount === 0 ? "รุ่นที่ระบุในใบนี้ยังไม่มี DATA SHEET ในคลัง — พิมพ์ค้นหาเพื่อเลือกรุ่นอื่นได้" : "")}
+              </div>
+            )}
           </div>
         </React.Fragment>
       )}
@@ -938,6 +954,24 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
             {lineList("warranties", "การรับประกันและบริการ", "บรรทัดละ 1 ข้อ")}
             <QuoteSheetPick ids={sheetIds} items={sheetItems} hintText={sheetHint} locked={locked}
               onChange={(v) => set("sheetIds", v)} />
+            {/* ไฟล์ PDF พิมพ์รวมในใบเสนอราคาไม่ได้ (ข้อจำกัดของเบราว์เซอร์) — เปิดไปสั่งพิมพ์แยกแล้วแนบท้าย */}
+            {sheetDocs.length > 0 && (
+              <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
+                <span style={{ fontSize: 11, color: "var(--text-3)" }}>เปิดไฟล์ไปสั่งพิมพ์แนบท้าย:</span>
+                {sheetDocs.map((sd) => (
+                  <button key={sd.id} type="button" onClick={() => {
+                    try {
+                      const url = window.dataUrlToBlobUrl ? window.dataUrlToBlobUrl(sd.dataUrl) : sd.dataUrl;
+                      window.open(url, "_blank", "noopener");
+                    } catch (e) { window.open(sd.dataUrl, "_blank", "noopener"); }
+                  }} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 8,
+                    border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+                    fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>
+                    <Icon name="file" size={13} color={sd.kind === "image" ? "var(--primary-dark)" : "#EF4444"} /> {sd.label}
+                  </button>
+                ))}
+              </div>
+            )}
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
               <label style={lbl}>หมายเหตุ</label>
               <textarea rows={2} value={q.note || ""} disabled={locked} onChange={(e) => set("note", e.target.value)}
