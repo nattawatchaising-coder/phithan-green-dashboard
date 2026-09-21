@@ -503,15 +503,22 @@ function App() {
     survey: job.survey || null, panels: +job.panels || 0, phase: job.phase, roof: job.roof,
     battery: job.battery, batSize: job.batSize, backup: job.backup,
   });
+  /* ใบใหม่ตั้งต้นจากใบล่าสุดของรายนั้น — เสนอรอบสองมักแก้จากรอบแรกไม่กี่จุด
+     ถ้าเปิดใบเปล่าทุกครั้ง ต้องพิมพ์รายการกับเงื่อนไขใหม่ทั้งใบ แล้วมักไม่ตรงกับรอบก่อน */
+  const newQuote = (t, prev) => (prev && window.quoteFrom
+    ? window.quoteFrom(prev, t, auth.current, quoteStore.quotes)
+    : quoteStore.blank(t, auth.current));
   const openQuoteForLead = (lead, existing) => {
     const t = leadQuoteTarget(lead);
     if (existing) { setQuoteOpen({ quote: existing, jobId: lead.jobId || "", target: t }); return; }
-    setQuoteOpen({ jobId: lead.jobId || "", target: t, quote: quoteStore.blank(t, auth.current) });
+    const prev = (window.quotesOfLead ? window.quotesOfLead(quoteStore.quotes, lead) : [])[0] || null;
+    setQuoteOpen({ jobId: lead.jobId || "", target: t, quote: newQuote(t, prev) });
   };
   const openQuoteForJob = (job, existing) => {
     const t = jobQuoteTarget(job);
     if (existing) { setQuoteOpen({ quote: existing, jobId: job.id, target: t }); return; }
-    setQuoteOpen({ jobId: job.id, target: t, quote: quoteStore.blank(t, auth.current) });
+    const prev = (window.quotesOfJob ? window.quotesOfJob(quoteStore.quotes, job, leadStore.leads) : [])[0] || null;
+    setQuoteOpen({ jobId: job.id, target: t, quote: newQuote(t, prev) });
   };
   const selectedJob = jobs.find((j) => j.id === selected) || null;
 
@@ -903,7 +910,7 @@ function App() {
         onEdit={(id) => { setSelected(null); setForm({ job: store.raw.find((r) => r.id === id), isNew: false }); }} />
       {/* ใบเสนอราคา — เปิดทับได้ทั้งจากหน้าลูกค้าสำรวจและจากในใบงาน */}
       {quoteOpen && (
-        <QuoteEditor quote={quoteOpen.quote} currentUser={auth.current} target={quoteOpen.target}
+        <QuoteEditor quote={quoteOpen.quote} currentUser={auth.current} target={quoteOpen.target} stock={stock}
           job={quoteOpen.jobId ? jobs.find((x) => x.id === quoteOpen.jobId) : null}
           onClose={() => setQuoteOpen(null)}
           onSave={(q) => {

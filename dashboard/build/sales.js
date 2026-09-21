@@ -199,7 +199,14 @@ function quoteSpecDetail(t) {
   out.push("ระบบสายไฟและอุปกรณ์ป้องกัน");
   if (sp.monitoring) out.push("ระบบมอนิเตอร์ " + sp.monitoring);
   out.push("ค่าแรงติดตั้ง");
-  return out.join(" · ");
+  return out.join("\n");
+}
+function quoteDetailLines(detail) {
+  const s = String(detail || "").trim();
+  if (!s) return [];
+  const nl = s.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+  if (nl.length > 1) return nl;
+  return s.split(/\s+·\s+/).map(x => x.trim()).filter(Boolean);
 }
 function quoteStdItems(t) {
   return [{
@@ -243,6 +250,9 @@ function blankQuote(target, user, quotes) {
     kwp: +t.kwp || 0,
     items: quoteStdItems(t),
     discount: 0,
+    discountPct: 0,
+    discountMode: "baht",
+    sheetIds: [],
     vat: window.BOQ && window.BOQ.VAT_RATE != null ? window.BOQ.VAT_RATE : 7,
     terms: QUOTE_TERMS_DEF.slice(),
     warranties: QUOTE_WARRANTY_DEF.slice(),
@@ -264,13 +274,17 @@ function quoteTotals(q) {
   const r2 = v => Math.round(v * 100) / 100;
   const items = q && q.items || [];
   const sub = r2(items.reduce((s, it) => s + (+it.qty || 0) * (+it.price || 0), 0));
-  const disc = r2(Math.min(Math.max(0, +(q && q.discount) || 0), sub));
+  const discMode = (q && q.discountMode) === "pct" ? "pct" : "baht";
+  const discPct = Math.min(Math.max(0, +(q && q.discountPct) || 0), 100);
+  const disc = discMode === "pct" ? r2(sub * discPct / 100) : r2(Math.min(Math.max(0, +(q && q.discount) || 0), sub));
   const afterDisc = r2(sub - disc);
   const rate = q && q.vat != null && q.vat !== "" ? +q.vat : window.BOQ && window.BOQ.VAT_RATE || 7;
   const vat = r2(afterDisc * rate / 100);
   return {
     sub,
     disc,
+    discMode: discMode,
+    discPct: discPct,
     afterDisc,
     vatRate: rate,
     vat,
@@ -351,6 +365,27 @@ function useQuoteStore() {
     remove,
     blank: (target, user) => blankQuote(target, user, ref.current || [])
   };
+}
+function quoteFrom(prev, target, user, quotes) {
+  const q = blankQuote(target, user, quotes);
+  if (!prev) return q;
+  const stamp = Date.now().toString(36);
+  return Object.assign(q, {
+    items: (prev.items || []).map((x, i) => Object.assign({}, x, {
+      id: "qi" + (i + 1) + stamp
+    })),
+    discount: +prev.discount || 0,
+    discountPct: +prev.discountPct || 0,
+    discountMode: prev.discountMode === "pct" ? "pct" : "baht",
+    vat: prev.vat != null ? prev.vat : q.vat,
+    terms: (prev.terms || []).slice(),
+    warranties: (prev.warranties || []).slice(),
+    sheetIds: (prev.sheetIds || []).slice(),
+    validDays: prev.validDays || q.validDays,
+    note: prev.note || "",
+    kwp: +prev.kwp > 0 ? +prev.kwp : q.kwp,
+    basedOn: prev.no || ""
+  });
 }
 function quotesFor(quotes, kind, id) {
   if (!id) return [];
@@ -520,6 +555,8 @@ const QUOTE_I18N = {
   "ใบเสนอราคา": ["Quotation", "报价单"],
   "รวมเป็นเงิน": ["Subtotal", "小计"],
   "หักส่วนลด": ["Discount", "折扣"],
+  "หักส่วนลด {}%": ["Discount {}%", "折扣 {}%"],
+  "เอกสารแนบ (DATA SHEET)": ["Attachments (data sheets)", "附件（产品数据表）"],
   "ราคา/หน่วย": ["Unit price", "单价"],
   "จำนวนเงิน": ["Amount", "金额"],
   "หมายเหตุ: ": ["Note: ", "备注："],
@@ -537,14 +574,19 @@ const QUOTE_I18N = {
   "โทร": ["Tel", "电话"],
   " บาท": [" THB", " 泰铢"]
 };
-function quoteHTML(q, lang) {
+function quoteHTML(q, lang, sheets) {
   const L = lang || "th";
   const T = quoteTotals(q);
   const c = q.customer || {};
   const items = (q.items || []).filter(it => (it.name || "").trim() || +it.price);
   const valid = q.validDays ? "ยืนราคา " + q.validDays + " วัน นับจากวันที่ออกใบเสนอราคา" : "";
   const dsp = s => !s ? "—" : L === "th" || !window.pgDate ? thDate(s, true) : window.pgDate(s, L);
-  const rows = items.map((it, i) => '<tr><td class="c">' + (i + 1) + '</td><td><b>' + sEsc(it.name) + "</b>" + (it.detail ? '<div class="dt">' + sEsc(it.detail) + "</div>" : "") + "</td>" + '<td class="c">' + sEsc(it.qty) + "</td><td class=\"c\">" + sEsc(it.unit || "") + "</td>" + '<td class="r">' + sBaht(it.price) + '</td><td class="r">' + sBaht((+it.qty || 0) * (+it.price || 0)) + "</td></tr>").join("");
+  const rows = items.map((it, i) => '<tr><td class="c">' + (i + 1) + '</td><td><b>' + sEsc(it.name) + "</b>" + quoteDetailLines(it.detail).map(ln => '<div class="dt">· ' + sEsc(ln) + "</div>").join("") + "</td>" + '<td class="c">' + sEsc(it.qty) + "</td><td class=\"c\">" + sEsc(it.unit || "") + "</td>" + '<td class="r">' + sBaht(it.price) + '</td><td class="r">' + sBaht((+it.qty || 0) * (+it.price || 0)) + "</td></tr>").join("");
+  const sh = (sheets || []).filter(Boolean);
+  const shImgs = sh.filter(x => x.kind === "image");
+  const shPdfs = sh.filter(x => x.kind !== "image");
+  const shList = sh.length ? '<div class="blk"><h3>เอกสารแนบ (DATA SHEET)</h3><ul>' + sh.map(x => "<li>" + sEsc(x.label) + (x.kind === "image" ? "" : " (ไฟล์ PDF · แนบแยก)") + "</li>").join("") + "</ul></div>" : "";
+  const shPages = shImgs.map(x => '<div class="shpg"><h3>DATA SHEET — ' + sEsc(x.label) + "</h3>" + '<img class="shimg" src="' + x.dataUrl + '" alt="" /></div>').join("");
   const money = (label, val, big) => '<tr class="' + (big ? "big" : "") + '"><td>' + label + '</td><td class="r">' + sBaht(val) + " บาท</td></tr>";
   const list = (arr, title) => {
     const a = (arr || []).map(s => String(s || "").trim()).filter(Boolean);
@@ -559,15 +601,165 @@ function quoteHTML(q, lang) {
     return '<div class="blk"><h3>เงื่อนไขการชำระเงิน</h3><ul>' + li + "</ul></div>";
   };
   const fontStack = window.pgFontStack ? window.pgFontStack(L) : "'IBM Plex Sans Thai',sans-serif";
-  const doc = '<!doctype html><html lang="' + L + '"><head><meta charset="utf-8">' + "<title>ใบเสนอราคา " + sEsc(q.no) + "</title>" + '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">' + (window.pgFontLink ? window.pgFontLink(L) : "") + "<style>" + "@page{size:A4;margin:14mm}" + "*{box-sizing:border-box}" + "body{font-family:" + fontStack + ";color:#111827;font-size:12px;margin:0;line-height:1.55}" + ".hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1B9B75;padding-bottom:12px;margin-bottom:16px}" + ".bd{font-size:20px;font-weight:700;color:#0A4D68;letter-spacing:.02em}" + ".bs{font-size:11px;color:#6b7280;margin-top:2px}" + ".ti{text-align:right}.ti h1{font-size:19px;margin:0;color:#111827}" + ".ti .no{font-size:12px;color:#374151;margin-top:3px}" + ".two{display:flex;gap:14px;margin-bottom:14px}" + ".two>div{flex:1;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px}" + ".two h3,.blk h3{font-size:11px;margin:0 0 6px;color:#0A4D68;letter-spacing:.04em}" + ".kv{display:flex;gap:6px;font-size:11.5px}.kv b{min-width:58px;color:#6b7280;font-weight:500}" + "table{width:100%;border-collapse:collapse;font-size:11.5px}" + "th{background:#0A4D68;color:#fff;padding:7px 8px;text-align:left;font-weight:600;font-size:11px}" + "td{padding:7px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top}" + ".c{text-align:center}.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}" + ".dt{color:#6b7280;font-size:10.5px;margin-top:2px}" + ".sum{margin-top:12px;margin-left:auto;width:290px}" + ".sum td{border:0;padding:4px 8px}.sum .big td{border-top:2px solid #0A4D68;font-weight:700;font-size:14px;color:#0A4D68;padding-top:8px}" + ".blk{margin-top:14px;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;break-inside:avoid}" + ".blk ul{margin:0;padding-left:18px}.blk li{margin-bottom:3px}" + ".note{margin-top:12px;font-size:11px;color:#374151;white-space:pre-wrap}" + ".sig{display:flex;gap:40px;margin-top:34px;break-inside:avoid}" + ".sig>div{flex:1;text-align:center}.sig .ln{border-top:1px solid #9ca3af;margin:34px 10px 6px}" + ".sig .rl{font-size:11px;color:#6b7280}" + ".ft{margin-top:16px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center}" + "</style></head><body>" + '<div class="hd"><div>' + window.brandHeadHTML({
+  const doc = '<!doctype html><html lang="' + L + '"><head><meta charset="utf-8">' + "<title>ใบเสนอราคา " + sEsc(q.no) + "</title>" + '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">' + (window.pgFontLink ? window.pgFontLink(L) : "") + "<style>" + "@page{size:A4;margin:14mm}" + "*{box-sizing:border-box}" + "body{font-family:" + fontStack + ";color:#111827;font-size:12px;margin:0;line-height:1.55}" + ".hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1B9B75;padding-bottom:12px;margin-bottom:16px}" + ".bd{font-size:20px;font-weight:700;color:#0A4D68;letter-spacing:.02em}" + ".bs{font-size:11px;color:#6b7280;margin-top:2px}" + ".ti{text-align:right}.ti h1{font-size:19px;margin:0;color:#111827}" + ".ti .no{font-size:12px;color:#374151;margin-top:3px}" + ".two{display:flex;gap:14px;margin-bottom:14px}" + ".two>div{flex:1;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px}" + ".two h3,.blk h3{font-size:11px;margin:0 0 6px;color:#0A4D68;letter-spacing:.04em}" + ".kv{display:flex;gap:6px;font-size:11.5px}.kv b{min-width:58px;color:#6b7280;font-weight:500}" + "table{width:100%;border-collapse:collapse;font-size:11.5px}" + "th{background:#0A4D68;color:#fff;padding:7px 8px;text-align:left;font-weight:600;font-size:11px}" + "td{padding:7px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top}" + ".c{text-align:center}.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}" + ".dt{color:#6b7280;font-size:10.5px;margin-top:2px;line-height:1.45}" + ".shpg{page-break-before:always;break-before:page;padding-top:6mm}" + ".shpg h3{font-size:12px;color:#0A4D68;margin:0 0 8px}" + ".shimg{width:100%;height:auto;border:1px solid #e5e7eb;border-radius:6px}" + ".sum{margin-top:12px;margin-left:auto;width:290px}" + ".sum td{border:0;padding:4px 8px}.sum .big td{border-top:2px solid #0A4D68;font-weight:700;font-size:14px;color:#0A4D68;padding-top:8px}" + ".blk{margin-top:14px;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;break-inside:avoid}" + ".blk ul{margin:0;padding-left:18px}.blk li{margin-bottom:3px}" + ".note{margin-top:12px;font-size:11px;color:#374151;white-space:pre-wrap}" + ".sig{display:flex;gap:40px;margin-top:34px;break-inside:avoid}" + ".sig>div{flex:1;text-align:center}.sig .ln{border-top:1px solid #9ca3af;margin:34px 10px 6px}" + ".sig .rl{font-size:11px;color:#6b7280}" + ".ft{margin-top:16px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center}" + "</style></head><body>" + '<div class="hd"><div>' + window.brandHeadHTML({
     size: 40
-  }) + '<div class="bs">ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์ · ออกแบบ · ติดตั้ง · ขออนุญาตการไฟฟ้า</div>' + '<div class="bs">' + window.BRANDING.email + " · " + window.BRANDING.tel + "</div></div>" + '<div class="ti"><h1>ใบเสนอราคา</h1><div class="no">เลขที่ <b>' + sEsc(q.no) + "</b></div>" + '<div class="no">วันที่ ' + dsp(q.date) + "</div></div></div>" + '<div class="two"><div><h3>ลูกค้า</h3>' + '<div class="kv"><b>ชื่อ</b><span>' + sEsc(c.name || "—") + "</span></div>" + '<div class="kv"><b>โทร</b><span>' + sEsc(c.phone || "—") + "</span></div>" + '<div class="kv"><b>ที่อยู่</b><span>' + sEsc((c.address || "") + (c.province ? " " + c.province : "") || "—") + "</span></div></div>" + "<div><h3>รายละเอียดข้อเสนอ</h3>" + '<div class="kv"><b>ขนาด</b><span>' + (q.kwp ? sEsc(q.kwp) + " kWp" : "—") + "</span></div>" + '<div class="kv"><b>อ้างอิง</b><span>' + sEsc(q.refCode || "—") + "</span></div>" + '<div class="kv"><b>ผู้เสนอ</b><span>' + sEsc(q.ownerName || q.byName || "—") + "</span></div></div></div>" + "<table><thead><tr><th class=\"c\" style=\"width:26px\">#</th><th>รายการ</th>" + "<th class=\"c\" style=\"width:46px\">จำนวน</th><th class=\"c\" style=\"width:52px\">หน่วย</th>" + "<th class=\"r\" style=\"width:88px\">ราคา/หน่วย</th><th class=\"r\" style=\"width:96px\">จำนวนเงิน</th></tr></thead>" + "<tbody>" + (rows || '<tr><td colspan="6" class="c">— ยังไม่มีรายการ —</td></tr>') + "</tbody></table>" + '<table class="sum">' + money("รวมเป็นเงิน", T.sub) + (T.disc > 0 ? money("หักส่วนลด", T.disc) + money("ราคาหลังหักส่วนลด", T.afterDisc) : "") + money("ภาษีมูลค่าเพิ่ม " + T.vatRate + "%", T.vat) + money("ราคารวมทั้งสิ้น", T.grand, true) + "</table>" + termList(q.terms, T.grand) + list(q.warranties, "การรับประกันและบริการ") + (valid ? '<div class="note">' + sEsc(valid) + "</div>" : "") + (q.note ? '<div class="note">หมายเหตุ: ' + sEsc(q.note) + "</div>" : "") + '<div class="sig"><div><div class="ln"></div><div class="rl">ผู้เสนอราคา · ' + sEsc(q.ownerName || q.byName || "") + '</div></div><div><div class="ln"></div><div class="rl">ผู้อนุมัติ / ลูกค้า</div>' + '<div class="rl">วันที่ ______ / ______ / ______</div></div></div>' + '<div class="ft">เอกสารนี้ออกจากระบบติดตามงานติดตั้ง ' + window.BRANDING.name + "</div>" + "</body></html>";
+  }) + '<div class="bs">ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์ · ออกแบบ · ติดตั้ง · ขออนุญาตการไฟฟ้า</div>' + '<div class="bs">' + window.BRANDING.email + " · " + window.BRANDING.tel + "</div></div>" + '<div class="ti"><h1>ใบเสนอราคา</h1><div class="no">เลขที่ <b>' + sEsc(q.no) + "</b></div>" + '<div class="no">วันที่ ' + dsp(q.date) + "</div></div></div>" + '<div class="two"><div><h3>ลูกค้า</h3>' + '<div class="kv"><b>ชื่อ</b><span>' + sEsc(c.name || "—") + "</span></div>" + '<div class="kv"><b>โทร</b><span>' + sEsc(c.phone || "—") + "</span></div>" + '<div class="kv"><b>ที่อยู่</b><span>' + sEsc((c.address || "") + (c.province ? " " + c.province : "") || "—") + "</span></div></div>" + "<div><h3>รายละเอียดข้อเสนอ</h3>" + '<div class="kv"><b>ขนาด</b><span>' + (q.kwp ? sEsc(q.kwp) + " kWp" : "—") + "</span></div>" + '<div class="kv"><b>อ้างอิง</b><span>' + sEsc(q.refCode || "—") + "</span></div>" + '<div class="kv"><b>ผู้เสนอ</b><span>' + sEsc(q.ownerName || q.byName || "—") + "</span></div></div></div>" + "<table><thead><tr><th class=\"c\" style=\"width:26px\">#</th><th>รายการ</th>" + "<th class=\"c\" style=\"width:46px\">จำนวน</th><th class=\"c\" style=\"width:52px\">หน่วย</th>" + "<th class=\"r\" style=\"width:88px\">ราคา/หน่วย</th><th class=\"r\" style=\"width:96px\">จำนวนเงิน</th></tr></thead>" + "<tbody>" + (rows || '<tr><td colspan="6" class="c">— ยังไม่มีรายการ —</td></tr>') + "</tbody></table>" + '<table class="sum">' + money("รวมเป็นเงิน", T.sub) + (T.disc > 0 ? money(T.discMode === "pct" ? "หักส่วนลด " + T.discPct + "%" : "หักส่วนลด", T.disc) + money("ราคาหลังหักส่วนลด", T.afterDisc) : "") + money("ภาษีมูลค่าเพิ่ม " + T.vatRate + "%", T.vat) + money("ราคารวมทั้งสิ้น", T.grand, true) + "</table>" + termList(q.terms, T.grand) + list(q.warranties, "การรับประกันและบริการ") + (valid ? '<div class="note">' + sEsc(valid) + "</div>" : "") + (q.note ? '<div class="note">หมายเหตุ: ' + sEsc(q.note) + "</div>" : "") + shList + '<div class="sig"><div><div class="ln"></div><div class="rl">ผู้เสนอราคา · ' + sEsc(q.ownerName || q.byName || "") + '</div></div><div><div class="ln"></div><div class="rl">ผู้อนุมัติ / ลูกค้า</div>' + '<div class="rl">วันที่ ______ / ______ / ______</div></div></div>' + '<div class="ft">เอกสารนี้ออกจากระบบติดตามงานติดตั้ง ' + window.BRANDING.name + "</div>" + shPages + "</body></html>";
   return window.pgDocHTML ? window.pgDocHTML(doc, L, QUOTE_I18N) : doc;
+}
+function QuoteSheetPick({
+  ids,
+  items,
+  hintText,
+  locked,
+  onChange
+}) {
+  const [qs, setQs] = React.useState("");
+  const sel = ids || [];
+  const norm = x => String(x || "").trim().toLowerCase();
+  const hay = norm(hintText);
+  const scored = (items || []).map(it => {
+    const keys = [it.model, it.name].concat(it.aka || []).map(norm).filter(Boolean);
+    return {
+      it: it,
+      hit: keys.some(k => k.length > 2 && hay.indexOf(k) !== -1)
+    };
+  });
+  const f = norm(qs);
+  const shown = scored.filter(x => !f || norm(x.it.name).indexOf(f) !== -1 || norm(x.it.model).indexOf(f) !== -1).sort((a, b) => {
+    const sa = sel.indexOf(a.it.id) !== -1 ? 0 : a.hit ? 1 : 2,
+      sb = sel.indexOf(b.it.id) !== -1 ? 0 : b.hit ? 1 : 2;
+    return sa !== sb ? sa - sb : String(a.it.name || "").localeCompare(String(b.it.name || ""));
+  });
+  const toggle = id => {
+    if (locked) return;
+    onChange(sel.indexOf(id) !== -1 ? sel.filter(x => x !== id) : sel.concat([id]));
+  };
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 7
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("label", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, "DATA SHEET \u0E17\u0E35\u0E48\u0E41\u0E19\u0E1A\u0E44\u0E1B\u0E01\u0E31\u0E1A\u0E43\u0E1A\u0E19\u0E35\u0E49"), React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E17\u0E35\u0E48\u0E40\u0E01\u0E35\u0E48\u0E22\u0E27\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49 \xB7 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E44\u0E27\u0E49 ", sel.length, " \u0E44\u0E1F\u0E25\u0E4C")), (items || []).length === 0 ? React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E2D\u0E07\u0E0A\u0E34\u0E49\u0E19\u0E44\u0E2B\u0E19\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07\u0E17\u0E35\u0E48\u0E41\u0E19\u0E1A DATA SHEET \u0E44\u0E27\u0E49 \u2014 \u0E44\u0E1B\u0E41\u0E19\u0E1A\u0E17\u0E35\u0E48\u0E2B\u0E19\u0E49\u0E32\u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E01\u0E48\u0E2D\u0E19") : React.createElement(React.Fragment, null, (items || []).length > 6 && React.createElement("input", {
+    value: qs,
+    onChange: e => setQs(e.target.value),
+    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32\u0E23\u0E38\u0E48\u0E19 / \u0E0A\u0E37\u0E48\u0E2D\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32",
+    style: {
+      padding: "7px 10px",
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-1)",
+      fontFamily: "inherit",
+      fontSize: 12
+    }
+  }), React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 5,
+      maxHeight: 190,
+      overflowY: "auto"
+    }
+  }, shown.map(x => {
+    const on = sel.indexOf(x.it.id) !== -1;
+    return React.createElement("button", {
+      key: x.it.id,
+      type: "button",
+      onClick: () => toggle(x.it.id),
+      disabled: locked,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 9,
+        padding: "8px 10px",
+        borderRadius: 10,
+        border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
+        background: on ? "var(--primary-soft)" : "var(--surface)",
+        cursor: locked ? "default" : "pointer",
+        fontFamily: "inherit",
+        textAlign: "left"
+      }
+    }, React.createElement("span", {
+      style: {
+        width: 17,
+        height: 17,
+        borderRadius: 5,
+        flexShrink: 0,
+        display: "grid",
+        placeItems: "center",
+        border: "1.5px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+        background: on ? "var(--primary)" : "transparent"
+      }
+    }, on && React.createElement(Icon, {
+      name: "check",
+      size: 11,
+      color: "#fff",
+      sw: 3
+    })), React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 12,
+        fontWeight: 700,
+        color: "var(--text-1)"
+      }
+    }, x.it.name), React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 10.5,
+        color: "var(--text-3)"
+      }
+    }, (x.it.model ? x.it.model + " · " : "") + ((x.it.doc || {}).name || "DATA SHEET"))), x.hit && !on && React.createElement("span", {
+      style: {
+        fontSize: 9.5,
+        fontWeight: 800,
+        color: "var(--primary-dark)",
+        background: "var(--primary-soft)",
+        padding: "2px 7px",
+        borderRadius: 99,
+        flexShrink: 0
+      }
+    }, "\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E43\u0E1A\u0E19\u0E35\u0E49"));
+  }), shown.length === 0 && React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E23\u0E38\u0E48\u0E19\u0E17\u0E35\u0E48\u0E04\u0E49\u0E19\u0E2B\u0E32"))));
 }
 function QuoteEditor({
   quote,
   job,
   target,
+  stock,
   onClose,
   onSave,
   onDelete,
@@ -582,6 +774,31 @@ function QuoteEditor({
   }));
   const [rep, setRep] = React.useState(null);
   const [qLang, setQLang] = React.useState(() => window.pgLang ? window.pgLang() : "th");
+  const sheetItems = (stock && stock.items || []).filter(it => it && it.doc);
+  const sheetIds = q.sheetIds || [];
+  const [sheetDocs, setSheetDocs] = React.useState([]);
+  const sheetKey = sheetIds.join("|");
+  React.useEffect(() => {
+    let dead = false;
+    const picked = sheetItems.filter(it => sheetIds.indexOf(it.id) !== -1);
+    if (!picked.length || !stock || !stock.loadDoc) {
+      setSheetDocs([]);
+      return;
+    }
+    Promise.all(picked.map(it => Promise.resolve(stock.loadDoc(it.id)).then(d => d && d.data ? {
+      id: it.id,
+      label: it.name + (it.model ? " · " + it.model : ""),
+      name: d.name || it.name,
+      dataUrl: d.data,
+      kind: /^data:image/i.test(d.data) ? "image" : "pdf"
+    } : null).catch(() => null))).then(list => {
+      if (!dead) setSheetDocs(list.filter(Boolean));
+    });
+    return () => {
+      dead = true;
+    };
+  }, [sheetKey]);
+  const sheetHint = (q.items || []).map(it => (it.name || "") + " " + (it.detail || "")).join(" ");
   const pickQLang = id => {
     setQLang(id);
     if (window.pgSetLang) window.pgSetLang(id);
@@ -1213,21 +1430,74 @@ function QuoteEditor({
       alignItems: "center",
       gap: 10,
       fontSize: 13,
-      color: "var(--text-2)"
+      color: "var(--text-2)",
+      flexWrap: "wrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 90
+    }
+  }, "\u0E2B\u0E31\u0E01\u0E2A\u0E48\u0E27\u0E19\u0E25\u0E14"), React.createElement("span", {
+    style: {
+      display: "flex",
+      gap: 3,
+      padding: 3,
+      borderRadius: 9,
+      background: "var(--surface2)",
+      flexShrink: 0
+    }
+  }, [["baht", "บาท"], ["pct", "%"]].map(m => React.createElement("button", {
+    key: m[0],
+    type: "button",
+    disabled: locked,
+    onClick: () => set("discountMode", m[0]),
+    style: {
+      padding: "4px 11px",
+      borderRadius: 7,
+      border: "none",
+      cursor: locked ? "default" : "pointer",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      background: (q.discountMode === "pct" ? "pct" : "baht") === m[0] ? "var(--surface)" : "transparent",
+      color: (q.discountMode === "pct" ? "pct" : "baht") === m[0] ? "var(--primary-dark)" : "var(--text-3)",
+      boxShadow: (q.discountMode === "pct" ? "pct" : "baht") === m[0] ? "0 1px 3px rgba(8,20,14,.12)" : "none"
+    }
+  }, m[1]))), q.discountMode === "pct" ? React.createElement("input", {
+    type: "number",
+    value: q.discountPct != null ? q.discountPct : "",
+    disabled: locked,
+    placeholder: "0",
+    onChange: e => set("discountPct", e.target.value === "" ? "" : +e.target.value),
+    style: Object.assign({}, num, {
+      width: 110
+    })
+  }) : React.createElement("input", {
+    type: "number",
+    value: q.discount != null ? q.discount : "",
+    disabled: locked,
+    placeholder: "0",
+    onChange: e => set("discount", e.target.value === "" ? "" : +e.target.value),
+    style: Object.assign({}, num, {
+      width: 130
+    })
+  })), T.disc > 0 && React.createElement("div", {
+    style: {
+      display: "flex",
+      fontSize: 12.5,
+      color: "var(--text-3)"
     }
   }, React.createElement("span", {
     style: {
       flex: 1
     }
-  }, "\u0E2B\u0E31\u0E01\u0E2A\u0E48\u0E27\u0E19\u0E25\u0E14 (\u0E1A\u0E32\u0E17)"), React.createElement("input", {
-    type: "number",
-    value: q.discount,
-    disabled: locked,
-    onChange: e => set("discount", e.target.value === "" ? "" : +e.target.value),
-    style: Object.assign({}, num, {
-      width: 130
-    })
-  })), React.createElement("div", {
+  }, "\u0E25\u0E14\u0E41\u0E25\u0E49\u0E27", T.discMode === "pct" ? " (" + T.discPct + "% ของ ฿" + sBaht(T.sub) + ")" : ""), React.createElement("b", {
+    style: {
+      fontVariantNumeric: "tabular-nums",
+      color: "#EF4444"
+    }
+  }, "\u2212 \u0E3F", sBaht(T.disc))), React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -1291,7 +1561,13 @@ function QuoteEditor({
       color: "var(--text-3)",
       textAlign: "right"
     }
-  }, "\u2248 \u0E3F", sBaht(T.grand / (q.kwp * 1000)), " \u0E15\u0E48\u0E2D\u0E27\u0E31\u0E15\u0E15\u0E4C \xB7 \u0E3F", sBaht(T.grand / q.kwp), " \u0E15\u0E48\u0E2D kWp")), lineList("terms", "เงื่อนไขการชำระเงิน", "บรรทัดละ 1 งวด · ใส่ % ไว้ในบรรทัด ระบบจะคิดเป็นเงินให้เอง", termMoney), lineList("warranties", "การรับประกันและบริการ", "บรรทัดละ 1 ข้อ"), React.createElement("div", {
+  }, "\u2248 \u0E3F", sBaht(T.grand / (q.kwp * 1000)), " \u0E15\u0E48\u0E2D\u0E27\u0E31\u0E15\u0E15\u0E4C \xB7 \u0E3F", sBaht(T.grand / q.kwp), " \u0E15\u0E48\u0E2D kWp")), lineList("terms", "เงื่อนไขการชำระเงิน", "บรรทัดละ 1 งวด · ใส่ % ไว้ในบรรทัด ระบบจะคิดเป็นเงินให้เอง", termMoney), lineList("warranties", "การรับประกันและบริการ", "บรรทัดละ 1 ข้อ"), React.createElement(QuoteSheetPick, {
+    ids: sheetIds,
+    items: sheetItems,
+    hintText: sheetHint,
+    locked: locked,
+    onChange: v => set("sheetIds", v)
+  }), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -1328,7 +1604,7 @@ function QuoteEditor({
     value: qLang,
     onChange: pickQLang
   })), React.createElement("button", {
-    onClick: () => setRep(quoteHTML(q, qLang)),
+    onClick: () => setRep(quoteHTML(q, qLang, sheetDocs)),
     style: qBtn()
   }, React.createElement(Icon, {
     name: "file",
@@ -2738,11 +3014,13 @@ Object.assign(window, {
   QUOTE_WARRANTY_DEF,
   quoteTermSplit,
   blankQuote,
+  quoteFrom,
   quoteTotals,
   quoteNo,
   quotesFor,
   quotesOfJob,
   quotesOfLead,
+  quoteDetailLines,
   quoteHTML,
   useQuoteStore,
   quoteSpec,
@@ -2750,6 +3028,7 @@ Object.assign(window, {
   quoteSpecName,
   quoteSpecDetail,
   QuoteEditor,
+  QuoteSheetPick,
   SalesCard,
   SalesBoardView,
   SalesKpiView,

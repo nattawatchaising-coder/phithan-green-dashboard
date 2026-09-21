@@ -151,7 +151,19 @@ function quoteSpecDetail(t) {
   out.push("ระบบสายไฟและอุปกรณ์ป้องกัน");
   if (sp.monitoring) out.push("ระบบมอนิเตอร์ " + sp.monitoring);
   out.push("ค่าแรงติดตั้ง");
-  return out.join(" · ");
+  /* บรรทัดละอย่าง — ต่อกันด้วย · จนเป็นพืดเดียว ลูกค้าอ่านไม่ออกว่าได้แผงรุ่นอะไรกี่แผง
+     ซึ่งเป็นบรรทัดที่เขาอยากรู้ที่สุดในใบ */
+  return out.join("\n");
+}
+
+/* รายละเอียดหนึ่งช่อง → หลายบรรทัดสำหรับเอกสาร
+   ใบเก่าเก็บไว้เป็นพืดเดียวคั่นด้วย · จึงต้องแตกให้ด้วย ไม่งั้นใบเก่าที่ยังไม่ได้แก้จะยังเป็นพืด */
+function quoteDetailLines(detail) {
+  const s = String(detail || "").trim();
+  if (!s) return [];
+  const nl = s.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+  if (nl.length > 1) return nl;
+  return s.split(/\s+·\s+/).map((x) => x.trim()).filter(Boolean);
 }
 
 /* รายการตั้งต้น — เซลล์เสนอเป็นราคาเหมาต่อระบบ ไม่ได้แจกแจงทีละน็อตแบบ BOQ
@@ -178,7 +190,9 @@ function blankQuote(target, user, quotes) {
     customer: { name: t.name || "", phone: t.phone || "", address: t.address || "", province: t.province || "" },
     kwp: +t.kwp || 0,
     items: quoteStdItems(t),
-    discount: 0, vat: (window.BOQ && window.BOQ.VAT_RATE != null) ? window.BOQ.VAT_RATE : 7,
+    discount: 0, discountPct: 0, discountMode: "baht",
+    sheetIds: [],
+    vat: (window.BOQ && window.BOQ.VAT_RATE != null) ? window.BOQ.VAT_RATE : 7,
     terms: QUOTE_TERMS_DEF.slice(), warranties: QUOTE_WARRANTY_DEF.slice(),
     validDays: 30, note: "",
     status: "draft",
@@ -188,17 +202,23 @@ function blankQuote(target, user, quotes) {
   };
 }
 
-/* ยอดในใบเสนอราคา — ส่วนลดเป็น "จำนวนเงินที่ลด" เหมือนหน้าราคาใน BOQ
-   (กรอกราคาสุทธิเองแล้วมองไม่เห็นว่าลดไปเท่าไร) */
+/* ยอดในใบเสนอราคา — ส่วนลดกรอกได้สองแบบ
+   เป็นบาท (ต่อรองกันเป็นเงินก้อน) หรือเป็น % ของยอดก่อนภาษี (ลดตามนโยบายการขาย)
+   เก็บทั้งสองช่องไว้ในใบ สลับโหมดกลับไปมาแล้วเลขเดิมไม่หาย
+   ไม่ให้กรอกราคาสุทธิเองเหมือนเดิม เพราะจะมองไม่เห็นว่าลดไปเท่าไร */
 function quoteTotals(q) {
   const r2 = (v) => Math.round(v * 100) / 100;
   const items = (q && q.items) || [];
   const sub = r2(items.reduce((s, it) => s + (+it.qty || 0) * (+it.price || 0), 0));
-  const disc = r2(Math.min(Math.max(0, +(q && q.discount) || 0), sub));
+  const discMode = (q && q.discountMode) === "pct" ? "pct" : "baht";
+  const discPct = Math.min(Math.max(0, +(q && q.discountPct) || 0), 100);
+  const disc = discMode === "pct"
+    ? r2(sub * discPct / 100)
+    : r2(Math.min(Math.max(0, +(q && q.discount) || 0), sub));
   const afterDisc = r2(sub - disc);
   const rate = (q && q.vat != null && q.vat !== "") ? +q.vat : ((window.BOQ && window.BOQ.VAT_RATE) || 7);
   const vat = r2(afterDisc * rate / 100);
-  return { sub, disc, afterDisc, vatRate: rate, vat, grand: r2(afterDisc + vat) };
+  return { sub, disc, discMode: discMode, discPct: discPct, afterDisc, vatRate: rate, vat, grand: r2(afterDisc + vat) };
 }
 
 /* ── แตกเงื่อนไขการชำระเงินเป็นจำนวนเงินรายงวด ──
@@ -257,6 +277,27 @@ function useQuoteStore() {
   }, []);
 
   return { quotes: quotes || [], upsert, patch, remove, blank: (target, user) => blankQuote(target, user, ref.current || []) };
+}
+
+/* ── ใบใหม่ที่ตั้งต้นจากใบเก่า ──
+   เสนอรอบสองมักแก้จากรอบแรกไม่กี่จุด (ลดราคา · เปลี่ยนรุ่นแผง · แก้งวดจ่าย)
+   ถ้าเปิดใบเปล่าทุกครั้ง เซลล์ต้องพิมพ์รายการกับเงื่อนไขใหม่ทั้งใบ แล้วมักตกหล่นไม่ตรงกับรอบก่อน
+   เลขที่ / วันที่ / สถานะ ขึ้นใหม่เสมอ — ใบเก่าต้องไม่ถูกแตะ ส่วนชื่อลูกค้าเอาของปัจจุบัน (อาจแก้ไปแล้ว) */
+function quoteFrom(prev, target, user, quotes) {
+  const q = blankQuote(target, user, quotes);
+  if (!prev) return q;
+  const stamp = Date.now().toString(36);
+  return Object.assign(q, {
+    items: (prev.items || []).map((x, i) => Object.assign({}, x, { id: "qi" + (i + 1) + stamp })),
+    discount: +prev.discount || 0, discountPct: +prev.discountPct || 0,
+    discountMode: prev.discountMode === "pct" ? "pct" : "baht",
+    vat: prev.vat != null ? prev.vat : q.vat,
+    terms: (prev.terms || []).slice(), warranties: (prev.warranties || []).slice(),
+    sheetIds: (prev.sheetIds || []).slice(),
+    validDays: prev.validDays || q.validDays, note: prev.note || "",
+    kwp: +prev.kwp > 0 ? +prev.kwp : q.kwp,
+    basedOn: prev.no || "",
+  });
 }
 
 /* ใบเสนอราคาของลูกค้า/งานหนึ่งราย — ใบล่าสุดอยู่บน */
@@ -367,6 +408,8 @@ const QUOTE_I18N = {
   "ใบเสนอราคา": ["Quotation", "报价单"],
   "รวมเป็นเงิน": ["Subtotal", "小计"],
   "หักส่วนลด": ["Discount", "折扣"],
+  "หักส่วนลด {}%": ["Discount {}%", "折扣 {}%"],
+  "เอกสารแนบ (DATA SHEET)": ["Attachments (data sheets)", "附件（产品数据表）"],
   "ราคา/หน่วย": ["Unit price", "单价"],
   "จำนวนเงิน": ["Amount", "金额"],
   "หมายเหตุ: ": ["Note: ", "备注："],
@@ -389,7 +432,7 @@ const QUOTE_I18N = {
    quoteHTML — ใบเสนอราคา A4 สำหรับพิมพ์/บันทึกเป็น PDF
    เปิดผ่าน SuReportView ตัวเดียวกับรายงานอื่น ๆ จะได้ปุ่มพิมพ์เหมือนกันหมด
    ============================================================ */
-function quoteHTML(q, lang) {
+function quoteHTML(q, lang, sheets) {
   /* ภาษาของเอกสาร — ประกอบเป็นไทยตามปกติทั้งใบ แล้วแปลทีเดียวตอนท้าย (ดู i18n.jsx)
      วันที่ต้องแปลตรงนี้ เพราะไทยเป็น พ.ศ. ส่วนอังกฤษ/จีนเป็น ค.ศ. */
   const L = lang || "th";
@@ -398,12 +441,28 @@ function quoteHTML(q, lang) {
   const items = (q.items || []).filter((it) => (it.name || "").trim() || +it.price);
   const valid = q.validDays ? "ยืนราคา " + q.validDays + " วัน นับจากวันที่ออกใบเสนอราคา" : "";
   const dsp = (s) => (!s ? "—" : L === "th" || !window.pgDate ? thDate(s, true) : window.pgDate(s, L));
+  /* รายละเอียดแตกเป็นบรรทัดละอย่าง — ลูกค้าต้องกวาดตาเจอทันทีว่าแผงรุ่นไหน กี่แผง */
   const rows = items.map((it, i) =>
     '<tr><td class="c">' + (i + 1) + '</td><td><b>' + sEsc(it.name) + "</b>" +
-    (it.detail ? '<div class="dt">' + sEsc(it.detail) + "</div>" : "") + "</td>" +
+    (quoteDetailLines(it.detail).map((ln) => '<div class="dt">· ' + sEsc(ln) + "</div>").join("")) + "</td>" +
     '<td class="c">' + sEsc(it.qty) + "</td><td class=\"c\">" + sEsc(it.unit || "") + "</td>" +
     '<td class="r">' + sBaht(it.price) + '</td><td class="r">' + sBaht((+it.qty || 0) * (+it.price || 0)) + "</td></tr>"
   ).join("");
+  /* ── DATA SHEET ที่เลือกแนบ ──
+     ที่เป็นรูปพิมพ์ต่อท้ายในชุดเดียวกันได้เลย · ไฟล์ PDF พิมพ์รวมไม่ได้ ต้องบอกให้แนบแยก
+     (วิธีเดียวกับชุดเอกสารขออนุญาต) */
+  const sh = (sheets || []).filter(Boolean);
+  const shImgs = sh.filter((x) => x.kind === "image");
+  const shPdfs = sh.filter((x) => x.kind !== "image");
+  const shList = sh.length
+    ? '<div class="blk"><h3>เอกสารแนบ (DATA SHEET)</h3><ul>' +
+      sh.map((x) => "<li>" + sEsc(x.label) + (x.kind === "image" ? "" : " (ไฟล์ PDF · แนบแยก)") + "</li>").join("") +
+      "</ul></div>"
+    : "";
+  const shPages = shImgs.map((x) => (
+    '<div class="shpg"><h3>DATA SHEET — ' + sEsc(x.label) + "</h3>" +
+    '<img class="shimg" src="' + x.dataUrl + '" alt="" /></div>'
+  )).join("");
   const money = (label, val, big) =>
     '<tr class="' + (big ? "big" : "") + '"><td>' + label + '</td><td class="r">' + sBaht(val) + " บาท</td></tr>";
   const list = (arr, title) => {
@@ -447,7 +506,10 @@ function quoteHTML(q, lang) {
     "th{background:#0A4D68;color:#fff;padding:7px 8px;text-align:left;font-weight:600;font-size:11px}" +
     "td{padding:7px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top}" +
     ".c{text-align:center}.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}" +
-    ".dt{color:#6b7280;font-size:10.5px;margin-top:2px}" +
+    ".dt{color:#6b7280;font-size:10.5px;margin-top:2px;line-height:1.45}" +
+    ".shpg{page-break-before:always;break-before:page;padding-top:6mm}" +
+    ".shpg h3{font-size:12px;color:#0A4D68;margin:0 0 8px}" +
+    ".shimg{width:100%;height:auto;border:1px solid #e5e7eb;border-radius:6px}" +
     ".sum{margin-top:12px;margin-left:auto;width:290px}" +
     ".sum td{border:0;padding:4px 8px}.sum .big td{border-top:2px solid #0A4D68;font-weight:700;font-size:14px;color:#0A4D68;padding-top:8px}" +
     ".blk{margin-top:14px;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;break-inside:avoid}" +
@@ -476,17 +538,20 @@ function quoteHTML(q, lang) {
     "<th class=\"r\" style=\"width:88px\">ราคา/หน่วย</th><th class=\"r\" style=\"width:96px\">จำนวนเงิน</th></tr></thead>" +
     "<tbody>" + (rows || '<tr><td colspan="6" class="c">— ยังไม่มีรายการ —</td></tr>') + "</tbody></table>" +
     '<table class="sum">' + money("รวมเป็นเงิน", T.sub) +
-    (T.disc > 0 ? money("หักส่วนลด", T.disc) + money("ราคาหลังหักส่วนลด", T.afterDisc) : "") +
+    (T.disc > 0 ? money(T.discMode === "pct" ? "หักส่วนลด " + T.discPct + "%" : "หักส่วนลด", T.disc)
+      + money("ราคาหลังหักส่วนลด", T.afterDisc) : "") +
     money("ภาษีมูลค่าเพิ่ม " + T.vatRate + "%", T.vat) +
     money("ราคารวมทั้งสิ้น", T.grand, true) + "</table>" +
     termList(q.terms, T.grand) +
     list(q.warranties, "การรับประกันและบริการ") +
     (valid ? '<div class="note">' + sEsc(valid) + "</div>" : "") +
     (q.note ? '<div class="note">หมายเหตุ: ' + sEsc(q.note) + "</div>" : "") +
+    shList +
     '<div class="sig"><div><div class="ln"></div><div class="rl">ผู้เสนอราคา · ' + sEsc(q.ownerName || q.byName || "") +
     '</div></div><div><div class="ln"></div><div class="rl">ผู้อนุมัติ / ลูกค้า</div>' +
     '<div class="rl">วันที่ ______ / ______ / ______</div></div></div>' +
     '<div class="ft">เอกสารนี้ออกจากระบบติดตามงานติดตั้ง ' + window.BRANDING.name + "</div>" +
+    shPages +
     "</body></html>";
   return window.pgDocHTML ? window.pgDocHTML(doc, L, QUOTE_I18N) : doc;
 }
@@ -494,7 +559,81 @@ function quoteHTML(q, lang) {
 /* ============================================================
    QuoteEditor — โมดัลทำ/แก้ใบเสนอราคา
    ============================================================ */
-function QuoteEditor({ quote, job, target, onClose, onSave, onDelete, currentUser }) {
+/* ── เลือก DATA SHEET ที่จะแนบไปกับใบเสนอราคา ──
+   ไม่ได้แนบทุกใบทุกครั้ง — บางงานลูกค้าขอเฉพาะสเปกแผง บางงานขอของอินเวอร์เตอร์ด้วย
+   รายการมาจากคลังสินค้า (ชิ้นที่แนบ DATA SHEET ไว้แล้วเท่านั้น) จะได้ไม่ต้องอัปไฟล์ซ้ำทุกใบ
+   ชิ้นที่ชื่อ/รุ่นไปโผล่ในรายการที่เสนอ เด้งขึ้นมาก่อน เพราะเป็นตัวที่จะแนบจริงเกือบทุกครั้ง */
+function QuoteSheetPick({ ids, items, hintText, locked, onChange }) {
+  const [qs, setQs] = React.useState("");
+  const sel = ids || [];
+  const norm = (x) => String(x || "").trim().toLowerCase();
+  const hay = norm(hintText);
+  const scored = (items || []).map((it) => {
+    const keys = [it.model, it.name].concat(it.aka || []).map(norm).filter(Boolean);
+    return { it: it, hit: keys.some((k) => k.length > 2 && hay.indexOf(k) !== -1) };
+  });
+  const f = norm(qs);
+  const shown = scored
+    .filter((x) => !f || norm(x.it.name).indexOf(f) !== -1 || norm(x.it.model).indexOf(f) !== -1)
+    .sort((a, b) => {
+      const sa = (sel.indexOf(a.it.id) !== -1 ? 0 : a.hit ? 1 : 2), sb = (sel.indexOf(b.it.id) !== -1 ? 0 : b.hit ? 1 : 2);
+      return sa !== sb ? sa - sb : String(a.it.name || "").localeCompare(String(b.it.name || ""));
+    });
+  const toggle = (id) => {
+    if (locked) return;
+    onChange(sel.indexOf(id) !== -1 ? sel.filter((x) => x !== id) : sel.concat([id]));
+  };
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+        <label style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>DATA SHEET ที่แนบไปกับใบนี้</label>
+        <span style={{ fontSize: 11, color: "var(--text-3)" }}>เลือกเฉพาะที่เกี่ยวกับงานนี้ · เลือกไว้ {sel.length} ไฟล์</span>
+      </div>
+      {(items || []).length === 0 ? (
+        <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>ยังไม่มีของชิ้นไหนในคลังที่แนบ DATA SHEET ไว้ — ไปแนบที่หน้าคลังสินค้าก่อน</div>
+      ) : (
+        <React.Fragment>
+          {(items || []).length > 6 && (
+            <input value={qs} onChange={(e) => setQs(e.target.value)} placeholder="ค้นหารุ่น / ชื่อสินค้า"
+              style={{ padding: "7px 10px", borderRadius: 9, border: "1px solid var(--border-strong)",
+                background: "var(--surface)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 12 }} />
+          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 5, maxHeight: 190, overflowY: "auto" }}>
+            {shown.map((x) => {
+              const on = sel.indexOf(x.it.id) !== -1;
+              return (
+                <button key={x.it.id} type="button" onClick={() => toggle(x.it.id)} disabled={locked}
+                  style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: 10,
+                    border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
+                    background: on ? "var(--primary-soft)" : "var(--surface)", cursor: locked ? "default" : "pointer",
+                    fontFamily: "inherit", textAlign: "left" }}>
+                  <span style={{ width: 17, height: 17, borderRadius: 5, flexShrink: 0, display: "grid", placeItems: "center",
+                    border: "1.5px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+                    background: on ? "var(--primary)" : "transparent" }}>
+                    {on && <Icon name="check" size={11} color="#fff" sw={3} />}
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-1)" }}>{x.it.name}</span>
+                    <span style={{ display: "block", fontSize: 10.5, color: "var(--text-3)" }}>
+                      {(x.it.model ? x.it.model + " · " : "") + ((x.it.doc || {}).name || "DATA SHEET")}
+                    </span>
+                  </span>
+                  {x.hit && !on && (
+                    <span style={{ fontSize: 9.5, fontWeight: 800, color: "var(--primary-dark)", background: "var(--primary-soft)",
+                      padding: "2px 7px", borderRadius: 99, flexShrink: 0 }}>อยู่ในใบนี้</span>
+                  )}
+                </button>
+              );
+            })}
+            {shown.length === 0 && <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>ไม่พบรุ่นที่ค้นหา</div>}
+          </div>
+        </React.Fragment>
+      )}
+    </div>
+  );
+}
+
+function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, currentUser }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [q, setQ] = React.useState(() => Object.assign({}, quote, {
     customer: Object.assign({}, quote.customer),
@@ -505,6 +644,27 @@ function QuoteEditor({ quote, job, target, onClose, onSave, onDelete, currentUse
   /* ภาษาของใบที่จะออก — เลือกก่อนกดดู เอกสารหนึ่งใบมีภาษาเดียว
      จำค่าล่าสุดไว้ทั้งระบบ ออกให้ลูกค้าจีนติดกันหลายใบจะได้ไม่ต้องเลือกใหม่ */
   const [qLang, setQLang] = React.useState(() => (window.pgLang ? window.pgLang() : "th"));
+
+  /* ── DATA SHEET ที่แนบ ──
+     เก็บในใบแค่ "รหัสของในคลัง" ไม่ได้ copy ไฟล์เข้าใบ — ไฟล์ใหญ่และต้องอัปเดตที่เดียว
+     ตอนจะออกเอกสารค่อยโหลดไฟล์จริงมาประกอบ */
+  const sheetItems = ((stock && stock.items) || []).filter((it) => it && it.doc);
+  const sheetIds = q.sheetIds || [];
+  const [sheetDocs, setSheetDocs] = React.useState([]);
+  const sheetKey = sheetIds.join("|");
+  React.useEffect(() => {
+    let dead = false;
+    const picked = sheetItems.filter((it) => sheetIds.indexOf(it.id) !== -1);
+    if (!picked.length || !stock || !stock.loadDoc) { setSheetDocs([]); return; }
+    Promise.all(picked.map((it) => Promise.resolve(stock.loadDoc(it.id)).then((d) => (d && d.data
+      ? { id: it.id, label: it.name + (it.model ? " · " + it.model : ""), name: d.name || it.name,
+          dataUrl: d.data, kind: /^data:image/i.test(d.data) ? "image" : "pdf" }
+      : null)).catch(() => null)))
+      .then((list) => { if (!dead) setSheetDocs(list.filter(Boolean)); });
+    return () => { dead = true; };
+  }, [sheetKey]);
+  /* ข้อความที่ใช้เดาว่าใบนี้พูดถึงรุ่นไหนบ้าง — ชื่อกับรายละเอียดของทุกรายการรวมกัน */
+  const sheetHint = (q.items || []).map((it) => (it.name || "") + " " + (it.detail || "")).join(" ");
   const pickQLang = (id) => { setQLang(id); if (window.pgSetLang) window.pgSetLang(id); };
   const T = quoteTotals(q);
   const set = (k, v) => setQ((p) => Object.assign({}, p, { [k]: v }));
@@ -725,11 +885,35 @@ function QuoteEditor({ quote, job, target, onClose, onSave, onDelete, currentUse
                   <b style={{ fontVariantNumeric: "tabular-nums", color: "var(--text-1)" }}>฿{sBaht(r[1])}</b>
                 </div>
               ))}
-              <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-2)" }}>
-                <span style={{ flex: 1 }}>หักส่วนลด (บาท)</span>
-                <input type="number" value={q.discount} disabled={locked} onChange={(e) => set("discount", e.target.value === "" ? "" : +e.target.value)}
-                  style={Object.assign({}, num, { width: 130 })} />
+              {/* ส่วนลดกรอกได้ทั้งเป็นบาทและเป็น % — เก็บคนละช่อง สลับโหมดแล้วเลขเดิมไม่หาย */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-2)", flexWrap: "wrap" }}>
+                <span style={{ flex: 1, minWidth: 90 }}>หักส่วนลด</span>
+                <span style={{ display: "flex", gap: 3, padding: 3, borderRadius: 9, background: "var(--surface2)", flexShrink: 0 }}>
+                  {[["baht", "บาท"], ["pct", "%"]].map((m) => (
+                    <button key={m[0]} type="button" disabled={locked} onClick={() => set("discountMode", m[0])}
+                      style={{ padding: "4px 11px", borderRadius: 7, border: "none", cursor: locked ? "default" : "pointer",
+                        fontFamily: "inherit", fontSize: 11.5, fontWeight: 700,
+                        background: (q.discountMode === "pct" ? "pct" : "baht") === m[0] ? "var(--surface)" : "transparent",
+                        color: (q.discountMode === "pct" ? "pct" : "baht") === m[0] ? "var(--primary-dark)" : "var(--text-3)",
+                        boxShadow: (q.discountMode === "pct" ? "pct" : "baht") === m[0] ? "0 1px 3px rgba(8,20,14,.12)" : "none" }}>{m[1]}</button>
+                  ))}
+                </span>
+                {q.discountMode === "pct"
+                  ? <input type="number" value={q.discountPct != null ? q.discountPct : ""} disabled={locked} placeholder="0"
+                      onChange={(e) => set("discountPct", e.target.value === "" ? "" : +e.target.value)}
+                      style={Object.assign({}, num, { width: 110 })} />
+                  : <input type="number" value={q.discount != null ? q.discount : ""} disabled={locked} placeholder="0"
+                      onChange={(e) => set("discount", e.target.value === "" ? "" : +e.target.value)}
+                      style={Object.assign({}, num, { width: 130 })} />}
               </div>
+              {T.disc > 0 && (
+                <div style={{ display: "flex", fontSize: 12.5, color: "var(--text-3)" }}>
+                  <span style={{ flex: 1 }}>
+                    ลดแล้ว{T.discMode === "pct" ? " (" + T.discPct + "% ของ ฿" + sBaht(T.sub) + ")" : ""}
+                  </span>
+                  <b style={{ fontVariantNumeric: "tabular-nums", color: "#EF4444" }}>− ฿{sBaht(T.disc)}</b>
+                </div>
+              )}
               <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-2)" }}>
                 <span style={{ flex: 1 }}>ภาษีมูลค่าเพิ่ม (%)</span>
                 <input type="number" value={q.vat} disabled={locked} onChange={(e) => set("vat", e.target.value === "" ? "" : +e.target.value)}
@@ -752,6 +936,8 @@ function QuoteEditor({ quote, job, target, onClose, onSave, onDelete, currentUse
 
             {lineList("terms", "เงื่อนไขการชำระเงิน", "บรรทัดละ 1 งวด · ใส่ % ไว้ในบรรทัด ระบบจะคิดเป็นเงินให้เอง", termMoney)}
             {lineList("warranties", "การรับประกันและบริการ", "บรรทัดละ 1 ข้อ")}
+            <QuoteSheetPick ids={sheetIds} items={sheetItems} hintText={sheetHint} locked={locked}
+              onChange={(v) => set("sheetIds", v)} />
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
               <label style={lbl}>หมายเหตุ</label>
               <textarea rows={2} value={q.note || ""} disabled={locked} onChange={(e) => set("note", e.target.value)}
@@ -767,7 +953,7 @@ function QuoteEditor({ quote, job, target, onClose, onSave, onDelete, currentUse
                 <window.LangPick value={qLang} onChange={pickQLang} />
               </span>
             )}
-            <button onClick={() => setRep(quoteHTML(q, qLang))} style={qBtn()}>
+            <button onClick={() => setRep(quoteHTML(q, qLang, sheetDocs))} style={qBtn()}>
               <Icon name="file" size={15} /> ดู / ออก PDF
             </button>
             {onDelete && (
@@ -1489,7 +1675,8 @@ Object.assign(window, {
   SALES_STAGES, SALES_BY, SALES_BACK, salesStageKey, salesStageOf, salesStagePatch,
   LEAD_SOURCES, LEAD_SOURCE_TH, CONTACT_WAYS, sOverdue, sBaht,
   QUOTE_STATUS, QUOTE_STATUS_BY, QUOTE_TERMS_DEF, QUOTE_WARRANTY_DEF, quoteTermSplit,
-  blankQuote, quoteTotals, quoteNo, quotesFor, quotesOfJob, quotesOfLead, quoteHTML, useQuoteStore,
+  blankQuote, quoteFrom, quoteTotals, quoteNo, quotesFor, quotesOfJob, quotesOfLead,
+  quoteDetailLines, quoteHTML, useQuoteStore,
   quoteSpec, quoteHasSpec, quoteSpecName, quoteSpecDetail,
-  QuoteEditor, SalesCard, SalesBoardView, SalesKpiView, SalesOverview, SalesJobSummary, SalesQuoteList,
+  QuoteEditor, QuoteSheetPick, SalesCard, SalesBoardView, SalesKpiView, SalesOverview, SalesJobSummary, SalesQuoteList,
 });

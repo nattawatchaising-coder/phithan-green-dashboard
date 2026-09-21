@@ -667,6 +667,7 @@ function App() {
     batSize: job.batSize,
     backup: job.backup
   });
+  const newQuote = (t, prev) => prev && window.quoteFrom ? window.quoteFrom(prev, t, auth.current, quoteStore.quotes) : quoteStore.blank(t, auth.current);
   const openQuoteForLead = (lead, existing) => {
     const t = leadQuoteTarget(lead);
     if (existing) {
@@ -677,10 +678,11 @@ function App() {
       });
       return;
     }
+    const prev = (window.quotesOfLead ? window.quotesOfLead(quoteStore.quotes, lead) : [])[0] || null;
     setQuoteOpen({
       jobId: lead.jobId || "",
       target: t,
-      quote: quoteStore.blank(t, auth.current)
+      quote: newQuote(t, prev)
     });
   };
   const openQuoteForJob = (job, existing) => {
@@ -693,10 +695,11 @@ function App() {
       });
       return;
     }
+    const prev = (window.quotesOfJob ? window.quotesOfJob(quoteStore.quotes, job, leadStore.leads) : [])[0] || null;
     setQuoteOpen({
       jobId: job.id,
       target: t,
-      quote: quoteStore.blank(t, auth.current)
+      quote: newQuote(t, prev)
     });
   };
   const selectedJob = jobs.find(j => j.id === selected) || null;
@@ -1305,6 +1308,7 @@ function App() {
     quote: quoteOpen.quote,
     currentUser: auth.current,
     target: quoteOpen.target,
+    stock: stock,
     job: quoteOpen.jobId ? jobs.find(x => x.id === quoteOpen.jobId) : null,
     onClose: () => setQuoteOpen(null),
     onSave: q => {
