@@ -471,8 +471,12 @@ function App() {
        ขนาดที่คาดเป็นตัวตั้งต้นของงาน (แก้ทีหลังได้) · เจ้าของลูกค้าติดไปเป็นเซลล์ประจำงาน */
     if (+lead.expKwp > 0) rec.kw = +lead.expKwp;
     if (lead.ownerId) { rec.salesId = lead.ownerId; rec.salesName = lead.ownerName || ""; }
+    /* BOQ ที่ถอดไว้ตอนเสนอราคาเป็นของงานเดียวกัน ติดไปกับงานเลย ไม่ต้องถอดใหม่ */
+    if (lead.boq) rec.boq = lead.boq;
     store.upsert(rec);
     if (window.moveSurveyPhotos) window.moveSurveyPhotos(lead.id, rec.id);
+    /* ไฟล์แบบที่แนบไว้ตอนยังเป็นลูกค้า ต้องตามไปอยู่ใต้เลขงาน ไม่งั้นเปิดใบงานแล้วไฟล์หายทั้งชุด */
+    if (window.moveJobFiles) window.moveJobFiles(lead.id, rec.id);
     /* แบบ 3D ที่ปั้นไว้ตอนยังเป็นงานขายต้องตามไปกับงานด้วย ไม่งั้นต้องปั้นใหม่ทั้งหมด */
     if (window.movePlan3d) window.movePlan3d(lead.id, rec.id);
     leadStore.patch(lead.id, Object.assign({ jobId: rec.id }, window.salesStagePatch ? window.salesStagePatch("won") : { status: "won" }));
@@ -872,9 +876,14 @@ function App() {
 
       {/* ใบลูกค้าที่เปิดจากการ์ดขายบนบอร์ดงาน — ปุ่มครบเหมือนหน้ารายชื่อลูกค้า
           ปุ่มที่พาไปหน้าอื่น (แบบสำรวจ · รายงาน · ใบเสนอราคา · แปลงเป็นงาน) ให้ปิดแผงก่อน ไม่งั้นมันค้างทับอยู่ */}
+      {/* ถอด BOQ / ออกแบบระบบ ตั้งแต่ยังเป็นลูกค้าได้ — BOQ เก็บลงตารางลูกค้าก่อน
+          แล้วค่อยติดไปกับงานตอนกดแปลง · __lead คือธงจาก leadAsJob ว่ายังไม่ใช่งานจริง */}
       {boardLead && <LeadDrawer lead={(leadStore.leads || []).find((x) => x.id === boardLead) || null}
         leadStore={leadStore} appts={apptStore.appts} jobs={jobs} quotes={quoteStore.quotes}
         users={auth.users} currentUser={auth.current}
+        stock={stock} priceMap={can(role, "price") ? effPriceMap : null}
+        canManage={can(role, "delJob")} canDesign={can(role, "design")}
+        onSaveBoq={(t, boq) => { if (t && t.__lead) leadStore.patch(t.id, { boq }); else store.patch(t.id, { boq }); }}
         onClose={() => setBoardLead(null)}
         onOpenSurvey={(can(role, "doSurvey") || can(role, "dispatch")) ? (pseudo) => { setBoardLead(null); openSurvey(pseudo); } : null}
         onReport={(pseudo) => { setBoardLead(null); setReportJob(pseudo); }}

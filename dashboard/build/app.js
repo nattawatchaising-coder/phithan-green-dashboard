@@ -610,8 +610,10 @@ function App() {
       rec.salesId = lead.ownerId;
       rec.salesName = lead.ownerName || "";
     }
+    if (lead.boq) rec.boq = lead.boq;
     store.upsert(rec);
     if (window.moveSurveyPhotos) window.moveSurveyPhotos(lead.id, rec.id);
+    if (window.moveJobFiles) window.moveJobFiles(lead.id, rec.id);
     if (window.movePlan3d) window.movePlan3d(lead.id, rec.id);
     leadStore.patch(lead.id, Object.assign({
       jobId: rec.id
@@ -1243,6 +1245,17 @@ function App() {
     quotes: quoteStore.quotes,
     users: auth.users,
     currentUser: auth.current,
+    stock: stock,
+    priceMap: can(role, "price") ? effPriceMap : null,
+    canManage: can(role, "delJob"),
+    canDesign: can(role, "design"),
+    onSaveBoq: (t, boq) => {
+      if (t && t.__lead) leadStore.patch(t.id, {
+        boq
+      });else store.patch(t.id, {
+        boq
+      });
+    },
     onClose: () => setBoardLead(null),
     onOpenSurvey: can(role, "doSurvey") || can(role, "dispatch") ? pseudo => {
       setBoardLead(null);

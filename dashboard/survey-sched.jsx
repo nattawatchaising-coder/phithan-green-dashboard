@@ -84,10 +84,15 @@ function blankLead(leads) {
 }
 
 // lead → รูปงานปลอมสำหรับ SurveyWizard/การ์ด (ใช้ id/code/name/survey เหมือนงานจริง)
+/* ลูกค้าสำรวจในร่างของ "งาน" — หน้าสำรวจ · แบบ 3 มิติ · ออกแบบระบบ · ถอด BOQ ใช้ร่างเดียวกันหมด
+   ขนาดที่คาดของเซลล์ใช้เป็น kW ตั้งต้น (ยังไม่มีตัวเลขจากวิศวกร) เพื่อให้ถอด BOQ ได้ตั้งแต่ยังไม่ปิดการขาย
+   __lead = ธงบอกว่านี่ไม่ใช่งานจริงในฐานข้อมูล — ใครที่ต้องบันทึกค่ากลับจะได้รู้ว่าต้องเขียนลงตารางลูกค้า */
 function leadAsJob(l) {
   if (!l) return null;
   return { __lead: true, id: l.id, code: l.code, name: l.name, phone: l.phone, address: l.address,
-    province: l.province, type: l.type || "home", phase: l.phase || "1", roof: l.roof || "", map: "", survey: l.survey || null };
+    province: l.province, type: l.type || "home", phase: l.phase || "1", roof: l.roof || "", map: "",
+    kw: +l.expKwp || 0, panels: +l.expPanels || 0, brand: l.brand || "", boq: l.boq || null,
+    survey: l.survey || null };
 }
 
 function useSurveyLeadStore() {

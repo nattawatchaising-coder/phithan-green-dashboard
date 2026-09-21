@@ -993,6 +993,15 @@ function captureGps(opt) {
     }, opt || {}));
   });
 }
+function moveJobFiles(fromId, toId) {
+  if (!fromId || !toId || fromId === toId || !_MFB()) return Promise.resolve();
+  const move = node => _mref(node + "/" + fromId).once("value").then(s => {
+    const v = s.val();
+    if (!v) return null;
+    return _mref(node + "/" + toId).set(v).then(() => _mref(node + "/" + fromId).remove());
+  }).catch(() => null);
+  return Promise.all([move("jobFiles"), move("jobFileFlags")]);
+}
 Object.assign(window, {
   useJobMedia,
   openJobFileOnce,
@@ -1001,6 +1010,7 @@ Object.assign(window, {
   resizeImageFile,
   readFileAsDataURL,
   dataUrlToBlobUrl,
+  moveJobFiles,
   JobPhotos,
   JobFiles,
   JobComments,

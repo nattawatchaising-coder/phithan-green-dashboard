@@ -1531,6 +1531,12 @@ function LeadDetail({
     STATUS,
     STATUS_BY,
     stageKey,
+    currentUser,
+    stock,
+    priceMap,
+    canManage,
+    canDesign,
+    onSaveBoq,
     onOpenSurvey,
     onReport,
     onOpenQuote,
@@ -1542,6 +1548,8 @@ function LeadDetail({
     setStage
   } = ctx;
   const [ask, setAsk] = React.useState(null);
+  const [designOpen, setDesignOpen] = React.useState(false);
+  const [boqOpen, setBoqOpen] = React.useState(false);
   const st = window.surveyStatus({
     survey: l.survey
   });
@@ -1554,6 +1562,8 @@ function LeadDetail({
   const next = list.find(a => a.status !== "canceled" && a.status !== "done") || list[list.length - 1];
   const job = l.jobId ? (jobs || []).find(j => j.id === l.jobId) : null;
   const late = window.sOverdue && window.sOverdue(l.nextFollow) && sKey !== "won" && sKey !== "lost";
+  const asJob = job || (window.leadAsJob ? window.leadAsJob(l) : null);
+  const media = window.useJobMedia ? window.useJobMedia(asJob ? asJob.id : null) : null;
   const contacts = (l.contacts || []).slice().reverse();
   const lastC = contacts[0] || null;
   const wayOf = k => (window.CONTACT_WAYS || []).find(x => x.key === k) || {
@@ -1748,6 +1758,22 @@ function LeadDetail({
     title: "\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07 3D",
     sub: "\u0E1B\u0E31\u0E49\u0E19\u0E1C\u0E31\u0E07\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E44\u0E1B\u0E04\u0E38\u0E22\u0E01\u0E31\u0E1A\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32 \xB7 \u0E14\u0E36\u0E07\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07\u0E40\u0E02\u0E49\u0E32\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32\u0E44\u0E14\u0E49",
     onClick: () => onPlan3d(job || window.leadAsJob(l))
+  }), asJob && window.SolarDesignHost && canDesign !== false && React.createElement(LeadActionRow, {
+    icon: "bolt",
+    color: "#B45309",
+    title: "\u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E23\u0E30\u0E1A\u0E1A + \u0E1C\u0E25\u0E1C\u0E25\u0E34\u0E15",
+    sub: "\u0E15\u0E48\u0E2D\u0E2A\u0E15\u0E23\u0E34\u0E07 \xB7 \u0E15\u0E23\u0E27\u0E08 I-V \xB7 \u0E1C\u0E25\u0E1C\u0E25\u0E34\u0E15 25 \u0E1B\u0E35 \xB7 \u0E04\u0E37\u0E19\u0E17\u0E38\u0E19 \u2014 \u0E43\u0E0A\u0E49\u0E1C\u0E31\u0E07\u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E1B\u0E31\u0E49\u0E19\u0E44\u0E27\u0E49",
+    onClick: () => setDesignOpen(true)
+  }), asJob && window.BOQEditor && React.createElement(LeadActionRow, {
+    icon: "box",
+    color: "var(--primary-dark)",
+    title: "\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38 BOQ",
+    sub: (job ? job.boq : l.boq) ? "มีรายการแล้ว · แตะเพื่อแก้ไข / ดาวน์โหลด" : "คำนวณปริมาณวัสดุเพื่อคิดราคาไปเสนอ",
+    onClick: () => setBoqOpen(true)
+  }), media && window.JobFiles && React.createElement(window.JobFiles, {
+    media: media,
+    currentUser: currentUser,
+    canManage: canManage !== false
   }), contacts.length > 0 && React.createElement("div", {
     style: card
   }, React.createElement("div", {
@@ -1874,7 +1900,19 @@ function LeadDetail({
     size: 14,
     color: "#fff",
     sw: 2.4
-  }), " \u0E41\u0E1B\u0E25\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"))));
+  }), " \u0E41\u0E1B\u0E25\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"))), designOpen && asJob && window.SolarDesignHost && React.createElement(window.SolarDesignHost, {
+    job: asJob,
+    onClose: () => setDesignOpen(false)
+  }), boqOpen && asJob && window.BOQEditor && React.createElement(window.BOQEditor, {
+    job: asJob,
+    priceMap: priceMap,
+    stock: stock,
+    onClose: () => setBoqOpen(false),
+    onSave: onSaveBoq ? boq => {
+      onSaveBoq(asJob, boq);
+      setBoqOpen(false);
+    } : null
+  }));
 }
 function LeadDrawer({
   lead,
@@ -1884,6 +1922,11 @@ function LeadDrawer({
   quotes,
   users,
   currentUser,
+  stock,
+  priceMap,
+  canManage,
+  canDesign,
+  onSaveBoq,
   onClose,
   onOpenSurvey,
   onReport,
@@ -1914,6 +1957,12 @@ function LeadDrawer({
     jobs,
     quotes,
     apptsOf,
+    currentUser,
+    stock,
+    priceMap,
+    canManage,
+    canDesign,
+    onSaveBoq,
     STATUS: window.SALES_STAGES || [],
     STATUS_BY: window.SALES_BY || {},
     stageKey,

@@ -486,4 +486,18 @@ function captureGps(opt) {
   });
 }
 
-Object.assign(window, { useJobMedia, openJobFileOnce, loadJobFileOnce, useJobFileFlag, resizeImageFile, readFileAsDataURL, dataUrlToBlobUrl, JobPhotos, JobFiles, JobComments, captureGps });
+/* ── ย้ายไฟล์แนบไปอยู่กับเลขใหม่ ──
+   ไฟล์แบบที่แนบไว้ตอนยังเป็นลูกค้าสำรวจ เก็บอยู่ใต้เลขลูกค้า (jobFiles/LD-xxx)
+   พอกดแปลงเป็นงาน ต้องตามไปอยู่ใต้เลขงาน ไม่งั้นเปิดใบงานแล้วไฟล์แบบหายไปทั้งชุด
+   (วิธีเดียวกับที่รูปสำรวจและแบบ 3 มิติย้ายตาม — ดู moveSurveyPhotos / movePlan3d) */
+function moveJobFiles(fromId, toId) {
+  if (!fromId || !toId || fromId === toId || !_MFB()) return Promise.resolve();
+  const move = (node) => _mref(node + "/" + fromId).once("value").then((s) => {
+    const v = s.val();
+    if (!v) return null;
+    return _mref(node + "/" + toId).set(v).then(() => _mref(node + "/" + fromId).remove());
+  }).catch(() => null);
+  return Promise.all([move("jobFiles"), move("jobFileFlags")]);
+}
+
+Object.assign(window, { useJobMedia, openJobFileOnce, loadJobFileOnce, useJobFileFlag, resizeImageFile, readFileAsDataURL, dataUrlToBlobUrl, moveJobFiles, JobPhotos, JobFiles, JobComments, captureGps });

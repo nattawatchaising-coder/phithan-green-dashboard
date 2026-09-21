@@ -499,9 +499,12 @@ function LeadActionRow({ icon, color, title, sub, onClick }) {
    ลูกค้าที่ยังไม่ปิดการขายไม่มีของพวกนี้ ใส่ไปก็เป็นช่องว่างที่กดแล้วไม่มีอะไร
    (ใบย่อในหน้ารายชื่อยังเป็น LeadCard เหมือนเดิม — รายชื่อยาว ๆ ต้องอ่านเร็ว ไม่ใช่อ่านครบ) */
 function LeadDetail({ l, ctx }) {
-  const { leadStore, jobs, quotes, apptsOf, STATUS, STATUS_BY, stageKey,
+  const { leadStore, jobs, quotes, apptsOf, STATUS, STATUS_BY, stageKey, currentUser, stock, priceMap,
+          canManage, canDesign, onSaveBoq,
           onOpenSurvey, onReport, onOpenQuote, onPlan3d, onConvert, canConvert, setEdit, setLog, setStage } = ctx;
   const [ask, setAsk] = React.useState(null);   // { kind: "del" | "conv" }
+  const [designOpen, setDesignOpen] = React.useState(false);
+  const [boqOpen, setBoqOpen] = React.useState(false);
 
   const st = window.surveyStatus({ survey: l.survey });
   const sKey = stageKey(l);
@@ -510,6 +513,11 @@ function LeadDetail({ l, ctx }) {
   const next = list.find((a) => a.status !== "canceled" && a.status !== "done") || list[list.length - 1];
   const job = l.jobId ? (jobs || []).find((j) => j.id === l.jobId) : null;
   const late = window.sOverdue && window.sOverdue(l.nextFollow) && sKey !== "won" && sKey !== "lost";
+  /* ── ร่างงานสำหรับหน้าออกแบบ / ถอด BOQ / ไฟล์แนบ ──
+     แปลงเป็นงานแล้วให้ใช้ใบงานจริง เพราะแบบกับไฟล์ย้ายไปอยู่ใต้เลขงานตั้งแต่ตอนแปลงแล้ว
+     ถ้าเปิดด้วยเลขลูกค้าจะได้ของเปล่าทั้งที่ทำไว้แล้ว */
+  const asJob = job || (window.leadAsJob ? window.leadAsJob(l) : null);
+  const media = window.useJobMedia ? window.useJobMedia(asJob ? asJob.id : null) : null;
   /* ประวัติการติดต่อเรียงครั้งล่าสุดไว้บน — เปิดมาต้องเห็นว่าคุยอะไรไปล่าสุดก่อน */
   const contacts = (l.contacts || []).slice().reverse();
   const lastC = contacts[0] || null;
@@ -606,6 +614,23 @@ function LeadDetail({ l, ctx }) {
           sub="ปั้นผังหลังคาไปคุยกับลูกค้า · ดึงจำนวนแผงเข้าใบเสนอราคาได้"
           onClick={() => onPlan3d(job || window.leadAsJob(l))} />
       )}
+      {/* ── ของที่ต้องใช้ตั้งแต่ตอนเสนอราคา ──
+         งานโครงการต้องคำนวณระบบกับถอดของให้เสร็จก่อน ถึงจะรู้ราคาไปเสนอลูกค้าได้
+         เดิมต้องกดแปลงเป็นงานก่อนถึงจะเข้าถึงสามอย่างนี้ ซึ่งทำให้ฐานข้อมูลงานมีงานที่ยังไม่ได้ขาย */}
+      {asJob && window.SolarDesignHost && canDesign !== false && (
+        <LeadActionRow icon="bolt" color="#B45309" title="ออกแบบระบบ + ผลผลิต"
+          sub="ต่อสตริง · ตรวจ I-V · ผลผลิต 25 ปี · คืนทุน — ใช้ผังแผงที่ปั้นไว้"
+          onClick={() => setDesignOpen(true)} />
+      )}
+      {asJob && window.BOQEditor && (
+        <LeadActionRow icon="box" color="var(--primary-dark)" title="ถอดวัสดุ BOQ"
+          sub={(job ? job.boq : l.boq) ? "มีรายการแล้ว · แตะเพื่อแก้ไข / ดาวน์โหลด" : "คำนวณปริมาณวัสดุเพื่อคิดราคาไปเสนอ"}
+          onClick={() => setBoqOpen(true)} />
+      )}
+      {/* ไฟล์แบบ / BOQ ที่แนบไว้ — ไฟล์ตามไปกับงานเองตอนกดแปลงเป็นงาน (moveJobFiles) */}
+      {media && window.JobFiles && (
+        <window.JobFiles media={media} currentUser={currentUser} canManage={canManage !== false} />
+      )}
 
       {/* ประวัติการติดต่อทั้งหมด */}
       {contacts.length > 0 && (
@@ -662,6 +687,14 @@ function LeadDetail({ l, ctx }) {
           </React.Fragment>
         )}
       </div>
+
+      {designOpen && asJob && window.SolarDesignHost && (
+        <window.SolarDesignHost job={asJob} onClose={() => setDesignOpen(false)} />
+      )}
+      {boqOpen && asJob && window.BOQEditor && (
+        <window.BOQEditor job={asJob} priceMap={priceMap} stock={stock} onClose={() => setBoqOpen(false)}
+          onSave={onSaveBoq ? (boq) => { onSaveBoq(asJob, boq); setBoqOpen(false); } : null} />
+      )}
     </React.Fragment>
   );
 }
@@ -669,7 +702,8 @@ function LeadDetail({ l, ctx }) {
 /* ── แผงลูกค้าที่เด้งจากบอร์ดงาน ──
    กดการ์ดขายบนบอร์ดแล้วได้ใบเต็มทันที ไม่ต้องเด้งออกไปหน้ารายชื่อลูกค้าแล้วหาใหม่
    ข้างในเป็นใบเต็มแบบเดียวกับใบงาน (LeadDetail) ปุ่มครบเหมือนใบย่อในหน้ารายชื่อ */
-function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, onClose,
+function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, stock, priceMap,
+                      canManage, canDesign, onSaveBoq, onClose,
                       onOpenSurvey, onReport, onOpenQuote, onPlan3d, onConvert, canConvert }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const bdClose = window.useBackdropClose(onClose);
@@ -690,7 +724,7 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
   (appts || []).forEach((a) => { if (a.leadId === lead.id) (apptsOf[a.leadId] = apptsOf[a.leadId] || []).push(a); });
 
   const ctx = {
-    leadStore, jobs, quotes, apptsOf,
+    leadStore, jobs, quotes, apptsOf, currentUser, stock, priceMap, canManage, canDesign, onSaveBoq,
     STATUS: window.SALES_STAGES || [], STATUS_BY: window.SALES_BY || {}, stageKey,
     onOpenSurvey, onReport, onOpenQuote, onPlan3d, onConvert, canConvert,
     setEdit, setLog, setStage: (l, key) => leadSetStage(leadStore, l, key),

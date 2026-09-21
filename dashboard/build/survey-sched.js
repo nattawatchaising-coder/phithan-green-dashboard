@@ -151,6 +151,10 @@ function leadAsJob(l) {
     phase: l.phase || "1",
     roof: l.roof || "",
     map: "",
+    kw: +l.expKwp || 0,
+    panels: +l.expPanels || 0,
+    brand: l.brand || "",
+    boq: l.boq || null,
     survey: l.survey || null
   };
 }
