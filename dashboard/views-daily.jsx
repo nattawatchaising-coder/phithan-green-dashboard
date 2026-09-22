@@ -69,6 +69,8 @@ function DrChips({ options, value, onChange, disabled }) {
 
 /* ตารางรายการที่เพิ่ม/ลบแถวเองได้ — วัสดุ · เครื่องจักร · กำลังคน · ใบรับรอง
    cols = [{k, th, w, type}] · type "num" = ช่องตัวเลข */
+function drBlankRow(cols) { const r = {}; r[(cols[0] || {}).k || "name"] = ""; return r; }
+
 function DrRows({ cols, rows, onChange, disabled, addLabel }) {
   const list = rows || [];
   const setCell = (i, k, v) => {
@@ -118,8 +120,10 @@ function DrRows({ cols, rows, onChange, disabled, addLabel }) {
           </tbody>
         </table>
       </div>
+      {/* แถวใหม่ต้องมีค่าอย่างน้อยหนึ่งช่อง — Firebase ทิ้งอ็อบเจ็กต์ว่างทั้งก้อน
+          เขียนแถวเปล่าลงไปแล้วแถวหายทันที เหมือนกดปุ่มไม่ติด */}
       {!disabled && (
-        <button type="button" onClick={() => onChange(list.concat([{}]))}
+        <button type="button" onClick={() => onChange(list.concat([drBlankRow(cols)]))}
           style={{ marginTop: 9, display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 9,
             border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
             fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>

@@ -151,6 +151,11 @@ function DrChips({
     }, " ", o.range));
   }));
 }
+function drBlankRow(cols) {
+  const r = {};
+  r[(cols[0] || {}).k || "name"] = "";
+  return r;
+}
 function DrRows({
   cols,
   rows,
@@ -257,7 +262,7 @@ function DrRows({
     }
   }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"))))), !disabled && React.createElement("button", {
     type: "button",
-    onClick: () => onChange(list.concat([{}])),
+    onClick: () => onChange(list.concat([drBlankRow(cols)])),
     style: {
       marginTop: 9,
       display: "inline-flex",
