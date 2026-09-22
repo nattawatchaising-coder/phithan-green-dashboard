@@ -438,8 +438,8 @@ function App() {
         strPerMppt: s.invStrPerMppt, eff: s.invEff, effEuro: s.invEffEuro,
         vStart: s.vStart, vRated: s.vRated, maxAcKw: s.invMaxAcKw })));
     /* ตัวคุมแผง (Smart Module Controller) — สเปคมาจากคลังเหมือนแผงและอินเวอร์เตอร์ */
-    if (window.BOQ.setOptimizers) window.BOQ.setOptimizers((stock.items || []).filter((s) => inCat(s, "optimizer") && s.name)
-      .map((s) => ({ model: s.name, group: subTh(s), w: s.optW, vInMax: s.optVinMax, mpptMin: s.optMpptMin, mpptMax: s.optMpptMax,
+    if (window.BOQ.setOptimizers) window.BOQ.setOptimizers((stock.items || []).filter((s) => window.SF.isOptimizerCat(s.cat) && s.name)
+      .map((s) => ({ model: s.name, group: (s.brand || "").trim() || subTh(s), w: s.optW, vInMax: s.optVinMax, mpptMin: s.optMpptMin, mpptMax: s.optMpptMax,
         iscMax: s.optIscMax, vOutMax: s.optVoutMax, iOutMax: s.optIoutMax, eff: s.optEff, vOff: s.optVoff, perPanel: s.optPerPanel,
         minPerStr: s.optMinPerStr, maxPerStr: s.optMaxPerStr, pairs: s.optPairs })));
     /* ต้องผูกกับ stock.cats ด้วย — ถ้ารายชื่อหมวดย่อยมาถึงทีหลังรายการของ mainCatOf() จะยังแปลงคีย์ไม่ออก */

@@ -558,9 +558,9 @@ function App() {
       vRated: s.vRated,
       maxAcKw: s.invMaxAcKw
     })));
-    if (window.BOQ.setOptimizers) window.BOQ.setOptimizers((stock.items || []).filter(s => inCat(s, "optimizer") && s.name).map(s => ({
+    if (window.BOQ.setOptimizers) window.BOQ.setOptimizers((stock.items || []).filter(s => window.SF.isOptimizerCat(s.cat) && s.name).map(s => ({
       model: s.name,
-      group: subTh(s),
+      group: (s.brand || "").trim() || subTh(s),
       w: s.optW,
       vInMax: s.optVinMax,
       mpptMin: s.optMpptMin,

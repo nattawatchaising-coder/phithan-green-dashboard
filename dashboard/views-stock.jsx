@@ -1030,7 +1030,7 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
           {/* ── Smart Module Controller / Optimizer ──
               สเปคฝั่งเข้าไว้ตรวจว่าครอบแผงที่ใช้ไหม · ฝั่งออกไว้คิดว่าต่อได้กี่ตัวต่อสตริง
               แรงดันตอนปิดคือตัวเลขความปลอดภัยที่ลูกค้าโรงงานมักถามถึง จึงต้องเก็บไว้ด้วย */}
-          {mainCat === "optimizer" && (
+          {SF.isOptimizerCat(f.cat) && (
             <div style={{ gridColumn: "1 / -1", marginTop: 2, padding: 14, background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 10 }}>
                 <Icon name="bolt" size={14} color="#0891B2" /> สเปคตัวคุมแผง (กรอกจากดาต้าชีต)

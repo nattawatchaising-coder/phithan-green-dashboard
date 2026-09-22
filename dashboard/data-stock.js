@@ -104,6 +104,15 @@
     const c = SF.STOCK_CAT_BY[key];
     return (c && c.parent) || key;
   };
+  /* ── ของชิ้นนี้เป็นตัวคุมแผง (Optimizer) หรือเปล่า ──
+     ของจริงถูกเก็บไว้สองที่: หมวดหลัก "Smart Module Controller" และหมวดย่อย
+     อุปกรณ์อินเวอร์เตอร์ › Optimizer ซึ่งเป็นที่ที่ใช้งานกันจริง
+     เช็คชื่อหมวดย่อยด้วย จะได้ไม่ต้องย้ายของ และกรอกสเปคได้ทั้งสองที่ */
+  SF.isOptimizerCat = function (key) {
+    if (SF.mainCatOf(key) === "optimizer") return true;
+    const c = SF.STOCK_CAT_BY[key];
+    return !!(c && c.parent && /optimi[sz]er|ตัวคุมแผง/i.test(c.th || ""));
+  };
   SF.setCustomCats([]);
   SF.INVENTORY_SEED = INVENTORY;
   SF.MOVES_SEED = MOVES;
