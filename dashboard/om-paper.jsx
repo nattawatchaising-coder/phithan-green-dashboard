@@ -403,10 +403,108 @@ const omPara = (t) => (
   <div style={{ fontSize: 11.5, lineHeight: 1.65, color: "#15211A", whiteSpace: "pre-wrap" }}>{t || "—"}</div>
 );
 
+/* สัดส่วนช่องรูปของทั้งใบ — รูปจากมือถือมีทั้งแนวตั้งแนวนอนปนกัน
+   เลือกได้ว่าใบนี้จะจัดเป็นแบบไหน แต่เลือกแล้วทุกช่องเท่ากันหมด */
+const OM_SHOT_RATIOS = [
+  { k: "4 / 3", th: "แนวนอน" },
+  { k: "1 / 1", th: "จัตุรัส" },
+  { k: "3 / 4", th: "แนวตั้ง" },
+];
+/* กรอบรูปที่ตั้งไว้ · fz = ซูม · fx,fy = จุดของภาพที่อยากให้อยู่กลางช่อง (เปอร์เซ็นต์)
+   เก็บเป็นตัวเลขแยกฟิลด์ ไม่ห่ออ็อบเจ็กต์ เพราะ Firebase ทิ้งอ็อบเจ็กต์ที่ไม่มีคีย์ทั้งก้อน */
+function omFrameOf(p) {
+  const n = (x, d) => (x == null || x === "" || !isFinite(+x) ? d : +x);
+  /* full = ย่อให้เห็นทั้งรูปในช่อง แทนการครอบตัด — ภาพจับหน้าจอมอนิเตอร์ถูกตัดแล้วอ่านตัวเลขไม่ออก
+     ช่องยังสูงเท่าช่องอื่นเหมือนเดิม รูปแค่ไม่เต็มช่อง ไม่ใช่ยืดให้พอดี */
+  return { z: Math.max(1, Math.min(3, n((p || {}).fz, 1))), x: n((p || {}).fx, 50), y: n((p || {}).fy, 50), full: !!(p || {}).ff };
+}
+
+/* รูปหนึ่งช่องในรายงาน — ทุกช่องสูงเท่ากันตามสัดส่วนที่เลือก
+   รูปไม่ถูกยืด (object-fit: cover ครอบตัดแทนการบีบ) ส่วนที่ถูกตัดทิ้งเลือกเองได้
+   ลากบนรูป = เลื่อนว่าจะให้เห็นส่วนไหน · แถบล่าง = ซูมเข้า ตั้งแล้วเก็บติดรูปไว้ใช้รอบหน้า */
+function OmShot({ p, n, ratio, tune, onFrame, T }) {
+  const [f, setF] = React.useState(() => omFrameOf(p));
+  React.useEffect(() => { setF(omFrameOf(p)); }, [p.fz, p.fx, p.fy, p.ff]);
+  const box = React.useRef(null);
+  const dr = React.useRef(null);
+  const live = tune && !!onFrame;
+  const save = (nf) => { if (onFrame) onFrame(p.id, { fz: Math.round(nf.z * 100) / 100, fx: Math.round(nf.x), fy: Math.round(nf.y), ff: nf.full ? 1 : 0 }); };
+  const down = (e) => {
+    if (!live) return;
+    const el = box.current;
+    dr.current = { cx: e.clientX, cy: e.clientY, x: f.x, y: f.y, w: (el && el.clientWidth) || 1, h: (el && el.clientHeight) || 1 };
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) { /* เบราว์เซอร์เก่าไม่มีก็ยังลากได้ตามปกติ */ }
+  };
+  const move = (e) => {
+    const d = dr.current;
+    if (!d) return;
+    /* ลากรูปไปทางขวา = อยากเห็นขอบซ้ายของภาพ จุดที่เล็งจึงต้องเลื่อนย้อนทางกับนิ้ว */
+    setF({ z: f.z, full: f.full,
+      x: Math.max(0, Math.min(100, d.x - ((e.clientX - d.cx) / d.w) * 100)),
+      y: Math.max(0, Math.min(100, d.y - ((e.clientY - d.cy) / d.h) * 100)) });
+  };
+  const up = () => { if (dr.current) { dr.current = null; save(f); } };
+
+  return (
+    <div className="om-shot" style={{ breakInside: "avoid", border: "1px solid #DCE4DF", borderRadius: 7, overflow: "hidden", background: "#fff" }}>
+      <div ref={box} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
+        style={{ position: "relative", width: "100%", aspectRatio: ratio, overflow: "hidden", background: "#F3F7F4",
+          cursor: live ? "move" : "default", touchAction: live ? "none" : "auto" }}>
+        <img src={p.dataUrl} alt={p.cap || ""} draggable={false}
+          style={{ width: "100%", height: "100%", display: "block", objectFit: f.full ? "contain" : "cover",
+            objectPosition: f.x + "% " + f.y + "%",
+            transform: f.z > 1 ? "scale(" + f.z + ")" : undefined,
+            transformOrigin: f.x + "% " + f.y + "%" }} />
+        {live && (
+          <div className="sv-rep-noprint" onPointerDown={(e) => e.stopPropagation()}
+            style={{ position: "absolute", left: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", gap: 8,
+              padding: "6px 9px", background: "rgba(8,24,17,.62)" }}>
+            <Icon name="search" size={12} color="#fff" />
+            <input type="range" min="1" max="3" step="0.05" value={f.z} disabled={f.full}
+              onChange={(e) => setF({ z: +e.target.value, x: f.x, y: f.y, full: f.full })}
+              onPointerUp={() => save(f)} onKeyUp={() => save(f)}
+              style={{ flex: 1, minWidth: 0, accentColor: "#1B9B75", opacity: f.full ? .4 : 1 }} />
+            <button type="button" onClick={() => { const nf = { z: 1, x: 50, y: 50, full: !f.full }; setF(nf); save(nf); }}
+              style={{ padding: "3px 8px", borderRadius: 7, border: "1px solid rgba(255,255,255,.45)", flexShrink: 0,
+                background: f.full ? "#1B9B75" : "transparent", color: "#fff", fontFamily: "inherit", fontSize: 10.5, fontWeight: 700, cursor: "pointer" }}>
+              {T("เต็มรูป")}
+            </button>
+            <button type="button" onClick={() => { const nf = { z: 1, x: 50, y: 50, full: false }; setF(nf); save(nf); }}
+              style={{ padding: "3px 8px", borderRadius: 7, border: "1px solid rgba(255,255,255,.45)", background: "transparent",
+                color: "#fff", fontFamily: "inherit", fontSize: 10.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
+              {T("ตั้งใหม่")}
+            </button>
+          </div>
+        )}
+      </div>
+      <div style={{ padding: "5px 8px", fontSize: 10.5, color: "#4A5A51", borderTop: "1px solid #ECF1EE" }}>
+        <b style={{ color: "#0A4D68" }}>{T("รูปที่")} {n}</b>{p.cap ? " · " + p.cap : ""}
+      </div>
+    </div>
+  );
+}
+
+/* แผ่นใหม่ในไฟล์ PDF — ขึ้นหน้าใหม่เสมอตอนพิมพ์ (ดู .om-sheet ใน index.html)
+   หัวใหญ่เท่าชื่อเอกสาร เพราะเปิดไฟล์มาแล้วต้องรู้ทันทีว่าแผ่นนี้คือรูปก่อนหรือหลังทำงาน */
+function OmPSheet({ title, sub, children }) {
+  return (
+    <div className="om-sheet" style={{ marginTop: 26, paddingTop: 16, borderTop: "2px solid #1B9B75" }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+        <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-.01em", color: "#15211A" }}>{title}</div>
+        <div style={{ fontSize: 11, color: "#7A8A81" }}>{sub}</div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 /* photos = ส่งรูปเข้ามาเองได้ — ใบแจ้งซ่อมเก็บรูปที่ omTicketPhotos คนละที่กับใบรายงาน
    ไม่ส่งมาก็ใช้รูปของใบรายงานตามเดิม */
-function OmVisitPaper({ visit, site, signs, photos, onClose }) {
+function OmVisitPaper({ visit, site, signs, photos, onFrame, onClose }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  /* fit = สัดส่วนช่องรูปของใบนี้ · tune = เปิดโหมดจัดกรอบ (เครื่องมือไม่ติดไปในไฟล์ PDF) */
+  const [fit, setFit] = React.useState(OM_SHOT_RATIOS[0].k);
+  const [tune, setTune] = React.useState(false);
   /* ภาษาของใบ — สลับได้สดจากแถบด้านบน (แถบนี้ไม่ติดไปในหน้าพิมพ์อยู่แล้ว)
      T() คืนภาษาไทยเดิมทุกคำที่ไม่มีในตาราง และคืนของเดิมทั้งหมดเมื่อเลือกไทย
      วันที่: ไทยเป็น พ.ศ. อังกฤษ/จีนเป็น ค.ศ. จึงต้องแยกฟังก์ชันกัน ห้ามแปลด้วย T() */
@@ -417,6 +515,9 @@ function OmVisitPaper({ visit, site, signs, photos, onClose }) {
   const DTs = (iso) => (!iso ? "-" : lang === "th" || !window.pgDate ? window.drDateTH(iso) : window.pgDate(iso, lang));
   const own = window.useOmVisitPhotos(visit.id);
   const photoList = photos || own.photos;
+  /* รูปของใบแจ้งซ่อมอยู่คนละที่กับใบรายงาน — คนที่ส่งรูปมาต้องส่งวิธีบันทึกกรอบมาด้วย
+     ไม่ส่งมา (หรือใบถูกล็อก) ก็ดูได้อย่างเดียว ปรับไม่ได้ */
+  const frameSet = photos ? onFrame : own.setFrame;
   const v = visit;
   const st = window.omVisitStatusOf(v.status);
   const kind = window.OM_VISIT_KIND_BY[v.kind] || window.OM_VISIT_KIND_BY.repair;
@@ -425,6 +526,15 @@ function OmVisitPaper({ visit, site, signs, photos, onClose }) {
   const before = photoList.filter((p) => (p.slot || "before") === "before");
   const after = photoList.filter((p) => p.slot === "after");
   const g = signs || {};
+
+  /* ตอนพิมพ์ CSS ซ่อนทุกอย่างที่ไม่ใช่กระดาษรายงาน โดยดูจากลูกโดยตรงของ .app-root
+     ใบนี้ถูกเปิดซ้อนอยู่ในหน้าต่างใบแจ้งซ่อม ซึ่งอยู่ลึกเข้าไปใน <main> — <main> ถูกซ่อน
+     กระดาษที่อยู่ข้างในจึงหายไปด้วย กดบันทึก PDF แล้วได้หน้าขาวเปล่า
+     ย้ายกระดาษไปแขวนกับ body ตรง ๆ แล้วติดธงไว้ให้ CSS ซ่อน #root แทน */
+  React.useEffect(() => {
+    document.body.classList.add("sv-rep-printing");
+    return () => document.body.classList.remove("sv-rep-printing");
+  }, []);
 
   const doPrint = () => {
     const old = document.title;
@@ -437,35 +547,41 @@ function OmVisitPaper({ visit, site, signs, photos, onClose }) {
     borderBottom: "1px solid #C9D5CE", whiteSpace: "nowrap" };
   const td = { padding: "5px 7px", fontSize: 10.5, color: "#15211A", borderBottom: "1px solid #ECF1EE", verticalAlign: "top" };
 
-  /* รูปวางสองคอลัมน์ แยกหัวข้อก่อน/หลัง — ลูกค้าเทียบได้ในหน้าเดียว */
+  /* รูปก่อน/หลังไปคนละแผ่นกับเนื้อใบและคนละแผ่นกันเอง — ลูกค้าเปิดไฟล์แล้วเห็นหัวแผ่นชัด ๆ
+     ว่ากำลังดูชุดไหน · รูปวางสองคอลัมน์ ทุกช่องสูงเท่ากัน ไม่ยืดรูป */
   const shots = (title, list) => (
     !list.length ? null : (
-      <OmPBlock title={T(title) + " (" + list.length + " " + T("รูป") + ")"}>
+      <OmPSheet title={T(title)}
+        sub={list.length + " " + T("รูป") + " · " + (v.no || "") + (v.siteName || (site || {}).name ? " · " + (v.siteName || site.name) : "")}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, alignItems: "start" }}>
           {list.map((p, i) => (
-            <div key={p.id} className="om-shot" style={{ breakInside: "avoid", border: "1px solid #DCE4DF", borderRadius: 7, overflow: "hidden" }}>
-              <img src={p.dataUrl} alt={p.cap || ""} style={{ width: "100%", display: "block", background: "#F3F7F4" }} />
-              <div style={{ padding: "5px 8px", fontSize: 10.5, color: "#4A5A51", borderTop: "1px solid #ECF1EE" }}>
-                <b style={{ color: "#0A4D68" }}>{T("รูปที่")} {i + 1}</b>{p.cap ? " · " + p.cap : ""}
-              </div>
-            </div>
+            <OmShot key={p.id} p={p} n={i + 1} ratio={fit} tune={tune} onFrame={frameSet} T={T} />
           ))}
         </div>
-      </OmPBlock>
+      </OmPSheet>
     )
   );
 
-  return (
+  return ReactDOM.createPortal((
     <div className="sv-rep-overlay" style={{ position: "fixed", inset: 0, zIndex: 160, background: "rgba(8,20,14,.55)", overflow: "auto", padding: isMobile ? 0 : "24px 16px" }}>
-      <div className="sv-rep-noprint" style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", gap: 9, alignItems: "center",
+      <div className="sv-rep-noprint" style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", gap: 9, alignItems: "center", flexWrap: "wrap",
         padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--border)",
         marginBottom: isMobile ? 0 : 16, borderRadius: isMobile ? 0 : 12, maxWidth: 900, marginLeft: "auto", marginRight: "auto", boxShadow: "var(--shadow-sm)" }}>
         <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border-strong)",
           background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>ใบรายงานเข้าบริการ · {window.drDateTH(v.date)}</div>
-          <div style={{ fontSize: 11, color: "var(--text-3)" }}>{photos.length} รูป · กดปุ่มแล้วเลือก “บันทึกเป็น PDF”</div>
+          <div style={{ fontSize: 11, color: "var(--text-3)" }}>{photoList.length} รูป · กดปุ่มแล้วเลือก “บันทึกเป็น PDF”</div>
         </div>
+        {!!photoList.length && !!frameSet && (
+          <button onClick={() => setTune(!tune)} title="เลือกว่าจะให้เห็นส่วนไหนของรูป"
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 13px", borderRadius: 11,
+              border: "1px solid " + (tune ? "var(--primary)" : "var(--border-strong)"),
+              background: tune ? "var(--primary)" : "var(--surface)", color: tune ? "#fff" : "var(--text-2)",
+              fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
+            <Icon name="image" size={14} color={tune ? "#fff" : "var(--text-2)"} /> จัดกรอบรูป
+          </button>
+        )}
         {typeof window.LangPick === "function" && (
           <window.LangPick value={lang} onChange={pickLang} />
         )}
@@ -474,6 +590,26 @@ function OmVisitPaper({ visit, site, signs, photos, onClose }) {
           <Icon name="file" size={16} color="#fff" /> บันทึก PDF
         </button>
       </div>
+
+      {/* แถบจัดกรอบรูป — โผล่เฉพาะตอนเปิดโหมด ไม่ติดไปในไฟล์ PDF */}
+      {tune && (
+        <div className="sv-rep-noprint" style={{ maxWidth: 900, margin: "0 auto 14px", padding: "10px 14px", borderRadius: 12,
+          background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)",
+          display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 11.5, color: "var(--text-3)", flex: 1, minWidth: 180 }}>
+            ลากบนรูปเพื่อเลือกส่วนที่อยากให้เห็น · แถบล่างคือซูม · ตั้งแล้วจำไว้ในใบนี้
+          </span>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>สัดส่วนช่องรูป</span>
+          {OM_SHOT_RATIOS.map((r) => (
+            <button key={r.k} onClick={() => setFit(r.k)}
+              style={{ padding: "7px 12px", borderRadius: 9, cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700,
+                border: "1px solid " + (fit === r.k ? "var(--primary)" : "var(--border-strong)"),
+                background: fit === r.k ? "var(--primary)" : "var(--surface)", color: fit === r.k ? "#fff" : "var(--text-2)" }}>
+              {r.th}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ฟอนต์ไทยของแอปไม่มีตัวอักษรจีน — เลือกจีนแล้วต้องระบุชุดฟอนต์ที่มีจีนให้ชัด ไม่งั้นเสี่ยงได้สี่เหลี่ยม */}
       <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: "#15211A",
@@ -560,9 +696,6 @@ function OmVisitPaper({ visit, site, signs, photos, onClose }) {
           </OmPBlock>
         )}
 
-        {shots("รูปก่อนทำงาน", before)}
-        {shots("รูปหลังทำงาน", after)}
-
         {/* ช่องเซ็น — ช่างกับลูกค้า เซ็นในระบบแล้วพิมพ์ลายเซ็นจริงลงบนเส้น
             ยังไม่เซ็นก็เว้นเส้นว่างไว้เซ็นด้วยปากกาที่หน้างาน */}
         <div style={{ marginTop: 22, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, breakInside: "avoid" }}>
@@ -597,9 +730,12 @@ function OmVisitPaper({ visit, site, signs, photos, onClose }) {
         <div style={{ marginTop: 14, fontSize: 9.5, color: "#8A9A91", textAlign: "center" }}>
           {T("เอกสารนี้ออกจากระบบงานบริการหลังการขาย")} flash+solar · {v.no} · {T("พิมพ์เมื่อ")} {DTs(window.drToday())}
         </div>
+
+        {shots("รูปก่อนทำงาน", before)}
+        {shots("รูปหลังทำงาน", after)}
       </div>
     </div>
-  );
+  ), document.body);
 }
 
 /* ── รายการใบรายงานทั้งหมด (แท็บในหน้าหลัก) ── */
@@ -687,4 +823,4 @@ function OmVisitList({ sites, visitStore, role, currentUser }) {
   );
 }
 
-Object.assign(window, { OmVisitPhotos, OmVisitModal, OmVisitPaper, OmVisitList, OmPBlock, OmPRow });
+Object.assign(window, { OmVisitPhotos, OmVisitModal, OmVisitPaper, OmVisitList, OmPBlock, OmPRow, OmPSheet, OmShot, omFrameOf });

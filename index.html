@@ -436,6 +436,9 @@ label { min-width: 0; }
   html, body, #root { height: auto !important; overflow: visible !important; }
   .app-root { display: block !important; height: auto !important; overflow: visible !important; }
   .app-root > *:not(.sv-rep-overlay) { display: none !important; }
+  /* กระดาษที่ถูกเปิดซ้อนอยู่ในหน้าต่างอื่น (เช่นใบแจ้งซ่อม) แขวนตัวเองไว้กับ body แทน
+     เพราะถ้าอยู่ใน <main> จะโดนบรรทัดบนซ่อนไปด้วย แล้วได้ไฟล์ PDF หน้าขาวเปล่า */
+  body.sv-rep-printing > #root { display: none !important; }
   .sv-rep-overlay { position: static !important; inset: auto !important; background: #fff !important;
     padding: 0 !important; overflow: visible !important; z-index: auto !important; }
   .sv-rep-paper { max-width: none !important; margin: 0 !important; padding: 0 !important;
@@ -443,7 +446,9 @@ label { min-width: 0; }
   .sv-rep-noprint { display: none !important; }
   .sv-rep-shot img { max-height: 165mm; }
   /* รูปในรายงานประจำวันวางสองคอลัมน์ — จำกัดความสูงไม่ให้รูปเดียวกินทั้งหน้า */
-  .dr-shot img, .om-shot img { max-height: 88mm; object-fit: contain; }
+  .dr-shot img { max-height: 88mm; object-fit: contain; }
+  /* รูปใบบริการอยู่ในช่องที่กำหนดสัดส่วนไว้แล้ว ห้ามไปตั้งความสูงทับ ไม่งั้นรูปเบี้ยว */
+  .om-sheet { break-before: page !important; page-break-before: always !important; }
   .sv-rep-shot[data-p="1"] img { max-height: 135mm; }
   /* คงสีป้าย/เส้นคั่นไว้ในไฟล์ PDF ไม่งั้นเบราว์เซอร์ตัดพื้นหลังทิ้งหมด
      บังคับเฉพาะในกระดาษรายงาน ถ้าบังคับทั้งหน้าพื้นมืดของธีมจะติดไปด้วย */
@@ -527,10 +532,10 @@ label { min-width: 0; }
 <script src="dashboard/build/views-flow.js?v=8"></script>
 <script src="dashboard/build/daily.js?v=13"></script>
 <script src="dashboard/build/views-daily.js?v=29"></script>
-<script src="dashboard/build/om.js?v=11"></script>
+<script src="dashboard/build/om.js?v=13"></script>
 <script src="dashboard/build/views-om.js?v=14"></script>
-<script src="dashboard/build/om-ticket.js?v=11"></script>
-<script src="dashboard/build/om-paper.js?v=4"></script>
+<script src="dashboard/build/om-ticket.js?v=13"></script>
+<script src="dashboard/build/om-paper.js?v=6"></script>
 <script src="dashboard/build/expense.js?v=8"></script>
 <script src="dashboard/build/views-expense.js?v=11"></script>
 <script src="dashboard/build/ec-paper.js?v=4"></script>

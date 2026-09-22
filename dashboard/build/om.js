@@ -1015,6 +1015,15 @@ function useOmTicketPhotos(ticketId) {
       cap: cap || ""
     });
   }, [ticketId]);
+  const setFrame = React.useCallback((id, f) => {
+    if (!ticketId || !_OMFB() || !id) return;
+    _omRef("omTicketPhotos/" + ticketId + "/" + id).update({
+      fz: (f || {}).fz || 1,
+      fx: (f || {}).fx,
+      fy: (f || {}).fy,
+      ff: (f || {}).ff ? 1 : 0
+    });
+  }, [ticketId]);
   const remove = React.useCallback(id => {
     if (!ticketId || !_OMFB()) return;
     _omRef("omTicketPhotos/" + ticketId + "/" + id).remove();
@@ -1023,6 +1032,7 @@ function useOmTicketPhotos(ticketId) {
     photos,
     add,
     setCap,
+    setFrame,
     remove
   };
 }
@@ -1268,6 +1278,15 @@ function useOmVisitPhotos(visitId) {
       cap: cap || ""
     });
   }, [visitId]);
+  const setFrame = React.useCallback((id, f) => {
+    if (!visitId || !_OMFB() || !id) return;
+    _omRef("omVisitPhotos/" + visitId + "/" + id).update({
+      fz: (f || {}).fz || 1,
+      fx: (f || {}).fx,
+      fy: (f || {}).fy,
+      ff: (f || {}).ff ? 1 : 0
+    });
+  }, [visitId]);
   const remove = React.useCallback(id => {
     if (!visitId || !_OMFB()) return;
     _omRef("omVisitPhotos/" + visitId + "/" + id).remove();
@@ -1276,6 +1295,7 @@ function useOmVisitPhotos(visitId) {
     photos,
     add,
     setCap,
+    setFrame,
     remove
   };
 }

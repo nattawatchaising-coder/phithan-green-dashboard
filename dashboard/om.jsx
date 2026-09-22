@@ -715,12 +715,18 @@ function useOmTicketPhotos(ticketId) {
     if (!ticketId || !_OMFB()) return;
     _omRef("omTicketPhotos/" + ticketId + "/" + id).update({ cap: cap || "" });
   }, [ticketId]);
+  /* กรอบรูปในใบ A4 — fz ซูม · fx,fy จุดกลางที่อยากให้เห็น (เปอร์เซ็นต์)
+     เก็บเป็นตัวเลขแยกฟิลด์ ไม่ห่ออ็อบเจ็กต์ เพราะ Firebase ทิ้งอ็อบเจ็กต์ที่คีย์ว่างทั้งก้อน */
+  const setFrame = React.useCallback((id, f) => {
+    if (!ticketId || !_OMFB() || !id) return;
+    _omRef("omTicketPhotos/" + ticketId + "/" + id).update({ fz: (f || {}).fz || 1, fx: (f || {}).fx, fy: (f || {}).fy, ff: (f || {}).ff ? 1 : 0 });
+  }, [ticketId]);
   const remove = React.useCallback((id) => {
     if (!ticketId || !_OMFB()) return;
     _omRef("omTicketPhotos/" + ticketId + "/" + id).remove();
   }, [ticketId]);
 
-  return { photos, add, setCap, remove };
+  return { photos, add, setCap, setFrame, remove };
 }
 
 /* ── ลายเซ็นบนใบแจ้งซ่อม ──
@@ -896,12 +902,16 @@ function useOmVisitPhotos(visitId) {
     if (!visitId || !_OMFB()) return;
     _omRef("omVisitPhotos/" + visitId + "/" + id).update({ cap: cap || "" });
   }, [visitId]);
+  const setFrame = React.useCallback((id, f) => {
+    if (!visitId || !_OMFB() || !id) return;
+    _omRef("omVisitPhotos/" + visitId + "/" + id).update({ fz: (f || {}).fz || 1, fx: (f || {}).fx, fy: (f || {}).fy, ff: (f || {}).ff ? 1 : 0 });
+  }, [visitId]);
   const remove = React.useCallback((id) => {
     if (!visitId || !_OMFB()) return;
     _omRef("omVisitPhotos/" + visitId + "/" + id).remove();
   }, [visitId]);
 
-  return { photos, add, setCap, remove };
+  return { photos, add, setCap, setFrame, remove };
 }
 
 /* ลายเซ็นของใบรายงาน — slot "tech" (ช่างผู้ให้บริการ) · "cust" (ลูกค้าผู้รับบริการ)

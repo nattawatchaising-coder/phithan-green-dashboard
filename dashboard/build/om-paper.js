@@ -774,14 +774,261 @@ const omPara = t => React.createElement("div", {
     whiteSpace: "pre-wrap"
   }
 }, t || "—");
+const OM_SHOT_RATIOS = [{
+  k: "4 / 3",
+  th: "แนวนอน"
+}, {
+  k: "1 / 1",
+  th: "จัตุรัส"
+}, {
+  k: "3 / 4",
+  th: "แนวตั้ง"
+}];
+function omFrameOf(p) {
+  const n = (x, d) => x == null || x === "" || !isFinite(+x) ? d : +x;
+  return {
+    z: Math.max(1, Math.min(3, n((p || {}).fz, 1))),
+    x: n((p || {}).fx, 50),
+    y: n((p || {}).fy, 50),
+    full: !!(p || {}).ff
+  };
+}
+function OmShot({
+  p,
+  n,
+  ratio,
+  tune,
+  onFrame,
+  T
+}) {
+  const [f, setF] = React.useState(() => omFrameOf(p));
+  React.useEffect(() => {
+    setF(omFrameOf(p));
+  }, [p.fz, p.fx, p.fy, p.ff]);
+  const box = React.useRef(null);
+  const dr = React.useRef(null);
+  const live = tune && !!onFrame;
+  const save = nf => {
+    if (onFrame) onFrame(p.id, {
+      fz: Math.round(nf.z * 100) / 100,
+      fx: Math.round(nf.x),
+      fy: Math.round(nf.y),
+      ff: nf.full ? 1 : 0
+    });
+  };
+  const down = e => {
+    if (!live) return;
+    const el = box.current;
+    dr.current = {
+      cx: e.clientX,
+      cy: e.clientY,
+      x: f.x,
+      y: f.y,
+      w: el && el.clientWidth || 1,
+      h: el && el.clientHeight || 1
+    };
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch (err) {}
+  };
+  const move = e => {
+    const d = dr.current;
+    if (!d) return;
+    setF({
+      z: f.z,
+      full: f.full,
+      x: Math.max(0, Math.min(100, d.x - (e.clientX - d.cx) / d.w * 100)),
+      y: Math.max(0, Math.min(100, d.y - (e.clientY - d.cy) / d.h * 100))
+    });
+  };
+  const up = () => {
+    if (dr.current) {
+      dr.current = null;
+      save(f);
+    }
+  };
+  return React.createElement("div", {
+    className: "om-shot",
+    style: {
+      breakInside: "avoid",
+      border: "1px solid #DCE4DF",
+      borderRadius: 7,
+      overflow: "hidden",
+      background: "#fff"
+    }
+  }, React.createElement("div", {
+    ref: box,
+    onPointerDown: down,
+    onPointerMove: move,
+    onPointerUp: up,
+    onPointerCancel: up,
+    style: {
+      position: "relative",
+      width: "100%",
+      aspectRatio: ratio,
+      overflow: "hidden",
+      background: "#F3F7F4",
+      cursor: live ? "move" : "default",
+      touchAction: live ? "none" : "auto"
+    }
+  }, React.createElement("img", {
+    src: p.dataUrl,
+    alt: p.cap || "",
+    draggable: false,
+    style: {
+      width: "100%",
+      height: "100%",
+      display: "block",
+      objectFit: f.full ? "contain" : "cover",
+      objectPosition: f.x + "% " + f.y + "%",
+      transform: f.z > 1 ? "scale(" + f.z + ")" : undefined,
+      transformOrigin: f.x + "% " + f.y + "%"
+    }
+  }), live && React.createElement("div", {
+    className: "sv-rep-noprint",
+    onPointerDown: e => e.stopPropagation(),
+    style: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      bottom: 0,
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      padding: "6px 9px",
+      background: "rgba(8,24,17,.62)"
+    }
+  }, React.createElement(Icon, {
+    name: "search",
+    size: 12,
+    color: "#fff"
+  }), React.createElement("input", {
+    type: "range",
+    min: "1",
+    max: "3",
+    step: "0.05",
+    value: f.z,
+    disabled: f.full,
+    onChange: e => setF({
+      z: +e.target.value,
+      x: f.x,
+      y: f.y,
+      full: f.full
+    }),
+    onPointerUp: () => save(f),
+    onKeyUp: () => save(f),
+    style: {
+      flex: 1,
+      minWidth: 0,
+      accentColor: "#1B9B75",
+      opacity: f.full ? .4 : 1
+    }
+  }), React.createElement("button", {
+    type: "button",
+    onClick: () => {
+      const nf = {
+        z: 1,
+        x: 50,
+        y: 50,
+        full: !f.full
+      };
+      setF(nf);
+      save(nf);
+    },
+    style: {
+      padding: "3px 8px",
+      borderRadius: 7,
+      border: "1px solid rgba(255,255,255,.45)",
+      flexShrink: 0,
+      background: f.full ? "#1B9B75" : "transparent",
+      color: "#fff",
+      fontFamily: "inherit",
+      fontSize: 10.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, T("เต็มรูป")), React.createElement("button", {
+    type: "button",
+    onClick: () => {
+      const nf = {
+        z: 1,
+        x: 50,
+        y: 50,
+        full: false
+      };
+      setF(nf);
+      save(nf);
+    },
+    style: {
+      padding: "3px 8px",
+      borderRadius: 7,
+      border: "1px solid rgba(255,255,255,.45)",
+      background: "transparent",
+      color: "#fff",
+      fontFamily: "inherit",
+      fontSize: 10.5,
+      fontWeight: 700,
+      cursor: "pointer",
+      flexShrink: 0
+    }
+  }, T("ตั้งใหม่")))), React.createElement("div", {
+    style: {
+      padding: "5px 8px",
+      fontSize: 10.5,
+      color: "#4A5A51",
+      borderTop: "1px solid #ECF1EE"
+    }
+  }, React.createElement("b", {
+    style: {
+      color: "#0A4D68"
+    }
+  }, T("รูปที่"), " ", n), p.cap ? " · " + p.cap : ""));
+}
+function OmPSheet({
+  title,
+  sub,
+  children
+}) {
+  return React.createElement("div", {
+    className: "om-sheet",
+    style: {
+      marginTop: 26,
+      paddingTop: 16,
+      borderTop: "2px solid #1B9B75"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      gap: 10,
+      flexWrap: "wrap",
+      marginBottom: 12
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 20,
+      fontWeight: 800,
+      letterSpacing: "-.01em",
+      color: "#15211A"
+    }
+  }, title), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#7A8A81"
+    }
+  }, sub)), children);
+}
 function OmVisitPaper({
   visit,
   site,
   signs,
   photos,
+  onFrame,
   onClose
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const [fit, setFit] = React.useState(OM_SHOT_RATIOS[0].k);
+  const [tune, setTune] = React.useState(false);
   const [lang, setLang] = React.useState(() => window.pgLang ? window.pgLang() : "th");
   const pickLang = id => {
     setLang(id);
@@ -792,6 +1039,7 @@ function OmVisitPaper({
   const DTs = iso => !iso ? "-" : lang === "th" || !window.pgDate ? window.drDateTH(iso) : window.pgDate(iso, lang);
   const own = window.useOmVisitPhotos(visit.id);
   const photoList = photos || own.photos;
+  const frameSet = photos ? onFrame : own.setFrame;
   const v = visit;
   const st = window.omVisitStatusOf(v.status);
   const kind = window.OM_VISIT_KIND_BY[v.kind] || window.OM_VISIT_KIND_BY.repair;
@@ -800,6 +1048,10 @@ function OmVisitPaper({
   const before = photoList.filter(p => (p.slot || "before") === "before");
   const after = photoList.filter(p => p.slot === "after");
   const g = signs || {};
+  React.useEffect(() => {
+    document.body.classList.add("sv-rep-printing");
+    return () => document.body.classList.remove("sv-rep-printing");
+  }, []);
   const doPrint = () => {
     const old = document.title;
     document.title = T("ใบรายงานเข้าบริการ") + " " + (v.no || "") + " " + (v.date || "");
@@ -824,8 +1076,9 @@ function OmVisitPaper({
     borderBottom: "1px solid #ECF1EE",
     verticalAlign: "top"
   };
-  const shots = (title, list) => !list.length ? null : React.createElement(OmPBlock, {
-    title: T(title) + " (" + list.length + " " + T("รูป") + ")"
+  const shots = (title, list) => !list.length ? null : React.createElement(OmPSheet, {
+    title: T(title),
+    sub: list.length + " " + T("รูป") + " · " + (v.no || "") + (v.siteName || (site || {}).name ? " · " + (v.siteName || site.name) : "")
   }, React.createElement("div", {
     style: {
       display: "grid",
@@ -833,36 +1086,16 @@ function OmVisitPaper({
       gap: 12,
       alignItems: "start"
     }
-  }, list.map((p, i) => React.createElement("div", {
+  }, list.map((p, i) => React.createElement(OmShot, {
     key: p.id,
-    className: "om-shot",
-    style: {
-      breakInside: "avoid",
-      border: "1px solid #DCE4DF",
-      borderRadius: 7,
-      overflow: "hidden"
-    }
-  }, React.createElement("img", {
-    src: p.dataUrl,
-    alt: p.cap || "",
-    style: {
-      width: "100%",
-      display: "block",
-      background: "#F3F7F4"
-    }
-  }), React.createElement("div", {
-    style: {
-      padding: "5px 8px",
-      fontSize: 10.5,
-      color: "#4A5A51",
-      borderTop: "1px solid #ECF1EE"
-    }
-  }, React.createElement("b", {
-    style: {
-      color: "#0A4D68"
-    }
-  }, T("รูปที่"), " ", i + 1), p.cap ? " · " + p.cap : "")))));
-  return React.createElement("div", {
+    p: p,
+    n: i + 1,
+    ratio: fit,
+    tune: tune,
+    onFrame: frameSet,
+    T: T
+  }))));
+  return ReactDOM.createPortal(React.createElement("div", {
     className: "sv-rep-overlay",
     style: {
       position: "fixed",
@@ -881,6 +1114,7 @@ function OmVisitPaper({
       display: "flex",
       gap: 9,
       alignItems: "center",
+      flexWrap: "wrap",
       padding: "11px 14px",
       background: "var(--surface)",
       borderBottom: "1px solid var(--border)",
@@ -924,7 +1158,29 @@ function OmVisitPaper({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, photos.length, " \u0E23\u0E39\u0E1B \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19 PDF\u201D")), typeof window.LangPick === "function" && React.createElement(window.LangPick, {
+  }, photoList.length, " \u0E23\u0E39\u0E1B \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19 PDF\u201D")), !!photoList.length && !!frameSet && React.createElement("button", {
+    onClick: () => setTune(!tune),
+    title: "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E27\u0E48\u0E32\u0E08\u0E30\u0E43\u0E2B\u0E49\u0E40\u0E2B\u0E47\u0E19\u0E2A\u0E48\u0E27\u0E19\u0E44\u0E2B\u0E19\u0E02\u0E2D\u0E07\u0E23\u0E39\u0E1B",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "10px 13px",
+      borderRadius: 11,
+      border: "1px solid " + (tune ? "var(--primary)" : "var(--border-strong)"),
+      background: tune ? "var(--primary)" : "var(--surface)",
+      color: tune ? "#fff" : "var(--text-2)",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: "pointer",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "image",
+    size: 14,
+    color: tune ? "#fff" : "var(--text-2)"
+  }), " \u0E08\u0E31\u0E14\u0E01\u0E23\u0E2D\u0E1A\u0E23\u0E39\u0E1B"), typeof window.LangPick === "function" && React.createElement(window.LangPick, {
     value: lang,
     onChange: pickLang
   }), React.createElement("button", {
@@ -948,7 +1204,49 @@ function OmVisitPaper({
     name: "file",
     size: 16,
     color: "#fff"
-  }), " \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF")), React.createElement("div", {
+  }), " \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF")), tune && React.createElement("div", {
+    className: "sv-rep-noprint",
+    style: {
+      maxWidth: 900,
+      margin: "0 auto 14px",
+      padding: "10px 14px",
+      borderRadius: 12,
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      boxShadow: "var(--shadow-sm)",
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      flex: 1,
+      minWidth: 180
+    }
+  }, "\u0E25\u0E32\u0E01\u0E1A\u0E19\u0E23\u0E39\u0E1B\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2A\u0E48\u0E27\u0E19\u0E17\u0E35\u0E48\u0E2D\u0E22\u0E32\u0E01\u0E43\u0E2B\u0E49\u0E40\u0E2B\u0E47\u0E19 \xB7 \u0E41\u0E16\u0E1A\u0E25\u0E48\u0E32\u0E07\u0E04\u0E37\u0E2D\u0E0B\u0E39\u0E21 \xB7 \u0E15\u0E31\u0E49\u0E07\u0E41\u0E25\u0E49\u0E27\u0E08\u0E33\u0E44\u0E27\u0E49\u0E43\u0E19\u0E43\u0E1A\u0E19\u0E35\u0E49"), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, "\u0E2A\u0E31\u0E14\u0E2A\u0E48\u0E27\u0E19\u0E0A\u0E48\u0E2D\u0E07\u0E23\u0E39\u0E1B"), OM_SHOT_RATIOS.map(r => React.createElement("button", {
+    key: r.k,
+    onClick: () => setFit(r.k),
+    style: {
+      padding: "7px 12px",
+      borderRadius: 9,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      border: "1px solid " + (fit === r.k ? "var(--primary)" : "var(--border-strong)"),
+      background: fit === r.k ? "var(--primary)" : "var(--surface)",
+      color: fit === r.k ? "#fff" : "var(--text-2)"
+    }
+  }, r.th))), React.createElement("div", {
     className: "sv-rep-paper",
     style: {
       maxWidth: 900,
@@ -1155,7 +1453,7 @@ function OmVisitPaper({
       fontSize: 11.5,
       color: "#15211A"
     }
-  }, T("นัดครั้งถัดไป:"), " ", React.createElement("b", null, DT(v.nextDue)))), shots("รูปก่อนทำงาน", before), shots("รูปหลังทำงาน", after), React.createElement("div", {
+  }, T("นัดครั้งถัดไป:"), " ", React.createElement("b", null, DT(v.nextDue)))), React.createElement("div", {
     style: {
       marginTop: 22,
       display: "grid",
@@ -1239,7 +1537,7 @@ function OmVisitPaper({
       color: "#8A9A91",
       textAlign: "center"
     }
-  }, T("เอกสารนี้ออกจากระบบงานบริการหลังการขาย"), " flash+solar \xB7 ", v.no, " \xB7 ", T("พิมพ์เมื่อ"), " ", DTs(window.drToday()))));
+  }, T("เอกสารนี้ออกจากระบบงานบริการหลังการขาย"), " flash+solar \xB7 ", v.no, " \xB7 ", T("พิมพ์เมื่อ"), " ", DTs(window.drToday())), shots("รูปก่อนทำงาน", before), shots("รูปหลังทำงาน", after))), document.body);
 }
 function OmVisitList({
   sites,
@@ -1428,5 +1726,8 @@ Object.assign(window, {
   OmVisitPaper,
   OmVisitList,
   OmPBlock,
-  OmPRow
+  OmPRow,
+  OmPSheet,
+  OmShot,
+  omFrameOf
 });
