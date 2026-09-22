@@ -359,7 +359,9 @@ function Dropdown({
     const needUp = spaceBelow < 260 && r.top > spaceBelow;
     const maxH = Math.min(400, (needUp ? r.top : spaceBelow) - 12);
     const hasSub = (options || []).some(o => o.sub);
-    const w = hasSub ? Math.min(Math.max(r.width, 330), window.innerWidth - 16) : r.width;
+    const longest = (options || []).reduce((m, o) => Math.max(m, String(o.label || "").length), 0);
+    const want = hasSub || longest > 26 ? Math.min(Math.max(330, longest * 7 + 48), 520) : 0;
+    const w = want ? Math.min(Math.max(r.width, want), window.innerWidth - 16) : r.width;
     setRect({
       left: Math.max(8, Math.min(r.left, window.innerWidth - w - 8)),
       width: w,
@@ -592,10 +594,13 @@ function Dropdown({
       }
     }, React.createElement("span", {
       style: {
-        display: "block",
+        display: "-webkit-box",
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: "vertical",
         overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap"
+        whiteSpace: "normal",
+        overflowWrap: "anywhere",
+        lineHeight: 1.35
       }
     }, o.label), o.sub && React.createElement("span", {
       style: {

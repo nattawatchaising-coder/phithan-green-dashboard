@@ -234,10 +234,14 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
     const spaceBelow = window.innerHeight - r.bottom;
     const needUp = spaceBelow < 260 && r.top > spaceBelow;   // ที่ด้านล่างไม่พอ + ด้านบนมากกว่า → เปิดขึ้นบน
     const maxH = Math.min(400, (needUp ? r.top : spaceBelow) - 12);
-    /* ตัวเลือกที่มีคำอธิบาย (sub) ต้องมีที่พออ่าน — ปุ่มแคบ ๆ 150px ทำให้ข้อความหักเป็นเส้นเดียวอ่านไม่ได้
-       จึงกางเมนูให้กว้างขึ้นได้ แต่ไม่ให้ล้นขอบจอ */
+    /* ตัวเลือกที่มีคำอธิบาย (sub) หรือชื่อยาว ๆ ต้องมีที่พออ่าน — ปุ่มแคบ ๆ 150px
+       ทำให้ชื่อวัสดุอย่าง "AC SPD TYPE II 3P+N Uc385V In20Ka/Imax40Ka" ถูกตัดจนแยกรุ่นไม่ออก
+       จึงกางเมนูให้กว้างขึ้นตามชื่อที่ยาวที่สุด แต่ไม่ให้ล้นขอบจอ */
     const hasSub = (options || []).some((o) => o.sub);
-    const w = hasSub ? Math.min(Math.max(r.width, 330), window.innerWidth - 16) : r.width;
+    const longest = (options || []).reduce((m, o) => Math.max(m, String(o.label || "").length), 0);
+    /* ~7px ต่อตัวอักษรที่ 13.5px + ที่เผื่อขอบ/เครื่องหมายถูก — เกิน 2 บรรทัดค่อยให้ตัดด้วย … */
+    const want = hasSub || longest > 26 ? Math.min(Math.max(330, longest * 7 + 48), 520) : 0;
+    const w = want ? Math.min(Math.max(r.width, want), window.innerWidth - 16) : r.width;
     setRect({ left: Math.max(8, Math.min(r.left, window.innerWidth - w - 8)), width: w, maxH,
       top: needUp ? null : r.bottom + 6, bottom: needUp ? (window.innerHeight - r.top + 6) : null });
     setOpen(true);
@@ -330,7 +334,9 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
                       background: active ? "var(--primary-soft)" : "transparent", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
                       fontSize: 13.5, fontWeight: active ? 700 : 500, color: active ? "var(--primary-dark)" : "var(--text-1)" }}>
                     <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.label}</span>
+                      {/* ชื่อวัสดุในคลังยาวและต่างกันที่ท้ายชื่อ (รุ่น/พิกัด) — ตัดท้ายทิ้งแล้วเลือกผิดตัว
+                          จึงให้ตัดบรรทัดได้ถึง 2 บรรทัด ยาวกว่านั้นค่อยตัดด้วย … */}
+                      <span style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", whiteSpace: "normal", overflowWrap: "anywhere", lineHeight: 1.35 }}>{o.label}</span>
                       {o.sub && <span style={{ display: "block", marginTop: 2, fontSize: 11, fontWeight: 500, lineHeight: 1.45, color: "var(--text-3)", whiteSpace: "normal" }}>{o.sub}</span>}
                     </span>
                     {active && <Icon name="check" size={15} color="var(--primary)" sw={2.6} style={{ flexShrink: 0, marginTop: o.sub ? 2 : 0 }} />}
