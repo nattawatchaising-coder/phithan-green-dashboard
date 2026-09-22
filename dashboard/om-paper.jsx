@@ -488,7 +488,7 @@ function OmShot({ p, n, ratio, tune, onFrame, T }) {
    หัวใหญ่เท่าชื่อเอกสาร เพราะเปิดไฟล์มาแล้วต้องรู้ทันทีว่าแผ่นนี้คือรูปก่อนหรือหลังทำงาน */
 function OmPSheet({ title, sub, head, children }) {
   return (
-    <div className="om-sheet" style={{ marginTop: 26, paddingTop: 16, borderTop: "2px solid #1B9B75" }}>
+    <div className="om-sheet" style={{ marginTop: 30 }}>
       {head}
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
         <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-.01em", color: "#15211A" }}>{title}</div>
@@ -728,10 +728,9 @@ function OmVisitPaper({ visit, site, signs, photos, onFrame, onClose }) {
                 alignItems: "flex-end", justifyContent: "center", overflow: "hidden" }}>
                 {x.s && x.s.img && <img src={x.s.img} alt="" style={{ maxWidth: "88%", maxHeight: 40, objectFit: "contain" }} />}
               </div>
+              {/* ไม่กรอกวันที่ให้ — คนที่เซ็นเป็นคนลงวันเอง ส่วนใบที่เซ็นในระบบแล้ว
+                  มีวันเวลาที่ลงลายมือชื่ออยู่ในบรรทัดล่างสุดของช่องอยู่แล้ว */}
               <div style={{ fontSize: 11, marginTop: 6, color: "#15211A" }}>{T("ชื่อ:")} <b>{(x.s && x.s.name) || x.n || "-"}</b></div>
-              <div style={{ fontSize: 11, color: "#4A5A51" }}>
-                {T("วันที่:")} {DTs(x.s ? window.drSignDay(x.s) : window.drLocalDay(x.d))}
-              </div>
               {x.s && x.s.img && (
                 <div style={{ fontSize: 8.5, color: "#8A9A91", marginTop: 3 }}>
                   {T("ลงลายมือชื่ออิเล็กทรอนิกส์ในระบบ")} {window.drSignTime(x.s) ? window.drSignTime(x.s) + (lang === "th" ? " น." : "") : ""}

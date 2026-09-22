@@ -991,9 +991,7 @@ function OmPSheet({
   return React.createElement("div", {
     className: "om-sheet",
     style: {
-      marginTop: 26,
-      paddingTop: 16,
-      borderTop: "2px solid #1B9B75"
+      marginTop: 30
     }
   }, head, React.createElement("div", {
     style: {
@@ -1548,12 +1546,7 @@ function OmVisitPaper({
       marginTop: 6,
       color: "#15211A"
     }
-  }, T("ชื่อ:"), " ", React.createElement("b", null, x.s && x.s.name || x.n || "-")), React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#4A5A51"
-    }
-  }, T("วันที่:"), " ", DTs(x.s ? window.drSignDay(x.s) : window.drLocalDay(x.d))), x.s && x.s.img && React.createElement("div", {
+  }, T("ชื่อ:"), " ", React.createElement("b", null, x.s && x.s.name || x.n || "-")), x.s && x.s.img && React.createElement("div", {
     style: {
       fontSize: 8.5,
       color: "#8A9A91",

@@ -535,7 +535,8 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
               placeholder="เช่น เปลี่ยนฟิวส์ DC ฝั่งสตริง 2 · ขันจุดต่อใหม่ทั้งแถว · ทดสอบแล้วไฟเข้าปกติ"
               onChange={(v) => set({ result: v })} />
             <div style={{ marginTop: 13 }}>
-              <window.DrLabel hint="บันทึกตอนกดปิดงาน">หมายเหตุปิดงาน</window.DrLabel>
+              {/* ชื่อต้องตรงกับหัวข้อที่พิมพ์ออกมาในใบ A4 — คนกรอกจะได้รู้ว่าที่พิมพ์ลงช่องนี้ไปโผล่ตรงไหน */}
+              <window.DrLabel hint="สภาพหลังซ่อมเสร็จ ลูกค้ารับทราบหรือยัง">ผลหลังทำงานเสร็จ</window.DrLabel>
               <input value={t.closeNote || ""} disabled={locked} onChange={(e) => set({ closeNote: e.target.value })}
                 placeholder="เช่น ลูกค้ารับทราบและพอใจ · แนะนำให้ล้างแผงรอบหน้าเร็วขึ้น"
                 style={Object.assign({}, window.OM_INPUT, { padding: "8px 11px", fontSize: 13 })} />
