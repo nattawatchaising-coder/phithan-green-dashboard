@@ -75,11 +75,6 @@
     backupbox1: "Backup Box-B0 (1 เฟส)",
     backupbox3: "Backup Box-B1 (3 เฟส)",
     optimizer: "Smart PV Optimizer SUN2000-600W-P",
-    panel1: "ตู้ไฟเพิ่ม 4 pole (1 เฟส)",
-    panel3: "ตู้ไฟเพิ่ม 3 pole (3 เฟส)",
-    mcb2: "MCB 2P (DIN RAIL)",
-    mcb3: "MCB 3P (DIN RAIL)",
-    busbar: "บัสบาร์ทองแดงแท้ + ลูกถ้วย sm-25 125A ยาว 125cm",
   };
   const RCBO_SIZES = [16, 20, 25, 32, 40, 50, 63, 100];
   // เลือกขนาด RCBO จากกระแสออก × 1.25 ปัดขึ้นไปขนาดมาตรฐานถัดไป
@@ -1174,7 +1169,6 @@
       strings: 0,     // 0 = คิดให้อัตโนมัติจากแผนสตริง (แผงทั้งงาน ÷ แผงต่ออนุกรม)
       hwBackup: "none",
       hwOptimizer: !!(job.connect && job.connect !== "-" && job.connect !== "ไม่มี"),
-      hwExtraPanel: false,
       batteryKwh: 0,
       backup: !!job.backup,
       birdnet: !!job.birdnet,
@@ -1417,12 +1411,6 @@
           combItems.push({ name: HW.dinRail, qty: 1, unit: "เส้น" });    // ในตู้ใบเดียว
           combItems.push({ name: HW.stopper, qty: 10, unit: "ตัว" });    // 10/งาน (flat)
           combItems.push({ name: HW.groundBar, qty: 1, unit: "อัน" });
-          // ตู้ไฟเพิ่ม (case by case)
-          if (b.hwExtraPanel) {
-            combItems.push({ name: ph === 3 ? HW.panel3 : HW.panel1, qty: 1, unit: "ตู้" });
-            combItems.push({ name: ph === 3 ? HW.mcb3 : HW.mcb2, qty: 2, unit: "ตัว" });
-            if (ph === 3) combItems.push({ name: HW.busbar, qty: 1, unit: "ชุด" });
-          }
         }
       } else {
         // String / Hybrid ทั่วไป: จำนวนตัว = ปัดขึ้น(kW รวม ÷ kW ต่อตัว) + แบต
@@ -1676,7 +1664,7 @@
     const AUTO = {
       panels: panelCount,
       inv: invCount,
-      board: (combItems && combItems.length ? 1 : 0) + (b.hwExtraPanel ? 1 : 0),
+      board: combItems && combItems.length ? 1 : 0,
       dcLen: Math.round(dcLen),
       acLen: Math.round(acLen),
       wayLen: Math.round(imcTotalLen + upvcTotalLen + wayTotalLen),

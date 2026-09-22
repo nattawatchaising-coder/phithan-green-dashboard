@@ -4465,18 +4465,6 @@ function BOQEditor({
       value: true,
       label: "ใช้"
     }]
-  })), React.createElement(Field, {
-    label: "\u0E15\u0E39\u0E49\u0E44\u0E1F\u0E40\u0E1E\u0E34\u0E48\u0E21 (case by case)"
-  }, React.createElement(Dropdown, {
-    value: !!b.hwExtraPanel,
-    onChange: v => set("hwExtraPanel", v),
-    options: [{
-      value: false,
-      label: "ไม่มี"
-    }, {
-      value: true,
-      label: "มี"
-    }]
   }))), pvOver && React.createElement("div", {
     style: {
       marginTop: 10,

@@ -1885,7 +1885,6 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   ]} />
                 </Field>
                 <Field label="Optimizer (1:1 ต่อแผง)"><Dropdown value={!!b.hwOptimizer} onChange={(v) => set("hwOptimizer", v)} options={[{ value: false, label: "ไม่ใช้" }, { value: true, label: "ใช้" }]} /></Field>
-                <Field label="ตู้ไฟเพิ่ม (case by case)"><Dropdown value={!!b.hwExtraPanel} onChange={(v) => set("hwExtraPanel", v)} options={[{ value: false, label: "ไม่มี" }, { value: true, label: "มี" }]} /></Field>
               </div>
               {pvOver && (
                 <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 7, padding: "9px 12px", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd2)", borderRadius: 10, fontSize: 12.5, fontWeight: 700, color: "var(--tint-red-tx)" }}>
