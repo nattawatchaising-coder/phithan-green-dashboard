@@ -928,6 +928,10 @@ function p3NormBlk(b, i) {
     orient: b.orient === "landscape" ? "landscape" : "portrait",
     rows: Math.max(0, Math.round(+b.rows || 0)), cols: Math.max(0, Math.round(+b.cols || 0)),
     gap: b.gap == null ? 0.02 : Math.max(0, +b.gap),
+    /* ขนาดแผงจริงของรุ่นที่เลือก (ม.) — ผืนที่ยังไม่ได้เลือกรุ่นจะเป็น 0 แล้วถอยไปใช้ขนาดมาตรฐาน
+       ผังเก่าทุกใบจึงวางเหมือนเดิมเป๊ะ จนกว่าจะเลือกรุ่นแผง */
+    panelW: +b.panelW > 0 ? +b.panelW : 0,
+    panelL: +b.panelL > 0 ? +b.panelL : 0,
     du: +b.du || 0, dv: +b.dv || 0,                       // เลื่อนบล็อก (ม.) ตามแกนผิวหลังคา
     rot: +b.rot || 0,                                     // หมุนบล็อก (°) เทียบผืน
     /* แบ่งเป็นกลุ่มย่อยแล้วเว้นทางเดิน — 0 = ไม่แบ่ง (ของเก่าทุกงานจึงวางเหมือนเดิมเป๊ะ) */
@@ -943,7 +947,8 @@ function p3Blocks(roof) {
   const bs = Array.isArray(roof.blocks) && roof.blocks.length
     ? roof.blocks
     : [{ id: "b0", orient: roof.orient, rows: roof.rows, cols: roof.cols, gap: roof.gap, skips: roof.skips, adds: roof.adds }];
-  return bs.map(p3NormBlk);
+  /* ขนาดแผงเป็นของทั้งผืน (มาจากรุ่นที่เลือก) บล็อกในผืนเดียวกันใช้แผงรุ่นเดียวกันเสมอ */
+  return bs.map((b, i) => p3NormBlk(Object.assign({}, b, { panelW: roof.panelW, panelL: roof.panelL }), i));
 }
 function p3NewBlk(i) {
   return { id: p3Id("pb"), orient: "portrait", rows: 0, cols: 0, gap: 0.02, du: 0, dv: 0, rot: 0, tilt: 0, skips: {}, adds: {} };
@@ -957,8 +962,11 @@ function p3NewBlk(i) {
 /* กวาดเงาทั้งวัน (06:00–18:30) ที่ความเร็วปกติ ใช้เวลากี่วินาที */
 const P3_SWEEP_SEC = 15;
 const p3BlkRy = (roof, blk) => (roof && roof.kind === "poly" ? 1 : -1) * (+(blk && blk.rot) || 0) * P3_DEG;
-const p3BlkPW = (b) => (b.orient === "portrait" ? P3_PANEL_SHORT : P3_PANEL_LONG);
-const p3BlkPD = (b) => (b.orient === "portrait" ? P3_PANEL_LONG : P3_PANEL_SHORT);
+/* ด้านสั้น/ด้านยาวของแผง — ใช้ขนาดจริงของรุ่นที่เลือก ถ้ายังไม่ได้เลือกค่อยใช้ขนาดมาตรฐาน */
+const p3PanShort = (b) => (b && +b.panelW > 0 ? +b.panelW : P3_PANEL_SHORT);
+const p3PanLong = (b) => (b && +b.panelL > 0 ? +b.panelL : P3_PANEL_LONG);
+const p3BlkPW = (b) => (b.orient === "portrait" ? p3PanShort(b) : p3PanLong(b));
+const p3BlkPD = (b) => (b.orient === "portrait" ? p3PanLong(b) : p3PanShort(b));
 
 /* วางบล็อกหนึ่งลงบนหน้าผิวหนึ่ง (พิกัด 2 มิติ u,v บนผิว)
    face = { poly:[{u,v}], anchor, keyPfx, side, test }
@@ -3695,18 +3703,27 @@ function Plan3DEditor({ job, onClose, currentUser }) {
               onPick={(m) => {
                 const sys = Object.assign({}, st.sys || (typeof suBlankSys === "function" ? suBlankSys() : {}), { panelModel: m });
                 const hit = ((window.BOQ && window.BOQ.PANELS) || []).find((x) => x.model === m);
-                set(hit && +hit.wp > 0 ? { sys: sys, wp: +hit.wp } : { sys: sys });
+                /* แผงที่วางไว้แล้วเปลี่ยนขนาดตามรุ่นด้วย — ไม่งั้นผังสวยแต่ของจริงวางไม่ลง
+                   ขนาดเก็บไว้ที่ผืน (ทุกบล็อกในผืนใช้แผงรุ่นเดียวกัน) · เลือก "กรอกเอง" = กลับไปขนาดมาตรฐาน
+                   จำนวนแผงต่อแถวจะคำนวณใหม่เอง แผงที่กดปิด/กดเพิ่มไว้รายแผ่นยังอยู่ตามตำแหน่งเดิม */
+                const pW = hit && +hit.width > 0 ? +hit.width : 0;
+                const pL = hit && +hit.length > 0 ? +hit.length : 0;
+                const roofs = (st.roofs || []).map((r) => Object.assign({}, r, { panelW: pW, panelL: pL }));
+                const patch = { sys: sys, roofs: roofs, panelW: pW, panelL: pL };
+                if (hit && +hit.wp > 0) patch.wp = +hit.wp;
+                set(patch);
               }} />
             <Num label="กำลังแผง (Wp/แผง)" value={st.wp} step={5} min={100} suffix="W" onChange={(v) => set({ wp: v })} />
             {/* ขนาดแผงจริงของรุ่นที่เลือก — ผังยังวาดด้วยขนาดมาตรฐาน บอกไว้ให้เห็นว่าต่างกันตรงไหน */}
             {(() => {
               const hit = ((window.BOQ && window.BOQ.PANELS) || []).find((x) => x.model === (st.sys || {}).panelModel);
               if (!hit || !(+hit.width > 0)) return null;
-              const same = Math.abs(+hit.width - P3_PANEL_SHORT) < 0.005 && Math.abs(+hit.length - P3_PANEL_LONG) < 0.005;
+              /* ผืนที่ยังไม่ได้รับขนาด (เพิ่มผืนใหม่หลังเลือกรุ่น) — บอกให้กดเลือกรุ่นซ้ำ */
+              const missed = (st.roofs || []).filter((r) => !(+r.panelW > 0)).length;
               return (
                 <span className="p3-note">
-                  ขนาดแผงรุ่นนี้ {(+hit.width).toFixed(3)} × {(+hit.length).toFixed(3)} ม.
-                  {same ? " · ตรงกับขนาดที่ผังใช้วาด" : " · ผังยังวาดด้วยขนาดมาตรฐาน " + P3_PANEL_SHORT + " × " + P3_PANEL_LONG + " ม."}
+                  ผังวาดด้วยขนาดจริงของรุ่นนี้ {(+hit.width).toFixed(3)} × {(+hit.length).toFixed(3)} ม.
+                  {missed > 0 ? " · มี " + missed + " ผืนที่ยังใช้ขนาดมาตรฐาน กดเลือกรุ่นซ้ำอีกครั้งเพื่อให้ครบทุกผืน" : ""}
                 </span>
               );
             })()}

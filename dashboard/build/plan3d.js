@@ -1529,6 +1529,8 @@ function p3NormBlk(b, i) {
     rows: Math.max(0, Math.round(+b.rows || 0)),
     cols: Math.max(0, Math.round(+b.cols || 0)),
     gap: b.gap == null ? 0.02 : Math.max(0, +b.gap),
+    panelW: +b.panelW > 0 ? +b.panelW : 0,
+    panelL: +b.panelL > 0 ? +b.panelL : 0,
     du: +b.du || 0,
     dv: +b.dv || 0,
     rot: +b.rot || 0,
@@ -1551,7 +1553,10 @@ function p3Blocks(roof) {
     skips: roof.skips,
     adds: roof.adds
   }];
-  return bs.map(p3NormBlk);
+  return bs.map((b, i) => p3NormBlk(Object.assign({}, b, {
+    panelW: roof.panelW,
+    panelL: roof.panelL
+  }), i));
 }
 function p3NewBlk(i) {
   return {
@@ -1570,8 +1575,10 @@ function p3NewBlk(i) {
 }
 const P3_SWEEP_SEC = 15;
 const p3BlkRy = (roof, blk) => (roof && roof.kind === "poly" ? 1 : -1) * (+(blk && blk.rot) || 0) * P3_DEG;
-const p3BlkPW = b => b.orient === "portrait" ? P3_PANEL_SHORT : P3_PANEL_LONG;
-const p3BlkPD = b => b.orient === "portrait" ? P3_PANEL_LONG : P3_PANEL_SHORT;
+const p3PanShort = b => b && +b.panelW > 0 ? +b.panelW : P3_PANEL_SHORT;
+const p3PanLong = b => b && +b.panelL > 0 ? +b.panelL : P3_PANEL_LONG;
+const p3BlkPW = b => b.orient === "portrait" ? p3PanShort(b) : p3PanLong(b);
+const p3BlkPD = b => b.orient === "portrait" ? p3PanLong(b) : p3PanShort(b);
 function p3FillBlk(face, blk, m, want) {
   const pw = p3BlkPW(blk),
     pd = p3BlkPD(blk),
@@ -6819,12 +6826,20 @@ function Plan3DEditor({
         panelModel: m
       });
       const hit = (window.BOQ && window.BOQ.PANELS || []).find(x => x.model === m);
-      set(hit && +hit.wp > 0 ? {
+      const pW = hit && +hit.width > 0 ? +hit.width : 0;
+      const pL = hit && +hit.length > 0 ? +hit.length : 0;
+      const roofs = (st.roofs || []).map(r => Object.assign({}, r, {
+        panelW: pW,
+        panelL: pL
+      }));
+      const patch = {
         sys: sys,
-        wp: +hit.wp
-      } : {
-        sys: sys
-      });
+        roofs: roofs,
+        panelW: pW,
+        panelL: pL
+      };
+      if (hit && +hit.wp > 0) patch.wp = +hit.wp;
+      set(patch);
     }
   }), React.createElement(Num, {
     label: "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07 (Wp/\u0E41\u0E1C\u0E07)",
@@ -6838,10 +6853,10 @@ function Plan3DEditor({
   }), (() => {
     const hit = (window.BOQ && window.BOQ.PANELS || []).find(x => x.model === (st.sys || {}).panelModel);
     if (!hit || !(+hit.width > 0)) return null;
-    const same = Math.abs(+hit.width - P3_PANEL_SHORT) < 0.005 && Math.abs(+hit.length - P3_PANEL_LONG) < 0.005;
+    const missed = (st.roofs || []).filter(r => !(+r.panelW > 0)).length;
     return React.createElement("span", {
       className: "p3-note"
-    }, "\u0E02\u0E19\u0E32\u0E14\u0E41\u0E1C\u0E07\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49 ", (+hit.width).toFixed(3), " \xD7 ", (+hit.length).toFixed(3), " \u0E21.", same ? " · ตรงกับขนาดที่ผังใช้วาด" : " · ผังยังวาดด้วยขนาดมาตรฐาน " + P3_PANEL_SHORT + " × " + P3_PANEL_LONG + " ม.");
+    }, "\u0E1C\u0E31\u0E07\u0E27\u0E32\u0E14\u0E14\u0E49\u0E27\u0E22\u0E02\u0E19\u0E32\u0E14\u0E08\u0E23\u0E34\u0E07\u0E02\u0E2D\u0E07\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49 ", (+hit.width).toFixed(3), " \xD7 ", (+hit.length).toFixed(3), " \u0E21.", missed > 0 ? " · มี " + missed + " ผืนที่ยังใช้ขนาดมาตรฐาน กดเลือกรุ่นซ้ำอีกครั้งเพื่อให้ครบทุกผืน" : "");
   })())));
   return React.createElement("div", {
     className: "p3",
