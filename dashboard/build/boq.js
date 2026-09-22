@@ -1679,6 +1679,24 @@ function BOQEditor({
     const inList = brandInvs.some(x => x.model === b.inverterModel);
     if (!showMicro && !inList && brandInvs.length) set("inverterModel", brandInvs[0].model);else if (showMicro && b.inverterModel && !inList) set("inverterModel", "");
   }, [jobBrand, jobPhaseNum]);
+  const OPTS = window.BOQ.OPTIMIZERS || [];
+  const optModel = String(b.optimizerModel || "").trim() || (b.hwOptimizer ? "Smart PV Optimizer SUN2000-600W-P" : "");
+  const optSpec = window.BOQ.findOptimizer(optModel);
+  const optPer = Math.max(1, optSpec && optSpec.perPanel || 1);
+  const optQty = window.BOQ.optimizerQty(optModel, result.meta.panelCount);
+  const optOptions = [{
+    value: "",
+    label: "ไม่ใช้"
+  }].concat(OPTS.map(o => ({
+    value: o.model,
+    group: o.group || "ตัวคุมแผง",
+    label: o.model + " · " + (o.perPanel > 1 ? "1:" + o.perPanel : "1:1") + (o.w ? " · " + o.w + "W" : "")
+  })));
+  if (optModel && !OPTS.some(o => o.model === optModel)) optOptions.push({
+    value: optModel,
+    group: "ไม่อยู่ในคลังแล้ว",
+    label: optModel
+  });
   const maxPvTotal = selInv ? (selInv.maxPv || 0) * result.meta.invCount : 0;
   const acMaxTotal = selInv ? (+selInv.maxAcKw || 0) * result.meta.invCount : 0;
   const dcAcCap = acMaxTotal > 0 ? acMaxTotal * window.BOQ.DCAC_LIMIT : maxPvTotal;
@@ -4454,18 +4472,26 @@ function BOQEditor({
       label: "Backup Box"
     }]
   })), React.createElement(Field, {
-    label: "Optimizer (1:1 \u0E15\u0E48\u0E2D\u0E41\u0E1C\u0E07)"
+    label: "Optimizer / \u0E15\u0E31\u0E27\u0E04\u0E38\u0E21\u0E41\u0E1C\u0E07"
   }, React.createElement(Dropdown, {
-    value: !!b.hwOptimizer,
-    onChange: v => set("hwOptimizer", v),
-    options: [{
-      value: false,
-      label: "ไม่ใช้"
-    }, {
-      value: true,
-      label: "ใช้"
-    }]
-  }))), pvOver && React.createElement("div", {
+    value: optModel,
+    placeholder: "\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E49",
+    options: optOptions,
+    onChange: v => setB(p => Object.assign({}, p, {
+      optimizerModel: v,
+      hwOptimizer: !!v
+    }))
+  }), optModel && React.createElement("div", {
+    style: {
+      marginTop: 5,
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, optPer > 1 ? "1 ตัว / " + optPer + " แผง" : "1 ตัว / แผง", " \u2192 ", React.createElement("b", {
+    style: {
+      color: "var(--text-2)"
+    }
+  }, optQty, " \u0E15\u0E31\u0E27"), " \xB7 T-BOLT KIT ", optQty, " \u0E0A\u0E38\u0E14"))), pvOver && React.createElement("div", {
     style: {
       marginTop: 10,
       display: "flex",

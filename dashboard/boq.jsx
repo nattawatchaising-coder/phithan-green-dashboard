@@ -762,6 +762,21 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     if (!showMicro && !inList && brandInvs.length) set("inverterModel", brandInvs[0].model);
     else if (showMicro && b.inverterModel && !inList) set("inverterModel", "");
   }, [jobBrand, jobPhaseNum]); // eslint-disable-line
+  /* ── ตัวคุมแผง (Optimizer) ──
+     รุ่นมาจากคลังสินค้า พร้อมอัตราส่วนของรุ่นนั้น (perPanel = กี่แผงต่อตัวคุม 1 ตัว)
+     ใบเก่าที่ติ๊กแค่ "ใช้" ไว้ ยังถืออยู่เป็นรุ่นเดิมแบบ 1:1 จนกว่าจะเลือกรุ่นใหม่ทับ */
+  const OPTS = window.BOQ.OPTIMIZERS || [];
+  const optModel = String(b.optimizerModel || "").trim() || (b.hwOptimizer ? "Smart PV Optimizer SUN2000-600W-P" : "");
+  const optSpec = window.BOQ.findOptimizer(optModel);
+  const optPer = Math.max(1, (optSpec && optSpec.perPanel) || 1);
+  const optQty = window.BOQ.optimizerQty(optModel, result.meta.panelCount);
+  const optOptions = [{ value: "", label: "ไม่ใช้" }].concat(OPTS.map((o) => ({
+    value: o.model, group: o.group || "ตัวคุมแผง",
+    label: o.model + " · " + (o.perPanel > 1 ? "1:" + o.perPanel : "1:1") + (o.w ? " · " + o.w + "W" : ""),
+  })));
+  /* รุ่นที่เลือกไว้ถูกลบออกจากคลังไปแล้ว — ยังต้องเห็นในดรอปดาวน์ ไม่งั้นช่องจะว่างเหมือนไม่ได้เลือกอะไร */
+  if (optModel && !OPTS.some((o) => o.model === optModel)) optOptions.push({ value: optModel, group: "ไม่อยู่ในคลังแล้ว", label: optModel });
+
   const maxPvTotal = selInv ? (selInv.maxPv || 0) * result.meta.invCount : 0;
   /* กำลังออก AC สูงสุดทั้งงาน — ตัวนี้คือเพดานจริงที่อินเวอร์เตอร์ปล่อยออกได้ (cosφ=1)
      คลังยังไม่กรอก Max AC ให้รุ่นไหน ก็ถอยไปใช้เกณฑ์เดิม (MAX PV) ของรุ่นนั้น */
@@ -1884,7 +1899,15 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     { value: "backupbox", label: "Backup Box" },
                   ]} />
                 </Field>
-                <Field label="Optimizer (1:1 ต่อแผง)"><Dropdown value={!!b.hwOptimizer} onChange={(v) => set("hwOptimizer", v)} options={[{ value: false, label: "ไม่ใช้" }, { value: true, label: "ใช้" }]} /></Field>
+                <Field label="Optimizer / ตัวคุมแผง">
+                  <Dropdown value={optModel} placeholder="ไม่ใช้" options={optOptions}
+                    onChange={(v) => setB((p) => Object.assign({}, p, { optimizerModel: v, hwOptimizer: !!v }))} />
+                  {optModel && (
+                    <div style={{ marginTop: 5, fontSize: 11, color: "var(--text-3)" }}>
+                      {optPer > 1 ? "1 ตัว / " + optPer + " แผง" : "1 ตัว / แผง"} → <b style={{ color: "var(--text-2)" }}>{optQty} ตัว</b> · T-BOLT KIT {optQty} ชุด
+                    </div>
+                  )}
+                </Field>
               </div>
               {pvOver && (
                 <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 7, padding: "9px 12px", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd2)", borderRadius: 10, fontSize: 12.5, fontWeight: 700, color: "var(--tint-red-tx)" }}>

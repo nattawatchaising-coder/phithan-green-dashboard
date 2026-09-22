@@ -1168,6 +1168,8 @@
       invCount: 0,    // 0 = คิดให้อัตโนมัติจากกำลังแผง ÷ MAX PV ต่อตัว
       strings: 0,     // 0 = คิดให้อัตโนมัติจากแผนสตริง (แผงทั้งงาน ÷ แผงต่ออนุกรม)
       hwBackup: "none",
+      /* งานที่ระบุว่ามีตัวคุมแผงมาจากใบสำรวจ — ยังไม่รู้ว่ารุ่นไหน ให้ไปเลือกเองในหน้า BOQ */
+      optimizerModel: "",
       hwOptimizer: !!(job.connect && job.connect !== "-" && job.connect !== "ไม่มี"),
       batteryKwh: 0,
       backup: !!job.backup,
@@ -1390,10 +1392,14 @@
         // ระบบสำรองไฟ 1 ชุด/งาน
         if (b.hwBackup === "smartguard") invItems.push({ name: ph === 3 ? HW.smartguard3 : HW.smartguard1, qty: 1, unit: "ตัว" });
         else if (b.hwBackup === "backupbox") invItems.push({ name: ph === 3 ? HW.backupbox3 : HW.backupbox1, qty: 1, unit: "ตัว" });
-        if (b.hwOptimizer) {
-          invItems.push({ name: HW.optimizer, qty: panelCount, unit: "ตัว" });
-          // ตัวคุมแผงยึดเข้ารางด้วย T-BOLT 1 ชุด/ตัว — ไม่เผื่อ เพราะผูกกับจำนวนตัวคุมแบบ 1:1
-          invItems.push({ name: TBOLT_NAME, qty: panelCount, unit: "ชุด" });
+        /* ตัวคุมแผง — เลือกรุ่นจากคลัง ใบเก่าที่ติ๊กแค่ "ใช้" ไว้ (hwOptimizer) ยังถอดรุ่นเดิมแบบ 1:1 ต่อไป
+           ไม่งั้นใบที่เคยเสนอราคาไปแล้วจะมีของหายไปเฉย ๆ ตอนเปิดดูย้อนหลัง */
+        const optModel = String(b.optimizerModel || "").trim() || (b.hwOptimizer ? HW.optimizer : "");
+        if (optModel) {
+          const optQty = optimizerQty(optModel, panelCount);
+          invItems.push({ name: optModel, qty: optQty, unit: "ตัว" });
+          // ตัวคุมแผงยึดเข้ารางด้วย T-BOLT 1 ชุด/ตัวคุม — ไม่เผื่อ เพราะผูกกันแบบ 1:1
+          invItems.push({ name: TBOLT_NAME, qty: optQty, unit: "ชุด" });
         }
         /* กลุ่ม COMBINER BOX — เฉพาะงานบ้าน
            งานโครงการไม่ใช้ตู้ Combiner สำเร็จ แต่ประกอบเป็นตู้ไฟ DC/AC ของโครงการเอง (หมวด "ตู้ไฟ") */
@@ -1758,6 +1764,7 @@
     add("INVERTER", BACKUP[1], "SET"); add("INVERTER", BACKUP[3], "SET");
     add("INVERTER", BATTERY_MODEL, "SET");
     add("INVERTER", HW.logger, "ตัว");   // SmartLogger ของงานโครงการ
+    OPTIMIZERS.forEach((o) => add("INVERTER", o.model, "ตัว"));   // ตัวคุมแผงทุกรุ่นในคลัง
     add("INVERTER", JUNCTION[1], "SET"); add("INVERTER", JUNCTION[3], "SET");
     add("INVERTER", "1.3 m, Three-terminal AC Cable (MW-025013-A)", "SET");
     add("INVERTER", "2 m, Two-terminal AC Cable (MW-025020-B0)", "SET");
@@ -2022,10 +2029,20 @@
     out.forEach((x) => OPTIMIZERS.push(x));
   }
   const findOptimizer = (model) => OPTIMIZERS.find((o) => o.model === model) || null;
+  /* ตัวคุมแผงกี่ตัว — บางรุ่นคุมแผงละตัว (1:1) บางรุ่นคุมทีละ 2 แผง (2:1)
+     perPanel = จำนวนแผงต่อตัวคุม 1 ตัว · ยังไม่กรอกในคลัง (0) ให้ถือเป็น 1:1 ไว้ก่อน
+     ปัดขึ้น เพราะแผงที่เหลือเศษก็ยังต้องมีตัวคุมของตัวเอง */
+  function optimizerQty(model, panels) {
+    const n = Math.max(0, Math.round(+panels || 0));
+    if (!n) return 0;
+    const o = findOptimizer(model);
+    const per = Math.max(1, (o && o.perPanel) || 1);
+    return Math.ceil(n / per);
+  }
 
   window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, PERF_SIZES, TRAY_KINDS, TRAY_KIND_KEYS, trayKindOf, trayNorm, trayAlias, hdgName,
-    DCAC_LIMIT, WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
+    optimizerQty, DCAC_LIMIT, WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
     COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings,
     STEEL_SPECS, steelName, steelBarLen, steelSel, steelOf,
     TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, ACC_ALLOW_PCT, VAT_RATE, priceBreakdown,
