@@ -538,19 +538,23 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const condBad = condPools.reduce((n, [k, sizes]) =>
     n + (cond[k] || []).filter((x) => (x.cables || []).length && !window.BOQ.conduitCheck(x.size, x.cables, sizes).ok).length, 0);
   // ── รางไฟ (WIREWAY / CABLE TRAY) — โครงสร้างข้อมูลเหมือนท่อร้อยสาย: {size, length} ต่อแถว ──
-  const TRAY_DEF = { way: [], tray: [], spare: 10, extra: [] };
-  const tw = Object.assign({}, TRAY_DEF, b.tray);
-  const trayLen = Math.round(((tw.way || []).concat(tw.tray || [])).reduce((s, x) => s + (+x.length || 0), 0));
+  const TRAY_DEF = { way: [], tray: [], perf: [], spare: 10, extra: [] };
+  const TRAY_POOLS = window.BOQ.TRAY_KIND_KEYS.map((k) => [k, window.BOQ.TRAY_KINDS[k].sizes]);
+  /* trayNorm แปลงชื่อรางรุ่นเก่า ("Cable Tray บันได") ให้ตรงรายการใหม่ ตั้งแต่ตอนอ่านขึ้นมา
+     ไม่งั้นดรอปดาวน์ขึ้นเป็นของนอกรายการ และตารางตรวจสายหาขนาดรางไม่เจอ */
+  const tw = window.BOQ.trayNorm(b.tray);
+  const trayLen = Math.round(window.BOQ.TRAY_KIND_KEYS.reduce((s, k) =>
+    s + (tw[k] || []).reduce((t, x) => t + (+x.length || 0), 0), 0));
   /* ตัวคูณลดกระแสที่แย่ที่สุดจากรางที่กรอกสายไว้ — ส่งไปเป็นค่าแนะนำให้ตารางคำนวณขนาดสายไฟ */
   const trayWorst = condPools.reduce((f, [k, sizes]) =>
     (cond[k] || []).reduce((g, x) => ((x.cables || []).length
       ? Math.min(g, window.BOQ.conduitCheck(x.size, x.cables, sizes).derate) : g), f),
-    [["way", window.BOQ.WAY_SIZES], ["tray", window.BOQ.TRAY_SIZES]].reduce((f, [k, sizes]) =>
+    TRAY_POOLS.reduce((f, [k, sizes]) =>
       (tw[k] || []).reduce((g, x) => ((x.cables || []).length
-        ? Math.min(g, window.BOQ.trayCheck(x.size, x.cables, k === "tray", sizes).derate) : g), f), 1));
+        ? Math.min(g, window.BOQ.trayCheck(x.size, x.cables, k, sizes).derate) : g), f), 1));
   // นับรางที่กรอกสายไว้แล้วแต่ยังไม่ผ่านเกณฑ์ % เติมเต็ม / วางชั้นเดียว
-  const trayBad = [["way", window.BOQ.WAY_SIZES], ["tray", window.BOQ.TRAY_SIZES]].reduce((n, [k, sizes]) =>
-    n + (tw[k] || []).filter((x) => (x.cables || []).length && (() => { const c = window.BOQ.trayCheck(x.size, x.cables, k === "tray", sizes); return !(c.ok && c.widthOk); })()).length, 0);
+  const trayBad = TRAY_POOLS.reduce((n, [k, sizes]) =>
+    n + (tw[k] || []).filter((x) => (x.cables || []).length && (() => { const c = window.BOQ.trayCheck(x.size, x.cables, k, sizes); return !(c.ok && c.widthOk); })()).length, 0);
   const setTrayRow = (kind, i, k, v) => setB((p) => { const t = Object.assign({}, TRAY_DEF, p.tray); const a = (t[kind] || []).slice(); a[i] = Object.assign({}, a[i], { [k]: v }); t[kind] = a; return Object.assign({}, p, { tray: t }); });
   const addTrayRow = (kind, item) => setB((p) => { const t = Object.assign({}, TRAY_DEF, p.tray); t[kind] = (t[kind] || []).concat([item]); return Object.assign({}, p, { tray: t }); });
   const delTrayRow = (kind, i) => setB((p) => { const t = Object.assign({}, TRAY_DEF, p.tray); t[kind] = (t[kind] || []).filter((_, j) => j !== i); return Object.assign({}, p, { tray: t }); });
@@ -623,7 +627,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const measFor = (kinds) => meas3d.filter((m) => kinds.indexOf(m.kind || "other") >= 0 || (m.kind || "other") === "other");
   const measTargets = React.useMemo(() => {
     const IMC = window.BOQ.IMC_SIZES || [], UPVC = window.BOQ.UPVC_SIZES || [];
-    const WAY = window.BOQ.WAY_SIZES || [], TRAY = window.BOQ.TRAY_SIZES || [];
+    const WAY = window.BOQ.WAY_SIZES || [], TRAY = window.BOQ.TRAY_SIZES || [], PERF = window.BOQ.PERF_SIZES || [];
     const o = (b.cables || []).map((c, i) => ({
       value: "cab:" + i, group: "สายไฟ — ทับความยาวเดิม",
       label: (c.name || "สายแถวที่ " + (i + 1)) + (c.length ? " (เดิม " + c.length + " ม.)" : ""),
@@ -632,7 +636,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     if (IMC[0]) o.push({ value: "imc", group: "เพิ่มแถวใหม่", label: "ท่อ IMC (" + IMC[0] + ")" });
     if (UPVC[0]) o.push({ value: "upvc", group: "เพิ่มแถวใหม่", label: "ท่อ uPVC (" + UPVC[0] + ")" });
     if (WAY[0]) o.push({ value: "way", group: "เพิ่มแถวใหม่", label: "Wireway (" + WAY[0] + ")" });
-    if (TRAY[0]) o.push({ value: "tray", group: "เพิ่มแถวใหม่", label: "Cable Tray (" + TRAY[0] + ")" });
+    if (TRAY[0]) o.push({ value: "tray", group: "เพิ่มแถวใหม่", label: "Cable Tray Ladder (" + TRAY[0] + ")" });
+    if (PERF[0]) o.push({ value: "perf", group: "เพิ่มแถวใหม่", label: "Cable Tray Perforated (" + PERF[0] + ")" });
     o.push({ value: "ladder", group: "เพิ่มแถวใหม่", label: "บันไดลิง (ความสูง)" });
     o.push({ value: "walkway", group: "เพิ่มแถวใหม่", label: "ทางเดิน Walkway (ความยาว)" });
     o.push({ value: "guardrail", group: "เพิ่มแถวใหม่", label: "ราวกันตก (ความยาว)" });
@@ -654,7 +659,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   };
   const applyMeas = (rows) => {
     const IMC = window.BOQ.IMC_SIZES || [], UPVC = window.BOQ.UPVC_SIZES || [];
-    const WAY = window.BOQ.WAY_SIZES || [], TRAY = window.BOQ.TRAY_SIZES || [];
+    const WAY = window.BOQ.WAY_SIZES || [], TRAY = window.BOQ.TRAY_SIZES || [], PERF = window.BOQ.PERF_SIZES || [];
     rows.forEach(({ m, target }) => {
       const L = measLen(m);
       if (/^cab:\d+$/.test(target)) setCab(+target.slice(4), "length", L);
@@ -663,6 +668,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       else if (target === "upvc") addCond("upvc", { size: UPVC[0], length: L, cables: [] });
       else if (target === "way") addTrayRow("way", { size: WAY[0], length: L, cables: [] });
       else if (target === "tray") addTrayRow("tray", { size: TRAY[0], length: L, cables: [] });
+      else if (target === "perf") addTrayRow("perf", { size: PERF[0], length: L, cables: [] });
       else if (target === "ladder") addStruct("ladder", { h: L });
       else if (target === "walkway") addStruct("walkway", { len: L });
       else if (target === "guardrail") addStruct("guardrail", { len: L, corners: 0 });
@@ -1139,7 +1145,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   /* รายการรางไฟ — เลือกขนาด + ความยาวรวมของขนาดนั้น (ข้อต่อ/ขาแขวน/พุก คิดต่อจากความยาวให้เอง)
      กางออกได้เพื่อใส่สายที่จะเดินในรางนั้น แล้วตรวจ % เติมเต็ม + ตัวคูณลดกระแส */
   const TrayList = ({ kind, label, sizes, hint }) => {
-    const isTray = kind === "tray";
+    const spec = window.BOQ.TRAY_KINDS[kind] || window.BOQ.TRAY_KINDS.way;
+    const oneLayer = spec.oneLayer;              // รางเปิดควรวางสายชั้นเดียว จึงมีบรรทัดผลรวม Ø เพิ่มมา
     const OD = window.BOQ.CABLE_OD || {};
     const odTypes = Object.keys(OD);
     const setCables = (i, cs) => setTrayRow(kind, i, "cables", cs);
@@ -1150,7 +1157,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {(tw[kind] || []).map((x, i) => {
             const cbs = x.cables || [];
-            const chk = window.BOQ.trayCheck(x.size, cbs, isTray, sizes);
+            const chk = window.BOQ.trayCheck(x.size, cbs, kind, sizes);
             const open = trayOpen[kind + i];
             const any = cbs.length > 0;
             return (
@@ -1165,6 +1172,16 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", color: "var(--text-2)", fontWeight: 700, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
                     <Icon name="settings" size={13} color="var(--text-2)" /> สายที่เดินในรางนี้{any ? " (" + cbs.length + ")" : ""}
                     <Icon name="chevronDown" size={13} color="var(--text-2)" style={{ transform: open ? "rotate(180deg)" : "none" }} />
+                  </button>
+                  {/* ชุบ HDG ทีละแถว — งานเดียวกันมีทั้งรางในอาคาร (Pre-Zinc) และรางนอกอาคาร (ชุบ) ได้
+                      ติ๊กแล้วตัวราง ชุดข้อต่อ และขาแขวนของแถวนี้ต่อท้ายชื่อด้วย (HDG.) แยกราคาจากของไม่ชุบ */}
+                  <button onClick={() => setTrayRow(kind, i, "hdg", !x.hdg)}
+                    title={x.hdg ? "ชุบกัลวาไนซ์แบบจุ่มร้อน — ตัวราง ข้อต่อ และขาแขวนของแถวนี้จะถอดเป็นของชุบ (HDG.)"
+                      : "ยังไม่ชุบ — ถอดเป็นของธรรมดา (Pre-Zinc) กดเพื่อเปลี่ยนเป็นของชุบ HDG"}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
+                      fontSize: 11, fontWeight: 800, border: "1px solid " + (x.hdg ? "var(--primary)" : "var(--border-strong)"),
+                      background: x.hdg ? "var(--primary-soft)" : "var(--surface)", color: x.hdg ? "var(--primary-dark)" : "var(--text-3)" }}>
+                    {x.hdg && <Icon name="check" size={11} color="var(--primary-dark)" />}ชุบ HDG
                   </button>
                   {any && (
                     <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 8, fontSize: 11, fontWeight: 800, fontVariantNumeric: "tabular-nums",
@@ -1195,7 +1212,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                           <div data-bad={chk.ok ? "0" : "1"}><span className="k">เติมเต็ม (เกณฑ์ {chk.limit}%)</span><span className="v hi">{chk.fillPct}%</span></div>
                           <div><span className="k">ตัวนำนำกระแส</span><span className="v">{chk.cores} เส้น</span></div>
                           <div><span className="k">ตัวคูณลดกระแส</span><span className="v hi">×{chk.derate.toFixed(2)}</span></div>
-                          {isTray && <div data-bad={chk.widthOk ? "0" : "1"}><span className="k">ผลรวม Ø (วางชั้นเดียว)</span><span className="v">{chk.odSum} / {chk.dim.w} mm</span></div>}
+                          {oneLayer && <div data-bad={chk.widthOk ? "0" : "1"}><span className="k">ผลรวม Ø (วางชั้นเดียว)</span><span className="v">{chk.odSum} / {chk.dim.w} mm</span></div>}
                           <div><span className="k">พื้นที่รางขั้นต่ำ</span><span className="v">{chk.needArea.toLocaleString()} mm²</span></div>
                           <div data-miss={chk.unknown.length ? "1" : "0"}><span className="k">ไม่มีข้อมูล OD</span><span className="v">{chk.unknown.length ? chk.unknown.length + " ชนิด" : "ครบ"}</span></div>
                         </div>
@@ -2466,19 +2483,22 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {TrayList({ kind: "way", label: "Wireway เหล็กมีฝา", sizes: window.BOQ.WAY_SIZES,
                 hint: "รางเหล็กพับมีฝาปิด ยาว " + window.BOQ.WAY_PIPE_LEN.toFixed(1) + " ม./ท่อน — กรอกความยาวรวมของแต่ละขนาด" })}
-              {TrayList({ kind: "tray", label: "Cable Tray บันได", sizes: window.BOQ.TRAY_SIZES,
-                hint: "รางบันได ยาว " + window.BOQ.TRAY_PIPE_LEN.toFixed(1) + " ม./ท่อน — ใช้เดินสายจำนวนมากระยะไกล" })}
+              {TrayList({ kind: "tray", label: "Cable Tray Ladder (รางบันได)", sizes: window.BOQ.TRAY_SIZES,
+                hint: "พื้นรางเป็นขั้นบันได ยาว " + window.BOQ.TRAY_PIPE_LEN.toFixed(1) + " ม./ท่อน — ใช้เดินสายเส้นใหญ่จำนวนมากระยะไกล ระบายความร้อนดีที่สุด" })}
+              {TrayList({ kind: "perf", label: "Cable Tray Perforated (รางเจาะรู)", sizes: window.BOQ.PERF_SIZES,
+                hint: "พื้นรางเป็นแผ่นเจาะรู ยาว " + window.BOQ.TRAY_PIPE_LEN.toFixed(1) + " ม./ท่อน — รองสายเส้นเล็กได้ไม่ตกร่อง เกณฑ์เติมเต็มเท่ารางบันได" })}
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "160px 1fr", gap: 12, alignItems: "center" }}>
                 <Field label="% เผื่อ อุปกรณ์ประกอบ">
                   <input type="number" style={numStyle} value={tw.spare} onChange={(e) => setTrayVal("spare", e.target.value)} />
                 </Field>
                 <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>
                   ตัวราง = ปัดขึ้นตามความยาว/ท่อน · ชุดข้อต่อ = ทุกรอยต่อ +2 · ขาแขวน = ทุก 1.5 ม. · พุ๊กเหล็ก 4 ตัว/ขา
+                  <br />แถวที่ติ๊ก “ชุบ HDG” ถอดเป็นของชุบแยกบรรทัด (ตัวราง · ข้อต่อ · ขาแขวน) — พุ๊กกับสกรูใช้ของมาตรฐานร่วมกับงานอื่น
                 </div>
               </div>
               {/* ข้องอ / ข้อลด / สามทาง — รูปทรงไม่ตายตัว เลือกของ + กรอกจำนวนตามแบบ */}
               {FitList({ rows: tw.extra, onChange: (v) => setTrayVal("extra", v), catalog: trayFits,
-                hint: "ของรางไฟโดยเฉพาะ — เลือกได้ครบทุกขนาด แยกกลุ่ม Wireway กับ Cable Tray บันได" })}
+                hint: "ของรางไฟโดยเฉพาะ — เลือกได้ครบทุกขนาด แยกกลุ่มตามชนิดราง และแยกของชุบ HDG ออกจากของธรรมดา" })}
             </div>
           </BoqSection>
 

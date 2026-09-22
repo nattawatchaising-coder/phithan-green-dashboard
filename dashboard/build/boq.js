@@ -1232,14 +1232,16 @@ function BOQEditor({
   const TRAY_DEF = {
     way: [],
     tray: [],
+    perf: [],
     spare: 10,
     extra: []
   };
-  const tw = Object.assign({}, TRAY_DEF, b.tray);
-  const trayLen = Math.round((tw.way || []).concat(tw.tray || []).reduce((s, x) => s + (+x.length || 0), 0));
-  const trayWorst = condPools.reduce((f, [k, sizes]) => (cond[k] || []).reduce((g, x) => (x.cables || []).length ? Math.min(g, window.BOQ.conduitCheck(x.size, x.cables, sizes).derate) : g, f), [["way", window.BOQ.WAY_SIZES], ["tray", window.BOQ.TRAY_SIZES]].reduce((f, [k, sizes]) => (tw[k] || []).reduce((g, x) => (x.cables || []).length ? Math.min(g, window.BOQ.trayCheck(x.size, x.cables, k === "tray", sizes).derate) : g, f), 1));
-  const trayBad = [["way", window.BOQ.WAY_SIZES], ["tray", window.BOQ.TRAY_SIZES]].reduce((n, [k, sizes]) => n + (tw[k] || []).filter(x => (x.cables || []).length && (() => {
-    const c = window.BOQ.trayCheck(x.size, x.cables, k === "tray", sizes);
+  const TRAY_POOLS = window.BOQ.TRAY_KIND_KEYS.map(k => [k, window.BOQ.TRAY_KINDS[k].sizes]);
+  const tw = window.BOQ.trayNorm(b.tray);
+  const trayLen = Math.round(window.BOQ.TRAY_KIND_KEYS.reduce((s, k) => s + (tw[k] || []).reduce((t, x) => t + (+x.length || 0), 0), 0));
+  const trayWorst = condPools.reduce((f, [k, sizes]) => (cond[k] || []).reduce((g, x) => (x.cables || []).length ? Math.min(g, window.BOQ.conduitCheck(x.size, x.cables, sizes).derate) : g, f), TRAY_POOLS.reduce((f, [k, sizes]) => (tw[k] || []).reduce((g, x) => (x.cables || []).length ? Math.min(g, window.BOQ.trayCheck(x.size, x.cables, k, sizes).derate) : g, f), 1));
+  const trayBad = TRAY_POOLS.reduce((n, [k, sizes]) => n + (tw[k] || []).filter(x => (x.cables || []).length && (() => {
+    const c = window.BOQ.trayCheck(x.size, x.cables, k, sizes);
     return !(c.ok && c.widthOk);
   })()).length, 0);
   const setTrayRow = (kind, i, k, v) => setB(p => {
@@ -1442,7 +1444,8 @@ function BOQEditor({
     const IMC = window.BOQ.IMC_SIZES || [],
       UPVC = window.BOQ.UPVC_SIZES || [];
     const WAY = window.BOQ.WAY_SIZES || [],
-      TRAY = window.BOQ.TRAY_SIZES || [];
+      TRAY = window.BOQ.TRAY_SIZES || [],
+      PERF = window.BOQ.PERF_SIZES || [];
     const o = (b.cables || []).map((c, i) => ({
       value: "cab:" + i,
       group: "สายไฟ — ทับความยาวเดิม",
@@ -1471,7 +1474,12 @@ function BOQEditor({
     if (TRAY[0]) o.push({
       value: "tray",
       group: "เพิ่มแถวใหม่",
-      label: "Cable Tray (" + TRAY[0] + ")"
+      label: "Cable Tray Ladder (" + TRAY[0] + ")"
+    });
+    if (PERF[0]) o.push({
+      value: "perf",
+      group: "เพิ่มแถวใหม่",
+      label: "Cable Tray Perforated (" + PERF[0] + ")"
     });
     o.push({
       value: "ladder",
@@ -1506,7 +1514,8 @@ function BOQEditor({
     const IMC = window.BOQ.IMC_SIZES || [],
       UPVC = window.BOQ.UPVC_SIZES || [];
     const WAY = window.BOQ.WAY_SIZES || [],
-      TRAY = window.BOQ.TRAY_SIZES || [];
+      TRAY = window.BOQ.TRAY_SIZES || [],
+      PERF = window.BOQ.PERF_SIZES || [];
     rows.forEach(({
       m,
       target
@@ -1532,6 +1541,10 @@ function BOQEditor({
         cables: []
       });else if (target === "tray") addTrayRow("tray", {
         size: TRAY[0],
+        length: L,
+        cables: []
+      });else if (target === "perf") addTrayRow("perf", {
+        size: PERF[0],
         length: L,
         cables: []
       });else if (target === "ladder") addStruct("ladder", {
@@ -2395,7 +2408,8 @@ function BOQEditor({
     sizes,
     hint
   }) => {
-    const isTray = kind === "tray";
+    const spec = window.BOQ.TRAY_KINDS[kind] || window.BOQ.TRAY_KINDS.way;
+    const oneLayer = spec.oneLayer;
     const OD = window.BOQ.CABLE_OD || {};
     const odTypes = Object.keys(OD);
     const setCables = (i, cs) => setTrayRow(kind, i, "cables", cs);
@@ -2420,7 +2434,7 @@ function BOQEditor({
       }
     }, (tw[kind] || []).map((x, i) => {
       const cbs = x.cables || [];
-      const chk = window.BOQ.trayCheck(x.size, cbs, isTray, sizes);
+      const chk = window.BOQ.trayCheck(x.size, cbs, kind, sizes);
       const open = trayOpen[kind + i];
       const any = cbs.length > 0;
       return React.createElement("div", {
@@ -2501,7 +2515,28 @@ function BOQEditor({
         style: {
           transform: open ? "rotate(180deg)" : "none"
         }
-      })), any && React.createElement("span", {
+      })), React.createElement("button", {
+        onClick: () => setTrayRow(kind, i, "hdg", !x.hdg),
+        title: x.hdg ? "ชุบกัลวาไนซ์แบบจุ่มร้อน — ตัวราง ข้อต่อ และขาแขวนของแถวนี้จะถอดเป็นของชุบ (HDG.)" : "ยังไม่ชุบ — ถอดเป็นของธรรมดา (Pre-Zinc) กดเพื่อเปลี่ยนเป็นของชุบ HDG",
+        style: {
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 5,
+          padding: "3px 10px",
+          borderRadius: 99,
+          cursor: "pointer",
+          fontFamily: "inherit",
+          fontSize: 11,
+          fontWeight: 800,
+          border: "1px solid " + (x.hdg ? "var(--primary)" : "var(--border-strong)"),
+          background: x.hdg ? "var(--primary-soft)" : "var(--surface)",
+          color: x.hdg ? "var(--primary-dark)" : "var(--text-3)"
+        }
+      }, x.hdg && React.createElement(Icon, {
+        name: "check",
+        size: 11,
+        color: "var(--primary-dark)"
+      }), "\u0E0A\u0E38\u0E1A HDG"), any && React.createElement("span", {
         style: {
           marginLeft: "auto",
           display: "inline-flex",
@@ -2625,7 +2660,7 @@ function BOQEditor({
         className: "k"
       }, "\u0E15\u0E31\u0E27\u0E04\u0E39\u0E13\u0E25\u0E14\u0E01\u0E23\u0E30\u0E41\u0E2A"), React.createElement("span", {
         className: "v hi"
-      }, "\xD7", chk.derate.toFixed(2))), isTray && React.createElement("div", {
+      }, "\xD7", chk.derate.toFixed(2))), oneLayer && React.createElement("div", {
         "data-bad": chk.widthOk ? "0" : "1"
       }, React.createElement("span", {
         className: "k"
@@ -6248,9 +6283,14 @@ function BOQEditor({
     hint: "รางเหล็กพับมีฝาปิด ยาว " + window.BOQ.WAY_PIPE_LEN.toFixed(1) + " ม./ท่อน — กรอกความยาวรวมของแต่ละขนาด"
   }), TrayList({
     kind: "tray",
-    label: "Cable Tray บันได",
+    label: "Cable Tray Ladder (รางบันได)",
     sizes: window.BOQ.TRAY_SIZES,
-    hint: "รางบันได ยาว " + window.BOQ.TRAY_PIPE_LEN.toFixed(1) + " ม./ท่อน — ใช้เดินสายจำนวนมากระยะไกล"
+    hint: "พื้นรางเป็นขั้นบันได ยาว " + window.BOQ.TRAY_PIPE_LEN.toFixed(1) + " ม./ท่อน — ใช้เดินสายเส้นใหญ่จำนวนมากระยะไกล ระบายความร้อนดีที่สุด"
+  }), TrayList({
+    kind: "perf",
+    label: "Cable Tray Perforated (รางเจาะรู)",
+    sizes: window.BOQ.PERF_SIZES,
+    hint: "พื้นรางเป็นแผ่นเจาะรู ยาว " + window.BOQ.TRAY_PIPE_LEN.toFixed(1) + " ม./ท่อน — รองสายเส้นเล็กได้ไม่ตกร่อง เกณฑ์เติมเต็มเท่ารางบันได"
   }), React.createElement("div", {
     style: {
       display: "grid",
@@ -6271,11 +6311,11 @@ function BOQEditor({
       color: "var(--text-3)",
       lineHeight: 1.5
     }
-  }, "\u0E15\u0E31\u0E27\u0E23\u0E32\u0E07 = \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19\u0E15\u0E32\u0E21\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27/\u0E17\u0E48\u0E2D\u0E19 \xB7 \u0E0A\u0E38\u0E14\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D = \u0E17\u0E38\u0E01\u0E23\u0E2D\u0E22\u0E15\u0E48\u0E2D +2 \xB7 \u0E02\u0E32\u0E41\u0E02\u0E27\u0E19 = \u0E17\u0E38\u0E01 1.5 \u0E21. \xB7 \u0E1E\u0E38\u0E4A\u0E01\u0E40\u0E2B\u0E25\u0E47\u0E01 4 \u0E15\u0E31\u0E27/\u0E02\u0E32")), FitList({
+  }, "\u0E15\u0E31\u0E27\u0E23\u0E32\u0E07 = \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19\u0E15\u0E32\u0E21\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27/\u0E17\u0E48\u0E2D\u0E19 \xB7 \u0E0A\u0E38\u0E14\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D = \u0E17\u0E38\u0E01\u0E23\u0E2D\u0E22\u0E15\u0E48\u0E2D +2 \xB7 \u0E02\u0E32\u0E41\u0E02\u0E27\u0E19 = \u0E17\u0E38\u0E01 1.5 \u0E21. \xB7 \u0E1E\u0E38\u0E4A\u0E01\u0E40\u0E2B\u0E25\u0E47\u0E01 4 \u0E15\u0E31\u0E27/\u0E02\u0E32", React.createElement("br", null), "\u0E41\u0E16\u0E27\u0E17\u0E35\u0E48\u0E15\u0E34\u0E4A\u0E01 \u201C\u0E0A\u0E38\u0E1A HDG\u201D \u0E16\u0E2D\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E2D\u0E07\u0E0A\u0E38\u0E1A\u0E41\u0E22\u0E01\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14 (\u0E15\u0E31\u0E27\u0E23\u0E32\u0E07 \xB7 \u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D \xB7 \u0E02\u0E32\u0E41\u0E02\u0E27\u0E19) \u2014 \u0E1E\u0E38\u0E4A\u0E01\u0E01\u0E31\u0E1A\u0E2A\u0E01\u0E23\u0E39\u0E43\u0E0A\u0E49\u0E02\u0E2D\u0E07\u0E21\u0E32\u0E15\u0E23\u0E10\u0E32\u0E19\u0E23\u0E48\u0E27\u0E21\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19\u0E2D\u0E37\u0E48\u0E19")), FitList({
     rows: tw.extra,
     onChange: v => setTrayVal("extra", v),
     catalog: trayFits,
-    hint: "ของรางไฟโดยเฉพาะ — เลือกได้ครบทุกขนาด แยกกลุ่ม Wireway กับ Cable Tray บันได"
+    hint: "ของรางไฟโดยเฉพาะ — เลือกได้ครบทุกขนาด แยกกลุ่มตามชนิดราง และแยกของชุบ HDG ออกจากของธรรมดา"
   }))), !isHome && kitSections.map(sc => React.createElement(BoqSection, _extends({
     key: sc.key,
     title: sc.title,

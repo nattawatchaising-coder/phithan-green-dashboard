@@ -629,37 +629,67 @@
 
   /* ── รางไฟ (WIREWAY / CABLE TRAY) ──
      Wireway = รางเหล็กพับมีฝาปิด ยาว 2.40 ม./ท่อน — ใช้เดินสายในอาคาร/ข้างตู้
-     Cable Tray บันได = ยาว 3.00 ม./ท่อน — ใช้เดินสายจำนวนมากระยะไกล
-     ถอดของ: ตัวราง + ชุดข้อต่อทุกรอยต่อ + ขาแขวนทุก 1.5 ม. + พุกยึด 4 ตัว/ขา */
+     Cable Tray Ladder = รางบันได ยาว 3.00 ม./ท่อน — ใช้เดินสายจำนวนมากระยะไกล
+     Cable Tray Perforated = รางเจาะรู ยาว 3.00 ม./ท่อน — พื้นรางเป็นแผ่นเจาะรู รองสายเส้นเล็กได้ไม่ตกร่อง
+     ถอดของ: ตัวราง + ชุดข้อต่อทุกรอยต่อ + ขาแขวนทุก 1.5 ม. + พุกยึด 4 ตัว/ขา
+
+     ชุบ HDG (กัลวาไนซ์จุ่มร้อน) เลือกได้ทีละแถว — ของชุบเป็นคนละตัวกับของ Pre-Zinc ราคาคนละราคา
+     จึงต่อท้ายชื่อด้วย " (HDG.)" ทั้งตัวราง ชุดข้อต่อ และขาแขวน ให้เทียบราคา/ตัดสต็อกแยกกันได้ */
   const WAY_PIPE_LEN = 2.4, TRAY_PIPE_LEN = 3.0, WAY_HANGER_STEP = 1.5;
   const WAY_SIZES = [
     "Wireway 50x50 mm.", "Wireway 100x50 mm.", "Wireway 100x100 mm.",
     "Wireway 150x100 mm.", "Wireway 200x100 mm.", "Wireway 200x200 mm.", "Wireway 300x100 mm.",
   ];
   const TRAY_SIZES = [
-    "Cable Tray บันได 150x50 mm.", "Cable Tray บันได 200x50 mm.", "Cable Tray บันได 300x100 mm.",
-    "Cable Tray บันได 450x100 mm.", "Cable Tray บันได 600x100 mm.",
+    "Cable Tray Ladder 150x50 mm.", "Cable Tray Ladder 200x50 mm.", "Cable Tray Ladder 300x100 mm.",
+    "Cable Tray Ladder 450x100 mm.", "Cable Tray Ladder 600x100 mm.",
   ];
-  const traySuffix = (nm) => String(nm).replace(/^(Wireway|Cable Tray บันได)\s*/i, "").trim();
+  const PERF_SIZES = [
+    "Cable Tray Perforated 150x50 mm.", "Cable Tray Perforated 200x50 mm.", "Cable Tray Perforated 300x100 mm.",
+    "Cable Tray Perforated 450x100 mm.", "Cable Tray Perforated 600x100 mm.",
+  ];
+  /* สเปคของรางแต่ละชนิดรวมไว้ที่เดียว — เดิมกระจายเป็น if (isTray) หลายจุด พอเพิ่มชนิดที่สามเลยต้องตามแก้ทุกจุด
+     fill     = % เติมเต็มสูงสุด (รางปิดฝาระบายความร้อนไม่ออก จึงคุมแน่นกว่ารางเปิด)
+     hanger   = แขวนด้วยขาแขวนสำเร็จ (Wireway ยึดพุ๊กเข้าโครงตรง ๆ)
+     oneLayer = ควรวางสายชั้นเดียว จึงต้องเช็คผลรวมเส้นผ่านศูนย์กลางเทียบความกว้างรางด้วย */
+  const TRAY_KINDS = {
+    way:  { key: "way",  brief: "Wireway",               label: "Wireway เหล็กมีฝา",     sizes: WAY_SIZES,  pipeLen: WAY_PIPE_LEN,  fill: 20, hanger: false, oneLayer: false },
+    tray: { key: "tray", brief: "Cable Tray Ladder",     label: "Cable Tray Ladder",     sizes: TRAY_SIZES, pipeLen: TRAY_PIPE_LEN, fill: 50, hanger: true,  oneLayer: true },
+    perf: { key: "perf", brief: "Cable Tray Perforated", label: "Cable Tray Perforated", sizes: PERF_SIZES, pipeLen: TRAY_PIPE_LEN, fill: 50, hanger: true,  oneLayer: true },
+  };
+  const TRAY_KIND_KEYS = ["way", "tray", "perf"];
+  /* รับได้ทั้งคีย์ชนิด ("way"/"tray"/"perf") และ boolean isTray แบบเดิม — ที่เรียกด้วย true/false อยู่จึงไม่พัง */
+  const trayKindOf = (k) => TRAY_KINDS[k === true ? "tray" : (k || "way")] || TRAY_KINDS.way;
+
+  const HDG_TAG = " (HDG.)";
+  const hdgName = (nm, on) => (on ? String(nm) + HDG_TAG : String(nm));
+  /* ชื่อรุ่นเก่า — ก่อนแยกชนิดราง รางบันไดชื่อ "Cable Tray บันได" และของประกอบชื่อ "… Cable Tray <ขนาด>"
+     แปลงให้ตรงชื่อใหม่ทุกครั้งที่เทียบชื่อ ของในคลังกับใบถอดของเก่าจึงยังหาราคาเจอ ไม่ต้องไล่เปลี่ยนชื่อเอง */
+  const trayAlias = (s) => String(s || "")
+    .replace(/Cable Tray\s*บันได/g, "Cable Tray Ladder")
+    .replace(/Cable Tray (?!Ladder|Perforated)/g, "Cable Tray Ladder ");
+  const traySuffix = (nm) => trayAlias(nm).replace(/^(Wireway|Cable Tray Ladder|Cable Tray Perforated)\s*/i, "").trim();
   /* ถอดวัสดุรางไฟ 1 ขนาด — คืน array ของ item · pct = % เผื่อของอุปกรณ์ประกอบ */
-  function wayItems(name, lenM, pct, isTray) {
+  function wayItems(name, lenM, pct, kind, hdg) {
     const len = +lenM || 0;
     if (len <= 0) return [];
+    const spec = trayKindOf(kind);
     const sz = traySuffix(name);
-    const kind = isTray ? "Cable Tray" : "Wireway";
     const up = (v) => Math.ceil(v * (1 + (+pct || 0) / 100));
-    const pipeLen = isTray ? TRAY_PIPE_LEN : WAY_PIPE_LEN;
+    const pipeLen = spec.pipeLen;
     const pcs = Math.ceil(len / pipeLen);
     const joint = Math.max(0, pcs - 1) + 2;                       // ทุกรอยต่อ + เผื่อหัวท้าย
     const hanger = Math.ceil(len / WAY_HANGER_STEP);              // ขาแขวนทุก 1.5 ม.
+    const z = (nm) => hdgName(nm, hdg);                           // ของที่สั่งชุบมาทั้งชิ้น — ตัวราง ข้อต่อ ขาแขวน
     const out = [
-      { name: name + " (" + pipeLen.toFixed(1) + "m/ท่อน)", qty: pcs, unit: "ท่อน" },
-      { name: "ชุดข้อต่อราง " + kind + " " + sz, qty: up(joint), unit: "ชุด" },
+      { name: z(trayAlias(name)) + " (" + pipeLen.toFixed(1) + "m/ท่อน)", qty: pcs, unit: "ท่อน" },
+      { name: z("ชุดข้อต่อราง " + spec.brief + " " + sz), qty: up(joint), unit: "ชุด" },
+      /* พุ๊กกับสกรูเป็นของมาตรฐานที่ใช้ร่วมกับงานอื่นทั้งใบ ไม่แยกชุบ — ไม่งั้นบรรทัดเดียวแตกเป็นสองบรรทัด */
       { name: 'พุ๊กเหล็ก 3/8"', qty: up(hanger * 4), unit: "ตัว" },
     ];
-    // รางบันไดแขวนด้วยขาแขวนสำเร็จ · Wireway ยึดพุ๊กเข้าโครงตรง ๆ ไม่ต้องมีขาแขวน
-    if (isTray) out.splice(2, 0, { name: "ขาแขวนราง " + kind + " " + sz, qty: up(hanger), unit: "ชุด" });
-    if (!isTray) out.push({ name: "สกรู+น็อต M6 ประกอบราง", qty: up(pcs * 8), unit: "ชุด" });
+    // รางเคเบิลแขวนด้วยขาแขวนสำเร็จ · Wireway ยึดพุ๊กเข้าโครงตรง ๆ ไม่ต้องมีขาแขวน
+    if (spec.hanger) out.splice(2, 0, { name: z("ขาแขวนราง " + spec.brief + " " + sz), qty: up(hanger), unit: "ชุด" });
+    else out.push({ name: "สกรู+น็อต M6 ประกอบราง", qty: up(pcs * 8), unit: "ชุด" });
     return out;
   }
 
@@ -672,13 +702,17 @@
   ];
   function trayFittings() {
     const out = [];
-    WAY_SIZES.forEach((nm) => {
-      const sz = traySuffix(nm);
-      WAY_FIT_KINDS.forEach((k) => out.push({ name: k + " Wireway " + sz, unit: "ชุด", group: "Wireway" }));
-    });
-    TRAY_SIZES.forEach((nm) => {
-      const sz = traySuffix(nm);
-      WAY_FIT_KINDS.forEach((k) => out.push({ name: k + " Cable Tray " + sz, unit: "ชุด", group: "Cable Tray บันได" }));
+    TRAY_KIND_KEYS.forEach((kk) => {
+      const spec = TRAY_KINDS[kk];
+      // ของชุบ HDG แยกเป็นกลุ่มของตัวเอง — อยู่กลุ่มเดียวกันจะเลือกผิดง่าย เพราะชื่อต่างกันแค่วงเล็บท้าย
+      [false, true].forEach((z) => {
+        spec.sizes.forEach((nm) => {
+          const sz = traySuffix(nm);
+          WAY_FIT_KINDS.forEach((k) => out.push({
+            name: hdgName(k + " " + spec.brief + " " + sz, z), unit: "ชุด", group: hdgName(spec.brief, z),
+          }));
+        });
+      });
     });
     return out;
   }
@@ -688,7 +722,7 @@
      Cable Tray (รางบันได): ≤ 50% ของพื้นที่ราง และควรวางชั้นเดียว คือผลรวมเส้นผ่านศูนย์กลาง ≤ ความกว้างราง
      ตัวคูณลดกระแส: ยิ่งมีตัวนำนำกระแสในรางเดียวกันมาก แต่ละเส้นยิ่งรับกระแสได้น้อยลง
      (ตารางตัวคูณตามจำนวนตัวนำ — แก้ตัวเลขได้ที่นี่ถ้าใช้เกณฑ์ของโครงการอื่น) */
-  const TRAY_FILL_LIMIT = { way: 20, tray: 50 };
+  const TRAY_FILL_LIMIT = { way: TRAY_KINDS.way.fill, tray: TRAY_KINDS.tray.fill, perf: TRAY_KINDS.perf.fill };
   const TRAY_DERATE = [
     { max: 3, f: 1.00 }, { max: 6, f: 0.80 }, { max: 9, f: 0.70 }, { max: 20, f: 0.50 },
     { max: 30, f: 0.45 }, { max: 40, f: 0.40 }, { max: Infinity, f: 0.35 },
@@ -708,7 +742,8 @@
   // จำนวนตัวนำนำกระแสของสาย 1 เส้น จากชื่อ เช่น "CV FD 4C" → 4 · "CV FD 1C" → 1
   function cableCores(type) { const m = /(\d+)\s*C\b/i.exec(String(type || "")); return m ? +m[1] : 1; }
   /* ตรวจ 1 ราง — cables = [{type, size, qty}] (รูปแบบเดียวกับตารางตรวจ WIRE WAY เดิม) */
-  function trayCheck(name, cables, isTray, sizePool) {
+  function trayCheck(name, cables, kind, sizePool) {
+    const spec = trayKindOf(kind);
     const dim = trayDim(name);
     let area = 0, odSum = 0, cores = 0;
     const unknown = [];
@@ -721,7 +756,7 @@
       odSum += od * q;
       cores += cableCores(c.type) * q;
     });
-    const limit = isTray ? TRAY_FILL_LIMIT.tray : TRAY_FILL_LIMIT.way;
+    const limit = spec.fill;
     const pct = dim.area > 0 ? (area / dim.area) * 100 : 0;
     const need = limit > 0 ? area / (limit / 100) : 0;      // พื้นที่รางขั้นต่ำที่ต้องมี (mm²)
     // ขนาดเล็กสุดในรายการที่ยังผ่านเกณฑ์ — ไว้บอกว่าต้องขยับไปเบอร์ไหน
@@ -729,17 +764,28 @@
     (sizePool || []).forEach((nm) => {
       if (suggest) return;
       const d = trayDim(nm);
-      // รางบันไดต้องกว้างพอวางชั้นเดียวด้วย ไม่ใช่ดูแค่พื้นที่
-      if (d.area > 0 && d.area >= need && (!isTray || d.w >= odSum)) suggest = nm;
+      // รางเคเบิลต้องกว้างพอวางชั้นเดียวด้วย ไม่ใช่ดูแค่พื้นที่
+      if (d.area > 0 && d.area >= need && (!spec.oneLayer || d.w >= odSum)) suggest = nm;
     });
     return {
       dim: dim, area: Math.round(area * 10) / 10, fillPct: Math.round(pct * 10) / 10, limit: limit,
       ok: dim.area > 0 && pct <= limit,
       odSum: Math.round(odSum * 10) / 10,
-      widthOk: !isTray || dim.w === 0 || odSum <= dim.w,   // รางบันไดควรวางชั้นเดียว
+      widthOk: !spec.oneLayer || dim.w === 0 || odSum <= dim.w,   // รางเคเบิลควรวางชั้นเดียว
       cores: cores, derate: trayDerate(cores),
       needArea: Math.round(need), suggest: suggest, unknown: unknown,
     };
+  }
+
+  /* ใบถอดของที่บันทึกไว้ก่อนแยกชนิดราง — แปลงชื่อขนาดให้ตรงรายการใหม่
+     ไม่แปลงแล้วดรอปดาวน์จะขึ้นเป็นของนอกรายการ และตารางตรวจสายหาขนาดรางไม่เจอ */
+  function trayNorm(tray) {
+    const t = Object.assign({ way: [], tray: [], perf: [], spare: 10, extra: [] }, tray);
+    TRAY_KIND_KEYS.forEach((k) => {
+      t[k] = (t[k] || []).map((r) => Object.assign({}, r, { size: trayAlias(r.size || "") }));
+    });
+    t.extra = (t.extra || []).map((r) => Object.assign({}, r, { name: trayAlias(r.name || "") }));
+    return t;
   }
 
   /* รวมบรรทัดชื่อซ้ำเป็นบรรทัดเดียว — เช่น พุ๊กเหล็ก ที่ถอดมาจากรางหลายขนาด/หลายจุด */
@@ -1470,14 +1516,24 @@
     if (race.length) groups.push({ group: "RACE WAY", items: mergeItems(race) });
 
     // ── รางไฟ (WIREWAY / CABLE TRAY) ──
-    const tw = b.tray || {};
+    const tw = trayNorm(b.tray);
     const waySpare = tw.spare != null ? +tw.spare : 10;
-    const wayMap = aggBy(tw.way, "length");
-    const trayMap = aggBy(tw.tray, "length");
     let wayTotalLen = 0;
     const wayRows = [];
-    Object.keys(wayMap).forEach((nm) => { wayTotalLen += wayMap[nm]; wayItems(nm, wayMap[nm], waySpare, false).forEach((x) => wayRows.push(x)); });
-    Object.keys(trayMap).forEach((nm) => { wayTotalLen += trayMap[nm]; wayItems(nm, trayMap[nm], waySpare, true).forEach((x) => wayRows.push(x)); });
+    /* รวมแถวขนาดเดียวกันเข้าด้วยกัน แต่ต้องแยกชุบ/ไม่ชุบ — เป็นของคนละตัว คนละราคา รวมบรรทัดกันไม่ได้ */
+    TRAY_KIND_KEYS.forEach((kk) => {
+      const map = {};
+      (tw[kk] || []).forEach((r) => {
+        const nm = (r.size || "").trim(), q = +r.length || 0;
+        if (!nm || q <= 0) return;
+        const key = (r.hdg ? "1|" : "0|") + nm;
+        map[key] = (map[key] || 0) + q;
+      });
+      Object.keys(map).forEach((key) => {
+        wayTotalLen += map[key];
+        wayItems(key.slice(2), map[key], waySpare, kk, key.charAt(0) === "1").forEach((x) => wayRows.push(x));
+      });
+    });
     (tw.extra || []).filter((x) => (x.name || "").trim() && +x.qty > 0)
       .forEach((x) => wayRows.push({ name: x.name.trim(), qty: +x.qty, unit: x.unit || "" }));
     // ชื่อซ้ำ (เช่น พุ๊กเหล็ก ที่มาจากหลายขนาด) รวมเป็นบรรทัดเดียว
@@ -1651,7 +1707,8 @@
   // ── ราคา/ต้นทุน ──────────────────────────────────────────
   // key สำหรับจับคู่ราคา = ชื่อวัสดุ (ตัดส่วนต่อท้าย "(3m/ท่อน)"/"(2.9m/ท่อน)")
   function matKey(name) {
-    return String(name || "").replace(/\s*\((?:3m|2\.9m)\/ท่อน\)\s*$/, "").trim();
+    // trayAlias: ชื่อรางรุ่นเก่าในคลัง/ใบถอดของเก่า ให้เทียบกับชื่อใหม่ได้ ราคาที่ตั้งไว้แล้วจึงไม่หลุด
+    return trayAlias(String(name || "").replace(/\s*\((?:3m|2\.9m)\/ท่อน\)\s*$/, "")).trim();
   }
 
   // รายการวัสดุทั้งหมดที่ BOQ สร้างได้ — ใช้ในหน้า "ราคาวัสดุ" เพื่อกรอกรหัส+ราคา
@@ -1712,16 +1769,16 @@
     PULLBOX_SIZES.forEach((s) => add("RACE WAY", s, "pcs"));
     condFittings().forEach((f) => add("RACE WAY", f.name, f.unit));   // ข้องอ/สามทาง/ข้อลด ของท่อ ทุกขนาด
     // รางไฟ — ตัวราง/ข้อต่อ/ขาแขวน แยกตามขนาด (พุ๊กเหล็กใช้ร่วมกับงานโครงสร้าง)
-    WAY_SIZES.forEach((nm) => {
-      const sz = traySuffix(nm);
-      add(G_TRAY, nm + " (" + WAY_PIPE_LEN.toFixed(1) + "m/ท่อน)", "ท่อน");
-      add(G_TRAY, "ชุดข้อต่อราง Wireway " + sz, "ชุด");
-    });
-    TRAY_SIZES.forEach((nm) => {
-      const sz = traySuffix(nm);
-      add(G_TRAY, nm + " (" + TRAY_PIPE_LEN.toFixed(1) + "m/ท่อน)", "ท่อน");
-      add(G_TRAY, "ชุดข้อต่อราง Cable Tray " + sz, "ชุด");
-      add(G_TRAY, "ขาแขวนราง Cable Tray " + sz, "ชุด");
+    TRAY_KIND_KEYS.forEach((kk) => {
+      const spec = TRAY_KINDS[kk];
+      spec.sizes.forEach((nm) => {
+        const sz = traySuffix(nm);
+        [false, true].forEach((z) => {                            // ของธรรมดา + ของชุบ HDG ตั้งราคาแยกกันได้
+          add(G_TRAY, hdgName(nm, z) + " (" + spec.pipeLen.toFixed(1) + "m/ท่อน)", "ท่อน");
+          add(G_TRAY, hdgName("ชุดข้อต่อราง " + spec.brief + " " + sz, z), "ชุด");
+          if (spec.hanger) add(G_TRAY, hdgName("ขาแขวนราง " + spec.brief + " " + sz, z), "ชุด");
+        });
+      });
     });
     add(G_TRAY, "สกรู+น็อต M6 ประกอบราง", "ชุด");
     trayFittings().forEach((f) => add(G_TRAY, f.name, f.unit));       // ข้องอ/สามทาง/แผ่นปิด ของราง ทุกขนาด
@@ -1930,7 +1987,8 @@
   const findOptimizer = (model) => OPTIMIZERS.find((o) => o.model === model) || null;
 
   window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
-    WAY_SIZES, TRAY_SIZES, WAY_PIPE_LEN, TRAY_PIPE_LEN, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
+    WAY_SIZES, TRAY_SIZES, PERF_SIZES, TRAY_KINDS, TRAY_KIND_KEYS, trayKindOf, trayNorm, trayAlias, hdgName,
+    WAY_PIPE_LEN, TRAY_PIPE_LEN, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
     COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings,
     STEEL_SPECS, steelName, steelBarLen, steelSel, steelOf,
     TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, ACC_ALLOW_PCT, VAT_RATE, priceBreakdown,
