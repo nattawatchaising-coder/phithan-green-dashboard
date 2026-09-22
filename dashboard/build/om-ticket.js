@@ -111,7 +111,9 @@ function OmTicketReport({
   role,
   currentUser,
   locked,
-  onPatch
+  onPatch,
+  paper,
+  onPaper
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const t = ticket;
@@ -120,7 +122,6 @@ function OmTicketReport({
   const shots = window.useOmTicketPhotos(t ? t.id : null);
   const [pad, setPad] = React.useState(null);
   const [remember, setRemember] = React.useState(true);
-  const [paper, setPaper] = React.useState(false);
   if (!t) return null;
   const set = fields => {
     if (!locked) onPatch(t.id, fields);
@@ -161,28 +162,7 @@ function OmTicketReport({
     style: {
       display: "block"
     }
-  }, ready ? "เซ็นครบแล้ว พร้อมส่งให้ลูกค้า" : "ยังไม่ได้เซ็นครบทั้งสองฝ่าย — พิมพ์ออกมาได้ แต่ยังไม่ใช่เอกสารรับงาน")), React.createElement("button", {
-    type: "button",
-    onClick: () => setPaper(true),
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      padding: "8px 14px",
-      borderRadius: 9,
-      border: "none",
-      background: "#1B9B75",
-      color: "#fff",
-      cursor: "pointer",
-      fontFamily: "inherit",
-      fontSize: 12.5,
-      fontWeight: 700
-    }
-  }, React.createElement(Icon, {
-    name: "file",
-    size: 14,
-    color: "#fff"
-  }), " \u0E2D\u0E2D\u0E01 Report (A4)")), React.createElement(window.DrLabel, {
+  }, ready ? "เซ็นครบแล้ว พร้อมส่งให้ลูกค้า" : "ยังไม่ได้เซ็นครบทั้งสองฝ่าย — พิมพ์ออกมาได้ แต่ยังไม่ใช่เอกสารรับงาน"))), React.createElement(window.DrLabel, {
     hint: "\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E43\u0E0A\u0E49\u0E2D\u0E30\u0E44\u0E23\u0E01\u0E47\u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07\u0E44\u0E27\u0E49"
   }, "\u0E2D\u0E30\u0E44\u0E2B\u0E25\u0E48 / \u0E27\u0E31\u0E2A\u0E14\u0E38\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49"), React.createElement(window.DrRows, {
     disabled: locked,
@@ -261,7 +241,7 @@ function OmTicketReport({
     signs: sigs.signs,
     photos: shots.photos,
     onFrame: locked ? null : shots.setFrame,
-    onClose: () => setPaper(false)
+    onClose: () => onPaper(false)
   }));
 }
 function OmTicketCard({
@@ -575,6 +555,7 @@ function OmTicketModal({
   const [tab, setTab] = React.useState("before");
   const [delAsk, setDelAsk] = React.useState(false);
   const [moveNote, setMoveNote] = React.useState("");
+  const [paper, setPaper] = React.useState(false);
   if (!ticket) return null;
   const t = ticket;
   const st = window.omTicketStatusOf(t.status);
@@ -679,7 +660,7 @@ function OmTicketModal({
   }, React.createElement(Icon, {
     name: "x",
     size: 15
-  }))), canWrite && (!!nexts.length || !!backs.length) && React.createElement("div", {
+  }))), React.createElement("div", {
     style: {
       display: "flex",
       gap: 7,
@@ -687,7 +668,7 @@ function OmTicketModal({
       flexWrap: "wrap",
       alignItems: "center"
     }
-  }, nexts.map(n => React.createElement("button", {
+  }, canWrite && nexts.map(n => React.createElement("button", {
     key: n.key,
     onClick: () => {
       onMove(t, n.key, moveNote);
@@ -711,7 +692,7 @@ function OmTicketModal({
     name: "arrowRight",
     size: 14,
     color: "#fff"
-  }), " ", n.th)), backs.map(n => {
+  }), " ", n.th)), canWrite && backs.map(n => {
     const drop = n.key === "rejected";
     const label = drop ? "ไม่รับเรื่อง" : "ย้อนกลับไป" + n.th;
     return React.createElement("button", {
@@ -740,7 +721,33 @@ function OmTicketModal({
       size: 12,
       color: "var(--text-3)"
     }), " ", label);
-  }))), React.createElement("div", {
+  }), React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }), React.createElement("button", {
+    type: "button",
+    onClick: () => setPaper(true),
+    title: "ออกใบรายงานเข้าบริการ " + t.no + " เป็น A4 / PDF",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "8px 14px",
+      borderRadius: 9,
+      border: "none",
+      background: "#1B9B75",
+      color: "#fff",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 14,
+    color: "#fff"
+  }), " \u0E2D\u0E2D\u0E01 Report (A4)"))), React.createElement("div", {
     style: {
       padding: isMobile ? "14px 13px 24px" : "18px 20px 26px"
     }
@@ -1129,6 +1136,8 @@ function OmTicketModal({
     site: site,
     role: role,
     currentUser: currentUser,
+    paper: paper,
+    onPaper: setPaper,
     locked: locked,
     onPatch: onPatch
   }), !!vSorted.length && React.createElement("div", {

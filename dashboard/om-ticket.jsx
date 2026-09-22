@@ -65,7 +65,7 @@ function OmPhotos({ ticketId, slot, currentUser, disabled }) {
    ใบที่สองจึงเป็นแค่ที่แปะลายเซ็น แลกกับเลขเอกสารสองชุดที่ต้องไล่ให้ตรงกัน
    ตอนนี้เหลือใบเดียว — อะไหล่กับลายเซ็นอยู่บนใบแจ้งซ่อม (omTickets / omTicketSigns)
    แล้วพิมพ์ A4 ออกจากใบเดิมได้เลย */
-function OmTicketReport({ ticket, site, role, currentUser, locked, onPatch }) {
+function OmTicketReport({ ticket, site, role, currentUser, locked, onPatch, paper, onPaper }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const t = ticket;
   const sigs = window.useOmTicketSigns(t ? t.id : null);
@@ -74,7 +74,6 @@ function OmTicketReport({ ticket, site, role, currentUser, locked, onPatch }) {
   const shots = window.useOmTicketPhotos(t ? t.id : null);
   const [pad, setPad] = React.useState(null);
   const [remember, setRemember] = React.useState(true);
-  const [paper, setPaper] = React.useState(false);
   if (!t) return null;
 
   const set = (fields) => { if (!locked) onPatch(t.id, fields); };
@@ -94,11 +93,6 @@ function OmTicketReport({ ticket, site, role, currentUser, locked, onPatch }) {
             {ready ? "เซ็นครบแล้ว พร้อมส่งให้ลูกค้า" : "ยังไม่ได้เซ็นครบทั้งสองฝ่าย — พิมพ์ออกมาได้ แต่ยังไม่ใช่เอกสารรับงาน"}
           </span>
         </span>
-        <button type="button" onClick={() => setPaper(true)}
-          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9, border: "none",
-            background: "#1B9B75", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700 }}>
-          <Icon name="file" size={14} color="#fff" /> ออก Report (A4)
-        </button>
       </div>
 
       <window.DrLabel hint="ไม่ได้ใช้อะไรก็เว้นว่างไว้">อะไหล่ / วัสดุที่ใช้</window.DrLabel>
@@ -139,7 +133,7 @@ function OmTicketReport({ ticket, site, role, currentUser, locked, onPatch }) {
       {paper && (
         <window.OmVisitPaper visit={window.omTicketPaperDoc(t, site)} site={site}
           signs={sigs.signs} photos={shots.photos} onFrame={locked ? null : shots.setFrame}
-          onClose={() => setPaper(false)} />
+          onClose={() => onPaper(false)} />
       )}
     </React.Fragment>
   );
@@ -289,6 +283,8 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
   const [tab, setTab] = React.useState("before");
   const [delAsk, setDelAsk] = React.useState(false);
   const [moveNote, setMoveNote] = React.useState("");
+  /* หน้ากระดาษ A4 เปิดจากปุ่มบนหัวหน้าต่าง แต่ตัวกระดาษถูกวาดในหมวดรายงาน (ที่นั่นมีลายเซ็นกับรูปอยู่แล้ว) */
+  const [paper, setPaper] = React.useState(false);
   if (!ticket) return null;
 
   const t = ticket;
@@ -341,31 +337,37 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
             </button>
           </div>
 
-          {/* ปุ่มเดินสถานะ — รายการมาจากตารางสถานะ ไม่มีทางกดข้ามขั้น */}
-          {canWrite && (!!nexts.length || !!backs.length) && (
-            <div style={{ display: "flex", gap: 7, marginTop: 11, flexWrap: "wrap", alignItems: "center" }}>
-              {nexts.map((n) => (
+          {/* ปุ่มเดินสถานะ — รายการมาจากตารางสถานะ ไม่มีทางกดข้ามขั้น
+              ปุ่มออกใบ A4 อยู่แถวนี้ด้วย เพราะเป็นสิ่งที่กดบ่อยที่สุดหลังปิดงาน
+              เดิมอยู่ล่างสุดในหมวด 6 ต้องเลื่อนผ่านทั้งใบกว่าจะถึง */}
+          <div style={{ display: "flex", gap: 7, marginTop: 11, flexWrap: "wrap", alignItems: "center" }}>
+            {canWrite && nexts.map((n) => (
                 <button key={n.key} onClick={() => { onMove(t, n.key, moveNote); setMoveNote(""); }}
                   style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, border: "none",
                     background: n.color, color: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700 }}>
                   <Icon name="arrowRight" size={14} color="#fff" /> {n.th}
                 </button>
               ))}
-              {backs.map((n) => {
-                const drop = n.key === "rejected";
-                const label = drop ? "ไม่รับเรื่อง" : "ย้อนกลับไป" + n.th;
-                return (
-                  <button key={n.key} title={drop ? "ตีตกเรื่องนี้ ไม่เข้าซ่อม" : "กดผิดขั้น — ถอยกลับไปขั้นก่อนหน้า"}
-                    onClick={() => { onMove(t, n.key, moveNote); setMoveNote(""); }}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 11px", borderRadius: 9,
-                      border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
-                      fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>
-                    <Icon name={drop ? "x" : "undo"} size={12} color="var(--text-3)" /> {label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+            {canWrite && backs.map((n) => {
+              const drop = n.key === "rejected";
+              const label = drop ? "ไม่รับเรื่อง" : "ย้อนกลับไป" + n.th;
+              return (
+                <button key={n.key} title={drop ? "ตีตกเรื่องนี้ ไม่เข้าซ่อม" : "กดผิดขั้น — ถอยกลับไปขั้นก่อนหน้า"}
+                  onClick={() => { onMove(t, n.key, moveNote); setMoveNote(""); }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 11px", borderRadius: 9,
+                    border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+                    fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>
+                  <Icon name={drop ? "x" : "undo"} size={12} color="var(--text-3)" /> {label}
+                </button>
+              );
+            })}
+            <span style={{ flex: 1 }} />
+            <button type="button" onClick={() => setPaper(true)} title={"ออกใบรายงานเข้าบริการ " + t.no + " เป็น A4 / PDF"}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9, border: "none",
+                background: "#1B9B75", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700 }}>
+              <Icon name="file" size={14} color="#fff" /> ออก Report (A4)
+            </button>
+          </div>
         </div>
 
         <div style={{ padding: isMobile ? "14px 13px 24px" : "18px 20px 26px" }}>
@@ -546,7 +548,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
           {/* รายงานเข้าบริการ — ใบแจ้งซ่อมใบนี้คือตัวเอกสารเอง ไม่ต้องออกใบที่สองอีกต่อไป
               ของที่ต้องกรอกเพิ่มจากด้านบนมีแค่อะไหล่ที่ใช้กับลายเซ็นรับงาน แล้วกดพิมพ์ A4 ได้เลย */}
           <window.DrSection n="6" title="รายงานเข้าบริการ" tone="#1B9B75" hint="ใบแจ้งซ่อมใบนี้คือตัวรายงาน">
-            <OmTicketReport ticket={t} site={site} role={role} currentUser={currentUser}
+            <OmTicketReport ticket={t} site={site} role={role} currentUser={currentUser} paper={paper} onPaper={setPaper}
               locked={locked} onPatch={onPatch} />
             {/* ใบรายงานชุดเดิมที่เคยออกไว้ก่อนรวมเป็นใบเดียว — ยังเปิดดูได้ ไม่ปล่อยให้เอกสารเก่าหายไป */}
             {!!vSorted.length && (
