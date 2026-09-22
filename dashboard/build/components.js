@@ -937,6 +937,79 @@ function SearchPick({
     }
   }, "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E17\u0E35\u0E48\u0E15\u0E23\u0E07\u0E01\u0E31\u0E1A\u0E04\u0E33\u0E04\u0E49\u0E19")));
 }
+function pgTimeFix(raw, min, max) {
+  const s = String(raw == null ? "" : raw).trim();
+  if (!s) return "";
+  let h, m;
+  const c = s.indexOf(":");
+  if (c >= 0) {
+    h = +s.slice(0, c).replace(/[^0-9]/g, "");
+    const mm = s.slice(c + 1).replace(/[^0-9]/g, "");
+    m = mm === "" ? 0 : +mm;
+  } else {
+    const d = s.replace(/[^0-9]/g, "").slice(0, 4);
+    if (!d) return "";
+    h = d.length <= 2 ? +d : +d.slice(0, d.length - 2);
+    m = d.length <= 2 ? 0 : +d.slice(-2);
+  }
+  if (!isFinite(h)) return "";
+  if (!isFinite(m)) m = 0;
+  if (h > 23) {
+    h = 23;
+    m = 59;
+  }
+  const p2 = x => (x < 10 ? "0" : "") + x;
+  let out = p2(Math.max(0, h)) + ":" + p2(Math.max(0, Math.min(59, m)));
+  if (min && out < min) out = min;
+  if (max && out > max) out = max;
+  return out;
+}
+function PgTime({
+  value,
+  onChange,
+  disabled,
+  min,
+  max,
+  style,
+  placeholder,
+  ariaLabel
+}) {
+  const [txt, setTxt] = React.useState(value || "");
+  const [typing, setTyping] = React.useState(false);
+  React.useEffect(() => {
+    if (!typing) setTxt(value || "");
+  }, [value, typing]);
+  const type = e => {
+    let t = String(e.target.value).replace(/[^0-9:]/g, "").slice(0, 5);
+    if (t.indexOf(":") < 0 && t.length > 2) t = t.slice(0, t.length - 2) + ":" + t.slice(-2);
+    setTyping(true);
+    setTxt(t);
+    if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(t)) {
+      const fix = pgTimeFix(t, min, max);
+      if (fix !== (value || "")) onChange(fix);
+    }
+  };
+  const done = e => {
+    const fix = pgTimeFix(e.target.value, min, max);
+    setTyping(false);
+    setTxt(fix);
+    if (fix !== (value || "")) onChange(fix);
+  };
+  return React.createElement("input", {
+    type: "text",
+    inputMode: "numeric",
+    value: txt,
+    disabled: disabled,
+    "aria-label": ariaLabel,
+    placeholder: placeholder || "--:--",
+    onChange: type,
+    onBlur: done,
+    onKeyDown: e => {
+      if (e.key === "Enter") e.currentTarget.blur();
+    },
+    style: style
+  });
+}
 Object.assign(window, {
   Icon,
   ICONS,
@@ -950,6 +1023,8 @@ Object.assign(window, {
   Segmented,
   Dropdown,
   useBackdropClose,
+  PgTime,
+  pgTimeFix,
   thDate,
   thDateTime,
   fmtBaht,

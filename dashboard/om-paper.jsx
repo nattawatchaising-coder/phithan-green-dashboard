@@ -187,12 +187,12 @@ function OmVisitModal({ visit, site, siteVisits, role, currentUser, onClose, onP
                 </div>
                 <div>
                   <window.DrLabel>เวลาเข้า</window.DrLabel>
-                  <input type="time" value={v.timeIn || ""} disabled={locked} onChange={(e) => set({ timeIn: e.target.value })}
+                  <window.PgTime value={v.timeIn || ""} disabled={locked} onChange={(t) => set({ timeIn: t })}
                     style={Object.assign({}, window.OM_INPUT, { padding: "8px 10px", fontFamily: "var(--mono)", fontSize: 12.5 })} />
                 </div>
                 <div>
                   <window.DrLabel>เวลาออก</window.DrLabel>
-                  <input type="time" value={v.timeOut || ""} disabled={locked} onChange={(e) => set({ timeOut: e.target.value })}
+                  <window.PgTime value={v.timeOut || ""} disabled={locked} onChange={(t) => set({ timeOut: t })}
                     style={Object.assign({}, window.OM_INPUT, { padding: "8px 10px", fontFamily: "var(--mono)", fontSize: 12.5 })} />
                 </div>
                 <div>
@@ -486,9 +486,10 @@ function OmShot({ p, n, ratio, tune, onFrame, T }) {
 
 /* แผ่นใหม่ในไฟล์ PDF — ขึ้นหน้าใหม่เสมอตอนพิมพ์ (ดู .om-sheet ใน index.html)
    หัวใหญ่เท่าชื่อเอกสาร เพราะเปิดไฟล์มาแล้วต้องรู้ทันทีว่าแผ่นนี้คือรูปก่อนหรือหลังทำงาน */
-function OmPSheet({ title, sub, children }) {
+function OmPSheet({ title, sub, head, children }) {
   return (
     <div className="om-sheet" style={{ marginTop: 26, paddingTop: 16, borderTop: "2px solid #1B9B75" }}>
+      {head}
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
         <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-.01em", color: "#15211A" }}>{title}</div>
         <div style={{ fontSize: 11, color: "#7A8A81" }}>{sub}</div>
@@ -519,7 +520,6 @@ function OmVisitPaper({ visit, site, signs, photos, onFrame, onClose }) {
      ไม่ส่งมา (หรือใบถูกล็อก) ก็ดูได้อย่างเดียว ปรับไม่ได้ */
   const frameSet = photos ? onFrame : own.setFrame;
   const v = visit;
-  const st = window.omVisitStatusOf(v.status);
   const kind = window.OM_VISIT_KIND_BY[v.kind] || window.OM_VISIT_KIND_BY.repair;
   const cov = window.omCoverTH(v.cover);
   const parts = (v.parts || []).filter((p) => p && (p.name || p.qty));
@@ -547,11 +547,30 @@ function OmVisitPaper({ visit, site, signs, photos, onFrame, onClose }) {
     borderBottom: "1px solid #C9D5CE", whiteSpace: "nowrap" };
   const td = { padding: "5px 7px", fontSize: 10.5, color: "#15211A", borderBottom: "1px solid #ECF1EE", verticalAlign: "top" };
 
+  /* หัวกระดาษย่อของแผ่นที่สองเป็นต้นไป — แผ่นรูปหลุดออกจากแผ่นแรกไปแล้ว
+     ถ้าไม่มีหัว เอกสารที่ปริ้นออกมาแล้วกระจายบนโต๊ะจะบอกไม่ได้ว่าแผ่นไหนของใบไหน */
+  const sheetHead = (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap",
+      borderBottom: "2px solid #1B9B75", paddingBottom: 9, marginBottom: 16 }}>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+          <window.BrandMark size={20} variant="light" />
+          <window.BrandWord size={14} color="#0F2B33" />
+        </div>
+        <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: ".12em", color: "#7A8A81", marginTop: 5 }}>SOLAR O&amp;M — SERVICE VISIT REPORT</div>
+      </div>
+      <div style={{ textAlign: "right", fontSize: 10.5, color: "#4A5A51", lineHeight: 1.7 }}>
+        <div style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "#15211A" }}>{v.no}</div>
+        <div>{DT(v.date)}</div>
+      </div>
+    </div>
+  );
+
   /* รูปก่อน/หลังไปคนละแผ่นกับเนื้อใบและคนละแผ่นกันเอง — ลูกค้าเปิดไฟล์แล้วเห็นหัวแผ่นชัด ๆ
      ว่ากำลังดูชุดไหน · รูปวางสองคอลัมน์ ทุกช่องสูงเท่ากัน ไม่ยืดรูป */
   const shots = (title, list) => (
     !list.length ? null : (
-      <OmPSheet title={T(title)}
+      <OmPSheet title={T(title)} head={sheetHead}
         sub={list.length + " " + T("รูป") + " · " + (v.no || "") + (v.siteName || (site || {}).name ? " · " + (v.siteName || site.name) : "")}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, alignItems: "start" }}>
           {list.map((p, i) => (
@@ -616,6 +635,10 @@ function OmVisitPaper({ visit, site, signs, photos, onFrame, onClose }) {
         fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
         padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "0 20px 60px rgba(8,20,14,.28)" }}>
 
+        {/* แผ่นแรกสูงเต็มหน้ากระดาษเสมอ ช่องเซ็นจึงถูกดันลงไปติดขอบล่าง (.om-page ใน index.html)
+            ไม่งั้นใบที่เนื้อหาสั้นจะมีลายเซ็นลอยอยู่กลางหน้าแล้วเหลือพื้นที่ขาวยาวใต้ลงไป */}
+        <div className="om-page">
+
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap",
           borderBottom: "2px solid #1B9B75", paddingBottom: 11 }}>
           <div style={{ minWidth: 0 }}>
@@ -629,8 +652,6 @@ function OmVisitPaper({ visit, site, signs, photos, onFrame, onClose }) {
           <div style={{ textAlign: "right", fontSize: 11, color: "#4A5A51", lineHeight: 1.75 }}>
             <div style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "#15211A" }}>{v.no}</div>
             <div>{DT(v.date)}</div>
-            <div style={{ display: "inline-block", marginTop: 3, padding: "2px 9px", borderRadius: 99,
-              background: st.color + "22", color: st.color, fontWeight: 700, fontSize: 10.5 }}>{T(st.th)}</div>
           </div>
         </div>
 
@@ -698,7 +719,7 @@ function OmVisitPaper({ visit, site, signs, photos, onFrame, onClose }) {
 
         {/* ช่องเซ็น — ช่างกับลูกค้า เซ็นในระบบแล้วพิมพ์ลายเซ็นจริงลงบนเส้น
             ยังไม่เซ็นก็เว้นเส้นว่างไว้เซ็นด้วยปากกาที่หน้างาน */}
-        <div style={{ marginTop: 22, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, breakInside: "avoid" }}>
+        <div className="om-sign" style={{ marginTop: 22, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, breakInside: "avoid" }}>
           {[{ t: T("ช่างผู้ให้บริการ"), n: v.byName, d: v.sentAt || v.updatedAt || v.createdAt, s: g.tech },
             { t: T("ลูกค้าผู้รับบริการ"), n: v.siteName, d: v.date, s: g.cust }].map((x, i) => (
             <div key={i} style={{ border: "1px solid #DCE4DF", borderRadius: 8, padding: "12px 14px" }}>
@@ -729,6 +750,8 @@ function OmVisitPaper({ visit, site, signs, photos, onFrame, onClose }) {
 
         <div style={{ marginTop: 14, fontSize: 9.5, color: "#8A9A91", textAlign: "center" }}>
           {T("เอกสารนี้ออกจากระบบงานบริการหลังการขาย")} flash+solar · {v.no} · {T("พิมพ์เมื่อ")} {DTs(window.drToday())}
+        </div>
+
         </div>
 
         {shots("รูปก่อนทำงาน", before)}

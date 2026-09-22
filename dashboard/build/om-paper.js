@@ -367,24 +367,22 @@ function OmVisitModal({
       fontFamily: "var(--mono)",
       fontSize: 12.5
     })
-  })), React.createElement("div", null, React.createElement(window.DrLabel, null, "\u0E40\u0E27\u0E25\u0E32\u0E40\u0E02\u0E49\u0E32"), React.createElement("input", {
-    type: "time",
+  })), React.createElement("div", null, React.createElement(window.DrLabel, null, "\u0E40\u0E27\u0E25\u0E32\u0E40\u0E02\u0E49\u0E32"), React.createElement(window.PgTime, {
     value: v.timeIn || "",
     disabled: locked,
-    onChange: e => set({
-      timeIn: e.target.value
+    onChange: t => set({
+      timeIn: t
     }),
     style: Object.assign({}, window.OM_INPUT, {
       padding: "8px 10px",
       fontFamily: "var(--mono)",
       fontSize: 12.5
     })
-  })), React.createElement("div", null, React.createElement(window.DrLabel, null, "\u0E40\u0E27\u0E25\u0E32\u0E2D\u0E2D\u0E01"), React.createElement("input", {
-    type: "time",
+  })), React.createElement("div", null, React.createElement(window.DrLabel, null, "\u0E40\u0E27\u0E25\u0E32\u0E2D\u0E2D\u0E01"), React.createElement(window.PgTime, {
     value: v.timeOut || "",
     disabled: locked,
-    onChange: e => set({
-      timeOut: e.target.value
+    onChange: t => set({
+      timeOut: t
     }),
     style: Object.assign({}, window.OM_INPUT, {
       padding: "8px 10px",
@@ -987,6 +985,7 @@ function OmShot({
 function OmPSheet({
   title,
   sub,
+  head,
   children
 }) {
   return React.createElement("div", {
@@ -996,7 +995,7 @@ function OmPSheet({
       paddingTop: 16,
       borderTop: "2px solid #1B9B75"
     }
-  }, React.createElement("div", {
+  }, head, React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "baseline",
@@ -1041,7 +1040,6 @@ function OmVisitPaper({
   const photoList = photos || own.photos;
   const frameSet = photos ? onFrame : own.setFrame;
   const v = visit;
-  const st = window.omVisitStatusOf(v.status);
   const kind = window.OM_VISIT_KIND_BY[v.kind] || window.OM_VISIT_KIND_BY.repair;
   const cov = window.omCoverTH(v.cover);
   const parts = (v.parts || []).filter(p => p && (p.name || p.qty));
@@ -1076,8 +1074,58 @@ function OmVisitPaper({
     borderBottom: "1px solid #ECF1EE",
     verticalAlign: "top"
   };
+  const sheetHead = React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-end",
+      gap: 16,
+      flexWrap: "wrap",
+      borderBottom: "2px solid #1B9B75",
+      paddingBottom: 9,
+      marginBottom: 16
+    }
+  }, React.createElement("div", {
+    style: {
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 7
+    }
+  }, React.createElement(window.BrandMark, {
+    size: 20,
+    variant: "light"
+  }), React.createElement(window.BrandWord, {
+    size: 14,
+    color: "#0F2B33"
+  })), React.createElement("div", {
+    style: {
+      fontSize: 9.5,
+      fontWeight: 600,
+      letterSpacing: ".12em",
+      color: "#7A8A81",
+      marginTop: 5
+    }
+  }, "SOLAR O&M \u2014 SERVICE VISIT REPORT")), React.createElement("div", {
+    style: {
+      textAlign: "right",
+      fontSize: 10.5,
+      color: "#4A5A51",
+      lineHeight: 1.7
+    }
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontWeight: 700,
+      color: "#15211A"
+    }
+  }, v.no), React.createElement("div", null, DT(v.date))));
   const shots = (title, list) => !list.length ? null : React.createElement(OmPSheet, {
     title: T(title),
+    head: sheetHead,
     sub: list.length + " " + T("รูป") + " · " + (v.no || "") + (v.siteName || (site || {}).name ? " · " + (v.siteName || site.name) : "")
   }, React.createElement("div", {
     style: {
@@ -1259,6 +1307,8 @@ function OmVisitPaper({
       boxShadow: "0 20px 60px rgba(8,20,14,.28)"
     }
   }, React.createElement("div", {
+    className: "om-page"
+  }, React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
@@ -1312,18 +1362,7 @@ function OmVisitPaper({
       fontWeight: 700,
       color: "#15211A"
     }
-  }, v.no), React.createElement("div", null, DT(v.date)), React.createElement("div", {
-    style: {
-      display: "inline-block",
-      marginTop: 3,
-      padding: "2px 9px",
-      borderRadius: 99,
-      background: st.color + "22",
-      color: st.color,
-      fontWeight: 700,
-      fontSize: 10.5
-    }
-  }, T(st.th)))), React.createElement("div", {
+  }, v.no), React.createElement("div", null, DT(v.date)))), React.createElement("div", {
     style: {
       marginTop: 13,
       display: "grid",
@@ -1454,6 +1493,7 @@ function OmVisitPaper({
       color: "#15211A"
     }
   }, T("นัดครั้งถัดไป:"), " ", React.createElement("b", null, DT(v.nextDue)))), React.createElement("div", {
+    className: "om-sign",
     style: {
       marginTop: 22,
       display: "grid",
@@ -1537,7 +1577,7 @@ function OmVisitPaper({
       color: "#8A9A91",
       textAlign: "center"
     }
-  }, T("เอกสารนี้ออกจากระบบงานบริการหลังการขาย"), " flash+solar \xB7 ", v.no, " \xB7 ", T("พิมพ์เมื่อ"), " ", DTs(window.drToday())), shots("รูปก่อนทำงาน", before), shots("รูปหลังทำงาน", after))), document.body);
+  }, T("เอกสารนี้ออกจากระบบงานบริการหลังการขาย"), " flash+solar \xB7 ", v.no, " \xB7 ", T("พิมพ์เมื่อ"), " ", DTs(window.drToday()))), shots("รูปก่อนทำงาน", before), shots("รูปหลังทำงาน", after))), document.body);
 }
 function OmVisitList({
   sites,

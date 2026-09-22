@@ -701,11 +701,11 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
           </label>
           <label style={TM_LB}>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ตั้งแต่</span>
-            <input type="time" value={f.from} disabled={!editable} onChange={(e) => set("from", e.target.value)} style={TM_IN_W} />
+            <window.PgTime value={f.from} disabled={!editable} onChange={(t) => set("from", t)} style={TM_IN_W} />
           </label>
           <label style={TM_LB}>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ถึง</span>
-            <input type="time" value={f.to} disabled={!editable} onChange={(e) => set("to", e.target.value)} style={TM_IN_W} />
+            <window.PgTime value={f.to} disabled={!editable} onChange={(t) => set("to", t)} style={TM_IN_W} />
           </label>
           <label style={TM_LB}>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ประเภท</span>
@@ -1002,11 +1002,11 @@ function TmWorkHours({ cfg, onSave }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 10 }}>
         <label style={TM_LB}>
           <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>เข้างานได้ตั้งแต่</span>
-          <input type="time" value={f.startEarly} onChange={(e) => set("startEarly", e.target.value)} style={TM_IN_W} />
+          <window.PgTime value={f.startEarly} onChange={(t) => set("startEarly", t)} style={TM_IN_W} />
         </label>
         <label style={TM_LB}>
           <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>เข้างานช้าสุด</span>
-          <input type="time" value={f.startLate} onChange={(e) => set("startLate", e.target.value)} style={TM_IN_W} />
+          <window.PgTime value={f.startLate} onChange={(t) => set("startLate", t)} style={TM_IN_W} />
         </label>
         <label style={TM_LB}>
           <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ทำงานวันละ (นาที)</span>

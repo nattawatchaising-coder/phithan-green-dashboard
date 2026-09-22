@@ -1134,10 +1134,9 @@ function SurveyApptModal({
     }
   }, React.createElement("label", {
     style: lbl
-  }, "\u0E40\u0E27\u0E25\u0E32\u0E40\u0E23\u0E34\u0E48\u0E21"), React.createElement("input", {
-    type: "time",
+  }, "\u0E40\u0E27\u0E25\u0E32\u0E40\u0E23\u0E34\u0E48\u0E21"), React.createElement(window.PgTime, {
     value: f._start,
-    onChange: e => set("_start", e.target.value),
+    onChange: t => set("_start", t),
     style: inputStyle
   })), React.createElement("div", {
     style: {
@@ -1147,10 +1146,9 @@ function SurveyApptModal({
     }
   }, React.createElement("label", {
     style: lbl
-  }, "\u0E40\u0E27\u0E25\u0E32\u0E2A\u0E34\u0E49\u0E19\u0E2A\u0E38\u0E14"), React.createElement("input", {
-    type: "time",
+  }, "\u0E40\u0E27\u0E25\u0E32\u0E2A\u0E34\u0E49\u0E19\u0E2A\u0E38\u0E14"), React.createElement(window.PgTime, {
     value: f._end,
-    onChange: e => set("_end", e.target.value),
+    onChange: t => set("_end", t),
     style: inputStyle
   }))), clash && React.createElement("div", {
     style: {

@@ -989,24 +989,22 @@ function OmTicketModal({
       fontFamily: "var(--mono)",
       fontSize: 12.5
     })
-  })), React.createElement("div", null, React.createElement(window.DrLabel, null, "\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48"), React.createElement("input", {
-    type: "time",
+  })), React.createElement("div", null, React.createElement(window.DrLabel, null, "\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48"), React.createElement(window.PgTime, {
     value: t.apptFrom || "",
     disabled: locked,
-    onChange: e => set({
-      apptFrom: e.target.value
+    onChange: x => set({
+      apptFrom: x
     }),
     style: Object.assign({}, window.OM_INPUT, {
       padding: "8px 10px",
       fontFamily: "var(--mono)",
       fontSize: 12.5
     })
-  })), React.createElement("div", null, React.createElement(window.DrLabel, null, "\u0E16\u0E36\u0E07"), React.createElement("input", {
-    type: "time",
+  })), React.createElement("div", null, React.createElement(window.DrLabel, null, "\u0E16\u0E36\u0E07"), React.createElement(window.PgTime, {
     value: t.apptTo || "",
     disabled: locked,
-    onChange: e => set({
-      apptTo: e.target.value
+    onChange: x => set({
+      apptTo: x
     }),
     style: Object.assign({}, window.OM_INPUT, {
       padding: "8px 10px",

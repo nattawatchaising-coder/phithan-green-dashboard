@@ -420,8 +420,8 @@ function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, onClos
             <input type="date" value={f._date} onChange={(e) => set("_date", e.target.value)} style={inputStyle} />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>เวลาเริ่ม</label><input type="time" value={f._start} onChange={(e) => set("_start", e.target.value)} style={inputStyle} /></div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>เวลาสิ้นสุด</label><input type="time" value={f._end} onChange={(e) => set("_end", e.target.value)} style={inputStyle} /></div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>เวลาเริ่ม</label><window.PgTime value={f._start} onChange={(t) => set("_start", t)} style={inputStyle} /></div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>เวลาสิ้นสุด</label><window.PgTime value={f._end} onChange={(t) => set("_end", t)} style={inputStyle} /></div>
           </div>
           {clash && <div style={{ fontSize: 12, color: "var(--tint-red-tx)", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)", borderRadius: 9, padding: "9px 11px", fontWeight: 600 }}>⚠ วิศวกรคนนี้มีนัดซ้อนทับช่วงเวลานี้ ({_hm(clash.start)}–{_hm(clash.end)} · {clash.jobName})</div>}
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>

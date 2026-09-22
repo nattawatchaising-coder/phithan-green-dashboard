@@ -653,22 +653,20 @@ function OmCleanVisits({
         fontSize: 12.5,
         fontFamily: "var(--mono)"
       })
-    }), React.createElement("input", {
-      type: "time",
+    }), React.createElement(window.PgTime, {
       value: v.timeFrom || "",
-      onChange: e => setV(v, {
-        timeFrom: e.target.value
+      onChange: t => setV(v, {
+        timeFrom: t
       }),
       style: Object.assign({}, OM_INPUT, {
         padding: "7px 9px",
         fontSize: 12.5,
         fontFamily: "var(--mono)"
       })
-    }), React.createElement("input", {
-      type: "time",
+    }), React.createElement(window.PgTime, {
       value: v.timeTo || "",
-      onChange: e => setV(v, {
-        timeTo: e.target.value
+      onChange: t => setV(v, {
+        timeTo: t
       }),
       style: Object.assign({}, OM_INPUT, {
         padding: "7px 9px",

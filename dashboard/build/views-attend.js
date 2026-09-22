@@ -1680,11 +1680,10 @@ function TmOtModal({
       fontWeight: 700,
       color: "var(--text-3)"
     }
-  }, "\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48"), React.createElement("input", {
-    type: "time",
+  }, "\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48"), React.createElement(window.PgTime, {
     value: f.from,
     disabled: !editable,
-    onChange: e => set("from", e.target.value),
+    onChange: t => set("from", t),
     style: TM_IN_W
   })), React.createElement("label", {
     style: TM_LB
@@ -1694,11 +1693,10 @@ function TmOtModal({
       fontWeight: 700,
       color: "var(--text-3)"
     }
-  }, "\u0E16\u0E36\u0E07"), React.createElement("input", {
-    type: "time",
+  }, "\u0E16\u0E36\u0E07"), React.createElement(window.PgTime, {
     value: f.to,
     disabled: !editable,
-    onChange: e => set("to", e.target.value),
+    onChange: t => set("to", t),
     style: TM_IN_W
   })), React.createElement("label", {
     style: TM_LB
@@ -2317,10 +2315,9 @@ function TmWorkHours({
       fontWeight: 700,
       color: "var(--text-3)"
     }
-  }, "\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19\u0E44\u0E14\u0E49\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48"), React.createElement("input", {
-    type: "time",
+  }, "\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19\u0E44\u0E14\u0E49\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48"), React.createElement(window.PgTime, {
     value: f.startEarly,
-    onChange: e => set("startEarly", e.target.value),
+    onChange: t => set("startEarly", t),
     style: TM_IN_W
   })), React.createElement("label", {
     style: TM_LB
@@ -2330,10 +2327,9 @@ function TmWorkHours({
       fontWeight: 700,
       color: "var(--text-3)"
     }
-  }, "\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19\u0E0A\u0E49\u0E32\u0E2A\u0E38\u0E14"), React.createElement("input", {
-    type: "time",
+  }, "\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19\u0E0A\u0E49\u0E32\u0E2A\u0E38\u0E14"), React.createElement(window.PgTime, {
     value: f.startLate,
-    onChange: e => set("startLate", e.target.value),
+    onChange: t => set("startLate", t),
     style: TM_IN_W
   })), React.createElement("label", {
     style: TM_LB

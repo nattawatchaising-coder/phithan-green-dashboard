@@ -621,11 +621,11 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
         <div style={{ display: "grid", gap: 5, minWidth: 0 }}>
           <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ช่วงเวลาที่ทำ</span>
           <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto minmax(0,1fr)", gap: 9, alignItems: "center" }}>
-            <input type="time" value={f.from} min={locked ? limit.lo : undefined} max={locked ? limit.hi : undefined}
-              aria-label="ตั้งแต่" onChange={(e) => set("from", e.target.value)} style={LN_FIELD} />
+            <window.PgTime value={f.from} min={locked ? limit.lo : undefined} max={locked ? limit.hi : undefined}
+              ariaLabel="ตั้งแต่" onChange={(t) => set("from", t)} style={LN_FIELD} />
             <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-3)" }}>ถึง</span>
-            <input type="time" value={f.to} min={locked ? limit.lo : undefined} max={locked ? limit.hi : undefined}
-              aria-label="ถึง" onChange={(e) => set("to", e.target.value)} style={LN_FIELD} />
+            <window.PgTime value={f.to} min={locked ? limit.lo : undefined} max={locked ? limit.hi : undefined}
+              ariaLabel="ถึง" onChange={(t) => set("to", t)} style={LN_FIELD} />
           </div>
         </div>
 

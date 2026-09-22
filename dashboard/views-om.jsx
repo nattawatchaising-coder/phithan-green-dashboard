@@ -283,9 +283,9 @@ function OmCleanVisits({ site, visits, store, disabled, siteVisits, onOpenVisit,
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(108px, 1fr))", gap: 8 }}>
                   <input type="date" value={v.date || ""} onChange={(e) => setV(v, { date: e.target.value })}
                     style={Object.assign({}, OM_INPUT, { padding: "7px 9px", fontSize: 12.5, fontFamily: "var(--mono)" })} />
-                  <input type="time" value={v.timeFrom || ""} onChange={(e) => setV(v, { timeFrom: e.target.value })}
+                  <window.PgTime value={v.timeFrom || ""} onChange={(t) => setV(v, { timeFrom: t })}
                     style={Object.assign({}, OM_INPUT, { padding: "7px 9px", fontSize: 12.5, fontFamily: "var(--mono)" })} />
-                  <input type="time" value={v.timeTo || ""} onChange={(e) => setV(v, { timeTo: e.target.value })}
+                  <window.PgTime value={v.timeTo || ""} onChange={(t) => setV(v, { timeTo: t })}
                     style={Object.assign({}, OM_INPUT, { padding: "7px 9px", fontSize: 12.5, fontFamily: "var(--mono)" })} />
                   <input value={v.charge == null ? "" : String(v.charge)} inputMode="decimal" placeholder="ค่าบริการ"
                     onChange={(e) => { const t = e.target.value.replace(/[^0-9.]/g, ""); setV(v, { charge: t === "" ? null : +t, free: t === "" ? v.free : false }); }}

@@ -1064,13 +1064,12 @@ function LnOtForm({
       gap: 9,
       alignItems: "center"
     }
-  }, React.createElement("input", {
-    type: "time",
+  }, React.createElement(window.PgTime, {
     value: f.from,
     min: locked ? limit.lo : undefined,
     max: locked ? limit.hi : undefined,
-    "aria-label": "\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48",
-    onChange: e => set("from", e.target.value),
+    ariaLabel: "\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48",
+    onChange: t => set("from", t),
     style: LN_FIELD
   }), React.createElement("span", {
     style: {
@@ -1078,13 +1077,12 @@ function LnOtForm({
       fontWeight: 700,
       color: "var(--text-3)"
     }
-  }, "\u0E16\u0E36\u0E07"), React.createElement("input", {
-    type: "time",
+  }, "\u0E16\u0E36\u0E07"), React.createElement(window.PgTime, {
     value: f.to,
     min: locked ? limit.lo : undefined,
     max: locked ? limit.hi : undefined,
-    "aria-label": "\u0E16\u0E36\u0E07",
-    onChange: e => set("to", e.target.value),
+    ariaLabel: "\u0E16\u0E36\u0E07",
+    onChange: t => set("to", t),
     style: LN_FIELD
   }))), locked && React.createElement("div", {
     style: {

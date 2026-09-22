@@ -472,12 +472,12 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
               </div>
               <div>
                 <window.DrLabel>ตั้งแต่</window.DrLabel>
-                <input type="time" value={t.apptFrom || ""} disabled={locked} onChange={(e) => set({ apptFrom: e.target.value })}
+                <window.PgTime value={t.apptFrom || ""} disabled={locked} onChange={(x) => set({ apptFrom: x })}
                   style={Object.assign({}, window.OM_INPUT, { padding: "8px 10px", fontFamily: "var(--mono)", fontSize: 12.5 })} />
               </div>
               <div>
                 <window.DrLabel>ถึง</window.DrLabel>
-                <input type="time" value={t.apptTo || ""} disabled={locked} onChange={(e) => set({ apptTo: e.target.value })}
+                <window.PgTime value={t.apptTo || ""} disabled={locked} onChange={(x) => set({ apptTo: x })}
                   style={Object.assign({}, window.OM_INPUT, { padding: "8px 10px", fontFamily: "var(--mono)", fontSize: 12.5 })} />
               </div>
             </div>

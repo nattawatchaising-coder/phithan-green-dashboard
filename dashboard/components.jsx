@@ -519,5 +519,69 @@ function SearchPick({ items, value, onChange, placeholder, emptyLabel, allowEmpt
   );
 }
 
-Object.assign(window, { Icon, ICONS, SearchPick, StageBadge, TypeBadge, MatChip, TechAvatar, ProgressBar, MatDots, Segmented, Dropdown, useBackdropClose,
+/* ── ช่องกรอกเวลาแบบไทย 00:00–23:59 ──
+   ช่อง type="time" ของเบราว์เซอร์แสดงผลตามภาษาของตัวเบราว์เซอร์ ไม่ใช่ภาษาของหน้าเว็บ
+   เครื่องที่ตั้งเป็นอังกฤษจึงขึ้น "09:00 PM" ทั้งที่ทั้งระบบเป็นไทย และสั่งให้เป็น 24 ชม. ไม่ได้
+   (แอตทริบิวต์ lang ที่ <html> ก็เป็น th อยู่แล้วแต่ Chrome ไม่สนใจ) จึงต้องทำช่องเอง
+   ค่าที่เก็บยังเป็น "HH:MM" แบบเดิมทุกประการ ของเก่าในฐานข้อมูลอ่านได้ตามปกติ */
+function pgTimeFix(raw, min, max) {
+  const s = String(raw == null ? "" : raw).trim();
+  if (!s) return "";
+  let h, m;
+  const c = s.indexOf(":");
+  if (c >= 0) {
+    /* มี : แล้วแปลว่าคนแยกชั่วโมงกับนาทีให้เองแล้ว — "7:5" คือนาทีที่ 5 ไม่ใช่ 50 */
+    h = +s.slice(0, c).replace(/[^0-9]/g, "");
+    const mm = s.slice(c + 1).replace(/[^0-9]/g, "");
+    m = mm === "" ? 0 : +mm;
+  } else {
+    /* พิมพ์ตัวเลขล้วนได้เลย — "9" = 09:00 · "930" = 09:30 · "2100" = 21:00 */
+    const d = s.replace(/[^0-9]/g, "").slice(0, 4);
+    if (!d) return "";
+    h = d.length <= 2 ? +d : +d.slice(0, d.length - 2);
+    m = d.length <= 2 ? 0 : +d.slice(-2);
+  }
+  if (!isFinite(h)) return "";
+  if (!isFinite(m)) m = 0;
+  /* เลยเที่ยงคืนไปแล้วคือ 23:59 ไม่ใช่ 23:00 — ปัดขึ้นไปสุดวันตามที่ตั้งใจจะพิมพ์ */
+  if (h > 23) { h = 23; m = 59; }
+  const p2 = (x) => (x < 10 ? "0" : "") + x;
+  let out = p2(Math.max(0, h)) + ":" + p2(Math.max(0, Math.min(59, m)));
+  if (min && out < min) out = min;
+  if (max && out > max) out = max;
+  return out;
+}
+function PgTime({ value, onChange, disabled, min, max, style, placeholder, ariaLabel }) {
+  const [txt, setTxt] = React.useState(value || "");
+  const [typing, setTyping] = React.useState(false);
+  /* ระหว่างพิมพ์อย่าเอาค่าจากข้างนอกมาทับ ไม่งั้นพิมพ์เลขแรกแล้วถูกดีดกลับทันที */
+  React.useEffect(() => { if (!typing) setTxt(value || ""); }, [value, typing]);
+
+  const type = (e) => {
+    let t = String(e.target.value).replace(/[^0-9:]/g, "").slice(0, 5);
+    if (t.indexOf(":") < 0 && t.length > 2) t = t.slice(0, t.length - 2) + ":" + t.slice(-2);
+    setTyping(true);
+    setTxt(t);
+    /* ครบรูปแล้วส่งออกทันที ไม่ต้องรอออกจากช่อง — ที่เหลือค่อยจัดให้ตอน blur */
+    if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(t)) {
+      const fix = pgTimeFix(t, min, max);
+      if (fix !== (value || "")) onChange(fix);
+    }
+  };
+  const done = (e) => {
+    const fix = pgTimeFix(e.target.value, min, max);
+    setTyping(false);
+    setTxt(fix);
+    if (fix !== (value || "")) onChange(fix);
+  };
+
+  return (
+    <input type="text" inputMode="numeric" value={txt} disabled={disabled} aria-label={ariaLabel}
+      placeholder={placeholder || "--:--"} onChange={type} onBlur={done}
+      onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+      style={style} />
+  );
+}
+
+Object.assign(window, { Icon, ICONS, SearchPick, StageBadge, TypeBadge, MatChip, TechAvatar, ProgressBar, MatDots, Segmented, Dropdown, useBackdropClose, PgTime, pgTimeFix,
   thDate, thDateTime, fmtBaht, stageOf, parseDate, TH_MONTHS, TH_DAYS, saveMatPrice, newMatSaveCtx });
