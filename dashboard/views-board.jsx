@@ -32,11 +32,13 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
               style={{ fontSize: 10.5, fontWeight: 800, color: "#A16207", background: "#EAB30820",
                 border: "1px solid #EAB30855", padding: "2px 7px", borderRadius: 99, whiteSpace: "nowrap" }}>รออนุมัติ</span>
           )}
+          {/* ปุ่ม Drive เหลือแต่ไอคอน — คำว่า Drive กินความกว้าง ~33px ทำให้ป้ายตกบรรทัดจนการ์ดสูงขึ้น */}
           {job.drive && (
             <a href={job.drive} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title="เปิดโฟลเดอร์งานใน Google Drive"
+              aria-label="เปิดโฟลเดอร์งานใน Google Drive"
               style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 700, color: "#fff",
-                background: "#1A73E8", padding: "3px 8px", borderRadius: 6, textDecoration: "none" }}>
-              <Icon name="folder" size={11} color="#fff" /> Drive
+                background: "#1A73E8", width: 20, height: 18, justifyContent: "center", flexShrink: 0, borderRadius: 6, textDecoration: "none" }}>
+              <Icon name="folder" size={11} color="#fff" />
             </a>
           )}
           <TypeBadge type={job.type} />

@@ -76,6 +76,7 @@ function KanbanCard({
       rel: "noreferrer",
       onClick: e => e.stopPropagation(),
       title: "\u0E40\u0E1B\u0E34\u0E14\u0E42\u0E1F\u0E25\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E07\u0E32\u0E19\u0E43\u0E19 Google Drive",
+      "aria-label": "\u0E40\u0E1B\u0E34\u0E14\u0E42\u0E1F\u0E25\u0E40\u0E14\u0E2D\u0E23\u0E4C\u0E07\u0E32\u0E19\u0E43\u0E19 Google Drive",
       style: {
         display: "inline-flex",
         alignItems: "center",
@@ -84,7 +85,10 @@ function KanbanCard({
         fontWeight: 700,
         color: "#fff",
         background: "#1A73E8",
-        padding: "3px 8px",
+        width: 20,
+        height: 18,
+        justifyContent: "center",
+        flexShrink: 0,
         borderRadius: 6,
         textDecoration: "none"
       }
@@ -92,7 +96,7 @@ function KanbanCard({
       name: "folder",
       size: 11,
       color: "#fff"
-    }), " Drive"), React.createElement(TypeBadge, {
+    })), React.createElement(TypeBadge, {
       type: job.type
     }))), (job.hasDesign || job.hasBoq) && React.createElement("div", {
       style: {
