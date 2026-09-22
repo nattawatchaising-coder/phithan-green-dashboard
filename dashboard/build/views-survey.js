@@ -1550,6 +1550,7 @@ function LeadDetail({
   const [ask, setAsk] = React.useState(null);
   const [designOpen, setDesignOpen] = React.useState(false);
   const [boqOpen, setBoqOpen] = React.useState(false);
+  const [delC, setDelC] = React.useState(null);
   const st = window.surveyStatus({
     survey: l.survey
   });
@@ -1569,6 +1570,19 @@ function LeadDetail({
   const wayOf = k => (window.CONTACT_WAYS || []).find(x => x.key === k) || {
     th: "ติดต่อ",
     icon: "list"
+  };
+  const removeContact = (c, shownIdx) => {
+    const all = (l.contacts || []).slice();
+    const i = c.id ? all.findIndex(x => x.id === c.id) : all.length - 1 - shownIdx;
+    if (i < 0) {
+      setDelC(null);
+      return;
+    }
+    all.splice(i, 1);
+    leadStore.patch(l.id, {
+      contacts: all
+    });
+    setDelC(null);
   };
   const card = {
     background: "var(--surface)",
@@ -1784,6 +1798,7 @@ function LeadDetail({
     color: "var(--text-3)"
   }), " \u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E01\u0E32\u0E23\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D (", contacts.length, ")"), contacts.slice(0, 8).map((c, i) => {
     const w = wayOf(c.how);
+    const asking = delC != null && delC === (c.id || "i" + i);
     return React.createElement("div", {
       key: i,
       style: {
@@ -1818,7 +1833,58 @@ function LeadDetail({
         color: "var(--text-3)",
         lineHeight: 1.5
       }
-    }, c.note) : null));
+    }, c.note) : null), canManage !== false && (asking ? React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        gap: 6,
+        alignItems: "center",
+        flexShrink: 0
+      }
+    }, React.createElement("button", {
+      onClick: () => removeContact(c, i),
+      style: {
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: "#fff",
+        background: "#EF4444",
+        border: "none",
+        borderRadius: 8,
+        padding: "5px 10px",
+        cursor: "pointer",
+        fontFamily: "inherit"
+      }
+    }, "\u0E25\u0E1A\u0E40\u0E25\u0E22"), React.createElement("button", {
+      onClick: () => setDelC(null),
+      style: {
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: "var(--text-2)",
+        background: "var(--surface)",
+        border: "1px solid var(--border-strong)",
+        borderRadius: 8,
+        padding: "5px 10px",
+        cursor: "pointer",
+        fontFamily: "inherit"
+      }
+    }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01")) : React.createElement("button", {
+      onClick: () => setDelC(c.id || "i" + i),
+      title: "\u0E25\u0E1A\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E19\u0E35\u0E49",
+      style: {
+        width: 26,
+        height: 26,
+        borderRadius: 8,
+        border: "1px solid var(--border)",
+        background: "var(--surface)",
+        cursor: "pointer",
+        display: "grid",
+        placeItems: "center",
+        flexShrink: 0,
+        color: "var(--text-3)"
+      }
+    }, React.createElement(Icon, {
+      name: "trash",
+      size: 13
+    }))));
   }), contacts.length > 8 && React.createElement("div", {
     style: {
       fontSize: 11.5,

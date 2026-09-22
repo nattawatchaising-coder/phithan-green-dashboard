@@ -505,6 +505,7 @@ function LeadDetail({ l, ctx }) {
   const [ask, setAsk] = React.useState(null);   // { kind: "del" | "conv" }
   const [designOpen, setDesignOpen] = React.useState(false);
   const [boqOpen, setBoqOpen] = React.useState(false);
+  const [delC, setDelC] = React.useState(null);   // บันทึกการติดต่อที่กำลังจะลบ (ถามยืนยันก่อน)
 
   const st = window.surveyStatus({ survey: l.survey });
   const sKey = stageKey(l);
@@ -522,6 +523,17 @@ function LeadDetail({ l, ctx }) {
   const contacts = (l.contacts || []).slice().reverse();
   const lastC = contacts[0] || null;
   const wayOf = (k) => (window.CONTACT_WAYS || []).find((x) => x.key === k) || { th: "ติดต่อ", icon: "list" };
+  /* ลบบันทึกที่จดผิด/จดซ้ำ — ชี้ด้วย id เสมอ
+     จอเรียงครั้งล่าสุดไว้บน ถ้าลบตามลำดับที่เห็นจะไปโดนคนละรายการกับที่กด
+     (บันทึกเก่าก่อนมี id ค่อยถอยไปนับตำแหน่งแบบกลับด้าน) */
+  const removeContact = (c, shownIdx) => {
+    const all = (l.contacts || []).slice();
+    const i = c.id ? all.findIndex((x) => x.id === c.id) : all.length - 1 - shownIdx;
+    if (i < 0) { setDelC(null); return; }
+    all.splice(i, 1);
+    leadStore.patch(l.id, { contacts: all });
+    setDelC(null);
+  };
 
   const card = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 10 };
   const capt = { fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase",
@@ -638,6 +650,7 @@ function LeadDetail({ l, ctx }) {
           <div style={capt}><Icon name="message" size={14} color="var(--text-3)" /> ประวัติการติดต่อ ({contacts.length})</div>
           {contacts.slice(0, 8).map((c, i) => {
             const w = wayOf(c.how);
+            const asking = delC != null && delC === (c.id || "i" + i);
             return (
               <div key={i} style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "8px 0",
                 borderTop: i ? "1px solid var(--border)" : "none" }}>
@@ -646,6 +659,23 @@ function LeadDetail({ l, ctx }) {
                   <b style={{ color: "var(--text-1)" }}>{w.th}</b> {thDateTime(c.at)}{c.byName ? " · " + c.byName : ""}
                   {c.note ? <span style={{ display: "block", color: "var(--text-3)", lineHeight: 1.5 }}>{c.note}</span> : null}
                 </span>
+                {/* ลบได้เฉพาะคนที่แก้ใบลูกค้าได้ · ถามยืนยันก่อนเสมอ ประวัติที่ลบแล้วเอากลับไม่ได้ */}
+                {canManage !== false && (asking ? (
+                  <span style={{ display: "inline-flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
+                    <button onClick={() => removeContact(c, i)}
+                      style={{ fontSize: 11.5, fontWeight: 700, color: "#fff", background: "#EF4444", border: "none",
+                        borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit" }}>ลบเลย</button>
+                    <button onClick={() => setDelC(null)}
+                      style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", background: "var(--surface)",
+                        border: "1px solid var(--border-strong)", borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit" }}>ยกเลิก</button>
+                  </span>
+                ) : (
+                  <button onClick={() => setDelC(c.id || "i" + i)} title="ลบบันทึกนี้"
+                    style={{ width: 26, height: 26, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)",
+                      cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-3)" }}>
+                    <Icon name="trash" size={13} />
+                  </button>
+                ))}
               </div>
             );
           })}
