@@ -1003,6 +1003,9 @@ function OmView({ jobs, users, role, currentUser, focus }) {
     const rec = window.omBlankVisit(site,
       Object.assign({ siteVisits: (visitStore.bySite || {})[site.id] || [] }, opts || {}), currentUser);
     visitStore.save(rec);
+    /* stay = ออกใบจากหน้าใบแจ้งซ่อมแล้วกรอกต่อที่หน้าเดิม ไม่เด้งไปฟอร์มอีกหน้า
+       (ที่นั่นกรอกซ้ำเรื่องเดียวกัน ซึ่งเป็นเหตุผลที่ยกอะไหล่กับลายเซ็นมาไว้ในใบแจ้งซ่อม) */
+    if ((opts || {}).stay) return;
     setOpen(null); setOpenTicket(null); setOpenVisit(rec.id);
   }, [role, currentUser, visitStore.bySite, visitStore.save]);
   const showVisit = React.useCallback((id) => { setOpen(null); setOpenTicket(null); setOpenVisit(id); }, []);
@@ -1248,7 +1251,7 @@ function OmView({ jobs, users, role, currentUser, focus }) {
             role={role} currentUser={currentUser} onClose={() => setOpenTicket(null)}
             onPatch={ticketStore.patch} onRemove={ticketStore.remove}
             visits={(visitStore.visits || []).filter((x) => x.ticketId === t.id)}
-            onNewVisit={(opts) => newVisit(s, opts)} onOpenVisit={showVisit}
+            onNewVisit={(opts) => newVisit(s, opts)} onOpenVisit={showVisit} onPatchVisit={visitStore.patch}
             onMove={(x, to, note) => { const r = window.omTicketMove(x, to, currentUser, note); if (r) ticketStore.save(r); }} />
         );
       })()}

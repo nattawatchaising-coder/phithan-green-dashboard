@@ -105,6 +105,168 @@ function OmPhotos({
     onSave: v => store.setCap(p.id, v)
   })))));
 }
+function OmTicketVisitInline({
+  visit,
+  site,
+  role,
+  currentUser,
+  onPatch,
+  onOpen
+}) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const sigs = window.useOmVisitSigns(visit ? visit.id : null);
+  const mine = window.useOmMySign((currentUser || {}).id);
+  const [pad, setPad] = React.useState(null);
+  const [remember, setRemember] = React.useState(true);
+  const [paper, setPaper] = React.useState(false);
+  if (!visit) return null;
+  const v = visit;
+  const vs = window.omVisitStatusOf(v.status);
+  const locked = !window.omCanWrite(role, v);
+  const set = fields => {
+    if (!locked) onPatch(v.id, fields);
+  };
+  const doSign = (slot, img) => {
+    sigs.sign(slot, img, currentUser, slot === "cust" ? (site || {}).name || "" : (currentUser || {}).name || "");
+  };
+  const lnk = (label, icon, onClick) => React.createElement("button", {
+    type: "button",
+    onClick: onClick,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "7px 12px",
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: icon,
+    size: 13
+  }), " ", label);
+  return React.createElement(React.Fragment, null, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      flexWrap: "wrap",
+      marginBottom: 12,
+      padding: "9px 11px",
+      border: "1px solid var(--border)",
+      borderRadius: 11,
+      background: "var(--surface)"
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 14,
+    color: "#1B9B75"
+  }), React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, v.no), React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, "\u0E40\u0E02\u0E49\u0E32\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 ", window.drShort(v.date), v.charge != null ? " · " + Number(v.charge).toLocaleString("th-TH") + " บาท" : ""), React.createElement(window.OmPill, {
+    th: vs.th,
+    color: vs.color
+  }), React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      display: "flex",
+      gap: 7,
+      flexWrap: "wrap"
+    }
+  }, lnk("พิมพ์ใบ", "file", () => setPaper(true)), onOpen && lnk("เปิดใบเต็ม", "chevronRight", () => onOpen(v.id)))), React.createElement(window.DrLabel, {
+    hint: "\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E43\u0E0A\u0E49\u0E2D\u0E30\u0E44\u0E23\u0E01\u0E47\u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07\u0E44\u0E27\u0E49"
+  }, "\u0E2D\u0E30\u0E44\u0E2B\u0E25\u0E48 / \u0E27\u0E31\u0E2A\u0E14\u0E38\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49"), React.createElement(window.DrRows, {
+    disabled: locked,
+    rows: v.parts,
+    addLabel: "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2D\u0E30\u0E44\u0E2B\u0E25\u0E48",
+    cols: [{
+      k: "name",
+      th: "รายการ"
+    }, {
+      k: "qty",
+      th: "จำนวน",
+      w: 76,
+      type: "num"
+    }, {
+      k: "unit",
+      th: "หน่วย",
+      w: 76
+    }, {
+      k: "note",
+      th: "หมายเหตุ"
+    }],
+    onChange: rows => set({
+      parts: rows
+    })
+  }), React.createElement("div", {
+    style: {
+      marginTop: 15
+    }
+  }, React.createElement(window.DrLabel, {
+    hint: "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E40\u0E0B\u0E47\u0E19\u0E23\u0E31\u0E1A\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22"
+  }, "\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19"), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+      gap: 12,
+      marginTop: 7
+    }
+  }, React.createElement(window.DrSignSlot, {
+    title: "\u0E0A\u0E48\u0E32\u0E07\u0E1C\u0E39\u0E49\u0E43\u0E2B\u0E49\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23",
+    sub: "\u0E1C\u0E39\u0E49\u0E40\u0E02\u0E49\u0E32\u0E1B\u0E0F\u0E34\u0E1A\u0E31\u0E15\u0E34\u0E07\u0E32\u0E19",
+    sig: sigs.signs.tech,
+    canSign: !locked,
+    saved: mine.sign,
+    onSign: () => setPad({
+      slot: "tech",
+      title: "ลายเซ็นช่างผู้ให้บริการ"
+    }),
+    onUseSaved: () => doSign("tech", mine.sign.img),
+    onClear: () => sigs.clear("tech")
+  }), React.createElement(window.DrSignSlot, {
+    title: "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23",
+    sub: "\u0E40\u0E0B\u0E47\u0E19\u0E23\u0E31\u0E1A\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19",
+    sig: sigs.signs.cust,
+    canSign: !locked,
+    onSign: () => setPad({
+      slot: "cust",
+      title: "ลายเซ็นลูกค้าผู้รับบริการ",
+      hint: "ให้ลูกค้าเซ็นในกรอบด้านล่างได้เลย"
+    }),
+    onClear: () => sigs.clear("cust")
+  }))), pad && React.createElement(window.DrSignPad, {
+    title: pad.title,
+    hint: pad.hint,
+    onClose: () => setPad(null),
+    saved: pad.slot === "tech" ? mine.sign : null,
+    remember: pad.slot === "tech" ? remember : undefined,
+    onRemember: pad.slot === "tech" ? setRemember : undefined,
+    onSave: (img, drawn) => {
+      doSign(pad.slot, img);
+      if (pad.slot === "tech" && drawn && remember) mine.save(img);
+      setPad(null);
+    }
+  }), paper && React.createElement(window.OmVisitPaper, {
+    visit: v,
+    site: site,
+    signs: sigs.signs,
+    onClose: () => setPaper(false)
+  }));
+}
 function OmTicketCard({
   t,
   onOpen
@@ -406,6 +568,7 @@ function OmTicketModal({
   visits,
   onOpenVisit,
   onNewVisit,
+  onPatchVisit,
   onClose,
   onPatch,
   onMove,
@@ -427,6 +590,9 @@ function OmTicketModal({
   };
   const nexts = window.omTicketNext(t, role);
   const guess = site ? window.omCoverOf(site, t.category) : null;
+  const vSorted = (visits || []).slice().sort((a, b) => String(a.date || "") < String(b.date || "") ? -1 : String(a.date || "") > String(b.date || "") ? 1 : String(a.createdAt || "") < String(b.createdAt || "") ? -1 : 1);
+  const vCur = vSorted.length ? vSorted[vSorted.length - 1] : null;
+  const vOld = vSorted.slice(0, -1);
   return React.createElement("div", {
     onClick: onClose,
     style: {
@@ -935,14 +1101,14 @@ function OmTicketModal({
     n: "6",
     title: "\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E40\u0E02\u0E49\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23",
     tone: "#1B9B75",
-    hint: (visits || []).length ? "ออกไปแล้ว " + (visits || []).length + " ใบ" : ""
+    hint: (visits || []).length ? "ออกไปแล้ว " + (visits || []).length + " ใบ" : "กรอกจบได้ในหน้านี้"
   }, !(visits || []).length && React.createElement("div", {
     style: {
       fontSize: 12.5,
       color: "var(--text-3)",
       marginBottom: onNewVisit ? 11 : 0
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E2D\u0E2D\u0E01\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19"), (visits || []).map(v => {
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E2D\u0E2D\u0E01\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19 \u2014 \u0E01\u0E14\u0E2D\u0E2D\u0E01\u0E43\u0E1A\u0E41\u0E25\u0E49\u0E27\u0E01\u0E23\u0E2D\u0E01\u0E2D\u0E30\u0E44\u0E2B\u0E25\u0E48\u0E01\u0E31\u0E1A\u0E43\u0E2B\u0E49\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E40\u0E0B\u0E47\u0E19\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48\u0E40\u0E25\u0E22"), vOld.map(v => {
     const vs = window.omVisitStatusOf(v.status);
     return React.createElement("button", {
       key: v.id,
@@ -989,14 +1155,26 @@ function OmTicketModal({
       size: 14,
       color: "var(--text-3)"
     }));
+  }), vCur && React.createElement(OmTicketVisitInline, {
+    visit: vCur,
+    site: site,
+    role: role,
+    currentUser: currentUser,
+    onPatch: onPatchVisit || (() => {}),
+    onOpen: onOpenVisit
   }), canWrite && onNewVisit && React.createElement("button", {
     type: "button",
     onClick: () => onNewVisit({
       kind: "repair",
       ticketId: t.id,
       found: t.detail || t.title,
+      work: t.result || "",
+      result: t.result || "",
+      team: t.techId || "",
+      charge: t.quoteAmt,
       cover: t.cover,
-      date: t.apptDate || undefined
+      date: t.apptDate || undefined,
+      stay: true
     }),
     style: {
       display: "inline-flex",
@@ -1010,12 +1188,13 @@ function OmTicketModal({
       fontFamily: "inherit",
       fontSize: 12.5,
       fontWeight: 700,
-      color: "var(--text-2)"
+      color: "var(--text-2)",
+      marginTop: vCur ? 15 : 0
     }
   }, React.createElement(Icon, {
     name: "file",
     size: 14
-  }), " \u0E2D\u0E2D\u0E01\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E40\u0E02\u0E49\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23")), React.createElement(window.DrSection, {
+  }), " ", vCur ? "ออกใบเพิ่มอีกใบ (เข้าซ้ำ)" : "ออกใบรายงานเข้าบริการ")), React.createElement(window.DrSection, {
     n: "7",
     title: "\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E19\u0E35\u0E49",
     tone: "#94A3B8",
@@ -1375,6 +1554,7 @@ function OmTicketBoard({
     currentUser: currentUser,
     visits: ((visitStore || {}).visits || []).filter(v => v.ticketId === cur.id),
     onNewVisit: onNewVisit ? opts => onNewVisit(siteById[cur.siteId], opts) : null,
+    onPatchVisit: (visitStore || {}).patch,
     onOpenVisit: onOpenVisit,
     onClose: () => setOpenId(null),
     onPatch: patch,
@@ -1385,6 +1565,7 @@ function OmTicketBoard({
 Object.assign(window, {
   OmPhotos,
   OmTicketCard,
+  OmTicketVisitInline,
   OmTicketModal,
   OmTicketBoard,
   OM_BOARD_COLS

@@ -747,9 +747,10 @@ function omBlankVisit(site, opts, user) {
     id: omNewId("SV"), no: omVisitDocNo(site, o.siteVisits, o.date || today),
     siteId: site.id, siteCode: site.code || site.id, siteName: site.name || "",
     ticketId: o.ticketId || "", cleanId: o.cleanId || "", kind: o.kind || "repair",
-    date: o.date || today, timeIn: "", timeOut: "", team: site.tech || "",
-    found: o.found || "", work: "", parts: [], result: "", advice: "", nextDue: "",
-    cover: o.cover || "unknown", charge: null,
+    date: o.date || today, timeIn: "", timeOut: "", team: o.team || site.tech || "",
+    /* ใบที่ออกจากใบแจ้งซ่อมรับของที่กรอกไว้แล้วมาเลย — ช่างไม่ต้องพิมพ์เรื่องเดียวกันสองรอบ */
+    found: o.found || "", work: o.work || "", parts: [], result: o.result || "", advice: "", nextDue: "",
+    cover: o.cover || "unknown", charge: o.charge == null ? null : +o.charge || null,
     status: "draft", byId: (user || {}).id || null, byName: (user || {}).name || "",
     sentAt: null, appId: null, appName: "", approvedAt: null,
     createdAt: now, updatedAt: now,

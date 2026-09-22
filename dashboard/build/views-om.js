@@ -2366,6 +2366,7 @@ function OmView({
       siteVisits: (visitStore.bySite || {})[site.id] || []
     }, opts || {}), currentUser);
     visitStore.save(rec);
+    if ((opts || {}).stay) return;
     setOpen(null);
     setOpenTicket(null);
     setOpenVisit(rec.id);
@@ -2844,6 +2845,7 @@ function OmView({
       visits: (visitStore.visits || []).filter(x => x.ticketId === t.id),
       onNewVisit: opts => newVisit(s, opts),
       onOpenVisit: showVisit,
+      onPatchVisit: visitStore.patch,
       onMove: (x, to, note) => {
         const r = window.omTicketMove(x, to, currentUser, note);
         if (r) ticketStore.save(r);
