@@ -1571,6 +1571,16 @@ function LeadDetail({
     th: "ติดต่อ",
     icon: "list"
   };
+  const toggleSurveySkip = () => {
+    const cur = l.survey || {};
+    leadStore.patch(l.id, {
+      survey: Object.assign({}, cur, {
+        skip: !cur.skip,
+        skippedAt: !cur.skip ? new Date().toISOString() : null,
+        skipBy: !cur.skip ? currentUser && currentUser.name || "" : null
+      })
+    });
+  };
   const removeContact = (c, shownIdx) => {
     const all = (l.contacts || []).slice();
     const i = c.id ? all.findIndex(x => x.id === c.id) : all.length - 1 - shownIdx;
@@ -1741,9 +1751,37 @@ function LeadDetail({
     icon: "list",
     color: st.color,
     title: "\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 (Site Survey)",
-    sub: st.state === "none" ? "ยังไม่ได้สำรวจ · แตะเพื่อเริ่ม" : st.label + " · " + st.pct + "% · แตะเพื่อแก้ไข",
+    sub: st.state === "skip" ? "ข้ามขั้นตอนสำรวจไว้" + (l.survey && l.survey.skipBy ? " โดย " + l.survey.skipBy : "") + " · แตะเพื่อกรอกแบบสำรวจ" : st.state === "none" ? "ยังไม่ได้สำรวจ · แตะเพื่อเริ่ม" : st.label + " · " + st.pct + "% · แตะเพื่อแก้ไข",
     onClick: () => onOpenSurvey(window.leadAsJob(l))
-  }), onReport && st.state !== "none" && React.createElement("button", {
+  }), onOpenSurvey && canManage !== false && React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "flex-end",
+      marginTop: -4,
+      marginBottom: 10
+    }
+  }, React.createElement("button", {
+    onClick: toggleSurveySkip,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      fontSize: 11.5,
+      fontWeight: 700,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      borderRadius: 9,
+      padding: "5px 11px",
+      color: st.state === "skip" ? "var(--text-2)" : "var(--tint-green-tx)",
+      background: st.state === "skip" ? "var(--surface2)" : "rgba(22,163,74,.08)",
+      border: "1px solid " + (st.state === "skip" ? "var(--border-strong)" : "rgba(22,163,74,.27)")
+    }
+  }, React.createElement(Icon, {
+    name: st.state === "skip" ? "history" : "check",
+    size: 12,
+    color: st.state === "skip" ? "var(--text-2)" : "var(--tint-green-tx)",
+    sw: 2.4
+  }), st.state === "skip" ? "เอากลับเข้าคิวสำรวจ" : "ข้ามขั้นตอนสำรวจ · ไม่ต้องสำรวจ")), onReport && st.state !== "none" && l.survey && l.survey.startedAt && React.createElement("button", {
     onClick: () => onReport(window.leadAsJob(l)),
     style: {
       width: "100%",

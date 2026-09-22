@@ -526,6 +526,17 @@ function LeadDetail({ l, ctx }) {
   /* ลบบันทึกที่จดผิด/จดซ้ำ — ชี้ด้วย id เสมอ
      จอเรียงครั้งล่าสุดไว้บน ถ้าลบตามลำดับที่เห็นจะไปโดนคนละรายการกับที่กด
      (บันทึกเก่าก่อนมี id ค่อยถอยไปนับตำแหน่งแบบกลับด้าน) */
+  /* ข้ามขั้นตอนสำรวจ — ลูกค้าบางรายส่งแบบ/รูปมาให้ครบแล้ว หรือเคยไปดูหน้างานมาก่อน
+     ไม่ต้องบังคับให้กรอกแบบสำรวจทั้งชุดเพื่อให้ % ขึ้นครบ
+     ใช้ธง survey.skip ตัวเดียวกับหน้าคิวสำรวจ กดที่ไหนก็เห็นตรงกันทั้งสองหน้า */
+  const toggleSurveySkip = () => {
+    const cur = l.survey || {};
+    leadStore.patch(l.id, { survey: Object.assign({}, cur, {
+      skip: !cur.skip,
+      skippedAt: !cur.skip ? new Date().toISOString() : null,
+      skipBy: !cur.skip ? ((currentUser && currentUser.name) || "") : null,
+    }) });
+  };
   const removeContact = (c, shownIdx) => {
     const all = (l.contacts || []).slice();
     const i = c.id ? all.findIndex((x) => x.id === c.id) : all.length - 1 - shownIdx;
@@ -609,10 +620,28 @@ function LeadDetail({ l, ctx }) {
         onClick={() => setLog(l)} />
       {onOpenSurvey && (
         <LeadActionRow icon="list" color={st.color} title="สำรวจหน้างาน (Site Survey)"
-          sub={st.state === "none" ? "ยังไม่ได้สำรวจ · แตะเพื่อเริ่ม" : st.label + " · " + st.pct + "% · แตะเพื่อแก้ไข"}
+          sub={st.state === "skip" ? "ข้ามขั้นตอนสำรวจไว้" + (l.survey && l.survey.skipBy ? " โดย " + l.survey.skipBy : "") + " · แตะเพื่อกรอกแบบสำรวจ"
+            : st.state === "none" ? "ยังไม่ได้สำรวจ · แตะเพื่อเริ่ม" : st.label + " · " + st.pct + "% · แตะเพื่อแก้ไข"}
           onClick={() => onOpenSurvey(window.leadAsJob(l))} />
       )}
-      {onReport && st.state !== "none" && (
+      {/* ข้ามขั้นตอนสำรวจ — วางไว้ใต้แถวสำรวจ ไม่ซ้อนปุ่มในปุ่ม กดพลาดตอนจะเปิดแบบสำรวจไม่ได้
+          ที่ข้ามไว้แล้วกดกลับเข้าคิวได้ ข้อมูลที่กรอกไว้ยังอยู่ครบ ไม่ได้ลบทิ้ง */}
+      {onOpenSurvey && canManage !== false && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: -4, marginBottom: 10 }}>
+          <button onClick={toggleSurveySkip}
+            style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+              borderRadius: 9, padding: "5px 11px",
+              color: st.state === "skip" ? "var(--text-2)" : "var(--tint-green-tx)",
+              background: st.state === "skip" ? "var(--surface2)" : "rgba(22,163,74,.08)",
+              border: "1px solid " + (st.state === "skip" ? "var(--border-strong)" : "rgba(22,163,74,.27)") }}>
+            <Icon name={st.state === "skip" ? "history" : "check"} size={12}
+              color={st.state === "skip" ? "var(--text-2)" : "var(--tint-green-tx)"} sw={2.4} />
+            {st.state === "skip" ? "เอากลับเข้าคิวสำรวจ" : "ข้ามขั้นตอนสำรวจ · ไม่ต้องสำรวจ"}
+          </button>
+        </div>
+      )}
+      {/* ที่ข้ามไว้ยังไม่มีข้อมูลสำรวจ รายงานจะออกมาเป็นใบเปล่า — ให้ขึ้นเฉพาะใบที่เริ่มกรอกแล้ว */}
+      {onReport && st.state !== "none" && l.survey && l.survey.startedAt && (
         <button onClick={() => onReport(window.leadAsJob(l))}
           style={{ width: "100%", marginBottom: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7,
             padding: "10px 14px", background: "var(--primary-soft)", border: "1px solid var(--primary)", borderRadius: 11,
