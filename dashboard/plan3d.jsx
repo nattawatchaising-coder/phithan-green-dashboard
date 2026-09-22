@@ -1465,6 +1465,36 @@ function P3Icon({ name, size, w }) {
   );
 }
 
+/* ── เลือกรุ่นแผงจากคลังสินค้า ──
+   พิมพ์วัตต์เองแล้วมันไม่ผูกกับของจริง เลข kWp ในผังกับที่สั่งของจะคนละตัวได้ง่าย ๆ
+   เลือกจากคลังแล้วกำลังแผงมาเอง และผูกรุ่นไว้กับผังเลย หน้าออกแบบระบบ/BOQ จะได้ใช้รุ่นเดียวกัน */
+function P3PanelPick({ model, onPick }) {
+  const list = (window.BOQ && window.BOQ.PANELS) || [];
+  /* จัดตามหมวดย่อยที่ตั้งไว้ในคลัง (AIKO / JINKO / LONGI …) รุ่นที่ยังไม่จัดหมวดไปกองท้ายสุด */
+  const groups = [];
+  list.forEach((x) => {
+    const g = String(x.group || "").trim();
+    let e = groups.find((y) => y.g === g);
+    if (!e) groups.push(e = { g: g, list: [] });
+    e.list.push(x);
+  });
+  groups.sort((a, b) => (a.g ? 0 : 1) - (b.g ? 0 : 1));
+  const opt = (x) => <option key={x.model} value={x.model}>{x.model} ({x.wp}W)</option>;
+  return (
+    <label className="p3-f">
+      <span className="lb">รุ่นแผง (จากคลังสินค้า)</span>
+      <select className="p3-inp" value={model || ""} onChange={(e) => onPick(e.target.value)}>
+        <option value="">— กรอกกำลังแผงเอง —</option>
+        {groups.length === 1 && !groups[0].g
+          ? list.map(opt)
+          : groups.map((x) => (
+            <optgroup key={x.g || "_etc"} label={x.g || "ยังไม่จัดหมวดย่อย"}>{x.list.map(opt)}</optgroup>
+          ))}
+      </select>
+    </label>
+  );
+}
+
 function P3Num({ label, value, onChange, step, min, max, suffix }) {
   return (
     <label className="p3-f">
@@ -3659,7 +3689,27 @@ function Plan3DEditor({ job, onClose, currentUser }) {
               <Num label="ละติจูด" value={st.sun.lat} step={0.01} onChange={(v) => setSun({ lat: v })} />
               <Num label="ลองจิจูด" value={st.sun.lng} step={0.01} onChange={(v) => setSun({ lng: v })} />
             </div>
+            {/* เลือกรุ่น = ได้กำลังแผงมาเอง และผูกรุ่นไว้กับผัง (st.sys.panelModel) ให้หน้าออกแบบระบบใช้ต่อ
+                ยังพิมพ์ทับเองได้ สำหรับรุ่นที่ยังไม่ได้ลงคลัง */}
+            <P3PanelPick model={(st.sys || {}).panelModel}
+              onPick={(m) => {
+                const sys = Object.assign({}, st.sys || (typeof suBlankSys === "function" ? suBlankSys() : {}), { panelModel: m });
+                const hit = ((window.BOQ && window.BOQ.PANELS) || []).find((x) => x.model === m);
+                set(hit && +hit.wp > 0 ? { sys: sys, wp: +hit.wp } : { sys: sys });
+              }} />
             <Num label="กำลังแผง (Wp/แผง)" value={st.wp} step={5} min={100} suffix="W" onChange={(v) => set({ wp: v })} />
+            {/* ขนาดแผงจริงของรุ่นที่เลือก — ผังยังวาดด้วยขนาดมาตรฐาน บอกไว้ให้เห็นว่าต่างกันตรงไหน */}
+            {(() => {
+              const hit = ((window.BOQ && window.BOQ.PANELS) || []).find((x) => x.model === (st.sys || {}).panelModel);
+              if (!hit || !(+hit.width > 0)) return null;
+              const same = Math.abs(+hit.width - P3_PANEL_SHORT) < 0.005 && Math.abs(+hit.length - P3_PANEL_LONG) < 0.005;
+              return (
+                <span className="p3-note">
+                  ขนาดแผงรุ่นนี้ {(+hit.width).toFixed(3)} × {(+hit.length).toFixed(3)} ม.
+                  {same ? " · ตรงกับขนาดที่ผังใช้วาด" : " · ผังยังวาดด้วยขนาดมาตรฐาน " + P3_PANEL_SHORT + " × " + P3_PANEL_LONG + " ม."}
+                </span>
+              );
+            })()}
           </div>
         </div>
       )}

@@ -2492,6 +2492,41 @@ function P3Icon({
     }
   }, ic[name] || null);
 }
+function P3PanelPick({
+  model,
+  onPick
+}) {
+  const list = window.BOQ && window.BOQ.PANELS || [];
+  const groups = [];
+  list.forEach(x => {
+    const g = String(x.group || "").trim();
+    let e = groups.find(y => y.g === g);
+    if (!e) groups.push(e = {
+      g: g,
+      list: []
+    });
+    e.list.push(x);
+  });
+  groups.sort((a, b) => (a.g ? 0 : 1) - (b.g ? 0 : 1));
+  const opt = x => React.createElement("option", {
+    key: x.model,
+    value: x.model
+  }, x.model, " (", x.wp, "W)");
+  return React.createElement("label", {
+    className: "p3-f"
+  }, React.createElement("span", {
+    className: "lb"
+  }, "\u0E23\u0E38\u0E48\u0E19\u0E41\u0E1C\u0E07 (\u0E08\u0E32\u0E01\u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32)"), React.createElement("select", {
+    className: "p3-inp",
+    value: model || "",
+    onChange: e => onPick(e.target.value)
+  }, React.createElement("option", {
+    value: ""
+  }, "\u2014 \u0E01\u0E23\u0E2D\u0E01\u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07\u0E40\u0E2D\u0E07 \u2014"), groups.length === 1 && !groups[0].g ? list.map(opt) : groups.map(x => React.createElement("optgroup", {
+    key: x.g || "_etc",
+    label: x.g || "ยังไม่จัดหมวดย่อย"
+  }, x.list.map(opt)))));
+}
 function P3Num({
   label,
   value,
@@ -6777,7 +6812,21 @@ function Plan3DEditor({
     onChange: v => setSun({
       lng: v
     })
-  })), React.createElement(Num, {
+  })), React.createElement(P3PanelPick, {
+    model: (st.sys || {}).panelModel,
+    onPick: m => {
+      const sys = Object.assign({}, st.sys || (typeof suBlankSys === "function" ? suBlankSys() : {}), {
+        panelModel: m
+      });
+      const hit = (window.BOQ && window.BOQ.PANELS || []).find(x => x.model === m);
+      set(hit && +hit.wp > 0 ? {
+        sys: sys,
+        wp: +hit.wp
+      } : {
+        sys: sys
+      });
+    }
+  }), React.createElement(Num, {
     label: "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07 (Wp/\u0E41\u0E1C\u0E07)",
     value: st.wp,
     step: 5,
@@ -6786,7 +6835,14 @@ function Plan3DEditor({
     onChange: v => set({
       wp: v
     })
-  }))));
+  }), (() => {
+    const hit = (window.BOQ && window.BOQ.PANELS || []).find(x => x.model === (st.sys || {}).panelModel);
+    if (!hit || !(+hit.width > 0)) return null;
+    const same = Math.abs(+hit.width - P3_PANEL_SHORT) < 0.005 && Math.abs(+hit.length - P3_PANEL_LONG) < 0.005;
+    return React.createElement("span", {
+      className: "p3-note"
+    }, "\u0E02\u0E19\u0E32\u0E14\u0E41\u0E1C\u0E07\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49 ", (+hit.width).toFixed(3), " \xD7 ", (+hit.length).toFixed(3), " \u0E21.", same ? " · ตรงกับขนาดที่ผังใช้วาด" : " · ผังยังวาดด้วยขนาดมาตรฐาน " + P3_PANEL_SHORT + " × " + P3_PANEL_LONG + " ม.");
+  })())));
   return React.createElement("div", {
     className: "p3",
     style: {
