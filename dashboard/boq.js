@@ -629,13 +629,16 @@
 
   /* ── รางไฟ (WIREWAY / CABLE TRAY) ──
      Wireway = รางเหล็กพับมีฝาปิด ยาว 2.40 ม./ท่อน — ใช้เดินสายในอาคาร/ข้างตู้
-     Cable Tray Ladder = รางบันได ยาว 3.00 ม./ท่อน — ใช้เดินสายจำนวนมากระยะไกล
-     Cable Tray Perforated = รางเจาะรู ยาว 3.00 ม./ท่อน — พื้นรางเป็นแผ่นเจาะรู รองสายเส้นเล็กได้ไม่ตกร่อง
+     Cable Tray Ladder = รางบันได ยาว 2.44 ม./ท่อน (8 ฟุต) — ใช้เดินสายจำนวนมากระยะไกล
+     Cable Tray Perforated = รางเจาะรู ยาว 2.44 ม./ท่อน — พื้นรางเป็นแผ่นเจาะรู รองสายเส้นเล็กได้ไม่ตกร่อง
      ถอดของ: ตัวราง + ชุดข้อต่อทุกรอยต่อ + ขาแขวนทุก 1.5 ม. + พุกยึด 4 ตัว/ขา
 
      ชุบ HDG (กัลวาไนซ์จุ่มร้อน) เลือกได้ทีละแถว — ของชุบเป็นคนละตัวกับของ Pre-Zinc ราคาคนละราคา
      จึงต่อท้ายชื่อด้วย " (HDG.)" ทั้งตัวราง ชุดข้อต่อ และขาแขวน ให้เทียบราคา/ตัดสต็อกแยกกันได้ */
-  const WAY_PIPE_LEN = 2.4, TRAY_PIPE_LEN = 3.0, WAY_HANGER_STEP = 1.5;
+  const WAY_PIPE_LEN = 2.4, TRAY_PIPE_LEN = 2.44, WAY_HANGER_STEP = 1.5;
+  /* ความยาว/ท่อนในชื่อรายการ — ตัดศูนย์ท้ายทิ้ง (2.44 → "2.44" · 2.4 → "2.4")
+     toFixed(1) เดิมจะปัด 2.44 เหลือ 2.4 ชื่อของก็จะบอกความยาวผิด */
+  const trayLenTxt = (v) => String(+(+v).toFixed(2));
   const WAY_SIZES = [
     "Wireway 50x50 mm.", "Wireway 100x50 mm.", "Wireway 100x100 mm.",
     "Wireway 150x100 mm.", "Wireway 200x100 mm.", "Wireway 200x200 mm.", "Wireway 300x100 mm.",
@@ -682,7 +685,7 @@
     const hanger = Math.ceil(len / WAY_HANGER_STEP);              // ขาแขวนทุก 1.5 ม.
     const z = (nm) => hdgName(nm, hdg);                           // ของที่สั่งชุบมาทั้งชิ้น — ตัวราง ข้อต่อ ขาแขวน
     const out = [
-      { name: z(trayAlias(name)) + " (" + pipeLen.toFixed(1) + "m/ท่อน)", qty: pcs, unit: "ท่อน" },
+      { name: z(trayAlias(name)) + " (" + trayLenTxt(pipeLen) + "m/ท่อน)", qty: pcs, unit: "ท่อน" },
       { name: z("ชุดข้อต่อราง " + spec.brief + " " + sz), qty: up(joint), unit: "ชุด" },
       /* พุ๊กกับสกรูเป็นของมาตรฐานที่ใช้ร่วมกับงานอื่นทั้งใบ ไม่แยกชุบ — ไม่งั้นบรรทัดเดียวแตกเป็นสองบรรทัด */
       { name: 'พุ๊กเหล็ก 3/8"', qty: up(hanger * 4), unit: "ตัว" },
@@ -1708,7 +1711,7 @@
   // key สำหรับจับคู่ราคา = ชื่อวัสดุ (ตัดส่วนต่อท้าย "(3m/ท่อน)"/"(2.9m/ท่อน)")
   function matKey(name) {
     // trayAlias: ชื่อรางรุ่นเก่าในคลัง/ใบถอดของเก่า ให้เทียบกับชื่อใหม่ได้ ราคาที่ตั้งไว้แล้วจึงไม่หลุด
-    return trayAlias(String(name || "").replace(/\s*\((?:3m|2\.9m)\/ท่อน\)\s*$/, "")).trim();
+    return trayAlias(String(name || "").replace(/\s*\(\d+(?:\.\d+)?m\/ท่อน\)\s*$/, "")).trim();
   }
 
   // รายการวัสดุทั้งหมดที่ BOQ สร้างได้ — ใช้ในหน้า "ราคาวัสดุ" เพื่อกรอกรหัส+ราคา
@@ -1774,7 +1777,7 @@
       spec.sizes.forEach((nm) => {
         const sz = traySuffix(nm);
         [false, true].forEach((z) => {                            // ของธรรมดา + ของชุบ HDG ตั้งราคาแยกกันได้
-          add(G_TRAY, hdgName(nm, z) + " (" + spec.pipeLen.toFixed(1) + "m/ท่อน)", "ท่อน");
+          add(G_TRAY, hdgName(nm, z) + " (" + trayLenTxt(spec.pipeLen) + "m/ท่อน)", "ท่อน");
           add(G_TRAY, hdgName("ชุดข้อต่อราง " + spec.brief + " " + sz, z), "ชุด");
           if (spec.hanger) add(G_TRAY, hdgName("ขาแขวนราง " + spec.brief + " " + sz, z), "ชุด");
         });
@@ -1988,7 +1991,7 @@
 
   window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, PERF_SIZES, TRAY_KINDS, TRAY_KIND_KEYS, trayKindOf, trayNorm, trayAlias, hdgName,
-    WAY_PIPE_LEN, TRAY_PIPE_LEN, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
+    WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
     COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings,
     STEEL_SPECS, steelName, steelBarLen, steelSel, steelOf,
     TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, ACC_ALLOW_PCT, VAT_RATE, priceBreakdown,

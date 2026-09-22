@@ -6280,17 +6280,17 @@ function BOQEditor({
     kind: "way",
     label: "Wireway เหล็กมีฝา",
     sizes: window.BOQ.WAY_SIZES,
-    hint: "รางเหล็กพับมีฝาปิด ยาว " + window.BOQ.WAY_PIPE_LEN.toFixed(1) + " ม./ท่อน — กรอกความยาวรวมของแต่ละขนาด"
+    hint: "รางเหล็กพับมีฝาปิด ยาว " + window.BOQ.trayLenTxt(window.BOQ.WAY_PIPE_LEN) + " ม./ท่อน — กรอกความยาวรวมของแต่ละขนาด"
   }), TrayList({
     kind: "tray",
     label: "Cable Tray Ladder (รางบันได)",
     sizes: window.BOQ.TRAY_SIZES,
-    hint: "พื้นรางเป็นขั้นบันได ยาว " + window.BOQ.TRAY_PIPE_LEN.toFixed(1) + " ม./ท่อน — ใช้เดินสายเส้นใหญ่จำนวนมากระยะไกล ระบายความร้อนดีที่สุด"
+    hint: "พื้นรางเป็นขั้นบันได ยาว " + window.BOQ.trayLenTxt(window.BOQ.TRAY_PIPE_LEN) + " ม./ท่อน — ใช้เดินสายเส้นใหญ่จำนวนมากระยะไกล ระบายความร้อนดีที่สุด"
   }), TrayList({
     kind: "perf",
     label: "Cable Tray Perforated (รางเจาะรู)",
     sizes: window.BOQ.PERF_SIZES,
-    hint: "พื้นรางเป็นแผ่นเจาะรู ยาว " + window.BOQ.TRAY_PIPE_LEN.toFixed(1) + " ม./ท่อน — รองสายเส้นเล็กได้ไม่ตกร่อง เกณฑ์เติมเต็มเท่ารางบันได"
+    hint: "พื้นรางเป็นแผ่นเจาะรู ยาว " + window.BOQ.trayLenTxt(window.BOQ.TRAY_PIPE_LEN) + " ม./ท่อน — รองสายเส้นเล็กได้ไม่ตกร่อง เกณฑ์เติมเต็มเท่ารางบันได"
   }), React.createElement("div", {
     style: {
       display: "grid",
