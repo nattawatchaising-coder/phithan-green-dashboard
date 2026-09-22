@@ -74,6 +74,11 @@ const BQ_CSS = `
 .bq-spec .v{display:block;font-family:var(--mono);font-size:13.5px;font-weight:800;color:var(--text-1);
   font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bq-spec .v.hi{color:var(--primary-dark)}
+/* ช่องกรอกที่อยู่ในแถบสเปค — หน้าตาเหมือนค่าที่โชว์ แต่พิมพ์ทับได้ */
+.bq-spec .vin{display:block;width:100%;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;
+  padding:1px 7px;font-family:var(--mono);font-size:13.5px;font-weight:800;color:var(--primary-dark);
+  font-variant-numeric:tabular-nums;outline:none}
+.bq-spec .vin:focus{border-color:var(--primary)}
 .bq-spec>div[data-miss="1"]{background:var(--tint-amber-bg);border-color:var(--tint-amber-bd)}
 .bq-spec>div[data-miss="1"] .v{color:var(--tint-amber-tx)}
 .bq-spec>div[data-bad="1"]{background:var(--tint-red-bg);border-color:var(--tint-red-bd2)}
@@ -1657,6 +1662,7 @@ function BOQEditor({
   const priced = window.BOQ.applyPrices(result, priceMap || {}, b.pick || {});
   const pb = window.BOQ.priceBreakdown(priced.grandTotal, pricing, (result.meta.kw || 0) * 1000);
   const siteTotal = (priced.groups || []).filter(g => g.group === window.BOQ.G_TRANSPORT || g.group === window.BOQ.G_MANAGE).reduce((s, g) => s + g.subtotal, 0);
+  const accPct = window.BOQ.accAllowPct(b);
   const accAllowGrp = (priced.groups || []).find(g => g.allowance);
   const accAllow = accAllowGrp ? accAllowGrp.subtotal : 0;
   const accBase = accAllowGrp ? (accAllowGrp.items.find(it => it.allowBase != null) || {}).allowBase || 0 : 0;
@@ -4217,8 +4223,8 @@ function BOQEditor({
   } : {
     key: "acc",
     icon: "box",
-    title: "Accessories Allowance " + window.BOQ.ACC_ALLOW_PCT + "%",
-    meta: accAllow > 0 ? "฿" + baht(accAllow) + " (" + window.BOQ.ACC_ALLOW_PCT + "% ของ ฿" + baht(accBase) + ")" : "ยังไม่มีราคาทุน",
+    title: "Accessories Allowance " + accPct + "%",
+    meta: accAllow > 0 ? "฿" + baht(accAllow) + " (" + accPct + "% ของ ฿" + baht(accBase) + ")" : "ยังไม่มีราคาทุน",
     tone: accAllow > 0 ? "ok" : ""
   }, {
     key: "labor",
@@ -7226,7 +7232,7 @@ function BOQEditor({
       color: "var(--text-3)"
     }
   }, "* \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2B\u0E21\u0E27\u0E14 \u2192 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E27\u0E31\u0E2A\u0E14\u0E38 (\u0E08\u0E32\u0E01\u0E23\u0E32\u0E04\u0E32\u0E27\u0E31\u0E2A\u0E14\u0E38 + \u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32) \u0E2B\u0E23\u0E37\u0E2D \"\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E2D\u0E07\" \u2014 \u0E16\u0E49\u0E32\u0E21\u0E35\u0E23\u0E32\u0E04\u0E32\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E30\u0E04\u0E34\u0E14\u0E15\u0E49\u0E19\u0E17\u0E38\u0E19\u0E43\u0E2B\u0E49")) : React.createElement(BoqSection, _extends({
-    title: "Accessories Allowance " + window.BOQ.ACC_ALLOW_PCT + "%",
+    title: "Accessories Allowance " + accPct + "%",
     icon: "box"
   }, secProps("acc"), {
     right: accAllow > 0 ? React.createElement("span", {
@@ -7243,7 +7249,7 @@ function BOQEditor({
       lineHeight: 1.5,
       marginBottom: 12
     }
-  }, "\u0E07\u0E32\u0E19\u0E42\u0E04\u0E23\u0E07\u0E01\u0E32\u0E23\u0E44\u0E21\u0E48\u0E44\u0E25\u0E48\u0E16\u0E2D\u0E14 Accessories \u0E17\u0E35\u0E25\u0E30\u0E0A\u0E34\u0E49\u0E19 \u2014 \u0E04\u0E34\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E40\u0E07\u0E34\u0E19\u0E40\u0E1C\u0E37\u0E48\u0E2D ", window.BOQ.ACC_ALLOW_PCT, "% \u0E02\u0E2D\u0E07\u0E23\u0E32\u0E04\u0E32\u0E17\u0E38\u0E19\u0E27\u0E31\u0E2A\u0E14\u0E38\u0E17\u0E35\u0E48\u0E16\u0E2D\u0E14\u0E44\u0E14\u0E49\u0E17\u0E31\u0E49\u0E07\u0E07\u0E32\u0E19 (\u0E44\u0E21\u0E48\u0E23\u0E27\u0E21\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07 \u0E04\u0E48\u0E32\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15 \u0E02\u0E19\u0E2A\u0E48\u0E07 \u0E1A\u0E23\u0E34\u0E2B\u0E32\u0E23\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23 \u0E41\u0E25\u0E30\u0E44\u0E21\u0E48\u0E23\u0E27\u0E21\u0E15\u0E31\u0E27\u0E21\u0E31\u0E19\u0E40\u0E2D\u0E07)"), React.createElement("div", {
+  }, "\u0E07\u0E32\u0E19\u0E42\u0E04\u0E23\u0E07\u0E01\u0E32\u0E23\u0E44\u0E21\u0E48\u0E44\u0E25\u0E48\u0E16\u0E2D\u0E14 Accessories \u0E17\u0E35\u0E25\u0E30\u0E0A\u0E34\u0E49\u0E19 \u2014 \u0E04\u0E34\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E40\u0E07\u0E34\u0E19\u0E40\u0E1C\u0E37\u0E48\u0E2D ", accPct, "% \u0E02\u0E2D\u0E07\u0E23\u0E32\u0E04\u0E32\u0E17\u0E38\u0E19\u0E27\u0E31\u0E2A\u0E14\u0E38\u0E17\u0E35\u0E48\u0E16\u0E2D\u0E14\u0E44\u0E14\u0E49\u0E17\u0E31\u0E49\u0E07\u0E07\u0E32\u0E19 (\u0E44\u0E21\u0E48\u0E23\u0E27\u0E21\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07 \u0E04\u0E48\u0E32\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15 \u0E02\u0E19\u0E2A\u0E48\u0E07 \u0E1A\u0E23\u0E34\u0E2B\u0E32\u0E23\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23 \u0E41\u0E25\u0E30\u0E44\u0E21\u0E48\u0E23\u0E27\u0E21\u0E15\u0E31\u0E27\u0E21\u0E31\u0E19\u0E40\u0E2D\u0E07) \xB7 \u0E2D\u0E31\u0E15\u0E23\u0E32\u0E1B\u0E23\u0E31\u0E1A\u0E40\u0E2D\u0E07\u0E44\u0E14\u0E49 \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07 = \u0E43\u0E0A\u0E49 ", window.BOQ.ACC_ALLOW_PCT, "% \u0E15\u0E32\u0E21\u0E21\u0E32\u0E15\u0E23\u0E10\u0E32\u0E19"), React.createElement("div", {
     className: "bq-spec"
   }, React.createElement("div", null, React.createElement("span", {
     className: "k"
@@ -7251,9 +7257,16 @@ function BOQEditor({
     className: "v"
   }, "\u0E3F", baht(accBase))), React.createElement("div", null, React.createElement("span", {
     className: "k"
-  }, "\u0E2D\u0E31\u0E15\u0E23\u0E32\u0E40\u0E07\u0E34\u0E19\u0E40\u0E1C\u0E37\u0E48\u0E2D"), React.createElement("span", {
-    className: "v"
-  }, window.BOQ.ACC_ALLOW_PCT, "%")), React.createElement("div", null, React.createElement("span", {
+  }, "\u0E2D\u0E31\u0E15\u0E23\u0E32\u0E40\u0E07\u0E34\u0E19\u0E40\u0E1C\u0E37\u0E48\u0E2D (%)"), React.createElement("input", {
+    className: "vin",
+    type: "number",
+    min: 0,
+    max: 100,
+    step: 0.5,
+    value: b.accAllowPct != null ? b.accAllowPct : "",
+    placeholder: String(window.BOQ.ACC_ALLOW_PCT),
+    onChange: e => set("accAllowPct", e.target.value)
+  })), React.createElement("div", null, React.createElement("span", {
     className: "k"
   }, "\u0E40\u0E07\u0E34\u0E19\u0E40\u0E1C\u0E37\u0E48\u0E2D Accessories"), React.createElement("span", {
     className: "v hi"

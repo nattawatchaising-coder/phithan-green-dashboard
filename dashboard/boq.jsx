@@ -81,6 +81,11 @@ const BQ_CSS = `
 .bq-spec .v{display:block;font-family:var(--mono);font-size:13.5px;font-weight:800;color:var(--text-1);
   font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bq-spec .v.hi{color:var(--primary-dark)}
+/* ช่องกรอกที่อยู่ในแถบสเปค — หน้าตาเหมือนค่าที่โชว์ แต่พิมพ์ทับได้ */
+.bq-spec .vin{display:block;width:100%;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;
+  padding:1px 7px;font-family:var(--mono);font-size:13.5px;font-weight:800;color:var(--primary-dark);
+  font-variant-numeric:tabular-nums;outline:none}
+.bq-spec .vin:focus{border-color:var(--primary)}
 .bq-spec>div[data-miss="1"]{background:var(--tint-amber-bg);border-color:var(--tint-amber-bd)}
 .bq-spec>div[data-miss="1"] .v{color:var(--tint-amber-tx)}
 .bq-spec>div[data-bad="1"]{background:var(--tint-red-bg);border-color:var(--tint-red-bd2)}
@@ -736,6 +741,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const siteTotal = (priced.groups || []).filter((g) => g.group === window.BOQ.G_TRANSPORT || g.group === window.BOQ.G_MANAGE)
     .reduce((s, g) => s + g.subtotal, 0);
   /* เงินเผื่อ Accessories (งานโครงการ) — เอนจินคิดมาให้แล้วตอนใส่ราคา ที่นี่แค่ดึงยอดกับฐานคิดมาโชว์ */
+  const accPct = window.BOQ.accAllowPct(b);
   const accAllowGrp = (priced.groups || []).find((g) => g.allowance);
   const accAllow = accAllowGrp ? accAllowGrp.subtotal : 0;
   const accBase = accAllowGrp ? ((accAllowGrp.items.find((it) => it.allowBase != null) || {}).allowBase || 0) : 0;
@@ -1819,8 +1825,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       tone: structRows > 0 ? "ok" : "" } : null,
     isHome
       ? { key: "acc", icon: "box", title: "Accessories", meta: (accList || []).length ? accList.length + " รายการ" : "ยังไม่เพิ่ม" }
-      : { key: "acc", icon: "box", title: "Accessories Allowance " + window.BOQ.ACC_ALLOW_PCT + "%",
-          meta: accAllow > 0 ? "฿" + baht(accAllow) + " (" + window.BOQ.ACC_ALLOW_PCT + "% ของ ฿" + baht(accBase) + ")" : "ยังไม่มีราคาทุน",
+      : { key: "acc", icon: "box", title: "Accessories Allowance " + accPct + "%",
+          meta: accAllow > 0 ? "฿" + baht(accAllow) + " (" + accPct + "% ของ ฿" + baht(accBase) + ")" : "ยังไม่มีราคาทุน",
           tone: accAllow > 0 ? "ok" : "" },
     { key: "labor", icon: "power", title: "ค่าแรงติดตั้ง",
       meta: (laborMode === "lump" ? "เหมารวม · " : "แยกรายการ · ")
@@ -2882,15 +2888,19 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)" }}>* เลือกหมวด → เลือกวัสดุ (จากราคาวัสดุ + คลังสินค้า) หรือ "พิมพ์เอง" — ถ้ามีราคาในระบบจะคิดต้นทุนให้</div>
           </BoqSection>
           ) : (
-          <BoqSection title={"Accessories Allowance " + window.BOQ.ACC_ALLOW_PCT + "%"} icon="box" {...secProps("acc")}
+          <BoqSection title={"Accessories Allowance " + accPct + "%"} icon="box" {...secProps("acc")}
             right={accAllow > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(accAllow)}</span> : null}>
             <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
-              งานโครงการไม่ไล่ถอด Accessories ทีละชิ้น — คิดเป็นเงินเผื่อ {window.BOQ.ACC_ALLOW_PCT}% ของราคาทุนวัสดุที่ถอดได้ทั้งงาน
-              (ไม่รวมค่าแรง ค่าขออนุญาต ขนส่ง บริหารจัดการ และไม่รวมตัวมันเอง)
+              งานโครงการไม่ไล่ถอด Accessories ทีละชิ้น — คิดเป็นเงินเผื่อ {accPct}% ของราคาทุนวัสดุที่ถอดได้ทั้งงาน
+              (ไม่รวมค่าแรง ค่าขออนุญาต ขนส่ง บริหารจัดการ และไม่รวมตัวมันเอง) · อัตราปรับเองได้ เว้นว่าง = ใช้ {window.BOQ.ACC_ALLOW_PCT}% ตามมาตรฐาน
             </div>
             <div className="bq-spec">
               <div><span className="k">ฐานคิด · ราคาทุนวัสดุ</span><span className="v">฿{baht(accBase)}</span></div>
-              <div><span className="k">อัตราเงินเผื่อ</span><span className="v">{window.BOQ.ACC_ALLOW_PCT}%</span></div>
+              <div><span className="k">อัตราเงินเผื่อ (%)</span>
+                <input className="vin" type="number" min={0} max={100} step={0.5}
+                  value={b.accAllowPct != null ? b.accAllowPct : ""} placeholder={String(window.BOQ.ACC_ALLOW_PCT)}
+                  onChange={(e) => set("accAllowPct", e.target.value)} />
+              </div>
               <div><span className="k">เงินเผื่อ Accessories</span><span className="v hi">฿{baht(accAllow)}</span></div>
             </div>
           </BoqSection>
