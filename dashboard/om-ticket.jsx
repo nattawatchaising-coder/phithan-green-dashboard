@@ -188,7 +188,7 @@ function OmTicketCard({ t, onOpen }) {
    ช่างที่รับเรื่องซ่อมต้องรู้ก่อนออกจากออฟฟิศว่า โทรหาใคร ไปที่ไหน ของที่ติดไว้เป็นรุ่นอะไร
    ไม่ใช่ต้องกลับไปเปิดใบงานอีกหน้าหนึ่ง — ดึงมาโชว์ตรงนี้เลย อ่านอย่างเดียว แก้ที่ใบงานต้นทาง
    ไซต์นอกระบบไม่มีใบงาน จึงใช้ข้อมูลเท่าที่ทะเบียนไซต์มี */
-function OmJobFacts({ job, site }) {
+function OmJobFacts({ job, site, compact }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [fileBusy, setFileBusy] = React.useState(false);
   const [fileErr, setFileErr] = React.useState(false);
@@ -273,11 +273,21 @@ function OmJobFacts({ job, site }) {
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 12 }}>
-        {specs.map(([k, v]) => cell(k, v))}
-        {j && cell("ช่างที่ติดตั้ง", (window.SF.TECH_BY_ID[j.tech] || {}).name || "—")}
-        {j && cell("เซลล์เจ้าของงาน", j.salesName || "—")}
-      </div>
+      {/* สเปคเต็มอยู่ในทะเบียนไซต์ — ที่นั่นคือฐานข้อมูลของไซต์จริง ๆ
+          ในใบแจ้งซ่อมเหลือเท่าที่ต้องใช้ก่อนออกจากออฟฟิศ (โทรหาใคร ไปไหน แบบอยู่ไหน)
+          ไม่งั้นบล็อกนี้ยาวจนดันเรื่องที่ต้องลงมือจริงตกไปอยู่ครึ่งล่างของหน้า */}
+      {compact ? (
+        <div style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.6 }}>
+          {specs.map(([k, v]) => k + " " + v).join(" · ")}
+          <span style={{ display: "block", marginTop: 3 }}>สเปคเต็มดูได้ที่ทะเบียนไซต์ {s.code || ""}</span>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 12 }}>
+          {specs.map(([k, v]) => cell(k, v))}
+          {j && cell("ช่างที่ติดตั้ง", (window.SF.TECH_BY_ID[j.tech] || {}).name || "—")}
+          {j && cell("เซลล์เจ้าของงาน", j.salesName || "—")}
+        </div>
+      )}
     </div>
     </React.Fragment>
   );
@@ -301,6 +311,8 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
   const locked = !canWrite || window.omTicketKey(t.status) === "closed";
   const set = (fields) => { if (!locked) onPatch(t.id, fields); };
   const nexts = window.omTicketNext(t, role);
+  /* ย้อนขั้นกับตีตกเรื่องแยกออกมา ไม่ปนกับปุ่มเดินหน้า — ดูออกทันทีว่าทางไหนคือทางที่งานควรไป */
+  const backs = window.omTicketBack(t, role);
 
   /* ระบบเดาให้ว่าเคสนี้ควรอยู่ในประกันหรือคิดเงิน จากหมวดปัญหา + ทะเบียนประกันของไซต์
      เดาให้เฉย ๆ คนตัดสินใจยังกดเปลี่ยนเองได้เสมอ */
@@ -347,8 +359,8 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
           </div>
 
           {/* ปุ่มเดินสถานะ — รายการมาจากตารางสถานะ ไม่มีทางกดข้ามขั้น */}
-          {canWrite && !!nexts.length && (
-            <div style={{ display: "flex", gap: 7, marginTop: 11, flexWrap: "wrap" }}>
+          {canWrite && (!!nexts.length || !!backs.length) && (
+            <div style={{ display: "flex", gap: 7, marginTop: 11, flexWrap: "wrap", alignItems: "center" }}>
               {nexts.map((n) => (
                 <button key={n.key} onClick={() => { onMove(t, n.key, moveNote); setMoveNote(""); }}
                   style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, border: "none",
@@ -356,6 +368,19 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
                   <Icon name="arrowRight" size={14} color="#fff" /> {n.th}
                 </button>
               ))}
+              {backs.map((n) => {
+                const drop = n.key === "rejected";
+                const label = drop ? "ไม่รับเรื่อง" : "ย้อนกลับไป" + n.th;
+                return (
+                  <button key={n.key} title={drop ? "ตีตกเรื่องนี้ ไม่เข้าซ่อม" : "กดผิดขั้น — ถอยกลับไปขั้นก่อนหน้า"}
+                    onClick={() => { onMove(t, n.key, moveNote); setMoveNote(""); }}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 11px", borderRadius: 9,
+                      border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+                      fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>
+                    <Icon name={drop ? "x" : "undo"} size={12} color="var(--text-3)" /> {label}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -382,7 +407,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
             </div>
           )}
 
-          <OmJobFacts job={job} site={site} />
+          <OmJobFacts job={job} site={site} compact />
 
           <window.DrSection n="1" title="ลูกค้าแจ้งว่าอะไร" tone="#7C5CFC">
             <window.DrLabel hint="สรุปสั้น ๆ ให้อ่านแล้วรู้เรื่องทันที">หัวเรื่อง</window.DrLabel>
@@ -760,4 +785,4 @@ function OmTicketBoard({ sites, jobById, users, ticketStore, visitStore, role, c
   );
 }
 
-Object.assign(window, { OmPhotos, OmTicketCard, OmTicketVisitInline, OmTicketModal, OmTicketBoard, OM_BOARD_COLS });
+Object.assign(window, { OmPhotos, OmJobFacts, OmTicketCard, OmTicketVisitInline, OmTicketModal, OmTicketBoard, OM_BOARD_COLS });

@@ -646,17 +646,22 @@ const OM_TICKET_STATUS = [{
   key: "new",
   th: "แจ้งเข้ามาใหม่",
   color: "#7C5CFC",
-  next: ["accepted", "rejected"]
+  next: ["accepted"],
+  back: [],
+  drop: ["rejected"]
 }, {
   key: "accepted",
   th: "รับเรื่องแล้ว",
   color: "#0EA5E9",
-  next: ["scheduled", "rejected"]
+  next: ["scheduled"],
+  back: ["new"],
+  drop: ["rejected"]
 }, {
   key: "scheduled",
   th: "นัดวันเข้าแก้ไข",
   color: "#F59E0B",
-  next: ["closed", "accepted"]
+  next: ["closed"],
+  back: ["accepted"]
 }, {
   key: "closed",
   th: "ปิดงานแล้ว",
@@ -684,13 +689,19 @@ const omTicketOpen = t => {
 };
 function omTicketNext(t, role) {
   const cur = omTicketStatusOf((t || {}).status);
-  const list = (cur.next || []).slice();
+  return (cur.next || []).map(k => OM_TICKET_STATUS_BY[k]);
+}
+function omTicketBack(t, role) {
+  const cur = omTicketStatusOf((t || {}).status);
+  const list = (cur.back || []).concat(cur.drop || []);
   if (cur.key === "closed" && omCanApprove(role)) list.push("scheduled");
   return list.map(k => OM_TICKET_STATUS_BY[k]);
 }
 const omTicketCan = (from, to, role) => omTicketNext({
   status: from
-}, role).some(s => s.key === to);
+}, role).concat(omTicketBack({
+  status: from
+}, role)).some(s => s.key === to);
 function omTicketMove(t, to, user, note) {
   if (!t) return null;
   const now = new Date().toISOString();
@@ -1429,6 +1440,7 @@ Object.assign(window, {
   omTicketStatusOf,
   omTicketOpen,
   omTicketNext,
+  omTicketBack,
   omTicketCan,
   omTicketMove,
   omTicketKey,

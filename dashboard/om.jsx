@@ -443,10 +443,14 @@ const omCoverTH = (k) => OM_COVER[k] || OM_COVER.unknown;
 /* ── สถานะใบแจ้งซ่อม ──
    ประกาศเป็นตารางข้อมูล ไม่ใช่ if ซ้อน — เพิ่มสถานะทีหลังจะได้ไม่ต้องไล่แก้หลายที่
    และหน้าจอสร้างปุ่มจากตารางนี้โดยตรง ปุ่มที่ขึ้นจึงเป็นทางที่เดินได้จริงเสมอ */
+/* next = ขั้นถัดไปของงาน · back = ย้อนกลับเพราะกดผิด · drop = ตีตกเรื่อง
+   แยกกันเพราะปุ่มเดินหน้ากับปุ่มย้อนกลับไม่ใช่ทางเลือกที่เท่ากัน
+   เดิมรวมอยู่ชุดเดียว ใบที่นัดวันแล้วจึงมีปุ่ม "รับเรื่องแล้ว" โผล่มาข้างปุ่มปิดงาน
+   อ่านเหมือนยังไม่ได้รับเรื่อง ทั้งที่เดินเลยขั้นนั้นไปแล้ว */
 const OM_TICKET_STATUS = [
-  { key: "new",       th: "แจ้งเข้ามาใหม่", color: "#7C5CFC", next: ["accepted", "rejected"] },
-  { key: "accepted",  th: "รับเรื่องแล้ว",  color: "#0EA5E9", next: ["scheduled", "rejected"] },
-  { key: "scheduled", th: "นัดวันเข้าแก้ไข", color: "#F59E0B", next: ["closed", "accepted"] },
+  { key: "new",       th: "แจ้งเข้ามาใหม่", color: "#7C5CFC", next: ["accepted"],  back: [],           drop: ["rejected"] },
+  { key: "accepted",  th: "รับเรื่องแล้ว",  color: "#0EA5E9", next: ["scheduled"], back: ["new"],      drop: ["rejected"] },
+  { key: "scheduled", th: "นัดวันเข้าแก้ไข", color: "#F59E0B", next: ["closed"],    back: ["accepted"] },
   { key: "closed",    th: "ปิดงานแล้ว",    color: "#10B981", next: [] },
   { key: "rejected",  th: "ไม่รับเรื่อง",   color: "#94A3B8", next: ["new"] },
 ];
@@ -462,11 +466,18 @@ const omTicketOpen = (t) => { const k = omTicketKey((t || {}).status); return !!
 /* ปิดงานแล้วย้อนไม่ได้เอง ต้องให้หัวหน้าปลดล็อก — ใบที่ปิดไปแล้วคือเอกสารที่ลูกค้ารับทราบแล้ว */
 function omTicketNext(t, role) {
   const cur = omTicketStatusOf((t || {}).status);
-  const list = (cur.next || []).slice();
+  return (cur.next || []).map((k) => OM_TICKET_STATUS_BY[k]);
+}
+/* ย้อนขั้น / ตีตกเรื่อง — เป็นการแก้ที่กดผิด ไม่ใช่ขั้นถัดไปของงาน หน้าจอจึงต้องแยกปุ่มให้เห็นต่างกัน
+   ปิดงานแล้วย้อนเองไม่ได้ ต้องให้หัวหน้าเปิดกลับ — ใบที่ปิดไปแล้วคือเอกสารที่ลูกค้ารับทราบแล้ว */
+function omTicketBack(t, role) {
+  const cur = omTicketStatusOf((t || {}).status);
+  const list = (cur.back || []).concat(cur.drop || []);
   if (cur.key === "closed" && omCanApprove(role)) list.push("scheduled");
   return list.map((k) => OM_TICKET_STATUS_BY[k]);
 }
-const omTicketCan = (from, to, role) => omTicketNext({ status: from }, role).some((s) => s.key === to);
+const omTicketCan = (from, to, role) =>
+  omTicketNext({ status: from }, role).concat(omTicketBack({ status: from }, role)).some((s) => s.key === to);
 
 /* เดินสถานะ = คืนเรคคอร์ดใหม่พร้อมต่อประวัติ ไม่เขียนฐานข้อมูลเอง (ให้ที่เรียกเป็นคนเขียน)
    จะได้ทดสอบตรรกะได้โดยไม่ต้องมี Firebase */
@@ -1003,7 +1014,7 @@ Object.assign(window, {
 Object.assign(window, {
   OM_TICKET_CAT, OM_TICKET_CAT_BY, OM_SEVERITY, OM_SEVERITY_BY, OM_SLA_DAYS, OM_COVER,
   OM_TICKET_STATUS, OM_TICKET_STATUS_BY, OM_TICKET_SOURCE,
-  omCoverTH, omTicketStatusOf, omTicketOpen, omTicketNext, omTicketCan, omTicketMove,
+  omCoverTH, omTicketStatusOf, omTicketOpen, omTicketNext, omTicketBack, omTicketCan, omTicketMove,
   omTicketKey, omTicketOverdue, omTicketNo, omBlankTicket, omTicketRollup,
   useOmTickets, useOmTicketPhotos,
 });

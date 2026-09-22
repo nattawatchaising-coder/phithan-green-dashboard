@@ -409,6 +409,10 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, siteVisits,
             </div>
           )}
 
+          {/* ข้อมูลงานติดตั้งเดิมทั้งชุด — ทะเบียนไซต์คือที่ของมัน ใบแจ้งซ่อมเหลือแค่ย่อ
+              ของชุดนี้อ่านอย่างเดียว แก้ที่ใบงานต้นทาง ไม่ใช่ที่นี่ */}
+          <window.OmJobFacts job={job} site={site} />
+
           <window.DrSection n="1" title="ข้อมูลไซต์" hint={site.tech ? "" : "ยังไม่ได้ระบุช่างผู้ดูแล"}>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
               <div>

@@ -355,7 +355,8 @@ function OmTicketCard({
 }
 function OmJobFacts({
   job,
-  site
+  site,
+  compact
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [fileBusy, setFileBusy] = React.useState(false);
@@ -550,7 +551,18 @@ function OmJobFacts({
     style: {
       verticalAlign: -1
     }
-  }), " ", addr), React.createElement("div", {
+  }), " ", addr), compact ? React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)",
+      lineHeight: 1.6
+    }
+  }, specs.map(([k, v]) => k + " " + v).join(" · "), React.createElement("span", {
+    style: {
+      display: "block",
+      marginTop: 3
+    }
+  }, "\u0E2A\u0E40\u0E1B\u0E04\u0E40\u0E15\u0E47\u0E21\u0E14\u0E39\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E17\u0E30\u0E40\u0E1A\u0E35\u0E22\u0E19\u0E44\u0E0B\u0E15\u0E4C ", s.code || "")) : React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
@@ -589,6 +601,7 @@ function OmTicketModal({
     if (!locked) onPatch(t.id, fields);
   };
   const nexts = window.omTicketNext(t, role);
+  const backs = window.omTicketBack(t, role);
   const guess = site ? window.omCoverOf(site, t.category) : null;
   const vSorted = (visits || []).slice().sort((a, b) => String(a.date || "") < String(b.date || "") ? -1 : String(a.date || "") > String(b.date || "") ? 1 : String(a.createdAt || "") < String(b.createdAt || "") ? -1 : 1);
   const vCur = vSorted.length ? vSorted[vSorted.length - 1] : null;
@@ -685,12 +698,13 @@ function OmTicketModal({
   }, React.createElement(Icon, {
     name: "x",
     size: 15
-  }))), canWrite && !!nexts.length && React.createElement("div", {
+  }))), canWrite && (!!nexts.length || !!backs.length) && React.createElement("div", {
     style: {
       display: "flex",
       gap: 7,
       marginTop: 11,
-      flexWrap: "wrap"
+      flexWrap: "wrap",
+      alignItems: "center"
     }
   }, nexts.map(n => React.createElement("button", {
     key: n.key,
@@ -716,7 +730,36 @@ function OmTicketModal({
     name: "arrowRight",
     size: 14,
     color: "#fff"
-  }), " ", n.th)))), React.createElement("div", {
+  }), " ", n.th)), backs.map(n => {
+    const drop = n.key === "rejected";
+    const label = drop ? "ไม่รับเรื่อง" : "ย้อนกลับไป" + n.th;
+    return React.createElement("button", {
+      key: n.key,
+      title: drop ? "ตีตกเรื่องนี้ ไม่เข้าซ่อม" : "กดผิดขั้น — ถอยกลับไปขั้นก่อนหน้า",
+      onClick: () => {
+        onMove(t, n.key, moveNote);
+        setMoveNote("");
+      },
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        padding: "7px 11px",
+        borderRadius: 9,
+        border: "1px solid var(--border-strong)",
+        background: "var(--surface)",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: "var(--text-3)"
+      }
+    }, React.createElement(Icon, {
+      name: drop ? "x" : "undo",
+      size: 12,
+      color: "var(--text-3)"
+    }), " ", label);
+  }))), React.createElement("div", {
     style: {
       padding: isMobile ? "14px 13px 24px" : "18px 20px 26px"
     }
@@ -762,7 +805,8 @@ function OmTicketModal({
     }
   }, "\u0E1B\u0E34\u0E14\u0E07\u0E32\u0E19\u0E41\u0E25\u0E49\u0E27\u0E42\u0E14\u0E22 ", React.createElement("b", null, t.closedByName || "-"), t.closedAt ? " · " + window.drDateTH(t.closedAt.slice(0, 10)) : "", " \xB7 \u0E41\u0E01\u0E49\u0E44\u0E02\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49", window.omCanApprove(role) ? " — หัวหน้ากดเปิดกลับมาทำต่อได้ที่ปุ่มด้านบน" : "")), React.createElement(OmJobFacts, {
     job: job,
-    site: site
+    site: site,
+    compact: true
   }), React.createElement(window.DrSection, {
     n: "1",
     title: "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E41\u0E08\u0E49\u0E07\u0E27\u0E48\u0E32\u0E2D\u0E30\u0E44\u0E23",
@@ -1564,6 +1608,7 @@ function OmTicketBoard({
 }
 Object.assign(window, {
   OmPhotos,
+  OmJobFacts,
   OmTicketCard,
   OmTicketVisitInline,
   OmTicketModal,
