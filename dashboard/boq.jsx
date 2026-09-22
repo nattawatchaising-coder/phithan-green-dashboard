@@ -763,7 +763,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     else if (showMicro && b.inverterModel && !inList) set("inverterModel", "");
   }, [jobBrand, jobPhaseNum]); // eslint-disable-line
   const maxPvTotal = selInv ? (selInv.maxPv || 0) * result.meta.invCount : 0;
-  const pvOver = isHuawei && maxPvTotal > 0 && result.meta.kw > maxPvTotal;
+  /* กำลังออก AC สูงสุดทั้งงาน — ตัวนี้คือเพดานจริงที่อินเวอร์เตอร์ปล่อยออกได้ (cosφ=1)
+     คลังยังไม่กรอก Max AC ให้รุ่นไหน ก็ถอยไปใช้เกณฑ์เดิม (MAX PV) ของรุ่นนั้น */
+  const acMaxTotal = selInv ? (+selInv.maxAcKw || 0) * result.meta.invCount : 0;
+  const dcAcCap = acMaxTotal > 0 ? acMaxTotal * window.BOQ.DCAC_LIMIT : maxPvTotal;
+  const dcAcRatio = acMaxTotal > 0 && result.meta.kw > 0 ? result.meta.kw / acMaxTotal : 0;
+  const pvOver = isHuawei && dcAcCap > 0 && result.meta.kw > dcAcCap;
   // ช่องรับสตริงต่อตัว = จำนวน MPPT × สตริงต่อ MPPT (แผนสตริงคิดหลังรู้ scfg ด้านล่าง)
   const perMppt = Math.max(1, Math.round(+(selInv && selInv.strPerMppt) || 1));
   const capPerInv = selInv ? Math.max(1, (+selInv.inputs || 1) * perMppt) : 1;
@@ -1884,7 +1889,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               </div>
               {pvOver && (
                 <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 7, padding: "9px 12px", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd2)", borderRadius: 10, fontSize: 12.5, fontWeight: 700, color: "var(--tint-red-tx)" }}>
-                  <Icon name="alert" size={15} color="#EF4444" /> กำลังแผง {result.meta.kw} kW เกิน MAX PV รวม {maxPvTotal} kW ({selInv.invCount || result.meta.invCount} ตัว × {selInv.maxPv} kW) — เพิ่มจำนวนอินเวอร์เตอร์หรือลดแผง
+                  <Icon name="alert" size={15} color="#EF4444" /> {acMaxTotal > 0
+                    ? "กำลังแผง " + result.meta.kw + " kW คิดเป็น DC/AC " + dcAcRatio.toFixed(2) + " เท่า เกินเพดาน " + window.BOQ.DCAC_LIMIT
+                      + " เท่า (กำลังออก AC สูงสุดรวม " + Math.round(acMaxTotal) + " kW = " + result.meta.invCount + " ตัว × " + selInv.maxAcKw
+                      + " kW) — เลยจุดนี้ clip ช่วงเที่ยงจะกินกำลังที่ใส่เพิ่ม เพิ่มจำนวนอินเวอร์เตอร์หรือลดแผง"
+                    : "กำลังแผง " + result.meta.kw + " kW เกิน MAX PV รวม " + maxPvTotal + " kW (" + result.meta.invCount + " ตัว × " + selInv.maxPv
+                      + " kW) — เพิ่มจำนวนอินเวอร์เตอร์หรือลดแผง (รุ่นนี้ยังไม่ได้กรอก Max AC Active Power ในคลัง)"}
                 </div>
               )}
               {selInv.unitFixed && (
@@ -1901,6 +1911,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <div className="bq-spec">
                 {[
                   { k: "กำลังต่อตัว", v: selInv.kw ? selInv.kw + " kW" : "—", miss: !selInv.kw },
+                  { k: "Max AC Active Power (cosφ=1)", v: selInv.maxAcKw ? selInv.maxAcKw + " kW" : "ยังไม่กรอกในคลัง", miss: !selInv.maxAcKw },
                   { k: "MAX PV ต่อตัว", v: selInv.maxPv ? selInv.maxPv + " kWp" : "ไม่ระบุ (ใช้ kW แทน)", miss: !selInv.maxPv },
                   { k: "เฟส", v: selInv.phase ? selInv.phase + " เฟส" : "—", miss: !selInv.phase, bad: !!selInv.phase && selInv.phase !== (String(b.phase) === "3" ? 3 : 1) },
                   { k: "กระแสออก (AC)", v: selInv.outA ? selInv.outA + " A" : "—", miss: !selInv.outA },
@@ -1911,7 +1922,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   { k: "Vdc สูงสุด", v: selInv.maxVdc ? selInv.maxVdc + " V" : "—", miss: !selInv.maxVdc },
                   { k: "กระแส input/สตริง", v: selInv.maxInA ? selInv.maxInA + " A" : "—", miss: !selInv.maxInA },
                   { k: "กระแสสูงสุด/MPPT", v: selInv.maxMpptA ? selInv.maxMpptA + " A" : "—", miss: !selInv.maxMpptA },
-                  { k: "MAX PV รวมทั้งงาน", v: maxPvTotal ? maxPvTotal + " kWp" : "—", hi: true, bad: pvOver },
+                  { k: "MAX PV รวมทั้งงาน", v: maxPvTotal ? maxPvTotal + " kWp" : "—" },
+                  /* อัตรา DC/AC คือตัวที่ตัดสินว่าใส่แผงเกินได้แค่ไหน — MAX PV เป็นแค่สเปคขา DC ของตัวเครื่อง */
+                  { k: "กำลังออก AC สูงสุดรวม", v: acMaxTotal ? Math.round(acMaxTotal) + " kW" : "—" },
+                  { k: "อัตรา DC/AC (เพดาน " + window.BOQ.DCAC_LIMIT + ")", v: dcAcRatio ? dcAcRatio.toFixed(2) + " เท่า" : "—", hi: true, bad: pvOver },
                 ].map((c, i) => (
                   <div key={i} data-miss={c.miss ? "1" : "0"} data-bad={c.bad ? "1" : "0"}>
                     <span className="k">{c.k}</span><span className={"v " + (c.hi && !c.bad ? "hi" : "")}>{c.v}</span>
@@ -1920,7 +1934,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               </div>
 
               <div style={{ marginTop: 10, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
-                * จำนวนตัว = ปัดขึ้น(กำลังแผงรวม ÷ MAX PV ต่อตัว) พิมพ์ทับได้ · Combiner Box + DC (Fuse/Holder/MCB/MC4) คิดตามจำนวน String · RCBO/SPD/Smart Meter/Backup เลือกตามเฟส ({selInv.phase === 3 ? "3" : "1"} เฟส) · RCBO ขนาดจากกระแสออก × 1.25
+                * ใส่แผงเกินกำลัง AC ได้ถึง DC/AC {window.BOQ.DCAC_LIMIT} เท่า — อินเวอร์เตอร์ตัดกำลังออกไว้ที่ Max AC Active Power อยู่แล้ว ส่วนที่เกินช่วยเก็บกำลังตอนแดดอ่อน
+                <br />* จำนวนตัว = ปัดขึ้น(กำลังแผงรวม ÷ MAX PV ต่อตัว) พิมพ์ทับได้ · Combiner Box + DC (Fuse/Holder/MCB/MC4) คิดตามจำนวน String · RCBO/SPD/Smart Meter/Backup เลือกตามเฟส ({selInv.phase === 3 ? "3" : "1"} เฟส) · RCBO ขนาดจากกระแสออก × 1.25
               </div>
             </BoqSection>
           )}

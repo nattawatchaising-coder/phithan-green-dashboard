@@ -1680,7 +1680,10 @@ function BOQEditor({
     if (!showMicro && !inList && brandInvs.length) set("inverterModel", brandInvs[0].model);else if (showMicro && b.inverterModel && !inList) set("inverterModel", "");
   }, [jobBrand, jobPhaseNum]);
   const maxPvTotal = selInv ? (selInv.maxPv || 0) * result.meta.invCount : 0;
-  const pvOver = isHuawei && maxPvTotal > 0 && result.meta.kw > maxPvTotal;
+  const acMaxTotal = selInv ? (+selInv.maxAcKw || 0) * result.meta.invCount : 0;
+  const dcAcCap = acMaxTotal > 0 ? acMaxTotal * window.BOQ.DCAC_LIMIT : maxPvTotal;
+  const dcAcRatio = acMaxTotal > 0 && result.meta.kw > 0 ? result.meta.kw / acMaxTotal : 0;
+  const pvOver = isHuawei && dcAcCap > 0 && result.meta.kw > dcAcCap;
   const perMppt = Math.max(1, Math.round(+(selInv && selInv.strPerMppt) || 1));
   const capPerInv = selInv ? Math.max(1, (+selInv.inputs || 1) * perMppt) : 1;
   const selPanel = window.BOQ.findPanel ? window.BOQ.findPanel(b.panelModel) : null;
@@ -4492,7 +4495,7 @@ function BOQEditor({
     name: "alert",
     size: 15,
     color: "#EF4444"
-  }), " \u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07 ", result.meta.kw, " kW \u0E40\u0E01\u0E34\u0E19 MAX PV \u0E23\u0E27\u0E21 ", maxPvTotal, " kW (", selInv.invCount || result.meta.invCount, " \u0E15\u0E31\u0E27 \xD7 ", selInv.maxPv, " kW) \u2014 \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E08\u0E33\u0E19\u0E27\u0E19\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E2B\u0E23\u0E37\u0E2D\u0E25\u0E14\u0E41\u0E1C\u0E07"), selInv.unitFixed && React.createElement("div", {
+  }), " ", acMaxTotal > 0 ? "กำลังแผง " + result.meta.kw + " kW คิดเป็น DC/AC " + dcAcRatio.toFixed(2) + " เท่า เกินเพดาน " + window.BOQ.DCAC_LIMIT + " เท่า (กำลังออก AC สูงสุดรวม " + Math.round(acMaxTotal) + " kW = " + result.meta.invCount + " ตัว × " + selInv.maxAcKw + " kW) — เลยจุดนี้ clip ช่วงเที่ยงจะกินกำลังที่ใส่เพิ่ม เพิ่มจำนวนอินเวอร์เตอร์หรือลดแผง" : "กำลังแผง " + result.meta.kw + " kW เกิน MAX PV รวม " + maxPvTotal + " kW (" + result.meta.invCount + " ตัว × " + selInv.maxPv + " kW) — เพิ่มจำนวนอินเวอร์เตอร์หรือลดแผง (รุ่นนี้ยังไม่ได้กรอก Max AC Active Power ในคลัง)"), selInv.unitFixed && React.createElement("div", {
     className: "bq-note warn"
   }, React.createElement(Icon, {
     name: "alert",
@@ -4514,6 +4517,10 @@ function BOQEditor({
     k: "กำลังต่อตัว",
     v: selInv.kw ? selInv.kw + " kW" : "—",
     miss: !selInv.kw
+  }, {
+    k: "Max AC Active Power (cosφ=1)",
+    v: selInv.maxAcKw ? selInv.maxAcKw + " kW" : "ยังไม่กรอกในคลัง",
+    miss: !selInv.maxAcKw
   }, {
     k: "MAX PV ต่อตัว",
     v: selInv.maxPv ? selInv.maxPv + " kWp" : "ไม่ระบุ (ใช้ kW แทน)",
@@ -4557,7 +4564,13 @@ function BOQEditor({
     miss: !selInv.maxMpptA
   }, {
     k: "MAX PV รวมทั้งงาน",
-    v: maxPvTotal ? maxPvTotal + " kWp" : "—",
+    v: maxPvTotal ? maxPvTotal + " kWp" : "—"
+  }, {
+    k: "กำลังออก AC สูงสุดรวม",
+    v: acMaxTotal ? Math.round(acMaxTotal) + " kW" : "—"
+  }, {
+    k: "อัตรา DC/AC (เพดาน " + window.BOQ.DCAC_LIMIT + ")",
+    v: dcAcRatio ? dcAcRatio.toFixed(2) + " เท่า" : "—",
     hi: true,
     bad: pvOver
   }].map((c, i) => React.createElement("div", {
@@ -4575,7 +4588,7 @@ function BOQEditor({
       color: "var(--text-3)",
       lineHeight: 1.5
     }
-  }, "* \u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27 = \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19(\u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07\u0E23\u0E27\u0E21 \xF7 MAX PV \u0E15\u0E48\u0E2D\u0E15\u0E31\u0E27) \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E17\u0E31\u0E1A\u0E44\u0E14\u0E49 \xB7 Combiner Box + DC (Fuse/Holder/MCB/MC4) \u0E04\u0E34\u0E14\u0E15\u0E32\u0E21\u0E08\u0E33\u0E19\u0E27\u0E19 String \xB7 RCBO/SPD/Smart Meter/Backup \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E15\u0E32\u0E21\u0E40\u0E1F\u0E2A (", selInv.phase === 3 ? "3" : "1", " \u0E40\u0E1F\u0E2A) \xB7 RCBO \u0E02\u0E19\u0E32\u0E14\u0E08\u0E32\u0E01\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01 \xD7 1.25")), isStringInv && scfg && React.createElement(BoqSection, _extends({
+  }, "* \u0E43\u0E2A\u0E48\u0E41\u0E1C\u0E07\u0E40\u0E01\u0E34\u0E19\u0E01\u0E33\u0E25\u0E31\u0E07 AC \u0E44\u0E14\u0E49\u0E16\u0E36\u0E07 DC/AC ", window.BOQ.DCAC_LIMIT, " \u0E40\u0E17\u0E48\u0E32 \u2014 \u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E14\u0E01\u0E33\u0E25\u0E31\u0E07\u0E2D\u0E2D\u0E01\u0E44\u0E27\u0E49\u0E17\u0E35\u0E48 Max AC Active Power \u0E2D\u0E22\u0E39\u0E48\u0E41\u0E25\u0E49\u0E27 \u0E2A\u0E48\u0E27\u0E19\u0E17\u0E35\u0E48\u0E40\u0E01\u0E34\u0E19\u0E0A\u0E48\u0E27\u0E22\u0E40\u0E01\u0E47\u0E1A\u0E01\u0E33\u0E25\u0E31\u0E07\u0E15\u0E2D\u0E19\u0E41\u0E14\u0E14\u0E2D\u0E48\u0E2D\u0E19", React.createElement("br", null), "* \u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27 = \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19(\u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07\u0E23\u0E27\u0E21 \xF7 MAX PV \u0E15\u0E48\u0E2D\u0E15\u0E31\u0E27) \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E17\u0E31\u0E1A\u0E44\u0E14\u0E49 \xB7 Combiner Box + DC (Fuse/Holder/MCB/MC4) \u0E04\u0E34\u0E14\u0E15\u0E32\u0E21\u0E08\u0E33\u0E19\u0E27\u0E19 String \xB7 RCBO/SPD/Smart Meter/Backup \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E15\u0E32\u0E21\u0E40\u0E1F\u0E2A (", selInv.phase === 3 ? "3" : "1", " \u0E40\u0E1F\u0E2A) \xB7 RCBO \u0E02\u0E19\u0E32\u0E14\u0E08\u0E32\u0E01\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01 \xD7 1.25")), isStringInv && scfg && React.createElement(BoqSection, _extends({
     title: "\u0E2A\u0E32\u0E22 DC / \u0E01\u0E32\u0E23\u0E15\u0E48\u0E2D\u0E2D\u0E19\u0E38\u0E01\u0E23\u0E21 String (PV1-F)",
     icon: "bolt"
   }, secProps("dc")), !scfg.ready ? React.createElement("div", {

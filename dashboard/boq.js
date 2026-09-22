@@ -642,6 +642,12 @@
 
      ชุบ HDG (กัลวาไนซ์จุ่มร้อน) เลือกได้ทีละแถว — ของชุบเป็นคนละตัวกับของ Pre-Zinc ราคาคนละราคา
      จึงต่อท้ายชื่อด้วย " (HDG.)" ทั้งตัวราง ชุดข้อต่อ และขาแขวน ให้เทียบราคา/ตัดสต็อกแยกกันได้ */
+  /* ── อัตรา DC/AC (กำลังแผง ÷ กำลังออก AC สูงสุด) ──
+     อินเวอร์เตอร์ตัด (clip) กำลังออกไว้ที่ Max AC Active Power (cosφ=1) อยู่แล้ว
+     ใส่แผงเกินกำลัง AC จึงทำได้ และทำกันทั่วไป — ช่วยเก็บกำลังช่วงเช้า/เย็นที่แดดอ่อน
+     เกิน 1.2 เท่าเมื่อไหร่ค่อยเตือน เพราะเลยจุดนั้นแล้ว clip ช่วงเที่ยงจะกินกำลังที่ได้เพิ่ม */
+  const DCAC_LIMIT = 1.2;
+
   const WAY_PIPE_LEN = 2.4, TRAY_PIPE_LEN = 2.44, WAY_HANGER_STEP = 1.5;
   /* Rail ที่รองใต้ขาล็อก ต้องยื่นพ้นรางไฟข้างละ 10 ซม. ไว้ให้ขาล็อกจับ — สั้นกว่านี้ไม่มีที่ยึด
      คิดจากความกว้างรางในชื่อรุ่น เช่น 100x50 → 100 + 100 + 100 = 300 mm = 30 ซม. */
@@ -2031,7 +2037,7 @@
 
   window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, PERF_SIZES, TRAY_KINDS, TRAY_KIND_KEYS, trayKindOf, trayNorm, trayAlias, hdgName,
-    WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
+    DCAC_LIMIT, WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
     COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings,
     STEEL_SPECS, steelName, steelBarLen, steelSel, steelOf,
     TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, ACC_ALLOW_PCT, VAT_RATE, priceBreakdown,
