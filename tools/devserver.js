@@ -6,7 +6,8 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const PORT = Number(process.argv[2]) || 8765;
+// ลำดับการเลือกพอร์ต: PORT จากตัวจัดการ preview > อาร์กิวเมนต์ > 8765
+const PORT = Number(process.env.PORT) || Number(process.argv[2]) || 8765;
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',

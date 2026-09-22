@@ -4,8 +4,11 @@
     {
       "name": "dashboard",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["tools/devserver.js", "8765"],
-      "port": 8765
+      "runtimeArgs": [
+        "tools/devserver.js"
+      ],
+      "port": 8765,
+      "autoPort": true
     }
   ]
 }
