@@ -530,6 +530,8 @@ function omBlankTicket(site, tickets, user) {
     assigneeId: null, assigneeName: "",
     techId: site.tech || "", apptDate: "", apptFrom: "", apptTo: "",
     closedAt: null, closedBy: null, closedByName: "", closeNote: "", result: "",
+    /* อะไหล่ที่ใช้ — อยู่บนใบแจ้งซ่อมเอง เพราะใบนี้คือตัวรายงานที่ลูกค้าเซ็นรับ */
+    parts: [],
     hist: [{ at: now, from: "", to: "new", by: (user || {}).id || null, byName: (user || {}).name || "", note: "เปิดเรื่อง" }],
     createdAt: now, createdBy: (user || {}).id || null, createdByName: (user || {}).name || "", updatedAt: now,
   };
@@ -719,6 +721,56 @@ function useOmTicketPhotos(ticketId) {
   }, [ticketId]);
 
   return { photos, add, setCap, remove };
+}
+
+/* ── ลายเซ็นบนใบแจ้งซ่อม ──
+   ใบแจ้งซ่อมคือเอกสารที่ลูกค้าเซ็นรับงาน จึงต้องมีลายเซ็นของตัวเอง
+   แยกที่เก็บเหมือนรูป (หนัก) — โหลดเฉพาะใบที่เปิดอยู่ ไม่ลากมาทั้งบอร์ด
+   omTicketSigns/{ticketId}/{slot}   slot = tech | cust */
+function useOmTicketSigns(ticketId) {
+  const [signs, setSigns] = React.useState({});
+  React.useEffect(() => {
+    if (!ticketId || !_OMFB()) { setSigns({}); return; }
+    const ref = _omRef("omTicketSigns/" + ticketId);
+    const h = ref.on("value", (s) => setSigns(s.val() || {}));
+    return () => ref.off("value", h);
+  }, [ticketId]);
+
+  const sign = React.useCallback((slot, img, user, name) => {
+    if (!ticketId || !_OMFB() || !img) return;
+    _omRef("omTicketSigns/" + ticketId + "/" + slot).set(Object.assign({ img,
+      by: (user || {}).id || null, name: name || (user || {}).name || "" }, window.drStamp()));
+  }, [ticketId]);
+  const clear = React.useCallback((slot) => {
+    if (!ticketId || !_OMFB()) return;
+    _omRef("omTicketSigns/" + ticketId + "/" + slot).remove();
+  }, [ticketId]);
+
+  return { signs, sign, clear };
+}
+
+/* ── ใบแจ้งซ่อม → หน้ากระดาษ A4 ──
+   เดิมต้องออก "ใบรายงานเข้าบริการ" อีกใบเพื่อพิมพ์ให้ลูกค้าเซ็น ทั้งที่ข้อมูลมาจากใบแจ้งซ่อมทั้งหมด
+   ตอนนี้ใบเดียวจบ — เลขเอกสารคือเลขใบแจ้งซ่อม ไม่ต้องมีเลขสองชุดให้ไล่ให้ตรงกัน
+   ฟังก์ชันนี้แค่แปลงรูปทรงให้หน้ากระดาษเดิมอ่านได้ จะได้ไม่ต้องมีเลย์เอาต์ใบสองชุด */
+function omTicketPaperDoc(t, site) {
+  const day = (s) => String(s || "").slice(0, 10);
+  const closed = omTicketKey((t || {}).status) === "closed";
+  return {
+    id: t.id, no: t.no, kind: "repair",
+    siteId: t.siteId, siteCode: t.siteCode, siteName: t.siteName || (site || {}).name || "",
+    date: t.apptDate || day(t.closedAt) || day(t.reportedAt) || window.drToday(),
+    timeIn: t.apptFrom || "", timeOut: t.apptTo || "",
+    team: t.assigneeName || ((window.SF.TECH_BY_ID || {})[t.techId] || {}).name || "",
+    found: t.detail || "", work: t.result || "", result: t.closeNote || "",
+    parts: t.parts || [], advice: "", nextDue: "",
+    cover: t.cover, charge: t.quoteAmt == null ? null : +t.quoteAmt || null,
+    /* ปิดงานแล้ว = ใบที่จบแล้ว หน้ากระดาษจะขึ้นบรรทัด "อนุมัติโดย" ให้เอง */
+    status: closed ? "approved" : "draft",
+    byName: t.assigneeName || t.createdByName || "",
+    appName: t.closedByName || "", approvedAt: t.closedAt || null,
+    sentAt: null, updatedAt: t.updatedAt, createdAt: t.createdAt,
+  };
 }
 
 /* ── ใบรายงานเข้าบริการ ──
@@ -1008,7 +1060,7 @@ Object.assign(window, {
   useOmMySign, omNotify, omSiteAlerts, useOmAlerts,
   OM_VISIT_KIND, OM_VISIT_KIND_BY, OM_VISIT_STATUS, omVisitStatusOf,
   omVisitDocNo, omBlankVisit, omVisitRollup,
-  useOmVisits, useOmVisitPhotos, useOmVisitSigns,
+  useOmVisits, useOmVisitPhotos, useOmVisitSigns, useOmTicketSigns, omTicketPaperDoc,
 });
 
 Object.assign(window, {

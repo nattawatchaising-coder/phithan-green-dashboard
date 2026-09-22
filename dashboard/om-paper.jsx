@@ -403,7 +403,9 @@ const omPara = (t) => (
   <div style={{ fontSize: 11.5, lineHeight: 1.65, color: "#15211A", whiteSpace: "pre-wrap" }}>{t || "—"}</div>
 );
 
-function OmVisitPaper({ visit, site, signs, onClose }) {
+/* photos = ส่งรูปเข้ามาเองได้ — ใบแจ้งซ่อมเก็บรูปที่ omTicketPhotos คนละที่กับใบรายงาน
+   ไม่ส่งมาก็ใช้รูปของใบรายงานตามเดิม */
+function OmVisitPaper({ visit, site, signs, photos, onClose }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   /* ภาษาของใบ — สลับได้สดจากแถบด้านบน (แถบนี้ไม่ติดไปในหน้าพิมพ์อยู่แล้ว)
      T() คืนภาษาไทยเดิมทุกคำที่ไม่มีในตาราง และคืนของเดิมทั้งหมดเมื่อเลือกไทย
@@ -413,14 +415,15 @@ function OmVisitPaper({ visit, site, signs, onClose }) {
   const T = React.useMemo(() => (window.pgT ? window.pgT(OM_PAPER_I18N, lang) : (k) => k), [lang]);
   const DT = (iso) => (!iso ? "-" : lang === "th" || !window.pgDate ? window.drDateTH(iso, true) : window.pgDate(iso, lang));
   const DTs = (iso) => (!iso ? "-" : lang === "th" || !window.pgDate ? window.drDateTH(iso) : window.pgDate(iso, lang));
-  const { photos } = window.useOmVisitPhotos(visit.id);
+  const own = window.useOmVisitPhotos(visit.id);
+  const photoList = photos || own.photos;
   const v = visit;
   const st = window.omVisitStatusOf(v.status);
   const kind = window.OM_VISIT_KIND_BY[v.kind] || window.OM_VISIT_KIND_BY.repair;
   const cov = window.omCoverTH(v.cover);
   const parts = (v.parts || []).filter((p) => p && (p.name || p.qty));
-  const before = photos.filter((p) => (p.slot || "before") === "before");
-  const after = photos.filter((p) => p.slot === "after");
+  const before = photoList.filter((p) => (p.slot || "before") === "before");
+  const after = photoList.filter((p) => p.slot === "after");
   const g = signs || {};
 
   const doPrint = () => {

@@ -539,10 +539,15 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, siteVisits,
             )}
           </window.DrSection>
 
-          {/* ใบแจ้งซ่อมของไซต์นี้ — เห็นประวัติปัญหาคู่กับทะเบียนประกันในหน้าเดียว
-              กดแล้วปิดแผงไซต์ไปเปิดแผงใบแจ้งซ่อม ไม่ซ้อนแผงสองชั้น */}
-          <window.DrSection n="5" title="ใบแจ้งซ่อม" tone="#7C5CFC"
-            hint={(tickets || []).length ? (tickets || []).filter((t) => window.omTicketOpen(t)).length + " ใบที่ยังไม่ปิด" : ""}>
+          {/* ใบแจ้งซ่อม = ประวัติเข้าบริการ — เห็นประวัติปัญหาคู่กับทะเบียนประกันในหน้าเดียว
+              กดแล้วปิดแผงไซต์ไปเปิดแผงใบแจ้งซ่อม ไม่ซ้อนแผงสองชั้น
+              เดิมแยกเป็นสองหมวด (ใบแจ้งซ่อม / ประวัติเข้าบริการ) ทั้งที่เป็นเรื่องเดียวกันนับสองรอบ
+              พอใบแจ้งซ่อมเป็นตัวรายงานเอง ประวัติการเข้าบริการก็คือรายการใบแจ้งซ่อมนี่แหละ */}
+          <window.DrSection n="5" title="ใบแจ้งซ่อม · ประวัติเข้าบริการ" tone="#7C5CFC"
+            hint={(tickets || []).length
+              ? "เข้าไปแล้ว " + (tickets || []).length + " เรื่อง · ยังไม่ปิด "
+                + (tickets || []).filter((t) => window.omTicketOpen(t)).length + " ใบ"
+              : ""}>
             {!(tickets || []).length && (
               <div style={{ fontSize: 12.5, color: "var(--text-3)", marginBottom: onNewTicket ? 11 : 0 }}>ยังไม่เคยมีเรื่องแจ้งซ่อม</div>
             )}
@@ -555,9 +560,17 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, siteVisits,
                     border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)",
                     cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
                   <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)", flexShrink: 0 }}>{t.no}</span>
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: "var(--text-1)",
-                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {t.title || (window.OM_TICKET_CAT_BY[t.category] || {}).th || "(ยังไม่ได้ใส่หัวเรื่อง)"}
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>
+                    <span style={{ display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {t.title || (window.OM_TICKET_CAT_BY[t.category] || {}).th || "(ยังไม่ได้ใส่หัวเรื่อง)"}
+                    </span>
+                    {/* วันที่เข้าหน้างานจริง — เดิมต้องเปิดใบรายงานอีกใบถึงจะเห็น */}
+                    <span style={{ display: "block", fontSize: 11, fontWeight: 400, color: "var(--text-3)" }}>
+                      {t.apptDate ? "เข้าหน้างาน " + window.drShort(t.apptDate)
+                        : "แจ้ง " + window.drShort(String(t.reportedAt || "").slice(0, 10))}
+                      {(t.parts || []).filter((p) => p && p.name).length
+                        ? " · เปลี่ยนอะไหล่ " + (t.parts || []).filter((p) => p && p.name).length + " รายการ" : ""}
+                    </span>
                   </span>
                   {ov && <OmPill th={"เกิน " + ov.over + " วัน"} color="#EF4444" />}
                   <OmPill th={ts.th} color={ts.color} />
@@ -573,15 +586,15 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, siteVisits,
                 <Icon name="wrench" size={14} /> แจ้งซ่อมให้ไซต์นี้
               </button>
             )}
-          </window.DrSection>
 
-          {/* ประวัติเข้าบริการ — ทุกครั้งที่เราออกไปที่ไซต์นี้ ทั้งซ่อม ล้าง และตรวจเช็ก */}
-          <window.DrSection n="6" title="ประวัติเข้าบริการ" tone="#1B9B75"
-            hint={(siteVisits || []).length ? "เข้าไปแล้ว " + (siteVisits || []).length + " ครั้ง" : ""}>
-            {!(siteVisits || []).length && (
-              <div style={{ fontSize: 12.5, color: "var(--text-3)", marginBottom: onNewVisit && !disabled ? 11 : 0 }}>ยังไม่เคยออกใบรายงานเข้าบริการ</div>
-            )}
-            {(siteVisits || []).map((v) => {
+            {/* ใบรายงานเข้าบริการที่เคยออกไว้ — ใบชุดเดิมของงานซ่อม กับใบของงานล้างแผง
+                ไม่มีปุ่มออกใบใหม่แล้ว งานซ่อมออกจากใบแจ้งซ่อม งานล้างออกจากหมวดรอบล้างแผง
+                แต่ของเก่าต้องเปิดดูได้ตลอด เอกสารที่ลูกค้าเซ็นไปแล้วหายไม่ได้ */}
+            {!!(siteVisits || []).length && (
+              <div style={{ marginTop: 15, paddingTop: 13, borderTop: "1px solid var(--border)" }}>
+                <window.DrLabel hint="งานซ่อมใช้ใบแจ้งซ่อมเป็นรายงานแล้ว">ใบรายงานเข้าบริการที่เคยออกไว้</window.DrLabel>
+                <div style={{ marginTop: 7 }} />
+                {(siteVisits || []).map((v) => {
               const vs = window.omVisitStatusOf(v.status);
               const vk = window.OM_VISIT_KIND_BY[v.kind] || window.OM_VISIT_KIND_BY.repair;
               return (
@@ -599,17 +612,11 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, siteVisits,
                 </button>
               );
             })}
-            {!disabled && onNewVisit && (
-              <button type="button" onClick={() => onNewVisit({ kind: "inspect" })}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 9,
-                  border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
-                  fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>
-                <Icon name="file" size={14} /> ออกใบรายงานเข้าบริการใหม่
-              </button>
+              </div>
             )}
           </window.DrSection>
 
-          <window.DrSection n="7" title="หมายเหตุ" tone="#94A3B8">
+          <window.DrSection n="6" title="หมายเหตุ" tone="#94A3B8">
             <window.DrText value={site.note} disabled={disabled} rows={2}
               placeholder="เช่น หลังคาสูง ต้องใช้กระเช้า · ลูกค้าสะดวกเฉพาะวันเสาร์"
               onChange={(v) => set({ note: v })} />
@@ -1000,16 +1007,14 @@ function OmView({ jobs, users, role, currentUser, focus }) {
   const ticketsOf = React.useCallback(
     (id) => (ticketStore.tickets || []).filter((t) => t.siteId === id), [ticketStore.tickets]);
 
-  /* ออกใบรายงานเข้าบริการใหม่ — เปิดได้จากใบแจ้งซ่อมหรือจากนัดล้างที่ทำเสร็จแล้ว
+  /* ออกใบรายงานเข้าบริการใหม่ — เหลือทางเดียวคือจากนัดล้างที่ทำเสร็จแล้ว
+     (งานซ่อมใช้ใบแจ้งซ่อมเป็นตัวรายงานแล้ว ไม่ออกใบที่สองอีก)
      เลขใบนับเฉพาะใบของไซต์นั้น จึงต้องส่ง siteVisits เข้าไปด้วย */
   const newVisit = React.useCallback((site, opts) => {
     if (!site || !window.omCanWrite(role, null)) return;
     const rec = window.omBlankVisit(site,
       Object.assign({ siteVisits: (visitStore.bySite || {})[site.id] || [] }, opts || {}), currentUser);
     visitStore.save(rec);
-    /* stay = ออกใบจากหน้าใบแจ้งซ่อมแล้วกรอกต่อที่หน้าเดิม ไม่เด้งไปฟอร์มอีกหน้า
-       (ที่นั่นกรอกซ้ำเรื่องเดียวกัน ซึ่งเป็นเหตุผลที่ยกอะไหล่กับลายเซ็นมาไว้ในใบแจ้งซ่อม) */
-    if ((opts || {}).stay) return;
     setOpen(null); setOpenTicket(null); setOpenVisit(rec.id);
   }, [role, currentUser, visitStore.bySite, visitStore.save]);
   const showVisit = React.useCallback((id) => { setOpen(null); setOpenTicket(null); setOpenVisit(id); }, []);
@@ -1130,7 +1135,7 @@ function OmView({ jobs, users, role, currentUser, focus }) {
 
       {tab === "ticket" && (
         <window.OmTicketBoard sites={sitesK} jobById={jobById} users={users} ticketStore={ticketStoreK} visitStore={visitStore}
-          role={role} currentUser={currentUser} onNewVisit={newVisit} onOpenVisit={showVisit} />
+          role={role} currentUser={currentUser} onOpenVisit={showVisit} />
       )}
 
       {tab === "visit" && (
@@ -1255,7 +1260,7 @@ function OmView({ jobs, users, role, currentUser, focus }) {
             role={role} currentUser={currentUser} onClose={() => setOpenTicket(null)}
             onPatch={ticketStore.patch} onRemove={ticketStore.remove}
             visits={(visitStore.visits || []).filter((x) => x.ticketId === t.id)}
-            onNewVisit={(opts) => newVisit(s, opts)} onOpenVisit={showVisit} onPatchVisit={visitStore.patch}
+            onOpenVisit={showVisit}
             onMove={(x, to, note) => { const r = window.omTicketMove(x, to, currentUser, note); if (r) ticketStore.save(r); }} />
         );
       })()}

@@ -59,57 +59,50 @@ function OmPhotos({ ticketId, slot, currentUser, disabled }) {
   );
 }
 
-/* ── อะไหล่ + ลายเซ็นของใบรายงาน กรอกจากหน้าใบแจ้งซ่อมได้เลย ──
-   เรื่องซ่อมหนึ่งเรื่องเดิมต้องกรอกสองหน้า (ใบแจ้งซ่อม + ใบรายงานเข้าบริการ)
-   ทั้งที่ของที่ต้องกรอกเพิ่มจริง ๆ มีแค่อะไหล่ที่ใช้กับลายเซ็นรับงาน — ยกมาไว้ที่นี่
-   ข้อมูลยังเก็บที่ใบรายงานที่เดียวเหมือนเดิม (omVisits / omVisitSigns)
-   ใบพิมพ์ A4 กับทะเบียนไซต์จึงเห็นของชุดเดียวกัน ไม่มีข้อมูลสองชุดให้ขัดกันทีหลัง */
-function OmTicketVisitInline({ visit, site, role, currentUser, onPatch, onOpen }) {
+/* ── ใบแจ้งซ่อมคือตัวรายงาน ──
+   เดิมเรื่องซ่อมหนึ่งเรื่องต้องมีเอกสารสองใบ: ใบแจ้งซ่อม แล้วออก "ใบรายงานเข้าบริการ" อีกใบ
+   ทั้งที่เนื้อรายงานทั้งหมด (อาการ งานที่ทำ ค่าใช้จ่าย รูปก่อน/หลัง) กรอกอยู่ในใบแจ้งซ่อมแล้ว
+   ใบที่สองจึงเป็นแค่ที่แปะลายเซ็น แลกกับเลขเอกสารสองชุดที่ต้องไล่ให้ตรงกัน
+   ตอนนี้เหลือใบเดียว — อะไหล่กับลายเซ็นอยู่บนใบแจ้งซ่อม (omTickets / omTicketSigns)
+   แล้วพิมพ์ A4 ออกจากใบเดิมได้เลย */
+function OmTicketReport({ ticket, site, role, currentUser, locked, onPatch }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
-  const sigs = window.useOmVisitSigns(visit ? visit.id : null);
+  const t = ticket;
+  const sigs = window.useOmTicketSigns(t ? t.id : null);
   const mine = window.useOmMySign((currentUser || {}).id);
+  /* รูปก่อน/หลังของใบนี้ — หน้ากระดาษต้องได้รูปชุดเดียวกับที่เห็นในหมวด 4 */
+  const shots = window.useOmTicketPhotos(t ? t.id : null);
   const [pad, setPad] = React.useState(null);
   const [remember, setRemember] = React.useState(true);
   const [paper, setPaper] = React.useState(false);
-  if (!visit) return null;
+  if (!t) return null;
 
-  const v = visit;
-  const vs = window.omVisitStatusOf(v.status);
-  /* อนุมัติแล้วล็อกเหมือนในใบเต็ม — เอกสารที่ลูกค้าเซ็นไปแล้วถูกแก้ย้อนหลังไม่ได้
-     ต่อให้แก้จากหน้านี้ก็ต้องล็อกด้วยกติกาเดียวกัน ไม่งั้นหน้านี้จะกลายเป็นทางลัดข้ามการอนุมัติ */
-  const locked = !window.omCanWrite(role, v);
-  const set = (fields) => { if (!locked) onPatch(v.id, fields); };
+  const set = (fields) => { if (!locked) onPatch(t.id, fields); };
   const doSign = (slot, img) => {
     sigs.sign(slot, img, currentUser, slot === "cust" ? (site || {}).name || "" : (currentUser || {}).name || "");
   };
-  const lnk = (label, icon, onClick) => (
-    <button type="button" onClick={onClick}
-      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9,
-        border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
-        fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>
-      <Icon name={icon} size={13} /> {label}
-    </button>
-  );
+  const ready = !!(sigs.signs.tech && sigs.signs.tech.img) && !!(sigs.signs.cust && sigs.signs.cust.img);
 
   return (
     <React.Fragment>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12,
         padding: "9px 11px", border: "1px solid var(--border)", borderRadius: 11, background: "var(--surface)" }}>
         <Icon name="file" size={14} color="#1B9B75" />
-        <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>{v.no}</span>
-        <span style={{ fontSize: 11, color: "var(--text-3)" }}>
-          เข้าหน้างาน {window.drShort(v.date)}{v.charge != null ? " · " + Number(v.charge).toLocaleString("th-TH") + " บาท" : ""}
+        <span style={{ flex: 1, minWidth: 140, fontSize: 12, color: "var(--text-3)", lineHeight: 1.5 }}>
+          เลขเอกสารคือเลขใบนี้ <b style={{ color: "var(--text-1)" }}>{t.no}</b>
+          <span style={{ display: "block" }}>
+            {ready ? "เซ็นครบแล้ว พร้อมส่งให้ลูกค้า" : "ยังไม่ได้เซ็นครบทั้งสองฝ่าย — พิมพ์ออกมาได้ แต่ยังไม่ใช่เอกสารรับงาน"}
+          </span>
         </span>
-        <window.OmPill th={vs.th} color={vs.color} />
-        <span style={{ marginLeft: "auto", display: "flex", gap: 7, flexWrap: "wrap" }}>
-          {lnk("พิมพ์ใบ", "file", () => setPaper(true))}
-          {/* ที่เหลือของใบ (เวลาเข้า-ออก รูปก่อน/หลัง ส่งอนุมัติ) ยังอยู่ในใบเต็ม — ที่นี่เอามาแค่ที่ต้องกรอกทุกครั้ง */}
-          {onOpen && lnk("เปิดใบเต็ม", "chevronRight", () => onOpen(v.id))}
-        </span>
+        <button type="button" onClick={() => setPaper(true)}
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9, border: "none",
+            background: "#1B9B75", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700 }}>
+          <Icon name="file" size={14} color="#fff" /> ออก Report (A4)
+        </button>
       </div>
 
       <window.DrLabel hint="ไม่ได้ใช้อะไรก็เว้นว่างไว้">อะไหล่ / วัสดุที่ใช้</window.DrLabel>
-      <window.DrRows disabled={locked} rows={v.parts} addLabel="เพิ่มอะไหล่"
+      <window.DrRows disabled={locked} rows={t.parts} addLabel="เพิ่มอะไหล่"
         cols={[{ k: "name", th: "รายการ" }, { k: "qty", th: "จำนวน", w: 76, type: "num" },
           { k: "unit", th: "หน่วย", w: 76 }, { k: "note", th: "หมายเหตุ" }]}
         onChange={(rows) => set({ parts: rows })} />
@@ -143,7 +136,10 @@ function OmTicketVisitInline({ visit, site, role, currentUser, onPatch, onOpen }
             setPad(null);
           }} />
       )}
-      {paper && <window.OmVisitPaper visit={v} site={site} signs={sigs.signs} onClose={() => setPaper(false)} />}
+      {paper && (
+        <window.OmVisitPaper visit={window.omTicketPaperDoc(t, site)} site={site}
+          signs={sigs.signs} photos={shots.photos} onClose={() => setPaper(false)} />
+      )}
     </React.Fragment>
   );
 }
@@ -294,7 +290,7 @@ function OmJobFacts({ job, site, compact }) {
 }
 
 /* ── แผงใบแจ้งซ่อม ── */
-function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, onOpenVisit, onNewVisit, onPatchVisit,
+function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, onOpenVisit,
   onClose, onPatch, onMove, onRemove }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const canWrite = window.omCanWrite(role, null);
@@ -318,14 +314,10 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
      เดาให้เฉย ๆ คนตัดสินใจยังกดเปลี่ยนเองได้เสมอ */
   const guess = site ? window.omCoverOf(site, t.category) : null;
 
-  /* ใบล่าสุดของเรื่องนี้คือใบที่ยังกรอกอยู่ — เอามากรอกในหน้านี้เลย
-     ใบก่อนหน้า (กรณีเข้าซ้ำหลายรอบ) เก็บไว้เป็นลิงก์ ไม่งั้นหน้าจะยาวจนหาของไม่เจอ
-     เรียงตามวันเข้าหน้างาน วันเดียวกันใช้เวลาที่สร้างตัดสิน */
+  /* ใบรายงานชุดเดิมของเรื่องนี้ (ถ้ามี) — เรียงตามวันเข้าหน้างาน วันเดียวกันใช้เวลาที่สร้างตัดสิน */
   const vSorted = (visits || []).slice().sort((a, b) =>
     String(a.date || "") < String(b.date || "") ? -1 : String(a.date || "") > String(b.date || "") ? 1
       : String(a.createdAt || "") < String(b.createdAt || "") ? -1 : 1);
-  const vCur = vSorted.length ? vSorted[vSorted.length - 1] : null;
-  const vOld = vSorted.slice(0, -1);
 
   return (
     <div onClick={onClose}
@@ -559,49 +551,31 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
             </div>
           </window.DrSection>
 
-          {/* ใบรายงานเข้าบริการของเรื่องนี้ — เอกสารที่ลูกค้าเซ็นรับงาน ออกได้หลายใบถ้าต้องเข้าซ้ำ */}
-          <window.DrSection n="6" title="ใบรายงานเข้าบริการ" tone="#1B9B75"
-            hint={(visits || []).length ? "ออกไปแล้ว " + (visits || []).length + " ใบ" : "กรอกจบได้ในหน้านี้"}>
-            {!(visits || []).length && (
-              <div style={{ fontSize: 12.5, color: "var(--text-3)", marginBottom: onNewVisit ? 11 : 0 }}>
-                ยังไม่ได้ออกใบรายงาน — กดออกใบแล้วกรอกอะไหล่กับให้ลูกค้าเซ็นได้ที่นี่เลย
-              </div>
-            )}
-            {vOld.map((v) => {
-              const vs = window.omVisitStatusOf(v.status);
-              return (
-                <button key={v.id} type="button" onClick={() => onOpenVisit && onOpenVisit(v.id)}
-                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", marginBottom: 7,
-                    border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)",
-                    cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-                  <Icon name="file" size={14} color="#1B9B75" />
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>
-                    {v.no}
-                    <span style={{ display: "block", fontSize: 11, fontWeight: 400, color: "var(--text-3)" }}>
-                      เข้าหน้างาน {window.drShort(v.date)}{v.charge != null ? " · " + Number(v.charge).toLocaleString("th-TH") + " บาท" : ""}
+          {/* รายงานเข้าบริการ — ใบแจ้งซ่อมใบนี้คือตัวเอกสารเอง ไม่ต้องออกใบที่สองอีกต่อไป
+              ของที่ต้องกรอกเพิ่มจากด้านบนมีแค่อะไหล่ที่ใช้กับลายเซ็นรับงาน แล้วกดพิมพ์ A4 ได้เลย */}
+          <window.DrSection n="6" title="รายงานเข้าบริการ" tone="#1B9B75" hint="ใบแจ้งซ่อมใบนี้คือตัวรายงาน">
+            <OmTicketReport ticket={t} site={site} role={role} currentUser={currentUser}
+              locked={locked} onPatch={onPatch} />
+            {/* ใบรายงานชุดเดิมที่เคยออกไว้ก่อนรวมเป็นใบเดียว — ยังเปิดดูได้ ไม่ปล่อยให้เอกสารเก่าหายไป */}
+            {!!vSorted.length && (
+              <div style={{ marginTop: 15 }}>
+                <window.DrLabel hint="ออกไว้ก่อนรวมเป็นใบเดียว">ใบรายงานชุดเดิมของเรื่องนี้</window.DrLabel>
+                {vSorted.map((v) => (
+                  <button key={v.id} type="button" onClick={() => onOpenVisit && onOpenVisit(v.id)}
+                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", marginTop: 7,
+                      border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)",
+                      cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                    <Icon name="file" size={14} color="var(--text-3)" />
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>
+                      {v.no}
+                      <span style={{ display: "block", fontSize: 11, fontWeight: 400, color: "var(--text-3)" }}>
+                        เข้าหน้างาน {window.drShort(v.date)}
+                      </span>
                     </span>
-                  </span>
-                  <window.OmPill th={vs.th} color={vs.color} />
-                  <Icon name="chevronRight" size={14} color="var(--text-3)" />
-                </button>
-              );
-            })}
-            {/* ใบล่าสุดกรอกตรงนี้ได้เลย ใบเก่ากว่านั้นเป็นลิงก์ไว้ข้างบน */}
-            {vCur && (
-              <OmTicketVisitInline visit={vCur} site={site} role={role} currentUser={currentUser}
-                onPatch={onPatchVisit || (() => {})} onOpen={onOpenVisit} />
-            )}
-            {canWrite && onNewVisit && (
-              <button type="button"
-                onClick={() => onNewVisit({ kind: "repair", ticketId: t.id, found: t.detail || t.title,
-                  work: t.result || "", result: t.result || "", team: t.techId || "",
-                  charge: t.quoteAmt, cover: t.cover, date: t.apptDate || undefined, stay: true })}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 9,
-                  border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
-                  fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)",
-                  marginTop: vCur ? 15 : 0 }}>
-                <Icon name="file" size={14} /> {vCur ? "ออกใบเพิ่มอีกใบ (เข้าซ้ำ)" : "ออกใบรายงานเข้าบริการ"}
-              </button>
+                    <Icon name="chevronRight" size={14} color="var(--text-3)" />
+                  </button>
+                ))}
+              </div>
             )}
           </window.DrSection>
 
@@ -665,7 +639,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
    (ปิดงานแล้วไปอยู่ในรายการ "ปิดไปแล้ว" ด้านล่าง ไม่ต้องมีช่องของตัวเอง) */
 const OM_BOARD_COLS = ["new", "accepted", "scheduled"];
 
-function OmTicketBoard({ sites, jobById, users, ticketStore, visitStore, role, currentUser, onNewVisit, onOpenVisit }) {
+function OmTicketBoard({ sites, jobById, users, ticketStore, visitStore, role, currentUser, onOpenVisit }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const { tickets, loading, save, patch, remove } = ticketStore;
   const [openId, setOpenId] = React.useState(null);
@@ -776,8 +750,6 @@ function OmTicketBoard({ sites, jobById, users, ticketStore, visitStore, role, c
         <OmTicketModal ticket={cur} site={siteById[cur.siteId] || null} job={(jobById || {})[cur.siteId] || null}
           users={users} role={role} currentUser={currentUser}
           visits={((visitStore || {}).visits || []).filter((v) => v.ticketId === cur.id)}
-          onNewVisit={onNewVisit ? (opts) => onNewVisit(siteById[cur.siteId], opts) : null}
-          onPatchVisit={(visitStore || {}).patch}
           onOpenVisit={onOpenVisit}
           onClose={() => setOpenId(null)} onPatch={patch} onMove={move} onRemove={remove} />
       )}
@@ -785,4 +757,4 @@ function OmTicketBoard({ sites, jobById, users, ticketStore, visitStore, role, c
   );
 }
 
-Object.assign(window, { OmPhotos, OmJobFacts, OmTicketCard, OmTicketVisitInline, OmTicketModal, OmTicketBoard, OM_BOARD_COLS });
+Object.assign(window, { OmPhotos, OmJobFacts, OmTicketCard, OmTicketReport, OmTicketModal, OmTicketBoard, OM_BOARD_COLS });

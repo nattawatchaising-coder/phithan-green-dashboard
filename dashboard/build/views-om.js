@@ -1272,9 +1272,9 @@ function OmSiteModal({
     onNewVisit: onNewVisit
   })), React.createElement(window.DrSection, {
     n: "5",
-    title: "\u0E43\u0E1A\u0E41\u0E08\u0E49\u0E07\u0E0B\u0E48\u0E2D\u0E21",
+    title: "\u0E43\u0E1A\u0E41\u0E08\u0E49\u0E07\u0E0B\u0E48\u0E2D\u0E21 \xB7 \u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E40\u0E02\u0E49\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23",
     tone: "#7C5CFC",
-    hint: (tickets || []).length ? (tickets || []).filter(t => window.omTicketOpen(t)).length + " ใบที่ยังไม่ปิด" : ""
+    hint: (tickets || []).length ? "เข้าไปแล้ว " + (tickets || []).length + " เรื่อง · ยังไม่ปิด " + (tickets || []).filter(t => window.omTicketOpen(t)).length + " ใบ" : ""
   }, !(tickets || []).length && React.createElement("div", {
     style: {
       fontSize: 12.5,
@@ -1315,12 +1315,23 @@ function OmSiteModal({
         minWidth: 0,
         fontSize: 12.5,
         fontWeight: 700,
-        color: "var(--text-1)",
+        color: "var(--text-1)"
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
         whiteSpace: "nowrap",
         overflow: "hidden",
         textOverflow: "ellipsis"
       }
-    }, t.title || (window.OM_TICKET_CAT_BY[t.category] || {}).th || "(ยังไม่ได้ใส่หัวเรื่อง)"), ov && React.createElement(OmPill, {
+    }, t.title || (window.OM_TICKET_CAT_BY[t.category] || {}).th || "(ยังไม่ได้ใส่หัวเรื่อง)"), React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 11,
+        fontWeight: 400,
+        color: "var(--text-3)"
+      }
+    }, t.apptDate ? "เข้าหน้างาน " + window.drShort(t.apptDate) : "แจ้ง " + window.drShort(String(t.reportedAt || "").slice(0, 10)), (t.parts || []).filter(p => p && p.name).length ? " · เปลี่ยนอะไหล่ " + (t.parts || []).filter(p => p && p.name).length + " รายการ" : "")), ov && React.createElement(OmPill, {
       th: "เกิน " + ov.over + " วัน",
       color: "#EF4444"
     }), React.createElement(OmPill, {
@@ -1351,18 +1362,19 @@ function OmSiteModal({
   }, React.createElement(Icon, {
     name: "wrench",
     size: 14
-  }), " \u0E41\u0E08\u0E49\u0E07\u0E0B\u0E48\u0E2D\u0E21\u0E43\u0E2B\u0E49\u0E44\u0E0B\u0E15\u0E4C\u0E19\u0E35\u0E49")), React.createElement(window.DrSection, {
-    n: "6",
-    title: "\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E40\u0E02\u0E49\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23",
-    tone: "#1B9B75",
-    hint: (siteVisits || []).length ? "เข้าไปแล้ว " + (siteVisits || []).length + " ครั้ง" : ""
-  }, !(siteVisits || []).length && React.createElement("div", {
+  }), " \u0E41\u0E08\u0E49\u0E07\u0E0B\u0E48\u0E2D\u0E21\u0E43\u0E2B\u0E49\u0E44\u0E0B\u0E15\u0E4C\u0E19\u0E35\u0E49"), !!(siteVisits || []).length && React.createElement("div", {
     style: {
-      fontSize: 12.5,
-      color: "var(--text-3)",
-      marginBottom: onNewVisit && !disabled ? 11 : 0
+      marginTop: 15,
+      paddingTop: 13,
+      borderTop: "1px solid var(--border)"
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E40\u0E04\u0E22\u0E2D\u0E2D\u0E01\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E40\u0E02\u0E49\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23"), (siteVisits || []).map(v => {
+  }, React.createElement(window.DrLabel, {
+    hint: "\u0E07\u0E32\u0E19\u0E0B\u0E48\u0E2D\u0E21\u0E43\u0E0A\u0E49\u0E43\u0E1A\u0E41\u0E08\u0E49\u0E07\u0E0B\u0E48\u0E2D\u0E21\u0E40\u0E1B\u0E47\u0E19\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E41\u0E25\u0E49\u0E27"
+  }, "\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E40\u0E02\u0E49\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23\u0E17\u0E35\u0E48\u0E40\u0E04\u0E22\u0E2D\u0E2D\u0E01\u0E44\u0E27\u0E49"), React.createElement("div", {
+    style: {
+      marginTop: 7
+    }
+  }), (siteVisits || []).map(v => {
     const vs = window.omVisitStatusOf(v.status);
     const vk = window.OM_VISIT_KIND_BY[v.kind] || window.OM_VISIT_KIND_BY.repair;
     return React.createElement("button", {
@@ -1411,30 +1423,8 @@ function OmSiteModal({
       size: 14,
       color: "var(--text-3)"
     }));
-  }), !disabled && onNewVisit && React.createElement("button", {
-    type: "button",
-    onClick: () => onNewVisit({
-      kind: "inspect"
-    }),
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      padding: "8px 13px",
-      borderRadius: 9,
-      border: "1px dashed var(--border-strong)",
-      background: "var(--surface)",
-      cursor: "pointer",
-      fontFamily: "inherit",
-      fontSize: 12.5,
-      fontWeight: 700,
-      color: "var(--text-2)"
-    }
-  }, React.createElement(Icon, {
-    name: "file",
-    size: 14
-  }), " \u0E2D\u0E2D\u0E01\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E40\u0E02\u0E49\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23\u0E43\u0E2B\u0E21\u0E48")), React.createElement(window.DrSection, {
-    n: "7",
+  }))), React.createElement(window.DrSection, {
+    n: "6",
     title: "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38",
     tone: "#94A3B8"
   }, React.createElement(window.DrText, {
@@ -2369,7 +2359,6 @@ function OmView({
       siteVisits: (visitStore.bySite || {})[site.id] || []
     }, opts || {}), currentUser);
     visitStore.save(rec);
-    if ((opts || {}).stay) return;
     setOpen(null);
     setOpenTicket(null);
     setOpenVisit(rec.id);
@@ -2580,7 +2569,6 @@ function OmView({
     visitStore: visitStore,
     role: role,
     currentUser: currentUser,
-    onNewVisit: newVisit,
     onOpenVisit: showVisit
   }), tab === "visit" && React.createElement(window.OmVisitList, {
     sites: sitesK,
@@ -2846,9 +2834,7 @@ function OmView({
       onPatch: ticketStore.patch,
       onRemove: ticketStore.remove,
       visits: (visitStore.visits || []).filter(x => x.ticketId === t.id),
-      onNewVisit: opts => newVisit(s, opts),
       onOpenVisit: showVisit,
-      onPatchVisit: visitStore.patch,
       onMove: (x, to, note) => {
         const r = window.omTicketMove(x, to, currentUser, note);
         if (r) ticketStore.save(r);

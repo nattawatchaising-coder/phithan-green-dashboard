@@ -781,6 +781,7 @@ function omBlankTicket(site, tickets, user) {
     closedByName: "",
     closeNote: "",
     result: "",
+    parts: [],
     hist: [{
       at: now,
       from: "",
@@ -1023,6 +1024,66 @@ function useOmTicketPhotos(ticketId) {
     add,
     setCap,
     remove
+  };
+}
+function useOmTicketSigns(ticketId) {
+  const [signs, setSigns] = React.useState({});
+  React.useEffect(() => {
+    if (!ticketId || !_OMFB()) {
+      setSigns({});
+      return;
+    }
+    const ref = _omRef("omTicketSigns/" + ticketId);
+    const h = ref.on("value", s => setSigns(s.val() || {}));
+    return () => ref.off("value", h);
+  }, [ticketId]);
+  const sign = React.useCallback((slot, img, user, name) => {
+    if (!ticketId || !_OMFB() || !img) return;
+    _omRef("omTicketSigns/" + ticketId + "/" + slot).set(Object.assign({
+      img,
+      by: (user || {}).id || null,
+      name: name || (user || {}).name || ""
+    }, window.drStamp()));
+  }, [ticketId]);
+  const clear = React.useCallback(slot => {
+    if (!ticketId || !_OMFB()) return;
+    _omRef("omTicketSigns/" + ticketId + "/" + slot).remove();
+  }, [ticketId]);
+  return {
+    signs,
+    sign,
+    clear
+  };
+}
+function omTicketPaperDoc(t, site) {
+  const day = s => String(s || "").slice(0, 10);
+  const closed = omTicketKey((t || {}).status) === "closed";
+  return {
+    id: t.id,
+    no: t.no,
+    kind: "repair",
+    siteId: t.siteId,
+    siteCode: t.siteCode,
+    siteName: t.siteName || (site || {}).name || "",
+    date: t.apptDate || day(t.closedAt) || day(t.reportedAt) || window.drToday(),
+    timeIn: t.apptFrom || "",
+    timeOut: t.apptTo || "",
+    team: t.assigneeName || ((window.SF.TECH_BY_ID || {})[t.techId] || {}).name || "",
+    found: t.detail || "",
+    work: t.result || "",
+    result: t.closeNote || "",
+    parts: t.parts || [],
+    advice: "",
+    nextDue: "",
+    cover: t.cover,
+    charge: t.quoteAmt == null ? null : +t.quoteAmt || null,
+    status: closed ? "approved" : "draft",
+    byName: t.assigneeName || t.createdByName || "",
+    appName: t.closedByName || "",
+    approvedAt: t.closedAt || null,
+    sentAt: null,
+    updatedAt: t.updatedAt,
+    createdAt: t.createdAt
   };
 }
 const OM_VISIT_KIND = [{
@@ -1424,7 +1485,9 @@ Object.assign(window, {
   omVisitRollup,
   useOmVisits,
   useOmVisitPhotos,
-  useOmVisitSigns
+  useOmVisitSigns,
+  useOmTicketSigns,
+  omTicketPaperDoc
 });
 Object.assign(window, {
   OM_TICKET_CAT,
