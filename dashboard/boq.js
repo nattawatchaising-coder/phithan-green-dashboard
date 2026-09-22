@@ -631,11 +631,23 @@
      Wireway = รางเหล็กพับมีฝาปิด ยาว 2.40 ม./ท่อน — ใช้เดินสายในอาคาร/ข้างตู้
      Cable Tray Ladder = รางบันได ยาว 2.44 ม./ท่อน (8 ฟุต) — ใช้เดินสายจำนวนมากระยะไกล
      Cable Tray Perforated = รางเจาะรู ยาว 2.44 ม./ท่อน — พื้นรางเป็นแผ่นเจาะรู รองสายเส้นเล็กได้ไม่ตกร่อง
-     ถอดของ: ตัวราง + ชุดข้อต่อทุกรอยต่อ + ขาแขวนทุก 1.5 ม. + พุกยึด 4 ตัว/ขา
+     ถอดของ: ตัวราง + ชุดข้อต่อทุกรอยต่อ + ขาล็อกรางไฟทุก 1.5 ม. + ตัวยึดขา 2 ตัว/ขา
+
+     ขาล็อกยึดได้ 2 แบบ เลือกทีละแถว
+       ยึดเข้าโครง/ผนัง = พุ๊กเหล็ก 3/8" 2 ตัว/ขา
+       ยึดบน Rail       = T-BOLT KIT 2 ชุด/ขา + Rail รองใต้ขา 1 เส้น/ขา
+     Rail ต้องยาวกว่ารางไฟข้างละ 10 ซม. (ราง 10 ซม. → Rail 30 ซม.) ไว้ให้ขาล็อกจับได้ทั้งสองฝั่ง
 
      ชุบ HDG (กัลวาไนซ์จุ่มร้อน) เลือกได้ทีละแถว — ของชุบเป็นคนละตัวกับของ Pre-Zinc ราคาคนละราคา
      จึงต่อท้ายชื่อด้วย " (HDG.)" ทั้งตัวราง ชุดข้อต่อ และขาแขวน ให้เทียบราคา/ตัดสต็อกแยกกันได้ */
   const WAY_PIPE_LEN = 2.4, TRAY_PIPE_LEN = 2.44, WAY_HANGER_STEP = 1.5;
+  /* Rail ที่รองใต้ขาล็อก ต้องยื่นพ้นรางไฟข้างละ 10 ซม. ไว้ให้ขาล็อกจับ — สั้นกว่านี้ไม่มีที่ยึด
+     คิดจากความกว้างรางในชื่อรุ่น เช่น 100x50 → 100 + 100 + 100 = 300 mm = 30 ซม. */
+  const RAIL_SIDE_MM = 100;
+  const RAIL_ANCHOR = 2;                                          // ตัวยึด (พุ๊ก / T-BOLT) 2 ตัวต่อขา
+  const TBOLT_NAME = "T-BOLT KIT (ยึดขาล็อกรางกับ Rail)";
+  const railLenCm = (name) => Math.round((trayDim(name).w + RAIL_SIDE_MM * 2) / 10);
+  const railName = (name) => "RAIL รองขาล็อกราง " + railLenCm(name) + " cm.";
   /* ความยาว/ท่อนในชื่อรายการ — ตัดศูนย์ท้ายทิ้ง (2.44 → "2.44" · 2.4 → "2.4")
      toFixed(1) เดิมจะปัด 2.44 เหลือ 2.4 ชื่อของก็จะบอกความยาวผิด */
   const trayLenTxt = (v) => String(+(+v).toFixed(2));
@@ -669,11 +681,12 @@
   /* ชื่อรุ่นเก่า — ก่อนแยกชนิดราง รางบันไดชื่อ "Cable Tray บันได" และของประกอบชื่อ "… Cable Tray <ขนาด>"
      แปลงให้ตรงชื่อใหม่ทุกครั้งที่เทียบชื่อ ของในคลังกับใบถอดของเก่าจึงยังหาราคาเจอ ไม่ต้องไล่เปลี่ยนชื่อเอง */
   const trayAlias = (s) => String(s || "")
+    .replace(/ขาแขวนราง/g, "ขาล็อกรางไฟ")
     .replace(/Cable Tray\s*บันได/g, "Cable Tray Ladder")
     .replace(/Cable Tray (?!Ladder|Perforated)/g, "Cable Tray Ladder ");
   const traySuffix = (nm) => trayAlias(nm).replace(/^(Wireway|Cable Tray Ladder|Cable Tray Perforated)\s*/i, "").trim();
   /* ถอดวัสดุรางไฟ 1 ขนาด — คืน array ของ item · pct = % เผื่อของอุปกรณ์ประกอบ */
-  function wayItems(name, lenM, pct, kind, hdg) {
+  function wayItems(name, lenM, pct, kind, hdg, rail) {
     const len = +lenM || 0;
     if (len <= 0) return [];
     const spec = trayKindOf(kind);
@@ -682,17 +695,24 @@
     const pipeLen = spec.pipeLen;
     const pcs = Math.ceil(len / pipeLen);
     const joint = Math.max(0, pcs - 1) + 2;                       // ทุกรอยต่อ + เผื่อหัวท้าย
-    const hanger = Math.ceil(len / WAY_HANGER_STEP);              // ขาแขวนทุก 1.5 ม.
-    const z = (nm) => hdgName(nm, hdg);                           // ของที่สั่งชุบมาทั้งชิ้น — ตัวราง ข้อต่อ ขาแขวน
+    const hanger = Math.ceil(len / WAY_HANGER_STEP);              // ขาล็อกทุก 1.5 ม.
+    const z = (nm) => hdgName(nm, hdg);                           // ของที่สั่งชุบมาทั้งชิ้น — ตัวราง ข้อต่อ ขาล็อก
+    const onRail = !!rail && spec.hanger;                         // Wireway ยึดพุ๊กเข้าโครงตรง ๆ ไม่มีขาล็อกให้วางบน Rail
     const out = [
       { name: z(trayAlias(name)) + " (" + trayLenTxt(pipeLen) + "m/ท่อน)", qty: pcs, unit: "ท่อน" },
       { name: z("ชุดข้อต่อราง " + spec.brief + " " + sz), qty: up(joint), unit: "ชุด" },
-      /* พุ๊กกับสกรูเป็นของมาตรฐานที่ใช้ร่วมกับงานอื่นทั้งใบ ไม่แยกชุบ — ไม่งั้นบรรทัดเดียวแตกเป็นสองบรรทัด */
-      { name: 'พุ๊กเหล็ก 3/8"', qty: up(hanger * 4), unit: "ตัว" },
     ];
-    // รางเคเบิลแขวนด้วยขาแขวนสำเร็จ · Wireway ยึดพุ๊กเข้าโครงตรง ๆ ไม่ต้องมีขาแขวน
-    if (spec.hanger) out.splice(2, 0, { name: z("ขาแขวนราง " + spec.brief + " " + sz), qty: up(hanger), unit: "ชุด" });
+    // รางเคเบิลล็อกด้วยขาล็อกสำเร็จ · Wireway ยึดพุ๊กเข้าโครงตรง ๆ ไม่ต้องมีขาล็อก
+    if (spec.hanger) out.push({ name: z("ขาล็อกรางไฟ " + spec.brief + " " + sz), qty: up(hanger), unit: "ชุด" });
     else out.push({ name: "สกรู+น็อต M6 ประกอบราง", qty: up(pcs * 8), unit: "ชุด" });
+    /* ตัวยึดขา — ของมาตรฐานที่ใช้ร่วมกับงานอื่นทั้งใบ ไม่ต่อท้าย (HDG.) ไม่งั้นบรรทัดเดียวแตกเป็นสองบรรทัด
+       Rail ก็เช่นกัน เป็นรางอะลูมิเนียมตัวเดียวกับงานโครงยึดแผง ไม่ได้ชุบ */
+    if (onRail) {
+      out.push({ name: TBOLT_NAME, qty: up(hanger * RAIL_ANCHOR), unit: "ชุด" });
+      out.push({ name: railName(name), qty: up(hanger), unit: "เส้น" });
+    } else {
+      out.push({ name: 'พุ๊กเหล็ก 3/8"', qty: up(hanger * RAIL_ANCHOR), unit: "ตัว" });
+    }
     return out;
   }
 
@@ -1529,12 +1549,12 @@
       (tw[kk] || []).forEach((r) => {
         const nm = (r.size || "").trim(), q = +r.length || 0;
         if (!nm || q <= 0) return;
-        const key = (r.hdg ? "1|" : "0|") + nm;
+        const key = (r.hdg ? "1" : "0") + (r.rail ? "1|" : "0|") + nm;
         map[key] = (map[key] || 0) + q;
       });
       Object.keys(map).forEach((key) => {
         wayTotalLen += map[key];
-        wayItems(key.slice(2), map[key], waySpare, kk, key.charAt(0) === "1").forEach((x) => wayRows.push(x));
+        wayItems(key.slice(3), map[key], waySpare, kk, key.charAt(0) === "1", key.charAt(1) === "1").forEach((x) => wayRows.push(x));
       });
     });
     (tw.extra || []).filter((x) => (x.name || "").trim() && +x.qty > 0)
@@ -1772,6 +1792,7 @@
     PULLBOX_SIZES.forEach((s) => add("RACE WAY", s, "pcs"));
     condFittings().forEach((f) => add("RACE WAY", f.name, f.unit));   // ข้องอ/สามทาง/ข้อลด ของท่อ ทุกขนาด
     // รางไฟ — ตัวราง/ข้อต่อ/ขาแขวน แยกตามขนาด (พุ๊กเหล็กใช้ร่วมกับงานโครงสร้าง)
+    const railSeen = {};   // Rail ยาวเท่ากันใช้ได้กับรางทุกชนิด — ตั้งราคาครั้งเดียวพอ ไม่ต้องโผล่ซ้ำ
     TRAY_KIND_KEYS.forEach((kk) => {
       const spec = TRAY_KINDS[kk];
       spec.sizes.forEach((nm) => {
@@ -1779,11 +1800,14 @@
         [false, true].forEach((z) => {                            // ของธรรมดา + ของชุบ HDG ตั้งราคาแยกกันได้
           add(G_TRAY, hdgName(nm, z) + " (" + trayLenTxt(spec.pipeLen) + "m/ท่อน)", "ท่อน");
           add(G_TRAY, hdgName("ชุดข้อต่อราง " + spec.brief + " " + sz, z), "ชุด");
-          if (spec.hanger) add(G_TRAY, hdgName("ขาแขวนราง " + spec.brief + " " + sz, z), "ชุด");
+          if (spec.hanger) add(G_TRAY, hdgName("ขาล็อกรางไฟ " + spec.brief + " " + sz, z), "ชุด");
         });
+        // Rail รองขาล็อก — ยาวตามความกว้างราง
+        if (spec.hanger && !railSeen[railName(nm)]) { railSeen[railName(nm)] = 1; add(G_TRAY, railName(nm), "เส้น"); }
       });
     });
     add(G_TRAY, "สกรู+น็อต M6 ประกอบราง", "ชุด");
+    add(G_TRAY, TBOLT_NAME, "ชุด");
     trayFittings().forEach((f) => add(G_TRAY, f.name, f.unit));       // ข้องอ/สามทาง/แผ่นปิด ของราง ทุกขนาด
     // โครงสร้างรองรับอุปกรณ์ (เหล็กกล่อง/เหล็กฉาก/เพลท/พุ๊ก ใช้ชื่อร่วมกับงานโครงสร้างบนหลังคา)
     SUPPORT_SHARED.forEach((x) => add(G_SUPPORT, x.name, x.unit));
@@ -1991,7 +2015,7 @@
 
   window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, PERF_SIZES, TRAY_KINDS, TRAY_KIND_KEYS, trayKindOf, trayNorm, trayAlias, hdgName,
-    WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
+    WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
     COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings,
     STEEL_SPECS, steelName, steelBarLen, steelSel, steelOf,
     TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, ACC_ALLOW_PCT, VAT_RATE, priceBreakdown,

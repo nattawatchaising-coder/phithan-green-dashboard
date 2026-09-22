@@ -1142,7 +1142,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     );
   };
 
-  /* รายการรางไฟ — เลือกขนาด + ความยาวรวมของขนาดนั้น (ข้อต่อ/ขาแขวน/พุก คิดต่อจากความยาวให้เอง)
+  /* รายการรางไฟ — เลือกขนาด + ความยาวรวมของขนาดนั้น (ข้อต่อ/ขาล็อก/ตัวยึด คิดต่อจากความยาวให้เอง)
      กางออกได้เพื่อใส่สายที่จะเดินในรางนั้น แล้วตรวจ % เติมเต็ม + ตัวคูณลดกระแส */
   const TrayList = ({ kind, label, sizes, hint }) => {
     const spec = window.BOQ.TRAY_KINDS[kind] || window.BOQ.TRAY_KINDS.way;
@@ -1150,6 +1150,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     const OD = window.BOQ.CABLE_OD || {};
     const odTypes = Object.keys(OD);
     const setCables = (i, cs) => setTrayRow(kind, i, "cables", cs);
+    const railCm = (sz) => window.BOQ.railLenCm(sz || "");
     return (
       <div>
         <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 3 }}>{label}</div>
@@ -1183,6 +1184,20 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       background: x.hdg ? "var(--primary-soft)" : "var(--surface)", color: x.hdg ? "var(--primary-dark)" : "var(--text-3)" }}>
                     {x.hdg && <Icon name="check" size={11} color="var(--primary-dark)" />}ชุบ HDG
                   </button>
+                  {/* วิธียึดขาล็อก เลือกทีละแถว — บนหลังคาขาล็อกวางบน Rail ส่วนในอาคารยิงพุ๊กเข้าโครงตรง ๆ
+                      ยึดบน Rail แล้วตัวยึดเปลี่ยนจากพุ๊กเป็น T-BOLT KIT และต้องมี Rail รองใต้ขาเพิ่มมาด้วย */}
+                  {spec.hanger && (
+                    <button onClick={() => setTrayRow(kind, i, "rail", !x.rail)}
+                      title={x.rail
+                        ? "ขาล็อกวางบน Rail — ถอด T-BOLT KIT 2 ชุด/ขา + Rail รองใต้ขายาว " + railCm(x.size) + " ซม. (กว้างกว่ารางข้างละ 10 ซม.)"
+                        : "ขาล็อกยึดเข้าโครง/ผนังตรง ๆ — ถอดพุ๊กเหล็ก 2 ตัว/ขา กดเพื่อเปลี่ยนเป็นวางบน Rail"}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
+                        fontSize: 11, fontWeight: 800, border: "1px solid " + (x.rail ? "var(--primary)" : "var(--border-strong)"),
+                        background: x.rail ? "var(--primary-soft)" : "var(--surface)", color: x.rail ? "var(--primary-dark)" : "var(--text-3)" }}>
+                      {x.rail && <Icon name="check" size={11} color="var(--primary-dark)" />}
+                      ยึดบน Rail{x.rail && x.size ? " " + railCm(x.size) + " ซม." : ""}
+                    </button>
+                  )}
                   {any && (
                     <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 8, fontSize: 11, fontWeight: 800, fontVariantNumeric: "tabular-nums",
                       color: chk.ok && chk.widthOk ? "var(--tint-green-tx)" : "var(--tint-red-tx2)" }}>
@@ -2492,8 +2507,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   <input type="number" style={numStyle} value={tw.spare} onChange={(e) => setTrayVal("spare", e.target.value)} />
                 </Field>
                 <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>
-                  ตัวราง = ปัดขึ้นตามความยาว/ท่อน · ชุดข้อต่อ = ทุกรอยต่อ +2 · ขาแขวน = ทุก 1.5 ม. · พุ๊กเหล็ก 4 ตัว/ขา
-                  <br />แถวที่ติ๊ก “ชุบ HDG” ถอดเป็นของชุบแยกบรรทัด (ตัวราง · ข้อต่อ · ขาแขวน) — พุ๊กกับสกรูใช้ของมาตรฐานร่วมกับงานอื่น
+                  ตัวราง = ปัดขึ้นตามความยาว/ท่อน · ชุดข้อต่อ = ทุกรอยต่อ +2 · ขาล็อกรางไฟ = ทุก 1.5 ม. · ตัวยึด 2 ตัว/ขา
+                  <br />แถวที่ติ๊ก “ยึดบน Rail” = T-BOLT KIT 2 ชุด/ขา + Rail รองใต้ขา 1 เส้น/ขา (ยาวกว่ารางข้างละ 10 ซม.) · ไม่ติ๊ก = พุ๊กเหล็ก 2 ตัว/ขา
+                  <br />แถวที่ติ๊ก “ชุบ HDG” ถอดเป็นของชุบแยกบรรทัด (ตัวราง · ข้อต่อ · ขาล็อก) — พุ๊ก สกรู T-BOLT และ Rail ใช้ของมาตรฐานร่วมกับงานอื่น
                 </div>
               </div>
               {/* ข้องอ / ข้อลด / สามทาง — รูปทรงไม่ตายตัว เลือกของ + กรอกจำนวนตามแบบ */}
