@@ -2032,6 +2032,21 @@
   /* ตัวคุมแผงกี่ตัว — บางรุ่นคุมแผงละตัว (1:1) บางรุ่นคุมทีละ 2 แผง (2:1)
      perPanel = จำนวนแผงต่อตัวคุม 1 ตัว · ยังไม่กรอกในคลัง (0) ให้ถือเป็น 1:1 ไว้ก่อน
      ปัดขึ้น เพราะแผงที่เหลือเศษก็ยังต้องมีตัวคุมของตัวเอง */
+  /* ── ตัวคุมแผงรุ่นนี้ใช้กับอินเวอร์เตอร์รุ่นนี้ได้ไหม ──
+     คลังเก็บตารางจับคู่ไว้ที่ตัวคุม (pairs) — คู่มือระบุไว้เป็นรายอินเวอร์เตอร์
+     ไม่ใช่ค่าเดียวทั้งยี่ห้อ เพราะความยาวสตริงที่อนุญาตต่างกันไปตามรุ่น
+
+     ตารางว่าง = ยังไม่ได้กรอกในคลัง ไม่ใช่ "ใช้ไม่ได้" — คืน unknown ไว้
+     ให้หน้าจอบอกว่ายังไม่มีข้อมูล ดีกว่าล็อกจนเลือกรุ่นนั้นไม่ได้เลย */
+  function optimizerFits(model, invModel) {
+    const o = findOptimizer(model);
+    if (!o) return { ok: false, unknown: true, pair: null };
+    const list = o.pairs || [];
+    if (!list.length) return { ok: true, unknown: true, pair: null };
+    const pair = list.find((r) => r.inv === invModel) || null;
+    return { ok: !!pair, unknown: false, pair: pair };
+  }
+
   function optimizerQty(model, panels) {
     const n = Math.max(0, Math.round(+panels || 0));
     if (!n) return 0;
@@ -2042,7 +2057,7 @@
 
   window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, PERF_SIZES, TRAY_KINDS, TRAY_KIND_KEYS, trayKindOf, trayNorm, trayAlias, hdgName,
-    optimizerQty, DCAC_LIMIT, WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
+    optimizerQty, optimizerFits, DCAC_LIMIT, WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
     COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings,
     STEEL_SPECS, steelName, steelBarLen, steelSel, steelOf,
     TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, ACC_ALLOW_PCT, VAT_RATE, priceBreakdown,

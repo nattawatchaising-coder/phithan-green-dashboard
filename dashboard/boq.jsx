@@ -770,12 +770,27 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const optSpec = window.BOQ.findOptimizer(optModel);
   const optPer = Math.max(1, (optSpec && optSpec.perPanel) || 1);
   const optQty = window.BOQ.optimizerQty(optModel, result.meta.panelCount);
-  const optOptions = [{ value: "", label: "ไม่ใช้" }].concat(OPTS.map((o) => ({
-    value: o.model, group: o.group || "ตัวคุมแผง",
-    label: o.model + " · " + (o.perPanel > 1 ? "1:" + o.perPanel : "1:1") + (o.w ? " · " + o.w + "W" : ""),
-  })));
-  /* รุ่นที่เลือกไว้ถูกลบออกจากคลังไปแล้ว — ยังต้องเห็นในดรอปดาวน์ ไม่งั้นช่องจะว่างเหมือนไม่ได้เลือกอะไร */
-  if (optModel && !OPTS.some((o) => o.model === optModel)) optOptions.push({ value: optModel, group: "ไม่อยู่ในคลังแล้ว", label: optModel });
+  const invModel = selInv ? selInv.model : "";
+  const optFit = optModel ? window.BOQ.optimizerFits(optModel, invModel) : null;
+  const optPair = optFit && optFit.pair;
+  /* ล็อกไว้ให้เลือกได้เฉพาะรุ่นที่คู่มือระบุว่าใช้กับอินเวอร์เตอร์รุ่นที่เลือกไว้ได้
+     รุ่นที่ยังไม่ได้กรอกตารางจับคู่ในคลัง แยกไว้อีกกลุ่ม — เลือกได้ แต่บอกไว้ว่ายังไม่มีข้อมูลยืนยัน */
+  const optOptions = [{ value: "", label: "ไม่ใช้" }];
+  OPTS.forEach((o) => {
+    const fit = window.BOQ.optimizerFits(o.model, invModel);
+    if (!fit.ok) return;
+    const ratio = o.perPanel > 1 ? "1:" + o.perPanel : "1:1";
+    optOptions.push({
+      value: o.model,
+      group: fit.unknown ? "ยังไม่ได้ระบุรุ่นอินเวอร์เตอร์ในคลัง" : (o.group || "ตัวคุมแผง"),
+      label: o.model + " · " + ratio + (o.w ? " · " + o.w + "W" : ""),
+      sub: fit.pair && fit.pair.min && fit.pair.max ? "ต่อสตริงได้ " + fit.pair.min + "–" + fit.pair.max + " ตัว" : "",
+    });
+  });
+  /* รุ่นที่เลือกไว้แล้วแต่ไม่ผ่านตัวกรอง (คลังลบทิ้ง หรือเปลี่ยนอินเวอร์เตอร์ทีหลังจนไม่เข้าคู่)
+     ยังต้องเห็นในดรอปดาวน์ ไม่งั้นช่องจะว่างเหมือนไม่เคยเลือกอะไร ทั้งที่ใบถอดยังมีของอยู่ */
+  if (optModel && !optOptions.some((x) => x.value === optModel))
+    optOptions.push({ value: optModel, group: "ใช้กับอินเวอร์เตอร์รุ่นนี้ไม่ได้", label: optModel });
 
   const maxPvTotal = selInv ? (selInv.maxPv || 0) * result.meta.invCount : 0;
   /* กำลังออก AC สูงสุดทั้งงาน — ตัวนี้คือเพดานจริงที่อินเวอร์เตอร์ปล่อยออกได้ (cosφ=1)
@@ -1903,8 +1918,17 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   <Dropdown value={optModel} placeholder="ไม่ใช้" options={optOptions}
                     onChange={(v) => setB((p) => Object.assign({}, p, { optimizerModel: v, hwOptimizer: !!v }))} />
                   {optModel && (
-                    <div style={{ marginTop: 5, fontSize: 11, color: "var(--text-3)" }}>
+                    <div style={{ marginTop: 5, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
                       {optPer > 1 ? "1 ตัว / " + optPer + " แผง" : "1 ตัว / แผง"} → <b style={{ color: "var(--text-2)" }}>{optQty} ตัว</b> · T-BOLT KIT {optQty} ชุด
+                      {optPair && (optPair.min > 0 || optPair.max > 0) && (
+                        <span><br />คู่มือรุ่นนี้: ต่อสตริงได้ {optPair.min || "?"}–{optPair.max || "?"} ตัว{optPair.maxW > 0 ? " · ไม่เกิน " + optPair.maxW + " W/สตริง" : ""}</span>
+                      )}
+                      {optFit && !optFit.ok && (
+                        <span style={{ color: "var(--tint-red-tx2)", fontWeight: 700 }}><br />คลังไม่ได้ระบุว่ารุ่นนี้ใช้กับ {invModel} ได้ — เปลี่ยนรุ่นตัวคุม หรือไปเพิ่มคู่นี้ที่คลัง › ตัวคุมแผง</span>
+                      )}
+                      {optFit && optFit.ok && optFit.unknown && (
+                        <span><br />ยังไม่ได้กรอกตารางจับคู่อินเวอร์เตอร์ของรุ่นนี้ในคลัง — ยังไม่มีข้อมูลยืนยันว่าใช้ด้วยกันได้</span>
+                      )}
                     </div>
                   )}
                 </Field>

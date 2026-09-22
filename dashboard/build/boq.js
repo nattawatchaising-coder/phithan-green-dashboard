@@ -1684,17 +1684,27 @@ function BOQEditor({
   const optSpec = window.BOQ.findOptimizer(optModel);
   const optPer = Math.max(1, optSpec && optSpec.perPanel || 1);
   const optQty = window.BOQ.optimizerQty(optModel, result.meta.panelCount);
+  const invModel = selInv ? selInv.model : "";
+  const optFit = optModel ? window.BOQ.optimizerFits(optModel, invModel) : null;
+  const optPair = optFit && optFit.pair;
   const optOptions = [{
     value: "",
     label: "ไม่ใช้"
-  }].concat(OPTS.map(o => ({
-    value: o.model,
-    group: o.group || "ตัวคุมแผง",
-    label: o.model + " · " + (o.perPanel > 1 ? "1:" + o.perPanel : "1:1") + (o.w ? " · " + o.w + "W" : "")
-  })));
-  if (optModel && !OPTS.some(o => o.model === optModel)) optOptions.push({
+  }];
+  OPTS.forEach(o => {
+    const fit = window.BOQ.optimizerFits(o.model, invModel);
+    if (!fit.ok) return;
+    const ratio = o.perPanel > 1 ? "1:" + o.perPanel : "1:1";
+    optOptions.push({
+      value: o.model,
+      group: fit.unknown ? "ยังไม่ได้ระบุรุ่นอินเวอร์เตอร์ในคลัง" : o.group || "ตัวคุมแผง",
+      label: o.model + " · " + ratio + (o.w ? " · " + o.w + "W" : ""),
+      sub: fit.pair && fit.pair.min && fit.pair.max ? "ต่อสตริงได้ " + fit.pair.min + "–" + fit.pair.max + " ตัว" : ""
+    });
+  });
+  if (optModel && !optOptions.some(x => x.value === optModel)) optOptions.push({
     value: optModel,
-    group: "ไม่อยู่ในคลังแล้ว",
+    group: "ใช้กับอินเวอร์เตอร์รุ่นนี้ไม่ได้",
     label: optModel
   });
   const maxPvTotal = selInv ? (selInv.maxPv || 0) * result.meta.invCount : 0;
@@ -4485,13 +4495,19 @@ function BOQEditor({
     style: {
       marginTop: 5,
       fontSize: 11,
-      color: "var(--text-3)"
+      color: "var(--text-3)",
+      lineHeight: 1.5
     }
   }, optPer > 1 ? "1 ตัว / " + optPer + " แผง" : "1 ตัว / แผง", " \u2192 ", React.createElement("b", {
     style: {
       color: "var(--text-2)"
     }
-  }, optQty, " \u0E15\u0E31\u0E27"), " \xB7 T-BOLT KIT ", optQty, " \u0E0A\u0E38\u0E14"))), pvOver && React.createElement("div", {
+  }, optQty, " \u0E15\u0E31\u0E27"), " \xB7 T-BOLT KIT ", optQty, " \u0E0A\u0E38\u0E14", optPair && (optPair.min > 0 || optPair.max > 0) && React.createElement("span", null, React.createElement("br", null), "\u0E04\u0E39\u0E48\u0E21\u0E37\u0E2D\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49: \u0E15\u0E48\u0E2D\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E44\u0E14\u0E49 ", optPair.min || "?", "\u2013", optPair.max || "?", " \u0E15\u0E31\u0E27", optPair.maxW > 0 ? " · ไม่เกิน " + optPair.maxW + " W/สตริง" : ""), optFit && !optFit.ok && React.createElement("span", {
+    style: {
+      color: "var(--tint-red-tx2)",
+      fontWeight: 700
+    }
+  }, React.createElement("br", null), "\u0E04\u0E25\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E23\u0E30\u0E1A\u0E38\u0E27\u0E48\u0E32\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49\u0E43\u0E0A\u0E49\u0E01\u0E31\u0E1A ", invModel, " \u0E44\u0E14\u0E49 \u2014 \u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E23\u0E38\u0E48\u0E19\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21 \u0E2B\u0E23\u0E37\u0E2D\u0E44\u0E1B\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E04\u0E39\u0E48\u0E19\u0E35\u0E49\u0E17\u0E35\u0E48\u0E04\u0E25\u0E31\u0E07 \u203A \u0E15\u0E31\u0E27\u0E04\u0E38\u0E21\u0E41\u0E1C\u0E07"), optFit && optFit.ok && optFit.unknown && React.createElement("span", null, React.createElement("br", null), "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E01\u0E23\u0E2D\u0E01\u0E15\u0E32\u0E23\u0E32\u0E07\u0E08\u0E31\u0E1A\u0E04\u0E39\u0E48\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E02\u0E2D\u0E07\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07 \u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E27\u0E48\u0E32\u0E43\u0E0A\u0E49\u0E14\u0E49\u0E27\u0E22\u0E01\u0E31\u0E19\u0E44\u0E14\u0E49")))), pvOver && React.createElement("div", {
     style: {
       marginTop: 10,
       display: "flex",
