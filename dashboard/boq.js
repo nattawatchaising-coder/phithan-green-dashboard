@@ -645,7 +645,9 @@
      คิดจากความกว้างรางในชื่อรุ่น เช่น 100x50 → 100 + 100 + 100 = 300 mm = 30 ซม. */
   const RAIL_SIDE_MM = 100;
   const RAIL_ANCHOR = 2;                                          // ตัวยึด (พุ๊ก / T-BOLT) 2 ตัวต่อขา
-  const TBOLT_NAME = "T-BOLT KIT (ยึดขาล็อกรางกับ Rail)";
+  /* T-BOLT KIT ใช้ทั้งยึดขาล็อกรางไฟกับ Rail และยึดตัวคุมแผงเข้ากับราง — ของชิ้นเดียวกัน
+     ชื่อจึงไม่ผูกกับงานใดงานหนึ่ง ตั้งราคาที่เดียวแล้วใช้ได้ทั้งสองหมวด */
+  const TBOLT_NAME = "T-BOLT KIT";
   const railLenCm = (name) => Math.round((trayDim(name).w + RAIL_SIDE_MM * 2) / 10);
   const railName = (name) => "RAIL รองขาล็อกราง " + railLenCm(name) + " cm.";
   /* ความยาว/ท่อนในชื่อรายการ — ตัดศูนย์ท้ายทิ้ง (2.44 → "2.44" · 2.4 → "2.4")
@@ -1376,7 +1378,11 @@
         // ระบบสำรองไฟ 1 ชุด/งาน
         if (b.hwBackup === "smartguard") invItems.push({ name: ph === 3 ? HW.smartguard3 : HW.smartguard1, qty: 1, unit: "ตัว" });
         else if (b.hwBackup === "backupbox") invItems.push({ name: ph === 3 ? HW.backupbox3 : HW.backupbox1, qty: 1, unit: "ตัว" });
-        if (b.hwOptimizer) invItems.push({ name: HW.optimizer, qty: panelCount, unit: "ตัว" });
+        if (b.hwOptimizer) {
+          invItems.push({ name: HW.optimizer, qty: panelCount, unit: "ตัว" });
+          // ตัวคุมแผงยึดเข้ารางด้วย T-BOLT 1 ชุด/ตัว — ไม่เผื่อ เพราะผูกกับจำนวนตัวคุมแบบ 1:1
+          invItems.push({ name: TBOLT_NAME, qty: panelCount, unit: "ชุด" });
+        }
         /* กลุ่ม COMBINER BOX — เฉพาะงานบ้าน
            งานโครงการไม่ใช้ตู้ Combiner สำเร็จ แต่ประกอบเป็นตู้ไฟ DC/AC ของโครงการเอง (หมวด "ตู้ไฟ") */
         combItems = [];
@@ -1754,6 +1760,7 @@
     ATMOCE_ASM_SHARED.forEach((x) => add("COMBINER BOX", x.name, x.unit));
     Object.keys(RAIL).forEach((k) => add("MOUNTING", RAIL[k], "SET"));
     add("MOUNTING", "RAIL SPLICE KIT", "SET");
+    add("MOUNTING", TBOLT_NAME, "ชุด");        // ยึดขาล็อกรางไฟกับ Rail · ยึดตัวคุมแผงเข้าราง
     add("MOUNTING", "BOLT&N2 NUT M8 20mm.", "SET");
     add("MOUNTING", "EARTHING CLIP", "SET");
     add("MOUNTING", "GROUNDING LUG COPPER LINES", "SET");
@@ -1807,7 +1814,6 @@
       });
     });
     add(G_TRAY, "สกรู+น็อต M6 ประกอบราง", "ชุด");
-    add(G_TRAY, TBOLT_NAME, "ชุด");
     trayFittings().forEach((f) => add(G_TRAY, f.name, f.unit));       // ข้องอ/สามทาง/แผ่นปิด ของราง ทุกขนาด
     // โครงสร้างรองรับอุปกรณ์ (เหล็กกล่อง/เหล็กฉาก/เพลท/พุ๊ก ใช้ชื่อร่วมกับงานโครงสร้างบนหลังคา)
     SUPPORT_SHARED.forEach((x) => add(G_SUPPORT, x.name, x.unit));
