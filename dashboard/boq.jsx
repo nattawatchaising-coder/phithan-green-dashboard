@@ -1150,7 +1150,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     const OD = window.BOQ.CABLE_OD || {};
     const odTypes = Object.keys(OD);
     const setCables = (i, cs) => setTrayRow(kind, i, "cables", cs);
+    const railTon = +b.railSize || 4.2;                      // ท่อน Rail ที่งานนี้ใช้ (หมวดโครงยึดแผง)
     const railCm = (sz) => window.BOQ.railLenCm(sz || "");
+    const railPer = (sz) => window.BOQ.railPerTon(sz || "", railTon);
     return (
       <div>
         <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 3 }}>{label}</div>
@@ -1189,7 +1191,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   {spec.hanger && (
                     <button onClick={() => setTrayRow(kind, i, "rail", !x.rail)}
                       title={x.rail
-                        ? "ขาล็อกวางบน Rail — ถอด T-BOLT KIT 2 ชุด/ขา + Rail รองใต้ขายาว " + railCm(x.size) + " ซม. (กว้างกว่ารางข้างละ 10 ซม.)"
+                        ? "ขาล็อกวางบน Rail — ถอด T-BOLT KIT 2 ชุด/ขา + Rail รองใต้ขายาวชิ้นละ " + railCm(x.size)
+                          + " ซม. (กว้างกว่ารางข้างละ 10 ซม.) · สั่งเป็นท่อน RAIL " + railTon + " M ตัดได้ท่อนละ " + railPer(x.size) + " ชิ้น"
                         : "ขาล็อกยึดเข้าโครง/ผนังตรง ๆ — ถอดพุ๊กเหล็ก 2 ตัว/ขา กดเพื่อเปลี่ยนเป็นวางบน Rail"}
                       style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
                         fontSize: 11, fontWeight: 800, border: "1px solid " + (x.rail ? "var(--primary)" : "var(--border-strong)"),
@@ -2508,7 +2511,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 </Field>
                 <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>
                   ตัวราง = ปัดขึ้นตามความยาว/ท่อน · ชุดข้อต่อ = ทุกรอยต่อ +2 · ขาล็อกรางไฟ = ทุก 1.5 ม. · ตัวยึด 2 ตัว/ขา
-                  <br />แถวที่ติ๊ก “ยึดบน Rail” = T-BOLT KIT 2 ชุด/ขา + Rail รองใต้ขา 1 เส้น/ขา (ยาวกว่ารางข้างละ 10 ซม.) · ไม่ติ๊ก = พุ๊กเหล็ก 2 ตัว/ขา
+                  <br />แถวที่ติ๊ก “ยึดบน Rail” = T-BOLT KIT 2 ชุด/ขา + Rail รองใต้ขา 1 ชิ้น/ขา (ยาวกว่ารางข้างละ 10 ซม.) ถอดเป็นท่อนเต็มตามที่ตัดแบ่งได้ · ไม่ติ๊ก = พุ๊กเหล็ก 2 ตัว/ขา
                   <br />แถวที่ติ๊ก “ชุบ HDG” ถอดเป็นของชุบแยกบรรทัด (ตัวราง · ข้อต่อ · ขาล็อก) — พุ๊ก สกรู T-BOLT และ Rail ใช้ของมาตรฐานร่วมกับงานอื่น
                 </div>
               </div>

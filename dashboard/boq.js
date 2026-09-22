@@ -635,8 +635,10 @@
 
      ขาล็อกยึดได้ 2 แบบ เลือกทีละแถว
        ยึดเข้าโครง/ผนัง = พุ๊กเหล็ก 3/8" 2 ตัว/ขา
-       ยึดบน Rail       = T-BOLT KIT 2 ชุด/ขา + Rail รองใต้ขา 1 เส้น/ขา
-     Rail ต้องยาวกว่ารางไฟข้างละ 10 ซม. (ราง 10 ซม. → Rail 30 ซม.) ไว้ให้ขาล็อกจับได้ทั้งสองฝั่ง
+       ยึดบน Rail       = T-BOLT KIT 2 ชุด/ขา + Rail รองใต้ขา 1 ชิ้น/ขา
+     Rail ต้องยาวกว่ารางไฟข้างละ 10 ซม. (ราง 10 ซม. → ชิ้นละ 30 ซม.) ไว้ให้ขาล็อกจับได้ทั้งสองฝั่ง
+     สั่งเป็นท่อนเต็ม (RAIL 4.2 / 4.8 M ท่อนเดียวกับงานโครงยึดแผง) แล้วตัดแบ่ง —
+     ท่อนหนึ่งได้กี่ชิ้นก็ปัดลง เศษที่เหลือสั้นกว่า 1 ชิ้นใช้ต่อไม่ได้
 
      ชุบ HDG (กัลวาไนซ์จุ่มร้อน) เลือกได้ทีละแถว — ของชุบเป็นคนละตัวกับของ Pre-Zinc ราคาคนละราคา
      จึงต่อท้ายชื่อด้วย " (HDG.)" ทั้งตัวราง ชุดข้อต่อ และขาแขวน ให้เทียบราคา/ตัดสต็อกแยกกันได้ */
@@ -649,7 +651,16 @@
      ชื่อจึงไม่ผูกกับงานใดงานหนึ่ง ตั้งราคาที่เดียวแล้วใช้ได้ทั้งสองหมวด */
   const TBOLT_NAME = "T-BOLT KIT";
   const railLenCm = (name) => Math.round((trayDim(name).w + RAIL_SIDE_MM * 2) / 10);
-  const railName = (name) => "RAIL รองขาล็อกราง " + railLenCm(name) + " cm.";
+  /* กี่ชิ้นต่อท่อน — ปัดลง เพราะเศษท้ายท่อนที่สั้นกว่า 1 ชิ้นเอาไปรองขาไม่ได้
+     ชิ้นยาวกว่าท่อน (ไม่น่าเกิดกับรางที่มีในรายการ) ให้เป็น 0 แล้วไปคิดแบบต่อท่อนข้างล่าง */
+  const railPerTon = (name, tonLen) => Math.floor((+tonLen || 4.2) * 100 / Math.max(1, railLenCm(name)));
+  /* จำนวนท่อนเต็มที่ต้องสั่ง จากจำนวนชิ้นที่ต้องใช้ */
+  function railTon(name, pieces, tonLen) {
+    const per = railPerTon(name, tonLen);
+    if (per > 0) return Math.ceil(pieces / per);
+    return Math.ceil((pieces * railLenCm(name)) / ((+tonLen || 4.2) * 100));   // ชิ้นเดียวกินหลายท่อน
+  }
+  const railName = (tonLen) => RAIL[+tonLen] || ("RAIL " + (+tonLen || 4.2) + " M");
   /* ความยาว/ท่อนในชื่อรายการ — ตัดศูนย์ท้ายทิ้ง (2.44 → "2.44" · 2.4 → "2.4")
      toFixed(1) เดิมจะปัด 2.44 เหลือ 2.4 ชื่อของก็จะบอกความยาวผิด */
   const trayLenTxt = (v) => String(+(+v).toFixed(2));
@@ -688,7 +699,7 @@
     .replace(/Cable Tray (?!Ladder|Perforated)/g, "Cable Tray Ladder ");
   const traySuffix = (nm) => trayAlias(nm).replace(/^(Wireway|Cable Tray Ladder|Cable Tray Perforated)\s*/i, "").trim();
   /* ถอดวัสดุรางไฟ 1 ขนาด — คืน array ของ item · pct = % เผื่อของอุปกรณ์ประกอบ */
-  function wayItems(name, lenM, pct, kind, hdg, rail) {
+  function wayItems(name, lenM, pct, kind, hdg, rail, tonLen) {
     const len = +lenM || 0;
     if (len <= 0) return [];
     const spec = trayKindOf(kind);
@@ -711,7 +722,8 @@
        Rail ก็เช่นกัน เป็นรางอะลูมิเนียมตัวเดียวกับงานโครงยึดแผง ไม่ได้ชุบ */
     if (onRail) {
       out.push({ name: TBOLT_NAME, qty: up(hanger * RAIL_ANCHOR), unit: "ชุด" });
-      out.push({ name: railName(name), qty: up(hanger), unit: "เส้น" });
+      /* เผื่อที่ระดับ "ชิ้น" ก่อนค่อยแปลงเป็นท่อน — เผื่อทีหลังจะได้เศษท่อนที่ตัดใช้ไม่ได้จริง */
+      out.push({ name: railName(tonLen), qty: railTon(name, up(hanger), tonLen), unit: "เส้น" });
     } else {
       out.push({ name: 'พุ๊กเหล็ก 3/8"', qty: up(hanger * RAIL_ANCHOR), unit: "ตัว" });
     }
@@ -1560,7 +1572,8 @@
       });
       Object.keys(map).forEach((key) => {
         wayTotalLen += map[key];
-        wayItems(key.slice(3), map[key], waySpare, kk, key.charAt(0) === "1", key.charAt(1) === "1").forEach((x) => wayRows.push(x));
+        wayItems(key.slice(3), map[key], waySpare, kk, key.charAt(0) === "1", key.charAt(1) === "1", +b.railSize || 4.2)
+          .forEach((x) => wayRows.push(x));
       });
     });
     (tw.extra || []).filter((x) => (x.name || "").trim() && +x.qty > 0)
@@ -1799,7 +1812,6 @@
     PULLBOX_SIZES.forEach((s) => add("RACE WAY", s, "pcs"));
     condFittings().forEach((f) => add("RACE WAY", f.name, f.unit));   // ข้องอ/สามทาง/ข้อลด ของท่อ ทุกขนาด
     // รางไฟ — ตัวราง/ข้อต่อ/ขาแขวน แยกตามขนาด (พุ๊กเหล็กใช้ร่วมกับงานโครงสร้าง)
-    const railSeen = {};   // Rail ยาวเท่ากันใช้ได้กับรางทุกชนิด — ตั้งราคาครั้งเดียวพอ ไม่ต้องโผล่ซ้ำ
     TRAY_KIND_KEYS.forEach((kk) => {
       const spec = TRAY_KINDS[kk];
       spec.sizes.forEach((nm) => {
@@ -1809,8 +1821,6 @@
           add(G_TRAY, hdgName("ชุดข้อต่อราง " + spec.brief + " " + sz, z), "ชุด");
           if (spec.hanger) add(G_TRAY, hdgName("ขาล็อกรางไฟ " + spec.brief + " " + sz, z), "ชุด");
         });
-        // Rail รองขาล็อก — ยาวตามความกว้างราง
-        if (spec.hanger && !railSeen[railName(nm)]) { railSeen[railName(nm)] = 1; add(G_TRAY, railName(nm), "เส้น"); }
       });
     });
     add(G_TRAY, "สกรู+น็อต M6 ประกอบราง", "ชุด");
@@ -2021,7 +2031,7 @@
 
   window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, PERF_SIZES, TRAY_KINDS, TRAY_KIND_KEYS, trayKindOf, trayNorm, trayAlias, hdgName,
-    WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
+    WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
     COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings,
     STEEL_SPECS, steelName, steelBarLen, steelSel, steelOf,
     TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, ACC_ALLOW_PCT, VAT_RATE, priceBreakdown,
