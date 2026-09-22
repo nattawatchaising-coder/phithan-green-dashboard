@@ -241,6 +241,9 @@ function drIsBoardSteps(steps) {
   return list.every((r, i) => r.th === stages[i].th);
 }
 const drModeOf = job => (job || {}).type === "project" ? "project" : "home";
+function drStepsFresh(steps) {
+  return (steps || []).every(r => !r || !(+r.pct > 0) && !r.planStart && !r.planEnd && !r.actStart && !r.actEnd && !r.note);
+}
 function drDocNo(job, date, allDates) {
   const code = String((job || {}).code || "JOB").replace(/^SF-/, "");
   const n = (allDates || []).filter(d => d <= date).length || 1;
@@ -857,6 +860,7 @@ Object.assign(window, {
   drWhaSteps,
   drHomeSteps,
   drIsBoardSteps,
+  drStepsFresh,
   drRollup,
   drWeightSum,
   drModeOf,

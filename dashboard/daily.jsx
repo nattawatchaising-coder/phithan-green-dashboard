@@ -206,6 +206,14 @@ function drIsBoardSteps(steps) {
 /* งานบ้าน = ฟอร์มสั้น · งานโครงการ = ฟอร์มครบ (สลับเองได้ในฟอร์ม จึงจำค่าไว้ในเรคคอร์ด) */
 const drModeOf = (job) => ((job || {}).type === "project" ? "project" : "home");
 
+/* ตารางขั้นงานที่ยังไม่มีใครกรอกอะไรลงไป — ใช้ตอนสลับแบบฟอร์ม
+   ยังว่างอยู่ก็สลับชุดหัวข้อให้เลย · กรอกไปแล้วต้องเก็บของช่างไว้ ห้ามล้างทิ้ง */
+function drStepsFresh(steps) {
+  return (steps || []).every((r) => !r || (
+    !(+r.pct > 0) && !r.planStart && !r.planEnd && !r.actStart && !r.actEnd && !r.note
+  ));
+}
+
 /* เลขเอกสาร — ระบบยังไม่มีช่องเลขสัญญาแบบ WHA จึงออกเลขของเราเอง
    FS-DR-{รหัสงาน}-{ครั้งที่} · ครั้งที่นับจากจำนวนรายงานที่มีอยู่ก่อนหน้าวันนี้ */
 function drDocNo(job, date, allDates) {
@@ -616,7 +624,7 @@ Object.assign(window, {
   useDailyReports, useDailyPhotos, useDailySigns, useDrMySign, useDailyAll, drNorm,
   drToday, drISO, drAddDays, drDateTH, drShort, drPad2, drStamp, drSignDay, drSignTime, drLocalDay,
   DR_WEATHER, drWeatherOf, DR_STATUS, drStatusOf, DR_MANPOWER, DR_JSA, DR_CLEAN,
-  drWhaSteps, drHomeSteps, drIsBoardSteps, drRollup, drWeightSum, drModeOf, drDocNo, drBlank,
+  drWhaSteps, drHomeSteps, drIsBoardSteps, drStepsFresh, drRollup, drWeightSum, drModeOf, drDocNo, drBlank,
   drCanApprove, drNoEe, drEeIsTech, drCanEdit, drCanDelete, drDeleteDay, drPrevOf, drDayState,
   DrSignPad, drTrimSign, DR_ROOT,
 });

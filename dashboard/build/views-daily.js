@@ -787,6 +787,65 @@ function DrSignSlot({
     }
   }, "\u0E25\u0E1A")));
 }
+const DR_MODES = [{
+  key: "home",
+  th: "ปกติ",
+  hint: "งานที่ทำ · ทีม/อากาศ · รูป · ปัญหา · ลายเซ็น"
+}, {
+  key: "project",
+  th: "จัดเต็ม",
+  hint: "เพิ่ม วัสดุ · เครื่องจักร · กำลังคน · ความปลอดภัย และตารางขั้นงานแบบมีวันแผน/วันจริง"
+}];
+function DrModeSwitch({
+  value,
+  onChange,
+  disabled
+}) {
+  return React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, "\u0E41\u0E1A\u0E1A\u0E1F\u0E2D\u0E23\u0E4C\u0E21"), React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      padding: 2,
+      gap: 2,
+      borderRadius: 99,
+      background: "var(--surface2)",
+      border: "1px solid var(--border)"
+    }
+  }, DR_MODES.map(m => {
+    const on = value === m.key;
+    return React.createElement("button", {
+      key: m.key,
+      type: "button",
+      disabled: disabled,
+      title: m.hint,
+      onClick: () => onChange(m.key),
+      style: {
+        padding: "3px 11px",
+        borderRadius: 99,
+        border: "none",
+        fontFamily: "inherit",
+        fontSize: 11.5,
+        fontWeight: 800,
+        cursor: disabled ? "default" : "pointer",
+        background: on ? "var(--primary)" : "transparent",
+        color: on ? "#fff" : "var(--text-3)",
+        opacity: disabled && !on ? 0.45 : 1
+      }
+    }, m.th);
+  })));
+}
 function DailyReportModal({
   job,
   role,
@@ -840,6 +899,17 @@ function DailyReportModal({
     });
   };
   React.useEffect(() => () => clearTimeout(timer.current), []);
+  const setMode = m => {
+    if (locked || !form || form.mode === m) return;
+    const next = {
+      mode: m
+    };
+    if (m === "project") {
+      if (form.pctManual != null) next.pct = form.pctManual;
+    } else next.pctManual = form.pct;
+    if (window.drStepsFresh(form.steps)) next.steps = m === "project" ? window.drWhaSteps() : window.drHomeSteps(job);
+    edit(next);
+  };
   const flush = () => {
     clearTimeout(timer.current);
     if (form && !locked) store.save(date, form);
@@ -966,25 +1036,20 @@ function DailyReportModal({
       borderRadius: 99,
       padding: "2px 10px"
     }
-  }, st.th), isProject && React.createElement("span", {
+  }, st.th), locked ? React.createElement("span", {
     style: {
       fontSize: 11,
       fontWeight: 700,
-      color: "#7C5CFC",
-      background: "#7C5CFC1c",
       borderRadius: 99,
-      padding: "2px 9px"
+      padding: "2px 9px",
+      color: isProject ? "#7C5CFC" : "#F59E0B",
+      background: (isProject ? "#7C5CFC" : "#F59E0B") + "1c"
     }
-  }, "\u0E07\u0E32\u0E19\u0E42\u0E04\u0E23\u0E07\u0E01\u0E32\u0E23 \xB7 \u0E41\u0E1A\u0E1A\u0E04\u0E23\u0E1A"), !isProject && React.createElement("span", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      color: "#F59E0B",
-      background: "#F59E0B1c",
-      borderRadius: 99,
-      padding: "2px 9px"
-    }
-  }, "\u0E07\u0E32\u0E19\u0E1A\u0E49\u0E32\u0E19 \xB7 \u0E41\u0E1A\u0E1A\u0E22\u0E48\u0E2D")), React.createElement("div", {
+  }, isProject ? "แบบจัดเต็ม" : "แบบปกติ") : React.createElement(DrModeSwitch, {
+    value: form.mode,
+    onChange: setMode,
+    disabled: locked
+  })), React.createElement("div", {
     style: {
       fontSize: 12,
       color: "var(--text-3)",

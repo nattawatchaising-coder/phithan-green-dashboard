@@ -371,6 +371,36 @@ function DrSignSlot({ title, sub, sig, canSign, onSign, onClear, saved, onUseSav
 /* ══════════════════════════════════════════════════
    ฟอร์มกรอกรายงานประจำวัน
    ══════════════════════════════════════════════════ */
+/* ── สลับแบบฟอร์ม: ปกติ / จัดเต็ม ──
+   เดิมผูกกับประเภทงานตายตัว (งานบ้าน = ย่อ · งานโครงการ = ครบ) แต่หน้างานจริงไม่ได้แบ่งแบบนั้น
+   บ้านหลังใหญ่ที่ลูกค้าขอเอกสารครบก็มี · งานโครงการเล็ก ๆ ที่ไม่ต้องกรอกทั้ง 9 หัวข้อก็มี
+   ค่าที่เลือกเก็บไว้ในใบของวันนั้น จึงเลือกคนละแบบในแต่ละวันได้ */
+const DR_MODES = [
+  { key: "home", th: "ปกติ", hint: "งานที่ทำ · ทีม/อากาศ · รูป · ปัญหา · ลายเซ็น" },
+  { key: "project", th: "จัดเต็ม", hint: "เพิ่ม วัสดุ · เครื่องจักร · กำลังคน · ความปลอดภัย และตารางขั้นงานแบบมีวันแผน/วันจริง" },
+];
+
+function DrModeSwitch({ value, onChange, disabled }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+      <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)" }}>แบบฟอร์ม</span>
+      <span style={{ display: "inline-flex", padding: 2, gap: 2, borderRadius: 99, background: "var(--surface2)", border: "1px solid var(--border)" }}>
+        {DR_MODES.map((m) => {
+          const on = value === m.key;
+          return (
+            <button key={m.key} type="button" disabled={disabled} title={m.hint}
+              onClick={() => onChange(m.key)}
+              style={{ padding: "3px 11px", borderRadius: 99, border: "none", fontFamily: "inherit",
+                fontSize: 11.5, fontWeight: 800, cursor: disabled ? "default" : "pointer",
+                background: on ? "var(--primary)" : "transparent", color: on ? "#fff" : "var(--text-3)",
+                opacity: disabled && !on ? 0.45 : 1 }}>{m.th}</button>
+          );
+        })}
+      </span>
+    </span>
+  );
+}
+
 function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const store = window.useDailyReports(job ? job.id : null);
@@ -432,6 +462,19 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
     });
   };
   React.useEffect(() => () => clearTimeout(timer.current), []);
+
+  /* สลับ ปกติ ↔ จัดเต็ม — ตารางขั้นงานคนละชุดกัน (เนื้องานติดตั้ง 8 ข้อ ↔ ขั้นงานโครงการ 40 แถว)
+     ตารางที่ยังว่างอยู่สลับชุดให้เลย · ตารางที่กรอกไปแล้วคงไว้ กดคืนค่ามาตรฐานในตารางเองได้ */
+  const setMode = (m) => {
+    if (locked || !form || form.mode === m) return;
+    const next = { mode: m };
+    /* % รวมที่พิมพ์เองไว้ตอนแบบจัดเต็ม — แบบปกติคิดให้เองจากน้ำหนักงาน จึงทับตัวเลขนั้นทิ้ง
+       เก็บไว้ก่อน สลับกลับมาแล้วเลขเดิมยังอยู่ ไม่ต้องนั่งนึกว่าเมื่อกี้กรอกไว้เท่าไร */
+    if (m === "project") { if (form.pctManual != null) next.pct = form.pctManual; }
+    else next.pctManual = form.pct;
+    if (window.drStepsFresh(form.steps)) next.steps = m === "project" ? window.drWhaSteps() : window.drHomeSteps(job);
+    edit(next);
+  };
 
   const flush = () => { clearTimeout(timer.current); if (form && !locked) store.save(date, form); };
 
@@ -496,8 +539,15 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
                   <span style={{ fontSize: isMobile ? 15.5 : 17.5, fontWeight: 800, color: "var(--text-1)" }}>รายงานประจำวันหน้างาน</span>
                   <span style={{ fontSize: 11.5, fontWeight: 700, color: st.color, background: st.color + "1c",
                     border: "1px solid " + st.color + "40", borderRadius: 99, padding: "2px 10px" }}>{st.th}</span>
-                  {isProject && <span style={{ fontSize: 11, fontWeight: 700, color: "#7C5CFC", background: "#7C5CFC1c", borderRadius: 99, padding: "2px 9px" }}>งานโครงการ · แบบครบ</span>}
-                  {!isProject && <span style={{ fontSize: 11, fontWeight: 700, color: "#F59E0B", background: "#F59E0B1c", borderRadius: 99, padding: "2px 9px" }}>งานบ้าน · แบบย่อ</span>}
+                  {/* ใบที่ล็อกแล้วแก้ไม่ได้ — โชว์เป็นป้ายบอกว่าใบนี้เขียนด้วยแบบไหน แทนปุ่มที่กดไม่ลง */}
+                  {locked ? (
+                    <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 99, padding: "2px 9px",
+                      color: isProject ? "#7C5CFC" : "#F59E0B", background: (isProject ? "#7C5CFC" : "#F59E0B") + "1c" }}>
+                      {isProject ? "แบบจัดเต็ม" : "แบบปกติ"}
+                    </span>
+                  ) : (
+                    <DrModeSwitch value={form.mode} onChange={setMode} disabled={locked} />
+                  )}
                 </div>
                 <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {job.code} · {job.name}
