@@ -1,4 +1,7 @@
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+function surveyPctText(st) {
+  return st && st.state === "skip" ? "ข้ามการสำรวจ" : st.label + " " + st.pct + "%";
+}
 function SurveyView({
   jobs,
   role,
@@ -916,6 +919,19 @@ function LeadModal({
     }
   }, React.createElement("label", {
     style: lbl
+  }, "\u0E25\u0E34\u0E07\u0E01\u0E4C Google Maps"), React.createElement("input", {
+    value: f.map || "",
+    onChange: e => set("map", e.target.value),
+    placeholder: "https://maps.app.goo.gl/...",
+    style: inputStyle
+  })), React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 5
+    }
+  }, React.createElement("label", {
+    style: lbl
   }, "\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17"), React.createElement(Segmented, {
     value: f.type || "home",
     onChange: v => set("type", v),
@@ -1345,7 +1361,7 @@ function LeadCard({
         color: st.color,
         whiteSpace: "nowrap"
       }
-    }, st.label, " ", st.pct, "%")), job && React.createElement("div", {
+    }, surveyPctText(st))), job && React.createElement("div", {
       style: {
         fontSize: 11.5,
         color: "var(--tint-green-tx)",
@@ -1711,7 +1727,7 @@ function LeadDetail({
       color: st.color,
       whiteSpace: "nowrap"
     }
-  }, st.label, " ", st.pct, "%")), React.createElement("div", {
+  }, surveyPctText(st))), React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
@@ -1733,7 +1749,26 @@ function LeadDetail({
     }
   }, React.createElement(InfoRow, {
     label: "\u0E17\u0E35\u0E48\u0E2D\u0E22\u0E39\u0E48 / \u0E1E\u0E34\u0E01\u0E31\u0E14"
-  }, [l.address, l.province].filter(x => x && String(x).trim() !== "-" && String(x).trim() !== "—").join(", ") || "—")), React.createElement(InfoRow, {
+  }, [l.address, l.province].filter(x => x && String(x).trim() !== "-" && String(x).trim() !== "—").join(", ") || "—", l.map ? React.createElement("a", {
+    href: l.map,
+    target: "_blank",
+    rel: "noreferrer",
+    onClick: e => e.stopPropagation(),
+    style: {
+      color: "var(--primary-dark)",
+      textDecoration: "none",
+      fontWeight: 600,
+      fontSize: 12,
+      marginLeft: 6,
+      whiteSpace: "nowrap"
+    }
+  }, React.createElement(Icon, {
+    name: "pin",
+    size: 12,
+    style: {
+      verticalAlign: -1
+    }
+  }), " \u0E40\u0E1B\u0E34\u0E14\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48") : null)), React.createElement(InfoRow, {
     label: "\u0E40\u0E0B\u0E25\u0E25\u0E4C\u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07\u0E23\u0E32\u0E22"
   }, l.ownerName || "—"), React.createElement(InfoRow, {
     label: "\u0E17\u0E35\u0E48\u0E21\u0E32\u0E02\u0E2D\u0E07\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32"
@@ -1741,7 +1776,17 @@ function LeadDetail({
     label: "\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E07\u0E32\u0E19"
   }, l.type === "biz" ? "โรงงาน / ธุรกิจ" : "บ้าน"), React.createElement(InfoRow, {
     label: "\u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08"
-  }, next ? (next.start ? thDate(next.start.slice(0, 10), true) : "-") + (list.length > 1 ? " · ทั้งหมด " + list.length + " นัด" : "") : "ยังไม่มีนัด"), job && React.createElement("div", {
+  }, st.state === "skip" ? React.createElement("span", {
+    style: {
+      color: "var(--tint-green-tx)",
+      fontWeight: 700
+    }
+  }, "\u0E02\u0E49\u0E32\u0E21\u0E01\u0E32\u0E23\u0E2A\u0E33\u0E23\u0E27\u0E08", l.survey && l.survey.skipBy ? " · โดย " + l.survey.skipBy : "", next && next.start ? React.createElement("span", {
+    style: {
+      color: "var(--text-3)",
+      fontWeight: 500
+    }
+  }, " · เคยนัดไว้ " + thDate(next.start.slice(0, 10), true)) : null) : next ? (next.start ? thDate(next.start.slice(0, 10), true) : "-") + (list.length > 1 ? " · ทั้งหมด " + list.length + " นัด" : "") : "ยังไม่มีนัด"), job && React.createElement("div", {
     style: {
       gridColumn: "1 / -1"
     }
@@ -1809,7 +1854,7 @@ function LeadDetail({
     title: "\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 (Site Survey)",
     sub: st.state === "skip" ? "ข้ามขั้นตอนสำรวจไว้" + (l.survey && l.survey.skipBy ? " โดย " + l.survey.skipBy : "") + " · แตะเพื่อกรอกแบบสำรวจ" : st.state === "none" ? "ยังไม่ได้สำรวจ · แตะเพื่อเริ่ม" : st.label + " · " + st.pct + "% · แตะเพื่อแก้ไข",
     onClick: () => onOpenSurvey(window.leadAsJob(l))
-  }), onOpenSurvey && canManage !== false && React.createElement("div", {
+  }), onOpenSurvey && React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "flex-end",
@@ -2240,5 +2285,6 @@ Object.assign(window, {
   LeadModal,
   ContactLogModal,
   LeadSpecNum,
-  LeadSpecPhase
+  LeadSpecPhase,
+  surveyPctText
 });

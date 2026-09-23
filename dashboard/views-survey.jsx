@@ -3,6 +3,13 @@
    แสดงงานพร้อมสถานะการสำรวจ + เปิด wizard สำรวจหน้างาน
    ============================================================ */
 
+/* ข้อความสถานะสำรวจที่เขียนติดแถบความคืบหน้า
+   ที่ข้ามไว้บอกไปตรง ๆ ว่าข้าม — surveyStatus คืน 100% ให้เพื่อให้แถบเต็ม
+   แต่ถ้าเขียนว่า "ไม่ต้องสำรวจ 100%" คนอ่านจะเข้าใจว่ามีคนไปสำรวจมาครบแล้ว */
+function surveyPctText(st) {
+  return st && st.state === "skip" ? "ข้ามการสำรวจ" : st.label + " " + st.pct + "%";
+}
+
 function SurveyView({ jobs, role, onOpen, onToggleSkip }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [filter, setFilter] = React.useState("all"); // all | none | partial | done | skip
@@ -336,6 +343,9 @@ function LeadModal({ initial, isNew, users, onClose, onSave }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>จังหวัด</label><input value={f.province} onChange={(e) => set("province", e.target.value)} placeholder="เช่น ชลบุรี" style={inputStyle} /></div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>ที่อยู่หน้างาน</label><input value={f.address} onChange={(e) => set("address", e.target.value)} placeholder="บ้านเลขที่ / ถนน / ตำบล" style={inputStyle} /></div>
+          {/* ลิงก์แผนที่ — ที่อยู่ที่พิมพ์มาพาไปไม่ถูกบ้านบ่อย คนที่ไปหน้างานใช้ลิงก์นี้นำทางแทน
+              ช่องเดียวกับ "ลิงก์ Google Maps" ของใบงาน พอแปลงเป็นงานแล้วค่าตามไปเอง */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>ลิงก์ Google Maps</label><input value={f.map || ""} onChange={(e) => set("map", e.target.value)} placeholder="https://maps.app.goo.gl/..." style={inputStyle} /></div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>ประเภท</label>
             <Segmented value={f.type || "home"} onChange={(v) => set("type", v)} options={[{ value: "home", label: "บ้าน" }, { value: "biz", label: "โรงงาน / ธุรกิจ" }]} /></div>
           {/* ── ข้อมูลของฝ่ายขาย ── */}
@@ -437,7 +447,7 @@ function LeadCard({ l, ctx }) {
         <span style={{ flex: 1, height: 5, borderRadius: 99, background: "var(--surface3)", overflow: "hidden" }}>
           <span style={{ display: "block", height: "100%", width: st.pct + "%", background: st.color, borderRadius: 99 }} />
         </span>
-        <span style={{ fontSize: 11.5, fontWeight: 700, color: st.color, whiteSpace: "nowrap" }}>{st.label} {st.pct}%</span>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: st.color, whiteSpace: "nowrap" }}>{surveyPctText(st)}</span>
       </div>
       {job && <div style={{ fontSize: 11.5, color: "var(--tint-green-tx)", fontWeight: 700 }}>เป็นงาน {job.code} · {job.name} แล้ว</div>}
       {/* ใบเสนอราคาทุกฉบับของรายนี้ — ชุดเดียวกับที่ใบงานใช้
@@ -607,7 +617,7 @@ function LeadDetail({ l, ctx }) {
         <span style={{ flex: 1, minWidth: 90, height: 6, borderRadius: 99, background: "var(--surface3)", overflow: "hidden" }}>
           <span style={{ display: "block", height: "100%", width: st.pct + "%", background: st.color, borderRadius: 99 }} />
         </span>
-        <span style={{ fontSize: 11.5, fontWeight: 700, color: st.color, whiteSpace: "nowrap" }}>{st.label} {st.pct}%</span>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: st.color, whiteSpace: "nowrap" }}>{surveyPctText(st)}</span>
       </div>
 
       {/* ข้อมูลติดต่อ — ตารางเดียวกับหัวใบงาน */}
@@ -623,13 +633,27 @@ function LeadDetail({ l, ctx }) {
           {/* ที่อยู่ว่าง ๆ บางใบกรอกเป็นขีดไว้ — อย่าเอามาต่อกับจังหวัดจนกลายเป็น "-, กรุงเทพฯ" */}
           <InfoRow label="ที่อยู่ / พิกัด">
             {[l.address, l.province].filter((x) => x && String(x).trim() !== "-" && String(x).trim() !== "—").join(", ") || "—"}
+            {l.map ? (
+              <a href={l.map} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
+                style={{ color: "var(--primary-dark)", textDecoration: "none", fontWeight: 600, fontSize: 12, marginLeft: 6, whiteSpace: "nowrap" }}>
+                <Icon name="pin" size={12} style={{ verticalAlign: -1 }} /> เปิดแผนที่
+              </a>
+            ) : null}
           </InfoRow>
         </div>
         <InfoRow label="เซลล์เจ้าของราย">{l.ownerName || "—"}</InfoRow>
         <InfoRow label="ที่มาของลูกค้า">{(l.source && window.LEAD_SOURCE_TH ? window.LEAD_SOURCE_TH(l.source) : "") || "—"}</InfoRow>
         <InfoRow label="ประเภทงาน">{l.type === "biz" ? "โรงงาน / ธุรกิจ" : "บ้าน"}</InfoRow>
         <InfoRow label="นัดสำรวจ">
-          {next ? (next.start ? thDate(next.start.slice(0, 10), true) : "-") + (list.length > 1 ? " · ทั้งหมด " + list.length + " นัด" : "") : "ยังไม่มีนัด"}
+          {/* ที่ข้ามไว้ไม่ได้รอนัด ถ้าขึ้น "ยังไม่มีนัด" เฉย ๆ จะดูเหมือนงานค้างรอคิวอยู่ */}
+          {st.state === "skip"
+            ? <span style={{ color: "var(--tint-green-tx)", fontWeight: 700 }}>
+                ข้ามการสำรวจ{l.survey && l.survey.skipBy ? " · โดย " + l.survey.skipBy : ""}
+                {next && next.start
+                  ? <span style={{ color: "var(--text-3)", fontWeight: 500 }}>{" · เคยนัดไว้ " + thDate(next.start.slice(0, 10), true)}</span>
+                  : null}
+              </span>
+            : next ? (next.start ? thDate(next.start.slice(0, 10), true) : "-") + (list.length > 1 ? " · ทั้งหมด " + list.length + " นัด" : "") : "ยังไม่มีนัด"}
         </InfoRow>
         {job && (
           <div style={{ gridColumn: "1 / -1" }}>
@@ -676,7 +700,7 @@ function LeadDetail({ l, ctx }) {
       )}
       {/* ข้ามขั้นตอนสำรวจ — วางไว้ใต้แถวสำรวจ ไม่ซ้อนปุ่มในปุ่ม กดพลาดตอนจะเปิดแบบสำรวจไม่ได้
           ที่ข้ามไว้แล้วกดกลับเข้าคิวได้ ข้อมูลที่กรอกไว้ยังอยู่ครบ ไม่ได้ลบทิ้ง */}
-      {onOpenSurvey && canManage !== false && (
+      {onOpenSurvey && (
         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: -4, marginBottom: 10 }}>
           <button onClick={toggleSurveySkip}
             style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
@@ -866,4 +890,4 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
   );
 }
 
-Object.assign(window, { SurveyView, LeadsView, LeadCard, LeadDetail, LeadDrawer, LeadModal, ContactLogModal, LeadSpecNum, LeadSpecPhase });
+Object.assign(window, { SurveyView, LeadsView, LeadCard, LeadDetail, LeadDrawer, LeadModal, ContactLogModal, LeadSpecNum, LeadSpecPhase, surveyPctText });

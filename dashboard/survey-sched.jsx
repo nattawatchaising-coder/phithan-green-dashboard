@@ -69,7 +69,7 @@ function blankLead(leads) {
     // id ไม่ซ้ำกับใครตลอดกาล (code เป็นเลขที่ให้คนอ่าน) — รูปสำรวจผูกกับ id ถ้าใช้เลขวนซ้ำรูปเก่าจะโผล่ผิดราย
     id: "LD-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
     code: "LD-" + String(max + 1).padStart(3, "0"),
-    name: "", phone: "", address: "", province: "", type: "home", phase: "1", roof: "",
+    name: "", phone: "", address: "", province: "", map: "", type: "home", phase: "1", roof: "",
     note: "", status: "open", jobId: "", survey: null,
     /* ── ช่องของฝ่ายขาย ──
        sstage = ขั้นการขาย (ดู SALES_STAGES) แยกจาก status เดิมซึ่งบอกแค่จบแล้วหรือยัง
@@ -90,7 +90,7 @@ function blankLead(leads) {
 function leadAsJob(l) {
   if (!l) return null;
   return { __lead: true, id: l.id, code: l.code, name: l.name, phone: l.phone, address: l.address,
-    province: l.province, type: l.type || "home", phase: l.phase || "1", roof: l.roof || "", map: "",
+    province: l.province, type: l.type || "home", phase: l.phase || "1", roof: l.roof || "", map: l.map || "",
     kw: +l.expKwp || 0, panels: +l.expPanels || 0, brand: l.brand || "", boq: l.boq || null,
     survey: l.survey || null };
 }
