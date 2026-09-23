@@ -76,18 +76,20 @@ const permitStageOf = (key) => (window.PERMIT_COLS || []).find((c) => c.key === 
 /* หัวหน้า/แอดมิน — บอร์ดงานรวมทั้งสามช่วงไว้ในผืนเดียวแล้ว เมนู "งานขาย" กับ "ขออนุญาตการไฟฟ้า"
    จึงซ้ำกับบอร์ด เอาออกจากแถบเมนูให้เหลือทางเดียว */
 const isBoardBoss = (roles) => (hasRole(roles, "lead") || hasRole(roles, "admin")) && can(roles, "viewAll");
+/* คนที่ใช้ "บอร์ดงาน" ผืนรวมเป็นทางเดียวในการหางาน — หัวหน้า/แอดมิน และฝ่ายขออนุญาต
+   ฝ่ายขออนุญาตเคยได้บอร์ดขออนุญาตแยก + เมนูงานขายอีกอัน กลายเป็นสามทางไปหางานใบเดียวกัน
+   บอร์ดรวมมีคอลัมน์ขออนุญาตอยู่ในผืนเดียวกับขายและหน้างานอยู่แล้ว */
+const usesFlowBoard = (roles) => isBoardBoss(roles) || isPermitOnly(roles);
 /* ซ่อนจากแถบเมนู ไม่ใช่ตัดสิทธิ์ — หน้ายังต้องเข้าได้อยู่ เพราะกดการ์ดลูกค้าในบอร์ดจะพาไปหน้ารายการลูกค้า
    ถ้าตัดออกจากรายการที่อนุญาต ตัวเช็คสิทธิ์จะเด้งกลับทันทีตอนกดการ์ด */
 const NAV_HIDE_FOR_BOSS = ["leads", "permit"];
 const navForRole = (roles, techId) => NAV
   .filter((n) => (n.own ? !!techId : (!n.perm || can(roles, n.perm))))
-  .filter((n) => !(isPermitOnly(roles) && n.key === "permit"))
-  .map((n) => (isBoardBoss(roles) && NAV_HIDE_FOR_BOSS.indexOf(n.key) !== -1
+  .map((n) => (usesFlowBoard(roles) && NAV_HIDE_FOR_BOSS.indexOf(n.key) !== -1
     ? Object.assign({}, n, { hidden: true }) : n))
   /* เซลล์อย่างเดียวไม่ต้องเห็นบอร์ดงานติดตั้งทั้งบริษัท — งานที่เกี่ยวกับเขาคืองานของลูกค้าตัวเอง
      ซึ่งไปตามได้จากแผง "งานติดตั้งของลูกค้าฉัน" ในภาพรวมงานขาย */
-  .filter((n) => !(isSalesOnly(roles) && n.key === "board"))
-  .map((n) => (n.key === "board" && isPermitOnly(roles) ? Object.assign({}, n, { th: "บอร์ดขออนุญาต", en: "Permit Board", icon: "shield" }) : n));
+  .filter((n) => !(isSalesOnly(roles) && n.key === "board"));
 
 /* งานนี้เป็นของช่างที่กรองอยู่ไหม — "__none" คือกรองเอาเฉพาะงานที่ยังไม่ได้มอบหมายให้ใคร
    งานที่ผูกไว้กับช่างที่ถูกลบไปแล้ว (ไม่มีใน known) ให้นับเป็น "ยังไม่มอบหมาย" จะได้ไม่หายไปจากเมนู */
@@ -542,7 +544,7 @@ function App() {
     });
     return "รอรับงาน " + sent + " · กำลังยื่น " + filing + " · ยังไม่เริ่มเก็บข้อมูล " + todo;
   }, [jobs]);
-  const permitPage = view === "permit" || (permitOnly && view === "board");
+  const permitPage = view === "permit";
 
   const patchPermit = (id, fields) => {
     const j = store.raw.find((r) => r.id === id) || {};
@@ -571,8 +573,8 @@ function App() {
   const salesOnly = isSalesOnly(role);
   const salesBoard = (
     <SalesBoardView leads={leadStore.leads} quotes={quoteStore.quotes} search={search} currentUser={auth.current}
-      /* กดการ์ด = สลับไปมุมรายการ ซึ่งเป็นที่เดียวที่ทำอะไรกับลูกค้ารายนั้นได้ครบ */
-      onOpenLead={() => setLeadMode("list")}
+      /* กดการ์ด = เปิดใบเต็มทับบอร์ด ใบเดียวกับที่เด้งจากบอร์ดงานและหน้ารายการ */
+      onOpenLead={(l) => { if (l) setBoardLead(l.id); }}
       onPatchLead={(id, fields) => leadStore.patch(id, fields)} />
   );
   const salesHead = React.useMemo(() => {
@@ -787,6 +789,8 @@ function App() {
           <LeadsView leadStore={leadStore} appts={apptStore.appts} jobs={jobs}
             users={auth.users} currentUser={auth.current} quotes={quoteStore.quotes}
             headRight={leadTabs}
+            /* กดการ์ดในรายการ = เปิดใบเต็มใบเดียวกับที่เด้งจากบอร์ด ไม่ใช่คนละหน้าตา */
+            onOpenLead={(l) => { if (l) setBoardLead(l.id); }}
             focusId={leadFocus} onFocusDone={() => setLeadFocus(null)} newAt={leadNew}
             onMenuOpen={() => setSidebarOpen(true)}
             onOpenSurvey={(can(role, "doSurvey") || can(role, "dispatch")) ? (pseudo) => openSurvey(pseudo) : null}
@@ -835,7 +839,7 @@ function App() {
             : <OverviewView jobs={filtered} schedule={myScheduleItems} onOpen={openJob} onStage={goStage} onKpi={goKpi} stock={stock} />)}
           {/* บอร์ดรวมทั้งวงจร — ขาย → หน้างาน → เอกสาร อยู่ผืนเดียว (ช่วงไหนไม่มีสิทธิ์ก็ไม่ขึ้น)
               ฝ่ายขออนุญาตอย่างเดียวยังได้บอร์ดขออนุญาตเต็มรูปแบบเหมือนเดิม เพราะเขาต้องใช้มุมรายการด้วย */}
-          {view === "board" && (permitOnly ? permitView : (
+          {view === "board" && (
             <FlowBoardView jobs={filtered} leads={leadStore.leads} quotes={quoteStore.quotes} search={search}
               role={role} currentUser={auth.current}
               onOpenJob={openJob}
@@ -848,7 +852,7 @@ function App() {
               onPatchLead={(id, f) => leadStore.patch(id, f)}
               onPatchPermit={patchPermit}
               onOpenReview={(id) => setPermitReview(id)} />
-          ))}
+          )}
           {view === "table" && <TableView jobs={filtered} onOpen={openJob}
             onEdit={(j) => setForm({ job: store.raw.find((r) => r.id === j.id), isNew: false })}
             onDelete={onDelete} onSetMat={store.setMat} onSetStage={(id, s) => store.setStage(id, s)}

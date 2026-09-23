@@ -120,14 +120,11 @@ const PERMIT_TODO = {
 const permitStageKey = j => j && j.permit && j.permit.status || "todo";
 const permitStageOf = key => (window.PERMIT_COLS || []).find(c => c.key === key) || PERMIT_TODO;
 const isBoardBoss = roles => (hasRole(roles, "lead") || hasRole(roles, "admin")) && can(roles, "viewAll");
+const usesFlowBoard = roles => isBoardBoss(roles) || isPermitOnly(roles);
 const NAV_HIDE_FOR_BOSS = ["leads", "permit"];
-const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm)).filter(n => !(isPermitOnly(roles) && n.key === "permit")).map(n => isBoardBoss(roles) && NAV_HIDE_FOR_BOSS.indexOf(n.key) !== -1 ? Object.assign({}, n, {
+const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm)).map(n => usesFlowBoard(roles) && NAV_HIDE_FOR_BOSS.indexOf(n.key) !== -1 ? Object.assign({}, n, {
   hidden: true
-}) : n).filter(n => !(isSalesOnly(roles) && n.key === "board")).map(n => n.key === "board" && isPermitOnly(roles) ? Object.assign({}, n, {
-  th: "บอร์ดขออนุญาต",
-  en: "Permit Board",
-  icon: "shield"
-}) : n);
+}) : n).filter(n => !(isSalesOnly(roles) && n.key === "board"));
 const techKey = (j, known) => j.tech && (!known || known.has(j.tech)) ? j.tech : "__none";
 const matchTech = (j, f, known) => techKey(j, known) === f;
 const instDate = j => window.SF.installDate ? window.SF.installDate(j) : "";
@@ -716,7 +713,7 @@ function App() {
     });
     return "รอรับงาน " + sent + " · กำลังยื่น " + filing + " · ยังไม่เริ่มเก็บข้อมูล " + todo;
   }, [jobs]);
-  const permitPage = view === "permit" || permitOnly && view === "board";
+  const permitPage = view === "permit";
   const patchPermit = (id, fields) => {
     const j = store.raw.find(r => r.id === id) || {};
     const cur = j.permit || {};
@@ -751,7 +748,9 @@ function App() {
     quotes: quoteStore.quotes,
     search: search,
     currentUser: auth.current,
-    onOpenLead: () => setLeadMode("list"),
+    onOpenLead: l => {
+      if (l) setBoardLead(l.id);
+    },
     onPatchLead: (id, fields) => leadStore.patch(id, fields)
   });
   const salesHead = React.useMemo(() => {
@@ -1050,6 +1049,9 @@ function App() {
     currentUser: auth.current,
     quotes: quoteStore.quotes,
     headRight: leadTabs,
+    onOpenLead: l => {
+      if (l) setBoardLead(l.id);
+    },
     focusId: leadFocus,
     onFocusDone: () => setLeadFocus(null),
     newAt: leadNew,
@@ -1153,7 +1155,7 @@ function App() {
     onStage: goStage,
     onKpi: goKpi,
     stock: stock
-  })), view === "board" && (permitOnly ? permitView : React.createElement(FlowBoardView, {
+  })), view === "board" && React.createElement(FlowBoardView, {
     jobs: filtered,
     leads: leadStore.leads,
     quotes: quoteStore.quotes,
@@ -1169,7 +1171,7 @@ function App() {
     onPatchLead: (id, f) => leadStore.patch(id, f),
     onPatchPermit: patchPermit,
     onOpenReview: id => setPermitReview(id)
-  })), view === "table" && React.createElement(TableView, {
+  }), view === "table" && React.createElement(TableView, {
     jobs: filtered,
     onOpen: openJob,
     onEdit: j => setForm({

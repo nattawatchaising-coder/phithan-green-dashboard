@@ -131,7 +131,7 @@ function leadAddContact(leadStore, l, rec) {
    อยู่คนละฐานกับงานติดตั้ง · ตกลงติดตั้งเมื่อไหร่ค่อยกด "แปลงเป็นงาน"
    ============================================================ */
 function LeadsView({ leadStore, appts, jobs, onMenuOpen, onOpenSurvey, onReport, onPlan3d, onConvert, canConvert,
-                     users, currentUser, quotes, onOpenQuote, headRight, focusId, onFocusDone, newAt }) {
+                     users, currentUser, quotes, onOpenQuote, onOpenLead, headRight, focusId, onFocusDone, newAt }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [filter, setFilter] = React.useState("all");
   const [edit, setEdit] = React.useState(null);
@@ -168,7 +168,7 @@ function LeadsView({ leadStore, appts, jobs, onMenuOpen, onOpenSurvey, onReport,
   React.useEffect(() => {
     if (!focusId) return;
     const l = leads.find((x) => x.id === focusId);
-    if (l) setEdit({ lead: l, isNew: false });
+    if (l && onOpenLead) onOpenLead(l);
     if (onFocusDone) onFocusDone();
   }, [focusId, leads]);
 
@@ -181,7 +181,7 @@ function LeadsView({ leadStore, appts, jobs, onMenuOpen, onOpenSurvey, onReport,
   const cardCtx = {
     leadStore, jobs, quotes, apptsOf, STATUS, STATUS_BY, stageKey,
     onOpenSurvey, onReport, onOpenQuote, onPlan3d, onConvert, canConvert,
-    setEdit, setLog, setStage,
+    setEdit, setLog, setStage, onOpen: onOpenLead,
   };
 
   return (
@@ -369,13 +369,7 @@ function LeadModal({ initial, isNew, users, onClose, onSave }) {
    แยกออกมาเป็นชิ้นเดียว เพราะใช้สองที่: หน้ารายชื่อลูกค้า และแผงที่เด้งจากบอร์ดงาน
    ctx = ของที่ใบนี้ต้องใช้ทั้งหมด (ฐานข้อมูล · งาน · ใบเสนอราคา · ปุ่มต่างๆ) */
 function LeadCard({ l, ctx }) {
-  const { leadStore, jobs, quotes, apptsOf, STATUS, STATUS_BY, stageKey,
-          onOpenSurvey, onReport, onOpenQuote, onPlan3d, onConvert, canConvert, setEdit, setLog, setStage } = ctx;
-
-  /* ยืนยันในใบเลย ไม่ใช้ confirm() ของเบราว์เซอร์ —
-     ถ้าผู้ใช้เคยติ๊ก "ไม่ให้หน้านี้สร้างกล่องข้อความอีก" หรือเปิดจากแอปที่ฝังเว็บไว้
-     confirm จะคืนค่า false ทันทีโดยไม่ขึ้นกล่องอะไรเลย = กดปุ่มแล้วเงียบ ทำงานไม่ได้ */
-  const [ask, setAsk] = React.useState(null);   // { id, kind: "del" | "conv" }
+  const { jobs, quotes, apptsOf, STATUS_BY, STATUS, stageKey, onOpenQuote, onOpen } = ctx;
 
   const st = window.surveyStatus({ survey: l.survey });
   const sKey = stageKey(l);
@@ -386,7 +380,10 @@ function LeadCard({ l, ctx }) {
 
   const late = window.sOverdue && window.sOverdue(l.nextFollow) && sKey !== "won" && sKey !== "lost";
   return (
-    <div key={l.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "4px solid " + sc.color, borderRadius: 14, boxShadow: "var(--shadow-sm)", padding: 14, display: "flex", flexDirection: "column", gap: 9 }}>
+    /* กดที่การ์ด = เปิดใบเต็ม (ใบเดียวกับที่เด้งจากบอร์ดงาน) ปุ่มจัดการทั้งหมดอยู่ในใบนั้น
+       เดิมการ์ดพกแถวปุ่มของตัวเองไว้ ทำให้ลูกค้ารายเดียวกันมีหน้าตาและชุดปุ่มคนละอย่างสองที่ */
+    <div key={l.id} onClick={() => onOpen && onOpen(l)} title={onOpen ? "เปิดใบลูกค้า" : undefined}
+      style={{ background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "4px solid " + sc.color, borderRadius: 14, boxShadow: "var(--shadow-sm)", padding: 14, display: "flex", flexDirection: "column", gap: 9, cursor: onOpen ? "pointer" : "default" }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.name || "(ไม่ระบุชื่อ)"}</div>
@@ -434,39 +431,11 @@ function LeadCard({ l, ctx }) {
       {job && <div style={{ fontSize: 11.5, color: "var(--tint-green-tx)", fontWeight: 700 }}>เป็นงาน {job.code} · {job.name} แล้ว</div>}
       {/* ใบเสนอราคาทุกฉบับของรายนี้ — ชุดเดียวกับที่ใบงานใช้
           เดิมเห็นแค่ใบล่าสุดใบเดียว เสนอไปหลายรอบแล้วดูไม่ออกว่าคุยกันอยู่ที่ฉบับไหน */}
+      {/* กดใบเสนอราคาต้องได้ใบนั้น ไม่ใช่เด้งใบลูกค้าขึ้นมาทับ */}
       {onOpenQuote && window.SalesQuoteList && (
-        <window.SalesQuoteList lead={l} quotes={quotes} onOpenQuote={(q) => onOpenQuote(l, q)} />
-      )}
-      {/* ปุ่มจัดการ — ถ้ากำลังถามยืนยันอยู่ ให้แถบยืนยันมาแทนที่แถวปุ่มไปเลย จะได้ไม่กดพลาดปุ่มอื่น */}
-      {ask && ask.id === l.id ? (
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", borderTop: "1px solid var(--border)", paddingTop: 10 }}>
-          <span style={{ flex: 1, minWidth: 140, fontSize: 12, fontWeight: 700, lineHeight: 1.5,
-            color: ask.kind === "del" ? "#EF4444" : "var(--tint-green-tx)" }}>
-            {ask.kind === "del"
-              ? "ลบ “" + (l.name || "รายนี้") + "” ? แบบสำรวจและรูปของรายนี้จะถูกลบด้วย"
-              : "ย้าย “" + (l.name || "รายนี้") + "” เข้าฐานข้อมูลงานติดตั้ง? แบบสำรวจและรูปถ่ายจะถูกย้ายไปกับงานใหม่ด้วย"}
-          </span>
-          {ask.kind === "del"
-            ? <button onClick={() => { leadStore.remove(l.id); setAsk(null); }} style={leadBtn("#EF4444", true)}>ลบเลย</button>
-            : <button onClick={() => { setAsk(null); onConvert(l); }} style={leadBtn("var(--tint-green-tx)", true)}><Icon name="check" size={14} color="#fff" sw={2.4} /> ย้ายเลย</button>}
-          <button onClick={() => setAsk(null)} style={leadBtn("var(--text-2)")}>ยกเลิก</button>
+        <div onClick={(e) => e.stopPropagation()}>
+          <window.SalesQuoteList lead={l} quotes={quotes} onOpenQuote={(q) => onOpenQuote(l, q)} />
         </div>
-      ) : (
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", borderTop: "1px solid var(--border)", paddingTop: 10 }}>
-        <button onClick={() => setLog(l)} style={leadBtn("var(--primary)", true)}><Icon name="phone" size={14} color="#fff" /> บันทึกการติดต่อ</button>
-        {onOpenSurvey && <button onClick={() => onOpenSurvey(window.leadAsJob(l))} style={leadBtn("var(--text-2)")}><Icon name="list" size={14} color="var(--text-2)" /> {st.state === "none" ? "เริ่มแบบสำรวจ" : "ดู / แก้แบบสำรวจ"}</button>}
-        {/* วางแผง 3D ตั้งแต่ยังเป็นงานขาย — เซลล์ต้องเอาภาพหลังคาจริงไปคุยกับลูกค้าก่อนปิดการขาย
-            แบบที่ปั้นไว้จะตามไปกับงานเองตอนกดแปลงเป็นงานติดตั้ง */}
-        {/* แปลงเป็นงานแล้วให้เปิดแบบของ "งาน" — แบบผูกกับเลข id และย้ายไปอยู่ที่เลขงานตอนแปลง (ดู movePlan3d)
-            ถ้าเปิดด้วยเลขลูกค้าจะได้ผังเปล่า ทั้งที่ปั้นแบบไว้แล้ว */}
-        {onPlan3d && <button onClick={() => onPlan3d(job || window.leadAsJob(l))} style={leadBtn("#4F46E5")}><Icon name="panel" size={14} color="#4F46E5" /> วางแผง 3D</button>}
-        {onReport && st.state !== "none" && <button onClick={() => onReport(window.leadAsJob(l))} style={leadBtn("var(--primary-dark)")}><Icon name="file" size={14} color="var(--primary-dark)" /> รายงาน · PDF</button>}
-        {canConvert && sKey !== "won" && <button onClick={() => setAsk({ id: l.id, kind: "conv" })} style={leadBtn("var(--tint-green-tx)", true)}><Icon name="check" size={14} color="#fff" sw={2.4} /> แปลงเป็นงานติดตั้ง</button>}
-        {sKey !== "lost" && sKey !== "won" && <button onClick={() => setStage(l, "lost")} style={leadBtn("var(--text-2)")}>ไม่ติดตั้ง</button>}
-        {sKey === "lost" && <button onClick={() => setStage(l, "nego")} style={leadBtn("var(--text-2)")}>กลับมาไล่ต่อ</button>}
-        <button onClick={() => setEdit({ lead: Object.assign({}, l), isNew: false })} style={leadBtn("var(--text-2)")}>แก้ไข</button>
-        <button onClick={() => setAsk({ id: l.id, kind: "del" })} style={leadBtn("#EF4444")}>ลบ</button>
-      </div>
       )}
     </div>
   );
