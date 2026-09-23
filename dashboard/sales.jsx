@@ -714,6 +714,9 @@ const QUOTE_I18N = {
   "คืนทุนปีนี้": ["payback here", "回收于此"],
   "ปี": [" yr", " 年"],
   "เดือน": [" mo", " 个月"],
+  "รูปอุปกรณ์": ["Equipment photos", "设备图片"],
+  "อุปกรณ์ที่ใช้ในระบบ": ["Equipment used in the system", "系统所用设备"],
+  "รูป": ["Pic", "图片"],
   "ผู้ขาย": ["Seller", "卖方"],
   "ผู้ซื้อ": ["Buyer", "买方"],
   " บาท": [" THB", " 泰铢"],
@@ -833,7 +836,9 @@ function quoteHTML(q, lang, sheets, pics) {
   /* ── แผ่นรูปอุปกรณ์ ──
      รูปจากคลังส่วนกลาง วางแผ่นละ 4 รูป เกินนั้นขึ้นแผ่นใหม่
      ใส่ชื่อใต้รูปไว้ ลูกค้าจะได้รู้ว่ากำลังดูของชิ้นไหน */
-  const picList = (pics || []).filter((p) => p && p.data);
+  const picById = {};
+  (pics || []).forEach((p) => { if (p && p.data) picById[p.id] = p; });
+  const picList = (q.picIds || []).map((id) => picById[id]).filter(Boolean);
   const picHTML = () => {
     if (!picList.length) return "";
     const pages = [];
@@ -875,15 +880,19 @@ function quoteHTML(q, lang, sheets, pics) {
   /* ── ตารางรับประกัน ── ลูกค้าถามทุกรายว่า "อะไรรับประกันกี่ปี"
      เขียนเป็นตารางให้เทียบได้ทีเดียว ดีกว่าให้ไปไล่อ่านในข้อความยาว ๆ */
   const wtyRows = quoteRowsOr(q.wtyRows, quoteWtySeed(q));
+  const wtyPic = wtyRows.some((r) => r && picById[r.pic]);
   const wtyHTML = () =>
     '<div class="dpg">' + sheetHead("ตารางรับประกันอุปกรณ์", "การรับประกันอุปกรณ์ในระบบที่ติดตั้ง", "") +
-    '<table><thead><tr><th class="c" style="width:34px">ลำดับ</th><th>รายการ</th>' +
+    '<table><thead><tr><th class="c" style="width:34px">ลำดับ</th>' +
+    (wtyPic ? '<th class="c" style="width:76px">รูป</th>' : "") + "<th>รายการ</th>" +
     '<th class="c" style="width:56px">จำนวน</th><th class="c" style="width:64px">หน่วย</th>' +
     '<th style="width:150px">การรับประกัน</th></tr></thead><tbody>' +
-    (wtyRows.map((r, i) => '<tr><td class="c">' + (i + 1) + "</td><td>" + sEsc(r.name) +
+    (wtyRows.map((r, i) => '<tr><td class="c">' + (i + 1) + "</td>" +
+      (wtyPic ? '<td class="pc">' + (picById[r.pic] ? '<img src="' + picById[r.pic].data + '" alt="" />' : "") + "</td>" : "") +
+      "<td>" + sEsc(r.name) +
       '</td><td class="c">' + sEsc(r.qty == null || r.qty === "" ? "" : r.qty) +
       '</td><td class="c">' + sEsc(r.unit || "") + "</td><td><b>" + sEsc(r.yr || "") + "</b></td></tr>").join("")
-      || '<tr><td colspan="5" class="c">— ยังไม่มีรายการ —</td></tr>') +
+      || '<tr><td colspan="' + (wtyPic ? 6 : 5) + '" class="c">— ยังไม่มีรายการ —</td></tr>') +
     "</tbody></table>" +
     /* ข้อ "การรับประกันและบริการ" อยู่ในแผ่นเงื่อนไข (หน้า 2) แล้ว ไม่ลอกมาซ้ำอีกแผ่น */
     '<div class="pgft">' + footHTML + "</div></div>";
@@ -1026,42 +1035,36 @@ function quoteHTML(q, lang, sheets, pics) {
     /* หน้าปก */
     ".cv{display:flex;flex-direction:column;min-height:269mm}" +
     ".cvh{border-bottom:3px solid #1B9B75;padding-bottom:12px}" +
-    ".cvhero{flex:1;margin:12mm 0;border-radius:14px;padding:16mm 14mm;position:relative;overflow:hidden;color:#fff;" +
-      "display:flex;flex-direction:column;justify-content:center;background:#0A4D68;" +
-      "background-image:linear-gradient(135deg,#0A4D68 0%,#148080 58%,#1B9B75 100%)}" +
-    ".cvhero:after{content:'';position:absolute;right:-70px;top:-70px;width:300px;height:300px;" +
-      "border-radius:50%;background:rgba(255,255,255,.07)}" +
-    ".cvhero:before{content:'';position:absolute;left:-90px;bottom:-110px;width:280px;height:280px;" +
-      "border-radius:50%;background:rgba(255,255,255,.05)}" +
-    ".cvhero>*{position:relative;z-index:1}" +
-    ".cvk{font-size:11.5px;font-weight:600;letter-spacing:.24em;color:rgba(255,255,255,.75);text-transform:uppercase}" +
-    ".cvt{font-size:34px;line-height:1.24;margin:9px 0 0;color:#fff;font-weight:700;max-width:135mm}" +
-    ".cvline{width:66px;height:4px;background:rgba(255,255,255,.85);border-radius:2px;margin:18px 0 24px}" +
-    ".cvto{font-size:10.5px;letter-spacing:.18em;color:rgba(255,255,255,.7);text-transform:uppercase}" +
-    ".cvcu{font-size:23px;font-weight:700;color:#fff;margin-top:5px}" +
-    ".cvad{font-size:12px;color:rgba(255,255,255,.78);margin-top:4px;max-width:120mm}" +
-    ".cvrow{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-top:26px}" +
-    ".cvcap{display:inline-flex;align-items:baseline;gap:9px;padding:13px 22px;border-radius:10px;" +
-      "background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35)}" +
-    ".cvcap .cl{font-size:11px;color:rgba(255,255,255,.8)}" +
-    ".cvcap .cn{font-size:32px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;line-height:1}" +
-    ".cvcap .cu{font-size:13px;font-weight:600;color:#fff}" +
-    ".cvtag{font-size:11px;color:rgba(255,255,255,.72);padding-bottom:4px}" +
+    ".cvhero{flex:1;margin:14mm 0;display:flex;flex-direction:column;justify-content:center}" +
+    ".cvk{font-size:11.5px;font-weight:700;letter-spacing:.24em;color:#1B9B75;text-transform:uppercase}" +
+    ".cvt{font-size:34px;line-height:1.24;margin:10px 0 0;color:#0A4D68;font-weight:700;max-width:135mm}" +
+    ".cvline{width:76px;height:4px;border-radius:2px;margin:20px 0 26px;" +
+      "background:linear-gradient(90deg,#0A4D68 0%,#1B9B75 100%)}" +
+    ".cvto{font-size:10.5px;letter-spacing:.18em;color:#9ca3af;text-transform:uppercase}" +
+    ".cvcu{font-size:23px;font-weight:700;color:#111827;margin-top:5px}" +
+    ".cvad{font-size:12px;color:#6b7280;margin-top:4px;max-width:120mm}" +
+    ".cvrow{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-top:30px}" +
+    ".cvcap{display:inline-flex;align-items:baseline;gap:9px;padding-left:13px;border-left:3px solid #1B9B75}" +
+    ".cvcap .cl{font-size:11px;color:#6b7280}" +
+    ".cvcap .cn{font-size:32px;font-weight:700;color:#0A4D68;font-variant-numeric:tabular-nums;line-height:1}" +
+    ".cvcap .cu{font-size:13px;font-weight:600;color:#1B9B75}" +
+    ".cvtag{font-size:11px;color:#1B9B75;font-weight:600;padding-bottom:4px}" +
     /* แผ่นรูปอุปกรณ์ — 2 คอลัมน์ 2 แถว รูปสัดส่วนเดิมไม่ยืด */
     ".pgw{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);" +
       "grid-template-rows:minmax(0,1fr) minmax(0,1fr);gap:9px;height:207mm}" +
     ".pfig{margin:0;display:flex;flex-direction:column;min-height:0;border:1px solid #e5e7eb;border-radius:9px;overflow:hidden;background:#f9fafb}" +
     ".pfig img{width:100%;flex:1;min-height:0;object-fit:contain;display:block;background:#fff}" +
     ".pfig figcaption{font-size:10.5px;color:#374151;padding:6px 9px;border-top:1px solid #e5e7eb;text-align:center}" +
+    ".pc{padding:3px 4px}.pc img{width:66px;height:42px;object-fit:contain;display:block;margin:0 auto}" +
     ".fit{min-height:0}" +
     ".cvf{display:flex;flex-wrap:wrap;gap:8px 26px;border-top:1px solid #e5e7eb;padding-top:10px}" +
     ".cvf div{font-size:11.5px;color:#374151}.cvf span{color:#9ca3af;margin-right:6px}" +
     /* ตารางพารามิเตอร์ 2 คอลัมน์ */
-    ".prmw{display:flex;gap:14px;margin-bottom:10px}.prmw>table{flex:1}" +
-    ".prm{font-size:11px}.prm td{padding:4px 9px;border-bottom:1px solid #e5e7eb;color:#374151}" +
+    ".prmw{display:flex;gap:14px;margin-bottom:8px}.prmw>table{flex:1}" +
+    ".prm{font-size:11px}.prm td{padding:2.8px 9px;border-bottom:1px solid #e5e7eb;color:#374151}" +
     ".prm tr:nth-child(odd) td{background:#f9fafb}" +
     /* ตารางคืนทุน — 30 บรรทัดต้องจบในหน้าเดียว ตัวเล็กแต่ยังอ่านออกตอนพิมพ์ */
-    ".rt{font-size:9.2px}.rt th{padding:4px 6px;font-size:9px}.rt td{padding:1.8px 6px}" +
+    ".rt{font-size:9px}.rt th{padding:3px 6px;font-size:8.8px}.rt td{padding:1px 6px;line-height:1.3}" +
     ".rt .hit td{background:#ECFDF5;font-weight:700;color:#065F46}" +
     ".rt .tt td{background:#0A4D68;color:#fff;font-weight:700;border:0}" +
     /* การ์ดตัวเลขใหญ่ในแผ่นสรุป */
@@ -1072,7 +1075,7 @@ function quoteHTML(q, lang, sheets, pics) {
     ".kpi .kv{display:block;font-size:19px;font-weight:700;color:#0A4D68;margin-top:3px;" +
       "font-variant-numeric:tabular-nums;line-height:1.2}" +
     ".kpi .ks{display:block;font-size:9.5px;color:#9ca3af}" +
-    ".nt{font-size:9.6px;color:#6b7280;line-height:1.55;margin-top:9px}" +
+    ".nt{font-size:9.2px;color:#6b7280;line-height:1.45;margin-top:7px}" +
     "</style></head><body>" +
     (quotePageOn(q, "cover") ? coverHTML() : "") +
     '<div class="pg1' + (quotePageOn(q, "cover") ? " brk" : "") + '">' + headHTML("ใบเสนอราคา") +
@@ -1185,7 +1188,53 @@ const pgQuick = { padding: "5px 10px", borderRadius: 8, border: "1px solid var(-
 
 /* ── ตารางเล็ก ๆ ในเอกสาร (BOQ · ตารางรับประกัน) ──
    คอลัมน์ไม่เหมือนกัน แต่การแก้เหมือนกันหมด จึงเขียนตัวเดียวแล้วส่ง cols เข้าไป */
-function QuoteRowsEdit({ title, hint, cols, rows, locked, onChange, onSeed, seedLabel }) {
+/* รูปประจำแถวในตารางรับประกัน — หยิบจากคลังกลางใบเดียวกับแผ่นรูป ไม่ได้อัปแยก
+   กดที่ช่องแล้วเลือกจากคลัง ไม่มีรูปที่อยากได้ค่อยไปเพิ่มที่หัวข้อ "รูปอุปกรณ์" */
+function QuoteRowPic({ lib, id, locked, onPick }) {
+  const [open, setOpen] = React.useState(false);
+  const pics = (lib && lib.pics) || [];
+  const cur = pics.find((p) => p.id === id);
+  return (
+    <div style={{ position: "relative" }}>
+      <button type="button" disabled={locked} title={cur ? cur.name || "เปลี่ยนรูป" : "เลือกรูปจากคลัง"}
+        onClick={() => setOpen((v) => !v)}
+        style={{ width: "100%", height: 34, padding: 0, borderRadius: 8, overflow: "hidden", display: "grid", placeItems: "center",
+          border: "1px solid " + (cur ? "var(--primary)" : "var(--border-strong)"), background: "var(--surface)",
+          cursor: locked ? "default" : "pointer" }}>
+        {cur ? <img src={cur.thumb} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+          : <Icon name="image" size={14} color="var(--text-3)" />}
+      </button>
+      {open && !locked && (
+        <React.Fragment>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+          <div style={{ position: "absolute", zIndex: 41, top: 38, left: 0, width: 232, padding: 8, borderRadius: 11,
+            border: "1px solid var(--border-strong)", background: "var(--surface)", boxShadow: "0 18px 44px rgba(8,20,14,.22)" }}>
+            {pics.length === 0 ? (
+              <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
+                คลังยังว่าง — เพิ่มรูปที่หัวข้อ “รูปอุปกรณ์” ด้านล่างก่อน
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 5, maxHeight: 186, overflowY: "auto" }}>
+                {pics.map((p) => (
+                  <img key={p.id} src={p.thumb} alt="" title={p.name || ""}
+                    onClick={() => { onPick(p.id); setOpen(false); }}
+                    style={{ width: "100%", height: 44, objectFit: "cover", display: "block", cursor: "pointer", borderRadius: 7,
+                      border: "2px solid " + (p.id === id ? "var(--primary)" : "transparent") }} />
+                ))}
+              </div>
+            )}
+            {cur && (
+              <button type="button" onClick={() => { onPick(""); setOpen(false); }}
+                style={Object.assign({}, pgQuick, { marginTop: 7, width: "100%" })}>เอารูปออก</button>
+            )}
+          </div>
+        </React.Fragment>
+      )}
+    </div>
+  );
+}
+
+function QuoteRowsEdit({ title, hint, cols, rows, locked, onChange, onSeed, seedLabel, picLib }) {
   const a = rows || [];
   const grid = cols.map((c) => c.w).join(" ") + (locked ? "" : " 30px");
   const setCell = (i, k, v) => onChange(a.map((r, j) => j === i ? Object.assign({}, r, { [k]: v }) : r));
@@ -1205,13 +1254,15 @@ function QuoteRowsEdit({ title, hint, cols, rows, locked, onChange, onSeed, seed
       <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
         {a.map((r, i) => (
           <div key={i} style={{ display: "grid", gridTemplateColumns: grid, gap: 6, alignItems: "center" }}>
-            {cols.map((c) => (
+            {cols.map((c) => (c.pic ? (
+              <QuoteRowPic key={c.key} lib={picLib} id={r[c.key] || ""} locked={locked} onPick={(v) => setCell(i, c.key, v)} />
+            ) : (
               <input key={c.key} value={r[c.key] == null ? "" : r[c.key]} disabled={locked} placeholder={c.ph || ""}
                 type={c.num ? "number" : "text"}
                 onChange={(e) => setCell(i, c.key, c.num ? (e.target.value === "" ? "" : +e.target.value) : e.target.value)}
                 style={Object.assign({}, cell, c.num ? { textAlign: "right", fontVariantNumeric: "tabular-nums" } : null,
                   c.key === "name" ? { fontWeight: 600 } : null)} />
-            ))}
+            )))}
             {!locked && (
               <button type="button" onClick={() => onChange(a.filter((_, j) => j !== i))} title="ลบบรรทัดนี้"
                 style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)",
@@ -1226,7 +1277,7 @@ function QuoteRowsEdit({ title, hint, cols, rows, locked, onChange, onSeed, seed
         )}
       </div>
       {!locked && (
-        <button type="button" onClick={() => onChange(a.concat([cols.reduce((o, c) => Object.assign(o, { [c.key]: c.num ? 1 : "" }), {})]))}
+        <button type="button" onClick={() => onChange(a.concat([cols.reduce((o, c) => Object.assign(o, { [c.key]: c.num && !c.pic ? 1 : "" }), {})]))}
           style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "none",
             border: "1px dashed var(--border-strong)", borderRadius: 10, padding: "7px 12px", cursor: "pointer",
             fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>
@@ -1478,7 +1529,10 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
   /* รูปเต็มของแผ่นรูปอุปกรณ์ โหลดตอนกดดูเท่านั้น เหมือน DATA SHEET
      ติ๊กเลือกไปมาในหน้าทำใบจะได้ไม่ต้องดึงไฟล์รูปทุกครั้ง */
   const loadPics = () => {
-    const ids = quotePageOn(q, "pics") ? (q.picIds || []) : [];
+    const ids = [];
+    const push = (id) => { if (id && ids.indexOf(id) === -1) ids.push(id); };
+    if (quotePageOn(q, "pics")) (q.picIds || []).forEach(push);
+    if (quotePageOn(q, "wty")) (q.wtyRows || []).forEach((r) => push(r && r.pic));
     if (!ids.length) return Promise.resolve([]);
     return Promise.all(ids.map((id) => {
       const meta = picLib.pics.find((p) => p.id === id);
@@ -1811,10 +1865,11 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
                 onSeed={() => set("boqRows", quoteBoqSeed(specSrc || q))} />
             )}
             {pageOn("wty") && (
-              <QuoteRowsEdit title="ตารางรับประกันอุปกรณ์" hint="อุปกรณ์ทีละรายการ · กี่ปี"
-                cols={[{ key: "name", w: "1fr", ph: "ชื่ออุปกรณ์" }, { key: "qty", w: "62px", num: true },
+              <QuoteRowsEdit title="ตารางรับประกันอุปกรณ์" hint="อุปกรณ์ทีละรายการ · กี่ปี · ใส่รูปข้างชื่อได้"
+                cols={[{ key: "pic", w: "52px", pic: true }, { key: "name", w: "1fr", ph: "ชื่ออุปกรณ์" },
+                  { key: "qty", w: "62px", num: true },
                   { key: "unit", w: "72px", ph: "หน่วย" }, { key: "yr", w: "150px", ph: "เช่น 5 ปี" }]}
-                rows={q.wtyRows || []} locked={locked} onChange={(v) => set("wtyRows", v)}
+                rows={q.wtyRows || []} locked={locked} onChange={(v) => set("wtyRows", v)} picLib={picLib}
                 onSeed={() => set("wtyRows", quoteWtySeed(specSrc || q))} />
             )}
             {(pageOn("cash") || pageOn("payback")) && (

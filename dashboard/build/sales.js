@@ -1067,6 +1067,9 @@ const QUOTE_I18N = {
   "คืนทุนปีนี้": ["payback here", "回收于此"],
   "ปี": [" yr", " 年"],
   "เดือน": [" mo", " 个月"],
+  "รูปอุปกรณ์": ["Equipment photos", "设备图片"],
+  "อุปกรณ์ที่ใช้ในระบบ": ["Equipment used in the system", "系统所用设备"],
+  "รูป": ["Pic", "图片"],
   "ผู้ขาย": ["Seller", "卖方"],
   "ผู้ซื้อ": ["Buyer", "买方"],
   " บาท": [" THB", " 泰铢"]
@@ -1109,7 +1112,11 @@ function quoteHTML(q, lang, sheets, pics) {
   const coverHTML = () => '<div class="cv">' + '<div class="cvh">' + window.brandHeadHTML({
     size: 44
   }) + (window.BRANDING.legalTH ? '<div class="bs bl">' + sEsc(window.BRANDING.legalTH) + (window.BRANDING.taxId ? " · เลขประจำตัวผู้เสียภาษี " + sEsc(window.BRANDING.taxId) : "") + "</div>" : "") + (window.BRANDING.addrTH ? '<div class="bs">' + sEsc(window.BRANDING.addrTH) + "</div>" : "") + '<div class="bs">' + window.BRANDING.email + " · " + window.BRANDING.tel + "</div></div>" + '<div class="cvhero">' + '<div class="cvk">ข้อเสนอโครงการ</div>' + '<h1 class="cvt">ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์บนหลังคา</h1>' + '<div class="cvline"></div>' + '<div class="cvto">เสนอต่อ</div>' + '<div class="cvcu">' + sEsc(c.name || "—") + "</div>" + (c.address || c.province ? '<div class="cvad">' + sEsc((c.address || "") + (c.province ? " " + c.province : "")) + "</div>" : "") + '<div class="cvrow">' + '<div class="cvcap"><span class="cl">ขนาดติดตั้ง</span>' + '<span class="cn">' + (q.kwp ? sEsc(q.kwp) : "—") + '</span><span class="cu">kWp</span></div>' + '<div class="cvtag">ออกแบบ · ติดตั้ง · ขออนุญาตการไฟฟ้า</div>' + "</div></div>" + '<div class="cvf">' + '<div><span>เลขที่</span><b>' + sEsc(q.no) + "</b></div>" + '<div><span>วันที่</span><b>' + dsp(q.date) + "</b></div>" + '<div><span>ผู้เสนอ</span><b>' + sEsc(q.ownerName || q.byName || "—") + "</b></div>" + (c.phone ? '<div><span>โทร</span><b>' + sEsc(c.phone) + "</b></div>" : "") + "</div>" + footHTML + "</div>";
-  const picList = (pics || []).filter(p => p && p.data);
+  const picById = {};
+  (pics || []).forEach(p => {
+    if (p && p.data) picById[p.id] = p;
+  });
+  const picList = (q.picIds || []).map(id => picById[id]).filter(Boolean);
   const picHTML = () => {
     if (!picList.length) return "";
     const pages = [];
@@ -1120,7 +1127,8 @@ function quoteHTML(q, lang, sheets, pics) {
   const boqRows = quoteRowsOr(q.boqRows, quoteBoqSeed(q));
   const boqHTML = () => '<div class="dpg">' + sheetHead("BOQ รายการงาน", "BOQ · ขอบเขตงานระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์บนหลังคา", "") + '<table><thead><tr><th class="c" style="width:34px">ลำดับ</th><th>รายการ</th>' + '<th class="c" style="width:56px">จำนวน</th><th class="c" style="width:56px">หน่วย</th></tr></thead><tbody>' + (boqRows.map((r, i) => '<tr><td class="c">' + (i + 1) + "</td><td>" + sEsc(r.name) + '</td><td class="c">' + sEsc(r.qty == null || r.qty === "" ? "" : r.qty) + '</td><td class="c">' + sEsc(r.unit || "") + "</td></tr>").join("") || '<tr><td colspan="4" class="c">— ยังไม่มีรายการ —</td></tr>') + "</tbody></table>" + '<div class="pgft"><table class="sum">' + money("รวมเป็นเงิน", T.afterDisc) + money("ภาษีมูลค่าเพิ่ม " + T.vatRate + "%", T.vat) + money("ราคารวมทั้งสิ้น", T.grand, true) + "</table>" + footHTML + "</div></div>";
   const wtyRows = quoteRowsOr(q.wtyRows, quoteWtySeed(q));
-  const wtyHTML = () => '<div class="dpg">' + sheetHead("ตารางรับประกันอุปกรณ์", "การรับประกันอุปกรณ์ในระบบที่ติดตั้ง", "") + '<table><thead><tr><th class="c" style="width:34px">ลำดับ</th><th>รายการ</th>' + '<th class="c" style="width:56px">จำนวน</th><th class="c" style="width:64px">หน่วย</th>' + '<th style="width:150px">การรับประกัน</th></tr></thead><tbody>' + (wtyRows.map((r, i) => '<tr><td class="c">' + (i + 1) + "</td><td>" + sEsc(r.name) + '</td><td class="c">' + sEsc(r.qty == null || r.qty === "" ? "" : r.qty) + '</td><td class="c">' + sEsc(r.unit || "") + "</td><td><b>" + sEsc(r.yr || "") + "</b></td></tr>").join("") || '<tr><td colspan="5" class="c">— ยังไม่มีรายการ —</td></tr>') + "</tbody></table>" + '<div class="pgft">' + footHTML + "</div></div>";
+  const wtyPic = wtyRows.some(r => r && picById[r.pic]);
+  const wtyHTML = () => '<div class="dpg">' + sheetHead("ตารางรับประกันอุปกรณ์", "การรับประกันอุปกรณ์ในระบบที่ติดตั้ง", "") + '<table><thead><tr><th class="c" style="width:34px">ลำดับ</th>' + (wtyPic ? '<th class="c" style="width:76px">รูป</th>' : "") + "<th>รายการ</th>" + '<th class="c" style="width:56px">จำนวน</th><th class="c" style="width:64px">หน่วย</th>' + '<th style="width:150px">การรับประกัน</th></tr></thead><tbody>' + (wtyRows.map((r, i) => '<tr><td class="c">' + (i + 1) + "</td>" + (wtyPic ? '<td class="pc">' + (picById[r.pic] ? '<img src="' + picById[r.pic].data + '" alt="" />' : "") + "</td>" : "") + "<td>" + sEsc(r.name) + '</td><td class="c">' + sEsc(r.qty == null || r.qty === "" ? "" : r.qty) + '</td><td class="c">' + sEsc(r.unit || "") + "</td><td><b>" + sEsc(r.yr || "") + "</b></td></tr>").join("") || '<tr><td colspan="' + (wtyPic ? 6 : 5) + '" class="c">— ยังไม่มีรายการ —</td></tr>') + "</tbody></table>" + '<div class="pgft">' + footHTML + "</div></div>";
   const R = +q.kwp > 0 && T.afterDisc > 0 ? quoteRoi(q) : null;
   const n0 = v => Math.round(+v || 0).toLocaleString("en-US");
   const n2 = v => sBaht(v);
@@ -1135,7 +1143,7 @@ function quoteHTML(q, lang, sheets, pics) {
     return '<tr' + (hit ? ' class="hit"' : "") + '><td class="c">' + r.y + '</td><td class="c">' + (Math.round(r.eff * 10000) / 100).toFixed(2) + '%</td><td class="r">' + n0(r.prod) + '</td><td class="r">' + n2(r.save) + '</td><td class="r">' + n2(r.cum) + "</td><td>" + (hit ? "คืนทุนปีนี้" : "") + "</td></tr>";
   }).join("") + "</tbody></table>" + '<div class="pgft"><div class="nt">หมายเหตุ · ตัวเลขคิดจากสมมุติฐานในแผ่นวิเคราะห์ผลตอบแทน ' + "เป็นการประมาณการเพื่อประกอบการตัดสินใจ ไม่ใช่การรับประกันผลผลิตหรือรายได้</div>" + footHTML + "</div></div>";
   const fontStack = window.pgFontStack ? window.pgFontStack(L) : "'IBM Plex Sans Thai',sans-serif";
-  const doc = '<!doctype html><html lang="' + L + '"><head><meta charset="utf-8">' + "<title>ใบเสนอราคา " + sEsc(q.no) + "</title>" + '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">' + (window.pgFontLink ? window.pgFontLink(L) : "") + "<style>" + "@page{size:A4;margin:14mm}" + "*{box-sizing:border-box}" + "body{font-family:" + fontStack + ";color:#111827;font-size:12px;margin:0;line-height:1.55;" + "-webkit-print-color-adjust:exact;print-color-adjust:exact}" + ".hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1B9B75;padding-bottom:12px;margin-bottom:16px}" + ".bd{font-size:20px;font-weight:700;color:#0A4D68;letter-spacing:.02em}" + ".bs{font-size:11px;color:#6b7280;margin-top:2px}" + ".bl{color:#374151;font-weight:600;margin-top:5px}" + ".ti{text-align:right}.ti h1{font-size:19px;margin:0;color:#111827}" + ".ti .no{font-size:12px;color:#374151;margin-top:3px}" + ".two{display:flex;gap:14px;margin-bottom:14px}" + ".two>div{flex:1;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px}" + ".two h3,.blk h3{font-size:11px;margin:0 0 6px;color:#0A4D68;letter-spacing:.04em}" + ".kv{display:flex;gap:6px;font-size:11.5px}.kv b{min-width:58px;color:#6b7280;font-weight:500}" + "table{width:100%;border-collapse:collapse;font-size:11.5px}" + "th{background:#0A4D68;color:#fff;padding:7px 8px;text-align:left;font-weight:600;font-size:11px}" + "td{padding:7px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top}" + ".c{text-align:center}.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}" + ".dt{color:#6b7280;font-size:10.5px;margin-top:2px;line-height:1.45}" + ".shpg{page-break-before:always;break-before:page;padding-top:6mm}" + ".shpg h3{font-size:12px;color:#0A4D68;margin:0 0 8px}" + ".shpg .shsub{font-size:11px;color:#6b7280;margin:-4px 0 10px}" + ".shls{margin:0;padding-left:18px}.shls li{margin-bottom:4px}" + ".shls .pdf{color:#6b7280;font-size:10.5px}" + ".blk .pdf{color:#6b7280;font-size:10.5px}" + ".shimg{width:100%;height:auto;max-height:248mm;object-fit:contain;border:1px solid #e5e7eb;border-radius:6px}" + ".sum{margin-top:12px;margin-left:auto;width:290px}" + ".sum td{border:0;padding:4px 8px}.sum .big td{border-top:2px solid #0A4D68;font-weight:700;font-size:14px;color:#0A4D68;padding-top:8px}" + ".blk{margin-top:14px;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;break-inside:avoid}" + ".blk ul{margin:0;padding-left:18px}.blk li{margin-bottom:3px}" + ".note{margin-top:12px;font-size:11px;color:#374151;white-space:pre-wrap}" + ".vbx{margin-top:14px;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;break-inside:avoid}" + ".vbx h3{font-size:11px;margin:0 0 6px;color:#0A4D68;letter-spacing:.04em}" + ".vbx .vl{font-size:11.5px;color:#374151;white-space:pre-wrap}" + ".pg1{display:flex;flex-direction:column;min-height:269mm}" + ".pgft{margin-top:auto}" + ".tmpg{page-break-before:always;break-before:page;display:flex;flex-direction:column;min-height:269mm}" + ".tmpg .ft{margin-top:auto}" + ".tmpg h2{font-size:13px;color:#0A4D68;margin:0 0 2px}" + ".tmpg .sub{font-size:11px;color:#6b7280;margin-bottom:10px}" + ".sig{display:flex;gap:40px;margin-top:34px;break-inside:avoid}" + ".sig>div{flex:1;text-align:center}.sig .ln{border-top:1px solid #9ca3af;margin:34px 10px 6px}" + ".sig .rl{font-size:11px;color:#6b7280}" + ".ft{margin-top:16px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center}" + ".dpg{page-break-before:always;break-before:page;display:flex;flex-direction:column;min-height:269mm}" + ".dpg h2{font-size:13px;color:#0A4D68;margin:0 0 2px}" + ".dpg .sub{font-size:11px;color:#6b7280;margin-bottom:10px}" + ".brk{page-break-before:always;break-before:page}" + ".cv{display:flex;flex-direction:column;min-height:269mm}" + ".cvh{border-bottom:3px solid #1B9B75;padding-bottom:12px}" + ".cvhero{flex:1;margin:12mm 0;border-radius:14px;padding:16mm 14mm;position:relative;overflow:hidden;color:#fff;" + "display:flex;flex-direction:column;justify-content:center;background:#0A4D68;" + "background-image:linear-gradient(135deg,#0A4D68 0%,#148080 58%,#1B9B75 100%)}" + ".cvhero:after{content:'';position:absolute;right:-70px;top:-70px;width:300px;height:300px;" + "border-radius:50%;background:rgba(255,255,255,.07)}" + ".cvhero:before{content:'';position:absolute;left:-90px;bottom:-110px;width:280px;height:280px;" + "border-radius:50%;background:rgba(255,255,255,.05)}" + ".cvhero>*{position:relative;z-index:1}" + ".cvk{font-size:11.5px;font-weight:600;letter-spacing:.24em;color:rgba(255,255,255,.75);text-transform:uppercase}" + ".cvt{font-size:34px;line-height:1.24;margin:9px 0 0;color:#fff;font-weight:700;max-width:135mm}" + ".cvline{width:66px;height:4px;background:rgba(255,255,255,.85);border-radius:2px;margin:18px 0 24px}" + ".cvto{font-size:10.5px;letter-spacing:.18em;color:rgba(255,255,255,.7);text-transform:uppercase}" + ".cvcu{font-size:23px;font-weight:700;color:#fff;margin-top:5px}" + ".cvad{font-size:12px;color:rgba(255,255,255,.78);margin-top:4px;max-width:120mm}" + ".cvrow{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-top:26px}" + ".cvcap{display:inline-flex;align-items:baseline;gap:9px;padding:13px 22px;border-radius:10px;" + "background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35)}" + ".cvcap .cl{font-size:11px;color:rgba(255,255,255,.8)}" + ".cvcap .cn{font-size:32px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;line-height:1}" + ".cvcap .cu{font-size:13px;font-weight:600;color:#fff}" + ".cvtag{font-size:11px;color:rgba(255,255,255,.72);padding-bottom:4px}" + ".pgw{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);" + "grid-template-rows:minmax(0,1fr) minmax(0,1fr);gap:9px;height:207mm}" + ".pfig{margin:0;display:flex;flex-direction:column;min-height:0;border:1px solid #e5e7eb;border-radius:9px;overflow:hidden;background:#f9fafb}" + ".pfig img{width:100%;flex:1;min-height:0;object-fit:contain;display:block;background:#fff}" + ".pfig figcaption{font-size:10.5px;color:#374151;padding:6px 9px;border-top:1px solid #e5e7eb;text-align:center}" + ".fit{min-height:0}" + ".cvf{display:flex;flex-wrap:wrap;gap:8px 26px;border-top:1px solid #e5e7eb;padding-top:10px}" + ".cvf div{font-size:11.5px;color:#374151}.cvf span{color:#9ca3af;margin-right:6px}" + ".prmw{display:flex;gap:14px;margin-bottom:10px}.prmw>table{flex:1}" + ".prm{font-size:11px}.prm td{padding:4px 9px;border-bottom:1px solid #e5e7eb;color:#374151}" + ".prm tr:nth-child(odd) td{background:#f9fafb}" + ".rt{font-size:9.2px}.rt th{padding:4px 6px;font-size:9px}.rt td{padding:1.8px 6px}" + ".rt .hit td{background:#ECFDF5;font-weight:700;color:#065F46}" + ".rt .tt td{background:#0A4D68;color:#fff;font-weight:700;border:0}" + ".kpi{display:flex;gap:10px;margin-bottom:14px}" + ".kpi>div{flex:1;border:1px solid #d1d5db;border-radius:9px;padding:11px 12px}" + ".kpi .k1{border-color:#1B9B75;background:#F0FDF9}" + ".kpi .kl{display:block;font-size:10px;color:#6b7280}" + ".kpi .kv{display:block;font-size:19px;font-weight:700;color:#0A4D68;margin-top:3px;" + "font-variant-numeric:tabular-nums;line-height:1.2}" + ".kpi .ks{display:block;font-size:9.5px;color:#9ca3af}" + ".nt{font-size:9.6px;color:#6b7280;line-height:1.55;margin-top:9px}" + "</style></head><body>" + (quotePageOn(q, "cover") ? coverHTML() : "") + '<div class="pg1' + (quotePageOn(q, "cover") ? " brk" : "") + '">' + headHTML("ใบเสนอราคา") + '<div class="two"><div><h3>ลูกค้า</h3>' + '<div class="kv"><b>ชื่อ</b><span>' + sEsc(c.name || "—") + "</span></div>" + '<div class="kv"><b>โทร</b><span>' + sEsc(c.phone || "—") + "</span></div>" + '<div class="kv"><b>ที่อยู่</b><span>' + sEsc((c.address || "") + (c.province ? " " + c.province : "") || "—") + "</span></div></div>" + "<div><h3>รายละเอียดข้อเสนอ</h3>" + '<div class="kv"><b>ขนาด</b><span>' + (q.kwp ? sEsc(q.kwp) + " kWp" : "—") + "</span></div>" + '<div class="kv"><b>อ้างอิง</b><span>' + sEsc(q.refCode || "—") + "</span></div>" + '<div class="kv"><b>ผู้เสนอ</b><span>' + sEsc(q.ownerName || q.byName || "—") + "</span></div></div></div>" + "<table><thead><tr><th class=\"c\" style=\"width:26px\">#</th><th>รายการ</th>" + "<th class=\"c\" style=\"width:46px\">จำนวน</th><th class=\"c\" style=\"width:52px\">หน่วย</th>" + "<th class=\"r\" style=\"width:88px\">ราคา/หน่วย</th><th class=\"r\" style=\"width:96px\">จำนวนเงิน</th></tr></thead>" + "<tbody>" + (rows || '<tr><td colspan="6" class="c">— ยังไม่มีรายการ —</td></tr>') + "</tbody></table>" + '<div class="pgft">' + '<table class="sum">' + money("รวมเป็นเงิน", T.sub) + (T.disc > 0 ? money(T.discMode === "pct" ? "หักส่วนลด " + T.discPct + "%" : "หักส่วนลด", T.disc) + money("ราคาหลังหักส่วนลด", T.afterDisc) : "") + money("ภาษีมูลค่าเพิ่ม " + T.vatRate + "%", T.vat) + money("ราคารวมทั้งสิ้น", T.grand, true) + "</table>" + '<div class="vbx"><h3>การยืนราคา</h3>' + '<div class="vl">' + (valid ? sEsc(valid) : "ยืนราคาตามที่ตกลงกัน") + "</div>" + (q.note ? '<div class="vl" style="margin-top:6px">หมายเหตุ: ' + sEsc(q.note) + "</div>" : "") + "</div>" + '<div class="sig"><div><div class="ln"></div><div class="rl">ผู้เสนอราคา · ' + sEsc(q.ownerName || q.byName || "") + '</div></div><div><div class="ln"></div><div class="rl">ผู้อนุมัติ / ลูกค้า</div>' + '<div class="rl">วันที่ ______ / ______ / ______</div></div></div>' + footHTML + "</div></div>" + (quotePageOn(q, "terms") && (termList(q.terms, T.grand) || list(q.warranties, "การรับประกันและบริการ") || shList) ? '<div class="tmpg">' + headHTML("เอกสารแนบ") + "<h2>เงื่อนไขการชำระเงินและการรับประกัน</h2>" + '<div class="sub">แนบท้ายใบเสนอราคาเลขที่ ' + sEsc(q.no) + " · " + sEsc(c.name || "") + "</div>" + termList(q.terms, T.grand) + list(q.warranties, "การรับประกันและบริการ") + shList + footHTML + "</div>" : "") + (quotePageOn(q, "boq") ? boqHTML() : "") + (quotePageOn(q, "wty") ? wtyHTML() : "") + (quotePageOn(q, "cash") ? cashHTML() : "") + (quotePageOn(q, "payback") ? paybackHTML() : "") + (quotePageOn(q, "pics") ? picHTML() : "") + shPages + "</body></html>";
+  const doc = '<!doctype html><html lang="' + L + '"><head><meta charset="utf-8">' + "<title>ใบเสนอราคา " + sEsc(q.no) + "</title>" + '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">' + (window.pgFontLink ? window.pgFontLink(L) : "") + "<style>" + "@page{size:A4;margin:14mm}" + "*{box-sizing:border-box}" + "body{font-family:" + fontStack + ";color:#111827;font-size:12px;margin:0;line-height:1.55;" + "-webkit-print-color-adjust:exact;print-color-adjust:exact}" + ".hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1B9B75;padding-bottom:12px;margin-bottom:16px}" + ".bd{font-size:20px;font-weight:700;color:#0A4D68;letter-spacing:.02em}" + ".bs{font-size:11px;color:#6b7280;margin-top:2px}" + ".bl{color:#374151;font-weight:600;margin-top:5px}" + ".ti{text-align:right}.ti h1{font-size:19px;margin:0;color:#111827}" + ".ti .no{font-size:12px;color:#374151;margin-top:3px}" + ".two{display:flex;gap:14px;margin-bottom:14px}" + ".two>div{flex:1;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px}" + ".two h3,.blk h3{font-size:11px;margin:0 0 6px;color:#0A4D68;letter-spacing:.04em}" + ".kv{display:flex;gap:6px;font-size:11.5px}.kv b{min-width:58px;color:#6b7280;font-weight:500}" + "table{width:100%;border-collapse:collapse;font-size:11.5px}" + "th{background:#0A4D68;color:#fff;padding:7px 8px;text-align:left;font-weight:600;font-size:11px}" + "td{padding:7px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top}" + ".c{text-align:center}.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}" + ".dt{color:#6b7280;font-size:10.5px;margin-top:2px;line-height:1.45}" + ".shpg{page-break-before:always;break-before:page;padding-top:6mm}" + ".shpg h3{font-size:12px;color:#0A4D68;margin:0 0 8px}" + ".shpg .shsub{font-size:11px;color:#6b7280;margin:-4px 0 10px}" + ".shls{margin:0;padding-left:18px}.shls li{margin-bottom:4px}" + ".shls .pdf{color:#6b7280;font-size:10.5px}" + ".blk .pdf{color:#6b7280;font-size:10.5px}" + ".shimg{width:100%;height:auto;max-height:248mm;object-fit:contain;border:1px solid #e5e7eb;border-radius:6px}" + ".sum{margin-top:12px;margin-left:auto;width:290px}" + ".sum td{border:0;padding:4px 8px}.sum .big td{border-top:2px solid #0A4D68;font-weight:700;font-size:14px;color:#0A4D68;padding-top:8px}" + ".blk{margin-top:14px;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;break-inside:avoid}" + ".blk ul{margin:0;padding-left:18px}.blk li{margin-bottom:3px}" + ".note{margin-top:12px;font-size:11px;color:#374151;white-space:pre-wrap}" + ".vbx{margin-top:14px;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;break-inside:avoid}" + ".vbx h3{font-size:11px;margin:0 0 6px;color:#0A4D68;letter-spacing:.04em}" + ".vbx .vl{font-size:11.5px;color:#374151;white-space:pre-wrap}" + ".pg1{display:flex;flex-direction:column;min-height:269mm}" + ".pgft{margin-top:auto}" + ".tmpg{page-break-before:always;break-before:page;display:flex;flex-direction:column;min-height:269mm}" + ".tmpg .ft{margin-top:auto}" + ".tmpg h2{font-size:13px;color:#0A4D68;margin:0 0 2px}" + ".tmpg .sub{font-size:11px;color:#6b7280;margin-bottom:10px}" + ".sig{display:flex;gap:40px;margin-top:34px;break-inside:avoid}" + ".sig>div{flex:1;text-align:center}.sig .ln{border-top:1px solid #9ca3af;margin:34px 10px 6px}" + ".sig .rl{font-size:11px;color:#6b7280}" + ".ft{margin-top:16px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center}" + ".dpg{page-break-before:always;break-before:page;display:flex;flex-direction:column;min-height:269mm}" + ".dpg h2{font-size:13px;color:#0A4D68;margin:0 0 2px}" + ".dpg .sub{font-size:11px;color:#6b7280;margin-bottom:10px}" + ".brk{page-break-before:always;break-before:page}" + ".cv{display:flex;flex-direction:column;min-height:269mm}" + ".cvh{border-bottom:3px solid #1B9B75;padding-bottom:12px}" + ".cvhero{flex:1;margin:14mm 0;display:flex;flex-direction:column;justify-content:center}" + ".cvk{font-size:11.5px;font-weight:700;letter-spacing:.24em;color:#1B9B75;text-transform:uppercase}" + ".cvt{font-size:34px;line-height:1.24;margin:10px 0 0;color:#0A4D68;font-weight:700;max-width:135mm}" + ".cvline{width:76px;height:4px;border-radius:2px;margin:20px 0 26px;" + "background:linear-gradient(90deg,#0A4D68 0%,#1B9B75 100%)}" + ".cvto{font-size:10.5px;letter-spacing:.18em;color:#9ca3af;text-transform:uppercase}" + ".cvcu{font-size:23px;font-weight:700;color:#111827;margin-top:5px}" + ".cvad{font-size:12px;color:#6b7280;margin-top:4px;max-width:120mm}" + ".cvrow{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-top:30px}" + ".cvcap{display:inline-flex;align-items:baseline;gap:9px;padding-left:13px;border-left:3px solid #1B9B75}" + ".cvcap .cl{font-size:11px;color:#6b7280}" + ".cvcap .cn{font-size:32px;font-weight:700;color:#0A4D68;font-variant-numeric:tabular-nums;line-height:1}" + ".cvcap .cu{font-size:13px;font-weight:600;color:#1B9B75}" + ".cvtag{font-size:11px;color:#1B9B75;font-weight:600;padding-bottom:4px}" + ".pgw{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);" + "grid-template-rows:minmax(0,1fr) minmax(0,1fr);gap:9px;height:207mm}" + ".pfig{margin:0;display:flex;flex-direction:column;min-height:0;border:1px solid #e5e7eb;border-radius:9px;overflow:hidden;background:#f9fafb}" + ".pfig img{width:100%;flex:1;min-height:0;object-fit:contain;display:block;background:#fff}" + ".pfig figcaption{font-size:10.5px;color:#374151;padding:6px 9px;border-top:1px solid #e5e7eb;text-align:center}" + ".pc{padding:3px 4px}.pc img{width:66px;height:42px;object-fit:contain;display:block;margin:0 auto}" + ".fit{min-height:0}" + ".cvf{display:flex;flex-wrap:wrap;gap:8px 26px;border-top:1px solid #e5e7eb;padding-top:10px}" + ".cvf div{font-size:11.5px;color:#374151}.cvf span{color:#9ca3af;margin-right:6px}" + ".prmw{display:flex;gap:14px;margin-bottom:8px}.prmw>table{flex:1}" + ".prm{font-size:11px}.prm td{padding:2.8px 9px;border-bottom:1px solid #e5e7eb;color:#374151}" + ".prm tr:nth-child(odd) td{background:#f9fafb}" + ".rt{font-size:9px}.rt th{padding:3px 6px;font-size:8.8px}.rt td{padding:1px 6px;line-height:1.3}" + ".rt .hit td{background:#ECFDF5;font-weight:700;color:#065F46}" + ".rt .tt td{background:#0A4D68;color:#fff;font-weight:700;border:0}" + ".kpi{display:flex;gap:10px;margin-bottom:14px}" + ".kpi>div{flex:1;border:1px solid #d1d5db;border-radius:9px;padding:11px 12px}" + ".kpi .k1{border-color:#1B9B75;background:#F0FDF9}" + ".kpi .kl{display:block;font-size:10px;color:#6b7280}" + ".kpi .kv{display:block;font-size:19px;font-weight:700;color:#0A4D68;margin-top:3px;" + "font-variant-numeric:tabular-nums;line-height:1.2}" + ".kpi .ks{display:block;font-size:9.5px;color:#9ca3af}" + ".nt{font-size:9.2px;color:#6b7280;line-height:1.45;margin-top:7px}" + "</style></head><body>" + (quotePageOn(q, "cover") ? coverHTML() : "") + '<div class="pg1' + (quotePageOn(q, "cover") ? " brk" : "") + '">' + headHTML("ใบเสนอราคา") + '<div class="two"><div><h3>ลูกค้า</h3>' + '<div class="kv"><b>ชื่อ</b><span>' + sEsc(c.name || "—") + "</span></div>" + '<div class="kv"><b>โทร</b><span>' + sEsc(c.phone || "—") + "</span></div>" + '<div class="kv"><b>ที่อยู่</b><span>' + sEsc((c.address || "") + (c.province ? " " + c.province : "") || "—") + "</span></div></div>" + "<div><h3>รายละเอียดข้อเสนอ</h3>" + '<div class="kv"><b>ขนาด</b><span>' + (q.kwp ? sEsc(q.kwp) + " kWp" : "—") + "</span></div>" + '<div class="kv"><b>อ้างอิง</b><span>' + sEsc(q.refCode || "—") + "</span></div>" + '<div class="kv"><b>ผู้เสนอ</b><span>' + sEsc(q.ownerName || q.byName || "—") + "</span></div></div></div>" + "<table><thead><tr><th class=\"c\" style=\"width:26px\">#</th><th>รายการ</th>" + "<th class=\"c\" style=\"width:46px\">จำนวน</th><th class=\"c\" style=\"width:52px\">หน่วย</th>" + "<th class=\"r\" style=\"width:88px\">ราคา/หน่วย</th><th class=\"r\" style=\"width:96px\">จำนวนเงิน</th></tr></thead>" + "<tbody>" + (rows || '<tr><td colspan="6" class="c">— ยังไม่มีรายการ —</td></tr>') + "</tbody></table>" + '<div class="pgft">' + '<table class="sum">' + money("รวมเป็นเงิน", T.sub) + (T.disc > 0 ? money(T.discMode === "pct" ? "หักส่วนลด " + T.discPct + "%" : "หักส่วนลด", T.disc) + money("ราคาหลังหักส่วนลด", T.afterDisc) : "") + money("ภาษีมูลค่าเพิ่ม " + T.vatRate + "%", T.vat) + money("ราคารวมทั้งสิ้น", T.grand, true) + "</table>" + '<div class="vbx"><h3>การยืนราคา</h3>' + '<div class="vl">' + (valid ? sEsc(valid) : "ยืนราคาตามที่ตกลงกัน") + "</div>" + (q.note ? '<div class="vl" style="margin-top:6px">หมายเหตุ: ' + sEsc(q.note) + "</div>" : "") + "</div>" + '<div class="sig"><div><div class="ln"></div><div class="rl">ผู้เสนอราคา · ' + sEsc(q.ownerName || q.byName || "") + '</div></div><div><div class="ln"></div><div class="rl">ผู้อนุมัติ / ลูกค้า</div>' + '<div class="rl">วันที่ ______ / ______ / ______</div></div></div>' + footHTML + "</div></div>" + (quotePageOn(q, "terms") && (termList(q.terms, T.grand) || list(q.warranties, "การรับประกันและบริการ") || shList) ? '<div class="tmpg">' + headHTML("เอกสารแนบ") + "<h2>เงื่อนไขการชำระเงินและการรับประกัน</h2>" + '<div class="sub">แนบท้ายใบเสนอราคาเลขที่ ' + sEsc(q.no) + " · " + sEsc(c.name || "") + "</div>" + termList(q.terms, T.grand) + list(q.warranties, "การรับประกันและบริการ") + shList + footHTML + "</div>" : "") + (quotePageOn(q, "boq") ? boqHTML() : "") + (quotePageOn(q, "wty") ? wtyHTML() : "") + (quotePageOn(q, "cash") ? cashHTML() : "") + (quotePageOn(q, "payback") ? paybackHTML() : "") + (quotePageOn(q, "pics") ? picHTML() : "") + shPages + "</body></html>";
   return window.pgDocHTML ? window.pgDocHTML(doc, L, QUOTE_I18N) : doc;
 }
 function QuotePagePick({
@@ -1277,6 +1285,113 @@ const pgQuick = {
   fontWeight: 700,
   color: "var(--text-2)"
 };
+function QuoteRowPic({
+  lib,
+  id,
+  locked,
+  onPick
+}) {
+  const [open, setOpen] = React.useState(false);
+  const pics = lib && lib.pics || [];
+  const cur = pics.find(p => p.id === id);
+  return React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, React.createElement("button", {
+    type: "button",
+    disabled: locked,
+    title: cur ? cur.name || "เปลี่ยนรูป" : "เลือกรูปจากคลัง",
+    onClick: () => setOpen(v => !v),
+    style: {
+      width: "100%",
+      height: 34,
+      padding: 0,
+      borderRadius: 8,
+      overflow: "hidden",
+      display: "grid",
+      placeItems: "center",
+      border: "1px solid " + (cur ? "var(--primary)" : "var(--border-strong)"),
+      background: "var(--surface)",
+      cursor: locked ? "default" : "pointer"
+    }
+  }, cur ? React.createElement("img", {
+    src: cur.thumb,
+    alt: "",
+    style: {
+      width: "100%",
+      height: "100%",
+      objectFit: "cover",
+      display: "block"
+    }
+  }) : React.createElement(Icon, {
+    name: "image",
+    size: 14,
+    color: "var(--text-3)"
+  })), open && !locked && React.createElement(React.Fragment, null, React.createElement("div", {
+    onClick: () => setOpen(false),
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 40
+    }
+  }), React.createElement("div", {
+    style: {
+      position: "absolute",
+      zIndex: 41,
+      top: 38,
+      left: 0,
+      width: 232,
+      padding: 8,
+      borderRadius: 11,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      boxShadow: "0 18px 44px rgba(8,20,14,.22)"
+    }
+  }, pics.length === 0 ? React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      lineHeight: 1.6
+    }
+  }, "\u0E04\u0E25\u0E31\u0E07\u0E22\u0E31\u0E07\u0E27\u0E48\u0E32\u0E07 \u2014 \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E23\u0E39\u0E1B\u0E17\u0E35\u0E48\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D \u201C\u0E23\u0E39\u0E1B\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u201D \u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07\u0E01\u0E48\u0E2D\u0E19") : React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(3,1fr)",
+      gap: 5,
+      maxHeight: 186,
+      overflowY: "auto"
+    }
+  }, pics.map(p => React.createElement("img", {
+    key: p.id,
+    src: p.thumb,
+    alt: "",
+    title: p.name || "",
+    onClick: () => {
+      onPick(p.id);
+      setOpen(false);
+    },
+    style: {
+      width: "100%",
+      height: 44,
+      objectFit: "cover",
+      display: "block",
+      cursor: "pointer",
+      borderRadius: 7,
+      border: "2px solid " + (p.id === id ? "var(--primary)" : "transparent")
+    }
+  }))), cur && React.createElement("button", {
+    type: "button",
+    onClick: () => {
+      onPick("");
+      setOpen(false);
+    },
+    style: Object.assign({}, pgQuick, {
+      marginTop: 7,
+      width: "100%"
+    })
+  }, "\u0E40\u0E2D\u0E32\u0E23\u0E39\u0E1B\u0E2D\u0E2D\u0E01"))));
+}
 function QuoteRowsEdit({
   title,
   hint,
@@ -1285,7 +1400,8 @@ function QuoteRowsEdit({
   locked,
   onChange,
   onSeed,
-  seedLabel
+  seedLabel,
+  picLib
 }) {
   const a = rows || [];
   const grid = cols.map(c => c.w).join(" ") + (locked ? "" : " 30px");
@@ -1348,7 +1464,13 @@ function QuoteRowsEdit({
       gap: 6,
       alignItems: "center"
     }
-  }, cols.map(c => React.createElement("input", {
+  }, cols.map(c => c.pic ? React.createElement(QuoteRowPic, {
+    key: c.key,
+    lib: picLib,
+    id: r[c.key] || "",
+    locked: locked,
+    onPick: v => setCell(i, c.key, v)
+  }) : React.createElement("input", {
     key: c.key,
     value: r[c.key] == null ? "" : r[c.key],
     disabled: locked,
@@ -1387,7 +1509,7 @@ function QuoteRowsEdit({
   }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14 \u2014 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E14\u0E49\u0E32\u0E19\u0E1A\u0E19\u0E43\u0E2B\u0E49\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E31\u0E49\u0E07\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E43\u0E2B\u0E49\u0E08\u0E32\u0E01\u0E2A\u0E40\u0E1B\u0E01\u0E43\u0E19\u0E43\u0E1A\u0E19\u0E35\u0E49")), !locked && React.createElement("button", {
     type: "button",
     onClick: () => onChange(a.concat([cols.reduce((o, c) => Object.assign(o, {
-      [c.key]: c.num ? 1 : ""
+      [c.key]: c.num && !c.pic ? 1 : ""
     }), {})])),
     style: {
       alignSelf: "flex-start",
@@ -1880,7 +2002,12 @@ function QuoteEditor({
   const sheetHint = (q.items || []).map(it => (it.name || "") + " " + (it.detail || "")).join(" ");
   const [repBusy, setRepBusy] = React.useState(false);
   const loadPics = () => {
-    const ids = quotePageOn(q, "pics") ? q.picIds || [] : [];
+    const ids = [];
+    const push = id => {
+      if (id && ids.indexOf(id) === -1) ids.push(id);
+    };
+    if (quotePageOn(q, "pics")) (q.picIds || []).forEach(push);
+    if (quotePageOn(q, "wty")) (q.wtyRows || []).forEach(r => push(r && r.pic));
     if (!ids.length) return Promise.resolve([]);
     return Promise.all(ids.map(id => {
       const meta = picLib.pics.find(p => p.id === id);
@@ -2740,8 +2867,12 @@ function QuoteEditor({
     onSeed: () => set("boqRows", quoteBoqSeed(specSrc || q))
   }), pageOn("wty") && React.createElement(QuoteRowsEdit, {
     title: "\u0E15\u0E32\u0E23\u0E32\u0E07\u0E23\u0E31\u0E1A\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E19\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C",
-    hint: "\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E17\u0E35\u0E25\u0E30\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23 \xB7 \u0E01\u0E35\u0E48\u0E1B\u0E35",
+    hint: "\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E17\u0E35\u0E25\u0E30\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23 \xB7 \u0E01\u0E35\u0E48\u0E1B\u0E35 \xB7 \u0E43\u0E2A\u0E48\u0E23\u0E39\u0E1B\u0E02\u0E49\u0E32\u0E07\u0E0A\u0E37\u0E48\u0E2D\u0E44\u0E14\u0E49",
     cols: [{
+      key: "pic",
+      w: "52px",
+      pic: true
+    }, {
       key: "name",
       w: "1fr",
       ph: "ชื่ออุปกรณ์"
@@ -2761,6 +2892,7 @@ function QuoteEditor({
     rows: q.wtyRows || [],
     locked: locked,
     onChange: v => set("wtyRows", v),
+    picLib: picLib,
     onSeed: () => set("wtyRows", quoteWtySeed(specSrc || q))
   }), (pageOn("cash") || pageOn("payback")) && React.createElement(QuoteRoiEdit, {
     q: q,
