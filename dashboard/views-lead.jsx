@@ -486,7 +486,9 @@ function LeadOverview({ jobs, leads, quotes, stock, techs, onOpen, onStage, onKp
         ]} />
       )}
 
-      <MaterialShortagePanel jobs={J} stock={stock} onOpen={onOpen} />
+      {/* ปิดแผง "ของไม่พอ ก่อนวันติดตั้ง" ไว้ก่อนตามที่สั่ง (ปิดทั้งหน้าภาพรวมและหน้านี้)
+          ตัวแผงยังอยู่ที่ MaterialShortagePanel เปิดคืนได้ด้วยการเอาคอมเมนต์บรรทัดล่างออก */}
+      {/* <MaterialShortagePanel jobs={J} stock={stock} onOpen={onOpen} /> */}
 
       <LoQueuePanel jobs={J} onOpen={onOpen} />
 
