@@ -470,7 +470,7 @@ const ANN_TOOLS = [
   { key: "a", th: "ลูกศร",   glyph: "↗", hint: "ลากจากจุดที่ต้องการชี้ ไปยังปลายลูกศร" },
   { key: "d", th: "เส้นประ", glyph: "╌", hint: "ลากเพื่อตีเส้นประ ใช้บอกแนวเดินสาย / ขอบเขตพื้นที่" },
   { key: "t", th: "ข้อความ", glyph: "ก", hint: "แตะตำแหน่งบนรูป แล้วพิมพ์ข้อความได้เลย" },
-  { key: "i", th: "แปะรูป",  glyph: "🖼", hint: "เลือกรูปอุปกรณ์จากคลังมาแปะทับ แล้วลากย้าย/ย่อขยาย/หมุนได้" },
+  { key: "i", th: "แปะรูป",  glyph: "▣", hint: "เลือกรูปอุปกรณ์จากคลังมาแปะทับ แล้วลากย้าย/ย่อขยาย/หมุนได้" },
 ];
 const HANDLE_PX = 26;      // รัศมีที่ถือว่าจับโดนจุดจับ (นิ้วอ้วนกว่าเมาส์มาก เผื่อไว้เยอะ ๆ)
 
@@ -754,18 +754,17 @@ function AnnEditor({ shot, onSave, onClose }) {
 }
 
 /* ── หัวข้อย่อยในฟอร์ม ──
-   สัญลักษณ์นำหน้าชื่อหัวข้อจะถูกดึงออกมาใส่ในวงกลมสีอ่อนด้านซ้าย
-   ตัวหัวข้อจะได้เหลือแต่ตัวหนังสือ อ่านง่าย ไม่ใช่อีโมจิลอยปนกับข้อความ */
-function SurveyBlock({ title, sub, children }) {
-  const m = /^(\S+)\s+([\s\S]+)$/.exec(String(title || ""));
-  const glyph = m && !/[ก-๙A-Za-z0-9]/.test(m[1]) ? m[1] : "";
-  const head = glyph ? m[2] : title;
+   ไอคอนอยู่ในกรอบสีอ่อนด้านซ้าย ใช้ชุดเดียวกับทั้งระบบ ไม่ใช้อิโมจิ
+   อิโมจิหน้าตาไม่เหมือนกันในแต่ละเครื่อง ไม่รับสีธีม และดูคนละภาษากับไอคอนที่เหลือ */
+function SurveyBlock({ icon, title, sub, children }) {
   return (
     <section style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "15px 16px 16px", display: "flex", flexDirection: "column", gap: 14, boxShadow: "0 1px 2px rgba(8,20,14,.04)" }}>
       <header style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-        {glyph && <span style={{ width: 30, height: 30, borderRadius: 10, flexShrink: 0, display: "grid", placeItems: "center", background: "var(--primary-soft)", fontSize: 15, lineHeight: 1 }}>{glyph}</span>}
-        <span style={{ minWidth: 0, paddingTop: glyph ? 2 : 0 }}>
-          <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-.005em" }}>{head}</span>
+        {icon && <span style={{ width: 30, height: 30, borderRadius: 10, flexShrink: 0, display: "grid", placeItems: "center", background: "var(--primary-soft)" }}>
+          <Icon name={icon} size={15} color="var(--primary-dark)" sw={1.9} />
+        </span>}
+        <span style={{ minWidth: 0, paddingTop: icon ? 2 : 0 }}>
+          <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-.005em" }}>{title}</span>
           {sub && <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)", marginTop: 2, lineHeight: 1.45 }}>{sub}</span>}
         </span>
       </header>
@@ -1134,7 +1133,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
         <div style={{ overflowY: "auto", flex: 1, padding: 16, display: "flex", flexDirection: "column", gap: 13, background: "var(--surface2)" }}>
           {step === 1 && (
             <React.Fragment>
-              <SurveyBlock title="📍 เช็คอิน — พิกัด GPS" sub="กดปุ่มเพื่อบันทึกตำแหน่งปัจจุบันของหน้างาน">
+              <SurveyBlock icon="pin" title="เช็คอิน — พิกัด GPS" sub="กดปุ่มเพื่อบันทึกตำแหน่งปัจจุบันของหน้างาน">
                 <button type="button" onClick={captureGps} disabled={gpsBusy}
                   style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "11px 14px", borderRadius: 11, border: "none",
                     background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: gpsBusy ? "default" : "pointer" }}>
@@ -1153,7 +1152,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
                   </div>
                 )}
               </SurveyBlock>
-              <SurveyBlock title="⚡ มิเตอร์ & เมนไฟฟ้าเดิม" sub="ลอกจากบิลค่าไฟและตัวมิเตอร์ให้ตรงเป๊ะ — หน้าขออนุญาตการไฟฟ้าจะดึงชุดนี้ไปใช้ต่อ">
+              <SurveyBlock icon="bolt" title="มิเตอร์ & เมนไฟฟ้าเดิม" sub="ลอกจากบิลค่าไฟและตัวมิเตอร์ให้ตรงเป๊ะ — หน้าขออนุญาตการไฟฟ้าจะดึงชุดนี้ไปใช้ต่อ">
                 <div style={two}>
                   {fld("ขนาดมิเตอร์ไฟฟ้า", <input value={f.meterSize} onChange={(e) => set("meterSize", e.target.value)} placeholder="เช่น 15(45)A" style={inputStyle} />, true)}
                   {fld("การไฟฟ้า", <Dropdown value={f.meterAuth} onChange={(v) => set("meterAuth", v)} placeholder="— เลือก —" options={SURVEY_METER_AUTH} />)}
@@ -1166,7 +1165,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
                 {noteBox("meterNote")}
               </SurveyBlock>
               {/* แบบที่จะยื่นเป็นเรื่องที่ตกลงกับลูกค้าตั้งแต่ขาย ไม่ใช่สิ่งที่ช่างมาเดาเอาหน้างานตอนติดตั้งเสร็จ */}
-              <SurveyBlock title="📄 จะยื่นขออนุญาตแบบไหน" sub="ตกลงกับลูกค้าไว้อย่างไร เลือกไว้เลย — หน้าขออนุญาตจะดึงไปใช้ต่อ">
+              <SurveyBlock icon="file" title="จะยื่นขออนุญาตแบบไหน" sub="ตกลงกับลูกค้าไว้อย่างไร เลือกไว้เลย — หน้าขออนุญาตจะดึงไปใช้ต่อ">
                 {fld("แบบที่จะยื่น", <Dropdown value={f.permitType} onChange={(v) => set("permitType", v)} placeholder="— เลือกแบบที่จะยื่น —"
                   options={(window.PERMIT_TYPES || []).map((t) => ({ value: t.key, label: t.th, sub: t.sub }))} />)}
               </SurveyBlock>
@@ -1175,7 +1174,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
 
           {step === 2 && (
             <React.Fragment>
-              <SurveyBlock title="🏠 ชนิด & สภาพหลังคา">
+              <SurveyBlock icon="box" title="ชนิด & สภาพหลังคา">
                 {fld("พื้นที่ที่จะวางแผงโซลาร์", <Dropdown value={f.buildingType} onChange={(v) => set("buildingType", v)} placeholder="— เลือกประเภทอาคาร —" options={SURVEY_BUILDING.map((r) => ({ value: r, label: r }))} />)}
                 {fld("ประเภทหลังคา", <Dropdown value={f.roofType} onChange={(v) => set("roofType", v)} placeholder="— เลือกประเภท —" options={SURVEY_ROOF_TYPES.map((r) => ({ value: r, label: r }))} />, true)}
                 {fld("สภาพหลังคา", <Dropdown value={f.roofCondition} onChange={(v) => set("roofCondition", v)} placeholder="— เลือก —" options={SURVEY_ROOF_COND} />)}
@@ -1190,7 +1189,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
 
           {step === 3 && (
             <React.Fragment>
-              <SurveyBlock title="🔌 ตู้เมนไฟฟ้า (MDB)" sub="เปิดฝาตู้แล้วดูของข้างในไปพร้อมกันทีเดียว">
+              <SurveyBlock icon="power" title="ตู้เมนไฟฟ้า (MDB)" sub="เปิดฝาตู้แล้วดูของข้างในไปพร้อมกันทีเดียว">
                 {fld("ยี่ห้อ / รุ่นตู้ MDB", <input value={f.mdbBrand} onChange={(e) => set("mdbBrand", e.target.value)} placeholder="เช่น Schneider, ABB, Haco" style={inputStyle} />, true)}
                 {/* เมนเบรกเกอร์อยู่ในตู้นี้ ย้ายมาจากขั้นมิเตอร์ จะได้กรอกตอนเปิดฝาตู้รอบเดียว */}
                 {fld("ขนาดเมนเบรกเกอร์", <input value={f.mainBreaker} onChange={(e) => set("mainBreaker", e.target.value)} placeholder="เช่น 100A, 3P" style={inputStyle} />, true)}
@@ -1202,7 +1201,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
                 {fld("ช่องว่างในตู้", <Dropdown value={f.mdbSpace} onChange={(v) => set("mdbSpace", v)} placeholder="— เลือก —" options={SURVEY_MDB_SPACE} />)}
                 {noteBox("mdbNote")}
               </SurveyBlock>
-              <SurveyBlock title="🔋 ตำแหน่งติดตั้งอินเวอร์เตอร์">
+              <SurveyBlock icon="battery" title="ตำแหน่งติดตั้งอินเวอร์เตอร์">
                 {fld("ตำแหน่งที่เสนอติดตั้ง", <Segmented value={f.inverterLoc} onChange={(v) => set("inverterLoc", v)} options={SURVEY_INV_LOC} />, true)}
                 {noteBox("invNote")}
               </SurveyBlock>
@@ -1211,7 +1210,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
 
           {step === 4 && (
             <React.Fragment>
-              <SurveyBlock title="🧰 อุปกรณ์ที่เสนอ" sub="ขึ้นในตารางหัวรายงาน — เว้นว่างได้ถ้ายังไม่สรุป">
+              <SurveyBlock icon="wrench" title="อุปกรณ์ที่เสนอ" sub="ขึ้นในตารางหัวรายงาน — เว้นว่างได้ถ้ายังไม่สรุป">
                 {fld("ขนาดระบบ (kW)", <input value={f.sizeKw} onChange={(e) => set("sizeKw", e.target.value)} placeholder="เช่น 6.7" style={inputStyle} />)}
                 {/* เลือกรุ่นจากคลังของเรา จะได้ชื่อรุ่นตรงกับที่ตั้งราคาไว้ + ดึง DATA SHEET ไปแนบท้ายรายงานได้
                    ยังพิมพ์เองได้ถ้าเสนอรุ่นที่ยังไม่มีในคลัง */}
@@ -1219,7 +1218,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
                 {fld("แผงโซลาร์", <Dropdown value={f.panelModel} onChange={(v) => set("panelModel", v)} placeholder="— เลือกจากคลัง —" options={panelOptions} wrap addable onAdd={() => {}} />)}
                 {noteBox("equipNote")}
               </SurveyBlock>
-              <SurveyBlock title="⚠️ ความต้องการพิเศษ" sub="สิ่งที่ลูกค้าขอเป็นพิเศษ / งานที่ต้องแก้เพิ่ม">
+              <SurveyBlock icon="alert" title="ความต้องการพิเศษ" sub="สิ่งที่ลูกค้าขอเป็นพิเศษ / งานที่ต้องแก้เพิ่ม">
                 {(f.specials || []).map((v, i) => (
                   <div key={i} style={{ display: "flex", gap: 8 }}>
                     <input value={v} onChange={(e) => set("specials", (f.specials || []).map((x, k) => k === i ? e.target.value : x))}
@@ -1233,7 +1232,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
                   <Icon name="plus" size={14} color="var(--text-2)" /> เพิ่มข้อ
                 </button>
               </SurveyBlock>
-              <SurveyBlock title="📝 หมายเหตุ" sub="เรื่องรวม ๆ ของงานนี้ · เรื่องเฉพาะหัวข้อไหน เขียนในกล่อง “บันทึก & รูปของหัวข้อนี้” ของหัวข้อนั้นได้เลย">
+              <SurveyBlock icon="pen" title="หมายเหตุ" sub="เรื่องรวม ๆ ของงานนี้ · เรื่องเฉพาะหัวข้อไหน เขียนในกล่อง “บันทึก & รูปของหัวข้อนี้” ของหัวข้อนั้นได้เลย">
                 <textarea value={f.note} onChange={(e) => set("note", e.target.value)} rows={4}
                   placeholder={"เช่น\nPV 2STRING 25m. x2\nMAIN MCB100A x1 + ATS100 + ตู้ No.2"}
                   style={Object.assign({}, inputStyle, { resize: "vertical", lineHeight: 1.6 })} />
@@ -1246,14 +1245,14 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
               {!window.FBDB && <div style={{ fontSize: 12, color: "#EF4444", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)", borderRadius: 11, padding: "10px 12px" }}>⚠ ต้องเชื่อมต่อ Firebase จึงจะอัปโหลดรูปได้</div>}
               {missingSlots.length > 0 && (
                 <div style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "11px 13px", borderRadius: 13, background: "var(--tint-amber-bg, #FFF8F1)", border: "1px solid var(--tint-amber-bd, #F5E3D3)" }}>
-                  <span style={{ fontSize: 14, lineHeight: 1.2 }}>📷</span>
+                  <span style={{ flexShrink: 0, paddingTop: 1 }}><Icon name="camera" size={15} color="#B45309" sw={1.9} /></span>
                   <span style={{ minWidth: 0, fontSize: 12, lineHeight: 1.6, color: "var(--text-1)" }}>
                     ยังขาดรูปบังคับ <b>{missingSlots.length}</b> รูป — {missingSlots.map((s) => s.label).join(" · ")}
                     <span style={{ display: "block", color: "var(--text-3)", fontSize: 11.5 }}>ถ่ายได้ที่หัวข้อของรูปนั้นในขั้นก่อนหน้า ตรงกล่อง “บันทึก &amp; รูปของหัวข้อนี้”</span>
                   </span>
                 </div>
               )}
-              <SurveyBlock title={"🖼️ รูปเพิ่มเติม (" + extras.length + " รูป)"} sub="รูปที่อยากแนบนอกเหนือจากหัวข้อข้างต้น · ครอปรูปมาแล้วกด Ctrl+V เพิ่มเป็นรูปใหม่ได้เลย">
+              <SurveyBlock icon="image" title={"รูปเพิ่มเติม (" + extras.length + " รูป)"} sub="รูปที่อยากแนบนอกเหนือจากหัวข้อข้างต้น · ครอปรูปมาแล้วกด Ctrl+V เพิ่มเป็นรูปใหม่ได้เลย">
                 {extras.length > 0 && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
                     {extras.map((shot) => {
@@ -1319,7 +1318,7 @@ function AddShotButton({ busy, onPick, onPaste, label, slim }) {
         {/* ครอปรูปอุปกรณ์/ภาพตัดมาแล้วแปะได้เลย ไม่ต้องเซฟเป็นไฟล์ก่อน (กด Ctrl+V ก็ได้) */}
         {onPaste && (
           <button type="button" onClick={onPaste} disabled={busy} style={Object.assign({}, btn, { flex: "0 0 auto", paddingLeft: slim ? 11 : 15, paddingRight: slim ? 11 : 15 })} title="วางภาพจากคลิปบอร์ด (Ctrl+V)">
-            📋{slim ? "" : " วางภาพ"}
+            {slim ? "วาง" : "วางภาพ"}
           </button>
         )}
       </div>
@@ -1334,3 +1333,759 @@ Object.assign(window, {
   SURVEY_PHOTO_SLOTS, SURVEY_RETIRED_SLOTS, SURVEY_SLOT_BY, SURVEY_STEPS, SURVEY_ROOF_COND, SURVEY_MDB_SPACE, SURVEY_INV_LOC, SURVEY_PASS, SURVEY_BIRDNET,
   SURVEY_YESNO, SURVEY_CABLE_LEGS, cableTotal, SURVEY_PHOTO_CATS, SURVEY_NOTE_BLOCKS, SURVEY_NOTE_BLOCK_BY,
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ── หัวข้อย่อยในฟอร์ม ──
+   ไอคอนอยู่ในกรอบสีอ่อนด้านซ้าย ใช้ชุดเดียวกับทั้งระบบ ไม่ใช้อิโมจิ
+   อิโมจิหน้าตาไม่เหมือนกันในแต่ละเครื่อง ไม่รับสีธีม และดูคนละภาษากับไอคอนที่เหลือ */

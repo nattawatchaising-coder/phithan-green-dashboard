@@ -885,7 +885,7 @@ const ANN_TOOLS = [{
 }, {
   key: "i",
   th: "แปะรูป",
-  glyph: "🖼",
+  glyph: "▣",
   hint: "เลือกรูปอุปกรณ์จากคลังมาแปะทับ แล้วลากย้าย/ย่อขยาย/หมุนได้"
 }];
 const HANDLE_PX = 26;
@@ -1570,13 +1570,11 @@ function AnnEditor({
   }));
 }
 function SurveyBlock({
+  icon,
   title,
   sub,
   children
 }) {
-  const m = /^(\S+)\s+([\s\S]+)$/.exec(String(title || ""));
-  const glyph = m && !/[ก-๙A-Za-z0-9]/.test(m[1]) ? m[1] : "";
-  const head = glyph ? m[2] : title;
   return React.createElement("section", {
     style: {
       background: "var(--surface)",
@@ -1594,7 +1592,7 @@ function SurveyBlock({
       gap: 10,
       alignItems: "flex-start"
     }
-  }, glyph && React.createElement("span", {
+  }, icon && React.createElement("span", {
     style: {
       width: 30,
       height: 30,
@@ -1602,14 +1600,17 @@ function SurveyBlock({
       flexShrink: 0,
       display: "grid",
       placeItems: "center",
-      background: "var(--primary-soft)",
-      fontSize: 15,
-      lineHeight: 1
+      background: "var(--primary-soft)"
     }
-  }, glyph), React.createElement("span", {
+  }, React.createElement(Icon, {
+    name: icon,
+    size: 15,
+    color: "var(--primary-dark)",
+    sw: 1.9
+  })), React.createElement("span", {
     style: {
       minWidth: 0,
-      paddingTop: glyph ? 2 : 0
+      paddingTop: icon ? 2 : 0
     }
   }, React.createElement("span", {
     style: {
@@ -1619,7 +1620,7 @@ function SurveyBlock({
       color: "var(--text-1)",
       letterSpacing: "-.005em"
     }
-  }, head), sub && React.createElement("span", {
+  }, title), sub && React.createElement("span", {
     style: {
       display: "block",
       fontSize: 11.5,
@@ -2493,7 +2494,8 @@ function SurveyWizard({
       background: "var(--surface2)"
     }
   }, step === 1 && React.createElement(React.Fragment, null, React.createElement(SurveyBlock, {
-    title: "\uD83D\uDCCD \u0E40\u0E0A\u0E47\u0E04\u0E2D\u0E34\u0E19 \u2014 \u0E1E\u0E34\u0E01\u0E31\u0E14 GPS",
+    icon: "pin",
+    title: "\u0E40\u0E0A\u0E47\u0E04\u0E2D\u0E34\u0E19 \u2014 \u0E1E\u0E34\u0E01\u0E31\u0E14 GPS",
     sub: "\u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07\u0E1B\u0E31\u0E08\u0E08\u0E38\u0E1A\u0E31\u0E19\u0E02\u0E2D\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19"
   }, React.createElement("button", {
     type: "button",
@@ -2564,7 +2566,8 @@ function SurveyWizard({
     size: 13,
     color: "var(--primary-dark)"
   }), " \u0E14\u0E39\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48"))), React.createElement(SurveyBlock, {
-    title: "\u26A1 \u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C & \u0E40\u0E21\u0E19\u0E44\u0E1F\u0E1F\u0E49\u0E32\u0E40\u0E14\u0E34\u0E21",
+    icon: "bolt",
+    title: "\u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C & \u0E40\u0E21\u0E19\u0E44\u0E1F\u0E1F\u0E49\u0E32\u0E40\u0E14\u0E34\u0E21",
     sub: "\u0E25\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E1A\u0E34\u0E25\u0E04\u0E48\u0E32\u0E44\u0E1F\u0E41\u0E25\u0E30\u0E15\u0E31\u0E27\u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E43\u0E2B\u0E49\u0E15\u0E23\u0E07\u0E40\u0E1B\u0E4A\u0E30 \u2014 \u0E2B\u0E19\u0E49\u0E32\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E01\u0E32\u0E23\u0E44\u0E1F\u0E1F\u0E49\u0E32\u0E08\u0E30\u0E14\u0E36\u0E07\u0E0A\u0E38\u0E14\u0E19\u0E35\u0E49\u0E44\u0E1B\u0E43\u0E0A\u0E49\u0E15\u0E48\u0E2D"
   }, React.createElement("div", {
     style: two
@@ -2607,7 +2610,8 @@ function SurveyWizard({
     placeholder: "\u0E40\u0E0A\u0E48\u0E19 NYY 50 sq.mm",
     style: inputStyle
   })), noteBox("meterNote")), React.createElement(SurveyBlock, {
-    title: "\uD83D\uDCC4 \u0E08\u0E30\u0E22\u0E37\u0E48\u0E19\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E41\u0E1A\u0E1A\u0E44\u0E2B\u0E19",
+    icon: "file",
+    title: "\u0E08\u0E30\u0E22\u0E37\u0E48\u0E19\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E41\u0E1A\u0E1A\u0E44\u0E2B\u0E19",
     sub: "\u0E15\u0E01\u0E25\u0E07\u0E01\u0E31\u0E1A\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E44\u0E27\u0E49\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E44\u0E23 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E44\u0E27\u0E49\u0E40\u0E25\u0E22 \u2014 \u0E2B\u0E19\u0E49\u0E32\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E08\u0E30\u0E14\u0E36\u0E07\u0E44\u0E1B\u0E43\u0E0A\u0E49\u0E15\u0E48\u0E2D"
   }, fld("แบบที่จะยื่น", React.createElement(Dropdown, {
     value: f.permitType,
@@ -2619,7 +2623,8 @@ function SurveyWizard({
       sub: t.sub
     }))
   })))), step === 2 && React.createElement(React.Fragment, null, React.createElement(SurveyBlock, {
-    title: "\uD83C\uDFE0 \u0E0A\u0E19\u0E34\u0E14 & \u0E2A\u0E20\u0E32\u0E1E\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32"
+    icon: "box",
+    title: "\u0E0A\u0E19\u0E34\u0E14 & \u0E2A\u0E20\u0E32\u0E1E\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32"
   }, fld("พื้นที่ที่จะวางแผงโซลาร์", React.createElement(Dropdown, {
     value: f.buildingType,
     onChange: v => set("buildingType", v),
@@ -2658,7 +2663,8 @@ function SurveyWizard({
     onChange: v => set("birdNet", v),
     options: SURVEY_BIRDNET
   })), noteBox("roofNote"))), step === 3 && React.createElement(React.Fragment, null, React.createElement(SurveyBlock, {
-    title: "\uD83D\uDD0C \u0E15\u0E39\u0E49\u0E40\u0E21\u0E19\u0E44\u0E1F\u0E1F\u0E49\u0E32 (MDB)",
+    icon: "power",
+    title: "\u0E15\u0E39\u0E49\u0E40\u0E21\u0E19\u0E44\u0E1F\u0E1F\u0E49\u0E32 (MDB)",
     sub: "\u0E40\u0E1B\u0E34\u0E14\u0E1D\u0E32\u0E15\u0E39\u0E49\u0E41\u0E25\u0E49\u0E27\u0E14\u0E39\u0E02\u0E2D\u0E07\u0E02\u0E49\u0E32\u0E07\u0E43\u0E19\u0E44\u0E1B\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E01\u0E31\u0E19\u0E17\u0E35\u0E40\u0E14\u0E35\u0E22\u0E27"
   }, fld("ยี่ห้อ / รุ่นตู้ MDB", React.createElement("input", {
     value: f.mdbBrand,
@@ -2698,13 +2704,15 @@ function SurveyWizard({
     placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01 \u2014",
     options: SURVEY_MDB_SPACE
   })), noteBox("mdbNote")), React.createElement(SurveyBlock, {
-    title: "\uD83D\uDD0B \u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C"
+    icon: "battery",
+    title: "\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C"
   }, fld("ตำแหน่งที่เสนอติดตั้ง", React.createElement(Segmented, {
     value: f.inverterLoc,
     onChange: v => set("inverterLoc", v),
     options: SURVEY_INV_LOC
   }), true), noteBox("invNote"))), step === 4 && React.createElement(React.Fragment, null, React.createElement(SurveyBlock, {
-    title: "\uD83E\uDDF0 \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E17\u0E35\u0E48\u0E40\u0E2A\u0E19\u0E2D",
+    icon: "wrench",
+    title: "\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E17\u0E35\u0E48\u0E40\u0E2A\u0E19\u0E2D",
     sub: "\u0E02\u0E36\u0E49\u0E19\u0E43\u0E19\u0E15\u0E32\u0E23\u0E32\u0E07\u0E2B\u0E31\u0E27\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19 \u2014 \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07\u0E44\u0E14\u0E49\u0E16\u0E49\u0E32\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E2A\u0E23\u0E38\u0E1B"
   }, fld("ขนาดระบบ (kW)", React.createElement("input", {
     value: f.sizeKw,
@@ -2728,7 +2736,8 @@ function SurveyWizard({
     addable: true,
     onAdd: () => {}
   })), noteBox("equipNote")), React.createElement(SurveyBlock, {
-    title: "\u26A0\uFE0F \u0E04\u0E27\u0E32\u0E21\u0E15\u0E49\u0E2D\u0E07\u0E01\u0E32\u0E23\u0E1E\u0E34\u0E40\u0E28\u0E29",
+    icon: "alert",
+    title: "\u0E04\u0E27\u0E32\u0E21\u0E15\u0E49\u0E2D\u0E07\u0E01\u0E32\u0E23\u0E1E\u0E34\u0E40\u0E28\u0E29",
     sub: "\u0E2A\u0E34\u0E48\u0E07\u0E17\u0E35\u0E48\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E02\u0E2D\u0E40\u0E1B\u0E47\u0E19\u0E1E\u0E34\u0E40\u0E28\u0E29 / \u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E41\u0E01\u0E49\u0E40\u0E1E\u0E34\u0E48\u0E21"
   }, (f.specials || []).map((v, i) => React.createElement("div", {
     key: i,
@@ -2781,7 +2790,8 @@ function SurveyWizard({
     size: 14,
     color: "var(--text-2)"
   }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E02\u0E49\u0E2D")), React.createElement(SurveyBlock, {
-    title: "\uD83D\uDCDD \u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38",
+    icon: "pen",
+    title: "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38",
     sub: "\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E23\u0E27\u0E21 \u0E46 \u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49 \xB7 \u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E44\u0E2B\u0E19 \u0E40\u0E02\u0E35\u0E22\u0E19\u0E43\u0E19\u0E01\u0E25\u0E48\u0E2D\u0E07 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 & \u0E23\u0E39\u0E1B\u0E02\u0E2D\u0E07\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E19\u0E35\u0E49\u201D \u0E02\u0E2D\u0E07\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E19\u0E31\u0E49\u0E19\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22"
   }, React.createElement("textarea", {
     value: f.note,
@@ -2813,10 +2823,15 @@ function SurveyWizard({
     }
   }, React.createElement("span", {
     style: {
-      fontSize: 14,
-      lineHeight: 1.2
+      flexShrink: 0,
+      paddingTop: 1
     }
-  }, "\uD83D\uDCF7"), React.createElement("span", {
+  }, React.createElement(Icon, {
+    name: "camera",
+    size: 15,
+    color: "#B45309",
+    sw: 1.9
+  })), React.createElement("span", {
     style: {
       minWidth: 0,
       fontSize: 12,
@@ -2830,7 +2845,8 @@ function SurveyWizard({
       fontSize: 11.5
     }
   }, "\u0E16\u0E48\u0E32\u0E22\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E02\u0E2D\u0E07\u0E23\u0E39\u0E1B\u0E19\u0E31\u0E49\u0E19\u0E43\u0E19\u0E02\u0E31\u0E49\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32 \u0E15\u0E23\u0E07\u0E01\u0E25\u0E48\u0E2D\u0E07 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 & \u0E23\u0E39\u0E1B\u0E02\u0E2D\u0E07\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E19\u0E35\u0E49\u201D"))), React.createElement(SurveyBlock, {
-    title: "🖼️ รูปเพิ่มเติม (" + extras.length + " รูป)",
+    icon: "image",
+    title: "รูปเพิ่มเติม (" + extras.length + " รูป)",
     sub: "\u0E23\u0E39\u0E1B\u0E17\u0E35\u0E48\u0E2D\u0E22\u0E32\u0E01\u0E41\u0E19\u0E1A\u0E19\u0E2D\u0E01\u0E40\u0E2B\u0E19\u0E37\u0E2D\u0E08\u0E32\u0E01\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E02\u0E49\u0E32\u0E07\u0E15\u0E49\u0E19 \xB7 \u0E04\u0E23\u0E2D\u0E1B\u0E23\u0E39\u0E1B\u0E21\u0E32\u0E41\u0E25\u0E49\u0E27\u0E01\u0E14 Ctrl+V \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E40\u0E1B\u0E47\u0E19\u0E23\u0E39\u0E1B\u0E43\u0E2B\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22"
   }, extras.length > 0 && React.createElement("div", {
     style: {
@@ -3075,7 +3091,7 @@ function AddShotButton({
       paddingRight: slim ? 11 : 15
     }),
     title: "\u0E27\u0E32\u0E07\u0E20\u0E32\u0E1E\u0E08\u0E32\u0E01\u0E04\u0E25\u0E34\u0E1B\u0E1A\u0E2D\u0E23\u0E4C\u0E14 (Ctrl+V)"
-  }, "\uD83D\uDCCB", slim ? "" : " วางภาพ")));
+  }, slim ? "วาง" : "วางภาพ")));
 }
 Object.assign(window, {
   SurveyWizard,
