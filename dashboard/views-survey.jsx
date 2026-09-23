@@ -300,12 +300,23 @@ function LeadModal({ initial, isNew, users, onClose, onSave }) {
   const bdClose = window.useBackdropClose(onClose);
   const [f, setF] = React.useState(() => Object.assign({}, initial));
   const set = (k, v) => setF((p) => Object.assign({}, p, { [k]: v }));
-  /* เจ้าของลูกค้าเลือกได้เฉพาะคนที่ถือตำแหน่งเซลล์ · ถ้ารายนี้มีเจ้าของที่ถูกถอดตำแหน่งไปแล้ว
-     ยังต้องเห็นชื่อเดิมในรายการ ไม่งั้นกดบันทึกทีเดียวเจ้าของจะหายไปเงียบ ๆ */
+  /* เจ้าของลูกค้าเลือกได้ทุกคนในระบบ ยกเว้นบัญชีแอดมินที่ไม่ได้ลงไปดูแลลูกค้าเอง
+     (เดิมจำกัดไว้เฉพาะตำแหน่งเซลล์ แต่คนที่พาลูกค้าเข้ามาจริงมีทั้งช่าง วิศวกร และหัวหน้า)
+     ต่อท้ายด้วยตำแหน่งไว้ให้แยกออกว่าใครเป็นใคร แต่เก็บลงใบเฉพาะชื่อ
+     ถ้ารายนี้มีเจ้าของที่ถูกปิดบัญชีไปแล้ว ยังต้องเห็นชื่อเดิมในรายการ
+     ไม่งั้นกดบันทึกทีเดียวเจ้าของจะหายไปเงียบ ๆ */
   const sellers = React.useMemo(() => {
-    const arr = (users || []).filter((u) => u.active !== false && window.hasRole && window.hasRole(window.userRoles(u), "sales"))
-      .map((u) => ({ id: u.id, name: u.name || u.username || "—" }));
-    if (initial.ownerId && !arr.some((x) => x.id === initial.ownerId)) arr.push({ id: initial.ownerId, name: (initial.ownerName || "") + " (ไม่ใช่เซลล์แล้ว)" });
+    const arr = (users || [])
+      .filter((u) => u.active !== false && !(window.hasRole && window.hasRole(window.userRoles(u), "admin")))
+      .map((u) => {
+        const name = u.name || u.username || "—";
+        const r = (window.ROLE_INFO || {})[(window.userRoles(u) || [])[0]];
+        return { id: u.id, name: name, label: r ? name + " · " + r.short : name };
+      });
+    if (initial.ownerId && !arr.some((x) => x.id === initial.ownerId)) {
+      const old = initial.ownerName || "";
+      arr.push({ id: initial.ownerId, name: old, label: old + " (ปิดบัญชีแล้ว)" });
+    }
     return arr;
   }, [users, initial.ownerId, initial.ownerName]);
   const lbl = { fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" };
@@ -335,7 +346,7 @@ function LeadModal({ initial, isNew, users, onClose, onSave }) {
                 <select value={f.ownerId || ""} style={inputStyle}
                   onChange={(e) => { const u = (sellers || []).find((x) => x.id === e.target.value); setF((p) => Object.assign({}, p, { ownerId: e.target.value, ownerName: u ? u.name : "" })); }}>
                   <option value="">— ยังไม่มีเจ้าของ —</option>
-                  {sellers.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                  {sellers.map((u) => <option key={u.id} value={u.id}>{u.label || u.name}</option>)}
                 </select></div>
               <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>ติดตามครั้งถัดไป</label>
                 <input type="date" value={f.nextFollow || ""} onChange={(e) => set("nextFollow", e.target.value)} style={inputStyle} /></div>

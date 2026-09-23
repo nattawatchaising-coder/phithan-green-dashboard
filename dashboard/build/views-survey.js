@@ -747,14 +747,23 @@ function LeadModal({
     [k]: v
   }));
   const sellers = React.useMemo(() => {
-    const arr = (users || []).filter(u => u.active !== false && window.hasRole && window.hasRole(window.userRoles(u), "sales")).map(u => ({
-      id: u.id,
-      name: u.name || u.username || "—"
-    }));
-    if (initial.ownerId && !arr.some(x => x.id === initial.ownerId)) arr.push({
-      id: initial.ownerId,
-      name: (initial.ownerName || "") + " (ไม่ใช่เซลล์แล้ว)"
+    const arr = (users || []).filter(u => u.active !== false && !(window.hasRole && window.hasRole(window.userRoles(u), "admin"))).map(u => {
+      const name = u.name || u.username || "—";
+      const r = (window.ROLE_INFO || {})[(window.userRoles(u) || [])[0]];
+      return {
+        id: u.id,
+        name: name,
+        label: r ? name + " · " + r.short : name
+      };
     });
+    if (initial.ownerId && !arr.some(x => x.id === initial.ownerId)) {
+      const old = initial.ownerName || "";
+      arr.push({
+        id: initial.ownerId,
+        name: old,
+        label: old + " (ปิดบัญชีแล้ว)"
+      });
+    }
     return arr;
   }, [users, initial.ownerId, initial.ownerName]);
   const lbl = {
@@ -961,7 +970,7 @@ function LeadModal({
   }, "\u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07 \u2014"), sellers.map(u => React.createElement("option", {
     key: u.id,
     value: u.id
-  }, u.name)))), React.createElement("div", {
+  }, u.label || u.name)))), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
