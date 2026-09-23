@@ -3972,7 +3972,7 @@ function p3SldModel(st, job) {
   const nPanel = Math.max(1, p3CountAll(st));
   const wp = +st.wp || 650;
   const micro = sys.mode !== "string";
-  const phase = +sys.phases || (job && String(job.phase) === "3" ? 3 : 1);
+  const phase = +sys.phases || (job ? window.SF.phaseOf(job) : 1);
   const nPh = phase === 3 ? 3 : 1;
   const Vll = nPh === 3 ? 400 : 230, kPh = nPh === 3 ? Math.sqrt(3) : 1;
 

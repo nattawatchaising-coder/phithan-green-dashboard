@@ -870,6 +870,7 @@ function BOQEditor({
     const base = job && job.boq ? Object.assign(window.BOQ.blankBOQ(job), job.boq) : window.BOQ.blankBOQ(job);
     if (job) {
       if (job.panels != null && job.panels !== "") base.panels = job.panels;
+      base.phase = window.SF.phaseOf(job);
       base.batteryKwh = job.battery ? parseFloat(job.batSize) || 0 : 0;
       base.backup = !!job.backup;
       base.birdnet = !!job.birdnet;
@@ -1671,7 +1672,7 @@ function BOQEditor({
   const selInv = (window.BOQ.INVERTERS || []).find(x => x.model === b.inverterModel);
   const isHuawei = !!(selInv && selInv.inputs > 0);
   const jobBrand = job && job.brand || "";
-  const jobPhaseNum = String(job && job.phase) === "3" ? 3 : 1;
+  const jobPhaseNum = window.SF.phaseOf(job);
   const brandInvs = (window.BOQ.INVERTERS || []).filter(x => (!jobBrand || x.model.toLowerCase().indexOf(jobBrand.toLowerCase()) >= 0) && (!x.phase || x.phase === jobPhaseNum));
   const showMicro = !jobBrand || /atmoce/i.test(jobBrand);
   const invOptions = (showMicro ? [{

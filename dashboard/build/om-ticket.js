@@ -343,7 +343,7 @@ function OmJobFacts({
   const addr = [j && j.address || s.address || "", j && j.province || s.province || ""].filter(Boolean).join(", ");
   const map = j && j.map;
   const kw = j && j.kw || s.kw || null;
-  const specs = j ? [["แบรนด์", j.brand || "—"], ["ขนาดระบบ", (j.kw || "—") + " kW"], ["จำนวนแผง", (j.panels || "—") + " แผง"], ["ระบบไฟฟ้า", (j.phase || "1") + " เฟส"], ["แบตเตอรี่", j.battery ? j.batSize || "มี" : "ไม่มี"], ["ระบบ / ออฟติไมเซอร์", j.connect || "—"], ["ระบบ Backup", j.backup ? "มี" : "ไม่มี"]] : [["ขนาดระบบ", kw ? kw + " kW" : "—"], ["จำนวนแผง", s.panels ? s.panels + " แผง" : "—"], ["แบรนด์", s.brand || "—"]];
+  const specs = j ? [["แบรนด์", j.brand || "—"], ["ขนาดระบบ", (j.kw || "—") + " kW"], ["จำนวนแผง", (j.panels || "—") + " แผง"], ["ระบบไฟฟ้า", window.SF.phaseOf(j) + " เฟส"], ["แบตเตอรี่", j.battery ? j.batSize || "มี" : "ไม่มี"], ["ระบบ / ออฟติไมเซอร์", j.connect || "—"], ["ระบบ Backup", j.backup ? "มี" : "ไม่มี"]] : [["ขนาดระบบ", kw ? kw + " kW" : "—"], ["จำนวนแผง", s.panels ? s.panels + " แผง" : "—"], ["แบรนด์", s.brand || "—"]];
   const cell = (label, value) => React.createElement("div", {
     key: label
   }, React.createElement("div", {

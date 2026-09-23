@@ -322,9 +322,20 @@
     return e;
   }
 
+  /* ── เฟสที่ใช้จริงของงาน ── ใบขออนุญาต > แบบสำรวจหน้างาน > ค่าที่กรอกไว้ตอนเปิดงาน
+     ค่าที่กรอกตอนเปิดงาน (หรือตอนยังเป็นลูกค้า) เป็นแค่ค่าที่คาดไว้ ยังไม่มีใครไปดูมิเตอร์จริง
+     พอไปสำรวจแล้วพบว่าเป็น 3 เฟส ของที่ถอดใน BOQ ต้องเปลี่ยนตาม ไม่ใช่ค้างที่ 1 เฟส
+     คืนเป็นตัวเลข 1 หรือ 3 เสมอ ที่เรียกจะได้ไม่ต้องแปลงสตริงเองทุกที่ */
+  function phaseOf(j) {
+    const p = (j && j.permit) || null;
+    const s = (j && j.survey) || null;
+    const v = (p && p.phase) || (s && s.phase) || (j && j.phase) || "1";
+    return String(v) === "3" ? 3 : 1;
+  }
+
   window.SF = {
     STAGES, STAGE_INDEX, MATERIALS, MAT_STATUS, TECHS, TECH_BY_ID, BRANDS, TYPES,
-    SEED, JOBS, deriveJob, installDate, installEnd,
+    SEED, JOBS, deriveJob, installDate, installEnd, phaseOf,
     // ใช้ local date string เพื่อหลีกเลี่ยง UTC offset (ไทย UTC+7 ทำให้ toISOString() ได้วันเมื่อวาน)
     TODAY: [TODAY.getFullYear(), String(TODAY.getMonth()+1).padStart(2,"0"), String(TODAY.getDate()).padStart(2,"0")].join("-"),
     PROVINCE_LATLNG: {

@@ -279,7 +279,7 @@ function SitePlanEditor({
   const [yieldFactor, setYieldFactor] = React.useState(1400);
   const [copied, setCopied] = React.useState(false);
   const jobKw = job && (parseFloat(job.kw) || 0) || 0;
-  const jobPhase = String(job && job.phase) === "3" ? 3 : 1;
+  const jobPhase = window.SF.phaseOf(job);
   const [acKw, setAcKw] = React.useState(jobKw ? String(jobKw) : "");
   const [acPhase, setAcPhase] = React.useState(jobPhase);
   const [invType, setInvType] = React.useState("micro");

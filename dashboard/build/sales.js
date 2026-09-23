@@ -172,7 +172,7 @@ function quoteSpec(t) {
   return {
     kwp: o.kind === "lead" ? num(s.sizeKw) || num(o.kwp) : num(o.kwp) || num(s.sizeKw),
     panels: num(o.panels),
-    phase: String(o.phase || s.phase || "").replace(/[^13]/g, ""),
+    phase: o.phase || s.phase ? String(window.SF.phaseOf(o)) : "",
     panel: (s.panelModel || o.panelModel || "").trim(),
     inv: (s.invModel || o.invModel || "").trim(),
     roof: (s.roofType || o.roof || "").trim(),
@@ -1806,6 +1806,7 @@ function SalesCard({
   };
   const late = sOverdue(lead.nextFollow) && salesStageKey(lead) !== "won" && salesStageKey(lead) !== "lost";
   const val = +lead.expValue || 0;
+  const phTH = lead.phase || lead.survey && lead.survey.phase ? window.SF.phaseOf(lead) + " เฟส" : "";
   return React.createElement("div", {
     draggable: true,
     onDragStart: e => onDragStart(e, lead),
@@ -1921,7 +1922,7 @@ function SalesCard({
     style: {
       verticalAlign: -1
     }
-  }), " ", lead.province || "—", lead.source ? " · " + LEAD_SOURCE_TH(lead.source) : ""), (+lead.expKwp > 0 || lead.phase) && React.createElement("div", {
+  }), " ", lead.province || "—", lead.source ? " · " + LEAD_SOURCE_TH(lead.source) : ""), (+lead.expKwp > 0 || phTH) && React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -1941,12 +1942,12 @@ function SalesCard({
       color: "var(--text-1)",
       fontWeight: 700
     }
-  }, lead.expKwp), " kWp"), +lead.expKwp > 0 && lead.phase && React.createElement("span", {
+  }, lead.expKwp), " kWp"), +lead.expKwp > 0 && phTH && React.createElement("span", {
     style: {
       color: "var(--text-3)",
       margin: "0 5px"
     }
-  }, "\xB7"), lead.phase && lead.phase + " เฟส")), React.createElement("div", {
+  }, "\xB7"), phTH)), React.createElement("div", {
     style: {
       display: "flex",
       gap: 5,

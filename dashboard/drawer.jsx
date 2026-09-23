@@ -609,7 +609,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   <SpecItem label="แบรนด์" value={job.brand} />
                   <SpecItem label="ขนาดระบบ" value={job.kw + " kW"} mono />
                   <SpecItem label="จำนวนแผง" value={job.panels + " แผง"} mono />
-                  <SpecItem label="ระบบไฟฟ้า" value={(job.phase || "1") + " เฟส"} />
+                  <SpecItem label="ระบบไฟฟ้า" value={window.SF.phaseOf(job) + " เฟส"} />
                   <SpecItem label="แบตเตอรี่" value={job.battery ? job.batSize : "ไม่มี"} accent={job.battery} />
                   <SpecItem label="ระบบ / ออฟติไมเซอร์" value={job.connect} />
                   <SpecItem label="ระบบ Backup" value={job.backup ? "Backup ✓" : "ไม่มี"} accent={job.backup} />

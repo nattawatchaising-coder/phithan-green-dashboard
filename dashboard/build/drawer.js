@@ -1540,7 +1540,7 @@ function DetailDrawer({
     mono: true
   }), React.createElement(SpecItem, {
     label: "\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E1F\u0E1F\u0E49\u0E32",
-    value: (job.phase || "1") + " เฟส"
+    value: window.SF.phaseOf(job) + " เฟส"
   }), React.createElement(SpecItem, {
     label: "\u0E41\u0E1A\u0E15\u0E40\u0E15\u0E2D\u0E23\u0E35\u0E48",
     value: job.battery ? job.batSize : "ไม่มี",

@@ -1171,7 +1171,8 @@
     return {
       panels: +job.panels || 0,
       panelModel: PANELS[0].model,
-      phase: String(job.phase) === "3" ? 3 : 1,
+      /* เฟสตามที่สำรวจมาจริง ไม่ใช่ค่าที่กรอกไว้ตอนเปิดงาน (ดู SF.phaseOf) */
+      phase: window.SF && window.SF.phaseOf ? window.SF.phaseOf(job) : (String(job.phase) === "3" ? 3 : 1),
       comboType: job.comboType || "ready",   // ตู้ Combiner ATMOCE: ready=สำเร็จ · assembled=ตู้ประกอบ
       microRatio: "2:1",
       inverterModel: "",

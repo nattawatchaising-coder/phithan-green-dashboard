@@ -1628,7 +1628,7 @@ function LeadDetail({
     accent: +l.expValue > 0
   }), React.createElement(SpecItem, {
     label: "\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E1F\u0E1F\u0E49\u0E32",
-    value: l.phase ? l.phase + " เฟส" : "—"
+    value: l.phase || l.survey && l.survey.phase ? window.SF.phaseOf(l) + " เฟส" : "—"
   }))), onOpenQuote && window.SalesQuoteList && React.createElement(window.SalesQuoteList, {
     lead: l,
     quotes: quotes,

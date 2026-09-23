@@ -574,7 +574,7 @@ function LeadDetail({ l, ctx }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
           <SpecItem label="ขนาดที่คาด" value={+l.expKwp > 0 ? l.expKwp + " kWp" : "—"} mono />
           <SpecItem label="มูลค่าที่คาด" value={+l.expValue > 0 ? "฿" + fmtBaht(+l.expValue) : "—"} accent={+l.expValue > 0} />
-          <SpecItem label="ระบบไฟฟ้า" value={l.phase ? l.phase + " เฟส" : "—"} />
+          <SpecItem label="ระบบไฟฟ้า" value={(l.phase || (l.survey && l.survey.phase)) ? window.SF.phaseOf(l) + " เฟส" : "—"} />
         </div>
       </div>
 

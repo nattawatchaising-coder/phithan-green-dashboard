@@ -362,6 +362,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     // สเปคหลักดึงจากข้อมูลงานเสมอ (ฐานข้อมูลเป็นตัวตั้ง) — แบต/Backup/ออฟติไมเซอร์/จำนวนแผง
     if (job) {
       if (job.panels != null && job.panels !== "") base.panels = job.panels;
+      /* เฟสสะท้อนงานเสมอเหมือนจำนวนแผง — ใบที่ถอดไว้ก่อนไปสำรวจจะค้างอยู่ที่เฟสเก่าตลอด
+         ถ้าไม่ดึงใหม่ตรงนี้ เพราะค่าที่บันทึกไว้ในใบทับค่าเริ่มต้นจาก blankBOQ */
+      base.phase = window.SF.phaseOf(job);
       base.batteryKwh = job.battery ? (parseFloat(job.batSize) || 0) : 0;
       base.backup = !!job.backup;
       base.birdnet = !!job.birdnet;   // บ้านติดตาข่ายกันนก → ถอดวัสดุกันนกให้อัตโนมัติ
@@ -754,7 +757,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const isHuawei = !!(selInv && selInv.inputs > 0);
   // ── กรองรุ่นอินเวอร์เตอร์ตามแบรนด์ + เฟส ของงาน ──
   const jobBrand = (job && job.brand) || "";
-  const jobPhaseNum = String(job && job.phase) === "3" ? 3 : 1;
+  const jobPhaseNum = window.SF.phaseOf(job);
   const brandInvs = (window.BOQ.INVERTERS || []).filter((x) =>
     (!jobBrand || x.model.toLowerCase().indexOf(jobBrand.toLowerCase()) >= 0) &&
     (!x.phase || x.phase === jobPhaseNum)   // เฉพาะรุ่นที่เฟสตรงกับงาน (รุ่นที่ไม่ระบุเฟส = แสดงทุกเฟส)

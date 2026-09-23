@@ -197,7 +197,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
 
   // ── วงจร AC: ดึง kW/เฟส จากงาน → คำนวณกระแส → แนะนำขนาดสาย (พิกัด วสท. เดียวกับ BOQ) ──
   const jobKw = (job && (parseFloat(job.kw) || 0)) || 0;
-  const jobPhase = String(job && job.phase) === "3" ? 3 : 1;
+  const jobPhase = window.SF.phaseOf(job);
   const [acKw, setAcKw] = React.useState(jobKw ? String(jobKw) : "");
   const [acPhase, setAcPhase] = React.useState(jobPhase);
   const [invType, setInvType] = React.useState("micro"); // ชนิดอินเวอร์เตอร์: micro (คิดตามจำนวนแผง) | string (คิดตามพิกัดอินเวอร์เตอร์)

@@ -126,7 +126,8 @@ function quoteSpec(t) {
        ฝั่งใบงาน: ขนาดในใบงานคือตัวที่วิศวกรสรุปแล้ว จึงมาก่อนตัวเลขในแบบสำรวจ */
     kwp: o.kind === "lead" ? (num(s.sizeKw) || num(o.kwp)) : (num(o.kwp) || num(s.sizeKw)),
     panels: num(o.panels),
-    phase: String(o.phase || s.phase || "").replace(/[^13]/g, ""),
+    /* เฟสมีคำตอบเดียวต่อหนึ่งหลังคา — เอาที่วัดมาจากหน้างานก่อนค่าที่คาดไว้ตอนแรกเสมอ */
+    phase: (o.phase || s.phase) ? String(window.SF.phaseOf(o)) : "",
     panel: (s.panelModel || o.panelModel || "").trim(),
     inv: (s.invModel || o.invModel || "").trim(),
     roof: (s.roofType || o.roof || "").trim(),
@@ -1133,6 +1134,8 @@ function SalesCard({ lead, quotes, onOpen, onDragStart, dragging }) {
   const docJob = { id: lead.id, code: lead.code, name: lead.name };
   const late = sOverdue(lead.nextFollow) && salesStageKey(lead) !== "won" && salesStageKey(lead) !== "lost";
   const val = +lead.expValue || 0;
+  /* เฟสตามที่สำรวจมาจริง — ว่างไว้ถ้ายังไม่มีใครระบุ จะได้ไม่ขึ้น "1 เฟส" ให้เข้าใจผิดว่ารู้แล้ว */
+  const phTH = (lead.phase || (lead.survey && lead.survey.phase)) ? window.SF.phaseOf(lead) + " เฟส" : "";
   return (
     <div draggable onDragStart={(e) => onDragStart(e, lead)} onClick={() => onOpen(lead)}
       style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "12px 13px",
@@ -1167,12 +1170,12 @@ function SalesCard({ lead, quotes, onOpen, onDragStart, dragging }) {
       </div>
       {/* บรรทัดสเปก — รูปแบบเดียวกับการ์ดงาน (ขนาด · เฟส) จะได้กวาดตาอ่านบอร์ดเดียวกันได้แบบเดียวกัน
          ของลูกค้ายังเป็น "ขนาดที่คาด" ไม่ใช่ขนาดที่วิศวกรสรุป จำนวนแผงจึงยังไม่มี */}
-      {(+lead.expKwp > 0 || lead.phase) && (
+      {(+lead.expKwp > 0 || phTH) && (
         <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 9, flexWrap: "wrap", fontSize: 11.5 }}>
           <span style={{ color: "var(--text-2)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
             {+lead.expKwp > 0 && <React.Fragment><b style={{ color: "var(--text-1)", fontWeight: 700 }}>{lead.expKwp}</b> kWp</React.Fragment>}
-            {+lead.expKwp > 0 && lead.phase && <span style={{ color: "var(--text-3)", margin: "0 5px" }}>·</span>}
-            {lead.phase && (lead.phase + " เฟส")}
+            {+lead.expKwp > 0 && phTH && <span style={{ color: "var(--text-3)", margin: "0 5px" }}>·</span>}
+            {phTH}
           </span>
         </div>
       )}
