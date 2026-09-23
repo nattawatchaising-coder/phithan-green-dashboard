@@ -46,7 +46,7 @@ function MatCell({ status, onCycle }) {
   );
 }
 
-function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trashCount, onOpenTrash, permitMode }) {
+function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trashCount, onOpenTrash, permitMode, onRevert, canRevert }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [sort, setSort] = React.useState({ key: "code", dir: 1 });
@@ -81,7 +81,7 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trash
   if (isMobile) return (
     <React.Fragment>
       <StatusTabs tab={tab} setTab={setTab} counts={counts} labels={tabLabels} trashCount={trashCount} onOpenTrash={onOpenTrash} />
-      <TableMobile jobs={sorted} sort={sort} setSort={setSort} onOpen={onOpen} onEdit={onEdit} onDelete={onDelete} onSetStage={onSetStage} permitMode={permitMode} />
+      <TableMobile jobs={sorted} sort={sort} setSort={setSort} onOpen={onOpen} onEdit={onEdit} onDelete={onDelete} onSetStage={onSetStage} permitMode={permitMode} onRevert={onRevert} canRevert={canRevert} />
     </React.Fragment>
   );
 
@@ -223,6 +223,9 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trash
                 {/* actions */}
                 <td style={{ padding: "13px 14px", textAlign: "center", whiteSpace: "nowrap" }}>
                   <button onClick={() => onEdit(j)} title="แก้ไข" style={actionBtn("#3B82F6")} {...actionHover("#3B82F6")}><Icon name="settings" size={15} /></button>
+                  {onRevert && canRevert && canRevert(j) && (
+                    <button onClick={() => onRevert(j)} title="ย้อนกลับไปเป็นงานขาย" style={actionBtn("#10B981")} {...actionHover("#10B981")}><Icon name="undo" size={15} /></button>
+                  )}
                   <button onClick={() => onDelete(j)} title="ลบ" style={actionBtn("#EF4444")} {...actionHover("#EF4444")}><Icon name="x" size={15} /></button>
                 </td>
               </tr>
@@ -284,7 +287,7 @@ function StatusTabs({ tab, setTab, counts, labels, trashCount, onOpenTrash }) {
 }
 
 /* ── Mobile database — card list แทนตาราง 13 คอลัมน์ ── */
-function TableMobile({ jobs, sort, setSort, onOpen, onEdit, onDelete, onSetStage, permitMode }) {
+function TableMobile({ jobs, sort, setSort, onOpen, onEdit, onDelete, onSetStage, permitMode, onRevert, canRevert }) {
   const SF = window.SF;
   const SORTS = [
     { key: "code", th: "รหัสงาน" },
@@ -333,6 +336,9 @@ function TableMobile({ jobs, sort, setSort, onOpen, onEdit, onDelete, onSetStage
               </button>
               <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                 <button onClick={() => onEdit(j)} title="แก้ไข" style={actionBtn("#3B82F6")}><Icon name="settings" size={15} /></button>
+                {onRevert && canRevert && canRevert(j) && (
+                  <button onClick={() => onRevert(j)} title="ย้อนกลับไปเป็นงานขาย" style={actionBtn("#10B981")}><Icon name="undo" size={15} /></button>
+                )}
                 <button onClick={() => onDelete(j)} title="ลบ" style={actionBtn("#EF4444")}><Icon name="x" size={15} /></button>
               </div>
             </div>

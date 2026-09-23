@@ -633,6 +633,52 @@ function App() {
     setView(listView());
     setSelected(rec.id);
   };
+  const leadOfJob = job => (leadStore.leads || []).find(l => l.jobId === (job || {}).id) || null;
+  const revertJobToLead = job => {
+    if (!can(role, "delJob")) {
+      alert("คุณไม่มีสิทธิ์ย้ายงานออกจากฐานข้อมูลงาน");
+      return;
+    }
+    const lead = leadOfJob(job);
+    if (!lead) {
+      alert("งานนี้ไม่ได้มาจากงานขาย จึงย้อนกลับไม่ได้");
+      return;
+    }
+    setRevertAsk({
+      job: job,
+      lead: lead
+    });
+  };
+  const doRevertJob = (job, lead) => {
+    if (window.moveSurveyPhotos) window.moveSurveyPhotos(job.id, lead.id);
+    if (window.moveJobFiles) window.moveJobFiles(job.id, lead.id);
+    if (window.movePlan3d) window.movePlan3d(job.id, lead.id);
+    const back = Object.assign({
+      jobId: ""
+    }, window.salesStagePatch ? window.salesStagePatch("nego") : {
+      status: "open"
+    });
+    if (job.survey) back.survey = job.survey;
+    if (job.boq) back.boq = job.boq;
+    if (job.kw && !(+lead.expKwp > 0)) back.expKwp = job.kw;
+    (quoteStore.quotes || []).forEach(q => {
+      if (q.jobId === job.id) quoteStore.patch(q.id, {
+        jobId: "",
+        refCode: ""
+      });
+    });
+    (apptStore.appts || []).forEach(a => {
+      if (a.projectId === job.id) apptStore.upsert(Object.assign({}, a, {
+        projectId: "",
+        jobCode: "",
+        leadId: a.leadId || lead.id
+      }));
+    });
+    leadStore.patch(lead.id, back);
+    store.remove(job.id, auth.current ? auth.current.name : "");
+    setSelected(s => s === job.id ? null : s);
+    setRevertAsk(null);
+  };
   const leadQuoteTarget = lead => ({
     kind: "lead",
     id: lead.id,
@@ -929,6 +975,7 @@ function App() {
     user: auth.current
   };
   const [delAsk, setDelAsk] = React.useState(null);
+  const [revertAsk, setRevertAsk] = React.useState(null);
   const [trashOpen, setTrashOpen] = React.useState(false);
   const onDelete = j => {
     if (!can(role, "delJob")) {
@@ -1183,6 +1230,8 @@ function App() {
     onSetMat: store.setMat,
     onSetStage: (id, s) => store.setStage(id, s),
     permitMode: permitOnly,
+    onRevert: can(role, "delJob") ? revertJobToLead : null,
+    canRevert: j => !!leadOfJob(j),
     trashCount: can(role, "delJob") ? store.trash.length : 0,
     onOpenTrash: can(role, "delJob") ? () => setTrashOpen(true) : null
   }), view === "permit" && permitView, view === "daily" && React.createElement(DailyView, {
@@ -1443,6 +1492,11 @@ function App() {
       localStorage.setItem("sf_briefing_seen", window.SF.TODAY);
       setBriefingOpen(false);
     }
+  }), revertAsk && React.createElement(RevertJobAsk, {
+    job: revertAsk.job,
+    lead: revertAsk.lead,
+    onClose: () => setRevertAsk(null),
+    onConfirm: () => doRevertJob(revertAsk.job, revertAsk.lead)
   }), delAsk && React.createElement(DeleteJobAsk, {
     job: delAsk,
     onClose: () => setDelAsk(null),
@@ -2605,6 +2659,115 @@ function DailyBriefing({
       cursor: "pointer"
     }
   }, "\u0E23\u0E31\u0E1A\u0E17\u0E23\u0E32\u0E1A"))));
+}
+function RevertJobAsk({
+  job,
+  lead,
+  onConfirm,
+  onClose
+}) {
+  const bdClose = window.useBackdropClose(onClose);
+  return React.createElement("div", _extends({}, bdClose, {
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(8,20,14,.5)",
+      backdropFilter: "blur(3px)",
+      zIndex: 125,
+      display: "grid",
+      placeItems: "center",
+      padding: 20
+    }
+  }), React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 16,
+      width: "min(440px, 100%)",
+      padding: 20,
+      boxShadow: "0 30px 80px rgba(8,20,14,.3)"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 12,
+      alignItems: "flex-start"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 38,
+      height: 38,
+      borderRadius: 11,
+      background: "var(--primary-soft)",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "undo",
+    size: 18,
+    color: "var(--primary-dark)"
+  })), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 15.5,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, "\u0E22\u0E49\u0E2D\u0E19\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22?"), React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-2)",
+      marginTop: 4,
+      lineHeight: 1.6
+    }
+  }, React.createElement("b", null, job.code), " \xB7 ", job.name || "(ไม่มีชื่อ)", React.createElement("br", null), "\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E2D\u0E22\u0E39\u0E48\u0E17\u0E35\u0E48\u0E43\u0E1A\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32 ", React.createElement("b", null, lead.code || lead.id), " \u0E02\u0E31\u0E49\u0E19 \u201C\u0E15\u0E48\u0E2D\u0E23\u0E2D\u0E07 / \u0E23\u0E2D\u0E15\u0E31\u0E14\u0E2A\u0E34\u0E19\u0E43\u0E08\u201D"), React.createElement("ul", {
+    style: {
+      margin: "10px 0 0",
+      paddingLeft: 17,
+      fontSize: 12,
+      color: "var(--text-2)",
+      lineHeight: 1.75
+    }
+  }, React.createElement("li", null, "\u0E41\u0E1A\u0E1A\u0E2A\u0E33\u0E23\u0E27\u0E08 \xB7 \u0E23\u0E39\u0E1B\u0E2A\u0E33\u0E23\u0E27\u0E08 \xB7 \u0E44\u0E1F\u0E25\u0E4C\u0E41\u0E1A\u0E1A \xB7 \u0E41\u0E1A\u0E1A 3D \xB7 BOQ \u0E15\u0E32\u0E21\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E01\u0E31\u0E1A\u0E43\u0E1A\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32"), React.createElement("li", null, "\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32\u0E41\u0E25\u0E30\u0E19\u0E31\u0E14\u0E2B\u0E21\u0E32\u0E22\u0E16\u0E39\u0E01\u0E1B\u0E25\u0E14\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E40\u0E25\u0E02\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49"), React.createElement("li", null, "\u0E15\u0E31\u0E27\u0E07\u0E32\u0E19\u0E22\u0E49\u0E32\u0E22\u0E40\u0E02\u0E49\u0E32\u0E16\u0E31\u0E07\u0E02\u0E22\u0E30 \u0E01\u0E39\u0E49\u0E04\u0E37\u0E19\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E2B\u0E19\u0E49\u0E32\u0E10\u0E32\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E07\u0E32\u0E19")))), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      justifyContent: "flex-end",
+      marginTop: 18
+    }
+  }, React.createElement("button", {
+    onClick: onClose,
+    style: {
+      padding: "10px 16px",
+      borderRadius: 10,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-2)",
+      fontFamily: "inherit",
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("button", {
+    onClick: onConfirm,
+    style: {
+      padding: "10px 16px",
+      borderRadius: 10,
+      border: "none",
+      background: "var(--primary)",
+      color: "#fff",
+      fontFamily: "inherit",
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E22\u0E49\u0E2D\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22"))));
 }
 function DeleteJobAsk({
   job,

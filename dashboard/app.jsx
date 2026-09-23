@@ -496,6 +496,43 @@ function App() {
     setView(listView()); setSelected(rec.id);
   };
 
+  /* ใบลูกค้าที่งานนี้เกิดมาจาก — ผูกกันด้วย lead.jobId ตั้งแต่ตอนกดแปลง */
+  const leadOfJob = (job) => (leadStore.leads || []).find((l) => l.jobId === (job || {}).id) || null;
+
+  /* ย้อนงานกลับไปเป็นงานขาย — ทางกลับของ convertLead
+     ใช้ตอนกดแปลงเร็วไปหรือลูกค้ายังไม่ตกลงจริง งานจะได้ไม่ไปนั่งในฐานข้อมูลงาน
+     ของที่ย้ายตามงานไปตอนแปลง (รูปสำรวจ · ไฟล์แบบ · แบบ 3D · ใบเสนอราคา · นัด)
+     ต้องย้ายกลับให้ครบ ไม่งั้นใบลูกค้าจะกลับมาเป็นใบเปล่า
+     ตัวงานลงถังขยะ ไม่ได้ลบถาวร กดผิดยังกู้คืนได้ */
+  const revertJobToLead = (job) => {
+    if (!can(role, "delJob")) { alert("คุณไม่มีสิทธิ์ย้ายงานออกจากฐานข้อมูลงาน"); return; }
+    const lead = leadOfJob(job);
+    if (!lead) { alert("งานนี้ไม่ได้มาจากงานขาย จึงย้อนกลับไม่ได้"); return; }
+    setRevertAsk({ job: job, lead: lead });
+  };
+  const doRevertJob = (job, lead) => {
+    if (window.moveSurveyPhotos) window.moveSurveyPhotos(job.id, lead.id);
+    if (window.moveJobFiles) window.moveJobFiles(job.id, lead.id);
+    if (window.movePlan3d) window.movePlan3d(job.id, lead.id);
+    /* กลับไปยืนที่ขั้น "ต่อรอง / รอตัดสินใจ" ไม่ใช่ "ลูกค้าใหม่"
+       เพราะงานเดินมาถึงขั้นแปลงเป็นงานแล้ว ถอยไปสุดทางจะเหมือนเพิ่งรู้จักกัน */
+    const back = Object.assign({ jobId: "" }, window.salesStagePatch ? window.salesStagePatch("nego") : { status: "open" });
+    /* ของที่กรอกเพิ่มหลังแปลงเป็นงานต้องติดกลับไปกับใบลูกค้าด้วย ไม่งั้นหายไปกับงานที่ลงถังขยะ */
+    if (job.survey) back.survey = job.survey;
+    if (job.boq) back.boq = job.boq;
+    if (job.kw && !(+lead.expKwp > 0)) back.expKwp = job.kw;
+    (quoteStore.quotes || []).forEach((q) => {
+      if (q.jobId === job.id) quoteStore.patch(q.id, { jobId: "", refCode: "" });
+    });
+    (apptStore.appts || []).forEach((a) => {
+      if (a.projectId === job.id) apptStore.upsert(Object.assign({}, a, { projectId: "", jobCode: "", leadId: a.leadId || lead.id }));
+    });
+    leadStore.patch(lead.id, back);
+    store.remove(job.id, auth.current ? auth.current.name : "");
+    setSelected((s) => s === job.id ? null : s);
+    setRevertAsk(null);
+  };
+
   /* เปิดใบเสนอราคา — ไม่มีใบเดิมก็สร้างใบใหม่จากข้อมูลลูกค้า/งานที่มีอยู่ให้เลย
      เซลล์จะได้ไม่ต้องพิมพ์ชื่อ-ที่อยู่ซ้ำ ซึ่งเป็นจุดที่พิมพ์ผิดบ่อยที่สุดบนเอกสารที่ส่งออกไปข้างนอก */
   /* target = ที่มาของสเปก (ผลสำรวจ + สเปกในใบงาน) ส่งต่อให้ QuoteEditor ใช้ปุ่ม "ดึงรุ่นอุปกรณ์" ได้
@@ -730,6 +767,7 @@ function App() {
      ฝากผู้ใช้ปัจจุบันไว้ให้การ์ดหยิบใช้ ฟอร์มจะได้รู้ว่าใครเขียนและอนุมัติได้ไหม */
   window.DR_ME = { role, user: auth.current };
   const [delAsk, setDelAsk] = React.useState(null);   // งานที่กำลังถามว่าจะย้ายเข้าถังขยะไหม
+  const [revertAsk, setRevertAsk] = React.useState(null);   // { job, lead } ที่กำลังถามว่าจะย้อนกลับเป็นงานขายไหม
   const [trashOpen, setTrashOpen] = React.useState(false);
   const onDelete = (j) => {
     if (!can(role, "delJob")) { alert("คุณไม่มีสิทธิ์ลบงาน"); return; }
@@ -859,6 +897,7 @@ function App() {
             onEdit={(j) => setForm({ job: store.raw.find((r) => r.id === j.id), isNew: false })}
             onDelete={onDelete} onSetMat={store.setMat} onSetStage={(id, s) => store.setStage(id, s)}
             permitMode={permitOnly}
+            onRevert={can(role, "delJob") ? revertJobToLead : null} canRevert={(j) => !!leadOfJob(j)}
             trashCount={can(role, "delJob") ? store.trash.length : 0} onOpenTrash={can(role, "delJob") ? () => setTrashOpen(true) : null} />}
           {view === "permit" && permitView}
           {view === "daily" && <DailyView jobs={filtered} role={role} currentUser={auth.current}
@@ -991,6 +1030,8 @@ function App() {
       {briefingOpen && <DailyBriefing lateAlerts={lateAlerts} todayTasks={todayTasks}
         onOpen={(jobId) => { localStorage.setItem("sf_briefing_seen", window.SF.TODAY); setBriefingOpen(false); setView(listView()); setSelected(jobId); }}
         onClose={() => { localStorage.setItem("sf_briefing_seen", window.SF.TODAY); setBriefingOpen(false); }} />}
+      {revertAsk && <RevertJobAsk job={revertAsk.job} lead={revertAsk.lead} onClose={() => setRevertAsk(null)}
+        onConfirm={() => doRevertJob(revertAsk.job, revertAsk.lead)} />}
       {delAsk && <DeleteJobAsk job={delAsk} onClose={() => setDelAsk(null)}
         onConfirm={() => { store.remove(delAsk.id, auth.current ? auth.current.name : ""); setSelected((s) => s === delAsk.id ? null : s); setDelAsk(null); }} />}
       {trashOpen && <TrashModal trash={store.trash} me={auth.current} onClose={() => setTrashOpen(false)}
@@ -1483,6 +1524,43 @@ function DailyBriefing({ lateAlerts, todayTasks, onOpen, onClose }) {
    ไม่ใช้ confirm() ของเบราว์เซอร์ เพราะถ้าถูกบล็อกกล่องข้อความไว้ มันจะคืน false เงียบ ๆ
    ปุ่มยืนยันต้องกดสองจังหวะ (ค้างไว้ที่ปุ่มแดง) ไม่ได้ — จึงวางปุ่มยกเลิกไว้ก่อน กันมือลั่น
    ============================================================ */
+/* ย้อนกลับเป็นงานขาย — บอกให้ชัดว่าอะไรตามกลับไปบ้าง และงานไปอยู่ที่ไหน
+   คนกดจะได้ไม่ต้องเดาว่ารูปสำรวจกับใบเสนอราคาหายไปหรือเปล่า */
+function RevertJobAsk({ job, lead, onConfirm, onClose }) {
+  const bdClose = window.useBackdropClose(onClose);
+  return (
+    <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)",
+      zIndex: 125, display: "grid", placeItems: "center", padding: 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--surface)", border: "1px solid var(--border)",
+        borderRadius: 16, width: "min(440px, 100%)", padding: 20, boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+          <span style={{ width: 38, height: 38, borderRadius: 11, background: "var(--primary-soft)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+            <Icon name="undo" size={18} color="var(--primary-dark)" />
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15.5, fontWeight: 800, color: "var(--text-1)" }}>ย้อนงานนี้กลับไปเป็นงานขาย?</div>
+            <div style={{ fontSize: 12.5, color: "var(--text-2)", marginTop: 4, lineHeight: 1.6 }}>
+              <b>{job.code}</b> · {job.name || "(ไม่มีชื่อ)"}<br />
+              กลับไปอยู่ที่ใบลูกค้า <b>{lead.code || lead.id}</b> ขั้น “ต่อรอง / รอตัดสินใจ”
+            </div>
+            <ul style={{ margin: "10px 0 0", paddingLeft: 17, fontSize: 12, color: "var(--text-2)", lineHeight: 1.75 }}>
+              <li>แบบสำรวจ · รูปสำรวจ · ไฟล์แบบ · แบบ 3D · BOQ ตามกลับไปกับใบลูกค้า</li>
+              <li>ใบเสนอราคาและนัดหมายถูกปลดออกจากเลขงานนี้</li>
+              <li>ตัวงานย้ายเข้าถังขยะ กู้คืนได้ที่หน้าฐานข้อมูลงาน</li>
+            </ul>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 18 }}>
+          <button onClick={onClose} style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid var(--border-strong)",
+            background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>ยกเลิก</button>
+          <button onClick={onConfirm} style={{ padding: "10px 16px", borderRadius: 10, border: "none",
+            background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>ย้อนกลับเป็นงานขาย</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DeleteJobAsk({ job, onConfirm, onClose }) {
   const bdClose = window.useBackdropClose(onClose);
   return (

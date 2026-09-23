@@ -92,7 +92,9 @@ function TableView({
   onSetStage,
   trashCount,
   onOpenTrash,
-  permitMode
+  permitMode,
+  onRevert,
+  canRevert
 }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -156,7 +158,9 @@ function TableView({
     onEdit: onEdit,
     onDelete: onDelete,
     onSetStage: onSetStage,
-    permitMode: permitMode
+    permitMode: permitMode,
+    onRevert: onRevert,
+    canRevert: canRevert
   }));
   const th = (label, key, center) => {
     const active = key && sort.key === key;
@@ -508,6 +512,13 @@ function TableView({
   }, actionHover("#3B82F6")), React.createElement(Icon, {
     name: "settings",
     size: 15
+  })), onRevert && canRevert && canRevert(j) && React.createElement("button", _extends({
+    onClick: () => onRevert(j),
+    title: "\u0E22\u0E49\u0E2D\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22",
+    style: actionBtn("#10B981")
+  }, actionHover("#10B981")), React.createElement(Icon, {
+    name: "undo",
+    size: 15
   })), React.createElement("button", _extends({
     onClick: () => onDelete(j),
     title: "\u0E25\u0E1A",
@@ -636,7 +647,9 @@ function TableMobile({
   onEdit,
   onDelete,
   onSetStage,
-  permitMode
+  permitMode,
+  onRevert,
+  canRevert
 }) {
   const SF = window.SF;
   const SORTS = [{
@@ -793,6 +806,13 @@ function TableMobile({
       style: actionBtn("#3B82F6")
     }, React.createElement(Icon, {
       name: "settings",
+      size: 15
+    })), onRevert && canRevert && canRevert(j) && React.createElement("button", {
+      onClick: () => onRevert(j),
+      title: "\u0E22\u0E49\u0E2D\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22",
+      style: actionBtn("#10B981")
+    }, React.createElement(Icon, {
+      name: "undo",
       size: 15
     })), React.createElement("button", {
       onClick: () => onDelete(j),
