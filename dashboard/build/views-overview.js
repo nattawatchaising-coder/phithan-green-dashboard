@@ -1071,10 +1071,6 @@ function OverviewView({
   }), React.createElement(MySchedulePanel, {
     items: schedule || [],
     onOpen: onOpen
-  }), React.createElement(MaterialShortagePanel, {
-    jobs: jobs,
-    stock: stock,
-    onOpen: onOpen
   }), React.createElement("div", {
     style: {
       display: "grid",

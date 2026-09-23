@@ -416,7 +416,9 @@ function OverviewView({ jobs, schedule, onOpen, onStage, onKpi, stock }) {
 
       <MySchedulePanel items={schedule || []} onOpen={onOpen} />
 
-      <MaterialShortagePanel jobs={jobs} stock={stock} onOpen={onOpen} />
+      {/* ปิดแผง "ของไม่พอ ก่อนวันติดตั้ง" ไว้ก่อนตามที่สั่ง — ตัวแผงยังอยู่ที่ MaterialShortagePanel
+          และยังใช้งานอยู่ในหน้าของหัวหน้างาน เปิดคืนได้ด้วยการเอาคอมเมนต์บรรทัดล่างออก */}
+      {/* <MaterialShortagePanel jobs={jobs} stock={stock} onOpen={onOpen} /> */}
 
       <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 18 }}>
         <PipelinePanel jobs={jobs} onStage={onStage} />
