@@ -116,6 +116,7 @@ const QUOTE_PAGES = [
   { key: "wty",     th: "ตารางรับประกันอุปกรณ์",       hint: "อุปกรณ์ทีละรายการ · กี่ปี" },
   { key: "cash",    th: "ตารางคืนทุน 30 ปี",           hint: "ผลิตไฟ · ค่าไฟที่ประหยัด · ยอดสะสม" },
   { key: "payback", th: "สรุปผลตอบแทน",               hint: "ระยะเวลาคืนทุน · กำไรตลอดอายุ" },
+  { key: "pics",    th: "รูปอุปกรณ์",                  hint: "เลือกจากคลังรูปที่เก็บไว้ · ใช้ซ้ำได้ทุกงาน" },
   { key: "sheets",  th: "DATA SHEET ที่แนบ",          hint: "สเปกแผง/อินเวอร์เตอร์จากคลัง" },
 ];
 /* ใบเก่าที่ทำไว้ก่อนมีระบบนี้ไม่มีช่อง pages — ต้องออกเหมือนเดิมเป๊ะ ๆ
@@ -350,7 +351,7 @@ function blankQuote(target, user, quotes) {
     /* ใบที่ทำใหม่ตั้งต้นเป็นชุดเต็ม — ลูกค้าโครงการขอทั้งเล่มเป็นปกติ
        ไม่อยากส่งแผ่นไหนก็ติ๊กออกได้ในหน้าทำใบ ง่ายกว่ามาตามเปิดทีหลังแล้วลืม */
     pages: quotePagesAll(),
-    boqRows: quoteBoqSeed(t), wtyRows: quoteWtySeed(t), roi: {},
+    boqRows: quoteBoqSeed(t), wtyRows: quoteWtySeed(t), roi: {}, picIds: [],
     vat: (window.BOQ && window.BOQ.VAT_RATE != null) ? window.BOQ.VAT_RATE : 7,
     terms: QUOTE_TERMS_DEF.slice(), warranties: QUOTE_WARRANTY_DEF.slice(),
     validDays: 30, note: "",
@@ -403,6 +404,63 @@ function quoteTermSplit(terms, grand) {
     else { r.amount = Math.round(total * r.pct) / 100; acc = Math.round((acc + r.amount) * 100) / 100; }
   });
   return { rows: rows, pctTotal: pctTotal, count: paid.length, full: pctTotal === 100 };
+}
+
+/* ── คลังรูปอุปกรณ์ที่ใช้แนบท้ายใบเสนอราคา ──
+   รูปชุดเดียวกัน (แผง · อินเวอร์เตอร์ · ตู้ไฟ · หน้างานตัวอย่าง) ถูกแนบซ้ำแทบทุกใบ
+   จึงเก็บไว้ที่ส่วนกลางครั้งเดียวแล้วติ๊กเลือกเอา ไม่ใช่อัปไฟล์ใหม่ทุกครั้งที่ทำใบ
+   แยกเป็นสองชั้นเหมือน DATA SHEET ในคลัง — รายการ (มีรูปย่อ) กับไฟล์เต็ม
+   ถ้าเก็บรูปเต็มไว้ในรายการ หน้าทำใบจะต้องโหลดรูปทุกใบในคลังทุกครั้งที่เปิด */
+const SF_QPIC_KEY = "solarflow_quotepics_v1";
+const QPIC_MAX = 4 * 1024 * 1024;
+function useQuotePics() {
+  const [pics, setPics] = React.useState(_FB() ? null : () => _lsGet(SF_QPIC_KEY, []));
+  const [busy, setBusy] = React.useState(false);
+  const cache = React.useRef({});
+  React.useEffect(() => {
+    if (!_FB()) return;
+    const r = _fbr("quotePics");
+    const h = r.on("value", (snap) => setPics(_snap2arr(snap) || []), () => setPics([]));
+    return () => r.off("value", h);
+  }, []);
+  React.useEffect(() => { if (!_FB() && pics !== null) _lsSet(SF_QPIC_KEY, pics); }, [pics]);
+
+  /* รูปที่จะเอาไปพิมพ์ลงกระดาษ ย่อที่ด้านยาว 1400px ก็คมพอแล้วที่ 150dpi
+     ส่วนรูปย่อในรายการเก็บไว้ในเรคอร์ดเลย จะได้เห็นทันทีโดยไม่ต้องโหลดไฟล์เต็ม */
+  const add = React.useCallback((file, name) => {
+    if (!file) return Promise.resolve(null);
+    setBusy(true);
+    return Promise.all([
+      window.resizeImageFile(file, 1400, 0.82),
+      window.resizeImageFile(file, 240, 0.6),
+    ]).then(([full, thumb]) => {
+      if (full.length > QPIC_MAX) { alert("รูปใหญ่เกินไป — ย่อรูปก่อนอัปโหลด"); return null; }
+      const rec = { id: "QP-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+        name: String(name || file.name || "รูปอุปกรณ์").replace(/\.[a-z0-9]+$/i, ""),
+        thumb: thumb, size: full.length, at: new Date().toISOString() };
+      cache.current[rec.id] = full;
+      if (_FB()) { _fbSet("quotePicData/" + rec.id, full); _fbSet("quotePics/" + rec.id, rec); }
+      else { _lsSetRaw(SF_QPIC_KEY + "_" + rec.id, full); setPics((p) => (p || []).concat([rec])); }
+      return rec;
+    }).catch((e) => { alert("อ่านไฟล์รูปไม่สำเร็จ: " + e.message); return null; })
+      .then((r) => { setBusy(false); return r; });
+  }, []);
+  const rename = React.useCallback((id, name) => {
+    if (_FB()) _fbUpd("quotePics/" + id, { name: name });
+    else setPics((p) => (p || []).map((x) => x.id === id ? Object.assign({}, x, { name: name }) : x));
+  }, []);
+  const remove = React.useCallback((id) => {
+    delete cache.current[id];
+    if (_FB()) { _fbRem("quotePics/" + id); _fbRem("quotePicData/" + id); }
+    else { _lsSetRaw(SF_QPIC_KEY + "_" + id, null); setPics((p) => (p || []).filter((x) => x.id !== id)); }
+  }, []);
+  /* ไฟล์เต็มโหลดตอนจะออกเอกสารเท่านั้น — จำไว้ในหน่วยความจำ กดดูซ้ำจะได้ไม่โหลดใหม่ */
+  const load = React.useCallback((id) => {
+    if (cache.current[id]) return Promise.resolve(cache.current[id]);
+    if (!_FB()) { const v = _lsGetRaw(SF_QPIC_KEY + "_" + id); cache.current[id] = v; return Promise.resolve(v); }
+    return _fbGet("quotePicData/" + id).then((sn) => { const v = sn.val() || null; cache.current[id] = v; return v; }).catch(() => null);
+  }, []);
+  return { pics: pics || [], loading: pics === null, busy: busy, add, rename, remove, load };
 }
 
 const SF_QUOTE_KEY = "solarflow_quotes_v1";
@@ -492,6 +550,7 @@ function quoteFrom(prev, target, user, quotes) {
     boqRows: (prev.boqRows || []).map((x) => Object.assign({}, x)),
     wtyRows: (prev.wtyRows || []).map((x) => Object.assign({}, x)),
     roi: Object.assign({}, prev.roi || {}),
+    picIds: (prev.picIds || []).slice(),
     validDays: prev.validDays || q.validDays, note: prev.note || "",
     kwp: +prev.kwp > 0 ? +prev.kwp : q.kwp,
     basedOn: prev.no || "",
@@ -664,7 +723,7 @@ const QUOTE_I18N = {
    quoteHTML — ใบเสนอราคา A4 สำหรับพิมพ์/บันทึกเป็น PDF
    เปิดผ่าน SuReportView ตัวเดียวกับรายงานอื่น ๆ จะได้ปุ่มพิมพ์เหมือนกันหมด
    ============================================================ */
-function quoteHTML(q, lang, sheets) {
+function quoteHTML(q, lang, sheets, pics) {
   /* ภาษาของเอกสาร — ประกอบเป็นไทยตามปกติทั้งใบ แล้วแปลทีเดียวตอนท้าย (ดู i18n.jsx)
      วันที่ต้องแปลตรงนี้ เพราะไทยเป็น พ.ศ. ส่วนอังกฤษ/จีนเป็น ค.ศ. */
   const L = lang || "th";
@@ -750,15 +809,20 @@ function quoteHTML(q, lang, sheets) {
       (window.BRANDING.taxId ? " · เลขประจำตัวผู้เสียภาษี " + sEsc(window.BRANDING.taxId) : "") + "</div>" : "") +
     (window.BRANDING.addrTH ? '<div class="bs">' + sEsc(window.BRANDING.addrTH) + "</div>" : "") +
     '<div class="bs">' + window.BRANDING.email + " · " + window.BRANDING.tel + "</div></div>" +
-    '<div class="cvm"><div class="cvk">ข้อเสนอโครงการ</div>' +
+    /* แผ่นสีเต็มผืนกลางหน้า — ชื่อโครงการกับขนาดระบบต้องเด่นที่สุดในกอง
+       ตัวหนังสือขาวบนพื้นไล่สีแบรนด์ อ่านออกทั้งบนจอและบนกระดาษ */
+    '<div class="cvhero">' +
+    '<div class="cvk">ข้อเสนอโครงการ</div>' +
     '<h1 class="cvt">ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์บนหลังคา</h1>' +
     '<div class="cvline"></div>' +
     '<div class="cvto">เสนอต่อ</div>' +
     '<div class="cvcu">' + sEsc(c.name || "—") + "</div>" +
     ((c.address || c.province) ? '<div class="cvad">' + sEsc((c.address || "") + (c.province ? " " + c.province : "")) + "</div>" : "") +
+    '<div class="cvrow">' +
     '<div class="cvcap"><span class="cl">ขนาดติดตั้ง</span>' +
     '<span class="cn">' + (q.kwp ? sEsc(q.kwp) : "—") + '</span><span class="cu">kWp</span></div>' +
-    "</div>" +
+    '<div class="cvtag">ออกแบบ · ติดตั้ง · ขออนุญาตการไฟฟ้า</div>' +
+    "</div></div>" +
     '<div class="cvf">' +
     '<div><span>เลขที่</span><b>' + sEsc(q.no) + "</b></div>" +
     '<div><span>วันที่</span><b>' + dsp(q.date) + "</b></div>" +
@@ -766,16 +830,29 @@ function quoteHTML(q, lang, sheets) {
     (c.phone ? '<div><span>โทร</span><b>' + sEsc(c.phone) + "</b></div>" : "") +
     "</div>" + footHTML + "</div>";
 
+  /* ── แผ่นรูปอุปกรณ์ ──
+     รูปจากคลังส่วนกลาง วางแผ่นละ 4 รูป เกินนั้นขึ้นแผ่นใหม่
+     ใส่ชื่อใต้รูปไว้ ลูกค้าจะได้รู้ว่ากำลังดูของชิ้นไหน */
+  const picList = (pics || []).filter((p) => p && p.data);
+  const picHTML = () => {
+    if (!picList.length) return "";
+    const pages = [];
+    for (let i = 0; i < picList.length; i += 4) pages.push(picList.slice(i, i + 4));
+    return pages.map((grp, n) =>
+      '<div class="dpg">' + sheetHead("รูปอุปกรณ์", "อุปกรณ์ที่ใช้ในระบบ",
+        pages.length > 1 ? "แผ่นที่ " + (n + 1) + "/" + pages.length : "") +
+      '<div class="pgw">' + grp.map((p) =>
+        '<figure class="pfig"><img src="' + p.data + '" alt="" />' +
+        (p.name ? "<figcaption>" + sEsc(p.name) + "</figcaption>" : "") + "</figure>").join("") +
+      '</div><div class="pgft">' + footHTML + "</div></div>"
+    ).join("");
+  };
+
   /* หัวแผ่นแนบทุกแผ่น — ชื่อเอกสาร + บรรทัดบอกว่าเป็นของใบไหนของใคร
      แผ่นที่หลุดจากชุดต้องอ่านออกว่าเป็นของงานไหน */
   const sheetHead = (title, h2, sub) => headHTML(title) + "<h2>" + h2 + "</h2>" +
     '<div class="sub">' + sEsc(c.name || "") + (q.kwp ? " · ขนาดติดตั้ง " + sEsc(q.kwp) + " kWp" : "") +
     " · แนบท้ายใบเสนอราคาเลขที่ " + sEsc(q.no) + (sub ? " · " + sub : "") + "</div>";
-  const signRow = (leftRole, leftName, rightRole, rightName) =>
-    '<div class="sig"><div><div class="ln"></div><div class="rl">' + leftRole + (leftName ? " · " + sEsc(leftName) : "") +
-    '</div><div class="rl">วันที่ ______ / ______ / ______</div></div>' +
-    '<div><div class="ln"></div><div class="rl">' + rightRole + (rightName ? " · " + sEsc(rightName) : "") +
-    '</div><div class="rl">วันที่ ______ / ______ / ______</div></div></div>';
 
   /* ── BOQ ── ขอบเขตงานที่ลูกค้าจะได้ ไม่มีราคาทีละบรรทัด
      ราคาต่อรายการเป็นเรื่องภายใน ถ้าพิมพ์ลงไปลูกค้าจะหยิบมาต่อรองทีละบรรทัด
@@ -793,7 +870,7 @@ function quoteHTML(q, lang, sheets) {
     '<div class="pgft"><table class="sum">' +
     money("รวมเป็นเงิน", T.afterDisc) + money("ภาษีมูลค่าเพิ่ม " + T.vatRate + "%", T.vat) +
     money("ราคารวมทั้งสิ้น", T.grand, true) + "</table>" +
-    signRow("ผู้ขาย", window.BRANDING.legalTH || "", "ผู้ซื้อ", c.name || "") + footHTML + "</div></div>";
+    footHTML + "</div></div>";
 
   /* ── ตารางรับประกัน ── ลูกค้าถามทุกรายว่า "อะไรรับประกันกี่ปี"
      เขียนเป็นตารางให้เทียบได้ทีเดียว ดีกว่าให้ไปไล่อ่านในข้อความยาว ๆ */
@@ -808,8 +885,7 @@ function quoteHTML(q, lang, sheets) {
       '</td><td class="c">' + sEsc(r.unit || "") + "</td><td><b>" + sEsc(r.yr || "") + "</b></td></tr>").join("")
       || '<tr><td colspan="5" class="c">— ยังไม่มีรายการ —</td></tr>') +
     "</tbody></table>" +
-    (q.warranties && q.warranties.filter((x) => String(x || "").trim()).length
-      ? list(q.warranties, "การรับประกันและบริการ") : "") +
+    /* ข้อ "การรับประกันและบริการ" อยู่ในแผ่นเงื่อนไข (หน้า 2) แล้ว ไม่ลอกมาซ้ำอีกแผ่น */
     '<div class="pgft">' + footHTML + "</div></div>";
 
   /* ── แผ่นวิเคราะห์ผลตอบแทน ──
@@ -821,7 +897,7 @@ function quoteHTML(q, lang, sheets) {
   const prm = (rows) => '<table class="prm"><tbody>' + rows.map((r) =>
     "<tr><td>" + r[0] + '</td><td class="r"><b>' + r[1] + "</b></td></tr>").join("") + "</tbody></table>";
   const cashHTML = () => !R ? "" :
-    '<div class="dpg">' + sheetHead("วิเคราะห์ผลตอบแทน", "ประมาณการผลิตไฟและค่าไฟที่ประหยัดได้", "") +
+    '<div class="dpg fit">' + sheetHead("วิเคราะห์ผลตอบแทน", "ประมาณการผลิตไฟและค่าไฟที่ประหยัดได้", "") +
     '<div class="prmw">' +
     prm([["ขนาดติดตั้ง", sEsc(R.kwp) + " kWp"],
          ["เงินลงทุน (ก่อน VAT)", n2(R.invest) + " บาท"],
@@ -898,7 +974,8 @@ function quoteHTML(q, lang, sheets) {
     "<style>" +
     "@page{size:A4;margin:14mm}" +
     "*{box-sizing:border-box}" +
-    "body{font-family:" + fontStack + ";color:#111827;font-size:12px;margin:0;line-height:1.55}" +
+    "body{font-family:" + fontStack + ";color:#111827;font-size:12px;margin:0;line-height:1.55;" +
+      "-webkit-print-color-adjust:exact;print-color-adjust:exact}" +
     ".hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1B9B75;padding-bottom:12px;margin-bottom:16px}" +
     ".bd{font-size:20px;font-weight:700;color:#0A4D68;letter-spacing:.02em}" +
     ".bs{font-size:11px;color:#6b7280;margin-top:2px}" +
@@ -949,18 +1026,34 @@ function quoteHTML(q, lang, sheets) {
     /* หน้าปก */
     ".cv{display:flex;flex-direction:column;min-height:269mm}" +
     ".cvh{border-bottom:3px solid #1B9B75;padding-bottom:12px}" +
-    ".cvm{flex:1;display:flex;flex-direction:column;justify-content:center;padding:14mm 0}" +
-    ".cvk{font-size:12px;font-weight:600;letter-spacing:.22em;color:#1B9B75;text-transform:uppercase}" +
-    ".cvt{font-size:33px;line-height:1.25;margin:8px 0 0;color:#0A4D68;font-weight:700;max-width:150mm}" +
-    ".cvline{width:64px;height:4px;background:#1B9B75;border-radius:2px;margin:16px 0 22px}" +
-    ".cvto{font-size:11px;letter-spacing:.16em;color:#6b7280;text-transform:uppercase}" +
-    ".cvcu{font-size:21px;font-weight:700;color:#111827;margin-top:5px}" +
-    ".cvad{font-size:12px;color:#6b7280;margin-top:3px;max-width:130mm}" +
-    ".cvcap{display:inline-flex;align-items:baseline;gap:8px;margin-top:26px;padding:12px 20px;" +
-      "border:1px solid #d1d5db;border-left:4px solid #1B9B75;border-radius:8px;background:#f9fafb;align-self:flex-start}" +
-    ".cvcap .cl{font-size:11px;color:#6b7280}" +
-    ".cvcap .cn{font-size:30px;font-weight:700;color:#0A4D68;font-variant-numeric:tabular-nums;line-height:1}" +
-    ".cvcap .cu{font-size:13px;font-weight:600;color:#0A4D68}" +
+    ".cvhero{flex:1;margin:12mm 0;border-radius:14px;padding:16mm 14mm;position:relative;overflow:hidden;color:#fff;" +
+      "display:flex;flex-direction:column;justify-content:center;background:#0A4D68;" +
+      "background-image:linear-gradient(135deg,#0A4D68 0%,#148080 58%,#1B9B75 100%)}" +
+    ".cvhero:after{content:'';position:absolute;right:-70px;top:-70px;width:300px;height:300px;" +
+      "border-radius:50%;background:rgba(255,255,255,.07)}" +
+    ".cvhero:before{content:'';position:absolute;left:-90px;bottom:-110px;width:280px;height:280px;" +
+      "border-radius:50%;background:rgba(255,255,255,.05)}" +
+    ".cvhero>*{position:relative;z-index:1}" +
+    ".cvk{font-size:11.5px;font-weight:600;letter-spacing:.24em;color:rgba(255,255,255,.75);text-transform:uppercase}" +
+    ".cvt{font-size:34px;line-height:1.24;margin:9px 0 0;color:#fff;font-weight:700;max-width:135mm}" +
+    ".cvline{width:66px;height:4px;background:rgba(255,255,255,.85);border-radius:2px;margin:18px 0 24px}" +
+    ".cvto{font-size:10.5px;letter-spacing:.18em;color:rgba(255,255,255,.7);text-transform:uppercase}" +
+    ".cvcu{font-size:23px;font-weight:700;color:#fff;margin-top:5px}" +
+    ".cvad{font-size:12px;color:rgba(255,255,255,.78);margin-top:4px;max-width:120mm}" +
+    ".cvrow{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-top:26px}" +
+    ".cvcap{display:inline-flex;align-items:baseline;gap:9px;padding:13px 22px;border-radius:10px;" +
+      "background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35)}" +
+    ".cvcap .cl{font-size:11px;color:rgba(255,255,255,.8)}" +
+    ".cvcap .cn{font-size:32px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;line-height:1}" +
+    ".cvcap .cu{font-size:13px;font-weight:600;color:#fff}" +
+    ".cvtag{font-size:11px;color:rgba(255,255,255,.72);padding-bottom:4px}" +
+    /* แผ่นรูปอุปกรณ์ — 2 คอลัมน์ 2 แถว รูปสัดส่วนเดิมไม่ยืด */
+    ".pgw{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);" +
+      "grid-template-rows:minmax(0,1fr) minmax(0,1fr);gap:9px;height:207mm}" +
+    ".pfig{margin:0;display:flex;flex-direction:column;min-height:0;border:1px solid #e5e7eb;border-radius:9px;overflow:hidden;background:#f9fafb}" +
+    ".pfig img{width:100%;flex:1;min-height:0;object-fit:contain;display:block;background:#fff}" +
+    ".pfig figcaption{font-size:10.5px;color:#374151;padding:6px 9px;border-top:1px solid #e5e7eb;text-align:center}" +
+    ".fit{min-height:0}" +
     ".cvf{display:flex;flex-wrap:wrap;gap:8px 26px;border-top:1px solid #e5e7eb;padding-top:10px}" +
     ".cvf div{font-size:11.5px;color:#374151}.cvf span{color:#9ca3af;margin-right:6px}" +
     /* ตารางพารามิเตอร์ 2 คอลัมน์ */
@@ -1025,6 +1118,7 @@ function quoteHTML(q, lang, sheets) {
     (quotePageOn(q, "wty") ? wtyHTML() : "") +
     (quotePageOn(q, "cash") ? cashHTML() : "") +
     (quotePageOn(q, "payback") ? paybackHTML() : "") +
+    (quotePageOn(q, "pics") ? picHTML() : "") +
     shPages +
     "</body></html>";
   return window.pgDocHTML ? window.pgDocHTML(doc, L, QUOTE_I18N) : doc;
@@ -1189,6 +1283,77 @@ function QuoteRoiEdit({ q, locked, onChange }) {
   );
 }
 
+/* ── คลังรูปอุปกรณ์ ──
+   อัปรูปเข้าคลังครั้งเดียว ใบไหนอยากได้ก็ติ๊กเอา — รูปแผงกับอินเวอร์เตอร์ชุดเดิม
+   ถูกแนบซ้ำแทบทุกใบอยู่แล้ว ไม่มีเหตุให้ต้องอัปใหม่ทุกครั้ง
+   ชื่อใต้รูปเป็นคำบรรยายที่จะไปขึ้นในเอกสาร แก้ที่นี่ที่เดียวแล้วเปลี่ยนทุกใบที่ใช้รูปนั้น */
+function QuotePicPick({ lib, sel, locked, onChange }) {
+  const fileRef = React.useRef(null);
+  const ids = sel || [];
+  const toggle = (id) => { if (!locked) onChange(ids.indexOf(id) !== -1 ? ids.filter((x) => x !== id) : ids.concat([id])); };
+  const pick = (e) => {
+    const files = Array.prototype.slice.call(e.target.files || []);
+    e.target.value = "";
+    files.reduce((p, f) => p.then(() => Promise.resolve(lib.add(f)).then((rec) => { if (rec) onChange((sel || []).concat([rec.id])); })), Promise.resolve());
+  };
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+        <label style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>รูปอุปกรณ์ที่จะแนบ</label>
+        <span style={{ fontSize: 11, color: "var(--text-3)" }}>
+          คลังกลาง {lib.pics.length} รูป · เลือกไว้ {ids.length} รูป · แผ่นละ 4 รูป
+        </span>
+        {!locked && (
+          <button type="button" disabled={lib.busy} onClick={() => fileRef.current && fileRef.current.click()}
+            style={Object.assign({}, pgQuick, { marginLeft: "auto", color: "var(--primary-dark)" })}>
+            {lib.busy ? "กำลังอัปรูป…" : "+ เพิ่มรูปเข้าคลัง"}
+          </button>
+        )}
+        <input ref={fileRef} type="file" accept="image/*" multiple onChange={pick} style={{ display: "none" }} />
+      </div>
+      {lib.pics.length === 0 ? (
+        <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.6 }}>
+          ยังไม่มีรูปในคลัง — กด “เพิ่มรูปเข้าคลัง” อัปรูปแผง อินเวอร์เตอร์ ตู้ไฟ หรือตัวอย่างหน้างานไว้
+          แล้วใบอื่น ๆ หยิบไปใช้ต่อได้เลย
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(132px,1fr))", gap: 8 }}>
+          {lib.pics.map((p) => {
+            const on = ids.indexOf(p.id) !== -1;
+            return (
+              <div key={p.id} style={{ border: "1px solid " + (on ? "var(--primary)" : "var(--border)"), borderRadius: 11,
+                overflow: "hidden", background: on ? "var(--primary-soft)" : "var(--surface)" }}>
+                <div onClick={() => toggle(p.id)} style={{ position: "relative", cursor: locked ? "default" : "pointer" }}>
+                  <img src={p.thumb} alt="" style={{ width: "100%", height: 84, objectFit: "cover", display: "block", background: "var(--surface2)" }} />
+                  <span style={{ position: "absolute", top: 6, left: 6, width: 18, height: 18, borderRadius: 6, display: "grid", placeItems: "center",
+                    border: "1.5px solid " + (on ? "var(--primary)" : "rgba(255,255,255,.9)"),
+                    background: on ? "var(--primary)" : "rgba(8,20,14,.35)" }}>
+                    {on && <Icon name="check" size={11} color="#fff" sw={3} />}
+                  </span>
+                  {!locked && (
+                    <button type="button" title="ลบรูปนี้ออกจากคลัง"
+                      onClick={(e) => { e.stopPropagation(); window.askConfirm({ title: "ลบรูปนี้ออกจากคลัง?",
+                        body: "ใบอื่นที่เลือกรูปนี้ไว้จะไม่มีรูปนี้ในเอกสารอีก", ok: "ลบเลย" })
+                        .then((ok) => { if (ok) { lib.remove(p.id); onChange(ids.filter((x) => x !== p.id)); } }); }}
+                      style={{ position: "absolute", top: 6, right: 6, width: 22, height: 22, borderRadius: 7, border: "none",
+                        background: "rgba(8,20,14,.45)", cursor: "pointer", display: "grid", placeItems: "center" }}>
+                      <Icon name="trash" size={12} color="#fff" />
+                    </button>
+                  )}
+                </div>
+                <input value={p.name || ""} disabled={locked} placeholder="ชื่อใต้รูป"
+                  onChange={(e) => lib.rename(p.id, e.target.value)}
+                  style={{ width: "100%", border: "none", borderTop: "1px solid var(--border)", background: "transparent",
+                    padding: "6px 8px", fontFamily: "inherit", fontSize: 11, color: "var(--text-2)", textAlign: "center" }} />
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function QuoteSheetPick({ ids, items, hintText, locked, onChange }) {
   const [qs, setQs] = React.useState("");
   const sel = ids || [];
@@ -1300,6 +1465,9 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
       .then((list) => { if (!dead) setSheetDocs(list.filter(Boolean)); });
     return () => { dead = true; };
   }, [sheetKey]);
+  /* คลังรูปอุปกรณ์ส่วนกลาง — อยู่นอกตัวใบ ใบไหนก็หยิบไปใช้ได้ */
+  const picLib = useQuotePics();
+
   /* ข้อความที่ใช้เดาว่าใบนี้พูดถึงรุ่นไหนบ้าง — ชื่อกับรายละเอียดของทุกรายการรวมกัน */
   const sheetHint = (q.items || []).map((it) => (it.name || "") + " " + (it.detail || "")).join(" ");
 
@@ -1307,17 +1475,27 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
      แปลงหน้า PDF ของ DATA SHEET เป็นรูปก่อน (ใช้เวลาหลักวินาที) แล้วค่อยประกอบเป็นชุดเดียว
      ทำตอนกดดูเท่านั้น ไม่ทำตอนติ๊กเลือก — ติ๊กเล่นไปมาแล้วเครื่องจะหน่วงทุกครั้งโดยไม่ได้ใช้ */
   const [repBusy, setRepBusy] = React.useState(false);
+  /* รูปเต็มของแผ่นรูปอุปกรณ์ โหลดตอนกดดูเท่านั้น เหมือน DATA SHEET
+     ติ๊กเลือกไปมาในหน้าทำใบจะได้ไม่ต้องดึงไฟล์รูปทุกครั้ง */
+  const loadPics = () => {
+    const ids = quotePageOn(q, "pics") ? (q.picIds || []) : [];
+    if (!ids.length) return Promise.resolve([]);
+    return Promise.all(ids.map((id) => {
+      const meta = picLib.pics.find((p) => p.id === id);
+      if (!meta) return null;
+      return Promise.resolve(picLib.load(id)).then((d) => (d ? { id: id, name: meta.name, data: d } : null));
+    })).then((a) => a.filter(Boolean)).catch(() => []);
+  };
   const openDoc = () => {
-    if (!sheetDocs.length) { setRep(quoteHTML(q, qLang, [])); return; }
     setRepBusy(true);
-    Promise.all(sheetDocs.map((sd) => (sd.kind === "image"
+    const shP = !sheetDocs.length ? Promise.resolve([]) : Promise.all(sheetDocs.map((sd) => (sd.kind === "image"
       ? Promise.resolve(Object.assign({}, sd, { pages: [sd.dataUrl], total: 1 }))
       : quotePdfPages(sd.dataUrl)
           .then((r) => Object.assign({}, sd, { pages: r.pages, total: r.total }))
-          .catch(() => Object.assign({}, sd, { pages: [] })))))
-      .then((list) => { setRep(quoteHTML(q, qLang, list)); })
-      .catch(() => { setRep(quoteHTML(q, qLang, sheetDocs)); })
-      .then(() => setRepBusy(false));
+          .catch(() => Object.assign({}, sd, { pages: [] }))))).catch(() => sheetDocs);
+    Promise.all([shP, loadPics()])
+      .then((r) => { setRep(quoteHTML(q, qLang, r[0], r[1])); })
+      .then(() => setRepBusy(false), () => setRepBusy(false));
   };
   const pickQLang = (id) => { setQLang(id); if (window.pgSetLang) window.pgSetLang(id); };
   const T = quoteTotals(q);
@@ -1641,6 +1819,9 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
             )}
             {(pageOn("cash") || pageOn("payback")) && (
               <QuoteRoiEdit q={q} locked={locked} onChange={(v) => set("roi", v)} />
+            )}
+            {pageOn("pics") && (
+              <QuotePicPick lib={picLib} sel={q.picIds || []} locked={locked} onChange={(v) => set("picIds", v)} />
             )}
             <QuoteSheetPick ids={sheetIds} items={sheetItems} hintText={sheetHint} locked={locked}
               onChange={(v) => set("sheetIds", v)} />
@@ -2433,7 +2614,7 @@ Object.assign(window, {
   QUOTE_STATUS, QUOTE_STATUS_BY, QUOTE_TERMS_DEF, QUOTE_WARRANTY_DEF, quoteTermSplit,
   blankQuote, quoteFrom, quoteTotals, quoteNo, quotesFor, quotesOfJob, quotesOfLead,
   quoteDetailLines, quotePdfPages, quoteHTML, useQuoteStore,
-  QUOTE_PAGES, quotePageOn, quotePagesAll, quoteRoi, quoteRoiCfg, quoteBoqSeed, quoteWtySeed,
+  QUOTE_PAGES, quotePageOn, quotePagesAll, quoteRoi, quoteRoiCfg, quoteBoqSeed, quoteWtySeed, useQuotePics,
   quoteSpec, quoteHasSpec, quoteSpecName, quoteSpecDetail,
   QuoteEditor, QuoteSheetPick, SalesCard, SalesBoardView, SalesKpiView, SalesOverview, SalesJobSummary, SalesQuoteList,
 });
