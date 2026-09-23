@@ -2280,7 +2280,7 @@ function DetailDrawer({
     name: "x",
     size: 18,
     color: "var(--text-2)"
-  }) : "ปิด"), !roMode && React.createElement("button", {
+  }) : "ปิด"), !salesMode && onEdit && React.createElement("button", {
     onClick: () => onEdit(job.id),
     title: "\u0E41\u0E01\u0E49\u0E44\u0E02\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25",
     "aria-label": "\u0E41\u0E01\u0E49\u0E44\u0E02\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25",
@@ -2318,7 +2318,7 @@ function DetailDrawer({
       textAlign: "center",
       lineHeight: 1.4
     }
-  }, "\u0E14\u0E39\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27 \xB7 \u0E41\u0E01\u0E49\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E0A\u0E38\u0E14\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15"), salesMode && React.createElement("span", {
+  }, "\u0E41\u0E01\u0E49\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E0A\u0E38\u0E14\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15"), salesMode && React.createElement("span", {
     style: {
       flex: 1,
       minWidth: 0,

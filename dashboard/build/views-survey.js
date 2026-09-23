@@ -1882,7 +1882,7 @@ function LeadDetail({
     size: 12,
     color: st.state === "skip" ? "var(--text-2)" : "var(--tint-green-tx)",
     sw: 2.4
-  }), st.state === "skip" ? "เอากลับเข้าคิวสำรวจ" : "ข้ามขั้นตอนสำรวจ · ไม่ต้องสำรวจ")), onReport && st.state !== "none" && l.survey && l.survey.startedAt && React.createElement("button", {
+  }), st.state === "skip" ? "เอากลับเข้าคิวสำรวจ" : "ข้ามขั้นตอนสำรวจ · ไม่ต้องสำรวจ")), onReport && st.state !== "none" && st.state !== "skip" && l.survey && l.survey.startedAt && React.createElement("button", {
     onClick: () => onReport(window.leadAsJob(l)),
     style: {
       width: "100%",

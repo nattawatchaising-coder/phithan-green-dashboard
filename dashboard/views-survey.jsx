@@ -714,8 +714,9 @@ function LeadDetail({ l, ctx }) {
           </button>
         </div>
       )}
-      {/* ที่ข้ามไว้ยังไม่มีข้อมูลสำรวจ รายงานจะออกมาเป็นใบเปล่า — ให้ขึ้นเฉพาะใบที่เริ่มกรอกแล้ว */}
-      {onReport && st.state !== "none" && l.survey && l.survey.startedAt && (
+      {/* ที่ข้ามไว้ยังไม่มีข้อมูลสำรวจ รายงานจะออกมาเป็นใบเปล่า — ให้ขึ้นเฉพาะใบที่เริ่มกรอกแล้ว
+          ใบที่เคยกรอกค้างไว้แล้วมากดข้ามทีหลังก็ไม่ต้องมีปุ่มนี้ ไม่งั้นได้รายงานของงานที่ตกลงกันว่าไม่สำรวจ */}
+      {onReport && st.state !== "none" && st.state !== "skip" && l.survey && l.survey.startedAt && (
         <button onClick={() => onReport(window.leadAsJob(l))}
           style={{ width: "100%", marginBottom: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7,
             padding: "10px 14px", background: "var(--primary-soft)", border: "1px solid var(--primary)", borderRadius: 11,

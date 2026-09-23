@@ -899,7 +899,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
                 {isMobile ? <Icon name="x" size={18} color="var(--text-2)" /> : "ปิด"}
               </button>
-              {!roMode && <button onClick={() => onEdit(job.id)} title="แก้ไขข้อมูล" aria-label="แก้ไขข้อมูล"
+              {!salesMode && onEdit && <button onClick={() => onEdit(job.id)} title="แก้ไขข้อมูล" aria-label="แก้ไขข้อมูล"
                 style={{ flex: "0 0 auto", padding: isMobile ? 0 : "11px 16px", width: isMobile ? 42 : "auto", height: isMobile ? 42 : "auto",
                   borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-1)",
                   fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer",
@@ -909,7 +909,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               {permitMode && (
                 <span style={{ flex: 1, minWidth: 0, display: "inline-flex", alignItems: "center", justifyContent: "center",
                   fontSize: 12, color: "var(--text-3)", textAlign: "center", lineHeight: 1.4 }}>
-                  ดูอย่างเดียว · แก้สถานะได้ที่ชุดข้อมูลขออนุญาต
+                  แก้สถานะเอกสารได้ที่ชุดข้อมูลขออนุญาต
                 </span>
               )}
               {salesMode && (
