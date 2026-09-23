@@ -460,6 +460,64 @@ function LeadActionRow({ icon, color, title, sub, onClick }) {
   );
 }
 
+/* ── ช่องตัวเลขในกล่องสเปกที่พิมพ์ทับได้ในใบเลย ──
+   เดิมจะแก้ "ขนาดที่คาด" ตัวเดียวต้องเปิดฟอร์มแก้ไขทั้งใบ แล้วกดบันทึก แล้วปิด
+   พิมพ์แล้วเก็บไว้ในช่องก่อน ค่อยบันทึกตอนออกจากช่องหรือกด Enter —
+   ถ้าบันทึกทุกตัวอักษร คนที่พิมพ์ "15.6" จะถูกบันทึกไล่เป็น 1 · 15 · 15.6 */
+function LeadSpecNum({ label, value, unit, mono, accent, onSave, disabled }) {
+  const [txt, setTxt] = React.useState("");
+  const [typing, setTyping] = React.useState(false);
+  const has = value != null && value !== "" && +value > 0;
+  if (disabled) return <SpecItem label={label} value={has ? value + " " + unit : "—"} mono={mono} accent={accent && has} />;
+  const commit = () => {
+    setTyping(false);
+    const n = parseFloat(String(txt).replace(/[^0-9.]/g, ""));
+    const out = isFinite(n) && n > 0 ? n : "";
+    if (String(out) !== String(value == null ? "" : value)) onSave(out);
+  };
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+      <span style={{ fontSize: 10.5, color: "var(--text-3)", fontWeight: 600 }}>{label}</span>
+      <span style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
+        <input value={typing ? txt : (has ? String(value) : "")} inputMode="decimal" placeholder="—"
+          onFocus={() => { setTxt(has ? String(value) : ""); setTyping(true); }}
+          onChange={(e) => setTxt(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+          style={{ flex: 1, minWidth: 0, padding: "5px 8px", borderRadius: 8, border: "1px solid var(--border)",
+            background: "var(--surface2)", color: accent ? "var(--primary-dark)" : "var(--text-1)",
+            fontFamily: mono ? "var(--mono)" : "inherit", fontSize: 14, fontWeight: 600, outline: "none" }} />
+        <span style={{ fontSize: 10.5, color: "var(--text-3)", whiteSpace: "nowrap", flexShrink: 0 }}>{unit}</span>
+      </span>
+    </div>
+  );
+}
+
+/* เฟสมีสองค่า กดเลือกเร็วกว่าพิมพ์ · ที่ยังไม่มีใครระบุไม่ติ๊กอะไรไว้ จะได้ไม่เข้าใจผิดว่ารู้แล้ว */
+function LeadSpecPhase({ label, lead, onSave, disabled }) {
+  const known = !!(lead.phase || (lead.survey && lead.survey.phase));
+  const cur = known ? window.SF.phaseOf(lead) : 0;
+  if (disabled) return <SpecItem label={label} value={cur ? cur + " เฟส" : "—"} />;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+      <span style={{ fontSize: 10.5, color: "var(--text-3)", fontWeight: 600 }}>{label}</span>
+      <span style={{ display: "inline-flex", gap: 4, padding: 3, borderRadius: 9, background: "var(--surface2)",
+        border: "1px solid var(--border)", alignSelf: "flex-start" }}>
+        {["1", "3"].map((k) => {
+          const on = cur === +k;
+          return (
+            <button key={k} type="button" onClick={() => onSave(k)}
+              style={{ padding: "4px 11px", borderRadius: 7, border: "none", cursor: "pointer", fontFamily: "inherit",
+                fontSize: 12.5, fontWeight: 700,
+                background: on ? "var(--surface)" : "transparent", color: on ? "var(--primary-dark)" : "var(--text-3)",
+                boxShadow: on ? "0 1px 3px rgba(0,0,0,.08)" : "none" }}>{k} เฟส</button>
+          );
+        })}
+      </span>
+    </div>
+  );
+}
+
 /* ── ใบลูกค้าแบบเต็มหน้า — วางโครงเดียวกับใบงานในฐานข้อมูล ──
    เซลล์ต้องเห็นของชุดเดียวกับที่เปิดใบงานแล้วเห็น: ข้อมูลติดต่อ · สเปกที่เสนอ · ใบเสนอราคาทุกฉบับ
    · แบบสำรวจ · ผังแผง 3D · ประวัติการติดต่อ
@@ -505,6 +563,14 @@ function LeadDetail({ l, ctx }) {
       skippedAt: !cur.skip ? new Date().toISOString() : null,
       skipBy: !cur.skip ? ((currentUser && currentUser.name) || "") : null,
     }) });
+  };
+  /* เฟสที่ใช้จริงอ่านจากแบบสำรวจก่อนค่าในใบ (ดู SF.phaseOf) — ถ้าแก้ที่นี่แล้วไม่แก้ในแบบสำรวจด้วย
+     ของเดิมในแบบสำรวจจะทับทันที กลายเป็นกดแล้วตัวเลขไม่ขยับ */
+  const setLeadPhase = (v) => {
+    const f = { phase: v };
+    const cur = l.survey || {};
+    if (cur.phase && String(cur.phase) !== String(v)) f.survey = Object.assign({}, cur, { phase: v });
+    leadStore.patch(l.id, f);
   };
   const removeContact = (c, shownIdx) => {
     const all = (l.contacts || []).slice();
@@ -568,13 +634,17 @@ function LeadDetail({ l, ctx }) {
         )}
       </div>
 
-      {/* สเปกที่เสนอลูกค้า — ของจริงยังไม่มี มีแต่ที่คาดไว้ ต้องเขียนให้ชัดว่าเป็นค่าคาด */}
+      {/* สเปกที่เสนอลูกค้า — ของจริงยังไม่มี มีแต่ที่คาดไว้ ต้องเขียนให้ชัดว่าเป็นค่าคาด
+          แก้ได้ในใบเลย เพราะเป็นตัวเลขที่ขยับตลอดระหว่างคุยกับลูกค้า
+          ไม่ควรต้องเปิดฟอร์มทั้งใบเพื่อแก้ช่องเดียวทุกครั้ง */}
       <div style={card}>
         <div style={capt}><Icon name="sun" size={14} color="var(--primary)" /> สเปกที่เสนอลูกค้า</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
-          <SpecItem label="ขนาดที่คาด" value={+l.expKwp > 0 ? l.expKwp + " kWp" : "—"} mono />
-          <SpecItem label="มูลค่าที่คาด" value={+l.expValue > 0 ? "฿" + fmtBaht(+l.expValue) : "—"} accent={+l.expValue > 0} />
-          <SpecItem label="ระบบไฟฟ้า" value={(l.phase || (l.survey && l.survey.phase)) ? window.SF.phaseOf(l) + " เฟส" : "—"} />
+          <LeadSpecNum label="ขนาดที่คาด" value={l.expKwp} unit="kWp" mono
+            onSave={(v) => leadStore.patch(l.id, { expKwp: v })} />
+          <LeadSpecNum label="มูลค่าที่คาด" value={l.expValue} unit="บาท" accent
+            onSave={(v) => leadStore.patch(l.id, { expValue: v })} />
+          <LeadSpecPhase label="ระบบไฟฟ้า" lead={l} onSave={setLeadPhase} />
         </div>
       </div>
 
@@ -785,4 +855,4 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
   );
 }
 
-Object.assign(window, { SurveyView, LeadsView, LeadCard, LeadDetail, LeadDrawer, LeadModal, ContactLogModal });
+Object.assign(window, { SurveyView, LeadsView, LeadCard, LeadDetail, LeadDrawer, LeadModal, ContactLogModal, LeadSpecNum, LeadSpecPhase });

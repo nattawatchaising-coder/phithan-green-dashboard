@@ -1412,6 +1412,141 @@ function LeadActionRow({
     color: "var(--text-3)"
   }));
 }
+function LeadSpecNum({
+  label,
+  value,
+  unit,
+  mono,
+  accent,
+  onSave,
+  disabled
+}) {
+  const [txt, setTxt] = React.useState("");
+  const [typing, setTyping] = React.useState(false);
+  const has = value != null && value !== "" && +value > 0;
+  if (disabled) return React.createElement(SpecItem, {
+    label: label,
+    value: has ? value + " " + unit : "—",
+    mono: mono,
+    accent: accent && has
+  });
+  const commit = () => {
+    setTyping(false);
+    const n = parseFloat(String(txt).replace(/[^0-9.]/g, ""));
+    const out = isFinite(n) && n > 0 ? n : "";
+    if (String(out) !== String(value == null ? "" : value)) onSave(out);
+  };
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 3,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      color: "var(--text-3)",
+      fontWeight: 600
+    }
+  }, label), React.createElement("span", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 5,
+      minWidth: 0
+    }
+  }, React.createElement("input", {
+    value: typing ? txt : has ? String(value) : "",
+    inputMode: "decimal",
+    placeholder: "\u2014",
+    onFocus: () => {
+      setTxt(has ? String(value) : "");
+      setTyping(true);
+    },
+    onChange: e => setTxt(e.target.value),
+    onBlur: commit,
+    onKeyDown: e => {
+      if (e.key === "Enter") e.currentTarget.blur();
+    },
+    style: {
+      flex: 1,
+      minWidth: 0,
+      padding: "5px 8px",
+      borderRadius: 8,
+      border: "1px solid var(--border)",
+      background: "var(--surface2)",
+      color: accent ? "var(--primary-dark)" : "var(--text-1)",
+      fontFamily: mono ? "var(--mono)" : "inherit",
+      fontSize: 14,
+      fontWeight: 600,
+      outline: "none"
+    }
+  }), React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      color: "var(--text-3)",
+      whiteSpace: "nowrap",
+      flexShrink: 0
+    }
+  }, unit)));
+}
+function LeadSpecPhase({
+  label,
+  lead,
+  onSave,
+  disabled
+}) {
+  const known = !!(lead.phase || lead.survey && lead.survey.phase);
+  const cur = known ? window.SF.phaseOf(lead) : 0;
+  if (disabled) return React.createElement(SpecItem, {
+    label: label,
+    value: cur ? cur + " เฟส" : "—"
+  });
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 3,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      color: "var(--text-3)",
+      fontWeight: 600
+    }
+  }, label), React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      gap: 4,
+      padding: 3,
+      borderRadius: 9,
+      background: "var(--surface2)",
+      border: "1px solid var(--border)",
+      alignSelf: "flex-start"
+    }
+  }, ["1", "3"].map(k => {
+    const on = cur === +k;
+    return React.createElement("button", {
+      key: k,
+      type: "button",
+      onClick: () => onSave(k),
+      style: {
+        padding: "4px 11px",
+        borderRadius: 7,
+        border: "none",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 12.5,
+        fontWeight: 700,
+        background: on ? "var(--surface)" : "transparent",
+        color: on ? "var(--primary-dark)" : "var(--text-3)",
+        boxShadow: on ? "0 1px 3px rgba(0,0,0,.08)" : "none"
+      }
+    }, k, " \u0E40\u0E1F\u0E2A");
+  })));
+}
 function LeadDetail({
   l,
   ctx
@@ -1473,6 +1608,16 @@ function LeadDetail({
         skipBy: !cur.skip ? currentUser && currentUser.name || "" : null
       })
     });
+  };
+  const setLeadPhase = v => {
+    const f = {
+      phase: v
+    };
+    const cur = l.survey || {};
+    if (cur.phase && String(cur.phase) !== String(v)) f.survey = Object.assign({}, cur, {
+      phase: v
+    });
+    leadStore.patch(l.id, f);
   };
   const removeContact = (c, shownIdx) => {
     const all = (l.contacts || []).slice();
@@ -1618,17 +1763,26 @@ function LeadDetail({
       gridTemplateColumns: "repeat(3, 1fr)",
       gap: 16
     }
-  }, React.createElement(SpecItem, {
+  }, React.createElement(LeadSpecNum, {
     label: "\u0E02\u0E19\u0E32\u0E14\u0E17\u0E35\u0E48\u0E04\u0E32\u0E14",
-    value: +l.expKwp > 0 ? l.expKwp + " kWp" : "—",
-    mono: true
-  }), React.createElement(SpecItem, {
+    value: l.expKwp,
+    unit: "kWp",
+    mono: true,
+    onSave: v => leadStore.patch(l.id, {
+      expKwp: v
+    })
+  }), React.createElement(LeadSpecNum, {
     label: "\u0E21\u0E39\u0E25\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E04\u0E32\u0E14",
-    value: +l.expValue > 0 ? "฿" + fmtBaht(+l.expValue) : "—",
-    accent: +l.expValue > 0
-  }), React.createElement(SpecItem, {
+    value: l.expValue,
+    unit: "\u0E1A\u0E32\u0E17",
+    accent: true,
+    onSave: v => leadStore.patch(l.id, {
+      expValue: v
+    })
+  }), React.createElement(LeadSpecPhase, {
     label: "\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E1F\u0E1F\u0E49\u0E32",
-    value: l.phase || l.survey && l.survey.phase ? window.SF.phaseOf(l) + " เฟส" : "—"
+    lead: l,
+    onSave: setLeadPhase
   }))), onOpenQuote && window.SalesQuoteList && React.createElement(window.SalesQuoteList, {
     lead: l,
     quotes: quotes,
@@ -2075,5 +2229,7 @@ Object.assign(window, {
   LeadDetail,
   LeadDrawer,
   LeadModal,
-  ContactLogModal
+  ContactLogModal,
+  LeadSpecNum,
+  LeadSpecPhase
 });
