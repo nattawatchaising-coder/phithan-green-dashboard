@@ -17,6 +17,11 @@ const TM_LB = {
   gap: 4,
   minWidth: 0
 };
+const TM_WD_TH = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+function tmWdOf(d) {
+  const s = String(d || "");
+  return new Date(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10), 12).getDay();
+}
 function TmPill({
   s,
   size
@@ -652,21 +657,37 @@ function TmMonth({
     }
   }, React.createElement("div", {
     style: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: 7
+      display: "grid",
+      gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+      gap: 6,
+      maxWidth: 760
     }
-  }, days.map(d => {
+  }, TM_WD_TH.map((w, i) => React.createElement("div", {
+    key: w,
+    style: {
+      textAlign: "center",
+      padding: "0 0 2px",
+      fontSize: 10.5,
+      fontWeight: 800,
+      color: i === 0 || i === 6 ? "var(--text-3)" : "var(--text-2)"
+    }
+  }, w)), Array.from({
+    length: tmWdOf(days[0])
+  }, (_, i) => React.createElement("div", {
+    key: "pad" + i
+  })), days.map(d => {
     const x = r.byDay[d];
     const open = x && x.in && !x.out;
+    const wk = tmWdOf(d) === 0 || tmWdOf(d) === 6;
     return React.createElement("div", {
       key: d,
       title: d,
       style: {
-        minWidth: 92,
+        minWidth: 0,
         padding: "7px 9px",
         borderRadius: 9,
-        background: "var(--surface)",
+        minHeight: 58,
+        background: wk && !x ? "var(--surface2)" : "var(--surface)",
         border: "1px solid " + (open ? "var(--tint-red-bd)" : x ? "var(--border)" : "transparent"),
         opacity: x ? 1 : 0.45
       }
@@ -3196,6 +3217,8 @@ Object.assign(window, {
   TM_IN,
   TM_IN_W,
   TM_LB,
+  TM_WD_TH,
+  tmWdOf,
   AttendView,
   TmDaySheet,
   TmMonth,

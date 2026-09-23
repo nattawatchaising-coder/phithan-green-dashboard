@@ -18,6 +18,14 @@ const TM_IN = { padding: "9px 11px", borderRadius: 10, border: "1px solid var(--
    (TM_IN เปล่า ๆ ยังใช้กับปุ่มและช่องในแถว flex ที่ควรกว้างตามเนื้อ จึงแยกเป็นคนละตัว) */
 const TM_IN_W = Object.assign({}, TM_IN, { width: "100%" });
 const TM_LB = { display: "grid", gap: 4, minWidth: 0 };
+/* หัวคอลัมน์ปฏิทิน เรียงตาม getDay() ของ JS คือเริ่มวันอาทิตย์ */
+const TM_WD_TH = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+/* วันในสัปดาห์ของวันที่รูปแบบ YYYY-MM-DD — ประกอบเป็นเวลาท้องถิ่นเที่ยงวัน
+   ไม่ใช่ new Date("2026-09-01") ที่ JS อ่านเป็น UTC แล้วเพี้ยนไปหนึ่งวันในโซนเรา */
+function tmWdOf(d) {
+  const s = String(d || "");
+  return new Date(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10), 12).getDay();
+}
 
 function TmPill({ s, size }) {
   const st = window.tmOtStatusOf(s);
@@ -289,13 +297,23 @@ function TmMonth({ cfg, users, ot }) {
                 {pick === r.userId && (
                   <tr>
                     <td colSpan={7} style={{ padding: "10px 13px 14px", background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                      {/* เรียงเป็นปฏิทินจริง ๆ เจ็ดคอลัมน์ต่อสัปดาห์ — คนตรวจค่าแรงมองออกทันที
+                          ว่าวันที่ขาดเป็นเสาร์อาทิตย์หรือเป็นวันทำงานที่ลืมปั๊มใบ
+                          ช่องว่างหัวเดือนคือวันของเดือนก่อน ไม่ใช่วันที่ไม่มีใบ */}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 6, maxWidth: 760 }}>
+                        {TM_WD_TH.map((w, i) => (
+                          <div key={w} style={{ textAlign: "center", padding: "0 0 2px", fontSize: 10.5, fontWeight: 800,
+                            color: i === 0 || i === 6 ? "var(--text-3)" : "var(--text-2)" }}>{w}</div>
+                        ))}
+                        {Array.from({ length: tmWdOf(days[0]) }, (_, i) => <div key={"pad" + i} />)}
                         {days.map((d) => {
                           const x = r.byDay[d];
                           const open = x && x.in && !x.out;
+                          const wk = tmWdOf(d) === 0 || tmWdOf(d) === 6;
                           return (
                             <div key={d} title={d}
-                              style={{ minWidth: 92, padding: "7px 9px", borderRadius: 9, background: "var(--surface)",
+                              style={{ minWidth: 0, padding: "7px 9px", borderRadius: 9, minHeight: 58,
+                                background: wk && !x ? "var(--surface2)" : "var(--surface)",
                                 border: "1px solid " + (open ? "var(--tint-red-bd)" : x ? "var(--border)" : "transparent"),
                                 opacity: x ? 1 : 0.45 }}>
                               <div style={{ fontSize: 10.5, color: "var(--text-3)", fontWeight: 700 }}>{+d.slice(8)}</div>
@@ -1422,7 +1440,7 @@ function TmMyDays({ rows, cfg }) {
   );
 }
 
-Object.assign(window, { TM_IN, TM_IN_W, TM_LB, AttendView, TmDaySheet, TmMonth, TmMyDays, TmOtModal, TmOtRow, TmWorkHours,
+Object.assign(window, { TM_IN, TM_IN_W, TM_LB, TM_WD_TH, tmWdOf, AttendView, TmDaySheet, TmMonth, TmMyDays, TmOtModal, TmOtRow, TmWorkHours,
   TmOtPeriod,
   tmExportMonthXlsx, tmPersonSheet, tmSheetName,
   TmStat, TmPill, TM_IN, tmExportMonthXlsx });
