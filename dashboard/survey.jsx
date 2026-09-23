@@ -56,10 +56,11 @@ const SURVEY_PHOTO_CATS = ["หลังคา / โครงสร้าง", "
    key = ชื่อช่องบันทึกในแบบสำรวจ และเป็นป้ายที่ติดบนรูปด้วย (photos[x].blk)
    cat = หมวดที่รายงานใช้จัดกลุ่มรูป — รูปจึงไปโผล่ใต้หัวข้อเดียวกับบันทึกเอง */
 const SURVEY_NOTE_BLOCKS = [
-  { key: "meterNote", th: "มิเตอร์ & เมนไฟฟ้าเดิม", cat: "ระบบไฟฟ้า / ตู้ MDB", ph: "เช่น มิเตอร์อยู่หน้าบ้านติดรั้ว · สายเมนเดิมเก่ามาก แนะนำเปลี่ยน" },
-  { key: "roofNote",  th: "ชนิด & สภาพหลังคา",      cat: "หลังคา / โครงสร้าง",  ph: "เช่น เมทัลชีทหนา 0.35 มม. มีรอยรั่วมุมซ้าย · ต้นไม้สูงทางทิศตะวันตกบังช่วงบ่าย" },
-  { key: "mdbNote",   th: "ตู้เมนไฟฟ้า (MDB)",       cat: "ระบบไฟฟ้า / ตู้ MDB", ph: "เช่น เหลือช่องว่าง 2 ช่องล่างสุด · ต้องเพิ่มตู้ย่อยข้างเคียง" },
-  { key: "equipNote", th: "อุปกรณ์ที่เสนอ",           cat: "รูปอุปกรณ์ที่เสนอ",   ph: "เช่น เสนอรุ่นนี้เพราะพื้นที่หลังคาจำกัด · แนบภาพตัดจากดาต้าชีต" },
+  { key: "meterNote", th: "มิเตอร์ & เมนไฟฟ้าเดิม", slot: "meter",    cat: "ระบบไฟฟ้า / ตู้ MDB", ph: "เช่น มิเตอร์อยู่หน้าบ้านติดรั้ว · สายเมนเดิมเก่ามาก แนะนำเปลี่ยน" },
+  { key: "roofNote",  th: "ชนิด & สภาพหลังคา",      slot: "roof",     cat: "หลังคา / โครงสร้าง",  ph: "เช่น เมทัลชีทหนา 0.35 มม. มีรอยรั่วมุมซ้าย · ต้นไม้สูงทางทิศตะวันตกบังช่วงบ่าย" },
+  { key: "mdbNote",   th: "ตู้เมนไฟฟ้า (MDB)",       slot: "mdb",      cat: "ระบบไฟฟ้า / ตู้ MDB", ph: "เช่น เหลือช่องว่าง 2 ช่องล่างสุด · ต้องเพิ่มตู้ย่อยข้างเคียง" },
+  { key: "invNote",   th: "ตำแหน่งติดตั้งอินเวอร์เตอร์", slot: "inverter", cat: "จุดติดตั้งอุปกรณ์",   ph: "เช่น ติดผนังข้างตู้ MDB สูงจากพื้น 1.6 ม. · มีชายคาคลุม ไม่โดนแดดบ่าย" },
+  { key: "equipNote", th: "อุปกรณ์ที่เสนอ",           slot: "",         cat: "รูปอุปกรณ์ที่เสนอ",   ph: "เช่น เสนอรุ่นนี้เพราะพื้นที่หลังคาจำกัด · แนบภาพตัดจากดาต้าชีต" },
 ];
 const SURVEY_NOTE_BLOCK_BY = Object.fromEntries(SURVEY_NOTE_BLOCKS.map((b) => [b.key, b]));
 
@@ -117,7 +118,7 @@ function blankSurvey(job) {
     structureOk: "",                            // โครงสร้างรับน้ำหนัก ผ่าน/ต้องเสริม
     birdNet: "",                                // ตาข่ายกันนก
     shadingTags: [], shadingNote: "",
-    meterNote: "", roofNote: "", mdbNote: "", equipNote: "",   // บันทึกประจำกล่อง (เขียนคู่กับรูปที่แนบในกล่องนั้น)
+    meterNote: "", roofNote: "", mdbNote: "", invNote: "", equipNote: "",   // บันทึกประจำกล่อง (เขียนคู่กับรูปที่แนบในกล่องนั้น)
     mdbBrand: "", mdbSpace: "", mdbLoc: "",     // ตู้ MDB — ยี่ห้อ / ช่องว่าง / ตำแหน่งที่ตั้ง
     mdbSafety: "", mdbRccb: "",                 // เซฟตี้คัตในตู้ / เมนเป็นชนิดกันดูด RCD-RCCB
     inverterLoc: "",
@@ -814,7 +815,7 @@ function SurveyShotCard({ shot, slot, n, busy, onPick, onRemove, onAnn, onField,
         )}
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{req ? slot.label : (shot && shot.title) || "รูปเพิ่มเติม"}{req && <span style={{ color: "#EF4444" }}> *</span>}</span>
-          <span style={{ display: "block", fontSize: 11, color: "var(--text-3)" }}>{req ? slot.hint : "ตั้งชื่อหัวข้อและคำบรรยายได้ด้านล่าง"}</span>
+          <span style={{ display: "block", fontSize: 11, color: "var(--text-3)" }}>{req ? slot.hint : hideCat ? "ตั้งชื่อรูปและคำบรรยายได้ด้านล่าง" : "ตั้งชื่อหัวข้อและคำบรรยายได้ด้านล่าง"}</span>
         </span>
         <input ref={inputRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }}
           onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) onPick(f); e.target.value = ""; }} />
@@ -865,17 +866,24 @@ function SurveyShotCard({ shot, slot, n, busy, onPick, onRemove, onAnn, onField,
 /* ── บันทึก + รูปประกอบ ประจำหัวข้อ ──
    เขียนสิ่งที่เจอหน้างานแล้วแนบรูปที่พูดถึงได้ตรงนั้น จบเป็นเรื่อง ๆ ไป
    card() ส่งมาจากหน้าต่างสำรวจ เพราะการ์ดรูปต้องใช้ทั้งเลขลำดับรวม การเลื่อนขึ้นลง และการเขียนทับรูป */
-function SurveyNoteBox({ blk, value, onChange, shots, card, busy, onAdd, onPaste }) {
-  const mine = shots.filter((s) => s.blk === blk.key);
+function SurveyNoteBox({ blk, value, onChange, shots, card, slotNode, count, busy, onAdd, onPaste }) {
   return (
-    <div style={{ borderTop: "1px dashed var(--border-strong)", paddingTop: 13, display: "flex", flexDirection: "column", gap: 9 }}>
-      <label style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", lineHeight: 1.3 }}>
-        บันทึก & รูปประกอบหัวข้อนี้{mine.length ? <span style={{ color: "var(--primary-dark)", fontWeight: 700 }}>{" · " + mine.length + " รูป"}</span> : null}
-      </label>
+    <div style={{ margin: "-2px -3px 0", padding: "11px 12px 12px", borderRadius: 13, background: "var(--surface2)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 9 }}>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>บันทึก &amp; รูปของหัวข้อนี้</span>
+        <span style={{ fontSize: 10.5, fontWeight: 700, fontFamily: "var(--mono)", color: count ? "var(--primary-dark)" : "var(--text-3)" }}>
+          {count ? count + " รูป" : "ยังไม่มีรูป"}
+        </span>
+      </div>
       <textarea value={value || ""} onChange={(e) => onChange(e.target.value)} rows={2} placeholder={blk.ph}
-        style={Object.assign({}, inputStyle, { resize: "vertical", lineHeight: 1.55 })} />
-      {mine.length > 0 && <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>{mine.map((s) => card(s))}</div>}
-      <AddShotButton busy={busy} onPick={onAdd} onPaste={onPaste} label="แนบรูปหัวข้อนี้" />
+        style={Object.assign({}, inputStyle, { background: "var(--surface)", resize: "vertical", lineHeight: 1.55 })} />
+      {(slotNode || shots.length > 0) && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+          {slotNode}
+          {shots.map((s) => card(s))}
+        </div>
+      )}
+      <AddShotButton busy={busy} onPick={onAdd} onPaste={onPaste} label={slotNode ? "แนบรูปอื่นของหัวข้อนี้" : "แนบรูปหัวข้อนี้"} slim />
     </div>
   );
 }
@@ -886,7 +894,7 @@ const SURVEY_STEPS = [
   { n: 2, icon: "box",   th: "หลังคา" },
   { n: 3, icon: "bolt",  th: "ไฟฟ้า & ตำแหน่ง" },
   { n: 4, icon: "file",  th: "อุปกรณ์ & หมายเหตุ" },
-  { n: 5, icon: "image", th: "รูปถ่าย" },
+  { n: 5, icon: "image", th: "รูปเพิ่มเติม" },
 ];
 
 function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
@@ -1029,6 +1037,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
   );
 
   const two = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 };
+  const missingSlots = SURVEY_PHOTO_SLOTS.filter((s) => !media.photos[s.key]);
 
   /* การ์ดรูปของรูปที่แนบในกล่อง — ใช้ชุดเดียวกับลิสต์รูปเพิ่มเติม เลขลำดับจึงตรงกับในรายงาน */
   const blockShotCard = (shot) => {
@@ -1043,11 +1052,29 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
         first={idx <= 0} last={idx === shots.length - 1} />
     );
   };
+  /* รูปบังคับของหัวข้อ — ถ่ายตรงที่กรอกข้อมูลเรื่องนั้นเลย ติดหมวดให้เหมือนรูปอื่นในหัวข้อเดียวกัน */
+  const requiredCard = (slot, blk) => {
+    const shot = media.photos[slot.key] ? Object.assign({ key: slot.key }, media.photos[slot.key]) : null;
+    const idx = shots.findIndex((s) => s.key === slot.key);
+    return (
+      <SurveyShotCard slot={slot} shot={shot} busy={busySlot === slot.key} n={idx >= 0 ? idx + 1 : null}
+        onPick={(file) => pickPhoto(slot.key, file, null, { blk: blk.key, cat: blk.cat })}
+        onRemove={() => { askConfirm({ title: "ลบรูปนี้?", ok: "ลบรูป" }).then((ok) => { if (ok) media.removePhoto(slot.key); }); }}
+        onAnn={() => setAnnKey(slot.key)}
+        onField={(k, v) => media.patchPhoto(slot.key, { [k]: v })}
+        onMove={shot ? ((d) => moveShot(slot.key, d)) : null}
+        first={idx <= 0} last={idx === shots.length - 1} />
+    );
+  };
   const noteBox = (key) => {
     const blk = SURVEY_NOTE_BLOCK_BY[key];
+    const slot = blk.slot ? SURVEY_SLOT_BY[blk.slot] : null;
+    const mine = shots.filter((s) => s.blk === blk.key && s.key !== blk.slot);
     return (
       <SurveyNoteBox blk={blk} value={f[blk.key]} onChange={(v) => set(blk.key, v)}
-        shots={shots} card={blockShotCard} busy={addBlk === blk.key}
+        shots={mine} card={blockShotCard} busy={addBlk === blk.key}
+        slotNode={slot ? requiredCard(slot, blk) : null}
+        count={mine.length + (slot && media.photos[slot.key] ? 1 : 0)}
         onAdd={(file) => addShot(file, { blk: blk.key, cat: blk.cat })}
         onPaste={() => pasteFromClipboard({ blk: blk.key, cat: blk.cat })} />
     );
@@ -1177,6 +1204,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
               </SurveyBlock>
               <SurveyBlock title="🔋 ตำแหน่งติดตั้งอินเวอร์เตอร์">
                 {fld("ตำแหน่งที่เสนอติดตั้ง", <Segmented value={f.inverterLoc} onChange={(v) => set("inverterLoc", v)} options={SURVEY_INV_LOC} />, true)}
+                {noteBox("invNote")}
               </SurveyBlock>
             </React.Fragment>
           )}
@@ -1205,7 +1233,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
                   <Icon name="plus" size={14} color="var(--text-2)" /> เพิ่มข้อ
                 </button>
               </SurveyBlock>
-              <SurveyBlock title="📝 หมายเหตุ" sub="เรื่องรวม ๆ ของงานนี้ · เรื่องของแต่ละหัวข้อเขียนในกล่อง “บันทึก & รูปประกอบ” ของหัวข้อนั้นได้เลย">
+              <SurveyBlock title="📝 หมายเหตุ" sub="เรื่องรวม ๆ ของงานนี้ · เรื่องเฉพาะหัวข้อไหน เขียนในกล่อง “บันทึก & รูปของหัวข้อนี้” ของหัวข้อนั้นได้เลย">
                 <textarea value={f.note} onChange={(e) => set("note", e.target.value)} rows={4}
                   placeholder={"เช่น\nPV 2STRING 25m. x2\nMAIN MCB100A x1 + ATS100 + ตู้ No.2"}
                   style={Object.assign({}, inputStyle, { resize: "vertical", lineHeight: 1.6 })} />
@@ -1215,40 +1243,33 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
 
           {step === 5 && (
             <React.Fragment>
-              <SurveyBlock title={"📷 รูปถ่ายบังคับ (" + SURVEY_PHOTO_SLOTS.length + " รูป)"} sub="ถ่ายให้ครบเพื่อให้การสำรวจสมบูรณ์ · แตะรูปเพื่อเขียนลูกศร ข้อความ หรือแปะรูปอุปกรณ์ทับ">
-                {!window.FBDB && <div style={{ fontSize: 12, color: "#EF4444", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)", borderRadius: 9, padding: "9px 11px" }}>⚠ ต้องเชื่อมต่อ Firebase จึงจะอัปโหลดรูปได้</div>}
-                <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-                  {SURVEY_PHOTO_SLOTS.map((slot) => {
-                    const shot = media.photos[slot.key] ? Object.assign({ key: slot.key }, media.photos[slot.key]) : null;
-                    const idx = shots.findIndex((s) => s.key === slot.key);
-                    return (
-                      <SurveyShotCard key={slot.key} slot={slot} shot={shot} busy={busySlot === slot.key}
-                        n={idx >= 0 ? idx + 1 : null}
-                        onPick={(file) => pickPhoto(slot.key, file)}
-                        onRemove={() => { askConfirm({ title: "ลบรูปนี้?", ok: "ลบรูป" }).then((ok) => { if (ok) media.removePhoto(slot.key); }); }}
-                        onAnn={() => setAnnKey(slot.key)}
-                        onField={(k, v) => media.patchPhoto(slot.key, { [k]: v })}
-                        onMove={shot ? ((d) => moveShot(slot.key, d)) : null}
-                        first={idx <= 0} last={idx === shots.length - 1} />
-                    );
-                  })}
+              {!window.FBDB && <div style={{ fontSize: 12, color: "#EF4444", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)", borderRadius: 11, padding: "10px 12px" }}>⚠ ต้องเชื่อมต่อ Firebase จึงจะอัปโหลดรูปได้</div>}
+              {missingSlots.length > 0 && (
+                <div style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "11px 13px", borderRadius: 13, background: "var(--tint-amber-bg, #FFF8F1)", border: "1px solid var(--tint-amber-bd, #F5E3D3)" }}>
+                  <span style={{ fontSize: 14, lineHeight: 1.2 }}>📷</span>
+                  <span style={{ minWidth: 0, fontSize: 12, lineHeight: 1.6, color: "var(--text-1)" }}>
+                    ยังขาดรูปบังคับ <b>{missingSlots.length}</b> รูป — {missingSlots.map((s) => s.label).join(" · ")}
+                    <span style={{ display: "block", color: "var(--text-3)", fontSize: 11.5 }}>ถ่ายได้ที่หัวข้อของรูปนั้นในขั้นก่อนหน้า ตรงกล่อง “บันทึก &amp; รูปของหัวข้อนี้”</span>
+                  </span>
                 </div>
-              </SurveyBlock>
-              <SurveyBlock title={"🖼️ รูปเพิ่มเติม (" + extras.length + " รูป)"} sub="ถ่ายกี่รูปก็ได้ · ครอปรูปมาแล้วกด Ctrl+V เพิ่มเป็นรูปใหม่ได้เลย · ตั้งหัวข้อ/หมวดหมู่ แล้วรายงานจะจัดกลุ่มให้ตามนี้">
-                <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-                  {extras.map((shot) => {
-                    const idx = shots.findIndex((s) => s.key === shot.key);
-                    return (
-                      <SurveyShotCard key={shot.key} shot={shot} busy={busySlot === shot.key} n={idx + 1}
-                        onPick={(file) => pickPhoto(shot.key, file, shot.order)}
-                        onRemove={() => { askConfirm({ title: "ลบรูปนี้?", ok: "ลบรูป" }).then((ok) => { if (ok) media.removePhoto(shot.key); }); }}
-                        onAnn={() => setAnnKey(shot.key)}
-                        onField={(k, v) => media.patchPhoto(shot.key, { [k]: v })}
-                        onMove={(d) => moveShot(shot.key, d)}
-                        first={idx <= 0} last={idx === shots.length - 1} />
-                    );
-                  })}
-                </div>
+              )}
+              <SurveyBlock title={"🖼️ รูปเพิ่มเติม (" + extras.length + " รูป)"} sub="รูปที่อยากแนบนอกเหนือจากหัวข้อข้างต้น · ครอปรูปมาแล้วกด Ctrl+V เพิ่มเป็นรูปใหม่ได้เลย">
+                {extras.length > 0 && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                    {extras.map((shot) => {
+                      const idx = shots.findIndex((s) => s.key === shot.key);
+                      return (
+                        <SurveyShotCard key={shot.key} shot={shot} hideCat busy={busySlot === shot.key} n={idx + 1}
+                          onPick={(file) => pickPhoto(shot.key, file, shot.order)}
+                          onRemove={() => { askConfirm({ title: "ลบรูปนี้?", ok: "ลบรูป" }).then((ok) => { if (ok) media.removePhoto(shot.key); }); }}
+                          onAnn={() => setAnnKey(shot.key)}
+                          onField={(k, v) => media.patchPhoto(shot.key, { [k]: v })}
+                          onMove={(d) => moveShot(shot.key, d)}
+                          first={idx <= 0} last={idx === shots.length - 1} />
+                      );
+                    })}
+                  </div>
+                )}
                 <AddShotButton busy={busySlot && isExtraShot(busySlot)} onPick={addShot} onPaste={pasteFromClipboard} />
               </SurveyBlock>
             </React.Fragment>
@@ -1282,10 +1303,11 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
 }
 
 /* ปุ่มเพิ่มรูป — แยกออกมาเพราะต้องมี input file ของตัวเอง */
-function AddShotButton({ busy, onPick, onPaste, label }) {
+function AddShotButton({ busy, onPick, onPaste, label, slim }) {
   const ref = React.useRef(null);
-  const btn = { flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "13px", borderRadius: 11,
-    border: "1px dashed var(--border-strong)", background: "var(--surface)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: busy ? "default" : "pointer" };
+  const btn = Object.assign({ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "13px", borderRadius: 11,
+    border: "1px dashed var(--border-strong)", background: "var(--surface)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: busy ? "default" : "pointer" },
+    slim ? { flex: "0 0 auto", padding: "8px 13px", borderRadius: 10, fontSize: 12.5 } : null);
   return (
     <React.Fragment>
       <input ref={ref} type="file" accept="image/*" capture="environment" style={{ display: "none" }}
@@ -1296,8 +1318,8 @@ function AddShotButton({ busy, onPick, onPaste, label }) {
         </button>
         {/* ครอปรูปอุปกรณ์/ภาพตัดมาแล้วแปะได้เลย ไม่ต้องเซฟเป็นไฟล์ก่อน (กด Ctrl+V ก็ได้) */}
         {onPaste && (
-          <button type="button" onClick={onPaste} disabled={busy} style={Object.assign({}, btn, { flex: "0 0 auto", paddingLeft: 15, paddingRight: 15 })} title="วางภาพจากคลิปบอร์ด (Ctrl+V)">
-            📋 วางภาพ
+          <button type="button" onClick={onPaste} disabled={busy} style={Object.assign({}, btn, { flex: "0 0 auto", paddingLeft: slim ? 11 : 15, paddingRight: slim ? 11 : 15 })} title="วางภาพจากคลิปบอร์ด (Ctrl+V)">
+            📋{slim ? "" : " วางภาพ"}
           </button>
         )}
       </div>

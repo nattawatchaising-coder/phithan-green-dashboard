@@ -74,21 +74,31 @@ const SURVEY_PHOTO_CATS = ["หลังคา / โครงสร้าง", "
 const SURVEY_NOTE_BLOCKS = [{
   key: "meterNote",
   th: "มิเตอร์ & เมนไฟฟ้าเดิม",
+  slot: "meter",
   cat: "ระบบไฟฟ้า / ตู้ MDB",
   ph: "เช่น มิเตอร์อยู่หน้าบ้านติดรั้ว · สายเมนเดิมเก่ามาก แนะนำเปลี่ยน"
 }, {
   key: "roofNote",
   th: "ชนิด & สภาพหลังคา",
+  slot: "roof",
   cat: "หลังคา / โครงสร้าง",
   ph: "เช่น เมทัลชีทหนา 0.35 มม. มีรอยรั่วมุมซ้าย · ต้นไม้สูงทางทิศตะวันตกบังช่วงบ่าย"
 }, {
   key: "mdbNote",
   th: "ตู้เมนไฟฟ้า (MDB)",
+  slot: "mdb",
   cat: "ระบบไฟฟ้า / ตู้ MDB",
   ph: "เช่น เหลือช่องว่าง 2 ช่องล่างสุด · ต้องเพิ่มตู้ย่อยข้างเคียง"
 }, {
+  key: "invNote",
+  th: "ตำแหน่งติดตั้งอินเวอร์เตอร์",
+  slot: "inverter",
+  cat: "จุดติดตั้งอุปกรณ์",
+  ph: "เช่น ติดผนังข้างตู้ MDB สูงจากพื้น 1.6 ม. · มีชายคาคลุม ไม่โดนแดดบ่าย"
+}, {
   key: "equipNote",
   th: "อุปกรณ์ที่เสนอ",
+  slot: "",
   cat: "รูปอุปกรณ์ที่เสนอ",
   ph: "เช่น เสนอรุ่นนี้เพราะพื้นที่หลังคาจำกัด · แนบภาพตัดจากดาต้าชีต"
 }];
@@ -176,6 +186,7 @@ function blankSurvey(job) {
     meterNote: "",
     roofNote: "",
     mdbNote: "",
+    invNote: "",
     equipNote: "",
     mdbBrand: "",
     mdbSpace: "",
@@ -1786,7 +1797,7 @@ function SurveyShotCard({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, req ? slot.hint : "ตั้งชื่อหัวข้อและคำบรรยายได้ด้านล่าง")), React.createElement("input", {
+  }, req ? slot.hint : hideCat ? "ตั้งชื่อรูปและคำบรรยายได้ด้านล่าง" : "ตั้งชื่อหัวข้อและคำบรรยายได้ด้านล่าง")), React.createElement("input", {
     ref: inputRef,
     type: "file",
     accept: "image/*",
@@ -1928,51 +1939,65 @@ function SurveyNoteBox({
   onChange,
   shots,
   card,
+  slotNode,
+  count,
   busy,
   onAdd,
   onPaste
 }) {
-  const mine = shots.filter(s => s.blk === blk.key);
   return React.createElement("div", {
     style: {
-      borderTop: "1px dashed var(--border-strong)",
-      paddingTop: 13,
+      margin: "-2px -3px 0",
+      padding: "11px 12px 12px",
+      borderRadius: 13,
+      background: "var(--surface2)",
+      border: "1px solid var(--border)",
       display: "flex",
       flexDirection: "column",
+      gap: 10
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      justifyContent: "space-between",
       gap: 9
     }
-  }, React.createElement("label", {
+  }, React.createElement("span", {
     style: {
       fontSize: 11.5,
-      fontWeight: 600,
-      color: "var(--text-3)",
-      lineHeight: 1.3
+      fontWeight: 700,
+      color: "var(--text-2)"
     }
-  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 & \u0E23\u0E39\u0E1B\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E19\u0E35\u0E49", mine.length ? React.createElement("span", {
+  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 & \u0E23\u0E39\u0E1B\u0E02\u0E2D\u0E07\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E19\u0E35\u0E49"), React.createElement("span", {
     style: {
-      color: "var(--primary-dark)",
-      fontWeight: 700
+      fontSize: 10.5,
+      fontWeight: 700,
+      fontFamily: "var(--mono)",
+      color: count ? "var(--primary-dark)" : "var(--text-3)"
     }
-  }, " · " + mine.length + " รูป") : null), React.createElement("textarea", {
+  }, count ? count + " รูป" : "ยังไม่มีรูป")), React.createElement("textarea", {
     value: value || "",
     onChange: e => onChange(e.target.value),
     rows: 2,
     placeholder: blk.ph,
     style: Object.assign({}, inputStyle, {
+      background: "var(--surface)",
       resize: "vertical",
       lineHeight: 1.55
     })
-  }), mine.length > 0 && React.createElement("div", {
+  }), (slotNode || shots.length > 0) && React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
       gap: 9
     }
-  }, mine.map(s => card(s))), React.createElement(AddShotButton, {
+  }, slotNode, shots.map(s => card(s))), React.createElement(AddShotButton, {
     busy: busy,
     onPick: onAdd,
     onPaste: onPaste,
-    label: "\u0E41\u0E19\u0E1A\u0E23\u0E39\u0E1B\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E19\u0E35\u0E49"
+    label: slotNode ? "แนบรูปอื่นของหัวข้อนี้" : "แนบรูปหัวข้อนี้",
+    slim: true
   }));
 }
 const SURVEY_STEPS = [{
@@ -1994,7 +2019,7 @@ const SURVEY_STEPS = [{
 }, {
   n: 5,
   icon: "image",
-  th: "รูปถ่าย"
+  th: "รูปเพิ่มเติม"
 }];
 function SurveyWizard({
   job,
@@ -2183,6 +2208,7 @@ function SurveyWizard({
     gridTemplateColumns: "1fr 1fr",
     gap: 11
   };
+  const missingSlots = SURVEY_PHOTO_SLOTS.filter(s => !media.photos[s.key]);
   const blockShotCard = shot => {
     const idx = shots.findIndex(s => s.key === shot.key);
     return React.createElement(SurveyShotCard, {
@@ -2212,15 +2238,50 @@ function SurveyWizard({
       last: idx === shots.length - 1
     });
   };
+  const requiredCard = (slot, blk) => {
+    const shot = media.photos[slot.key] ? Object.assign({
+      key: slot.key
+    }, media.photos[slot.key]) : null;
+    const idx = shots.findIndex(s => s.key === slot.key);
+    return React.createElement(SurveyShotCard, {
+      slot: slot,
+      shot: shot,
+      busy: busySlot === slot.key,
+      n: idx >= 0 ? idx + 1 : null,
+      onPick: file => pickPhoto(slot.key, file, null, {
+        blk: blk.key,
+        cat: blk.cat
+      }),
+      onRemove: () => {
+        askConfirm({
+          title: "ลบรูปนี้?",
+          ok: "ลบรูป"
+        }).then(ok => {
+          if (ok) media.removePhoto(slot.key);
+        });
+      },
+      onAnn: () => setAnnKey(slot.key),
+      onField: (k, v) => media.patchPhoto(slot.key, {
+        [k]: v
+      }),
+      onMove: shot ? d => moveShot(slot.key, d) : null,
+      first: idx <= 0,
+      last: idx === shots.length - 1
+    });
+  };
   const noteBox = key => {
     const blk = SURVEY_NOTE_BLOCK_BY[key];
+    const slot = blk.slot ? SURVEY_SLOT_BY[blk.slot] : null;
+    const mine = shots.filter(s => s.blk === blk.key && s.key !== blk.slot);
     return React.createElement(SurveyNoteBox, {
       blk: blk,
       value: f[blk.key],
       onChange: v => set(blk.key, v),
-      shots: shots,
+      shots: mine,
       card: blockShotCard,
       busy: addBlk === blk.key,
+      slotNode: slot ? requiredCard(slot, blk) : null,
+      count: mine.length + (slot && media.photos[slot.key] ? 1 : 0),
       onAdd: file => addShot(file, {
         blk: blk.key,
         cat: blk.cat
@@ -2642,7 +2703,7 @@ function SurveyWizard({
     value: f.inverterLoc,
     onChange: v => set("inverterLoc", v),
     options: SURVEY_INV_LOC
-  }), true))), step === 4 && React.createElement(React.Fragment, null, React.createElement(SurveyBlock, {
+  }), true), noteBox("invNote"))), step === 4 && React.createElement(React.Fragment, null, React.createElement(SurveyBlock, {
     title: "\uD83E\uDDF0 \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E17\u0E35\u0E48\u0E40\u0E2A\u0E19\u0E2D",
     sub: "\u0E02\u0E36\u0E49\u0E19\u0E43\u0E19\u0E15\u0E32\u0E23\u0E32\u0E07\u0E2B\u0E31\u0E27\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19 \u2014 \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07\u0E44\u0E14\u0E49\u0E16\u0E49\u0E32\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E2A\u0E23\u0E38\u0E1B"
   }, fld("ขนาดระบบ (kW)", React.createElement("input", {
@@ -2721,7 +2782,7 @@ function SurveyWizard({
     color: "var(--text-2)"
   }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E02\u0E49\u0E2D")), React.createElement(SurveyBlock, {
     title: "\uD83D\uDCDD \u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38",
-    sub: "\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E23\u0E27\u0E21 \u0E46 \u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49 \xB7 \u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E02\u0E2D\u0E07\u0E41\u0E15\u0E48\u0E25\u0E30\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E40\u0E02\u0E35\u0E22\u0E19\u0E43\u0E19\u0E01\u0E25\u0E48\u0E2D\u0E07 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 & \u0E23\u0E39\u0E1B\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A\u201D \u0E02\u0E2D\u0E07\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E19\u0E31\u0E49\u0E19\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22"
+    sub: "\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E23\u0E27\u0E21 \u0E46 \u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49 \xB7 \u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E44\u0E2B\u0E19 \u0E40\u0E02\u0E35\u0E22\u0E19\u0E43\u0E19\u0E01\u0E25\u0E48\u0E2D\u0E07 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 & \u0E23\u0E39\u0E1B\u0E02\u0E2D\u0E07\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E19\u0E35\u0E49\u201D \u0E02\u0E2D\u0E07\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E19\u0E31\u0E49\u0E19\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22"
   }, React.createElement("textarea", {
     value: f.note,
     onChange: e => set("note", e.target.value),
@@ -2731,56 +2792,47 @@ function SurveyWizard({
       resize: "vertical",
       lineHeight: 1.6
     })
-  }))), step === 5 && React.createElement(React.Fragment, null, React.createElement(SurveyBlock, {
-    title: "📷 รูปถ่ายบังคับ (" + SURVEY_PHOTO_SLOTS.length + " รูป)",
-    sub: "\u0E16\u0E48\u0E32\u0E22\u0E43\u0E2B\u0E49\u0E04\u0E23\u0E1A\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E43\u0E2B\u0E49\u0E01\u0E32\u0E23\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E2A\u0E21\u0E1A\u0E39\u0E23\u0E13\u0E4C \xB7 \u0E41\u0E15\u0E30\u0E23\u0E39\u0E1B\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E02\u0E35\u0E22\u0E19\u0E25\u0E39\u0E01\u0E28\u0E23 \u0E02\u0E49\u0E2D\u0E04\u0E27\u0E32\u0E21 \u0E2B\u0E23\u0E37\u0E2D\u0E41\u0E1B\u0E30\u0E23\u0E39\u0E1B\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E17\u0E31\u0E1A"
-  }, !window.FBDB && React.createElement("div", {
+  }))), step === 5 && React.createElement(React.Fragment, null, !window.FBDB && React.createElement("div", {
     style: {
       fontSize: 12,
       color: "#EF4444",
       background: "var(--tint-red-bg)",
       border: "1px solid var(--tint-red-bd)",
-      borderRadius: 9,
-      padding: "9px 11px"
+      borderRadius: 11,
+      padding: "10px 12px"
     }
-  }, "\u26A0 \u0E15\u0E49\u0E2D\u0E07\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D Firebase \u0E08\u0E36\u0E07\u0E08\u0E30\u0E2D\u0E31\u0E1B\u0E42\u0E2B\u0E25\u0E14\u0E23\u0E39\u0E1B\u0E44\u0E14\u0E49"), React.createElement("div", {
+  }, "\u26A0 \u0E15\u0E49\u0E2D\u0E07\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D Firebase \u0E08\u0E36\u0E07\u0E08\u0E30\u0E2D\u0E31\u0E1B\u0E42\u0E2B\u0E25\u0E14\u0E23\u0E39\u0E1B\u0E44\u0E14\u0E49"), missingSlots.length > 0 && React.createElement("div", {
     style: {
       display: "flex",
-      flexDirection: "column",
-      gap: 9
+      gap: 9,
+      alignItems: "flex-start",
+      padding: "11px 13px",
+      borderRadius: 13,
+      background: "var(--tint-amber-bg, #FFF8F1)",
+      border: "1px solid var(--tint-amber-bd, #F5E3D3)"
     }
-  }, SURVEY_PHOTO_SLOTS.map(slot => {
-    const shot = media.photos[slot.key] ? Object.assign({
-      key: slot.key
-    }, media.photos[slot.key]) : null;
-    const idx = shots.findIndex(s => s.key === slot.key);
-    return React.createElement(SurveyShotCard, {
-      key: slot.key,
-      slot: slot,
-      shot: shot,
-      busy: busySlot === slot.key,
-      n: idx >= 0 ? idx + 1 : null,
-      onPick: file => pickPhoto(slot.key, file),
-      onRemove: () => {
-        askConfirm({
-          title: "ลบรูปนี้?",
-          ok: "ลบรูป"
-        }).then(ok => {
-          if (ok) media.removePhoto(slot.key);
-        });
-      },
-      onAnn: () => setAnnKey(slot.key),
-      onField: (k, v) => media.patchPhoto(slot.key, {
-        [k]: v
-      }),
-      onMove: shot ? d => moveShot(slot.key, d) : null,
-      first: idx <= 0,
-      last: idx === shots.length - 1
-    });
-  }))), React.createElement(SurveyBlock, {
+  }, React.createElement("span", {
+    style: {
+      fontSize: 14,
+      lineHeight: 1.2
+    }
+  }, "\uD83D\uDCF7"), React.createElement("span", {
+    style: {
+      minWidth: 0,
+      fontSize: 12,
+      lineHeight: 1.6,
+      color: "var(--text-1)"
+    }
+  }, "\u0E22\u0E31\u0E07\u0E02\u0E32\u0E14\u0E23\u0E39\u0E1B\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A ", React.createElement("b", null, missingSlots.length), " \u0E23\u0E39\u0E1B \u2014 ", missingSlots.map(s => s.label).join(" · "), React.createElement("span", {
+    style: {
+      display: "block",
+      color: "var(--text-3)",
+      fontSize: 11.5
+    }
+  }, "\u0E16\u0E48\u0E32\u0E22\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E02\u0E2D\u0E07\u0E23\u0E39\u0E1B\u0E19\u0E31\u0E49\u0E19\u0E43\u0E19\u0E02\u0E31\u0E49\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32 \u0E15\u0E23\u0E07\u0E01\u0E25\u0E48\u0E2D\u0E07 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 & \u0E23\u0E39\u0E1B\u0E02\u0E2D\u0E07\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E19\u0E35\u0E49\u201D"))), React.createElement(SurveyBlock, {
     title: "🖼️ รูปเพิ่มเติม (" + extras.length + " รูป)",
-    sub: "\u0E16\u0E48\u0E32\u0E22\u0E01\u0E35\u0E48\u0E23\u0E39\u0E1B\u0E01\u0E47\u0E44\u0E14\u0E49 \xB7 \u0E04\u0E23\u0E2D\u0E1B\u0E23\u0E39\u0E1B\u0E21\u0E32\u0E41\u0E25\u0E49\u0E27\u0E01\u0E14 Ctrl+V \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E40\u0E1B\u0E47\u0E19\u0E23\u0E39\u0E1B\u0E43\u0E2B\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22 \xB7 \u0E15\u0E31\u0E49\u0E07\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D/\u0E2B\u0E21\u0E27\u0E14\u0E2B\u0E21\u0E39\u0E48 \u0E41\u0E25\u0E49\u0E27\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E08\u0E30\u0E08\u0E31\u0E14\u0E01\u0E25\u0E38\u0E48\u0E21\u0E43\u0E2B\u0E49\u0E15\u0E32\u0E21\u0E19\u0E35\u0E49"
-  }, React.createElement("div", {
+    sub: "\u0E23\u0E39\u0E1B\u0E17\u0E35\u0E48\u0E2D\u0E22\u0E32\u0E01\u0E41\u0E19\u0E1A\u0E19\u0E2D\u0E01\u0E40\u0E2B\u0E19\u0E37\u0E2D\u0E08\u0E32\u0E01\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E02\u0E49\u0E32\u0E07\u0E15\u0E49\u0E19 \xB7 \u0E04\u0E23\u0E2D\u0E1B\u0E23\u0E39\u0E1B\u0E21\u0E32\u0E41\u0E25\u0E49\u0E27\u0E01\u0E14 Ctrl+V \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E40\u0E1B\u0E47\u0E19\u0E23\u0E39\u0E1B\u0E43\u0E2B\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22"
+  }, extras.length > 0 && React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -2791,6 +2843,7 @@ function SurveyWizard({
     return React.createElement(SurveyShotCard, {
       key: shot.key,
       shot: shot,
+      hideCat: true,
       busy: busySlot === shot.key,
       n: idx + 1,
       onPick: file => pickPhoto(shot.key, file, shot.order),
@@ -2959,10 +3012,11 @@ function AddShotButton({
   busy,
   onPick,
   onPaste,
-  label
+  label,
+  slim
 }) {
   const ref = React.useRef(null);
-  const btn = {
+  const btn = Object.assign({
     flex: 1,
     display: "inline-flex",
     alignItems: "center",
@@ -2977,7 +3031,12 @@ function AddShotButton({
     fontSize: 13.5,
     fontWeight: 700,
     cursor: busy ? "default" : "pointer"
-  };
+  }, slim ? {
+    flex: "0 0 auto",
+    padding: "8px 13px",
+    borderRadius: 10,
+    fontSize: 12.5
+  } : null);
   return React.createElement(React.Fragment, null, React.createElement("input", {
     ref: ref,
     type: "file",
@@ -3012,11 +3071,11 @@ function AddShotButton({
     disabled: busy,
     style: Object.assign({}, btn, {
       flex: "0 0 auto",
-      paddingLeft: 15,
-      paddingRight: 15
+      paddingLeft: slim ? 11 : 15,
+      paddingRight: slim ? 11 : 15
     }),
     title: "\u0E27\u0E32\u0E07\u0E20\u0E32\u0E1E\u0E08\u0E32\u0E01\u0E04\u0E25\u0E34\u0E1B\u0E1A\u0E2D\u0E23\u0E4C\u0E14 (Ctrl+V)"
-  }, "\uD83D\uDCCB \u0E27\u0E32\u0E07\u0E20\u0E32\u0E1E")));
+  }, "\uD83D\uDCCB", slim ? "" : " วางภาพ")));
 }
 Object.assign(window, {
   SurveyWizard,
