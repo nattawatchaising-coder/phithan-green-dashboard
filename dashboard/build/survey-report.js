@@ -234,6 +234,7 @@ function SurveyReport({
       document.title = old;
     }, 800);
   };
+  const noteLines = [s.note].concat(s.shadingNote ? [T("เงาบัง:") + " " + s.shadingNote] : []).concat((window.SURVEY_NOTE_BLOCKS || []).map(b => String(s[b.key] || "").trim() ? T(b.th) + ": " + s[b.key] : "")).filter(Boolean);
   const roofCond = _lbl(window.SURVEY_ROOF_COND, s.roofCondition);
   const structure = _lbl(window.SURVEY_PASS, s.structureOk);
   const birdNet = _lbl(window.SURVEY_BIRDNET, s.birdNet);
@@ -509,7 +510,7 @@ function SurveyReport({
     key: i,
     label: T("อื่นๆ ({})").replace("{}", i + 1),
     value: v
-  })))), (s.note || s.shadingNote) && React.createElement(RepSection, {
+  })))), noteLines.length > 0 && React.createElement(RepSection, {
     title: T("หมายเหตุ")
   }, React.createElement("div", {
     style: {
@@ -523,7 +524,7 @@ function SurveyReport({
       whiteSpace: "pre-wrap",
       color: "var(--text-1)"
     }
-  }, [s.note, s.shadingNote ? T("เงาบัง:") + " " + s.shadingNote : ""].filter(Boolean).join("\n"))), shots.length > 0 && React.createElement(RepSection, {
+  }, noteLines.join("\n"))), shots.length > 0 && React.createElement(RepSection, {
     title: T("ภาพประกอบการสำรวจ") + " (" + shots.length + " " + T("รูป") + ")"
   }, React.createElement("div", {
     style: {

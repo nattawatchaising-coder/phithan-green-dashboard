@@ -71,6 +71,28 @@ const SURVEY_CABLE_LEGS = [{
 }];
 const cableTotal = s => SURVEY_CABLE_LEGS.reduce((t, l) => t + (+(s || {})[l.key] || 0), 0);
 const SURVEY_PHOTO_CATS = ["หลังคา / โครงสร้าง", "ระบบไฟฟ้า / ตู้ MDB", "จุดติดตั้งอุปกรณ์", "สิ่งกีดขวาง / เงาบัง", "รูปอุปกรณ์ที่เสนอ", "อื่นๆ"];
+const SURVEY_NOTE_BLOCKS = [{
+  key: "meterNote",
+  th: "มิเตอร์ & เมนไฟฟ้าเดิม",
+  cat: "ระบบไฟฟ้า / ตู้ MDB",
+  ph: "เช่น มิเตอร์อยู่หน้าบ้านติดรั้ว · สายเมนเดิมเก่ามาก แนะนำเปลี่ยน"
+}, {
+  key: "roofNote",
+  th: "ชนิด & สภาพหลังคา",
+  cat: "หลังคา / โครงสร้าง",
+  ph: "เช่น เมทัลชีทหนา 0.35 มม. มีรอยรั่วมุมซ้าย · ต้นไม้สูงทางทิศตะวันตกบังช่วงบ่าย"
+}, {
+  key: "mdbNote",
+  th: "ตู้เมนไฟฟ้า (MDB)",
+  cat: "ระบบไฟฟ้า / ตู้ MDB",
+  ph: "เช่น เหลือช่องว่าง 2 ช่องล่างสุด · ต้องเพิ่มตู้ย่อยข้างเคียง"
+}, {
+  key: "equipNote",
+  th: "อุปกรณ์ที่เสนอ",
+  cat: "รูปอุปกรณ์ที่เสนอ",
+  ph: "เช่น เสนอรุ่นนี้เพราะพื้นที่หลังคาจำกัด · แนบภาพตัดจากดาต้าชีต"
+}];
+const SURVEY_NOTE_BLOCK_BY = Object.fromEntries(SURVEY_NOTE_BLOCKS.map(b => [b.key, b]));
 const SURVEY_PHOTO_SLOTS = [{
   key: "meter",
   label: "มิเตอร์ไฟฟ้า",
@@ -151,6 +173,10 @@ function blankSurvey(job) {
     birdNet: "",
     shadingTags: [],
     shadingNote: "",
+    meterNote: "",
+    roofNote: "",
+    mdbNote: "",
+    equipNote: "",
     mdbBrand: "",
     mdbSpace: "",
     mdbLoc: "",
@@ -256,7 +282,9 @@ function sortedShots(photos) {
 function shotTitle(shot) {
   if (shot.title) return shot.title;
   const s = SURVEY_SLOT_BY[shot.key];
-  return s ? s.label : "รูปเพิ่มเติม";
+  if (s) return s.label;
+  const b = shot.blk && SURVEY_NOTE_BLOCK_BY[shot.blk];
+  return b ? b.th : "รูปเพิ่มเติม";
 }
 const ANN_COLORS = ["#EF4444", "#F97316", "#FACC15", "#22C55E", "#0EA5E9", "#FFFFFF"];
 function useBoxSize(ref, fallbackW, fallbackH) {
@@ -1648,7 +1676,8 @@ function SurveyShotCard({
   onField,
   onMove,
   first,
-  last
+  last,
+  hideCat
 }) {
   const inputRef = React.useRef(null);
   const has = !!(shot && shot.dataUrl);
@@ -1873,7 +1902,7 @@ function SurveyShotCard({
     style: Object.assign({}, inputStyle, {
       fontSize: 13
     })
-  }), React.createElement(Dropdown, {
+  }), !hideCat && React.createElement(Dropdown, {
     value: shot.cat || "",
     onChange: v => onField("cat", v),
     placeholder: "\u2014 \u0E2B\u0E21\u0E27\u0E14\u0E2B\u0E21\u0E39\u0E48\u0E23\u0E39\u0E1B (\u0E44\u0E21\u0E48\u0E43\u0E2A\u0E48\u0E01\u0E47\u0E44\u0E14\u0E49) \u2014",
@@ -1892,6 +1921,59 @@ function SurveyShotCard({
       fontSize: 13
     })
   })));
+}
+function SurveyNoteBox({
+  blk,
+  value,
+  onChange,
+  shots,
+  card,
+  busy,
+  onAdd,
+  onPaste
+}) {
+  const mine = shots.filter(s => s.blk === blk.key);
+  return React.createElement("div", {
+    style: {
+      borderTop: "1px dashed var(--border-strong)",
+      paddingTop: 13,
+      display: "flex",
+      flexDirection: "column",
+      gap: 9
+    }
+  }, React.createElement("label", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 600,
+      color: "var(--text-3)",
+      lineHeight: 1.3
+    }
+  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 & \u0E23\u0E39\u0E1B\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E19\u0E35\u0E49", mine.length ? React.createElement("span", {
+    style: {
+      color: "var(--primary-dark)",
+      fontWeight: 700
+    }
+  }, " · " + mine.length + " รูป") : null), React.createElement("textarea", {
+    value: value || "",
+    onChange: e => onChange(e.target.value),
+    rows: 2,
+    placeholder: blk.ph,
+    style: Object.assign({}, inputStyle, {
+      resize: "vertical",
+      lineHeight: 1.55
+    })
+  }), mine.length > 0 && React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 9
+    }
+  }, mine.map(s => card(s))), React.createElement(AddShotButton, {
+    busy: busy,
+    onPick: onAdd,
+    onPaste: onPaste,
+    label: "\u0E41\u0E19\u0E1A\u0E23\u0E39\u0E1B\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E19\u0E35\u0E49"
+  }));
 }
 const SURVEY_STEPS = [{
   n: 1,
@@ -1966,7 +2048,7 @@ function SurveyWizard({
     if (g.err) setGpsErr(g.msg);else set("gps", g);
     setGpsBusy(false);
   };
-  const pickPhoto = async (slotKey, file, order) => {
+  const pickPhoto = async (slotKey, file, order, more) => {
     if (!file) return;
     setBusySlot(slotKey);
     try {
@@ -1982,7 +2064,7 @@ function SurveyWizard({
       });
       const extra = Object.assign({
         ann: null
-      }, dim);
+      }, dim, more || {});
       if (order != null) extra.order = order;
       media.setPhoto(slotKey, dataUrl, currentUser, extra);
     } catch (err) {
@@ -1991,11 +2073,13 @@ function SurveyWizard({
     setBusySlot(null);
   };
   const shots = sortedShots(media.photos);
-  const extras = shots.filter(s => isExtraShot(s.key));
-  const addShot = file => {
+  const extras = shots.filter(s => isExtraShot(s.key) && !s.blk);
+  const [addBlk, setAddBlk] = React.useState("");
+  const addShot = (file, more) => {
     const key = "x_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
     const maxOrder = shots.reduce((m, s) => Math.max(m, s.order == null ? 0 : s.order), SURVEY_PHOTO_SLOTS.length);
-    pickPhoto(key, file, maxOrder + 1);
+    if (more && more.blk) setAddBlk(more.blk);
+    return Promise.resolve(pickPhoto(key, file, maxOrder + 1, more)).then(() => setAddBlk(""));
   };
   React.useEffect(() => {
     if (step !== 5 || annKey) return;
@@ -2014,7 +2098,7 @@ function SurveyWizard({
     window.addEventListener("paste", onPaste);
     return () => window.removeEventListener("paste", onPaste);
   }, [step, annKey, shots.length]);
-  const pasteFromClipboard = async () => {
+  const pasteFromClipboard = async more => {
     try {
       if (!navigator.clipboard || !navigator.clipboard.read) throw new Error("เบราว์เซอร์นี้อ่านคลิปบอร์ดไม่ได้ ลองกด Ctrl+V แทน");
       const list = await navigator.clipboard.read();
@@ -2024,7 +2108,7 @@ function SurveyWizard({
         const blob = await it.getType(type);
         addShot(new File([blob], "paste.png", {
           type: type
-        }));
+        }), more);
         return;
       }
       alert("ในคลิปบอร์ดไม่มีรูปภาพ — ก๊อปรูปมาก่อนแล้วค่อยกดวาง");
@@ -2098,6 +2182,54 @@ function SurveyWizard({
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
     gap: 11
+  };
+  const blockShotCard = shot => {
+    const idx = shots.findIndex(s => s.key === shot.key);
+    return React.createElement(SurveyShotCard, {
+      key: shot.key,
+      shot: shot,
+      hideCat: true,
+      busy: busySlot === shot.key,
+      n: idx + 1,
+      onPick: file => pickPhoto(shot.key, file, shot.order, {
+        blk: shot.blk,
+        cat: shot.cat
+      }),
+      onRemove: () => {
+        askConfirm({
+          title: "ลบรูปนี้?",
+          ok: "ลบรูป"
+        }).then(ok => {
+          if (ok) media.removePhoto(shot.key);
+        });
+      },
+      onAnn: () => setAnnKey(shot.key),
+      onField: (k, v) => media.patchPhoto(shot.key, {
+        [k]: v
+      }),
+      onMove: d => moveShot(shot.key, d),
+      first: idx <= 0,
+      last: idx === shots.length - 1
+    });
+  };
+  const noteBox = key => {
+    const blk = SURVEY_NOTE_BLOCK_BY[key];
+    return React.createElement(SurveyNoteBox, {
+      blk: blk,
+      value: f[blk.key],
+      onChange: v => set(blk.key, v),
+      shots: shots,
+      card: blockShotCard,
+      busy: addBlk === blk.key,
+      onAdd: file => addShot(file, {
+        blk: blk.key,
+        cat: blk.cat
+      }),
+      onPaste: () => pasteFromClipboard({
+        blk: blk.key,
+        cat: blk.cat
+      })
+    });
   };
   return React.createElement(React.Fragment, null, React.createElement("div", _extends({}, bdClose, {
     style: {
@@ -2413,7 +2545,7 @@ function SurveyWizard({
     onChange: e => set("mainCable", e.target.value),
     placeholder: "\u0E40\u0E0A\u0E48\u0E19 NYY 50 sq.mm",
     style: inputStyle
-  }))), React.createElement(SurveyBlock, {
+  })), noteBox("meterNote")), React.createElement(SurveyBlock, {
     title: "\uD83D\uDCC4 \u0E08\u0E30\u0E22\u0E37\u0E48\u0E19\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E41\u0E1A\u0E1A\u0E44\u0E2B\u0E19",
     sub: "\u0E15\u0E01\u0E25\u0E07\u0E01\u0E31\u0E1A\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E44\u0E27\u0E49\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E44\u0E23 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E44\u0E27\u0E49\u0E40\u0E25\u0E22 \u2014 \u0E2B\u0E19\u0E49\u0E32\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E08\u0E30\u0E14\u0E36\u0E07\u0E44\u0E1B\u0E43\u0E0A\u0E49\u0E15\u0E48\u0E2D"
   }, fld("แบบที่จะยื่น", React.createElement(Dropdown, {
@@ -2464,7 +2596,7 @@ function SurveyWizard({
     value: f.birdNet,
     onChange: v => set("birdNet", v),
     options: SURVEY_BIRDNET
-  })))), step === 3 && React.createElement(React.Fragment, null, React.createElement(SurveyBlock, {
+  })), noteBox("roofNote"))), step === 3 && React.createElement(React.Fragment, null, React.createElement(SurveyBlock, {
     title: "\uD83D\uDD0C \u0E15\u0E39\u0E49\u0E40\u0E21\u0E19\u0E44\u0E1F\u0E1F\u0E49\u0E32 (MDB)",
     sub: "\u0E40\u0E1B\u0E34\u0E14\u0E1D\u0E32\u0E15\u0E39\u0E49\u0E41\u0E25\u0E49\u0E27\u0E14\u0E39\u0E02\u0E2D\u0E07\u0E02\u0E49\u0E32\u0E07\u0E43\u0E19\u0E44\u0E1B\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E01\u0E31\u0E19\u0E17\u0E35\u0E40\u0E14\u0E35\u0E22\u0E27"
   }, fld("ยี่ห้อ / รุ่นตู้ MDB", React.createElement("input", {
@@ -2504,7 +2636,7 @@ function SurveyWizard({
     onChange: v => set("mdbSpace", v),
     placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01 \u2014",
     options: SURVEY_MDB_SPACE
-  }))), React.createElement(SurveyBlock, {
+  })), noteBox("mdbNote")), React.createElement(SurveyBlock, {
     title: "\uD83D\uDD0B \u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C"
   }, fld("ตำแหน่งที่เสนอติดตั้ง", React.createElement(Segmented, {
     value: f.inverterLoc,
@@ -2534,7 +2666,7 @@ function SurveyWizard({
     wrap: true,
     addable: true,
     onAdd: () => {}
-  }))), React.createElement(SurveyBlock, {
+  })), noteBox("equipNote")), React.createElement(SurveyBlock, {
     title: "\u26A0\uFE0F \u0E04\u0E27\u0E32\u0E21\u0E15\u0E49\u0E2D\u0E07\u0E01\u0E32\u0E23\u0E1E\u0E34\u0E40\u0E28\u0E29",
     sub: "\u0E2A\u0E34\u0E48\u0E07\u0E17\u0E35\u0E48\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E02\u0E2D\u0E40\u0E1B\u0E47\u0E19\u0E1E\u0E34\u0E40\u0E28\u0E29 / \u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E41\u0E01\u0E49\u0E40\u0E1E\u0E34\u0E48\u0E21"
   }, (f.specials || []).map((v, i) => React.createElement("div", {
@@ -2589,7 +2721,7 @@ function SurveyWizard({
     color: "var(--text-2)"
   }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E02\u0E49\u0E2D")), React.createElement(SurveyBlock, {
     title: "\uD83D\uDCDD \u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38",
-    sub: "\u0E02\u0E36\u0E49\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E01\u0E25\u0E48\u0E2D\u0E07\u0E17\u0E49\u0E32\u0E22\u0E2B\u0E19\u0E49\u0E32\u0E41\u0E23\u0E01\u0E02\u0E2D\u0E07\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19"
+    sub: "\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E23\u0E27\u0E21 \u0E46 \u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49 \xB7 \u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E02\u0E2D\u0E07\u0E41\u0E15\u0E48\u0E25\u0E30\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E40\u0E02\u0E35\u0E22\u0E19\u0E43\u0E19\u0E01\u0E25\u0E48\u0E2D\u0E07 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 & \u0E23\u0E39\u0E1B\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A\u201D \u0E02\u0E2D\u0E07\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E19\u0E31\u0E49\u0E19\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22"
   }, React.createElement("textarea", {
     value: f.note,
     onChange: e => set("note", e.target.value),
@@ -2826,7 +2958,8 @@ function SurveyWizard({
 function AddShotButton({
   busy,
   onPick,
-  onPaste
+  onPaste,
+  label
 }) {
   const ref = React.useRef(null);
   const btn = {
@@ -2873,7 +3006,7 @@ function AddShotButton({
     size: 16,
     color: "var(--primary-dark)",
     sw: 2.4
-  }), " ", busy ? "กำลังเพิ่มรูป..." : "เพิ่มรูป"), onPaste && React.createElement("button", {
+  }), " ", busy ? "กำลังเพิ่มรูป..." : label || "เพิ่มรูป"), onPaste && React.createElement("button", {
     type: "button",
     onClick: onPaste,
     disabled: busy,
@@ -2910,5 +3043,7 @@ Object.assign(window, {
   SURVEY_YESNO,
   SURVEY_CABLE_LEGS,
   cableTotal,
-  SURVEY_PHOTO_CATS
+  SURVEY_PHOTO_CATS,
+  SURVEY_NOTE_BLOCKS,
+  SURVEY_NOTE_BLOCK_BY
 });

@@ -154,6 +154,13 @@ function SurveyReport({ job, photos, docs, onClose }) {
     setTimeout(() => { document.title = old; }, 800);
   };
 
+  /* หมายเหตุที่จะขึ้นในรายงาน — ของงานรวม ๆ ก่อน แล้วต่อด้วยบันทึกที่เขียนแยกตามหัวข้อ
+     ติดชื่อหัวข้อนำหน้าไว้ ไม่งั้นข้อความจะกองรวมกันจนไม่รู้ว่าพูดถึงเรื่องไหน */
+  const noteLines = [s.note]
+    .concat(s.shadingNote ? [T("เงาบัง:") + " " + s.shadingNote] : [])
+    .concat((window.SURVEY_NOTE_BLOCKS || []).map((b) => (String(s[b.key] || "").trim() ? T(b.th) + ": " + s[b.key] : "")))
+    .filter(Boolean);
+
   const roofCond = _lbl(window.SURVEY_ROOF_COND, s.roofCondition);
   const structure = _lbl(window.SURVEY_PASS, s.structureOk);
   const birdNet = _lbl(window.SURVEY_BIRDNET, s.birdNet);
@@ -252,11 +259,12 @@ function SurveyReport({ job, photos, docs, onClose }) {
           )}
         </RepSection>
 
-        {/* หมายเหตุ */}
-        {(s.note || s.shadingNote) && (
+        {/* หมายเหตุ — รวมหมายเหตุของงานกับบันทึกที่เขียนไว้ตามหัวข้อ
+            ของที่เขียนแยกหัวข้อติดชื่อหัวข้อนำหน้าไว้ รูปที่แนบคู่กันไปอยู่ในหมวดเดียวกันด้านล่าง */}
+        {noteLines.length > 0 && (
           <RepSection title={T("หมายเหตุ")}>
             <div style={{ marginTop: 10, background: "#FFF8F1", border: "1px solid #F5E3D3", borderRadius: 8, padding: "12px 14px", fontSize: 11.5, lineHeight: 1.75, whiteSpace: "pre-wrap", color: "var(--text-1)" }}>
-              {[s.note, s.shadingNote ? T("เงาบัง:") + " " + s.shadingNote : ""].filter(Boolean).join("\n")}
+              {noteLines.join("\n")}
             </div>
           </RepSection>
         )}
