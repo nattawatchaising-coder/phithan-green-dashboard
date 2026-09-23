@@ -110,6 +110,7 @@ const NAV_BADGE_TIP = {
   expense: "ใบเบิกเงินที่รอคุณจัดการ"
 };
 const isPermitOnly = roles => (roles || []).length > 0 && roles.every(r => (ROLE_ALIAS[r] || r) === "permit");
+window.isPermitOnly = isPermitOnly;
 const isSalesOnly = roles => (roles || []).length > 0 && roles.every(r => (ROLE_ALIAS[r] || r) === "sales");
 const PERMIT_TODO = {
   key: "todo",

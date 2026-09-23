@@ -295,14 +295,16 @@ function flGroups(role) {
     hint: "ลูกค้าที่ยังไม่เป็นงาน",
     cols: SALES_STAGES
   });
-  out.push({
-    key: "site",
-    th: "หน้างาน",
-    color: "var(--primary)",
-    kind: "job",
-    hint: doc ? "งานที่กำลังเดินอยู่" : "งานในฐานข้อมูล",
-    cols: doc ? window.SF.STAGES.filter(s => s.key !== "done") : window.SF.STAGES
-  });
+  if (!(window.isPermitOnly && window.isPermitOnly(role))) {
+    out.push({
+      key: "site",
+      th: "หน้างาน",
+      color: "var(--primary)",
+      kind: "job",
+      hint: doc ? "งานที่กำลังเดินอยู่" : "งานในฐานข้อมูล",
+      cols: doc ? window.SF.STAGES.filter(s => s.key !== "done") : window.SF.STAGES
+    });
+  }
   if (doc) out.push({
     key: "doc",
     th: "เอกสาร",

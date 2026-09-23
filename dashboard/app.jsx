@@ -63,6 +63,8 @@ const NAV_BADGE_TIP = {
   expense:  "ใบเบิกเงินที่รอคุณจัดการ",
 };
 const isPermitOnly = (roles) => (roles || []).length > 0 && roles.every((r) => (ROLE_ALIAS[r] || r) === "permit");
+/* บอร์ดรวมอยู่คนละไฟล์ แต่ต้องรู้เรื่องนี้ด้วยว่าจะโชว์ช่วงไหนให้ใคร */
+window.isPermitOnly = isPermitOnly;
 /* เซลล์อย่างเดียว — ใช้ตัดสินว่าใบงานเปิดแบบอ่านอย่างเดียว (ไม่มีเครื่องมือช่าง) */
 const isSalesOnly = (roles) => (roles || []).length > 0 && roles.every((r) => (ROLE_ALIAS[r] || r) === "sales");
 
