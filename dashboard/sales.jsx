@@ -102,6 +102,157 @@ const QUOTE_WARRANTY_DEF = [
   "สำรวจหน้างานก่อนติดตั้งฟรี",
 ];
 
+/* ── แผ่นที่จะออกไปกับใบเสนอราคา ──
+   ชุดเอกสารเต็มของงานโครงการมีหลายแผ่น (หน้าปก · ใบเสนอราคา · BOQ · ตารางรับประกัน ·
+   ตารางคืนทุน 30 ปี · สรุปผลตอบแทน · DATA SHEET) แต่ไม่ใช่ทุกงานต้องส่งครบ
+   งานบ้านหลังเล็กส่งแค่ใบเสนอราคาก็จบ · งานโรงงานลูกค้าขอทั้งเล่มไปเข้าที่ประชุม
+   จึงติ๊กเลือกเป็นแผ่น ๆ ได้ แล้วเก็บไว้ที่ตัวใบ (q.pages) ไม่ใช่ตั้งค่ารวมของระบบ
+   — ใบหนึ่งใบส่งซ้ำอีกรอบต้องได้ชุดเดิมเสมอ */
+const QUOTE_PAGES = [
+  { key: "cover",   th: "หน้าปก",                   hint: "ชื่อลูกค้า · ขนาดระบบ · เลขที่ใบ" },
+  { key: "quote",   th: "ใบเสนอราคา",                hint: "แผ่นหลัก · ปิดไม่ได้", lock: true },
+  { key: "terms",   th: "เงื่อนไขชำระเงิน & รับประกัน", hint: "แนบท้ายใบเสนอราคา" },
+  { key: "boq",     th: "BOQ รายการงาน",             hint: "ขอบเขตงานเป็นข้อ ๆ พร้อมช่องเซ็น" },
+  { key: "wty",     th: "ตารางรับประกันอุปกรณ์",       hint: "อุปกรณ์ทีละรายการ · กี่ปี" },
+  { key: "cash",    th: "ตารางคืนทุน 30 ปี",           hint: "ผลิตไฟ · ค่าไฟที่ประหยัด · ยอดสะสม" },
+  { key: "payback", th: "สรุปผลตอบแทน",               hint: "ระยะเวลาคืนทุน · กำไรตลอดอายุ" },
+  { key: "sheets",  th: "DATA SHEET ที่แนบ",          hint: "สเปกแผง/อินเวอร์เตอร์จากคลัง" },
+];
+/* ใบเก่าที่ทำไว้ก่อนมีระบบนี้ไม่มีช่อง pages — ต้องออกเหมือนเดิมเป๊ะ ๆ
+   (ใบเสนอราคา + แผ่นเงื่อนไข + DATA SHEET) ไม่ใช่มีแผ่นใหม่โผล่เองในใบที่ส่งลูกค้าไปแล้ว */
+const QUOTE_PAGES_LEGACY = { quote: true, terms: true, sheets: true };
+const quotePagesAll = () => { const o = {}; QUOTE_PAGES.forEach((p) => { o[p.key] = true; }); return o; };
+function quotePageOn(q, key) {
+  if (key === "quote") return true;
+  const p = q && q.pages;
+  return !!(p && typeof p === "object" ? p[key] : QUOTE_PAGES_LEGACY[key]);
+}
+
+/* ── ตัวเลขที่ใช้คิดคืนทุน ──
+   สมมุติฐานเดียวกับที่ทีมขายใช้คิดในเอกสารเดิม เก็บไว้ที่ตัวใบด้วย
+   ใบที่ส่งไปแล้วจะได้ออกตัวเลขเดิมตลอด แม้ภายหลังจะปรับค่าตั้งต้นของระบบ
+   · sun      ชั่วโมงแดดเฉลี่ยต่อวัน (kWh/m²/วัน)
+   · pr       Performance Ratio ของระบบ — แดดที่ได้กลายเป็นไฟจริงกี่ %
+              ค่าตั้งต้น 73.5% คือค่าที่ทำให้ได้ 3.60 ชม./วัน เท่ากับเอกสารที่ทีมขายใช้คุยกับลูกค้ามาตลอด
+              (แดด 4.9 ชม. × 73.5% ≈ 3.60 ชม.) ตัวเลขในใบใหม่จะได้เทียบกับใบเก่าได้
+   · onPct    สัดส่วนหน่วยที่ผลิตได้ช่วง On Peak
+   · ft       ค่า FT ปัจจุบัน บวกเข้ากับค่าพลังงาน
+   · up       ค่าไฟขึ้นกี่ % · upEvery ขึ้นทุกกี่ปี (เอกสารเดิมขยับทุก 10 ปี)
+   · deg1/deg ประสิทธิภาพแผงลดลงปีแรก / ปีถัด ๆ ไป
+   · om       ค่าดูแลรักษาต่อปี (หักออกจากเงินที่ประหยัดได้) */
+const QUOTE_ROI_DEF = { sun: 4.9, pr: 73.5, days: 365, onPct: 70, priceOn: 4.583, priceOff: 4.583,
+  ft: 0.1623, up: 1, upEvery: 10, deg1: 1, deg: 0.35, years: 30, om: 0 };
+const QUOTE_ROI_FLD = [
+  { key: "sun",      th: "ชั่วโมงแดดเฉลี่ย",      unit: "ชม./วัน" },
+  { key: "pr",       th: "Performance Ratio",    unit: "%" },
+  { key: "days",     th: "จำนวนวันที่ผลิตไฟ",      unit: "วัน/ปี" },
+  { key: "priceOn",  th: "ค่าพลังงาน On Peak",    unit: "฿/หน่วย" },
+  { key: "priceOff", th: "ค่าพลังงาน Off Peak",   unit: "฿/หน่วย" },
+  { key: "onPct",    th: "สัดส่วน On Peak",       unit: "%" },
+  { key: "ft",       th: "ค่า FT",               unit: "฿/หน่วย" },
+  { key: "up",       th: "ค่าไฟขึ้น",             unit: "%" },
+  { key: "upEvery",  th: "ขึ้นทุก",               unit: "ปี" },
+  { key: "deg1",     th: "แผงเสื่อมปีแรก",         unit: "%" },
+  { key: "deg",      th: "แผงเสื่อมปีถัดไป",       unit: "%/ปี" },
+  { key: "om",       th: "ค่าดูแลรักษา",           unit: "฿/ปี" },
+  { key: "years",    th: "คิดผลตอบแทน",           unit: "ปี" },
+];
+function quoteRoiCfg(q) {
+  const src = (q && q.roi) || {};
+  const o = {};
+  Object.keys(QUOTE_ROI_DEF).forEach((k) => {
+    const v = src[k];
+    o[k] = (v === "" || v == null || isNaN(+v)) ? QUOTE_ROI_DEF[k] : +v;
+  });
+  o.years = Math.min(Math.max(1, Math.round(o.years)), 40);
+  return o;
+}
+/* ตารางคืนทุนของใบนี้ — เงินลงทุนใช้ราคาก่อน VAT (หลังหักส่วนลด)
+   เพราะลูกค้านิติบุคคลขอ VAT คืนได้ จำนวนที่จมจริงคือยอดก่อนภาษี
+   เงินที่ประหยัด = หน่วยที่ผลิตได้ × ค่าไฟ ณ ปีนั้น − ค่าดูแลรักษา */
+function quoteRoi(q) {
+  const c = quoteRoiCfg(q);
+  const T = quoteTotals(q);
+  const kwp = +(q && q.kwp) || 0;
+  const invest = T.afterDisc;
+  const hrs = c.sun * c.pr / 100;
+  const dayKwh = kwp * hrs;
+  const yearKwh = dayKwh * c.days;
+  const rows = [];
+  let eff = 1, cum = 0;
+  for (let y = 1; y <= c.years; y++) {
+    eff -= (y === 1 ? c.deg1 : c.deg) / 100;
+    if (eff < 0) eff = 0;
+    /* ค่าไฟขึ้นเป็นขั้น ๆ ตามรอบปีที่ตั้งไว้ ไม่ใช่ขึ้นทุกปีแบบทบต้น
+       — เอกสารที่ใช้คุยกับลูกค้ามาตลอดคิดแบบนี้ ตัวเลขจะได้ตรงกับใบเก่า */
+    const step = c.upEvery > 0 ? Math.floor(y / c.upEvery) : 0;
+    const mul = Math.pow(1 + c.up / 100, step);
+    const pOn = (c.priceOn + c.ft) * mul, pOff = (c.priceOff + c.ft) * mul;
+    const prod = yearKwh * eff;
+    const on = prod * c.onPct / 100, off = prod - on;
+    const save = on * pOn + off * pOff - c.om;
+    cum += save;
+    rows.push({ y: y, eff: eff, prod: prod, on: on, off: off, price: pOn, save: save, cum: cum });
+  }
+  const tot = rows.reduce((a, r) => ({ prod: a.prod + r.prod, save: a.save + r.save }), { prod: 0, save: 0 });
+  /* จุดคืนทุน — ปีที่ยอดสะสมแซงเงินลงทุน แล้วเกลี่ยเศษเป็นเดือนจากเงินที่ประหยัดได้ปีนั้น */
+  let pb = null;
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].cum >= invest && invest > 0) {
+      const prev = i ? rows[i - 1].cum : 0;
+      const m = rows[i].save > 0 ? Math.ceil((invest - prev) / rows[i].save * 12) : 12;
+      pb = { y: rows[i].y - 1 + Math.floor(m / 12), m: m % 12 };
+      break;
+    }
+  }
+  const first = rows[0] || { save: 0, prod: 0 };
+  return { cfg: c, kwp: kwp, invest: invest, perW: kwp > 0 ? invest / (kwp * 1000) : 0,
+    hrs: hrs, dayKwh: dayKwh, yearKwh: yearKwh, rows: rows, total: tot,
+    payback: pb, month1: first.save / 12, day1: first.save / c.days, profit: tot.save - invest };
+}
+
+/* ── รายการตั้งต้นของแผ่น BOQ ──
+   ไม่ได้ดึงจาก BOQ ของช่างที่ถอดของทีละน็อต (เป็นร้อยบรรทัด + มีราคาทุนอยู่ในนั้น)
+   แผ่นนี้คือ "ขอบเขตงานที่ลูกค้าจะได้" จึงเป็นรายการระดับหัวข้อ แก้เพิ่มลดเองได้ */
+function quoteBoqSeed(t) {
+  const sp = quoteSpec(t || {});
+  const r = [];
+  r.push({ name: "งานออกแบบระบบไฟฟ้าโซลาร์เซลล์ และดำเนินการขออนุญาตที่เกี่ยวข้อง", qty: 1, unit: "job" });
+  r.push({ name: "แผงโซลาร์เซลล์" + (sp.panel ? " " + sp.panel : ""), qty: sp.panels || 1, unit: sp.panels ? "แผง" : "job" });
+  r.push({ name: "อินเวอร์เตอร์" + (sp.inv ? " " + sp.inv : "") + (sp.phase ? " · ระบบ " + sp.phase + " เฟส" : ""), qty: 1, unit: "set" });
+  r.push({ name: "โครงสร้างรองรับแผง (Solar Mounting Structure)" + (sp.roof ? " สำหรับหลังคา" + sp.roof : ""), qty: 1, unit: "set" });
+  r.push({ name: "สายไฟ AC / DC พร้อมอุปกรณ์ประกอบ", qty: 1, unit: "job" });
+  r.push({ name: "ตู้รวมสาย AC / DC (Combiner Box)", qty: 1, unit: "job" });
+  r.push({ name: "รางเดินสาย / ท่อร้อยสาย (Cable Tray · Ladder · IMC Conduit)", qty: 1, unit: "job" });
+  r.push({ name: "ระบบสายดิน (Grounding System)", qty: 1, unit: "job" });
+  r.push({ name: "ระบบป้องกันไฟไหลย้อนเข้าระบบจำหน่าย (Zero Export Protection)", qty: 1, unit: "job" });
+  r.push({ name: "ระบบสื่อสารและมอนิเตอร์การผลิตไฟ" + (sp.monitoring ? " " + sp.monitoring : ""), qty: 1, unit: "job" });
+  if (sp.battery) r.push({ name: "ระบบแบตเตอรี่สำรอง " + sp.battery, qty: 1, unit: "set" });
+  r.push({ name: "ค่าแรงติดตั้งระบบ Solar Rooftop", qty: 1, unit: "job" });
+  r.push({ name: "รับประกันงานติดตั้งและการทำงานของระบบ", qty: 3, unit: "ปี" });
+  r.push({ name: "บริการตรวจเช็คระบบและล้างแผง 1 ครั้ง/ปี", qty: 3, unit: "ปี" });
+  return r;
+}
+/* ── รายการตั้งต้นของตารางรับประกัน ──
+   ปีรับประกันของแผงกับอินเวอร์เตอร์เป็นของผู้ผลิต ที่เหลือเป็นของบริษัท */
+function quoteWtySeed(t) {
+  const sp = quoteSpec(t || {});
+  return [
+    { name: "แผงโซลาร์เซลล์" + (sp.panel ? " " + sp.panel : ""), qty: sp.panels || 1, unit: "PV", yr: "15 ปี (วัสดุ) · 30 ปี (ประสิทธิภาพ)" },
+    { name: "อินเวอร์เตอร์" + (sp.inv ? " " + sp.inv : ""), qty: 1, unit: "System", yr: "5 ปี" },
+    { name: "โครงสร้างรองรับแผง", qty: 1, unit: "Lot", yr: "3 ปี" },
+    { name: "ตู้รวมสาย AC / DC", qty: 1, unit: "Lot", yr: "3 ปี" },
+    { name: "ระบบควบคุม / ระบบสื่อสาร", qty: 1, unit: "Lot", yr: "3 ปี" },
+    { name: "การทำงานของระบบโซลาร์เซลล์ทั้งระบบ", qty: 1, unit: "Lot", yr: "3 ปี" },
+    { name: "บริการตรวจเช็คระบบและล้างแผง ปีละ 1 ครั้ง", qty: 1, unit: "Lot", yr: "3 ปี" },
+  ];
+}
+/* แถวในตารางที่กรอกไว้ — ว่างก็ใช้รายการตั้งต้นไปก่อน คนที่ยังไม่เคยเข้ามาแก้จะได้ไม่ได้แผ่นเปล่า */
+const quoteRowsOr = (rows, seed) => {
+  const a = (rows || []).filter((r) => r && String(r.name || "").trim());
+  return a.length ? a : seed;
+};
+
 /* เลขที่ใบเสนอราคา QT-YYMM-NNN — เลขรันนิ่งนับเฉพาะในเดือนเดียวกัน */
 function quoteNo(quotes) {
   const d = new Date();
@@ -196,6 +347,10 @@ function blankQuote(target, user, quotes) {
     items: quoteStdItems(t),
     discount: 0, discountPct: 0, discountMode: "baht",
     sheetIds: [],
+    /* ใบที่ทำใหม่ตั้งต้นเป็นชุดเต็ม — ลูกค้าโครงการขอทั้งเล่มเป็นปกติ
+       ไม่อยากส่งแผ่นไหนก็ติ๊กออกได้ในหน้าทำใบ ง่ายกว่ามาตามเปิดทีหลังแล้วลืม */
+    pages: quotePagesAll(),
+    boqRows: quoteBoqSeed(t), wtyRows: quoteWtySeed(t), roi: {},
     vat: (window.BOQ && window.BOQ.VAT_RATE != null) ? window.BOQ.VAT_RATE : 7,
     terms: QUOTE_TERMS_DEF.slice(), warranties: QUOTE_WARRANTY_DEF.slice(),
     validDays: 30, note: "",
@@ -333,6 +488,10 @@ function quoteFrom(prev, target, user, quotes) {
     vat: prev.vat != null ? prev.vat : q.vat,
     terms: (prev.terms || []).slice(), warranties: (prev.warranties || []).slice(),
     sheetIds: (prev.sheetIds || []).slice(),
+    pages: Object.assign(quotePagesAll(), prev.pages || QUOTE_PAGES_LEGACY),
+    boqRows: (prev.boqRows || []).map((x) => Object.assign({}, x)),
+    wtyRows: (prev.wtyRows || []).map((x) => Object.assign({}, x)),
+    roi: Object.assign({}, prev.roi || {}),
     validDays: prev.validDays || q.validDays, note: prev.note || "",
     kwp: +prev.kwp > 0 ? +prev.kwp : q.kwp,
     basedOn: prev.no || "",
@@ -464,6 +623,40 @@ const QUOTE_I18N = {
   "ขนาด": ["Size", "规模"],
   "ชื่อ": ["Name", "姓名"],
   "โทร": ["Tel", "电话"],
+  "ข้อเสนอโครงการ": ["Project proposal", "项目方案"],
+  "ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์บนหลังคา": ["Solar Rooftop Power System", "屋顶太阳能发电系统"],
+  "เสนอต่อ": ["Presented to", "呈送"],
+  "ขนาดติดตั้ง": ["Installed capacity", "装机容量"],
+  "BOQ รายการงาน": ["Bill of quantity", "工程量清单"],
+  "BOQ · ขอบเขตงานระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์บนหลังคา": ["Bill of quantity · solar rooftop system scope of work", "工程量清单 · 屋顶太阳能系统工作范围"],
+  "ตารางรับประกันอุปกรณ์": ["Equipment warranty", "设备质保"],
+  "การรับประกันอุปกรณ์ในระบบที่ติดตั้ง": ["Warranty of the installed equipment", "安装设备质保明细"],
+  "การรับประกัน": ["Warranty", "质保"],
+  "วิเคราะห์ผลตอบแทน": ["Return analysis", "收益分析"],
+  "ประมาณการผลิตไฟและค่าไฟที่ประหยัดได้": ["Estimated generation and electricity savings", "发电量与电费节省预估"],
+  "สรุปผลตอบแทน": ["Return summary", "收益摘要"],
+  "ระยะเวลาคืนทุน": ["Payback period", "投资回收期"],
+  "ลดค่าไฟเดือนละ": ["Monthly bill reduction", "每月电费减少"],
+  "รายได้รวมทั้งหมด": ["Total savings", "累计收益"],
+  "กำไรหลังหักเงินลงทุน": ["Profit after investment", "扣除投资后利润"],
+  "เงินลงทุน (ก่อน VAT)": ["Investment (excl. VAT)", "投资额（不含税）"],
+  "ราคาต่อวัตต์": ["Price per watt", "每瓦价格"],
+  "ชั่วโมงผลิตไฟเฉลี่ย": ["Effective sun hours", "有效发电小时"],
+  "ผลิตไฟรายวัน": ["Daily generation", "日发电量"],
+  "ผลิตไฟรายปี": ["Annual generation", "年发电量"],
+  "ค่าไฟรวมค่า FT": ["Tariff incl. FT", "含 FT 电价"],
+  "ปีที่": ["Year", "年"],
+  "ประสิทธิภาพ": ["Efficiency", "效率"],
+  "หน่วยที่ผลิตได้": ["Generation", "发电量"],
+  "ค่าไฟ/หน่วย": ["Tariff", "电价"],
+  "ค่าไฟที่ประหยัด": ["Savings", "节省"],
+  "ยอดสะสม": ["Cumulative", "累计"],
+  "รวม {} ปี": ["{}-year total", "{} 年合计"],
+  "คืนทุนปีนี้": ["payback here", "回收于此"],
+  "ปี": [" yr", " 年"],
+  "เดือน": [" mo", " 个月"],
+  "ผู้ขาย": ["Seller", "卖方"],
+  "ผู้ซื้อ": ["Buyer", "买方"],
   " บาท": [" THB", " 泰铢"],
 };
 
@@ -490,7 +683,8 @@ function quoteHTML(q, lang, sheets) {
   /* ── DATA SHEET ที่เลือกแนบ ──
      ที่เป็นรูปพิมพ์ต่อท้ายในชุดเดียวกันได้เลย · ไฟล์ PDF พิมพ์รวมไม่ได้ ต้องบอกให้แนบแยก
      (วิธีเดียวกับชุดเอกสารขออนุญาต) */
-  const sh = (sheets || []).filter(Boolean);
+  /* ปิดแผ่น DATA SHEET = ไม่ต้องเอาไฟล์ที่แนบไว้มาประกอบเลย (ไม่ใช่แนบแต่ไม่พิมพ์) */
+  const sh = quotePageOn(q, "sheets") ? (sheets || []).filter(Boolean) : [];
   const shImgs = sh.filter((x) => x.kind === "image");
   const shPdfs = sh.filter((x) => x.kind !== "image");
   /* ใบเสนอราคาต้องจบในตัวมันเอง — DATA SHEET เป็นเอกสารแนบ ไปขึ้นแผ่นใหม่ต่อท้าย
@@ -546,6 +740,155 @@ function quoteHTML(q, lang, sheets) {
       + "</li>").join("");
     return '<div class="blk"><h3>เงื่อนไขการชำระเงิน</h3><ul>' + li + "</ul></div>";
   };
+  /* ── หน้าปก ──
+     ชุดเอกสารของงานโครงการถูกพรินต์ไปวางบนโต๊ะประชุมรวมกับของเจ้าอื่น
+     แผ่นแรกจึงต้องบอกครบในสายตาเดียวว่าใครเสนอ เสนอให้ใคร ระบบใหญ่เท่าไร */
+  const coverHTML = () =>
+    '<div class="cv">' +
+    '<div class="cvh">' + window.brandHeadHTML({ size: 44 }) +
+    (window.BRANDING.legalTH ? '<div class="bs bl">' + sEsc(window.BRANDING.legalTH) +
+      (window.BRANDING.taxId ? " · เลขประจำตัวผู้เสียภาษี " + sEsc(window.BRANDING.taxId) : "") + "</div>" : "") +
+    (window.BRANDING.addrTH ? '<div class="bs">' + sEsc(window.BRANDING.addrTH) + "</div>" : "") +
+    '<div class="bs">' + window.BRANDING.email + " · " + window.BRANDING.tel + "</div></div>" +
+    '<div class="cvm"><div class="cvk">ข้อเสนอโครงการ</div>' +
+    '<h1 class="cvt">ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์บนหลังคา</h1>' +
+    '<div class="cvline"></div>' +
+    '<div class="cvto">เสนอต่อ</div>' +
+    '<div class="cvcu">' + sEsc(c.name || "—") + "</div>" +
+    ((c.address || c.province) ? '<div class="cvad">' + sEsc((c.address || "") + (c.province ? " " + c.province : "")) + "</div>" : "") +
+    '<div class="cvcap"><span class="cl">ขนาดติดตั้ง</span>' +
+    '<span class="cn">' + (q.kwp ? sEsc(q.kwp) : "—") + '</span><span class="cu">kWp</span></div>' +
+    "</div>" +
+    '<div class="cvf">' +
+    '<div><span>เลขที่</span><b>' + sEsc(q.no) + "</b></div>" +
+    '<div><span>วันที่</span><b>' + dsp(q.date) + "</b></div>" +
+    '<div><span>ผู้เสนอ</span><b>' + sEsc(q.ownerName || q.byName || "—") + "</b></div>" +
+    (c.phone ? '<div><span>โทร</span><b>' + sEsc(c.phone) + "</b></div>" : "") +
+    "</div>" + footHTML + "</div>";
+
+  /* หัวแผ่นแนบทุกแผ่น — ชื่อเอกสาร + บรรทัดบอกว่าเป็นของใบไหนของใคร
+     แผ่นที่หลุดจากชุดต้องอ่านออกว่าเป็นของงานไหน */
+  const sheetHead = (title, h2, sub) => headHTML(title) + "<h2>" + h2 + "</h2>" +
+    '<div class="sub">' + sEsc(c.name || "") + (q.kwp ? " · ขนาดติดตั้ง " + sEsc(q.kwp) + " kWp" : "") +
+    " · แนบท้ายใบเสนอราคาเลขที่ " + sEsc(q.no) + (sub ? " · " + sub : "") + "</div>";
+  const signRow = (leftRole, leftName, rightRole, rightName) =>
+    '<div class="sig"><div><div class="ln"></div><div class="rl">' + leftRole + (leftName ? " · " + sEsc(leftName) : "") +
+    '</div><div class="rl">วันที่ ______ / ______ / ______</div></div>' +
+    '<div><div class="ln"></div><div class="rl">' + rightRole + (rightName ? " · " + sEsc(rightName) : "") +
+    '</div><div class="rl">วันที่ ______ / ______ / ______</div></div></div>';
+
+  /* ── BOQ ── ขอบเขตงานที่ลูกค้าจะได้ ไม่มีราคาทีละบรรทัด
+     ราคาต่อรายการเป็นเรื่องภายใน ถ้าพิมพ์ลงไปลูกค้าจะหยิบมาต่อรองทีละบรรทัด
+     แต่ยอดท้ายแผ่นต้องมี ไม่งั้นแผ่นนี้ไม่ผูกกับใบเสนอราคาที่เซ็นกัน */
+  const boqRows = quoteRowsOr(q.boqRows, quoteBoqSeed(q));
+  const boqHTML = () =>
+    '<div class="dpg">' + sheetHead("BOQ รายการงาน", "BOQ · ขอบเขตงานระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์บนหลังคา", "") +
+    '<table><thead><tr><th class="c" style="width:34px">ลำดับ</th><th>รายการ</th>' +
+    '<th class="c" style="width:56px">จำนวน</th><th class="c" style="width:56px">หน่วย</th></tr></thead><tbody>' +
+    (boqRows.map((r, i) => '<tr><td class="c">' + (i + 1) + "</td><td>" + sEsc(r.name) +
+      '</td><td class="c">' + sEsc(r.qty == null || r.qty === "" ? "" : r.qty) +
+      '</td><td class="c">' + sEsc(r.unit || "") + "</td></tr>").join("")
+      || '<tr><td colspan="4" class="c">— ยังไม่มีรายการ —</td></tr>') +
+    "</tbody></table>" +
+    '<div class="pgft"><table class="sum">' +
+    money("รวมเป็นเงิน", T.afterDisc) + money("ภาษีมูลค่าเพิ่ม " + T.vatRate + "%", T.vat) +
+    money("ราคารวมทั้งสิ้น", T.grand, true) + "</table>" +
+    signRow("ผู้ขาย", window.BRANDING.legalTH || "", "ผู้ซื้อ", c.name || "") + footHTML + "</div></div>";
+
+  /* ── ตารางรับประกัน ── ลูกค้าถามทุกรายว่า "อะไรรับประกันกี่ปี"
+     เขียนเป็นตารางให้เทียบได้ทีเดียว ดีกว่าให้ไปไล่อ่านในข้อความยาว ๆ */
+  const wtyRows = quoteRowsOr(q.wtyRows, quoteWtySeed(q));
+  const wtyHTML = () =>
+    '<div class="dpg">' + sheetHead("ตารางรับประกันอุปกรณ์", "การรับประกันอุปกรณ์ในระบบที่ติดตั้ง", "") +
+    '<table><thead><tr><th class="c" style="width:34px">ลำดับ</th><th>รายการ</th>' +
+    '<th class="c" style="width:56px">จำนวน</th><th class="c" style="width:64px">หน่วย</th>' +
+    '<th style="width:150px">การรับประกัน</th></tr></thead><tbody>' +
+    (wtyRows.map((r, i) => '<tr><td class="c">' + (i + 1) + "</td><td>" + sEsc(r.name) +
+      '</td><td class="c">' + sEsc(r.qty == null || r.qty === "" ? "" : r.qty) +
+      '</td><td class="c">' + sEsc(r.unit || "") + "</td><td><b>" + sEsc(r.yr || "") + "</b></td></tr>").join("")
+      || '<tr><td colspan="5" class="c">— ยังไม่มีรายการ —</td></tr>') +
+    "</tbody></table>" +
+    (q.warranties && q.warranties.filter((x) => String(x || "").trim()).length
+      ? list(q.warranties, "การรับประกันและบริการ") : "") +
+    '<div class="pgft">' + footHTML + "</div></div>";
+
+  /* ── แผ่นวิเคราะห์ผลตอบแทน ──
+     คิดได้เฉพาะใบที่มีทั้งขนาดระบบและราคา — ขาดอย่างใดอย่างหนึ่งตารางจะเป็นศูนย์ทั้งแผ่น
+     ปิดแผ่นไปเงียบ ๆ ดีกว่าส่งแผ่นที่เลขเป็นศูนย์ให้ลูกค้า (หน้าทำใบมีคำเตือนบอกอยู่) */
+  const R = (+q.kwp > 0 && T.afterDisc > 0) ? quoteRoi(q) : null;
+  const n0 = (v) => Math.round(+v || 0).toLocaleString("en-US");
+  const n2 = (v) => sBaht(v);
+  const prm = (rows) => '<table class="prm"><tbody>' + rows.map((r) =>
+    "<tr><td>" + r[0] + '</td><td class="r"><b>' + r[1] + "</b></td></tr>").join("") + "</tbody></table>";
+  const cashHTML = () => !R ? "" :
+    '<div class="dpg">' + sheetHead("วิเคราะห์ผลตอบแทน", "ประมาณการผลิตไฟและค่าไฟที่ประหยัดได้", "") +
+    '<div class="prmw">' +
+    prm([["ขนาดติดตั้ง", sEsc(R.kwp) + " kWp"],
+         ["เงินลงทุน (ก่อน VAT)", n2(R.invest) + " บาท"],
+         ["ราคาต่อวัตต์", n2(R.perW) + " บาท"],
+         ["ชั่วโมงแดดเฉลี่ย", n2(R.cfg.sun) + " ชม./วัน"],
+         ["Performance Ratio", R.cfg.pr + "%"]]) +
+    prm([["ชั่วโมงผลิตไฟเฉลี่ย", n2(R.hrs) + " ชม./วัน"],
+         ["ผลิตไฟรายวัน", n2(R.dayKwh) + " หน่วย"],
+         ["ผลิตไฟรายปี", n0(R.yearKwh) + " หน่วย"],
+         ["ค่าไฟรวมค่า FT", n2(R.cfg.priceOn + R.cfg.ft) + " ฿/หน่วย"],
+         ["ค่าไฟขึ้น", R.cfg.up + "% ทุก " + R.cfg.upEvery + " ปี"]]) +
+    "</div>" +
+    '<table class="rt"><thead><tr><th class="c">ปีที่</th><th class="c">ประสิทธิภาพ</th>' +
+    '<th class="r">หน่วยที่ผลิตได้</th><th class="r">ค่าไฟ/หน่วย</th>' +
+    '<th class="r">ค่าไฟที่ประหยัด</th><th class="r">ยอดสะสม</th><th style="width:58px"></th></tr></thead><tbody>' +
+    R.rows.map((r) => {
+      const hit = R.payback && r.y === R.payback.y + (R.payback.m ? 1 : 0);
+      return '<tr' + (hit ? ' class="hit"' : "") + '><td class="c">' + r.y + '</td><td class="c">' +
+        (Math.round(r.eff * 10000) / 100).toFixed(2) + '%</td><td class="r">' + n0(r.prod) +
+        '</td><td class="r">' + (Math.round(r.price * 10000) / 10000).toFixed(4) +
+        '</td><td class="r">' + n2(r.save) + '</td><td class="r">' + n2(r.cum) + "</td><td>" +
+        (hit ? "คืนทุนปีนี้" : "") + "</td></tr>";
+    }).join("") +
+    '<tr class="tt"><td class="c">รวม ' + R.cfg.years + ' ปี</td><td></td><td class="r">' + n0(R.total.prod) +
+    '</td><td></td><td class="r">' + n2(R.total.save) + '</td><td class="r">' + n2(R.total.save) + "</td><td></td></tr>" +
+    "</tbody></table>" +
+    '<div class="pgft"><div class="nt">หมายเหตุ · ประสิทธิภาพแผงลดลงปีแรก ' + R.cfg.deg1 + "% หลังจากนั้นปีละ " + R.cfg.deg +
+    "% · ค่าไฟอ้างอิงอัตราปัจจุบันรวมค่า FT และคาดการณ์ว่าขึ้น " + R.cfg.up + "% ทุก " + R.cfg.upEvery +
+    " ปี · ตัวเลขทั้งหมดเป็นการประมาณการเพื่อใช้ประกอบการตัดสินใจ ไม่ใช่การรับประกันผลผลิต</div>" +
+    footHTML + "</div></div>";
+
+  /* ── สรุปผลตอบแทน ── แผ่นที่ลูกค้าเปิดดูก่อนแผ่นอื่นเสมอ ตัวเลขใหญ่ อ่านจบในสิบวินาที */
+  const pbTxt = !R ? "" : (R.payback ? R.payback.y + " ปี" + (R.payback.m ? " " + R.payback.m + " เดือน" : "")
+    : "เกิน " + R.cfg.years + " ปี");
+  const paybackHTML = () => !R ? "" :
+    '<div class="dpg">' + sheetHead("สรุปผลตอบแทน", "สรุปผลตอบแทนของระบบที่เสนอ", "") +
+    '<div class="kpi">' +
+    '<div class="k1"><span class="kl">ระยะเวลาคืนทุน</span><span class="kv">' + pbTxt + "</span></div>" +
+    '<div><span class="kl">ลดค่าไฟเดือนละ</span><span class="kv">฿' + n2(R.month1) + "</span></div>" +
+    '<div><span class="kl">รายได้รวมทั้งหมด</span><span class="kv">฿' + n0(R.total.save) +
+    '</span><span class="ks">' + R.cfg.years + " ปี</span></div>" +
+    '<div><span class="kl">กำไรหลังหักเงินลงทุน</span><span class="kv">฿' + n0(R.profit) +
+    '</span><span class="ks">' + R.cfg.years + " ปี</span></div>" +
+    "</div>" +
+    '<div class="prmw">' +
+    prm([["ขนาดติดตั้ง", sEsc(R.kwp) + " kWp"],
+         ["เงินลงทุน (ก่อน VAT)", n2(R.invest) + " บาท"],
+         ["ผลิตไฟรายวัน", n2(R.dayKwh) + " หน่วย"],
+         ["ผลิตไฟรายปี", n0(R.yearKwh) + " หน่วย"]]) +
+    prm([["ค่าไฟรวมค่า FT", n2(R.cfg.priceOn + R.cfg.ft) + " ฿/หน่วย"],
+         ["มูลค่าไฟที่ผลิตได้", n2(R.day1) + " บาท/วัน"],
+         ["รวม " + R.cfg.years + " ปี", n0(R.total.prod) + " หน่วย"],
+         ["ราคาต่อวัตต์", n2(R.perW) + " บาท"]]) +
+    "</div>" +
+    '<table class="rt"><thead><tr><th class="c">ปีที่</th><th class="c">ประสิทธิภาพ</th>' +
+    '<th class="r">หน่วยที่ผลิตได้</th><th class="r">ค่าไฟที่ประหยัด</th><th class="r">ยอดสะสม</th>' +
+    '<th style="width:58px"></th></tr></thead><tbody>' +
+    R.rows.slice(0, 10).map((r) => {
+      const hit = R.payback && r.y === R.payback.y + (R.payback.m ? 1 : 0);
+      return '<tr' + (hit ? ' class="hit"' : "") + '><td class="c">' + r.y + '</td><td class="c">' +
+        (Math.round(r.eff * 10000) / 100).toFixed(2) + '%</td><td class="r">' + n0(r.prod) +
+        '</td><td class="r">' + n2(r.save) + '</td><td class="r">' + n2(r.cum) + "</td><td>" +
+        (hit ? "คืนทุนปีนี้" : "") + "</td></tr>";
+    }).join("") + "</tbody></table>" +
+    '<div class="pgft"><div class="nt">หมายเหตุ · ตัวเลขคิดจากสมมุติฐานในแผ่นวิเคราะห์ผลตอบแทน ' +
+    "เป็นการประมาณการเพื่อประกอบการตัดสินใจ ไม่ใช่การรับประกันผลผลิตหรือรายได้</div>" + footHTML + "</div></div>";
+
   /* ฟอนต์ไทยไม่มีตัวอักษรจีน — ภาษาจีนต้องโหลด Noto Sans SC เพิ่ม ไม่งั้นได้สี่เหลี่ยมทั้งใบ */
   const fontStack = window.pgFontStack ? window.pgFontStack(L) : "'IBM Plex Sans Thai',sans-serif";
   const doc = '<!doctype html><html lang="' + L + '"><head><meta charset="utf-8">' +
@@ -598,8 +941,48 @@ function quoteHTML(q, lang, sheets) {
     ".sig>div{flex:1;text-align:center}.sig .ln{border-top:1px solid #9ca3af;margin:34px 10px 6px}" +
     ".sig .rl{font-size:11px;color:#6b7280}" +
     ".ft{margin-top:16px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center}" +
+    /* ── แผ่นเพิ่มเติมในชุดเอกสาร ── ทุกแผ่นขึ้นกระดาษใหม่และสูงเต็มหน้าเหมือนแผ่นแนบเดิม */
+    ".dpg{page-break-before:always;break-before:page;display:flex;flex-direction:column;min-height:269mm}" +
+    ".dpg h2{font-size:13px;color:#0A4D68;margin:0 0 2px}" +
+    ".dpg .sub{font-size:11px;color:#6b7280;margin-bottom:10px}" +
+    ".brk{page-break-before:always;break-before:page}" +
+    /* หน้าปก */
+    ".cv{display:flex;flex-direction:column;min-height:269mm}" +
+    ".cvh{border-bottom:3px solid #1B9B75;padding-bottom:12px}" +
+    ".cvm{flex:1;display:flex;flex-direction:column;justify-content:center;padding:14mm 0}" +
+    ".cvk{font-size:12px;font-weight:600;letter-spacing:.22em;color:#1B9B75;text-transform:uppercase}" +
+    ".cvt{font-size:33px;line-height:1.25;margin:8px 0 0;color:#0A4D68;font-weight:700;max-width:150mm}" +
+    ".cvline{width:64px;height:4px;background:#1B9B75;border-radius:2px;margin:16px 0 22px}" +
+    ".cvto{font-size:11px;letter-spacing:.16em;color:#6b7280;text-transform:uppercase}" +
+    ".cvcu{font-size:21px;font-weight:700;color:#111827;margin-top:5px}" +
+    ".cvad{font-size:12px;color:#6b7280;margin-top:3px;max-width:130mm}" +
+    ".cvcap{display:inline-flex;align-items:baseline;gap:8px;margin-top:26px;padding:12px 20px;" +
+      "border:1px solid #d1d5db;border-left:4px solid #1B9B75;border-radius:8px;background:#f9fafb;align-self:flex-start}" +
+    ".cvcap .cl{font-size:11px;color:#6b7280}" +
+    ".cvcap .cn{font-size:30px;font-weight:700;color:#0A4D68;font-variant-numeric:tabular-nums;line-height:1}" +
+    ".cvcap .cu{font-size:13px;font-weight:600;color:#0A4D68}" +
+    ".cvf{display:flex;flex-wrap:wrap;gap:8px 26px;border-top:1px solid #e5e7eb;padding-top:10px}" +
+    ".cvf div{font-size:11.5px;color:#374151}.cvf span{color:#9ca3af;margin-right:6px}" +
+    /* ตารางพารามิเตอร์ 2 คอลัมน์ */
+    ".prmw{display:flex;gap:14px;margin-bottom:10px}.prmw>table{flex:1}" +
+    ".prm{font-size:11px}.prm td{padding:4px 9px;border-bottom:1px solid #e5e7eb;color:#374151}" +
+    ".prm tr:nth-child(odd) td{background:#f9fafb}" +
+    /* ตารางคืนทุน — 30 บรรทัดต้องจบในหน้าเดียว ตัวเล็กแต่ยังอ่านออกตอนพิมพ์ */
+    ".rt{font-size:9.2px}.rt th{padding:4px 6px;font-size:9px}.rt td{padding:1.8px 6px}" +
+    ".rt .hit td{background:#ECFDF5;font-weight:700;color:#065F46}" +
+    ".rt .tt td{background:#0A4D68;color:#fff;font-weight:700;border:0}" +
+    /* การ์ดตัวเลขใหญ่ในแผ่นสรุป */
+    ".kpi{display:flex;gap:10px;margin-bottom:14px}" +
+    ".kpi>div{flex:1;border:1px solid #d1d5db;border-radius:9px;padding:11px 12px}" +
+    ".kpi .k1{border-color:#1B9B75;background:#F0FDF9}" +
+    ".kpi .kl{display:block;font-size:10px;color:#6b7280}" +
+    ".kpi .kv{display:block;font-size:19px;font-weight:700;color:#0A4D68;margin-top:3px;" +
+      "font-variant-numeric:tabular-nums;line-height:1.2}" +
+    ".kpi .ks{display:block;font-size:9.5px;color:#9ca3af}" +
+    ".nt{font-size:9.6px;color:#6b7280;line-height:1.55;margin-top:9px}" +
     "</style></head><body>" +
-    '<div class="pg1">' + headHTML("ใบเสนอราคา") +
+    (quotePageOn(q, "cover") ? coverHTML() : "") +
+    '<div class="pg1' + (quotePageOn(q, "cover") ? " brk" : "") + '">' + headHTML("ใบเสนอราคา") +
     '<div class="two"><div><h3>ลูกค้า</h3>' +
     '<div class="kv"><b>ชื่อ</b><span>' + sEsc(c.name || "—") + "</span></div>" +
     '<div class="kv"><b>โทร</b><span>' + sEsc(c.phone || "—") + "</span></div>" +
@@ -632,12 +1015,16 @@ function quoteHTML(q, lang, sheets) {
     "</div></div>" +
     /* เงื่อนไขชำระเงิน + การรับประกัน ขึ้นแผ่นใหม่
        หน้าแรกจะได้เหลือแค่ของกับราคา ลูกค้าเซ็นจบในแผ่นเดียว ส่วนเงื่อนไขอ่านต่อแผ่นหลังได้เต็ม ๆ */
-    (termList(q.terms, T.grand) || list(q.warranties, "การรับประกันและบริการ") || shList
+    (quotePageOn(q, "terms") && (termList(q.terms, T.grand) || list(q.warranties, "การรับประกันและบริการ") || shList)
       ? '<div class="tmpg">' + headHTML("เอกสารแนบ") +
         "<h2>เงื่อนไขการชำระเงินและการรับประกัน</h2>" +
         '<div class="sub">แนบท้ายใบเสนอราคาเลขที่ ' + sEsc(q.no) + " · " + sEsc(c.name || "") + "</div>" +
         termList(q.terms, T.grand) + list(q.warranties, "การรับประกันและบริการ") + shList + footHTML + "</div>"
       : "") +
+    (quotePageOn(q, "boq") ? boqHTML() : "") +
+    (quotePageOn(q, "wty") ? wtyHTML() : "") +
+    (quotePageOn(q, "cash") ? cashHTML() : "") +
+    (quotePageOn(q, "payback") ? paybackHTML() : "") +
     shPages +
     "</body></html>";
   return window.pgDocHTML ? window.pgDocHTML(doc, L, QUOTE_I18N) : doc;
@@ -650,6 +1037,158 @@ function quoteHTML(q, lang, sheets) {
    ไม่ได้แนบทุกใบทุกครั้ง — บางงานลูกค้าขอเฉพาะสเปกแผง บางงานขอของอินเวอร์เตอร์ด้วย
    รายการมาจากคลังสินค้า (ชิ้นที่แนบ DATA SHEET ไว้แล้วเท่านั้น) จะได้ไม่ต้องอัปไฟล์ซ้ำทุกใบ
    ชิ้นที่ชื่อ/รุ่นไปโผล่ในรายการที่เสนอ เด้งขึ้นมาก่อน เพราะเป็นตัวที่จะแนบจริงเกือบทุกครั้ง */
+/* ── ติ๊กว่าจะออกแผ่นไหน ──
+   เรียงตามลำดับที่จะออกจริง คนกดจะได้เห็นหน้าตาเล่มในหัวตรงกับที่พรินต์ออกมา
+   แผ่นใบเสนอราคาปิดไม่ได้ — ปิดแล้วเอกสารที่เหลือไม่มีราคาให้อ้างอิง */
+function QuotePagePick({ q, locked, onToggle, onAll, warn }) {
+  const n = QUOTE_PAGES.filter((p) => quotePageOn(q, p.key)).length;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+        <label style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>แผ่นที่จะออกไปกับใบนี้</label>
+        <span style={{ fontSize: 11, color: "var(--text-3)" }}>เลือกไว้ {n} แผ่น</span>
+        {!locked && (
+          <span style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+            <button type="button" onClick={() => onAll(true)} style={pgQuick}>เปิดทั้งชุด</button>
+            <button type="button" onClick={() => onAll(false)} style={pgQuick}>เฉพาะใบเสนอราคา</button>
+          </span>
+        )}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(215px,1fr))", gap: 6 }}>
+        {QUOTE_PAGES.map((p, i) => {
+          const on = quotePageOn(q, p.key);
+          const dis = locked || p.lock;
+          return (
+            <button key={p.key} type="button" disabled={dis} onClick={() => onToggle(p.key)}
+              style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "9px 11px", borderRadius: 11,
+                border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
+                background: on ? "var(--primary-soft)" : "var(--surface)", cursor: dis ? "default" : "pointer",
+                fontFamily: "inherit", textAlign: "left", opacity: dis && !on ? .55 : 1 }}>
+              <span style={{ width: 17, height: 17, borderRadius: 5, flexShrink: 0, marginTop: 1, display: "grid", placeItems: "center",
+                border: "1.5px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+                background: on ? "var(--primary)" : "transparent" }}>
+                {on && <Icon name="check" size={11} color="#fff" sw={3} />}
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-1)" }}>
+                  <span style={{ fontFamily: "var(--mono)", color: "var(--text-3)", marginRight: 5 }}>{i + 1}</span>{p.th}
+                </span>
+                <span style={{ display: "block", fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.45 }}>{p.hint}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {warn && (
+        <div style={{ fontSize: 11.5, color: "#B45309", background: "var(--tint-amber-bg)", border: "1px solid #F59E0B55",
+          borderRadius: 10, padding: "8px 11px", lineHeight: 1.6 }}>{warn}</div>
+      )}
+    </div>
+  );
+}
+const pgQuick = { padding: "5px 10px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)",
+  cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700, color: "var(--text-2)" };
+
+/* ── ตารางเล็ก ๆ ในเอกสาร (BOQ · ตารางรับประกัน) ──
+   คอลัมน์ไม่เหมือนกัน แต่การแก้เหมือนกันหมด จึงเขียนตัวเดียวแล้วส่ง cols เข้าไป */
+function QuoteRowsEdit({ title, hint, cols, rows, locked, onChange, onSeed, seedLabel }) {
+  const a = rows || [];
+  const grid = cols.map((c) => c.w).join(" ") + (locked ? "" : " 30px");
+  const setCell = (i, k, v) => onChange(a.map((r, j) => j === i ? Object.assign({}, r, { [k]: v }) : r));
+  const cell = { padding: "7px 8px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)",
+    color: "var(--text-1)", fontFamily: "inherit", fontSize: 12, width: "100%", minWidth: 0 };
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+        <label style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>{title}</label>
+        <span style={{ fontSize: 11, color: "var(--text-3)" }}>{hint}</span>
+        {!locked && onSeed && (
+          <button type="button" onClick={onSeed} style={Object.assign({}, pgQuick, { marginLeft: "auto", color: "var(--primary-dark)" })}>
+            {seedLabel || "ตั้งรายการใหม่จากสเปก"}
+          </button>
+        )}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+        {a.map((r, i) => (
+          <div key={i} style={{ display: "grid", gridTemplateColumns: grid, gap: 6, alignItems: "center" }}>
+            {cols.map((c) => (
+              <input key={c.key} value={r[c.key] == null ? "" : r[c.key]} disabled={locked} placeholder={c.ph || ""}
+                type={c.num ? "number" : "text"}
+                onChange={(e) => setCell(i, c.key, c.num ? (e.target.value === "" ? "" : +e.target.value) : e.target.value)}
+                style={Object.assign({}, cell, c.num ? { textAlign: "right", fontVariantNumeric: "tabular-nums" } : null,
+                  c.key === "name" ? { fontWeight: 600 } : null)} />
+            ))}
+            {!locked && (
+              <button type="button" onClick={() => onChange(a.filter((_, j) => j !== i))} title="ลบบรรทัดนี้"
+                style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                  cursor: "pointer", display: "grid", placeItems: "center" }}>
+                <Icon name="trash" size={13} color="#EF4444" />
+              </button>
+            )}
+          </div>
+        ))}
+        {a.length === 0 && (
+          <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>ยังไม่มีบรรทัด — กดปุ่มด้านบนให้ระบบตั้งรายการให้จากสเปกในใบนี้</div>
+        )}
+      </div>
+      {!locked && (
+        <button type="button" onClick={() => onChange(a.concat([cols.reduce((o, c) => Object.assign(o, { [c.key]: c.num ? 1 : "" }), {})]))}
+          style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "none",
+            border: "1px dashed var(--border-strong)", borderRadius: 10, padding: "7px 12px", cursor: "pointer",
+            fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>
+          <Icon name="plus" size={13} color="var(--text-2)" /> เพิ่มบรรทัด
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ── สมมุติฐานที่ใช้คิดคืนทุน ──
+   ค่าตั้งต้นคือค่าที่ทีมขายใช้คุยกับลูกค้าอยู่แล้ว งานที่มีเงื่อนไขต่างไป (ค่าไฟโรงงาน · แดดภาคใต้)
+   ค่อยแก้ทีละช่อง แก้แล้วผลในแผ่นเอกสารเปลี่ยนตามทันที */
+function QuoteRoiEdit({ q, locked, onChange }) {
+  const cfg = quoteRoiCfg(q);
+  const raw = q.roi || {};
+  const R = (+q.kwp > 0 && quoteTotals(q).afterDisc > 0) ? quoteRoi(q) : null;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, background: "var(--surface)", border: "1px solid var(--border)",
+      borderRadius: 13, padding: 13 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+        <label style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>สมมุติฐานที่ใช้คิดผลตอบแทน</label>
+        {!locked && Object.keys(raw).length > 0 && (
+          <button type="button" onClick={() => onChange({})} style={Object.assign({}, pgQuick, { marginLeft: "auto" })}>คืนค่าตั้งต้น</button>
+        )}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(132px,1fr))", gap: 8 }}>
+        {QUOTE_ROI_FLD.map((f) => (
+          <div key={f.key} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <span style={{ fontSize: 10.5, color: "var(--text-3)" }}>{f.th} <span style={{ color: "var(--border-strong)" }}>· {f.unit}</span></span>
+            <input type="number" value={raw[f.key] == null || raw[f.key] === "" ? "" : raw[f.key]} disabled={locked}
+              placeholder={String(QUOTE_ROI_DEF[f.key])}
+              onChange={(e) => onChange(Object.assign({}, raw, { [f.key]: e.target.value === "" ? "" : +e.target.value }))}
+              style={{ padding: "7px 9px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                color: "var(--text-1)", fontFamily: "inherit", fontSize: 12, textAlign: "right", fontVariantNumeric: "tabular-nums", width: "100%" }} />
+          </div>
+        ))}
+      </div>
+      {R ? (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 18px", paddingTop: 4, borderTop: "1px solid var(--border)" }}>
+          {[["ผลิตไฟรายปี", Math.round(R.yearKwh).toLocaleString() + " หน่วย"],
+            ["คืนทุน", R.payback ? R.payback.y + " ปี" + (R.payback.m ? " " + R.payback.m + " เดือน" : "") : "เกิน " + cfg.years + " ปี"],
+            ["ลดค่าไฟเดือนละ", "฿" + sBaht(R.month1)],
+            ["กำไร " + cfg.years + " ปี", "฿" + Math.round(R.profit).toLocaleString()]].map((x) => (
+            <span key={x[0]} style={{ fontSize: 11.5, color: "var(--text-3)" }}>
+              {x[0]} <b style={{ color: "var(--primary-dark)", fontFamily: "var(--mono)" }}>{x[1]}</b>
+            </span>
+          ))}
+        </div>
+      ) : (
+        <div style={{ fontSize: 11.5, color: "#B45309" }}>ต้องมีทั้งขนาดระบบ (kWp) และราคาในใบ ระบบจึงจะคิดผลตอบแทนได้</div>
+      )}
+    </div>
+  );
+}
+
 function QuoteSheetPick({ ids, items, hintText, locked, onChange }) {
   const [qs, setQs] = React.useState("");
   const sel = ids || [];
@@ -856,6 +1395,41 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
     </div>
   );
 
+  /* ── เปิด/ปิดแผ่นในชุดเอกสาร ──
+     เปิดแผ่น BOQ หรือตารางรับประกันครั้งแรก ตั้งรายการให้เลยจากสเปกในใบ
+     ไม่ใช่ให้ไปนั่งพิมพ์เองสิบสามบรรทัดทุกครั้ง (แก้ทีหลังได้ตามปกติ) */
+  const pageOn = (k) => quotePageOn(q, k);
+  const pagesNow = () => { const o = {}; QUOTE_PAGES.forEach((p) => { o[p.key] = quotePageOn(q, p.key); }); return o; };
+  const seedFor = (k, p) => (k === "boq" ? quoteBoqSeed(specSrc || p) : quoteWtySeed(specSrc || p));
+  const togglePage = (k) => {
+    if (locked) return;
+    setQ((p) => {
+      const cur = pagesNow(); cur[k] = !cur[k]; cur.quote = true;
+      const next = Object.assign({}, p, { pages: cur });
+      if ((k === "boq" || k === "wty") && cur[k]) {
+        const fld = k === "boq" ? "boqRows" : "wtyRows";
+        if (!(p[fld] || []).filter((r) => r && String(r.name || "").trim()).length) next[fld] = seedFor(k, p);
+      }
+      return next;
+    });
+  };
+  const setAllPages = (on) => {
+    if (locked) return;
+    setQ((p) => {
+      const o = {}; QUOTE_PAGES.forEach((x) => { o[x.key] = on ? true : x.key === "quote"; });
+      const next = Object.assign({}, p, { pages: o });
+      if (on) {
+        if (!(p.boqRows || []).length) next.boqRows = quoteBoqSeed(specSrc || p);
+        if (!(p.wtyRows || []).length) next.wtyRows = quoteWtySeed(specSrc || p);
+      }
+      return next;
+    });
+  };
+  /* คำเตือนที่ต้องเห็นก่อนกดออกเอกสาร — แผ่นที่คิดเลขไม่ได้จะถูกข้ามไปเงียบ ๆ */
+  const pageWarn = ((pageOn("cash") || pageOn("payback")) && !(+q.kwp > 0 && T.afterDisc > 0))
+    ? "แผ่นคืนทุนกับแผ่นสรุปผลตอบแทนยังออกไม่ได้ — ต้องกรอกขนาดระบบ (kWp) และราคาในใบก่อน ตอนนี้ระบบจะข้ามสองแผ่นนี้ไป"
+    : "";
+
   /* ตารางเงินรายงวด — คิดสดจากยอดท้ายใบทุกครั้งที่แก้ราคาหรือแก้ % จะได้ไม่มีทางค้างเลขเก่า */
   const split = quoteTermSplit(q.terms, T.grand);
   const termMoney = !split.count ? null : (
@@ -1051,6 +1625,23 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
 
             {lineList("terms", "เงื่อนไขการชำระเงิน", "บรรทัดละ 1 งวด · ใส่ % ไว้ในบรรทัด ระบบจะคิดเป็นเงินให้เอง", termMoney)}
             {lineList("warranties", "การรับประกันและบริการ", "บรรทัดละ 1 ข้อ")}
+            <QuotePagePick q={q} locked={locked} onToggle={togglePage} onAll={setAllPages} warn={pageWarn} />
+            {pageOn("boq") && (
+              <QuoteRowsEdit title="รายการในแผ่น BOQ" hint="ขอบเขตงานที่ลูกค้าจะได้ · ไม่มีราคาทีละบรรทัด"
+                cols={[{ key: "name", w: "1fr", ph: "ชื่อรายการ" }, { key: "qty", w: "72px", num: true }, { key: "unit", w: "78px", ph: "หน่วย" }]}
+                rows={q.boqRows || []} locked={locked} onChange={(v) => set("boqRows", v)}
+                onSeed={() => set("boqRows", quoteBoqSeed(specSrc || q))} />
+            )}
+            {pageOn("wty") && (
+              <QuoteRowsEdit title="ตารางรับประกันอุปกรณ์" hint="อุปกรณ์ทีละรายการ · กี่ปี"
+                cols={[{ key: "name", w: "1fr", ph: "ชื่ออุปกรณ์" }, { key: "qty", w: "62px", num: true },
+                  { key: "unit", w: "72px", ph: "หน่วย" }, { key: "yr", w: "150px", ph: "เช่น 5 ปี" }]}
+                rows={q.wtyRows || []} locked={locked} onChange={(v) => set("wtyRows", v)}
+                onSeed={() => set("wtyRows", quoteWtySeed(specSrc || q))} />
+            )}
+            {(pageOn("cash") || pageOn("payback")) && (
+              <QuoteRoiEdit q={q} locked={locked} onChange={(v) => set("roi", v)} />
+            )}
             <QuoteSheetPick ids={sheetIds} items={sheetItems} hintText={sheetHint} locked={locked}
               onChange={(v) => set("sheetIds", v)} />
             {/* ไฟล์ PDF พิมพ์รวมในใบเสนอราคาไม่ได้ (ข้อจำกัดของเบราว์เซอร์) — เปิดไปสั่งพิมพ์แยกแล้วแนบท้าย */}
@@ -1842,6 +2433,7 @@ Object.assign(window, {
   QUOTE_STATUS, QUOTE_STATUS_BY, QUOTE_TERMS_DEF, QUOTE_WARRANTY_DEF, quoteTermSplit,
   blankQuote, quoteFrom, quoteTotals, quoteNo, quotesFor, quotesOfJob, quotesOfLead,
   quoteDetailLines, quotePdfPages, quoteHTML, useQuoteStore,
+  QUOTE_PAGES, quotePageOn, quotePagesAll, quoteRoi, quoteRoiCfg, quoteBoqSeed, quoteWtySeed,
   quoteSpec, quoteHasSpec, quoteSpecName, quoteSpecDetail,
   QuoteEditor, QuoteSheetPick, SalesCard, SalesBoardView, SalesKpiView, SalesOverview, SalesJobSummary, SalesQuoteList,
 });

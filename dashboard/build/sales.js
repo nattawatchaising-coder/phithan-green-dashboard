@@ -151,6 +151,326 @@ QUOTE_STATUS.forEach(s => {
 });
 const QUOTE_TERMS_DEF = ["งวดที่ 1 · มัดจำ 50% เมื่อตกลงทำสัญญา", "งวดที่ 2 · 40% เมื่อของถึงหน้างานและเริ่มติดตั้ง", "งวดที่ 3 · 10% เมื่อติดตั้งเสร็จและทดสอบระบบเรียบร้อย"];
 const QUOTE_WARRANTY_DEF = ["รับประกันงานติดตั้ง 5 ปี", "รับประกันแผงโซลาร์เซลล์ 15 ปี", "รับประกันอินเวอร์เตอร์ 5 ปี", "ฟรีล้างแผงโซลาร์เซลล์ 3 ครั้ง", "สำรวจหน้างานก่อนติดตั้งฟรี"];
+const QUOTE_PAGES = [{
+  key: "cover",
+  th: "หน้าปก",
+  hint: "ชื่อลูกค้า · ขนาดระบบ · เลขที่ใบ"
+}, {
+  key: "quote",
+  th: "ใบเสนอราคา",
+  hint: "แผ่นหลัก · ปิดไม่ได้",
+  lock: true
+}, {
+  key: "terms",
+  th: "เงื่อนไขชำระเงิน & รับประกัน",
+  hint: "แนบท้ายใบเสนอราคา"
+}, {
+  key: "boq",
+  th: "BOQ รายการงาน",
+  hint: "ขอบเขตงานเป็นข้อ ๆ พร้อมช่องเซ็น"
+}, {
+  key: "wty",
+  th: "ตารางรับประกันอุปกรณ์",
+  hint: "อุปกรณ์ทีละรายการ · กี่ปี"
+}, {
+  key: "cash",
+  th: "ตารางคืนทุน 30 ปี",
+  hint: "ผลิตไฟ · ค่าไฟที่ประหยัด · ยอดสะสม"
+}, {
+  key: "payback",
+  th: "สรุปผลตอบแทน",
+  hint: "ระยะเวลาคืนทุน · กำไรตลอดอายุ"
+}, {
+  key: "sheets",
+  th: "DATA SHEET ที่แนบ",
+  hint: "สเปกแผง/อินเวอร์เตอร์จากคลัง"
+}];
+const QUOTE_PAGES_LEGACY = {
+  quote: true,
+  terms: true,
+  sheets: true
+};
+const quotePagesAll = () => {
+  const o = {};
+  QUOTE_PAGES.forEach(p => {
+    o[p.key] = true;
+  });
+  return o;
+};
+function quotePageOn(q, key) {
+  if (key === "quote") return true;
+  const p = q && q.pages;
+  return !!(p && typeof p === "object" ? p[key] : QUOTE_PAGES_LEGACY[key]);
+}
+const QUOTE_ROI_DEF = {
+  sun: 4.9,
+  pr: 73.5,
+  days: 365,
+  onPct: 70,
+  priceOn: 4.583,
+  priceOff: 4.583,
+  ft: 0.1623,
+  up: 1,
+  upEvery: 10,
+  deg1: 1,
+  deg: 0.35,
+  years: 30,
+  om: 0
+};
+const QUOTE_ROI_FLD = [{
+  key: "sun",
+  th: "ชั่วโมงแดดเฉลี่ย",
+  unit: "ชม./วัน"
+}, {
+  key: "pr",
+  th: "Performance Ratio",
+  unit: "%"
+}, {
+  key: "days",
+  th: "จำนวนวันที่ผลิตไฟ",
+  unit: "วัน/ปี"
+}, {
+  key: "priceOn",
+  th: "ค่าพลังงาน On Peak",
+  unit: "฿/หน่วย"
+}, {
+  key: "priceOff",
+  th: "ค่าพลังงาน Off Peak",
+  unit: "฿/หน่วย"
+}, {
+  key: "onPct",
+  th: "สัดส่วน On Peak",
+  unit: "%"
+}, {
+  key: "ft",
+  th: "ค่า FT",
+  unit: "฿/หน่วย"
+}, {
+  key: "up",
+  th: "ค่าไฟขึ้น",
+  unit: "%"
+}, {
+  key: "upEvery",
+  th: "ขึ้นทุก",
+  unit: "ปี"
+}, {
+  key: "deg1",
+  th: "แผงเสื่อมปีแรก",
+  unit: "%"
+}, {
+  key: "deg",
+  th: "แผงเสื่อมปีถัดไป",
+  unit: "%/ปี"
+}, {
+  key: "om",
+  th: "ค่าดูแลรักษา",
+  unit: "฿/ปี"
+}, {
+  key: "years",
+  th: "คิดผลตอบแทน",
+  unit: "ปี"
+}];
+function quoteRoiCfg(q) {
+  const src = q && q.roi || {};
+  const o = {};
+  Object.keys(QUOTE_ROI_DEF).forEach(k => {
+    const v = src[k];
+    o[k] = v === "" || v == null || isNaN(+v) ? QUOTE_ROI_DEF[k] : +v;
+  });
+  o.years = Math.min(Math.max(1, Math.round(o.years)), 40);
+  return o;
+}
+function quoteRoi(q) {
+  const c = quoteRoiCfg(q);
+  const T = quoteTotals(q);
+  const kwp = +(q && q.kwp) || 0;
+  const invest = T.afterDisc;
+  const hrs = c.sun * c.pr / 100;
+  const dayKwh = kwp * hrs;
+  const yearKwh = dayKwh * c.days;
+  const rows = [];
+  let eff = 1,
+    cum = 0;
+  for (let y = 1; y <= c.years; y++) {
+    eff -= (y === 1 ? c.deg1 : c.deg) / 100;
+    if (eff < 0) eff = 0;
+    const step = c.upEvery > 0 ? Math.floor(y / c.upEvery) : 0;
+    const mul = Math.pow(1 + c.up / 100, step);
+    const pOn = (c.priceOn + c.ft) * mul,
+      pOff = (c.priceOff + c.ft) * mul;
+    const prod = yearKwh * eff;
+    const on = prod * c.onPct / 100,
+      off = prod - on;
+    const save = on * pOn + off * pOff - c.om;
+    cum += save;
+    rows.push({
+      y: y,
+      eff: eff,
+      prod: prod,
+      on: on,
+      off: off,
+      price: pOn,
+      save: save,
+      cum: cum
+    });
+  }
+  const tot = rows.reduce((a, r) => ({
+    prod: a.prod + r.prod,
+    save: a.save + r.save
+  }), {
+    prod: 0,
+    save: 0
+  });
+  let pb = null;
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].cum >= invest && invest > 0) {
+      const prev = i ? rows[i - 1].cum : 0;
+      const m = rows[i].save > 0 ? Math.ceil((invest - prev) / rows[i].save * 12) : 12;
+      pb = {
+        y: rows[i].y - 1 + Math.floor(m / 12),
+        m: m % 12
+      };
+      break;
+    }
+  }
+  const first = rows[0] || {
+    save: 0,
+    prod: 0
+  };
+  return {
+    cfg: c,
+    kwp: kwp,
+    invest: invest,
+    perW: kwp > 0 ? invest / (kwp * 1000) : 0,
+    hrs: hrs,
+    dayKwh: dayKwh,
+    yearKwh: yearKwh,
+    rows: rows,
+    total: tot,
+    payback: pb,
+    month1: first.save / 12,
+    day1: first.save / c.days,
+    profit: tot.save - invest
+  };
+}
+function quoteBoqSeed(t) {
+  const sp = quoteSpec(t || {});
+  const r = [];
+  r.push({
+    name: "งานออกแบบระบบไฟฟ้าโซลาร์เซลล์ และดำเนินการขออนุญาตที่เกี่ยวข้อง",
+    qty: 1,
+    unit: "job"
+  });
+  r.push({
+    name: "แผงโซลาร์เซลล์" + (sp.panel ? " " + sp.panel : ""),
+    qty: sp.panels || 1,
+    unit: sp.panels ? "แผง" : "job"
+  });
+  r.push({
+    name: "อินเวอร์เตอร์" + (sp.inv ? " " + sp.inv : "") + (sp.phase ? " · ระบบ " + sp.phase + " เฟส" : ""),
+    qty: 1,
+    unit: "set"
+  });
+  r.push({
+    name: "โครงสร้างรองรับแผง (Solar Mounting Structure)" + (sp.roof ? " สำหรับหลังคา" + sp.roof : ""),
+    qty: 1,
+    unit: "set"
+  });
+  r.push({
+    name: "สายไฟ AC / DC พร้อมอุปกรณ์ประกอบ",
+    qty: 1,
+    unit: "job"
+  });
+  r.push({
+    name: "ตู้รวมสาย AC / DC (Combiner Box)",
+    qty: 1,
+    unit: "job"
+  });
+  r.push({
+    name: "รางเดินสาย / ท่อร้อยสาย (Cable Tray · Ladder · IMC Conduit)",
+    qty: 1,
+    unit: "job"
+  });
+  r.push({
+    name: "ระบบสายดิน (Grounding System)",
+    qty: 1,
+    unit: "job"
+  });
+  r.push({
+    name: "ระบบป้องกันไฟไหลย้อนเข้าระบบจำหน่าย (Zero Export Protection)",
+    qty: 1,
+    unit: "job"
+  });
+  r.push({
+    name: "ระบบสื่อสารและมอนิเตอร์การผลิตไฟ" + (sp.monitoring ? " " + sp.monitoring : ""),
+    qty: 1,
+    unit: "job"
+  });
+  if (sp.battery) r.push({
+    name: "ระบบแบตเตอรี่สำรอง " + sp.battery,
+    qty: 1,
+    unit: "set"
+  });
+  r.push({
+    name: "ค่าแรงติดตั้งระบบ Solar Rooftop",
+    qty: 1,
+    unit: "job"
+  });
+  r.push({
+    name: "รับประกันงานติดตั้งและการทำงานของระบบ",
+    qty: 3,
+    unit: "ปี"
+  });
+  r.push({
+    name: "บริการตรวจเช็คระบบและล้างแผง 1 ครั้ง/ปี",
+    qty: 3,
+    unit: "ปี"
+  });
+  return r;
+}
+function quoteWtySeed(t) {
+  const sp = quoteSpec(t || {});
+  return [{
+    name: "แผงโซลาร์เซลล์" + (sp.panel ? " " + sp.panel : ""),
+    qty: sp.panels || 1,
+    unit: "PV",
+    yr: "15 ปี (วัสดุ) · 30 ปี (ประสิทธิภาพ)"
+  }, {
+    name: "อินเวอร์เตอร์" + (sp.inv ? " " + sp.inv : ""),
+    qty: 1,
+    unit: "System",
+    yr: "5 ปี"
+  }, {
+    name: "โครงสร้างรองรับแผง",
+    qty: 1,
+    unit: "Lot",
+    yr: "3 ปี"
+  }, {
+    name: "ตู้รวมสาย AC / DC",
+    qty: 1,
+    unit: "Lot",
+    yr: "3 ปี"
+  }, {
+    name: "ระบบควบคุม / ระบบสื่อสาร",
+    qty: 1,
+    unit: "Lot",
+    yr: "3 ปี"
+  }, {
+    name: "การทำงานของระบบโซลาร์เซลล์ทั้งระบบ",
+    qty: 1,
+    unit: "Lot",
+    yr: "3 ปี"
+  }, {
+    name: "บริการตรวจเช็คระบบและล้างแผง ปีละ 1 ครั้ง",
+    qty: 1,
+    unit: "Lot",
+    yr: "3 ปี"
+  }];
+}
+const quoteRowsOr = (rows, seed) => {
+  const a = (rows || []).filter(r => r && String(r.name || "").trim());
+  return a.length ? a : seed;
+};
 function quoteNo(quotes) {
   const d = new Date();
   const pre = "QT-" + String(d.getFullYear() % 100).padStart(2, "0") + String(d.getMonth() + 1).padStart(2, "0") + "-";
@@ -254,6 +574,10 @@ function blankQuote(target, user, quotes) {
     discountPct: 0,
     discountMode: "baht",
     sheetIds: [],
+    pages: quotePagesAll(),
+    boqRows: quoteBoqSeed(t),
+    wtyRows: quoteWtySeed(t),
+    roi: {},
     vat: window.BOQ && window.BOQ.VAT_RATE != null ? window.BOQ.VAT_RATE : 7,
     terms: QUOTE_TERMS_DEF.slice(),
     warranties: QUOTE_WARRANTY_DEF.slice(),
@@ -423,6 +747,10 @@ function quoteFrom(prev, target, user, quotes) {
     terms: (prev.terms || []).slice(),
     warranties: (prev.warranties || []).slice(),
     sheetIds: (prev.sheetIds || []).slice(),
+    pages: Object.assign(quotePagesAll(), prev.pages || QUOTE_PAGES_LEGACY),
+    boqRows: (prev.boqRows || []).map(x => Object.assign({}, x)),
+    wtyRows: (prev.wtyRows || []).map(x => Object.assign({}, x)),
+    roi: Object.assign({}, prev.roi || {}),
     validDays: prev.validDays || q.validDays,
     note: prev.note || "",
     kwp: +prev.kwp > 0 ? +prev.kwp : q.kwp,
@@ -614,6 +942,40 @@ const QUOTE_I18N = {
   "ขนาด": ["Size", "规模"],
   "ชื่อ": ["Name", "姓名"],
   "โทร": ["Tel", "电话"],
+  "ข้อเสนอโครงการ": ["Project proposal", "项目方案"],
+  "ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์บนหลังคา": ["Solar Rooftop Power System", "屋顶太阳能发电系统"],
+  "เสนอต่อ": ["Presented to", "呈送"],
+  "ขนาดติดตั้ง": ["Installed capacity", "装机容量"],
+  "BOQ รายการงาน": ["Bill of quantity", "工程量清单"],
+  "BOQ · ขอบเขตงานระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์บนหลังคา": ["Bill of quantity · solar rooftop system scope of work", "工程量清单 · 屋顶太阳能系统工作范围"],
+  "ตารางรับประกันอุปกรณ์": ["Equipment warranty", "设备质保"],
+  "การรับประกันอุปกรณ์ในระบบที่ติดตั้ง": ["Warranty of the installed equipment", "安装设备质保明细"],
+  "การรับประกัน": ["Warranty", "质保"],
+  "วิเคราะห์ผลตอบแทน": ["Return analysis", "收益分析"],
+  "ประมาณการผลิตไฟและค่าไฟที่ประหยัดได้": ["Estimated generation and electricity savings", "发电量与电费节省预估"],
+  "สรุปผลตอบแทน": ["Return summary", "收益摘要"],
+  "ระยะเวลาคืนทุน": ["Payback period", "投资回收期"],
+  "ลดค่าไฟเดือนละ": ["Monthly bill reduction", "每月电费减少"],
+  "รายได้รวมทั้งหมด": ["Total savings", "累计收益"],
+  "กำไรหลังหักเงินลงทุน": ["Profit after investment", "扣除投资后利润"],
+  "เงินลงทุน (ก่อน VAT)": ["Investment (excl. VAT)", "投资额（不含税）"],
+  "ราคาต่อวัตต์": ["Price per watt", "每瓦价格"],
+  "ชั่วโมงผลิตไฟเฉลี่ย": ["Effective sun hours", "有效发电小时"],
+  "ผลิตไฟรายวัน": ["Daily generation", "日发电量"],
+  "ผลิตไฟรายปี": ["Annual generation", "年发电量"],
+  "ค่าไฟรวมค่า FT": ["Tariff incl. FT", "含 FT 电价"],
+  "ปีที่": ["Year", "年"],
+  "ประสิทธิภาพ": ["Efficiency", "效率"],
+  "หน่วยที่ผลิตได้": ["Generation", "发电量"],
+  "ค่าไฟ/หน่วย": ["Tariff", "电价"],
+  "ค่าไฟที่ประหยัด": ["Savings", "节省"],
+  "ยอดสะสม": ["Cumulative", "累计"],
+  "รวม {} ปี": ["{}-year total", "{} 年合计"],
+  "คืนทุนปีนี้": ["payback here", "回收于此"],
+  "ปี": [" yr", " 年"],
+  "เดือน": [" mo", " 个月"],
+  "ผู้ขาย": ["Seller", "卖方"],
+  "ผู้ซื้อ": ["Buyer", "买方"],
   " บาท": [" THB", " 泰铢"]
 };
 function quoteHTML(q, lang, sheets) {
@@ -624,7 +986,7 @@ function quoteHTML(q, lang, sheets) {
   const valid = q.validDays ? "ยืนราคา " + q.validDays + " วัน นับจากวันที่ออกใบเสนอราคา" : "";
   const dsp = s => !s ? "—" : L === "th" || !window.pgDate ? thDate(s, true) : window.pgDate(s, L);
   const rows = items.map((it, i) => '<tr><td class="c">' + (i + 1) + '</td><td><b>' + sEsc(it.name) + "</b>" + quoteDetailLines(it.detail).map(ln => '<div class="dt">· ' + sEsc(ln) + "</div>").join("") + "</td>" + '<td class="c">' + sEsc(it.qty) + "</td><td class=\"c\">" + sEsc(it.unit || "") + "</td>" + '<td class="r">' + sBaht(it.price) + '</td><td class="r">' + sBaht((+it.qty || 0) * (+it.price || 0)) + "</td></tr>").join("");
-  const sh = (sheets || []).filter(Boolean);
+  const sh = quotePageOn(q, "sheets") ? (sheets || []).filter(Boolean) : [];
   const shImgs = sh.filter(x => x.kind === "image");
   const shPdfs = sh.filter(x => x.kind !== "image");
   const pagesOf = x => x.pages && x.pages.length ? x.pages : x.kind === "image" ? [x.dataUrl] : [];
@@ -651,9 +1013,408 @@ function quoteHTML(q, lang, sheets) {
     const li = sp.rows.map(r => "<li>" + sEsc(r.line) + (r.amount != null ? ' <b style="white-space:nowrap">= ' + sBaht(r.amount) + " บาท</b>" : "") + "</li>").join("");
     return '<div class="blk"><h3>เงื่อนไขการชำระเงิน</h3><ul>' + li + "</ul></div>";
   };
+  const coverHTML = () => '<div class="cv">' + '<div class="cvh">' + window.brandHeadHTML({
+    size: 44
+  }) + (window.BRANDING.legalTH ? '<div class="bs bl">' + sEsc(window.BRANDING.legalTH) + (window.BRANDING.taxId ? " · เลขประจำตัวผู้เสียภาษี " + sEsc(window.BRANDING.taxId) : "") + "</div>" : "") + (window.BRANDING.addrTH ? '<div class="bs">' + sEsc(window.BRANDING.addrTH) + "</div>" : "") + '<div class="bs">' + window.BRANDING.email + " · " + window.BRANDING.tel + "</div></div>" + '<div class="cvm"><div class="cvk">ข้อเสนอโครงการ</div>' + '<h1 class="cvt">ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์บนหลังคา</h1>' + '<div class="cvline"></div>' + '<div class="cvto">เสนอต่อ</div>' + '<div class="cvcu">' + sEsc(c.name || "—") + "</div>" + (c.address || c.province ? '<div class="cvad">' + sEsc((c.address || "") + (c.province ? " " + c.province : "")) + "</div>" : "") + '<div class="cvcap"><span class="cl">ขนาดติดตั้ง</span>' + '<span class="cn">' + (q.kwp ? sEsc(q.kwp) : "—") + '</span><span class="cu">kWp</span></div>' + "</div>" + '<div class="cvf">' + '<div><span>เลขที่</span><b>' + sEsc(q.no) + "</b></div>" + '<div><span>วันที่</span><b>' + dsp(q.date) + "</b></div>" + '<div><span>ผู้เสนอ</span><b>' + sEsc(q.ownerName || q.byName || "—") + "</b></div>" + (c.phone ? '<div><span>โทร</span><b>' + sEsc(c.phone) + "</b></div>" : "") + "</div>" + footHTML + "</div>";
+  const sheetHead = (title, h2, sub) => headHTML(title) + "<h2>" + h2 + "</h2>" + '<div class="sub">' + sEsc(c.name || "") + (q.kwp ? " · ขนาดติดตั้ง " + sEsc(q.kwp) + " kWp" : "") + " · แนบท้ายใบเสนอราคาเลขที่ " + sEsc(q.no) + (sub ? " · " + sub : "") + "</div>";
+  const signRow = (leftRole, leftName, rightRole, rightName) => '<div class="sig"><div><div class="ln"></div><div class="rl">' + leftRole + (leftName ? " · " + sEsc(leftName) : "") + '</div><div class="rl">วันที่ ______ / ______ / ______</div></div>' + '<div><div class="ln"></div><div class="rl">' + rightRole + (rightName ? " · " + sEsc(rightName) : "") + '</div><div class="rl">วันที่ ______ / ______ / ______</div></div></div>';
+  const boqRows = quoteRowsOr(q.boqRows, quoteBoqSeed(q));
+  const boqHTML = () => '<div class="dpg">' + sheetHead("BOQ รายการงาน", "BOQ · ขอบเขตงานระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์บนหลังคา", "") + '<table><thead><tr><th class="c" style="width:34px">ลำดับ</th><th>รายการ</th>' + '<th class="c" style="width:56px">จำนวน</th><th class="c" style="width:56px">หน่วย</th></tr></thead><tbody>' + (boqRows.map((r, i) => '<tr><td class="c">' + (i + 1) + "</td><td>" + sEsc(r.name) + '</td><td class="c">' + sEsc(r.qty == null || r.qty === "" ? "" : r.qty) + '</td><td class="c">' + sEsc(r.unit || "") + "</td></tr>").join("") || '<tr><td colspan="4" class="c">— ยังไม่มีรายการ —</td></tr>') + "</tbody></table>" + '<div class="pgft"><table class="sum">' + money("รวมเป็นเงิน", T.afterDisc) + money("ภาษีมูลค่าเพิ่ม " + T.vatRate + "%", T.vat) + money("ราคารวมทั้งสิ้น", T.grand, true) + "</table>" + signRow("ผู้ขาย", window.BRANDING.legalTH || "", "ผู้ซื้อ", c.name || "") + footHTML + "</div></div>";
+  const wtyRows = quoteRowsOr(q.wtyRows, quoteWtySeed(q));
+  const wtyHTML = () => '<div class="dpg">' + sheetHead("ตารางรับประกันอุปกรณ์", "การรับประกันอุปกรณ์ในระบบที่ติดตั้ง", "") + '<table><thead><tr><th class="c" style="width:34px">ลำดับ</th><th>รายการ</th>' + '<th class="c" style="width:56px">จำนวน</th><th class="c" style="width:64px">หน่วย</th>' + '<th style="width:150px">การรับประกัน</th></tr></thead><tbody>' + (wtyRows.map((r, i) => '<tr><td class="c">' + (i + 1) + "</td><td>" + sEsc(r.name) + '</td><td class="c">' + sEsc(r.qty == null || r.qty === "" ? "" : r.qty) + '</td><td class="c">' + sEsc(r.unit || "") + "</td><td><b>" + sEsc(r.yr || "") + "</b></td></tr>").join("") || '<tr><td colspan="5" class="c">— ยังไม่มีรายการ —</td></tr>') + "</tbody></table>" + (q.warranties && q.warranties.filter(x => String(x || "").trim()).length ? list(q.warranties, "การรับประกันและบริการ") : "") + '<div class="pgft">' + footHTML + "</div></div>";
+  const R = +q.kwp > 0 && T.afterDisc > 0 ? quoteRoi(q) : null;
+  const n0 = v => Math.round(+v || 0).toLocaleString("en-US");
+  const n2 = v => sBaht(v);
+  const prm = rows => '<table class="prm"><tbody>' + rows.map(r => "<tr><td>" + r[0] + '</td><td class="r"><b>' + r[1] + "</b></td></tr>").join("") + "</tbody></table>";
+  const cashHTML = () => !R ? "" : '<div class="dpg">' + sheetHead("วิเคราะห์ผลตอบแทน", "ประมาณการผลิตไฟและค่าไฟที่ประหยัดได้", "") + '<div class="prmw">' + prm([["ขนาดติดตั้ง", sEsc(R.kwp) + " kWp"], ["เงินลงทุน (ก่อน VAT)", n2(R.invest) + " บาท"], ["ราคาต่อวัตต์", n2(R.perW) + " บาท"], ["ชั่วโมงแดดเฉลี่ย", n2(R.cfg.sun) + " ชม./วัน"], ["Performance Ratio", R.cfg.pr + "%"]]) + prm([["ชั่วโมงผลิตไฟเฉลี่ย", n2(R.hrs) + " ชม./วัน"], ["ผลิตไฟรายวัน", n2(R.dayKwh) + " หน่วย"], ["ผลิตไฟรายปี", n0(R.yearKwh) + " หน่วย"], ["ค่าไฟรวมค่า FT", n2(R.cfg.priceOn + R.cfg.ft) + " ฿/หน่วย"], ["ค่าไฟขึ้น", R.cfg.up + "% ทุก " + R.cfg.upEvery + " ปี"]]) + "</div>" + '<table class="rt"><thead><tr><th class="c">ปีที่</th><th class="c">ประสิทธิภาพ</th>' + '<th class="r">หน่วยที่ผลิตได้</th><th class="r">ค่าไฟ/หน่วย</th>' + '<th class="r">ค่าไฟที่ประหยัด</th><th class="r">ยอดสะสม</th><th style="width:58px"></th></tr></thead><tbody>' + R.rows.map(r => {
+    const hit = R.payback && r.y === R.payback.y + (R.payback.m ? 1 : 0);
+    return '<tr' + (hit ? ' class="hit"' : "") + '><td class="c">' + r.y + '</td><td class="c">' + (Math.round(r.eff * 10000) / 100).toFixed(2) + '%</td><td class="r">' + n0(r.prod) + '</td><td class="r">' + (Math.round(r.price * 10000) / 10000).toFixed(4) + '</td><td class="r">' + n2(r.save) + '</td><td class="r">' + n2(r.cum) + "</td><td>" + (hit ? "คืนทุนปีนี้" : "") + "</td></tr>";
+  }).join("") + '<tr class="tt"><td class="c">รวม ' + R.cfg.years + ' ปี</td><td></td><td class="r">' + n0(R.total.prod) + '</td><td></td><td class="r">' + n2(R.total.save) + '</td><td class="r">' + n2(R.total.save) + "</td><td></td></tr>" + "</tbody></table>" + '<div class="pgft"><div class="nt">หมายเหตุ · ประสิทธิภาพแผงลดลงปีแรก ' + R.cfg.deg1 + "% หลังจากนั้นปีละ " + R.cfg.deg + "% · ค่าไฟอ้างอิงอัตราปัจจุบันรวมค่า FT และคาดการณ์ว่าขึ้น " + R.cfg.up + "% ทุก " + R.cfg.upEvery + " ปี · ตัวเลขทั้งหมดเป็นการประมาณการเพื่อใช้ประกอบการตัดสินใจ ไม่ใช่การรับประกันผลผลิต</div>" + footHTML + "</div></div>";
+  const pbTxt = !R ? "" : R.payback ? R.payback.y + " ปี" + (R.payback.m ? " " + R.payback.m + " เดือน" : "") : "เกิน " + R.cfg.years + " ปี";
+  const paybackHTML = () => !R ? "" : '<div class="dpg">' + sheetHead("สรุปผลตอบแทน", "สรุปผลตอบแทนของระบบที่เสนอ", "") + '<div class="kpi">' + '<div class="k1"><span class="kl">ระยะเวลาคืนทุน</span><span class="kv">' + pbTxt + "</span></div>" + '<div><span class="kl">ลดค่าไฟเดือนละ</span><span class="kv">฿' + n2(R.month1) + "</span></div>" + '<div><span class="kl">รายได้รวมทั้งหมด</span><span class="kv">฿' + n0(R.total.save) + '</span><span class="ks">' + R.cfg.years + " ปี</span></div>" + '<div><span class="kl">กำไรหลังหักเงินลงทุน</span><span class="kv">฿' + n0(R.profit) + '</span><span class="ks">' + R.cfg.years + " ปี</span></div>" + "</div>" + '<div class="prmw">' + prm([["ขนาดติดตั้ง", sEsc(R.kwp) + " kWp"], ["เงินลงทุน (ก่อน VAT)", n2(R.invest) + " บาท"], ["ผลิตไฟรายวัน", n2(R.dayKwh) + " หน่วย"], ["ผลิตไฟรายปี", n0(R.yearKwh) + " หน่วย"]]) + prm([["ค่าไฟรวมค่า FT", n2(R.cfg.priceOn + R.cfg.ft) + " ฿/หน่วย"], ["มูลค่าไฟที่ผลิตได้", n2(R.day1) + " บาท/วัน"], ["รวม " + R.cfg.years + " ปี", n0(R.total.prod) + " หน่วย"], ["ราคาต่อวัตต์", n2(R.perW) + " บาท"]]) + "</div>" + '<table class="rt"><thead><tr><th class="c">ปีที่</th><th class="c">ประสิทธิภาพ</th>' + '<th class="r">หน่วยที่ผลิตได้</th><th class="r">ค่าไฟที่ประหยัด</th><th class="r">ยอดสะสม</th>' + '<th style="width:58px"></th></tr></thead><tbody>' + R.rows.slice(0, 10).map(r => {
+    const hit = R.payback && r.y === R.payback.y + (R.payback.m ? 1 : 0);
+    return '<tr' + (hit ? ' class="hit"' : "") + '><td class="c">' + r.y + '</td><td class="c">' + (Math.round(r.eff * 10000) / 100).toFixed(2) + '%</td><td class="r">' + n0(r.prod) + '</td><td class="r">' + n2(r.save) + '</td><td class="r">' + n2(r.cum) + "</td><td>" + (hit ? "คืนทุนปีนี้" : "") + "</td></tr>";
+  }).join("") + "</tbody></table>" + '<div class="pgft"><div class="nt">หมายเหตุ · ตัวเลขคิดจากสมมุติฐานในแผ่นวิเคราะห์ผลตอบแทน ' + "เป็นการประมาณการเพื่อประกอบการตัดสินใจ ไม่ใช่การรับประกันผลผลิตหรือรายได้</div>" + footHTML + "</div></div>";
   const fontStack = window.pgFontStack ? window.pgFontStack(L) : "'IBM Plex Sans Thai',sans-serif";
-  const doc = '<!doctype html><html lang="' + L + '"><head><meta charset="utf-8">' + "<title>ใบเสนอราคา " + sEsc(q.no) + "</title>" + '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">' + (window.pgFontLink ? window.pgFontLink(L) : "") + "<style>" + "@page{size:A4;margin:14mm}" + "*{box-sizing:border-box}" + "body{font-family:" + fontStack + ";color:#111827;font-size:12px;margin:0;line-height:1.55}" + ".hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1B9B75;padding-bottom:12px;margin-bottom:16px}" + ".bd{font-size:20px;font-weight:700;color:#0A4D68;letter-spacing:.02em}" + ".bs{font-size:11px;color:#6b7280;margin-top:2px}" + ".bl{color:#374151;font-weight:600;margin-top:5px}" + ".ti{text-align:right}.ti h1{font-size:19px;margin:0;color:#111827}" + ".ti .no{font-size:12px;color:#374151;margin-top:3px}" + ".two{display:flex;gap:14px;margin-bottom:14px}" + ".two>div{flex:1;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px}" + ".two h3,.blk h3{font-size:11px;margin:0 0 6px;color:#0A4D68;letter-spacing:.04em}" + ".kv{display:flex;gap:6px;font-size:11.5px}.kv b{min-width:58px;color:#6b7280;font-weight:500}" + "table{width:100%;border-collapse:collapse;font-size:11.5px}" + "th{background:#0A4D68;color:#fff;padding:7px 8px;text-align:left;font-weight:600;font-size:11px}" + "td{padding:7px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top}" + ".c{text-align:center}.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}" + ".dt{color:#6b7280;font-size:10.5px;margin-top:2px;line-height:1.45}" + ".shpg{page-break-before:always;break-before:page;padding-top:6mm}" + ".shpg h3{font-size:12px;color:#0A4D68;margin:0 0 8px}" + ".shpg .shsub{font-size:11px;color:#6b7280;margin:-4px 0 10px}" + ".shls{margin:0;padding-left:18px}.shls li{margin-bottom:4px}" + ".shls .pdf{color:#6b7280;font-size:10.5px}" + ".blk .pdf{color:#6b7280;font-size:10.5px}" + ".shimg{width:100%;height:auto;max-height:248mm;object-fit:contain;border:1px solid #e5e7eb;border-radius:6px}" + ".sum{margin-top:12px;margin-left:auto;width:290px}" + ".sum td{border:0;padding:4px 8px}.sum .big td{border-top:2px solid #0A4D68;font-weight:700;font-size:14px;color:#0A4D68;padding-top:8px}" + ".blk{margin-top:14px;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;break-inside:avoid}" + ".blk ul{margin:0;padding-left:18px}.blk li{margin-bottom:3px}" + ".note{margin-top:12px;font-size:11px;color:#374151;white-space:pre-wrap}" + ".vbx{margin-top:14px;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;break-inside:avoid}" + ".vbx h3{font-size:11px;margin:0 0 6px;color:#0A4D68;letter-spacing:.04em}" + ".vbx .vl{font-size:11.5px;color:#374151;white-space:pre-wrap}" + ".pg1{display:flex;flex-direction:column;min-height:269mm}" + ".pgft{margin-top:auto}" + ".tmpg{page-break-before:always;break-before:page;display:flex;flex-direction:column;min-height:269mm}" + ".tmpg .ft{margin-top:auto}" + ".tmpg h2{font-size:13px;color:#0A4D68;margin:0 0 2px}" + ".tmpg .sub{font-size:11px;color:#6b7280;margin-bottom:10px}" + ".sig{display:flex;gap:40px;margin-top:34px;break-inside:avoid}" + ".sig>div{flex:1;text-align:center}.sig .ln{border-top:1px solid #9ca3af;margin:34px 10px 6px}" + ".sig .rl{font-size:11px;color:#6b7280}" + ".ft{margin-top:16px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center}" + "</style></head><body>" + '<div class="pg1">' + headHTML("ใบเสนอราคา") + '<div class="two"><div><h3>ลูกค้า</h3>' + '<div class="kv"><b>ชื่อ</b><span>' + sEsc(c.name || "—") + "</span></div>" + '<div class="kv"><b>โทร</b><span>' + sEsc(c.phone || "—") + "</span></div>" + '<div class="kv"><b>ที่อยู่</b><span>' + sEsc((c.address || "") + (c.province ? " " + c.province : "") || "—") + "</span></div></div>" + "<div><h3>รายละเอียดข้อเสนอ</h3>" + '<div class="kv"><b>ขนาด</b><span>' + (q.kwp ? sEsc(q.kwp) + " kWp" : "—") + "</span></div>" + '<div class="kv"><b>อ้างอิง</b><span>' + sEsc(q.refCode || "—") + "</span></div>" + '<div class="kv"><b>ผู้เสนอ</b><span>' + sEsc(q.ownerName || q.byName || "—") + "</span></div></div></div>" + "<table><thead><tr><th class=\"c\" style=\"width:26px\">#</th><th>รายการ</th>" + "<th class=\"c\" style=\"width:46px\">จำนวน</th><th class=\"c\" style=\"width:52px\">หน่วย</th>" + "<th class=\"r\" style=\"width:88px\">ราคา/หน่วย</th><th class=\"r\" style=\"width:96px\">จำนวนเงิน</th></tr></thead>" + "<tbody>" + (rows || '<tr><td colspan="6" class="c">— ยังไม่มีรายการ —</td></tr>') + "</tbody></table>" + '<div class="pgft">' + '<table class="sum">' + money("รวมเป็นเงิน", T.sub) + (T.disc > 0 ? money(T.discMode === "pct" ? "หักส่วนลด " + T.discPct + "%" : "หักส่วนลด", T.disc) + money("ราคาหลังหักส่วนลด", T.afterDisc) : "") + money("ภาษีมูลค่าเพิ่ม " + T.vatRate + "%", T.vat) + money("ราคารวมทั้งสิ้น", T.grand, true) + "</table>" + '<div class="vbx"><h3>การยืนราคา</h3>' + '<div class="vl">' + (valid ? sEsc(valid) : "ยืนราคาตามที่ตกลงกัน") + "</div>" + (q.note ? '<div class="vl" style="margin-top:6px">หมายเหตุ: ' + sEsc(q.note) + "</div>" : "") + "</div>" + '<div class="sig"><div><div class="ln"></div><div class="rl">ผู้เสนอราคา · ' + sEsc(q.ownerName || q.byName || "") + '</div></div><div><div class="ln"></div><div class="rl">ผู้อนุมัติ / ลูกค้า</div>' + '<div class="rl">วันที่ ______ / ______ / ______</div></div></div>' + footHTML + "</div></div>" + (termList(q.terms, T.grand) || list(q.warranties, "การรับประกันและบริการ") || shList ? '<div class="tmpg">' + headHTML("เอกสารแนบ") + "<h2>เงื่อนไขการชำระเงินและการรับประกัน</h2>" + '<div class="sub">แนบท้ายใบเสนอราคาเลขที่ ' + sEsc(q.no) + " · " + sEsc(c.name || "") + "</div>" + termList(q.terms, T.grand) + list(q.warranties, "การรับประกันและบริการ") + shList + footHTML + "</div>" : "") + shPages + "</body></html>";
+  const doc = '<!doctype html><html lang="' + L + '"><head><meta charset="utf-8">' + "<title>ใบเสนอราคา " + sEsc(q.no) + "</title>" + '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">' + (window.pgFontLink ? window.pgFontLink(L) : "") + "<style>" + "@page{size:A4;margin:14mm}" + "*{box-sizing:border-box}" + "body{font-family:" + fontStack + ";color:#111827;font-size:12px;margin:0;line-height:1.55}" + ".hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1B9B75;padding-bottom:12px;margin-bottom:16px}" + ".bd{font-size:20px;font-weight:700;color:#0A4D68;letter-spacing:.02em}" + ".bs{font-size:11px;color:#6b7280;margin-top:2px}" + ".bl{color:#374151;font-weight:600;margin-top:5px}" + ".ti{text-align:right}.ti h1{font-size:19px;margin:0;color:#111827}" + ".ti .no{font-size:12px;color:#374151;margin-top:3px}" + ".two{display:flex;gap:14px;margin-bottom:14px}" + ".two>div{flex:1;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px}" + ".two h3,.blk h3{font-size:11px;margin:0 0 6px;color:#0A4D68;letter-spacing:.04em}" + ".kv{display:flex;gap:6px;font-size:11.5px}.kv b{min-width:58px;color:#6b7280;font-weight:500}" + "table{width:100%;border-collapse:collapse;font-size:11.5px}" + "th{background:#0A4D68;color:#fff;padding:7px 8px;text-align:left;font-weight:600;font-size:11px}" + "td{padding:7px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top}" + ".c{text-align:center}.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}" + ".dt{color:#6b7280;font-size:10.5px;margin-top:2px;line-height:1.45}" + ".shpg{page-break-before:always;break-before:page;padding-top:6mm}" + ".shpg h3{font-size:12px;color:#0A4D68;margin:0 0 8px}" + ".shpg .shsub{font-size:11px;color:#6b7280;margin:-4px 0 10px}" + ".shls{margin:0;padding-left:18px}.shls li{margin-bottom:4px}" + ".shls .pdf{color:#6b7280;font-size:10.5px}" + ".blk .pdf{color:#6b7280;font-size:10.5px}" + ".shimg{width:100%;height:auto;max-height:248mm;object-fit:contain;border:1px solid #e5e7eb;border-radius:6px}" + ".sum{margin-top:12px;margin-left:auto;width:290px}" + ".sum td{border:0;padding:4px 8px}.sum .big td{border-top:2px solid #0A4D68;font-weight:700;font-size:14px;color:#0A4D68;padding-top:8px}" + ".blk{margin-top:14px;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;break-inside:avoid}" + ".blk ul{margin:0;padding-left:18px}.blk li{margin-bottom:3px}" + ".note{margin-top:12px;font-size:11px;color:#374151;white-space:pre-wrap}" + ".vbx{margin-top:14px;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;break-inside:avoid}" + ".vbx h3{font-size:11px;margin:0 0 6px;color:#0A4D68;letter-spacing:.04em}" + ".vbx .vl{font-size:11.5px;color:#374151;white-space:pre-wrap}" + ".pg1{display:flex;flex-direction:column;min-height:269mm}" + ".pgft{margin-top:auto}" + ".tmpg{page-break-before:always;break-before:page;display:flex;flex-direction:column;min-height:269mm}" + ".tmpg .ft{margin-top:auto}" + ".tmpg h2{font-size:13px;color:#0A4D68;margin:0 0 2px}" + ".tmpg .sub{font-size:11px;color:#6b7280;margin-bottom:10px}" + ".sig{display:flex;gap:40px;margin-top:34px;break-inside:avoid}" + ".sig>div{flex:1;text-align:center}.sig .ln{border-top:1px solid #9ca3af;margin:34px 10px 6px}" + ".sig .rl{font-size:11px;color:#6b7280}" + ".ft{margin-top:16px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center}" + ".dpg{page-break-before:always;break-before:page;display:flex;flex-direction:column;min-height:269mm}" + ".dpg h2{font-size:13px;color:#0A4D68;margin:0 0 2px}" + ".dpg .sub{font-size:11px;color:#6b7280;margin-bottom:10px}" + ".brk{page-break-before:always;break-before:page}" + ".cv{display:flex;flex-direction:column;min-height:269mm}" + ".cvh{border-bottom:3px solid #1B9B75;padding-bottom:12px}" + ".cvm{flex:1;display:flex;flex-direction:column;justify-content:center;padding:14mm 0}" + ".cvk{font-size:12px;font-weight:600;letter-spacing:.22em;color:#1B9B75;text-transform:uppercase}" + ".cvt{font-size:33px;line-height:1.25;margin:8px 0 0;color:#0A4D68;font-weight:700;max-width:150mm}" + ".cvline{width:64px;height:4px;background:#1B9B75;border-radius:2px;margin:16px 0 22px}" + ".cvto{font-size:11px;letter-spacing:.16em;color:#6b7280;text-transform:uppercase}" + ".cvcu{font-size:21px;font-weight:700;color:#111827;margin-top:5px}" + ".cvad{font-size:12px;color:#6b7280;margin-top:3px;max-width:130mm}" + ".cvcap{display:inline-flex;align-items:baseline;gap:8px;margin-top:26px;padding:12px 20px;" + "border:1px solid #d1d5db;border-left:4px solid #1B9B75;border-radius:8px;background:#f9fafb;align-self:flex-start}" + ".cvcap .cl{font-size:11px;color:#6b7280}" + ".cvcap .cn{font-size:30px;font-weight:700;color:#0A4D68;font-variant-numeric:tabular-nums;line-height:1}" + ".cvcap .cu{font-size:13px;font-weight:600;color:#0A4D68}" + ".cvf{display:flex;flex-wrap:wrap;gap:8px 26px;border-top:1px solid #e5e7eb;padding-top:10px}" + ".cvf div{font-size:11.5px;color:#374151}.cvf span{color:#9ca3af;margin-right:6px}" + ".prmw{display:flex;gap:14px;margin-bottom:10px}.prmw>table{flex:1}" + ".prm{font-size:11px}.prm td{padding:4px 9px;border-bottom:1px solid #e5e7eb;color:#374151}" + ".prm tr:nth-child(odd) td{background:#f9fafb}" + ".rt{font-size:9.2px}.rt th{padding:4px 6px;font-size:9px}.rt td{padding:1.8px 6px}" + ".rt .hit td{background:#ECFDF5;font-weight:700;color:#065F46}" + ".rt .tt td{background:#0A4D68;color:#fff;font-weight:700;border:0}" + ".kpi{display:flex;gap:10px;margin-bottom:14px}" + ".kpi>div{flex:1;border:1px solid #d1d5db;border-radius:9px;padding:11px 12px}" + ".kpi .k1{border-color:#1B9B75;background:#F0FDF9}" + ".kpi .kl{display:block;font-size:10px;color:#6b7280}" + ".kpi .kv{display:block;font-size:19px;font-weight:700;color:#0A4D68;margin-top:3px;" + "font-variant-numeric:tabular-nums;line-height:1.2}" + ".kpi .ks{display:block;font-size:9.5px;color:#9ca3af}" + ".nt{font-size:9.6px;color:#6b7280;line-height:1.55;margin-top:9px}" + "</style></head><body>" + (quotePageOn(q, "cover") ? coverHTML() : "") + '<div class="pg1' + (quotePageOn(q, "cover") ? " brk" : "") + '">' + headHTML("ใบเสนอราคา") + '<div class="two"><div><h3>ลูกค้า</h3>' + '<div class="kv"><b>ชื่อ</b><span>' + sEsc(c.name || "—") + "</span></div>" + '<div class="kv"><b>โทร</b><span>' + sEsc(c.phone || "—") + "</span></div>" + '<div class="kv"><b>ที่อยู่</b><span>' + sEsc((c.address || "") + (c.province ? " " + c.province : "") || "—") + "</span></div></div>" + "<div><h3>รายละเอียดข้อเสนอ</h3>" + '<div class="kv"><b>ขนาด</b><span>' + (q.kwp ? sEsc(q.kwp) + " kWp" : "—") + "</span></div>" + '<div class="kv"><b>อ้างอิง</b><span>' + sEsc(q.refCode || "—") + "</span></div>" + '<div class="kv"><b>ผู้เสนอ</b><span>' + sEsc(q.ownerName || q.byName || "—") + "</span></div></div></div>" + "<table><thead><tr><th class=\"c\" style=\"width:26px\">#</th><th>รายการ</th>" + "<th class=\"c\" style=\"width:46px\">จำนวน</th><th class=\"c\" style=\"width:52px\">หน่วย</th>" + "<th class=\"r\" style=\"width:88px\">ราคา/หน่วย</th><th class=\"r\" style=\"width:96px\">จำนวนเงิน</th></tr></thead>" + "<tbody>" + (rows || '<tr><td colspan="6" class="c">— ยังไม่มีรายการ —</td></tr>') + "</tbody></table>" + '<div class="pgft">' + '<table class="sum">' + money("รวมเป็นเงิน", T.sub) + (T.disc > 0 ? money(T.discMode === "pct" ? "หักส่วนลด " + T.discPct + "%" : "หักส่วนลด", T.disc) + money("ราคาหลังหักส่วนลด", T.afterDisc) : "") + money("ภาษีมูลค่าเพิ่ม " + T.vatRate + "%", T.vat) + money("ราคารวมทั้งสิ้น", T.grand, true) + "</table>" + '<div class="vbx"><h3>การยืนราคา</h3>' + '<div class="vl">' + (valid ? sEsc(valid) : "ยืนราคาตามที่ตกลงกัน") + "</div>" + (q.note ? '<div class="vl" style="margin-top:6px">หมายเหตุ: ' + sEsc(q.note) + "</div>" : "") + "</div>" + '<div class="sig"><div><div class="ln"></div><div class="rl">ผู้เสนอราคา · ' + sEsc(q.ownerName || q.byName || "") + '</div></div><div><div class="ln"></div><div class="rl">ผู้อนุมัติ / ลูกค้า</div>' + '<div class="rl">วันที่ ______ / ______ / ______</div></div></div>' + footHTML + "</div></div>" + (quotePageOn(q, "terms") && (termList(q.terms, T.grand) || list(q.warranties, "การรับประกันและบริการ") || shList) ? '<div class="tmpg">' + headHTML("เอกสารแนบ") + "<h2>เงื่อนไขการชำระเงินและการรับประกัน</h2>" + '<div class="sub">แนบท้ายใบเสนอราคาเลขที่ ' + sEsc(q.no) + " · " + sEsc(c.name || "") + "</div>" + termList(q.terms, T.grand) + list(q.warranties, "การรับประกันและบริการ") + shList + footHTML + "</div>" : "") + (quotePageOn(q, "boq") ? boqHTML() : "") + (quotePageOn(q, "wty") ? wtyHTML() : "") + (quotePageOn(q, "cash") ? cashHTML() : "") + (quotePageOn(q, "payback") ? paybackHTML() : "") + shPages + "</body></html>";
   return window.pgDocHTML ? window.pgDocHTML(doc, L, QUOTE_I18N) : doc;
+}
+function QuotePagePick({
+  q,
+  locked,
+  onToggle,
+  onAll,
+  warn
+}) {
+  const n = QUOTE_PAGES.filter(p => quotePageOn(q, p.key)).length;
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("label", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, "\u0E41\u0E1C\u0E48\u0E19\u0E17\u0E35\u0E48\u0E08\u0E30\u0E2D\u0E2D\u0E01\u0E44\u0E1B\u0E01\u0E31\u0E1A\u0E43\u0E1A\u0E19\u0E35\u0E49"), React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E44\u0E27\u0E49 ", n, " \u0E41\u0E1C\u0E48\u0E19"), !locked && React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      display: "flex",
+      gap: 6
+    }
+  }, React.createElement("button", {
+    type: "button",
+    onClick: () => onAll(true),
+    style: pgQuick
+  }, "\u0E40\u0E1B\u0E34\u0E14\u0E17\u0E31\u0E49\u0E07\u0E0A\u0E38\u0E14"), React.createElement("button", {
+    type: "button",
+    onClick: () => onAll(false),
+    style: pgQuick
+  }, "\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32"))), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit,minmax(215px,1fr))",
+      gap: 6
+    }
+  }, QUOTE_PAGES.map((p, i) => {
+    const on = quotePageOn(q, p.key);
+    const dis = locked || p.lock;
+    return React.createElement("button", {
+      key: p.key,
+      type: "button",
+      disabled: dis,
+      onClick: () => onToggle(p.key),
+      style: {
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 9,
+        padding: "9px 11px",
+        borderRadius: 11,
+        border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
+        background: on ? "var(--primary-soft)" : "var(--surface)",
+        cursor: dis ? "default" : "pointer",
+        fontFamily: "inherit",
+        textAlign: "left",
+        opacity: dis && !on ? .55 : 1
+      }
+    }, React.createElement("span", {
+      style: {
+        width: 17,
+        height: 17,
+        borderRadius: 5,
+        flexShrink: 0,
+        marginTop: 1,
+        display: "grid",
+        placeItems: "center",
+        border: "1.5px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+        background: on ? "var(--primary)" : "transparent"
+      }
+    }, on && React.createElement(Icon, {
+      name: "check",
+      size: 11,
+      color: "#fff",
+      sw: 3
+    })), React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 12,
+        fontWeight: 700,
+        color: "var(--text-1)"
+      }
+    }, React.createElement("span", {
+      style: {
+        fontFamily: "var(--mono)",
+        color: "var(--text-3)",
+        marginRight: 5
+      }
+    }, i + 1), p.th), React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 10.5,
+        color: "var(--text-3)",
+        lineHeight: 1.45
+      }
+    }, p.hint)));
+  })), warn && React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "#B45309",
+      background: "var(--tint-amber-bg)",
+      border: "1px solid #F59E0B55",
+      borderRadius: 10,
+      padding: "8px 11px",
+      lineHeight: 1.6
+    }
+  }, warn));
+}
+const pgQuick = {
+  padding: "5px 10px",
+  borderRadius: 8,
+  border: "1px solid var(--border-strong)",
+  background: "var(--surface)",
+  cursor: "pointer",
+  fontFamily: "inherit",
+  fontSize: 11,
+  fontWeight: 700,
+  color: "var(--text-2)"
+};
+function QuoteRowsEdit({
+  title,
+  hint,
+  cols,
+  rows,
+  locked,
+  onChange,
+  onSeed,
+  seedLabel
+}) {
+  const a = rows || [];
+  const grid = cols.map(c => c.w).join(" ") + (locked ? "" : " 30px");
+  const setCell = (i, k, v) => onChange(a.map((r, j) => j === i ? Object.assign({}, r, {
+    [k]: v
+  }) : r));
+  const cell = {
+    padding: "7px 8px",
+    borderRadius: 8,
+    border: "1px solid var(--border-strong)",
+    background: "var(--surface)",
+    color: "var(--text-1)",
+    fontFamily: "inherit",
+    fontSize: 12,
+    width: "100%",
+    minWidth: 0
+  };
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 7
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("label", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, title), React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, hint), !locked && onSeed && React.createElement("button", {
+    type: "button",
+    onClick: onSeed,
+    style: Object.assign({}, pgQuick, {
+      marginLeft: "auto",
+      color: "var(--primary-dark)"
+    })
+  }, seedLabel || "ตั้งรายการใหม่จากสเปก")), React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 5
+    }
+  }, a.map((r, i) => React.createElement("div", {
+    key: i,
+    style: {
+      display: "grid",
+      gridTemplateColumns: grid,
+      gap: 6,
+      alignItems: "center"
+    }
+  }, cols.map(c => React.createElement("input", {
+    key: c.key,
+    value: r[c.key] == null ? "" : r[c.key],
+    disabled: locked,
+    placeholder: c.ph || "",
+    type: c.num ? "number" : "text",
+    onChange: e => setCell(i, c.key, c.num ? e.target.value === "" ? "" : +e.target.value : e.target.value),
+    style: Object.assign({}, cell, c.num ? {
+      textAlign: "right",
+      fontVariantNumeric: "tabular-nums"
+    } : null, c.key === "name" ? {
+      fontWeight: 600
+    } : null)
+  })), !locked && React.createElement("button", {
+    type: "button",
+    onClick: () => onChange(a.filter((_, j) => j !== i)),
+    title: "\u0E25\u0E1A\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E19\u0E35\u0E49",
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: 8,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 13,
+    color: "#EF4444"
+  })))), a.length === 0 && React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14 \u2014 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E14\u0E49\u0E32\u0E19\u0E1A\u0E19\u0E43\u0E2B\u0E49\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E31\u0E49\u0E07\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E43\u0E2B\u0E49\u0E08\u0E32\u0E01\u0E2A\u0E40\u0E1B\u0E01\u0E43\u0E19\u0E43\u0E1A\u0E19\u0E35\u0E49")), !locked && React.createElement("button", {
+    type: "button",
+    onClick: () => onChange(a.concat([cols.reduce((o, c) => Object.assign(o, {
+      [c.key]: c.num ? 1 : ""
+    }), {})])),
+    style: {
+      alignSelf: "flex-start",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      background: "none",
+      border: "1px dashed var(--border-strong)",
+      borderRadius: 10,
+      padding: "7px 12px",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 13,
+    color: "var(--text-2)"
+  }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14"));
+}
+function QuoteRoiEdit({
+  q,
+  locked,
+  onChange
+}) {
+  const cfg = quoteRoiCfg(q);
+  const raw = q.roi || {};
+  const R = +q.kwp > 0 && quoteTotals(q).afterDisc > 0 ? quoteRoi(q) : null;
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 13,
+      padding: 13
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("label", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, "\u0E2A\u0E21\u0E21\u0E38\u0E15\u0E34\u0E10\u0E32\u0E19\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49\u0E04\u0E34\u0E14\u0E1C\u0E25\u0E15\u0E2D\u0E1A\u0E41\u0E17\u0E19"), !locked && Object.keys(raw).length > 0 && React.createElement("button", {
+    type: "button",
+    onClick: () => onChange({}),
+    style: Object.assign({}, pgQuick, {
+      marginLeft: "auto"
+    })
+  }, "\u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19")), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit,minmax(132px,1fr))",
+      gap: 8
+    }
+  }, QUOTE_ROI_FLD.map(f => React.createElement("div", {
+    key: f.key,
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 3
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      color: "var(--text-3)"
+    }
+  }, f.th, " ", React.createElement("span", {
+    style: {
+      color: "var(--border-strong)"
+    }
+  }, "\xB7 ", f.unit)), React.createElement("input", {
+    type: "number",
+    value: raw[f.key] == null || raw[f.key] === "" ? "" : raw[f.key],
+    disabled: locked,
+    placeholder: String(QUOTE_ROI_DEF[f.key]),
+    onChange: e => onChange(Object.assign({}, raw, {
+      [f.key]: e.target.value === "" ? "" : +e.target.value
+    })),
+    style: {
+      padding: "7px 9px",
+      borderRadius: 8,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-1)",
+      fontFamily: "inherit",
+      fontSize: 12,
+      textAlign: "right",
+      fontVariantNumeric: "tabular-nums",
+      width: "100%"
+    }
+  })))), R ? React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: "6px 18px",
+      paddingTop: 4,
+      borderTop: "1px solid var(--border)"
+    }
+  }, [["ผลิตไฟรายปี", Math.round(R.yearKwh).toLocaleString() + " หน่วย"], ["คืนทุน", R.payback ? R.payback.y + " ปี" + (R.payback.m ? " " + R.payback.m + " เดือน" : "") : "เกิน " + cfg.years + " ปี"], ["ลดค่าไฟเดือนละ", "฿" + sBaht(R.month1)], ["กำไร " + cfg.years + " ปี", "฿" + Math.round(R.profit).toLocaleString()]].map(x => React.createElement("span", {
+    key: x[0],
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, x[0], " ", React.createElement("b", {
+    style: {
+      color: "var(--primary-dark)",
+      fontFamily: "var(--mono)"
+    }
+  }, x[1])))) : React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "#B45309"
+    }
+  }, "\u0E15\u0E49\u0E2D\u0E07\u0E21\u0E35\u0E17\u0E31\u0E49\u0E07\u0E02\u0E19\u0E32\u0E14\u0E23\u0E30\u0E1A\u0E1A (kWp) \u0E41\u0E25\u0E30\u0E23\u0E32\u0E04\u0E32\u0E43\u0E19\u0E43\u0E1A \u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E36\u0E07\u0E08\u0E30\u0E04\u0E34\u0E14\u0E1C\u0E25\u0E15\u0E2D\u0E1A\u0E41\u0E17\u0E19\u0E44\u0E14\u0E49"));
 }
 function QuoteSheetPick({
   ids,
@@ -1019,6 +1780,49 @@ function QuoteEditor({
       fontSize: 12.5
     })
   }), extra);
+  const pageOn = k => quotePageOn(q, k);
+  const pagesNow = () => {
+    const o = {};
+    QUOTE_PAGES.forEach(p => {
+      o[p.key] = quotePageOn(q, p.key);
+    });
+    return o;
+  };
+  const seedFor = (k, p) => k === "boq" ? quoteBoqSeed(specSrc || p) : quoteWtySeed(specSrc || p);
+  const togglePage = k => {
+    if (locked) return;
+    setQ(p => {
+      const cur = pagesNow();
+      cur[k] = !cur[k];
+      cur.quote = true;
+      const next = Object.assign({}, p, {
+        pages: cur
+      });
+      if ((k === "boq" || k === "wty") && cur[k]) {
+        const fld = k === "boq" ? "boqRows" : "wtyRows";
+        if (!(p[fld] || []).filter(r => r && String(r.name || "").trim()).length) next[fld] = seedFor(k, p);
+      }
+      return next;
+    });
+  };
+  const setAllPages = on => {
+    if (locked) return;
+    setQ(p => {
+      const o = {};
+      QUOTE_PAGES.forEach(x => {
+        o[x.key] = on ? true : x.key === "quote";
+      });
+      const next = Object.assign({}, p, {
+        pages: o
+      });
+      if (on) {
+        if (!(p.boqRows || []).length) next.boqRows = quoteBoqSeed(specSrc || p);
+        if (!(p.wtyRows || []).length) next.wtyRows = quoteWtySeed(specSrc || p);
+      }
+      return next;
+    });
+  };
+  const pageWarn = (pageOn("cash") || pageOn("payback")) && !(+q.kwp > 0 && T.afterDisc > 0) ? "แผ่นคืนทุนกับแผ่นสรุปผลตอบแทนยังออกไม่ได้ — ต้องกรอกขนาดระบบ (kWp) และราคาในใบก่อน ตอนนี้ระบบจะข้ามสองแผ่นนี้ไป" : "";
   const split = quoteTermSplit(q.terms, T.grand);
   const termMoney = !split.count ? null : React.createElement("div", {
     style: {
@@ -1633,7 +2437,61 @@ function QuoteEditor({
       color: "var(--text-3)",
       textAlign: "right"
     }
-  }, "\u2248 \u0E3F", sBaht(T.grand / (q.kwp * 1000)), " \u0E15\u0E48\u0E2D\u0E27\u0E31\u0E15\u0E15\u0E4C \xB7 \u0E3F", sBaht(T.grand / q.kwp), " \u0E15\u0E48\u0E2D kWp")), lineList("terms", "เงื่อนไขการชำระเงิน", "บรรทัดละ 1 งวด · ใส่ % ไว้ในบรรทัด ระบบจะคิดเป็นเงินให้เอง", termMoney), lineList("warranties", "การรับประกันและบริการ", "บรรทัดละ 1 ข้อ"), React.createElement(QuoteSheetPick, {
+  }, "\u2248 \u0E3F", sBaht(T.grand / (q.kwp * 1000)), " \u0E15\u0E48\u0E2D\u0E27\u0E31\u0E15\u0E15\u0E4C \xB7 \u0E3F", sBaht(T.grand / q.kwp), " \u0E15\u0E48\u0E2D kWp")), lineList("terms", "เงื่อนไขการชำระเงิน", "บรรทัดละ 1 งวด · ใส่ % ไว้ในบรรทัด ระบบจะคิดเป็นเงินให้เอง", termMoney), lineList("warranties", "การรับประกันและบริการ", "บรรทัดละ 1 ข้อ"), React.createElement(QuotePagePick, {
+    q: q,
+    locked: locked,
+    onToggle: togglePage,
+    onAll: setAllPages,
+    warn: pageWarn
+  }), pageOn("boq") && React.createElement(QuoteRowsEdit, {
+    title: "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E43\u0E19\u0E41\u0E1C\u0E48\u0E19 BOQ",
+    hint: "\u0E02\u0E2D\u0E1A\u0E40\u0E02\u0E15\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E08\u0E30\u0E44\u0E14\u0E49 \xB7 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E04\u0E32\u0E17\u0E35\u0E25\u0E30\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14",
+    cols: [{
+      key: "name",
+      w: "1fr",
+      ph: "ชื่อรายการ"
+    }, {
+      key: "qty",
+      w: "72px",
+      num: true
+    }, {
+      key: "unit",
+      w: "78px",
+      ph: "หน่วย"
+    }],
+    rows: q.boqRows || [],
+    locked: locked,
+    onChange: v => set("boqRows", v),
+    onSeed: () => set("boqRows", quoteBoqSeed(specSrc || q))
+  }), pageOn("wty") && React.createElement(QuoteRowsEdit, {
+    title: "\u0E15\u0E32\u0E23\u0E32\u0E07\u0E23\u0E31\u0E1A\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E19\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C",
+    hint: "\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E17\u0E35\u0E25\u0E30\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23 \xB7 \u0E01\u0E35\u0E48\u0E1B\u0E35",
+    cols: [{
+      key: "name",
+      w: "1fr",
+      ph: "ชื่ออุปกรณ์"
+    }, {
+      key: "qty",
+      w: "62px",
+      num: true
+    }, {
+      key: "unit",
+      w: "72px",
+      ph: "หน่วย"
+    }, {
+      key: "yr",
+      w: "150px",
+      ph: "เช่น 5 ปี"
+    }],
+    rows: q.wtyRows || [],
+    locked: locked,
+    onChange: v => set("wtyRows", v),
+    onSeed: () => set("wtyRows", quoteWtySeed(specSrc || q))
+  }), (pageOn("cash") || pageOn("payback")) && React.createElement(QuoteRoiEdit, {
+    q: q,
+    locked: locked,
+    onChange: v => set("roi", v)
+  }), React.createElement(QuoteSheetPick, {
     ids: sheetIds,
     items: sheetItems,
     hintText: sheetHint,
@@ -3208,6 +4066,13 @@ Object.assign(window, {
   quotePdfPages,
   quoteHTML,
   useQuoteStore,
+  QUOTE_PAGES,
+  quotePageOn,
+  quotePagesAll,
+  quoteRoi,
+  quoteRoiCfg,
+  quoteBoqSeed,
+  quoteWtySeed,
   quoteSpec,
   quoteHasSpec,
   quoteSpecName,
