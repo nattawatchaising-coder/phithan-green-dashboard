@@ -14,7 +14,6 @@ const SURVEY_ROOF_COND = [
   { value: "fair", label: "พอใช้" },
   { value: "poor", label: "ทรุดโทรม / ต้องเสริม" },
 ];
-const SURVEY_SHADING_TAGS = ["ต้นไม้", "อาคารข้างเคียง", "เสาไฟ / สายไฟ", "ถังเก็บน้ำ", "ปล่องระบายอากาศ", "เสาอากาศ", "อื่นๆ"];
 const SURVEY_INV_LOC = [
   { value: "indoor", label: "ในอาคาร (Indoor)" },
   { value: "outdoor", label: "นอกอาคาร (Outdoor)" },
@@ -56,10 +55,14 @@ const SURVEY_PHOTO_SLOTS = [
   { key: "meter",    label: "มิเตอร์ไฟฟ้า",            hint: "ให้เห็นเลขมิเตอร์และขนาดชัดเจน" },
   { key: "mdb",      label: "ภายในตู้ MDB (เปิดฝา)",   hint: "เห็นเมนเบรกเกอร์และช่องว่าง" },
   { key: "roof",     label: "ภาพรวมหลังคา",            hint: "มุมกว้างเห็นพื้นที่ติดตั้ง" },
-  { key: "truss",    label: "โครงสร้าง / จันทันหลังคา", hint: "ดูความแข็งแรงของโครงสร้าง" },
   { key: "inverter", label: "จุดติดตั้งอินเวอร์เตอร์",  hint: "ตำแหน่งที่จะติดตั้งจริง" },
 ];
-const SURVEY_SLOT_BY = Object.fromEntries(SURVEY_PHOTO_SLOTS.map((s) => [s.key, s]));
+/* ช่องที่เลิกบังคับถ่ายแล้ว — ใบเก่ายังมีรูปเก็บไว้ในคีย์เดิม ต้องรู้จักชื่อไว้
+   ไม่งั้นรูปที่ถ่ายมาแล้วจะไปขึ้นในรายงานว่า "รูปเพิ่มเติม" ลอย ๆ */
+const SURVEY_RETIRED_SLOTS = [
+  { key: "truss", label: "โครงสร้าง / จันทันหลังคา", hint: "ดูความแข็งแรงของโครงสร้าง" },
+];
+const SURVEY_SLOT_BY = Object.fromEntries(SURVEY_PHOTO_SLOTS.concat(SURVEY_RETIRED_SLOTS).map((s) => [s.key, s]));
 const isExtraShot = (k) => String(k || "").indexOf("x_") === 0;
 
 // ── สถานะการสำรวจของงาน (ใช้ในลิสต์/ป้าย) ──
@@ -860,10 +863,6 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
   const media = useSurveyPhotos(job ? job.id : null);
   const [f, setF] = React.useState(() => Object.assign(blankSurvey(job), (job && job.survey) || {}));
   const set = (k, v) => setF((p) => Object.assign({}, p, { [k]: v }));
-  const toggleTag = (t) => setF((p) => {
-    const cur = p.shadingTags || [];
-    return Object.assign({}, p, { shadingTags: cur.includes(t) ? cur.filter((x) => x !== t) : cur.concat([t]) });
-  });
 
   /* รุ่นอินเวอร์เตอร์ / แผง ดึงจากคลังสินค้า แบ่งกลุ่มตามหมวดย่อย (เช่น แผง › AIKO)
      รุ่นที่พิมพ์เองไว้แต่เดิม (หรือรุ่นที่ยังไม่ได้ลงคลัง) ต่อท้ายไว้ ไม่ให้ค่าที่กรอกไว้แล้วหาย */
@@ -987,7 +986,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
       {child}
     </div>
   );
-  const numStyle = Object.assign({}, inputStyle, { textAlign: "left" });
+
   const two = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 };
 
   return (
@@ -1069,8 +1068,6 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
                   {fld("การไฟฟ้า", <Dropdown value={f.meterAuth} onChange={(v) => set("meterAuth", v)} placeholder="— เลือก —" options={SURVEY_METER_AUTH} />)}
                   {fld("หมายเลขผู้ใช้ไฟฟ้า (CA)", <input inputMode="numeric" value={f.ca} onChange={(e) => set("ca", e.target.value)} placeholder="เลข 12 หลักบนบิลค่าไฟ" style={inputStyle} />)}
                   {fld("หมายเลขมิเตอร์", <input value={f.meterNo} onChange={(e) => set("meterNo", e.target.value)} placeholder="ตัวเลขบนหน้าปัดมิเตอร์" style={inputStyle} />)}
-                  {fld("หมายเลขเสาไฟต้นที่รับไฟ", <input value={f.poleNo} onChange={(e) => set("poleNo", e.target.value)} placeholder="เช่น 5FA-01-234" style={inputStyle} />)}
-                  {fld("การไฟฟ้าสาขา / เขตที่สังกัด", <input value={f.branch} onChange={(e) => set("branch", e.target.value)} placeholder="เช่น กฟภ. สาขาบางละมุง" style={inputStyle} />)}
                 </div>
                 <SurveyToggle label="ระบบไฟฟ้า" hint="จำเป็นต้องระบุ" value={f.phase} onChange={(v) => set("phase", v)} options={[{ value: "1", label: "1 เฟส" }, { value: "3", label: "3 เฟส" }]} />
                 {/* เมนเบรกเกอร์อยู่ในตู้ MDB จึงย้ายไปกรอกพร้อมกันตอนเปิดฝาตู้ (ขั้น "ไฟฟ้า & ตำแหน่ง") */}
@@ -1095,22 +1092,6 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
                   <SurveyToggle label="ตาข่ายกันนก" value={f.birdNet} onChange={(v) => set("birdNet", v)} options={SURVEY_BIRDNET} />
                 </div>
               </SurveyBlock>
-              <SurveyBlock title="🌳 สิ่งกีดขวาง / เงาบัง" sub="เลือกสิ่งที่อาจบดบังแสงแดด">
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-                  {SURVEY_SHADING_TAGS.map((t) => {
-                    const on = (f.shadingTags || []).includes(t);
-                    return (
-                      <button key={t} type="button" onClick={() => toggleTag(t)}
-                        style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 600,
-                          border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"), background: on ? "var(--primary-soft)" : "var(--surface)", color: on ? "var(--primary-dark)" : "var(--text-2)" }}>
-                        {on && <Icon name="check" size={12} color="var(--primary-dark)" sw={2.6} />}{t}
-                      </button>
-                    );
-                  })}
-                </div>
-                <textarea value={f.shadingNote} onChange={(e) => set("shadingNote", e.target.value)} placeholder="รายละเอียดเพิ่มเติม เช่น ต้นไม้สูง 5 ม. ทางทิศตะวันตก บังช่วงบ่าย"
-                  rows={2} style={Object.assign({}, inputStyle, { resize: "vertical", lineHeight: 1.5 })} />
-              </SurveyBlock>
             </React.Fragment>
           )}
 
@@ -1130,20 +1111,6 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
               <SurveyBlock title="🔋 ตำแหน่งติดตั้งอินเวอร์เตอร์">
                 {fld("ตำแหน่งที่เสนอติดตั้ง", <Segmented value={f.inverterLoc} onChange={(v) => set("inverterLoc", v)} options={SURVEY_INV_LOC} />, true)}
               </SurveyBlock>
-              {/* ระยะเดินสายแยกเป็นช่วง — แต่ละช่วงเป็นสายคนละชนิด เอาไปคิดของได้ตรงกว่ายอดรวมก้อนเดียว */}
-              <SurveyBlock title="📏 ระยะเดินสาย (เมตร)" sub="วัดทีละช่วง ช่วงไหนไม่มีก็เว้นว่างไว้">
-                <div style={two}>
-                  {SURVEY_CABLE_LEGS.map((l) => (
-                    <React.Fragment key={l.key}>
-                      {fld(l.th, <input type="number" value={f[l.key] || ""} onChange={(e) => set(l.key, e.target.value)} placeholder="ม." style={numStyle} />)}
-                    </React.Fragment>
-                  ))}
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "9px 12px", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10 }}>
-                  <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>รวมทุกช่วง</span>
-                  <span style={{ fontFamily: "var(--mono)", fontSize: 13.5, fontWeight: 800, color: "var(--primary-dark)" }}>{cableTotal(f)} ม.</span>
-                </div>
-              </SurveyBlock>
             </React.Fragment>
           )}
 
@@ -1155,8 +1122,6 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
                    ยังพิมพ์เองได้ถ้าเสนอรุ่นที่ยังไม่มีในคลัง */}
                 {fld("Inverter", <Dropdown value={f.invModel} onChange={(v) => set("invModel", v)} placeholder="— เลือกจากคลัง —" options={invOptions} wrap addable onAdd={() => {}} />)}
                 {fld("แผงโซลาร์", <Dropdown value={f.panelModel} onChange={(v) => set("panelModel", v)} placeholder="— เลือกจากคลัง —" options={panelOptions} wrap addable onAdd={() => {}} />)}
-                {fld("Monitoring", <input value={f.monitoring} onChange={(e) => set("monitoring", e.target.value)} placeholder="เช่น Solis S2-WL-ST — WiFi Stick" style={inputStyle} />)}
-                {fld("Meter / CT", <input value={f.meterCt} onChange={(e) => set("meterCt", e.target.value)} placeholder="เช่น Solis SDM630MCT V2 5A" style={inputStyle} />)}
               </SurveyBlock>
               <SurveyBlock title="⚠️ ความต้องการพิเศษ" sub="สิ่งที่ลูกค้าขอเป็นพิเศษ / งานที่ต้องแก้เพิ่ม">
                 {(f.specials || []).map((v, i) => (
@@ -1276,6 +1241,6 @@ Object.assign(window, {
   SurveyWizard, surveyStatus, blankSurvey, useSurveyPhotos, AnnOverlay, AnnEditor,
   useStickerLib, StickerPicker, STICKER_CATS,
   sortedShots, shotTitle, isExtraShot,
-  SURVEY_PHOTO_SLOTS, SURVEY_SLOT_BY, SURVEY_STEPS, SURVEY_ROOF_COND, SURVEY_MDB_SPACE, SURVEY_INV_LOC, SURVEY_PASS, SURVEY_BIRDNET,
+  SURVEY_PHOTO_SLOTS, SURVEY_RETIRED_SLOTS, SURVEY_SLOT_BY, SURVEY_STEPS, SURVEY_ROOF_COND, SURVEY_MDB_SPACE, SURVEY_INV_LOC, SURVEY_PASS, SURVEY_BIRDNET,
   SURVEY_YESNO, SURVEY_CABLE_LEGS, cableTotal, SURVEY_PHOTO_CATS,
 });

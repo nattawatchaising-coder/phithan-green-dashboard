@@ -10,7 +10,6 @@ const SURVEY_ROOF_COND = [{
   value: "poor",
   label: "ทรุดโทรม / ต้องเสริม"
 }];
-const SURVEY_SHADING_TAGS = ["ต้นไม้", "อาคารข้างเคียง", "เสาไฟ / สายไฟ", "ถังเก็บน้ำ", "ปล่องระบายอากาศ", "เสาอากาศ", "อื่นๆ"];
 const SURVEY_INV_LOC = [{
   value: "indoor",
   label: "ในอาคาร (Indoor)"
@@ -85,15 +84,16 @@ const SURVEY_PHOTO_SLOTS = [{
   label: "ภาพรวมหลังคา",
   hint: "มุมกว้างเห็นพื้นที่ติดตั้ง"
 }, {
-  key: "truss",
-  label: "โครงสร้าง / จันทันหลังคา",
-  hint: "ดูความแข็งแรงของโครงสร้าง"
-}, {
   key: "inverter",
   label: "จุดติดตั้งอินเวอร์เตอร์",
   hint: "ตำแหน่งที่จะติดตั้งจริง"
 }];
-const SURVEY_SLOT_BY = Object.fromEntries(SURVEY_PHOTO_SLOTS.map(s => [s.key, s]));
+const SURVEY_RETIRED_SLOTS = [{
+  key: "truss",
+  label: "โครงสร้าง / จันทันหลังคา",
+  hint: "ดูความแข็งแรงของโครงสร้าง"
+}];
+const SURVEY_SLOT_BY = Object.fromEntries(SURVEY_PHOTO_SLOTS.concat(SURVEY_RETIRED_SLOTS).map(s => [s.key, s]));
 const isExtraShot = k => String(k || "").indexOf("x_") === 0;
 function surveyStatus(job) {
   const s = job && job.survey;
@@ -1934,12 +1934,6 @@ function SurveyWizard({
   const set = (k, v) => setF(p => Object.assign({}, p, {
     [k]: v
   }));
-  const toggleTag = t => setF(p => {
-    const cur = p.shadingTags || [];
-    return Object.assign({}, p, {
-      shadingTags: cur.includes(t) ? cur.filter(x => x !== t) : cur.concat([t])
-    });
-  });
   const stockItems = stock && stock.items || [];
   const modelOptions = (mainCat, cur) => {
     const SF = window.SF;
@@ -2100,9 +2094,6 @@ function SurveyWizard({
       color: "#EF4444"
     }
   }, " *")), child);
-  const numStyle = Object.assign({}, inputStyle, {
-    textAlign: "left"
-  });
   const two = {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
@@ -2405,16 +2396,6 @@ function SurveyWizard({
     onChange: e => set("meterNo", e.target.value),
     placeholder: "\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E1A\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E1B\u0E31\u0E14\u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C",
     style: inputStyle
-  })), fld("หมายเลขเสาไฟต้นที่รับไฟ", React.createElement("input", {
-    value: f.poleNo,
-    onChange: e => set("poleNo", e.target.value),
-    placeholder: "\u0E40\u0E0A\u0E48\u0E19 5FA-01-234",
-    style: inputStyle
-  })), fld("การไฟฟ้าสาขา / เขตที่สังกัด", React.createElement("input", {
-    value: f.branch,
-    onChange: e => set("branch", e.target.value),
-    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E01\u0E1F\u0E20. \u0E2A\u0E32\u0E02\u0E32\u0E1A\u0E32\u0E07\u0E25\u0E30\u0E21\u0E38\u0E07",
-    style: inputStyle
   }))), React.createElement(SurveyToggle, {
     label: "\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E1F\u0E1F\u0E49\u0E32",
     hint: "\u0E08\u0E33\u0E40\u0E1B\u0E47\u0E19\u0E15\u0E49\u0E2D\u0E07\u0E23\u0E30\u0E1A\u0E38",
@@ -2483,51 +2464,7 @@ function SurveyWizard({
     value: f.birdNet,
     onChange: v => set("birdNet", v),
     options: SURVEY_BIRDNET
-  }))), React.createElement(SurveyBlock, {
-    title: "\uD83C\uDF33 \u0E2A\u0E34\u0E48\u0E07\u0E01\u0E35\u0E14\u0E02\u0E27\u0E32\u0E07 / \u0E40\u0E07\u0E32\u0E1A\u0E31\u0E07",
-    sub: "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2A\u0E34\u0E48\u0E07\u0E17\u0E35\u0E48\u0E2D\u0E32\u0E08\u0E1A\u0E14\u0E1A\u0E31\u0E07\u0E41\u0E2A\u0E07\u0E41\u0E14\u0E14"
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: 7
-    }
-  }, SURVEY_SHADING_TAGS.map(t => {
-    const on = (f.shadingTags || []).includes(t);
-    return React.createElement("button", {
-      key: t,
-      type: "button",
-      onClick: () => toggleTag(t),
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5,
-        padding: "6px 12px",
-        borderRadius: 99,
-        cursor: "pointer",
-        fontFamily: "inherit",
-        fontSize: 12.5,
-        fontWeight: 600,
-        border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
-        background: on ? "var(--primary-soft)" : "var(--surface)",
-        color: on ? "var(--primary-dark)" : "var(--text-2)"
-      }
-    }, on && React.createElement(Icon, {
-      name: "check",
-      size: 12,
-      color: "var(--primary-dark)",
-      sw: 2.6
-    }), t);
-  })), React.createElement("textarea", {
-    value: f.shadingNote,
-    onChange: e => set("shadingNote", e.target.value),
-    placeholder: "\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E40\u0E15\u0E34\u0E21 \u0E40\u0E0A\u0E48\u0E19 \u0E15\u0E49\u0E19\u0E44\u0E21\u0E49\u0E2A\u0E39\u0E07 5 \u0E21. \u0E17\u0E32\u0E07\u0E17\u0E34\u0E28\u0E15\u0E30\u0E27\u0E31\u0E19\u0E15\u0E01 \u0E1A\u0E31\u0E07\u0E0A\u0E48\u0E27\u0E07\u0E1A\u0E48\u0E32\u0E22",
-    rows: 2,
-    style: Object.assign({}, inputStyle, {
-      resize: "vertical",
-      lineHeight: 1.5
-    })
-  }))), step === 3 && React.createElement(React.Fragment, null, React.createElement(SurveyBlock, {
+  })))), step === 3 && React.createElement(React.Fragment, null, React.createElement(SurveyBlock, {
     title: "\uD83D\uDD0C \u0E15\u0E39\u0E49\u0E40\u0E21\u0E19\u0E44\u0E1F\u0E1F\u0E49\u0E32 (MDB)",
     sub: "\u0E40\u0E1B\u0E34\u0E14\u0E1D\u0E32\u0E15\u0E39\u0E49\u0E41\u0E25\u0E49\u0E27\u0E14\u0E39\u0E02\u0E2D\u0E07\u0E02\u0E49\u0E32\u0E07\u0E43\u0E19\u0E44\u0E1B\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E01\u0E31\u0E19\u0E17\u0E35\u0E40\u0E14\u0E35\u0E22\u0E27"
   }, fld("ยี่ห้อ / รุ่นตู้ MDB", React.createElement("input", {
@@ -2573,44 +2510,7 @@ function SurveyWizard({
     value: f.inverterLoc,
     onChange: v => set("inverterLoc", v),
     options: SURVEY_INV_LOC
-  }), true)), React.createElement(SurveyBlock, {
-    title: "\uD83D\uDCCF \u0E23\u0E30\u0E22\u0E30\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22 (\u0E40\u0E21\u0E15\u0E23)",
-    sub: "\u0E27\u0E31\u0E14\u0E17\u0E35\u0E25\u0E30\u0E0A\u0E48\u0E27\u0E07 \u0E0A\u0E48\u0E27\u0E07\u0E44\u0E2B\u0E19\u0E44\u0E21\u0E48\u0E21\u0E35\u0E01\u0E47\u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07\u0E44\u0E27\u0E49"
-  }, React.createElement("div", {
-    style: two
-  }, SURVEY_CABLE_LEGS.map(l => React.createElement(React.Fragment, {
-    key: l.key
-  }, fld(l.th, React.createElement("input", {
-    type: "number",
-    value: f[l.key] || "",
-    onChange: e => set(l.key, e.target.value),
-    placeholder: "\u0E21.",
-    style: numStyle
-  }))))), React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      gap: 10,
-      padding: "9px 12px",
-      background: "var(--surface2)",
-      border: "1px solid var(--border)",
-      borderRadius: 10
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-2)"
-    }
-  }, "\u0E23\u0E27\u0E21\u0E17\u0E38\u0E01\u0E0A\u0E48\u0E27\u0E07"), React.createElement("span", {
-    style: {
-      fontFamily: "var(--mono)",
-      fontSize: 13.5,
-      fontWeight: 800,
-      color: "var(--primary-dark)"
-    }
-  }, cableTotal(f), " \u0E21.")))), step === 4 && React.createElement(React.Fragment, null, React.createElement(SurveyBlock, {
+  }), true))), step === 4 && React.createElement(React.Fragment, null, React.createElement(SurveyBlock, {
     title: "\uD83E\uDDF0 \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E17\u0E35\u0E48\u0E40\u0E2A\u0E19\u0E2D",
     sub: "\u0E02\u0E36\u0E49\u0E19\u0E43\u0E19\u0E15\u0E32\u0E23\u0E32\u0E07\u0E2B\u0E31\u0E27\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19 \u2014 \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07\u0E44\u0E14\u0E49\u0E16\u0E49\u0E32\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E2A\u0E23\u0E38\u0E1B"
   }, fld("ขนาดระบบ (kW)", React.createElement("input", {
@@ -2634,16 +2534,6 @@ function SurveyWizard({
     wrap: true,
     addable: true,
     onAdd: () => {}
-  })), fld("Monitoring", React.createElement("input", {
-    value: f.monitoring,
-    onChange: e => set("monitoring", e.target.value),
-    placeholder: "\u0E40\u0E0A\u0E48\u0E19 Solis S2-WL-ST \u2014 WiFi Stick",
-    style: inputStyle
-  })), fld("Meter / CT", React.createElement("input", {
-    value: f.meterCt,
-    onChange: e => set("meterCt", e.target.value),
-    placeholder: "\u0E40\u0E0A\u0E48\u0E19 Solis SDM630MCT V2 5A",
-    style: inputStyle
   }))), React.createElement(SurveyBlock, {
     title: "\u26A0\uFE0F \u0E04\u0E27\u0E32\u0E21\u0E15\u0E49\u0E2D\u0E07\u0E01\u0E32\u0E23\u0E1E\u0E34\u0E40\u0E28\u0E29",
     sub: "\u0E2A\u0E34\u0E48\u0E07\u0E17\u0E35\u0E48\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E02\u0E2D\u0E40\u0E1B\u0E47\u0E19\u0E1E\u0E34\u0E40\u0E28\u0E29 / \u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E41\u0E01\u0E49\u0E40\u0E1E\u0E34\u0E48\u0E21"
@@ -3009,6 +2899,7 @@ Object.assign(window, {
   shotTitle,
   isExtraShot,
   SURVEY_PHOTO_SLOTS,
+  SURVEY_RETIRED_SLOTS,
   SURVEY_SLOT_BY,
   SURVEY_STEPS,
   SURVEY_ROOF_COND,
