@@ -538,15 +538,12 @@ function BlDeliveryPaper({
     className: "bl-foot",
     style: {
       display: "flex",
-      gap: 22,
+      gap: 40,
       paddingTop: 14,
-      breakInside: "avoid"
+      breakInside: "avoid",
+      justifyContent: "center"
     }
   }, React.createElement(BpSign, {
-    role: "\u0E2A\u0E33\u0E40\u0E19\u0E32",
-    pad: 38,
-    date: false
-  }), React.createElement(BpSign, {
     role: "\u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07\u0E42\u0E04\u0E23\u0E07\u0E01\u0E32\u0E23",
     who: j.name || "",
     pad: 38,

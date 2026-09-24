@@ -8,23 +8,23 @@ const BL_STATUS = [{
   th: "ยังไม่ถึงงวด",
   short: "ยังไม่ถึง",
   color: "#94A3B8",
-  next: ["ready", "void"]
+  next: ["ready"]
 }, {
   key: "ready",
-  th: "ถึงงวด · รอวางบิล",
-  short: "รอวางบิล",
+  th: "ถึงงวดแล้ว",
+  short: "ถึงงวด",
   color: "#F59E0B",
-  next: ["billed", "pending", "void"]
+  next: ["billed", "pending"]
 }, {
   key: "billed",
-  th: "ส่งมอบ/วางบิลแล้ว",
-  short: "วางบิลแล้ว",
+  th: "ออกเอกสารแล้ว",
+  short: "ออกเอกสาร",
   color: "#3B82F6",
-  next: ["accepted", "ready", "void"]
+  next: ["accepted", "ready"]
 }, {
   key: "accepted",
-  th: "ลูกค้ารับมอบแล้ว",
-  short: "รับมอบแล้ว",
+  th: "ส่งมอบเอกสารแล้ว",
+  short: "ส่งมอบแล้ว",
   color: "#0EA5E9",
   next: ["paid", "billed"]
 }, {
@@ -33,12 +33,6 @@ const BL_STATUS = [{
   short: "รับเงินแล้ว",
   color: "#10B981",
   next: ["accepted"]
-}, {
-  key: "void",
-  th: "ยกเลิกงวด",
-  short: "ยกเลิก",
-  color: "#EF4444",
-  next: ["pending"]
 }];
 const BL_STATUS_BY = {};
 BL_STATUS.forEach(s => {
@@ -48,7 +42,7 @@ const blStatusOf = k => BL_STATUS_BY[k] || BL_STATUS_BY.pending;
 const BL_FLOW = ["pending", "ready", "billed", "accepted", "paid"];
 const blFlowIdx = k => BL_FLOW.indexOf(String(k || "pending"));
 const blCanUse = role => window.can(role, "billing");
-const blCanVoid = role => window.can(role, "billing") && window.hasRole(role, "admin");
+const blCanBack = role => window.can(role, "billing") && window.hasRole(role, "admin");
 function blSig(quote) {
   if (!quote) return "";
   const T = window.quoteTotals(quote);
@@ -171,11 +165,10 @@ function blNext(row, role, user, bills) {
   const cur = blStatusOf((row || {}).status);
   const back = k => blFlowIdx(k) >= 0 && blFlowIdx(k) < blFlowIdx((row || {}).status);
   return (cur.next || []).filter(k => {
-    if (k === "void") return blCanVoid(role);
-    if (back(k)) return blCanVoid(role);
+    if (back(k)) return blCanBack(role);
     if (!blCanUse(role)) return false;
     if (k === "billed") return blReadyToBill(row, bills).ok;
-    if (k === "paid") return blR2((row || {}).paidAmt) >= blR2((row || {}).amount) - 0.01;
+    if (k === "paid") return blR2((row || {}).amount) > 0;
     return true;
   }).map(k => BL_STATUS_BY[k]);
 }
@@ -212,12 +205,14 @@ function blMove(row, to, user, opt, job) {
     byName: (user || {}).name || "",
     note: o.note || ""
   }]);
+  if (to === "ready" || to === "billed") {
+    if (!rec.docNo) rec.docNo = blDocNo(job, rec);
+    if (!rec.docDate) rec.docDate = o.date || (window.drToday ? window.drToday() : now.slice(0, 10));
+  }
   if (to === "billed") {
     rec.billedAt = now;
     rec.billedBy = (user || {}).id || null;
     rec.billedByName = (user || {}).name || "";
-    if (!rec.docNo) rec.docNo = blDocNo(job, rec);
-    if (!rec.docDate) rec.docDate = o.date || (window.drToday ? window.drToday() : now.slice(0, 10));
   }
   if (to === "accepted") {
     rec.acceptedAt = now;
@@ -229,12 +224,7 @@ function blMove(row, to, user, opt, job) {
     rec.paidBy = (user || {}).id || null;
     rec.paidByName = (user || {}).name || "";
     if (o.ref != null) rec.payRef = String(o.ref || "");
-    if (!(blR2(rec.paidAmt) > 0)) rec.paidAmt = blR2(rec.amount);
-  }
-  if (to === "void") {
-    rec.voidAt = now;
-    rec.voidBy = (user || {}).id || null;
-    rec.voidWhy = o.note || "";
+    if (blR2(rec.paidAmt) < blR2(rec.amount) - 0.01) rec.paidAmt = blR2(rec.amount);
   }
   if (blFlowIdx(to) < blFlowIdx("paid")) {
     rec.paidAt = null;
@@ -246,17 +236,13 @@ function blMove(row, to, user, opt, job) {
     rec.acceptedBy = null;
     rec.acceptedByName = "";
   }
-  if (to === "pending") {
-    rec.voidAt = null;
-    rec.voidBy = null;
-    rec.voidWhy = "";
-  }
   return rec;
 }
 function blDocNo(job, row) {
   const code = String((job || {}).code || "GEN").replace(/^SF-/, "");
   return "FS-BL-" + code + "-" + blPad2((row || {}).n || 1);
 }
+const blPrintable = row => blFlowIdx((row || {}).status) >= blFlowIdx("ready");
 const blRows = job => {
   const b = (job || {}).bills;
   return b && Array.isArray(b.rows) ? b.rows : [];
@@ -356,7 +342,7 @@ Object.assign(window, {
   blStatusOf,
   blFlowIdx,
   blCanUse,
-  blCanVoid,
+  blCanBack,
   blSig,
   blDrift,
   blPickQuote,
@@ -370,6 +356,7 @@ Object.assign(window, {
   blMove,
   blReadyToBill,
   blDocNo,
+  blPrintable,
   blRows,
   blHas,
   blLive,

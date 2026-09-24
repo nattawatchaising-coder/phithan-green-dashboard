@@ -76,9 +76,9 @@ function BlMoveBtns({ row, bills, role, currentUser, job, onMove, size }) {
               fontSize: size === "sm" ? 11.5 : 12.5, fontWeight: 700, cursor: "pointer",
               border: fwd ? "none" : "1px solid var(--border-strong)",
               background: fwd ? s.color : "var(--surface)", color: fwd ? "#fff" : "var(--text-2)" }}>
-            {s.key === "void" ? "ยกเลิกงวด" : s.key === "billed" ? "ออกเอกสาร · วางบิล"
-              : s.key === "accepted" ? "ลูกค้ารับมอบแล้ว" : s.key === "paid" ? "รับเงินแล้ว"
-                : window.blFlowIdx(s.key) < window.blFlowIdx(row.status) ? "ถอยกลับ · " + s.short : s.th}
+            {window.blFlowIdx(s.key) < window.blFlowIdx(row.status) ? "ถอยกลับ · " + s.short
+              : s.key === "ready" ? "ถึงงวด" : s.key === "billed" ? "ออกเอกสาร"
+                : s.key === "accepted" ? "ส่งมอบเอกสาร" : s.key === "paid" ? "รับเงิน" : s.th}
           </button>
         );
       })}
@@ -87,12 +87,58 @@ function BlMoveBtns({ row, bills, role, currentUser, job, onMove, size }) {
   );
 }
 
+/* คำถามถัดไปของคนที่เพิ่งกด "รับเงิน" คือ "แล้วยังเหลืออีกเท่าไร" — ตอบตรงนั้นเลย ไม่ต้องให้ไปเปิดหน้าอื่น
+   คิดจากก้อนที่เพิ่งบันทึก ไม่รอ Firebase ตีกลับ คนกดต้องเห็นผลเดี๋ยวนั้น */
+function BlPaidSum({ info, onClose, flush }) {
+  if (!info) return null;
+  const S = info.S;
+  return (
+    <div style={{ margin: flush ? "0 0 12px" : "0 12px 10px", padding: "10px 12px", borderRadius: 10,
+      background: "var(--tint-ok-bg)", border: "1px solid var(--tint-ok-bd)", color: "var(--tint-ok-tx)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ flex: 1, fontSize: 12.5, fontWeight: 800 }}>
+          ✔ บันทึกรับเงินงวดที่ {info.n} แล้ว {blMoney(info.amt)} บาท{info.job ? " · " + info.job : ""}
+        </span>
+        <button onClick={onClose} style={{ border: "none", background: "none", cursor: "pointer", color: "inherit",
+          fontSize: 13, fontFamily: "inherit", padding: 0 }}>✕</button>
+      </div>
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 6, fontSize: 12 }}>
+        <span>รับเงินแล้วรวม <b style={{ fontFamily: "var(--mono)" }}>{blMoney(S.collected)}</b> บาท ({S.doneCount}/{S.count} งวด)</span>
+        {S.allPaid
+          ? <b>เก็บเงินครบทุกงวดแล้ว</b>
+          : <span>คงค้างอีก <b style={{ fontFamily: "var(--mono)" }}>{blMoney(S.remain)}</b> บาท จากทั้งสัญญา {blMoney(S.grand || S.total)} บาท</span>}
+      </div>
+    </div>
+  );
+}
+
+/* แถบเงินสามช่อง — ตัวเลขที่บัญชีมองหาก่อนเสมอ อ่านได้โดยไม่ต้องกดอะไร */
+function BlMoneyStrip({ S }) {
+  const cells = [
+    ["ยอดรวมสัญญา", S.grand || S.total, "var(--text-1)"],
+    ["รับเงินแล้ว", S.collected, "#10B981"],
+    ["คงค้าง", S.remain, S.remain > 0.01 ? "#F59E0B" : "var(--text-3)"],
+  ];
+  return (
+    <div style={{ display: "flex", gap: 6 }}>
+      {cells.map(([label, v, color]) => (
+        <div key={label} style={{ flex: 1, minWidth: 0, padding: "7px 9px", borderRadius: 9,
+          background: "var(--surface2)", border: "1px solid var(--border)" }}>
+          <div style={{ fontSize: 10, color: "var(--text-3)", fontWeight: 700 }}>{label}</div>
+          <div style={{ fontSize: 12.5, fontWeight: 800, color: color, fontFamily: "var(--mono)",
+            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{blMoney(v)}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
 /* ══════════════════════════════════════════════════
    การ์ดในใบงาน
    ══════════════════════════════════════════════════ */
 function BlJobCard({ job, quotes, leads, role, currentUser, readOnly, onOpen, onSaveBills }) {
   const j = job || {};
   const [print, setPrint] = React.useState(null);
+  const [paid, setPaid] = React.useState(null);
   const S = window.blSummary(j);
   const bills = j.bills || null;
   const quote = window.blPickQuote(quotes, j, leads);
@@ -103,26 +149,28 @@ function BlJobCard({ job, quotes, leads, role, currentUser, readOnly, onOpen, on
 
   const move = (row, to) => {
     if (!onSaveBills) return;
-    let opt = {};
-    if (to === "void") {
-      const why = window.prompt("ยกเลิกงวดที่ " + row.n + " เพราะอะไร (บันทึกไว้ในประวัติ)");
-      if (why == null) return;
-      opt.note = why;
-    }
-    if (to === "paid") {
-      const ref = window.prompt("เลขอ้างอิงการโอน / เลขสลิป (ไม่มีก็เว้นว่าง)", row.payRef || "");
-      if (ref == null) return;
-      opt.ref = ref;
-    }
-    const next = window.blMove(row, to, currentUser, opt, j);
-    onSaveBills(Object.assign({}, bills, { rows: rows.map((r) => (r.id === row.id ? next : r)) }));
+    const go = (opt) => {
+      const next = window.blMove(row, to, currentUser, opt || {}, j);
+      const nb = Object.assign({}, bills, { rows: rows.map((r) => (r.id === row.id ? next : r)) });
+      onSaveBills(nb);
+      /* สรุปยอดทันทีที่กดรับเงิน คิดจากก้อนใหม่ ไม่รอฐานข้อมูลตีกลับ */
+      setPaid(to === "paid" ? { n: next.n, amt: window.blR2(next.paidAmt), S: window.blSummary({ bills: nb }) } : null);
+    };
+    if (to !== "paid") return go();
+    /* prompt() ของเบราว์เซอร์ถูกบล็อกใน WebView หลายตัว (รวมถึงของ LINE) กดแล้วเงียบไปเฉย ๆ
+       ใช้กล่องในหน้าเหมือนที่อื่นทั้งแอป — askText คืน null เมื่อกดยกเลิก ส่วน "" คือตั้งใจเว้นว่าง */
+    window.askText({
+      title: "รับเงินงวดที่ " + row.n + " · " + blMoney(row.amount) + " บาท",
+      body: "บันทึกว่าลูกค้าโอนเงินงวดนี้ครบแล้ว", label: "เลขอ้างอิงการโอน / เลขสลิป",
+      placeholder: "ไม่มีก็เว้นว่างได้", value: row.payRef || "", ok: "บันทึกรับเงิน", icon: "wallet",
+    }).then((ref) => { if (ref != null) go({ ref: ref }); });
   };
 
   const st = cur ? window.blStatusOf(cur.status) : null;
   const sub = !S.has
     ? (quote ? "ยังไม่ได้ตั้งงวด · ดึงจาก " + (quote.no || "ใบเสนอราคา") : "ยังไม่ได้ตั้งงวด · งานนี้ไม่มีใบเสนอราคา ต้องกรอกเอง")
     : "งวด " + (S.doneCount + (cur && cur.status === "paid" ? 0 : 1)) + "/" + S.count
-      + " · รับแล้ว " + blMoney(S.collected) + " · ค้างรับ " + blMoney(S.outstanding) + " บาท";
+      + " · รับแล้ว " + blMoney(S.collected) + " · คงค้าง " + blMoney(S.remain) + " บาท";
 
   return (
     <div style={{ marginBottom: 22, border: "1px solid " + (S.overdue.length ? "var(--tint-amber-bd)" : "var(--border-strong)"),
@@ -144,8 +192,9 @@ function BlJobCard({ job, quotes, leads, role, currentUser, readOnly, onOpen, on
       </button>
 
       {S.has && (
-        <div style={{ padding: "0 14px 12px" }}>
+        <div style={{ padding: "0 14px 12px", display: "grid", gap: 10 }}>
           <BlRail rows={rows} curId={cur ? cur.id : null} />
+          <BlMoneyStrip S={S} />
         </div>
       )}
 
@@ -161,7 +210,7 @@ function BlJobCard({ job, quotes, leads, role, currentUser, readOnly, onOpen, on
           {!ro && (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
               <BlMoveBtns row={cur} bills={bills} role={role} currentUser={currentUser} job={j} onMove={move} size="sm" />
-              {window.blFlowIdx(cur.status) >= window.blFlowIdx("billed") && (
+              {window.blPrintable(cur) && (
                 <button onClick={() => setPrint(cur)}
                   style={{ padding: "6px 10px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
                     color: "var(--text-2)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>
@@ -172,6 +221,8 @@ function BlJobCard({ job, quotes, leads, role, currentUser, readOnly, onOpen, on
           )}
         </div>
       )}
+
+      <BlPaidSum info={paid} onClose={() => setPaid(null)} />
 
       {!!S.overdue.length && (
         <BlNote>⏰ เลยกำหนดวางบิล {S.overdue.map((r) => "งวด " + r.n + " (" + blDay(r.due) + ")").join(" · ")} — ยังไม่ได้ออกเอกสาร</BlNote>
@@ -635,7 +686,7 @@ function BlSetupModal({ job, quotes, leads, role, currentUser, readOnly, focusRo
                     const dis = ro || lock;
                     return (
                       <React.Fragment key={r.id}>
-                        <tr style={{ background: r.status === "void" ? "var(--surface2)" : "transparent" }}>
+                        <tr>
                           <td style={Object.assign({}, cell, { fontWeight: 800 })}>
                             <input type="number" value={r.n} disabled={dis} onChange={(e) => putRow(r.id, { n: +e.target.value || 1 })}
                               style={Object.assign({}, BL_INPUT(), { padding: "6px 7px", fontSize: 12.5 })} />
@@ -643,8 +694,7 @@ function BlSetupModal({ job, quotes, leads, role, currentUser, readOnly, focusRo
                           <td style={cell}>
                             <input value={r.line || ""} disabled={dis} onChange={(e) => putRow(r.id, { line: e.target.value })}
                               placeholder="งวดที่ 1 · มัดจำ 30% เมื่อตกลงทำสัญญา"
-                              style={Object.assign({}, BL_INPUT(), { padding: "6px 8px", fontSize: 12.5,
-                                textDecoration: r.status === "void" ? "line-through" : "none" })} />
+                              style={Object.assign({}, BL_INPUT(), { padding: "6px 8px", fontSize: 12.5 })} />
                             {lock && <div style={{ fontSize: 10.5, color: "var(--text-3)", marginTop: 3 }}>ออกเอกสารแล้ว — แก้ตัวเลขไม่ได้</div>}
                           </td>
                           <td style={cell}>
@@ -663,7 +713,6 @@ function BlSetupModal({ job, quotes, leads, role, currentUser, readOnly, focusRo
                           <td style={cell}>
                             <BlPill row={r} />
                             {r.docNo ? <div style={{ fontSize: 10.5, color: "var(--text-3)", marginTop: 3, fontFamily: "var(--mono)" }}>{r.docNo}</div> : null}
-                            {r.status === "void" && r.voidWhy ? <div style={{ fontSize: 10.5, color: "var(--tint-red-tx)", marginTop: 2 }}>{r.voidWhy}</div> : null}
                           </td>
                           <td style={Object.assign({}, cell, { whiteSpace: "nowrap" })}>
                             <button onClick={() => setOpen(open === r.id ? null : r.id)}
@@ -752,6 +801,7 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
   const [filter, setFilter] = React.useState("all");
   const [onlyNew, setOnlyNew] = React.useState(false);
   const [print, setPrint] = React.useState(null);
+  const [paid, setPaid] = React.useState(null);
   const ro = !onSaveBills;
 
   const withBills = (jobs || []).filter((j) => window.blHas(j));
@@ -795,21 +845,24 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
 
   const move = (job, row, to) => {
     if (!onSaveBills) return;
-    let opt = {};
-    if (to === "void") {
-      const why = window.prompt("ยกเลิกงวดที่ " + row.n + " เพราะอะไร (บันทึกไว้ในประวัติ)");
-      if (why == null) return;
-      opt.note = why;
-    }
-    if (to === "paid") {
-      const ref = window.prompt("เลขอ้างอิงการโอน / เลขสลิป (ไม่มีก็เว้นว่าง)", row.payRef || "");
-      if (ref == null) return;
-      opt.ref = ref;
-    }
-    const next = window.blMove(row, to, currentUser, opt, job);
-    onSaveBills(job.id, Object.assign({}, job.bills, {
-      rows: window.blRows(job).map((r) => (r.id === row.id ? next : r)),
-    }));
+    const go = (opt) => {
+      const next = window.blMove(row, to, currentUser, opt || {}, job);
+      const nb = Object.assign({}, job.bills, {
+        rows: window.blRows(job).map((r) => (r.id === row.id ? next : r)),
+      });
+      onSaveBills(job.id, nb);
+      setPaid(to === "paid"
+        ? { n: next.n, amt: window.blR2(next.paidAmt), job: (job.code || "") + " · " + (job.name || ""), S: window.blSummary({ bills: nb }) }
+        : null);
+    };
+    if (to !== "paid") return go();
+    /* prompt() ของเบราว์เซอร์ถูกบล็อกใน WebView หลายตัว (รวมถึงของ LINE) กดแล้วเงียบไปเฉย ๆ
+       ใช้กล่องในหน้าเหมือนที่อื่นทั้งแอป — askText คืน null เมื่อกดยกเลิก ส่วน "" คือตั้งใจเว้นว่าง */
+    window.askText({
+      title: "รับเงินงวดที่ " + row.n + " · " + blMoney(row.amount) + " บาท",
+      body: "บันทึกว่าลูกค้าโอนเงินงวดนี้ครบแล้ว", label: "เลขอ้างอิงการโอน / เลขสลิป",
+      placeholder: "ไม่มีก็เว้นว่างได้", value: row.payRef || "", ok: "บันทึกรับเงิน", icon: "wallet",
+    }).then((ref) => { if (ref != null) go({ ref: ref }); });
   };
 
   const chip = (id, label) => (
@@ -826,12 +879,12 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
   return (
     <div>
       <div style={{ display: "flex", gap: 9, flexWrap: "wrap", marginBottom: 14 }}>
-        <window.EcStat label="ถึงงวด · รอวางบิล" value={tiles.readyN} unit="งวด" color="#F59E0B"
+        <window.EcStat label="ถึงงวด · รอออกเอกสาร" value={tiles.readyN} unit="งวด" color="#F59E0B"
           hint={blMoney(tiles.readyB) + " บาท"} on={filter === "ready"} onClick={() => setFilter(filter === "ready" ? "all" : "ready")} />
-        <window.EcStat label="วางบิลแล้ว · รอรับเงิน" value={blMoney(tiles.waitB)} unit="บาท" color="#3B82F6"
+        <window.EcStat label="ออกเอกสารแล้ว · รอรับเงิน" value={blMoney(tiles.waitB)} unit="บาท" color="#3B82F6"
           on={filter === "billed"} onClick={() => setFilter(filter === "billed" ? "all" : "billed")} />
         <window.EcStat label="รับเงินแล้วเดือนนี้" value={blMoney(tiles.monthPaid)} unit="บาท" color="#10B981" />
-        <window.EcStat label="เลยกำหนดวางบิล" value={tiles.overdueN} unit="งวด" color="#EF4444"
+        <window.EcStat label="เลยกำหนดออกเอกสาร" value={tiles.overdueN} unit="งวด" color="#EF4444"
           on={filter === "overdue"} onClick={() => setFilter(filter === "overdue" ? "all" : "overdue")} />
       </div>
 
@@ -839,9 +892,9 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา รหัสงาน · ลูกค้า · เลขที่เอกสาร · เงื่อนไข"
           style={Object.assign({}, BL_INPUT(), { maxWidth: 320 })} />
         {chip("all", "ทั้งหมด")}
-        {chip("ready", "รอวางบิล")}
-        {chip("billed", "วางบิลแล้ว")}
-        {chip("accepted", "รับมอบแล้ว")}
+        {chip("ready", "ถึงงวด")}
+        {chip("billed", "ออกเอกสารแล้ว")}
+        {chip("accepted", "ส่งมอบเอกสารแล้ว")}
         {chip("paid", "รับเงินแล้ว")}
         {chip("overdue", "เลยกำหนด")}
         <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--text-2)", cursor: "pointer" }}>
@@ -849,6 +902,8 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
           เฉพาะงานที่ยังไม่ตั้งงวด
         </label>
       </div>
+
+      <BlPaidSum info={paid} onClose={() => setPaid(null)} flush />
 
       {!onlyNew && groups.map((g) => {
         const j = g.job, S = g.S;
@@ -861,8 +916,7 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
                   {j.code} · {j.name}{+j.kw ? <span style={{ fontWeight: 600, color: "var(--text-3)" }}> · {j.kw} kW</span> : null}
                 </div>
                 <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>
-                  ยอดรวมสัญญา {blMoney(S.grand || S.total)} บาท · รับแล้ว {blMoney(S.collected)} · ค้างรับ {blMoney(S.outstanding)}
-                  {S.voided ? " · ยกเลิก " + S.voided + " งวด" : ""}
+                  ยอดรวมสัญญา {blMoney(S.grand || S.total)} บาท · รับเงินแล้ว {blMoney(S.collected)} · คงค้าง {blMoney(S.remain)}
                 </div>
               </div>
               <div style={{ width: 170, flexShrink: 0 }}><BlRail rows={window.blRows(j)} curId={S.cur ? S.cur.id : null} /></div>
@@ -889,7 +943,7 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
                     <th style={Object.assign({}, head, { width: 110, textAlign: "right" })}>จำนวนเงิน</th>
                     <th style={Object.assign({}, head, { width: 96 })}>กำหนด</th>
                     <th style={Object.assign({}, head, { width: 126 })}>เลขที่เอกสาร</th>
-                    <th style={Object.assign({}, head, { width: 96 })}>วางบิล</th>
+                    <th style={Object.assign({}, head, { width: 96 })}>ออกเอกสาร</th>
                     <th style={Object.assign({}, head, { width: 122, textAlign: "right" })}>รับเงิน</th>
                     <th style={Object.assign({}, head, { width: 132 })}>สถานะ</th>
                     <th style={head}></th>
@@ -899,10 +953,7 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
                   {g.rows.map((r) => (
                     <tr key={r.id} style={{ background: window.blOverdue(r, today) ? "var(--tint-amber-bg)" : "transparent" }}>
                       <td style={Object.assign({}, cell, { fontWeight: 800 })}>{r.n}</td>
-                      <td style={Object.assign({}, cell, { textDecoration: r.status === "void" ? "line-through" : "none" })}>
-                        {r.line || "—"}
-                        {r.status === "void" && r.voidWhy ? <div style={{ fontSize: 10.5, color: "var(--tint-red-tx)" }}>{r.voidWhy}</div> : null}
-                      </td>
+                      <td style={cell}>{r.line || "—"}</td>
                       <td style={Object.assign({}, cell, { textAlign: "right", fontFamily: "var(--mono)" })}>{blMoney(r.amount)}</td>
                       <td style={cell}>{r.due ? blDay(r.due) : "—"}</td>
                       <td style={Object.assign({}, cell, { fontFamily: "var(--mono)", fontSize: 11.5 })}>{r.docNo || "—"}</td>
@@ -914,7 +965,7 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
                       <td style={Object.assign({}, cell, { whiteSpace: "nowrap" })}>
                         <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
                           {!ro && <BlMoveBtns row={r} bills={j.bills} role={role} currentUser={currentUser} job={j} onMove={(row, to) => move(j, row, to)} size="sm" />}
-                          {window.blFlowIdx(r.status) >= window.blFlowIdx("billed") && (
+                          {window.blPrintable(r) && (
                             <button onClick={() => setPrint({ job: j, row: r })}
                               style={{ padding: "6px 10px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
                                 color: "var(--text-2)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>
@@ -972,6 +1023,6 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
 }
 
 Object.assign(window, {
-  BL_ACCENT, BlPill, BlRail, BlNote, BlMoveBtns,
+  BL_ACCENT, BlPill, BlRail, BlNote, BlMoveBtns, BlPaidSum, BlMoneyStrip,
   BlJobCard, BlPhotoPick, BlRowDetail, BlSetupModal, BlPrintHost, BillingView,
 });

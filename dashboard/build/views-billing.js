@@ -125,13 +125,107 @@ function BlMoveBtns({
         background: fwd ? s.color : "var(--surface)",
         color: fwd ? "#fff" : "var(--text-2)"
       }
-    }, s.key === "void" ? "ยกเลิกงวด" : s.key === "billed" ? "ออกเอกสาร · วางบิล" : s.key === "accepted" ? "ลูกค้ารับมอบแล้ว" : s.key === "paid" ? "รับเงินแล้ว" : window.blFlowIdx(s.key) < window.blFlowIdx(row.status) ? "ถอยกลับ · " + s.short : s.th);
+    }, window.blFlowIdx(s.key) < window.blFlowIdx(row.status) ? "ถอยกลับ · " + s.short : s.key === "ready" ? "ถึงงวด" : s.key === "billed" ? "ออกเอกสาร" : s.key === "accepted" ? "ส่งมอบเอกสาร" : s.key === "paid" ? "รับเงิน" : s.th);
   }), showWhy && React.createElement("span", {
     style: {
       fontSize: 11,
       color: "var(--tint-amber-tx)"
     }
   }, "\xB7 ", block.why));
+}
+function BlPaidSum({
+  info,
+  onClose,
+  flush
+}) {
+  if (!info) return null;
+  const S = info.S;
+  return React.createElement("div", {
+    style: {
+      margin: flush ? "0 0 12px" : "0 12px 10px",
+      padding: "10px 12px",
+      borderRadius: 10,
+      background: "var(--tint-ok-bg)",
+      border: "1px solid var(--tint-ok-bd)",
+      color: "var(--tint-ok-tx)"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, React.createElement("span", {
+    style: {
+      flex: 1,
+      fontSize: 12.5,
+      fontWeight: 800
+    }
+  }, "\u2714 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E23\u0E31\u0E1A\u0E40\u0E07\u0E34\u0E19\u0E07\u0E27\u0E14\u0E17\u0E35\u0E48 ", info.n, " \u0E41\u0E25\u0E49\u0E27 ", blMoney(info.amt), " \u0E1A\u0E32\u0E17", info.job ? " · " + info.job : ""), React.createElement("button", {
+    onClick: onClose,
+    style: {
+      border: "none",
+      background: "none",
+      cursor: "pointer",
+      color: "inherit",
+      fontSize: 13,
+      fontFamily: "inherit",
+      padding: 0
+    }
+  }, "\u2715")), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 16,
+      flexWrap: "wrap",
+      marginTop: 6,
+      fontSize: 12
+    }
+  }, React.createElement("span", null, "\u0E23\u0E31\u0E1A\u0E40\u0E07\u0E34\u0E19\u0E41\u0E25\u0E49\u0E27\u0E23\u0E27\u0E21 ", React.createElement("b", {
+    style: {
+      fontFamily: "var(--mono)"
+    }
+  }, blMoney(S.collected)), " \u0E1A\u0E32\u0E17 (", S.doneCount, "/", S.count, " \u0E07\u0E27\u0E14)"), S.allPaid ? React.createElement("b", null, "\u0E40\u0E01\u0E47\u0E1A\u0E40\u0E07\u0E34\u0E19\u0E04\u0E23\u0E1A\u0E17\u0E38\u0E01\u0E07\u0E27\u0E14\u0E41\u0E25\u0E49\u0E27") : React.createElement("span", null, "\u0E04\u0E07\u0E04\u0E49\u0E32\u0E07\u0E2D\u0E35\u0E01 ", React.createElement("b", {
+    style: {
+      fontFamily: "var(--mono)"
+    }
+  }, blMoney(S.remain)), " \u0E1A\u0E32\u0E17 \u0E08\u0E32\u0E01\u0E17\u0E31\u0E49\u0E07\u0E2A\u0E31\u0E0D\u0E0D\u0E32 ", blMoney(S.grand || S.total), " \u0E1A\u0E32\u0E17")));
+}
+function BlMoneyStrip({
+  S
+}) {
+  const cells = [["ยอดรวมสัญญา", S.grand || S.total, "var(--text-1)"], ["รับเงินแล้ว", S.collected, "#10B981"], ["คงค้าง", S.remain, S.remain > 0.01 ? "#F59E0B" : "var(--text-3)"]];
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, cells.map(([label, v, color]) => React.createElement("div", {
+    key: label,
+    style: {
+      flex: 1,
+      minWidth: 0,
+      padding: "7px 9px",
+      borderRadius: 9,
+      background: "var(--surface2)",
+      border: "1px solid var(--border)"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: "var(--text-3)",
+      fontWeight: 700
+    }
+  }, label), React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 800,
+      color: color,
+      fontFamily: "var(--mono)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, blMoney(v)))));
 }
 function BlJobCard({
   job,
@@ -145,6 +239,7 @@ function BlJobCard({
 }) {
   const j = job || {};
   const [print, setPrint] = React.useState(null);
+  const [paid, setPaid] = React.useState(null);
   const S = window.blSummary(j);
   const bills = j.bills || null;
   const quote = window.blPickQuote(quotes, j, leads);
@@ -154,24 +249,37 @@ function BlJobCard({
   const ro = readOnly || !onSaveBills;
   const move = (row, to) => {
     if (!onSaveBills) return;
-    let opt = {};
-    if (to === "void") {
-      const why = window.prompt("ยกเลิกงวดที่ " + row.n + " เพราะอะไร (บันทึกไว้ในประวัติ)");
-      if (why == null) return;
-      opt.note = why;
-    }
-    if (to === "paid") {
-      const ref = window.prompt("เลขอ้างอิงการโอน / เลขสลิป (ไม่มีก็เว้นว่าง)", row.payRef || "");
-      if (ref == null) return;
-      opt.ref = ref;
-    }
-    const next = window.blMove(row, to, currentUser, opt, j);
-    onSaveBills(Object.assign({}, bills, {
-      rows: rows.map(r => r.id === row.id ? next : r)
-    }));
+    const go = opt => {
+      const next = window.blMove(row, to, currentUser, opt || {}, j);
+      const nb = Object.assign({}, bills, {
+        rows: rows.map(r => r.id === row.id ? next : r)
+      });
+      onSaveBills(nb);
+      setPaid(to === "paid" ? {
+        n: next.n,
+        amt: window.blR2(next.paidAmt),
+        S: window.blSummary({
+          bills: nb
+        })
+      } : null);
+    };
+    if (to !== "paid") return go();
+    window.askText({
+      title: "รับเงินงวดที่ " + row.n + " · " + blMoney(row.amount) + " บาท",
+      body: "บันทึกว่าลูกค้าโอนเงินงวดนี้ครบแล้ว",
+      label: "เลขอ้างอิงการโอน / เลขสลิป",
+      placeholder: "ไม่มีก็เว้นว่างได้",
+      value: row.payRef || "",
+      ok: "บันทึกรับเงิน",
+      icon: "wallet"
+    }).then(ref => {
+      if (ref != null) go({
+        ref: ref
+      });
+    });
   };
   const st = cur ? window.blStatusOf(cur.status) : null;
-  const sub = !S.has ? quote ? "ยังไม่ได้ตั้งงวด · ดึงจาก " + (quote.no || "ใบเสนอราคา") : "ยังไม่ได้ตั้งงวด · งานนี้ไม่มีใบเสนอราคา ต้องกรอกเอง" : "งวด " + (S.doneCount + (cur && cur.status === "paid" ? 0 : 1)) + "/" + S.count + " · รับแล้ว " + blMoney(S.collected) + " · ค้างรับ " + blMoney(S.outstanding) + " บาท";
+  const sub = !S.has ? quote ? "ยังไม่ได้ตั้งงวด · ดึงจาก " + (quote.no || "ใบเสนอราคา") : "ยังไม่ได้ตั้งงวด · งานนี้ไม่มีใบเสนอราคา ต้องกรอกเอง" : "งวด " + (S.doneCount + (cur && cur.status === "paid" ? 0 : 1)) + "/" + S.count + " · รับแล้ว " + blMoney(S.collected) + " · คงค้าง " + blMoney(S.remain) + " บาท";
   return React.createElement("div", {
     style: {
       marginBottom: 22,
@@ -235,11 +343,15 @@ function BlJobCard({
     color: "var(--text-3)"
   })), S.has && React.createElement("div", {
     style: {
-      padding: "0 14px 12px"
+      padding: "0 14px 12px",
+      display: "grid",
+      gap: 10
     }
   }, React.createElement(BlRail, {
     rows: rows,
     curId: cur ? cur.id : null
+  }), React.createElement(BlMoneyStrip, {
+    S: S
   })), S.has && cur && React.createElement("div", {
     style: {
       borderTop: "1px solid var(--border)",
@@ -289,7 +401,7 @@ function BlJobCard({
     job: j,
     onMove: move,
     size: "sm"
-  }), window.blFlowIdx(cur.status) >= window.blFlowIdx("billed") && React.createElement("button", {
+  }), window.blPrintable(cur) && React.createElement("button", {
     onClick: () => setPrint(cur),
     style: {
       padding: "6px 10px",
@@ -302,7 +414,10 @@ function BlJobCard({
       fontWeight: 700,
       cursor: "pointer"
     }
-  }, "\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23"))), !!S.overdue.length && React.createElement(BlNote, null, "\u23F0 \u0E40\u0E25\u0E22\u0E01\u0E33\u0E2B\u0E19\u0E14\u0E27\u0E32\u0E07\u0E1A\u0E34\u0E25 ", S.overdue.map(r => "งวด " + r.n + " (" + blDay(r.due) + ")").join(" · "), " \u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E2D\u0E2D\u0E01\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23"), S.mismatch && React.createElement(BlNote, null, "\u0E1C\u0E25\u0E23\u0E27\u0E21\u0E23\u0E32\u0E22\u0E07\u0E27\u0E14 ", blMoney(S.total), " \u0E44\u0E21\u0E48\u0E40\u0E17\u0E48\u0E32\u0E01\u0E31\u0E1A\u0E22\u0E2D\u0E14\u0E15\u0E32\u0E21\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32 ", blMoney(S.grand), " \u0E1A\u0E32\u0E17 \u2014 \u0E15\u0E23\u0E27\u0E08\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E2D\u0E35\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07"), drift && React.createElement(BlNote, null, "\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32 ", quote && quote.no ? quote.no : "", " \u0E16\u0E39\u0E01\u0E41\u0E01\u0E49\u0E2B\u0E25\u0E31\u0E07\u0E15\u0E31\u0E49\u0E07\u0E07\u0E27\u0E14 \u2014 \u0E40\u0E1B\u0E34\u0E14\u0E41\u0E1C\u0E07\u0E15\u0E31\u0E49\u0E07\u0E07\u0E27\u0E14\u0E41\u0E25\u0E49\u0E27\u0E01\u0E14 \u201C\u0E16\u0E2D\u0E14\u0E07\u0E27\u0E14\u0E43\u0E2B\u0E21\u0E48\u0E08\u0E32\u0E01\u0E43\u0E1A\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14\u201D"), S.allPaid && React.createElement(BlNote, {
+  }, "\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23"))), React.createElement(BlPaidSum, {
+    info: paid,
+    onClose: () => setPaid(null)
+  }), !!S.overdue.length && React.createElement(BlNote, null, "\u23F0 \u0E40\u0E25\u0E22\u0E01\u0E33\u0E2B\u0E19\u0E14\u0E27\u0E32\u0E07\u0E1A\u0E34\u0E25 ", S.overdue.map(r => "งวด " + r.n + " (" + blDay(r.due) + ")").join(" · "), " \u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E2D\u0E2D\u0E01\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23"), S.mismatch && React.createElement(BlNote, null, "\u0E1C\u0E25\u0E23\u0E27\u0E21\u0E23\u0E32\u0E22\u0E07\u0E27\u0E14 ", blMoney(S.total), " \u0E44\u0E21\u0E48\u0E40\u0E17\u0E48\u0E32\u0E01\u0E31\u0E1A\u0E22\u0E2D\u0E14\u0E15\u0E32\u0E21\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32 ", blMoney(S.grand), " \u0E1A\u0E32\u0E17 \u2014 \u0E15\u0E23\u0E27\u0E08\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E2D\u0E35\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07"), drift && React.createElement(BlNote, null, "\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32 ", quote && quote.no ? quote.no : "", " \u0E16\u0E39\u0E01\u0E41\u0E01\u0E49\u0E2B\u0E25\u0E31\u0E07\u0E15\u0E31\u0E49\u0E07\u0E07\u0E27\u0E14 \u2014 \u0E40\u0E1B\u0E34\u0E14\u0E41\u0E1C\u0E07\u0E15\u0E31\u0E49\u0E07\u0E07\u0E27\u0E14\u0E41\u0E25\u0E49\u0E27\u0E01\u0E14 \u201C\u0E16\u0E2D\u0E14\u0E07\u0E27\u0E14\u0E43\u0E2B\u0E21\u0E48\u0E08\u0E32\u0E01\u0E43\u0E1A\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14\u201D"), S.allPaid && React.createElement(BlNote, {
     tone: "ok"
   }, "\u2714 \u0E40\u0E01\u0E47\u0E1A\u0E40\u0E07\u0E34\u0E19\u0E04\u0E23\u0E1A\u0E17\u0E38\u0E01\u0E07\u0E27\u0E14\u0E41\u0E25\u0E49\u0E27 \u0E23\u0E27\u0E21 ", blMoney(S.collected), " \u0E1A\u0E32\u0E17"), print && React.createElement(BlPrintHost, {
     job: j,
@@ -1292,11 +1407,7 @@ function BlSetupModal({
     const dis = ro || lock;
     return React.createElement(React.Fragment, {
       key: r.id
-    }, React.createElement("tr", {
-      style: {
-        background: r.status === "void" ? "var(--surface2)" : "transparent"
-      }
-    }, React.createElement("td", {
+    }, React.createElement("tr", null, React.createElement("td", {
       style: Object.assign({}, cell, {
         fontWeight: 800
       })
@@ -1322,8 +1433,7 @@ function BlSetupModal({
       placeholder: "\u0E07\u0E27\u0E14\u0E17\u0E35\u0E48 1 \xB7 \u0E21\u0E31\u0E14\u0E08\u0E33 30% \u0E40\u0E21\u0E37\u0E48\u0E2D\u0E15\u0E01\u0E25\u0E07\u0E17\u0E33\u0E2A\u0E31\u0E0D\u0E0D\u0E32",
       style: Object.assign({}, BL_INPUT(), {
         padding: "6px 8px",
-        fontSize: 12.5,
-        textDecoration: r.status === "void" ? "line-through" : "none"
+        fontSize: 12.5
       })
     }), lock && React.createElement("div", {
       style: {
@@ -1382,13 +1492,7 @@ function BlSetupModal({
         marginTop: 3,
         fontFamily: "var(--mono)"
       }
-    }, r.docNo) : null, r.status === "void" && r.voidWhy ? React.createElement("div", {
-      style: {
-        fontSize: 10.5,
-        color: "var(--tint-red-tx)",
-        marginTop: 2
-      }
-    }, r.voidWhy) : null), React.createElement("td", {
+    }, r.docNo) : null), React.createElement("td", {
       style: Object.assign({}, cell, {
         whiteSpace: "nowrap"
       })
@@ -1553,6 +1657,7 @@ function BillingView({
   const [filter, setFilter] = React.useState("all");
   const [onlyNew, setOnlyNew] = React.useState(false);
   const [print, setPrint] = React.useState(null);
+  const [paid, setPaid] = React.useState(null);
   const ro = !onSaveBills;
   const withBills = (jobs || []).filter(j => window.blHas(j));
   const sums = {};
@@ -1602,21 +1707,35 @@ function BillingView({
   const pendingSetup = (jobs || []).filter(j => !window.blHas(j) && (j.stage === "install" || j.stage === "done")).sort((a, b) => String(a.code || "").localeCompare(String(b.code || "")));
   const move = (job, row, to) => {
     if (!onSaveBills) return;
-    let opt = {};
-    if (to === "void") {
-      const why = window.prompt("ยกเลิกงวดที่ " + row.n + " เพราะอะไร (บันทึกไว้ในประวัติ)");
-      if (why == null) return;
-      opt.note = why;
-    }
-    if (to === "paid") {
-      const ref = window.prompt("เลขอ้างอิงการโอน / เลขสลิป (ไม่มีก็เว้นว่าง)", row.payRef || "");
-      if (ref == null) return;
-      opt.ref = ref;
-    }
-    const next = window.blMove(row, to, currentUser, opt, job);
-    onSaveBills(job.id, Object.assign({}, job.bills, {
-      rows: window.blRows(job).map(r => r.id === row.id ? next : r)
-    }));
+    const go = opt => {
+      const next = window.blMove(row, to, currentUser, opt || {}, job);
+      const nb = Object.assign({}, job.bills, {
+        rows: window.blRows(job).map(r => r.id === row.id ? next : r)
+      });
+      onSaveBills(job.id, nb);
+      setPaid(to === "paid" ? {
+        n: next.n,
+        amt: window.blR2(next.paidAmt),
+        job: (job.code || "") + " · " + (job.name || ""),
+        S: window.blSummary({
+          bills: nb
+        })
+      } : null);
+    };
+    if (to !== "paid") return go();
+    window.askText({
+      title: "รับเงินงวดที่ " + row.n + " · " + blMoney(row.amount) + " บาท",
+      body: "บันทึกว่าลูกค้าโอนเงินงวดนี้ครบแล้ว",
+      label: "เลขอ้างอิงการโอน / เลขสลิป",
+      placeholder: "ไม่มีก็เว้นว่างได้",
+      value: row.payRef || "",
+      ok: "บันทึกรับเงิน",
+      icon: "wallet"
+    }).then(ref => {
+      if (ref != null) go({
+        ref: ref
+      });
+    });
   };
   const chip = (id, label) => React.createElement("button", {
     key: id,
@@ -1657,7 +1776,7 @@ function BillingView({
       marginBottom: 14
     }
   }, React.createElement(window.EcStat, {
-    label: "\u0E16\u0E36\u0E07\u0E07\u0E27\u0E14 \xB7 \u0E23\u0E2D\u0E27\u0E32\u0E07\u0E1A\u0E34\u0E25",
+    label: "\u0E16\u0E36\u0E07\u0E07\u0E27\u0E14 \xB7 \u0E23\u0E2D\u0E2D\u0E2D\u0E01\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23",
     value: tiles.readyN,
     unit: "\u0E07\u0E27\u0E14",
     color: "#F59E0B",
@@ -1665,7 +1784,7 @@ function BillingView({
     on: filter === "ready",
     onClick: () => setFilter(filter === "ready" ? "all" : "ready")
   }), React.createElement(window.EcStat, {
-    label: "\u0E27\u0E32\u0E07\u0E1A\u0E34\u0E25\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E23\u0E2D\u0E23\u0E31\u0E1A\u0E40\u0E07\u0E34\u0E19",
+    label: "\u0E2D\u0E2D\u0E01\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E23\u0E2D\u0E23\u0E31\u0E1A\u0E40\u0E07\u0E34\u0E19",
     value: blMoney(tiles.waitB),
     unit: "\u0E1A\u0E32\u0E17",
     color: "#3B82F6",
@@ -1677,7 +1796,7 @@ function BillingView({
     unit: "\u0E1A\u0E32\u0E17",
     color: "#10B981"
   }), React.createElement(window.EcStat, {
-    label: "\u0E40\u0E25\u0E22\u0E01\u0E33\u0E2B\u0E19\u0E14\u0E27\u0E32\u0E07\u0E1A\u0E34\u0E25",
+    label: "\u0E40\u0E25\u0E22\u0E01\u0E33\u0E2B\u0E19\u0E14\u0E2D\u0E2D\u0E01\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23",
     value: tiles.overdueN,
     unit: "\u0E07\u0E27\u0E14",
     color: "#EF4444",
@@ -1698,7 +1817,7 @@ function BillingView({
     style: Object.assign({}, BL_INPUT(), {
       maxWidth: 320
     })
-  }), chip("all", "ทั้งหมด"), chip("ready", "รอวางบิล"), chip("billed", "วางบิลแล้ว"), chip("accepted", "รับมอบแล้ว"), chip("paid", "รับเงินแล้ว"), chip("overdue", "เลยกำหนด"), React.createElement("label", {
+  }), chip("all", "ทั้งหมด"), chip("ready", "ถึงงวด"), chip("billed", "ออกเอกสารแล้ว"), chip("accepted", "ส่งมอบเอกสารแล้ว"), chip("paid", "รับเงินแล้ว"), chip("overdue", "เลยกำหนด"), React.createElement("label", {
     style: {
       display: "inline-flex",
       alignItems: "center",
@@ -1711,7 +1830,11 @@ function BillingView({
     type: "checkbox",
     checked: onlyNew,
     onChange: e => setOnlyNew(e.target.checked)
-  }), "\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E15\u0E31\u0E49\u0E07\u0E07\u0E27\u0E14")), !onlyNew && groups.map(g => {
+  }), "\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E15\u0E31\u0E49\u0E07\u0E07\u0E27\u0E14")), React.createElement(BlPaidSum, {
+    info: paid,
+    onClose: () => setPaid(null),
+    flush: true
+  }), !onlyNew && groups.map(g => {
     const j = g.job,
       S = g.S;
     return React.createElement("div", {
@@ -1754,7 +1877,7 @@ function BillingView({
         fontSize: 11.5,
         color: "var(--text-3)"
       }
-    }, "\u0E22\u0E2D\u0E14\u0E23\u0E27\u0E21\u0E2A\u0E31\u0E0D\u0E0D\u0E32 ", blMoney(S.grand || S.total), " \u0E1A\u0E32\u0E17 \xB7 \u0E23\u0E31\u0E1A\u0E41\u0E25\u0E49\u0E27 ", blMoney(S.collected), " \xB7 \u0E04\u0E49\u0E32\u0E07\u0E23\u0E31\u0E1A ", blMoney(S.outstanding), S.voided ? " · ยกเลิก " + S.voided + " งวด" : "")), React.createElement("div", {
+    }, "\u0E22\u0E2D\u0E14\u0E23\u0E27\u0E21\u0E2A\u0E31\u0E0D\u0E0D\u0E32 ", blMoney(S.grand || S.total), " \u0E1A\u0E32\u0E17 \xB7 \u0E23\u0E31\u0E1A\u0E40\u0E07\u0E34\u0E19\u0E41\u0E25\u0E49\u0E27 ", blMoney(S.collected), " \xB7 \u0E04\u0E07\u0E04\u0E49\u0E32\u0E07 ", blMoney(S.remain))), React.createElement("div", {
       style: {
         width: 170,
         flexShrink: 0
@@ -1821,7 +1944,7 @@ function BillingView({
       style: Object.assign({}, head, {
         width: 96
       })
-    }, "\u0E27\u0E32\u0E07\u0E1A\u0E34\u0E25"), React.createElement("th", {
+    }, "\u0E2D\u0E2D\u0E01\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23"), React.createElement("th", {
       style: Object.assign({}, head, {
         width: 122,
         textAlign: "right"
@@ -1842,15 +1965,8 @@ function BillingView({
         fontWeight: 800
       })
     }, r.n), React.createElement("td", {
-      style: Object.assign({}, cell, {
-        textDecoration: r.status === "void" ? "line-through" : "none"
-      })
-    }, r.line || "—", r.status === "void" && r.voidWhy ? React.createElement("div", {
-      style: {
-        fontSize: 10.5,
-        color: "var(--tint-red-tx)"
-      }
-    }, r.voidWhy) : null), React.createElement("td", {
+      style: cell
+    }, r.line || "—"), React.createElement("td", {
       style: Object.assign({}, cell, {
         textAlign: "right",
         fontFamily: "var(--mono)"
@@ -1893,7 +2009,7 @@ function BillingView({
       job: j,
       onMove: (row, to) => move(j, row, to),
       size: "sm"
-    }), window.blFlowIdx(r.status) >= window.blFlowIdx("billed") && React.createElement("button", {
+    }), window.blPrintable(r) && React.createElement("button", {
       onClick: () => setPrint({
         job: j,
         row: r
@@ -1991,6 +2107,8 @@ Object.assign(window, {
   BlRail,
   BlNote,
   BlMoveBtns,
+  BlPaidSum,
+  BlMoneyStrip,
   BlJobCard,
   BlPhotoPick,
   BlRowDetail,

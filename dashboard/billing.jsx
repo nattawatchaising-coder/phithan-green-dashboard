@@ -21,19 +21,20 @@ const blR2 = (v) => Math.round((+v || 0) * 100) / 100;
 const blPad2 = (n) => (n < 10 ? "0" : "") + n;
 
 /* ── ตารางเดินสถานะ ประกาศเป็นข้อมูล ไม่ใช่ if ซ้อน ──
+   สี่ขั้นตามที่ออฟฟิศเรียกกันจริง: ถึงงวด → ออกเอกสาร → ส่งมอบเอกสาร → รับเงิน
+   pending ไม่ใช่ขั้นตอน มันคือช่องว่างก่อนเริ่ม (งวดที่ยังไม่ถึงกำหนด ยังไม่มีอะไรให้ทำ)
    ปุ่มบนหน้าจอสร้างจากตารางนี้ จึงเสนอขั้นที่ผิดกติกาไม่ได้ตั้งแต่แรก (กฎเดียวกับ EC_STATUS)
    ถอยหลังได้ทุกขั้น เพราะงานเก็บเงินพลาดกันจริง — แต่ถอยได้เฉพาะแอดมิน และประวัติไม่หาย */
 const BL_STATUS = [
-  { key: "pending",  th: "ยังไม่ถึงงวด",       short: "ยังไม่ถึง",  color: "#94A3B8", next: ["ready", "void"] },
-  { key: "ready",    th: "ถึงงวด · รอวางบิล",  short: "รอวางบิล",   color: "#F59E0B", next: ["billed", "pending", "void"] },
-  { key: "billed",   th: "ส่งมอบ/วางบิลแล้ว",  short: "วางบิลแล้ว", color: "#3B82F6", next: ["accepted", "ready", "void"] },
-  { key: "accepted", th: "ลูกค้ารับมอบแล้ว",   short: "รับมอบแล้ว", color: "#0EA5E9", next: ["paid", "billed"] },
-  { key: "paid",     th: "รับเงินแล้ว",         short: "รับเงินแล้ว", color: "#10B981", next: ["accepted"] },
-  { key: "void",     th: "ยกเลิกงวด",           short: "ยกเลิก",     color: "#EF4444", next: ["pending"] },
+  { key: "pending",  th: "ยังไม่ถึงงวด",      short: "ยังไม่ถึง",   color: "#94A3B8", next: ["ready"] },
+  { key: "ready",    th: "ถึงงวดแล้ว",        short: "ถึงงวด",      color: "#F59E0B", next: ["billed", "pending"] },
+  { key: "billed",   th: "ออกเอกสารแล้ว",     short: "ออกเอกสาร",   color: "#3B82F6", next: ["accepted", "ready"] },
+  { key: "accepted", th: "ส่งมอบเอกสารแล้ว",  short: "ส่งมอบแล้ว",  color: "#0EA5E9", next: ["paid", "billed"] },
+  { key: "paid",     th: "รับเงินแล้ว",        short: "รับเงินแล้ว", color: "#10B981", next: ["accepted"] },
 ];
 const BL_STATUS_BY = {}; BL_STATUS.forEach((s) => { BL_STATUS_BY[s.key] = s; });
 const blStatusOf = (k) => BL_STATUS_BY[k] || BL_STATUS_BY.pending;
-/* ลำดับความคืบหน้า — ใช้เรียงและหา "งวดที่กำลังเดินอยู่" · void ไม่อยู่ในเส้นนี้ */
+/* ลำดับความคืบหน้า — ใช้เรียงและหา "งวดที่กำลังเดินอยู่" */
 const BL_FLOW = ["pending", "ready", "billed", "accepted", "paid"];
 const blFlowIdx = (k) => BL_FLOW.indexOf(String(k || "pending"));
 
@@ -41,8 +42,8 @@ const blFlowIdx = (k) => BL_FLOW.indexOf(String(k || "pending"));
    billing = ตั้งงวด ออกเอกสาร เดินสถานะ (บัญชี/แอดมินออฟฟิศ และหัวหน้า/ผู้จัดการโครงการ)
    ช่างเห็นสถานะได้ แต่กดอะไรไม่ได้ — เขาต้องรู้ว่างวดไหนรอเอกสารจากหน้างานอยู่ */
 const blCanUse = (role) => window.can(role, "billing");
-/* ถอยหลังกับยกเลิกงวดเป็นการแก้เอกสารที่ออกไปแล้ว จำกัดไว้ที่แอดมิน */
-const blCanVoid = (role) => window.can(role, "billing") && window.hasRole(role, "admin");
+/* ถอยหลังคือการแก้เอกสารที่ออกไปแล้ว จำกัดไว้ที่แอดมิน */
+const blCanBack = (role) => window.can(role, "billing") && window.hasRole(role, "admin");
 
 /* ── ลายนิ้วมือของใบเสนอราคา ──
    เก็บไว้ในงวด เพื่อตอบคำถามเดียว: "ใบที่งวดนี้ถอดมา ถูกแก้ทีหลังหรือยัง"
@@ -145,11 +146,12 @@ function blNext(row, role, user, bills) {
   const cur = blStatusOf((row || {}).status);
   const back = (k) => blFlowIdx(k) >= 0 && blFlowIdx(k) < blFlowIdx((row || {}).status);
   return (cur.next || []).filter((k) => {
-    if (k === "void") return blCanVoid(role);
-    if (back(k)) return blCanVoid(role);            /* ถอยหลัง = แก้เอกสารที่ออกไปแล้ว */
+    if (back(k)) return blCanBack(role);            /* ถอยหลัง = แก้เอกสารที่ออกไปแล้ว */
     if (!blCanUse(role)) return false;
     if (k === "billed") return blReadyToBill(row, bills).ok;
-    if (k === "paid")   return blR2((row || {}).paidAmt) >= blR2((row || {}).amount) - 0.01;
+    /* ปุ่มรับเงินเปิดเมื่อมียอดให้รับ — ไม่ใช่รอให้ใครไปกรอก paidAmt ล่วงหน้า (ไม่งั้นปุ่มไม่มีวันโผล่)
+       จ่ายมาบางส่วนก่อนหน้านี้ก็กดได้ blMove จะเติมให้เต็มงวดเอง */
+    if (k === "paid")   return blR2((row || {}).amount) > 0;
     return true;
   }).map((k) => BL_STATUS_BY[k]);
 }
@@ -177,12 +179,14 @@ function blMove(row, to, user, opt, job) {
     by: (user || {}).id || null, byName: (user || {}).name || "",
     note: o.note || "",
   }]);
-  if (to === "billed") {
-    rec.billedAt = now; rec.billedBy = (user || {}).id || null; rec.billedByName = (user || {}).name || "";
-    /* เลขที่เอกสารกับวันที่ถูกแช่แข็งตรงนี้ครั้งเดียว — ห้ามคิดใหม่ตอน render
-       ใบที่ส่งลูกค้าไปแล้วต้องอ้างเลขเดิมได้ตลอด แม้ถอยกลับมาแก้แล้วออกซ้ำ */
+  /* เลขที่เอกสารกับวันที่ถูกแช่แข็งตั้งแต่ "ถึงงวด" ครั้งเดียว — เพราะพิมพ์ใบได้ตั้งแต่ขั้นนั้น
+     ห้ามคิดใหม่ตอน render ใบที่ส่งลูกค้าไปแล้วต้องอ้างเลขเดิมได้ตลอด แม้ถอยกลับมาแก้แล้วออกซ้ำ */
+  if (to === "ready" || to === "billed") {
     if (!rec.docNo) rec.docNo = blDocNo(job, rec);
     if (!rec.docDate) rec.docDate = o.date || (window.drToday ? window.drToday() : now.slice(0, 10));
+  }
+  if (to === "billed") {
+    rec.billedAt = now; rec.billedBy = (user || {}).id || null; rec.billedByName = (user || {}).name || "";
   }
   if (to === "accepted") {
     rec.acceptedAt = now; rec.acceptedBy = (user || {}).id || null; rec.acceptedByName = (user || {}).name || "";
@@ -190,16 +194,13 @@ function blMove(row, to, user, opt, job) {
   if (to === "paid") {
     rec.paidAt = now; rec.paidBy = (user || {}).id || null; rec.paidByName = (user || {}).name || "";
     if (o.ref != null) rec.payRef = String(o.ref || "");
-    if (!(blR2(rec.paidAmt) > 0)) rec.paidAmt = blR2(rec.amount);
-  }
-  if (to === "void") {
-    rec.voidAt = now; rec.voidBy = (user || {}).id || null; rec.voidWhy = o.note || "";
+    /* กดรับเงิน = รับครบงวดนี้แล้ว — ยอดที่เคยรับบางส่วนไว้ถูกเติมให้เต็ม ไม่งั้นยอดคงค้างจะค้างเป็นเศษตลอดไป */
+    if (blR2(rec.paidAmt) < blR2(rec.amount) - 0.01) rec.paidAmt = blR2(rec.amount);
   }
   /* ถอยกลับก่อนรับเงิน = ยอดที่บันทึกรับไว้ยังไม่ควรนับ แต่ไม่ลบทิ้ง (เผื่อเป็นเงินมัดจำที่เข้ามาจริง)
      ล้างแค่ตราเวลาการรับเงิน ไม่งั้นหน้ารวมจะโชว์ว่า "รับเงินโดย X" ทั้งที่สถานะถอยมาแล้ว */
   if (blFlowIdx(to) < blFlowIdx("paid")) { rec.paidAt = null; rec.paidBy = null; rec.paidByName = ""; }
   if (blFlowIdx(to) < blFlowIdx("accepted")) { rec.acceptedAt = null; rec.acceptedBy = null; rec.acceptedByName = ""; }
-  if (to === "pending") { rec.voidAt = null; rec.voidBy = null; rec.voidWhy = ""; }
   return rec;
 }
 
@@ -211,8 +212,12 @@ function blDocNo(job, row) {
   return "FS-BL-" + code + "-" + blPad2((row || {}).n || 1);
 }
 
+/* พิมพ์ชุดเอกสารได้ตั้งแต่กด "ถึงงวด" — ออฟฟิศต้องเอาใบไปคุยกับลูกค้าก่อน ถึงจะออกเอกสารจริงได้ */
+const blPrintable = (row) => blFlowIdx((row || {}).status) >= blFlowIdx("ready");
+
 const blRows = (job) => { const b = (job || {}).bills; return (b && Array.isArray(b.rows)) ? b.rows : []; };
 const blHas = (job) => blRows(job).length > 0;
+/* void ถูกเลิกใช้แล้ว เหลือไว้เป็นตะแกรงกันงวดเก่าที่เคยถูกยกเลิกไว้ ไม่ให้หลุดเข้ามาในยอดเงิน */
 const blLive = (row) => (row || {}).status !== "void";
 
 /* งวดที่กำลังเดินอยู่ — งวดแรกที่ยังไม่ปิด ใช้เป็นหัวใจของการ์ดในใบงาน
@@ -305,8 +310,8 @@ function useBillPhotos(jobId, rowId) {
 
 Object.assign(window, {
   BL_STATUS, BL_STATUS_BY, BL_FLOW, blStatusOf, blFlowIdx,
-  blCanUse, blCanVoid, blSig, blDrift, blPickQuote, blSeed, blBlankRow, blReseed, blRowLocked, blRowNo,
-  blNext, blCan, blMove, blReadyToBill, blDocNo,
+  blCanUse, blCanBack, blSig, blDrift, blPickQuote, blSeed, blBlankRow, blReseed, blRowLocked, blRowNo,
+  blNext, blCan, blMove, blReadyToBill, blDocNo, blPrintable,
   blRows, blHas, blLive, blCurrentRow, blOverdue, blSummary, blSubjectOf, blR2,
   useBillPhotos,
 });

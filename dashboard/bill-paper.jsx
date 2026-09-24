@@ -252,8 +252,8 @@ function BlDeliveryPaper({ job, bill, row, photos, onClose }) {
               ))}
             </div>
 
-            <div className="bl-foot" style={{ display: "flex", gap: 22, paddingTop: 14, breakInside: "avoid" }}>
-              <BpSign role="สำเนา" pad={38} date={false} />
+            {/* ช่องเซ็นบนหน้ารูปเหลือสองฝั่งที่เซ็นจริง — ช่อง "สำเนา" ไม่มีใครเซ็น กินที่เปล่า ๆ */}
+            <div className="bl-foot" style={{ display: "flex", gap: 40, paddingTop: 14, breakInside: "avoid", justifyContent: "center" }}>
               <BpSign role="เจ้าของโครงการ" who={j.name || ""} pad={38} date={false} />
               <BpSign role="ผู้รับจ้าง" who={B.legalTH || B.legal} pad={38} date={false} />
             </div>
