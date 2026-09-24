@@ -70,6 +70,11 @@ function BpHead({
     }
   }, B.tel ? React.createElement("div", null, "\u0E42\u0E17\u0E23 ", B.tel) : null, B.email ? React.createElement("div", null, B.email) : null));
 }
+function bpQty(it) {
+  const q = (it || {}).qty;
+  const n = q === "" || q == null ? null : +q;
+  return n != null && isFinite(n) && n > 0 ? (Math.round(n * 100) / 100).toLocaleString("en-US") : "";
+}
 function BpSign({
   role,
   who,
@@ -104,7 +109,7 @@ function BpSign({
       marginTop: 4,
       lineHeight: 1.9
     }
-  }, "(...........................)"), who ? React.createElement("div", {
+  }, "(.........................................)"), who ? React.createElement("div", {
     style: {
       fontSize: 9.5,
       color: BP_SOFT,
@@ -141,8 +146,9 @@ function BlDeliveryPaper({
   const vat = window.blR2(amount - base);
   const kwp = +b.kwp || +j.kw || 0;
   const site = [j.address, j.province].filter(Boolean).join(" ");
+  const place = [j.name, site].filter(Boolean).join(" ");
   const docNo = r.docNo || window.blDocNo(j, r);
-  const items = window.blItemsUsed(r).map(window.blItemText).filter(Boolean);
+  const items = window.blItemsUsed(r);
   const doPrint = () => {
     const old = document.title;
     document.title = docNo + " วางบิลงวดที่ " + (r.n || 1) + " " + (j.code || "");
@@ -356,12 +362,12 @@ function BlDeliveryPaper({
       textIndent: 38,
       marginBottom: 10
     }
-  }, "\u0E15\u0E32\u0E21\u0E17\u0E35\u0E48 ", B.legalTH || B.legal, " \u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A\u0E04\u0E27\u0E32\u0E21\u0E44\u0E27\u0E49\u0E27\u0E32\u0E07\u0E43\u0E08\u0E08\u0E32\u0E01\u0E17\u0E48\u0E32\u0E19\u0E43\u0E2B\u0E49\u0E14\u0E33\u0E40\u0E19\u0E34\u0E19\u0E01\u0E32\u0E23\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E23\u0E30\u0E1A\u0E1A\u0E1C\u0E25\u0E34\u0E15\u0E44\u0E1F\u0E1F\u0E49\u0E32\u0E1E\u0E25\u0E31\u0E07\u0E07\u0E32\u0E19\u0E41\u0E2A\u0E07\u0E2D\u0E32\u0E17\u0E34\u0E15\u0E22\u0E4C", kwp > 0 ? " ขนาดกำลังการผลิต " + kwp + " กิโลวัตต์" : "", site ? " ณ " + site : "", " \u0E19\u0E31\u0E49\u0E19 \u0E1A\u0E31\u0E14\u0E19\u0E35\u0E49\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17\u0E44\u0E14\u0E49\u0E14\u0E33\u0E40\u0E19\u0E34\u0E19\u0E07\u0E32\u0E19\u0E43\u0E19\u0E07\u0E27\u0E14\u0E17\u0E35\u0E48 ", r.n || 1, " \u0E41\u0E25\u0E49\u0E27\u0E40\u0E2A\u0E23\u0E47\u0E08\u0E40\u0E23\u0E35\u0E22\u0E1A\u0E23\u0E49\u0E2D\u0E22 \u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A\u0E14\u0E49\u0E27\u0E22\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E14\u0E31\u0E07\u0E15\u0E48\u0E2D\u0E44\u0E1B\u0E19\u0E35\u0E49"), React.createElement("div", {
+  }, "\u0E15\u0E32\u0E21\u0E17\u0E35\u0E48 ", B.legalTH || B.legal, " \u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A\u0E04\u0E27\u0E32\u0E21\u0E44\u0E27\u0E49\u0E27\u0E32\u0E07\u0E43\u0E08\u0E08\u0E32\u0E01 ", j.name || "…………………………", " ", "\u0E43\u0E2B\u0E49\u0E14\u0E33\u0E40\u0E19\u0E34\u0E19\u0E01\u0E32\u0E23\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E23\u0E30\u0E1A\u0E1A\u0E1C\u0E25\u0E34\u0E15\u0E44\u0E1F\u0E1F\u0E49\u0E32\u0E1E\u0E25\u0E31\u0E07\u0E07\u0E32\u0E19\u0E41\u0E2A\u0E07\u0E2D\u0E32\u0E17\u0E34\u0E15\u0E22\u0E4C", kwp > 0 ? " ขนาดกำลังการผลิต " + kwp + " กิโลวัตต์" : "", place ? " ณ " + place : "", " ", "\u0E17\u0E32\u0E07", B.legalTH || B.legal, " \u0E44\u0E14\u0E49\u0E14\u0E33\u0E40\u0E19\u0E34\u0E19\u0E07\u0E32\u0E19\u0E43\u0E19\u0E07\u0E27\u0E14\u0E17\u0E35\u0E48 ", r.n || 1, " \u0E41\u0E25\u0E49\u0E27\u0E40\u0E2A\u0E23\u0E47\u0E08\u0E40\u0E23\u0E35\u0E22\u0E1A\u0E23\u0E49\u0E2D\u0E22 \u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A\u0E14\u0E49\u0E27\u0E22\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E14\u0E31\u0E07\u0E15\u0E48\u0E2D\u0E44\u0E1B\u0E19\u0E35\u0E49"), React.createElement("div", {
     style: {
       margin: "0 0 14px 38px"
     }
-  }, items.length ? items.map((s, i) => React.createElement("div", {
-    key: i,
+  }, items.length ? items.map((it, i) => React.createElement("div", {
+    key: it.id || i,
     style: {
       display: "flex",
       gap: 8,
@@ -381,7 +387,26 @@ function BlDeliveryPaper({
       flex: 1,
       minWidth: 0
     }
-  }, s))) : React.createElement("div", {
+  }, it.text), bpQty(it) ? React.createElement(React.Fragment, null, React.createElement("span", {
+    style: {
+      flexShrink: 0,
+      width: 40,
+      color: BP_SOFT
+    }
+  }, "\u0E08\u0E33\u0E19\u0E27\u0E19"), React.createElement("span", {
+    style: {
+      flexShrink: 0,
+      width: 58,
+      textAlign: "right",
+      fontFamily: "var(--mono)",
+      fontWeight: 700
+    }
+  }, bpQty(it)), React.createElement("span", {
+    style: {
+      flexShrink: 0,
+      width: 52
+    }
+  }, it.unit || "")) : null)) : React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#B04A3A"
@@ -394,7 +419,12 @@ function BlDeliveryPaper({
       textIndent: 38,
       marginBottom: 14
     }
-  }, "\u0E08\u0E36\u0E07\u0E40\u0E23\u0E35\u0E22\u0E19\u0E21\u0E32\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E42\u0E1B\u0E23\u0E14\u0E1E\u0E34\u0E08\u0E32\u0E23\u0E13\u0E32\u0E15\u0E23\u0E27\u0E08\u0E23\u0E31\u0E1A\u0E07\u0E32\u0E19 \u0E41\u0E25\u0E30\u0E14\u0E33\u0E40\u0E19\u0E34\u0E19\u0E01\u0E32\u0E23\u0E0A\u0E33\u0E23\u0E30\u0E40\u0E07\u0E34\u0E19\u0E04\u0E48\u0E32\u0E07\u0E27\u0E14\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48 ", r.n || 1, " ", "\u0E40\u0E1B\u0E47\u0E19\u0E08\u0E33\u0E19\u0E27\u0E19\u0E40\u0E07\u0E34\u0E19 ", window.sBaht(amount), " \u0E1A\u0E32\u0E17 (", window.ecBahtText ? window.ecBahtText(amount) : "", ") \u0E15\u0E32\u0E21\u0E40\u0E07\u0E37\u0E48\u0E2D\u0E19\u0E44\u0E02\u0E01\u0E32\u0E23\u0E0A\u0E33\u0E23\u0E30\u0E40\u0E07\u0E34\u0E19\u0E17\u0E35\u0E48\u0E44\u0E14\u0E49\u0E15\u0E01\u0E25\u0E07\u0E01\u0E31\u0E19\u0E44\u0E27\u0E49 \u0E08\u0E30\u0E40\u0E1B\u0E47\u0E19\u0E1E\u0E23\u0E30\u0E04\u0E38\u0E13\u0E22\u0E34\u0E48\u0E07"), React.createElement("div", {
+  }, "\u0E08\u0E36\u0E07\u0E40\u0E23\u0E35\u0E22\u0E19\u0E21\u0E32\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E42\u0E1B\u0E23\u0E14\u0E1E\u0E34\u0E08\u0E32\u0E23\u0E13\u0E32\u0E15\u0E23\u0E27\u0E08\u0E23\u0E31\u0E1A\u0E07\u0E32\u0E19 \u0E41\u0E25\u0E30\u0E14\u0E33\u0E40\u0E19\u0E34\u0E19\u0E01\u0E32\u0E23\u0E0A\u0E33\u0E23\u0E30\u0E40\u0E07\u0E34\u0E19\u0E04\u0E48\u0E32\u0E07\u0E27\u0E14\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48 ", r.n || 1, " ", "\u0E40\u0E1B\u0E47\u0E19\u0E08\u0E33\u0E19\u0E27\u0E19\u0E40\u0E07\u0E34\u0E19 ", window.sBaht(amount), " \u0E1A\u0E32\u0E17 (", window.ecBahtText ? window.ecBahtText(amount) : "", ") \u0E15\u0E32\u0E21\u0E40\u0E07\u0E37\u0E48\u0E2D\u0E19\u0E44\u0E02\u0E01\u0E32\u0E23\u0E0A\u0E33\u0E23\u0E30\u0E40\u0E07\u0E34\u0E19\u0E17\u0E35\u0E48\u0E44\u0E14\u0E49\u0E15\u0E01\u0E25\u0E07\u0E01\u0E31\u0E19\u0E44\u0E27\u0E49 \u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E08\u0E49\u0E32\u0E07\u0E2A\u0E48\u0E07\u0E21\u0E2D\u0E1A\u0E07\u0E32\u0E19\u0E08\u0E49\u0E32\u0E07\u0E41\u0E25\u0E30\u0E1C\u0E39\u0E49\u0E27\u0E48\u0E32\u0E08\u0E49\u0E32\u0E07 \u0E44\u0E14\u0E49\u0E15\u0E23\u0E27\u0E08\u0E23\u0E31\u0E1A\u0E21\u0E2D\u0E1A\u0E07\u0E32\u0E19\u0E42\u0E04\u0E23\u0E07\u0E01\u0E32\u0E23\u0E14\u0E31\u0E07\u0E01\u0E25\u0E48\u0E32\u0E27\u0E44\u0E14\u0E49\u0E16\u0E39\u0E01\u0E15\u0E49\u0E2D\u0E07\u0E15\u0E32\u0E21\u0E2A\u0E31\u0E0D\u0E0D\u0E32\u0E40\u0E2A\u0E23\u0E47\u0E08\u0E40\u0E23\u0E35\u0E22\u0E1A\u0E23\u0E49\u0E2D\u0E22\u0E41\u0E25\u0E49\u0E27"), React.createElement("div", {
+    className: "bl-foot",
+    style: {
+      breakInside: "avoid"
+    }
+  }, React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "flex-end",
@@ -461,12 +491,10 @@ function BlDeliveryPaper({
       marginBottom: 20
     }
   }, "* \u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E19\u0E35\u0E49\u0E43\u0E0A\u0E49\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A\u0E01\u0E32\u0E23\u0E2A\u0E48\u0E07\u0E21\u0E2D\u0E1A\u0E07\u0E32\u0E19\u0E41\u0E25\u0E30\u0E27\u0E32\u0E07\u0E1A\u0E34\u0E25 \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E43\u0E1A\u0E01\u0E33\u0E01\u0E31\u0E1A\u0E20\u0E32\u0E29\u0E35"), React.createElement("div", {
-    className: "bl-foot",
     style: {
       display: "flex",
       gap: 30,
-      paddingTop: 18,
-      breakInside: "avoid"
+      paddingTop: 18
     }
   }, React.createElement(BpSign, {
     role: "\u0E1C\u0E39\u0E49\u0E2A\u0E48\u0E07\u0E21\u0E2D\u0E1A\u0E07\u0E32\u0E19",
@@ -474,7 +502,7 @@ function BlDeliveryPaper({
   }), React.createElement(BpSign, {
     role: "\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E21\u0E2D\u0E1A\u0E07\u0E32\u0E19",
     who: j.name || ""
-  })))), part !== "letter" && pages.map((pg, pi) => React.createElement("div", {
+  }))))), part !== "letter" && pages.map((pg, pi) => React.createElement("div", {
     key: pi,
     className: "sv-rep-paper" + (part === "photos" && pi === 0 ? "" : " bl-sheet"),
     style: Object.assign({}, paper, {

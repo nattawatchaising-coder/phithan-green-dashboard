@@ -1063,6 +1063,7 @@ function BlSetupModal({
   onClose,
   onSaveBills
 }) {
+  const [printRow, setPrintRow] = React.useState(null);
   const j = job || {};
   const ro = readOnly || !onSaveBills;
   const list = window.quotesOfJob(quotes, j, leads);
@@ -1592,7 +1593,22 @@ function BlSetupModal({
         fontWeight: 700,
         cursor: "pointer"
       }
-    }, open === r.id ? "ย่อ" : "แก้ใบ"), !ro && !lock && React.createElement("button", {
+    }, open === r.id ? "ย่อ" : "แก้ใบ"), window.blPrintable(r) && React.createElement("button", {
+      onClick: () => setPrintRow(r),
+      title: "\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E0A\u0E38\u0E14\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E02\u0E2D\u0E07\u0E07\u0E27\u0E14\u0E19\u0E35\u0E49",
+      style: {
+        marginLeft: 4,
+        padding: "6px 9px",
+        borderRadius: 8,
+        border: "1px solid var(--border-strong)",
+        background: "var(--surface)",
+        color: "var(--text-2)",
+        fontFamily: "inherit",
+        fontSize: 11.5,
+        fontWeight: 700,
+        cursor: "pointer"
+      }
+    }, "\u0E1E\u0E34\u0E21\u0E1E\u0E4C"), !ro && !lock && React.createElement("button", {
       onClick: () => delRow(r),
       title: "\u0E25\u0E1A\u0E07\u0E27\u0E14\u0E19\u0E35\u0E49",
       style: {
@@ -1694,7 +1710,13 @@ function BlSetupModal({
       fontWeight: 700,
       cursor: "pointer"
     }
-  }, "\u0E1B\u0E34\u0E14"), !ro && React.createElement("button", {
+  }, "\u0E1B\u0E34\u0E14"), printRow && React.createElement(BlPrintHost, {
+    job: Object.assign({}, j, {
+      bills: bills
+    }),
+    row: printRow,
+    onClose: () => setPrintRow(null)
+  }), !ro && React.createElement("button", {
     onClick: save,
     disabled: !dirty,
     style: {

@@ -54,12 +54,19 @@ function BpHead({ compact }) {
 
 /* ช่องลงนาม — ที่ว่างเหนือเส้นคือที่เซ็นจริง ต้องสูงพอให้ลายเซ็นคนไม่ชนตัวหนังสือด้านบน
    และวงเล็บใต้เส้นต้องสูงพอเขียนชื่อตัวบรรจงด้วยปากกาจริง (กฎเดียวกับ RpSign) */
+/* จำนวนบนใบ — ไม่มีก็คืนค่าว่าง คอลัมน์จำนวนจะได้หายไปทั้งแถว ไม่ใช่โชว์ 0 */
+function bpQty(it) {
+  const q = (it || {}).qty;
+  const n = q === "" || q == null ? null : +q;
+  return n != null && isFinite(n) && n > 0 ? (Math.round(n * 100) / 100).toLocaleString("en-US") : "";
+}
+
 function BpSign({ role, who, pad, date }) {
   return (
     <div style={{ flex: 1, minWidth: 0, textAlign: "center" }}>
       <div style={{ fontSize: 10.5, color: BP_SOFT, marginBottom: pad == null ? 46 : pad }}>ลงชื่อ</div>
       <div style={{ borderTop: "1px solid " + BP_LINE, paddingTop: 5, fontSize: 10.5, fontWeight: 700, color: BP_INK, minHeight: 15 }}>{role}</div>
-      <div style={{ fontSize: 11, color: BP_SOFT, marginTop: 4, lineHeight: 1.9 }}>(...........................)</div>
+      <div style={{ fontSize: 11, color: BP_SOFT, marginTop: 4, lineHeight: 1.9 }}>(.........................................)</div>
       {who ? <div style={{ fontSize: 9.5, color: BP_SOFT, marginTop: 3, wordBreak: "break-word" }}>{who}</div> : null}
       {date !== false ? <div style={{ fontSize: 9.5, color: BP_SOFT, marginTop: 8 }}>………. / ………. / ……….</div> : null}
     </div>
@@ -85,9 +92,12 @@ function BlDeliveryPaper({ job, bill, row, photos, onClose }) {
   const vat = window.blR2(amount - base);
   const kwp = +b.kwp || +j.kw || 0;
   const site = [j.address, j.province].filter(Boolean).join(" ");
+  /* สถานที่ติดตั้ง = ชื่อผู้ว่าจ้าง + ที่อยู่หน้างาน — ใบนี้ถูกเอาไปแนบกับเอกสารของลูกค้าเอง
+     ที่อยู่เปล่า ๆ ไม่พอให้คนอ่านรู้ว่าเป็นไซต์ของใคร */
+  const place = [j.name, site].filter(Boolean).join(" ");
   const docNo = r.docNo || window.blDocNo(j, r);
   /* ข้อบนใบ = ชื่อรายการที่ต่อจำนวนกับหน่วยเข้าไปแล้ว ("ส่งแผงโซลาร์เซลล์ จำนวน 120 แผง") */
-  const items = window.blItemsUsed(r).map(window.blItemText).filter(Boolean);
+  const items = window.blItemsUsed(r);
 
   const doPrint = () => {
     const old = document.title;
@@ -177,16 +187,26 @@ function BlDeliveryPaper({ job, bill, row, photos, onClose }) {
             </div>
 
             <div style={{ fontSize: 11.5, color: BP_INK, lineHeight: 2, textIndent: 38, marginBottom: 10 }}>
-              ตามที่ {B.legalTH || B.legal} ได้รับความไว้วางใจจากท่านให้ดำเนินการติดตั้งระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์
-              {kwp > 0 ? " ขนาดกำลังการผลิต " + kwp + " กิโลวัตต์" : ""}{site ? " ณ " + site : ""} นั้น
-              บัดนี้บริษัทได้ดำเนินงานในงวดที่ {r.n || 1} แล้วเสร็จเรียบร้อย ประกอบด้วยรายการดังต่อไปนี้
+              ตามที่ {B.legalTH || B.legal} ได้รับความไว้วางใจจาก {j.name || "…………………………"}{" "}
+              ให้ดำเนินการติดตั้งระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์
+              {kwp > 0 ? " ขนาดกำลังการผลิต " + kwp + " กิโลวัตต์" : ""}{place ? " ณ " + place : ""}{" "}
+              ทาง{B.legalTH || B.legal} ได้ดำเนินงานในงวดที่ {r.n || 1} แล้วเสร็จเรียบร้อย ประกอบด้วยรายการดังต่อไปนี้
             </div>
 
+            {/* จำนวนกับหน่วยยืนเป็นคอลัมน์ของตัวเอง — สายตาไล่ลงมาทีเดียวก็รวมของได้
+                ถ้าปล่อยให้ต่อท้ายชื่อรายการ เลขจะเยื้องกันทุกบรรทัดตามความยาวชื่องาน */}
             <div style={{ margin: "0 0 14px 38px" }}>
-              {items.length ? items.map((s, i) => (
-                <div key={i} style={{ display: "flex", gap: 8, fontSize: 11.5, color: BP_INK, lineHeight: 1.8, marginBottom: 3 }}>
+              {items.length ? items.map((it, i) => (
+                <div key={it.id || i} style={{ display: "flex", gap: 8, fontSize: 11.5, color: BP_INK, lineHeight: 1.8, marginBottom: 3 }}>
                   <span style={{ flexShrink: 0, fontWeight: 700, minWidth: 18 }}>{i + 1}.</span>
-                  <span style={{ flex: 1, minWidth: 0 }}>{s}</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>{it.text}</span>
+                  {bpQty(it) ? (
+                    <React.Fragment>
+                      <span style={{ flexShrink: 0, width: 40, color: BP_SOFT }}>จำนวน</span>
+                      <span style={{ flexShrink: 0, width: 58, textAlign: "right", fontFamily: "var(--mono)", fontWeight: 700 }}>{bpQty(it)}</span>
+                      <span style={{ flexShrink: 0, width: 52 }}>{it.unit || ""}</span>
+                    </React.Fragment>
+                  ) : null}
                 </div>
               )) : (
                 <div style={{ fontSize: 11, color: "#B04A3A" }}>— ยังไม่ได้ระบุรายการงานของงวดนี้ —</div>
@@ -196,9 +216,13 @@ function BlDeliveryPaper({ job, bill, row, photos, onClose }) {
             <div style={{ fontSize: 11.5, color: BP_INK, lineHeight: 2, textIndent: 38, marginBottom: 14 }}>
               จึงเรียนมาเพื่อโปรดพิจารณาตรวจรับงาน และดำเนินการชำระเงินค่างวดงานที่ {r.n || 1}{" "}
               เป็นจำนวนเงิน {window.sBaht(amount)} บาท ({window.ecBahtText ? window.ecBahtText(amount) : ""})
-              ตามเงื่อนไขการชำระเงินที่ได้ตกลงกันไว้ จะเป็นพระคุณยิ่ง
+              ตามเงื่อนไขการชำระเงินที่ได้ตกลงกันไว้ ผู้รับจ้างส่งมอบงานจ้างและผู้ว่าจ้าง
+              ได้ตรวจรับมอบงานโครงการดังกล่าวได้ถูกต้องตามสัญญาเสร็จเรียบร้อยแล้ว
             </div>
 
+            {/* ยอดเงิน หมายเหตุ และช่องเซ็น เดินทางไปติดขอบล่างด้วยกันทั้งก้อน (.bl-foot = margin-top:auto)
+                งวดที่มีรายการไม่กี่ข้อจะได้ไม่มีกล่องยอดลอยอยู่กลางหน้าแล้วลายเซ็นอยู่อีกที่ */}
+            <div className="bl-foot" style={{ breakInside: "avoid" }}>
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}>
               <div style={{ minWidth: 262, border: "1px solid " + BP_LINE, borderRadius: 10, overflow: "hidden" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "8px 12px", background: "#F7FAF9" }}>
@@ -218,9 +242,10 @@ function BlDeliveryPaper({ job, bill, row, photos, onClose }) {
               * เอกสารนี้ใช้ประกอบการส่งมอบงานและวางบิล ไม่ใช่ใบกำกับภาษี
             </div>
 
-            <div className="bl-foot" style={{ display: "flex", gap: 30, paddingTop: 18, breakInside: "avoid" }}>
+            <div style={{ display: "flex", gap: 30, paddingTop: 18 }}>
               <BpSign role="ผู้ส่งมอบงาน" who={B.legalTH || B.legal} />
               <BpSign role="ผู้รับมอบงาน" who={j.name || ""} />
+            </div>
             </div>
           </div>
         </div>

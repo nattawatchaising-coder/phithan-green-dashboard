@@ -545,6 +545,9 @@ function BlRowDetail({ job, row, onPatch, currentUser, readOnly }) {
    แผงตั้งงวดงาน — แก้ตัวเลขและเนื้อหาของงวด (การเดินสถานะอยู่ที่การ์ด/หน้ารวม)
    ══════════════════════════════════════════════════ */
 function BlSetupModal({ job, quotes, leads, role, currentUser, readOnly, focusRowId, onClose, onSaveBills }) {
+  /* พิมพ์จากในแผงได้เลย ไม่ต้องปิดแล้วไปหาปุ่มที่การ์ดหรือหน้ารวม — คนตั้งงวดคือคนที่ต้องเห็นใบก่อนใคร
+     พิมพ์จากร่างที่ยังไม่บันทึกได้ด้วย ตรวจคำบนใบแล้วค่อยกดบันทึก */
+  const [printRow, setPrintRow] = React.useState(null);
   const j = job || {};
   const ro = readOnly || !onSaveBills;
   const list = window.quotesOfJob(quotes, j, leads);
@@ -781,6 +784,14 @@ function BlSetupModal({ job, quotes, leads, role, currentUser, readOnly, focusRo
                                 color: "var(--text-2)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>
                               {open === r.id ? "ย่อ" : "แก้ใบ"}
                             </button>
+                            {window.blPrintable(r) && (
+                              <button onClick={() => setPrintRow(r)} title="พิมพ์ชุดเอกสารของงวดนี้"
+                                style={{ marginLeft: 4, padding: "6px 9px", borderRadius: 8, border: "1px solid var(--border-strong)",
+                                  background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 11.5,
+                                  fontWeight: 700, cursor: "pointer" }}>
+                                พิมพ์
+                              </button>
+                            )}
                             {!ro && !lock && (
                               <button onClick={() => delRow(r)} title="ลบงวดนี้"
                                 style={{ marginLeft: 4, padding: "6px 8px", borderRadius: 8, border: "1px solid var(--border-strong)",
@@ -833,6 +844,7 @@ function BlSetupModal({ job, quotes, leads, role, currentUser, readOnly, focusRo
             background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
             ปิด
           </button>
+          {printRow && <BlPrintHost job={Object.assign({}, j, { bills: bills })} row={printRow} onClose={() => setPrintRow(null)} />}
           {!ro && (
             <button onClick={save} disabled={!dirty}
               style={{ padding: "10px 20px", borderRadius: 11, border: "none", background: dirty ? "var(--primary)" : "var(--surface3)",
