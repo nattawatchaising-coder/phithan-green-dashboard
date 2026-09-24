@@ -563,7 +563,7 @@ function EcClaimRow({ claim, onOpen, gone }) {
 
 /* ── ตารางยอดรายคน ──
    "ค้างจ่าย" คือตัวเลขเดียวในตารางนี้ที่เอาไปจ่ายเงินจริงได้ ที่เหลือเป็นข้อมูลประกอบ */
-function EcPersonTable({ claims, users, onPick, onPay, canPay, currentUser, role }) {
+function EcPersonTable({ claims, users, onPick, onPay, onCover, canPay, canCover, currentUser, role }) {
   const roll = window.ecRollupByPerson(claims);
   const rows = Object.keys(roll).map((k) => roll[k])
     .sort((a, b) => b.owed - a.owed || b.waiting - a.waiting || b.count - a.count);
@@ -585,7 +585,7 @@ function EcPersonTable({ claims, users, onPick, onPay, canPay, currentUser, role
               <th style={th}>ค้างจ่าย</th>
               <th style={th}>จ่ายแล้ว</th>
               <th style={th}>ใบ</th>
-              {canPay && <th style={th} />}
+              {(canPay || canCover) && <th style={th} />}
             </tr>
           </thead>
           <tbody>
@@ -603,10 +603,20 @@ function EcPersonTable({ claims, users, onPick, onPay, canPay, currentUser, role
                   <td style={Object.assign({}, td, { fontWeight: 800, color: r.owed ? "#EF4444" : "var(--text-3)" })}>{r.owed ? window.ecBaht(r.owed) : "—"}</td>
                   <td style={Object.assign({}, td, { color: "var(--text-3)" })}>{r.paid ? window.ecBaht(r.paid) : "—"}</td>
                   <td style={Object.assign({}, td, { color: "var(--text-3)" })}>{r.count}</td>
-                  {canPay && (
-                    <td style={{ padding: "8px 10px", textAlign: "right" }}>
+                  {(canPay || canCover) && (
+                    <td style={{ padding: "8px 10px", textAlign: "right", whiteSpace: "nowrap" }}>
+                      {r.owed > 0 && canCover && (
+                        <button onClick={(e) => { e.stopPropagation(); onCover && onCover(r); }}
+                          title="พิมพ์ใบปะหน้าไปตรวจเอกสารก่อนโอน"
+                          style={{ display: "inline-flex", alignItems: "center", gap: 5, marginRight: canPay ? 6 : 0,
+                            padding: "7px 12px", borderRadius: 9, border: "1px solid var(--border-strong)",
+                            background: "var(--surface)", color: "var(--text-2)", cursor: "pointer",
+                            fontFamily: "inherit", fontSize: 12, fontWeight: 800 }}>
+                          <Icon name="file" size={13} color="var(--text-2)" /> ใบปะหน้า
+                        </button>
+                      )}
                       {/* เกินวงเงินของคนที่ล็อกอินอยู่ — บอกตั้งแต่ในตาราง ดีกว่าให้กดเข้าไปแล้วเจอทางตัน */}
-                      {r.owed > 0 && (() => {
+                      {r.owed > 0 && canPay && (() => {
                         const ck = window.ecPayCheck(r.owed, currentUser, role);
                         return (
                           <button onClick={(e) => { e.stopPropagation(); if (ck.ok) onPay && onPay(r); }}
@@ -628,11 +638,11 @@ function EcPersonTable({ claims, users, onPick, onPay, canPay, currentUser, role
           <tfoot>
             <tr style={{ background: "var(--surface2)" }}>
               <td style={{ padding: "11px 10px", fontSize: 12.5, fontWeight: 800, color: "var(--text-2)" }}>รวมเงินที่บริษัทติดพนักงานอยู่</td>
-              <td colSpan={canPay ? 6 : 5} style={Object.assign({}, td, { fontSize: 15, fontWeight: 800, color: sum ? "#EF4444" : "var(--text-3)" })}>
+              <td colSpan={canPay || canCover ? 6 : 5} style={Object.assign({}, td, { fontSize: 15, fontWeight: 800, color: sum ? "#EF4444" : "var(--text-3)" })}>
                 {window.ecBaht(sum)} บาท
                 {!canPay && sum > 0 && (
                   <div style={{ fontFamily: "inherit", fontSize: 11, fontWeight: 500, color: "var(--text-3)", marginTop: 3 }}>
-                    ปุ่มจ่ายคืนขึ้นเฉพาะบัญชีที่เปิดสิทธิ์ “บันทึกจ่ายเงินคืน” ในตั้งค่า → สิทธิ์ตามตำแหน่ง
+                    บัญชีนี้{canCover ? "พิมพ์ใบปะหน้าได้อย่างเดียว — " : ""}ปุ่มจ่ายคืนขึ้นเฉพาะบัญชีที่เปิดสิทธิ์ “บันทึกจ่ายเงินคืน” ในตั้งค่า → สิทธิ์ตามตำแหน่ง
                   </div>
                 )}
               </td>
@@ -934,10 +944,12 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
   const [jobFilter, setJobFilter] = React.useState("");   /* เจาะดูเฉพาะงานเดียว มาจากปุ่มในลิ้นชักหรือตารางรายไซต์ */
   const [payFor, setPayFor] = React.useState(null);      /* คนที่กำลังจะปิดรอบจ่ายให้ */
   const [voucher, setVoucher] = React.useState(null);    /* รอบจ่ายที่กำลังเปิดใบสำคัญจ่าย */
+  const [coverFor, setCoverFor] = React.useState(null);  /* คนที่กำลังพิมพ์ใบปะหน้าให้ (ยังไม่จ่าย) */
   const batchStore = window.useEcBatches();
 
   const canApprove = window.ecCanApprove(role);
   const canPay = window.ecCanPay(role);
+  const canCover = window.ecCanCover(role);
   const uid = currentUser ? currentUser.id : null;
 
   /* เปิดมาจากปุ่มในลิ้นชักใบงาน — เจาะให้เห็นเฉพาะงานนั้น และเตรียมงานไว้ให้ปุ่มเปิดใบใหม่ด้วย
@@ -1027,6 +1039,12 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
 
   const payList = React.useMemo(() => (payFor ? window.ecPayable(all, payFor.id) : []), [all, payFor]);
 
+  const cover = React.useMemo(() => {
+    if (!coverFor) return null;
+    const list = window.ecPayable(all, coverFor.id);
+    return { batch: window.ecBlankBatch(coverFor, list, currentUser, batchStore.batches), list: list };
+  }, [coverFor, all, currentUser, batchStore.batches]);
+
   const cur = (store.claims || []).find((c) => c.id === open) || null;
   const doneJobs = React.useMemo(() => (jobs || []).slice()
     .sort((a, b) => String(a.code || "").localeCompare(String(b.code || ""))), [jobs]);
@@ -1044,7 +1062,8 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
   const TABS = [["mine", "ใบของฉัน", "pen", roll.mineOpen]]
     .concat(canApprove ? [["inbox", "รออนุมัติ", "clock", roll.waitingMine]] : [])
     .concat([["approved", "อนุมัติแล้ว", "check", roll.approved]])
-    .concat(canApprove ? [["person", "ยอดรายคน", "users", 0], ["job", "ต้นทุนรายไซต์", "sun", 0]] : [])
+    .concat(canApprove || canCover ? [["person", "ยอดรายคน", "users", 0]] : [])
+    .concat(canApprove ? [["job", "ต้นทุนรายไซต์", "sun", 0]] : [])
     .concat([["all", canApprove ? "ทั้งหมด" : "ใบที่เกี่ยวกับฉัน", "list", 0]]);
 
   return (
@@ -1106,9 +1125,9 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
 
       {tab === "person" && (
         <div>
-          <EcPersonTable claims={all} users={users} canPay={canPay} currentUser={currentUser} role={role}
+          <EcPersonTable claims={all} users={users} canPay={canPay} canCover={canCover} currentUser={currentUser} role={role}
             onPick={(r) => { setJobFilter(""); setQ(r.name || ""); setTab("all"); }}
-            onPay={(r) => setPayFor(r)} />
+            onPay={(r) => setPayFor(r)} onCover={(r) => setCoverFor(r)} />
           <EcBatchList batches={batchStore.batches} onPrint={setVoucher} />
         </div>
       )}
@@ -1151,6 +1170,10 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
 
       {voucher && (
         <window.EcVoucherPaper batch={voucher} claims={voucherClaims} onClose={() => setVoucher(null)} />
+      )}
+
+      {cover && (
+        <window.EcVoucherPaper batch={cover.batch} claims={cover.list} draft onClose={() => setCoverFor(null)} />
       )}
 
       {payFor && (

@@ -108,6 +108,8 @@ const ecOpen = (c) => { const k = ((c || {}).status) || "draft"; return k !== "p
 const ecCanUse     = (role) => window.can(role, "expense");
 const ecCanApprove = (role) => window.can(role, "expenseApprove");
 const ecCanPay     = (role) => window.can(role, "expensePay");
+/* พิมพ์ใบปะหน้าไปตรวจเอกสารก่อนโอน — คนจ่ายได้ย่อมพิมพ์ได้อยู่แล้ว ไม่ต้องติ๊กซ้ำ */
+const ecCanCover   = (role) => window.can(role, "expenseCover") || ecCanPay(role);
 const ecCanDelete  = (role) => window.hasRole(role, "admin");
 
 /* ใครต้องอนุมัติใบของคนนี้ — ว่าง = เข้ากองกลาง ใครที่มีสิทธิ์อนุมัติก็หยิบได้ */
@@ -265,7 +267,7 @@ function ecSum(items) {
    คนที่ไม่มีสิทธิ์อนุมัติเห็นเฉพาะใบของตัวเอง — กรองที่ชั้นข้อมูล ไม่ใช่ซ่อนปุ่มบนหน้าจอ */
 function ecVisible(claims, user, role) {
   const all = claims || [];
-  if (ecCanApprove(role) || ecCanPay(role)) return all;
+  if (ecCanApprove(role) || ecCanPay(role) || ecCanCover(role)) return all;
   const uid = (user || {}).id || null;
   return all.filter((c) => c && (c.byId === uid || ecOwedTo(c).id === uid));
 }
@@ -522,7 +524,7 @@ function useEcLive(on) {
 Object.assign(window, {
   EC_ROOT, EC_KIND, EC_KIND_BY, EC_PAY, EC_PAY_BY, EC_STATUS, EC_STATUS_BY,
   ecRound, ecBaht, ecBahtShort, ecKindOf, ecPayOf, ecOwedTo, ecStatusOf, ecOpen,
-  ecCanUse, ecCanApprove, ecCanPay, ecCanDelete,
+  ecCanUse, ecCanApprove, ecCanPay, ecCanCover, ecCanDelete,
   ecApproverFor, ecApproveCheck, ecPayCheck, ecNext, ecCan, ecMove,
   ecDocNo, ecBlank, ecSum, ecVisible,
   ecPayable, ecBatchNo, ecBlankBatch, useEcReceipts, useEcBatches,

@@ -127,6 +127,7 @@ const DEFAULT_PERMS = {
     expense: 1,
     expenseApprove: 1,
     expensePay: 1,
+    expenseCover: 1,
     attend: 1,
     attendAll: 1,
     ot: 1,
@@ -147,6 +148,7 @@ const DEFAULT_PERMS = {
     om: 1,
     expense: 1,
     expenseApprove: 1,
+    expenseCover: 1,
     attend: 1,
     attendAll: 1,
     ot: 1,
@@ -262,6 +264,10 @@ const PERM_LIST = [{
   key: "expensePay",
   th: "บันทึกจ่ายเงินคืน",
   desc: "กดว่าจ่ายเงินคืนพนักงานแล้ว — แยกจากคนอนุมัติตั้งใจ เป็นการคุมเงินสดขั้นพื้นฐาน"
+}, {
+  key: "expenseCover",
+  th: "พิมพ์ใบปะหน้าจ่ายเงิน",
+  desc: "เห็นยอดค้างจ่ายรายคนและพิมพ์ใบปะหน้าไปตรวจเอกสารก่อนโอน — กดจ่ายไม่ได้ · คนที่จ่ายได้อยู่แล้วพิมพ์ได้เองโดยไม่ต้องติ๊ก"
 }, {
   key: "attend",
   th: "ลงเวลาเข้า-ออกงาน",

@@ -1153,7 +1153,9 @@ function EcPersonTable({
   users,
   onPick,
   onPay,
+  onCover,
   canPay,
+  canCover,
   currentUser,
   role
 }) {
@@ -1220,7 +1222,7 @@ function EcPersonTable({
     style: th
   }, "\u0E08\u0E48\u0E32\u0E22\u0E41\u0E25\u0E49\u0E27"), React.createElement("th", {
     style: th
-  }, "\u0E43\u0E1A"), canPay && React.createElement("th", {
+  }, "\u0E43\u0E1A"), (canPay || canCover) && React.createElement("th", {
     style: th
   }))), React.createElement("tbody", null, rows.map(r => {
     const u = (users || []).find(x => x.id === r.id);
@@ -1265,12 +1267,38 @@ function EcPersonTable({
       style: Object.assign({}, td, {
         color: "var(--text-3)"
       })
-    }, r.count), canPay && React.createElement("td", {
+    }, r.count), (canPay || canCover) && React.createElement("td", {
       style: {
         padding: "8px 10px",
-        textAlign: "right"
+        textAlign: "right",
+        whiteSpace: "nowrap"
       }
-    }, r.owed > 0 && (() => {
+    }, r.owed > 0 && canCover && React.createElement("button", {
+      onClick: e => {
+        e.stopPropagation();
+        onCover && onCover(r);
+      },
+      title: "\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E43\u0E1A\u0E1B\u0E30\u0E2B\u0E19\u0E49\u0E32\u0E44\u0E1B\u0E15\u0E23\u0E27\u0E08\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E01\u0E48\u0E2D\u0E19\u0E42\u0E2D\u0E19",
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        marginRight: canPay ? 6 : 0,
+        padding: "7px 12px",
+        borderRadius: 9,
+        border: "1px solid var(--border-strong)",
+        background: "var(--surface)",
+        color: "var(--text-2)",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 12,
+        fontWeight: 800
+      }
+    }, React.createElement(Icon, {
+      name: "file",
+      size: 13,
+      color: "var(--text-2)"
+    }), " \u0E43\u0E1A\u0E1B\u0E30\u0E2B\u0E19\u0E49\u0E32"), r.owed > 0 && canPay && (() => {
       const ck = window.ecPayCheck(r.owed, currentUser, role);
       return React.createElement("button", {
         onClick: e => {
@@ -1305,7 +1333,7 @@ function EcPersonTable({
       color: "var(--text-2)"
     }
   }, "\u0E23\u0E27\u0E21\u0E40\u0E07\u0E34\u0E19\u0E17\u0E35\u0E48\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17\u0E15\u0E34\u0E14\u0E1E\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19\u0E2D\u0E22\u0E39\u0E48"), React.createElement("td", {
-    colSpan: canPay ? 6 : 5,
+    colSpan: canPay || canCover ? 6 : 5,
     style: Object.assign({}, td, {
       fontSize: 15,
       fontWeight: 800,
@@ -1319,7 +1347,7 @@ function EcPersonTable({
       color: "var(--text-3)",
       marginTop: 3
     }
-  }, "\u0E1B\u0E38\u0E48\u0E21\u0E08\u0E48\u0E32\u0E22\u0E04\u0E37\u0E19\u0E02\u0E36\u0E49\u0E19\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E17\u0E35\u0E48\u0E40\u0E1B\u0E34\u0E14\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E08\u0E48\u0E32\u0E22\u0E40\u0E07\u0E34\u0E19\u0E04\u0E37\u0E19\u201D \u0E43\u0E19\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32 \u2192 \u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E15\u0E32\u0E21\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07")))))), React.createElement("div", {
+  }, "\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E19\u0E35\u0E49", canCover ? "พิมพ์ใบปะหน้าได้อย่างเดียว — " : "", "\u0E1B\u0E38\u0E48\u0E21\u0E08\u0E48\u0E32\u0E22\u0E04\u0E37\u0E19\u0E02\u0E36\u0E49\u0E19\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E17\u0E35\u0E48\u0E40\u0E1B\u0E34\u0E14\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E08\u0E48\u0E32\u0E22\u0E40\u0E07\u0E34\u0E19\u0E04\u0E37\u0E19\u201D \u0E43\u0E19\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32 \u2192 \u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E15\u0E32\u0E21\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07")))))), React.createElement("div", {
     style: {
       padding: "9px 12px",
       fontSize: 11,
@@ -1965,9 +1993,11 @@ function ExpenseView({
   const [jobFilter, setJobFilter] = React.useState("");
   const [payFor, setPayFor] = React.useState(null);
   const [voucher, setVoucher] = React.useState(null);
+  const [coverFor, setCoverFor] = React.useState(null);
   const batchStore = window.useEcBatches();
   const canApprove = window.ecCanApprove(role);
   const canPay = window.ecCanPay(role);
+  const canCover = window.ecCanCover(role);
   const uid = currentUser ? currentUser.id : null;
   React.useEffect(() => {
     if (!focus || !focus.jobId) return;
@@ -2042,6 +2072,14 @@ function ExpenseView({
     return ids.map(id => (store.claims || []).find(c => c.id === id)).filter(Boolean);
   }, [voucher, store.claims]);
   const payList = React.useMemo(() => payFor ? window.ecPayable(all, payFor.id) : [], [all, payFor]);
+  const cover = React.useMemo(() => {
+    if (!coverFor) return null;
+    const list = window.ecPayable(all, coverFor.id);
+    return {
+      batch: window.ecBlankBatch(coverFor, list, currentUser, batchStore.batches),
+      list: list
+    };
+  }, [coverFor, all, currentUser, batchStore.batches]);
   const cur = (store.claims || []).find(c => c.id === open) || null;
   const doneJobs = React.useMemo(() => (jobs || []).slice().sort((a, b) => String(a.code || "").localeCompare(String(b.code || ""))), [jobs]);
   const doXlsx = () => {
@@ -2052,7 +2090,7 @@ function ExpenseView({
       byName: (currentUser || {}).name || ""
     });
   };
-  const TABS = [["mine", "ใบของฉัน", "pen", roll.mineOpen]].concat(canApprove ? [["inbox", "รออนุมัติ", "clock", roll.waitingMine]] : []).concat([["approved", "อนุมัติแล้ว", "check", roll.approved]]).concat(canApprove ? [["person", "ยอดรายคน", "users", 0], ["job", "ต้นทุนรายไซต์", "sun", 0]] : []).concat([["all", canApprove ? "ทั้งหมด" : "ใบที่เกี่ยวกับฉัน", "list", 0]]);
+  const TABS = [["mine", "ใบของฉัน", "pen", roll.mineOpen]].concat(canApprove ? [["inbox", "รออนุมัติ", "clock", roll.waitingMine]] : []).concat([["approved", "อนุมัติแล้ว", "check", roll.approved]]).concat(canApprove || canCover ? [["person", "ยอดรายคน", "users", 0]] : []).concat(canApprove ? [["job", "ต้นทุนรายไซต์", "sun", 0]] : []).concat([["all", canApprove ? "ทั้งหมด" : "ใบที่เกี่ยวกับฉัน", "list", 0]]);
   return React.createElement("div", {
     style: {
       display: "flex",
@@ -2200,6 +2238,7 @@ function ExpenseView({
     claims: all,
     users: users,
     canPay: canPay,
+    canCover: canCover,
     currentUser: currentUser,
     role: role,
     onPick: r => {
@@ -2207,7 +2246,8 @@ function ExpenseView({
       setQ(r.name || "");
       setTab("all");
     },
-    onPay: r => setPayFor(r)
+    onPay: r => setPayFor(r),
+    onCover: r => setCoverFor(r)
   }), React.createElement(EcBatchList, {
     batches: batchStore.batches,
     onPrint: setVoucher
@@ -2276,6 +2316,11 @@ function ExpenseView({
     batch: voucher,
     claims: voucherClaims,
     onClose: () => setVoucher(null)
+  }), cover && React.createElement(window.EcVoucherPaper, {
+    batch: cover.batch,
+    claims: cover.list,
+    draft: true,
+    onClose: () => setCoverFor(null)
   }), payFor && React.createElement(EcPayModal, {
     person: payFor,
     claims: payList,

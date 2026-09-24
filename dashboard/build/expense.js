@@ -134,6 +134,7 @@ const ecOpen = c => {
 const ecCanUse = role => window.can(role, "expense");
 const ecCanApprove = role => window.can(role, "expenseApprove");
 const ecCanPay = role => window.can(role, "expensePay");
+const ecCanCover = role => window.can(role, "expenseCover") || ecCanPay(role);
 const ecCanDelete = role => window.hasRole(role, "admin");
 function ecApproverFor(user, users) {
   const id = (user || {}).approverId;
@@ -310,7 +311,7 @@ function ecSum(items) {
 }
 function ecVisible(claims, user, role) {
   const all = claims || [];
-  if (ecCanApprove(role) || ecCanPay(role)) return all;
+  if (ecCanApprove(role) || ecCanPay(role) || ecCanCover(role)) return all;
   const uid = (user || {}).id || null;
   return all.filter(c => c && (c.byId === uid || ecOwedTo(c).id === uid));
 }
@@ -621,6 +622,7 @@ Object.assign(window, {
   ecCanUse,
   ecCanApprove,
   ecCanPay,
+  ecCanCover,
   ecCanDelete,
   ecApproverFor,
   ecApproveCheck,
