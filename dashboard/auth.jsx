@@ -1102,11 +1102,17 @@ function UserManager({ authStore, onClose, roleCfg }) {
                     </div>
                     <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                       <RoleBadges roles={rs} short />
-                      {u.techId && (
-                        <span style={{ fontSize: 11, color: "var(--text-3)" }}>
-                          → {(window.SF.TECH_BY_ID[u.techId] || {}).name || u.techId}
-                        </span>
-                      )}
+                      {u.techId && (() => {
+                        const tn = String((window.SF.TECH_BY_ID[u.techId] || {}).name || "").trim();
+                        /* ผูกไว้กับพนักงานที่ไม่มีตัวจริงแล้ว หรือคนละชื่อกับบัญชี — งานอาจไม่เข้า */
+                        const bad = !tn || tn !== String(u.name || "").trim();
+                        return (
+                          <span title={bad ? "งานที่มอบหมายให้พนักงานคนนี้จะเข้าบัญชีนี้ — ถ้าผูกผิดคน งานจะไม่แสดง" : ""}
+                            style={{ fontSize: 11, color: bad ? "#F59E0B" : "var(--text-3)", fontWeight: bad ? 700 : 400 }}>
+                            → {tn || u.techId + " (ไม่พบพนักงาน)"}
+                          </span>
+                        );
+                      })()}
                     </div>
                   </div>
                   {!asking && (
@@ -1205,6 +1211,10 @@ function UserEditModal({ initial, existing, onSave, onClose }) {
     if (!String(f.pin).trim()) { setErr("กรุณากรอกรหัสผ่าน"); return; }
     if (!f.roles.length) { setErr("เลือกตำแหน่งอย่างน้อย 1 ตำแหน่ง"); return; }
     if (needTech && !f.techId) { setErr("ตำแหน่งที่เลือกต้องผูกกับพนักงานในระบบ เพื่อรับงาน/นัดสำรวจ"); return; }
+    /* พนักงานหนึ่งคนถือได้บัญชีเดียว ไม่งั้นงานที่มอบหมายให้เขาจะเด้งขึ้นสองบัญชี
+       และบัญชีที่ควรได้จริงกลับไม่ได้ */
+    const dup = f.techId && existing.filter((u) => u.id !== f.id && u.techId === f.techId)[0];
+    if (dup) { setErr("พนักงานคนนี้ผูกกับบัญชี \"" + (dup.name || dup.username) + "\" อยู่แล้ว เลือกคนให้ตรงกับบัญชีนี้ก่อน"); return; }
     /* เรียงตำแหน่งตามลำดับมาตรฐาน แล้วเก็บ role (ตำแหน่งเดียว) ไว้ด้วยเพื่อความเข้ากันได้กับข้อมูลเดิม */
     const roles = ROLE_KEYS.filter((k) => f.roles.indexOf(k) !== -1);
     onSave(Object.assign({}, f, { name: f.name.trim(), username: uname, pin: String(f.pin).trim(), roles: roles, role: roles[0] }));
@@ -1228,7 +1238,12 @@ function UserEditModal({ initial, existing, onSave, onClose }) {
             <AField label="ผูกกับพนักงานในระบบ (เพื่อรับงาน / นัดสำรวจ)" required>
               <select style={A_INPUT} value={f.techId || ""} onChange={(e) => set("techId", e.target.value || null)}>
                 <option value="">— เลือกพนักงาน —</option>
-                {SF.TECHS.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.role})</option>)}
+                {SF.TECHS.map((t) => {
+                  const own = existing.filter((u) => u.id !== f.id && u.techId === t.id)[0];
+                  return <option key={t.id} value={t.id} disabled={!!own}>
+                    {String(t.name || "").trim()} ({t.role}){own ? " — เป็นบัญชี " + (own.name || own.username) + " แล้ว" : ""}
+                  </option>;
+                })}
               </select>
             </AField>
           )}

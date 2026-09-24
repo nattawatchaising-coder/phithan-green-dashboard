@@ -2500,12 +2500,18 @@ function UserManager({
     }, React.createElement(RoleBadges, {
       roles: rs,
       short: true
-    }), u.techId && React.createElement("span", {
-      style: {
-        fontSize: 11,
-        color: "var(--text-3)"
-      }
-    }, "\u2192 ", (window.SF.TECH_BY_ID[u.techId] || {}).name || u.techId))), !asking && React.createElement(React.Fragment, null, React.createElement("button", {
+    }), u.techId && (() => {
+      const tn = String((window.SF.TECH_BY_ID[u.techId] || {}).name || "").trim();
+      const bad = !tn || tn !== String(u.name || "").trim();
+      return React.createElement("span", {
+        title: bad ? "งานที่มอบหมายให้พนักงานคนนี้จะเข้าบัญชีนี้ — ถ้าผูกผิดคน งานจะไม่แสดง" : "",
+        style: {
+          fontSize: 11,
+          color: bad ? "#F59E0B" : "var(--text-3)",
+          fontWeight: bad ? 700 : 400
+        }
+      }, "\u2192 ", tn || u.techId + " (ไม่พบพนักงาน)");
+    })())), !asking && React.createElement(React.Fragment, null, React.createElement("button", {
       onClick: () => setEditing(Object.assign({}, u)),
       title: "\u0E41\u0E01\u0E49\u0E44\u0E02",
       style: {
@@ -2794,6 +2800,11 @@ function UserEditModal({
       setErr("ตำแหน่งที่เลือกต้องผูกกับพนักงานในระบบ เพื่อรับงาน/นัดสำรวจ");
       return;
     }
+    const dup = f.techId && existing.filter(u => u.id !== f.id && u.techId === f.techId)[0];
+    if (dup) {
+      setErr("พนักงานคนนี้ผูกกับบัญชี \"" + (dup.name || dup.username) + "\" อยู่แล้ว เลือกคนให้ตรงกับบัญชีนี้ก่อน");
+      return;
+    }
     const roles = ROLE_KEYS.filter(k => f.roles.indexOf(k) !== -1);
     onSave(Object.assign({}, f, {
       name: f.name.trim(),
@@ -2909,10 +2920,14 @@ function UserEditModal({
     onChange: e => set("techId", e.target.value || null)
   }, React.createElement("option", {
     value: ""
-  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E1E\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19 \u2014"), SF.TECHS.map(t => React.createElement("option", {
-    key: t.id,
-    value: t.id
-  }, t.name, " (", t.role, ")")))), can(f.roles, "expense") && React.createElement(AField, {
+  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E1E\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19 \u2014"), SF.TECHS.map(t => {
+    const own = existing.filter(u => u.id !== f.id && u.techId === t.id)[0];
+    return React.createElement("option", {
+      key: t.id,
+      value: t.id,
+      disabled: !!own
+    }, String(t.name || "").trim(), " (", t.role, ")", own ? " — เป็นบัญชี " + (own.name || own.username) + " แล้ว" : "");
+  }))), can(f.roles, "expense") && React.createElement(AField, {
     label: "\u0E43\u0E1A\u0E40\u0E1A\u0E34\u0E01\u0E40\u0E07\u0E34\u0E19 \u2014 \u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E49\u0E43\u0E04\u0E23\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34"
   }, React.createElement("select", {
     style: A_INPUT,
