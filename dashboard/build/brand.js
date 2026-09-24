@@ -137,6 +137,9 @@ function brandDocURL() {
     return BRANDING.docMark;
   }
 }
+function brandDocNamePx(h) {
+  return Math.max(11, Math.min(15, Math.round(h * 0.34)));
+}
 function BrandDoc({
   height,
   name,
@@ -158,11 +161,11 @@ function BrandDoc({
     style: Object.assign({
       display: "flex",
       alignItems: "center",
-      gap: Math.round(h * 0.22)
+      gap: Math.round(h * 0.2)
     }, style || {})
   }, img, React.createElement("span", {
     style: {
-      fontSize: Math.round(h * 0.42),
+      fontSize: brandDocNamePx(h),
       fontWeight: 800,
       letterSpacing: "-.01em",
       color: BRANDING.ink,
@@ -175,7 +178,7 @@ function brandDocHTML(opts) {
   const h = o.height || 44;
   const img = '<img src="' + brandDocURL() + '" alt="' + BRANDING.legal + '" style="height:' + h + 'px;width:auto;display:block" />';
   if (o.name === false) return img;
-  return '<div style="display:flex;align-items:center;gap:' + Math.round(h * 0.22) + 'px">' + img + '<span style="font-size:' + Math.round(h * 0.42) + "px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;color:" + BRANDING.ink + '">' + BRANDING.legal + "</span></div>";
+  return '<div style="display:flex;align-items:center;gap:' + Math.round(h * 0.2) + 'px">' + img + '<span style="font-size:' + brandDocNamePx(h) + "px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;color:" + BRANDING.ink + '">' + BRANDING.legal + "</span></div>";
 }
 function brandHeadHTML(opts) {
   const o = opts || {};

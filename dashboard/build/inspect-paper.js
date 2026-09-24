@@ -104,7 +104,7 @@ function RpSign({
     style: {
       fontSize: 9.5,
       color: RP_SOFT,
-      marginBottom: 30
+      marginBottom: 52
     }
   }, "(", th, ")"), React.createElement("div", {
     style: {
@@ -116,14 +116,16 @@ function RpSign({
     }
   }, name || " "), React.createElement("div", {
     style: {
-      fontSize: 9.5,
-      color: RP_SOFT
+      fontSize: 11,
+      color: RP_SOFT,
+      marginTop: 5,
+      lineHeight: 1.9
     }
   }, "(...........................)"), React.createElement("div", {
     style: {
       fontSize: 9.5,
       color: RP_SOFT,
-      marginTop: 7
+      marginTop: 10
     }
   }, "\u2026\u2026\u2026. / \u2026\u2026\u2026. / \u2026\u2026\u2026."));
 }
@@ -180,7 +182,7 @@ function InspectionPaper({
       marginBottom: 7
     }
   }, window.BrandDoc ? React.createElement(window.BrandDoc, {
-    height: 32
+    height: 46
   }) : null), React.createElement("div", {
     style: {
       fontSize: 15,

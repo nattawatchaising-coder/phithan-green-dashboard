@@ -197,7 +197,7 @@ function SurveyReport({ job, photos, docs, onClose }) {
             <div style={{ fontFamily: "var(--display)", fontSize: 22, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-.01em" }}>{T("รายงานผลสำรวจหน้างาน")}</div>
             <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: ".12em", color: "var(--text-3)", marginTop: 3 }}>SOLAR SITE SURVEY REPORT</div>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}>
-              <window.BrandDoc height={30} />
+              <window.BrandDoc height={44} />
             </div>
           </div>
           <div style={{ textAlign: "right", fontSize: 11.5, color: "var(--text-2)", lineHeight: 1.7 }}>

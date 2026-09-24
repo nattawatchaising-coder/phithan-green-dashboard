@@ -134,6 +134,8 @@ function brandDocURL() {
    ใช้เฉพาะตราอย่างเดียว ส่วนชื่อบริษัทเขียนเป็นตัวหนังสือข้าง ๆ ไม่ใช้ชื่อที่ฝังมาในรูป
    เพราะตัวในรูปย่อลงหัวกระดาษแล้วเล็กจนอ่านไม่ออก
    height คือความสูงจริงบนกระดาษ · name={false} เมื่อมีบรรทัดชื่อบริษัทพิมพ์อยู่ใต้โลโก้แล้ว */
+function brandDocNamePx(h) { return Math.max(11, Math.min(15, Math.round(h * 0.34))); }
+
 function BrandDoc({ height, name, style }) {
   const h = height || 34;
   const img = React.createElement("img", {
@@ -142,9 +144,10 @@ function BrandDoc({ height, name, style }) {
   });
   if (name === false) return img;
   return React.createElement("div", {
-    style: Object.assign({ display: "flex", alignItems: "center", gap: Math.round(h * 0.22) }, style || {}),
+    style: Object.assign({ display: "flex", alignItems: "center", gap: Math.round(h * 0.2) }, style || {}),
   }, img, React.createElement("span", {
-    style: { fontSize: Math.round(h * 0.42), fontWeight: 800, letterSpacing: "-.01em", color: BRANDING.ink, whiteSpace: "nowrap" },
+    /* ชื่อไม่โตตามตรา — ตราใหญ่ได้เต็มที่ แต่ชื่อต้องไม่แย่งความเด่นไปจากชื่อเอกสาร */
+    style: { fontSize: brandDocNamePx(h), fontWeight: 800, letterSpacing: "-.01em", color: BRANDING.ink, whiteSpace: "nowrap" },
   }, BRANDING.legal));
 }
 
@@ -155,8 +158,8 @@ function brandDocHTML(opts) {
   const img = '<img src="' + brandDocURL() + '" alt="' + BRANDING.legal +
     '" style="height:' + h + 'px;width:auto;display:block" />';
   if (o.name === false) return img;
-  return '<div style="display:flex;align-items:center;gap:' + Math.round(h * 0.22) + 'px">' + img +
-    '<span style="font-size:' + Math.round(h * 0.42) + "px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;color:" +
+  return '<div style="display:flex;align-items:center;gap:' + Math.round(h * 0.2) + 'px">' + img +
+    '<span style="font-size:' + brandDocNamePx(h) + "px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;color:" +
     BRANDING.ink + '">' + BRANDING.legal + "</span></div>";
 }
 

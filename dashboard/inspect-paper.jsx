@@ -58,10 +58,11 @@ function RpSign({ en, th, role, name }) {
   return (
     <div style={{ flex: 1, minWidth: 0, textAlign: "center" }}>
       <div style={{ fontSize: 10.5, fontWeight: 700, color: RP_INK }}>{en}</div>
-      <div style={{ fontSize: 9.5, color: RP_SOFT, marginBottom: 30 }}>({th})</div>
+      <div style={{ fontSize: 9.5, color: RP_SOFT, marginBottom: 52 }}>({th})</div>
       <div style={{ borderTop: "1px solid " + RP_LINE, paddingTop: 5, fontSize: 10, color: RP_INK, minHeight: 15 }}>{name || " "}</div>
-      <div style={{ fontSize: 9.5, color: RP_SOFT }}>(...........................)</div>
-      <div style={{ fontSize: 9.5, color: RP_SOFT, marginTop: 7 }}>………. / ………. / ……….</div>
+      {/* วงเล็บสำหรับเขียนชื่อตัวบรรจง — เว้นให้สูงพอเขียนด้วยปากกาจริง ไม่ใช่พอให้เห็นแค่วงเล็บ */}
+      <div style={{ fontSize: 11, color: RP_SOFT, marginTop: 5, lineHeight: 1.9 }}>(...........................)</div>
+      <div style={{ fontSize: 9.5, color: RP_SOFT, marginTop: 10 }}>………. / ………. / ……….</div>
     </div>
   );
 }
@@ -94,7 +95,7 @@ function InspectionPaper({ job, rec, photos, onClose }) {
       borderBottom: "2px solid " + RP_INK, paddingBottom: 9, marginBottom: 12 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
-          {window.BrandDoc ? <window.BrandDoc height={32} /> : null}
+          {window.BrandDoc ? <window.BrandDoc height={46} /> : null}
         </div>
         <div style={{ fontSize: 15, fontWeight: 800, color: RP_INK, letterSpacing: "-.2px" }}>{title}</div>
         {/* ประเภทการตรวจคือหัวเรื่องจริงของใบ — คนอ่านต้องรู้ตั้งแต่บรรทัดแรกว่าตรวจเรื่องอะไร */}
