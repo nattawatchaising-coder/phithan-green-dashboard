@@ -435,6 +435,12 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 /* บนมือถือไม่มีกระดาษ มีแต่จอ — บังคับสูงเท่า A4 แล้วจะได้ที่ว่างยาวเปล่า ๆ ให้เลื่อนผ่าน */
 @media (max-width: 700px) { .om-page { min-height: 0; } }
 
+/* แผ่นแรกของใบเบิกเงินหน้างานสูงเต็มหน้า A4 — ช่องเซ็นถูกดันไปติดขอบล่าง
+   ใบที่มีไม่กี่รายการจะได้ไม่มีลายเซ็นลอยกลางหน้าแล้วเหลือที่ว่างยาวใต้ลงไป (กฎเดียวกับ .om-page) */
+.ec-page { display: flex; flex-direction: column; min-height: 262mm; }
+.ec-page > .ec-foot { margin-top: auto; }
+@media (max-width: 700px) { .ec-page { min-height: 0; } }
+
 /* รูปในรายงาน — แนวนอนเต็มความกว้าง · แนวตั้งจำกัดความสูงแล้วจัดกลาง ไม่งั้นกินกระดาษทั้งหน้า */
 .sv-rep-shot img { display: block; width: 100%; max-width: 100%; }
 .sv-rep-shot[data-p="1"] img { width: auto; max-height: 440px; }
@@ -552,7 +558,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/om-paper.js?v=9"></script>
 <script src="dashboard/build/expense.js?v=8"></script>
 <script src="dashboard/build/views-expense.js?v=15"></script>
-<script src="dashboard/build/ec-paper.js?v=8"></script>
+<script src="dashboard/build/ec-paper.js?v=9"></script>
 <script src="dashboard/build/attend.js?v=12"></script>
 <script src="dashboard/build/auth.js?v=33"></script>
 <script src="dashboard/build/line.js?v=5"></script>

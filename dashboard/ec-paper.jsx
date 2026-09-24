@@ -447,6 +447,8 @@ function EcClaimPaper({ claim, job, user, onPrinted, onClose }) {
         fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
         padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "0 20px 60px rgba(8,20,14,.28)" }}>
 
+        <div className="ec-page">
+
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap",
           borderBottom: "2px solid #1B9B75", paddingBottom: 11 }}>
           <div style={{ minWidth: 0 }}>
@@ -547,6 +549,7 @@ function EcClaimPaper({ claim, job, user, onPrinted, onClose }) {
           )}
         </EcPBlock>
 
+        <div className="ec-foot">
         <div style={{ marginTop: 22, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, breakInside: "avoid" }}>
           {boxes.map((s, i) => (
             <div key={i} style={{ border: "1px solid #DCE4DF", borderRadius: 8, padding: "12px 14px" }}>
@@ -562,6 +565,8 @@ function EcClaimPaper({ claim, job, user, onPrinted, onClose }) {
 
         <div style={{ marginTop: 14, fontSize: 9.5, color: "#8A9A91", textAlign: "center" }}>
           {T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง")} flash+solar · {c.no || "-"} · {T("พิมพ์เมื่อ")} {DTs(window.drToday())}
+        </div>
+        </div>
         </div>
 
         {/* ── บิลแผ่นละใบ เต็มหน้ากระดาษ ──

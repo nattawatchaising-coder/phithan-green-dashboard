@@ -785,6 +785,8 @@ function EcClaimPaper({
       boxShadow: "0 20px 60px rgba(8,20,14,.28)"
     }
   }, React.createElement("div", {
+    className: "ec-page"
+  }, React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
@@ -1012,6 +1014,8 @@ function EcClaimPaper({
       lineHeight: 1.7
     }
   }, imgs.length > 0 && React.createElement("div", null, T("แนบบิลไว้"), " ", React.createElement("b", null, imgs.length), " ", T("ใบ · อยู่แผ่นถัดไป")), pdfs.length > 0 && React.createElement("div", null, pdfs.length, " ", T("ไฟล์ PDF แนบไว้ในระบบ"), pdfs.map(p => p.name).filter(Boolean).length ? " · " + pdfs.map(p => p.name).filter(Boolean).join(" · ") : ""))), React.createElement("div", {
+    className: "ec-foot"
+  }, React.createElement("div", {
     style: {
       marginTop: 22,
       display: "grid",
@@ -1067,7 +1071,7 @@ function EcClaimPaper({
       color: "#8A9A91",
       textAlign: "center"
     }
-  }, T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง"), " flash+solar \xB7 ", c.no || "-", " \xB7 ", T("พิมพ์เมื่อ"), " ", DTs(window.drToday())), imgs.map((s, i) => React.createElement("div", {
+  }, T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง"), " flash+solar \xB7 ", c.no || "-", " \xB7 ", T("พิมพ์เมื่อ"), " ", DTs(window.drToday())))), imgs.map((s, i) => React.createElement("div", {
     key: s.id,
     className: "ec-sheet",
     style: {
