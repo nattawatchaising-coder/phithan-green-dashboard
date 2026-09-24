@@ -559,15 +559,24 @@ function EcDocMark({ th, doneTh, at, byName, color, can, mine, onSet, onClear })
 }
 
 /* ── แถวใบเบิกในรายการ ── */
-function EcClaimRow({ claim, onOpen, gone }) {
+function EcClaimRow({ claim, onOpen, gone, currentUser, role, onDoc }) {
   const st = window.ecStatusOf(claim.status);
   const kind = window.ecKindOf(claim.kind);
   const pay = window.ecPayOf(claim.payMethod);
+  const uid = (currentUser || {}).id || null;
+  /* คนเบิกหรือคนที่ควักเงินให้ = คนที่ถือกระดาษอยู่ในมือ · คนอนุมัติ/คนจ่าย = ปลายทางที่รับเข้าแฟ้ม */
+  const canSend = !!uid && (claim.byId === uid || window.ecOwedTo(claim).id === uid);
+  const canGet = window.ecCanApprove(role) || window.ecCanPay(role);
+  const docBtn = { display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap", marginRight: 5,
+    fontSize: 11.5, fontWeight: 700, borderRadius: 99, padding: "3px 9px", cursor: "pointer", fontFamily: "inherit" };
+  const hitDoc = (e, k) => { e.stopPropagation(); if (onDoc) onDoc(claim.id, k, true); };
   return (
-    <button onClick={() => onOpen(claim.id)}
+    <div role="button" tabIndex={0} onClick={() => onOpen(claim.id)}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(claim.id); } }}
       style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 12, padding: "11px 13px",
         borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)",
-        borderLeft: "3px solid " + st.color, cursor: "pointer", fontFamily: "inherit", marginBottom: 7 }}>
+        borderLeft: "3px solid " + st.color, cursor: "pointer", fontFamily: "inherit", marginBottom: 7,
+        boxSizing: "border-box" }}>
       <span style={{ width: 32, height: 32, borderRadius: 9, display: "grid", placeItems: "center", flexShrink: 0,
         background: kind.color + "1a" }}>
         <Icon name="wallet" size={15} color={kind.color} />
@@ -598,17 +607,34 @@ function EcClaimRow({ claim, onOpen, gone }) {
           {window.ecBaht(claim.amount)}
         </span>
         <span style={{ display: "block", marginTop: 3 }}>
-          {(claim.docGotAt || claim.docSentAt) && (
-            <span title={(claim.docGotAt ? "ผู้อนุมัติได้รับเอกสารตัวจริงแล้ว " + window.drDateTH(String(claim.docGotAt).slice(0, 10)) + (claim.docGotByName ? " · " + claim.docGotByName : "")
-              : "ส่งเอกสารตัวจริงแล้ว " + window.drDateTH(String(claim.docSentAt).slice(0, 10)) + (claim.docSentByName ? " · " + claim.docSentByName : ""))}
-              style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap", marginRight: 5,
-                fontSize: 11.5, fontWeight: 700, borderRadius: 99, padding: "3px 9px",
-                color: claim.docGotAt ? "#0369A1" : "var(--text-2)",
-                background: claim.docGotAt ? "#0EA5E922" : "var(--surface2)" }}>
-              <Icon name="file" size={12} color={claim.docGotAt ? "#0369A1" : "var(--text-2)"} />
-              {claim.docGotAt ? "รับตัวจริงแล้ว" : "ส่งตัวจริงแล้ว"}
+{/* ── เอกสารตัวจริง ── */}
+          {claim.docGotAt ? (
+            <span title={"ได้รับเอกสารตัวจริงแล้ว " + window.drDateTH(String(claim.docGotAt).slice(0, 10))
+              + (claim.docGotByName ? " · " + claim.docGotByName : "")}
+              style={Object.assign({}, docBtn, { cursor: "default", color: "#0369A1", background: "#0EA5E922" })}>
+              <Icon name="check" size={12} color="#0369A1" /> รับตัวจริงแล้ว
             </span>
-          )}
+          ) : claim.docSentAt ? (
+            canGet ? (
+              <button onClick={(e) => hitDoc(e, "docGot")}
+                title={"ส่งตัวจริงแล้ว " + window.drDateTH(String(claim.docSentAt).slice(0, 10))
+                  + (claim.docSentByName ? " · " + claim.docSentByName : "") + " — กดเพื่อบันทึกว่าได้รับแล้ว"}
+                style={Object.assign({}, docBtn, { color: "#0369A1", background: "var(--surface)", border: "1px dashed #0EA5E9" })}>
+                <Icon name="file" size={12} color="#0369A1" /> กดรับตัวจริง
+              </button>
+            ) : (
+              <span title={"ส่งเอกสารตัวจริงแล้ว " + window.drDateTH(String(claim.docSentAt).slice(0, 10))
+                + (claim.docSentByName ? " · " + claim.docSentByName : "")}
+                style={Object.assign({}, docBtn, { cursor: "default", color: "var(--text-2)", background: "var(--surface2)" })}>
+                <Icon name="check" size={12} color="var(--text-2)" /> ส่งตัวจริงแล้ว
+              </span>
+            )
+          ) : canSend ? (
+            <button onClick={(e) => hitDoc(e, "docSent")} title="บันทึกว่าส่งเอกสารตัวจริงให้ผู้อนุมัติแล้ว"
+              style={Object.assign({}, docBtn, { color: "var(--text-2)", background: "var(--surface)", border: "1px dashed var(--border-strong)" })}>
+              <Icon name="file" size={12} color="var(--text-3)" /> ส่งตัวจริง
+            </button>
+          ) : null}
           {claim.printedAt && (
             <span title={"พิมพ์เมื่อ " + window.drDateTH(String(claim.printedAt).slice(0, 10))
               + (claim.printedByName ? " · โดย " + claim.printedByName : "")}
@@ -625,7 +651,7 @@ function EcClaimRow({ claim, onOpen, gone }) {
           )}
         </span>
       </span>
-    </button>
+    </div>
   );
 }
 
@@ -1111,6 +1137,15 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
     return ids.map((id) => (store.claims || []).find((c) => c.id === id)).filter(Boolean);
   }, [voucher, store.claims]);
 
+  /* ปักหมุดเอกสารตัวจริงจากแถว — ตัวเดียวกับที่ในใบใช้ ให้บันทึกหน้าตาเหมือนกันทั้งสองทาง */
+  const markDoc = (id, k, on) => {
+    const f = {};
+    f[k + "At"] = on ? new Date().toISOString() : null;
+    f[k + "ById"] = on ? uid : null;
+    f[k + "ByName"] = on ? ((currentUser || {}).name || "") : "";
+    store.patch(id, f);
+  };
+
   const payList = React.useMemo(() => (payFor ? window.ecPayable(all, payFor.id) : []), [all, payFor]);
 
   const cover = React.useMemo(() => {
@@ -1227,7 +1262,8 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา เลขที่ใบ · ชื่อคน · รหัสงาน · หมายเหตุ"
             style={EC_INPUT} />
           <div>
-            {list.map((c) => <EcClaimRow key={c.id} claim={c} onOpen={setOpen} gone={!!c.jobId && !jobById[c.jobId]} />)}
+            {list.map((c) => <EcClaimRow key={c.id} claim={c} onOpen={setOpen} gone={!!c.jobId && !jobById[c.jobId]}
+              currentUser={currentUser} role={role} onDoc={markDoc} />)}
             {!list.length && (
               <div style={{ padding: 28, textAlign: "center", fontSize: 13, color: "var(--text-3)" }}>
                 {jobFilter ? "งานนี้ยังไม่มีใบเบิก — กด “เปิดใบเบิก” ด้านบนได้เลย"

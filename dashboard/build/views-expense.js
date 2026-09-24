@@ -1141,13 +1141,44 @@ function EcDocMark({
 function EcClaimRow({
   claim,
   onOpen,
-  gone
+  gone,
+  currentUser,
+  role,
+  onDoc
 }) {
   const st = window.ecStatusOf(claim.status);
   const kind = window.ecKindOf(claim.kind);
   const pay = window.ecPayOf(claim.payMethod);
-  return React.createElement("button", {
+  const uid = (currentUser || {}).id || null;
+  const canSend = !!uid && (claim.byId === uid || window.ecOwedTo(claim).id === uid);
+  const canGet = window.ecCanApprove(role) || window.ecCanPay(role);
+  const docBtn = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    whiteSpace: "nowrap",
+    marginRight: 5,
+    fontSize: 11.5,
+    fontWeight: 700,
+    borderRadius: 99,
+    padding: "3px 9px",
+    cursor: "pointer",
+    fontFamily: "inherit"
+  };
+  const hitDoc = (e, k) => {
+    e.stopPropagation();
+    if (onDoc) onDoc(claim.id, k, true);
+  };
+  return React.createElement("div", {
+    role: "button",
+    tabIndex: 0,
     onClick: () => onOpen(claim.id),
+    onKeyDown: e => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onOpen(claim.id);
+      }
+    },
     style: {
       width: "100%",
       textAlign: "left",
@@ -1161,7 +1192,8 @@ function EcClaimRow({
       borderLeft: "3px solid " + st.color,
       cursor: "pointer",
       fontFamily: "inherit",
-      marginBottom: 7
+      marginBottom: 7,
+      boxSizing: "border-box"
     }
   }, React.createElement("span", {
     style: {
@@ -1237,26 +1269,53 @@ function EcClaimRow({
       display: "block",
       marginTop: 3
     }
-  }, (claim.docGotAt || claim.docSentAt) && React.createElement("span", {
-    title: claim.docGotAt ? "ผู้อนุมัติได้รับเอกสารตัวจริงแล้ว " + window.drDateTH(String(claim.docGotAt).slice(0, 10)) + (claim.docGotByName ? " · " + claim.docGotByName : "") : "ส่งเอกสารตัวจริงแล้ว " + window.drDateTH(String(claim.docSentAt).slice(0, 10)) + (claim.docSentByName ? " · " + claim.docSentByName : ""),
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 4,
-      whiteSpace: "nowrap",
-      marginRight: 5,
-      fontSize: 11.5,
-      fontWeight: 700,
-      borderRadius: 99,
-      padding: "3px 9px",
-      color: claim.docGotAt ? "#0369A1" : "var(--text-2)",
-      background: claim.docGotAt ? "#0EA5E922" : "var(--surface2)"
-    }
+  }, claim.docGotAt ? React.createElement("span", {
+    title: "ได้รับเอกสารตัวจริงแล้ว " + window.drDateTH(String(claim.docGotAt).slice(0, 10)) + (claim.docGotByName ? " · " + claim.docGotByName : ""),
+    style: Object.assign({}, docBtn, {
+      cursor: "default",
+      color: "#0369A1",
+      background: "#0EA5E922"
+    })
+  }, React.createElement(Icon, {
+    name: "check",
+    size: 12,
+    color: "#0369A1"
+  }), " \u0E23\u0E31\u0E1A\u0E15\u0E31\u0E27\u0E08\u0E23\u0E34\u0E07\u0E41\u0E25\u0E49\u0E27") : claim.docSentAt ? canGet ? React.createElement("button", {
+    onClick: e => hitDoc(e, "docGot"),
+    title: "ส่งตัวจริงแล้ว " + window.drDateTH(String(claim.docSentAt).slice(0, 10)) + (claim.docSentByName ? " · " + claim.docSentByName : "") + " — กดเพื่อบันทึกว่าได้รับแล้ว",
+    style: Object.assign({}, docBtn, {
+      color: "#0369A1",
+      background: "var(--surface)",
+      border: "1px dashed #0EA5E9"
+    })
   }, React.createElement(Icon, {
     name: "file",
     size: 12,
-    color: claim.docGotAt ? "#0369A1" : "var(--text-2)"
-  }), claim.docGotAt ? "รับตัวจริงแล้ว" : "ส่งตัวจริงแล้ว"), claim.printedAt && React.createElement("span", {
+    color: "#0369A1"
+  }), " \u0E01\u0E14\u0E23\u0E31\u0E1A\u0E15\u0E31\u0E27\u0E08\u0E23\u0E34\u0E07") : React.createElement("span", {
+    title: "ส่งเอกสารตัวจริงแล้ว " + window.drDateTH(String(claim.docSentAt).slice(0, 10)) + (claim.docSentByName ? " · " + claim.docSentByName : ""),
+    style: Object.assign({}, docBtn, {
+      cursor: "default",
+      color: "var(--text-2)",
+      background: "var(--surface2)"
+    })
+  }, React.createElement(Icon, {
+    name: "check",
+    size: 12,
+    color: "var(--text-2)"
+  }), " \u0E2A\u0E48\u0E07\u0E15\u0E31\u0E27\u0E08\u0E23\u0E34\u0E07\u0E41\u0E25\u0E49\u0E27") : canSend ? React.createElement("button", {
+    onClick: e => hitDoc(e, "docSent"),
+    title: "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E27\u0E48\u0E32\u0E2A\u0E48\u0E07\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E15\u0E31\u0E27\u0E08\u0E23\u0E34\u0E07\u0E43\u0E2B\u0E49\u0E1C\u0E39\u0E49\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27",
+    style: Object.assign({}, docBtn, {
+      color: "var(--text-2)",
+      background: "var(--surface)",
+      border: "1px dashed var(--border-strong)"
+    })
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 12,
+    color: "var(--text-3)"
+  }), " \u0E2A\u0E48\u0E07\u0E15\u0E31\u0E27\u0E08\u0E23\u0E34\u0E07") : null, claim.printedAt && React.createElement("span", {
     title: "พิมพ์เมื่อ " + window.drDateTH(String(claim.printedAt).slice(0, 10)) + (claim.printedByName ? " · โดย " + claim.printedByName : ""),
     style: {
       display: "inline-flex",
@@ -2215,6 +2274,13 @@ function ExpenseView({
     const ids = voucher.claimIds || [];
     return ids.map(id => (store.claims || []).find(c => c.id === id)).filter(Boolean);
   }, [voucher, store.claims]);
+  const markDoc = (id, k, on) => {
+    const f = {};
+    f[k + "At"] = on ? new Date().toISOString() : null;
+    f[k + "ById"] = on ? uid : null;
+    f[k + "ByName"] = on ? (currentUser || {}).name || "" : "";
+    store.patch(id, f);
+  };
   const payList = React.useMemo(() => payFor ? window.ecPayable(all, payFor.id) : [], [all, payFor]);
   const cover = React.useMemo(() => {
     if (!coverFor) return null;
@@ -2448,7 +2514,10 @@ function ExpenseView({
     key: c.id,
     claim: c,
     onOpen: setOpen,
-    gone: !!c.jobId && !jobById[c.jobId]
+    gone: !!c.jobId && !jobById[c.jobId],
+    currentUser: currentUser,
+    role: role,
+    onDoc: markDoc
   })), !list.length && React.createElement("div", {
     style: {
       padding: 28,
