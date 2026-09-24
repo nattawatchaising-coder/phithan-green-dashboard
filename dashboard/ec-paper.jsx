@@ -90,6 +90,9 @@ const EC_PAPER_I18N = {
   "ยังไม่ได้แนบบิล": ["No receipt attached", "未附票据"],
   "ไฟล์ PDF แนบไว้ในระบบ": ["PDF attached in the system", "系统内附有 PDF 文件"],
   "ผู้จ่ายคืน": ["Reimbursed by", "付款人"],
+  "แนบบิลไว้": ["Receipts attached", "已附票据"],
+  "ใบ · อยู่แผ่นถัดไป": ["on the following sheets", "张，见后页"],
+  "แผ่น": ["sheet", "页"],
   /* สถานะใบ + ที่มาของเงิน จาก expense.jsx */
   "ร่าง": ["Draft", "草稿"],
   "รออนุมัติ": ["Pending approval", "待审批"],
@@ -337,7 +340,7 @@ function EcVoucherPaper({ batch, claims, onClose }) {
       ก็ต้องการใบเดียวจบ ไม่ใช่รอให้ปิดรอบจ่ายก่อน
    ── บิลที่แนบไว้พิมพ์ติดไปในแผ่นเดียวกัน ใบเบิกที่ไม่มีบิลแนบคือใบที่บัญชีตีกลับ
    ══════════════════════════════════════════════════ */
-function EcClaimPaper({ claim, job, onClose }) {
+function EcClaimPaper({ claim, job, user, onPrinted, onClose }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [lang, setLang] = React.useState(() => (window.pgLang ? window.pgLang() : "th"));
   const pickLang = (id) => { setLang(id); if (window.pgSetLang) window.pgSetLang(id); };
@@ -363,6 +366,18 @@ function EcClaimPaper({ claim, job, onClose }) {
     document.title = T("ใบเบิกเงินหน้างาน") + " " + (c.no || "") + " " + (c.byName || "");
     window.print();
     setTimeout(() => { document.title = old; }, 800);
+  };
+
+  /* ── พิมพ์แล้วหรือยัง ──
+     เบราว์เซอร์ไม่บอกว่าคนกดพิมพ์จริงหรือกดยกเลิกในกล่องพิมพ์ ระบบจึงเดาแทนไม่ได้
+     ต้องให้คนที่พิมพ์เป็นคนกดยืนยันเอง — บัญชีจะได้รู้ว่าใบไหนมีตัวจริงรออยู่ในแฟ้มแล้ว */
+  const markPrinted = () => {
+    if (!onPrinted) return;
+    onPrinted({
+      printedAt: new Date().toISOString(),
+      printedById: (user || {}).id || null,
+      printedByName: (user || {}).name || "",
+    });
   };
 
   const th = { textAlign: "left", padding: "5px 7px", fontSize: 10, fontWeight: 700, color: "#5A6B62",
@@ -398,6 +413,21 @@ function EcClaimPaper({ claim, job, onClose }) {
         {typeof window.LangPick === "function" && (
           <window.LangPick value={lang} onChange={pickLang} />
         )}
+        {/* พิมพ์แล้วหรือยัง — กดเองหลังพิมพ์จริง ไม่ใช่ตอนกดเปิดกล่องพิมพ์ */}
+        {c.printedAt ? (
+          <span title={(c.printedByName ? "โดย " + c.printedByName + " · " : "") + window.drDateTH(day(c.printedAt))}
+            style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 10, flexShrink: 0,
+              background: "var(--tint-ok-bg)", color: "var(--tint-ok-tx)", fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap" }}>
+            <Icon name="check" size={14} color="var(--tint-ok-tx)" /> พิมพ์แล้ว
+          </span>
+        ) : onPrinted ? (
+          <button onClick={markPrinted}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "11px 14px", borderRadius: 11, flexShrink: 0,
+              border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+              fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--text-2)" }}>
+            <Icon name="check" size={15} color="var(--text-2)" /> บันทึกว่าพิมพ์แล้ว
+          </button>
+        ) : null}
         <button onClick={doPrint} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "11px 16px", borderRadius: 11,
           border: "none", background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
           <Icon name="file" size={16} color="#fff" /> บันทึก PDF
@@ -488,26 +518,23 @@ function EcClaimPaper({ claim, job, onClose }) {
           </EcPBlock>
         ) : null}
 
-        {/* บิล — หลักฐานตัวจริงของใบนี้ ต้องติดไปกับกระดาษ ไม่ใช่อยู่แต่ในจอ */}
-        <EcPBlock title={T("บิล / ใบเสร็จ")}>
+        {/* บิล — ตัวใบบอกแค่ว่าแนบมากี่ใบ รูปจริงไปอยู่แผ่นของตัวเองข้างล่าง
+            ย่อรูปลงมาแปะในหน้าเดียวกับตาราง ตัวเลขในบิลจะอ่านไม่ออก ซึ่งทำให้บิลไม่มีประโยชน์ */}
+        <EcPBlock title={T("บิล / ใบเสร็จ")} avoid>
           {imgs.length === 0 && pdfs.length === 0 ? (
             <div style={{ fontSize: 11, color: "#B45309" }}>— {T("ยังไม่ได้แนบบิล")} —</div>
           ) : (
-            <React.Fragment>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                {imgs.map((s) => (
-                  <div key={s.id} style={{ border: "1px solid #DCE4DF", borderRadius: 7, padding: 5, breakInside: "avoid" }}>
-                    <img src={s.dataUrl} alt="" style={{ width: "100%", maxHeight: 250, objectFit: "contain", display: "block" }} />
-                  </div>
-                ))}
-              </div>
+            <div style={{ fontSize: 11, color: "#5A6B62", lineHeight: 1.7 }}>
+              {imgs.length > 0 && (
+                <div>{T("แนบบิลไว้")} <b>{imgs.length}</b> {T("ใบ · อยู่แผ่นถัดไป")}</div>
+              )}
               {pdfs.length > 0 && (
-                <div style={{ fontSize: 10.5, color: "#5A6B62", marginTop: 7 }}>
+                <div>
                   {pdfs.length} {T("ไฟล์ PDF แนบไว้ในระบบ")}{pdfs.map((p) => p.name).filter(Boolean).length
                     ? " · " + pdfs.map((p) => p.name).filter(Boolean).join(" · ") : ""}
                 </div>
               )}
-            </React.Fragment>
+            </div>
           )}
         </EcPBlock>
 
@@ -527,6 +554,23 @@ function EcClaimPaper({ claim, job, onClose }) {
         <div style={{ marginTop: 14, fontSize: 9.5, color: "#8A9A91", textAlign: "center" }}>
           {T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง")} flash+solar · {c.no || "-"} · {T("พิมพ์เมื่อ")} {DTs(window.drToday())}
         </div>
+
+        {/* ── บิลแผ่นละใบ เต็มหน้ากระดาษ ──
+            ใบเสร็จคือหลักฐานของยอดเงิน ถ้าอ่านตัวเลขไม่ออกก็ไม่ต่างจากไม่ได้แนบ
+            ec-sheet ขึ้นหน้าใหม่ตอนพิมพ์ (index.html) และคั่นด้วยเส้นประตอนดูบนจอ */}
+        {imgs.map((s, i) => (
+          <div key={s.id} className="ec-sheet"
+            style={{ marginTop: 20, paddingTop: 18, borderTop: "1px dashed #C9D5CE" }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12,
+              borderBottom: "1px solid #DCE4DF", paddingBottom: 6, marginBottom: 10 }}>
+              <span style={{ fontSize: 13, fontWeight: 800 }}>{T("บิล / ใบเสร็จ")}</span>
+              <span style={{ fontSize: 10.5, color: "#5A6B62", fontFamily: "var(--mono)" }}>
+                {c.no || "-"} · {T("แผ่น")} {i + 1}/{imgs.length}
+              </span>
+            </div>
+            <img src={s.dataUrl} alt="" style={{ width: "100%", maxHeight: "232mm", objectFit: "contain", display: "block" }} />
+          </div>
+        ))}
       </div>
     </div>
   );

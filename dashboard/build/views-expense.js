@@ -567,7 +567,27 @@ function EcClaimModal({
   }, c.no, " \xB7 ", c.byName || "-", " \xB7 ", window.drDateTH(c.date))), React.createElement(EcPill, {
     th: st.th,
     color: st.color
-  }), React.createElement("button", {
+  }), c.printedAt && React.createElement("span", {
+    title: "พิมพ์เมื่อ " + window.drDateTH(String(c.printedAt).slice(0, 10)) + (c.printedByName ? " · โดย " + c.printedByName : ""),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      whiteSpace: "nowrap",
+      flexShrink: 0,
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-2)",
+      background: "var(--surface2)",
+      border: "1px solid var(--border)",
+      borderRadius: 99,
+      padding: "3px 9px"
+    }
+  }, React.createElement(Icon, {
+    name: "check",
+    size: 12,
+    color: "var(--text-2)"
+  }), " \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E41\u0E25\u0E49\u0E27"), React.createElement("button", {
     onClick: () => setPaper(true),
     title: "\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E43\u0E1A\u0E40\u0E1A\u0E34\u0E01\u0E43\u0E1A\u0E19\u0E35\u0E49",
     style: {
@@ -952,6 +972,8 @@ function EcClaimModal({
   }, React.createElement(window.EcClaimPaper, {
     claim: c,
     job: job,
+    user: currentUser,
+    onPrinted: f => onPatch(c.id, f),
     onClose: () => setPaper(false)
   })));
 }

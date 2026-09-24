@@ -65,6 +65,9 @@ const EC_PAPER_I18N = {
   "ยังไม่ได้แนบบิล": ["No receipt attached", "未附票据"],
   "ไฟล์ PDF แนบไว้ในระบบ": ["PDF attached in the system", "系统内附有 PDF 文件"],
   "ผู้จ่ายคืน": ["Reimbursed by", "付款人"],
+  "แนบบิลไว้": ["Receipts attached", "已附票据"],
+  "ใบ · อยู่แผ่นถัดไป": ["on the following sheets", "张，见后页"],
+  "แผ่น": ["sheet", "页"],
   "ร่าง": ["Draft", "草稿"],
   "รออนุมัติ": ["Pending approval", "待审批"],
   "อนุมัติแล้ว": ["Approved", "已批准"],
@@ -559,6 +562,8 @@ function EcVoucherPaper({
 function EcClaimPaper({
   claim,
   job,
+  user,
+  onPrinted,
   onClose
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -588,6 +593,14 @@ function EcClaimPaper({
     setTimeout(() => {
       document.title = old;
     }, 800);
+  };
+  const markPrinted = () => {
+    if (!onPrinted) return;
+    onPrinted({
+      printedAt: new Date().toISOString(),
+      printedById: (user || {}).id || null,
+      printedByName: (user || {}).name || ""
+    });
   };
   const th = {
     textAlign: "left",
@@ -690,7 +703,47 @@ function EcClaimPaper({
   }, c.byName || "-", " \xB7 ", window.ecBaht(total), " \u0E1A\u0E32\u0E17 \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19 PDF\u201D")), typeof window.LangPick === "function" && React.createElement(window.LangPick, {
     value: lang,
     onChange: pickLang
-  }), React.createElement("button", {
+  }), c.printedAt ? React.createElement("span", {
+    title: (c.printedByName ? "โดย " + c.printedByName + " · " : "") + window.drDateTH(day(c.printedAt)),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      padding: "8px 12px",
+      borderRadius: 10,
+      flexShrink: 0,
+      background: "var(--tint-ok-bg)",
+      color: "var(--tint-ok-tx)",
+      fontSize: 12.5,
+      fontWeight: 700,
+      whiteSpace: "nowrap"
+    }
+  }, React.createElement(Icon, {
+    name: "check",
+    size: 14,
+    color: "var(--tint-ok-tx)"
+  }), " \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E41\u0E25\u0E49\u0E27") : onPrinted ? React.createElement("button", {
+    onClick: markPrinted,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "11px 14px",
+      borderRadius: 11,
+      flexShrink: 0,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 13,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "check",
+    size: 15,
+    color: "var(--text-2)"
+  }), " \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E27\u0E48\u0E32\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E41\u0E25\u0E49\u0E27") : null, React.createElement("button", {
     onClick: doPrint,
     style: {
       display: "inline-flex",
@@ -937,42 +990,20 @@ function EcClaimPaper({
       whiteSpace: "pre-wrap"
     }
   }, c.note)) : null, React.createElement(EcPBlock, {
-    title: T("บิล / ใบเสร็จ")
+    title: T("บิล / ใบเสร็จ"),
+    avoid: true
   }, imgs.length === 0 && pdfs.length === 0 ? React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#B45309"
     }
-  }, "\u2014 ", T("ยังไม่ได้แนบบิล"), " \u2014") : React.createElement(React.Fragment, null, React.createElement("div", {
+  }, "\u2014 ", T("ยังไม่ได้แนบบิล"), " \u2014") : React.createElement("div", {
     style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 10
-    }
-  }, imgs.map(s => React.createElement("div", {
-    key: s.id,
-    style: {
-      border: "1px solid #DCE4DF",
-      borderRadius: 7,
-      padding: 5,
-      breakInside: "avoid"
-    }
-  }, React.createElement("img", {
-    src: s.dataUrl,
-    alt: "",
-    style: {
-      width: "100%",
-      maxHeight: 250,
-      objectFit: "contain",
-      display: "block"
-    }
-  })))), pdfs.length > 0 && React.createElement("div", {
-    style: {
-      fontSize: 10.5,
+      fontSize: 11,
       color: "#5A6B62",
-      marginTop: 7
+      lineHeight: 1.7
     }
-  }, pdfs.length, " ", T("ไฟล์ PDF แนบไว้ในระบบ"), pdfs.map(p => p.name).filter(Boolean).length ? " · " + pdfs.map(p => p.name).filter(Boolean).join(" · ") : ""))), React.createElement("div", {
+  }, imgs.length > 0 && React.createElement("div", null, T("แนบบิลไว้"), " ", React.createElement("b", null, imgs.length), " ", T("ใบ · อยู่แผ่นถัดไป")), pdfs.length > 0 && React.createElement("div", null, pdfs.length, " ", T("ไฟล์ PDF แนบไว้ในระบบ"), pdfs.map(p => p.name).filter(Boolean).length ? " · " + pdfs.map(p => p.name).filter(Boolean).join(" · ") : ""))), React.createElement("div", {
     style: {
       marginTop: 22,
       display: "grid",
@@ -1028,7 +1059,45 @@ function EcClaimPaper({
       color: "#8A9A91",
       textAlign: "center"
     }
-  }, T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง"), " flash+solar \xB7 ", c.no || "-", " \xB7 ", T("พิมพ์เมื่อ"), " ", DTs(window.drToday()))));
+  }, T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง"), " flash+solar \xB7 ", c.no || "-", " \xB7 ", T("พิมพ์เมื่อ"), " ", DTs(window.drToday())), imgs.map((s, i) => React.createElement("div", {
+    key: s.id,
+    className: "ec-sheet",
+    style: {
+      marginTop: 20,
+      paddingTop: 18,
+      borderTop: "1px dashed #C9D5CE"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      justifyContent: "space-between",
+      gap: 12,
+      borderBottom: "1px solid #DCE4DF",
+      paddingBottom: 6,
+      marginBottom: 10
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 800
+    }
+  }, T("บิล / ใบเสร็จ")), React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      color: "#5A6B62",
+      fontFamily: "var(--mono)"
+    }
+  }, c.no || "-", " \xB7 ", T("แผ่น"), " ", i + 1, "/", imgs.length)), React.createElement("img", {
+    src: s.dataUrl,
+    alt: "",
+    style: {
+      width: "100%",
+      maxHeight: "232mm",
+      objectFit: "contain",
+      display: "block"
+    }
+  })))));
 }
 function EcVPRow({
   k,

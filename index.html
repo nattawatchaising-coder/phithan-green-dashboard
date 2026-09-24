@@ -460,7 +460,9 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
   /* รูปในรายงานประจำวันวางสองคอลัมน์ — จำกัดความสูงไม่ให้รูปเดียวกินทั้งหน้า */
   .dr-shot img { max-height: 88mm; object-fit: contain; }
   /* รูปใบบริการอยู่ในช่องที่กำหนดสัดส่วนไว้แล้ว ห้ามไปตั้งความสูงทับ ไม่งั้นรูปเบี้ยว */
-  .om-sheet { break-before: page !important; page-break-before: always !important; }
+  .om-sheet, .ec-sheet { break-before: page !important; page-break-before: always !important; }
+  /* แผ่นบิลของใบเบิก — เส้นประกับระยะห่างมีไว้คั่นตอนดูบนจอ พอขึ้นหน้าใหม่จริงไม่ต้องมี */
+  .ec-sheet { border-top: none !important; margin-top: 0 !important; padding-top: 0 !important; }
   .sv-rep-shot[data-p="1"] img { max-height: 135mm; }
   /* คงสีป้าย/เส้นคั่นไว้ในไฟล์ PDF ไม่งั้นเบราว์เซอร์ตัดพื้นหลังทิ้งหมด
      บังคับเฉพาะในกระดาษรายงาน ถ้าบังคับทั้งหน้าพื้นมืดของธีมจะติดไปด้วย */
@@ -549,8 +551,8 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/om-ticket.js?v=17"></script>
 <script src="dashboard/build/om-paper.js?v=9"></script>
 <script src="dashboard/build/expense.js?v=8"></script>
-<script src="dashboard/build/views-expense.js?v=12"></script>
-<script src="dashboard/build/ec-paper.js?v=6"></script>
+<script src="dashboard/build/views-expense.js?v=13"></script>
+<script src="dashboard/build/ec-paper.js?v=7"></script>
 <script src="dashboard/build/attend.js?v=12"></script>
 <script src="dashboard/build/auth.js?v=33"></script>
 <script src="dashboard/build/line.js?v=5"></script>

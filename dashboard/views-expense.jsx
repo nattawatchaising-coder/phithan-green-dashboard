@@ -272,6 +272,17 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
             </div>
           </div>
           <EcPill th={st.th} color={st.color} />
+          {/* พิมพ์ออกมาแล้วหรือยัง — บัญชีใช้ดูว่าใบไหนมีตัวจริงรอเซ็นอยู่ในแฟ้มแล้ว
+              ไม่ใช่สถานะของใบ (ใบยังเดินต่อได้ตามปกติ) จึงเป็นป้ายแยกไม่ปนกับ EcPill */}
+          {c.printedAt && (
+            <span title={"พิมพ์เมื่อ " + window.drDateTH(String(c.printedAt).slice(0, 10))
+              + (c.printedByName ? " · โดย " + c.printedByName : "")}
+              style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap", flexShrink: 0,
+                fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", background: "var(--surface2)",
+                border: "1px solid var(--border)", borderRadius: 99, padding: "3px 9px" }}>
+              <Icon name="check" size={12} color="var(--text-2)" /> พิมพ์แล้ว
+            </span>
+          )}
           {/* พิมพ์ใบนี้ได้ทุกสถานะ — คนอนุมัติที่อยากได้กระดาษไม่ต้องรอให้ปิดรอบจ่ายก่อน */}
           <button onClick={() => setPaper(true)} title="พิมพ์ใบเบิกใบนี้"
             style={{ width: 30, height: 30, borderRadius: 9, border: "1px solid var(--border)",
@@ -456,7 +467,8 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
           ไม่งั้นกดปุ่มพิมพ์ทีเดียวใบข้างล่างปิดจนกระดาษหายไปด้วย */}
       {paper && (
         <div onClick={(e) => e.stopPropagation()}>
-          <window.EcClaimPaper claim={c} job={job} onClose={() => setPaper(false)} />
+          <window.EcClaimPaper claim={c} job={job} user={currentUser}
+            onPrinted={(f) => onPatch(c.id, f)} onClose={() => setPaper(false)} />
         </div>
       )}
     </div>
