@@ -572,7 +572,11 @@ function EcClaimModal({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, c.no, " \xB7 ", c.byName || "-", " \xB7 ", window.drDateTH(c.date))), React.createElement(EcPill, {
+  }, c.no, " \xB7 ", c.byName || "-", c.payMethod === "mate" && c.owedToName ? React.createElement("span", {
+    style: {
+      color: "var(--tint-amber-tx)"
+    }
+  }, " (\u0E40\u0E07\u0E34\u0E19\u0E02\u0E2D\u0E07 ", c.owedToName, ")") : null, " · ", window.drDateTH(c.date))), React.createElement(EcPill, {
     th: st.th,
     color: st.color
   }), c.printedAt && React.createElement("span", {
@@ -1252,7 +1256,12 @@ function EcClaimRow({
       marginTop: 2,
       fontFamily: "var(--mono)"
     }
-  }, claim.no, " \xB7 ", claim.byName || "-", " \xB7 ", window.drShort(claim.date), claim.siteCode ? " · " + claim.siteCode : "", claim.status !== "draft" && !claim.receiptCount && React.createElement("span", {
+  }, claim.no, " \xB7 ", claim.byName || "-", claim.payMethod === "mate" && claim.owedToName ? React.createElement("span", {
+    style: {
+      color: "var(--tint-amber-tx)",
+      fontFamily: "inherit"
+    }
+  }, " (\u0E40\u0E07\u0E34\u0E19\u0E02\u0E2D\u0E07 ", claim.owedToName, ")") : null, " · ", window.drShort(claim.date), claim.siteCode ? " · " + claim.siteCode : "", claim.status !== "draft" && !claim.receiptCount && React.createElement("span", {
     style: {
       color: "#F59E0B",
       fontFamily: "inherit"
@@ -2252,7 +2261,7 @@ function ExpenseView({
     let out = all;
     if (jobFilter) out = out.filter(c => (c.jobId || "") === jobFilter);
     if (tab === "mine") out = out.filter(c => c.byId === uid);else if (tab === "inbox") out = out.filter(c => c.status === "sent" && window.ecApproveCheck(c, currentUser, role).ok);else if (tab === "approved") out = out.filter(c => c.status === "approved");
-    if (kw) out = out.filter(c => [c.no, c.byName, c.siteCode, c.siteName, c.note, window.ecKindOf(c.kind).th].some(v => String(v || "").toLowerCase().includes(kw)));
+    if (kw) out = out.filter(c => [c.no, c.byName, c.owedToName, c.siteCode, c.siteName, c.note, window.ecKindOf(c.kind).th].some(v => String(v || "").toLowerCase().includes(kw)));
     return out;
   }, [all, tab, q, uid, currentUser, role, jobFilter]);
   const openNew = () => {

@@ -336,14 +336,14 @@ function ecRollupByPerson(claims) {
   };
   (claims || []).forEach(c => {
     if (!c) return;
-    const o = row(c.byId, c.byName);
+    const to = ecOwedTo(c);
+    const o = row(to.id || c.byId, to.name || c.byName);
     const amt = ecRound(c.amount);
     o.count += 1;
-    if (c.status === "draft") o.draft += amt;else if (c.status === "sent") o.waiting += amt;else if (c.status === "approved") o.approved += amt;else if (c.status === "paid") o.paid += amt;
-    if (c.status === "approved" && ecPayOf(c.payMethod).owed) {
-      const to = ecOwedTo(c);
-      row(to.id || c.byId, to.name || c.byName).owed += amt;
-    }
+    if (c.status === "draft") o.draft += amt;else if (c.status === "sent") o.waiting += amt;else if (c.status === "approved") {
+      o.approved += amt;
+      if (ecPayOf(c.payMethod).owed) o.owed += amt;
+    } else if (c.status === "paid") o.paid += amt;
   });
   Object.keys(out).forEach(k => {
     const o = out[k];

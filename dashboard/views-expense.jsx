@@ -278,7 +278,11 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
             <div style={{ fontSize: 14.5, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap",
               overflow: "hidden", textOverflow: "ellipsis" }}>{kind.th}</div>
             <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)" }}>
-              {c.no} · {c.byName || "-"} · {window.drDateTH(c.date)}
+              {c.no} · {c.byName || "-"}
+              {c.payMethod === "mate" && c.owedToName
+                ? <span style={{ color: "var(--tint-amber-tx)" }}> (เงินของ {c.owedToName})</span>
+                : null}
+              {" · "}{window.drDateTH(c.date)}
             </div>
           </div>
           <EcPill th={st.th} color={st.color} />
@@ -602,7 +606,11 @@ function EcClaimRow({ claim, onOpen, gone, currentUser, role, onDoc, onRemove })
           {claim.note ? <span style={{ color: "var(--text-3)", fontWeight: 400 }}> · {claim.note}</span> : null}
         </span>
         <span style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 2, fontFamily: "var(--mono)" }}>
-          {claim.no} · {claim.byName || "-"} · {window.drShort(claim.date)}
+          {claim.no} · {claim.byName || "-"}
+          {claim.payMethod === "mate" && claim.owedToName
+            ? <span style={{ color: "var(--tint-amber-tx)", fontFamily: "inherit" }}> (เงินของ {claim.owedToName})</span>
+            : null}
+          {" · "}{window.drShort(claim.date)}
           {claim.siteCode ? " · " + claim.siteCode : ""}
           {/* บอกได้ว่าใบไหนไม่มีบิลแนบโดยไม่ต้องโหลดรูป — receiptCount เป็นกระจกเงาเบา ๆ ที่ตัวใบ */}
           {claim.status !== "draft" && !claim.receiptCount && (
@@ -1097,7 +1105,7 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
     if (tab === "mine") out = out.filter((c) => c.byId === uid);
     else if (tab === "inbox") out = out.filter((c) => c.status === "sent" && window.ecApproveCheck(c, currentUser, role).ok);
     else if (tab === "approved") out = out.filter((c) => c.status === "approved");
-    if (kw) out = out.filter((c) => [c.no, c.byName, c.siteCode, c.siteName, c.note, window.ecKindOf(c.kind).th]
+    if (kw) out = out.filter((c) => [c.no, c.byName, c.owedToName, c.siteCode, c.siteName, c.note, window.ecKindOf(c.kind).th]
       .some((v) => String(v || "").toLowerCase().includes(kw)));
     return out;
   }, [all, tab, q, uid, currentUser, role, jobFilter]);
