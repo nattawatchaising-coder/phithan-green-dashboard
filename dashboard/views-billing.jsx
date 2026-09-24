@@ -244,7 +244,7 @@ function BlJobCard({ job, quotes, leads, role, currentUser, readOnly, onOpen, on
    เลือกรูปประกอบ — รูปที่มีอยู่แล้วในงาน + อัปโหลดเพิ่ม
    คัดลอก dataUrl มาเก็บที่งวดเสมอ ไม่อ้างอิงรูปต้นทาง (ดูหมายเหตุใน billing.jsx)
    ══════════════════════════════════════════════════ */
-function BlPhotoPick({ job, row, api, currentUser, onClose }) {
+function BlPhotoPick({ job, row, api, items, itemId, currentUser, onClose }) {
   const j = job || {};
   const [tab, setTab] = React.useState("daily");
   const [busy, setBusy] = React.useState(0);
@@ -256,11 +256,15 @@ function BlPhotoPick({ job, row, api, currentUser, onClose }) {
   const dayPhotos = window.useDailyPhotos(j.id, tab === "daily" ? day : null);
   const media = window.useJobMedia(tab === "job" ? j.id : null);
   const picked = api.photos || [];
+  const its = items || [];
+  const itemCap = (its.find((x) => x.id === itemId) || {}).text || "";
+  const mine = itemId ? picked.filter((p) => p.item === itemId) : picked.filter((p) => !p.item || !its.some((x) => x.id === p.item));
   const has = (srcRef) => picked.some((p) => p.srcRef && p.srcRef === srcRef);
 
+  /* รูปที่เลือกจากในนี้ถูกผูกกับข้อที่กดเข้ามาทันที — ย้ายทีหลังได้จากรายการด้านล่าง */
   const take = (p, src, srcRef) => {
     if (has(srcRef)) return;
-    api.add(p.dataUrl, { cap: p.cap || "", user: currentUser, src: src, srcRef: srcRef });
+    api.add(p.dataUrl, { cap: p.cap || "", user: currentUser, src: src, srcRef: srcRef, item: itemId || "" });
   };
 
   const onFiles = async (e) => {
@@ -274,7 +278,7 @@ function BlPhotoPick({ job, row, api, currentUser, onClose }) {
         /* ย่อที่ 1400px คุณภาพ 0.78 — สูงกว่ารูปหน้างานเพราะรูปพวกนี้ถูกพิมพ์ที่ราว 76 มม. บน A4
            ลูกค้าต้องมองออกว่าติดตั้งอะไรไปแล้ว ไม่ใช่เห็นเป็นก้อนเบลอ */
         const url = await window.resizeImageFile(f, 1400, 0.78);
-        api.add(url, { user: currentUser, src: "upload", srcRef: "" });
+        api.add(url, { user: currentUser, src: "upload", srcRef: "", item: itemId || "" });
       } catch (x) { setErr("ย่อรูปไม่สำเร็จ ลองรูปอื่น"); }
       setBusy((n) => n - 1);
     }
@@ -311,8 +315,12 @@ function BlPhotoPick({ job, row, api, currentUser, onClose }) {
       <div style={{ maxWidth: 720, margin: "0 auto", background: "var(--surface)", borderRadius: 14, boxShadow: "var(--shadow-lg)", overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 15px", borderBottom: "1px solid var(--border)" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text-1)" }}>รูปประกอบงวดที่ {(row || {}).n}</div>
-            <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>เลือกแล้ว {picked.length} รูป · แผ่นละ 4 รูปเวลาพิมพ์</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text-1)" }}>
+              รูปประกอบงวดที่ {(row || {}).n}{itemCap ? " · " + itemCap : ""}
+            </div>
+            <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>
+              {itemId ? "รูปที่เลือกจะเข้ารายการนี้ · " : ""}ทั้งงวดมี {picked.length} รูป · แผ่นละ 4 รูปเวลาพิมพ์
+            </div>
           </div>
           <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border-strong)",
             background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
@@ -352,19 +360,27 @@ function BlPhotoPick({ job, row, api, currentUser, onClose }) {
 
           {/* รูปที่เลือกไว้แล้ว — คำบรรยายของแต่ละรูปพิมพ์ใต้รูปบนกระดาษ */}
           <div style={{ marginTop: 16, borderTop: "1px solid var(--border)", paddingTop: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-2)", marginBottom: 8 }}>รูปในงวดนี้ ({picked.length})</div>
-            {picked.map((p) => (
+            <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-2)", marginBottom: 8 }}>
+              {itemId ? "รูปของรายการนี้" : "รูปที่ยังไม่ผูกกับรายการ"} ({mine.length})
+            </div>
+            {mine.map((p) => (
               <div key={p.id} style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8 }}>
                 <img src={p.dataUrl} alt="" style={{ width: 64, height: 48, objectFit: "cover", borderRadius: 8, border: "1px solid var(--border)" }} />
-                <input value={p.cap || ""} onChange={(e) => api.setCap(p.id, e.target.value)} placeholder="คำบรรยายรูป (ไม่ใส่ก็ได้)"
+                <input value={p.cap || ""} onChange={(e) => api.setCap(p.id, e.target.value)} placeholder="คำบรรยายใต้รูป (ไม่ใส่ก็ได้)"
                   style={Object.assign({}, BL_INPUT(), { fontSize: 12.5, padding: "8px 10px" })} />
+                {/* ย้ายรูปข้ามรายการโดยไม่ต้องลบแล้วเลือกใหม่ — รูปที่อัปโหลดเองมีอยู่ชุดเดียว เลือกใหม่ไม่ได้ */}
+                <select value={p.item || ""} onChange={(e) => api.setItem(p.id, e.target.value)}
+                  style={Object.assign({}, BL_INPUT(), { width: 168, flexShrink: 0, fontSize: 12, padding: "8px 10px" })}>
+                  <option value="">— ไม่ผูกกับรายการ —</option>
+                  {its.map((x, i) => <option key={x.id} value={x.id}>{(i + 1) + ". " + (x.text || "(ยังไม่ตั้งชื่อ)")}</option>)}
+                </select>
                 <button onClick={() => api.remove(p.id)} style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 9,
                   border: "1px solid var(--tint-red-bd)", background: "var(--tint-red-bg)", color: "var(--tint-red-tx)", cursor: "pointer" }}>
                   <Icon name="trash" size={14} color="var(--tint-red-tx)" />
                 </button>
               </div>
             ))}
-            {!picked.length && <div style={{ fontSize: 12, color: "var(--text-3)" }}>ยังไม่ได้เลือกรูป</div>}
+            {!mine.length && <div style={{ fontSize: 12, color: "var(--text-3)" }}>ยังไม่ได้เลือกรูป</div>}
           </div>
         </div>
 
@@ -377,15 +393,26 @@ function BlPhotoPick({ job, row, api, currentUser, onClose }) {
   );
 }
 
-/* รายละเอียดของงวดหนึ่ง — รายการงานที่จะพิมพ์บนใบ คำบรรยายหน้ารูป และรูป */
+/* รายละเอียดของงวดหนึ่ง — รายการส่งมอบ (ชื่อ · จำนวน · หน่วย · วันที่ · รูปของข้อนั้น)
+   รายการชุดนี้ถูกพิมพ์สองที่: เป็นข้อ 1, 2, 3 บนใบแจ้งส่งมอบ และเป็นหัวข้อที่แยกรูปบนหน้ารูป */
 function BlRowDetail({ job, row, onPatch, currentUser, readOnly }) {
   const api = window.useBillPhotos(job ? job.id : null, row ? row.id : null);
-  const [pick, setPick] = React.useState(false);
-  const items = row.items || [];
+  const [pick, setPick] = React.useState(null);      /* id ของข้อที่กำลังเลือกรูปให้ */
+  const items = window.blItems(row);
+  const photosOf = (id) => api.photos.filter((p) => p.item === id);
+  /* รูปที่เลือกไว้ตั้งแต่ก่อนมีระบบแยกข้อ — ยังพิมพ์ได้ แต่ต้องมีที่ให้ย้ายเข้าข้อ */
+  const loose = api.photos.filter((p) => !p.item || !items.some((it) => it.id === p.item));
 
-  const setItem = (i, v) => onPatch({ items: items.map((s, k) => (k === i ? v : s)) });
-  const addItem = () => onPatch({ items: items.concat([""]) });
-  const delItem = (i) => onPatch({ items: items.filter((s, k) => k !== i) });
+  const putItem = (id, fields) => onPatch({ items: items.map((it) => (it.id === id ? Object.assign({}, it, fields) : it)) });
+  const addItem = () => onPatch({ items: items.concat([window.blBlankItem()]) });
+  const delItem = (it) => {
+    const ps = photosOf(it.id);
+    const drop = () => { ps.forEach((p) => api.remove(p.id)); onPatch({ items: items.filter((x) => x.id !== it.id) }); };
+    if (!ps.length) return drop();
+    /* ลบข้อแล้วรูปของข้อนั้นไม่มีที่อยู่ ถามก่อนเสมอ — รูปเป็นของที่ช่างขึ้นไปถ่ายมาจริง */
+    window.askConfirm({ title: "ลบรายการนี้?", body: "รูป " + ps.length + " รูปที่ผูกไว้กับรายการนี้จะถูกลบไปด้วย",
+      ok: "ลบรายการ", danger: true, icon: "trash" }).then((ok) => { if (ok) drop(); });
+  };
 
   /* จำนวนรูปสะท้อนกลับไปที่ตัวงวด ให้หน้ารวมบอกได้ว่างวดไหนยังไม่มีรูปโดยไม่ต้องโหลดรูป */
   React.useEffect(() => {
@@ -394,33 +421,82 @@ function BlRowDetail({ job, row, onPatch, currentUser, readOnly }) {
     if (ids.join(",") !== (row.photoIds || []).join(",")) onPatch({ photoIds: ids });
   }, [api.photos.length]);
 
+  const lbl = { fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 4 };
+  const thumbs = (ps, itId) => (
+    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+      {ps.slice(0, 10).map((p) => (
+        <img key={p.id} src={p.dataUrl} alt="" title={p.cap || ""}
+          style={{ width: 46, height: 36, objectFit: "cover", borderRadius: 6, border: "1px solid var(--border)" }} />
+      ))}
+      {ps.length > 10 && <span style={{ fontSize: 11, color: "var(--text-3)" }}>+{ps.length - 10}</span>}
+      {!readOnly && (
+        <button onClick={() => setPick(itId)}
+          style={{ padding: "6px 10px", borderRadius: 8, border: "1px dashed var(--border-strong)", background: "var(--surface)",
+            color: "var(--text-2)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>
+          <Icon name="camera" size={13} color="var(--text-2)" /> {ps.length ? "แก้รูป" : "เลือกรูป"}
+        </button>
+      )}
+      {!ps.length && readOnly && <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>ยังไม่มีรูป</span>}
+    </div>
+  );
+
   return (
     <div style={{ padding: "12px 14px", background: "var(--surface2)", borderTop: "1px solid var(--border)" }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
         <div>
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 4 }}>เรื่อง (ว่างไว้ = ใช้ข้อความมาตรฐาน)</div>
+          <div style={lbl}>เรื่อง (ว่างไว้ = ใช้ข้อความมาตรฐาน)</div>
           <input value={row.subject || ""} disabled={readOnly} onChange={(e) => onPatch({ subject: e.target.value })}
             placeholder={window.blSubjectOf(Object.assign({}, row, { subject: "" }))} style={BL_INPUT()} />
         </div>
 
         <div>
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 4 }}>
-            รายการงานที่ส่งมอบในงวดนี้ — พิมพ์เป็นข้อ 1, 2, 3 บนใบ
+          <div style={lbl}>
+            รายการที่ส่งมอบในงวดนี้ — พิมพ์เป็นข้อ 1, 2, 3 บนใบ และแยกรูปเป็นหน้า ๆ ตามรายการ
           </div>
-          {items.map((s, i) => (
-            <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-              <span style={{ width: 20, flexShrink: 0, textAlign: "right", fontSize: 12.5, fontWeight: 700,
-                color: "var(--text-3)", paddingTop: 10 }}>{i + 1}.</span>
-              <input value={s} disabled={readOnly} onChange={(e) => setItem(i, e.target.value)}
-                placeholder="เช่น งานติดตั้งแผงโซลาร์เซลล์ 550W จำนวน 120 แผง แล้วเสร็จ 100%" style={BL_INPUT()} />
-              {!readOnly && (
-                <button onClick={() => delItem(i)} style={{ width: 38, flexShrink: 0, borderRadius: 9,
-                  border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-3)", cursor: "pointer" }}>
-                  <Icon name="trash" size={14} color="var(--text-3)" />
-                </button>
-              )}
-            </div>
-          ))}
+          <datalist id="bl-units">{window.BL_UNITS.map((u) => <option key={u} value={u} />)}</datalist>
+
+          {items.map((it, i) => {
+            const ps = photosOf(it.id);
+            return (
+              <div key={it.id} style={{ display: "flex", gap: 8, marginBottom: 8, padding: "10px 11px", borderRadius: 11,
+                background: "var(--surface)", border: "1px solid var(--border)" }}>
+                <span style={{ width: 18, flexShrink: 0, textAlign: "right", fontSize: 12.5, fontWeight: 800,
+                  color: "var(--text-3)", paddingTop: 11 }}>{i + 1}.</span>
+                <div style={{ flex: 1, minWidth: 0, display: "grid", gap: 7 }}>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <input value={it.text || ""} disabled={readOnly} onChange={(e) => putItem(it.id, { text: e.target.value })}
+                      placeholder="เช่น ติดตั้งแผงโซลาร์เซลล์ 550W แล้วเสร็จ"
+                      style={Object.assign({}, BL_INPUT(), { flex: 3, minWidth: 190, width: "auto" })} />
+                    <input type="number" value={it.qty == null ? "" : it.qty} disabled={readOnly}
+                      onChange={(e) => putItem(it.id, { qty: e.target.value === "" ? null : +e.target.value })}
+                      placeholder="จำนวน" style={Object.assign({}, BL_INPUT(), { width: 92, flexShrink: 0, fontFamily: "var(--mono)" })} />
+                    <input list="bl-units" value={it.unit || ""} disabled={readOnly}
+                      onChange={(e) => putItem(it.id, { unit: e.target.value })}
+                      placeholder="หน่วย" style={Object.assign({}, BL_INPUT(), { width: 96, flexShrink: 0 })} />
+                    <input type="date" value={it.date || ""} disabled={readOnly} title="วันที่ทำงานข้อนี้ — พิมพ์บนหน้ารูป"
+                      onChange={(e) => putItem(it.id, { date: e.target.value })}
+                      style={Object.assign({}, BL_INPUT(), { width: 152, flexShrink: 0 })} />
+                  </div>
+                  {thumbs(ps, it.id)}
+                  {/* พรีวิวบรรทัดที่จะพิมพ์จริง — จำนวนกับหน่วยถูกต่อท้ายชื่อให้เอง ไม่ต้องพิมพ์ซ้ำในช่องชื่อ */}
+                  {window.blItemText(it) ? (
+                    <div style={{ fontSize: 10.5, color: "var(--text-3)" }}>
+                      บนเอกสาร: <b style={{ color: "var(--text-2)" }}>{window.blItemText(it)}</b>
+                      {ps.length ? " · หน้ารูป " + Math.ceil(ps.length / 4) + " แผ่น (" + ps.length + " รูป)" : ""}
+                    </div>
+                  ) : null}
+                </div>
+                {!readOnly && (
+                  <button onClick={() => delItem(it)} title="ลบรายการนี้"
+                    style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 9, border: "1px solid var(--border-strong)",
+                      background: "var(--surface)", color: "var(--text-3)", cursor: "pointer" }}>
+                    <Icon name="trash" size={14} color="var(--text-3)" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+
           {!readOnly && (
             <button onClick={addItem} style={{ padding: "7px 12px", borderRadius: 9, border: "1px dashed var(--border-strong)",
               background: "none", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
@@ -429,36 +505,19 @@ function BlRowDetail({ job, row, onPatch, currentUser, readOnly }) {
           )}
         </div>
 
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <div style={{ flex: 2, minWidth: 190 }}>
-            <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 4 }}>คำบรรยายบนหน้ารูป</div>
-            <input value={row.cap || ""} disabled={readOnly} onChange={(e) => onPatch({ cap: e.target.value })}
-              placeholder="เช่น ดำเนินการติดตั้งอินเวอร์เตอร์ 100%" style={BL_INPUT()} />
+        {/* รูปที่ยังไม่ได้ผูกกับข้อไหน — พิมพ์ได้อยู่ แต่ไปกองท้ายสุดโดยไม่มีหัวข้อ */}
+        {!!loose.length && (
+          <div style={{ padding: "9px 11px", borderRadius: 10, background: "var(--tint-amber-bg)",
+            border: "1px solid var(--tint-amber-bd)" }}>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--tint-amber-tx)", marginBottom: 6 }}>
+              รูปที่ยังไม่ได้ผูกกับรายการ ({loose.length}) — จะพิมพ์ไว้แผ่นท้ายสุดแบบไม่มีหัวข้อ
+            </div>
+            {thumbs(loose, "")}
           </div>
-          <div style={{ flex: 1, minWidth: 140 }}>
-            <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 4 }}>ณ วันที่</div>
-            <input type="date" value={row.capDate || ""} disabled={readOnly} onChange={(e) => onPatch({ capDate: e.target.value })} style={BL_INPUT()} />
-          </div>
-        </div>
+        )}
 
         <div>
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 6 }}>รูปประกอบ ({api.photos.length})</div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-            {api.photos.slice(0, 8).map((p) => (
-              <img key={p.id} src={p.dataUrl} alt="" style={{ width: 54, height: 42, objectFit: "cover", borderRadius: 7, border: "1px solid var(--border)" }} />
-            ))}
-            {api.photos.length > 8 && <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>+{api.photos.length - 8}</span>}
-            {!readOnly && (
-              <button onClick={() => setPick(true)} style={{ padding: "8px 12px", borderRadius: 9, border: "1px solid var(--border-strong)",
-                background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-                เลือกรูป
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div>
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 4 }}>บันทึกภายใน (ไม่พิมพ์บนเอกสาร)</div>
+          <div style={lbl}>บันทึกภายใน (ไม่พิมพ์บนเอกสาร)</div>
           <input value={row.note || ""} disabled={readOnly} onChange={(e) => onPatch({ note: e.target.value })} style={BL_INPUT()} />
         </div>
 
@@ -475,10 +534,12 @@ function BlRowDetail({ job, row, onPatch, currentUser, readOnly }) {
         )}
       </div>
 
-      {pick && <BlPhotoPick job={job} row={row} api={api} currentUser={currentUser} onClose={() => setPick(false)} />}
+      {pick !== null && <BlPhotoPick job={job} row={row} api={api} items={items} itemId={pick}
+        currentUser={currentUser} onClose={() => setPick(null)} />}
     </div>
   );
 }
+
 
 /* ══════════════════════════════════════════════════
    แผงตั้งงวดงาน — แก้ตัวเลขและเนื้อหาของงวด (การเดินสถานะอยู่ที่การ์ด/หน้ารวม)

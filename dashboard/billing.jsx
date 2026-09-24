@@ -116,6 +116,50 @@ function blBlankRow(o) {
   };
 }
 
+/* ── รายการส่งมอบของงวด — ชุดเดียวที่ใช้ทั้งสองที่ ──
+   ข้อ 1, 2, 3 บนใบแจ้งส่งมอบ กับหัวข้อที่ใช้แยกรูปบนหน้ารูป คือของสิ่งเดียวกัน
+   แยกเป็นสองชุดเมื่อไร คนกรอกต้องพิมพ์ชื่องานเดียวกันสองรอบ แล้วสุดท้ายก็ไม่ตรงกัน
+
+   รุ่นแรกเก็บ items เป็นสตริงล้วน และมีคำบรรยาย/วันที่/รูปก้อนเดียวทั้งงวด (cap/capDate)
+   แปลงตอนอ่านเอา ไม่ไล่ย้ายข้อมูลในฐาน — งวดที่ออกเอกสารไปแล้วห้ามมีอะไรขยับเอง
+   รูปเก่าที่ยังไม่ถูกผูกกับข้อไหน ยังพิมพ์ออกมาได้เหมือนเดิมใต้คำบรรยายเดิม */
+function blItems(row) {
+  const raw = Array.isArray((row || {}).items) ? (row || {}).items : [];
+  return raw.map((it, i) => (it && typeof it === "object"
+    ? Object.assign({ id: "IT-" + (i + 1), text: "", qty: null, unit: "", date: "" }, it)
+    : { id: "IT-" + (i + 1), text: String(it == null ? "" : it), qty: null, unit: "", date: "" }));
+}
+const blItemId = () => "IT-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 4);
+const blBlankItem = () => ({ id: blItemId(), text: "", qty: null, unit: "", date: "" });
+/* ข้อความที่พิมพ์จริง — "ส่งแผงโซลาร์เซลล์ จำนวน 120 แผง" · ไม่ใส่จำนวนก็เหลือแต่ชื่อ */
+function blItemText(it) {
+  const o = it || {};
+  const t = String(o.text || "").trim();
+  const q = o.qty === "" || o.qty == null ? null : +o.qty;
+  if (q == null || !isFinite(q) || q <= 0) return t;
+  const n = (Math.round(q * 100) / 100).toLocaleString("en-US");
+  const u = String(o.unit || "").trim();
+  return (t ? t + " " : "") + "จำนวน " + n + (u ? " " + u : "");
+}
+const blItemsUsed = (row) => blItems(row).filter((it) => String(it.text || "").trim() || blR2(it.qty) > 0);
+
+/* ── จัดรูปเข้ากลุ่มตามข้อ ── หนึ่งข้อ = หนึ่งหัวข้อบนหน้ารูป ขึ้นแผ่นใหม่เสมอ
+   รูปที่ยังไม่ถูกผูกกับข้อไหน (รวมถึงรูปที่เลือกไว้ก่อนมีระบบนี้) ไปอยู่กลุ่มท้ายสุด ไม่หายไปเฉย ๆ */
+function blPhotoGroups(row, photos) {
+  const r = row || {};
+  const list = (photos || []).filter((p) => p && p.dataUrl);
+  const its = blItems(r);
+  const out = [];
+  its.forEach((it) => {
+    const ps = list.filter((p) => p.item === it.id);
+    if (ps.length) out.push({ id: it.id, head: blItemText(it), date: it.date || "", photos: ps });
+  });
+  const rest = list.filter((p) => !p.item || !its.some((it) => it.id === p.item));
+  if (rest.length) out.push({ id: "", head: r.cap || "", date: r.capDate || "", photos: rest });
+  return out;
+}
+
+const BL_UNITS = ["แผง", "ตัว", "ชุด", "ใบ", "ต้น", "จุด", "เส้น", "เมตร", "ระบบ", "งาน"];
 /* งวดที่ออกเอกสารไปแล้ว ห้ามแก้ตัวเลข — ใบที่ลูกค้าถืออยู่ต้องตรงกับที่ระบบบอก */
 const blRowLocked = (row) => blFlowIdx((row || {}).status) >= blFlowIdx("billed");
 
@@ -163,7 +207,8 @@ const blCan = (from, to, role, user, row, bills) =>
 function blReadyToBill(row, bills) {
   const r = row || {};
   if (!(blR2(r.amount) > 0)) return { ok: false, why: "ยังไม่ได้ใส่จำนวนเงินของงวดนี้" };
-  if (!(r.items || []).length) return { ok: false, why: "ยังไม่ได้ใส่รายการงานที่ส่งมอบในงวดนี้" };
+  if (!blItemsUsed(r).filter((it) => String(it.text || "").trim()).length)
+    return { ok: false, why: "ยังไม่ได้ใส่รายการงานที่ส่งมอบในงวดนี้" };
   return { ok: true, why: "" };
 }
 
@@ -291,8 +336,16 @@ function useBillPhotos(jobId, rowId) {
       id, dataUrl, cap: m.cap || "", at: new Date().toISOString(),
       by: (m.user || {}).id || null, byName: (m.user || {}).name || "",
       src: m.src || "upload", srcRef: m.srcRef || "",
+      /* ผูกกับข้อที่กำลังเปิดอยู่ตั้งแต่ตอนเลือก — ย้ายทีหลังได้ แต่ส่วนใหญ่ไม่ต้องแตะอีก */
+      item: m.item || "",
     });
     return id;
+  }, [jobId, rowId]);
+
+  /* ย้ายรูประหว่างข้อ — เขียนแค่ฟิลด์เดียว ไม่แตะ dataUrl ที่เป็นก้อนใหญ่ */
+  const setItem = React.useCallback((id, item) => {
+    if (!jobId || !rowId || !_BLFB()) return;
+    _blRef("billPhotos/" + jobId + "/" + rowId + "/" + id).update({ item: item || "" });
   }, [jobId, rowId]);
 
   const setCap = React.useCallback((id, cap) => {
@@ -305,13 +358,14 @@ function useBillPhotos(jobId, rowId) {
     _blRef("billPhotos/" + jobId + "/" + rowId + "/" + id).remove();
   }, [jobId, rowId]);
 
-  return { photos, add, setCap, remove };
+  return { photos, add, setCap, setItem, remove };
 }
 
 Object.assign(window, {
   BL_STATUS, BL_STATUS_BY, BL_FLOW, blStatusOf, blFlowIdx,
   blCanUse, blCanBack, blSig, blDrift, blPickQuote, blSeed, blBlankRow, blReseed, blRowLocked, blRowNo,
   blNext, blCan, blMove, blReadyToBill, blDocNo, blPrintable,
+  blItems, blItemId, blBlankItem, blItemText, blItemsUsed, blPhotoGroups, BL_UNITS,
   blRows, blHas, blLive, blCurrentRow, blOverdue, blSummary, blSubjectOf, blR2,
   useBillPhotos,
 });

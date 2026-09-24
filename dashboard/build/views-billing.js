@@ -429,6 +429,8 @@ function BlPhotoPick({
   job,
   row,
   api,
+  items,
+  itemId,
   currentUser,
   onClose
 }) {
@@ -447,6 +449,9 @@ function BlPhotoPick({
   const dayPhotos = window.useDailyPhotos(j.id, tab === "daily" ? day : null);
   const media = window.useJobMedia(tab === "job" ? j.id : null);
   const picked = api.photos || [];
+  const its = items || [];
+  const itemCap = (its.find(x => x.id === itemId) || {}).text || "";
+  const mine = itemId ? picked.filter(p => p.item === itemId) : picked.filter(p => !p.item || !its.some(x => x.id === p.item));
   const has = srcRef => picked.some(p => p.srcRef && p.srcRef === srcRef);
   const take = (p, src, srcRef) => {
     if (has(srcRef)) return;
@@ -454,7 +459,8 @@ function BlPhotoPick({
       cap: p.cap || "",
       user: currentUser,
       src: src,
-      srcRef: srcRef
+      srcRef: srcRef,
+      item: itemId || ""
     });
   };
   const onFiles = async e => {
@@ -472,7 +478,8 @@ function BlPhotoPick({
         api.add(url, {
           user: currentUser,
           src: "upload",
-          srcRef: ""
+          srcRef: "",
+          item: itemId || ""
         });
       } catch (x) {
         setErr("ย่อรูปไม่สำเร็จ ลองรูปอื่น");
@@ -581,12 +588,12 @@ function BlPhotoPick({
       fontWeight: 800,
       color: "var(--text-1)"
     }
-  }, "\u0E23\u0E39\u0E1B\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A\u0E07\u0E27\u0E14\u0E17\u0E35\u0E48 ", (row || {}).n), React.createElement("div", {
+  }, "\u0E23\u0E39\u0E1B\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A\u0E07\u0E27\u0E14\u0E17\u0E35\u0E48 ", (row || {}).n, itemCap ? " · " + itemCap : ""), React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)"
     }
-  }, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E41\u0E25\u0E49\u0E27 ", picked.length, " \u0E23\u0E39\u0E1B \xB7 \u0E41\u0E1C\u0E48\u0E19\u0E25\u0E30 4 \u0E23\u0E39\u0E1B\u0E40\u0E27\u0E25\u0E32\u0E1E\u0E34\u0E21\u0E1E\u0E4C")), React.createElement("button", {
+  }, itemId ? "รูปที่เลือกจะเข้ารายการนี้ · " : "", "\u0E17\u0E31\u0E49\u0E07\u0E07\u0E27\u0E14\u0E21\u0E35 ", picked.length, " \u0E23\u0E39\u0E1B \xB7 \u0E41\u0E1C\u0E48\u0E19\u0E25\u0E30 4 \u0E23\u0E39\u0E1B\u0E40\u0E27\u0E25\u0E32\u0E1E\u0E34\u0E21\u0E1E\u0E4C")), React.createElement("button", {
     onClick: onClose,
     style: {
       width: 34,
@@ -669,7 +676,7 @@ function BlPhotoPick({
       color: "var(--text-2)",
       marginBottom: 8
     }
-  }, "\u0E23\u0E39\u0E1B\u0E43\u0E19\u0E07\u0E27\u0E14\u0E19\u0E35\u0E49 (", picked.length, ")"), picked.map(p => React.createElement("div", {
+  }, itemId ? "รูปของรายการนี้" : "รูปที่ยังไม่ผูกกับรายการ", " (", mine.length, ")"), mine.map(p => React.createElement("div", {
     key: p.id,
     style: {
       display: "flex",
@@ -690,12 +697,26 @@ function BlPhotoPick({
   }), React.createElement("input", {
     value: p.cap || "",
     onChange: e => api.setCap(p.id, e.target.value),
-    placeholder: "\u0E04\u0E33\u0E1A\u0E23\u0E23\u0E22\u0E32\u0E22\u0E23\u0E39\u0E1B (\u0E44\u0E21\u0E48\u0E43\u0E2A\u0E48\u0E01\u0E47\u0E44\u0E14\u0E49)",
+    placeholder: "\u0E04\u0E33\u0E1A\u0E23\u0E23\u0E22\u0E32\u0E22\u0E43\u0E15\u0E49\u0E23\u0E39\u0E1B (\u0E44\u0E21\u0E48\u0E43\u0E2A\u0E48\u0E01\u0E47\u0E44\u0E14\u0E49)",
     style: Object.assign({}, BL_INPUT(), {
       fontSize: 12.5,
       padding: "8px 10px"
     })
-  }), React.createElement("button", {
+  }), React.createElement("select", {
+    value: p.item || "",
+    onChange: e => api.setItem(p.id, e.target.value),
+    style: Object.assign({}, BL_INPUT(), {
+      width: 168,
+      flexShrink: 0,
+      fontSize: 12,
+      padding: "8px 10px"
+    })
+  }, React.createElement("option", {
+    value: ""
+  }, "\u2014 \u0E44\u0E21\u0E48\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23 \u2014"), its.map((x, i) => React.createElement("option", {
+    key: x.id,
+    value: x.id
+  }, i + 1 + ". " + (x.text || "(ยังไม่ตั้งชื่อ)")))), React.createElement("button", {
     onClick: () => api.remove(p.id),
     style: {
       width: 32,
@@ -711,7 +732,7 @@ function BlPhotoPick({
     name: "trash",
     size: 14,
     color: "var(--tint-red-tx)"
-  })))), !picked.length && React.createElement("div", {
+  })))), !mine.length && React.createElement("div", {
     style: {
       fontSize: 12,
       color: "var(--text-3)"
@@ -745,17 +766,35 @@ function BlRowDetail({
   readOnly
 }) {
   const api = window.useBillPhotos(job ? job.id : null, row ? row.id : null);
-  const [pick, setPick] = React.useState(false);
-  const items = row.items || [];
-  const setItem = (i, v) => onPatch({
-    items: items.map((s, k) => k === i ? v : s)
+  const [pick, setPick] = React.useState(null);
+  const items = window.blItems(row);
+  const photosOf = id => api.photos.filter(p => p.item === id);
+  const loose = api.photos.filter(p => !p.item || !items.some(it => it.id === p.item));
+  const putItem = (id, fields) => onPatch({
+    items: items.map(it => it.id === id ? Object.assign({}, it, fields) : it)
   });
   const addItem = () => onPatch({
-    items: items.concat([""])
+    items: items.concat([window.blBlankItem()])
   });
-  const delItem = i => onPatch({
-    items: items.filter((s, k) => k !== i)
-  });
+  const delItem = it => {
+    const ps = photosOf(it.id);
+    const drop = () => {
+      ps.forEach(p => api.remove(p.id));
+      onPatch({
+        items: items.filter(x => x.id !== it.id)
+      });
+    };
+    if (!ps.length) return drop();
+    window.askConfirm({
+      title: "ลบรายการนี้?",
+      body: "รูป " + ps.length + " รูปที่ผูกไว้กับรายการนี้จะถูกลบไปด้วย",
+      ok: "ลบรายการ",
+      danger: true,
+      icon: "trash"
+    }).then(ok => {
+      if (ok) drop();
+    });
+  };
   React.useEffect(() => {
     const ids = api.photos.map(p => p.id);
     if (readOnly) return;
@@ -763,6 +802,59 @@ function BlRowDetail({
       photoIds: ids
     });
   }, [api.photos.length]);
+  const lbl = {
+    fontSize: 11.5,
+    fontWeight: 700,
+    color: "var(--text-3)",
+    marginBottom: 4
+  };
+  const thumbs = (ps, itId) => React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      flexWrap: "wrap",
+      alignItems: "center"
+    }
+  }, ps.slice(0, 10).map(p => React.createElement("img", {
+    key: p.id,
+    src: p.dataUrl,
+    alt: "",
+    title: p.cap || "",
+    style: {
+      width: 46,
+      height: 36,
+      objectFit: "cover",
+      borderRadius: 6,
+      border: "1px solid var(--border)"
+    }
+  })), ps.length > 10 && React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, "+", ps.length - 10), !readOnly && React.createElement("button", {
+    onClick: () => setPick(itId),
+    style: {
+      padding: "6px 10px",
+      borderRadius: 8,
+      border: "1px dashed var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-2)",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, React.createElement(Icon, {
+    name: "camera",
+    size: 13,
+    color: "var(--text-2)"
+  }), " ", ps.length ? "แก้รูป" : "เลือกรูป"), !ps.length && readOnly && React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E39\u0E1B"));
   return React.createElement("div", {
     style: {
       padding: "12px 14px",
@@ -776,12 +868,7 @@ function BlRowDetail({
       gap: 10
     }
   }, React.createElement("div", null, React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)",
-      marginBottom: 4
-    }
+    style: lbl
   }, "\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07 (\u0E27\u0E48\u0E32\u0E07\u0E44\u0E27\u0E49 = \u0E43\u0E0A\u0E49\u0E02\u0E49\u0E2D\u0E04\u0E27\u0E32\u0E21\u0E21\u0E32\u0E15\u0E23\u0E10\u0E32\u0E19)"), React.createElement("input", {
     value: row.subject || "",
     disabled: readOnly,
@@ -793,51 +880,125 @@ function BlRowDetail({
     })),
     style: BL_INPUT()
   })), React.createElement("div", null, React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)",
-      marginBottom: 4
-    }
-  }, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E2A\u0E48\u0E07\u0E21\u0E2D\u0E1A\u0E43\u0E19\u0E07\u0E27\u0E14\u0E19\u0E35\u0E49 \u2014 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E49\u0E2D 1, 2, 3 \u0E1A\u0E19\u0E43\u0E1A"), items.map((s, i) => React.createElement("div", {
-    key: i,
-    style: {
-      display: "flex",
-      gap: 6,
-      marginBottom: 6
-    }
-  }, React.createElement("span", {
-    style: {
-      width: 20,
-      flexShrink: 0,
-      textAlign: "right",
-      fontSize: 12.5,
-      fontWeight: 700,
-      color: "var(--text-3)",
-      paddingTop: 10
-    }
-  }, i + 1, "."), React.createElement("input", {
-    value: s,
-    disabled: readOnly,
-    onChange: e => setItem(i, e.target.value),
-    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E41\u0E1C\u0E07\u0E42\u0E0B\u0E25\u0E32\u0E23\u0E4C\u0E40\u0E0B\u0E25\u0E25\u0E4C 550W \u0E08\u0E33\u0E19\u0E27\u0E19 120 \u0E41\u0E1C\u0E07 \u0E41\u0E25\u0E49\u0E27\u0E40\u0E2A\u0E23\u0E47\u0E08 100%",
-    style: BL_INPUT()
+    style: lbl
+  }, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E17\u0E35\u0E48\u0E2A\u0E48\u0E07\u0E21\u0E2D\u0E1A\u0E43\u0E19\u0E07\u0E27\u0E14\u0E19\u0E35\u0E49 \u2014 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E49\u0E2D 1, 2, 3 \u0E1A\u0E19\u0E43\u0E1A \u0E41\u0E25\u0E30\u0E41\u0E22\u0E01\u0E23\u0E39\u0E1B\u0E40\u0E1B\u0E47\u0E19\u0E2B\u0E19\u0E49\u0E32 \u0E46 \u0E15\u0E32\u0E21\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"), React.createElement("datalist", {
+    id: "bl-units"
+  }, window.BL_UNITS.map(u => React.createElement("option", {
+    key: u,
+    value: u
+  }))), items.map((it, i) => {
+    const ps = photosOf(it.id);
+    return React.createElement("div", {
+      key: it.id,
+      style: {
+        display: "flex",
+        gap: 8,
+        marginBottom: 8,
+        padding: "10px 11px",
+        borderRadius: 11,
+        background: "var(--surface)",
+        border: "1px solid var(--border)"
+      }
+    }, React.createElement("span", {
+      style: {
+        width: 18,
+        flexShrink: 0,
+        textAlign: "right",
+        fontSize: 12.5,
+        fontWeight: 800,
+        color: "var(--text-3)",
+        paddingTop: 11
+      }
+    }, i + 1, "."), React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0,
+        display: "grid",
+        gap: 7
+      }
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 6,
+        flexWrap: "wrap"
+      }
+    }, React.createElement("input", {
+      value: it.text || "",
+      disabled: readOnly,
+      onChange: e => putItem(it.id, {
+        text: e.target.value
+      }),
+      placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E41\u0E1C\u0E07\u0E42\u0E0B\u0E25\u0E32\u0E23\u0E4C\u0E40\u0E0B\u0E25\u0E25\u0E4C 550W \u0E41\u0E25\u0E49\u0E27\u0E40\u0E2A\u0E23\u0E47\u0E08",
+      style: Object.assign({}, BL_INPUT(), {
+        flex: 3,
+        minWidth: 190,
+        width: "auto"
+      })
+    }), React.createElement("input", {
+      type: "number",
+      value: it.qty == null ? "" : it.qty,
+      disabled: readOnly,
+      onChange: e => putItem(it.id, {
+        qty: e.target.value === "" ? null : +e.target.value
+      }),
+      placeholder: "\u0E08\u0E33\u0E19\u0E27\u0E19",
+      style: Object.assign({}, BL_INPUT(), {
+        width: 92,
+        flexShrink: 0,
+        fontFamily: "var(--mono)"
+      })
+    }), React.createElement("input", {
+      list: "bl-units",
+      value: it.unit || "",
+      disabled: readOnly,
+      onChange: e => putItem(it.id, {
+        unit: e.target.value
+      }),
+      placeholder: "\u0E2B\u0E19\u0E48\u0E27\u0E22",
+      style: Object.assign({}, BL_INPUT(), {
+        width: 96,
+        flexShrink: 0
+      })
+    }), React.createElement("input", {
+      type: "date",
+      value: it.date || "",
+      disabled: readOnly,
+      title: "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E17\u0E33\u0E07\u0E32\u0E19\u0E02\u0E49\u0E2D\u0E19\u0E35\u0E49 \u2014 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E1A\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E23\u0E39\u0E1B",
+      onChange: e => putItem(it.id, {
+        date: e.target.value
+      }),
+      style: Object.assign({}, BL_INPUT(), {
+        width: 152,
+        flexShrink: 0
+      })
+    })), thumbs(ps, it.id), window.blItemText(it) ? React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        color: "var(--text-3)"
+      }
+    }, "\u0E1A\u0E19\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23: ", React.createElement("b", {
+      style: {
+        color: "var(--text-2)"
+      }
+    }, window.blItemText(it)), ps.length ? " · หน้ารูป " + Math.ceil(ps.length / 4) + " แผ่น (" + ps.length + " รูป)" : "") : null), !readOnly && React.createElement("button", {
+      onClick: () => delItem(it),
+      title: "\u0E25\u0E1A\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E19\u0E35\u0E49",
+      style: {
+        width: 36,
+        height: 36,
+        flexShrink: 0,
+        borderRadius: 9,
+        border: "1px solid var(--border-strong)",
+        background: "var(--surface)",
+        color: "var(--text-3)",
+        cursor: "pointer"
+      }
+    }, React.createElement(Icon, {
+      name: "trash",
+      size: 14,
+      color: "var(--text-3)"
+    })));
   }), !readOnly && React.createElement("button", {
-    onClick: () => delItem(i),
-    style: {
-      width: 38,
-      flexShrink: 0,
-      borderRadius: 9,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
-      color: "var(--text-3)",
-      cursor: "pointer"
-    }
-  }, React.createElement(Icon, {
-    name: "trash",
-    size: 14,
-    color: "var(--text-3)"
-  })))), !readOnly && React.createElement("button", {
     onClick: addItem,
     style: {
       padding: "7px 12px",
@@ -850,102 +1011,22 @@ function BlRowDetail({
       fontWeight: 700,
       cursor: "pointer"
     }
-  }, "+ \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23")), React.createElement("div", {
+  }, "+ \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23")), !!loose.length && React.createElement("div", {
     style: {
-      display: "flex",
-      gap: 10,
-      flexWrap: "wrap"
-    }
-  }, React.createElement("div", {
-    style: {
-      flex: 2,
-      minWidth: 190
+      padding: "9px 11px",
+      borderRadius: 10,
+      background: "var(--tint-amber-bg)",
+      border: "1px solid var(--tint-amber-bd)"
     }
   }, React.createElement("div", {
     style: {
       fontSize: 11.5,
       fontWeight: 700,
-      color: "var(--text-3)",
-      marginBottom: 4
-    }
-  }, "\u0E04\u0E33\u0E1A\u0E23\u0E23\u0E22\u0E32\u0E22\u0E1A\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E23\u0E39\u0E1B"), React.createElement("input", {
-    value: row.cap || "",
-    disabled: readOnly,
-    onChange: e => onPatch({
-      cap: e.target.value
-    }),
-    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E14\u0E33\u0E40\u0E19\u0E34\u0E19\u0E01\u0E32\u0E23\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C 100%",
-    style: BL_INPUT()
-  })), React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 140
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)",
-      marginBottom: 4
-    }
-  }, "\u0E13 \u0E27\u0E31\u0E19\u0E17\u0E35\u0E48"), React.createElement("input", {
-    type: "date",
-    value: row.capDate || "",
-    disabled: readOnly,
-    onChange: e => onPatch({
-      capDate: e.target.value
-    }),
-    style: BL_INPUT()
-  }))), React.createElement("div", null, React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)",
+      color: "var(--tint-amber-tx)",
       marginBottom: 6
     }
-  }, "\u0E23\u0E39\u0E1B\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A (", api.photos.length, ")"), React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 6,
-      flexWrap: "wrap",
-      alignItems: "center"
-    }
-  }, api.photos.slice(0, 8).map(p => React.createElement("img", {
-    key: p.id,
-    src: p.dataUrl,
-    alt: "",
-    style: {
-      width: 54,
-      height: 42,
-      objectFit: "cover",
-      borderRadius: 7,
-      border: "1px solid var(--border)"
-    }
-  })), api.photos.length > 8 && React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      color: "var(--text-3)"
-    }
-  }, "+", api.photos.length - 8), !readOnly && React.createElement("button", {
-    onClick: () => setPick(true),
-    style: {
-      padding: "8px 12px",
-      borderRadius: 9,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
-      color: "var(--text-2)",
-      fontFamily: "inherit",
-      fontSize: 12.5,
-      fontWeight: 700,
-      cursor: "pointer"
-    }
-  }, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E39\u0E1B"))), React.createElement("div", null, React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)",
-      marginBottom: 4
-    }
+  }, "\u0E23\u0E39\u0E1B\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23 (", loose.length, ") \u2014 \u0E08\u0E30\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E44\u0E27\u0E49\u0E41\u0E1C\u0E48\u0E19\u0E17\u0E49\u0E32\u0E22\u0E2A\u0E38\u0E14\u0E41\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E21\u0E35\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D"), thumbs(loose, "")), React.createElement("div", null, React.createElement("div", {
+    style: lbl
   }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E20\u0E32\u0E22\u0E43\u0E19 (\u0E44\u0E21\u0E48\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E1A\u0E19\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23)"), React.createElement("input", {
     value: row.note || "",
     disabled: readOnly,
@@ -961,12 +1042,14 @@ function BlRowDetail({
     }
   }, row.hist.slice().reverse().map((h, i) => React.createElement("div", {
     key: i
-  }, window.thDateTime ? window.thDateTime(h.at) : h.at, " \xB7 ", window.blStatusOf(h.to).th, h.byName ? " · " + h.byName : "", h.note ? " · " + h.note : "")))), pick && React.createElement(BlPhotoPick, {
+  }, window.thDateTime ? window.thDateTime(h.at) : h.at, " \xB7 ", window.blStatusOf(h.to).th, h.byName ? " · " + h.byName : "", h.note ? " · " + h.note : "")))), pick !== null && React.createElement(BlPhotoPick, {
     job: job,
     row: row,
     api: api,
+    items: items,
+    itemId: pick,
     currentUser: currentUser,
-    onClose: () => setPick(false)
+    onClose: () => setPick(null)
   }));
 }
 function BlSetupModal({

@@ -142,7 +142,7 @@ function BlDeliveryPaper({
   const kwp = +b.kwp || +j.kw || 0;
   const site = [j.address, j.province].filter(Boolean).join(" ");
   const docNo = r.docNo || window.blDocNo(j, r);
-  const items = (r.items || []).filter(s => String(s || "").trim());
+  const items = window.blItemsUsed(r).map(window.blItemText).filter(Boolean);
   const doPrint = () => {
     const old = document.title;
     document.title = docNo + " วางบิลงวดที่ " + (r.n || 1) + " " + (j.code || "");
@@ -151,8 +151,20 @@ function BlDeliveryPaper({
       document.title = old;
     }, 800);
   };
+  const groups = window.blPhotoGroups(r, list);
   const pages = [];
-  for (let i = 0; i < list.length; i += 4) pages.push(list.slice(i, i + 4));
+  groups.forEach(g => {
+    const n = Math.ceil(g.photos.length / 4);
+    for (let i = 0; i < g.photos.length; i += 4) {
+      pages.push({
+        head: g.head,
+        date: g.date,
+        shots: g.photos.slice(i, i + 4),
+        sub: i / 4 + 1,
+        subN: n
+      });
+    }
+  });
   const paper = {
     maxWidth: 900,
     margin: "0 auto",
@@ -489,7 +501,7 @@ function BlDeliveryPaper({
       color: BP_SOFT,
       marginTop: 2
     }
-  }, [j.code, j.name].filter(Boolean).join(" · "), pages.length > 1 ? " · แผ่นที่ " + (pi + 1) + "/" + pages.length : "")), (r.cap || r.capDate) && React.createElement("div", {
+  }, [j.code, j.name].filter(Boolean).join(" · "), pages.length > 1 ? " · แผ่นที่ " + (pi + 1) + "/" + pages.length : "")), (pg.head || pg.date) && React.createElement("div", {
     style: {
       textAlign: "center",
       fontSize: 12,
@@ -500,14 +512,19 @@ function BlDeliveryPaper({
       padding: "7px 0",
       marginBottom: 12
     }
-  }, r.cap, r.capDate ? " ณ วันที่ " + bpDate(r.capDate) : ""), React.createElement("div", {
+  }, pg.head, pg.date ? " ณ วันที่ " + bpDate(pg.date) : "", pg.subN > 1 ? React.createElement("span", {
+    style: {
+      fontWeight: 600,
+      color: BP_SOFT
+    }
+  }, " (", pg.sub, "/", pg.subN, ")") : null), React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
       gap: 12,
       marginBottom: 16
     }
-  }, pg.map(p => React.createElement("div", {
+  }, pg.shots.map(p => React.createElement("div", {
     key: p.id,
     className: "bl-shot",
     style: {

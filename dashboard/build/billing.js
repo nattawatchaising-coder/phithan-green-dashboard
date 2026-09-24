@@ -132,6 +132,64 @@ function blBlankRow(o) {
     hist: []
   };
 }
+function blItems(row) {
+  const raw = Array.isArray((row || {}).items) ? (row || {}).items : [];
+  return raw.map((it, i) => it && typeof it === "object" ? Object.assign({
+    id: "IT-" + (i + 1),
+    text: "",
+    qty: null,
+    unit: "",
+    date: ""
+  }, it) : {
+    id: "IT-" + (i + 1),
+    text: String(it == null ? "" : it),
+    qty: null,
+    unit: "",
+    date: ""
+  });
+}
+const blItemId = () => "IT-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 4);
+const blBlankItem = () => ({
+  id: blItemId(),
+  text: "",
+  qty: null,
+  unit: "",
+  date: ""
+});
+function blItemText(it) {
+  const o = it || {};
+  const t = String(o.text || "").trim();
+  const q = o.qty === "" || o.qty == null ? null : +o.qty;
+  if (q == null || !isFinite(q) || q <= 0) return t;
+  const n = (Math.round(q * 100) / 100).toLocaleString("en-US");
+  const u = String(o.unit || "").trim();
+  return (t ? t + " " : "") + "จำนวน " + n + (u ? " " + u : "");
+}
+const blItemsUsed = row => blItems(row).filter(it => String(it.text || "").trim() || blR2(it.qty) > 0);
+function blPhotoGroups(row, photos) {
+  const r = row || {};
+  const list = (photos || []).filter(p => p && p.dataUrl);
+  const its = blItems(r);
+  const out = [];
+  its.forEach(it => {
+    const ps = list.filter(p => p.item === it.id);
+    if (ps.length) out.push({
+      id: it.id,
+      head: blItemText(it),
+      date: it.date || "",
+      photos: ps
+    });
+  });
+  const rest = list.filter(p => !p.item || !its.some(it => it.id === p.item));
+  if (rest.length) out.push({
+    id: "",
+    head: r.cap || "",
+    date: r.capDate || "",
+    photos: rest
+  });
+  return out;
+}
+const BL_UNITS = ["แผง", "ตัว", "ชุด", "ใบ", "ต้น", "จุด", "เส้น", "เมตร", "ระบบ", "งาน"];
 const blRowLocked = row => blFlowIdx((row || {}).status) >= blFlowIdx("billed");
 function blReseed(bills, quote, job, user) {
   const fresh = blSeed(quote, job, user);
@@ -181,7 +239,7 @@ function blReadyToBill(row, bills) {
     ok: false,
     why: "ยังไม่ได้ใส่จำนวนเงินของงวดนี้"
   };
-  if (!(r.items || []).length) return {
+  if (!blItemsUsed(r).filter(it => String(it.text || "").trim()).length) return {
     ok: false,
     why: "ยังไม่ได้ใส่รายการงานที่ส่งมอบในงวดนี้"
   };
@@ -314,9 +372,16 @@ function useBillPhotos(jobId, rowId) {
       by: (m.user || {}).id || null,
       byName: (m.user || {}).name || "",
       src: m.src || "upload",
-      srcRef: m.srcRef || ""
+      srcRef: m.srcRef || "",
+      item: m.item || ""
     });
     return id;
+  }, [jobId, rowId]);
+  const setItem = React.useCallback((id, item) => {
+    if (!jobId || !rowId || !_BLFB()) return;
+    _blRef("billPhotos/" + jobId + "/" + rowId + "/" + id).update({
+      item: item || ""
+    });
   }, [jobId, rowId]);
   const setCap = React.useCallback((id, cap) => {
     if (!jobId || !rowId || !_BLFB()) return;
@@ -332,6 +397,7 @@ function useBillPhotos(jobId, rowId) {
     photos,
     add,
     setCap,
+    setItem,
     remove
   };
 }
@@ -357,6 +423,13 @@ Object.assign(window, {
   blReadyToBill,
   blDocNo,
   blPrintable,
+  blItems,
+  blItemId,
+  blBlankItem,
+  blItemText,
+  blItemsUsed,
+  blPhotoGroups,
+  BL_UNITS,
   blRows,
   blHas,
   blLive,

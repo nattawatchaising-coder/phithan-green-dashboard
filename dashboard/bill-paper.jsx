@@ -86,7 +86,8 @@ function BlDeliveryPaper({ job, bill, row, photos, onClose }) {
   const kwp = +b.kwp || +j.kw || 0;
   const site = [j.address, j.province].filter(Boolean).join(" ");
   const docNo = r.docNo || window.blDocNo(j, r);
-  const items = (r.items || []).filter((s) => String(s || "").trim());
+  /* ข้อบนใบ = ชื่อรายการที่ต่อจำนวนกับหน่วยเข้าไปแล้ว ("ส่งแผงโซลาร์เซลล์ จำนวน 120 แผง") */
+  const items = window.blItemsUsed(r).map(window.blItemText).filter(Boolean);
 
   const doPrint = () => {
     const old = document.title;
@@ -96,9 +97,16 @@ function BlDeliveryPaper({ job, bill, row, photos, onClose }) {
   };
 
   /* หนึ่งแผ่น = 4 รูป (2x2) — น้อยกว่าใบตรวจงานที่ใส่ 6 เพราะแผ่นนี้มีบรรทัดคำบรรยาย
-     กับช่องเซ็นสามฝ่ายกินที่ไปอีกราวหนึ่งในสี่ของหน้า */
+     กับช่องเซ็นกินที่ไปอีกราวหนึ่งในสี่ของหน้า
+     รายการคนละข้อไม่ปนแผ่นกัน — ลูกค้าเปิดหน้าไหนก็รู้ว่ากำลังดูงานอะไรอยู่ แม้ใบจะถูกแยกถ่ายสำเนา */
+  const groups = window.blPhotoGroups(r, list);
   const pages = [];
-  for (let i = 0; i < list.length; i += 4) pages.push(list.slice(i, i + 4));
+  groups.forEach((g) => {
+    const n = Math.ceil(g.photos.length / 4);
+    for (let i = 0; i < g.photos.length; i += 4) {
+      pages.push({ head: g.head, date: g.date, shots: g.photos.slice(i, i + 4), sub: i / 4 + 1, subN: n });
+    }
+  });
 
   const paper = { maxWidth: 900, margin: "0 auto", background: "#fff", color: BP_INK,
     padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "0 20px 60px rgba(8,20,14,.28)" };
@@ -234,15 +242,16 @@ function BlDeliveryPaper({ job, bill, row, photos, onClose }) {
               </div>
             </div>
 
-            {(r.cap || r.capDate) && (
+            {(pg.head || pg.date) && (
               <div style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: BP_INK,
                 borderTop: "1px solid " + BP_LINE, borderBottom: "1px solid " + BP_LINE, padding: "7px 0", marginBottom: 12 }}>
-                {r.cap}{r.capDate ? " ณ วันที่ " + bpDate(r.capDate) : ""}
+                {pg.head}{pg.date ? " ณ วันที่ " + bpDate(pg.date) : ""}
+                {pg.subN > 1 ? <span style={{ fontWeight: 600, color: BP_SOFT }}> ({pg.sub}/{pg.subN})</span> : null}
               </div>
             )}
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-              {pg.map((p) => (
+              {pg.shots.map((p) => (
                 <div key={p.id} className="bl-shot" style={{ breakInside: "avoid" }}>
                   <div style={{ border: "1px solid " + BP_LINE, borderRadius: 8, overflow: "hidden", background: "#F3F6F5" }}>
                     <img src={p.dataUrl} alt={p.cap || ""} style={{ display: "block", width: "100%" }} />
