@@ -113,6 +113,13 @@ const EC_PAPER_I18N = {
 /* ── ลายเซ็นประจำตัวของผู้ใช้ ──
    เก็บที่ userSigns/{id} (daily.jsx:403) แยกจาก users/ เพราะรายชื่อผู้ใช้โหลดทั้งก้อนตอนล็อกอิน
    อ่านครั้งเดียวตอนเปิดใบ ไม่ต้อง subscribe — ใบสำคัญจ่ายคือภาพนิ่งของรอบที่ปิดไปแล้ว */
+function useEcPrintBody() {
+  React.useEffect(() => {
+    document.body.classList.add("sv-rep-printing");
+    return () => document.body.classList.remove("sv-rep-printing");
+  }, []);
+}
+
 function useEcSigns(ids) {
   const key = (ids || []).filter(Boolean).join(",");
   const [map, setMap] = React.useState({});
@@ -165,6 +172,7 @@ function EcVoucherPaper({ batch, claims, onClose }) {
   });
   /* เซ็นให้อัตโนมัติได้เฉพาะตอนคนอนุมัติคนเดียว — หลายคนต้องเซ็นสดทุกคน */
   const signs = useEcSigns([b.byId].concat(apprs.length === 1 ? [apprs[0].id] : []));
+  useEcPrintBody();
 
   const doPrint = () => {
     const old = document.title;
@@ -178,7 +186,7 @@ function EcVoucherPaper({ batch, claims, onClose }) {
   const td = { padding: "5px 7px", fontSize: 10.5, color: "#15211A", borderBottom: "1px solid #ECF1EE", verticalAlign: "top" };
   const num = Object.assign({}, td, { textAlign: "right", fontFamily: "var(--mono)" });
 
-  return (
+  return ReactDOM.createPortal((
     <div className="sv-rep-overlay" style={{ position: "fixed", inset: 0, zIndex: 160, background: "rgba(8,20,14,.55)",
       overflow: "auto", padding: isMobile ? 0 : "24px 16px" }}>
 
@@ -330,7 +338,7 @@ function EcVoucherPaper({ batch, claims, onClose }) {
         </div>
       </div>
     </div>
-  );
+  ), document.body);
 }
 
 /* ══════════════════════════════════════════════════
@@ -360,6 +368,7 @@ function EcClaimPaper({ claim, job, user, onPrinted, onClose }) {
   const imgs = shots.filter((s) => window.ecReceiptKind(s) === "img");
   const pdfs = shots.filter((s) => window.ecReceiptKind(s) === "pdf");
   const signs = useEcSigns([c.byId, c.decidedById, c.paidById]);
+  useEcPrintBody();
 
   const doPrint = () => {
     const old = document.title;
@@ -393,7 +402,7 @@ function EcClaimPaper({ claim, job, user, onPrinted, onClose }) {
     { t: T("ผู้จ่ายคืน"), n: c.paidByName, img: signs[c.paidById], at: day(c.paidAt) },
   ];
 
-  return (
+  return ReactDOM.createPortal((
     <div className="sv-rep-overlay" style={{ position: "fixed", inset: 0, zIndex: 160, background: "rgba(8,20,14,.55)",
       overflow: "auto", padding: isMobile ? 0 : "24px 16px" }}>
 
@@ -573,7 +582,7 @@ function EcClaimPaper({ claim, job, user, onPrinted, onClose }) {
         ))}
       </div>
     </div>
-  );
+  ), document.body);
 }
 
 /* แถวข้อมูลหัวกระดาษ — DrPRow ของรายงานประจำวันไม่ได้ export ออกมา จึงทำคู่เล็ก ๆ ไว้ใช้เอง */

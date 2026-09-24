@@ -82,6 +82,12 @@ const EC_PAPER_I18N = {
   "ค่าแรงจ้างช่วง": ["Subcontract labour", "外包人工"],
   "อื่น ๆ": ["Other", "其他"]
 };
+function useEcPrintBody() {
+  React.useEffect(() => {
+    document.body.classList.add("sv-rep-printing");
+    return () => document.body.classList.remove("sv-rep-printing");
+  }, []);
+}
 function useEcSigns(ids) {
   const key = (ids || []).filter(Boolean).join(",");
   const [map, setMap] = React.useState({});
@@ -142,6 +148,7 @@ function EcVoucherPaper({
     });
   });
   const signs = useEcSigns([b.byId].concat(apprs.length === 1 ? [apprs[0].id] : []));
+  useEcPrintBody();
   const doPrint = () => {
     const old = document.title;
     document.title = T("ใบสำคัญจ่าย") + " " + (b.no || "") + " " + (b.toName || "");
@@ -170,7 +177,7 @@ function EcVoucherPaper({
     textAlign: "right",
     fontFamily: "var(--mono)"
   });
-  return React.createElement("div", {
+  return ReactDOM.createPortal(React.createElement("div", {
     className: "sv-rep-overlay",
     style: {
       position: "fixed",
@@ -557,7 +564,7 @@ function EcVoucherPaper({
       color: "#8A9A91",
       textAlign: "center"
     }
-  }, T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง"), " flash+solar \xB7 ", b.no || "-", " \xB7 ", T("พิมพ์เมื่อ"), " ", DTs(window.drToday()))));
+  }, T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง"), " flash+solar \xB7 ", b.no || "-", " \xB7 ", T("พิมพ์เมื่อ"), " ", DTs(window.drToday())))), document.body);
 }
 function EcClaimPaper({
   claim,
@@ -586,6 +593,7 @@ function EcClaimPaper({
   const imgs = shots.filter(s => window.ecReceiptKind(s) === "img");
   const pdfs = shots.filter(s => window.ecReceiptKind(s) === "pdf");
   const signs = useEcSigns([c.byId, c.decidedById, c.paidById]);
+  useEcPrintBody();
   const doPrint = () => {
     const old = document.title;
     document.title = T("ใบเบิกเงินหน้างาน") + " " + (c.no || "") + " " + (c.byName || "");
@@ -638,7 +646,7 @@ function EcClaimPaper({
     img: signs[c.paidById],
     at: day(c.paidAt)
   }];
-  return React.createElement("div", {
+  return ReactDOM.createPortal(React.createElement("div", {
     className: "sv-rep-overlay",
     style: {
       position: "fixed",
@@ -1097,7 +1105,7 @@ function EcClaimPaper({
       objectFit: "contain",
       display: "block"
     }
-  })))));
+  }))))), document.body);
 }
 function EcVPRow({
   k,

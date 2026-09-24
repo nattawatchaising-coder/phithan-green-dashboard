@@ -506,11 +506,6 @@ function EcClaimRow({ claim, onOpen, gone }) {
             <span style={{ color: "#F59E0B", fontFamily: "inherit" }}> · ไม่มีบิลแนบ</span>
           )}
           {claim.receiptCount > 0 && <span> · บิล {claim.receiptCount} ใบ</span>}
-          {claim.printedAt && (
-            <span title={"พิมพ์เมื่อ " + window.drDateTH(String(claim.printedAt).slice(0, 10))
-              + (claim.printedByName ? " · โดย " + claim.printedByName : "")}
-              style={{ color: "var(--tint-ok-tx)", fontFamily: "inherit" }}> · พิมพ์แล้ว</span>
-          )}
           {/* ใบเบิกเป็นเอกสารการเงิน ต้องอ่านได้ต่อแม้ใบงานถูกลบ — ชื่อไซต์ถ่ายสำเนาไว้ตอนเปิดใบแล้ว */}
           {gone && <span style={{ color: "#F59E0B", fontFamily: "inherit" }}> · งานถูกลบจากฐานข้อมูล</span>}
         </span>
@@ -520,6 +515,14 @@ function EcClaimRow({ claim, onOpen, gone }) {
           {window.ecBaht(claim.amount)}
         </span>
         <span style={{ display: "block", marginTop: 3 }}>
+          {claim.printedAt && (
+            <span title={"พิมพ์เมื่อ " + window.drDateTH(String(claim.printedAt).slice(0, 10))
+              + (claim.printedByName ? " · โดย " + claim.printedByName : "")}
+              style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap", marginRight: 5,
+                fontSize: 11.5, fontWeight: 700, color: "#0F7A5A", background: "#10B98122", borderRadius: 99, padding: "3px 9px" }}>
+              <Icon name="file" size={12} color="#0F7A5A" /> พิมพ์แล้ว
+            </span>
+          )}
           <EcPill th={st.th} color={st.color} />
           {pay.owed && claim.status !== "paid" && <span style={{ fontSize: 10.5, color: pay.color, marginLeft: 5 }}>ออกเงินเอง</span>}
         </span>

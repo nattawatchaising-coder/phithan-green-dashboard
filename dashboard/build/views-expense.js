@@ -1053,13 +1053,7 @@ function EcClaimRow({
       color: "#F59E0B",
       fontFamily: "inherit"
     }
-  }, " \xB7 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E1A\u0E34\u0E25\u0E41\u0E19\u0E1A"), claim.receiptCount > 0 && React.createElement("span", null, " \xB7 \u0E1A\u0E34\u0E25 ", claim.receiptCount, " \u0E43\u0E1A"), claim.printedAt && React.createElement("span", {
-    title: "พิมพ์เมื่อ " + window.drDateTH(String(claim.printedAt).slice(0, 10)) + (claim.printedByName ? " · โดย " + claim.printedByName : ""),
-    style: {
-      color: "var(--tint-ok-tx)",
-      fontFamily: "inherit"
-    }
-  }, " \xB7 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E41\u0E25\u0E49\u0E27"), gone && React.createElement("span", {
+  }, " \xB7 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E1A\u0E34\u0E25\u0E41\u0E19\u0E1A"), claim.receiptCount > 0 && React.createElement("span", null, " \xB7 \u0E1A\u0E34\u0E25 ", claim.receiptCount, " \u0E43\u0E1A"), gone && React.createElement("span", {
     style: {
       color: "#F59E0B",
       fontFamily: "inherit"
@@ -1082,7 +1076,26 @@ function EcClaimRow({
       display: "block",
       marginTop: 3
     }
-  }, React.createElement(EcPill, {
+  }, claim.printedAt && React.createElement("span", {
+    title: "พิมพ์เมื่อ " + window.drDateTH(String(claim.printedAt).slice(0, 10)) + (claim.printedByName ? " · โดย " + claim.printedByName : ""),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      whiteSpace: "nowrap",
+      marginRight: 5,
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "#0F7A5A",
+      background: "#10B98122",
+      borderRadius: 99,
+      padding: "3px 9px"
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 12,
+    color: "#0F7A5A"
+  }), " \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E41\u0E25\u0E49\u0E27"), React.createElement(EcPill, {
     th: st.th,
     color: st.color
   }), pay.owed && claim.status !== "paid" && React.createElement("span", {
