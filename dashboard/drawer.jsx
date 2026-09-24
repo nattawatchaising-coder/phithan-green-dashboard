@@ -460,7 +460,7 @@ function PermitJobSummary({ job, onOpenReview }) {
   );
 }
 
-function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, canDesign, stock, onSaveBOQ, onSurvey, onSurveyReport, onPermit, onDaily, onOm, omSite, omVisits, omTickets, onExpense, ecSum, priceMap, permitMode, onOpenReview, salesMode, quotes, leads, onOpenQuote }) {
+function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, canDesign, stock, onSaveBOQ, onSurvey, onSurveyReport, onPermit, onDaily, onOm, omSite, omVisits, omTickets, onExpense, ecSum, priceMap, permitMode, onOpenReview, salesMode, quotes, leads, onOpenQuote, onBilling, onSaveBills, billRO, billRole }) {
   const SF = window.SF;
   // ฝ่ายขออนุญาตกับเซลล์เปิดใบงานได้ แต่ไม่ใช่คนทำงานหน้างาน — ซ่อนเครื่องมือช่างทั้งชุด
   const roMode = permitMode || salesMode;
@@ -818,6 +818,14 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   </div>
                 );
               })()}
+
+              {/* เอกสารงวดงาน · วางบิล — ถอดงวดจากใบเสนอราคาแล้วตามเงินจนจบโปรเจค
+                  วางต่อจากงานขออนุญาต เพราะเป็นงานเอกสารหลังบ้านเหมือนกัน ไม่ใช่เครื่องมือหน้างาน
+                  ช่างเห็นการ์ดนี้ได้แบบอ่านอย่างเดียว (billRO) — เขาต้องรู้ว่างวดไหนรอเอกสารจากหน้างานอยู่ */}
+              {onBilling && window.BlJobCard && (
+                <window.BlJobCard job={job} quotes={quotes} leads={leads} role={billRole || []}
+                  currentUser={currentUser} readOnly={billRO} onOpen={onBilling} onSaveBills={onSaveBills} />
+              )}
 
               {/* material checklist */}
               {!roMode && <div style={{ marginBottom: 24 }}>

@@ -19,6 +19,8 @@ const NAV = [
   { key: "om",         th: "งานบริการหลังการขาย", en: "O&M",         icon: "wrench",   perm: "om" },
   /* ใบเบิกเงินหน้างาน — ซื้อของหน้างาน · ค่าขนส่ง · ค่าใช้จ่ายอื่น และยอดค้างจ่ายรายคน */
   { key: "expense",    th: "เบิกเงินหน้างาน",  en: "Expenses",     icon: "wallet",   perm: "expense" },
+  /* เอกสารงวดงาน — ถอดงวดจากใบเสนอราคา ออกใบแจ้งส่งมอบงาน แล้วตามเงินจนจบโปรเจค */
+  { key: "billing",    th: "เอกสารงวดงาน",    en: "Billing",      icon: "file",     perm: "billing" },
   { key: "myschedule", th: "ตารางงานของฉัน",   en: "My Schedule",   icon: "list",     own: true },
   { key: "calendar",   th: "ปฏิทินนัด",        en: "Calendar",      icon: "calendar" },
   { key: "stock",      th: "คลังสินค้า",       en: "Inventory",     icon: "box",      perm: "stock" },
@@ -52,6 +54,7 @@ const PLAIN_SUB = {
   om: "ทะเบียนไซต์ในสัญญาบริการ · ประกัน · รอบล้างแผง",
   attend: "ลงเวลาเข้า-ออกรายวัน · ใบขอ OT · ตั้งค่าเวลาทำงาน",
   expense: "ใบเบิกเงินหน้างาน · คิวอนุมัติ · ยอดค้างจ่ายรายคน",
+  billing: "งวดงานทุกงาน · วางบิล · รับมอบ · รับเงิน",
   daily: "ใบรายงานหน้างานรายวัน · รูปหน้างาน · ลายเซ็น",
   line: "โควตาข้อความ · เลือกเรื่องที่ส่งเข้าแชต · บัญชีที่ผูกไว้",
   guide: "ขั้นตอนการใช้งานทีละข้อ แยกตามหน้าที่ · พิมพ์เป็นใบแจกได้",
@@ -682,6 +685,8 @@ function App() {
   /* ลบงาน = ย้ายเข้าถังขยะก่อน กู้คืนได้ · ถามยืนยันในหน้าเอง ไม่ใช้ confirm() ของเบราว์เซอร์
      (ถ้าผู้ใช้เคยติ๊ก "ไม่ให้หน้านี้สร้างกล่องข้อความอีก" confirm จะคืน false ทันที = กดลบแล้วเงียบ) */
   const [permitJob, setPermitJob] = React.useState(null);   // งานที่กำลังเปิดแบบเก็บข้อมูลขออนุญาต
+  const [blJob, setBlJob] = React.useState(null);           // งานที่กำลังเปิดแผงตั้งงวดงาน
+  const [blRow, setBlRow] = React.useState(null);           // งวดที่ให้แผงกางไว้ตอนเปิด (มาจากหน้ารวม)
   const [dailyJob, setDailyJob] = React.useState(null);     // งานที่กำลังเปิดรายงานประจำวัน
   const [omFocus, setOmFocus] = React.useState(null);       // ไซต์บริการที่ให้หน้า O&M เปิดขึ้นมาให้เลย
   /* ข้อมูลบริการหลังการขายสำหรับกระดิ่ง + ปุ่มในลิ้นชัก — โหนดเบา ๆ สามอัน เปิดค้างไว้ได้
@@ -908,6 +913,12 @@ function App() {
           {/* ทะเบียนบริการเป็นภาระผูกพันของบริษัท ไม่ใช่คิวงานของใครคนหนึ่ง จึงดูจากงานทั้งหมดที่ผู้ใช้เห็น */}
           {view === "om" && <window.OmView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} focus={omFocus} />}
           {view === "expense" && <window.ExpenseView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} focus={ecFocus} />}
+          {/* งวดงานเป็นเรื่องของสัญญาทั้งฉบับ ไม่ใช่คิวงานของใครคนหนึ่ง จึงดูจากงานทั้งหมดที่ผู้ใช้เห็น
+              onSaveBills เป็น null เมื่อไม่มีสิทธิ์ — กั้นที่จุดต่อสาย หน้าจอจึงเขียนอะไรไม่ได้เลยแม้กดถึงปุ่ม */}
+          {view === "billing" && <window.BillingView jobs={jobs} quotes={quoteStore.quotes} leads={leadStore.leads}
+            role={role} currentUser={auth.current} onOpenJob={(id) => setSelected(id)}
+            onSetup={can(role, "billing") ? (j) => { setBlRow(null); setBlJob(j); } : null}
+            onSaveBills={can(role, "billing") ? (id, bills) => store.patch(id, { bills }) : null} />}
           {view === "attend" && <window.AttendView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} />}
           {view === "line" && <window.LineAdminView users={auth.users} currentUser={auth.current} />}
           {view === "guide" && <window.GuideView role={role} currentUser={auth.current} onNav={navTo} />}
@@ -951,6 +962,10 @@ function App() {
         onSurvey={(can(role, "doSurvey") || can(role, "dispatch")) ? () => openSurvey(selectedJob) : null}
         onSurveyReport={() => setReportJob(selectedJob)}
         onPermit={can(role, "editJob") && !permitOnly ? () => setPermitJob(selectedJob) : null}
+        onBilling={selectedJob && !permitOnly ? () => { setBlRow(null); setBlJob(selectedJob); } : null}
+        onSaveBills={can(role, "billing") && selectedJob ? (bills) => store.patch(selectedJob.id, { bills }) : null}
+        billRO={!can(role, "billing")}
+        billRole={role}
         /* รายงานประจำวันเปิดได้เฉพาะงานที่กำลังติดตั้ง — ขั้นก่อนหน้ายังไม่มีใครขึ้นหน้างาน */
         onDaily={can(role, "editJob") && !permitOnly && selectedJob && selectedJob.stage === "install"
           ? () => setDailyJob(selectedJob) : null}
@@ -1006,6 +1021,13 @@ function App() {
           title: "ข้อมูลขออนุญาตพร้อมยื่นแล้ว",
           body: [permitJob.code, permit.auth, permit.kwp ? permit.kwp + " kWp" : ""].filter(Boolean).join(" · "),
         })} />}
+      {/* แผงตั้งงวดงาน — อ่านงานสดจาก jobs เสมอ ไม่ยึดก้อนที่กดตอนแรก
+          ไม่งั้นบันทึกงวดไปแล้วแผงยังโชว์ตัวเลขชุดเก่า */}
+      {blJob && <window.BlSetupModal job={jobs.find((x) => x.id === blJob.id) || blJob}
+        quotes={quoteStore.quotes} leads={leadStore.leads} role={role} currentUser={auth.current}
+        focusRowId={blRow} readOnly={!can(role, "billing")}
+        onClose={() => { setBlJob(null); setBlRow(null); }}
+        onSaveBills={can(role, "billing") ? (bills) => store.patch(blJob.id, { bills }) : null} />}
       {surveyJob && <SurveyWizard job={surveyJob} currentUser={auth.current} stock={stock}
         onClose={() => { setSurveyJob(null); setSurveyAppt(null); }}
         onSave={(survey, thenReport) => {

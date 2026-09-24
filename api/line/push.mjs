@@ -20,8 +20,8 @@ import { flexNotif, pushCard } from "../_lib/flex.mjs";
    ทุกวันนี้มีที่เดียวที่ใช้ toPerm คือ "permit" (app.jsx ตอนส่งข้อมูลขออนุญาต)
    ถ้าเพิ่ม toPerm ค่าใหม่ ต้องมาเติมตารางนี้ด้วย ไม่งั้นคนที่ควรได้จะไม่ได้ */
 const DEFAULT_PERMS = {
-  admin:  { permit: 1, om: 1, expense: 1, expenseApprove: 1, expensePay: 1 },
-  lead:   { permit: 1, om: 1, expense: 1, expenseApprove: 1 },
+  admin:  { permit: 1, om: 1, expense: 1, expenseApprove: 1, expensePay: 1, billing: 1 },
+  lead:   { permit: 1, om: 1, expense: 1, expenseApprove: 1, billing: 1 },
   ee:     { permit: 1, om: 1, expense: 1 },
   draft:  {},
   tech:   { om: 1, expense: 1 },

@@ -441,6 +441,12 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 .ec-page > .ec-foot { margin-top: auto; }
 @media (max-width: 700px) { .ec-page { min-height: 0; } }
 
+/* ชุดเอกสารงวดงาน — ช่องเซ็นถูกดันไปติดขอบล่างของหน้า A4 เหมือนใบอื่น
+   ใบแจ้งส่งมอบงานของบางงวดมีรายการไม่กี่ข้อ ถ้าไม่ดันลง ลายเซ็นจะลอยกลางหน้า */
+.bl-page { display: flex; flex-direction: column; min-height: 262mm; }
+.bl-page > .bl-foot { margin-top: auto; }
+@media (max-width: 700px) { .bl-page { min-height: 0; } }
+
 /* รูปในรายงาน — แนวนอนเต็มความกว้าง · แนวตั้งจำกัดความสูงแล้วจัดกลาง ไม่งั้นกินกระดาษทั้งหน้า */
 .sv-rep-shot img { display: block; width: 100%; max-width: 100%; }
 .sv-rep-shot[data-p="1"] img { width: auto; max-height: 440px; }
@@ -466,9 +472,11 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
   /* รูปในรายงานประจำวันวางสองคอลัมน์ — จำกัดความสูงไม่ให้รูปเดียวกินทั้งหน้า */
   .dr-shot img { max-height: 88mm; object-fit: contain; }
   /* รูปใบบริการอยู่ในช่องที่กำหนดสัดส่วนไว้แล้ว ห้ามไปตั้งความสูงทับ ไม่งั้นรูปเบี้ยว */
-  .om-sheet, .ec-sheet { break-before: page !important; page-break-before: always !important; }
+  .om-sheet, .ec-sheet, .bl-sheet { break-before: page !important; page-break-before: always !important; }
   /* แผ่นบิลของใบเบิก — เส้นประกับระยะห่างมีไว้คั่นตอนดูบนจอ พอขึ้นหน้าใหม่จริงไม่ต้องมี */
-  .ec-sheet { border-top: none !important; margin-top: 0 !important; padding-top: 0 !important; }
+  .ec-sheet, .bl-sheet { border-top: none !important; margin-top: 0 !important; padding-top: 0 !important; }
+  /* รูปประกอบการวางบิลวางสี่รูปต่อหน้า — จำกัดความสูงไม่ให้รูปแนวตั้งใบเดียวดันช่องเซ็นตกหน้า */
+  .bl-shot img { max-height: 76mm; object-fit: contain; }
   .sv-rep-shot[data-p="1"] img { max-height: 135mm; }
   /* คงสีป้าย/เส้นคั่นไว้ในไฟล์ PDF ไม่งั้นเบราว์เซอร์ตัดพื้นหลังทิ้งหมด
      บังคับเฉพาะในกระดาษรายงาน ถ้าบังคับทั้งหน้าพื้นมืดของธีมจะติดไปด้วย */
@@ -533,7 +541,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/plan3d.js?v=95"></script>
 <script src="dashboard/build/inspect.js?v=4"></script>
 <script src="dashboard/build/inspect-paper.js?v=8"></script>
-<script src="dashboard/build/drawer.js?v=65"></script>
+<script src="dashboard/build/drawer.js?v=66"></script>
 <script src="dashboard/build/views-overview.js?v=34"></script>
 <script src="dashboard/build/views-board.js?v=33"></script>
 <script src="dashboard/build/views-table.js?v=30"></script>
@@ -548,6 +556,10 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/survey-sched.js?v=28"></script>
 <script src="dashboard/build/permit.js?v=7"></script>
 <script src="dashboard/build/views-permit.js?v=17"></script>
+<!-- เอกสารงวดงาน · วางบิล: ตรรกะ → กระดาษ → หน้าจอ -->
+<script src="dashboard/build/billing.js?v=1"></script>
+<script src="dashboard/build/bill-paper.js?v=1"></script>
+<script src="dashboard/build/views-billing.js?v=1"></script>
 <script src="dashboard/build/views-lead.js?v=4"></script>
 <script src="dashboard/build/views-flow.js?v=9"></script>
 <script src="dashboard/build/daily.js?v=13"></script>
@@ -560,12 +572,12 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/views-expense.js?v=26"></script>
 <script src="dashboard/build/ec-paper.js?v=17"></script>
 <script src="dashboard/build/attend.js?v=12"></script>
-<script src="dashboard/build/auth.js?v=37"></script>
+<script src="dashboard/build/auth.js?v=38"></script>
 <script src="dashboard/build/line.js?v=5"></script>
 <script src="dashboard/build/views-attend.js?v=15"></script>
 <script src="dashboard/build/ot-paper.js?v=6"></script>
 <script src="dashboard/build/views-line.js?v=2"></script>
 <script src="dashboard/build/guide.js?v=5"></script>
-<script src="dashboard/build/app.js?v=159"></script>
+<script src="dashboard/build/app.js?v=160"></script>
 </body>
 </html>

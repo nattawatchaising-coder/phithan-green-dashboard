@@ -124,6 +124,7 @@ const DEFAULT_PERMS = {
     price: 1,
     leads: 1,
     om: 1,
+    billing: 1,
     expense: 1,
     expenseApprove: 1,
     expensePay: 1,
@@ -146,6 +147,7 @@ const DEFAULT_PERMS = {
     price: 1,
     leads: 1,
     om: 1,
+    billing: 1,
     expense: 1,
     expenseApprove: 1,
     expenseCover: 1,
@@ -252,6 +254,10 @@ const PERM_LIST = [{
   key: "om",
   th: "งานบริการหลังการขาย",
   desc: "ทะเบียนประกัน · ตารางล้างแผง · ใบแจ้งซ่อม · ใบรายงานเข้าบริการ"
+}, {
+  key: "billing",
+  th: "เอกสารงวดงาน · วางบิล",
+  desc: "ตั้งงวดจากใบเสนอราคา · ออกใบแจ้งส่งมอบงาน · บันทึกวางบิล-รับมอบ-รับเงิน"
 }, {
   key: "expense",
   th: "ส่งใบเบิกเงินหน้างาน",

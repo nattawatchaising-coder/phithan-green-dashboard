@@ -52,6 +52,12 @@ const NAV = [{
   icon: "wallet",
   perm: "expense"
 }, {
+  key: "billing",
+  th: "เอกสารงวดงาน",
+  en: "Billing",
+  icon: "file",
+  perm: "billing"
+}, {
   key: "myschedule",
   th: "ตารางงานของฉัน",
   en: "My Schedule",
@@ -100,6 +106,7 @@ const PLAIN_SUB = {
   om: "ทะเบียนไซต์ในสัญญาบริการ · ประกัน · รอบล้างแผง",
   attend: "ลงเวลาเข้า-ออกรายวัน · ใบขอ OT · ตั้งค่าเวลาทำงาน",
   expense: "ใบเบิกเงินหน้างาน · คิวอนุมัติ · ยอดค้างจ่ายรายคน",
+  billing: "งวดงานทุกงาน · วางบิล · รับมอบ · รับเงิน",
   daily: "ใบรายงานหน้างานรายวัน · รูปหน้างาน · ลายเซ็น",
   line: "โควตาข้อความ · เลือกเรื่องที่ส่งเข้าแชต · บัญชีที่ผูกไว้",
   guide: "ขั้นตอนการใช้งานทีละข้อ แยกตามหน้าที่ · พิมพ์เป็นใบแจกได้"
@@ -898,6 +905,8 @@ function App() {
     setForm(null);
   };
   const [permitJob, setPermitJob] = React.useState(null);
+  const [blJob, setBlJob] = React.useState(null);
+  const [blRow, setBlRow] = React.useState(null);
   const [dailyJob, setDailyJob] = React.useState(null);
   const [omFocus, setOmFocus] = React.useState(null);
   const omLive = window.useOmAlerts(can(role, "om"));
@@ -1260,6 +1269,20 @@ function App() {
     role: role,
     currentUser: auth.current,
     focus: ecFocus
+  }), view === "billing" && React.createElement(window.BillingView, {
+    jobs: jobs,
+    quotes: quoteStore.quotes,
+    leads: leadStore.leads,
+    role: role,
+    currentUser: auth.current,
+    onOpenJob: id => setSelected(id),
+    onSetup: can(role, "billing") ? j => {
+      setBlRow(null);
+      setBlJob(j);
+    } : null,
+    onSaveBills: can(role, "billing") ? (id, bills) => store.patch(id, {
+      bills
+    }) : null
   }), view === "attend" && React.createElement(window.AttendView, {
     jobs: jobs,
     users: auth.users,
@@ -1357,6 +1380,15 @@ function App() {
     onSurvey: can(role, "doSurvey") || can(role, "dispatch") ? () => openSurvey(selectedJob) : null,
     onSurveyReport: () => setReportJob(selectedJob),
     onPermit: can(role, "editJob") && !permitOnly ? () => setPermitJob(selectedJob) : null,
+    onBilling: selectedJob && !permitOnly ? () => {
+      setBlRow(null);
+      setBlJob(selectedJob);
+    } : null,
+    onSaveBills: can(role, "billing") && selectedJob ? bills => store.patch(selectedJob.id, {
+      bills
+    }) : null,
+    billRO: !can(role, "billing"),
+    billRole: role,
     onDaily: can(role, "editJob") && !permitOnly && selectedJob && selectedJob.stage === "install" ? () => setDailyJob(selectedJob) : null,
     omSite: selectedJob ? (omLive.sites || []).find(s => s.id === selectedJob.id) || null : null,
     omVisits: selectedJob ? (omLive.bySite || {})[selectedJob.id] || [] : [],
@@ -1432,6 +1464,21 @@ function App() {
       title: "ข้อมูลขออนุญาตพร้อมยื่นแล้ว",
       body: [permitJob.code, permit.auth, permit.kwp ? permit.kwp + " kWp" : ""].filter(Boolean).join(" · ")
     })
+  }), blJob && React.createElement(window.BlSetupModal, {
+    job: jobs.find(x => x.id === blJob.id) || blJob,
+    quotes: quoteStore.quotes,
+    leads: leadStore.leads,
+    role: role,
+    currentUser: auth.current,
+    focusRowId: blRow,
+    readOnly: !can(role, "billing"),
+    onClose: () => {
+      setBlJob(null);
+      setBlRow(null);
+    },
+    onSaveBills: can(role, "billing") ? bills => store.patch(blJob.id, {
+      bills
+    }) : null
   }), surveyJob && React.createElement(SurveyWizard, {
     job: surveyJob,
     currentUser: auth.current,

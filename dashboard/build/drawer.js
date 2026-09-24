@@ -1182,7 +1182,11 @@ function DetailDrawer({
   salesMode,
   quotes,
   leads,
-  onOpenQuote
+  onOpenQuote,
+  onBilling,
+  onSaveBills,
+  billRO,
+  billRole
 }) {
   const SF = window.SF;
   const roMode = permitMode || salesMode;
@@ -2078,7 +2082,16 @@ function DetailDrawer({
         fontWeight: 700
       }
     }, "\u2714 \u0E01\u0E32\u0E23\u0E44\u0E1F\u0E1F\u0E49\u0E32\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27", pm.approvedDate ? " · " + thDate(pm.approvedDate, true) : "", pm.reqNo ? " · คำร้อง " + pm.reqNo : ""));
-  })(), !roMode && React.createElement("div", {
+  })(), onBilling && window.BlJobCard && React.createElement(window.BlJobCard, {
+    job: job,
+    quotes: quotes,
+    leads: leads,
+    role: billRole || [],
+    currentUser: currentUser,
+    readOnly: billRO,
+    onOpen: onBilling,
+    onSaveBills: onSaveBills
+  }), !roMode && React.createElement("div", {
     style: {
       marginBottom: 24
     }
