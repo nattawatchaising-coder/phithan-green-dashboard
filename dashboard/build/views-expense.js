@@ -471,6 +471,13 @@ function EcClaimModal({
   const set = fields => {
     if (!locked) onPatch(c.id, fields);
   };
+  const markDoc = (k, on) => {
+    const f = {};
+    f[k + "At"] = on ? new Date().toISOString() : null;
+    f[k + "ById"] = on ? (currentUser || {}).id || null : null;
+    f[k + "ByName"] = on ? (currentUser || {}).name || "" : "";
+    onPatch(c.id, f);
+  };
   const nexts = window.ecNext(c, role, currentUser);
   const chk = window.ecApproveCheck(c, currentUser, role);
   const payChk = window.ecPayCheck(c, currentUser, role);
@@ -841,7 +848,48 @@ function EcClaimModal({
     disabled: locked,
     count: c.receiptCount,
     onBig: setBigShot
-  })), React.createElement(window.DrSection, {
+  }), React.createElement("div", {
+    style: {
+      marginTop: 13,
+      paddingTop: 13,
+      borderTop: "1px dashed var(--border)"
+    }
+  }, React.createElement(window.DrLabel, {
+    hint: "\u0E23\u0E39\u0E1B\u0E16\u0E48\u0E32\u0E22\u0E43\u0E0A\u0E49\u0E15\u0E23\u0E27\u0E08\u0E01\u0E48\u0E2D\u0E19\u0E44\u0E14\u0E49 \u0E41\u0E15\u0E48\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E15\u0E49\u0E2D\u0E07\u0E40\u0E01\u0E47\u0E1A\u0E1A\u0E34\u0E25\u0E15\u0E31\u0E27\u0E08\u0E23\u0E34\u0E07\u0E44\u0E27\u0E49"
+  }, "\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E15\u0E31\u0E27\u0E08\u0E23\u0E34\u0E07"), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      flexWrap: "wrap",
+      marginTop: 7
+    }
+  }, React.createElement(EcDocMark, {
+    th: "\u0E2A\u0E48\u0E07\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E15\u0E31\u0E27\u0E08\u0E23\u0E34\u0E07\u0E41\u0E25\u0E49\u0E27",
+    doneTh: "\u0E2A\u0E48\u0E07\u0E15\u0E31\u0E27\u0E08\u0E23\u0E34\u0E07\u0E41\u0E25\u0E49\u0E27",
+    color: "#0EA5E9",
+    at: c.docSentAt,
+    byName: c.docSentByName,
+    can: mine || window.ecOwedTo(c).id === (currentUser || {}).id,
+    mine: c.docSentById === (currentUser || {}).id,
+    onSet: () => markDoc("docSent", true),
+    onClear: () => markDoc("docSent", false)
+  }), React.createElement(EcDocMark, {
+    th: "\u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E15\u0E31\u0E27\u0E08\u0E23\u0E34\u0E07\u0E41\u0E25\u0E49\u0E27",
+    doneTh: "\u0E23\u0E31\u0E1A\u0E15\u0E31\u0E27\u0E08\u0E23\u0E34\u0E07\u0E41\u0E25\u0E49\u0E27",
+    color: "#10B981",
+    at: c.docGotAt,
+    byName: c.docGotByName,
+    can: window.ecCanApprove(role) || window.ecCanPay(role),
+    mine: c.docGotById === (currentUser || {}).id,
+    onSet: () => markDoc("docGot", true),
+    onClear: () => markDoc("docGot", false)
+  })), c.docGotAt && !c.docSentAt && React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      marginTop: 6
+    }
+  }, "\u0E23\u0E31\u0E1A\u0E15\u0E31\u0E27\u0E08\u0E23\u0E34\u0E07\u0E41\u0E25\u0E49\u0E27\u0E42\u0E14\u0E22\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E04\u0E23\u0E01\u0E14\u0E27\u0E48\u0E32\u0E2A\u0E48\u0E07 \u2014 \u0E1B\u0E01\u0E15\u0E34\u0E40\u0E01\u0E34\u0E14\u0E15\u0E2D\u0E19\u0E22\u0E37\u0E48\u0E19\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E43\u0E2B\u0E49\u0E01\u0E31\u0E1A\u0E21\u0E37\u0E2D"))), React.createElement(window.DrSection, {
     n: "4",
     title: "\u0E01\u0E32\u0E23\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34",
     tone: st.color,
@@ -1019,6 +1067,77 @@ function EcClaimModal({
     onClose: () => setPaper(false)
   })));
 }
+function EcDocMark({
+  th,
+  doneTh,
+  at,
+  byName,
+  color,
+  can,
+  mine,
+  onSet,
+  onClear
+}) {
+  if (at) {
+    return React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "7px 12px",
+        borderRadius: 99,
+        background: color + "16",
+        border: "1px solid " + color + "55",
+        fontSize: 12,
+        fontWeight: 700,
+        color: color
+      }
+    }, React.createElement(Icon, {
+      name: "check",
+      size: 13,
+      color: color
+    }), doneTh, " \xB7 ", window.drDateTH(String(at).slice(0, 10)), byName ? " · " + byName : "", mine && React.createElement("button", {
+      onClick: onClear,
+      title: "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01\u0E01\u0E32\u0E23\u0E1B\u0E31\u0E01\u0E2B\u0E21\u0E38\u0E14\u0E19\u0E35\u0E49",
+      style: {
+        border: "none",
+        background: "transparent",
+        cursor: "pointer",
+        padding: 0,
+        marginLeft: 2,
+        display: "grid",
+        placeItems: "center",
+        color: color
+      }
+    }, React.createElement(Icon, {
+      name: "x",
+      size: 12,
+      color: color
+    })));
+  }
+  if (!can) return null;
+  return React.createElement("button", {
+    onClick: onSet,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "7px 13px",
+      borderRadius: 99,
+      border: "1px dashed var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 13,
+    color: "var(--text-3)"
+  }), " ", th);
+}
 function EcClaimRow({
   claim,
   onOpen,
@@ -1118,7 +1237,26 @@ function EcClaimRow({
       display: "block",
       marginTop: 3
     }
-  }, claim.printedAt && React.createElement("span", {
+  }, (claim.docGotAt || claim.docSentAt) && React.createElement("span", {
+    title: claim.docGotAt ? "ผู้อนุมัติได้รับเอกสารตัวจริงแล้ว " + window.drDateTH(String(claim.docGotAt).slice(0, 10)) + (claim.docGotByName ? " · " + claim.docGotByName : "") : "ส่งเอกสารตัวจริงแล้ว " + window.drDateTH(String(claim.docSentAt).slice(0, 10)) + (claim.docSentByName ? " · " + claim.docSentByName : ""),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      whiteSpace: "nowrap",
+      marginRight: 5,
+      fontSize: 11.5,
+      fontWeight: 700,
+      borderRadius: 99,
+      padding: "3px 9px",
+      color: claim.docGotAt ? "#0369A1" : "var(--text-2)",
+      background: claim.docGotAt ? "#0EA5E922" : "var(--surface2)"
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 12,
+    color: claim.docGotAt ? "#0369A1" : "var(--text-2)"
+  }), claim.docGotAt ? "รับตัวจริงแล้ว" : "ส่งตัวจริงแล้ว"), claim.printedAt && React.createElement("span", {
     title: "พิมพ์เมื่อ " + window.drDateTH(String(claim.printedAt).slice(0, 10)) + (claim.printedByName ? " · โดย " + claim.printedByName : ""),
     style: {
       display: "inline-flex",

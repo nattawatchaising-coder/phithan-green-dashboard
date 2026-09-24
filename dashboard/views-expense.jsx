@@ -225,6 +225,14 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
      ใบที่จ่ายแล้วล็อกถาวร เป็นหลักฐานการจ่ายเงิน */
   const locked = c.status !== "draft" || !mine;
   const set = (fields) => { if (!locked) onPatch(c.id, fields); };
+  /* เดินเอกสารตัวจริงเป็นคนละเรื่องกับสถานะใบ ใบที่ล็อกแล้วก็ยังต้องตามกระดาษกันอยู่ */
+  const markDoc = (k, on) => {
+    const f = {};
+    f[k + "At"] = on ? new Date().toISOString() : null;
+    f[k + "ById"] = on ? ((currentUser || {}).id || null) : null;
+    f[k + "ByName"] = on ? ((currentUser || {}).name || "") : "";
+    onPatch(c.id, f);
+  };
   const nexts = window.ecNext(c, role, currentUser);
   const chk = window.ecApproveCheck(c, currentUser, role);
   /* มีสิทธิ์จ่ายแต่ยอดเกินวงเงิน — ปุ่มจะหายไปเฉย ๆ ต้องบอกว่าทำไม ไม่งั้นคนนั่งงงว่าระบบเสีย */
@@ -393,6 +401,27 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
             hint={c.receiptCount ? c.receiptCount + " ใบ" : "ยังไม่มี"}>
             <EcReceipts claimId={c.id} currentUser={currentUser} disabled={locked}
               count={c.receiptCount} onBig={setBigShot} />
+
+            <div style={{ marginTop: 13, paddingTop: 13, borderTop: "1px dashed var(--border)" }}>
+              <window.DrLabel hint="รูปถ่ายใช้ตรวจก่อนได้ แต่บัญชีต้องเก็บบิลตัวจริงไว้">เอกสารตัวจริง</window.DrLabel>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
+                <EcDocMark th="ส่งเอกสารตัวจริงแล้ว" doneTh="ส่งตัวจริงแล้ว" color="#0EA5E9"
+                  at={c.docSentAt} byName={c.docSentByName}
+                  can={mine || window.ecOwedTo(c).id === (currentUser || {}).id}
+                  mine={c.docSentById === (currentUser || {}).id}
+                  onSet={() => markDoc("docSent", true)} onClear={() => markDoc("docSent", false)} />
+                <EcDocMark th="ได้รับเอกสารตัวจริงแล้ว" doneTh="รับตัวจริงแล้ว" color="#10B981"
+                  at={c.docGotAt} byName={c.docGotByName}
+                  can={window.ecCanApprove(role) || window.ecCanPay(role)}
+                  mine={c.docGotById === (currentUser || {}).id}
+                  onSet={() => markDoc("docGot", true)} onClear={() => markDoc("docGot", false)} />
+              </div>
+              {c.docGotAt && !c.docSentAt && (
+                <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 6 }}>
+                  รับตัวจริงแล้วโดยที่ยังไม่มีใครกดว่าส่ง — ปกติเกิดตอนยื่นเอกสารให้กับมือ
+                </div>
+              )}
+            </div>
           </window.DrSection>
 
           {/* 4 · การอนุมัติ */}
@@ -501,6 +530,34 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
   );
 }
 
+function EcDocMark({ th, doneTh, at, byName, color, can, mine, onSet, onClear }) {
+  if (at) {
+    return (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 99,
+        background: color + "16", border: "1px solid " + color + "55", fontSize: 12, fontWeight: 700, color: color }}>
+        <Icon name="check" size={13} color={color} />
+        {doneTh} · {window.drDateTH(String(at).slice(0, 10))}{byName ? " · " + byName : ""}
+        {mine && (
+          <button onClick={onClear} title="ยกเลิกการปักหมุดนี้"
+            style={{ border: "none", background: "transparent", cursor: "pointer", padding: 0, marginLeft: 2,
+              display: "grid", placeItems: "center", color: color }}>
+            <Icon name="x" size={12} color={color} />
+          </button>
+        )}
+      </span>
+    );
+  }
+  if (!can) return null;
+  return (
+    <button onClick={onSet}
+      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 99,
+        border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+        fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>
+      <Icon name="file" size={13} color="var(--text-3)" /> {th}
+    </button>
+  );
+}
+
 /* ── แถวใบเบิกในรายการ ── */
 function EcClaimRow({ claim, onOpen, gone }) {
   const st = window.ecStatusOf(claim.status);
@@ -541,6 +598,17 @@ function EcClaimRow({ claim, onOpen, gone }) {
           {window.ecBaht(claim.amount)}
         </span>
         <span style={{ display: "block", marginTop: 3 }}>
+          {(claim.docGotAt || claim.docSentAt) && (
+            <span title={(claim.docGotAt ? "ผู้อนุมัติได้รับเอกสารตัวจริงแล้ว " + window.drDateTH(String(claim.docGotAt).slice(0, 10)) + (claim.docGotByName ? " · " + claim.docGotByName : "")
+              : "ส่งเอกสารตัวจริงแล้ว " + window.drDateTH(String(claim.docSentAt).slice(0, 10)) + (claim.docSentByName ? " · " + claim.docSentByName : ""))}
+              style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap", marginRight: 5,
+                fontSize: 11.5, fontWeight: 700, borderRadius: 99, padding: "3px 9px",
+                color: claim.docGotAt ? "#0369A1" : "var(--text-2)",
+                background: claim.docGotAt ? "#0EA5E922" : "var(--surface2)" }}>
+              <Icon name="file" size={12} color={claim.docGotAt ? "#0369A1" : "var(--text-2)"} />
+              {claim.docGotAt ? "รับตัวจริงแล้ว" : "ส่งตัวจริงแล้ว"}
+            </span>
+          )}
           {claim.printedAt && (
             <span title={"พิมพ์เมื่อ " + window.drDateTH(String(claim.printedAt).slice(0, 10))
               + (claim.printedByName ? " · โดย " + claim.printedByName : "")}

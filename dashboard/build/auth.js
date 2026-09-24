@@ -2944,13 +2944,63 @@ function UserEditModal({
   }, "\u2014 \u0E2A\u0E48\u0E07\u0E40\u0E02\u0E49\u0E32\u0E01\u0E2D\u0E07\u0E01\u0E25\u0E32\u0E07 (\u0E43\u0E04\u0E23\u0E17\u0E35\u0E48\u0E21\u0E35\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E01\u0E47\u0E23\u0E31\u0E1A\u0E44\u0E14\u0E49) \u2014"), existing.filter(u => u.active !== false && can(userRoles(u), "expenseApprove")).map(u => React.createElement("option", {
     key: u.id,
     value: u.id
-  }, u.name, u.id === f.id ? " (ตัวเอง)" : ""))), f.approverId === f.id && React.createElement("div", {
+  }, u.name, u.id === f.id ? " (ตัวเอง)" : ""))), f.approverId === f.id && !f.selfApprove && React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "#F59E0B",
       marginTop: 5
     }
-  }, "\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E19\u0E35\u0E49\u0E40\u0E1B\u0E34\u0E14\u0E40\u0E2D\u0E07 \u0E08\u0E30\u0E40\u0E02\u0E49\u0E32\u0E01\u0E2D\u0E07\u0E01\u0E25\u0E32\u0E07\u0E43\u0E2B\u0E49\u0E04\u0E19\u0E2D\u0E37\u0E48\u0E19\u0E17\u0E35\u0E48\u0E21\u0E35\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E17\u0E19 \u2014 \u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E43\u0E1A\u0E15\u0E31\u0E27\u0E40\u0E2D\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49")), can(f.roles, "expensePay") && React.createElement(AField, {
+  }, "\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E19\u0E35\u0E49\u0E40\u0E1B\u0E34\u0E14\u0E40\u0E2D\u0E07 \u0E08\u0E30\u0E40\u0E02\u0E49\u0E32\u0E01\u0E2D\u0E07\u0E01\u0E25\u0E32\u0E07\u0E43\u0E2B\u0E49\u0E04\u0E19\u0E2D\u0E37\u0E48\u0E19\u0E17\u0E35\u0E48\u0E21\u0E35\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E17\u0E19 \u2014 \u0E16\u0E49\u0E32\u0E2D\u0E22\u0E32\u0E01\u0E43\u0E2B\u0E49\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E40\u0E2D\u0E07\u0E44\u0E14\u0E49 \u0E15\u0E49\u0E2D\u0E07\u0E40\u0E1B\u0E34\u0E14\u0E2A\u0E27\u0E34\u0E15\u0E0A\u0E4C\u0E02\u0E49\u0E32\u0E07\u0E25\u0E48\u0E32\u0E07")), can(f.roles, "expenseApprove") && React.createElement(AField, {
+    label: "\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E43\u0E1A\u0E40\u0E1A\u0E34\u0E01\u0E02\u0E2D\u0E07\u0E15\u0E31\u0E27\u0E40\u0E2D\u0E07"
+  }, React.createElement("button", {
+    type: "button",
+    onClick: () => set("selfApprove", !f.selfApprove),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+      padding: "9px 11px",
+      borderRadius: 10,
+      border: "1px solid " + (f.selfApprove ? "#F59E0B" : "var(--border-strong)"),
+      background: "var(--surface2)",
+      cursor: "pointer",
+      fontFamily: "inherit"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 38,
+      height: 22,
+      borderRadius: 99,
+      background: f.selfApprove ? "#F59E0B" : "var(--surface3)",
+      position: "relative",
+      flexShrink: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      position: "absolute",
+      top: 3,
+      left: f.selfApprove ? 19 : 3,
+      width: 16,
+      height: 16,
+      borderRadius: 99,
+      background: "#fff",
+      transition: "left .2s",
+      boxShadow: "0 1px 3px rgba(0,0,0,.2)"
+    }
+  })), React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: f.selfApprove ? "#B45309" : "var(--text-3)"
+    }
+  }, f.selfApprove ? "อนุมัติใบของตัวเองได้" : "ต้องให้คนอื่นอนุมัติ (แนะนำ)")), React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      marginTop: 5,
+      lineHeight: 1.55
+    }
+  }, "\u0E1B\u0E01\u0E15\u0E34\u0E04\u0E19\u0E40\u0E1A\u0E34\u0E01\u0E01\u0E31\u0E1A\u0E04\u0E19\u0E15\u0E23\u0E27\u0E08\u0E15\u0E49\u0E2D\u0E07\u0E04\u0E19\u0E25\u0E30\u0E04\u0E19 \xB7 \u0E40\u0E1B\u0E34\u0E14\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E17\u0E35\u0E48\u0E04\u0E38\u0E21\u0E40\u0E07\u0E34\u0E19\u0E2D\u0E22\u0E39\u0E48\u0E04\u0E19\u0E40\u0E14\u0E35\u0E22\u0E27\u0E08\u0E23\u0E34\u0E07 \u0E46 \u0E27\u0E07\u0E40\u0E07\u0E34\u0E19\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E22\u0E31\u0E07\u0E04\u0E38\u0E21\u0E2D\u0E22\u0E39\u0E48 \u0E41\u0E25\u0E30\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E22\u0E31\u0E07\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E27\u0E48\u0E32\u0E43\u0E04\u0E23\u0E01\u0E14\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34")), can(f.roles, "expensePay") && React.createElement(AField, {
     label: "\u0E27\u0E07\u0E40\u0E07\u0E34\u0E19\u0E17\u0E35\u0E48\u0E08\u0E48\u0E32\u0E22\u0E04\u0E37\u0E19\u0E44\u0E14\u0E49\u0E40\u0E2D\u0E07 (\u0E1A\u0E32\u0E17 \xB7 0 = \u0E44\u0E21\u0E48\u0E08\u0E33\u0E01\u0E31\u0E14)"
   }, React.createElement("input", {
     style: Object.assign({}, A_INPUT, {

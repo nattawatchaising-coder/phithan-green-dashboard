@@ -1258,13 +1258,29 @@ function UserEditModal({ initial, existing, onSave, onClose }) {
                 {existing.filter((u) => u.active !== false && can(userRoles(u), "expenseApprove"))
                   .map((u) => <option key={u.id} value={u.id}>{u.name}{u.id === f.id ? " (ตัวเอง)" : ""}</option>)}
               </select>
-              {/* เลือกตัวเองได้ แต่กฎห้ามอนุมัติใบตัวเองไม่มีข้อยกเว้น — ใบของบัญชีนี้จึงเข้ากองกลางแทน
-                  ที่ยังเลือกได้เพราะช่องนี้ใช้เป็น "เจ้าของเส้นทาง" ของทีม ไม่ใช่แค่ปลายทางใบตัวเอง */}
-              {f.approverId === f.id && (
+              {/* เลือกตัวเองได้ ส่วนจะอนุมัติใบของตัวเองได้จริงไหม อยู่ที่สวิตช์ข้างล่าง */}
+              {f.approverId === f.id && !f.selfApprove && (
                 <div style={{ fontSize: 11.5, color: "#F59E0B", marginTop: 5 }}>
-                  ใบที่บัญชีนี้เปิดเอง จะเข้ากองกลางให้คนอื่นที่มีสิทธิ์อนุมัติแทน — อนุมัติใบตัวเองไม่ได้
+                  ใบที่บัญชีนี้เปิดเอง จะเข้ากองกลางให้คนอื่นที่มีสิทธิ์อนุมัติแทน — ถ้าอยากให้อนุมัติเองได้ ต้องเปิดสวิตช์ข้างล่าง
                 </div>
               )}
+            </AField>
+          )}
+          {can(f.roles, "expenseApprove") && (
+            <AField label="อนุมัติใบเบิกของตัวเอง">
+              <button type="button" onClick={() => set("selfApprove", !f.selfApprove)}
+                style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 11px", borderRadius: 10, border: "1px solid " + (f.selfApprove ? "#F59E0B" : "var(--border-strong)"), background: "var(--surface2)", cursor: "pointer", fontFamily: "inherit" }}>
+                <span style={{ width: 38, height: 22, borderRadius: 99, background: f.selfApprove ? "#F59E0B" : "var(--surface3)", position: "relative", flexShrink: 0 }}>
+                  <span style={{ position: "absolute", top: 3, left: f.selfApprove ? 19 : 3, width: 16, height: 16, borderRadius: 99, background: "#fff", transition: "left .2s", boxShadow: "0 1px 3px rgba(0,0,0,.2)" }} />
+                </span>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: f.selfApprove ? "#B45309" : "var(--text-3)" }}>
+                  {f.selfApprove ? "อนุมัติใบของตัวเองได้" : "ต้องให้คนอื่นอนุมัติ (แนะนำ)"}
+                </span>
+              </button>
+              <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 5, lineHeight: 1.55 }}>
+                ปกติคนเบิกกับคนตรวจต้องคนละคน · เปิดเฉพาะบัญชีที่คุมเงินอยู่คนเดียวจริง ๆ
+                วงเงินอนุมัติยังคุมอยู่ และประวัติยังบันทึกว่าใครกดอนุมัติ
+              </div>
             </AField>
           )}
           {/* คนจ่ายเงินคืนก็มีเพดานของตัวเอง — จ่ายคือเงินออกจริง ควรคุมได้ละเอียดกว่าเปิด/ปิดสิทธิ์ */}

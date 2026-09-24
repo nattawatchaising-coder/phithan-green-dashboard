@@ -150,10 +150,12 @@ function ecApproveCheck(claim, user, role) {
     ok: false,
     why: "ไม่มีสิทธิ์อนุมัติใบเบิก"
   };
-  if (claim.byId && claim.byId === user.id) return {
-    ok: false,
-    why: "อนุมัติใบของตัวเองไม่ได้ — ต้องให้คนอื่นอนุมัติ"
-  };
+  if (claim.byId && claim.byId === user.id && !user.selfApprove) {
+    return {
+      ok: false,
+      why: "อนุมัติใบของตัวเองไม่ได้ — ต้องให้คนอื่นอนุมัติ"
+    };
+  }
   if (claim.approverId && claim.approverId !== claim.byId && claim.approverId !== user.id && !window.hasRole(role, "admin")) {
     return {
       ok: false,
