@@ -559,7 +559,7 @@ function EcDocMark({ th, doneTh, at, byName, color, can, mine, onSet, onClear })
 }
 
 /* ── แถวใบเบิกในรายการ ── */
-function EcClaimRow({ claim, onOpen, gone, currentUser, role, onDoc }) {
+function EcClaimRow({ claim, onOpen, gone, currentUser, role, onDoc, onRemove }) {
   const st = window.ecStatusOf(claim.status);
   const kind = window.ecKindOf(claim.kind);
   const pay = window.ecPayOf(claim.payMethod);
@@ -570,6 +570,17 @@ function EcClaimRow({ claim, onOpen, gone, currentUser, role, onDoc }) {
   const docBtn = { display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap", marginRight: 5,
     fontSize: 11.5, fontWeight: 700, borderRadius: 99, padding: "3px 9px", cursor: "pointer", fontFamily: "inherit" };
   const hitDoc = (e, k) => { e.stopPropagation(); if (onDoc) onDoc(claim.id, k, true); };
+  /* ลบจากแถว — ถามยืนยันก่อนเสมอ และบอกให้ชัดว่าใบที่อนุมัติแล้วลบทิ้งแล้วยอดของใครหาย */
+  const del = (e) => {
+    e.stopPropagation();
+    window.askConfirm({
+      title: "ลบใบเบิก " + (claim.no || "") + " ?",
+      body: claim.status === "paid" || claim.status === "approved"
+        ? "ใบนี้ผ่านการอนุมัติแล้ว การลบทิ้งจะทำให้ยอดของ " + (claim.byName || "") + " หายไปด้วย"
+        : "ลบแล้วกู้คืนไม่ได้",
+      danger: true,
+    }).then((ok) => { if (ok && onRemove) onRemove(claim.id); });
+  };
   return (
     <div role="button" tabIndex={0} onClick={() => onOpen(claim.id)}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(claim.id); } }}
@@ -651,6 +662,14 @@ function EcClaimRow({ claim, onOpen, gone, currentUser, role, onDoc }) {
           )}
         </span>
       </span>
+      {/* ลบได้เฉพาะแอดมิน — เป็นเอกสารการเงิน ไม่ใช่รายการที่ใครก็เก็บกวาดได้ */}
+      {window.ecCanDelete(role) && onRemove && (
+        <button onClick={del} title={"ลบใบ " + (claim.no || "")}
+          style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, display: "grid", placeItems: "center",
+            border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer" }}>
+          <Icon name="trash" size={13} color="var(--tint-red-tx)" />
+        </button>
+      )}
     </div>
   );
 }
@@ -1263,7 +1282,7 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
             style={EC_INPUT} />
           <div>
             {list.map((c) => <EcClaimRow key={c.id} claim={c} onOpen={setOpen} gone={!!c.jobId && !jobById[c.jobId]}
-              currentUser={currentUser} role={role} onDoc={markDoc} />)}
+              currentUser={currentUser} role={role} onDoc={markDoc} onRemove={store.remove} />)}
             {!list.length && (
               <div style={{ padding: 28, textAlign: "center", fontSize: 13, color: "var(--text-3)" }}>
                 {jobFilter ? "งานนี้ยังไม่มีใบเบิก — กด “เปิดใบเบิก” ด้านบนได้เลย"

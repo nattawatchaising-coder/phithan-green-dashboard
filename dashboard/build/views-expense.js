@@ -1144,7 +1144,8 @@ function EcClaimRow({
   gone,
   currentUser,
   role,
-  onDoc
+  onDoc,
+  onRemove
 }) {
   const st = window.ecStatusOf(claim.status);
   const kind = window.ecKindOf(claim.kind);
@@ -1168,6 +1169,16 @@ function EcClaimRow({
   const hitDoc = (e, k) => {
     e.stopPropagation();
     if (onDoc) onDoc(claim.id, k, true);
+  };
+  const del = e => {
+    e.stopPropagation();
+    window.askConfirm({
+      title: "ลบใบเบิก " + (claim.no || "") + " ?",
+      body: claim.status === "paid" || claim.status === "approved" ? "ใบนี้ผ่านการอนุมัติแล้ว การลบทิ้งจะทำให้ยอดของ " + (claim.byName || "") + " หายไปด้วย" : "ลบแล้วกู้คืนไม่ได้",
+      danger: true
+    }).then(ok => {
+      if (ok && onRemove) onRemove(claim.id);
+    });
   };
   return React.createElement("div", {
     role: "button",
@@ -1343,7 +1354,25 @@ function EcClaimRow({
       color: pay.color,
       marginLeft: 5
     }
-  }, claim.payMethod === "mate" ? claim.owedToName ? claim.owedToName + "ออกให้" : "คนอื่นออกให้" : "ออกเงินเอง"))));
+  }, claim.payMethod === "mate" ? claim.owedToName ? claim.owedToName + "ออกให้" : "คนอื่นออกให้" : "ออกเงินเอง"))), window.ecCanDelete(role) && onRemove && React.createElement("button", {
+    onClick: del,
+    title: "ลบใบ " + (claim.no || ""),
+    style: {
+      width: 28,
+      height: 28,
+      borderRadius: 8,
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+      border: "1px solid var(--border)",
+      background: "var(--surface)",
+      cursor: "pointer"
+    }
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 13,
+    color: "var(--tint-red-tx)"
+  })));
 }
 function EcPersonTable({
   claims,
@@ -2517,7 +2546,8 @@ function ExpenseView({
     gone: !!c.jobId && !jobById[c.jobId],
     currentUser: currentUser,
     role: role,
-    onDoc: markDoc
+    onDoc: markDoc,
+    onRemove: store.remove
   })), !list.length && React.createElement("div", {
     style: {
       padding: 28,
