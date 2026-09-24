@@ -120,9 +120,24 @@ function LnEcForm({ me, users, role, jobs, store, claim, onClose }) {
         <div style={{ display: "grid", gap: 6 }}>
           <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ใครออกเงินไปก่อน</span>
           {locked ? <b style={{ fontSize: 14, color: window.ecPayOf(c.payMethod).color }}>{window.ecPayOf(c.payMethod).th}</b>
-            : <LnChips list={window.EC_PAY} value={c.payMethod} onChange={(v) => set({ payMethod: v })} />}
+            : <LnChips list={window.EC_PAY} value={c.payMethod}
+                onChange={(v) => set({ payMethod: v, owedToId: null, owedToName: "" })} />}
+          {c.payMethod === "mate" && (locked
+            ? <b style={{ fontSize: 13.5, color: "var(--text-1)" }}>{c.owedToName || "ยังไม่ได้ระบุคน"}</b>
+            : <select value={c.owedToId || ""}
+                onChange={(e) => {
+                  const u = (users || []).filter((x) => x.id === e.target.value)[0];
+                  set({ owedToId: u ? u.id : null, owedToName: u ? (u.name || u.username || "") : "" });
+                }}
+                style={LN_EC_FIELD}>
+                <option value="">— เลือกคนที่ออกเงินให้ —</option>
+                {(users || []).filter((u) => u.active !== false && u.id !== c.byId)
+                  .map((u) => <option key={u.id} value={u.id}>{u.name || u.username}</option>)}
+              </select>)}
           {!locked && <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
-            {window.ecPayOf(c.payMethod).hint}
+            {c.payMethod === "mate" && !c.owedToId
+              ? "ยังไม่ได้เลือกคน — ถ้าปล่อยไว้ เงินคืนจะเข้าชื่อคนเปิดใบ"
+              : window.ecPayOf(c.payMethod).hint}
           </div>}
         </div>
 
@@ -275,8 +290,9 @@ function LnEcTab({ me, users, role, jobs }) {
     () => (store.claims || []).filter((c) => c && c.byId === (me || {}).id),
     [store.claims, me]);
 
-  const owed = mine.reduce((s, c) =>
-    s + (c.status === "approved" && window.ecPayOf(c.payMethod).owed ? window.ecRound(c.amount) : 0), 0);
+  const owed = (store.claims || []).reduce((s, c) =>
+    s + (c && c.status === "approved" && window.ecPayOf(c.payMethod).owed
+      && window.ecOwedTo(c).id === (me || {}).id ? window.ecRound(c.amount) : 0), 0);
 
   if (!window.ecCanUse(role)) {
     return <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>

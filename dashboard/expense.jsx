@@ -68,11 +68,23 @@ const ecKindOf = (k) => EC_KIND_BY[k] || EC_KIND_BY.other;
    ไม่งั้นตัวเลข "ติดเงินคนนี้อยู่เท่าไหร่" จะบวมเกินจริงจนเอาไปจ่ายจริงไม่ได้ */
 const EC_PAY = [
   { key: "own",     th: "ออกเงินตัวเองไปก่อน", color: "#EF4444", owed: true,  hint: "บริษัทต้องคืนเงินให้คนนี้" },
+  /* คนเปิดใบกับคนที่เสียเงินไม่ใช่คนเดียวกันเสมอ — หัวหน้าชุดควักแทนลูกทีมเป็นเรื่องปกติหน้างาน
+     ใบยังเป็นของคนเปิด (เขาคือคนที่ตอบเรื่องบิลได้) แต่เงินคืนต้องเข้าชื่อคนที่ควัก */
+  { key: "mate",    th: "คนอื่นออกเงินให้",     color: "#EF4444", owed: true,  hint: "เลือกชื่อคนที่ควักเงินจริง เงินคืนจะเข้าชื่อคนนั้น" },
   { key: "petty",   th: "เงินสดกองกลาง",       color: "#F59E0B", owed: false, hint: "ใช้เงินสดย่อยของบริษัท" },
   { key: "company", th: "บัตร / บัญชีบริษัท",   color: "#10B981", owed: false, hint: "จ่ายจากบัญชีบริษัทโดยตรง" },
 ];
 const EC_PAY_BY = {}; EC_PAY.forEach((p) => { EC_PAY_BY[p.key] = p; });
 const ecPayOf = (k) => EC_PAY_BY[k] || EC_PAY_BY.own;
+
+/* เงินก้อนนี้บริษัทติดใคร — ตอบเป็น {id,name} ตัวเดียวที่ทุกที่ต้องใช้ร่วมกัน
+   ยังไม่ได้เลือกคน = ตกกลับไปที่คนเปิดใบ เงินจะได้ไม่ลอยหายไปจากตารางค้างจ่าย */
+function ecOwedTo(c) {
+  const o = c || {};
+  if (!ecPayOf(o.payMethod).owed) return { id: null, name: "" };
+  if (o.payMethod === "mate" && o.owedToId) return { id: o.owedToId, name: o.owedToName || "" };
+  return { id: o.byId || null, name: o.byName || "" };
+}
 
 /* ── ตารางเดินสถานะ ประกาศเป็นข้อมูล ไม่ใช่ if ซ้อน ──
    ปุ่มบนหน้าจอสร้างจากตารางนี้ จึงเสนอขั้นที่ผิดกติกาไม่ได้ตั้งแต่แรก */
@@ -190,7 +202,7 @@ function ecMove(claim, to, user, note) {
    ใบแต่ละใบยังเก็บ batchId ไว้ ตรวจย้อนจากใบไปหารอบ หรือจากรอบมาหาใบก็ได้ */
 function ecPayable(claims, userId) {
   return (claims || []).filter((c) => c && c.status === "approved"
-    && ecPayOf(c.payMethod).owed && (!userId || c.byId === userId));
+    && ecPayOf(c.payMethod).owed && (!userId || ecOwedTo(c).id === userId));
 }
 
 function ecBatchNo(batches, today) {
@@ -255,7 +267,7 @@ function ecVisible(claims, user, role) {
   const all = claims || [];
   if (ecCanApprove(role) || ecCanPay(role)) return all;
   const uid = (user || {}).id || null;
-  return all.filter((c) => c && c.byId === uid);
+  return all.filter((c) => c && (c.byId === uid || ecOwedTo(c).id === uid));
 }
 
 /* ── ยอดรายคน ──
@@ -263,18 +275,27 @@ function ecVisible(claims, user, role) {
    ตัวเลขนี้คือตัวเดียวที่เอาไปจ่ายจริงได้ ที่เหลือเป็นข้อมูลประกอบ */
 function ecRollupByPerson(claims) {
   const out = {};
+  const row = (id, name) => {
+    const k = id || "-";
+    if (!out[k]) out[k] = { id: k, name: name || "-", draft: 0, waiting: 0, approved: 0, paid: 0, owed: 0, count: 0 };
+    if (name) out[k].name = name;
+    return out[k];
+  };
   (claims || []).forEach((c) => {
     if (!c) return;
-    const id = c.byId || "-";
-    if (!out[id]) out[id] = { id, name: c.byName || "-", draft: 0, waiting: 0, approved: 0, paid: 0, owed: 0, count: 0 };
-    const o = out[id];
+    const o = row(c.byId, c.byName);
     const amt = ecRound(c.amount);
     o.count += 1;
-    if (c.byName) o.name = c.byName;
     if (c.status === "draft") o.draft += amt;
     else if (c.status === "sent") o.waiting += amt;
-    else if (c.status === "approved") { o.approved += amt; if (ecPayOf(c.payMethod).owed) o.owed += amt; }
+    else if (c.status === "approved") o.approved += amt;
     else if (c.status === "paid") o.paid += amt;
+    /* ช่องค้างจ่ายเดินคนละทางกับช่องอื่น — ช่องอื่นคือ "ใบของใคร" ช่องนี้คือ "เงินของใคร"
+       ใบที่เพื่อนออกให้จึงไปโผล่เป็นยอดค้างในแถวของเพื่อน ซึ่งเป็นแถวที่ปุ่มจ่ายคืนใช้จริง */
+    if (c.status === "approved" && ecPayOf(c.payMethod).owed) {
+      const to = ecOwedTo(c);
+      row(to.id || c.byId, to.name || c.byName).owed += amt;
+    }
   });
   Object.keys(out).forEach((k) => {
     const o = out[k];
@@ -326,10 +347,9 @@ function ecRollup(claims, user, role) {
     if (r[k] != null) r[k] += 1;
     if (k === "sent") { r.sentAmt += amt; if (ecApproveCheck(c, user, role).ok) r.waitingMine += 1; }
     if (k === "approved" && ecPayOf(c.payMethod).owed) r.owedAmt += amt;
-    if (user && c.byId === user.id) {
-      if (ecOpen(c)) r.mineOpen += 1;
-      if (k === "approved" && ecPayOf(c.payMethod).owed) r.mineOwed += amt;
-    }
+    if (user && c.byId === user.id && ecOpen(c)) r.mineOpen += 1;
+    /* "บริษัทติดเงินฉัน" นับจากคนที่ควักจริง ไม่ใช่คนเปิดใบ */
+    if (user && k === "approved" && ecPayOf(c.payMethod).owed && ecOwedTo(c).id === user.id) r.mineOwed += amt;
   });
   r.sentAmt = ecRound(r.sentAmt); r.owedAmt = ecRound(r.owedAmt); r.mineOwed = ecRound(r.mineOwed);
   return r;
@@ -501,7 +521,7 @@ function useEcLive(on) {
 
 Object.assign(window, {
   EC_ROOT, EC_KIND, EC_KIND_BY, EC_PAY, EC_PAY_BY, EC_STATUS, EC_STATUS_BY,
-  ecRound, ecBaht, ecBahtShort, ecKindOf, ecPayOf, ecStatusOf, ecOpen,
+  ecRound, ecBaht, ecBahtShort, ecKindOf, ecPayOf, ecOwedTo, ecStatusOf, ecOpen,
   ecCanUse, ecCanApprove, ecCanPay, ecCanDelete,
   ecApproverFor, ecApproveCheck, ecPayCheck, ecNext, ecCan, ecMove,
   ecDocNo, ecBlank, ecSum, ecVisible,

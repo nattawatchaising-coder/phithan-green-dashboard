@@ -340,7 +340,25 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
               <div>
                 <window.DrLabel>เงินที่ใช้จ่ายไปเป็นของใคร</window.DrLabel>
                 <window.DrChips options={window.EC_PAY} value={c.payMethod} disabled={locked}
-                  onChange={(v) => set({ payMethod: v || "own" })} />
+                  onChange={(v) => set({ payMethod: v || "own", owedToId: null, owedToName: "" })} />
+                {c.payMethod === "mate" && (
+                  <div style={{ marginTop: 8 }}>
+                    <select value={c.owedToId || ""} disabled={locked}
+                      onChange={(e) => {
+                        const u = (users || []).filter((x) => x.id === e.target.value)[0];
+                        set({ owedToId: u ? u.id : null, owedToName: u ? (u.name || u.username || "") : "" });
+                      }}
+                      style={Object.assign({}, EC_INPUT, { padding: "9px 12px" })}>
+                      <option value="">— เลือกคนที่ออกเงินให้ —</option>
+                      {(users || []).filter((u) => u.active !== false && u.id !== c.byId)
+                        .map((u) => <option key={u.id} value={u.id}>{u.name || u.username}</option>)}
+                    </select>
+                    <div style={{ fontSize: 11.5, marginTop: 5, color: c.owedToId ? "var(--text-3)" : "#F59E0B" }}>
+                      {c.owedToId ? "เงินคืนของใบนี้จะเข้าชื่อ " + (c.owedToName || "-") + " ไม่ใช่คนเปิดใบ"
+                        : "ยังไม่ได้เลือกคน — ถ้าปล่อยไว้ เงินคืนจะเข้าชื่อคนเปิดใบตามเดิม"}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -532,7 +550,11 @@ function EcClaimRow({ claim, onOpen, gone }) {
             </span>
           )}
           <EcPill th={st.th} color={st.color} />
-          {pay.owed && claim.status !== "paid" && <span style={{ fontSize: 10.5, color: pay.color, marginLeft: 5 }}>ออกเงินเอง</span>}
+          {pay.owed && claim.status !== "paid" && (
+            <span style={{ fontSize: 10.5, color: pay.color, marginLeft: 5 }}>
+              {claim.payMethod === "mate" ? (claim.owedToName ? claim.owedToName + "ออกให้" : "คนอื่นออกให้") : "ออกเงินเอง"}
+            </span>
+          )}
         </span>
       </span>
     </button>
@@ -608,6 +630,11 @@ function EcPersonTable({ claims, users, onPick, onPay, canPay, currentUser, role
               <td style={{ padding: "11px 10px", fontSize: 12.5, fontWeight: 800, color: "var(--text-2)" }}>รวมเงินที่บริษัทติดพนักงานอยู่</td>
               <td colSpan={canPay ? 6 : 5} style={Object.assign({}, td, { fontSize: 15, fontWeight: 800, color: sum ? "#EF4444" : "var(--text-3)" })}>
                 {window.ecBaht(sum)} บาท
+                {!canPay && sum > 0 && (
+                  <div style={{ fontFamily: "inherit", fontSize: 11, fontWeight: 500, color: "var(--text-3)", marginTop: 3 }}>
+                    ปุ่มจ่ายคืนขึ้นเฉพาะบัญชีที่เปิดสิทธิ์ “บันทึกจ่ายเงินคืน” ในตั้งค่า → สิทธิ์ตามตำแหน่ง
+                  </div>
+                )}
               </td>
             </tr>
           </tfoot>

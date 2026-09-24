@@ -76,6 +76,7 @@ const EC_PAPER_I18N = {
   "อนุมัติแล้ว": ["Approved", "已批准"],
   "ไม่อนุมัติ": ["Rejected", "未批准"],
   "ออกเงินตัวเองไปก่อน": ["Paid by employee", "员工垫付"],
+  "คนอื่นออกเงินให้": ["Paid by a colleague", "同事垫付"],
   "เงินสดกองกลาง": ["Petty cash", "备用金"],
   "บัตร / บัญชีบริษัท": ["Company card / account", "公司卡 / 账户"],
   "ซื้อของหน้างาน": ["Site purchase", "现场采购"],
@@ -882,7 +883,7 @@ function EcClaimPaper({
     v: T(kind.th)
   }), React.createElement(EcVPRow, {
     k: T("ที่มาของเงิน"),
-    v: T(pay.th)
+    v: T(pay.th) + (c.payMethod === "mate" && c.owedToName ? " · " + c.owedToName : "")
   }), React.createElement(EcVPRow, {
     k: T("งาน / ไซต์"),
     v: c.jobId ? [c.siteCode, c.siteName].filter(Boolean).join(" · ") : "—"
@@ -1327,7 +1328,7 @@ function ecExportXlsx(claims, opts) {
       }
     });
     items.forEach((c, i) => {
-      pushRow([n + "." + (i + 1), c.no || "", c.date ? window.drDateTH(c.date) : "", window.ecKindOf(c.kind).th, window.ecPayOf(c.payMethod).th, c.siteCode || "", c.siteName || "", c.note || "", window.ecStatusOf(c.status).th, c.decidedByName || c.approverName || "", c.paidAt ? window.drDateTH(window.drLocalDay(c.paidAt)) : "", [c.batchNo, c.paidRef].filter(Boolean).join(" · "), window.ecRound(c.amount)], i % 2 === 0 ? "item" : "itemAlt");
+      pushRow([n + "." + (i + 1), c.no || "", c.date ? window.drDateTH(c.date) : "", window.ecKindOf(c.kind).th, window.ecPayOf(c.payMethod).th + (c.payMethod === "mate" && c.owedToName ? " (" + c.owedToName + ")" : ""), c.siteCode || "", c.siteName || "", c.note || "", window.ecStatusOf(c.status).th, c.decidedByName || c.approverName || "", c.paidAt ? window.drDateTH(window.drLocalDay(c.paidAt)) : "", [c.batchNo, c.paidRef].filter(Boolean).join(" · "), window.ecRound(c.amount)], i % 2 === 0 ? "item" : "itemAlt");
     });
     const srow = [];
     for (let i = 0; i <= lastC; i++) {

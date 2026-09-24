@@ -58,6 +58,12 @@ const EC_PAY = [{
   owed: true,
   hint: "บริษัทต้องคืนเงินให้คนนี้"
 }, {
+  key: "mate",
+  th: "คนอื่นออกเงินให้",
+  color: "#EF4444",
+  owed: true,
+  hint: "เลือกชื่อคนที่ควักเงินจริง เงินคืนจะเข้าชื่อคนนั้น"
+}, {
   key: "petty",
   th: "เงินสดกองกลาง",
   color: "#F59E0B",
@@ -75,6 +81,21 @@ EC_PAY.forEach(p => {
   EC_PAY_BY[p.key] = p;
 });
 const ecPayOf = k => EC_PAY_BY[k] || EC_PAY_BY.own;
+function ecOwedTo(c) {
+  const o = c || {};
+  if (!ecPayOf(o.payMethod).owed) return {
+    id: null,
+    name: ""
+  };
+  if (o.payMethod === "mate" && o.owedToId) return {
+    id: o.owedToId,
+    name: o.owedToName || ""
+  };
+  return {
+    id: o.byId || null,
+    name: o.byName || ""
+  };
+}
 const EC_STATUS = [{
   key: "draft",
   th: "ร่าง",
@@ -226,7 +247,7 @@ function ecMove(claim, to, user, note) {
   return rec;
 }
 function ecPayable(claims, userId) {
-  return (claims || []).filter(c => c && c.status === "approved" && ecPayOf(c.payMethod).owed && (!userId || c.byId === userId));
+  return (claims || []).filter(c => c && c.status === "approved" && ecPayOf(c.payMethod).owed && (!userId || ecOwedTo(c).id === userId));
 }
 function ecBatchNo(batches, today) {
   const d = String(today || window.drToday());
@@ -291,16 +312,15 @@ function ecVisible(claims, user, role) {
   const all = claims || [];
   if (ecCanApprove(role) || ecCanPay(role)) return all;
   const uid = (user || {}).id || null;
-  return all.filter(c => c && c.byId === uid);
+  return all.filter(c => c && (c.byId === uid || ecOwedTo(c).id === uid));
 }
 function ecRollupByPerson(claims) {
   const out = {};
-  (claims || []).forEach(c => {
-    if (!c) return;
-    const id = c.byId || "-";
-    if (!out[id]) out[id] = {
-      id,
-      name: c.byName || "-",
+  const row = (id, name) => {
+    const k = id || "-";
+    if (!out[k]) out[k] = {
+      id: k,
+      name: name || "-",
       draft: 0,
       waiting: 0,
       approved: 0,
@@ -308,14 +328,19 @@ function ecRollupByPerson(claims) {
       owed: 0,
       count: 0
     };
-    const o = out[id];
+    if (name) out[k].name = name;
+    return out[k];
+  };
+  (claims || []).forEach(c => {
+    if (!c) return;
+    const o = row(c.byId, c.byName);
     const amt = ecRound(c.amount);
     o.count += 1;
-    if (c.byName) o.name = c.byName;
-    if (c.status === "draft") o.draft += amt;else if (c.status === "sent") o.waiting += amt;else if (c.status === "approved") {
-      o.approved += amt;
-      if (ecPayOf(c.payMethod).owed) o.owed += amt;
-    } else if (c.status === "paid") o.paid += amt;
+    if (c.status === "draft") o.draft += amt;else if (c.status === "sent") o.waiting += amt;else if (c.status === "approved") o.approved += amt;else if (c.status === "paid") o.paid += amt;
+    if (c.status === "approved" && ecPayOf(c.payMethod).owed) {
+      const to = ecOwedTo(c);
+      row(to.id || c.byId, to.name || c.byName).owed += amt;
+    }
   });
   Object.keys(out).forEach(k => {
     const o = out[k];
@@ -396,10 +421,8 @@ function ecRollup(claims, user, role) {
       if (ecApproveCheck(c, user, role).ok) r.waitingMine += 1;
     }
     if (k === "approved" && ecPayOf(c.payMethod).owed) r.owedAmt += amt;
-    if (user && c.byId === user.id) {
-      if (ecOpen(c)) r.mineOpen += 1;
-      if (k === "approved" && ecPayOf(c.payMethod).owed) r.mineOwed += amt;
-    }
+    if (user && c.byId === user.id && ecOpen(c)) r.mineOpen += 1;
+    if (user && k === "approved" && ecPayOf(c.payMethod).owed && ecOwedTo(c).id === user.id) r.mineOwed += amt;
   });
   r.sentAmt = ecRound(r.sentAmt);
   r.owedAmt = ecRound(r.owedAmt);
@@ -592,6 +615,7 @@ Object.assign(window, {
   ecBahtShort,
   ecKindOf,
   ecPayOf,
+  ecOwedTo,
   ecStatusOf,
   ecOpen,
   ecCanUse,

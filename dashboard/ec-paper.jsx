@@ -104,6 +104,7 @@ const EC_PAPER_I18N = {
   "อนุมัติแล้ว": ["Approved", "已批准"],
   "ไม่อนุมัติ": ["Rejected", "未批准"],
   "ออกเงินตัวเองไปก่อน": ["Paid by employee", "员工垫付"],
+  "คนอื่นออกเงินให้": ["Paid by a colleague", "同事垫付"],
   "เงินสดกองกลาง": ["Petty cash", "备用金"],
   "บัตร / บัญชีบริษัท": ["Company card / account", "公司卡 / 账户"],
   /* หมวดค่าใช้จ่ายจาก expense.jsx */
@@ -487,7 +488,8 @@ function EcClaimPaper({ claim, job, user, onPrinted, onClose }) {
           <EcVPRow k={T("ผู้ขอเบิก")} v={c.byName || "-"} />
           <EcVPRow k={T("วันที่ใช้จ่าย")} v={DTs(c.date)} />
           <EcVPRow k={T("หมวด")} v={T(kind.th)} />
-          <EcVPRow k={T("ที่มาของเงิน")} v={T(pay.th)} />
+          <EcVPRow k={T("ที่มาของเงิน")}
+            v={T(pay.th) + (c.payMethod === "mate" && c.owedToName ? " · " + c.owedToName : "")} />
           <EcVPRow k={T("งาน / ไซต์")}
             v={c.jobId ? [c.siteCode, c.siteName].filter(Boolean).join(" · ") : "—"} />
           <EcVPRow k={T("ผู้อนุมัติ")} v={c.decidedByName || (c.approverName || "—")} />
@@ -698,7 +700,7 @@ function ecExportXlsx(claims, opts) {
         c.no || "",
         c.date ? window.drDateTH(c.date) : "",
         window.ecKindOf(c.kind).th,
-        window.ecPayOf(c.payMethod).th,
+        window.ecPayOf(c.payMethod).th + (c.payMethod === "mate" && c.owedToName ? " (" + c.owedToName + ")" : ""),
         c.siteCode || "",
         c.siteName || "",
         c.note || "",

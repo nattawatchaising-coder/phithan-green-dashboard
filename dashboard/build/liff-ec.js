@@ -220,15 +220,37 @@ function LnEcForm({
     list: window.EC_PAY,
     value: c.payMethod,
     onChange: v => set({
-      payMethod: v
+      payMethod: v,
+      owedToId: null,
+      owedToName: ""
     })
-  }), !locked && React.createElement("div", {
+  }), c.payMethod === "mate" && (locked ? React.createElement("b", {
+    style: {
+      fontSize: 13.5,
+      color: "var(--text-1)"
+    }
+  }, c.owedToName || "ยังไม่ได้ระบุคน") : React.createElement("select", {
+    value: c.owedToId || "",
+    onChange: e => {
+      const u = (users || []).filter(x => x.id === e.target.value)[0];
+      set({
+        owedToId: u ? u.id : null,
+        owedToName: u ? u.name || u.username || "" : ""
+      });
+    },
+    style: LN_EC_FIELD
+  }, React.createElement("option", {
+    value: ""
+  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E04\u0E19\u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E01\u0E40\u0E07\u0E34\u0E19\u0E43\u0E2B\u0E49 \u2014"), (users || []).filter(u => u.active !== false && u.id !== c.byId).map(u => React.createElement("option", {
+    key: u.id,
+    value: u.id
+  }, u.name || u.username)))), !locked && React.createElement("div", {
     style: {
       fontSize: 11,
       color: "var(--text-3)",
       lineHeight: 1.6
     }
-  }, window.ecPayOf(c.payMethod).hint)), React.createElement("label", {
+  }, c.payMethod === "mate" && !c.owedToId ? "ยังไม่ได้เลือกคน — ถ้าปล่อยไว้ เงินคืนจะเข้าชื่อคนเปิดใบ" : window.ecPayOf(c.payMethod).hint)), React.createElement("label", {
     style: {
       display: "grid",
       gap: 5
@@ -560,7 +582,7 @@ function LnEcTab({
   const store = window.useEcClaims();
   const [open, setOpen] = React.useState(null);
   const mine = React.useMemo(() => (store.claims || []).filter(c => c && c.byId === (me || {}).id), [store.claims, me]);
-  const owed = mine.reduce((s, c) => s + (c.status === "approved" && window.ecPayOf(c.payMethod).owed ? window.ecRound(c.amount) : 0), 0);
+  const owed = (store.claims || []).reduce((s, c) => s + (c && c.status === "approved" && window.ecPayOf(c.payMethod).owed && window.ecOwedTo(c).id === (me || {}).id ? window.ecRound(c.amount) : 0), 0);
   if (!window.ecCanUse(role)) {
     return React.createElement("div", {
       style: {
