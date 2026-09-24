@@ -1603,7 +1603,6 @@ function EcPayModal({
   onConfirm
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
-  const [ref, setRef] = React.useState("");
   const [note, setNote] = React.useState("");
   const [slip, setSlip] = React.useState(null);
   const [slipErr, setSlipErr] = React.useState("");
@@ -1615,7 +1614,6 @@ function EcPayModal({
   const ck = window.ecPayCheck(total, currentUser, role);
   const openCover = () => {
     const b = window.ecBlankBatch(person, list, currentUser, batches);
-    b.ref = ref;
     b.note = note;
     setCover(b);
   };
@@ -1657,7 +1655,6 @@ function EcPayModal({
     if (busy || !list.length || !ck.ok) return;
     setBusy(true);
     const batch = window.ecBlankBatch(person, list, currentUser, batches);
-    batch.ref = ref;
     batch.note = note;
     Promise.resolve(onConfirm(batch, list, slip)).then(ok => {
       setBusy(false);
@@ -1817,16 +1814,6 @@ function EcPayModal({
       color: "var(--text-1)"
     }
   }, window.ecBaht(c.amount))))), React.createElement(window.DrLabel, {
-    hint: "\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A \xB7 \u0E41\u0E19\u0E30\u0E19\u0E33\u0E43\u0E2B\u0E49\u0E43\u0E2A\u0E48\u0E44\u0E27\u0E49\u0E40\u0E17\u0E35\u0E22\u0E1A\u0E01\u0E31\u0E1A\u0E2A\u0E40\u0E15\u0E17\u0E40\u0E21\u0E19\u0E15\u0E4C\u0E18\u0E19\u0E32\u0E04\u0E32\u0E23"
-  }, "\u0E40\u0E25\u0E02\u0E2A\u0E25\u0E34\u0E1B / \u0E40\u0E25\u0E02\u0E2D\u0E49\u0E32\u0E07\u0E2D\u0E34\u0E07\u0E01\u0E32\u0E23\u0E42\u0E2D\u0E19"), React.createElement("input", {
-    value: ref,
-    onChange: e => setRef(e.target.value),
-    style: Object.assign({}, EC_INPUT, {
-      marginBottom: 12,
-      fontFamily: "var(--mono)"
-    }),
-    placeholder: "\u0E40\u0E0A\u0E48\u0E19 20260912-104233"
-  }), React.createElement(window.DrLabel, {
     hint: "\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A \xB7 \u0E41\u0E19\u0E1A\u0E41\u0E25\u0E49\u0E27\u0E2A\u0E25\u0E34\u0E1B\u0E08\u0E30\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E15\u0E34\u0E14\u0E44\u0E1B\u0E01\u0E31\u0E1A\u0E43\u0E1A\u0E2A\u0E33\u0E04\u0E31\u0E0D\u0E08\u0E48\u0E32\u0E22 \u0E41\u0E25\u0E30\u0E40\u0E1B\u0E34\u0E14\u0E14\u0E39\u0E22\u0E49\u0E2D\u0E19\u0E2B\u0E25\u0E31\u0E07\u0E44\u0E14\u0E49"
   }, "\u0E2A\u0E25\u0E34\u0E1B\u0E42\u0E2D\u0E19\u0E40\u0E07\u0E34\u0E19"), slip ? React.createElement("div", {
     style: {

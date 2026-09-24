@@ -785,7 +785,6 @@ function EcPersonTable({ claims, users, onPick, onPay, onCover, canPay, canCover
    หน้าต่างนี้แสดงทุกใบที่จะถูกปิดพร้อมกัน ให้เห็นก่อนกดว่ากำลังโอนเท่าไหร่ให้ใคร แลกกับใบอะไรบ้าง */
 function EcPayModal({ person, claims, batches, currentUser, role, payers, onClose, onConfirm }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
-  const [ref, setRef] = React.useState("");
   const [note, setNote] = React.useState("");
   const [slip, setSlip] = React.useState(null);      /* {dataUrl,kind,name,size} ที่จะบันทึกพร้อมรอบ */
   const [slipErr, setSlipErr] = React.useState("");
@@ -802,7 +801,7 @@ function EcPayModal({ person, claims, batches, currentUser, role, payers, onClos
      เลขรอบเป็นเลขเดียวกับตอนกดจ่ายจริง ใบที่พิมพ์ไว้ก่อนจึงยังตรงกับใบสำคัญจ่ายที่ออกทีหลัง */
   const openCover = () => {
     const b = window.ecBlankBatch(person, list, currentUser, batches);
-    b.ref = ref; b.note = note;
+    b.note = note;
     setCover(b);
   };
 
@@ -832,7 +831,7 @@ function EcPayModal({ person, claims, batches, currentUser, role, payers, onClos
     if (busy || !list.length || !ck.ok) return;
     setBusy(true);
     const batch = window.ecBlankBatch(person, list, currentUser, batches);
-    batch.ref = ref; batch.note = note;
+    batch.note = note;
     Promise.resolve(onConfirm(batch, list, slip)).then((ok) => {
       setBusy(false);
       if (ok) onClose();
@@ -889,10 +888,6 @@ function EcPayModal({ person, claims, batches, currentUser, role, payers, onClos
             ))}
           </div>
 
-          <window.DrLabel hint="ไม่บังคับ · แนะนำให้ใส่ไว้เทียบกับสเตทเมนต์ธนาคาร">เลขสลิป / เลขอ้างอิงการโอน</window.DrLabel>
-          <input value={ref} onChange={(e) => setRef(e.target.value)}
-            style={Object.assign({}, EC_INPUT, { marginBottom: 12, fontFamily: "var(--mono)" })}
-            placeholder="เช่น 20260912-104233" />
           {/* ── สลิปโอนเงิน ──
               เลขอ้างอิงพิมพ์ผิดหรือพิมพ์มั่วก็ได้ ภาพสลิปคือของที่ผู้ตรวจสอบขอดูจริง
               ไม่บังคับ เพราะบางรอบจ่ายเป็นเงินสดที่ไม่มีสลิป — แต่มีแล้วติดไปกับใบสำคัญจ่ายเลย */}
