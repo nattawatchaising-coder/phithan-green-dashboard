@@ -34,6 +34,8 @@ const NAV = [
      ยังอยู่ใน navForRole ตามปกติ เพราะ allowed ใช้ลิสต์นี้ตัดสินว่าหน้าไหนเข้าได้ —
      ถอดออกจาก NAV ตรง ๆ แล้วคนที่ค้างอยู่หน้านี้จะถูกเด้งออกตอนรีเฟรช */
   { key: "line",       th: "แจ้งเตือน LINE",  en: "LINE",          icon: "message",  perm: "manageUsers", inSettings: true },
+  /* คู่มือการใช้งาน — เนื้อหาล้วน ไม่แตะฐานข้อมูล เปิดค้างบนจอตอนสอนได้ */
+  { key: "guide",      th: "คู่มือการใช้งาน",  en: "Guide",         icon: "file",     foot: true },
   /* "รายงานสรุป" ถอดออกจากเมนูแล้ว — โค้ดหน้ายังอยู่ที่ views-report.jsx ถ้าอยากได้คืนให้เติมแถวนี้กลับ
      { key: "report", th: "รายงานสรุป", en: "Report", icon: "file", perm: "viewAll" } */
 ];
@@ -52,6 +54,7 @@ const PLAIN_SUB = {
   expense: "ใบเบิกเงินหน้างาน · คิวอนุมัติ · ยอดค้างจ่ายรายคน",
   daily: "ใบรายงานหน้างานรายวัน · รูปหน้างาน · ลายเซ็น",
   line: "โควตาข้อความ · เลือกเรื่องที่ส่งเข้าแชต · บัญชีที่ผูกไว้",
+  guide: "ขั้นตอนการใช้งานทีละข้อ แยกตามหน้าที่ · พิมพ์เป็นใบแจกได้",
 };
 const NAV_BADGE_TONE = { stock: "warn", calendar: "info" };
 const NAV_BADGE_TIP = {
@@ -907,6 +910,7 @@ function App() {
           {view === "expense" && <window.ExpenseView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} focus={ecFocus} />}
           {view === "attend" && <window.AttendView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} />}
           {view === "line" && <window.LineAdminView users={auth.users} currentUser={auth.current} />}
+          {view === "guide" && <window.GuideView role={role} currentUser={auth.current} onNav={navTo} />}
           {view === "report" && <ReportView jobs={filtered} onOpen={openJob} />}
           {view === "survey" && <SurveyView jobs={filtered} role={role} onOpen={openSurvey}
             onToggleSkip={(can(role, "doSurvey") || can(role, "dispatch") || can(role, "editJob")) ? (j) => {

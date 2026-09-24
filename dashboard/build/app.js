@@ -89,13 +89,20 @@ const NAV = [{
   icon: "message",
   perm: "manageUsers",
   inSettings: true
+}, {
+  key: "guide",
+  th: "คู่มือการใช้งาน",
+  en: "Guide",
+  icon: "file",
+  foot: true
 }];
 const PLAIN_SUB = {
   om: "ทะเบียนไซต์ในสัญญาบริการ · ประกัน · รอบล้างแผง",
   attend: "ลงเวลาเข้า-ออกรายวัน · ใบขอ OT · ตั้งค่าเวลาทำงาน",
   expense: "ใบเบิกเงินหน้างาน · คิวอนุมัติ · ยอดค้างจ่ายรายคน",
   daily: "ใบรายงานหน้างานรายวัน · รูปหน้างาน · ลายเซ็น",
-  line: "โควตาข้อความ · เลือกเรื่องที่ส่งเข้าแชต · บัญชีที่ผูกไว้"
+  line: "โควตาข้อความ · เลือกเรื่องที่ส่งเข้าแชต · บัญชีที่ผูกไว้",
+  guide: "ขั้นตอนการใช้งานทีละข้อ แยกตามหน้าที่ · พิมพ์เป็นใบแจกได้"
 };
 const NAV_BADGE_TONE = {
   stock: "warn",
@@ -1261,6 +1268,10 @@ function App() {
   }), view === "line" && React.createElement(window.LineAdminView, {
     users: auth.users,
     currentUser: auth.current
+  }), view === "guide" && React.createElement(window.GuideView, {
+    role: role,
+    currentUser: auth.current,
+    onNav: navTo
   }), view === "report" && React.createElement(ReportView, {
     jobs: filtered,
     onOpen: openJob
