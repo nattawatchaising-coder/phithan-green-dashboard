@@ -1628,6 +1628,7 @@ function QuotePicPick({
   locked
 }) {
   const fileRef = React.useRef(null);
+  const [open, setOpen] = React.useState(false);
   const pick = e => {
     const files = Array.prototype.slice.call(e.target.files || []);
     e.target.value = "";
@@ -1652,15 +1653,30 @@ function QuotePicPick({
       fontWeight: 700,
       color: "var(--text-2)"
     }
-  }, "\u0E04\u0E25\u0E31\u0E07\u0E23\u0E39\u0E1B\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C"), React.createElement("span", {
+  }, "\u0E04\u0E25\u0E31\u0E07\u0E23\u0E39\u0E1B\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C"), React.createElement("button", {
+    type: "button",
+    onClick: () => setOpen(v => !v),
+    style: Object.assign({}, pgQuick, {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4
+    })
+  }, lib.pics.length, " \u0E23\u0E39\u0E1B", React.createElement(Icon, {
+    name: open ? "chevronDown" : "chevronRight",
+    size: 12,
+    color: "var(--text-3)"
+  })), React.createElement("span", {
     style: {
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, lib.pics.length, " \u0E23\u0E39\u0E1B \xB7 \u0E2B\u0E22\u0E34\u0E1A\u0E44\u0E1B\u0E43\u0E2A\u0E48\u0E0A\u0E48\u0E2D\u0E07\u0E23\u0E39\u0E1B\u0E43\u0E19\u0E15\u0E32\u0E23\u0E32\u0E07\u0E23\u0E31\u0E1A\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E19\u0E14\u0E49\u0E32\u0E19\u0E1A\u0E19 \xB7 \u0E43\u0E0A\u0E49\u0E0B\u0E49\u0E33\u0E44\u0E14\u0E49\u0E17\u0E38\u0E01\u0E43\u0E1A"), !locked && React.createElement("button", {
+  }, "\u0E2B\u0E22\u0E34\u0E1A\u0E44\u0E1B\u0E43\u0E2A\u0E48\u0E0A\u0E48\u0E2D\u0E07\u0E23\u0E39\u0E1B\u0E43\u0E19\u0E15\u0E32\u0E23\u0E32\u0E07\u0E23\u0E31\u0E1A\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E19\u0E14\u0E49\u0E32\u0E19\u0E1A\u0E19 \xB7 \u0E43\u0E0A\u0E49\u0E0B\u0E49\u0E33\u0E44\u0E14\u0E49\u0E17\u0E38\u0E01\u0E43\u0E1A"), !locked && React.createElement("button", {
     type: "button",
     disabled: lib.busy,
-    onClick: () => fileRef.current && fileRef.current.click(),
+    onClick: () => {
+      setOpen(true);
+      if (fileRef.current) fileRef.current.click();
+    },
     style: Object.assign({}, pgQuick, {
       marginLeft: "auto",
       color: "var(--primary-dark)"
@@ -1674,7 +1690,7 @@ function QuotePicPick({
     style: {
       display: "none"
     }
-  })), lib.pics.length === 0 ? React.createElement("div", {
+  })), !open ? null : lib.pics.length === 0 ? React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",

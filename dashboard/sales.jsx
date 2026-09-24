@@ -1317,6 +1317,7 @@ function QuoteRoiEdit({ q, locked, onChange }) {
    ชื่อใต้รูปเป็นคำบรรยายที่จะไปขึ้นในเอกสาร แก้ที่นี่ที่เดียวแล้วเปลี่ยนทุกใบที่ใช้รูปนั้น */
 function QuotePicPick({ lib, locked }) {
   const fileRef = React.useRef(null);
+  const [open, setOpen] = React.useState(false);
   const pick = (e) => {
     const files = Array.prototype.slice.call(e.target.files || []);
     e.target.value = "";
@@ -1326,18 +1327,24 @@ function QuotePicPick({ lib, locked }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
         <label style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>คลังรูปอุปกรณ์</label>
+        <button type="button" onClick={() => setOpen((v) => !v)}
+          style={Object.assign({}, pgQuick, { display: "inline-flex", alignItems: "center", gap: 4 })}>
+          {lib.pics.length} รูป
+          <Icon name={open ? "chevronDown" : "chevronRight"} size={12} color="var(--text-3)" />
+        </button>
         <span style={{ fontSize: 11, color: "var(--text-3)" }}>
-          {lib.pics.length} รูป · หยิบไปใส่ช่องรูปในตารางรับประกันด้านบน · ใช้ซ้ำได้ทุกใบ
+          หยิบไปใส่ช่องรูปในตารางรับประกันด้านบน · ใช้ซ้ำได้ทุกใบ
         </span>
         {!locked && (
-          <button type="button" disabled={lib.busy} onClick={() => fileRef.current && fileRef.current.click()}
+          <button type="button" disabled={lib.busy}
+            onClick={() => { setOpen(true); if (fileRef.current) fileRef.current.click(); }}
             style={Object.assign({}, pgQuick, { marginLeft: "auto", color: "var(--primary-dark)" })}>
             {lib.busy ? "กำลังอัปรูป…" : "+ เพิ่มรูปเข้าคลัง"}
           </button>
         )}
         <input ref={fileRef} type="file" accept="image/*" multiple onChange={pick} style={{ display: "none" }} />
       </div>
-      {lib.pics.length === 0 ? (
+      {!open ? null : lib.pics.length === 0 ? (
         <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.6 }}>
           ยังไม่มีรูปในคลัง — กด “เพิ่มรูปเข้าคลัง” อัปรูปแผง อินเวอร์เตอร์ ตู้ไฟ ไว้ก่อน
           แล้วค่อยกดช่องรูปในตารางรับประกันเลือกไปใช้
