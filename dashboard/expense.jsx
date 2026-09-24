@@ -455,6 +455,29 @@ const ecReceiptKind = (r) => ((r || {}).kind === "pdf" ? "pdf" : "img");
 const ecFileSize = (n) => (!n ? "" : n < 1024 ? n + " B"
   : n < 1024 * 1024 ? Math.round(n / 1024) + " KB" : (n / 1024 / 1024).toFixed(1) + " MB");
 
+/* ── สลิปโอนเงินของรอบจ่าย ──
+   โหลดตอนกดดูเท่านั้น (ecLoadSlip) ไม่ได้เปิดค้าง — สลิปมีไว้ดูย้อนหลังนาน ๆ ครั้ง
+   ไม่ใช่ข้อมูลที่หน้าจอต้องเห็นตลอดเวลาเหมือนตัวเลขยอดค้างจ่าย */
+function ecSlipTag(slip) {
+  const s = slip || {};
+  return { slipAt: new Date().toISOString(), slipKind: s.kind === "pdf" ? "pdf" : "img", slipName: s.name || "" };
+}
+function ecLoadSlip(batchId) {
+  if (!batchId || !_ECFB()) return Promise.resolve(null);
+  return _ecRef("ecSlips/" + batchId).once("value").then((s) => s.val() || null).catch(() => null);
+}
+/* สำหรับใบสำคัญจ่ายที่ต้องพิมพ์สลิปติดไปด้วย — อ่านครั้งเดียวตอนเปิดใบ */
+function useEcSlip(batchId) {
+  const [slip, setSlip] = React.useState(null);
+  React.useEffect(() => {
+    let alive = true;
+    if (!batchId) { setSlip(null); return; }
+    ecLoadSlip(batchId).then((v) => { if (alive) setSlip(v); });
+    return () => { alive = false; };
+  }, [batchId]);
+  return slip;
+}
+
 /* ── รอบจ่าย ── เบา อ่านทั้งต้นไม้ได้ */
 function useEcBatches() {
   const [batches, setBatches] = React.useState([]);
@@ -472,10 +495,18 @@ function useEcBatches() {
 
   /* ปิดทั้งรอบ = เขียนรอบ + ปิดทุกใบในรอบ ยิงเป็นคำสั่งชุดเดียว (update หลายเส้นทางพร้อมกัน)
      ถ้าแยกยิงทีละใบแล้วเน็ตหลุดกลางคัน จะได้รอบที่บอกว่าจ่ายแล้ว แต่ใบบางใบยังค้าง = ตัวเลขไม่ตรงเงินจริง */
-  const payBatch = React.useCallback((batch, claims, user) => {
+  const payBatch = React.useCallback((batch, claims, user, slip) => {
     if (!batch || !_ECFB()) return Promise.resolve(false);
     const now = new Date().toISOString();
     const up = {};
+    if (slip && slip.dataUrl) {
+      Object.assign(batch, ecSlipTag(slip));
+      up["ecSlips/" + batch.id] = {
+        dataUrl: slip.dataUrl, kind: slip.kind === "pdf" ? "pdf" : "img",
+        name: slip.name || "", size: +slip.size || 0, at: now,
+        by: (user || {}).id || null, byName: (user || {}).name || "",
+      };
+    }
     up["ecBatches/" + batch.id] = batch;
     (claims || []).forEach((c) => {
       const rec = ecMove(c, "paid", user, { text: "จ่ายในรอบ " + batch.no, ref: batch.ref });
@@ -490,6 +521,7 @@ function useEcBatches() {
     if (!batch || !_ECFB()) return Promise.resolve(false);
     const up = {};
     up["ecBatches/" + batch.id] = null;
+    up["ecSlips/" + batch.id] = null;
     (claims || []).filter((c) => c && c.batchId === batch.id).forEach((c) => {
       const rec = ecMove(c, "approved", user, { text: "ยกเลิกรอบจ่าย " + (batch.no || "") });
       /* คนยกเลิกรอบไม่ใช่คนอนุมัติ — ผลการอนุมัติเดิมต้องอยู่ที่เดิม ไม่งั้นประวัติจะบอกว่าคนนี้อนุมัติเอง */
@@ -543,6 +575,7 @@ Object.assign(window, {
   ecApproverFor, ecApproveCheck, ecPayCheck, ecNext, ecCan, ecMove,
   ecDocNo, ecBlank, ecSum, ecVisible,
   ecPayable, ecBatchNo, ecBlankBatch, useEcReceipts, useEcBatches,
+  ecSlipTag, ecLoadSlip, useEcSlip,
   EC_PDF_MAX_MB, ecReceiptKind, ecFileSize,
   ecRollupByPerson, ecRollupByJob, ecJobSum, ecRollup,
   useEcClaims, useEcLive, ecNotify,

@@ -105,6 +105,8 @@ const EC_PAPER_I18N = {
   "ไม่อนุมัติ": ["Rejected", "未批准"],
   "ออกเงินตัวเองไปก่อน": ["Paid by employee", "员工垫付"],
   "คนอื่นออกเงินให้": ["Paid by a colleague", "同事垫付"],
+  "สลิปโอนเงิน": ["Transfer slip", "转账凭证"],
+  "สลิปแนบเป็นไฟล์ PDF": ["Slip attached as a PDF file", "凭证以 PDF 文件附上"],
   "เงินสดกองกลาง": ["Petty cash", "备用金"],
   "บัตร / บัญชีบริษัท": ["Company card / account", "公司卡 / 账户"],
   /* หมวดค่าใช้จ่ายจาก expense.jsx */
@@ -178,6 +180,7 @@ function EcVoucherPaper({ batch, claims, draft, payers, onClose }) {
   });
   /* เซ็นให้อัตโนมัติได้เฉพาะตอนคนอนุมัติคนเดียว — หลายคนต้องเซ็นสดทุกคน */
   const signs = useEcSigns([b.byId].concat(apprs.length === 1 ? [apprs[0].id] : []));
+  const slip = window.useEcSlip(!draft && b.slipAt ? b.id : null);
   useEcPrintBody();
 
   const doPrint = () => {
@@ -358,6 +361,23 @@ function EcVoucherPaper({ batch, claims, draft, payers, onClose }) {
         </div>
         </div>
         </div>
+
+        {/* สลิปแผ่นสุดท้าย — เต็มหน้ากระดาษเหมือนบิลในใบเบิก ตัวเลขในสลิปต้องอ่านออก
+            ไฟล์ PDF ฝังลงกระดาษไม่ได้ บอกไว้เป็นบรรทัดเดียวว่าแนบไว้ในระบบแล้ว */}
+        {slip && slip.dataUrl && window.ecReceiptKind(slip) !== "pdf" && (
+          <div className="ec-sheet" style={{ marginTop: 20, paddingTop: 18, borderTop: "1px dashed #C9D5CE" }}>
+            <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 9 }}>
+              {T("สลิปโอนเงิน")} · {b.no || "-"}
+            </div>
+            <img src={slip.dataUrl} alt="" style={{ display: "block", margin: "0 auto",
+              maxWidth: "100%", maxHeight: "225mm", objectFit: "contain" }} />
+          </div>
+        )}
+        {slip && window.ecReceiptKind(slip) === "pdf" && (
+          <div style={{ marginTop: 12, fontSize: 10, color: "#7A8A81", textAlign: "center" }}>
+            {T("สลิปแนบเป็นไฟล์ PDF")} · {slip.name || "slip.pdf"}
+          </div>
+        )}
       </div>
     </div>
   ), document.body);

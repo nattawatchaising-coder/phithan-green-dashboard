@@ -77,6 +77,8 @@ const EC_PAPER_I18N = {
   "ไม่อนุมัติ": ["Rejected", "未批准"],
   "ออกเงินตัวเองไปก่อน": ["Paid by employee", "员工垫付"],
   "คนอื่นออกเงินให้": ["Paid by a colleague", "同事垫付"],
+  "สลิปโอนเงิน": ["Transfer slip", "转账凭证"],
+  "สลิปแนบเป็นไฟล์ PDF": ["Slip attached as a PDF file", "凭证以 PDF 文件附上"],
   "เงินสดกองกลาง": ["Petty cash", "备用金"],
   "บัตร / บัญชีบริษัท": ["Company card / account", "公司卡 / 账户"],
   "ซื้อของหน้างาน": ["Site purchase", "现场采购"],
@@ -154,6 +156,7 @@ function EcVoucherPaper({
     });
   });
   const signs = useEcSigns([b.byId].concat(apprs.length === 1 ? [apprs[0].id] : []));
+  const slip = window.useEcSlip(!draft && b.slipAt ? b.id : null);
   useEcPrintBody();
   const doPrint = () => {
     const old = document.title;
@@ -581,7 +584,37 @@ function EcVoucherPaper({
       color: "#8A9A91",
       textAlign: "center"
     }
-  }, T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง"), " flash+solar \xB7 ", b.no || "-", " \xB7 ", T("พิมพ์เมื่อ"), " ", DTs(window.drToday())))))), document.body);
+  }, T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง"), " flash+solar \xB7 ", b.no || "-", " \xB7 ", T("พิมพ์เมื่อ"), " ", DTs(window.drToday())))), slip && slip.dataUrl && window.ecReceiptKind(slip) !== "pdf" && React.createElement("div", {
+    className: "ec-sheet",
+    style: {
+      marginTop: 20,
+      paddingTop: 18,
+      borderTop: "1px dashed #C9D5CE"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 800,
+      marginBottom: 9
+    }
+  }, T("สลิปโอนเงิน"), " \xB7 ", b.no || "-"), React.createElement("img", {
+    src: slip.dataUrl,
+    alt: "",
+    style: {
+      display: "block",
+      margin: "0 auto",
+      maxWidth: "100%",
+      maxHeight: "225mm",
+      objectFit: "contain"
+    }
+  })), slip && window.ecReceiptKind(slip) === "pdf" && React.createElement("div", {
+    style: {
+      marginTop: 12,
+      fontSize: 10,
+      color: "#7A8A81",
+      textAlign: "center"
+    }
+  }, T("สลิปแนบเป็นไฟล์ PDF"), " \xB7 ", slip.name || "slip.pdf"))), document.body);
 }
 function EcClaimPaper({
   claim,

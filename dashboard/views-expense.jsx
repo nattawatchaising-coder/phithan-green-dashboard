@@ -787,6 +787,8 @@ function EcPayModal({ person, claims, batches, currentUser, role, payers, onClos
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [ref, setRef] = React.useState("");
   const [note, setNote] = React.useState("");
+  const [slip, setSlip] = React.useState(null);      /* {dataUrl,kind,name,size} ที่จะบันทึกพร้อมรอบ */
+  const [slipErr, setSlipErr] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [cover, setCover] = React.useState(null);   /* ใบปะหน้าที่เปิดอยู่ */
   const list = claims || [];
@@ -804,12 +806,34 @@ function EcPayModal({ person, claims, batches, currentUser, role, payers, onClos
     setCover(b);
   };
 
+  /* รูปสลิปย่อก่อนเก็บเหมือนรูปบิล — สลิปจากมือถือใบเดียวใหญ่กว่าทั้งรอบจ่ายรวมกัน
+     PDF ย่อไม่ได้ จึงกันขนาดตั้งแต่ตอนเลือก ด้วยเพดานเดียวกับบิล */
+  const pickSlip = async (e, pdf) => {
+    const f = (e.target.files || [])[0];
+    e.target.value = "";
+    if (!f) return;
+    setSlipErr("");
+    try {
+      if (pdf) {
+        const ok = f.type === "application/pdf" || /\.pdf$/i.test(f.name);
+        if (!ok) { setSlipErr("รองรับเฉพาะไฟล์ PDF"); return; }
+        if (f.size > window.EC_PDF_MAX_MB * 1024 * 1024) {
+          setSlipErr("ไฟล์ใหญ่เกิน " + window.EC_PDF_MAX_MB + " MB (" + window.ecFileSize(f.size) + ") — ถ่ายเป็นรูปแทนได้");
+          return;
+        }
+        setSlip({ dataUrl: await window.readFileAsDataURL(f), kind: "pdf", name: f.name, size: f.size });
+      } else {
+        setSlip({ dataUrl: await window.resizeImageFile(f, 1400, 0.78), kind: "img", name: f.name, size: f.size });
+      }
+    } catch (e2) { setSlipErr("อ่านไฟล์ไม่สำเร็จ: " + f.name); }
+  };
+
   const go = () => {
     if (busy || !list.length || !ck.ok) return;
     setBusy(true);
     const batch = window.ecBlankBatch(person, list, currentUser, batches);
     batch.ref = ref; batch.note = note;
-    Promise.resolve(onConfirm(batch, list)).then((ok) => {
+    Promise.resolve(onConfirm(batch, list, slip)).then((ok) => {
       setBusy(false);
       if (ok) onClose();
     });
@@ -869,6 +893,55 @@ function EcPayModal({ person, claims, batches, currentUser, role, payers, onClos
           <input value={ref} onChange={(e) => setRef(e.target.value)}
             style={Object.assign({}, EC_INPUT, { marginBottom: 12, fontFamily: "var(--mono)" })}
             placeholder="เช่น 20260912-104233" />
+          {/* ── สลิปโอนเงิน ──
+              เลขอ้างอิงพิมพ์ผิดหรือพิมพ์มั่วก็ได้ ภาพสลิปคือของที่ผู้ตรวจสอบขอดูจริง
+              ไม่บังคับ เพราะบางรอบจ่ายเป็นเงินสดที่ไม่มีสลิป — แต่มีแล้วติดไปกับใบสำคัญจ่ายเลย */}
+          <window.DrLabel hint="ไม่บังคับ · แนบแล้วสลิปจะพิมพ์ติดไปกับใบสำคัญจ่าย และเปิดดูย้อนหลังได้">
+            สลิปโอนเงิน
+          </window.DrLabel>
+          {slip ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 11, padding: 9, marginBottom: 12,
+              border: "1px solid var(--border)", borderRadius: 11, background: "var(--surface)" }}>
+              {slip.kind === "pdf" ? (
+                <span style={{ width: 54, height: 54, flexShrink: 0, borderRadius: 9, display: "grid", placeItems: "center",
+                  background: "#EF44441a" }}>
+                  <Icon name="file" size={20} color="#EF4444" />
+                </span>
+              ) : (
+                <img src={slip.dataUrl} alt="สลิป"
+                  style={{ width: 54, height: 54, flexShrink: 0, objectFit: "cover", borderRadius: 9, border: "1px solid var(--border)" }} />
+              )}
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--text-1)",
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{slip.name || "สลิปโอนเงิน"}</span>
+                <span style={{ display: "block", fontSize: 11, color: "var(--text-3)" }}>
+                  {slip.kind === "pdf" ? "PDF" : "รูปภาพ"}{slip.size ? " · " + window.ecFileSize(slip.size) : ""} · จะบันทึกพร้อมรอบจ่าย
+                </span>
+              </span>
+              <button onClick={() => setSlip(null)} title="เอาสลิปออก"
+                style={{ width: 28, height: 28, flexShrink: 0, borderRadius: 8, display: "grid", placeItems: "center",
+                  border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer" }}>
+                <Icon name="x" size={14} color="var(--text-2)" />
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: 10,
+                border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+                fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>
+                <Icon name="camera" size={15} /> ถ่าย/เลือกรูปสลิป
+                <input type="file" accept="image/*" onChange={(e) => pickSlip(e, false)} style={{ display: "none" }} />
+              </label>
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: 10,
+                border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+                fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>
+                <Icon name="file" size={15} /> แนบไฟล์ PDF
+                <input type="file" accept="application/pdf,.pdf" onChange={(e) => pickSlip(e, true)} style={{ display: "none" }} />
+              </label>
+            </div>
+          )}
+          {slipErr && <div style={{ fontSize: 12, color: "#EF4444", margin: "-6px 0 10px" }}>{slipErr}</div>}
+
           <window.DrLabel hint="ไม่บังคับ">หมายเหตุ</window.DrLabel>
           <input value={note} onChange={(e) => setNote(e.target.value)}
             style={EC_INPUT} placeholder="เช่น โอนพร้อมเงินเดือนงวดนี้" />
@@ -920,6 +993,10 @@ function EcPayModal({ person, claims, batches, currentUser, role, payers, onClos
 
 /* ── ประวัติรอบจ่าย ── */
 function EcBatchList({ batches, onPrint, onDrop }) {
+  /* โหลดตอนกด ไม่ได้โหลดมาพร้อมรายการ — รอบจ่ายเก่าหลายสิบรอบที่ไม่มีใครเปิดดู
+     ไม่ควรกินเน็ตของทุกคนที่เข้าหน้านี้ */
+  const [shot, setShot] = React.useState(null);
+  const openSlip = (b) => { window.ecLoadSlip(b.id).then((s) => { if (s) setShot(s); }); };
   const rows = (batches || []).slice(0, 20);
   if (!rows.length) return null;
   return (
@@ -947,6 +1024,15 @@ function EcBatchList({ batches, onPrint, onDrop }) {
               <Icon name="file" size={13} color="var(--text-3)" /> ใบสำคัญจ่าย
             </button>
           )}
+          {/* สลิปโอนเงินที่แนบไว้ตอนกดจ่าย — หลักฐานว่าเงินออกจากบัญชีจริง */}
+          {b.slipAt && (
+            <button onClick={() => openSlip(b)} title="ดูสลิปโอนเงินของรอบนี้"
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 11px", borderRadius: 9,
+                border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+                fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>
+              <Icon name="image" size={13} color="var(--text-3)" /> สลิป
+            </button>
+          )}
           {/* ยกเลิกรอบที่บันทึกผิด — เฉพาะแอดมิน และใบในรอบจะกลับไปรอจ่ายเหมือนเดิม */}
           {onDrop && (
             <button onClick={() => onDrop(b)} title={"ยกเลิกรอบจ่าย " + (b.no || "")}
@@ -957,6 +1043,8 @@ function EcBatchList({ batches, onPrint, onDrop }) {
           )}
         </div>
       ))}
+      {/* ดูสลิปด้วยจอเดียวกับรูปบิล — ซูมและเปิด PDF ได้เหมือนกันทุกที่ในระบบ */}
+      {shot && <EcBigShot shot={shot} onClose={() => setShot(null)} />}
     </div>
   );
 }
@@ -1152,7 +1240,7 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
 
   /* ปิดรอบ = เขียนรอบ + ปิดทุกใบในคำสั่งเดียว แล้วค่อยยิงแจ้งเตือนหาเจ้าของเงิน
      แจ้งเตือนยิงหลังเขียนสำเร็จเท่านั้น ไม่งั้นคนจะได้ข้อความว่าโอนแล้วทั้งที่เขียนไม่ผ่าน */
-  const payBatch = (batch, list) => Promise.resolve(batchStore.payBatch(batch, list, currentUser)).then((ok) => {
+  const payBatch = (batch, list, slip) => Promise.resolve(batchStore.payBatch(batch, list, currentUser, slip)).then((ok) => {
     if (ok) {
       window.ecNotify({ toUserId: batch.toId,
         title: "จ่ายเงินคืนแล้ว · รอบ " + batch.no,

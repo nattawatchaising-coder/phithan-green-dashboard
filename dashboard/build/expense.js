@@ -534,6 +534,35 @@ function useEcReceipts(claimId) {
 const EC_PDF_MAX_MB = 4;
 const ecReceiptKind = r => (r || {}).kind === "pdf" ? "pdf" : "img";
 const ecFileSize = n => !n ? "" : n < 1024 ? n + " B" : n < 1024 * 1024 ? Math.round(n / 1024) + " KB" : (n / 1024 / 1024).toFixed(1) + " MB";
+function ecSlipTag(slip) {
+  const s = slip || {};
+  return {
+    slipAt: new Date().toISOString(),
+    slipKind: s.kind === "pdf" ? "pdf" : "img",
+    slipName: s.name || ""
+  };
+}
+function ecLoadSlip(batchId) {
+  if (!batchId || !_ECFB()) return Promise.resolve(null);
+  return _ecRef("ecSlips/" + batchId).once("value").then(s => s.val() || null).catch(() => null);
+}
+function useEcSlip(batchId) {
+  const [slip, setSlip] = React.useState(null);
+  React.useEffect(() => {
+    let alive = true;
+    if (!batchId) {
+      setSlip(null);
+      return;
+    }
+    ecLoadSlip(batchId).then(v => {
+      if (alive) setSlip(v);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [batchId]);
+  return slip;
+}
 function useEcBatches() {
   const [batches, setBatches] = React.useState([]);
   React.useEffect(() => {
@@ -549,10 +578,22 @@ function useEcBatches() {
     });
     return () => ref.off("value", h);
   }, []);
-  const payBatch = React.useCallback((batch, claims, user) => {
+  const payBatch = React.useCallback((batch, claims, user, slip) => {
     if (!batch || !_ECFB()) return Promise.resolve(false);
     const now = new Date().toISOString();
     const up = {};
+    if (slip && slip.dataUrl) {
+      Object.assign(batch, ecSlipTag(slip));
+      up["ecSlips/" + batch.id] = {
+        dataUrl: slip.dataUrl,
+        kind: slip.kind === "pdf" ? "pdf" : "img",
+        name: slip.name || "",
+        size: +slip.size || 0,
+        at: now,
+        by: (user || {}).id || null,
+        byName: (user || {}).name || ""
+      };
+    }
     up["ecBatches/" + batch.id] = batch;
     (claims || []).forEach(c => {
       const rec = ecMove(c, "paid", user, {
@@ -570,6 +611,7 @@ function useEcBatches() {
     if (!batch || !_ECFB()) return Promise.resolve(false);
     const up = {};
     up["ecBatches/" + batch.id] = null;
+    up["ecSlips/" + batch.id] = null;
     (claims || []).filter(c => c && c.batchId === batch.id).forEach(c => {
       const rec = ecMove(c, "approved", user, {
         text: "ยกเลิกรอบจ่าย " + (batch.no || "")
@@ -664,6 +706,9 @@ Object.assign(window, {
   ecBlankBatch,
   useEcReceipts,
   useEcBatches,
+  ecSlipTag,
+  ecLoadSlip,
+  useEcSlip,
   EC_PDF_MAX_MB,
   ecReceiptKind,
   ecFileSize,

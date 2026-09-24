@@ -1605,6 +1605,8 @@ function EcPayModal({
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [ref, setRef] = React.useState("");
   const [note, setNote] = React.useState("");
+  const [slip, setSlip] = React.useState(null);
+  const [slipErr, setSlipErr] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [cover, setCover] = React.useState(null);
   const list = claims || [];
@@ -1617,13 +1619,47 @@ function EcPayModal({
     b.note = note;
     setCover(b);
   };
+  const pickSlip = async (e, pdf) => {
+    const f = (e.target.files || [])[0];
+    e.target.value = "";
+    if (!f) return;
+    setSlipErr("");
+    try {
+      if (pdf) {
+        const ok = f.type === "application/pdf" || /\.pdf$/i.test(f.name);
+        if (!ok) {
+          setSlipErr("รองรับเฉพาะไฟล์ PDF");
+          return;
+        }
+        if (f.size > window.EC_PDF_MAX_MB * 1024 * 1024) {
+          setSlipErr("ไฟล์ใหญ่เกิน " + window.EC_PDF_MAX_MB + " MB (" + window.ecFileSize(f.size) + ") — ถ่ายเป็นรูปแทนได้");
+          return;
+        }
+        setSlip({
+          dataUrl: await window.readFileAsDataURL(f),
+          kind: "pdf",
+          name: f.name,
+          size: f.size
+        });
+      } else {
+        setSlip({
+          dataUrl: await window.resizeImageFile(f, 1400, 0.78),
+          kind: "img",
+          name: f.name,
+          size: f.size
+        });
+      }
+    } catch (e2) {
+      setSlipErr("อ่านไฟล์ไม่สำเร็จ: " + f.name);
+    }
+  };
   const go = () => {
     if (busy || !list.length || !ck.ok) return;
     setBusy(true);
     const batch = window.ecBlankBatch(person, list, currentUser, batches);
     batch.ref = ref;
     batch.note = note;
-    Promise.resolve(onConfirm(batch, list)).then(ok => {
+    Promise.resolve(onConfirm(batch, list, slip)).then(ok => {
       setBusy(false);
       if (ok) onClose();
     });
@@ -1791,6 +1827,144 @@ function EcPayModal({
     }),
     placeholder: "\u0E40\u0E0A\u0E48\u0E19 20260912-104233"
   }), React.createElement(window.DrLabel, {
+    hint: "\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A \xB7 \u0E41\u0E19\u0E1A\u0E41\u0E25\u0E49\u0E27\u0E2A\u0E25\u0E34\u0E1B\u0E08\u0E30\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E15\u0E34\u0E14\u0E44\u0E1B\u0E01\u0E31\u0E1A\u0E43\u0E1A\u0E2A\u0E33\u0E04\u0E31\u0E0D\u0E08\u0E48\u0E32\u0E22 \u0E41\u0E25\u0E30\u0E40\u0E1B\u0E34\u0E14\u0E14\u0E39\u0E22\u0E49\u0E2D\u0E19\u0E2B\u0E25\u0E31\u0E07\u0E44\u0E14\u0E49"
+  }, "\u0E2A\u0E25\u0E34\u0E1B\u0E42\u0E2D\u0E19\u0E40\u0E07\u0E34\u0E19"), slip ? React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 11,
+      padding: 9,
+      marginBottom: 12,
+      border: "1px solid var(--border)",
+      borderRadius: 11,
+      background: "var(--surface)"
+    }
+  }, slip.kind === "pdf" ? React.createElement("span", {
+    style: {
+      width: 54,
+      height: 54,
+      flexShrink: 0,
+      borderRadius: 9,
+      display: "grid",
+      placeItems: "center",
+      background: "#EF44441a"
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 20,
+    color: "#EF4444"
+  })) : React.createElement("img", {
+    src: slip.dataUrl,
+    alt: "\u0E2A\u0E25\u0E34\u0E1B",
+    style: {
+      width: 54,
+      height: 54,
+      flexShrink: 0,
+      objectFit: "cover",
+      borderRadius: 9,
+      border: "1px solid var(--border)"
+    }
+  }), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, slip.name || "สลิปโอนเงิน"), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, slip.kind === "pdf" ? "PDF" : "รูปภาพ", slip.size ? " · " + window.ecFileSize(slip.size) : "", " \xB7 \u0E08\u0E30\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E23\u0E2D\u0E1A\u0E08\u0E48\u0E32\u0E22")), React.createElement("button", {
+    onClick: () => setSlip(null),
+    title: "\u0E40\u0E2D\u0E32\u0E2A\u0E25\u0E34\u0E1B\u0E2D\u0E2D\u0E01",
+    style: {
+      width: 28,
+      height: 28,
+      flexShrink: 0,
+      borderRadius: 8,
+      display: "grid",
+      placeItems: "center",
+      border: "1px solid var(--border)",
+      background: "var(--surface)",
+      cursor: "pointer"
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 14,
+    color: "var(--text-2)"
+  }))) : React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      flexWrap: "wrap",
+      marginBottom: 12
+    }
+  }, React.createElement("label", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      padding: "9px 14px",
+      borderRadius: 10,
+      border: "1px dashed var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "camera",
+    size: 15
+  }), " \u0E16\u0E48\u0E32\u0E22/\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E39\u0E1B\u0E2A\u0E25\u0E34\u0E1B", React.createElement("input", {
+    type: "file",
+    accept: "image/*",
+    onChange: e => pickSlip(e, false),
+    style: {
+      display: "none"
+    }
+  })), React.createElement("label", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      padding: "9px 14px",
+      borderRadius: 10,
+      border: "1px dashed var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 15
+  }), " \u0E41\u0E19\u0E1A\u0E44\u0E1F\u0E25\u0E4C PDF", React.createElement("input", {
+    type: "file",
+    accept: "application/pdf,.pdf",
+    onChange: e => pickSlip(e, true),
+    style: {
+      display: "none"
+    }
+  }))), slipErr && React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#EF4444",
+      margin: "-6px 0 10px"
+    }
+  }, slipErr), React.createElement(window.DrLabel, {
     hint: "\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A"
   }, "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38"), React.createElement("input", {
     value: note,
@@ -1888,6 +2062,12 @@ function EcBatchList({
   onPrint,
   onDrop
 }) {
+  const [shot, setShot] = React.useState(null);
+  const openSlip = b => {
+    window.ecLoadSlip(b.id).then(s => {
+      if (s) setShot(s);
+    });
+  };
   const rows = (batches || []).slice(0, 20);
   if (!rows.length) return null;
   return React.createElement("div", {
@@ -1964,7 +2144,28 @@ function EcBatchList({
     name: "file",
     size: 13,
     color: "var(--text-3)"
-  }), " \u0E43\u0E1A\u0E2A\u0E33\u0E04\u0E31\u0E0D\u0E08\u0E48\u0E32\u0E22"), onDrop && React.createElement("button", {
+  }), " \u0E43\u0E1A\u0E2A\u0E33\u0E04\u0E31\u0E0D\u0E08\u0E48\u0E32\u0E22"), b.slipAt && React.createElement("button", {
+    onClick: () => openSlip(b),
+    title: "\u0E14\u0E39\u0E2A\u0E25\u0E34\u0E1B\u0E42\u0E2D\u0E19\u0E40\u0E07\u0E34\u0E19\u0E02\u0E2D\u0E07\u0E23\u0E2D\u0E1A\u0E19\u0E35\u0E49",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      padding: "6px 11px",
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "image",
+    size: 13,
+    color: "var(--text-3)"
+  }), " \u0E2A\u0E25\u0E34\u0E1B"), onDrop && React.createElement("button", {
     onClick: () => onDrop(b),
     title: "ยกเลิกรอบจ่าย " + (b.no || ""),
     style: {
@@ -1981,7 +2182,10 @@ function EcBatchList({
     name: "trash",
     size: 13,
     color: "var(--tint-red-tx)"
-  })))));
+  })))), shot && React.createElement(EcBigShot, {
+    shot: shot,
+    onClose: () => setShot(null)
+  }));
 }
 function EcJobTable({
   claims,
@@ -2314,7 +2518,7 @@ function ExpenseView({
       });
     }
   };
-  const payBatch = (batch, list) => Promise.resolve(batchStore.payBatch(batch, list, currentUser)).then(ok => {
+  const payBatch = (batch, list, slip) => Promise.resolve(batchStore.payBatch(batch, list, currentUser, slip)).then(ok => {
     if (ok) {
       window.ecNotify({
         toUserId: batch.toId,
