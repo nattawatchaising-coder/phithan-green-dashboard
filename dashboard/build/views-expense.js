@@ -1363,6 +1363,7 @@ function EcPayModal({
   batches,
   currentUser,
   role,
+  payers,
   onClose,
   onConfirm
 }) {
@@ -1643,6 +1644,7 @@ function EcPayModal({
     batch: cover,
     claims: list,
     draft: true,
+    payers: ck.ok ? "" : payers,
     onClose: () => setCover(null)
   })));
 }
@@ -1998,6 +2000,10 @@ function ExpenseView({
   const canApprove = window.ecCanApprove(role);
   const canPay = window.ecCanPay(role);
   const canCover = window.ecCanCover(role);
+  const payerNames = React.useMemo(() => {
+    const ns = (users || []).filter(u => u && u.active !== false && window.can(u.roles || u.role, "expensePay")).map(u => u.name || u.username).filter(Boolean);
+    return ns.length && ns.length <= 3 ? ns.join(" / ") : "";
+  }, [users]);
   const uid = currentUser ? currentUser.id : null;
   React.useEffect(() => {
     if (!focus || !focus.jobId) return;
@@ -2320,6 +2326,7 @@ function ExpenseView({
     batch: cover.batch,
     claims: cover.list,
     draft: true,
+    payers: canPay ? "" : payerNames,
     onClose: () => setCoverFor(null)
   }), payFor && React.createElement(EcPayModal, {
     person: payFor,
@@ -2327,6 +2334,7 @@ function ExpenseView({
     batches: batchStore.batches,
     currentUser: currentUser,
     role: role,
+    payers: payerNames,
     onClose: () => setPayFor(null),
     onConfirm: payBatch
   }), cur && React.createElement(EcClaimModal, {

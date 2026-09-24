@@ -120,6 +120,7 @@ function EcVoucherPaper({
   batch,
   claims,
   draft,
+  payers,
   onClose
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -280,6 +281,8 @@ function EcVoucherPaper({
       borderRadius: isMobile ? 0 : 12,
       boxShadow: "0 20px 60px rgba(8,20,14,.28)"
     }
+  }, React.createElement("div", {
+    className: "ec-page"
   }, React.createElement("div", {
     style: {
       display: "flex",
@@ -501,6 +504,8 @@ function EcVoucherPaper({
       whiteSpace: "pre-wrap"
     }
   }, b.note)) : null, React.createElement("div", {
+    className: "ec-foot"
+  }, React.createElement("div", {
     style: {
       marginTop: 22,
       display: "grid",
@@ -513,7 +518,7 @@ function EcVoucherPaper({
     n: b.toName
   }, {
     t: T("ผู้จ่ายเงิน"),
-    n: b.byName,
+    n: draft ? payers || b.byName : b.byName,
     img: draft ? "" : signs[b.byId],
     at: draft ? "" : b.at || b.date
   }, {
@@ -576,7 +581,7 @@ function EcVoucherPaper({
       color: "#8A9A91",
       textAlign: "center"
     }
-  }, T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง"), " flash+solar \xB7 ", b.no || "-", " \xB7 ", T("พิมพ์เมื่อ"), " ", DTs(window.drToday())))), document.body);
+  }, T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง"), " flash+solar \xB7 ", b.no || "-", " \xB7 ", T("พิมพ์เมื่อ"), " ", DTs(window.drToday())))))), document.body);
 }
 function EcClaimPaper({
   claim,

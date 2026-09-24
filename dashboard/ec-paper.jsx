@@ -149,7 +149,7 @@ function useEcSigns(ids) {
 /* ══════════════════════════════════════════════════
    ใบสำคัญจ่าย A4 — หนึ่งรอบจ่าย = หนึ่งใบ
    ══════════════════════════════════════════════════ */
-function EcVoucherPaper({ batch, claims, draft, onClose }) {
+function EcVoucherPaper({ batch, claims, draft, payers, onClose }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   /* ภาษาของใบ — สลับสดจากแถบด้านบน ซึ่งไม่ติดไปในหน้าพิมพ์อยู่แล้ว
      วันที่ไทยเป็น พ.ศ. อังกฤษ/จีนเป็น ค.ศ. จึงแยกฟังก์ชันไว้ ห้ามแปลผ่าน T() */
@@ -224,6 +224,8 @@ function EcVoucherPaper({ batch, claims, draft, onClose }) {
       <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: "#15211A",
         fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
         padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "0 20px 60px rgba(8,20,14,.28)" }}>
+
+        <div className="ec-page">
 
         {/* หัวกระดาษ */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap",
@@ -327,9 +329,11 @@ function EcVoucherPaper({ batch, claims, draft, onClose }) {
             ผู้จ่ายเงิน / ผู้อนุมัติ — ระบบรู้อยู่แล้วว่าใครกดและกดวันไหน จึงเติมชื่อ วันที่
               และลายเซ็นที่เจ้าตัวบันทึกไว้ในโปรไฟล์ให้เลย ไม่ต้องไล่เก็บลายเซ็นย้อนหลัง
               ใครยังไม่ได้บันทึกลายเซ็นก็เหลือเส้นว่างให้เซ็นเองตามเดิม */}
+        <div className="ec-foot">
         <div style={{ marginTop: 22, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, breakInside: "avoid" }}>
           {[{ t: T("ผู้รับเงิน"), n: b.toName },
-            { t: T("ผู้จ่ายเงิน"), n: b.byName, img: draft ? "" : signs[b.byId], at: draft ? "" : (b.at || b.date) },
+            { t: T("ผู้จ่ายเงิน"), n: draft ? (payers || b.byName) : b.byName,
+              img: draft ? "" : signs[b.byId], at: draft ? "" : (b.at || b.date) },
             { t: T("ผู้อนุมัติ"), n: apprs.map((a) => a.name).join(" · "),
               img: apprs.length === 1 ? signs[apprs[0].id] : "",
               at: apprs.length === 1 ? apprs[0].at : "" }].map((s, i) => (
@@ -351,6 +355,8 @@ function EcVoucherPaper({ batch, claims, draft, onClose }) {
         )}
         <div style={{ marginTop: 14, fontSize: 9.5, color: "#8A9A91", textAlign: "center" }}>
           {T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง")} flash+solar · {b.no || "-"} · {T("พิมพ์เมื่อ")} {DTs(window.drToday())}
+        </div>
+        </div>
         </div>
       </div>
     </div>

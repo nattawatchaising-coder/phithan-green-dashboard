@@ -127,7 +127,8 @@ function ecApproveCheck(claim, user, role) {
   if (!ecCanApprove(role)) return { ok: false, why: "ไม่มีสิทธิ์อนุมัติใบเบิก" };
   if (claim.byId && claim.byId === user.id) return { ok: false, why: "อนุมัติใบของตัวเองไม่ได้ — ต้องให้คนอื่นอนุมัติ" };
   /* ใบที่ระบุตัวผู้อนุมัติไว้แล้ว คนอื่นไม่ควรมาแย่งอนุมัติ ยกเว้นแอดมินที่ต้องปลดล็อกได้เวลาคนนั้นลา */
-  if (claim.approverId && claim.approverId !== user.id && !window.hasRole(role, "admin")) {
+  if (claim.approverId && claim.approverId !== claim.byId
+      && claim.approverId !== user.id && !window.hasRole(role, "admin")) {
     return { ok: false, why: "ใบนี้ส่งถึง " + (claim.approverName || "คนอื่น") + " โดยตรง" };
   }
   const lim = +user.approveLimit || 0;

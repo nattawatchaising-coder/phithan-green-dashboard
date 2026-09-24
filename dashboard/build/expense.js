@@ -154,7 +154,7 @@ function ecApproveCheck(claim, user, role) {
     ok: false,
     why: "อนุมัติใบของตัวเองไม่ได้ — ต้องให้คนอื่นอนุมัติ"
   };
-  if (claim.approverId && claim.approverId !== user.id && !window.hasRole(role, "admin")) {
+  if (claim.approverId && claim.approverId !== claim.byId && claim.approverId !== user.id && !window.hasRole(role, "admin")) {
     return {
       ok: false,
       why: "ใบนี้ส่งถึง " + (claim.approverName || "คนอื่น") + " โดยตรง"

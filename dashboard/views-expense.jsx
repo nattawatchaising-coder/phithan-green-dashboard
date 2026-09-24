@@ -662,7 +662,7 @@ function EcPersonTable({ claims, users, onPick, onPay, onCover, canPay, canCover
 /* ── ปิดรอบจ่ายเงินคืนพนักงานหนึ่งคน ──
    จ่ายทีละใบคือการทรมานคนจ่ายและเป็นที่มาของการจ่ายซ้ำ/จ่ายตก
    หน้าต่างนี้แสดงทุกใบที่จะถูกปิดพร้อมกัน ให้เห็นก่อนกดว่ากำลังโอนเท่าไหร่ให้ใคร แลกกับใบอะไรบ้าง */
-function EcPayModal({ person, claims, batches, currentUser, role, onClose, onConfirm }) {
+function EcPayModal({ person, claims, batches, currentUser, role, payers, onClose, onConfirm }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [ref, setRef] = React.useState("");
   const [note, setNote] = React.useState("");
@@ -789,7 +789,8 @@ function EcPayModal({ person, claims, batches, currentUser, role, onClose, onCon
       </div>
       {cover && (
         <div onClick={(e) => e.stopPropagation()}>
-          <window.EcVoucherPaper batch={cover} claims={list} draft onClose={() => setCover(null)} />
+          <window.EcVoucherPaper batch={cover} claims={list} draft payers={ck.ok ? "" : payers}
+            onClose={() => setCover(null)} />
         </div>
       )}
     </div>
@@ -950,6 +951,11 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
   const canApprove = window.ecCanApprove(role);
   const canPay = window.ecCanPay(role);
   const canCover = window.ecCanCover(role);
+  const payerNames = React.useMemo(() => {
+    const ns = (users || []).filter((u) => u && u.active !== false && window.can(u.roles || u.role, "expensePay"))
+      .map((u) => u.name || u.username).filter(Boolean);
+    return ns.length && ns.length <= 3 ? ns.join(" / ") : "";
+  }, [users]);
   const uid = currentUser ? currentUser.id : null;
 
   /* เปิดมาจากปุ่มในลิ้นชักใบงาน — เจาะให้เห็นเฉพาะงานนั้น และเตรียมงานไว้ให้ปุ่มเปิดใบใหม่ด้วย
@@ -1173,11 +1179,13 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
       )}
 
       {cover && (
-        <window.EcVoucherPaper batch={cover.batch} claims={cover.list} draft onClose={() => setCoverFor(null)} />
+        <window.EcVoucherPaper batch={cover.batch} claims={cover.list} draft
+          payers={canPay ? "" : payerNames} onClose={() => setCoverFor(null)} />
       )}
 
       {payFor && (
         <EcPayModal person={payFor} claims={payList} batches={batchStore.batches} currentUser={currentUser} role={role}
+          payers={payerNames}
           onClose={() => setPayFor(null)} onConfirm={payBatch} />
       )}
 

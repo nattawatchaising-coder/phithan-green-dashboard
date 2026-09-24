@@ -1255,9 +1255,16 @@ function UserEditModal({ initial, existing, onSave, onClose }) {
             <AField label="ใบเบิกเงิน — ส่งให้ใครอนุมัติ">
               <select style={A_INPUT} value={f.approverId || ""} onChange={(e) => set("approverId", e.target.value || null)}>
                 <option value="">— ส่งเข้ากองกลาง (ใครที่มีสิทธิ์อนุมัติก็รับได้) —</option>
-                {existing.filter((u) => u.id !== f.id && u.active !== false && can(userRoles(u), "expenseApprove"))
-                  .map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                {existing.filter((u) => u.active !== false && can(userRoles(u), "expenseApprove"))
+                  .map((u) => <option key={u.id} value={u.id}>{u.name}{u.id === f.id ? " (ตัวเอง)" : ""}</option>)}
               </select>
+              {/* เลือกตัวเองได้ แต่กฎห้ามอนุมัติใบตัวเองไม่มีข้อยกเว้น — ใบของบัญชีนี้จึงเข้ากองกลางแทน
+                  ที่ยังเลือกได้เพราะช่องนี้ใช้เป็น "เจ้าของเส้นทาง" ของทีม ไม่ใช่แค่ปลายทางใบตัวเอง */}
+              {f.approverId === f.id && (
+                <div style={{ fontSize: 11.5, color: "#F59E0B", marginTop: 5 }}>
+                  ใบที่บัญชีนี้เปิดเอง จะเข้ากองกลางให้คนอื่นที่มีสิทธิ์อนุมัติแทน — อนุมัติใบตัวเองไม่ได้
+                </div>
+              )}
             </AField>
           )}
           {/* คนจ่ายเงินคืนก็มีเพดานของตัวเอง — จ่ายคือเงินออกจริง ควรคุมได้ละเอียดกว่าเปิด/ปิดสิทธิ์ */}
