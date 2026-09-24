@@ -16,6 +16,12 @@ const NAV = [{
   icon: "table",
   perm: "viewAll"
 }, {
+  key: "billing",
+  th: "เอกสารงวดงาน",
+  en: "Billing",
+  icon: "file",
+  perm: "billing"
+}, {
   key: "leads",
   th: "งานขาย",
   en: "Sales",
@@ -51,12 +57,6 @@ const NAV = [{
   en: "Expenses",
   icon: "wallet",
   perm: "expense"
-}, {
-  key: "billing",
-  th: "เอกสารงวดงาน",
-  en: "Billing",
-  icon: "file",
-  perm: "billing"
 }, {
   key: "myschedule",
   th: "ตารางงานของฉัน",

@@ -8,6 +8,8 @@ const NAV = [
   { key: "overview",   th: "ภาพรวม",         en: "Overview",      icon: "grid" },
   { key: "board",      th: "บอร์ดงาน",        en: "Workflow",      icon: "kanban" },
   { key: "table",      th: "ฐานข้อมูลงาน",     en: "Database",      icon: "table",    perm: "viewAll" },
+  /* เอกสารงวดงาน — ถอดงวดจากใบเสนอราคา ออกใบแจ้งส่งมอบงาน แล้วตามเงินจนจบโปรเจค */
+  { key: "billing",    th: "เอกสารงวดงาน",    en: "Billing",      icon: "file",     perm: "billing" },
   /* บอร์ดขายกับรายการลูกค้าคือข้อมูลชุดเดียวกันคนละมุม จึงเป็นเมนูเดียว แล้วสลับมุมในหน้า */
   { key: "leads",      th: "งานขาย",           en: "Sales",         icon: "trend",    perm: "leads" },
   { key: "saleskpi",   th: "ยอดขาย",           en: "Sales KPI",     icon: "grid",     perm: "price" },
@@ -19,8 +21,6 @@ const NAV = [
   { key: "om",         th: "งานบริการหลังการขาย", en: "O&M",         icon: "wrench",   perm: "om" },
   /* ใบเบิกเงินหน้างาน — ซื้อของหน้างาน · ค่าขนส่ง · ค่าใช้จ่ายอื่น และยอดค้างจ่ายรายคน */
   { key: "expense",    th: "เบิกเงินหน้างาน",  en: "Expenses",     icon: "wallet",   perm: "expense" },
-  /* เอกสารงวดงาน — ถอดงวดจากใบเสนอราคา ออกใบแจ้งส่งมอบงาน แล้วตามเงินจนจบโปรเจค */
-  { key: "billing",    th: "เอกสารงวดงาน",    en: "Billing",      icon: "file",     perm: "billing" },
   { key: "myschedule", th: "ตารางงานของฉัน",   en: "My Schedule",   icon: "list",     own: true },
   { key: "calendar",   th: "ปฏิทินนัด",        en: "Calendar",      icon: "calendar" },
   { key: "stock",      th: "คลังสินค้า",       en: "Inventory",     icon: "box",      perm: "stock" },
