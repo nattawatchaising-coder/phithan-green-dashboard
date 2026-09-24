@@ -1282,6 +1282,9 @@ function App() {
     } : null,
     onSaveBills: can(role, "billing") ? (id, bills) => store.patch(id, {
       bills
+    }) : null,
+    onSkip: can(role, "billing") && hasRole(role, "admin") ? (id, off) => store.patch(id, {
+      noBill: off ? true : null
     }) : null
   }), view === "attend" && React.createElement(window.AttendView, {
     jobs: jobs,

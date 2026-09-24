@@ -168,7 +168,7 @@ function blItemText(it) {
 const blItemsUsed = row => blItems(row).filter(it => String(it.text || "").trim() || blR2(it.qty) > 0);
 function blPhotoGroups(row, photos) {
   const r = row || {};
-  const list = (photos || []).filter(p => p && p.dataUrl);
+  const list = blDocPhotos(photos);
   const its = blItems(r);
   const out = [];
   its.forEach(it => {
@@ -283,6 +283,7 @@ function blMove(row, to, user, opt, job) {
     rec.paidByName = (user || {}).name || "";
     if (o.ref != null) rec.payRef = String(o.ref || "");
     if (blR2(rec.paidAmt) < blR2(rec.amount) - 0.01) rec.paidAmt = blR2(rec.amount);
+    if (+o.slipN) rec.paySlip = (+rec.paySlip || 0) + +o.slipN;
   }
   if (blFlowIdx(to) < blFlowIdx("paid")) {
     rec.paidAt = null;
@@ -344,6 +345,29 @@ function blSummary(job, today) {
   };
 }
 const blSubjectOf = row => row && row.subject || "แจ้งส่งมอบงานและวางบิล งวดที่ " + ((row || {}).n || 1);
+const blIsSlip = p => (p || {}).kind === "slip";
+const blDocPhotos = photos => (photos || []).filter(p => p && p.dataUrl && !blIsSlip(p));
+const blSlipsOf = photos => (photos || []).filter(p => p && p.dataUrl && blIsSlip(p));
+function blAddSlip(jobId, rowId, slip, user) {
+  if (!jobId || !rowId || !_BLFB() || !slip || !slip.dataUrl) return null;
+  const id = "BP-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  _blRef("billPhotos/" + jobId + "/" + rowId + "/" + id).set({
+    id: id,
+    dataUrl: slip.dataUrl,
+    cap: slip.cap || "",
+    at: new Date().toISOString(),
+    by: (user || {}).id || null,
+    byName: (user || {}).name || "",
+    src: "upload",
+    srcRef: "",
+    item: "",
+    kind: "slip",
+    fileKind: slip.fileKind === "pdf" ? "pdf" : "img",
+    name: slip.name || "",
+    size: +slip.size || 0
+  });
+  return id;
+}
 function useBillPhotos(jobId, rowId) {
   const [photos, setPhotos] = React.useState([]);
   React.useEffect(() => {
@@ -373,7 +397,11 @@ function useBillPhotos(jobId, rowId) {
       byName: (m.user || {}).name || "",
       src: m.src || "upload",
       srcRef: m.srcRef || "",
-      item: m.item || ""
+      item: m.item || "",
+      kind: m.kind === "slip" ? "slip" : "doc",
+      fileKind: m.fileKind === "pdf" ? "pdf" : "img",
+      name: m.name || "",
+      size: +m.size || 0
     });
     return id;
   }, [jobId, rowId]);
@@ -438,5 +466,9 @@ Object.assign(window, {
   blSummary,
   blSubjectOf,
   blR2,
+  blIsSlip,
+  blDocPhotos,
+  blSlipsOf,
+  blAddSlip,
   useBillPhotos
 });

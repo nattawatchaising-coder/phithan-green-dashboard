@@ -147,7 +147,7 @@ const blItemsUsed = (row) => blItems(row).filter((it) => String(it.text || "").t
    รูปที่ยังไม่ถูกผูกกับข้อไหน (รวมถึงรูปที่เลือกไว้ก่อนมีระบบนี้) ไปอยู่กลุ่มท้ายสุด ไม่หายไปเฉย ๆ */
 function blPhotoGroups(row, photos) {
   const r = row || {};
-  const list = (photos || []).filter((p) => p && p.dataUrl);
+  const list = blDocPhotos(photos);
   const its = blItems(r);
   const out = [];
   its.forEach((it) => {
@@ -241,6 +241,8 @@ function blMove(row, to, user, opt, job) {
     if (o.ref != null) rec.payRef = String(o.ref || "");
     /* กดรับเงิน = รับครบงวดนี้แล้ว — ยอดที่เคยรับบางส่วนไว้ถูกเติมให้เต็ม ไม่งั้นยอดคงค้างจะค้างเป็นเศษตลอดไป */
     if (blR2(rec.paidAmt) < blR2(rec.amount) - 0.01) rec.paidAmt = blR2(rec.amount);
+    /* นับสลิปไว้ที่ตัวงวด หน้ารวมจึงบอกได้ว่างวดไหนมีหลักฐานแล้ว โดยไม่ต้องโหลดรูปของทุกงวดมาดู */
+    if (+o.slipN) rec.paySlip = (+rec.paySlip || 0) + (+o.slipN);
   }
   /* ถอยกลับก่อนรับเงิน = ยอดที่บันทึกรับไว้ยังไม่ควรนับ แต่ไม่ลบทิ้ง (เผื่อเป็นเงินมัดจำที่เข้ามาจริง)
      ล้างแค่ตราเวลาการรับเงิน ไม่งั้นหน้ารวมจะโชว์ว่า "รับเงินโดย X" ทั้งที่สถานะถอยมาแล้ว */
@@ -310,6 +312,28 @@ function blSummary(job, today) {
 /* หัวข้อ "เรื่อง" บนใบ — ว่างไว้ก็ได้ ระบบเขียนให้ตามมาตรฐาน */
 const blSubjectOf = (row) => (row && row.subject) || ("แจ้งส่งมอบงานและวางบิล งวดที่ " + ((row || {}).n || 1));
 
+/* ── สลิป/หลักฐานการรับเงิน ──
+   อยู่โหนดเดียวกับรูปประกอบเอกสาร (billPhotos/<jobId>/<rowId>) แต่ติดธง kind:"slip"
+   แยกโหนดใหม่ไม่คุ้ม — ของสองอย่างนี้เกิดดับพร้อมงวดเดียวกัน ลบงวดทีเดียวหายหมด
+   ธงนี้คือสิ่งที่กันไม่ให้สลิปหลุดไปพิมพ์บนหน้ารูปที่ส่งให้ลูกค้า (ดู blPhotoGroups) */
+const blIsSlip = (p) => (p || {}).kind === "slip";
+const blDocPhotos = (photos) => (photos || []).filter((p) => p && p.dataUrl && !blIsSlip(p));
+const blSlipsOf = (photos) => (photos || []).filter((p) => p && p.dataUrl && blIsSlip(p));
+
+/* เขียนสลิปโดยไม่ผ่าน hook — คนกดรับเงินอยู่ที่การ์ดหรือหน้ารวม ซึ่งไม่ได้เปิดงวดนั้นค้างไว้
+   จะ subscribe รูปของทุกงวดไว้เผื่อกดก็เปลืองเกินเหตุ (dataUrl ก้อนใหญ่ทั้งนั้น) */
+function blAddSlip(jobId, rowId, slip, user) {
+  if (!jobId || !rowId || !_BLFB() || !slip || !slip.dataUrl) return null;
+  const id = "BP-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  _blRef("billPhotos/" + jobId + "/" + rowId + "/" + id).set({
+    id: id, dataUrl: slip.dataUrl, cap: slip.cap || "", at: new Date().toISOString(),
+    by: (user || {}).id || null, byName: (user || {}).name || "",
+    src: "upload", srcRef: "", item: "",
+    kind: "slip", fileKind: slip.fileKind === "pdf" ? "pdf" : "img",
+    name: slip.name || "", size: +slip.size || 0,
+  });
+  return id;
+}
 /* ── รูปประกอบการวางบิล ──
    คัดลอก dataUrl มาเก็บที่นี่เสมอ ไม่อ้างอิงรูปต้นทาง — dailyPhotos/jobPhotos ช่างลบได้
    เอกสารที่ส่งลูกค้าไปแล้วกลายเป็นหน้าเปล่าไม่ได้ (หลักเดียวกับใบเบิกที่ยึดยอดตอนบันทึก)
@@ -338,6 +362,9 @@ function useBillPhotos(jobId, rowId) {
       src: m.src || "upload", srcRef: m.srcRef || "",
       /* ผูกกับข้อที่กำลังเปิดอยู่ตั้งแต่ตอนเลือก — ย้ายทีหลังได้ แต่ส่วนใหญ่ไม่ต้องแตะอีก */
       item: m.item || "",
+      kind: m.kind === "slip" ? "slip" : "doc",
+      fileKind: m.fileKind === "pdf" ? "pdf" : "img",
+      name: m.name || "", size: +m.size || 0,
     });
     return id;
   }, [jobId, rowId]);
@@ -367,5 +394,6 @@ Object.assign(window, {
   blNext, blCan, blMove, blReadyToBill, blDocNo, blPrintable,
   blItems, blItemId, blBlankItem, blItemText, blItemsUsed, blPhotoGroups, BL_UNITS,
   blRows, blHas, blLive, blCurrentRow, blOverdue, blSummary, blSubjectOf, blR2,
+  blIsSlip, blDocPhotos, blSlipsOf, blAddSlip,
   useBillPhotos,
 });

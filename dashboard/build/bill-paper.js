@@ -200,7 +200,7 @@ function BlDeliveryPaper({
     style: {
       position: "fixed",
       inset: 0,
-      zIndex: 175,
+      zIndex: 210,
       background: "rgba(8,20,14,.55)",
       overflow: "auto",
       padding: isMobile ? 0 : "24px 16px"

@@ -226,6 +226,44 @@ function KanbanCard({
           overflow: "hidden"
         }
       }, job.permit.rejectReason));
+    })(), window.blHas && window.blHas(job) && (() => {
+      const S = window.blSummary(job);
+      const cur = S.cur;
+      const st = cur ? window.blStatusOf(cur.status) : null;
+      const c = S.allPaid ? "#10B981" : S.overdue.length ? "#EF4444" : st ? st.color : "#6366F1";
+      return React.createElement("div", {
+        style: {
+          marginBottom: 10,
+          padding: "6px 9px",
+          borderRadius: 9,
+          background: c + "14",
+          border: "1px solid " + c + "33"
+        }
+      }, React.createElement("div", {
+        style: {
+          fontSize: 10.5,
+          fontWeight: 800,
+          color: c,
+          display: "flex",
+          gap: 6,
+          alignItems: "center",
+          flexWrap: "wrap"
+        }
+      }, React.createElement(Icon, {
+        name: "file",
+        size: 10,
+        color: c,
+        style: {
+          verticalAlign: -1
+        }
+      }), "\u0E07\u0E27\u0E14\u0E07\u0E32\u0E19 \xB7 ", S.allPaid ? "เก็บเงินครบแล้ว" : "งวด " + (S.doneCount + 1) + "/" + S.count + (st ? " · " + st.short : "")), !S.allPaid && React.createElement("div", {
+        style: {
+          fontSize: 10.5,
+          color: c,
+          marginTop: 3,
+          fontVariantNumeric: "tabular-nums"
+        }
+      }, "\u0E04\u0E07\u0E04\u0E49\u0E32\u0E07 ", window.sBaht(S.remain), " \u0E1A\u0E32\u0E17", S.overdue.length ? " · เลยกำหนดวางบิล " + S.overdue.length + " งวด" : ""));
     })(), job.problem && React.createElement("div", {
       style: {
         fontSize: 11,

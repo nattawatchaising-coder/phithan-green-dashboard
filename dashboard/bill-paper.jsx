@@ -131,7 +131,7 @@ function BlDeliveryPaper({ job, bill, row, photos, onClose }) {
   );
 
   return ReactDOM.createPortal((
-    <div className="sv-rep-overlay" style={{ position: "fixed", inset: 0, zIndex: 175, background: "rgba(8,20,14,.55)",
+    <div className="sv-rep-overlay" style={{ position: "fixed", inset: 0, zIndex: 210, background: "rgba(8,20,14,.55)",
       overflow: "auto", padding: isMobile ? 0 : "24px 16px" }}>
 
       <div className="sv-rep-noprint" style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", gap: 9, alignItems: "center", flexWrap: "wrap",

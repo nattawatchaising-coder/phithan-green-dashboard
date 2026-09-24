@@ -227,6 +227,307 @@ function BlMoneyStrip({
     }
   }, blMoney(v)))));
 }
+function BlPayModal({
+  row,
+  onCancel,
+  onOk
+}) {
+  const r = row || {};
+  const [ref, setRef] = React.useState(r.payRef || "");
+  const [slips, setSlips] = React.useState([]);
+  const [err, setErr] = React.useState("");
+  const [busy, setBusy] = React.useState(0);
+  const pick = async (e, pdf) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    setErr("");
+    for (const f of files) {
+      setBusy(n => n + 1);
+      try {
+        if (pdf) {
+          if (!(f.type === "application/pdf" || /\.pdf$/i.test(f.name))) {
+            setErr("รองรับเฉพาะไฟล์ PDF");
+          } else if (f.size > window.EC_PDF_MAX_MB * 1024 * 1024) {
+            setErr("ไฟล์ใหญ่เกิน " + window.EC_PDF_MAX_MB + " MB (" + window.ecFileSize(f.size) + ") — ถ่ายเป็นรูปแทนได้");
+          } else {
+            const url = await window.readFileAsDataURL(f);
+            setSlips(a => a.concat([{
+              dataUrl: url,
+              fileKind: "pdf",
+              name: f.name,
+              size: f.size
+            }]));
+          }
+        } else {
+          const url = await window.resizeImageFile(f, 1400, 0.78);
+          setSlips(a => a.concat([{
+            dataUrl: url,
+            fileKind: "img",
+            name: f.name,
+            size: f.size
+          }]));
+        }
+      } catch (x) {
+        setErr("อ่านไฟล์ไม่สำเร็จ: " + f.name);
+      }
+      setBusy(n => n - 1);
+    }
+  };
+  const drop = i => setSlips(a => a.filter((x, k) => k !== i));
+  const dash = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 7,
+    padding: "9px 14px",
+    borderRadius: 10,
+    border: "1px dashed var(--border-strong)",
+    background: "var(--surface)",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    fontSize: 12.5,
+    fontWeight: 700,
+    color: "var(--text-2)"
+  };
+  return React.createElement("div", {
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 200,
+      background: "rgba(8,20,14,.5)",
+      overflow: "auto",
+      padding: "18px 12px"
+    }
+  }, React.createElement("div", {
+    style: {
+      maxWidth: 480,
+      margin: "0 auto",
+      background: "var(--surface)",
+      borderRadius: 16,
+      boxShadow: "var(--shadow-lg)",
+      overflow: "hidden"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 12,
+      alignItems: "flex-start",
+      padding: "18px 20px 0"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 38,
+      height: 38,
+      borderRadius: 11,
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+      background: "#10B9811a"
+    }
+  }, React.createElement(Icon, {
+    name: "wallet",
+    size: 18,
+    color: "#10B981"
+  })), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 15.5,
+      fontWeight: 800,
+      color: "var(--text-1)",
+      lineHeight: 1.45
+    }
+  }, "\u0E23\u0E31\u0E1A\u0E40\u0E07\u0E34\u0E19\u0E07\u0E27\u0E14\u0E17\u0E35\u0E48 ", r.n, " \xB7 ", blMoney(r.amount), " \u0E1A\u0E32\u0E17"), React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-2)",
+      marginTop: 5,
+      lineHeight: 1.6
+    }
+  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E27\u0E48\u0E32\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E42\u0E2D\u0E19\u0E40\u0E07\u0E34\u0E19\u0E07\u0E27\u0E14\u0E19\u0E35\u0E49\u0E04\u0E23\u0E1A\u0E41\u0E25\u0E49\u0E27"))), React.createElement("div", {
+    style: {
+      padding: "14px 20px 0"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "var(--text-3)",
+      marginBottom: 5
+    }
+  }, "\u0E40\u0E25\u0E02\u0E2D\u0E49\u0E32\u0E07\u0E2D\u0E34\u0E07\u0E01\u0E32\u0E23\u0E42\u0E2D\u0E19 / \u0E40\u0E25\u0E02\u0E2A\u0E25\u0E34\u0E1B"), React.createElement("input", {
+    value: ref,
+    maxLength: 120,
+    onChange: e => setRef(e.target.value),
+    placeholder: "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E01\u0E47\u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07\u0E44\u0E14\u0E49",
+    style: BL_INPUT()
+  }), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "var(--text-3)",
+      margin: "14px 0 5px"
+    }
+  }, "\u0E2A\u0E25\u0E34\u0E1B\u0E42\u0E2D\u0E19\u0E40\u0E07\u0E34\u0E19 / \u0E44\u0E1F\u0E25\u0E4C\u0E41\u0E19\u0E1A ", React.createElement("span", {
+    style: {
+      fontWeight: 400
+    }
+  }, "\xB7 \u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A \xB7 \u0E41\u0E19\u0E1A\u0E44\u0E14\u0E49\u0E2B\u0E25\u0E32\u0E22\u0E43\u0E1A \u0E40\u0E1B\u0E34\u0E14\u0E14\u0E39\u0E22\u0E49\u0E2D\u0E19\u0E2B\u0E25\u0E31\u0E07\u0E44\u0E14\u0E49\u0E43\u0E19\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\u0E07\u0E27\u0E14")), slips.map((s, i) => React.createElement("div", {
+    key: i,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 11,
+      padding: 9,
+      marginBottom: 8,
+      border: "1px solid var(--border)",
+      borderRadius: 11,
+      background: "var(--surface2)"
+    }
+  }, s.fileKind === "pdf" ? React.createElement("span", {
+    style: {
+      width: 48,
+      height: 48,
+      flexShrink: 0,
+      borderRadius: 9,
+      display: "grid",
+      placeItems: "center",
+      background: "#EF44441a"
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 19,
+    color: "#EF4444"
+  })) : React.createElement("img", {
+    src: s.dataUrl,
+    alt: "",
+    style: {
+      width: 48,
+      height: 48,
+      flexShrink: 0,
+      objectFit: "cover",
+      borderRadius: 9,
+      border: "1px solid var(--border)"
+    }
+  }), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, s.name || "สลิปโอนเงิน"), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, s.fileKind === "pdf" ? "PDF" : "รูปภาพ", s.size ? " · " + window.ecFileSize(s.size) : "", " \xB7 \u0E08\u0E30\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E01\u0E32\u0E23\u0E23\u0E31\u0E1A\u0E40\u0E07\u0E34\u0E19")), React.createElement("button", {
+    onClick: () => drop(i),
+    title: "\u0E40\u0E2D\u0E32\u0E2D\u0E2D\u0E01",
+    style: {
+      width: 28,
+      height: 28,
+      flexShrink: 0,
+      borderRadius: 8,
+      display: "grid",
+      placeItems: "center",
+      border: "1px solid var(--border)",
+      background: "var(--surface)",
+      cursor: "pointer"
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 14,
+    color: "var(--text-2)"
+  })))), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("label", {
+    style: dash
+  }, React.createElement(Icon, {
+    name: "camera",
+    size: 15,
+    color: "var(--text-2)"
+  }), " ", busy ? "กำลังอ่านไฟล์…" : "ถ่าย/เลือกรูปสลิป", React.createElement("input", {
+    type: "file",
+    accept: "image/*",
+    multiple: true,
+    onChange: e => pick(e, false),
+    style: {
+      display: "none"
+    }
+  })), React.createElement("label", {
+    style: dash
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 15,
+    color: "var(--text-2)"
+  }), " \u0E41\u0E19\u0E1A\u0E44\u0E1F\u0E25\u0E4C PDF", React.createElement("input", {
+    type: "file",
+    accept: "application/pdf,.pdf",
+    multiple: true,
+    onChange: e => pick(e, true),
+    style: {
+      display: "none"
+    }
+  }))), err && React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--tint-red-tx)",
+      marginTop: 8
+    }
+  }, err)), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      justifyContent: "flex-end",
+      padding: "18px 20px 20px"
+    }
+  }, React.createElement("button", {
+    onClick: onCancel,
+    style: {
+      padding: "10px 16px",
+      borderRadius: 10,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-2)",
+      fontFamily: "inherit",
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("button", {
+    onClick: () => {
+      if (!busy) onOk(ref, slips);
+    },
+    disabled: !!busy,
+    style: {
+      padding: "10px 18px",
+      borderRadius: 10,
+      border: "none",
+      background: busy ? "var(--surface3)" : "#10B981",
+      color: busy ? "var(--text-3)" : "#fff",
+      fontFamily: "inherit",
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: busy ? "default" : "pointer"
+    }
+  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E23\u0E31\u0E1A\u0E40\u0E07\u0E34\u0E19"))));
+}
 function BlJobCard({
   job,
   quotes,
@@ -240,6 +541,7 @@ function BlJobCard({
   const j = job || {};
   const [print, setPrint] = React.useState(null);
   const [paid, setPaid] = React.useState(null);
+  const [pay, setPay] = React.useState(null);
   const S = window.blSummary(j);
   const bills = j.bills || null;
   const quote = window.blPickQuote(quotes, j, leads);
@@ -264,22 +566,14 @@ function BlJobCard({
       } : null);
     };
     if (to !== "paid") return go();
-    window.askText({
-      title: "รับเงินงวดที่ " + row.n + " · " + blMoney(row.amount) + " บาท",
-      body: "บันทึกว่าลูกค้าโอนเงินงวดนี้ครบแล้ว",
-      label: "เลขอ้างอิงการโอน / เลขสลิป",
-      placeholder: "ไม่มีก็เว้นว่างได้",
-      value: row.payRef || "",
-      ok: "บันทึกรับเงิน",
-      icon: "wallet"
-    }).then(ref => {
-      if (ref != null) go({
-        ref: ref
-      });
+    setPay({
+      row: row,
+      go: go,
+      job: job
     });
   };
   const st = cur ? window.blStatusOf(cur.status) : null;
-  const sub = !S.has ? quote ? "ยังไม่ได้ตั้งงวด · ดึงจาก " + (quote.no || "ใบเสนอราคา") : "ยังไม่ได้ตั้งงวด · งานนี้ไม่มีใบเสนอราคา ต้องกรอกเอง" : "งวด " + (S.doneCount + (cur && cur.status === "paid" ? 0 : 1)) + "/" + S.count + " · รับแล้ว " + blMoney(S.collected) + " · คงค้าง " + blMoney(S.remain) + " บาท";
+  const sub = !S.has ? j.noBill ? "ไม่ต้องตั้งงวดงาน — แอดมินเอาออกจากรายการไว้" : quote ? "ยังไม่ได้ตั้งงวด · ดึงจาก " + (quote.no || "ใบเสนอราคา") : "ยังไม่ได้ตั้งงวด · งานนี้ไม่มีใบเสนอราคา ต้องกรอกเอง" : "งวด " + (S.doneCount + (cur && cur.status === "paid" ? 0 : 1)) + "/" + S.count + " · รับแล้ว " + blMoney(S.collected) + " · คงค้าง " + blMoney(S.remain) + " บาท";
   return React.createElement("div", {
     style: {
       marginBottom: 22,
@@ -423,6 +717,17 @@ function BlJobCard({
     job: j,
     row: print,
     onClose: () => setPrint(null)
+  }), pay && React.createElement(BlPayModal, {
+    row: pay.row,
+    onCancel: () => setPay(null),
+    onOk: (ref, slips) => {
+      slips.forEach(s => window.blAddSlip(pay.job.id, pay.row.id, s, currentUser));
+      pay.go({
+        ref: ref,
+        slipN: slips.length
+      });
+      setPay(null);
+    }
   }));
 }
 function BlPhotoPick({
@@ -448,7 +753,7 @@ function BlPhotoPick({
   }, [dates.length]);
   const dayPhotos = window.useDailyPhotos(j.id, tab === "daily" ? day : null);
   const media = window.useJobMedia(tab === "job" ? j.id : null);
-  const picked = api.photos || [];
+  const picked = window.blDocPhotos(api.photos);
   const its = items || [];
   const itemCap = (its.find(x => x.id === itemId) || {}).text || "";
   const mine = itemId ? picked.filter(p => p.item === itemId) : picked.filter(p => !p.item || !its.some(x => x.id === p.item));
@@ -768,8 +1073,10 @@ function BlRowDetail({
   const api = window.useBillPhotos(job ? job.id : null, row ? row.id : null);
   const [pick, setPick] = React.useState(null);
   const items = window.blItems(row);
-  const photosOf = id => api.photos.filter(p => p.item === id);
-  const loose = api.photos.filter(p => !p.item || !items.some(it => it.id === p.item));
+  const docs = window.blDocPhotos(api.photos);
+  const slips = window.blSlipsOf(api.photos);
+  const photosOf = id => docs.filter(p => p.item === id);
+  const loose = docs.filter(p => !p.item || !items.some(it => it.id === p.item));
   const putItem = (id, fields) => onPatch({
     items: items.map(it => it.id === id ? Object.assign({}, it, fields) : it)
   });
@@ -1025,7 +1332,98 @@ function BlRowDetail({
       color: "var(--tint-amber-tx)",
       marginBottom: 6
     }
-  }, "\u0E23\u0E39\u0E1B\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23 (", loose.length, ") \u2014 \u0E08\u0E30\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E44\u0E27\u0E49\u0E41\u0E1C\u0E48\u0E19\u0E17\u0E49\u0E32\u0E22\u0E2A\u0E38\u0E14\u0E41\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E21\u0E35\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D"), thumbs(loose, "")), React.createElement("div", null, React.createElement("div", {
+  }, "\u0E23\u0E39\u0E1B\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23 (", loose.length, ") \u2014 \u0E08\u0E30\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E44\u0E27\u0E49\u0E41\u0E1C\u0E48\u0E19\u0E17\u0E49\u0E32\u0E22\u0E2A\u0E38\u0E14\u0E41\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E21\u0E35\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D"), thumbs(loose, "")), !!slips.length && React.createElement("div", {
+    style: {
+      padding: "9px 11px",
+      borderRadius: 10,
+      background: "var(--tint-ok-bg)",
+      border: "1px solid var(--tint-ok-bd)"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--tint-ok-tx)",
+      marginBottom: 7
+    }
+  }, "\u0E2A\u0E25\u0E34\u0E1B / \u0E2B\u0E25\u0E31\u0E01\u0E10\u0E32\u0E19\u0E01\u0E32\u0E23\u0E23\u0E31\u0E1A\u0E40\u0E07\u0E34\u0E19 (", slips.length, ") \u2014 \u0E44\u0E21\u0E48\u0E16\u0E39\u0E01\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E1A\u0E19\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E17\u0E35\u0E48\u0E2A\u0E48\u0E07\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32"), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      flexWrap: "wrap"
+    }
+  }, slips.map(p => React.createElement("span", {
+    key: p.id,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      padding: "5px 8px",
+      borderRadius: 9,
+      background: "var(--surface)",
+      border: "1px solid var(--border)"
+    }
+  }, React.createElement("a", {
+    href: p.dataUrl,
+    target: "_blank",
+    rel: "noreferrer",
+    download: p.name || undefined,
+    title: (p.name || "สลิป") + " — กดเพื่อเปิด/บันทึก",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      textDecoration: "none",
+      color: "var(--text-2)"
+    }
+  }, p.fileKind === "pdf" ? React.createElement("span", {
+    style: {
+      width: 34,
+      height: 34,
+      borderRadius: 7,
+      display: "grid",
+      placeItems: "center",
+      background: "#EF44441a"
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 15,
+    color: "#EF4444"
+  })) : React.createElement("img", {
+    src: p.dataUrl,
+    alt: "",
+    style: {
+      width: 34,
+      height: 34,
+      objectFit: "cover",
+      borderRadius: 7,
+      border: "1px solid var(--border)"
+    }
+  }), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      maxWidth: 160,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, p.name || "สลิปโอนเงิน")), !readOnly && React.createElement("button", {
+    onClick: () => api.remove(p.id),
+    title: "\u0E25\u0E1A\u0E2A\u0E25\u0E34\u0E1B\u0E43\u0E1A\u0E19\u0E35\u0E49",
+    style: {
+      border: "none",
+      background: "none",
+      cursor: "pointer",
+      color: "var(--text-3)",
+      padding: 0,
+      lineHeight: 1
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 13,
+    color: "var(--text-3)"
+  })))))), React.createElement("div", null, React.createElement("div", {
     style: lbl
   }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E20\u0E32\u0E22\u0E43\u0E19 (\u0E44\u0E21\u0E48\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E1A\u0E19\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23)"), React.createElement("input", {
     value: row.note || "",
@@ -1114,6 +1512,21 @@ function BlSetupModal({
       })])
     }));
     setDirty(true);
+  };
+  const dropAll = () => {
+    if (!onSaveBills) return;
+    window.askConfirm({
+      title: "เอางวดงานของ " + (j.code || "งานนี้") + " ออกทั้งชุด?",
+      body: "งวดทั้งหมด " + rows.length + " งวด พร้อมสถานะ เลขที่เอกสาร และประวัติการรับเงิน จะหายไปจากงานนี้" + " · งานจะกลับไปอยู่ในรายการ “ยังไม่ตั้งงวด” และตั้งใหม่ได้ตลอด",
+      ok: "เอาออกทั้งชุด",
+      danger: true,
+      icon: "trash"
+    }).then(ok => {
+      if (ok) {
+        onSaveBills(null);
+        onClose();
+      }
+    });
   };
   const delRow = row => {
     if (window.blRowLocked(row)) return;
@@ -1697,7 +2110,22 @@ function BlSetupModal({
       padding: "12px 16px",
       borderTop: "1px solid var(--border)"
     }
-  }, React.createElement("button", {
+  }, !ro && window.hasRole(role, "admin") && window.blHas(j) && React.createElement("button", {
+    onClick: dropAll,
+    title: "\u0E25\u0E1A\u0E07\u0E27\u0E14\u0E07\u0E32\u0E19\u0E17\u0E31\u0E49\u0E07\u0E0A\u0E38\u0E14\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49 (\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19)",
+    style: {
+      marginRight: "auto",
+      padding: "10px 14px",
+      borderRadius: 11,
+      border: "1px solid var(--tint-red-bd)",
+      background: "var(--tint-red-bg)",
+      color: "var(--tint-red-tx)",
+      fontFamily: "inherit",
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E40\u0E2D\u0E32\u0E07\u0E27\u0E14\u0E07\u0E32\u0E19\u0E2D\u0E2D\u0E01"), React.createElement("button", {
     onClick: onClose,
     style: {
       padding: "10px 16px",
@@ -1755,7 +2183,8 @@ function BillingView({
   currentUser,
   onOpenJob,
   onSaveBills,
-  onSetup
+  onSetup,
+  onSkip
 }) {
   const today = window.drToday ? window.drToday() : "";
   const [q, setQ] = React.useState("");
@@ -1763,6 +2192,8 @@ function BillingView({
   const [onlyNew, setOnlyNew] = React.useState(false);
   const [print, setPrint] = React.useState(null);
   const [paid, setPaid] = React.useState(null);
+  const [pay, setPay] = React.useState(null);
+  const [fold, setFold] = React.useState({});
   const ro = !onSaveBills;
   const withBills = (jobs || []).filter(j => window.blHas(j));
   const sums = {};
@@ -1809,7 +2240,20 @@ function BillingView({
     rows: window.blRows(j).filter(r => rowHit(j, r)),
     S: sums[j.id]
   })).filter(g => g.rows.length).sort((a, b) => String(a.job.code || "").localeCompare(String(b.job.code || "")));
-  const pendingSetup = (jobs || []).filter(j => !window.blHas(j) && (j.stage === "install" || j.stage === "done")).sort((a, b) => String(a.code || "").localeCompare(String(b.code || "")));
+  const pendingSetup = (jobs || []).filter(j => !window.blHas(j) && !j.noBill && (j.stage === "install" || j.stage === "done")).sort((a, b) => String(a.code || "").localeCompare(String(b.code || "")));
+  const skipped = (jobs || []).filter(j => j.noBill && !window.blHas(j)).sort((a, b) => String(a.code || "").localeCompare(String(b.code || "")));
+  const skip = (j, off) => {
+    if (!onSkip) return;
+    if (!off) return onSkip(j.id, false);
+    window.askConfirm({
+      title: "เอา " + (j.code || "งานนี้") + " ออกจากรายการงวดงาน?",
+      body: (j.name || "") + " จะไม่ขึ้นในรายการ “ยังไม่ตั้งงวด” อีก — ใช้กับงานเก่าที่ติดตั้งจบไปแล้วและไม่ได้เก็บเงินผ่านระบบนี้" + " · ข้อมูลงานไม่ถูกแตะต้อง และแอดมินกดเอากลับได้ตลอด",
+      ok: "เอาออกจากรายการ",
+      icon: "file"
+    }).then(ok => {
+      if (ok) onSkip(j.id, true);
+    });
+  };
   const move = (job, row, to) => {
     if (!onSaveBills) return;
     const go = opt => {
@@ -1828,18 +2272,10 @@ function BillingView({
       } : null);
     };
     if (to !== "paid") return go();
-    window.askText({
-      title: "รับเงินงวดที่ " + row.n + " · " + blMoney(row.amount) + " บาท",
-      body: "บันทึกว่าลูกค้าโอนเงินงวดนี้ครบแล้ว",
-      label: "เลขอ้างอิงการโอน / เลขสลิป",
-      placeholder: "ไม่มีก็เว้นว่างได้",
-      value: row.payRef || "",
-      ok: "บันทึกรับเงิน",
-      icon: "wallet"
-    }).then(ref => {
-      if (ref != null) go({
-        ref: ref
-      });
+    setPay({
+      row: row,
+      go: go,
+      job: job
     });
   };
   const chip = (id, label) => React.createElement("button", {
@@ -1942,6 +2378,7 @@ function BillingView({
   }), !onlyNew && groups.map(g => {
     const j = g.job,
       S = g.S;
+    const shut = fold[j.id] === undefined ? S.allPaid : fold[j.id];
     return React.createElement("div", {
       key: j.id,
       style: {
@@ -1990,7 +2427,23 @@ function BillingView({
     }, React.createElement(BlRail, {
       rows: window.blRows(j),
       curId: S.cur ? S.cur.id : null
-    })), onOpenJob && React.createElement("button", {
+    })), React.createElement("button", {
+      onClick: () => setFold(f => Object.assign({}, f, {
+        [j.id]: !shut
+      })),
+      title: shut ? "กางตารางงวดของงานนี้" : "ย่อเหลือแค่บรรทัดสรุป",
+      style: {
+        padding: "8px 12px",
+        borderRadius: 10,
+        border: "1px solid var(--border-strong)",
+        background: "var(--surface)",
+        color: "var(--text-2)",
+        fontFamily: "inherit",
+        fontSize: 12.5,
+        fontWeight: 700,
+        cursor: "pointer"
+      }
+    }, shut ? "ขยาย · " + g.rows.length + " งวด" : "ย่อ"), onOpenJob && React.createElement("button", {
       onClick: () => onOpenJob(j.id),
       style: {
         padding: "8px 12px",
@@ -2016,7 +2469,7 @@ function BillingView({
         fontWeight: 700,
         cursor: "pointer"
       }
-    }, "\u0E15\u0E31\u0E49\u0E07\u0E07\u0E27\u0E14 / \u0E41\u0E01\u0E49\u0E43\u0E1A")), React.createElement("div", {
+    }, "\u0E15\u0E31\u0E49\u0E07\u0E07\u0E27\u0E14 / \u0E41\u0E01\u0E49\u0E43\u0E1A")), !shut && React.createElement("div", {
       style: {
         overflowX: "auto"
       }
@@ -2091,7 +2544,12 @@ function BillingView({
         fontFamily: "var(--mono)",
         fontSize: 11.5
       })
-    }, +r.paidAmt ? blMoney(r.paidAmt) + (window.blR2(r.paidAmt) < window.blR2(r.amount) ? " / " + blMoney(r.amount) : "") : "—"), React.createElement("td", {
+    }, +r.paidAmt ? blMoney(r.paidAmt) + (window.blR2(r.paidAmt) < window.blR2(r.amount) ? " / " + blMoney(r.amount) : "") : "—", +r.paySlip ? React.createElement("span", {
+      title: "มีสลิป/ไฟล์แนบ " + r.paySlip + " ไฟล์ — เปิดดูได้ในแผงตั้งงวด",
+      style: {
+        marginLeft: 5
+      }
+    }, "\uD83D\uDCCE") : null), React.createElement("td", {
       style: cell
     }, React.createElement(BlPill, {
       row: r
@@ -2199,11 +2657,83 @@ function BillingView({
         fontWeight: 700,
         cursor: "pointer"
       }
-    }, "\u0E15\u0E31\u0E49\u0E07\u0E07\u0E27\u0E14"));
-  }))), print && React.createElement(BlPrintHost, {
+    }, "\u0E15\u0E31\u0E49\u0E07\u0E07\u0E27\u0E14"), onSkip && React.createElement("button", {
+      onClick: () => skip(j, true),
+      title: "\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E15\u0E31\u0E49\u0E07\u0E07\u0E27\u0E14 \u2014 \u0E40\u0E2D\u0E32\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23 (\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19)",
+      style: {
+        padding: "8px 12px",
+        borderRadius: 10,
+        border: "1px solid var(--border-strong)",
+        background: "var(--surface)",
+        color: "var(--text-3)",
+        fontFamily: "inherit",
+        fontSize: 12.5,
+        fontWeight: 700,
+        cursor: "pointer"
+      }
+    }, "\u0E40\u0E2D\u0E32\u0E2D\u0E2D\u0E01"));
+  }))), onSkip && !!skipped.length && React.createElement("div", {
+    style: {
+      marginTop: 18
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 800,
+      color: "var(--text-3)",
+      marginBottom: 8
+    }
+  }, "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E40\u0E2D\u0E32\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E07\u0E27\u0E14\u0E07\u0E32\u0E19 (", skipped.length, ")"), React.createElement("div", {
+    style: {
+      border: "1px dashed var(--border-strong)",
+      borderRadius: 13,
+      overflow: "hidden"
+    }
+  }, skipped.map(j => React.createElement("div", {
+    key: j.id,
+    style: {
+      display: "flex",
+      gap: 10,
+      alignItems: "center",
+      flexWrap: "wrap",
+      padding: "9px 13px",
+      borderBottom: "1px solid var(--border)"
+    }
+  }, React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 12.5,
+      color: "var(--text-3)"
+    }
+  }, j.code, " \xB7 ", j.name), React.createElement("button", {
+    onClick: () => skip(j, false),
+    style: {
+      padding: "7px 12px",
+      borderRadius: 9,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-2)",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E40\u0E2D\u0E32\u0E01\u0E25\u0E31\u0E1A\u0E40\u0E02\u0E49\u0E32\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"))))), print && React.createElement(BlPrintHost, {
     job: print.job,
     row: print.row,
     onClose: () => setPrint(null)
+  }), pay && React.createElement(BlPayModal, {
+    row: pay.row,
+    onCancel: () => setPay(null),
+    onOk: (ref, slips) => {
+      slips.forEach(s => window.blAddSlip(pay.job.id, pay.row.id, s, currentUser));
+      pay.go({
+        ref: ref,
+        slipN: slips.length
+      });
+      setPay(null);
+    }
   }));
 }
 Object.assign(window, {
@@ -2215,6 +2745,7 @@ Object.assign(window, {
   BlPaidSum,
   BlMoneyStrip,
   BlJobCard,
+  BlPayModal,
   BlPhotoPick,
   BlRowDetail,
   BlSetupModal,

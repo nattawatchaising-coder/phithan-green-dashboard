@@ -86,6 +86,28 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
           </div>
         );
       })()}
+      {/* งวดงาน · วางบิล — งานที่ติดตั้งจบแล้วยังค้างเก็บเงินอยู่ได้อีกหลายเดือน
+          บอร์ดคือที่เดียวที่ทุกคนเปิดดูทุกวัน ถ้าไม่ขึ้นตรงนี้ก็ไม่มีใครรู้ว่างานไหนเงินยังไม่เข้า
+          เป็นแถบอ่านอย่างเดียว การกดเดินสถานะอยู่ในใบงานกับหน้ารวมเหมือนเดิม */}
+      {window.blHas && window.blHas(job) && (() => {
+        const S = window.blSummary(job);
+        const cur = S.cur;
+        const st = cur ? window.blStatusOf(cur.status) : null;
+        const c = S.allPaid ? "#10B981" : (S.overdue.length ? "#EF4444" : (st ? st.color : "#6366F1"));
+        return (
+          <div style={{ marginBottom: 10, padding: "6px 9px", borderRadius: 9, background: c + "14", border: "1px solid " + c + "33" }}>
+            <div style={{ fontSize: 10.5, fontWeight: 800, color: c, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+              <Icon name="file" size={10} color={c} style={{ verticalAlign: -1 }} />
+              งวดงาน · {S.allPaid ? "เก็บเงินครบแล้ว" : "งวด " + (S.doneCount + 1) + "/" + S.count + (st ? " · " + st.short : "")}
+            </div>
+            {!S.allPaid && (
+              <div style={{ fontSize: 10.5, color: c, marginTop: 3, fontVariantNumeric: "tabular-nums" }}>
+                คงค้าง {window.sBaht(S.remain)} บาท{S.overdue.length ? " · เลยกำหนดวางบิล " + S.overdue.length + " งวด" : ""}
+              </div>
+            )}
+          </div>
+        );
+      })()}
       {job.problem && (
         <div style={{ fontSize: 11, color: "var(--tint-red-tx)", background: "var(--tint-red-bg)", borderRadius: 8, padding: "6px 8px", marginBottom: 10, lineHeight: 1.4,
           display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
