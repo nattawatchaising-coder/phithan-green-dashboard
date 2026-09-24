@@ -84,6 +84,13 @@ const ROLE_INFO = {
     icon: "trend",
     color: "#EC4899",
     desc: "ลูกค้าสำรวจ · เปิดงานใหม่ · เห็นราคา"
+  },
+  hr: {
+    th: "ฝ่ายบุคคล (HR)",
+    short: "HR",
+    icon: "user",
+    color: "#6366F1",
+    desc: "เวลาทำงานทั้งบริษัท · อนุมัติ OT"
   }
 };
 const ROLE_KEYS = Object.keys(ROLE_INFO);
@@ -191,6 +198,12 @@ const DEFAULT_PERMS = {
     leads: 1,
     attend: 1,
     ot: 1
+  },
+  hr: {
+    attend: 1,
+    attendAll: 1,
+    ot: 1,
+    otApprove: 1
   }
 };
 const PERM_LIST = [{
@@ -322,6 +335,10 @@ const DEFAULT_SCOPE = {
   },
   sales: {
     mode: "all",
+    stages: []
+  },
+  hr: {
+    mode: "assigned",
     stages: []
   }
 };

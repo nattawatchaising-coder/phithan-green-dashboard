@@ -39,6 +39,7 @@ const ROLE_INFO = {
   tech:   { th: "ช่างติดตั้ง",         short: "ช่าง",      icon: "wrench", color: "#F59E0B", desc: "เห็นเฉพาะงานที่ได้รับมอบหมาย" },
   permit: { th: "แอดมิน ขออนุญาต",    short: "ขออนุญาต",  icon: "file",   color: "#14B8A6", desc: "งานเอกสารยื่นขออนุญาตการไฟฟ้า" },
   sales:  { th: "เซลล์",              short: "เซลล์",     icon: "trend",  color: "#EC4899", desc: "ลูกค้าสำรวจ · เปิดงานใหม่ · เห็นราคา" },
+  hr:     { th: "ฝ่ายบุคคล (HR)",     short: "HR",       icon: "user",   color: "#6366F1", desc: "เวลาทำงานทั้งบริษัท · อนุมัติ OT" },
 };
 const ROLE_KEYS = Object.keys(ROLE_INFO);
 
@@ -65,6 +66,8 @@ const DEFAULT_PERMS = {
   tech:   {                        editJob: 1,            stock: 1,                              doSurvey: 1,                                         om: 1, expense: 1,                                   attend: 1,               ot: 1 },
   permit: { viewAll: 1,            editJob: 1,                                                                            permit: 1,                                                                         attend: 1,               ot: 1 },
   sales:  { viewAll: 1, addJob: 1,                                                  dispatch: 1, doSurvey: 1,                       price: 1, leads: 1,                                                      attend: 1,               ot: 1 },
+  /* HR ดูแลคน ไม่ได้ดูแลงาน — เปิดเฉพาะเวลาทำงานกับ OT ไม่ให้เห็นงานหรือราคา */
+  hr:     {                                                                                                                                                                                                attend: 1, attendAll: 1, ot: 1, otApprove: 1 },
 };
 
 
@@ -114,6 +117,7 @@ const DEFAULT_SCOPE = {
   tech:   { mode: "assigned", stages: [] },
   permit: { mode: "permitMine", stages: [] },
   sales:  { mode: "all",      stages: [] },
+  hr:     { mode: "assigned", stages: [] },
 };
 
 /* ตารางที่ใช้งานจริง — เริ่มจากค่าตั้งต้น แล้วถูกทับด้วยค่าที่แอดมินตั้งไว้ใน Firebase
