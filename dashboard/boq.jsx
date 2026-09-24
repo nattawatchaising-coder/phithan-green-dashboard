@@ -814,6 +814,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
   // ── การต่ออนุกรมแผง (String) + สาย DC PV1-F — เฉพาะอินเวอร์เตอร์ String/Hybrid ──
   const selPanel = window.BOQ.findPanel ? window.BOQ.findPanel(b.panelModel) : null;
+  /* รุ่นที่ระบุไว้ในใบงาน — ใบลูกค้า (ยังไม่เป็นงาน) ไม่มีช่องนี้ ก็ไม่ต้องเตือนอะไร */
+  const jobPanel = (job && job.panelModel) || "";
+  const panelOff = !!jobPanel && b.panelModel !== jobPanel;
   const isStringInv = !!(selInv && (selInv.type === "string" || selInv.type === "hybrid"));
   const scfg = isStringInv && window.BOQ.stringConfig
     ? window.BOQ.stringConfig(selPanel, selInv, { series: (b.dcSeries != null && b.dcSeries !== "") ? b.dcSeries : undefined })
@@ -1897,8 +1900,24 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}>{!b.inverterModel
                 ? <Field label="อัตราไมโคร"><Dropdown value={b.microRatio} onChange={(v) => set("microRatio", v)} options={[{ value: "1:1", label: "1:1 (1 แผง/ตัว)" }, { value: "2:1", label: "2:1 (2 แผง/ตัว)" }]} /></Field>
                 : <Field label="จำนวนอินเวอร์เตอร์ (แก้ไขได้)"><BoqInvCount value={b.invCount} auto={result.meta.invAuto} onChange={(v) => set("invCount", v)} style={numStyle} /></Field>}</div>
-              <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="รุ่นแผง"><Dropdown value={b.panelModel} onChange={(v) => set("panelModel", v)}
-                options={window.BOQ.PANELS.map((p) => ({ value: p.model, label: p.model, sub: p.wp ? p.wp + "W" : "", group: p.group || "" }))} /></Field></div>
+              <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}>
+                <Field label={"รุ่นแผง" + (jobPanel ? " · ตามฐานข้อมูล" : "")}>
+                  <Dropdown value={b.panelModel} onChange={(v) => set("panelModel", v)}
+                    options={window.BOQ.PANELS.map((p) => ({ value: p.model, label: p.model, sub: p.wp ? p.wp + "W" : "", group: p.group || "" }))} />
+                  {panelOff && (
+                    <div style={{ marginTop: 6, padding: "7px 9px", borderRadius: 9, background: "var(--tint-amber-bg)",
+                      border: "1px solid var(--tint-amber-bd)", fontSize: 11.5, lineHeight: 1.55, color: "var(--text-1)" }}>
+                      <b style={{ color: "var(--tint-amber-tx)" }}>แผงไม่ตรงรุ่น</b> — ฐานข้อมูลระบุ {jobPanel}
+                      <button type="button" onClick={() => set("panelModel", jobPanel)}
+                        style={{ display: "block", marginTop: 5, padding: "5px 10px", borderRadius: 8, cursor: "pointer",
+                          border: "1px solid var(--border-strong)", background: "var(--surface)", fontFamily: "inherit",
+                          fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>
+                        ใช้รุ่นตามฐานข้อมูล
+                      </button>
+                    </div>
+                  )}
+                </Field>
+              </div>
               {hasBattery && <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="แบตเตอรี่ (kWh)"><BoqLocked value={b.batteryKwh} unit="kWh" num /></Field></div>}
               {hasBackup && <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="ระบบ Backup"><BoqLocked value={b.backup ? "ติดตั้ง" : "ไม่ติดตั้ง"} /></Field></div>}
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="ประเภทหลังคา"><Dropdown value={b.roof} onChange={(v) => set("roof", v)} options={opt(window.BOQ.ROOF_OPTIONS)} /></Field></div>

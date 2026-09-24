@@ -697,6 +697,21 @@ function JobForm({
       label: "3 เฟส"
     }]
   })), React.createElement(Field, {
+    label: "\u0E23\u0E38\u0E48\u0E19\u0E41\u0E1C\u0E07",
+    span: 2
+  }, React.createElement(Dropdown, {
+    value: f.panelModel || "",
+    onChange: v => set("panelModel", v),
+    options: [{
+      value: "",
+      label: "ยังไม่ระบุ — ให้เลือกตอนถอด BOQ"
+    }].concat((window.BOQ && window.BOQ.PANELS || []).map(p => ({
+      value: p.model,
+      label: p.model,
+      sub: p.wp ? p.wp + "W" : "",
+      group: p.group || ""
+    })))
+  })), React.createElement(Field, {
     label: "\u0E15\u0E32\u0E02\u0E48\u0E32\u0E22\u0E01\u0E31\u0E19\u0E19\u0E01"
   }, React.createElement(ToggleField, {
     on: f.birdnet,

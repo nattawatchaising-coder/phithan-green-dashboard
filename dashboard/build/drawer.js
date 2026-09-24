@@ -1531,6 +1531,9 @@ function DetailDrawer({
     label: "\u0E41\u0E1A\u0E23\u0E19\u0E14\u0E4C",
     value: job.brand
   }), React.createElement(SpecItem, {
+    label: "\u0E23\u0E38\u0E48\u0E19\u0E41\u0E1C\u0E07",
+    value: job.panelModel || "ยังไม่ระบุ"
+  }), React.createElement(SpecItem, {
     label: "\u0E02\u0E19\u0E32\u0E14\u0E23\u0E30\u0E1A\u0E1A",
     value: job.kw + " kW",
     mono: true

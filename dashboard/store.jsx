@@ -68,6 +68,7 @@ function blankJob(raw) {
     address: "", province: "กรุงเทพฯ",
     gps: [0.5 + (Math.random() - 0.5) * 0.2, 0.45 + (Math.random() - 0.5) * 0.2],
     map: "", drive: "", contractor: "", laborCost: null, brand: "ATMOCE", kw: 5, panels: 9, phase: "1",
+    panelModel: "",   /* รุ่นแผงที่ตกลงไว้ — ว่าง = ยังไม่ระบุ ให้ BOQ เลือกเอง */
     battery: false, batSize: "ไม่มี", connect: "-", backup: false, birdnet: false, comboType: "ready",
     stage: "design", startDate: window.SF.TODAY, deadline: window.SF.TODAY, tech: "t1", problem: null,
     /* ผู้รับผิดชอบมีสองคน — ช่างลงหน้างาน (tech ชี้ไปตาราง techs) กับวิศวกรผู้ตรวจและเซ็นอนุมัติ

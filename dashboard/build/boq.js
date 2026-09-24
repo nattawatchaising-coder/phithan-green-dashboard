@@ -1722,6 +1722,8 @@ function BOQEditor({
   const perMppt = Math.max(1, Math.round(+(selInv && selInv.strPerMppt) || 1));
   const capPerInv = selInv ? Math.max(1, (+selInv.inputs || 1) * perMppt) : 1;
   const selPanel = window.BOQ.findPanel ? window.BOQ.findPanel(b.panelModel) : null;
+  const jobPanel = job && job.panelModel || "";
+  const panelOff = !!jobPanel && b.panelModel !== jobPanel;
   const isStringInv = !!(selInv && (selInv.type === "string" || selInv.type === "hybrid"));
   const scfg = isStringInv && window.BOQ.stringConfig ? window.BOQ.stringConfig(selPanel, selInv, {
     series: b.dcSeries != null && b.dcSeries !== "" ? b.dcSeries : undefined
@@ -4410,7 +4412,7 @@ function BOQEditor({
       gridColumn: isMobile ? "1 / -1" : "auto"
     }
   }, React.createElement(Field, {
-    label: "\u0E23\u0E38\u0E48\u0E19\u0E41\u0E1C\u0E07"
+    label: "รุ่นแผง" + (jobPanel ? " · ตามฐานข้อมูล" : "")
   }, React.createElement(Dropdown, {
     value: b.panelModel,
     onChange: v => set("panelModel", v),
@@ -4420,7 +4422,38 @@ function BOQEditor({
       sub: p.wp ? p.wp + "W" : "",
       group: p.group || ""
     }))
-  }))), hasBattery && React.createElement("div", {
+  }), panelOff && React.createElement("div", {
+    style: {
+      marginTop: 6,
+      padding: "7px 9px",
+      borderRadius: 9,
+      background: "var(--tint-amber-bg)",
+      border: "1px solid var(--tint-amber-bd)",
+      fontSize: 11.5,
+      lineHeight: 1.55,
+      color: "var(--text-1)"
+    }
+  }, React.createElement("b", {
+    style: {
+      color: "var(--tint-amber-tx)"
+    }
+  }, "\u0E41\u0E1C\u0E07\u0E44\u0E21\u0E48\u0E15\u0E23\u0E07\u0E23\u0E38\u0E48\u0E19"), " \u2014 \u0E10\u0E32\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E23\u0E30\u0E1A\u0E38 ", jobPanel, React.createElement("button", {
+    type: "button",
+    onClick: () => set("panelModel", jobPanel),
+    style: {
+      display: "block",
+      marginTop: 5,
+      padding: "5px 10px",
+      borderRadius: 8,
+      cursor: "pointer",
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, "\u0E43\u0E0A\u0E49\u0E23\u0E38\u0E48\u0E19\u0E15\u0E32\u0E21\u0E10\u0E32\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25")))), hasBattery && React.createElement("div", {
     style: {
       gridColumn: isMobile ? "1 / -1" : "auto"
     }

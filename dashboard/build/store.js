@@ -76,6 +76,7 @@ function blankJob(raw) {
     kw: 5,
     panels: 9,
     phase: "1",
+    panelModel: "",
     battery: false,
     batSize: "ไม่มี",
     connect: "-",

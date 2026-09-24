@@ -607,6 +607,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)", gap: isMobile ? 14 : 16 }}>
                   <SpecItem label="แบรนด์" value={job.brand} />
+                  <SpecItem label="รุ่นแผง" value={job.panelModel || "ยังไม่ระบุ"} />
                   <SpecItem label="ขนาดระบบ" value={job.kw + " kW"} mono />
                   <SpecItem label="จำนวนแผง" value={job.panels + " แผง"} mono />
                   <SpecItem label="ระบบไฟฟ้า" value={window.SF.phaseOf(job) + " เฟส"} />

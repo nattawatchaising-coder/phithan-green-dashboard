@@ -288,6 +288,13 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
               <Field label="ระบบไฟฟ้า">
                 <Dropdown value={f.phase || "1"} onChange={(v) => set("phase", v)} options={[{ value: "1", label: "1 เฟส" }, { value: "3", label: "3 เฟส" }]} />
               </Field>
+              {/* รุ่นแผงที่ตกลงกับลูกค้า — ปล่อยว่างได้ถ้ายังไม่ตกลง หน้า BOQ จะเลือกรุ่นแรกในคลังให้เอง */}
+              <Field label="รุ่นแผง" span={2}>
+                <Dropdown value={f.panelModel || ""} onChange={(v) => set("panelModel", v)}
+                  options={[{ value: "", label: "ยังไม่ระบุ — ให้เลือกตอนถอด BOQ" }].concat(
+                    ((window.BOQ && window.BOQ.PANELS) || []).map((p) => ({
+                      value: p.model, label: p.model, sub: p.wp ? p.wp + "W" : "", group: p.group || "" })))} />
+              </Field>
               <Field label="ตาข่ายกันนก">
                 <ToggleField on={f.birdnet} onChange={(v) => set("birdnet", v)} labelOn="ติดตั้ง" labelOff="ไม่ติด" />
               </Field>
