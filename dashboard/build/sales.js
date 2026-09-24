@@ -1084,8 +1084,8 @@ function quoteHTML(q, lang, sheets, pics) {
     return "<li>" + sEsc(x.label) + (pg.length ? ' <span class="pdf">แนบมาด้วย ' + pg.length + " หน้า" + more + "</span>" : ' <span class="pdf">ไฟล์ PDF · พิมพ์แยกจากไฟล์ต้นฉบับ</span>') + "</li>";
   }).join("") + "</ul></div>" : "";
   const shPages = sh.map(x => pagesOf(x).map((src, i, all) => '<div class="shpg"><h3>DATA SHEET — ' + sEsc(x.label) + (all.length > 1 ? " (หน้า " + (i + 1) + "/" + all.length + ")" : "") + "</h3>" + '<img class="shimg" src="' + src + '" alt="" /></div>').join("")).join("");
-  const headHTML = title => '<div class="hd"><div>' + window.brandHeadHTML({
-    size: 40
+  const headHTML = title => '<div class="hd"><div>' + window.brandDocHTML({
+    height: 46
   }) + (window.BRANDING.legalTH ? '<div class="bs bl">' + sEsc(window.BRANDING.legalTH) + (window.BRANDING.taxId ? " · เลขประจำตัวผู้เสียภาษี " + sEsc(window.BRANDING.taxId) : "") + "</div>" : "") + (window.BRANDING.addrTH ? '<div class="bs">' + sEsc(window.BRANDING.addrTH) + "</div>" : "") + '<div class="bs">' + window.BRANDING.email + " · " + window.BRANDING.tel + "</div></div>" + '<div class="ti"><h1>' + title + '</h1><div class="no">เลขที่ <b>' + sEsc(q.no) + "</b></div>" + '<div class="no">วันที่ ' + dsp(q.date) + "</div></div></div>";
   const footHTML = '<div class="ft">ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์ · ออกแบบ · ติดตั้ง · ขออนุญาตการไฟฟ้า</div>';
   const money = (label, val, big) => '<tr class="' + (big ? "big" : "") + '"><td>' + label + '</td><td class="r">' + sBaht(val) + " บาท</td></tr>";
@@ -1101,8 +1101,8 @@ function quoteHTML(q, lang, sheets, pics) {
     const li = sp.rows.map(r => "<li>" + sEsc(r.line) + (r.amount != null ? ' <b style="white-space:nowrap">= ' + sBaht(r.amount) + " บาท</b>" : "") + "</li>").join("");
     return '<div class="blk"><h3>เงื่อนไขการชำระเงิน</h3><ul>' + li + "</ul></div>";
   };
-  const coverHTML = () => '<div class="cv">' + '<div class="cvh">' + window.brandHeadHTML({
-    size: 44
+  const coverHTML = () => '<div class="cv">' + '<div class="cvh">' + window.brandDocHTML({
+    height: 52
   }) + (window.BRANDING.legalTH ? '<div class="bs bl">' + sEsc(window.BRANDING.legalTH) + (window.BRANDING.taxId ? " · เลขประจำตัวผู้เสียภาษี " + sEsc(window.BRANDING.taxId) : "") + "</div>" : "") + (window.BRANDING.addrTH ? '<div class="bs">' + sEsc(window.BRANDING.addrTH) + "</div>" : "") + '<div class="bs">' + window.BRANDING.email + " · " + window.BRANDING.tel + "</div></div>" + '<div class="cvhero">' + '<div class="cvk">ข้อเสนอโครงการ</div>' + '<h1 class="cvt">ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์บนหลังคา</h1>' + '<div class="cvline"></div>' + '<div class="cvto">เสนอต่อ</div>' + '<div class="cvcu">' + sEsc(c.name || "—") + "</div>" + (c.address || c.province ? '<div class="cvad">' + sEsc((c.address || "") + (c.province ? " " + c.province : "")) + "</div>" : "") + '<div class="cvrow">' + '<div class="cvcap"><span class="cl">ขนาดติดตั้ง</span>' + '<span class="cn">' + (q.kwp ? sEsc(q.kwp) : "—") + '</span><span class="cu">kWp</span></div>' + '<div class="cvtag">ออกแบบ · ติดตั้ง · ขออนุญาตการไฟฟ้า</div>' + "</div></div>" + '<div class="cvf">' + '<div><span>เลขที่</span><b>' + sEsc(q.no) + "</b></div>" + '<div><span>วันที่</span><b>' + dsp(q.date) + "</b></div>" + '<div><span>ผู้เสนอ</span><b>' + sEsc(q.ownerName || q.byName || "—") + "</b></div>" + (c.phone ? '<div><span>โทร</span><b>' + sEsc(c.phone) + "</b></div>" : "") + "</div>" + footHTML + "</div>";
   const picById = {};
   (pics || []).forEach(p => {

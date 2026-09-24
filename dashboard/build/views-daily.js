@@ -2211,12 +2211,8 @@ function DailyPaper({
       gap: 7,
       marginTop: 6
     }
-  }, React.createElement(window.BrandMark, {
-    size: 22,
-    variant: "light"
-  }), React.createElement(window.BrandWord, {
-    size: 16,
-    color: "#0F2B33"
+  }, React.createElement(window.BrandDoc, {
+    height: 40
   }))), React.createElement("div", {
     style: {
       textAlign: "right",

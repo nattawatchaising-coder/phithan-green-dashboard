@@ -239,8 +239,7 @@ function EcVoucherPaper({ batch, claims, draft, payers, onClose }) {
               {draft ? "PAYMENT COVER SHEET — FIELD EXPENSE REIMBURSEMENT" : "PAYMENT VOUCHER — FIELD EXPENSE REIMBURSEMENT"}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}>
-              <window.BrandMark size={22} variant="light" />
-              <window.BrandWord size={16} color="#0F2B33" />
+              <window.BrandDoc height={40} />
             </div>
           </div>
           <div style={{ textAlign: "right", fontSize: 11, color: "#4A5A51", lineHeight: 1.75 }}>
@@ -497,8 +496,7 @@ function EcClaimPaper({ claim, job, user, onPrinted, onClose }) {
             <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.01em" }}>{T("ใบเบิกเงินหน้างาน")}</div>
             <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".12em", color: "#7A8A81", marginTop: 3 }}>EXPENSE CLAIM — FIELD REIMBURSEMENT</div>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}>
-              <window.BrandMark size={22} variant="light" />
-              <window.BrandWord size={16} color="#0F2B33" />
+              <window.BrandDoc height={40} />
             </div>
           </div>
           <div style={{ textAlign: "right", fontSize: 11, color: "#4A5A51", lineHeight: 1.75 }}>

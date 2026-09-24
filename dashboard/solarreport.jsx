@@ -14,7 +14,7 @@ const RP_ESC = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&
 const rpN = (v, d) => { const n = parseFloat(v); return isFinite(n) ? n.toLocaleString("en-US", { minimumFractionDigits: d || 0, maximumFractionDigits: d == null ? 0 : d }) : "—"; };
 
 /* โลโก้จริงของบริษัท — หน้าต่างรายงานเปิดจาก about:blank พาธสัมพัทธ์จึงใช้ไม่ได้ ต้องทำเป็น URL เต็ม */
-const rpLogoURL = () => { try { return new URL("dashboard/assets/flash-mark.png", location.href).href; } catch (e) { return ""; } };
+const rpLogoURL = () => { try { return new URL((window.BRANDING || {}).docLock || "dashboard/assets/flashplussolar-lockup.webp", location.href).href; } catch (e) { return ""; } };
 
 /* ตารางแบบสั้น ๆ: rpTable([หัวคอลัมน์], [[แถว]], ตัวเลือก) */
 function rpTable(head, rows, opt) {
@@ -1674,9 +1674,8 @@ function suReportHTML(D) {
     /* ── หน้าปก: เต็มหน้า A4 หนึ่งหน้า ── */
     '<header class="cover">' +
       '<div class="cv-bar">' +
-        '<div class="brand"><img class="mark" src="' + RP_ESC(rpLogoURL()) + '" alt="' + window.BRANDING.name + '">' +
-        '<div><b style="font-family:Outfit,sans-serif;letter-spacing:-.02em">flash<span style="color:#22B36A">+</span>solar</b>' +
-        "<span>ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์</span></div></div>" +
+        '<div class="brand"><img class="lock" src="' + RP_ESC(rpLogoURL()) + '" alt="' + RP_ESC(window.BRANDING.legal) + '">' +
+        "</div>" +
         '<span class="cv-tag">' + RP_ESC(job.code || "—") + "</span>" +
       "</div>" +
       '<div class="cv-mid">' +
@@ -1783,6 +1782,8 @@ body{font-family:'IBM Plex Sans Thai','Sarabun','Noto Sans Thai','Segoe UI',sans
   padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.16)}
 .brand{display:flex;align-items:center;gap:11px}
 .brand .mark{width:36px;height:36px;object-fit:contain;display:block;background:#fff;border-radius:9px;padding:4px}
+/* โลโก้เต็มชุดบนแถบเข้ม — ตัวหนังสือในรูปเป็นสีเขียวเข้ม ต้องมีแผ่นขาวรองถึงจะอ่านออก */
+.brand .lock{height:34px;width:auto;display:block;background:#fff;border-radius:8px;padding:5px 9px}
 /* ชื่อแบรนด์ต้องอยู่บรรทัดเดียว — เครื่องหมาย + ห่อด้วย <span> เพื่อให้เป็นสีเขียว
    กฎ .brand span เดิมจับ span ตัวนั้นด้วย จึงดัน + เป็นบล็อก แล้วหักเป็น flash / + / solar สามบรรทัด
    ต้องเจาะจงเฉพาะบรรทัดคำโปรยที่เป็นลูกตรงของ div และกัน nowrap ไว้อีกชั้น */

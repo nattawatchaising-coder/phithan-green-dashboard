@@ -554,8 +554,7 @@ function OmVisitPaper({ visit, site, signs, photos, onFrame, onClose }) {
       borderBottom: "2px solid #1B9B75", paddingBottom: 9, marginBottom: 16 }}>
       <div style={{ minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-          <window.BrandMark size={20} variant="light" />
-          <window.BrandWord size={14} color="#0F2B33" />
+          <window.BrandDoc height={34} />
         </div>
         <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: ".12em", color: "#7A8A81", marginTop: 5 }}>SOLAR O&amp;M — SERVICE VISIT REPORT</div>
       </div>
@@ -645,8 +644,7 @@ function OmVisitPaper({ visit, site, signs, photos, onFrame, onClose }) {
             <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.01em" }}>{T("ใบรายงานเข้าบริการ")}</div>
             <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".12em", color: "#7A8A81", marginTop: 3 }}>SOLAR O&amp;M — SERVICE VISIT REPORT</div>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}>
-              <window.BrandMark size={22} variant="light" />
-              <window.BrandWord size={16} color="#0F2B33" />
+              <window.BrandDoc height={40} />
             </div>
           </div>
           <div style={{ textAlign: "right", fontSize: 11, color: "#4A5A51", lineHeight: 1.75 }}>

@@ -3579,7 +3579,7 @@ function BOQEditor({
       wch: 10
     }];
     const A = mkSheet(lastC, colW);
-    docHead(A, "บัญชีแสดงปริมาณวัสดุ  ·  BILL OF QUANTITIES", "FLASH + SOLAR  —  งานติดตั้งระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์");
+    docHead(A, "บัญชีแสดงปริมาณวัสดุ  ·  BILL OF QUANTITIES", ((window.BRANDING || {}).legal || "FLASHPLUSSOLAR CO., LTD.") + "  —  งานติดตั้งระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์");
     const mid = Math.ceil((lastC + 1) / 2);
     const info = [["โครงการ", jobName, "รหัสงาน", jobCode], ["ขนาดระบบ", (result.meta.panelCount || 0).toLocaleString("en-US") + " แผง  ·  " + kwTxt, "ระบบไฟ", String(b.phase) === "3" ? "3 เฟส 380V" : "1 เฟส 220V"], ["จำนวนรายการ", itemCount.toLocaleString("en-US") + " รายการ / " + priced.groups.length + " หมวด", "วันที่ออกเอกสาร", window.SF.TODAY || ""]];
     info.forEach(row => {

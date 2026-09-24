@@ -717,10 +717,10 @@ function pgSheet(doc, o) {
 
   /* 5 · บล็อกบริษัท */
   pgLogoMark(pen, tx0 + 5, Y.logo.top - 15.5, 12);
-  pen.text(F.logo, tx0 + 20, Y.logo.top - 7.5, 4.4, "FLASH +", { valign: 2 });
-  pen.text(F.logo, tx0 + 20, Y.logo.top - 13.5, 4.4, "SOLAR", { valign: 2 });
+  pen.text(F.logo, tx0 + 20, Y.logo.top - 7.5, 4.0, "FLASHPLUS", { valign: 2 });
+  pen.text(F.logo, tx0 + 20, Y.logo.top - 13.5, 4.0, "SOLAR CO.,LTD.", { valign: 2 });
   /* เว็บไซต์กับอีเมลดึงจากข้อมูลแบรนด์ที่เดียว (dashboard/brand.jsx) พอเปลี่ยนโดเมนแล้วแบบทุกใบเปลี่ยนตาม */
-  ["653/8 Wangthonglang, Wangthonglang,", "Bangkok 10310", "TEL : 065-628-5566",
+  ["8/90 Moo 16, Bangkaew, Bangplee,", "Samutprakarn 10540", "TEL : " + ((window.BRANDING || {}).tel || ""),
     "http://" + ((window.BRANDING || {}).site || ""), "E-mail : " + ((window.BRANDING || {}).email || "")].forEach((ln, i) =>
     mid(Y.logo.top - 21.5 - i * 2.5, 1.7, ln));
 
@@ -785,7 +785,7 @@ function pgSheet(doc, o) {
 
   /* หมายเหตุประจำแบบ — วางใต้กรอบแบบ ไม่ให้ไปทับแถบพิกัด */
   pen.text(F.txt, 20, 6.4, 2.2,
-    "GENERAL NOTE:  THIS DRAWING IS THE PROPERTY OF FLASH + SOLAR CO., LTD. AND SHALL NOT BE USED OR REPRODUCED WITHOUT PERMISSION."
+    "GENERAL NOTE:  THIS DRAWING IS THE PROPERTY OF FLASHPLUSSOLAR CO., LTD. AND SHALL NOT BE USED OR REPRODUCED WITHOUT PERMISSION."
     + "  DO NOT SCALE THIS DRAWING. USE FIGURED DIMENSION ONLY.", { valign: 1 });
 
   return {

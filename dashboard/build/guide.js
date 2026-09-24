@@ -537,12 +537,8 @@ function GdHandout({
       alignItems: "center",
       gap: 7
     }
-  }, React.createElement(window.BrandMark, {
-    size: 22,
-    variant: "light"
-  }), React.createElement(window.BrandWord, {
-    size: 16,
-    color: "#0F2B33"
+  }, React.createElement(window.BrandDoc, {
+    height: 40
   }))), track.lessons.map((L, i) => React.createElement("div", {
     key: i,
     className: i > 0 && i % 3 === 0 ? "ec-sheet" : "",

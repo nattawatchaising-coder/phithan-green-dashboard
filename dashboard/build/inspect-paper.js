@@ -119,7 +119,7 @@ function RpSign({
       fontSize: 9.5,
       color: RP_SOFT
     }
-  }, role), React.createElement("div", {
+  }, "(...........................)"), React.createElement("div", {
     style: {
       fontSize: 9.5,
       color: RP_SOFT,
@@ -179,12 +179,8 @@ function InspectionPaper({
       gap: 8,
       marginBottom: 7
     }
-  }, window.BrandMark ? React.createElement(window.BrandMark, {
-    size: 26,
-    variant: "light"
-  }) : null, window.BrandWord ? React.createElement(window.BrandWord, {
-    size: 18,
-    color: B.ink || RP_INK
+  }, window.BrandDoc ? React.createElement(window.BrandDoc, {
+    height: 44
   }) : null), React.createElement("div", {
     style: {
       fontSize: 15,

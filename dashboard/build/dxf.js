@@ -1060,13 +1060,13 @@ function pgSheet(doc, o) {
   lab(Y.own.top, "OWNER :");
   pgWrap(I.owner || "-", 30).slice(0, 2).forEach((ln, i) => mid(Y.own.bot + 6.2 - i * 4.6, 3.0, ln));
   pgLogoMark(pen, tx0 + 5, Y.logo.top - 15.5, 12);
-  pen.text(F.logo, tx0 + 20, Y.logo.top - 7.5, 4.4, "FLASH +", {
+  pen.text(F.logo, tx0 + 20, Y.logo.top - 7.5, 4.0, "FLASHPLUS", {
     valign: 2
   });
-  pen.text(F.logo, tx0 + 20, Y.logo.top - 13.5, 4.4, "SOLAR", {
+  pen.text(F.logo, tx0 + 20, Y.logo.top - 13.5, 4.0, "SOLAR CO.,LTD.", {
     valign: 2
   });
-  ["653/8 Wangthonglang, Wangthonglang,", "Bangkok 10310", "TEL : 065-628-5566", "http://" + ((window.BRANDING || {}).site || ""), "E-mail : " + ((window.BRANDING || {}).email || "")].forEach((ln, i) => mid(Y.logo.top - 21.5 - i * 2.5, 1.7, ln));
+  ["8/90 Moo 16, Bangkaew, Bangplee,", "Samutprakarn 10540", "TEL : " + ((window.BRANDING || {}).tel || ""), "http://" + ((window.BRANDING || {}).site || ""), "E-mail : " + ((window.BRANDING || {}).email || "")].forEach((ln, i) => mid(Y.logo.top - 21.5 - i * 2.5, 1.7, ln));
   [["FOR PERLIMINARY", "prelim"], ["FOR PERMISSTION", "permit"], ["FOR CONSTRUCTION", "construct"], ["FOR AS-BUILT", "asbuilt"]].forEach((s, i) => {
     const y = Y.stat.top - 5.5 - i * 5.6;
     pen.circle(F.tb, tx0 + 10, y, 1.7);
@@ -1137,7 +1137,7 @@ function pgSheet(doc, o) {
       valign: 1
     });
   });
-  pen.text(F.txt, 20, 6.4, 2.2, "GENERAL NOTE:  THIS DRAWING IS THE PROPERTY OF FLASH + SOLAR CO., LTD. AND SHALL NOT BE USED OR REPRODUCED WITHOUT PERMISSION." + "  DO NOT SCALE THIS DRAWING. USE FIGURED DIMENSION ONLY.", {
+  pen.text(F.txt, 20, 6.4, 2.2, "GENERAL NOTE:  THIS DRAWING IS THE PROPERTY OF FLASHPLUSSOLAR CO., LTD. AND SHALL NOT BE USED OR REPRODUCED WITHOUT PERMISSION." + "  DO NOT SCALE THIS DRAWING. USE FIGURED DIMENSION ONLY.", {
     valign: 1
   });
   return {

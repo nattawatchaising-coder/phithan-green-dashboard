@@ -1553,7 +1553,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       ? [{ wch: 7 }, { wch: 14 }, { wch: 40 }, { wch: 15 }, { wch: 18 }, { wch: 9.5 }, { wch: 8 }, { wch: 13 }, { wch: 15 }]
       : [{ wch: 7 }, { wch: 16 }, { wch: 46 }, { wch: 16 }, { wch: 20 }, { wch: 11 }, { wch: 10 }];
     const A = mkSheet(lastC, colW);
-    docHead(A, "บัญชีแสดงปริมาณวัสดุ  ·  BILL OF QUANTITIES", "FLASH + SOLAR  —  งานติดตั้งระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์");
+    docHead(A, "บัญชีแสดงปริมาณวัสดุ  ·  BILL OF QUANTITIES", ((window.BRANDING || {}).legal || "FLASHPLUSSOLAR CO., LTD.") + "  —  งานติดตั้งระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์");
 
     // ข้อมูลงาน — วางเป็น 2 คู่ต่อแถว ไม่ให้เหลือช่องว่างยาว ๆ ทางขวา
     const mid = Math.ceil((lastC + 1) / 2);

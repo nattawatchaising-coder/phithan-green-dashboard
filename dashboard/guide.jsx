@@ -501,8 +501,7 @@ function GdHandout({ track, onClose }) {
             <div style={{ fontSize: 10.5, color: "#7A8A81", marginTop: 4 }}>{track.who}</div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-            <window.BrandMark size={22} variant="light" />
-            <window.BrandWord size={16} color="#0F2B33" />
+            <window.BrandDoc height={40} />
           </div>
         </div>
 

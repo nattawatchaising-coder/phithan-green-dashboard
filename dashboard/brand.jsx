@@ -8,8 +8,8 @@
 
 const BRANDING = {
   name: "flash+solar",                 /* ชื่อในโลโก้ — ตัวเล็กทั้งหมด มีเครื่องหมายบวกสีเขียวคั่นกลาง */
-  nameUpper: "FLASH + SOLAR",          /* สำหรับเอกสารราชการ/หัวแบบ ที่ใช้ตัวพิมพ์ใหญ่ */
-  legal: "FLASH + SOLAR CO., LTD.",
+  nameUpper: "FLASHPLUSSOLAR",         /* สำหรับเอกสารราชการ/หัวแบบ ที่ใช้ตัวพิมพ์ใหญ่ */
+  legal: "FLASHPLUSSOLAR CO., LTD.",   /* ชื่อจดทะเบียนภาษาอังกฤษ — สะกดติดกัน ไม่มีเครื่องหมายบวก */
   tagline: "CLEAN ENERGY",
   taglineTH: "ระบบติดตามงานติดตั้ง",
   desc: "ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์ · ออกแบบ · ติดตั้ง · ขออนุญาตการไฟฟ้า",
@@ -37,6 +37,8 @@ const BRANDING = {
   leaf: "#1B9B75",      /* เขียวหลัก (ปุ่ม/กราฟ) */
   muted: "#5B8A8A",     /* ตัวหนังสือรอง ใต้โลโก้ */
 
+  docLock: "dashboard/assets/flashplussolar-lockup.webp",   /* โลโก้เต็มชุดสำหรับหัวเอกสาร (2000x420) */
+  docLockRatio: 2000 / 420,
   markURL: "dashboard/assets/flash-mark.svg",
   markPNG: "dashboard/assets/flash-mark.png",   /* ใช้กับหน้าต่างพิมพ์/แคนวาส ที่ SVG บางเบราว์เซอร์ไม่ยอมวาด */
 };
@@ -123,6 +125,30 @@ function BrandLockup({ size, stack, sub, variant, color, subColor }) {
   );
 }
 
+/* ที่อยู่เต็มของรูปโลโก้ — เอกสารบางใบถูกสร้างใน iframe srcDoc หรือหน้าต่างพิมพ์ใหม่
+   ที่นั่นเส้นทางแบบสัมพัทธ์เชื่อถือไม่ได้ เลยคิดเป็น URL เต็มจากหน้าหลักตั้งแต่ตอนสร้างสตริง */
+function brandDocURL() {
+  try { return new URL(BRANDING.docLock, location.href).href; } catch (e) { return BRANDING.docLock; }
+}
+
+/* ตราบริษัทบนกระดาษ — ใช้แทนคู่ BrandMark+BrandWord ในทุกใบที่พิมพ์ออกไปให้คนนอกอ่าน
+   height คือความสูงจริงบนกระดาษ ความกว้างไหลตามสัดส่วนรูป ไม่ต้องกำหนด */
+function BrandDoc({ height, style }) {
+  const h = height || 34;
+  return React.createElement("img", {
+    src: brandDocURL(), alt: BRANDING.legal,
+    style: Object.assign({ height: h, width: "auto", display: "block", flexShrink: 0 }, style || {}),
+  });
+}
+
+/* รุ่นสตริงของ BrandDoc สำหรับเอกสารที่ประกอบด้วยการต่อสตริง (ใบเสนอราคา ฯลฯ) */
+function brandDocHTML(opts) {
+  const o = opts || {};
+  const h = o.height || 44;
+  return '<img src="' + brandDocURL() + '" alt="' + BRANDING.legal +
+    '" style="height:' + h + 'px;width:auto;display:block" />';
+}
+
 /* หัวกระดาษของเอกสารที่พิมพ์ผ่านหน้าต่างใหม่ (ใบเสนอราคา · ใบขออนุญาต · รายงานออกแบบ)
    คืนเป็นสตริง HTML เพราะเอกสารพวกนั้นประกอบด้วยการต่อสตริง ไม่ได้ render ด้วย React */
 function brandHeadHTML(opts) {
@@ -137,4 +163,5 @@ function brandHeadHTML(opts) {
     BRANDING.tagline + "</span></span></div>";
 }
 
-Object.assign(window, { BRANDING, BRAND_MARK_SVG, BrandMark, BrandWord, BrandLockup, brandHeadHTML });
+Object.assign(window, { BRANDING, BRAND_MARK_SVG, BrandMark, BrandWord, BrandLockup, brandHeadHTML,
+  brandDocURL, BrandDoc, brandDocHTML });

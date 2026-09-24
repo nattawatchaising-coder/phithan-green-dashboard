@@ -1,7 +1,7 @@
 const BRANDING = {
   name: "flash+solar",
-  nameUpper: "FLASH + SOLAR",
-  legal: "FLASH + SOLAR CO., LTD.",
+  nameUpper: "FLASHPLUSSOLAR",
+  legal: "FLASHPLUSSOLAR CO., LTD.",
   tagline: "CLEAN ENERGY",
   taglineTH: "ระบบติดตามงานติดตั้ง",
   desc: "ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์ · ออกแบบ · ติดตั้ง · ขออนุญาตการไฟฟ้า",
@@ -18,6 +18,8 @@ const BRANDING = {
   green: "#22B36A",
   leaf: "#1B9B75",
   muted: "#5B8A8A",
+  docLock: "dashboard/assets/flashplussolar-lockup.webp",
+  docLockRatio: 2000 / 420,
   markURL: "dashboard/assets/flash-mark.svg",
   markPNG: "dashboard/assets/flash-mark.png"
 };
@@ -129,6 +131,34 @@ function BrandLockup({
     }
   }, sub || BRANDING.tagline)));
 }
+function brandDocURL() {
+  try {
+    return new URL(BRANDING.docLock, location.href).href;
+  } catch (e) {
+    return BRANDING.docLock;
+  }
+}
+function BrandDoc({
+  height,
+  style
+}) {
+  const h = height || 34;
+  return React.createElement("img", {
+    src: brandDocURL(),
+    alt: BRANDING.legal,
+    style: Object.assign({
+      height: h,
+      width: "auto",
+      display: "block",
+      flexShrink: 0
+    }, style || {})
+  });
+}
+function brandDocHTML(opts) {
+  const o = opts || {};
+  const h = o.height || 44;
+  return '<img src="' + brandDocURL() + '" alt="' + BRANDING.legal + '" style="height:' + h + 'px;width:auto;display:block" />';
+}
 function brandHeadHTML(opts) {
   const o = opts || {};
   const px = o.size || 38;
@@ -140,5 +170,8 @@ Object.assign(window, {
   BrandMark,
   BrandWord,
   BrandLockup,
-  brandHeadHTML
+  brandHeadHTML,
+  brandDocURL,
+  BrandDoc,
+  brandDocHTML
 });
