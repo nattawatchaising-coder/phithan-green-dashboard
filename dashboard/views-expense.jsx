@@ -919,7 +919,7 @@ function EcPayModal({ person, claims, batches, currentUser, role, payers, onClos
 }
 
 /* ── ประวัติรอบจ่าย ── */
-function EcBatchList({ batches, onPrint }) {
+function EcBatchList({ batches, onPrint, onDrop }) {
   const rows = (batches || []).slice(0, 20);
   if (!rows.length) return null;
   return (
@@ -945,6 +945,14 @@ function EcBatchList({ batches, onPrint }) {
                 border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
                 fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>
               <Icon name="file" size={13} color="var(--text-3)" /> ใบสำคัญจ่าย
+            </button>
+          )}
+          {/* ยกเลิกรอบที่บันทึกผิด — เฉพาะแอดมิน และใบในรอบจะกลับไปรอจ่ายเหมือนเดิม */}
+          {onDrop && (
+            <button onClick={() => onDrop(b)} title={"ยกเลิกรอบจ่าย " + (b.no || "")}
+              style={{ width: 28, height: 28, borderRadius: 8, display: "grid", placeItems: "center",
+                border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer" }}>
+              <Icon name="trash" size={13} color="var(--tint-red-tx)" />
             </button>
           )}
         </div>
@@ -1173,6 +1181,22 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
     store.patch(id, f);
   };
 
+  /* ยกเลิกรอบจ่าย — เงินที่โอนไปแล้วระบบเรียกคืนให้ไม่ได้ ถามให้ชัดว่ากำลังแก้บันทึกที่ผิด */
+  const dropBatch = (b) => {
+    window.askConfirm({
+      title: "ยกเลิกรอบจ่าย " + (b.no || "") + " ?",
+      body: "ใบ " + (b.count || 0) + " ใบ รวม " + window.ecBaht(b.total) + " บาท ของ " + (b.toName || "-")
+        + " จะกลับไปเป็น “อนุมัติแล้ว · รอจ่ายคืน” และใบสำคัญจ่ายของรอบนี้จะหายไป"
+        + " · ใช้เมื่อบันทึกจ่ายผิดเท่านั้น เงินที่โอนไปแล้วระบบเรียกคืนให้ไม่ได้",
+      danger: true,
+    }).then((ok) => {
+      if (!ok) return;
+      batchStore.dropBatch(b, store.claims, currentUser).then((done) => {
+        if (done && voucher && voucher.id === b.id) setVoucher(null);
+      });
+    });
+  };
+
   const payList = React.useMemo(() => (payFor ? window.ecPayable(all, payFor.id) : []), [all, payFor]);
 
   const cover = React.useMemo(() => {
@@ -1264,7 +1288,8 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
           <EcPersonTable claims={all} users={users} canPay={canPay} canCover={canCover} currentUser={currentUser} role={role}
             onPick={(r) => { setJobFilter(""); setQ(r.name || ""); setTab("all"); }}
             onPay={(r) => setPayFor(r)} onCover={(r) => setCoverFor(r)} />
-          <EcBatchList batches={batchStore.batches} onPrint={setVoucher} />
+          <EcBatchList batches={batchStore.batches} onPrint={setVoucher}
+            onDrop={window.ecCanDelete(role) ? dropBatch : null} />
         </div>
       )}
       {tab === "job" && <EcJobTable claims={all} jobs={jobs}

@@ -566,9 +566,32 @@ function useEcBatches() {
     });
     return _ecRoot().update(up).then(() => true).catch(() => false);
   }, []);
+  const dropBatch = React.useCallback((batch, claims, user) => {
+    if (!batch || !_ECFB()) return Promise.resolve(false);
+    const up = {};
+    up["ecBatches/" + batch.id] = null;
+    (claims || []).filter(c => c && c.batchId === batch.id).forEach(c => {
+      const rec = ecMove(c, "approved", user, {
+        text: "ยกเลิกรอบจ่าย " + (batch.no || "")
+      });
+      rec.decidedAt = c.decidedAt || null;
+      rec.decidedById = c.decidedById || null;
+      rec.decidedByName = c.decidedByName || "";
+      rec.decidedNote = c.decidedNote || "";
+      rec.paidAt = null;
+      rec.paidById = null;
+      rec.paidByName = "";
+      rec.paidRef = "";
+      rec.batchId = null;
+      rec.batchNo = "";
+      up["ecClaims/" + c.id] = rec;
+    });
+    return _ecRoot().update(up).then(() => true).catch(() => false);
+  }, []);
   return {
     batches,
-    payBatch
+    payBatch,
+    dropBatch
   };
 }
 function ecNotify(n) {

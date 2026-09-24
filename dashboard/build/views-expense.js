@@ -1885,7 +1885,8 @@ function EcPayModal({
 }
 function EcBatchList({
   batches,
-  onPrint
+  onPrint,
+  onDrop
 }) {
   const rows = (batches || []).slice(0, 20);
   if (!rows.length) return null;
@@ -1963,7 +1964,24 @@ function EcBatchList({
     name: "file",
     size: 13,
     color: "var(--text-3)"
-  }), " \u0E43\u0E1A\u0E2A\u0E33\u0E04\u0E31\u0E0D\u0E08\u0E48\u0E32\u0E22"))));
+  }), " \u0E43\u0E1A\u0E2A\u0E33\u0E04\u0E31\u0E0D\u0E08\u0E48\u0E32\u0E22"), onDrop && React.createElement("button", {
+    onClick: () => onDrop(b),
+    title: "ยกเลิกรอบจ่าย " + (b.no || ""),
+    style: {
+      width: 28,
+      height: 28,
+      borderRadius: 8,
+      display: "grid",
+      placeItems: "center",
+      border: "1px solid var(--border)",
+      background: "var(--surface)",
+      cursor: "pointer"
+    }
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 13,
+    color: "var(--tint-red-tx)"
+  })))));
 }
 function EcJobTable({
   claims,
@@ -2319,6 +2337,18 @@ function ExpenseView({
     f[k + "ByName"] = on ? (currentUser || {}).name || "" : "";
     store.patch(id, f);
   };
+  const dropBatch = b => {
+    window.askConfirm({
+      title: "ยกเลิกรอบจ่าย " + (b.no || "") + " ?",
+      body: "ใบ " + (b.count || 0) + " ใบ รวม " + window.ecBaht(b.total) + " บาท ของ " + (b.toName || "-") + " จะกลับไปเป็น “อนุมัติแล้ว · รอจ่ายคืน” และใบสำคัญจ่ายของรอบนี้จะหายไป" + " · ใช้เมื่อบันทึกจ่ายผิดเท่านั้น เงินที่โอนไปแล้วระบบเรียกคืนให้ไม่ได้",
+      danger: true
+    }).then(ok => {
+      if (!ok) return;
+      batchStore.dropBatch(b, store.claims, currentUser).then(done => {
+        if (done && voucher && voucher.id === b.id) setVoucher(null);
+      });
+    });
+  };
   const payList = React.useMemo(() => payFor ? window.ecPayable(all, payFor.id) : [], [all, payFor]);
   const cover = React.useMemo(() => {
     if (!coverFor) return null;
@@ -2498,7 +2528,8 @@ function ExpenseView({
     onCover: r => setCoverFor(r)
   }), React.createElement(EcBatchList, {
     batches: batchStore.batches,
-    onPrint: setVoucher
+    onPrint: setVoucher,
+    onDrop: window.ecCanDelete(role) ? dropBatch : null
   })), tab === "job" && React.createElement(EcJobTable, {
     claims: all,
     jobs: jobs,
