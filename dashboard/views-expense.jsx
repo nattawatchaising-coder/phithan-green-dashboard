@@ -506,6 +506,11 @@ function EcClaimRow({ claim, onOpen, gone }) {
             <span style={{ color: "#F59E0B", fontFamily: "inherit" }}> · ไม่มีบิลแนบ</span>
           )}
           {claim.receiptCount > 0 && <span> · บิล {claim.receiptCount} ใบ</span>}
+          {claim.printedAt && (
+            <span title={"พิมพ์เมื่อ " + window.drDateTH(String(claim.printedAt).slice(0, 10))
+              + (claim.printedByName ? " · โดย " + claim.printedByName : "")}
+              style={{ color: "var(--tint-ok-tx)", fontFamily: "inherit" }}> · พิมพ์แล้ว</span>
+          )}
           {/* ใบเบิกเป็นเอกสารการเงิน ต้องอ่านได้ต่อแม้ใบงานถูกลบ — ชื่อไซต์ถ่ายสำเนาไว้ตอนเปิดใบแล้ว */}
           {gone && <span style={{ color: "#F59E0B", fontFamily: "inherit" }}> · งานถูกลบจากฐานข้อมูล</span>}
         </span>
@@ -882,6 +887,7 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
     if (jobFilter) out = out.filter((c) => (c.jobId || "") === jobFilter);
     if (tab === "mine") out = out.filter((c) => c.byId === uid);
     else if (tab === "inbox") out = out.filter((c) => c.status === "sent" && window.ecApproveCheck(c, currentUser, role).ok);
+    else if (tab === "approved") out = out.filter((c) => c.status === "approved");
     if (kw) out = out.filter((c) => [c.no, c.byName, c.siteCode, c.siteName, c.note, window.ecKindOf(c.kind).th]
       .some((v) => String(v || "").toLowerCase().includes(kw)));
     return out;
@@ -958,7 +964,8 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
   };
 
   const TABS = [["mine", "ใบของฉัน", "pen", roll.mineOpen]]
-    .concat(canApprove ? [["inbox", "รออนุมัติ", "check", roll.waitingMine]] : [])
+    .concat(canApprove ? [["inbox", "รออนุมัติ", "clock", roll.waitingMine]] : [])
+    .concat([["approved", "อนุมัติแล้ว", "check", roll.approved]])
     .concat(canApprove ? [["person", "ยอดรายคน", "users", 0], ["job", "ต้นทุนรายไซต์", "sun", 0]] : [])
     .concat([["all", canApprove ? "ทั้งหมด" : "ใบที่เกี่ยวกับฉัน", "list", 0]]);
 
@@ -1055,6 +1062,7 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
                 {jobFilter ? "งานนี้ยังไม่มีใบเบิก — กด “เปิดใบเบิก” ด้านบนได้เลย"
                   : q ? "ไม่พบใบเบิกที่ตรงกับคำค้น"
                   : tab === "inbox" ? "ไม่มีใบที่รอคุณอนุมัติ"
+                  : tab === "approved" ? "ไม่มีใบที่อนุมัติแล้วรอจ่ายคืน"
                   : tab === "mine" ? "ยังไม่มีใบเบิกของคุณ — กด “เปิดใบเบิก” ด้านบน"
                   : "ยังไม่มีใบเบิกในระบบ"}
               </div>

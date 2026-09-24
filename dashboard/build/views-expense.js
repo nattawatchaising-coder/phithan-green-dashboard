@@ -1053,7 +1053,13 @@ function EcClaimRow({
       color: "#F59E0B",
       fontFamily: "inherit"
     }
-  }, " \xB7 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E1A\u0E34\u0E25\u0E41\u0E19\u0E1A"), claim.receiptCount > 0 && React.createElement("span", null, " \xB7 \u0E1A\u0E34\u0E25 ", claim.receiptCount, " \u0E43\u0E1A"), gone && React.createElement("span", {
+  }, " \xB7 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E1A\u0E34\u0E25\u0E41\u0E19\u0E1A"), claim.receiptCount > 0 && React.createElement("span", null, " \xB7 \u0E1A\u0E34\u0E25 ", claim.receiptCount, " \u0E43\u0E1A"), claim.printedAt && React.createElement("span", {
+    title: "พิมพ์เมื่อ " + window.drDateTH(String(claim.printedAt).slice(0, 10)) + (claim.printedByName ? " · โดย " + claim.printedByName : ""),
+    style: {
+      color: "var(--tint-ok-tx)",
+      fontFamily: "inherit"
+    }
+  }, " \xB7 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E41\u0E25\u0E49\u0E27"), gone && React.createElement("span", {
     style: {
       color: "#F59E0B",
       fontFamily: "inherit"
@@ -1865,7 +1871,7 @@ function ExpenseView({
     const kw = q.trim().toLowerCase();
     let out = all;
     if (jobFilter) out = out.filter(c => (c.jobId || "") === jobFilter);
-    if (tab === "mine") out = out.filter(c => c.byId === uid);else if (tab === "inbox") out = out.filter(c => c.status === "sent" && window.ecApproveCheck(c, currentUser, role).ok);
+    if (tab === "mine") out = out.filter(c => c.byId === uid);else if (tab === "inbox") out = out.filter(c => c.status === "sent" && window.ecApproveCheck(c, currentUser, role).ok);else if (tab === "approved") out = out.filter(c => c.status === "approved");
     if (kw) out = out.filter(c => [c.no, c.byName, c.siteCode, c.siteName, c.note, window.ecKindOf(c.kind).th].some(v => String(v || "").toLowerCase().includes(kw)));
     return out;
   }, [all, tab, q, uid, currentUser, role, jobFilter]);
@@ -1928,7 +1934,7 @@ function ExpenseView({
       byName: (currentUser || {}).name || ""
     });
   };
-  const TABS = [["mine", "ใบของฉัน", "pen", roll.mineOpen]].concat(canApprove ? [["inbox", "รออนุมัติ", "check", roll.waitingMine]] : []).concat(canApprove ? [["person", "ยอดรายคน", "users", 0], ["job", "ต้นทุนรายไซต์", "sun", 0]] : []).concat([["all", canApprove ? "ทั้งหมด" : "ใบที่เกี่ยวกับฉัน", "list", 0]]);
+  const TABS = [["mine", "ใบของฉัน", "pen", roll.mineOpen]].concat(canApprove ? [["inbox", "รออนุมัติ", "clock", roll.waitingMine]] : []).concat([["approved", "อนุมัติแล้ว", "check", roll.approved]]).concat(canApprove ? [["person", "ยอดรายคน", "users", 0], ["job", "ต้นทุนรายไซต์", "sun", 0]] : []).concat([["all", canApprove ? "ทั้งหมด" : "ใบที่เกี่ยวกับฉัน", "list", 0]]);
   return React.createElement("div", {
     style: {
       display: "flex",
@@ -2146,7 +2152,7 @@ function ExpenseView({
       fontSize: 13,
       color: "var(--text-3)"
     }
-  }, jobFilter ? "งานนี้ยังไม่มีใบเบิก — กด “เปิดใบเบิก” ด้านบนได้เลย" : q ? "ไม่พบใบเบิกที่ตรงกับคำค้น" : tab === "inbox" ? "ไม่มีใบที่รอคุณอนุมัติ" : tab === "mine" ? "ยังไม่มีใบเบิกของคุณ — กด “เปิดใบเบิก” ด้านบน" : "ยังไม่มีใบเบิกในระบบ"))), voucher && React.createElement(window.EcVoucherPaper, {
+  }, jobFilter ? "งานนี้ยังไม่มีใบเบิก — กด “เปิดใบเบิก” ด้านบนได้เลย" : q ? "ไม่พบใบเบิกที่ตรงกับคำค้น" : tab === "inbox" ? "ไม่มีใบที่รอคุณอนุมัติ" : tab === "approved" ? "ไม่มีใบที่อนุมัติแล้วรอจ่ายคืน" : tab === "mine" ? "ยังไม่มีใบเบิกของคุณ — กด “เปิดใบเบิก” ด้านบน" : "ยังไม่มีใบเบิกในระบบ"))), voucher && React.createElement(window.EcVoucherPaper, {
     batch: voucher,
     claims: voucherClaims,
     onClose: () => setVoucher(null)
