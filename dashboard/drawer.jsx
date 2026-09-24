@@ -670,7 +670,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               })()}
 
               {/* ใบตรวจสอบงาน — งานหนึ่งงานถูกตรวจหลายรอบ (รับมอบหลังคา · โครงสร้าง · ติดตั้งแผง · ไฟฟ้า)
-                  ใบพวกนี้คือหลักฐานว่างานผ่านเป็นขั้น ๆ วางไว้ก่อนขออนุญาตการไฟฟ้าตามลำดับที่ทำจริง */}
+                  ใบพวกนี้คือหลักฐานว่างานผ่านเป็นขั้น ๆ */}
               {window.InspectionListModal && !roMode && (() => {
                 const st = window.irJobSummary ? window.irJobSummary(inspections.list) : null;
                 return (
@@ -691,7 +691,63 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                 );
               })()}
 
+
+              {/* ผังหน้างาน (Site Plan) — ซ่อนปุ่มไว้ก่อนตามที่สั่ง (โค้ดยังอยู่ครบ เปลี่ยน false กลับเป็น true เมื่อจะเอากลับมา) */}
+              {false && window.SitePlanEditor && (
+              <button onClick={() => setPlanOpen(true)}
+                style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+                  background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                <span style={{ width: 34, height: 34, borderRadius: 9, background: "#0EA5E91c", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="map" size={17} color="#0784b8" /></span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ผังหน้างาน (วาด + วัดระยะ)</span>
+                  <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>วาดเส้นสาย · วางจุดอุปกรณ์ · ประเมินของเบื้องต้น</span>
+                </span>
+                <Icon name="arrowRight" size={16} color="var(--text-3)" />
+              </button>
+              )}
+
+              {/* วางแผง 3D — เฉพาะคนที่มีสิทธิ์ออกแบบ (วิศวกรไฟฟ้า/เขียนแบบ/หัวหน้า/แอดมิน) */}
+              {window.Plan3DEditor && canDesign && !roMode && (
+              <button onClick={() => setPlan3dOpen(true)}
+                style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+                  background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                <span style={{ width: 34, height: 34, borderRadius: 9, background: "#6366F11c", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="panel" size={17} color="#4F46E5" /></span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>วางแผง 3D (โมเดลหลังคา + เงาแดด)</span>
+                  <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>ปั้นหลังคาตามรูปโดรน · วางแผง · จำลองเงาดวงอาทิตย์</span>
+                </span>
+                <Icon name="arrowRight" size={16} color="var(--text-3)" />
+              </button>
+              )}
+
+              {/* ออกแบบระบบ + ผลผลิต — เข้าตรง ไม่ต้องเปิดจอ 3 มิติก่อน (ใช้ผังแผงที่บันทึกไว้แล้ว) */}
+              {window.SolarDesignHost && !roMode && (
+              <button onClick={() => setDesignOpen(true)}
+                style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+                  background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                <span style={{ width: 34, height: 34, borderRadius: 9, background: "#F59E0B1c", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="bolt" size={17} color="#B45309" /></span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ออกแบบระบบ + ผลผลิต</span>
+                  <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>ต่อสตริง · ตรวจ I-V · ผลผลิต 25 ปี · คืนทุน — เข้าตรง ไม่ต้องรอจอ 3 มิติ</span>
+                </span>
+                <Icon name="arrowRight" size={16} color="var(--text-3)" />
+              </button>
+              )}
+
+              {/* ถอดวัสดุ BOQ */}
+              {!roMode && <button onClick={() => setBoqOpen(true)}
+                style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+                  background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                <span style={{ width: 34, height: 34, borderRadius: 9, background: "var(--primary-soft)", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="box" size={17} color="var(--primary-dark)" /></span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ถอดวัสดุ BOQ</span>
+                  <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>{job.boq ? "มีรายการแล้ว · แตะเพื่อแก้ไข / ดาวน์โหลด" : "คำนวณปริมาณวัสดุของงานนี้"}</span>
+                </span>
+                <Icon name="arrowRight" size={16} color="var(--text-3)" />
+              </button>}
+
               {/* เก็บข้อมูลขออนุญาตการไฟฟ้า — ช่างกรอกหน้างาน แล้วส่งต่อฝ่ายขออนุญาต
+                  วางท้ายสุดของกลุ่มเครื่องมือ เพราะเป็นงานที่เดินต่อหลังงานติดตั้งจบแล้ว
                   แถบความคืบหน้าคิดจากช่องบังคับ + รูปบังคับ ช่างจะได้รู้ว่าเหลืออีกเท่าไรโดยไม่ต้องเปิดเข้าไปดู */}
               {onPermit && (() => {
                 const pm = job.permit || null;
@@ -700,7 +756,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                 const idx = window.permitFlowIdx ? window.permitFlowIdx(job) : -1;
                 const rejected = !!(pm && pm.status === "rejected");
                 return (
-                  <div style={{ marginBottom: 10, border: "1px solid " + (rejected ? "var(--tint-red-bd)" : "var(--border-strong)"),
+                  <div style={{ marginBottom: 22, border: "1px solid " + (rejected ? "var(--tint-red-bd)" : "var(--border-strong)"),
                     borderLeft: "3px solid " + (pst ? pst.color : "var(--border-strong)"), borderRadius: 12, overflow: "hidden",
                     background: "var(--surface)" }}>
                     <button onClick={onPermit}
@@ -762,60 +818,6 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   </div>
                 );
               })()}
-
-              {/* ผังหน้างาน (Site Plan) — ซ่อนปุ่มไว้ก่อนตามที่สั่ง (โค้ดยังอยู่ครบ เปลี่ยน false กลับเป็น true เมื่อจะเอากลับมา) */}
-              {false && window.SitePlanEditor && (
-              <button onClick={() => setPlanOpen(true)}
-                style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
-                  background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-                <span style={{ width: 34, height: 34, borderRadius: 9, background: "#0EA5E91c", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="map" size={17} color="#0784b8" /></span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ผังหน้างาน (วาด + วัดระยะ)</span>
-                  <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>วาดเส้นสาย · วางจุดอุปกรณ์ · ประเมินของเบื้องต้น</span>
-                </span>
-                <Icon name="arrowRight" size={16} color="var(--text-3)" />
-              </button>
-              )}
-
-              {/* วางแผง 3D — เฉพาะคนที่มีสิทธิ์ออกแบบ (วิศวกรไฟฟ้า/เขียนแบบ/หัวหน้า/แอดมิน) */}
-              {window.Plan3DEditor && canDesign && !roMode && (
-              <button onClick={() => setPlan3dOpen(true)}
-                style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
-                  background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-                <span style={{ width: 34, height: 34, borderRadius: 9, background: "#6366F11c", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="panel" size={17} color="#4F46E5" /></span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>วางแผง 3D (โมเดลหลังคา + เงาแดด)</span>
-                  <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>ปั้นหลังคาตามรูปโดรน · วางแผง · จำลองเงาดวงอาทิตย์</span>
-                </span>
-                <Icon name="arrowRight" size={16} color="var(--text-3)" />
-              </button>
-              )}
-
-              {/* ออกแบบระบบ + ผลผลิต — เข้าตรง ไม่ต้องเปิดจอ 3 มิติก่อน (ใช้ผังแผงที่บันทึกไว้แล้ว) */}
-              {window.SolarDesignHost && !roMode && (
-              <button onClick={() => setDesignOpen(true)}
-                style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
-                  background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-                <span style={{ width: 34, height: 34, borderRadius: 9, background: "#F59E0B1c", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="bolt" size={17} color="#B45309" /></span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ออกแบบระบบ + ผลผลิต</span>
-                  <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>ต่อสตริง · ตรวจ I-V · ผลผลิต 25 ปี · คืนทุน — เข้าตรง ไม่ต้องรอจอ 3 มิติ</span>
-                </span>
-                <Icon name="arrowRight" size={16} color="var(--text-3)" />
-              </button>
-              )}
-
-              {/* ถอดวัสดุ BOQ */}
-              {!roMode && <button onClick={() => setBoqOpen(true)}
-                style={{ width: "100%", marginBottom: 22, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
-                  background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-                <span style={{ width: 34, height: 34, borderRadius: 9, background: "var(--primary-soft)", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="box" size={17} color="var(--primary-dark)" /></span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ถอดวัสดุ BOQ</span>
-                  <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>{job.boq ? "มีรายการแล้ว · แตะเพื่อแก้ไข / ดาวน์โหลด" : "คำนวณปริมาณวัสดุของงานนี้"}</span>
-                </span>
-                <Icon name="arrowRight" size={16} color="var(--text-3)" />
-              </button>}
 
               {/* material checklist */}
               {!roMode && <div style={{ marginBottom: 24 }}>
