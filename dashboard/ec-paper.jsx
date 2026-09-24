@@ -84,6 +84,29 @@ const EC_PAPER_I18N = {
   "อื่น ๆ": ["Other", "其他"],
 };
 
+/* ── ลายเซ็นประจำตัวของผู้ใช้ ──
+   เก็บที่ userSigns/{id} (daily.jsx:403) แยกจาก users/ เพราะรายชื่อผู้ใช้โหลดทั้งก้อนตอนล็อกอิน
+   อ่านครั้งเดียวตอนเปิดใบ ไม่ต้อง subscribe — ใบสำคัญจ่ายคือภาพนิ่งของรอบที่ปิดไปแล้ว */
+function useEcSigns(ids) {
+  const key = (ids || []).filter(Boolean).join(",");
+  const [map, setMap] = React.useState({});
+  React.useEffect(() => {
+    const list = key ? key.split(",") : [];
+    if (!list.length || !_ECFB()) { setMap({}); return; }
+    let alive = true;
+    Promise.all(list.map((id) => _ecRef("userSigns/" + id).once("value")
+      .then((s) => [id, (s.val() || {}).img || ""]).catch(() => [id, ""])))
+      .then((pairs) => {
+        if (!alive) return;
+        const o = {};
+        pairs.forEach((p) => { if (p[1]) o[p[0]] = p[1]; });
+        setMap(o);
+      });
+    return () => { alive = false; };
+  }, [key]);
+  return map;
+}
+
 /* ══════════════════════════════════════════════════
    ใบสำคัญจ่าย A4 — หนึ่งรอบจ่าย = หนึ่งใบ
    ══════════════════════════════════════════════════ */
@@ -103,6 +126,19 @@ function EcVoucherPaper({ batch, claims, onClose }) {
   const total = window.ecRound(b.total);
   const found = window.ecRound(list.reduce((a, c) => a + window.ecRound(c.amount), 0));
   const missing = list.length !== (b.count || 0);
+
+  /* คนอนุมัติของรอบนี้ — ปกติใบทั้งก้อนผ่านคนเดียว แต่ถ้าหลายคนต้องขึ้นให้ครบ
+     ไม่งั้นกระดาษจะอ้างว่าคนเดียวอนุมัติทั้งรอบ · วันที่ยึดครั้งล่าสุดที่กดอนุมัติ */
+  const apprs = [];
+  list.forEach((c) => {
+    if (!c || !c.decidedByName) return;
+    const k = c.decidedById || c.decidedByName;
+    const hit = apprs.filter((a) => a.k === k)[0];
+    if (hit) { if ((c.decidedAt || "") > hit.at) hit.at = c.decidedAt || ""; return; }
+    apprs.push({ k: k, id: c.decidedById || "", name: c.decidedByName, at: c.decidedAt || "" });
+  });
+  /* เซ็นให้อัตโนมัติได้เฉพาะตอนคนอนุมัติคนเดียว — หลายคนต้องเซ็นสดทุกคน */
+  const signs = useEcSigns([b.byId].concat(apprs.length === 1 ? [apprs[0].id] : []));
 
   const doPrint = () => {
     const old = document.title;
@@ -240,17 +276,25 @@ function EcVoucherPaper({ batch, claims, onClose }) {
           </EcPBlock>
         ) : null}
 
-        {/* ช่องเซ็น — ใบสำคัญจ่ายต้องมีลายมือชื่อผู้รับเงินตัวจริง จึงเว้นเส้นให้เซ็นด้วยปากกาทั้งสามช่อง
-            ระบบไม่เติมลายเซ็นอิเล็กทรอนิกส์ให้ที่นี่ เพราะใบนี้คือหลักฐานว่าเงินถึงมือคนรับจริง */}
+        {/* ช่องเซ็น
+            ผู้รับเงิน — เว้นเส้นให้เซ็นด้วยปากกาเสมอ ใบนี้คือหลักฐานว่าเงินถึงมือคนรับจริง
+              ระบบเซ็นแทนไม่ได้ เพราะตอนพิมพ์ใบ เงินยังไม่ถึงมือเขา
+            ผู้จ่ายเงิน / ผู้อนุมัติ — ระบบรู้อยู่แล้วว่าใครกดและกดวันไหน จึงเติมชื่อ วันที่
+              และลายเซ็นที่เจ้าตัวบันทึกไว้ในโปรไฟล์ให้เลย ไม่ต้องไล่เก็บลายเซ็นย้อนหลัง
+              ใครยังไม่ได้บันทึกลายเซ็นก็เหลือเส้นว่างให้เซ็นเองตามเดิม */}
         <div style={{ marginTop: 22, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, breakInside: "avoid" }}>
           {[{ t: T("ผู้รับเงิน"), n: b.toName },
-            { t: T("ผู้จ่ายเงิน"), n: b.byName },
-            { t: T("ผู้อนุมัติ"), n: "" }].map((s, i) => (
+            { t: T("ผู้จ่ายเงิน"), n: b.byName, img: signs[b.byId], at: b.at || b.date },
+            { t: T("ผู้อนุมัติ"), n: apprs.map((a) => a.name).join(" · "),
+              img: apprs.length === 1 ? signs[apprs[0].id] : "",
+              at: apprs.length === 1 ? apprs[0].at : "" }].map((s, i) => (
             <div key={i} style={{ border: "1px solid #DCE4DF", borderRadius: 8, padding: "12px 14px" }}>
               <div style={{ fontSize: 10.5, fontWeight: 700, color: "#5A6B62" }}>{s.t}</div>
-              <div style={{ height: 42, borderBottom: "1px solid #C9D5CE", marginTop: 6 }} />
+              <div style={{ height: 42, borderBottom: "1px solid #C9D5CE", marginTop: 6, display: "grid", placeItems: "center", overflow: "hidden" }}>
+                {s.img ? <img src={s.img} alt="" style={{ maxWidth: "100%", maxHeight: 40, objectFit: "contain" }} /> : null}
+              </div>
               <div style={{ fontSize: 11, marginTop: 6, color: "#15211A" }}>{T("ชื่อ:")} <b>{s.n || "…………………………"}</b></div>
-              <div style={{ fontSize: 11, color: "#4A5A51" }}>{T("วันที่:")} …………………………</div>
+              <div style={{ fontSize: 11, color: "#4A5A51" }}>{T("วันที่:")} {s.at ? DTs(s.at) : "…………………………"}</div>
             </div>
           ))}
         </div>

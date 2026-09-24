@@ -57,6 +57,30 @@ const EC_PAPER_I18N = {
   "ค่าแรงจ้างช่วง": ["Subcontract labour", "外包人工"],
   "อื่น ๆ": ["Other", "其他"]
 };
+function useEcSigns(ids) {
+  const key = (ids || []).filter(Boolean).join(",");
+  const [map, setMap] = React.useState({});
+  React.useEffect(() => {
+    const list = key ? key.split(",") : [];
+    if (!list.length || !_ECFB()) {
+      setMap({});
+      return;
+    }
+    let alive = true;
+    Promise.all(list.map(id => _ecRef("userSigns/" + id).once("value").then(s => [id, (s.val() || {}).img || ""]).catch(() => [id, ""]))).then(pairs => {
+      if (!alive) return;
+      const o = {};
+      pairs.forEach(p => {
+        if (p[1]) o[p[0]] = p[1];
+      });
+      setMap(o);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [key]);
+  return map;
+}
 function EcVoucherPaper({
   batch,
   claims,
@@ -76,6 +100,23 @@ function EcVoucherPaper({
   const total = window.ecRound(b.total);
   const found = window.ecRound(list.reduce((a, c) => a + window.ecRound(c.amount), 0));
   const missing = list.length !== (b.count || 0);
+  const apprs = [];
+  list.forEach(c => {
+    if (!c || !c.decidedByName) return;
+    const k = c.decidedById || c.decidedByName;
+    const hit = apprs.filter(a => a.k === k)[0];
+    if (hit) {
+      if ((c.decidedAt || "") > hit.at) hit.at = c.decidedAt || "";
+      return;
+    }
+    apprs.push({
+      k: k,
+      id: c.decidedById || "",
+      name: c.decidedByName,
+      at: c.decidedAt || ""
+    });
+  });
+  const signs = useEcSigns([b.byId].concat(apprs.length === 1 ? [apprs[0].id] : []));
   const doPrint = () => {
     const old = document.title;
     document.title = T("ใบสำคัญจ่าย") + " " + (b.no || "") + " " + (b.toName || "");
@@ -435,10 +476,14 @@ function EcVoucherPaper({
     n: b.toName
   }, {
     t: T("ผู้จ่ายเงิน"),
-    n: b.byName
+    n: b.byName,
+    img: signs[b.byId],
+    at: b.at || b.date
   }, {
     t: T("ผู้อนุมัติ"),
-    n: ""
+    n: apprs.map(a => a.name).join(" · "),
+    img: apprs.length === 1 ? signs[apprs[0].id] : "",
+    at: apprs.length === 1 ? apprs[0].at : ""
   }].map((s, i) => React.createElement("div", {
     key: i,
     style: {
@@ -456,9 +501,20 @@ function EcVoucherPaper({
     style: {
       height: 42,
       borderBottom: "1px solid #C9D5CE",
-      marginTop: 6
+      marginTop: 6,
+      display: "grid",
+      placeItems: "center",
+      overflow: "hidden"
     }
-  }), React.createElement("div", {
+  }, s.img ? React.createElement("img", {
+    src: s.img,
+    alt: "",
+    style: {
+      maxWidth: "100%",
+      maxHeight: 40,
+      objectFit: "contain"
+    }
+  }) : null), React.createElement("div", {
     style: {
       fontSize: 11,
       marginTop: 6,
@@ -469,7 +525,7 @@ function EcVoucherPaper({
       fontSize: 11,
       color: "#4A5A51"
     }
-  }, T("วันที่:"), " \u2026\u2026\u2026\u2026\u2026\u2026\u2026\u2026\u2026\u2026")))), React.createElement("div", {
+  }, T("วันที่:"), " ", s.at ? DTs(s.at) : "…………………………")))), React.createElement("div", {
     style: {
       marginTop: 14,
       fontSize: 9.5,
