@@ -3073,8 +3073,7 @@ function SalesCard({
       justifyContent: "space-between",
       alignItems: "center",
       gap: 8,
-      marginBottom: 6,
-      flexWrap: "wrap"
+      marginBottom: 6
     }
   }, React.createElement("span", {
     style: {
@@ -3082,42 +3081,14 @@ function SalesCard({
       fontSize: 11,
       fontWeight: 600,
       color: "var(--text-3)",
-      flexShrink: 0
-    }
-  }, lead.code), React.createElement("span", {
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      flexWrap: "wrap",
-      justifyContent: "flex-end",
-      marginLeft: "auto"
-    }
-  }, late && React.createElement("span", {
-    style: {
-      fontSize: 10,
-      fontWeight: 700,
-      color: "#EF4444",
-      background: "var(--tint-red-bg2)",
-      padding: "1px 7px",
-      borderRadius: 99,
+      minWidth: 0,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     }
-  }, "\u0E40\u0E25\u0E22\u0E27\u0E31\u0E19\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21"), React.createElement("span", {
-    title: "\u0E22\u0E31\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E41\u0E1B\u0E25\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07",
-    style: {
-      fontSize: 10.5,
-      fontWeight: 800,
-      color: "var(--text-3)",
-      background: "var(--surface2)",
-      border: "1px solid var(--border)",
-      padding: "2px 7px",
-      borderRadius: 99,
-      whiteSpace: "nowrap"
-    }
-  }, "\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22"), React.createElement(TypeBadge, {
+  }, lead.code), React.createElement(TypeBadge, {
     type: lead.type
-  }))), flags && (flags.design || flags.boq) && window.DocChip && React.createElement("div", {
+  })), flags && (flags.design || flags.boq) && window.DocChip && React.createElement("div", {
     style: {
       display: "flex",
       gap: 5,
@@ -3192,7 +3163,18 @@ function SalesCard({
       fontSize: 10.5,
       color: "var(--text-2)"
     }
-  }, val > 0 && React.createElement("span", {
+  }, React.createElement("span", {
+    title: "\u0E22\u0E31\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E41\u0E1B\u0E25\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07",
+    style: {
+      fontWeight: 800,
+      color: "var(--text-3)",
+      background: "var(--surface2)",
+      border: "1px solid var(--border)",
+      padding: "3px 8px",
+      borderRadius: 7,
+      whiteSpace: "nowrap"
+    }
+  }, "\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22"), val > 0 && React.createElement("span", {
     style: {
       background: "var(--primary-soft)",
       color: "var(--primary-dark)",
@@ -3232,7 +3214,7 @@ function SalesCard({
       overflow: "hidden",
       textOverflow: "ellipsis"
     }
-  }, lead.nextFollow ? "ติดตาม " + thDate(lead.nextFollow, true) : "ยังไม่ได้ตั้งวันติดตาม"), lead.ownerName && React.createElement("span", {
+  }, lead.nextFollow ? (late ? "เลยวันติดตาม " : "ติดตาม ") + thDate(lead.nextFollow, true) : "ยังไม่ได้ตั้งวันติดตาม"), lead.ownerName && React.createElement("span", {
     style: {
       fontWeight: 700,
       color: "var(--text-2)",

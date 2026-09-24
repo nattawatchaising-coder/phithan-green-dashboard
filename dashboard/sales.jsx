@@ -1945,16 +1945,10 @@ function SalesCard({ lead, quotes, onOpen, onDragStart, dragging }) {
       onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "var(--shadow-sm)"; e.currentTarget.style.transform = "none"; }}>
       {/* หัวการ์ด — รหัส + ป้าย ชุดเดียวกับการ์ดงาน จะได้กวาดตาอ่านบอร์ดเดียวกันได้แบบเดียวกัน
           ป้ายตกบรรทัดใหม่ได้ ไม่งั้นการ์ดแคบ ๆ จะโดนขอบตัดจนอ่านไม่ออก */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
-        <span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, color: "var(--text-3)", flexShrink: 0 }}>{lead.code}</span>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap", justifyContent: "flex-end", marginLeft: "auto" }}>
-          {late && <span style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", background: "var(--tint-red-bg2)", padding: "1px 7px", borderRadius: 99, whiteSpace: "nowrap" }}>เลยวันติดตาม</span>}
-          {/* ยังไม่เป็นงาน — บอกไว้ว่าเป็นลูกค้าที่ยังไล่อยู่ ไม่ใช่งานที่ขายได้แล้ว */}
-          <span title="ยังเป็นลูกค้า ยังไม่ได้แปลงเป็นงานติดตั้ง"
-            style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)", background: "var(--surface2)",
-              border: "1px solid var(--border)", padding: "2px 7px", borderRadius: 99, whiteSpace: "nowrap" }}>งานขาย</span>
-          <TypeBadge type={lead.type} />
-        </span>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 6 }}>
+        <span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, color: "var(--text-3)",
+          minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.code}</span>
+        <TypeBadge type={lead.type} />
       </div>
       {/* ป้ายไฟล์แนบ — วางที่เดิมกับการ์ดงาน (เหนือชื่อ) */}
       {flags && (flags.design || flags.boq) && window.DocChip && (
@@ -1980,6 +1974,10 @@ function SalesCard({ lead, quotes, onOpen, onDragStart, dragging }) {
         </div>
       )}
       <div style={{ display: "flex", gap: 5, flexWrap: "wrap", fontSize: 10.5, color: "var(--text-2)" }}>
+        {/* ยังไม่เป็นงาน — บอกไว้ว่าเป็นลูกค้าที่ยังไล่อยู่ ไม่ใช่งานที่ขายได้แล้ว */}
+        <span title="ยังเป็นลูกค้า ยังไม่ได้แปลงเป็นงานติดตั้ง"
+          style={{ fontWeight: 800, color: "var(--text-3)", background: "var(--surface2)",
+            border: "1px solid var(--border)", padding: "3px 8px", borderRadius: 7, whiteSpace: "nowrap" }}>งานขาย</span>
         {val > 0 && <span style={{ background: "var(--primary-soft)", color: "var(--primary-dark)", fontWeight: 800, padding: "3px 8px", borderRadius: 7, fontVariantNumeric: "tabular-nums" }}>฿{fmtBaht(val)}</span>}
         {q0 && (() => { const s = QUOTE_STATUS_BY[q0.status] || QUOTE_STATUS_BY.draft; return (
           <span style={{ background: s.color + "14", border: "1px solid " + s.color + "33", color: s.color, fontWeight: 800, padding: "3px 8px", borderRadius: 7 }}>
@@ -1989,7 +1987,7 @@ function SalesCard({ lead, quotes, onOpen, onDragStart, dragging }) {
       </div>
       <div style={{ marginTop: 9, paddingTop: 9, borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 7, fontSize: 10.5, color: late ? "#EF4444" : "var(--text-3)" }}>
         <span style={{ flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {lead.nextFollow ? "ติดตาม " + thDate(lead.nextFollow, true) : "ยังไม่ได้ตั้งวันติดตาม"}
+          {lead.nextFollow ? (late ? "เลยวันติดตาม " : "ติดตาม ") + thDate(lead.nextFollow, true) : "ยังไม่ได้ตั้งวันติดตาม"}
         </span>
         {lead.ownerName && <span style={{ fontWeight: 700, color: "var(--text-2)", flexShrink: 0 }}>{lead.ownerName}</span>}
       </div>
