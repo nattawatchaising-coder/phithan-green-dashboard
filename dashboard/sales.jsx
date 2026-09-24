@@ -116,7 +116,6 @@ const QUOTE_PAGES = [
   { key: "wty",     th: "ตารางรับประกันอุปกรณ์",       hint: "อุปกรณ์ทีละรายการ · กี่ปี" },
   { key: "cash",    th: "ตารางคืนทุน 30 ปี",           hint: "ผลิตไฟ · ค่าไฟที่ประหยัด · ยอดสะสม" },
   { key: "payback", th: "สรุปผลตอบแทน",               hint: "ระยะเวลาคืนทุน · กำไรตลอดอายุ" },
-  { key: "pics",    th: "รูปอุปกรณ์",                  hint: "เลือกจากคลังรูปที่เก็บไว้ · ใช้ซ้ำได้ทุกงาน" },
   { key: "sheets",  th: "DATA SHEET ที่แนบ",          hint: "สเปกแผง/อินเวอร์เตอร์จากคลัง" },
 ];
 /* ใบเก่าที่ทำไว้ก่อนมีระบบนี้ไม่มีช่อง pages — ต้องออกเหมือนเดิมเป๊ะ ๆ
@@ -351,7 +350,7 @@ function blankQuote(target, user, quotes) {
     /* ใบที่ทำใหม่ตั้งต้นเป็นชุดเต็ม — ลูกค้าโครงการขอทั้งเล่มเป็นปกติ
        ไม่อยากส่งแผ่นไหนก็ติ๊กออกได้ในหน้าทำใบ ง่ายกว่ามาตามเปิดทีหลังแล้วลืม */
     pages: quotePagesAll(),
-    boqRows: quoteBoqSeed(t), wtyRows: quoteWtySeed(t), roi: {}, picIds: [],
+    boqRows: quoteBoqSeed(t), wtyRows: quoteWtySeed(t), roi: {},
     vat: (window.BOQ && window.BOQ.VAT_RATE != null) ? window.BOQ.VAT_RATE : 7,
     terms: QUOTE_TERMS_DEF.slice(), warranties: QUOTE_WARRANTY_DEF.slice(),
     validDays: 30, note: "",
@@ -550,7 +549,6 @@ function quoteFrom(prev, target, user, quotes) {
     boqRows: (prev.boqRows || []).map((x) => Object.assign({}, x)),
     wtyRows: (prev.wtyRows || []).map((x) => Object.assign({}, x)),
     roi: Object.assign({}, prev.roi || {}),
-    picIds: (prev.picIds || []).slice(),
     validDays: prev.validDays || q.validDays, note: prev.note || "",
     kwp: +prev.kwp > 0 ? +prev.kwp : q.kwp,
     basedOn: prev.no || "",
@@ -714,8 +712,6 @@ const QUOTE_I18N = {
   "คืนทุนปีนี้": ["payback here", "回收于此"],
   "ปี": [" yr", " 年"],
   "เดือน": [" mo", " 个月"],
-  "รูปอุปกรณ์": ["Equipment photos", "设备图片"],
-  "อุปกรณ์ที่ใช้ในระบบ": ["Equipment used in the system", "系统所用设备"],
   "รูป": ["Pic", "图片"],
   "ผู้ขาย": ["Seller", "卖方"],
   "ผู้ซื้อ": ["Buyer", "买方"],
@@ -833,25 +829,9 @@ function quoteHTML(q, lang, sheets, pics) {
     (c.phone ? '<div><span>โทร</span><b>' + sEsc(c.phone) + "</b></div>" : "") +
     "</div>" + footHTML + "</div>";
 
-  /* ── แผ่นรูปอุปกรณ์ ──
-     รูปจากคลังส่วนกลาง วางแผ่นละ 4 รูป เกินนั้นขึ้นแผ่นใหม่
-     ใส่ชื่อใต้รูปไว้ ลูกค้าจะได้รู้ว่ากำลังดูของชิ้นไหน */
+  /* รูปอุปกรณ์ที่โหลดมาแล้ว แยกตาม id — ใช้ในช่องรูปของตารางรับประกัน */
   const picById = {};
   (pics || []).forEach((p) => { if (p && p.data) picById[p.id] = p; });
-  const picList = (q.picIds || []).map((id) => picById[id]).filter(Boolean);
-  const picHTML = () => {
-    if (!picList.length) return "";
-    const pages = [];
-    for (let i = 0; i < picList.length; i += 4) pages.push(picList.slice(i, i + 4));
-    return pages.map((grp, n) =>
-      '<div class="dpg">' + sheetHead("รูปอุปกรณ์", "อุปกรณ์ที่ใช้ในระบบ",
-        pages.length > 1 ? "แผ่นที่ " + (n + 1) + "/" + pages.length : "") +
-      '<div class="pgw">' + grp.map((p) =>
-        '<figure class="pfig"><img src="' + p.data + '" alt="" />' +
-        (p.name ? "<figcaption>" + sEsc(p.name) + "</figcaption>" : "") + "</figure>").join("") +
-      '</div><div class="pgft">' + footHTML + "</div></div>"
-    ).join("");
-  };
 
   /* หัวแผ่นแนบทุกแผ่น — ชื่อเอกสาร + บรรทัดบอกว่าเป็นของใบไหนของใคร
      แผ่นที่หลุดจากชุดต้องอ่านออกว่าเป็นของงานไหน */
@@ -881,6 +861,8 @@ function quoteHTML(q, lang, sheets, pics) {
      เขียนเป็นตารางให้เทียบได้ทีเดียว ดีกว่าให้ไปไล่อ่านในข้อความยาว ๆ */
   const wtyRows = quoteRowsOr(q.wtyRows, quoteWtySeed(q));
   const wtyPic = wtyRows.some((r) => r && picById[r.pic]);
+  const wtyYr = (s) => String(s == null ? "" : s).split("·").map((x) => x.trim()).filter(Boolean)
+    .map((x) => '<div class="wl"><b>' + sEsc(x) + "</b></div>").join("");
   const wtyHTML = () =>
     '<div class="dpg">' + sheetHead("ตารางรับประกันอุปกรณ์", "การรับประกันอุปกรณ์ในระบบที่ติดตั้ง", "") +
     '<table><thead><tr><th class="c" style="width:34px">ลำดับ</th>' +
@@ -891,7 +873,7 @@ function quoteHTML(q, lang, sheets, pics) {
       (wtyPic ? '<td class="pc">' + (picById[r.pic] ? '<img src="' + picById[r.pic].data + '" alt="" />' : "") + "</td>" : "") +
       "<td>" + sEsc(r.name) +
       '</td><td class="c">' + sEsc(r.qty == null || r.qty === "" ? "" : r.qty) +
-      '</td><td class="c">' + sEsc(r.unit || "") + "</td><td><b>" + sEsc(r.yr || "") + "</b></td></tr>").join("")
+      '</td><td class="c">' + sEsc(r.unit || "") + "</td><td>" + wtyYr(r.yr) + "</td></tr>").join("")
       || '<tr><td colspan="' + (wtyPic ? 6 : 5) + '" class="c">— ยังไม่มีรายการ —</td></tr>') +
     "</tbody></table>" +
     /* ข้อ "การรับประกันและบริการ" อยู่ในแผ่นเงื่อนไข (หน้า 2) แล้ว ไม่ลอกมาซ้ำอีกแผ่น */
@@ -1050,11 +1032,7 @@ function quoteHTML(q, lang, sheets, pics) {
     ".cvcap .cu{font-size:13px;font-weight:600;color:#1B9B75}" +
     ".cvtag{font-size:11px;color:#1B9B75;font-weight:600;padding-bottom:4px}" +
     /* แผ่นรูปอุปกรณ์ — 2 คอลัมน์ 2 แถว รูปสัดส่วนเดิมไม่ยืด */
-    ".pgw{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);" +
-      "grid-template-rows:minmax(0,1fr) minmax(0,1fr);gap:9px;height:207mm}" +
-    ".pfig{margin:0;display:flex;flex-direction:column;min-height:0;border:1px solid #e5e7eb;border-radius:9px;overflow:hidden;background:#f9fafb}" +
-    ".pfig img{width:100%;flex:1;min-height:0;object-fit:contain;display:block;background:#fff}" +
-    ".pfig figcaption{font-size:10.5px;color:#374151;padding:6px 9px;border-top:1px solid #e5e7eb;text-align:center}" +
+    ".wl{line-height:1.45}.wl+.wl{margin-top:2px}" +
     ".pc{padding:3px 4px}.pc img{width:66px;height:42px;object-fit:contain;display:block;margin:0 auto}" +
     ".fit{min-height:0}" +
     ".cvf{display:flex;flex-wrap:wrap;gap:8px 26px;border-top:1px solid #e5e7eb;padding-top:10px}" +
@@ -1121,7 +1099,6 @@ function quoteHTML(q, lang, sheets, pics) {
     (quotePageOn(q, "wty") ? wtyHTML() : "") +
     (quotePageOn(q, "cash") ? cashHTML() : "") +
     (quotePageOn(q, "payback") ? paybackHTML() : "") +
-    (quotePageOn(q, "pics") ? picHTML() : "") +
     shPages +
     "</body></html>";
   return window.pgDocHTML ? window.pgDocHTML(doc, L, QUOTE_I18N) : doc;
@@ -1211,7 +1188,7 @@ function QuoteRowPic({ lib, id, locked, onPick }) {
             border: "1px solid var(--border-strong)", background: "var(--surface)", boxShadow: "0 18px 44px rgba(8,20,14,.22)" }}>
             {pics.length === 0 ? (
               <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
-                คลังยังว่าง — เพิ่มรูปที่หัวข้อ “รูปอุปกรณ์” ด้านล่างก่อน
+                คลังยังว่าง — เพิ่มรูปที่หัวข้อ “คลังรูปอุปกรณ์” ด้านล่างก่อน
               </div>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 5, maxHeight: 186, overflowY: "auto" }}>
@@ -1338,21 +1315,19 @@ function QuoteRoiEdit({ q, locked, onChange }) {
    อัปรูปเข้าคลังครั้งเดียว ใบไหนอยากได้ก็ติ๊กเอา — รูปแผงกับอินเวอร์เตอร์ชุดเดิม
    ถูกแนบซ้ำแทบทุกใบอยู่แล้ว ไม่มีเหตุให้ต้องอัปใหม่ทุกครั้ง
    ชื่อใต้รูปเป็นคำบรรยายที่จะไปขึ้นในเอกสาร แก้ที่นี่ที่เดียวแล้วเปลี่ยนทุกใบที่ใช้รูปนั้น */
-function QuotePicPick({ lib, sel, locked, onChange }) {
+function QuotePicPick({ lib, locked }) {
   const fileRef = React.useRef(null);
-  const ids = sel || [];
-  const toggle = (id) => { if (!locked) onChange(ids.indexOf(id) !== -1 ? ids.filter((x) => x !== id) : ids.concat([id])); };
   const pick = (e) => {
     const files = Array.prototype.slice.call(e.target.files || []);
     e.target.value = "";
-    files.reduce((p, f) => p.then(() => Promise.resolve(lib.add(f)).then((rec) => { if (rec) onChange((sel || []).concat([rec.id])); })), Promise.resolve());
+    files.reduce((p, f) => p.then(() => Promise.resolve(lib.add(f))), Promise.resolve());
   };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
-        <label style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>รูปอุปกรณ์ที่จะแนบ</label>
+        <label style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>คลังรูปอุปกรณ์</label>
         <span style={{ fontSize: 11, color: "var(--text-3)" }}>
-          คลังกลาง {lib.pics.length} รูป · เลือกไว้ {ids.length} รูป · แผ่นละ 4 รูป
+          {lib.pics.length} รูป · หยิบไปใส่ช่องรูปในตารางรับประกันด้านบน · ใช้ซ้ำได้ทุกใบ
         </span>
         {!locked && (
           <button type="button" disabled={lib.busy} onClick={() => fileRef.current && fileRef.current.click()}
@@ -1364,28 +1339,22 @@ function QuotePicPick({ lib, sel, locked, onChange }) {
       </div>
       {lib.pics.length === 0 ? (
         <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.6 }}>
-          ยังไม่มีรูปในคลัง — กด “เพิ่มรูปเข้าคลัง” อัปรูปแผง อินเวอร์เตอร์ ตู้ไฟ หรือตัวอย่างหน้างานไว้
-          แล้วใบอื่น ๆ หยิบไปใช้ต่อได้เลย
+          ยังไม่มีรูปในคลัง — กด “เพิ่มรูปเข้าคลัง” อัปรูปแผง อินเวอร์เตอร์ ตู้ไฟ ไว้ก่อน
+          แล้วค่อยกดช่องรูปในตารางรับประกันเลือกไปใช้
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(132px,1fr))", gap: 8 }}>
           {lib.pics.map((p) => {
-            const on = ids.indexOf(p.id) !== -1;
             return (
-              <div key={p.id} style={{ border: "1px solid " + (on ? "var(--primary)" : "var(--border)"), borderRadius: 11,
-                overflow: "hidden", background: on ? "var(--primary-soft)" : "var(--surface)" }}>
-                <div onClick={() => toggle(p.id)} style={{ position: "relative", cursor: locked ? "default" : "pointer" }}>
+              <div key={p.id} style={{ border: "1px solid var(--border)", borderRadius: 11,
+                overflow: "hidden", background: "var(--surface)" }}>
+                <div style={{ position: "relative" }}>
                   <img src={p.thumb} alt="" style={{ width: "100%", height: 84, objectFit: "cover", display: "block", background: "var(--surface2)" }} />
-                  <span style={{ position: "absolute", top: 6, left: 6, width: 18, height: 18, borderRadius: 6, display: "grid", placeItems: "center",
-                    border: "1.5px solid " + (on ? "var(--primary)" : "rgba(255,255,255,.9)"),
-                    background: on ? "var(--primary)" : "rgba(8,20,14,.35)" }}>
-                    {on && <Icon name="check" size={11} color="#fff" sw={3} />}
-                  </span>
                   {!locked && (
                     <button type="button" title="ลบรูปนี้ออกจากคลัง"
                       onClick={(e) => { e.stopPropagation(); window.askConfirm({ title: "ลบรูปนี้ออกจากคลัง?",
-                        body: "ใบอื่นที่เลือกรูปนี้ไว้จะไม่มีรูปนี้ในเอกสารอีก", ok: "ลบเลย" })
-                        .then((ok) => { if (ok) { lib.remove(p.id); onChange(ids.filter((x) => x !== p.id)); } }); }}
+                        body: "ใบอื่นที่ใช้รูปนี้อยู่จะไม่มีรูปนี้ในเอกสารอีก", ok: "ลบเลย" })
+                        .then((ok) => { if (ok) lib.remove(p.id); }); }}
                       style={{ position: "absolute", top: 6, right: 6, width: 22, height: 22, borderRadius: 7, border: "none",
                         background: "rgba(8,20,14,.45)", cursor: "pointer", display: "grid", placeItems: "center" }}>
                       <Icon name="trash" size={12} color="#fff" />
@@ -1526,12 +1495,11 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
      แปลงหน้า PDF ของ DATA SHEET เป็นรูปก่อน (ใช้เวลาหลักวินาที) แล้วค่อยประกอบเป็นชุดเดียว
      ทำตอนกดดูเท่านั้น ไม่ทำตอนติ๊กเลือก — ติ๊กเล่นไปมาแล้วเครื่องจะหน่วงทุกครั้งโดยไม่ได้ใช้ */
   const [repBusy, setRepBusy] = React.useState(false);
-  /* รูปเต็มของแผ่นรูปอุปกรณ์ โหลดตอนกดดูเท่านั้น เหมือน DATA SHEET
-     ติ๊กเลือกไปมาในหน้าทำใบจะได้ไม่ต้องดึงไฟล์รูปทุกครั้ง */
+  /* รูปเต็มของช่องรูปในตารางรับประกัน โหลดตอนกดดูเท่านั้น เหมือน DATA SHEET
+     เปลี่ยนรูปไปมาในหน้าทำใบจะได้ไม่ต้องดึงไฟล์รูปทุกครั้ง */
   const loadPics = () => {
     const ids = [];
     const push = (id) => { if (id && ids.indexOf(id) === -1) ids.push(id); };
-    if (quotePageOn(q, "pics")) (q.picIds || []).forEach(push);
     if (quotePageOn(q, "wty")) (q.wtyRows || []).forEach((r) => push(r && r.pic));
     if (!ids.length) return Promise.resolve([]);
     return Promise.all(ids.map((id) => {
@@ -1865,19 +1833,17 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
                 onSeed={() => set("boqRows", quoteBoqSeed(specSrc || q))} />
             )}
             {pageOn("wty") && (
-              <QuoteRowsEdit title="ตารางรับประกันอุปกรณ์" hint="อุปกรณ์ทีละรายการ · กี่ปี · ใส่รูปข้างชื่อได้"
+              <QuoteRowsEdit title="ตารางรับประกันอุปกรณ์" hint="อุปกรณ์ทีละรายการ · ใส่รูปข้างชื่อได้ · ช่องรับประกันคั่นด้วย · เพื่อขึ้นบรรทัดใหม่"
                 cols={[{ key: "pic", w: "52px", pic: true }, { key: "name", w: "1fr", ph: "ชื่ออุปกรณ์" },
                   { key: "qty", w: "62px", num: true },
-                  { key: "unit", w: "72px", ph: "หน่วย" }, { key: "yr", w: "150px", ph: "เช่น 5 ปี" }]}
+                  { key: "unit", w: "72px", ph: "หน่วย" }, { key: "yr", w: "170px", ph: "5 ปี · 30 ปี (ประสิทธิภาพ)" }]}
                 rows={q.wtyRows || []} locked={locked} onChange={(v) => set("wtyRows", v)} picLib={picLib}
                 onSeed={() => set("wtyRows", quoteWtySeed(specSrc || q))} />
             )}
             {(pageOn("cash") || pageOn("payback")) && (
               <QuoteRoiEdit q={q} locked={locked} onChange={(v) => set("roi", v)} />
             )}
-            {pageOn("pics") && (
-              <QuotePicPick lib={picLib} sel={q.picIds || []} locked={locked} onChange={(v) => set("picIds", v)} />
-            )}
+            {pageOn("wty") && <QuotePicPick lib={picLib} locked={locked} />}
             <QuoteSheetPick ids={sheetIds} items={sheetItems} hintText={sheetHint} locked={locked}
               onChange={(v) => set("sheetIds", v)} />
             {/* ไฟล์ PDF พิมพ์รวมในใบเสนอราคาไม่ได้ (ข้อจำกัดของเบราว์เซอร์) — เปิดไปสั่งพิมพ์แยกแล้วแนบท้าย */}
