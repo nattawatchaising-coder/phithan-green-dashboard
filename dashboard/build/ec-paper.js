@@ -50,6 +50,28 @@ const EC_PAPER_I18N = {
   "พิมพ์เมื่อ": ["printed", "打印于"],
   "บาท": ["THB", "泰铢"],
   "ใบ": ["claims", "张"],
+  "ใบเบิกเงินหน้างาน": ["Expense Claim", "现场费用报销单"],
+  "ผู้ขอเบิก": ["Claimed by", "申请人"],
+  "สถานะ": ["Status", "状态"],
+  "ที่มาของเงิน": ["Funded by", "资金来源"],
+  "ยอดที่ขอเบิก": ["Amount claimed", "申请金额"],
+  "รายการที่จ่าย": ["Items", "支出明细"],
+  "รายการ": ["Item", "项目"],
+  "จำนวน": ["Qty", "数量"],
+  "หน่วย": ["Unit", "单位"],
+  "ราคา/หน่วย": ["Unit price", "单价"],
+  "รวม": ["Amount", "小计"],
+  "บิล / ใบเสร็จ": ["Receipts", "票据"],
+  "ยังไม่ได้แนบบิล": ["No receipt attached", "未附票据"],
+  "ไฟล์ PDF แนบไว้ในระบบ": ["PDF attached in the system", "系统内附有 PDF 文件"],
+  "ผู้จ่ายคืน": ["Reimbursed by", "付款人"],
+  "ร่าง": ["Draft", "草稿"],
+  "รออนุมัติ": ["Pending approval", "待审批"],
+  "อนุมัติแล้ว": ["Approved", "已批准"],
+  "ไม่อนุมัติ": ["Rejected", "未批准"],
+  "ออกเงินตัวเองไปก่อน": ["Paid by employee", "员工垫付"],
+  "เงินสดกองกลาง": ["Petty cash", "备用金"],
+  "บัตร / บัญชีบริษัท": ["Company card / account", "公司卡 / 账户"],
   "ซื้อของหน้างาน": ["Site purchase", "现场采购"],
   "ค่าขนส่งของ": ["Freight", "货运费"],
   "ค่าน้ำมัน / เดินทาง": ["Fuel / travel", "油费与差旅"],
@@ -534,6 +556,480 @@ function EcVoucherPaper({
     }
   }, T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง"), " flash+solar \xB7 ", b.no || "-", " \xB7 ", T("พิมพ์เมื่อ"), " ", DTs(window.drToday()))));
 }
+function EcClaimPaper({
+  claim,
+  job,
+  onClose
+}) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const [lang, setLang] = React.useState(() => window.pgLang ? window.pgLang() : "th");
+  const pickLang = id => {
+    setLang(id);
+    if (window.pgSetLang) window.pgSetLang(id);
+  };
+  const T = React.useMemo(() => window.pgT ? window.pgT(EC_PAPER_I18N, lang) : k => k, [lang]);
+  const DTs = iso => !iso ? "—" : lang === "th" || !window.pgDate ? window.drDateTH(iso) : window.pgDate(iso, lang);
+  const day = iso => iso ? window.drLocalDay ? window.drLocalDay(iso) : String(iso).slice(0, 10) : "";
+  const c = claim || {};
+  const kind = window.ecKindOf(c.kind);
+  const pay = window.ecPayOf(c.payMethod);
+  const st = window.ecStatusOf(c.status);
+  const items = (c.items || []).filter(r => r && (r.name || r.amount || r.price));
+  const total = window.ecSum(c.items);
+  const rc = window.useEcReceipts(c.id);
+  const shots = rc && rc.shots || [];
+  const imgs = shots.filter(s => window.ecReceiptKind(s) === "img");
+  const pdfs = shots.filter(s => window.ecReceiptKind(s) === "pdf");
+  const signs = useEcSigns([c.byId, c.decidedById, c.paidById]);
+  const doPrint = () => {
+    const old = document.title;
+    document.title = T("ใบเบิกเงินหน้างาน") + " " + (c.no || "") + " " + (c.byName || "");
+    window.print();
+    setTimeout(() => {
+      document.title = old;
+    }, 800);
+  };
+  const th = {
+    textAlign: "left",
+    padding: "5px 7px",
+    fontSize: 10,
+    fontWeight: 700,
+    color: "#5A6B62",
+    borderBottom: "1px solid #C9D5CE",
+    whiteSpace: "nowrap"
+  };
+  const td = {
+    padding: "5px 7px",
+    fontSize: 10.5,
+    color: "#15211A",
+    borderBottom: "1px solid #ECF1EE",
+    verticalAlign: "top"
+  };
+  const num = Object.assign({}, td, {
+    textAlign: "right",
+    fontFamily: "var(--mono)"
+  });
+  const boxes = [{
+    t: T("ผู้ขอเบิก"),
+    n: c.byName,
+    img: signs[c.byId],
+    at: day(c.sentAt) || c.date
+  }, {
+    t: T("ผู้อนุมัติ"),
+    n: c.decidedByName,
+    img: signs[c.decidedById],
+    at: day(c.decidedAt)
+  }, {
+    t: T("ผู้จ่ายคืน"),
+    n: c.paidByName,
+    img: signs[c.paidById],
+    at: day(c.paidAt)
+  }];
+  return React.createElement("div", {
+    className: "sv-rep-overlay",
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 160,
+      background: "rgba(8,20,14,.55)",
+      overflow: "auto",
+      padding: isMobile ? 0 : "24px 16px"
+    }
+  }, React.createElement("div", {
+    className: "sv-rep-noprint",
+    style: {
+      position: "sticky",
+      top: 0,
+      zIndex: 2,
+      display: "flex",
+      gap: 9,
+      alignItems: "center",
+      padding: "11px 14px",
+      background: "var(--surface)",
+      borderBottom: "1px solid var(--border)",
+      marginBottom: isMobile ? 0 : 16,
+      borderRadius: isMobile ? 0 : 12,
+      maxWidth: 900,
+      marginLeft: "auto",
+      marginRight: "auto",
+      boxShadow: "var(--shadow-sm)"
+    }
+  }, React.createElement("button", {
+    onClick: onClose,
+    style: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 16
+  })), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, "\u0E43\u0E1A\u0E40\u0E1A\u0E34\u0E01\u0E40\u0E07\u0E34\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \xB7 ", c.no || "-"), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, c.byName || "-", " \xB7 ", window.ecBaht(total), " \u0E1A\u0E32\u0E17 \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19 PDF\u201D")), typeof window.LangPick === "function" && React.createElement(window.LangPick, {
+    value: lang,
+    onChange: pickLang
+  }), React.createElement("button", {
+    onClick: doPrint,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      padding: "11px 16px",
+      borderRadius: 11,
+      border: "none",
+      background: "var(--primary)",
+      color: "#fff",
+      fontFamily: "inherit",
+      fontSize: 13.5,
+      fontWeight: 700,
+      cursor: "pointer",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 16,
+    color: "#fff"
+  }), " \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF")), React.createElement("div", {
+    className: "sv-rep-paper",
+    style: {
+      maxWidth: 900,
+      margin: "0 auto",
+      background: "#fff",
+      color: "#15211A",
+      fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
+      padding: isMobile ? "20px 16px" : "30px 34px",
+      borderRadius: isMobile ? 0 : 12,
+      boxShadow: "0 20px 60px rgba(8,20,14,.28)"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-end",
+      gap: 16,
+      flexWrap: "wrap",
+      borderBottom: "2px solid #1B9B75",
+      paddingBottom: 11
+    }
+  }, React.createElement("div", {
+    style: {
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 21,
+      fontWeight: 800,
+      letterSpacing: "-.01em"
+    }
+  }, T("ใบเบิกเงินหน้างาน")), React.createElement("div", {
+    style: {
+      fontSize: 10,
+      fontWeight: 600,
+      letterSpacing: ".12em",
+      color: "#7A8A81",
+      marginTop: 3
+    }
+  }, "EXPENSE CLAIM \u2014 FIELD REIMBURSEMENT"), React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 7,
+      marginTop: 6
+    }
+  }, React.createElement(window.BrandMark, {
+    size: 22,
+    variant: "light"
+  }), React.createElement(window.BrandWord, {
+    size: 16,
+    color: "#0F2B33"
+  }))), React.createElement("div", {
+    style: {
+      textAlign: "right",
+      fontSize: 11,
+      color: "#4A5A51",
+      lineHeight: 1.75
+    }
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontWeight: 700,
+      color: "#15211A"
+    }
+  }, c.no || "-"), React.createElement("div", null, DTs(c.date)), React.createElement("div", {
+    style: {
+      display: "inline-block",
+      marginTop: 3,
+      padding: "2px 9px",
+      borderRadius: 99,
+      background: st.color + "22",
+      color: st.color,
+      fontWeight: 700,
+      fontSize: 10.5
+    }
+  }, T(st.th)))), React.createElement("div", {
+    style: {
+      marginTop: 13,
+      display: "grid",
+      gridTemplateColumns: "auto 1fr auto 1fr",
+      border: "1px solid #DCE4DF",
+      borderRadius: 7,
+      overflow: "hidden"
+    }
+  }, React.createElement(EcVPRow, {
+    k: T("ผู้ขอเบิก"),
+    v: c.byName || "-"
+  }), React.createElement(EcVPRow, {
+    k: T("วันที่ใช้จ่าย"),
+    v: DTs(c.date)
+  }), React.createElement(EcVPRow, {
+    k: T("หมวด"),
+    v: T(kind.th)
+  }), React.createElement(EcVPRow, {
+    k: T("ที่มาของเงิน"),
+    v: T(pay.th)
+  }), React.createElement(EcVPRow, {
+    k: T("งาน / ไซต์"),
+    v: c.jobId ? [c.siteCode, c.siteName].filter(Boolean).join(" · ") : "—"
+  }), React.createElement(EcVPRow, {
+    k: T("ผู้อนุมัติ"),
+    v: c.decidedByName || c.approverName || "—"
+  })), React.createElement("div", {
+    style: {
+      marginTop: 14,
+      border: "1px solid #1B9B75",
+      borderRadius: 9,
+      overflow: "hidden",
+      breakInside: "avoid"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      flexWrap: "wrap",
+      padding: "11px 14px",
+      background: "#F3F9F6"
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "#4A5A51"
+    }
+  }, T("ยอดที่ขอเบิก")), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 120
+    }
+  }), React.createElement("span", {
+    style: {
+      fontSize: 22,
+      fontWeight: 800,
+      fontFamily: "var(--mono)",
+      color: "#0A4D68"
+    }
+  }, window.ecBaht(total)), React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "#4A5A51"
+    }
+  }, T("บาท"))), React.createElement("div", {
+    style: {
+      padding: "8px 14px",
+      fontSize: 12,
+      color: "#15211A",
+      borderTop: "1px solid #DCE4DF"
+    }
+  }, T("ตัวอักษร"), " ", React.createElement("b", null, "(", ecBahtText(total), ")"))), React.createElement(EcPBlock, {
+    title: T("รายการที่จ่าย")
+  }, React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse"
+    }
+  }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", {
+    style: Object.assign({}, th, {
+      width: 26
+    })
+  }, "#"), React.createElement("th", {
+    style: th
+  }, T("รายการ")), React.createElement("th", {
+    style: Object.assign({}, th, {
+      textAlign: "right",
+      width: 58
+    })
+  }, T("จำนวน")), React.createElement("th", {
+    style: Object.assign({}, th, {
+      width: 58
+    })
+  }, T("หน่วย")), React.createElement("th", {
+    style: Object.assign({}, th, {
+      textAlign: "right",
+      width: 80
+    })
+  }, T("ราคา/หน่วย")), React.createElement("th", {
+    style: Object.assign({}, th, {
+      textAlign: "right",
+      width: 88
+    })
+  }, T("รวม")))), React.createElement("tbody", null, items.map((r, i) => React.createElement("tr", {
+    key: i
+  }, React.createElement("td", {
+    style: Object.assign({}, td, {
+      fontFamily: "var(--mono)",
+      color: "#7A8A81"
+    })
+  }, i + 1), React.createElement("td", {
+    style: td
+  }, r.name || "—"), React.createElement("td", {
+    style: num
+  }, r.qty || ""), React.createElement("td", {
+    style: td
+  }, r.unit || ""), React.createElement("td", {
+    style: num
+  }, r.price === "" || r.price == null ? "" : window.ecBaht(r.price)), React.createElement("td", {
+    style: num
+  }, window.ecBaht(window.ecSum([r]))))), React.createElement("tr", null, React.createElement("td", {
+    style: Object.assign({}, td, {
+      borderBottom: "none"
+    }),
+    colSpan: 5
+  }, React.createElement("b", {
+    style: {
+      fontSize: 11.5
+    }
+  }, T("รวมทั้งสิ้น"))), React.createElement("td", {
+    style: Object.assign({}, num, {
+      borderBottom: "none",
+      fontSize: 13,
+      fontWeight: 800
+    })
+  }, window.ecBaht(total)))))), c.note ? React.createElement(EcPBlock, {
+    title: T("หมายเหตุ"),
+    avoid: true
+  }, React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      lineHeight: 1.65,
+      color: "#15211A",
+      whiteSpace: "pre-wrap"
+    }
+  }, c.note)) : null, React.createElement(EcPBlock, {
+    title: T("บิล / ใบเสร็จ")
+  }, imgs.length === 0 && pdfs.length === 0 ? React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#B45309"
+    }
+  }, "\u2014 ", T("ยังไม่ได้แนบบิล"), " \u2014") : React.createElement(React.Fragment, null, React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 10
+    }
+  }, imgs.map(s => React.createElement("div", {
+    key: s.id,
+    style: {
+      border: "1px solid #DCE4DF",
+      borderRadius: 7,
+      padding: 5,
+      breakInside: "avoid"
+    }
+  }, React.createElement("img", {
+    src: s.dataUrl,
+    alt: "",
+    style: {
+      width: "100%",
+      maxHeight: 250,
+      objectFit: "contain",
+      display: "block"
+    }
+  })))), pdfs.length > 0 && React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "#5A6B62",
+      marginTop: 7
+    }
+  }, pdfs.length, " ", T("ไฟล์ PDF แนบไว้ในระบบ"), pdfs.map(p => p.name).filter(Boolean).length ? " · " + pdfs.map(p => p.name).filter(Boolean).join(" · ") : ""))), React.createElement("div", {
+    style: {
+      marginTop: 22,
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr",
+      gap: 14,
+      breakInside: "avoid"
+    }
+  }, boxes.map((s, i) => React.createElement("div", {
+    key: i,
+    style: {
+      border: "1px solid #DCE4DF",
+      borderRadius: 8,
+      padding: "12px 14px"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "#5A6B62"
+    }
+  }, s.t), React.createElement("div", {
+    style: {
+      height: 42,
+      borderBottom: "1px solid #C9D5CE",
+      marginTop: 6,
+      display: "grid",
+      placeItems: "center",
+      overflow: "hidden"
+    }
+  }, s.img ? React.createElement("img", {
+    src: s.img,
+    alt: "",
+    style: {
+      maxWidth: "100%",
+      maxHeight: 40,
+      objectFit: "contain"
+    }
+  }) : null), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      marginTop: 6,
+      color: "#15211A"
+    }
+  }, T("ชื่อ:"), " ", React.createElement("b", null, s.n || "…………………………")), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#4A5A51"
+    }
+  }, T("วันที่:"), " ", s.at ? DTs(s.at) : "…………………………")))), React.createElement("div", {
+    style: {
+      marginTop: 14,
+      fontSize: 9.5,
+      color: "#8A9A91",
+      textAlign: "center"
+    }
+  }, T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง"), " flash+solar \xB7 ", c.no || "-", " \xB7 ", T("พิมพ์เมื่อ"), " ", DTs(window.drToday()))));
+}
 function EcVPRow({
   k,
   v
@@ -1015,5 +1511,6 @@ Object.assign(window, {
   ecNumTH,
   ecBahtText,
   EcVoucherPaper,
+  EcClaimPaper,
   ecExportXlsx
 });

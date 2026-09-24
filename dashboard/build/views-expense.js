@@ -460,6 +460,7 @@ function EcClaimModal({
   const [delAsk, setDelAsk] = React.useState(false);
   const [payRef, setPayRef] = React.useState("");
   const [bigShot, setBigShot] = React.useState(null);
+  const [paper, setPaper] = React.useState(false);
   if (!claim) return null;
   const c = claim;
   const st = window.ecStatusOf(c.status);
@@ -567,6 +568,24 @@ function EcClaimModal({
     th: st.th,
     color: st.color
   }), React.createElement("button", {
+    onClick: () => setPaper(true),
+    title: "\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E43\u0E1A\u0E40\u0E1A\u0E34\u0E01\u0E43\u0E1A\u0E19\u0E35\u0E49",
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: 9,
+      border: "1px solid var(--border)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 15,
+    color: "var(--text-2)"
+  })), React.createElement("button", {
     onClick: onClose,
     style: {
       width: 30,
@@ -928,7 +947,13 @@ function EcClaimModal({
   }), " \u0E25\u0E1A\u0E43\u0E1A\u0E19\u0E35\u0E49"))), React.createElement(EcBigShot, {
     shot: bigShot,
     onClose: () => setBigShot(null)
-  }));
+  }), paper && React.createElement("div", {
+    onClick: e => e.stopPropagation()
+  }, React.createElement(window.EcClaimPaper, {
+    claim: c,
+    job: job,
+    onClose: () => setPaper(false)
+  })));
 }
 function EcClaimRow({
   claim,

@@ -213,6 +213,7 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
   const [delAsk, setDelAsk] = React.useState(false);
   const [payRef, setPayRef] = React.useState("");   /* เลขสลิป/เลขอ้างอิงการโอน ตอนกดจ่ายคืน */
   const [bigShot, setBigShot] = React.useState(null);
+  const [paper, setPaper] = React.useState(false);   /* แผ่น A4 ของใบนี้ */
   if (!claim) return null;
 
   const c = claim;
@@ -271,6 +272,12 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
             </div>
           </div>
           <EcPill th={st.th} color={st.color} />
+          {/* พิมพ์ใบนี้ได้ทุกสถานะ — คนอนุมัติที่อยากได้กระดาษไม่ต้องรอให้ปิดรอบจ่ายก่อน */}
+          <button onClick={() => setPaper(true)} title="พิมพ์ใบเบิกใบนี้"
+            style={{ width: 30, height: 30, borderRadius: 9, border: "1px solid var(--border)",
+              background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+            <Icon name="file" size={15} color="var(--text-2)" />
+          </button>
           <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 9, border: "1px solid var(--border)",
             background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
             <Icon name="x" size={15} color="var(--text-2)" />
@@ -445,6 +452,13 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
         </div>
       </div>
       <EcBigShot shot={bigShot} onClose={() => setBigShot(null)} />
+      {/* แผ่นกระดาษซ้อนอยู่ในโอเวอร์เลย์ของใบซึ่งปิดตัวเองเมื่อคลิกพื้นหลัง — กันคลิกไม่ให้ทะลุลงไป
+          ไม่งั้นกดปุ่มพิมพ์ทีเดียวใบข้างล่างปิดจนกระดาษหายไปด้วย */}
+      {paper && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <window.EcClaimPaper claim={c} job={job} onClose={() => setPaper(false)} />
+        </div>
+      )}
     </div>
   );
 }

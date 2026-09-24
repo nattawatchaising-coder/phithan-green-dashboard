@@ -75,6 +75,29 @@ const EC_PAPER_I18N = {
   "พิมพ์เมื่อ": ["printed", "打印于"],
   "บาท": ["THB", "泰铢"],
   "ใบ": ["claims", "张"],
+  "ใบเบิกเงินหน้างาน": ["Expense Claim", "现场费用报销单"],
+  "ผู้ขอเบิก": ["Claimed by", "申请人"],
+  "สถานะ": ["Status", "状态"],
+  "ที่มาของเงิน": ["Funded by", "资金来源"],
+  "ยอดที่ขอเบิก": ["Amount claimed", "申请金额"],
+  "รายการที่จ่าย": ["Items", "支出明细"],
+  "รายการ": ["Item", "项目"],
+  "จำนวน": ["Qty", "数量"],
+  "หน่วย": ["Unit", "单位"],
+  "ราคา/หน่วย": ["Unit price", "单价"],
+  "รวม": ["Amount", "小计"],
+  "บิล / ใบเสร็จ": ["Receipts", "票据"],
+  "ยังไม่ได้แนบบิล": ["No receipt attached", "未附票据"],
+  "ไฟล์ PDF แนบไว้ในระบบ": ["PDF attached in the system", "系统内附有 PDF 文件"],
+  "ผู้จ่ายคืน": ["Reimbursed by", "付款人"],
+  /* สถานะใบ + ที่มาของเงิน จาก expense.jsx */
+  "ร่าง": ["Draft", "草稿"],
+  "รออนุมัติ": ["Pending approval", "待审批"],
+  "อนุมัติแล้ว": ["Approved", "已批准"],
+  "ไม่อนุมัติ": ["Rejected", "未批准"],
+  "ออกเงินตัวเองไปก่อน": ["Paid by employee", "员工垫付"],
+  "เงินสดกองกลาง": ["Petty cash", "备用金"],
+  "บัตร / บัญชีบริษัท": ["Company card / account", "公司卡 / 账户"],
   /* หมวดค่าใช้จ่ายจาก expense.jsx */
   "ซื้อของหน้างาน": ["Site purchase", "现场采购"],
   "ค่าขนส่งของ": ["Freight", "货运费"],
@@ -307,6 +330,208 @@ function EcVoucherPaper({ batch, claims, onClose }) {
   );
 }
 
+/* ══════════════════════════════════════════════════
+   ใบเบิกเงินหน้างาน A4 — หนึ่งใบเบิก = หนึ่งแผ่น
+   ── ใบสำคัญจ่าย (EcVoucherPaper) คือหลักฐานของ "รอบจ่าย" ทั้งก้อน
+      แต่บัญชีต้องเก็บตัวใบเบิกคู่กับบิลเป็นรายใบด้วย และคนอนุมัติที่อยากได้กระดาษ
+      ก็ต้องการใบเดียวจบ ไม่ใช่รอให้ปิดรอบจ่ายก่อน
+   ── บิลที่แนบไว้พิมพ์ติดไปในแผ่นเดียวกัน ใบเบิกที่ไม่มีบิลแนบคือใบที่บัญชีตีกลับ
+   ══════════════════════════════════════════════════ */
+function EcClaimPaper({ claim, job, onClose }) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const [lang, setLang] = React.useState(() => (window.pgLang ? window.pgLang() : "th"));
+  const pickLang = (id) => { setLang(id); if (window.pgSetLang) window.pgSetLang(id); };
+  const T = React.useMemo(() => (window.pgT ? window.pgT(EC_PAPER_I18N, lang) : (k) => k), [lang]);
+  const DTs = (iso) => (!iso ? "—" : lang === "th" || !window.pgDate ? window.drDateTH(iso) : window.pgDate(iso, lang));
+  const day = (iso) => (iso ? (window.drLocalDay ? window.drLocalDay(iso) : String(iso).slice(0, 10)) : "");
+
+  const c = claim || {};
+  const kind = window.ecKindOf(c.kind);
+  const pay = window.ecPayOf(c.payMethod);
+  const st = window.ecStatusOf(c.status);
+  const items = (c.items || []).filter((r) => r && (r.name || r.amount || r.price));
+  const total = window.ecSum(c.items);
+  /* บิลอ่านจากโหนดแยก (ecReceipts) เหมือนที่หน้าจอใช้ — PDF พิมพ์ทับไม่ได้ บอกไว้เป็นข้อความแทน */
+  const rc = window.useEcReceipts(c.id);
+  const shots = (rc && rc.shots) || [];
+  const imgs = shots.filter((s) => window.ecReceiptKind(s) === "img");
+  const pdfs = shots.filter((s) => window.ecReceiptKind(s) === "pdf");
+  const signs = useEcSigns([c.byId, c.decidedById, c.paidById]);
+
+  const doPrint = () => {
+    const old = document.title;
+    document.title = T("ใบเบิกเงินหน้างาน") + " " + (c.no || "") + " " + (c.byName || "");
+    window.print();
+    setTimeout(() => { document.title = old; }, 800);
+  };
+
+  const th = { textAlign: "left", padding: "5px 7px", fontSize: 10, fontWeight: 700, color: "#5A6B62",
+    borderBottom: "1px solid #C9D5CE", whiteSpace: "nowrap" };
+  const td = { padding: "5px 7px", fontSize: 10.5, color: "#15211A", borderBottom: "1px solid #ECF1EE", verticalAlign: "top" };
+  const num = Object.assign({}, td, { textAlign: "right", fontFamily: "var(--mono)" });
+
+  /* ช่องเซ็น — คนที่ระบบรู้ว่ากดเมื่อไหร่ เติมชื่อ วันที่ และลายเซ็นที่บันทึกไว้ให้เลย
+     (กฎเดียวกับใบสำคัญจ่าย) ขั้นที่ยังไม่ถึงก็เหลือช่องว่างไว้ตามเดิม */
+  const boxes = [
+    { t: T("ผู้ขอเบิก"), n: c.byName, img: signs[c.byId], at: day(c.sentAt) || c.date },
+    { t: T("ผู้อนุมัติ"), n: c.decidedByName, img: signs[c.decidedById], at: day(c.decidedAt) },
+    { t: T("ผู้จ่ายคืน"), n: c.paidByName, img: signs[c.paidById], at: day(c.paidAt) },
+  ];
+
+  return (
+    <div className="sv-rep-overlay" style={{ position: "fixed", inset: 0, zIndex: 160, background: "rgba(8,20,14,.55)",
+      overflow: "auto", padding: isMobile ? 0 : "24px 16px" }}>
+
+      <div className="sv-rep-noprint" style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", gap: 9, alignItems: "center",
+        padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--border)",
+        marginBottom: isMobile ? 0 : 16, borderRadius: isMobile ? 0 : 12, maxWidth: 900, marginLeft: "auto", marginRight: "auto", boxShadow: "var(--shadow-sm)" }}>
+        <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border-strong)",
+          background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
+          <Icon name="x" size={16} />
+        </button>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>ใบเบิกเงินหน้างาน · {c.no || "-"}</div>
+          <div style={{ fontSize: 11, color: "var(--text-3)" }}>
+            {c.byName || "-"} · {window.ecBaht(total)} บาท · กดปุ่มแล้วเลือก “บันทึกเป็น PDF”
+          </div>
+        </div>
+        {typeof window.LangPick === "function" && (
+          <window.LangPick value={lang} onChange={pickLang} />
+        )}
+        <button onClick={doPrint} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "11px 16px", borderRadius: 11,
+          border: "none", background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
+          <Icon name="file" size={16} color="#fff" /> บันทึก PDF
+        </button>
+      </div>
+
+      <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: "#15211A",
+        fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
+        padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "0 20px 60px rgba(8,20,14,.28)" }}>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap",
+          borderBottom: "2px solid #1B9B75", paddingBottom: 11 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.01em" }}>{T("ใบเบิกเงินหน้างาน")}</div>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".12em", color: "#7A8A81", marginTop: 3 }}>EXPENSE CLAIM — FIELD REIMBURSEMENT</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}>
+              <window.BrandMark size={22} variant="light" />
+              <window.BrandWord size={16} color="#0F2B33" />
+            </div>
+          </div>
+          <div style={{ textAlign: "right", fontSize: 11, color: "#4A5A51", lineHeight: 1.75 }}>
+            <div style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "#15211A" }}>{c.no || "-"}</div>
+            <div>{DTs(c.date)}</div>
+            <div style={{ display: "inline-block", marginTop: 3, padding: "2px 9px", borderRadius: 99,
+              background: st.color + "22", color: st.color, fontWeight: 700, fontSize: 10.5 }}>{T(st.th)}</div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 13, display: "grid", gridTemplateColumns: "auto 1fr auto 1fr",
+          border: "1px solid #DCE4DF", borderRadius: 7, overflow: "hidden" }}>
+          <EcVPRow k={T("ผู้ขอเบิก")} v={c.byName || "-"} />
+          <EcVPRow k={T("วันที่ใช้จ่าย")} v={DTs(c.date)} />
+          <EcVPRow k={T("หมวด")} v={T(kind.th)} />
+          <EcVPRow k={T("ที่มาของเงิน")} v={T(pay.th)} />
+          <EcVPRow k={T("งาน / ไซต์")}
+            v={c.jobId ? [c.siteCode, c.siteName].filter(Boolean).join(" · ") : "—"} />
+          <EcVPRow k={T("ผู้อนุมัติ")} v={c.decidedByName || (c.approverName || "—")} />
+        </div>
+
+        <div style={{ marginTop: 14, border: "1px solid #1B9B75", borderRadius: 9, overflow: "hidden", breakInside: "avoid" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "11px 14px", background: "#F3F9F6" }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: "#4A5A51" }}>{T("ยอดที่ขอเบิก")}</span>
+            <span style={{ flex: 1, minWidth: 120 }} />
+            <span style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--mono)", color: "#0A4D68" }}>{window.ecBaht(total)}</span>
+            <span style={{ fontSize: 12, color: "#4A5A51" }}>{T("บาท")}</span>
+          </div>
+          <div style={{ padding: "8px 14px", fontSize: 12, color: "#15211A", borderTop: "1px solid #DCE4DF" }}>
+            {T("ตัวอักษร")} <b>({ecBahtText(total)})</b>
+          </div>
+        </div>
+
+        <EcPBlock title={T("รายการที่จ่าย")}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th style={Object.assign({}, th, { width: 26 })}>#</th>
+                <th style={th}>{T("รายการ")}</th>
+                <th style={Object.assign({}, th, { textAlign: "right", width: 58 })}>{T("จำนวน")}</th>
+                <th style={Object.assign({}, th, { width: 58 })}>{T("หน่วย")}</th>
+                <th style={Object.assign({}, th, { textAlign: "right", width: 80 })}>{T("ราคา/หน่วย")}</th>
+                <th style={Object.assign({}, th, { textAlign: "right", width: 88 })}>{T("รวม")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((r, i) => (
+                <tr key={i}>
+                  <td style={Object.assign({}, td, { fontFamily: "var(--mono)", color: "#7A8A81" })}>{i + 1}</td>
+                  <td style={td}>{r.name || "—"}</td>
+                  <td style={num}>{r.qty || ""}</td>
+                  <td style={td}>{r.unit || ""}</td>
+                  <td style={num}>{r.price === "" || r.price == null ? "" : window.ecBaht(r.price)}</td>
+                  <td style={num}>{window.ecBaht(window.ecSum([r]))}</td>
+                </tr>
+              ))}
+              <tr>
+                <td style={Object.assign({}, td, { borderBottom: "none" })} colSpan={5}>
+                  <b style={{ fontSize: 11.5 }}>{T("รวมทั้งสิ้น")}</b>
+                </td>
+                <td style={Object.assign({}, num, { borderBottom: "none", fontSize: 13, fontWeight: 800 })}>{window.ecBaht(total)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </EcPBlock>
+
+        {c.note ? (
+          <EcPBlock title={T("หมายเหตุ")} avoid>
+            <div style={{ fontSize: 11.5, lineHeight: 1.65, color: "#15211A", whiteSpace: "pre-wrap" }}>{c.note}</div>
+          </EcPBlock>
+        ) : null}
+
+        {/* บิล — หลักฐานตัวจริงของใบนี้ ต้องติดไปกับกระดาษ ไม่ใช่อยู่แต่ในจอ */}
+        <EcPBlock title={T("บิล / ใบเสร็จ")}>
+          {imgs.length === 0 && pdfs.length === 0 ? (
+            <div style={{ fontSize: 11, color: "#B45309" }}>— {T("ยังไม่ได้แนบบิล")} —</div>
+          ) : (
+            <React.Fragment>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                {imgs.map((s) => (
+                  <div key={s.id} style={{ border: "1px solid #DCE4DF", borderRadius: 7, padding: 5, breakInside: "avoid" }}>
+                    <img src={s.dataUrl} alt="" style={{ width: "100%", maxHeight: 250, objectFit: "contain", display: "block" }} />
+                  </div>
+                ))}
+              </div>
+              {pdfs.length > 0 && (
+                <div style={{ fontSize: 10.5, color: "#5A6B62", marginTop: 7 }}>
+                  {pdfs.length} {T("ไฟล์ PDF แนบไว้ในระบบ")}{pdfs.map((p) => p.name).filter(Boolean).length
+                    ? " · " + pdfs.map((p) => p.name).filter(Boolean).join(" · ") : ""}
+                </div>
+              )}
+            </React.Fragment>
+          )}
+        </EcPBlock>
+
+        <div style={{ marginTop: 22, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, breakInside: "avoid" }}>
+          {boxes.map((s, i) => (
+            <div key={i} style={{ border: "1px solid #DCE4DF", borderRadius: 8, padding: "12px 14px" }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: "#5A6B62" }}>{s.t}</div>
+              <div style={{ height: 42, borderBottom: "1px solid #C9D5CE", marginTop: 6, display: "grid", placeItems: "center", overflow: "hidden" }}>
+                {s.img ? <img src={s.img} alt="" style={{ maxWidth: "100%", maxHeight: 40, objectFit: "contain" }} /> : null}
+              </div>
+              <div style={{ fontSize: 11, marginTop: 6, color: "#15211A" }}>{T("ชื่อ:")} <b>{s.n || "…………………………"}</b></div>
+              <div style={{ fontSize: 11, color: "#4A5A51" }}>{T("วันที่:")} {s.at ? DTs(s.at) : "…………………………"}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginTop: 14, fontSize: 9.5, color: "#8A9A91", textAlign: "center" }}>
+          {T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง")} flash+solar · {c.no || "-"} · {T("พิมพ์เมื่อ")} {DTs(window.drToday())}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* แถวข้อมูลหัวกระดาษ — DrPRow ของรายงานประจำวันไม่ได้ export ออกมา จึงทำคู่เล็ก ๆ ไว้ใช้เอง */
 function EcVPRow({ k, v }) {
   return (
@@ -474,4 +699,4 @@ function ecExportXlsx(claims, opts) {
   X.writeFile(wb, "ใบเบิกเงินหน้างาน_" + window.drToday() + ".xlsx");
 }
 
-Object.assign(window, { ecNumTH, ecBahtText, EcVoucherPaper, ecExportXlsx });
+Object.assign(window, { ecNumTH, ecBahtText, EcVoucherPaper, EcClaimPaper, ecExportXlsx });
