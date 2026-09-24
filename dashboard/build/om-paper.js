@@ -1094,7 +1094,7 @@ function OmVisitPaper({
       gap: 7
     }
   }, React.createElement(window.BrandDoc, {
-    height: 34
+    height: 26
   })), React.createElement("div", {
     style: {
       fontSize: 9.5,
@@ -1338,7 +1338,7 @@ function OmVisitPaper({
       marginTop: 6
     }
   }, React.createElement(window.BrandDoc, {
-    height: 40
+    height: 30
   }))), React.createElement("div", {
     style: {
       textAlign: "right",

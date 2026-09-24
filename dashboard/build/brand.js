@@ -18,8 +18,7 @@ const BRANDING = {
   green: "#22B36A",
   leaf: "#1B9B75",
   muted: "#5B8A8A",
-  docLock: "dashboard/assets/flashplussolar-lockup.webp",
-  docLockRatio: 2000 / 420,
+  docMark: "dashboard/assets/flashplussolar-mark.png",
   markURL: "dashboard/assets/flash-mark.svg",
   markPNG: "dashboard/assets/flash-mark.png"
 };
@@ -133,31 +132,50 @@ function BrandLockup({
 }
 function brandDocURL() {
   try {
-    return new URL(BRANDING.docLock, location.href).href;
+    return new URL(BRANDING.docMark, location.href).href;
   } catch (e) {
-    return BRANDING.docLock;
+    return BRANDING.docMark;
   }
 }
 function BrandDoc({
   height,
+  name,
   style
 }) {
   const h = height || 34;
-  return React.createElement("img", {
+  const img = React.createElement("img", {
     src: brandDocURL(),
     alt: BRANDING.legal,
-    style: Object.assign({
+    style: {
       height: h,
       width: "auto",
       display: "block",
       flexShrink: 0
-    }, style || {})
+    }
   });
+  if (name === false) return img;
+  return React.createElement("div", {
+    style: Object.assign({
+      display: "flex",
+      alignItems: "center",
+      gap: Math.round(h * 0.22)
+    }, style || {})
+  }, img, React.createElement("span", {
+    style: {
+      fontSize: Math.round(h * 0.42),
+      fontWeight: 800,
+      letterSpacing: "-.01em",
+      color: BRANDING.ink,
+      whiteSpace: "nowrap"
+    }
+  }, BRANDING.legal));
 }
 function brandDocHTML(opts) {
   const o = opts || {};
   const h = o.height || 44;
-  return '<img src="' + brandDocURL() + '" alt="' + BRANDING.legal + '" style="height:' + h + 'px;width:auto;display:block" />';
+  const img = '<img src="' + brandDocURL() + '" alt="' + BRANDING.legal + '" style="height:' + h + 'px;width:auto;display:block" />';
+  if (o.name === false) return img;
+  return '<div style="display:flex;align-items:center;gap:' + Math.round(h * 0.22) + 'px">' + img + '<span style="font-size:' + Math.round(h * 0.42) + "px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;color:" + BRANDING.ink + '">' + BRANDING.legal + "</span></div>";
 }
 function brandHeadHTML(opts) {
   const o = opts || {};

@@ -13,7 +13,7 @@ const rpN = (v, d) => {
 };
 const rpLogoURL = () => {
   try {
-    return new URL((window.BRANDING || {}).docLock || "dashboard/assets/flashplussolar-lockup.webp", location.href).href;
+    return new URL((window.BRANDING || {}).docMark || "dashboard/assets/flashplussolar-mark.png", location.href).href;
   } catch (e) {
     return "";
   }
@@ -1219,7 +1219,7 @@ function suReportHTML(D) {
   const addSec = (on, title, body, sub) => {
     if (on && body) secs.push(sec(secs.length + 1, title, body, sub));
   };
-  const cover = !P.cover ? "" : '<header class="cover">' + '<div class="cv-bar">' + '<div class="brand"><img class="lock" src="' + RP_ESC(rpLogoURL()) + '" alt="' + RP_ESC(window.BRANDING.legal) + '">' + "</div>" + '<span class="cv-tag">' + RP_ESC(job.code || "—") + "</span>" + "</div>" + '<div class="cv-mid">' + '<p class="cv-kick">รายงานการออกแบบและวิเคราะห์ระบบ</p>' + "<h1>ระบบผลิตไฟฟ้า<br>พลังงานแสงอาทิตย์บนหลังคา</h1>" + '<div class="cv-big"><b>' + (E ? rpN(E.dcKw, 2) : "—") + "</b><i>kWp</i>" + "<span>ผลิตได้ปีละราว " + (L ? rpN(L.rows[0].kwh) : "—") + " kWh" + (roi && roi.payback ? " · คืนทุนใน " + roi.payback + " ปี" : "") + "</span></div>" + "</div>" + (D.snapImg ? '<figure class="cv-shot"><img src="' + D.snapImg + '" alt="ผังการติดตั้ง 3 มิติ">' + "<figcaption>ผังการติดตั้งจำลอง 3 มิติ — ทุกตัวเลขในรายงานนี้อ้างอิงจากโมเดลนี้</figcaption></figure>" : "") + '<div class="cv-meta">' + "<span><i>ลูกค้า</i>" + RP_ESC(job.name || "—") + "</span>" + "<span><i>สถานที่ติดตั้ง</i>" + RP_ESC([job.address, job.province].filter(Boolean).join(" ") || "—") + "</span>" + "<span><i>วันที่ออกรายงาน</i>" + RP_ESC(today) + "</span>" + "</div>" + "</header>";
+  const cover = !P.cover ? "" : '<header class="cover">' + '<div class="cv-bar">' + '<div class="brand"><img class="lock" src="' + RP_ESC(rpLogoURL()) + '" alt="' + RP_ESC(window.BRANDING.legal) + '">' + "<div><b>" + RP_ESC(window.BRANDING.legal) + "</b>" + "<span>ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์</span></div></div>" + '<span class="cv-tag">' + RP_ESC(job.code || "—") + "</span>" + "</div>" + '<div class="cv-mid">' + '<p class="cv-kick">รายงานการออกแบบและวิเคราะห์ระบบ</p>' + "<h1>ระบบผลิตไฟฟ้า<br>พลังงานแสงอาทิตย์บนหลังคา</h1>" + '<div class="cv-big"><b>' + (E ? rpN(E.dcKw, 2) : "—") + "</b><i>kWp</i>" + "<span>ผลิตได้ปีละราว " + (L ? rpN(L.rows[0].kwh) : "—") + " kWh" + (roi && roi.payback ? " · คืนทุนใน " + roi.payback + " ปี" : "") + "</span></div>" + "</div>" + (D.snapImg ? '<figure class="cv-shot"><img src="' + D.snapImg + '" alt="ผังการติดตั้ง 3 มิติ">' + "<figcaption>ผังการติดตั้งจำลอง 3 มิติ — ทุกตัวเลขในรายงานนี้อ้างอิงจากโมเดลนี้</figcaption></figure>" : "") + '<div class="cv-meta">' + "<span><i>ลูกค้า</i>" + RP_ESC(job.name || "—") + "</span>" + "<span><i>สถานที่ติดตั้ง</i>" + RP_ESC([job.address, job.province].filter(Boolean).join(" ") || "—") + "</span>" + "<span><i>วันที่ออกรายงาน</i>" + RP_ESC(today) + "</span>" + "</div>" + "</header>";
   const summary = !P.summary ? "" : '<section class="sec sum"><h2><span class="no">✦</span>สรุปผลการออกแบบ<small>' + RP_ESC(job.code || "") + "</small></h2>" + '<div class="kpis">' + kpis + "</div>" + '<p class="note">ตัวเลขทั้งหมดมาจากการจำลองตำแหน่งดวงอาทิตย์จริงที่พิกัดของงานนี้ ร่วมกับโมเดล 3 มิติของอาคาร ' + "รายละเอียดวิธีคิดและสมมติฐานอยู่ในหัวข้อถัดไปทั้งหมด</p></section>";
   addSec(P.equip, "อุปกรณ์ที่ใช้", specTbl + "<h3>ผืนหลังคาและทิศทางแผง</h3>" + groupTbl, D.totalPanels + " แผง · " + (D.groups || []).length + " กลุ่มทิศทาง");
   addSec(P.wiring, D.isMicro ? "การต่อไมโครอินเวอร์เตอร์" : "การต่อสตริงและช่อง MPPT", wiring + microNote + phaseSec + wiringNote + (P.layout ? "<h3>ผังแผงมองจากด้านบน (สีเดียวกัน = " + (D.isMicro ? "ไมโครตัวเดียวกัน" : "สตริงเดียวกัน") + (D.isMicro && D.phases === 3 ? " · ตัวหนังสือบนแผง = เฟส" : "") + " · ทิศเหนืออยู่บน)</h3>" + rpLayout(D.foot, D.assign, D.uidPhase) : "") + (D.isMicro && (D.microUnits || []).length ? rpTable(["ไมโคร", "แผง", "กลุ่มทิศทาง"].concat(D.phases === 3 ? ["เฟส"] : []).concat(["หมายเหตุ"]), D.microUnits.map(u => [{
@@ -1271,7 +1271,7 @@ body{font-family:'IBM Plex Sans Thai','Sarabun','Noto Sans Thai','Segoe UI',sans
 .brand{display:flex;align-items:center;gap:11px}
 .brand .mark{width:36px;height:36px;object-fit:contain;display:block;background:#fff;border-radius:9px;padding:4px}
 /* โลโก้เต็มชุดบนแถบเข้ม — ตัวหนังสือในรูปเป็นสีเขียวเข้ม ต้องมีแผ่นขาวรองถึงจะอ่านออก */
-.brand .lock{height:34px;width:auto;display:block;background:#fff;border-radius:8px;padding:5px 9px}
+.brand .lock{height:34px;width:auto;display:block;background:#fff;border-radius:9px;padding:4px}
 /* ชื่อแบรนด์ต้องอยู่บรรทัดเดียว — เครื่องหมาย + ห่อด้วย <span> เพื่อให้เป็นสีเขียว
    กฎ .brand span เดิมจับ span ตัวนั้นด้วย จึงดัน + เป็นบล็อก แล้วหักเป็น flash / + / solar สามบรรทัด
    ต้องเจาะจงเฉพาะบรรทัดคำโปรยที่เป็นลูกตรงของ div และกัน nowrap ไว้อีกชั้น */

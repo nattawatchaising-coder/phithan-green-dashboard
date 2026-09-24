@@ -94,13 +94,14 @@ function InspectionPaper({ job, rec, photos, onClose }) {
       borderBottom: "2px solid " + RP_INK, paddingBottom: 9, marginBottom: 12 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
-          {window.BrandDoc ? <window.BrandDoc height={44} /> : null}
+          {window.BrandDoc ? <window.BrandDoc height={32} /> : null}
         </div>
         <div style={{ fontSize: 15, fontWeight: 800, color: RP_INK, letterSpacing: "-.2px" }}>{title}</div>
         {/* ประเภทการตรวจคือหัวเรื่องจริงของใบ — คนอ่านต้องรู้ตั้งแต่บรรทัดแรกว่าตรวจเรื่องอะไร */}
         {r.kind ? <div style={{ fontSize: 12, fontWeight: 700, color: RP_INK, marginTop: 1 }}>{r.kind}</div> : null}
         <div style={{ fontSize: 10, color: RP_SOFT, marginTop: 2 }}>
-          {B.legal || ""}{j.code ? " · " + j.code : ""}{r.no ? " · " + r.no : ""}
+          {/* ชื่อบริษัทอยู่ข้างตราด้านบนแล้ว บรรทัดนี้เหลือแค่เลขงานกับเลขใบ */}
+          {[j.code, r.no].filter(Boolean).join(" · ")}
         </div>
       </div>
       <div style={{ flexShrink: 0, textAlign: "right", fontSize: 9.5, color: RP_SOFT, lineHeight: 1.6 }}>

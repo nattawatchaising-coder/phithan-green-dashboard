@@ -116,7 +116,7 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
             <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.01em" }}>ใบสรุปการทำงานล่วงเวลา</div>
             <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".12em", color: "#7A8A81", marginTop: 3 }}>OVERTIME SUMMARY — FOR SUPERVISOR APPROVAL</div>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}>
-              <window.BrandDoc height={40} />
+              <window.BrandDoc height={30} />
             </div>
           </div>
           <div style={{ textAlign: "right", fontSize: 11, color: "#4A5A51", lineHeight: 1.75 }}>

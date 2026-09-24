@@ -322,7 +322,7 @@ function EcVoucherPaper({
       marginTop: 6
     }
   }, React.createElement(window.BrandDoc, {
-    height: 40
+    height: 30
   }))), React.createElement("div", {
     style: {
       textAlign: "right",
@@ -868,7 +868,7 @@ function EcClaimPaper({
       marginTop: 6
     }
   }, React.createElement(window.BrandDoc, {
-    height: 40
+    height: 30
   }))), React.createElement("div", {
     style: {
       textAlign: "right",

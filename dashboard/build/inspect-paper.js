@@ -180,7 +180,7 @@ function InspectionPaper({
       marginBottom: 7
     }
   }, window.BrandDoc ? React.createElement(window.BrandDoc, {
-    height: 44
+    height: 32
   }) : null), React.createElement("div", {
     style: {
       fontSize: 15,
@@ -201,7 +201,7 @@ function InspectionPaper({
       color: RP_SOFT,
       marginTop: 2
     }
-  }, B.legal || "", j.code ? " · " + j.code : "", r.no ? " · " + r.no : "")), React.createElement("div", {
+  }, [j.code, r.no].filter(Boolean).join(" · "))), React.createElement("div", {
     style: {
       flexShrink: 0,
       textAlign: "right",

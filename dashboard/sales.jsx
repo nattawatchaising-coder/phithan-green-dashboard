@@ -770,7 +770,7 @@ function quoteHTML(q, lang, sheets, pics) {
   /* หัวจดหมาย — ใช้ทั้งแผ่นใบเสนอราคาและแผ่นแนบ ต่างกันแค่ชื่อเอกสารมุมขวา
      แผ่นแนบที่หลุดจากชุดต้องอ่านออกว่าเป็นของบริษัทไหน ใบเลขที่อะไร */
   const headHTML = (title) =>
-    '<div class="hd"><div>' + window.brandDocHTML({ height: 46 }) +
+    '<div class="hd"><div>' + window.brandDocHTML({ height: 46, name: false }) +
     (window.BRANDING.legalTH ? '<div class="bs bl">' + sEsc(window.BRANDING.legalTH) +
       (window.BRANDING.taxId ? " · เลขประจำตัวผู้เสียภาษี " + sEsc(window.BRANDING.taxId) : "") + "</div>" : "") +
     (window.BRANDING.addrTH ? '<div class="bs">' + sEsc(window.BRANDING.addrTH) + "</div>" : "") +
@@ -803,7 +803,7 @@ function quoteHTML(q, lang, sheets, pics) {
      แผ่นแรกจึงต้องบอกครบในสายตาเดียวว่าใครเสนอ เสนอให้ใคร ระบบใหญ่เท่าไร */
   const coverHTML = () =>
     '<div class="cv">' +
-    '<div class="cvh">' + window.brandDocHTML({ height: 52 }) +
+    '<div class="cvh">' + window.brandDocHTML({ height: 52, name: false }) +
     (window.BRANDING.legalTH ? '<div class="bs bl">' + sEsc(window.BRANDING.legalTH) +
       (window.BRANDING.taxId ? " · เลขประจำตัวผู้เสียภาษี " + sEsc(window.BRANDING.taxId) : "") + "</div>" : "") +
     (window.BRANDING.addrTH ? '<div class="bs">' + sEsc(window.BRANDING.addrTH) + "</div>" : "") +

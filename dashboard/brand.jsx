@@ -37,8 +37,7 @@ const BRANDING = {
   leaf: "#1B9B75",      /* เขียวหลัก (ปุ่ม/กราฟ) */
   muted: "#5B8A8A",     /* ตัวหนังสือรอง ใต้โลโก้ */
 
-  docLock: "dashboard/assets/flashplussolar-lockup.webp",   /* โลโก้เต็มชุดสำหรับหัวเอกสาร (2000x420) */
-  docLockRatio: 2000 / 420,
+  docMark: "dashboard/assets/flashplussolar-mark.png",   /* ตราบริษัทสำหรับหัวเอกสาร (พื้นโปร่ง 1056x897) */
   markURL: "dashboard/assets/flash-mark.svg",
   markPNG: "dashboard/assets/flash-mark.png",   /* ใช้กับหน้าต่างพิมพ์/แคนวาส ที่ SVG บางเบราว์เซอร์ไม่ยอมวาด */
 };
@@ -128,25 +127,37 @@ function BrandLockup({ size, stack, sub, variant, color, subColor }) {
 /* ที่อยู่เต็มของรูปโลโก้ — เอกสารบางใบถูกสร้างใน iframe srcDoc หรือหน้าต่างพิมพ์ใหม่
    ที่นั่นเส้นทางแบบสัมพัทธ์เชื่อถือไม่ได้ เลยคิดเป็น URL เต็มจากหน้าหลักตั้งแต่ตอนสร้างสตริง */
 function brandDocURL() {
-  try { return new URL(BRANDING.docLock, location.href).href; } catch (e) { return BRANDING.docLock; }
+  try { return new URL(BRANDING.docMark, location.href).href; } catch (e) { return BRANDING.docMark; }
 }
 
 /* ตราบริษัทบนกระดาษ — ใช้แทนคู่ BrandMark+BrandWord ในทุกใบที่พิมพ์ออกไปให้คนนอกอ่าน
-   height คือความสูงจริงบนกระดาษ ความกว้างไหลตามสัดส่วนรูป ไม่ต้องกำหนด */
-function BrandDoc({ height, style }) {
+   ใช้เฉพาะตราอย่างเดียว ส่วนชื่อบริษัทเขียนเป็นตัวหนังสือข้าง ๆ ไม่ใช้ชื่อที่ฝังมาในรูป
+   เพราะตัวในรูปย่อลงหัวกระดาษแล้วเล็กจนอ่านไม่ออก
+   height คือความสูงจริงบนกระดาษ · name={false} เมื่อมีบรรทัดชื่อบริษัทพิมพ์อยู่ใต้โลโก้แล้ว */
+function BrandDoc({ height, name, style }) {
   const h = height || 34;
-  return React.createElement("img", {
+  const img = React.createElement("img", {
     src: brandDocURL(), alt: BRANDING.legal,
-    style: Object.assign({ height: h, width: "auto", display: "block", flexShrink: 0 }, style || {}),
+    style: { height: h, width: "auto", display: "block", flexShrink: 0 },
   });
+  if (name === false) return img;
+  return React.createElement("div", {
+    style: Object.assign({ display: "flex", alignItems: "center", gap: Math.round(h * 0.22) }, style || {}),
+  }, img, React.createElement("span", {
+    style: { fontSize: Math.round(h * 0.42), fontWeight: 800, letterSpacing: "-.01em", color: BRANDING.ink, whiteSpace: "nowrap" },
+  }, BRANDING.legal));
 }
 
 /* รุ่นสตริงของ BrandDoc สำหรับเอกสารที่ประกอบด้วยการต่อสตริง (ใบเสนอราคา ฯลฯ) */
 function brandDocHTML(opts) {
   const o = opts || {};
   const h = o.height || 44;
-  return '<img src="' + brandDocURL() + '" alt="' + BRANDING.legal +
+  const img = '<img src="' + brandDocURL() + '" alt="' + BRANDING.legal +
     '" style="height:' + h + 'px;width:auto;display:block" />';
+  if (o.name === false) return img;
+  return '<div style="display:flex;align-items:center;gap:' + Math.round(h * 0.22) + 'px">' + img +
+    '<span style="font-size:' + Math.round(h * 0.42) + "px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;color:" +
+    BRANDING.ink + '">' + BRANDING.legal + "</span></div>";
 }
 
 /* หัวกระดาษของเอกสารที่พิมพ์ผ่านหน้าต่างใหม่ (ใบเสนอราคา · ใบขออนุญาต · รายงานออกแบบ)
