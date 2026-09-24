@@ -1259,6 +1259,14 @@ function UserEditModal({ initial, existing, onSave, onClose }) {
               </select>
             </AField>
           )}
+          {/* คนจ่ายเงินคืนก็มีเพดานของตัวเอง — จ่ายคือเงินออกจริง ควรคุมได้ละเอียดกว่าเปิด/ปิดสิทธิ์ */}
+          {can(f.roles, "expensePay") && (
+            <AField label="วงเงินที่จ่ายคืนได้เอง (บาท · 0 = ไม่จำกัด)">
+              <input style={Object.assign({}, A_INPUT, { fontFamily: "var(--mono)" })} inputMode="decimal"
+                value={f.payLimit || ""} onChange={(e) => set("payLimit", e.target.value.replace(/[^\d.]/g, ""))}
+                placeholder="เช่น 20000 — รอบจ่ายที่ยอดรวมเกินนี้ต้องให้คนอื่นกด" />
+            </AField>
+          )}
           {can(f.roles, "expenseApprove") && (
             <AField label="วงเงินที่อนุมัติได้เอง (บาท · 0 = ไม่จำกัด)">
               <input style={Object.assign({}, A_INPUT, { fontFamily: "var(--mono)" })} inputMode="decimal"

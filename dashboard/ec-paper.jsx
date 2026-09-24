@@ -49,6 +49,11 @@ function ecBahtText(n) {
    ป้ายกำกับบรรทัดนั้นจึงบอกไว้ว่าเป็นภาษาไทย · ชื่อคน ชื่องาน และหมายเหตุเป็นข้อมูล ไม่แปล */
 const EC_PAPER_I18N = {
   "ใบสำคัญจ่าย": ["Payment Voucher", "付款凭证"],
+  "ใบปะหน้าจ่ายเงิน": ["Payment Cover Sheet", "付款封面单"],
+  "รอโอน": ["Pending transfer", "待转账"],
+  "ใบนี้เป็นใบปะหน้าสำหรับตรวจเอกสารก่อนโอน ยังไม่ใช่หลักฐานการจ่าย": [
+    "This is a cover sheet for checking documents before transfer — not proof of payment.",
+    "本单为转账前核对单据用封面，非付款凭证。"],
   "จ่ายคืนแล้ว": ["Reimbursed", "已报销"],
   "จ่ายให้": ["Pay to", "收款人"],
   "วันที่จ่าย": ["Payment date", "付款日期"],
@@ -143,7 +148,7 @@ function useEcSigns(ids) {
 /* ══════════════════════════════════════════════════
    ใบสำคัญจ่าย A4 — หนึ่งรอบจ่าย = หนึ่งใบ
    ══════════════════════════════════════════════════ */
-function EcVoucherPaper({ batch, claims, onClose }) {
+function EcVoucherPaper({ batch, claims, draft, onClose }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   /* ภาษาของใบ — สลับสดจากแถบด้านบน ซึ่งไม่ติดไปในหน้าพิมพ์อยู่แล้ว
      วันที่ไทยเป็น พ.ศ. อังกฤษ/จีนเป็น ค.ศ. จึงแยกฟังก์ชันไว้ ห้ามแปลผ่าน T() */
@@ -176,7 +181,7 @@ function EcVoucherPaper({ batch, claims, onClose }) {
 
   const doPrint = () => {
     const old = document.title;
-    document.title = T("ใบสำคัญจ่าย") + " " + (b.no || "") + " " + (b.toName || "");
+    document.title = T(draft ? "ใบปะหน้าจ่ายเงิน" : "ใบสำคัญจ่าย") + " " + (b.no || "") + " " + (b.toName || "");
     window.print();
     setTimeout(() => { document.title = old; }, 800);
   };
@@ -198,7 +203,9 @@ function EcVoucherPaper({ batch, claims, onClose }) {
           <Icon name="x" size={16} />
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>ใบสำคัญจ่าย · {b.no || "-"}</div>
+          <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>
+            {draft ? "ใบปะหน้าจ่ายเงิน" : "ใบสำคัญจ่าย"} · {b.no || "-"}
+          </div>
           <div style={{ fontSize: 11, color: "var(--text-3)" }}>
             {b.toName || "-"} · {window.ecBaht(total)} บาท · กดปุ่มแล้วเลือก “บันทึกเป็น PDF”
           </div>
@@ -221,8 +228,10 @@ function EcVoucherPaper({ batch, claims, onClose }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap",
           borderBottom: "2px solid #1B9B75", paddingBottom: 11 }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.01em" }}>{T("ใบสำคัญจ่าย")}</div>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".12em", color: "#7A8A81", marginTop: 3 }}>PAYMENT VOUCHER — FIELD EXPENSE REIMBURSEMENT</div>
+            <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.01em" }}>{T(draft ? "ใบปะหน้าจ่ายเงิน" : "ใบสำคัญจ่าย")}</div>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".12em", color: "#7A8A81", marginTop: 3 }}>
+              {draft ? "PAYMENT COVER SHEET — FIELD EXPENSE REIMBURSEMENT" : "PAYMENT VOUCHER — FIELD EXPENSE REIMBURSEMENT"}
+            </div>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}>
               <window.BrandMark size={22} variant="light" />
               <window.BrandWord size={16} color="#0F2B33" />
@@ -232,7 +241,8 @@ function EcVoucherPaper({ batch, claims, onClose }) {
             <div style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "#15211A" }}>{b.no || "-"}</div>
             <div>{DT(b.date)}</div>
             <div style={{ display: "inline-block", marginTop: 3, padding: "2px 9px", borderRadius: 99,
-              background: "#10B98122", color: "#10B981", fontWeight: 700, fontSize: 10.5 }}>{T("จ่ายคืนแล้ว")}</div>
+              background: draft ? "#F59E0B22" : "#10B98122", color: draft ? "#B45309" : "#10B981",
+              fontWeight: 700, fontSize: 10.5 }}>{T(draft ? "รอโอน" : "จ่ายคืนแล้ว")}</div>
           </div>
         </div>
 
@@ -318,7 +328,7 @@ function EcVoucherPaper({ batch, claims, onClose }) {
               ใครยังไม่ได้บันทึกลายเซ็นก็เหลือเส้นว่างให้เซ็นเองตามเดิม */}
         <div style={{ marginTop: 22, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, breakInside: "avoid" }}>
           {[{ t: T("ผู้รับเงิน"), n: b.toName },
-            { t: T("ผู้จ่ายเงิน"), n: b.byName, img: signs[b.byId], at: b.at || b.date },
+            { t: T("ผู้จ่ายเงิน"), n: b.byName, img: draft ? "" : signs[b.byId], at: draft ? "" : (b.at || b.date) },
             { t: T("ผู้อนุมัติ"), n: apprs.map((a) => a.name).join(" · "),
               img: apprs.length === 1 ? signs[apprs[0].id] : "",
               at: apprs.length === 1 ? apprs[0].at : "" }].map((s, i) => (
@@ -333,6 +343,11 @@ function EcVoucherPaper({ batch, claims, onClose }) {
           ))}
         </div>
 
+        {draft && (
+          <div style={{ marginTop: 12, fontSize: 10.5, color: "#B45309", textAlign: "center" }}>
+            {T("ใบนี้เป็นใบปะหน้าสำหรับตรวจเอกสารก่อนโอน ยังไม่ใช่หลักฐานการจ่าย")}
+          </div>
+        )}
         <div style={{ marginTop: 14, fontSize: 9.5, color: "#8A9A91", textAlign: "center" }}>
           {T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง")} flash+solar · {b.no || "-"} · {T("พิมพ์เมื่อ")} {DTs(window.drToday())}
         </div>

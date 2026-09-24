@@ -150,6 +150,24 @@ function ecApproveCheck(claim, user, role) {
     why: ""
   };
 }
+function ecPayCheck(amount, user, role) {
+  if (!ecCanPay(role)) return {
+    ok: false,
+    why: "ไม่มีสิทธิ์บันทึกจ่ายเงินคืน"
+  };
+  const lim = +(user || {}).payLimit || 0;
+  const amt = ecRound(amount && typeof amount === "object" ? amount.amount : amount);
+  if (lim > 0 && amt > lim) {
+    return {
+      ok: false,
+      why: "ยอดนี้เกินวงเงินที่คุณจ่ายได้ (" + ecBahtShort(lim) + " บาท) — ต้องให้คนที่วงเงินสูงกว่าเป็นคนกด"
+    };
+  }
+  return {
+    ok: true,
+    why: ""
+  };
+}
 function ecNext(claim, role, user) {
   const cur = ecStatusOf((claim || {}).status);
   const mine = claim && user && claim.byId === user.id;
@@ -158,7 +176,7 @@ function ecNext(claim, role, user) {
     if (k === "sent") return mine || ecCanApprove(role);
     if (k === "approved") return appr;
     if (k === "rejected") return appr;
-    if (k === "paid") return ecCanPay(role);
+    if (k === "paid") return ecPayCheck(claim, user, role).ok;
     if (k === "draft") return mine || ecCanApprove(role);
     return false;
   }).map(k => EC_STATUS_BY[k]);
@@ -582,6 +600,7 @@ Object.assign(window, {
   ecCanDelete,
   ecApproverFor,
   ecApproveCheck,
+  ecPayCheck,
   ecNext,
   ecCan,
   ecMove,

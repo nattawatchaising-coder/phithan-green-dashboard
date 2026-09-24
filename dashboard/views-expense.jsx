@@ -227,6 +227,8 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
   const set = (fields) => { if (!locked) onPatch(c.id, fields); };
   const nexts = window.ecNext(c, role, currentUser);
   const chk = window.ecApproveCheck(c, currentUser, role);
+  /* มีสิทธิ์จ่ายแต่ยอดเกินวงเงิน — ปุ่มจะหายไปเฉย ๆ ต้องบอกว่าทำไม ไม่งั้นคนนั่งงงว่าระบบเสีย */
+  const payChk = window.ecPayCheck(c, currentUser, role);
   const canDel = window.ecCanDelete(role) || (mine && c.status === "draft");
   const total = window.ecSum(c.items);
   /* Firebase ทิ้งอ็อบเจกต์ว่างเสมอ — DrRows เพิ่มแถวใหม่เป็น {} เปล่า ๆ
@@ -379,6 +381,12 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
           <window.DrSection n="4" title="การอนุมัติ" tone={st.color}
             hint={c.status === "sent" ? (c.approverName ? "รอ " + c.approverName : "รอหัวหน้าอนุมัติ")
               : (c.decidedByName ? "โดย " + c.decidedByName : "")}>
+            {c.status === "approved" && window.ecCanPay(role) && !payChk.ok && payChk.why && (
+              <div style={{ fontSize: 12, lineHeight: 1.55, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg)",
+                border: "1px solid var(--tint-amber-bd)", borderRadius: 9, padding: "8px 11px", marginBottom: 12 }}>
+                {payChk.why}
+              </div>
+            )}
             {c.status === "sent" && !chk.ok && chk.why && (
               <div style={{ fontSize: 12, lineHeight: 1.55, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg)",
                 border: "1px solid var(--tint-amber-bd)", borderRadius: 9, padding: "8px 11px", marginBottom: 12 }}>
@@ -533,7 +541,7 @@ function EcClaimRow({ claim, onOpen, gone }) {
 
 /* ── ตารางยอดรายคน ──
    "ค้างจ่าย" คือตัวเลขเดียวในตารางนี้ที่เอาไปจ่ายเงินจริงได้ ที่เหลือเป็นข้อมูลประกอบ */
-function EcPersonTable({ claims, users, onPick, onPay, canPay }) {
+function EcPersonTable({ claims, users, onPick, onPay, canPay, currentUser, role }) {
   const roll = window.ecRollupByPerson(claims);
   const rows = Object.keys(roll).map((k) => roll[k])
     .sort((a, b) => b.owed - a.owed || b.waiting - a.waiting || b.count - a.count);
@@ -575,12 +583,20 @@ function EcPersonTable({ claims, users, onPick, onPay, canPay }) {
                   <td style={Object.assign({}, td, { color: "var(--text-3)" })}>{r.count}</td>
                   {canPay && (
                     <td style={{ padding: "8px 10px", textAlign: "right" }}>
-                      {r.owed > 0 && (
-                        <button onClick={(e) => { e.stopPropagation(); onPay && onPay(r); }}
-                          style={{ whiteSpace: "nowrap", padding: "7px 13px", borderRadius: 9, border: "none",
-                            background: "var(--primary)", color: "#fff", cursor: "pointer",
-                            fontFamily: "inherit", fontSize: 12, fontWeight: 800 }}>จ่ายคืน</button>
-                      )}
+                      {/* เกินวงเงินของคนที่ล็อกอินอยู่ — บอกตั้งแต่ในตาราง ดีกว่าให้กดเข้าไปแล้วเจอทางตัน */}
+                      {r.owed > 0 && (() => {
+                        const ck = window.ecPayCheck(r.owed, currentUser, role);
+                        return (
+                          <button onClick={(e) => { e.stopPropagation(); if (ck.ok) onPay && onPay(r); }}
+                            disabled={!ck.ok} title={ck.ok ? "" : ck.why}
+                            style={{ whiteSpace: "nowrap", padding: "7px 13px", borderRadius: 9, border: "none",
+                              background: ck.ok ? "var(--primary)" : "var(--surface2)",
+                              color: ck.ok ? "#fff" : "var(--text-3)", cursor: ck.ok ? "pointer" : "not-allowed",
+                              fontFamily: "inherit", fontSize: 12, fontWeight: 800 }}>
+                            {ck.ok ? "จ่ายคืน" : "เกินวงเงิน"}
+                          </button>
+                        );
+                      })()}
                     </td>
                   )}
                 </tr>
@@ -609,17 +625,29 @@ function EcPersonTable({ claims, users, onPick, onPay, canPay }) {
 /* ── ปิดรอบจ่ายเงินคืนพนักงานหนึ่งคน ──
    จ่ายทีละใบคือการทรมานคนจ่ายและเป็นที่มาของการจ่ายซ้ำ/จ่ายตก
    หน้าต่างนี้แสดงทุกใบที่จะถูกปิดพร้อมกัน ให้เห็นก่อนกดว่ากำลังโอนเท่าไหร่ให้ใคร แลกกับใบอะไรบ้าง */
-function EcPayModal({ person, claims, batches, currentUser, onClose, onConfirm }) {
+function EcPayModal({ person, claims, batches, currentUser, role, onClose, onConfirm }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [ref, setRef] = React.useState("");
   const [note, setNote] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  const [cover, setCover] = React.useState(null);   /* ใบปะหน้าที่เปิดอยู่ */
   const list = claims || [];
   const total = window.ecRound(list.reduce((a, c) => a + window.ecRound(c.amount), 0));
   const no = window.ecBatchNo(batches, window.drToday());
+  const ck = window.ecPayCheck(total, currentUser, role);
+
+  /* ── ใบปะหน้า ──
+     ก่อนโอนต้องเอากระดาษทั้งกองมาตรวจว่าครบตามที่ระบบบอก ซึ่งตอนนี้ทำด้วยมือล้วน
+     ใบปะหน้าคือใบสำคัญจ่ายของรอบนี้ที่พิมพ์ได้ก่อนโอน เอาไว้วางหน้ากองเอกสาร
+     เลขรอบเป็นเลขเดียวกับตอนกดจ่ายจริง ใบที่พิมพ์ไว้ก่อนจึงยังตรงกับใบสำคัญจ่ายที่ออกทีหลัง */
+  const openCover = () => {
+    const b = window.ecBlankBatch(person, list, currentUser, batches);
+    b.ref = ref; b.note = note;
+    setCover(b);
+  };
 
   const go = () => {
-    if (busy || !list.length) return;
+    if (busy || !list.length || !ck.ok) return;
     setBusy(true);
     const batch = window.ecBlankBatch(person, list, currentUser, batches);
     batch.ref = ref; batch.note = note;
@@ -691,6 +719,12 @@ function EcPayModal({ person, claims, batches, currentUser, onClose, onConfirm }
             กดแล้วทุกใบข้างบนจะถูกปิดเป็น “จ่ายคืนแล้ว” พร้อมกันในคำสั่งเดียว และล็อกถาวรเป็นหลักฐานการจ่าย ·
             เงินต้องโอนจริงก่อนกด ระบบไม่ได้โอนเงินให้
           </div>
+          {!ck.ok && ck.why && (
+            <div style={{ fontSize: 12, lineHeight: 1.55, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg)",
+              border: "1px solid var(--tint-amber-bd)", borderRadius: 9, padding: "8px 11px", marginTop: 12 }}>
+              {ck.why}
+            </div>
+          )}
         </div>
 
         <div style={{ display: "flex", gap: 9, padding: "13px 18px", borderTop: "1px solid var(--border)", background: "var(--surface)" }}>
@@ -699,14 +733,28 @@ function EcPayModal({ person, claims, batches, currentUser, onClose, onConfirm }
               background: "var(--surface)", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--text-2)" }}>
             ยกเลิก
           </button>
-          <button onClick={go} disabled={busy || !list.length}
-            style={{ flex: 1, padding: "10px 18px", borderRadius: 10, border: "none", background: "#10B981", color: "#fff",
-              cursor: busy ? "default" : "pointer", opacity: busy ? 0.7 : 1,
+          {/* พิมพ์ได้ตั้งแต่ก่อนโอน — คนจ่ายเอาไปวางหน้ากองเอกสารแล้วไล่ตรวจทีละใบ */}
+          <button onClick={openCover} disabled={!list.length}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 15px", borderRadius: 10,
+              border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+              fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--text-2)" }}>
+            <Icon name="file" size={15} color="var(--text-2)" /> ใบปะหน้า
+          </button>
+          <button onClick={go} disabled={busy || !list.length || !ck.ok}
+            style={{ flex: 1, padding: "10px 18px", borderRadius: 10, border: "none",
+              background: ck.ok ? "#10B981" : "var(--surface2)", color: ck.ok ? "#fff" : "var(--text-3)",
+              cursor: busy || !ck.ok ? "default" : "pointer", opacity: busy ? 0.7 : 1,
               fontFamily: "inherit", fontSize: 13, fontWeight: 800 }}>
-            {busy ? "กำลังบันทึก..." : "ยืนยันว่าโอนเงินแล้ว " + window.ecBaht(total) + " บาท"}
+            {busy ? "กำลังบันทึก..." : !ck.ok ? "เกินวงเงินที่จ่ายได้"
+              : "ยืนยันว่าโอนเงินแล้ว " + window.ecBaht(total) + " บาท"}
           </button>
         </div>
       </div>
+      {cover && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <window.EcVoucherPaper batch={cover} claims={list} draft onClose={() => setCover(null)} />
+        </div>
+      )}
     </div>
   );
 }
@@ -1031,7 +1079,7 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
 
       {tab === "person" && (
         <div>
-          <EcPersonTable claims={all} users={users} canPay={canPay}
+          <EcPersonTable claims={all} users={users} canPay={canPay} currentUser={currentUser} role={role}
             onPick={(r) => { setJobFilter(""); setQ(r.name || ""); setTab("all"); }}
             onPay={(r) => setPayFor(r)} />
           <EcBatchList batches={batchStore.batches} onPrint={setVoucher} />
@@ -1079,7 +1127,7 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
       )}
 
       {payFor && (
-        <EcPayModal person={payFor} claims={payList} batches={batchStore.batches} currentUser={currentUser}
+        <EcPayModal person={payFor} claims={payList} batches={batchStore.batches} currentUser={currentUser} role={role}
           onClose={() => setPayFor(null)} onConfirm={payBatch} />
       )}
 

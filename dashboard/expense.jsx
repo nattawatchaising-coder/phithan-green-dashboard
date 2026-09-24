@@ -123,6 +123,18 @@ function ecApproveCheck(claim, user, role) {
   return { ok: true, why: "" };
 }
 
+/* คนนี้ปิดยอดนี้เป็น "จ่ายคืนแล้ว" ได้ไหม — รับทั้งตัวใบและตัวเลข (รอบจ่ายเช็กด้วยยอดรวม)
+   0 = ไม่จำกัด ซึ่งเป็นค่าเริ่มต้นของบัญชีเดิมทั้งหมด พฤติกรรมจึงไม่เปลี่ยนจนกว่าจะตั้งวงเงิน */
+function ecPayCheck(amount, user, role) {
+  if (!ecCanPay(role)) return { ok: false, why: "ไม่มีสิทธิ์บันทึกจ่ายเงินคืน" };
+  const lim = +((user || {}).payLimit) || 0;
+  const amt = ecRound(amount && typeof amount === "object" ? amount.amount : amount);
+  if (lim > 0 && amt > lim) {
+    return { ok: false, why: "ยอดนี้เกินวงเงินที่คุณจ่ายได้ (" + ecBahtShort(lim) + " บาท) — ต้องให้คนที่วงเงินสูงกว่าเป็นคนกด" };
+  }
+  return { ok: true, why: "" };
+}
+
 /* ขั้นถัดไปที่ "คนนี้" กดได้จริง — กรองด้วยสิทธิ์แล้ว ปุ่มที่กดไม่ได้จะไม่โผล่ตั้งแต่แรก */
 function ecNext(claim, role, user) {
   const cur = ecStatusOf((claim || {}).status);
@@ -132,7 +144,7 @@ function ecNext(claim, role, user) {
     if (k === "sent")     return mine || ecCanApprove(role);          /* ส่งใบ / ตีกลับให้แก้ */
     if (k === "approved") return appr;
     if (k === "rejected") return appr;
-    if (k === "paid")     return ecCanPay(role);
+    if (k === "paid")     return ecPayCheck(claim, user, role).ok;
     if (k === "draft")    return mine || ecCanApprove(role);          /* ใบที่ไม่อนุมัติ เอากลับมาแก้ */
     return false;
   }).map((k) => EC_STATUS_BY[k]);
@@ -491,7 +503,7 @@ Object.assign(window, {
   EC_ROOT, EC_KIND, EC_KIND_BY, EC_PAY, EC_PAY_BY, EC_STATUS, EC_STATUS_BY,
   ecRound, ecBaht, ecBahtShort, ecKindOf, ecPayOf, ecStatusOf, ecOpen,
   ecCanUse, ecCanApprove, ecCanPay, ecCanDelete,
-  ecApproverFor, ecApproveCheck, ecNext, ecCan, ecMove,
+  ecApproverFor, ecApproveCheck, ecPayCheck, ecNext, ecCan, ecMove,
   ecDocNo, ecBlank, ecSum, ecVisible,
   ecPayable, ecBatchNo, ecBlankBatch, useEcReceipts, useEcBatches,
   EC_PDF_MAX_MB, ecReceiptKind, ecFileSize,

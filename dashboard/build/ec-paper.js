@@ -24,6 +24,9 @@ function ecBahtText(n) {
 }
 const EC_PAPER_I18N = {
   "ใบสำคัญจ่าย": ["Payment Voucher", "付款凭证"],
+  "ใบปะหน้าจ่ายเงิน": ["Payment Cover Sheet", "付款封面单"],
+  "รอโอน": ["Pending transfer", "待转账"],
+  "ใบนี้เป็นใบปะหน้าสำหรับตรวจเอกสารก่อนโอน ยังไม่ใช่หลักฐานการจ่าย": ["This is a cover sheet for checking documents before transfer — not proof of payment.", "本单为转账前核对单据用封面，非付款凭证。"],
   "จ่ายคืนแล้ว": ["Reimbursed", "已报销"],
   "จ่ายให้": ["Pay to", "收款人"],
   "วันที่จ่าย": ["Payment date", "付款日期"],
@@ -115,6 +118,7 @@ function useEcSigns(ids) {
 function EcVoucherPaper({
   batch,
   claims,
+  draft,
   onClose
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -151,7 +155,7 @@ function EcVoucherPaper({
   useEcPrintBody();
   const doPrint = () => {
     const old = document.title;
-    document.title = T("ใบสำคัญจ่าย") + " " + (b.no || "") + " " + (b.toName || "");
+    document.title = T(draft ? "ใบปะหน้าจ่ายเงิน" : "ใบสำคัญจ่าย") + " " + (b.no || "") + " " + (b.toName || "");
     window.print();
     setTimeout(() => {
       document.title = old;
@@ -234,7 +238,7 @@ function EcVoucherPaper({
       fontWeight: 800,
       color: "var(--text-1)"
     }
-  }, "\u0E43\u0E1A\u0E2A\u0E33\u0E04\u0E31\u0E0D\u0E08\u0E48\u0E32\u0E22 \xB7 ", b.no || "-"), React.createElement("div", {
+  }, draft ? "ใบปะหน้าจ่ายเงิน" : "ใบสำคัญจ่าย", " \xB7 ", b.no || "-"), React.createElement("div", {
     style: {
       fontSize: 11,
       color: "var(--text-3)"
@@ -295,7 +299,7 @@ function EcVoucherPaper({
       fontWeight: 800,
       letterSpacing: "-.01em"
     }
-  }, T("ใบสำคัญจ่าย")), React.createElement("div", {
+  }, T(draft ? "ใบปะหน้าจ่ายเงิน" : "ใบสำคัญจ่าย")), React.createElement("div", {
     style: {
       fontSize: 10,
       fontWeight: 600,
@@ -303,7 +307,7 @@ function EcVoucherPaper({
       color: "#7A8A81",
       marginTop: 3
     }
-  }, "PAYMENT VOUCHER \u2014 FIELD EXPENSE REIMBURSEMENT"), React.createElement("div", {
+  }, draft ? "PAYMENT COVER SHEET — FIELD EXPENSE REIMBURSEMENT" : "PAYMENT VOUCHER — FIELD EXPENSE REIMBURSEMENT"), React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -335,12 +339,12 @@ function EcVoucherPaper({
       marginTop: 3,
       padding: "2px 9px",
       borderRadius: 99,
-      background: "#10B98122",
-      color: "#10B981",
+      background: draft ? "#F59E0B22" : "#10B98122",
+      color: draft ? "#B45309" : "#10B981",
       fontWeight: 700,
       fontSize: 10.5
     }
-  }, T("จ่ายคืนแล้ว")))), React.createElement("div", {
+  }, T(draft ? "รอโอน" : "จ่ายคืนแล้ว")))), React.createElement("div", {
     style: {
       marginTop: 13,
       display: "grid",
@@ -509,8 +513,8 @@ function EcVoucherPaper({
   }, {
     t: T("ผู้จ่ายเงิน"),
     n: b.byName,
-    img: signs[b.byId],
-    at: b.at || b.date
+    img: draft ? "" : signs[b.byId],
+    at: draft ? "" : b.at || b.date
   }, {
     t: T("ผู้อนุมัติ"),
     n: apprs.map(a => a.name).join(" · "),
@@ -557,7 +561,14 @@ function EcVoucherPaper({
       fontSize: 11,
       color: "#4A5A51"
     }
-  }, T("วันที่:"), " ", s.at ? DTs(s.at) : "…………………………")))), React.createElement("div", {
+  }, T("วันที่:"), " ", s.at ? DTs(s.at) : "…………………………")))), draft && React.createElement("div", {
+    style: {
+      marginTop: 12,
+      fontSize: 10.5,
+      color: "#B45309",
+      textAlign: "center"
+    }
+  }, T("ใบนี้เป็นใบปะหน้าสำหรับตรวจเอกสารก่อนโอน ยังไม่ใช่หลักฐานการจ่าย")), React.createElement("div", {
     style: {
       marginTop: 14,
       fontSize: 9.5,

@@ -473,6 +473,7 @@ function EcClaimModal({
   };
   const nexts = window.ecNext(c, role, currentUser);
   const chk = window.ecApproveCheck(c, currentUser, role);
+  const payChk = window.ecPayCheck(c, currentUser, role);
   const canDel = window.ecCanDelete(role) || mine && c.status === "draft";
   const total = window.ecSum(c.items);
   const ecRowsClean = rows => (rows || []).map(r => ({
@@ -815,7 +816,18 @@ function EcClaimModal({
     title: "\u0E01\u0E32\u0E23\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34",
     tone: st.color,
     hint: c.status === "sent" ? c.approverName ? "รอ " + c.approverName : "รอหัวหน้าอนุมัติ" : c.decidedByName ? "โดย " + c.decidedByName : ""
-  }, c.status === "sent" && !chk.ok && chk.why && React.createElement("div", {
+  }, c.status === "approved" && window.ecCanPay(role) && !payChk.ok && payChk.why && React.createElement("div", {
+    style: {
+      fontSize: 12,
+      lineHeight: 1.55,
+      color: "var(--tint-amber-tx)",
+      background: "var(--tint-amber-bg)",
+      border: "1px solid var(--tint-amber-bd)",
+      borderRadius: 9,
+      padding: "8px 11px",
+      marginBottom: 12
+    }
+  }, payChk.why), c.status === "sent" && !chk.ok && chk.why && React.createElement("div", {
     style: {
       fontSize: 12,
       lineHeight: 1.55,
@@ -1111,7 +1123,9 @@ function EcPersonTable({
   users,
   onPick,
   onPay,
-  canPay
+  canPay,
+  currentUser,
+  role
 }) {
   const roll = window.ecRollupByPerson(claims);
   const rows = Object.keys(roll).map(k => roll[k]).sort((a, b) => b.owed - a.owed || b.waiting - a.waiting || b.count - a.count);
@@ -1226,24 +1240,29 @@ function EcPersonTable({
         padding: "8px 10px",
         textAlign: "right"
       }
-    }, r.owed > 0 && React.createElement("button", {
-      onClick: e => {
-        e.stopPropagation();
-        onPay && onPay(r);
-      },
-      style: {
-        whiteSpace: "nowrap",
-        padding: "7px 13px",
-        borderRadius: 9,
-        border: "none",
-        background: "var(--primary)",
-        color: "#fff",
-        cursor: "pointer",
-        fontFamily: "inherit",
-        fontSize: 12,
-        fontWeight: 800
-      }
-    }, "\u0E08\u0E48\u0E32\u0E22\u0E04\u0E37\u0E19")));
+    }, r.owed > 0 && (() => {
+      const ck = window.ecPayCheck(r.owed, currentUser, role);
+      return React.createElement("button", {
+        onClick: e => {
+          e.stopPropagation();
+          if (ck.ok) onPay && onPay(r);
+        },
+        disabled: !ck.ok,
+        title: ck.ok ? "" : ck.why,
+        style: {
+          whiteSpace: "nowrap",
+          padding: "7px 13px",
+          borderRadius: 9,
+          border: "none",
+          background: ck.ok ? "var(--primary)" : "var(--surface2)",
+          color: ck.ok ? "#fff" : "var(--text-3)",
+          cursor: ck.ok ? "pointer" : "not-allowed",
+          fontFamily: "inherit",
+          fontSize: 12,
+          fontWeight: 800
+        }
+      }, ck.ok ? "จ่ายคืน" : "เกินวงเงิน");
+    })()));
   })), React.createElement("tfoot", null, React.createElement("tr", {
     style: {
       background: "var(--surface2)"
@@ -1277,6 +1296,7 @@ function EcPayModal({
   claims,
   batches,
   currentUser,
+  role,
   onClose,
   onConfirm
 }) {
@@ -1284,11 +1304,19 @@ function EcPayModal({
   const [ref, setRef] = React.useState("");
   const [note, setNote] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  const [cover, setCover] = React.useState(null);
   const list = claims || [];
   const total = window.ecRound(list.reduce((a, c) => a + window.ecRound(c.amount), 0));
   const no = window.ecBatchNo(batches, window.drToday());
+  const ck = window.ecPayCheck(total, currentUser, role);
+  const openCover = () => {
+    const b = window.ecBlankBatch(person, list, currentUser, batches);
+    b.ref = ref;
+    b.note = note;
+    setCover(b);
+  };
   const go = () => {
-    if (busy || !list.length) return;
+    if (busy || !list.length || !ck.ok) return;
     setBusy(true);
     const batch = window.ecBlankBatch(person, list, currentUser, batches);
     batch.ref = ref;
@@ -1474,7 +1502,18 @@ function EcPayModal({
       lineHeight: 1.6,
       marginTop: 12
     }
-  }, "\u0E01\u0E14\u0E41\u0E25\u0E49\u0E27\u0E17\u0E38\u0E01\u0E43\u0E1A\u0E02\u0E49\u0E32\u0E07\u0E1A\u0E19\u0E08\u0E30\u0E16\u0E39\u0E01\u0E1B\u0E34\u0E14\u0E40\u0E1B\u0E47\u0E19 \u201C\u0E08\u0E48\u0E32\u0E22\u0E04\u0E37\u0E19\u0E41\u0E25\u0E49\u0E27\u201D \u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E01\u0E31\u0E19\u0E43\u0E19\u0E04\u0E33\u0E2A\u0E31\u0E48\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27 \u0E41\u0E25\u0E30\u0E25\u0E47\u0E2D\u0E01\u0E16\u0E32\u0E27\u0E23\u0E40\u0E1B\u0E47\u0E19\u0E2B\u0E25\u0E31\u0E01\u0E10\u0E32\u0E19\u0E01\u0E32\u0E23\u0E08\u0E48\u0E32\u0E22 \xB7 \u0E40\u0E07\u0E34\u0E19\u0E15\u0E49\u0E2D\u0E07\u0E42\u0E2D\u0E19\u0E08\u0E23\u0E34\u0E07\u0E01\u0E48\u0E2D\u0E19\u0E01\u0E14 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E42\u0E2D\u0E19\u0E40\u0E07\u0E34\u0E19\u0E43\u0E2B\u0E49")), React.createElement("div", {
+  }, "\u0E01\u0E14\u0E41\u0E25\u0E49\u0E27\u0E17\u0E38\u0E01\u0E43\u0E1A\u0E02\u0E49\u0E32\u0E07\u0E1A\u0E19\u0E08\u0E30\u0E16\u0E39\u0E01\u0E1B\u0E34\u0E14\u0E40\u0E1B\u0E47\u0E19 \u201C\u0E08\u0E48\u0E32\u0E22\u0E04\u0E37\u0E19\u0E41\u0E25\u0E49\u0E27\u201D \u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E01\u0E31\u0E19\u0E43\u0E19\u0E04\u0E33\u0E2A\u0E31\u0E48\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27 \u0E41\u0E25\u0E30\u0E25\u0E47\u0E2D\u0E01\u0E16\u0E32\u0E27\u0E23\u0E40\u0E1B\u0E47\u0E19\u0E2B\u0E25\u0E31\u0E01\u0E10\u0E32\u0E19\u0E01\u0E32\u0E23\u0E08\u0E48\u0E32\u0E22 \xB7 \u0E40\u0E07\u0E34\u0E19\u0E15\u0E49\u0E2D\u0E07\u0E42\u0E2D\u0E19\u0E08\u0E23\u0E34\u0E07\u0E01\u0E48\u0E2D\u0E19\u0E01\u0E14 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E42\u0E2D\u0E19\u0E40\u0E07\u0E34\u0E19\u0E43\u0E2B\u0E49"), !ck.ok && ck.why && React.createElement("div", {
+    style: {
+      fontSize: 12,
+      lineHeight: 1.55,
+      color: "var(--tint-amber-tx)",
+      background: "var(--tint-amber-bg)",
+      border: "1px solid var(--tint-amber-bd)",
+      borderRadius: 9,
+      padding: "8px 11px",
+      marginTop: 12
+    }
+  }, ck.why)), React.createElement("div", {
     style: {
       display: "flex",
       gap: 9,
@@ -1496,22 +1535,50 @@ function EcPayModal({
       color: "var(--text-2)"
     }
   }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("button", {
+    onClick: openCover,
+    disabled: !list.length,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "10px 15px",
+      borderRadius: 10,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 13,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 15,
+    color: "var(--text-2)"
+  }), " \u0E43\u0E1A\u0E1B\u0E30\u0E2B\u0E19\u0E49\u0E32"), React.createElement("button", {
     onClick: go,
-    disabled: busy || !list.length,
+    disabled: busy || !list.length || !ck.ok,
     style: {
       flex: 1,
       padding: "10px 18px",
       borderRadius: 10,
       border: "none",
-      background: "#10B981",
-      color: "#fff",
-      cursor: busy ? "default" : "pointer",
+      background: ck.ok ? "#10B981" : "var(--surface2)",
+      color: ck.ok ? "#fff" : "var(--text-3)",
+      cursor: busy || !ck.ok ? "default" : "pointer",
       opacity: busy ? 0.7 : 1,
       fontFamily: "inherit",
       fontSize: 13,
       fontWeight: 800
     }
-  }, busy ? "กำลังบันทึก..." : "ยืนยันว่าโอนเงินแล้ว " + window.ecBaht(total) + " บาท"))));
+  }, busy ? "กำลังบันทึก..." : !ck.ok ? "เกินวงเงินที่จ่ายได้" : "ยืนยันว่าโอนเงินแล้ว " + window.ecBaht(total) + " บาท"))), cover && React.createElement("div", {
+    onClick: e => e.stopPropagation()
+  }, React.createElement(window.EcVoucherPaper, {
+    batch: cover,
+    claims: list,
+    draft: true,
+    onClose: () => setCover(null)
+  })));
 }
 function EcBatchList({
   batches,
@@ -2095,6 +2162,8 @@ function ExpenseView({
     claims: all,
     users: users,
     canPay: canPay,
+    currentUser: currentUser,
+    role: role,
     onPick: r => {
       setJobFilter("");
       setQ(r.name || "");
@@ -2174,6 +2243,7 @@ function ExpenseView({
     claims: payList,
     batches: batchStore.batches,
     currentUser: currentUser,
+    role: role,
     onClose: () => setPayFor(null),
     onConfirm: payBatch
   }), cur && React.createElement(EcClaimModal, {
