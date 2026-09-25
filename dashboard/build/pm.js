@@ -12,7 +12,7 @@ const _pmRoot = () => window.FBDB.ref(PM_ROOT || "/");
 const pmToday = () => new Date().toISOString().slice(0, 10);
 const pmNow = () => new Date().toISOString();
 const PM_VER = 1;
-const PM_RETIRED = [];
+const PM_RETIRED = ["engCleantech", "ecoEng", "pmHead", "regionalPm", "apEcotech"];
 const pmVerOf = rec => rec && rec.meta && +rec.meta.ver || PM_VER;
 const pmActive = (it, ver) => !!it.req && (it.since || 1) <= ver;
 const PM_SECTIONS = [{
@@ -391,21 +391,21 @@ const PM_SECTIONS = [{
     en: "Engineers Undertaking Commissioning",
     th: "วิศวกรผู้ทดสอบระบบ",
     fields: [{
-      key: "engCleantech",
-      en: "Name of Cleantech Engineer",
-      th: "ชื่อวิศวกรผู้ทดสอบ",
-      type: "text",
-      req: 1,
-      since: 1,
-      from: "user"
-    }, {
-      key: "engTester",
-      en: "Name of Tester / EPC Representative",
-      th: "ชื่อผู้ทดสอบ / ตัวแทน EPC",
+      key: "engProject",
+      en: "Project Engineer",
+      th: "วิศวกรโปรเจค",
       type: "text",
       req: 1,
       since: 1,
       from: "job"
+    }, {
+      key: "engTester",
+      en: "Name of Tester",
+      th: "ชื่อผู้ทดสอบ",
+      type: "text",
+      req: 1,
+      since: 1,
+      from: "user"
     }]
   }]
 }, {
@@ -670,15 +670,17 @@ const PM_SECTIONS = [{
     en: "Approvals",
     th: "การอนุมัติ",
     items: [{
-      key: "apEcotech",
-      en: "Ecotechpart Engineer",
-      th: "วิศวกรฝ่ายผู้รับเหมา",
+      key: "apCompany",
+      en: "Contractor Approval",
+      th: "อนุมัติโดยบริษัทผู้รับเหมา",
+      dyn: "company",
       req: 1,
       since: 1
     }, {
       key: "apOwner",
-      en: "Owner Project",
-      th: "เจ้าของโครงการ",
+      en: "Owner Approval",
+      th: "อนุมัติโดยเจ้าของโครงการ",
+      dyn: "project",
       req: 1,
       since: 1
     }]
@@ -691,27 +693,21 @@ const PM_SECTIONS = [{
   since: 1,
   kind: "sign",
   blocks: [{
-    key: "ecoEng",
-    en: "Signature of Ecotechpart Engineer",
-    th: "วิศวกรฝ่ายผู้รับเหมา",
+    key: "signSite",
+    en: "Signature of Site Engineer",
+    th: "วิศวกรหน้างาน",
     req: 1,
     since: 1
   }, {
-    key: "pmHead",
-    en: "Signature of PM Head",
-    th: "หัวหน้าผู้จัดการโครงการ",
+    key: "signProject",
+    en: "Signature of Project Engineer",
+    th: "วิศวกรโปรเจค",
     req: 1,
     since: 1
   }, {
     key: "owner",
-    en: "Signature of Owner Project",
+    en: "Signature of Project Owner",
     th: "เจ้าของโครงการ",
-    req: 1,
-    since: 1
-  }, {
-    key: "regionalPm",
-    en: "Signature of Regional PM Head",
-    th: "ผู้จัดการโครงการประจำภูมิภาค",
     req: 1,
     since: 1
   }]
@@ -726,6 +722,19 @@ const PM_FROM_LABEL = {
   survey: "จากแบบสำรวจ",
   user: "จากผู้ใช้งาน"
 };
+function pmDocName(item, job) {
+  if (!item || !item.dyn) return "";
+  if (item.dyn === "company") return (window.BRANDING || {}).legal || "";
+  if (item.dyn === "project") return job && (job.name || job.customer) || "";
+  return "";
+}
+function pmDocLabel(item, job) {
+  const nm = pmDocName(item, job);
+  return {
+    en: item.en + (nm ? " — " + nm : ""),
+    th: item.th + (nm ? " · " + nm : "")
+  };
+}
 function pmBlank(user) {
   return {
     meta: {
@@ -777,8 +786,8 @@ function pmPrefill(job, user) {
   put("dcKwp", j.kw);
   put("pv1Qty", j.panels);
   put("outV", String(j.phase) === "3" ? 400 : 230);
-  put("engTester", j.eeName);
-  put("engCleantech", (user || {}).name);
+  put("engTester", (user || {}).name);
+  put("engProject", j.eeName);
   const boq = j.boq || {};
   const B = window.BOQ || null;
   const panelModel = boq.panelModel || j.panelModel || "";
@@ -851,7 +860,8 @@ function pmProgress(rec, job, user) {
       const v = r.docs || {};
       sec.groups.forEach(g => (g.items || []).forEach(it => {
         if (!pmActive(it, ver)) return;
-        tick(v[it.key] === "y" || v[it.key] === "n", it.key, it.en, it.th);
+        const lb = pmDocLabel(it, job);
+        tick(v[it.key] === "y" || v[it.key] === "n", it.key, lb.en, lb.th);
       }));
     } else if (sec.kind === "sign") {
       const v = r.sign || {};
@@ -1101,6 +1111,8 @@ Object.assign(window, {
   PM_SECTIONS,
   PM_SEC_BY,
   PM_FROM_LABEL,
+  pmDocName,
+  pmDocLabel,
   pmToday,
   pmNow,
   pmVerOf,

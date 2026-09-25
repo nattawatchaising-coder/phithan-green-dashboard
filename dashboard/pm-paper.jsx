@@ -190,7 +190,7 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
                       <tr key={it.key}>
                         <td style={Object.assign({}, pmpTd, { textAlign: "center", color: PM_SOFT, fontSize: 9.5 })}>{n}</td>
                         <td style={pmpTd}>
-                          {it.en}<span style={{ color: PM_SOFT, fontSize: 9.5 }}> ({it.th})</span>
+                          {window.pmDocLabel(it, job).en}<span style={{ color: PM_SOFT, fontSize: 9.5 }}> ({window.pmDocLabel(it, job).th})</span>
                         </td>
                         {/* ช่องว่างปล่อยว่างไว้จริง ๆ ให้ติ๊กด้วยปากกาได้ตอนพิมพ์เล่มที่ยังไม่เสร็จ */}
                         <td style={Object.assign({}, pmpTd, { textAlign: "center", fontSize: 13 })}>{v === "y" ? "√" : ""}</td>
@@ -383,7 +383,8 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
           n += 1;
           const v = (r.docs || {})[it.key];
           const answered = v === "y" || v === "n";
-          pushRow([n, it.en, it.th, v === "y" ? "√" : "", v === "n" ? "–" : "",
+          const lb = window.pmDocLabel(it, j);
+          pushRow([n, lb.en, lb.th, v === "y" ? "√" : "", v === "n" ? "–" : "",
             answered ? (v === "y" ? "มีเอกสาร" : "ไม่เกี่ยวข้อง") : "ยังไม่ตอบ"],
             !answered ? "miss" : (i % 2 === 0 ? "item" : "itemAlt"));
         });

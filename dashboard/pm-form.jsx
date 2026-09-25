@@ -74,7 +74,8 @@ function PmField({ field, value, prefilled, onCommit }) {
    สามสถานะ: ยังไม่ตอบ / มี (√) / ไม่เกี่ยวข้อง (–)
    "ไม่เกี่ยวข้อง" ไม่ใช่ทางลัด — ต้นฉบับกา "-" ให้เอกสารที่ไซต์นั้นไม่มีจริง เช่นไซต์ที่ไม่มีระบบล้างแผง
    ทั้งสองอย่างนับว่า "ตอบแล้ว" เท่ากัน */
-function PmDocRow({ item, value, onSet }) {
+function PmDocRow({ item, job, value, onSet }) {
+  const lb = window.pmDocLabel(item, job);
   const btn = (val, text, color) => {
     const on = value === val;
     return (
@@ -89,8 +90,8 @@ function PmDocRow({ item, value, onSet }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderBottom: "1px solid var(--border)" }}>
       <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, color: "var(--text-1)" }}>{item.en}</span>
-        <span style={{ display: "block", fontSize: 11, color: "var(--text-3)" }}>{item.th}</span>
+        <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, color: "var(--text-1)" }}>{lb.en}</span>
+        <span style={{ display: "block", fontSize: 11, color: "var(--text-3)" }}>{lb.th}</span>
       </span>
       {btn("y", "√", "#16A34A")}
       {btn("n", "–", "#64748B")}
@@ -338,7 +339,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                       {g.en} <span style={{ fontWeight: 400, color: "var(--text-3)" }}>({g.th})</span>
                     </div>
                     {(g.items || []).map((it) => (
-                      <PmDocRow key={it.key} item={it} value={(rec.docs || {})[it.key]} onSet={setDoc} />
+                      <PmDocRow key={it.key} item={it} job={job} value={(rec.docs || {})[it.key]} onSet={setDoc} />
                     ))}
                   </div>
                 ))}

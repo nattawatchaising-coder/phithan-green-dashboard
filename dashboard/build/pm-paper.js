@@ -340,12 +340,12 @@ function PmHandoverPaper({
           })
         }, n), React.createElement("td", {
           style: pmpTd
-        }, it.en, React.createElement("span", {
+        }, window.pmDocLabel(it, job).en, React.createElement("span", {
           style: {
             color: PM_SOFT,
             fontSize: 9.5
           }
-        }, " (", it.th, ")")), React.createElement("td", {
+        }, " (", window.pmDocLabel(it, job).th, ")")), React.createElement("td", {
           style: Object.assign({}, pmpTd, {
             textAlign: "center",
             fontSize: 13
@@ -810,7 +810,8 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
         n += 1;
         const v = (r.docs || {})[it.key];
         const answered = v === "y" || v === "n";
-        pushRow([n, it.en, it.th, v === "y" ? "√" : "", v === "n" ? "–" : "", answered ? v === "y" ? "มีเอกสาร" : "ไม่เกี่ยวข้อง" : "ยังไม่ตอบ"], !answered ? "miss" : i % 2 === 0 ? "item" : "itemAlt");
+        const lb = window.pmDocLabel(it, j);
+        pushRow([n, lb.en, lb.th, v === "y" ? "√" : "", v === "n" ? "–" : "", answered ? v === "y" ? "มีเอกสาร" : "ไม่เกี่ยวข้อง" : "ยังไม่ตอบ"], !answered ? "miss" : i % 2 === 0 ? "item" : "itemAlt");
       });
     });
     pushRow([], "spacer", 8);

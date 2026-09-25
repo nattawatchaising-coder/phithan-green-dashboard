@@ -59,7 +59,10 @@ const PM_VER = 1;
 
 /* คีย์ที่เลิกใช้แล้ว แต่ของเก่ายังมีค่าเก็บอยู่ — ยังต้องอ่านออกเพื่อพิมพ์ลงใบ
    (แบบเดียวกับ SURVEY_RETIRED_SLOTS ใน survey.jsx) */
-const PM_RETIRED = [];
+/* คีย์ที่เลิกใช้ — ตัวนับไม่เห็นแล้ว แต่ค่าเก่ายังนอนอยู่ใน RTDB ของเล่มที่เปิดก่อนหน้านี้
+   ไม่ลบทิ้งอัตโนมัติ เพราะการลบข้อมูลที่คนกรอกไว้แล้วต้องเป็นการตัดสินใจของคน ไม่ใช่ของโค้ดที่เผลอรัน
+   engCleantech/pmHead/ecoEng/regionalPm/apEcotech = ชื่อตำแหน่งกับชื่อบริษัทที่ติดมากับไฟล์ PM2 ต้นฉบับ */
+const PM_RETIRED = ["engCleantech", "ecoEng", "pmHead", "regionalPm", "apEcotech"];
 
 const pmVerOf = (rec) => (rec && rec.meta && +rec.meta.ver) || PM_VER;
 const pmActive = (it, ver) => !!it.req && (it.since || 1) <= ver;
@@ -156,8 +159,8 @@ const PM_SECTIONS = [
       },
       {
         key: "eng", en: "Engineers Undertaking Commissioning", th: "วิศวกรผู้ทดสอบระบบ", fields: [
-          { key: "engCleantech", en: "Name of Cleantech Engineer", th: "ชื่อวิศวกรผู้ทดสอบ", type: "text", req: 1, since: 1, from: "user" },
-          { key: "engTester", en: "Name of Tester / EPC Representative", th: "ชื่อผู้ทดสอบ / ตัวแทน EPC", type: "text", req: 1, since: 1, from: "job" },
+          { key: "engProject", en: "Project Engineer", th: "วิศวกรโปรเจค", type: "text", req: 1, since: 1, from: "job" },
+          { key: "engTester", en: "Name of Tester", th: "ชื่อผู้ทดสอบ", type: "text", req: 1, since: 1, from: "user" },
         ],
       },
     ],
@@ -239,21 +242,21 @@ const PM_SECTIONS = [
       },
       {
         key: "approval", en: "Approvals", th: "การอนุมัติ", items: [
-          { key: "apEcotech", en: "Ecotechpart Engineer", th: "วิศวกรฝ่ายผู้รับเหมา", req: 1, since: 1 },
-          { key: "apOwner", en: "Owner Project", th: "เจ้าของโครงการ", req: 1, since: 1 },
+          { key: "apCompany", en: "Contractor Approval", th: "อนุมัติโดยบริษัทผู้รับเหมา", dyn: "company", req: 1, since: 1 },
+          { key: "apOwner", en: "Owner Approval", th: "อนุมัติโดยเจ้าของโครงการ", dyn: "project", req: 1, since: 1 },
         ],
       },
     ],
   },
 
-  /* ── ช่องลงนามสี่ช่องตามต้นฉบับ ── */
+  /* ── ช่องลงนามสามช่องตามสายอนุมัติจริง — หน้างาน → โปรเจค → เจ้าของโครงการ
+     ต้นฉบับมีช่อง Regional PM Head ด้วย แต่เป็นตำแหน่งของบริษัทที่ทำไฟล์นั้น ไม่มีในสายงานเรา ── */
   {
     key: "sign", en: "Signatures", th: "ลงนามส่งมอบ", icon: "check", since: 1, kind: "sign",
     blocks: [
-      { key: "ecoEng", en: "Signature of Ecotechpart Engineer", th: "วิศวกรฝ่ายผู้รับเหมา", req: 1, since: 1 },
-      { key: "pmHead", en: "Signature of PM Head", th: "หัวหน้าผู้จัดการโครงการ", req: 1, since: 1 },
-      { key: "owner", en: "Signature of Owner Project", th: "เจ้าของโครงการ", req: 1, since: 1 },
-      { key: "regionalPm", en: "Signature of Regional PM Head", th: "ผู้จัดการโครงการประจำภูมิภาค", req: 1, since: 1 },
+      { key: "signSite", en: "Signature of Site Engineer", th: "วิศวกรหน้างาน", req: 1, since: 1 },
+      { key: "signProject", en: "Signature of Project Engineer", th: "วิศวกรโปรเจค", req: 1, since: 1 },
+      { key: "owner", en: "Signature of Project Owner", th: "เจ้าของโครงการ", req: 1, since: 1 },
     ],
   },
 ];
@@ -264,6 +267,22 @@ PM_SECTIONS.forEach((s) => { PM_SEC_BY[s.key] = s; });
 
 /* ป้ายบอกที่มาของค่าที่เติมให้ล่วงหน้า — ความหมายคือ "ช่วยตรวจที" ไม่ใช่ "อันนี้เสร็จแล้ว" */
 const PM_FROM_LABEL = { job: "จากใบงาน", boq: "จาก BOQ", survey: "จากแบบสำรวจ", user: "จากผู้ใช้งาน" };
+
+/* ชื่อจริงที่ต่อท้ายป้ายของแถวเช็คลิสต์บางแถว (item.dyn)
+   แถวอนุมัติต้องบอกว่า "ใครอนุมัติ" ให้ชัด — บริษัทเรา กับ ชื่อโครงการของงานนี้
+   ไม่ใช่ชื่อบริษัทที่ติดมากับไฟล์ต้นฉบับ · คืนสตริงว่างเมื่อยังไม่รู้ชื่อ ป้ายจะได้ไม่ห้อยขีดเปล่า ๆ */
+function pmDocName(item, job) {
+  if (!item || !item.dyn) return "";
+  if (item.dyn === "company") return ((window.BRANDING || {}).legal) || "";
+  if (item.dyn === "project") return (job && (job.name || job.customer)) || "";
+  return "";
+}
+
+/* ป้ายเต็มของแถวเช็คลิสต์ — ใช้ร่วมกันทั้งฟอร์ม กระดาษ และไฟล์ Excel จะได้ไม่เขียนคนละอย่าง */
+function pmDocLabel(item, job) {
+  const nm = pmDocName(item, job);
+  return { en: item.en + (nm ? " — " + nm : ""), th: item.th + (nm ? " · " + nm : "") };
+}
 
 /* ══════════════════════════════════════════════════
    เล่มเปล่า + การเติมค่าที่ระบบรู้อยู่แล้ว
@@ -324,8 +343,8 @@ function pmPrefill(job, user) {
   put("dcKwp", j.kw);
   put("pv1Qty", j.panels);
   put("outV", String(j.phase) === "3" ? 400 : 230);
-  put("engTester", j.eeName);
-  put("engCleantech", (user || {}).name);
+  put("engTester", (user || {}).name);
+  put("engProject", j.eeName);
 
   const boq = j.boq || {};
   const B = window.BOQ || null;
@@ -407,7 +426,8 @@ function pmProgress(rec, job, user) {
       const v = r.docs || {};
       sec.groups.forEach((g) => (g.items || []).forEach((it) => {
         if (!pmActive(it, ver)) return;
-        tick(v[it.key] === "y" || v[it.key] === "n", it.key, it.en, it.th);
+        const lb = pmDocLabel(it, job);
+        tick(v[it.key] === "y" || v[it.key] === "n", it.key, lb.en, lb.th);
       }));
     } else if (sec.kind === "sign") {
       const v = r.sign || {};
@@ -617,6 +637,7 @@ function pmPhotoFlags(idx) {
 
 Object.assign(window, {
   PM_ROOT, PM_VER, PM_RETIRED, PM_SECTIONS, PM_SEC_BY, PM_FROM_LABEL,
+  pmDocName, pmDocLabel,
   pmToday, pmNow, pmVerOf, pmActive, pmBlank, pmDms, pmPrefill, pmMerged, pmIsPrefilled,
   pmProgress, pmNewerItems, pmSummaryOf, pmCardStatus, pmPhotoFlags,
   usePmHandover, usePmPhotoIdx, usePmPhotos,

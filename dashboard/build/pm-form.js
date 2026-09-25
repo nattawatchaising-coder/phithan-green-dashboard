@@ -103,9 +103,11 @@ function PmField({
 }
 function PmDocRow({
   item,
+  job,
   value,
   onSet
 }) {
+  const lb = window.pmDocLabel(item, job);
   const btn = (val, text, color) => {
     const on = value === val;
     return React.createElement("button", {
@@ -144,13 +146,13 @@ function PmDocRow({
       fontWeight: 600,
       color: "var(--text-1)"
     }
-  }, item.en), React.createElement("span", {
+  }, lb.en), React.createElement("span", {
     style: {
       display: "block",
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, item.th)), btn("y", "√", "#16A34A"), btn("n", "–", "#64748B"));
+  }, lb.th)), btn("y", "√", "#16A34A"), btn("n", "–", "#64748B"));
 }
 function PmSignRow({
   block,
@@ -640,6 +642,7 @@ function PmHandoverModal({
   }, "(", g.th, ")")), (g.items || []).map(it => React.createElement(PmDocRow, {
     key: it.key,
     item: it,
+    job: job,
     value: (rec.docs || {})[it.key],
     onSet: setDoc
   })))), cur && cur.kind === "sign" && React.createElement(React.Fragment, null, (cur.blocks || []).map(b => React.createElement(PmSignRow, {
