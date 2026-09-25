@@ -244,7 +244,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
           boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
 
           {/* หัวหน้าต่าง */}
-          <div style={{ padding: "13px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface)",
+          <div style={{ flexShrink: 0, padding: "13px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface)",
             display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ width: 34, height: 34, borderRadius: 10, background: "#16A34A1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
               <Icon name="check" size={17} color="#16A34A" />
@@ -282,7 +282,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
           ) : (
             <React.Fragment>
               {/* แถบความครบ */}
-              <div style={{ padding: "10px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
+              <div style={{ flexShrink: 0, padding: "10px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                   <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>
                     กรอกแล้ว {prog.pct}%
@@ -304,7 +304,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
 
               {/* แบนเนอร์รายการใหม่ — สมัครใจเสมอ ไม่อัปเดตเองเพราะจะทำให้เล่มที่เคยครบกลายเป็นไม่ครบ */}
               {newer ? (
-                <div style={{ padding: "9px 16px", background: "var(--tint-amber-bg)", borderBottom: "1px solid var(--tint-amber-bd)",
+                <div style={{ flexShrink: 0, padding: "9px 16px", background: "var(--tint-amber-bg)", borderBottom: "1px solid var(--tint-amber-bd)",
                   display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ flex: 1, fontSize: 12, color: "var(--tint-amber-tx)" }}>
                     แบบฟอร์มมีรายการบังคับใหม่เพิ่มมา {newer} รายการ — เล่มนี้ยังใช้แบบเดิมอยู่
@@ -319,7 +319,11 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
               ) : null}
 
               {/* แถบเลือกหมวด */}
-              <div style={{ display: "flex", gap: 8, padding: "10px 16px", overflowX: "auto", borderBottom: "1px solid var(--border)" }}>
+              {/* ⚠ flexShrink: 0 ทุกแถวที่ไม่ใช่ส่วนเลื่อน — หน้าต่างนี้เป็น flex คอลัมน์ที่มีเพดานความสูง
+                  ถ้าไม่ห้ามหด เบราว์เซอร์จะบีบแถบหมวดจนบรรทัด "14/26 · 54%" ถูกตัดหายไปครึ่งตัว
+                  พอเนื้อหาข้างในยาว (ซึ่งยาวเสมอ) */}
+              <div style={{ flexShrink: 0, display: "flex", gap: 8, padding: "10px 16px", overflowX: "auto",
+                borderBottom: "1px solid var(--border)" }}>
                 <button onClick={() => setTab("home")}
                   style={{ flexShrink: 0, padding: "8px 13px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
                     border: "1px solid " + (tab === "home" ? "var(--primary)" : "var(--border-strong)"),
@@ -344,7 +348,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
               </div>
 
               {/* เนื้อหา */}
-              <div style={{ padding: 16, overflowY: "auto", flex: 1 }}>
+              <div style={{ padding: 16, overflowY: "auto", flex: 1, minHeight: 0 }}>
                 {tab === "home" ? (
                   <div>
                     <div style={{ fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.7, marginBottom: 13 }}>
@@ -501,7 +505,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
               </div>
 
               {/* รายการที่ยังขาด + ปุ่มออกรายงาน */}
-              <div style={{ borderTop: "1px solid var(--border)", background: "var(--surface)", padding: "11px 16px" }}>
+              <div style={{ flexShrink: 0, borderTop: "1px solid var(--border)", background: "var(--surface)", padding: "11px 16px" }}>
                 {prog.missing.length ? (
                   <details style={{ marginBottom: 10 }}>
                     <summary style={{ cursor: "pointer", fontSize: 12.5, fontWeight: 700, color: "#B45309" }}>

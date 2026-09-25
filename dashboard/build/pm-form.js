@@ -385,6 +385,7 @@ function PmHandoverModal({
     }
   }, React.createElement("div", {
     style: {
+      flexShrink: 0,
       padding: "13px 16px",
       borderBottom: "1px solid var(--border)",
       background: "var(--surface)",
@@ -481,6 +482,7 @@ function PmHandoverModal({
     }
   }, "\u0E15\u0E49\u0E2D\u0E07\u0E15\u0E48\u0E2D\u0E10\u0E32\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E01\u0E48\u0E2D\u0E19\u0E08\u0E36\u0E07\u0E08\u0E30\u0E40\u0E1B\u0E34\u0E14\u0E40\u0E25\u0E48\u0E21\u0E44\u0E14\u0E49") : null) : React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
+      flexShrink: 0,
       padding: "10px 16px",
       background: "var(--surface)",
       borderBottom: "1px solid var(--border)"
@@ -534,6 +536,7 @@ function PmHandoverModal({
     }
   }))), newer ? React.createElement("div", {
     style: {
+      flexShrink: 0,
       padding: "9px 16px",
       background: "var(--tint-amber-bg)",
       borderBottom: "1px solid var(--tint-amber-bd)",
@@ -563,6 +566,7 @@ function PmHandoverModal({
     }
   }, "\u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15\u0E41\u0E1A\u0E1A\u0E1F\u0E2D\u0E23\u0E4C\u0E21")) : null, React.createElement("div", {
     style: {
+      flexShrink: 0,
       display: "flex",
       gap: 8,
       padding: "10px 16px",
@@ -625,7 +629,8 @@ function PmHandoverModal({
     style: {
       padding: 16,
       overflowY: "auto",
-      flex: 1
+      flex: 1,
+      minHeight: 0
     }
   }, tab === "home" ? React.createElement("div", null, React.createElement("div", {
     style: {
@@ -967,6 +972,7 @@ function PmHandoverModal({
     }
   }, "\u0E23\u0E39\u0E1B\u0E16\u0E39\u0E01\u0E22\u0E48\u0E2D\u0E01\u0E48\u0E2D\u0E19\u0E40\u0E01\u0E47\u0E1A\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E44\u0E21\u0E48\u0E43\u0E2B\u0E49\u0E40\u0E1B\u0E25\u0E37\u0E2D\u0E07\u0E40\u0E19\u0E47\u0E15\u0E02\u0E2D\u0E07\u0E0A\u0E48\u0E32\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \xB7 \u0E44\u0E1F\u0E25\u0E4C Excel \u0E1D\u0E31\u0E07\u0E23\u0E39\u0E1B\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E41\u0E1C\u0E48\u0E19 Photos \u0E43\u0E19\u0E19\u0E31\u0E49\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E32\u0E23\u0E1A\u0E31\u0E0D\u0E17\u0E35\u0E48\u0E2D\u0E49\u0E32\u0E07\u0E40\u0E25\u0E02\u0E23\u0E39\u0E1B\u0E0A\u0E38\u0E14\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E1A\u0E43\u0E19 PDF"))), React.createElement("div", {
     style: {
+      flexShrink: 0,
       borderTop: "1px solid var(--border)",
       background: "var(--surface)",
       padding: "11px 16px"
