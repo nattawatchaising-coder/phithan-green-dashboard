@@ -74,9 +74,18 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
   /* รูปที่ส่งให้ตัวออกไฟล์คือสารบัญ ตัว dataUrl ไม่ได้ถูกใช้ (ฝังรูปลง xlsx ไม่ได้ ดูหมายเหตุท้ายไฟล์) */
   const doXlsx = () => window.pmExportXlsx(j, r, s, p, list);
 
+  /* เรียงรูปตามลำดับหัวข้อ แล้วแจกเลขรูปจากลำดับนั้น
+     ไฟล์ Excel เรียงด้วยฟังก์ชันเดียวกัน เลข #N ในสองไฟล์จึงตรงกันเสมอ */
+  const ordered = window.pmPhotoOrder(list);
+  const photoNoOf = {};
+  ordered.forEach((x, i) => { photoNoOf[x.id] = i + 1; });
+
   /* หนึ่งหน้ารูป = 6 รูป (2 คอลัมน์ x 3 แถว) เท่ากับใบตรวจสอบงาน */
-  const photoPages = [];
-  for (let i = 0; i < list.length; i += 6) photoPages.push(list.slice(i, i + 6));
+  const chunk6 = (arr) => {
+    const out = [];
+    for (let i = 0; i < arr.length; i += 6) out.push(arr.slice(i, i + 6));
+    return out;
+  };
 
   const headBar = (title, thTitle) => (
     <div style={{ display: "flex", alignItems: "flex-end", gap: 14, flexWrap: "wrap",
@@ -160,7 +169,8 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
       const rows = window.pmRowsOf(r, sec.key, tb.key);
       const hdr = t.hdr || {};
       const hasHdr = (tb.hdr || []).some((f) => String(hdr[f.key] == null ? "" : hdr[f.key]).trim() !== "");
-      if (!rows.length && !hasHdr) return;
+      /* ตารางที่ยังว่างแต่มีคนแนบรูปไว้ ก็ต้องพิมพ์ — ไม่งั้นรูปที่ช่างถ่ายไว้จะหายจากเล่มเงียบ ๆ */
+      if (!rows.length && !hasHdr && !window.pmPhotosOf(ordered, sec.key, tb.key).length) return;
       tableSheets.push({ sec: sec, tb: tb, hdr: hdr, rows: rows });
     });
   });
@@ -221,8 +231,25 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
     );
   };
 
-  /* เลขรูปวิ่งชุดเดียวกับที่ไฟล์ Excel ใช้อ้างถึง — สองไฟล์จะได้ชี้หากันได้ */
-  let photoNo = 0;
+  /* หน้ารูปของหัวข้อหนึ่ง — พิมพ์ต่อจากแผ่นของหัวข้อนั้นทันที
+     คนที่เปิดใบดูจะเห็นตารางแล้วเห็นรูปของมันต่อเลย ไม่ต้องพลิกไปท้ายเล่ม */
+  const photoSheets = (title, thTitle, arr, keyPrefix) =>
+    chunk6(arr).map((pg, pi) => (
+      <div className="pm-sheet" key={keyPrefix + "-ph-" + pi}>
+        {headBar(title, thTitle)}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          {pg.map((x) => (
+            <div key={x.id} className="pm-shot" style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
+              <img src={x.dataUrl} alt="" style={{ width: "100%", height: 186, objectFit: "cover",
+                border: "1px solid " + PM_LINE, borderRadius: 4, display: "block" }} />
+              <div style={{ fontSize: 9.5, color: PM_SOFT, marginTop: 3 }}>
+                #{photoNoOf[x.id]}{x.cap ? " · " + x.cap : ""}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    ));
 
   const paper = (
     <div className="sv-rep-overlay" style={{ position: "fixed", inset: 0, zIndex: 175, background: "rgba(8,20,14,.55)",
@@ -274,7 +301,14 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
         ))}
 
         {/* ── แผ่นที่เป็นตาราง ── */}
-        {tableSheets.map(tableSheet)}
+        {tableSheets.map((x, i) => (
+          <React.Fragment key={"tbx-" + x.sec.key + "-" + x.tb.key}>
+            {tableSheet(x, i)}
+            {photoSheets(window.pmSlotLabel(x.sec.key, x.tb.key).en + " — Photos",
+              window.pmSlotLabel(x.sec.key, x.tb.key).th,
+              window.pmPhotosOf(ordered, x.sec.key, x.tb.key), x.sec.key + "-" + x.tb.key)}
+          </React.Fragment>
+        ))}
 
         {/* ── แผ่นที่ 2 · Documents Checklist + ลงนาม ── */}
         <div className="pm-sheet pm-page">
@@ -365,25 +399,7 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
         ) : null}
 
         {/* ── แผ่นรูป ── */}
-        {photoPages.map((pg, pi) => (
-          <div className="pm-sheet" key={"ph-" + pi}>
-            {headBar("Photo Report", "รูปประกอบการส่งมอบ")}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              {pg.map((ph) => {
-                photoNo += 1;
-                return (
-                  <div key={ph.id} className="pm-shot" style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
-                    <img src={ph.dataUrl} alt="" style={{ width: "100%", height: 186, objectFit: "cover",
-                      border: "1px solid " + PM_LINE, borderRadius: 4, display: "block" }} />
-                    <div style={{ fontSize: 9.5, color: PM_SOFT, marginTop: 3 }}>
-                      #{photoNo}{ph.cap ? " · " + ph.cap : ""}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+        {photoSheets("Photo Report", "รูปประกอบการส่งมอบ", window.pmPhotosOf(ordered, "gen", ""), "gen")}
       </div>
     </div>
   );
@@ -531,11 +547,14 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
     });
 
   /* ── แผ่น Photos — สารบัญ ไม่มีรูป ── */
-  const wsPh = makeSheet(["#", "หมวด", "สลอต", "แถว", "คำบรรยาย", "เวลา", "ผู้ถ่าย"],
-    [{ wch: 6 }, { wch: 16 }, { wch: 16 }, { wch: 12 }, { wch: 34 }, { wch: 18 }, { wch: 18 }],
+  /* เรียงตามลำดับเดียวกับที่กระดาษพิมพ์ เลข # ของสองไฟล์จึงตรงกัน */
+  const phOrdered = window.pmPhotoOrder(idx);
+  const wsPh = makeSheet(["#", "หัวข้อ", "Heading", "แถว", "คำบรรยาย", "เวลา", "ผู้ถ่าย"],
+    [{ wch: 6 }, { wch: 34 }, { wch: 30 }, { wch: 12 }, { wch: 34 }, { wch: 18 }, { wch: 18 }],
     (pushRow, merges, getR, lastC) => {
-      idx.forEach((ph, i) => {
-        pushRow([i + 1, ph.sec || "", ph.slot || "", ph.rowId || "", ph.cap || "",
+      phOrdered.forEach((ph, i) => {
+        const lb = window.pmSlotLabel(ph.sec, ph.slot);
+        pushRow([i + 1, lb.th, lb.en, ph.rowId || "", ph.cap || "",
           ph.at ? window.drDateTH(String(ph.at).slice(0, 10)) : "", ph.byName || ""],
           i % 2 === 0 ? "item" : "itemAlt");
       });

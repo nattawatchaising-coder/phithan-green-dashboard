@@ -1361,7 +1361,7 @@ function pmProgress(rec, job, user) {
             tick(filled(row[c.key]), sec.key + "." + tb.key + "." + row.id + "." + c.key, lb.en, lb.th);
           });
           (tb.photos || []).forEach(slot => {
-            tick(+flags[sec.key + "." + row.id + "." + slot] > 0, sec.key + "." + tb.key + "." + row.id + "." + slot, tb.en + " · Photo " + slot + " #" + (i + 1), tb.th + " · รูปแถวที่ " + (i + 1));
+            tick(+flags[pmFlagKey(sec.key, row.id, slot)] > 0, sec.key + "." + tb.key + "." + row.id + "." + slot, tb.en + " · Photo " + slot + " #" + (i + 1), tb.th + " · รูปแถวที่ " + (i + 1));
           });
         });
         if (tb.minRows && rows.length < tb.minRows) {
@@ -1571,10 +1571,41 @@ function usePmPhotos(jobId, enabled) {
   }, [jobId, enabled]);
   return photos;
 }
+function pmSlotLabel(secKey, slot) {
+  const sec = PM_SEC_BY[secKey || ""];
+  const tb = sec && sec.kind === "table" ? (sec.tables || []).find(x => x.key === String(slot || "")) : null;
+  if (!tb) return {
+    en: "Photo Report",
+    th: "รูปประกอบการส่งมอบ"
+  };
+  return {
+    en: (tb.code ? tb.code + ". " : sec.code ? sec.code + ". " : "") + tb.en,
+    th: sec.th + " · " + tb.th
+  };
+}
+const pmPhotosOf = (list, secKey, slot) => (list || []).filter(x => (x.sec || "gen") === secKey && String(x.slot || "") === String(slot || ""));
+function pmPhotoOrder(list) {
+  const rank = {};
+  let n = 0;
+  PM_SECTIONS.forEach(sec => {
+    if (sec.kind !== "table") return;
+    (sec.tables || []).forEach(tb => {
+      n += 1;
+      rank[sec.key + "." + tb.key] = n;
+    });
+  });
+  return (list || []).slice().sort((a, b) => {
+    const ra = rank[(a.sec || "gen") + "." + (a.slot || "")] || 9e9;
+    const rb = rank[(b.sec || "gen") + "." + (b.slot || "")] || 9e9;
+    return ra - rb || String(a.at || "").localeCompare(String(b.at || ""));
+  });
+}
+const PM_FLAG_SEP = "~";
+const pmFlagKey = (sec, rowId, slot) => [sec || "gen", rowId || "", slot || ""].filter(Boolean).join(PM_FLAG_SEP);
 function pmPhotoFlags(idx) {
   const out = {};
   (idx || []).forEach(p => {
-    const k = [p.sec || "gen", p.rowId || "", p.slot || ""].filter(Boolean).join(".");
+    const k = pmFlagKey(p.sec, p.rowId, p.slot);
     out[k] = (out[k] || 0) + 1;
   });
   return out;
@@ -1609,6 +1640,10 @@ Object.assign(window, {
   pmSummaryOf,
   pmCardStatus,
   pmPhotoFlags,
+  pmSlotLabel,
+  pmPhotosOf,
+  pmPhotoOrder,
+  pmFlagKey,
   usePmHandover,
   usePmPhotoIdx,
   usePmPhotos

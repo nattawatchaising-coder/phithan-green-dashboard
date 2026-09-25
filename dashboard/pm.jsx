@@ -702,7 +702,7 @@ function pmProgress(rec, job, user) {
             tick(filled(row[c.key]), sec.key + "." + tb.key + "." + row.id + "." + c.key, lb.en, lb.th);
           });
           (tb.photos || []).forEach((slot) => {
-            tick(+flags[sec.key + "." + row.id + "." + slot] > 0,
+            tick(+flags[pmFlagKey(sec.key, row.id, slot)] > 0,
               sec.key + "." + tb.key + "." + row.id + "." + slot,
               tb.en + " · Photo " + slot + " #" + (i + 1), tb.th + " · รูปแถวที่ " + (i + 1));
           });
@@ -879,11 +879,51 @@ function usePmPhotos(jobId, enabled) {
   return photos;
 }
 
+/* ── ชื่อหัวข้อของสลอตรูป ──
+   รูปเก็บ sec/slot เป็นคีย์สั้น ๆ ลงฐานข้อมูล แต่บนกระดาษ ในฟอร์ม และในไฟล์ Excel
+   ต้องอ่านออกว่าเป็นรูปของหัวข้อไหน — แปลกลับจากทะเบียนที่เดียว ไม่กระจายคำแปลไปสามไฟล์ */
+function pmSlotLabel(secKey, slot) {
+  const sec = PM_SEC_BY[secKey || ""];
+  const tb = sec && sec.kind === "table" ? (sec.tables || []).find((x) => x.key === String(slot || "")) : null;
+  if (!tb) return { en: "Photo Report", th: "รูปประกอบการส่งมอบ" };
+  return {
+    en: (tb.code ? tb.code + ". " : sec.code ? sec.code + ". " : "") + tb.en,
+    th: sec.th + " · " + tb.th,
+  };
+}
+
+const pmPhotosOf = (list, secKey, slot) =>
+  (list || []).filter((x) => (x.sec || "gen") === secKey && String(x.slot || "") === String(slot || ""));
+
+/* เรียงรูปตามลำดับที่พิมพ์จริง หัวข้อมาก่อน รูปทั่วไปท้ายสุด
+   กระดาษกับไฟล์ Excel ต้องเดินจากลำดับเดียวกัน ไม่งั้นเลขรูปในสารบัญจะชี้ไปคนละรูปกับที่พิมพ์ใต้รูปใน PDF */
+function pmPhotoOrder(list) {
+  const rank = {};
+  let n = 0;
+  PM_SECTIONS.forEach((sec) => {
+    if (sec.kind !== "table") return;
+    (sec.tables || []).forEach((tb) => { n += 1; rank[sec.key + "." + tb.key] = n; });
+  });
+  return (list || []).slice().sort((a, b) => {
+    const ra = rank[(a.sec || "gen") + "." + (a.slot || "")] || 9e9;
+    const rb = rank[(b.sec || "gen") + "." + (b.slot || "")] || 9e9;
+    return ra - rb || String(a.at || "").localeCompare(String(b.at || ""));
+  });
+}
+
+/* ── คีย์ของ flags ──
+   ⚠ ห้ามใช้จุดคั่น — RTDB ห้ามให้ชื่อโหนดมี . # $ / [ ] และ flags ถูกเขียนเป็นโหนดลูกจริง ๆ
+   ตอนที่รูปมีแต่ sec:"gen" คีย์ไม่มีจุดเลยเลยไม่พัง พอแนบรูปตามหัวข้อได้ การเขียน flags
+   จะ throw แล้วโมดัลทั้งหน้าหายไปต่อหน้าต่อตา */
+const PM_FLAG_SEP = "~";
+const pmFlagKey = (sec, rowId, slot) =>
+  [sec || "gen", rowId || "", slot || ""].filter(Boolean).join(PM_FLAG_SEP);
+
 /* นับรูปต่อสลอต ไว้เก็บลง flags — ตัวเช็คความครบอ่านจากตรงนี้ ไม่ใช่จากโหนดรูป */
 function pmPhotoFlags(idx) {
   const out = {};
   (idx || []).forEach((p) => {
-    const k = [p.sec || "gen", p.rowId || "", p.slot || ""].filter(Boolean).join(".");
+    const k = pmFlagKey(p.sec, p.rowId, p.slot);
     out[k] = (out[k] || 0) + 1;
   });
   return out;
@@ -895,5 +935,6 @@ Object.assign(window, {
   pmRowId, pmTableOf, pmRowsOf, pmNextOrd,
   pmToday, pmNow, pmVerOf, pmActive, pmBlank, pmDms, pmPrefill, pmMerged, pmIsPrefilled,
   pmProgress, pmNewerItems, pmSummaryOf, pmCardStatus, pmPhotoFlags,
+  pmSlotLabel, pmPhotosOf, pmPhotoOrder, pmFlagKey,
   usePmHandover, usePmPhotoIdx, usePmPhotos,
 });

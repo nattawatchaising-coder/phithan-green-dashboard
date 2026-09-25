@@ -67,8 +67,16 @@ function PmHandoverPaper({
     }, 800);
   };
   const doXlsx = () => window.pmExportXlsx(j, r, s, p, list);
-  const photoPages = [];
-  for (let i = 0; i < list.length; i += 6) photoPages.push(list.slice(i, i + 6));
+  const ordered = window.pmPhotoOrder(list);
+  const photoNoOf = {};
+  ordered.forEach((x, i) => {
+    photoNoOf[x.id] = i + 1;
+  });
+  const chunk6 = arr => {
+    const out = [];
+    for (let i = 0; i < arr.length; i += 6) out.push(arr.slice(i, i + 6));
+    return out;
+  };
   const headBar = (title, thTitle) => React.createElement("div", {
     style: {
       display: "flex",
@@ -224,7 +232,7 @@ function PmHandoverPaper({
       const rows = window.pmRowsOf(r, sec.key, tb.key);
       const hdr = t.hdr || {};
       const hasHdr = (tb.hdr || []).some(f => String(hdr[f.key] == null ? "" : hdr[f.key]).trim() !== "");
-      if (!rows.length && !hasHdr) return;
+      if (!rows.length && !hasHdr && !window.pmPhotosOf(ordered, sec.key, tb.key).length) return;
       tableSheets.push({
         sec: sec,
         tb: tb,
@@ -313,7 +321,40 @@ function PmHandoverPaper({
       }
     }, x.rows.length, " \u0E41\u0E16\u0E27", tb.pass ? " · ผ่าน " + x.rows.filter(row => pmRowOk(tb, row) === true).length + " แถว" : ""));
   };
-  let photoNo = 0;
+  const photoSheets = (title, thTitle, arr, keyPrefix) => chunk6(arr).map((pg, pi) => React.createElement("div", {
+    className: "pm-sheet",
+    key: keyPrefix + "-ph-" + pi
+  }, headBar(title, thTitle), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, pg.map(x => React.createElement("div", {
+    key: x.id,
+    className: "pm-shot",
+    style: {
+      breakInside: "avoid",
+      pageBreakInside: "avoid"
+    }
+  }, React.createElement("img", {
+    src: x.dataUrl,
+    alt: "",
+    style: {
+      width: "100%",
+      height: 186,
+      objectFit: "cover",
+      border: "1px solid " + PM_LINE,
+      borderRadius: 4,
+      display: "block"
+    }
+  }), React.createElement("div", {
+    style: {
+      fontSize: 9.5,
+      color: PM_SOFT,
+      marginTop: 3
+    }
+  }, "#", photoNoOf[x.id], x.cap ? " · " + x.cap : ""))))));
   const paper = React.createElement("div", {
     className: "sv-rep-overlay",
     style: {
@@ -427,7 +468,9 @@ function PmHandoverPaper({
       gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
       columnGap: 22
     }
-  }, (g.fields || []).map(f => pmpRow(f, pmpValue(f, s)))))))), tableSheets.map(tableSheet), React.createElement("div", {
+  }, (g.fields || []).map(f => pmpRow(f, pmpValue(f, s)))))))), tableSheets.map((x, i) => React.createElement(React.Fragment, {
+    key: "tbx-" + x.sec.key + "-" + x.tb.key
+  }, tableSheet(x, i), photoSheets(window.pmSlotLabel(x.sec.key, x.tb.key).en + " — Photos", window.pmSlotLabel(x.sec.key, x.tb.key).th, window.pmPhotosOf(ordered, x.sec.key, x.tb.key), x.sec.key + "-" + x.tb.key))), React.createElement("div", {
     className: "pm-sheet pm-page"
   }, headBar("Handover Documents Checklist", "รายการเอกสารส่งมอบ"), React.createElement("table", {
     style: {
@@ -582,43 +625,7 @@ function PmHandoverPaper({
         fontSize: 9.5
       }
     }, "(", m.th, ")")))));
-  })()) : null, photoPages.map((pg, pi) => React.createElement("div", {
-    className: "pm-sheet",
-    key: "ph-" + pi
-  }, headBar("Photo Report", "รูปประกอบการส่งมอบ"), React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 12
-    }
-  }, pg.map(ph => {
-    photoNo += 1;
-    return React.createElement("div", {
-      key: ph.id,
-      className: "pm-shot",
-      style: {
-        breakInside: "avoid",
-        pageBreakInside: "avoid"
-      }
-    }, React.createElement("img", {
-      src: ph.dataUrl,
-      alt: "",
-      style: {
-        width: "100%",
-        height: 186,
-        objectFit: "cover",
-        border: "1px solid " + PM_LINE,
-        borderRadius: 4,
-        display: "block"
-      }
-    }), React.createElement("div", {
-      style: {
-        fontSize: 9.5,
-        color: PM_SOFT,
-        marginTop: 3
-      }
-    }, "#", photoNo, ph.cap ? " · " + ph.cap : ""));
-  }))))));
+  })()) : null, photoSheets("Photo Report", "รูปประกอบการส่งมอบ", window.pmPhotosOf(ordered, "gen", ""), "gen")));
   return ReactDOM.createPortal(paper, document.body);
 }
 function pmExportXlsx(job, rec, sum, prog, photoIdx) {
@@ -1003,12 +1010,13 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
       pushRow([i + 1, m.secTh || m.section, m.en, m.th], i % 2 === 0 ? "item" : "itemAlt");
     });
   });
-  const wsPh = makeSheet(["#", "หมวด", "สลอต", "แถว", "คำบรรยาย", "เวลา", "ผู้ถ่าย"], [{
+  const phOrdered = window.pmPhotoOrder(idx);
+  const wsPh = makeSheet(["#", "หัวข้อ", "Heading", "แถว", "คำบรรยาย", "เวลา", "ผู้ถ่าย"], [{
     wch: 6
   }, {
-    wch: 16
+    wch: 34
   }, {
-    wch: 16
+    wch: 30
   }, {
     wch: 12
   }, {
@@ -1018,8 +1026,9 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
   }, {
     wch: 18
   }], (pushRow, merges, getR, lastC) => {
-    idx.forEach((ph, i) => {
-      pushRow([i + 1, ph.sec || "", ph.slot || "", ph.rowId || "", ph.cap || "", ph.at ? window.drDateTH(String(ph.at).slice(0, 10)) : "", ph.byName || ""], i % 2 === 0 ? "item" : "itemAlt");
+    phOrdered.forEach((ph, i) => {
+      const lb = window.pmSlotLabel(ph.sec, ph.slot);
+      pushRow([i + 1, lb.th, lb.en, ph.rowId || "", ph.cap || "", ph.at ? window.drDateTH(String(ph.at).slice(0, 10)) : "", ph.byName || ""], i % 2 === 0 ? "item" : "itemAlt");
     });
     pushRow([], "spacer", 8);
     pushRow(["รูปถ่ายทั้งหมด " + idx.length + " รูป อยู่ในไฟล์ PDF ของชุดเดียวกัน — แผ่นนี้เป็นสารบัญรูป " + "(เลขรูปตรงกับเลขที่พิมพ์ใต้รูปใน PDF) · ไลบรารี Excel ที่ระบบใช้ฝังรูปลงไฟล์ไม่ได้"], "foot", 30);

@@ -191,8 +191,49 @@ function PmTableRow({ table, row, no, mobile, onSet, onRemove }) {
   );
 }
 
+/* ── แถบแนบรูปของหัวข้อหนึ่ง ──
+   สิ่งที่แสดงที่นี่คือ "สารบัญ" ไม่ใช่ตัวรูป — ฟอร์มสมัครเฉพาะ handoverPhotoIdx
+   ซึ่งไม่มี dataUrl ติดมา สมุดหนึ่งเล่มรูปจริงหนักราวยี่สิบเมกะไบต์ ดูดทุกครั้งที่เปิดฟอร์มคือเน็ตของช่าง
+   รูปจริงไปโผล่ตอนเปิดกระดาษ ที่เดียวที่ต้องใช้ไบต์จริง */
+function PmPhotoStrip({ photos, busy, label, onAdd, onRemove, onCap }) {
+  const ref = React.useRef(null);
+  return (
+    <div style={{ marginTop: 10, padding: "9px 11px", border: "1px solid var(--border)", borderRadius: 10,
+      background: "var(--surface-2, var(--surface))" }}>
+      <input ref={ref} type="file" accept="image/*" multiple style={{ display: "none" }}
+        onChange={(e) => { onAdd(e.target.files); e.target.value = ""; }} />
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <span style={{ flex: 1, minWidth: 130, fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>
+          {label}
+          <span style={{ fontWeight: 400, color: "var(--text-3)" }}>
+            {photos.length ? " · " + photos.length + " รูป" : " · ยังไม่มีรูป"}
+          </span>
+        </span>
+        <button onClick={() => ref.current && ref.current.click()} disabled={busy}
+          style={{ padding: "6px 11px", borderRadius: 8, border: "1px dashed var(--border-strong)", background: "var(--surface)",
+            color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: busy ? "wait" : "pointer" }}>
+          {busy ? "กำลังย่อรูป…" : "＋ แนบรูป"}
+        </button>
+      </div>
+      {photos.map((x, i) => (
+        <div key={x.id} style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 7 }}>
+          <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 800, color: "var(--text-3)" }}>#{i + 1}</span>
+          <input defaultValue={x.cap || ""} placeholder="คำบรรยายรูป (พิมพ์ใต้รูปในใบ)"
+            onBlur={(e) => onCap(x.id, e.target.value)}
+            style={Object.assign({}, pmInputStyle, { fontSize: 12, padding: "6px 9px" })} />
+          <button onClick={() => onRemove(x)} aria-label="ลบรูป"
+            style={{ flexShrink: 0, border: "none", background: "none", cursor: "pointer", color: "var(--text-3)", padding: 3 }}>
+            <Icon name="trash" size={14} />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /* ── หนึ่งตาราง: ช่องหัวตาราง + แถว + ปุ่มเพิ่ม ── */
-function PmTableBlock({ table, hdr, rows, mobile, onHdr, onSet, onAdd, onRemove, onSeed }) {
+function PmTableBlock({ table, hdr, rows, mobile, onHdr, onSet, onAdd, onRemove, onSeed,
+  photos, photoBusy, onAddPhoto, onRemovePhoto, onCapPhoto }) {
   const cols = table.cols || [];
   return (
     <div style={{ marginBottom: 22 }}>
@@ -267,6 +308,13 @@ function PmTableBlock({ table, hdr, rows, mobile, onHdr, onSet, onAdd, onRemove,
           </button>
         ) : null}
       </div>
+
+      {/* รูปของหัวข้อนี้ — อยู่ติดกับตารางที่มันเป็นหลักฐาน ไม่ใช่กองรวมท้ายเล่ม
+          ช่างถ่ายรูปตอนที่ยืนอยู่ตรงจุดที่วัด ไม่ใช่กลับมาไล่จัดทีหลัง ตอนนั้นไม่มีใครจำได้แล้วว่ารูปไหนของอะไร */}
+      {onAddPhoto ? (
+        <PmPhotoStrip photos={photos || []} busy={photoBusy} label={"รูปประกอบหัวข้อนี้"}
+          onAdd={onAddPhoto} onRemove={onRemovePhoto} onCap={onCapPhoto} />
+      ) : null}
     </div>
   );
 }
@@ -303,6 +351,9 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
   const jobId = job ? job.id : null;
   const store = window.usePmHandover(jobId);
   const ph = window.usePmPhotoIdx(jobId);
+  /* รูปที่ไม่ได้แนบกับหัวข้อใด — หมวด "รูปประกอบ" เป็นของชุดนี้เท่านั้น
+     ถ้าเอา ph.idx ทั้งก้อนมาโชว์ รูปจะโผล่สองที่ ทั้งใต้หัวข้อและในหมวดนี้ แล้วคนจะลบซ้ำกัน */
+  const genPhotos = React.useMemo(() => window.pmPhotosOf(ph.idx, "gen", ""), [ph.idx]);
   const [tab, setTab] = React.useState("home");
   const [paper, setPaper] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
@@ -390,7 +441,8 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
     store.patch(tPath(tb, "rows"), { [row.id]: null }, currentUser);
   };
 
-  const addPhotos = async (files) => {
+  /* meta บอกว่ารูปชุดนี้เป็นของหัวข้อไหน — ไม่ส่งมาคือรูปรวมท้ายเล่ม (sec: "gen") */
+  const addPhotos = async (files, meta) => {
     const arr = Array.from(files || []);
     if (!arr.length) return;
     setBusy(true);
@@ -399,9 +451,14 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
         if (!arr[i].type || arr[i].type.indexOf("image/") !== 0) continue;
         /* โปรไฟล์มือถือ — รูปละ ~200KB สมุดเต็มเล่มมีได้ร้อยกว่ารูป ถ้าใหญ่กว่านี้ช่างจ่ายค่าเน็ตเอง */
         const dataUrl = await window.resizeImageFile(arr[i], 1100, 0.70);
-        ph.add(dataUrl, { sec: "gen" }, currentUser);
+        ph.add(dataUrl, meta || { sec: "gen" }, currentUser);
       }
     } finally { setBusy(false); }
+  };
+
+  const removePhoto = async (x) => {
+    const ok = await window.askConfirm({ title: "ลบรูปนี้?", icon: "trash", ok: "ลบรูป", danger: true });
+    if (ok) ph.remove(x.id);
   };
 
   /* จำนวนรูปต่อสลอต เก็บไว้ให้ตัวเช็คความครบอ่าน (เฟสถัดไปที่รูปเป็นรายการบังคับจะได้ใช้ได้ทันที) */
@@ -552,7 +609,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                   <span style={{ display: "block", fontSize: 12.5, fontWeight: 700,
                     color: tab === "photo" ? "var(--primary-dark)" : "var(--text-1)" }}>รูปประกอบ</span>
                   <span style={{ display: "block", fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>
-                    {ph.idx.length} รูป
+                    {genPhotos.length} รูป
                   </span>
                 </button>
               </div>
@@ -595,7 +652,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                       style={{ display: "block", width: "100%", textAlign: "left", padding: "11px 13px", borderRadius: 12,
                         border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", fontFamily: "inherit" }}>
                       <span style={{ display: "block", fontSize: 13, fontWeight: 800, color: "var(--text-1)" }}>รูปประกอบ</span>
-                      <span style={{ display: "block", fontSize: 11, color: "var(--text-3)" }}>Photos · {ph.idx.length} รูป</span>
+                      <span style={{ display: "block", fontSize: 11, color: "var(--text-3)" }}>Photos · {genPhotos.length} รูป</span>
                     </button>
                   </div>
                 ) : null}
@@ -655,7 +712,10 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                     hdr={window.pmTableOf(rec, cur.key, tb.key).hdr || {}}
                     rows={window.pmRowsOf(rec, cur.key, tb.key)}
                     onHdr={setHdr(tb)} onSet={setCell(tb)}
-                    onAdd={() => addRow(tb)} onSeed={() => seedRows(tb)} onRemove={(row) => removeRow(tb, row)} />
+                    onAdd={() => addRow(tb)} onSeed={() => seedRows(tb)} onRemove={(row) => removeRow(tb, row)}
+                    photos={window.pmPhotosOf(ph.idx, cur.key, tb.key)} photoBusy={busy}
+                    onAddPhoto={(files) => addPhotos(files, { sec: cur.key, slot: tb.key })}
+                    onRemovePhoto={removePhoto} onCapPhoto={ph.setCap} />
                 ))}
 
                 {cur && cur.kind === "sign" && (
@@ -689,21 +749,21 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                         fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: busy ? "wait" : "pointer" }}>
                       {busy ? "กำลังย่อรูป…" : "＋ เพิ่มรูปประกอบการส่งมอบ"}
                     </button>
-                    {!ph.idx.length ? (
+                    {!genPhotos.length ? (
                       <div style={{ padding: 28, textAlign: "center", color: "var(--text-3)", fontSize: 12.5 }}>
-                        ยังไม่มีรูป · รูปที่เพิ่มจะไปอยู่ท้ายไฟล์ PDF หน้าละ 6 รูป
+                        ยังไม่มีรูปรวม · รูปที่เพิ่มตรงนี้จะไปอยู่ท้ายไฟล์ PDF หน้าละ 6 รูป
+                        <span style={{ display: "block", marginTop: 6 }}>
+                          รูปของแต่ละหัวข้อ แนบได้ใต้หัวข้อนั้นโดยตรง และจะพิมพ์ต่อท้ายแผ่นของหัวข้อนั้น
+                        </span>
                       </div>
                     ) : (
                       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
-                        {ph.idx.map((x, i) => (
+                        {genPhotos.map((x, i) => (
                           <div key={x.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 9, background: "var(--surface)" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                               <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--text-2)" }}>#{i + 1}</span>
                               <span style={{ flex: 1, fontSize: 10.5, color: "var(--text-3)" }}>{x.byName || ""}</span>
-                              <button onClick={async () => {
-                                const ok = await window.askConfirm({ title: "ลบรูปนี้?", icon: "trash", ok: "ลบรูป" });
-                                if (ok) ph.remove(x.id);
-                              }} style={{ border: "none", background: "none", cursor: "pointer", color: "var(--text-3)", padding: 2 }}>
+                              <button onClick={() => removePhoto(x)} style={{ border: "none", background: "none", cursor: "pointer", color: "var(--text-3)", padding: 2 }}>
                                 <Icon name="trash" size={14} />
                               </button>
                             </div>

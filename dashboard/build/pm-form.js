@@ -348,6 +348,108 @@ function PmTableRow({
     }
   }, "\xD7")));
 }
+function PmPhotoStrip({
+  photos,
+  busy,
+  label,
+  onAdd,
+  onRemove,
+  onCap
+}) {
+  const ref = React.useRef(null);
+  return React.createElement("div", {
+    style: {
+      marginTop: 10,
+      padding: "9px 11px",
+      border: "1px solid var(--border)",
+      borderRadius: 10,
+      background: "var(--surface-2, var(--surface))"
+    }
+  }, React.createElement("input", {
+    ref: ref,
+    type: "file",
+    accept: "image/*",
+    multiple: true,
+    style: {
+      display: "none"
+    },
+    onChange: e => {
+      onAdd(e.target.files);
+      e.target.value = "";
+    }
+  }), React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 130,
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, label, React.createElement("span", {
+    style: {
+      fontWeight: 400,
+      color: "var(--text-3)"
+    }
+  }, photos.length ? " · " + photos.length + " รูป" : " · ยังไม่มีรูป")), React.createElement("button", {
+    onClick: () => ref.current && ref.current.click(),
+    disabled: busy,
+    style: {
+      padding: "6px 11px",
+      borderRadius: 8,
+      border: "1px dashed var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--primary-dark)",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      cursor: busy ? "wait" : "pointer"
+    }
+  }, busy ? "กำลังย่อรูป…" : "＋ แนบรูป")), photos.map((x, i) => React.createElement("div", {
+    key: x.id,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 7,
+      marginTop: 7
+    }
+  }, React.createElement("span", {
+    style: {
+      flexShrink: 0,
+      fontSize: 11,
+      fontWeight: 800,
+      color: "var(--text-3)"
+    }
+  }, "#", i + 1), React.createElement("input", {
+    defaultValue: x.cap || "",
+    placeholder: "\u0E04\u0E33\u0E1A\u0E23\u0E23\u0E22\u0E32\u0E22\u0E23\u0E39\u0E1B (\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E43\u0E15\u0E49\u0E23\u0E39\u0E1B\u0E43\u0E19\u0E43\u0E1A)",
+    onBlur: e => onCap(x.id, e.target.value),
+    style: Object.assign({}, pmInputStyle, {
+      fontSize: 12,
+      padding: "6px 9px"
+    })
+  }), React.createElement("button", {
+    onClick: () => onRemove(x),
+    "aria-label": "\u0E25\u0E1A\u0E23\u0E39\u0E1B",
+    style: {
+      flexShrink: 0,
+      border: "none",
+      background: "none",
+      cursor: "pointer",
+      color: "var(--text-3)",
+      padding: 3
+    }
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 14
+  })))));
+}
 function PmTableBlock({
   table,
   hdr,
@@ -357,7 +459,12 @@ function PmTableBlock({
   onSet,
   onAdd,
   onRemove,
-  onSeed
+  onSeed,
+  photos,
+  photoBusy,
+  onAddPhoto,
+  onRemovePhoto,
+  onCapPhoto
 }) {
   const cols = table.cols || [];
   return React.createElement("div", {
@@ -515,7 +622,14 @@ function PmTableBlock({
       fontWeight: 700,
       cursor: "pointer"
     }
-  }, "\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E41\u0E16\u0E27\u0E08\u0E32\u0E01\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E17\u0E35\u0E48\u0E21\u0E35\u0E2D\u0E22\u0E39\u0E48") : null));
+  }, "\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E41\u0E16\u0E27\u0E08\u0E32\u0E01\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E17\u0E35\u0E48\u0E21\u0E35\u0E2D\u0E22\u0E39\u0E48") : null), onAddPhoto ? React.createElement(PmPhotoStrip, {
+    photos: photos || [],
+    busy: photoBusy,
+    label: "รูปประกอบหัวข้อนี้",
+    onAdd: onAddPhoto,
+    onRemove: onRemovePhoto,
+    onCap: onCapPhoto
+  }) : null);
 }
 function PmSignRow({
   block,
@@ -599,6 +713,7 @@ function PmHandoverModal({
   const jobId = job ? job.id : null;
   const store = window.usePmHandover(jobId);
   const ph = window.usePmPhotoIdx(jobId);
+  const genPhotos = React.useMemo(() => window.pmPhotosOf(ph.idx, "gen", ""), [ph.idx]);
   const [tab, setTab] = React.useState("home");
   const [paper, setPaper] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
@@ -701,7 +816,7 @@ function PmHandoverModal({
       [row.id]: null
     }, currentUser);
   };
-  const addPhotos = async files => {
+  const addPhotos = async (files, meta) => {
     const arr = Array.from(files || []);
     if (!arr.length) return;
     setBusy(true);
@@ -709,13 +824,22 @@ function PmHandoverModal({
       for (let i = 0; i < arr.length; i++) {
         if (!arr[i].type || arr[i].type.indexOf("image/") !== 0) continue;
         const dataUrl = await window.resizeImageFile(arr[i], 1100, 0.70);
-        ph.add(dataUrl, {
+        ph.add(dataUrl, meta || {
           sec: "gen"
         }, currentUser);
       }
     } finally {
       setBusy(false);
     }
+  };
+  const removePhoto = async x => {
+    const ok = await window.askConfirm({
+      title: "ลบรูปนี้?",
+      icon: "trash",
+      ok: "ลบรูป",
+      danger: true
+    });
+    if (ok) ph.remove(x.id);
   };
   React.useEffect(() => {
     if (!started) return;
@@ -1039,7 +1163,7 @@ function PmHandoverModal({
       fontWeight: 700,
       color: "var(--text-3)"
     }
-  }, ph.idx.length, " \u0E23\u0E39\u0E1B"))), React.createElement("div", {
+  }, genPhotos.length, " \u0E23\u0E39\u0E1B"))), React.createElement("div", {
     style: {
       padding: 16,
       overflowY: "auto",
@@ -1152,7 +1276,7 @@ function PmHandoverModal({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, "Photos \xB7 ", ph.idx.length, " \u0E23\u0E39\u0E1B"))) : null, cur && cur.kind === "fields" && window.pmGroupsOf(cur, sum).map(g => React.createElement("div", {
+  }, "Photos \xB7 ", genPhotos.length, " \u0E23\u0E39\u0E1B"))) : null, cur && cur.kind === "fields" && window.pmGroupsOf(cur, sum).map(g => React.createElement("div", {
     key: g.key,
     style: {
       marginBottom: 18
@@ -1259,7 +1383,15 @@ function PmHandoverModal({
     onSet: setCell(tb),
     onAdd: () => addRow(tb),
     onSeed: () => seedRows(tb),
-    onRemove: row => removeRow(tb, row)
+    onRemove: row => removeRow(tb, row),
+    photos: window.pmPhotosOf(ph.idx, cur.key, tb.key),
+    photoBusy: busy,
+    onAddPhoto: files => addPhotos(files, {
+      sec: cur.key,
+      slot: tb.key
+    }),
+    onRemovePhoto: removePhoto,
+    onCapPhoto: ph.setCap
   })), cur && cur.kind === "sign" && React.createElement(React.Fragment, null, (cur.blocks || []).map(b => React.createElement(PmSignRow, {
     key: b.key,
     block: b,
@@ -1321,20 +1453,25 @@ function PmHandoverModal({
       fontWeight: 700,
       cursor: busy ? "wait" : "pointer"
     }
-  }, busy ? "กำลังย่อรูป…" : "＋ เพิ่มรูปประกอบการส่งมอบ"), !ph.idx.length ? React.createElement("div", {
+  }, busy ? "กำลังย่อรูป…" : "＋ เพิ่มรูปประกอบการส่งมอบ"), !genPhotos.length ? React.createElement("div", {
     style: {
       padding: 28,
       textAlign: "center",
       color: "var(--text-3)",
       fontSize: 12.5
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E39\u0E1B \xB7 \u0E23\u0E39\u0E1B\u0E17\u0E35\u0E48\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E08\u0E30\u0E44\u0E1B\u0E2D\u0E22\u0E39\u0E48\u0E17\u0E49\u0E32\u0E22\u0E44\u0E1F\u0E25\u0E4C PDF \u0E2B\u0E19\u0E49\u0E32\u0E25\u0E30 6 \u0E23\u0E39\u0E1B") : React.createElement("div", {
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E39\u0E1B\u0E23\u0E27\u0E21 \xB7 \u0E23\u0E39\u0E1B\u0E17\u0E35\u0E48\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E15\u0E23\u0E07\u0E19\u0E35\u0E49\u0E08\u0E30\u0E44\u0E1B\u0E2D\u0E22\u0E39\u0E48\u0E17\u0E49\u0E32\u0E22\u0E44\u0E1F\u0E25\u0E4C PDF \u0E2B\u0E19\u0E49\u0E32\u0E25\u0E30 6 \u0E23\u0E39\u0E1B", React.createElement("span", {
+    style: {
+      display: "block",
+      marginTop: 6
+    }
+  }, "\u0E23\u0E39\u0E1B\u0E02\u0E2D\u0E07\u0E41\u0E15\u0E48\u0E25\u0E30\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D \u0E41\u0E19\u0E1A\u0E44\u0E14\u0E49\u0E43\u0E15\u0E49\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E19\u0E31\u0E49\u0E19\u0E42\u0E14\u0E22\u0E15\u0E23\u0E07 \u0E41\u0E25\u0E30\u0E08\u0E30\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E15\u0E48\u0E2D\u0E17\u0E49\u0E32\u0E22\u0E41\u0E1C\u0E48\u0E19\u0E02\u0E2D\u0E07\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E19\u0E31\u0E49\u0E19")) : React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
       gap: 10
     }
-  }, ph.idx.map((x, i) => React.createElement("div", {
+  }, genPhotos.map((x, i) => React.createElement("div", {
     key: x.id,
     style: {
       border: "1px solid var(--border)",
@@ -1362,14 +1499,7 @@ function PmHandoverModal({
       color: "var(--text-3)"
     }
   }, x.byName || ""), React.createElement("button", {
-    onClick: async () => {
-      const ok = await window.askConfirm({
-        title: "ลบรูปนี้?",
-        icon: "trash",
-        ok: "ลบรูป"
-      });
-      if (ok) ph.remove(x.id);
-    },
+    onClick: () => removePhoto(x),
     style: {
       border: "none",
       background: "none",
