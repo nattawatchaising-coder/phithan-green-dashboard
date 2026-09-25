@@ -55,7 +55,7 @@ const pmNow = () => new Date().toISOString();
    ⚠ กฎ: เพิ่มรายการที่มี req:1 ใหม่ ต้องบัมพ์ PM_VER และใส่ since: PM_VER ของรายการนั้นเสมอ
      ลืมบัมพ์ = รายการใหม่ไม่เคยถูกบังคับกับใครเลย
    ══════════════════════════════════════════════════ */
-const PM_VER = 1;
+const PM_VER = 2;
 
 /* คีย์ที่เลิกใช้แล้ว แต่ของเก่ายังมีค่าเก็บอยู่ — ยังต้องอ่านออกเพื่อพิมพ์ลงใบ
    (แบบเดียวกับ SURVEY_RETIRED_SLOTS ใน survey.jsx) */
@@ -254,6 +254,176 @@ const PM_SECTIONS = [
     ],
   },
 
+  /* ══════════════════════════════════════════════════
+     แผ่นที่เป็นตาราง (kind: "table") — เฟสสองของสมุด
+
+     หนึ่งหมวดมีได้หลายตาราง (tables) เพราะแผ่นต้นฉบับหลายแผ่นมีตารางย่อยหลายก้อนในแผ่นเดียว
+     (แผ่น 2 ของต้นฉบับมีมิเตอร์ ซิม และเซนเซอร์วัดอากาศ อยู่ด้วยกัน)
+
+     แต่ละตาราง: hdr = ช่องหัวตารางที่กรอกครั้งเดียว · cols = คอลัมน์ของแถว
+     เก็บลง tests/<หมวด>/<ตาราง>/{ hdr:{}, rows:{ <rowId>: { ord, … } } }
+
+     ⚠ pass() ใช้ระบายสี ผ่าน/ไม่ผ่าน บนกระดาษกับไฟล์ Excel เท่านั้น ตัวนับความครบไม่เห็นมัน
+       ทดสอบแล้ว "ไม่ผ่าน" คือกรอกครบ ไม่ใช่ขาด — ถ้าวันหนึ่งมีคนแก้ให้ตัวนับเห็น pass()
+       สมุดของไซต์ที่มีจุดไม่ผ่านจะค้างต่ำกว่า 100% ตลอดกาล ซึ่งผิดความหมายของคำว่าครบ
+
+     ⚠ ทุกรายการในบล็อกนี้ since: 2 และ PM_VER ถูกบัมพ์เป็น 2 แล้ว
+       เล่มที่เปิดไว้ก่อนหน้านี้ยังถูกตัดสินด้วยสัญญา ver 1 จนกว่าคนจะกด "อัปเดตแบบฟอร์ม" เอง
+     ══════════════════════════════════════════════════ */
+
+  {
+    key: "reg", en: "Equipment Register", th: "ทะเบียนอุปกรณ์", icon: "box", since: 2, kind: "table",
+    tables: [
+      {
+        key: "inv", code: "1", en: "Inverters", th: "อินเวอร์เตอร์", minRows: 1,
+        hdr: [{ key: "mfrModel", en: "Manufacturer and Model", th: "ยี่ห้อและรุ่น", type: "text", req: 1, since: 2 }],
+        cols: [
+          { key: "sn", en: "Serial Number", th: "หมายเลขเครื่อง", type: "text", req: 1, since: 2, w: 2 },
+          { key: "kw", en: "Rated Power", th: "กำลังไฟฟ้า", unit: "kW AC", type: "num", req: 1, since: 2 },
+        ],
+        /* สร้างแถวจากจำนวนอินเวอร์เตอร์ที่กรอกไว้ในแผ่น Summary — ไม่ทำเอง ต้องกดปุ่ม
+           เพราะการเขียนแถวเปล่าสิบแถวลงเล่มของคนอื่นโดยไม่ได้ขอ คือการตัดสินใจแทนเขา */
+        seed: (job, sum) => {
+          const n = Math.min(60, parseInt(sum.invQty, 10) || 0);
+          const out = [];
+          for (let i = 0; i < n; i++) out.push({ kw: sum.invKw || "" });
+          return out;
+        },
+      },
+      {
+        key: "meter", code: "2", en: "Energy Meter", th: "มิเตอร์วัดพลังงาน",
+        hdr: [{ key: "mfrModel", en: "Manufacturer and Model", th: "ยี่ห้อและรุ่น", type: "text", since: 2 }],
+        cols: [
+          { key: "sn", en: "Serial Number", th: "หมายเลขเครื่อง", type: "text", since: 2, w: 2 },
+          { key: "mfgDate", en: "Manufacturing Date", th: "วันที่ผลิต", type: "text", since: 2 },
+          { key: "ip", en: "IP Address", th: "หมายเลข IP", type: "text", since: 2 },
+        ],
+      },
+      {
+        key: "sim", en: "SIM Cards", th: "ซิมการ์ด",
+        cols: [
+          { key: "phone", en: "Phone Number", th: "เบอร์โทร", type: "text", since: 2 },
+          { key: "simNo", en: "SIM No.", th: "หมายเลขซิม", type: "text", since: 2, w: 2 },
+          { key: "isp", en: "Service Provider", th: "ผู้ให้บริการ", type: "text", since: 2 },
+          { key: "loc", en: "Location", th: "ตำแหน่งที่ติดตั้ง", type: "text", since: 2 },
+        ],
+      },
+      {
+        key: "wx", en: "Weather Sensors", th: "เซนเซอร์วัดอากาศ",
+        cols: [
+          { key: "model", en: "Sensor Type / Model", th: "ชนิดและรุ่น", type: "text", since: 2, w: 2 },
+          { key: "mfr", en: "Manufactured By", th: "ผู้ผลิต", type: "text", since: 2 },
+          { key: "sn", en: "Serial Number", th: "หมายเลขเครื่อง", type: "text", since: 2 },
+          { key: "mfgDate", en: "Date of Manufacturing", th: "วันที่ผลิต", type: "text", since: 2 },
+          { key: "calDate", en: "Calibration Date", th: "วันที่สอบเทียบ", type: "text", since: 2 },
+        ],
+      },
+      {
+        /* แผ่น 3 ของต้นฉบับ — ใบรับรองผลทดสอบต้องบอกได้ว่าวัดด้วยเครื่องมืออะไร */
+        key: "instr", code: "3", en: "Test Instruments", th: "เครื่องมือที่ใช้ทดสอบ",
+        cols: [
+          { key: "test", en: "Standard Functional Test", th: "รายการทดสอบ", type: "text", since: 2, w: 3 },
+          { key: "code", en: "Product Code / Serial", th: "รหัสหรือหมายเลขเครื่องมือ", type: "text", since: 2, w: 2 },
+          { key: "mfr", en: "Manufacturer", th: "ยี่ห้อเครื่องมือ", type: "text", since: 2 },
+        ],
+        seed: () => [
+          { test: "A1. Equipotential Test AC/DC" }, { test: "B1. DC Insulation Test (String Cables)" },
+          { test: "B3. DC Polarity & Voltage" }, { test: "B4. DC Current (String Cables)" },
+          { test: "C1. AC Circuitry Test (Inverter to AC DB)" }, { test: "C2. Ground Rod Test" },
+          { test: "D1. Thermal Photos — Inverter" }, { test: "D2. Thermal Photos — AC Box / Data Logger" },
+          { test: "D3. Thermal Photos — PV and Under PV" }, { test: "E1. Torque at Mid Clamp and End Clamp" },
+          { test: "E2. Torque at Cliplock and L-feet" }, { test: "W1. Water Cleaning Test" },
+        ],
+      },
+    ],
+  },
+
+  {
+    key: "a1", code: "A1", en: "A1. Equipotential Test", th: "A1 ทดสอบความต่อเนื่องของสายดิน",
+    icon: "check", since: 2, kind: "table",
+    tables: [
+      {
+        key: "main", en: "Designated Location of Measurement", th: "จุดที่วัด", minRows: 1, unitNote: "หน่วยเป็นโอห์ม (Ω)",
+        hdr: [{ key: "material", en: "Conductor Material", th: "ชนิดตัวนำ", type: "text", req: 1, since: 2 }],
+        cols: [
+          { key: "loc", en: "Location", th: "จุดที่วัด", type: "text", req: 1, since: 2, w: 3 },
+          { key: "ohm", en: "Measured", th: "ค่าที่วัดได้", unit: "Ω", type: "num", since: 2 },
+          { key: "status", en: "Status", th: "ผลตรวจ", type: "select", opts: ["OK", "NG"], req: 1, since: 2 },
+          { key: "note", en: "Comment", th: "หมายเหตุ", type: "text", since: 2, w: 2 },
+        ],
+        pass: (r) => String(r.status || "").toUpperCase() === "OK",
+        /* ตารางนี้มีช่อง Status อยู่แล้ว คอลัมน์ Result ท้ายจะซ้ำคำเดิมบนกระดาษที่ส่งลูกค้า */
+        resultCol: false,
+        /* แปดจุดตามแบบฟอร์มต้นฉบับ — เป็นจุดที่ต้องตรวจทุกไซต์อยู่แล้ว */
+        seed: () => [
+          { loc: "Mounting Clamp PV" }, { loc: "Earth connection to PV mounting" },
+          { loc: "Check the condition of the DC box fuse" }, { loc: "Check the condition of connector MC4" },
+          { loc: "AC cable trunking to earth" }, { loc: "Check the condition of AC box" },
+          { loc: "Check the condition of ground box test" }, { loc: "Check the condition of ground rod" },
+        ],
+      },
+    ],
+  },
+
+  {
+    key: "c1", code: "C1", en: "C1. AC Circuitry Test", th: "C1 ทดสอบวงจรไฟฟ้า AC",
+    icon: "bolt", since: 2, kind: "table",
+    tables: [
+      {
+        key: "main", en: "Inverter to AC DB", th: "จากอินเวอร์เตอร์ถึงตู้ AC", minRows: 1, unitNote: "แรงดันทุกค่าเป็นโวลต์ (V)",
+        hdr: [
+          { key: "lineV", en: "Line Voltage", th: "แรงดันระบบ", unit: "V", type: "num", req: 1, since: 2 },
+          { key: "voltType", en: "Type of Voltage", th: "ระบบไฟ", type: "select", opts: ["1 phase", "3 phase"], req: 1, since: 2 },
+          { key: "freq", en: "Nominal AC Frequency", th: "ความถี่", unit: "Hz", type: "num", req: 1, since: 2 },
+          { key: "pf", en: "Power Factor", th: "ตัวประกอบกำลัง", type: "num", since: 2 },
+        ],
+        cols: [
+          { key: "src", en: "Measured At", th: "จุดที่วัด", type: "text", req: 1, since: 2, w: 3 },
+          { key: "rot", en: "Phase Rotation", th: "ลำดับเฟส", type: "select", opts: ["OK", "NG", "N/A"], since: 2 },
+          { key: "l1l2", en: "L1-L2", th: "L1-L2", type: "num", req: 1, since: 2 },
+          { key: "l2l3", en: "L2-L3", th: "L2-L3", type: "num", since: 2 },
+          { key: "l1l3", en: "L1-L3", th: "L1-L3", type: "num", since: 2 },
+          { key: "l1n", en: "L1-N", th: "L1-N", type: "num", since: 2 },
+          { key: "l2n", en: "L2-N", th: "L2-N", type: "num", since: 2 },
+          { key: "l3n", en: "L3-N", th: "L3-N", type: "num", since: 2 },
+          { key: "npe", en: "N-PE", th: "N-PE", type: "num", since: 2 },
+        ],
+        seed: (job, sum) => {
+          const n = Math.min(60, parseInt(sum.invQty, 10) || 0);
+          const out = [];
+          for (let i = 0; i < n; i++) out.push({ src: "Inverter " + (i + 1) + " to AC DB " + (i + 1) });
+          return out;
+        },
+      },
+    ],
+  },
+
+  {
+    key: "c2", code: "C2", en: "C2. Ground Rod Test", th: "C2 ทดสอบความต้านทานหลักดิน",
+    icon: "check", since: 2, kind: "table",
+    tables: [
+      {
+        key: "main", en: "Designated Location of Measurement", th: "จุดที่วัด", minRows: 1, unitNote: "หน่วยเป็นโอห์ม (Ω)",
+        hdr: [
+          { key: "format", en: "Measurement Format", th: "รูปแบบการวัด", type: "select", opts: ["2 POLE", "3 POLE", "CLAMP"], req: 1, since: 2 },
+          { key: "cable", en: "Cable Detail", th: "รายละเอียดสายดิน", type: "text", req: 1, since: 2 },
+          { key: "rod", en: "Ground Rod Installation", th: "หลักดินที่ติดตั้ง", type: "text", req: 1, since: 2 },
+        ],
+        cols: [
+          { key: "loc", en: "Location", th: "จุดที่วัด", type: "text", req: 1, since: 2, w: 3 },
+          { key: "r1", en: "First", th: "ครั้งที่ 1", unit: "Ω", type: "num", req: 1, since: 2 },
+          { key: "r2", en: "Second", th: "ครั้งที่ 2", unit: "Ω", type: "num", req: 1, since: 2 },
+          { key: "r3", en: "Third", th: "ครั้งที่ 3", unit: "Ω", type: "num", req: 1, since: 2 },
+        ],
+        /* เกณฑ์ที่ใช้กันหน้างานคือไม่เกินห้าโอห์ม — ใช้ระบายสีเฉย ๆ ไม่ได้แปลว่าต้องผ่านถึงจะนับว่าครบ */
+        pass: (r) => {
+          const v = [r.r1, r.r2, r.r3].map((x) => parseFloat(x)).filter((x) => isFinite(x));
+          return v.length ? Math.max.apply(null, v) <= 5 : false;
+        },
+      },
+    ],
+  },
+
   /* ── ช่องลงนามสามช่องตามสายอนุมัติจริง — หน้างาน → โปรเจค → เจ้าของโครงการ
      ต้นฉบับมีช่อง Regional PM Head ด้วย แต่เป็นตำแหน่งของบริษัทที่ทำไฟล์นั้น ไม่มีในสายงานเรา ── */
   {
@@ -439,6 +609,30 @@ function pmIsPrefilled(rec, key) {
   return !(saved[key] !== null && saved[key] !== undefined && String(saved[key]) !== "");
 }
 
+/* ═════════════════════════════════════════════════
+   แถวของตาราง
+
+   เก็บเป็น object คีย์ตาม rowId ไม่ใช่ array — สองคนเพิ่มแถวพร้อมกันกับ array
+   แปลว่าคนหนึ่งทับแถวของอีกคนทิ้ง คีย์เฉพาะทำให้สองคนเขียนคนละแถวได้จริง
+   ลำดับมาจาก ord ไม่ใช่ลำดับคีย์ — แทรกแถวกลางทีหลังจึงทำได้
+   ═════════════════════════════════════════════════ */
+
+const pmRowId = () => "R-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+const pmTableOf = (rec, secKey, tbKey) => ((((rec || {}).tests || {})[secKey] || {})[tbKey]) || {};
+
+/* แถวทั้งหมดของตารางหนึ่ง เรียงตามลำดับที่คนวางไว้ พร้อม id กำกับทุกแถว */
+function pmRowsOf(rec, secKey, tbKey) {
+  const rows = pmTableOf(rec, secKey, tbKey).rows;
+  if (!rows || typeof rows !== "object") return [];
+  return Object.keys(rows)
+    .map((id) => Object.assign({}, rows[id], { id: id }))
+    .sort((a, b) => (+a.ord || 0) - (+b.ord || 0) || String(a.id).localeCompare(String(b.id)));
+}
+
+/* ลำดับของแถวถัดไป — เว้นช่องทีละสิบ จะได้แทรกแถวกลางได้โดยไม่ต้องเขียนทั้งตารางใหม่ */
+const pmNextOrd = (rows) => (rows.length ? (+rows[rows.length - 1].ord || 0) + 10 : 10);
+
 /* ══════════════════════════════════════════════════
    ตัวเช็คความครบ
 
@@ -488,26 +682,37 @@ function pmProgress(rec, job, user) {
         tick(filled((v[b.key] || {}).name), b.key, b.en, b.th);
       });
     } else if (sec.kind === "table") {
-      const t = ((r.tests || {})[sec.key]) || {};
-      const hdr = t.hdr || {};
-      const rows = t.rows && typeof t.rows === "object" ? Object.values(t.rows) : [];
-      (sec.hdr || []).forEach((h) => {
-        if (!pmActive(h, ver)) return;
-        tick(filled(hdr[h.key]), h.key, h.en, h.th);
-      });
-      rows.forEach((row, i) => {
-        (sec.cols || []).forEach((c) => {
-          if (!pmActive(c, ver)) return;
-          tick(filled(row[c.key]), sec.key + "." + i + "." + c.key, c.en + " #" + (i + 1), c.th + " แถวที่ " + (i + 1));
+      (sec.tables || []).forEach((tb) => {
+        const t = pmTableOf(r, sec.key, tb.key);
+        const hdr = t.hdr || {};
+        const rows = pmRowsOf(r, sec.key, tb.key);
+        const nm = (x, i) => ({
+          en: tb.en + " · " + x.en + (i === undefined ? "" : " #" + (i + 1)),
+          th: tb.th + " · " + x.th + (i === undefined ? "" : " แถวที่ " + (i + 1)),
         });
-        if (sec.photos && sec.photos.req) (sec.photos.perRow || []).forEach((slot) => {
-          tick(+flags[sec.key + "." + (row.id || i) + "." + slot] > 0,
-            sec.key + "." + i + "." + slot, "Photo " + slot + " #" + (i + 1), "รูป " + slot + " แถวที่ " + (i + 1));
+        (tb.hdr || []).forEach((h) => {
+          if (!pmActive(h, ver)) return;
+          const lb = nm(h);
+          tick(filled(hdr[h.key]), sec.key + "." + tb.key + "." + h.key, lb.en, lb.th);
         });
+        rows.forEach((row, i) => {
+          (tb.cols || []).forEach((c) => {
+            if (!pmActive(c, ver)) return;
+            const lb = nm(c, i);
+            tick(filled(row[c.key]), sec.key + "." + tb.key + "." + row.id + "." + c.key, lb.en, lb.th);
+          });
+          (tb.photos || []).forEach((slot) => {
+            tick(+flags[sec.key + "." + row.id + "." + slot] > 0,
+              sec.key + "." + tb.key + "." + row.id + "." + slot,
+              tb.en + " · Photo " + slot + " #" + (i + 1), tb.th + " · รูปแถวที่ " + (i + 1));
+          });
+        });
+        /* ตารางที่ต้องมีแถว แต่ยังไม่มีสักแถว นับเป็นหนึ่งรายการที่ขาด
+           ไม่งั้นแผ่นที่ไม่มีแถวเลยจะนับว่าครบ 100% เพราะไม่มีอะไรให้ขาด */
+        if (tb.minRows && rows.length < tb.minRows) {
+          tick(false, sec.key + "." + tb.key + ".rows", "Rows in " + tb.en, "ยังไม่ได้เพิ่มแถวใน " + tb.th);
+        }
       });
-      if (sec.minRows && rows.length < sec.minRows) {
-        tick(false, sec.key + ".rows", "Rows in " + sec.en, "ยังไม่ได้เพิ่มแถวใน " + sec.th);
-      }
     }
 
     bySection[sec.key] = {
@@ -522,18 +727,15 @@ function pmProgress(rec, job, user) {
 }
 
 /* มีรายการบังคับใหม่ที่เล่มนี้ยังไม่รับมาไหม — ฟอร์มเอาไปขึ้นแบนเนอร์ให้กดอัปเดตเอง (ไม่อัตโนมัติ) */
-function pmNewerItems(rec) {
+function pmNewerItems(rec, job, user) {
   const ver = pmVerOf(rec);
   if (ver >= PM_VER) return 0;
-  let n = 0;
-  PM_SECTIONS.forEach((sec) => {
-    const walk = (arr) => (arr || []).forEach((it) => { if (it.req && (it.since || 1) > ver) n += 1; });
-    if (sec.kind === "fields") (sec.groups || []).forEach((g) => walk(g.fields));  /* กลุ่มที่กดเพิ่มได้นับเฉพาะชุดเดียว — since ของทุกชุดเท่ากัน */
-    else if (sec.kind === "checklist") (sec.groups || []).forEach((g) => walk(g.items));
-    else if (sec.kind === "sign") walk(sec.blocks);
-    else if (sec.kind === "table") { walk(sec.hdr); walk(sec.cols); }
-  });
-  return n;
+  /* นับด้วยตัวนับเดิม แค่สมมติว่าเล่มนี้รับสัญญาใหม่แล้ว — ตัวเลขที่ขึ้นแบนเนอร์
+     จึงตรงกับตัวหารของเปอร์เซ็นต์เสมอ ถ้านับแยกกันสองทาง วันหนึ่งจะได้แบนเนอร์ว่า "มีใหม่ 22 รายการ"
+     แล้วกดอัปเดตแล้วตัวหารขยับแค่ 12 ซึ่งไม่มีทางอธิบายให้คนกรอกเข้าใจได้เลย */
+  const now = pmProgress(rec, job, user).total;
+  const bumped = Object.assign({}, rec, { meta: Object.assign({}, (rec || {}).meta, { ver: PM_VER }) });
+  return Math.max(0, pmProgress(bumped, job, user).total - now);
 }
 
 /* เงาที่ไปแปะบนใบงาน — ไม่กี่ตัวเลข ให้การ์ดกับหน้ารายการอ่านสถานะโดยไม่ต้องแตะข้อมูลจริง
@@ -690,6 +892,7 @@ function pmPhotoFlags(idx) {
 Object.assign(window, {
   PM_ROOT, PM_VER, PM_RETIRED, PM_SECTIONS, PM_SEC_BY, PM_FROM_LABEL,
   pmDocName, pmDocLabel, pmSetId, pmSetCount, pmGroupsOf,
+  pmRowId, pmTableOf, pmRowsOf, pmNextOrd,
   pmToday, pmNow, pmVerOf, pmActive, pmBlank, pmDms, pmPrefill, pmMerged, pmIsPrefilled,
   pmProgress, pmNewerItems, pmSummaryOf, pmCardStatus, pmPhotoFlags,
   usePmHandover, usePmPhotoIdx, usePmPhotos,

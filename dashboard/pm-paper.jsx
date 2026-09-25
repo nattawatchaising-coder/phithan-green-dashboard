@@ -127,7 +127,7 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
      จึงแบ่งเองที่ "ขอบกลุ่ม" ประมาณจากจำนวนแถว (สองคอลัมน์) + หัวกลุ่ม
      หนึ่งหน่วย = หนึ่งแถวสองบรรทัด (อังกฤษ/ไทย) · PM_SUM_UNITS ตั้งต่ำกว่าที่วัดได้จริง
      เผื่อหัวข้อที่ยาวจนตกบรรทัดที่สาม และเผื่อชุดแผง/อินเวอร์เตอร์ที่คนกรอกกดเพิ่มเข้ามา */
-  const PM_SUM_UNITS = 18;
+  const PM_SUM_UNITS = 16;
   const sumPages = (() => {
     const pages = [];
     let cur = [], used = 0;
@@ -140,7 +140,88 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
     return pages;
   })();
 
-    /* เลขรูปวิ่งชุดเดียวกับที่ไฟล์ Excel ใช้อ้างถึง — สองไฟล์จะได้ชี้หากันได้ */
+  /* ── แผ่นที่เป็นตาราง ──
+     หนึ่งตารางเท่ากับหนึ่งแผ่น ตามแบบฟอร์มต้นฉบับ ที่แยกแผ่นกันเพราะแต่ละแผ่นเซ็นแยกกัน
+     ตารางที่ยังไม่มีทั้งแถวและหัวตารางจะไม่พิมพ์เลย — ไซต์ที่ไม่มีซิมกับเซนเซอร์อากาศ
+     ไม่ควรได้หน้าเปล่าสองหน้าติดมาในเล่มที่ส่งให้ลูกค้า */
+  /* แถวที่ยังไม่ได้กรอกช่องบังคับเลย คือ "ยังไม่ได้วัด" ไม่ใช่ "วัดแล้วไม่ผ่าน"
+     กระดาษที่พิมพ์ระหว่างทำงานต้องเห็นช่องว่าง ไม่ใช่แถว NG สีแดงเต็มหน้า */
+  const pmRowDone = (tb, row) =>
+    (tb.cols || []).every((c) => !c.req || String(row[c.key] == null ? "" : row[c.key]).trim() !== "");
+  const pmRowOk = (tb, row) => (tb.pass && pmRowDone(tb, row) ? tb.pass(row) : null);
+  /* ตารางที่มีช่องผลตรวจของตัวเองอยู่แล้วตั้ง resultCol: false กันคอลัมน์ซ้ำ */
+  const pmHasResult = (tb) => !!tb.pass && tb.resultCol !== false;
+
+  const tableSheets = [];
+  window.PM_SECTIONS.forEach((sec) => {
+    if (sec.kind !== "table" || (sec.since || 1) > (p.ver || 1)) return;
+    (sec.tables || []).forEach((tb) => {
+      const t = window.pmTableOf(r, sec.key, tb.key);
+      const rows = window.pmRowsOf(r, sec.key, tb.key);
+      const hdr = t.hdr || {};
+      const hasHdr = (tb.hdr || []).some((f) => String(hdr[f.key] == null ? "" : hdr[f.key]).trim() !== "");
+      if (!rows.length && !hasHdr) return;
+      tableSheets.push({ sec: sec, tb: tb, hdr: hdr, rows: rows });
+    });
+  });
+
+  const tableSheet = (x, i) => {
+    const tb = x.tb;
+    const cols = tb.cols || [];
+    const wsum = cols.reduce((a, c) => a + (c.w || 1), 0);
+    return (
+      <div className="pm-sheet" key={"tb-" + x.sec.key + "-" + tb.key}>
+        {headBar((x.sec.code ? x.sec.code + ". " : "") + tb.en, x.sec.th + " · " + tb.th)}
+        {(tb.hdr || []).length ? (
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", columnGap: 22, marginBottom: 4 }}>
+            {(tb.hdr || []).map((f) => pmpRow(f, pmpValue(f, x.hdr)))}
+          </div>
+        ) : null}
+        {tb.unitNote ? <div style={{ fontSize: 9.5, color: PM_SOFT, marginBottom: 5 }}>{tb.unitNote}</div> : null}
+        <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+          <thead>
+            <tr style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
+              <th style={Object.assign({}, pmpTh, { width: 26, textAlign: "center" })}>#</th>
+              {cols.map((c) => (
+                <th key={c.key} style={Object.assign({}, pmpTh, { width: ((c.w || 1) / wsum * 100) + "%" })}>
+                  {c.en}
+                  <span style={{ display: "block", fontWeight: 400, fontSize: 9 }}>
+                    {c.th}{c.unit ? " (" + c.unit + ")" : ""}
+                  </span>
+                </th>
+              ))}
+              {pmHasResult(tb) ? <th style={Object.assign({}, pmpTh, { width: 40, textAlign: "center" })}>Result</th> : null}
+            </tr>
+          </thead>
+          <tbody>
+            {x.rows.map((row, ri) => {
+              const ok = pmRowOk(tb, row);
+              return (
+                <tr key={row.id}>
+                  <td style={Object.assign({}, pmpTd, { textAlign: "center", color: PM_SOFT, fontSize: 9.5 })}>{ri + 1}</td>
+                  {cols.map((c) => (
+                    <td key={c.key} style={pmpTd}>{row[c.key] == null || row[c.key] === "" ? "" : String(row[c.key])}</td>
+                  ))}
+                  {pmHasResult(tb) ? (
+                    <td style={Object.assign({}, pmpTd, { textAlign: "center", fontWeight: 700,
+                      color: ok === null ? PM_SOFT : ok ? "#15803D" : "#B91C1C" })}>
+                      {ok === null ? "" : ok ? "OK" : "NG"}
+                    </td>
+                  ) : null}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <div style={{ marginTop: 7, fontSize: 9.5, color: PM_SOFT }}>
+          {x.rows.length} แถว
+          {tb.pass ? " · ผ่าน " + x.rows.filter((row) => pmRowOk(tb, row) === true).length + " แถว" : ""}
+        </div>
+      </div>
+    );
+  };
+
+  /* เลขรูปวิ่งชุดเดียวกับที่ไฟล์ Excel ใช้อ้างถึง — สองไฟล์จะได้ชี้หากันได้ */
   let photoNo = 0;
 
   const paper = (
@@ -191,6 +272,9 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
             ))}
           </div>
         ))}
+
+        {/* ── แผ่นที่เป็นตาราง ── */}
+        {tableSheets.map(tableSheet)}
 
         {/* ── แผ่นที่ 2 · Documents Checklist + ลงนาม ── */}
         <div className="pm-sheet pm-page">
@@ -461,10 +545,54 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
       merges.push({ s: { r: getR() - 1, c: 0 }, e: { r: getR() - 1, c: lastC } });
     });
 
+  /* ── แผ่นของหมวดที่เป็นตาราง ──
+     หนึ่งหมวดเท่ากับหนึ่งแผ่น ตารางย่อยวางต่อกันลงมา — ชื่อแผ่นของ Excel ยาวได้ไม่เกิน 31 ตัว
+     และห้ามมี : \ / ? * [ ] — จึงใช้รหัสแผ่นของต้นฉบับ (1 · 2 · 3 · A1 · C1 · C2) เป็นหลัก */
+  const tableWs = [];
+  window.PM_SECTIONS.forEach((sec) => {
+    if (sec.kind !== "table" || (sec.since || 1) > (p.ver || 1)) return;
+    (sec.tables || []).forEach((tb) => {
+      const rows = window.pmRowsOf(r, sec.key, tb.key);
+      const hdr = window.pmTableOf(r, sec.key, tb.key).hdr || {};
+      const cols = tb.cols || [];
+      const head = ["#"].concat(cols.map((c) => c.en + (c.unit ? " (" + c.unit + ")" : "")));
+      const colW = [{ wch: 6 }].concat(cols.map((c) => ({ wch: Math.min(40, 14 * (c.w || 1)) })));
+      const hasRes = !!tb.pass && tb.resultCol !== false;
+      if (hasRes) { head.push("Result"); colW.push({ wch: 10 }); }
+      const ws = makeSheet(head, colW, (pushRow, merges, getR, lastC) => {
+        (tb.hdr || []).forEach((f) => {
+          const v = hdr[f.key];
+          const has = v !== null && v !== undefined && String(v) !== "";
+          pushRow([f.en + "  (" + f.th + ")", has ? String(v) + (f.unit ? " " + f.unit : "") : "ยังไม่กรอก"],
+            !has && f.req ? "miss" : "group", 19);
+          merges.push({ s: { r: getR() - 1, c: 1 }, e: { r: getR() - 1, c: lastC } });
+        });
+        pushRow(["หัวข้อไทย: " + cols.map((c) => c.th).join("  ·  ")], "foot", 18);
+        merges.push({ s: { r: getR() - 1, c: 0 }, e: { r: getR() - 1, c: lastC } });
+        if (!rows.length) {
+          pushRow(["", "ยังไม่ได้เพิ่มแถวในตารางนี้"], tb.minRows ? "miss" : "item");
+          return;
+        }
+        rows.forEach((row, i) => {
+          const cells = [i + 1].concat(cols.map((c) => {
+            const v = row[c.key];
+            return v === null || v === undefined || v === "" ? (c.req ? "ยังไม่กรอก" : "") : String(v);
+          }));
+          const miss = cols.some((c) => c.req && String(row[c.key] == null ? "" : row[c.key]).trim() === "");
+          if (hasRes) cells.push(miss ? "" : tb.pass(row) ? "OK" : "NG");
+          pushRow(cells, miss ? "miss" : (i % 2 === 0 ? "item" : "itemAlt"));
+        });
+      });
+      tableWs.push({ name: tb.code || (sec.tables.length > 1 ? tb.en : sec.code || sec.key), ws: ws });
+    });
+  });
+
   const wb = X.utils.book_new();
   X.utils.book_append_sheet(wb, wsSum, "Summary");
   X.utils.book_append_sheet(wb, wsDoc, "Documents");
   X.utils.book_append_sheet(wb, wsChk, "Checklist");
+  /* ชื่อแผ่น Excel ยาวได้ไม่เกิน 31 ตัว และห้ามมี : \ / ? * [ ] */
+  tableWs.forEach((t) => X.utils.book_append_sheet(wb, t.ws, String(t.name).replace(/[:\\/?*[\]]/g, " ").trim().slice(0, 31)));
   X.utils.book_append_sheet(wb, wsPh, "Photos");
   X.writeFile(wb, "Handover_" + (j.code || "job") + "_" + window.drToday() + ".xlsx");
 }

@@ -195,7 +195,7 @@ function PmHandoverPaper({
       color: PM_SOFT
     }
   }, " (", th, ")"));
-  const PM_SUM_UNITS = 18;
+  const PM_SUM_UNITS = 16;
   const sumPages = (() => {
     const pages = [];
     let cur = [],
@@ -213,6 +213,106 @@ function PmHandoverPaper({
     if (cur.length) pages.push(cur);
     return pages;
   })();
+  const pmRowDone = (tb, row) => (tb.cols || []).every(c => !c.req || String(row[c.key] == null ? "" : row[c.key]).trim() !== "");
+  const pmRowOk = (tb, row) => tb.pass && pmRowDone(tb, row) ? tb.pass(row) : null;
+  const pmHasResult = tb => !!tb.pass && tb.resultCol !== false;
+  const tableSheets = [];
+  window.PM_SECTIONS.forEach(sec => {
+    if (sec.kind !== "table" || (sec.since || 1) > (p.ver || 1)) return;
+    (sec.tables || []).forEach(tb => {
+      const t = window.pmTableOf(r, sec.key, tb.key);
+      const rows = window.pmRowsOf(r, sec.key, tb.key);
+      const hdr = t.hdr || {};
+      const hasHdr = (tb.hdr || []).some(f => String(hdr[f.key] == null ? "" : hdr[f.key]).trim() !== "");
+      if (!rows.length && !hasHdr) return;
+      tableSheets.push({
+        sec: sec,
+        tb: tb,
+        hdr: hdr,
+        rows: rows
+      });
+    });
+  });
+  const tableSheet = (x, i) => {
+    const tb = x.tb;
+    const cols = tb.cols || [];
+    const wsum = cols.reduce((a, c) => a + (c.w || 1), 0);
+    return React.createElement("div", {
+      className: "pm-sheet",
+      key: "tb-" + x.sec.key + "-" + tb.key
+    }, headBar((x.sec.code ? x.sec.code + ". " : "") + tb.en, x.sec.th + " · " + tb.th), (tb.hdr || []).length ? React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+        columnGap: 22,
+        marginBottom: 4
+      }
+    }, (tb.hdr || []).map(f => pmpRow(f, pmpValue(f, x.hdr)))) : null, tb.unitNote ? React.createElement("div", {
+      style: {
+        fontSize: 9.5,
+        color: PM_SOFT,
+        marginBottom: 5
+      }
+    }, tb.unitNote) : null, React.createElement("table", {
+      style: {
+        width: "100%",
+        borderCollapse: "collapse",
+        tableLayout: "fixed"
+      }
+    }, React.createElement("thead", null, React.createElement("tr", {
+      style: {
+        breakInside: "avoid",
+        pageBreakInside: "avoid"
+      }
+    }, React.createElement("th", {
+      style: Object.assign({}, pmpTh, {
+        width: 26,
+        textAlign: "center"
+      })
+    }, "#"), cols.map(c => React.createElement("th", {
+      key: c.key,
+      style: Object.assign({}, pmpTh, {
+        width: (c.w || 1) / wsum * 100 + "%"
+      })
+    }, c.en, React.createElement("span", {
+      style: {
+        display: "block",
+        fontWeight: 400,
+        fontSize: 9
+      }
+    }, c.th, c.unit ? " (" + c.unit + ")" : ""))), pmHasResult(tb) ? React.createElement("th", {
+      style: Object.assign({}, pmpTh, {
+        width: 40,
+        textAlign: "center"
+      })
+    }, "Result") : null)), React.createElement("tbody", null, x.rows.map((row, ri) => {
+      const ok = pmRowOk(tb, row);
+      return React.createElement("tr", {
+        key: row.id
+      }, React.createElement("td", {
+        style: Object.assign({}, pmpTd, {
+          textAlign: "center",
+          color: PM_SOFT,
+          fontSize: 9.5
+        })
+      }, ri + 1), cols.map(c => React.createElement("td", {
+        key: c.key,
+        style: pmpTd
+      }, row[c.key] == null || row[c.key] === "" ? "" : String(row[c.key]))), pmHasResult(tb) ? React.createElement("td", {
+        style: Object.assign({}, pmpTd, {
+          textAlign: "center",
+          fontWeight: 700,
+          color: ok === null ? PM_SOFT : ok ? "#15803D" : "#B91C1C"
+        })
+      }, ok === null ? "" : ok ? "OK" : "NG") : null);
+    }))), React.createElement("div", {
+      style: {
+        marginTop: 7,
+        fontSize: 9.5,
+        color: PM_SOFT
+      }
+    }, x.rows.length, " \u0E41\u0E16\u0E27", tb.pass ? " · ผ่าน " + x.rows.filter(row => pmRowOk(tb, row) === true).length + " แถว" : ""));
+  };
   let photoNo = 0;
   const paper = React.createElement("div", {
     className: "sv-rep-overlay",
@@ -327,7 +427,7 @@ function PmHandoverPaper({
       gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
       columnGap: 22
     }
-  }, (g.fields || []).map(f => pmpRow(f, pmpValue(f, s)))))))), React.createElement("div", {
+  }, (g.fields || []).map(f => pmpRow(f, pmpValue(f, s)))))))), tableSheets.map(tableSheet), React.createElement("div", {
     className: "pm-sheet pm-page"
   }, headBar("Handover Documents Checklist", "รายการเอกสารส่งมอบ"), React.createElement("table", {
     style: {
@@ -934,10 +1034,78 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
       }
     });
   });
+  const tableWs = [];
+  window.PM_SECTIONS.forEach(sec => {
+    if (sec.kind !== "table" || (sec.since || 1) > (p.ver || 1)) return;
+    (sec.tables || []).forEach(tb => {
+      const rows = window.pmRowsOf(r, sec.key, tb.key);
+      const hdr = window.pmTableOf(r, sec.key, tb.key).hdr || {};
+      const cols = tb.cols || [];
+      const head = ["#"].concat(cols.map(c => c.en + (c.unit ? " (" + c.unit + ")" : "")));
+      const colW = [{
+        wch: 6
+      }].concat(cols.map(c => ({
+        wch: Math.min(40, 14 * (c.w || 1))
+      })));
+      const hasRes = !!tb.pass && tb.resultCol !== false;
+      if (hasRes) {
+        head.push("Result");
+        colW.push({
+          wch: 10
+        });
+      }
+      const ws = makeSheet(head, colW, (pushRow, merges, getR, lastC) => {
+        (tb.hdr || []).forEach(f => {
+          const v = hdr[f.key];
+          const has = v !== null && v !== undefined && String(v) !== "";
+          pushRow([f.en + "  (" + f.th + ")", has ? String(v) + (f.unit ? " " + f.unit : "") : "ยังไม่กรอก"], !has && f.req ? "miss" : "group", 19);
+          merges.push({
+            s: {
+              r: getR() - 1,
+              c: 1
+            },
+            e: {
+              r: getR() - 1,
+              c: lastC
+            }
+          });
+        });
+        pushRow(["หัวข้อไทย: " + cols.map(c => c.th).join("  ·  ")], "foot", 18);
+        merges.push({
+          s: {
+            r: getR() - 1,
+            c: 0
+          },
+          e: {
+            r: getR() - 1,
+            c: lastC
+          }
+        });
+        if (!rows.length) {
+          pushRow(["", "ยังไม่ได้เพิ่มแถวในตารางนี้"], tb.minRows ? "miss" : "item");
+          return;
+        }
+        rows.forEach((row, i) => {
+          const cells = [i + 1].concat(cols.map(c => {
+            const v = row[c.key];
+            return v === null || v === undefined || v === "" ? c.req ? "ยังไม่กรอก" : "" : String(v);
+          }));
+          const miss = cols.some(c => c.req && String(row[c.key] == null ? "" : row[c.key]).trim() === "");
+          if (hasRes) cells.push(miss ? "" : tb.pass(row) ? "OK" : "NG");
+          pushRow(cells, miss ? "miss" : i % 2 === 0 ? "item" : "itemAlt");
+        });
+      });
+      tableWs.push({
+        name: tb.code || (sec.tables.length > 1 ? tb.en : sec.code || sec.key),
+        ws: ws
+      });
+    });
+  });
   const wb = X.utils.book_new();
   X.utils.book_append_sheet(wb, wsSum, "Summary");
   X.utils.book_append_sheet(wb, wsDoc, "Documents");
   X.utils.book_append_sheet(wb, wsChk, "Checklist");
+  tableWs.forEach(t => X.utils.book_append_sheet(wb, t.ws, String(t.name).replace(/[:\\/?*[\]]/g, " ").trim().slice(0, 31)));
   X.utils.book_append_sheet(wb, wsPh, "Photos");
   X.writeFile(wb, "Handover_" + (j.code || "job") + "_" + window.drToday() + ".xlsx");
 }
