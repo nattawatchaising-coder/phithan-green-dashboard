@@ -688,6 +688,7 @@ function App() {
   const [blJob, setBlJob] = React.useState(null);           // งานที่กำลังเปิดแผงตั้งงวดงาน
   const [blRow, setBlRow] = React.useState(null);           // งวดที่ให้แผงกางไว้ตอนเปิด (มาจากหน้ารวม)
   const [dailyJob, setDailyJob] = React.useState(null);     // งานที่กำลังเปิดรายงานประจำวัน
+  const [pmJob, setPmJob] = React.useState(null);           // งานที่กำลังเปิดสมุดตรวจรับและส่งมอบ
   const [omFocus, setOmFocus] = React.useState(null);       // ไซต์บริการที่ให้หน้า O&M เปิดขึ้นมาให้เลย
   /* ข้อมูลบริการหลังการขายสำหรับกระดิ่ง + ปุ่มในลิ้นชัก — โหนดเบา ๆ สามอัน เปิดค้างไว้ได้
      คนที่ไม่มีสิทธิ์ om จะไม่ฟังอะไรเลย (ส่ง false เข้าไป) */
@@ -970,6 +971,9 @@ function App() {
         /* รายงานประจำวันเปิดได้เฉพาะงานที่กำลังติดตั้ง — ขั้นก่อนหน้ายังไม่มีใครขึ้นหน้างาน */
         onDaily={can(role, "editJob") && !permitOnly && selectedJob && selectedJob.stage === "install"
           ? () => setDailyJob(selectedJob) : null}
+        /* สมุดตรวจรับและส่งมอบ — เปิดได้ทุกขั้น เพราะข้อมูลทยอยกรอกระหว่างทำงาน ไม่ใช่กรอกทีเดียวตอนจบ
+           ด่านสิทธิ์อยู่ตรงนี้ ไม่ใช่ในดรอว์เออร์ · ส่ง null ไม่ใช่ false เพราะ DrToolGroup นับลูกที่ไม่เป็น falsy */
+        onHandover={can(role, "handover") && !permitOnly && selectedJob ? () => setPmJob(selectedJob) : null}
         /* งานบริการหลังการขาย — เปิดได้เมื่อติดตั้งเสร็จแล้ว หรือไซต์นี้ขึ้นทะเบียนบริการไว้แล้ว */
         omSite={selectedJob ? (omLive.sites || []).find((s) => s.id === selectedJob.id) || null : null}
         omVisits={selectedJob ? (omLive.bySite || {})[selectedJob.id] || [] : []}
@@ -1048,6 +1052,13 @@ function App() {
         <DailyReportModal job={jobs.find((x) => x.id === dailyJob.id) || dailyJob} role={role}
           currentUser={auth.current} onNotify={notif.addNotif} openDate={dailyJob._openDate || ""}
           onClose={() => setDailyJob(null)} />
+      )}
+      {/* สมุดตรวจรับและส่งมอบ — อ่านงานสดจาก jobs เสมอ เพราะ BOQ อาจเปลี่ยนระหว่างเล่มเปิดอยู่
+          แล้วค่าที่เติมให้ล่วงหน้าต้องตามไปด้วย */}
+      {pmJob && window.PmHandoverModal && (
+        <window.PmHandoverModal job={jobs.find((x) => x.id === pmJob.id) || pmJob}
+          currentUser={auth.current} onClose={() => setPmJob(null)}
+          onSummary={(sum) => store.patch(pmJob.id, { pmHandover: sum })} />
       )}
       {form && <JobForm initial={form.job} isNew={form.isNew} jobs={jobs} users={auth.users} onSave={onSave} onClose={() => setForm(null)} onManageTechs={() => setTechMgr(true)} onManageBrands={() => setBrandMgr(true)} />}
       {techMgr && <TechManager store={techStore} onClose={() => setTechMgr(false)} />}

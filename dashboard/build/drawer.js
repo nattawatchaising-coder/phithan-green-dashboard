@@ -1267,7 +1267,8 @@ function DetailDrawer({
   onBilling,
   onSaveBills,
   billRO,
-  billRole
+  billRole,
+  onHandover
 }) {
   const SF = window.SF;
   const roMode = permitMode || salesMode;
@@ -1650,7 +1651,7 @@ function DetailDrawer({
     onOpenQuote: onOpenQuote,
     card: true
   }), React.createElement(DrToolGroup, {
-    alert: (job.permit || {}).status === "rejected" ? "ขออนุญาตถูกตีกลับ" : ""
+    alert: (job.permit || {}).status === "rejected" ? "ขออนุญาตถูกตีกลับ" : job.stage === "done" && job.pmHandover && +job.pmHandover.pct < 100 ? "ส่งมอบยังไม่ครบ" : ""
   }, onDaily && React.createElement(DailyJobButton, {
     job: job,
     onOpen: onDaily
@@ -1799,6 +1800,62 @@ function DetailDrawer({
         fontWeight: st && st.bold ? 700 : 400
       }
     }, st ? st.label : "แตะเพื่อสร้าง")), React.createElement(Icon, {
+      name: "arrowRight",
+      size: 16,
+      color: "var(--text-3)"
+    }));
+  })(), onHandover && (() => {
+    const hs = window.pmCardStatus ? window.pmCardStatus(job) : null;
+    return React.createElement("button", {
+      onClick: onHandover,
+      style: {
+        width: "100%",
+        marginBottom: 10,
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "12px 14px",
+        background: "var(--surface)",
+        border: "1px solid var(--border-strong)",
+        borderRadius: 12,
+        cursor: "pointer",
+        fontFamily: "inherit",
+        textAlign: "left"
+      }
+    }, React.createElement("span", {
+      style: {
+        width: 34,
+        height: 34,
+        borderRadius: 9,
+        background: "#16A34A1c",
+        display: "grid",
+        placeItems: "center",
+        flexShrink: 0
+      }
+    }, React.createElement(Icon, {
+      name: "check",
+      size: 17,
+      color: "#16A34A"
+    })), React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 13.5,
+        fontWeight: 700,
+        color: "var(--text-1)"
+      }
+    }, "\u0E2A\u0E48\u0E07\u0E21\u0E2D\u0E1A\u0E23\u0E30\u0E1A\u0E1A (Commissioning & Handover)"), React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 11.5,
+        color: hs ? hs.color : "var(--text-3)",
+        fontWeight: hs && hs.bold ? 700 : 400
+      }
+    }, hs ? hs.label : "แตะเพื่อเปิดสมุดส่งมอบ")), React.createElement(Icon, {
       name: "arrowRight",
       size: 16,
       color: "var(--text-3)"

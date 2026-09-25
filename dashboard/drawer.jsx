@@ -515,7 +515,7 @@ function DrToolGroup({ alert, children }) {
   );
 }
 
-function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, canDesign, stock, onSaveBOQ, onSurvey, onSurveyReport, onPermit, onDaily, onOm, omSite, omVisits, omTickets, onExpense, ecSum, priceMap, permitMode, onOpenReview, salesMode, quotes, leads, onOpenQuote, onBilling, onSaveBills, billRO, billRole }) {
+function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, canManage, canDesign, stock, onSaveBOQ, onSurvey, onSurveyReport, onPermit, onDaily, onOm, omSite, omVisits, omTickets, onExpense, ecSum, priceMap, permitMode, onOpenReview, salesMode, quotes, leads, onOpenQuote, onBilling, onSaveBills, billRO, billRole, onHandover }) {
   const SF = window.SF;
   // ฝ่ายขออนุญาตกับเซลล์เปิดใบงานได้ แต่ไม่ใช่คนทำงานหน้างาน — ซ่อนเครื่องมือช่างทั้งชุด
   const roMode = permitMode || salesMode;
@@ -683,7 +683,8 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               )}
 
               {/* เครื่องมือของงานนี้ — พับเก็บได้ทั้งชุด (ดู DrToolGroup) */}
-              <DrToolGroup alert={(job.permit || {}).status === "rejected" ? "ขออนุญาตถูกตีกลับ" : ""}>
+              <DrToolGroup alert={(job.permit || {}).status === "rejected" ? "ขออนุญาตถูกตีกลับ"
+                : (job.stage === "done" && job.pmHandover && +job.pmHandover.pct < 100) ? "ส่งมอบยังไม่ครบ" : ""}>
                 {/* รายงานประจำวันหน้างาน — บันทึกรายวัน + ออกเป็น PDF */}
                 {onDaily && <DailyJobButton job={job} onOpen={onDaily} />}
 
@@ -748,6 +749,29 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   );
                 })()}
 
+
+                {/* สมุดตรวจรับและส่งมอบระบบ — วางต่อจากใบตรวจสอบงานตามลำดับงานจริง
+                    ตรวจทีละขั้น → ส่งมอบให้ลูกค้าและทีมหลังการขาย
+                    บรรทัดสถานะอ่านจาก "เงา" บนใบงาน จึงไม่ต้อง subscribe เล่มจริงจากดรอว์เออร์ */}
+                {onHandover && (() => {
+                  const hs = window.pmCardStatus ? window.pmCardStatus(job) : null;
+                  return (
+                    <button onClick={onHandover}
+                      style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+                        background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                      <span style={{ width: 34, height: 34, borderRadius: 9, background: "#16A34A1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                        <Icon name="check" size={17} color="#16A34A" />
+                      </span>
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ส่งมอบระบบ (Commissioning & Handover)</span>
+                        <span style={{ display: "block", fontSize: 11.5, color: hs ? hs.color : "var(--text-3)", fontWeight: hs && hs.bold ? 700 : 400 }}>
+                          {hs ? hs.label : "แตะเพื่อเปิดสมุดส่งมอบ"}
+                        </span>
+                      </span>
+                      <Icon name="arrowRight" size={16} color="var(--text-3)" />
+                    </button>
+                  );
+                })()}
 
                 {/* ผังหน้างาน (Site Plan) — ซ่อนปุ่มไว้ก่อนตามที่สั่ง (โค้ดยังอยู่ครบ เปลี่ยน false กลับเป็น true เมื่อจะเอากลับมา) */}
                 {false && window.SitePlanEditor && (

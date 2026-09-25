@@ -908,6 +908,7 @@ function App() {
   const [blJob, setBlJob] = React.useState(null);
   const [blRow, setBlRow] = React.useState(null);
   const [dailyJob, setDailyJob] = React.useState(null);
+  const [pmJob, setPmJob] = React.useState(null);
   const [omFocus, setOmFocus] = React.useState(null);
   const omLive = window.useOmAlerts(can(role, "om"));
   const [ecFocus, setEcFocus] = React.useState(null);
@@ -1393,6 +1394,7 @@ function App() {
     billRO: !can(role, "billing"),
     billRole: role,
     onDaily: can(role, "editJob") && !permitOnly && selectedJob && selectedJob.stage === "install" ? () => setDailyJob(selectedJob) : null,
+    onHandover: can(role, "handover") && !permitOnly && selectedJob ? () => setPmJob(selectedJob) : null,
     omSite: selectedJob ? (omLive.sites || []).find(s => s.id === selectedJob.id) || null : null,
     omVisits: selectedJob ? (omLive.bySite || {})[selectedJob.id] || [] : [],
     omTickets: selectedJob ? (omLive.tickets || []).filter(t => t.siteId === selectedJob.id) : [],
@@ -1517,6 +1519,13 @@ function App() {
     onNotify: notif.addNotif,
     openDate: dailyJob._openDate || "",
     onClose: () => setDailyJob(null)
+  }), pmJob && window.PmHandoverModal && React.createElement(window.PmHandoverModal, {
+    job: jobs.find(x => x.id === pmJob.id) || pmJob,
+    currentUser: auth.current,
+    onClose: () => setPmJob(null),
+    onSummary: sum => store.patch(pmJob.id, {
+      pmHandover: sum
+    })
   }), form && React.createElement(JobForm, {
     initial: form.job,
     isNew: form.isNew,

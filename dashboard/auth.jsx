@@ -59,11 +59,11 @@ function userRoles(u) {
    viewAll ดูงานทั้งหมด · doSurvey ทำแบบสำรวจหน้างาน · dispatch จัดตารางสำรวจ
    design ออกแบบ/ออกไฟล์แบบ · permit เอกสารขออนุญาต · price เห็นราคา-ต้นทุน · leads หน้าลูกค้าสำรวจ */
 const DEFAULT_PERMS = {
-  admin:  { viewAll: 1, addJob: 1, editJob: 1, delJob: 1, stock: 1, manageUsers: 1, dispatch: 1, doSurvey: 1, design: 1, permit: 1, price: 1, leads: 1, om: 1, billing: 1, expense: 1, expenseApprove: 1, expensePay: 1, expenseCover: 1, attend: 1, attendAll: 1, ot: 1, otApprove: 1 },
-  lead:   { viewAll: 1, addJob: 1, editJob: 1, delJob: 1, stock: 1,                 dispatch: 1, doSurvey: 1, design: 1, permit: 1, price: 1, leads: 1, om: 1, billing: 1, expense: 1, expenseApprove: 1,                expenseCover: 1, attend: 1, attendAll: 1, ot: 1, otApprove: 1 },
-  ee:     { viewAll: 1,            editJob: 1,            stock: 1,                 dispatch: 1, doSurvey: 1, design: 1, permit: 1,                    om: 1, expense: 1,                                   attend: 1,               ot: 1 },
+  admin:  { viewAll: 1, addJob: 1, editJob: 1, delJob: 1, stock: 1, manageUsers: 1, dispatch: 1, doSurvey: 1, design: 1, permit: 1, price: 1, leads: 1, om: 1, handover: 1, billing: 1, expense: 1, expenseApprove: 1, expensePay: 1, expenseCover: 1, attend: 1, attendAll: 1, ot: 1, otApprove: 1 },
+  lead:   { viewAll: 1, addJob: 1, editJob: 1, delJob: 1, stock: 1,                 dispatch: 1, doSurvey: 1, design: 1, permit: 1, price: 1, leads: 1, om: 1, handover: 1, billing: 1, expense: 1, expenseApprove: 1,                expenseCover: 1, attend: 1, attendAll: 1, ot: 1, otApprove: 1 },
+  ee:     { viewAll: 1,            editJob: 1,            stock: 1,                 dispatch: 1, doSurvey: 1, design: 1, permit: 1,                    om: 1, handover: 1, expense: 1,                                   attend: 1,               ot: 1 },
   draft:  { viewAll: 1,            editJob: 1,            stock: 1,                                           design: 1,                                                                                     attend: 1,               ot: 1 },
-  tech:   {                        editJob: 1,            stock: 1,                              doSurvey: 1,                                         om: 1, expense: 1,                                   attend: 1,               ot: 1 },
+  tech:   {                        editJob: 1,            stock: 1,                              doSurvey: 1,                                         om: 1, handover: 1, expense: 1,                                   attend: 1,               ot: 1 },
   permit: { viewAll: 1,            editJob: 1,                                                                            permit: 1,                                                                         attend: 1,               ot: 1 },
   sales:  { viewAll: 1, addJob: 1,                                                  dispatch: 1, doSurvey: 1,                       price: 1, leads: 1,                                                      attend: 1,               ot: 1 },
   /* HR ดูแลคน ไม่ได้ดูแลงาน — เปิดเฉพาะเวลาทำงานกับ OT ไม่ให้เห็นงานหรือราคา */
@@ -83,6 +83,10 @@ const PERM_LIST = [
   { key: "doSurvey",    th: "ทำแบบสำรวจหน้างาน",            desc: "กรอกแบบสำรวจและถ่ายรูปหน้างาน" },
   { key: "design",      th: "เขียนแบบ · 3D · ออกไฟล์ DXF",  desc: "เครื่องมือออกแบบและออกไฟล์แบบ" },
   { key: "permit",      th: "งานขออนุญาตการไฟฟ้า",          desc: "คิวงานขออนุญาต ตรวจงาน เดินสถานะ" },
+  /* สมุดตรวจรับและส่งมอบ — วางก่อนงานหลังการขาย ตามวงจรจริง ขออนุญาต → ส่งมอบ → หลังการขาย
+     ⚠ ห้ามเพิ่มคีย์นี้ลง PERM_KEYS_V1 ข้างล่าง ไม่งั้นคอนฟิกที่บันทึกไว้แล้วจะอ่านว่า "ตั้งใจไม่ติ๊ก"
+     แล้วฟีเจอร์จะหายไปเงียบ ๆ สำหรับทุกคนโดยไม่มี error */
+  { key: "handover",    th: "เอกสารส่งมอบงาน (Commissioning & Handover)", desc: "สมุดตรวจรับและส่งมอบระบบ — ข้อมูลโครงการ · รายการเอกสาร · ผลทดสอบ · ออกรายงาน PDF/Excel" },
   { key: "om",          th: "งานบริการหลังการขาย",        desc: "ทะเบียนประกัน · ตารางล้างแผง · ใบแจ้งซ่อม · ใบรายงานเข้าบริการ" },
   /* งวดงาน = การเบิกเงินจากลูกค้า จึงอยู่กับบัญชี/ออฟฟิศ ไม่ใช่กับคนที่ออกใบเสนอราคา
      ช่างหน้างานเห็นสถานะได้อยู่แล้วโดยไม่ต้องติ๊กอะไร (การ์ดในใบงานเป็นแบบอ่านอย่างเดียว) */

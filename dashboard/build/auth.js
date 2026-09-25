@@ -124,6 +124,7 @@ const DEFAULT_PERMS = {
     price: 1,
     leads: 1,
     om: 1,
+    handover: 1,
     billing: 1,
     expense: 1,
     expenseApprove: 1,
@@ -147,6 +148,7 @@ const DEFAULT_PERMS = {
     price: 1,
     leads: 1,
     om: 1,
+    handover: 1,
     billing: 1,
     expense: 1,
     expenseApprove: 1,
@@ -165,6 +167,7 @@ const DEFAULT_PERMS = {
     design: 1,
     permit: 1,
     om: 1,
+    handover: 1,
     expense: 1,
     attend: 1,
     ot: 1
@@ -182,6 +185,7 @@ const DEFAULT_PERMS = {
     stock: 1,
     doSurvey: 1,
     om: 1,
+    handover: 1,
     expense: 1,
     attend: 1,
     ot: 1
@@ -250,6 +254,10 @@ const PERM_LIST = [{
   key: "permit",
   th: "งานขออนุญาตการไฟฟ้า",
   desc: "คิวงานขออนุญาต ตรวจงาน เดินสถานะ"
+}, {
+  key: "handover",
+  th: "เอกสารส่งมอบงาน (Commissioning & Handover)",
+  desc: "สมุดตรวจรับและส่งมอบระบบ — ข้อมูลโครงการ · รายการเอกสาร · ผลทดสอบ · ออกรายงาน PDF/Excel"
 }, {
   key: "om",
   th: "งานบริการหลังการขาย",

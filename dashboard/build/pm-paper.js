@@ -1,0 +1,892 @@
+const PM_INK = "#15211A";
+const PM_LINE = "#C9D5CE";
+const PM_SOFT = "#5A6B62";
+const PM_HEAD_BG = "#F2F8F4";
+function usePmPrintBody() {
+  React.useEffect(() => {
+    document.body.classList.add("sv-rep-printing");
+    return () => document.body.classList.remove("sv-rep-printing");
+  }, []);
+}
+const pmpDate = v => !v ? "" : window.drDateTH ? window.drDateTH(String(v).slice(0, 10)) : String(v).slice(0, 10);
+const pmpTh = {
+  textAlign: "left",
+  padding: "5px 7px",
+  fontSize: 10,
+  fontWeight: 700,
+  color: PM_SOFT,
+  borderBottom: "1px solid " + PM_LINE,
+  borderTop: "1px solid " + PM_LINE
+};
+const pmpTd = {
+  padding: "5px 7px",
+  fontSize: 10.5,
+  color: PM_INK,
+  borderBottom: "1px solid #ECF1EE",
+  verticalAlign: "top",
+  wordBreak: "break-word"
+};
+function pmpValue(f, sum) {
+  const raw = sum[f.key];
+  if (raw === null || raw === undefined || String(raw) === "") return "";
+  if (f.key === "gpsLat") return window.pmDms(raw, true);
+  if (f.key === "gpsLng") return window.pmDms(raw, false);
+  if (f.type === "date") return pmpDate(raw);
+  return String(raw) + (f.unit ? " " + f.unit : "");
+}
+function PmHandoverPaper({
+  job,
+  rec,
+  sum,
+  prog,
+  photos,
+  onClose
+}) {
+  usePmPrintBody();
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const B = window.BRANDING || {};
+  const j = job || {};
+  const r = rec || {};
+  const s = sum || {};
+  const p = prog || {
+    pct: 0,
+    done: 0,
+    total: 0,
+    missing: []
+  };
+  const list = photos || [];
+  const sumSec = window.PM_SEC_BY.sum;
+  const docSec = window.PM_SEC_BY.docs;
+  const signSec = window.PM_SEC_BY.sign;
+  const doPrint = () => {
+    const old = document.title;
+    document.title = "Handover " + (j.code || "") + " " + (s.projName || j.name || "");
+    window.print();
+    setTimeout(() => {
+      document.title = old;
+    }, 800);
+  };
+  const doXlsx = () => window.pmExportXlsx(j, r, s, p, list);
+  const photoPages = [];
+  for (let i = 0; i < list.length; i += 6) photoPages.push(list.slice(i, i + 6));
+  const headBar = (title, thTitle) => React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "flex-end",
+      gap: 14,
+      flexWrap: "wrap",
+      borderBottom: "2px solid " + PM_INK,
+      paddingBottom: 9,
+      marginBottom: 12
+    }
+  }, React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 7
+    }
+  }, window.BrandDoc ? React.createElement(window.BrandDoc, {
+    height: 46
+  }) : null), React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 800,
+      color: PM_INK,
+      letterSpacing: "-.2px"
+    }
+  }, title), React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: PM_INK,
+      marginTop: 1
+    }
+  }, thTitle), React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: PM_SOFT,
+      marginTop: 2
+    }
+  }, [j.code, s.projName || j.name].filter(Boolean).join(" · "))), React.createElement("div", {
+    style: {
+      flexShrink: 0,
+      textAlign: "right",
+      fontSize: 9.5,
+      color: PM_SOFT,
+      lineHeight: 1.6
+    }
+  }, B.tel ? React.createElement("div", null, "\u0E42\u0E17\u0E23 ", B.tel) : null, B.email ? React.createElement("div", null, B.email) : null, React.createElement("div", {
+    style: {
+      marginTop: 3
+    }
+  }, "Date of Inspection: ", React.createElement("b", {
+    style: {
+      color: PM_INK
+    }
+  }, pmpDate(s.inspDate) || "—")), React.createElement("div", null, "Completeness: ", React.createElement("b", {
+    style: {
+      color: PM_INK
+    }
+  }, p.pct, "%"))));
+  const groupHead = (en, th) => React.createElement("div", {
+    style: {
+      marginTop: 13,
+      marginBottom: 7,
+      paddingBottom: 3,
+      borderBottom: "1px solid " + PM_LINE
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 800,
+      color: PM_INK
+    }
+  }, en), React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: PM_SOFT
+    }
+  }, " (", th, ")"));
+  let photoNo = 0;
+  const paper = React.createElement("div", {
+    className: "sv-rep-overlay",
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 175,
+      background: "rgba(8,20,14,.55)",
+      overflow: "auto",
+      padding: isMobile ? 0 : "24px 16px"
+    }
+  }, React.createElement("div", {
+    className: "sv-rep-noprint",
+    style: {
+      position: "sticky",
+      top: 0,
+      zIndex: 2,
+      display: "flex",
+      gap: 9,
+      alignItems: "center",
+      padding: "11px 14px",
+      background: "var(--surface)",
+      borderBottom: "1px solid var(--border)",
+      marginBottom: isMobile ? 0 : 16,
+      borderRadius: isMobile ? 0 : 12,
+      maxWidth: 900,
+      marginLeft: "auto",
+      marginRight: "auto",
+      boxShadow: "var(--shadow-sm)"
+    }
+  }, React.createElement("button", {
+    onClick: onClose,
+    style: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 16
+  })), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, "\u0E2A\u0E21\u0E38\u0E14\u0E15\u0E23\u0E27\u0E08\u0E23\u0E31\u0E1A\u0E41\u0E25\u0E30\u0E2A\u0E48\u0E07\u0E21\u0E2D\u0E1A\u0E23\u0E30\u0E1A\u0E1A"), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, j.code || "", " \xB7 \u0E01\u0E23\u0E2D\u0E01\u0E41\u0E25\u0E49\u0E27 ", p.pct, "% (", p.done, "/", p.total, ")")), React.createElement("button", {
+    onClick: doXlsx,
+    title: "\u0E44\u0E1F\u0E25\u0E4C Excel \u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E39\u0E1B\u0E16\u0E48\u0E32\u0E22 \u2014 \u0E23\u0E39\u0E1B\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E44\u0E1F\u0E25\u0E4C PDF",
+    style: {
+      padding: "9px 13px",
+      borderRadius: 10,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-2)",
+      flexShrink: 0
+    }
+  }, "\u0E2D\u0E2D\u0E01\u0E44\u0E1F\u0E25\u0E4C Excel"), React.createElement("button", {
+    onClick: doPrint,
+    style: {
+      padding: "9px 15px",
+      borderRadius: 10,
+      border: "1px solid var(--primary)",
+      background: "var(--primary)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 800,
+      color: "#fff",
+      flexShrink: 0
+    }
+  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF")), React.createElement("div", {
+    className: "sv-rep-paper",
+    style: {
+      maxWidth: 900,
+      margin: "0 auto",
+      background: "#fff",
+      color: PM_INK,
+      padding: isMobile ? "18px 14px" : "26px 30px",
+      borderRadius: isMobile ? 0 : 12,
+      boxShadow: "0 8px 30px rgba(0,0,0,.18)"
+    }
+  }, React.createElement("div", {
+    className: "pm-sheet pm-page"
+  }, headBar("Commissioning & Handover Report", "รายงานตรวจรับและส่งมอบระบบ"), (sumSec.groups || []).map(g => React.createElement("div", {
+    key: g.key
+  }, groupHead(g.en, g.th), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+      columnGap: 22
+    }
+  }, (g.fields || []).map(f => React.createElement(RpRow, {
+    key: f.key,
+    en: f.en,
+    th: f.th,
+    value: pmpValue(f, s),
+    minWidth: 90
+  })))))), React.createElement("div", {
+    className: "pm-sheet pm-page"
+  }, headBar("Handover Documents Checklist", "รายการเอกสารส่งมอบ"), React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      tableLayout: "fixed"
+    }
+  }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", {
+    style: Object.assign({}, pmpTh, {
+      width: 30,
+      textAlign: "center"
+    })
+  }, "#"), React.createElement("th", {
+    style: pmpTh
+  }, "Document ", React.createElement("span", {
+    style: {
+      fontWeight: 400
+    }
+  }, "(\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23)")), React.createElement("th", {
+    style: Object.assign({}, pmpTh, {
+      width: 48,
+      textAlign: "center"
+    })
+  }, "Yes"), React.createElement("th", {
+    style: Object.assign({}, pmpTh, {
+      width: 48,
+      textAlign: "center"
+    })
+  }, "No"))), React.createElement("tbody", null, (() => {
+    const out = [];
+    let n = 0;
+    (docSec.groups || []).forEach(g => {
+      out.push(React.createElement("tr", {
+        key: "g-" + g.key,
+        style: {
+          breakInside: "avoid",
+          pageBreakInside: "avoid"
+        }
+      }, React.createElement("td", {
+        colSpan: 4,
+        style: {
+          padding: "6px 7px",
+          background: PM_HEAD_BG,
+          fontSize: 10.5,
+          fontWeight: 800,
+          color: PM_INK,
+          borderBottom: "1px solid " + PM_LINE
+        }
+      }, g.en, " ", React.createElement("span", {
+        style: {
+          fontWeight: 400,
+          color: PM_SOFT
+        }
+      }, "(", g.th, ")"))));
+      (g.items || []).forEach(it => {
+        n += 1;
+        const v = (r.docs || {})[it.key];
+        out.push(React.createElement("tr", {
+          key: it.key
+        }, React.createElement("td", {
+          style: Object.assign({}, pmpTd, {
+            textAlign: "center",
+            color: PM_SOFT,
+            fontSize: 9.5
+          })
+        }, n), React.createElement("td", {
+          style: pmpTd
+        }, it.en, React.createElement("span", {
+          style: {
+            color: PM_SOFT,
+            fontSize: 9.5
+          }
+        }, " (", it.th, ")")), React.createElement("td", {
+          style: Object.assign({}, pmpTd, {
+            textAlign: "center",
+            fontSize: 13
+          })
+        }, v === "y" ? "√" : ""), React.createElement("td", {
+          style: Object.assign({}, pmpTd, {
+            textAlign: "center",
+            fontSize: 13
+          })
+        }, v === "n" ? "–" : "")));
+      });
+    });
+    return out;
+  })())), React.createElement("div", {
+    style: {
+      marginTop: 8,
+      fontSize: 10,
+      color: PM_SOFT
+    }
+  }, "\u0E15\u0E2D\u0E1A\u0E41\u0E25\u0E49\u0E27 ", p.bySection && p.bySection.docs ? p.bySection.docs.done : 0, " \u0E08\u0E32\u0E01", " ", p.bySection && p.bySection.docs ? p.bySection.docs.total : 0, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"), React.createElement("div", {
+    className: "pm-foot",
+    style: {
+      display: "flex",
+      gap: 14,
+      marginTop: 26,
+      paddingTop: 10,
+      breakInside: "avoid",
+      pageBreakInside: "avoid"
+    }
+  }, (signSec.blocks || []).map(b => React.createElement(RpSign, {
+    key: b.key,
+    en: b.en,
+    th: b.th,
+    name: ((r.sign || {})[b.key] || {}).name || ""
+  })))), p.missing && p.missing.length ? React.createElement("div", {
+    className: "pm-sheet"
+  }, headBar("Outstanding Items", "รายการที่ยังขาด"), React.createElement("div", {
+    style: {
+      border: "1.5px solid #DC2626",
+      background: "#FEF2F2",
+      borderRadius: 8,
+      padding: "10px 12px",
+      marginBottom: 12
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 800,
+      color: "#B91C1C"
+    }
+  }, "\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E0A\u0E38\u0E14\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E2A\u0E21\u0E1A\u0E39\u0E23\u0E13\u0E4C \u2014 \u0E22\u0E31\u0E07\u0E02\u0E32\u0E14\u0E2D\u0E35\u0E01 ", p.missing.length, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"), React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: "#991B1B",
+      marginTop: 2
+    }
+  }, "This handover package is incomplete \xB7 ", p.missing.length, " item(s) outstanding")), (() => {
+    const by = {};
+    p.missing.forEach(m => {
+      (by[m.section] || (by[m.section] = [])).push(m);
+    });
+    return Object.keys(by).map(k => React.createElement("div", {
+      key: k,
+      style: {
+        marginBottom: 12,
+        breakInside: "avoid",
+        pageBreakInside: "avoid"
+      }
+    }, groupHead((window.PM_SEC_BY[k] || {}).en || k, (window.PM_SEC_BY[k] || {}).th || ""), by[k].map((m, i) => React.createElement("div", {
+      key: m.key + i,
+      style: {
+        fontSize: 10.5,
+        color: PM_INK,
+        padding: "3px 0 3px 14px"
+      }
+    }, "\u2022 ", m.en, " ", React.createElement("span", {
+      style: {
+        color: PM_SOFT,
+        fontSize: 9.5
+      }
+    }, "(", m.th, ")")))));
+  })()) : null, photoPages.map((pg, pi) => React.createElement("div", {
+    className: "pm-sheet",
+    key: "ph-" + pi
+  }, headBar("Photo Report", "รูปประกอบการส่งมอบ"), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12
+    }
+  }, pg.map(ph => {
+    photoNo += 1;
+    return React.createElement("div", {
+      key: ph.id,
+      className: "pm-shot",
+      style: {
+        breakInside: "avoid",
+        pageBreakInside: "avoid"
+      }
+    }, React.createElement("img", {
+      src: ph.dataUrl,
+      alt: "",
+      style: {
+        width: "100%",
+        height: 186,
+        objectFit: "cover",
+        border: "1px solid " + PM_LINE,
+        borderRadius: 4,
+        display: "block"
+      }
+    }), React.createElement("div", {
+      style: {
+        fontSize: 9.5,
+        color: PM_SOFT,
+        marginTop: 3
+      }
+    }, "#", photoNo, ph.cap ? " · " + ph.cap : ""));
+  }))))));
+  return ReactDOM.createPortal(paper, document.body);
+}
+function pmExportXlsx(job, rec, sum, prog, photoIdx) {
+  if (!window.XLSX) {
+    alert("ไม่พบไลบรารี Excel (ลองโหลดหน้าใหม่)");
+    return;
+  }
+  const X = window.XLSX;
+  const j = job || {};
+  const r = rec || {};
+  const s = sum || {};
+  const p = prog || {
+    pct: 0,
+    done: 0,
+    total: 0,
+    missing: []
+  };
+  const idx = photoIdx || [];
+  const C = {
+    brand: "1D854B",
+    brandDk: "12603A",
+    brandSoft: "EAF6EF",
+    group: "D6EBDF",
+    alt: "F4FAF6",
+    white: "FFFFFF",
+    border: "CBD8D0",
+    text: "16241D",
+    sub: "5A6B62",
+    warn: "B45309",
+    warnBg: "FEF3C7"
+  };
+  const FONT = "Tahoma";
+  const thin = {
+    style: "thin",
+    color: {
+      rgb: C.border
+    }
+  };
+  const boxAll = {
+    top: thin,
+    bottom: thin,
+    left: thin,
+    right: thin
+  };
+  const makeSheet = (cols, colW, build) => {
+    const lastC = cols.length - 1;
+    const aoa = [],
+      merges = [],
+      meta = [],
+      rowsH = [];
+    let R = 0;
+    const pushRow = (cells, type, hpt) => {
+      aoa.push(cells);
+      meta[R] = type;
+      if (hpt) rowsH[R] = {
+        hpt: hpt
+      };
+      R += 1;
+    };
+    const fullMerge = () => merges.push({
+      s: {
+        r: R - 1,
+        c: 0
+      },
+      e: {
+        r: R - 1,
+        c: lastC
+      }
+    });
+    const pad = (first, rest) => {
+      const a = [first];
+      for (let i = 1; i <= lastC; i++) a.push(i === 1 ? rest : "");
+      return a;
+    };
+    pushRow(["สมุดตรวจรับและส่งมอบระบบ · Commissioning & Handover"], "title", 30);
+    fullMerge();
+    pushRow([(s.projName || j.name || "") + (j.code ? "  ·  " + j.code : "")], "subtitle", 20);
+    fullMerge();
+    pushRow([], "spacer", 6);
+    [["กรอกแล้ว", p.pct + "%   (" + p.done + " / " + p.total + " รายการ)"], ["วันที่ตรวจสอบ", s.inspDate ? window.drDateTH(s.inspDate) : "-"], ["สถานะ", (r.meta || {}).status === "signed" ? "ส่งมอบแล้ว" : "ยังไม่ส่งมอบ"], ["วันที่ออกเอกสาร", window.drDateTH(window.drToday())]].forEach(row => {
+      pushRow(pad(row[0], row[1]), "info", 19);
+      merges.push({
+        s: {
+          r: R - 1,
+          c: 1
+        },
+        e: {
+          r: R - 1,
+          c: lastC
+        }
+      });
+    });
+    pushRow([], "spacer", 8);
+    pushRow(cols, "head", 24);
+    build(pushRow, merges, () => R, lastC);
+    const ws = X.utils.aoa_to_sheet(aoa);
+    ws["!merges"] = merges;
+    ws["!cols"] = colW;
+    ws["!rows"] = rowsH;
+    const styleCell = (row, c) => {
+      const t = meta[row];
+      if (t === "spacer") return null;
+      const st = {
+        font: {
+          name: FONT,
+          sz: 11,
+          color: {
+            rgb: C.text
+          }
+        },
+        alignment: {
+          vertical: "center",
+          wrapText: true
+        }
+      };
+      if (t === "title") {
+        st.font = {
+          name: FONT,
+          sz: 15,
+          bold: true,
+          color: {
+            rgb: C.white
+          }
+        };
+        st.fill = {
+          patternType: "solid",
+          fgColor: {
+            rgb: C.brand
+          }
+        };
+        st.alignment = {
+          horizontal: "center",
+          vertical: "center"
+        };
+      } else if (t === "subtitle") {
+        st.font = {
+          name: FONT,
+          sz: 10.5,
+          bold: true,
+          color: {
+            rgb: C.brandDk
+          }
+        };
+        st.fill = {
+          patternType: "solid",
+          fgColor: {
+            rgb: C.brandSoft
+          }
+        };
+        st.alignment = {
+          horizontal: "center",
+          vertical: "center"
+        };
+      } else if (t === "info") {
+        if (c === 0) {
+          st.font = {
+            name: FONT,
+            sz: 10.5,
+            bold: true,
+            color: {
+              rgb: C.sub
+            }
+          };
+          st.alignment = {
+            horizontal: "right",
+            vertical: "center"
+          };
+        } else {
+          st.font = {
+            name: FONT,
+            sz: 11.5,
+            bold: true,
+            color: {
+              rgb: C.text
+            }
+          };
+          st.alignment = {
+            horizontal: "left",
+            vertical: "center"
+          };
+        }
+        st.border = {
+          bottom: thin
+        };
+      } else if (t === "head") {
+        st.font = {
+          name: FONT,
+          sz: 11,
+          bold: true,
+          color: {
+            rgb: C.white
+          }
+        };
+        st.fill = {
+          patternType: "solid",
+          fgColor: {
+            rgb: C.brand
+          }
+        };
+        st.alignment = {
+          horizontal: "center",
+          vertical: "center",
+          wrapText: true
+        };
+        st.border = boxAll;
+      } else if (t === "group") {
+        st.font = {
+          name: FONT,
+          sz: 11,
+          bold: true,
+          color: {
+            rgb: C.brandDk
+          }
+        };
+        st.fill = {
+          patternType: "solid",
+          fgColor: {
+            rgb: C.group
+          }
+        };
+        st.alignment = {
+          horizontal: "left",
+          vertical: "center"
+        };
+        st.border = boxAll;
+      } else if (t === "foot") {
+        st.font = {
+          name: FONT,
+          sz: 9.5,
+          color: {
+            rgb: C.sub
+          }
+        };
+        st.alignment = {
+          horizontal: "left",
+          vertical: "center",
+          wrapText: true
+        };
+      } else if (t === "item" || t === "itemAlt" || t === "miss") {
+        if (t === "itemAlt") st.fill = {
+          patternType: "solid",
+          fgColor: {
+            rgb: C.alt
+          }
+        };
+        if (t === "miss") {
+          st.fill = {
+            patternType: "solid",
+            fgColor: {
+              rgb: C.warnBg
+            }
+          };
+          st.font = {
+            name: FONT,
+            sz: 11,
+            bold: true,
+            color: {
+              rgb: C.warn
+            }
+          };
+        }
+        st.border = boxAll;
+        if (c === 0) st.alignment = {
+          horizontal: "center",
+          vertical: "center"
+        };
+      }
+      return st;
+    };
+    const range = X.utils.decode_range(ws["!ref"]);
+    for (let row = range.s.r; row <= range.e.r; row++) {
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const ref = X.utils.encode_cell({
+          r: row,
+          c: c
+        });
+        const st = styleCell(row, c);
+        if (!st) continue;
+        if (!ws[ref]) ws[ref] = {
+          t: "s",
+          v: ""
+        };
+        ws[ref].s = st;
+      }
+    }
+    return ws;
+  };
+  const wsSum = makeSheet(["หัวข้อ (EN)", "หัวข้อ (ไทย)", "ค่า", "หน่วย"], [{
+    wch: 42
+  }, {
+    wch: 30
+  }, {
+    wch: 34
+  }, {
+    wch: 10
+  }], (pushRow, merges, getR, lastC) => {
+    (window.PM_SEC_BY.sum.groups || []).forEach(g => {
+      pushRow([g.en + "  (" + g.th + ")", "", "", ""], "group", 20);
+      merges.push({
+        s: {
+          r: getR() - 1,
+          c: 0
+        },
+        e: {
+          r: getR() - 1,
+          c: lastC
+        }
+      });
+      (g.fields || []).forEach((f, i) => {
+        const v = s[f.key];
+        const has = v !== null && v !== undefined && String(v) !== "";
+        const shown = !has ? "ยังไม่กรอก" : f.key === "gpsLat" ? window.pmDms(v, true) : f.key === "gpsLng" ? window.pmDms(v, false) : f.type === "date" ? window.drDateTH(String(v).slice(0, 10)) : String(v);
+        pushRow([f.en, f.th, shown, f.unit || ""], !has && f.req ? "miss" : i % 2 === 0 ? "item" : "itemAlt");
+      });
+    });
+  });
+  const wsDoc = makeSheet(["#", "Document (EN)", "เอกสาร (ไทย)", "Yes", "No", "สถานะ"], [{
+    wch: 6
+  }, {
+    wch: 52
+  }, {
+    wch: 38
+  }, {
+    wch: 7
+  }, {
+    wch: 7
+  }, {
+    wch: 14
+  }], (pushRow, merges, getR, lastC) => {
+    let n = 0;
+    (window.PM_SEC_BY.docs.groups || []).forEach(g => {
+      pushRow([g.en + "  (" + g.th + ")", "", "", "", "", ""], "group", 20);
+      merges.push({
+        s: {
+          r: getR() - 1,
+          c: 0
+        },
+        e: {
+          r: getR() - 1,
+          c: lastC
+        }
+      });
+      (g.items || []).forEach((it, i) => {
+        n += 1;
+        const v = (r.docs || {})[it.key];
+        const answered = v === "y" || v === "n";
+        pushRow([n, it.en, it.th, v === "y" ? "√" : "", v === "n" ? "–" : "", answered ? v === "y" ? "มีเอกสาร" : "ไม่เกี่ยวข้อง" : "ยังไม่ตอบ"], !answered ? "miss" : i % 2 === 0 ? "item" : "itemAlt");
+      });
+    });
+    pushRow([], "spacer", 8);
+    pushRow(["ช่องลงนาม"], "group", 20);
+    merges.push({
+      s: {
+        r: getR() - 1,
+        c: 0
+      },
+      e: {
+        r: getR() - 1,
+        c: lastC
+      }
+    });
+    (window.PM_SEC_BY.sign.blocks || []).forEach((b, i) => {
+      const v = (r.sign || {})[b.key] || {};
+      pushRow(["", b.en, b.th, v.name || "", v.date ? window.drDateTH(String(v.date).slice(0, 10)) : "", v.name ? "ลงนามแล้ว" : "ยังไม่ลงนาม"], !v.name ? "miss" : i % 2 === 0 ? "item" : "itemAlt");
+    });
+  });
+  const wsChk = makeSheet(["#", "หมวด", "รายการที่ยังขาด (EN)", "รายการที่ยังขาด (ไทย)"], [{
+    wch: 6
+  }, {
+    wch: 26
+  }, {
+    wch: 52
+  }, {
+    wch: 40
+  }], pushRow => {
+    if (!p.missing.length) {
+      pushRow(["", "", "กรอกครบทุกรายการแล้ว", "ไม่มีรายการค้าง"], "item");
+      return;
+    }
+    p.missing.forEach((m, i) => {
+      pushRow([i + 1, m.secTh || m.section, m.en, m.th], i % 2 === 0 ? "item" : "itemAlt");
+    });
+  });
+  const wsPh = makeSheet(["#", "หมวด", "สลอต", "แถว", "คำบรรยาย", "เวลา", "ผู้ถ่าย"], [{
+    wch: 6
+  }, {
+    wch: 16
+  }, {
+    wch: 16
+  }, {
+    wch: 12
+  }, {
+    wch: 34
+  }, {
+    wch: 18
+  }, {
+    wch: 18
+  }], (pushRow, merges, getR, lastC) => {
+    idx.forEach((ph, i) => {
+      pushRow([i + 1, ph.sec || "", ph.slot || "", ph.rowId || "", ph.cap || "", ph.at ? window.drDateTH(String(ph.at).slice(0, 10)) : "", ph.byName || ""], i % 2 === 0 ? "item" : "itemAlt");
+    });
+    pushRow([], "spacer", 8);
+    pushRow(["รูปถ่ายทั้งหมด " + idx.length + " รูป อยู่ในไฟล์ PDF ของชุดเดียวกัน — แผ่นนี้เป็นสารบัญรูป " + "(เลขรูปตรงกับเลขที่พิมพ์ใต้รูปใน PDF) · ไลบรารี Excel ที่ระบบใช้ฝังรูปลงไฟล์ไม่ได้"], "foot", 30);
+    merges.push({
+      s: {
+        r: getR() - 1,
+        c: 0
+      },
+      e: {
+        r: getR() - 1,
+        c: lastC
+      }
+    });
+  });
+  const wb = X.utils.book_new();
+  X.utils.book_append_sheet(wb, wsSum, "Summary");
+  X.utils.book_append_sheet(wb, wsDoc, "Documents");
+  X.utils.book_append_sheet(wb, wsChk, "Checklist");
+  X.utils.book_append_sheet(wb, wsPh, "Photos");
+  X.writeFile(wb, "Handover_" + (j.code || "job") + "_" + window.drToday() + ".xlsx");
+}
+Object.assign(window, {
+  usePmPrintBody,
+  PmHandoverPaper,
+  pmExportXlsx
+});
