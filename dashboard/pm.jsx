@@ -109,29 +109,41 @@ const PM_SECTIONS = [
           { key: "instTo", en: "Period of Installation (To)", th: "ติดตั้งเสร็จ", type: "date", since: 1, from: "job" },
         ],
       },
+      /* ── กลุ่มที่กดเพิ่มชุดได้ (repeat) ──
+         ต้นฉบับเจาะไว้ตายตัวว่าแผงสองชุด อินเวอร์เตอร์ชุดเดียว แต่งานจริงมีทั้งไซต์ที่ใช้แผงรุ่นเดียว
+         และไซต์ที่ผสมสามรุ่น/อินเวอร์เตอร์หลายรุ่น ⇒ ให้คนกรอกกดเพิ่มเอาตอนกรอก
+         จำนวนชุดเก็บเป็นตัวเลขใน sum[countKey] · คีย์ของช่องคือ prefix+เลขชุด+ชื่อช่อง
+
+         ⚠ ชุดแรกของอินเวอร์เตอร์ใช้คีย์เปล่า (invBrand ไม่ใช่ inv1Brand) เพราะเล่มที่กรอกไปแล้ว
+           เก็บไว้ด้วยคีย์นั้น — เปลี่ยนคีย์คือทำให้ข้อมูลที่คนกรอกไว้หายไปเงียบ ๆ (plainFirst) */
       {
-        key: "pv1", en: "PV Module 1", th: "แผงโซลาร์ชุดที่ 1", fields: [
-          { key: "pv1Brand", en: "Module Brand", th: "ยี่ห้อแผง", type: "text", req: 1, since: 1, from: "boq" },
-          { key: "pv1Model", en: "Module Model No.", th: "รุ่นแผง", type: "text", req: 1, since: 1, from: "boq" },
-          { key: "pv1Wp", en: "Nameplate Capacity (DC Wp)", th: "กำลังต่อแผง", type: "num", unit: "Wp", req: 1, since: 1, from: "boq" },
-          { key: "pv1Qty", en: "Number of Solar Modules", th: "จำนวนแผง", type: "num", unit: "แผ่น", req: 1, since: 1, from: "job" },
+        key: "pv", repeat: {
+          countKey: "pvSets", prefix: "pv", max: 8, plainFirst: false,
+          addTh: "เพิ่มชุดแผง", addEn: "Add PV module set", oneTh: "ชุดแผง",
+          label: (n, count) => (count > 1 || n > 1
+            ? { en: "PV Module " + n, th: "แผงโซลาร์ชุดที่ " + n }
+            : { en: "PV Module", th: "แผงโซลาร์" }),
+        },
+        fields: [
+          { key: "Brand", en: "Module Brand", th: "ยี่ห้อแผง", type: "text", req: 1, since: 1, from: "boq" },
+          { key: "Model", en: "Module Model No.", th: "รุ่นแผง", type: "text", req: 1, since: 1, from: "boq" },
+          { key: "Wp", en: "Nameplate Capacity (DC Wp)", th: "กำลังต่อแผง", type: "num", unit: "Wp", req: 1, since: 1, from: "boq" },
+          { key: "Qty", en: "Number of Solar Modules", th: "จำนวนแผง", type: "num", unit: "แผ่น", req: 1, since: 1, from: "job" },
         ],
       },
       {
-        /* ชุดที่สองมีเฉพาะไซต์ที่ผสมแผงสองรุ่น ส่วนใหญ่ว่าง — ไม่บังคับสักช่อง */
-        key: "pv2", en: "PV Module 2", th: "แผงโซลาร์ชุดที่ 2", optional: true, fields: [
-          { key: "pv2Brand", en: "Module Brand", th: "ยี่ห้อแผง", type: "text", since: 1 },
-          { key: "pv2Model", en: "Module Model No.", th: "รุ่นแผง", type: "text", since: 1 },
-          { key: "pv2Wp", en: "Nameplate Capacity (DC Wp)", th: "กำลังต่อแผง", type: "num", unit: "Wp", since: 1 },
-          { key: "pv2Qty", en: "Number of Solar Modules", th: "จำนวนแผง", type: "num", unit: "แผ่น", since: 1 },
-        ],
-      },
-      {
-        key: "inv", en: "Solar Inverter", th: "อินเวอร์เตอร์", fields: [
-          { key: "invBrand", en: "Inverter Brand", th: "ยี่ห้ออินเวอร์เตอร์", type: "text", req: 1, since: 1, from: "boq" },
-          { key: "invModel", en: "Inverter Model No.", th: "รุ่นอินเวอร์เตอร์", type: "text", req: 1, since: 1, from: "boq" },
-          { key: "invKw", en: "Nameplate Capacity (AC kW)", th: "กำลังต่อเครื่อง", type: "num", unit: "kW", req: 1, since: 1, from: "boq" },
-          { key: "invQty", en: "Number of Inverters", th: "จำนวนเครื่อง", type: "num", unit: "เครื่อง", req: 1, since: 1, from: "boq" },
+        key: "inv", repeat: {
+          countKey: "invSets", prefix: "inv", max: 8, plainFirst: true,
+          addTh: "เพิ่มรุ่นอินเวอร์เตอร์", addEn: "Add inverter set", oneTh: "ชุดอินเวอร์เตอร์",
+          label: (n, count) => (count > 1 || n > 1
+            ? { en: "Solar Inverter " + n, th: "อินเวอร์เตอร์ชุดที่ " + n }
+            : { en: "Solar Inverter", th: "อินเวอร์เตอร์" }),
+        },
+        fields: [
+          { key: "Brand", en: "Inverter Brand", th: "ยี่ห้ออินเวอร์เตอร์", type: "text", req: 1, since: 1, from: "boq" },
+          { key: "Model", en: "Inverter Model No.", th: "รุ่นอินเวอร์เตอร์", type: "text", req: 1, since: 1, from: "boq" },
+          { key: "Kw", en: "Nameplate Capacity (AC kW)", th: "กำลังต่อเครื่อง", type: "num", unit: "kW", req: 1, since: 1, from: "boq" },
+          { key: "Qty", en: "Number of Inverters", th: "จำนวนเครื่อง", type: "num", unit: "เครื่อง", req: 1, since: 1, from: "boq" },
         ],
       },
       {
@@ -141,7 +153,9 @@ const PM_SECTIONS = [
           { key: "fuseVdc", en: "DC Rating", th: "พิกัดแรงดัน DC", type: "num", unit: "V", req: 1, since: 1 },
           { key: "fuseKa", en: "Breaking Capacity", th: "พิกัดตัดกระแสลัดวงจร", type: "num", unit: "kA", since: 1 },
           { key: "wireBrand", en: "String Wiring (DC) — Brand", th: "ยี่ห้อสาย DC", type: "text", req: 1, since: 1 },
-          { key: "wirePhaseMm", en: "Phase", th: "ขนาดสายเฟส", type: "num", unit: "sq mm", req: 1, since: 1, from: "boq" },
+          /* คีย์ยังเป็น wirePhaseMm ตามเดิม — ต้นฉบับเรียกช่องนี้ว่า "Phase (sq mm)"
+             แต่ที่หน้างานเรียกกันว่าขนาดสาย เปลี่ยนแค่ป้าย ไม่เปลี่ยนคีย์ ข้อมูลที่กรอกไว้จะได้ไม่หาย */
+          { key: "wirePhaseMm", en: "Cable Size", th: "ขนาดสายไฟ", type: "num", unit: "sq mm", req: 1, since: 1, from: "boq" },
           { key: "wireEarthMm", en: "Earth", th: "ขนาดสายดิน", type: "num", unit: "sq mm", req: 1, since: 1 },
           { key: "isoBrand", en: "Array Isolator — Brand", th: "ยี่ห้อสวิตช์ตัดตอนฝั่งแผง", type: "text", since: 1 },
           { key: "isoA", en: "Rating (A)", th: "พิกัดกระแส", type: "num", unit: "A", since: 1 },
@@ -273,6 +287,53 @@ function pmDocName(item, job) {
 function pmDocLabel(item, job) {
   const nm = pmDocName(item, job);
   return { en: item.en + (nm ? " — " + nm : ""), th: item.th + (nm ? " · " + nm : "") };
+}
+
+/* ══════════════════════════════════════════════════
+   กลุ่มที่กดเพิ่มชุดได้ — คลี่ออกเป็นกลุ่มธรรมดาก่อนส่งให้ตัวนับ ฟอร์ม กระดาษ และไฟล์ Excel
+   ทั้งสี่ที่จึงยังเห็นแค่ "กลุ่มที่มี fields" เหมือนเดิม ไม่มีใครต้องรู้จักคำว่า repeat
+   ══════════════════════════════════════════════════ */
+
+/* คำนำหน้าคีย์ของชุดที่ n — ชุดแรกของ inv ใช้คีย์เปล่าเพื่อไม่ทิ้งข้อมูลเดิม */
+const pmSetId = (rp, n) => (rp.plainFirst && n === 1 ? rp.prefix : rp.prefix + n);
+
+/* จำนวนชุดที่จะแสดง — เอาตามที่คนกดไว้ แต่ห้ามต่ำกว่าชุดที่มีข้อมูลกรอกไว้แล้ว
+   (เล่มที่กรอกแผงชุดที่สองไว้ตั้งแต่ก่อนมีปุ่มเพิ่ม ต้องไม่ถูกซ่อนหายไปจากใบที่พิมพ์) */
+function pmSetCount(sum, g) {
+  const rp = g.repeat;
+  const s = sum || {};
+  const has = (n) => (g.fields || []).some((f) => {
+    const v = s[pmSetId(rp, n) + f.key];
+    return v !== null && v !== undefined && String(v).trim() !== "";
+  });
+  let n = parseInt(s[rp.countKey], 10);
+  if (!isFinite(n) || n < 1) n = 1;
+  if (n > rp.max) n = rp.max;
+  for (let k = rp.max; k > n; k--) { if (has(k)) { n = k; break; } }
+  return n;
+}
+
+function pmExpandGroup(g, n, count) {
+  const rp = g.repeat;
+  const id = pmSetId(rp, n);
+  const lb = rp.label(n, count);
+  return {
+    key: g.key + n, en: lb.en, th: lb.th, repeatOf: g.key, setNo: n, setCount: count, repeat: rp,
+    fields: (g.fields || []).map((f) => Object.assign({}, f, { key: id + f.key })),
+  };
+}
+
+/* กลุ่มทั้งหมดของหมวดหนึ่ง หลังคลี่กลุ่มที่กดเพิ่มได้ออกแล้ว */
+function pmGroupsOf(sec, sum) {
+  const gs = (sec || {}).groups || [];
+  if (!gs.some((g) => g.repeat)) return gs;
+  const out = [];
+  gs.forEach((g) => {
+    if (!g.repeat) { out.push(g); return; }
+    const n = pmSetCount(sum, g);
+    for (let i = 1; i <= n; i++) out.push(pmExpandGroup(g, i, n));
+  });
+  return out;
 }
 
 /* ══════════════════════════════════════════════════
@@ -409,7 +470,7 @@ function pmProgress(rec, job, user) {
     };
 
     if (sec.kind === "fields") {
-      sec.groups.forEach((g) => (g.fields || []).forEach((f) => {
+      pmGroupsOf(sec, sum).forEach((g) => (g.fields || []).forEach((f) => {
         if (!pmActive(f, ver)) return;
         tick(filled(sum[f.key]), f.key, f.en, f.th);
       }));
@@ -467,7 +528,7 @@ function pmNewerItems(rec) {
   let n = 0;
   PM_SECTIONS.forEach((sec) => {
     const walk = (arr) => (arr || []).forEach((it) => { if (it.req && (it.since || 1) > ver) n += 1; });
-    if (sec.kind === "fields") (sec.groups || []).forEach((g) => walk(g.fields));
+    if (sec.kind === "fields") (sec.groups || []).forEach((g) => walk(g.fields));  /* กลุ่มที่กดเพิ่มได้นับเฉพาะชุดเดียว — since ของทุกชุดเท่ากัน */
     else if (sec.kind === "checklist") (sec.groups || []).forEach((g) => walk(g.items));
     else if (sec.kind === "sign") walk(sec.blocks);
     else if (sec.kind === "table") { walk(sec.hdr); walk(sec.cols); }
@@ -628,7 +689,7 @@ function pmPhotoFlags(idx) {
 
 Object.assign(window, {
   PM_ROOT, PM_VER, PM_RETIRED, PM_SECTIONS, PM_SEC_BY, PM_FROM_LABEL,
-  pmDocName, pmDocLabel,
+  pmDocName, pmDocLabel, pmSetId, pmSetCount, pmGroupsOf,
   pmToday, pmNow, pmVerOf, pmActive, pmBlank, pmDms, pmPrefill, pmMerged, pmIsPrefilled,
   pmProgress, pmNewerItems, pmSummaryOf, pmCardStatus, pmPhotoFlags,
   usePmHandover, usePmPhotoIdx, usePmPhotos,

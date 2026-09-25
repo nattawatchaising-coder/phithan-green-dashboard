@@ -261,6 +261,29 @@ function PmHandoverModal({
   const setDoc = (key, val) => store.patch("docs", {
     [key]: val
   }, currentUser);
+  const addSet = g => store.patch("sum", {
+    [g.repeat.countKey]: String(g.setCount + 1)
+  }, currentUser);
+  const removeSet = async g => {
+    const filled = (g.fields || []).some(f => String(sum[f.key] == null ? "" : sum[f.key]).trim() !== "");
+    if (filled) {
+      const ok = await window.askConfirm({
+        title: "ลบ" + g.th + "?",
+        icon: "alert",
+        ok: "ลบชุดนี้",
+        danger: true,
+        body: "ชุดนี้มีข้อมูลกรอกไว้แล้ว ลบแล้วค่าที่กรอกในชุดนี้จะหายไป"
+      });
+      if (!ok) return;
+    }
+    const patch = {
+      [g.repeat.countKey]: String(Math.max(1, g.setCount - 1))
+    };
+    (g.fields || []).forEach(f => {
+      patch[f.key] = "";
+    });
+    store.patch("sum", patch, currentUser);
+  };
   const setSign = (key, val) => store.patch("sign", {
     [key]: val
   }, currentUser);
@@ -710,19 +733,27 @@ function PmHandoverModal({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, "Photos \xB7 ", ph.idx.length, " \u0E23\u0E39\u0E1B"))) : null, cur && cur.kind === "fields" && (cur.groups || []).map(g => React.createElement("div", {
+  }, "Photos \xB7 ", ph.idx.length, " \u0E23\u0E39\u0E1B"))) : null, cur && cur.kind === "fields" && window.pmGroupsOf(cur, sum).map(g => React.createElement("div", {
     key: g.key,
     style: {
       marginBottom: 18
     }
   }, React.createElement("div", {
     style: {
-      fontSize: 12,
-      fontWeight: 800,
-      color: "var(--text-1)",
+      display: "flex",
+      alignItems: "baseline",
+      gap: 8,
       marginBottom: 9,
       paddingBottom: 4,
       borderBottom: "1px solid var(--border)"
+    }
+  }, React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 12,
+      fontWeight: 800,
+      color: "var(--text-1)"
     }
   }, g.en, " ", React.createElement("span", {
     style: {
@@ -734,7 +765,21 @@ function PmHandoverModal({
       fontWeight: 400,
       color: "var(--text-3)"
     }
-  }, " \xB7 \u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A") : null), React.createElement("div", {
+  }, " \xB7 \u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A") : null), g.repeat && g.setNo === g.setCount && g.setCount > 1 ? React.createElement("button", {
+    onClick: () => removeSet(g),
+    style: {
+      flexShrink: 0,
+      padding: "4px 9px",
+      borderRadius: 8,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-3)",
+      fontFamily: "inherit",
+      fontSize: 11,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E25\u0E1A\u0E0A\u0E38\u0E14\u0E19\u0E35\u0E49") : null), React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
@@ -746,7 +791,21 @@ function PmHandoverModal({
     value: sum[f.key],
     prefilled: window.pmIsPrefilled(rec, f.key) && !!f.from,
     onCommit: setField
-  }))))), cur && cur.kind === "checklist" && (cur.groups || []).map(g => React.createElement("div", {
+  }))), g.repeat && g.setNo === g.setCount && g.setCount < g.repeat.max ? React.createElement("button", {
+    onClick: () => addSet(g),
+    style: {
+      marginTop: 2,
+      padding: "8px 13px",
+      borderRadius: 9,
+      border: "1px dashed var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--primary-dark)",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "+ ", g.repeat.addTh) : null)), cur && cur.kind === "checklist" && (cur.groups || []).map(g => React.createElement("div", {
     key: g.key,
     style: {
       marginBottom: 18

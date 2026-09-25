@@ -100,18 +100,18 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
     </div>
   );
 
-  /* แถวของแผ่น Summary — ต่างจาก RpRow ตรงที่คอลัมน์หัวข้อ "กว้างตายตัว" ไม่ใช่ minWidth
-     หัวข้อที่ไทยยาว (เช่น "ชนิดอุปกรณ์ป้องกันกระแสเกินสตริง") จะตกบรรทัดในคอลัมน์ตัวเอง
-     ส่วนหัวข้อสั้นยังอยู่บรรทัดเดียวเหมือนเดิม — ถ้าดันให้ไทยขึ้นบรรทัดใหม่ทุกแถว
-     แผ่นจะสูงขึ้นเท่าตัวแล้วล้นไปหน้าสอง */
+  /* แถวของแผ่น Summary — หัวข้ออังกฤษบรรทัดบน ไทยบรรทัดล่าง ในคอลัมน์กว้างตายตัว
+     เคยวางไทยต่อท้ายอังกฤษในบรรทัดเดียวเพื่อประหยัดความสูง แต่พอสองคอลัมน์บนหน้า A4
+     คำไทยยาว ๆ ("พิกัดตัดกระแสลัดวงจร" · "ยี่ห้อสวิตช์ตัดตอนฝั่งแผง") ถูกบีบจนหักกลางคำ
+     อ่านไม่รู้เรื่อง · ความสูงที่เพิ่มขึ้นจัดการได้ด้วยการแบ่งหน้าเองข้างล่าง แต่คำที่หักกลางคำแก้ไม่ได้ */
   const pmpRow = (f, val) => (
-    <div key={f.key} style={{ display: "flex", alignItems: "baseline", gap: 7, marginBottom: 6 }}>
-      <span style={{ flexShrink: 0, width: 162, lineHeight: 1.35 }}>
-        <span style={{ fontSize: 10.5, fontWeight: 700, color: PM_INK }}>{f.en}</span>
-        {f.th ? <span style={{ fontSize: 9.5, color: PM_SOFT }}> ({f.th})</span> : null}
+    <div key={f.key} style={{ display: "flex", alignItems: "baseline", gap: 7, marginBottom: 7 }}>
+      <span style={{ flexShrink: 0, width: 150, lineHeight: 1.3 }}>
+        <span style={{ display: "block", fontSize: 10, fontWeight: 700, color: PM_INK }}>{f.en}</span>
+        {f.th ? <span style={{ display: "block", fontSize: 9, color: PM_SOFT }}>{f.th}</span> : null}
       </span>
       <span style={{ fontSize: 11, color: PM_SOFT, flexShrink: 0 }}>:</span>
-      <span style={{ flex: 1, minWidth: 0 }}><RpFill value={val} minWidth={90} /></span>
+      <span style={{ flex: 1, minWidth: 0 }}><RpFill value={val} minWidth={80} /></span>
     </div>
   );
 
@@ -125,12 +125,13 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
 /* แผ่น Summary ยาวเกินหน้าเดียวมาตั้งแต่ v1 (เนื้อหา ~330mm ต่อพื้นที่พิมพ์ 273mm)
      ปล่อยให้เบราว์เซอร์ตัดเองจะได้หน้าแรกที่ว่างครึ่งหน้าแล้วเศษไหลไปหน้าสอง
      จึงแบ่งเองที่ "ขอบกลุ่ม" ประมาณจากจำนวนแถว (สองคอลัมน์) + หัวกลุ่ม
-     PM_SUM_UNITS ตั้งต่ำกว่าที่วัดได้จริงไว้เผื่อหัวข้อที่ตกบรรทัด และเผื่อกลุ่มของเฟสถัดไปด้วย */
+     หนึ่งหน่วย = หนึ่งแถวสองบรรทัด (อังกฤษ/ไทย) · PM_SUM_UNITS ตั้งต่ำกว่าที่วัดได้จริง
+     เผื่อหัวข้อที่ยาวจนตกบรรทัดที่สาม และเผื่อชุดแผง/อินเวอร์เตอร์ที่คนกรอกกดเพิ่มเข้ามา */
   const PM_SUM_UNITS = 18;
   const sumPages = (() => {
     const pages = [];
     let cur = [], used = 0;
-    (sumSec.groups || []).forEach((g) => {
+    window.pmGroupsOf(sumSec, s).forEach((g) => {
       const u = Math.ceil((g.fields || []).length / 2) + 1;
       if (cur.length && used + u > PM_SUM_UNITS) { pages.push(cur); cur = []; used = 0; }
       cur.push(g); used += u;
@@ -389,7 +390,7 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
   const wsSum = makeSheet(["หัวข้อ (EN)", "หัวข้อ (ไทย)", "ค่า", "หน่วย"],
     [{ wch: 42 }, { wch: 30 }, { wch: 34 }, { wch: 10 }],
     (pushRow, merges, getR, lastC) => {
-      (window.PM_SEC_BY.sum.groups || []).forEach((g) => {
+      window.pmGroupsOf(window.PM_SEC_BY.sum, s).forEach((g) => {
         pushRow([g.en + "  (" + g.th + ")", "", "", ""], "group", 20);
         merges.push({ s: { r: getR() - 1, c: 0 }, e: { r: getR() - 1, c: lastC } });
         (g.fields || []).forEach((f, i) => {

@@ -158,6 +158,26 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
 
   const setField = (key, val) => store.patch("sum", { [key]: val == null ? "" : String(val) }, currentUser);
   const setDoc = (key, val) => store.patch("docs", { [key]: val }, currentUser);
+
+  /* เพิ่ม/ลบชุดของกลุ่มที่กดเพิ่มได้ (แผง · อินเวอร์เตอร์)
+     จำนวนชุดเก็บเป็นตัวเลขในหมวด sum ช่องเดียว ไม่ได้เก็บเป็นรายการ ⇒ เขียนทีละใบเหมือนช่องอื่น */
+  const addSet = (g) => store.patch("sum", { [g.repeat.countKey]: String(g.setCount + 1) }, currentUser);
+
+  /* ลบชุดสุดท้าย — ล้างค่าที่กรอกไว้ในชุดนั้นด้วย ไม่งั้นค่าเก่าจะดึงจำนวนชุดกลับขึ้นมาเอง
+     (pmSetCount ห้ามจำนวนชุดต่ำกว่าชุดที่ยังมีข้อมูล) */
+  const removeSet = async (g) => {
+    const filled = (g.fields || []).some((f) => String(sum[f.key] == null ? "" : sum[f.key]).trim() !== "");
+    if (filled) {
+      const ok = await window.askConfirm({
+        title: "ลบ" + g.th + "?", icon: "alert", ok: "ลบชุดนี้", danger: true,
+        body: "ชุดนี้มีข้อมูลกรอกไว้แล้ว ลบแล้วค่าที่กรอกในชุดนี้จะหายไป",
+      });
+      if (!ok) return;
+    }
+    const patch = { [g.repeat.countKey]: String(Math.max(1, g.setCount - 1)) };
+    (g.fields || []).forEach((f) => { patch[f.key] = ""; });
+    store.patch("sum", patch, currentUser);
+  };
   const setSign = (key, val) => store.patch("sign", { [key]: val }, currentUser);
 
   const addPhotos = async (files) => {
@@ -366,12 +386,24 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                   </div>
                 ) : null}
 
-                {cur && cur.kind === "fields" && (cur.groups || []).map((g) => (
+                {cur && cur.kind === "fields" && window.pmGroupsOf(cur, sum).map((g) => (
                   <div key={g.key} style={{ marginBottom: 18 }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-1)", marginBottom: 9,
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 9,
                       paddingBottom: 4, borderBottom: "1px solid var(--border)" }}>
-                      {g.en} <span style={{ fontWeight: 400, color: "var(--text-3)" }}>({g.th})</span>
-                      {g.optional ? <span style={{ fontWeight: 400, color: "var(--text-3)" }}> · ไม่บังคับ</span> : null}
+                      <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 800, color: "var(--text-1)" }}>
+                        {g.en} <span style={{ fontWeight: 400, color: "var(--text-3)" }}>({g.th})</span>
+                        {g.optional ? <span style={{ fontWeight: 400, color: "var(--text-3)" }}> · ไม่บังคับ</span> : null}
+                      </span>
+                      {/* ลบได้เฉพาะชุดสุดท้าย — ลบชุดกลางแล้วต้องเลื่อนคีย์ของชุดถัดไปทั้งหมด
+                          ซึ่งเป็นการย้ายข้อมูลที่คนกรอกไว้ข้ามช่อง ผิดพลาดแล้วกู้ไม่ได้ */}
+                      {g.repeat && g.setNo === g.setCount && g.setCount > 1 ? (
+                        <button onClick={() => removeSet(g)}
+                          style={{ flexShrink: 0, padding: "4px 9px", borderRadius: 8, border: "1px solid var(--border-strong)",
+                            background: "var(--surface)", color: "var(--text-3)", fontFamily: "inherit", fontSize: 11, fontWeight: 700,
+                            cursor: "pointer" }}>
+                          ลบชุดนี้
+                        </button>
+                      ) : null}
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", columnGap: 14 }}>
                       {(g.fields || []).map((f) => (
@@ -379,6 +411,16 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                           prefilled={window.pmIsPrefilled(rec, f.key) && !!f.from} onCommit={setField} />
                       ))}
                     </div>
+                    {/* ปุ่มเพิ่มอยู่ท้ายชุดสุดท้ายของกลุ่มนั้น ไม่ใช่รวมกันไว้ข้างล่างสุด
+                        จะได้เห็นว่ากำลังเพิ่มชุดของอะไร ตอนหน้าจอยาวจนหัวกลุ่มเลื่อนพ้นตาไปแล้ว */}
+                    {g.repeat && g.setNo === g.setCount && g.setCount < g.repeat.max ? (
+                      <button onClick={() => addSet(g)}
+                        style={{ marginTop: 2, padding: "8px 13px", borderRadius: 9, border: "1px dashed var(--border-strong)",
+                          background: "var(--surface)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 12.5,
+                          fontWeight: 700, cursor: "pointer" }}>
+                        + {g.repeat.addTh}
+                      </button>
+                    ) : null}
                   </div>
                 ))}
 

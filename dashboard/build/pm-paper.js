@@ -140,26 +140,28 @@ function PmHandoverPaper({
       display: "flex",
       alignItems: "baseline",
       gap: 7,
-      marginBottom: 6
+      marginBottom: 7
     }
   }, React.createElement("span", {
     style: {
       flexShrink: 0,
-      width: 162,
-      lineHeight: 1.35
+      width: 150,
+      lineHeight: 1.3
     }
   }, React.createElement("span", {
     style: {
-      fontSize: 10.5,
+      display: "block",
+      fontSize: 10,
       fontWeight: 700,
       color: PM_INK
     }
   }, f.en), f.th ? React.createElement("span", {
     style: {
-      fontSize: 9.5,
+      display: "block",
+      fontSize: 9,
       color: PM_SOFT
     }
-  }, " (", f.th, ")") : null), React.createElement("span", {
+  }, f.th) : null), React.createElement("span", {
     style: {
       fontSize: 11,
       color: PM_SOFT,
@@ -172,7 +174,7 @@ function PmHandoverPaper({
     }
   }, React.createElement(RpFill, {
     value: val,
-    minWidth: 90
+    minWidth: 80
   })));
   const groupHead = (en, th) => React.createElement("div", {
     style: {
@@ -198,7 +200,7 @@ function PmHandoverPaper({
     const pages = [];
     let cur = [],
       used = 0;
-    (sumSec.groups || []).forEach(g => {
+    window.pmGroupsOf(sumSec, s).forEach(g => {
       const u = Math.ceil((g.fields || []).length / 2) + 1;
       if (cur.length && used + u > PM_SUM_UNITS) {
         pages.push(cur);
@@ -813,7 +815,7 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
   }, {
     wch: 10
   }], (pushRow, merges, getR, lastC) => {
-    (window.PM_SEC_BY.sum.groups || []).forEach(g => {
+    window.pmGroupsOf(window.PM_SEC_BY.sum, s).forEach(g => {
       pushRow([g.en + "  (" + g.th + ")", "", "", ""], "group", 20);
       merges.push({
         s: {

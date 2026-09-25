@@ -157,11 +157,25 @@ const PM_SECTIONS = [{
       from: "job"
     }]
   }, {
-    key: "pv1",
-    en: "PV Module 1",
-    th: "แผงโซลาร์ชุดที่ 1",
+    key: "pv",
+    repeat: {
+      countKey: "pvSets",
+      prefix: "pv",
+      max: 8,
+      plainFirst: false,
+      addTh: "เพิ่มชุดแผง",
+      addEn: "Add PV module set",
+      oneTh: "ชุดแผง",
+      label: (n, count) => count > 1 || n > 1 ? {
+        en: "PV Module " + n,
+        th: "แผงโซลาร์ชุดที่ " + n
+      } : {
+        en: "PV Module",
+        th: "แผงโซลาร์"
+      }
+    },
     fields: [{
-      key: "pv1Brand",
+      key: "Brand",
       en: "Module Brand",
       th: "ยี่ห้อแผง",
       type: "text",
@@ -169,7 +183,7 @@ const PM_SECTIONS = [{
       since: 1,
       from: "boq"
     }, {
-      key: "pv1Model",
+      key: "Model",
       en: "Module Model No.",
       th: "รุ่นแผง",
       type: "text",
@@ -177,7 +191,7 @@ const PM_SECTIONS = [{
       since: 1,
       from: "boq"
     }, {
-      key: "pv1Wp",
+      key: "Wp",
       en: "Nameplate Capacity (DC Wp)",
       th: "กำลังต่อแผง",
       type: "num",
@@ -186,7 +200,7 @@ const PM_SECTIONS = [{
       since: 1,
       from: "boq"
     }, {
-      key: "pv1Qty",
+      key: "Qty",
       en: "Number of Solar Modules",
       th: "จำนวนแผง",
       type: "num",
@@ -196,43 +210,25 @@ const PM_SECTIONS = [{
       from: "job"
     }]
   }, {
-    key: "pv2",
-    en: "PV Module 2",
-    th: "แผงโซลาร์ชุดที่ 2",
-    optional: true,
-    fields: [{
-      key: "pv2Brand",
-      en: "Module Brand",
-      th: "ยี่ห้อแผง",
-      type: "text",
-      since: 1
-    }, {
-      key: "pv2Model",
-      en: "Module Model No.",
-      th: "รุ่นแผง",
-      type: "text",
-      since: 1
-    }, {
-      key: "pv2Wp",
-      en: "Nameplate Capacity (DC Wp)",
-      th: "กำลังต่อแผง",
-      type: "num",
-      unit: "Wp",
-      since: 1
-    }, {
-      key: "pv2Qty",
-      en: "Number of Solar Modules",
-      th: "จำนวนแผง",
-      type: "num",
-      unit: "แผ่น",
-      since: 1
-    }]
-  }, {
     key: "inv",
-    en: "Solar Inverter",
-    th: "อินเวอร์เตอร์",
+    repeat: {
+      countKey: "invSets",
+      prefix: "inv",
+      max: 8,
+      plainFirst: true,
+      addTh: "เพิ่มรุ่นอินเวอร์เตอร์",
+      addEn: "Add inverter set",
+      oneTh: "ชุดอินเวอร์เตอร์",
+      label: (n, count) => count > 1 || n > 1 ? {
+        en: "Solar Inverter " + n,
+        th: "อินเวอร์เตอร์ชุดที่ " + n
+      } : {
+        en: "Solar Inverter",
+        th: "อินเวอร์เตอร์"
+      }
+    },
     fields: [{
-      key: "invBrand",
+      key: "Brand",
       en: "Inverter Brand",
       th: "ยี่ห้ออินเวอร์เตอร์",
       type: "text",
@@ -240,7 +236,7 @@ const PM_SECTIONS = [{
       since: 1,
       from: "boq"
     }, {
-      key: "invModel",
+      key: "Model",
       en: "Inverter Model No.",
       th: "รุ่นอินเวอร์เตอร์",
       type: "text",
@@ -248,7 +244,7 @@ const PM_SECTIONS = [{
       since: 1,
       from: "boq"
     }, {
-      key: "invKw",
+      key: "Kw",
       en: "Nameplate Capacity (AC kW)",
       th: "กำลังต่อเครื่อง",
       type: "num",
@@ -257,7 +253,7 @@ const PM_SECTIONS = [{
       since: 1,
       from: "boq"
     }, {
-      key: "invQty",
+      key: "Qty",
       en: "Number of Inverters",
       th: "จำนวนเครื่อง",
       type: "num",
@@ -309,8 +305,8 @@ const PM_SECTIONS = [{
       since: 1
     }, {
       key: "wirePhaseMm",
-      en: "Phase",
-      th: "ขนาดสายเฟส",
+      en: "Cable Size",
+      th: "ขนาดสายไฟ",
       type: "num",
       unit: "sq mm",
       req: 1,
@@ -693,6 +689,56 @@ function pmDocLabel(item, job) {
     th: item.th + (nm ? " · " + nm : "")
   };
 }
+const pmSetId = (rp, n) => rp.plainFirst && n === 1 ? rp.prefix : rp.prefix + n;
+function pmSetCount(sum, g) {
+  const rp = g.repeat;
+  const s = sum || {};
+  const has = n => (g.fields || []).some(f => {
+    const v = s[pmSetId(rp, n) + f.key];
+    return v !== null && v !== undefined && String(v).trim() !== "";
+  });
+  let n = parseInt(s[rp.countKey], 10);
+  if (!isFinite(n) || n < 1) n = 1;
+  if (n > rp.max) n = rp.max;
+  for (let k = rp.max; k > n; k--) {
+    if (has(k)) {
+      n = k;
+      break;
+    }
+  }
+  return n;
+}
+function pmExpandGroup(g, n, count) {
+  const rp = g.repeat;
+  const id = pmSetId(rp, n);
+  const lb = rp.label(n, count);
+  return {
+    key: g.key + n,
+    en: lb.en,
+    th: lb.th,
+    repeatOf: g.key,
+    setNo: n,
+    setCount: count,
+    repeat: rp,
+    fields: (g.fields || []).map(f => Object.assign({}, f, {
+      key: id + f.key
+    }))
+  };
+}
+function pmGroupsOf(sec, sum) {
+  const gs = (sec || {}).groups || [];
+  if (!gs.some(g => g.repeat)) return gs;
+  const out = [];
+  gs.forEach(g => {
+    if (!g.repeat) {
+      out.push(g);
+      return;
+    }
+    const n = pmSetCount(sum, g);
+    for (let i = 1; i <= n; i++) out.push(pmExpandGroup(g, i, n));
+  });
+  return out;
+}
 function pmBlank(user) {
   return {
     meta: {
@@ -810,7 +856,7 @@ function pmProgress(rec, job, user) {
       });
     };
     if (sec.kind === "fields") {
-      sec.groups.forEach(g => (g.fields || []).forEach(f => {
+      pmGroupsOf(sec, sum).forEach(g => (g.fields || []).forEach(f => {
         if (!pmActive(f, ver)) return;
         tick(filled(sum[f.key]), f.key, f.en, f.th);
       }));
@@ -1071,6 +1117,9 @@ Object.assign(window, {
   PM_FROM_LABEL,
   pmDocName,
   pmDocLabel,
+  pmSetId,
+  pmSetCount,
+  pmGroupsOf,
   pmToday,
   pmNow,
   pmVerOf,
