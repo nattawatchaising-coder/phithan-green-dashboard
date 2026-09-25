@@ -1155,6 +1155,87 @@ function PermitJobSummary({
     value: value
   }))));
 }
+const DR_TOOLS_KEY = "sf_drawer_tools_open";
+function DrToolGroup({
+  alert,
+  children
+}) {
+  const [open, setOpen] = React.useState(() => {
+    try {
+      return window.localStorage.getItem(DR_TOOLS_KEY) !== "0";
+    } catch (e) {
+      return true;
+    }
+  });
+  const n = React.Children.toArray(children).filter(Boolean).length;
+  const toggle = () => setOpen(v => {
+    const next = !v;
+    try {
+      window.localStorage.setItem(DR_TOOLS_KEY, next ? "1" : "0");
+    } catch (e) {}
+    return next;
+  });
+  return React.createElement("div", {
+    style: {
+      marginBottom: open ? 0 : 22
+    }
+  }, React.createElement("button", {
+    onClick: toggle,
+    "aria-expanded": open,
+    style: {
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+      gap: 7,
+      marginBottom: open ? 12 : 0,
+      padding: "9px 4px",
+      background: "none",
+      border: "none",
+      borderBottom: "1px solid var(--border)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      textAlign: "left"
+    }
+  }, React.createElement(Icon, {
+    name: open ? "chevronDown" : "chevronRight",
+    size: 14,
+    color: "var(--text-2)"
+  }), React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: ".08em",
+      color: "var(--text-3)",
+      textTransform: "uppercase"
+    }
+  }, "\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E21\u0E37\u0E2D\u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49"), React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: "var(--text-3)"
+    }
+  }, n, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"), React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }), !open && alert ? React.createElement("span", {
+    style: {
+      padding: "3px 9px",
+      borderRadius: 99,
+      background: "var(--tint-red-bg)",
+      border: "1px solid var(--tint-red-bd)",
+      color: "var(--tint-red-tx)",
+      fontSize: 10.5,
+      fontWeight: 800
+    }
+  }, alert) : React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, open ? "ย่อ" : "กาง")), open && children);
+}
 function DetailDrawer({
   job,
   onClose,
@@ -1568,7 +1649,9 @@ function DetailDrawer({
     leads: leads,
     onOpenQuote: onOpenQuote,
     card: true
-  }), onDaily && React.createElement(DailyJobButton, {
+  }), React.createElement(DrToolGroup, {
+    alert: (job.permit || {}).status === "rejected" ? "ขออนุญาตถูกตีกลับ" : ""
+  }, onDaily && React.createElement(DailyJobButton, {
     job: job,
     onOpen: onDaily
   }), onOm && (job.stage === "done" || omSite) && window.OmJobButton && React.createElement(window.OmJobButton, {
@@ -2082,7 +2165,7 @@ function DetailDrawer({
         fontWeight: 700
       }
     }, "\u2714 \u0E01\u0E32\u0E23\u0E44\u0E1F\u0E1F\u0E49\u0E32\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27", pm.approvedDate ? " · " + thDate(pm.approvedDate, true) : "", pm.reqNo ? " · คำร้อง " + pm.reqNo : ""));
-  })(), onBilling && window.BlJobCard && React.createElement(window.BlJobCard, {
+  })()), onBilling && window.BlJobCard && React.createElement(window.BlJobCard, {
     job: job,
     quotes: quotes,
     leads: leads,
