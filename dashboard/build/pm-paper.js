@@ -134,10 +134,50 @@ function PmHandoverPaper({
       color: PM_INK
     }
   }, p.pct, "%"))));
+  const pmpRow = (f, val) => React.createElement("div", {
+    key: f.key,
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      gap: 7,
+      marginBottom: 6
+    }
+  }, React.createElement("span", {
+    style: {
+      flexShrink: 0,
+      width: 162,
+      lineHeight: 1.35
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: PM_INK
+    }
+  }, f.en), f.th ? React.createElement("span", {
+    style: {
+      fontSize: 9.5,
+      color: PM_SOFT
+    }
+  }, " (", f.th, ")") : null), React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: PM_SOFT,
+      flexShrink: 0
+    }
+  }, ":"), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement(RpFill, {
+    value: val,
+    minWidth: 90
+  })));
   const groupHead = (en, th) => React.createElement("div", {
     style: {
-      marginTop: 13,
-      marginBottom: 7,
+      marginTop: 10,
+      marginBottom: 6,
       paddingBottom: 3,
       borderBottom: "1px solid " + PM_LINE
     }
@@ -153,6 +193,24 @@ function PmHandoverPaper({
       color: PM_SOFT
     }
   }, " (", th, ")"));
+  const PM_SUM_UNITS = 18;
+  const sumPages = (() => {
+    const pages = [];
+    let cur = [],
+      used = 0;
+    (sumSec.groups || []).forEach(g => {
+      const u = Math.ceil((g.fields || []).length / 2) + 1;
+      if (cur.length && used + u > PM_SUM_UNITS) {
+        pages.push(cur);
+        cur = [];
+        used = 0;
+      }
+      cur.push(g);
+      used += u;
+    });
+    if (cur.length) pages.push(cur);
+    return pages;
+  })();
   let photoNo = 0;
   const paper = React.createElement("div", {
     className: "sv-rep-overlay",
@@ -256,9 +314,10 @@ function PmHandoverPaper({
       borderRadius: isMobile ? 0 : 12,
       boxShadow: "0 8px 30px rgba(0,0,0,.18)"
     }
-  }, React.createElement("div", {
-    className: "pm-sheet pm-page"
-  }, headBar("Commissioning & Handover Report", "รายงานตรวจรับและส่งมอบระบบ"), (sumSec.groups || []).map(g => React.createElement("div", {
+  }, sumPages.map((groups, pi) => React.createElement("div", {
+    className: "pm-sheet",
+    key: "sum" + pi
+  }, headBar("Commissioning & Handover Report" + (pi ? " (cont.)" : ""), "รายงานตรวจรับและส่งมอบระบบ" + (pi ? " (ต่อ)" : "")), groups.map(g => React.createElement("div", {
     key: g.key
   }, groupHead(g.en, g.th), React.createElement("div", {
     style: {
@@ -266,13 +325,7 @@ function PmHandoverPaper({
       gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
       columnGap: 22
     }
-  }, (g.fields || []).map(f => React.createElement(RpRow, {
-    key: f.key,
-    en: f.en,
-    th: f.th,
-    value: pmpValue(f, s),
-    minWidth: 90
-  })))))), React.createElement("div", {
+  }, (g.fields || []).map(f => pmpRow(f, pmpValue(f, s)))))))), React.createElement("div", {
     className: "pm-sheet pm-page"
   }, headBar("Handover Documents Checklist", "รายการเอกสารส่งมอบ"), React.createElement("table", {
     style: {

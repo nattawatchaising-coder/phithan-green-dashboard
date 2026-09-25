@@ -62,7 +62,8 @@ const PM_VER = 1;
 /* คีย์ที่เลิกใช้ — ตัวนับไม่เห็นแล้ว แต่ค่าเก่ายังนอนอยู่ใน RTDB ของเล่มที่เปิดก่อนหน้านี้
    ไม่ลบทิ้งอัตโนมัติ เพราะการลบข้อมูลที่คนกรอกไว้แล้วต้องเป็นการตัดสินใจของคน ไม่ใช่ของโค้ดที่เผลอรัน
    engCleantech/pmHead/ecoEng/regionalPm/apEcotech = ชื่อตำแหน่งกับชื่อบริษัทที่ติดมากับไฟล์ PM2 ต้นฉบับ */
-const PM_RETIRED = ["engCleantech", "ecoEng", "pmHead", "regionalPm", "apEcotech"];
+const PM_RETIRED = ["engCleantech", "ecoEng", "pmHead", "regionalPm", "apEcotech",
+  "s1Cap", "s1Az", "s2Cap", "s2Az", "s3Cap", "s3Az"];  /* ระบบย่อย — ไม่ได้ใช้กับงานที่ทำจริง */
 
 const pmVerOf = (rec) => (rec && rec.meta && +rec.meta.ver) || PM_VER;
 const pmActive = (it, ver) => !!it.req && (it.since || 1) <= ver;
@@ -131,16 +132,6 @@ const PM_SECTIONS = [
           { key: "invModel", en: "Inverter Model No.", th: "รุ่นอินเวอร์เตอร์", type: "text", req: 1, since: 1, from: "boq" },
           { key: "invKw", en: "Nameplate Capacity (AC kW)", th: "กำลังต่อเครื่อง", type: "num", unit: "kW", req: 1, since: 1, from: "boq" },
           { key: "invQty", en: "Number of Inverters", th: "จำนวนเครื่อง", type: "num", unit: "เครื่อง", req: 1, since: 1, from: "boq" },
-        ],
-      },
-      {
-        key: "spec", en: "Specific Systems", th: "ระบบย่อย", optional: true, fields: [
-          { key: "s1Cap", en: "Capacity 1", th: "กำลังชุดที่ 1", type: "num", since: 1 },
-          { key: "s1Az", en: "Azimuth / Tilt 1", th: "ทิศ/มุมเอียงชุดที่ 1", type: "text", since: 1 },
-          { key: "s2Cap", en: "Capacity 2", th: "กำลังชุดที่ 2", type: "num", since: 1 },
-          { key: "s2Az", en: "Azimuth / Tilt 2", th: "ทิศ/มุมเอียงชุดที่ 2", type: "text", since: 1 },
-          { key: "s3Cap", en: "Capacity 3", th: "กำลังชุดที่ 3", type: "num", since: 1 },
-          { key: "s3Az", en: "Azimuth / Tilt 3", th: "ทิศ/มุมเอียงชุดที่ 3", type: "text", since: 1 },
         ],
       },
       {

@@ -131,7 +131,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
   const jobId = job ? job.id : null;
   const store = window.usePmHandover(jobId);
   const ph = window.usePmPhotoIdx(jobId);
-  const [tab, setTab] = React.useState("sum");
+  const [tab, setTab] = React.useState("home");
   const [paper, setPaper] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const fileRef = React.useRef(null);
@@ -139,8 +139,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
   const rec = store.rec;
   const started = !!(rec && rec.meta);
   const sum = React.useMemo(() => window.pmMerged(rec, job, currentUser), [rec, job, currentUser]);
-  const prog = React.useMemo(() => (started ? window.pmProgress(rec, job, currentUser)
-    : { pct: 0, done: 0, total: 0, missing: [], bySection: {} }), [rec, job, currentUser, started]);
+  const prog = React.useMemo(() => window.pmProgress(rec, job, currentUser), [rec, job, currentUser]);
   const newer = started ? window.pmNewerItems(rec) : 0;
 
   /* เงาบนใบงาน — เขียนตามหลังทุกครั้งที่ความครบเปลี่ยน ให้การ์ดกับหน้ารายการอ่านสถานะได้
@@ -301,6 +300,16 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
 
               {/* แถบเลือกหมวด */}
               <div style={{ display: "flex", gap: 8, padding: "10px 16px", overflowX: "auto", borderBottom: "1px solid var(--border)" }}>
+                <button onClick={() => setTab("home")}
+                  style={{ flexShrink: 0, padding: "8px 13px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
+                    border: "1px solid " + (tab === "home" ? "var(--primary)" : "var(--border-strong)"),
+                    background: tab === "home" ? "var(--primary-soft)" : "var(--surface)", textAlign: "left" }}>
+                  <span style={{ display: "block", fontSize: 12.5, fontWeight: 700,
+                    color: tab === "home" ? "var(--primary-dark)" : "var(--text-1)" }}>ภาพรวม</span>
+                  <span style={{ display: "block", fontSize: 10.5, fontWeight: 700, color: PM_STATE_COLOR[prog.pct >= 100 ? "done" : "partial"] }}>
+                    {prog.done}/{prog.total} · {prog.pct}%
+                  </span>
+                </button>
                 {secs.map(tabBtn)}
                 <button onClick={() => setTab("photo")}
                   style={{ flexShrink: 0, padding: "8px 13px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
@@ -316,6 +325,47 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
 
               {/* เนื้อหา */}
               <div style={{ padding: 16, overflowY: "auto", flex: 1 }}>
+                {tab === "home" ? (
+                  <div>
+                    <div style={{ fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.7, marginBottom: 13 }}>
+                      เปิดสมุดแล้ว · กรอกไปแล้ว <b style={{ color: "var(--text-1)" }}>{prog.pct}%</b>{" "}
+                      ({prog.done} จาก {prog.total} รายการ)
+                      {prog.missing.length ? <span> · ยังขาดอีก {prog.missing.length} รายการ</span> : <span> · ครบทุกรายการแล้ว</span>}
+                    </div>
+                    {secs.map((sec) => {
+                      const st = prog.bySection[sec.key] || { pct: 0, done: 0, total: 0, state: "empty" };
+                      return (
+                        <button key={sec.key} onClick={() => setTab(sec.key)}
+                          style={{ display: "block", width: "100%", textAlign: "left", marginBottom: 9, padding: "11px 13px",
+                            borderRadius: 12, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                            cursor: "pointer", fontFamily: "inherit" }}>
+                          <div style={{ display: "flex", alignItems: "baseline", gap: 9 }}>
+                            <span style={{ flex: 1, minWidth: 0 }}>
+                              <span style={{ display: "block", fontSize: 13, fontWeight: 800, color: "var(--text-1)" }}>{sec.th}</span>
+                              <span style={{ display: "block", fontSize: 11, color: "var(--text-3)" }}>{sec.en}</span>
+                            </span>
+                            <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 800, color: PM_STATE_COLOR[st.state] || "var(--text-3)" }}>
+                              {st.total ? st.done + "/" + st.total + " · " + st.pct + "%" : "ไม่บังคับ"}
+                            </span>
+                          </div>
+                          {st.total ? (
+                            <div style={{ height: 5, borderRadius: 99, background: "var(--border)", overflow: "hidden", marginTop: 8 }}>
+                              <div style={{ width: st.pct + "%", height: "100%", borderRadius: 99,
+                                background: PM_STATE_COLOR[st.state] || "var(--border-strong)" }} />
+                            </div>
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                    <button onClick={() => setTab("photo")}
+                      style={{ display: "block", width: "100%", textAlign: "left", padding: "11px 13px", borderRadius: 12,
+                        border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", fontFamily: "inherit" }}>
+                      <span style={{ display: "block", fontSize: 13, fontWeight: 800, color: "var(--text-1)" }}>รูปประกอบ</span>
+                      <span style={{ display: "block", fontSize: 11, color: "var(--text-3)" }}>Photos · {ph.idx.length} รูป</span>
+                    </button>
+                  </div>
+                ) : null}
+
                 {cur && cur.kind === "fields" && (cur.groups || []).map((g) => (
                   <div key={g.key} style={{ marginBottom: 18 }}>
                     <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-1)", marginBottom: 9,
@@ -443,7 +493,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
         </div>
       </div>
 
-      {paper && <PmPaperHost job={job} rec={rec} sum={sum} prog={prog} onClose={() => setPaper(false)} />}
+      {paper && started && <PmPaperHost job={job} rec={rec} sum={sum} prog={prog} onClose={() => setPaper(false)} />}
     </React.Fragment>
   );
 }

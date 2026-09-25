@@ -12,7 +12,7 @@ const _pmRoot = () => window.FBDB.ref(PM_ROOT || "/");
 const pmToday = () => new Date().toISOString().slice(0, 10);
 const pmNow = () => new Date().toISOString();
 const PM_VER = 1;
-const PM_RETIRED = ["engCleantech", "ecoEng", "pmHead", "regionalPm", "apEcotech"];
+const PM_RETIRED = ["engCleantech", "ecoEng", "pmHead", "regionalPm", "apEcotech", "s1Cap", "s1Az", "s2Cap", "s2Az", "s3Cap", "s3Az"];
 const pmVerOf = rec => rec && rec.meta && +rec.meta.ver || PM_VER;
 const pmActive = (it, ver) => !!it.req && (it.since || 1) <= ver;
 const PM_SECTIONS = [{
@@ -265,48 +265,6 @@ const PM_SECTIONS = [{
       req: 1,
       since: 1,
       from: "boq"
-    }]
-  }, {
-    key: "spec",
-    en: "Specific Systems",
-    th: "ระบบย่อย",
-    optional: true,
-    fields: [{
-      key: "s1Cap",
-      en: "Capacity 1",
-      th: "กำลังชุดที่ 1",
-      type: "num",
-      since: 1
-    }, {
-      key: "s1Az",
-      en: "Azimuth / Tilt 1",
-      th: "ทิศ/มุมเอียงชุดที่ 1",
-      type: "text",
-      since: 1
-    }, {
-      key: "s2Cap",
-      en: "Capacity 2",
-      th: "กำลังชุดที่ 2",
-      type: "num",
-      since: 1
-    }, {
-      key: "s2Az",
-      en: "Azimuth / Tilt 2",
-      th: "ทิศ/มุมเอียงชุดที่ 2",
-      type: "text",
-      since: 1
-    }, {
-      key: "s3Cap",
-      en: "Capacity 3",
-      th: "กำลังชุดที่ 3",
-      type: "num",
-      since: 1
-    }, {
-      key: "s3Az",
-      en: "Azimuth / Tilt 3",
-      th: "ทิศ/มุมเอียงชุดที่ 3",
-      type: "text",
-      since: 1
     }]
   }, {
     key: "prot",

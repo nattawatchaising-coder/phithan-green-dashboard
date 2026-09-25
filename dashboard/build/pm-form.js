@@ -236,20 +236,14 @@ function PmHandoverModal({
   const jobId = job ? job.id : null;
   const store = window.usePmHandover(jobId);
   const ph = window.usePmPhotoIdx(jobId);
-  const [tab, setTab] = React.useState("sum");
+  const [tab, setTab] = React.useState("home");
   const [paper, setPaper] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const fileRef = React.useRef(null);
   const rec = store.rec;
   const started = !!(rec && rec.meta);
   const sum = React.useMemo(() => window.pmMerged(rec, job, currentUser), [rec, job, currentUser]);
-  const prog = React.useMemo(() => started ? window.pmProgress(rec, job, currentUser) : {
-    pct: 0,
-    done: 0,
-    total: 0,
-    missing: [],
-    bySection: {}
-  }, [rec, job, currentUser, started]);
+  const prog = React.useMemo(() => window.pmProgress(rec, job, currentUser), [rec, job, currentUser]);
   const newer = started ? window.pmNewerItems(rec) : 0;
   const lastShadow = React.useRef("");
   React.useEffect(() => {
@@ -552,7 +546,33 @@ function PmHandoverModal({
       overflowX: "auto",
       borderBottom: "1px solid var(--border)"
     }
-  }, secs.map(tabBtn), React.createElement("button", {
+  }, React.createElement("button", {
+    onClick: () => setTab("home"),
+    style: {
+      flexShrink: 0,
+      padding: "8px 13px",
+      borderRadius: 99,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      border: "1px solid " + (tab === "home" ? "var(--primary)" : "var(--border-strong)"),
+      background: tab === "home" ? "var(--primary-soft)" : "var(--surface)",
+      textAlign: "left"
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: tab === "home" ? "var(--primary-dark)" : "var(--text-1)"
+    }
+  }, "\u0E20\u0E32\u0E1E\u0E23\u0E27\u0E21"), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: PM_STATE_COLOR[prog.pct >= 100 ? "done" : "partial"]
+    }
+  }, prog.done, "/", prog.total, " \xB7 ", prog.pct, "%")), secs.map(tabBtn), React.createElement("button", {
     onClick: () => setTab("photo"),
     style: {
       flexShrink: 0,
@@ -584,7 +604,113 @@ function PmHandoverModal({
       overflowY: "auto",
       flex: 1
     }
-  }, cur && cur.kind === "fields" && (cur.groups || []).map(g => React.createElement("div", {
+  }, tab === "home" ? React.createElement("div", null, React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-2)",
+      lineHeight: 1.7,
+      marginBottom: 13
+    }
+  }, "\u0E40\u0E1B\u0E34\u0E14\u0E2A\u0E21\u0E38\u0E14\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E01\u0E23\u0E2D\u0E01\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27 ", React.createElement("b", {
+    style: {
+      color: "var(--text-1)"
+    }
+  }, prog.pct, "%"), " ", "(", prog.done, " \u0E08\u0E32\u0E01 ", prog.total, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23)", prog.missing.length ? React.createElement("span", null, " \xB7 \u0E22\u0E31\u0E07\u0E02\u0E32\u0E14\u0E2D\u0E35\u0E01 ", prog.missing.length, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23") : React.createElement("span", null, " \xB7 \u0E04\u0E23\u0E1A\u0E17\u0E38\u0E01\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E41\u0E25\u0E49\u0E27")), secs.map(sec => {
+    const st = prog.bySection[sec.key] || {
+      pct: 0,
+      done: 0,
+      total: 0,
+      state: "empty"
+    };
+    return React.createElement("button", {
+      key: sec.key,
+      onClick: () => setTab(sec.key),
+      style: {
+        display: "block",
+        width: "100%",
+        textAlign: "left",
+        marginBottom: 9,
+        padding: "11px 13px",
+        borderRadius: 12,
+        border: "1px solid var(--border-strong)",
+        background: "var(--surface)",
+        cursor: "pointer",
+        fontFamily: "inherit"
+      }
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "baseline",
+        gap: 9
+      }
+    }, React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 13,
+        fontWeight: 800,
+        color: "var(--text-1)"
+      }
+    }, sec.th), React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 11,
+        color: "var(--text-3)"
+      }
+    }, sec.en)), React.createElement("span", {
+      style: {
+        flexShrink: 0,
+        fontSize: 12,
+        fontWeight: 800,
+        color: PM_STATE_COLOR[st.state] || "var(--text-3)"
+      }
+    }, st.total ? st.done + "/" + st.total + " · " + st.pct + "%" : "ไม่บังคับ")), st.total ? React.createElement("div", {
+      style: {
+        height: 5,
+        borderRadius: 99,
+        background: "var(--border)",
+        overflow: "hidden",
+        marginTop: 8
+      }
+    }, React.createElement("div", {
+      style: {
+        width: st.pct + "%",
+        height: "100%",
+        borderRadius: 99,
+        background: PM_STATE_COLOR[st.state] || "var(--border-strong)"
+      }
+    })) : null);
+  }), React.createElement("button", {
+    onClick: () => setTab("photo"),
+    style: {
+      display: "block",
+      width: "100%",
+      textAlign: "left",
+      padding: "11px 13px",
+      borderRadius: 12,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit"
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 13,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, "\u0E23\u0E39\u0E1B\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A"), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, "Photos \xB7 ", ph.idx.length, " \u0E23\u0E39\u0E1B"))) : null, cur && cur.kind === "fields" && (cur.groups || []).map(g => React.createElement("div", {
     key: g.key,
     style: {
       marginBottom: 18
@@ -846,7 +972,7 @@ function PmHandoverModal({
       fontWeight: 800,
       cursor: "pointer"
     }
-  }, "\u0E14\u0E39\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19 \xB7 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF / \u0E2D\u0E2D\u0E01\u0E44\u0E1F\u0E25\u0E4C Excel"))))), paper && React.createElement(PmPaperHost, {
+  }, "\u0E14\u0E39\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19 \xB7 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF / \u0E2D\u0E2D\u0E01\u0E44\u0E1F\u0E25\u0E4C Excel"))))), paper && started && React.createElement(PmPaperHost, {
     job: job,
     rec: rec,
     sum: sum,

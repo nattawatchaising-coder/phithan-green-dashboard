@@ -100,14 +100,46 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
     </div>
   );
 
+  /* แถวของแผ่น Summary — ต่างจาก RpRow ตรงที่คอลัมน์หัวข้อ "กว้างตายตัว" ไม่ใช่ minWidth
+     หัวข้อที่ไทยยาว (เช่น "ชนิดอุปกรณ์ป้องกันกระแสเกินสตริง") จะตกบรรทัดในคอลัมน์ตัวเอง
+     ส่วนหัวข้อสั้นยังอยู่บรรทัดเดียวเหมือนเดิม — ถ้าดันให้ไทยขึ้นบรรทัดใหม่ทุกแถว
+     แผ่นจะสูงขึ้นเท่าตัวแล้วล้นไปหน้าสอง */
+  const pmpRow = (f, val) => (
+    <div key={f.key} style={{ display: "flex", alignItems: "baseline", gap: 7, marginBottom: 6 }}>
+      <span style={{ flexShrink: 0, width: 162, lineHeight: 1.35 }}>
+        <span style={{ fontSize: 10.5, fontWeight: 700, color: PM_INK }}>{f.en}</span>
+        {f.th ? <span style={{ fontSize: 9.5, color: PM_SOFT }}> ({f.th})</span> : null}
+      </span>
+      <span style={{ fontSize: 11, color: PM_SOFT, flexShrink: 0 }}>:</span>
+      <span style={{ flex: 1, minWidth: 0 }}><RpFill value={val} minWidth={90} /></span>
+    </div>
+  );
+
   const groupHead = (en, th) => (
-    <div style={{ marginTop: 13, marginBottom: 7, paddingBottom: 3, borderBottom: "1px solid " + PM_LINE }}>
+    <div style={{ marginTop: 10, marginBottom: 6, paddingBottom: 3, borderBottom: "1px solid " + PM_LINE }}>
       <span style={{ fontSize: 11.5, fontWeight: 800, color: PM_INK }}>{en}</span>
       <span style={{ fontSize: 10, color: PM_SOFT }}> ({th})</span>
     </div>
   );
 
-  /* เลขรูปวิ่งชุดเดียวกับที่ไฟล์ Excel ใช้อ้างถึง — สองไฟล์จะได้ชี้หากันได้ */
+/* แผ่น Summary ยาวเกินหน้าเดียวมาตั้งแต่ v1 (เนื้อหา ~330mm ต่อพื้นที่พิมพ์ 273mm)
+     ปล่อยให้เบราว์เซอร์ตัดเองจะได้หน้าแรกที่ว่างครึ่งหน้าแล้วเศษไหลไปหน้าสอง
+     จึงแบ่งเองที่ "ขอบกลุ่ม" ประมาณจากจำนวนแถว (สองคอลัมน์) + หัวกลุ่ม
+     PM_SUM_UNITS ตั้งต่ำกว่าที่วัดได้จริงไว้เผื่อหัวข้อที่ตกบรรทัด และเผื่อกลุ่มของเฟสถัดไปด้วย */
+  const PM_SUM_UNITS = 18;
+  const sumPages = (() => {
+    const pages = [];
+    let cur = [], used = 0;
+    (sumSec.groups || []).forEach((g) => {
+      const u = Math.ceil((g.fields || []).length / 2) + 1;
+      if (cur.length && used + u > PM_SUM_UNITS) { pages.push(cur); cur = []; used = 0; }
+      cur.push(g); used += u;
+    });
+    if (cur.length) pages.push(cur);
+    return pages;
+  })();
+
+    /* เลขรูปวิ่งชุดเดียวกับที่ไฟล์ Excel ใช้อ้างถึง — สองไฟล์จะได้ชี้หากันได้ */
   let photoNo = 0;
 
   const paper = (
@@ -143,20 +175,21 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
       <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: PM_INK,
         padding: isMobile ? "18px 14px" : "26px 30px", borderRadius: isMobile ? 0 : 12, boxShadow: "0 8px 30px rgba(0,0,0,.18)" }}>
 
-        {/* ── แผ่นที่ 1 · Summary ── */}
-        <div className="pm-sheet pm-page">
-          {headBar("Commissioning & Handover Report", "รายงานตรวจรับและส่งมอบระบบ")}
-          {(sumSec.groups || []).map((g) => (
-            <div key={g.key}>
-              {groupHead(g.en, g.th)}
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", columnGap: 22 }}>
-                {(g.fields || []).map((f) => (
-                  <RpRow key={f.key} en={f.en} th={f.th} value={pmpValue(f, s)} minWidth={90} />
-                ))}
+        {/* ── แผ่น Summary — แบ่งเองเป็นหน้า ๆ ที่ขอบกลุ่ม ── */}
+        {sumPages.map((groups, pi) => (
+          <div className="pm-sheet" key={"sum" + pi}>
+            {headBar("Commissioning & Handover Report" + (pi ? " (cont.)" : ""),
+              "รายงานตรวจรับและส่งมอบระบบ" + (pi ? " (ต่อ)" : ""))}
+            {groups.map((g) => (
+              <div key={g.key}>
+                {groupHead(g.en, g.th)}
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", columnGap: 22 }}>
+                  {(g.fields || []).map((f) => pmpRow(f, pmpValue(f, s)))}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ))}
 
         {/* ── แผ่นที่ 2 · Documents Checklist + ลงนาม ── */}
         <div className="pm-sheet pm-page">
