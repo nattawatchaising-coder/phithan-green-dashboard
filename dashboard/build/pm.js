@@ -11,7 +11,7 @@ const _pmRef = p => window.FBDB.ref(PM_ROOT + p);
 const _pmRoot = () => window.FBDB.ref(PM_ROOT || "/");
 const pmToday = () => new Date().toISOString().slice(0, 10);
 const pmNow = () => new Date().toISOString();
-const PM_VER = 2;
+const PM_VER = 3;
 const PM_RETIRED = ["engCleantech", "ecoEng", "pmHead", "regionalPm", "apEcotech", "s1Cap", "s1Az", "s2Cap", "s2Az", "s3Cap", "s3Az"];
 const pmVerOf = rec => rec && rec.meta && +rec.meta.ver || PM_VER;
 const pmActive = (it, ver) => !!it.req && (it.since || 1) <= ver;
@@ -909,6 +909,282 @@ const PM_SECTIONS = [{
     }]
   }]
 }, {
+  key: "b1",
+  code: "B1",
+  en: "B1. DC Insulation Test",
+  th: "B1 ทดสอบฉนวนสาย DC",
+  icon: "bolt",
+  since: 3,
+  kind: "table",
+  tables: [{
+    key: "main",
+    en: "String Cables",
+    th: "สายสตริง",
+    minRows: 1,
+    groupBy: "inv",
+    groupTh: "อินเวอร์เตอร์ตัวที่",
+    unitNote: "วัดเทียบกับดิน — ขั้วบวกลงดิน และขั้วลบลงดิน · หน่วยเป็นเมกะโอห์ม (MΩ)",
+    hdr: [{
+      key: "maxSysV",
+      en: "Maximum System Voltage",
+      th: "แรงดันระบบสูงสุด",
+      unit: "VDC",
+      type: "num",
+      req: 1,
+      since: 3,
+      def: "1000"
+    }, {
+      key: "testV",
+      en: "Applied Test Voltage",
+      th: "แรงดันที่ใช้ทดสอบ",
+      unit: "VDC",
+      type: "num",
+      req: 1,
+      since: 3,
+      def: "1000"
+    }, {
+      key: "limitM",
+      en: "Acceptable Insulation Level",
+      th: "เกณฑ์ผ่าน",
+      unit: "MΩ",
+      type: "num",
+      req: 1,
+      since: 3,
+      def: "200"
+    }],
+    cols: [{
+      key: "inv",
+      en: "Inverter",
+      th: "อินเวอร์เตอร์",
+      type: "text",
+      req: 1,
+      since: 3
+    }, {
+      key: "str",
+      en: "String",
+      th: "สตริง",
+      type: "text",
+      req: 1,
+      since: 3
+    }, {
+      key: "insP",
+      en: "Insulation (+) to Ground",
+      th: "ฉนวนขั้วบวกลงดิน",
+      unit: "MΩ",
+      type: "num",
+      req: 1,
+      since: 3,
+      w: 2
+    }, {
+      key: "insN",
+      en: "Insulation (−) to Ground",
+      th: "ฉนวนขั้วลบลงดิน",
+      unit: "MΩ",
+      type: "num",
+      req: 1,
+      since: 3,
+      w: 2
+    }],
+    pass: (r, h) => {
+      const num = x => parseFloat(String(x == null ? "" : x).replace(/[^\d.\-]/g, ""));
+      const v = [num(r.insP), num(r.insN)].filter(x => isFinite(x));
+      if (v.length < 2) return false;
+      return Math.min.apply(null, v) >= (parseFloat((h || {}).limitM) || 0);
+    },
+    seed: (job, sum) => pmSeedStrings(job, sum)
+  }]
+}, {
+  key: "b3",
+  code: "B3",
+  en: "B3. DC Polarity & Voltage",
+  th: "B3 ทดสอบขั้วและแรงดัน DC",
+  icon: "bolt",
+  since: 3,
+  kind: "table",
+  tables: [{
+    key: "main",
+    en: "String Open-Circuit Voltage",
+    th: "แรงดันเปิดวงจรของสตริง",
+    minRows: 1,
+    groupBy: "inv",
+    groupTh: "อินเวอร์เตอร์ตัวที่",
+    unitNote: "แรงดันทุกค่าเป็นโวลต์ (V)",
+    hdr: [{
+      key: "voc",
+      en: "Module Open-Circuit Voltage",
+      th: "แรงดันเปิดวงจรต่อแผง",
+      unit: "V",
+      type: "num",
+      req: 1,
+      since: 3,
+      defTh: "จากสเปคแผงใน BOQ",
+      def: (job, sum) => pmPanelSpec(job, sum).voc
+    }, {
+      key: "tempCoef",
+      en: "Temperature Coefficient of Voc",
+      th: "สัมประสิทธิ์อุณหภูมิของ Voc",
+      unit: "%/°C",
+      type: "num",
+      since: 3,
+      defTh: "จากสเปคแผงใน BOQ",
+      def: (job, sum) => pmPanelSpec(job, sum).tcVoc
+    }, {
+      key: "modTemp",
+      en: "Module Temperature",
+      th: "อุณหภูมิแผงขณะวัด",
+      unit: "°C",
+      type: "num",
+      since: 3
+    }],
+    cols: [{
+      key: "inv",
+      en: "Inverter",
+      th: "อินเวอร์เตอร์",
+      type: "text",
+      req: 1,
+      since: 3
+    }, {
+      key: "str",
+      en: "String",
+      th: "สตริง",
+      type: "text",
+      req: 1,
+      since: 3
+    }, {
+      key: "mods",
+      en: "Modules",
+      th: "จำนวนแผง",
+      type: "num",
+      req: 1,
+      since: 3
+    }, {
+      key: "pol",
+      en: "Polarity",
+      th: "ขั้ว",
+      type: "select",
+      opts: ["OK", "NG"],
+      req: 1,
+      since: 3
+    }, {
+      key: "vCalc",
+      en: "Calculated Voc",
+      th: "แรงดันที่คำนวณได้",
+      unit: "V",
+      since: 3,
+      w: 2,
+      calc: (r, h) => {
+        const v = parseFloat((h || {}).voc),
+          n = parseFloat(r.mods);
+        return isFinite(v) && isFinite(n) ? Math.round(v * n * 100) / 100 : "";
+      }
+    }, {
+      key: "vMeas",
+      en: "Measured Voc",
+      th: "แรงดันที่วัดได้",
+      unit: "V",
+      type: "num",
+      req: 1,
+      since: 3,
+      w: 2
+    }, {
+      key: "vDiff",
+      en: "Variation",
+      th: "ส่วนต่าง",
+      unit: "%",
+      since: 3,
+      calc: (r, h) => {
+        const v = parseFloat((h || {}).voc),
+          n = parseFloat(r.mods),
+          m = parseFloat(r.vMeas);
+        const c = v * n;
+        return isFinite(c) && c > 0 && isFinite(m) ? Math.round((c - m) / c * 1000) / 10 : "";
+      }
+    }],
+    pass: r => String(r.pol || "").toUpperCase() === "OK",
+    resultCol: false,
+    seed: (job, sum) => pmSeedStrings(job, sum)
+  }]
+}, {
+  key: "b4",
+  code: "B4",
+  en: "B4. DC Current",
+  th: "B4 ทดสอบกระแส DC",
+  icon: "bolt",
+  since: 3,
+  kind: "table",
+  tables: [{
+    key: "main",
+    en: "String Cables",
+    th: "สายสตริง",
+    minRows: 1,
+    groupBy: "inv",
+    groupTh: "อินเวอร์เตอร์ตัวที่",
+    unitNote: "กระแสทุกค่าเป็นแอมแปร์ (A) · กระแสที่วัดได้ขึ้นกับความเข้มแสงขณะวัด จึงต้องบันทึกความเข้มแสงและเวลาไว้ด้วย",
+    hdr: [{
+      key: "isc",
+      en: "Module Short-Circuit Current",
+      th: "กระแสลัดวงจรต่อแผง",
+      unit: "A",
+      type: "num",
+      req: 1,
+      since: 3,
+      defTh: "จากสเปคแผงใน BOQ",
+      def: (job, sum) => pmPanelSpec(job, sum).isc
+    }],
+    cols: [{
+      key: "inv",
+      en: "Inverter",
+      th: "อินเวอร์เตอร์",
+      type: "text",
+      req: 1,
+      since: 3
+    }, {
+      key: "str",
+      en: "String",
+      th: "สตริง",
+      type: "text",
+      req: 1,
+      since: 3
+    }, {
+      key: "irr",
+      en: "Irradiance",
+      th: "ความเข้มแสง",
+      unit: "W/m²",
+      type: "num",
+      since: 3
+    }, {
+      key: "iCalc",
+      en: "Calculated Isc",
+      th: "กระแสที่คำนวณได้",
+      unit: "A",
+      since: 3,
+      w: 2,
+      calc: (r, h) => {
+        const i = parseFloat((h || {}).isc);
+        if (!isFinite(i)) return "";
+        const g = parseFloat(r.irr);
+        return Math.round((isFinite(g) && g > 0 ? i * g / 1000 : i) * 100) / 100;
+      }
+    }, {
+      key: "iMeas",
+      en: "Measured Isc",
+      th: "กระแสที่วัดได้",
+      unit: "A",
+      type: "num",
+      req: 1,
+      since: 3,
+      w: 2
+    }, {
+      key: "at",
+      en: "Time of Test",
+      th: "เวลาที่วัด",
+      type: "text",
+      since: 3,
+      w: 2
+    }],
+    seed: (job, sum) => pmSeedStrings(job, sum)
+  }]
+}, {
   key: "c1",
   code: "C1",
   en: "C1. AC Circuitry Test",
@@ -1283,6 +1559,57 @@ function pmMerged(rec, job, user) {
   });
   return out;
 }
+function pmPanelSpec(job, sum) {
+  const j = job || {},
+    s = sum || {},
+    b = j.boq || {};
+  const B = window.BOQ || null;
+  const model = s.pv1Model || b.panelModel || j.panelModel || "";
+  const p = B && B.findPanel && model ? B.findPanel(model) : null;
+  const n = x => parseFloat(x) > 0 ? String(parseFloat(x)) : "";
+  const f = x => isFinite(parseFloat(x)) && parseFloat(x) !== 0 ? String(parseFloat(x)) : "";
+  return {
+    voc: n(p && p.voc),
+    isc: n(p && p.isc),
+    wp: n(p && p.wp),
+    tcVoc: f(p && p.tcVoc)
+  };
+}
+function pmSeedStrings(job, sum) {
+  const j = job || {};
+  const s = sum || {};
+  const b = j.boq || {};
+  const B = window.BOQ || null;
+  const panels = Math.round(parseFloat(s.pv1Qty) || parseFloat(j.panels) || 0);
+  const invCount = Math.max(1, Math.round(parseFloat(s.invQty) || parseFloat(b.invCount) || 1));
+  if (!panels) return [];
+  const panel = B && B.findPanel ? B.findPanel(s.pv1Model || b.panelModel || j.panelModel || "") : null;
+  const inv = B && B.findInverter ? B.findInverter(s.invModel || b.inverterModel || "") : null;
+  let series = Math.round(parseFloat(b.dcSeries) || 0);
+  if (!series && B && B.stringConfig && panel) {
+    const cfg = B.stringConfig(panel, inv || {});
+    if (cfg && cfg.ready) series = cfg.series;
+  }
+  if (!series) return [];
+  const plan = B && B.stringPlan ? B.stringPlan(panels, series, inv || {}, invCount) : null;
+  if (!plan || !plan.strings) return [];
+  const base = Math.floor(plan.strings / invCount);
+  const extra = plan.strings - base * invCount;
+  const out = [];
+  let left = plan.strings;
+  for (let i = 1; i <= invCount && left > 0; i++) {
+    const cnt = Math.min(left, base + (i <= extra ? 1 : 0));
+    for (let k = 1; k <= cnt; k++) {
+      left -= 1;
+      out.push({
+        inv: String(i),
+        str: String(k),
+        mods: String(left === 0 && plan.rest > 0 ? plan.rest : series)
+      });
+    }
+  }
+  return out;
+}
 function pmIsPrefilled(rec, key) {
   const saved = (rec || {}).sum || {};
   return !(saved[key] !== null && saved[key] !== undefined && String(saved[key]) !== "");
@@ -1644,6 +1971,8 @@ Object.assign(window, {
   pmPhotosOf,
   pmPhotoOrder,
   pmFlagKey,
+  pmSeedStrings,
+  pmPanelSpec,
   usePmHandover,
   usePmPhotoIdx,
   usePmPhotos

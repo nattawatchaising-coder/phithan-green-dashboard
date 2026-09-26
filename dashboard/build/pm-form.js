@@ -19,6 +19,7 @@ function PmField({
   field,
   value,
   prefilled,
+  suggest,
   onCommit
 }) {
   const [v, setV] = React.useState(value == null ? "" : String(value));
@@ -94,12 +95,30 @@ function PmField({
   }, o))) : React.createElement("input", {
     value: v,
     type: field.type === "date" ? "date" : field.type === "num" ? "number" : "text",
-    placeholder: field.ph || "",
+    placeholder: field.ph || (suggest != null && suggest !== "" ? String(suggest) : ""),
     inputMode: field.type === "num" ? "decimal" : undefined,
     onChange: e => setV(e.target.value),
     onBlur: commit,
     style: pmInputStyle
-  }));
+  }), suggest != null && suggest !== "" && String(v).trim() === "" ? React.createElement("button", {
+    onClick: () => {
+      setV(String(suggest));
+      ref.current = suggest;
+      onCommit(field.key, String(suggest));
+    },
+    style: {
+      marginTop: -5,
+      padding: "3px 9px",
+      borderRadius: 99,
+      border: "1px dashed var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-3)",
+      fontFamily: "inherit",
+      fontSize: 10.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, (field.defTh || "ค่าที่ใช้ทั่วไป") + ": " + suggest + " · แตะเพื่อใส่") : null);
 }
 function PmDocRow({
   item,
@@ -158,7 +177,8 @@ function PmCell({
   col,
   value,
   onCommit,
-  mobile
+  mobile,
+  calcText
 }) {
   const [v, setV] = React.useState(value == null ? "" : String(value));
   const ref = React.useRef(value);
@@ -177,6 +197,23 @@ function PmCell({
     fontSize: mobile ? 13.5 : 12.5,
     borderRadius: 8
   });
+  if (col.calc) {
+    return React.createElement("div", {
+      style: Object.assign({}, st, {
+        background: "var(--bg)",
+        color: "var(--text-2)",
+        fontWeight: 700,
+        display: "flex",
+        alignItems: "center",
+        minHeight: mobile ? 38 : 30
+      })
+    }, calcText === "" || calcText == null ? React.createElement("span", {
+      style: {
+        color: "var(--text-3)",
+        fontWeight: 400
+      }
+    }, "\u2014") : calcText);
+  }
   if (col.type === "select") {
     return React.createElement("select", {
       value: v,
@@ -204,6 +241,7 @@ function PmCell({
 }
 function PmTableRow({
   table,
+  hdr,
   row,
   no,
   mobile,
@@ -212,8 +250,9 @@ function PmTableRow({
 }) {
   const cols = table.cols || [];
   const set = (k, v) => onSet(row.id, k, v);
+  const calcOf = c => c.calc ? c.calc(row, hdr || {}) : undefined;
   const done = cols.every(c => !c.req || String(row[c.key] == null ? "" : row[c.key]).trim() !== "");
-  const ok = table.pass && table.resultCol !== false && done ? table.pass(row) : null;
+  const ok = table.pass && table.resultCol !== false && done ? table.pass(row, hdr || {}) : null;
   if (mobile) {
     return React.createElement("div", {
       style: {
@@ -292,7 +331,8 @@ function PmTableRow({
       col: c,
       value: row[c.key],
       onCommit: set,
-      mobile: true
+      mobile: true,
+      calcText: calcOf(c)
     }))));
   }
   return React.createElement("tr", null, React.createElement("td", {
@@ -313,7 +353,8 @@ function PmTableRow({
     col: c,
     value: row[c.key],
     onCommit: set,
-    mobile: false
+    mobile: false,
+    calcText: calcOf(c)
   }))), React.createElement("td", {
     style: {
       padding: "4px 5px",
@@ -455,6 +496,8 @@ function PmTableBlock({
   hdr,
   rows,
   mobile,
+  job,
+  sum,
   onHdr,
   onSet,
   onAdd,
@@ -467,6 +510,90 @@ function PmTableBlock({
   onCapPhoto
 }) {
   const cols = table.cols || [];
+  const groups = React.useMemo(() => {
+    if (!table.groupBy) return [{
+      key: "",
+      rows: rows
+    }];
+    const out = [];
+    const by = {};
+    rows.forEach(r => {
+      const k = String(r[table.groupBy] == null ? "" : r[table.groupBy]);
+      if (!by[k]) {
+        by[k] = {
+          key: k,
+          rows: []
+        };
+        out.push(by[k]);
+      }
+      by[k].rows.push(r);
+    });
+    return out;
+  }, [rows, table.groupBy]);
+  const [shut, setShut] = React.useState({});
+  const isOpen = (g, i) => shut[g.key] === undefined ? i === 0 : !shut[g.key];
+  const gDone = g => g.rows.filter(r => cols.every(c => !c.req || String(r[c.key] == null ? "" : r[c.key]).trim() !== "")).length;
+  const headRow = React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", {
+    style: {
+      width: 28,
+      padding: "4px 5px",
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, "#"), cols.map(c => React.createElement("th", {
+    key: c.key,
+    style: {
+      padding: "4px 5px",
+      textAlign: "left",
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, c.en, c.req ? React.createElement("span", {
+    style: {
+      color: "#DC2626"
+    }
+  }, " *") : null, React.createElement("span", {
+    style: {
+      display: "block",
+      fontWeight: 400,
+      color: "var(--text-3)"
+    }
+  }, c.th, c.unit ? " · " + c.unit : ""))), React.createElement("th", {
+    style: {
+      width: 66
+    }
+  })));
+  const bodyOf = list => mobile ? list.map((r, i) => React.createElement(PmTableRow, {
+    key: r.id,
+    table: table,
+    hdr: hdr,
+    row: r,
+    no: i + 1,
+    mobile: true,
+    onSet: onSet,
+    onRemove: onRemove
+  })) : React.createElement("div", {
+    style: {
+      overflowX: "auto"
+    }
+  }, React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      minWidth: 40 + cols.length * 96
+    }
+  }, headRow, React.createElement("tbody", null, list.map((r, i) => React.createElement(PmTableRow, {
+    key: r.id,
+    table: table,
+    hdr: hdr,
+    row: r,
+    no: i + 1,
+    mobile: false,
+    onSet: onSet,
+    onRemove: onRemove
+  })))));
   return React.createElement("div", {
     style: {
       marginBottom: 22
@@ -515,7 +642,8 @@ function PmTableBlock({
     field: f,
     value: hdr[f.key],
     prefilled: false,
-    onCommit: onHdr
+    onCommit: onHdr,
+    suggest: typeof f.def === "function" ? f.def(job || {}, sum || {}) : f.def
   }))) : null, table.unitNote ? React.createElement("div", {
     style: {
       fontSize: 11,
@@ -532,64 +660,54 @@ function PmTableBlock({
       color: "var(--text-3)",
       marginBottom: 9
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E41\u0E16\u0E27\u0E43\u0E19\u0E15\u0E32\u0E23\u0E32\u0E07\u0E19\u0E35\u0E49") : mobile ? rows.map((r, i) => React.createElement(PmTableRow, {
-    key: r.id,
-    table: table,
-    row: r,
-    no: i + 1,
-    mobile: true,
-    onSet: onSet,
-    onRemove: onRemove
-  })) : React.createElement("div", {
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E41\u0E16\u0E27\u0E43\u0E19\u0E15\u0E32\u0E23\u0E32\u0E07\u0E19\u0E35\u0E49") : !table.groupBy ? bodyOf(rows) : groups.map((g, gi) => React.createElement("div", {
+    key: g.key,
     style: {
-      overflowX: "auto"
+      marginBottom: 10,
+      border: "1px solid var(--border)",
+      borderRadius: 11,
+      overflow: "hidden"
     }
-  }, React.createElement("table", {
+  }, React.createElement("button", {
+    onClick: () => setShut(Object.assign({}, shut, {
+      [g.key]: isOpen(g, gi)
+    })),
     style: {
       width: "100%",
-      borderCollapse: "collapse",
-      minWidth: 40 + cols.length * 96
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      padding: "9px 11px",
+      border: "none",
+      background: "var(--bg)",
+      color: "var(--text-1)",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 800,
+      cursor: "pointer",
+      textAlign: "left"
     }
-  }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", {
+  }, React.createElement("span", {
     style: {
-      width: 28,
-      padding: "4px 5px",
-      fontSize: 10.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
+      flex: 1,
+      minWidth: 0
     }
-  }, "#"), cols.map(c => React.createElement("th", {
-    key: c.key,
+  }, (table.groupTh || "ชุดที่") + " " + (g.key || "—"), React.createElement("span", {
     style: {
-      padding: "4px 5px",
-      textAlign: "left",
-      fontSize: 10.5,
-      fontWeight: 700,
-      color: "var(--text-2)"
-    }
-  }, c.en, c.req ? React.createElement("span", {
-    style: {
-      color: "#DC2626"
-    }
-  }, " *") : null, React.createElement("span", {
-    style: {
-      display: "block",
       fontWeight: 400,
       color: "var(--text-3)"
     }
-  }, c.th, c.unit ? " · " + c.unit : ""))), React.createElement("th", {
+  }, " · กรอกแล้ว " + gDone(g) + "/" + g.rows.length + " แถว")), React.createElement("span", {
     style: {
-      width: 66
+      flexShrink: 0,
+      color: "var(--text-3)",
+      fontSize: 11
     }
-  }))), React.createElement("tbody", null, rows.map((r, i) => React.createElement(PmTableRow, {
-    key: r.id,
-    table: table,
-    row: r,
-    no: i + 1,
-    mobile: false,
-    onSet: onSet,
-    onRemove: onRemove
-  }))))), React.createElement("div", {
+  }, isOpen(g, gi) ? "▲" : "▼")), isOpen(g, gi) ? React.createElement("div", {
+    style: {
+      padding: "8px 10px"
+    }
+  }, bodyOf(g.rows)) : null)), React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,
@@ -1377,6 +1495,8 @@ function PmHandoverModal({
     key: tb.key,
     table: tb,
     mobile: isMobile,
+    job: job,
+    sum: rec.sum || {},
     hdr: window.pmTableOf(rec, cur.key, tb.key).hdr || {},
     rows: window.pmRowsOf(rec, cur.key, tb.key),
     onHdr: setHdr(tb),

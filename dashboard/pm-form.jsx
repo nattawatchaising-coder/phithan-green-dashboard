@@ -23,7 +23,7 @@ const pmInputStyle = {
 /* ── หนึ่งช่องกรอกของแผ่น Summary ──
    หัวข้ออังกฤษ/ไทยคู่กันตามต้นฉบับ · บันทึกตอนออกจากช่อง ไม่ใช่ทุกตัวอักษร
    ป้าย "จาก BOQ" ฯลฯ แปลว่าค่านี้ระบบเดาให้ ยังไม่มีใครยืนยัน — ความหมายคือ "ช่วยตรวจที" */
-function PmField({ field, value, prefilled, onCommit }) {
+function PmField({ field, value, prefilled, suggest, onCommit }) {
   const [v, setV] = React.useState(value == null ? "" : String(value));
   const ref = React.useRef(value);
   /* ค่าจากข้างนอกเปลี่ยน (คนอื่นแก้พร้อมกัน หรือ BOQ อัปเดต) — รับมาเฉพาะตอนไม่ได้พิมพ์ค้างอยู่ */
@@ -63,9 +63,20 @@ function PmField({ field, value, prefilled, onCommit }) {
         </select>
       ) : (
         <input value={v} type={field.type === "date" ? "date" : field.type === "num" ? "number" : "text"}
-          placeholder={field.ph || ""} inputMode={field.type === "num" ? "decimal" : undefined}
+          placeholder={field.ph || (suggest != null && suggest !== "" ? String(suggest) : "")}
+          inputMode={field.type === "num" ? "decimal" : undefined}
           onChange={(e) => setV(e.target.value)} onBlur={commit} style={pmInputStyle} />
       )}
+      {/* ค่าที่ระบบรู้ ๆ — กดใส่เอง ไม่เติมให้เงียบ ๆ
+          พารามิเตอร์การทดสอบที่ไม่มีใครอ่าน แต่ปรากฏในใบว่าวัดมาแล้ว คือเอกสารที่โกหก */}
+      {suggest != null && suggest !== "" && String(v).trim() === "" ? (
+        <button onClick={() => { setV(String(suggest)); ref.current = suggest; onCommit(field.key, String(suggest)); }}
+          style={{ marginTop: -5, padding: "3px 9px", borderRadius: 99, border: "1px dashed var(--border-strong)",
+            background: "var(--surface)", color: "var(--text-3)", fontFamily: "inherit", fontSize: 10.5, fontWeight: 700,
+            cursor: "pointer" }}>
+          {(field.defTh || "ค่าที่ใช้ทั่วไป") + ": " + suggest + " · แตะเพื่อใส่"}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -102,7 +113,7 @@ function PmDocRow({ item, job, value, onSet }) {
 /* ── หนึ่งช่องในตาราง ──
    แยกเป็นคอมโพเนนต์ระดับโมดูลด้วยเหตุผลเดียวกับ PmField — ประกาศข้างใน modal เมื่อไร
    เคอร์เซอร์เด้งออกทุกตัวอักษรที่พิมพ์ ซึ่งบนตารางที่มีสามสิบช่องคือใช้งานไม่ได้เลย */
-function PmCell({ col, value, onCommit, mobile }) {
+function PmCell({ col, value, onCommit, mobile, calcText }) {
   const [v, setV] = React.useState(value == null ? "" : String(value));
   const ref = React.useRef(value);
   React.useEffect(() => {
@@ -112,6 +123,15 @@ function PmCell({ col, value, onCommit, mobile }) {
   }, [value]);
   const commit = () => { ref.current = v; onCommit(col.key, v); };
   const st = Object.assign({}, pmInputStyle, { padding: mobile ? "9px 11px" : "6px 8px", fontSize: mobile ? 13.5 : 12.5, borderRadius: 8 });
+  /* ช่องคำนวณ — ไม่ให้พิมพ์ทับ เพราะค่าที่พิมพ์ทับจะต่างจากสูตรเงียบ ๆ แล้วไม่มีทางรู้ */
+  if (col.calc) {
+    return (
+      <div style={Object.assign({}, st, { background: "var(--bg)", color: "var(--text-2)", fontWeight: 700,
+        display: "flex", alignItems: "center", minHeight: mobile ? 38 : 30 })}>
+        {calcText === "" || calcText == null ? <span style={{ color: "var(--text-3)", fontWeight: 400 }}>—</span> : calcText}
+      </div>
+    );
+  }
   if (col.type === "select") {
     return (
       <select value={v} style={st}
@@ -130,14 +150,15 @@ function PmCell({ col, value, onCommit, mobile }) {
 /* ── หนึ่งแถวของตาราง ──
    จอกว้างเป็นแถวของตารางจริง จอแคบเป็นการ์ดช่องละบรรทัด
    ไม่ใช้ตารางเลื่อนแนวนอนบนมือถือ เพราะ C1 มีเก้าคอลัมน์ ช่างจะต้องเลื่อนซ้ายขวาทุกแถว */
-function PmTableRow({ table, row, no, mobile, onSet, onRemove }) {
+function PmTableRow({ table, hdr, row, no, mobile, onSet, onRemove }) {
   const cols = table.cols || [];
   const set = (k, v) => onSet(row.id, k, v);
+  const calcOf = (c) => (c.calc ? c.calc(row, hdr || {}) : undefined);
   /* แถวที่กรอกช่องบังคับยังไม่ครบ ไม่มีผลตรวจ — ห้ามขึ้นป้าย NG
      กดสร้างแถวทีเดียวได้แปดแถวพร้อมชื่อจุดวัด ถ้าตัดสินจากเท่านั้น แปดแถวจะแดงทันทีทั้งที่ยังไม่มีใครหยิบมิเตอร์ไปวัด
      ซึ่งอ่านว่า "ทดสอบแล้วไม่ผ่าน" ทั้งที่ความจริงคือ "ยังไม่ได้ทดสอบ" */
   const done = cols.every((c) => !c.req || String(row[c.key] == null ? "" : row[c.key]).trim() !== "");
-  const ok = table.pass && table.resultCol !== false && done ? table.pass(row) : null;
+  const ok = table.pass && table.resultCol !== false && done ? table.pass(row, hdr || {}) : null;
 
   if (mobile) {
     return (
@@ -161,7 +182,7 @@ function PmTableRow({ table, row, no, mobile, onSet, onRemove }) {
               {c.unit ? <span style={{ fontWeight: 400, color: "var(--text-3)" }}> · {c.unit}</span> : null}
               {c.req ? <span style={{ color: "#DC2626" }}> *</span> : null}
             </label>
-            <PmCell col={c} value={row[c.key]} onCommit={set} mobile={true} />
+            <PmCell col={c} value={row[c.key]} onCommit={set} mobile={true} calcText={calcOf(c)} />
           </div>
         ))}
       </div>
@@ -173,7 +194,7 @@ function PmTableRow({ table, row, no, mobile, onSet, onRemove }) {
       <td style={{ padding: "4px 5px", fontSize: 11, color: "var(--text-3)", textAlign: "center", verticalAlign: "middle" }}>{no}</td>
       {cols.map((c) => (
         <td key={c.key} style={{ padding: "4px 5px", verticalAlign: "middle" }}>
-          <PmCell col={c} value={row[c.key]} onCommit={set} mobile={false} />
+          <PmCell col={c} value={row[c.key]} onCommit={set} mobile={false} calcText={calcOf(c)} />
         </td>
       ))}
       <td style={{ padding: "4px 5px", textAlign: "center", verticalAlign: "middle", whiteSpace: "nowrap" }}>
@@ -232,9 +253,67 @@ function PmPhotoStrip({ photos, busy, label, onAdd, onRemove, onCap }) {
 }
 
 /* ── หนึ่งตาราง: ช่องหัวตาราง + แถว + ปุ่มเพิ่ม ── */
-function PmTableBlock({ table, hdr, rows, mobile, onHdr, onSet, onAdd, onRemove, onSeed,
+function PmTableBlock({ table, hdr, rows, mobile, job, sum, onHdr, onSet, onAdd, onRemove, onSeed,
   photos, photoBusy, onAddPhoto, onRemovePhoto, onCapPhoto }) {
   const cols = table.cols || [];
+
+  /* ── แยกแถวเป็นหีบเพลงตาม groupBy ──
+     B1 ของงานจริงแตะร้อยสามสิบเจ็ดแถว สี่ร้อยช่องกรอกในหน้าเดียว
+     บนมือถือคือหน้าหน่วง แล้วช่างที่กำลังวัดอินเวอร์เตอร์ตัวที่สอง ก็ต้องเลื่อนหนีหนีแถวของตัวที่หนึ่งอยู่ดี
+     เปิดหีบแรกไว้ตั้งต้น เพราะตารางที่พับหมดอ่านไม่ออกว่าต้องเริ่มที่ไหน */
+  const groups = React.useMemo(() => {
+    if (!table.groupBy) return [{ key: "", rows: rows }];
+    const out = [];
+    const by = {};
+    rows.forEach((r) => {
+      const k = String(r[table.groupBy] == null ? "" : r[table.groupBy]);
+      if (!by[k]) { by[k] = { key: k, rows: [] }; out.push(by[k]); }
+      by[k].rows.push(r);
+    });
+    return out;
+  }, [rows, table.groupBy]);
+
+  const [shut, setShut] = React.useState({});
+  const isOpen = (g, i) => (shut[g.key] === undefined ? i === 0 : !shut[g.key]);
+
+  /* นับว่าหีบนี้กรอกครบกี่แถว — คนกรอกจะรู้ว่าเหลืออีกกี่ตัวโดยไม่ต้องกดกาง */
+  const gDone = (g) => g.rows.filter((r) =>
+    cols.every((c) => !c.req || String(r[c.key] == null ? "" : r[c.key]).trim() !== "")).length;
+
+  const headRow = (
+    <thead>
+      <tr>
+        <th style={{ width: 28, padding: "4px 5px", fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>#</th>
+        {cols.map((c) => (
+          <th key={c.key} style={{ padding: "4px 5px", textAlign: "left", fontSize: 10.5, fontWeight: 700, color: "var(--text-2)" }}>
+            {c.en}{c.req ? <span style={{ color: "#DC2626" }}> *</span> : null}
+            <span style={{ display: "block", fontWeight: 400, color: "var(--text-3)" }}>
+              {c.th}{c.unit ? " · " + c.unit : ""}
+            </span>
+          </th>
+        ))}
+        <th style={{ width: 66 }} />
+      </tr>
+    </thead>
+  );
+
+  const bodyOf = (list) => (mobile
+    ? list.map((r, i) => (
+        <PmTableRow key={r.id} table={table} hdr={hdr} row={r} no={i + 1} mobile={true} onSet={onSet} onRemove={onRemove} />
+      ))
+    : (
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 40 + cols.length * 96 }}>
+          {headRow}
+          <tbody>
+            {list.map((r, i) => (
+              <PmTableRow key={r.id} table={table} hdr={hdr} row={r} no={i + 1} mobile={false} onSet={onSet} onRemove={onRemove} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    ));
+
   return (
     <div style={{ marginBottom: 22 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 9, paddingBottom: 4,
@@ -249,7 +328,8 @@ function PmTableBlock({ table, hdr, rows, mobile, onHdr, onSet, onAdd, onRemove,
       {(table.hdr || []).length ? (
         <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", columnGap: 14, marginBottom: 6 }}>
           {(table.hdr || []).map((f) => (
-            <PmField key={f.key} field={f} value={hdr[f.key]} prefilled={false} onCommit={onHdr} />
+            <PmField key={f.key} field={f} value={hdr[f.key]} prefilled={false} onCommit={onHdr}
+              suggest={typeof f.def === "function" ? f.def(job || {}, sum || {}) : f.def} />
           ))}
         </div>
       ) : null}
@@ -263,34 +343,26 @@ function PmTableBlock({ table, hdr, rows, mobile, onHdr, onSet, onAdd, onRemove,
           fontSize: 12, color: "var(--text-3)", marginBottom: 9 }}>
           ยังไม่มีแถวในตารางนี้
         </div>
-      ) : mobile ? (
-        rows.map((r, i) => (
-          <PmTableRow key={r.id} table={table} row={r} no={i + 1} mobile={true} onSet={onSet} onRemove={onRemove} />
-        ))
+      ) : !table.groupBy ? (
+        bodyOf(rows)
       ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 40 + cols.length * 96 }}>
-            <thead>
-              <tr>
-                <th style={{ width: 28, padding: "4px 5px", fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>#</th>
-                {cols.map((c) => (
-                  <th key={c.key} style={{ padding: "4px 5px", textAlign: "left", fontSize: 10.5, fontWeight: 700, color: "var(--text-2)" }}>
-                    {c.en}{c.req ? <span style={{ color: "#DC2626" }}> *</span> : null}
-                    <span style={{ display: "block", fontWeight: 400, color: "var(--text-3)" }}>
-                      {c.th}{c.unit ? " · " + c.unit : ""}
-                    </span>
-                  </th>
-                ))}
-                <th style={{ width: 66 }} />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <PmTableRow key={r.id} table={table} row={r} no={i + 1} mobile={false} onSet={onSet} onRemove={onRemove} />
-              ))}
-            </tbody>
-          </table>
-        </div>
+        groups.map((g, gi) => (
+          <div key={g.key} style={{ marginBottom: 10, border: "1px solid var(--border)", borderRadius: 11, overflow: "hidden" }}>
+            <button onClick={() => setShut(Object.assign({}, shut, { [g.key]: isOpen(g, gi) }))}
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 11px", border: "none",
+                background: "var(--bg)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 12, fontWeight: 800,
+                cursor: "pointer", textAlign: "left" }}>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                {(table.groupTh || "ชุดที่") + " " + (g.key || "—")}
+                <span style={{ fontWeight: 400, color: "var(--text-3)" }}>
+                  {" · กรอกแล้ว " + gDone(g) + "/" + g.rows.length + " แถว"}
+                </span>
+              </span>
+              <span style={{ flexShrink: 0, color: "var(--text-3)", fontSize: 11 }}>{isOpen(g, gi) ? "▲" : "▼"}</span>
+            </button>
+            {isOpen(g, gi) ? <div style={{ padding: "8px 10px" }}>{bodyOf(g.rows)}</div> : null}
+          </div>
+        ))
       )}
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 9 }}>
@@ -708,7 +780,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                 ))}
 
                 {cur && cur.kind === "table" && (cur.tables || []).map((tb) => (
-                  <PmTableBlock key={tb.key} table={tb} mobile={isMobile}
+                  <PmTableBlock key={tb.key} table={tb} mobile={isMobile} job={job} sum={rec.sum || {}}
                     hdr={window.pmTableOf(rec, cur.key, tb.key).hdr || {}}
                     rows={window.pmRowsOf(rec, cur.key, tb.key)}
                     onHdr={setHdr(tb)} onSet={setCell(tb)}

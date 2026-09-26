@@ -157,7 +157,12 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
      กระดาษที่พิมพ์ระหว่างทำงานต้องเห็นช่องว่าง ไม่ใช่แถว NG สีแดงเต็มหน้า */
   const pmRowDone = (tb, row) =>
     (tb.cols || []).every((c) => !c.req || String(row[c.key] == null ? "" : row[c.key]).trim() !== "");
-  const pmRowOk = (tb, row) => (tb.pass && pmRowDone(tb, row) ? tb.pass(row) : null);
+  const pmRowOk = (tb, row, hdr) => (tb.pass && pmRowDone(tb, row) ? tb.pass(row, hdr || {}) : null);
+  /* ช่องคำนวณ — กระดาษต้องคิดเลขเอง ค่าพวกนี้ไม่ได้ถูกบันทึกลงฐานข้อมูล */
+  const pmCellText = (c, row, hdr) => {
+    const v = c.calc ? c.calc(row, hdr || {}) : row[c.key];
+    return v == null || v === "" ? "" : String(v);
+  };
   /* ตารางที่มีช่องผลตรวจของตัวเองอยู่แล้วตั้ง resultCol: false กันคอลัมน์ซ้ำ */
   const pmHasResult = (tb) => !!tb.pass && tb.resultCol !== false;
 
@@ -205,27 +210,43 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
           </thead>
           <tbody>
             {x.rows.map((row, ri) => {
-              const ok = pmRowOk(tb, row);
+              const ok = pmRowOk(tb, row, x.hdr);
+              /* ตารางที่แบ่งตามอินเวอร์เตอร์คั่นด้วยแถวหัวกลุ่ม — 137 แถวไหลข้ามหน้าได้
+                 แต่คนอ่านต้องรู้ว่าแถวที่กำลังดูอยู่เป็นของตัวไหน โดยไม่ต้องย้อนขึ้นไปหา */
+              const gHead = tb.groupBy && (ri === 0 || x.rows[ri - 1][tb.groupBy] !== row[tb.groupBy])
+                ? String(row[tb.groupBy] == null ? "" : row[tb.groupBy]) : null;
               return (
-                <tr key={row.id}>
-                  <td style={Object.assign({}, pmpTd, { textAlign: "center", color: PM_SOFT, fontSize: 9.5 })}>{ri + 1}</td>
-                  {cols.map((c) => (
-                    <td key={c.key} style={pmpTd}>{row[c.key] == null || row[c.key] === "" ? "" : String(row[c.key])}</td>
-                  ))}
-                  {pmHasResult(tb) ? (
-                    <td style={Object.assign({}, pmpTd, { textAlign: "center", fontWeight: 700,
-                      color: ok === null ? PM_SOFT : ok ? "#15803D" : "#B91C1C" })}>
-                      {ok === null ? "" : ok ? "OK" : "NG"}
-                    </td>
+                <React.Fragment key={row.id}>
+                  {gHead !== null ? (
+                    <tr>
+                      <td colSpan={cols.length + 1 + (pmHasResult(tb) ? 1 : 0)}
+                        style={Object.assign({}, pmpTd, { background: "#F7FAF9", fontWeight: 700, fontSize: 9.5 })}>
+                        {(tb.groupEn || "Inverter") + " " + (gHead || "—") + " · " + (tb.groupTh || "ชุดที่") + " " + (gHead || "—")}
+                      </td>
+                    </tr>
                   ) : null}
-                </tr>
+                  <tr>
+                    <td style={Object.assign({}, pmpTd, { textAlign: "center", color: PM_SOFT, fontSize: 9.5 })}>{ri + 1}</td>
+                    {cols.map((c) => (
+                      <td key={c.key} style={c.calc ? Object.assign({}, pmpTd, { color: PM_SOFT }) : pmpTd}>
+                        {pmCellText(c, row, x.hdr)}
+                      </td>
+                    ))}
+                    {pmHasResult(tb) ? (
+                      <td style={Object.assign({}, pmpTd, { textAlign: "center", fontWeight: 700,
+                        color: ok === null ? PM_SOFT : ok ? "#15803D" : "#B91C1C" })}>
+                        {ok === null ? "" : ok ? "OK" : "NG"}
+                      </td>
+                    ) : null}
+                  </tr>
+                </React.Fragment>
               );
             })}
           </tbody>
         </table>
         <div style={{ marginTop: 7, fontSize: 9.5, color: PM_SOFT }}>
           {x.rows.length} แถว
-          {tb.pass ? " · ผ่าน " + x.rows.filter((row) => pmRowOk(tb, row) === true).length + " แถว" : ""}
+          {tb.pass ? " · ผ่าน " + x.rows.filter((row) => pmRowOk(tb, row, x.hdr) === true).length + " แถว" : ""}
         </div>
       </div>
     );
@@ -593,12 +614,18 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
           return;
         }
         rows.forEach((row, i) => {
+          /* ตารางที่แบ่งตามอินเวอร์เตอร์คั่นหัวกลุ่มเหมือนบนกระดาษ ไฟล์สองใบจะได้อ่านเทียบกันได้ */
+          if (tb.groupBy && (i === 0 || rows[i - 1][tb.groupBy] !== row[tb.groupBy])) {
+            pushRow([(tb.groupTh || "ชุดที่") + " " + (row[tb.groupBy] || "—")], "group", 19);
+            merges.push({ s: { r: getR() - 1, c: 0 }, e: { r: getR() - 1, c: lastC } });
+          }
           const cells = [i + 1].concat(cols.map((c) => {
-            const v = row[c.key];
+            /* ช่องคำนวณไม่ได้ถูกบันทึกไว้ คิดสด และไม่ติดป้าย "ยังไม่กรอก" เพราะไม่มีใครกรอกมันได้ */
+            const v = c.calc ? c.calc(row, hdr) : row[c.key];
             return v === null || v === undefined || v === "" ? (c.req ? "ยังไม่กรอก" : "") : String(v);
           }));
           const miss = cols.some((c) => c.req && String(row[c.key] == null ? "" : row[c.key]).trim() === "");
-          if (hasRes) cells.push(miss ? "" : tb.pass(row) ? "OK" : "NG");
+          if (hasRes) cells.push(miss ? "" : tb.pass(row, hdr) ? "OK" : "NG");
           pushRow(cells, miss ? "miss" : (i % 2 === 0 ? "item" : "itemAlt"));
         });
       });

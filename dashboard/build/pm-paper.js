@@ -222,7 +222,11 @@ function PmHandoverPaper({
     return pages;
   })();
   const pmRowDone = (tb, row) => (tb.cols || []).every(c => !c.req || String(row[c.key] == null ? "" : row[c.key]).trim() !== "");
-  const pmRowOk = (tb, row) => tb.pass && pmRowDone(tb, row) ? tb.pass(row) : null;
+  const pmRowOk = (tb, row, hdr) => tb.pass && pmRowDone(tb, row) ? tb.pass(row, hdr || {}) : null;
+  const pmCellText = (c, row, hdr) => {
+    const v = c.calc ? c.calc(row, hdr || {}) : row[c.key];
+    return v == null || v === "" ? "" : String(v);
+  };
   const pmHasResult = tb => !!tb.pass && tb.resultCol !== false;
   const tableSheets = [];
   window.PM_SECTIONS.forEach(sec => {
@@ -294,10 +298,18 @@ function PmHandoverPaper({
         textAlign: "center"
       })
     }, "Result") : null)), React.createElement("tbody", null, x.rows.map((row, ri) => {
-      const ok = pmRowOk(tb, row);
-      return React.createElement("tr", {
+      const ok = pmRowOk(tb, row, x.hdr);
+      const gHead = tb.groupBy && (ri === 0 || x.rows[ri - 1][tb.groupBy] !== row[tb.groupBy]) ? String(row[tb.groupBy] == null ? "" : row[tb.groupBy]) : null;
+      return React.createElement(React.Fragment, {
         key: row.id
-      }, React.createElement("td", {
+      }, gHead !== null ? React.createElement("tr", null, React.createElement("td", {
+        colSpan: cols.length + 1 + (pmHasResult(tb) ? 1 : 0),
+        style: Object.assign({}, pmpTd, {
+          background: "#F7FAF9",
+          fontWeight: 700,
+          fontSize: 9.5
+        })
+      }, (tb.groupEn || "Inverter") + " " + (gHead || "—") + " · " + (tb.groupTh || "ชุดที่") + " " + (gHead || "—"))) : null, React.createElement("tr", null, React.createElement("td", {
         style: Object.assign({}, pmpTd, {
           textAlign: "center",
           color: PM_SOFT,
@@ -305,21 +317,23 @@ function PmHandoverPaper({
         })
       }, ri + 1), cols.map(c => React.createElement("td", {
         key: c.key,
-        style: pmpTd
-      }, row[c.key] == null || row[c.key] === "" ? "" : String(row[c.key]))), pmHasResult(tb) ? React.createElement("td", {
+        style: c.calc ? Object.assign({}, pmpTd, {
+          color: PM_SOFT
+        }) : pmpTd
+      }, pmCellText(c, row, x.hdr))), pmHasResult(tb) ? React.createElement("td", {
         style: Object.assign({}, pmpTd, {
           textAlign: "center",
           fontWeight: 700,
           color: ok === null ? PM_SOFT : ok ? "#15803D" : "#B91C1C"
         })
-      }, ok === null ? "" : ok ? "OK" : "NG") : null);
+      }, ok === null ? "" : ok ? "OK" : "NG") : null));
     }))), React.createElement("div", {
       style: {
         marginTop: 7,
         fontSize: 9.5,
         color: PM_SOFT
       }
-    }, x.rows.length, " \u0E41\u0E16\u0E27", tb.pass ? " · ผ่าน " + x.rows.filter(row => pmRowOk(tb, row) === true).length + " แถว" : ""));
+    }, x.rows.length, " \u0E41\u0E16\u0E27", tb.pass ? " · ผ่าน " + x.rows.filter(row => pmRowOk(tb, row, x.hdr) === true).length + " แถว" : ""));
   };
   const photoSheets = (title, thTitle, arr, keyPrefix) => chunk6(arr).map((pg, pi) => React.createElement("div", {
     className: "pm-sheet",
@@ -1095,12 +1109,25 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
           return;
         }
         rows.forEach((row, i) => {
+          if (tb.groupBy && (i === 0 || rows[i - 1][tb.groupBy] !== row[tb.groupBy])) {
+            pushRow([(tb.groupTh || "ชุดที่") + " " + (row[tb.groupBy] || "—")], "group", 19);
+            merges.push({
+              s: {
+                r: getR() - 1,
+                c: 0
+              },
+              e: {
+                r: getR() - 1,
+                c: lastC
+              }
+            });
+          }
           const cells = [i + 1].concat(cols.map(c => {
-            const v = row[c.key];
+            const v = c.calc ? c.calc(row, hdr) : row[c.key];
             return v === null || v === undefined || v === "" ? c.req ? "ยังไม่กรอก" : "" : String(v);
           }));
           const miss = cols.some(c => c.req && String(row[c.key] == null ? "" : row[c.key]).trim() === "");
-          if (hasRes) cells.push(miss ? "" : tb.pass(row) ? "OK" : "NG");
+          if (hasRes) cells.push(miss ? "" : tb.pass(row, hdr) ? "OK" : "NG");
           pushRow(cells, miss ? "miss" : i % 2 === 0 ? "item" : "itemAlt");
         });
       });
