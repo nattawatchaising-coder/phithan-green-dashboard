@@ -76,7 +76,7 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
 
   /* เรียงรูปตามลำดับหัวข้อ แล้วแจกเลขรูปจากลำดับนั้น
      ไฟล์ Excel เรียงด้วยฟังก์ชันเดียวกัน เลข #N ในสองไฟล์จึงตรงกันเสมอ */
-  const ordered = window.pmPhotoOrder(list);
+  const ordered = window.pmPhotoOrder(list, r);
   const photoNoOf = {};
   ordered.forEach((x, i) => { photoNoOf[x.id] = i + 1; });
 
@@ -176,6 +176,7 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
       const hasHdr = (tb.hdr || []).some((f) => String(hdr[f.key] == null ? "" : hdr[f.key]).trim() !== "");
       /* ตารางที่ยังว่างแต่มีคนแนบรูปไว้ ก็ต้องพิมพ์ — ไม่งั้นรูปที่ช่างถ่ายไว้จะหายจากเล่มเงียบ ๆ */
       if (!rows.length && !hasHdr && !window.pmPhotosOf(ordered, sec.key, tb.key).length) return;
+      /* ตารางที่รูปเป็นหลักฐานหลัก (D1 · D2 · D3 · W1 · PQM) รูปผูกกับแถว ไม่ใช่กับตาราง */
       tableSheets.push({ sec: sec, tb: tb, hdr: hdr, rows: rows });
     });
   });
@@ -272,6 +273,101 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
       </div>
     ));
 
+  /* ── รูปที่ผูกกับแถว ──
+     สองแบบ: ตารางภาพความร้อนพิมพ์เป็น "คู่" หน้าละสองคู่ เพราะภาพความร้อนกับภาพสีปกติ
+     ต้องอยู่ในสายตาเดียวกันถึงจะบอกได้ว่าจุดร้อนในภาพคือชิ้นไหน · ตารางอื่นพิมพ์กริดหกรูปตามปกติ */
+  const rowLabel = (tb, row, i) => {
+    const c0 = (tb.cols || [])[0];
+    return (c0 && String(row[c0.key] == null ? "" : row[c0.key]).trim()) || "แถวที่ " + (i + 1);
+  };
+
+  const shot = (x, h) => (
+    <div key={x.id} className="pm-shot" style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
+      <img src={x.dataUrl} alt="" style={{ width: "100%", height: h, objectFit: "cover",
+        border: "1px solid " + PM_LINE, borderRadius: 4, display: "block" }} />
+      <div style={{ fontSize: 9.5, color: PM_SOFT, marginTop: 3 }}>
+        #{photoNoOf[x.id]}{x.cap ? " · " + x.cap : ""}
+      </div>
+    </div>
+  );
+
+  const missShot = (txt) => (
+    <div style={{ height: 186, border: "1px dashed " + PM_LINE, borderRadius: 4, display: "flex",
+      alignItems: "center", justifyContent: "center", fontSize: 9.5, color: PM_SOFT, textAlign: "center", padding: 8 }}>
+      {txt}
+    </div>
+  );
+
+  /* หน้าคู่ภาพความร้อน — หนึ่งแถวของตารางคือหนึ่งบล็อก หน้าละสองบล็อก */
+  const pairSheets = (x) => {
+    const slots = (x.tb.photos || []).map(window.pmSlotOf);
+    const blocks = [];
+    x.rows.forEach((row, i) => {
+      const per = slots.map((sl) => ({ sl: sl, arr: window.pmPhotosAt(ordered, x.sec.key, row.id, sl.key) }));
+      const n = Math.max(1, ...per.map((q) => q.arr.length));
+      /* ถ่ายซ้ำหลายมุมได้ — คู่ที่ n ของช่องซ้ายจับคู่กับคู่ที่ n ของช่องขวา */
+      for (let k = 0; k < n; k++) {
+        blocks.push({ row: row, i: i, k: k, n: n, per: per.map((q) => ({ sl: q.sl, ph: q.arr[k] || null })) });
+      }
+    });
+    const pages = [];
+    for (let i = 0; i < blocks.length; i += 2) pages.push(blocks.slice(i, i + 2));
+    return pages.map((pg, pi) => (
+      <div className="pm-sheet" key={x.sec.key + "-pair-" + pi}>
+        {headBar((x.sec.code ? x.sec.code + ". " : "") + x.tb.en + " — Photos", x.sec.th + " · " + x.tb.th)}
+        {pg.map((b) => (
+          <div key={b.row.id + "-" + b.k} style={{ marginBottom: 12, breakInside: "avoid", pageBreakInside: "avoid" }}>
+            <div style={{ fontSize: 10.5, fontWeight: 800, color: PM_INK, marginBottom: 4 }}>
+              Designation: {rowLabel(x.tb, b.row, b.i)}
+              {b.n > 1 ? <span style={{ fontWeight: 400, color: PM_SOFT }}> · มุมที่ {b.k + 1}</span> : null}
+              {b.row.tMax ? <span style={{ fontWeight: 400, color: PM_SOFT }}> · สูงสุด {b.row.tMax} °C</span> : null}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              {b.per.map((q) => (
+                <div key={q.sl.key}>
+                  <div style={{ fontSize: 9.5, color: PM_SOFT, marginBottom: 2 }}>{q.sl.en} ({q.sl.th})</div>
+                  {q.ph ? shot(q.ph, 186) : missShot("ยังไม่มีรูป · " + q.sl.th)}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    ));
+  };
+
+  /* หน้ารูปรายแถวของตารางที่ไม่ใช่คู่ภาพความร้อน */
+  const rowShotSheets = (x) => {
+    const slots = (x.tb.photos || []).map(window.pmSlotOf);
+    const arr = [];
+    x.rows.forEach((row, i) => slots.forEach((sl) => {
+      window.pmPhotosAt(ordered, x.sec.key, row.id, sl.key).forEach((ph) => {
+        arr.push({ ph: ph, cap: rowLabel(x.tb, row, i) + " · " + sl.th });
+      });
+    }));
+    return chunk6(arr).map((pg, pi) => (
+      <div className="pm-sheet" key={x.sec.key + "-rs-" + pi}>
+        {headBar((x.sec.code ? x.sec.code + ". " : "") + x.tb.en + " — Photos", x.sec.th + " · " + x.tb.th)}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          {pg.map((q) => (
+            <div key={q.ph.id} className="pm-shot" style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
+              <img src={q.ph.dataUrl} alt="" style={{ width: "100%", height: 186, objectFit: "cover",
+                border: "1px solid " + PM_LINE, borderRadius: 4, display: "block" }} />
+              <div style={{ fontSize: 9.5, color: PM_SOFT, marginTop: 3 }}>
+                #{photoNoOf[q.ph.id]} · {q.cap}{q.ph.cap ? " · " + q.ph.cap : ""}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    ));
+  };
+
+  const rowPhotoSheets = (x) => {
+    if (!(x.tb.photos || []).length) return null;
+    return x.tb.pair ? pairSheets(x) : rowShotSheets(x);
+  };
+
   const paper = (
     <div className="sv-rep-overlay" style={{ position: "fixed", inset: 0, zIndex: 175, background: "rgba(8,20,14,.55)",
       overflow: "auto", padding: isMobile ? 0 : "24px 16px" }}>
@@ -325,6 +421,7 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
         {tableSheets.map((x, i) => (
           <React.Fragment key={"tbx-" + x.sec.key + "-" + x.tb.key}>
             {tableSheet(x, i)}
+            {rowPhotoSheets(x)}
             {photoSheets(window.pmSlotLabel(x.sec.key, x.tb.key).en + " — Photos",
               window.pmSlotLabel(x.sec.key, x.tb.key).th,
               window.pmPhotosOf(ordered, x.sec.key, x.tb.key), x.sec.key + "-" + x.tb.key)}
@@ -569,13 +666,26 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
 
   /* ── แผ่น Photos — สารบัญ ไม่มีรูป ── */
   /* เรียงตามลำดับเดียวกับที่กระดาษพิมพ์ เลข # ของสองไฟล์จึงตรงกัน */
-  const phOrdered = window.pmPhotoOrder(idx);
+  const phOrdered = window.pmPhotoOrder(idx, r);
+  /* ชื่อแถวที่อ่านออก — คอลัมน์ "แถว" เคยพิมพ์รหัสแถวดิบ ซึ่งบอกอะไรไม่ได้เลย
+     รูปของ D1 ต้องอ่านได้ว่าเป็นของอินเวอร์เตอร์ตัวไหน ไม่ใช่ของ PMR-lz3k9 */
+  const rowNameOf = {};
+  window.PM_SECTIONS.forEach((sec) => {
+    if (sec.kind !== "table") return;
+    (sec.tables || []).forEach((tb) => {
+      const c0 = (tb.cols || [])[0];
+      window.pmRowsOf(r, sec.key, tb.key).forEach((row, i) => {
+        rowNameOf[sec.key + "." + row.id] =
+          (c0 && String(row[c0.key] == null ? "" : row[c0.key]).trim()) || "แถวที่ " + (i + 1);
+      });
+    });
+  });
   const wsPh = makeSheet(["#", "หัวข้อ", "Heading", "แถว", "คำบรรยาย", "เวลา", "ผู้ถ่าย"],
-    [{ wch: 6 }, { wch: 34 }, { wch: 30 }, { wch: 12 }, { wch: 34 }, { wch: 18 }, { wch: 18 }],
+    [{ wch: 6 }, { wch: 34 }, { wch: 30 }, { wch: 26 }, { wch: 34 }, { wch: 18 }, { wch: 18 }],
     (pushRow, merges, getR, lastC) => {
       phOrdered.forEach((ph, i) => {
         const lb = window.pmSlotLabel(ph.sec, ph.slot);
-        pushRow([i + 1, lb.th, lb.en, ph.rowId || "", ph.cap || "",
+        pushRow([i + 1, lb.th, lb.en, rowNameOf[(ph.sec || "") + "." + (ph.rowId || "")] || "", ph.cap || "",
           ph.at ? window.drDateTH(String(ph.at).slice(0, 10)) : "", ph.byName || ""],
           i % 2 === 0 ? "item" : "itemAlt");
       });
@@ -595,8 +705,11 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
       const rows = window.pmRowsOf(r, sec.key, tb.key);
       const hdr = window.pmTableOf(r, sec.key, tb.key).hdr || {};
       const cols = tb.cols || [];
-      const head = ["#"].concat(cols.map((c) => c.en + (c.unit ? " (" + c.unit + ")" : "")));
-      const colW = [{ wch: 6 }].concat(cols.map((c) => ({ wch: Math.min(40, 14 * (c.w || 1)) })));
+      const slots = (tb.photos || []).map(window.pmSlotOf);
+      const head = ["#"].concat(cols.map((c) => c.en + (c.unit ? " (" + c.unit + ")" : "")))
+        .concat(slots.map((sl) => sl.en));
+      const colW = [{ wch: 6 }].concat(cols.map((c) => ({ wch: Math.min(40, 14 * (c.w || 1)) })))
+        .concat(slots.map(() => ({ wch: 16 })));
       const hasRes = !!tb.pass && tb.resultCol !== false;
       if (hasRes) { head.push("Result"); colW.push({ wch: 10 }); }
       const ws = makeSheet(head, colW, (pushRow, merges, getR, lastC) => {
@@ -624,6 +737,14 @@ function pmExportXlsx(job, rec, sum, prog, photoIdx) {
             const v = c.calc ? c.calc(row, hdr) : row[c.key];
             return v === null || v === undefined || v === "" ? (c.req ? "ยังไม่กรอก" : "") : String(v);
           }));
+          /* ช่องรูปบอกว่ามีกี่รูป — ไฟล์ Excel ฝังรูปไม่ได้ แต่ต้องบอกได้ว่าช่องไหนยังว่าง */
+          slots.forEach((sl) => {
+            const n = (idx || []).filter((q) => (q.sec || "") === sec.key
+              && String(q.rowId || "") === String(row.id) && String(q.slot || "") === sl.key).length;
+            cells.push(n ? n + " รูป" : "ยังไม่มีรูป");
+          });
+          /* รูปที่ขาดไม่ทำให้ผลตรวจของแถวหายไป — ค่าที่วัดมาแล้วก็คือวัดมาแล้ว
+             รูปที่ยังไม่แนบไปโผล่ในแผ่น Checklist ซึ่งเป็นที่ของมัน */
           const miss = cols.some((c) => c.req && String(row[c.key] == null ? "" : row[c.key]).trim() === "");
           if (hasRes) cells.push(miss ? "" : tb.pass(row, hdr) ? "OK" : "NG");
           pushRow(cells, miss ? "miss" : (i % 2 === 0 ? "item" : "itemAlt"));

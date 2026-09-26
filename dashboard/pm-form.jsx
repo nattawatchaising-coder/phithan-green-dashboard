@@ -150,9 +150,25 @@ function PmCell({ col, value, onCommit, mobile, calcText }) {
 /* ── หนึ่งแถวของตาราง ──
    จอกว้างเป็นแถวของตารางจริง จอแคบเป็นการ์ดช่องละบรรทัด
    ไม่ใช้ตารางเลื่อนแนวนอนบนมือถือ เพราะ C1 มีเก้าคอลัมน์ ช่างจะต้องเลื่อนซ้ายขวาทุกแถว */
-function PmTableRow({ table, hdr, row, no, mobile, onSet, onRemove }) {
+function PmTableRow({ table, hdr, row, no, mobile, secKey, photoIdx, photoBusy,
+  onSet, onRemove, onAddRowPhoto, onRemovePhoto, onCapPhoto }) {
   const cols = table.cols || [];
   const set = (k, v) => onSet(row.id, k, v);
+
+  /* ── ช่องรูปของแถวนี้ ──
+     D1 ถ่ายอินเวอร์เตอร์ทีละตัว ปุ่มแนบรูปจึงต้องอยู่ในแถวของตัวนั้น ไม่ใช่กองรวมท้ายตาราง
+     ช่างยืนอยู่หน้าอินเวอร์เตอร์ตัวที่สาม กดแนบตรงแถวที่สาม จบ — ไม่ต้องจำว่ารูปไหนของตัวไหน */
+  const slots = (table.photos || []).map(window.pmSlotOf);
+  const strips = !slots.length || !onAddRowPhoto ? null : (
+    <div style={{ display: "grid", gridTemplateColumns: mobile || slots.length < 2 ? "1fr" : "1fr 1fr", gap: 8 }}>
+      {slots.map((sl) => (
+        <PmPhotoStrip key={sl.key} label={sl.th} busy={photoBusy}
+          photos={window.pmPhotosAt(photoIdx, secKey, row.id, sl.key)}
+          onAdd={(files) => onAddRowPhoto(row.id, sl.key, files)}
+          onRemove={onRemovePhoto} onCap={onCapPhoto} />
+      ))}
+    </div>
+  );
   const calcOf = (c) => (c.calc ? c.calc(row, hdr || {}) : undefined);
   /* แถวที่กรอกช่องบังคับยังไม่ครบ ไม่มีผลตรวจ — ห้ามขึ้นป้าย NG
      กดสร้างแถวทีเดียวได้แปดแถวพร้อมชื่อจุดวัด ถ้าตัดสินจากเท่านั้น แปดแถวจะแดงทันทีทั้งที่ยังไม่มีใครหยิบมิเตอร์ไปวัด
@@ -185,11 +201,13 @@ function PmTableRow({ table, hdr, row, no, mobile, onSet, onRemove }) {
             <PmCell col={c} value={row[c.key]} onCommit={set} mobile={true} calcText={calcOf(c)} />
           </div>
         ))}
+        {strips}
       </div>
     );
   }
 
   return (
+    <React.Fragment>
     <tr>
       <td style={{ padding: "4px 5px", fontSize: 11, color: "var(--text-3)", textAlign: "center", verticalAlign: "middle" }}>{no}</td>
       {cols.map((c) => (
@@ -209,6 +227,12 @@ function PmTableRow({ table, hdr, row, no, mobile, onSet, onRemove }) {
             color: "var(--text-3)", cursor: "pointer", fontFamily: "inherit", fontSize: 13, lineHeight: 1 }}>×</button>
       </td>
     </tr>
+    {strips ? (
+      <tr>
+        <td colSpan={cols.length + 2} style={{ padding: "0 5px 10px" }}>{strips}</td>
+      </tr>
+    ) : null}
+    </React.Fragment>
   );
 }
 
@@ -253,8 +277,8 @@ function PmPhotoStrip({ photos, busy, label, onAdd, onRemove, onCap }) {
 }
 
 /* ── หนึ่งตาราง: ช่องหัวตาราง + แถว + ปุ่มเพิ่ม ── */
-function PmTableBlock({ table, hdr, rows, mobile, job, sum, onHdr, onSet, onAdd, onRemove, onSeed,
-  photos, photoBusy, onAddPhoto, onRemovePhoto, onCapPhoto }) {
+function PmTableBlock({ table, hdr, rows, mobile, job, sum, secKey, photoIdx, onHdr, onSet, onAdd, onRemove, onSeed,
+  photos, photoBusy, onAddPhoto, onAddRowPhoto, onRemovePhoto, onCapPhoto }) {
   const cols = table.cols || [];
 
   /* ── แยกแถวเป็นหีบเพลงตาม groupBy ──
@@ -299,7 +323,8 @@ function PmTableBlock({ table, hdr, rows, mobile, job, sum, onHdr, onSet, onAdd,
 
   const bodyOf = (list) => (mobile
     ? list.map((r, i) => (
-        <PmTableRow key={r.id} table={table} hdr={hdr} row={r} no={i + 1} mobile={true} onSet={onSet} onRemove={onRemove} />
+        <PmTableRow key={r.id} table={table} hdr={hdr} row={r} no={i + 1} mobile={true} onSet={onSet} onRemove={onRemove} secKey={secKey} photoIdx={photoIdx} photoBusy={photoBusy}
+          onAddRowPhoto={onAddRowPhoto} onRemovePhoto={onRemovePhoto} onCapPhoto={onCapPhoto} />
       ))
     : (
       <div style={{ overflowX: "auto" }}>
@@ -307,7 +332,8 @@ function PmTableBlock({ table, hdr, rows, mobile, job, sum, onHdr, onSet, onAdd,
           {headRow}
           <tbody>
             {list.map((r, i) => (
-              <PmTableRow key={r.id} table={table} hdr={hdr} row={r} no={i + 1} mobile={false} onSet={onSet} onRemove={onRemove} />
+              <PmTableRow key={r.id} table={table} hdr={hdr} row={r} no={i + 1} mobile={false} onSet={onSet} onRemove={onRemove} secKey={secKey} photoIdx={photoIdx} photoBusy={photoBusy}
+          onAddRowPhoto={onAddRowPhoto} onRemovePhoto={onRemovePhoto} onCapPhoto={onCapPhoto} />
             ))}
           </tbody>
         </table>
@@ -781,6 +807,8 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
 
                 {cur && cur.kind === "table" && (cur.tables || []).map((tb) => (
                   <PmTableBlock key={tb.key} table={tb} mobile={isMobile} job={job} sum={rec.sum || {}}
+                    secKey={cur.key} photoIdx={ph.idx}
+                    onAddRowPhoto={(rowId, slot, files) => addPhotos(files, { sec: cur.key, rowId: rowId, slot: slot })}
                     hdr={window.pmTableOf(rec, cur.key, tb.key).hdr || {}}
                     rows={window.pmRowsOf(rec, cur.key, tb.key)}
                     onHdr={setHdr(tb)} onSet={setCell(tb)}

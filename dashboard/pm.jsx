@@ -55,7 +55,7 @@ const pmNow = () => new Date().toISOString();
    ⚠ กฎ: เพิ่มรายการที่มี req:1 ใหม่ ต้องบัมพ์ PM_VER และใส่ since: PM_VER ของรายการนั้นเสมอ
      ลืมบัมพ์ = รายการใหม่ไม่เคยถูกบังคับกับใครเลย
    ══════════════════════════════════════════════════ */
-const PM_VER = 3;
+const PM_VER = 4;
 
 /* คีย์ที่เลิกใช้แล้ว แต่ของเก่ายังมีค่าเก็บอยู่ — ยังต้องอ่านออกเพื่อพิมพ์ลงใบ
    (แบบเดียวกับ SURVEY_RETIRED_SLOTS ใน survey.jsx) */
@@ -528,6 +528,227 @@ const PM_SECTIONS = [
     ],
   },
 
+  /* ── แผ่น D · ภาพความร้อน ──
+     สามแผ่นนี้ไม่ได้วัดอะไรเป็นตัวเลข หลักฐานคือรูปคู่ — ภาพความร้อนกับภาพสีปกติของมุมเดียวกัน
+     ทีละคู่ ไม่ใช่กองรูปความร้อนไว้ฝั่งหนึ่งกับรูปสีไว้อีกฝั่ง เพราะคนอ่านต้องเทียบว่าจุดร้อนในภาพ
+     ตรงกับชิ้นไหนของจริง · ตัวนับความครบจึงนับ "รูปต่อช่องต่อแถว" ไม่ใช่จำนวนรูปรวม ── */
+  {
+    key: "d1", code: "D1", en: "D1. Thermal Photos — Inverter", th: "D1 ภาพความร้อน · อินเวอร์เตอร์",
+    icon: "camera", since: 4, kind: "table",
+    tables: [
+      {
+        key: "main", en: "Inverter and DC Box", th: "อินเวอร์เตอร์และตู้ DC", minRows: 1, pair: 1,
+        unitNote: "ถ่ายช่วงที่ระบบจ่ายไฟเต็มที่ · แต่ละจุดต้องมีทั้งภาพความร้อนและภาพสีปกติของมุมเดียวกัน",
+        hdr: [
+          { key: "at", en: "Time of Photograph", th: "เวลาที่ถ่าย", type: "text", req: 1, since: 4, def: "12.00-14.00" },
+          { key: "irr", en: "Irradiance Level", th: "ความเข้มแสงขณะถ่าย", unit: "W/m²", type: "num", since: 4 },
+        ],
+        cols: [
+          { key: "desig", en: "Designation", th: "จุดที่ถ่าย", type: "text", req: 1, since: 4, w: 4 },
+          { key: "tMax", en: "Highest Temperature Found", th: "อุณหภูมิสูงสุดที่พบ", unit: "°C", type: "num", since: 4, w: 2 },
+          { key: "note", en: "Remark", th: "หมายเหตุ", type: "text", since: 4, w: 3 },
+        ],
+        photos: [
+          { key: "thermal", en: "Thermal Photograph", th: "ภาพความร้อน" },
+          { key: "colour", en: "Full Colour Photograph", th: "ภาพสีปกติ" },
+        ],
+        seed: (job, sum) => pmSeedPoints(pmInvCount(job, sum), "INVERTER # and DC BOX"),
+      },
+    ],
+  },
+
+  {
+    key: "d2", code: "D2", en: "D2. Thermal Photos — AC Box / Datalogger", th: "D2 ภาพความร้อน · ตู้ AC และดาต้าล็อกเกอร์",
+    icon: "camera", since: 4, kind: "table",
+    tables: [
+      {
+        key: "main", en: "AC Box and Datalogger", th: "ตู้ AC และดาต้าล็อกเกอร์", minRows: 1, pair: 1,
+        unitNote: "ถ่ายขณะระบบจ่ายไฟ · จุดที่ต้องดูคือขั้วต่อและเบรกเกอร์ในตู้",
+        hdr: [
+          { key: "at", en: "Time of Photograph", th: "เวลาที่ถ่าย", type: "text", req: 1, since: 4, def: "11.00-12.00" },
+          { key: "irr", en: "Irradiance Level", th: "ความเข้มแสงขณะถ่าย", unit: "W/m²", type: "num", since: 4 },
+        ],
+        cols: [
+          { key: "desig", en: "Designation", th: "จุดที่ถ่าย", type: "text", req: 1, since: 4, w: 4 },
+          { key: "tMax", en: "Highest Temperature Found", th: "อุณหภูมิสูงสุดที่พบ", unit: "°C", type: "num", since: 4, w: 2 },
+          { key: "note", en: "Remark", th: "หมายเหตุ", type: "text", since: 4, w: 3 },
+        ],
+        photos: [
+          { key: "thermal", en: "Thermal Photograph", th: "ภาพความร้อน" },
+          { key: "colour", en: "Full Colour Photograph", th: "ภาพสีปกติ" },
+        ],
+        seed: () => [{ desig: "MDB Solar Cell" }],
+      },
+    ],
+  },
+
+  {
+    key: "d3", code: "D3", en: "D3. Thermal Photos — PV and Under PV", th: "D3 ภาพความร้อน · แผงและใต้แผง",
+    icon: "camera", since: 4, kind: "table",
+    tables: [
+      {
+        key: "main", en: "PV Modules and Junction Boxes", th: "แผงและกล่องต่อสายหลังแผง", pair: 1,
+        /* ไม่ตั้ง minRows — งานที่ไม่ได้สแกนใต้แผงจะได้ไม่ค้างต่ำกว่าร้อยเปอร์เซ็นต์ตลอดกาล
+           แผ่นนี้ทำเมื่อมีเหตุให้สงสัยว่ามีเซลล์ร้อน ไม่ใช่ทุกงาน */
+        unitNote: "ทำเมื่อต้องการยืนยันว่าไม่มีจุดร้อนบนแผงหรือใต้แผง · ไม่ใช่รายการบังคับของทุกงาน",
+        hdr: [
+          { key: "at", en: "Time of Photograph", th: "เวลาที่ถ่าย", type: "text", since: 4, def: "12.00-14.00" },
+          { key: "irr", en: "Irradiance Level", th: "ความเข้มแสงขณะถ่าย", unit: "W/m²", type: "num", since: 4 },
+        ],
+        cols: [
+          { key: "desig", en: "Designation", th: "จุดที่ถ่าย", type: "text", req: 1, since: 4, w: 4 },
+          { key: "tMax", en: "Highest Temperature Found", th: "อุณหภูมิสูงสุดที่พบ", unit: "°C", type: "num", since: 4, w: 2 },
+          { key: "note", en: "Remark", th: "หมายเหตุ", type: "text", since: 4, w: 3 },
+        ],
+        photos: [
+          { key: "thermal", en: "Thermal Photograph", th: "ภาพความร้อน" },
+          { key: "colour", en: "Full Colour Photograph", th: "ภาพสีปกติ" },
+        ],
+        seed: () => [{ desig: "PV Check & Under" }],
+      },
+    ],
+  },
+
+  /* ── แผ่น E · แรงขันโครงสร้าง ──
+     รายการกับเกณฑ์มาจากต้นฉบับ ใส่มาให้พร้อมตั้งแต่กดสร้างแถว เหลือช่องเดียวที่ต้องตัดสินคือผลตรวจ
+     ช่องค่าที่วัดได้ไม่บังคับ เพราะประแจปอนด์บางตัวไม่มีหน้าปัดให้อ่านค่า มีแต่เสียงคลิก ── */
+  {
+    key: "e1", code: "E1", en: "E1. Torque — Mid and End Clamp", th: "E1 แรงขัน · ตัวจับกลางแผงและปลายแผง",
+    icon: "wrench", since: 4, kind: "table",
+    tables: [
+      {
+        key: "main", en: "Torque Check", th: "ตรวจแรงขัน", minRows: 4,
+        hdr: [
+          { key: "modSpec", en: "PV Module Specification", th: "รุ่นแผงที่ติดตั้ง", type: "text", req: 1, since: 4,
+            defTh: "จาก BOQ", def: (job, sum) => (sum || {}).pv1Model || ((job || {}).boq || {}).panelModel || "" },
+          { key: "tool", en: "Torque Wrench Used", th: "ประแจปอนด์ที่ใช้", type: "text", since: 4 },
+        ],
+        cols: [
+          { key: "item", en: "Torque Description", th: "รายการที่ตรวจ", type: "text", req: 1, since: 4, w: 4 },
+          { key: "crit", en: "Criteria", th: "เกณฑ์", type: "text", req: 1, since: 4, w: 2 },
+          { key: "val", en: "Measured", th: "ค่าที่วัดได้", type: "text", since: 4, w: 2 },
+          { key: "res", en: "Result", th: "ผลตรวจ", type: "select", opts: ["Accepted", "Rejected"], req: 1, since: 4, w: 2 },
+        ],
+        /* ช่องผลตรวจของตัวเองมีแล้ว ไม่ต้องมีคอลัมน์ Result ซ้ำบนกระดาษที่ส่งลูกค้า */
+        pass: (r) => String(r.res || "").toLowerCase().indexOf("accept") === 0,
+        resultCol: false,
+        seed: () => [
+          { item: "1. Torque at Mid Clamp", crit: "8-12 N-m" },
+          { item: "2. Torque at End Clamp", crit: "8-12 N-m" },
+          { item: "3. Mark at Mid Clamp", crit: "100% mark" },
+          { item: "4. Mark at End Clamp", crit: "100% mark" },
+        ],
+      },
+    ],
+  },
+
+  {
+    key: "e2", code: "E2", en: "E2. Torque — Cliplock and L-Feet", th: "E2 แรงขัน · คลิปล็อกและขาแอล",
+    icon: "wrench", since: 4, kind: "table",
+    tables: [
+      {
+        key: "main", en: "Torque Check", th: "ตรวจแรงขัน", minRows: 6,
+        hdr: [
+          { key: "tool", en: "Torque Wrench Used", th: "ประแจปอนด์ที่ใช้", type: "text", since: 4 },
+        ],
+        cols: [
+          { key: "item", en: "Torque Description", th: "รายการที่ตรวจ", type: "text", req: 1, since: 4, w: 4 },
+          { key: "crit", en: "Criteria", th: "เกณฑ์", type: "text", req: 1, since: 4, w: 2 },
+          { key: "val", en: "Measured", th: "ค่าที่วัดได้", type: "text", since: 4, w: 2 },
+          { key: "res", en: "Result", th: "ผลตรวจ", type: "select", opts: ["Accepted", "Rejected"], req: 1, since: 4, w: 2 },
+        ],
+        pass: (r) => String(r.res || "").toLowerCase().indexOf("accept") === 0,
+        resultCol: false,
+        seed: () => [
+          { item: "1. Torque at Cliplock", crit: "14 N-m" },
+          { item: "2. Torque at L-Feet", crit: "14 N-m" },
+          { item: "3. Torque at Rail Splice", crit: "14 N-m" },
+          { item: "4. Torque mark at Cliplock", crit: "100% mark" },
+          { item: "5. Torque mark at L-Feet", crit: "100% mark" },
+          { item: "6. Torque mark at Rail Splice", crit: "100% mark" },
+        ],
+      },
+    ],
+  },
+
+  /* ── แผ่น W · ระบบล้างแผง ──
+     ไม่ตั้ง minRows โดยตั้งใจ — งานที่ไม่มีระบบล้างแผงต้องครบร้อยเปอร์เซ็นต์ได้
+     กฎเดียวกับที่เช็คลิสต์เอกสารใช้: ไม่เกี่ยวกับงานนี้ ต้องไม่ถ่วงเล่มไว้ตลอดกาล ── */
+  {
+    key: "w1", code: "W1", en: "W1. Water Cleaning Test", th: "W1 ทดสอบระบบล้างแผง",
+    icon: "sun", since: 4, kind: "table",
+    tables: [
+      {
+        key: "main", en: "Water Pressure", th: "แรงดันน้ำ",
+        unitNote: "แรงดันเป็นบาร์ (Bar) · ทำเฉพาะงานที่ติดตั้งระบบล้างแผง",
+        hdr: [
+          { key: "at", en: "Time of Test", th: "เวลาที่ทดสอบ", type: "text", since: 4 },
+          { key: "pump", en: "Pump / Source", th: "ปั๊มหรือแหล่งน้ำ", type: "text", since: 4 },
+        ],
+        cols: [
+          { key: "point", en: "Measured At", th: "จุดที่วัด", type: "text", req: 1, since: 4, w: 4 },
+          { key: "crit", en: "Criteria", th: "เกณฑ์", type: "text", req: 1, since: 4, w: 2 },
+          { key: "bar", en: "Measured Pressure", th: "แรงดันที่วัดได้", unit: "Bar", type: "num", req: 1, since: 4, w: 2 },
+        ],
+        photos: [{ key: "shot", en: "Photo of Test", th: "รูปขณะทดสอบ" }],
+        /* เกณฑ์เขียนเป็นข้อความอย่าง ">4 Bar" ตามต้นฉบับ — ดึงเฉพาะตัวเลขออกมาเทียบ */
+        pass: (r) => {
+          const lim = parseFloat(String(r.crit == null ? "" : r.crit).replace(/[^\d.]/g, ""));
+          const v = parseFloat(r.bar);
+          return isFinite(v) && isFinite(lim) ? v >= lim : false;
+        },
+        seed: () => [
+          { point: "ต้นทาง · ที่ปั๊ม", crit: ">4 Bar" },
+          { point: "ปลายทาง · หัวฉีดแถวไกลสุด", crit: ">4.5 Bar" },
+        ],
+      },
+    ],
+  },
+
+  /* ── รูปหน้าจอมิเตอร์คุณภาพไฟฟ้า ──
+     ห้าหน้าจอต่อมิเตอร์หนึ่งตัวตามต้นฉบับ · นับแยกกันเพราะถ่ายครบสี่หน้าจอแล้วลืมหน้าจอกำลังไฟ
+     คือสิ่งที่เกิดขึ้นจริงและกว่าจะรู้ตัวก็กลับมาถ่ายใหม่ไม่ได้แล้ว ── */
+  {
+    key: "pac", code: "PQM", en: "Photo — AC Power Quality Meter", th: "รูปมิเตอร์คุณภาพไฟฟ้า AC",
+    icon: "image", since: 4, kind: "table",
+    tables: [
+      {
+        key: "main", en: "Meter Screens", th: "หน้าจอมิเตอร์", minRows: 1,
+        hdr: [
+          { key: "at", en: "Time of Test", th: "เวลาที่ทดสอบ", type: "text", since: 4 },
+          { key: "brand", en: "Manufacturer", th: "ยี่ห้อและรุ่นมิเตอร์", type: "text", req: 1, since: 4, def: "Schneider PQM" },
+        ],
+        cols: [
+          { key: "unit", en: "Meter / Location", th: "มิเตอร์ · จุดที่วัด", type: "text", req: 1, since: 4, w: 4 },
+        ],
+        photos: [
+          { key: "vll", en: "Voltage L-L", th: "แรงดันระหว่างเฟส" },
+          { key: "vln", en: "Voltage L-N", th: "แรงดันเฟสกับนิวทรัล" },
+          { key: "amp", en: "Current", th: "กระแส" },
+          { key: "avg", en: "Hz / P.F. / Vavg / Iavg", th: "ความถี่ · เพาเวอร์แฟกเตอร์ · ค่าเฉลี่ย" },
+          { key: "pqs", en: "P / Q / S", th: "กำลังจริง · รีแอกทีฟ · ปรากฏ" },
+        ],
+        seed: () => [{ unit: "PQM A" }],
+      },
+    ],
+  },
+
+  {
+    key: "pgnd", code: "PG", en: "Photo — Ground Resistance Test", th: "รูปการทดสอบความต้านทานดิน",
+    icon: "image", since: 4, kind: "table",
+    tables: [
+      {
+        key: "main", en: "Ground Test", th: "การวัดความต้านทานหลักดิน", minRows: 1,
+        unitNote: "รูปต้องเห็นทั้งหน้าปัดเครื่องวัดและจุดที่วัด · ตัวเลขที่อ่านได้บันทึกไว้ที่แผ่น C2",
+        cols: [
+          { key: "point", en: "Designation", th: "จุดที่วัด", type: "text", req: 1, since: 4, w: 4 },
+          { key: "ohm", en: "Reading on Meter", th: "ค่าที่อ่านได้บนเครื่อง", unit: "Ω", type: "num", since: 4, w: 2 },
+        ],
+        photos: [{ key: "shot", en: "Photo of Test", th: "รูปขณะทดสอบ" }],
+      },
+    ],
+  },
+
   /* ── ช่องลงนามสามช่องตามสายอนุมัติจริง — หน้างาน → โปรเจค → เจ้าของโครงการ
      ต้นฉบับมีช่อง Regional PM Head ด้วย แต่เป็นตำแหน่งของบริษัทที่ทำไฟล์นั้น ไม่มีในสายงานเรา ── */
   {
@@ -727,6 +948,19 @@ function pmPanelSpec(job, sum) {
   return { voc: n(p && p.voc), isc: n(p && p.isc), wp: n(p && p.wp), tcVoc: f(p && p.tcVoc) };
 }
 
+/* จำนวนอินเวอร์เตอร์ของงานนี้ — อ่านจากสมุดก่อน ไม่มีค่อยถอยไปหา BOQ */
+function pmInvCount(job, sum) {
+  const n = parseFloat((sum || {}).invQty) || parseFloat(((job || {}).boq || {}).invCount) || 0;
+  return Math.max(1, Math.min(60, Math.round(n) || 1));
+}
+
+/* สร้างแถวจุดตรวจ n จุดจากแม่แบบชื่อ — # ในแม่แบบถูกแทนด้วยลำดับ */
+function pmSeedPoints(n, tpl) {
+  const out = [];
+  for (let i = 1; i <= n; i++) out.push({ desig: String(tpl).replace("#", String(i)) });
+  return out;
+}
+
 function pmSeedStrings(job, sum) {
   const j = job || {};
   const s = sum || {};
@@ -862,10 +1096,14 @@ function pmProgress(rec, job, user) {
             const lb = nm(c, i);
             tick(filled(row[c.key]), sec.key + "." + tb.key + "." + row.id + "." + c.key, lb.en, lb.th);
           });
-          (tb.photos || []).forEach((slot) => {
-            tick(+flags[pmFlagKey(sec.key, row.id, slot)] > 0,
-              sec.key + "." + tb.key + "." + row.id + "." + slot,
-              tb.en + " · Photo " + slot + " #" + (i + 1), tb.th + " · รูปแถวที่ " + (i + 1));
+          /* รูปต่อแถว — หนึ่งช่องรูปคือหนึ่งรายการที่ต้องมี นับจาก flags ไม่ใช่จากโหนดรูป
+             ภาพความร้อนคือตัวการทดสอบเอง ไม่ใช่ของประกอบ ขาดรูปคือขาดผลตรวจ */
+          (tb.photos || []).forEach((sl) => {
+            const slot = pmSlotOf(sl);
+            const nmRow = String(row[(tb.cols || [])[0] ? tb.cols[0].key : ""] || "").trim() || "แถวที่ " + (i + 1);
+            tick(+flags[pmFlagKey(sec.key, row.id, slot.key)] > 0,
+              sec.key + "." + tb.key + "." + row.id + "." + slot.key,
+              tb.en + " — " + slot.en + " #" + (i + 1), tb.th + " · " + slot.th + " · " + nmRow);
           });
         });
         /* ตารางที่ต้องมีแถว แต่ยังไม่มีสักแถว นับเป็นหนึ่งรายการที่ขาด
@@ -1045,31 +1283,85 @@ function usePmPhotos(jobId, enabled) {
    ต้องอ่านออกว่าเป็นรูปของหัวข้อไหน — แปลกลับจากทะเบียนที่เดียว ไม่กระจายคำแปลไปสามไฟล์ */
 function pmSlotLabel(secKey, slot) {
   const sec = PM_SEC_BY[secKey || ""];
-  const tb = sec && sec.kind === "table" ? (sec.tables || []).find((x) => x.key === String(slot || "")) : null;
-  if (!tb) return { en: "Photo Report", th: "รูปประกอบการส่งมอบ" };
-  return {
-    en: (tb.code ? tb.code + ". " : sec.code ? sec.code + ". " : "") + tb.en,
-    th: sec.th + " · " + tb.th,
-  };
+  const tabs = sec && sec.kind === "table" ? sec.tables || [] : [];
+  const tb = tabs.find((x) => x.key === String(slot || ""));
+  if (tb) {
+    return {
+      en: (tb.code ? tb.code + ". " : sec.code ? sec.code + ". " : "") + tb.en,
+      th: sec.th + " · " + tb.th,
+    };
+  }
+  /* รูปที่ผูกกับแถว — slot เก็บชื่อช่องรูป ไม่ใช่คีย์ตาราง จึงต้องไล่หาในรายการช่องรูปของทุกตาราง */
+  for (let i = 0; i < tabs.length; i++) {
+    const sl = (tabs[i].photos || []).map(pmSlotOf).find((x) => x.key === String(slot || ""));
+    if (sl) {
+      return {
+        en: (tabs[i].code ? tabs[i].code + ". " : sec.code ? sec.code + ". " : "") + tabs[i].en + " — " + sl.en,
+        th: sec.th + " · " + sl.th,
+      };
+    }
+  }
+  return { en: "Photo Report", th: "รูปประกอบการส่งมอบ" };
 }
 
+/* ช่องรูปเขียนได้สองแบบ — สตริงสั้น ๆ หรือก้อนที่มีคำแปล · ตัวอ่านที่เดียวจะได้ไม่ต้องเช็กชนิดทุกที่ */
+const pmSlotOf = (x) => (typeof x === "string" ? { key: x, en: x, th: x } : x || { key: "", en: "", th: "" });
+const pmSlotName = (secKey, tbKey, slotKey) => {
+  const sec = PM_SEC_BY[secKey || ""];
+  const tb = sec && sec.kind === "table" ? (sec.tables || []).find((x) => x.key === tbKey) : null;
+  return (tb ? (tb.photos || []).map(pmSlotOf).find((x) => x.key === slotKey) : null) || { key: slotKey, en: slotKey, th: slotKey };
+};
+
 const pmPhotosOf = (list, secKey, slot) =>
-  (list || []).filter((x) => (x.sec || "gen") === secKey && String(x.slot || "") === String(slot || ""));
+  (list || []).filter((x) => (x.sec || "gen") === secKey && String(x.slot || "") === String(slot || "") && !x.rowId);
+
+/* รูปของแถวหนึ่งในช่องหนึ่ง — D1 ถ่ายทุกอินเวอร์เตอร์ ถ้าไม่กรองด้วย rowId
+   ภาพความร้อนของอินเวอร์เตอร์ตัวที่หนึ่งจะไปโผล่ใต้ทุกตัว */
+const pmPhotosAt = (list, secKey, rowId, slot) =>
+  (list || []).filter((x) => (x.sec || "gen") === secKey && String(x.rowId || "") === String(rowId || "")
+    && String(x.slot || "") === String(slot || ""));
 
 /* เรียงรูปตามลำดับที่พิมพ์จริง หัวข้อมาก่อน รูปทั่วไปท้ายสุด
    กระดาษกับไฟล์ Excel ต้องเดินจากลำดับเดียวกัน ไม่งั้นเลขรูปในสารบัญจะชี้ไปคนละรูปกับที่พิมพ์ใต้รูปใน PDF */
-function pmPhotoOrder(list) {
-  const rank = {};
+function pmPhotoOrder(list, rec) {
+  /* ลำดับที่พิมพ์จริงคือ หมวด → ตาราง → แถว → ช่องรูป
+     เรียงผิดลำดับชั้นเมื่อไร เลขใต้รูปใน PDF จะกระโดดเป็น #2 #13 #17 ทั้งที่รูปสามใบวางติดกัน
+     แล้วสารบัญใน Excel ก็ชี้ผิดใบตามไปด้วย */
+  const tRank = {};
+  const sRank = {};
   let n = 0;
   PM_SECTIONS.forEach((sec) => {
     if (sec.kind !== "table") return;
-    (sec.tables || []).forEach((tb) => { n += 1; rank[sec.key + "." + tb.key] = n; });
+    (sec.tables || []).forEach((tb) => {
+      n += 1;
+      tRank[sec.key + "." + tb.key] = n;
+      sRank[sec.key + "." + tb.key] = 0;
+      (tb.photos || []).forEach((sl, k) => {
+        const key = sec.key + "." + pmSlotOf(sl).key;
+        tRank[key] = n;
+        sRank[key] = k + 1;
+      });
+    });
   });
-  return (list || []).slice().sort((a, b) => {
-    const ra = rank[(a.sec || "gen") + "." + (a.slot || "")] || 9e9;
-    const rb = rank[(b.sec || "gen") + "." + (b.slot || "")] || 9e9;
-    return ra - rb || String(a.at || "").localeCompare(String(b.at || ""));
-  });
+
+  /* รูปที่ผูกกับแถวต้องเรียงตามแถวที่มันอยู่ ไม่ใช่ตามเวลาที่ถ่าย
+     ช่างถ่ายอินเวอร์เตอร์ตัวที่สามก่อนตัวที่หนึ่งได้ แต่เล่มต้องเรียงตามเล่ม */
+  const rowOrd = {};
+  if (rec) {
+    PM_SECTIONS.forEach((sec) => {
+      if (sec.kind !== "table") return;
+      (sec.tables || []).forEach((tb) => {
+        pmRowsOf(rec, sec.key, tb.key).forEach((row, i) => { rowOrd[sec.key + "." + row.id] = i + 1; });
+      });
+    });
+  }
+
+  const k = (x) => (x.sec || "gen") + "." + (x.slot || "");
+  return (list || []).slice().sort((a, b) =>
+    (tRank[k(a)] || 9e9) - (tRank[k(b)] || 9e9)
+    || (rowOrd[(a.sec || "gen") + "." + (a.rowId || "")] || 0) - (rowOrd[(b.sec || "gen") + "." + (b.rowId || "")] || 0)
+    || (sRank[k(a)] || 0) - (sRank[k(b)] || 0)
+    || String(a.at || "").localeCompare(String(b.at || "")));
 }
 
 /* ── คีย์ของ flags ──
@@ -1096,6 +1388,6 @@ Object.assign(window, {
   pmRowId, pmTableOf, pmRowsOf, pmNextOrd,
   pmToday, pmNow, pmVerOf, pmActive, pmBlank, pmDms, pmPrefill, pmMerged, pmIsPrefilled,
   pmProgress, pmNewerItems, pmSummaryOf, pmCardStatus, pmPhotoFlags,
-  pmSlotLabel, pmPhotosOf, pmPhotoOrder, pmFlagKey, pmSeedStrings, pmPanelSpec,
+  pmSlotLabel, pmPhotosOf, pmPhotoOrder, pmFlagKey, pmSeedStrings, pmPanelSpec, pmInvCount, pmSeedPoints, pmPhotosAt, pmSlotName, pmSlotOf,
   usePmHandover, usePmPhotoIdx, usePmPhotos,
 });

@@ -245,11 +245,33 @@ function PmTableRow({
   row,
   no,
   mobile,
+  secKey,
+  photoIdx,
+  photoBusy,
   onSet,
-  onRemove
+  onRemove,
+  onAddRowPhoto,
+  onRemovePhoto,
+  onCapPhoto
 }) {
   const cols = table.cols || [];
   const set = (k, v) => onSet(row.id, k, v);
+  const slots = (table.photos || []).map(window.pmSlotOf);
+  const strips = !slots.length || !onAddRowPhoto ? null : React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: mobile || slots.length < 2 ? "1fr" : "1fr 1fr",
+      gap: 8
+    }
+  }, slots.map(sl => React.createElement(PmPhotoStrip, {
+    key: sl.key,
+    label: sl.th,
+    busy: photoBusy,
+    photos: window.pmPhotosAt(photoIdx, secKey, row.id, sl.key),
+    onAdd: files => onAddRowPhoto(row.id, sl.key, files),
+    onRemove: onRemovePhoto,
+    onCap: onCapPhoto
+  })));
   const calcOf = c => c.calc ? c.calc(row, hdr || {}) : undefined;
   const done = cols.every(c => !c.req || String(row[c.key] == null ? "" : row[c.key]).trim() !== "");
   const ok = table.pass && table.resultCol !== false && done ? table.pass(row, hdr || {}) : null;
@@ -333,9 +355,9 @@ function PmTableRow({
       onCommit: set,
       mobile: true,
       calcText: calcOf(c)
-    }))));
+    }))), strips);
   }
-  return React.createElement("tr", null, React.createElement("td", {
+  return React.createElement(React.Fragment, null, React.createElement("tr", null, React.createElement("td", {
     style: {
       padding: "4px 5px",
       fontSize: 11,
@@ -387,7 +409,12 @@ function PmTableRow({
       fontSize: 13,
       lineHeight: 1
     }
-  }, "\xD7")));
+  }, "\xD7"))), strips ? React.createElement("tr", null, React.createElement("td", {
+    colSpan: cols.length + 2,
+    style: {
+      padding: "0 5px 10px"
+    }
+  }, strips)) : null);
 }
 function PmPhotoStrip({
   photos,
@@ -498,6 +525,8 @@ function PmTableBlock({
   mobile,
   job,
   sum,
+  secKey,
+  photoIdx,
   onHdr,
   onSet,
   onAdd,
@@ -506,6 +535,7 @@ function PmTableBlock({
   photos,
   photoBusy,
   onAddPhoto,
+  onAddRowPhoto,
   onRemovePhoto,
   onCapPhoto
 }) {
@@ -573,7 +603,13 @@ function PmTableBlock({
     no: i + 1,
     mobile: true,
     onSet: onSet,
-    onRemove: onRemove
+    onRemove: onRemove,
+    secKey: secKey,
+    photoIdx: photoIdx,
+    photoBusy: photoBusy,
+    onAddRowPhoto: onAddRowPhoto,
+    onRemovePhoto: onRemovePhoto,
+    onCapPhoto: onCapPhoto
   })) : React.createElement("div", {
     style: {
       overflowX: "auto"
@@ -592,7 +628,13 @@ function PmTableBlock({
     no: i + 1,
     mobile: false,
     onSet: onSet,
-    onRemove: onRemove
+    onRemove: onRemove,
+    secKey: secKey,
+    photoIdx: photoIdx,
+    photoBusy: photoBusy,
+    onAddRowPhoto: onAddRowPhoto,
+    onRemovePhoto: onRemovePhoto,
+    onCapPhoto: onCapPhoto
   })))));
   return React.createElement("div", {
     style: {
@@ -1497,6 +1539,13 @@ function PmHandoverModal({
     mobile: isMobile,
     job: job,
     sum: rec.sum || {},
+    secKey: cur.key,
+    photoIdx: ph.idx,
+    onAddRowPhoto: (rowId, slot, files) => addPhotos(files, {
+      sec: cur.key,
+      rowId: rowId,
+      slot: slot
+    }),
     hdr: window.pmTableOf(rec, cur.key, tb.key).hdr || {},
     rows: window.pmRowsOf(rec, cur.key, tb.key),
     onHdr: setHdr(tb),
