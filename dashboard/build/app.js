@@ -139,7 +139,7 @@ const usesFlowBoard = roles => isBoardBoss(roles) || isPermitOnly(roles);
 const NAV_HIDE_FOR_BOSS = ["leads", "permit"];
 const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm)).map(n => usesFlowBoard(roles) && NAV_HIDE_FOR_BOSS.indexOf(n.key) !== -1 ? Object.assign({}, n, {
   hidden: true
-}) : n).filter(n => !(isSalesOnly(roles) && n.key === "board"));
+}) : n);
 const techKey = (j, known) => j.tech && (!known || known.has(j.tech)) ? j.tech : "__none";
 const matchTech = (j, f, known) => techKey(j, known) === f;
 const instDate = j => window.SF.installDate ? window.SF.installDate(j) : "";
