@@ -11,8 +11,8 @@ const _pmRef = p => window.FBDB.ref(PM_ROOT + p);
 const _pmRoot = () => window.FBDB.ref(PM_ROOT || "/");
 const pmToday = () => new Date().toISOString().slice(0, 10);
 const pmNow = () => new Date().toISOString();
-const PM_VER = 4;
-const PM_RETIRED = ["engCleantech", "ecoEng", "pmHead", "regionalPm", "apEcotech", "s1Cap", "s1Az", "s2Cap", "s2Az", "s3Cap", "s3Az"];
+const PM_VER = 5;
+const PM_RETIRED = ["engCleantech", "ecoEng", "pmHead", "regionalPm", "apEcotech", "s1Cap", "s1Az", "s2Cap", "s2Az", "s3Cap", "s3Az", "isc"];
 const pmVerOf = rec => rec && rec.meta && +rec.meta.ver || PM_VER;
 const pmActive = (it, ver) => !!it.req && (it.since || 1) <= ver;
 const PM_SECTIONS = [{
@@ -1121,15 +1121,15 @@ const PM_SECTIONS = [{
     groupTh: "อินเวอร์เตอร์ตัวที่",
     unitNote: "กระแสทุกค่าเป็นแอมแปร์ (A) · กระแสที่วัดได้ขึ้นกับความเข้มแสงขณะวัด จึงต้องบันทึกความเข้มแสงและเวลาไว้ด้วย",
     hdr: [{
-      key: "isc",
-      en: "Module Short-Circuit Current",
-      th: "กระแสลัดวงจรต่อแผง",
+      key: "imp",
+      en: "Current at Maximum Power",
+      th: "กระแสที่จุดกำลังสูงสุดต่อแผง (Imp)",
       unit: "A",
       type: "num",
       req: 1,
-      since: 3,
+      since: 5,
       defTh: "จากสเปคแผงใน BOQ",
-      def: (job, sum) => pmPanelSpec(job, sum).isc
+      def: (job, sum) => pmPanelSpec(job, sum).imp
     }],
     cols: [{
       key: "inv",
@@ -1154,20 +1154,20 @@ const PM_SECTIONS = [{
       since: 3
     }, {
       key: "iCalc",
-      en: "Calculated Isc",
+      en: "Calculated Imp",
       th: "กระแสที่คำนวณได้",
       unit: "A",
       since: 3,
       w: 2,
       calc: (r, h) => {
-        const i = parseFloat((h || {}).isc);
+        const i = parseFloat((h || {}).imp);
         if (!isFinite(i)) return "";
         const g = parseFloat(r.irr);
         return Math.round((isFinite(g) && g > 0 ? i * g / 1000 : i) * 100) / 100;
       }
     }, {
       key: "iMeas",
-      en: "Measured Isc",
+      en: "Measured Imp",
       th: "กระแสที่วัดได้",
       unit: "A",
       type: "num",
@@ -2093,6 +2093,7 @@ function pmPanelSpec(job, sum) {
   return {
     voc: n(p && p.voc),
     isc: n(p && p.isc),
+    imp: n(p && p.imp),
     wp: n(p && p.wp),
     tcVoc: f(p && p.tcVoc)
   };

@@ -55,7 +55,7 @@ const pmNow = () => new Date().toISOString();
    ⚠ กฎ: เพิ่มรายการที่มี req:1 ใหม่ ต้องบัมพ์ PM_VER และใส่ since: PM_VER ของรายการนั้นเสมอ
      ลืมบัมพ์ = รายการใหม่ไม่เคยถูกบังคับกับใครเลย
    ══════════════════════════════════════════════════ */
-const PM_VER = 4;
+const PM_VER = 5;
 
 /* คีย์ที่เลิกใช้แล้ว แต่ของเก่ายังมีค่าเก็บอยู่ — ยังต้องอ่านออกเพื่อพิมพ์ลงใบ
    (แบบเดียวกับ SURVEY_RETIRED_SLOTS ใน survey.jsx) */
@@ -63,7 +63,8 @@ const PM_VER = 4;
    ไม่ลบทิ้งอัตโนมัติ เพราะการลบข้อมูลที่คนกรอกไว้แล้วต้องเป็นการตัดสินใจของคน ไม่ใช่ของโค้ดที่เผลอรัน
    engCleantech/pmHead/ecoEng/regionalPm/apEcotech = ชื่อตำแหน่งกับชื่อบริษัทที่ติดมากับไฟล์ PM2 ต้นฉบับ */
 const PM_RETIRED = ["engCleantech", "ecoEng", "pmHead", "regionalPm", "apEcotech",
-  "s1Cap", "s1Az", "s2Cap", "s2Az", "s3Cap", "s3Az"];  /* ระบบย่อย — ไม่ได้ใช้กับงานที่ทำจริง */
+  "s1Cap", "s1Az", "s2Cap", "s2Az", "s3Cap", "s3Az",  /* ระบบย่อย — ไม่ได้ใช้กับงานที่ทำจริง */
+  "isc"];  /* หัวตาราง B4 — เปลี่ยนไปใช้ imp · ค่า Isc เก่าไม่ย้ายมาใส่ เพราะคนละความหมายกัน */
 
 const pmVerOf = (rec) => (rec && rec.meta && +rec.meta.ver) || PM_VER;
 const pmActive = (it, ver) => !!it.req && (it.since || 1) <= ver;
@@ -446,22 +447,24 @@ const PM_SECTIONS = [
         key: "main", en: "String Cables", th: "สายสตริง", minRows: 1, groupBy: "inv", groupTh: "อินเวอร์เตอร์ตัวที่",
         unitNote: "กระแสทุกค่าเป็นแอมแปร์ (A) · กระแสที่วัดได้ขึ้นกับความเข้มแสงขณะวัด จึงต้องบันทึกความเข้มแสงและเวลาไว้ด้วย",
         hdr: [
-          { key: "isc", en: "Module Short-Circuit Current", th: "กระแสลัดวงจรต่อแผง", unit: "A", type: "num", req: 1, since: 3,
-            defTh: "จากสเปคแผงใน BOQ", def: (job, sum) => pmPanelSpec(job, sum).isc },
+          /* B4 วัดกระแสขณะระบบทำงานจริง สตริงจึงเดินอยู่ที่จุดกำลังสูงสุด ค่าอ้างจึงเป็น Imp ไม่ใช่ Isc
+             (Isc คือกระแสตอนลัดวงจร ซึ่งสูงกว่า เทียบกับค่าที่วัดได้แล้วจะตกเกณฑ์ทั้งที่ระบบปกติ) */
+          { key: "imp", en: "Current at Maximum Power", th: "กระแสที่จุดกำลังสูงสุดต่อแผง (Imp)", unit: "A", type: "num", req: 1, since: 5,
+            defTh: "จากสเปคแผงใน BOQ", def: (job, sum) => pmPanelSpec(job, sum).imp },
         ],
         cols: [
           { key: "inv", en: "Inverter", th: "อินเวอร์เตอร์", type: "text", req: 1, since: 3 },
           { key: "str", en: "String", th: "สตริง", type: "text", req: 1, since: 3 },
           { key: "irr", en: "Irradiance", th: "ความเข้มแสง", unit: "W/m²", type: "num", since: 3 },
-          /* กระแสที่ควรได้ = Isc ต่อแผง × (ความเข้มแสง ÷ 1000) · ไม่กรอกความเข้มแสงก็คืนค่าที่ STC ตามไฟล์ต้นฉบับ */
-          { key: "iCalc", en: "Calculated Isc", th: "กระแสที่คำนวณได้", unit: "A", since: 3, w: 2,
+          /* กระแสที่ควรได้ = Imp ต่อแผง × (ความเข้มแสง ÷ 1000) · ไม่กรอกความเข้มแสงก็คืนค่าที่ STC ตามไฟล์ต้นฉบับ */
+          { key: "iCalc", en: "Calculated Imp", th: "กระแสที่คำนวณได้", unit: "A", since: 3, w: 2,
             calc: (r, h) => {
-              const i = parseFloat((h || {}).isc);
+              const i = parseFloat((h || {}).imp);
               if (!isFinite(i)) return "";
               const g = parseFloat(r.irr);
               return Math.round((isFinite(g) && g > 0 ? i * g / 1000 : i) * 100) / 100;
             } },
-          { key: "iMeas", en: "Measured Isc", th: "กระแสที่วัดได้", unit: "A", type: "num", req: 1, since: 3, w: 2 },
+          { key: "iMeas", en: "Measured Imp", th: "กระแสที่วัดได้", unit: "A", type: "num", req: 1, since: 3, w: 2 },
           { key: "at", en: "Time of Test", th: "เวลาที่วัด", type: "text", since: 3, w: 2 },
         ],
         seed: (job, sum) => pmSeedStrings(job, sum),
@@ -945,7 +948,7 @@ function pmPanelSpec(job, sum) {
   const n = (x) => (parseFloat(x) > 0 ? String(parseFloat(x)) : "");
   /* tcVoc ติดลบ — ตัวหน้าตัดตัวเลขเกินศูนย์จึงใช้ isFinite แทน > 0 */
   const f = (x) => (isFinite(parseFloat(x)) && parseFloat(x) !== 0 ? String(parseFloat(x)) : "");
-  return { voc: n(p && p.voc), isc: n(p && p.isc), wp: n(p && p.wp), tcVoc: f(p && p.tcVoc) };
+  return { voc: n(p && p.voc), isc: n(p && p.isc), imp: n(p && p.imp), wp: n(p && p.wp), tcVoc: f(p && p.tcVoc) };
 }
 
 /* จำนวนอินเวอร์เตอร์ของงานนี้ — อ่านจากสมุดก่อน ไม่มีค่อยถอยไปหา BOQ */
