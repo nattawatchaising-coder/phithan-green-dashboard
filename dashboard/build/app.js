@@ -551,6 +551,7 @@ function App() {
     })));
     if (window.BOQ.setInverters) window.BOQ.setInverters((stock.items || []).filter(s => inCat(s, "inverter") && s.name).map(s => ({
       model: s.name,
+      group: (s.brand || "").trim() || subTh(s),
       type: s.invType,
       kw: s.invKw,
       phase: s.invPhase,

@@ -661,6 +661,13 @@ const PM_SECTIONS = [{
       since: 2
     }],
     cols: [{
+      key: "model",
+      en: "Model",
+      th: "รุ่น",
+      type: "text",
+      since: 5,
+      w: 2
+    }, {
       key: "sn",
       en: "Serial Number",
       th: "หมายเลขเครื่อง",
@@ -678,10 +685,12 @@ const PM_SECTIONS = [{
       since: 2
     }],
     seed: (job, sum) => {
-      const n = Math.min(60, parseInt(sum.invQty, 10) || 0);
       const out = [];
-      for (let i = 0; i < n; i++) out.push({
-        kw: sum.invKw || ""
+      pmInvSets(job, sum).forEach(u => {
+        for (let i = 0; i < u.qty && out.length < 60; i++) out.push({
+          model: u.model || "",
+          kw: u.kw ? String(u.kw) : ""
+        });
       });
       return out;
     }
@@ -1289,7 +1298,7 @@ const PM_SECTIONS = [{
       since: 2
     }],
     seed: (job, sum) => {
-      const n = Math.min(60, parseInt(sum.invQty, 10) || 0);
+      const n = pmInvCount(job, sum);
       const out = [];
       for (let i = 0; i < n; i++) out.push({
         src: "Inverter " + (i + 1) + " to AC DB " + (i + 1)
@@ -2059,22 +2068,39 @@ function pmPrefill(job, user) {
     }
   }
   const invModel = boq.inverterModel || (j.survey || {}).invModel || (((j.permit || {}).invs || [])[0] || {}).model || "";
-  if (invModel) {
-    put("invModel", invModel);
-    const iv = B && B.findInverter ? B.findInverter(invModel) : null;
+  let acSum = 0;
+  const putInv = (id, model, qty) => {
+    if (!model) return;
+    put(id + "Model", model);
+    const iv = B && B.findInverter ? B.findInverter(model) : null;
     if (iv) {
-      put("invKw", iv.kw);
-      if (iv.group) put("invBrand", iv.group);
+      put(id + "Kw", iv.kw);
+      if (iv.group) put(id + "Brand", iv.group);
     }
-    const qty = +boq.invCount || 0;
-    if (qty) put("invQty", qty);
-    if (iv && qty) put("acKw", Math.round(iv.kw * qty * 100) / 100);
-  }
+    const q = Math.round(+qty || 0);
+    if (q) put(id + "Qty", q);
+    if (iv && q) acSum += iv.kw * q;
+  };
+  putInv("inv", invModel, boq.invCount);
+  if (boq.inv2Model && boq.inv2Model !== invModel) putInv("inv2", boq.inv2Model, boq.inv2Count);
+  if (acSum) put("acKw", Math.round(acSum * 100) / 100);
   return out;
 }
 function pmMerged(rec, job, user) {
   const saved = (rec || {}).sum || {};
   const pre = pmPrefill(job, user);
+  if (((rec || {}).meta || {}).status === "signed") {
+    PM_SECTIONS.forEach(sec => (sec.groups || []).forEach(g => {
+      if (!g.repeat) return;
+      const keep = pmSetCount(saved, g);
+      for (let n = keep + 1; n <= g.repeat.max; n++) {
+        const id = pmSetId(g.repeat, n);
+        (g.fields || []).forEach(f => {
+          delete pre[id + f.key];
+        });
+      }
+    }));
+  }
   const out = Object.assign({}, pre);
   Object.keys(saved).forEach(k => {
     if (saved[k] !== null && saved[k] !== undefined && String(saved[k]) !== "") out[k] = saved[k];
@@ -2098,8 +2124,35 @@ function pmPanelSpec(job, sum) {
     tcVoc: f(p && p.tcVoc)
   };
 }
+function pmInvSets(job, sum) {
+  const s = sum || {},
+    b = (job || {}).boq || {};
+  const B = window.BOQ || null;
+  const mk = (model, qty, kw) => {
+    const iv = B && B.findInverter && model ? B.findInverter(model) : null;
+    const c = Math.round(parseFloat((iv || {}).inputs) || 0) * Math.max(1, Math.round(parseFloat((iv || {}).strPerMppt) || 1));
+    return {
+      model: model || "",
+      spec: iv,
+      qty: Math.max(1, Math.min(60, Math.round(parseFloat(qty) || 0) || 1)),
+      kw: parseFloat(kw) || parseFloat((iv || {}).kw) || 0,
+      cap: c > 0 ? c : 99
+    };
+  };
+  const out = [];
+  for (let i = 1; i <= 8; i++) {
+    const id = i === 1 ? "inv" : "inv" + i;
+    const model = String(s[id + "Model"] || "").trim();
+    const qty = Math.round(parseFloat(s[id + "Qty"]) || 0);
+    if (!model && !qty) continue;
+    out.push(mk(model, qty, s[id + "Kw"]));
+  }
+  if (!out.length && (b.inverterModel || b.invCount)) out.push(mk(b.inverterModel, b.invCount));
+  if (out.length === 1 && b.inv2Model && b.inv2Model !== out[0].model && +b.inv2Count > 0) out.push(mk(b.inv2Model, b.inv2Count));
+  return out.length ? out : [mk("", 1)];
+}
 function pmInvCount(job, sum) {
-  const n = parseFloat((sum || {}).invQty) || parseFloat(((job || {}).boq || {}).invCount) || 0;
+  const n = pmInvSets(job, sum).reduce((a, u) => a + u.qty, 0);
   return Math.max(1, Math.min(60, Math.round(n) || 1));
 }
 function pmSeedPoints(n, tpl) {
@@ -2115,33 +2168,48 @@ function pmSeedStrings(job, sum) {
   const b = j.boq || {};
   const B = window.BOQ || null;
   const panels = Math.round(parseFloat(s.pv1Qty) || parseFloat(j.panels) || 0);
-  const invCount = Math.max(1, Math.round(parseFloat(s.invQty) || parseFloat(b.invCount) || 1));
+  const sets = pmInvSets(j, s);
   if (!panels) return [];
   const panel = B && B.findPanel ? B.findPanel(s.pv1Model || b.panelModel || j.panelModel || "") : null;
-  const inv = B && B.findInverter ? B.findInverter(s.invModel || b.inverterModel || "") : null;
+  const inv = sets[0].spec || (B && B.findInverter ? B.findInverter(s.invModel || b.inverterModel || "") : null);
   let series = Math.round(parseFloat(b.dcSeries) || 0);
   if (!series && B && B.stringConfig && panel) {
     const cfg = B.stringConfig(panel, inv || {});
     if (cfg && cfg.ready) series = cfg.series;
   }
   if (!series) return [];
-  const plan = B && B.stringPlan ? B.stringPlan(panels, series, inv || {}, invCount) : null;
+  const extraCap = sets.slice(1).reduce((a, u) => a + u.qty * u.cap, 0);
+  const plan = B && B.stringPlan ? B.stringPlan(panels, series, inv || {}, sets[0].qty, extraCap) : null;
   if (!plan || !plan.strings) return [];
-  const base = Math.floor(plan.strings / invCount);
-  const extra = plan.strings - base * invCount;
+  const cap = [];
+  sets.forEach(u => {
+    for (let i = 0; i < u.qty; i++) cap.push(u.cap);
+  });
+  const alloc = cap.map(() => 0);
+  let placed = 0;
+  while (placed < plan.strings) {
+    let any = false;
+    for (let i = 0; i < cap.length && placed < plan.strings; i++) {
+      if (alloc[i] >= cap[i]) continue;
+      alloc[i] += 1;
+      placed += 1;
+      any = true;
+    }
+    if (!any) break;
+  }
+  if (placed < plan.strings) alloc[alloc.length - 1] += plan.strings - placed;
   const out = [];
   let left = plan.strings;
-  for (let i = 1; i <= invCount && left > 0; i++) {
-    const cnt = Math.min(left, base + (i <= extra ? 1 : 0));
+  alloc.forEach((cnt, i) => {
     for (let k = 1; k <= cnt; k++) {
       left -= 1;
       out.push({
-        inv: String(i),
+        inv: String(i + 1),
         str: String(k),
         mods: String(left === 0 && plan.rest > 0 ? plan.rest : series)
       });
     }
-  }
+  });
   return out;
 }
 function pmIsPrefilled(rec, key) {
@@ -2555,6 +2623,7 @@ Object.assign(window, {
   pmFlagKey,
   pmSeedStrings,
   pmPanelSpec,
+  pmInvSets,
   pmInvCount,
   pmSeedPoints,
   pmPhotosAt,

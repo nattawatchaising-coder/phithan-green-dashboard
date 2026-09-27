@@ -444,7 +444,7 @@ function App() {
         tcVoc: s.tcVoc, tcIsc: s.tcIsc, tcPmax: s.tcPmax, noct: s.noct,
         deg1: s.deg1, degY: s.degY, cells: s.cells, fuseA: s.fuseA, halfCut: s.halfCut })));
     if (window.BOQ.setInverters) window.BOQ.setInverters((stock.items || []).filter((s) => inCat(s, "inverter") && s.name)
-      .map((s) => ({ model: s.name, type: s.invType, kw: s.invKw, phase: s.invPhase, inputs: s.invInputs, maxPv: s.invMaxPv, outA: s.invOutA, mpptVmin: s.mpptVmin, mpptVmax: s.mpptVmax, maxVdc: s.maxVdc, maxInA: s.maxInA, maxIscA: s.maxIscA, maxMpptA: s.maxMpptA,
+      .map((s) => ({ model: s.name, group: (s.brand || "").trim() || subTh(s), type: s.invType, kw: s.invKw, phase: s.invPhase, inputs: s.invInputs, maxPv: s.invMaxPv, outA: s.invOutA, mpptVmin: s.mpptVmin, mpptVmax: s.mpptVmax, maxVdc: s.maxVdc, maxInA: s.maxInA, maxIscA: s.maxIscA, maxMpptA: s.maxMpptA,
         strPerMppt: s.invStrPerMppt, eff: s.invEff, effEuro: s.invEffEuro,
         vStart: s.vStart, vRated: s.vRated, maxAcKw: s.invMaxAcKw })));
     /* ตัวคุมแผง (Smart Module Controller) — สเปคมาจากคลังเหมือนแผงและอินเวอร์เตอร์ */

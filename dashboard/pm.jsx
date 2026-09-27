@@ -279,15 +279,20 @@ const PM_SECTIONS = [
         key: "inv", code: "1", en: "Inverters", th: "อินเวอร์เตอร์", minRows: 1,
         hdr: [{ key: "mfrModel", en: "Manufacturer and Model", th: "ยี่ห้อและรุ่น", type: "text", req: 1, since: 2 }],
         cols: [
+          /* งานที่ใช้สองขนาด หัวตารางช่องเดียวบอกรุ่นไม่ครบ — รุ่นจึงอยู่ระดับแถว
+             ไม่ใส่ req เพราะเล่มที่กรอกไปแล้วต้องไม่ตกจาก 100% เพราะคอลัมน์ที่เพิ่มมาทีหลัง */
+          { key: "model", en: "Model", th: "รุ่น", type: "text", since: 5, w: 2 },
           { key: "sn", en: "Serial Number", th: "หมายเลขเครื่อง", type: "text", req: 1, since: 2, w: 2 },
           { key: "kw", en: "Rated Power", th: "กำลังไฟฟ้า", unit: "kW AC", type: "num", req: 1, since: 2 },
         ],
         /* สร้างแถวจากจำนวนอินเวอร์เตอร์ที่กรอกไว้ในแผ่น Summary — ไม่ทำเอง ต้องกดปุ่ม
            เพราะการเขียนแถวเปล่าสิบแถวลงเล่มของคนอื่นโดยไม่ได้ขอ คือการตัดสินใจแทนเขา */
         seed: (job, sum) => {
-          const n = Math.min(60, parseInt(sum.invQty, 10) || 0);
           const out = [];
-          for (let i = 0; i < n; i++) out.push({ kw: sum.invKw || "" });
+          pmInvSets(job, sum).forEach((u) => {
+            for (let i = 0; i < u.qty && out.length < 60; i++)
+              out.push({ model: u.model || "", kw: u.kw ? String(u.kw) : "" });
+          });
           return out;
         },
       },
@@ -496,7 +501,7 @@ const PM_SECTIONS = [
           { key: "npe", en: "N-PE", th: "N-PE", type: "num", since: 2 },
         ],
         seed: (job, sum) => {
-          const n = Math.min(60, parseInt(sum.invQty, 10) || 0);
+          const n = pmInvCount(job, sum);
           const out = [];
           for (let i = 0; i < n; i++) out.push({ src: "Inverter " + (i + 1) + " to AC DB " + (i + 1) });
           return out;
@@ -906,24 +911,48 @@ function pmPrefill(job, user) {
     if (p) { put("pv1Brand", p.group); put("pv1Wp", p.wp); }
   }
 
+  /* อินเวอร์เตอร์ — BOQ รองรับสองขนาดในงานเดียว (boq.inv2Model / boq.inv2Count)
+     ชุดที่สองลงคีย์ inv2* ซึ่งตรงกับชุดที่สองของกลุ่มที่กดเพิ่มชุดได้ในแผ่น Summary พอดี
+     ไม่ต้องตั้ง invSets เอง — pmSetCount ขยายจำนวนชุดให้เมื่อเห็นว่าชุดที่สองมีข้อมูล
+     AC รวมต้องบวกทั้งสองรุ่น ไม่ใช่ kW ของรุ่นแรกคูณจำนวนตัวทั้งหมด */
   const invModel = boq.inverterModel || (j.survey || {}).invModel
     || ((((j.permit || {}).invs || [])[0] || {}).model) || "";
-  if (invModel) {
-    put("invModel", invModel);
-    const iv = B && B.findInverter ? B.findInverter(invModel) : null;
-    if (iv) { put("invKw", iv.kw); if (iv.group) put("invBrand", iv.group); }
-    const qty = +boq.invCount || 0;
-    if (qty) put("invQty", qty);
-    if (iv && qty) put("acKw", Math.round(iv.kw * qty * 100) / 100);
-  }
+  let acSum = 0;
+  const putInv = (id, model, qty) => {
+    if (!model) return;
+    put(id + "Model", model);
+    const iv = B && B.findInverter ? B.findInverter(model) : null;
+    if (iv) { put(id + "Kw", iv.kw); if (iv.group) put(id + "Brand", iv.group); }
+    const q = Math.round(+qty || 0);
+    if (q) put(id + "Qty", q);
+    if (iv && q) acSum += iv.kw * q;
+  };
+  putInv("inv", invModel, boq.invCount);
+  if (boq.inv2Model && boq.inv2Model !== invModel) putInv("inv2", boq.inv2Model, boq.inv2Count);
+  if (acSum) put("acKw", Math.round(acSum * 100) / 100);
 
   return out;
 }
 
-/* รวมค่าที่บันทึกไว้กับค่าที่เติมให้ — ค่าว่างที่บันทึกไว้ไม่ทับค่าที่เติมให้ */
+/* รวมค่าที่บันทึกไว้กับค่าที่เติมให้ — ค่าว่างที่บันทึกไว้ไม่ทับค่าที่เติมให้
+
+   ⚠ เล่มที่ลงนามส่งมอบแล้ว ไม่รับชุดอุปกรณ์ "ชุดใหม่" ที่เติมมาจาก BOQ
+     BOQ ยังแก้ได้หลังส่งมอบ (เพิ่มอินเวอร์เตอร์รุ่นที่สอง เพิ่มแผงชุดที่สอง) ถ้าปล่อยให้ไหลเข้ามา
+     ชุดนั้นจะพาช่องบังคับของมันมาด้วย แล้วเล่มที่ปิดไปแล้วจะตกจาก 100% เองโดยไม่มีใครแตะ
+     ค่าที่เติมให้ช่องเดิมยังไหลเข้าตามปกติ ที่กันคือการ "งอกชุด" เท่านั้น */
 function pmMerged(rec, job, user) {
   const saved = (rec || {}).sum || {};
   const pre = pmPrefill(job, user);
+  if (((rec || {}).meta || {}).status === "signed") {
+    PM_SECTIONS.forEach((sec) => (sec.groups || []).forEach((g) => {
+      if (!g.repeat) return;
+      const keep = pmSetCount(saved, g);
+      for (let n = keep + 1; n <= g.repeat.max; n++) {
+        const id = pmSetId(g.repeat, n);
+        (g.fields || []).forEach((f) => { delete pre[id + f.key]; });
+      }
+    }));
+  }
   const out = Object.assign({}, pre);
   Object.keys(saved).forEach((k) => {
     if (saved[k] !== null && saved[k] !== undefined && String(saved[k]) !== "") out[k] = saved[k];
@@ -951,9 +980,43 @@ function pmPanelSpec(job, sum) {
   return { voc: n(p && p.voc), isc: n(p && p.isc), imp: n(p && p.imp), wp: n(p && p.wp), tcVoc: f(p && p.tcVoc) };
 }
 
-/* จำนวนอินเวอร์เตอร์ของงานนี้ — อ่านจากสมุดก่อน ไม่มีค่อยถอยไปหา BOQ */
+/* ── ชุดอินเวอร์เตอร์ทั้งหมดของงานนี้ ──
+   กลุ่ม inv ในแผ่น Summary กดเพิ่มชุดได้ ชุดแรกคีย์เปล่า ชุดถัดไปเป็น inv2* inv3* …
+   คืนรายการชุดพร้อมจำนวนตัวและ kW ต่อตัว · เล่มที่ยังไม่กรอกถอยไปอ่านจาก BOQ
+   BOQ เก็บรุ่นที่สองได้หนึ่งรุ่น มากกว่านั้นต้องกรอกในสมุดเอง
+   ⚠ อย่ารวมเป็นตัวเลขเดียวตั้งแต่ต้นทาง — ทะเบียนเครื่องกับตารางทดสอบต้องรู้ว่าตัวไหนรุ่นไหน */
+function pmInvSets(job, sum) {
+  const s = sum || {}, b = (job || {}).boq || {};
+  const B = window.BOQ || null;
+  const mk = (model, qty, kw) => {
+    const iv = B && B.findInverter && model ? B.findInverter(model) : null;
+    /* ช่องรับสตริงต่อตัว — ไม่รู้สเปคให้ถือว่าไม่จำกัด ดีกว่าบีบเหลือช่องเดียวแล้วแตกแถวผิด */
+    const c = Math.round(parseFloat((iv || {}).inputs) || 0) * Math.max(1, Math.round(parseFloat((iv || {}).strPerMppt) || 1));
+    return {
+      model: model || "", spec: iv,
+      qty: Math.max(1, Math.min(60, Math.round(parseFloat(qty) || 0) || 1)),
+      kw: parseFloat(kw) || parseFloat((iv || {}).kw) || 0,
+      cap: c > 0 ? c : 99,
+    };
+  };
+  const out = [];
+  for (let i = 1; i <= 8; i++) {
+    const id = i === 1 ? "inv" : "inv" + i;
+    const model = String(s[id + "Model"] || "").trim();
+    const qty = Math.round(parseFloat(s[id + "Qty"]) || 0);
+    if (!model && !qty) continue;
+    out.push(mk(model, qty, s[id + "Kw"]));
+  }
+  if (!out.length && (b.inverterModel || b.invCount)) out.push(mk(b.inverterModel, b.invCount));
+  /* BOQ มีรุ่นที่สองแต่สมุดยังไม่มีชุดที่สอง — เล่มที่เปิดไว้ก่อนออกแบบ BOQ เสร็จ */
+  if (out.length === 1 && b.inv2Model && b.inv2Model !== out[0].model && +b.inv2Count > 0)
+    out.push(mk(b.inv2Model, b.inv2Count));
+  return out.length ? out : [mk("", 1)];
+}
+
+/* จำนวนอินเวอร์เตอร์ทั้งงาน — รวมทุกชุด ไม่ใช่เฉพาะชุดแรก */
 function pmInvCount(job, sum) {
-  const n = parseFloat((sum || {}).invQty) || parseFloat(((job || {}).boq || {}).invCount) || 0;
+  const n = pmInvSets(job, sum).reduce((a, u) => a + u.qty, 0);
   return Math.max(1, Math.min(60, Math.round(n) || 1));
 }
 
@@ -971,11 +1034,11 @@ function pmSeedStrings(job, sum) {
   const B = window.BOQ || null;
 
   const panels = Math.round(parseFloat(s.pv1Qty) || parseFloat(j.panels) || 0);
-  const invCount = Math.max(1, Math.round(parseFloat(s.invQty) || parseFloat(b.invCount) || 1));
+  const sets = pmInvSets(j, s);
   if (!panels) return [];
 
   const panel = B && B.findPanel ? B.findPanel(s.pv1Model || b.panelModel || j.panelModel || "") : null;
-  const inv = B && B.findInverter ? B.findInverter(s.invModel || b.inverterModel || "") : null;
+  const inv = sets[0].spec || (B && B.findInverter ? B.findInverter(s.invModel || b.inverterModel || "") : null);
   let series = Math.round(parseFloat(b.dcSeries) || 0);
   if (!series && B && B.stringConfig && panel) {
     const cfg = B.stringConfig(panel, inv || {});
@@ -983,21 +1046,38 @@ function pmSeedStrings(job, sum) {
   }
   if (!series) return [];
 
-  const plan = B && B.stringPlan ? B.stringPlan(panels, series, inv || {}, invCount) : null;
+  /* ช่องรับของรุ่นที่สองขึ้นไป ส่งเข้า stringPlan เป็นความจุเพิ่ม ไม่งั้นจะรายงานว่าสตริงล้น */
+  const extraCap = sets.slice(1).reduce((a, u) => a + u.qty * u.cap, 0);
+  const plan = B && B.stringPlan ? B.stringPlan(panels, series, inv || {}, sets[0].qty, extraCap) : null;
   if (!plan || !plan.strings) return [];
 
-  /* กระจายสตริงลงอินเวอร์เตอร์ให้เท่ากันที่สุด เศษไปลงเครื่องแรก ๆ */
-  const base = Math.floor(plan.strings / invCount);
-  const extra = plan.strings - base * invCount;
+  /* ตัวจริงทีละตัวเรียงตามชุด แล้วลงสตริงวนรอบละหนึ่งเส้นต่อตัว ข้ามตัวที่ช่องเต็มแล้ว
+     รุ่นเดียวทั้งงานได้ผลเท่ากับการหารเท่า ๆ กันแบบเดิมทุกกรณี (ช่องรับเท่ากันหมด)
+     สองรุ่นที่ช่องรับไม่เท่ากันจึงไม่กองลงตัวแรกจนเต็มแล้วตัวท้ายยืนว่าง */
+  const cap = [];
+  sets.forEach((u) => { for (let i = 0; i < u.qty; i++) cap.push(u.cap); });
+  const alloc = cap.map(() => 0);
+  let placed = 0;
+  while (placed < plan.strings) {
+    let any = false;
+    for (let i = 0; i < cap.length && placed < plan.strings; i++) {
+      if (alloc[i] >= cap[i]) continue;
+      alloc[i] += 1; placed += 1; any = true;
+    }
+    if (!any) break;
+  }
+  /* สตริงที่เกินความจุยังต้องมีแถวให้วัด ไม่งั้นช่างวัดแล้วไม่มีที่กรอก
+     (BOQ ขึ้นคำเตือนเรื่องสตริงล้นของมันอยู่แล้ว สมุดนี้ไม่ใช่ที่บังคับเรื่องนั้น) */
+  if (placed < plan.strings) alloc[alloc.length - 1] += plan.strings - placed;
+
   const out = [];
   let left = plan.strings;
-  for (let i = 1; i <= invCount && left > 0; i++) {
-    const cnt = Math.min(left, base + (i <= extra ? 1 : 0));
+  alloc.forEach((cnt, i) => {
     for (let k = 1; k <= cnt; k++) {
       left -= 1;
-      out.push({ inv: String(i), str: String(k), mods: String(left === 0 && plan.rest > 0 ? plan.rest : series) });
+      out.push({ inv: String(i + 1), str: String(k), mods: String(left === 0 && plan.rest > 0 ? plan.rest : series) });
     }
-  }
+  });
   return out;
 }
 
@@ -1391,6 +1471,6 @@ Object.assign(window, {
   pmRowId, pmTableOf, pmRowsOf, pmNextOrd,
   pmToday, pmNow, pmVerOf, pmActive, pmBlank, pmDms, pmPrefill, pmMerged, pmIsPrefilled,
   pmProgress, pmNewerItems, pmSummaryOf, pmCardStatus, pmPhotoFlags,
-  pmSlotLabel, pmPhotosOf, pmPhotoOrder, pmFlagKey, pmSeedStrings, pmPanelSpec, pmInvCount, pmSeedPoints, pmPhotosAt, pmSlotName, pmSlotOf,
+  pmSlotLabel, pmPhotosOf, pmPhotoOrder, pmFlagKey, pmSeedStrings, pmPanelSpec, pmInvSets, pmInvCount, pmSeedPoints, pmPhotosAt, pmSlotName, pmSlotOf,
   usePmHandover, usePmPhotoIdx, usePmPhotos,
 });

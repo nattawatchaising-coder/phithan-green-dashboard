@@ -2032,7 +2032,9 @@
       if (!p || !p.model) return;
       const type = p.type === "string" || p.type === "hybrid" ? p.type : "";
       if (!type) return;
-      out.push({ model: String(p.model).trim(), type: type, kw: kwUnit(p.kw), phase: +p.phase || 0, inputs: +p.inputs || 0, maxPv: kwUnit(p.maxPv), outA: +p.outA || 0, mpptVmin: +p.mpptVmin || 0, mpptVmax: +p.mpptVmax || 0, maxVdc: +p.maxVdc || 0, maxInA: +p.maxInA || 0, maxIscA: +p.maxIscA || 0,
+      /* group = ยี่ห้อจากคลัง — แผงพกมาด้วยอยู่แล้ว อินเวอร์เตอร์เคยตกไป
+         ทำให้ช่อง "ยี่ห้ออินเวอร์เตอร์" ในสมุดส่งมอบเติมให้ไม่ได้ ทั้งที่คลังรู้อยู่ */
+      out.push({ model: String(p.model).trim(), group: p.group || "", type: type, kw: kwUnit(p.kw), phase: +p.phase || 0, inputs: +p.inputs || 0, maxPv: kwUnit(p.maxPv), outA: +p.outA || 0, mpptVmin: +p.mpptVmin || 0, mpptVmax: +p.mpptVmax || 0, maxVdc: +p.maxVdc || 0, maxInA: +p.maxInA || 0, maxIscA: +p.maxIscA || 0,
         maxMpptA: +p.maxMpptA || 0, vStart: +p.vStart || 0, vRated: +p.vRated || 0, maxAcKw: +p.maxAcKw || 0 });
       // ค่าที่ยังไม่กรอกต้องไม่ทับค่ากลางในเครื่องคำนวณ จึงใส่เฉพาะตอนมีค่าจริง
       const row = out[out.length - 1];
