@@ -1846,11 +1846,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const navSecs = [
     { key: "info", icon: "sun", title: "ข้อมูลระบบ",
       meta: b.panels + " แผง · " + result.meta.kw + " kW · " + (String(b.phase) === "3" ? "3 เฟส" : "1 เฟส") },
-    isHuawei ? { key: "hybrid", icon: "bolt", title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + (selInv2 ? " · ตัวที่ 1" : ""),
-      meta: selInv.model + (selInv2 ? " · " + result.meta.invCount + " ตัว" : "") } : null,
-    // อินเวอร์เตอร์ตัวที่ 2 เป็นหัวข้อของตัวเอง — จะได้เห็นในสารบัญว่ามีสองตัว ไม่ใช่ซ่อนอยู่ในหัวข้อเดียว
-    isHuawei && selInv2 ? { key: "hybrid2", icon: "bolt", title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + " · ตัวที่ 2",
-      meta: selInv2.model + " · " + inv2Count + " ตัว", tone: inv2PhaseBad ? "warn" : "ok" } : null,
+    /* หัวข้อเดียว แต่ข้างในแยกเป็นกรอบของแต่ละตัว — สองตัวต้องเทียบกันในหน้าเดียว ไม่ใช่สลับหัวข้อไปมา */
+    isHuawei ? { key: "hybrid", icon: "bolt", title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + (selInv2 ? " (2 ตัว)" : ""),
+      meta: selInv2
+        ? selInv.model + " · " + result.meta.invCount + " ตัว + " + selInv2.model + " · " + inv2Count + " ตัว"
+        : selInv.model, tone: inv2PhaseBad ? "warn" : "" } : null,
     isStringInv && scfg ? { key: "dc", icon: "bolt", title: "สาย DC / การต่ออนุกรม",
       meta: scfg.ready ? scfg.series + " แผงอนุกรม" + (plan ? " · " + plan.strings + " สตริง" : "") + " · " + scfg.dcWire : "ยังกรอกสเปคไม่ครบ",
       tone: !scfg.ready ? "warn" : (plan && plan.over ? "warn" : "ok") } : null,
@@ -2102,7 +2102,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           {/* ── กรอบของอินเวอร์เตอร์ตัวที่ 2 ── แยกกรอบใหญ่คนละใบกับตัวที่ 1 จะได้ไม่ต้องไล่อ่านว่าเลขไหนของตัวไหน
               รุ่นกับจำนวนเลือกที่หัวข้อ "ข้อมูลระบบ" ที่เดียว กรอบนี้ดึงค่าจากตรงนั้นมาแสดง */}
           {isHuawei && !!selInv2 && (
-            <BoqSection title={"ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + " · ตัวที่ 2 (" + selInv2.model + ")"} icon="bolt" {...secProps("hybrid2")}>
+            <BoqSection title={"ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + " · ตัวที่ 2 (" + selInv2.model + ")"} icon="bolt" {...secProps("hybrid")}>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr)" : "minmax(0,2fr) minmax(0,1fr)", gap: 12 }}>
                 <Field label="รุ่น · เลือกที่หัวข้อ “ข้อมูลระบบ”">
                   <BoqLocked value={selInv2.model} />

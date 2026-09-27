@@ -4200,14 +4200,9 @@ function BOQEditor({
   }, isHuawei ? {
     key: "hybrid",
     icon: "bolt",
-    title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + (selInv2 ? " · ตัวที่ 1" : ""),
-    meta: selInv.model + (selInv2 ? " · " + result.meta.invCount + " ตัว" : "")
-  } : null, isHuawei && selInv2 ? {
-    key: "hybrid2",
-    icon: "bolt",
-    title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + " · ตัวที่ 2",
-    meta: selInv2.model + " · " + inv2Count + " ตัว",
-    tone: inv2PhaseBad ? "warn" : "ok"
+    title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + (selInv2 ? " (2 ตัว)" : ""),
+    meta: selInv2 ? selInv.model + " · " + result.meta.invCount + " ตัว + " + selInv2.model + " · " + inv2Count + " ตัว" : selInv.model,
+    tone: inv2PhaseBad ? "warn" : ""
   } : null, isStringInv && scfg ? {
     key: "dc",
     icon: "bolt",
@@ -4758,7 +4753,7 @@ function BOQEditor({
   }, "* \u0E43\u0E2A\u0E48\u0E41\u0E1C\u0E07\u0E40\u0E01\u0E34\u0E19\u0E01\u0E33\u0E25\u0E31\u0E07 AC \u0E44\u0E14\u0E49\u0E16\u0E36\u0E07 DC/AC ", window.BOQ.DCAC_LIMIT, " \u0E40\u0E17\u0E48\u0E32 \u2014 \u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E14\u0E01\u0E33\u0E25\u0E31\u0E07\u0E2D\u0E2D\u0E01\u0E44\u0E27\u0E49\u0E17\u0E35\u0E48 Max AC Active Power \u0E2D\u0E22\u0E39\u0E48\u0E41\u0E25\u0E49\u0E27 \u0E2A\u0E48\u0E27\u0E19\u0E17\u0E35\u0E48\u0E40\u0E01\u0E34\u0E19\u0E0A\u0E48\u0E27\u0E22\u0E40\u0E01\u0E47\u0E1A\u0E01\u0E33\u0E25\u0E31\u0E07\u0E15\u0E2D\u0E19\u0E41\u0E14\u0E14\u0E2D\u0E48\u0E2D\u0E19", React.createElement("br", null), "* \u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27 = \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19(\u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07\u0E23\u0E27\u0E21 \xF7 MAX PV \u0E15\u0E48\u0E2D\u0E15\u0E31\u0E27) \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E17\u0E31\u0E1A\u0E44\u0E14\u0E49 \xB7 Combiner Box + DC (Fuse/Holder/MCB/MC4) \u0E04\u0E34\u0E14\u0E15\u0E32\u0E21\u0E08\u0E33\u0E19\u0E27\u0E19 String \xB7 RCBO/SPD/Smart Meter/Backup \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E15\u0E32\u0E21\u0E40\u0E1F\u0E2A (", selInv.phase === 3 ? "3" : "1", " \u0E40\u0E1F\u0E2A) \xB7 RCBO \u0E02\u0E19\u0E32\u0E14\u0E08\u0E32\u0E01\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01 \xD7 1.25")), isHuawei && !!selInv2 && React.createElement(BoqSection, _extends({
     title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + " · ตัวที่ 2 (" + selInv2.model + ")",
     icon: "bolt"
-  }, secProps("hybrid2")), React.createElement("div", {
+  }, secProps("hybrid")), React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: isMobile ? "minmax(0,1fr)" : "minmax(0,2fr) minmax(0,1fr)",
