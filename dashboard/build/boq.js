@@ -870,6 +870,10 @@ function BOQEditor({
     const base = job && job.boq ? Object.assign(window.BOQ.blankBOQ(job), job.boq) : window.BOQ.blankBOQ(job);
     if (job) {
       if (job.panels != null && job.panels !== "") base.panels = job.panels;
+      if (!(+base.panels > 0) && +job.kw > 0) {
+        const pw = +((window.BOQ.findPanel && window.BOQ.findPanel(base.panelModel) || {}).wp || 0);
+        if (pw > 0) base.panels = Math.ceil(+job.kw * 1000 / pw);
+      }
       base.phase = window.SF.phaseOf(job);
       base.batteryKwh = job.battery ? parseFloat(job.batSize) || 0 : 0;
       base.backup = !!job.backup;
@@ -892,6 +896,7 @@ function BOQEditor({
     }
     return base;
   });
+  const isLead = !!(job && job.__lead);
   const hasBattery = !!(job && job.battery);
   const hasBackup = !!(job && job.backup);
   const [adv, setAdv] = React.useState(false);
@@ -4356,7 +4361,31 @@ function BOQEditor({
       gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "repeat(3, minmax(0,1fr))",
       gap: 12
     }
-  }, React.createElement(Field, {
+  }, isLead ? React.createElement(Field, {
+    label: "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07 (\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E02\u0E19\u0E32\u0E14\u0E17\u0E35\u0E48\u0E04\u0E32\u0E14 \xB7 \u0E41\u0E01\u0E49\u0E44\u0E14\u0E49)"
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 7
+    }
+  }, React.createElement("input", {
+    type: "number",
+    min: 0,
+    step: 1,
+    style: Object.assign({}, numStyle, {
+      flex: 1,
+      minWidth: 0
+    }),
+    value: b.panels || "",
+    onChange: e => set("panels", Math.max(0, parseInt(e.target.value) || 0))
+  }), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      flexShrink: 0
+    }
+  }, "\u0E41\u0E1C\u0E07"))) : React.createElement(Field, {
     label: "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07"
   }, React.createElement(BoqLocked, {
     value: b.panels,

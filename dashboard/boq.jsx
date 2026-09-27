@@ -362,6 +362,13 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     // สเปคหลักดึงจากข้อมูลงานเสมอ (ฐานข้อมูลเป็นตัวตั้ง) — แบต/Backup/ออฟติไมเซอร์/จำนวนแผง
     if (job) {
       if (job.panels != null && job.panels !== "") base.panels = job.panels;
+      /* ใบลูกค้า (lead) ยังไม่มีจำนวนแผงจริง มีแต่ "ขนาดที่คาด" (kWp) ที่เซลล์กรอกไว้ในสเปคที่เสนอ
+         ถอดราคาจากศูนย์แผงไม่ได้ จึงแปลงกลับเป็นจำนวนแผงด้วย Wp ของรุ่นที่เลือก — แก้ทับได้ตามปกติ
+         ทำเฉพาะตอนยังไม่มีจำนวนแผง จะได้ไม่ไปทับของใบที่ถอดไว้แล้ว */
+      if (!(+base.panels > 0) && +job.kw > 0) {
+        const pw = +(((window.BOQ.findPanel && window.BOQ.findPanel(base.panelModel)) || {}).wp || 0);
+        if (pw > 0) base.panels = Math.ceil((+job.kw * 1000) / pw);
+      }
       /* เฟสสะท้อนงานเสมอเหมือนจำนวนแผง — ใบที่ถอดไว้ก่อนไปสำรวจจะค้างอยู่ที่เฟสเก่าตลอด
          ถ้าไม่ดึงใหม่ตรงนี้ เพราะค่าที่บันทึกไว้ในใบทับค่าเริ่มต้นจาก blankBOQ */
       base.phase = window.SF.phaseOf(job);
@@ -387,6 +394,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     }
     return base;
   });
+  /* ใบลูกค้า (leadAsJob, survey-sched.jsx:90) — ยังไม่เป็นงานจริง จำนวนแผงจึงยังไม่มีใครยืนยัน
+     ช่องที่ล็อกไว้ "ตั้งค่าจากหน้าแก้งาน" ในใบลูกค้าไม่มีหน้าให้ไปแก้ ต้องแก้ตรงนี้ได้ */
+  const isLead = !!(job && job.__lead);
   const hasBattery = !!(job && job.battery);
   const hasBackup = !!(job && job.backup);
   const [adv, setAdv] = React.useState(false);
@@ -1930,7 +1940,17 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           {/* ── ข้อมูลระบบ ── */}
           <BoqSection title="ข้อมูลระบบ" icon="sun" {...secProps("info")}>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "repeat(3, minmax(0,1fr))", gap: 12 }}>
-              <Field label="จำนวนแผง"><BoqLocked value={b.panels} unit="แผง" num /></Field>
+              {/* ใบงานจริง: จำนวนแผงมาจากฐานข้อมูลงาน แก้ที่นี่ไม่ได้
+                  ใบลูกค้า: ยังไม่มีงาน มีแต่ขนาดที่คาด — คิดจำนวนแผงให้จาก kWp แล้วให้แก้ทับได้ */}
+              {isLead
+                ? <Field label="จำนวนแผง (คิดจากขนาดที่คาด · แก้ได้)">
+                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                      <input type="number" min={0} step={1} style={Object.assign({}, numStyle, { flex: 1, minWidth: 0 })}
+                        value={b.panels || ""} onChange={(e) => set("panels", Math.max(0, parseInt(e.target.value) || 0))} />
+                      <span style={{ fontSize: 11.5, color: "var(--text-3)", flexShrink: 0 }}>แผง</span>
+                    </div>
+                  </Field>
+                : <Field label="จำนวนแผง"><BoqLocked value={b.panels} unit="แผง" num /></Field>}
               <Field label="ขนาดติดตั้ง (kW)">
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "flex-end", gap: 4, background: "var(--surface3)", border: "1px solid var(--border)", borderRadius: 10, padding: "9px 11px" }}>
                   <span style={{ fontFamily: "var(--mono)", fontSize: 15, fontWeight: 700, color: "var(--primary-dark)" }}>{result.meta.kw.toLocaleString()}</span>
