@@ -944,7 +944,7 @@ function BOQEditor({
   });
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [b, setB] = React.useState(() => {
-    const base = job && job.boq ? Object.assign(window.BOQ.blankBOQ(job), job.boq) : window.BOQ.blankBOQ(job);
+    const base = window.BOQ.mergeBOQ(job);
     if (job) {
       if (job.panels != null && job.panels !== "") base.panels = job.panels;
       if (!(+base.panels > 0) && +job.kw > 0) {
@@ -1701,6 +1701,15 @@ function BOQEditor({
   };
   const csp = Object.assign({}, SPARE_DEF, b.conduitSpare);
   const cpr = b.conduitPer || {};
+  const condDef = window.BOQ.conduitDefaults && window.BOQ.conduitDefaults() || {
+    per: {},
+    spare: {}
+  };
+  const condEdited = Object.keys(condDef.per).concat(Object.keys(condDef.spare)).concat(Object.keys(cpr), Object.keys(b.conduitSpare || {})).some(k => String(cpr[k] != null ? cpr[k] : "") !== String(condDef.per[k] != null ? condDef.per[k] : "") || String(csp[k] != null ? csp[k] : "") !== String(condDef.spare[k] != null ? condDef.spare[k] : ""));
+  const useCondDefault = () => setB(p => Object.assign({}, p, {
+    conduitPer: Object.assign({}, condDef.per),
+    conduitSpare: Object.assign({}, condDef.spare)
+  }));
   const KITS = window.BOQ.PROJECT_KITS || [];
   const project = window.BOQ.normProject(b.project);
   const kitOf = k => project[k] || {};
@@ -6543,7 +6552,22 @@ function BOQEditor({
       color: "var(--text-3)",
       lineHeight: 1.5
     }
-  }, "* \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C IMC (\u0E41\u0E04\u0E25\u0E49\u0E21\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E1A / \u0E1A\u0E38\u0E0A\u0E0A\u0E34\u0E48\u0E07,\u0E25\u0E47\u0E2D\u0E01\u0E19\u0E31\u0E17 / \u0E23\u0E32\u0E07\u0E0B\u0E35 / \u0E04\u0E2D\u0E19\u0E40\u0E19\u0E04\u0E40\u0E15\u0E2D\u0E23\u0E4C / \u0E04\u0E38\u0E1B\u0E1B\u0E34\u0E49\u0E07) \u0E04\u0E33\u0E19\u0E27\u0E13\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34\u0E08\u0E32\u0E01\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E17\u0E48\u0E2D + \u0E08\u0E33\u0E19\u0E27\u0E19 PULL BOX", React.createElement("br", null), "* \u0E2D\u0E22\u0E32\u0E01\u0E04\u0E34\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E0A\u0E34\u0E49\u0E19\u0E15\u0E48\u0E2D\u0E17\u0E48\u0E2D 1 \u0E17\u0E48\u0E2D\u0E19 \u0E43\u0E2B\u0E49\u0E01\u0E23\u0E2D\u0E01\u0E0A\u0E48\u0E2D\u0E07 \"\u0E0A\u0E34\u0E49\u0E19/\u0E17\u0E48\u0E2D\u0E19\" \u0E43\u0E19\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07 \u2014 \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07\u0E44\u0E27\u0E49\u0E04\u0E37\u0E2D\u0E43\u0E0A\u0E49\u0E01\u0E0E\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34"), React.createElement("button", {
+  }, "* \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C IMC (\u0E41\u0E04\u0E25\u0E49\u0E21\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E1A / \u0E1A\u0E38\u0E0A\u0E0A\u0E34\u0E48\u0E07,\u0E25\u0E47\u0E2D\u0E01\u0E19\u0E31\u0E17 / \u0E23\u0E32\u0E07\u0E0B\u0E35 / \u0E04\u0E2D\u0E19\u0E40\u0E19\u0E04\u0E40\u0E15\u0E2D\u0E23\u0E4C / \u0E04\u0E38\u0E1B\u0E1B\u0E34\u0E49\u0E07) \u0E04\u0E33\u0E19\u0E27\u0E13\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34\u0E08\u0E32\u0E01\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E17\u0E48\u0E2D + \u0E08\u0E33\u0E19\u0E27\u0E19 PULL BOX", React.createElement("br", null), "* \u0E2D\u0E22\u0E32\u0E01\u0E04\u0E34\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E0A\u0E34\u0E49\u0E19\u0E15\u0E48\u0E2D\u0E17\u0E48\u0E2D 1 \u0E17\u0E48\u0E2D\u0E19 \u0E43\u0E2B\u0E49\u0E01\u0E23\u0E2D\u0E01\u0E0A\u0E48\u0E2D\u0E07 \"\u0E0A\u0E34\u0E49\u0E19/\u0E17\u0E48\u0E2D\u0E19\" \u0E43\u0E19\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07 \u2014 \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07\u0E44\u0E27\u0E49\u0E04\u0E37\u0E2D\u0E43\u0E0A\u0E49\u0E01\u0E0E\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34", React.createElement("br", null), "* \u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19\u0E17\u0E35\u0E48\u0E43\u0E1A\u0E43\u0E2B\u0E21\u0E48\u0E17\u0E38\u0E01\u0E43\u0E1A\u0E43\u0E0A\u0E49 \u0E15\u0E31\u0E49\u0E07\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48 \u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 \u203A \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E17\u0E48\u0E2D\u0E23\u0E49\u0E2D\u0E22\u0E2A\u0E32\u0E22 (\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E16\u0E2D\u0E14\u0E44\u0E27\u0E49\u0E41\u0E25\u0E49\u0E27\u0E44\u0E21\u0E48\u0E02\u0E22\u0E31\u0E1A\u0E15\u0E32\u0E21)", condEdited && React.createElement("button", {
+    onClick: useCondDefault,
+    title: "\u0E17\u0E34\u0E49\u0E07\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E41\u0E01\u0E49\u0E44\u0E27\u0E49\u0E43\u0E19\u0E43\u0E1A\u0E19\u0E35\u0E49 \u0E41\u0E25\u0E49\u0E27\u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19\u0E02\u0E2D\u0E07\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17",
+    style: {
+      marginLeft: 8,
+      padding: "3px 9px",
+      borderRadius: 99,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-2)",
+      fontSize: 11,
+      fontWeight: 600,
+      cursor: "pointer",
+      fontFamily: "inherit"
+    }
+  }, "\u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19\u0E02\u0E2D\u0E07\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17")), React.createElement("button", {
     onClick: () => setAdvC(v => !v),
     style: {
       marginTop: 8,

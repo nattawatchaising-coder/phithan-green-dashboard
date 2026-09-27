@@ -952,6 +952,70 @@ function useAmpacityStore() {
     reset
   };
 }
+const SF_COND_KEY = "solarflow_conduit_def_v1";
+function _condLsGet() {
+  try {
+    const s = localStorage.getItem(SF_COND_KEY);
+    return s ? JSON.parse(s) || {} : {};
+  } catch (e) {
+    return {};
+  }
+}
+const _condNorm = v => ({
+  per: (v || {}).per || {},
+  spare: (v || {}).spare || {}
+});
+function useConduitDefaults() {
+  const [val, setVal] = React.useState(() => _condNorm(_FB() ? {} : _condLsGet()));
+  const [loading, setLoading] = React.useState(_FB());
+  React.useEffect(() => {
+    if (!_FB()) {
+      setLoading(false);
+      return;
+    }
+    const ref = _fbr("conduitDefaults");
+    const h = ref.on("value", snap => {
+      setVal(_condNorm(snap.val()));
+      setLoading(false);
+    }, () => setLoading(false));
+    return () => ref.off("value", h);
+  }, []);
+  const setCell = React.useCallback((kind, key, v) => {
+    const path = "conduitDefaults/" + kind + "/" + key;
+    const blank = v === "" || v === null || v === undefined;
+    if (_FB()) {
+      if (blank) _fbRem(path);else _fbSet(path, String(v));
+      return;
+    }
+    setVal(p => {
+      const next = {
+        per: Object.assign({}, p.per),
+        spare: Object.assign({}, p.spare)
+      };
+      if (blank) delete next[kind][key];else next[kind][key] = String(v);
+      _lsSet(SF_COND_KEY, next);
+      return next;
+    });
+  }, []);
+  const reset = React.useCallback(() => {
+    if (_FB()) {
+      _fbRem("conduitDefaults");
+    } else {
+      const e = {
+        per: {},
+        spare: {}
+      };
+      _lsSet(SF_COND_KEY, e);
+      setVal(e);
+    }
+  }, []);
+  return {
+    val,
+    loading,
+    setCell,
+    reset
+  };
+}
 function jobMatchQ(j, q) {
   if (!q) return true;
   return ((j.name || "") + (j.code || "") + (j.province || "") + (j.phone || "") + (j.brand || "") + (j.address || "")).toLowerCase().includes(q);
@@ -963,6 +1027,7 @@ Object.assign(window, {
   useBrandStore,
   usePriceStore,
   useAmpacityStore,
+  useConduitDefaults,
   blankJob,
   blankItem,
   blankTech,

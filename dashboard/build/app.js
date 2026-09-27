@@ -250,6 +250,7 @@ function App() {
   const notif = useNotifStore();
   const priceStore = usePriceStore();
   const ampStore = useAmpacityStore();
+  const condStore = useConduitDefaults();
   const apptStore = useSurveyApptStore();
   const leadStore = useSurveyLeadStore();
   const quoteStore = useQuoteStore();
@@ -592,6 +593,9 @@ function App() {
   React.useEffect(() => {
     if (window.BOQ && window.BOQ.setAmpacity) window.BOQ.setAmpacity(ampStore.overrides || {});
   }, [ampStore.overrides]);
+  React.useEffect(() => {
+    if (window.BOQ && window.BOQ.setConduitDefaults) window.BOQ.setConduitDefaults(condStore.val);
+  }, [condStore.val]);
   const closeSidebar = () => setSidebarOpen(false);
   const openJob = j => setSelected(j.id);
   const openSurvey = (j, appt) => {
@@ -1086,6 +1090,7 @@ function App() {
     jobs: jobs,
     priceStore: priceStore,
     ampStore: ampStore,
+    condStore: condStore,
     canManagePrices: can(role, "price")
   }) : view === "dispatch" ? React.createElement(DispatchView, {
     appts: apptStore.appts,

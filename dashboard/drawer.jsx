@@ -180,7 +180,7 @@ function StockShopModal({ stock, job, byName, onClose }) {
   // แตก BOQ ของงานเป็นรายการแบน + จับคู่สต็อก
   const boqLines = React.useMemo(() => {
     if (!job || !job.boq || !window.BOQ) return [];
-    const b = Object.assign(window.BOQ.blankBOQ(job), job.boq);
+    const b = window.BOQ.mergeBOQ(job);
     let res; try { res = window.BOQ.calcBOQ(b); } catch (e) { return []; }
     const agg = {};
     (res.groups || []).forEach((g) => (g.items || []).forEach((it) => {

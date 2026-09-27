@@ -182,6 +182,7 @@ function App() {
   const notif = useNotifStore();
   const priceStore = usePriceStore();
   const ampStore = useAmpacityStore();
+  const condStore = useConduitDefaults();   // ค่าตั้งต้นอุปกรณ์ท่อร้อยสายของบริษัท
   const apptStore = useSurveyApptStore();
   const leadStore = useSurveyLeadStore();   // ลูกค้าที่ขอให้ไปสำรวจ — แยกจากฐานข้อมูลงาน
   const quoteStore = useQuoteStore();       // ใบเสนอราคา — แขวนได้ทั้งกับลูกค้าสำรวจและกับงาน
@@ -459,6 +460,12 @@ function App() {
   React.useEffect(() => {
     if (window.BOQ && window.BOQ.setAmpacity) window.BOQ.setAmpacity(ampStore.overrides || {});
   }, [ampStore.overrides]);
+
+  /* ค่าตั้งต้นอุปกรณ์ท่อร้อยสาย → ใบ BOQ ใหม่ทุกใบเริ่มจากค่านี้
+     ใบที่ถอดไว้แล้วไม่ขยับตาม เพราะ BOQ.mergeBOQ ให้ของที่บันทึกไว้ชนะเสมอ */
+  React.useEffect(() => {
+    if (window.BOQ && window.BOQ.setConduitDefaults) window.BOQ.setConduitDefaults(condStore.val);
+  }, [condStore.val]);
 
   const closeSidebar = () => setSidebarOpen(false);
   const openJob = (j) => setSelected(j.id);
@@ -825,7 +832,7 @@ function App() {
       <main className="app-main">
         {view === "stock" ? (
           <StockView stock={stock} onMenuOpen={() => setSidebarOpen(true)} currentUser={auth.current} jobs={jobs}
-            priceStore={priceStore} ampStore={ampStore} canManagePrices={can(role, "price")} />
+            priceStore={priceStore} ampStore={ampStore} condStore={condStore} canManagePrices={can(role, "price")} />
         ) : view === "dispatch" ? (
           <DispatchView appts={apptStore.appts} jobs={jobs} techs={techStore.techs} store={apptStore} leadStore={leadStore}
             onMenuOpen={() => setSidebarOpen(true)} onOpenJob={openJob} />

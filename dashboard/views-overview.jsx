@@ -218,7 +218,7 @@ function _addDaysISO(iso, n) {
 function jobStockShortages(job, stockItems, moves) {
   if (!job || !window.BOQ) return [];
   let res;
-  try { res = window.BOQ.calcBOQ(Object.assign(window.BOQ.blankBOQ(job), job.boq || {})); }
+  try { res = window.BOQ.calcBOQ(window.BOQ.mergeBOQ(job)); }
   catch (e) { return []; }
   const byName = {};
   (stockItems || []).forEach((it) => { if (it.name) byName[_shortNorm(it.name)] = it; });

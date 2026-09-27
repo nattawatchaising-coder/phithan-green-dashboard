@@ -1168,6 +1168,37 @@
     return { totalArea: total, hdpe: find(HDPE_TABLE, function (r) { return r.mm + "mm"; }), imc: find(IMC_CONDUIT, function (r) { return r.sz; }) };
   }
 
+  /* ══════════════════════════════════════════════════
+     ค่าตั้งต้นอุปกรณ์ท่อร้อยสายของบริษัท — ตั้งครั้งเดียวที่หน้าคลังสินค้า ใช้กับใบใหม่ทุกใบ
+     ท่าเดียวกับตารางพิกัดกระแส (setAmpacity) คือแอปโหลดจาก RTDB แล้วยัดเข้ามาที่นี่ตอนบูต
+
+     ⚠ ใบที่ถอดไว้แล้วต้องไม่ขยับตามค่าตั้งต้นที่มาแก้ทีหลัง — ใบเสนอราคาที่ส่งลูกค้าไปแล้ว
+       เปลี่ยนจำนวนเองไม่ได้ · กติกานั้นอยู่ใน mergeBOQ ไม่ใช่ที่นี่
+     ══════════════════════════════════════════════════ */
+  const CONDUIT_SPARE_FIXED = { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10, upStraight: 10, upClamp: 10, upConnector: 10 };
+  const CONDUIT_DEF = { per: {}, spare: {} };
+  function setConduitDefaults(d) {
+    const v = d || {};
+    CONDUIT_DEF.per = Object.assign({}, v.per);
+    CONDUIT_DEF.spare = Object.assign({}, v.spare);
+  }
+  function conduitDefaults() {
+    return { per: Object.assign({}, CONDUIT_DEF.per), spare: Object.assign({}, CONDUIT_SPARE_FIXED, CONDUIT_DEF.spare) };
+  }
+
+  /* ใบ BOQ ที่พร้อมใช้ของงานหนึ่ง = ค่าเริ่มต้น ทับด้วยของที่บันทึกไว้
+     ใบที่เคยถอดไว้แล้วได้ค่าอุปกรณ์ท่อของตัวเองเสมอ ไม่รับค่าตั้งต้นของบริษัทที่มาแก้ทีหลัง
+     (ใบเก่าที่ยังไม่มีคีย์ conduitPer แปลว่าถอดไว้ตอนที่ยังไม่มีฟีเจอร์นี้ = ใช้กฎอัตโนมัติ) */
+  function mergeBOQ(job) {
+    const base = blankBOQ(job);
+    const saved = (job || {}).boq;
+    if (!saved) return base;
+    const out = Object.assign(base, saved);
+    out.conduitPer = Object.assign({}, saved.conduitPer);
+    out.conduitSpare = Object.assign({}, CONDUIT_SPARE_FIXED, saved.conduitSpare);
+    return out;
+  }
+
   function blankBOQ(job) {
     job = job || {};
     return {
@@ -1213,10 +1244,10 @@
       laborMode: "split",                         // split = แยกรายการงาน · lump = เหมารวม
       laborLump: { basis: "w", rate: 0, note: "" },   // basis: w(บาท/วัตต์ · ที่ใช้กันจริง) / job / kw / panel
       permit: null,
-      conduitSpare: { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10, upStraight: 10, upClamp: 10, upConnector: 10 },
-      /* จำนวนอุปกรณ์ต่อท่อ 1 ท่อน — ว่างทั้งก้อน = ใช้กฎอัตโนมัติ (ดูคำอธิบายใน calcBOQ)
-         ห้ามใส่ตัวเลขตั้งต้นที่นี่ เพราะจะทำให้ทุกงานเปลี่ยนวิธีคิดพร้อมกัน */
-      conduitPer: {},
+      /* % เผื่อ และ ชิ้น/ท่อน ของอุปกรณ์ท่อ — เริ่มจากค่าตั้งต้นของบริษัท (ตั้งที่หน้าคลังสินค้า)
+         ใบที่ถอดไว้แล้วไม่ไหลตามค่าตั้งต้นที่มาแก้ทีหลัง ดู mergeBOQ */
+      conduitSpare: Object.assign({}, CONDUIT_SPARE_FIXED, CONDUIT_DEF.spare),
+      conduitPer: Object.assign({}, CONDUIT_DEF.per),
       // งานเพิ่มเติม (Input) — โครงสร้างบนหลังคา ถอดวัสดุตามสูตร (ว่าง = ไม่ใช้/ไม่ถอด)
       // งานเพิ่มเติม (Input) — โครงสร้างบนหลังคา ถอดวัสดุตามสูตร (ว่าง = ไม่ใช้/ไม่ถอด)
       struct: {
@@ -2121,7 +2152,7 @@
     return Math.ceil(n / per);
   }
 
-  window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
+  window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, mergeBOQ, setConduitDefaults, conduitDefaults, CONDUIT_SPARE_FIXED, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, PERF_SIZES, TRAY_KINDS, TRAY_KIND_KEYS, trayKindOf, trayNorm, trayAlias, hdgName,
     optimizerQty, optimizerFits, DCAC_LIMIT, WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
     COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings,

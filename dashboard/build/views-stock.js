@@ -185,6 +185,7 @@ function StockView({
   jobs,
   priceStore,
   ampStore,
+  condStore,
   canManagePrices
 }) {
   const SF = window.SF;
@@ -193,6 +194,7 @@ function StockView({
   const [tab, setTab] = React.useState("stock");
   const isPrices = tab === "prices" && canManagePrices;
   const isAmp = tab === "amp" && canManagePrices;
+  const isCond = tab === "cond" && canManagePrices;
   const [cat, setCat] = React.useState("all");
   const [sub, setSub] = React.useState("all");
   const [view, setView] = React.useState(() => localStorage.getItem("sf_stock_view") || "grid");
@@ -525,7 +527,12 @@ function StockView({
     onClick: () => setTab("amp"),
     label: "\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E2A\u0E32\u0E22 \u0E27\u0E2A\u0E17.",
     color: "#F59E0B"
-  })), !isMobile && !isAmp && React.createElement("button", {
+  }), React.createElement(CatChip, {
+    active: tab === "cond",
+    onClick: () => setTab("cond"),
+    label: "\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E17\u0E48\u0E2D\u0E23\u0E49\u0E2D\u0E22\u0E2A\u0E32\u0E22",
+    color: "#0EA5E9"
+  })), !isMobile && !isAmp && !isCond && React.createElement("button", {
     onClick: toggleCat,
     title: catOpen ? "ซ่อนตัวกรองหมวด" : "แสดงตัวกรองหมวด",
     style: {
@@ -653,6 +660,10 @@ function StockView({
     className: "app-content"
   }, React.createElement(AmpacityEditor, {
     ampStore: ampStore
+  })) : isCond ? React.createElement("div", {
+    className: "app-content"
+  }, React.createElement(ConduitDefaultsEditor, {
+    condStore: condStore
   })) : isPrices ? React.createElement("div", {
     className: "app-content"
   }, React.createElement(PricePanel, {
@@ -3263,6 +3274,197 @@ function ItemModal({
       cursor: "pointer"
     }
   }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01"))));
+}
+const COND_DEF_ROWS = [{
+  grp: "IMC",
+  key: "clamp",
+  th: "แคล้มประกับ",
+  auto: "1 ตัว/เมตร"
+}, {
+  grp: "IMC",
+  key: "bushing",
+  th: "บุชชิ่ง/ล็อกนัท",
+  auto: "8 + จำนวนท่อน"
+}, {
+  grp: "IMC",
+  key: "cchannel",
+  th: "รางซี",
+  auto: "0.2 ม./แคล้ม ÷ ราง 1.2 ม."
+}, {
+  grp: "IMC",
+  key: "connector",
+  th: "คอนเนคเตอร์",
+  auto: "10 + 2 ต่อ PULL BOX เหล็ก"
+}, {
+  grp: "IMC",
+  key: "coupling",
+  th: "คุปปิ้ง",
+  auto: "ครึ่งหนึ่งของท่อน + คอนเนคเตอร์"
+}, {
+  grp: "uPVC",
+  key: "upStraight",
+  th: "ข้อต่อตรง",
+  auto: "จำนวนท่อน + 4"
+}, {
+  grp: "uPVC",
+  key: "upClamp",
+  th: "แคลมป์ก้ามปู",
+  auto: "ทุก 60 ซม."
+}, {
+  grp: "uPVC",
+  key: "upConnector",
+  th: "คอนเน็ตเตอร์ uPVC",
+  auto: "8 + แบต/สำรอง + 3 ต่อ PULL BOX uPVC"
+}];
+function ConduitDefaultsEditor({
+  condStore
+}) {
+  const FIX = (window.BOQ || {}).CONDUIT_SPARE_FIXED || {};
+  const val = condStore && condStore.val || {
+    per: {},
+    spare: {}
+  };
+  const per = val.per || {},
+    spare = val.spare || {};
+  const set = (kind, k, v) => condStore && condStore.setCell(kind, k, v);
+  const nEdited = COND_DEF_ROWS.filter(r => per[r.key] != null || spare[r.key] != null).length;
+  const cell = {
+    padding: "7px 9px",
+    borderBottom: "1px solid var(--border)",
+    fontSize: 12.5
+  };
+  const num = {
+    background: "var(--surface2)",
+    border: "1px solid var(--border-strong)",
+    color: "var(--text-1)",
+    fontFamily: "inherit",
+    fontSize: 13,
+    padding: "7px 9px",
+    borderRadius: 9,
+    outline: "none",
+    width: "100%",
+    textAlign: "right"
+  };
+  const row = (r, i) => {
+    const on = per[r.key] != null && per[r.key] !== "";
+    return React.createElement("tr", {
+      key: r.key,
+      style: {
+        background: i % 2 ? "var(--surface2)" : "transparent"
+      }
+    }, React.createElement("td", {
+      style: Object.assign({}, cell, {
+        fontWeight: 600
+      })
+    }, r.th, React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        color: "var(--text-3)",
+        marginTop: 2
+      }
+    }, on ? "แทนกฎอัตโนมัติ" : "อัตโนมัติ " + r.auto)), React.createElement("td", {
+      style: Object.assign({}, cell, {
+        width: 120
+      })
+    }, React.createElement("input", {
+      type: "number",
+      min: 0,
+      step: "any",
+      placeholder: "\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34",
+      style: num,
+      value: on ? per[r.key] : "",
+      onChange: e => set("per", r.key, e.target.value)
+    })), React.createElement("td", {
+      style: Object.assign({}, cell, {
+        width: 100
+      })
+    }, React.createElement("input", {
+      type: "number",
+      placeholder: String(FIX[r.key] != null ? FIX[r.key] : 10),
+      style: num,
+      value: spare[r.key] != null ? spare[r.key] : "",
+      onChange: e => set("spare", r.key, e.target.value)
+    })));
+  };
+  const table = grp => React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 12,
+      overflow: "hidden"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "9px 11px",
+      fontSize: 12.5,
+      fontWeight: 700,
+      background: "var(--surface2)"
+    }
+  }, "\u0E17\u0E48\u0E2D ", grp), React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse"
+    }
+  }, React.createElement("thead", null, React.createElement("tr", {
+    style: {
+      fontSize: 10.5,
+      color: "var(--text-3)",
+      textAlign: "right"
+    }
+  }, React.createElement("th", {
+    style: Object.assign({}, cell, {
+      textAlign: "left",
+      fontWeight: 700
+    })
+  }, "\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C"), React.createElement("th", {
+    style: Object.assign({}, cell, {
+      fontWeight: 700
+    })
+  }, "\u0E0A\u0E34\u0E49\u0E19/\u0E17\u0E48\u0E2D\u0E19"), React.createElement("th", {
+    style: Object.assign({}, cell, {
+      fontWeight: 700
+    })
+  }, "% \u0E40\u0E1C\u0E37\u0E48\u0E2D"))), React.createElement("tbody", null, COND_DEF_ROWS.filter(r => r.grp === grp).map(row))));
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 12,
+      maxWidth: 820
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-2)",
+      lineHeight: 1.6
+    }
+  }, "\u0E15\u0E31\u0E49\u0E07\u0E04\u0E23\u0E31\u0E49\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48 \u2014 \u0E43\u0E1A\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38 ", React.createElement("b", null, "\u0E43\u0E1A\u0E43\u0E2B\u0E21\u0E48"), " \u0E17\u0E38\u0E01\u0E43\u0E1A\u0E08\u0E30\u0E40\u0E23\u0E34\u0E48\u0E21\u0E08\u0E32\u0E01\u0E04\u0E48\u0E32\u0E19\u0E35\u0E49 \u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E43\u0E2B\u0E21\u0E48\u0E17\u0E38\u0E01\u0E07\u0E32\u0E19 \u0E41\u0E01\u0E49\u0E23\u0E32\u0E22\u0E43\u0E1A\u0E44\u0E14\u0E49\u0E15\u0E32\u0E21\u0E1B\u0E01\u0E15\u0E34", React.createElement("br", null), "\u0E0A\u0E48\u0E2D\u0E07 ", React.createElement("b", null, "\u0E0A\u0E34\u0E49\u0E19/\u0E17\u0E48\u0E2D\u0E19"), " \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07 = \u0E43\u0E0A\u0E49\u0E01\u0E0E\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 \xB7 \u0E0A\u0E48\u0E2D\u0E07 ", React.createElement("b", null, "% \u0E40\u0E1C\u0E37\u0E48\u0E2D"), " \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07 = \u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E40\u0E14\u0E34\u0E21\u0E02\u0E2D\u0E07\u0E23\u0E30\u0E1A\u0E1A", React.createElement("br", null), React.createElement("span", {
+    style: {
+      color: "var(--text-3)"
+    }
+  }, "\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E16\u0E2D\u0E14\u0E44\u0E27\u0E49\u0E41\u0E25\u0E49\u0E27\u0E44\u0E21\u0E48\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E15\u0E32\u0E21\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E41\u0E01\u0E49\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48 \u2014 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2A\u0E48\u0E07\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27\u0E08\u0E30\u0E44\u0E14\u0E49\u0E44\u0E21\u0E48\u0E02\u0E22\u0E31\u0E1A\u0E08\u0E33\u0E19\u0E27\u0E19\u0E40\u0E2D\u0E07")), table("IMC"), table("uPVC"), React.createElement("div", null, React.createElement("button", {
+    onClick: () => {
+      window.askConfirm({
+        title: "คืนค่าตั้งต้นอุปกรณ์ท่อร้อยสาย?",
+        body: "ค่าที่ตั้งไว้ " + nEdited + " รายการ จะกลับไปใช้กฎอัตโนมัติและ % เผื่อเดิมของระบบ",
+        ok: "คืนค่าตั้งต้น"
+      }).then(ok => {
+        if (ok && condStore) condStore.reset();
+      });
+    },
+    disabled: !nEdited,
+    style: {
+      padding: "8px 14px",
+      borderRadius: 10,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      color: nEdited ? "var(--text-2)" : "var(--text-3)",
+      fontSize: 12.5,
+      fontWeight: 600,
+      cursor: nEdited ? "pointer" : "default",
+      fontFamily: "inherit"
+    }
+  }, "\u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14", nEdited ? " (" + nEdited + ")" : "")));
 }
 function AmpacityEditor({
   ampStore

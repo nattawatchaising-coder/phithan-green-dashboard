@@ -384,7 +384,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const baht = (n) => (Math.round((+n || 0) * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [b, setB] = React.useState(() => {
-    const base = job && job.boq ? Object.assign(window.BOQ.blankBOQ(job), job.boq) : window.BOQ.blankBOQ(job);
+    const base = window.BOQ.mergeBOQ(job);
     // สเปคหลักดึงจากข้อมูลงานเสมอ (ฐานข้อมูลเป็นตัวตั้ง) — แบต/Backup/ออฟติไมเซอร์/จำนวนแผง
     if (job) {
       if (job.panels != null && job.panels !== "") base.panels = job.panels;
@@ -746,6 +746,15 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
   const csp = Object.assign({}, SPARE_DEF, b.conduitSpare);
   const cpr = b.conduitPer || {};
+  /* กลับไปใช้ค่าตั้งต้นของบริษัท (ตั้งที่หน้าคลังสินค้า › อุปกรณ์ท่อร้อยสาย)
+     ใบนี้เก็บค่าของตัวเองไว้ตลอด จึงต้องมีทางกดคืน ไม่งั้นแก้แล้วกลับไม่ได้ */
+  const condDef = (window.BOQ.conduitDefaults && window.BOQ.conduitDefaults()) || { per: {}, spare: {} };
+  const condEdited = Object.keys(condDef.per).concat(Object.keys(condDef.spare))
+    .concat(Object.keys(cpr), Object.keys(b.conduitSpare || {}))
+    .some((k) => String((cpr[k] != null ? cpr[k] : "")) !== String(condDef.per[k] != null ? condDef.per[k] : "")
+      || String(csp[k] != null ? csp[k] : "") !== String(condDef.spare[k] != null ? condDef.spare[k] : ""));
+  const useCondDefault = () => setB((p) => Object.assign({}, p, {
+    conduitPer: Object.assign({}, condDef.per), conduitSpare: Object.assign({}, condDef.spare) }));
 
   /* ── หมวดของงานโครงการ (ตู้ไฟ / ปั๊ม / ถัง / ท่อ) ──
      โครงสร้างเดียวกันทุกหมวด: จำนวนต่อรายการ + อุปกรณ์ประกอบที่พิมพ์เพิ่มเอง
@@ -2747,6 +2756,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             <div style={{ marginTop: 12, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
               * อุปกรณ์ IMC (แคล้มประกับ / บุชชิ่ง,ล็อกนัท / รางซี / คอนเนคเตอร์ / คุปปิ้ง) คำนวณอัตโนมัติจากความยาวท่อ + จำนวน PULL BOX
               <br />* อยากคิดเป็นชิ้นต่อท่อ 1 ท่อน ให้กรอกช่อง "ชิ้น/ท่อน" ในตั้งค่าด้านล่าง — เว้นว่างไว้คือใช้กฎอัตโนมัติ
+              <br />* ค่าตั้งต้นที่ใบใหม่ทุกใบใช้ ตั้งได้ที่ คลังสินค้า › อุปกรณ์ท่อร้อยสาย (ใบที่ถอดไว้แล้วไม่ขยับตาม)
+              {condEdited && (
+                <button onClick={useCondDefault} title="ทิ้งค่าที่แก้ไว้ในใบนี้ แล้วใช้ค่าตั้งต้นของบริษัท"
+                  style={{ marginLeft: 8, padding: "3px 9px", borderRadius: 99, border: "1px solid var(--border-strong)",
+                    background: "var(--surface)", color: "var(--text-2)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                  ใช้ค่าตั้งต้นของบริษัท
+                </button>
+              )}
             </div>
             {/* ตั้งค่า IMC */}
             <button onClick={() => setAdvC((v) => !v)} style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", color: "var(--text-2)", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>

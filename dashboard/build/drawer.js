@@ -434,7 +434,7 @@ function StockShopModal({
   }, [allItems]);
   const boqLines = React.useMemo(() => {
     if (!job || !job.boq || !window.BOQ) return [];
-    const b = Object.assign(window.BOQ.blankBOQ(job), job.boq);
+    const b = window.BOQ.mergeBOQ(job);
     let res;
     try {
       res = window.BOQ.calcBOQ(b);

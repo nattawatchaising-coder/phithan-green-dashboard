@@ -80,13 +80,14 @@ function StockKpi({ label, value, unit, icon, accent, sub, active, onClick }) {
   );
 }
 
-function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStore, ampStore, canManagePrices }) {
+function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStore, ampStore, condStore, canManagePrices }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const byName = (currentUser && currentUser.name) || "-";
-  const [tab, setTab] = React.useState("stock"); // "stock" | "prices" | "amp"
+  const [tab, setTab] = React.useState("stock"); // "stock" | "prices" | "amp" | "cond"
   const isPrices = tab === "prices" && canManagePrices;
   const isAmp = tab === "amp" && canManagePrices;
+  const isCond = tab === "cond" && canManagePrices;
   const [cat, setCat] = React.useState("all");
   const [sub, setSub] = React.useState("all");   // หมวดย่อยภายในหมวดหลักที่เลือก
   const [view, setView] = React.useState(() => localStorage.getItem("sf_stock_view") || "grid");   // grid = การ์ดมีรูป · table = ตาราง
@@ -308,9 +309,10 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                 <CatChip active={tab === "stock"} onClick={() => setTab("stock")} label="สต็อก" color="#3B82F6" />
                 <CatChip active={tab === "prices"} onClick={() => setTab("prices")} label="ราคา BOQ" color="#EC4899" />
                 <CatChip active={tab === "amp"} onClick={() => setTab("amp")} label="พิกัดสาย วสท." color="#F59E0B" />
+                <CatChip active={tab === "cond"} onClick={() => setTab("cond")} label="อุปกรณ์ท่อร้อยสาย" color="#0EA5E9" />
               </React.Fragment>
             )}
-            {!isMobile && !isAmp && (
+            {!isMobile && !isAmp && !isCond && (
               <button onClick={toggleCat} title={catOpen ? "ซ่อนตัวกรองหมวด" : "แสดงตัวกรองหมวด"}
                 style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 13px", borderRadius: 99,
                   border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)",
@@ -361,6 +363,10 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
       {isAmp ? (
         <div className="app-content">
           <AmpacityEditor ampStore={ampStore} />
+        </div>
+      ) : isCond ? (
+        <div className="app-content">
+          <ConduitDefaultsEditor condStore={condStore} />
         </div>
       ) : isPrices ? (
         <div className="app-content">
@@ -1183,6 +1189,92 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
 }
 
 /* ── ตัวแก้ตารางพิกัดกระแสสายไฟ (วสท.) — ฉนวน × วิธีเดินสาย × [กลุ่ม·จำนวนตัวนำ·แกน] × ขนาด ── */
+/* ══════════════════════════════════════════════════
+   ค่าตั้งต้นอุปกรณ์ท่อร้อยสายของบริษัท — ตั้งครั้งเดียว ใบ BOQ ใหม่ทุกใบเริ่มจากค่านี้
+   แก้รายใบได้ตามปกติในหน้าถอดวัสดุ
+
+   ⚠ ใบที่ถอดไว้แล้วไม่ขยับตามค่าที่แก้ที่นี่ (BOQ.mergeBOQ ให้ของที่บันทึกไว้ชนะ)
+     ตั้งใจให้เป็นแบบนั้น — ใบเสนอราคาที่ส่งลูกค้าไปแล้วเปลี่ยนจำนวนเองไม่ได้
+   ══════════════════════════════════════════════════ */
+const COND_DEF_ROWS = [
+  { grp: "IMC", key: "clamp", th: "แคล้มประกับ", auto: "1 ตัว/เมตร" },
+  { grp: "IMC", key: "bushing", th: "บุชชิ่ง/ล็อกนัท", auto: "8 + จำนวนท่อน" },
+  { grp: "IMC", key: "cchannel", th: "รางซี", auto: "0.2 ม./แคล้ม ÷ ราง 1.2 ม." },
+  { grp: "IMC", key: "connector", th: "คอนเนคเตอร์", auto: "10 + 2 ต่อ PULL BOX เหล็ก" },
+  { grp: "IMC", key: "coupling", th: "คุปปิ้ง", auto: "ครึ่งหนึ่งของท่อน + คอนเนคเตอร์" },
+  { grp: "uPVC", key: "upStraight", th: "ข้อต่อตรง", auto: "จำนวนท่อน + 4" },
+  { grp: "uPVC", key: "upClamp", th: "แคลมป์ก้ามปู", auto: "ทุก 60 ซม." },
+  { grp: "uPVC", key: "upConnector", th: "คอนเน็ตเตอร์ uPVC", auto: "8 + แบต/สำรอง + 3 ต่อ PULL BOX uPVC" },
+];
+
+function ConduitDefaultsEditor({ condStore }) {
+  const FIX = (window.BOQ || {}).CONDUIT_SPARE_FIXED || {};
+  const val = (condStore && condStore.val) || { per: {}, spare: {} };
+  const per = val.per || {}, spare = val.spare || {};
+  const set = (kind, k, v) => condStore && condStore.setCell(kind, k, v);
+  const nEdited = COND_DEF_ROWS.filter((r) => per[r.key] != null || spare[r.key] != null).length;
+  const cell = { padding: "7px 9px", borderBottom: "1px solid var(--border)", fontSize: 12.5 };
+  const num = { background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-1)",
+    fontFamily: "inherit", fontSize: 13, padding: "7px 9px", borderRadius: 9, outline: "none", width: "100%", textAlign: "right" };
+
+  const row = (r, i) => {
+    const on = per[r.key] != null && per[r.key] !== "";
+    return (
+      <tr key={r.key} style={{ background: i % 2 ? "var(--surface2)" : "transparent" }}>
+        <td style={Object.assign({}, cell, { fontWeight: 600 })}>{r.th}
+          <div style={{ fontSize: 10.5, color: "var(--text-3)", marginTop: 2 }}>{on ? "แทนกฎอัตโนมัติ" : "อัตโนมัติ " + r.auto}</div>
+        </td>
+        <td style={Object.assign({}, cell, { width: 120 })}>
+          <input type="number" min={0} step="any" placeholder="อัตโนมัติ" style={num}
+            value={on ? per[r.key] : ""} onChange={(e) => set("per", r.key, e.target.value)} />
+        </td>
+        <td style={Object.assign({}, cell, { width: 100 })}>
+          <input type="number" placeholder={String(FIX[r.key] != null ? FIX[r.key] : 10)} style={num}
+            value={spare[r.key] != null ? spare[r.key] : ""} onChange={(e) => set("spare", r.key, e.target.value)} />
+        </td>
+      </tr>
+    );
+  };
+
+  const table = (grp) => (
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
+      <div style={{ padding: "9px 11px", fontSize: 12.5, fontWeight: 700, background: "var(--surface2)" }}>ท่อ {grp}</div>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr style={{ fontSize: 10.5, color: "var(--text-3)", textAlign: "right" }}>
+            <th style={Object.assign({}, cell, { textAlign: "left", fontWeight: 700 })}>อุปกรณ์</th>
+            <th style={Object.assign({}, cell, { fontWeight: 700 })}>ชิ้น/ท่อน</th>
+            <th style={Object.assign({}, cell, { fontWeight: 700 })}>% เผื่อ</th>
+          </tr>
+        </thead>
+        <tbody>{COND_DEF_ROWS.filter((r) => r.grp === grp).map(row)}</tbody>
+      </table>
+    </div>
+  );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 820 }}>
+      <div style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.6 }}>
+        ตั้งครั้งเดียวที่นี่ — ใบถอดวัสดุ <b>ใบใหม่</b> ทุกใบจะเริ่มจากค่านี้ ไม่ต้องพิมพ์ใหม่ทุกงาน แก้รายใบได้ตามปกติ
+        <br />ช่อง <b>ชิ้น/ท่อน</b> เว้นว่าง = ใช้กฎอัตโนมัติ · ช่อง <b>% เผื่อ</b> เว้นว่าง = ใช้ค่าเดิมของระบบ
+        <br /><span style={{ color: "var(--text-3)" }}>ใบที่ถอดไว้แล้วไม่เปลี่ยนตามค่าที่แก้ที่นี่ — ใบที่ส่งลูกค้าไปแล้วจะได้ไม่ขยับจำนวนเอง</span>
+      </div>
+      {table("IMC")}
+      {table("uPVC")}
+      <div>
+        <button onClick={() => {
+          window.askConfirm({ title: "คืนค่าตั้งต้นอุปกรณ์ท่อร้อยสาย?", body: "ค่าที่ตั้งไว้ " + nEdited + " รายการ จะกลับไปใช้กฎอัตโนมัติและ % เผื่อเดิมของระบบ", ok: "คืนค่าตั้งต้น" })
+            .then((ok) => { if (ok && condStore) condStore.reset(); });
+        }} disabled={!nEdited}
+          style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)",
+            color: nEdited ? "var(--text-2)" : "var(--text-3)", fontSize: 12.5, fontWeight: 600, cursor: nEdited ? "pointer" : "default", fontFamily: "inherit" }}>
+          คืนค่าตั้งต้นทั้งหมด{nEdited ? " (" + nEdited + ")" : ""}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AmpacityEditor({ ampStore }) {
   const BOQ = window.BOQ || {};
   const sizes = BOQ.WIRE_SIZES || [];
