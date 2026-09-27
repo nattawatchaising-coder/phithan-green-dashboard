@@ -134,10 +134,8 @@ const PERMIT_TODO = {
 };
 const permitStageKey = j => j && j.permit && j.permit.status || "todo";
 const permitStageOf = key => (window.PERMIT_COLS || []).find(c => c.key === key) || PERMIT_TODO;
-const isBoardBoss = roles => (hasRole(roles, "lead") || hasRole(roles, "admin")) && can(roles, "viewAll");
-const usesFlowBoard = roles => isBoardBoss(roles) || isPermitOnly(roles);
-const NAV_HIDE_FOR_BOSS = ["leads", "permit"];
-const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm)).map(n => usesFlowBoard(roles) && NAV_HIDE_FOR_BOSS.indexOf(n.key) !== -1 ? Object.assign({}, n, {
+const NAV_IN_BOARD = ["leads", "permit"];
+const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm)).map(n => NAV_IN_BOARD.indexOf(n.key) !== -1 ? Object.assign({}, n, {
   hidden: true
 }) : n);
 const techKey = (j, known) => j.tech && (!known || known.has(j.tech)) ? j.tech : "__none";
