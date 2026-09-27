@@ -1222,6 +1222,9 @@ const RP_I18N = {
 /* ── ประกอบเนื้อรายงาน ── */
 function suReportHTML(D) {
   const job = D.job || {}, S = D.sys || {}, panel = D.panel || {}, inv = D.inv || {};
+  /* งานที่ใช้อินเวอร์เตอร์สองขนาด — null เมื่อใช้รุ่นเดียวทั้งงาน */
+  const inv2 = D.inv2 || null;
+  const inv2Count = inv2 ? Math.max(1, Math.round(scNum(S.inv2Count, 0))) : 0;
   const E = D.energy, L = D.life, roi = D.roi, R = D.roiCfg || {};
   const P = Object.assign(rpPickAll(), D.pick || {});
   /* ภาษาของเอกสาร — ประกอบเป็นภาษาไทยตามปกติทั้งใบ แล้วแปลทีเดียวตอนท้าย (ดู i18n.jsx)
@@ -1278,8 +1281,8 @@ function suReportHTML(D) {
           ["ประสิทธิภาพ", rpN(D.microSel.eff, 1) + " %"],
         ] : [["—", "ยังไม่ได้เลือก"]])
       : rpTable(["สเปคอินเวอร์เตอร์", "ค่า"], [
-          ["รุ่น", inv.model || "—"],
-          ["จำนวน", rpN(S.invCount || 1) + " ตัว"],
+          ["รุ่น", (inv.model || "—") + (inv2 ? "  +  " + inv2.model : "")],
+          ["จำนวน", rpN(S.invCount || 1) + " ตัว" + (inv2 ? " + " + rpN(inv2Count) + " ตัว = " + rpN((+S.invCount || 1) + inv2Count) + " ตัว" : "")],
           ["กำลัง AC ต่อตัว", rpN(inv.kw, 1) + " kW"],
           ["ช่วง MPPT", rpN(inv.mpptVmin) + " – " + rpN(inv.mpptVmax) + " V"],
           ["แรงดัน DC สูงสุด", rpN(inv.maxVdc) + " V"],
@@ -1287,7 +1290,14 @@ function suReportHTML(D) {
           ["กระแสลัดวงจรสูงสุด/MPPT", inv.maxIscA ? rpN(inv.maxIscA, 1) + " A" : "ไม่ระบุ"],
           ["จำนวนช่อง MPPT", rpN(inv.inputs) + " ช่อง"],
           ["ประสิทธิภาพ", scNum(inv.eff, 97.5) + " %"],
-        ])) + "</div></div>";
+        ].concat(inv2 ? [
+          /* รุ่นที่สองมีช่วงทำงานของตัวเอง ต้องพิมพ์ลงใบด้วย ไม่งั้นคนอ่านจะเอาเกณฑ์ของรุ่นแรกไปตรวจทั้งระบบ */
+          ["— รุ่นที่สอง —", inv2.model],
+          ["กำลัง AC ต่อตัว (รุ่นที่สอง)", rpN(inv2.kw, 1) + " kW"],
+          ["ช่วง MPPT (รุ่นที่สอง)", rpN(inv2.mpptVmin) + " – " + rpN(inv2.mpptVmax) + " V"],
+          ["แรงดัน DC สูงสุด (รุ่นที่สอง)", rpN(inv2.maxVdc) + " V"],
+          ["จำนวนช่อง MPPT (รุ่นที่สอง)", rpN(inv2.inputs) + " ช่อง"],
+        ] : []))) + "</div></div>";
 
   const groupTbl = rpTable(["ผืนหลังคา / กลุ่ม", "มุมเอียง", "ทิศ", "จำนวนแผง", "กำลัง kWp"],
     (D.groups || []).map((g) => [g.roofName + (g.side ? " · " + g.side : ""), g.tilt + "°", g.az + "°", g.count,

@@ -450,47 +450,142 @@ function scStringFuse(panel, nPar, nStrings) {
   }
   return out;
 }
-function scPinLayout(inv, nInv) {
-  const mpptPerInv = Math.max(1, Math.round(scNum(inv.inputs, 2)));
-  const phys = Math.max(1, Math.round(scNum(inv.strPerMppt, 2) || 2));
-  const n = Math.max(1, Math.round(scNum(nInv, 1)));
-  return {
-    mpptPerInv,
-    phys,
-    mppt: n * mpptPerInv,
-    pins: n * mpptPerInv * phys,
-    nInv: n
+function scInvUnits(inv, nInv, inv2, nInv2) {
+  const mk = (spec, n, from, out) => {
+    const mpptPerInv = Math.max(1, Math.round(scNum(spec.inputs, 2)));
+    const phys = Math.max(1, Math.round(scNum(spec.strPerMppt, 2) || 2));
+    for (let i = 0; i < n; i++) out.push({
+      spec,
+      from,
+      mpptPerInv,
+      phys,
+      mppt: mpptPerInv,
+      pins: mpptPerInv * phys
+    });
+    return out;
   };
+  const units = mk(inv || {}, Math.max(1, Math.round(scNum(nInv, 1))), 1, []);
+  const n2 = Math.max(0, Math.round(scNum(nInv2, 0)));
+  if (inv2 && n2 > 0) mk(inv2, n2, 2, units);
+  let mo = 0,
+    po = 0;
+  units.forEach((u, i) => {
+    u.no = i;
+    u.mpptFrom = mo;
+    u.pinFrom = po;
+    mo += u.mppt;
+    po += u.pins;
+  });
+  return units;
 }
-function scPinAddr(pin, inv, nInv) {
-  const L = scPinLayout(inv, nInv);
-  const mppt = Math.floor(pin / L.phys);
+function scPinLayout(inv, nInv, inv2, nInv2) {
+  const units = scInvUnits(inv, nInv, inv2, nInv2);
+  const last = units[units.length - 1];
+  const L = {
+    units: units,
+    nInv: units.length,
+    mppt: last.mpptFrom + last.mppt,
+    pins: last.pinFrom + last.pins,
+    mpptPerInv: units[0].mpptPerInv,
+    phys: units[0].phys,
+    mixed: units.some(u => u.from === 2)
+  };
+  L.unitOfMppt = m => {
+    for (let i = units.length - 1; i >= 0; i--) if (m >= units[i].mpptFrom) return units[i];
+    return units[0];
+  };
+  L.unitOfPin = pin => {
+    for (let i = units.length - 1; i >= 0; i--) if (pin >= units[i].pinFrom) return units[i];
+    return units[0];
+  };
+  L.physOf = m => L.unitOfMppt(m).phys;
+  L.pinAt = (m, slot) => {
+    const u = L.unitOfMppt(m);
+    return u.pinFrom + (m - u.mpptFrom) * u.phys + Math.min(u.phys - 1, Math.max(0, slot || 0));
+  };
+  L.mpptAt = pin => {
+    const u = L.unitOfPin(pin);
+    return u.mpptFrom + Math.floor((pin - u.pinFrom) / u.phys);
+  };
+  return L;
+}
+function scMpptOrder(L) {
+  if (!L.mixed) {
+    const a = [];
+    for (let i = 0; i < L.mppt; i++) a.push(i);
+    return a;
+  }
+  const out = [],
+    deep = Math.max.apply(null, L.units.map(u => u.mppt));
+  for (let k = 0; k < deep; k++) L.units.forEach(u => {
+    if (k < u.mppt) out.push(u.mpptFrom + k);
+  });
+  return out;
+}
+function scPinOrder(L) {
+  if (!L.mixed) {
+    const a = [];
+    for (let i = 0; i < L.pins; i++) a.push(i);
+    return a;
+  }
+  const order = scMpptOrder(L),
+    out = [];
+  const deep = Math.max.apply(null, L.units.map(u => u.phys));
+  for (let slot = 0; slot < deep; slot++) {
+    order.forEach(m => {
+      const u = L.unitOfMppt(m);
+      if (slot < u.phys) out.push(L.pinAt(m, slot));
+    });
+  }
+  return out;
+}
+function scPinAddr(pin, inv, nInv, inv2, nInv2) {
+  const L = inv && inv.units ? inv : scPinLayout(inv, nInv, inv2, nInv2);
+  const u = L.unitOfPin(pin);
+  const mppt = L.mpptAt(pin);
   return {
     pin,
     mppt,
-    inv: Math.floor(mppt / L.mpptPerInv),
-    mpptNo: mppt % L.mpptPerInv + 1,
-    inNo: pin % L.phys + 1
+    inv: u.no,
+    from: u.from,
+    mpptNo: mppt - u.mpptFrom + 1,
+    inNo: (pin - u.pinFrom) % u.phys + 1
   };
 }
-function scMpptName(pin, inv, nInv) {
-  const a = scPinAddr(pin, inv, nInv);
+function scMpptName(pin, inv, nInv, inv2, nInv2) {
+  const a = scPinAddr(pin, inv, nInv, inv2, nInv2);
   return "INV" + (a.inv + 1) + " / MPPT" + a.mpptNo + " / ช่อง" + a.inNo;
 }
 function scAutoStrings(groups, panel, inv, env, opt) {
   opt = opt || {};
-  const R = scSeriesRange(panel, inv, env, opt.optimizer);
   const nInv = Math.max(1, Math.round(scNum(opt.invCount, 1)));
-  const mpptPerInv = Math.max(1, Math.round(scNum(inv.inputs, 2)));
+  const inv2 = opt.inv2 || null;
+  const nInv2 = inv2 ? Math.max(0, Math.round(scNum(opt.inv2Count, 0))) : 0;
+  const LAY = scPinLayout(inv, nInv, inv2, nInv2);
+  const R0 = scSeriesRange(panel, inv, env, opt.optimizer);
+  let R = R0,
+    rangeWarn = "";
+  if (inv2 && nInv2 > 0) {
+    const R2 = scSeriesRange(panel, inv2, env, opt.optimizer);
+    const both = R0.ok.filter(r => R2.ok.some(x => x.n === r.n));
+    if (both.length) R = Object.assign({}, R0, {
+      ok: both
+    });else rangeWarn = "ไม่มีจำนวนแผงต่อสตริงที่อินเวอร์เตอร์ทั้งสองรุ่นรับได้ร่วมกัน — จัดตามรุ่นแรกไว้ก่อน ดูคำเตือนรายสตริง";
+  }
+  const mpptPerInv = LAY.mpptPerInv;
   const perMppt = scStringsPerMppt(panel, inv);
+  const perMppt2 = inv2 && nInv2 > 0 ? scStringsPerMppt(panel, inv2) : perMppt;
+  const perMpptOf = m => LAY.unitOfMppt(m).from === 2 ? perMppt2 : perMppt;
   const out = {
     strings: [],
     leftovers: [],
     warns: [],
     range: R,
     perMppt,
-    mppt: nInv * mpptPerInv
+    mppt: LAY.mppt,
+    lay: LAY
   };
+  if (rangeWarn) out.warns.push(rangeWarn);
   if (!R.ok.length) {
     out.warns.push("แผงรุ่นนี้ต่ออนุกรมให้อยู่ในช่วงทำงานของอินเวอร์เตอร์รุ่นนี้ไม่ได้เลย — เปลี่ยนรุ่นใดรุ่นหนึ่ง");
     return out;
@@ -528,7 +623,8 @@ function scAutoStrings(groups, panel, inv, env, opt) {
       left
     });
   });
-  let mi = 0,
+  const ORDER = LAY.mixed ? scPinOrder(LAY).map(k => LAY.mpptAt(k)) : scMpptOrder(LAY);
+  let oi = 0,
     used = {};
   const byGroup = {};
   out.strings.forEach(s => {
@@ -536,26 +632,41 @@ function scAutoStrings(groups, panel, inv, env, opt) {
   });
   Object.keys(byGroup).forEach(k => {
     byGroup[k].forEach(s => {
-      while (mi < out.mppt && (used[mi] || 0) >= perMppt) mi++;
-      if (mi >= out.mppt) {
+      while (oi < ORDER.length && (used[ORDER[oi]] || 0) >= perMpptOf(ORDER[oi])) oi++;
+      if (oi >= ORDER.length) {
         s.mppt = null;
         s.pin = null;
         return;
       }
-      const LAY = scPinLayout(inv, nInv);
+      const mi = ORDER[oi],
+        u = LAY.unitOfMppt(mi);
       s.mppt = mi;
-      s.inv = Math.floor(mi / mpptPerInv);
-      s.pin = mi * LAY.phys + Math.min(LAY.phys - 1, used[mi] || 0);
-      s.addr = scMpptName(s.pin, inv, nInv);
+      s.inv = u.no;
+      s.from = u.from;
+      s.pin = LAY.pinAt(mi, used[mi] || 0);
+      s.addr = scMpptName(s.pin, LAY);
       used[mi] = (used[mi] || 0) + 1;
+      if (LAY.mixed) oi++;
     });
-    mi++;
+    oi++;
+  });
+  if (LAY.mixed) out.strings.forEach(s => {
+    if (s.mppt == null) return;
+    const u = LAY.unitOfMppt(s.mppt);
+    if (u.from === 2) s.chk = scStringCheck(panel, u.spec, s.n, env);
   });
   const parMax = Math.max(1, Math.max.apply(null, [1].concat(Object.keys(used).map(k => used[k]))));
   out.mpptPerInv = mpptPerInv;
   out.load = used;
   out.fuse = scStringFuse(panel, parMax, out.strings.length);
   out.current = scCurrent(panel, inv, parMax);
+  if (LAY.mixed) {
+    const par2 = Math.max(1, Math.max.apply(null, [1].concat(Object.keys(used).filter(k => LAY.unitOfMppt(+k).from === 2).map(k => used[k]))));
+    const c2 = scCurrent(panel, inv2, par2);
+    if (!c2.ok && out.current.ok) out.current = c2;else c2.warns.forEach(w => {
+      if (out.current.warns.indexOf(w) < 0) out.current.warns.push(w);
+    });
+  }
   out.current.warns.forEach(w => out.warns.push(w));
   out.notes = out.current.notes.slice();
   out.overCurrent = !out.current.ok;
@@ -564,7 +675,7 @@ function scAutoStrings(groups, panel, inv, env, opt) {
   out.leftovers.forEach(l => out.warns.push(l.group.label + " เหลือ " + l.left + " แผงที่ต่อเป็นสตริงไม่ลงตัว (ย้ายไปผืนอื่น หรือใช้ออปติไมเซอร์)"));
   out.panels = out.strings.reduce((a, s) => a + s.n, 0);
   out.dcKw = scR(out.panels * scNum(panel.wp) / 1000, 2);
-  out.acKw = scR(nInv * scNum(inv.kw), 2);
+  out.acKw = scR(nInv * scNum(inv.kw) + (inv2 && nInv2 > 0 ? nInv2 * scNum(inv2.kw) : 0), 2);
   out.dcAc = out.acKw ? scR(out.dcKw / out.acKw, 2) : 0;
   if (out.dcAc > 1.4) out.warns.push("DC/AC = " + out.dcAc + " สูงไป อินเวอร์เตอร์จะตัดยอด (clipping) ช่วงเที่ยง — เพิ่มขนาด/จำนวนอินเวอร์เตอร์");else if (out.dcAc && out.dcAc < 0.85) out.warns.push("DC/AC = " + out.dcAc + " ต่ำไป อินเวอร์เตอร์ใหญ่เกินแผง — ลดขนาดลงได้");
   return out;
@@ -588,10 +699,14 @@ function scStringsFromAssign(assign, byPanel, groups, panel, inv, env, opt) {
     if (gk) bag[sid].gset[gk] = (bag[sid].gset[gk] || 0) + 1;
   });
   const nInv0 = Math.max(1, Math.round(scNum(opt.invCount, 1)));
-  const LAY = scPinLayout(inv, nInv0);
+  const inv2 = opt.inv2 || null;
+  const nInv2 = inv2 ? Math.max(0, Math.round(scNum(opt.inv2Count, 0))) : 0;
+  const LAY = scPinLayout(inv, nInv0, inv2, nInv2);
   const mpptPerInv = LAY.mpptPerInv,
     slots0 = LAY.mppt,
     perMppt0 = scStringsPerMppt(panel, inv);
+  const perMppt2 = inv2 && nInv2 > 0 ? scStringsPerMppt(panel, inv2) : perMppt0;
+  const perMpptOf = m => LAY.unitOfMppt(m).from === 2 ? perMppt2 : perMppt0;
   const strings = Object.keys(bag).sort((a, b) => a - b).map(sid => {
     const b = bag[sid];
     const gks = Object.keys(b.gset);
@@ -622,11 +737,13 @@ function scStringsFromAssign(assign, byPanel, groups, panel, inv, env, opt) {
   const load = {},
     owner = {};
   const place = (s, pin) => {
-    const a = scPinAddr(pin, inv, nInv0);
+    const a = scPinAddr(pin, LAY);
     s.pin = pin;
     s.mppt = a.mppt;
     s.inv = a.inv;
-    s.addr = scMpptName(pin, inv, nInv0);
+    s.from = a.from;
+    s.addr = scMpptName(pin, LAY);
+    if (a.from === 2) s.chk = scStringCheck(panel, LAY.unitOfPin(pin).spec, s.n, env, opt.optimizer);
     load[a.mppt] = (load[a.mppt] || 0) + 1;
     (owner[pin] = owner[pin] || []).push(s.id);
   };
@@ -638,18 +755,20 @@ function scStringsFromAssign(assign, byPanel, groups, panel, inv, env, opt) {
     s.picked = true;
     place(s, pin);
   });
+  const PORDER = scPinOrder(LAY);
   strings.forEach(s => {
     if (s.pin != null) return;
-    let pin = 0;
-    while (pin < LAY.pins && (owner[pin] || (load[Math.floor(pin / LAY.phys)] || 0) >= perMppt0)) pin++;
-    if (pin >= LAY.pins) return;
+    const pin = PORDER.find(k => !owner[k] && (load[LAY.mpptAt(k)] || 0) < perMpptOf(LAY.mpptAt(k)));
+    if (pin == null) return;
     place(s, pin);
   });
   Object.keys(owner).forEach(k => {
-    if (owner[k].length > 1) warns.push(scMpptName(+k, inv, nInv0) + " ถูกจองซ้ำ " + owner[k].length + " สตริง (#" + owner[k].join(", #") + ") — 1 ขั้วเสียบได้สตริงเดียว");
+    if (owner[k].length > 1) warns.push(scMpptName(+k, LAY) + " ถูกจองซ้ำ " + owner[k].length + " สตริง (#" + owner[k].join(", #") + ") — 1 ขั้วเสียบได้สตริงเดียว");
   });
   Object.keys(load).forEach(k => {
-    if (load[k] > perMppt0) warns.push("MPPT ที่ " + (+k % mpptPerInv + 1) + " ของอินเวอร์เตอร์ตัวที่ " + (Math.floor(+k / mpptPerInv) + 1) + " มี " + load[k] + " สตริงขนานกัน เกินที่ช่องนี้รับได้ (" + perMppt0 + " สตริง/MPPT)");
+    const uk = LAY.unitOfMppt(+k),
+      capK = perMpptOf(+k);
+    if (load[k] > capK) warns.push("MPPT ที่ " + (+k - uk.mpptFrom + 1) + " ของอินเวอร์เตอร์ตัวที่ " + (uk.no + 1) + " มี " + load[k] + " สตริงขนานกัน เกินที่ช่องนี้รับได้ (" + capK + " สตริง/MPPT)");
   });
   const noSlot = strings.filter(s => s.pin == null).length;
   if (noSlot) warns.push("มี " + noSlot + " สตริงที่ไม่มีขั้วเหลือให้เสียบ — เพิ่มจำนวนอินเวอร์เตอร์ หรือย้ายขั้วเอง");
@@ -660,17 +779,23 @@ function scStringsFromAssign(assign, byPanel, groups, panel, inv, env, opt) {
   const total = opt.totalPanels || 0;
   const assigned = strings.reduce((a, s) => a + s.n, 0);
   if (total && assigned < total) warns.push("ยังมีแผงที่ไม่ได้อยู่สตริงไหนเลย " + (total - assigned) + " แผง");
-  const nInv = nInv0,
+  const nInv = LAY.nInv,
     slots = slots0,
     perMppt = perMppt0;
   const parMax = Math.max(1, Math.max.apply(null, [1].concat(Object.keys(load).map(k => load[k]))));
   const current = scCurrent(panel, inv, parMax, opt.optimizer);
   current.warns.forEach(w => warns.push(w));
+  if (LAY.mixed) {
+    const par2 = Math.max(1, Math.max.apply(null, [1].concat(Object.keys(load).filter(k => LAY.unitOfMppt(+k).from === 2).map(k => load[k]))));
+    scCurrent(panel, inv2, par2, opt.optimizer).warns.forEach(w => {
+      if (warns.indexOf(w) < 0) warns.push(w);
+    });
+  }
   const fuse = scStringFuse(panel, parMax, strings.length);
   if (fuse.need) warns.push("ต้องมีฟิวส์สตริง " + fuse.count + " ตัว" + (fuse.amp ? " (" + fuse.amp + " A)" : "") + " — " + fuse.why);
   fuse.warns.forEach(w => warns.push(w));
-  const dcKw = scR(assigned * scNum(panel.wp) / 1000, 2),
-    acKw = scR(nInv * scNum(inv.kw), 2);
+  const dcKw = scR(assigned * scNum(panel.wp) / 1000, 2);
+  const acKw = scR(nInv0 * scNum(inv.kw) + (LAY.mixed ? nInv2 * scNum(inv2.kw) : 0), 2);
   if (acKw && dcKw / acKw > 1.4) warns.push("DC/AC = " + scR(dcKw / acKw, 2) + " สูงไป อินเวอร์เตอร์จะตัดยอด (clipping) ช่วงเที่ยง — เพิ่มขนาด/จำนวนอินเวอร์เตอร์");
   return {
     strings,
@@ -1647,6 +1772,9 @@ function scBlankSys() {
     invModel: "",
     inv: {},
     invCount: 1,
+    inv2Model: "",
+    inv2: {},
+    inv2Count: 0,
     microRatio: "",
     series: 0,
     assign: {},
@@ -1769,6 +1897,14 @@ function scInvSpec(sys) {
   const stock = (B.INVERTERS || []).find(p => p.model === (sys && sys.invModel)) || {};
   return Object.assign({}, SC_INV_EXTRA, stock, sys && sys.inv || {});
 }
+function scInvSpec2(sys) {
+  const m = sys && sys.inv2Model;
+  if (!m || m === (sys && sys.invModel)) return null;
+  if (!(Math.round(scNum(sys && sys.inv2Count, 0)) > 0)) return null;
+  const B = window.BOQ || {};
+  const stock = (B.INVERTERS || []).find(p => p.model === m) || {};
+  return Object.assign({}, SC_INV_EXTRA, stock, sys && sys.inv2 || {});
+}
 Object.assign(window, {
   SC_DEG,
   SC_MON,
@@ -1802,6 +1938,9 @@ Object.assign(window, {
   scMpptName,
   scPinLayout,
   scPinAddr,
+  scInvUnits,
+  scMpptOrder,
+  scPinOrder,
   scAutoStrings,
   scMicroPlan,
   scMicroSpec,
@@ -1817,6 +1956,7 @@ Object.assign(window, {
   scBlankSys,
   scPanelSpec,
   scInvSpec,
+  scInvSpec2,
   scOptSpec,
   scOptPlan,
   scHalfCut,
@@ -1848,6 +1988,7 @@ window.SolarCalc = {
   blankSys: scBlankSys,
   panelSpec: scPanelSpec,
   invSpec: scInvSpec,
+  invSpec2: scInvSpec2,
   microSpec: scMicroSpec,
   loadProfile: scLoadProfile,
   dispatch: scDispatch,

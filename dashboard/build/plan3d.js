@@ -495,7 +495,9 @@ function p3PlanSummary(saved) {
     wp: wp,
     kwp: Math.round(panels * wp / 10) / 100,
     panelModel: String(sys.panelModel || "").trim(),
-    invModel: String(sys.invModel || "").trim()
+    invModel: String(sys.invModel || "").trim(),
+    inv2Model: String(sys.inv2Model || "").trim(),
+    inv2Count: Math.max(0, Math.round(+sys.inv2Count || 0))
   };
 }
 function movePlan3d(fromId, toId) {
@@ -7481,29 +7483,49 @@ function p3SldModel(st, job) {
     const iv = (B.INVERTERS || []).find(x => x.model === sys.invModel) || {};
     const kw = +iv.kw || 5;
     const n = Math.max(1, +sys.invCount || Math.ceil(nPanel * wp / 1000 / kw));
+    const iv2 = sys.inv2Model && sys.inv2Model !== sys.invModel ? (B.INVERTERS || []).find(x => x.model === sys.inv2Model) : null;
+    const n2 = iv2 ? Math.max(0, Math.round(+sys.inv2Count || 0)) : 0;
+    const kw2 = iv2 ? +iv2.kw || kw : 0;
     unitW = kw * 1000;
     inv = {
       model: iv.model || "INVERTER",
-      count: n,
+      count: n + n2,
       w: unitW,
       v: Vll,
-      spec: iv
+      spec: iv,
+      model2: iv2 ? iv2.model : "",
+      count2: n2,
+      w2: kw2 * 1000,
+      spec2: iv2 || null
     };
-    for (let i = 0; i < n; i++) {
+    const kwEach = [];
+    for (let i = 0; i < n; i++) kwEach.push(kw);
+    for (let i = 0; i < n2; i++) kwEach.push(kw2);
+    const kwSum = kwEach.reduce((a, b) => a + b, 0) || 1;
+    let leftP = nPanel;
+    kwEach.forEach((k, i) => {
+      const share = i === kwEach.length - 1 ? leftP : Math.round(nPanel * k / kwSum);
+      leftP -= share;
       units.push({
-        panels: Math.round(nPanel / n) + (i < nPanel % n ? 1 : 0),
-        phase: nPh === 3 ? 1 : 1
+        panels: Math.max(0, share),
+        phase: 1,
+        w: k * 1000,
+        from: i < n ? 1 : 2
       });
-    }
+    });
   }
   inv.brand = p3Brand(inv.model, job && job.brand || "");
   const unitA = unitW / ((micro ? inv.v || 230 : Vll) * (micro ? 1 : kPh));
+  const aOfUnit = u => (+u.w > 0 ? +u.w : unitW) / ((micro ? inv.v || 230 : Vll) * (micro ? 1 : kPh));
   const perBr = micro ? Math.max(1, Math.round(+(inv.spec || {}).perBranch || 2)) : 1;
   const nBr = Math.min(6, Math.max(1, Math.ceil(units.length / perBr)));
   const branches = [];
+  let taken = 0;
   for (let i = 0; i < nBr; i++) {
     const cnt = Math.floor(units.length / nBr) + (i < units.length % nBr ? 1 : 0);
-    const I = cnt * unitA;
+    const mine = units.slice(taken, taken + cnt);
+    taken += cnt;
+    const I = micro ? cnt * unitA : mine.reduce((a, u) => a + aOfUnit(u), 0);
     branches.push({
       name: "PV " + (i + 1),
       mcb: "MCB " + (nPh === 3 ? "4P," : "2P,") + p3At(I * 1.25) + "AT",

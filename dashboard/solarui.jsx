@@ -1747,9 +1747,21 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   const inv = React.useMemo(() => scInvSpec(S), [S.invModel, S.inv, stockInv]);
   const stockPanel = stockPanels.find((p) => p.model === S.panelModel) || {};
   const stockInvRow = stockInv.find((p) => p.model === S.invModel) || {};
+  /* ── อินเวอร์เตอร์ขนาดที่สอง ── null = ใช้รุ่นเดียวทั้งงาน
+     เอนจินรับ inv2/inv2Count เป็นตัวเลือก ถ้าไม่ส่งไปก็ทำงานแบบรุ่นเดียวเหมือนเดิมทุกประการ */
+  const inv2 = React.useMemo(() => scInvSpec2(S), [S.inv2Model, S.inv2, S.inv2Count, S.invModel, stockInv]);
+  const inv2Count = inv2 ? Math.max(1, Math.round(scNum(S.inv2Count, 0))) : 0;
+  const stockInv2Row = stockInv.find((p) => p.model === S.inv2Model) || {};
+  /* ผังขั้วทั้งระบบ — ใช้ทั้งในช่องเลือกขั้วเองและในแถบสรุปกระแส จึงคิดครั้งเดียว */
+  const pinLay = React.useMemo(() => scPinLayout(inv, S.invCount, inv2, inv2Count), [inv, S.invCount, inv2, inv2Count]);
+  /* รุ่นเดียวกับตัวแรกเลือกไม่ได้ — จะกลายเป็นรุ่นเดียวกันสองบรรทัดที่รวมกันไม่ได้ */
+  React.useEffect(() => {
+    if (S.inv2Model && S.inv2Model === S.invModel) set({ inv2Model: "", inv2Count: 0 });
+  }, [S.invModel]); // eslint-disable-line
   const srcOf = (ov, stock, key) => (ov && ov[key] != null ? "edit" : (stock[key] != null && stock[key] !== 0 ? "stock" : "def"));
   const setP = (k, v) => { const o = Object.assign({}, S.panel); if (v == null) delete o[k]; else o[k] = v; set({ panel: o }); };
   const setI = (k, v) => { const o = Object.assign({}, S.inv); if (v == null) delete o[k]; else o[k] = v; set({ inv: o }); };
+  const setI2 = (k, v) => { const o = Object.assign({}, S.inv2); if (v == null) delete o[k]; else o[k] = v; set({ inv2: o }); };
 
   /* ── กลุ่มทิศทาง + รอยเท้าแผงมองจากบน (มาจากโมเดล 3 มิติทั้งคู่) ── */
   const idx = React.useMemo(() => scPanelIndex(st), [st]);
@@ -1768,13 +1780,13 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
      ยังไม่เขียนลง state จนกว่าผู้ใช้จะแตะแก้จริง (จะได้ไม่ขึ้น "ยังไม่บันทึก" ทั้งที่ยังไม่ได้แตะอะไร) */
   const isManual = !!S.manual;
   const autoSeed = React.useMemo(() => (!isMicro && panel.voc && inv.mpptVmin && foot.panels.length
-    ? scAutoAssign(foot.panels, idx.byPanel, groups, panel, inv, S.env, { invCount: S.invCount })
-    : {}), [isMicro, foot, idx, groups, panel, inv, S.env, S.invCount]);
+    ? scAutoAssign(foot.panels, idx.byPanel, groups, panel, inv, S.env, { invCount: S.invCount, inv2, inv2Count })
+    : {}), [isMicro, foot, idx, groups, panel, inv, S.env, S.invCount, inv2, inv2Count]);
   const effAssign = isManual ? (S.assign || {}) : autoSeed;
   /* ตาราง/ผัง/จานสี อ่านจากชุดข้อมูลเดียวกันทั้งหมด จะได้ไม่มีทางขัดกันเอง */
   const plan = React.useMemo(() => (!isMicro && panel.voc
-    ? scStringsFromAssign(effAssign, idx.byPanel, groups, panel, inv, S.env, { invCount: S.invCount, totalPanels, mpptPick: S.mpptPick, optimizer: optPlan })
-    : null), [isMicro, effAssign, idx, groups, panel, inv, S.env, S.invCount, totalPanels, S.mpptPick, optPlan]);
+    ? scStringsFromAssign(effAssign, idx.byPanel, groups, panel, inv, S.env, { invCount: S.invCount, inv2, inv2Count, totalPanels, mpptPick: S.mpptPick, optimizer: optPlan })
+    : null), [isMicro, effAssign, idx, groups, panel, inv, S.env, S.invCount, inv2, inv2Count, totalPanels, S.mpptPick, optPlan]);
   /* ปักช่อง MPPT เอง: เก็บเป็น { สตริงที่: ช่องที่ } · null = คืนให้ระบบไล่ลงช่องว่างให้ */
   const pickMppt = (sid, slot) => {
     const next = Object.assign({}, S.mpptPick || {});
@@ -1866,10 +1878,15 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   };
 
   /* AC รวม = กำลังอินเวอร์เตอร์ × จำนวนตัว — ต้องคิดได้แม้สเปค MPPT ในคลังยังว่าง (ไม่งั้นผลผลิตจะไม่ถูกตัดยอด) */
-  const acKw = isMicro ? (microSel ? microSel.acKw : 0) : scR(scNum(inv.kw) * Math.max(1, scNum(S.invCount, 1)), 2);
+  const acKw = isMicro ? (microSel ? microSel.acKw : 0)
+    : scR(scNum(inv.kw) * Math.max(1, scNum(S.invCount, 1)) + (inv2 ? scNum(inv2.kw) * inv2Count : 0), 2);
   /* จำนวนตัวที่พอดี = กำลังแผงรวม ÷ กำลัง PV สูงสุดต่อตัว (ถ้าคลังไม่ระบุ ใช้ 1.3 เท่าของ kW) */
   const dcKwAll = totalPanels * scNum(panel.wp) / 1000;
-  const invSuggest = Math.max(1, Math.ceil(dcKwAll / Math.max(0.1, scNum(inv.maxPv) || scNum(inv.kw) * 1.3)));
+  const invPvCap = (iv) => Math.max(0.1, scNum(iv.maxPv) || scNum(iv.kw) * 1.3);
+  /* รุ่นที่สองรับกำลังแผงไปแล้วเท่าไร หักออกก่อน แล้วค่อยคิดว่ารุ่นแรกต้องใช้กี่ตัว
+     ไม่หักออก ปุ่ม "ใช้ N" จะแนะนำจำนวนที่รวมกันแล้วเกินความจำเป็นไปทั้งงาน */
+  const inv2PvKw = inv2 ? invPvCap(inv2) * inv2Count : 0;
+  const invSuggest = Math.max(1, Math.ceil(Math.max(0, dcKwAll - inv2PvKw) / invPvCap(inv)));
   /* ── เงาบังทั้งปีจากโมเดล 3 มิติ — คิดให้อัตโนมัติ ──
      คำนวณใหม่เองทุกครั้งที่ผังเปลี่ยน (ราว 50 มิลลิวินาที) จะได้ไม่มีทางที่ตัวเลขผลผลิต
      กับเงาที่เห็นในกราฟรายวันจะขัดกันเอง · ปิดได้ถ้าอยากกรอก % เอง */
@@ -2142,7 +2159,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
     const famG = par && typeof ivFamily === "function" ? ivFamily(par, panel, { mode: "irr", nSeries: 1, tc: 25 }) : [];
     const famT = par && typeof ivFamily === "function" ? ivFamily(par, panel, { mode: "temp", nSeries: famStrN, g: 1000 }) : [];
     /* เปิดรายงานให้ดูบนจอก่อน (เหมือนรายงานผลสำรวจ) แล้วค่อยกด "บันทึก PDF" ในแถบด้านบน */
-    setRepHtml(suReportHTML({ job, sys: S, panel, inv, groups, plan, microSel, isMicro, energy, life, roi, roiCfg,
+    setRepHtml(suReportHTML({ job, sys: S, panel, inv, inv2, groups, plan, microSel, isMicro, energy, life, roi, roiCfg,
       env, sunPath, isoShade: isoNow, ivFamG: famG, ivFamT: famT,
       dis, prof, px, pxMode, battS, gridCfg, roiP,
       ivRows, ivDone, ivAvg, ivOutliers, site, siteDate, acKw, totalPanels, warns, foot,
@@ -2332,7 +2349,11 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                 {/* ── อินเวอร์เตอร์ ── */}
                 {!isMicro ? (
                   <div className="p3-card">
-                    <span className="p3-eb"><P3Icon name="box" size={13} />สตริงอินเวอร์เตอร์<span className="ln" /></span>
+                    <span className="p3-eb"><P3Icon name="box" size={13} />สตริงอินเวอร์เตอร์
+                      {inv2 ? <span style={{ fontWeight: 700, color: "var(--acd)" }}>&nbsp;· สองขนาด</span> : null}
+                      <span className="ln" />
+                      {inv2 ? <span style={{ fontWeight: 600 }}>{S.invCount + " + " + inv2Count + " = " + pinLay.nInv + " ตัว"}</span> : null}
+                    </span>
                     <div style={{ display: "flex", gap: 9 }}>
                       <select className="p3-inp" style={{ flex: 1 }} value={S.invModel || ""} onChange={(e) => set({ invModel: e.target.value })}>
                         <option value="">— เลือกรุ่นอินเวอร์เตอร์ —</option>
@@ -2362,11 +2383,52 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                       <SuSpec label="อินพุตต่อ 1 MPPT" value={inv.strPerMppt} step={1} suffix="ขั้ว" src={srcOf(S.inv, stockInvRow, "strPerMppt")} onChange={(v) => setI("strPerMppt", v)} onReset={() => setI("strPerMppt", null)} />
                       <SuSpec label="ประสิทธิภาพ (ใช้คิดผลผลิต)" value={inv.effEuro || inv.eff} step={0.1} suffix="%" src={srcOf(S.inv, stockInvRow, inv.effEuro ? "effEuro" : "eff")} onChange={(v) => setI(inv.effEuro ? "effEuro" : "eff", v)} onReset={() => setI(inv.effEuro ? "effEuro" : "eff", null)} />
                     </div>
+                    {/* ── รุ่นที่สองของงานเดียวกัน ──
+                        หลังคาที่เหลือพื้นที่ไม่เท่ากัน ใส่ตัวเล็กเสริมคุ้มกว่าเพิ่มตัวใหญ่ทั้งตัว
+                        จำนวนตัวกรอกเองเสมอ (ท่าเดียวกับ BOQ) เพราะคนออกแบบเป็นคนตัดสินว่าจะแบ่งหลังคาอย่างไร */}
+                    <div style={{ borderTop: "1px dashed var(--ln)", paddingTop: 9 }}>
+                      <div style={{ display: "flex", gap: 9 }}>
+                        <label className="p3-f" style={{ flex: 1, minWidth: 0 }}>
+                          <span className="lb">อินเวอร์เตอร์ตัวที่สอง (ไม่บังคับ)</span>
+                          <select className="p3-inp" value={S.inv2Model || ""}
+                            onChange={(e) => set({ inv2Model: e.target.value, inv2Count: e.target.value ? Math.max(1, Math.round(scNum(S.inv2Count, 0))) : 0 })}>
+                            <option value="">— ไม่ใช้ (รุ่นเดียวทั้งงาน) —</option>
+                            {stockInv.filter((p) => p.model !== S.invModel).map((p) => <option key={p.model} value={p.model}>{p.model}</option>)}
+                          </select>
+                        </label>
+                        <label className="p3-f" style={{ width: 108, flex: "0 0 auto" }}>
+                          <span className="lb">จำนวน (กรอกเอง)</span>
+                          <input className="p3-inp" type="number" min="1" step="1" disabled={!S.inv2Model}
+                            value={S.inv2Model ? (S.inv2Count || "") : ""}
+                            onChange={(e) => set({ inv2Count: Math.max(0, parseInt(e.target.value, 10) || 0) })} />
+                        </label>
+                      </div>
+                      {inv2 && (
+                        <React.Fragment>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 9, marginTop: 9 }}>
+                            <SuSpec label="กำลัง AC" value={inv2.kw} step={0.1} suffix="kW" src={srcOf(S.inv2, stockInv2Row, "kw")} onChange={(v) => setI2("kw", v)} onReset={() => setI2("kw", null)} />
+                            <SuSpec label="MPPT ต่ำสุด" value={inv2.mpptVmin} step={5} suffix="V" src={srcOf(S.inv2, stockInv2Row, "mpptVmin")} onChange={(v) => setI2("mpptVmin", v)} onReset={() => setI2("mpptVmin", null)} />
+                            <SuSpec label="MPPT สูงสุด" value={inv2.mpptVmax} step={5} suffix="V" src={srcOf(S.inv2, stockInv2Row, "mpptVmax")} onChange={(v) => setI2("mpptVmax", v)} onReset={() => setI2("mpptVmax", null)} />
+                            <SuSpec label="แรงดัน DC สูงสุด" value={inv2.maxVdc} step={10} suffix="V" src={srcOf(S.inv2, stockInv2Row, "maxVdc")} onChange={(v) => setI2("maxVdc", v)} onReset={() => setI2("maxVdc", null)} />
+                            <SuSpec label="กระแสสูงสุด/MPPT" value={inv2.maxMpptA} step={0.5} suffix="A" src={srcOf(S.inv2, stockInv2Row, "maxMpptA")} onChange={(v) => setI2("maxMpptA", v)} onReset={() => setI2("maxMpptA", null)} />
+                            <SuSpec label="จำนวน MPPT" value={inv2.inputs} step={1} suffix="ช่อง" src={srcOf(S.inv2, stockInv2Row, "inputs")} onChange={(v) => setI2("inputs", v)} onReset={() => setI2("inputs", null)} />
+                            <SuSpec label="อินพุตต่อ 1 MPPT" value={inv2.strPerMppt} step={1} suffix="ขั้ว" src={srcOf(S.inv2, stockInv2Row, "strPerMppt")} onChange={(v) => setI2("strPerMppt", v)} onReset={() => setI2("strPerMppt", null)} />
+                          </div>
+                          <span className="p3-note">
+                            ขั้วของรุ่นนี้เป็น <b>INV{S.invCount + 1}–INV{pinLay.nInv}</b> ในช่องเลือกขั้ว ·
+                            AC รวมทั้งงาน <b>{acKw} kW</b> ({S.invCount}×{scNum(inv.kw)} + {inv2Count}×{scNum(inv2.kw)} kW)
+                          </span>
+                          {(!inv2.mpptVmin || !inv2.maxVdc) && (
+                            <div className="su-alert warn"><P3Icon name="height" size={14} />รุ่นที่สองยังไม่ได้กรอกช่วง MPPT / แรงดันสูงสุดในคลัง — กรอกตรงนี้ก่อนได้</div>
+                          )}
+                        </React.Fragment>
+                      )}
+                    </div>
                     {/* เทียบกระแสให้เห็นทันทีว่าคู่ไหนเทียบกับคู่ไหน */}
                     {panel.imp && (() => {
                       const per = scStringsPerMppt(panel, inv);
                       const cur = scCurrent(panel, inv, per);
-                      const lay = scPinLayout(inv, S.invCount);
+                      const lay = scPinLayout(inv, S.invCount, inv2, inv2Count);
                       const row = (lb, val, lim, tip) => (
                         <span className="p3-stat" title={tip} style={{ color: lim && val > lim ? "var(--tint-red-tx)" : undefined }}>
                           {lb} <b>{val} A</b>{lim ? <span style={{ color: "var(--text-3)", fontWeight: 700 }}>&nbsp;/ {lim} A</span> : <span style={{ color: "var(--text-3)" }}>&nbsp;/ ยังไม่ระบุ</span>}
@@ -2603,7 +2665,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                                       const own = (plan.owner || {})[k] || [];
                                       const mine = own.indexOf(s.id) >= 0;
                                       const busy = own.filter((x) => x !== s.id);
-                                      return <option key={k} value={k}>{scMpptName(k, inv, S.invCount) +
+                                      return <option key={k} value={k}>{scMpptName(k, pinLay) +
                                         (busy.length ? " · สตริง #" + busy.join(", #") : mine ? "" : " · ว่าง")}</option>;
                                     })}
                                   </select>
