@@ -1740,7 +1740,7 @@ function BOQEditor({
   const dcAcRatio = acMaxTotal > 0 && result.meta.kw > 0 ? result.meta.kw / acMaxTotal : 0;
   const pvOver = isHuawei && dcAcCap > 0 && result.meta.kw > dcAcCap;
   const acBreak = !selInv ? "" : selInv2 ? result.meta.invCount + "×" + selInv.maxAcKw + " + " + inv2Count + "×" + selInv2.maxAcKw + " kW" : result.meta.invCount + " ตัว × " + selInv.maxAcKw + " kW";
-  const pvBreak = !selInv ? "" : selInv2 ? result.meta.invCount + "×" + selInv.maxPv + " + " + inv2Count + "×" + selInv2.maxPv + " kWp" : result.meta.invCount + " ตัว × " + selInv.maxPv + " kW";
+  const pvBreak = !selInv ? "" : selInv2 ? result.meta.invCount + "×" + selInv.maxPv + " + " + inv2Count + "×" + selInv2.maxPv + " kWp" : result.meta.invCount + " ตัว × " + selInv.maxPv + " kWp";
   const perMppt = Math.max(1, Math.round(+(selInv && selInv.strPerMppt) || 1));
   const capPerInv = selInv ? Math.max(1, (+selInv.inputs || 1) * perMppt) : 1;
   const selPanel = window.BOQ.findPanel ? window.BOQ.findPanel(b.panelModel) : null;
@@ -4575,7 +4575,7 @@ function BOQEditor({
     onChange: v => set("roof", v),
     options: opt(window.BOQ.ROOF_OPTIONS)
   }))))), isHuawei && React.createElement(BoqSection, _extends({
-    title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + " (" + selInv.model + ")",
+    title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + " (" + selInv.model + (selInv2 ? " + " + selInv2.model : "") + ")",
     icon: "bolt"
   }, secProps("hybrid")), React.createElement("div", {
     style: {
@@ -4584,14 +4584,44 @@ function BOQEditor({
       gap: 12
     }
   }, React.createElement(Field, {
-    label: "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C (\u0E41\u0E01\u0E49\u0E44\u0E02\u0E44\u0E14\u0E49)"
+    label: "จำนวนอินเวอร์เตอร์ (แก้ไขได้)" + (selInv2 ? " · รุ่นแรก" : "")
   }, React.createElement(BoqInvCount, {
     value: b.invCount,
     auto: result.meta.invAuto,
     onChange: v => set("invCount", v),
     style: numStyle
   })), React.createElement(Field, {
-    label: "String ต่อตัว (รับได้ " + capPerInv + ")"
+    label: "\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48\u0E2A\u0E2D\u0E07 (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A)"
+  }, React.createElement(Dropdown, {
+    value: b.inv2Model || "",
+    onChange: v => set("inv2Model", v),
+    options: inv2Options
+  })), !!selInv2 && React.createElement(Field, {
+    label: "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48\u0E2A\u0E2D\u0E07 (\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07)"
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 7
+    }
+  }, React.createElement("input", {
+    type: "number",
+    min: 1,
+    step: 1,
+    style: Object.assign({}, numStyle, {
+      flex: 1,
+      minWidth: 0
+    }),
+    value: inv2Count || "",
+    onChange: e => set("inv2Count", Math.max(1, parseInt(e.target.value) || 1))
+  }), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      flexShrink: 0
+    }
+  }, "\u0E15\u0E31\u0E27"))), React.createElement(Field, {
+    label: "String ต่อตัว (รับได้ " + capPerInv + ")" + (selInv2 ? " · รุ่นแรก" : "")
   }, React.createElement("input", {
     type: "number",
     style: numStyle,
@@ -4658,7 +4688,7 @@ function BOQEditor({
     name: "alert",
     size: 15,
     color: "#EF4444"
-  }), " ", acMaxTotal > 0 ? "กำลังแผง " + result.meta.kw + " kW คิดเป็น DC/AC " + dcAcRatio.toFixed(2) + " เท่า เกินเพดาน " + window.BOQ.DCAC_LIMIT + " เท่า (กำลังออก AC สูงสุดรวม " + Math.round(acMaxTotal) + " kW = " + acBreak + ") — เลยจุดนี้ clip ช่วงเที่ยงจะกินกำลังที่ใส่เพิ่ม เพิ่มจำนวนอินเวอร์เตอร์หรือลดแผง" : "กำลังแผง " + result.meta.kw + " kW เกิน MAX PV รวม " + maxPvTotal + " kW (" + pvBreak + ") — เพิ่มจำนวนอินเวอร์เตอร์หรือลดแผง (รุ่นนี้ยังไม่ได้กรอก Max AC Active Power ในคลัง)"), selInv.unitFixed && React.createElement("div", {
+  }), " ", acMaxTotal > 0 ? "กำลังแผง " + result.meta.kw + " kW คิดเป็น DC/AC " + dcAcRatio.toFixed(2) + " เท่า เกินเพดาน " + window.BOQ.DCAC_LIMIT + " เท่า (กำลังออก AC สูงสุดรวม " + Math.round(acMaxTotal) + " kW = " + acBreak + ") — เลยจุดนี้ clip ช่วงเที่ยงจะกินกำลังที่ใส่เพิ่ม เพิ่มจำนวนอินเวอร์เตอร์หรือลดแผง" : "กำลังแผง " + result.meta.kw + " kW เกิน MAX PV รวม " + maxPvTotal + " kWp (" + pvBreak + ") — เพิ่มจำนวนอินเวอร์เตอร์หรือลดแผง (รุ่นนี้ยังไม่ได้กรอก Max AC Active Power ในคลัง)"), selInv.unitFixed && React.createElement("div", {
     className: "bq-note warn"
   }, React.createElement(Icon, {
     name: "alert",
@@ -4744,7 +4774,74 @@ function BOQEditor({
     className: "k"
   }, c.k), React.createElement("span", {
     className: "v " + (c.hi && !c.bad ? "hi" : "")
-  }, c.v)))), React.createElement("div", {
+  }, c.v)))), !!selInv2 && React.createElement(React.Fragment, null, React.createElement("div", {
+    style: {
+      marginTop: 16,
+      marginBottom: 8,
+      fontSize: 10.5,
+      fontWeight: 800,
+      letterSpacing: ".05em",
+      textTransform: "uppercase",
+      color: "var(--text-3)"
+    }
+  }, "\u0E2A\u0E40\u0E1B\u0E04\u0E08\u0E32\u0E01\u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 \xB7 ", selInv2.model, " \xB7 ", inv2Count, " \u0E15\u0E31\u0E27"), React.createElement("div", {
+    className: "bq-spec"
+  }, [{
+    k: "กำลังต่อตัว",
+    v: selInv2.kw ? selInv2.kw + " kW" : "—",
+    miss: !selInv2.kw
+  }, {
+    k: "Max AC Active Power (cosφ=1)",
+    v: selInv2.maxAcKw ? selInv2.maxAcKw + " kW" : "ยังไม่กรอกในคลัง",
+    miss: !selInv2.maxAcKw
+  }, {
+    k: "MAX PV ต่อตัว",
+    v: selInv2.maxPv ? selInv2.maxPv + " kWp" : "ไม่ระบุ (ใช้ kW แทน)",
+    miss: !selInv2.maxPv
+  }, {
+    k: "เฟส",
+    v: selInv2.phase ? selInv2.phase + " เฟส" : "—",
+    miss: !selInv2.phase,
+    bad: inv2PhaseBad
+  }, {
+    k: "กระแสออก (AC)",
+    v: selInv2.outA ? selInv2.outA + " A" : "—",
+    miss: !selInv2.outA
+  }, {
+    k: "จำนวน MPPT",
+    v: selInv2.inputs ? selInv2.inputs + " ช่อง" : "—",
+    miss: !selInv2.inputs
+  }, {
+    k: "สตริงต่อ MPPT",
+    v: selInv2.strPerMppt ? selInv2.strPerMppt : "ไม่ระบุ (คิด 1)",
+    miss: !selInv2.strPerMppt
+  }, {
+    k: "รับสตริงได้/ตัว",
+    v: Math.max(1, (+selInv2.inputs || 1) * Math.max(1, Math.round(+selInv2.strPerMppt || 1))) + " สตริง",
+    hi: true
+  }, {
+    k: "ช่วง MPPT",
+    v: selInv2.mpptVmin && selInv2.mpptVmax ? selInv2.mpptVmin + "–" + selInv2.mpptVmax + " V" : "—",
+    miss: !(selInv2.mpptVmin && selInv2.mpptVmax)
+  }, {
+    k: "Vdc สูงสุด",
+    v: selInv2.maxVdc ? selInv2.maxVdc + " V" : "—",
+    miss: !selInv2.maxVdc
+  }, {
+    k: "MAX PV รุ่นนี้รวม",
+    v: selInv2.maxPv ? Math.round(selInv2.maxPv * inv2Count * 10) / 10 + " kWp" : "—"
+  }, {
+    k: "กระแสออกรุ่นนี้รวม",
+    v: selInv2.outA ? Math.round(selInv2.outA * inv2Count * 10) / 10 + " A" : "—"
+  }].map((c, i) => React.createElement("div", {
+    key: i,
+    "data-miss": c.miss ? "1" : "0",
+    "data-bad": c.bad ? "1" : "0"
+  }, React.createElement("span", {
+    className: "k"
+  }, c.k), React.createElement("span", {
+    className: "v " + (c.hi && !c.bad ? "hi" : "")
+  }, c.v))))), React.createElement("div", {
     style: {
       marginTop: 10,
       fontSize: 11,
