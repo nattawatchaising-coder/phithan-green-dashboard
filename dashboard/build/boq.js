@@ -196,6 +196,83 @@ function BoqInvCount({
     title: "\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07\u0E23\u0E27\u0E21 \xF7 MAX PV \u0E15\u0E48\u0E2D\u0E15\u0E31\u0E27"
   }, "\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34"));
 }
+function BoqCondAcc({
+  label,
+  auto,
+  per,
+  spare,
+  onPer,
+  onSpare,
+  numStyle
+}) {
+  const on = per !== "" && per !== null && per !== undefined;
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 5
+    }
+  }, React.createElement("label", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 700,
+      letterSpacing: ".05em",
+      color: "var(--text-3)"
+    }
+  }, label), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("input", {
+    type: "number",
+    min: 0,
+    step: "any",
+    placeholder: "\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34",
+    style: Object.assign({}, numStyle, {
+      width: "100%"
+    }),
+    value: on ? per : "",
+    onChange: e => onPer(e.target.value)
+  }), React.createElement("div", {
+    style: {
+      fontSize: 9.5,
+      color: on ? "var(--primary-dark)" : "var(--text-3)",
+      marginTop: 3,
+      textAlign: "right"
+    }
+  }, "\u0E0A\u0E34\u0E49\u0E19/\u0E17\u0E48\u0E2D\u0E19")), React.createElement("div", {
+    style: {
+      width: 74,
+      flexShrink: 0
+    }
+  }, React.createElement("input", {
+    type: "number",
+    style: Object.assign({}, numStyle, {
+      width: "100%"
+    }),
+    value: spare,
+    onChange: e => onSpare(e.target.value)
+  }), React.createElement("div", {
+    style: {
+      fontSize: 9.5,
+      color: "var(--text-3)",
+      marginTop: 3,
+      textAlign: "right"
+    }
+  }, "% \u0E40\u0E1C\u0E37\u0E48\u0E2D"))), React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: "var(--text-3)",
+      lineHeight: 1.4
+    }
+  }, on ? "แทนกฎเดิม" : auto));
+}
 function WireArt({
   art,
   w,
@@ -1236,6 +1313,13 @@ function BOQEditor({
       [k]: v
     })
   }));
+  const setCPer = (k, v) => setB(p => {
+    const o = Object.assign({}, p.conduitPer);
+    if (v === "" || v === null || v === undefined) delete o[k];else o[k] = v;
+    return Object.assign({}, p, {
+      conduitPer: o
+    });
+  });
   const [condOpen, setCondOpen] = React.useState({});
   const condPools = [["imc", window.BOQ.IMC_SIZES], ["upvc", window.BOQ.UPVC_SIZES]];
   const condLen = Math.round(condPools.reduce((s, [k]) => s + (cond[k] || []).reduce((t, x) => t + (+x.length || 0), 0), 0));
@@ -1616,6 +1700,7 @@ function BOQEditor({
     }, "\u0E14\u0E36\u0E07\u0E23\u0E30\u0E22\u0E30\u0E40\u0E02\u0E49\u0E32\u0E15\u0E32\u0E23\u0E32\u0E07"));
   };
   const csp = Object.assign({}, SPARE_DEF, b.conduitSpare);
+  const cpr = b.conduitPer || {};
   const KITS = window.BOQ.PROJECT_KITS || [];
   const project = window.BOQ.normProject(b.project);
   const kitOf = k => project[k] || {};
@@ -6458,7 +6543,7 @@ function BOQEditor({
       color: "var(--text-3)",
       lineHeight: 1.5
     }
-  }, "* \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C IMC (\u0E41\u0E04\u0E25\u0E49\u0E21\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E1A / \u0E1A\u0E38\u0E0A\u0E0A\u0E34\u0E48\u0E07,\u0E25\u0E47\u0E2D\u0E01\u0E19\u0E31\u0E17 / \u0E23\u0E32\u0E07\u0E0B\u0E35 / \u0E04\u0E2D\u0E19\u0E40\u0E19\u0E04\u0E40\u0E15\u0E2D\u0E23\u0E4C / \u0E04\u0E38\u0E1B\u0E1B\u0E34\u0E49\u0E07) \u0E04\u0E33\u0E19\u0E27\u0E13\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34\u0E08\u0E32\u0E01\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E17\u0E48\u0E2D + \u0E08\u0E33\u0E19\u0E27\u0E19 PULL BOX"), React.createElement("button", {
+  }, "* \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C IMC (\u0E41\u0E04\u0E25\u0E49\u0E21\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E1A / \u0E1A\u0E38\u0E0A\u0E0A\u0E34\u0E48\u0E07,\u0E25\u0E47\u0E2D\u0E01\u0E19\u0E31\u0E17 / \u0E23\u0E32\u0E07\u0E0B\u0E35 / \u0E04\u0E2D\u0E19\u0E40\u0E19\u0E04\u0E40\u0E15\u0E2D\u0E23\u0E4C / \u0E04\u0E38\u0E1B\u0E1B\u0E34\u0E49\u0E07) \u0E04\u0E33\u0E19\u0E27\u0E13\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34\u0E08\u0E32\u0E01\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E17\u0E48\u0E2D + \u0E08\u0E33\u0E19\u0E27\u0E19 PULL BOX", React.createElement("br", null), "* \u0E2D\u0E22\u0E32\u0E01\u0E04\u0E34\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E0A\u0E34\u0E49\u0E19\u0E15\u0E48\u0E2D\u0E17\u0E48\u0E2D 1 \u0E17\u0E48\u0E2D\u0E19 \u0E43\u0E2B\u0E49\u0E01\u0E23\u0E2D\u0E01\u0E0A\u0E48\u0E2D\u0E07 \"\u0E0A\u0E34\u0E49\u0E19/\u0E17\u0E48\u0E2D\u0E19\" \u0E43\u0E19\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07 \u2014 \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07\u0E44\u0E27\u0E49\u0E04\u0E37\u0E2D\u0E43\u0E0A\u0E49\u0E01\u0E0E\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34"), React.createElement("button", {
     onClick: () => setAdvC(v => !v),
     style: {
       marginTop: 8,
@@ -6477,7 +6562,7 @@ function BOQEditor({
     name: "settings",
     size: 13,
     color: "var(--text-2)"
-  }), " \u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C IMC (% \u0E40\u0E1C\u0E37\u0E48\u0E2D / \u0E17\u0E48\u0E2D\u0E2D\u0E48\u0E2D\u0E19) ", React.createElement(Icon, {
+  }), " \u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C IMC (\u0E0A\u0E34\u0E49\u0E19/\u0E17\u0E48\u0E2D\u0E19 \xB7 % \u0E40\u0E1C\u0E37\u0E48\u0E2D \xB7 \u0E17\u0E48\u0E2D\u0E2D\u0E48\u0E2D\u0E19) ", React.createElement(Icon, {
     name: "chevronDown",
     size: 14,
     color: "var(--text-2)",
@@ -6494,42 +6579,47 @@ function BOQEditor({
       gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)",
       gap: 10
     }
-  }, React.createElement(Field, {
-    label: "% \u0E40\u0E1C\u0E37\u0E48\u0E2D \u0E41\u0E04\u0E25\u0E49\u0E21\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E1A"
-  }, React.createElement("input", {
-    type: "number",
-    style: numStyle,
-    value: csp.clamp,
-    onChange: e => setCSpare("clamp", e.target.value)
-  })), React.createElement(Field, {
-    label: "% \u0E40\u0E1C\u0E37\u0E48\u0E2D \u0E1A\u0E38\u0E0A\u0E0A\u0E34\u0E48\u0E07/\u0E25\u0E47\u0E2D\u0E01\u0E19\u0E31\u0E17"
-  }, React.createElement("input", {
-    type: "number",
-    style: numStyle,
-    value: csp.bushing,
-    onChange: e => setCSpare("bushing", e.target.value)
-  })), React.createElement(Field, {
-    label: "% \u0E40\u0E1C\u0E37\u0E48\u0E2D \u0E23\u0E32\u0E07\u0E0B\u0E35"
-  }, React.createElement("input", {
-    type: "number",
-    style: numStyle,
-    value: csp.cchannel,
-    onChange: e => setCSpare("cchannel", e.target.value)
-  })), React.createElement(Field, {
-    label: "% \u0E40\u0E1C\u0E37\u0E48\u0E2D \u0E04\u0E2D\u0E19\u0E40\u0E19\u0E04\u0E40\u0E15\u0E2D\u0E23\u0E4C"
-  }, React.createElement("input", {
-    type: "number",
-    style: numStyle,
-    value: csp.connector,
-    onChange: e => setCSpare("connector", e.target.value)
-  })), React.createElement(Field, {
-    label: "% \u0E40\u0E1C\u0E37\u0E48\u0E2D \u0E04\u0E38\u0E1B\u0E1B\u0E34\u0E49\u0E07"
-  }, React.createElement("input", {
-    type: "number",
-    style: numStyle,
-    value: csp.coupling,
-    onChange: e => setCSpare("coupling", e.target.value)
-  })), [...new Set((cond.imc || []).map(x => (x.size || "").trim()).filter(Boolean))].map(sz => React.createElement(Field, {
+  }, React.createElement(BoqCondAcc, {
+    label: "\u0E41\u0E04\u0E25\u0E49\u0E21\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E1A",
+    auto: "\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 1 \u0E15\u0E31\u0E27/\u0E40\u0E21\u0E15\u0E23",
+    numStyle: numStyle,
+    per: cpr.clamp,
+    spare: csp.clamp,
+    onPer: v => setCPer("clamp", v),
+    onSpare: v => setCSpare("clamp", v)
+  }), React.createElement(BoqCondAcc, {
+    label: "\u0E1A\u0E38\u0E0A\u0E0A\u0E34\u0E48\u0E07/\u0E25\u0E47\u0E2D\u0E01\u0E19\u0E31\u0E17",
+    auto: "\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 8 + \u0E08\u0E33\u0E19\u0E27\u0E19\u0E17\u0E48\u0E2D\u0E19",
+    numStyle: numStyle,
+    per: cpr.bushing,
+    spare: csp.bushing,
+    onPer: v => setCPer("bushing", v),
+    onSpare: v => setCSpare("bushing", v)
+  }), React.createElement(BoqCondAcc, {
+    label: "\u0E23\u0E32\u0E07\u0E0B\u0E35",
+    auto: "\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 0.2 \u0E21./\u0E41\u0E04\u0E25\u0E49\u0E21 \xF7 \u0E23\u0E32\u0E07 1.2 \u0E21.",
+    numStyle: numStyle,
+    per: cpr.cchannel,
+    spare: csp.cchannel,
+    onPer: v => setCPer("cchannel", v),
+    onSpare: v => setCSpare("cchannel", v)
+  }), React.createElement(BoqCondAcc, {
+    label: "\u0E04\u0E2D\u0E19\u0E40\u0E19\u0E04\u0E40\u0E15\u0E2D\u0E23\u0E4C",
+    auto: "\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 10 + 2 \u0E15\u0E48\u0E2D PULL BOX \u0E40\u0E2B\u0E25\u0E47\u0E01",
+    numStyle: numStyle,
+    per: cpr.connector,
+    spare: csp.connector,
+    onPer: v => setCPer("connector", v),
+    onSpare: v => setCSpare("connector", v)
+  }), React.createElement(BoqCondAcc, {
+    label: "\u0E04\u0E38\u0E1B\u0E1B\u0E34\u0E49\u0E07",
+    auto: "\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 \u0E04\u0E23\u0E36\u0E48\u0E07\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E02\u0E2D\u0E07\u0E17\u0E48\u0E2D\u0E19 + \u0E04\u0E2D\u0E19\u0E40\u0E19\u0E04\u0E40\u0E15\u0E2D\u0E23\u0E4C",
+    numStyle: numStyle,
+    per: cpr.coupling,
+    spare: csp.coupling,
+    onPer: v => setCPer("coupling", v),
+    onSpare: v => setCSpare("coupling", v)
+  }), [...new Set((cond.imc || []).map(x => (x.size || "").trim()).filter(Boolean))].map(sz => React.createElement(Field, {
     key: sz,
     label: "ท่ออ่อน IMC " + sz.replace(/^IMC\s*/i, "") + " (กล่อง)"
   }, React.createElement("input", {
@@ -6556,7 +6646,7 @@ function BOQEditor({
     name: "settings",
     size: 13,
     color: "var(--text-2)"
-  }), " \u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C uPVC (% \u0E40\u0E1C\u0E37\u0E48\u0E2D / \u0E17\u0E48\u0E2D\u0E2D\u0E48\u0E2D\u0E19) ", React.createElement(Icon, {
+  }), " \u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C uPVC (\u0E0A\u0E34\u0E49\u0E19/\u0E17\u0E48\u0E2D\u0E19 \xB7 % \u0E40\u0E1C\u0E37\u0E48\u0E2D \xB7 \u0E17\u0E48\u0E2D\u0E2D\u0E48\u0E2D\u0E19) ", React.createElement(Icon, {
     name: "chevronDown",
     size: 14,
     color: "var(--text-2)",
@@ -6573,28 +6663,31 @@ function BOQEditor({
       gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)",
       gap: 10
     }
-  }, React.createElement(Field, {
-    label: "% \u0E40\u0E1C\u0E37\u0E48\u0E2D \u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D\u0E15\u0E23\u0E07"
-  }, React.createElement("input", {
-    type: "number",
-    style: numStyle,
-    value: csp.upStraight,
-    onChange: e => setCSpare("upStraight", e.target.value)
-  })), React.createElement(Field, {
-    label: "% \u0E40\u0E1C\u0E37\u0E48\u0E2D \u0E41\u0E04\u0E25\u0E21\u0E1B\u0E4C\u0E01\u0E49\u0E32\u0E21\u0E1B\u0E39"
-  }, React.createElement("input", {
-    type: "number",
-    style: numStyle,
-    value: csp.upClamp,
-    onChange: e => setCSpare("upClamp", e.target.value)
-  })), React.createElement(Field, {
-    label: "% \u0E40\u0E1C\u0E37\u0E48\u0E2D \u0E04\u0E2D\u0E19\u0E40\u0E19\u0E47\u0E15\u0E40\u0E15\u0E2D\u0E23\u0E4C uPVC"
-  }, React.createElement("input", {
-    type: "number",
-    style: numStyle,
-    value: csp.upConnector,
-    onChange: e => setCSpare("upConnector", e.target.value)
-  })), [...new Set((cond.upvc || []).map(x => (x.size || "").trim()).filter(Boolean))].map(sz => React.createElement(Field, {
+  }, React.createElement(BoqCondAcc, {
+    label: "\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D\u0E15\u0E23\u0E07",
+    auto: "\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 \u0E08\u0E33\u0E19\u0E27\u0E19\u0E17\u0E48\u0E2D\u0E19 + 4",
+    numStyle: numStyle,
+    per: cpr.upStraight,
+    spare: csp.upStraight,
+    onPer: v => setCPer("upStraight", v),
+    onSpare: v => setCSpare("upStraight", v)
+  }), React.createElement(BoqCondAcc, {
+    label: "\u0E41\u0E04\u0E25\u0E21\u0E1B\u0E4C\u0E01\u0E49\u0E32\u0E21\u0E1B\u0E39",
+    auto: "\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 \u0E17\u0E38\u0E01 60 \u0E0B\u0E21.",
+    numStyle: numStyle,
+    per: cpr.upClamp,
+    spare: csp.upClamp,
+    onPer: v => setCPer("upClamp", v),
+    onSpare: v => setCSpare("upClamp", v)
+  }), React.createElement(BoqCondAcc, {
+    label: "\u0E04\u0E2D\u0E19\u0E40\u0E19\u0E47\u0E15\u0E40\u0E15\u0E2D\u0E23\u0E4C uPVC",
+    auto: "\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 8 + \u0E41\u0E1A\u0E15/\u0E2A\u0E33\u0E23\u0E2D\u0E07 + 3 \u0E15\u0E48\u0E2D PULL BOX uPVC",
+    numStyle: numStyle,
+    per: cpr.upConnector,
+    spare: csp.upConnector,
+    onPer: v => setCPer("upConnector", v),
+    onSpare: v => setCSpare("upConnector", v)
+  }), [...new Set((cond.upvc || []).map(x => (x.size || "").trim()).filter(Boolean))].map(sz => React.createElement(Field, {
     key: sz,
     label: "ท่ออ่อนขาว " + ((sz.match(/(\d+)\s*mm/) || [])[1] || "") + "mm (กล่อง)"
   }, React.createElement("input", {

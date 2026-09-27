@@ -153,6 +153,32 @@ function BoqInvCount({ value, auto, onChange, style }) {
   );
 }
 
+/* ── อุปกรณ์ท่อร้อยสายหนึ่งชนิด: "ชิ้น/ท่อน" คู่กับ "% เผื่อ" ──
+   ช่องซ้ายเว้นว่าง = ใช้กฎในโปรแกรม (บอกไว้ใต้ช่องว่ากฎคืออะไร) กรอกแล้วกฎนั้นถูกแทน
+   สองค่านี้ต้องอยู่ติดกัน เพราะ % เผื่อ บวกทับผลของช่องซ้ายเสมอ ไม่ว่าจะมาจากกฎหรือจากที่กรอก
+   ประกาศที่ระดับโมดูล ไม่ใช่ในตัวฟอร์ม ไม่งั้นพิมพ์แล้วเคอร์เซอร์หลุดจากช่องทุกตัวอักษร */
+function BoqCondAcc({ label, auto, per, spare, onPer, onSpare, numStyle }) {
+  const on = per !== "" && per !== null && per !== undefined;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+      <label style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", color: "var(--text-3)" }}>{label}</label>
+      <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <input type="number" min={0} step="any" placeholder="อัตโนมัติ" style={Object.assign({}, numStyle, { width: "100%" })}
+            value={on ? per : ""} onChange={(e) => onPer(e.target.value)} />
+          <div style={{ fontSize: 9.5, color: on ? "var(--primary-dark)" : "var(--text-3)", marginTop: 3, textAlign: "right" }}>ชิ้น/ท่อน</div>
+        </div>
+        <div style={{ width: 74, flexShrink: 0 }}>
+          <input type="number" style={Object.assign({}, numStyle, { width: "100%" })}
+            value={spare} onChange={(e) => onSpare(e.target.value)} />
+          <div style={{ fontSize: 9.5, color: "var(--text-3)", marginTop: 3, textAlign: "right" }}>% เผื่อ</div>
+        </div>
+      </div>
+      <div style={{ fontSize: 10, color: "var(--text-3)", lineHeight: 1.4 }}>{on ? "แทนกฎเดิม" : auto}</div>
+    </div>
+  );
+}
+
 /* ── รูปประกอบ "ลักษณะการติดตั้ง" (วสท. แบ่งไว้ 7 กลุ่ม) ──
    วาดเป็น SVG ในโค้ดเลย ไม่ต้องพึ่งไฟล์รูปข้างนอก · ใช้สีตามธีมจึงสลับโหมดมืดได้เอง
    อ่านรูปยังไง: ยิ่งสายอยู่ในที่โล่ง ลมพัดผ่านได้ ระบายความร้อนยิ่งดี พิกัดกระแสยิ่งสูง
@@ -549,6 +575,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const trayFits = React.useMemo(() => window.BOQ.trayFittings(), []);
   const SPARE_DEF = { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10, upStraight: 10, upClamp: 10, upConnector: 10 };
   const setCSpare = (k, v) => setB((p) => Object.assign({}, p, { conduitSpare: Object.assign({}, SPARE_DEF, p.conduitSpare, { [k]: v }) }));
+  /* ชิ้น/ท่อน — ล้างช่องแล้วต้องลบคีย์ทิ้ง ไม่ใช่เก็บสตริงว่างไว้ จะได้กลับไปใช้กฎอัตโนมัติจริง ๆ */
+  const setCPer = (k, v) => setB((p) => {
+    const o = Object.assign({}, p.conduitPer);
+    if (v === "" || v === null || v === undefined) delete o[k]; else o[k] = v;
+    return Object.assign({}, p, { conduitPer: o });
+  });
   const [condOpen, setCondOpen] = React.useState({});   // ท่อแถวไหนกางตารางตรวจสายอยู่
   const condPools = [["imc", window.BOQ.IMC_SIZES], ["upvc", window.BOQ.UPVC_SIZES]];
   const condLen = Math.round(condPools.reduce((s, [k]) => s + (cond[k] || []).reduce((t, x) => t + (+x.length || 0), 0), 0));
@@ -713,6 +745,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   };
 
   const csp = Object.assign({}, SPARE_DEF, b.conduitSpare);
+  const cpr = b.conduitPer || {};
 
   /* ── หมวดของงานโครงการ (ตู้ไฟ / ปั๊ม / ถัง / ท่อ) ──
      โครงสร้างเดียวกันทุกหมวด: จำนวนต่อรายการ + อุปกรณ์ประกอบที่พิมพ์เพิ่มเอง
@@ -2713,18 +2746,24 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             </div>
             <div style={{ marginTop: 12, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
               * อุปกรณ์ IMC (แคล้มประกับ / บุชชิ่ง,ล็อกนัท / รางซี / คอนเนคเตอร์ / คุปปิ้ง) คำนวณอัตโนมัติจากความยาวท่อ + จำนวน PULL BOX
+              <br />* อยากคิดเป็นชิ้นต่อท่อ 1 ท่อน ให้กรอกช่อง "ชิ้น/ท่อน" ในตั้งค่าด้านล่าง — เว้นว่างไว้คือใช้กฎอัตโนมัติ
             </div>
             {/* ตั้งค่า IMC */}
             <button onClick={() => setAdvC((v) => !v)} style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", color: "var(--text-2)", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
-              <Icon name="settings" size={13} color="var(--text-2)" /> ตั้งค่าอุปกรณ์ IMC (% เผื่อ / ท่ออ่อน) <Icon name="chevronDown" size={14} color="var(--text-2)" style={{ transform: advC ? "rotate(180deg)" : "none" }} />
+              <Icon name="settings" size={13} color="var(--text-2)" /> ตั้งค่าอุปกรณ์ IMC (ชิ้น/ท่อน · % เผื่อ · ท่ออ่อน) <Icon name="chevronDown" size={14} color="var(--text-2)" style={{ transform: advC ? "rotate(180deg)" : "none" }} />
             </button>
             {advC && (
               <div style={{ marginTop: 10, padding: 12, background: "var(--surface2)", borderRadius: 10, display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: 10 }}>
-                <Field label="% เผื่อ แคล้มประกับ"><input type="number" style={numStyle} value={csp.clamp} onChange={(e) => setCSpare("clamp", e.target.value)} /></Field>
-                <Field label="% เผื่อ บุชชิ่ง/ล็อกนัท"><input type="number" style={numStyle} value={csp.bushing} onChange={(e) => setCSpare("bushing", e.target.value)} /></Field>
-                <Field label="% เผื่อ รางซี"><input type="number" style={numStyle} value={csp.cchannel} onChange={(e) => setCSpare("cchannel", e.target.value)} /></Field>
-                <Field label="% เผื่อ คอนเนคเตอร์"><input type="number" style={numStyle} value={csp.connector} onChange={(e) => setCSpare("connector", e.target.value)} /></Field>
-                <Field label="% เผื่อ คุปปิ้ง"><input type="number" style={numStyle} value={csp.coupling} onChange={(e) => setCSpare("coupling", e.target.value)} /></Field>
+                <BoqCondAcc label="แคล้มประกับ" auto="อัตโนมัติ 1 ตัว/เมตร" numStyle={numStyle}
+                  per={cpr.clamp} spare={csp.clamp} onPer={(v) => setCPer("clamp", v)} onSpare={(v) => setCSpare("clamp", v)} />
+                <BoqCondAcc label="บุชชิ่ง/ล็อกนัท" auto="อัตโนมัติ 8 + จำนวนท่อน" numStyle={numStyle}
+                  per={cpr.bushing} spare={csp.bushing} onPer={(v) => setCPer("bushing", v)} onSpare={(v) => setCSpare("bushing", v)} />
+                <BoqCondAcc label="รางซี" auto="อัตโนมัติ 0.2 ม./แคล้ม ÷ ราง 1.2 ม." numStyle={numStyle}
+                  per={cpr.cchannel} spare={csp.cchannel} onPer={(v) => setCPer("cchannel", v)} onSpare={(v) => setCSpare("cchannel", v)} />
+                <BoqCondAcc label="คอนเนคเตอร์" auto="อัตโนมัติ 10 + 2 ต่อ PULL BOX เหล็ก" numStyle={numStyle}
+                  per={cpr.connector} spare={csp.connector} onPer={(v) => setCPer("connector", v)} onSpare={(v) => setCSpare("connector", v)} />
+                <BoqCondAcc label="คุปปิ้ง" auto="อัตโนมัติ ครึ่งหนึ่งของท่อน + คอนเนคเตอร์" numStyle={numStyle}
+                  per={cpr.coupling} spare={csp.coupling} onPer={(v) => setCPer("coupling", v)} onSpare={(v) => setCSpare("coupling", v)} />
                 {[...new Set((cond.imc || []).map((x) => (x.size || "").trim()).filter(Boolean))].map((sz) => (
                   <Field key={sz} label={"ท่ออ่อน IMC " + sz.replace(/^IMC\s*/i, "") + " (กล่อง)"}><input type="number" style={numStyle} value={(cond.flex || {})[sz] != null ? cond.flex[sz] : 1} onChange={(e) => setFlexSize(sz, e.target.value)} /></Field>
                 ))}
@@ -2733,13 +2772,16 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
             {/* ตั้งค่า uPVC */}
             <button onClick={() => setAdvU((v) => !v)} style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", color: "var(--text-2)", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
-              <Icon name="settings" size={13} color="var(--text-2)" /> ตั้งค่าอุปกรณ์ uPVC (% เผื่อ / ท่ออ่อน) <Icon name="chevronDown" size={14} color="var(--text-2)" style={{ transform: advU ? "rotate(180deg)" : "none" }} />
+              <Icon name="settings" size={13} color="var(--text-2)" /> ตั้งค่าอุปกรณ์ uPVC (ชิ้น/ท่อน · % เผื่อ · ท่ออ่อน) <Icon name="chevronDown" size={14} color="var(--text-2)" style={{ transform: advU ? "rotate(180deg)" : "none" }} />
             </button>
             {advU && (
               <div style={{ marginTop: 10, padding: 12, background: "var(--surface2)", borderRadius: 10, display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: 10 }}>
-                <Field label="% เผื่อ ข้อต่อตรง"><input type="number" style={numStyle} value={csp.upStraight} onChange={(e) => setCSpare("upStraight", e.target.value)} /></Field>
-                <Field label="% เผื่อ แคลมป์ก้ามปู"><input type="number" style={numStyle} value={csp.upClamp} onChange={(e) => setCSpare("upClamp", e.target.value)} /></Field>
-                <Field label="% เผื่อ คอนเน็ตเตอร์ uPVC"><input type="number" style={numStyle} value={csp.upConnector} onChange={(e) => setCSpare("upConnector", e.target.value)} /></Field>
+                <BoqCondAcc label="ข้อต่อตรง" auto="อัตโนมัติ จำนวนท่อน + 4" numStyle={numStyle}
+                  per={cpr.upStraight} spare={csp.upStraight} onPer={(v) => setCPer("upStraight", v)} onSpare={(v) => setCSpare("upStraight", v)} />
+                <BoqCondAcc label="แคลมป์ก้ามปู" auto="อัตโนมัติ ทุก 60 ซม." numStyle={numStyle}
+                  per={cpr.upClamp} spare={csp.upClamp} onPer={(v) => setCPer("upClamp", v)} onSpare={(v) => setCSpare("upClamp", v)} />
+                <BoqCondAcc label="คอนเน็ตเตอร์ uPVC" auto="อัตโนมัติ 8 + แบต/สำรอง + 3 ต่อ PULL BOX uPVC" numStyle={numStyle}
+                  per={cpr.upConnector} spare={csp.upConnector} onPer={(v) => setCPer("upConnector", v)} onSpare={(v) => setCSpare("upConnector", v)} />
                 {[...new Set((cond.upvc || []).map((x) => (x.size || "").trim()).filter(Boolean))].map((sz) => (
                   <Field key={sz} label={"ท่ออ่อนขาว " + ((sz.match(/(\d+)\s*mm/) || [])[1] || "") + "mm (กล่อง)"}><input type="number" style={numStyle} value={(cond.upFlex || {})[sz] != null ? cond.upFlex[sz] : 1} onChange={(e) => setUpFlexSize(sz, e.target.value)} /></Field>
                 ))}

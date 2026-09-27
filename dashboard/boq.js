@@ -1214,6 +1214,9 @@
       laborLump: { basis: "w", rate: 0, note: "" },   // basis: w(บาท/วัตต์ · ที่ใช้กันจริง) / job / kw / panel
       permit: null,
       conduitSpare: { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10, upStraight: 10, upClamp: 10, upConnector: 10 },
+      /* จำนวนอุปกรณ์ต่อท่อ 1 ท่อน — ว่างทั้งก้อน = ใช้กฎอัตโนมัติ (ดูคำอธิบายใน calcBOQ)
+         ห้ามใส่ตัวเลขตั้งต้นที่นี่ เพราะจะทำให้ทุกงานเปลี่ยนวิธีคิดพร้อมกัน */
+      conduitPer: {},
       // งานเพิ่มเติม (Input) — โครงสร้างบนหลังคา ถอดวัสดุตามสูตร (ว่าง = ไม่ใช้/ไม่ถอด)
       // งานเพิ่มเติม (Input) — โครงสร้างบนหลังคา ถอดวัสดุตามสูตร (ว่าง = ไม่ใช้/ไม่ถอด)
       struct: {
@@ -1530,6 +1533,23 @@
     const cond = b.conduit || {};
     const cs = b.conduitSpare || {};
     const cpct = (v, p) => Math.round(v * (1 + (+p || 0) / 100));
+    /* ── จำนวนอุปกรณ์ต่อท่อ 1 ท่อน ──
+       เว้นว่าง = ใช้กฎในโปรแกรม (ตามความยาว / จำนวน PULL BOX) เหมือนเดิมทุกประการ
+       กรอกตัวเลข = คิดเป็น ชิ้น/ท่อน × จำนวนท่อน แทนกฎนั้น แล้วบวก % เผื่อทับเหมือนกัน
+       ท่าเดียวกับช่องท่ออ่อน (flexMap) ที่เว้นว่างแล้วได้ค่าอัตโนมัติ
+       ⚠ ต้องเว้นว่าง = อัตโนมัติ ห้ามตั้งค่าตั้งต้นเป็นตัวเลข
+         ไม่งั้นงานที่บันทึกไว้แล้วจะเปลี่ยนจำนวนและราคาเองโดยไม่มีใครแตะ */
+    const cper = b.conduitPer || {};
+    const perPipe = (k) => {
+      const v = cper[k];
+      if (v === "" || v === null || v === undefined) return null;
+      const n = +v;
+      return isFinite(n) && n >= 0 ? n : null;
+    };
+    const cqty = (k, pipes, auto, spare) => {
+      const per = perPipe(k);
+      return cpct(per != null ? per * pipes : auto, spare);
+    };
     const aggBy = (arr, valKey) => {
       const m = {};
       (arr || []).forEach((x) => { const nm = (x.size || "").trim(), q = +x[valKey] || 0; if (nm && q > 0) m[nm] = (m[nm] || 0) + q; });
@@ -1549,17 +1569,18 @@
     const race = [];
     const flexMap = cond.flex || {};
     // อุปกรณ์ IMC คำนวณ "แยกตามขนาดท่อ" — มีกี่ขนาดก็ได้อุปกรณ์ตามนั้น
-    let totalClamp = 0;
+    let totalClamp = 0, totalImcPipes = 0;
     imcSizes.forEach((nm) => {
       const len = imcMap[nm];
       const sz = nm.replace(/^IMC\s*/i, "").trim();      // เช่น 1"
       const pipes = Math.ceil(len / 3);                   // 3m/ท่อน
-      const clamp = cpct(len, cs.clamp);                  // 1 ตัว/เมตร
-      const bushing = cpct(8 + pipes, cs.bushing);        // 8 + จำนวนท่อน
-      const connector = cpct(10 + 2 * pbHdg, cs.connector); // 10 + 2/PULL BOX HDG
-      const coupling = cpct(pipes / 2 + connector, cs.coupling);
+      const clamp = cqty("clamp", pipes, len, cs.clamp);                    // อัตโนมัติ 1 ตัว/เมตร
+      const bushing = cqty("bushing", pipes, 8 + pipes, cs.bushing);        // อัตโนมัติ 8 + จำนวนท่อน
+      const connector = cqty("connector", pipes, 10 + 2 * pbHdg, cs.connector); // อัตโนมัติ 10 + 2/PULL BOX HDG
+      const coupling = cqty("coupling", pipes, pipes / 2 + connector, cs.coupling);
       const flex = (flexMap[nm] != null && flexMap[nm] !== "") ? Math.round(+flexMap[nm] || 0) : 1; // ท่ออ่อน default 1 กล่อง/ขนาด
       totalClamp += clamp;
+      totalImcPipes += pipes;
       race.push({ name: nm + " (3m/ท่อน)", qty: pipes, unit: "pcs" });
       race.push({ name: "แคล้มประกับ IMC " + sz, qty: clamp, unit: "pcs" });
       race.push({ name: "บุชชิ่ง,ล็อกนัท IMC " + sz, qty: bushing, unit: "pcs" });
@@ -1569,7 +1590,8 @@
     });
     if (imcTotalLen > 0) {
       // รางซี เป็นของรวมทั้งงาน (ไม่แยกขนาด)
-      const cchannel = cpct((totalClamp * 0.2) / 1.2, cs.cchannel); // 0.2m/แคล้ม, รางยาว 1.2m
+      /* รางซีเป็นของรวมทั้งงาน ไม่แยกขนาด — ชิ้น/ท่อน จึงคิดจากจำนวนท่อน IMC ทั้งหมด */
+      const cchannel = cqty("cchannel", totalImcPipes, (totalClamp * 0.2) / 1.2, cs.cchannel); // อัตโนมัติ 0.2m/แคล้ม, รางยาว 1.2m
       race.push({ name: "รางซี C-Channel 20x1200x40x1.0 mm.", qty: cchannel, unit: "pcs" });
     }
     // uPVC แยกตามขนาด — ท่อ (2.9m/ท่อน) + อุปกรณ์
@@ -1579,9 +1601,9 @@
       const mm = (nm.match(/(\d+)\s*mm/) || [])[1] || "";
       const suf = mm ? (mm + "mm. (สีขาว)") : "";
       const pipes = Math.ceil(len / 2.9);                 // 2.90m/ท่อน
-      const straight = cpct(pipes + 4, cs.upStraight);    // ข้อต่อตรง = ท่อน + 4
-      const clamp = cpct(len / 0.6, cs.upClamp);          // แคลมป์ก้ามปู ทุก 60cm
-      const connector = cpct(8 + (hasBat ? 4 : 0) + (hasBk ? 4 : 0) + 3 * pbUpvc, cs.upConnector);
+      const straight = cqty("upStraight", pipes, pipes + 4, cs.upStraight);  // อัตโนมัติ ท่อน + 4
+      const clamp = cqty("upClamp", pipes, len / 0.6, cs.upClamp);            // อัตโนมัติ ทุก 60cm
+      const connector = cqty("upConnector", pipes, 8 + (hasBat ? 4 : 0) + (hasBk ? 4 : 0) + 3 * pbUpvc, cs.upConnector);
       const flex = (upFlexMap[nm] != null && upFlexMap[nm] !== "") ? Math.round(+upFlexMap[nm] || 0) : 1;
       race.push({ name: nm + " (2.9m/ท่อน)", qty: pipes, unit: "pcs" });
       race.push({ name: "ข้อต่อตรง uPVC " + suf, qty: straight, unit: "pcs" });
