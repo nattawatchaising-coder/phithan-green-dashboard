@@ -1846,8 +1846,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const navSecs = [
     { key: "info", icon: "sun", title: "ข้อมูลระบบ",
       meta: b.panels + " แผง · " + result.meta.kw + " kW · " + (String(b.phase) === "3" ? "3 เฟส" : "1 เฟส") },
-    isHuawei ? { key: "hybrid", icon: "bolt", title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid"),
-      meta: selInv.model } : null,
+    isHuawei ? { key: "hybrid", icon: "bolt", title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + (selInv2 ? " · ตัวที่ 1" : ""),
+      meta: selInv.model + (selInv2 ? " · " + result.meta.invCount + " ตัว" : "") } : null,
+    // อินเวอร์เตอร์ตัวที่ 2 เป็นหัวข้อของตัวเอง — จะได้เห็นในสารบัญว่ามีสองตัว ไม่ใช่ซ่อนอยู่ในหัวข้อเดียว
+    isHuawei && selInv2 ? { key: "hybrid2", icon: "bolt", title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + " · ตัวที่ 2",
+      meta: selInv2.model + " · " + inv2Count + " ตัว", tone: inv2PhaseBad ? "warn" : "ok" } : null,
     isStringInv && scfg ? { key: "dc", icon: "bolt", title: "สาย DC / การต่ออนุกรม",
       meta: scfg.ready ? scfg.series + " แผงอนุกรม" + (plan ? " · " + plan.strings + " สตริง" : "") + " · " + scfg.dcWire : "ยังกรอกสเปคไม่ครบ",
       tone: !scfg.ready ? "warn" : (plan && plan.over ? "warn" : "ok") } : null,
@@ -1940,28 +1943,32 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-1)" }}>{String(b.phase) === "3" ? "3 เฟส" : "1 เฟส"}</span>
                 </div>
               </Field></div>
-              <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label={"อินเวอร์เตอร์" + (jobBrand ? " · " + jobBrand : "")}><Dropdown value={b.inverterModel || ""} onChange={(v) => set("inverterModel", v)} options={invOptions} /></Field></div>
-              <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}>{!b.inverterModel
-                ? <Field label="อัตราไมโคร"><Dropdown value={b.microRatio} onChange={(v) => set("microRatio", v)} options={[{ value: "1:1", label: "1:1 (1 แผง/ตัว)" }, { value: "2:1", label: "2:1 (2 แผง/ตัว)" }]} /></Field>
-                : <Field label={"จำนวนอินเวอร์เตอร์ (แก้ไขได้)" + (selInv2 ? " · รุ่นแรก" : "")}><BoqInvCount value={b.invCount} auto={result.meta.invAuto} onChange={(v) => set("invCount", v)} style={numStyle} /></Field>}</div>
-              {/* ── อินเวอร์เตอร์ขนาดที่สอง ── งานที่แบ่งตามหลังคาคนละทิศ หรือตัวใหญ่เหลือเศษไม่พอกำลังอีกตัว
-                  จำนวนตัวของรุ่นที่สองกรอกเองเสมอ · รุ่นแรกคิดกำลังที่เหลือให้อัตโนมัติ */}
+              {/* ── อินเวอร์เตอร์ ── บรรทัดละตัว (รุ่น | จำนวน) ไม่ให้ช่องของคนละตัวไหลไปอยู่บรรทัดเดียวกัน
+                  ตัวที่สองมีไว้สำหรับงานที่แบ่งตามหลังคาคนละทิศ หรือตัวใหญ่เหลือเศษไม่พอกำลังอีกตัว
+                  จำนวนตัวของรุ่นที่สองกรอกเองเสมอ · รุ่นแรกคิดกำลังที่เหลือให้อัตโนมัติ
+                  ที่นี่คือที่เดียวที่กรอก — กรอบ "ระบบ On-grid/Hybrid" ของแต่ละตัวดึงค่าจากตรงนี้ไปแสดง */}
+              <div style={{ gridColumn: "1 / -1", display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr)" : "minmax(0,2fr) minmax(0,1fr)", gap: 12 }}>
+                <Field label={"อินเวอร์เตอร์" + (selInv2 ? " ตัวที่ 1" : "") + (jobBrand ? " · " + jobBrand : "")}>
+                  <Dropdown value={b.inverterModel || ""} onChange={(v) => set("inverterModel", v)} options={invOptions} />
+                </Field>
+                {!b.inverterModel
+                  ? <Field label="อัตราไมโคร"><Dropdown value={b.microRatio} onChange={(v) => set("microRatio", v)} options={[{ value: "1:1", label: "1:1 (1 แผง/ตัว)" }, { value: "2:1", label: "2:1 (2 แผง/ตัว)" }]} /></Field>
+                  : <Field label="จำนวน (แก้ไขได้)"><BoqInvCount value={b.invCount} auto={result.meta.invAuto} onChange={(v) => set("invCount", v)} style={numStyle} /></Field>}
+              </div>
               {!!b.inverterModel && (
-                <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}>
-                  <Field label="อินเวอร์เตอร์ตัวที่สอง (ไม่บังคับ)">
+                <div style={{ gridColumn: "1 / -1", display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr)" : "minmax(0,2fr) minmax(0,1fr)", gap: 12 }}>
+                  <Field label="อินเวอร์เตอร์ตัวที่ 2 (ไม่บังคับ)">
                     <Dropdown value={b.inv2Model || ""} onChange={(v) => set("inv2Model", v)} options={inv2Options} />
                   </Field>
-                </div>
-              )}
-              {!!selInv2 && (
-                <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}>
-                  <Field label={"จำนวนตัวที่สอง (กรอกเอง)"}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                      <input type="number" min={1} step={1} style={Object.assign({}, numStyle, { flex: 1, minWidth: 0 })}
-                        value={inv2Count || ""} onChange={(e) => set("inv2Count", Math.max(1, parseInt(e.target.value) || 1))} />
-                      <span style={{ fontSize: 11.5, color: "var(--text-3)", flexShrink: 0 }}>ตัว</span>
-                    </div>
-                  </Field>
+                  {!!selInv2 && (
+                    <Field label="จำนวน (กรอกเอง)">
+                      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                        <input type="number" min={1} step={1} style={Object.assign({}, numStyle, { flex: 1, minWidth: 0 })}
+                          value={inv2Count || ""} onChange={(e) => set("inv2Count", Math.max(1, parseInt(e.target.value) || 1))} />
+                        <span style={{ fontSize: 11.5, color: "var(--text-3)", flexShrink: 0 }}>ตัว</span>
+                      </div>
+                    </Field>
+                  )}
                 </div>
               )}
               {!!selInv2 && (
@@ -2004,25 +2011,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
           {/* ── ระบบอินเวอร์เตอร์ Hybrid/On-grid (Huawei) ── */}
           {isHuawei && (
-            <BoqSection title={"ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + " (" + selInv.model + (selInv2 ? " + " + selInv2.model : "") + ")"} icon="bolt" {...secProps("hybrid")}>
+            <BoqSection title={"ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + (selInv2 ? " · ตัวที่ 1" : "") + " (" + selInv.model + ")"} icon="bolt" {...secProps("hybrid")}>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "repeat(3, minmax(0,1fr))", gap: 12 }}>
-                <Field label={"จำนวนอินเวอร์เตอร์ (แก้ไขได้)" + (selInv2 ? " · รุ่นแรก" : "")}>
+                <Field label={"จำนวนอินเวอร์เตอร์ (แก้ไขได้)" + (selInv2 ? " · ตัวที่ 1" : "")}>
                   <BoqInvCount value={b.invCount} auto={result.meta.invAuto} onChange={(v) => set("invCount", v)} style={numStyle} />
                 </Field>
-                {/* ช่องเดียวกับในหัวข้อ "ข้อมูลระบบ" — คนกรอกอยู่หัวข้อนี้ทั้งบล็อก ไม่ควรต้องเลื่อนกลับขึ้นไปแก้ */}
-                <Field label="อินเวอร์เตอร์ตัวที่สอง (ไม่บังคับ)">
-                  <Dropdown value={b.inv2Model || ""} onChange={(v) => set("inv2Model", v)} options={inv2Options} />
-                </Field>
-                {!!selInv2 && (
-                  <Field label="จำนวนตัวที่สอง (กรอกเอง)">
-                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                      <input type="number" min={1} step={1} style={Object.assign({}, numStyle, { flex: 1, minWidth: 0 })}
-                        value={inv2Count || ""} onChange={(e) => set("inv2Count", Math.max(1, parseInt(e.target.value) || 1))} />
-                      <span style={{ fontSize: 11.5, color: "var(--text-3)", flexShrink: 0 }}>ตัว</span>
-                    </div>
-                  </Field>
-                )}
-                <Field label={"String ต่อตัว (รับได้ " + capPerInv + ")" + (selInv2 ? " · รุ่นแรก" : "")}>
+                <Field label={"String ต่อตัว (รับได้ " + capPerInv + ")" + (selInv2 ? " · ตัวที่ 1" : "")}>
                   <input type="number" style={numStyle} value={b.strings || (plan ? plan.perInv : selInv.inputs)} min={1} max={capPerInv}
                     onChange={(e) => set("strings", Math.min(Math.max(parseInt(e.target.value) || 0, 0), capPerInv))} />
                 </Field>
@@ -2098,8 +2092,37 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 ))}
               </div>
 
-              {/* สเปครุ่นที่สอง — เฉพาะค่าต่อตัว ส่วนยอดรวมทั้งงาน (MAX PV รวม · AC รวม · DC/AC) อยู่ในตารางบนแล้ว */}
-              {!!selInv2 && (
+              <div style={{ marginTop: 10, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
+                * ใส่แผงเกินกำลัง AC ได้ถึง DC/AC {window.BOQ.DCAC_LIMIT} เท่า — อินเวอร์เตอร์ตัดกำลังออกไว้ที่ Max AC Active Power อยู่แล้ว ส่วนที่เกินช่วยเก็บกำลังตอนแดดอ่อน
+                <br />* จำนวนตัว = ปัดขึ้น(กำลังแผงรวม ÷ MAX PV ต่อตัว) พิมพ์ทับได้ · Combiner Box + DC (Fuse/Holder/MCB/MC4) คิดตามจำนวน String · RCBO/SPD/Smart Meter/Backup เลือกตามเฟส ({selInv.phase === 3 ? "3" : "1"} เฟส) · RCBO ขนาดจากกระแสออก × 1.25
+              </div>
+            </BoqSection>
+          )}
+
+          {/* ── กรอบของอินเวอร์เตอร์ตัวที่ 2 ── แยกกรอบใหญ่คนละใบกับตัวที่ 1 จะได้ไม่ต้องไล่อ่านว่าเลขไหนของตัวไหน
+              รุ่นกับจำนวนเลือกที่หัวข้อ "ข้อมูลระบบ" ที่เดียว กรอบนี้ดึงค่าจากตรงนั้นมาแสดง */}
+          {isHuawei && !!selInv2 && (
+            <BoqSection title={"ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + " · ตัวที่ 2 (" + selInv2.model + ")"} icon="bolt" {...secProps("hybrid2")}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr)" : "minmax(0,2fr) minmax(0,1fr)", gap: 12 }}>
+                <Field label="รุ่น · เลือกที่หัวข้อ “ข้อมูลระบบ”">
+                  <BoqLocked value={selInv2.model} />
+                </Field>
+                <Field label="จำนวน (กรอกเอง)">
+                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                    <input type="number" min={1} step={1} style={Object.assign({}, numStyle, { flex: 1, minWidth: 0 })}
+                      value={inv2Count || ""} onChange={(e) => set("inv2Count", Math.max(1, parseInt(e.target.value) || 1))} />
+                    <span style={{ fontSize: 11.5, color: "var(--text-3)", flexShrink: 0 }}>ตัว</span>
+                  </div>
+                </Field>
+              </div>
+              {inv2PhaseBad && (
+                <div className="bq-note warn">
+                  <Icon name="alert" size={15} color="#F59E0B" />
+                  <span>รุ่นนี้เป็น {selInv2.phase} เฟส แต่งานนี้เป็น {jobPhaseNum} เฟส — เปลี่ยนรุ่นที่หัวข้อ “ข้อมูลระบบ” หรือแก้เฟสในคลัง</span>
+                </div>
+              )}
+              {/* สเปครุ่นที่สอง — เฉพาะค่าต่อตัวกับยอดรวมของรุ่นนี้ ส่วนยอดทั้งงาน (MAX PV รวม · AC รวม · DC/AC) อยู่ในกรอบตัวที่ 1 */}
+              {(
                 <React.Fragment>
                   <div style={{ marginTop: 16, marginBottom: 8, fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>
                     สเปคจากคลังสินค้า · {selInv2.model} · {inv2Count} ตัว
@@ -2128,8 +2151,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               )}
 
               <div style={{ marginTop: 10, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
-                * ใส่แผงเกินกำลัง AC ได้ถึง DC/AC {window.BOQ.DCAC_LIMIT} เท่า — อินเวอร์เตอร์ตัดกำลังออกไว้ที่ Max AC Active Power อยู่แล้ว ส่วนที่เกินช่วยเก็บกำลังตอนแดดอ่อน
-                <br />* จำนวนตัว = ปัดขึ้น(กำลังแผงรวม ÷ MAX PV ต่อตัว) พิมพ์ทับได้ · Combiner Box + DC (Fuse/Holder/MCB/MC4) คิดตามจำนวน String · RCBO/SPD/Smart Meter/Backup เลือกตามเฟส ({selInv.phase === 3 ? "3" : "1"} เฟส) · RCBO ขนาดจากกระแสออก × 1.25
+                * จำนวนตัวของรุ่นนี้กรอกเองเสมอ — ตัวที่ 1 จะคิดกำลังที่เหลือให้อัตโนมัติ ({result.meta.invAuto} ตัว) · รวมทั้งงาน {invTotal} ตัว
+                <br />* RCBO กับสาย AC ของรุ่นนี้แยกขนาดตามกระแสออกของตัวมันเอง ({selInv2.outA || "—"} A) ไม่ได้ใช้ขนาดเดียวกับตัวที่ 1 · AC SPD คิดตามจำนวนตัวรวม
+                <br />* ตัวออกแบบสตริง 3D และสมุดส่งมอบยังใช้อินเวอร์เตอร์ตัวที่ 1 อย่างเดียว
               </div>
             </BoqSection>
           )}

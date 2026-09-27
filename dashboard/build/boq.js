@@ -4200,8 +4200,14 @@ function BOQEditor({
   }, isHuawei ? {
     key: "hybrid",
     icon: "bolt",
-    title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid"),
-    meta: selInv.model
+    title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + (selInv2 ? " · ตัวที่ 1" : ""),
+    meta: selInv.model + (selInv2 ? " · " + result.meta.invCount + " ตัว" : "")
+  } : null, isHuawei && selInv2 ? {
+    key: "hybrid2",
+    icon: "bolt",
+    title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + " · ตัวที่ 2",
+    meta: selInv2.model + " · " + inv2Count + " ตัว",
+    tone: inv2PhaseBad ? "warn" : "ok"
   } : null, isStringInv && scfg ? {
     key: "dc",
     icon: "bolt",
@@ -4414,19 +4420,18 @@ function BOQEditor({
     }
   }, String(b.phase) === "3" ? "3 เฟส" : "1 เฟส")))), React.createElement("div", {
     style: {
-      gridColumn: isMobile ? "1 / -1" : "auto"
+      gridColumn: "1 / -1",
+      display: "grid",
+      gridTemplateColumns: isMobile ? "minmax(0,1fr)" : "minmax(0,2fr) minmax(0,1fr)",
+      gap: 12
     }
   }, React.createElement(Field, {
-    label: "อินเวอร์เตอร์" + (jobBrand ? " · " + jobBrand : "")
+    label: "อินเวอร์เตอร์" + (selInv2 ? " ตัวที่ 1" : "") + (jobBrand ? " · " + jobBrand : "")
   }, React.createElement(Dropdown, {
     value: b.inverterModel || "",
     onChange: v => set("inverterModel", v),
     options: invOptions
-  }))), React.createElement("div", {
-    style: {
-      gridColumn: isMobile ? "1 / -1" : "auto"
-    }
-  }, !b.inverterModel ? React.createElement(Field, {
+  })), !b.inverterModel ? React.createElement(Field, {
     label: "\u0E2D\u0E31\u0E15\u0E23\u0E32\u0E44\u0E21\u0E42\u0E04\u0E23"
   }, React.createElement(Dropdown, {
     value: b.microRatio,
@@ -4439,7 +4444,7 @@ function BOQEditor({
       label: "2:1 (2 แผง/ตัว)"
     }]
   })) : React.createElement(Field, {
-    label: "จำนวนอินเวอร์เตอร์ (แก้ไขได้)" + (selInv2 ? " · รุ่นแรก" : "")
+    label: "\u0E08\u0E33\u0E19\u0E27\u0E19 (\u0E41\u0E01\u0E49\u0E44\u0E02\u0E44\u0E14\u0E49)"
   }, React.createElement(BoqInvCount, {
     value: b.invCount,
     auto: result.meta.invAuto,
@@ -4447,20 +4452,19 @@ function BOQEditor({
     style: numStyle
   }))), !!b.inverterModel && React.createElement("div", {
     style: {
-      gridColumn: isMobile ? "1 / -1" : "auto"
+      gridColumn: "1 / -1",
+      display: "grid",
+      gridTemplateColumns: isMobile ? "minmax(0,1fr)" : "minmax(0,2fr) minmax(0,1fr)",
+      gap: 12
     }
   }, React.createElement(Field, {
-    label: "\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48\u0E2A\u0E2D\u0E07 (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A)"
+    label: "\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48 2 (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A)"
   }, React.createElement(Dropdown, {
     value: b.inv2Model || "",
     onChange: v => set("inv2Model", v),
     options: inv2Options
-  }))), !!selInv2 && React.createElement("div", {
-    style: {
-      gridColumn: isMobile ? "1 / -1" : "auto"
-    }
-  }, React.createElement(Field, {
-    label: "จำนวนตัวที่สอง (กรอกเอง)"
+  })), !!selInv2 && React.createElement(Field, {
+    label: "\u0E08\u0E33\u0E19\u0E27\u0E19 (\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07)"
   }, React.createElement("div", {
     style: {
       display: "flex",
@@ -4575,7 +4579,7 @@ function BOQEditor({
     onChange: v => set("roof", v),
     options: opt(window.BOQ.ROOF_OPTIONS)
   }))))), isHuawei && React.createElement(BoqSection, _extends({
-    title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + " (" + selInv.model + (selInv2 ? " + " + selInv2.model : "") + ")",
+    title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + (selInv2 ? " · ตัวที่ 1" : "") + " (" + selInv.model + ")",
     icon: "bolt"
   }, secProps("hybrid")), React.createElement("div", {
     style: {
@@ -4584,44 +4588,14 @@ function BOQEditor({
       gap: 12
     }
   }, React.createElement(Field, {
-    label: "จำนวนอินเวอร์เตอร์ (แก้ไขได้)" + (selInv2 ? " · รุ่นแรก" : "")
+    label: "จำนวนอินเวอร์เตอร์ (แก้ไขได้)" + (selInv2 ? " · ตัวที่ 1" : "")
   }, React.createElement(BoqInvCount, {
     value: b.invCount,
     auto: result.meta.invAuto,
     onChange: v => set("invCount", v),
     style: numStyle
   })), React.createElement(Field, {
-    label: "\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48\u0E2A\u0E2D\u0E07 (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A)"
-  }, React.createElement(Dropdown, {
-    value: b.inv2Model || "",
-    onChange: v => set("inv2Model", v),
-    options: inv2Options
-  })), !!selInv2 && React.createElement(Field, {
-    label: "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48\u0E2A\u0E2D\u0E07 (\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07)"
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 7
-    }
-  }, React.createElement("input", {
-    type: "number",
-    min: 1,
-    step: 1,
-    style: Object.assign({}, numStyle, {
-      flex: 1,
-      minWidth: 0
-    }),
-    value: inv2Count || "",
-    onChange: e => set("inv2Count", Math.max(1, parseInt(e.target.value) || 1))
-  }), React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      color: "var(--text-3)",
-      flexShrink: 0
-    }
-  }, "\u0E15\u0E31\u0E27"))), React.createElement(Field, {
-    label: "String ต่อตัว (รับได้ " + capPerInv + ")" + (selInv2 ? " · รุ่นแรก" : "")
+    label: "String ต่อตัว (รับได้ " + capPerInv + ")" + (selInv2 ? " · ตัวที่ 1" : "")
   }, React.createElement("input", {
     type: "number",
     style: numStyle,
@@ -4774,7 +4748,57 @@ function BOQEditor({
     className: "k"
   }, c.k), React.createElement("span", {
     className: "v " + (c.hi && !c.bad ? "hi" : "")
-  }, c.v)))), !!selInv2 && React.createElement(React.Fragment, null, React.createElement("div", {
+  }, c.v)))), React.createElement("div", {
+    style: {
+      marginTop: 10,
+      fontSize: 11,
+      color: "var(--text-3)",
+      lineHeight: 1.5
+    }
+  }, "* \u0E43\u0E2A\u0E48\u0E41\u0E1C\u0E07\u0E40\u0E01\u0E34\u0E19\u0E01\u0E33\u0E25\u0E31\u0E07 AC \u0E44\u0E14\u0E49\u0E16\u0E36\u0E07 DC/AC ", window.BOQ.DCAC_LIMIT, " \u0E40\u0E17\u0E48\u0E32 \u2014 \u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E14\u0E01\u0E33\u0E25\u0E31\u0E07\u0E2D\u0E2D\u0E01\u0E44\u0E27\u0E49\u0E17\u0E35\u0E48 Max AC Active Power \u0E2D\u0E22\u0E39\u0E48\u0E41\u0E25\u0E49\u0E27 \u0E2A\u0E48\u0E27\u0E19\u0E17\u0E35\u0E48\u0E40\u0E01\u0E34\u0E19\u0E0A\u0E48\u0E27\u0E22\u0E40\u0E01\u0E47\u0E1A\u0E01\u0E33\u0E25\u0E31\u0E07\u0E15\u0E2D\u0E19\u0E41\u0E14\u0E14\u0E2D\u0E48\u0E2D\u0E19", React.createElement("br", null), "* \u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27 = \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19(\u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07\u0E23\u0E27\u0E21 \xF7 MAX PV \u0E15\u0E48\u0E2D\u0E15\u0E31\u0E27) \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E17\u0E31\u0E1A\u0E44\u0E14\u0E49 \xB7 Combiner Box + DC (Fuse/Holder/MCB/MC4) \u0E04\u0E34\u0E14\u0E15\u0E32\u0E21\u0E08\u0E33\u0E19\u0E27\u0E19 String \xB7 RCBO/SPD/Smart Meter/Backup \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E15\u0E32\u0E21\u0E40\u0E1F\u0E2A (", selInv.phase === 3 ? "3" : "1", " \u0E40\u0E1F\u0E2A) \xB7 RCBO \u0E02\u0E19\u0E32\u0E14\u0E08\u0E32\u0E01\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01 \xD7 1.25")), isHuawei && !!selInv2 && React.createElement(BoqSection, _extends({
+    title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + " · ตัวที่ 2 (" + selInv2.model + ")",
+    icon: "bolt"
+  }, secProps("hybrid2")), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "minmax(0,1fr)" : "minmax(0,2fr) minmax(0,1fr)",
+      gap: 12
+    }
+  }, React.createElement(Field, {
+    label: "\u0E23\u0E38\u0E48\u0E19 \xB7 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E17\u0E35\u0E48\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D \u201C\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E23\u0E30\u0E1A\u0E1A\u201D"
+  }, React.createElement(BoqLocked, {
+    value: selInv2.model
+  })), React.createElement(Field, {
+    label: "\u0E08\u0E33\u0E19\u0E27\u0E19 (\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07)"
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 7
+    }
+  }, React.createElement("input", {
+    type: "number",
+    min: 1,
+    step: 1,
+    style: Object.assign({}, numStyle, {
+      flex: 1,
+      minWidth: 0
+    }),
+    value: inv2Count || "",
+    onChange: e => set("inv2Count", Math.max(1, parseInt(e.target.value) || 1))
+  }), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      flexShrink: 0
+    }
+  }, "\u0E15\u0E31\u0E27")))), inv2PhaseBad && React.createElement("div", {
+    className: "bq-note warn"
+  }, React.createElement(Icon, {
+    name: "alert",
+    size: 15,
+    color: "#F59E0B"
+  }), React.createElement("span", null, "\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49\u0E40\u0E1B\u0E47\u0E19 ", selInv2.phase, " \u0E40\u0E1F\u0E2A \u0E41\u0E15\u0E48\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E40\u0E1B\u0E47\u0E19 ", jobPhaseNum, " \u0E40\u0E1F\u0E2A \u2014 \u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E23\u0E38\u0E48\u0E19\u0E17\u0E35\u0E48\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D \u201C\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E23\u0E30\u0E1A\u0E1A\u201D \u0E2B\u0E23\u0E37\u0E2D\u0E41\u0E01\u0E49\u0E40\u0E1F\u0E2A\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07")), React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
       marginTop: 16,
       marginBottom: 8,
@@ -4848,7 +4872,7 @@ function BOQEditor({
       color: "var(--text-3)",
       lineHeight: 1.5
     }
-  }, "* \u0E43\u0E2A\u0E48\u0E41\u0E1C\u0E07\u0E40\u0E01\u0E34\u0E19\u0E01\u0E33\u0E25\u0E31\u0E07 AC \u0E44\u0E14\u0E49\u0E16\u0E36\u0E07 DC/AC ", window.BOQ.DCAC_LIMIT, " \u0E40\u0E17\u0E48\u0E32 \u2014 \u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E14\u0E01\u0E33\u0E25\u0E31\u0E07\u0E2D\u0E2D\u0E01\u0E44\u0E27\u0E49\u0E17\u0E35\u0E48 Max AC Active Power \u0E2D\u0E22\u0E39\u0E48\u0E41\u0E25\u0E49\u0E27 \u0E2A\u0E48\u0E27\u0E19\u0E17\u0E35\u0E48\u0E40\u0E01\u0E34\u0E19\u0E0A\u0E48\u0E27\u0E22\u0E40\u0E01\u0E47\u0E1A\u0E01\u0E33\u0E25\u0E31\u0E07\u0E15\u0E2D\u0E19\u0E41\u0E14\u0E14\u0E2D\u0E48\u0E2D\u0E19", React.createElement("br", null), "* \u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27 = \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19(\u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07\u0E23\u0E27\u0E21 \xF7 MAX PV \u0E15\u0E48\u0E2D\u0E15\u0E31\u0E27) \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E17\u0E31\u0E1A\u0E44\u0E14\u0E49 \xB7 Combiner Box + DC (Fuse/Holder/MCB/MC4) \u0E04\u0E34\u0E14\u0E15\u0E32\u0E21\u0E08\u0E33\u0E19\u0E27\u0E19 String \xB7 RCBO/SPD/Smart Meter/Backup \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E15\u0E32\u0E21\u0E40\u0E1F\u0E2A (", selInv.phase === 3 ? "3" : "1", " \u0E40\u0E1F\u0E2A) \xB7 RCBO \u0E02\u0E19\u0E32\u0E14\u0E08\u0E32\u0E01\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01 \xD7 1.25")), isStringInv && scfg && React.createElement(BoqSection, _extends({
+  }, "* \u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27\u0E02\u0E2D\u0E07\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07\u0E40\u0E2A\u0E21\u0E2D \u2014 \u0E15\u0E31\u0E27\u0E17\u0E35\u0E48 1 \u0E08\u0E30\u0E04\u0E34\u0E14\u0E01\u0E33\u0E25\u0E31\u0E07\u0E17\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E43\u0E2B\u0E49\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 (", result.meta.invAuto, " \u0E15\u0E31\u0E27) \xB7 \u0E23\u0E27\u0E21\u0E17\u0E31\u0E49\u0E07\u0E07\u0E32\u0E19 ", invTotal, " \u0E15\u0E31\u0E27", React.createElement("br", null), "* RCBO \u0E01\u0E31\u0E1A\u0E2A\u0E32\u0E22 AC \u0E02\u0E2D\u0E07\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49\u0E41\u0E22\u0E01\u0E02\u0E19\u0E32\u0E14\u0E15\u0E32\u0E21\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01\u0E02\u0E2D\u0E07\u0E15\u0E31\u0E27\u0E21\u0E31\u0E19\u0E40\u0E2D\u0E07 (", selInv2.outA || "—", " A) \u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E43\u0E0A\u0E49\u0E02\u0E19\u0E32\u0E14\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E1A\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48 1 \xB7 AC SPD \u0E04\u0E34\u0E14\u0E15\u0E32\u0E21\u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27\u0E23\u0E27\u0E21", React.createElement("br", null), "* \u0E15\u0E31\u0E27\u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E2A\u0E15\u0E23\u0E34\u0E07 3D \u0E41\u0E25\u0E30\u0E2A\u0E21\u0E38\u0E14\u0E2A\u0E48\u0E07\u0E21\u0E2D\u0E1A\u0E22\u0E31\u0E07\u0E43\u0E0A\u0E49\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48 1 \u0E2D\u0E22\u0E48\u0E32\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27")), isStringInv && scfg && React.createElement(BoqSection, _extends({
     title: "\u0E2A\u0E32\u0E22 DC / \u0E01\u0E32\u0E23\u0E15\u0E48\u0E2D\u0E2D\u0E19\u0E38\u0E01\u0E23\u0E21 String (PV1-F)",
     icon: "bolt"
   }, secProps("dc")), !scfg.ready ? React.createElement("div", {
