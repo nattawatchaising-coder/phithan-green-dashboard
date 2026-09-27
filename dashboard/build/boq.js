@@ -1671,6 +1671,10 @@ function BOQEditor({
   const remaining = result.meta.panelCount - result.meta.rowsSum;
   const selInv = (window.BOQ.INVERTERS || []).find(x => x.model === b.inverterModel);
   const isHuawei = !!(selInv && selInv.inputs > 0);
+  const selInv2 = selInv && b.inv2Model && b.inv2Model !== b.inverterModel ? (window.BOQ.INVERTERS || []).find(x => x.model === b.inv2Model) : null;
+  const inv2Count = result.meta.inv2Count || 0;
+  const invTotal = result.meta.invTotal || result.meta.invCount;
+  const inv2PhaseBad = !!(selInv2 && selInv2.phase && selInv2.phase !== window.SF.phaseOf(job));
   const jobBrand = job && job.brand || "";
   const jobPhaseNum = window.SF.phaseOf(job);
   const brandInvs = (window.BOQ.INVERTERS || []).filter(x => (!jobBrand || x.model.toLowerCase().indexOf(jobBrand.toLowerCase()) >= 0) && (!x.phase || x.phase === jobPhaseNum));
@@ -1686,6 +1690,21 @@ function BOQEditor({
     const inList = brandInvs.some(x => x.model === b.inverterModel);
     if (!showMicro && !inList && brandInvs.length) set("inverterModel", brandInvs[0].model);else if (showMicro && b.inverterModel && !inList) set("inverterModel", "");
   }, [jobBrand, jobPhaseNum]);
+  const inv2Options = [{
+    value: "",
+    label: "ไม่ใช้ (รุ่นเดียวทั้งงาน)"
+  }].concat(brandInvs.filter(x => x.model !== b.inverterModel).map(x => ({
+    value: x.model,
+    label: x.model + (x.kw ? " · " + x.kw + "kW" : "")
+  })));
+  if (b.inv2Model && !inv2Options.some(x => x.value === b.inv2Model)) inv2Options.push({
+    value: b.inv2Model,
+    group: "ไม่ตรงแบรนด์/เฟสของงาน",
+    label: b.inv2Model
+  });
+  React.useEffect(() => {
+    if (b.inv2Model && b.inv2Model === b.inverterModel) set("inv2Model", "");
+  }, [b.inverterModel]);
   const OPTS = window.BOQ.OPTIMIZERS || [];
   const optModel = String(b.optimizerModel || "").trim() || (b.hwOptimizer ? "Smart PV Optimizer SUN2000-600W-P" : "");
   const optSpec = window.BOQ.findOptimizer(optModel);
@@ -1714,11 +1733,14 @@ function BOQEditor({
     group: "ใช้กับอินเวอร์เตอร์รุ่นนี้ไม่ได้",
     label: optModel
   });
-  const maxPvTotal = selInv ? (selInv.maxPv || 0) * result.meta.invCount : 0;
-  const acMaxTotal = selInv ? (+selInv.maxAcKw || 0) * result.meta.invCount : 0;
+  const maxPvTotal = selInv ? (selInv.maxPv || 0) * result.meta.invCount + (selInv2 ? (selInv2.maxPv || 0) * inv2Count : 0) : 0;
+  const acKwKnown = !!(selInv && +selInv.maxAcKw) && (!selInv2 || !!+selInv2.maxAcKw);
+  const acMaxTotal = acKwKnown ? +selInv.maxAcKw * result.meta.invCount + (selInv2 ? +selInv2.maxAcKw * inv2Count : 0) : 0;
   const dcAcCap = acMaxTotal > 0 ? acMaxTotal * window.BOQ.DCAC_LIMIT : maxPvTotal;
   const dcAcRatio = acMaxTotal > 0 && result.meta.kw > 0 ? result.meta.kw / acMaxTotal : 0;
   const pvOver = isHuawei && dcAcCap > 0 && result.meta.kw > dcAcCap;
+  const acBreak = !selInv ? "" : selInv2 ? result.meta.invCount + "×" + selInv.maxAcKw + " + " + inv2Count + "×" + selInv2.maxAcKw + " kW" : result.meta.invCount + " ตัว × " + selInv.maxAcKw + " kW";
+  const pvBreak = !selInv ? "" : selInv2 ? result.meta.invCount + "×" + selInv.maxPv + " + " + inv2Count + "×" + selInv2.maxPv + " kWp" : result.meta.invCount + " ตัว × " + selInv.maxPv + " kW";
   const perMppt = Math.max(1, Math.round(+(selInv && selInv.strPerMppt) || 1));
   const capPerInv = selInv ? Math.max(1, (+selInv.inputs || 1) * perMppt) : 1;
   const selPanel = window.BOQ.findPanel ? window.BOQ.findPanel(b.panelModel) : null;
@@ -1728,7 +1750,8 @@ function BOQEditor({
   const scfg = isStringInv && window.BOQ.stringConfig ? window.BOQ.stringConfig(selPanel, selInv, {
     series: b.dcSeries != null && b.dcSeries !== "" ? b.dcSeries : undefined
   }) : null;
-  const plan = scfg && scfg.ready && window.BOQ.stringPlan ? window.BOQ.stringPlan(result.meta.panelCount, scfg.series, selInv, result.meta.invCount) : null;
+  const inv2Cap = selInv2 ? inv2Count * Math.max(1, (+selInv2.inputs || 1) * Math.max(1, Math.round(+selInv2.strPerMppt || 1))) : 0;
+  const plan = scfg && scfg.ready && window.BOQ.stringPlan ? window.BOQ.stringPlan(result.meta.panelCount, scfg.series, selInv, result.meta.invCount, inv2Cap) : null;
   const vdropFor = c => {
     if (!window.BOQ.calcVdrop || !c) return null;
     const n = (c.name || "").toUpperCase(),
@@ -1815,6 +1838,8 @@ function BOQEditor({
     if (!isStringInv) return [];
     const invCount = result && result.meta && result.meta.invCount || 1;
     const outA = selInv ? +selInv.outA || 0 : 0;
+    const inv2N = result && result.meta && result.meta.inv2Count || 0;
+    const outA2 = selInv2 ? +selInv2.outA || 0 : 0;
     const phN = wcPhase === 3 ? "3 เฟส" : "1 เฟส";
     const rows = [];
     if (scfg && scfg.ready) {
@@ -1852,7 +1877,20 @@ function BOQEditor({
       splittable: false,
       note: outA ? "กระแสออกอินเวอร์เตอร์/ตัว · " + phN + " · " + outA + " A" : "⚠ กรอกกระแสออก (A) ของอินเวอร์เตอร์ในคลัง"
     });
-    const totalA = outA * invCount;
+    if (selInv2) {
+      rows.push({
+        kind: "invmcb2",
+        label: "INVERTER ตัวที่สอง → MCB_SOLAR",
+        w: outA2 ? Math.round(outA2 * wcVolt) : null,
+        ampTotal: outA2,
+        ampString: outA2,
+        wire: outA2 ? pickWire(outA2) : "—",
+        needInput: !outA2,
+        splittable: false,
+        note: outA2 ? selInv2.model + " · กระแสออก/ตัว · " + outA2 + " A" : "⚠ กรอกกระแสออก (A) ของ " + selInv2.model + " ในคลัง"
+      });
+    }
+    const totalA = outA * invCount + outA2 * inv2N;
     rows.push({
       kind: "mcbmdb",
       label: "MCB_SOLAR → MDB (ตู้เมน)",
@@ -1862,10 +1900,10 @@ function BOQEditor({
       wire: totalA ? pickWire(totalA) : "—",
       needInput: !totalA,
       splittable: false,
-      note: totalA ? "รวม " + invCount + " ตัว · " + phN + " · " + (Math.round(totalA * 10) / 10).toFixed(1) + " A" : "⚠ กรอกกระแสออก (A) ของอินเวอร์เตอร์ในคลัง"
+      note: totalA ? "รวม " + (inv2N > 0 ? invCount + "+" + inv2N : invCount) + " ตัว · " + phN + " · " + (Math.round(totalA * 10) / 10).toFixed(1) + " A" : "⚠ กรอกกระแสออก (A) ของอินเวอร์เตอร์ในคลัง"
     });
     return rows;
-  }, [isStringInv, selInv, scfg, result, wcVolt, wcPhase, calcIns, calcMethod, calcGroup, calcNCond]);
+  }, [isStringInv, selInv, selInv2, scfg, result, wcVolt, wcPhase, calcIns, calcMethod, calcGroup, calcNCond]);
   const calcRows = isStringInv ? stringCalcRows : wireCalcRows;
   const guardRun = fn => {
     if (remaining === 0) {
@@ -4401,13 +4439,68 @@ function BOQEditor({
       label: "2:1 (2 แผง/ตัว)"
     }]
   })) : React.createElement(Field, {
-    label: "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C (\u0E41\u0E01\u0E49\u0E44\u0E02\u0E44\u0E14\u0E49)"
+    label: "จำนวนอินเวอร์เตอร์ (แก้ไขได้)" + (selInv2 ? " · รุ่นแรก" : "")
   }, React.createElement(BoqInvCount, {
     value: b.invCount,
     auto: result.meta.invAuto,
     onChange: v => set("invCount", v),
     style: numStyle
-  }))), React.createElement("div", {
+  }))), !!b.inverterModel && React.createElement("div", {
+    style: {
+      gridColumn: isMobile ? "1 / -1" : "auto"
+    }
+  }, React.createElement(Field, {
+    label: "\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48\u0E2A\u0E2D\u0E07 (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A)"
+  }, React.createElement(Dropdown, {
+    value: b.inv2Model || "",
+    onChange: v => set("inv2Model", v),
+    options: inv2Options
+  }))), !!selInv2 && React.createElement("div", {
+    style: {
+      gridColumn: isMobile ? "1 / -1" : "auto"
+    }
+  }, React.createElement(Field, {
+    label: "จำนวนตัวที่สอง (กรอกเอง)"
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 7
+    }
+  }, React.createElement("input", {
+    type: "number",
+    min: 1,
+    step: 1,
+    style: Object.assign({}, numStyle, {
+      flex: 1,
+      minWidth: 0
+    }),
+    value: inv2Count || "",
+    onChange: e => set("inv2Count", Math.max(1, parseInt(e.target.value) || 1))
+  }), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      flexShrink: 0
+    }
+  }, "\u0E15\u0E31\u0E27")))), !!selInv2 && React.createElement("div", {
+    style: {
+      gridColumn: "1 / -1"
+    }
+  }, React.createElement("div", {
+    className: "bq-note " + (inv2PhaseBad ? "warn" : "ok"),
+    style: {
+      marginTop: 0
+    }
+  }, React.createElement(Icon, {
+    name: inv2PhaseBad ? "alert" : "bolt",
+    size: 15,
+    color: inv2PhaseBad ? "#F59E0B" : "#0D9488"
+  }), React.createElement("span", null, React.createElement("b", null, "\u0E2A\u0E2D\u0E07\u0E02\u0E19\u0E32\u0E14\u0E43\u0E19\u0E07\u0E32\u0E19\u0E40\u0E14\u0E35\u0E22\u0E27"), " \u2014 ", selInv.model, " ", result.meta.invCount, " \u0E15\u0E31\u0E27 + ", selInv2.model, " ", inv2Count, " \u0E15\u0E31\u0E27", " ", "(\u0E23\u0E27\u0E21 ", invTotal, " \u0E15\u0E31\u0E27)", maxPvTotal > 0 ? " · MAX PV รวม " + maxPvTotal + " kWp" : "", acMaxTotal > 0 ? " · กำลังออก AC รวม " + Math.round(acMaxTotal) + " kW" : "", React.createElement("br", null), "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48\u0E2A\u0E2D\u0E07\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07 \xB7 \u0E23\u0E38\u0E48\u0E19\u0E41\u0E23\u0E01\u0E04\u0E34\u0E14\u0E01\u0E33\u0E25\u0E31\u0E07\u0E17\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E43\u0E2B\u0E49 (", result.meta.invAuto, " \u0E15\u0E31\u0E27) \xB7 RCBO \u0E01\u0E31\u0E1A\u0E2A\u0E32\u0E22 AC \u0E41\u0E22\u0E01\u0E02\u0E19\u0E32\u0E14\u0E15\u0E32\u0E21\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01\u0E02\u0E2D\u0E07\u0E41\u0E15\u0E48\u0E25\u0E30\u0E23\u0E38\u0E48\u0E19\u0E41\u0E25\u0E49\u0E27", inv2PhaseBad && React.createElement("span", {
+    style: {
+      fontWeight: 700
+    }
+  }, React.createElement("br", null), "\u0E23\u0E38\u0E48\u0E19\u0E17\u0E35\u0E48\u0E2A\u0E2D\u0E07\u0E40\u0E1B\u0E47\u0E19 ", selInv2.phase, " \u0E40\u0E1F\u0E2A \u0E41\u0E15\u0E48\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E40\u0E1B\u0E47\u0E19 ", jobPhaseNum, " \u0E40\u0E1F\u0E2A \u2014 \u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E23\u0E38\u0E48\u0E19 \u0E2B\u0E23\u0E37\u0E2D\u0E41\u0E01\u0E49\u0E40\u0E1F\u0E2A\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07")))), React.createElement("div", {
     style: {
       gridColumn: isMobile ? "1 / -1" : "auto"
     }
@@ -4565,7 +4658,7 @@ function BOQEditor({
     name: "alert",
     size: 15,
     color: "#EF4444"
-  }), " ", acMaxTotal > 0 ? "กำลังแผง " + result.meta.kw + " kW คิดเป็น DC/AC " + dcAcRatio.toFixed(2) + " เท่า เกินเพดาน " + window.BOQ.DCAC_LIMIT + " เท่า (กำลังออก AC สูงสุดรวม " + Math.round(acMaxTotal) + " kW = " + result.meta.invCount + " ตัว × " + selInv.maxAcKw + " kW) — เลยจุดนี้ clip ช่วงเที่ยงจะกินกำลังที่ใส่เพิ่ม เพิ่มจำนวนอินเวอร์เตอร์หรือลดแผง" : "กำลังแผง " + result.meta.kw + " kW เกิน MAX PV รวม " + maxPvTotal + " kW (" + result.meta.invCount + " ตัว × " + selInv.maxPv + " kW) — เพิ่มจำนวนอินเวอร์เตอร์หรือลดแผง (รุ่นนี้ยังไม่ได้กรอก Max AC Active Power ในคลัง)"), selInv.unitFixed && React.createElement("div", {
+  }), " ", acMaxTotal > 0 ? "กำลังแผง " + result.meta.kw + " kW คิดเป็น DC/AC " + dcAcRatio.toFixed(2) + " เท่า เกินเพดาน " + window.BOQ.DCAC_LIMIT + " เท่า (กำลังออก AC สูงสุดรวม " + Math.round(acMaxTotal) + " kW = " + acBreak + ") — เลยจุดนี้ clip ช่วงเที่ยงจะกินกำลังที่ใส่เพิ่ม เพิ่มจำนวนอินเวอร์เตอร์หรือลดแผง" : "กำลังแผง " + result.meta.kw + " kW เกิน MAX PV รวม " + maxPvTotal + " kW (" + pvBreak + ") — เพิ่มจำนวนอินเวอร์เตอร์หรือลดแผง (รุ่นนี้ยังไม่ได้กรอก Max AC Active Power ในคลัง)"), selInv.unitFixed && React.createElement("div", {
     className: "bq-note warn"
   }, React.createElement(Icon, {
     name: "alert",
@@ -7957,7 +8050,7 @@ function BOQEditor({
     className: "k"
   }, b.inverterModel ? "อินเวอร์เตอร์" : "ไมโคร"), React.createElement("span", {
     className: "v"
-  }, result.meta.invCount, React.createElement("small", null, "\u0E15\u0E31\u0E27"))), React.createElement("span", {
+  }, invTotal, React.createElement("small", null, "\u0E15\u0E31\u0E27"))), React.createElement("span", {
     className: "bq-kpi"
   }, React.createElement("span", {
     className: "k"

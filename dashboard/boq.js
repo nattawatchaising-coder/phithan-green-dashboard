@@ -568,7 +568,9 @@
      แผงทั้งงาน ÷ แผงต่ออนุกรม = จำนวนสตริง (ปัดขึ้น) · เศษที่เหลือกลายเป็นสตริงสุดท้ายที่แผงไม่เต็ม
      ช่องรับสตริงของอินเวอร์เตอร์ = จำนวน MPPT × สตริงต่อ MPPT (ค่าปริยาย 1 ถ้ายังไม่กรอกในคลัง)
      สตริงที่แผงไม่เต็มแรงดันจะต่ำกว่าเพื่อน — เตือนไว้เพราะกำลังจะหายไปบางส่วน */
-  function stringPlan(panelCount, series, inv, invCount) {
+  /* extraCap = ช่องรับสตริงของอินเวอร์เตอร์รุ่นอื่นในงานเดียวกัน (งานสองขนาด)
+     จำนวนสตริงขึ้นกับแผงกับแผงต่ออนุกรมเท่านั้น ไม่ขึ้นกับรุ่น — ที่ต่างคือช่องที่รับได้ */
+  function stringPlan(panelCount, series, inv, invCount, extraCap) {
     inv = inv || {};
     const n = Math.max(0, Math.round(+panelCount || 0));
     const s = Math.max(1, Math.round(+series || 0));
@@ -579,7 +581,7 @@
     const perMppt = Math.max(1, Math.round(+inv.strPerMppt || 1));
     const mppt = Math.max(0, Math.round(+inv.inputs || 0));
     const capPerInv = mppt * perMppt;
-    const cap = capPerInv * nInv;
+    const cap = capPerInv * nInv + Math.max(0, Math.round(+extraCap || 0));
     return {
       series: s, panels: n, strings, full, rest, invCount: nInv,
       perInv: Math.ceil(strings / nInv), perMppt, mppt, capPerInv, cap,
@@ -1177,6 +1179,10 @@
       microRatio: "2:1",
       inverterModel: "",
       invCount: 0,    // 0 = คิดให้อัตโนมัติจากกำลังแผง ÷ MAX PV ต่อตัว
+      /* อินเวอร์เตอร์ขนาดที่สอง — งานที่แบ่งตามหลังคาคนละทิศ หรือตัวใหญ่เหลือเศษไม่พอกำลังตัวหนึ่ง
+         ว่าง = ใช้รุ่นเดียวทั้งงาน · inv2Count กรอกเองเสมอ ไม่มีค่าอัตโนมัติ */
+      inv2Model: "",
+      inv2Count: 1,
       strings: 0,     // 0 = คิดให้อัตโนมัติจากแผนสตริง (แผงทั้งงาน ÷ แผงต่ออนุกรม)
       hwBackup: "none",
       /* งานที่ระบุว่ามีตัวคุมแผงมาจากใบสำรวจ — ยังไม่รู้ว่ารุ่นไหน ให้ไปเลือกเองในหน้า BOQ */
@@ -1358,6 +1364,14 @@
     // ── INVERTER ──
     const battCount = Math.round((+b.batteryKwh || 0) / BATTERY_UNIT_KWH);
     const selInv = b.inverterModel ? INVERTERS.find((x) => x.model === b.inverterModel) : null;
+    /* ── อินเวอร์เตอร์ขนาดที่สอง ──
+       จำนวนตัวกรอกเองเสมอ สิ่งที่ระบบคิดให้คือกำลังที่เหลือให้รุ่นแรกรับ (invAuto ด้านล่าง)
+       เลือกรุ่นซ้ำกับตัวแรกไม่ได้ — จะกลายเป็นรุ่นเดียวสองบรรทัดที่รวมกันไม่ได้ในใบเสนอราคา */
+    const selInv2 = selInv && b.inv2Model && b.inv2Model !== b.inverterModel
+      ? INVERTERS.find((x) => x.model === b.inv2Model) : null;
+    const inv2Count = selInv2 ? Math.max(1, Math.round(+b.inv2Count || 1)) : 0;
+    const inv2PvKw = selInv2 ? (selInv2.maxPv > 0 ? selInv2.maxPv : selInv2.kw) * inv2Count : 0;
+
     let invCount, invItems, combItems = null;
     let invAuto = 0, plan = null;
     // งานโครงการ vs งานบ้าน — ต่างกันที่อุปกรณ์มอนิเตอร์และตู้รวม (โครงการใช้ตู้ไฟ DC/AC ของตัวเอง)
@@ -1366,7 +1380,7 @@
       // จำนวนตัว = ปัดขึ้น(กำลังแผงรวม ÷ MAX PV ต่อตัว) — ถ้าไม่ได้ตั้ง MAX PV ใช้ kW ต่อตัวแทน
       // ระบุเองได้ที่ b.invCount (0/ว่าง = ใช้ค่าอัตโนมัติ) เช่นงานที่แบ่งอินเวอร์เตอร์ตามหลังคาคนละทิศ
       const invSizeBase = selInv.maxPv > 0 ? selInv.maxPv : selInv.kw;
-      invAuto = invSizeBase > 0 ? Math.max(1, Math.ceil(kw / invSizeBase)) : 0;
+      invAuto = invSizeBase > 0 ? Math.max(1, Math.ceil(Math.max(0, kw - inv2PvKw) / invSizeBase)) : 0;
       invCount = +b.invCount > 0 ? Math.max(1, Math.round(+b.invCount)) : invAuto;
       if (selInv.inputs > 0) {
         // ── Huawei (string/hybrid) ── INVERTER = ตัวหลัก/แบต/สำรอง · COMBINER BOX = ตู้+อุปกรณ์ป้องกัน
@@ -1375,15 +1389,20 @@
            ของเดิมใช้ "ช่องต่อตัว × จำนวนตัว" ซึ่งได้ 4 สตริงสำหรับงาน 155 แผง — น้อยกว่าจริงมาก
            ระบุเองได้ที่ b.strings (สตริงต่อตัว · 0 = อัตโนมัติ) */
         const scIn = stringConfig(panel, selInv, { series: (b.dcSeries != null && b.dcSeries !== "") ? b.dcSeries : undefined });
-        if (scIn.ready) plan = stringPlan(panelCount, scIn.series, selInv, invCount);
+        const cap2 = selInv2
+          ? inv2Count * Math.max(1, (+selInv2.inputs || 1) * Math.max(1, Math.round(+selInv2.strPerMppt || 1)))
+          : 0;
+        if (scIn.ready) plan = stringPlan(panelCount, scIn.series, selInv, invCount, cap2);
         const capPerInv = Math.max(1, (+selInv.inputs || 1) * Math.max(1, Math.round(+selInv.strPerMppt || 1)));
         const strPer = +b.strings > 0
           ? Math.min(Math.max(Math.round(+b.strings), 1), capPerInv)
           : (plan ? plan.perInv : selInv.inputs);
-        const totalStr = +b.strings > 0 || !plan ? invCount * strPer : plan.strings;
+        const invTotal = invCount + inv2Count;
+        const totalStr = +b.strings > 0 || !plan ? invTotal * strPer : plan.strings;
         // กลุ่ม INVERTER
         invItems = [];
         invItems.push({ name: selInv.model, qty: invCount, unit: "ตัว" });
+        if (selInv2) invItems.push({ name: selInv2.model, qty: inv2Count, unit: "ตัว" });
         /* ── อุปกรณ์มอนิเตอร์ระดับระบบ: 1 ชุด/งาน ──
            งานโครงการใช้ SmartLogger รวมศูนย์ตัวเดียว (อ่านหลายอินเวอร์เตอร์ผ่าน RS485) ไม่ใช้ Smart Meter + Dongle
            งานบ้านใช้ Smart Meter วัดที่จุดต่อกริด + Dongle 1 ตัว */
@@ -1422,8 +1441,14 @@
           combItems.push({ name: HW.dcSpd, qty: totalStr, unit: "ตัว" });
           combItems.push({ name: HW.dcMcb, qty: totalStr, unit: "ตัว" });
           combItems.push({ name: HW.mc4, qty: totalStr, unit: "ชุด" });
-          combItems.push({ name: ph === 3 ? HW.acSpd3 : HW.acSpd1, qty: invCount, unit: "ตัว" });
+          combItems.push({ name: ph === 3 ? HW.acSpd3 : HW.acSpd1, qty: invTotal, unit: "ตัว" });
+          /* RCBO ขนาดตามกระแสออกของแต่ละรุ่น — สองขนาดใช้เบรกเกอร์ตัวเดียวกันไม่ได้
+             ถ้าสองรุ่นได้ขนาดเท่ากัน ชื่อจะซ้ำ แล้วตัวรวมราคาจะรวมบรรทัดให้เองตอนจัดกลุ่ม */
           combItems.push({ name: rcboName(selInv.outA, ph), qty: invCount, unit: "ตัว" });
+          if (selInv2) {
+            const ph2 = selInv2.phase === 3 ? 3 : 1;
+            combItems.push({ name: rcboName(selInv2.outA, ph2), qty: inv2Count, unit: "ตัว" });
+          }
           combItems.push({ name: HW.wireDuct, qty: 2, unit: "เส้น" });   // 2 เส้น/ตู้
           combItems.push({ name: HW.dinRail, qty: 1, unit: "เส้น" });    // ในตู้ใบเดียว
           combItems.push({ name: HW.stopper, qty: 10, unit: "ตัว" });    // 10/งาน (flat)
@@ -1432,6 +1457,7 @@
       } else {
         // String / Hybrid ทั่วไป: จำนวนตัว = ปัดขึ้น(kW รวม ÷ kW ต่อตัว) + แบต
         invItems = [{ name: selInv.model, qty: invCount, unit: "ตัว" }];
+        if (selInv2) invItems.push({ name: selInv2.model, qty: inv2Count, unit: "ตัว" });
         if (battCount > 0) invItems.push({ name: BATTERY_MODEL, qty: battCount, unit: "SET" });
       }
     } else {
@@ -1457,6 +1483,10 @@
       invItems.push({ name: "1.3 m, Three-terminal AC Cable (MW-025013-A)", qty: invCount, unit: "SET" });
       invItems.push({ name: "2 m, Two-terminal AC Cable (MW-025020-B0)", qty: Math.max(invCount - 3, 0), unit: "SET" });
     }
+
+    /* จำนวนอินเวอร์เตอร์รวมทั้งงาน — ใช้กับของที่นับต่อหัวอินเวอร์เตอร์ ไม่ใช่ต่อรุ่น
+       ไมโครไม่เข้าทางนี้ (invCount ของไมโครเป็น LOT ไม่ใช่จำนวนตัว) จึงบวก inv2Count ได้ตรง ๆ */
+    const invTotalAll = invCount + inv2Count;
 
     // ── CABLE: รวมตามชนิดสาย ──
     const cableAgg = {};
@@ -1486,7 +1516,7 @@
     groups.push({ group: "MOUNTING", items: [
       { name: RAIL[railSize] || ("RAIL " + railSize + " M"), qty: rail, unit: "SET" },
       { name: "RAIL SPLICE KIT", qty: joiner, unit: "SET" },
-      { name: "BOLT&N2 NUT M8 20mm.", qty: Math.round(invCount * 2), unit: "SET" },
+      { name: "BOLT&N2 NUT M8 20mm.", qty: Math.round(invTotalAll * 2), unit: "SET" },
       { name: "EARTHING CLIP", qty: Math.round(lfeet / 2), unit: "SET" },
       { name: "GROUNDING LUG COPPER LINES", qty: groundlug, unit: "SET" },
       { name: MID_CLAMP[panel.frame] || ("MID CLAME KIT " + panel.frame + "mm."), qty: mid, unit: "SET" },
@@ -1681,7 +1711,7 @@
     const structPts = (st0.ladder || []).length + (st0.walkway || []).length + (st0.guardrail || []).length;
     const AUTO = {
       panels: panelCount,
-      inv: invCount,
+      inv: invTotalAll,
       board: combItems && combItems.length ? 1 : 0,
       dcLen: Math.round(dcLen),
       acLen: Math.round(acLen),
@@ -1752,7 +1782,7 @@
       });
     }
 
-    return { groups, meta: { panelCount, kw, rowsSum, invCount, invAuto, plan, battCount, auto: AUTO, valid: rowsSum === panelCount } };
+    return { groups, meta: { panelCount, kw, rowsSum, invCount, invAuto, inv2Count, invTotal: invTotalAll, plan, battCount, auto: AUTO, valid: rowsSum === panelCount } };
   }
 
   /* คีย์จำนวนที่แก้มือ — ผูกกับหมวดด้วย กันชื่อซ้ำข้ามหมวดทับกัน */

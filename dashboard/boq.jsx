@@ -755,6 +755,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   // อินเวอร์เตอร์ String/Hybrid ที่เลือก (Huawei = มี combiner box)
   const selInv = (window.BOQ.INVERTERS || []).find((x) => x.model === b.inverterModel);
   const isHuawei = !!(selInv && selInv.inputs > 0);
+  /* ── อินเวอร์เตอร์ขนาดที่สอง ── เอนจินคิดจำนวนกับราคาให้แล้ว (boq.js) ที่นี่คือส่วน UI
+     ว่าง = ใช้รุ่นเดียวทั้งงาน · จำนวนตัวกรอกเองเสมอ ไม่มีค่าอัตโนมัติ */
+  const selInv2 = selInv && b.inv2Model && b.inv2Model !== b.inverterModel
+    ? (window.BOQ.INVERTERS || []).find((x) => x.model === b.inv2Model) : null;
+  const inv2Count = result.meta.inv2Count || 0;
+  const invTotal = result.meta.invTotal || result.meta.invCount;
+  /* ดรอปดาวน์กรองเฟสให้แล้ว แต่ใบเก่าที่บันทึกรุ่นไว้ตอนงานยังเป็นอีกเฟส จะค้างอยู่ในข้อมูล — ต้องเตือน ไม่ใช่ล้างให้เงียบ ๆ */
+  const inv2PhaseBad = !!(selInv2 && selInv2.phase && selInv2.phase !== window.SF.phaseOf(job));
   // ── กรองรุ่นอินเวอร์เตอร์ตามแบรนด์ + เฟส ของงาน ──
   const jobBrand = (job && job.brand) || "";
   const jobPhaseNum = window.SF.phaseOf(job);
@@ -771,6 +779,17 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     if (!showMicro && !inList && brandInvs.length) set("inverterModel", brandInvs[0].model);
     else if (showMicro && b.inverterModel && !inList) set("inverterModel", "");
   }, [jobBrand, jobPhaseNum]); // eslint-disable-line
+  /* ตัวที่สอง — รุ่นเดียวกับตัวแรกเลือกไม่ได้ จะกลายเป็นสองบรรทัดของรุ่นเดียวกัน ที่รวมกันไม่ได้ในใบเสนอราคา */
+  const inv2Options = [{ value: "", label: "ไม่ใช้ (รุ่นเดียวทั้งงาน)" }]
+    .concat(brandInvs.filter((x) => x.model !== b.inverterModel)
+      .map((x) => ({ value: x.model, label: x.model + (x.kw ? " · " + x.kw + "kW" : "") })));
+  /* รุ่นที่เคยเลือกไว้แต่ตอนนี้ไม่ผ่านตัวกรอง (เปลี่ยนเฟส หรือแบรนด์งาน) ยังต้องเห็นในดรอปดาวน์ ไม่งั้นของที่อยู่ในใบถอดจะหายไปเงียบ ๆ */
+  if (b.inv2Model && !inv2Options.some((x) => x.value === b.inv2Model))
+    inv2Options.push({ value: b.inv2Model, group: "ไม่ตรงแบรนด์/เฟสของงาน", label: b.inv2Model });
+  // เปลี่ยนรุ่นแรกไปชนกับรุ่นที่สอง → ล้างรุ่นที่สอง ไม่เก็บรุ่นเดียวไว้สองบรรทัด
+  React.useEffect(() => {
+    if (b.inv2Model && b.inv2Model === b.inverterModel) set("inv2Model", "");
+  }, [b.inverterModel]); // eslint-disable-line
   /* ── ตัวคุมแผง (Optimizer) ──
      รุ่นมาจากคลังสินค้า พร้อมอัตราส่วนของรุ่นนั้น (perPanel = กี่แผงต่อตัวคุม 1 ตัว)
      ใบเก่าที่ติ๊กแค่ "ใช้" ไว้ ยังถืออยู่เป็นรุ่นเดิมแบบ 1:1 จนกว่าจะเลือกรุ่นใหม่ทับ */
@@ -801,13 +820,23 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   if (optModel && !optOptions.some((x) => x.value === optModel))
     optOptions.push({ value: optModel, group: "ใช้กับอินเวอร์เตอร์รุ่นนี้ไม่ได้", label: optModel });
 
-  const maxPvTotal = selInv ? (selInv.maxPv || 0) * result.meta.invCount : 0;
+  const maxPvTotal = selInv ? (selInv.maxPv || 0) * result.meta.invCount + (selInv2 ? (selInv2.maxPv || 0) * inv2Count : 0) : 0;
   /* กำลังออก AC สูงสุดทั้งงาน — ตัวนี้คือเพดานจริงที่อินเวอร์เตอร์ปล่อยออกได้ (cosφ=1)
      คลังยังไม่กรอก Max AC ให้รุ่นไหน ก็ถอยไปใช้เกณฑ์เดิม (MAX PV) ของรุ่นนั้น */
-  const acMaxTotal = selInv ? (+selInv.maxAcKw || 0) * result.meta.invCount : 0;
+  /* งานสองขนาด: รวมได้เมื่อคลังกรอก Max AC ไว้ครบทั้งสองรุ่น
+     ขาดรุ่นใดรุ่นหนึ่ง ยอดรวมจะต่ำกว่าจริง แล้วเตือน DC/AC เกินทั้งที่ไม่เกิน — ถอยไปใช้เกดิห MAX PV ดีกว่า */
+  const acKwKnown = !!(selInv && +selInv.maxAcKw) && (!selInv2 || !!+selInv2.maxAcKw);
+  const acMaxTotal = acKwKnown ? (+selInv.maxAcKw) * result.meta.invCount + (selInv2 ? (+selInv2.maxAcKw) * inv2Count : 0) : 0;
   const dcAcCap = acMaxTotal > 0 ? acMaxTotal * window.BOQ.DCAC_LIMIT : maxPvTotal;
   const dcAcRatio = acMaxTotal > 0 && result.meta.kw > 0 ? result.meta.kw / acMaxTotal : 0;
   const pvOver = isHuawei && dcAcCap > 0 && result.meta.kw > dcAcCap;
+  // ที่มาของเพดานในข้อความเตือน — งานสองขนาดต้องเห็นว่าตัวไหนกี่ตัว ไม่ใช่เลขรวมก้อนเดียว
+  const acBreak = !selInv ? "" : selInv2
+    ? result.meta.invCount + "×" + selInv.maxAcKw + " + " + inv2Count + "×" + selInv2.maxAcKw + " kW"
+    : result.meta.invCount + " ตัว × " + selInv.maxAcKw + " kW";
+  const pvBreak = !selInv ? "" : selInv2
+    ? result.meta.invCount + "×" + selInv.maxPv + " + " + inv2Count + "×" + selInv2.maxPv + " kWp"
+    : result.meta.invCount + " ตัว × " + selInv.maxPv + " kW";
   // ช่องรับสตริงต่อตัว = จำนวน MPPT × สตริงต่อ MPPT (แผนสตริงคิดหลังรู้ scfg ด้านล่าง)
   const perMppt = Math.max(1, Math.round(+(selInv && selInv.strPerMppt) || 1));
   const capPerInv = selInv ? Math.max(1, (+selInv.inputs || 1) * perMppt) : 1;
@@ -822,8 +851,13 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     ? window.BOQ.stringConfig(selPanel, selInv, { series: (b.dcSeries != null && b.dcSeries !== "") ? b.dcSeries : undefined })
     : null;
   /* แผนสตริง — "ลงสตริงละ N แผง แล้วได้กี่สตริง" · ต้องรู้ Voc/ช่วง MPPT ก่อน (scfg.ready) */
+  /* ช่องรับสตริงของรุ่นที่สอง — จำนวนสตริงไม่เปลี่ยน แต่ช่องที่รับได้มากขึ้น
+     ไม่บวกเข้าไป คำเตือน "สตริงมากกว่าช่องรับ" จะขึ้นทั้งที่ยังมีช่องว่างอยู่ */
+  const inv2Cap = selInv2
+    ? inv2Count * Math.max(1, (+selInv2.inputs || 1) * Math.max(1, Math.round(+selInv2.strPerMppt || 1)))
+    : 0;
   const plan = scfg && scfg.ready && window.BOQ.stringPlan
-    ? window.BOQ.stringPlan(result.meta.panelCount, scfg.series, selInv, result.meta.invCount)
+    ? window.BOQ.stringPlan(result.meta.panelCount, scfg.series, selInv, result.meta.invCount, inv2Cap)
     : null;
 
   /* ── แรงดันตกของสายแต่ละเส้น ──
@@ -890,6 +924,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     if (!isStringInv) return [];
     const invCount = (result && result.meta && result.meta.invCount) || 1;
     const outA = selInv ? (+selInv.outA || 0) : 0;
+    /* รุ่นที่สอง — กระแสออกคนละขนาด สายเส้นออกจากเครื่องจึงคิดแยกกัน
+       ส่วนสายจาก MCB_SOLAR เข้าตู้เมนคิดที่กระแสรวมของทั้งสองรุ่น */
+    const inv2N = (result && result.meta && result.meta.inv2Count) || 0;
+    const outA2 = selInv2 ? (+selInv2.outA || 0) : 0;
     const phN = wcPhase === 3 ? "3 เฟส" : "1 เฟส";
     const rows = [];
     // 1) PV-INVERTER (DC) — Isc × 1.25 → สาย PV1-F
@@ -906,12 +944,18 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       ampTotal: outA, ampString: outA, wire: outA ? pickWire(outA) : "—", needInput: !outA, splittable: false,
       note: outA ? "กระแสออกอินเวอร์เตอร์/ตัว · " + phN + " · " + outA + " A" : "⚠ กรอกกระแสออก (A) ของอินเวอร์เตอร์ในคลัง" });
     // 3) MCB_SOLAR → MDB (AC รวมทุกตัว → ตู้เมน)
-    const totalA = outA * invCount;
+    if (selInv2) {
+      rows.push({ kind: "invmcb2", label: "INVERTER ตัวที่สอง → MCB_SOLAR", w: outA2 ? Math.round(outA2 * wcVolt) : null,
+        ampTotal: outA2, ampString: outA2, wire: outA2 ? pickWire(outA2) : "—", needInput: !outA2, splittable: false,
+        note: outA2 ? selInv2.model + " · กระแสออก/ตัว · " + outA2 + " A"
+          : "⚠ กรอกกระแสออก (A) ของ " + selInv2.model + " ในคลัง" });
+    }
+    const totalA = outA * invCount + outA2 * inv2N;
     rows.push({ kind: "mcbmdb", label: "MCB_SOLAR → MDB (ตู้เมน)", w: totalA ? Math.round(totalA * wcVolt) : null,
       ampTotal: totalA, ampString: totalA, wire: totalA ? pickWire(totalA) : "—", needInput: !totalA, splittable: false,
-      note: totalA ? "รวม " + invCount + " ตัว · " + phN + " · " + (Math.round(totalA * 10) / 10).toFixed(1) + " A" : "⚠ กรอกกระแสออก (A) ของอินเวอร์เตอร์ในคลัง" });
+      note: totalA ? "รวม " + (inv2N > 0 ? invCount + "+" + inv2N : invCount) + " ตัว · " + phN + " · " + (Math.round(totalA * 10) / 10).toFixed(1) + " A" : "⚠ กรอกกระแสออก (A) ของอินเวอร์เตอร์ในคลัง" });
     return rows;
-  }, [isStringInv, selInv, scfg, result, wcVolt, wcPhase, calcIns, calcMethod, calcGroup, calcNCond]);
+  }, [isStringInv, selInv, selInv2, scfg, result, wcVolt, wcPhase, calcIns, calcMethod, calcGroup, calcNCond]);
 
   const calcRows = isStringInv ? stringCalcRows : wireCalcRows;
 
@@ -1899,7 +1943,41 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label={"อินเวอร์เตอร์" + (jobBrand ? " · " + jobBrand : "")}><Dropdown value={b.inverterModel || ""} onChange={(v) => set("inverterModel", v)} options={invOptions} /></Field></div>
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}>{!b.inverterModel
                 ? <Field label="อัตราไมโคร"><Dropdown value={b.microRatio} onChange={(v) => set("microRatio", v)} options={[{ value: "1:1", label: "1:1 (1 แผง/ตัว)" }, { value: "2:1", label: "2:1 (2 แผง/ตัว)" }]} /></Field>
-                : <Field label="จำนวนอินเวอร์เตอร์ (แก้ไขได้)"><BoqInvCount value={b.invCount} auto={result.meta.invAuto} onChange={(v) => set("invCount", v)} style={numStyle} /></Field>}</div>
+                : <Field label={"จำนวนอินเวอร์เตอร์ (แก้ไขได้)" + (selInv2 ? " · รุ่นแรก" : "")}><BoqInvCount value={b.invCount} auto={result.meta.invAuto} onChange={(v) => set("invCount", v)} style={numStyle} /></Field>}</div>
+              {/* ── อินเวอร์เตอร์ขนาดที่สอง ── งานที่แบ่งตามหลังคาคนละทิศ หรือตัวใหญ่เหลือเศษไม่พอกำลังอีกตัว
+                  จำนวนตัวของรุ่นที่สองกรอกเองเสมอ · รุ่นแรกคิดกำลังที่เหลือให้อัตโนมัติ */}
+              {!!b.inverterModel && (
+                <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}>
+                  <Field label="อินเวอร์เตอร์ตัวที่สอง (ไม่บังคับ)">
+                    <Dropdown value={b.inv2Model || ""} onChange={(v) => set("inv2Model", v)} options={inv2Options} />
+                  </Field>
+                </div>
+              )}
+              {!!selInv2 && (
+                <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}>
+                  <Field label={"จำนวนตัวที่สอง (กรอกเอง)"}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                      <input type="number" min={1} step={1} style={Object.assign({}, numStyle, { flex: 1, minWidth: 0 })}
+                        value={inv2Count || ""} onChange={(e) => set("inv2Count", Math.max(1, parseInt(e.target.value) || 1))} />
+                      <span style={{ fontSize: 11.5, color: "var(--text-3)", flexShrink: 0 }}>ตัว</span>
+                    </div>
+                  </Field>
+                </div>
+              )}
+              {!!selInv2 && (
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <div className={"bq-note " + (inv2PhaseBad ? "warn" : "ok")} style={{ marginTop: 0 }}>
+                    <Icon name={inv2PhaseBad ? "alert" : "bolt"} size={15} color={inv2PhaseBad ? "#F59E0B" : "#0D9488"} />
+                    <span>
+                      <b>สองขนาดในงานเดียว</b> — {selInv.model} {result.meta.invCount} ตัว + {selInv2.model} {inv2Count} ตัว
+                      {" "}(รวม {invTotal} ตัว){maxPvTotal > 0 ? " · MAX PV รวม " + maxPvTotal + " kWp" : ""}
+                      {acMaxTotal > 0 ? " · กำลังออก AC รวม " + Math.round(acMaxTotal) + " kW" : ""}
+                      <br />จำนวนตัวที่สองกรอกเอง · รุ่นแรกคิดกำลังที่เหลือให้ ({result.meta.invAuto} ตัว) · RCBO กับสาย AC แยกขนาดตามกระแสออกของแต่ละรุ่นแล้ว
+                      {inv2PhaseBad && <span style={{ fontWeight: 700 }}><br />รุ่นที่สองเป็น {selInv2.phase} เฟส แต่งานนี้เป็น {jobPhaseNum} เฟส — เปลี่ยนรุ่น หรือแก้เฟสในคลัง</span>}
+                    </span>
+                  </div>
+                </div>
+              )}
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}>
                 <Field label={"รุ่นแผง" + (jobPanel ? " · ตามฐานข้อมูล" : "")}>
                   <Dropdown value={b.panelModel} onChange={(v) => set("panelModel", v)}
@@ -1965,10 +2043,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 7, padding: "9px 12px", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd2)", borderRadius: 10, fontSize: 12.5, fontWeight: 700, color: "var(--tint-red-tx)" }}>
                   <Icon name="alert" size={15} color="#EF4444" /> {acMaxTotal > 0
                     ? "กำลังแผง " + result.meta.kw + " kW คิดเป็น DC/AC " + dcAcRatio.toFixed(2) + " เท่า เกินเพดาน " + window.BOQ.DCAC_LIMIT
-                      + " เท่า (กำลังออก AC สูงสุดรวม " + Math.round(acMaxTotal) + " kW = " + result.meta.invCount + " ตัว × " + selInv.maxAcKw
-                      + " kW) — เลยจุดนี้ clip ช่วงเที่ยงจะกินกำลังที่ใส่เพิ่ม เพิ่มจำนวนอินเวอร์เตอร์หรือลดแผง"
-                    : "กำลังแผง " + result.meta.kw + " kW เกิน MAX PV รวม " + maxPvTotal + " kW (" + result.meta.invCount + " ตัว × " + selInv.maxPv
-                      + " kW) — เพิ่มจำนวนอินเวอร์เตอร์หรือลดแผง (รุ่นนี้ยังไม่ได้กรอก Max AC Active Power ในคลัง)"}
+                      + " เท่า (กำลังออก AC สูงสุดรวม " + Math.round(acMaxTotal) + " kW = " + acBreak
+                      + ") — เลยจุดนี้ clip ช่วงเที่ยงจะกินกำลังที่ใส่เพิ่ม เพิ่มจำนวนอินเวอร์เตอร์หรือลดแผง"
+                    : "กำลังแผง " + result.meta.kw + " kW เกิน MAX PV รวม " + maxPvTotal + " kW (" + pvBreak
+                      + ") — เพิ่มจำนวนอินเวอร์เตอร์หรือลดแผง (รุ่นนี้ยังไม่ได้กรอก Max AC Active Power ในคลัง)"}
                 </div>
               )}
               {selInv.unitFixed && (
@@ -3177,7 +3255,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         <span className="bq-kpis">
         <span className="bq-kpi"><span className="k">จำนวนแผง</span><span className="v">{(b.panels || 0).toLocaleString()}<small>แผง</small></span></span>
         <span className="bq-kpi"><span className="k">ขนาดติดตั้ง</span><span className="v">{result.meta.kw.toLocaleString()}<small>kW</small></span></span>
-        <span className="bq-kpi"><span className="k">{b.inverterModel ? "อินเวอร์เตอร์" : "ไมโคร"}</span><span className="v">{result.meta.invCount}<small>ตัว</small></span></span>
+        <span className="bq-kpi"><span className="k">{b.inverterModel ? "อินเวอร์เตอร์" : "ไมโคร"}</span><span className="v">{invTotal}<small>ตัว</small></span></span>
         <span className="bq-kpi"><span className="k">รายการวัสดุ</span><span className="v">{itemCount.toLocaleString()}<small>รายการ</small></span></span>
         <span className="bq-kpi"><span className="k">ต้นทุนรวม</span><span className="v hi">{priced.grandTotal > 0 ? "฿" + baht(priced.grandTotal) : "—"}</span></span>
         <span className="bq-kpi" title={priced.perKw > 0 ? "฿" + baht(priced.perKw) + "/kW" : ""}><span className="k">ต่อวัตต์</span><span className="v hi">{priced.perW > 0 ? "฿" + baht(priced.perW) : "—"}</span></span>
