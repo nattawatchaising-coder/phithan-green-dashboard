@@ -3350,6 +3350,7 @@ function ConduitDefaultsEditor({
     textAlign: "right"
   };
   const row = (r, i) => {
+    const showPer = r.grp !== "IMC";
     const on = per[r.key] != null && per[r.key] !== "";
     return React.createElement("tr", {
       key: r.key,
@@ -3366,7 +3367,7 @@ function ConduitDefaultsEditor({
         color: "var(--text-3)",
         marginTop: 2
       }
-    }, on ? "แทนกฎอัตโนมัติ" : "อัตโนมัติ " + (r.autoOf ? r.autoOf(R) : r.auto))), React.createElement("td", {
+    }, on && showPer ? "แทนกฎอัตโนมัติ" : "คิดจาก " + (r.autoOf ? r.autoOf(R) : r.auto))), showPer && React.createElement("td", {
       style: Object.assign({}, cell, {
         width: 120
       })
@@ -3463,7 +3464,7 @@ function ConduitDefaultsEditor({
       fontWeight: 700,
       background: "var(--surface2)"
     }
-  }, "\u0E17\u0E48\u0E2D ", grp), React.createElement("table", {
+  }, grp === "IMC" ? "% เผื่อ อุปกรณ์ ท่อ IMC" : "ท่อ " + grp), React.createElement("table", {
     style: {
       width: "100%",
       borderCollapse: "collapse"
@@ -3479,7 +3480,7 @@ function ConduitDefaultsEditor({
       textAlign: "left",
       fontWeight: 700
     })
-  }, "\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C"), React.createElement("th", {
+  }, "\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C"), grp !== "IMC" && React.createElement("th", {
     style: Object.assign({}, cell, {
       fontWeight: 700
     })
@@ -3501,7 +3502,7 @@ function ConduitDefaultsEditor({
       color: "var(--text-2)",
       lineHeight: 1.6
     }
-  }, "\u0E15\u0E31\u0E49\u0E07\u0E04\u0E23\u0E31\u0E49\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48 \u2014 \u0E43\u0E1A\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38 ", React.createElement("b", null, "\u0E43\u0E1A\u0E43\u0E2B\u0E21\u0E48"), " \u0E17\u0E38\u0E01\u0E43\u0E1A\u0E08\u0E30\u0E40\u0E23\u0E34\u0E48\u0E21\u0E08\u0E32\u0E01\u0E04\u0E48\u0E32\u0E19\u0E35\u0E49 \u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E43\u0E2B\u0E21\u0E48\u0E17\u0E38\u0E01\u0E07\u0E32\u0E19 \u0E41\u0E01\u0E49\u0E23\u0E32\u0E22\u0E43\u0E1A\u0E44\u0E14\u0E49\u0E15\u0E32\u0E21\u0E1B\u0E01\u0E15\u0E34", React.createElement("br", null), "\u0E0A\u0E48\u0E2D\u0E07 ", React.createElement("b", null, "\u0E0A\u0E34\u0E49\u0E19/\u0E17\u0E48\u0E2D\u0E19"), " \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07 = \u0E43\u0E0A\u0E49\u0E01\u0E0E\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 \xB7 \u0E0A\u0E48\u0E2D\u0E07 ", React.createElement("b", null, "% \u0E40\u0E1C\u0E37\u0E48\u0E2D"), " \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07 = \u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E40\u0E14\u0E34\u0E21\u0E02\u0E2D\u0E07\u0E23\u0E30\u0E1A\u0E1A", React.createElement("br", null), React.createElement("span", {
+  }, "\u0E15\u0E31\u0E49\u0E07\u0E04\u0E23\u0E31\u0E49\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48 \u2014 \u0E43\u0E1A\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38 ", React.createElement("b", null, "\u0E43\u0E1A\u0E43\u0E2B\u0E21\u0E48"), " \u0E17\u0E38\u0E01\u0E43\u0E1A\u0E08\u0E30\u0E40\u0E23\u0E34\u0E48\u0E21\u0E08\u0E32\u0E01\u0E04\u0E48\u0E32\u0E19\u0E35\u0E49 \u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E43\u0E2B\u0E21\u0E48\u0E17\u0E38\u0E01\u0E07\u0E32\u0E19 \u0E41\u0E01\u0E49\u0E23\u0E32\u0E22\u0E43\u0E1A\u0E44\u0E14\u0E49\u0E15\u0E32\u0E21\u0E1B\u0E01\u0E15\u0E34", React.createElement("br", null), "\u0E0A\u0E48\u0E2D\u0E07 ", React.createElement("b", null, "\u0E01\u0E0E"), " \u0E41\u0E25\u0E30 ", React.createElement("b", null, "% \u0E40\u0E1C\u0E37\u0E48\u0E2D"), " \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07 = \u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19\u0E02\u0E2D\u0E07\u0E23\u0E30\u0E1A\u0E1A \xB7 \u0E0A\u0E48\u0E2D\u0E07 ", React.createElement("b", null, "\u0E0A\u0E34\u0E49\u0E19/\u0E17\u0E48\u0E2D\u0E19"), " (uPVC) \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07 = \u0E43\u0E0A\u0E49\u0E01\u0E0E\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34", React.createElement("br", null), React.createElement("span", {
     style: {
       color: "var(--text-3)"
     }

@@ -1223,18 +1223,24 @@ function ConduitDefaultsEditor({ condStore }) {
   const num = { background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-1)",
     fontFamily: "inherit", fontSize: 13, padding: "7px 9px", borderRadius: 9, outline: "none", width: "100%", textAlign: "right" };
 
+  /* ท่อ IMC ไม่มีช่อง "ชิ้น/ท่อน" ที่นี่แล้ว — ตารางกฎด้านบนคุมจำนวนทั้งห้าตัวครบ และบอกหน่วยได้ตรงกว่า
+     (แคล้ม = ม./ตัว · รางซี = ม./แคล้ม ÷ ความยาวราง) สองช่องคุมของชิ้นเดียวกันคือที่มาของ
+     "ตกลงเครื่องฟังช่องไหน" ที่ไม่มีใครตอบได้ · ส่วน uPVC ยังไม่มีตารางกฎ ช่องนั้นจึงยังอยู่
+     เครื่องคำนวณยังรู้จัก conduitPer ทุกคีย์เหมือนเดิม — หน้าถอดวัสดุยังบังคับจำนวนรายใบได้ */
   const row = (r, i) => {
+    const showPer = r.grp !== "IMC";
     const on = per[r.key] != null && per[r.key] !== "";
     return (
       <tr key={r.key} style={{ background: i % 2 ? "var(--surface2)" : "transparent" }}>
         <td style={Object.assign({}, cell, { fontWeight: 600 })}>{r.th}
           <div style={{ fontSize: 10.5, color: "var(--text-3)", marginTop: 2 }}>
-            {on ? "แทนกฎอัตโนมัติ" : "อัตโนมัติ " + (r.autoOf ? r.autoOf(R) : r.auto)}</div>
+            {on && showPer ? "แทนกฎอัตโนมัติ" : "คิดจาก " + (r.autoOf ? r.autoOf(R) : r.auto)}</div>
         </td>
+        {showPer && (
         <td style={Object.assign({}, cell, { width: 120 })}>
           <input type="number" min={0} step="any" placeholder="อัตโนมัติ" style={num}
             value={on ? per[r.key] : ""} onChange={(e) => set("per", r.key, e.target.value)} />
-        </td>
+        </td>)}
         <td style={Object.assign({}, cell, { width: 100 })}>
           <input type="number" placeholder={String(FIX[r.key] != null ? FIX[r.key] : 10)} style={num}
             value={spare[r.key] != null ? spare[r.key] : ""} onChange={(e) => set("spare", r.key, e.target.value)} />
@@ -1271,12 +1277,13 @@ function ConduitDefaultsEditor({ condStore }) {
 
   const table = (grp) => (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
-      <div style={{ padding: "9px 11px", fontSize: 12.5, fontWeight: 700, background: "var(--surface2)" }}>ท่อ {grp}</div>
+      <div style={{ padding: "9px 11px", fontSize: 12.5, fontWeight: 700, background: "var(--surface2)" }}>
+        {grp === "IMC" ? "% เผื่อ อุปกรณ์ ท่อ IMC" : "ท่อ " + grp}</div>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ fontSize: 10.5, color: "var(--text-3)", textAlign: "right" }}>
             <th style={Object.assign({}, cell, { textAlign: "left", fontWeight: 700 })}>อุปกรณ์</th>
-            <th style={Object.assign({}, cell, { fontWeight: 700 })}>ชิ้น/ท่อน</th>
+            {grp !== "IMC" && <th style={Object.assign({}, cell, { fontWeight: 700 })}>ชิ้น/ท่อน</th>}
             <th style={Object.assign({}, cell, { fontWeight: 700 })}>% เผื่อ</th>
           </tr>
         </thead>
@@ -1289,7 +1296,7 @@ function ConduitDefaultsEditor({ condStore }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 820 }}>
       <div style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.6 }}>
         ตั้งครั้งเดียวที่นี่ — ใบถอดวัสดุ <b>ใบใหม่</b> ทุกใบจะเริ่มจากค่านี้ ไม่ต้องพิมพ์ใหม่ทุกงาน แก้รายใบได้ตามปกติ
-        <br />ช่อง <b>ชิ้น/ท่อน</b> เว้นว่าง = ใช้กฎอัตโนมัติ · ช่อง <b>% เผื่อ</b> เว้นว่าง = ใช้ค่าเดิมของระบบ
+        <br />ช่อง <b>กฎ</b> และ <b>% เผื่อ</b> เว้นว่าง = ใช้ค่าตั้งต้นของระบบ · ช่อง <b>ชิ้น/ท่อน</b> (uPVC) เว้นว่าง = ใช้กฎอัตโนมัติ
         <br /><span style={{ color: "var(--text-3)" }}>ใบที่ถอดไว้แล้วไม่เปลี่ยนตามค่าที่แก้ที่นี่ — ใบที่ส่งลูกค้าไปแล้วจะได้ไม่ขยับจำนวนเอง</span>
       </div>
       {ruleTable}
