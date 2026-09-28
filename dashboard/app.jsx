@@ -1461,7 +1461,6 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
                 <b>{me.name}</b>
                 <i>{userRoles(me).map((r) => (ROLE_INFO[r] || ROLE_INFO.tech).short).join(" · ")}</i>
               </span>
-              {onMySign && <Icon name="settings" size={15} color="var(--text-3)" />}
             </button>
           )}
         </div>

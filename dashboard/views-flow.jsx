@@ -85,8 +85,12 @@ function FlGroup({ g, count, collapsed, onToggle, onAdd, addLabel, children }) {
             ปุ่มที่ปลายขวาจะเลื่อนพ้นจอไปตั้งแต่ยังไม่ทันเห็น */}
         {onAdd && (
           <button onClick={(e) => { e.stopPropagation(); onAdd(); }} title={((addLabel || "ลูกค้าใหม่").indexOf("เพิ่ม") === 0 ? addLabel : "เพิ่ม" + (addLabel || "ลูกค้าใหม่")) + " ในช่วง " + g.th}
+            /* ต่อ "55"/"14" ท้ายรหัสสีได้เฉพาะสีที่เป็นเลขฐานสิบหก — ช่วงหน้างานใช้ var(--primary)
+               ซึ่งต่อท้ายแล้วกลายเป็นค่าที่เบราว์เซอร์ทิ้งทั้งบรรทัด ปุ่มจึงโล่งไม่มีกรอบทั้งที่โค้ดสั่งไว้
+               color-mix ผสมความจางให้เท่ากันทั้งสองแบบ ปุ่มทุกช่วงจึงหน้าตาชุดเดียวกัน */
             style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 24, padding: "0 10px",
-              borderRadius: 8, border: "1px solid " + g.color + "55", background: g.color + "14", color: g.color,
+              borderRadius: 8, border: "1px solid color-mix(in srgb, " + g.color + " 33%, transparent)",
+              background: "color-mix(in srgb, " + g.color + " 8%, transparent)", color: g.color,
               cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, flexShrink: 0, whiteSpace: "nowrap" }}>
             <Icon name="plus" size={13} color={g.color} sw={2.6} /> {addLabel || "ลูกค้าใหม่"}
           </button>

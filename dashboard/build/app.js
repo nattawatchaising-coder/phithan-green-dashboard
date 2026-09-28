@@ -2354,11 +2354,7 @@ function Header({
     alt: ""
   }) : (me.name || "?").slice(0, 1)), React.createElement("span", {
     className: "hdr-user-tx"
-  }, React.createElement("b", null, me.name), React.createElement("i", null, userRoles(me).map(r => (ROLE_INFO[r] || ROLE_INFO.tech).short).join(" · "))), onMySign && React.createElement(Icon, {
-    name: "settings",
-    size: 15,
-    color: "var(--text-3)"
-  })))), !plain && (!isMobile || showTechFilter) && React.createElement("div", {
+  }, React.createElement("b", null, me.name), React.createElement("i", null, userRoles(me).map(r => (ROLE_INFO[r] || ROLE_INFO.tech).short).join(" · ")))))), !plain && (!isMobile || showTechFilter) && React.createElement("div", {
     className: "header-filters"
   }, !isMobile && React.createElement(Segmented, {
     value: typeFilter,
