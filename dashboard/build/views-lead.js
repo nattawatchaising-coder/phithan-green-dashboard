@@ -901,9 +901,6 @@ function LeadOverview({
       accent: "#EC4899",
       sub: shortCount ? "ต้องสั่งเพิ่มก่อนออกหน้างาน" : "ของครบทุกงานที่ใกล้ติดตั้ง"
     }]
-  }), React.createElement(LoQueuePanel, {
-    jobs: J,
-    onOpen: onOpen
   }), React.createElement("div", {
     style: col("1.15fr 1fr")
   }, React.createElement(LoTechLoadPanel, {

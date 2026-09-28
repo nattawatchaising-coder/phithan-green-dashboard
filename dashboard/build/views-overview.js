@@ -1100,7 +1100,6 @@ function OvCalendar({
     className: "pnl ov-cal"
   }, React.createElement(PanelTitle, {
     title: "\u0E1B\u0E0F\u0E34\u0E17\u0E34\u0E19\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07",
-    sub: "\u0E08\u0E38\u0E14 = \u0E21\u0E35\u0E07\u0E32\u0E19\u0E04\u0E23\u0E48\u0E2D\u0E21\u0E27\u0E31\u0E19\u0E19\u0E31\u0E49\u0E19",
     right: React.createElement("span", {
       className: "ov-cal-nav"
     }, React.createElement("button", {

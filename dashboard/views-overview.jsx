@@ -479,7 +479,7 @@ function OvCalendar({ jobs, onOpen }) {
   const list = byDay[pick] || [];
   return (
     <div className="pnl ov-cal">
-      <PanelTitle title="ปฏิทินงานติดตั้ง" sub="จุด = มีงานคร่อมวันนั้น" right={
+      <PanelTitle title="ปฏิทินงานติดตั้ง" right={
         <span className="ov-cal-nav">
           <button onClick={() => shift(-1)} aria-label="เดือนก่อนหน้า"><Icon name="chevronLeft" size={15} color="var(--text-2)" /></button>
           <b>{MON_TH[mo - 1]} {y + 543}</b>

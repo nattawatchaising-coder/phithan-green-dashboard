@@ -303,15 +303,19 @@ label { min-width: 0; }
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ov-cal-list button span{font-size:11px;color:var(--text-3)}
 
-.stat-rail{display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface);
-  border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:var(--shadow-sm);position:relative}
-.stat-rail::before{content:"";position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(120% 140% at 0% 0%,rgba(27,155,117,.055),transparent 58%)}
+/* ช่องตัวเลขเป็นการ์ดกระจกแยกใบ — พื้นโปร่งให้สีพื้นหน้าจอลอดขึ้นมา แบบเดียวกับสามช่องบนแถบต้อนรับ
+   เดิมเป็นผืนทึบผืนเดียวแบ่งด้วยเส้นผม ซึ่งดูหนักกว่าทุกอย่างที่อยู่รอบ ๆ ทั้งที่เป็นแค่ตัวเลขสรุป
+   backdrop-filter ต้องมี ไม่งั้นพื้นโปร่งบนพื้นเรียบจะเหลือแค่กล่องสีจางลง ไม่ได้ดูเป็นกระจก
+   ใบนี้ใช้ร่วมกันทั้งภาพรวมช่าง · ภาพรวมหัวหน้า · คลังของ · งานขาย จึงเปลี่ยนพร้อมกันทั้งสี่หน้า */
+.stat-rail{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;position:relative}
 .stat-rail>button{position:relative;display:flex;flex-direction:column;gap:0;align-items:flex-start;
-  padding:20px 22px;border:0;background:none;cursor:pointer;font-family:inherit;text-align:left;
-  transition:background .16s}
-.stat-rail>button+button{box-shadow:inset 1px 0 0 var(--border)}
-.stat-rail>button:hover{background:var(--surface2)}
+  padding:20px 22px;border:1px solid color-mix(in srgb,var(--border-strong) 60%,transparent);
+  border-radius:18px;overflow:hidden;cursor:pointer;font-family:inherit;text-align:left;
+  background:color-mix(in srgb,var(--surface) 55%,transparent);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  transition:background .16s,border-color .16s}
+.stat-rail>button:hover{background:color-mix(in srgb,var(--surface) 90%,transparent);
+  border-color:var(--border-strong)}
 .stat-rail .lb{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:650;
   letter-spacing:.07em;text-transform:uppercase;color:var(--text-3)}
 .stat-rail .lb .pip{width:6px;height:6px;border-radius:99px;flex:0 0 auto}
@@ -322,15 +326,15 @@ label { min-width: 0; }
 .stat-rail .sub{margin-top:7px;font-size:12px;color:var(--text-3);display:flex;align-items:center;gap:5px}
 .stat-rail .sub b{color:var(--text-2);font-weight:650}
 .stat-rail>button[data-alert="1"] .num{color:#D93025}
-.stat-rail>button[data-alert="1"]{background:linear-gradient(180deg,rgba(217,48,37,.05),transparent 60%)}
+.stat-rail>button[data-alert="1"]{background:linear-gradient(180deg,rgba(217,48,37,.09),transparent 60%),
+  color-mix(in srgb,var(--surface) 55%,transparent)}
 /* ช่องที่กำลังใช้กรองอยู่ — คาดเส้นเขียวใต้ช่อง บอกว่ากดค้างไว้ */
-.stat-rail>button[data-active="1"]{background:var(--surface2)}
+.stat-rail>button[data-active="1"]{background:color-mix(in srgb,var(--surface2) 92%,transparent)}
 .stat-rail>button[data-active="1"]::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--primary)}
 .stat-rail .go{position:absolute;right:18px;bottom:18px;opacity:0;transform:translateX(-4px);
   transition:opacity .16s,transform .16s;color:var(--primary-dark)}
 .stat-rail>button:hover .go{opacity:1;transform:none}
-@media(max-width:860px){.stat-rail{grid-template-columns:1fr}
-  .stat-rail>button+button{box-shadow:inset 0 1px 0 var(--border)}
+@media(max-width:860px){.stat-rail{grid-template-columns:1fr;gap:10px}
   .stat-rail>button{flex-direction:row;align-items:center;gap:14px;padding:14px 16px}
   .stat-rail .num{margin:0;font-size:28px;min-width:52px}
   .stat-rail .sub{margin-top:2px}}
@@ -408,20 +412,25 @@ label { min-width: 0; }
 /* ── การ์ด: เทาสว่างกว่าพื้นหนึ่งระดับ + เส้นขอบบาง ไม่ใช้เงาหนัก ──
    บนพื้นมืด เงาแทบมองไม่เห็น จึงใช้ "ความสว่าง" บอกว่าอะไรลอยอยู่ข้างบน */
 [data-theme="aurora"] .pnl,
-[data-theme="aurora"] .stat-rail,
 [data-theme="aurora"] .bq-card,
 [data-theme="aurora"] .p3-card {
   background: var(--gr-card); border: 1px solid var(--border);
   box-shadow: 0 1px 3px rgba(0,0,0,.4);
 }
 [data-theme="aurora"] .pnl::after { display: none; }
-[data-theme="aurora"] .stat-rail::before { display: none; }
-[data-theme="aurora"] .stat-rail > button:hover { background: var(--gr-hi); }
-[data-theme="aurora"] .stat-rail > button[data-active="1"] { background: var(--gr-hi); }
+[data-theme="aurora"] .stat-rail > button {
+  background: color-mix(in srgb, var(--gr-card) 55%, transparent);
+  box-shadow: 0 1px 3px rgba(0,0,0,.4);
+}
+[data-theme="aurora"] .stat-rail > button:hover { background: color-mix(in srgb, var(--gr-hi) 88%, transparent); }
+[data-theme="aurora"] .stat-rail > button[data-active="1"] { background: color-mix(in srgb, var(--gr-hi) 88%, transparent); }
 [data-theme="aurora"] .stat-rail > button[data-active="1"]::after { background: var(--primary-bright); }
 [data-theme="aurora"] .stat-rail .num { color: var(--text-1); }
 [data-theme="aurora"] .stat-rail > button[data-alert="1"] .num { color: #FF6B62; }
-[data-theme="aurora"] .stat-rail > button[data-alert="1"] { background: rgba(255,69,58,.09); }
+[data-theme="aurora"] .stat-rail > button[data-alert="1"] {
+  background: linear-gradient(180deg,rgba(255,69,58,.13),transparent 60%),
+    color-mix(in srgb, var(--gr-card) 55%, transparent);
+}
 [data-theme="aurora"] .rows > button:hover { background: var(--gr-hi); box-shadow: 0 0 0 6px var(--gr-hi); }
 
 /* ── การ์ดของทุกหน้าที่เหลือ (ตาราง · บอร์ด · ปฏิทิน · รายงาน · คลัง · สำรวจ) ──
@@ -630,7 +639,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/pm-paper.js?v=11"></script>
 <script src="dashboard/build/pm-form.js?v=11"></script>
 <script src="dashboard/build/drawer.js?v=69"></script>
-<script src="dashboard/build/views-overview.js?v=36"></script>
+<script src="dashboard/build/views-overview.js?v=37"></script>
 <script src="dashboard/build/views-board.js?v=34"></script>
 <script src="dashboard/build/views-table.js?v=31"></script>
 <script src="dashboard/build/views-report.js?v=9"></script>
@@ -648,7 +657,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/billing.js?v=5"></script>
 <script src="dashboard/build/bill-paper.js?v=6"></script>
 <script src="dashboard/build/views-billing.js?v=7"></script>
-<script src="dashboard/build/views-lead.js?v=5"></script>
+<script src="dashboard/build/views-lead.js?v=6"></script>
 <script src="dashboard/build/views-flow.js?v=12"></script>
 <script src="dashboard/build/daily.js?v=13"></script>
 <script src="dashboard/build/views-daily.js?v=33"></script>

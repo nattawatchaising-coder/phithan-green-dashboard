@@ -490,7 +490,9 @@ function LeadOverview({ jobs, leads, quotes, stock, techs, onOpen, onStage, onKp
           ตัวแผงยังอยู่ที่ MaterialShortagePanel เปิดคืนได้ด้วยการเอาคอมเมนต์บรรทัดล่างออก */}
       {/* <MaterialShortagePanel jobs={J} stock={stock} onOpen={onOpen} /> */}
 
-      <LoQueuePanel jobs={J} onOpen={onOpen} />
+      {/* ปิดแผง "คิวติดตั้ง 14 วันข้างหน้า" ไว้ตามที่สั่ง — ซ้ำกับตารางงานและแผงภาระช่างที่อยู่ถัดลงไป
+          ตัวแผงยังอยู่ที่ LoQueuePanel เปิดคืนได้ด้วยการเอาคอมเมนต์บรรทัดล่างออก */}
+      {/* <LoQueuePanel jobs={J} onOpen={onOpen} /> */}
 
       <div style={col("1.15fr 1fr")}>
         <LoTechLoadPanel jobs={J} techs={techs} onTech={onTech} />
