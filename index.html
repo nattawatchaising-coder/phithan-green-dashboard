@@ -150,15 +150,13 @@ label { min-width: 0; }
 .hdr-icon-btn:active { transform: scale(.92); }
 /* ปุ่มเม็ดยาที่เขียนสไตล์ inline ในไฟล์ jsx (ตัวกรองช่าง) — พื้นตอนชี้ต้องใช้ !important เพราะ inline ชนะกฎปกติ
    ยกเว้นตอนตัวกรองทำงานอยู่ ซึ่งมีพื้นสีของช่างคนนั้นอยู่แล้ว ทับไปจะกลายเป็นเทา */
-.hdr-pill { transition: background .16s ease, color .16s ease, box-shadow .18s ease, transform .12s ease; }
-/* เงาตอนชี้ให้ทุกสถานะ ไม่ใช่เฉพาะตอนยังไม่ได้กรอง — ตอนกรองอยู่ปุ่มมีพื้นสีของช่างคนนั้นแล้ว
-   เปลี่ยนพื้นซ้ำไม่ได้ (จะทับสีช่างหาย) เงาจึงเป็นอย่างเดียวที่บอกว่ายังกดได้อยู่ */
-.hdr-pill:hover { box-shadow: var(--hov-sh); }
-/* แถวในเมนูเลือกช่าง — เขียนสไตล์ inline ในไฟล์ jsx จึงต้อง !important
-   ใช้ภาษาเดียวกับปุ่มบนหัวจอ: พื้นเขียวจาง + เงา ไม่ใช่แค่เปลี่ยนพื้นเทา */
-.tf-row { transition: background .14s ease, color .14s ease, box-shadow .18s ease; }
-.tf-row:hover { background: var(--primary-soft) !important; color: var(--primary-dark) !important;
-  box-shadow: var(--hov-sh); }
+.hdr-pill { transition: background .16s ease, color .16s ease, transform .12s ease; }
+/* ปุ่มบนหัวจอกับแถวในเมนู เปลี่ยนสีพื้นอย่างเดียว ไม่มีเงา — หัวจอเป็นแถบแบนที่นั่งอยู่บนสุดของหน้า
+   ของที่อยู่บนนั้นลอยขึ้นมาไม่ได้โดยไม่ทำให้ทั้งแถบดูเป็นชั้นซ้อน
+   เงาสงวนไว้ให้ของที่อยู่ในเนื้อหน้า (การ์ด · แถวในรายการ) ซึ่งลอยขึ้นจากพื้นหน้าได้จริง
+   แถวในเมนูเขียนสไตล์ inline ในไฟล์ jsx จึงต้อง !important */
+.tf-row { transition: background .14s ease, color .14s ease; }
+.tf-row:hover { background: var(--primary-soft) !important; color: var(--primary-dark) !important; }
 [data-theme="aurora"] .tf-row:hover {
   background: color-mix(in srgb, var(--primary) 26%, transparent) !important; color: #fff !important; }
 /* ทั้งหมด · งานบ้าน · โครงการ — ชี้แล้วพื้นเขียวจางไล่เข้ามาแทนเทา ให้รู้ว่าเป็นตัวเลือกของระบบ
@@ -398,7 +396,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
    เก็บ border ไว้เป็น transparent ไม่ได้ถอดทิ้ง — ใบที่ต้องเตือน (data-warn) ยังต้องย้อมขอบแดงได้
    และการ์ดจะได้ไม่ขยับ 2px ตอนขอบโผล่ */
 .permit-grid>button{display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-width:0;
-  padding:12px 13px;border:1px solid transparent;border-radius:14px;background:var(--surface2);
+  padding:12px 13px;border:1px solid transparent;border-radius:14px;background:none;
   cursor:pointer;font-family:inherit;text-align:left;transition:background .14s,border-color .14s}
 .permit-grid>button:hover{background:var(--surface3)}
 .permit-grid .pv{font-family:var(--display);font-size:20px;font-weight:700;line-height:1;
@@ -441,6 +439,12 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .rows>button{transition:background .14s ease,box-shadow .18s ease}
 .rows>button:hover{box-shadow:0 0 0 8px var(--surface2),var(--hov-sh-lg)}
 [data-theme="aurora"] .rows>button:hover{box-shadow:0 0 0 8px var(--gr-hi),var(--hov-sh-lg)}
+/* ยกเว้นแถวในการ์ดวันบนปฏิทิน — การ์ดใบนี้เป็นป๊อปอัปที่ลอยอยู่บนเงาของตัวเองอยู่แล้ว
+   ใส่วงแหวนกับเงาให้แถวข้างในอีกชั้นคือเงาซ้อนเงา พื้นเทาอย่างเดียวพอ
+   เมื่อไม่มีเงาแล้วก็ไม่ต้องเผื่อที่ให้เงาตกอีก คืน padding 20px ของการ์ดกลับไปตามเดิม
+   แถวจะได้ตรงกับหัวข้อวันที่ด้านบน ไม่ใช่ชิดขอบการ์ดอยู่ชิ้นเดียว */
+.ov-day-bd.rows{padding-left:20px;padding-right:20px;margin-left:0;margin-right:0}
+.ov-day-bd.rows>button:hover,[data-theme="aurora"] .ov-day-bd.rows>button:hover{box-shadow:none}
 /* ช่องวันในปฏิทินกับปุ่มเลื่อนเดือน — เล็กเกินกว่าจะยกตัวได้สวย ใช้พื้นเข้มขึ้นกับเงาสั้น ๆ แทน */
 .ov-cal-grid button,.ov-cal-nav button{transition:background .16s ease,box-shadow .18s ease,transform .16s ease}
 .ov-cal-grid button:hover,.ov-cal-nav button:hover{box-shadow:var(--hov-sh);transform:translateY(-1px)}
