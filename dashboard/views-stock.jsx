@@ -1196,14 +1196,14 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
    ⚠ ใบที่ถอดไว้แล้วไม่ขยับตามค่าที่แก้ที่นี่ (BOQ.mergeBOQ ให้ของที่บันทึกไว้ชนะ)
      ตั้งใจให้เป็นแบบนั้น — ใบเสนอราคาที่ส่งลูกค้าไปแล้วเปลี่ยนจำนวนเองไม่ได้
    ══════════════════════════════════════════════════ */
-/* บรรทัดคำอธิบายใต้ชื่ออุปกรณ์ IMC อ่านจากกฎที่ตั้งไว้จริง ไม่ใช่ข้อความตายตัว
-   ถ้าเขียนตายตัว พอมีคนแก้กฎ คำอธิบายจะโกหกทันทีโดยไม่มีอะไรฟ้อง */
+/* อุปกรณ์ IMC ไม่มีตารางของตัวเองแล้ว — ทั้งกฎและ % เผื่อ อยู่ในตารางกฎตารางเดียว
+   แถว IMC ที่เหลือไว้ที่นี่ใช้นับว่า "ตั้งค่าไว้กี่รายการ" ของปุ่มคืนค่าตั้งต้นเท่านั้น */
 const COND_DEF_ROWS = [
-  { grp: "IMC", key: "clamp", th: "แคล้มประกับ", autoOf: (R) => "1 ตัว ต่อท่อยาว " + R.clampM + " ม." },
-  { grp: "IMC", key: "bushing", th: "บุชชิ่ง/ล็อกนัท", autoOf: (R) => "จำนวนท่อน × " + R.bushingPer },
-  { grp: "IMC", key: "cchannel", th: "รางซี", autoOf: (R) => R.ccPerClamp + " ม./แคล้ม ÷ ราง " + R.ccLen + " ม." },
-  { grp: "IMC", key: "connector", th: "คอนเนคเตอร์", autoOf: (R) => "จำนวนท่อน × " + R.connPer },
-  { grp: "IMC", key: "coupling", th: "คุปปิ้ง", autoOf: (R) => "จำนวนท่อน × " + R.coupPer + " + PULL BOX × " + R.coupPb },
+  { grp: "IMC", key: "clamp", th: "แคล้มประกับ" },
+  { grp: "IMC", key: "bushing", th: "บุชชิ่ง/ล็อกนัท" },
+  { grp: "IMC", key: "cchannel", th: "รางซี" },
+  { grp: "IMC", key: "connector", th: "คอนเนคเตอร์" },
+  { grp: "IMC", key: "coupling", th: "คุปปิ้ง" },
   { grp: "uPVC", key: "upStraight", th: "ข้อต่อตรง", auto: "จำนวนท่อน + 4" },
   { grp: "uPVC", key: "upClamp", th: "แคลมป์ก้ามปู", auto: "ทุก 60 ซม." },
   { grp: "uPVC", key: "upConnector", th: "คอนเน็ตเตอร์ uPVC", auto: "8 + แบต/สำรอง + 3 ต่อ PULL BOX uPVC" },
@@ -1215,32 +1215,25 @@ function ConduitDefaultsEditor({ condStore }) {
   const val = (condStore && condStore.val) || { rule: {}, per: {}, spare: {} };
   const rule = val.rule || {}, per = val.per || {}, spare = val.spare || {};
   const set = (kind, k, v) => condStore && condStore.setCell(kind, k, v);
-  /* กฎที่มีผลจริงตอนนี้ — ช่องที่เว้นว่างถูกเติมด้วยค่าตั้งต้นของระบบ ใช้ทั้งโชว์และคิดจำนวน */
-  const R = ((window.BOQ || {}).imcRule || ((x) => x || {}))(rule);
   const nEdited = COND_DEF_ROWS.filter((r) => per[r.key] != null || spare[r.key] != null).length
     + RULE_ROWS.filter((r) => rule[r.key] != null && rule[r.key] !== "").length;
   const cell = { padding: "7px 9px", borderBottom: "1px solid var(--border)", fontSize: 12.5 };
   const num = { background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-1)",
     fontFamily: "inherit", fontSize: 13, padding: "7px 9px", borderRadius: 9, outline: "none", width: "100%", textAlign: "right" };
 
-  /* ท่อ IMC ไม่มีช่อง "ชิ้น/ท่อน" ที่นี่แล้ว — ตารางกฎด้านบนคุมจำนวนทั้งห้าตัวครบ และบอกหน่วยได้ตรงกว่า
-     (แคล้ม = ม./ตัว · รางซี = ม./แคล้ม ÷ ความยาวราง) สองช่องคุมของชิ้นเดียวกันคือที่มาของ
-     "ตกลงเครื่องฟังช่องไหน" ที่ไม่มีใครตอบได้ · ส่วน uPVC ยังไม่มีตารางกฎ ช่องนั้นจึงยังอยู่
-     เครื่องคำนวณยังรู้จัก conduitPer ทุกคีย์เหมือนเดิม — หน้าถอดวัสดุยังบังคับจำนวนรายใบได้ */
+  /* ตารางนี้เหลือไว้ให้ uPVC อย่างเดียว — อุปกรณ์ IMC ย้ายไปอยู่ในตารางกฎหมดแล้ว */
   const row = (r, i) => {
-    const showPer = r.grp !== "IMC";
     const on = per[r.key] != null && per[r.key] !== "";
     return (
       <tr key={r.key} style={{ background: i % 2 ? "var(--surface2)" : "transparent" }}>
         <td style={Object.assign({}, cell, { fontWeight: 600 })}>{r.th}
           <div style={{ fontSize: 10.5, color: "var(--text-3)", marginTop: 2 }}>
-            {on && showPer ? "แทนกฎอัตโนมัติ" : "คิดจาก " + (r.autoOf ? r.autoOf(R) : r.auto)}</div>
+            {on ? "แทนกฎอัตโนมัติ" : "คิดจาก " + r.auto}</div>
         </td>
-        {showPer && (
         <td style={Object.assign({}, cell, { width: 120 })}>
           <input type="number" min={0} step="any" placeholder="อัตโนมัติ" style={num}
             value={on ? per[r.key] : ""} onChange={(e) => set("per", r.key, e.target.value)} />
-        </td>)}
+        </td>
         <td style={Object.assign({}, cell, { width: 100 })}>
           <input type="number" placeholder={String(FIX[r.key] != null ? FIX[r.key] : 10)} style={num}
             value={spare[r.key] != null ? spare[r.key] : ""} onChange={(e) => set("spare", r.key, e.target.value)} />
@@ -1249,27 +1242,51 @@ function ConduitDefaultsEditor({ condStore }) {
     );
   };
 
-  /* ตารางกฎ — ของ IMC เท่านั้น อุปกรณ์ uPVC ยังเป็นสูตรตายตัวอยู่ ยังไม่มีใครขอให้แก้ */
+  /* ตารางกฎ — ของ IMC เท่านั้น อุปกรณ์ uPVC ยังเป็นสูตรตายตัวอยู่ ยังไม่มีใครขอให้แก้
+     % เผื่อ อยู่ในตารางเดียวกับกฎ จะได้เห็นพร้อมกันว่าอุปกรณ์ตัวหนึ่งคิดยังไงและเผื่อเท่าไร
+     อุปกรณ์ที่มีหลายกฎ (รางซี · คุปปิ้ง) รวมช่อง % เผื่อ เป็นช่องเดียวด้วย rowSpan
+     เพราะ % เผื่อ เป็นของ "อุปกรณ์" ไม่ใช่ของ "กฎ" — สองช่องให้กรอกจะกลายเป็นคำถามว่าอันไหนจริง */
+  const accSpan = {};
+  RULE_ROWS.forEach((r) => { accSpan[r.acc] = (accSpan[r.acc] || 0) + 1; });
   const ruleTable = (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
       <div style={{ padding: "9px 11px", fontSize: 12.5, fontWeight: 700, background: "var(--surface2)" }}>
         กฎคิดจำนวนอุปกรณ์ ท่อ IMC
-        <span style={{ fontWeight: 500, color: "var(--text-3)", marginLeft: 6 }}>เว้นว่าง = ใช้ค่าตั้งต้นของระบบ</span>
+        <span style={{ fontWeight: 500, color: "var(--text-3)", marginLeft: 6 }}>
+          เว้นว่าง = ใช้ค่าตั้งต้นของระบบ · ใบที่ถอดไว้แล้วไม่ขยับตาม
+        </span>
       </div>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr style={{ fontSize: 10.5, color: "var(--text-3)", textAlign: "right" }}>
+            <th style={Object.assign({}, cell, { textAlign: "left", fontWeight: 700 })}>กฎ</th>
+            <th style={Object.assign({}, cell, { fontWeight: 700 })}>ค่า</th>
+            <th style={Object.assign({}, cell, { fontWeight: 700, textAlign: "left" })}>หน่วย</th>
+            <th style={Object.assign({}, cell, { fontWeight: 700 })}>% เผื่อ</th>
+          </tr>
+        </thead>
         <tbody>
-          {RULE_ROWS.map((r, i) => (
-            <tr key={r.key} style={{ background: i % 2 ? "var(--surface2)" : "transparent" }}>
-              <td style={Object.assign({}, cell, { fontWeight: 600 })}>{r.th}
-                <div style={{ fontSize: 10.5, color: "var(--text-3)", marginTop: 2 }}>ค่าตั้งต้น {r.def} {r.unit}</div>
-              </td>
-              <td style={Object.assign({}, cell, { width: 120 })}>
-                <input type="number" min={r.min != null ? r.min : 0} step="any" placeholder={String(r.def)} style={num}
-                  value={rule[r.key] != null ? rule[r.key] : ""} onChange={(e) => set("rule", r.key, e.target.value)} />
-              </td>
-              <td style={Object.assign({}, cell, { width: 100, fontSize: 11, color: "var(--text-3)" })}>{r.unit}</td>
-            </tr>
-          ))}
+          {RULE_ROWS.map((r, i) => {
+            const first = i === 0 || RULE_ROWS[i - 1].acc !== r.acc;   // แถวแรกของอุปกรณ์ตัวนี้
+            return (
+              <tr key={r.key} style={{ background: i % 2 ? "var(--surface2)" : "transparent" }}>
+                <td style={Object.assign({}, cell, { fontWeight: 600 })}>{r.th}
+                  <div style={{ fontSize: 10.5, color: "var(--text-3)", marginTop: 2 }}>ค่าตั้งต้น {r.def} {r.unit}</div>
+                </td>
+                <td style={Object.assign({}, cell, { width: 120 })}>
+                  <input type="number" min={r.min != null ? r.min : 0} step="any" placeholder={String(r.def)} style={num}
+                    value={rule[r.key] != null ? rule[r.key] : ""} onChange={(e) => set("rule", r.key, e.target.value)} />
+                </td>
+                <td style={Object.assign({}, cell, { width: 76, fontSize: 11, color: "var(--text-3)" })}>{r.unit}</td>
+                {first && (
+                  <td rowSpan={accSpan[r.acc]} style={Object.assign({}, cell, { width: 100, verticalAlign: "middle" })}>
+                    <input type="number" placeholder={String(FIX[r.acc] != null ? FIX[r.acc] : 10)} style={num}
+                      value={spare[r.acc] != null ? spare[r.acc] : ""} onChange={(e) => set("spare", r.acc, e.target.value)} />
+                  </td>
+                )}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -1277,13 +1294,12 @@ function ConduitDefaultsEditor({ condStore }) {
 
   const table = (grp) => (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
-      <div style={{ padding: "9px 11px", fontSize: 12.5, fontWeight: 700, background: "var(--surface2)" }}>
-        {grp === "IMC" ? "% เผื่อ อุปกรณ์ ท่อ IMC" : "ท่อ " + grp}</div>
+      <div style={{ padding: "9px 11px", fontSize: 12.5, fontWeight: 700, background: "var(--surface2)" }}>ท่อ {grp}</div>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ fontSize: 10.5, color: "var(--text-3)", textAlign: "right" }}>
             <th style={Object.assign({}, cell, { textAlign: "left", fontWeight: 700 })}>อุปกรณ์</th>
-            {grp !== "IMC" && <th style={Object.assign({}, cell, { fontWeight: 700 })}>ชิ้น/ท่อน</th>}
+            <th style={Object.assign({}, cell, { fontWeight: 700 })}>ชิ้น/ท่อน</th>
             <th style={Object.assign({}, cell, { fontWeight: 700 })}>% เผื่อ</th>
           </tr>
         </thead>
@@ -1294,13 +1310,8 @@ function ConduitDefaultsEditor({ condStore }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 820 }}>
-      <div style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.6 }}>
-        ตั้งครั้งเดียวที่นี่ — ใบถอดวัสดุ <b>ใบใหม่</b> ทุกใบจะเริ่มจากค่านี้ ไม่ต้องพิมพ์ใหม่ทุกงาน แก้รายใบได้ตามปกติ
-        <br />ช่อง <b>กฎ</b> และ <b>% เผื่อ</b> เว้นว่าง = ใช้ค่าตั้งต้นของระบบ · ช่อง <b>ชิ้น/ท่อน</b> (uPVC) เว้นว่าง = ใช้กฎอัตโนมัติ
-        <br /><span style={{ color: "var(--text-3)" }}>ใบที่ถอดไว้แล้วไม่เปลี่ยนตามค่าที่แก้ที่นี่ — ใบที่ส่งลูกค้าไปแล้วจะได้ไม่ขยับจำนวนเอง</span>
-      </div>
+      {/* คำอธิบายย้ายไปอยู่บนหัวตารางแล้ว — กติกาที่ต้องอ่านควรอยู่ติดกับช่องที่ต้องกรอก ไม่ใช่ย่อหน้าที่ทุกคนเลื่อนผ่าน */}
       {ruleTable}
-      {table("IMC")}
       {table("uPVC")}
       <div>
         <button onClick={() => {

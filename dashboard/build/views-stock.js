@@ -3278,28 +3278,23 @@ function ItemModal({
 const COND_DEF_ROWS = [{
   grp: "IMC",
   key: "clamp",
-  th: "แคล้มประกับ",
-  autoOf: R => "1 ตัว ต่อท่อยาว " + R.clampM + " ม."
+  th: "แคล้มประกับ"
 }, {
   grp: "IMC",
   key: "bushing",
-  th: "บุชชิ่ง/ล็อกนัท",
-  autoOf: R => "จำนวนท่อน × " + R.bushingPer
+  th: "บุชชิ่ง/ล็อกนัท"
 }, {
   grp: "IMC",
   key: "cchannel",
-  th: "รางซี",
-  autoOf: R => R.ccPerClamp + " ม./แคล้ม ÷ ราง " + R.ccLen + " ม."
+  th: "รางซี"
 }, {
   grp: "IMC",
   key: "connector",
-  th: "คอนเนคเตอร์",
-  autoOf: R => "จำนวนท่อน × " + R.connPer
+  th: "คอนเนคเตอร์"
 }, {
   grp: "IMC",
   key: "coupling",
-  th: "คุปปิ้ง",
-  autoOf: R => "จำนวนท่อน × " + R.coupPer + " + PULL BOX × " + R.coupPb
+  th: "คุปปิ้ง"
 }, {
   grp: "uPVC",
   key: "upStraight",
@@ -3330,7 +3325,6 @@ function ConduitDefaultsEditor({
     per = val.per || {},
     spare = val.spare || {};
   const set = (kind, k, v) => condStore && condStore.setCell(kind, k, v);
-  const R = ((window.BOQ || {}).imcRule || (x => x || {}))(rule);
   const nEdited = COND_DEF_ROWS.filter(r => per[r.key] != null || spare[r.key] != null).length + RULE_ROWS.filter(r => rule[r.key] != null && rule[r.key] !== "").length;
   const cell = {
     padding: "7px 9px",
@@ -3350,7 +3344,6 @@ function ConduitDefaultsEditor({
     textAlign: "right"
   };
   const row = (r, i) => {
-    const showPer = r.grp !== "IMC";
     const on = per[r.key] != null && per[r.key] !== "";
     return React.createElement("tr", {
       key: r.key,
@@ -3367,7 +3360,7 @@ function ConduitDefaultsEditor({
         color: "var(--text-3)",
         marginTop: 2
       }
-    }, on && showPer ? "แทนกฎอัตโนมัติ" : "คิดจาก " + (r.autoOf ? r.autoOf(R) : r.auto))), showPer && React.createElement("td", {
+    }, on ? "แทนกฎอัตโนมัติ" : "คิดจาก " + r.auto)), React.createElement("td", {
       style: Object.assign({}, cell, {
         width: 120
       })
@@ -3391,6 +3384,10 @@ function ConduitDefaultsEditor({
       onChange: e => set("spare", r.key, e.target.value)
     })));
   };
+  const accSpan = {};
+  RULE_ROWS.forEach(r => {
+    accSpan[r.acc] = (accSpan[r.acc] || 0) + 1;
+  });
   const ruleTable = React.createElement("div", {
     style: {
       background: "var(--surface)",
@@ -3411,60 +3408,7 @@ function ConduitDefaultsEditor({
       color: "var(--text-3)",
       marginLeft: 6
     }
-  }, "\u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07 = \u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19\u0E02\u0E2D\u0E07\u0E23\u0E30\u0E1A\u0E1A")), React.createElement("table", {
-    style: {
-      width: "100%",
-      borderCollapse: "collapse"
-    }
-  }, React.createElement("tbody", null, RULE_ROWS.map((r, i) => React.createElement("tr", {
-    key: r.key,
-    style: {
-      background: i % 2 ? "var(--surface2)" : "transparent"
-    }
-  }, React.createElement("td", {
-    style: Object.assign({}, cell, {
-      fontWeight: 600
-    })
-  }, r.th, React.createElement("div", {
-    style: {
-      fontSize: 10.5,
-      color: "var(--text-3)",
-      marginTop: 2
-    }
-  }, "\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19 ", r.def, " ", r.unit)), React.createElement("td", {
-    style: Object.assign({}, cell, {
-      width: 120
-    })
-  }, React.createElement("input", {
-    type: "number",
-    min: r.min != null ? r.min : 0,
-    step: "any",
-    placeholder: String(r.def),
-    style: num,
-    value: rule[r.key] != null ? rule[r.key] : "",
-    onChange: e => set("rule", r.key, e.target.value)
-  })), React.createElement("td", {
-    style: Object.assign({}, cell, {
-      width: 100,
-      fontSize: 11,
-      color: "var(--text-3)"
-    })
-  }, r.unit))))));
-  const table = grp => React.createElement("div", {
-    style: {
-      background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 12,
-      overflow: "hidden"
-    }
-  }, React.createElement("div", {
-    style: {
-      padding: "9px 11px",
-      fontSize: 12.5,
-      fontWeight: 700,
-      background: "var(--surface2)"
-    }
-  }, grp === "IMC" ? "% เผื่อ อุปกรณ์ ท่อ IMC" : "ท่อ " + grp), React.createElement("table", {
+  }, "\u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07 = \u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19\u0E02\u0E2D\u0E07\u0E23\u0E30\u0E1A\u0E1A \xB7 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E16\u0E2D\u0E14\u0E44\u0E27\u0E49\u0E41\u0E25\u0E49\u0E27\u0E44\u0E21\u0E48\u0E02\u0E22\u0E31\u0E1A\u0E15\u0E32\u0E21")), React.createElement("table", {
     style: {
       width: "100%",
       borderCollapse: "collapse"
@@ -3480,7 +3424,99 @@ function ConduitDefaultsEditor({
       textAlign: "left",
       fontWeight: 700
     })
-  }, "\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C"), grp !== "IMC" && React.createElement("th", {
+  }, "\u0E01\u0E0E"), React.createElement("th", {
+    style: Object.assign({}, cell, {
+      fontWeight: 700
+    })
+  }, "\u0E04\u0E48\u0E32"), React.createElement("th", {
+    style: Object.assign({}, cell, {
+      fontWeight: 700,
+      textAlign: "left"
+    })
+  }, "\u0E2B\u0E19\u0E48\u0E27\u0E22"), React.createElement("th", {
+    style: Object.assign({}, cell, {
+      fontWeight: 700
+    })
+  }, "% \u0E40\u0E1C\u0E37\u0E48\u0E2D"))), React.createElement("tbody", null, RULE_ROWS.map((r, i) => {
+    const first = i === 0 || RULE_ROWS[i - 1].acc !== r.acc;
+    return React.createElement("tr", {
+      key: r.key,
+      style: {
+        background: i % 2 ? "var(--surface2)" : "transparent"
+      }
+    }, React.createElement("td", {
+      style: Object.assign({}, cell, {
+        fontWeight: 600
+      })
+    }, r.th, React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        color: "var(--text-3)",
+        marginTop: 2
+      }
+    }, "\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19 ", r.def, " ", r.unit)), React.createElement("td", {
+      style: Object.assign({}, cell, {
+        width: 120
+      })
+    }, React.createElement("input", {
+      type: "number",
+      min: r.min != null ? r.min : 0,
+      step: "any",
+      placeholder: String(r.def),
+      style: num,
+      value: rule[r.key] != null ? rule[r.key] : "",
+      onChange: e => set("rule", r.key, e.target.value)
+    })), React.createElement("td", {
+      style: Object.assign({}, cell, {
+        width: 76,
+        fontSize: 11,
+        color: "var(--text-3)"
+      })
+    }, r.unit), first && React.createElement("td", {
+      rowSpan: accSpan[r.acc],
+      style: Object.assign({}, cell, {
+        width: 100,
+        verticalAlign: "middle"
+      })
+    }, React.createElement("input", {
+      type: "number",
+      placeholder: String(FIX[r.acc] != null ? FIX[r.acc] : 10),
+      style: num,
+      value: spare[r.acc] != null ? spare[r.acc] : "",
+      onChange: e => set("spare", r.acc, e.target.value)
+    })));
+  }))));
+  const table = grp => React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 12,
+      overflow: "hidden"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "9px 11px",
+      fontSize: 12.5,
+      fontWeight: 700,
+      background: "var(--surface2)"
+    }
+  }, "\u0E17\u0E48\u0E2D ", grp), React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse"
+    }
+  }, React.createElement("thead", null, React.createElement("tr", {
+    style: {
+      fontSize: 10.5,
+      color: "var(--text-3)",
+      textAlign: "right"
+    }
+  }, React.createElement("th", {
+    style: Object.assign({}, cell, {
+      textAlign: "left",
+      fontWeight: 700
+    })
+  }, "\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C"), React.createElement("th", {
     style: Object.assign({}, cell, {
       fontWeight: 700
     })
@@ -3496,17 +3532,7 @@ function ConduitDefaultsEditor({
       gap: 12,
       maxWidth: 820
     }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "var(--text-2)",
-      lineHeight: 1.6
-    }
-  }, "\u0E15\u0E31\u0E49\u0E07\u0E04\u0E23\u0E31\u0E49\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48 \u2014 \u0E43\u0E1A\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38 ", React.createElement("b", null, "\u0E43\u0E1A\u0E43\u0E2B\u0E21\u0E48"), " \u0E17\u0E38\u0E01\u0E43\u0E1A\u0E08\u0E30\u0E40\u0E23\u0E34\u0E48\u0E21\u0E08\u0E32\u0E01\u0E04\u0E48\u0E32\u0E19\u0E35\u0E49 \u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E43\u0E2B\u0E21\u0E48\u0E17\u0E38\u0E01\u0E07\u0E32\u0E19 \u0E41\u0E01\u0E49\u0E23\u0E32\u0E22\u0E43\u0E1A\u0E44\u0E14\u0E49\u0E15\u0E32\u0E21\u0E1B\u0E01\u0E15\u0E34", React.createElement("br", null), "\u0E0A\u0E48\u0E2D\u0E07 ", React.createElement("b", null, "\u0E01\u0E0E"), " \u0E41\u0E25\u0E30 ", React.createElement("b", null, "% \u0E40\u0E1C\u0E37\u0E48\u0E2D"), " \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07 = \u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19\u0E02\u0E2D\u0E07\u0E23\u0E30\u0E1A\u0E1A \xB7 \u0E0A\u0E48\u0E2D\u0E07 ", React.createElement("b", null, "\u0E0A\u0E34\u0E49\u0E19/\u0E17\u0E48\u0E2D\u0E19"), " (uPVC) \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07 = \u0E43\u0E0A\u0E49\u0E01\u0E0E\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34", React.createElement("br", null), React.createElement("span", {
-    style: {
-      color: "var(--text-3)"
-    }
-  }, "\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E16\u0E2D\u0E14\u0E44\u0E27\u0E49\u0E41\u0E25\u0E49\u0E27\u0E44\u0E21\u0E48\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E15\u0E32\u0E21\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E41\u0E01\u0E49\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48 \u2014 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2A\u0E48\u0E07\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27\u0E08\u0E30\u0E44\u0E14\u0E49\u0E44\u0E21\u0E48\u0E02\u0E22\u0E31\u0E1A\u0E08\u0E33\u0E19\u0E27\u0E19\u0E40\u0E2D\u0E07")), ruleTable, table("IMC"), table("uPVC"), React.createElement("div", null, React.createElement("button", {
+  }, ruleTable, table("uPVC"), React.createElement("div", null, React.createElement("button", {
     onClick: () => {
       window.askConfirm({
         title: "คืนค่าตั้งต้นอุปกรณ์ท่อร้อยสาย?",
