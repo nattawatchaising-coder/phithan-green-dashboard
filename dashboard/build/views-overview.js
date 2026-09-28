@@ -274,13 +274,7 @@ function AlertsPanel({
       display: "flex",
       flexDirection: "column",
       gap: 8,
-      marginTop: 16,
-      maxHeight: 280,
-      overflowY: "auto",
-      paddingLeft: 10,
-      paddingRight: 10,
-      marginLeft: -10,
-      marginRight: -10
+      marginTop: 16
     }
   }, items.length === 0 && React.createElement(Empty, {
     text: "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E1B\u0E31\u0E0D\u0E2B\u0E32 \uD83C\uDF89"

@@ -391,11 +391,7 @@ function LoStalePanel({
   }), list.length === 0 ? React.createElement(Empty, {
     text: "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E04\u0E49\u0E32\u0E07\u0E02\u0E31\u0E49\u0E19\u0E40\u0E14\u0E34\u0E21\u0E19\u0E32\u0E19\u0E1C\u0E34\u0E14\u0E1B\u0E01\u0E15\u0E34"
   }) : React.createElement("div", {
-    className: "rows",
-    style: {
-      maxHeight: 330,
-      overflowY: "auto"
-    }
+    className: "rows"
   }, shown.map(r => {
     const j = r.job;
     const st = (SF.STAGES || []).find(x => x.key === j.stage) || {

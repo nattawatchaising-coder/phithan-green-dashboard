@@ -243,8 +243,12 @@ function LoStalePanel({ jobs, onOpen }) {
   return (
     <div className="pnl">
       <PanelTitle title="งานค้างไม่ขยับ" />
+      {/* ไม่มีกรอบเลื่อนแล้ว — รายการถูกตัดไว้สามแถวด้วย PNL_MAX ความสูงจึงคงที่อยู่แล้ว
+          overflow-y:auto ที่เคยอยู่ตรงนี้คือตัวที่เฉือนเงาตอนชี้ของแถวบนสุดกับล่างสุดให้เป็นเหลี่ยม
+          (ดันขอบออกด้วย padding ช่วยได้แค่แกนนอน เงาใต้แถวสูงกว่า 30px ยังไงก็โดนตัด)
+          กางเต็มแล้วแผงยาวก็ยอม เพราะเป็นผลจากการกดของคนใช้เอง ไม่ใช่ความยาวที่โผล่มาเอง */}
       {list.length === 0 ? <Empty text="ไม่มีงานที่ค้างขั้นเดิมนานผิดปกติ" /> : (
-        <div className="rows" style={{ maxHeight: 330, overflowY: "auto" }}>
+        <div className="rows">
           {shown.map((r) => {
             const j = r.job;
             const st = (SF.STAGES || []).find((x) => x.key === j.stage) || { th: j.stage, color: "var(--text-3)" };

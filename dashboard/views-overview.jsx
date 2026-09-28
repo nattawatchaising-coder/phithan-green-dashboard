@@ -126,10 +126,9 @@ function AlertsPanel({ jobs, onOpen }) {
   return (
     <div className="pnl">
       <PanelTitle icon="alert" iconColor="#EF4444" title="งานที่ต้องดูแล" />
-      {/* overflow-y:auto ตัดแกนนอนไปด้วยโดยอัตโนมัติ วงแหวนตอนชี้ของ .rows จะโดนเฉือนหายสองข้าง
-          ดันขอบกล่องออกข้างละ 10px ด้วย padding แล้วดึงกลับด้วย margin ติดลบเท่ากัน ของข้างในไม่ขยับสักพิกเซล */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16, maxHeight: 280, overflowY: "auto",
-        paddingLeft: 10, paddingRight: 10, marginLeft: -10, marginRight: -10 }}>
+      {/* ไม่มีกรอบเลื่อน ด้วยเหตุผลเดียวกับแผง "งานค้างไม่ขยับ" — overflow ตัดเงาตอนชี้ให้เป็นเหลี่ยม
+          และรายการถูกตัดไว้สามแถวด้วย PNL_MAX อยู่แล้ว ความสูงไม่วิ่งตามจำนวนงานอีก */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16 }}>
         {items.length === 0 && <Empty text="ไม่มีงานติดปัญหา 🎉" />}
         {sProb.map((j) => (
           /* เดิมทาพื้นแดง + ขอบแดง + ขีดแดง = บอกเรื่องเดียวกัน 3 ที่ ทั้งแผงเลยแดงไปหมดจนไม่รู้ว่าใบไหนหนักกว่ากัน
