@@ -1457,13 +1457,13 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
           ))}
           {jobTools && onMap && !(isMobile && searchOpen) && (
             <button onClick={onMap} className="hdr-icon-btn" title="แผนที่งาน" aria-label="แผนที่งาน">
-              <Icon name="map" size={18} color="var(--text-2)" />
+              <Icon name="map" size={20} color="var(--text-2)" />
             </button>
           )}
           {showBell && !(isMobile && searchOpen) && (
             <div style={{ position: "relative", flexShrink: 0 }}>
               <button onClick={onBell} className="hdr-icon-btn" aria-label="การแจ้งเตือน" style={{ position: "relative" }}>
-                <Icon name="bell" size={18} color="var(--text-2)" />
+                <Icon name="bell" size={20} color="var(--text-2)" />
                 {unread > 0 && (
                   <span style={{ position: "absolute", top: -5, right: -5, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 99,
                     background: "#EF4444", color: "#fff", fontSize: 10.5, fontWeight: 700, display: "grid", placeItems: "center", border: "2px solid var(--bg)" }}>{unread}</span>
@@ -1480,8 +1480,8 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
               title={aurora ? "สลับเป็นโหมดสว่าง" : "สลับเป็นโหมดมืด"} aria-label="สลับโหมดสว่าง/มืด">
               {/* ไอคอนสองใบซ้อนกัน สลับกันหมุนเข้า/ออก — สลับ name ของ Icon ใบเดียวจะเปลี่ยนทันทีไม่มีจังหวะ
                   ดวงอาทิตย์สีเหลือง พระจันทร์สีคราม ให้รู้ว่ากำลังจะไปโหมดไหนโดยไม่ต้องอ่าน tooltip */}
-              <span className="thm-ic thm-sun"><Icon name="sun" size={18} color="#F59E0B" /></span>
-              <span className="thm-ic thm-moon"><Icon name="moon" size={18} color="#6B7BD8" /></span>
+              <span className="thm-ic thm-sun"><Icon name="sun" size={20} color="#F59E0B" /></span>
+              <span className="thm-ic thm-moon"><Icon name="moon" size={20} color="#6B7BD8" /></span>
             </button>
           )}
           {/* ชิปผู้ใช้ — ชื่อกับตำแหน่งอยู่ท้ายหัวจอแบบแดชบอร์ดทั่วไป

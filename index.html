@@ -129,7 +129,10 @@ label { min-width: 0; }
 .page-sub strong { color: var(--text-2); font-weight: 700; }
 .clear-chip { border: none; background: var(--surface3); color: var(--text-2); font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; cursor: pointer; margin-left: 4px; font-family: inherit; }
 
-.header-actions { display: flex; align-items: center; gap: 12px; }
+/* align-self:center — .header-top ตั้ง align-items:flex-start ไว้ (ให้ชื่อหน้ากับบรรทัดรองเกาะขอบบน)
+   กลุ่มปุ่มขวาจึงถูกดันไปชิดบนตามไปด้วย ขณะที่แถบตัวกรองมี align-self:center ของตัวเองอยู่แล้ว
+   สองฝั่งเลยไม่อยู่ระดับเดียวกัน ซึ่งพอมองออกว่า "ไม่กลาง" */
+.header-actions { display: flex; align-items: center; gap: 12px; align-self: center; }
 /* ปุ่มไอคอนบนหัวจอ (แผนที่ · กระดิ่ง · สลับสว่างมืด) — ขนาดและขอบชุดเดียวกันทุกปุ่ม
    ก่อนหน้านี้แต่ละปุ่มเขียนสไตล์ซ้ำกันในไฟล์ jsx ปุ่มใหม่จึงเพี้ยนจากของเดิมได้ง่าย */
 /* ── ภาษาปุ่มบนหัวจอ: ไม่มีกรอบ ──
@@ -140,7 +143,7 @@ label { min-width: 0; }
    ห้ามถอด :hover/:active ออกไม่ว่ากรณีใด — ปุ่มไม่มีกรอบที่ไม่ตอบสนองตอนชี้
    จะกลายเป็นไอคอนตกแต่งที่ไม่มีใครรู้ว่ากดได้ ซึ่งแย่กว่ามีกรอบเสียอีก
    และคนใช้คีย์บอร์ดต้องพึ่ง :focus-visible ล้วน ๆ จึงต้องมีวงแหวนโฟกัสทุกปุ่ม */
-.hdr-icon-btn { width: 40px; height: 40px; border-radius: 11px; border: none;
+.hdr-icon-btn { width: 44px; height: 44px; border-radius: 13px; border: none;
   background: transparent; cursor: pointer; display: grid; place-items: center; color: var(--text-2); flex-shrink: 0;
   transition: background .16s ease, transform .12s ease; }
 .hdr-icon-btn:hover { background: var(--surface3); }
@@ -148,6 +151,16 @@ label { min-width: 0; }
 /* ปุ่มเม็ดยาที่เขียนสไตล์ inline ในไฟล์ jsx (ตัวกรองช่าง) — พื้นตอนชี้ต้องใช้ !important เพราะ inline ชนะกฎปกติ
    ยกเว้นตอนตัวกรองทำงานอยู่ ซึ่งมีพื้นสีของช่างคนนั้นอยู่แล้ว ทับไปจะกลายเป็นเทา */
 .hdr-pill { transition: background .16s ease, color .16s ease, transform .12s ease; }
+/* ทั้งหมด · งานบ้าน · โครงการ — ชี้แล้วพื้นเขียวจางไล่เข้ามาแทนเทา ให้รู้ว่าเป็นตัวเลือกของระบบ
+   ไม่ใช่ตัวหนังสือลอย ๆ · ต้องใช้ !important เพราะปุ่มชุดนี้เขียนสไตล์ inline ไว้ในไฟล์ jsx
+   ตัวที่เลือกอยู่ (data-on="1") ไม่ต้องเปลี่ยนสีตอนชี้ มันมีพื้นบอกสถานะของมันเองแล้ว
+   โหมดมืดใช้เขียวผสมโปร่ง ไม่ใช่ --primary-soft ซึ่งเป็นเขียวมิ้นต์อ่อน สว่างจ้าเกินบนพื้นดำ */
+.seg-flat > button { transition: background .2s ease, color .2s ease, transform .12s ease; }
+.seg-flat > button:not([data-on="1"]):hover {
+  background: var(--primary-soft) !important; color: var(--primary-dark) !important; }
+.seg-flat > button:active { transform: scale(.95); }
+[data-theme="aurora"] .seg-flat > button:not([data-on="1"]):hover {
+  background: color-mix(in srgb, var(--primary) 26%, transparent) !important; color: #fff !important; }
 .hdr-pill:not([data-on="1"]):hover { background: var(--surface3) !important; }
 .hdr-pill:active { transform: scale(.96); }
 .hdr-icon-btn:focus-visible, .hdr-pill:focus-visible, .delay-toggle:focus-visible, .hdr-user:focus-visible {
@@ -171,15 +184,15 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   html.theme-anim, html.theme-anim * { transition: none !important; }
 }
 /* ชิปผู้ใช้ท้ายหัวจอ — บอกว่ากำลังใช้สิทธิ์ของใคร และเป็นทางเข้า "โปรไฟล์ของฉัน" (ย้ายมาจากก้นแถบเมนู) */
-.hdr-user { display: flex; align-items: center; gap: 9px; padding: 5px 8px 5px 5px; border-radius: 99px;
+.hdr-user { display: flex; align-items: center; gap: 10px; padding: 5px 10px 5px 5px; border-radius: 99px;
   background: none; border: none; flex-shrink: 0; max-width: 230px;
   font-family: inherit; text-align: left; cursor: pointer; }
 .hdr-user:hover { background: var(--surface2); }
 .hdr-user:disabled { cursor: default; }
 .hdr-user:disabled:hover { background: none; }
 .hdr-user-av img { width: 100%; height: 100%; object-fit: cover; }
-.hdr-user-av { width: 30px; height: 30px; border-radius: 99px; flex-shrink: 0; display: grid; place-items: center; overflow: hidden;
-  background: var(--primary); color: #fff; font-weight: 700; font-size: 13px; text-transform: uppercase; }
+.hdr-user-av { width: 34px; height: 34px; border-radius: 99px; flex-shrink: 0; display: grid; place-items: center; overflow: hidden;
+  background: var(--primary); color: #fff; font-weight: 700; font-size: 14px; text-transform: uppercase; }
 .hdr-user-tx { min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
 .hdr-user-tx b { font-size: 12.5px; font-weight: 700; color: var(--text-1);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -853,6 +866,6 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/ot-paper.js?v=6"></script>
 <script src="dashboard/build/views-line.js?v=2"></script>
 <script src="dashboard/build/guide.js?v=5"></script>
-<script src="dashboard/build/app.js?v=179"></script>
+<script src="dashboard/build/app.js?v=180"></script>
 </body>
 </html>

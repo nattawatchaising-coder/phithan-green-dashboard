@@ -2301,7 +2301,7 @@ function Header({
     "aria-label": "\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48\u0E07\u0E32\u0E19"
   }, React.createElement(Icon, {
     name: "map",
-    size: 18,
+    size: 20,
     color: "var(--text-2)"
   })), showBell && !(isMobile && searchOpen) && React.createElement("div", {
     style: {
@@ -2317,7 +2317,7 @@ function Header({
     }
   }, React.createElement(Icon, {
     name: "bell",
-    size: 18,
+    size: 20,
     color: "var(--text-2)"
   }), unread > 0 && React.createElement("span", {
     style: {
@@ -2354,13 +2354,13 @@ function Header({
     className: "thm-ic thm-sun"
   }, React.createElement(Icon, {
     name: "sun",
-    size: 18,
+    size: 20,
     color: "#F59E0B"
   })), React.createElement("span", {
     className: "thm-ic thm-moon"
   }, React.createElement(Icon, {
     name: "moon",
-    size: 18,
+    size: 20,
     color: "#6B7BD8"
   }))), !isMobile && me && React.createElement("button", {
     className: "hdr-user",
