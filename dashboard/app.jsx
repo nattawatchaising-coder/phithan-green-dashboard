@@ -242,7 +242,17 @@ function App() {
     const s = localStorage.getItem("pg-aurora");
     return s == null ? (TWEAK_DEFAULTS.mode === "aurora") : s === "1";
   });
-  const toggleAurora = React.useCallback(() => setAurora((d) => { const n = !d; localStorage.setItem("pg-aurora", n ? "1" : "0"); return n; }), []);
+  /* ตอนสลับธีม ใส่คลาส theme-anim ไว้ชั่วครู่ เพื่อให้ "สี" ของทั้งหน้าไล่เปลี่ยนแทนที่จะกระพริบทีเดียว
+     ใส่ถาวรไม่ได้ เพราะ transition บนทุกอิลิเมนต์จะไปหน่วงอนิเมชันอื่น ๆ ของหน้าทั้งหมด
+     ระยะเวลาต้องยาวกว่าค่า transition ใน index.html เล็กน้อย ไม่งั้นจะถูกตัดกลางคัน */
+  const toggleAurora = React.useCallback(() => setAurora((d) => {
+    const n = !d; localStorage.setItem("pg-aurora", n ? "1" : "0");
+    const el = document.documentElement;
+    el.classList.add("theme-anim");
+    clearTimeout(window.__thmT);
+    window.__thmT = setTimeout(() => el.classList.remove("theme-anim"), 460);
+    return n;
+  }), []);
 
   // ย่อ/ขยายแถบเมนูด้านข้าง (เดสก์ท็อป) — จำค่าใน localStorage
   const [collapsed, setCollapsed] = React.useState(() => {
@@ -1466,9 +1476,12 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
           {/* สวิตช์สว่าง/มืด — สลับชุดตัวแปรสีทั้งระบบ (:root ↔ [data-theme="aurora"] ใน tokens.css)
               ยังมีปุ่มเดิมในแถบตั้งค่าของเมนูซ้ายอยู่ ทั้งสองปุ่มเรียกตัวเดียวกัน ไม่ใช่สเตตคนละตัว */}
           {onToggleAurora && !(isMobile && searchOpen) && (
-            <button onClick={onToggleAurora} className="hdr-icon-btn"
+            <button onClick={onToggleAurora} className="hdr-icon-btn thm" data-on={aurora ? "1" : "0"}
               title={aurora ? "สลับเป็นโหมดสว่าง" : "สลับเป็นโหมดมืด"} aria-label="สลับโหมดสว่าง/มืด">
-              <Icon name={aurora ? "sun" : "moon"} size={18} color="var(--text-2)" />
+              {/* ไอคอนสองใบซ้อนกัน สลับกันหมุนเข้า/ออก — สลับ name ของ Icon ใบเดียวจะเปลี่ยนทันทีไม่มีจังหวะ
+                  ดวงอาทิตย์สีเหลือง พระจันทร์สีคราม ให้รู้ว่ากำลังจะไปโหมดไหนโดยไม่ต้องอ่าน tooltip */}
+              <span className="thm-ic thm-sun"><Icon name="sun" size={18} color="#F59E0B" /></span>
+              <span className="thm-ic thm-moon"><Icon name="moon" size={18} color="#6B7BD8" /></span>
             </button>
           )}
           {/* ชิปผู้ใช้ — ชื่อกับตำแหน่งอยู่ท้ายหัวจอแบบแดชบอร์ดทั่วไป

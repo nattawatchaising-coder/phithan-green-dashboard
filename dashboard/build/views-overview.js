@@ -1059,6 +1059,69 @@ function OvHero({
     className: "ov-hero-figs"
   }, fig(todayN, "ติดตั้งวันนี้"), fig(weekN, "ภายใน 7 วัน"), fig(lateN, "เลยกำหนด", true)));
 }
+function OvDayModal({
+  date,
+  list,
+  onClose,
+  onOpen
+}) {
+  const SF = window.SF;
+  React.useEffect(() => {
+    const h = e => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose]);
+  const kw = list.reduce((s, j) => s + (+j.kw || 0), 0);
+  return ReactDOM.createPortal(React.createElement("div", {
+    className: "ov-day-ov",
+    onClick: onClose
+  }, React.createElement("div", {
+    className: "ov-day-card",
+    onClick: e => e.stopPropagation()
+  }, React.createElement("div", {
+    className: "ov-day-hd"
+  }, React.createElement("div", {
+    style: {
+      minWidth: 0
+    }
+  }, React.createElement("b", null, window.drDateTH ? window.drDateTH(date) : date), React.createElement("span", null, list.length, " \u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07", kw ? " · รวม " + Math.round(kw * 10) / 10 + " kW" : "")), React.createElement("button", {
+    onClick: onClose,
+    "aria-label": "\u0E1B\u0E34\u0E14"
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 16,
+    color: "var(--text-2)"
+  }))), React.createElement("div", {
+    className: "ov-day-bd rows"
+  }, list.map(j => {
+    const st = (SF.STAGES || []).find(x => x.key === j.stage) || {
+      th: j.stage,
+      color: "var(--text-3)"
+    };
+    return React.createElement("button", {
+      key: j.id,
+      onClick: () => {
+        onClose();
+        onOpen && onOpen(j);
+      }
+    }, React.createElement("span", {
+      className: "mk",
+      style: {
+        background: st.color
+      }
+    }), React.createElement("span", {
+      className: "bd"
+    }, React.createElement("span", {
+      className: "nm"
+    }, j.name), React.createElement("span", {
+      className: "mt"
+    }, [j.code, st.th, j.delayed ? "ล่าช้า" : null].filter(Boolean).join(" · "))), j.kw ? React.createElement("span", {
+      className: "when when-1l"
+    }, j.kw, " kW") : null);
+  })))), document.body);
+}
 function OvCalendar({
   jobs,
   onOpen
@@ -1067,6 +1130,7 @@ function OvCalendar({
   const today = SF.TODAY;
   const [ym, setYm] = React.useState(today.slice(0, 7));
   const [pick, setPick] = React.useState(today);
+  const [dayOpen, setDayOpen] = React.useState(false);
   const byDay = React.useMemo(() => {
     const m = {};
     (jobs || []).forEach(j => {
@@ -1134,23 +1198,30 @@ function OvCalendar({
       n = (byDay[k] || []).length;
     return React.createElement("button", {
       key: k,
-      onClick: () => setPick(k),
+      onClick: () => {
+        setPick(k);
+        if (n) setDayOpen(true);
+      },
       "data-today": k === today ? "1" : "0",
       "data-on": k === pick ? "1" : "0",
       title: n ? n + " งาน" : undefined
     }, d, n > 0 && React.createElement("i", null));
   })), React.createElement("div", {
-    className: "ov-cal-list"
-  }, React.createElement("div", {
-    className: "hd"
-  }, window.drDateTH ? window.drDateTH(pick) : pick, " \xB7 ", list.length, " \u0E07\u0E32\u0E19"), list.length === 0 && React.createElement("div", {
+    className: "ov-cal-foot"
+  }, list.length ? React.createElement("button", {
+    onClick: () => setDayOpen(true)
+  }, React.createElement("span", null, window.drDateTH ? window.drDateTH(pick) : pick, " \xB7 ", list.length, " \u0E07\u0E32\u0E19"), React.createElement(Icon, {
+    name: "chevronRight",
+    size: 15,
+    color: "var(--text-2)"
+  })) : React.createElement("span", {
     className: "em"
-  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49"), list.slice(0, 6).map(j => React.createElement("button", {
-    key: j.id,
-    onClick: () => onOpen && onOpen(j)
-  }, React.createElement("b", null, j.name), React.createElement("span", null, j.code, j.kw ? " · " + j.kw + " kW" : ""))), list.length > 6 && React.createElement("div", {
-    className: "em"
-  }, "\u0E41\u0E25\u0E30\u0E2D\u0E35\u0E01 ", list.length - 6, " \u0E07\u0E32\u0E19")));
+  }, window.drDateTH ? window.drDateTH(pick) : pick, " \xB7 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07")), dayOpen && list.length > 0 && React.createElement(OvDayModal, {
+    date: pick,
+    list: list,
+    onClose: () => setDayOpen(false),
+    onOpen: onOpen
+  }));
 }
 function OvLayout({
   main,

@@ -40,10 +40,24 @@ label { min-width: 0; }
 .cat-chip-row::-webkit-scrollbar { height: 6px; }
 
 /* ---------- layout ---------- */
+/* ระยะขอบซ้าย/ขวาของทั้งหน้า — ปกติ 26px แต่บนจอกว้างจะโตขึ้นเองจนเนื้อหากว้างไม่เกิน --page-w
+   เปลี่ยนตัวเลขนี้ที่เดียว ทั้งหัวจอและเนื้อหาขยับตามพร้อมกัน */
+:root {
+  --page-w: 1480px;
+  --page-gut: max(26px, calc((100% - var(--page-w)) / 2));
+  --page-gut-sm: max(18px, calc((100% - var(--page-w)) / 2));
+}
 .app-root { display: flex; height: 100dvh; overflow: hidden; }
 .app-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.app-content { flex: 1; overflow: auto; padding: 22px 26px; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
-[data-density="compact"] .app-content { padding: 16px 18px; }
+/* ── ความกว้างเนื้อหาบนจอกว้าง ──
+   จอ 24 นิ้วขึ้นไปถ้าปล่อยให้ทุกอย่างยืดเต็มความกว้าง ตารางกับการ์ดจะถูกดึงจนหนึ่งบรรทัด
+   ยาวเกินกว่าสายตาจะกวาดจบในทีเดียว ตัวหนังสือลอยอยู่คนละมุมกับตัวเลขที่มันอธิบาย
+   หนีบด้วย padding ที่โตตามจอ ไม่ใช่ max-width เพราะ .app-content คือตัวที่เลื่อนได้
+   ถ้าหนีบตัวมันเอง แถบเลื่อนจะหลุดเข้ามาลอยอยู่กลางจอแทนที่จะอยู่ขอบขวา
+   หัวจอใช้สูตรเดียวกันเป๊ะ ขอบซ้าย/ขวาของทุกแถวจึงอยู่ในแนวเดียวกัน
+   100% ในที่นี้คือความกว้างของ .app-main ซึ่งหักแถบเมนูออกไปแล้ว */
+.app-content { flex: 1; overflow: auto; padding: 22px var(--page-gut); -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+[data-density="compact"] .app-content { padding: 16px var(--page-gut-sm); }
 
 /* ---------- sidebar ---------- */
 .sidebar { width: var(--sidebar-w); flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border);
@@ -100,9 +114,9 @@ label { min-width: 0; }
 /* ตั้งลำดับชั้นให้แถบหัวเรื่องอยู่เหนือเนื้อหา — กล่องแจ้งเตือน/เมนูที่ห้อยจากปุ่มบนหัวจะได้ไม่ถูกการ์ดในหน้าทะลุขึ้นมาทับ
    (ธีม aurora ใส่ backdrop-filter ที่แถบนี้ ซึ่งสร้างชั้นซ้อนของมันเอง z-index ข้างในเลยออกไปสู้กับเนื้อหาหน้าไม่ได้)
    60 = ต่ำกว่าฉากหลังเมนูข้าง (70) และกล่องซ้อนต่าง ๆ (100 ขึ้นไป) */
-.app-header { padding: 18px 26px 0; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0;
+.app-header { padding: 18px var(--page-gut) 0; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0;
   position: relative; z-index: 60; }
-[data-density="compact"] .app-header { padding: 12px 18px 0; }
+[data-density="compact"] .app-header { padding: 12px var(--page-gut-sm) 0; }
 /* แถวบนไม่ห่อบรรทัด — ชื่อหน้า · ตัวกรอง · ปุ่มเครื่องมือ อยู่แถวเดียวกันเสมอ
    พอที่ไม่พอ ให้ "หด" ไม่ใช่ "ตก" (ตัวกรองเลื่อนแนวนอนได้ ช่องค้นหาแคบลงได้ถึง 150px)
    แถวเครื่องมือที่ตกลงไปบรรทัดล่างแล้วชิดซ้ายคือสิ่งที่กฎนี้มีไว้กัน */
@@ -120,6 +134,24 @@ label { min-width: 0; }
 .hdr-icon-btn { width: 40px; height: 40px; border-radius: 11px; border: 1px solid var(--border-strong);
   background: var(--surface); cursor: pointer; display: grid; place-items: center; color: var(--text-2); flex-shrink: 0; }
 .hdr-icon-btn:hover { background: var(--surface2); }
+/* ปุ่มสลับสว่าง/มืด — ไอคอนสองใบซ้อนกัน สลับกันหมุนเข้า/ออก ให้รู้สึกว่ามีการ "สลับ" จริง ๆ
+   ไม่ใช่ภาพเปลี่ยนเฉย ๆ · ตัวปุ่มยุบลงเล็กน้อยตอนกด เพื่อตอบสนองทันทีก่อนสีทั้งหน้าจะไล่ตาม */
+.hdr-icon-btn.thm { position: relative; overflow: hidden; transition: background .16s, border-color .16s, transform .12s; }
+.hdr-icon-btn.thm:active { transform: scale(.9); }
+.hdr-icon-btn.thm .thm-ic { position: absolute; inset: 0; display: grid; place-items: center;
+  transition: opacity .26s ease, transform .42s cubic-bezier(.2,.8,.2,1); }
+.hdr-icon-btn.thm .thm-sun { opacity: 0; transform: rotate(-80deg) scale(.4); }
+.hdr-icon-btn.thm .thm-moon { opacity: 1; transform: rotate(0deg) scale(1); }
+.hdr-icon-btn.thm[data-on="1"] .thm-sun { opacity: 1; transform: rotate(0deg) scale(1); }
+.hdr-icon-btn.thm[data-on="1"] .thm-moon { opacity: 0; transform: rotate(80deg) scale(.4); }
+/* ไล่สีทั้งหน้าเฉพาะช่วงที่สลับธีม — คลาสนี้ถูกถอดออกเองใน app.jsx หลัง 460ms
+   ปล่อยไว้ถาวรไม่ได้ เพราะ transition บนทุกอิลิเมนต์จะไปหน่วงทุกอนิเมชันของหน้า */
+html.theme-anim, html.theme-anim * { transition: background-color .34s ease, border-color .34s ease,
+  color .34s ease, fill .34s ease, stroke .34s ease !important; }
+@media (prefers-reduced-motion: reduce) {
+  .hdr-icon-btn.thm .thm-ic { transition: none; }
+  html.theme-anim, html.theme-anim * { transition: none !important; }
+}
 /* ชิปผู้ใช้ท้ายหัวจอ — บอกว่ากำลังใช้สิทธิ์ของใคร และเป็นทางเข้า "โปรไฟล์ของฉัน" (ย้ายมาจากก้นแถบเมนู) */
 .hdr-user { display: flex; align-items: center; gap: 9px; padding: 5px 8px 5px 5px; border-radius: 99px;
   background: none; border: none; flex-shrink: 0; max-width: 230px;
@@ -308,15 +340,32 @@ label { min-width: 0; }
 .ov-cal-grid button i{position:absolute;left:50%;bottom:5px;transform:translateX(-50%);
   width:4px;height:4px;border-radius:99px;background:var(--primary)}
 .ov-cal-grid button[data-on="1"] i{background:#fff}
-.ov-cal-list{margin-top:14px;border-top:1px solid var(--border);padding-top:10px;display:flex;flex-direction:column;gap:4px}
-.ov-cal-list .hd{font-size:11.5px;font-weight:700;color:var(--text-2);margin-bottom:4px}
-.ov-cal-list .em{font-size:11.5px;color:var(--text-3);padding:4px 0}
-.ov-cal-list button{text-align:left;border:none;background:none;border-radius:10px;padding:7px 8px;
-  cursor:pointer;font-family:inherit;display:flex;flex-direction:column;gap:1px}
-.ov-cal-list button:hover{background:var(--surface2)}
-.ov-cal-list button b{font-size:12.5px;font-weight:650;color:var(--text-1);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ov-cal-list button span{font-size:11px;color:var(--text-3)}
+/* ท้ายปฏิทิน — แถบเดียวบอกวันที่เลือก กดแล้วเปิดรายการงานของวันนั้นเป็นป๊อปอัป
+   รายการเต็มเคยต่อท้ายตรงนี้ ซึ่งยืดปฏิทินยาวตามจำนวนงานของวันนั้นแบบไม่มีเพดาน */
+.ov-cal-foot{margin-top:14px;border-top:1px solid var(--border);padding-top:10px}
+.ov-cal-foot .em{font-size:11.5px;color:var(--text-3)}
+.ov-cal-foot button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;
+  padding:9px 11px;border-radius:11px;border:1px solid var(--border);background:var(--surface2);
+  font-family:inherit;font-size:12px;font-weight:650;color:var(--text-1);cursor:pointer;
+  transition:background .14s,border-color .14s}
+.ov-cal-foot button:hover{background:var(--surface3);border-color:var(--border-strong)}
+
+/* ป๊อปอัปรายการงานของวันที่เลือก */
+.ov-day-ov{position:fixed;inset:0;z-index:80;padding:24px;display:flex;align-items:center;justify-content:center;
+  background:rgba(8,20,14,.5);backdrop-filter:blur(3px);animation:ovFade .16s ease}
+.ov-day-card{width:min(520px,100%);max-height:min(640px,86vh);display:flex;flex-direction:column;
+  background:var(--surface);border:1px solid var(--border-strong);border-radius:20px;overflow:hidden;
+  box-shadow:0 28px 70px rgba(8,20,14,.28);animation:ovPop .2s cubic-bezier(.2,.8,.2,1)}
+.ov-day-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+  padding:18px 20px 14px;border-bottom:1px solid var(--border)}
+.ov-day-hd b{display:block;font-family:var(--display);font-size:16px;font-weight:700;color:var(--text-1)}
+.ov-day-hd span{display:block;font-size:11.5px;color:var(--text-3);margin-top:3px}
+.ov-day-hd button{width:30px;height:30px;flex-shrink:0;border-radius:10px;border:1px solid var(--border);
+  background:var(--surface2);cursor:pointer;display:grid;place-items:center}
+.ov-day-hd button:hover{background:var(--surface3)}
+.ov-day-bd{padding:4px 20px 18px;overflow-y:auto}
+@keyframes ovFade{from{opacity:0}to{opacity:1}}
+@keyframes ovPop{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
 
 /* ช่องตัวเลขเป็นการ์ดกระจกแยกใบ — พื้นโปร่งให้สีพื้นหน้าจอลอดขึ้นมา แบบเดียวกับสามช่องบนแถบต้อนรับ
    เดิมเป็นผืนทึบผืนเดียวแบ่งด้วยเส้นผม ซึ่งดูหนักกว่าทุกอย่างที่อยู่รอบ ๆ ทั้งที่เป็นแค่ตัวเลขสรุป
@@ -380,6 +429,8 @@ label { min-width: 0; }
   color:var(--text-2);white-space:nowrap;letter-spacing:-.01em}
 .rows .when b{display:block;font-family:var(--sans);font-size:10px;font-weight:650;
   color:var(--text-3);letter-spacing:.04em;text-align:right;margin-bottom:1px}
+/* .when-1l — คำกำกับกับตัวเลขอยู่บรรทัดเดียวกัน ใช้กับแถวที่คำกำกับสั้นและแถวไม่ควรสูงสองบรรทัด */
+.rows .when.when-1l b{display:inline;margin:0 5px 0 0;font-size:10.5px}
 
 
 /* ══════════════════════════════════════════════════════════════
@@ -654,7 +705,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/pm-paper.js?v=11"></script>
 <script src="dashboard/build/pm-form.js?v=11"></script>
 <script src="dashboard/build/drawer.js?v=69"></script>
-<script src="dashboard/build/views-overview.js?v=37"></script>
+<script src="dashboard/build/views-overview.js?v=38"></script>
 <script src="dashboard/build/views-board.js?v=34"></script>
 <script src="dashboard/build/views-table.js?v=31"></script>
 <script src="dashboard/build/views-report.js?v=9"></script>
@@ -672,7 +723,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/billing.js?v=5"></script>
 <script src="dashboard/build/bill-paper.js?v=6"></script>
 <script src="dashboard/build/views-billing.js?v=7"></script>
-<script src="dashboard/build/views-lead.js?v=6"></script>
+<script src="dashboard/build/views-lead.js?v=9"></script>
 <script src="dashboard/build/views-flow.js?v=12"></script>
 <script src="dashboard/build/daily.js?v=13"></script>
 <script src="dashboard/build/views-daily.js?v=33"></script>
@@ -690,6 +741,6 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/ot-paper.js?v=6"></script>
 <script src="dashboard/build/views-line.js?v=2"></script>
 <script src="dashboard/build/guide.js?v=5"></script>
-<script src="dashboard/build/app.js?v=176"></script>
+<script src="dashboard/build/app.js?v=177"></script>
 </body>
 </html>

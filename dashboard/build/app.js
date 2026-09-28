@@ -300,6 +300,10 @@ function App() {
   const toggleAurora = React.useCallback(() => setAurora(d => {
     const n = !d;
     localStorage.setItem("pg-aurora", n ? "1" : "0");
+    const el = document.documentElement;
+    el.classList.add("theme-anim");
+    clearTimeout(window.__thmT);
+    window.__thmT = setTimeout(() => el.classList.remove("theme-anim"), 460);
     return n;
   }), []);
   const [collapsed, setCollapsed] = React.useState(() => {
@@ -2357,14 +2361,23 @@ function Header({
     onMarkAll: onMarkAll
   })), onToggleAurora && !(isMobile && searchOpen) && React.createElement("button", {
     onClick: onToggleAurora,
-    className: "hdr-icon-btn",
+    className: "hdr-icon-btn thm",
+    "data-on": aurora ? "1" : "0",
     title: aurora ? "สลับเป็นโหมดสว่าง" : "สลับเป็นโหมดมืด",
     "aria-label": "\u0E2A\u0E25\u0E31\u0E1A\u0E42\u0E2B\u0E21\u0E14\u0E2A\u0E27\u0E48\u0E32\u0E07/\u0E21\u0E37\u0E14"
+  }, React.createElement("span", {
+    className: "thm-ic thm-sun"
   }, React.createElement(Icon, {
-    name: aurora ? "sun" : "moon",
+    name: "sun",
     size: 18,
-    color: "var(--text-2)"
-  })), !isMobile && me && React.createElement("button", {
+    color: "#F59E0B"
+  })), React.createElement("span", {
+    className: "thm-ic thm-moon"
+  }, React.createElement(Icon, {
+    name: "moon",
+    size: 18,
+    color: "#6B7BD8"
+  }))), !isMobile && me && React.createElement("button", {
     className: "hdr-user",
     onClick: onMySign,
     disabled: !onMySign,

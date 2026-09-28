@@ -15,6 +15,14 @@ function loDaysInStage(job) {
   if (isNaN(d.getTime())) return null;
   return Math.max(0, Math.floor((Date.now() - d.getTime()) / 86400000));
 }
+function loInstallDays(job) {
+  const SF = window.SF;
+  const s = SF.installDate && SF.installDate(job) || "";
+  if (!s || s > SF.TODAY) return null;
+  const d = new Date(s + "T00:00:00");
+  if (isNaN(d.getTime())) return null;
+  return Math.max(0, Math.floor((Date.now() - d.getTime()) / 86400000));
+}
 function loDoneAt(job) {
   const h = job && job.hist || [];
   const d = h.find(x => x && x.key === "done");
@@ -266,8 +274,8 @@ function LoTechLoadPanel({
     style: {
       display: "flex",
       flexDirection: "column",
-      gap: 10,
-      marginTop: 16,
+      gap: 7,
+      marginTop: 12,
       maxHeight: 340,
       overflowY: "auto"
     }
@@ -358,28 +366,43 @@ function LoStalePanel({
 }) {
   const SF = window.SF;
   const rows = React.useMemo(() => {
-    const known = [],
+    const stale = [],
+      inst = [],
       unknown = [];
     (jobs || []).forEach(j => {
       if (j.stage === "done") return;
+      const ins = j.stage === "install" ? loInstallDays(j) : null;
+      if (ins != null) {
+        if (ins >= 7) inst.push({
+          job: j,
+          days: ins,
+          inst: true
+        });
+        return;
+      }
       const d = loDaysInStage(j);
       if (d == null) unknown.push({
         job: j,
-        days: null
-      });else if (d >= 7) known.push({
+        days: null,
+        inst: false
+      });else if (d >= 7) stale.push({
         job: j,
-        days: d
+        days: d,
+        inst: false
       });
     });
-    known.sort((a, b) => b.days - a.days);
+    stale.sort((a, b) => b.days - a.days);
+    inst.sort((a, b) => b.days - a.days);
     return {
-      list: known.concat(unknown).slice(0, 10),
-      known: known.length,
+      list: stale.concat(inst, unknown).slice(0, 10),
+      stale: stale.length,
+      inst: inst.length,
       unknown: unknown.length
     };
   }, [jobs]);
   const list = rows.list;
-  const sub = rows.known ? "ค้างขั้นเดิมเกิน 7 วัน " + rows.known + " งาน" + (rows.unknown ? " · ไม่รู้ระยะเวลาอีก " + rows.unknown + " งาน" : "") : rows.unknown ? rows.unknown + " งานที่ไม่เคยเดินขั้นผ่านระบบ จึงไม่รู้ว่าค้างมานานแค่ไหน" : "ทุกงานขยับภายใน 7 วัน";
+  const subParts = [rows.stale ? "ค้างขั้นเดิมเกิน 7 วัน " + rows.stale + " งาน" : null, rows.inst ? "กำลังติดตั้งอยู่ " + rows.inst + " งาน" : null, rows.unknown ? "ไม่รู้ระยะเวลาอีก " + rows.unknown + " งาน" : null].filter(Boolean);
+  const sub = subParts.length ? subParts.join(" · ") : "ทุกงานขยับภายใน 7 วัน";
   return React.createElement("div", {
     className: "pnl"
   }, React.createElement(PanelTitle, {
@@ -399,7 +422,7 @@ function LoStalePanel({
       th: j.stage,
       color: "var(--text-3)"
     };
-    const col = r.days == null ? "var(--text-3)" : r.days >= 14 ? "#D93025" : r.days >= 7 ? "#F59E0B" : st.color;
+    const col = r.inst ? st.color : r.days == null ? "var(--text-3)" : r.days >= 14 ? "#D93025" : r.days >= 7 ? "#F59E0B" : st.color;
     return React.createElement("button", {
       key: j.id,
       onClick: () => onOpen(j)
@@ -415,18 +438,24 @@ function LoStalePanel({
     }, j.name), React.createElement("span", {
       className: "mt"
     }, [j.code, st.th, j.tech ? null : "ยังไม่มอบหมายช่าง"].filter(Boolean).join(" · "))), React.createElement("span", {
-      className: "when",
-      style: r.days != null && r.days >= 14 ? {
+      className: "when when-1l",
+      style: r.inst ? {
+        color: "var(--primary)"
+      } : r.days != null && r.days >= 14 ? {
         color: "#D93025"
       } : null
-    }, React.createElement("b", null, "\u0E04\u0E49\u0E32\u0E07\u0E02\u0E31\u0E49\u0E19\u0E19\u0E35\u0E49"), r.days == null ? "ไม่ทราบ" : r.days + " วัน"));
+    }, React.createElement("b", {
+      style: r.inst ? {
+        color: "var(--primary)"
+      } : null
+    }, r.inst ? "ติดตั้งมาแล้ว" : "ค้างขั้นนี้"), r.days == null ? "ไม่ทราบ" : r.days + " วัน"));
   })), React.createElement("div", {
     style: {
       marginTop: 12,
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, "* \u0E19\u0E31\u0E1A\u0E08\u0E32\u0E01\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E07\u0E32\u0E19\u0E40\u0E02\u0E49\u0E32\u0E02\u0E31\u0E49\u0E19\u0E1B\u0E31\u0E08\u0E08\u0E38\u0E1A\u0E31\u0E19 \u2014 \u0E07\u0E32\u0E19\u0E40\u0E01\u0E48\u0E32\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E40\u0E04\u0E22\u0E40\u0E14\u0E34\u0E19\u0E02\u0E31\u0E49\u0E19\u0E1C\u0E48\u0E32\u0E19\u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E30\u0E02\u0E36\u0E49\u0E19\u0E27\u0E48\u0E32 \u201C\u0E44\u0E21\u0E48\u0E17\u0E23\u0E32\u0E1A\u201D"));
+  }, "* \u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E01\u0E33\u0E25\u0E31\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E19\u0E31\u0E1A\u0E08\u0E32\u0E01\u0E27\u0E31\u0E19\u0E40\u0E23\u0E34\u0E48\u0E21\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 \u0E02\u0E31\u0E49\u0E19\u0E2D\u0E37\u0E48\u0E19\u0E19\u0E31\u0E1A\u0E08\u0E32\u0E01\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E07\u0E32\u0E19\u0E40\u0E02\u0E49\u0E32\u0E02\u0E31\u0E49\u0E19\u0E1B\u0E31\u0E08\u0E08\u0E38\u0E1A\u0E31\u0E19 \u2014 \u0E07\u0E32\u0E19\u0E40\u0E01\u0E48\u0E32\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E40\u0E04\u0E22\u0E40\u0E14\u0E34\u0E19\u0E02\u0E31\u0E49\u0E19\u0E1C\u0E48\u0E32\u0E19\u0E23\u0E30\u0E1A\u0E1A\u0E41\u0E25\u0E30\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E27\u0E31\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E08\u0E30\u0E02\u0E36\u0E49\u0E19\u0E27\u0E48\u0E32 \u201C\u0E44\u0E21\u0E48\u0E17\u0E23\u0E32\u0E1A\u201D"));
 }
 function LoBottleneckPanel({
   jobs,
@@ -844,20 +873,6 @@ function LeadOverview({
   const delayed = J.filter(j => j.delayed);
   const problem = active.filter(j => j.problem);
   const noInstall = active.filter(j => !(SF.installDate && SF.installDate(j)));
-  const shortCount = React.useMemo(() => {
-    const items = stock && stock.items || [],
-      moves = stock && stock.moves || [];
-    if (!items.length) return 0;
-    const today = SF.TODAY,
-      max = loAddDays(today, 14);
-    return active.filter(j => {
-      const s = SF.installDate ? SF.installDate(j) : "";
-      if (!s) return false;
-      const e = SF.installEnd && SF.installEnd(j) || s;
-      if (!(e >= today && s <= max)) return false;
-      return window.jobStockShortages ? window.jobStockShortages(j, items, moves).length > 0 : false;
-    }).length;
-  }, [jobs, stock]);
   const col = spec => ({
     display: "grid",
     gridTemplateColumns: isMobile ? "1fr" : spec,
@@ -870,7 +885,7 @@ function LeadOverview({
       gap: 18
     }
   }, !isMobile && React.createElement(StatRail, {
-    cols: 4,
+    cols: 3,
     items: [{
       label: "ล่าช้ากว่ากำหนด",
       value: delayed.length,
@@ -894,15 +909,9 @@ function LeadOverview({
       accent: "#0EA5E9",
       sub: React.createElement(React.Fragment, null, "\u0E08\u0E32\u0E01 ", React.createElement("b", null, active.length), " \u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E04\u0E49\u0E32\u0E07"),
       onClick: () => onKpi("noinstall")
-    }, {
-      label: "ของไม่พอ",
-      value: shortCount,
-      unit: "งาน",
-      accent: "#EC4899",
-      sub: shortCount ? "ต้องสั่งเพิ่มก่อนออกหน้างาน" : "ของครบทุกงานที่ใกล้ติดตั้ง"
     }]
   }), React.createElement("div", {
-    style: col("1.15fr 1fr")
+    style: col("1fr 1fr")
   }, React.createElement(LoTechLoadPanel, {
     jobs: J,
     techs: techs,
@@ -918,18 +927,10 @@ function LeadOverview({
   }), React.createElement(LoBottleneckPanel, {
     jobs: J,
     onStage: onStage
-  })), React.createElement("div", {
-    style: col("1fr 1fr 1fr")
-  }, React.createElement(LoPermitPanel, {
+  })), React.createElement(LoPermitPanel, {
     jobs: J,
     onGoPermit: onGoPermit
-  }), React.createElement(LoSalesPanel, {
-    leads: leads,
-    quotes: quotes,
-    onGoSales: onGoSales
-  }), React.createElement(LoMonthPanel, {
-    jobs: J
-  })));
+  }));
   return React.createElement("div", {
     style: {
       display: "flex",
@@ -941,10 +942,16 @@ function LeadOverview({
     jobs: J
   }), React.createElement(window.OvLayout, {
     main: main,
-    rail: React.createElement(window.OvCalendar, {
+    rail: React.createElement(React.Fragment, null, React.createElement(window.OvCalendar, {
       jobs: J,
       onOpen: onOpen
-    })
+    }), React.createElement(LoSalesPanel, {
+      leads: leads,
+      quotes: quotes,
+      onGoSales: onGoSales
+    }), React.createElement(LoMonthPanel, {
+      jobs: J
+    }))
   }));
 }
 Object.assign(window, {

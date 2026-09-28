@@ -443,11 +443,52 @@ function OvHero({ me, jobs }) {
 
 /* ปฏิทินย่อในคอลัมน์ขวา — จุดใต้วันคือวันที่มีงานติดตั้งคร่อมอยู่
    ช่วงวันติดตั้งคือตารางงานเดียวของระบบ (ขั้นตอนอื่นเป็นสถานะ ไม่ใช่วันนัด) จึงไม่เอา deadline มาปน */
+/* รายการงานของวันที่เลือก — ป๊อปอัปกลางจอ ไม่ใช่รายการต่อท้ายปฏิทิน
+   วันที่มีงานสิบกว่างานจะดันปฏิทินยาวลงไปเรื่อย ๆ และคอลัมน์กว้าง 330px อ่านชื่องานยาว ๆ ไม่ไหวอยู่แล้ว
+   ป๊อปอัปได้ความกว้างเต็มที่ · เลื่อนอ่านได้ · ปิดด้วย Esc หรือคลิกนอกกล่อง */
+function OvDayModal({ date, list, onClose, onOpen }) {
+  const SF = window.SF;
+  React.useEffect(() => {
+    const h = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose]);
+  const kw = list.reduce((s, j) => s + (+j.kw || 0), 0);
+  return ReactDOM.createPortal(
+    <div className="ov-day-ov" onClick={onClose}>
+      <div className="ov-day-card" onClick={(e) => e.stopPropagation()}>
+        <div className="ov-day-hd">
+          <div style={{ minWidth: 0 }}>
+            <b>{window.drDateTH ? window.drDateTH(date) : date}</b>
+            <span>{list.length} งานติดตั้ง{kw ? " · รวม " + Math.round(kw * 10) / 10 + " kW" : ""}</span>
+          </div>
+          <button onClick={onClose} aria-label="ปิด"><Icon name="x" size={16} color="var(--text-2)" /></button>
+        </div>
+        <div className="ov-day-bd rows">
+          {list.map((j) => {
+            const st = (SF.STAGES || []).find((x) => x.key === j.stage) || { th: j.stage, color: "var(--text-3)" };
+            return (
+              <button key={j.id} onClick={() => { onClose(); onOpen && onOpen(j); }}>
+                <span className="mk" style={{ background: st.color }} />
+                <span className="bd">
+                  <span className="nm">{j.name}</span>
+                  <span className="mt">{[j.code, st.th, j.delayed ? "ล่าช้า" : null].filter(Boolean).join(" · ")}</span>
+                </span>
+                {j.kw ? <span className="when when-1l">{j.kw} kW</span> : null}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>, document.body);
+}
+
 function OvCalendar({ jobs, onOpen }) {
   const SF = window.SF;
   const today = SF.TODAY;
   const [ym, setYm] = React.useState(today.slice(0, 7));
   const [pick, setPick] = React.useState(today);
+  const [dayOpen, setDayOpen] = React.useState(false);
   const byDay = React.useMemo(() => {
     const m = {};
     (jobs || []).forEach((j) => {
@@ -491,23 +532,25 @@ function OvCalendar({ jobs, onOpen }) {
         {Array.from({ length: days }).map((_, i) => {
           const d = i + 1, k = key(d), n = (byDay[k] || []).length;
           return (
-            <button key={k} onClick={() => setPick(k)} data-today={k === today ? "1" : "0"}
+            <button key={k} onClick={() => { setPick(k); if (n) setDayOpen(true); }} data-today={k === today ? "1" : "0"}
               data-on={k === pick ? "1" : "0"} title={n ? n + " งาน" : undefined}>
               {d}{n > 0 && <i />}
             </button>
           );
         })}
       </div>
-      <div className="ov-cal-list">
-        <div className="hd">{window.drDateTH ? window.drDateTH(pick) : pick} · {list.length} งาน</div>
-        {list.length === 0 && <div className="em">ไม่มีงานติดตั้งวันนี้</div>}
-        {list.slice(0, 6).map((j) => (
-          <button key={j.id} onClick={() => onOpen && onOpen(j)}>
-            <b>{j.name}</b><span>{j.code}{j.kw ? " · " + j.kw + " kW" : ""}</span>
+      <div className="ov-cal-foot">
+        {list.length ? (
+          <button onClick={() => setDayOpen(true)}>
+            <span>{window.drDateTH ? window.drDateTH(pick) : pick} · {list.length} งาน</span>
+            <Icon name="chevronRight" size={15} color="var(--text-2)" />
           </button>
-        ))}
-        {list.length > 6 && <div className="em">และอีก {list.length - 6} งาน</div>}
+        ) : (
+          <span className="em">{window.drDateTH ? window.drDateTH(pick) : pick} · ไม่มีงานติดตั้ง</span>
+        )}
       </div>
+      {dayOpen && list.length > 0 &&
+        <OvDayModal date={pick} list={list} onClose={() => setDayOpen(false)} onOpen={onOpen} />}
     </div>
   );
 }

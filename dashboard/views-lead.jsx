@@ -28,6 +28,20 @@ function loDaysInStage(job) {
   return Math.max(0, Math.floor((Date.now() - d.getTime()) / 86400000));
 }
 
+/* ลงมือติดตั้งมาแล้วกี่วัน — งานติดตั้งโครงการกินเวลาเป็นสัปดาห์ถึงเป็นเดือน
+   ตัวเลขที่มีความหมายกับงานที่อยู่ขั้น "ดำเนินการติดตั้ง" จึงเป็น "ลงหน้างานมาแล้วกี่วัน"
+   ไม่ใช่ "เข้าขั้นนี้ในระบบเมื่อไร" ซึ่งงานที่ไม่เคยเดินขั้นผ่านระบบไม่มีให้อ่านเลย
+   นับจากวันเริ่มติดตั้งใน stageDates.install ซึ่งเป็นตารางงานจริงตัวเดียวของระบบ
+   ยังไม่ถึงวันเริ่ม = ยังไม่ได้ลงหน้างาน คืน null ไม่ใช่เลขติดลบ */
+function loInstallDays(job) {
+  const SF = window.SF;
+  const s = (SF.installDate && SF.installDate(job)) || "";
+  if (!s || s > SF.TODAY) return null;
+  const d = new Date(s + "T00:00:00");
+  if (isNaN(d.getTime())) return null;
+  return Math.max(0, Math.floor((Date.now() - d.getTime()) / 86400000));
+}
+
 /* วันที่ปิดงาน — ใช้เวลาที่เข้าขั้น "เสร็จงาน" เป็นหลัก ไม่มีก็ถอยไปใช้วันสิ้นสุดการติดตั้ง */
 function loDoneAt(job) {
   const h = (job && job.hist) || [];
@@ -170,7 +184,7 @@ function LoTechLoadPanel({ jobs, techs, onTech }) {
     <div className="pnl">
       <PanelTitle title="ภาระงานต่อช่าง" sub={"งานที่ยังไม่เสร็จ " + live + " งาน · คลิกเพื่อดูงานของช่างคนนั้น"} />
       {rows.length === 0 ? <Empty text="ยังไม่มีรายชื่อช่างในระบบ" /> : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16, maxHeight: 340, overflowY: "auto" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 12, maxHeight: 340, overflowY: "auto" }}>
           {rows.map((r) => (
             <button key={r.id} onClick={() => onTech && onTech(r.id)} style={{ display: "flex", alignItems: "center", gap: 10,
               background: "none", border: "none", padding: "2px 0", cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%" }}>
@@ -208,20 +222,30 @@ function LoTechLoadPanel({ jobs, techs, onTech }) {
 function LoStalePanel({ jobs, onOpen }) {
   const SF = window.SF;
   const rows = React.useMemo(() => {
-    const known = [], unknown = [];
+    const stale = [], inst = [], unknown = [];
     (jobs || []).forEach((j) => {
       if (j.stage === "done") return;
+      /* งานที่อยู่ขั้น "ดำเนินการติดตั้ง" นับจากวันลงหน้างานแทน แล้วบอกว่าติดตั้งมาแล้วกี่วัน
+         การอยู่ขั้นนี้นานไม่ใช่เรื่องผิดปกติเหมือนขั้นอื่น (โครงการหนึ่งกินเวลาหลายสัปดาห์)
+         จึงไม่ย้อมสีเตือนและแยกนับคนละกองกับงานที่ค้างจริง */
+      const ins = j.stage === "install" ? loInstallDays(j) : null;
+      if (ins != null) { if (ins >= 7) inst.push({ job: j, days: ins, inst: true }); return; }
       const d = loDaysInStage(j);
-      if (d == null) unknown.push({ job: j, days: null });
-      else if (d >= 7) known.push({ job: j, days: d });
+      if (d == null) unknown.push({ job: j, days: null, inst: false });
+      else if (d >= 7) stale.push({ job: j, days: d, inst: false });
     });
-    known.sort((a, b) => b.days - a.days);
-    return { list: known.concat(unknown).slice(0, 10), known: known.length, unknown: unknown.length };
+    stale.sort((a, b) => b.days - a.days);
+    inst.sort((a, b) => b.days - a.days);
+    return { list: stale.concat(inst, unknown).slice(0, 10),
+      stale: stale.length, inst: inst.length, unknown: unknown.length };
   }, [jobs]);
   const list = rows.list;
-  const sub = rows.known
-    ? ("ค้างขั้นเดิมเกิน 7 วัน " + rows.known + " งาน" + (rows.unknown ? " · ไม่รู้ระยะเวลาอีก " + rows.unknown + " งาน" : ""))
-    : (rows.unknown ? (rows.unknown + " งานที่ไม่เคยเดินขั้นผ่านระบบ จึงไม่รู้ว่าค้างมานานแค่ไหน") : "ทุกงานขยับภายใน 7 วัน");
+  const subParts = [
+    rows.stale ? "ค้างขั้นเดิมเกิน 7 วัน " + rows.stale + " งาน" : null,
+    rows.inst ? "กำลังติดตั้งอยู่ " + rows.inst + " งาน" : null,
+    rows.unknown ? "ไม่รู้ระยะเวลาอีก " + rows.unknown + " งาน" : null,
+  ].filter(Boolean);
+  const sub = subParts.length ? subParts.join(" · ") : "ทุกงานขยับภายใน 7 วัน";
 
   return (
     <div className="pnl">
@@ -231,7 +255,8 @@ function LoStalePanel({ jobs, onOpen }) {
           {list.map((r) => {
             const j = r.job;
             const st = (SF.STAGES || []).find((x) => x.key === j.stage) || { th: j.stage, color: "var(--text-3)" };
-            const col = r.days == null ? "var(--text-3)" : (r.days >= 14 ? "#D93025" : (r.days >= 7 ? "#F59E0B" : st.color));
+            const col = r.inst ? st.color
+              : r.days == null ? "var(--text-3)" : (r.days >= 14 ? "#D93025" : (r.days >= 7 ? "#F59E0B" : st.color));
             return (
               <button key={j.id} onClick={() => onOpen(j)}>
                 <span className="mk" style={{ background: col }} />
@@ -239,8 +264,12 @@ function LoStalePanel({ jobs, onOpen }) {
                   <span className="nm">{j.name}</span>
                   <span className="mt">{[j.code, st.th, j.tech ? null : "ยังไม่มอบหมายช่าง"].filter(Boolean).join(" · ")}</span>
                 </span>
-                <span className="when" style={r.days != null && r.days >= 14 ? { color: "#D93025" } : null}>
-                  <b>ค้างขั้นนี้</b>{r.days == null ? "ไม่ทราบ" : r.days + " วัน"}
+                {/* คำกับจำนวนวันอยู่บรรทัดเดียวกัน (when-1l) — สองบรรทัดทำให้แถวสูงขึ้นโดยไม่ได้ข้อมูลเพิ่ม
+                    งานที่กำลังติดตั้งย้อมเขียวทั้งก้อน เพราะมันคือ "กำลังเดินอยู่" ไม่ใช่ "ค้าง" */}
+                <span className="when when-1l" style={r.inst ? { color: "var(--primary)" }
+                  : (r.days != null && r.days >= 14 ? { color: "#D93025" } : null)}>
+                  <b style={r.inst ? { color: "var(--primary)" } : null}>{r.inst ? "ติดตั้งมาแล้ว" : "ค้างขั้นนี้"}</b>
+                  {r.days == null ? "ไม่ทราบ" : r.days + " วัน"}
                 </span>
               </button>
             );
@@ -248,7 +277,8 @@ function LoStalePanel({ jobs, onOpen }) {
         </div>
       )}
       <div style={{ marginTop: 12, fontSize: 11, color: "var(--text-3)" }}>
-        * นับจากเวลาที่งานเข้าขั้นปัจจุบัน — งานเก่าที่ไม่เคยเดินขั้นผ่านระบบจะขึ้นว่า “ไม่ทราบ”
+        * งานที่กำลังติดตั้งนับจากวันเริ่มติดตั้ง ขั้นอื่นนับจากเวลาที่งานเข้าขั้นปัจจุบัน
+        — งานเก่าที่ไม่เคยเดินขั้นผ่านระบบและยังไม่มีวันติดตั้งจะขึ้นว่า “ไม่ทราบ”
       </div>
     </div>
   );
@@ -454,35 +484,22 @@ function LeadOverview({ jobs, leads, quotes, stock, techs, onOpen, onStage, onKp
   const problem = active.filter((j) => j.problem);
   const noInstall = active.filter((j) => !(SF.installDate && SF.installDate(j)));
 
-  /* จำนวนงานที่ของไม่พอ — ใช้เกณฑ์เดียวกับแผงด้านล่างเป๊ะ ๆ (ติดตั้งภายใน 14 วันและช่วงยังไม่ผ่าน)
-     ไม่งั้นตัวเลขบนหัวกับรายการข้างล่างจะไม่ตรงกัน แล้วไม่มีใครเชื่อทั้งคู่ */
-  const shortCount = React.useMemo(() => {
-    const items = (stock && stock.items) || [], moves = (stock && stock.moves) || [];
-    if (!items.length) return 0;
-    const today = SF.TODAY, max = loAddDays(today, 14);
-    return active.filter((j) => {
-      const s = SF.installDate ? SF.installDate(j) : "";
-      if (!s) return false;
-      const e = (SF.installEnd && SF.installEnd(j)) || s;
-      if (!(e >= today && s <= max)) return false;
-      return window.jobStockShortages ? window.jobStockShortages(j, items, moves).length > 0 : false;
-    }).length;
-  }, [jobs, stock]);
+  /* การ์ด "ของไม่พอ" ปิดไว้ตามที่สั่ง — ตัวนับเคยอยู่ตรงนี้ (นับงานที่ติดตั้งใน 14 วันแล้วของขาด
+     ด้วยเกณฑ์เดียวกับ MaterialShortagePanel) เอากลับมาได้โดยคืน useMemo ที่ใช้ window.jobStockShortages
+     พร้อมการ์ดใบที่สี่ใน StatRail และเปลี่ยน cols กลับเป็น 4 */
 
   const col = (spec) => ({ display: "grid", gridTemplateColumns: isMobile ? "1fr" : spec, gap: 18 });
 
   const main = (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       {!isMobile && (
-        <StatRail cols={4} items={[
+        <StatRail cols={3} items={[
           { label: "ล่าช้ากว่ากำหนด", value: delayed.length, unit: "งาน", accent: "var(--text-3)", alert: delayed.length > 0,
             sub: delayed.length ? "เลยวันนัดติดตั้งแล้ว" : "ไม่มีงานเลยกำหนด", onClick: () => onKpi("delayed") },
           { label: "ติดปัญหาหน้างาน", value: problem.length, unit: "งาน", accent: "#F59E0B", alert: problem.length > 0,
             sub: problem.length ? "มีบันทึกปัญหาค้างอยู่" : "ไม่มีงานติดปัญหา", onClick: () => onKpi("problem") },
           { label: "ยังไม่นัดวันติดตั้ง", value: noInstall.length, unit: "งาน", accent: "#0EA5E9",
             sub: <React.Fragment>จาก <b>{active.length}</b> งานที่ค้าง</React.Fragment>, onClick: () => onKpi("noinstall") },
-          { label: "ของไม่พอ", value: shortCount, unit: "งาน", accent: "#EC4899",
-            sub: shortCount ? "ต้องสั่งเพิ่มก่อนออกหน้างาน" : "ของครบทุกงานที่ใกล้ติดตั้ง" },
         ]} />
       )}
 
@@ -494,7 +511,7 @@ function LeadOverview({ jobs, leads, quotes, stock, techs, onOpen, onStage, onKp
           ตัวแผงยังอยู่ที่ LoQueuePanel เปิดคืนได้ด้วยการเอาคอมเมนต์บรรทัดล่างออก */}
       {/* <LoQueuePanel jobs={J} onOpen={onOpen} /> */}
 
-      <div style={col("1.15fr 1fr")}>
+      <div style={col("1fr 1fr")}>
         <LoTechLoadPanel jobs={J} techs={techs} onTech={onTech} />
         <AlertsPanel jobs={J} onOpen={onOpen} />
       </div>
@@ -504,11 +521,10 @@ function LeadOverview({ jobs, leads, quotes, stock, techs, onOpen, onStage, onKp
         <LoBottleneckPanel jobs={J} onStage={onStage} />
       </div>
 
-      <div style={col("1fr 1fr 1fr")}>
-        <LoPermitPanel jobs={J} onGoPermit={onGoPermit} />
-        <LoSalesPanel leads={leads} quotes={quotes} onGoSales={onGoSales} />
-        <LoMonthPanel jobs={J} />
-      </div>
+      {/* แผงสรุปงานขายกับผลงานเดือนนี้อยู่คอลัมน์ขวา ส่วนขออนุญาตการไฟฟ้าอยู่ฝั่งนี้
+          แบ่งแบบนี้เพราะสองคอลัมน์ต้องจบลงใกล้ ๆ กัน กองทุกแผงไว้ฝั่งเดียวเมื่อไร อีกฝั่งก็โล่งยาว
+          ถ้าเพิ่มแผงใหม่ ให้เติมสลับฝั่งกัน อย่าต่อท้ายฝั่งเดิมอย่างเดียว */}
+      <LoPermitPanel jobs={J} onGoPermit={onGoPermit} />
     </div>
   );
   /* โครงเดียวกับภาพรวมของช่าง — แถบต้อนรับเต็มความกว้าง แล้วเนื้อหาหลักคู่กับคอลัมน์ขวา
@@ -516,7 +532,13 @@ function LeadOverview({ jobs, leads, quotes, stock, techs, onOpen, onStage, onKp
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <window.OvHero me={me} jobs={J} />
-      <window.OvLayout main={main} rail={<window.OvCalendar jobs={J} onOpen={onOpen} />} />
+      <window.OvLayout main={main} rail={
+        <React.Fragment>
+          <window.OvCalendar jobs={J} onOpen={onOpen} />
+          <LoSalesPanel leads={leads} quotes={quotes} onGoSales={onGoSales} />
+          <LoMonthPanel jobs={J} />
+        </React.Fragment>
+      } />
     </div>
   );
 }
