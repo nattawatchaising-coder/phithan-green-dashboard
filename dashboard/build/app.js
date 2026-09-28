@@ -2072,6 +2072,7 @@ function TechFilter({
       boxShadow: "0 14px 40px rgba(8,20,14,.18)"
     }
   }, React.createElement("button", {
+    className: "tf-row",
     style: row(!value),
     onClick: () => pick(null)
   }, bead("var(--surface3)", ""), React.createElement("span", null, "\u0E0A\u0E48\u0E32\u0E07\u0E17\u0E38\u0E01\u0E04\u0E19"), React.createElement("span", {
@@ -2081,6 +2082,7 @@ function TechFilter({
     const active = value === t.id;
     return React.createElement("button", {
       key: t.id,
+      className: "tf-row",
       style: Object.assign(row(active), n ? {} : {
         opacity: .55
       }),
@@ -2096,6 +2098,7 @@ function TechFilter({
       style: tally(n)
     }, n));
   }), none > 0 && React.createElement("button", {
+    className: "tf-row",
     style: Object.assign(row(value === "__none"), {
       borderTop: "1px solid var(--border)",
       borderRadius: 0,

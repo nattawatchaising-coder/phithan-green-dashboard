@@ -150,7 +150,17 @@ label { min-width: 0; }
 .hdr-icon-btn:active { transform: scale(.92); }
 /* ปุ่มเม็ดยาที่เขียนสไตล์ inline ในไฟล์ jsx (ตัวกรองช่าง) — พื้นตอนชี้ต้องใช้ !important เพราะ inline ชนะกฎปกติ
    ยกเว้นตอนตัวกรองทำงานอยู่ ซึ่งมีพื้นสีของช่างคนนั้นอยู่แล้ว ทับไปจะกลายเป็นเทา */
-.hdr-pill { transition: background .16s ease, color .16s ease, transform .12s ease; }
+.hdr-pill { transition: background .16s ease, color .16s ease, box-shadow .18s ease, transform .12s ease; }
+/* เงาตอนชี้ให้ทุกสถานะ ไม่ใช่เฉพาะตอนยังไม่ได้กรอง — ตอนกรองอยู่ปุ่มมีพื้นสีของช่างคนนั้นแล้ว
+   เปลี่ยนพื้นซ้ำไม่ได้ (จะทับสีช่างหาย) เงาจึงเป็นอย่างเดียวที่บอกว่ายังกดได้อยู่ */
+.hdr-pill:hover { box-shadow: var(--hov-sh); }
+/* แถวในเมนูเลือกช่าง — เขียนสไตล์ inline ในไฟล์ jsx จึงต้อง !important
+   ใช้ภาษาเดียวกับปุ่มบนหัวจอ: พื้นเขียวจาง + เงา ไม่ใช่แค่เปลี่ยนพื้นเทา */
+.tf-row { transition: background .14s ease, color .14s ease, box-shadow .18s ease; }
+.tf-row:hover { background: var(--primary-soft) !important; color: var(--primary-dark) !important;
+  box-shadow: var(--hov-sh); }
+[data-theme="aurora"] .tf-row:hover {
+  background: color-mix(in srgb, var(--primary) 26%, transparent) !important; color: #fff !important; }
 /* ทั้งหมด · งานบ้าน · โครงการ — ชี้แล้วพื้นเขียวจางไล่เข้ามาแทนเทา ให้รู้ว่าเป็นตัวเลือกของระบบ
    ไม่ใช่ตัวหนังสือลอย ๆ · ต้องใช้ !important เพราะปุ่มชุดนี้เขียนสไตล์ inline ไว้ในไฟล์ jsx
    ตัวที่เลือกอยู่ (data-on="1") ไม่ต้องเปลี่ยนสีตอนชี้ มันมีพื้นบอกสถานะของมันเองแล้ว
@@ -383,10 +393,14 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 @container (max-width:660px){.permit-grid{grid-template-columns:repeat(2,1fr)}}
 @container (max-width:400px){.permit-grid{grid-template-columns:1fr}}
 @media(max-width:860px){.permit-grid{grid-template-columns:repeat(2,1fr)}}
+/* ไม่มีกรอบ — ของที่กดได้ทุกชิ้นที่อยู่ในแผงเดียวกัน (แถวรายการ · แถวแท่งวัด) ไม่มีเส้นขอบสักชิ้น
+   หกใบนี้เคยเป็นชิ้นเดียวที่มี คนจึงอ่านว่าเป็นของคนละชุดกับที่เหลือในแผง
+   เก็บ border ไว้เป็น transparent ไม่ได้ถอดทิ้ง — ใบที่ต้องเตือน (data-warn) ยังต้องย้อมขอบแดงได้
+   และการ์ดจะได้ไม่ขยับ 2px ตอนขอบโผล่ */
 .permit-grid>button{display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-width:0;
-  padding:12px 13px;border:1px solid var(--border);border-radius:14px;background:var(--surface2);
+  padding:12px 13px;border:1px solid transparent;border-radius:14px;background:var(--surface2);
   cursor:pointer;font-family:inherit;text-align:left;transition:background .14s,border-color .14s}
-.permit-grid>button:hover{background:var(--surface3);border-color:var(--border-strong)}
+.permit-grid>button:hover{background:var(--surface3)}
 .permit-grid .pv{font-family:var(--display);font-size:20px;font-weight:700;line-height:1;
   letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .permit-grid .pl{display:flex;align-items:center;gap:6px;min-width:0;font-size:11.5px;font-weight:600;
@@ -482,19 +496,18 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 @keyframes ovFade{from{opacity:0}to{opacity:1}}
 @keyframes ovPop{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
 
-/* ช่องตัวเลขเป็นการ์ดกระจกแยกใบ — พื้นโปร่งให้สีพื้นหน้าจอลอดขึ้นมา แบบเดียวกับสามช่องบนแถบต้อนรับ
-   เดิมเป็นผืนทึบผืนเดียวแบ่งด้วยเส้นผม ซึ่งดูหนักกว่าทุกอย่างที่อยู่รอบ ๆ ทั้งที่เป็นแค่ตัวเลขสรุป
-   backdrop-filter ต้องมี ไม่งั้นพื้นโปร่งบนพื้นเรียบจะเหลือแค่กล่องสีจางลง ไม่ได้ดูเป็นกระจก
+/* ช่องตัวเลขเป็นการ์ดแยกใบ — ใช้ชุดสีเดียวกับ .pnl เป๊ะ (พื้น surface · ขอบ border · เงา shadow-sm)
+   เคยเป็นการ์ดกระจกโปร่ง 55% + backdrop-filter ซึ่งอ่านว่าเป็นของคนละชุดกับแผงที่วางเรียงอยู่ข้าง ๆ
+   ทั้งที่เป็นข้อมูลระดับเดียวกัน — พื้นจางลงกว่าเพื่อนหนึ่งขั้นและขอบเข้มกว่าเพื่อนหนึ่งขั้นพร้อมกัน
+   ถ้าจะกลับไปทำพื้นโปร่ง ต้องทำพร้อมกันทั้ง .pnl ด้วย ไม่งั้นจะกลับมาไม่เข้าพวกเหมือนเดิม
    ใบนี้ใช้ร่วมกันทั้งภาพรวมช่าง · ภาพรวมหัวหน้า · คลังของ · งานขาย จึงเปลี่ยนพร้อมกันทั้งสี่หน้า */
 .stat-rail{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;position:relative}
 .stat-rail>button{position:relative;display:flex;flex-direction:column;gap:0;align-items:flex-start;
-  padding:20px 22px;border:1px solid color-mix(in srgb,var(--border-strong) 60%,transparent);
+  padding:20px 22px;border:1px solid var(--border);
   border-radius:18px;overflow:hidden;cursor:pointer;font-family:inherit;text-align:left;
-  background:color-mix(in srgb,var(--surface) 55%,transparent);
-  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  background:var(--surface);box-shadow:var(--shadow-sm);
   transition:background .16s,border-color .16s}
-.stat-rail>button:hover{background:color-mix(in srgb,var(--surface) 90%,transparent);
-  border-color:var(--border-strong)}
+.stat-rail>button:hover{background:var(--surface2);border-color:var(--border-strong)}
 .stat-rail .lb{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:650;
   letter-spacing:.07em;text-transform:uppercase;color:var(--text-3)}
 .stat-rail .lb .pip{width:6px;height:6px;border-radius:99px;flex:0 0 auto}
@@ -506,9 +519,9 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .stat-rail .sub b{color:var(--text-2);font-weight:650}
 .stat-rail>button[data-alert="1"] .num{color:#D93025}
 .stat-rail>button[data-alert="1"]{background:linear-gradient(180deg,rgba(217,48,37,.09),transparent 60%),
-  color-mix(in srgb,var(--surface) 55%,transparent)}
+  var(--surface)}
 /* ช่องที่กำลังใช้กรองอยู่ — คาดเส้นเขียวใต้ช่อง บอกว่ากดค้างไว้ */
-.stat-rail>button[data-active="1"]{background:color-mix(in srgb,var(--surface2) 92%,transparent)}
+.stat-rail>button[data-active="1"]{background:var(--surface2)}
 .stat-rail>button[data-active="1"]::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--primary)}
 .stat-rail .go{position:absolute;right:18px;bottom:18px;opacity:0;transform:translateX(-4px);
   transition:opacity .16s,transform .16s;color:var(--primary-dark)}
@@ -609,17 +622,16 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 }
 [data-theme="aurora"] .pnl::after { display: none; }
 [data-theme="aurora"] .stat-rail > button {
-  background: color-mix(in srgb, var(--gr-card) 55%, transparent);
+  background: var(--gr-card);
   box-shadow: 0 1px 3px rgba(0,0,0,.4);
 }
-[data-theme="aurora"] .stat-rail > button:hover { background: color-mix(in srgb, var(--gr-hi) 88%, transparent); }
-[data-theme="aurora"] .stat-rail > button[data-active="1"] { background: color-mix(in srgb, var(--gr-hi) 88%, transparent); }
+[data-theme="aurora"] .stat-rail > button:hover { background: var(--gr-hi); }
+[data-theme="aurora"] .stat-rail > button[data-active="1"] { background: var(--gr-hi); }
 [data-theme="aurora"] .stat-rail > button[data-active="1"]::after { background: var(--primary-bright); }
 [data-theme="aurora"] .stat-rail .num { color: var(--text-1); }
 [data-theme="aurora"] .stat-rail > button[data-alert="1"] .num { color: #FF6B62; }
 [data-theme="aurora"] .stat-rail > button[data-alert="1"] {
-  background: linear-gradient(180deg,rgba(255,69,58,.13),transparent 60%),
-    color-mix(in srgb, var(--gr-card) 55%, transparent);
+  background: linear-gradient(180deg,rgba(255,69,58,.13),transparent 60%), var(--gr-card);
 }
 [data-theme="aurora"] .rows > button:hover { background: var(--gr-hi); }
 
@@ -868,6 +880,6 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/ot-paper.js?v=6"></script>
 <script src="dashboard/build/views-line.js?v=2"></script>
 <script src="dashboard/build/guide.js?v=5"></script>
-<script src="dashboard/build/app.js?v=181"></script>
+<script src="dashboard/build/app.js?v=182"></script>
 </body>
 </html>

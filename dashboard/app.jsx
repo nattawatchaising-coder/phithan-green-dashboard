@@ -1317,6 +1317,7 @@ function TechFilter({ value, onChange, techs, counts, nameOf }) {
   const none = (counts && counts.__none) || 0;
   const pick = (v) => { onChange(v); setOpen(false); };
 
+  /* className อยู่แยกจาก style เพราะ CSS ทำ :hover ให้ไม่ได้ถ้าไม่มีคลาสจับ (ดู .tf-row ใน index.html) */
   const row = (active) => ({
     display: "flex", alignItems: "center", gap: 9, width: "100%", padding: "8px 10px", borderRadius: 10,
     border: "none", background: active ? "var(--primary-soft)" : "transparent", cursor: "pointer",
@@ -1355,7 +1356,7 @@ function TechFilter({ value, onChange, techs, counts, nameOf }) {
           zIndex: 200, width: 244, maxHeight: 340, overflowY: "auto",
           background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 6,
           boxShadow: "0 14px 40px rgba(8,20,14,.18)" }}>
-          <button style={row(!value)} onClick={() => pick(null)}>
+          <button className="tf-row" style={row(!value)} onClick={() => pick(null)}>
             {bead("var(--surface3)", "")}<span>ช่างทุกคน</span>
             <span style={tally(1)}>{(counts && counts.__all) || 0}</span>
           </button>
@@ -1363,7 +1364,7 @@ function TechFilter({ value, onChange, techs, counts, nameOf }) {
             const n = (counts && counts[t.id]) || 0;
             const active = value === t.id;
             return (
-              <button key={t.id} style={Object.assign(row(active), n ? {} : { opacity: .55 })} onClick={() => pick(active ? null : t.id)}>
+              <button key={t.id} className="tf-row" style={Object.assign(row(active), n ? {} : { opacity: .55 })} onClick={() => pick(active ? null : t.id)}>
                 {bead(t.color, (t.nick || t.name || "?").slice(0, 2))}
                 <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name || t.nick}</span>
                 <span style={tally(n)}>{n}</span>
@@ -1371,7 +1372,7 @@ function TechFilter({ value, onChange, techs, counts, nameOf }) {
             );
           })}
           {none > 0 && (
-            <button style={Object.assign(row(value === "__none"), { borderTop: "1px solid var(--border)", borderRadius: 0, marginTop: 4, paddingTop: 10 })}
+            <button className="tf-row" style={Object.assign(row(value === "__none"), { borderTop: "1px solid var(--border)", borderRadius: 0, marginTop: 4, paddingTop: 10 })}
               onClick={() => pick(value === "__none" ? null : "__none")}>
               {bead("var(--surface3)", "?")}<span style={{ color: "var(--text-2)" }}>ยังไม่มอบหมาย</span>
               <span style={tally(none)}>{none}</span>
