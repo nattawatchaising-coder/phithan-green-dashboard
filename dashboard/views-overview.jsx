@@ -459,27 +459,19 @@ function MaterialShortagePanel({ jobs, stock, onOpen }) {
 /* แถบต้อนรับ — ทักทายด้วยชื่อคนที่ล็อกอิน บอกวันที่ และสรุปสามตัวเลขของ "วันนี้"
    ไม่ใช่ของประดับ: มันคือคำตอบของคำถามแรกที่ทุกคนถามตอนเปิดแอป — วันนี้ต้องทำอะไร */
 /* สามตัวเลขบนแถบต้อนรับ — ขนาดของกิจการทั้งหมด ไม่ใช่คิวของสัปดาห์นี้
-   นับทั้งใบงานและใบลูกค้าที่ยังไม่ได้แปลงเป็นงาน เว้นรายที่ลูกค้าไม่ตกลง (ขั้น "ไม่ติดตั้ง")
-   ใบที่แปลงเป็นงานแล้ว (มี jobId) นับฝั่งงานอย่างเดียว ไม่งั้นลูกค้าคนเดียวจะถูกนับสองครั้ง
-   หน้าที่ไม่มีใบลูกค้า (ภาพรวมของช่าง) ส่ง leads มาไม่ได้ ก็นับเฉพาะใบงาน */
-function OvHero({ me, jobs, leads }) {
+   นับเฉพาะใบงาน — ใบลูกค้าฝั่งขายไม่นับ แม้จะมีโอกาสกลายเป็นงานก็ตาม
+   งานที่ลูกค้าตกลงแล้วเท่านั้นที่เป็นขนาดจริงของกิจการ ท่อขายที่ยังไล่อยู่มีแผงของตัวเองในหน้างานขาย */
+function OvHero({ me, jobs }) {
   const SF = window.SF;
   const J = jobs || [];
   const today = SF.TODAY;
   const hh = new Date().getHours();
   const greet = hh < 12 ? "สวัสดีตอนเช้า" : hh < 17 ? "สวัสดีตอนบ่าย" : "สวัสดีตอนเย็น";
-  const lostL = (l) => (window.salesStageKey ? window.salesStageKey(l) : l.status) === "lost";
-  const openL = (leads || []).filter((l) => l && !l.jobId && !lostL(l));
-  /* ใบลูกค้าเก็บประเภทงานว่า "biz" ส่วนใบงานว่า "project" — คำเดียวกัน ต้องแปลก่อนนับ
-     (กฎเดียวกับตอนแปลงใบลูกค้าเป็นงานที่ app.jsx) */
-  const isProj = (x) => x.type === "project" || x.type === "biz";
-  const kwOf = (x) => +x.kw || +x.expKwp || 0;
-  const all = J.concat(openL);
-  const homeN = all.filter((x) => !isProj(x)).length;
-  const projN = all.filter(isProj).length;
-  /* กำลังรวมหลักพันขึ้นไปทศนิยมไม่มีความหมายอีกต่อไป และเลขหกหลักจะล้นกล่องกว้าง 92px */
-  const kwRaw = all.reduce((s, x) => s + kwOf(x), 0);
-  const kwN = kwRaw >= 100 ? Math.round(kwRaw) : Math.round(kwRaw * 10) / 10;
+  const homeN = J.filter((j) => j.type !== "project").length;
+  const projN = J.filter((j) => j.type === "project").length;
+  /* หน่วยเป็น MW — กำลังรวมทั้งกิจการเป็นหน่วยที่คนพูดกันจริง และเลขห้าหลักจะล้นกล่องกว้าง 92px
+     เก็บทศนิยมสองตำแหน่ง ไม่งั้นงานบ้านห้าหลังจะหายไปใน 0 ทั้งที่มีอยู่จริง */
+  const mwN = Math.round(J.reduce((s, j) => s + (+j.kw || 0), 0) / 1000 * 100) / 100;
   const fig = (n, lb, warn) => (
     <div className="ov-hero-fig" data-warn={warn && n > 0 ? "1" : "0"}>
       <b>{n}</b><span>{lb}</span>
@@ -494,7 +486,7 @@ function OvHero({ me, jobs, leads }) {
       <div className="ov-hero-figs">
         {fig(homeN, "งานบ้าน")}
         {fig(projN, "งานโครงการ")}
-        {fig(kwN, "กำลังผลิต kW")}
+        {fig(mwN, "กำลังผลิต MW")}
       </div>
     </div>
   );

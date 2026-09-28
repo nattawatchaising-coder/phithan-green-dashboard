@@ -1091,23 +1091,16 @@ function MaterialShortagePanel({
 }
 function OvHero({
   me,
-  jobs,
-  leads
+  jobs
 }) {
   const SF = window.SF;
   const J = jobs || [];
   const today = SF.TODAY;
   const hh = new Date().getHours();
   const greet = hh < 12 ? "สวัสดีตอนเช้า" : hh < 17 ? "สวัสดีตอนบ่าย" : "สวัสดีตอนเย็น";
-  const lostL = l => (window.salesStageKey ? window.salesStageKey(l) : l.status) === "lost";
-  const openL = (leads || []).filter(l => l && !l.jobId && !lostL(l));
-  const isProj = x => x.type === "project" || x.type === "biz";
-  const kwOf = x => +x.kw || +x.expKwp || 0;
-  const all = J.concat(openL);
-  const homeN = all.filter(x => !isProj(x)).length;
-  const projN = all.filter(isProj).length;
-  const kwRaw = all.reduce((s, x) => s + kwOf(x), 0);
-  const kwN = kwRaw >= 100 ? Math.round(kwRaw) : Math.round(kwRaw * 10) / 10;
+  const homeN = J.filter(j => j.type !== "project").length;
+  const projN = J.filter(j => j.type === "project").length;
+  const mwN = Math.round(J.reduce((s, j) => s + (+j.kw || 0), 0) / 1000 * 100) / 100;
   const fig = (n, lb, warn) => React.createElement("div", {
     className: "ov-hero-fig",
     "data-warn": warn && n > 0 ? "1" : "0"
@@ -1118,7 +1111,7 @@ function OvHero({
     className: "ov-hero-tx"
   }, React.createElement("h2", null, greet, me && me.name ? " คุณ" + me.name : ""), React.createElement("p", null, window.drDateTH ? window.drDateTH(today) : today, " \xB7 \u0E23\u0E30\u0E1A\u0E1A\u0E1A\u0E23\u0E34\u0E2B\u0E32\u0E23\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 flash+solar")), React.createElement("div", {
     className: "ov-hero-figs"
-  }, fig(homeN, "งานบ้าน"), fig(projN, "งานโครงการ"), fig(kwN, "กำลังผลิต kW")));
+  }, fig(homeN, "งานบ้าน"), fig(projN, "งานโครงการ"), fig(mwN, "กำลังผลิต MW")));
 }
 function OvDayModal({
   date,

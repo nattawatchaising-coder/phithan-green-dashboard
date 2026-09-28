@@ -893,8 +893,7 @@ function LeadOverview({
     }
   }, React.createElement(window.OvHero, {
     me: me,
-    jobs: allJobs || J,
-    leads: leads
+    jobs: allJobs || J
   }), React.createElement(window.OvLayout, {
     main: main,
     rail: React.createElement(React.Fragment, null, React.createElement(window.OvCalendar, {

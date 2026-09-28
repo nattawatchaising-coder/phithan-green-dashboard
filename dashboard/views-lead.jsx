@@ -530,7 +530,7 @@ function LeadOverview({ jobs, allJobs, leads, quotes, stock, techs, onOpen, onSt
      (OvHero/OvLayout/OvCalendar อยู่ใน views-overview.jsx ซึ่งโหลดก่อนไฟล์นี้) */
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <window.OvHero me={me} jobs={allJobs || J} leads={leads} />
+      <window.OvHero me={me} jobs={allJobs || J} />
       <window.OvLayout main={main} rail={
         <React.Fragment>
           <window.OvCalendar jobs={J} onOpen={onOpen} />
