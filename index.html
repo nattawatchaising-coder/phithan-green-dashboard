@@ -519,6 +519,11 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   transition:background .14s;border-radius:12px;position:relative}
 .rows>button:first-child{border-top:0}
 .rows>button:hover{background:var(--surface2)}
+/* เส้นคั่นแถวต้องหายไปตอนชี้ ไม่งั้นมันพาดขวางบล็อกไฮไลต์มุมมนจนอ่านออกมาเป็นสี่เหลี่ยมเหมือนเดิม
+   ต้องเก็บสองเส้น: เส้นบนของแถวที่ชี้อยู่เอง กับเส้นบนของแถวถัดไปซึ่งนั่งทับขอบล่างของบล็อกพอดี
+   ใช้ border-top-color:transparent ไม่ใช่ border-top:0 — ถ้าลบเส้นทิ้งจริง แถวจะเตี้ยลง 1px
+   แล้วทั้งรายการขยับทุกครั้งที่เมาส์ผ่าน */
+.rows>button:hover,.rows>button:hover+button{border-top-color:transparent}
 .rows .mk{width:9px;height:9px;border-radius:99px;flex:0 0 auto;margin-left:3px}
 .rows .bd{flex:1;min-width:0}
 .rows .nm{display:block;font-size:13.5px;font-weight:650;color:var(--text-1);
