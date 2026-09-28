@@ -1398,33 +1398,12 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
             {techFilter && <span> · ช่าง: {techName(techFilter)} <button onClick={() => setTechFilter(null)} className="clear-chip">ล้าง ✕</button></span>}
           </p>
         </div>
+        {/* หัวหน้าจอเหลือแค่กระดิ่งแจ้งเตือน
+            ช่องค้นหา · ปุ่มแผนที่ · ปุ่มเพิ่มงาน เคยอยู่ตรงนี้ทุกหน้า รวมถึงหน้าที่มันไม่เกี่ยวเลย
+            (เบิกเงินหน้างาน · เอกสารงวดงาน · งานบริการหลังการขาย) — พิมพ์ค้นหาในหน้าพวกนั้นแล้วไม่มีอะไรเกิดขึ้น
+            สเตต search กับ onMap/onAdd ยังอยู่ครบใน AppShell ไม่ได้ถอดออก
+            ถ้าจะเอากลับมา ให้ไปไว้ในตัวหน้าที่ใช้มันจริง อย่าเอากลับมาไว้บนหัวรวมอีก */}
         <div className="header-actions">
-          {isMobile && !searchOpen ? (
-            <button onClick={() => setSearchOpen(true)} title="ค้นหา" aria-label="ค้นหา"
-              style={{ width: 40, height: 40, borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff",
-                cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
-              <Icon name="search" size={18} color="#fff" />
-            </button>
-          ) : (
-            <div className="search-box" style={isMobile ? { maxWidth: "none", flex: 1 } : undefined}>
-              <Icon name="search" size={16} color="var(--text-3)" />
-              <input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหา..."
-                onBlur={() => { if (isMobile && !search.trim()) setSearchOpen(false); }} />
-              {isMobile && (
-                <button onMouseDown={(e) => e.preventDefault()} onClick={() => { setSearch(""); setSearchOpen(false); }} title="ปิดค้นหา" aria-label="ปิดค้นหา"
-                  style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 7, border: "none", background: "var(--surface3)", color: "var(--text-3)", cursor: "pointer", display: "grid", placeItems: "center" }}>
-                  <Icon name="x" size={14} color="var(--text-3)" />
-                </button>
-              )}
-            </div>
-          )}
-          {onMap && !(isMobile && searchOpen) && (
-            <button onClick={onMap} title="แผนที่งาน" aria-label="แผนที่งาน"
-              style={{ width: 40, height: 40, borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)",
-                cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
-              <Icon name="map" size={18} color="var(--text-2)" />
-            </button>
-          )}
           {showBell && !(isMobile && searchOpen) && (
             <div style={{ position: "relative", flexShrink: 0 }}>
               <button onClick={onBell} aria-label="การแจ้งเตือน"
@@ -1439,11 +1418,6 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
               {notifOpen && <NotifPanel items={notifItems} lateAlerts={lateAlerts} omAlerts={omAlerts} onOpenOm={onOpenOm}
                 onClose={onCloseNotif} onOpenJob={onOpenNotif} onMarkAll={onMarkAll} />}
             </div>
-          )}
-          {canAdd && !(isMobile && searchOpen) && (
-            <button className="btn-add" onClick={onAdd}>
-              <Icon name="plus" size={17} color="#fff" sw={2.4} /><span>เพิ่มงาน</span>
-            </button>
           )}
         </div>
       </div>
