@@ -1354,16 +1354,11 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
   const QUICK_LABELS = { active: "กำลังดำเนินการ", delayed: "ล่าช้า", ready: "อุปกรณ์พร้อมติดตั้ง", battery: "มีแบตเตอรี่",
     problem: "ติดปัญหาหน้างาน", noinstall: "ยังไม่นัดวันติดตั้ง" };
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
-  const [stageOpen, setStageOpen] = React.useState(() => localStorage.getItem("sf_stage_filteropen") !== "0");
-  const toggleStage = () => setStageOpen((v) => { localStorage.setItem("sf_stage_filteropen", v ? "0" : "1"); return !v; });
   // มือถือ: ซ่อนแถบกรองขั้นงาน (ปุ่ม + ชิป) ทุกหน้า เพื่อประหยัดพื้นที่หัว
   /* หน้าขออนุญาตไม่ใช้ตัวกรองขั้นงานติดตั้ง — งานที่เข้ามาถึงหน้านี้คืองานที่ติดตั้งเสร็จหมดแล้ว */
-  const showStageBar = view !== "overview" && !isMobile && !plain;
   /* บัญชีขออนุญาตกรองด้วยขั้นของใบขออนุญาต — ป้าย/สี/รายชื่อขั้น ต้องสลับตามโหมดทั้งชุด */
   const pMode = stageMode === "permit";
-  const stList = pMode ? (window.PERMIT_COLS || []) : window.SF.STAGES;
   const stInfo = (k) => (pMode ? permitStageOf(k) : stageOf(k));
-  const stLabel = pMode ? "ขั้นขออนุญาต" : "ขั้นงาน";
   /* ปุ่มแผนที่ — ขึ้นเฉพาะสองหน้าที่ทำงานกับงานทั้งบริษัทเป็นรายใบ
      ส่วนปุ่ม "เพิ่มงาน" ย้ายลงไปอยู่ในหน้าที่ใช้มันแล้ว: หัวช่วง "หน้างาน" ของบอร์ด และแถบสถานะของฐานข้อมูลงาน
      อยู่ติดกับกองงานที่มันจะไปโผล่ ไม่ใช่ลอยอยู่บนหัวรวมของทุกหน้า */
@@ -1375,6 +1370,10 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
   const searchPh = HDR_SEARCH[view];
   // มือถือ: ช่องค้นหายุบเป็นปุ่มสีเขียว กดแล้วค่อยขยายเป็นช่องพิมพ์ (ประหยัดพื้นที่หัว)
   const [searchOpen, setSearchOpen] = React.useState(false);
+  /* จอกลาง ๆ ก็ยุบด้วย — หน้าที่มีตัวกรองอยู่บนแถวเดียวกัน ที่ว่างไม่พอให้ทั้งสองอย่างเต็มตัว
+     ปล่อยไว้ช่องค้นหาจะเบียดจนตัวกรองโดนบังครึ่งตัว ยุบเป็นปุ่มก่อนแล้วกดกางเอาดีกว่า
+     (หน้าที่ไม่มีตัวกรอง เช่น เอกสารงวดงาน ยังได้ช่องเต็มเหมือนเดิม) */
+  const compactSearch = isMobile || (!plain && window.matchMedia("(max-width: 1280px)").matches);
   const searchRef = React.useRef(null);
   React.useEffect(() => { if (searchOpen && searchRef.current) searchRef.current.focus(); }, [searchOpen]);
   /* กรองตามช่างผู้รับผิดชอบ — ช่างที่ล็อกอินเองเห็นแต่งานตัวเองอยู่แล้ว จึงไม่ต้องมีตัวกรองนี้ */
@@ -1399,26 +1398,15 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
       </button>
       )}
       {showTechFilter && <TechFilter value={techFilter} onChange={setTechFilter} techs={techs} counts={techCounts} nameOf={techName} />}
-      {/* ปุ่มย่อ/ขยายแถบกรองขั้นงาน — สไตล์เดียวกับ "หมวดหมู่" ฝั่งคลัง (ไม่แสดงบนหน้าภาพรวม / มือถือหน้าบอร์ด)
-          ดันไปชิดขวาเฉพาะตอนเป็นแถวเต็มความกว้างของตัวเอง ไม่งั้นมันจะไปลอยอยู่ติดปุ่มกระดิ่ง */}
-      {showStageBar && (
-      <button onClick={toggleStage} title={stageOpen ? "ซ่อนตัวกรองขั้นงาน" : "แสดงตัวกรองขั้นงาน"}
-        style={{ marginLeft: isMobile ? "auto" : 0, display: "inline-flex", alignItems: "center", gap: 6, padding: isMobile ? "5px 10px" : "6px 13px", borderRadius: 99,
-          border: "1px solid " + (stageFilter ? stInfo(stageFilter).color : "var(--border-strong)"),
-          background: stageFilter ? stInfo(stageFilter).color + "16" : "var(--surface)",
-          color: stageFilter ? stInfo(stageFilter).color : "var(--text-2)",
-          fontSize: isMobile ? 11.5 : 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-        <Icon name="filter" size={14} color={stageFilter ? stInfo(stageFilter).color : "var(--text-2)"} />
-        {stLabel}{stageFilter ? ": " + stInfo(stageFilter).th : ""}
-        <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: stageOpen ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
-      </button>
-      )}
+      {/* ปุ่มย่อ/ขยาย "ขั้นงาน" เอาออกแล้ว — ชิปขั้นงานกางอยู่ตลอด
+          ปุ่มนั้นทำได้อย่างเดียวคือซ่อนของที่อยู่ถัดลงไปหนึ่งแถว ไม่ได้กรองอะไรเอง
+          และมันกินที่บนแถวบนจนแถวปุ่มเครื่องมือตกบรรทัด ซึ่งแพงกว่าประโยชน์ของมันมาก */}
     </div>
   ) : null;
   /* ระยะห่างใต้หัวจอเคยมาจาก padding ของแถวตัวกรอง — ตอนนี้แถวนั้นขึ้นไปอยู่แถวบนแล้ว
      ต้องจ่ายเองที่ตัว header ยกเว้นตอนแถบชิปขั้นงานกางอยู่ ซึ่งมีระยะห่างของมันเองอยู่แล้ว */
   return (
-    <header className="app-header" style={{ paddingBottom: isMobile ? 12 : (showStageBar && stageOpen ? 0 : 14) }}>
+    <header className="app-header" style={{ paddingBottom: isMobile ? 12 : 18 }}>
       <div className="header-top">
         <button className="hamburger" onClick={onMenuOpen} aria-label="เปิดเมนู">
           <Icon name="menu" size={18} color="var(--text-2)" />
@@ -1434,7 +1422,7 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
         </div>
         {!isMobile && filterBar}
         <div className="header-actions">
-          {searchPh && (isMobile && !searchOpen ? (
+          {searchPh && (compactSearch && !searchOpen ? (
             <button onClick={() => setSearchOpen(true)} title="ค้นหา" aria-label="ค้นหา"
               style={{ width: 40, height: 40, borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff",
                 cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
@@ -1444,8 +1432,8 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
             <div className="search-box" style={isMobile ? { maxWidth: "none", flex: 1 } : undefined}>
               <Icon name="search" size={16} color="var(--text-3)" />
               <input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} placeholder={searchPh}
-                onBlur={() => { if (isMobile && !search.trim()) setSearchOpen(false); }} />
-              {isMobile && (
+                onBlur={() => { if (compactSearch && !search.trim()) setSearchOpen(false); }} />
+              {compactSearch && (
                 <button onMouseDown={(e) => e.preventDefault()} onClick={() => { setSearch(""); setSearchOpen(false); }} title="ปิดค้นหา" aria-label="ปิดค้นหา"
                   style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 7, border: "none", background: "var(--surface3)", color: "var(--text-3)", cursor: "pointer", display: "grid", placeItems: "center" }}>
                   <Icon name="x" size={14} color="var(--text-3)" />
@@ -1501,46 +1489,9 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
       </div>
       {/* มือถือ: แถบตัวกรองยังเป็นแถวของตัวเองใต้หัว และเหลือไว้แค่ตัวกรองช่าง (ตัวอื่นซ่อนเพื่อประหยัดพื้นที่) */}
       {isMobile && filterBar}
-      {/* ชิปกรองขั้นงาน — ย่อ/ขยายแบบลื่น (max-height + opacity); ซ่อนบนหน้าภาพรวม / มือถือหน้าบอร์ด */}
-      {showStageBar && (
-      <div style={{ overflow: "hidden", maxHeight: stageOpen ? 180 : 0, opacity: stageOpen ? 1 : 0,
-        paddingBottom: stageOpen ? (isMobile ? 10 : 14) : 0, transition: "max-height .24s ease, opacity .2s ease, padding-bottom .24s ease" }}>
-        <div className="cat-chip-row" style={{ display: "flex", alignItems: "center", gap: isMobile ? 5 : 7, flexWrap: "nowrap", overflowX: "auto", overflowY: "hidden", paddingBottom: 2 }}>
-          {(() => {
-            /* ชิปกรองขั้นงาน — ปกติไม่มีเส้นขอบ ใช้พื้นจางพอให้รู้ว่ากดได้
-               ที่เลือกอยู่ค่อยได้สีของขั้นงานนั้นเต็ม ๆ (สีมีความหมายเฉพาะตอนถูกเลือก) */
-            const chip = (active, color) => ({
-              display: "inline-flex", alignItems: "center", gap: isMobile ? 5 : 7, padding: isMobile ? "5px 10px" : "6px 13px", borderRadius: 99,
-              border: "1px solid " + (active ? (color || "var(--primary)") : "transparent"),
-              background: active ? (color ? color + "18" : "var(--primary-soft)") : "var(--surface2)",
-              color: active ? (color || "var(--primary-dark)") : "var(--text-2)",
-              fontFamily: "inherit", fontSize: isMobile ? 11.5 : 12.5, fontWeight: active ? 700 : 600,
-              cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, transition: "background .15s, color .15s",
-            });
-            const num = (active) => ({ fontSize: 11.5, fontWeight: 800, opacity: active ? 1 : .55,
-              fontFamily: "var(--display)", fontVariantNumeric: "tabular-nums", letterSpacing: "-.02em" });
-            return (
-              <React.Fragment>
-                <button style={chip(!stageFilter)} onClick={() => setStageFilter(null)}>
-                  ทั้งหมด <span style={num(!stageFilter)}>{(stageCounts && stageCounts.__all) || 0}</span>
-                </button>
-                {stList.map((s) => {
-                  const active = stageFilter === s.key;
-                  const n = (stageCounts && stageCounts[s.key]) || 0;
-                  return (
-                    <button key={s.key} style={Object.assign(chip(active, s.color), n === 0 && !active ? { opacity: .5 } : {})}
-                      onClick={() => setStageFilter(active ? null : s.key)}>
-                      <span style={{ width: isMobile ? 6 : 7, height: isMobile ? 6 : 7, borderRadius: 99, background: s.color, flexShrink: 0 }} />
-                      {s.th} <span style={num(active)}>{n}</span>
-                    </button>
-                  );
-                })}
-              </React.Fragment>
-            );
-          })()}
-        </div>
-      </div>
-      )}
+      {/* แถบชิปกรองขั้นงานเอาออกแล้วตามที่สั่ง — มันกินความสูงของหัวจอไปอีกหนึ่งแถวทุกหน้า
+          การกรองตามขั้นยังทำได้จากแผงไปป์ไลน์ในหน้าภาพรวม และล้างได้ที่บรรทัดใต้ชื่อหน้า
+          ("กรอง: ... ล้าง ✕") ซึ่งเป็นที่เดียวที่บอกว่ากำลังกรองอะไรอยู่ */}
     </header>
   );
 }

@@ -103,7 +103,10 @@ label { min-width: 0; }
 .app-header { padding: 18px 26px 0; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0;
   position: relative; z-index: 60; }
 [data-density="compact"] .app-header { padding: 12px 18px 0; }
-.header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+/* แถวบนไม่ห่อบรรทัด — ชื่อหน้า · ตัวกรอง · ปุ่มเครื่องมือ อยู่แถวเดียวกันเสมอ
+   พอที่ไม่พอ ให้ "หด" ไม่ใช่ "ตก" (ตัวกรองเลื่อนแนวนอนได้ ช่องค้นหาแคบลงได้ถึง 150px)
+   แถวเครื่องมือที่ตกลงไปบรรทัดล่างแล้วชิดซ้ายคือสิ่งที่กฎนี้มีไว้กัน */
+.header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: nowrap; }
 /* ชื่อหน้าใช้ฟอนต์หัวเรื่อง + บีบระยะตัวอักษร ให้ดูเป็นงานออกแบบ ไม่ใช่ตัวหนาธรรมดา */
 .page-title { font-family: var(--display); font-size: 24px; font-weight: 700; color: var(--text-1);
   letter-spacing: -.035em; white-space: nowrap; line-height: 1.1; }
@@ -145,7 +148,11 @@ label { min-width: 0; }
 /* แถบตัวกรองตอนขึ้นไปอยู่แถวเดียวกับชื่อหน้า — ไม่มีระยะห่างบน/ล่างของแถวตัวเองแล้ว
    flex กินที่ว่างระหว่างชื่อหน้ากับปุ่มเครื่องมือ · พอจอแคบจนไม่พอ .header-top ห่อบรรทัดให้เอง
    จึงกลับไปเป็นแถวของตัวเองโดยไม่ต้องมี media query แยก */
-.header-filters.in-top { padding: 0; flex: 0 1 auto; min-width: 0; margin-right: auto; align-self: center; }
+/* ตัวกรองบนแถวบน — หดได้จนถึงศูนย์แล้วเลื่อนแนวนอนเอา (ไม่ห่อบรรทัด ไม่ดันใครตก)
+   margin-right:auto ทำให้มันเกาะอยู่ข้างชื่อหน้า ที่ว่างที่เหลือไปกองอยู่ก่อนปุ่มเครื่องมือ */
+.header-filters.in-top { padding: 0; flex: 0 1 auto; min-width: 0; margin-right: auto; align-self: center;
+  flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.header-filters.in-top::-webkit-scrollbar { display: none; }
 /* แถวบนตอนนี้ต้องพอสำหรับ ชื่อหน้า + ตัวกรอง + เครื่องมือ พร้อมกัน
    ช่องค้นหาความกว้างตายตัว 280px คือตัวที่ทำให้ไม่พอแล้วทั้งแถวเครื่องมือตกบรรทัด
    ให้มันหดได้ถึง 150px ก่อน แล้วค่อยห่อบรรทัดถ้ายังไม่พอจริง ๆ */
@@ -683,6 +690,6 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/ot-paper.js?v=6"></script>
 <script src="dashboard/build/views-line.js?v=2"></script>
 <script src="dashboard/build/guide.js?v=5"></script>
-<script src="dashboard/build/app.js?v=174"></script>
+<script src="dashboard/build/app.js?v=176"></script>
 </body>
 </html>

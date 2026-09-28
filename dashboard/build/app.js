@@ -2143,20 +2143,13 @@ function Header({
     noinstall: "ยังไม่นัดวันติดตั้ง"
   };
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
-  const [stageOpen, setStageOpen] = React.useState(() => localStorage.getItem("sf_stage_filteropen") !== "0");
-  const toggleStage = () => setStageOpen(v => {
-    localStorage.setItem("sf_stage_filteropen", v ? "0" : "1");
-    return !v;
-  });
-  const showStageBar = view !== "overview" && !isMobile && !plain;
   const pMode = stageMode === "permit";
-  const stList = pMode ? window.PERMIT_COLS || [] : window.SF.STAGES;
   const stInfo = k => pMode ? permitStageOf(k) : stageOf(k);
-  const stLabel = pMode ? "ขั้นขออนุญาต" : "ขั้นงาน";
   const jobTools = view === "board" || view === "table";
   const myAvatar = window.useUserAvatar((me || {}).id).avatar;
   const searchPh = HDR_SEARCH[view];
   const [searchOpen, setSearchOpen] = React.useState(false);
+  const compactSearch = isMobile || !plain && window.matchMedia("(max-width: 1280px)").matches;
   const searchRef = React.useRef(null);
   React.useEffect(() => {
     if (searchOpen && searchRef.current) searchRef.current.focus();
@@ -2195,42 +2188,11 @@ function Header({
     techs: techs,
     counts: techCounts,
     nameOf: techName
-  }), showStageBar && React.createElement("button", {
-    onClick: toggleStage,
-    title: stageOpen ? "ซ่อนตัวกรองขั้นงาน" : "แสดงตัวกรองขั้นงาน",
-    style: {
-      marginLeft: isMobile ? "auto" : 0,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      padding: isMobile ? "5px 10px" : "6px 13px",
-      borderRadius: 99,
-      border: "1px solid " + (stageFilter ? stInfo(stageFilter).color : "var(--border-strong)"),
-      background: stageFilter ? stInfo(stageFilter).color + "16" : "var(--surface)",
-      color: stageFilter ? stInfo(stageFilter).color : "var(--text-2)",
-      fontSize: isMobile ? 11.5 : 12.5,
-      fontWeight: 600,
-      cursor: "pointer",
-      fontFamily: "inherit",
-      whiteSpace: "nowrap"
-    }
-  }, React.createElement(Icon, {
-    name: "filter",
-    size: 14,
-    color: stageFilter ? stInfo(stageFilter).color : "var(--text-2)"
-  }), stLabel, stageFilter ? ": " + stInfo(stageFilter).th : "", React.createElement(Icon, {
-    name: "chevronDown",
-    size: 14,
-    color: "var(--text-3)",
-    style: {
-      transform: stageOpen ? "rotate(180deg)" : "none",
-      transition: "transform .18s"
-    }
-  }))) : null;
+  })) : null;
   return React.createElement("header", {
     className: "app-header",
     style: {
-      paddingBottom: isMobile ? 12 : showStageBar && stageOpen ? 0 : 14
+      paddingBottom: isMobile ? 12 : 18
     }
   }, React.createElement("div", {
     className: "header-top"
@@ -2262,7 +2224,7 @@ function Header({
     className: "clear-chip"
   }, "\u0E25\u0E49\u0E32\u0E07 \u2715")))), !isMobile && filterBar, React.createElement("div", {
     className: "header-actions"
-  }, searchPh && (isMobile && !searchOpen ? React.createElement("button", {
+  }, searchPh && (compactSearch && !searchOpen ? React.createElement("button", {
     onClick: () => setSearchOpen(true),
     title: "\u0E04\u0E49\u0E19\u0E2B\u0E32",
     "aria-label": "\u0E04\u0E49\u0E19\u0E2B\u0E32",
@@ -2298,9 +2260,9 @@ function Header({
     onChange: e => setSearch(e.target.value),
     placeholder: searchPh,
     onBlur: () => {
-      if (isMobile && !search.trim()) setSearchOpen(false);
+      if (compactSearch && !search.trim()) setSearchOpen(false);
     }
-  }), isMobile && React.createElement("button", {
+  }), compactSearch && React.createElement("button", {
     onMouseDown: e => e.preventDefault(),
     onClick: () => {
       setSearch("");
@@ -2414,78 +2376,7 @@ function Header({
     alt: ""
   }) : (me.name || "?").slice(0, 1)), React.createElement("span", {
     className: "hdr-user-tx"
-  }, React.createElement("b", null, me.name), React.createElement("i", null, userRoles(me).map(r => (ROLE_INFO[r] || ROLE_INFO.tech).short).join(" · ")))))), isMobile && filterBar, showStageBar && React.createElement("div", {
-    style: {
-      overflow: "hidden",
-      maxHeight: stageOpen ? 180 : 0,
-      opacity: stageOpen ? 1 : 0,
-      paddingBottom: stageOpen ? isMobile ? 10 : 14 : 0,
-      transition: "max-height .24s ease, opacity .2s ease, padding-bottom .24s ease"
-    }
-  }, React.createElement("div", {
-    className: "cat-chip-row",
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: isMobile ? 5 : 7,
-      flexWrap: "nowrap",
-      overflowX: "auto",
-      overflowY: "hidden",
-      paddingBottom: 2
-    }
-  }, (() => {
-    const chip = (active, color) => ({
-      display: "inline-flex",
-      alignItems: "center",
-      gap: isMobile ? 5 : 7,
-      padding: isMobile ? "5px 10px" : "6px 13px",
-      borderRadius: 99,
-      border: "1px solid " + (active ? color || "var(--primary)" : "transparent"),
-      background: active ? color ? color + "18" : "var(--primary-soft)" : "var(--surface2)",
-      color: active ? color || "var(--primary-dark)" : "var(--text-2)",
-      fontFamily: "inherit",
-      fontSize: isMobile ? 11.5 : 12.5,
-      fontWeight: active ? 700 : 600,
-      cursor: "pointer",
-      whiteSpace: "nowrap",
-      flexShrink: 0,
-      transition: "background .15s, color .15s"
-    });
-    const num = active => ({
-      fontSize: 11.5,
-      fontWeight: 800,
-      opacity: active ? 1 : .55,
-      fontFamily: "var(--display)",
-      fontVariantNumeric: "tabular-nums",
-      letterSpacing: "-.02em"
-    });
-    return React.createElement(React.Fragment, null, React.createElement("button", {
-      style: chip(!stageFilter),
-      onClick: () => setStageFilter(null)
-    }, "\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 ", React.createElement("span", {
-      style: num(!stageFilter)
-    }, stageCounts && stageCounts.__all || 0)), stList.map(s => {
-      const active = stageFilter === s.key;
-      const n = stageCounts && stageCounts[s.key] || 0;
-      return React.createElement("button", {
-        key: s.key,
-        style: Object.assign(chip(active, s.color), n === 0 && !active ? {
-          opacity: .5
-        } : {}),
-        onClick: () => setStageFilter(active ? null : s.key)
-      }, React.createElement("span", {
-        style: {
-          width: isMobile ? 6 : 7,
-          height: isMobile ? 6 : 7,
-          borderRadius: 99,
-          background: s.color,
-          flexShrink: 0
-        }
-      }), s.th, " ", React.createElement("span", {
-        style: num(active)
-      }, n));
-    }));
-  })())));
+  }, React.createElement("b", null, me.name), React.createElement("i", null, userRoles(me).map(r => (ROLE_INFO[r] || ROLE_INFO.tech).short).join(" · ")))))), isMobile && filterBar);
 }
 function DailyBriefing({
   lateAlerts,
