@@ -1383,7 +1383,11 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
   /* จอกลาง ๆ ก็ยุบด้วย — หน้าที่มีตัวกรองอยู่บนแถวเดียวกัน ที่ว่างไม่พอให้ทั้งสองอย่างเต็มตัว
      ปล่อยไว้ช่องค้นหาจะเบียดจนตัวกรองโดนบังครึ่งตัว ยุบเป็นปุ่มก่อนแล้วกดกางเอาดีกว่า
      (หน้าที่ไม่มีตัวกรอง เช่น เอกสารงวดงาน ยังได้ช่องเต็มเหมือนเดิม) */
-  const compactSearch = isMobile || (!plain && window.matchMedia("(max-width: 1280px)").matches);
+  /* ต้องเป็นฮุกที่ subscribe matchMedia จริง ไม่ใช่อ่าน .matches ตอนเรนเดอร์
+     อ่านเฉย ๆ จะค้างค่าเดิมตอนผู้ใช้ย่อ/ขยายหน้าต่าง (ไม่มีอะไรสั่งให้เรนเดอร์ใหม่)
+     แล้วช่องค้นหาจะไม่ยุบ กลายเป็นเบียดตัวกรองจนโดนตัดครึ่งตัวอย่างที่เคยเป็น */
+  const narrow = useIsMobile(1280);
+  const compactSearch = isMobile || (!plain && narrow);
   const searchRef = React.useRef(null);
   React.useEffect(() => { if (searchOpen && searchRef.current) searchRef.current.focus(); }, [searchOpen]);
   /* กรองตามช่างผู้รับผิดชอบ — ช่างที่ล็อกอินเองเห็นแต่งานตัวเองอยู่แล้ว จึงไม่ต้องมีตัวกรองนี้ */

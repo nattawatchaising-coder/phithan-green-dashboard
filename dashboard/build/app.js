@@ -2153,7 +2153,8 @@ function Header({
   const myAvatar = window.useUserAvatar((me || {}).id).avatar;
   const searchPh = HDR_SEARCH[view];
   const [searchOpen, setSearchOpen] = React.useState(false);
-  const compactSearch = isMobile || !plain && window.matchMedia("(max-width: 1280px)").matches;
+  const narrow = useIsMobile(1280);
+  const compactSearch = isMobile || !plain && narrow;
   const searchRef = React.useRef(null);
   React.useEffect(() => {
     if (searchOpen && searchRef.current) searchRef.current.focus();

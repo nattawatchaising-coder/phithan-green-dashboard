@@ -124,7 +124,8 @@ label { min-width: 0; }
 /* ชื่อหน้าใช้ฟอนต์หัวเรื่อง + บีบระยะตัวอักษร ให้ดูเป็นงานออกแบบ ไม่ใช่ตัวหนาธรรมดา */
 .page-title { font-family: var(--display); font-size: 24px; font-weight: 700; color: var(--text-1);
   letter-spacing: -.035em; white-space: nowrap; line-height: 1.1; }
-.page-sub { font-size: 12.5px; color: var(--text-3); margin-top: 4px; font-variant-numeric: tabular-nums; }
+.page-sub { font-size: 12.5px; color: var(--text-3); margin-top: 4px; font-variant-numeric: tabular-nums;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .page-sub strong { color: var(--text-2); font-weight: 700; }
 .clear-chip { border: none; background: var(--surface3); color: var(--text-2); font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; cursor: pointer; margin-left: 4px; font-family: inherit; }
 
@@ -182,7 +183,11 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
    จึงกลับไปเป็นแถวของตัวเองโดยไม่ต้องมี media query แยก */
 /* ตัวกรองบนแถวบน — หดได้จนถึงศูนย์แล้วเลื่อนแนวนอนเอา (ไม่ห่อบรรทัด ไม่ดันใครตก)
    margin-right:auto ทำให้มันเกาะอยู่ข้างชื่อหน้า ที่ว่างที่เหลือไปกองอยู่ก่อนปุ่มเครื่องมือ */
-.header-filters.in-top { padding: 0; flex: 0 1 auto; min-width: 0; margin-right: auto; align-self: center;
+/* แถบตัวกรองบนแถวชื่อหน้า — หดทีหลังชื่อหน้าเสมอ (flex-shrink .15)
+   การหดของ flex เฉลี่ยตามขนาดฐาน ปล่อยไว้ตัวกรองจะโดนหดพร้อมชื่อหน้า
+   แล้วปุ่มท้ายแถบ (ช่าง) โดนตัดครึ่งตัวทั้งที่ยังมีที่ว่างให้ชื่อหน้าคายออกได้อีก
+   ชื่อหน้าย่อได้ด้วยจุดไข่ปลา ปุ่มตัวกรองย่อไม่ได้ จึงต้องให้ชื่อหน้ายอมก่อน */
+.header-filters.in-top { padding: 0; flex: 0 .15 auto; min-width: 0; margin-right: auto; align-self: center;
   flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 .header-filters.in-top::-webkit-scrollbar { display: none; }
 /* แถวบนตอนนี้ต้องพอสำหรับ ชื่อหน้า + ตัวกรอง + เครื่องมือ พร้อมกัน
@@ -752,7 +757,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/bill-paper.js?v=6"></script>
 <script src="dashboard/build/views-billing.js?v=7"></script>
 <script src="dashboard/build/views-lead.js?v=10"></script>
-<script src="dashboard/build/views-flow.js?v=12"></script>
+<script src="dashboard/build/views-flow.js?v=13"></script>
 <script src="dashboard/build/daily.js?v=13"></script>
 <script src="dashboard/build/views-daily.js?v=33"></script>
 <script src="dashboard/build/om.js?v=13"></script>
@@ -769,6 +774,6 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/ot-paper.js?v=6"></script>
 <script src="dashboard/build/views-line.js?v=2"></script>
 <script src="dashboard/build/guide.js?v=5"></script>
-<script src="dashboard/build/app.js?v=177"></script>
+<script src="dashboard/build/app.js?v=178"></script>
 </body>
 </html>
