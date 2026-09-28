@@ -3649,7 +3649,7 @@ function ConduitDefaultsEditor({
       cursor: nEdited ? "pointer" : "default",
       fontFamily: "inherit"
     }
-  }, "\u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14", nEdited ? " (" + nEdited + ")" : "")), edit && bar);
+  }, "\u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14", nEdited ? " (" + nEdited + ")" : "")));
 }
 function AmpacityEditor({
   ampStore

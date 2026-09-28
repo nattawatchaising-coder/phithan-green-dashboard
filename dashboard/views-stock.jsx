@@ -1381,7 +1381,6 @@ function ConduitDefaultsEditor({ condStore }) {
           คืนค่าตั้งต้นทั้งหมด{nEdited ? " (" + nEdited + ")" : ""}
         </button>
       </div>
-      {edit && bar}
     </div>
   );
 }
