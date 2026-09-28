@@ -467,14 +467,17 @@ function LoMonthPanel({ jobs }) {
   );
 }
 
-function LeadOverview({ jobs, leads, quotes, stock, techs, onOpen, onStage, onKpi, onTech, onGoPermit, onGoSales, me }) {
+function LeadOverview({ jobs, leads, quotes, stock, techs, onOpen, onStage, onKpi, onTech, onGoPermit, onGoSales, onGoOm, omCount, me }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const J = jobs || [];
   const active = J.filter((j) => j.stage !== "done");
-  const delayed = J.filter((j) => j.delayed);
-  const problem = active.filter((j) => j.problem);
-  const noInstall = active.filter((j) => !(SF.installDate && SF.installDate(j)));
+  /* "กำลังดำเนินการ" คือทุกขั้นที่ยังไม่เสร็จ — ออกแบบ · ถอดของ · นัดคิว · ติดตั้ง
+     เขียนเป็น stage !== "done" ไม่ใช่ไล่ชื่อสี่ขั้น เพราะถ้าวันหนึ่งมีขั้นที่หก
+     งานในขั้นนั้นต้องถูกนับทันที ไม่ใช่หายไปเงียบ ๆ จากตัวเลขที่บอกว่า "ทั้งหมดที่ค้าง" */
+  const installing = active.filter((j) => j.stage === "install");
+  /* ลงหน้างานแล้วจริง ๆ = ถึงวันเริ่มติดตั้งแล้ว ใช้เกณฑ์เดียวกับแผง "งานที่ต้องดูแล" */
+  const onSite = installing.filter((j) => loInstallDays(j) != null).length;
 
   /* การ์ด "ของไม่พอ" ปิดไว้ตามที่สั่ง — ตัวนับเคยอยู่ตรงนี้ (นับงานที่ติดตั้งใน 14 วันแล้วของขาด
      ด้วยเกณฑ์เดียวกับ MaterialShortagePanel) เอากลับมาได้โดยคืน useMemo ที่ใช้ window.jobStockShortages
@@ -486,12 +489,16 @@ function LeadOverview({ jobs, leads, quotes, stock, techs, onOpen, onStage, onKp
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       {!isMobile && (
         <StatRail cols={3} items={[
-          { label: "ล่าช้ากว่ากำหนด", value: delayed.length, unit: "งาน", accent: "var(--text-3)", alert: delayed.length > 0,
-            sub: delayed.length ? "เลยวันนัดติดตั้งแล้ว" : "ไม่มีงานเลยกำหนด", onClick: () => onKpi("delayed") },
-          { label: "ติดปัญหาหน้างาน", value: problem.length, unit: "งาน", accent: "#F59E0B", alert: problem.length > 0,
-            sub: problem.length ? "มีบันทึกปัญหาค้างอยู่" : "ไม่มีงานติดปัญหา", onClick: () => onKpi("problem") },
-          { label: "ยังไม่นัดวันติดตั้ง", value: noInstall.length, unit: "งาน", accent: "#0EA5E9",
-            sub: <React.Fragment>จาก <b>{active.length}</b> งานที่ค้าง</React.Fragment>, onClick: () => onKpi("noinstall") },
+          { label: "งานกำลังดำเนินการ", value: active.length, unit: "งาน", accent: "var(--primary)",
+            sub: "ออกแบบ · ถอดของ · นัดคิว · ติดตั้ง", onClick: () => onKpi("active") },
+          /* งานหลังการขายไม่ได้อยู่ในกอง jobs — เลขมาจาก app.jsx ที่ฟัง O&M อยู่แล้วตัวเดียว
+             ไม่เรียก useOmAlerts ซ้ำที่นี่ เพราะจะเปิด listener ชุดสองและข้ามด่านสิทธิ์ */
+          { label: "งานบริการหลังการขาย", value: omCount == null ? "–" : omCount, unit: omCount == null ? "" : "เรื่อง", accent: "#8B5CF6",
+            sub: omCount == null ? "ไม่มีสิทธิ์ดูงานบริการ" : (omCount ? "ใบแจ้งซ่อมที่ยังไม่ปิด · ไซต์ที่ถึงรอบล้าง" : "ไม่มีเรื่องค้าง"),
+            onClick: onGoOm || null },
+          { label: "กำลังติดตั้งอยู่ตอนนี้", value: installing.length, unit: "งาน", accent: "#0EA5E9",
+            sub: onSite ? <React.Fragment>ลงหน้างานแล้ว <b>{onSite}</b> งาน</React.Fragment> : "ยังไม่ถึงวันเริ่มติดตั้ง",
+            onClick: () => onStage("install") },
         ]} />
       )}
 

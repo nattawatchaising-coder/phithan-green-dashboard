@@ -909,7 +909,9 @@ function App() {
                 me={auth.current} onOpen={openJob} onStage={goStage} onKpi={goKpi}
                 onTech={(id) => { setTechFilter(id); setStageFilter(null); setQuickFilter(null); setView(listView()); }}
                 onGoPermit={can(role, "permit") ? () => setView("permit") : null}
-                onGoSales={can(role, "leads") ? () => setView(can(role, "price") ? "saleskpi" : "leads") : null} />
+                onGoSales={can(role, "leads") ? () => setView(can(role, "price") ? "saleskpi" : "leads") : null}
+                onGoOm={can(role, "om") ? () => openOm(null) : null}
+                omCount={can(role, "om") ? navBadges.om : null} />
             )
             : <OverviewView jobs={filtered} schedule={myScheduleItems} me={auth.current} onOpen={openJob} onStage={goStage} onKpi={goKpi} stock={stock} />)}
           {/* บอร์ดรวมทั้งวงจร — ขาย → หน้างาน → เอกสาร อยู่ผืนเดียว (ช่วงไหนไม่มีสิทธิ์ก็ไม่ขึ้น)

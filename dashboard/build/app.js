@@ -1225,7 +1225,9 @@ function App() {
       setView(listView());
     },
     onGoPermit: can(role, "permit") ? () => setView("permit") : null,
-    onGoSales: can(role, "leads") ? () => setView(can(role, "price") ? "saleskpi" : "leads") : null
+    onGoSales: can(role, "leads") ? () => setView(can(role, "price") ? "saleskpi" : "leads") : null,
+    onGoOm: can(role, "om") ? () => openOm(null) : null,
+    omCount: can(role, "om") ? navBadges.om : null
   }) : React.createElement(OverviewView, {
     jobs: filtered,
     schedule: myScheduleItems,

@@ -816,15 +816,16 @@ function LeadOverview({
   onTech,
   onGoPermit,
   onGoSales,
+  onGoOm,
+  omCount,
   me
 }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const J = jobs || [];
   const active = J.filter(j => j.stage !== "done");
-  const delayed = J.filter(j => j.delayed);
-  const problem = active.filter(j => j.problem);
-  const noInstall = active.filter(j => !(SF.installDate && SF.installDate(j)));
+  const installing = active.filter(j => j.stage === "install");
+  const onSite = installing.filter(j => loInstallDays(j) != null).length;
   const col = spec => ({
     display: "grid",
     gridTemplateColumns: isMobile ? "1fr" : spec,
@@ -839,28 +840,26 @@ function LeadOverview({
   }, !isMobile && React.createElement(StatRail, {
     cols: 3,
     items: [{
-      label: "ล่าช้ากว่ากำหนด",
-      value: delayed.length,
+      label: "งานกำลังดำเนินการ",
+      value: active.length,
       unit: "งาน",
-      accent: "var(--text-3)",
-      alert: delayed.length > 0,
-      sub: delayed.length ? "เลยวันนัดติดตั้งแล้ว" : "ไม่มีงานเลยกำหนด",
-      onClick: () => onKpi("delayed")
+      accent: "var(--primary)",
+      sub: "ออกแบบ · ถอดของ · นัดคิว · ติดตั้ง",
+      onClick: () => onKpi("active")
     }, {
-      label: "ติดปัญหาหน้างาน",
-      value: problem.length,
-      unit: "งาน",
-      accent: "#F59E0B",
-      alert: problem.length > 0,
-      sub: problem.length ? "มีบันทึกปัญหาค้างอยู่" : "ไม่มีงานติดปัญหา",
-      onClick: () => onKpi("problem")
+      label: "งานบริการหลังการขาย",
+      value: omCount == null ? "–" : omCount,
+      unit: omCount == null ? "" : "เรื่อง",
+      accent: "#8B5CF6",
+      sub: omCount == null ? "ไม่มีสิทธิ์ดูงานบริการ" : omCount ? "ใบแจ้งซ่อมที่ยังไม่ปิด · ไซต์ที่ถึงรอบล้าง" : "ไม่มีเรื่องค้าง",
+      onClick: onGoOm || null
     }, {
-      label: "ยังไม่นัดวันติดตั้ง",
-      value: noInstall.length,
+      label: "กำลังติดตั้งอยู่ตอนนี้",
+      value: installing.length,
       unit: "งาน",
       accent: "#0EA5E9",
-      sub: React.createElement(React.Fragment, null, "\u0E08\u0E32\u0E01 ", React.createElement("b", null, active.length), " \u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E04\u0E49\u0E32\u0E07"),
-      onClick: () => onKpi("noinstall")
+      sub: onSite ? React.createElement(React.Fragment, null, "\u0E25\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19\u0E41\u0E25\u0E49\u0E27 ", React.createElement("b", null, onSite), " \u0E07\u0E32\u0E19") : "ยังไม่ถึงวันเริ่มติดตั้ง",
+      onClick: () => onStage("install")
     }]
   }), React.createElement("div", {
     className: "ov-pair",
