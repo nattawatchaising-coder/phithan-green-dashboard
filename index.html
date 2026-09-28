@@ -248,14 +248,22 @@ label { min-width: 0; }
 /* ── โครงหน้าภาพรวม: แถบต้อนรับ · สองคอลัมน์ · ปฏิทินย่อ ── */
 .ov-hero{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:20px;
   flex-wrap:wrap;padding:22px 26px;border-radius:20px;border:1px solid var(--border);
-  background:linear-gradient(120deg,var(--primary-dark),var(--primary) 58%,var(--primary-bright));
+  background:var(--primary-dark) url("dashboard/assets/hero-solarfarm.jpg") right center/cover no-repeat;
   box-shadow:var(--shadow-sm)}
-/* ภาพทุ่งโซลาร์ฟาร์ม (assets/hero-solarfarm.svg) — เป็นชั้นตกแต่งหลังตัวหนังสือ
-   ตัวไฟล์จางฝั่งซ้ายมาแล้ว และชั้นนี้ pointer-events:none เพื่อไม่ให้บังปุ่มอะไรทั้งสิ้น */
+/* ผ้าคลุมสีแบรนด์ทับภาพถ่าย — ทึบทางซ้ายตรงที่เป็นคำทักทายกับวันที่ แล้วจางหายไปทางขวา
+   ภาพถ่ายจึงโผล่เต็มตาฝั่งขวา โดยที่ตัวหนังสือขาวฝั่งซ้ายยังอ่านออกเสมอ ไม่ว่าภาพจะสว่างแค่ไหน
+   ชั้นบาง ๆ สีดำอีกชั้นกดความสว่างของทั้งใบลงนิดเดียว ให้ตัวเลขสามช่องไม่จมไปกับแสงพระอาทิตย์ในภาพ
+   ทั้งชั้นนี้ pointer-events:none ไม่บังปุ่มอะไรทั้งสิ้น
+   ภาพลายเส้น hero-solarfarm.svg ยังอยู่ในโฟลเดอร์ สลับกลับไปใช้ได้ถ้าอยากได้แบบวาด */
 .ov-hero::after{content:"";position:absolute;inset:0;pointer-events:none;
-  background:url("dashboard/assets/hero-solarfarm.svg") right center/cover no-repeat;opacity:.9}
+  background:linear-gradient(100deg,var(--primary-dark) 0,var(--primary-dark) 20%,
+    color-mix(in srgb,var(--primary-dark) 72%,transparent) 42%,
+    color-mix(in srgb,var(--primary) 26%,transparent) 68%,transparent 92%),
+    linear-gradient(0deg,rgba(6,28,24,.22),rgba(6,28,24,.22))}
 .ov-hero>*{position:relative;z-index:1}
-@media(max-width:700px){.ov-hero::after{opacity:.45}}
+/* ตัวเลขสามช่องวางทับภาพพอดี เบลอพื้นหลังใต้ช่องไว้ไม่ให้เลขจมไปกับแผงโซลาร์ในภาพ */
+.ov-hero-fig{backdrop-filter:blur(4px)}
+@media(max-width:700px){.ov-hero{background-position:72% center}}
 .ov-hero-tx h2{font-family:var(--display);font-size:23px;font-weight:700;color:#fff;letter-spacing:-.03em;line-height:1.2}
 .ov-hero-tx p{margin-top:5px;font-size:12.5px;color:rgba(255,255,255,.82)}
 .ov-hero-figs{display:flex;gap:10px;flex-wrap:wrap}
