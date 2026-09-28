@@ -75,6 +75,15 @@ function FlGroup({ g, count, collapsed, onToggle, onAdd, addLabel, children }) {
       {/* กดที่แถบหัวช่วงตรงไหนก็พับได้ ไม่ต้องเล็งปุ่มเล็ก ๆ ด้านขวา */}
       <div onClick={onToggle} title={"พับช่วง " + g.th}
         style={{ display: "flex", alignItems: "center", gap: 9, padding: "0 2px", cursor: "pointer" }}>
+        {/* ปุ่มพับอยู่หัวแถว ไม่ใช่ปลายขวา — แถบหัวช่วงกว้างเท่าทุกคอลัมน์รวมกัน (พันกว่าพิกเซล)
+            ปุ่มที่ปลายขวาจึงอยู่นอกจอเสมอจนกว่าจะเลื่อนบอร์ดไปจนสุด
+            และตอนช่วงถูกพับอยู่ ปุ่มก็อยู่หัวคอลัมน์เหมือนกัน ตำแหน่งจะได้ไม่กระโดดไปมา
+            ปุ่มอยู่ในแถบที่กดได้ทั้งแถบ ต้องหยุดคลิกไม่ให้ลอยขึ้นไปสั่งพับซ้ำ ไม่งั้นพับแล้วกางทันทีเหมือนกดไม่ติด */}
+        <button onClick={(e) => { e.stopPropagation(); onToggle(); }} aria-label={"พับช่วง " + g.th}
+          style={{ width: 26, height: 26, borderRadius: 8, border: "1px solid var(--border)",
+            background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+          <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: "rotate(90deg)" }} />
+        </button>
         <span style={{ width: 8, height: 8, borderRadius: 99, background: g.color, flexShrink: 0 }} />
         <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".08em", color: "var(--text-2)" }}>{g.th}</span>
         <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>{count}</span>
@@ -96,12 +105,6 @@ function FlGroup({ g, count, collapsed, onToggle, onAdd, addLabel, children }) {
           </button>
         )}
         <span style={{ fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{g.hint}</span>
-        {/* ปุ่มอยู่ในแถบที่กดได้ทั้งแถบ ต้องหยุดไม่ให้คลิกลอยขึ้นไปสั่งพับซ้ำ ไม่งั้นพับแล้วกางทันทีเหมือนกดไม่ติด */}
-        <button onClick={(e) => { e.stopPropagation(); onToggle(); }} aria-label={"พับช่วง " + g.th}
-          style={{ marginLeft: "auto", width: 26, height: 26, borderRadius: 8, border: "1px solid var(--border)",
-            background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
-          <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: "rotate(90deg)" }} />
-        </button>
       </div>
       <div style={{ display: "flex", gap: 12, flex: 1, minHeight: 0 }}>{children}</div>
     </div>

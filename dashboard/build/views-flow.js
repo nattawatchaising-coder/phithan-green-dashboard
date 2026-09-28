@@ -192,7 +192,31 @@ function FlGroup({
       padding: "0 2px",
       cursor: "pointer"
     }
-  }, React.createElement("span", {
+  }, React.createElement("button", {
+    onClick: e => {
+      e.stopPropagation();
+      onToggle();
+    },
+    "aria-label": "พับช่วง " + g.th,
+    style: {
+      width: 26,
+      height: 26,
+      borderRadius: 8,
+      border: "1px solid var(--border)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "chevronDown",
+    size: 14,
+    color: "var(--text-3)",
+    style: {
+      transform: "rotate(90deg)"
+    }
+  })), React.createElement("span", {
     style: {
       width: 8,
       height: 8,
@@ -250,32 +274,7 @@ function FlGroup({
       overflow: "hidden",
       textOverflow: "ellipsis"
     }
-  }, g.hint), React.createElement("button", {
-    onClick: e => {
-      e.stopPropagation();
-      onToggle();
-    },
-    "aria-label": "พับช่วง " + g.th,
-    style: {
-      marginLeft: "auto",
-      width: 26,
-      height: 26,
-      borderRadius: 8,
-      border: "1px solid var(--border)",
-      background: "var(--surface)",
-      cursor: "pointer",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0
-    }
-  }, React.createElement(Icon, {
-    name: "chevronDown",
-    size: 14,
-    color: "var(--text-3)",
-    style: {
-      transform: "rotate(90deg)"
-    }
-  }))), React.createElement("div", {
+  }, g.hint)), React.createElement("div", {
     style: {
       display: "flex",
       gap: 12,
