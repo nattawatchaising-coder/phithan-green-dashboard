@@ -228,6 +228,10 @@ function AlertsPanel({
     job: j,
     days: loInstallDays(j)
   })).filter(r => r.days != null).sort((a, b) => b.days - a.days);
+  const stIns = (window.SF.STAGES || []).find(x => x.key === "install") || {
+    th: "ดำเนินการติดตั้ง",
+    color: "var(--primary)"
+  };
   return React.createElement("div", {
     className: "pnl"
   }, React.createElement(PanelTitle, {
@@ -241,7 +245,11 @@ function AlertsPanel({
       gap: 8,
       marginTop: 16,
       maxHeight: 280,
-      overflowY: "auto"
+      overflowY: "auto",
+      paddingLeft: 10,
+      paddingRight: 10,
+      marginLeft: -10,
+      marginRight: -10
     }
   }, problems.length === 0 && running.length === 0 && React.createElement(Empty, {
     text: "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E1B\u0E31\u0E0D\u0E2B\u0E32 \uD83C\uDF89"
@@ -329,72 +337,32 @@ function AlertsPanel({
   }, React.createElement(StageBadge, {
     stageKey: j.stage,
     size: "sm"
-  }))))), running.map(r => React.createElement("button", {
+  }))))), running.length > 0 && React.createElement("div", {
+    className: "rows"
+  }, running.map(r => React.createElement("button", {
     key: r.job.id,
-    onClick: () => onOpen(r.job),
-    style: {
-      display: "flex",
-      gap: 12,
-      padding: "11px 12px",
-      textAlign: "left",
-      background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 12,
-      cursor: "pointer",
-      fontFamily: "inherit",
-      width: "100%",
-      transition: "background .14s, border-color .14s"
-    },
-    onMouseEnter: e => {
-      e.currentTarget.style.background = "var(--surface2)";
-      e.currentTarget.style.borderColor = "var(--border-strong)";
-    },
-    onMouseLeave: e => {
-      e.currentTarget.style.background = "var(--surface)";
-      e.currentTarget.style.borderColor = "var(--border)";
-    }
+    onClick: () => onOpen(r.job)
   }, React.createElement("span", {
+    className: "mk",
     style: {
-      width: 3,
-      alignSelf: "stretch",
-      borderRadius: 99,
-      background: "var(--primary)",
-      flexShrink: 0
+      background: stIns.color
     }
-  }), React.createElement("div", {
+  }), React.createElement("span", {
+    className: "bd"
+  }, React.createElement("span", {
+    className: "nm"
+  }, r.job.name), React.createElement("span", {
+    className: "mt"
+  }, [r.job.code, stIns.th].filter(Boolean).join(" · "))), React.createElement("span", {
+    className: "when when-1l",
     style: {
-      flex: 1,
-      minWidth: 0
+      color: "var(--primary)"
     }
-  }, React.createElement("div", {
+  }, React.createElement("b", {
     style: {
-      fontSize: 13.5,
-      fontWeight: 700,
-      color: "var(--text-1)",
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-      textOverflow: "ellipsis"
+      color: "var(--primary)"
     }
-  }, r.job.name), React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "var(--text-2)",
-      marginTop: 3,
-      lineHeight: 1.4
-    }
-  }, "\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E21\u0E32\u0E41\u0E25\u0E49\u0E27 ", React.createElement("b", {
-    style: {
-      color: "var(--primary-dark)",
-      fontWeight: 700
-    }
-  }, r.days), " \u0E27\u0E31\u0E19"), React.createElement("div", {
-    style: {
-      marginTop: 6
-    }
-  }, React.createElement(StageBadge, {
-    stageKey: r.job.stage,
-    size: "sm"
-  })))))));
+  }, "\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E21\u0E32\u0E41\u0E25\u0E49\u0E27"), r.days, " \u0E27\u0E31\u0E19"))))));
 }
 function SchedulePanel({
   jobs,

@@ -99,10 +99,14 @@ function AlertsPanel({ jobs, onOpen }) {
     .map((j) => ({ job: j, days: loInstallDays(j) }))
     .filter((r) => r.days != null)
     .sort((a, b) => b.days - a.days);
+  const stIns = (window.SF.STAGES || []).find((x) => x.key === "install") || { th: "ดำเนินการติดตั้ง", color: "var(--primary)" };
   return (
     <div className="pnl">
       <PanelTitle icon="alert" iconColor="#EF4444" title="งานที่ต้องดูแล" />
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16, maxHeight: 280, overflowY: "auto" }}>
+      {/* overflow-y:auto ตัดแกนนอนไปด้วยโดยอัตโนมัติ วงแหวนตอนชี้ของ .rows จะโดนเฉือนหายสองข้าง
+          ดันขอบกล่องออกข้างละ 10px ด้วย padding แล้วดึงกลับด้วย margin ติดลบเท่ากัน ของข้างในไม่ขยับสักพิกเซล */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16, maxHeight: 280, overflowY: "auto",
+        paddingLeft: 10, paddingRight: 10, marginLeft: -10, marginRight: -10 }}>
         {problems.length === 0 && running.length === 0 && <Empty text="ไม่มีงานติดปัญหา 🎉" />}
         {problems.map((j) => (
           /* เดิมทาพื้นแดง + ขอบแดง + ขีดแดง = บอกเรื่องเดียวกัน 3 ที่ ทั้งแผงเลยแดงไปหมดจนไม่รู้ว่าใบไหนหนักกว่ากัน
@@ -125,23 +129,25 @@ function AlertsPanel({ jobs, onOpen }) {
             </div>
           </button>
         ))}
-        {/* ขีดเขียวไม่ใช่ขีดแดง — ใบพวกนี้ไม่ได้มีอะไรผิด แค่ต้องรู้ว่าเดินมานานแค่ไหนแล้ว */}
-        {running.map((r) => (
-          <button key={r.job.id} onClick={() => onOpen(r.job)} style={{ display: "flex", gap: 12, padding: "11px 12px", textAlign: "left",
-            background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", width: "100%",
-            transition: "background .14s, border-color .14s" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface2)"; e.currentTarget.style.borderColor = "var(--border-strong)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--surface)"; e.currentTarget.style.borderColor = "var(--border)"; }}>
-            <span style={{ width: 3, alignSelf: "stretch", borderRadius: 99, background: "var(--primary)", flexShrink: 0 }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.job.name}</div>
-              <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: 3, lineHeight: 1.4 }}>
-                ติดตั้งมาแล้ว <b style={{ color: "var(--primary-dark)", fontWeight: 700 }}>{r.days}</b> วัน
-              </div>
-              <div style={{ marginTop: 6 }}><StageBadge stageKey={r.job.stage} size="sm" /></div>
-            </div>
-          </button>
-        ))}
+        {/* ใช้แถวแบบ .rows ชุดเดียวกับที่เคยอยู่ในแผง "งานค้างไม่ขยับ" ไม่ใช่การ์ดมีกรอบแบบใบที่ติดปัญหา
+            ย้ายแผงแล้วหน้าตาต้องไม่เปลี่ยน คนจำงานเหล่านี้จากรูปร่างของแถว ไม่ได้จำจากว่ามันอยู่แผงไหน
+            ตัวเลขวันย้อมเขียว เพราะใบพวกนี้ไม่ได้มีอะไรผิด แค่ต้องรู้ว่าเดินหน้างานมานานแค่ไหนแล้ว */}
+        {running.length > 0 && (
+          <div className="rows">
+            {running.map((r) => (
+              <button key={r.job.id} onClick={() => onOpen(r.job)}>
+                <span className="mk" style={{ background: stIns.color }} />
+                <span className="bd">
+                  <span className="nm">{r.job.name}</span>
+                  <span className="mt">{[r.job.code, stIns.th].filter(Boolean).join(" · ")}</span>
+                </span>
+                <span className="when when-1l" style={{ color: "var(--primary)" }}>
+                  <b style={{ color: "var(--primary)" }}>ติดตั้งมาแล้ว</b>{r.days} วัน
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
