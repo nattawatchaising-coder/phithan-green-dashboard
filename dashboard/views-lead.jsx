@@ -220,6 +220,7 @@ function LoTechLoadPanel({ jobs, techs, onTech }) {
    ซึ่งไม่มีตัวเลือนไหนในระบบเดิมจับได้เลย */
 function LoStalePanel({ jobs, onOpen }) {
   const SF = window.SF;
+  const [more, setMore] = React.useState(false);
   const rows = React.useMemo(() => {
     const stale = [], unknown = [];
     (jobs || []).forEach((j) => {
@@ -237,13 +238,14 @@ function LoStalePanel({ jobs, onOpen }) {
     return { list: stale.concat(unknown).slice(0, 10) };
   }, [jobs]);
   const list = rows.list;
+  const shown = more ? list : list.slice(0, PNL_MAX);
 
   return (
     <div className="pnl">
       <PanelTitle title="งานค้างไม่ขยับ" />
       {list.length === 0 ? <Empty text="ไม่มีงานที่ค้างขั้นเดิมนานผิดปกติ" /> : (
         <div className="rows" style={{ maxHeight: 330, overflowY: "auto" }}>
-          {list.map((r) => {
+          {shown.map((r) => {
             const j = r.job;
             const st = (SF.STAGES || []).find((x) => x.key === j.stage) || { th: j.stage, color: "var(--text-3)" };
             const col = r.days == null ? "var(--text-3)" : (r.days >= 14 ? "#D93025" : (r.days >= 7 ? "#F59E0B" : st.color));
@@ -266,6 +268,7 @@ function LoStalePanel({ jobs, onOpen }) {
       )}
       {/* เชิงอรรถอธิบายวิธีนับวันเอาออกตามที่สั่ง
           (นับจากเวลาที่งานเข้าขั้นปัจจุบัน ไม่มีให้อ่านจึงขึ้นว่า "ไม่ทราบ") */}
+      {list.length > PNL_MAX && <PnlMore n={list.length - PNL_MAX} open={more} onToggle={() => setMore((v) => !v)} />}
     </div>
   );
 }

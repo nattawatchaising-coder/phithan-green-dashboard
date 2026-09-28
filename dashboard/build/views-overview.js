@@ -219,10 +219,30 @@ function PanelTitle({
     className: "r"
   }, right));
 }
+const PNL_MAX = 3;
+function PnlMore({
+  n,
+  open,
+  onToggle
+}) {
+  return React.createElement("button", {
+    className: "pnl-more",
+    onClick: onToggle
+  }, React.createElement("span", null, open ? "ย่อกลับ" : "ดูอีก " + n + " งาน"), React.createElement(Icon, {
+    name: "chevronDown",
+    size: 15,
+    color: "var(--text-2)",
+    style: {
+      transform: open ? "rotate(180deg)" : "none",
+      transition: "transform .18s"
+    }
+  }));
+}
 function AlertsPanel({
   jobs,
   onOpen
 }) {
+  const [more, setMore] = React.useState(false);
   const problems = jobs.filter(j => j.problem || j.delayed);
   const running = jobs.filter(j => j.stage === "install" && !j.problem && !j.delayed).map(j => ({
     job: j,
@@ -232,6 +252,17 @@ function AlertsPanel({
     th: "ดำเนินการติดตั้ง",
     color: "var(--primary)"
   };
+  const items = problems.map(j => ({
+    k: "p",
+    job: j
+  })).concat(running.map(r => ({
+    k: "r",
+    job: r.job,
+    days: r.days
+  })));
+  const shown = more ? items : items.slice(0, PNL_MAX);
+  const sProb = shown.filter(x => x.k === "p").map(x => x.job);
+  const sRun = shown.filter(x => x.k === "r");
   return React.createElement("div", {
     className: "pnl"
   }, React.createElement(PanelTitle, {
@@ -251,9 +282,9 @@ function AlertsPanel({
       marginLeft: -10,
       marginRight: -10
     }
-  }, problems.length === 0 && running.length === 0 && React.createElement(Empty, {
+  }, items.length === 0 && React.createElement(Empty, {
     text: "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E1B\u0E31\u0E0D\u0E2B\u0E32 \uD83C\uDF89"
-  }), problems.map(j => React.createElement("button", {
+  }), sProb.map(j => React.createElement("button", {
     key: j.id,
     onClick: () => onOpen(j),
     style: {
@@ -337,9 +368,9 @@ function AlertsPanel({
   }, React.createElement(StageBadge, {
     stageKey: j.stage,
     size: "sm"
-  }))))), running.length > 0 && React.createElement("div", {
+  }))))), sRun.length > 0 && React.createElement("div", {
     className: "rows"
-  }, running.map(r => React.createElement("button", {
+  }, sRun.map(r => React.createElement("button", {
     key: r.job.id,
     onClick: () => onOpen(r.job)
   }, React.createElement("span", {
@@ -362,7 +393,11 @@ function AlertsPanel({
     style: {
       color: "var(--primary)"
     }
-  }, "\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E21\u0E32\u0E41\u0E25\u0E49\u0E27"), r.days, " \u0E27\u0E31\u0E19"))))));
+  }, "\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E21\u0E32\u0E41\u0E25\u0E49\u0E27"), r.days, " \u0E27\u0E31\u0E19"))))), items.length > PNL_MAX && React.createElement(PnlMore, {
+    n: items.length - PNL_MAX,
+    open: more,
+    onToggle: () => setMore(v => !v)
+  }));
 }
 function SchedulePanel({
   jobs,
@@ -1509,5 +1544,7 @@ Object.assign(window, {
   Empty,
   OvHero,
   OvCalendar,
-  OvLayout
+  OvLayout,
+  PnlMore,
+  PNL_MAX
 });

@@ -429,11 +429,11 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 [data-theme="aurora"] .bar-rows>button:hover{background:var(--gr-hi)}
 
 /* การ์ดที่กดได้ก็ยกตัวรับเมาส์เหมือนกัน ให้ภาษาการชี้ทั้งหน้าเป็นชุดเดียว */
-.stat-rail>button,.permit-grid>button,.ov-cal-foot button{transition:background .16s ease,border-color .16s ease,
+.stat-rail>button,.permit-grid>button{transition:background .16s ease,border-color .16s ease,
   box-shadow .18s ease,transform .16s ease}
-.stat-rail>button:hover,.permit-grid>button:hover,.ov-cal-foot button:hover{transform:translateY(-3px);
+.stat-rail>button:hover,.permit-grid>button:hover{transform:translateY(-3px);
   box-shadow:var(--hov-sh-lg)}
-.stat-rail>button:active,.permit-grid>button:active,.ov-cal-foot button:active{transform:translateY(0);box-shadow:none}
+.stat-rail>button:active,.permit-grid>button:active{transform:translateY(0);box-shadow:none}
 /* แถวในรายการยกตัวไม่ได้ (เส้นคั่นระหว่างแถวจะขยับตาม) จึงใช้วงแหวนพื้นสีกว้าง 6px
    เป็นตัวบอกขอบเขตแถว แล้วเติมเงาใต้แถวให้หนาขึ้นเท่ากับที่อื่น */
 .rows>button{transition:background .14s ease,box-shadow .18s ease}
@@ -450,9 +450,9 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .ov-cal-grid button:hover,.ov-cal-nav button:hover{box-shadow:var(--hov-sh);transform:translateY(-1px)}
 .ov-cal-grid button:active,.ov-cal-nav button:active{transform:translateY(0);box-shadow:none}
 @media (prefers-reduced-motion: reduce){
-  .bar-rows>button,.stat-rail>button,.permit-grid>button,.ov-cal-foot button,
+  .bar-rows>button,.stat-rail>button,.permit-grid>button,
   .ov-cal-grid button,.ov-cal-nav button{transition:background .16s ease}
-  .bar-rows>button:hover,.stat-rail>button:hover,.permit-grid>button:hover,.ov-cal-foot button:hover,
+  .bar-rows>button:hover,.stat-rail>button:hover,.permit-grid>button:hover,
   .ov-cal-grid button:hover,.ov-cal-nav button:hover{transform:none}
 }
 
@@ -477,11 +477,16 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
    รายการเต็มเคยต่อท้ายตรงนี้ ซึ่งยืดปฏิทินยาวตามจำนวนงานของวันนั้นแบบไม่มีเพดาน */
 .ov-cal-foot{margin-top:14px;border-top:1px solid var(--border);padding-top:10px}
 .ov-cal-foot .em{font-size:11.5px;color:var(--text-3)}
-.ov-cal-foot button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;
-  padding:9px 11px;border-radius:11px;border:1px solid var(--border);background:var(--surface2);
+/* ปุ่มท้ายแผง — สรุปวันที่เลือกบนปฏิทิน และ "ดูงานที่เหลือ" ของแผงที่ตัดรายการไว้สามแถว
+   มีแต่ตัวหนังสือกับลูกศร ไม่มีทั้งกรอบและพื้น เพราะมันคือทางออกจากแผง ไม่ใช่ของอีกชิ้นในแผง
+   ใส่พื้นเทาเต็มใบเมื่อไร มันจะหนักกว่าทุกแถวที่มันสรุปอยู่ทันที */
+.ov-cal-foot button,.pnl-more{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;
+  padding:9px 11px;border-radius:11px;border:none;background:none;
   font-family:inherit;font-size:12px;font-weight:650;color:var(--text-1);cursor:pointer;
-  transition:background .14s,border-color .14s,box-shadow .18s ease,transform .16s ease}
-.ov-cal-foot button:hover{background:var(--surface3);border-color:var(--border-strong)}
+  transition:background .14s,color .14s}
+.ov-cal-foot button:hover,.pnl-more:hover{background:var(--surface2);color:var(--primary-dark)}
+/* ปุ่มนี้อยู่นอกกล่องที่เลื่อนได้ของแผงเสมอ ไม่งั้นต้องเลื่อนลงไปหาปุ่มที่บอกว่ามีของให้เลื่อนดู */
+.pnl-more{margin-top:10px}
 
 /* ป๊อปอัปรายการงานของวันที่เลือก */
 .ov-day-ov{position:fixed;inset:0;z-index:80;padding:24px;display:flex;align-items:center;justify-content:center;
@@ -848,7 +853,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/pm-paper.js?v=11"></script>
 <script src="dashboard/build/pm-form.js?v=11"></script>
 <script src="dashboard/build/drawer.js?v=69"></script>
-<script src="dashboard/build/views-overview.js?v=41"></script>
+<script src="dashboard/build/views-overview.js?v=42"></script>
 <script src="dashboard/build/views-board.js?v=34"></script>
 <script src="dashboard/build/views-table.js?v=31"></script>
 <script src="dashboard/build/views-report.js?v=9"></script>
@@ -866,7 +871,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/billing.js?v=5"></script>
 <script src="dashboard/build/bill-paper.js?v=6"></script>
 <script src="dashboard/build/views-billing.js?v=7"></script>
-<script src="dashboard/build/views-lead.js?v=13"></script>
+<script src="dashboard/build/views-lead.js?v=14"></script>
 <script src="dashboard/build/views-flow.js?v=14"></script>
 <script src="dashboard/build/daily.js?v=13"></script>
 <script src="dashboard/build/views-daily.js?v=33"></script>

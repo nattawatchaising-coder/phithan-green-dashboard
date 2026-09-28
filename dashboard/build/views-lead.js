@@ -361,6 +361,7 @@ function LoStalePanel({
   onOpen
 }) {
   const SF = window.SF;
+  const [more, setMore] = React.useState(false);
   const rows = React.useMemo(() => {
     const stale = [],
       unknown = [];
@@ -382,6 +383,7 @@ function LoStalePanel({
     };
   }, [jobs]);
   const list = rows.list;
+  const shown = more ? list : list.slice(0, PNL_MAX);
   return React.createElement("div", {
     className: "pnl"
   }, React.createElement(PanelTitle, {
@@ -394,7 +396,7 @@ function LoStalePanel({
       maxHeight: 330,
       overflowY: "auto"
     }
-  }, list.map(r => {
+  }, shown.map(r => {
     const j = r.job;
     const st = (SF.STAGES || []).find(x => x.key === j.stage) || {
       th: j.stage,
@@ -421,7 +423,11 @@ function LoStalePanel({
         color: "#D93025"
       } : null
     }, React.createElement("b", null, "\u0E04\u0E49\u0E32\u0E07\u0E02\u0E31\u0E49\u0E19\u0E19\u0E35\u0E49"), r.days == null ? "ไม่ทราบ" : r.days + " วัน"));
-  })));
+  })), list.length > PNL_MAX && React.createElement(PnlMore, {
+    n: list.length - PNL_MAX,
+    open: more,
+    onToggle: () => setMore(v => !v)
+  }));
 }
 function LoBottleneckPanel({
   jobs,

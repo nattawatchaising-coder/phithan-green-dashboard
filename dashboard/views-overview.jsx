@@ -87,7 +87,23 @@ function PanelTitle({ icon, iconColor, title, sub, right }) {
   );
 }
 
+/* ── แผงที่ตัดรายการไว้สามแถว ──────────────────────────────
+   แผงพวกนี้เรียงเป็นคู่สองคอลัมน์ ความสูงของแผงหนึ่งลากอีกแผงให้สูงตามเสมอ
+   วันที่งานค้างสิบใบ แผงข้าง ๆ ที่มีงานใบเดียวจะกลายเป็นกล่องว่างสูงเท่ากันทันที
+   ตัดไว้สามแถวแล้วให้ปุ่มท้ายแผงเป็นทางไปดูที่เหลือ ความสูงของหน้าจึงไม่ขึ้นกับจำนวนงาน */
+const PNL_MAX = 3;
+function PnlMore({ n, open, onToggle }) {
+  return (
+    <button className="pnl-more" onClick={onToggle}>
+      <span>{open ? "ย่อกลับ" : "ดูอีก " + n + " งาน"}</span>
+      <Icon name="chevronDown" size={15} color="var(--text-2)"
+        style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
+    </button>
+  );
+}
+
 function AlertsPanel({ jobs, onOpen }) {
+  const [more, setMore] = React.useState(false);
   const problems = jobs.filter((j) => j.problem || j.delayed);
   /* งานที่กำลังติดตั้งอยู่ย้ายมาจากแผง "งานค้างไม่ขยับ" — การอยู่ขั้นนี้นานไม่ใช่การค้าง
      (โครงการหนึ่งกินเวลาหลายสัปดาห์) ปนอยู่กองเดียวกับงานที่ค้างจริงจึงอ่านผิดความหมาย
@@ -100,6 +116,13 @@ function AlertsPanel({ jobs, onOpen }) {
     .filter((r) => r.days != null)
     .sort((a, b) => b.days - a.days);
   const stIns = (window.SF.STAGES || []).find((x) => x.key === "install") || { th: "ดำเนินการติดตั้ง", color: "var(--primary)" };
+  /* นับสองกองรวมกันก่อนตัด ไม่ใช่ตัดกองละสามแถว — ไม่งั้นแผงยาวหกแถวตอนมีของครบทั้งสองกอง
+     ตัดจากท้ายรายการรวม กองที่ติดปัญหาจึงได้ที่นั่งก่อนเสมอ */
+  const items = problems.map((j) => ({ k: "p", job: j }))
+    .concat(running.map((r) => ({ k: "r", job: r.job, days: r.days })));
+  const shown = more ? items : items.slice(0, PNL_MAX);
+  const sProb = shown.filter((x) => x.k === "p").map((x) => x.job);
+  const sRun = shown.filter((x) => x.k === "r");
   return (
     <div className="pnl">
       <PanelTitle icon="alert" iconColor="#EF4444" title="งานที่ต้องดูแล" />
@@ -107,8 +130,8 @@ function AlertsPanel({ jobs, onOpen }) {
           ดันขอบกล่องออกข้างละ 10px ด้วย padding แล้วดึงกลับด้วย margin ติดลบเท่ากัน ของข้างในไม่ขยับสักพิกเซล */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16, maxHeight: 280, overflowY: "auto",
         paddingLeft: 10, paddingRight: 10, marginLeft: -10, marginRight: -10 }}>
-        {problems.length === 0 && running.length === 0 && <Empty text="ไม่มีงานติดปัญหา 🎉" />}
-        {problems.map((j) => (
+        {items.length === 0 && <Empty text="ไม่มีงานติดปัญหา 🎉" />}
+        {sProb.map((j) => (
           /* เดิมทาพื้นแดง + ขอบแดง + ขีดแดง = บอกเรื่องเดียวกัน 3 ที่ ทั้งแผงเลยแดงไปหมดจนไม่รู้ว่าใบไหนหนักกว่ากัน
              เหลือขีดแดงอย่างเดียว แล้วให้ป้าย "ล่าช้า" เป็นตัวไล่ระดับความหนักแทน */
           <button key={j.id} onClick={() => onOpen(j)} style={{ display: "flex", gap: 12, padding: "11px 12px", textAlign: "left",
@@ -132,9 +155,9 @@ function AlertsPanel({ jobs, onOpen }) {
         {/* ใช้แถวแบบ .rows ชุดเดียวกับที่เคยอยู่ในแผง "งานค้างไม่ขยับ" ไม่ใช่การ์ดมีกรอบแบบใบที่ติดปัญหา
             ย้ายแผงแล้วหน้าตาต้องไม่เปลี่ยน คนจำงานเหล่านี้จากรูปร่างของแถว ไม่ได้จำจากว่ามันอยู่แผงไหน
             ตัวเลขวันย้อมเขียว เพราะใบพวกนี้ไม่ได้มีอะไรผิด แค่ต้องรู้ว่าเดินหน้างานมานานแค่ไหนแล้ว */}
-        {running.length > 0 && (
+        {sRun.length > 0 && (
           <div className="rows">
-            {running.map((r) => (
+            {sRun.map((r) => (
               <button key={r.job.id} onClick={() => onOpen(r.job)}>
                 <span className="mk" style={{ background: stIns.color }} />
                 <span className="bd">
@@ -149,6 +172,7 @@ function AlertsPanel({ jobs, onOpen }) {
           </div>
         )}
       </div>
+      {items.length > PNL_MAX && <PnlMore n={items.length - PNL_MAX} open={more} onToggle={() => setMore((v) => !v)} />}
     </div>
   );
 }
@@ -689,4 +713,4 @@ function BrandPanel({ jobs }) {
   );
 }
 
-Object.assign(window, { OverviewView, KpiCard, StatRail, PanelTitle, Empty, OvHero, OvCalendar, OvLayout });
+Object.assign(window, { OverviewView, KpiCard, StatRail, PanelTitle, Empty, OvHero, OvCalendar, OvLayout, PnlMore, PNL_MAX });
