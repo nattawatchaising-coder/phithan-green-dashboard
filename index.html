@@ -390,6 +390,11 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 :root{--hov-sh:0 8px 20px rgba(8,20,14,.16);--hov-sh-lg:0 14px 30px rgba(8,20,14,.20)}
 [data-theme="aurora"]{--hov-sh:0 8px 22px rgba(0,0,0,.46);--hov-sh-lg:0 14px 32px rgba(0,0,0,.52)}
 
+/* แผงภาระงานต่อช่างมีกรอบเลื่อน (maxHeight+overflowY เขียนไว้ในไฟล์ jsx) — overflow-y:auto
+   ทำให้แกนนอนถูกตัดไปด้วยโดยอัตโนมัติ เงาซ้าย/ขวาของแถวจึงโดนเฉือนหายที่ขอบกล่องพอดี
+   ดันขอบกล่องออกข้างละ 12px ด้วย padding แล้วดึงกลับเข้ามาด้วย margin ติดลบเท่ากัน
+   ตำแหน่งแถวไม่ขยับสักพิกเซล แต่มีที่ว่างให้เงาตกได้ครบทั้งสี่ด้าน */
+.bar-rows{padding-left:12px;padding-right:12px;margin-left:-12px;margin-right:-12px}
 .bar-rows>button{background:none;border:0;border-radius:12px;padding:7px 9px;
   transition:background .16s ease,box-shadow .18s ease,transform .16s ease}
 .bar-rows>button:hover{background:var(--surface2);transform:translateY(-2px);box-shadow:var(--hov-sh)}
@@ -511,7 +516,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .rows{display:flex;flex-direction:column}
 .rows>button{display:flex;gap:13px;align-items:center;padding:13px 4px;text-align:left;width:100%;
   background:none;border:0;border-top:1px solid var(--border);cursor:pointer;font-family:inherit;
-  transition:background .14s;border-radius:0;position:relative}
+  transition:background .14s;border-radius:12px;position:relative}
 .rows>button:first-child{border-top:0}
 .rows>button:hover{background:var(--surface2)}
 .rows .mk{width:9px;height:9px;border-radius:99px;flex:0 0 auto;margin-left:3px}
