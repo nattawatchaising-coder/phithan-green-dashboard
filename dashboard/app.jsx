@@ -890,6 +890,7 @@ function App() {
           omAlerts={omLive.alerts} onOpenOm={can(role, "om") ? openOm : null}
           notifOpen={notifOpen} onBell={() => setNotifOpen((v) => !v)} onCloseNotif={() => setNotifOpen(false)}
           onOpenNotif={openFromNotif} onMarkAll={() => myNotifs.forEach((n) => { if (!n.read) notif.markRead(n.id); })}
+          me={auth.current} aurora={aurora} onToggleAurora={toggleAurora}
           onMenuOpen={() => setSidebarOpen(true)} />
 
         <div className="app-content" style={view === "board" ? { display: "flex", flexDirection: "column", minHeight: 0 } : {}}>
@@ -1365,7 +1366,7 @@ function TechFilter({ value, onChange, techs, counts, nameOf }) {
   );
 }
 
-function Header({ view, navList, plain, subtitle, ownOnly, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, stageMode, quickFilter, setQuickFilter, techFilter, setTechFilter, techCounts, techs, onAdd, canAdd, onMap, showBell, unread, notifItems, lateAlerts, omAlerts, onOpenOm, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen }) {
+function Header({ view, navList, plain, subtitle, ownOnly, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, stageMode, quickFilter, setQuickFilter, techFilter, setTechFilter, techCounts, techs, onAdd, canAdd, onMap, showBell, unread, notifItems, lateAlerts, omAlerts, onOpenOm, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen, me, aurora, onToggleAurora }) {
   const nav = navList.find((n) => n.key === view) || NAV.find((n) => n.key === view);
   const QUICK_LABELS = { active: "กำลังดำเนินการ", delayed: "ล่าช้า", ready: "อุปกรณ์พร้อมติดตั้ง", battery: "มีแบตเตอรี่",
     problem: "ติดปัญหาหน้างาน", noinstall: "ยังไม่นัดวันติดตั้ง" };
@@ -1459,6 +1460,26 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
             <button className="btn-add" onClick={onAdd}>
               <Icon name="plus" size={17} color="#fff" sw={2.4} /><span>เพิ่มงาน</span>
             </button>
+          )}
+          {/* สวิตช์สว่าง/มืด — สลับชุดตัวแปรสีทั้งระบบ (:root ↔ [data-theme="aurora"] ใน tokens.css)
+              ยังมีปุ่มเดิมในแถบตั้งค่าของเมนูซ้ายอยู่ ทั้งสองปุ่มเรียกตัวเดียวกัน ไม่ใช่สเตตคนละตัว */}
+          {onToggleAurora && !(isMobile && searchOpen) && (
+            <button onClick={onToggleAurora} className="hdr-icon-btn"
+              title={aurora ? "สลับเป็นโหมดสว่าง" : "สลับเป็นโหมดมืด"} aria-label="สลับโหมดสว่าง/มืด">
+              <Icon name={aurora ? "sun" : "moon"} size={18} color="var(--text-2)" />
+            </button>
+          )}
+          {/* ชิปผู้ใช้ — ชื่อกับตำแหน่งอยู่ท้ายหัวจอแบบแดชบอร์ดทั่วไป
+              เดิมอยู่ก้นแถบเมนูซ้ายเท่านั้น ซึ่งมองไม่เห็นเลยตอนแถบเมนูพับหรือบนมือถือ
+              ตัวจัดการบัญชี/ออกจากระบบ ยังอยู่ที่แถบเมนูที่เดียว ชิปนี้เป็นป้ายบอกว่ากำลังใช้สิทธิ์ของใคร */}
+          {!isMobile && me && (
+            <div className="hdr-user" title={me.name || ""}>
+              <span className="hdr-user-av">{(me.name || "?").slice(0, 1)}</span>
+              <span className="hdr-user-tx">
+                <b>{me.name}</b>
+                <i>{userRoles(me).map((r) => (ROLE_INFO[r] || ROLE_INFO.tech).short).join(" · ")}</i>
+              </span>
+            </div>
           )}
         </div>
       </div>

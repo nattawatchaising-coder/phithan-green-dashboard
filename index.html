@@ -112,6 +112,21 @@ label { min-width: 0; }
 .clear-chip { border: none; background: var(--surface3); color: var(--text-2); font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; cursor: pointer; margin-left: 4px; font-family: inherit; }
 
 .header-actions { display: flex; align-items: center; gap: 12px; }
+/* ปุ่มไอคอนบนหัวจอ (แผนที่ · กระดิ่ง · สลับสว่างมืด) — ขนาดและขอบชุดเดียวกันทุกปุ่ม
+   ก่อนหน้านี้แต่ละปุ่มเขียนสไตล์ซ้ำกันในไฟล์ jsx ปุ่มใหม่จึงเพี้ยนจากของเดิมได้ง่าย */
+.hdr-icon-btn { width: 40px; height: 40px; border-radius: 11px; border: 1px solid var(--border-strong);
+  background: var(--surface); cursor: pointer; display: grid; place-items: center; color: var(--text-2); flex-shrink: 0; }
+.hdr-icon-btn:hover { background: var(--surface2); }
+/* ชิปผู้ใช้ท้ายหัวจอ — ป้ายบอกว่ากำลังใช้สิทธิ์ของใคร ไม่ใช่ปุ่ม จึงไม่มี hover และกดไม่ได้ */
+.hdr-user { display: flex; align-items: center; gap: 9px; padding: 5px 12px 5px 5px; border-radius: 99px;
+  background: var(--surface2); border: 1px solid var(--border); flex-shrink: 0; max-width: 210px; }
+.hdr-user-av { width: 30px; height: 30px; border-radius: 99px; flex-shrink: 0; display: grid; place-items: center;
+  background: var(--primary); color: #fff; font-weight: 700; font-size: 13px; text-transform: uppercase; }
+.hdr-user-tx { min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+.hdr-user-tx b { font-size: 12.5px; font-weight: 700; color: var(--text-1);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hdr-user-tx i { font-style: normal; font-size: 10.5px; color: var(--text-3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .search-box { display: flex; align-items: center; gap: 8px; background: var(--surface2); border: 1px solid var(--border);
   border-radius: 12px; padding: 9px 13px; width: 280px; transition: border-color .15s, box-shadow .15s, background .15s; }
 .search-box:focus-within { background: var(--surface); border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
@@ -588,6 +603,6 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/ot-paper.js?v=6"></script>
 <script src="dashboard/build/views-line.js?v=2"></script>
 <script src="dashboard/build/guide.js?v=5"></script>
-<script src="dashboard/build/app.js?v=169"></script>
+<script src="dashboard/build/app.js?v=170"></script>
 </body>
 </html>

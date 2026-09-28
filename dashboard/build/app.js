@@ -1197,6 +1197,9 @@ function App() {
     onMarkAll: () => myNotifs.forEach(n => {
       if (!n.read) notif.markRead(n.id);
     }),
+    me: auth.current,
+    aurora: aurora,
+    onToggleAurora: toggleAurora,
     onMenuOpen: () => setSidebarOpen(true)
   }), React.createElement("div", {
     className: "app-content",
@@ -2181,7 +2184,10 @@ function Header({
   onCloseNotif,
   onOpenNotif,
   onMarkAll,
-  onMenuOpen
+  onMenuOpen,
+  me,
+  aurora,
+  onToggleAurora
 }) {
   const nav = navList.find(n => n.key === view) || NAV.find(n => n.key === view);
   const QUICK_LABELS = {
@@ -2390,7 +2396,23 @@ function Header({
     size: 17,
     color: "#fff",
     sw: 2.4
-  }), React.createElement("span", null, "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E07\u0E32\u0E19")))), !plain && (!isMobile || showTechFilter) && React.createElement("div", {
+  }), React.createElement("span", null, "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E07\u0E32\u0E19")), onToggleAurora && !(isMobile && searchOpen) && React.createElement("button", {
+    onClick: onToggleAurora,
+    className: "hdr-icon-btn",
+    title: aurora ? "สลับเป็นโหมดสว่าง" : "สลับเป็นโหมดมืด",
+    "aria-label": "\u0E2A\u0E25\u0E31\u0E1A\u0E42\u0E2B\u0E21\u0E14\u0E2A\u0E27\u0E48\u0E32\u0E07/\u0E21\u0E37\u0E14"
+  }, React.createElement(Icon, {
+    name: aurora ? "sun" : "moon",
+    size: 18,
+    color: "var(--text-2)"
+  })), !isMobile && me && React.createElement("div", {
+    className: "hdr-user",
+    title: me.name || ""
+  }, React.createElement("span", {
+    className: "hdr-user-av"
+  }, (me.name || "?").slice(0, 1)), React.createElement("span", {
+    className: "hdr-user-tx"
+  }, React.createElement("b", null, me.name), React.createElement("i", null, userRoles(me).map(r => (ROLE_INFO[r] || ROLE_INFO.tech).short).join(" · ")))))), !plain && (!isMobile || showTechFilter) && React.createElement("div", {
     className: "header-filters"
   }, !isMobile && React.createElement(Segmented, {
     value: typeFilter,
