@@ -410,8 +410,8 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 /* แถวในรายการยกตัวไม่ได้ (เส้นคั่นระหว่างแถวจะขยับตาม) จึงใช้วงแหวนพื้นสีกว้าง 6px
    เป็นตัวบอกขอบเขตแถว แล้วเติมเงาใต้แถวให้หนาขึ้นเท่ากับที่อื่น */
 .rows>button{transition:background .14s ease,box-shadow .18s ease}
-.rows>button:hover{box-shadow:0 0 0 6px var(--surface2),var(--hov-sh)}
-[data-theme="aurora"] .rows>button:hover{box-shadow:0 0 0 6px var(--gr-hi),var(--hov-sh)}
+.rows>button:hover{box-shadow:0 0 0 8px var(--surface2),var(--hov-sh-lg)}
+[data-theme="aurora"] .rows>button:hover{box-shadow:0 0 0 8px var(--gr-hi),var(--hov-sh-lg)}
 /* ช่องวันในปฏิทินกับปุ่มเลื่อนเดือน — เล็กเกินกว่าจะยกตัวได้สวย ใช้พื้นเข้มขึ้นกับเงาสั้น ๆ แทน */
 .ov-cal-grid button,.ov-cal-nav button{transition:background .16s ease,box-shadow .18s ease,transform .16s ease}
 .ov-cal-grid button:hover,.ov-cal-nav button:hover{box-shadow:var(--hov-sh);transform:translateY(-1px)}
@@ -513,7 +513,11 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .pnl-hd .s{font-size:11.5px;color:var(--text-3);font-weight:500}
 .pnl-hd .r{margin-left:auto}
 /* รายการแถว — แตะได้ทั้งแถว คั่นด้วยเส้นผม ไม่ใช่กล่องมีพื้นสีทีละใบ */
-.rows{display:flex;flex-direction:column}
+/* เผื่อที่ข้างละ 10px ให้วงแหวนกับเงาตอนชี้ — แผงที่ตั้ง maxHeight+overflowY ไว้ในไฟล์ jsx
+   (งานค้างไม่ขยับ ฯลฯ) จะตัดทุกอย่างที่เลยขอบกล่อง ไฮไลต์เลยโดนเฉือนตรงเป็นสี่เหลี่ยมทั้งสองข้าง
+   padding บวก margin ติดลบเท่ากัน = ขอบกล่องขยายออก แต่ตำแหน่งตัวหนังสือเท่าเดิมเป๊ะ */
+.rows{display:flex;flex-direction:column;
+  padding-left:10px;padding-right:10px;margin-left:-10px;margin-right:-10px}
 .rows>button{display:flex;gap:13px;align-items:center;padding:13px 4px;text-align:left;width:100%;
   background:none;border:0;border-top:1px solid var(--border);cursor:pointer;font-family:inherit;
   transition:background .14s;border-radius:12px;position:relative}
