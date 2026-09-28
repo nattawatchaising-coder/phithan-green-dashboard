@@ -90,6 +90,13 @@ const permitStageOf = (key) => (window.PERMIT_COLS || []).find((c) => c.key === 
    ซ่อนจากแถบเมนู ไม่ใช่ตัดสิทธิ์ — หน้ายังต้องเข้าได้อยู่ เพราะกดการ์ดลูกค้าในบอร์ดจะพาไปหน้ารายการลูกค้า
    ถ้าตัดออกจากรายการที่อนุญาต ตัวเช็คสิทธิ์จะเด้งกลับทันทีตอนกดการ์ด */
 const NAV_IN_BOARD = ["leads", "permit"];
+
+/* หน้าไหนมีช่องค้นหาบนหัว และช่องนั้นค้นอะไร — ดูคอมเมนต์ที่ searchPh ใน Header */
+const HDR_SEARCH = {
+  board: "ค้นหา...",
+  table: "ค้นหา...",
+  billing: "ค้นหา รหัสงาน · ลูกค้า · เลขที่เอกสาร · เงื่อนไข",
+};
 const navForRole = (roles, techId) => NAV
   .filter((n) => (n.own ? !!techId : (!n.perm || can(roles, n.perm))))
   .map((n) => (NAV_IN_BOARD.indexOf(n.key) !== -1 ? Object.assign({}, n, { hidden: true }) : n));
@@ -926,6 +933,7 @@ function App() {
           {/* งวดงานเป็นเรื่องของสัญญาทั้งฉบับ ไม่ใช่คิวงานของใครคนหนึ่ง จึงดูจากงานทั้งหมดที่ผู้ใช้เห็น
               onSaveBills เป็น null เมื่อไม่มีสิทธิ์ — กั้นที่จุดต่อสาย หน้าจอจึงเขียนอะไรไม่ได้เลยแม้กดถึงปุ่ม */}
           {view === "billing" && <window.BillingView jobs={jobs} quotes={quoteStore.quotes} leads={leadStore.leads}
+            q={search} setQ={setSearch}
             role={role} currentUser={auth.current} onOpenJob={(id) => setSelected(id)}
             onSetup={can(role, "billing") ? (j) => { setBlRow(null); setBlJob(j); } : null}
             onSaveBills={can(role, "billing") ? (id, bills) => store.patch(id, { bills }) : null}
@@ -1372,6 +1380,13 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
   const stList = pMode ? (window.PERMIT_COLS || []) : window.SF.STAGES;
   const stInfo = (k) => (pMode ? permitStageOf(k) : stageOf(k));
   const stLabel = pMode ? "ขั้นขออนุญาต" : "ขั้นงาน";
+  /* ปุ่มแผนที่กับปุ่มเปิดงานใหม่ — ขึ้นเฉพาะสองหน้าที่ทำงานกับงานทั้งบริษัทเป็นรายใบ
+     หน้าอื่นเคยมีปุ่มพวกนี้บนหัวทั้งที่ไม่เกี่ยวกับสิ่งที่อยู่ในหน้าเลย */
+  const jobTools = view === "board" || view === "table";
+  /* ช่องค้นหาบนหัว — มีเฉพาะหน้าที่มีอะไรให้ค้นจริง และข้อความบอกให้ตรงว่าหน้านั้นค้นอะไรได้
+     หน้าไหนมีคีย์ในตารางนี้ ต้องรับ search/setSearch จาก AppShell ไปใช้เป็นตัวกรองของหน้าตัวเอง
+     (ห้ามมีช่องค้นหาของหน้าซ้อนอยู่ในหน้าอีกช่อง — สองช่องกรองของเดียวกันคือที่มาของการพิมพ์ผิดช่อง) */
+  const searchPh = HDR_SEARCH[view];
   // มือถือ: ช่องค้นหายุบเป็นปุ่มสีเขียว กดแล้วค่อยขยายเป็นช่องพิมพ์ (ประหยัดพื้นที่หัว)
   const [searchOpen, setSearchOpen] = React.useState(false);
   const searchRef = React.useRef(null);
@@ -1398,12 +1413,33 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
             {techFilter && <span> · ช่าง: {techName(techFilter)} <button onClick={() => setTechFilter(null)} className="clear-chip">ล้าง ✕</button></span>}
           </p>
         </div>
-        {/* หัวหน้าจอเหลือแค่กระดิ่งแจ้งเตือน
-            ช่องค้นหา · ปุ่มแผนที่ · ปุ่มเพิ่มงาน เคยอยู่ตรงนี้ทุกหน้า รวมถึงหน้าที่มันไม่เกี่ยวเลย
-            (เบิกเงินหน้างาน · เอกสารงวดงาน · งานบริการหลังการขาย) — พิมพ์ค้นหาในหน้าพวกนั้นแล้วไม่มีอะไรเกิดขึ้น
-            สเตต search กับ onMap/onAdd ยังอยู่ครบใน AppShell ไม่ได้ถอดออก
-            ถ้าจะเอากลับมา ให้ไปไว้ในตัวหน้าที่ใช้มันจริง อย่าเอากลับมาไว้บนหัวรวมอีก */}
         <div className="header-actions">
+          {searchPh && (isMobile && !searchOpen ? (
+            <button onClick={() => setSearchOpen(true)} title="ค้นหา" aria-label="ค้นหา"
+              style={{ width: 40, height: 40, borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff",
+                cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+              <Icon name="search" size={18} color="#fff" />
+            </button>
+          ) : (
+            <div className="search-box" style={isMobile ? { maxWidth: "none", flex: 1 } : undefined}>
+              <Icon name="search" size={16} color="var(--text-3)" />
+              <input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} placeholder={searchPh}
+                onBlur={() => { if (isMobile && !search.trim()) setSearchOpen(false); }} />
+              {isMobile && (
+                <button onMouseDown={(e) => e.preventDefault()} onClick={() => { setSearch(""); setSearchOpen(false); }} title="ปิดค้นหา" aria-label="ปิดค้นหา"
+                  style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 7, border: "none", background: "var(--surface3)", color: "var(--text-3)", cursor: "pointer", display: "grid", placeItems: "center" }}>
+                  <Icon name="x" size={14} color="var(--text-3)" />
+                </button>
+              )}
+            </div>
+          ))}
+          {jobTools && onMap && !(isMobile && searchOpen) && (
+            <button onClick={onMap} title="แผนที่งาน" aria-label="แผนที่งาน"
+              style={{ width: 40, height: 40, borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
+              <Icon name="map" size={18} color="var(--text-2)" />
+            </button>
+          )}
           {showBell && !(isMobile && searchOpen) && (
             <div style={{ position: "relative", flexShrink: 0 }}>
               <button onClick={onBell} aria-label="การแจ้งเตือน"
@@ -1418,6 +1454,11 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
               {notifOpen && <NotifPanel items={notifItems} lateAlerts={lateAlerts} omAlerts={omAlerts} onOpenOm={onOpenOm}
                 onClose={onCloseNotif} onOpenJob={onOpenNotif} onMarkAll={onMarkAll} />}
             </div>
+          )}
+          {jobTools && canAdd && !(isMobile && searchOpen) && (
+            <button className="btn-add" onClick={onAdd}>
+              <Icon name="plus" size={17} color="#fff" sw={2.4} /><span>เพิ่มงาน</span>
+            </button>
           )}
         </div>
       </div>

@@ -2184,10 +2184,12 @@ function BillingView({
   onOpenJob,
   onSaveBills,
   onSetup,
-  onSkip
+  onSkip,
+  q,
+  setQ
 }) {
   const today = window.drToday ? window.drToday() : "";
-  const [q, setQ] = React.useState("");
+  q = q || "";
   const [filter, setFilter] = React.useState("all");
   const [onlyNew, setOnlyNew] = React.useState(false);
   const [print, setPrint] = React.useState(null);
@@ -2351,14 +2353,7 @@ function BillingView({
       alignItems: "center",
       marginBottom: 14
     }
-  }, React.createElement("input", {
-    value: q,
-    onChange: e => setQ(e.target.value),
-    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32 \u0E23\u0E2B\u0E31\u0E2A\u0E07\u0E32\u0E19 \xB7 \u0E25\u0E39\u0E01\u0E04\u0E49\u0E32 \xB7 \u0E40\u0E25\u0E02\u0E17\u0E35\u0E48\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23 \xB7 \u0E40\u0E07\u0E37\u0E48\u0E2D\u0E19\u0E44\u0E02",
-    style: Object.assign({}, BL_INPUT(), {
-      maxWidth: 320
-    })
-  }), chip("all", "ทั้งหมด"), chip("ready", "ถึงงวด"), chip("billed", "ออกเอกสารแล้ว"), chip("accepted", "ส่งมอบเอกสารแล้ว"), chip("paid", "รับเงินแล้ว"), chip("overdue", "เลยกำหนด"), React.createElement("label", {
+  }, chip("all", "ทั้งหมด"), chip("ready", "ถึงงวด"), chip("billed", "ออกเอกสารแล้ว"), chip("accepted", "ส่งมอบเอกสารแล้ว"), chip("paid", "รับเงินแล้ว"), chip("overdue", "เลยกำหนด"), React.createElement("label", {
     style: {
       display: "inline-flex",
       alignItems: "center",

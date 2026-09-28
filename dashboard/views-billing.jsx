@@ -1051,9 +1051,11 @@ function BlPrintHost({ job, row, onClose }) {
 /* ══════════════════════════════════════════════════
    หน้ารวมงวดงาน — มุมของบัญชี: วันนี้ต้องวางบิลใบไหน ค้างรับเท่าไร
    ══════════════════════════════════════════════════ */
-function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSaveBills, onSetup, onSkip }) {
+/* q/setQ มาจากช่องค้นหาบนหัวจอ (HDR_SEARCH ใน app.jsx) ไม่ใช่สเตตของหน้านี้เอง
+   เดิมหน้านี้มีช่องค้นหาของตัวเองอยู่เหนือชิปกรอง ซึ่งอยู่คนละที่กับช่องบนหัวที่ทุกหน้าใช้ */
+function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSaveBills, onSetup, onSkip, q, setQ }) {
   const today = window.drToday ? window.drToday() : "";
-  const [q, setQ] = React.useState("");
+  q = q || "";
   const [filter, setFilter] = React.useState("all");
   const [onlyNew, setOnlyNew] = React.useState(false);
   const [print, setPrint] = React.useState(null);
@@ -1160,8 +1162,6 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
       </div>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา รหัสงาน · ลูกค้า · เลขที่เอกสาร · เงื่อนไข"
-          style={Object.assign({}, BL_INPUT(), { maxWidth: 320 })} />
         {chip("all", "ทั้งหมด")}
         {chip("ready", "ถึงงวด")}
         {chip("billed", "ออกเอกสารแล้ว")}

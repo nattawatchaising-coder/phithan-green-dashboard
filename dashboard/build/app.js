@@ -135,6 +135,11 @@ const PERMIT_TODO = {
 const permitStageKey = j => j && j.permit && j.permit.status || "todo";
 const permitStageOf = key => (window.PERMIT_COLS || []).find(c => c.key === key) || PERMIT_TODO;
 const NAV_IN_BOARD = ["leads", "permit"];
+const HDR_SEARCH = {
+  board: "ค้นหา...",
+  table: "ค้นหา...",
+  billing: "ค้นหา รหัสงาน · ลูกค้า · เลขที่เอกสาร · เงื่อนไข"
+};
 const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm)).map(n => NAV_IN_BOARD.indexOf(n.key) !== -1 ? Object.assign({}, n, {
   hidden: true
 }) : n);
@@ -1278,6 +1283,8 @@ function App() {
     jobs: jobs,
     quotes: quoteStore.quotes,
     leads: leadStore.leads,
+    q: search,
+    setQ: setSearch,
     role: role,
     currentUser: auth.current,
     onOpenJob: id => setSelected(id),
@@ -2196,6 +2203,8 @@ function Header({
   const stList = pMode ? window.PERMIT_COLS || [] : window.SF.STAGES;
   const stInfo = k => pMode ? permitStageOf(k) : stageOf(k);
   const stLabel = pMode ? "ขั้นขออนุญาต" : "ขั้นงาน";
+  const jobTools = view === "board" || view === "table";
+  const searchPh = HDR_SEARCH[view];
   const [searchOpen, setSearchOpen] = React.useState(false);
   const searchRef = React.useRef(null);
   React.useEffect(() => {
@@ -2242,7 +2251,89 @@ function Header({
     className: "clear-chip"
   }, "\u0E25\u0E49\u0E32\u0E07 \u2715")))), React.createElement("div", {
     className: "header-actions"
-  }, showBell && !(isMobile && searchOpen) && React.createElement("div", {
+  }, searchPh && (isMobile && !searchOpen ? React.createElement("button", {
+    onClick: () => setSearchOpen(true),
+    title: "\u0E04\u0E49\u0E19\u0E2B\u0E32",
+    "aria-label": "\u0E04\u0E49\u0E19\u0E2B\u0E32",
+    style: {
+      width: 40,
+      height: 40,
+      borderRadius: 11,
+      border: "none",
+      background: "var(--primary)",
+      color: "#fff",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "search",
+    size: 18,
+    color: "#fff"
+  })) : React.createElement("div", {
+    className: "search-box",
+    style: isMobile ? {
+      maxWidth: "none",
+      flex: 1
+    } : undefined
+  }, React.createElement(Icon, {
+    name: "search",
+    size: 16,
+    color: "var(--text-3)"
+  }), React.createElement("input", {
+    ref: searchRef,
+    value: search,
+    onChange: e => setSearch(e.target.value),
+    placeholder: searchPh,
+    onBlur: () => {
+      if (isMobile && !search.trim()) setSearchOpen(false);
+    }
+  }), isMobile && React.createElement("button", {
+    onMouseDown: e => e.preventDefault(),
+    onClick: () => {
+      setSearch("");
+      setSearchOpen(false);
+    },
+    title: "\u0E1B\u0E34\u0E14\u0E04\u0E49\u0E19\u0E2B\u0E32",
+    "aria-label": "\u0E1B\u0E34\u0E14\u0E04\u0E49\u0E19\u0E2B\u0E32",
+    style: {
+      flexShrink: 0,
+      width: 22,
+      height: 22,
+      borderRadius: 7,
+      border: "none",
+      background: "var(--surface3)",
+      color: "var(--text-3)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 14,
+    color: "var(--text-3)"
+  })))), jobTools && onMap && !(isMobile && searchOpen) && React.createElement("button", {
+    onClick: onMap,
+    title: "\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48\u0E07\u0E32\u0E19",
+    "aria-label": "\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48\u0E07\u0E32\u0E19",
+    style: {
+      width: 40,
+      height: 40,
+      borderRadius: 11,
+      border: "1px solid var(--border-strong)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)",
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "map",
+    size: 18,
+    color: "var(--text-2)"
+  })), showBell && !(isMobile && searchOpen) && React.createElement("div", {
     style: {
       position: "relative",
       flexShrink: 0
@@ -2291,7 +2382,15 @@ function Header({
     onClose: onCloseNotif,
     onOpenJob: onOpenNotif,
     onMarkAll: onMarkAll
-  })))), !plain && (!isMobile || showTechFilter) && React.createElement("div", {
+  })), jobTools && canAdd && !(isMobile && searchOpen) && React.createElement("button", {
+    className: "btn-add",
+    onClick: onAdd
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 17,
+    color: "#fff",
+    sw: 2.4
+  }), React.createElement("span", null, "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E07\u0E32\u0E19")))), !plain && (!isMobile || showTechFilter) && React.createElement("div", {
     className: "header-filters"
   }, !isMobile && React.createElement(Segmented, {
     value: typeFilter,
