@@ -383,25 +383,39 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 /* แถวที่มีแท่งวัด (ภาระงานต่อช่าง · คอขวดตามขั้น) — ต้องรู้ว่ากำลังชี้แถวไหนอยู่
    แถวพวกนี้กดได้ทั้งแถวเหมือน .rows แต่เขียนสไตล์เองในไฟล์ jsx จึงไม่เคยมีสถานะ hover เลย
    ยกขึ้น 1px พร้อมเงาจาง ๆ ให้รู้สึกว่าแถวลอยขึ้นมารับเมาส์ ไม่ใช่แค่เปลี่ยนสีพื้น */
+/* ── เงาตอนเอาเมาส์ชี้: ประกาศไว้ที่เดียว ใช้ทั้งหน้า ──
+   สองระดับเท่านั้น — แถวในรายการใช้ระดับเล็ก การ์ดใช้ระดับใหญ่
+   ใครจะทำของที่กดได้ชิ้นใหม่ ให้หยิบสองตัวนี้ไปใช้ อย่าคิดเลขเงาเองใหม่ทุกครั้ง
+   ไม่งั้นความ "ยกตัวรับเมาส์" ของแต่ละแผงจะหนักเบาไม่เท่ากันภายในไม่กี่เดือน */
+:root{--hov-sh:0 8px 20px rgba(8,20,14,.16);--hov-sh-lg:0 14px 30px rgba(8,20,14,.20)}
+[data-theme="aurora"]{--hov-sh:0 8px 22px rgba(0,0,0,.46);--hov-sh-lg:0 14px 32px rgba(0,0,0,.52)}
+
 .bar-rows>button{background:none;border:0;border-radius:12px;padding:7px 9px;
   transition:background .16s ease,box-shadow .18s ease,transform .16s ease}
-.bar-rows>button:hover{background:var(--surface2);transform:translateY(-1px);
-  box-shadow:0 6px 16px rgba(8,20,14,.10)}
+.bar-rows>button:hover{background:var(--surface2);transform:translateY(-2px);box-shadow:var(--hov-sh)}
 .bar-rows>button:active{transform:translateY(0);box-shadow:none}
-[data-theme="aurora"] .bar-rows>button:hover{background:var(--gr-hi);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+[data-theme="aurora"] .bar-rows>button:hover{background:var(--gr-hi)}
 
 /* การ์ดที่กดได้ก็ยกตัวรับเมาส์เหมือนกัน ให้ภาษาการชี้ทั้งหน้าเป็นชุดเดียว */
-.stat-rail>button,.permit-grid>button{transition:background .16s ease,border-color .16s ease,
+.stat-rail>button,.permit-grid>button,.ov-cal-foot button{transition:background .16s ease,border-color .16s ease,
   box-shadow .18s ease,transform .16s ease}
-.stat-rail>button:hover,.permit-grid>button:hover{transform:translateY(-2px);
-  box-shadow:0 10px 24px rgba(8,20,14,.10)}
-.stat-rail>button:active,.permit-grid>button:active{transform:translateY(0);box-shadow:none}
-[data-theme="aurora"] .stat-rail>button:hover,[data-theme="aurora"] .permit-grid>button:hover{
-  box-shadow:0 10px 26px rgba(0,0,0,.4)}
-.rows>button:hover{box-shadow:0 0 0 6px var(--surface2),0 6px 16px rgba(8,20,14,.08)}
+.stat-rail>button:hover,.permit-grid>button:hover,.ov-cal-foot button:hover{transform:translateY(-3px);
+  box-shadow:var(--hov-sh-lg)}
+.stat-rail>button:active,.permit-grid>button:active,.ov-cal-foot button:active{transform:translateY(0);box-shadow:none}
+/* แถวในรายการยกตัวไม่ได้ (เส้นคั่นระหว่างแถวจะขยับตาม) จึงใช้วงแหวนพื้นสีกว้าง 6px
+   เป็นตัวบอกขอบเขตแถว แล้วเติมเงาใต้แถวให้หนาขึ้นเท่ากับที่อื่น */
+.rows>button{transition:background .14s ease,box-shadow .18s ease}
+.rows>button:hover{box-shadow:0 0 0 6px var(--surface2),var(--hov-sh)}
+[data-theme="aurora"] .rows>button:hover{box-shadow:0 0 0 6px var(--gr-hi),var(--hov-sh)}
+/* ช่องวันในปฏิทินกับปุ่มเลื่อนเดือน — เล็กเกินกว่าจะยกตัวได้สวย ใช้พื้นเข้มขึ้นกับเงาสั้น ๆ แทน */
+.ov-cal-grid button,.ov-cal-nav button{transition:background .16s ease,box-shadow .18s ease,transform .16s ease}
+.ov-cal-grid button:hover,.ov-cal-nav button:hover{box-shadow:var(--hov-sh);transform:translateY(-1px)}
+.ov-cal-grid button:active,.ov-cal-nav button:active{transform:translateY(0);box-shadow:none}
 @media (prefers-reduced-motion: reduce){
-  .bar-rows>button,.stat-rail>button,.permit-grid>button{transition:background .16s ease}
-  .bar-rows>button:hover,.stat-rail>button:hover,.permit-grid>button:hover{transform:none}
+  .bar-rows>button,.stat-rail>button,.permit-grid>button,.ov-cal-foot button,
+  .ov-cal-grid button,.ov-cal-nav button{transition:background .16s ease}
+  .bar-rows>button:hover,.stat-rail>button:hover,.permit-grid>button:hover,.ov-cal-foot button:hover,
+  .ov-cal-grid button:hover,.ov-cal-nav button:hover{transform:none}
 }
 
 @media(max-width:1100px){.ov-layout{grid-template-columns:1fr}}
@@ -410,12 +424,12 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .ov-cal-nav b{font-size:12px;font-weight:700;color:var(--text-2);min-width:96px;text-align:center}
 .ov-cal-nav button{width:24px;height:24px;border-radius:8px;border:1px solid var(--border);
   background:var(--surface);cursor:pointer;display:grid;place-items:center;padding:0}
-.ov-cal-nav button:hover{background:var(--surface2)}
+.ov-cal-nav button:hover{background:var(--surface3)}
 .ov-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:12px}
 .ov-cal-grid .hd{text-align:center;font-size:10.5px;font-weight:700;color:var(--text-3);padding-bottom:4px}
 .ov-cal-grid button{position:relative;aspect-ratio:1;border:none;background:none;border-radius:10px;
   cursor:pointer;font-family:inherit;font-size:12px;color:var(--text-2);font-variant-numeric:tabular-nums}
-.ov-cal-grid button:hover{background:var(--surface2)}
+.ov-cal-grid button:hover{background:var(--surface3)}
 .ov-cal-grid button[data-today="1"]{font-weight:700;color:var(--primary)}
 .ov-cal-grid button[data-on="1"]{background:var(--primary);color:#fff;font-weight:700}
 .ov-cal-grid button i{position:absolute;left:50%;bottom:5px;transform:translateX(-50%);
@@ -428,7 +442,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .ov-cal-foot button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;
   padding:9px 11px;border-radius:11px;border:1px solid var(--border);background:var(--surface2);
   font-family:inherit;font-size:12px;font-weight:650;color:var(--text-1);cursor:pointer;
-  transition:background .14s,border-color .14s}
+  transition:background .14s,border-color .14s,box-shadow .18s ease,transform .16s ease}
 .ov-cal-foot button:hover{background:var(--surface3);border-color:var(--border-strong)}
 
 /* ป๊อปอัปรายการงานของวันที่เลือก */
@@ -499,7 +513,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   background:none;border:0;border-top:1px solid var(--border);cursor:pointer;font-family:inherit;
   transition:background .14s;border-radius:0;position:relative}
 .rows>button:first-child{border-top:0}
-.rows>button:hover{background:var(--surface2);box-shadow:0 0 0 6px var(--surface2)}
+.rows>button:hover{background:var(--surface2)}
 .rows .mk{width:9px;height:9px;border-radius:99px;flex:0 0 auto;margin-left:3px}
 .rows .bd{flex:1;min-width:0}
 .rows .nm{display:block;font-size:13.5px;font-weight:650;color:var(--text-1);
@@ -578,7 +592,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   background: linear-gradient(180deg,rgba(255,69,58,.13),transparent 60%),
     color-mix(in srgb, var(--gr-card) 55%, transparent);
 }
-[data-theme="aurora"] .rows > button:hover { background: var(--gr-hi); box-shadow: 0 0 0 6px var(--gr-hi); }
+[data-theme="aurora"] .rows > button:hover { background: var(--gr-hi); }
 
 /* ── การ์ดของทุกหน้าที่เหลือ (ตาราง · บอร์ด · ปฏิทิน · รายงาน · คลัง · สำรวจ) ──
    ทั้งระบบเขียนการ์ดด้วยรูปแบบ inline เดียวกันหมด: background var(--surface) + border var(--border)
