@@ -221,21 +221,20 @@ function LoTechLoadPanel({ jobs, techs, onTech }) {
 function LoStalePanel({ jobs, onOpen }) {
   const SF = window.SF;
   const rows = React.useMemo(() => {
-    const stale = [], inst = [], unknown = [];
+    const stale = [], unknown = [];
     (jobs || []).forEach((j) => {
       if (j.stage === "done") return;
-      /* งานที่อยู่ขั้น "ดำเนินการติดตั้ง" นับจากวันลงหน้างานแทน แล้วบอกว่าติดตั้งมาแล้วกี่วัน
-         การอยู่ขั้นนี้นานไม่ใช่เรื่องผิดปกติเหมือนขั้นอื่น (โครงการหนึ่งกินเวลาหลายสัปดาห์)
-         จึงไม่ย้อมสีเตือนและแยกนับคนละกองกับงานที่ค้างจริง */
-      const ins = j.stage === "install" ? loInstallDays(j) : null;
-      if (ins != null) { if (ins >= 7) inst.push({ job: j, days: ins, inst: true }); return; }
+      /* งานที่ลงหน้างานไปแล้วไม่อยู่ในแผงนี้ ไปอยู่แผง "งานที่ต้องดูแล" แทน
+         การอยู่ขั้น "ดำเนินการติดตั้ง" นานไม่ใช่การค้างเหมือนขั้นอื่น (โครงการหนึ่งกินเวลาหลายสัปดาห์)
+         ปนอยู่กองเดียวกันทำให้ทั้งแผงอ่านว่า "ค้าง" ไม่ได้ ต้องมาไล่ดูทีละแถวว่าแถวไหนค้างจริง
+         ยังไม่ถึงวันลงหน้างาน (loInstallDays คืน null) ยังนับเป็นค้างตามปกติ — ใบสั่งอยู่ที่ขั้นนี้แต่ยังไม่มีใครไป */
+      if (j.stage === "install" && loInstallDays(j) != null) return;
       const d = loDaysInStage(j);
-      if (d == null) unknown.push({ job: j, days: null, inst: false });
-      else if (d >= 7) stale.push({ job: j, days: d, inst: false });
+      if (d == null) unknown.push({ job: j, days: null });
+      else if (d >= 7) stale.push({ job: j, days: d });
     });
     stale.sort((a, b) => b.days - a.days);
-    inst.sort((a, b) => b.days - a.days);
-    return { list: stale.concat(inst, unknown).slice(0, 10) };
+    return { list: stale.concat(unknown).slice(0, 10) };
   }, [jobs]);
   const list = rows.list;
 
@@ -247,8 +246,7 @@ function LoStalePanel({ jobs, onOpen }) {
           {list.map((r) => {
             const j = r.job;
             const st = (SF.STAGES || []).find((x) => x.key === j.stage) || { th: j.stage, color: "var(--text-3)" };
-            const col = r.inst ? st.color
-              : r.days == null ? "var(--text-3)" : (r.days >= 14 ? "#D93025" : (r.days >= 7 ? "#F59E0B" : st.color));
+            const col = r.days == null ? "var(--text-3)" : (r.days >= 14 ? "#D93025" : (r.days >= 7 ? "#F59E0B" : st.color));
             return (
               <button key={j.id} onClick={() => onOpen(j)}>
                 <span className="mk" style={{ background: col }} />
@@ -256,11 +254,9 @@ function LoStalePanel({ jobs, onOpen }) {
                   <span className="nm">{j.name}</span>
                   <span className="mt">{[j.code, st.th, j.tech ? null : "ยังไม่มอบหมายช่าง"].filter(Boolean).join(" · ")}</span>
                 </span>
-                {/* คำกับจำนวนวันอยู่บรรทัดเดียวกัน (when-1l) — สองบรรทัดทำให้แถวสูงขึ้นโดยไม่ได้ข้อมูลเพิ่ม
-                    งานที่กำลังติดตั้งย้อมเขียวทั้งก้อน เพราะมันคือ "กำลังเดินอยู่" ไม่ใช่ "ค้าง" */}
-                <span className="when when-1l" style={r.inst ? { color: "var(--primary)" }
-                  : (r.days != null && r.days >= 14 ? { color: "#D93025" } : null)}>
-                  <b style={r.inst ? { color: "var(--primary)" } : null}>{r.inst ? "ติดตั้งมาแล้ว" : "ค้างขั้นนี้"}</b>
+                {/* คำกับจำนวนวันอยู่บรรทัดเดียวกัน (when-1l) — สองบรรทัดทำให้แถวสูงขึ้นโดยไม่ได้ข้อมูลเพิ่ม */}
+                <span className="when when-1l" style={r.days != null && r.days >= 14 ? { color: "#D93025" } : null}>
+                  <b>ค้างขั้นนี้</b>
                   {r.days == null ? "ไม่ทราบ" : r.days + " วัน"}
                 </span>
               </button>
@@ -268,9 +264,8 @@ function LoStalePanel({ jobs, onOpen }) {
           })}
         </div>
       )}
-      {/* เชิงอรรถอธิบายวิธีนับวันเอาออกตามที่สั่ง — กติกาสรุปอยู่ในบรรทัดใต้ชื่อแผงแล้ว
-          (งานที่กำลังติดตั้งนับจากวันเริ่มติดตั้ง ขั้นอื่นนับจากเวลาที่งานเข้าขั้นปัจจุบัน
-           ไม่มีทั้งสองอย่างจึงขึ้นว่า "ไม่ทราบ") */}
+      {/* เชิงอรรถอธิบายวิธีนับวันเอาออกตามที่สั่ง
+          (นับจากเวลาที่งานเข้าขั้นปัจจุบัน ไม่มีให้อ่านจึงขึ้นว่า "ไม่ทราบ") */}
     </div>
   );
 }

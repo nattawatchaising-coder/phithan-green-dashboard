@@ -363,34 +363,22 @@ function LoStalePanel({
   const SF = window.SF;
   const rows = React.useMemo(() => {
     const stale = [],
-      inst = [],
       unknown = [];
     (jobs || []).forEach(j => {
       if (j.stage === "done") return;
-      const ins = j.stage === "install" ? loInstallDays(j) : null;
-      if (ins != null) {
-        if (ins >= 7) inst.push({
-          job: j,
-          days: ins,
-          inst: true
-        });
-        return;
-      }
+      if (j.stage === "install" && loInstallDays(j) != null) return;
       const d = loDaysInStage(j);
       if (d == null) unknown.push({
         job: j,
-        days: null,
-        inst: false
+        days: null
       });else if (d >= 7) stale.push({
         job: j,
-        days: d,
-        inst: false
+        days: d
       });
     });
     stale.sort((a, b) => b.days - a.days);
-    inst.sort((a, b) => b.days - a.days);
     return {
-      list: stale.concat(inst, unknown).slice(0, 10)
+      list: stale.concat(unknown).slice(0, 10)
     };
   }, [jobs]);
   const list = rows.list;
@@ -412,7 +400,7 @@ function LoStalePanel({
       th: j.stage,
       color: "var(--text-3)"
     };
-    const col = r.inst ? st.color : r.days == null ? "var(--text-3)" : r.days >= 14 ? "#D93025" : r.days >= 7 ? "#F59E0B" : st.color;
+    const col = r.days == null ? "var(--text-3)" : r.days >= 14 ? "#D93025" : r.days >= 7 ? "#F59E0B" : st.color;
     return React.createElement("button", {
       key: j.id,
       onClick: () => onOpen(j)
@@ -429,16 +417,10 @@ function LoStalePanel({
       className: "mt"
     }, [j.code, st.th, j.tech ? null : "ยังไม่มอบหมายช่าง"].filter(Boolean).join(" · "))), React.createElement("span", {
       className: "when when-1l",
-      style: r.inst ? {
-        color: "var(--primary)"
-      } : r.days != null && r.days >= 14 ? {
+      style: r.days != null && r.days >= 14 ? {
         color: "#D93025"
       } : null
-    }, React.createElement("b", {
-      style: r.inst ? {
-        color: "var(--primary)"
-      } : null
-    }, r.inst ? "ติดตั้งมาแล้ว" : "ค้างขั้นนี้"), r.days == null ? "ไม่ทราบ" : r.days + " วัน"));
+    }, React.createElement("b", null, "\u0E04\u0E49\u0E32\u0E07\u0E02\u0E31\u0E49\u0E19\u0E19\u0E35\u0E49"), r.days == null ? "ไม่ทราบ" : r.days + " วัน"));
   })));
 }
 function LoBottleneckPanel({

@@ -89,11 +89,21 @@ function PanelTitle({ icon, iconColor, title, sub, right }) {
 
 function AlertsPanel({ jobs, onOpen }) {
   const problems = jobs.filter((j) => j.problem || j.delayed);
+  /* งานที่กำลังติดตั้งอยู่ย้ายมาจากแผง "งานค้างไม่ขยับ" — การอยู่ขั้นนี้นานไม่ใช่การค้าง
+     (โครงการหนึ่งกินเวลาหลายสัปดาห์) ปนอยู่กองเดียวกับงานที่ค้างจริงจึงอ่านผิดความหมาย
+     แต่ก็ยังต้องมีใครสักคนเห็นว่ามันเดินหน้างานมากี่วันแล้ว ที่นี่คือแผงที่เปิดดูทุกเช้า
+     ใบที่ติดปัญหาหรือล่าช้าอยู่แล้วไม่เอามาซ้ำ มันอยู่ในกองบนสุดไปแล้ว
+     loInstallDays มาจาก views-lead.js ซึ่งโหลดทีหลังไฟล์นี้ — เรียกตอนเรนเดอร์จึงไม่มีปัญหา
+     แต่ห้ามย้ายไปเรียกที่ระดับโมดูล */
+  const running = jobs.filter((j) => j.stage === "install" && !j.problem && !j.delayed)
+    .map((j) => ({ job: j, days: loInstallDays(j) }))
+    .filter((r) => r.days != null)
+    .sort((a, b) => b.days - a.days);
   return (
     <div className="pnl">
       <PanelTitle icon="alert" iconColor="#EF4444" title="งานที่ต้องดูแล" />
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16, maxHeight: 280, overflowY: "auto" }}>
-        {problems.length === 0 && <Empty text="ไม่มีงานติดปัญหา 🎉" />}
+        {problems.length === 0 && running.length === 0 && <Empty text="ไม่มีงานติดปัญหา 🎉" />}
         {problems.map((j) => (
           /* เดิมทาพื้นแดง + ขอบแดง + ขีดแดง = บอกเรื่องเดียวกัน 3 ที่ ทั้งแผงเลยแดงไปหมดจนไม่รู้ว่าใบไหนหนักกว่ากัน
              เหลือขีดแดงอย่างเดียว แล้วให้ป้าย "ล่าช้า" เป็นตัวไล่ระดับความหนักแทน */
@@ -112,6 +122,23 @@ function AlertsPanel({ jobs, onOpen }) {
                 {j.problem || ("เลยกำหนดวันนัด " + thDate(j.deadline))}
               </div>
               <div style={{ marginTop: 6 }}><StageBadge stageKey={j.stage} size="sm" /></div>
+            </div>
+          </button>
+        ))}
+        {/* ขีดเขียวไม่ใช่ขีดแดง — ใบพวกนี้ไม่ได้มีอะไรผิด แค่ต้องรู้ว่าเดินมานานแค่ไหนแล้ว */}
+        {running.map((r) => (
+          <button key={r.job.id} onClick={() => onOpen(r.job)} style={{ display: "flex", gap: 12, padding: "11px 12px", textAlign: "left",
+            background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", width: "100%",
+            transition: "background .14s, border-color .14s" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface2)"; e.currentTarget.style.borderColor = "var(--border-strong)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--surface)"; e.currentTarget.style.borderColor = "var(--border)"; }}>
+            <span style={{ width: 3, alignSelf: "stretch", borderRadius: 99, background: "var(--primary)", flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.job.name}</div>
+              <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: 3, lineHeight: 1.4 }}>
+                ติดตั้งมาแล้ว <b style={{ color: "var(--primary-dark)", fontWeight: 700 }}>{r.days}</b> วัน
+              </div>
+              <div style={{ marginTop: 6 }}><StageBadge stageKey={r.job.stage} size="sm" /></div>
             </div>
           </button>
         ))}
