@@ -91,7 +91,7 @@ function AlertsPanel({ jobs, onOpen }) {
   const problems = jobs.filter((j) => j.problem || j.delayed);
   return (
     <div className="pnl">
-      <PanelTitle icon="alert" iconColor="#EF4444" title="งานที่ต้องดูแล" sub={problems.length + " งานติดปัญหา / ล่าช้า"} />
+      <PanelTitle icon="alert" iconColor="#EF4444" title="งานที่ต้องดูแล" />
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16, maxHeight: 280, overflowY: "auto" }}>
         {problems.length === 0 && <Empty text="ไม่มีงานติดปัญหา 🎉" />}
         {problems.map((j) => (

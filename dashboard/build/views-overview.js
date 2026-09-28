@@ -229,8 +229,7 @@ function AlertsPanel({
   }, React.createElement(PanelTitle, {
     icon: "alert",
     iconColor: "#EF4444",
-    title: "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E14\u0E39\u0E41\u0E25",
-    sub: problems.length + " งานติดปัญหา / ล่าช้า"
+    title: "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E14\u0E39\u0E41\u0E25"
   }), React.createElement("div", {
     style: {
       display: "flex",

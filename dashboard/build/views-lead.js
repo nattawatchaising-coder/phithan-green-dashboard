@@ -262,12 +262,10 @@ function LoTechLoadPanel({
     return out;
   }, [jobs, techs, today, soonMax]);
   const max = Math.max.apply(null, rows.map(r => r.n).concat([1]));
-  const live = rows.reduce((s, r) => s + r.n, 0);
   return React.createElement("div", {
     className: "pnl"
   }, React.createElement(PanelTitle, {
-    title: "\u0E20\u0E32\u0E23\u0E30\u0E07\u0E32\u0E19\u0E15\u0E48\u0E2D\u0E0A\u0E48\u0E32\u0E07",
-    sub: "งานที่ยังไม่เสร็จ " + live + " งาน · คลิกเพื่อดูงานของช่างคนนั้น"
+    title: "\u0E20\u0E32\u0E23\u0E30\u0E07\u0E32\u0E19\u0E15\u0E48\u0E2D\u0E0A\u0E48\u0E32\u0E07"
   }), rows.length === 0 ? React.createElement(Empty, {
     text: "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E22\u0E0A\u0E37\u0E48\u0E2D\u0E0A\u0E48\u0E32\u0E07\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A"
   }) : React.createElement("div", {
@@ -392,20 +390,14 @@ function LoStalePanel({
     stale.sort((a, b) => b.days - a.days);
     inst.sort((a, b) => b.days - a.days);
     return {
-      list: stale.concat(inst, unknown).slice(0, 10),
-      stale: stale.length,
-      inst: inst.length,
-      unknown: unknown.length
+      list: stale.concat(inst, unknown).slice(0, 10)
     };
   }, [jobs]);
   const list = rows.list;
-  const subParts = [rows.stale ? "ค้างขั้นเดิมเกิน 7 วัน " + rows.stale + " งาน" : null, rows.inst ? "กำลังติดตั้งอยู่ " + rows.inst + " งาน" : null, rows.unknown ? "ไม่รู้ระยะเวลาอีก " + rows.unknown + " งาน" : null].filter(Boolean);
-  const sub = subParts.length ? subParts.join(" · ") : "ทุกงานขยับภายใน 7 วัน";
   return React.createElement("div", {
     className: "pnl"
   }, React.createElement(PanelTitle, {
-    title: "\u0E07\u0E32\u0E19\u0E04\u0E49\u0E32\u0E07\u0E44\u0E21\u0E48\u0E02\u0E22\u0E31\u0E1A",
-    sub: sub
+    title: "\u0E07\u0E32\u0E19\u0E04\u0E49\u0E32\u0E07\u0E44\u0E21\u0E48\u0E02\u0E22\u0E31\u0E1A"
   }), list.length === 0 ? React.createElement(Empty, {
     text: "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E04\u0E49\u0E32\u0E07\u0E02\u0E31\u0E49\u0E19\u0E40\u0E14\u0E34\u0E21\u0E19\u0E32\u0E19\u0E1C\u0E34\u0E14\u0E1B\u0E01\u0E15\u0E34"
   }) : React.createElement("div", {
@@ -464,17 +456,10 @@ function LoBottleneckPanel({
     };
   }), [jobs]);
   const max = Math.max.apply(null, rows.map(r => r.med || 0).concat([1]));
-  const worst = rows.reduce((a, b) => (b.med || 0) > (a.med || 0) ? b : a, rows[0] || {
-    s: {
-      th: ""
-    },
-    med: null
-  });
   return React.createElement("div", {
     className: "pnl"
   }, React.createElement(PanelTitle, {
-    title: "\u0E04\u0E2D\u0E02\u0E27\u0E14\u0E15\u0E32\u0E21\u0E02\u0E31\u0E49\u0E19",
-    sub: worst && worst.med ? "ค้างนานสุดที่ขั้น “" + worst.s.th + "” ราว " + worst.med + " วัน" : "คลิกที่ขั้นเพื่อดูรายการงาน"
+    title: "\u0E04\u0E2D\u0E02\u0E27\u0E14\u0E15\u0E32\u0E21\u0E02\u0E31\u0E49\u0E19"
   }), React.createElement("div", {
     className: "bar-rows",
     style: {
@@ -619,8 +604,7 @@ function LoPermitPanel({
       borderLeft: "3px solid #F59E0B"
     } : null
   }, React.createElement(PanelTitle, {
-    title: "\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E01\u0E32\u0E23\u0E44\u0E1F\u0E1F\u0E49\u0E32",
-    sub: stuck ? stuck + " งานที่ต้องผลัก" : "ไม่มีใบค้างที่ฝั่งเรา"
+    title: "\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E01\u0E32\u0E23\u0E44\u0E1F\u0E1F\u0E49\u0E32"
   }), React.createElement("div", {
     className: "permit-grid"
   }, rows.map(r => React.createElement("button", {

@@ -178,11 +178,10 @@ function LoTechLoadPanel({ jobs, techs, onTech }) {
     return out;
   }, [jobs, techs, today, soonMax]);
   const max = Math.max.apply(null, rows.map((r) => r.n).concat([1]));
-  const live = rows.reduce((s, r) => s + r.n, 0);
 
   return (
     <div className="pnl">
-      <PanelTitle title="ภาระงานต่อช่าง" sub={"งานที่ยังไม่เสร็จ " + live + " งาน · คลิกเพื่อดูงานของช่างคนนั้น"} />
+      <PanelTitle title="ภาระงานต่อช่าง" />
       {rows.length === 0 ? <Empty text="ยังไม่มีรายชื่อช่างในระบบ" /> : (
         <div className="bar-rows" style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 12, maxHeight: 340, overflowY: "auto" }}>
           {rows.map((r) => (
@@ -236,20 +235,13 @@ function LoStalePanel({ jobs, onOpen }) {
     });
     stale.sort((a, b) => b.days - a.days);
     inst.sort((a, b) => b.days - a.days);
-    return { list: stale.concat(inst, unknown).slice(0, 10),
-      stale: stale.length, inst: inst.length, unknown: unknown.length };
+    return { list: stale.concat(inst, unknown).slice(0, 10) };
   }, [jobs]);
   const list = rows.list;
-  const subParts = [
-    rows.stale ? "ค้างขั้นเดิมเกิน 7 วัน " + rows.stale + " งาน" : null,
-    rows.inst ? "กำลังติดตั้งอยู่ " + rows.inst + " งาน" : null,
-    rows.unknown ? "ไม่รู้ระยะเวลาอีก " + rows.unknown + " งาน" : null,
-  ].filter(Boolean);
-  const sub = subParts.length ? subParts.join(" · ") : "ทุกงานขยับภายใน 7 วัน";
 
   return (
     <div className="pnl">
-      <PanelTitle title="งานค้างไม่ขยับ" sub={sub} />
+      <PanelTitle title="งานค้างไม่ขยับ" />
       {list.length === 0 ? <Empty text="ไม่มีงานที่ค้างขั้นเดิมนานผิดปกติ" /> : (
         <div className="rows" style={{ maxHeight: 330, overflowY: "auto" }}>
           {list.map((r) => {
@@ -297,12 +289,10 @@ function LoBottleneckPanel({ jobs, onStage }) {
      ก่อนหน้านี้แท่งยาวตามจำนวนงาน อ่านแล้วขัดกันเอง — ขั้นที่ค้าง 2 วันแท่งยาวกว่าขั้นที่ค้าง 13 วัน
      จำนวนงานยังอ่านได้จากตัวเลขทางขวาของแถวอยู่แล้ว */
   const max = Math.max.apply(null, rows.map((r) => r.med || 0).concat([1]));
-  const worst = rows.reduce((a, b) => ((b.med || 0) > (a.med || 0) ? b : a), rows[0] || { s: { th: "" }, med: null });
 
   return (
     <div className="pnl">
-      <PanelTitle title="คอขวดตามขั้น"
-        sub={worst && worst.med ? ("ค้างนานสุดที่ขั้น “" + worst.s.th + "” ราว " + worst.med + " วัน") : "คลิกที่ขั้นเพื่อดูรายการงาน"} />
+      <PanelTitle title="คอขวดตามขั้น" />
       <div className="bar-rows" style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 14 }}>
         {rows.map((r) => (
           <button key={r.s.key} onClick={() => onStage && onStage(r.s.key)} style={{ display: "flex", alignItems: "center", gap: 10,
@@ -354,7 +344,7 @@ function LoPermitPanel({ jobs, onGoPermit }) {
   const stuck = n.todo + n.rejected;
   return (
     <div className="pnl" style={stuck ? { borderLeft: "3px solid #F59E0B" } : null}>
-      <PanelTitle title="ขออนุญาตการไฟฟ้า" sub={stuck ? (stuck + " งานที่ต้องผลัก") : "ไม่มีใบค้างที่ฝั่งเรา"} />
+      <PanelTitle title="ขออนุญาตการไฟฟ้า" />
       {/* หกขั้นเรียงเป็นตารางการ์ดเล็ก ไม่ใช่รายการแนวตั้ง
           แบบรายการกินความสูงหกแถวเต็ม ๆ (ราว 420px) เพื่อบอกตัวเลขหกตัวที่ส่วนใหญ่เป็นศูนย์
           ตารางอ่านเทียบกันได้ในสายตาเดียวและสูงไม่ถึงครึ่ง · ขั้นที่ต้องรีบทำย้อมพื้นแดงจาง */}
