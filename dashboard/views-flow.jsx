@@ -84,7 +84,7 @@ function FlGroup({ g, count, collapsed, onToggle, onAdd, addLabel, children }) {
             วางชิดชื่อช่วง ไม่ใช่ปลายขวา เพราะแถบหัวช่วงกว้างเท่าทุกคอลัมน์รวมกัน
             ปุ่มที่ปลายขวาจะเลื่อนพ้นจอไปตั้งแต่ยังไม่ทันเห็น */}
         {onAdd && (
-          <button onClick={(e) => { e.stopPropagation(); onAdd(); }} title={"เพิ่ม" + (addLabel || "ลูกค้าใหม่") + "ในช่วง " + g.th}
+          <button onClick={(e) => { e.stopPropagation(); onAdd(); }} title={((addLabel || "ลูกค้าใหม่").indexOf("เพิ่ม") === 0 ? addLabel : "เพิ่ม" + (addLabel || "ลูกค้าใหม่")) + " ในช่วง " + g.th}
             style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 24, padding: "0 10px",
               borderRadius: 8, border: "1px solid " + g.color + "55", background: g.color + "14", color: g.color,
               cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, flexShrink: 0, whiteSpace: "nowrap" }}>
@@ -134,7 +134,7 @@ const flSumValue = (leadsArr) => {
 };
 
 function FlowBoardView({ jobs, leads, quotes, search, role, currentUser,
-  onOpenJob, onOpenLead, onNewLead, onNewPermitJob, onMoveStage, onPatchJob, onPatchLead, onPatchPermit, onOpenReview }) {
+  onOpenJob, onOpenLead, onNewLead, onNewPermitJob, onNewJob, onMoveStage, onPatchJob, onPatchLead, onPatchPermit, onOpenReview }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const groups = React.useMemo(() => flGroups(role), [role]);
@@ -341,8 +341,10 @@ function FlowBoardView({ jobs, leads, quotes, search, role, currentUser,
             แต่ยังต้องเดินเรื่องการไฟฟ้า */}
         {groups.map((g) => (
           <FlGroup key={g.key} g={g} count={groupCount(g)} collapsed={!!collapsed[g.key]} onToggle={() => toggle(g.key)}
-            onAdd={g.kind === "lead" ? (onNewLead || null) : g.kind === "permit" ? (onNewPermitJob || null) : null}
-            addLabel={g.kind === "permit" ? "งานขออนุญาต" : "ลูกค้าใหม่"}>
+            /* ช่วงหน้างาน = ปุ่มเปิดใบงานใหม่ ซึ่งเดิมอยู่บนหัวจอทุกหน้า ย้ายมาอยู่ตรงกองงานที่มันจะไปโผล่ */
+            onAdd={g.kind === "lead" ? (onNewLead || null) : g.kind === "permit" ? (onNewPermitJob || null)
+              : g.kind === "job" ? (onNewJob || null) : null}
+            addLabel={g.kind === "permit" ? "งานขออนุญาต" : g.kind === "job" ? "เพิ่มงาน" : "ลูกค้าใหม่"}>
             {g.cols.map((c) => {
               const cards = cardsOf(g, c.key);
               const ok = canDrop(g, c.key);

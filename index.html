@@ -117,10 +117,15 @@ label { min-width: 0; }
 .hdr-icon-btn { width: 40px; height: 40px; border-radius: 11px; border: 1px solid var(--border-strong);
   background: var(--surface); cursor: pointer; display: grid; place-items: center; color: var(--text-2); flex-shrink: 0; }
 .hdr-icon-btn:hover { background: var(--surface2); }
-/* ชิปผู้ใช้ท้ายหัวจอ — ป้ายบอกว่ากำลังใช้สิทธิ์ของใคร ไม่ใช่ปุ่ม จึงไม่มี hover และกดไม่ได้ */
+/* ชิปผู้ใช้ท้ายหัวจอ — บอกว่ากำลังใช้สิทธิ์ของใคร และเป็นทางเข้า "โปรไฟล์ของฉัน" (ย้ายมาจากก้นแถบเมนู) */
 .hdr-user { display: flex; align-items: center; gap: 9px; padding: 5px 12px 5px 5px; border-radius: 99px;
-  background: var(--surface2); border: 1px solid var(--border); flex-shrink: 0; max-width: 210px; }
-.hdr-user-av { width: 30px; height: 30px; border-radius: 99px; flex-shrink: 0; display: grid; place-items: center;
+  background: var(--surface2); border: 1px solid var(--border); flex-shrink: 0; max-width: 230px;
+  font-family: inherit; text-align: left; cursor: pointer; }
+.hdr-user:hover { background: var(--surface3); }
+.hdr-user:disabled { cursor: default; }
+.hdr-user:disabled:hover { background: var(--surface2); }
+.hdr-user-av img { width: 100%; height: 100%; object-fit: cover; }
+.hdr-user-av { width: 30px; height: 30px; border-radius: 99px; flex-shrink: 0; display: grid; place-items: center; overflow: hidden;
   background: var(--primary); color: #fff; font-weight: 700; font-size: 13px; text-transform: uppercase; }
 .hdr-user-tx { min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
 .hdr-user-tx b { font-size: 12.5px; font-weight: 700; color: var(--text-1);
@@ -613,7 +618,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/drawer.js?v=69"></script>
 <script src="dashboard/build/views-overview.js?v=36"></script>
 <script src="dashboard/build/views-board.js?v=34"></script>
-<script src="dashboard/build/views-table.js?v=30"></script>
+<script src="dashboard/build/views-table.js?v=31"></script>
 <script src="dashboard/build/views-report.js?v=9"></script>
 <script src="dashboard/build/views-calendar.js?v=28"></script>
 <script src="dashboard/build/views-stock.js?v=106"></script>
@@ -630,7 +635,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/bill-paper.js?v=6"></script>
 <script src="dashboard/build/views-billing.js?v=7"></script>
 <script src="dashboard/build/views-lead.js?v=5"></script>
-<script src="dashboard/build/views-flow.js?v=9"></script>
+<script src="dashboard/build/views-flow.js?v=11"></script>
 <script src="dashboard/build/daily.js?v=13"></script>
 <script src="dashboard/build/views-daily.js?v=33"></script>
 <script src="dashboard/build/om.js?v=13"></script>
@@ -647,6 +652,6 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/ot-paper.js?v=6"></script>
 <script src="dashboard/build/views-line.js?v=2"></script>
 <script src="dashboard/build/guide.js?v=5"></script>
-<script src="dashboard/build/app.js?v=171"></script>
+<script src="dashboard/build/app.js?v=172"></script>
 </body>
 </html>

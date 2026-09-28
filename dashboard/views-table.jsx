@@ -46,7 +46,7 @@ function MatCell({ status, onCycle }) {
   );
 }
 
-function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trashCount, onOpenTrash, permitMode, onRevert, canRevert }) {
+function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trashCount, onOpenTrash, permitMode, onRevert, canRevert, onAdd }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [sort, setSort] = React.useState({ key: "code", dir: 1 });
@@ -80,7 +80,7 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trash
 
   if (isMobile) return (
     <React.Fragment>
-      <StatusTabs tab={tab} setTab={setTab} counts={counts} labels={tabLabels} trashCount={trashCount} onOpenTrash={onOpenTrash} />
+      <StatusTabs tab={tab} setTab={setTab} counts={counts} labels={tabLabels} trashCount={trashCount} onOpenTrash={onOpenTrash} onAdd={onAdd} />
       <TableMobile jobs={sorted} sort={sort} setSort={setSort} onOpen={onOpen} onEdit={onEdit} onDelete={onDelete} onSetStage={onSetStage} permitMode={permitMode} onRevert={onRevert} canRevert={canRevert} />
     </React.Fragment>
   );
@@ -110,7 +110,7 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trash
 
   return (
     <React.Fragment>
-    <StatusTabs tab={tab} setTab={setTab} counts={counts} labels={tabLabels} trashCount={trashCount} onOpenTrash={onOpenTrash} />
+    <StatusTabs tab={tab} setTab={setTab} counts={counts} labels={tabLabels} trashCount={trashCount} onOpenTrash={onOpenTrash} onAdd={onAdd} />
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 920 }}>
@@ -242,7 +242,7 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trash
 }
 
 /* ── แท็บแยกสถานะงาน: กำลังดำเนินการ / เสร็จแล้ว / ทั้งหมด ── */
-function StatusTabs({ tab, setTab, counts, labels, trashCount, onOpenTrash }) {
+function StatusTabs({ tab, setTab, counts, labels, trashCount, onOpenTrash, onAdd }) {
   const mob = window.matchMedia("(max-width: 860px)").matches;
   const L = labels || {};
   const opts = [
@@ -280,6 +280,15 @@ function StatusTabs({ tab, setTab, counts, labels, trashCount, onOpenTrash }) {
           <Icon name="trash" size={14} />
           {!mob && "ถังขยะ"}
           {trashCount ? <span style={{ fontFamily: "var(--display)", fontSize: 12, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{trashCount}</span> : null}
+        </button>
+      )}
+      {/* ปุ่มเปิดใบงานใหม่ — ย้ายลงมาจากหัวจอ มาอยู่ท้ายแถบสถานะของหน้าที่มันสร้างงานเข้าไปจริง
+          ไม่มีปุ่มถังขยะ (ไม่มีสิทธิ์ลบ) ปุ่มนี้ต้องดันตัวเองไปชิดขวาแทน */}
+      {onAdd && (
+        <button onClick={onAdd} className="btn-add" title="เปิดใบงานใหม่"
+          style={{ marginLeft: onOpenTrash ? 0 : "auto", flexShrink: 0, padding: mob ? "8px 12px" : "8px 15px",
+            borderRadius: 99, fontSize: mob ? 12 : 13 }}>
+          <Icon name="plus" size={15} color="#fff" sw={2.6} />{!mob && <span>เพิ่มงาน</span>}
         </button>
       )}
     </div>

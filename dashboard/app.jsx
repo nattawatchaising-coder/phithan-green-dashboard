@@ -883,14 +883,13 @@ function App() {
           stageFilter={stageFilter} setStageFilter={setStageFilter} stageCounts={stageCounts} stageMode={permitOnly ? "permit" : "job"}
           quickFilter={quickFilter} setQuickFilter={setQuickFilter}
           techFilter={techFilter} setTechFilter={setTechFilter} techCounts={techCounts} techs={techStore.techs}
-          onAdd={() => setForm({ job: store.blank(), isNew: true })}
-          canAdd={can(role, "addJob")}
           onMap={() => setMapOpen(true)}
           showBell={true} unread={bellCount} notifItems={myNotifs} lateAlerts={lateAlerts}
           omAlerts={omLive.alerts} onOpenOm={can(role, "om") ? openOm : null}
           notifOpen={notifOpen} onBell={() => setNotifOpen((v) => !v)} onCloseNotif={() => setNotifOpen(false)}
           onOpenNotif={openFromNotif} onMarkAll={() => myNotifs.forEach((n) => { if (!n.read) notif.markRead(n.id); })}
           me={auth.current} aurora={aurora} onToggleAurora={toggleAurora}
+          onMySign={() => setMySign(true)}
           onMenuOpen={() => setSidebarOpen(true)} />
 
         <div className="app-content" style={view === "board" ? { display: "flex", flexDirection: "column", minHeight: 0 } : {}}>
@@ -907,6 +906,7 @@ function App() {
               ฝ่ายขออนุญาตอย่างเดียวยังได้บอร์ดขออนุญาตเต็มรูปแบบเหมือนเดิม เพราะเขาต้องใช้มุมรายการด้วย */}
           {view === "board" && (
             <FlowBoardView jobs={filtered} leads={leadStore.leads} quotes={quoteStore.quotes} search={search}
+              onNewJob={can(role, "addJob") ? () => setForm({ job: store.blank(), isNew: true }) : null}
               role={role} currentUser={auth.current}
               onOpenJob={openJob}
               /* กดการ์ดขาย = เปิดใบลูกค้าทับบอร์ดเลย จะได้ไม่เสียตำแหน่งที่ไล่ดูอยู่ */
@@ -924,6 +924,7 @@ function App() {
             onDelete={onDelete} onSetMat={store.setMat} onSetStage={(id, s) => store.setStage(id, s)}
             permitMode={permitOnly}
             onRevert={can(role, "delJob") ? revertJobToLead : null} canRevert={(j) => !!leadOfJob(j)}
+            onAdd={can(role, "addJob") ? () => setForm({ job: store.blank(), isNew: true }) : null}
             trashCount={can(role, "delJob") ? store.trash.length : 0} onOpenTrash={can(role, "delJob") ? () => setTrashOpen(true) : null} />}
           {view === "permit" && permitView}
           {view === "daily" && <DailyView jobs={filtered} role={role} currentUser={auth.current}
@@ -1188,27 +1189,9 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onCl
       </nav>
 
       <div className="sidebar-foot">
-        {/* กดที่ชื่อตัวเอง = โปรไฟล์ของฉัน (รูป · ข้อมูลติดต่อ · ลายเซ็น) — ทุกตำแหน่งแก้ของตัวเองได้ */}
-        {currentUser && (
-          <button onClick={onMySign} title="โปรไฟล์ของฉัน" disabled={!onMySign}
-            style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", borderRadius: 12,
-              padding: icons ? "6px 0" : "6px 8px 6px 2px", justifyContent: icons ? "center" : "flex-start",
-              background: "none", border: "none", fontFamily: "inherit", cursor: onMySign ? "pointer" : "default" }}>
-            <span style={{ width: 36, height: 36, borderRadius: 99, flexShrink: 0, display: "grid", placeItems: "center", overflow: "hidden",
-              background: (ROLE_INFO[userRoles(currentUser)[0]] || ROLE_INFO.tech).color, color: "#fff", fontWeight: 700, fontSize: 14 }}>
-              {myAvatar
-                ? <img src={myAvatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                : (currentUser.name || "?").slice(0, 1)}
-            </span>
-            {!icons && (
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{currentUser.name}</div>
-                <div style={{ fontSize: 11, color: "var(--text-3)" }}>{userRoles(currentUser).map((r) => (ROLE_INFO[r] || ROLE_INFO.tech).short).join(" · ")}</div>
-              </div>
-            )}
-            {!icons && onMySign && <Icon name="settings" size={15} color="var(--text-3)" />}
-          </button>
-        )}
+        {/* ชื่อผู้ใช้กับทางเข้า "โปรไฟล์ของฉัน" ย้ายไปเป็นชิปท้ายหัวจอแล้ว (คลาส .hdr-user ใน Header)
+            เดิมอยู่ตรงนี้ที่เดียว ซึ่งมองไม่เห็นเลยตอนแถบเมนูพับเป็นไอคอนหรือตอนใช้บนมือถือ
+            ถ้าจะเอากลับมา ต้องเอาของบนหัวจอออกก่อน ไม่ใช่มีสองที่ */}
         {/* ── ตั้งค่าและบัญชี ──
             เดิมเป็นห้าปุ่มเรียงกันท้ายแถบ (ผู้ใช้งาน · ทีมช่าง · แจ้งเตือน LINE · โหมดกราไฟต์ · ออกจากระบบ)
             ซึ่งกินพื้นที่เท่ากับเมนูงานจริงทั้งที่เป็นของที่กดเดือนละครั้ง — ยุบเป็นปุ่มเดียวที่กางขึ้น */}
@@ -1366,7 +1349,7 @@ function TechFilter({ value, onChange, techs, counts, nameOf }) {
   );
 }
 
-function Header({ view, navList, plain, subtitle, ownOnly, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, stageMode, quickFilter, setQuickFilter, techFilter, setTechFilter, techCounts, techs, onAdd, canAdd, onMap, showBell, unread, notifItems, lateAlerts, omAlerts, onOpenOm, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen, me, aurora, onToggleAurora }) {
+function Header({ view, navList, plain, subtitle, ownOnly, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, stageMode, quickFilter, setQuickFilter, techFilter, setTechFilter, techCounts, techs, onAdd, canAdd, onMap, showBell, unread, notifItems, lateAlerts, omAlerts, onOpenOm, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen, me, aurora, onToggleAurora, onMySign }) {
   const nav = navList.find((n) => n.key === view) || NAV.find((n) => n.key === view);
   const QUICK_LABELS = { active: "กำลังดำเนินการ", delayed: "ล่าช้า", ready: "อุปกรณ์พร้อมติดตั้ง", battery: "มีแบตเตอรี่",
     problem: "ติดปัญหาหน้างาน", noinstall: "ยังไม่นัดวันติดตั้ง" };
@@ -1381,9 +1364,11 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
   const stList = pMode ? (window.PERMIT_COLS || []) : window.SF.STAGES;
   const stInfo = (k) => (pMode ? permitStageOf(k) : stageOf(k));
   const stLabel = pMode ? "ขั้นขออนุญาต" : "ขั้นงาน";
-  /* ปุ่มแผนที่กับปุ่มเปิดงานใหม่ — ขึ้นเฉพาะสองหน้าที่ทำงานกับงานทั้งบริษัทเป็นรายใบ
-     หน้าอื่นเคยมีปุ่มพวกนี้บนหัวทั้งที่ไม่เกี่ยวกับสิ่งที่อยู่ในหน้าเลย */
+  /* ปุ่มแผนที่ — ขึ้นเฉพาะสองหน้าที่ทำงานกับงานทั้งบริษัทเป็นรายใบ
+     ส่วนปุ่ม "เพิ่มงาน" ย้ายลงไปอยู่ในหน้าที่ใช้มันแล้ว: หัวช่วง "หน้างาน" ของบอร์ด และแถบสถานะของฐานข้อมูลงาน
+     อยู่ติดกับกองงานที่มันจะไปโผล่ ไม่ใช่ลอยอยู่บนหัวรวมของทุกหน้า */
   const jobTools = view === "board" || view === "table";
+  const myAvatar = window.useUserAvatar((me || {}).id).avatar;
   /* ช่องค้นหาบนหัว — มีเฉพาะหน้าที่มีอะไรให้ค้นจริง และข้อความบอกให้ตรงว่าหน้านั้นค้นอะไรได้
      หน้าไหนมีคีย์ในตารางนี้ ต้องรับ search/setSearch จาก AppShell ไปใช้เป็นตัวกรองของหน้าตัวเอง
      (ห้ามมีช่องค้นหาของหน้าซ้อนอยู่ในหน้าอีกช่อง — สองช่องกรองของเดียวกันคือที่มาของการพิมพ์ผิดช่อง) */
@@ -1456,11 +1441,6 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
                 onClose={onCloseNotif} onOpenJob={onOpenNotif} onMarkAll={onMarkAll} />}
             </div>
           )}
-          {jobTools && canAdd && !(isMobile && searchOpen) && (
-            <button className="btn-add" onClick={onAdd}>
-              <Icon name="plus" size={17} color="#fff" sw={2.4} /><span>เพิ่มงาน</span>
-            </button>
-          )}
           {/* สวิตช์สว่าง/มืด — สลับชุดตัวแปรสีทั้งระบบ (:root ↔ [data-theme="aurora"] ใน tokens.css)
               ยังมีปุ่มเดิมในแถบตั้งค่าของเมนูซ้ายอยู่ ทั้งสองปุ่มเรียกตัวเดียวกัน ไม่ใช่สเตตคนละตัว */}
           {onToggleAurora && !(isMobile && searchOpen) && (
@@ -1473,13 +1453,16 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
               เดิมอยู่ก้นแถบเมนูซ้ายเท่านั้น ซึ่งมองไม่เห็นเลยตอนแถบเมนูพับหรือบนมือถือ
               ตัวจัดการบัญชี/ออกจากระบบ ยังอยู่ที่แถบเมนูที่เดียว ชิปนี้เป็นป้ายบอกว่ากำลังใช้สิทธิ์ของใคร */}
           {!isMobile && me && (
-            <div className="hdr-user" title={me.name || ""}>
-              <span className="hdr-user-av">{(me.name || "?").slice(0, 1)}</span>
+            <button className="hdr-user" onClick={onMySign} disabled={!onMySign} title="โปรไฟล์ของฉัน">
+              <span className="hdr-user-av">
+                {myAvatar ? <img src={myAvatar} alt="" /> : (me.name || "?").slice(0, 1)}
+              </span>
               <span className="hdr-user-tx">
                 <b>{me.name}</b>
                 <i>{userRoles(me).map((r) => (ROLE_INFO[r] || ROLE_INFO.tech).short).join(" · ")}</i>
               </span>
-            </div>
+              {onMySign && <Icon name="settings" size={15} color="var(--text-3)" />}
+            </button>
           )}
         </div>
       </div>

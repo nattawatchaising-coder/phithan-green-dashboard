@@ -1178,11 +1178,6 @@ function App() {
     setTechFilter: setTechFilter,
     techCounts: techCounts,
     techs: techStore.techs,
-    onAdd: () => setForm({
-      job: store.blank(),
-      isNew: true
-    }),
-    canAdd: can(role, "addJob"),
     onMap: () => setMapOpen(true),
     showBell: true,
     unread: bellCount,
@@ -1200,6 +1195,7 @@ function App() {
     me: auth.current,
     aurora: aurora,
     onToggleAurora: toggleAurora,
+    onMySign: () => setMySign(true),
     onMenuOpen: () => setSidebarOpen(true)
   }), React.createElement("div", {
     className: "app-content",
@@ -1239,6 +1235,10 @@ function App() {
     leads: leadStore.leads,
     quotes: quoteStore.quotes,
     search: search,
+    onNewJob: can(role, "addJob") ? () => setForm({
+      job: store.blank(),
+      isNew: true
+    }) : null,
     role: role,
     currentUser: auth.current,
     onOpenJob: openJob,
@@ -1263,6 +1263,10 @@ function App() {
     permitMode: permitOnly,
     onRevert: can(role, "delJob") ? revertJobToLead : null,
     canRevert: j => !!leadOfJob(j),
+    onAdd: can(role, "addJob") ? () => setForm({
+      job: store.blank(),
+      isNew: true
+    }) : null,
     trashCount: can(role, "delJob") ? store.trash.length : 0,
     onOpenTrash: can(role, "delJob") ? () => setTrashOpen(true) : null
   }), view === "permit" && permitView, view === "daily" && React.createElement(DailyView, {
@@ -1774,70 +1778,7 @@ function Sidebar({
     });
   })()), React.createElement("div", {
     className: "sidebar-foot"
-  }, currentUser && React.createElement("button", {
-    onClick: onMySign,
-    title: "\u0E42\u0E1B\u0E23\u0E44\u0E1F\u0E25\u0E4C\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19",
-    disabled: !onMySign,
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      width: "100%",
-      textAlign: "left",
-      borderRadius: 12,
-      padding: icons ? "6px 0" : "6px 8px 6px 2px",
-      justifyContent: icons ? "center" : "flex-start",
-      background: "none",
-      border: "none",
-      fontFamily: "inherit",
-      cursor: onMySign ? "pointer" : "default"
-    }
-  }, React.createElement("span", {
-    style: {
-      width: 36,
-      height: 36,
-      borderRadius: 99,
-      flexShrink: 0,
-      display: "grid",
-      placeItems: "center",
-      overflow: "hidden",
-      background: (ROLE_INFO[userRoles(currentUser)[0]] || ROLE_INFO.tech).color,
-      color: "#fff",
-      fontWeight: 700,
-      fontSize: 14
-    }
-  }, myAvatar ? React.createElement("img", {
-    src: myAvatar,
-    alt: "",
-    style: {
-      width: "100%",
-      height: "100%",
-      objectFit: "cover"
-    }
-  }) : (currentUser.name || "?").slice(0, 1)), !icons && React.createElement("div", {
-    style: {
-      minWidth: 0,
-      flex: 1
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 13,
-      fontWeight: 700,
-      color: "var(--text-1)",
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-      textOverflow: "ellipsis"
-    }
-  }, currentUser.name), React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-3)"
-    }
-  }, userRoles(currentUser).map(r => (ROLE_INFO[r] || ROLE_INFO.tech).short).join(" · "))), !icons && onMySign && React.createElement(Icon, {
-    name: "settings",
-    size: 15,
-    color: "var(--text-3)"
-  })), React.createElement(SidebarSettings, {
+  }, React.createElement(SidebarSettings, {
     icons: icons,
     view: view,
     onNav: onNav,
@@ -2189,7 +2130,8 @@ function Header({
   onMenuOpen,
   me,
   aurora,
-  onToggleAurora
+  onToggleAurora,
+  onMySign
 }) {
   const nav = navList.find(n => n.key === view) || NAV.find(n => n.key === view);
   const QUICK_LABELS = {
@@ -2212,6 +2154,7 @@ function Header({
   const stInfo = k => pMode ? permitStageOf(k) : stageOf(k);
   const stLabel = pMode ? "ขั้นขออนุญาต" : "ขั้นงาน";
   const jobTools = view === "board" || view === "table";
+  const myAvatar = window.useUserAvatar((me || {}).id).avatar;
   const searchPh = HDR_SEARCH[view];
   const [searchOpen, setSearchOpen] = React.useState(false);
   const searchRef = React.useRef(null);
@@ -2390,15 +2333,7 @@ function Header({
     onClose: onCloseNotif,
     onOpenJob: onOpenNotif,
     onMarkAll: onMarkAll
-  })), jobTools && canAdd && !(isMobile && searchOpen) && React.createElement("button", {
-    className: "btn-add",
-    onClick: onAdd
-  }, React.createElement(Icon, {
-    name: "plus",
-    size: 17,
-    color: "#fff",
-    sw: 2.4
-  }), React.createElement("span", null, "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E07\u0E32\u0E19")), onToggleAurora && !(isMobile && searchOpen) && React.createElement("button", {
+  })), onToggleAurora && !(isMobile && searchOpen) && React.createElement("button", {
     onClick: onToggleAurora,
     className: "hdr-icon-btn",
     title: aurora ? "สลับเป็นโหมดสว่าง" : "สลับเป็นโหมดมืด",
@@ -2407,14 +2342,23 @@ function Header({
     name: aurora ? "sun" : "moon",
     size: 18,
     color: "var(--text-2)"
-  })), !isMobile && me && React.createElement("div", {
+  })), !isMobile && me && React.createElement("button", {
     className: "hdr-user",
-    title: me.name || ""
+    onClick: onMySign,
+    disabled: !onMySign,
+    title: "\u0E42\u0E1B\u0E23\u0E44\u0E1F\u0E25\u0E4C\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19"
   }, React.createElement("span", {
     className: "hdr-user-av"
-  }, (me.name || "?").slice(0, 1)), React.createElement("span", {
+  }, myAvatar ? React.createElement("img", {
+    src: myAvatar,
+    alt: ""
+  }) : (me.name || "?").slice(0, 1)), React.createElement("span", {
     className: "hdr-user-tx"
-  }, React.createElement("b", null, me.name), React.createElement("i", null, userRoles(me).map(r => (ROLE_INFO[r] || ROLE_INFO.tech).short).join(" · ")))))), !plain && (!isMobile || showTechFilter) && React.createElement("div", {
+  }, React.createElement("b", null, me.name), React.createElement("i", null, userRoles(me).map(r => (ROLE_INFO[r] || ROLE_INFO.tech).short).join(" · "))), onMySign && React.createElement(Icon, {
+    name: "settings",
+    size: 15,
+    color: "var(--text-3)"
+  })))), !plain && (!isMobile || showTechFilter) && React.createElement("div", {
     className: "header-filters"
   }, !isMobile && React.createElement(Segmented, {
     value: typeFilter,

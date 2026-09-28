@@ -94,7 +94,8 @@ function TableView({
   onOpenTrash,
   permitMode,
   onRevert,
-  canRevert
+  canRevert,
+  onAdd
 }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -149,7 +150,8 @@ function TableView({
     counts: counts,
     labels: tabLabels,
     trashCount: trashCount,
-    onOpenTrash: onOpenTrash
+    onOpenTrash: onOpenTrash,
+    onAdd: onAdd
   }), React.createElement(TableMobile, {
     jobs: sorted,
     sort: sort,
@@ -221,7 +223,8 @@ function TableView({
     counts: counts,
     labels: tabLabels,
     trashCount: trashCount,
-    onOpenTrash: onOpenTrash
+    onOpenTrash: onOpenTrash,
+    onAdd: onAdd
   }), React.createElement("div", {
     style: {
       background: "var(--surface)",
@@ -542,7 +545,8 @@ function StatusTabs({
   counts,
   labels,
   trashCount,
-  onOpenTrash
+  onOpenTrash,
+  onAdd
 }) {
   const mob = window.matchMedia("(max-width: 860px)").matches;
   const L = labels || {};
@@ -637,7 +641,23 @@ function StatusTabs({
       fontWeight: 800,
       fontVariantNumeric: "tabular-nums"
     }
-  }, trashCount) : null));
+  }, trashCount) : null), onAdd && React.createElement("button", {
+    onClick: onAdd,
+    className: "btn-add",
+    title: "\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A\u0E07\u0E32\u0E19\u0E43\u0E2B\u0E21\u0E48",
+    style: {
+      marginLeft: onOpenTrash ? 0 : "auto",
+      flexShrink: 0,
+      padding: mob ? "8px 12px" : "8px 15px",
+      borderRadius: 99,
+      fontSize: mob ? 12 : 13
+    }
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 15,
+    color: "#fff",
+    sw: 2.6
+  }), !mob && React.createElement("span", null, "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E07\u0E32\u0E19")));
 }
 function TableMobile({
   jobs,

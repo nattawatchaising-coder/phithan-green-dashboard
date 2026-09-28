@@ -219,7 +219,7 @@ function FlGroup({
       e.stopPropagation();
       onAdd();
     },
-    title: "เพิ่ม" + (addLabel || "ลูกค้าใหม่") + "ในช่วง " + g.th,
+    title: ((addLabel || "ลูกค้าใหม่").indexOf("เพิ่ม") === 0 ? addLabel : "เพิ่ม" + (addLabel || "ลูกค้าใหม่")) + " ในช่วง " + g.th,
     style: {
       display: "inline-flex",
       alignItems: "center",
@@ -330,6 +330,7 @@ function FlowBoardView({
   onOpenLead,
   onNewLead,
   onNewPermitJob,
+  onNewJob,
   onMoveStage,
   onPatchJob,
   onPatchLead,
@@ -574,8 +575,8 @@ function FlowBoardView({
     count: groupCount(g),
     collapsed: !!collapsed[g.key],
     onToggle: () => toggle(g.key),
-    onAdd: g.kind === "lead" ? onNewLead || null : g.kind === "permit" ? onNewPermitJob || null : null,
-    addLabel: g.kind === "permit" ? "งานขออนุญาต" : "ลูกค้าใหม่"
+    onAdd: g.kind === "lead" ? onNewLead || null : g.kind === "permit" ? onNewPermitJob || null : g.kind === "job" ? onNewJob || null : null,
+    addLabel: g.kind === "permit" ? "งานขออนุญาต" : g.kind === "job" ? "เพิ่มงาน" : "ลูกค้าใหม่"
   }, g.cols.map(c => {
     const cards = cardsOf(g, c.key);
     const ok = canDrop(g, c.key);
