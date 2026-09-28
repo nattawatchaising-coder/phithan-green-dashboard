@@ -1384,13 +1384,46 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
     const t = (techs || []).find((x) => x.id === id);
     return t ? (t.nick || t.name) : "—";
   };
+  /* แถบตัวกรอง — จอใหญ่ขึ้นไปอยู่แถวเดียวกับชื่อหน้า ที่ว่างข้างชื่อหน้ามีเหลืออยู่แล้วทุกหน้า
+     และตัวกรองเป็นของคู่กับหัวข้อ ไม่ใช่เนื้อหาอีกแถวที่ดันเนื้อหาจริงให้ต่ำลงไปอีกหนึ่งแถว
+     มือถือยังเป็นแถวของตัวเองเหมือนเดิม เพราะแถวบนมีชื่อหน้ากับปุ่มเครื่องมืออัดกันอยู่แล้ว
+     (ตกลงมาเป็นแถวของตัวเองอัตโนมัติเมื่อจอแคบจนไม่พอ — .header-top เป็น flex-wrap อยู่แล้ว) */
+  const filterBar = !plain && (!isMobile || showTechFilter) ? (
+    <div className={"header-filters" + (isMobile ? "" : " in-top")}>
+      {!isMobile && <Segmented value={typeFilter} onChange={setTypeFilter}
+        options={[{ value: "all", label: "ทั้งหมด" }, { value: "home", label: "งานบ้าน" }, { value: "project", label: "โครงการ" }]} />}
+      {!isMobile && (
+      <button className={"delay-toggle" + (delayedOnly ? " on" : "")} onClick={() => setDelayedOnly((v) => !v)}>
+        <Icon name="alert" size={15} color={delayedOnly ? "#fff" : "#EF4444"} />
+        เฉพาะงานล่าช้า
+      </button>
+      )}
+      {showTechFilter && <TechFilter value={techFilter} onChange={setTechFilter} techs={techs} counts={techCounts} nameOf={techName} />}
+      {/* ปุ่มย่อ/ขยายแถบกรองขั้นงาน — สไตล์เดียวกับ "หมวดหมู่" ฝั่งคลัง (ไม่แสดงบนหน้าภาพรวม / มือถือหน้าบอร์ด)
+          ดันไปชิดขวาเฉพาะตอนเป็นแถวเต็มความกว้างของตัวเอง ไม่งั้นมันจะไปลอยอยู่ติดปุ่มกระดิ่ง */}
+      {showStageBar && (
+      <button onClick={toggleStage} title={stageOpen ? "ซ่อนตัวกรองขั้นงาน" : "แสดงตัวกรองขั้นงาน"}
+        style={{ marginLeft: isMobile ? "auto" : 0, display: "inline-flex", alignItems: "center", gap: 6, padding: isMobile ? "5px 10px" : "6px 13px", borderRadius: 99,
+          border: "1px solid " + (stageFilter ? stInfo(stageFilter).color : "var(--border-strong)"),
+          background: stageFilter ? stInfo(stageFilter).color + "16" : "var(--surface)",
+          color: stageFilter ? stInfo(stageFilter).color : "var(--text-2)",
+          fontSize: isMobile ? 11.5 : 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+        <Icon name="filter" size={14} color={stageFilter ? stInfo(stageFilter).color : "var(--text-2)"} />
+        {stLabel}{stageFilter ? ": " + stInfo(stageFilter).th : ""}
+        <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: stageOpen ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
+      </button>
+      )}
+    </div>
+  ) : null;
+  /* ระยะห่างใต้หัวจอเคยมาจาก padding ของแถวตัวกรอง — ตอนนี้แถวนั้นขึ้นไปอยู่แถวบนแล้ว
+     ต้องจ่ายเองที่ตัว header ยกเว้นตอนแถบชิปขั้นงานกางอยู่ ซึ่งมีระยะห่างของมันเองอยู่แล้ว */
   return (
-    <header className="app-header" style={isMobile ? { paddingBottom: 12 } : undefined}>
+    <header className="app-header" style={{ paddingBottom: isMobile ? 12 : (showStageBar && stageOpen ? 0 : 14) }}>
       <div className="header-top">
         <button className="hamburger" onClick={onMenuOpen} aria-label="เปิดเมนู">
           <Icon name="menu" size={18} color="var(--text-2)" />
         </button>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: isMobile ? 1 : "0 1 auto", minWidth: 0 }}>
           <h1 className="page-title">{nav.th}</h1>
           <p className="page-sub">
             {subtitle || <React.Fragment>แสดง <strong>{count}</strong> จาก {total} งาน{ownOnly && " · เฉพาะงานของคุณ"}</React.Fragment>}
@@ -1399,6 +1432,7 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
             {techFilter && <span> · ช่าง: {techName(techFilter)} <button onClick={() => setTechFilter(null)} className="clear-chip">ล้าง ✕</button></span>}
           </p>
         </div>
+        {!isMobile && filterBar}
         <div className="header-actions">
           {searchPh && (isMobile && !searchOpen ? (
             <button onClick={() => setSearchOpen(true)} title="ค้นหา" aria-label="ค้นหา"
@@ -1465,33 +1499,8 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
           )}
         </div>
       </div>
-      {/* มือถือ: เหลือไว้แค่ตัวกรองช่าง (ตัวอื่นซ่อนเพื่อประหยัดพื้นที่หัวเหมือนเดิม) */}
-      {!plain && (!isMobile || showTechFilter) && (
-      <div className="header-filters">
-        {!isMobile && <Segmented value={typeFilter} onChange={setTypeFilter}
-          options={[{ value: "all", label: "ทั้งหมด" }, { value: "home", label: "งานบ้าน" }, { value: "project", label: "โครงการ" }]} />}
-        {!isMobile && (
-        <button className={"delay-toggle" + (delayedOnly ? " on" : "")} onClick={() => setDelayedOnly((v) => !v)}>
-          <Icon name="alert" size={15} color={delayedOnly ? "#fff" : "#EF4444"} />
-          เฉพาะงานล่าช้า
-        </button>
-        )}
-        {showTechFilter && <TechFilter value={techFilter} onChange={setTechFilter} techs={techs} counts={techCounts} nameOf={techName} />}
-        {/* ปุ่มย่อ/ขยายแถบกรองขั้นงาน — สไตล์เดียวกับ "หมวดหมู่" ฝั่งคลัง (ไม่แสดงบนหน้าภาพรวม / มือถือหน้าบอร์ด) */}
-        {showStageBar && (
-        <button onClick={toggleStage} title={stageOpen ? "ซ่อนตัวกรองขั้นงาน" : "แสดงตัวกรองขั้นงาน"}
-          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: isMobile ? "5px 10px" : "6px 13px", borderRadius: 99,
-            border: "1px solid " + (stageFilter ? stInfo(stageFilter).color : "var(--border-strong)"),
-            background: stageFilter ? stInfo(stageFilter).color + "16" : "var(--surface)",
-            color: stageFilter ? stInfo(stageFilter).color : "var(--text-2)",
-            fontSize: isMobile ? 11.5 : 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-          <Icon name="filter" size={14} color={stageFilter ? stInfo(stageFilter).color : "var(--text-2)"} />
-          {stLabel}{stageFilter ? ": " + stInfo(stageFilter).th : ""}
-          <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: stageOpen ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
-        </button>
-        )}
-      </div>
-      )}
+      {/* มือถือ: แถบตัวกรองยังเป็นแถวของตัวเองใต้หัว และเหลือไว้แค่ตัวกรองช่าง (ตัวอื่นซ่อนเพื่อประหยัดพื้นที่) */}
+      {isMobile && filterBar}
       {/* ชิปกรองขั้นงาน — ย่อ/ขยายแบบลื่น (max-height + opacity); ซ่อนบนหน้าภาพรวม / มือถือหน้าบอร์ด */}
       {showStageBar && (
       <div style={{ overflow: "hidden", maxHeight: stageOpen ? 180 : 0, opacity: stageOpen ? 1 : 0,

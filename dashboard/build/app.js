@@ -2167,11 +2167,71 @@ function Header({
     const t = (techs || []).find(x => x.id === id);
     return t ? t.nick || t.name : "—";
   };
+  const filterBar = !plain && (!isMobile || showTechFilter) ? React.createElement("div", {
+    className: "header-filters" + (isMobile ? "" : " in-top")
+  }, !isMobile && React.createElement(Segmented, {
+    value: typeFilter,
+    onChange: setTypeFilter,
+    options: [{
+      value: "all",
+      label: "ทั้งหมด"
+    }, {
+      value: "home",
+      label: "งานบ้าน"
+    }, {
+      value: "project",
+      label: "โครงการ"
+    }]
+  }), !isMobile && React.createElement("button", {
+    className: "delay-toggle" + (delayedOnly ? " on" : ""),
+    onClick: () => setDelayedOnly(v => !v)
+  }, React.createElement(Icon, {
+    name: "alert",
+    size: 15,
+    color: delayedOnly ? "#fff" : "#EF4444"
+  }), "\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E07\u0E32\u0E19\u0E25\u0E48\u0E32\u0E0A\u0E49\u0E32"), showTechFilter && React.createElement(TechFilter, {
+    value: techFilter,
+    onChange: setTechFilter,
+    techs: techs,
+    counts: techCounts,
+    nameOf: techName
+  }), showStageBar && React.createElement("button", {
+    onClick: toggleStage,
+    title: stageOpen ? "ซ่อนตัวกรองขั้นงาน" : "แสดงตัวกรองขั้นงาน",
+    style: {
+      marginLeft: isMobile ? "auto" : 0,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: isMobile ? "5px 10px" : "6px 13px",
+      borderRadius: 99,
+      border: "1px solid " + (stageFilter ? stInfo(stageFilter).color : "var(--border-strong)"),
+      background: stageFilter ? stInfo(stageFilter).color + "16" : "var(--surface)",
+      color: stageFilter ? stInfo(stageFilter).color : "var(--text-2)",
+      fontSize: isMobile ? 11.5 : 12.5,
+      fontWeight: 600,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      whiteSpace: "nowrap"
+    }
+  }, React.createElement(Icon, {
+    name: "filter",
+    size: 14,
+    color: stageFilter ? stInfo(stageFilter).color : "var(--text-2)"
+  }), stLabel, stageFilter ? ": " + stInfo(stageFilter).th : "", React.createElement(Icon, {
+    name: "chevronDown",
+    size: 14,
+    color: "var(--text-3)",
+    style: {
+      transform: stageOpen ? "rotate(180deg)" : "none",
+      transition: "transform .18s"
+    }
+  }))) : null;
   return React.createElement("header", {
     className: "app-header",
-    style: isMobile ? {
-      paddingBottom: 12
-    } : undefined
+    style: {
+      paddingBottom: isMobile ? 12 : showStageBar && stageOpen ? 0 : 14
+    }
   }, React.createElement("div", {
     className: "header-top"
   }, React.createElement("button", {
@@ -2184,7 +2244,7 @@ function Header({
     color: "var(--text-2)"
   })), React.createElement("div", {
     style: {
-      flex: 1,
+      flex: isMobile ? 1 : "0 1 auto",
       minWidth: 0
     }
   }, React.createElement("h1", {
@@ -2200,7 +2260,7 @@ function Header({
   }, "\u0E25\u0E49\u0E32\u0E07 \u2715")), techFilter && React.createElement("span", null, " \xB7 \u0E0A\u0E48\u0E32\u0E07: ", techName(techFilter), " ", React.createElement("button", {
     onClick: () => setTechFilter(null),
     className: "clear-chip"
-  }, "\u0E25\u0E49\u0E32\u0E07 \u2715")))), React.createElement("div", {
+  }, "\u0E25\u0E49\u0E32\u0E07 \u2715")))), !isMobile && filterBar, React.createElement("div", {
     className: "header-actions"
   }, searchPh && (isMobile && !searchOpen ? React.createElement("button", {
     onClick: () => setSearchOpen(true),
@@ -2354,66 +2414,7 @@ function Header({
     alt: ""
   }) : (me.name || "?").slice(0, 1)), React.createElement("span", {
     className: "hdr-user-tx"
-  }, React.createElement("b", null, me.name), React.createElement("i", null, userRoles(me).map(r => (ROLE_INFO[r] || ROLE_INFO.tech).short).join(" · ")))))), !plain && (!isMobile || showTechFilter) && React.createElement("div", {
-    className: "header-filters"
-  }, !isMobile && React.createElement(Segmented, {
-    value: typeFilter,
-    onChange: setTypeFilter,
-    options: [{
-      value: "all",
-      label: "ทั้งหมด"
-    }, {
-      value: "home",
-      label: "งานบ้าน"
-    }, {
-      value: "project",
-      label: "โครงการ"
-    }]
-  }), !isMobile && React.createElement("button", {
-    className: "delay-toggle" + (delayedOnly ? " on" : ""),
-    onClick: () => setDelayedOnly(v => !v)
-  }, React.createElement(Icon, {
-    name: "alert",
-    size: 15,
-    color: delayedOnly ? "#fff" : "#EF4444"
-  }), "\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E07\u0E32\u0E19\u0E25\u0E48\u0E32\u0E0A\u0E49\u0E32"), showTechFilter && React.createElement(TechFilter, {
-    value: techFilter,
-    onChange: setTechFilter,
-    techs: techs,
-    counts: techCounts,
-    nameOf: techName
-  }), showStageBar && React.createElement("button", {
-    onClick: toggleStage,
-    title: stageOpen ? "ซ่อนตัวกรองขั้นงาน" : "แสดงตัวกรองขั้นงาน",
-    style: {
-      marginLeft: "auto",
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      padding: isMobile ? "5px 10px" : "6px 13px",
-      borderRadius: 99,
-      border: "1px solid " + (stageFilter ? stInfo(stageFilter).color : "var(--border-strong)"),
-      background: stageFilter ? stInfo(stageFilter).color + "16" : "var(--surface)",
-      color: stageFilter ? stInfo(stageFilter).color : "var(--text-2)",
-      fontSize: isMobile ? 11.5 : 12.5,
-      fontWeight: 600,
-      cursor: "pointer",
-      fontFamily: "inherit",
-      whiteSpace: "nowrap"
-    }
-  }, React.createElement(Icon, {
-    name: "filter",
-    size: 14,
-    color: stageFilter ? stInfo(stageFilter).color : "var(--text-2)"
-  }), stLabel, stageFilter ? ": " + stInfo(stageFilter).th : "", React.createElement(Icon, {
-    name: "chevronDown",
-    size: 14,
-    color: "var(--text-3)",
-    style: {
-      transform: stageOpen ? "rotate(180deg)" : "none",
-      transition: "transform .18s"
-    }
-  }))), showStageBar && React.createElement("div", {
+  }, React.createElement("b", null, me.name), React.createElement("i", null, userRoles(me).map(r => (ROLE_INFO[r] || ROLE_INFO.tech).short).join(" · ")))))), isMobile && filterBar, showStageBar && React.createElement("div", {
     style: {
       overflow: "hidden",
       maxHeight: stageOpen ? 180 : 0,
