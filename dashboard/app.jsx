@@ -1317,10 +1317,10 @@ function TechFilter({ value, onChange, techs, counts, nameOf }) {
 
   return (
     <span ref={wrapRef} style={{ position: "relative", display: "inline-flex" }}>
-      <button onClick={() => setOpen((v) => !v)} title="กรองตามช่างผู้รับผิดชอบ"
+      <button onClick={() => setOpen((v) => !v)} title="กรองตามช่างผู้รับผิดชอบ" className="hdr-pill" data-on={on ? "1" : "0"}
         style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: isMobile ? "5px 10px" : "6px 13px", borderRadius: 99,
-          border: "1px solid " + (on ? (cur ? cur.color : "var(--primary)") : "var(--border-strong)"),
-          background: on ? ((cur ? cur.color : "#1B9B75") + "16") : "var(--surface)",
+          border: "none",
+          background: on ? ((cur ? cur.color : "#1B9B75") + "24") : "transparent",
           color: on ? (cur ? cur.color : "var(--primary-dark)") : "var(--text-2)",
           fontSize: isMobile ? 11.5 : 12.5, fontWeight: on ? 700 : 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
         <Icon name="wrench" size={14} color={on ? (cur ? cur.color : "var(--primary-dark)") : "var(--text-2)"} />
@@ -1403,7 +1403,7 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
      (ตกลงมาเป็นแถวของตัวเองอัตโนมัติเมื่อจอแคบจนไม่พอ — .header-top เป็น flex-wrap อยู่แล้ว) */
   const filterBar = !plain && (!isMobile || showTechFilter) ? (
     <div className={"header-filters" + (isMobile ? "" : " in-top")}>
-      {!isMobile && <Segmented value={typeFilter} onChange={setTypeFilter}
+      {!isMobile && <Segmented flat value={typeFilter} onChange={setTypeFilter}
         options={[{ value: "all", label: "ทั้งหมด" }, { value: "home", label: "งานบ้าน" }, { value: "project", label: "โครงการ" }]} />}
       {!isMobile && (
       <button className={"delay-toggle" + (delayedOnly ? " on" : "")} onClick={() => setDelayedOnly((v) => !v)}>
@@ -1456,17 +1456,13 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
             </div>
           ))}
           {jobTools && onMap && !(isMobile && searchOpen) && (
-            <button onClick={onMap} title="แผนที่งาน" aria-label="แผนที่งาน"
-              style={{ width: 40, height: 40, borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)",
-                cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
+            <button onClick={onMap} className="hdr-icon-btn" title="แผนที่งาน" aria-label="แผนที่งาน">
               <Icon name="map" size={18} color="var(--text-2)" />
             </button>
           )}
           {showBell && !(isMobile && searchOpen) && (
             <div style={{ position: "relative", flexShrink: 0 }}>
-              <button onClick={onBell} aria-label="การแจ้งเตือน"
-                style={{ width: 40, height: 40, borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)",
-                  cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", position: "relative" }}>
+              <button onClick={onBell} className="hdr-icon-btn" aria-label="การแจ้งเตือน" style={{ position: "relative" }}>
                 <Icon name="bell" size={18} color="var(--text-2)" />
                 {unread > 0 && (
                   <span style={{ position: "absolute", top: -5, right: -5, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 99,

@@ -288,37 +288,40 @@ function MatDots({
 function Segmented({
   options,
   value,
-  onChange
+  onChange,
+  flat
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   return React.createElement("div", {
+    className: flat ? "seg-flat" : null,
     style: {
       display: "inline-flex",
-      background: "var(--surface3)",
+      background: flat ? "transparent" : "var(--surface3)",
       borderRadius: isMobile ? 9 : 10,
-      padding: isMobile ? 2 : 3,
-      gap: 2
+      padding: flat ? 0 : isMobile ? 2 : 3,
+      gap: flat ? 4 : 2
     }
   }, options.map(o => {
     const active = o.value === value;
     return React.createElement("button", {
       key: o.value,
       onClick: () => onChange(o.value),
+      "data-on": active ? "1" : "0",
       style: {
         display: "inline-flex",
         alignItems: "center",
         gap: 6,
         padding: isMobile ? "5px 10px" : "6px 12px",
-        borderRadius: 8,
+        borderRadius: flat ? 9 : 8,
         border: "none",
         cursor: "pointer",
         fontFamily: "inherit",
         fontSize: isMobile ? 11.5 : 12.5,
-        fontWeight: 600,
+        fontWeight: active ? 700 : 600,
         whiteSpace: "nowrap",
-        background: active ? "var(--surface)" : "transparent",
-        color: active ? "var(--text-1)" : "var(--text-2)",
-        boxShadow: active ? "0 1px 3px rgba(0,0,0,.08)" : "none",
+        background: active ? flat ? "var(--surface3)" : "var(--surface)" : "transparent",
+        color: active ? "var(--text-1)" : flat ? "var(--text-3)" : "var(--text-2)",
+        boxShadow: active && !flat ? "0 1px 3px rgba(0,0,0,.08)" : "none",
         transition: "all .15s"
       }
     }, o.icon && React.createElement(Icon, {

@@ -132,9 +132,26 @@ label { min-width: 0; }
 .header-actions { display: flex; align-items: center; gap: 12px; }
 /* ปุ่มไอคอนบนหัวจอ (แผนที่ · กระดิ่ง · สลับสว่างมืด) — ขนาดและขอบชุดเดียวกันทุกปุ่ม
    ก่อนหน้านี้แต่ละปุ่มเขียนสไตล์ซ้ำกันในไฟล์ jsx ปุ่มใหม่จึงเพี้ยนจากของเดิมได้ง่าย */
-.hdr-icon-btn { width: 40px; height: 40px; border-radius: 11px; border: 1px solid var(--border-strong);
-  background: var(--surface); cursor: pointer; display: grid; place-items: center; color: var(--text-2); flex-shrink: 0; }
-.hdr-icon-btn:hover { background: var(--surface2); }
+/* ── ภาษาปุ่มบนหัวจอ: ไม่มีกรอบ ──
+   เดิมทุกปุ่มบนหัวจอมีเส้นขอบ 1px หัวจอจึงเป็นกล่องสี่เหลี่ยมเรียงกันหกเจ็ดใบแข่งกับชื่อหน้า
+   ตอนนี้ตอนอยู่เฉย ๆ ไม่มีทั้งขอบและพื้น ความเป็นปุ่มมาจากสามอย่างแทน
+     (1) พื้นอ่อนโผล่ขึ้นมาทันทีที่เอาเมาส์ชี้   (2) ยุบลงเล็กน้อยตอนกด
+     (3) ตอนเปิดใช้งานอยู่ พื้นเป็นสีเต็มใบ ไม่ใช่แค่ขอบเปลี่ยนสี
+   ห้ามถอด :hover/:active ออกไม่ว่ากรณีใด — ปุ่มไม่มีกรอบที่ไม่ตอบสนองตอนชี้
+   จะกลายเป็นไอคอนตกแต่งที่ไม่มีใครรู้ว่ากดได้ ซึ่งแย่กว่ามีกรอบเสียอีก
+   และคนใช้คีย์บอร์ดต้องพึ่ง :focus-visible ล้วน ๆ จึงต้องมีวงแหวนโฟกัสทุกปุ่ม */
+.hdr-icon-btn { width: 40px; height: 40px; border-radius: 11px; border: none;
+  background: transparent; cursor: pointer; display: grid; place-items: center; color: var(--text-2); flex-shrink: 0;
+  transition: background .16s ease, transform .12s ease; }
+.hdr-icon-btn:hover { background: var(--surface3); }
+.hdr-icon-btn:active { transform: scale(.92); }
+/* ปุ่มเม็ดยาที่เขียนสไตล์ inline ในไฟล์ jsx (ตัวกรองช่าง) — พื้นตอนชี้ต้องใช้ !important เพราะ inline ชนะกฎปกติ
+   ยกเว้นตอนตัวกรองทำงานอยู่ ซึ่งมีพื้นสีของช่างคนนั้นอยู่แล้ว ทับไปจะกลายเป็นเทา */
+.hdr-pill { transition: background .16s ease, color .16s ease, transform .12s ease; }
+.hdr-pill:not([data-on="1"]):hover { background: var(--surface3) !important; }
+.hdr-pill:active { transform: scale(.96); }
+.hdr-icon-btn:focus-visible, .hdr-pill:focus-visible, .delay-toggle:focus-visible, .hdr-user:focus-visible {
+  outline: none; box-shadow: 0 0 0 3px var(--primary-soft); }
 /* ปุ่มสลับสว่าง/มืด — ไอคอนสองใบซ้อนกัน สลับกันหมุนเข้า/ออก ให้รู้สึกว่ามีการ "สลับ" จริง ๆ
    ไม่ใช่ภาพเปลี่ยนเฉย ๆ · ตัวปุ่มยุบลงเล็กน้อยตอนกด เพื่อตอบสนองทันทีก่อนสีทั้งหน้าจะไล่ตาม */
 .hdr-icon-btn.thm { position: relative; overflow: hidden; transition: background .16s, border-color .16s, transform .12s; }
@@ -168,8 +185,11 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hdr-user-tx i { font-style: normal; font-size: 10.5px; color: var(--text-3);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.search-box { display: flex; align-items: center; gap: 8px; background: var(--surface2); border: 1px solid var(--border);
+/* ช่องค้นหาไม่มีเส้นขอบตอนอยู่เฉย ๆ เหมือนกัน — พื้นเทาอ่อนก็บอกว่าพิมพ์ได้อยู่แล้ว
+   ขอบสีเขียวเก็บไว้เฉพาะตอนเคอร์เซอร์อยู่ในช่อง ซึ่งเป็นการบอกโฟกัส ไม่ใช่กรอบประจำที่ */
+.search-box { display: flex; align-items: center; gap: 8px; background: var(--surface2); border: 1px solid transparent;
   border-radius: 12px; padding: 9px 13px; width: 280px; transition: border-color .15s, box-shadow .15s, background .15s; }
+.search-box:hover { background: var(--surface3); }
 .search-box:focus-within { background: var(--surface); border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
 .search-box input { border: none; background: none; outline: none; font-size: 13.5px; color: var(--text-1); width: 100%; }
 .search-box input::placeholder { color: var(--text-3); }
@@ -194,10 +214,14 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
    ช่องค้นหาความกว้างตายตัว 280px คือตัวที่ทำให้ไม่พอแล้วทั้งแถวเครื่องมือตกบรรทัด
    ให้มันหดได้ถึง 150px ก่อน แล้วค่อยห่อบรรทัดถ้ายังไม่พอจริง ๆ */
 .header-top .header-actions .search-box { flex: 0 1 280px; min-width: 150px; width: auto; }
-.delay-toggle { display: flex; align-items: center; gap: 7px; background: var(--surface); border: 1px solid var(--border-strong); color: var(--text-2);
-  padding: 7px 14px; border-radius: 10px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all .15s; white-space: nowrap; }
-.delay-toggle:hover { border-color: #EF4444; }
-.delay-toggle.on { background: #EF4444; border-color: #EF4444; color: #fff; }
+.delay-toggle { display: flex; align-items: center; gap: 7px; background: transparent; border: none; color: var(--text-2);
+  padding: 7px 14px; border-radius: 10px; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  transition: background .16s ease, color .16s ease, transform .12s ease; white-space: nowrap; }
+/* ตอนชี้ใช้พื้นสีแดงจาง ๆ ไม่ใช่เทา — บอกล่วงหน้าว่าปุ่มนี้เกี่ยวกับงานล่าช้า ก่อนจะกดด้วยซ้ำ */
+.delay-toggle:hover { background: color-mix(in srgb, #EF4444 12%, transparent); color: #D93025; }
+.delay-toggle:active { transform: scale(.96); }
+.delay-toggle.on { background: #EF4444; color: #fff; }
+.delay-toggle.on:hover { background: #DC2626; color: #fff; }
 .ghost-btn { display: flex; align-items: center; gap: 6px; background: none; border: 1px solid var(--border); color: var(--text-3);
   padding: 7px 13px; border-radius: 10px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all .15s; white-space: nowrap; }
 .ghost-btn:hover { background: var(--surface2); color: var(--text-2); }
@@ -578,10 +602,13 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   background: var(--surface2); border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(48,209,88,.16);
 }
-[data-theme="aurora"] .ghost-btn,
-[data-theme="aurora"] .delay-toggle {
+[data-theme="aurora"] .ghost-btn {
   background: var(--surface2); border-color: transparent; box-shadow: none;
 }
+/* โหมดมืด: ปุ่มบนหัวจอไม่มีกรอบเหมือนกัน พื้นตอนชี้แค่สว่างขึ้นหนึ่งขั้น */
+[data-theme="aurora"] .delay-toggle { background: transparent; border-color: transparent; box-shadow: none; }
+[data-theme="aurora"] .delay-toggle:hover { background: rgba(239,68,68,.20); color: #FCA5A5; }
+[data-theme="aurora"] .search-box:hover { background: var(--surface3); }
 [data-theme="aurora"] .ghost-btn:hover,
 [data-theme="aurora"] .hamburger { background: var(--surface2); }
 [data-theme="aurora"] .hamburger:hover { background: var(--surface3); }
@@ -743,7 +770,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <!-- ภาษาของเอกสารที่พิมพ์ (ไทย/อังกฤษ/จีน) — ต้องโหลดก่อนไฟล์เอกสารทุกตัวที่เรียกใช้ -->
 <script src="dashboard/build/i18n.js?v=3"></script>
 <script src="dashboard/build/tweaks-panel.js?v=6"></script>
-<script src="dashboard/build/components.js?v=44"></script>
+<script src="dashboard/build/components.js?v=45"></script>
 <script src="dashboard/build/confirm.js?v=2"></script>
 <script src="dashboard/build/store.js?v=47"></script>
 <script src="dashboard/build/media.js?v=14"></script>
@@ -798,6 +825,6 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/ot-paper.js?v=6"></script>
 <script src="dashboard/build/views-line.js?v=2"></script>
 <script src="dashboard/build/guide.js?v=5"></script>
-<script src="dashboard/build/app.js?v=178"></script>
+<script src="dashboard/build/app.js?v=179"></script>
 </body>
 </html>

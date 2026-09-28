@@ -2011,14 +2011,16 @@ function TechFilter({
   }, React.createElement("button", {
     onClick: () => setOpen(v => !v),
     title: "\u0E01\u0E23\u0E2D\u0E07\u0E15\u0E32\u0E21\u0E0A\u0E48\u0E32\u0E07\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A",
+    className: "hdr-pill",
+    "data-on": on ? "1" : "0",
     style: {
       display: "inline-flex",
       alignItems: "center",
       gap: 6,
       padding: isMobile ? "5px 10px" : "6px 13px",
       borderRadius: 99,
-      border: "1px solid " + (on ? cur ? cur.color : "var(--primary)" : "var(--border-strong)"),
-      background: on ? (cur ? cur.color : "#1B9B75") + "16" : "var(--surface)",
+      border: "none",
+      background: on ? (cur ? cur.color : "#1B9B75") + "24" : "transparent",
       color: on ? cur ? cur.color : "var(--primary-dark)" : "var(--text-2)",
       fontSize: isMobile ? 11.5 : 12.5,
       fontWeight: on ? 700 : 600,
@@ -2168,6 +2170,7 @@ function Header({
   const filterBar = !plain && (!isMobile || showTechFilter) ? React.createElement("div", {
     className: "header-filters" + (isMobile ? "" : " in-top")
   }, !isMobile && React.createElement(Segmented, {
+    flat: true,
     value: typeFilter,
     onChange: setTypeFilter,
     options: [{
@@ -2293,20 +2296,9 @@ function Header({
     color: "var(--text-3)"
   })))), jobTools && onMap && !(isMobile && searchOpen) && React.createElement("button", {
     onClick: onMap,
+    className: "hdr-icon-btn",
     title: "\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48\u0E07\u0E32\u0E19",
-    "aria-label": "\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48\u0E07\u0E32\u0E19",
-    style: {
-      width: 40,
-      height: 40,
-      borderRadius: 11,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
-      cursor: "pointer",
-      display: "grid",
-      placeItems: "center",
-      color: "var(--text-2)",
-      flexShrink: 0
-    }
+    "aria-label": "\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48\u0E07\u0E32\u0E19"
   }, React.createElement(Icon, {
     name: "map",
     size: 18,
@@ -2318,17 +2310,9 @@ function Header({
     }
   }, React.createElement("button", {
     onClick: onBell,
+    className: "hdr-icon-btn",
     "aria-label": "\u0E01\u0E32\u0E23\u0E41\u0E08\u0E49\u0E07\u0E40\u0E15\u0E37\u0E2D\u0E19",
     style: {
-      width: 40,
-      height: 40,
-      borderRadius: 11,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
-      cursor: "pointer",
-      display: "grid",
-      placeItems: "center",
-      color: "var(--text-2)",
       position: "relative"
     }
   }, React.createElement(Icon, {

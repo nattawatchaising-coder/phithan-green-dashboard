@@ -184,18 +184,25 @@ function MatDots({ mat }) {
 }
 
 // ---------- Segmented control ----------
-function Segmented({ options, value, onChange }) {
+/* flat = ไม่มีรางพื้นหลัง ใช้บนหัวจอที่ตั้งใจให้ทุกปุ่มไม่มีกรอบ
+   ตัวที่เลือกอยู่ยังมีพื้นทึบเหมือนเดิม เพราะถ้าเอาออกด้วยจะเหลือตัวหนังสือสามคำลอย ๆ
+   ที่ไม่มีอะไรบอกว่ากดได้หรือกำลังเลือกอันไหนอยู่ ซึ่งเลยคำว่า "ไม่มีกรอบ" ไปเป็น "ไม่มีตัวควบคุม"
+   ในฟอร์มต่าง ๆ ยังใช้แบบมีรางเหมือนเดิม — ที่นั่นรางคือสิ่งที่แยกตัวเลือกออกจากช่องกรอกรอบข้าง */
+function Segmented({ options, value, onChange, flat }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   return (
-    <div style={{ display: "inline-flex", background: "var(--surface3)", borderRadius: isMobile ? 9 : 10, padding: isMobile ? 2 : 3, gap: 2 }}>
+    <div className={flat ? "seg-flat" : null}
+      style={{ display: "inline-flex", background: flat ? "transparent" : "var(--surface3)",
+        borderRadius: isMobile ? 9 : 10, padding: flat ? 0 : (isMobile ? 2 : 3), gap: flat ? 4 : 2 }}>
       {options.map((o) => {
         const active = o.value === value;
         return (
-          <button key={o.value} onClick={() => onChange(o.value)}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: isMobile ? "5px 10px" : "6px 12px", borderRadius: 8, border: "none",
-              cursor: "pointer", fontFamily: "inherit", fontSize: isMobile ? 11.5 : 12.5, fontWeight: 600, whiteSpace: "nowrap",
-              background: active ? "var(--surface)" : "transparent", color: active ? "var(--text-1)" : "var(--text-2)",
-              boxShadow: active ? "0 1px 3px rgba(0,0,0,.08)" : "none", transition: "all .15s" }}>
+          <button key={o.value} onClick={() => onChange(o.value)} data-on={active ? "1" : "0"}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: isMobile ? "5px 10px" : "6px 12px", borderRadius: flat ? 9 : 8, border: "none",
+              cursor: "pointer", fontFamily: "inherit", fontSize: isMobile ? 11.5 : 12.5, fontWeight: active ? 700 : 600, whiteSpace: "nowrap",
+              background: active ? (flat ? "var(--surface3)" : "var(--surface)") : "transparent",
+              color: active ? "var(--text-1)" : (flat ? "var(--text-3)" : "var(--text-2)"),
+              boxShadow: active && !flat ? "0 1px 3px rgba(0,0,0,.08)" : "none", transition: "all .15s" }}>
             {o.icon && <Icon name={o.icon} size={15} />}{o.label}
           </button>
         );
