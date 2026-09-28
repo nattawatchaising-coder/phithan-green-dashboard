@@ -276,10 +276,9 @@ function LoStalePanel({ jobs, onOpen }) {
           })}
         </div>
       )}
-      <div style={{ marginTop: 12, fontSize: 11, color: "var(--text-3)" }}>
-        * งานที่กำลังติดตั้งนับจากวันเริ่มติดตั้ง ขั้นอื่นนับจากเวลาที่งานเข้าขั้นปัจจุบัน
-        — งานเก่าที่ไม่เคยเดินขั้นผ่านระบบและยังไม่มีวันติดตั้งจะขึ้นว่า “ไม่ทราบ”
-      </div>
+      {/* เชิงอรรถอธิบายวิธีนับวันเอาออกตามที่สั่ง — กติกาสรุปอยู่ในบรรทัดใต้ชื่อแผงแล้ว
+          (งานที่กำลังติดตั้งนับจากวันเริ่มติดตั้ง ขั้นอื่นนับจากเวลาที่งานเข้าขั้นปัจจุบัน
+           ไม่มีทั้งสองอย่างจึงขึ้นว่า "ไม่ทราบ") */}
     </div>
   );
 }
@@ -356,14 +355,15 @@ function LoPermitPanel({ jobs, onGoPermit }) {
   return (
     <div className="pnl" style={stuck ? { borderLeft: "3px solid #F59E0B" } : null}>
       <PanelTitle title="ขออนุญาตการไฟฟ้า" sub={stuck ? (stuck + " งานที่ต้องผลัก") : "ไม่มีใบค้างที่ฝั่งเรา"} />
-      <div className="rows">
+      {/* หกขั้นเรียงเป็นตารางการ์ดเล็ก ไม่ใช่รายการแนวตั้ง
+          แบบรายการกินความสูงหกแถวเต็ม ๆ (ราว 420px) เพื่อบอกตัวเลขหกตัวที่ส่วนใหญ่เป็นศูนย์
+          ตารางอ่านเทียบกันได้ในสายตาเดียวและสูงไม่ถึงครึ่ง · ขั้นที่ต้องรีบทำย้อมพื้นแดงจาง */}
+      <div className="permit-grid">
         {rows.map((r) => (
-          <button key={r.k} onClick={() => onGoPermit && onGoPermit()}>
-            <span className="mk" style={{ background: r.color }} />
-            <span className="bd"><span className="nm" style={{ fontWeight: 600, fontSize: 12.5 }}>{r.th}</span></span>
-            <span className="when" style={r.v && (r.k === "todo" || r.k === "rejected") ? { color: "#D93025" } : null}>
-              <b>งาน</b>{r.v}
-            </span>
+          <button key={r.k} onClick={() => onGoPermit && onGoPermit()}
+            data-warn={r.v && (r.k === "todo" || r.k === "rejected") ? "1" : "0"}>
+            <span className="pv" style={{ color: r.v ? (r.k === "todo" || r.k === "rejected" ? "#D93025" : "var(--text-1)") : "var(--text-3)" }}>{r.v}</span>
+            <span className="pl"><i style={{ background: r.color }} />{r.th}</span>
           </button>
         ))}
       </div>
@@ -511,12 +511,12 @@ function LeadOverview({ jobs, leads, quotes, stock, techs, onOpen, onStage, onKp
           ตัวแผงยังอยู่ที่ LoQueuePanel เปิดคืนได้ด้วยการเอาคอมเมนต์บรรทัดล่างออก */}
       {/* <LoQueuePanel jobs={J} onOpen={onOpen} /> */}
 
-      <div style={col("1fr 1fr")}>
+      <div className="ov-pair" style={col("1fr 1fr")}>
         <LoTechLoadPanel jobs={J} techs={techs} onTech={onTech} />
         <AlertsPanel jobs={J} onOpen={onOpen} />
       </div>
 
-      <div style={col("1fr 1fr")}>
+      <div className="ov-pair" style={col("1fr 1fr")}>
         <LoStalePanel jobs={J} onOpen={onOpen} />
         <LoBottleneckPanel jobs={J} onStage={onStage} />
       </div>

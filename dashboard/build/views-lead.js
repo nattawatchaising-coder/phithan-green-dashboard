@@ -449,13 +449,7 @@ function LoStalePanel({
         color: "var(--primary)"
       } : null
     }, r.inst ? "ติดตั้งมาแล้ว" : "ค้างขั้นนี้"), r.days == null ? "ไม่ทราบ" : r.days + " วัน"));
-  })), React.createElement("div", {
-    style: {
-      marginTop: 12,
-      fontSize: 11,
-      color: "var(--text-3)"
-    }
-  }, "* \u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E01\u0E33\u0E25\u0E31\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E19\u0E31\u0E1A\u0E08\u0E32\u0E01\u0E27\u0E31\u0E19\u0E40\u0E23\u0E34\u0E48\u0E21\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 \u0E02\u0E31\u0E49\u0E19\u0E2D\u0E37\u0E48\u0E19\u0E19\u0E31\u0E1A\u0E08\u0E32\u0E01\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E07\u0E32\u0E19\u0E40\u0E02\u0E49\u0E32\u0E02\u0E31\u0E49\u0E19\u0E1B\u0E31\u0E08\u0E08\u0E38\u0E1A\u0E31\u0E19 \u2014 \u0E07\u0E32\u0E19\u0E40\u0E01\u0E48\u0E32\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E40\u0E04\u0E22\u0E40\u0E14\u0E34\u0E19\u0E02\u0E31\u0E49\u0E19\u0E1C\u0E48\u0E32\u0E19\u0E23\u0E30\u0E1A\u0E1A\u0E41\u0E25\u0E30\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E27\u0E31\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E08\u0E30\u0E02\u0E36\u0E49\u0E19\u0E27\u0E48\u0E32 \u201C\u0E44\u0E21\u0E48\u0E17\u0E23\u0E32\u0E1A\u201D"));
+  })));
 }
 function LoBottleneckPanel({
   jobs,
@@ -632,29 +626,23 @@ function LoPermitPanel({
     title: "\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E01\u0E32\u0E23\u0E44\u0E1F\u0E1F\u0E49\u0E32",
     sub: stuck ? stuck + " งานที่ต้องผลัก" : "ไม่มีใบค้างที่ฝั่งเรา"
   }), React.createElement("div", {
-    className: "rows"
+    className: "permit-grid"
   }, rows.map(r => React.createElement("button", {
     key: r.k,
-    onClick: () => onGoPermit && onGoPermit()
+    onClick: () => onGoPermit && onGoPermit(),
+    "data-warn": r.v && (r.k === "todo" || r.k === "rejected") ? "1" : "0"
   }, React.createElement("span", {
-    className: "mk",
+    className: "pv",
+    style: {
+      color: r.v ? r.k === "todo" || r.k === "rejected" ? "#D93025" : "var(--text-1)" : "var(--text-3)"
+    }
+  }, r.v), React.createElement("span", {
+    className: "pl"
+  }, React.createElement("i", {
     style: {
       background: r.color
     }
-  }), React.createElement("span", {
-    className: "bd"
-  }, React.createElement("span", {
-    className: "nm",
-    style: {
-      fontWeight: 600,
-      fontSize: 12.5
-    }
-  }, r.th)), React.createElement("span", {
-    className: "when",
-    style: r.v && (r.k === "todo" || r.k === "rejected") ? {
-      color: "#D93025"
-    } : null
-  }, React.createElement("b", null, "\u0E07\u0E32\u0E19"), r.v)))));
+  }), r.th)))));
 }
 function LoSalesPanel({
   leads,
@@ -911,6 +899,7 @@ function LeadOverview({
       onClick: () => onKpi("noinstall")
     }]
   }), React.createElement("div", {
+    className: "ov-pair",
     style: col("1fr 1fr")
   }, React.createElement(LoTechLoadPanel, {
     jobs: J,
@@ -920,6 +909,7 @@ function LeadOverview({
     jobs: J,
     onOpen: onOpen
   })), React.createElement("div", {
+    className: "ov-pair",
     style: col("1fr 1fr")
   }, React.createElement(LoStalePanel, {
     jobs: J,
