@@ -458,25 +458,28 @@ function MaterialShortagePanel({ jobs, stock, onOpen }) {
 
 /* แถบต้อนรับ — ทักทายด้วยชื่อคนที่ล็อกอิน บอกวันที่ และสรุปสามตัวเลขของ "วันนี้"
    ไม่ใช่ของประดับ: มันคือคำตอบของคำถามแรกที่ทุกคนถามตอนเปิดแอป — วันนี้ต้องทำอะไร */
-function OvHero({ me, jobs }) {
+/* สามตัวเลขบนแถบต้อนรับ — ขนาดของกิจการทั้งหมด ไม่ใช่คิวของสัปดาห์นี้
+   นับทั้งใบงานและใบลูกค้าที่ยังไม่ได้แปลงเป็นงาน เว้นรายที่ลูกค้าไม่ตกลง (ขั้น "ไม่ติดตั้ง")
+   ใบที่แปลงเป็นงานแล้ว (มี jobId) นับฝั่งงานอย่างเดียว ไม่งั้นลูกค้าคนเดียวจะถูกนับสองครั้ง
+   หน้าที่ไม่มีใบลูกค้า (ภาพรวมของช่าง) ส่ง leads มาไม่ได้ ก็นับเฉพาะใบงาน */
+function OvHero({ me, jobs, leads }) {
   const SF = window.SF;
   const J = jobs || [];
   const today = SF.TODAY;
   const hh = new Date().getHours();
   const greet = hh < 12 ? "สวัสดีตอนเช้า" : hh < 17 ? "สวัสดีตอนบ่าย" : "สวัสดีตอนเย็น";
-  const inSpan = (j, from, to) => {
-    const a = SF.installDate ? SF.installDate(j) : "";
-    if (!a) return false;
-    const b = (SF.installEnd && SF.installEnd(j)) || a;
-    return b >= from && a <= to;
-  };
-  const addDays = (d, n) => {
-    const t = new Date(d + "T00:00:00"); t.setDate(t.getDate() + n);
-    return [t.getFullYear(), String(t.getMonth() + 1).padStart(2, "0"), String(t.getDate()).padStart(2, "0")].join("-");
-  };
-  const todayN = J.filter((j) => inSpan(j, today, today)).length;
-  const weekN = J.filter((j) => inSpan(j, today, addDays(today, 6))).length;
-  const lateN = J.filter((j) => j.delayed).length;
+  const lostL = (l) => (window.salesStageKey ? window.salesStageKey(l) : l.status) === "lost";
+  const openL = (leads || []).filter((l) => l && !l.jobId && !lostL(l));
+  /* ใบลูกค้าเก็บประเภทงานว่า "biz" ส่วนใบงานว่า "project" — คำเดียวกัน ต้องแปลก่อนนับ
+     (กฎเดียวกับตอนแปลงใบลูกค้าเป็นงานที่ app.jsx) */
+  const isProj = (x) => x.type === "project" || x.type === "biz";
+  const kwOf = (x) => +x.kw || +x.expKwp || 0;
+  const all = J.concat(openL);
+  const homeN = all.filter((x) => !isProj(x)).length;
+  const projN = all.filter(isProj).length;
+  /* กำลังรวมหลักพันขึ้นไปทศนิยมไม่มีความหมายอีกต่อไป และเลขหกหลักจะล้นกล่องกว้าง 92px */
+  const kwRaw = all.reduce((s, x) => s + kwOf(x), 0);
+  const kwN = kwRaw >= 100 ? Math.round(kwRaw) : Math.round(kwRaw * 10) / 10;
   const fig = (n, lb, warn) => (
     <div className="ov-hero-fig" data-warn={warn && n > 0 ? "1" : "0"}>
       <b>{n}</b><span>{lb}</span>
@@ -489,9 +492,9 @@ function OvHero({ me, jobs }) {
         <p>{window.drDateTH ? window.drDateTH(today) : today} · ระบบบริหารงานติดตั้ง flash+solar</p>
       </div>
       <div className="ov-hero-figs">
-        {fig(todayN, "ติดตั้งวันนี้")}
-        {fig(weekN, "ภายใน 7 วัน")}
-        {fig(lateN, "เลยกำหนด", true)}
+        {fig(homeN, "งานบ้าน")}
+        {fig(projN, "งานโครงการ")}
+        {fig(kwN, "กำลังผลิต kW")}
       </div>
     </div>
   );

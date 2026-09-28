@@ -1091,27 +1091,23 @@ function MaterialShortagePanel({
 }
 function OvHero({
   me,
-  jobs
+  jobs,
+  leads
 }) {
   const SF = window.SF;
   const J = jobs || [];
   const today = SF.TODAY;
   const hh = new Date().getHours();
   const greet = hh < 12 ? "สวัสดีตอนเช้า" : hh < 17 ? "สวัสดีตอนบ่าย" : "สวัสดีตอนเย็น";
-  const inSpan = (j, from, to) => {
-    const a = SF.installDate ? SF.installDate(j) : "";
-    if (!a) return false;
-    const b = SF.installEnd && SF.installEnd(j) || a;
-    return b >= from && a <= to;
-  };
-  const addDays = (d, n) => {
-    const t = new Date(d + "T00:00:00");
-    t.setDate(t.getDate() + n);
-    return [t.getFullYear(), String(t.getMonth() + 1).padStart(2, "0"), String(t.getDate()).padStart(2, "0")].join("-");
-  };
-  const todayN = J.filter(j => inSpan(j, today, today)).length;
-  const weekN = J.filter(j => inSpan(j, today, addDays(today, 6))).length;
-  const lateN = J.filter(j => j.delayed).length;
+  const lostL = l => (window.salesStageKey ? window.salesStageKey(l) : l.status) === "lost";
+  const openL = (leads || []).filter(l => l && !l.jobId && !lostL(l));
+  const isProj = x => x.type === "project" || x.type === "biz";
+  const kwOf = x => +x.kw || +x.expKwp || 0;
+  const all = J.concat(openL);
+  const homeN = all.filter(x => !isProj(x)).length;
+  const projN = all.filter(isProj).length;
+  const kwRaw = all.reduce((s, x) => s + kwOf(x), 0);
+  const kwN = kwRaw >= 100 ? Math.round(kwRaw) : Math.round(kwRaw * 10) / 10;
   const fig = (n, lb, warn) => React.createElement("div", {
     className: "ov-hero-fig",
     "data-warn": warn && n > 0 ? "1" : "0"
@@ -1122,7 +1118,7 @@ function OvHero({
     className: "ov-hero-tx"
   }, React.createElement("h2", null, greet, me && me.name ? " คุณ" + me.name : ""), React.createElement("p", null, window.drDateTH ? window.drDateTH(today) : today, " \xB7 \u0E23\u0E30\u0E1A\u0E1A\u0E1A\u0E23\u0E34\u0E2B\u0E32\u0E23\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 flash+solar")), React.createElement("div", {
     className: "ov-hero-figs"
-  }, fig(todayN, "ติดตั้งวันนี้"), fig(weekN, "ภายใน 7 วัน"), fig(lateN, "เลยกำหนด", true)));
+  }, fig(homeN, "งานบ้าน"), fig(projN, "งานโครงการ"), fig(kwN, "กำลังผลิต kW")));
 }
 function OvDayModal({
   date,

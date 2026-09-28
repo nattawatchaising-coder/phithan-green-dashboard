@@ -467,7 +467,7 @@ function LoMonthPanel({ jobs }) {
   );
 }
 
-function LeadOverview({ jobs, leads, quotes, stock, techs, onOpen, onStage, onKpi, onTech, onGoPermit, onGoSales, onGoOm, omCount, me }) {
+function LeadOverview({ jobs, allJobs, leads, quotes, stock, techs, onOpen, onStage, onKpi, onTech, onGoPermit, onGoSales, onGoOm, omCount, me }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const J = jobs || [];
@@ -530,7 +530,7 @@ function LeadOverview({ jobs, leads, quotes, stock, techs, onOpen, onStage, onKp
      (OvHero/OvLayout/OvCalendar อยู่ใน views-overview.jsx ซึ่งโหลดก่อนไฟล์นี้) */
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <window.OvHero me={me} jobs={J} />
+      <window.OvHero me={me} jobs={allJobs || J} leads={leads} />
       <window.OvLayout main={main} rail={
         <React.Fragment>
           <window.OvCalendar jobs={J} onOpen={onOpen} />

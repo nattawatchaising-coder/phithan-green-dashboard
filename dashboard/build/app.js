@@ -363,6 +363,7 @@ function App() {
       return true;
     });
   }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techFilter, techIds, inScope, stageKeyOf]);
+  const scopedJobs = React.useMemo(() => jobs.filter(inScope), [jobs, inScope]);
   const techCounts = React.useMemo(() => {
     const q = search.trim().toLowerCase();
     const c = {};
@@ -1210,6 +1211,7 @@ function App() {
     } : {}
   }, view === "overview" && (salesOnly ? salesOverview : leadRole ? React.createElement(LeadOverview, {
     jobs: filtered,
+    allJobs: scopedJobs,
     leads: leadStore.leads,
     quotes: quoteStore.quotes,
     stock: stock,

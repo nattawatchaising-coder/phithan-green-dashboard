@@ -806,6 +806,7 @@ function LoMonthPanel({
 }
 function LeadOverview({
   jobs,
+  allJobs,
   leads,
   quotes,
   stock,
@@ -892,7 +893,8 @@ function LeadOverview({
     }
   }, React.createElement(window.OvHero, {
     me: me,
-    jobs: J
+    jobs: allJobs || J,
+    leads: leads
   }), React.createElement(window.OvLayout, {
     main: main,
     rail: React.createElement(React.Fragment, null, React.createElement(window.OvCalendar, {

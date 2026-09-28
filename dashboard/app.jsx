@@ -312,6 +312,10 @@ function App() {
     });
   }, [jobs, search, typeFilter, stageFilter, delayedOnly, quickFilter, techFilter, techIds, inScope, stageKeyOf]);
 
+  /* งานทั้งหมดที่คนนี้มีสิทธิ์เห็น — ผ่านขอบเขตตามตำแหน่ง แต่ไม่ผ่านตัวกรองบนหัวจอ
+     ตัวเลขที่บอกว่า "ทั้งหมดในระบบ" ต้องไม่ขยับเวลามีคนพิมพ์ค้นหาหรือกรองขั้นงานค้างไว้ */
+  const scopedJobs = React.useMemo(() => jobs.filter(inScope), [jobs, inScope]);
+
   /* นับงานต่อช่าง สำหรับเมนูกรอง "ช่างผู้รับผิดชอบ" — ใช้ฟิลเตอร์อื่นทั้งหมดยกเว้น techFilter เอง
      จะได้เห็นว่าภายใต้เงื่อนไขที่กรองอยู่ ช่างแต่ละคนมีงานกี่งาน */
   const techCounts = React.useMemo(() => {
@@ -905,7 +909,7 @@ function App() {
         <div className="app-content" style={view === "board" ? { display: "flex", flexDirection: "column", minHeight: 0 } : {}}>
           {view === "overview" && (salesOnly ? salesOverview
             : leadRole ? (
-              <LeadOverview jobs={filtered} leads={leadStore.leads} quotes={quoteStore.quotes} stock={stock} techs={techStore.techs}
+              <LeadOverview jobs={filtered} allJobs={scopedJobs} leads={leadStore.leads} quotes={quoteStore.quotes} stock={stock} techs={techStore.techs}
                 me={auth.current} onOpen={openJob} onStage={goStage} onKpi={goKpi}
                 onTech={(id) => { setTechFilter(id); setStageFilter(null); setQuickFilter(null); setView(listView()); }}
                 onGoPermit={can(role, "permit") ? () => setView("permit") : null}
