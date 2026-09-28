@@ -782,14 +782,14 @@ function useAmpacityStore() {
 }
 
 /* ================================================================
-   useConduitDefaults — ค่าตั้งต้นอุปกรณ์ท่อร้อยสายของบริษัท (ชิ้น/ท่อน · % เผื่อ)
+   useConduitDefaults — ค่าตั้งต้นอุปกรณ์ท่อร้อยสายของบริษัท (กฎคิดจำนวน · ชิ้น/ท่อน · % เผื่อ)
    ตั้งครั้งเดียว ใช้กับใบ BOQ ใหม่ทุกใบ · ใบที่ถอดไว้แล้วไม่ขยับตาม (ดู BOQ.mergeBOQ)
-   เก็บที่ conduitDefaults/{per,spare}/<คีย์อุปกรณ์> — คีย์ไม่มีจุด ใช้เป็นคีย์ Firebase ได้ตรง ๆ
+   เก็บที่ conduitDefaults/{rule,per,spare}/<คีย์> — คีย์ไม่มีจุด ใช้เป็นคีย์ Firebase ได้ตรง ๆ
    ท่าเดียวกับ useAmpacityStore ทุกประการ
    ================================================================ */
 const SF_COND_KEY = "solarflow_conduit_def_v1";
 function _condLsGet() { try { const s = localStorage.getItem(SF_COND_KEY); return s ? (JSON.parse(s) || {}) : {}; } catch (e) { return {}; } }
-const _condNorm = (v) => ({ per: (v || {}).per || {}, spare: (v || {}).spare || {} });
+const _condNorm = (v) => ({ rule: (v || {}).rule || {}, per: (v || {}).per || {}, spare: (v || {}).spare || {} });
 
 function useConduitDefaults() {
   const [val, setVal] = React.useState(() => _condNorm(_FB() ? {} : _condLsGet()));
@@ -802,7 +802,7 @@ function useConduitDefaults() {
     return () => ref.off("value", h);
   }, []);
 
-  /* kind = "per" | "spare" · ค่าว่าง = ลบคีย์ทิ้ง ไม่เก็บสตริงว่างไว้
+  /* kind = "rule" | "per" | "spare" · ค่าว่าง = ลบคีย์ทิ้ง ไม่เก็บสตริงว่างไว้
      ไม่งั้น "ล้างช่องแล้วกลับไปใช้กฎอัตโนมัติ" จะไม่จริง เพราะคีย์ยังอยู่ */
   const setCell = React.useCallback((kind, key, v) => {
     const path = "conduitDefaults/" + kind + "/" + key;
@@ -812,7 +812,7 @@ function useConduitDefaults() {
       return;
     }
     setVal((p) => {
-      const next = { per: Object.assign({}, p.per), spare: Object.assign({}, p.spare) };
+      const next = { rule: Object.assign({}, p.rule), per: Object.assign({}, p.per), spare: Object.assign({}, p.spare) };
       if (blank) delete next[kind][key]; else next[kind][key] = String(v);
       _lsSet(SF_COND_KEY, next);
       return next;
@@ -821,7 +821,7 @@ function useConduitDefaults() {
 
   const reset = React.useCallback(() => {
     if (_FB()) { _fbRem("conduitDefaults"); }
-    else { const e = { per: {}, spare: {} }; _lsSet(SF_COND_KEY, e); setVal(e); }
+    else { const e = { rule: {}, per: {}, spare: {} }; _lsSet(SF_COND_KEY, e); setVal(e); }
   }, []);
 
   return { val, loading, setCell, reset };

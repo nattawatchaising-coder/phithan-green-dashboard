@@ -3279,27 +3279,27 @@ const COND_DEF_ROWS = [{
   grp: "IMC",
   key: "clamp",
   th: "แคล้มประกับ",
-  auto: "1 ตัว/เมตร"
+  autoOf: R => "1 ตัว ต่อท่อยาว " + R.clampM + " ม."
 }, {
   grp: "IMC",
   key: "bushing",
   th: "บุชชิ่ง/ล็อกนัท",
-  auto: "8 + จำนวนท่อน"
+  autoOf: R => "จำนวนท่อน × " + R.bushingPer
 }, {
   grp: "IMC",
   key: "cchannel",
   th: "รางซี",
-  auto: "0.2 ม./แคล้ม ÷ ราง 1.2 ม."
+  autoOf: R => R.ccPerClamp + " ม./แคล้ม ÷ ราง " + R.ccLen + " ม."
 }, {
   grp: "IMC",
   key: "connector",
   th: "คอนเนคเตอร์",
-  auto: "10 + 2 ต่อ PULL BOX เหล็ก"
+  autoOf: R => "จำนวนท่อน × " + R.connPer
 }, {
   grp: "IMC",
   key: "coupling",
   th: "คุปปิ้ง",
-  auto: "ครึ่งหนึ่งของท่อน + คอนเนคเตอร์"
+  autoOf: R => "จำนวนท่อน × " + R.coupPer + " + PULL BOX × " + R.coupPb
 }, {
   grp: "uPVC",
   key: "upStraight",
@@ -3320,14 +3320,18 @@ function ConduitDefaultsEditor({
   condStore
 }) {
   const FIX = (window.BOQ || {}).CONDUIT_SPARE_FIXED || {};
+  const RULE_ROWS = (window.BOQ || {}).IMC_RULE || [];
   const val = condStore && condStore.val || {
+    rule: {},
     per: {},
     spare: {}
   };
-  const per = val.per || {},
+  const rule = val.rule || {},
+    per = val.per || {},
     spare = val.spare || {};
   const set = (kind, k, v) => condStore && condStore.setCell(kind, k, v);
-  const nEdited = COND_DEF_ROWS.filter(r => per[r.key] != null || spare[r.key] != null).length;
+  const R = ((window.BOQ || {}).imcRule || (x => x || {}))(rule);
+  const nEdited = COND_DEF_ROWS.filter(r => per[r.key] != null || spare[r.key] != null).length + RULE_ROWS.filter(r => rule[r.key] != null && rule[r.key] !== "").length;
   const cell = {
     padding: "7px 9px",
     borderBottom: "1px solid var(--border)",
@@ -3362,7 +3366,7 @@ function ConduitDefaultsEditor({
         color: "var(--text-3)",
         marginTop: 2
       }
-    }, on ? "แทนกฎอัตโนมัติ" : "อัตโนมัติ " + r.auto)), React.createElement("td", {
+    }, on ? "แทนกฎอัตโนมัติ" : "อัตโนมัติ " + (r.autoOf ? r.autoOf(R) : r.auto))), React.createElement("td", {
       style: Object.assign({}, cell, {
         width: 120
       })
@@ -3386,6 +3390,65 @@ function ConduitDefaultsEditor({
       onChange: e => set("spare", r.key, e.target.value)
     })));
   };
+  const ruleTable = React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: 12,
+      overflow: "hidden"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "9px 11px",
+      fontSize: 12.5,
+      fontWeight: 700,
+      background: "var(--surface2)"
+    }
+  }, "\u0E01\u0E0E\u0E04\u0E34\u0E14\u0E08\u0E33\u0E19\u0E27\u0E19\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C \u0E17\u0E48\u0E2D IMC", React.createElement("span", {
+    style: {
+      fontWeight: 500,
+      color: "var(--text-3)",
+      marginLeft: 6
+    }
+  }, "\u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07 = \u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19\u0E02\u0E2D\u0E07\u0E23\u0E30\u0E1A\u0E1A")), React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse"
+    }
+  }, React.createElement("tbody", null, RULE_ROWS.map((r, i) => React.createElement("tr", {
+    key: r.key,
+    style: {
+      background: i % 2 ? "var(--surface2)" : "transparent"
+    }
+  }, React.createElement("td", {
+    style: Object.assign({}, cell, {
+      fontWeight: 600
+    })
+  }, r.th, React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "var(--text-3)",
+      marginTop: 2
+    }
+  }, "\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19 ", r.def, " ", r.unit)), React.createElement("td", {
+    style: Object.assign({}, cell, {
+      width: 120
+    })
+  }, React.createElement("input", {
+    type: "number",
+    min: r.min != null ? r.min : 0,
+    step: "any",
+    placeholder: String(r.def),
+    style: num,
+    value: rule[r.key] != null ? rule[r.key] : "",
+    onChange: e => set("rule", r.key, e.target.value)
+  })), React.createElement("td", {
+    style: Object.assign({}, cell, {
+      width: 100,
+      fontSize: 11,
+      color: "var(--text-3)"
+    })
+  }, r.unit))))));
   const table = grp => React.createElement("div", {
     style: {
       background: "var(--surface)",
@@ -3442,11 +3505,11 @@ function ConduitDefaultsEditor({
     style: {
       color: "var(--text-3)"
     }
-  }, "\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E16\u0E2D\u0E14\u0E44\u0E27\u0E49\u0E41\u0E25\u0E49\u0E27\u0E44\u0E21\u0E48\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E15\u0E32\u0E21\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E41\u0E01\u0E49\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48 \u2014 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2A\u0E48\u0E07\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27\u0E08\u0E30\u0E44\u0E14\u0E49\u0E44\u0E21\u0E48\u0E02\u0E22\u0E31\u0E1A\u0E08\u0E33\u0E19\u0E27\u0E19\u0E40\u0E2D\u0E07")), table("IMC"), table("uPVC"), React.createElement("div", null, React.createElement("button", {
+  }, "\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E16\u0E2D\u0E14\u0E44\u0E27\u0E49\u0E41\u0E25\u0E49\u0E27\u0E44\u0E21\u0E48\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E15\u0E32\u0E21\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E41\u0E01\u0E49\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48 \u2014 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2A\u0E48\u0E07\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27\u0E08\u0E30\u0E44\u0E14\u0E49\u0E44\u0E21\u0E48\u0E02\u0E22\u0E31\u0E1A\u0E08\u0E33\u0E19\u0E27\u0E19\u0E40\u0E2D\u0E07")), ruleTable, table("IMC"), table("uPVC"), React.createElement("div", null, React.createElement("button", {
     onClick: () => {
       window.askConfirm({
         title: "คืนค่าตั้งต้นอุปกรณ์ท่อร้อยสาย?",
-        body: "ค่าที่ตั้งไว้ " + nEdited + " รายการ จะกลับไปใช้กฎอัตโนมัติและ % เผื่อเดิมของระบบ",
+        body: "ค่าที่ตั้งไว้ " + nEdited + " รายการ จะกลับไปใช้กฎ ค่าอัตโนมัติ และ % เผื่อเดิมของระบบ",
         ok: "คืนค่าตั้งต้น"
       }).then(ok => {
         if (ok && condStore) condStore.reset();

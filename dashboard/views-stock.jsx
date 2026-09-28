@@ -1196,12 +1196,14 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
    ⚠ ใบที่ถอดไว้แล้วไม่ขยับตามค่าที่แก้ที่นี่ (BOQ.mergeBOQ ให้ของที่บันทึกไว้ชนะ)
      ตั้งใจให้เป็นแบบนั้น — ใบเสนอราคาที่ส่งลูกค้าไปแล้วเปลี่ยนจำนวนเองไม่ได้
    ══════════════════════════════════════════════════ */
+/* บรรทัดคำอธิบายใต้ชื่ออุปกรณ์ IMC อ่านจากกฎที่ตั้งไว้จริง ไม่ใช่ข้อความตายตัว
+   ถ้าเขียนตายตัว พอมีคนแก้กฎ คำอธิบายจะโกหกทันทีโดยไม่มีอะไรฟ้อง */
 const COND_DEF_ROWS = [
-  { grp: "IMC", key: "clamp", th: "แคล้มประกับ", auto: "1 ตัว/เมตร" },
-  { grp: "IMC", key: "bushing", th: "บุชชิ่ง/ล็อกนัท", auto: "8 + จำนวนท่อน" },
-  { grp: "IMC", key: "cchannel", th: "รางซี", auto: "0.2 ม./แคล้ม ÷ ราง 1.2 ม." },
-  { grp: "IMC", key: "connector", th: "คอนเนคเตอร์", auto: "10 + 2 ต่อ PULL BOX เหล็ก" },
-  { grp: "IMC", key: "coupling", th: "คุปปิ้ง", auto: "ครึ่งหนึ่งของท่อน + คอนเนคเตอร์" },
+  { grp: "IMC", key: "clamp", th: "แคล้มประกับ", autoOf: (R) => "1 ตัว ต่อท่อยาว " + R.clampM + " ม." },
+  { grp: "IMC", key: "bushing", th: "บุชชิ่ง/ล็อกนัท", autoOf: (R) => "จำนวนท่อน × " + R.bushingPer },
+  { grp: "IMC", key: "cchannel", th: "รางซี", autoOf: (R) => R.ccPerClamp + " ม./แคล้ม ÷ ราง " + R.ccLen + " ม." },
+  { grp: "IMC", key: "connector", th: "คอนเนคเตอร์", autoOf: (R) => "จำนวนท่อน × " + R.connPer },
+  { grp: "IMC", key: "coupling", th: "คุปปิ้ง", autoOf: (R) => "จำนวนท่อน × " + R.coupPer + " + PULL BOX × " + R.coupPb },
   { grp: "uPVC", key: "upStraight", th: "ข้อต่อตรง", auto: "จำนวนท่อน + 4" },
   { grp: "uPVC", key: "upClamp", th: "แคลมป์ก้ามปู", auto: "ทุก 60 ซม." },
   { grp: "uPVC", key: "upConnector", th: "คอนเน็ตเตอร์ uPVC", auto: "8 + แบต/สำรอง + 3 ต่อ PULL BOX uPVC" },
@@ -1209,10 +1211,14 @@ const COND_DEF_ROWS = [
 
 function ConduitDefaultsEditor({ condStore }) {
   const FIX = (window.BOQ || {}).CONDUIT_SPARE_FIXED || {};
-  const val = (condStore && condStore.val) || { per: {}, spare: {} };
-  const per = val.per || {}, spare = val.spare || {};
+  const RULE_ROWS = (window.BOQ || {}).IMC_RULE || [];
+  const val = (condStore && condStore.val) || { rule: {}, per: {}, spare: {} };
+  const rule = val.rule || {}, per = val.per || {}, spare = val.spare || {};
   const set = (kind, k, v) => condStore && condStore.setCell(kind, k, v);
-  const nEdited = COND_DEF_ROWS.filter((r) => per[r.key] != null || spare[r.key] != null).length;
+  /* กฎที่มีผลจริงตอนนี้ — ช่องที่เว้นว่างถูกเติมด้วยค่าตั้งต้นของระบบ ใช้ทั้งโชว์และคิดจำนวน */
+  const R = ((window.BOQ || {}).imcRule || ((x) => x || {}))(rule);
+  const nEdited = COND_DEF_ROWS.filter((r) => per[r.key] != null || spare[r.key] != null).length
+    + RULE_ROWS.filter((r) => rule[r.key] != null && rule[r.key] !== "").length;
   const cell = { padding: "7px 9px", borderBottom: "1px solid var(--border)", fontSize: 12.5 };
   const num = { background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-1)",
     fontFamily: "inherit", fontSize: 13, padding: "7px 9px", borderRadius: 9, outline: "none", width: "100%", textAlign: "right" };
@@ -1222,7 +1228,8 @@ function ConduitDefaultsEditor({ condStore }) {
     return (
       <tr key={r.key} style={{ background: i % 2 ? "var(--surface2)" : "transparent" }}>
         <td style={Object.assign({}, cell, { fontWeight: 600 })}>{r.th}
-          <div style={{ fontSize: 10.5, color: "var(--text-3)", marginTop: 2 }}>{on ? "แทนกฎอัตโนมัติ" : "อัตโนมัติ " + r.auto}</div>
+          <div style={{ fontSize: 10.5, color: "var(--text-3)", marginTop: 2 }}>
+            {on ? "แทนกฎอัตโนมัติ" : "อัตโนมัติ " + (r.autoOf ? r.autoOf(R) : r.auto)}</div>
         </td>
         <td style={Object.assign({}, cell, { width: 120 })}>
           <input type="number" min={0} step="any" placeholder="อัตโนมัติ" style={num}
@@ -1235,6 +1242,32 @@ function ConduitDefaultsEditor({ condStore }) {
       </tr>
     );
   };
+
+  /* ตารางกฎ — ของ IMC เท่านั้น อุปกรณ์ uPVC ยังเป็นสูตรตายตัวอยู่ ยังไม่มีใครขอให้แก้ */
+  const ruleTable = (
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
+      <div style={{ padding: "9px 11px", fontSize: 12.5, fontWeight: 700, background: "var(--surface2)" }}>
+        กฎคิดจำนวนอุปกรณ์ ท่อ IMC
+        <span style={{ fontWeight: 500, color: "var(--text-3)", marginLeft: 6 }}>เว้นว่าง = ใช้ค่าตั้งต้นของระบบ</span>
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <tbody>
+          {RULE_ROWS.map((r, i) => (
+            <tr key={r.key} style={{ background: i % 2 ? "var(--surface2)" : "transparent" }}>
+              <td style={Object.assign({}, cell, { fontWeight: 600 })}>{r.th}
+                <div style={{ fontSize: 10.5, color: "var(--text-3)", marginTop: 2 }}>ค่าตั้งต้น {r.def} {r.unit}</div>
+              </td>
+              <td style={Object.assign({}, cell, { width: 120 })}>
+                <input type="number" min={r.min != null ? r.min : 0} step="any" placeholder={String(r.def)} style={num}
+                  value={rule[r.key] != null ? rule[r.key] : ""} onChange={(e) => set("rule", r.key, e.target.value)} />
+              </td>
+              <td style={Object.assign({}, cell, { width: 100, fontSize: 11, color: "var(--text-3)" })}>{r.unit}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 
   const table = (grp) => (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
@@ -1259,11 +1292,12 @@ function ConduitDefaultsEditor({ condStore }) {
         <br />ช่อง <b>ชิ้น/ท่อน</b> เว้นว่าง = ใช้กฎอัตโนมัติ · ช่อง <b>% เผื่อ</b> เว้นว่าง = ใช้ค่าเดิมของระบบ
         <br /><span style={{ color: "var(--text-3)" }}>ใบที่ถอดไว้แล้วไม่เปลี่ยนตามค่าที่แก้ที่นี่ — ใบที่ส่งลูกค้าไปแล้วจะได้ไม่ขยับจำนวนเอง</span>
       </div>
+      {ruleTable}
       {table("IMC")}
       {table("uPVC")}
       <div>
         <button onClick={() => {
-          window.askConfirm({ title: "คืนค่าตั้งต้นอุปกรณ์ท่อร้อยสาย?", body: "ค่าที่ตั้งไว้ " + nEdited + " รายการ จะกลับไปใช้กฎอัตโนมัติและ % เผื่อเดิมของระบบ", ok: "คืนค่าตั้งต้น" })
+          window.askConfirm({ title: "คืนค่าตั้งต้นอุปกรณ์ท่อร้อยสาย?", body: "ค่าที่ตั้งไว้ " + nEdited + " รายการ จะกลับไปใช้กฎ ค่าอัตโนมัติ และ % เผื่อเดิมของระบบ", ok: "คืนค่าตั้งต้น" })
             .then((ok) => { if (ok && condStore) condStore.reset(); });
         }} disabled={!nEdited}
           style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)",

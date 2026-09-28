@@ -962,6 +962,7 @@ function _condLsGet() {
   }
 }
 const _condNorm = v => ({
+  rule: (v || {}).rule || {},
   per: (v || {}).per || {},
   spare: (v || {}).spare || {}
 });
@@ -989,6 +990,7 @@ function useConduitDefaults() {
     }
     setVal(p => {
       const next = {
+        rule: Object.assign({}, p.rule),
         per: Object.assign({}, p.per),
         spare: Object.assign({}, p.spare)
       };
@@ -1002,6 +1004,7 @@ function useConduitDefaults() {
       _fbRem("conduitDefaults");
     } else {
       const e = {
+        rule: {},
         per: {},
         spare: {}
       };

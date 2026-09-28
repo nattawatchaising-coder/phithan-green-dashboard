@@ -1176,14 +1176,42 @@
        เปลี่ยนจำนวนเองไม่ได้ · กติกานั้นอยู่ใน mergeBOQ ไม่ใช่ที่นี่
      ══════════════════════════════════════════════════ */
   const CONDUIT_SPARE_FIXED = { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10, upStraight: 10, upClamp: 10, upConnector: 10 };
-  const CONDUIT_DEF = { per: {}, spare: {} };
+
+  /* ── กฎคิดจำนวนอุปกรณ์ท่อ IMC — ตัวเลขทุกตัวตั้งค่าได้ที่หน้าคลังสินค้า ──
+     เดิมกฎพวกนี้ฝังเป็นตัวเลขในสูตร แก้ได้แค่คนเขียนโค้ด ตอนนี้เป็นค่าตั้งต้นของบริษัท
+     หน่วยของแต่ละตัวเขียนกำกับไว้ เพราะ "1.2" ในสูตรไม่เคยบอกว่าคือความยาวรางซี */
+  const IMC_RULE = [
+    { key: "clampM",     th: "ท่อยาวกี่เมตร ต่อแคล้มประกับ 1 ตัว",  unit: "ม./ตัว",  def: 1,   min: 0.05 },
+    { key: "bushingPer", th: "บุชชิ่ง/ล็อกนัท ต่อท่อ 1 ท่อน",        unit: "ชิ้น/ท่อน", def: 3 },
+    { key: "ccPerClamp", th: "รางซี ที่ใช้ต่อแคล้ม 1 ตัว",           unit: "ม./ตัว",  def: 0.2 },
+    { key: "ccLen",      th: "รางซี 1 เส้น ยาว",                    unit: "ม./เส้น", def: 1.2, min: 0.05 },
+    { key: "connPer",    th: "คอนเนคเตอร์ ต่อท่อ 1 ท่อน",            unit: "ชิ้น/ท่อน", def: 1 },
+    { key: "coupPer",    th: "คุปปิ้ง ต่อท่อ 1 ท่อน",                 unit: "ชิ้น/ท่อน", def: 1 },
+    { key: "coupPb",     th: "คุปปิ้ง เพิ่มต่อ PULL BOX 1 ใบ",        unit: "ชิ้น/ใบ",  def: 2 },
+  ];
+  const IMC_RULE_DEF = {};
+  IMC_RULE.forEach((r) => { IMC_RULE_DEF[r.key] = r.def; });
+
+  const CONDUIT_DEF = { rule: {}, per: {}, spare: {} };
   function setConduitDefaults(d) {
     const v = d || {};
+    CONDUIT_DEF.rule = Object.assign({}, v.rule);
     CONDUIT_DEF.per = Object.assign({}, v.per);
     CONDUIT_DEF.spare = Object.assign({}, v.spare);
   }
+  /* กฎที่ใช้จริงของใบหนึ่ง — เติมคีย์ที่ขาดด้วยค่าตั้งต้นเสมอ
+     ตัวเลขที่ต้องหาร (clampM · ccLen) กัน 0 ไว้ ไม่งั้นได้ Infinity แล้ว Math.round ระเบิดเป็น NaN */
+  function imcRule(r) {
+    const out = {};
+    IMC_RULE.forEach((d) => {
+      const v = +(r || {})[d.key];
+      out[d.key] = isFinite(v) && v >= 0 && !(d.min != null && v < d.min) ? v : d.def;
+    });
+    return out;
+  }
   function conduitDefaults() {
-    return { per: Object.assign({}, CONDUIT_DEF.per), spare: Object.assign({}, CONDUIT_SPARE_FIXED, CONDUIT_DEF.spare) };
+    return { rule: Object.assign({}, CONDUIT_DEF.rule), per: Object.assign({}, CONDUIT_DEF.per),
+      spare: Object.assign({}, CONDUIT_SPARE_FIXED, CONDUIT_DEF.spare) };
   }
 
   /* ใบ BOQ ที่พร้อมใช้ของงานหนึ่ง = ค่าเริ่มต้น ทับด้วยของที่บันทึกไว้
@@ -1196,6 +1224,10 @@
     const out = Object.assign(base, saved);
     out.conduitPer = Object.assign({}, saved.conduitPer);
     out.conduitSpare = Object.assign({}, CONDUIT_SPARE_FIXED, saved.conduitSpare);
+    /* ใบที่ถอดไว้ก่อนมีกฎแบบตั้งค่าได้ ไม่มีคีย์ conduitRule — ปล่อย null ไว้แบบนั้น
+       calcBOQ เห็น null แล้วใช้สูตรชุดเดิม จำนวนและราคาของใบที่ส่งลูกค้าไปแล้วจะได้ไม่ขยับ
+       ห้ามเติมค่าตั้งต้นให้ใบเก่าที่นี่ — เติมเมื่อไร ใบเก่าทั้งระบบเปลี่ยนราคาพร้อมกันทันที */
+    out.conduitRule = saved.conduitRule ? imcRule(saved.conduitRule) : null;
     return out;
   }
 
@@ -1248,6 +1280,8 @@
          ใบที่ถอดไว้แล้วไม่ไหลตามค่าตั้งต้นที่มาแก้ทีหลัง ดู mergeBOQ */
       conduitSpare: Object.assign({}, CONDUIT_SPARE_FIXED, CONDUIT_DEF.spare),
       conduitPer: Object.assign({}, CONDUIT_DEF.per),
+      /* กฎคิดจำนวนอุปกรณ์ IMC ติดไปกับใบตั้งแต่เกิด ใบนี้จะได้ไม่เปลี่ยนจำนวนตามค่าที่บริษัทมาแก้ทีหลัง */
+      conduitRule: imcRule(CONDUIT_DEF.rule),
       // งานเพิ่มเติม (Input) — โครงสร้างบนหลังคา ถอดวัสดุตามสูตร (ว่าง = ไม่ใช้/ไม่ถอด)
       // งานเพิ่มเติม (Input) — โครงสร้างบนหลังคา ถอดวัสดุตามสูตร (ว่าง = ไม่ใช้/ไม่ถอด)
       struct: {
@@ -1570,6 +1604,10 @@
        ท่าเดียวกับช่องท่ออ่อน (flexMap) ที่เว้นว่างแล้วได้ค่าอัตโนมัติ
        ⚠ ต้องเว้นว่าง = อัตโนมัติ ห้ามตั้งค่าตั้งต้นเป็นตัวเลข
          ไม่งั้นงานที่บันทึกไว้แล้วจะเปลี่ยนจำนวนและราคาเองโดยไม่มีใครแตะ */
+    /* ── กฎคิดจำนวนอุปกรณ์ IMC ──
+       มี conduitRule = ใบนี้ใช้กฎแบบตั้งค่าได้ (ค่าที่ติดมากับใบ ไม่ใช่ค่าบริษัทวันนี้)
+       ไม่มี = ใบที่ถอดไว้ก่อนมีฟีเจอร์นี้ ใช้สูตรชุดเดิมตลอดไป ดูเหตุผลที่ mergeBOQ */
+    const ir = b.conduitRule ? imcRule(b.conduitRule) : null;
     const cper = b.conduitPer || {};
     const perPipe = (k) => {
       const v = cper[k];
@@ -1605,10 +1643,10 @@
       const len = imcMap[nm];
       const sz = nm.replace(/^IMC\s*/i, "").trim();      // เช่น 1"
       const pipes = Math.ceil(len / 3);                   // 3m/ท่อน
-      const clamp = cqty("clamp", pipes, len, cs.clamp);                    // อัตโนมัติ 1 ตัว/เมตร
-      const bushing = cqty("bushing", pipes, 8 + pipes, cs.bushing);        // อัตโนมัติ 8 + จำนวนท่อน
-      const connector = cqty("connector", pipes, 10 + 2 * pbHdg, cs.connector); // อัตโนมัติ 10 + 2/PULL BOX HDG
-      const coupling = cqty("coupling", pipes, pipes / 2 + connector, cs.coupling);
+      const clamp = cqty("clamp", pipes, ir ? len / ir.clampM : len, cs.clamp);
+      const bushing = cqty("bushing", pipes, ir ? pipes * ir.bushingPer : 8 + pipes, cs.bushing);
+      const connector = cqty("connector", pipes, ir ? pipes * ir.connPer : 10 + 2 * pbHdg, cs.connector);
+      const coupling = cqty("coupling", pipes, ir ? pipes * ir.coupPer + pbHdg * ir.coupPb : pipes / 2 + connector, cs.coupling);
       const flex = (flexMap[nm] != null && flexMap[nm] !== "") ? Math.round(+flexMap[nm] || 0) : 1; // ท่ออ่อน default 1 กล่อง/ขนาด
       totalClamp += clamp;
       totalImcPipes += pipes;
@@ -1622,7 +1660,8 @@
     if (imcTotalLen > 0) {
       // รางซี เป็นของรวมทั้งงาน (ไม่แยกขนาด)
       /* รางซีเป็นของรวมทั้งงาน ไม่แยกขนาด — ชิ้น/ท่อน จึงคิดจากจำนวนท่อน IMC ทั้งหมด */
-      const cchannel = cqty("cchannel", totalImcPipes, (totalClamp * 0.2) / 1.2, cs.cchannel); // อัตโนมัติ 0.2m/แคล้ม, รางยาว 1.2m
+      const cchannel = cqty("cchannel", totalImcPipes,
+        ir ? (totalClamp * ir.ccPerClamp) / ir.ccLen : (totalClamp * 0.2) / 1.2, cs.cchannel);
       race.push({ name: "รางซี C-Channel 20x1200x40x1.0 mm.", qty: cchannel, unit: "pcs" });
     }
     // uPVC แยกตามขนาด — ท่อ (2.9m/ท่อน) + อุปกรณ์
@@ -2152,7 +2191,7 @@
     return Math.ceil(n / per);
   }
 
-  window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, mergeBOQ, setConduitDefaults, conduitDefaults, CONDUIT_SPARE_FIXED, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
+  window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, mergeBOQ, setConduitDefaults, conduitDefaults, CONDUIT_SPARE_FIXED, IMC_RULE, IMC_RULE_DEF, imcRule, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, PERF_SIZES, TRAY_KINDS, TRAY_KIND_KEYS, trayKindOf, trayNorm, trayAlias, hdgName,
     optimizerQty, optimizerFits, DCAC_LIMIT, WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
     COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings,

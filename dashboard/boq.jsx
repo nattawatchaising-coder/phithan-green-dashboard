@@ -754,7 +754,22 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     .some((k) => String((cpr[k] != null ? cpr[k] : "")) !== String(condDef.per[k] != null ? condDef.per[k] : "")
       || String(csp[k] != null ? csp[k] : "") !== String(condDef.spare[k] != null ? condDef.spare[k] : ""));
   const useCondDefault = () => setB((p) => Object.assign({}, p, {
-    conduitPer: Object.assign({}, condDef.per), conduitSpare: Object.assign({}, condDef.spare) }));
+    conduitPer: Object.assign({}, condDef.per), conduitSpare: Object.assign({}, condDef.spare),
+    conduitRule: window.BOQ.imcRule(condDef.rule) }));
+  /* คำอธิบาย "อัตโนมัติ …" ของอุปกรณ์ IMC — อ่านจากกฎที่ติดมากับใบนี้ ไม่ใช่ข้อความตายตัว
+     ใบเก่าที่ถอดไว้ก่อนมีกฎแบบตั้งค่าได้ (ไม่มี conduitRule) ยังคิดด้วยสูตรชุดเดิม จึงต้องบอกสูตรเดิม */
+  const cRule = b.conduitRule ? window.BOQ.imcRule(b.conduitRule) : null;
+  const cAuto = (k) => {
+    if (!cRule) return { clamp: "อัตโนมัติ 1 ตัว/เมตร", bushing: "อัตโนมัติ 8 + จำนวนท่อน",
+      cchannel: "อัตโนมัติ 0.2 ม./แคล้ม ÷ ราง 1.2 ม.", connector: "อัตโนมัติ 10 + 2 ต่อ PULL BOX เหล็ก",
+      coupling: "อัตโนมัติ ครึ่งหนึ่งของท่อน + คอนเนคเตอร์" }[k];
+    const R = cRule;
+    return { clamp: "อัตโนมัติ 1 ตัว ต่อท่อยาว " + R.clampM + " ม.",
+      bushing: "อัตโนมัติ จำนวนท่อน × " + R.bushingPer,
+      cchannel: "อัตโนมัติ " + R.ccPerClamp + " ม./แคล้ม ÷ ราง " + R.ccLen + " ม.",
+      connector: "อัตโนมัติ จำนวนท่อน × " + R.connPer,
+      coupling: "อัตโนมัติ จำนวนท่อน × " + R.coupPer + " + PULL BOX × " + R.coupPb }[k];
+  };
 
   /* ── หมวดของงานโครงการ (ตู้ไฟ / ปั๊ม / ถัง / ท่อ) ──
      โครงสร้างเดียวกันทุกหมวด: จำนวนต่อรายการ + อุปกรณ์ประกอบที่พิมพ์เพิ่มเอง
@@ -2771,15 +2786,15 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             </button>
             {advC && (
               <div style={{ marginTop: 10, padding: 12, background: "var(--surface2)", borderRadius: 10, display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: 10 }}>
-                <BoqCondAcc label="แคล้มประกับ" auto="อัตโนมัติ 1 ตัว/เมตร" numStyle={numStyle}
+                <BoqCondAcc label="แคล้มประกับ" auto={cAuto("clamp")} numStyle={numStyle}
                   per={cpr.clamp} spare={csp.clamp} onPer={(v) => setCPer("clamp", v)} onSpare={(v) => setCSpare("clamp", v)} />
-                <BoqCondAcc label="บุชชิ่ง/ล็อกนัท" auto="อัตโนมัติ 8 + จำนวนท่อน" numStyle={numStyle}
+                <BoqCondAcc label="บุชชิ่ง/ล็อกนัท" auto={cAuto("bushing")} numStyle={numStyle}
                   per={cpr.bushing} spare={csp.bushing} onPer={(v) => setCPer("bushing", v)} onSpare={(v) => setCSpare("bushing", v)} />
-                <BoqCondAcc label="รางซี" auto="อัตโนมัติ 0.2 ม./แคล้ม ÷ ราง 1.2 ม." numStyle={numStyle}
+                <BoqCondAcc label="รางซี" auto={cAuto("cchannel")} numStyle={numStyle}
                   per={cpr.cchannel} spare={csp.cchannel} onPer={(v) => setCPer("cchannel", v)} onSpare={(v) => setCSpare("cchannel", v)} />
-                <BoqCondAcc label="คอนเนคเตอร์" auto="อัตโนมัติ 10 + 2 ต่อ PULL BOX เหล็ก" numStyle={numStyle}
+                <BoqCondAcc label="คอนเนคเตอร์" auto={cAuto("connector")} numStyle={numStyle}
                   per={cpr.connector} spare={csp.connector} onPer={(v) => setCPer("connector", v)} onSpare={(v) => setCSpare("connector", v)} />
-                <BoqCondAcc label="คุปปิ้ง" auto="อัตโนมัติ ครึ่งหนึ่งของท่อน + คอนเนคเตอร์" numStyle={numStyle}
+                <BoqCondAcc label="คุปปิ้ง" auto={cAuto("coupling")} numStyle={numStyle}
                   per={cpr.coupling} spare={csp.coupling} onPer={(v) => setCPer("coupling", v)} onSpare={(v) => setCSpare("coupling", v)} />
                 {[...new Set((cond.imc || []).map((x) => (x.size || "").trim()).filter(Boolean))].map((sz) => (
                   <Field key={sz} label={"ท่ออ่อน IMC " + sz.replace(/^IMC\s*/i, "") + " (กล่อง)"}><input type="number" style={numStyle} value={(cond.flex || {})[sz] != null ? cond.flex[sz] : 1} onChange={(e) => setFlexSize(sz, e.target.value)} /></Field>

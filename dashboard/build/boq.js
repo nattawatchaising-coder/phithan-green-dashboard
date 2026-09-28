@@ -1708,8 +1708,27 @@ function BOQEditor({
   const condEdited = Object.keys(condDef.per).concat(Object.keys(condDef.spare)).concat(Object.keys(cpr), Object.keys(b.conduitSpare || {})).some(k => String(cpr[k] != null ? cpr[k] : "") !== String(condDef.per[k] != null ? condDef.per[k] : "") || String(csp[k] != null ? csp[k] : "") !== String(condDef.spare[k] != null ? condDef.spare[k] : ""));
   const useCondDefault = () => setB(p => Object.assign({}, p, {
     conduitPer: Object.assign({}, condDef.per),
-    conduitSpare: Object.assign({}, condDef.spare)
+    conduitSpare: Object.assign({}, condDef.spare),
+    conduitRule: window.BOQ.imcRule(condDef.rule)
   }));
+  const cRule = b.conduitRule ? window.BOQ.imcRule(b.conduitRule) : null;
+  const cAuto = k => {
+    if (!cRule) return {
+      clamp: "อัตโนมัติ 1 ตัว/เมตร",
+      bushing: "อัตโนมัติ 8 + จำนวนท่อน",
+      cchannel: "อัตโนมัติ 0.2 ม./แคล้ม ÷ ราง 1.2 ม.",
+      connector: "อัตโนมัติ 10 + 2 ต่อ PULL BOX เหล็ก",
+      coupling: "อัตโนมัติ ครึ่งหนึ่งของท่อน + คอนเนคเตอร์"
+    }[k];
+    const R = cRule;
+    return {
+      clamp: "อัตโนมัติ 1 ตัว ต่อท่อยาว " + R.clampM + " ม.",
+      bushing: "อัตโนมัติ จำนวนท่อน × " + R.bushingPer,
+      cchannel: "อัตโนมัติ " + R.ccPerClamp + " ม./แคล้ม ÷ ราง " + R.ccLen + " ม.",
+      connector: "อัตโนมัติ จำนวนท่อน × " + R.connPer,
+      coupling: "อัตโนมัติ จำนวนท่อน × " + R.coupPer + " + PULL BOX × " + R.coupPb
+    }[k];
+  };
   const KITS = window.BOQ.PROJECT_KITS || [];
   const project = window.BOQ.normProject(b.project);
   const kitOf = k => project[k] || {};
@@ -6605,7 +6624,7 @@ function BOQEditor({
     }
   }, React.createElement(BoqCondAcc, {
     label: "\u0E41\u0E04\u0E25\u0E49\u0E21\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E1A",
-    auto: "\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 1 \u0E15\u0E31\u0E27/\u0E40\u0E21\u0E15\u0E23",
+    auto: cAuto("clamp"),
     numStyle: numStyle,
     per: cpr.clamp,
     spare: csp.clamp,
@@ -6613,7 +6632,7 @@ function BOQEditor({
     onSpare: v => setCSpare("clamp", v)
   }), React.createElement(BoqCondAcc, {
     label: "\u0E1A\u0E38\u0E0A\u0E0A\u0E34\u0E48\u0E07/\u0E25\u0E47\u0E2D\u0E01\u0E19\u0E31\u0E17",
-    auto: "\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 8 + \u0E08\u0E33\u0E19\u0E27\u0E19\u0E17\u0E48\u0E2D\u0E19",
+    auto: cAuto("bushing"),
     numStyle: numStyle,
     per: cpr.bushing,
     spare: csp.bushing,
@@ -6621,7 +6640,7 @@ function BOQEditor({
     onSpare: v => setCSpare("bushing", v)
   }), React.createElement(BoqCondAcc, {
     label: "\u0E23\u0E32\u0E07\u0E0B\u0E35",
-    auto: "\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 0.2 \u0E21./\u0E41\u0E04\u0E25\u0E49\u0E21 \xF7 \u0E23\u0E32\u0E07 1.2 \u0E21.",
+    auto: cAuto("cchannel"),
     numStyle: numStyle,
     per: cpr.cchannel,
     spare: csp.cchannel,
@@ -6629,7 +6648,7 @@ function BOQEditor({
     onSpare: v => setCSpare("cchannel", v)
   }), React.createElement(BoqCondAcc, {
     label: "\u0E04\u0E2D\u0E19\u0E40\u0E19\u0E04\u0E40\u0E15\u0E2D\u0E23\u0E4C",
-    auto: "\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 10 + 2 \u0E15\u0E48\u0E2D PULL BOX \u0E40\u0E2B\u0E25\u0E47\u0E01",
+    auto: cAuto("connector"),
     numStyle: numStyle,
     per: cpr.connector,
     spare: csp.connector,
@@ -6637,7 +6656,7 @@ function BOQEditor({
     onSpare: v => setCSpare("connector", v)
   }), React.createElement(BoqCondAcc, {
     label: "\u0E04\u0E38\u0E1B\u0E1B\u0E34\u0E49\u0E07",
-    auto: "\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 \u0E04\u0E23\u0E36\u0E48\u0E07\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E02\u0E2D\u0E07\u0E17\u0E48\u0E2D\u0E19 + \u0E04\u0E2D\u0E19\u0E40\u0E19\u0E04\u0E40\u0E15\u0E2D\u0E23\u0E4C",
+    auto: cAuto("coupling"),
     numStyle: numStyle,
     per: cpr.coupling,
     spare: csp.coupling,
