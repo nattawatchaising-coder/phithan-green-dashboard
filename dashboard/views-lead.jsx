@@ -445,7 +445,7 @@ function LoMonthPanel({ jobs }) {
   );
 }
 
-function LeadOverview({ jobs, leads, quotes, stock, techs, onOpen, onStage, onKpi, onTech, onGoPermit, onGoSales }) {
+function LeadOverview({ jobs, leads, quotes, stock, techs, onOpen, onStage, onKpi, onTech, onGoPermit, onGoSales, me }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const J = jobs || [];
@@ -471,7 +471,7 @@ function LeadOverview({ jobs, leads, quotes, stock, techs, onOpen, onStage, onKp
 
   const col = (spec) => ({ display: "grid", gridTemplateColumns: isMobile ? "1fr" : spec, gap: 18 });
 
-  return (
+  const main = (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       {!isMobile && (
         <StatRail cols={4} items={[
@@ -507,6 +507,14 @@ function LeadOverview({ jobs, leads, quotes, stock, techs, onOpen, onStage, onKp
         <LoSalesPanel leads={leads} quotes={quotes} onGoSales={onGoSales} />
         <LoMonthPanel jobs={J} />
       </div>
+    </div>
+  );
+  /* โครงเดียวกับภาพรวมของช่าง — แถบต้อนรับเต็มความกว้าง แล้วเนื้อหาหลักคู่กับคอลัมน์ขวา
+     (OvHero/OvLayout/OvCalendar อยู่ใน views-overview.jsx ซึ่งโหลดก่อนไฟล์นี้) */
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <window.OvHero me={me} jobs={J} />
+      <window.OvLayout main={main} rail={<window.OvCalendar jobs={J} onOpen={onOpen} />} />
     </div>
   );
 }

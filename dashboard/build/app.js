@@ -1214,6 +1214,7 @@ function App() {
     quotes: quoteStore.quotes,
     stock: stock,
     techs: techStore.techs,
+    me: auth.current,
     onOpen: openJob,
     onStage: goStage,
     onKpi: goKpi,
@@ -1228,6 +1229,7 @@ function App() {
   }) : React.createElement(OverviewView, {
     jobs: filtered,
     schedule: myScheduleItems,
+    me: auth.current,
     onOpen: openJob,
     onStage: goStage,
     onKpi: goKpi,

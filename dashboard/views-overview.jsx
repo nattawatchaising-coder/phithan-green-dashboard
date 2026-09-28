@@ -394,14 +394,143 @@ function MaterialShortagePanel({ jobs, stock, onOpen }) {
   );
 }
 
-function OverviewView({ jobs, schedule, onOpen, onStage, onKpi, stock }) {
+/* ============================================================
+   โครงหน้าภาพรวม — แถบต้อนรับ · คอลัมน์ขวา · ปฏิทินย่อ
+   ใช้ร่วมกันทั้งภาพรวมของช่าง (OverviewView) และของหัวหน้า (LeadOverview)
+   สองหน้านี้เคยเป็นแผงเรียงลงมาเป็นตับ อ่านแล้วไม่รู้ว่าต้องเริ่มมองตรงไหน
+   ============================================================ */
+
+/* แถบต้อนรับ — ทักทายด้วยชื่อคนที่ล็อกอิน บอกวันที่ และสรุปสามตัวเลขของ "วันนี้"
+   ไม่ใช่ของประดับ: มันคือคำตอบของคำถามแรกที่ทุกคนถามตอนเปิดแอป — วันนี้ต้องทำอะไร */
+function OvHero({ me, jobs }) {
+  const SF = window.SF;
+  const J = jobs || [];
+  const today = SF.TODAY;
+  const hh = new Date().getHours();
+  const greet = hh < 12 ? "สวัสดีตอนเช้า" : hh < 17 ? "สวัสดีตอนบ่าย" : "สวัสดีตอนเย็น";
+  const inSpan = (j, from, to) => {
+    const a = SF.installDate ? SF.installDate(j) : "";
+    if (!a) return false;
+    const b = (SF.installEnd && SF.installEnd(j)) || a;
+    return b >= from && a <= to;
+  };
+  const addDays = (d, n) => {
+    const t = new Date(d + "T00:00:00"); t.setDate(t.getDate() + n);
+    return [t.getFullYear(), String(t.getMonth() + 1).padStart(2, "0"), String(t.getDate()).padStart(2, "0")].join("-");
+  };
+  const todayN = J.filter((j) => inSpan(j, today, today)).length;
+  const weekN = J.filter((j) => inSpan(j, today, addDays(today, 6))).length;
+  const lateN = J.filter((j) => j.delayed).length;
+  const fig = (n, lb, warn) => (
+    <div className="ov-hero-fig" data-warn={warn && n > 0 ? "1" : "0"}>
+      <b>{n}</b><span>{lb}</span>
+    </div>
+  );
+  return (
+    <div className="ov-hero">
+      <div className="ov-hero-tx">
+        <h2>{greet}{me && me.name ? " คุณ" + me.name : ""}</h2>
+        <p>{window.drDateTH ? window.drDateTH(today) : today} · ระบบบริหารงานติดตั้ง flash+solar</p>
+      </div>
+      <div className="ov-hero-figs">
+        {fig(todayN, "ติดตั้งวันนี้")}
+        {fig(weekN, "ภายใน 7 วัน")}
+        {fig(lateN, "เลยกำหนด", true)}
+      </div>
+    </div>
+  );
+}
+
+/* ปฏิทินย่อในคอลัมน์ขวา — จุดใต้วันคือวันที่มีงานติดตั้งคร่อมอยู่
+   ช่วงวันติดตั้งคือตารางงานเดียวของระบบ (ขั้นตอนอื่นเป็นสถานะ ไม่ใช่วันนัด) จึงไม่เอา deadline มาปน */
+function OvCalendar({ jobs, onOpen }) {
+  const SF = window.SF;
+  const today = SF.TODAY;
+  const [ym, setYm] = React.useState(today.slice(0, 7));
+  const [pick, setPick] = React.useState(today);
+  const byDay = React.useMemo(() => {
+    const m = {};
+    (jobs || []).forEach((j) => {
+      const a = SF.installDate ? SF.installDate(j) : "";
+      if (!a) return;
+      const b = (SF.installEnd && SF.installEnd(j)) || a;
+      const t = new Date(a + "T00:00:00"), e = new Date(b + "T00:00:00");
+      /* กันงานที่กรอกวันจบก่อนวันเริ่ม ไม่ให้วนไม่รู้จบ */
+      let guard = 0;
+      while (t <= e && guard++ < 400) {
+        const k = [t.getFullYear(), String(t.getMonth() + 1).padStart(2, "0"), String(t.getDate()).padStart(2, "0")].join("-");
+        (m[k] = m[k] || []).push(j);
+        t.setDate(t.getDate() + 1);
+      }
+    });
+    return m;
+  }, [jobs]);
+  const y = +ym.slice(0, 4), mo = +ym.slice(5, 7);
+  const first = new Date(y, mo - 1, 1);
+  const days = new Date(y, mo, 0).getDate();
+  const lead = first.getDay();
+  const shift = (n) => {
+    const d = new Date(y, mo - 1 + n, 1);
+    setYm(d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"));
+  };
+  const key = (d) => ym + "-" + String(d).padStart(2, "0");
+  const MON_TH = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+    "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+  const list = byDay[pick] || [];
+  return (
+    <div className="pnl ov-cal">
+      <PanelTitle title="ปฏิทินงานติดตั้ง" sub="จุด = มีงานคร่อมวันนั้น" right={
+        <span className="ov-cal-nav">
+          <button onClick={() => shift(-1)} aria-label="เดือนก่อนหน้า"><Icon name="chevronLeft" size={15} color="var(--text-2)" /></button>
+          <b>{MON_TH[mo - 1]} {y + 543}</b>
+          <button onClick={() => shift(1)} aria-label="เดือนถัดไป"><Icon name="chevronRight" size={15} color="var(--text-2)" /></button>
+        </span>} />
+      <div className="ov-cal-grid">
+        {["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((d) => <span key={d} className="hd">{d}</span>)}
+        {Array.from({ length: lead }).map((_, i) => <span key={"p" + i} />)}
+        {Array.from({ length: days }).map((_, i) => {
+          const d = i + 1, k = key(d), n = (byDay[k] || []).length;
+          return (
+            <button key={k} onClick={() => setPick(k)} data-today={k === today ? "1" : "0"}
+              data-on={k === pick ? "1" : "0"} title={n ? n + " งาน" : undefined}>
+              {d}{n > 0 && <i />}
+            </button>
+          );
+        })}
+      </div>
+      <div className="ov-cal-list">
+        <div className="hd">{window.drDateTH ? window.drDateTH(pick) : pick} · {list.length} งาน</div>
+        {list.length === 0 && <div className="em">ไม่มีงานติดตั้งวันนี้</div>}
+        {list.slice(0, 6).map((j) => (
+          <button key={j.id} onClick={() => onOpen && onOpen(j)}>
+            <b>{j.name}</b><span>{j.code}{j.kw ? " · " + j.kw + " kW" : ""}</span>
+          </button>
+        ))}
+        {list.length > 6 && <div className="em">และอีก {list.length - 6} งาน</div>}
+      </div>
+    </div>
+  );
+}
+
+/* สองคอลัมน์ของหน้าภาพรวม — เนื้อหาหลักซ้าย คอลัมน์ข้างขวา
+   จอแคบกว่า 1100px คอลัมน์ขวาไหลลงไปต่อท้าย ไม่บีบให้เหลือครึ่งจอ */
+function OvLayout({ main, rail }) {
+  return (
+    <div className="ov-layout">
+      <div className="ov-main">{main}</div>
+      <div className="ov-rail">{rail}</div>
+    </div>
+  );
+}
+
+function OverviewView({ jobs, schedule, onOpen, onStage, onKpi, stock, me }) {
   const active = jobs.filter((j) => j.stage !== "done");
   const delayed = jobs.filter((j) => j.delayed);
   const ready = active.filter((j) => j.matReady);
   const totalKwh = jobs.filter((j) => j.battery).reduce((s, j) => s + (parseInt(j.batSize) || 0), 0);
   const done = jobs.filter((j) => j.stage === "done");
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
-  return (
+  const main = (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       {!isMobile && (
       <StatRail items={[
@@ -429,6 +558,12 @@ function OverviewView({ jobs, schedule, onOpen, onStage, onKpi, stock }) {
         <SchedulePanel jobs={jobs} onOpen={onOpen} />
         <BrandPanel jobs={jobs} />
       </div>
+    </div>
+  );
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <OvHero me={me} jobs={jobs} />
+      <OvLayout main={main} rail={<OvCalendar jobs={jobs} onOpen={onOpen} />} />
     </div>
   );
 }
@@ -478,4 +613,4 @@ function BrandPanel({ jobs }) {
   );
 }
 
-Object.assign(window, { OverviewView, KpiCard, StatRail, PanelTitle, Empty });
+Object.assign(window, { OverviewView, KpiCard, StatRail, PanelTitle, Empty, OvHero, OvCalendar, OvLayout });

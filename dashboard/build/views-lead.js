@@ -834,7 +834,8 @@ function LeadOverview({
   onKpi,
   onTech,
   onGoPermit,
-  onGoSales
+  onGoSales,
+  me
 }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -862,7 +863,7 @@ function LeadOverview({
     gridTemplateColumns: isMobile ? "1fr" : spec,
     gap: 18
   });
-  return React.createElement("div", {
+  const main = React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -932,6 +933,22 @@ function LeadOverview({
   }), React.createElement(LoMonthPanel, {
     jobs: J
   })));
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 18
+    }
+  }, React.createElement(window.OvHero, {
+    me: me,
+    jobs: J
+  }), React.createElement(window.OvLayout, {
+    main: main,
+    rail: React.createElement(window.OvCalendar, {
+      jobs: J,
+      onOpen: onOpen
+    })
+  }));
 }
 Object.assign(window, {
   LeadOverview,

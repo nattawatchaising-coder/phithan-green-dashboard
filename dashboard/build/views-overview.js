@@ -1024,13 +1024,155 @@ function MaterialShortagePanel({
     }
   }, "* \u0E40\u0E17\u0E35\u0E22\u0E1A BOQ \u0E17\u0E35\u0E48\u0E16\u0E2D\u0E14\u0E44\u0E14\u0E49\u0E01\u0E31\u0E1A\u0E04\u0E25\u0E31\u0E07 (\u0E2B\u0E31\u0E01\u0E02\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E40\u0E1A\u0E34\u0E01\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19\u0E41\u0E25\u0E49\u0E27) \u2014 \u0E40\u0E1B\u0E34\u0E14\u0E07\u0E32\u0E19\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E14\u0E39/\u0E40\u0E1A\u0E34\u0E01\u0E02\u0E2D\u0E07 \xB7 \u0E1B\u0E38\u0E48\u0E21 \u201C\u0E44\u0E1F\u0E25\u0E4C\u201D = \u0E14\u0E32\u0E27\u0E19\u0E4C\u0E42\u0E2B\u0E25\u0E14\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E2A\u0E31\u0E48\u0E07\u0E0B\u0E37\u0E49\u0E2D Excel (\u0E41\u0E22\u0E01\u0E2B\u0E21\u0E27\u0E14)"));
 }
+function OvHero({
+  me,
+  jobs
+}) {
+  const SF = window.SF;
+  const J = jobs || [];
+  const today = SF.TODAY;
+  const hh = new Date().getHours();
+  const greet = hh < 12 ? "สวัสดีตอนเช้า" : hh < 17 ? "สวัสดีตอนบ่าย" : "สวัสดีตอนเย็น";
+  const inSpan = (j, from, to) => {
+    const a = SF.installDate ? SF.installDate(j) : "";
+    if (!a) return false;
+    const b = SF.installEnd && SF.installEnd(j) || a;
+    return b >= from && a <= to;
+  };
+  const addDays = (d, n) => {
+    const t = new Date(d + "T00:00:00");
+    t.setDate(t.getDate() + n);
+    return [t.getFullYear(), String(t.getMonth() + 1).padStart(2, "0"), String(t.getDate()).padStart(2, "0")].join("-");
+  };
+  const todayN = J.filter(j => inSpan(j, today, today)).length;
+  const weekN = J.filter(j => inSpan(j, today, addDays(today, 6))).length;
+  const lateN = J.filter(j => j.delayed).length;
+  const fig = (n, lb, warn) => React.createElement("div", {
+    className: "ov-hero-fig",
+    "data-warn": warn && n > 0 ? "1" : "0"
+  }, React.createElement("b", null, n), React.createElement("span", null, lb));
+  return React.createElement("div", {
+    className: "ov-hero"
+  }, React.createElement("div", {
+    className: "ov-hero-tx"
+  }, React.createElement("h2", null, greet, me && me.name ? " คุณ" + me.name : ""), React.createElement("p", null, window.drDateTH ? window.drDateTH(today) : today, " \xB7 \u0E23\u0E30\u0E1A\u0E1A\u0E1A\u0E23\u0E34\u0E2B\u0E32\u0E23\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 flash+solar")), React.createElement("div", {
+    className: "ov-hero-figs"
+  }, fig(todayN, "ติดตั้งวันนี้"), fig(weekN, "ภายใน 7 วัน"), fig(lateN, "เลยกำหนด", true)));
+}
+function OvCalendar({
+  jobs,
+  onOpen
+}) {
+  const SF = window.SF;
+  const today = SF.TODAY;
+  const [ym, setYm] = React.useState(today.slice(0, 7));
+  const [pick, setPick] = React.useState(today);
+  const byDay = React.useMemo(() => {
+    const m = {};
+    (jobs || []).forEach(j => {
+      const a = SF.installDate ? SF.installDate(j) : "";
+      if (!a) return;
+      const b = SF.installEnd && SF.installEnd(j) || a;
+      const t = new Date(a + "T00:00:00"),
+        e = new Date(b + "T00:00:00");
+      let guard = 0;
+      while (t <= e && guard++ < 400) {
+        const k = [t.getFullYear(), String(t.getMonth() + 1).padStart(2, "0"), String(t.getDate()).padStart(2, "0")].join("-");
+        (m[k] = m[k] || []).push(j);
+        t.setDate(t.getDate() + 1);
+      }
+    });
+    return m;
+  }, [jobs]);
+  const y = +ym.slice(0, 4),
+    mo = +ym.slice(5, 7);
+  const first = new Date(y, mo - 1, 1);
+  const days = new Date(y, mo, 0).getDate();
+  const lead = first.getDay();
+  const shift = n => {
+    const d = new Date(y, mo - 1 + n, 1);
+    setYm(d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"));
+  };
+  const key = d => ym + "-" + String(d).padStart(2, "0");
+  const MON_TH = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+  const list = byDay[pick] || [];
+  return React.createElement("div", {
+    className: "pnl ov-cal"
+  }, React.createElement(PanelTitle, {
+    title: "\u0E1B\u0E0F\u0E34\u0E17\u0E34\u0E19\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07",
+    sub: "\u0E08\u0E38\u0E14 = \u0E21\u0E35\u0E07\u0E32\u0E19\u0E04\u0E23\u0E48\u0E2D\u0E21\u0E27\u0E31\u0E19\u0E19\u0E31\u0E49\u0E19",
+    right: React.createElement("span", {
+      className: "ov-cal-nav"
+    }, React.createElement("button", {
+      onClick: () => shift(-1),
+      "aria-label": "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32"
+    }, React.createElement(Icon, {
+      name: "chevronLeft",
+      size: 15,
+      color: "var(--text-2)"
+    })), React.createElement("b", null, MON_TH[mo - 1], " ", y + 543), React.createElement("button", {
+      onClick: () => shift(1),
+      "aria-label": "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E16\u0E31\u0E14\u0E44\u0E1B"
+    }, React.createElement(Icon, {
+      name: "chevronRight",
+      size: 15,
+      color: "var(--text-2)"
+    })))
+  }), React.createElement("div", {
+    className: "ov-cal-grid"
+  }, ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map(d => React.createElement("span", {
+    key: d,
+    className: "hd"
+  }, d)), Array.from({
+    length: lead
+  }).map((_, i) => React.createElement("span", {
+    key: "p" + i
+  })), Array.from({
+    length: days
+  }).map((_, i) => {
+    const d = i + 1,
+      k = key(d),
+      n = (byDay[k] || []).length;
+    return React.createElement("button", {
+      key: k,
+      onClick: () => setPick(k),
+      "data-today": k === today ? "1" : "0",
+      "data-on": k === pick ? "1" : "0",
+      title: n ? n + " งาน" : undefined
+    }, d, n > 0 && React.createElement("i", null));
+  })), React.createElement("div", {
+    className: "ov-cal-list"
+  }, React.createElement("div", {
+    className: "hd"
+  }, window.drDateTH ? window.drDateTH(pick) : pick, " \xB7 ", list.length, " \u0E07\u0E32\u0E19"), list.length === 0 && React.createElement("div", {
+    className: "em"
+  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49"), list.slice(0, 6).map(j => React.createElement("button", {
+    key: j.id,
+    onClick: () => onOpen && onOpen(j)
+  }, React.createElement("b", null, j.name), React.createElement("span", null, j.code, j.kw ? " · " + j.kw + " kW" : ""))), list.length > 6 && React.createElement("div", {
+    className: "em"
+  }, "\u0E41\u0E25\u0E30\u0E2D\u0E35\u0E01 ", list.length - 6, " \u0E07\u0E32\u0E19")));
+}
+function OvLayout({
+  main,
+  rail
+}) {
+  return React.createElement("div", {
+    className: "ov-layout"
+  }, React.createElement("div", {
+    className: "ov-main"
+  }, main), React.createElement("div", {
+    className: "ov-rail"
+  }, rail));
+}
 function OverviewView({
   jobs,
   schedule,
   onOpen,
   onStage,
   onKpi,
-  stock
+  stock,
+  me
 }) {
   const active = jobs.filter(j => j.stage !== "done");
   const delayed = jobs.filter(j => j.delayed);
@@ -1038,7 +1180,7 @@ function OverviewView({
   const totalKwh = jobs.filter(j => j.battery).reduce((s, j) => s + (parseInt(j.batSize) || 0), 0);
   const done = jobs.filter(j => j.stage === "done");
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
-  return React.createElement("div", {
+  const main = React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -1095,6 +1237,22 @@ function OverviewView({
   }), React.createElement(BrandPanel, {
     jobs: jobs
   })));
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 18
+    }
+  }, React.createElement(OvHero, {
+    me: me,
+    jobs: jobs
+  }), React.createElement(OvLayout, {
+    main: main,
+    rail: React.createElement(OvCalendar, {
+      jobs: jobs,
+      onOpen: onOpen
+    })
+  }));
 }
 function BrandPanel({
   jobs
@@ -1242,5 +1400,8 @@ Object.assign(window, {
   KpiCard,
   StatRail,
   PanelTitle,
-  Empty
+  Empty,
+  OvHero,
+  OvCalendar,
+  OvLayout
 });

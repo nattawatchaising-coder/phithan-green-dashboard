@@ -897,12 +897,12 @@ function App() {
           {view === "overview" && (salesOnly ? salesOverview
             : leadRole ? (
               <LeadOverview jobs={filtered} leads={leadStore.leads} quotes={quoteStore.quotes} stock={stock} techs={techStore.techs}
-                onOpen={openJob} onStage={goStage} onKpi={goKpi}
+                me={auth.current} onOpen={openJob} onStage={goStage} onKpi={goKpi}
                 onTech={(id) => { setTechFilter(id); setStageFilter(null); setQuickFilter(null); setView(listView()); }}
                 onGoPermit={can(role, "permit") ? () => setView("permit") : null}
                 onGoSales={can(role, "leads") ? () => setView(can(role, "price") ? "saleskpi" : "leads") : null} />
             )
-            : <OverviewView jobs={filtered} schedule={myScheduleItems} onOpen={openJob} onStage={goStage} onKpi={goKpi} stock={stock} />)}
+            : <OverviewView jobs={filtered} schedule={myScheduleItems} me={auth.current} onOpen={openJob} onStage={goStage} onKpi={goKpi} stock={stock} />)}
           {/* บอร์ดรวมทั้งวงจร — ขาย → หน้างาน → เอกสาร อยู่ผืนเดียว (ช่วงไหนไม่มีสิทธิ์ก็ไม่ขึ้น)
               ฝ่ายขออนุญาตอย่างเดียวยังได้บอร์ดขออนุญาตเต็มรูปแบบเหมือนเดิม เพราะเขาต้องใช้มุมรายการด้วย */}
           {view === "board" && (
