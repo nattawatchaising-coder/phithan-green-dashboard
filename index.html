@@ -161,7 +161,9 @@ label { min-width: 0; }
 .seg-flat > button:active { transform: scale(.95); }
 [data-theme="aurora"] .seg-flat > button:not([data-on="1"]):hover {
   background: color-mix(in srgb, var(--primary) 26%, transparent) !important; color: #fff !important; }
-.hdr-pill:not([data-on="1"]):hover { background: var(--surface3) !important; }
+.hdr-pill:not([data-on="1"]):hover { background: var(--primary-soft) !important; color: var(--primary-dark) !important; }
+[data-theme="aurora"] .hdr-pill:not([data-on="1"]):hover {
+  background: color-mix(in srgb, var(--primary) 26%, transparent) !important; color: #fff !important; }
 .hdr-pill:active { transform: scale(.96); }
 .hdr-icon-btn:focus-visible, .hdr-pill:focus-visible, .delay-toggle:focus-visible, .hdr-user:focus-visible {
   outline: none; box-shadow: 0 0 0 3px var(--primary-soft); }
@@ -866,6 +868,6 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/ot-paper.js?v=6"></script>
 <script src="dashboard/build/views-line.js?v=2"></script>
 <script src="dashboard/build/guide.js?v=5"></script>
-<script src="dashboard/build/app.js?v=180"></script>
+<script src="dashboard/build/app.js?v=181"></script>
 </body>
 </html>

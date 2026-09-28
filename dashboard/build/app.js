@@ -1938,23 +1938,37 @@ function TechFilter({
   nameOf
 }) {
   const [open, setOpen] = React.useState(false);
+  const [rect, setRect] = React.useState(null);
   const wrapRef = React.useRef(null);
+  const btnRef = React.useRef(null);
+  const menuRef = React.useRef(null);
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   React.useEffect(() => {
     if (!open) return;
+    const inside = t => wrapRef.current && wrapRef.current.contains(t) || menuRef.current && menuRef.current.contains(t);
     const off = e => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+      if (!inside(e.target)) setOpen(false);
     };
     const esc = e => {
       if (e.key === "Escape") setOpen(false);
     };
+    const shut = () => setOpen(false);
     document.addEventListener("mousedown", off);
     document.addEventListener("keydown", esc);
+    window.addEventListener("scroll", shut, true);
+    window.addEventListener("resize", shut);
     return () => {
       document.removeEventListener("mousedown", off);
       document.removeEventListener("keydown", esc);
+      window.removeEventListener("scroll", shut, true);
+      window.removeEventListener("resize", shut);
     };
   }, [open]);
+  const toggle = () => setOpen(v => {
+    const n = !v;
+    if (n && btnRef.current) setRect(btnRef.current.getBoundingClientRect());
+    return n;
+  });
   const cur = value ? (techs || []).find(t => t.id === value) : null;
   const on = !!value;
   const none = counts && counts.__none || 0;
@@ -2009,7 +2023,8 @@ function TechFilter({
       display: "inline-flex"
     }
   }, React.createElement("button", {
-    onClick: () => setOpen(v => !v),
+    ref: btnRef,
+    onClick: toggle,
     title: "\u0E01\u0E23\u0E2D\u0E07\u0E15\u0E32\u0E21\u0E0A\u0E48\u0E32\u0E07\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A",
     className: "hdr-pill",
     "data-on": on ? "1" : "0",
@@ -2031,7 +2046,7 @@ function TechFilter({
   }, React.createElement(Icon, {
     name: "wrench",
     size: 14,
-    color: on ? cur ? cur.color : "var(--primary-dark)" : "var(--text-2)"
+    color: on ? cur ? cur.color : "var(--primary-dark)" : "currentColor"
   }), "\u0E0A\u0E48\u0E32\u0E07", on ? ": " + nameOf(value) : "", React.createElement(Icon, {
     name: "chevronDown",
     size: 14,
@@ -2040,12 +2055,13 @@ function TechFilter({
       transform: open ? "rotate(180deg)" : "none",
       transition: "transform .18s"
     }
-  })), open && React.createElement("div", {
+  })), open && rect && ReactDOM.createPortal(React.createElement("div", {
+    ref: menuRef,
     style: {
-      position: "absolute",
-      top: "calc(100% + 6px)",
-      left: 0,
-      zIndex: 40,
+      position: "fixed",
+      top: rect.bottom + 6,
+      left: Math.max(12, Math.min(rect.left, window.innerWidth - 244 - 12)),
+      zIndex: 200,
       width: 244,
       maxHeight: 340,
       overflowY: "auto",
@@ -2093,7 +2109,7 @@ function TechFilter({
     }
   }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E2D\u0E1A\u0E2B\u0E21\u0E32\u0E22"), React.createElement("span", {
     style: tally(none)
-  }, none))));
+  }, none))), document.body));
 }
 function Header({
   view,

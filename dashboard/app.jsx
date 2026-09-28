@@ -1286,16 +1286,31 @@ function SidebarSettings({ icons, view, onNav, aurora, onToggleAurora, settingsN
    ตัวเลขคิดจากฟิลเตอร์อื่นที่เปิดอยู่ทั้งหมด จะได้รู้ว่า "ในสิ่งที่ดูอยู่ตอนนี้" ใครมีกี่งาน */
 function TechFilter({ value, onChange, techs, counts, nameOf }) {
   const [open, setOpen] = React.useState(false);
+  const [rect, setRect] = React.useState(null);
   const wrapRef = React.useRef(null);
+  const btnRef = React.useRef(null);
+  const menuRef = React.useRef(null);
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   React.useEffect(() => {
     if (!open) return;
-    const off = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+    const inside = (t) => (wrapRef.current && wrapRef.current.contains(t)) || (menuRef.current && menuRef.current.contains(t));
+    const off = (e) => { if (!inside(e.target)) setOpen(false); };
     const esc = (e) => { if (e.key === "Escape") setOpen(false); };
+    /* เมนูเป็น position:fixed มันจึงไม่เลื่อนตามปุ่ม — ปิดทิ้งเมื่อหน้าเลื่อนหรือจอเปลี่ยนขนาด
+       ดีกว่าปล่อยให้เมนูค้างลอยอยู่คนละที่กับปุ่มที่มันห้อยมา */
+    const shut = () => setOpen(false);
     document.addEventListener("mousedown", off);
     document.addEventListener("keydown", esc);
-    return () => { document.removeEventListener("mousedown", off); document.removeEventListener("keydown", esc); };
+    window.addEventListener("scroll", shut, true);
+    window.addEventListener("resize", shut);
+    return () => { document.removeEventListener("mousedown", off); document.removeEventListener("keydown", esc);
+      window.removeEventListener("scroll", shut, true); window.removeEventListener("resize", shut); };
   }, [open]);
+  const toggle = () => setOpen((v) => {
+    const n = !v;
+    if (n && btnRef.current) setRect(btnRef.current.getBoundingClientRect());
+    return n;
+  });
 
   const cur = value ? (techs || []).find((t) => t.id === value) : null;
   const on = !!value;
@@ -1317,18 +1332,27 @@ function TechFilter({ value, onChange, techs, counts, nameOf }) {
 
   return (
     <span ref={wrapRef} style={{ position: "relative", display: "inline-flex" }}>
-      <button onClick={() => setOpen((v) => !v)} title="กรองตามช่างผู้รับผิดชอบ" className="hdr-pill" data-on={on ? "1" : "0"}
+      <button ref={btnRef} onClick={toggle} title="กรองตามช่างผู้รับผิดชอบ" className="hdr-pill" data-on={on ? "1" : "0"}
         style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: isMobile ? "5px 10px" : "6px 13px", borderRadius: 99,
           border: "none",
           background: on ? ((cur ? cur.color : "#1B9B75") + "24") : "transparent",
           color: on ? (cur ? cur.color : "var(--primary-dark)") : "var(--text-2)",
           fontSize: isMobile ? 11.5 : 12.5, fontWeight: on ? 700 : 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-        <Icon name="wrench" size={14} color={on ? (cur ? cur.color : "var(--primary-dark)") : "var(--text-2)"} />
+        {/* currentColor — ตอนชี้ CSS เปลี่ยนสีตัวหนังสือของปุ่มเป็นเขียว ไอคอนต้องเปลี่ยนตามไปด้วย
+            ถ้าฝังเป็น var(--text-2) ไว้ ไอคอนจะค้างเป็นเทาอยู่ตัวเดียวกลางปุ่มสีเขียว */}
+        <Icon name="wrench" size={14} color={on ? (cur ? cur.color : "var(--primary-dark)") : "currentColor"} />
         ช่าง{on ? ": " + nameOf(value) : ""}
         <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
       </button>
-      {open && (
-        <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 40, width: 244, maxHeight: 340, overflowY: "auto",
+      {/* ── เมนูต้องเป็น portal + position:fixed เท่านั้น ──
+          แถบตัวกรองบนหัวจอ (.header-filters.in-top) ตั้ง overflow-x:auto ไว้ให้เลื่อนแนวนอนได้ตอนจอแคบ
+          ซึ่ง CSS บังคับให้แกนตั้งกลายเป็น auto ตามไปด้วยโดยอัตโนมัติ (overflow-y:visible อยู่ร่วมกับ auto ไม่ได้)
+          เมนูแบบ position:absolute จึงถูกกล่องสูง 35px ตัวนั้นเฉือนหายไปทั้งใบ — กดปุ่มแล้วเหมือนไม่มีอะไรเกิดขึ้น
+          ทั้งที่สเตตเปลี่ยนจริง กดซ้ำก็แค่ปิดกลับ · ถ้าจะย้ายกลับไปเป็น absolute ต้องถอด overflow ตรงนั้นก่อน */}
+      {open && rect && ReactDOM.createPortal(
+        <div ref={menuRef} style={{ position: "fixed", top: rect.bottom + 6,
+          left: Math.max(12, Math.min(rect.left, window.innerWidth - 244 - 12)),
+          zIndex: 200, width: 244, maxHeight: 340, overflowY: "auto",
           background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 6,
           boxShadow: "0 14px 40px rgba(8,20,14,.18)" }}>
           <button style={row(!value)} onClick={() => pick(null)}>
@@ -1353,8 +1377,7 @@ function TechFilter({ value, onChange, techs, counts, nameOf }) {
               <span style={tally(none)}>{none}</span>
             </button>
           )}
-        </div>
-      )}
+        </div>, document.body)}
     </span>
   );
 }
