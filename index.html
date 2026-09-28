@@ -246,10 +246,16 @@ label { min-width: 0; }
 
 /* ---- แผงตัวเลขรวม: ผืนเดียวแบ่งด้วยเส้นผม ไม่ใช่ 3 กล่องเหมือนกันเป๊ะ ---- */
 /* ── โครงหน้าภาพรวม: แถบต้อนรับ · สองคอลัมน์ · ปฏิทินย่อ ── */
-.ov-hero{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
-  padding:22px 26px;border-radius:20px;border:1px solid var(--border);
+.ov-hero{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:20px;
+  flex-wrap:wrap;padding:22px 26px;border-radius:20px;border:1px solid var(--border);
   background:linear-gradient(120deg,var(--primary-dark),var(--primary) 58%,var(--primary-bright));
   box-shadow:var(--shadow-sm)}
+/* ภาพทุ่งโซลาร์ฟาร์ม (assets/hero-solarfarm.svg) — เป็นชั้นตกแต่งหลังตัวหนังสือ
+   ตัวไฟล์จางฝั่งซ้ายมาแล้ว และชั้นนี้ pointer-events:none เพื่อไม่ให้บังปุ่มอะไรทั้งสิ้น */
+.ov-hero::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:url("dashboard/assets/hero-solarfarm.svg") right center/cover no-repeat;opacity:.9}
+.ov-hero>*{position:relative;z-index:1}
+@media(max-width:700px){.ov-hero::after{opacity:.45}}
 .ov-hero-tx h2{font-family:var(--display);font-size:23px;font-weight:700;color:#fff;letter-spacing:-.03em;line-height:1.2}
 .ov-hero-tx p{margin-top:5px;font-size:12.5px;color:rgba(255,255,255,.82)}
 .ov-hero-figs{display:flex;gap:10px;flex-wrap:wrap}

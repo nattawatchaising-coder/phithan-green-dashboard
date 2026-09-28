@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ภาพประกอบหัวหน้าภาพรวม — ทุ่งโซลาร์ฟาร์มแบบลายเส้น
+     วาดเป็น SVG ไม่ใช่รูปถ่าย เพราะ (ก) ไฟล์เล็กกว่ารูปถ่ายหลายสิบเท่า หน้าแรกจึงไม่หน่วง
+     (ข) คมทุกความละเอียดหน้าจอ (ค) ไม่มีเรื่องลิขสิทธิ์รูป ซึ่งสำคัญเพราะ repo นี้เป็นสาธารณะ
+     สีทั้งหมดเป็นขาวโปร่ง วางทับพื้นไล่สีเขียวของ .ov-hero ได้ทั้งธีมสว่างและธีมมืด
+     ด้านซ้ายถูกบังจางด้วย mask ให้ตัวหนังสือทักทายอ่านออกเสมอ -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 168 1200 224" preserveAspectRatio="xMaxYMid slice" role="img" aria-label="ภาพประกอบทุ่งโซลาร์ฟาร์ม">
+  <defs>
+    <!-- บังฝั่งซ้ายให้จางหาย — ฝั่งนั้นคือที่อยู่ของข้อความทักทาย -->
+    <linearGradient id="fade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset=".38" stop-color="#fff" stop-opacity="0"/>
+      <stop offset=".72" stop-color="#fff" stop-opacity=".75"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="1"/>
+    </linearGradient>
+    <mask id="m"><rect x="0" y="168" width="1200" height="224" fill="url(#fade)"/></mask>
+    <radialGradient id="glow">
+      <stop offset="0" stop-color="#fff" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <!-- แผงหนึ่งแผ่นในมุมไอโซเมตริก + เส้นแบ่งเซลล์ ใช้ซ้ำทุกแถวด้วยการย่อ/ขยาย -->
+    <g id="pv">
+      <path d="M0 24 L72 0 L102 9 L30 33 Z" fill="#fff" fill-opacity=".26" stroke="#fff" stroke-opacity=".7" stroke-width="1.5"/>
+      <path d="M24 16 L54 25 M48 8 L78 17" stroke="#fff" stroke-opacity=".4" stroke-width="1"/>
+      <path d="M36 16.5 L52 33" stroke="#fff" stroke-opacity=".45" stroke-width="1.6"/>
+    </g>
+  </defs>
+
+  <g mask="url(#m)">
+    <!-- ดวงอาทิตย์ -->
+    <circle cx="1012" cy="212" r="86" fill="url(#glow)"/>
+    <circle cx="1012" cy="212" r="24" fill="#fff" fill-opacity=".5"/>
+    <circle cx="1012" cy="212" r="24" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.5"/>
+
+    <!-- เนินเขาไกล -->
+    <path d="M470 236 C 590 186 660 214 760 200 C 880 182 960 216 1060 204 C 1130 196 1170 208 1200 202 L1200 260 L470 260 Z"
+          fill="#fff" fill-opacity=".09"/>
+    <path d="M620 244 C 720 216 800 238 900 228 C 1010 218 1120 240 1200 232 L1200 266 L620 266 Z"
+          fill="#fff" fill-opacity=".07"/>
+
+    <!-- เสาไฟฟ้าแรงสูงเล็ก ๆ ที่ขอบทุ่ง -->
+    <g stroke="#fff" stroke-opacity=".22" stroke-width="1.4" fill="none">
+      <path d="M1140 206 L1140 172 M1130 182 L1150 182 M1133 176 L1147 176"/>
+      <path d="M1076 210 L1076 184 M1068 192 L1084 192"/>
+    </g>
+
+    <!-- แถวไกล -->
+    <g opacity=".55">
+      <g transform="translate(516 250) scale(.52)"><use href="#pv"/></g>
+      <g transform="translate(596 250) scale(.52)"><use href="#pv"/></g>
+      <g transform="translate(676 250) scale(.52)"><use href="#pv"/></g>
+      <g transform="translate(756 250) scale(.52)"><use href="#pv"/></g>
+      <g transform="translate(836 250) scale(.52)"><use href="#pv"/></g>
+      <g transform="translate(916 250) scale(.52)"><use href="#pv"/></g>
+      <g transform="translate(996 250) scale(.52)"><use href="#pv"/></g>
+      <g transform="translate(1076 250) scale(.52)"><use href="#pv"/></g>
+      <g transform="translate(1156 250) scale(.52)"><use href="#pv"/></g>
+    </g>
+
+    <!-- แถวกลาง -->
+    <g opacity=".8">
+      <g transform="translate(500 286) scale(.74)"><use href="#pv"/></g>
+      <g transform="translate(612 286) scale(.74)"><use href="#pv"/></g>
+      <g transform="translate(724 286) scale(.74)"><use href="#pv"/></g>
+      <g transform="translate(836 286) scale(.74)"><use href="#pv"/></g>
+      <g transform="translate(948 286) scale(.74)"><use href="#pv"/></g>
+      <g transform="translate(1060 286) scale(.74)"><use href="#pv"/></g>
+      <g transform="translate(1172 286) scale(.74)"><use href="#pv"/></g>
+    </g>
+
+    <!-- แถวหน้า พร้อมขาตั้ง -->
+    <g>
+      <g transform="translate(470 330)"><use href="#pv"/><path d="M52 33 L52 54 M18 26 L18 44" stroke="#fff" stroke-opacity=".32" stroke-width="2"/></g>
+      <g transform="translate(622 330)"><use href="#pv"/><path d="M52 33 L52 54 M18 26 L18 44" stroke="#fff" stroke-opacity=".32" stroke-width="2"/></g>
+      <g transform="translate(774 330)"><use href="#pv"/><path d="M52 33 L52 54 M18 26 L18 44" stroke="#fff" stroke-opacity=".32" stroke-width="2"/></g>
+      <g transform="translate(926 330)"><use href="#pv"/><path d="M52 33 L52 54 M18 26 L18 44" stroke="#fff" stroke-opacity=".32" stroke-width="2"/></g>
+      <g transform="translate(1078 330)"><use href="#pv"/><path d="M52 33 L52 54 M18 26 L18 44" stroke="#fff" stroke-opacity=".32" stroke-width="2"/></g>
+    </g>
+
+    <!-- พื้นหญ้าหน้าสุด -->
+    <path d="M440 392 C 620 372 820 396 1000 380 C 1100 371 1160 384 1200 378 L1200 400 L440 400 Z"
+          fill="#fff" fill-opacity=".08"/>
+  </g>
+</svg>
