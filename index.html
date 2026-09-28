@@ -356,6 +356,30 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .permit-grid>button[data-warn="1"]{background:color-mix(in srgb,#D93025 8%,var(--surface2));
   border-color:color-mix(in srgb,#D93025 28%,transparent)}
 
+/* แถวที่มีแท่งวัด (ภาระงานต่อช่าง · คอขวดตามขั้น) — ต้องรู้ว่ากำลังชี้แถวไหนอยู่
+   แถวพวกนี้กดได้ทั้งแถวเหมือน .rows แต่เขียนสไตล์เองในไฟล์ jsx จึงไม่เคยมีสถานะ hover เลย
+   ยกขึ้น 1px พร้อมเงาจาง ๆ ให้รู้สึกว่าแถวลอยขึ้นมารับเมาส์ ไม่ใช่แค่เปลี่ยนสีพื้น */
+.bar-rows>button{background:none;border:0;border-radius:12px;padding:7px 9px;
+  transition:background .16s ease,box-shadow .18s ease,transform .16s ease}
+.bar-rows>button:hover{background:var(--surface2);transform:translateY(-1px);
+  box-shadow:0 6px 16px rgba(8,20,14,.10)}
+.bar-rows>button:active{transform:translateY(0);box-shadow:none}
+[data-theme="aurora"] .bar-rows>button:hover{background:var(--gr-hi);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+
+/* การ์ดที่กดได้ก็ยกตัวรับเมาส์เหมือนกัน ให้ภาษาการชี้ทั้งหน้าเป็นชุดเดียว */
+.stat-rail>button,.permit-grid>button{transition:background .16s ease,border-color .16s ease,
+  box-shadow .18s ease,transform .16s ease}
+.stat-rail>button:hover,.permit-grid>button:hover{transform:translateY(-2px);
+  box-shadow:0 10px 24px rgba(8,20,14,.10)}
+.stat-rail>button:active,.permit-grid>button:active{transform:translateY(0);box-shadow:none}
+[data-theme="aurora"] .stat-rail>button:hover,[data-theme="aurora"] .permit-grid>button:hover{
+  box-shadow:0 10px 26px rgba(0,0,0,.4)}
+.rows>button:hover{box-shadow:0 0 0 6px var(--surface2),0 6px 16px rgba(8,20,14,.08)}
+@media (prefers-reduced-motion: reduce){
+  .bar-rows>button,.stat-rail>button,.permit-grid>button{transition:background .16s ease}
+  .bar-rows>button:hover,.stat-rail>button:hover,.permit-grid>button:hover{transform:none}
+}
+
 @media(max-width:1100px){.ov-layout{grid-template-columns:1fr}}
 
 .ov-cal-nav{display:inline-flex;align-items:center;gap:6px}
@@ -756,7 +780,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/billing.js?v=5"></script>
 <script src="dashboard/build/bill-paper.js?v=6"></script>
 <script src="dashboard/build/views-billing.js?v=7"></script>
-<script src="dashboard/build/views-lead.js?v=10"></script>
+<script src="dashboard/build/views-lead.js?v=11"></script>
 <script src="dashboard/build/views-flow.js?v=14"></script>
 <script src="dashboard/build/daily.js?v=13"></script>
 <script src="dashboard/build/views-daily.js?v=33"></script>

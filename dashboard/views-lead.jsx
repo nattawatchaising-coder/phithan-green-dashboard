@@ -184,10 +184,10 @@ function LoTechLoadPanel({ jobs, techs, onTech }) {
     <div className="pnl">
       <PanelTitle title="ภาระงานต่อช่าง" sub={"งานที่ยังไม่เสร็จ " + live + " งาน · คลิกเพื่อดูงานของช่างคนนั้น"} />
       {rows.length === 0 ? <Empty text="ยังไม่มีรายชื่อช่างในระบบ" /> : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 12, maxHeight: 340, overflowY: "auto" }}>
+        <div className="bar-rows" style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 12, maxHeight: 340, overflowY: "auto" }}>
           {rows.map((r) => (
             <button key={r.id} onClick={() => onTech && onTech(r.id)} style={{ display: "flex", alignItems: "center", gap: 10,
-              background: "none", border: "none", padding: "2px 0", cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%" }}>
+              cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%" }}>
               <span style={{ width: 108, flexShrink: 0, display: "flex", alignItems: "center", gap: 7, fontSize: 12.5,
                 fontWeight: 650, color: "var(--text-1)", lineHeight: 1.25, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 <span style={{ width: 8, height: 8, borderRadius: 99, background: r.color, flexShrink: 0 }} />{r.name}
@@ -303,10 +303,10 @@ function LoBottleneckPanel({ jobs, onStage }) {
     <div className="pnl">
       <PanelTitle title="คอขวดตามขั้น"
         sub={worst && worst.med ? ("ค้างนานสุดที่ขั้น “" + worst.s.th + "” ราว " + worst.med + " วัน") : "คลิกที่ขั้นเพื่อดูรายการงาน"} />
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 18 }}>
+      <div className="bar-rows" style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 14 }}>
         {rows.map((r) => (
           <button key={r.s.key} onClick={() => onStage && onStage(r.s.key)} style={{ display: "flex", alignItems: "center", gap: 10,
-            background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%" }}>
+            cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%" }}>
             <span style={{ width: 104, flexShrink: 0, display: "flex", alignItems: "center", gap: 7, fontSize: 12.5,
               fontWeight: 650, color: "var(--text-1)", lineHeight: 1.25 }}>
               <span style={{ width: 8, height: 8, borderRadius: 99, background: r.s.color, flexShrink: 0 }} />{r.s.th}

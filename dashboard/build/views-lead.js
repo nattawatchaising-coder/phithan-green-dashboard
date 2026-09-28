@@ -271,10 +271,11 @@ function LoTechLoadPanel({
   }), rows.length === 0 ? React.createElement(Empty, {
     text: "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E22\u0E0A\u0E37\u0E48\u0E2D\u0E0A\u0E48\u0E32\u0E07\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A"
   }) : React.createElement("div", {
+    className: "bar-rows",
     style: {
       display: "flex",
       flexDirection: "column",
-      gap: 7,
+      gap: 4,
       marginTop: 12,
       maxHeight: 340,
       overflowY: "auto"
@@ -286,9 +287,6 @@ function LoTechLoadPanel({
       display: "flex",
       alignItems: "center",
       gap: 10,
-      background: "none",
-      border: "none",
-      padding: "2px 0",
       cursor: "pointer",
       fontFamily: "inherit",
       textAlign: "left",
@@ -478,11 +476,12 @@ function LoBottleneckPanel({
     title: "\u0E04\u0E2D\u0E02\u0E27\u0E14\u0E15\u0E32\u0E21\u0E02\u0E31\u0E49\u0E19",
     sub: worst && worst.med ? "ค้างนานสุดที่ขั้น “" + worst.s.th + "” ราว " + worst.med + " วัน" : "คลิกที่ขั้นเพื่อดูรายการงาน"
   }), React.createElement("div", {
+    className: "bar-rows",
     style: {
       display: "flex",
       flexDirection: "column",
-      gap: 12,
-      marginTop: 18
+      gap: 6,
+      marginTop: 14
     }
   }, rows.map(r => React.createElement("button", {
     key: r.s.key,
@@ -491,9 +490,6 @@ function LoBottleneckPanel({
       display: "flex",
       alignItems: "center",
       gap: 10,
-      background: "none",
-      border: "none",
-      padding: 0,
       cursor: "pointer",
       fontFamily: "inherit",
       textAlign: "left",
