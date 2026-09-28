@@ -294,9 +294,9 @@ function SchedHeader({
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   return React.createElement("header", {
     className: "app-header",
-    style: isMobile ? {
-      paddingBottom: 12
-    } : undefined
+    style: {
+      paddingBottom: isMobile ? 12 : 18
+    }
   }, React.createElement("div", {
     className: "header-top"
   }, React.createElement("button", {

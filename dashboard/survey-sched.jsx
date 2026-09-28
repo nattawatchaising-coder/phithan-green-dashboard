@@ -172,8 +172,10 @@ function useSurveyApptStore() {
 /* ── หัวเพจร่วม (สไตล์เดียวกับหน้า stock) ── */
 function SchedHeader({ icon, title, sub, onMenuOpen, right }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  /* ระยะขอบล่างต้องเท่ากับหัวจอหลัก (Header ใน app.jsx) ไม่งั้นหน้าที่ใช้หัวจอตัวนี้
+     (ยอดขาย · จัดตารางสำรวจ) จะเตี้ยกว่าหน้าอื่น 18px และเส้นขอบล่างชิดตัวหนังสือ */
   return (
-    <header className="app-header" style={isMobile ? { paddingBottom: 12 } : undefined}>
+    <header className="app-header" style={{ paddingBottom: isMobile ? 12 : 18 }}>
       <div className="header-top">
         <button className="hamburger" onClick={onMenuOpen} aria-label="เปิดเมนู"><Icon name="menu" size={18} color="var(--text-2)" /></button>
         <div style={{ flex: 1, minWidth: 0 }}>
