@@ -1212,14 +1212,71 @@ const COND_DEF_ROWS = [
 function ConduitDefaultsEditor({ condStore }) {
   const FIX = (window.BOQ || {}).CONDUIT_SPARE_FIXED || {};
   const RULE_ROWS = (window.BOQ || {}).IMC_RULE || [];
-  const val = (condStore && condStore.val) || { rule: {}, per: {}, spare: {} };
-  const rule = val.rule || {}, per = val.per || {}, spare = val.spare || {};
-  const set = (kind, k, v) => condStore && condStore.setCell(kind, k, v);
-  const nEdited = COND_DEF_ROWS.filter((r) => per[r.key] != null || spare[r.key] != null).length
-    + RULE_ROWS.filter((r) => rule[r.key] != null && rule[r.key] !== "").length;
+  const saved = (condStore && condStore.val) || { rule: {}, per: {}, spare: {} };
+
+  /* ── กดแก้ไข → กรอก → กดบันทึก ──
+     เดิมพิมพ์ปุ๊บเขียนขึ้น Firebase ปั๊บ ซึ่งแปลว่าเลขที่พิมพ์ค้างไว้ครึ่งทาง (เช่น "0." ของ 0.25)
+     กลายเป็นค่าตั้งต้นของบริษัทไปแล้ว และกดผิดแล้วกลับไม่ได้
+     ตอนนี้แก้ในร่างในเครื่องก่อน กดบันทึกจึงเขียนจริง กดยกเลิกคือทิ้งร่างทั้งก้อน
+     draft ไม่ใช่ null = กำลังอยู่ในโหมดแก้ไข ไม่ต้องมีสเตตบอกโหมดอีกตัว */
+  const [draft, setDraft] = React.useState(null);
+  const edit = !!draft;
+  const view = draft || saved;
+  const rule = view.rule || {}, per = view.per || {}, spare = view.spare || {};
+  const set = (kind, k, v) => setDraft((p) => {
+    const d = p || { rule: {}, per: {}, spare: {} };
+    const o = Object.assign({}, d[kind]);
+    if (v === "" || v === null || v === undefined) delete o[k]; else o[k] = String(v);
+    const next = Object.assign({}, d); next[kind] = o; return next;
+  });
+  const startEdit = () => setDraft({
+    rule: Object.assign({}, saved.rule), per: Object.assign({}, saved.per), spare: Object.assign({}, saved.spare) });
+  /* บันทึกทีละช่องที่เปลี่ยนจริง ไม่เขียนทั้งก้อน — ช่องที่คนอื่นแก้ไว้ระหว่างเราเปิดค้างจะได้ไม่ถูกลบ */
+  const nDirty = ["rule", "per", "spare"].reduce((sum, kind) => {
+    const a = saved[kind] || {}, b = (draft || {})[kind] || {};
+    return sum + Object.keys(Object.assign({}, a, b))
+      .filter((k) => String(a[k] != null ? a[k] : "") !== String(b[k] != null ? b[k] : "")).length;
+  }, 0);
+  const save = () => {
+    if (!draft || !condStore) { setDraft(null); return; }
+    ["rule", "per", "spare"].forEach((kind) => {
+      const a = saved[kind] || {}, b = draft[kind] || {};
+      Object.keys(Object.assign({}, a, b)).forEach((k) => {
+        const av = String(a[k] != null ? a[k] : ""), bv = String(b[k] != null ? b[k] : "");
+        if (av !== bv) condStore.setCell(kind, k, bv);
+      });
+    });
+    setDraft(null);
+  };
+  const cancel = () => {
+    if (!nDirty) { setDraft(null); return; }
+    window.askConfirm({ title: "ทิ้งที่แก้ไว้?", body: "ค่าที่แก้ไว้ " + nDirty + " ช่อง จะไม่ถูกบันทึก", ok: "ทิ้ง", danger: true })
+      .then((ok) => { if (ok) setDraft(null); });
+  };
+
+  const nEdited = COND_DEF_ROWS.filter((r) => (saved.per || {})[r.key] != null || (saved.spare || {})[r.key] != null).length
+    + RULE_ROWS.filter((r) => (saved.rule || {})[r.key] != null && (saved.rule || {})[r.key] !== "").length;
   const cell = { padding: "7px 9px", borderBottom: "1px solid var(--border)", fontSize: 12.5 };
-  const num = { background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-1)",
+  const numBase = { background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-1)",
     fontFamily: "inherit", fontSize: 13, padding: "7px 9px", borderRadius: 9, outline: "none", width: "100%", textAlign: "right" };
+  /* ตอนยังไม่กดแก้ไข ช่องกรอกต้องดูเหมือน "ค่าที่ตั้งไว้" ไม่ใช่ช่องที่กดแล้วไม่มีอะไรเกิดขึ้น */
+  const num = edit ? numBase : Object.assign({}, numBase, { background: "transparent", borderColor: "transparent", color: "var(--text-2)" });
+  const btn = (on) => ({ padding: "7px 14px", borderRadius: 10, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+    border: on ? "none" : "1px solid var(--border-strong)", background: on ? "var(--primary)" : "var(--surface)", color: on ? "#fff" : "var(--text-2)" });
+  const bar = (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      {edit ? (
+        <React.Fragment>
+          <button onClick={save} style={btn(true)}>บันทึก{nDirty ? " (" + nDirty + ")" : ""}</button>
+          <button onClick={cancel} style={btn(false)}>ยกเลิก</button>
+          <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>
+            {nDirty ? "แก้ไว้ " + nDirty + " ช่อง ยังไม่ได้บันทึก" : "กำลังแก้ไข"}</span>
+        </React.Fragment>
+      ) : (
+        <button onClick={startEdit} style={btn(false)}>แก้ไข</button>
+      )}
+    </div>
+  );
 
   /* ตารางนี้เหลือไว้ให้ uPVC อย่างเดียว — อุปกรณ์ IMC ย้ายไปอยู่ในตารางกฎหมดแล้ว */
   const row = (r, i) => {
@@ -1231,11 +1288,11 @@ function ConduitDefaultsEditor({ condStore }) {
             {on ? "แทนกฎอัตโนมัติ" : "คิดจาก " + r.auto}</div>
         </td>
         <td style={Object.assign({}, cell, { width: 120 })}>
-          <input type="number" min={0} step="any" placeholder="อัตโนมัติ" style={num}
+          <input type="number" min={0} step="any" placeholder="อัตโนมัติ" style={num} disabled={!edit}
             value={on ? per[r.key] : ""} onChange={(e) => set("per", r.key, e.target.value)} />
         </td>
         <td style={Object.assign({}, cell, { width: 100 })}>
-          <input type="number" placeholder={String(FIX[r.key] != null ? FIX[r.key] : 10)} style={num}
+          <input type="number" placeholder={String(FIX[r.key] != null ? FIX[r.key] : 10)} style={num} disabled={!edit}
             value={spare[r.key] != null ? spare[r.key] : ""} onChange={(e) => set("spare", r.key, e.target.value)} />
         </td>
       </tr>
@@ -1274,13 +1331,13 @@ function ConduitDefaultsEditor({ condStore }) {
                   <div style={{ fontSize: 10.5, color: "var(--text-3)", marginTop: 2 }}>ค่าตั้งต้น {r.def} {r.unit}</div>
                 </td>
                 <td style={Object.assign({}, cell, { width: 120 })}>
-                  <input type="number" min={r.min != null ? r.min : 0} step="any" placeholder={String(r.def)} style={num}
+                  <input type="number" min={r.min != null ? r.min : 0} step="any" placeholder={String(r.def)} style={num} disabled={!edit}
                     value={rule[r.key] != null ? rule[r.key] : ""} onChange={(e) => set("rule", r.key, e.target.value)} />
                 </td>
                 <td style={Object.assign({}, cell, { width: 76, fontSize: 11, color: "var(--text-3)" })}>{r.unit}</td>
                 {first && (
                   <td rowSpan={accSpan[r.acc]} style={Object.assign({}, cell, { width: 100, verticalAlign: "middle" })}>
-                    <input type="number" placeholder={String(FIX[r.acc] != null ? FIX[r.acc] : 10)} style={num}
+                    <input type="number" placeholder={String(FIX[r.acc] != null ? FIX[r.acc] : 10)} style={num} disabled={!edit}
                       value={spare[r.acc] != null ? spare[r.acc] : ""} onChange={(e) => set("spare", r.acc, e.target.value)} />
                   </td>
                 )}
@@ -1311,18 +1368,20 @@ function ConduitDefaultsEditor({ condStore }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 820 }}>
       {/* คำอธิบายย้ายไปอยู่บนหัวตารางแล้ว — กติกาที่ต้องอ่านควรอยู่ติดกับช่องที่ต้องกรอก ไม่ใช่ย่อหน้าที่ทุกคนเลื่อนผ่าน */}
+      {bar}
       {ruleTable}
       {table("uPVC")}
       <div>
         <button onClick={() => {
           window.askConfirm({ title: "คืนค่าตั้งต้นอุปกรณ์ท่อร้อยสาย?", body: "ค่าที่ตั้งไว้ " + nEdited + " รายการ จะกลับไปใช้กฎ ค่าอัตโนมัติ และ % เผื่อเดิมของระบบ", ok: "คืนค่าตั้งต้น" })
             .then((ok) => { if (ok && condStore) condStore.reset(); });
-        }} disabled={!nEdited}
+        }} disabled={!nEdited || edit}
           style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)",
             color: nEdited ? "var(--text-2)" : "var(--text-3)", fontSize: 12.5, fontWeight: 600, cursor: nEdited ? "pointer" : "default", fontFamily: "inherit" }}>
           คืนค่าตั้งต้นทั้งหมด{nEdited ? " (" + nEdited + ")" : ""}
         </button>
       </div>
+      {edit && bar}
     </div>
   );
 }

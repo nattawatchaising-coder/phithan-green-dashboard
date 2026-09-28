@@ -3316,22 +3316,76 @@ function ConduitDefaultsEditor({
 }) {
   const FIX = (window.BOQ || {}).CONDUIT_SPARE_FIXED || {};
   const RULE_ROWS = (window.BOQ || {}).IMC_RULE || [];
-  const val = condStore && condStore.val || {
+  const saved = condStore && condStore.val || {
     rule: {},
     per: {},
     spare: {}
   };
-  const rule = val.rule || {},
-    per = val.per || {},
-    spare = val.spare || {};
-  const set = (kind, k, v) => condStore && condStore.setCell(kind, k, v);
-  const nEdited = COND_DEF_ROWS.filter(r => per[r.key] != null || spare[r.key] != null).length + RULE_ROWS.filter(r => rule[r.key] != null && rule[r.key] !== "").length;
+  const [draft, setDraft] = React.useState(null);
+  const edit = !!draft;
+  const view = draft || saved;
+  const rule = view.rule || {},
+    per = view.per || {},
+    spare = view.spare || {};
+  const set = (kind, k, v) => setDraft(p => {
+    const d = p || {
+      rule: {},
+      per: {},
+      spare: {}
+    };
+    const o = Object.assign({}, d[kind]);
+    if (v === "" || v === null || v === undefined) delete o[k];else o[k] = String(v);
+    const next = Object.assign({}, d);
+    next[kind] = o;
+    return next;
+  });
+  const startEdit = () => setDraft({
+    rule: Object.assign({}, saved.rule),
+    per: Object.assign({}, saved.per),
+    spare: Object.assign({}, saved.spare)
+  });
+  const nDirty = ["rule", "per", "spare"].reduce((sum, kind) => {
+    const a = saved[kind] || {},
+      b = (draft || {})[kind] || {};
+    return sum + Object.keys(Object.assign({}, a, b)).filter(k => String(a[k] != null ? a[k] : "") !== String(b[k] != null ? b[k] : "")).length;
+  }, 0);
+  const save = () => {
+    if (!draft || !condStore) {
+      setDraft(null);
+      return;
+    }
+    ["rule", "per", "spare"].forEach(kind => {
+      const a = saved[kind] || {},
+        b = draft[kind] || {};
+      Object.keys(Object.assign({}, a, b)).forEach(k => {
+        const av = String(a[k] != null ? a[k] : ""),
+          bv = String(b[k] != null ? b[k] : "");
+        if (av !== bv) condStore.setCell(kind, k, bv);
+      });
+    });
+    setDraft(null);
+  };
+  const cancel = () => {
+    if (!nDirty) {
+      setDraft(null);
+      return;
+    }
+    window.askConfirm({
+      title: "ทิ้งที่แก้ไว้?",
+      body: "ค่าที่แก้ไว้ " + nDirty + " ช่อง จะไม่ถูกบันทึก",
+      ok: "ทิ้ง",
+      danger: true
+    }).then(ok => {
+      if (ok) setDraft(null);
+    });
+  };
+  const nEdited = COND_DEF_ROWS.filter(r => (saved.per || {})[r.key] != null || (saved.spare || {})[r.key] != null).length + RULE_ROWS.filter(r => (saved.rule || {})[r.key] != null && (saved.rule || {})[r.key] !== "").length;
   const cell = {
     padding: "7px 9px",
     borderBottom: "1px solid var(--border)",
     fontSize: 12.5
   };
-  const num = {
+  const numBase = {
     background: "var(--surface2)",
     border: "1px solid var(--border-strong)",
     color: "var(--text-1)",
@@ -3343,6 +3397,43 @@ function ConduitDefaultsEditor({
     width: "100%",
     textAlign: "right"
   };
+  const num = edit ? numBase : Object.assign({}, numBase, {
+    background: "transparent",
+    borderColor: "transparent",
+    color: "var(--text-2)"
+  });
+  const btn = on => ({
+    padding: "7px 14px",
+    borderRadius: 10,
+    fontFamily: "inherit",
+    fontSize: 12.5,
+    fontWeight: 700,
+    cursor: "pointer",
+    border: on ? "none" : "1px solid var(--border-strong)",
+    background: on ? "var(--primary)" : "var(--surface)",
+    color: on ? "#fff" : "var(--text-2)"
+  });
+  const bar = React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, edit ? React.createElement(React.Fragment, null, React.createElement("button", {
+    onClick: save,
+    style: btn(true)
+  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01", nDirty ? " (" + nDirty + ")" : ""), React.createElement("button", {
+    onClick: cancel,
+    style: btn(false)
+  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, nDirty ? "แก้ไว้ " + nDirty + " ช่อง ยังไม่ได้บันทึก" : "กำลังแก้ไข")) : React.createElement("button", {
+    onClick: startEdit,
+    style: btn(false)
+  }, "\u0E41\u0E01\u0E49\u0E44\u0E02"));
   const row = (r, i) => {
     const on = per[r.key] != null && per[r.key] !== "";
     return React.createElement("tr", {
@@ -3370,6 +3461,7 @@ function ConduitDefaultsEditor({
       step: "any",
       placeholder: "\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34",
       style: num,
+      disabled: !edit,
       value: on ? per[r.key] : "",
       onChange: e => set("per", r.key, e.target.value)
     })), React.createElement("td", {
@@ -3380,6 +3472,7 @@ function ConduitDefaultsEditor({
       type: "number",
       placeholder: String(FIX[r.key] != null ? FIX[r.key] : 10),
       style: num,
+      disabled: !edit,
       value: spare[r.key] != null ? spare[r.key] : "",
       onChange: e => set("spare", r.key, e.target.value)
     })));
@@ -3464,6 +3557,7 @@ function ConduitDefaultsEditor({
       step: "any",
       placeholder: String(r.def),
       style: num,
+      disabled: !edit,
       value: rule[r.key] != null ? rule[r.key] : "",
       onChange: e => set("rule", r.key, e.target.value)
     })), React.createElement("td", {
@@ -3482,6 +3576,7 @@ function ConduitDefaultsEditor({
       type: "number",
       placeholder: String(FIX[r.acc] != null ? FIX[r.acc] : 10),
       style: num,
+      disabled: !edit,
       value: spare[r.acc] != null ? spare[r.acc] : "",
       onChange: e => set("spare", r.acc, e.target.value)
     })));
@@ -3532,7 +3627,7 @@ function ConduitDefaultsEditor({
       gap: 12,
       maxWidth: 820
     }
-  }, ruleTable, table("uPVC"), React.createElement("div", null, React.createElement("button", {
+  }, bar, ruleTable, table("uPVC"), React.createElement("div", null, React.createElement("button", {
     onClick: () => {
       window.askConfirm({
         title: "คืนค่าตั้งต้นอุปกรณ์ท่อร้อยสาย?",
@@ -3542,7 +3637,7 @@ function ConduitDefaultsEditor({
         if (ok && condStore) condStore.reset();
       });
     },
-    disabled: !nEdited,
+    disabled: !nEdited || edit,
     style: {
       padding: "8px 14px",
       borderRadius: 10,
@@ -3554,7 +3649,7 @@ function ConduitDefaultsEditor({
       cursor: nEdited ? "pointer" : "default",
       fontFamily: "inherit"
     }
-  }, "\u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14", nEdited ? " (" + nEdited + ")" : "")));
+  }, "\u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14", nEdited ? " (" + nEdited + ")" : "")), edit && bar);
 }
 function AmpacityEditor({
   ampStore
