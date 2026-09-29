@@ -71,8 +71,12 @@ function vcText(user, full) {
   if (user.phone) L.push("TEL;TYPE=CELL:" + String(user.phone).trim());
   if (B.tel) L.push("TEL;TYPE=WORK:" + B.tel);
   if (user.email) L.push("EMAIL;TYPE=INTERNET:" + String(user.email).trim());
-  if (B.site) L.push("URL:https://" + String(B.site).replace(/^https?:\/\//, ""));
-  if (user.line) L.push("NOTE:LINE " + vcEsc(String(user.line).trim()));
+  /* ไม่ใส่ URL — โดเมนใน BRANDING.site ยังเป็นของชื่อเก่า เอาเข้ารายชื่อคือพาลูกค้าไปผิดที่
+     กลับมาใส่ได้เมื่อมีโดเมนใหม่ — แก้ที่ BRANDING.site ที่เดียว ทุกเอกสารเปลี่ยนพร้อมกัน */
+  const note = [];
+  if (user.line) note.push("LINE " + String(user.line).trim());
+  if (full && B.taxId) note.push("เลขประจำตัวผู้เสียภาษี " + B.taxId);
+  if (note.length) L.push("NOTE:" + vcEsc(note.join(" · ")));
   if (full && B.addrTH) L.push("ADR;TYPE=WORK:;;" + vcEsc(B.addrTH) + ";;;;");
   L.push("END:VCARD");
   return L.join("\r\n") + "\r\n";
@@ -109,28 +113,32 @@ async function vcDraw(user, avatarUrl) {
   bar.addColorStop(0, B.green || "#22B36A"); bar.addColorStop(1, B.deep || "#0A4D68");
   x.fillStyle = bar; x.fillRect(0, 0, 12, VC_H);
 
-  /* ── หัวใบ: ตราและชื่อนิติบุคคล ── */
+  /* ── หัวใบ: ตรากับชื่อบริษัท ──
+     ชื่อไทยเป็นตัวหลัก ชื่ออังกฤษลงมาเป็นบรรทัดรอง — คนที่รับนามบัตรใบนี้อ่านไทย
+     ชื่ออังกฤษยังต้องมี เผื่อเอกสารข้ามชาติกับการค้นหาชื่อบริษัท แต่ไม่ใช่ตัวที่ต้องอ่านก่อน */
   let hx = 56;
   if (logo) {
-    const h = 54, w = Math.round(logo.width * (h / logo.height));
-    x.drawImage(logo, hx, 40, w, h);
-    hx += w + 14;
+    const h = 86, w = Math.round(logo.width * (h / logo.height));
+    x.drawImage(logo, hx, 28, w, h);
+    hx += w + 18;
   }
-  x.fillStyle = B.ink || "#0F2B33";
-  x.font = vcFont(700, 22);
   x.textBaseline = "alphabetic";
-  x.fillText(B.legal || "", hx, 66);
+  x.fillStyle = B.ink || "#0F2B33";
+  vcFit(x, B.legalTH || "", 600, 700, 33, 20);
+  x.fillText(B.legalTH || "", hx, 72);
   x.fillStyle = B.muted || "#5B8A8A";
-  x.font = vcFont(400, 13);
-  x.fillText(B.desc || "", hx, 88);
+  vcFit(x, B.legal || "", 600, 600, 15, 11);
+  x.fillText(B.legal || "", hx, 96);
+  vcFit(x, B.desc || "", 600, 400, 12.5, 10);
+  x.fillText(B.desc || "", hx, 117);
 
   x.strokeStyle = "#E3ECE8"; x.lineWidth = 1;
-  x.beginPath(); x.moveTo(56, 128); x.lineTo(944, 128); x.stroke();
+  x.beginPath(); x.moveTo(56, 148); x.lineTo(944, 148); x.stroke();
 
   /* ── รูปและชื่อ ── */
   const rs = (window.userRoles ? window.userRoles(user) : []) || [];
   const head = (window.ROLE_INFO || {})[rs[0]] || { color: B.leaf || "#1B9B75" };
-  const cx = 116, cy = 222, r = 58;
+  const cx = 116, cy = 238, r = 58;
   x.save();
   x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.closePath();
   x.fillStyle = head.color; x.fill();
@@ -152,12 +160,12 @@ async function vcDraw(user, avatarUrl) {
   const nm = String(user.name || "").trim();
   x.fillStyle = B.ink || "#0F2B33";
   vcFit(x, nm, 460, 700, 38, 22);
-  x.fillText(nm, 200, 212);
+  x.fillText(nm, 200, 228);
   const title = vcTitle(user);
   if (title) {
     x.fillStyle = head.color;
     vcFit(x, title, 460, 600, 19, 13);
-    x.fillText(title, 200, 244);
+    x.fillText(title, 200, 260);
   }
 
   /* ── ช่องทางติดต่อ ──
@@ -168,7 +176,7 @@ async function vcDraw(user, avatarUrl) {
   if (user.email) rows.push(["อีเมล", String(user.email).trim()]);
   if (user.line) rows.push(["ไลน์", String(user.line).trim()]);
   if (!rows.length) rows.push(["โทร", B.tel || ""]);
-  let ry = 330;
+  let ry = 342;
   rows.forEach(([lb, v]) => {
     x.fillStyle = B.muted || "#5B8A8A"; x.font = vcFont(600, 13);
     x.fillText(lb, 56, ry);
@@ -179,7 +187,7 @@ async function vcDraw(user, avatarUrl) {
   });
 
   /* ── คิวอาร์ ── */
-  const qz = 190, qx = 700, qy = 210;
+  const qz = 186, qx = 706, qy = 214;
   if (window.qrcode) {
     try {
       const q = window.qrcode(0, "M");            /* 0 = เลือกรุ่นให้พอดีเอง · M = ทนเปื้อนระดับกลาง */
@@ -199,19 +207,17 @@ async function vcDraw(user, avatarUrl) {
   x.fillText("สแกนเพื่อบันทึกลงรายชื่อ", qx + qz / 2, qy + qz + 26);
   x.textAlign = "left";
 
-  /* ── แถบท้าย: ที่อยู่จดทะเบียนกับเว็บไซต์ ── */
+  /* ── แถบท้าย: ที่อยู่จดทะเบียน เลขผู้เสียภาษี ช่องทางติดต่อกลาง ──
+     สองอย่างแรกคือสิ่งที่ลูกค้านิติบุคคลต้องใช้ตอนตั้งเบิก ขาดไปแล้วเขาต้องโทรมาถาม
+     ไม่มีเว็บไซต์ — BRANDING.site ยังเป็นโดเมนของชื่อเก่า นามบัตรที่พาลูกค้าไปผิดที่แย่กว่าไม่มี */
+  const fh = 106;
   x.fillStyle = B.deep || "#0A4D68";
-  x.fillRect(0, VC_H - 84, VC_W, 84);
-  x.fillStyle = "#FFFFFF"; x.font = vcFont(700, 15);
-  x.fillText(B.legalTH || "", 56, VC_H - 52);
-  x.fillStyle = "rgba(255,255,255,.72)"; x.font = vcFont(400, 12.5);
-  x.fillText(B.addrTH || "", 56, VC_H - 30);
-  x.textAlign = "right";
-  x.fillStyle = "#FFFFFF"; x.font = vcFont(600, 13.5);
-  x.fillText(B.site || "", VC_W - 56, VC_H - 52);
-  x.fillStyle = "rgba(255,255,255,.72)"; x.font = vcFont(400, 12.5);
-  x.fillText("โทร " + (B.tel || ""), VC_W - 56, VC_H - 30);
-  x.textAlign = "left";
+  x.fillRect(0, VC_H - fh, VC_W, fh);
+  x.fillStyle = "rgba(255,255,255,.94)"; x.font = vcFont(600, 13.5);
+  x.fillText(B.addrTH || "", 56, VC_H - 64);
+  x.fillStyle = "rgba(255,255,255,.74)"; x.font = vcFont(400, 12.5);
+  x.fillText("เลขประจำตัวผู้เสียภาษี " + (B.taxId || ""), 56, VC_H - 40);
+  x.fillText("โทร " + (B.tel || "") + "   ·   " + (B.email || ""), 56, VC_H - 17);
 
   return cv;
 }
