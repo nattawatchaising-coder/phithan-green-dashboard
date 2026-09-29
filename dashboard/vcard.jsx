@@ -73,10 +73,8 @@ function vcText(user, full) {
   if (user.email) L.push("EMAIL;TYPE=INTERNET:" + String(user.email).trim());
   /* ไม่ใส่ URL — โดเมนใน BRANDING.site ยังเป็นของชื่อเก่า เอาเข้ารายชื่อคือพาลูกค้าไปผิดที่
      กลับมาใส่ได้เมื่อมีโดเมนใหม่ — แก้ที่ BRANDING.site ที่เดียว ทุกเอกสารเปลี่ยนพร้อมกัน */
-  const note = [];
-  if (user.line) note.push("LINE " + String(user.line).trim());
-  if (full && B.taxId) note.push("เลขประจำตัวผู้เสียภาษี " + B.taxId);
-  if (note.length) L.push("NOTE:" + vcEsc(note.join(" · ")));
+  /* ไม่ใส่ไลน์ — บนนามบัตรก็ไม่มี สองที่ต้องตรงกัน ไม่งั้นคนสแกนกับคนมองใบจะได้ข้อมูลคนละชุด */
+  if (full && B.taxId) L.push("NOTE:" + vcEsc("เลขประจำตัวผู้เสียภาษี " + B.taxId));
   if (full && B.addrTH) L.push("ADR;TYPE=WORK:;;" + vcEsc(B.addrTH) + ";;;;");
   L.push("END:VCARD");
   return L.join("\r\n") + "\r\n";
@@ -118,27 +116,29 @@ async function vcDraw(user, avatarUrl) {
      ชื่ออังกฤษยังต้องมี เผื่อเอกสารข้ามชาติกับการค้นหาชื่อบริษัท แต่ไม่ใช่ตัวที่ต้องอ่านก่อน */
   let hx = 56;
   if (logo) {
-    const h = 86, w = Math.round(logo.width * (h / logo.height));
-    x.drawImage(logo, hx, 28, w, h);
-    hx += w + 18;
+    const h = 116, w = Math.round(logo.width * (h / logo.height));
+    x.drawImage(logo, hx, 22, w, h);
+    hx += w + 20;
   }
+  /* กว้างที่เหลือหลังตรา — คิดจาก hx จริง ไม่ใช่ค่าคงที่ ตราจะได้โตได้อีกโดยชื่อไม่ล้น */
+  const hw = 944 - hx;
   x.textBaseline = "alphabetic";
   x.fillStyle = B.ink || "#0F2B33";
-  vcFit(x, B.legalTH || "", 600, 700, 33, 20);
-  x.fillText(B.legalTH || "", hx, 72);
+  vcFit(x, B.legalTH || "", hw, 700, 44, 26);
+  x.fillText(B.legalTH || "", hx, 80);
   x.fillStyle = B.muted || "#5B8A8A";
-  vcFit(x, B.legal || "", 600, 600, 15, 11);
-  x.fillText(B.legal || "", hx, 96);
-  vcFit(x, B.desc || "", 600, 400, 12.5, 10);
-  x.fillText(B.desc || "", hx, 117);
+  vcFit(x, B.legal || "", hw, 600, 17, 12);
+  x.fillText(B.legal || "", hx, 108);
+  vcFit(x, B.desc || "", hw, 400, 13, 10);
+  x.fillText(B.desc || "", hx, 131);
 
   x.strokeStyle = "#E3ECE8"; x.lineWidth = 1;
-  x.beginPath(); x.moveTo(56, 148); x.lineTo(944, 148); x.stroke();
+  x.beginPath(); x.moveTo(56, 158); x.lineTo(944, 158); x.stroke();
 
   /* ── รูปและชื่อ ── */
   const rs = (window.userRoles ? window.userRoles(user) : []) || [];
   const head = (window.ROLE_INFO || {})[rs[0]] || { color: B.leaf || "#1B9B75" };
-  const cx = 116, cy = 238, r = 58;
+  const cx = 116, cy = 250, r = 58;
   x.save();
   x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.closePath();
   x.fillStyle = head.color; x.fill();
@@ -160,12 +160,12 @@ async function vcDraw(user, avatarUrl) {
   const nm = String(user.name || "").trim();
   x.fillStyle = B.ink || "#0F2B33";
   vcFit(x, nm, 460, 700, 38, 22);
-  x.fillText(nm, 200, 228);
+  x.fillText(nm, 200, 240);
   const title = vcTitle(user);
   if (title) {
     x.fillStyle = head.color;
     vcFit(x, title, 460, 600, 19, 13);
-    x.fillText(title, 200, 260);
+    x.fillText(title, 200, 272);
   }
 
   /* ── ช่องทางติดต่อ ──
@@ -174,9 +174,8 @@ async function vcDraw(user, avatarUrl) {
   const rows = [];
   if (user.phone) rows.push(["โทร", String(user.phone).trim()]);
   if (user.email) rows.push(["อีเมล", String(user.email).trim()]);
-  if (user.line) rows.push(["ไลน์", String(user.line).trim()]);
   if (!rows.length) rows.push(["โทร", B.tel || ""]);
-  let ry = 342;
+  let ry = 356;
   rows.forEach(([lb, v]) => {
     x.fillStyle = B.muted || "#5B8A8A"; x.font = vcFont(600, 13);
     x.fillText(lb, 56, ry);
@@ -187,7 +186,7 @@ async function vcDraw(user, avatarUrl) {
   });
 
   /* ── คิวอาร์ ── */
-  const qz = 186, qx = 706, qy = 214;
+  const qz = 186, qx = 706, qy = 226;
   if (window.qrcode) {
     try {
       const q = window.qrcode(0, "M");            /* 0 = เลือกรุ่นให้พอดีเอง · M = ทนเปื้อนระดับกลาง */
@@ -213,11 +212,19 @@ async function vcDraw(user, avatarUrl) {
   const fh = 106;
   x.fillStyle = B.deep || "#0A4D68";
   x.fillRect(0, VC_H - fh, VC_W, fh);
+  /* ซ้ายคือตัวบริษัท (ที่อยู่ เลขภาษี) ขวาคือช่องทางติดต่อกลาง
+     คนละเรื่อง คนละเวลาใช้ — ตั้งเบิกหยิบซ้าย ติดต่อหยิบขวา ไม่ต้องกวาดสายตาผ่านอีกสามบรรทัด */
   x.fillStyle = "rgba(255,255,255,.94)"; x.font = vcFont(600, 13.5);
-  x.fillText(B.addrTH || "", 56, VC_H - 64);
+  x.fillText(B.addrTH || "", 56, VC_H - 60);
   x.fillStyle = "rgba(255,255,255,.74)"; x.font = vcFont(400, 12.5);
-  x.fillText("เลขประจำตัวผู้เสียภาษี " + (B.taxId || ""), 56, VC_H - 40);
-  x.fillText("โทร " + (B.tel || "") + "   ·   " + (B.email || ""), 56, VC_H - 17);
+  x.fillText("เลขประจำตัวผู้เสียภาษี " + (B.taxId || ""), 56, VC_H - 34);
+
+  x.textAlign = "right";
+  x.fillStyle = "rgba(255,255,255,.94)"; x.font = vcFont(600, 13.5);
+  x.fillText("โทร " + (B.tel || ""), VC_W - 56, VC_H - 60);
+  x.fillStyle = "rgba(255,255,255,.74)"; x.font = vcFont(400, 12.5);
+  x.fillText(B.email || "", VC_W - 56, VC_H - 34);
+  x.textAlign = "left";
 
   return cv;
 }

@@ -41,10 +41,7 @@ function vcText(user, full) {
   if (user.phone) L.push("TEL;TYPE=CELL:" + String(user.phone).trim());
   if (B.tel) L.push("TEL;TYPE=WORK:" + B.tel);
   if (user.email) L.push("EMAIL;TYPE=INTERNET:" + String(user.email).trim());
-  const note = [];
-  if (user.line) note.push("LINE " + String(user.line).trim());
-  if (full && B.taxId) note.push("เลขประจำตัวผู้เสียภาษี " + B.taxId);
-  if (note.length) L.push("NOTE:" + vcEsc(note.join(" · ")));
+  if (full && B.taxId) L.push("NOTE:" + vcEsc("เลขประจำตัวผู้เสียภาษี " + B.taxId));
   if (full && B.addrTH) L.push("ADR;TYPE=WORK:;;" + vcEsc(B.addrTH) + ";;;;");
   L.push("END:VCARD");
   return L.join("\r\n") + "\r\n";
@@ -72,32 +69,33 @@ async function vcDraw(user, avatarUrl) {
   x.fillRect(0, 0, 12, VC_H);
   let hx = 56;
   if (logo) {
-    const h = 86,
+    const h = 116,
       w = Math.round(logo.width * (h / logo.height));
-    x.drawImage(logo, hx, 28, w, h);
-    hx += w + 18;
+    x.drawImage(logo, hx, 22, w, h);
+    hx += w + 20;
   }
+  const hw = 944 - hx;
   x.textBaseline = "alphabetic";
   x.fillStyle = B.ink || "#0F2B33";
-  vcFit(x, B.legalTH || "", 600, 700, 33, 20);
-  x.fillText(B.legalTH || "", hx, 72);
+  vcFit(x, B.legalTH || "", hw, 700, 44, 26);
+  x.fillText(B.legalTH || "", hx, 80);
   x.fillStyle = B.muted || "#5B8A8A";
-  vcFit(x, B.legal || "", 600, 600, 15, 11);
-  x.fillText(B.legal || "", hx, 96);
-  vcFit(x, B.desc || "", 600, 400, 12.5, 10);
-  x.fillText(B.desc || "", hx, 117);
+  vcFit(x, B.legal || "", hw, 600, 17, 12);
+  x.fillText(B.legal || "", hx, 108);
+  vcFit(x, B.desc || "", hw, 400, 13, 10);
+  x.fillText(B.desc || "", hx, 131);
   x.strokeStyle = "#E3ECE8";
   x.lineWidth = 1;
   x.beginPath();
-  x.moveTo(56, 148);
-  x.lineTo(944, 148);
+  x.moveTo(56, 158);
+  x.lineTo(944, 158);
   x.stroke();
   const rs = (window.userRoles ? window.userRoles(user) : []) || [];
   const head = (window.ROLE_INFO || {})[rs[0]] || {
     color: B.leaf || "#1B9B75"
   };
   const cx = 116,
-    cy = 238,
+    cy = 250,
     r = 58;
   x.save();
   x.beginPath();
@@ -124,19 +122,18 @@ async function vcDraw(user, avatarUrl) {
   const nm = String(user.name || "").trim();
   x.fillStyle = B.ink || "#0F2B33";
   vcFit(x, nm, 460, 700, 38, 22);
-  x.fillText(nm, 200, 228);
+  x.fillText(nm, 200, 240);
   const title = vcTitle(user);
   if (title) {
     x.fillStyle = head.color;
     vcFit(x, title, 460, 600, 19, 13);
-    x.fillText(title, 200, 260);
+    x.fillText(title, 200, 272);
   }
   const rows = [];
   if (user.phone) rows.push(["โทร", String(user.phone).trim()]);
   if (user.email) rows.push(["อีเมล", String(user.email).trim()]);
-  if (user.line) rows.push(["ไลน์", String(user.line).trim()]);
   if (!rows.length) rows.push(["โทร", B.tel || ""]);
-  let ry = 342;
+  let ry = 356;
   rows.forEach(([lb, v]) => {
     x.fillStyle = B.muted || "#5B8A8A";
     x.font = vcFont(600, 13);
@@ -148,7 +145,7 @@ async function vcDraw(user, avatarUrl) {
   });
   const qz = 186,
     qx = 706,
-    qy = 214;
+    qy = 226;
   if (window.qrcode) {
     try {
       const q = window.qrcode(0, "M");
@@ -174,11 +171,18 @@ async function vcDraw(user, avatarUrl) {
   x.fillRect(0, VC_H - fh, VC_W, fh);
   x.fillStyle = "rgba(255,255,255,.94)";
   x.font = vcFont(600, 13.5);
-  x.fillText(B.addrTH || "", 56, VC_H - 64);
+  x.fillText(B.addrTH || "", 56, VC_H - 60);
   x.fillStyle = "rgba(255,255,255,.74)";
   x.font = vcFont(400, 12.5);
-  x.fillText("เลขประจำตัวผู้เสียภาษี " + (B.taxId || ""), 56, VC_H - 40);
-  x.fillText("โทร " + (B.tel || "") + "   ·   " + (B.email || ""), 56, VC_H - 17);
+  x.fillText("เลขประจำตัวผู้เสียภาษี " + (B.taxId || ""), 56, VC_H - 34);
+  x.textAlign = "right";
+  x.fillStyle = "rgba(255,255,255,.94)";
+  x.font = vcFont(600, 13.5);
+  x.fillText("โทร " + (B.tel || ""), VC_W - 56, VC_H - 60);
+  x.fillStyle = "rgba(255,255,255,.74)";
+  x.font = vcFont(400, 12.5);
+  x.fillText(B.email || "", VC_W - 56, VC_H - 34);
+  x.textAlign = "left";
   return cv;
 }
 const vcSlug = user => String((user || {}).name || "namecard").trim().replace(/[\\/:*?"<>|]/g, "").slice(0, 40) || "namecard";
