@@ -371,7 +371,7 @@ const LN_FIELD = { width: "100%", padding: "12px 13px", borderRadius: 12, border
 /* ── ปุ่มลงเวลา ──
    ปุ่มเดียวที่เปลี่ยนความหมายตามสถานะของวันนี้ ไม่ใช่สองปุ่มวางข้างกัน
    ช่างกดตอนรีบและมือเปื้อน — สองปุ่มคือเวลาที่ผิดแล้วเจ้าตัวแก้เองไม่ได้ */
-function LnClock({ me, cfg, jobs, onAskOt }) {
+function LnClock({ me, cfg, jobs, ot, onAskOt }) {
   /* 95 วัน ไม่ใช่ 14 — ปฏิทินเปิดย้อนไปได้สองเดือน ถ้าดึงมาแค่ 14 วัน เดือนก่อนจะว่างทั้งเดือน
      ทั้งที่มีใบอยู่จริง ซึ่งอ่านแล้วเข้าใจผิดว่า "ไม่ได้ลงเวลา" ไม่ใช่ "ยังไม่ได้โหลดมา" */
   const at = window.useAttend(me ? me.id : null, 95);
@@ -625,7 +625,7 @@ function LnClock({ me, cfg, jobs, onAskOt }) {
         {place === "site" && <React.Fragment><br />งานที่เลือกเป็นข้อมูลที่คุณแจ้งเอง ระบบไม่ได้ตรวจระยะทาง</React.Fragment>}
       </div>
 
-      <LnClockCal rows={at.rows} cfg={cfg} />
+      <LnClockCal rows={at.rows} cfg={cfg} ot={ot} onAskOt={onAskOt} />
     </div>
   );
 }
@@ -633,7 +633,13 @@ function LnClock({ me, cfg, jobs, onAskOt }) {
 /* ── ปฏิทินลงเวลาย้อนหลัง ──
    แทนรายการสิบบรรทัดเดิม — รายการตอบได้แค่ "สิบวันหลังสุดลงอะไรไว้"
    แต่คำถามจริงของช่างคือ "เดือนนี้วันไหนที่ยังไม่ได้ลง" ซึ่งต้องเห็นทั้งเดือนพร้อมกันถึงจะตอบได้
-   สีจุด: เขียว = เข้า-ออกครบ · เหลือง = ลงเข้าแล้วยังไม่ได้ลงออก · ไม่มีจุด = ไม่มีใบวันนั้น
+   ── กติกาจุด ──
+   เขียว  = ลงเข้า-ออกครบ
+   เหลือง = ลงเข้าแล้วลืมลงออก
+   แดง    = วันทำงานที่ผ่านมาแล้วแต่ไม่มีใบเลย (วันหยุดไม่ขึ้นแดง ใช้ tmIsWorkday ตัดสิน
+            ซึ่งดูทั้งวันทำงานประจำสัปดาห์และวันหยุดที่บริษัทประกาศ — วันข้างหน้าก็ไม่ขึ้น)
+   น้ำเงิน = วันนั้นมีใบขอ OT ที่ยังไม่ถูกยกเลิก/ปัดตก
+   จุดลงเวลากับจุด OT ขึ้นพร้อมกันได้ ไม่ใช่สีใดสีหนึ่งทับกัน — วันหนึ่งเป็นได้ทั้งสองเรื่องจริง ๆ
    เขียนด้วยสไตล์ในบรรทัด ไม่ใช้คลาส .ov-cal ของหน้าเว็บ เพราะ liff.html ไม่ได้โหลด CSS ก้อนนั้น */
 const LN_MON_TH = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
   "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
@@ -643,7 +649,16 @@ const lnCalDateTH = (iso) => {
   return +a[2] + " " + LN_MON_TH[+a[1] - 1] + " " + (+a[0] + 543);
 };
 
-function LnClockCal({ rows, cfg }) {
+/* คืนรายการสีจุดของวันหนึ่ง — เรียงจุดลงเวลาก่อน จุด OT ทีหลัง */
+function lnCalDots(k, rec, otg, today, cfg) {
+  const out = [];
+  if (rec && rec.in && rec.in.hm) out.push(rec.out && rec.out.hm ? "var(--primary)" : "#D97706");
+  else if (k <= today && window.tmIsWorkday(k, cfg)) out.push("#DC2626");
+  if (otg && otg.rows.length) out.push("#2563EB");
+  return out;
+}
+
+function LnClockCal({ rows, cfg, ot, onAskOt }) {
   const today = window.drToday();
   const [ym, setYm] = React.useState(today.slice(0, 7));
   const [pick, setPick] = React.useState(today);
@@ -652,6 +667,19 @@ function LnClockCal({ rows, cfg }) {
     (rows || []).forEach((r) => { if (r && r.date) m[r.date] = r; });
     return m;
   }, [rows]);
+  /* ใบที่ถูกยกเลิกหรือปัดตกไม่นับ — จุดน้ำเงินต้องแปลว่า "วันนี้มีเรื่อง OT ค้างอยู่หรือได้แล้ว"
+     ไม่ใช่ "เคยกดขอแล้วเรื่องจบไปนานแล้ว" ซึ่งอ่านบนปฏิทินไม่ออกว่าต่างกัน */
+  const otDay = React.useMemo(() => {
+    const m = {};
+    (ot || []).forEach((r) => {
+      if (!r || !r.date) return;
+      if (r.status === "cancelled" || r.status === "rejected") return;
+      const g = m[r.date] || (m[r.date] = { mins: 0, rows: [] });
+      g.mins += +r.mins || 0;
+      g.rows.push(r);
+    });
+    return m;
+  }, [ot]);
 
   const y = +ym.slice(0, 4), mo = +ym.slice(5, 7);
   const days = new Date(y, mo, 0).getDate();
@@ -661,7 +689,8 @@ function LnClockCal({ rows, cfg }) {
     setYm(d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"));
   };
   const key = (d) => ym + "-" + String(d).padStart(2, "0");
-  const rec = byDay[pick];
+  const rec = byDay[pick];
+  const otg = otDay[pick];
   const navBtn = {
     width: 28, height: 28, display: "grid", placeItems: "center", borderRadius: 8, cursor: "pointer",
     border: "1px solid var(--border)", background: "var(--surface)", padding: 0,
@@ -691,8 +720,6 @@ function LnClockCal({ rows, cfg }) {
           {Array.from({ length: days }).map((_, i) => {
             const d = i + 1, k = key(d), r = byDay[k];
             const on = k === pick, isToday = k === today;
-            /* ใบที่ลงเข้าแล้วยังไม่ลงออก = ยังค้าง ต้องต่างจากใบที่ครบด้วยตาเปล่า ไม่ใช่ต้องกดเข้าไปดู */
-            const tone = !r ? null : (r.out && r.out.hm) ? "var(--primary)" : "#D97706";
             return (
               <button key={k} onClick={() => setPick(k)}
                 style={{ position: "relative", padding: "7px 0 13px", borderRadius: 9, cursor: "pointer",
@@ -701,29 +728,62 @@ function LnClockCal({ rows, cfg }) {
                   fontFamily: "inherit", fontSize: 12.5, fontWeight: on || isToday ? 800 : 600,
                   color: on ? "#fff" : r ? "var(--text-1)" : "var(--text-3)" }}>
                 {d}
-                {tone && (
-                  <i style={{ position: "absolute", left: "50%", bottom: 5, width: 5, height: 5, marginLeft: -2.5,
-                    borderRadius: 99, background: on ? "#fff" : tone }} />
-                )}
+                <span style={{ position: "absolute", left: 0, right: 0, bottom: 5, display: "flex",
+                  justifyContent: "center", gap: 3, pointerEvents: "none" }}>
+                  {lnCalDots(k, r, otDay[k], today, cfg).map((c, n) => (
+                    <i key={n} style={{ width: 5, height: 5, borderRadius: 99, background: on ? "#fff" : c }} />
+                  ))}
+                </span>
               </button>
             );
           })}
         </div>
 
-        <div style={{ marginTop: 8, paddingTop: 10, borderTop: "1px solid var(--border)",
-          display: "flex", alignItems: "center", gap: 10, minHeight: 34 }}>
-          <span style={{ fontSize: 12, color: "var(--text-2)" }}>{lnCalDateTH(pick)}</span>
-          {rec ? (
-            <React.Fragment>
-              <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>
-                {(rec.in && rec.in.hm) || "—"} → {(rec.out && rec.out.hm) || "—"}
+        <div style={{ marginTop: 8, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 24 }}>
+            <span style={{ fontSize: 12, color: "var(--text-2)" }}>{lnCalDateTH(pick)}</span>
+            {rec ? (
+              <React.Fragment>
+                <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>
+                  {(rec.in && rec.in.hm) || "—"} → {(rec.out && rec.out.hm) || "—"}
+                </span>
+                <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--text-3)" }}>
+                  {window.tmDur(window.tmWorkedMins(rec, cfg))}
+                </span>
+              </React.Fragment>
+            ) : (
+              <span style={{ marginLeft: "auto", fontSize: 11.5,
+                color: pick <= today && window.tmIsWorkday(pick, cfg) ? "#DC2626" : "var(--text-3)" }}>
+                {pick > today ? "ยังไม่ถึงวัน" : window.tmIsWorkday(pick, cfg) ? "ไม่ได้ลงเวลา" : "วันหยุด"}
               </span>
-              <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--text-3)" }}>
-                {window.tmDur(window.tmWorkedMins(rec, cfg))}
+            )}
+          </div>
+
+          {/* ขอ OT ไปกี่ชั่วโมง — รวมทุกใบของวันนั้น และบอกสถานะเมื่อมีใบเดียว
+              หลายใบไม่บอกสถานะ เพราะสองใบคนละสถานะจะสรุปเป็นคำเดียวไม่ได้โดยไม่โกหก */}
+          {otg && (
+            <div style={{ marginTop: 7, display: "flex", alignItems: "center", gap: 7 }}>
+              <i style={{ width: 6, height: 6, borderRadius: 99, background: "#2563EB" }} />
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: "#2563EB" }}>
+                ขอ OT {window.tmDur(otg.mins)}
               </span>
-            </React.Fragment>
-          ) : (
-            <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--text-3)" }}>ไม่มีการลงเวลา</span>
+              <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>
+                {otg.rows.length > 1
+                  ? otg.rows.length + " ใบ"
+                  : window.tmOtStatusOf(otg.rows[0].status).th}
+              </span>
+            </div>
+          )}
+
+          {/* กดขอ OT ของวันที่เลือกได้จากตรงนี้เลย — ปกติต้องเลื่อนลงไปกดปุ่ม "+ ขอ OT"
+              แล้วเปลี่ยนวันในฟอร์มอีกที ซึ่งเป็นจังหวะที่คนกรอกวันผิดบ่อยที่สุด */}
+          {onAskOt && (
+            <button onClick={() => onAskOt({ date: pick })}
+              style={{ marginTop: 9, width: "100%", padding: "9px 0", borderRadius: 10, cursor: "pointer",
+                border: "1px solid var(--border)", background: "var(--surface)",
+                fontFamily: "inherit", fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>
+              + ขอ OT วันที่ {lnCalDateTH(pick)}
+            </button>
           )}
         </div>
       </div>
@@ -742,7 +802,12 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
   const locked = !!(limit && limit.has && limit.mins > 0);
   const [f, setF] = React.useState(() => {
     const b = window.tmOtBlank(me, users, otStore.rows, null, cfg);
-    if (!locked) return b;
+    /* กดมาจากปฏิทินจะส่งมาแค่ { date } — ตั้งวันให้ตามที่เลือก แต่ไม่ล็อกช่วงเวลา
+       เพราะยังไม่รู้ว่าวันนั้นทำเกินจริงช่วงไหน (มีแต่วันที่กดจากใบลงเวลาวันนี้ถึงจะรู้) */
+    if (!locked) return limit && limit.date
+      ? Object.assign(b, { date: limit.date, kind: window.tmOtKindGuess(limit.date, b.from, cfg),
+          rate: window.tmOtRate(window.tmOtKindGuess(limit.date, b.from, cfg), cfg) })
+      : b;
     return Object.assign(b, { date: limit.date || b.date, from: limit.from, to: limit.to,
       kind: window.tmOtKindGuess(limit.date || b.date, limit.from, cfg) });
   });
@@ -927,7 +992,7 @@ function LnTimeTab({ me, users, role, jobs, startOt }) {
   return (
     <React.Fragment>
       {window.tmCanAttend(role)
-        ? <LnClock me={me} cfg={wh.cfg} jobs={jobs}
+        ? <LnClock me={me} cfg={wh.cfg} jobs={jobs} ot={myOt}
             onAskOt={window.tmCanOt(role) ? ((lim) => { setLimit(lim); setForm(true); }) : null} />
         : <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>
             บัญชีนี้ยังไม่ได้เปิดสิทธิ์ลงเวลา

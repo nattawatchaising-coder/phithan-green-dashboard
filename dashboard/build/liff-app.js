@@ -656,6 +656,7 @@ function LnClock({
   me,
   cfg,
   jobs,
+  ot,
   onAskOt
 }) {
   const at = window.useAttend(me ? me.id : null, 95);
@@ -1014,7 +1015,9 @@ function LnClock({
     }
   }, "\u0E23\u0E30\u0E1A\u0E1A\u0E02\u0E2D\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E15\u0E2D\u0E19\u0E01\u0E14 \u2014 \u0E16\u0E49\u0E32\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E01\u0E47\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E43\u0E2B\u0E49\u0E15\u0E32\u0E21\u0E1B\u0E01\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E44\u0E27\u0E49\u0E27\u0E48\u0E32\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14", place === "site" && React.createElement(React.Fragment, null, React.createElement("br", null), "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E17\u0E35\u0E48\u0E04\u0E38\u0E13\u0E41\u0E08\u0E49\u0E07\u0E40\u0E2D\u0E07 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E15\u0E23\u0E27\u0E08\u0E23\u0E30\u0E22\u0E30\u0E17\u0E32\u0E07")), React.createElement(LnClockCal, {
     rows: at.rows,
-    cfg: cfg
+    cfg: cfg,
+    ot: ot,
+    onAskOt: onAskOt
   }));
 }
 const LN_MON_TH = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
@@ -1023,9 +1026,17 @@ const lnCalDateTH = iso => {
   if (a.length !== 3) return iso || "";
   return +a[2] + " " + LN_MON_TH[+a[1] - 1] + " " + (+a[0] + 543);
 };
+function lnCalDots(k, rec, otg, today, cfg) {
+  const out = [];
+  if (rec && rec.in && rec.in.hm) out.push(rec.out && rec.out.hm ? "var(--primary)" : "#D97706");else if (k <= today && window.tmIsWorkday(k, cfg)) out.push("#DC2626");
+  if (otg && otg.rows.length) out.push("#2563EB");
+  return out;
+}
 function LnClockCal({
   rows,
-  cfg
+  cfg,
+  ot,
+  onAskOt
 }) {
   const today = window.drToday();
   const [ym, setYm] = React.useState(today.slice(0, 7));
@@ -1037,6 +1048,20 @@ function LnClockCal({
     });
     return m;
   }, [rows]);
+  const otDay = React.useMemo(() => {
+    const m = {};
+    (ot || []).forEach(r => {
+      if (!r || !r.date) return;
+      if (r.status === "cancelled" || r.status === "rejected") return;
+      const g = m[r.date] || (m[r.date] = {
+        mins: 0,
+        rows: []
+      });
+      g.mins += +r.mins || 0;
+      g.rows.push(r);
+    });
+    return m;
+  }, [ot]);
   const y = +ym.slice(0, 4),
     mo = +ym.slice(5, 7);
   const days = new Date(y, mo, 0).getDate();
@@ -1047,6 +1072,7 @@ function LnClockCal({
   };
   const key = d => ym + "-" + String(d).padStart(2, "0");
   const rec = byDay[pick];
+  const otg = otDay[pick];
   const navBtn = {
     width: 28,
     height: 28,
@@ -1140,7 +1166,6 @@ function LnClockCal({
       r = byDay[k];
     const on = k === pick,
       isToday = k === today;
-    const tone = !r ? null : r.out && r.out.hm ? "var(--primary)" : "#D97706";
     return React.createElement("button", {
       key: k,
       onClick: () => setPick(k),
@@ -1156,27 +1181,38 @@ function LnClockCal({
         fontWeight: on || isToday ? 800 : 600,
         color: on ? "#fff" : r ? "var(--text-1)" : "var(--text-3)"
       }
-    }, d, tone && React.createElement("i", {
+    }, d, React.createElement("span", {
       style: {
         position: "absolute",
-        left: "50%",
+        left: 0,
+        right: 0,
         bottom: 5,
+        display: "flex",
+        justifyContent: "center",
+        gap: 3,
+        pointerEvents: "none"
+      }
+    }, lnCalDots(k, r, otDay[k], today, cfg).map((c, n) => React.createElement("i", {
+      key: n,
+      style: {
         width: 5,
         height: 5,
-        marginLeft: -2.5,
         borderRadius: 99,
-        background: on ? "#fff" : tone
+        background: on ? "#fff" : c
       }
-    }));
+    }))));
   })), React.createElement("div", {
     style: {
       marginTop: 8,
       paddingTop: 10,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--border)"
+    }
+  }, React.createElement("div", {
+    style: {
       display: "flex",
       alignItems: "center",
       gap: 10,
-      minHeight: 34
+      minHeight: 24
     }
   }, React.createElement("span", {
     style: {
@@ -1200,9 +1236,51 @@ function LnClockCal({
     style: {
       marginLeft: "auto",
       fontSize: 11.5,
+      color: pick <= today && window.tmIsWorkday(pick, cfg) ? "#DC2626" : "var(--text-3)"
+    }
+  }, pick > today ? "ยังไม่ถึงวัน" : window.tmIsWorkday(pick, cfg) ? "ไม่ได้ลงเวลา" : "วันหยุด")), otg && React.createElement("div", {
+    style: {
+      marginTop: 7,
+      display: "flex",
+      alignItems: "center",
+      gap: 7
+    }
+  }, React.createElement("i", {
+    style: {
+      width: 6,
+      height: 6,
+      borderRadius: 99,
+      background: "#2563EB"
+    }
+  }), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "#2563EB"
+    }
+  }, "\u0E02\u0E2D OT ", window.tmDur(otg.mins)), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
       color: "var(--text-3)"
     }
-  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E01\u0E32\u0E23\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32"))));
+  }, otg.rows.length > 1 ? otg.rows.length + " ใบ" : window.tmOtStatusOf(otg.rows[0].status).th)), onAskOt && React.createElement("button", {
+    onClick: () => onAskOt({
+      date: pick
+    }),
+    style: {
+      marginTop: 9,
+      width: "100%",
+      padding: "9px 0",
+      borderRadius: 10,
+      cursor: "pointer",
+      border: "1px solid var(--border)",
+      background: "var(--surface)",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 800,
+      color: "var(--primary-dark)"
+    }
+  }, "+ \u0E02\u0E2D OT \u0E27\u0E31\u0E19\u0E17\u0E35\u0E48 ", lnCalDateTH(pick)))));
 }
 function LnOtForm({
   me,
@@ -1216,7 +1294,11 @@ function LnOtForm({
   const locked = !!(limit && limit.has && limit.mins > 0);
   const [f, setF] = React.useState(() => {
     const b = window.tmOtBlank(me, users, otStore.rows, null, cfg);
-    if (!locked) return b;
+    if (!locked) return limit && limit.date ? Object.assign(b, {
+      date: limit.date,
+      kind: window.tmOtKindGuess(limit.date, b.from, cfg),
+      rate: window.tmOtRate(window.tmOtKindGuess(limit.date, b.from, cfg), cfg)
+    }) : b;
     return Object.assign(b, {
       date: limit.date || b.date,
       from: limit.from,
@@ -1534,6 +1616,7 @@ function LnTimeTab({
     me: me,
     cfg: wh.cfg,
     jobs: jobs,
+    ot: myOt,
     onAskOt: window.tmCanOt(role) ? lim => {
       setLimit(lim);
       setForm(true);
