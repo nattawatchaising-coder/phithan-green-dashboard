@@ -3518,160 +3518,167 @@ function SalesMonthPick({
   const label = month ? SALES_MON_TH[+month.slice(5, 7) - 1] + " " + (+month.slice(0, 4) + 543) : "ทุกเดือน";
   const fwdOff = !!month && month >= thisMonth;
   const thisYr = +thisMonth.slice(0, 4);
-  return React.createElement("span", {
-    className: "ov-cal-nav",
-    ref: wrapRef,
-    style: {
-      position: "relative"
-    }
-  }, React.createElement("button", {
-    onClick: () => onShift(-1),
-    "aria-label": "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32"
-  }, React.createElement(Icon, {
-    name: "chevronLeft",
-    size: 15,
-    color: "var(--text-2)"
-  })), React.createElement("button", {
-    onClick: () => setOpen(o => !o),
-    "aria-expanded": open ? "true" : "false",
-    "aria-label": "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E41\u0E25\u0E30\u0E1B\u0E35",
-    style: {
-      width: "auto",
-      height: 26,
-      padding: "0 6px",
-      minWidth: 118,
-      fontFamily: "inherit",
-      border: "none",
-      background: "none",
-      fontSize: 12,
-      fontWeight: 700,
-      color: "var(--text-2)",
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 5
-    }
-  }, label, React.createElement(Icon, {
-    name: "chevronDown",
-    size: 12,
-    color: "var(--text-3)"
-  })), React.createElement("button", {
-    onClick: () => onShift(1),
-    disabled: fwdOff,
-    style: {
-      opacity: fwdOff ? .4 : 1,
-      cursor: fwdOff ? "default" : "pointer"
-    },
-    "aria-label": "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E16\u0E31\u0E14\u0E44\u0E1B"
-  }, React.createElement(Icon, {
-    name: "chevronRight",
-    size: 15,
-    color: "var(--text-2)"
-  })), open && React.createElement("div", {
-    style: {
-      position: "absolute",
-      top: "calc(100% + 8px)",
-      left: "50%",
-      transform: "translateX(-50%)",
-      zIndex: 30,
-      width: 252,
-      maxWidth: "min(252px, 88vw)",
-      background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 16,
-      padding: "14px 16px 16px",
-      boxShadow: "0 14px 36px rgba(8,20,14,.16)"
-    }
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: 13
-    }
-  }, React.createElement("button", {
-    onClick: () => setYr(v => v - 1),
-    "aria-label": "\u0E1B\u0E35\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32",
-    style: {
-      width: 26,
-      height: 26,
-      borderRadius: 8,
-      border: "none",
-      background: "none",
-      cursor: "pointer",
-      display: "grid",
-      placeItems: "center",
-      padding: 0
-    }
-  }, React.createElement(Icon, {
-    name: "chevronLeft",
-    size: 14,
-    color: "var(--text-2)"
-  })), React.createElement("b", {
-    style: {
-      fontSize: 13,
-      fontWeight: 800,
-      color: "var(--text-1)"
-    }
-  }, yr + 543), React.createElement("button", {
-    onClick: () => setYr(v => Math.min(v + 1, thisYr)),
-    disabled: yr >= thisYr,
-    "aria-label": "\u0E1B\u0E35\u0E16\u0E31\u0E14\u0E44\u0E1B",
-    style: {
-      width: 26,
-      height: 26,
-      borderRadius: 8,
-      border: "none",
-      background: "none",
-      opacity: yr >= thisYr ? .4 : 1,
-      cursor: yr >= thisYr ? "default" : "pointer",
-      display: "grid",
-      placeItems: "center",
-      padding: 0
-    }
-  }, React.createElement(Icon, {
-    name: "chevronRight",
-    size: 14,
-    color: "var(--text-2)"
-  }))), React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "repeat(3, 1fr)",
-      gap: "7px 6px"
-    }
-  }, SALES_MON_TH.map((_nm, i) => {
-    const k = yr + "-" + sPad2(i + 1);
-    const on = month === k,
-      off = k > thisMonth;
-    return (React.createElement("button", {
-        key: k,
-        disabled: off,
-        onClick: () => {
-          onPick(k);
-          setOpen(false);
-        },
-        onMouseEnter: e => {
-          if (!on && !off) e.currentTarget.style.background = "var(--surface3)";
-        },
-        onMouseLeave: e => {
-          if (!on) e.currentTarget.style.background = "none";
-        },
-        style: {
-          padding: "8px 0",
-          borderRadius: 9,
-          fontFamily: "inherit",
-          fontSize: 12,
-          fontWeight: 700,
-          textAlign: "center",
-          border: "none",
-          background: on ? "var(--primary)" : "none",
-          color: on ? "#fff" : off ? "var(--text-3)" : "var(--text-2)",
-          opacity: off ? .35 : 1,
-          cursor: off ? "default" : "pointer"
-        }
-      }, TH_MONTHS[i])
-    );
-  }))));
+  return (React.createElement("span", {
+      ref: wrapRef,
+      style: {
+        position: "relative",
+        display: "inline-flex"
+      }
+    }, React.createElement("span", {
+      className: "ov-cal-nav"
+    }, React.createElement("button", {
+      onClick: () => onShift(-1),
+      "aria-label": "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32"
+    }, React.createElement(Icon, {
+      name: "chevronLeft",
+      size: 15,
+      color: "var(--text-2)"
+    })), React.createElement("button", {
+      onClick: () => setOpen(o => !o),
+      "aria-expanded": open ? "true" : "false",
+      "aria-label": "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E41\u0E25\u0E30\u0E1B\u0E35",
+      style: {
+        width: "auto",
+        height: 26,
+        padding: "0 6px",
+        minWidth: 118,
+        fontFamily: "inherit",
+        border: "none",
+        background: "none",
+        fontSize: 12,
+        fontWeight: 700,
+        color: "var(--text-2)",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 5
+      }
+    }, label, React.createElement(Icon, {
+      name: "chevronDown",
+      size: 12,
+      color: "var(--text-3)"
+    })), React.createElement("button", {
+      onClick: () => onShift(1),
+      disabled: fwdOff,
+      style: {
+        opacity: fwdOff ? .4 : 1,
+        cursor: fwdOff ? "default" : "pointer"
+      },
+      "aria-label": "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E16\u0E31\u0E14\u0E44\u0E1B"
+    }, React.createElement(Icon, {
+      name: "chevronRight",
+      size: 15,
+      color: "var(--text-2)"
+    }))), open && React.createElement("div", {
+      style: {
+        position: "absolute",
+        top: "calc(100% + 8px)",
+        left: 0,
+        zIndex: 30,
+        width: 272,
+        maxWidth: "min(272px, 88vw)",
+        background: "var(--surface)",
+        border: "1px solid var(--border)",
+        borderRadius: 16,
+        padding: "14px 16px 16px",
+        boxShadow: "0 14px 36px rgba(8,20,14,.16)"
+      }
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 13
+      }
+    }, React.createElement("button", {
+      onClick: () => setYr(v => v - 1),
+      "aria-label": "\u0E1B\u0E35\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32",
+      style: {
+        width: 28,
+        height: 28,
+        minWidth: 28,
+        borderRadius: 9,
+        border: "none",
+        background: "none",
+        cursor: "pointer",
+        display: "grid",
+        placeItems: "center",
+        padding: 0
+      }
+    }, React.createElement(Icon, {
+      name: "chevronLeft",
+      size: 14,
+      color: "var(--text-2)"
+    })), React.createElement("b", {
+      style: {
+        fontSize: 13,
+        fontWeight: 800,
+        color: "var(--text-1)"
+      }
+    }, yr + 543), React.createElement("button", {
+      onClick: () => setYr(v => Math.min(v + 1, thisYr)),
+      disabled: yr >= thisYr,
+      "aria-label": "\u0E1B\u0E35\u0E16\u0E31\u0E14\u0E44\u0E1B",
+      style: {
+        width: 28,
+        height: 28,
+        minWidth: 28,
+        borderRadius: 9,
+        border: "none",
+        background: "none",
+        opacity: yr >= thisYr ? .4 : 1,
+        cursor: yr >= thisYr ? "default" : "pointer",
+        display: "grid",
+        placeItems: "center",
+        padding: 0
+      }
+    }, React.createElement(Icon, {
+      name: "chevronRight",
+      size: 14,
+      color: "var(--text-2)"
+    }))), React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "repeat(3, 1fr)",
+        gap: "7px 6px"
+      }
+    }, SALES_MON_TH.map((_nm, i) => {
+      const k = yr + "-" + sPad2(i + 1);
+      const on = month === k,
+        off = k > thisMonth;
+      return (React.createElement("button", {
+          key: k,
+          disabled: off,
+          onClick: () => {
+            onPick(k);
+            setOpen(false);
+          },
+          onMouseEnter: e => {
+            if (!on && !off) e.currentTarget.style.background = "var(--surface3)";
+          },
+          onMouseLeave: e => {
+            if (!on) e.currentTarget.style.background = "none";
+          },
+          style: {
+            width: "100%",
+            height: 34,
+            padding: "0 4px",
+            borderRadius: 10,
+            fontFamily: "inherit",
+            fontSize: 12.5,
+            fontWeight: 700,
+            display: "grid",
+            placeItems: "center",
+            border: "none",
+            background: on ? "var(--primary)" : "none",
+            color: on ? "#fff" : off ? "var(--text-3)" : "var(--text-2)",
+            opacity: off ? .35 : 1,
+            cursor: off ? "default" : "pointer"
+          }
+        }, TH_MONTHS[i])
+      );
+    }))))
+  );
 }
 function SalesKpiView({
   leads,

@@ -2152,7 +2152,10 @@ function SalesMonthPick({ month, thisMonth, onShift, onPick }) {
   const fwdOff = !!month && month >= thisMonth;
   const thisYr = +thisMonth.slice(0, 4);
   return (
-    <span className="ov-cal-nav" ref={wrapRef} style={{ position: "relative" }}>
+    /* ตารางอยู่ นอก .ov-cal-nav โดยตั้งใจ — กฎ .ov-cal-nav button ใน index.html บังคับทุกปุ่มข้างในให้เป็น 24×24px
+       ถ้าเอาตารางไปไว้ข้างใน ปุ่มเดือนจะถูกบีบเหลือ 24px จนกรอบเล็กกว่าตัวหนังสือของตัวเอง */
+    <span ref={wrapRef} style={{ position: "relative", display: "inline-flex" }}>
+      <span className="ov-cal-nav">
       <button onClick={() => onShift(-1)} aria-label="เดือนก่อนหน้า"><Icon name="chevronLeft" size={15} color="var(--text-2)" /></button>
       {/* .ov-cal-nav button บังคับ 24×24px มีกรอบไว้สำหรับปุ่มลูกศร ช่องชื่อเดือนจึงต้องล้มทั้งกรอบและพื้นทิ้ง
          ชื่อเดือนคือหัวของแถบนี้ ไม่ใช่ปุ่มที่ต้องแข่งความสนใจกับลูกศรสองข้าง — ลูกศรเท่านั้นที่ควรดูเป็นปุ่ม */}
@@ -2165,22 +2168,22 @@ function SalesMonthPick({ month, thisMonth, onShift, onPick }) {
       <button onClick={() => onShift(1)} disabled={fwdOff}
         style={{ opacity: fwdOff ? .4 : 1, cursor: fwdOff ? "default" : "pointer" }}
         aria-label="เดือนถัดไป"><Icon name="chevronRight" size={15} color="var(--text-2)" /></button>
+      </span>
 
       {open && (
-        /* กางใต้ชื่อเดือน ไม่ใช่ชิดขอบซ้ายของแถบ — ตารางควรงอกมาจากสิ่งที่กด ไม่ใช่จากลูกศรที่อยู่คนละที่
-           ไล่ขอบขวาด้วย maxWidth กันหลุดจอตอนแถบนี้ไปอยู่ชิดขอบจอบนมือถือ */
-        <div style={{ position: "absolute", top: "calc(100% + 8px)", left: "50%", transform: "translateX(-50%)",
-          zIndex: 30, width: 252, maxWidth: "min(252px, 88vw)",
+        /* กางใต้แถบ ชิดขอบซ้าย — ไล่ขอบขวาด้วย maxWidth กันหลุดจอตอนแถบนี้ไปอยู่ชิดขอบจอบนมือถือ */
+        <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0,
+          zIndex: 30, width: 272, maxWidth: "min(272px, 88vw)",
           background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16,
           padding: "14px 16px 16px", boxShadow: "0 14px 36px rgba(8,20,14,.16)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 13 }}>
             <button onClick={() => setYr((v) => v - 1)} aria-label="ปีก่อนหน้า"
-              style={{ width: 26, height: 26, borderRadius: 8, border: "none", background: "none",
+              style={{ width: 28, height: 28, minWidth: 28, borderRadius: 9, border: "none", background: "none",
                 cursor: "pointer", display: "grid", placeItems: "center", padding: 0 }}>
               <Icon name="chevronLeft" size={14} color="var(--text-2)" /></button>
             <b style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)" }}>{yr + 543}</b>
             <button onClick={() => setYr((v) => Math.min(v + 1, thisYr))} disabled={yr >= thisYr} aria-label="ปีถัดไป"
-              style={{ width: 26, height: 26, borderRadius: 8, border: "none", background: "none",
+              style={{ width: 28, height: 28, minWidth: 28, borderRadius: 9, border: "none", background: "none",
                 opacity: yr >= thisYr ? .4 : 1, cursor: yr >= thisYr ? "default" : "pointer", display: "grid", placeItems: "center", padding: 0 }}>
               <Icon name="chevronRight" size={14} color="var(--text-2)" /></button>
           </div>
@@ -2194,7 +2197,8 @@ function SalesMonthPick({ month, thisMonth, onShift, onPick }) {
                 <button key={k} disabled={off} onClick={() => { onPick(k); setOpen(false); }}
                   onMouseEnter={(e) => { if (!on && !off) e.currentTarget.style.background = "var(--surface3)"; }}
                   onMouseLeave={(e) => { if (!on) e.currentTarget.style.background = "none"; }}
-                  style={{ padding: "8px 0", borderRadius: 9, fontFamily: "inherit", fontSize: 12, fontWeight: 700, textAlign: "center",
+                  style={{ width: "100%", height: 34, padding: "0 4px", borderRadius: 10, fontFamily: "inherit",
+                    fontSize: 12.5, fontWeight: 700, display: "grid", placeItems: "center",
                     border: "none", background: on ? "var(--primary)" : "none",
                     color: on ? "#fff" : (off ? "var(--text-3)" : "var(--text-2)"),
                     opacity: off ? .35 : 1, cursor: off ? "default" : "pointer" }}>
