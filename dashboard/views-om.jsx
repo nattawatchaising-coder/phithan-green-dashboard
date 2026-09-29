@@ -1081,11 +1081,13 @@ function OmView({ jobs, users, role, currentUser, focus }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 14, minHeight: 0 }}>
       {/* แยกงานบ้าน / งานโครงการ — กรองทั้งหน้า ตัวเลขบนไทล์เปลี่ยนตามที่เลือกด้วย
           ทรงเดียวกับตัวกรองบนหัวหน้าฐานข้อมูลงานกับหน้ายอดขาย — ตัวกรองชุดเดียวกันควรหน้าตาเดียวกันทั้งระบบ */}
+      <window.HdrSlotFill>
       <Segmented flat value={kind} onChange={pickKind}
         options={[["all", "ทั้งหมด"], ["home", "งานบ้าน"], ["project", "งานโครงการ"]].map(([k, th]) => ({
           value: k,
           label: (<React.Fragment>{th}<span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 800, marginLeft: 6, opacity: .7 }}>{kindCount[k]}</span></React.Fragment>),
         }))} />
+      </window.HdrSlotFill>
 
       <OmStatRow id="om-head" title="สรุปภาพรวม">
         <OmStat label="ไซต์ในสัญญาบริการ" value={roll.total} color="var(--text-1)"

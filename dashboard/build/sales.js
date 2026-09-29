@@ -3918,14 +3918,14 @@ function SalesKpiView({
       background: month ? "var(--surface)" : "var(--primary)",
       color: month ? "var(--text-2)" : "#fff"
     }
-  }, "\u0E17\u0E38\u0E01\u0E40\u0E14\u0E37\u0E2D\u0E19"), React.createElement("span", {
+  }, "\u0E17\u0E38\u0E01\u0E40\u0E14\u0E37\u0E2D\u0E19"), isMobile && React.createElement("span", {
     style: {
       width: 1,
       height: 22,
       background: "var(--border)",
       margin: "0 3px"
     }
-  }), React.createElement(Segmented, {
+  }), React.createElement(window.HdrSlotFill, null, React.createElement(Segmented, {
     flat: true,
     value: kind,
     onChange: setKind,
@@ -3941,7 +3941,7 @@ function SalesKpiView({
         }
       }, kindCount[k]))
     }))
-  })), React.createElement("div", {
+  }))), React.createElement("div", {
     style: {
       display: "flex",
       gap: 11,

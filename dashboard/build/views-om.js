@@ -2440,7 +2440,7 @@ function OmView({
       gap: 14,
       minHeight: 0
     }
-  }, React.createElement(Segmented, {
+  }, React.createElement(window.HdrSlotFill, null, React.createElement(Segmented, {
     flat: true,
     value: kind,
     onChange: pickKind,
@@ -2456,7 +2456,7 @@ function OmView({
         }
       }, kindCount[k]))
     }))
-  }), React.createElement(OmStatRow, {
+  })), React.createElement(OmStatRow, {
     id: "om-head",
     title: "\u0E2A\u0E23\u0E38\u0E1B\u0E20\u0E32\u0E1E\u0E23\u0E27\u0E21"
   }, React.createElement(OmStat, {

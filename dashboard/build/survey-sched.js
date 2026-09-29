@@ -314,14 +314,14 @@ function SchedHeader({
     color: "var(--text-2)"
   })), React.createElement("div", {
     style: {
-      flex: 1,
+      flex: isMobile ? 1 : "0 1 auto",
       minWidth: 0
     }
   }, React.createElement("h1", {
     className: "page-title"
   }, title), React.createElement("p", {
     className: "page-sub"
-  }, sub)), React.createElement("div", {
+  }, sub)), !isMobile && React.createElement(window.HdrSlot, null), React.createElement("div", {
     className: "header-actions"
   }, right, React.createElement(SchedHdrTools, null))));
 }

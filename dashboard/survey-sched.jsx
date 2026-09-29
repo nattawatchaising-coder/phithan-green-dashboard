@@ -185,10 +185,12 @@ function SchedHeader({ icon, title, sub, onMenuOpen, right }) {
     <header className="app-header" style={{ paddingBottom: isMobile ? 12 : 18 }}>
       <div className="header-top">
         <button className="hamburger" onClick={onMenuOpen} aria-label="เปิดเมนู"><Icon name="menu" size={18} color="var(--text-2)" /></button>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        {/* จอใหญ่ชื่อหน้ากินเท่าที่ตัวมันกว้าง ที่เหลือเป็นของแถบตัวกรอง — ท่าเดียวกับ Header ใน app.jsx */}
+        <div style={{ flex: isMobile ? 1 : "0 1 auto", minWidth: 0 }}>
           <h1 className="page-title">{title}</h1>
           <p className="page-sub">{sub}</p>
         </div>
+        {!isMobile && <window.HdrSlot />}
         {/* ชุดเครื่องมือขวามือเดียวกันกับหัวจอหลัก — หน้าที่ใช้หัวจอตัวนี้เคยไม่มีเลย
             คนที่อยู่หน้ายอดขายจึงต้องย้อนกลับหน้าอื่นก่อนถึงจะกดกระดิ่งหรือสลับธีมได้ */}
         <div className="header-actions">

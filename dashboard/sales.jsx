@@ -2350,12 +2350,14 @@ function SalesKpiView({ leads, quotes, appts, techs, currentUser, onMenuOpen, on
               ใช้ Segmented flat ตัวเดียวกับตัวกรองบนหัวหน้าฐานข้อมูลงาน — ตัวกรองอย่างเดียวกันควรหน้าตาเดียวกันทั้งระบบ
               สามชิปกลมทึบสามสีแย่งความสนใจกับการ์ดสรุปที่อยู่ใต้มันพอดี ทั้งที่มันเป็นแค่ตัวกรอง ไม่ใช่ข้อมูล
               ตัวเลขยังอยู่ — คนดูหน้านี้ดูเพื่อรู้ว่ามีกี่ราย การเอาออกแปลว่าต้องกดทีละปุ่มเพื่อนับ */}
-          <span style={{ width: 1, height: 22, background: "var(--border)", margin: "0 3px" }} />
+          {isMobile && <span style={{ width: 1, height: 22, background: "var(--border)", margin: "0 3px" }} />}
+          <window.HdrSlotFill>
           <Segmented flat value={kind} onChange={setKind}
             options={[["all", "ทั้งหมด"], ["home", TYPE_TH.home.th], ["project", TYPE_TH.project.th]].map(([k, label]) => ({
               value: k,
               label: (<React.Fragment>{label}<span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 800, marginLeft: 6, opacity: .7 }}>{kindCount[k]}</span></React.Fragment>),
             }))} />
+          </window.HdrSlotFill>
         </div>
 
         <div style={{ display: "flex", gap: 11, flexWrap: "wrap", marginBottom: 16 }}>

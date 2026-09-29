@@ -139,6 +139,24 @@ function StageBadge({
   }), s.th);
 }
 const HdrCtx = React.createContext(null);
+const HDR_SLOT_ID = "app-hdr-filter-slot";
+function HdrSlot() {
+  return React.createElement("div", {
+    id: HDR_SLOT_ID,
+    className: "header-filters in-top"
+  });
+}
+function HdrSlotFill({
+  children
+}) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const [el, setEl] = React.useState(null);
+  React.useEffect(() => {
+    setEl(isMobile ? null : document.getElementById(HDR_SLOT_ID));
+  });
+  if (isMobile) return children;
+  return el ? ReactDOM.createPortal(children, el) : null;
+}
 function TypeBadge({
   type
 }) {
@@ -1039,5 +1057,7 @@ Object.assign(window, {
   TH_DAYS,
   saveMatPrice,
   newMatSaveCtx,
-  HdrCtx
+  HdrCtx,
+  HdrSlot,
+  HdrSlotFill
 });

@@ -1535,7 +1535,9 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
             {techFilter && <span> · ช่าง: {techName(techFilter)} <button onClick={() => setTechFilter(null)} className="clear-chip">ล้าง ✕</button></span>}
           </p>
         </div>
-        {!isMobile && filterBar}
+        {/* หน้าที่ไม่มีแถบตัวกรองของหัวจอเอง (om · expense · …) วางช่องเสียบไว้แทน
+            ตัวกรองของหน้าเหล่านั้นจะมาเสียบเองตอนเรนเดอร์ — ดิฟเปล่าไม่กินที่ */}
+        {!isMobile && (filterBar || <HdrSlot />)}
         <div className="header-actions">
           {searchPh && (compactSearch && !searchOpen ? (
             <button onClick={() => setSearchOpen(true)} title="ค้นหา" aria-label="ค้นหา"

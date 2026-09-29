@@ -121,6 +121,23 @@ function StageBadge({ stageKey, size = "md" }) {
    การร้อยพร็อพสิบกว่าตัวผ่านห้าชั้นทุกไฟล์คือการแก้ห้าที่ทุกครั้งที่เพิ่มหน้าใหม่ */
 const HdrCtx = React.createContext(null);
 
+/* ช่องเสียบตัวกรองบนแถวชื่อหน้า — หน้าที่อยู่คนละไฟล์กับหัวจอส่งตัวกรองขึ้นไปวางตรงนี้ผ่าน portal
+   ทางอื่นคือยกสเตตของตัวกรองขึ้นไปไว้ที่ App แล้วร้อยพร็อพลงมา ซึ่งแปลว่า App ต้องรู้จักตัวกรองของทุกหน้า
+   — หน้าใหม่หนึ่งหน้าจะกลายเป็นการแก้สามที่ และสเตตของหน้าหนึ่งจะไปค้างอยู่บนสุดโดยไม่มีเหตุผล */
+const HDR_SLOT_ID = "app-hdr-filter-slot";
+function HdrSlot() { return <div id={HDR_SLOT_ID} className="header-filters in-top" />; }
+
+/* จอแคบไม่ย้าย — แถวชื่อหน้ามีชื่อกับปุ่มเครื่องมืออัดกันอยู่แล้ว ตัวกรองคงอยู่แถวของตัวเอง */
+function HdrSlotFill({ children }) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const [el, setEl] = React.useState(null);
+  /* ไม่ใส่ dependency — ช่องเสียบเกิด/หายตามหัวจอที่หน้านั้นใช้ ซึ่งเปลี่ยนได้ทุกครั้งที่สลับหน้า
+     setState ด้วยโหนดตัวเดิม React หยุดเรนเดอร์ซ้ำให้เอง (Object.is) จึงไม่วนไม่จบ */
+  React.useEffect(() => { setEl(isMobile ? null : document.getElementById(HDR_SLOT_ID)); });
+  if (isMobile) return children;
+  return el ? ReactDOM.createPortal(children, el) : null;
+}
+
 function TypeBadge({ type }) {
   const key = type === "biz" ? "project" : type;
   const t = window.SF.TYPES.find((x) => x.key === key) || window.SF.TYPES[0];
@@ -597,4 +614,4 @@ function PgTime({ value, onChange, disabled, min, max, style, placeholder, ariaL
 }
 
 Object.assign(window, { Icon, ICONS, SearchPick, StageBadge, TypeBadge, MatChip, TechAvatar, ProgressBar, MatDots, Segmented, Dropdown, useBackdropClose, PgTime, pgTimeFix,
-  thDate, thDateTime, fmtBaht, stageOf, parseDate, TH_MONTHS, TH_DAYS, saveMatPrice, newMatSaveCtx, HdrCtx });
+  thDate, thDateTime, fmtBaht, stageOf, parseDate, TH_MONTHS, TH_DAYS, saveMatPrice, newMatSaveCtx, HdrCtx, HdrSlot, HdrSlotFill });

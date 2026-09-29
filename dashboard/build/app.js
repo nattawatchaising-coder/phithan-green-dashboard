@@ -2364,7 +2364,7 @@ function Header({
   }, "\u0E25\u0E49\u0E32\u0E07 \u2715")), techFilter && React.createElement("span", null, " \xB7 \u0E0A\u0E48\u0E32\u0E07: ", techName(techFilter), " ", React.createElement("button", {
     onClick: () => setTechFilter(null),
     className: "clear-chip"
-  }, "\u0E25\u0E49\u0E32\u0E07 \u2715")))), !isMobile && filterBar, React.createElement("div", {
+  }, "\u0E25\u0E49\u0E32\u0E07 \u2715")))), !isMobile && (filterBar || React.createElement(HdrSlot, null)), React.createElement("div", {
     className: "header-actions"
   }, searchPh && (compactSearch && !searchOpen ? React.createElement("button", {
     onClick: () => setSearchOpen(true),
