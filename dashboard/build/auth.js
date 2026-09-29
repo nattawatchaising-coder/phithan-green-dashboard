@@ -677,6 +677,7 @@ function MyProfileModal({
   const sig = window.useDrMySign((user || {}).id);
   const [f, setF] = React.useState(() => Object.assign({}, user));
   const [pad, setPad] = React.useState(false);
+  const [card, setCard] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
   const file = React.useRef(null);
@@ -958,7 +959,58 @@ function MyProfileModal({
       color: "var(--text-3)",
       marginTop: 6
     }
-  }, "\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07\u0E01\u0E31\u0E1A\u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E15\u0E49\u0E2D\u0E07\u0E43\u0E2B\u0E49\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E43\u0E2B\u0E49 \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E41\u0E25\u0E30\u0E01\u0E32\u0E23\u0E21\u0E2D\u0E1A\u0E2B\u0E21\u0E32\u0E22\u0E07\u0E32\u0E19")), React.createElement("div", {
+  }, "\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07\u0E01\u0E31\u0E1A\u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E15\u0E49\u0E2D\u0E07\u0E43\u0E2B\u0E49\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E43\u0E2B\u0E49 \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E41\u0E25\u0E30\u0E01\u0E32\u0E23\u0E21\u0E2D\u0E1A\u0E2B\u0E21\u0E32\u0E22\u0E07\u0E32\u0E19")), window.VcCardModal && React.createElement("button", {
+    onClick: () => setCard(true),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 11,
+      padding: "12px 14px",
+      borderRadius: 12,
+      textAlign: "left",
+      border: "1px solid var(--border)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      fontFamily: "inherit"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 34,
+      height: 34,
+      borderRadius: 10,
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+      background: "var(--primary-soft)"
+    }
+  }, React.createElement(Icon, {
+    name: "user",
+    size: 16,
+    color: "var(--primary-dark)"
+  })), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 13.5,
+      fontWeight: 700,
+      color: "var(--text-1)"
+    }
+  }, "\u0E19\u0E32\u0E21\u0E1A\u0E31\u0E15\u0E23\u0E2D\u0E34\u0E40\u0E25\u0E47\u0E01\u0E17\u0E23\u0E2D\u0E19\u0E34\u0E01\u0E2A\u0E4C"), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      marginTop: 2
+    }
+  }, "\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E49\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E17\u0E32\u0E07\u0E44\u0E25\u0E19\u0E4C \xB7 \u0E2A\u0E41\u0E01\u0E19\u0E41\u0E25\u0E49\u0E27\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E25\u0E07\u0E23\u0E32\u0E22\u0E0A\u0E37\u0E48\u0E2D\u0E43\u0E19\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22")), React.createElement(Icon, {
+    name: "chevronRight",
+    size: 15,
+    color: "var(--text-3)"
+  })), React.createElement("div", {
     style: {
       padding: "13px 14px",
       borderRadius: 12,
@@ -1097,7 +1149,10 @@ function MyProfileModal({
       fontSize: 13.5,
       cursor: "pointer"
     }
-  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01")))), pad && window.DrSignPad && React.createElement(window.DrSignPad, {
+  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01")))), card && window.VcCardModal && React.createElement(window.VcCardModal, {
+    user: Object.assign({}, user, f),
+    onClose: () => setCard(false)
+  }), pad && window.DrSignPad && React.createElement(window.DrSignPad, {
     title: "\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19",
     hint: "\u0E40\u0E0B\u0E47\u0E19\u0E43\u0E2B\u0E49\u0E40\u0E2B\u0E21\u0E37\u0E2D\u0E19\u0E17\u0E35\u0E48\u0E40\u0E0B\u0E47\u0E19\u0E43\u0E19\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E08\u0E23\u0E34\u0E07 \u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E30\u0E08\u0E33\u0E44\u0E27\u0E49\u0E43\u0E2B\u0E49",
     onClose: () => setPad(false),

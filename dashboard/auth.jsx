@@ -372,6 +372,7 @@ function MyProfileModal({ user, onSave, onClose }) {
   const sig = window.useDrMySign((user || {}).id);
   const [f, setF] = React.useState(() => Object.assign({}, user));
   const [pad, setPad] = React.useState(false);
+  const [card, setCard] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
   const file = React.useRef(null);
@@ -488,6 +489,24 @@ function MyProfileModal({ user, onSave, onClose }) {
               <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 6 }}>ตำแหน่งกับชื่อผู้ใช้ต้องให้แอดมินเปลี่ยนให้ เพราะผูกกับสิทธิ์และการมอบหมายงาน</div>
             </div>
 
+            {/* นามบัตรอิเล็กทรอนิกส์ — ใช้ข้อมูลชุดนี้ทั้งใบ ไม่มีช่องให้กรอกซ้ำ
+                ส่งค่าในฟอร์ม ไม่ใช่ค่าที่บันทึกไว้ — คนที่เพิ่งแก้เบอร์แล้วกดดูนามบัตรควรเห็นเบอร์ที่เพิ่งพิมพ์ */}
+            {window.VcCardModal && (
+              <button onClick={() => setCard(true)}
+                style={{ display: "flex", alignItems: "center", gap: 11, padding: "12px 14px", borderRadius: 12, textAlign: "left",
+                  border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", fontFamily: "inherit" }}>
+                <span style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: "grid", placeItems: "center",
+                  background: "var(--primary-soft)" }}><Icon name="user" size={16} color="var(--primary-dark)" /></span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>นามบัตรอิเล็กทรอนิกส์</span>
+                  <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)", marginTop: 2 }}>
+                    ส่งให้ลูกค้าทางไลน์ · สแกนแล้วบันทึกลงรายชื่อในเครื่องได้เลย
+                  </span>
+                </span>
+                <Icon name="chevronRight" size={15} color="var(--text-3)" />
+              </button>
+            )}
+
             {/* ลายเซ็น — ใช้ในใบรายงานประจำวัน */}
             <div style={{ padding: "13px 14px", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
@@ -533,6 +552,10 @@ function MyProfileModal({ user, onSave, onClose }) {
           </div>
         </div>
       </div>
+
+      {card && window.VcCardModal && (
+        <window.VcCardModal user={Object.assign({}, user, f)} onClose={() => setCard(false)} />
+      )}
 
       {pad && window.DrSignPad && (
         <window.DrSignPad title="ลายเซ็นของฉัน" hint="เซ็นให้เหมือนที่เซ็นในเอกสารจริง ระบบจะจำไว้ให้"

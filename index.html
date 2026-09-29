@@ -824,6 +824,10 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/data.js?v=24"></script>
 <script src="dashboard/data-stock.js?v=24"></script>
 <script src="dashboard/boq.js?v=96"></script>
+<!-- ตัวสร้างคิวอาร์ (qrcode-generator) — ใช้ในนามบัตรอิเล็กทรอนิกส์ (vcard.js)
+     คืนค่าเป็นตารางโมดูล ไม่ผูกกับ DOM — vcard.js เอาไปวาดลงแคนวาสใบเดียวกับนามบัตรเอง -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+
 <!-- SheetJS (xlsx-js-style: SheetJS fork with cell styling support) -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 
@@ -888,7 +892,9 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/views-expense.js?v=27"></script>
 <script src="dashboard/build/ec-paper.js?v=17"></script>
 <script src="dashboard/build/attend.js?v=12"></script>
-<script src="dashboard/build/auth.js?v=40"></script>
+<script src="dashboard/build/auth.js?v=41"></script>
+<!-- นามบัตรอิเล็กทรอนิกส์ — หลัง auth.js เพราะอ่าน ROLE_INFO/userRoles จากที่นั่น -->
+<script src="dashboard/build/vcard.js?v=1"></script>
 <script src="dashboard/build/line.js?v=5"></script>
 <script src="dashboard/build/views-attend.js?v=16"></script>
 <script src="dashboard/build/ot-paper.js?v=6"></script>
