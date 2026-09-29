@@ -112,6 +112,95 @@ function LnTabs({ tab, setTab, unread, tabs }) {
   );
 }
 
+/* ── ปุ่มแจ้งเตือนลอย ──
+   ย้ายออกจากแถบแท็บมาเป็นปุ่มกลมลอย ลากย้ายได้แบบปุ่มช่วยเหลือของไอโฟน
+   ปล่อยแล้วดีดไปติดขอบซ้ายหรือขวาที่ใกล้กว่า และจำตำแหน่งไว้ใน localStorage
+   ที่ต้องลากได้ เพราะปุ่มลอยที่ขยับไม่ได้จะไปบังของบางอย่างในบางหน้าเสมอ แล้วผู้ใช้ทำอะไรไม่ได้เลย
+   zIndex 30 สูงกว่าแถบแท็บ (20) แต่ต่ำกว่าแผ่นซ้อน (60) — เปิดใบงานหรือชีตแล้วปุ่มต้องหลบ */
+const LN_FAB = 52, LN_FAB_PAD = 12, LN_FAB_KEY = "ln_bell_pos";
+const lnFabClamp = (q) => ({
+  x: Math.max(LN_FAB_PAD, Math.min(q.x, window.innerWidth - LN_FAB - LN_FAB_PAD)),
+  y: Math.max(LN_FAB_PAD, Math.min(q.y, window.innerHeight - LN_FAB - LN_FAB_PAD)),
+});
+function lnFabLoad() {
+  /* บีบเข้ากรอบทุกครั้งที่อ่าน — ตำแหน่งที่จำไว้มาจากจอเดิม หมุนจอหรือเปลี่ยนเครื่องแล้วอาจอยู่นอกจอ */
+  try {
+    const v = JSON.parse(localStorage.getItem(LN_FAB_KEY) || "null");
+    if (v && isFinite(v.x) && isFinite(v.y)) return lnFabClamp(v);
+  } catch (e) {}
+  return { x: window.innerWidth - LN_FAB - LN_FAB_PAD, y: 82 };
+}
+
+function LnBellFab({ unread, on, onClick }) {
+  const [pos, setPos] = React.useState(lnFabLoad);
+  const drag = React.useRef(null);
+  const [moving, setMoving] = React.useState(false);
+
+  React.useEffect(() => {
+    const fit = () => setPos((q) => lnFabClamp(q));
+    window.addEventListener("resize", fit);
+    window.addEventListener("orientationchange", fit);
+    return () => { window.removeEventListener("resize", fit); window.removeEventListener("orientationchange", fit); };
+  }, []);
+
+  /* ── ลากด้วย listener บน window ไม่ใช่ setPointerCapture ──
+     setPointerCapture โยน NotFoundError ได้ถ้าตัวชี้หลุดไปก่อน (นิ้วที่สองแตะ · ระบบยึดสัมผัสไปทำท่าอื่น)
+     ซึ่งเจอตอนทดสอบจริง ถ้าปล่อยให้โยนตรงนั้น drag.current จะไม่ถูกตั้ง แล้วปุ่มจะลากไม่ได้ทั้งตัว
+     ผูกที่ window แทน ได้ pointermove/pointerup ครบแม้นิ้วจะเลื่อนออกนอกปุ่มไปแล้ว */
+  const down = (e) => {
+    e.preventDefault();
+    const c = { dx: e.clientX - pos.x, dy: e.clientY - pos.y, sx: e.clientX, sy: e.clientY, far: 0, id: e.pointerId };
+    drag.current = c;
+    setMoving(true);
+
+    const move = (ev) => {
+      if (ev.pointerId !== c.id) return;
+      c.far = Math.max(c.far, Math.abs(ev.clientX - c.sx) + Math.abs(ev.clientY - c.sy));
+      setPos(lnFabClamp({ x: ev.clientX - c.dx, y: ev.clientY - c.dy }));
+    };
+    const up = (ev) => {
+      if (ev.pointerId !== c.id) return;
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      drag.current = null;
+      setMoving(false);
+      /* ขยับไม่ถึง 8px ถือว่าตั้งใจกด ไม่ใช่ตั้งใจลาก — นิ้วคนไม่เคยนิ่งสนิท */
+      if (c.far < 8) { onClick(); return; }
+      setPos((q) => {
+        const left = q.x + LN_FAB / 2 < window.innerWidth / 2;
+        const snap = lnFabClamp({ x: left ? LN_FAB_PAD : window.innerWidth - LN_FAB - LN_FAB_PAD, y: q.y });
+        try { localStorage.setItem(LN_FAB_KEY, JSON.stringify(snap)); } catch (er) {}
+        return snap;
+      });
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+  };
+
+  return (
+    <button onPointerDown={down}
+      title={"แจ้งเตือน" + (unread ? " " + unread + " เรื่อง" : "")} aria-label="แจ้งเตือน"
+      style={{ position: "fixed", left: pos.x, top: pos.y, width: LN_FAB, height: LN_FAB, zIndex: 30,
+        padding: 0, borderRadius: 99, cursor: moving ? "grabbing" : "grab",
+        /* touchAction none — ไม่งั้นนิ้วที่ลากปุ่มจะไปเลื่อนหน้าแทน */
+        touchAction: "none", WebkitTapHighlightColor: "transparent",
+        border: "1px solid " + (on ? "var(--primary-dark)" : "var(--border)"),
+        background: on ? "var(--primary)" : "var(--surface)",
+        boxShadow: moving ? "0 12px 28px rgba(8,20,14,.3)" : "0 6px 20px rgba(8,20,14,.2)",
+        display: "grid", placeItems: "center",
+        transition: moving ? "none" : "left .18s ease, top .18s ease, box-shadow .15s ease" }}>
+      <Icon name="bell" size={22} color={on ? "#fff" : "var(--text-2)"} />
+      {unread > 0 && (
+        <span style={{ position: "absolute", top: -2, right: -2, minWidth: 19, height: 19, padding: "0 5px",
+          borderRadius: 99, background: "#D93025", color: "#fff", fontSize: 11, fontWeight: 800,
+          border: "2px solid var(--surface)", display: "inline-grid", placeItems: "center" }}>{unread}</span>
+      )}
+    </button>
+  );
+}
+
 /* ── แถวงานหนึ่งใบ ── */
 function LnJobRow({ job, onOpen }) {
   const st = (window.SF.STAGES || []).find((s) => s.key === job.stage) || {};
@@ -283,7 +372,9 @@ const LN_FIELD = { width: "100%", padding: "12px 13px", borderRadius: 12, border
    ปุ่มเดียวที่เปลี่ยนความหมายตามสถานะของวันนี้ ไม่ใช่สองปุ่มวางข้างกัน
    ช่างกดตอนรีบและมือเปื้อน — สองปุ่มคือเวลาที่ผิดแล้วเจ้าตัวแก้เองไม่ได้ */
 function LnClock({ me, cfg, jobs, onAskOt }) {
-  const at = window.useAttend(me ? me.id : null, 14);
+  /* 95 วัน ไม่ใช่ 14 — ปฏิทินเปิดย้อนไปได้สองเดือน ถ้าดึงมาแค่ 14 วัน เดือนก่อนจะว่างทั้งเดือน
+     ทั้งที่มีใบอยู่จริง ซึ่งอ่านแล้วเข้าใจผิดว่า "ไม่ได้ลงเวลา" ไม่ใช่ "ยังไม่ได้โหลดมา" */
+  const at = window.useAttend(me ? me.id : null, 95);
   const writer = window.useAttendWriter(me, cfg);
   const [busy, setBusy] = React.useState(false);
   const [msg, setMsg] = React.useState(null);
@@ -534,25 +625,108 @@ function LnClock({ me, cfg, jobs, onAskOt }) {
         {place === "site" && <React.Fragment><br />งานที่เลือกเป็นข้อมูลที่คุณแจ้งเอง ระบบไม่ได้ตรวจระยะทาง</React.Fragment>}
       </div>
 
-      {(at.rows || []).length > 0 && (
-        <div style={{ marginTop: 18 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)", marginBottom: 7 }}>ย้อนหลัง</div>
-          <div style={{ border: "1px solid var(--border)", borderRadius: 13, overflow: "hidden", background: "var(--surface)" }}>
-            {(at.rows || []).slice(0, 10).map((r) => (
-              <div key={r.date} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 13px",
-                borderBottom: "1px solid var(--border)" }}>
-                <span style={{ fontSize: 12.5, color: "var(--text-2)", minWidth: 84 }}>{window.drShort(r.date)}</span>
-                <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>
-                  {(r.in && r.in.hm) || "—"} → {(r.out && r.out.hm) || "—"}
-                </span>
-                <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--text-3)" }}>
-                  {window.tmDur(window.tmWorkedMins(r, cfg))}
-                </span>
-              </div>
-            ))}
-          </div>
+      <LnClockCal rows={at.rows} cfg={cfg} />
+    </div>
+  );
+}
+
+/* ── ปฏิทินลงเวลาย้อนหลัง ──
+   แทนรายการสิบบรรทัดเดิม — รายการตอบได้แค่ "สิบวันหลังสุดลงอะไรไว้"
+   แต่คำถามจริงของช่างคือ "เดือนนี้วันไหนที่ยังไม่ได้ลง" ซึ่งต้องเห็นทั้งเดือนพร้อมกันถึงจะตอบได้
+   สีจุด: เขียว = เข้า-ออกครบ · เหลือง = ลงเข้าแล้วยังไม่ได้ลงออก · ไม่มีจุด = ไม่มีใบวันนั้น
+   เขียนด้วยสไตล์ในบรรทัด ไม่ใช้คลาส .ov-cal ของหน้าเว็บ เพราะ liff.html ไม่ได้โหลด CSS ก้อนนั้น */
+const LN_MON_TH = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+  "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+const lnCalDateTH = (iso) => {
+  const a = String(iso || "").split("-");
+  if (a.length !== 3) return iso || "";
+  return +a[2] + " " + LN_MON_TH[+a[1] - 1] + " " + (+a[0] + 543);
+};
+
+function LnClockCal({ rows, cfg }) {
+  const today = window.drToday();
+  const [ym, setYm] = React.useState(today.slice(0, 7));
+  const [pick, setPick] = React.useState(today);
+  const byDay = React.useMemo(() => {
+    const m = {};
+    (rows || []).forEach((r) => { if (r && r.date) m[r.date] = r; });
+    return m;
+  }, [rows]);
+
+  const y = +ym.slice(0, 4), mo = +ym.slice(5, 7);
+  const days = new Date(y, mo, 0).getDate();
+  const lead = new Date(y, mo - 1, 1).getDay();
+  const shift = (n) => {
+    const d = new Date(y, mo - 1 + n, 1);
+    setYm(d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"));
+  };
+  const key = (d) => ym + "-" + String(d).padStart(2, "0");
+  const rec = byDay[pick];
+  const navBtn = {
+    width: 28, height: 28, display: "grid", placeItems: "center", borderRadius: 8, cursor: "pointer",
+    border: "1px solid var(--border)", background: "var(--surface)", padding: 0,
+  };
+
+  return (
+    <div style={{ marginTop: 18 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>ย้อนหลัง</div>
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 7 }}>
+          <button onClick={() => shift(-1)} aria-label="เดือนก่อนหน้า" style={navBtn}>
+            <Icon name="chevronLeft" size={15} color="var(--text-2)" />
+          </button>
+          <b style={{ fontSize: 12.5, color: "var(--text-1)", minWidth: 96, textAlign: "center" }}>{LN_MON_TH[mo - 1]} {y + 543}</b>
+          <button onClick={() => shift(1)} aria-label="เดือนถัดไป" style={navBtn}>
+            <Icon name="chevronRight" size={15} color="var(--text-2)" />
+          </button>
         </div>
-      )}
+      </div>
+
+      <div style={{ border: "1px solid var(--border)", borderRadius: 13, overflow: "hidden", background: "var(--surface)", padding: "12px 10px 10px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+          {["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((d) => (
+            <span key={d} style={{ textAlign: "center", fontSize: 11, fontWeight: 700, color: "var(--text-3)", padding: "2px 0 6px" }}>{d}</span>
+          ))}
+          {Array.from({ length: lead }).map((_, i) => <span key={"p" + i} />)}
+          {Array.from({ length: days }).map((_, i) => {
+            const d = i + 1, k = key(d), r = byDay[k];
+            const on = k === pick, isToday = k === today;
+            /* ใบที่ลงเข้าแล้วยังไม่ลงออก = ยังค้าง ต้องต่างจากใบที่ครบด้วยตาเปล่า ไม่ใช่ต้องกดเข้าไปดู */
+            const tone = !r ? null : (r.out && r.out.hm) ? "var(--primary)" : "#D97706";
+            return (
+              <button key={k} onClick={() => setPick(k)}
+                style={{ position: "relative", padding: "7px 0 13px", borderRadius: 9, cursor: "pointer",
+                  border: isToday && !on ? "1px solid var(--primary)" : "1px solid transparent",
+                  background: on ? "var(--primary)" : "transparent",
+                  fontFamily: "inherit", fontSize: 12.5, fontWeight: on || isToday ? 800 : 600,
+                  color: on ? "#fff" : r ? "var(--text-1)" : "var(--text-3)" }}>
+                {d}
+                {tone && (
+                  <i style={{ position: "absolute", left: "50%", bottom: 5, width: 5, height: 5, marginLeft: -2.5,
+                    borderRadius: 99, background: on ? "#fff" : tone }} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ marginTop: 8, paddingTop: 10, borderTop: "1px solid var(--border)",
+          display: "flex", alignItems: "center", gap: 10, minHeight: 34 }}>
+          <span style={{ fontSize: 12, color: "var(--text-2)" }}>{lnCalDateTH(pick)}</span>
+          {rec ? (
+            <React.Fragment>
+              <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>
+                {(rec.in && rec.in.hm) || "—"} → {(rec.out && rec.out.hm) || "—"}
+              </span>
+              <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--text-3)" }}>
+                {window.tmDur(window.tmWorkedMins(rec, cfg))}
+              </span>
+            </React.Fragment>
+          ) : (
+            <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--text-3)" }}>ไม่มีการลงเวลา</span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1221,8 +1395,10 @@ function LnApp() {
   const canAppr = React.useMemo(
     () => (me && window.lnCanApproveAny ? window.lnCanApproveAny(role, mine, me) : false),
     [role, mine, me]);
+  /* แท็บ "เตือน" ไม่อยู่ในแถบล่างแล้ว — เป็นปุ่มกลมลอย (LnBellFab) ที่ลากย้ายได้
+     เนื้อหาของแท็บยังเป็นตัวเดิม เปลี่ยนแค่ทางเข้า ลิงก์เก่าที่ส่ง ?tab=bell มาก็ยังเปิดได้ */
   const tabs = React.useMemo(
-    () => LN_TAB.filter((t) => t.key !== "appr" || canAppr), [canAppr]);
+    () => LN_TAB.filter((t) => t.key !== "bell" && (t.key !== "appr" || canAppr)), [canAppr]);
 
   /* แจ้งเตือนของฉัน — เงื่อนไขเดียวกับ myNotifs ใน app.jsx เป๊ะ */
   const myNotifs = React.useMemo(() => {
@@ -1368,9 +1544,10 @@ function LnApp() {
 
       <LnJobSheet job={open} techs={techStore.techs} onClose={() => setOpen(null)} />
 
+      <LnBellFab unread={unread} on={tab === "bell"} onClick={() => setTab("bell")} />
       <LnTabs tab={tab} setTab={setTab} unread={unread} tabs={tabs} />
     </div>
   );
 }
 
-Object.assign(window, { LN_NOTIF_KIND, lnNotifKind, LnApp, LnJobRow, LnJobSheet, LnJobFiles, LnHead, LnTabs, LnClock, LnOtForm, LnTimeTab, LnFixTab, LnFixSheet, LnFixNew, LnPick });
+Object.assign(window, { LN_NOTIF_KIND, lnNotifKind, LnApp, LnJobRow, LnJobSheet, LnJobFiles, LnHead, LnTabs, LnBellFab, LnClock, LnClockCal, LnOtForm, LnTimeTab, LnFixTab, LnFixSheet, LnFixNew, LnPick });

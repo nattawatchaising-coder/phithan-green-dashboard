@@ -181,6 +181,133 @@ function LnTabs({
     }, unread)), t.th);
   })));
 }
+const LN_FAB = 52,
+  LN_FAB_PAD = 12,
+  LN_FAB_KEY = "ln_bell_pos";
+const lnFabClamp = q => ({
+  x: Math.max(LN_FAB_PAD, Math.min(q.x, window.innerWidth - LN_FAB - LN_FAB_PAD)),
+  y: Math.max(LN_FAB_PAD, Math.min(q.y, window.innerHeight - LN_FAB - LN_FAB_PAD))
+});
+function lnFabLoad() {
+  try {
+    const v = JSON.parse(localStorage.getItem(LN_FAB_KEY) || "null");
+    if (v && isFinite(v.x) && isFinite(v.y)) return lnFabClamp(v);
+  } catch (e) {}
+  return {
+    x: window.innerWidth - LN_FAB - LN_FAB_PAD,
+    y: 82
+  };
+}
+function LnBellFab({
+  unread,
+  on,
+  onClick
+}) {
+  const [pos, setPos] = React.useState(lnFabLoad);
+  const drag = React.useRef(null);
+  const [moving, setMoving] = React.useState(false);
+  React.useEffect(() => {
+    const fit = () => setPos(q => lnFabClamp(q));
+    window.addEventListener("resize", fit);
+    window.addEventListener("orientationchange", fit);
+    return () => {
+      window.removeEventListener("resize", fit);
+      window.removeEventListener("orientationchange", fit);
+    };
+  }, []);
+  const down = e => {
+    e.preventDefault();
+    const c = {
+      dx: e.clientX - pos.x,
+      dy: e.clientY - pos.y,
+      sx: e.clientX,
+      sy: e.clientY,
+      far: 0,
+      id: e.pointerId
+    };
+    drag.current = c;
+    setMoving(true);
+    const move = ev => {
+      if (ev.pointerId !== c.id) return;
+      c.far = Math.max(c.far, Math.abs(ev.clientX - c.sx) + Math.abs(ev.clientY - c.sy));
+      setPos(lnFabClamp({
+        x: ev.clientX - c.dx,
+        y: ev.clientY - c.dy
+      }));
+    };
+    const up = ev => {
+      if (ev.pointerId !== c.id) return;
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      drag.current = null;
+      setMoving(false);
+      if (c.far < 8) {
+        onClick();
+        return;
+      }
+      setPos(q => {
+        const left = q.x + LN_FAB / 2 < window.innerWidth / 2;
+        const snap = lnFabClamp({
+          x: left ? LN_FAB_PAD : window.innerWidth - LN_FAB - LN_FAB_PAD,
+          y: q.y
+        });
+        try {
+          localStorage.setItem(LN_FAB_KEY, JSON.stringify(snap));
+        } catch (er) {}
+        return snap;
+      });
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+  };
+  return React.createElement("button", {
+    onPointerDown: down,
+    title: "แจ้งเตือน" + (unread ? " " + unread + " เรื่อง" : ""),
+    "aria-label": "\u0E41\u0E08\u0E49\u0E07\u0E40\u0E15\u0E37\u0E2D\u0E19",
+    style: {
+      position: "fixed",
+      left: pos.x,
+      top: pos.y,
+      width: LN_FAB,
+      height: LN_FAB,
+      zIndex: 30,
+      padding: 0,
+      borderRadius: 99,
+      cursor: moving ? "grabbing" : "grab",
+      touchAction: "none",
+      WebkitTapHighlightColor: "transparent",
+      border: "1px solid " + (on ? "var(--primary-dark)" : "var(--border)"),
+      background: on ? "var(--primary)" : "var(--surface)",
+      boxShadow: moving ? "0 12px 28px rgba(8,20,14,.3)" : "0 6px 20px rgba(8,20,14,.2)",
+      display: "grid",
+      placeItems: "center",
+      transition: moving ? "none" : "left .18s ease, top .18s ease, box-shadow .15s ease"
+    }
+  }, React.createElement(Icon, {
+    name: "bell",
+    size: 22,
+    color: on ? "#fff" : "var(--text-2)"
+  }), unread > 0 && React.createElement("span", {
+    style: {
+      position: "absolute",
+      top: -2,
+      right: -2,
+      minWidth: 19,
+      height: 19,
+      padding: "0 5px",
+      borderRadius: 99,
+      background: "#D93025",
+      color: "#fff",
+      fontSize: 11,
+      fontWeight: 800,
+      border: "2px solid var(--surface)",
+      display: "inline-grid",
+      placeItems: "center"
+    }
+  }, unread));
+}
 function LnJobRow({
   job,
   onOpen
@@ -531,7 +658,7 @@ function LnClock({
   jobs,
   onAskOt
 }) {
-  const at = window.useAttend(me ? me.id : null, 14);
+  const at = window.useAttend(me ? me.id : null, 95);
   const writer = window.useAttendWriter(me, cfg);
   const [busy, setBusy] = React.useState(false);
   const [msg, setMsg] = React.useState(null);
@@ -885,53 +1012,197 @@ function LnClock({
       lineHeight: 1.7,
       textAlign: "center"
     }
-  }, "\u0E23\u0E30\u0E1A\u0E1A\u0E02\u0E2D\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E15\u0E2D\u0E19\u0E01\u0E14 \u2014 \u0E16\u0E49\u0E32\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E01\u0E47\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E43\u0E2B\u0E49\u0E15\u0E32\u0E21\u0E1B\u0E01\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E44\u0E27\u0E49\u0E27\u0E48\u0E32\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14", place === "site" && React.createElement(React.Fragment, null, React.createElement("br", null), "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E17\u0E35\u0E48\u0E04\u0E38\u0E13\u0E41\u0E08\u0E49\u0E07\u0E40\u0E2D\u0E07 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E15\u0E23\u0E27\u0E08\u0E23\u0E30\u0E22\u0E30\u0E17\u0E32\u0E07")), (at.rows || []).length > 0 && React.createElement("div", {
+  }, "\u0E23\u0E30\u0E1A\u0E1A\u0E02\u0E2D\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E15\u0E2D\u0E19\u0E01\u0E14 \u2014 \u0E16\u0E49\u0E32\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E01\u0E47\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E43\u0E2B\u0E49\u0E15\u0E32\u0E21\u0E1B\u0E01\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E44\u0E27\u0E49\u0E27\u0E48\u0E32\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14", place === "site" && React.createElement(React.Fragment, null, React.createElement("br", null), "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E17\u0E35\u0E48\u0E04\u0E38\u0E13\u0E41\u0E08\u0E49\u0E07\u0E40\u0E2D\u0E07 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E15\u0E23\u0E27\u0E08\u0E23\u0E30\u0E22\u0E30\u0E17\u0E32\u0E07")), React.createElement(LnClockCal, {
+    rows: at.rows,
+    cfg: cfg
+  }));
+}
+const LN_MON_TH = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+const lnCalDateTH = iso => {
+  const a = String(iso || "").split("-");
+  if (a.length !== 3) return iso || "";
+  return +a[2] + " " + LN_MON_TH[+a[1] - 1] + " " + (+a[0] + 543);
+};
+function LnClockCal({
+  rows,
+  cfg
+}) {
+  const today = window.drToday();
+  const [ym, setYm] = React.useState(today.slice(0, 7));
+  const [pick, setPick] = React.useState(today);
+  const byDay = React.useMemo(() => {
+    const m = {};
+    (rows || []).forEach(r => {
+      if (r && r.date) m[r.date] = r;
+    });
+    return m;
+  }, [rows]);
+  const y = +ym.slice(0, 4),
+    mo = +ym.slice(5, 7);
+  const days = new Date(y, mo, 0).getDate();
+  const lead = new Date(y, mo - 1, 1).getDay();
+  const shift = n => {
+    const d = new Date(y, mo - 1 + n, 1);
+    setYm(d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"));
+  };
+  const key = d => ym + "-" + String(d).padStart(2, "0");
+  const rec = byDay[pick];
+  const navBtn = {
+    width: 28,
+    height: 28,
+    display: "grid",
+    placeItems: "center",
+    borderRadius: 8,
+    cursor: "pointer",
+    border: "1px solid var(--border)",
+    background: "var(--surface)",
+    padding: 0
+  };
+  return React.createElement("div", {
     style: {
       marginTop: 18
     }
   }, React.createElement("div", {
     style: {
-      fontSize: 12.5,
-      fontWeight: 800,
-      color: "var(--text-1)",
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
       marginBottom: 7
     }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
   }, "\u0E22\u0E49\u0E2D\u0E19\u0E2B\u0E25\u0E31\u0E07"), React.createElement("div", {
+    style: {
+      marginLeft: "auto",
+      display: "flex",
+      alignItems: "center",
+      gap: 7
+    }
+  }, React.createElement("button", {
+    onClick: () => shift(-1),
+    "aria-label": "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32",
+    style: navBtn
+  }, React.createElement(Icon, {
+    name: "chevronLeft",
+    size: 15,
+    color: "var(--text-2)"
+  })), React.createElement("b", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-1)",
+      minWidth: 96,
+      textAlign: "center"
+    }
+  }, LN_MON_TH[mo - 1], " ", y + 543), React.createElement("button", {
+    onClick: () => shift(1),
+    "aria-label": "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E16\u0E31\u0E14\u0E44\u0E1B",
+    style: navBtn
+  }, React.createElement(Icon, {
+    name: "chevronRight",
+    size: 15,
+    color: "var(--text-2)"
+  })))), React.createElement("div", {
     style: {
       border: "1px solid var(--border)",
       borderRadius: 13,
       overflow: "hidden",
-      background: "var(--surface)"
+      background: "var(--surface)",
+      padding: "12px 10px 10px"
     }
-  }, (at.rows || []).slice(0, 10).map(r => React.createElement("div", {
-    key: r.date,
+  }, React.createElement("div", {
     style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(7, 1fr)",
+      gap: 2
+    }
+  }, ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map(d => React.createElement("span", {
+    key: d,
+    style: {
+      textAlign: "center",
+      fontSize: 11,
+      fontWeight: 700,
+      color: "var(--text-3)",
+      padding: "2px 0 6px"
+    }
+  }, d)), Array.from({
+    length: lead
+  }).map((_, i) => React.createElement("span", {
+    key: "p" + i
+  })), Array.from({
+    length: days
+  }).map((_, i) => {
+    const d = i + 1,
+      k = key(d),
+      r = byDay[k];
+    const on = k === pick,
+      isToday = k === today;
+    const tone = !r ? null : r.out && r.out.hm ? "var(--primary)" : "#D97706";
+    return React.createElement("button", {
+      key: k,
+      onClick: () => setPick(k),
+      style: {
+        position: "relative",
+        padding: "7px 0 13px",
+        borderRadius: 9,
+        cursor: "pointer",
+        border: isToday && !on ? "1px solid var(--primary)" : "1px solid transparent",
+        background: on ? "var(--primary)" : "transparent",
+        fontFamily: "inherit",
+        fontSize: 12.5,
+        fontWeight: on || isToday ? 800 : 600,
+        color: on ? "#fff" : r ? "var(--text-1)" : "var(--text-3)"
+      }
+    }, d, tone && React.createElement("i", {
+      style: {
+        position: "absolute",
+        left: "50%",
+        bottom: 5,
+        width: 5,
+        height: 5,
+        marginLeft: -2.5,
+        borderRadius: 99,
+        background: on ? "#fff" : tone
+      }
+    }));
+  })), React.createElement("div", {
+    style: {
+      marginTop: 8,
+      paddingTop: 10,
+      borderTop: "1px solid var(--border)",
       display: "flex",
       alignItems: "center",
       gap: 10,
-      padding: "10px 13px",
-      borderBottom: "1px solid var(--border)"
+      minHeight: 34
     }
   }, React.createElement("span", {
     style: {
-      fontSize: 12.5,
-      color: "var(--text-2)",
-      minWidth: 84
+      fontSize: 12,
+      color: "var(--text-2)"
     }
-  }, window.drShort(r.date)), React.createElement("span", {
+  }, lnCalDateTH(pick)), rec ? React.createElement(React.Fragment, null, React.createElement("span", {
     style: {
       fontFamily: "var(--mono)",
       fontSize: 13,
       fontWeight: 700,
       color: "var(--text-1)"
     }
-  }, r.in && r.in.hm || "—", " \u2192 ", r.out && r.out.hm || "—"), React.createElement("span", {
+  }, rec.in && rec.in.hm || "—", " \u2192 ", rec.out && rec.out.hm || "—"), React.createElement("span", {
     style: {
       marginLeft: "auto",
       fontSize: 11.5,
       color: "var(--text-3)"
     }
-  }, window.tmDur(window.tmWorkedMins(r, cfg))))))));
+  }, window.tmDur(window.tmWorkedMins(rec, cfg)))) : React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E01\u0E32\u0E23\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32"))));
 }
 function LnOtForm({
   me,
@@ -2102,7 +2373,7 @@ function LnApp() {
   }, [mine, me]);
   const siteWork = React.useMemo(() => work.filter(j => j.stage === "install"), [work]);
   const canAppr = React.useMemo(() => me && window.lnCanApproveAny ? window.lnCanApproveAny(role, mine, me) : false, [role, mine, me]);
-  const tabs = React.useMemo(() => LN_TAB.filter(t => t.key !== "appr" || canAppr), [canAppr]);
+  const tabs = React.useMemo(() => LN_TAB.filter(t => t.key !== "bell" && (t.key !== "appr" || canAppr)), [canAppr]);
   const myNotifs = React.useMemo(() => {
     if (!me) return [];
     const tid = me.techId;
@@ -2368,6 +2639,10 @@ function LnApp() {
     job: open,
     techs: techStore.techs,
     onClose: () => setOpen(null)
+  }), React.createElement(LnBellFab, {
+    unread: unread,
+    on: tab === "bell",
+    onClick: () => setTab("bell")
   }), React.createElement(LnTabs, {
     tab: tab,
     setTab: setTab,
@@ -2384,7 +2659,9 @@ Object.assign(window, {
   LnJobFiles,
   LnHead,
   LnTabs,
+  LnBellFab,
   LnClock,
+  LnClockCal,
   LnOtForm,
   LnTimeTab,
   LnFixTab,
