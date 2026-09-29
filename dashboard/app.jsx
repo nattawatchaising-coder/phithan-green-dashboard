@@ -213,9 +213,10 @@ function App() {
   const [boardLead, setBoardLead] = React.useState(null);
   /* วางแผง 3D ของลูกค้าที่ยังไม่เป็นงาน — เปิดทับแผงลูกค้า ปิดแล้วกลับมาที่ใบเดิม */
   const [plan3dLead, setPlan3dLead] = React.useState(null);
-  /* สัญญาณ "เปิดฟอร์มลูกค้าใหม่" — เก็บเป็นเวลาที่กด เพราะกดซ้ำต้องเปิดได้อีก
-     พาไปหน้างานขายก่อนเสมอ ฟอร์มอยู่ที่นั่นที่เดียว ไม่แยกร่างไปอยู่หลายหน้า */
-  const [leadNew, setLeadNew] = React.useState(0);
+  /* ใบลูกค้าใหม่ที่กำลังกรอก — อยู่ระดับแอป เปิดทับหน้าที่กดมา ไม่เด้งไปหน้าอื่น
+     เดิมพาไปหน้างานขายก่อนเสมอ แต่คนกดปุ่มนี้จากบอร์ดกำลังดูบอร์ดอยู่ กดเพิ่มชื่อเสร็จก็ต้องกดกลับมาเอง
+     ฟอร์มเป็น LeadModal ตัวเดียวกับที่หน้างานขายใช้ จึงไม่มีร่างที่สองให้ต้องตามแก้ */
+  const [leadNew, setLeadNew] = React.useState(null);
   /* ชุดข้อมูลขออนุญาตที่เปิดอยู่ — อยู่ระดับแอป จะได้เปิดได้ทั้งจากบอร์ดและจากในใบงาน */
   const [permitReview, setPermitReview] = React.useState(null);
   /* ใบเสนอราคาที่เปิดอยู่ — เหตุผลเดียวกัน เปิดได้ทั้งจากหน้าลูกค้าสำรวจและจากในใบงาน */
@@ -770,8 +771,8 @@ function App() {
   }, [omLive.tickets, omLive.sites, omLive.bySite, apptStore.appts, ecLive.claims, auth.current, role]);
 
   const newLead = React.useCallback(() => {
-    setView("leads"); setLeadMode("list"); setLeadNew(Date.now());
-  }, []);
+    setLeadNew(leadStore.blank());
+  }, [leadStore]);
 
   /* ── เปิดใบงานขออนุญาตโดยตรง ──
      งานเก่า/งานที่รับช่วงต่อติดตั้งเสร็จไปแล้ว ไม่เคยเดินผ่านบอร์ดขายและบอร์ดหน้างาน
@@ -872,7 +873,7 @@ function App() {
             headRight={leadTabs}
             /* กดการ์ดในรายการ = เปิดใบเต็มใบเดียวกับที่เด้งจากบอร์ด ไม่ใช่คนละหน้าตา */
             onOpenLead={(l) => { if (l) setBoardLead(l.id); }}
-            focusId={leadFocus} onFocusDone={() => setLeadFocus(null)} newAt={leadNew}
+            focusId={leadFocus} onFocusDone={() => setLeadFocus(null)}
             onMenuOpen={() => setSidebarOpen(true)}
             onOpenSurvey={(can(role, "doSurvey") || can(role, "dispatch")) ? (pseudo) => openSurvey(pseudo) : null}
             onReport={(pseudo) => setReportJob(pseudo)}
@@ -1098,6 +1099,10 @@ function App() {
           onSummary={(sum) => store.patch(pmJob.id, { pmHandover: sum })} />
       )}
       {form && <JobForm initial={form.job} isNew={form.isNew} jobs={jobs} users={auth.users} onSave={onSave} onClose={() => setForm(null)} onManageTechs={() => setTechMgr(true)} onManageBrands={() => setBrandMgr(true)} />}
+      {/* ฟอร์มลูกค้าใหม่ — เปิดทับหน้าที่เปิดค้างอยู่ จะได้ไม่เสียที่ทางที่คนกดอยู่ */}
+      {leadNew && <window.LeadModal initial={leadNew} isNew users={auth.users}
+        onClose={() => setLeadNew(null)}
+        onSave={(rec) => { leadStore.upsert(rec); setLeadNew(null); }} />}
       {techMgr && <TechManager store={techStore} onClose={() => setTechMgr(false)} />}
       {brandMgr && <BrandManager store={brandStore} onClose={() => setBrandMgr(false)} />}
       {userMgr && can(role, "manageUsers") && <UserManager authStore={auth} roleCfg={roleCfg} onClose={() => setUserMgr(false)} />}

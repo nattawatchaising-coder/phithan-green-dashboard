@@ -331,19 +331,12 @@ function LeadsView({
   onOpenLead,
   headRight,
   focusId,
-  onFocusDone,
-  newAt
+  onFocusDone
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [filter, setFilter] = React.useState("all");
   const [edit, setEdit] = React.useState(null);
   const [log, setLog] = React.useState(null);
-  React.useEffect(() => {
-    if (newAt) setEdit({
-      lead: leadStore.blank(),
-      isNew: true
-    });
-  }, [newAt]);
   const leads = leadStore.leads || [];
   const STATUS = window.SALES_STAGES || [];
   const STATUS_BY = window.SALES_BY || {};

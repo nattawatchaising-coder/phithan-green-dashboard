@@ -271,7 +271,7 @@ function App() {
   const [leadFocus, setLeadFocus] = React.useState(null);
   const [boardLead, setBoardLead] = React.useState(null);
   const [plan3dLead, setPlan3dLead] = React.useState(null);
-  const [leadNew, setLeadNew] = React.useState(0);
+  const [leadNew, setLeadNew] = React.useState(null);
   const [permitReview, setPermitReview] = React.useState(null);
   const [quoteOpen, setQuoteOpen] = React.useState(null);
   const [search, setSearch] = React.useState("");
@@ -955,10 +955,8 @@ function App() {
     };
   }, [omLive.tickets, omLive.sites, omLive.bySite, apptStore.appts, ecLive.claims, auth.current, role]);
   const newLead = React.useCallback(() => {
-    setView("leads");
-    setLeadMode("list");
-    setLeadNew(Date.now());
-  }, []);
+    setLeadNew(leadStore.blank());
+  }, [leadStore]);
   const newPermitJob = React.useCallback(() => {
     if (!can(role, "addJob")) {
       alert("คุณไม่มีสิทธิ์สร้างงาน");
@@ -1133,7 +1131,6 @@ function App() {
     },
     focusId: leadFocus,
     onFocusDone: () => setLeadFocus(null),
-    newAt: leadNew,
     onMenuOpen: () => setSidebarOpen(true),
     onOpenSurvey: can(role, "doSurvey") || can(role, "dispatch") ? pseudo => openSurvey(pseudo) : null,
     onReport: pseudo => setReportJob(pseudo),
@@ -1563,6 +1560,15 @@ function App() {
     onClose: () => setForm(null),
     onManageTechs: () => setTechMgr(true),
     onManageBrands: () => setBrandMgr(true)
+  }), leadNew && React.createElement(window.LeadModal, {
+    initial: leadNew,
+    isNew: true,
+    users: auth.users,
+    onClose: () => setLeadNew(null),
+    onSave: rec => {
+      leadStore.upsert(rec);
+      setLeadNew(null);
+    }
   }), techMgr && React.createElement(TechManager, {
     store: techStore,
     onClose: () => setTechMgr(false)
