@@ -208,6 +208,7 @@ function vcSaveBlob(blob, filename) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
+const vcPortrait = () => window.innerHeight > window.innerWidth;
 function VcCardBody({
   user
 }) {
@@ -215,6 +216,13 @@ function VcCardBody({
   const box = React.useRef(null);
   const cvRef = React.useRef(null);
   const [ready, setReady] = React.useState(false);
+  const [zoom, setZoom] = React.useState("");
+  const [, bump] = React.useReducer(n => n + 1, 0);
+  React.useEffect(() => {
+    if (!zoom) return;
+    window.addEventListener("resize", bump);
+    return () => window.removeEventListener("resize", bump);
+  }, [zoom]);
   React.useEffect(() => {
     let dead = false;
     setReady(false);
@@ -279,15 +287,53 @@ function VcCardBody({
   const empty = !user.phone && !user.email && !user.line;
   return React.createElement(React.Fragment, null, React.createElement("div", {
     ref: box,
+    onClick: () => {
+      if (cvRef.current) setZoom(cvRef.current.toDataURL("image/png"));
+    },
     style: {
       borderRadius: 12,
       overflow: "hidden",
       background: "#FFFFFF",
+      cursor: ready ? "zoom-in" : "default",
       border: "1px solid var(--border)",
       minHeight: 120,
       boxShadow: "0 8px 26px rgba(8,20,14,.12)"
     }
-  }), empty && React.createElement("div", {
+  }), zoom && ReactDOM.createPortal(React.createElement("div", {
+    onClick: () => setZoom(""),
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 200,
+      background: "rgba(6,14,12,.92)",
+      overflow: "hidden",
+      cursor: "zoom-out"
+    }
+  }, React.createElement("img", {
+    src: zoom,
+    alt: "\u0E19\u0E32\u0E21\u0E1A\u0E31\u0E15\u0E23",
+    style: {
+      position: "absolute",
+      top: "50%",
+      left: "50%",
+      maxWidth: "none",
+      borderRadius: 8,
+      boxShadow: "0 20px 60px rgba(0,0,0,.5)",
+      width: vcPortrait() ? "min(96dvh, 165vw)" : "min(96vw, 165dvh)",
+      transform: "translate(-50%,-50%)" + (vcPortrait() ? " rotate(90deg)" : "")
+    }
+  }), React.createElement("span", {
+    style: {
+      position: "absolute",
+      bottom: 18,
+      left: 0,
+      right: 0,
+      textAlign: "center",
+      color: "rgba(255,255,255,.62)",
+      fontSize: 12,
+      fontWeight: 600
+    }
+  }, "\u0E41\u0E15\u0E30\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E1B\u0E34\u0E14")), document.body), empty && React.createElement("div", {
     style: {
       display: "flex",
       gap: 9,

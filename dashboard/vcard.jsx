@@ -262,6 +262,9 @@ function vcSaveBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
+/* จอตั้งหรือจอนอน */
+const vcPortrait = () => window.innerHeight > window.innerWidth;
+
 /* เนื้อในของนามบัตร — แยกออกมาจากโมดัล เพราะหน้า ฉัน ของไลน์เอาไปวางติดหน้าเลย ไม่ได้เปิดเป็นชั้น
    ทั้งสองที่ใช้ตัวนี้ตัวเดียวกัน — ปุ่มบันทึกรูป แชร์ และไฟล์ .vcf จึงแก้ที่เดียวได้ทั้งสองที่ */
 function VcCardBody({ user }) {
@@ -269,6 +272,16 @@ function VcCardBody({ user }) {
   const box = React.useRef(null);
   const cvRef = React.useRef(null);
   const [ready, setReady] = React.useState(false);
+  const [zoom, setZoom] = React.useState("");   /* dataURL ตอนกางเต็มจอ — ว่าง = ไม่ได้กาง */
+
+  /* หมุนเครื่องขณะกางอยู่ต้องสลับท่าตาม — React ไม่เรนเดอร์ใหม่เองเมื่อจอเปลี่ยนด้าน
+     ผูกเฉพาะตอนกางอยู่ ไม่ต้องให้ทุกนามบัตรในหน้าฟังเหตุการณ์ resize ตลอดเวลา */
+  const [, bump] = React.useReducer((n) => n + 1, 0);
+  React.useEffect(() => {
+    if (!zoom) return;
+    window.addEventListener("resize", bump);
+    return () => window.removeEventListener("resize", bump);
+  }, [zoom]);
 
   /* วาดใหม่เมื่อข้อมูลหรือรูปเปลี่ยน — แก้เบอร์ในหน้าโปรไฟล์แล้วเปิดนามบัตร ต้องเห็นเบอร์ใหม่ */
   React.useEffect(() => {
@@ -316,9 +329,29 @@ function VcCardBody({ user }) {
 
   return (
     <React.Fragment>
-      {/* กรอบรอบนามบัตรเป็นของหน้าจอ ไม่ได้ติดไปในไฟล์ — ไฟล์ที่ได้เป็นสี่เหลี่ยมเต็มใบ */}
-      <div ref={box} style={{ borderRadius: 12, overflow: "hidden", background: "#FFFFFF",
-        border: "1px solid var(--border)", minHeight: 120, boxShadow: "0 8px 26px rgba(8,20,14,.12)" }} />
+      {/* กรอบรอบนามบัตรเป็นของหน้าจอ ไม่ได้ติดไปในไฟล์ — ไฟล์ที่ได้เป็นสี่เหลี่ยมเต็มใบ
+          กดที่รูปแล้วกางเต็มจอ — บนมือถือนามบัตรกว้างแค่ความกว้างจอ ตัวหนังสือเล็กเกินกว่าจะยื่นให้ลูกค้าดูสด ๆ */}
+      <div ref={box} onClick={() => { if (cvRef.current) setZoom(cvRef.current.toDataURL("image/png")); }}
+        style={{ borderRadius: 12, overflow: "hidden", background: "#FFFFFF", cursor: ready ? "zoom-in" : "default",
+          border: "1px solid var(--border)", minHeight: 120, boxShadow: "0 8px 26px rgba(8,20,14,.12)" }} />
+
+      {zoom && ReactDOM.createPortal(
+        /* ตะแคงเมื่อจอตั้ง — นามบัตรเป็นแนวนอน วางตามจอตั้งจะได้ความกว้างแค่ครึ่งเดียวของที่จอมีจริง
+           หมุนแล้วขนาดต้องคิดกลับด้าน: ด้านที่เห็นเป็นความสูงคือความกว้างของรูป จึงจำกัดด้วย dvh
+           ส่วนด้านที่เห็นเป็นความกว้างคือความสูงของรูป (= กว้าง × 0.58) จึงจำกัดด้วย vw ผ่าน min() */
+        <div onClick={() => setZoom("")}
+          style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(6,14,12,.92)",
+            overflow: "hidden", cursor: "zoom-out" }}>
+          {/* จัดกึ่งกลางด้วย top/left 50% + translate ไม่ใช่ place-items — กล่องก่อนหมุนกว้างกว่าจอ
+              ตัวจัดวางของ flex/grid จะไม่ยอมให้ของที่ล้นเลยขอบต้นออกไป รูปเลยไปกองชิดขวา */}
+          <img src={zoom} alt="นามบัตร"
+            style={{ position: "absolute", top: "50%", left: "50%", maxWidth: "none",
+              borderRadius: 8, boxShadow: "0 20px 60px rgba(0,0,0,.5)",
+              width: vcPortrait() ? "min(96dvh, 165vw)" : "min(96vw, 165dvh)",
+              transform: "translate(-50%,-50%)" + (vcPortrait() ? " rotate(90deg)" : "") }} />
+          <span style={{ position: "absolute", bottom: 18, left: 0, right: 0, textAlign: "center",
+            color: "rgba(255,255,255,.62)", fontSize: 12, fontWeight: 600 }}>แตะเพื่อปิด</span>
+        </div>, document.body)}
 
       {empty && (
         <div style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "11px 13px", borderRadius: 11,
