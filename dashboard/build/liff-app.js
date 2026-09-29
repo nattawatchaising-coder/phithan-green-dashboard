@@ -21,24 +21,6 @@ const LN_JOB_SUB = [{
   key: "daily",
   th: "รายงาน"
 }];
-const LN_CARD = {
-  background: "var(--surface)",
-  border: "1px solid var(--border)",
-  boxShadow: "var(--soft)",
-  borderRadius: 20
-};
-const LN_LIST_PAD = {
-  padding: "0 14px 6px"
-};
-const lnCardBtn = extra => Object.assign({}, LN_CARD, {
-  display: "block",
-  width: "100%",
-  textAlign: "left",
-  padding: "13px 15px",
-  marginBottom: 10,
-  cursor: "pointer",
-  fontFamily: "inherit"
-}, extra || {});
 const LN_NOTIF_KIND = {
   assign: {
     th: "งานติดตั้ง",
@@ -120,18 +102,18 @@ function LnHead({
         display: "flex",
         alignItems: "center",
         gap: 10,
-        padding: "15px 18px 11px"
+        padding: "14px 18px 12px"
       }
     }, window.BrandLockup ? React.createElement(window.BrandLockup, {
-      size: 19
+      size: 26
     }) : React.createElement("b", null, "flash+solar"), me && React.createElement("button", {
       onClick: onMe,
       "aria-label": "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19",
       style: {
         marginLeft: "auto",
         flexShrink: 0,
-        width: 34,
-        height: 34,
+        width: 38,
+        height: 38,
         borderRadius: 99,
         padding: 0,
         border: "1px solid var(--border)",
@@ -139,7 +121,7 @@ function LnHead({
         background: "var(--surface)",
         color: "var(--primary-dark)",
         fontFamily: "inherit",
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: 800,
         cursor: "pointer",
         display: "grid",
@@ -147,7 +129,7 @@ function LnHead({
       }
     }, nm ? nm.slice(0, 1) : React.createElement(Icon, {
       name: "user",
-      size: 16,
+      size: 17,
       color: "var(--text-3)"
     }))))
   );
@@ -158,44 +140,11 @@ function LnMeSheet({
 }) {
   if (!me) return null;
   return React.createElement("div", {
-    style: {
-      position: "fixed",
-      inset: 0,
-      zIndex: 60,
-      background: "var(--bg)",
-      overflowY: "auto"
-    }
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      padding: "15px 18px 11px",
-      paddingTop: "calc(15px + env(safe-area-inset-top, 0px))"
-    }
-  }, React.createElement("b", {
-    style: {
-      fontSize: 16,
-      fontWeight: 800,
-      color: "var(--text-1)"
-    }
-  }, "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19"), React.createElement("button", {
-    onClick: onClose,
-    style: {
-      marginLeft: "auto",
-      width: 32,
-      height: 32,
-      borderRadius: 99,
-      padding: 0,
-      border: "1px solid var(--border)",
-      boxShadow: "var(--soft)",
-      background: "var(--surface)",
-      color: "var(--text-2)",
-      fontFamily: "inherit",
-      fontSize: 16,
-      cursor: "pointer"
-    }
-  }, "\xD7")), React.createElement("div", {
+    style: LN_SHEET
+  }, React.createElement(LnSheetHead, {
+    title: "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19",
+    onClose: onClose
+  }), React.createElement("div", {
     style: {
       padding: "0 18px 28px",
       display: "grid",
@@ -290,53 +239,6 @@ function LnTabs({
       }), t.th)
     );
   })));
-}
-function LnSub({
-  items,
-  value,
-  onPick
-}) {
-  const use = (items || []).filter(Boolean);
-  if (use.length < 2) return null;
-  return React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 4,
-      padding: 4,
-      margin: "0 14px 12px",
-      borderRadius: 18,
-      background: "var(--surface3)"
-    }
-  }, use.map(it => {
-    const on = value === it.key;
-    return React.createElement("button", {
-      key: it.key,
-      onClick: () => onPick(it.key),
-      style: {
-        flex: 1,
-        minWidth: 0,
-        padding: "9px 4px",
-        borderRadius: 14,
-        border: "none",
-        cursor: "pointer",
-        background: on ? "var(--surface)" : "transparent",
-        boxShadow: on ? "var(--soft)" : "none",
-        fontFamily: "inherit",
-        fontSize: 12.5,
-        fontWeight: 800,
-        whiteSpace: "nowrap",
-        color: on ? "var(--primary-dark)" : "var(--text-3)"
-      }
-    }, it.th, it.n ? React.createElement("span", {
-      style: {
-        marginLeft: 5,
-        padding: "1px 6px",
-        borderRadius: 99,
-        background: on ? "var(--primary-soft)" : "var(--surface)",
-        fontSize: 11
-      }
-    }, it.n) : null);
-  }));
 }
 const LN_FAB = 52,
   LN_FAB_PAD = 12,
@@ -436,7 +338,7 @@ function LnBellFab({
       touchAction: "none",
       WebkitTapHighlightColor: "transparent",
       border: "1px solid " + (on ? "var(--primary-dark)" : "var(--border)"),
-      background: on ? "var(--primary)" : "var(--surface)",
+      background: on ? "var(--primary-dark)" : "var(--surface)",
       boxShadow: moving ? "0 12px 28px rgba(8,20,14,.3)" : "0 6px 20px rgba(8,20,14,.2)",
       display: "grid",
       placeItems: "center",
@@ -779,27 +681,6 @@ function LnJobSheet({
     }
   }, "\u0E1B\u0E34\u0E14")));
 }
-const LN_BTN = {
-  width: "100%",
-  padding: "16px 18px",
-  borderRadius: 20,
-  border: "none",
-  fontFamily: "inherit",
-  fontSize: 16,
-  fontWeight: 800,
-  cursor: "pointer"
-};
-const LN_FIELD = {
-  width: "100%",
-  padding: "12px 13px",
-  borderRadius: 16,
-  border: "1px solid var(--border-strong)",
-  background: "var(--surface2)",
-  color: "var(--text-1)",
-  fontFamily: "inherit",
-  fontSize: 16,
-  outline: "none"
-};
 function LnClock({
   me,
   cfg,
@@ -1495,87 +1376,37 @@ function LnOtForm({
     onClose();
   };
   return React.createElement("div", {
+    style: LN_SHEET
+  }, React.createElement(LnSheetHead, {
+    title: "\u0E02\u0E2D\u0E17\u0E33\u0E07\u0E32\u0E19\u0E25\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32",
+    no: f.no,
+    onClose: onClose
+  }), React.createElement("div", {
     style: {
-      position: "fixed",
-      inset: 0,
-      zIndex: 60,
-      background: "var(--bg)",
-      overflowY: "auto",
-      overflowX: "hidden"
-    }
-  }, React.createElement("div", {
-    style: {
-      position: "sticky",
-      top: 0,
-      zIndex: 2,
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      padding: "13px 16px",
-      background: "var(--surface)",
-      borderBottom: "1px solid var(--border)",
-      paddingTop: "calc(13px + env(safe-area-inset-top, 0px))"
-    }
-  }, React.createElement("button", {
-    onClick: onClose,
-    style: {
-      border: "none",
-      background: "none",
-      cursor: "pointer",
-      padding: 4,
-      lineHeight: 0
-    }
-  }, React.createElement(Icon, {
-    name: "x",
-    size: 20,
-    color: "var(--text-2)"
-  })), React.createElement("b", {
-    style: {
-      fontSize: 15.5,
-      color: "var(--text-1)"
-    }
-  }, "\u0E02\u0E2D\u0E17\u0E33\u0E07\u0E32\u0E19\u0E25\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32"), React.createElement("span", {
-    style: {
-      marginLeft: "auto",
-      fontFamily: "var(--mono)",
-      fontSize: 11.5,
-      color: "var(--text-3)"
-    }
-  }, f.no)), React.createElement("div", {
-    style: {
-      padding: 18,
+      padding: "2px 16px 22px",
       display: "grid",
-      gap: 13
+      gap: 14
     }
-  }, React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 5
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
-  }, "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48"), React.createElement("input", {
+  }, React.createElement(LnField, {
+    label: "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48"
+  }, React.createElement("input", {
     type: "date",
     value: f.date,
     disabled: locked,
     onChange: e => set("date", e.target.value),
-    style: LN_FIELD
+    style: Object.assign({}, LN_FIELD, locked ? {
+      background: "var(--surface3)",
+      color: "var(--text-2)",
+      boxShadow: "none"
+    } : null)
   })), React.createElement("div", {
     style: {
       display: "grid",
-      gap: 5,
+      gap: 6,
       minWidth: 0
     }
   }, React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
+    style: LN_LABEL
   }, "\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E17\u0E33"), React.createElement("div", {
     style: {
       display: "grid",
@@ -1605,21 +1436,19 @@ function LnOtForm({
     style: LN_FIELD
   }))), locked && React.createElement("div", {
     style: {
-      padding: "10px 13px",
+      padding: "11px 14px",
       borderRadius: 16,
       fontSize: 11.5,
       lineHeight: 1.7,
-      background: inLimit ? "var(--surface2)" : "var(--tint-amber-bg)",
+      border: "1px solid " + (inLimit ? "var(--border)" : "transparent"),
+      background: inLimit ? "var(--surface)" : "var(--tint-amber-bg)",
+      boxShadow: inLimit ? "var(--soft)" : "none",
       color: inLimit ? "var(--text-3)" : "var(--tint-amber-tx)"
     }
   }, inLimit ? "ขอได้เฉพาะช่วงที่อยู่ที่ทำงานจริงวันนี้ — ลงเวลา " + limit.lo + " ถึง " + limit.hi : "ช่วงนี้อยู่นอกเวลาที่ลงไว้ (" + limit.lo + " – " + limit.hi + ") ขอไม่ได้"), React.createElement("div", {
-    style: {
-      padding: "12px 14px",
-      borderRadius: 18,
-      background: "var(--surface)",
-      border: "1px solid var(--border)",
-      boxShadow: "var(--soft)"
-    }
+    style: Object.assign({
+      padding: "13px 15px"
+    }, LN_CARD)
   }, React.createElement("div", {
     style: {
       display: "flex",
@@ -1646,18 +1475,9 @@ function LnOtForm({
       color: "var(--text-3)",
       lineHeight: 1.6
     }
-  }, window.tmOtKindOf(f.kind).th, window.tmIsWorkday(f.date, cfg) ? " · ตัดช่วงที่ทับเวลางานปกติออกแล้ว" : " · นอกวันทำงาน นับทั้งช่วง")), React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 5
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
-  }, "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E40\u0E01\u0E35\u0E48\u0E22\u0E27\u0E02\u0E49\u0E2D\u0E07 (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A)"), React.createElement("select", {
+  }, window.tmOtKindOf(f.kind).th, window.tmIsWorkday(f.date, cfg) ? " · ตัดช่วงที่ทับเวลางานปกติออกแล้ว" : " · นอกวันทำงาน นับทั้งช่วง")), React.createElement(LnField, {
+    label: "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E40\u0E01\u0E35\u0E48\u0E22\u0E27\u0E02\u0E49\u0E2D\u0E07 (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A)"
+  }, React.createElement("select", {
     value: f.jobId || "",
     onChange: e => set("jobId", e.target.value || null),
     style: LN_FIELD
@@ -1666,18 +1486,9 @@ function LnOtForm({
   }, "\u2014 \u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38 \u2014"), (jobs || []).slice(0, 80).map(j => React.createElement("option", {
     key: j.id,
     value: j.id
-  }, j.code, " \xB7 ", j.name)))), React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 5
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
-  }, "\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E49\u0E43\u0E04\u0E23\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34"), React.createElement("select", {
+  }, j.code, " \xB7 ", j.name)))), React.createElement(LnField, {
+    label: "\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E49\u0E43\u0E04\u0E23\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34"
+  }, React.createElement("select", {
     value: f.approverId || "",
     onChange: e => {
       const u = approvers.find(x => x.id === e.target.value);
@@ -1692,18 +1503,10 @@ function LnOtForm({
   }, "\u2014 \u0E43\u0E04\u0E23\u0E01\u0E47\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E21\u0E35\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C \u2014"), approvers.map(u => React.createElement("option", {
     key: u.id,
     value: u.id
-  }, u.name)))), React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 5
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
-  }, "\u0E40\u0E2B\u0E15\u0E38\u0E1C\u0E25"), React.createElement("textarea", {
+  }, u.name)))), React.createElement(LnField, {
+    label: "\u0E40\u0E2B\u0E15\u0E38\u0E1C\u0E25",
+    req: true
+  }, React.createElement("textarea", {
     rows: 3,
     value: f.reason,
     onChange: e => set("reason", e.target.value),
@@ -1716,7 +1519,9 @@ function LnOtForm({
     onClick: send,
     disabled: !ready || sending,
     style: Object.assign({}, LN_BTN, {
+      marginTop: 2,
       background: ready && !sending ? "var(--primary)" : "var(--surface3)",
+      boxShadow: ready && !sending ? "0 8px 20px rgba(27,155,117,.28)" : "none",
       color: ready && !sending ? "#fff" : "var(--text-3)"
     })
   }, sending ? "กำลังส่ง…" : "ส่งขออนุมัติ"), mins <= 0 && React.createElement("div", {
@@ -2754,7 +2559,45 @@ function LnApp() {
       color: "var(--text-3)",
       fontSize: 13.5
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E41\u0E08\u0E49\u0E07\u0E40\u0E15\u0E37\u0E2D\u0E19") : React.createElement("div", {
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E41\u0E08\u0E49\u0E07\u0E40\u0E15\u0E37\u0E2D\u0E19") : React.createElement(React.Fragment, null, unread > 0 && React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "0 16px 11px"
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-3)",
+      fontWeight: 700
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E2D\u0E48\u0E32\u0E19 ", unread, " \u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07"), React.createElement("button", {
+    onClick: () => myNotifs.forEach(n => {
+      if (!n.read) notif.markRead(n.id);
+    }),
+    style: {
+      marginLeft: "auto",
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "8px 14px",
+      borderRadius: 99,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 800,
+      whiteSpace: "nowrap",
+      border: "1px solid var(--border)",
+      boxShadow: "var(--soft)",
+      background: "var(--surface)",
+      color: "var(--primary-dark)"
+    }
+  }, React.createElement(Icon, {
+    name: "check",
+    size: 14,
+    color: "var(--primary-dark)"
+  }), "\u0E2D\u0E48\u0E32\u0E19\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14")), React.createElement("div", {
     style: LN_LIST_PAD
   }, myNotifs.map(n => {
     const k = lnNotifKind(n);
@@ -2854,7 +2697,7 @@ function LnApp() {
         background: k.color
       }
     }))));
-  }))), React.createElement(LnJobSheet, {
+  })))), React.createElement(LnJobSheet, {
     job: open,
     techs: techStore.techs,
     onClose: () => setOpen(null)

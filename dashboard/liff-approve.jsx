@@ -32,14 +32,11 @@ function lnCanApproveAny(role, jobs, me) {
   return !!uid && (jobs || []).some((j) => j && j.eeId === uid);
 }
 
-const LN_AP_SHEET = {
-  position: "fixed", inset: 0, zIndex: 60, background: "var(--bg)", overflowY: "auto", overflowX: "hidden",
-};
-const LN_AP_NOTE = {
-  width: "100%", padding: "12px 13px", borderRadius: 16, border: "1px solid var(--border-strong)",
-  background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 16,
-  outline: "none", resize: "vertical", lineHeight: 1.6,
-};
+/* LN_SHEET · LN_FIELD · LN_LABEL อยู่ใน liff-ui.jsx ซึ่งโหลดก่อนไฟล์นี้
+   ชื่อเดิม LN_AP_SHEET / LN_AP_NOTE เก็บไว้เป็นนามแฝง เพราะถูกอ้างอยู่หลายที่ในไฟล์นี้
+   และความหมายมันคือ "แผ่น/ช่องหมายเหตุ" ตัวเดียวกันกับของกลางจริง ๆ */
+const LN_AP_SHEET = LN_SHEET;
+const LN_AP_NOTE = Object.assign({}, LN_FIELD, { resize: "vertical", lineHeight: 1.6 });
 
 /* แถวข้อมูลในแผ่นรายละเอียด — ใช้ทรงเดียวกับแผ่นใบแจ้งซ่อม คนอ่านจะได้ไม่ต้องเรียนรู้ใหม่ */
 function LnApRows({ rows }) {
@@ -63,8 +60,8 @@ function LnApRows({ rows }) {
 function LnApHead({ kind, no, title, sub, onClose }) {
   const k = LN_AP_KIND_BY[kind] || LN_AP_KIND[0];
   return (
-    <div style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--surface)", borderBottom: "1px solid var(--border)",
-      padding: "13px 16px", paddingTop: "calc(13px + env(safe-area-inset-top, 0px))", display: "flex", gap: 11, alignItems: "flex-start" }}>
+    <div style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--bg)",
+      padding: "14px 16px 12px", paddingTop: "calc(14px + env(safe-area-inset-top, 0px))", display: "flex", gap: 11, alignItems: "flex-start" }}>
       <div style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 99, display: "grid", placeItems: "center", background: k.color + "1F" }}>
         <Icon name={k.icon} size={16} color={k.color} />
       </div>
@@ -73,10 +70,12 @@ function LnApHead({ kind, no, title, sub, onClose }) {
         <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-1)" }}>{title}</div>
         {sub && <div style={{ marginTop: 2, fontSize: 12, color: "var(--text-3)" }}>{sub}</div>}
       </div>
-      <button onClick={onClose}
-        style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 99, border: "1px solid var(--border-strong)",
-          background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 16, cursor: "pointer",
-          lineHeight: "30px", padding: 0 }}>×</button>
+      <button onClick={onClose} aria-label="ปิด"
+        style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 99, padding: 0, cursor: "pointer",
+          border: "1px solid var(--border)", boxShadow: "var(--soft)", background: "var(--surface)",
+          display: "grid", placeItems: "center" }}>
+        <Icon name="x" size={18} color="var(--text-2)" />
+      </button>
     </div>
   );
 }
@@ -92,18 +91,20 @@ function LnApDecide({ okText, noText, hint, onOk, onNo, busy }) {
   if (noting) {
     return (
       <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
-        <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--text-3)" }}>ต้องแก้อะไร / ทำไมถึงไม่อนุมัติ</span>
+        <span style={LN_LABEL}>ต้องแก้อะไร / ทำไมถึงไม่อนุมัติ</span>
         <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3}
           placeholder="เช่น ยอดไม่ตรงบิล · ขอรูปหน้างานเพิ่ม · เวลาที่ขอไม่ตรงกับใบลงเวลา" style={LN_AP_NOTE} />
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => { setNoting(false); setNote(""); }}
-            style={{ flex: 1, padding: "13px 14px", borderRadius: 14, border: "1px solid var(--border-strong)",
-              background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
+            style={{ flex: 1, padding: "13px 14px", borderRadius: 16, border: "1px solid var(--border)",
+              boxShadow: "var(--soft)",
+              background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13.5, fontWeight: 800, cursor: "pointer" }}>
             ย้อนกลับ
           </button>
           <button onClick={() => onNo(note.trim())} disabled={!note.trim() || busy}
-            style={{ flex: 2, padding: "13px 14px", borderRadius: 14, border: "none",
-              background: note.trim() ? "#EF4444" : "var(--border-strong)", color: "#fff",
+            style={{ flex: 2, padding: "13px 14px", borderRadius: 16, border: "none",
+              background: note.trim() ? "#EF4444" : "var(--surface3)", color: note.trim() ? "#fff" : "var(--text-3)",
+              boxShadow: note.trim() ? "0 8px 18px rgba(239,68,68,.26)" : "none",
               fontFamily: "inherit", fontSize: 13.5, fontWeight: 800, cursor: note.trim() ? "pointer" : "default" }}>
             {noText}
           </button>
@@ -119,12 +120,14 @@ function LnApDecide({ okText, noText, hint, onOk, onNo, busy }) {
     <div style={{ marginTop: 14 }}>
       <div style={{ display: "flex", gap: 8 }}>
         <button onClick={() => setNoting(true)} disabled={busy}
-          style={{ flex: 1, padding: "14px 14px", borderRadius: 16, border: "1px solid #EF4444",
+          style={{ flex: 1, padding: "14px 14px", borderRadius: 18, border: "1px solid #EF444455",
+            boxShadow: "var(--soft)",
             background: "var(--surface)", color: "#EF4444", fontFamily: "inherit", fontSize: 14, fontWeight: 800, cursor: "pointer" }}>
           {noText}
         </button>
         <button onClick={onOk} disabled={busy}
-          style={{ flex: 2, padding: "14px 14px", borderRadius: 16, border: "none", background: "#10B981",
+          style={{ flex: 2, padding: "14px 14px", borderRadius: 18, border: "none", background: "var(--primary)",
+            boxShadow: "0 8px 20px rgba(27,155,117,.28)",
             color: "#fff", fontFamily: "inherit", fontSize: 14, fontWeight: 800, cursor: "pointer" }}>
           {busy ? "กำลังบันทึก…" : okText}
         </button>

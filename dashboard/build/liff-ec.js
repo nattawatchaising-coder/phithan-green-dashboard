@@ -1,14 +1,8 @@
-const LN_EC_FIELD = {
-  width: "100%",
-  padding: "12px 13px",
-  borderRadius: 16,
-  border: "1px solid var(--border-strong)",
-  background: "var(--surface2)",
-  color: "var(--text-1)",
-  fontFamily: "inherit",
-  fontSize: 16,
-  outline: "none"
-};
+const lnEcF = locked => locked ? Object.assign({}, LN_FIELD, {
+  background: "var(--surface3)",
+  color: "var(--text-2)",
+  boxShadow: "none"
+}) : LN_FIELD;
 function LnChips({
   list,
   value,
@@ -20,24 +14,11 @@ function LnChips({
       flexWrap: "wrap",
       gap: 7
     }
-  }, list.map(k => {
-    const on = value === k.key;
-    return React.createElement("button", {
-      key: k.key,
-      onClick: () => onChange(k.key),
-      style: {
-        padding: "9px 13px",
-        borderRadius: 14,
-        cursor: "pointer",
-        fontFamily: "inherit",
-        fontSize: 13,
-        fontWeight: 700,
-        border: "1px solid " + (on ? k.color : "var(--border-strong)"),
-        background: on ? k.color + "1A" : "var(--surface2)",
-        color: on ? k.color : "var(--text-2)"
-      }
-    }, k.th);
-  }));
+  }, list.map(k => React.createElement("button", {
+    key: k.key,
+    onClick: () => onChange(k.key),
+    style: lnChip(value === k.key, k.color)
+  }, k.th)));
 }
 function LnEcForm({
   me,
@@ -116,61 +97,20 @@ function LnEcForm({
   };
   const noBill = rec.shots.length === 0;
   return React.createElement("div", {
+    style: LN_SHEET
+  }, React.createElement(LnSheetHead, {
+    title: locked ? "ใบเบิกเงิน" : "เบิกเงิน",
+    no: c.no,
+    onClose: onClose
+  }), React.createElement("div", {
     style: {
-      position: "fixed",
-      inset: 0,
-      zIndex: 60,
-      background: "var(--bg)",
-      overflowY: "auto",
-      overflowX: "hidden"
-    }
-  }, React.createElement("div", {
-    style: {
-      position: "sticky",
-      top: 0,
-      zIndex: 2,
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      padding: "13px 16px",
-      background: "var(--surface)",
-      borderBottom: "1px solid var(--border)",
-      paddingTop: "calc(13px + env(safe-area-inset-top, 0px))"
-    }
-  }, React.createElement("button", {
-    onClick: onClose,
-    style: {
-      border: "none",
-      background: "none",
-      cursor: "pointer",
-      padding: 4,
-      lineHeight: 0
-    }
-  }, React.createElement(Icon, {
-    name: "x",
-    size: 20,
-    color: "var(--text-2)"
-  })), React.createElement("b", {
-    style: {
-      fontSize: 15.5,
-      color: "var(--text-1)"
-    }
-  }, locked ? "ใบเบิกเงิน" : "เบิกเงิน"), React.createElement("span", {
-    style: {
-      marginLeft: "auto",
-      fontFamily: "var(--mono)",
-      fontSize: 11.5,
-      color: "var(--text-3)"
-    }
-  }, c.no)), React.createElement("div", {
-    style: {
-      padding: 18,
+      padding: "2px 16px 22px",
       display: "grid",
-      gap: 14
+      gap: 15
     }
   }, locked && React.createElement("div", {
     style: {
-      padding: "11px 13px",
+      padding: "12px 14px",
       borderRadius: 16,
       fontSize: 12.5,
       fontWeight: 700,
@@ -181,14 +121,10 @@ function LnEcForm({
   }, window.ecStatusOf(c.status).th, " \u2014 \u0E41\u0E01\u0E49\u0E44\u0E02\u0E08\u0E32\u0E01\u0E21\u0E37\u0E2D\u0E16\u0E37\u0E2D\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E41\u0E25\u0E49\u0E27"), React.createElement("div", {
     style: {
       display: "grid",
-      gap: 6
+      gap: 7
     }
   }, React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
+    style: LN_LABEL
   }, "\u0E08\u0E48\u0E32\u0E22\u0E04\u0E48\u0E32\u0E2D\u0E30\u0E44\u0E23"), locked ? React.createElement("b", {
     style: {
       fontSize: 14,
@@ -203,14 +139,10 @@ function LnEcForm({
   })), React.createElement("div", {
     style: {
       display: "grid",
-      gap: 6
+      gap: 7
     }
   }, React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
+    style: LN_LABEL
   }, "\u0E43\u0E04\u0E23\u0E2D\u0E2D\u0E01\u0E40\u0E07\u0E34\u0E19\u0E44\u0E1B\u0E01\u0E48\u0E2D\u0E19"), locked ? React.createElement("b", {
     style: {
       fontSize: 14,
@@ -238,7 +170,7 @@ function LnEcForm({
         owedToName: u ? u.name || u.username || "" : ""
       });
     },
-    style: LN_EC_FIELD
+    style: lnEcF(locked)
   }, React.createElement("option", {
     value: ""
   }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E04\u0E19\u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E01\u0E40\u0E07\u0E34\u0E19\u0E43\u0E2B\u0E49 \u2014"), (users || []).filter(u => u.active !== false && u.id !== c.byId).map(u => React.createElement("option", {
@@ -250,40 +182,22 @@ function LnEcForm({
       color: "var(--text-3)",
       lineHeight: 1.6
     }
-  }, c.payMethod === "mate" && !c.owedToId ? "ยังไม่ได้เลือกคน — ถ้าปล่อยไว้ เงินคืนจะเข้าชื่อคนเปิดใบ" : window.ecPayOf(c.payMethod).hint)), React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 5
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
-  }, "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E08\u0E48\u0E32\u0E22\u0E40\u0E07\u0E34\u0E19"), React.createElement("input", {
+  }, c.payMethod === "mate" && !c.owedToId ? "ยังไม่ได้เลือกคน — ถ้าปล่อยไว้ เงินคืนจะเข้าชื่อคนเปิดใบ" : window.ecPayOf(c.payMethod).hint)), React.createElement(LnField, {
+    label: "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E08\u0E48\u0E32\u0E22\u0E40\u0E07\u0E34\u0E19"
+  }, React.createElement("input", {
     type: "date",
     value: c.date,
     disabled: locked,
     onChange: e => set({
       date: e.target.value
     }),
-    style: LN_EC_FIELD
-  })), React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 5
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
-  }, "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E40\u0E01\u0E35\u0E48\u0E22\u0E27\u0E02\u0E49\u0E2D\u0E07 (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A)"), React.createElement("select", {
+    style: lnEcF(locked)
+  })), React.createElement(LnField, {
+    label: "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E40\u0E01\u0E35\u0E48\u0E22\u0E27\u0E02\u0E49\u0E2D\u0E07 (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A)"
+  }, React.createElement("select", {
     value: c.jobId || "",
     disabled: locked,
-    style: LN_EC_FIELD,
+    style: lnEcF(locked),
     onChange: e => {
       const j = (jobs || []).find(x => x.id === e.target.value);
       set({
@@ -300,14 +214,10 @@ function LnEcForm({
   }, j.code, " \xB7 ", j.name)))), React.createElement("div", {
     style: {
       display: "grid",
-      gap: 7
+      gap: 8
     }
   }, React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
+    style: LN_LABEL
   }, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E17\u0E35\u0E48\u0E08\u0E48\u0E32\u0E22"), rows.map((r, i) => React.createElement("div", {
     key: i,
     style: {
@@ -319,7 +229,7 @@ function LnEcForm({
     disabled: locked,
     placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E2A\u0E32\u0E22\u0E44\u0E1F 2.5 sq.mm.",
     onChange: e => setRow(i, "name", e.target.value),
-    style: Object.assign({}, LN_EC_FIELD, {
+    style: Object.assign({}, lnEcF(locked), {
       flex: 1
     })
   }), React.createElement("input", {
@@ -328,7 +238,7 @@ function LnEcForm({
     inputMode: "decimal",
     placeholder: "0.00",
     onChange: e => setRow(i, "amount", e.target.value),
-    style: Object.assign({}, LN_EC_FIELD, {
+    style: Object.assign({}, lnEcF(locked), {
       width: 104,
       fontFamily: "var(--mono)",
       textAlign: "right"
@@ -348,23 +258,24 @@ function LnEcForm({
   })))), !locked && React.createElement("button", {
     onClick: addRow,
     style: {
-      padding: "10px 13px",
-      borderRadius: 14,
+      padding: "12px 15px",
+      borderRadius: 16,
       border: "1px dashed var(--border-strong)",
       background: "none",
       color: "var(--text-2)",
       fontFamily: "inherit",
-      fontSize: 13,
-      fontWeight: 700,
+      fontSize: 13.5,
+      fontWeight: 800,
       cursor: "pointer"
     }
   }, "+ \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"), React.createElement("div", {
-    style: {
+    style: Object.assign({
       display: "flex",
       alignItems: "baseline",
       gap: 8,
-      paddingTop: 3
-    }
+      padding: "12px 15px",
+      marginTop: 2
+    }, LN_CARD)
   }, React.createElement("span", {
     style: {
       fontSize: 12,
@@ -376,25 +287,16 @@ function LnEcForm({
       fontFamily: "var(--mono)",
       fontSize: 22,
       fontWeight: 800,
-      color: "var(--text-1)"
+      color: total > 0 ? "var(--primary-dark)" : "var(--text-3)"
     }
   }, window.ecBaht(total)), React.createElement("span", {
     style: {
       fontSize: 12,
       color: "var(--text-3)"
     }
-  }, "\u0E1A\u0E32\u0E17"))), React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 5
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
-  }, "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38"), React.createElement("textarea", {
+  }, "\u0E1A\u0E32\u0E17"))), React.createElement(LnField, {
+    label: "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38"
+  }, React.createElement("textarea", {
     rows: 2,
     value: c.note || "",
     disabled: locked,
@@ -402,21 +304,17 @@ function LnEcForm({
     onChange: e => set({
       note: e.target.value
     }),
-    style: Object.assign({}, LN_EC_FIELD, {
+    style: Object.assign({}, lnEcF(locked), {
       resize: "vertical",
       lineHeight: 1.6
     })
   })), React.createElement("div", {
     style: {
       display: "grid",
-      gap: 7
+      gap: 8
     }
   }, React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
+    style: LN_LABEL
   }, "\u0E1A\u0E34\u0E25 / \u0E43\u0E1A\u0E40\u0E2A\u0E23\u0E47\u0E08"), React.createElement("div", {
     style: {
       display: "flex",
@@ -436,8 +334,9 @@ function LnEcForm({
       width: 84,
       height: 84,
       objectFit: "cover",
-      borderRadius: 13,
-      border: "1px solid var(--border)"
+      borderRadius: 16,
+      border: "1px solid var(--border)",
+      boxShadow: "var(--soft)"
     }
   }), !locked && React.createElement("button", {
     onClick: () => rec.remove(s.id),
@@ -461,8 +360,10 @@ function LnEcForm({
     style: {
       width: 84,
       height: 84,
-      borderRadius: 13,
+      borderRadius: 16,
       border: "1px dashed var(--border-strong)",
+      background: "var(--surface)",
+      boxShadow: "var(--soft)",
       display: "grid",
       placeItems: "center",
       cursor: "pointer",
@@ -496,33 +397,22 @@ function LnEcForm({
   }, React.createElement("button", {
     onClick: send,
     disabled: busy || total <= 0,
-    style: {
-      width: "100%",
-      padding: "16px 18px",
-      borderRadius: 20,
-      border: "none",
-      fontFamily: "inherit",
-      fontSize: 16,
-      fontWeight: 800,
-      cursor: "pointer",
+    style: Object.assign({}, LN_BTN, {
       background: !busy && total > 0 ? "var(--primary)" : "var(--surface3)",
+      boxShadow: !busy && total > 0 ? "0 8px 20px rgba(27,155,117,.28)" : "none",
       color: !busy && total > 0 ? "#fff" : "var(--text-3)"
-    }
+    })
   }, busy ? "กำลังบันทึก…" : "ส่งขออนุมัติ"), React.createElement("button", {
     onClick: saveDraft,
     disabled: busy,
-    style: {
-      width: "100%",
+    style: Object.assign({}, LN_BTN, {
       padding: "13px 18px",
-      borderRadius: 18,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface2)",
-      color: "var(--text-2)",
-      fontFamily: "inherit",
       fontSize: 14,
-      fontWeight: 700,
-      cursor: "pointer"
-    }
+      border: "1px solid var(--border)",
+      boxShadow: "var(--soft)",
+      background: "var(--surface)",
+      color: "var(--text-2)"
+    })
   }, "\u0E40\u0E01\u0E47\u0E1A\u0E40\u0E1B\u0E47\u0E19\u0E23\u0E48\u0E32\u0E07\u0E44\u0E27\u0E49\u0E01\u0E48\u0E2D\u0E19"), total <= 0 && React.createElement("div", {
     style: {
       fontSize: 11.5,
@@ -536,11 +426,7 @@ function LnEcForm({
       paddingTop: 3
     }
   }, React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
+    style: LN_LABEL
   }, "\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E43\u0E1A\u0E19\u0E35\u0E49"), (c.hist || []).slice().reverse().slice(0, 6).map((h, i) => React.createElement("div", {
     key: i,
     style: {

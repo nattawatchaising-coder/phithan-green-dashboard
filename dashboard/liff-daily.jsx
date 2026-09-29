@@ -15,9 +15,15 @@
 
 const LN_DR_MAX = 8;
 
-const LN_DR_FIELD = { width: "100%", padding: "12px 13px", borderRadius: 16, border: "1px solid var(--border-strong)",
-  background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 16, outline: "none" };
-const LN_DR_LABEL = { fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" };
+/* ทรงช่องกรอก (LN_FIELD) ป้ายกำกับ (LN_LABEL · LnField) การ์ด (LN_CARD) และปุ่ม (LN_BTN)
+   อยู่ใน liff-ui.jsx ซึ่งโหลดก่อนไฟล์นี้ — เดิมที่นี่ประกาศ LN_DR_FIELD / LN_DR_LABEL
+   ของตัวเองที่เหมือนของอีกสองไฟล์เป๊ะ พอเปลี่ยนโทนทีก็เหลือหน้านี้ไว้หน้าเดียวทุกที
+
+   ใบที่ส่งไปแล้วอ่านได้อย่างเดียว — ช่องที่ล็อกเป็นพื้นเทาไม่มีเงา
+   ช่องขาวลอยที่กดไม่ลงคือช่องที่คนอ่านว่าแอปค้าง ไม่ได้อ่านว่าใบถูกล็อก */
+const lnDrF = (locked) => locked
+  ? Object.assign({}, LN_FIELD, { background: "var(--surface3)", color: "var(--text-2)", boxShadow: "none" })
+  : LN_FIELD;
 
 /* ── ฟอร์มรายงานของวันหนึ่ง ── */
 function LnDailyForm({ me, role, job, date, store, notify }) {
@@ -117,13 +123,13 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
       )}
 
       <div style={{ display: "grid", gap: 6 }}>
-        <span style={LN_DR_LABEL}>อากาศวันนี้</span>
+        <span style={LN_LABEL}>อากาศวันนี้</span>
         <div style={{ display: "flex", gap: 10 }}>
           {[["weatherAm", "ช่วงเช้า"], ["weatherPm", "ช่วงบ่าย"]].map(([k, th]) => (
             <div key={k} style={{ flex: 1 }}>
               <div style={{ fontSize: 11, color: "var(--text-3)", marginBottom: 4 }}>{th}</div>
               <select value={form[k] || ""} disabled={locked} onChange={(e) => set({ [k]: e.target.value })}
-                style={Object.assign({}, LN_DR_FIELD, { fontSize: 14 })}>
+                style={Object.assign({}, lnDrF(locked), { fontSize: 14 })}>
                 <option value="">—</option>
                 {window.DR_WEATHER.map((w) => <option key={w.key} value={w.key}>{w.th}</option>)}
               </select>
@@ -132,18 +138,17 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
         </div>
       </div>
 
-      <label style={{ display: "grid", gap: 5 }}>
-        {/* ป้ายบอกว่าบังคับกรอก — ปุ่มส่งจะกดไม่ได้จนกว่าช่องนี้มีข้อความ
-            ปุ่มที่กดไม่ลงโดยไม่บอกสาเหตุ คนอ่านว่าแอปพัง ไม่ได้อ่านว่ากรอกไม่ครบ */}
-        <span style={LN_DR_LABEL}>วันนี้ทำอะไรไปบ้าง <span style={{ color: "#EF4444" }}>*</span></span>
+      {/* req — ปุ่มส่งจะกดไม่ได้จนกว่าช่องนี้มีข้อความ
+          ปุ่มที่กดไม่ลงโดยไม่บอกสาเหตุ คนอ่านว่าแอปพัง ไม่ได้อ่านว่ากรอกไม่ครบ */}
+      <LnField label="วันนี้ทำอะไรไปบ้าง" req>
         <textarea rows={4} value={form.work || ""} disabled={locked} onChange={(e) => set({ work: e.target.value })}
           placeholder="เช่น ยกแผงขึ้นหลังคาแถวที่ 1-3 เสร็จ · เดินสาย DC ฝั่งตะวันออก"
-          style={Object.assign({}, LN_DR_FIELD, { resize: "vertical", lineHeight: 1.6 })} />
-      </label>
+          style={Object.assign({}, lnDrF(locked), { resize: "vertical", lineHeight: 1.6 })} />
+      </LnField>
 
       <div style={{ display: "grid", gap: 7 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-          <span style={LN_DR_LABEL}>ความคืบหน้าเนื้องาน</span>
+          <span style={LN_LABEL}>ความคืบหน้าเนื้องาน</span>
           <span style={{ marginLeft: "auto", fontFamily: "var(--mono)", fontSize: 19, fontWeight: 800, color: "var(--primary-dark)" }}>
             {form.mode === "project" ? window.drRollup(form.steps) : form.pct}%
           </span>
@@ -158,8 +163,12 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
               <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: "var(--text-1)" }}>{r.th}</span>
               <input value={r.pct || ""} disabled={locked} inputMode="numeric" placeholder="0"
                 onChange={(e) => setStep(i, e.target.value)}
-                style={{ width: 58, padding: "7px 8px", borderRadius: 12, border: "1px solid var(--border-strong)",
-                  background: "var(--surface2)", color: "var(--text-1)", fontFamily: "var(--mono)", fontSize: 13,
+                /* ⚠ fontSize 16 ที่นี่เท่ากับ iOS ซูมหน้าทุกครั้งที่แตะช่องในตาราง
+                   ช่องนี้จึงเป็นข้อยกเว้นเดียวที่ยอมให้เล็กกว่า — ตัวเลขสองหลักไม่ต้องอ่านยาก
+                   และตารางนี้มีหลายสิบแถว ช่อง 16px จะดันแถวสูงจนเลื่อนหาไม่เจอ */
+                style={{ width: 58, padding: "7px 8px", borderRadius: 12, border: "1px solid var(--border)",
+                  background: locked ? "var(--surface3)" : "var(--surface)", boxShadow: locked ? "none" : "var(--soft)",
+                  color: "var(--text-1)", fontFamily: "var(--mono)", fontSize: 13,
                   textAlign: "right", outline: "none" }} />
               <span style={{ fontSize: 11, color: "var(--text-3)" }}>%</span>
             </div>
@@ -167,29 +176,26 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
         </div>
       </div>
 
-      <label style={{ display: "grid", gap: 5 }}>
-        <span style={LN_DR_LABEL}>ปัญหา / อุปสรรค</span>
+      <LnField label="ปัญหา / อุปสรรค">
         <textarea rows={2} value={form.problem || ""} disabled={locked} onChange={(e) => set({ problem: e.target.value })}
           placeholder="ไม่มีก็เว้นว่างไว้"
-          style={Object.assign({}, LN_DR_FIELD, { resize: "vertical", lineHeight: 1.6 })} />
-      </label>
+          style={Object.assign({}, lnDrF(locked), { resize: "vertical", lineHeight: 1.6 })} />
+      </LnField>
 
-      <label style={{ display: "grid", gap: 5 }}>
-        <span style={LN_DR_LABEL}>แผนงานพรุ่งนี้</span>
+      <LnField label="แผนงานพรุ่งนี้">
         <textarea rows={2} value={form.nextDay || ""} disabled={locked} onChange={(e) => set({ nextDay: e.target.value })}
-          style={Object.assign({}, LN_DR_FIELD, { resize: "vertical", lineHeight: 1.6 })} />
-      </label>
+          style={Object.assign({}, lnDrF(locked), { resize: "vertical", lineHeight: 1.6 })} />
+      </LnField>
 
-      <label style={{ display: "grid", gap: 5 }}>
-        <span style={LN_DR_LABEL}>ทีมงานวันนี้</span>
+      <LnField label="ทีมงานวันนี้">
         <input value={form.team || ""} disabled={locked} onChange={(e) => set({ team: e.target.value })}
-          placeholder="เช่น ช่าง 3 คน · ผู้ช่วย 2 คน" style={LN_DR_FIELD} />
-      </label>
+          placeholder="เช่น ช่าง 3 คน · ผู้ช่วย 2 คน" style={lnDrF(locked)} />
+      </LnField>
 
       {/* ── รูปหน้างาน ── */}
       <div style={{ display: "grid", gap: 7 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-          <span style={LN_DR_LABEL}>รูปหน้างาน</span>
+          <span style={LN_LABEL}>รูปหน้างาน</span>
           <span style={{ marginLeft: "auto", fontSize: 11, color: full ? "var(--tint-amber-tx)" : "var(--text-3)" }}>
             {photos.photos.length}/{LN_DR_MAX} รูป
           </span>
@@ -202,7 +208,8 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
             <div key={p.id} style={{ display: "flex", gap: 9, alignItems: "flex-start" }}>
               <div style={{ position: "relative", flexShrink: 0 }}>
                 <img src={p.dataUrl} alt="" onClick={() => setZoom(p.dataUrl)}
-                  style={{ width: 84, height: 84, objectFit: "cover", borderRadius: 13, border: "1px solid var(--border)" }} />
+                  style={{ width: 84, height: 84, objectFit: "cover", borderRadius: 16,
+                    border: "1px solid var(--border)", boxShadow: "var(--soft)" }} />
                 {!locked && (
                   <button onClick={() => photos.remove(p.id)}
                     style={{ position: "absolute", top: -6, right: -6, width: 24, height: 24, borderRadius: 99, border: "none",
@@ -220,7 +227,8 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
             </div>
           ))}
           {!locked && !full && (
-            <label style={{ width: 84, height: 84, borderRadius: 13, border: "1px dashed var(--border-strong)",
+            <label style={{ width: 84, height: 84, borderRadius: 16, border: "1px dashed var(--border-strong)",
+              background: "var(--surface)", boxShadow: "var(--soft)",
               display: "grid", placeItems: "center", cursor: "pointer" }}>
               <Icon name="camera" size={22} color="var(--text-3)" />
               <input type="file" accept="image/*" capture="environment" multiple onChange={onPick} style={{ display: "none" }} />
@@ -241,16 +249,16 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
       {!locked && (
         <div style={{ display: "grid", gap: 9 }}>
           <button onClick={send} disabled={busy || !(form.work || "").trim()}
-            style={{ width: "100%", padding: "16px 18px", borderRadius: 20, border: "none", fontFamily: "inherit",
-              fontSize: 16, fontWeight: 800, cursor: "pointer",
+            style={Object.assign({}, LN_BTN, {
               background: !busy && (form.work || "").trim() ? "var(--primary)" : "var(--surface3)",
-              color: !busy && (form.work || "").trim() ? "#fff" : "var(--text-3)" }}>
+              boxShadow: !busy && (form.work || "").trim() ? "0 8px 20px rgba(27,155,117,.28)" : "none",
+              color: !busy && (form.work || "").trim() ? "#fff" : "var(--text-3)" })}>
             {busy ? "กำลังบันทึก…" : "เซ็นแล้วส่งให้อนุมัติ"}
           </button>
           <button onClick={saveDraft} disabled={busy}
-            style={{ width: "100%", padding: "13px 18px", borderRadius: 18, border: "1px solid var(--border-strong)",
-              background: "var(--surface2)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 14,
-              fontWeight: 700, cursor: "pointer" }}>
+            style={Object.assign({}, LN_BTN, { padding: "13px 18px", fontSize: 14,
+              border: "1px solid var(--border)", boxShadow: "var(--soft)",
+              background: "var(--surface)", color: "var(--text-2)" })}>
             เก็บเป็นร่างไว้ก่อน
           </button>
           {!(form.work || "").trim() && (
@@ -365,21 +373,20 @@ function LnDailyTab({ me, role, jobs, allJobs, notify }) {
       {tabs && <div style={{ margin: "0 -4px" }}>{tabs}</div>}
       <div style={{ display: "grid", gap: 9 }}>
         <div style={{ display: "grid", gap: 6 }}>
-          <span style={LN_DR_LABEL}>งาน</span>
+          <span style={LN_LABEL}>งาน</span>
           {(jobs || []).length > 1 && window.LnPick && (
             <window.LnPick items={[{ key: "all", th: "ทั้งหมด" }].concat(
                 ((window.SF || {}).TYPES || []).map((t) => ({ key: t.key, th: t.th })))}
               value={jobType} onPick={(k) => { setJobType(k); setJobId(""); }} />
           )}
-          <select value={jobId} onChange={(e) => setJobId(e.target.value)} style={LN_DR_FIELD}>
+          <select value={jobId} onChange={(e) => setJobId(e.target.value)} style={LN_FIELD}>
             <option value="">— เลือกงาน —</option>
             {show.slice(0, 80).map((j) => <option key={j.id} value={j.id}>{j.code} · {j.name}</option>)}
           </select>
         </div>
-        <label style={{ display: "grid", gap: 5 }}>
-          <span style={LN_DR_LABEL}>วันที่</span>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value || window.drToday())} style={LN_DR_FIELD} />
-        </label>
+        <LnField label="วันที่">
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value || window.drToday())} style={LN_FIELD} />
+        </LnField>
       </div>
 
       {job && (

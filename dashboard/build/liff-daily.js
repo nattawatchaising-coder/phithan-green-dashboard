@@ -1,20 +1,9 @@
 const LN_DR_MAX = 8;
-const LN_DR_FIELD = {
-  width: "100%",
-  padding: "12px 13px",
-  borderRadius: 16,
-  border: "1px solid var(--border-strong)",
-  background: "var(--surface2)",
-  color: "var(--text-1)",
-  fontFamily: "inherit",
-  fontSize: 16,
-  outline: "none"
-};
-const LN_DR_LABEL = {
-  fontSize: 11.5,
-  fontWeight: 700,
-  color: "var(--text-3)"
-};
+const lnDrF = locked => locked ? Object.assign({}, LN_FIELD, {
+  background: "var(--surface3)",
+  color: "var(--text-2)",
+  boxShadow: "none"
+}) : LN_FIELD;
 function LnDailyForm({
   me,
   role,
@@ -135,7 +124,7 @@ function LnDailyForm({
       gap: 6
     }
   }, React.createElement("span", {
-    style: LN_DR_LABEL
+    style: LN_LABEL
   }, "\u0E2D\u0E32\u0E01\u0E32\u0E28\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49"), React.createElement("div", {
     style: {
       display: "flex",
@@ -158,7 +147,7 @@ function LnDailyForm({
     onChange: e => set({
       [k]: e.target.value
     }),
-    style: Object.assign({}, LN_DR_FIELD, {
+    style: Object.assign({}, lnDrF(locked), {
       fontSize: 14
     })
   }, React.createElement("option", {
@@ -166,18 +155,10 @@ function LnDailyForm({
   }, "\u2014"), window.DR_WEATHER.map(w => React.createElement("option", {
     key: w.key,
     value: w.key
-  }, w.th))))))), React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 5
-    }
-  }, React.createElement("span", {
-    style: LN_DR_LABEL
-  }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\u0E17\u0E33\u0E2D\u0E30\u0E44\u0E23\u0E44\u0E1B\u0E1A\u0E49\u0E32\u0E07 ", React.createElement("span", {
-    style: {
-      color: "#EF4444"
-    }
-  }, "*")), React.createElement("textarea", {
+  }, w.th))))))), React.createElement(LnField, {
+    label: "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\u0E17\u0E33\u0E2D\u0E30\u0E44\u0E23\u0E44\u0E1B\u0E1A\u0E49\u0E32\u0E07",
+    req: true
+  }, React.createElement("textarea", {
     rows: 4,
     value: form.work || "",
     disabled: locked,
@@ -185,7 +166,7 @@ function LnDailyForm({
       work: e.target.value
     }),
     placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E22\u0E01\u0E41\u0E1C\u0E07\u0E02\u0E36\u0E49\u0E19\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E41\u0E16\u0E27\u0E17\u0E35\u0E48 1-3 \u0E40\u0E2A\u0E23\u0E47\u0E08 \xB7 \u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22 DC \u0E1D\u0E31\u0E48\u0E07\u0E15\u0E30\u0E27\u0E31\u0E19\u0E2D\u0E2D\u0E01",
-    style: Object.assign({}, LN_DR_FIELD, {
+    style: Object.assign({}, lnDrF(locked), {
       resize: "vertical",
       lineHeight: 1.6
     })
@@ -201,7 +182,7 @@ function LnDailyForm({
       gap: 8
     }
   }, React.createElement("span", {
-    style: LN_DR_LABEL
+    style: LN_LABEL
   }, "\u0E04\u0E27\u0E32\u0E21\u0E04\u0E37\u0E1A\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E19\u0E37\u0E49\u0E2D\u0E07\u0E32\u0E19"), React.createElement("span", {
     style: {
       marginLeft: "auto",
@@ -257,8 +238,9 @@ function LnDailyForm({
       width: 58,
       padding: "7px 8px",
       borderRadius: 12,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface2)",
+      border: "1px solid var(--border)",
+      background: locked ? "var(--surface3)" : "var(--surface)",
+      boxShadow: locked ? "none" : "var(--soft)",
       color: "var(--text-1)",
       fontFamily: "var(--mono)",
       fontSize: 13,
@@ -270,14 +252,9 @@ function LnDailyForm({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, "%"))))), React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 5
-    }
-  }, React.createElement("span", {
-    style: LN_DR_LABEL
-  }, "\u0E1B\u0E31\u0E0D\u0E2B\u0E32 / \u0E2D\u0E38\u0E1B\u0E2A\u0E23\u0E23\u0E04"), React.createElement("textarea", {
+  }, "%"))))), React.createElement(LnField, {
+    label: "\u0E1B\u0E31\u0E0D\u0E2B\u0E32 / \u0E2D\u0E38\u0E1B\u0E2A\u0E23\u0E23\u0E04"
+  }, React.createElement("textarea", {
     rows: 2,
     value: form.problem || "",
     disabled: locked,
@@ -285,43 +262,33 @@ function LnDailyForm({
       problem: e.target.value
     }),
     placeholder: "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E01\u0E47\u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07\u0E44\u0E27\u0E49",
-    style: Object.assign({}, LN_DR_FIELD, {
+    style: Object.assign({}, lnDrF(locked), {
       resize: "vertical",
       lineHeight: 1.6
     })
-  })), React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 5
-    }
-  }, React.createElement("span", {
-    style: LN_DR_LABEL
-  }, "\u0E41\u0E1C\u0E19\u0E07\u0E32\u0E19\u0E1E\u0E23\u0E38\u0E48\u0E07\u0E19\u0E35\u0E49"), React.createElement("textarea", {
+  })), React.createElement(LnField, {
+    label: "\u0E41\u0E1C\u0E19\u0E07\u0E32\u0E19\u0E1E\u0E23\u0E38\u0E48\u0E07\u0E19\u0E35\u0E49"
+  }, React.createElement("textarea", {
     rows: 2,
     value: form.nextDay || "",
     disabled: locked,
     onChange: e => set({
       nextDay: e.target.value
     }),
-    style: Object.assign({}, LN_DR_FIELD, {
+    style: Object.assign({}, lnDrF(locked), {
       resize: "vertical",
       lineHeight: 1.6
     })
-  })), React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 5
-    }
-  }, React.createElement("span", {
-    style: LN_DR_LABEL
-  }, "\u0E17\u0E35\u0E21\u0E07\u0E32\u0E19\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49"), React.createElement("input", {
+  })), React.createElement(LnField, {
+    label: "\u0E17\u0E35\u0E21\u0E07\u0E32\u0E19\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49"
+  }, React.createElement("input", {
     value: form.team || "",
     disabled: locked,
     onChange: e => set({
       team: e.target.value
     }),
     placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E0A\u0E48\u0E32\u0E07 3 \u0E04\u0E19 \xB7 \u0E1C\u0E39\u0E49\u0E0A\u0E48\u0E27\u0E22 2 \u0E04\u0E19",
-    style: LN_DR_FIELD
+    style: lnDrF(locked)
   })), React.createElement("div", {
     style: {
       display: "grid",
@@ -334,7 +301,7 @@ function LnDailyForm({
       gap: 8
     }
   }, React.createElement("span", {
-    style: LN_DR_LABEL
+    style: LN_LABEL
   }, "\u0E23\u0E39\u0E1B\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19"), React.createElement("span", {
     style: {
       marginLeft: "auto",
@@ -366,8 +333,9 @@ function LnDailyForm({
       width: 84,
       height: 84,
       objectFit: "cover",
-      borderRadius: 13,
-      border: "1px solid var(--border)"
+      borderRadius: 16,
+      border: "1px solid var(--border)",
+      boxShadow: "var(--soft)"
     }
   }), !locked && React.createElement("button", {
     onClick: () => photos.remove(p.id),
@@ -405,8 +373,10 @@ function LnDailyForm({
     style: {
       width: 84,
       height: 84,
-      borderRadius: 13,
+      borderRadius: 16,
       border: "1px dashed var(--border-strong)",
+      background: "var(--surface)",
+      boxShadow: "var(--soft)",
       display: "grid",
       placeItems: "center",
       cursor: "pointer"
@@ -448,33 +418,22 @@ function LnDailyForm({
   }, React.createElement("button", {
     onClick: send,
     disabled: busy || !(form.work || "").trim(),
-    style: {
-      width: "100%",
-      padding: "16px 18px",
-      borderRadius: 20,
-      border: "none",
-      fontFamily: "inherit",
-      fontSize: 16,
-      fontWeight: 800,
-      cursor: "pointer",
+    style: Object.assign({}, LN_BTN, {
       background: !busy && (form.work || "").trim() ? "var(--primary)" : "var(--surface3)",
+      boxShadow: !busy && (form.work || "").trim() ? "0 8px 20px rgba(27,155,117,.28)" : "none",
       color: !busy && (form.work || "").trim() ? "#fff" : "var(--text-3)"
-    }
+    })
   }, busy ? "กำลังบันทึก…" : "เซ็นแล้วส่งให้อนุมัติ"), React.createElement("button", {
     onClick: saveDraft,
     disabled: busy,
-    style: {
-      width: "100%",
+    style: Object.assign({}, LN_BTN, {
       padding: "13px 18px",
-      borderRadius: 18,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface2)",
-      color: "var(--text-2)",
-      fontFamily: "inherit",
       fontSize: 14,
-      fontWeight: 700,
-      cursor: "pointer"
-    }
+      border: "1px solid var(--border)",
+      boxShadow: "var(--soft)",
+      background: "var(--surface)",
+      color: "var(--text-2)"
+    })
   }, "\u0E40\u0E01\u0E47\u0E1A\u0E40\u0E1B\u0E47\u0E19\u0E23\u0E48\u0E32\u0E07\u0E44\u0E27\u0E49\u0E01\u0E48\u0E2D\u0E19"), !(form.work || "").trim() && React.createElement("div", {
     style: {
       fontSize: 11.5,
@@ -638,7 +597,7 @@ function LnDailyTab({
       gap: 6
     }
   }, React.createElement("span", {
-    style: LN_DR_LABEL
+    style: LN_LABEL
   }, "\u0E07\u0E32\u0E19"), (jobs || []).length > 1 && window.LnPick && React.createElement(window.LnPick, {
     items: [{
       key: "all",
@@ -655,24 +614,19 @@ function LnDailyTab({
   }), React.createElement("select", {
     value: jobId,
     onChange: e => setJobId(e.target.value),
-    style: LN_DR_FIELD
+    style: LN_FIELD
   }, React.createElement("option", {
     value: ""
   }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E07\u0E32\u0E19 \u2014"), show.slice(0, 80).map(j => React.createElement("option", {
     key: j.id,
     value: j.id
-  }, j.code, " \xB7 ", j.name)))), React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 5
-    }
-  }, React.createElement("span", {
-    style: LN_DR_LABEL
-  }, "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48"), React.createElement("input", {
+  }, j.code, " \xB7 ", j.name)))), React.createElement(LnField, {
+    label: "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48"
+  }, React.createElement("input", {
     type: "date",
     value: date,
     onChange: e => setDate(e.target.value || window.drToday()),
-    style: LN_DR_FIELD
+    style: LN_FIELD
   }))), job && React.createElement("div", {
     style: {
       marginTop: 11,

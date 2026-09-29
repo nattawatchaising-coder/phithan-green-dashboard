@@ -24,27 +24,11 @@ function lnCanApproveAny(role, jobs, me) {
   const uid = (me || {}).id || "";
   return !!uid && (jobs || []).some(j => j && j.eeId === uid);
 }
-const LN_AP_SHEET = {
-  position: "fixed",
-  inset: 0,
-  zIndex: 60,
-  background: "var(--bg)",
-  overflowY: "auto",
-  overflowX: "hidden"
-};
-const LN_AP_NOTE = {
-  width: "100%",
-  padding: "12px 13px",
-  borderRadius: 16,
-  border: "1px solid var(--border-strong)",
-  background: "var(--surface2)",
-  color: "var(--text-1)",
-  fontFamily: "inherit",
-  fontSize: 16,
-  outline: "none",
+const LN_AP_SHEET = LN_SHEET;
+const LN_AP_NOTE = Object.assign({}, LN_FIELD, {
   resize: "vertical",
   lineHeight: 1.6
-};
+});
 function LnApRows({
   rows
 }) {
@@ -97,10 +81,9 @@ function LnApHead({
       position: "sticky",
       top: 0,
       zIndex: 2,
-      background: "var(--surface)",
-      borderBottom: "1px solid var(--border)",
-      padding: "13px 16px",
-      paddingTop: "calc(13px + env(safe-area-inset-top, 0px))",
+      background: "var(--bg)",
+      padding: "14px 16px 12px",
+      paddingTop: "calc(14px + env(safe-area-inset-top, 0px))",
       display: "flex",
       gap: 11,
       alignItems: "flex-start"
@@ -145,21 +128,25 @@ function LnApHead({
     }
   }, sub)), React.createElement("button", {
     onClick: onClose,
+    "aria-label": "\u0E1B\u0E34\u0E14",
     style: {
       flexShrink: 0,
-      width: 32,
-      height: 32,
+      width: 34,
+      height: 34,
       borderRadius: 99,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
-      color: "var(--text-2)",
-      fontFamily: "inherit",
-      fontSize: 16,
+      padding: 0,
       cursor: "pointer",
-      lineHeight: "30px",
-      padding: 0
+      border: "1px solid var(--border)",
+      boxShadow: "var(--soft)",
+      background: "var(--surface)",
+      display: "grid",
+      placeItems: "center"
     }
-  }, "\xD7"));
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 18,
+    color: "var(--text-2)"
+  })));
 }
 function LnApDecide({
   okText,
@@ -179,11 +166,7 @@ function LnApDecide({
         marginTop: 14
       }
     }, React.createElement("span", {
-      style: {
-        fontSize: 11.5,
-        fontWeight: 800,
-        color: "var(--text-3)"
-      }
+      style: LN_LABEL
     }, "\u0E15\u0E49\u0E2D\u0E07\u0E41\u0E01\u0E49\u0E2D\u0E30\u0E44\u0E23 / \u0E17\u0E33\u0E44\u0E21\u0E16\u0E36\u0E07\u0E44\u0E21\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34"), React.createElement("textarea", {
       value: note,
       onChange: e => setNote(e.target.value),
@@ -203,13 +186,14 @@ function LnApDecide({
       style: {
         flex: 1,
         padding: "13px 14px",
-        borderRadius: 14,
-        border: "1px solid var(--border-strong)",
+        borderRadius: 16,
+        border: "1px solid var(--border)",
+        boxShadow: "var(--soft)",
         background: "var(--surface)",
         color: "var(--text-2)",
         fontFamily: "inherit",
         fontSize: 13.5,
-        fontWeight: 700,
+        fontWeight: 800,
         cursor: "pointer"
       }
     }, "\u0E22\u0E49\u0E2D\u0E19\u0E01\u0E25\u0E31\u0E1A"), React.createElement("button", {
@@ -218,10 +202,11 @@ function LnApDecide({
       style: {
         flex: 2,
         padding: "13px 14px",
-        borderRadius: 14,
+        borderRadius: 16,
         border: "none",
-        background: note.trim() ? "#EF4444" : "var(--border-strong)",
-        color: "#fff",
+        background: note.trim() ? "#EF4444" : "var(--surface3)",
+        color: note.trim() ? "#fff" : "var(--text-3)",
+        boxShadow: note.trim() ? "0 8px 18px rgba(239,68,68,.26)" : "none",
         fontFamily: "inherit",
         fontSize: 13.5,
         fontWeight: 800,
@@ -250,8 +235,9 @@ function LnApDecide({
     style: {
       flex: 1,
       padding: "14px 14px",
-      borderRadius: 16,
-      border: "1px solid #EF4444",
+      borderRadius: 18,
+      border: "1px solid #EF444455",
+      boxShadow: "var(--soft)",
       background: "var(--surface)",
       color: "#EF4444",
       fontFamily: "inherit",
@@ -265,9 +251,10 @@ function LnApDecide({
     style: {
       flex: 2,
       padding: "14px 14px",
-      borderRadius: 16,
+      borderRadius: 18,
       border: "none",
-      background: "#10B981",
+      background: "var(--primary)",
+      boxShadow: "0 8px 20px rgba(27,155,117,.28)",
       color: "#fff",
       fontFamily: "inherit",
       fontSize: 14,

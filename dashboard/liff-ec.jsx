@@ -13,24 +13,25 @@
    รูปละ ~120-200 KB · เก็บเป็น base64 ใน RTDB · ช่างจ่ายค่าเน็ต 4G เอง
    ============================================================ */
 
-const LN_EC_FIELD = { width: "100%", padding: "12px 13px", borderRadius: 16, border: "1px solid var(--border-strong)",
-  background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 16, outline: "none" };
+/* ทรงช่องกรอก (LN_FIELD · LN_LABEL · LnField) ชิป (lnChip) และหัวแผ่น (LnSheetHead)
+   อยู่ใน liff-ui.jsx ซึ่งโหลดก่อนไฟล์นี้ — เดิมไฟล์นี้ประกาศ LN_EC_FIELD ของตัวเอง
+   ที่ "บังเอิญ" เหมือนของ liff-app เป๊ะ แล้วพอเปลี่ยนโทนทีก็ตกหล่นทุกที
+
+   ช่องที่ถูกล็อก (ใบที่ส่งไปแล้ว) ต้องดูเป็น "ข้อความที่อ่านได้" ไม่ใช่ "ช่องที่กรอกไม่ได้"
+   จึงทิ้งเงาแล้วเปลี่ยนเป็นพื้นเทา — ช่องขาวลอยที่กดไม่ได้คือช่องที่ดูเหมือนพัง */
+const lnEcF = (locked) => locked
+  ? Object.assign({}, LN_FIELD, { background: "var(--surface3)", color: "var(--text-2)", boxShadow: "none" })
+  : LN_FIELD;
 
 /* ── ชิปเลือกหนึ่งอย่าง ── ปุ่มใหญ่กดง่ายกว่า select ตอนมือเปื้อนอยู่หน้างาน */
 function LnChips({ list, value, onChange }) {
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-      {list.map((k) => {
-        const on = value === k.key;
-        return (
-          <button key={k.key} onClick={() => onChange(k.key)}
-            style={{ padding: "9px 13px", borderRadius: 14, cursor: "pointer", fontFamily: "inherit",
-              fontSize: 13, fontWeight: 700, border: "1px solid " + (on ? k.color : "var(--border-strong)"),
-              background: on ? k.color + "1A" : "var(--surface2)", color: on ? k.color : "var(--text-2)" }}>
-            {k.th}
-          </button>
-        );
-      })}
+      {list.map((k) => (
+        <button key={k.key} onClick={() => onChange(k.key)} style={lnChip(value === k.key, k.color)}>
+          {k.th}
+        </button>
+      ))}
     </div>
   );
 }
@@ -92,33 +93,25 @@ function LnEcForm({ me, users, role, jobs, store, claim, onClose }) {
   const noBill = rec.shots.length === 0;
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 60, background: "var(--bg)", overflowY: "auto", overflowX: "hidden" }}>
-      <div style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", alignItems: "center", gap: 10,
-        padding: "13px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)",
-        paddingTop: "calc(13px + env(safe-area-inset-top, 0px))" }}>
-        <button onClick={onClose} style={{ border: "none", background: "none", cursor: "pointer", padding: 4, lineHeight: 0 }}>
-          <Icon name="x" size={20} color="var(--text-2)" />
-        </button>
-        <b style={{ fontSize: 15.5, color: "var(--text-1)" }}>{locked ? "ใบเบิกเงิน" : "เบิกเงิน"}</b>
-        <span style={{ marginLeft: "auto", fontFamily: "var(--mono)", fontSize: 11.5, color: "var(--text-3)" }}>{c.no}</span>
-      </div>
+    <div style={LN_SHEET}>
+      <LnSheetHead title={locked ? "ใบเบิกเงิน" : "เบิกเงิน"} no={c.no} onClose={onClose} />
 
-      <div style={{ padding: 18, display: "grid", gap: 14 }}>
+      <div style={{ padding: "2px 16px 22px", display: "grid", gap: 15 }}>
         {locked && (
-          <div style={{ padding: "11px 13px", borderRadius: 16, fontSize: 12.5, fontWeight: 700, textAlign: "center",
+          <div style={{ padding: "12px 14px", borderRadius: 16, fontSize: 12.5, fontWeight: 700, textAlign: "center",
             background: window.ecStatusOf(c.status).color + "1A", color: window.ecStatusOf(c.status).color }}>
             {window.ecStatusOf(c.status).th} — แก้ไขจากมือถือไม่ได้แล้ว
           </div>
         )}
 
-        <div style={{ display: "grid", gap: 6 }}>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>จ่ายค่าอะไร</span>
+        <div style={{ display: "grid", gap: 7 }}>
+          <span style={LN_LABEL}>จ่ายค่าอะไร</span>
           {locked ? <b style={{ fontSize: 14, color: window.ecKindOf(c.kind).color }}>{window.ecKindOf(c.kind).th}</b>
             : <LnChips list={window.EC_KIND} value={c.kind} onChange={(v) => set({ kind: v })} />}
         </div>
 
-        <div style={{ display: "grid", gap: 6 }}>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ใครออกเงินไปก่อน</span>
+        <div style={{ display: "grid", gap: 7 }}>
+          <span style={LN_LABEL}>ใครออกเงินไปก่อน</span>
           {locked ? <b style={{ fontSize: 14, color: window.ecPayOf(c.payMethod).color }}>{window.ecPayOf(c.payMethod).th}</b>
             : <LnChips list={window.EC_PAY} value={c.payMethod}
                 onChange={(v) => set({ payMethod: v, owedToId: null, owedToName: "" })} />}
@@ -129,7 +122,7 @@ function LnEcForm({ me, users, role, jobs, store, claim, onClose }) {
                   const u = (users || []).filter((x) => x.id === e.target.value)[0];
                   set({ owedToId: u ? u.id : null, owedToName: u ? (u.name || u.username || "") : "" });
                 }}
-                style={LN_EC_FIELD}>
+                style={lnEcF(locked)}>
                 <option value="">— เลือกคนที่ออกเงินให้ —</option>
                 {(users || []).filter((u) => u.active !== false && u.id !== c.byId)
                   .map((u) => <option key={u.id} value={u.id}>{u.name || u.username}</option>)}
@@ -141,14 +134,12 @@ function LnEcForm({ me, users, role, jobs, store, claim, onClose }) {
           </div>}
         </div>
 
-        <label style={{ display: "grid", gap: 5 }}>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>วันที่จ่ายเงิน</span>
-          <input type="date" value={c.date} disabled={locked} onChange={(e) => set({ date: e.target.value })} style={LN_EC_FIELD} />
-        </label>
+        <LnField label="วันที่จ่ายเงิน">
+          <input type="date" value={c.date} disabled={locked} onChange={(e) => set({ date: e.target.value })} style={lnEcF(locked)} />
+        </LnField>
 
-        <label style={{ display: "grid", gap: 5 }}>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>งานที่เกี่ยวข้อง (ไม่บังคับ)</span>
-          <select value={c.jobId || ""} disabled={locked} style={LN_EC_FIELD}
+        <LnField label="งานที่เกี่ยวข้อง (ไม่บังคับ)">
+          <select value={c.jobId || ""} disabled={locked} style={lnEcF(locked)}
             onChange={(e) => {
               const j = (jobs || []).find((x) => x.id === e.target.value);
               /* ถ่ายสำเนารหัส/ชื่อไซต์ไว้ในใบ เพราะเป็นเอกสารการเงิน ต้องอ่านรู้เรื่องแม้ใบงานถูกลบ */
@@ -157,18 +148,18 @@ function LnEcForm({ me, users, role, jobs, store, claim, onClose }) {
             <option value="">— ไม่ระบุ —</option>
             {(jobs || []).slice(0, 80).map((j) => <option key={j.id} value={j.id}>{j.code} · {j.name}</option>)}
           </select>
-        </label>
+        </LnField>
 
-        <div style={{ display: "grid", gap: 7 }}>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>รายการที่จ่าย</span>
+        <div style={{ display: "grid", gap: 8 }}>
+          <span style={LN_LABEL}>รายการที่จ่าย</span>
           {rows.map((r, i) => (
             <div key={i} style={{ display: "flex", gap: 7 }}>
               <input value={r.name || ""} disabled={locked} placeholder="เช่น สายไฟ 2.5 sq.mm."
                 onChange={(e) => setRow(i, "name", e.target.value)}
-                style={Object.assign({}, LN_EC_FIELD, { flex: 1 })} />
+                style={Object.assign({}, lnEcF(locked), { flex: 1 })} />
               <input value={r.amount || ""} disabled={locked} inputMode="decimal" placeholder="0.00"
                 onChange={(e) => setRow(i, "amount", e.target.value)}
-                style={Object.assign({}, LN_EC_FIELD, { width: 104, fontFamily: "var(--mono)", textAlign: "right" })} />
+                style={Object.assign({}, lnEcF(locked), { width: 104, fontFamily: "var(--mono)", textAlign: "right" })} />
               {!locked && rows.length > 1 && (
                 <button onClick={() => delRow(i)} style={{ border: "none", background: "none", cursor: "pointer", padding: "0 2px" }}>
                   <Icon name="trash" size={17} color="var(--text-3)" />
@@ -178,36 +169,38 @@ function LnEcForm({ me, users, role, jobs, store, claim, onClose }) {
           ))}
           {!locked && (
             <button onClick={addRow}
-              style={{ padding: "10px 13px", borderRadius: 14, border: "1px dashed var(--border-strong)", background: "none",
-                color: "var(--text-2)", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+              style={{ padding: "12px 15px", borderRadius: 16, border: "1px dashed var(--border-strong)", background: "none",
+                color: "var(--text-2)", fontFamily: "inherit", fontSize: 13.5, fontWeight: 800, cursor: "pointer" }}>
               + เพิ่มรายการ
             </button>
           )}
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8, paddingTop: 3 }}>
+          {/* ยอดรวมเป็นผลลัพธ์ ไม่ใช่ช่องกรอก — ให้เป็นการ์ดของตัวเองเหมือนยอด OT ในฟอร์มขอ OT */}
+          <div style={Object.assign({ display: "flex", alignItems: "baseline", gap: 8, padding: "12px 15px", marginTop: 2 }, LN_CARD)}>
             <span style={{ fontSize: 12, color: "var(--text-3)", fontWeight: 700 }}>รวม</span>
-            <span style={{ fontFamily: "var(--mono)", fontSize: 22, fontWeight: 800, color: "var(--text-1)" }}>{window.ecBaht(total)}</span>
+            <span style={{ fontFamily: "var(--mono)", fontSize: 22, fontWeight: 800,
+              color: total > 0 ? "var(--primary-dark)" : "var(--text-3)" }}>{window.ecBaht(total)}</span>
             <span style={{ fontSize: 12, color: "var(--text-3)" }}>บาท</span>
           </div>
         </div>
 
-        <label style={{ display: "grid", gap: 5 }}>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>หมายเหตุ</span>
+        <LnField label="หมายเหตุ">
           <textarea rows={2} value={c.note || ""} disabled={locked}
             placeholder="เช่น ซื้อที่ร้านใกล้ไซต์เพราะของในคลังหมด"
             onChange={(e) => set({ note: e.target.value })}
-            style={Object.assign({}, LN_EC_FIELD, { resize: "vertical", lineHeight: 1.6 })} />
-        </label>
+            style={Object.assign({}, lnEcF(locked), { resize: "vertical", lineHeight: 1.6 })} />
+        </LnField>
 
         {/* ── บิล ── capture="environment" เปิดกล้องหลังให้เลย ไม่ต้องผ่านหน้าเลือกไฟล์ */}
-        <div style={{ display: "grid", gap: 7 }}>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>บิล / ใบเสร็จ</span>
+        <div style={{ display: "grid", gap: 8 }}>
+          <span style={LN_LABEL}>บิล / ใบเสร็จ</span>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {rec.shots.map((s) => (
               <div key={s.id} style={{ position: "relative" }}>
                 {/* เปิดดูในหน้าเดียวกัน ไม่ใช่ window.open — WebView ของ LINE บล็อกแท็บใหม่ที่เป็น data: URL
                     ถ้าใช้ window.open ปุ่มจะกดแล้วเงียบ โดยไม่มี error ให้เห็น */}
                 <img src={s.dataUrl} alt="" onClick={() => setZoom(s.dataUrl)}
-                  style={{ width: 84, height: 84, objectFit: "cover", borderRadius: 13, border: "1px solid var(--border)" }} />
+                  style={{ width: 84, height: 84, objectFit: "cover", borderRadius: 16,
+                    border: "1px solid var(--border)", boxShadow: "var(--soft)" }} />
                 {!locked && (
                   <button onClick={() => rec.remove(s.id)}
                     style={{ position: "absolute", top: -6, right: -6, width: 24, height: 24, borderRadius: 99, border: "none",
@@ -216,7 +209,8 @@ function LnEcForm({ me, users, role, jobs, store, claim, onClose }) {
               </div>
             ))}
             {!locked && (
-              <label style={{ width: 84, height: 84, borderRadius: 13, border: "1px dashed var(--border-strong)",
+              <label style={{ width: 84, height: 84, borderRadius: 16, border: "1px dashed var(--border-strong)",
+                background: "var(--surface)", boxShadow: "var(--soft)",
                 display: "grid", placeItems: "center", cursor: "pointer", color: "var(--text-3)" }}>
                 <Icon name="camera" size={22} color="var(--text-3)" />
                 <input type="file" accept="image/*" capture="environment" multiple onChange={onPick} style={{ display: "none" }} />
@@ -231,16 +225,16 @@ function LnEcForm({ me, users, role, jobs, store, claim, onClose }) {
         {!locked && (
           <div style={{ display: "grid", gap: 9, paddingTop: 3 }}>
             <button onClick={send} disabled={busy || total <= 0}
-              style={{ width: "100%", padding: "16px 18px", borderRadius: 20, border: "none", fontFamily: "inherit",
-                fontSize: 16, fontWeight: 800, cursor: "pointer",
+              style={Object.assign({}, LN_BTN, {
                 background: !busy && total > 0 ? "var(--primary)" : "var(--surface3)",
-                color: !busy && total > 0 ? "#fff" : "var(--text-3)" }}>
+                boxShadow: !busy && total > 0 ? "0 8px 20px rgba(27,155,117,.28)" : "none",
+                color: !busy && total > 0 ? "#fff" : "var(--text-3)" })}>
               {busy ? "กำลังบันทึก…" : "ส่งขออนุมัติ"}
             </button>
             <button onClick={saveDraft} disabled={busy}
-              style={{ width: "100%", padding: "13px 18px", borderRadius: 18, border: "1px solid var(--border-strong)",
-                background: "var(--surface2)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 14,
-                fontWeight: 700, cursor: "pointer" }}>
+              style={Object.assign({}, LN_BTN, { padding: "13px 18px", fontSize: 14,
+                border: "1px solid var(--border)", boxShadow: "var(--soft)",
+                background: "var(--surface)", color: "var(--text-2)" })}>
               เก็บเป็นร่างไว้ก่อน
             </button>
             {total <= 0 && <div style={{ fontSize: 11.5, color: "var(--text-3)", textAlign: "center" }}>
@@ -251,7 +245,7 @@ function LnEcForm({ me, users, role, jobs, store, claim, onClose }) {
 
         {locked && (c.hist || []).length > 0 && (
           <div style={{ display: "grid", gap: 5, paddingTop: 3 }}>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ประวัติใบนี้</span>
+            <span style={LN_LABEL}>ประวัติใบนี้</span>
             {(c.hist || []).slice().reverse().slice(0, 6).map((h, i) => (
               <div key={i} style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.6 }}>
                 {window.drShort(String(h.at || "").slice(0, 10))} · {window.ecStatusOf(h.to).th}

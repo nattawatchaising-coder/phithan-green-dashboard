@@ -40,19 +40,9 @@ const LN_JOB_SUB = [
   { key: "daily", th: "รายงาน" },
 ];
 
-/* ── ทรงการ์ดกลาง ──
-   ของทุกชิ้นในแอปนี้เป็นการ์ดลอยบนพื้นนวล ไม่ใช่แถวในตารางที่คั่นด้วยเส้น
-   รวมไว้ที่เดียวเพราะก่อนหน้านี้แต่ละหน้าเขียนเงา/มุม/ขอบของตัวเอง
-   แล้วเปลี่ยนโทนทีก็ต้องไล่แก้ทุกที่ ซึ่งเป็นเหตุผลที่บางหน้ายังดูเป็นของเดิม */
-const LN_CARD = {
-  background: "var(--surface)", border: "1px solid var(--border)",
-  boxShadow: "var(--soft)", borderRadius: 20,
-};
-const LN_LIST_PAD = { padding: "0 14px 6px" };
-const lnCardBtn = (extra) => Object.assign({}, LN_CARD, {
-  display: "block", width: "100%", textAlign: "left", padding: "13px 15px",
-  marginBottom: 10, cursor: "pointer", fontFamily: "inherit",
-}, extra || {});
+/* ทรงการ์ด (LN_CARD · LN_LIST_PAD · lnCardBtn) · ช่องกรอก (LN_FIELD · LN_LABEL · LN_BTN)
+   แถบหัวข้อย่อย (LnSub) และแผ่นเต็มจอ (LN_SHEET · LnSheetHead) อยู่ใน liff-ui.jsx
+   ซึ่งโหลดก่อนไฟล์นี้ — สคริปต์ชุดนี้ใช้ขอบเขตร่วมกัน จึงเรียกใช้ได้ตรง ๆ */
 
 /* ── แจ้งเตือนแต่ละเรื่องมีสีและไอคอนของตัวเอง ──
    รายการแจ้งเตือนที่เป็นตัวหนังสือสีเดียวกันทั้งหน้า ต้องอ่านทุกบรรทัดถึงจะรู้ว่าเรื่องอะไร
@@ -105,17 +95,20 @@ function LnHead({ me, onMe }) {
        ยัง sticky อยู่ เพราะตราบริษัทคือที่ที่สายตากลับมาหาเวลาหลงว่าอยู่หน้าไหน */
     <div style={{ position: "sticky", top: 0, zIndex: 20, background: "var(--bg)",
       paddingTop: "env(safe-area-inset-top, 0px)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "15px 18px 11px" }}>
-        {window.BrandLockup ? <window.BrandLockup size={19} /> : <b>flash+solar</b>}
+      {/* ตราบริษัท 26px ไม่ใช่ 19 — ที่ 19 ตัวอักษร "flash+solar" ตกลงไปเหลือ 9px
+          ซึ่งเล็กกว่าตัวหนังสือที่เล็กที่สุดในหน้านี้ อ่านเป็นรอยเปื้อนมากกว่าอ่านเป็นชื่อ
+          (BrandLockup คิดขนาดตัวอักษรจาก size × 0.49 และบรรทัดรองจากตัวอักษรอีกที) */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px 12px" }}>
+        {window.BrandLockup ? <window.BrandLockup size={26} /> : <b>flash+solar</b>}
         {/* "ฉัน" ไม่ใช่ที่ที่คนเข้าไปทำงาน เข้าไปหยิบนามบัตรตอนยืนคุยกับลูกค้าเท่านั้น
             ของแบบนั้นไม่ควรกินช่องหนึ่งในแถบล่างเท่ากับ "ลงเวลา" ที่กดทุกวันวันละสองครั้ง */}
         {me && (
           <button onClick={onMe} aria-label="ข้อมูลของฉัน"
-            style={{ marginLeft: "auto", flexShrink: 0, width: 34, height: 34, borderRadius: 99, padding: 0,
+            style={{ marginLeft: "auto", flexShrink: 0, width: 38, height: 38, borderRadius: 99, padding: 0,
               border: "1px solid var(--border)", boxShadow: "var(--soft)", background: "var(--surface)",
-              color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 14, fontWeight: 800,
+              color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 15, fontWeight: 800,
               cursor: "pointer", display: "grid", placeItems: "center" }}>
-            {nm ? nm.slice(0, 1) : <Icon name="user" size={16} color="var(--text-3)" />}
+            {nm ? nm.slice(0, 1) : <Icon name="user" size={17} color="var(--text-3)" />}
           </button>
         )}
       </div>
@@ -128,15 +121,8 @@ function LnHead({ me, onMe }) {
 function LnMeSheet({ me, onClose }) {
   if (!me) return null;
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 60, background: "var(--bg)", overflowY: "auto" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "15px 18px 11px",
-        paddingTop: "calc(15px + env(safe-area-inset-top, 0px))" }}>
-        <b style={{ fontSize: 16, fontWeight: 800, color: "var(--text-1)" }}>ข้อมูลของฉัน</b>
-        <button onClick={onClose}
-          style={{ marginLeft: "auto", width: 32, height: 32, borderRadius: 99, padding: 0,
-            border: "1px solid var(--border)", boxShadow: "var(--soft)", background: "var(--surface)",
-            color: "var(--text-2)", fontFamily: "inherit", fontSize: 16, cursor: "pointer" }}>×</button>
-      </div>
+    <div style={LN_SHEET}>
+      <LnSheetHead title="ข้อมูลของฉัน" onClose={onClose} />
       <div style={{ padding: "0 18px 28px", display: "grid", gap: 14 }}>
         {/* นามบัตรวางติดหน้าเลย ไม่ต้องกดเข้าไปอีกชั้น — หน้านี้มีของอยู่อย่างเดียว
             และของชิ้นนั้นคือสิ่งที่ต้องหยิบมาโชว์ให้ลูกค้าเดี๋ยวนั้นตอนยืนอยู่หน้างาน */}
@@ -197,33 +183,7 @@ function LnTabs({ tab, setTab, tabs }) {
   );
 }
 
-/* ── แถบหัวข้อย่อยในแท็บ ──
-   ทรงคนละแบบกับ LnPick โดยตั้งใจ: LnPick คือ "กรองรายการที่เห็นอยู่"
-   ส่วนอันนี้คือ "เปลี่ยนว่ากำลังดูเรื่องอะไร" ซึ่งเป็นการเดินทาง ไม่ใช่การกรอง
-   ทรงเดียวกันสองความหมายคือเหตุผลที่คนกดผิดแล้วงงว่าของหายไปไหน */
-function LnSub({ items, value, onPick }) {
-  const use = (items || []).filter(Boolean);
-  if (use.length < 2) return null;
-  return (
-    <div style={{ display: "flex", gap: 4, padding: 4, margin: "0 14px 12px",
-      borderRadius: 18, background: "var(--surface3)" }}>
-      {use.map((it) => {
-        const on = value === it.key;
-        return (
-          <button key={it.key} onClick={() => onPick(it.key)}
-            style={{ flex: 1, minWidth: 0, padding: "9px 4px", borderRadius: 14, border: "none", cursor: "pointer",
-              background: on ? "var(--surface)" : "transparent", boxShadow: on ? "var(--soft)" : "none",
-              fontFamily: "inherit", fontSize: 12.5, fontWeight: 800, whiteSpace: "nowrap",
-              color: on ? "var(--primary-dark)" : "var(--text-3)" }}>
-            {it.th}
-            {it.n ? <span style={{ marginLeft: 5, padding: "1px 6px", borderRadius: 99,
-              background: on ? "var(--primary-soft)" : "var(--surface)", fontSize: 11 }}>{it.n}</span> : null}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
+
 
 /* ── ปุ่มแจ้งเตือนลอย ──
    ย้ายออกจากแถบแท็บมาเป็นปุ่มกลมลอย ลากย้ายได้แบบปุ่มช่วยเหลือของไอโฟน
@@ -299,8 +259,11 @@ function LnBellFab({ unread, on, onClick }) {
         padding: 0, borderRadius: 99, cursor: moving ? "grabbing" : "grab",
         /* touchAction none — ไม่งั้นนิ้วที่ลากปุ่มจะไปเลื่อนหน้าแทน */
         touchAction: "none", WebkitTapHighlightColor: "transparent",
+        /* ตอนเปิดอยู่ใช้เขียวเข้ม (--primary-dark) ไม่ใช่เขียวสด (--primary)
+           เพราะเขียวสดเป็นสีของ "ปุ่มกดแล้วมีอะไรเกิดขึ้น" ทั้งแอป
+           ปุ่มนี้แค่สลับหน้า ทาสีเดียวกันแล้วมันแย่งสายตาไปจากปุ่มจริง ๆ และดูจัดจ้านเกิน */
         border: "1px solid " + (on ? "var(--primary-dark)" : "var(--border)"),
-        background: on ? "var(--primary)" : "var(--surface)",
+        background: on ? "var(--primary-dark)" : "var(--surface)",
         boxShadow: moving ? "0 12px 28px rgba(8,20,14,.3)" : "0 6px 20px rgba(8,20,14,.2)",
         display: "grid", placeItems: "center",
         transition: moving ? "none" : "left .18s ease, top .18s ease, box-shadow .15s ease" }}>
@@ -475,11 +438,6 @@ function LnJobSheet({ job, techs, onClose }) {
 /* ================================================================
    ลงเวลา + ขอ OT (เฟส 2) — หน้าจอชุดแรกที่เขียนข้อมูลลงฐานจริงจากมือถือ
    ================================================================ */
-
-const LN_BTN = { width: "100%", padding: "16px 18px", borderRadius: 20, border: "none",
-  fontFamily: "inherit", fontSize: 16, fontWeight: 800, cursor: "pointer" };
-const LN_FIELD = { width: "100%", padding: "12px 13px", borderRadius: 16, border: "1px solid var(--border-strong)",
-  background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 16, outline: "none" };
 
 /* ── ปุ่มลงเวลา ──
    ปุ่มเดียวที่เปลี่ยนความหมายตามสถานะของวันนี้ ไม่ใช่สองปุ่มวางข้างกัน
@@ -963,22 +921,14 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 60, background: "var(--bg)", overflowY: "auto", overflowX: "hidden" }}>
-      <div style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", alignItems: "center", gap: 10,
-        padding: "13px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)",
-        paddingTop: "calc(13px + env(safe-area-inset-top, 0px))" }}>
-        <button onClick={onClose} style={{ border: "none", background: "none", cursor: "pointer", padding: 4, lineHeight: 0 }}>
-          <Icon name="x" size={20} color="var(--text-2)" />
-        </button>
-        <b style={{ fontSize: 15.5, color: "var(--text-1)" }}>ขอทำงานล่วงเวลา</b>
-        <span style={{ marginLeft: "auto", fontFamily: "var(--mono)", fontSize: 11.5, color: "var(--text-3)" }}>{f.no}</span>
-      </div>
+    <div style={LN_SHEET}>
+      <LnSheetHead title="ขอทำงานล่วงเวลา" no={f.no} onClose={onClose} />
 
-      <div style={{ padding: 18, display: "grid", gap: 13 }}>
-        <label style={{ display: "grid", gap: 5 }}>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>วันที่</span>
-          <input type="date" value={f.date} disabled={locked} onChange={(e) => set("date", e.target.value)} style={LN_FIELD} />
-        </label>
+      <div style={{ padding: "2px 16px 22px", display: "grid", gap: 14 }}>
+        <LnField label="วันที่">
+          <input type="date" value={f.date} disabled={locked} onChange={(e) => set("date", e.target.value)}
+            style={Object.assign({}, LN_FIELD, locked ? { background: "var(--surface3)", color: "var(--text-2)", boxShadow: "none" } : null)} />
+        </LnField>
 
         {/* ── ช่วงเวลา ──
             เดิมเป็นสองคอลัมน์ คอลัมน์ละหัวข้อ ("ตั้งแต่" / "ถึง") ซึ่งบนไอโฟนคำว่า "ถึง"
@@ -989,8 +939,8 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
             ย้าย "ถึง" มาอยู่ใน "ราง auto" ระหว่างสองช่อง แทนที่จะเป็นหัวข้อของช่องที่สอง
             คำนี้จึงมีที่ยืนของตัวเองเสมอ ต่อให้ช่องโตเกินที่สั่งก็ไม่มีอะไรมาทับ
             และยังอ่านเป็นประโยคเดียว "17:00 ถึง 20:00" ซึ่งตรงกับที่คนพูดจริง */}
-        <div style={{ display: "grid", gap: 5, minWidth: 0 }}>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ช่วงเวลาที่ทำ</span>
+        <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
+          <span style={LN_LABEL}>ช่วงเวลาที่ทำ</span>
           <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto minmax(0,1fr)", gap: 9, alignItems: "center" }}>
             <window.PgTime value={f.from} min={locked ? limit.lo : undefined} max={locked ? limit.hi : undefined}
               ariaLabel="ตั้งแต่" onChange={(t) => set("from", t)} style={LN_FIELD} />
@@ -1003,8 +953,10 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
         {/* min/max ของ input[type=time] เป็นแค่คำแนะนำ เบราว์เซอร์ไม่ได้กันทุกตัว
             ตัวที่กันจริงคือ tmOtInLimit ที่ปิดปุ่มส่ง — บรรทัดนี้บอกว่าทำไมถึงกด */}
         {locked && (
-          <div style={{ padding: "10px 13px", borderRadius: 16, fontSize: 11.5, lineHeight: 1.7,
-            background: inLimit ? "var(--surface2)" : "var(--tint-amber-bg)",
+          <div style={{ padding: "11px 14px", borderRadius: 16, fontSize: 11.5, lineHeight: 1.7,
+            border: "1px solid " + (inLimit ? "var(--border)" : "transparent"),
+            background: inLimit ? "var(--surface)" : "var(--tint-amber-bg)",
+            boxShadow: inLimit ? "var(--soft)" : "none",
             color: inLimit ? "var(--text-3)" : "var(--tint-amber-tx)" }}>
             {inLimit
               ? "ขอได้เฉพาะช่วงที่อยู่ที่ทำงานจริงวันนี้ — ลงเวลา " + limit.lo + " ถึง " + limit.hi
@@ -1012,7 +964,8 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
           </div>
         )}
 
-        <div style={{ padding: "12px 14px", borderRadius: 18, background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--soft)" }}>
+        {/* ยอด OT ที่นับได้ — เป็นผลลัพธ์ ไม่ใช่ช่องกรอก จึงเป็นการ์ดเต็มใบ ไม่มีป้ายกำกับแบบช่องอื่น */}
+        <div style={Object.assign({ padding: "13px 15px" }, LN_CARD)}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
             <span style={{ fontSize: 12, color: "var(--text-3)", fontWeight: 700 }}>นับเป็น OT</span>
             <span style={{ fontFamily: "var(--mono)", fontSize: 20, fontWeight: 800,
@@ -1024,19 +977,17 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
           </div>
         </div>
 
-        <label style={{ display: "grid", gap: 5 }}>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>งานที่เกี่ยวข้อง (ไม่บังคับ)</span>
+        <LnField label="งานที่เกี่ยวข้อง (ไม่บังคับ)">
           <select value={f.jobId || ""} onChange={(e) => set("jobId", e.target.value || null)} style={LN_FIELD}>
             <option value="">— ไม่ระบุ —</option>
             {(jobs || []).slice(0, 80).map((j) => <option key={j.id} value={j.id}>{j.code} · {j.name}</option>)}
           </select>
-        </label>
+        </LnField>
 
         {/* ── ส่งให้ใครอนุมัติ ──
             เดิมใบไปตามสายอนุมัติในโปรไฟล์ ซึ่งหลายคนยังไม่ได้ตั้ง ใบจึงเข้ากองกลาง
             แล้วก็ค้างเพราะไม่มีใครรู้สึกว่าเป็นหน้าที่ตัวเอง — ถามตรงนี้ให้จบ */}
-        <label style={{ display: "grid", gap: 5 }}>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ส่งให้ใครอนุมัติ</span>
+        <LnField label="ส่งให้ใครอนุมัติ">
           <select value={f.approverId || ""}
             onChange={(e) => {
               const u = approvers.find((x) => x.id === e.target.value);
@@ -1045,18 +996,19 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
             <option value="">— ใครก็ได้ที่มีสิทธิ์ —</option>
             {approvers.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
           </select>
-        </label>
+        </LnField>
 
-        <label style={{ display: "grid", gap: 5 }}>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>เหตุผล</span>
+        <LnField label="เหตุผล" req>
           <textarea rows={3} value={f.reason} onChange={(e) => set("reason", e.target.value)}
             placeholder="เช่น ต้องปิดงานให้ทันก่อนการไฟฟ้าเข้าตรวจพรุ่งนี้เช้า"
             style={Object.assign({}, LN_FIELD, { resize: "vertical", lineHeight: 1.6 })} />
-        </label>
+        </LnField>
 
         <button onClick={send} disabled={!ready || sending}
           style={Object.assign({}, LN_BTN, {
+            marginTop: 2,
             background: ready && !sending ? "var(--primary)" : "var(--surface3)",
+            boxShadow: ready && !sending ? "0 8px 20px rgba(27,155,117,.28)" : "none",
             color: ready && !sending ? "#fff" : "var(--text-3)" })}>
           {sending ? "กำลังส่ง…" : "ส่งขออนุมัติ"}
         </button>
@@ -1681,7 +1633,29 @@ function LnApp() {
       {tab === "bell" && (
         myNotifs.length === 0
           ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>ยังไม่มีแจ้งเตือน</div>
-          : <div style={LN_LIST_PAD}>{myNotifs.map((n) => {
+          : <React.Fragment>
+            {/* ── อ่านทั้งหมด ──
+                ⚠ ไม่เรียก notif.markAllRead(me.id) เพราะตัวนั้นจับเฉพาะใบที่จ่าหน้าถึงคนนี้ตรง ๆ
+                  (toTechId / toUserId) แต่รายการนี้รวมใบที่ส่งถึง "ทุกคนที่มีสิทธิ์" (toPerm) ด้วย
+                  กดแล้วจะยังเหลือค้างอยู่ทั้งที่บอกว่าอ่านหมดแล้ว — วนตามรายการที่เห็นจริงแทน
+                ปุ่มหายไปเลยเมื่อไม่มีอะไรค้าง ดีกว่าโชว์ปุ่มจาง ๆ ที่กดแล้วไม่มีอะไรเกิดขึ้น */}
+            {unread > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 16px 11px" }}>
+                <span style={{ fontSize: 12.5, color: "var(--text-3)", fontWeight: 700 }}>
+                  ยังไม่ได้อ่าน {unread} เรื่อง
+                </span>
+                <button onClick={() => myNotifs.forEach((n) => { if (!n.read) notif.markRead(n.id); })}
+                  style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6,
+                    padding: "8px 14px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
+                    fontSize: 12.5, fontWeight: 800, whiteSpace: "nowrap",
+                    border: "1px solid var(--border)", boxShadow: "var(--soft)",
+                    background: "var(--surface)", color: "var(--primary-dark)" }}>
+                  <Icon name="check" size={14} color="var(--primary-dark)" />
+                  อ่านทั้งหมด
+                </button>
+              </div>
+            )}
+            <div style={LN_LIST_PAD}>{myNotifs.map((n) => {
               const k = lnNotifKind(n);
               return (
                 <div key={n.id} onClick={() => {
@@ -1719,6 +1693,7 @@ function LnApp() {
                 </div>
               );
             })}</div>
+          </React.Fragment>
       )}
 
       <LnJobSheet job={open} techs={techStore.techs} onClose={() => setOpen(null)} />
