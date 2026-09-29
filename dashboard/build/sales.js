@@ -3570,22 +3570,24 @@ function SalesMonthPick({
   })), open && React.createElement("div", {
     style: {
       position: "absolute",
-      top: "calc(100% + 7px)",
-      left: 0,
+      top: "calc(100% + 8px)",
+      left: "50%",
+      transform: "translateX(-50%)",
       zIndex: 30,
-      width: 248,
+      width: 252,
+      maxWidth: "min(252px, 88vw)",
       background: "var(--surface)",
       border: "1px solid var(--border)",
-      borderRadius: 14,
-      padding: 11,
-      boxShadow: "0 18px 44px rgba(8,20,14,.22)"
+      borderRadius: 16,
+      padding: "14px 16px 16px",
+      boxShadow: "0 14px 36px rgba(8,20,14,.16)"
     }
   }, React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      marginBottom: 9
+      marginBottom: 13
     }
   }, React.createElement("button", {
     onClick: () => setYr(v => v - 1),
@@ -3635,7 +3637,7 @@ function SalesMonthPick({
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(3, 1fr)",
-      gap: 5
+      gap: "7px 6px"
     }
   }, SALES_MON_TH.map((_nm, i) => {
     const k = yr + "-" + sPad2(i + 1);
@@ -3660,6 +3662,7 @@ function SalesMonthPick({
           fontFamily: "inherit",
           fontSize: 12,
           fontWeight: 700,
+          textAlign: "center",
           border: "none",
           background: on ? "var(--primary)" : "none",
           color: on ? "#fff" : off ? "var(--text-3)" : "var(--text-2)",

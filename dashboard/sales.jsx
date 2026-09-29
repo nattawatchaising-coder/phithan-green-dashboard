@@ -2167,10 +2167,13 @@ function SalesMonthPick({ month, thisMonth, onShift, onPick }) {
         aria-label="เดือนถัดไป"><Icon name="chevronRight" size={15} color="var(--text-2)" /></button>
 
       {open && (
-        <div style={{ position: "absolute", top: "calc(100% + 7px)", left: 0, zIndex: 30, width: 248,
-          background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14,
-          padding: 11, boxShadow: "0 18px 44px rgba(8,20,14,.22)" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 9 }}>
+        /* กางใต้ชื่อเดือน ไม่ใช่ชิดขอบซ้ายของแถบ — ตารางควรงอกมาจากสิ่งที่กด ไม่ใช่จากลูกศรที่อยู่คนละที่
+           ไล่ขอบขวาด้วย maxWidth กันหลุดจอตอนแถบนี้ไปอยู่ชิดขอบจอบนมือถือ */
+        <div style={{ position: "absolute", top: "calc(100% + 8px)", left: "50%", transform: "translateX(-50%)",
+          zIndex: 30, width: 252, maxWidth: "min(252px, 88vw)",
+          background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16,
+          padding: "14px 16px 16px", boxShadow: "0 14px 36px rgba(8,20,14,.16)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 13 }}>
             <button onClick={() => setYr((v) => v - 1)} aria-label="ปีก่อนหน้า"
               style={{ width: 26, height: 26, borderRadius: 8, border: "none", background: "none",
                 cursor: "pointer", display: "grid", placeItems: "center", padding: 0 }}>
@@ -2181,7 +2184,7 @@ function SalesMonthPick({ month, thisMonth, onShift, onPick }) {
                 opacity: yr >= thisYr ? .4 : 1, cursor: yr >= thisYr ? "default" : "pointer", display: "grid", placeItems: "center", padding: 0 }}>
               <Icon name="chevronRight" size={14} color="var(--text-2)" /></button>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 5 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "7px 6px" }}>
             {SALES_MON_TH.map((_nm, i) => {
               const k = yr + "-" + sPad2(i + 1);
               const on = month === k, off = k > thisMonth;
@@ -2191,7 +2194,7 @@ function SalesMonthPick({ month, thisMonth, onShift, onPick }) {
                 <button key={k} disabled={off} onClick={() => { onPick(k); setOpen(false); }}
                   onMouseEnter={(e) => { if (!on && !off) e.currentTarget.style.background = "var(--surface3)"; }}
                   onMouseLeave={(e) => { if (!on) e.currentTarget.style.background = "none"; }}
-                  style={{ padding: "8px 0", borderRadius: 9, fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+                  style={{ padding: "8px 0", borderRadius: 9, fontFamily: "inherit", fontSize: 12, fontWeight: 700, textAlign: "center",
                     border: "none", background: on ? "var(--primary)" : "none",
                     color: on ? "#fff" : (off ? "var(--text-3)" : "var(--text-2)"),
                     opacity: off ? .35 : 1, cursor: off ? "default" : "pointer" }}>
