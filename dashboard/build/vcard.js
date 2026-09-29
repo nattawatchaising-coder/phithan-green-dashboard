@@ -33,7 +33,10 @@ function vcText(user, full) {
   const B = window.BRANDING || {};
   const nm = String((user || {}).name || "").trim();
   const L = ["BEGIN:VCARD", "VERSION:3.0"];
-  L.push("N:" + vcEsc(nm) + ";;;;");
+  const sp = nm.indexOf(" ");
+  const gn = sp > 0 ? nm.slice(0, sp) : nm;
+  const fn = sp > 0 ? nm.slice(sp + 1).trim() : "";
+  L.push("N:" + vcEsc(fn) + ";" + vcEsc(gn) + ";;;");
   L.push("FN:" + vcEsc(nm));
   if (B.legalTH) L.push("ORG:" + vcEsc(B.legalTH));
   const t = vcTitle(user);

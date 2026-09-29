@@ -63,7 +63,13 @@ function vcText(user, full) {
   const B = window.BRANDING || {};
   const nm = String((user || {}).name || "").trim();
   const L = ["BEGIN:VCARD", "VERSION:3.0"];
-  L.push("N:" + vcEsc(nm) + ";;;;");
+  /* N มีห้าช่อง ช่องแรกคือนามสกุล ช่องสองคือชื่อ — แยกคำแรกออกจากที่เหลือ
+     ยัดชื่อเต็มลงช่องเดียวไม่ได้ — สมุดโทรศัพท์แอนดรอยด์กับกูเกิลประกอบชื่อที่แสดงขึ้นจาก N เอง
+     ชื่อเต็มทั้งก้อนในช่องนามสกุลจึงออกมาสลับที่หรือมีช่องไฟแปลก ๆ */
+  const sp = nm.indexOf(" ");
+  const gn = sp > 0 ? nm.slice(0, sp) : nm;             /* ชื่อ */
+  const fn = sp > 0 ? nm.slice(sp + 1).trim() : "";     /* นามสกุล */
+  L.push("N:" + vcEsc(fn) + ";" + vcEsc(gn) + ";;;");
   L.push("FN:" + vcEsc(nm));
   if (B.legalTH) L.push("ORG:" + vcEsc(B.legalTH));
   const t = vcTitle(user);
