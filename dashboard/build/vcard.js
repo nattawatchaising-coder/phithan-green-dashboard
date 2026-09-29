@@ -136,11 +136,11 @@ async function vcDraw(user, avatarUrl) {
   let ry = 360;
   rows.forEach(([lb, v]) => {
     x.fillStyle = B.muted || "#5B8A8A";
-    x.font = vcFont(600, 19);
+    x.font = vcFont(600, 22);
     x.fillText(lb, 56, ry);
     x.fillStyle = B.ink || "#0F2B33";
-    vcFit(x, v, 510, 600, 26, 15);
-    x.fillText(v, 158, ry + 2);
+    vcFit(x, v, 530, 600, 26, 15);
+    x.fillText(v, 128, ry + 2);
     ry += 54;
   });
   const qz = 186,
