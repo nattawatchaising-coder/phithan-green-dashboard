@@ -3489,6 +3489,177 @@ function SalesBoardView({
     }, isOver ? "วางที่นี่" : "ว่าง")));
   })));
 }
+const SALES_MON_TH = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+function SalesMonthPick({
+  month,
+  thisMonth,
+  onShift,
+  onPick
+}) {
+  const [open, setOpen] = React.useState(false);
+  const [yr, setYr] = React.useState(() => +(month || thisMonth).slice(0, 4));
+  const wrapRef = React.useRef(null);
+  React.useEffect(() => {
+    if (!open) return;
+    setYr(+(month || thisMonth).slice(0, 4));
+    const off = e => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    const esc = e => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", off);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("mousedown", off);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [open]);
+  const label = month ? SALES_MON_TH[+month.slice(5, 7) - 1] + " " + (+month.slice(0, 4) + 543) : "ทุกเดือน";
+  const fwdOff = !!month && month >= thisMonth;
+  const thisYr = +thisMonth.slice(0, 4);
+  return React.createElement("span", {
+    className: "ov-cal-nav",
+    ref: wrapRef,
+    style: {
+      position: "relative"
+    }
+  }, React.createElement("button", {
+    onClick: () => onShift(-1),
+    "aria-label": "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32"
+  }, React.createElement(Icon, {
+    name: "chevronLeft",
+    size: 15,
+    color: "var(--text-2)"
+  })), React.createElement("button", {
+    onClick: () => setOpen(o => !o),
+    "aria-expanded": open ? "true" : "false",
+    "aria-label": "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E41\u0E25\u0E30\u0E1B\u0E35",
+    style: {
+      width: "auto",
+      height: 26,
+      padding: "0 10px",
+      minWidth: 118,
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--text-2)",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5
+    }
+  }, label, React.createElement(Icon, {
+    name: "chevronDown",
+    size: 12,
+    color: "var(--text-3)"
+  })), React.createElement("button", {
+    onClick: () => onShift(1),
+    disabled: fwdOff,
+    style: {
+      opacity: fwdOff ? .4 : 1,
+      cursor: fwdOff ? "default" : "pointer"
+    },
+    "aria-label": "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E16\u0E31\u0E14\u0E44\u0E1B"
+  }, React.createElement(Icon, {
+    name: "chevronRight",
+    size: 15,
+    color: "var(--text-2)"
+  })), open && React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: "calc(100% + 7px)",
+      left: 0,
+      zIndex: 30,
+      width: 248,
+      background: "var(--surface)",
+      border: "1px solid var(--border-strong)",
+      borderRadius: 14,
+      padding: 11,
+      boxShadow: "0 18px 44px rgba(8,20,14,.22)"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 9
+    }
+  }, React.createElement("button", {
+    onClick: () => setYr(v => v - 1),
+    "aria-label": "\u0E1B\u0E35\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32",
+    style: {
+      width: 26,
+      height: 26,
+      borderRadius: 8,
+      border: "1px solid var(--border)",
+      background: "var(--surface)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      padding: 0
+    }
+  }, React.createElement(Icon, {
+    name: "chevronLeft",
+    size: 14,
+    color: "var(--text-2)"
+  })), React.createElement("b", {
+    style: {
+      fontSize: 13,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, yr + 543), React.createElement("button", {
+    onClick: () => setYr(v => Math.min(v + 1, thisYr)),
+    disabled: yr >= thisYr,
+    "aria-label": "\u0E1B\u0E35\u0E16\u0E31\u0E14\u0E44\u0E1B",
+    style: {
+      width: 26,
+      height: 26,
+      borderRadius: 8,
+      border: "1px solid var(--border)",
+      background: "var(--surface)",
+      opacity: yr >= thisYr ? .4 : 1,
+      cursor: yr >= thisYr ? "default" : "pointer",
+      display: "grid",
+      placeItems: "center",
+      padding: 0
+    }
+  }, React.createElement(Icon, {
+    name: "chevronRight",
+    size: 14,
+    color: "var(--text-2)"
+  }))), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(3, 1fr)",
+      gap: 5
+    }
+  }, SALES_MON_TH.map((_nm, i) => {
+    const k = yr + "-" + sPad2(i + 1);
+    const on = month === k,
+      off = k > thisMonth;
+    return React.createElement("button", {
+      key: k,
+      disabled: off,
+      onClick: () => {
+        onPick(k);
+        setOpen(false);
+      },
+      style: {
+        padding: "7px 0",
+        borderRadius: 9,
+        fontFamily: "inherit",
+        fontSize: 12,
+        fontWeight: 700,
+        border: "1px solid " + (on ? "transparent" : "var(--border)"),
+        background: on ? "var(--primary)" : "var(--surface)",
+        color: on ? "#fff" : off ? "var(--text-3)" : "var(--text-2)",
+        opacity: off ? .35 : 1,
+        cursor: off ? "default" : "pointer"
+      }
+    }, TH_MONTHS[i]);
+  }))));
+}
 function SalesKpiView({
   leads,
   quotes,
@@ -3590,17 +3761,11 @@ function SalesKpiView({
   }), [rows]);
   const noOwner = React.useMemo(() => rows.filter(r => !r.owner && r.stage !== "won" && r.stage !== "lost").length, [rows]);
   const noEng = React.useMemo(() => rows.filter(r => !r.booked && r.stage !== "won" && r.stage !== "lost").length, [rows]);
-  const MONTH_TH_FULL = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
   const thisMonth = sToday10().slice(0, 7);
   const monthTh = m => {
     if (!m) return "ทั้งหมด";
     const [y, mm] = m.split("-");
     return TH_MONTHS[+mm - 1] + " " + (+y + 543).toString().slice(-2);
-  };
-  const monthLong = m => {
-    if (!m) return "ทุกเดือน";
-    const [y, mm] = m.split("-");
-    return MONTH_TH_FULL[+mm - 1] + " " + (+y + 543);
   };
   const shiftMonth = React.useCallback(n => setMonth(cur => {
     if (!cur) return thisMonth;
@@ -3702,32 +3867,12 @@ function SalesKpiView({
       flexWrap: "wrap",
       marginBottom: 11
     }
-  }, React.createElement("span", {
-    className: "ov-cal-nav"
-  }, React.createElement("button", {
-    onClick: () => shiftMonth(-1),
-    "aria-label": "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32"
-  }, React.createElement(Icon, {
-    name: "chevronLeft",
-    size: 15,
-    color: "var(--text-2)"
-  })), React.createElement("b", {
-    style: {
-      minWidth: 118
-    }
-  }, monthLong(month)), React.createElement("button", {
-    onClick: () => shiftMonth(1),
-    disabled: !!month && month >= thisMonth,
-    style: {
-      opacity: !!month && month >= thisMonth ? .4 : 1,
-      cursor: !!month && month >= thisMonth ? "default" : "pointer"
-    },
-    "aria-label": "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E16\u0E31\u0E14\u0E44\u0E1B"
-  }, React.createElement(Icon, {
-    name: "chevronRight",
-    size: 15,
-    color: "var(--text-2)"
-  }))), !!month && month !== thisMonth && React.createElement("button", {
+  }, React.createElement(SalesMonthPick, {
+    month: month,
+    thisMonth: thisMonth,
+    onShift: shiftMonth,
+    onPick: setMonth
+  }), !!month && month !== thisMonth && React.createElement("button", {
     onClick: () => setMonth(thisMonth),
     style: {
       padding: "6px 12px",
