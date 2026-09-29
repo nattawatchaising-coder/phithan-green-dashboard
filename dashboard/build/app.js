@@ -1052,7 +1052,28 @@ function App() {
       setSelected(n.jobId);
     }
   };
-  return React.createElement("div", {
+  const hdrTools = {
+    showBell: true,
+    unread: bellCount,
+    notifItems: myNotifs,
+    lateAlerts: lateAlerts,
+    omAlerts: omLive.alerts,
+    onOpenOm: can(role, "om") ? openOm : null,
+    notifOpen: notifOpen,
+    onBell: () => setNotifOpen(v => !v),
+    onCloseNotif: () => setNotifOpen(false),
+    onOpenNotif: openFromNotif,
+    onMarkAll: () => myNotifs.forEach(n => {
+      if (!n.read) notif.markRead(n.id);
+    }),
+    me: auth.current,
+    aurora: aurora,
+    onToggleAurora: toggleAurora,
+    onMySign: () => setMySign(true)
+  };
+  return React.createElement(window.HdrCtx.Provider, {
+    value: hdrTools
+  }, React.createElement("div", {
     className: "app-root"
   }, sidebarOpen && React.createElement("div", {
     className: "sidebar-overlay",
@@ -1658,7 +1679,7 @@ function App() {
     value: t.cardStyle,
     options: ["soft", "flat"],
     onChange: v => setTweak("cardStyle", v)
-  })), React.createElement(ConfirmHost, null));
+  })), React.createElement(ConfirmHost, null)));
 }
 function Sidebar({
   view,
@@ -2114,6 +2135,101 @@ function TechFilter({
     style: tally(none)
   }, none))), document.body));
 }
+function HeaderTools({
+  hidden,
+  showBell,
+  unread,
+  notifItems,
+  lateAlerts,
+  omAlerts,
+  onOpenOm,
+  notifOpen,
+  onBell,
+  onCloseNotif,
+  onOpenNotif,
+  onMarkAll,
+  aurora,
+  onToggleAurora,
+  me,
+  onMySign
+}) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const myAvatar = window.useUserAvatar((me || {}).id).avatar;
+  if (hidden) return null;
+  return React.createElement(React.Fragment, null, showBell && React.createElement("div", {
+    style: {
+      position: "relative",
+      flexShrink: 0
+    }
+  }, React.createElement("button", {
+    onClick: onBell,
+    className: "hdr-icon-btn",
+    "aria-label": "\u0E01\u0E32\u0E23\u0E41\u0E08\u0E49\u0E07\u0E40\u0E15\u0E37\u0E2D\u0E19",
+    style: {
+      position: "relative"
+    }
+  }, React.createElement(Icon, {
+    name: "bell",
+    size: 20,
+    color: "var(--text-2)"
+  }), unread > 0 && React.createElement("span", {
+    style: {
+      position: "absolute",
+      top: -5,
+      right: -5,
+      minWidth: 18,
+      height: 18,
+      padding: "0 5px",
+      borderRadius: 99,
+      background: "#EF4444",
+      color: "#fff",
+      fontSize: 10.5,
+      fontWeight: 700,
+      display: "grid",
+      placeItems: "center",
+      border: "2px solid var(--bg)"
+    }
+  }, unread)), notifOpen && React.createElement(NotifPanel, {
+    items: notifItems,
+    lateAlerts: lateAlerts,
+    omAlerts: omAlerts,
+    onOpenOm: onOpenOm,
+    onClose: onCloseNotif,
+    onOpenJob: onOpenNotif,
+    onMarkAll: onMarkAll
+  })), onToggleAurora && React.createElement("button", {
+    onClick: onToggleAurora,
+    className: "hdr-icon-btn thm",
+    "data-on": aurora ? "1" : "0",
+    title: aurora ? "สลับเป็นโหมดสว่าง" : "สลับเป็นโหมดมืด",
+    "aria-label": "\u0E2A\u0E25\u0E31\u0E1A\u0E42\u0E2B\u0E21\u0E14\u0E2A\u0E27\u0E48\u0E32\u0E07/\u0E21\u0E37\u0E14"
+  }, React.createElement("span", {
+    className: "thm-ic thm-sun"
+  }, React.createElement(Icon, {
+    name: "sun",
+    size: 20,
+    color: "#F59E0B"
+  })), React.createElement("span", {
+    className: "thm-ic thm-moon"
+  }, React.createElement(Icon, {
+    name: "moon",
+    size: 20,
+    color: "#6B7BD8"
+  }))), !isMobile && me && React.createElement("button", {
+    className: "hdr-user",
+    onClick: onMySign,
+    disabled: !onMySign,
+    title: "\u0E42\u0E1B\u0E23\u0E44\u0E1F\u0E25\u0E4C\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19"
+  }, React.createElement("span", {
+    className: "hdr-user-av"
+  }, myAvatar ? React.createElement("img", {
+    src: myAvatar,
+    alt: ""
+  }) : (me.name || "?").slice(0, 1)), React.createElement("span", {
+    className: "hdr-user-tx"
+  }, React.createElement("b", null, me.name), React.createElement("i", null, userRoles(me).map(r => (ROLE_INFO[r] || ROLE_INFO.tech).short).join(" · ")))));
+}
+window.HeaderTools = HeaderTools;
 function Header({
   view,
   navList,
@@ -2171,7 +2287,6 @@ function Header({
   const pMode = stageMode === "permit";
   const stInfo = k => pMode ? permitStageOf(k) : stageOf(k);
   const jobTools = view === "board" || view === "table";
-  const myAvatar = window.useUserAvatar((me || {}).id).avatar;
   const searchPh = HDR_SEARCH[view];
   const [searchOpen, setSearchOpen] = React.useState(false);
   const narrow = useIsMobile(1280);
@@ -2322,78 +2437,24 @@ function Header({
     name: "map",
     size: 20,
     color: "var(--text-2)"
-  })), showBell && !(isMobile && searchOpen) && React.createElement("div", {
-    style: {
-      position: "relative",
-      flexShrink: 0
-    }
-  }, React.createElement("button", {
-    onClick: onBell,
-    className: "hdr-icon-btn",
-    "aria-label": "\u0E01\u0E32\u0E23\u0E41\u0E08\u0E49\u0E07\u0E40\u0E15\u0E37\u0E2D\u0E19",
-    style: {
-      position: "relative"
-    }
-  }, React.createElement(Icon, {
-    name: "bell",
-    size: 20,
-    color: "var(--text-2)"
-  }), unread > 0 && React.createElement("span", {
-    style: {
-      position: "absolute",
-      top: -5,
-      right: -5,
-      minWidth: 18,
-      height: 18,
-      padding: "0 5px",
-      borderRadius: 99,
-      background: "#EF4444",
-      color: "#fff",
-      fontSize: 10.5,
-      fontWeight: 700,
-      display: "grid",
-      placeItems: "center",
-      border: "2px solid var(--bg)"
-    }
-  }, unread)), notifOpen && React.createElement(NotifPanel, {
-    items: notifItems,
+  })), React.createElement(HeaderTools, {
+    hidden: isMobile && searchOpen,
+    showBell: showBell,
+    unread: unread,
+    notifItems: notifItems,
     lateAlerts: lateAlerts,
     omAlerts: omAlerts,
     onOpenOm: onOpenOm,
-    onClose: onCloseNotif,
-    onOpenJob: onOpenNotif,
-    onMarkAll: onMarkAll
-  })), onToggleAurora && !(isMobile && searchOpen) && React.createElement("button", {
-    onClick: onToggleAurora,
-    className: "hdr-icon-btn thm",
-    "data-on": aurora ? "1" : "0",
-    title: aurora ? "สลับเป็นโหมดสว่าง" : "สลับเป็นโหมดมืด",
-    "aria-label": "\u0E2A\u0E25\u0E31\u0E1A\u0E42\u0E2B\u0E21\u0E14\u0E2A\u0E27\u0E48\u0E32\u0E07/\u0E21\u0E37\u0E14"
-  }, React.createElement("span", {
-    className: "thm-ic thm-sun"
-  }, React.createElement(Icon, {
-    name: "sun",
-    size: 20,
-    color: "#F59E0B"
-  })), React.createElement("span", {
-    className: "thm-ic thm-moon"
-  }, React.createElement(Icon, {
-    name: "moon",
-    size: 20,
-    color: "#6B7BD8"
-  }))), !isMobile && me && React.createElement("button", {
-    className: "hdr-user",
-    onClick: onMySign,
-    disabled: !onMySign,
-    title: "\u0E42\u0E1B\u0E23\u0E44\u0E1F\u0E25\u0E4C\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19"
-  }, React.createElement("span", {
-    className: "hdr-user-av"
-  }, myAvatar ? React.createElement("img", {
-    src: myAvatar,
-    alt: ""
-  }) : (me.name || "?").slice(0, 1)), React.createElement("span", {
-    className: "hdr-user-tx"
-  }, React.createElement("b", null, me.name), React.createElement("i", null, userRoles(me).map(r => (ROLE_INFO[r] || ROLE_INFO.tech).short).join(" · ")))))), isMobile && filterBar);
+    notifOpen: notifOpen,
+    onBell: onBell,
+    onCloseNotif: onCloseNotif,
+    onOpenNotif: onOpenNotif,
+    onMarkAll: onMarkAll,
+    aurora: aurora,
+    onToggleAurora: onToggleAurora,
+    me: me,
+    onMySign: onMySign
+  }))), isMobile && filterBar);
 }
 function DailyBriefing({
   lateAlerts,

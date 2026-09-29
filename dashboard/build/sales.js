@@ -3885,7 +3885,7 @@ function SalesKpiView({
       gap: 8,
       alignItems: "center",
       flexWrap: "wrap",
-      marginBottom: 11
+      marginBottom: 16
     }
   }, React.createElement(SalesMonthPick, {
     month: month,
@@ -3918,15 +3918,14 @@ function SalesKpiView({
       background: month ? "var(--surface)" : "var(--primary)",
       color: month ? "var(--text-2)" : "#fff"
     }
-  }, "\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14")), React.createElement("div", {
+  }, "\u0E17\u0E38\u0E01\u0E40\u0E14\u0E37\u0E2D\u0E19"), React.createElement("span", {
     style: {
-      display: "flex",
-      gap: 7,
-      flexWrap: "wrap",
-      alignItems: "center",
-      marginBottom: 14
+      width: 1,
+      height: 22,
+      background: "var(--border)",
+      margin: "0 3px"
     }
-  }, [["all", "ทั้งหมด", "var(--primary-dark)"], ["home", TYPE_TH.home.th, TYPE_TH.home.color], ["project", TYPE_TH.project.th, TYPE_TH.project.color]].map(([k, label, c]) => React.createElement("button", {
+  }), [["all", "ทั้งหมด", "var(--primary-dark)"], ["home", TYPE_TH.home.th, TYPE_TH.home.color], ["project", TYPE_TH.project.th, TYPE_TH.project.color]].map(([k, label, c]) => React.createElement("button", {
     key: k,
     onClick: () => setKind(k),
     style: {

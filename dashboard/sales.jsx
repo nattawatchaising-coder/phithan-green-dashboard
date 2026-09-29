@@ -2332,22 +2332,23 @@ function SalesKpiView({ leads, quotes, appts, techs, currentUser, onMenuOpen, on
       <window.SchedHeader title="ยอดขาย" onMenuOpen={onMenuOpen}
         sub={monthTh(month) + " · ปิดการขาย " + tot.won + " ราย · ยอด ฿" + fmtBaht(Math.round(tot.sales)) + " · pipeline ฿" + fmtBaht(Math.round(tot.pipe))} />
       <div className="app-content">
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 11 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 16 }}>
           <SalesMonthPick month={month} thisMonth={thisMonth} onShift={shiftMonth} onPick={setMonth} />
           {!!month && month !== thisMonth && (
             <button onClick={() => setMonth(thisMonth)}
               style={{ padding: "6px 12px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
                 border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-2)" }}>เดือนนี้</button>
           )}
-          {/* ทั้งหมด = ไม่กรองเดือน เป็นปุ่มสลับ ไม่ต้องเลื่อนหาไปสุดแถวเหมือนเดิม */}
+          {/* "ทุกเดือน" = ไม่กรองเดือน เป็นปุ่มสลับ
+              ชื่อนี้ไม่ใช่ "ทั้งหมด" เพราะตัวกรองประเภทงานที่อยู่แถวเดียวกันก็ชื่อนั้น สองคำเหมือนกันในแถวเดียวอ่านไม่ออกว่าอันไหนกรองอะไร */}
           <button onClick={() => setMonth(month ? "" : thisMonth)}
             style={{ padding: "6px 12px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
               border: "1px solid " + (month ? "var(--border)" : "transparent"),
-              background: month ? "var(--surface)" : "var(--primary)", color: month ? "var(--text-2)" : "#fff" }}>ทั้งหมด</button>
-        </div>
+              background: month ? "var(--surface)" : "var(--primary)", color: month ? "var(--text-2)" : "#fff" }}>ทุกเดือน</button>
 
-        {/* แยกงานบ้าน / งานโครงการ — กรองทั้งหน้า ตัวเลขในการ์ดสรุปเปลี่ยนตามที่เลือกด้วย */}
-        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
+          {/* แยกงานบ้าน / งานโครงการ — กรองทั้งหน้า ตัวเลขในการ์ดสรุปเปลี่ยนตามที่เลือกด้วย
+              อยู่แถวเดียวกับตัวเลือกเดือน — สองอันคือตัวกรองของตารางเดียวกัน แยกสองแถวกินความสูงเปล่า ๆ */}
+          <span style={{ width: 1, height: 22, background: "var(--border)", margin: "0 3px" }} />
           {[["all", "ทั้งหมด", "var(--primary-dark)"], ["home", TYPE_TH.home.th, TYPE_TH.home.color],
             ["project", TYPE_TH.project.th, TYPE_TH.project.color]].map(([k, label, c]) => (
             <button key={k} onClick={() => setKind(k)}

@@ -170,6 +170,13 @@ function useSurveyApptStore() {
 }
 
 /* ── หัวเพจร่วม (สไตล์เดียวกับหน้า stock) ── */
+/* เครื่องมือบนหัวจอ — อ่านจากบริบทที่ App วางไว้ ไม่มีก็ไม่แสดงอะไร (เช่นหน้า LIFF) */
+function SchedHdrTools() {
+  const ctx = React.useContext(window.HdrCtx);
+  if (!ctx || !window.HeaderTools) return null;
+  return <window.HeaderTools {...ctx} />;
+}
+
 function SchedHeader({ icon, title, sub, onMenuOpen, right }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   /* ระยะขอบล่างต้องเท่ากับหัวจอหลัก (Header ใน app.jsx) ไม่งั้นหน้าที่ใช้หัวจอตัวนี้
@@ -182,7 +189,12 @@ function SchedHeader({ icon, title, sub, onMenuOpen, right }) {
           <h1 className="page-title">{title}</h1>
           <p className="page-sub">{sub}</p>
         </div>
-        <div className="header-actions">{right}</div>
+        {/* ชุดเครื่องมือขวามือเดียวกันกับหัวจอหลัก — หน้าที่ใช้หัวจอตัวนี้เคยไม่มีเลย
+            คนที่อยู่หน้ายอดขายจึงต้องย้อนกลับหน้าอื่นก่อนถึงจะกดกระดิ่งหรือสลับธีมได้ */}
+        <div className="header-actions">
+          {right}
+          <SchedHdrTools />
+        </div>
       </div>
     </header>
   );

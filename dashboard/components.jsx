@@ -116,6 +116,11 @@ function StageBadge({ stageKey, size = "md" }) {
 /* ลูกค้าสำรวจเก็บประเภทเป็น home/biz ส่วนงานเก็บเป็น home/project — ป้ายใบเดียวกันต้องอ่านออกทั้งสองแบบ
    และประเภทที่ไม่รู้จัก (ข้อมูลเก่า/นำเข้า) ต้องไม่ทำให้ทั้งบอร์ดพัง
    เดิม find ไม่เจอแล้วไปอ่าน .color ของ undefined = จอขาวทั้งหน้า */
+/* เครื่องมือมุมขวาของหัวจอ (กระดิ่ง · สว่าง/มืด · ชิปผู้ใช้) — ส่งผ่านบริบท ไม่ใช่พร็อพ
+   หน้าที่ใช้ SchedHeader (ยอดขาย · จัดตารางสำรวจ · งานขาย · ตารางงานของฉัน) อยู่คนละไฟล์
+   การร้อยพร็อพสิบกว่าตัวผ่านห้าชั้นทุกไฟล์คือการแก้ห้าที่ทุกครั้งที่เพิ่มหน้าใหม่ */
+const HdrCtx = React.createContext(null);
+
 function TypeBadge({ type }) {
   const key = type === "biz" ? "project" : type;
   const t = window.SF.TYPES.find((x) => x.key === key) || window.SF.TYPES[0];
@@ -592,4 +597,4 @@ function PgTime({ value, onChange, disabled, min, max, style, placeholder, ariaL
 }
 
 Object.assign(window, { Icon, ICONS, SearchPick, StageBadge, TypeBadge, MatChip, TechAvatar, ProgressBar, MatDots, Segmented, Dropdown, useBackdropClose, PgTime, pgTimeFix,
-  thDate, thDateTime, fmtBaht, stageOf, parseDate, TH_MONTHS, TH_DAYS, saveMatPrice, newMatSaveCtx });
+  thDate, thDateTime, fmtBaht, stageOf, parseDate, TH_MONTHS, TH_DAYS, saveMatPrice, newMatSaveCtx, HdrCtx });

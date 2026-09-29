@@ -847,7 +847,20 @@ function App() {
     if (n.jobId) { setView(listView()); setSelected(n.jobId); }
   };
 
+  /* ชุดเครื่องมือบนหัวจอ — หน้าที่ใช้ SchedHeader ดึงไปใช้เองจากที่นี่
+     ส่งผ่านบริบท ไม่ใช่พร็อพ — หน้าเหล่านั้นอยู่คนละไฟล์ การร้อยพร็อพสิบกว่าตัวผ่านห้าชั้นคือการแก้ห้าที่ทุกครั้งที่เพิ่มหน้า
+     ไม่ห่อ useMemo — ค่าที่มันอ้างถึงเกิดหลัง early return ด้านบน ถ้าเป็น hook ตรงนี้ลำดับ hook จะเพี้ยนตอนหน้ายังโหลด
+     ค่าใหม่ทุกเรนเดอร์ไม่เป็นไร — คนอ่านมันเป็นลูกของ App อยู่แล้ว เรนเดอร์ใหม่ตามกันอยู่ดี */
+  const hdrTools = {
+    showBell: true, unread: bellCount, notifItems: myNotifs, lateAlerts: lateAlerts,
+    omAlerts: omLive.alerts, onOpenOm: can(role, "om") ? openOm : null,
+    notifOpen: notifOpen, onBell: () => setNotifOpen((v) => !v), onCloseNotif: () => setNotifOpen(false),
+    onOpenNotif: openFromNotif, onMarkAll: () => myNotifs.forEach((n) => { if (!n.read) notif.markRead(n.id); }),
+    me: auth.current, aurora: aurora, onToggleAurora: toggleAurora, onMySign: () => setMySign(true),
+  };
+
   return (
+    <window.HdrCtx.Provider value={hdrTools}>
     <div className="app-root">
       {sidebarOpen && <div className="sidebar-overlay" onClick={closeSidebar} />}
       <Sidebar view={view} onNav={navTo} role={role} techId={techId} jobs={jobs} stock={stock} t={t} badges={navBadges}
@@ -1135,6 +1148,7 @@ function App() {
       {/* กล่องยืนยันกลางของแอป — ทุกที่ที่เรียก askConfirm() มาโผล่ที่ตัวนี้ */}
       <ConfirmHost />
     </div>
+    </window.HdrCtx.Provider>
   );
 }
 
@@ -1398,6 +1412,55 @@ function TechFilter({ value, onChange, techs, counts, nameOf }) {
   );
 }
 
+/* เครื่องมือมุมขวาของหัวจอ — กระดิ่ง · สวิตช์สว่าง/มืด · ชิปผู้ใช้
+   แยกออกมาเพราะหน้าที่ใช้ SchedHeader (ยอดขาย · จัดตารางสำรวจ · งานขาย) ก็ต้องมีชุดนี้เหมือนกัน
+   มันไปถึงที่นั่นผ่าน HdrCtx ไม่ใช่การส่งพร็อพลงไปทีละชั้น — หน้าใหม่ที่ใช้ SchedHeader จะได้ไปด้วยเอง */
+function HeaderTools({ hidden, showBell, unread, notifItems, lateAlerts, omAlerts, onOpenOm, notifOpen, onBell,
+  onCloseNotif, onOpenNotif, onMarkAll, aurora, onToggleAurora, me, onMySign }) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const myAvatar = window.useUserAvatar((me || {}).id).avatar;
+  if (hidden) return null;
+  return (
+    <React.Fragment>
+      {showBell && (
+        <div style={{ position: "relative", flexShrink: 0 }}>
+          <button onClick={onBell} className="hdr-icon-btn" aria-label="การแจ้งเตือน" style={{ position: "relative" }}>
+            <Icon name="bell" size={20} color="var(--text-2)" />
+            {unread > 0 && (
+              <span style={{ position: "absolute", top: -5, right: -5, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 99,
+                background: "#EF4444", color: "#fff", fontSize: 10.5, fontWeight: 700, display: "grid", placeItems: "center", border: "2px solid var(--bg)" }}>{unread}</span>
+            )}
+          </button>
+          {notifOpen && <NotifPanel items={notifItems} lateAlerts={lateAlerts} omAlerts={omAlerts} onOpenOm={onOpenOm}
+            onClose={onCloseNotif} onOpenJob={onOpenNotif} onMarkAll={onMarkAll} />}
+        </div>
+      )}
+      {/* สวิตช์สว่าง/มืด — สลับชุดตัวแปรสีทั้งระบบ (:root ↔ [data-theme="aurora"] ใน tokens.css) */}
+      {onToggleAurora && (
+        <button onClick={onToggleAurora} className="hdr-icon-btn thm" data-on={aurora ? "1" : "0"}
+          title={aurora ? "สลับเป็นโหมดสว่าง" : "สลับเป็นโหมดมืด"} aria-label="สลับโหมดสว่าง/มืด">
+          {/* ไอคอนสองใบซ้อนกัน สลับกันหมุนเข้า/ออก — สลับ name ของ Icon ใบเดียวจะเปลี่ยนทันทีไม่มีจังหวะ */}
+          <span className="thm-ic thm-sun"><Icon name="sun" size={20} color="#F59E0B" /></span>
+          <span className="thm-ic thm-moon"><Icon name="moon" size={20} color="#6B7BD8" /></span>
+        </button>
+      )}
+      {/* ชิปผู้ใช้ — ป้ายบอกว่ากำลังใช้สิทธิ์ของใคร ตัวจัดการบัญชี/ออกจากระบบ ยังอยู่ที่แถบเมนูที่เดียว */}
+      {!isMobile && me && (
+        <button className="hdr-user" onClick={onMySign} disabled={!onMySign} title="โปรไฟล์ของฉัน">
+          <span className="hdr-user-av">
+            {myAvatar ? <img src={myAvatar} alt="" /> : (me.name || "?").slice(0, 1)}
+          </span>
+          <span className="hdr-user-tx">
+            <b>{me.name}</b>
+            <i>{userRoles(me).map((r) => (ROLE_INFO[r] || ROLE_INFO.tech).short).join(" · ")}</i>
+          </span>
+        </button>
+      )}
+    </React.Fragment>
+  );
+}
+window.HeaderTools = HeaderTools;
+
 function Header({ view, navList, plain, subtitle, ownOnly, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, stageMode, quickFilter, setQuickFilter, techFilter, setTechFilter, techCounts, techs, onAdd, canAdd, onMap, showBell, unread, notifItems, lateAlerts, omAlerts, onOpenOm, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen, me, aurora, onToggleAurora, onMySign }) {
   const nav = navList.find((n) => n.key === view) || NAV.find((n) => n.key === view);
   const QUICK_LABELS = { active: "กำลังดำเนินการ", delayed: "ล่าช้า", ready: "อุปกรณ์พร้อมติดตั้ง", battery: "มีแบตเตอรี่",
@@ -1412,7 +1475,6 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
      ส่วนปุ่ม "เพิ่มงาน" ย้ายลงไปอยู่ในหน้าที่ใช้มันแล้ว: หัวช่วง "หน้างาน" ของบอร์ด และแถบสถานะของฐานข้อมูลงาน
      อยู่ติดกับกองงานที่มันจะไปโผล่ ไม่ใช่ลอยอยู่บนหัวรวมของทุกหน้า */
   const jobTools = view === "board" || view === "table";
-  const myAvatar = window.useUserAvatar((me || {}).id).avatar;
   /* ช่องค้นหาบนหัว — มีเฉพาะหน้าที่มีอะไรให้ค้นจริง และข้อความบอกให้ตรงว่าหน้านั้นค้นอะไรได้
      หน้าไหนมีคีย์ในตารางนี้ ต้องรับ search/setSearch จาก AppShell ไปใช้เป็นตัวกรองของหน้าตัวเอง
      (ห้ามมีช่องค้นหาของหน้าซ้อนอยู่ในหน้าอีกช่อง — สองช่องกรองของเดียวกันคือที่มาของการพิมพ์ผิดช่อง) */
@@ -1499,44 +1561,10 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
               <Icon name="map" size={20} color="var(--text-2)" />
             </button>
           )}
-          {showBell && !(isMobile && searchOpen) && (
-            <div style={{ position: "relative", flexShrink: 0 }}>
-              <button onClick={onBell} className="hdr-icon-btn" aria-label="การแจ้งเตือน" style={{ position: "relative" }}>
-                <Icon name="bell" size={20} color="var(--text-2)" />
-                {unread > 0 && (
-                  <span style={{ position: "absolute", top: -5, right: -5, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 99,
-                    background: "#EF4444", color: "#fff", fontSize: 10.5, fontWeight: 700, display: "grid", placeItems: "center", border: "2px solid var(--bg)" }}>{unread}</span>
-                )}
-              </button>
-              {notifOpen && <NotifPanel items={notifItems} lateAlerts={lateAlerts} omAlerts={omAlerts} onOpenOm={onOpenOm}
-                onClose={onCloseNotif} onOpenJob={onOpenNotif} onMarkAll={onMarkAll} />}
-            </div>
-          )}
-          {/* สวิตช์สว่าง/มืด — สลับชุดตัวแปรสีทั้งระบบ (:root ↔ [data-theme="aurora"] ใน tokens.css)
-              ยังมีปุ่มเดิมในแถบตั้งค่าของเมนูซ้ายอยู่ ทั้งสองปุ่มเรียกตัวเดียวกัน ไม่ใช่สเตตคนละตัว */}
-          {onToggleAurora && !(isMobile && searchOpen) && (
-            <button onClick={onToggleAurora} className="hdr-icon-btn thm" data-on={aurora ? "1" : "0"}
-              title={aurora ? "สลับเป็นโหมดสว่าง" : "สลับเป็นโหมดมืด"} aria-label="สลับโหมดสว่าง/มืด">
-              {/* ไอคอนสองใบซ้อนกัน สลับกันหมุนเข้า/ออก — สลับ name ของ Icon ใบเดียวจะเปลี่ยนทันทีไม่มีจังหวะ
-                  ดวงอาทิตย์สีเหลือง พระจันทร์สีคราม ให้รู้ว่ากำลังจะไปโหมดไหนโดยไม่ต้องอ่าน tooltip */}
-              <span className="thm-ic thm-sun"><Icon name="sun" size={20} color="#F59E0B" /></span>
-              <span className="thm-ic thm-moon"><Icon name="moon" size={20} color="#6B7BD8" /></span>
-            </button>
-          )}
-          {/* ชิปผู้ใช้ — ชื่อกับตำแหน่งอยู่ท้ายหัวจอแบบแดชบอร์ดทั่วไป
-              เดิมอยู่ก้นแถบเมนูซ้ายเท่านั้น ซึ่งมองไม่เห็นเลยตอนแถบเมนูพับหรือบนมือถือ
-              ตัวจัดการบัญชี/ออกจากระบบ ยังอยู่ที่แถบเมนูที่เดียว ชิปนี้เป็นป้ายบอกว่ากำลังใช้สิทธิ์ของใคร */}
-          {!isMobile && me && (
-            <button className="hdr-user" onClick={onMySign} disabled={!onMySign} title="โปรไฟล์ของฉัน">
-              <span className="hdr-user-av">
-                {myAvatar ? <img src={myAvatar} alt="" /> : (me.name || "?").slice(0, 1)}
-              </span>
-              <span className="hdr-user-tx">
-                <b>{me.name}</b>
-                <i>{userRoles(me).map((r) => (ROLE_INFO[r] || ROLE_INFO.tech).short).join(" · ")}</i>
-              </span>
-            </button>
-          )}
+          <HeaderTools hidden={isMobile && searchOpen} showBell={showBell} unread={unread} notifItems={notifItems}
+            lateAlerts={lateAlerts} omAlerts={omAlerts} onOpenOm={onOpenOm} notifOpen={notifOpen} onBell={onBell}
+            onCloseNotif={onCloseNotif} onOpenNotif={onOpenNotif} onMarkAll={onMarkAll}
+            aurora={aurora} onToggleAurora={onToggleAurora} me={me} onMySign={onMySign} />
         </div>
       </div>
       {/* มือถือ: แถบตัวกรองยังเป็นแถวของตัวเองใต้หัว และเหลือไว้แค่ตัวกรองช่าง (ตัวอื่นซ่อนเพื่อประหยัดพื้นที่) */}

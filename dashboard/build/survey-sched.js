@@ -284,6 +284,11 @@ function useSurveyApptStore() {
     setStatus
   };
 }
+function SchedHdrTools() {
+  const ctx = React.useContext(window.HdrCtx);
+  if (!ctx || !window.HeaderTools) return null;
+  return React.createElement(window.HeaderTools, ctx);
+}
 function SchedHeader({
   icon,
   title,
@@ -318,7 +323,7 @@ function SchedHeader({
     className: "page-sub"
   }, sub)), React.createElement("div", {
     className: "header-actions"
-  }, right)));
+  }, right, React.createElement(SchedHdrTools, null))));
 }
 function DispatchView({
   appts,

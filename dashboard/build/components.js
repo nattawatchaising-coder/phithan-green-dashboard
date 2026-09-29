@@ -138,6 +138,7 @@ function StageBadge({
     }
   }), s.th);
 }
+const HdrCtx = React.createContext(null);
 function TypeBadge({
   type
 }) {
@@ -1037,5 +1038,6 @@ Object.assign(window, {
   TH_MONTHS,
   TH_DAYS,
   saveMatPrice,
-  newMatSaveCtx
+  newMatSaveCtx,
+  HdrCtx
 });
