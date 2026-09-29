@@ -85,13 +85,7 @@ const LN_START = (() => {
     ot: false
   };
 })();
-function LnHead({
-  tab,
-  setTab,
-  unread,
-  tabs
-}) {
-  const list = tabs && tabs.length ? tabs : LN_TAB;
+function LnHead() {
   return React.createElement("div", {
     style: {
       position: "sticky",
@@ -110,7 +104,29 @@ function LnHead({
     }
   }, window.BrandLockup ? React.createElement(window.BrandLockup, {
     size: 19
-  }) : React.createElement("b", null, "flash+solar")), React.createElement("div", {
+  }) : React.createElement("b", null, "flash+solar")));
+}
+const LN_TABBAR_H = 58;
+function LnTabs({
+  tab,
+  setTab,
+  unread,
+  tabs
+}) {
+  const list = tabs && tabs.length ? tabs : LN_TAB;
+  return React.createElement("div", {
+    style: {
+      position: "fixed",
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 20,
+      background: "var(--surface)",
+      borderTop: "1px solid var(--border)",
+      boxShadow: "0 -2px 14px rgba(8,20,14,.07)",
+      paddingBottom: "env(safe-area-inset-bottom, 0px)"
+    }
+  }, React.createElement("div", {
     style: {
       display: "flex"
     }
@@ -130,7 +146,7 @@ function LnHead({
         fontSize: 10.5,
         fontWeight: 700,
         color: on ? "var(--primary-dark)" : "var(--text-3)",
-        boxShadow: on ? "inset 0 -2.5px 0 var(--primary)" : "none",
+        boxShadow: on ? "inset 0 2.5px 0 var(--primary)" : "none",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -2104,14 +2120,10 @@ function LnApp() {
   return React.createElement("div", {
     style: {
       minHeight: "100dvh",
-      background: "var(--bg)"
+      background: "var(--bg)",
+      paddingBottom: "calc(" + LN_TABBAR_H + "px + env(safe-area-inset-bottom, 0px))"
     }
-  }, React.createElement(LnHead, {
-    tab: tab,
-    setTab: setTab,
-    unread: unread,
-    tabs: tabs
-  }), tab === "jobs" && React.createElement(React.Fragment, null, React.createElement("div", {
+  }, React.createElement(LnHead, null), tab === "jobs" && React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
       padding: "12px 16px",
       background: "var(--surface)",
@@ -2356,6 +2368,11 @@ function LnApp() {
     job: open,
     techs: techStore.techs,
     onClose: () => setOpen(null)
+  }), React.createElement(LnTabs, {
+    tab: tab,
+    setTab: setTab,
+    unread: unread,
+    tabs: tabs
   }));
 }
 Object.assign(window, {
@@ -2366,6 +2383,7 @@ Object.assign(window, {
   LnJobSheet,
   LnJobFiles,
   LnHead,
+  LnTabs,
   LnClock,
   LnOtForm,
   LnTimeTab,

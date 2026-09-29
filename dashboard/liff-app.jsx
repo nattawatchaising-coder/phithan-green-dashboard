@@ -60,15 +60,31 @@ const LN_START = (() => {
   return { tab: LN_TAB.some((x) => x.key === t) ? t : "jobs", ot: false };
 })();
 
-/* ── แถบหัว ── */
-function LnHead({ tab, setTab, unread, tabs }) {
-  const list = tabs && tabs.length ? tabs : LN_TAB;
+/* ── แถบหัว: เหลือแค่ตราบริษัท ──
+   แท็บย้ายลงไปอยู่ขอบล่างจอแล้ว (LnTabs) — มือถือจอยาว นิ้วโป้งเอื้อมถึงขอบล่าง ไม่ถึงขอบบน
+   และแถบบนที่เตี้ยลงคืนพื้นที่ให้เนื้องานอีกหนึ่งแถว */
+function LnHead() {
   return (
     <div style={{ position: "sticky", top: 0, zIndex: 20, background: "var(--surface)", borderBottom: "1px solid var(--border)",
       paddingTop: "env(safe-area-inset-top, 0px)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 16px 9px" }}>
         {window.BrandLockup ? <window.BrandLockup size={19} /> : <b>flash+solar</b>}
       </div>
+    </div>
+  );
+}
+
+/* ── แถบแท็บล่างจอ ──
+   fixed ไม่ใช่ sticky เพราะต้องติดขอบล่างตลอด ไม่ว่าเนื้อหาจะสั้นหรือยาว
+   zIndex 20 ต่ำกว่าแผ่นซ้อนทุกใบ (60) — เปิดใบงานหรือชีตแล้วแถบนี้ต้องหลบไป ไม่ใช่ลอยทับ
+   ตัวหน้าเผื่อ paddingBottom ให้เท่ากับความสูงแถบ ไม่งั้นรายการแถวสุดท้ายจะโดนบัง */
+const LN_TABBAR_H = 58;
+function LnTabs({ tab, setTab, unread, tabs }) {
+  const list = tabs && tabs.length ? tabs : LN_TAB;
+  return (
+    <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 20, background: "var(--surface)",
+      borderTop: "1px solid var(--border)", boxShadow: "0 -2px 14px rgba(8,20,14,.07)",
+      paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
       <div style={{ display: "flex" }}>
         {list.map((t) => {
           const on = tab === t.key;
@@ -77,7 +93,7 @@ function LnHead({ tab, setTab, unread, tabs }) {
             <button key={t.key} onClick={() => setTab(t.key)}
               style={{ flex: 1, position: "relative", padding: "8px 0 9px", border: "none", background: "none", cursor: "pointer",
                 fontFamily: "inherit", fontSize: 10.5, fontWeight: 700, color: on ? "var(--primary-dark)" : "var(--text-3)",
-                boxShadow: on ? "inset 0 -2.5px 0 var(--primary)" : "none",
+                boxShadow: on ? "inset 0 2.5px 0 var(--primary)" : "none",
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3 }}>
               <span style={{ position: "relative", lineHeight: 0 }}>
                 <Icon name={t.icon} size={18} color={on ? "var(--primary-dark)" : "var(--text-3)"} />
@@ -1221,8 +1237,9 @@ function LnApp() {
   if (!me) return <window.LnSplash tone="bad" text="บัญชีนี้ถูกระงับหรือถูกลบไปแล้ว" sub="ติดต่อแอดมินของบริษัท" />;
 
   return (
-    <div style={{ minHeight: "100dvh", background: "var(--bg)" }}>
-      <LnHead tab={tab} setTab={setTab} unread={unread} tabs={tabs} />
+    <div style={{ minHeight: "100dvh", background: "var(--bg)",
+      paddingBottom: "calc(" + LN_TABBAR_H + "px + env(safe-area-inset-bottom, 0px))" }}>
+      <LnHead />
 
       {tab === "jobs" && (
         <React.Fragment>
@@ -1351,8 +1368,9 @@ function LnApp() {
 
       <LnJobSheet job={open} techs={techStore.techs} onClose={() => setOpen(null)} />
 
+      <LnTabs tab={tab} setTab={setTab} unread={unread} tabs={tabs} />
     </div>
   );
 }
 
-Object.assign(window, { LN_NOTIF_KIND, lnNotifKind, LnApp, LnJobRow, LnJobSheet, LnJobFiles, LnHead, LnClock, LnOtForm, LnTimeTab, LnFixTab, LnFixSheet, LnFixNew, LnPick });
+Object.assign(window, { LN_NOTIF_KIND, lnNotifKind, LnApp, LnJobRow, LnJobSheet, LnJobFiles, LnHead, LnTabs, LnClock, LnOtForm, LnTimeTab, LnFixTab, LnFixSheet, LnFixNew, LnPick });
