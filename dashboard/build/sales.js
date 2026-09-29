@@ -3590,20 +3590,26 @@ function SalesKpiView({
   }), [rows]);
   const noOwner = React.useMemo(() => rows.filter(r => !r.owner && r.stage !== "won" && r.stage !== "lost").length, [rows]);
   const noEng = React.useMemo(() => rows.filter(r => !r.booked && r.stage !== "won" && r.stage !== "lost").length, [rows]);
-  const months = React.useMemo(() => {
-    const out = [];
-    const d = new Date();
-    for (let i = 0; i < 13; i++) {
-      const m = new Date(d.getFullYear(), d.getMonth() - i, 1);
-      out.push(m.getFullYear() + "-" + sPad2(m.getMonth() + 1));
-    }
-    return out;
-  }, []);
+  const MONTH_TH_FULL = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+  const thisMonth = sToday10().slice(0, 7);
   const monthTh = m => {
     if (!m) return "ทั้งหมด";
     const [y, mm] = m.split("-");
     return TH_MONTHS[+mm - 1] + " " + (+y + 543).toString().slice(-2);
   };
+  const monthLong = m => {
+    if (!m) return "ทุกเดือน";
+    const [y, mm] = m.split("-");
+    return MONTH_TH_FULL[+mm - 1] + " " + (+y + 543);
+  };
+  const shiftMonth = React.useCallback(n => setMonth(cur => {
+    if (!cur) return thisMonth;
+    const base = cur;
+    const parts = base.split("-");
+    const d = new Date(+parts[0], +parts[1] - 1 + n, 1);
+    const k = d.getFullYear() + "-" + sPad2(d.getMonth() + 1);
+    return k > thisMonth ? cur : k;
+  }), [thisMonth]);
   const kpi = (label, value, sub, color) => React.createElement("div", {
     style: {
       flex: "1 1 150px",
@@ -3689,34 +3695,65 @@ function SalesKpiView({
   }), React.createElement("div", {
     className: "app-content"
   }, React.createElement("div", {
-    className: "cat-chip-row",
     style: {
       display: "flex",
-      gap: 6,
-      overflowX: "auto",
-      paddingBottom: 4,
+      gap: 8,
+      alignItems: "center",
+      flexWrap: "wrap",
       marginBottom: 11
     }
-  }, [""].concat(months).map(m => {
-    const on = month === m;
-    return React.createElement("button", {
-      key: m || "all",
-      onClick: () => setMonth(m),
-      style: {
-        padding: "7px 13px",
-        borderRadius: 99,
-        cursor: "pointer",
-        fontFamily: "inherit",
-        fontSize: 12.5,
-        fontWeight: 700,
-        whiteSpace: "nowrap",
-        flexShrink: 0,
-        border: "1px solid " + (on ? "transparent" : "var(--border)"),
-        background: on ? "var(--primary)" : "var(--surface)",
-        color: on ? "#fff" : "var(--text-2)"
-      }
-    }, monthTh(m));
-  })), React.createElement("div", {
+  }, React.createElement("span", {
+    className: "ov-cal-nav"
+  }, React.createElement("button", {
+    onClick: () => shiftMonth(-1),
+    "aria-label": "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32"
+  }, React.createElement(Icon, {
+    name: "chevronLeft",
+    size: 15,
+    color: "var(--text-2)"
+  })), React.createElement("b", {
+    style: {
+      minWidth: 118
+    }
+  }, monthLong(month)), React.createElement("button", {
+    onClick: () => shiftMonth(1),
+    disabled: !!month && month >= thisMonth,
+    style: {
+      opacity: !!month && month >= thisMonth ? .4 : 1,
+      cursor: !!month && month >= thisMonth ? "default" : "pointer"
+    },
+    "aria-label": "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E16\u0E31\u0E14\u0E44\u0E1B"
+  }, React.createElement(Icon, {
+    name: "chevronRight",
+    size: 15,
+    color: "var(--text-2)"
+  }))), !!month && month !== thisMonth && React.createElement("button", {
+    onClick: () => setMonth(thisMonth),
+    style: {
+      padding: "6px 12px",
+      borderRadius: 99,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      border: "1px solid var(--border)",
+      background: "var(--surface)",
+      color: "var(--text-2)"
+    }
+  }, "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49"), React.createElement("button", {
+    onClick: () => setMonth(month ? "" : thisMonth),
+    style: {
+      padding: "6px 12px",
+      borderRadius: 99,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      border: "1px solid " + (month ? "var(--border)" : "transparent"),
+      background: month ? "var(--surface)" : "var(--primary)",
+      color: month ? "var(--text-2)" : "#fff"
+    }
+  }, "\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14")), React.createElement("div", {
     style: {
       display: "flex",
       gap: 7,

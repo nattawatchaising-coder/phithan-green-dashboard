@@ -2207,12 +2207,25 @@ function SalesKpiView({ leads, quotes, appts, techs, currentUser, onMenuOpen, on
   const noOwner = React.useMemo(() => rows.filter((r) => !r.owner && r.stage !== "won" && r.stage !== "lost").length, [rows]);
   const noEng = React.useMemo(() => rows.filter((r) => !r.booked && r.stage !== "won" && r.stage !== "lost").length, [rows]);
 
-  const months = React.useMemo(() => {
-    const out = []; const d = new Date();
-    for (let i = 0; i < 13; i++) { const m = new Date(d.getFullYear(), d.getMonth() - i, 1); out.push(m.getFullYear() + "-" + sPad2(m.getMonth() + 1)); }
-    return out;
-  }, []);
+  /* ตัวเลือกเดือนเป็นปุ่มลูกศรซ้ายขวา ไม่ใช่แถวชิปสิบสามเดือนที่ต้องเลื่อนหา
+     คนดูยอดขายดูทีละเดือน และมักเทียบกับเดือนที่ติดกัน การขยับทีละก้าวจึงตรงกับการใช้มากกว่าการกระโดดข้ามปี
+     ทรงเดียวกับปฏิทินงานติดตั้งในหน้าภาพรวม (.ov-cal-nav) — ตัวเลือกเดือนทั้งระบบควรเหมือนกัน */
+  const MONTH_TH_FULL = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+    "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+  const thisMonth = sToday10().slice(0, 7);
   const monthTh = (m) => { if (!m) return "ทั้งหมด"; const [y, mm] = m.split("-"); return TH_MONTHS[+mm - 1] + " " + (+y + 543).toString().slice(-2); };
+  const monthLong = (m) => { if (!m) return "ทุกเดือน"; const [y, mm] = m.split("-"); return MONTH_TH_FULL[+mm - 1] + " " + (+y + 543); };
+  /* กดลูกศรตอนอยู่ที่ "ทั้งหมด" ให้เริ่มนับจากเดือนปัจจุบัน ไม่ใช่เงียบ
+     เดินหน้าเกินเดือนนี้ไม่ได้ — ยอดขายของเดือนหน้ายังไม่เกิด หน้าว่างเปล่าไม่มีประโยชน์กับใคร */
+  const shiftMonth = React.useCallback((n) => setMonth((cur) => {
+    /* กดลูกศรตอนอยู่ที่ "ทั้งหมด" = ออกจากทั้งหมดมาหยุดที่เดือนนี้ ไม่กระโดดข้ามเดือนปัจจุบันไป */
+    if (!cur) return thisMonth;
+    const base = cur;
+    const parts = base.split("-");
+    const d = new Date(+parts[0], +parts[1] - 1 + n, 1);
+    const k = d.getFullYear() + "-" + sPad2(d.getMonth() + 1);
+    return k > thisMonth ? cur : k;
+  }), [thisMonth]);
 
   const kpi = (label, value, sub, color) => (
     <div style={{ flex: "1 1 150px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "13px 15px" }}>
@@ -2236,18 +2249,24 @@ function SalesKpiView({ leads, quotes, appts, techs, currentUser, onMenuOpen, on
       <window.SchedHeader title="ยอดขาย" onMenuOpen={onMenuOpen}
         sub={monthTh(month) + " · ปิดการขาย " + tot.won + " ราย · ยอด ฿" + fmtBaht(Math.round(tot.sales)) + " · pipeline ฿" + fmtBaht(Math.round(tot.pipe))} />
       <div className="app-content">
-        <div className="cat-chip-row" style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, marginBottom: 11 }}>
-          {[""].concat(months).map((m) => {
-            const on = month === m;
-            return (
-              <button key={m || "all"} onClick={() => setMonth(m)}
-                style={{ padding: "7px 13px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
-                  whiteSpace: "nowrap", flexShrink: 0, border: "1px solid " + (on ? "transparent" : "var(--border)"),
-                  background: on ? "var(--primary)" : "var(--surface)", color: on ? "#fff" : "var(--text-2)" }}>
-                {monthTh(m)}
-              </button>
-            );
-          })}
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 11 }}>
+          <span className="ov-cal-nav">
+            <button onClick={() => shiftMonth(-1)} aria-label="เดือนก่อนหน้า"><Icon name="chevronLeft" size={15} color="var(--text-2)" /></button>
+            <b style={{ minWidth: 118 }}>{monthLong(month)}</b>
+            <button onClick={() => shiftMonth(1)} disabled={!!month && month >= thisMonth}
+              style={{ opacity: (!!month && month >= thisMonth) ? .4 : 1, cursor: (!!month && month >= thisMonth) ? "default" : "pointer" }}
+              aria-label="เดือนถัดไป"><Icon name="chevronRight" size={15} color="var(--text-2)" /></button>
+          </span>
+          {!!month && month !== thisMonth && (
+            <button onClick={() => setMonth(thisMonth)}
+              style={{ padding: "6px 12px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+                border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-2)" }}>เดือนนี้</button>
+          )}
+          {/* ทั้งหมด = ไม่กรองเดือน เป็นปุ่มสลับ ไม่ต้องเลื่อนหาไปสุดแถวเหมือนเดิม */}
+          <button onClick={() => setMonth(month ? "" : thisMonth)}
+            style={{ padding: "6px 12px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+              border: "1px solid " + (month ? "var(--border)" : "transparent"),
+              background: month ? "var(--surface)" : "var(--primary)", color: month ? "var(--text-2)" : "#fff" }}>ทั้งหมด</button>
         </div>
 
         {/* แยกงานบ้าน / งานโครงการ — กรองทั้งหน้า ตัวเลขในการ์ดสรุปเปลี่ยนตามที่เลือกด้วย */}
