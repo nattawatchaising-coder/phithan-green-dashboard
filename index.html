@@ -328,6 +328,12 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   .ghost-btn { display: none; }
   .delay-toggle { padding: 5px 9px; font-size: 11.5px; }
 
+  /* จอแคบ: ห้ามเลื่อนทั้งแผ่นตามแนวนอน
+     .rows เผื่อขอบไฮไลต์ไว้ข้างละ 10px ด้วย margin ติดลบ พอจอแคบขอบนั้นกลายเป็นความกว้างที่เลื่อนได้จริง
+     ผลคือทั้งหน้าแพนซ้ายขวาได้ และการ์ดที่กว้างพอดีอยู่แล้วเลยดูเหมือนขอบไม่ตรงกัน
+     ซ่อนแนวนอนได้ เพราะของที่เกินออกไปคือพื้นหลังตอนชี้ ไม่ใช่ข้อมูล — ตารางกว้าง ๆ มีกล่องเลื่อนของตัวเอง */
+  .app-content { overflow-x: hidden; }
+
   /* Content padding — เผื่อ safe-area ด้านล่าง (home indicator / แถบเบราว์เซอร์) */
   .app-content { padding: 12px 12px calc(16px + env(safe-area-inset-bottom, 0px)); }
   [data-density="compact"] .app-content { padding: 10px 10px calc(14px + env(safe-area-inset-bottom, 0px)); }
