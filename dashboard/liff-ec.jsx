@@ -282,9 +282,17 @@ function LnEcTab({ me, users, role, jobs }) {
   const store = window.useEcClaims();
   const [open, setOpen] = React.useState(null);
 
-  /* เห็นเฉพาะใบของตัวเองในแท็บนี้เสมอ แม้คนนั้นจะมีสิทธิ์อนุมัติ
-     ใบที่รอให้ตัวเองตัดสินอยู่คนละแท็บ ("อนุมัติ") โดยตั้งใจ —
-     "ใบของฉัน" กับ "ใบที่รอฉัน" เป็นคนละคำถาม ปนกันแล้วจะกดอนุมัติใบตัวเองพลาด
+  /* ── ใบที่รอ "ฉัน" อนุมัติ อยู่ในแท็บนี้ ไม่ใช่แท็บแยก ──
+     ⚠ ไม่เปิดโหนดเพิ่มเลย — store ข้างบนคือ ecClaims ก้อนเดียวกับที่รายการรออนุมัติใช้
+     "ใบของฉัน" กับ "ใบที่รอฉัน" ยังเป็นคนละหน้าอยู่ดี (สลับด้วยแถบข้างล่าง)
+     เพราะสองคำถามนี้ไม่เหมือนกัน และปนกันแล้วจะกดอนุมัติใบตัวเองพลาด */
+  const canAppr = !!window.ecCanApprove && window.ecCanApprove(role);
+  const [sub, setSub] = React.useState("mine");
+  const apprN = React.useMemo(() => !canAppr ? 0 : (store.claims || []).filter((c) =>
+    c && c.status === "sent" && window.ecApproveCheck(c, me, role).ok).length, [canAppr, store.claims, me, role]);
+
+  /* หน้านี้เห็นเฉพาะใบของตัวเองเสมอ แม้คนนั้นจะมีสิทธิ์อนุมัติ —
+     ใบที่รอให้ตัวเองตัดสินอยู่หัวข้อ "รออนุมัติ" ข้าง ๆ โดยตั้งใจ
      (ecApproveCheck กันไว้อยู่แล้ว แต่รายการที่อ่านผิดก็ยังทำให้เสียเวลาอยู่ดี) */
   const mine = React.useMemo(
     () => (store.claims || []).filter((c) => c && c.byId === (me || {}).id),
@@ -294,14 +302,39 @@ function LnEcTab({ me, users, role, jobs }) {
     s + (c && c.status === "approved" && window.ecPayOf(c.payMethod).owed
       && window.ecOwedTo(c).id === (me || {}).id ? window.ecRound(c.amount) : 0), 0);
 
+  /* ⚠ สิทธิ์ "อนุมัติใบเบิก" กับสิทธิ์ "เบิกเงิน" ไม่ใช่อันเดียวกัน
+     ฝ่ายบัญชีอนุมัติได้แต่ไม่ได้เบิกเอง ด่าน ecCanUse จึงกั้นเฉพาะหน้า "ใบของฉัน"
+     ไม่ใช่กั้นทั้งแท็บ ไม่งั้นคนอนุมัติจะเข้าไม่ถึงกล่องขาเข้าของตัวเองเลย */
+  const subBar = canAppr && window.LnSub
+    ? <window.LnSub items={[{ key: "mine", th: "ใบเบิกของฉัน" }, { key: "appr", th: "รออนุมัติ", n: apprN }]}
+        value={sub} onPick={setSub} />
+    : null;
+
+  if (canAppr && sub === "appr") {
+    return (
+      <React.Fragment>
+        {subBar}
+        {window.LnApEcList
+          ? <window.LnApEcList me={me} role={role} store={store} />
+          : <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>กำลังโหลด…</div>}
+      </React.Fragment>
+    );
+  }
+
   if (!window.ecCanUse(role)) {
-    return <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>
-      บัญชีนี้ยังไม่ได้เปิดสิทธิ์เบิกเงิน
-    </div>;
+    return (
+      <React.Fragment>
+        {subBar}
+        <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>
+          บัญชีนี้ยังไม่ได้เปิดสิทธิ์เบิกเงิน
+        </div>
+      </React.Fragment>
+    );
   }
 
   return (
-    <div style={{ padding: 18 }}>
+    <div style={{ padding: "0 18px 18px" }}>
+      {subBar && <div style={{ margin: "0 -4px" }}>{subBar}</div>}
       {owed > 0 && (
         <div style={{ padding: "13px 15px", borderRadius: 18, background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--soft)",
           display: "flex", alignItems: "baseline", gap: 8, marginBottom: 13 }}>
@@ -319,16 +352,18 @@ function LnEcTab({ me, users, role, jobs }) {
         + เปิดใบเบิกใหม่
       </button>
 
-      <div style={{ marginTop: 16, fontSize: 12.5, fontWeight: 800, color: "var(--text-1)", marginBottom: 7 }}>ใบเบิกของฉัน</div>
-      <div style={{ border: "1px solid var(--border)", boxShadow: "var(--soft)", borderRadius: 18, overflow: "hidden", background: "var(--surface)" }}>
+      <div style={{ marginTop: 18, fontSize: 12.5, fontWeight: 800, color: "var(--text-1)", marginBottom: 8 }}>ใบเบิกของฉัน</div>
+      <div>
         {mine.length === 0
-          ? <div style={{ padding: 24, textAlign: "center", color: "var(--text-3)", fontSize: 12.5 }}>ยังไม่มีใบเบิก</div>
+          ? <div style={Object.assign({ padding: 24, textAlign: "center", color: "var(--text-3)", fontSize: 12.5 },
+              window.LN_CARD || {})}>ยังไม่มีใบเบิก</div>
           : mine.slice(0, 25).map((c) => {
               const st = window.ecStatusOf(c.status);
               return (
+                /* การ์ดลอยทีละใบ ไม่ใช่แถวในกล่องเดียวคั่นด้วยเส้น — ใบเบิกคือของที่กดเข้าไปแก้ได้ทีละใบ */
                 <button key={c.id} onClick={() => setOpen(c)}
-                  style={{ display: "block", width: "100%", textAlign: "left", padding: "12px 13px", border: "none",
-                    borderBottom: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", fontFamily: "inherit" }}>
+                  style={Object.assign({ display: "block", width: "100%", textAlign: "left", padding: "13px 14px",
+                    marginBottom: 10, cursor: "pointer", fontFamily: "inherit" }, window.LN_CARD || {})}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{window.ecKindOf(c.kind).th}</span>
                     <span style={{ padding: "2px 8px", borderRadius: 99, background: st.color + "1A", color: st.color,
@@ -347,7 +382,7 @@ function LnEcTab({ me, users, role, jobs }) {
       </div>
 
       <div style={{ marginTop: 12, fontSize: 11, color: "var(--text-3)", lineHeight: 1.7, textAlign: "center" }}>
-        คนอนุมัติกดอนุมัติได้จากแท็บ “อนุมัติ” · การจ่ายเงินคืนทำที่หน้าเว็บ
+        คนอนุมัติกดอนุมัติได้จากหัวข้อ “รออนุมัติ” ด้านบน · การจ่ายเงินคืนทำที่หน้าเว็บ
         <br />ใบที่ส่งจากที่นี่เป็นใบเดียวกับในระบบ ไม่ต้องกรอกซ้ำ
       </div>
 

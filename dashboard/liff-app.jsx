@@ -11,24 +11,48 @@
    ชุดเดียวกับเว็บเดสก์ท็อป ฉะนั้น "ช่างเห็นงานอะไรบ้าง" ตอบเหมือนกันทั้งสองที่เสมอ
    ============================================================ */
 
-/* หกแท็บบนจอ 360px ได้ช่องละ 60px — ตัวหนังสือจึงต้องสั้นกว่าเดิม
-   "เบิกเงิน"/"แจ้งเตือน" ยาวเกินจนตัดกลางคำ ใช้คำสั้นคู่กับไอคอนแทน */
+/* ── สามแท็บ ──
+   "เวลา" อยู่ตรงกลางพอดี เพราะเป็นปุ่มที่ถูกกดบ่อยที่สุดในวันหนึ่ง ๆ
+   และตรงกลางคือที่ที่นิ้วโป้งพักอยู่เวลาถือมือถือมือเดียว
+
+   ของที่หายไปจากแถบนี้ไม่ได้ถูกลบ — ย้ายไปอยู่ในเรื่องของมันเอง
+   · งานซ่อม + รายงานประจำวัน → หัวข้อย่อยในแท็บ "งาน"
+     ทั้งสามเรื่องผูกกับหน้างานเหมือนกัน ต่างกันแค่กำลังดู สั่ง หรือรายงาน
+   · อนุมัติ → กระจายกลับไปอยู่ท้ายเรื่องที่มันอนุมัติ
+     ใบขอ OT รออนุมัติอยู่ในแท็บเวลา · ใบเบิกอยู่ในแท็บเบิก · รายงานอยู่ในหัวข้อรายงาน
+     กล่องขาเข้าที่รวมสามเรื่องอ่านง่ายเฉพาะกับคนที่อนุมัติครบทั้งสามเรื่อง ซึ่งมีไม่กี่คน
+     คนที่อนุมัติเรื่องเดียวต้องเดินผ่านอีกสองเรื่องที่ไม่ใช่ของตัวเองทุกครั้ง
+     และที่สำคัญกว่านั้น: คนอนุมัติใบ OT กับคนที่กำลังดูปฏิทินลงเวลาเป็นคนเดียวกัน
+     ข้อมูลที่ต้องใช้ตัดสินอยู่คนละแท็บกับปุ่มตัดสิน คือสิ่งที่ทำให้ต้องสลับไปมา
+   · ฉัน → รูปวงกลมมุมขวาบนของแถบหัว ที่ที่แอปอื่นวางมันไว้อยู่แล้ว
+
+   เจ็ดแท็บบนจอ 360px ได้ช่องละ 51px ซึ่งแคบกว่าปลายนิ้วโป้ง — สามแท็บได้ช่องละ 120px */
 const LN_TAB = [
-  { key: "jobs",  th: "งาน",     icon: "wrench" },
-  /* งานซ่อมแยกแท็บ ไม่ใช่ปนอยู่ในรายการงานติดตั้ง — มันคนละเรื่องกันจริง ๆ
-     งานติดตั้งคือใบงานที่มีวันนัดและขั้นตอน ส่วนงานซ่อมคือเรื่องที่ลูกค้าแจ้งเข้ามา
-     มีนาฬิกา SLA ของตัวเอง ปนกันแล้วงานซ่อมที่เลยกำหนดจะจมอยู่กลางรายการ */
-  { key: "fix",   th: "ซ่อม",    icon: "alert" },
-  { key: "time",  th: "เวลา",    icon: "clock" },
-  { key: "daily", th: "รายงาน",  icon: "pen" },
-  { key: "ec",    th: "เบิก",    icon: "wallet" },
-  /* แท็บอนุมัติขึ้นเฉพาะคนที่อนุมัติอะไรได้จริง (ดู lnCanApproveAny ใน liff-approve)
-     ช่างที่ไม่ได้อนุมัติอะไรเลยจะเหลือเจ็ดแท็บเท่าเดิม — และไม่ต้องแบกค่าเน็ต
-     ของโหนดใบเบิก/OT/รายงานทั้งบริษัทที่แท็บนั้น subscribe */
-  { key: "appr",  th: "อนุมัติ",  icon: "check" },
-  { key: "bell",  th: "เตือน",   icon: "bell" },
-  { key: "me",    th: "ฉัน",     icon: "user" },
+  { key: "jobs", th: "งาน",  icon: "wrench" },
+  { key: "time", th: "เวลา", icon: "clock" },
+  { key: "ec",   th: "เบิก", icon: "wallet" },
 ];
+
+/* หัวข้อย่อยในแท็บ "งาน" */
+const LN_JOB_SUB = [
+  { key: "list",  th: "งานติดตั้ง" },
+  { key: "fix",   th: "งานซ่อม" },
+  { key: "daily", th: "รายงาน" },
+];
+
+/* ── ทรงการ์ดกลาง ──
+   ของทุกชิ้นในแอปนี้เป็นการ์ดลอยบนพื้นนวล ไม่ใช่แถวในตารางที่คั่นด้วยเส้น
+   รวมไว้ที่เดียวเพราะก่อนหน้านี้แต่ละหน้าเขียนเงา/มุม/ขอบของตัวเอง
+   แล้วเปลี่ยนโทนทีก็ต้องไล่แก้ทุกที่ ซึ่งเป็นเหตุผลที่บางหน้ายังดูเป็นของเดิม */
+const LN_CARD = {
+  background: "var(--surface)", border: "1px solid var(--border)",
+  boxShadow: "var(--soft)", borderRadius: 20,
+};
+const LN_LIST_PAD = { padding: "0 14px 6px" };
+const lnCardBtn = (extra) => Object.assign({}, LN_CARD, {
+  display: "block", width: "100%", textAlign: "left", padding: "13px 15px",
+  marginBottom: 10, cursor: "pointer", fontFamily: "inherit",
+}, extra || {});
 
 /* ── แจ้งเตือนแต่ละเรื่องมีสีและไอคอนของตัวเอง ──
    รายการแจ้งเตือนที่เป็นตัวหนังสือสีเดียวกันทั้งหน้า ต้องอ่านทุกบรรทัดถึงจะรู้ว่าเรื่องอะไร
@@ -56,14 +80,26 @@ const lnNotifKind = (n) => LN_NOTIF_KIND[(n || {}).type] || LN_NOTIF_ANY;
 const LN_START = (() => {
   let t = "";
   try { t = new URLSearchParams(window.location.search).get("tab") || ""; } catch (e) { t = ""; }
-  if (t === "ot") return { tab: "time", ot: true };
-  return { tab: LN_TAB.some((x) => x.key === t) ? t : "jobs", ot: false };
+  const at = (tab, sub, extra) => Object.assign({ tab: tab, sub: sub || "", ot: false, me: false }, extra || {});
+  if (t === "ot")    return at("time", "", { ot: true });
+  /* คีย์เก่าจากตอนที่ยังมีเจ็ดแท็บ — ปุ่มในเมนูล่างของไลน์ที่ตั้งไว้แล้วต้องไม่พัง
+     พาไปที่หัวข้อย่อยที่เรื่องนั้นย้ายไปอยู่ ไม่ใช่ตกลงหน้าแรกเฉย ๆ */
+  if (t === "fix")   return at("jobs", "fix");
+  if (t === "daily") return at("jobs", "daily");
+  /* ?tab=appr ไม่มีปลายทางเดียวอีกแล้ว เพราะกล่องขาเข้าถูกแยกเป็นสามที่
+     พาไปที่ใบขอ OT ซึ่งเป็นเรื่องที่มีใบเข้ามาถี่ที่สุด และเป็นแท็บกลางที่เดินต่อง่ายที่สุด
+     ปุ่มในเมนูไลน์ควรถูกแก้ให้ชี้ ?tab=time แทนเมื่อสะดวก */
+  if (t === "appr")  return at("time", "appr");
+  if (t === "me")    return at("jobs", "", { me: true });
+  if (t === "bell")  return at("bell");
+  return at(LN_TAB.some((x) => x.key === t) ? t : "jobs");
 })();
 
 /* ── แถบหัว: เหลือแค่ตราบริษัท ──
    แท็บย้ายลงไปอยู่ขอบล่างจอแล้ว (LnTabs) — มือถือจอยาว นิ้วโป้งเอื้อมถึงขอบล่าง ไม่ถึงขอบบน
    และแถบบนที่เตี้ยลงคืนพื้นที่ให้เนื้องานอีกหนึ่งแถว */
-function LnHead() {
+function LnHead({ me, onMe }) {
+  const nm = String((me || {}).name || "").trim();
   return (
     /* ไม่มีพื้นขาวและไม่มีเส้นคั่น — แถบหัวกลืนไปกับพื้นหน้า ปล่อยให้การ์ดข้างล่างเป็นของที่ลอยอยู่ชิ้นเดียว
        ยัง sticky อยู่ เพราะตราบริษัทคือที่ที่สายตากลับมาหาเวลาหลงว่าอยู่หน้าไหน */
@@ -71,6 +107,55 @@ function LnHead() {
       paddingTop: "env(safe-area-inset-top, 0px)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "15px 18px 11px" }}>
         {window.BrandLockup ? <window.BrandLockup size={19} /> : <b>flash+solar</b>}
+        {/* "ฉัน" ไม่ใช่ที่ที่คนเข้าไปทำงาน เข้าไปหยิบนามบัตรตอนยืนคุยกับลูกค้าเท่านั้น
+            ของแบบนั้นไม่ควรกินช่องหนึ่งในแถบล่างเท่ากับ "ลงเวลา" ที่กดทุกวันวันละสองครั้ง */}
+        {me && (
+          <button onClick={onMe} aria-label="ข้อมูลของฉัน"
+            style={{ marginLeft: "auto", flexShrink: 0, width: 34, height: 34, borderRadius: 99, padding: 0,
+              border: "1px solid var(--border)", boxShadow: "var(--soft)", background: "var(--surface)",
+              color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 14, fontWeight: 800,
+              cursor: "pointer", display: "grid", placeItems: "center" }}>
+            {nm ? nm.slice(0, 1) : <Icon name="user" size={16} color="var(--text-3)" />}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── แผ่น "ฉัน" ──
+   เต็มจอและปิดด้วยปุ่มกากบาท ไม่ใช่แท็บ — เข้ามาหยิบของชิ้นเดียวแล้วออก ไม่ได้มาอยู่ */
+function LnMeSheet({ me, onClose }) {
+  if (!me) return null;
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 60, background: "var(--bg)", overflowY: "auto" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "15px 18px 11px",
+        paddingTop: "calc(15px + env(safe-area-inset-top, 0px))" }}>
+        <b style={{ fontSize: 16, fontWeight: 800, color: "var(--text-1)" }}>ข้อมูลของฉัน</b>
+        <button onClick={onClose}
+          style={{ marginLeft: "auto", width: 32, height: 32, borderRadius: 99, padding: 0,
+            border: "1px solid var(--border)", boxShadow: "var(--soft)", background: "var(--surface)",
+            color: "var(--text-2)", fontFamily: "inherit", fontSize: 16, cursor: "pointer" }}>×</button>
+      </div>
+      <div style={{ padding: "0 18px 28px", display: "grid", gap: 14 }}>
+        {/* นามบัตรวางติดหน้าเลย ไม่ต้องกดเข้าไปอีกชั้น — หน้านี้มีของอยู่อย่างเดียว
+            และของชิ้นนั้นคือสิ่งที่ต้องหยิบมาโชว์ให้ลูกค้าเดี๋ยวนั้นตอนยืนอยู่หน้างาน */}
+        {window.VcCardBody
+          ? <window.VcCardBody user={me} />
+          : (
+            <div style={Object.assign({ padding: 18, textAlign: "center" }, LN_CARD)}>
+              <div style={{ fontSize: 19, fontWeight: 800, color: "var(--text-1)" }}>{me.name}</div>
+              <div style={{ marginTop: 12, fontSize: 12, color: "var(--text-3)" }}>ชื่อผู้ใช้ {me.username || "—"}</div>
+            </div>
+          )}
+
+        {window.LN_TEST && (
+          <div style={{ padding: 12, borderRadius: 16, background: "var(--tint-amber-bg)",
+            border: "1px solid var(--tint-amber-bd)", color: "var(--tint-amber-tx)", fontSize: 12.5,
+            fontWeight: 700, textAlign: "center" }}>
+            โหมดทดสอบ — ข้อมูลที่บันทึกจะไม่เข้าระบบจริง
+          </div>
+        )}
       </div>
     </div>
   );
@@ -82,39 +167,60 @@ function LnHead() {
    ตัวหน้าเผื่อ paddingBottom ให้เท่ากับความสูงแถบบวกระยะที่ลอยพ้นขอบ ไม่งั้นแถวสุดท้ายจะโดนบัง
    ลอยพ้นขอบจอ 10px ทั้งสามด้าน — แถบที่แปะติดขอบทำให้หน้าจบแบบทื่อ ๆ
    แบบลอยทำให้เห็นว่าเนื้อหายังเลื่อนต่อได้ข้างใต้ และเข้ากับการ์ดที่ลอยอยู่แล้วทั้งหน้า */
-const LN_TABBAR_H = 58, LN_TABBAR_GAP = 10;
-function LnTabs({ tab, setTab, unread, tabs }) {
+const LN_TABBAR_H = 64, LN_TABBAR_GAP = 10;
+function LnTabs({ tab, setTab, tabs }) {
   const list = tabs && tabs.length ? tabs : LN_TAB;
   return (
     <div style={{ position: "fixed", zIndex: 20, background: "var(--surface)",
       left: LN_TABBAR_GAP, right: LN_TABBAR_GAP,
       bottom: "calc(" + LN_TABBAR_GAP + "px + env(safe-area-inset-bottom, 0px))",
       borderRadius: 26, border: "1px solid var(--border)", boxShadow: "var(--soft-lg)", overflow: "hidden" }}>
-      <div style={{ display: "flex", padding: 5, gap: 2 }}>
+      <div style={{ display: "flex", padding: 5, gap: 3 }}>
         {list.map((t) => {
           const on = tab === t.key;
           return (
-            /* ไอคอนบน ตัวหนังสือล่าง — ห้าแท็บเรียงบรรทัดเดียวล้นจอ 360px ซึ่งเป็นจอที่ช่างใช้จริง */
+            /* เหลือสามช่อง ตัวหนังสือกับไอคอนจึงโตขึ้นได้ — ตอนเจ็ดแท็บต้องบีบเหลือ 10.5px
+               ซึ่งเล็กกว่าที่คนใส่ถุงมือยืนกลางแดดจะอ่านออกจากหางตา
+               แผ่นสีอ่อนรองอยู่แทนขีดใต้ — ขีดบาง ๆ บนแถบที่มุมมนใหญ่จะดูเป็นเศษเส้น */
             <button key={t.key} onClick={() => setTab(t.key)}
-              /* แท็บที่เลือกใช้ "แผ่นสีอ่อนรองอยู่" แทนขีดใต้ — ขีดบาง ๆ บนแถบที่มุมมนใหญ่จะดูเป็นเศษเส้น
-                 แผ่นรองอ่านออกจากหางตาได้ไกลกว่า และเข้ากับชิปกลม ๆ ที่ใช้อยู่ทั้งแอป */
-              style={{ flex: 1, position: "relative", padding: "7px 0 8px", border: "none", cursor: "pointer",
-                borderRadius: 18, background: on ? "var(--primary-soft)" : "transparent",
-                fontFamily: "inherit", fontSize: 10.5, fontWeight: 700, color: on ? "var(--primary-dark)" : "var(--text-3)",
-                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3 }}>
-              <span style={{ position: "relative", lineHeight: 0 }}>
-                <Icon name={t.icon} size={18} color={on ? "var(--primary-dark)" : "var(--text-3)"} />
-                {t.key === "bell" && unread > 0 && (
-                  <span style={{ position: "absolute", top: -6, right: -11, minWidth: 16, height: 16, padding: "0 4px",
-                    borderRadius: 99, background: "#D93025", color: "#fff", fontSize: 10, fontWeight: 800,
-                    display: "inline-grid", placeItems: "center" }}>{unread}</span>
-                )}
-              </span>
+              style={{ flex: 1, position: "relative", padding: "9px 0 10px", border: "none", cursor: "pointer",
+                borderRadius: 20, background: on ? "var(--primary-soft)" : "transparent",
+                fontFamily: "inherit", fontSize: 11.5, fontWeight: 800, color: on ? "var(--primary-dark)" : "var(--text-3)",
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4 }}>
+              <Icon name={t.icon} size={21} color={on ? "var(--primary-dark)" : "var(--text-3)"} />
               {t.th}
             </button>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/* ── แถบหัวข้อย่อยในแท็บ ──
+   ทรงคนละแบบกับ LnPick โดยตั้งใจ: LnPick คือ "กรองรายการที่เห็นอยู่"
+   ส่วนอันนี้คือ "เปลี่ยนว่ากำลังดูเรื่องอะไร" ซึ่งเป็นการเดินทาง ไม่ใช่การกรอง
+   ทรงเดียวกันสองความหมายคือเหตุผลที่คนกดผิดแล้วงงว่าของหายไปไหน */
+function LnSub({ items, value, onPick }) {
+  const use = (items || []).filter(Boolean);
+  if (use.length < 2) return null;
+  return (
+    <div style={{ display: "flex", gap: 4, padding: 4, margin: "0 14px 12px",
+      borderRadius: 18, background: "var(--surface3)" }}>
+      {use.map((it) => {
+        const on = value === it.key;
+        return (
+          <button key={it.key} onClick={() => onPick(it.key)}
+            style={{ flex: 1, minWidth: 0, padding: "9px 4px", borderRadius: 14, border: "none", cursor: "pointer",
+              background: on ? "var(--surface)" : "transparent", boxShadow: on ? "var(--soft)" : "none",
+              fontFamily: "inherit", fontSize: 12.5, fontWeight: 800, whiteSpace: "nowrap",
+              color: on ? "var(--primary-dark)" : "var(--text-3)" }}>
+            {it.th}
+            {it.n ? <span style={{ marginLeft: 5, padding: "1px 6px", borderRadius: 99,
+              background: on ? "var(--primary-soft)" : "var(--surface)", fontSize: 11 }}>{it.n}</span> : null}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -212,9 +318,9 @@ function LnBellFab({ unread, on, onClick }) {
 function LnJobRow({ job, onOpen }) {
   const st = (window.SF.STAGES || []).find((s) => s.key === job.stage) || {};
   return (
-    <button onClick={() => onOpen(job)}
-      style={{ display: "block", width: "100%", textAlign: "left", padding: "13px 16px", border: "none",
-        borderBottom: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", fontFamily: "inherit" }}>
+    /* การ์ดลอยเว้นระยะกัน ไม่ใช่แถวขาวติดกันคั่นด้วยเส้นผม
+       ใบงานเป็น "ของหนึ่งชิ้น" ที่กดเข้าไปได้ ไม่ใช่บรรทัดหนึ่งในตาราง — ทรงต้องบอกแบบนั้น */
+    <button onClick={() => onOpen(job)} style={lnCardBtn()}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>{job.code}</span>
         <span style={{ padding: "2px 8px", borderRadius: 99, background: st.soft || "var(--surface3)", color: st.fg || "var(--text-2)",
@@ -698,7 +804,8 @@ function LnClockCal({ rows, cfg, ot, onAskOt }) {
     setYm(d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"));
   };
   const key = (d) => ym + "-" + String(d).padStart(2, "0");
-  const rec = byDay[pick];
+  const rec = byDay[pick];
+
   const otg = otDay[pick];
   const navBtn = {
     width: 28, height: 28, display: "grid", placeItems: "center", borderRadius: 12, cursor: "pointer",
@@ -971,7 +1078,7 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
 }
 
 /* ── แท็บ "เวลา" = ลงเวลา + ใบ OT ของฉัน ── */
-function LnTimeTab({ me, users, role, jobs, startOt }) {
+function LnTimeTab({ me, users, role, jobs, startOt, startSub }) {
   const wh = window.useWorkHours();
   const otStore = window.useOtClaims();
   /* เปิดฟอร์มทันทีเมื่อมาจากปุ่ม "ขอ OT" บนเมนูล่าง — แต่ยังต้องผ่านสิทธิ์
@@ -981,6 +1088,15 @@ function LnTimeTab({ me, users, role, jobs, startOt }) {
      ต้องล้างทุกครั้งที่ปิดฟอร์ม ไม่งั้นกด "+ ขอ OT" ครั้งถัดไปจะยังโดนล็อกอยู่ */
   const [limit, setLimit] = React.useState(null);
   const closeForm = () => { setForm(false); setLimit(null); };
+
+  /* ── กล่องขาเข้าของคนอนุมัติใบ OT อยู่ในแท็บนี้ ไม่ใช่แท็บแยก ──
+     ⚠ ไม่มีการ subscribe เพิ่มเลย — otStore ข้างบนคือโหนดเดียวกับที่รายการรออนุมัติใช้
+       นี่คือเหตุผลหลักที่ย้ายมาอยู่ตรงนี้: ของอยู่ในมืออยู่แล้ว แค่ก่อนหน้านี้ไปเปิดซ้ำอีกแท็บ
+     และคนอนุมัติมักอยากดูปฏิทินลงเวลาของวันนั้นก่อนตัดสิน ซึ่งอยู่หน้าเดียวกันแล้วตอนนี้ */
+  const canAppr = !!window.tmCanOtApprove && window.tmCanOtApprove(role);
+  const [sub, setSub] = React.useState(startSub === "appr" && canAppr ? "appr" : "mine");
+  const apprN = React.useMemo(() => !canAppr ? 0 : (otStore.rows || []).filter((r) =>
+    r && r.status === "sent" && window.tmOtApproveCheck(r, me, role).ok).length, [canAppr, otStore.rows, me, role]);
 
   const cancelOt = (r) => {
     const next = window.tmOtMove(r, "cancelled", me, "");
@@ -1000,57 +1116,70 @@ function LnTimeTab({ me, users, role, jobs, startOt }) {
 
   return (
     <React.Fragment>
-      {window.tmCanAttend(role)
-        ? <LnClock me={me} cfg={wh.cfg} jobs={jobs} ot={myOt}
-            onAskOt={window.tmCanOt(role) ? ((lim) => { setLimit(lim); setForm(true); }) : null} />
-        : <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>
-            บัญชีนี้ยังไม่ได้เปิดสิทธิ์ลงเวลา
-          </div>}
+      {canAppr && (
+        <LnSub items={[{ key: "mine", th: "ลงเวลาของฉัน" }, { key: "appr", th: "รออนุมัติ", n: apprN }]}
+          value={sub} onPick={setSub} />
+      )}
 
-      {window.tmCanOt(role) && (
-        <div style={{ padding: "0 18px 28px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8 }}>
-            <b style={{ fontSize: 13, color: "var(--text-1)" }}>ใบขอ OT ของฉัน</b>
-            <button onClick={() => { setLimit(null); setForm(true); }}
-              style={{ marginLeft: "auto", padding: "8px 14px", borderRadius: 13, border: "none",
-                background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 12.5,
-                fontWeight: 800, cursor: "pointer" }}>+ ขอ OT</button>
-          </div>
+      {sub === "appr" && canAppr
+        ? (window.LnApOtList
+            ? <window.LnApOtList me={me} role={role} store={otStore} />
+            : <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>กำลังโหลด…</div>)
+        : (
+        <React.Fragment>
+          {window.tmCanAttend(role)
+            ? <LnClock me={me} cfg={wh.cfg} jobs={jobs} ot={myOt}
+                onAskOt={window.tmCanOt(role) ? ((lim) => { setLimit(lim); setForm(true); }) : null} />
+            : <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>
+                บัญชีนี้ยังไม่ได้เปิดสิทธิ์ลงเวลา
+              </div>}
 
-          <div style={{ border: "1px solid var(--border)", boxShadow: "var(--soft)", borderRadius: 18, overflow: "hidden", background: "var(--surface)" }}>
-            {myOt.length === 0
-              ? <div style={{ padding: 22, textAlign: "center", color: "var(--text-3)", fontSize: 12.5 }}>ยังไม่มีใบขอ OT</div>
-              : myOt.slice(0, 15).map((r) => {
-                  const st = window.tmOtStatusOf(r.status);
-                  return (
-                    <div key={r.id} style={{ padding: "11px 13px", borderBottom: "1px solid var(--border)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>
-                          {window.drShort(r.date)} · {r.from}-{r.to}
-                        </span>
-                        <span style={{ padding: "2px 8px", borderRadius: 99, background: st.color + "1A",
-                          color: st.color, fontSize: 10.5, fontWeight: 800 }}>{st.th}</span>
-                        <span style={{ marginLeft: "auto", fontFamily: "var(--mono)", fontSize: 12.5, fontWeight: 800,
-                          color: "var(--text-1)" }}>{window.tmDur(r.mins)}</span>
+          {window.tmCanOt(role) && (
+            <div style={{ padding: "0 14px 28px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 9, margin: "0 4px 9px" }}>
+                <b style={{ fontSize: 13, color: "var(--text-1)" }}>ใบขอ OT ของฉัน</b>
+                <button onClick={() => { setLimit(null); setForm(true); }}
+                  style={{ marginLeft: "auto", padding: "8px 15px", borderRadius: 99, border: "none",
+                    background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 12.5,
+                    fontWeight: 800, cursor: "pointer" }}>+ ขอ OT</button>
+              </div>
+
+              {myOt.length === 0
+                ? <div style={Object.assign({ padding: 22, textAlign: "center", color: "var(--text-3)", fontSize: 12.5 }, LN_CARD)}>
+                    ยังไม่มีใบขอ OT
+                  </div>
+                : myOt.slice(0, 15).map((r) => {
+                    const st = window.tmOtStatusOf(r.status);
+                    return (
+                      <div key={r.id} style={Object.assign({ padding: "12px 14px", marginBottom: 10 }, LN_CARD)}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>
+                            {window.drShort(r.date)} · {r.from}-{r.to}
+                          </span>
+                          <span style={{ padding: "2px 8px", borderRadius: 99, background: st.color + "1A",
+                            color: st.color, fontSize: 10.5, fontWeight: 800 }}>{st.th}</span>
+                          <span style={{ marginLeft: "auto", fontFamily: "var(--mono)", fontSize: 12.5, fontWeight: 800,
+                            color: "var(--text-1)" }}>{window.tmDur(r.mins)}</span>
+                        </div>
+                        {r.approverName && <div style={{ marginTop: 3, fontSize: 11.5, color: "var(--text-3)" }}>ส่งถึง {r.approverName}</div>}
+                        {r.reason && <div style={{ marginTop: 3, fontSize: 11.5, color: "var(--text-3)" }}>{r.reason}</div>}
+                        {r.decidedNote && <div style={{ marginTop: 3, fontSize: 11.5, color: st.color }}>“{r.decidedNote}”</div>}
+                        {/* ยกเลิกได้เองตราบใดที่ยังไม่มีใครตัดสิน — ใบที่อนุมัติแล้วแตะไม่ได้
+                            ยกเลิกไม่ใช่การลบ ใบยังอยู่ให้ตรวจย้อนหลังว่าเคยขอแล้วถอน */}
+                        {window.tmOtOpen(r) && (
+                          <button onClick={() => cancelOt(r)}
+                            style={{ marginTop: 8, padding: "7px 13px", borderRadius: 12,
+                              border: "1px solid var(--border-strong)", background: "var(--surface)",
+                              color: "#EF4444", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                            ยกเลิกใบนี้
+                          </button>
+                        )}
                       </div>
-                      {r.approverName && <div style={{ marginTop: 3, fontSize: 11.5, color: "var(--text-3)" }}>ส่งถึง {r.approverName}</div>}
-                      {r.reason && <div style={{ marginTop: 3, fontSize: 11.5, color: "var(--text-3)" }}>{r.reason}</div>}
-                      {r.decidedNote && <div style={{ marginTop: 3, fontSize: 11.5, color: st.color }}>“{r.decidedNote}”</div>}
-                      {/* ยกเลิกได้เองตราบใดที่ยังไม่มีใครตัดสิน — ใบที่อนุมัติแล้วแตะไม่ได้
-                          ยกเลิกไม่ใช่การลบ ใบยังอยู่ให้ตรวจย้อนหลังว่าเคยขอแล้วถอน */}
-                      {window.tmOtOpen(r) && (
-                        <button onClick={() => cancelOt(r)}
-                          style={{ marginTop: 7, padding: "7px 13px", borderRadius: 12,
-                            border: "1px solid var(--border-strong)", background: "var(--surface)",
-                            color: "#EF4444", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                          ยกเลิกใบนี้
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-          </div>
-        </div>
+                    );
+                  })}
+            </div>
+          )}
+        </React.Fragment>
       )}
 
       {form && <LnOtForm me={me} users={users} cfg={wh.cfg} jobs={jobs} otStore={otStore}
@@ -1261,7 +1390,7 @@ function LnFixTab({ me, role }) {
 
   return (
     <React.Fragment>
-      <div style={{ padding: "12px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
+      <div style={{ padding: "0 18px 12px" }}>
         <LnPick items={chips} value={filter} onPick={setFilter} />
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 9 }}>
           <div style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: "var(--text-3)" }}>
@@ -1281,13 +1410,12 @@ function LnFixTab({ me, role }) {
             {filter === "done" ? "ยังไม่มีใบที่ปิดแล้ว" : "ไม่มีใบแจ้งซ่อมที่ค้างอยู่"}
             <br /><span style={{ fontSize: 12 }}>กด “เปิดใบแจ้งซ่อม” ได้เลยเมื่อเจอของเสียหน้างาน · ใบที่ออฟฟิศเปิดให้จะมาโผล่ที่นี่เมื่อระบุผู้รับผิดชอบเป็นคุณ</span>
           </div>
-        : list.map((t) => {
+        : <div style={LN_LIST_PAD}>{list.map((t) => {
             const st = window.omTicketStatusOf(t.status);
             const sev = window.OM_SEVERITY_BY[t.severity] || {};
             const late = window.omTicketOverdue(t, today);
             return (
-              <div key={t.id} onClick={() => setOpen(t)}
-                style={{ padding: "13px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer" }}>
+              <div key={t.id} onClick={() => setOpen(t)} style={lnCardBtn()}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>{t.no || t.id}</span>
                   <span style={{ padding: "2px 8px", borderRadius: 99, background: st.color + "1A", color: st.color,
@@ -1302,7 +1430,7 @@ function LnFixTab({ me, role }) {
                 </div>
               </div>
             );
-          })}
+          })}</div>}
 
       {open && <LnFixSheet t={open} role={role} onMove={move} onClose={() => setOpen(null)} />}
       {newing && <LnFixNew me={me} tickets={store.tickets} onSave={create} onClose={() => setNewing(false)} />}
@@ -1413,6 +1541,10 @@ function LnApp() {
   const roleCfg = window.useRoleConfig();
 
   const [tab, setTab]   = React.useState(LN_START.tab);
+  /* หัวข้อย่อยในแท็บงาน — งานติดตั้ง · งานซ่อม · รายงาน */
+  const [jobSub, setJobSub] = React.useState(
+    LN_JOB_SUB.some((x) => x.key === LN_START.sub) ? LN_START.sub : "list");
+  const [meOpen, setMeOpen] = React.useState(!!LN_START.me);
   const [q, setQ]       = React.useState("");
   const [open, setOpen] = React.useState(null);
   const [jobType, setJobType] = React.useState("all");
@@ -1464,16 +1596,6 @@ function LnApp() {
      (ลงเวลากับเบิกเงินยังใช้ work เหมือนเดิม เพราะไปสำรวจหรือซื้อของก่อนเริ่มติดตั้งได้) */
   const siteWork = React.useMemo(() => work.filter((j) => j.stage === "install"), [work]);
 
-  /* แท็บอนุมัติขึ้นกับใคร — คิดจากงานที่คนนี้เห็น (mine) ไม่ใช่ work
-     เพราะวิศวกรอนุมัติใบของงานที่ตัวเองคุม ซึ่งรวมถึงงานที่ปิดไปแล้วแต่ใบยังค้างอยู่ */
-  const canAppr = React.useMemo(
-    () => (me && window.lnCanApproveAny ? window.lnCanApproveAny(role, mine, me) : false),
-    [role, mine, me]);
-  /* แท็บ "เตือน" ไม่อยู่ในแถบล่างแล้ว — เป็นปุ่มกลมลอย (LnBellFab) ที่ลากย้ายได้
-     เนื้อหาของแท็บยังเป็นตัวเดิม เปลี่ยนแค่ทางเข้า ลิงก์เก่าที่ส่ง ?tab=bell มาก็ยังเปิดได้ */
-  const tabs = React.useMemo(
-    () => LN_TAB.filter((t) => t.key !== "bell" && (t.key !== "appr" || canAppr)), [canAppr]);
-
   /* แจ้งเตือนของฉัน — เงื่อนไขเดียวกับ myNotifs ใน app.jsx เป๊ะ */
   const myNotifs = React.useMemo(() => {
     if (!me) return [];
@@ -1489,91 +1611,95 @@ function LnApp() {
   return (
     <div style={{ minHeight: "100dvh", background: "var(--bg)",
       paddingBottom: "calc(" + (LN_TABBAR_H + LN_TABBAR_GAP * 2) + "px + env(safe-area-inset-bottom, 0px))" }}>
-      <LnHead />
+      <LnHead me={me} onMe={() => setMeOpen(true)} />
 
       {tab === "jobs" && (
         <React.Fragment>
-          {/* ไม่มีพื้นขาวและเส้นคั่นแล้ว — แถบค้นหาเป็นส่วนหนึ่งของพื้นหน้า ช่องกรอกเป็นของชิ้นเดียวที่ลอย
-              เส้นคั่นเดิมมีไว้แยกแถบนี้ออกจากรายการ ซึ่งตอนนี้รายการเป็นการ์ดลอยอยู่แล้ว ไม่ต้องมีเส้นช่วย */}
-          <div style={{ padding: "4px 18px 12px" }}>
-            <input value={q} onChange={(e) => setQ(e.target.value)}
-              autoCapitalize="none" autoCorrect="off" spellCheck={false}
-              placeholder="ค้นหา"
-              style={{ width: "100%", padding: "13px 15px", borderRadius: 18, border: "1px solid var(--border)",
-                boxShadow: "var(--soft)",
-                background: "var(--surface)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 15, outline: "none" }} />
-            {/* แยกงานติดตั้งตามประเภท — งานบ้านกับงานโครงการทำกันคนละแบบ
-                ของที่ต้องเตรียมและคนที่ต้องคุยด้วยคนละชุด ปนกันแล้วไล่หายาก */}
-            <div style={{ marginTop: 9 }}>
-              <LnPick items={[{ key: "all", th: "ทั้งหมด" }].concat(
-                  (window.SF.TYPES || []).map((t) => ({ key: t.key, th: t.th })))}
-                value={jobType} onPick={setJobType} />
-            </div>
+          <LnSub items={LN_JOB_SUB} value={jobSub} onPick={setJobSub} />
 
-            {scope.all && (
-              <div style={{ marginTop: 7 }}>
-                <LnPick items={[{ key: "mine", th: "ของฉัน" }, { key: "all", th: "ทั้งบริษัท" }]}
-                  value={onlyMine ? "mine" : "all"} onPick={(k) => setOnlyMine(k === "mine")} />
-              </div>
-            )}
+          {jobSub === "list" && (
+            <React.Fragment>
+              {/* ไม่มีพื้นขาวและเส้นคั่นแล้ว — แถบค้นหาเป็นส่วนหนึ่งของพื้นหน้า ช่องกรอกเป็นของชิ้นเดียวที่ลอย */}
+              <div style={{ padding: "0 18px 12px" }}>
+                <input value={q} onChange={(e) => setQ(e.target.value)}
+                  autoCapitalize="none" autoCorrect="off" spellCheck={false}
+                  placeholder="ค้นหา"
+                  style={{ width: "100%", padding: "13px 15px", borderRadius: 18, border: "1px solid var(--border)",
+                    boxShadow: "var(--soft)",
+                    background: "var(--surface)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 15, outline: "none" }} />
+                {/* แยกงานติดตั้งตามประเภท — งานบ้านกับงานโครงการทำกันคนละแบบ
+                    ของที่ต้องเตรียมและคนที่ต้องคุยด้วยคนละชุด ปนกันแล้วไล่หายาก */}
+                <div style={{ marginTop: 9 }}>
+                  <LnPick items={[{ key: "all", th: "ทั้งหมด" }].concat(
+                      (window.SF.TYPES || []).map((t) => ({ key: t.key, th: t.th })))}
+                    value={jobType} onPick={setJobType} />
+                </div>
 
-            <div style={{ marginTop: 8, fontSize: 11.5, color: "var(--text-3)" }}>
-              {(!scope.all || onlyMine) ? "เฉพาะงานที่คุณรับผิดชอบ" : "ทุกงานในระบบ"} · {list.length} งาน
-            </div>
-          </div>
-          {list.length === 0
-            ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5, lineHeight: 1.7 }}>
-                {q ? "ไม่พบงานที่ตรงกับคำค้น"
-                  : jobType !== "all" ? "ไม่มีงานประเภทนี้ที่คุณรับผิดชอบ"
-                  : "ยังไม่มีงานที่คุณรับผิดชอบ"}
-                {/* หน้าว่างเพราะยังไม่มีใครถูกระบุเป็นผู้รับผิดชอบ อ่านเหมือนระบบพัง
-                    ต้องบอกให้ชัดว่าต้องไปแก้ที่ใบงาน ไม่ใช่ที่หน้านี้ */}
-                {!q && jobType === "all" && !scope.all && (
-                  <div style={{ marginTop: 6, fontSize: 12 }}>
-                    งานจะขึ้นที่นี่เมื่อออฟฟิศระบุคุณเป็นช่างหรือวิศวกรผู้รับผิดชอบในใบงาน
+                {scope.all && (
+                  <div style={{ marginTop: 7 }}>
+                    <LnPick items={[{ key: "mine", th: "ของฉัน" }, { key: "all", th: "ทั้งบริษัท" }]}
+                      value={onlyMine ? "mine" : "all"} onPick={(k) => setOnlyMine(k === "mine")} />
                   </div>
                 )}
+
+                <div style={{ marginTop: 8, fontSize: 11.5, color: "var(--text-3)" }}>
+                  {(!scope.all || onlyMine) ? "เฉพาะงานที่คุณรับผิดชอบ" : "ทุกงานในระบบ"} · {list.length} งาน
+                </div>
               </div>
-            : list.map((j) => <LnJobRow key={j.id} job={j} onOpen={setOpen} />)}
+              {list.length === 0
+                ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5, lineHeight: 1.7 }}>
+                    {q ? "ไม่พบงานที่ตรงกับคำค้น"
+                      : jobType !== "all" ? "ไม่มีงานประเภทนี้ที่คุณรับผิดชอบ"
+                      : "ยังไม่มีงานที่คุณรับผิดชอบ"}
+                    {/* หน้าว่างเพราะยังไม่มีใครถูกระบุเป็นผู้รับผิดชอบ อ่านเหมือนระบบพัง
+                        ต้องบอกให้ชัดว่าต้องไปแก้ที่ใบงาน ไม่ใช่ที่หน้านี้ */}
+                    {!q && jobType === "all" && !scope.all && (
+                      <div style={{ marginTop: 6, fontSize: 12 }}>
+                        งานจะขึ้นที่นี่เมื่อออฟฟิศระบุคุณเป็นช่างหรือวิศวกรผู้รับผิดชอบในใบงาน
+                      </div>
+                    )}
+                  </div>
+                : <div style={LN_LIST_PAD}>{list.map((j) => <LnJobRow key={j.id} job={j} onOpen={setOpen} />)}</div>}
+            </React.Fragment>
+          )}
+
+          {jobSub === "fix" && <LnFixTab me={me} role={role} />}
+
+          {jobSub === "daily" && (
+            <window.LnDailyTab me={me} role={role} jobs={siteWork} allJobs={mine} notify={notif.addNotif} />
+          )}
         </React.Fragment>
       )}
 
-      {tab === "fix" && <LnFixTab me={me} role={role} />}
-
-      {tab === "time" && <LnTimeTab me={me} users={auth.users} role={role} jobs={work} startOt={LN_START.ot} />}
-
-      {tab === "daily" && <window.LnDailyTab me={me} role={role} jobs={siteWork} notify={notif.addNotif} />}
+      {tab === "time" && (
+        <LnTimeTab me={me} users={auth.users} role={role} jobs={work}
+          startOt={LN_START.ot} startSub={LN_START.sub} />
+      )}
 
       {tab === "ec" && <window.LnEcTab me={me} users={auth.users} role={role} jobs={work} />}
-
-      {/* ⚠ ต้องเช็ก canAppr ด้วย ไม่ใช่เช็กแค่ค่า tab — คนที่เคยมีสิทธิ์แล้วถูกถอด
-          อาจค้างอยู่ที่แท็บนี้จาก ?tab= ในลิงก์เมนูล่าง */}
-      {tab === "appr" && (canAppr && window.LnApproveTab
-        ? <window.LnApproveTab me={me} role={role} jobs={mine} notify={notif.addNotif} />
-        : <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>
-            บัญชีนี้ยังไม่ได้เปิดสิทธิ์อนุมัติเอกสาร
-          </div>)}
 
       {tab === "bell" && (
         myNotifs.length === 0
           ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>ยังไม่มีแจ้งเตือน</div>
-          : myNotifs.map((n) => {
+          : <div style={LN_LIST_PAD}>{myNotifs.map((n) => {
               const k = lnNotifKind(n);
               return (
                 <div key={n.id} onClick={() => {
                     if (!n.read) notif.markRead(n.id);
-                    /* เรื่องซ่อมพาไปแท็บซ่อม เรื่องงานพาไปใบงาน — แจ้งเตือนที่กดแล้วไม่ไปไหน
+                    /* เรื่องซ่อมพาไปหัวข้อซ่อม เรื่องงานพาไปใบงาน — แจ้งเตือนที่กดแล้วไม่ไปไหน
                        คือแจ้งเตือนที่อ่านแล้วต้องไปหาเองอยู่ดี */
-                    if (n.type === "om") { setTab("fix"); return; }
+                    if (n.type === "om") { setTab("jobs"); setJobSub("fix"); return; }
+                    if (n.type === "ot") { setTab("time"); return; }
+                    if (n.type === "expense") { setTab("ec"); return; }
                     const j = (store.jobs || []).find((x) => x.id === n.jobId);
-                    if (j) { setOpen(j); setTab("jobs"); }
+                    if (j) { setOpen(j); setTab("jobs"); setJobSub("list"); }
                   }}
-                  style={{ display: "flex", gap: 11, padding: "13px 16px", cursor: "pointer",
-                    borderBottom: "1px solid var(--border)",
-                    /* ยังไม่อ่าน = พื้นอ่อน ๆ สีของเรื่องนั้น + ขีดข้างซ้าย
-                       อ่านแล้วเหลือแค่ไอคอนสี เพื่อให้ "ยังไม่อ่าน" ยังเด่นกว่า "แยกเรื่อง" */
-                    borderLeft: "3px solid " + (n.read ? "transparent" : k.color),
-                    background: n.read ? "var(--surface)" : k.color + "12" }}>
+                  style={Object.assign({ display: "flex", gap: 11, padding: "13px 14px", marginBottom: 10,
+                    cursor: "pointer" }, LN_CARD, {
+                    /* ยังไม่อ่าน = พื้นอ่อน ๆ สีของเรื่องนั้น อ่านแล้วเหลือแค่ไอคอนสี
+                       เส้นขีดข้างซ้ายถูกตัดออก — บนการ์ดที่มุมมนใหญ่มันกลายเป็นเศษเส้นที่มุม */
+                    background: n.read ? "var(--surface)" : k.color + "12",
+                    border: "1px solid " + (n.read ? "var(--border)" : k.color + "33") })}>
                   <div style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 99, display: "grid",
                     placeItems: "center", background: k.color + "1F" }}>
                     <Icon name={k.icon} size={16} color={k.color} />
@@ -1592,39 +1718,19 @@ function LnApp() {
                   </div>
                 </div>
               );
-            })
-      )}
-
-      {tab === "me" && (
-        <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
-          {/* นามบัตรวางติดหน้าเลย ไม่ต้องกดเข้าไปอีกชั้น — หน้านี้มีของอยู่อย่างเดียว
-              และของชิ้นนั้นคือสิ่งที่ต้องหยิบมาโชว์ให้ลูกค้าเดี๋ยวนั้นตอนยืนอยู่หน้างาน
-              การ์ดชื่อ/บทบาท/ชื่อผู้ใช้ตัวเดิมถูกตัดออก — นามบัตรบอกชื่อกับตำแหน่งไว้ครบแล้ว */}
-          {window.VcCardBody
-            ? <window.VcCardBody user={me} />
-            : (
-              <div style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--soft)", borderRadius: 20, padding: 18, textAlign: "center" }}>
-                <div style={{ fontSize: 19, fontWeight: 800, color: "var(--text-1)" }}>{me.name}</div>
-                <div style={{ marginTop: 12, fontSize: 12, color: "var(--text-3)" }}>ชื่อผู้ใช้ {me.username || "—"}</div>
-              </div>
-            )}
-
-          {window.LN_TEST && (
-            <div style={{ marginTop: 14, padding: 12, borderRadius: 16, background: "var(--tint-amber-bg)",
-              border: "1px solid var(--tint-amber-bd)", color: "var(--tint-amber-tx)", fontSize: 12.5, fontWeight: 700, textAlign: "center" }}>
-              โหมดทดสอบ — ข้อมูลที่บันทึกจะไม่เข้าระบบจริง
-            </div>
-          )}
-
-        </div>
+            })}</div>
       )}
 
       <LnJobSheet job={open} techs={techStore.techs} onClose={() => setOpen(null)} />
+      {meOpen && <LnMeSheet me={me} onClose={() => setMeOpen(false)} />}
 
-      <LnBellFab unread={unread} on={tab === "bell"} onClick={() => setTab("bell")} />
-      <LnTabs tab={tab} setTab={setTab} unread={unread} tabs={tabs} />
+      <LnBellFab unread={unread} on={tab === "bell"}
+        onClick={() => setTab(tab === "bell" ? "jobs" : "bell")} />
+      {/* แถบล่างไม่ไฮไลต์อะไรเลยตอนเปิดหน้าแจ้งเตือน — ถูกแล้ว หน้านั้นไม่ใช่แท็บ
+          กดปุ่มกระดิ่งซ้ำหรือกดแท็บไหนก็ได้เพื่อออก */}
+      <LnTabs tab={tab} setTab={setTab} tabs={LN_TAB} />
     </div>
   );
 }
 
-Object.assign(window, { LN_NOTIF_KIND, lnNotifKind, LnApp, LnJobRow, LnJobSheet, LnJobFiles, LnHead, LnTabs, LnBellFab, LnClock, LnClockCal, LnOtForm, LnTimeTab, LnFixTab, LnFixSheet, LnFixNew, LnPick });
+Object.assign(window, { LN_NOTIF_KIND, LN_JOB_SUB, LN_CARD, LN_LIST_PAD, lnCardBtn, lnNotifKind, LnApp, LnJobRow, LnJobSheet, LnJobFiles, LnHead, LnTabs, LnSub, LnMeSheet, LnBellFab, LnClock, LnClockCal, LnOtForm, LnTimeTab, LnFixTab, LnFixSheet, LnFixNew, LnPick });

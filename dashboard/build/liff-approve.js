@@ -902,16 +902,178 @@ function LnApprOtSheet({
     }
   }, msg ? "กลับไปรายการ" : "ปิด")));
 }
-function LnApproveTab({
+function lnCanApprDaily(role, jobs, me) {
+  if (window.hasRole(role, "admin")) return true;
+  const uid = (me || {}).id || "";
+  return !!uid && (jobs || []).some(j => j && j.eeId === uid);
+}
+function LnApCard({
+  kind,
+  title,
+  sub,
+  right,
+  onClick
+}) {
+  const k = LN_AP_KIND_BY[kind] || LN_AP_KIND[0];
+  const card = window.LN_CARD || {
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
+    borderRadius: 20
+  };
+  return React.createElement("div", {
+    onClick: onClick,
+    style: Object.assign({
+      display: "flex",
+      gap: 11,
+      alignItems: "center",
+      padding: "13px 14px",
+      marginBottom: 10,
+      cursor: "pointer"
+    }, card)
+  }, React.createElement("div", {
+    style: {
+      flexShrink: 0,
+      width: 34,
+      height: 34,
+      borderRadius: 99,
+      display: "grid",
+      placeItems: "center",
+      background: k.color + "1F"
+    }
+  }, React.createElement(Icon, {
+    name: k.icon,
+    size: 16,
+    color: k.color
+  })), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 700,
+      color: "var(--text-1)"
+    }
+  }, title), React.createElement("div", {
+    style: {
+      marginTop: 3,
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, sub)), right && React.createElement("div", {
+    style: {
+      flexShrink: 0,
+      fontFamily: "var(--mono)",
+      fontSize: 13.5,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, right));
+}
+const LN_AP_WRAP = {
+  padding: "0 14px 24px"
+};
+function LnApEmpty({
+  th,
+  hint
+}) {
+  return React.createElement("div", {
+    style: {
+      padding: "34px 24px",
+      textAlign: "center",
+      color: "var(--text-3)",
+      fontSize: 13.5,
+      lineHeight: 1.7
+    }
+  }, th, hint && React.createElement("div", {
+    style: {
+      marginTop: 5,
+      fontSize: 12
+    }
+  }, hint));
+}
+function LnApCount({
+  n
+}) {
+  return React.createElement("div", {
+    style: {
+      margin: "0 4px 9px",
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E23\u0E2D\u0E04\u0E38\u0E13\u0E15\u0E31\u0E14\u0E2A\u0E34\u0E19 \xB7 ", n, " \u0E43\u0E1A");
+}
+function LnApOtList({
+  me,
+  role,
+  store
+}) {
+  const [open, setOpen] = React.useState(null);
+  const rows = React.useMemo(() => (store.rows || []).filter(r => r && r.status === "sent" && window.tmOtApproveCheck(r, me, role).ok), [store.rows, me, role]);
+  if (store.loading) return React.createElement(LnApEmpty, {
+    th: "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026"
+  });
+  return React.createElement("div", {
+    style: LN_AP_WRAP
+  }, React.createElement(LnApCount, {
+    n: rows.length
+  }), rows.length === 0 ? React.createElement(LnApEmpty, {
+    th: "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A\u0E02\u0E2D OT \u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34",
+    hint: "\u0E43\u0E1A\u0E08\u0E30\u0E21\u0E32\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E21\u0E35\u0E04\u0E19\u0E01\u0E14\u0E2A\u0E48\u0E07\u0E43\u0E1A\u0E02\u0E2D OT \u0E16\u0E36\u0E07\u0E04\u0E38\u0E13"
+  }) : rows.map(r => React.createElement(LnApCard, {
+    key: r.id,
+    kind: "ot",
+    title: (r.userName || "") + " · " + window.tmDur(r.mins),
+    sub: window.drShort(r.date) + " · " + (r.from || "") + "–" + (r.to || "") + (r.reason ? " · " + r.reason : ""),
+    onClick: () => setOpen(r)
+  })), open && React.createElement(LnApprOtSheet, {
+    me: me,
+    role: role,
+    rec: open,
+    store: store,
+    onClose: () => setOpen(null)
+  }));
+}
+function LnApEcList({
+  me,
+  role,
+  store
+}) {
+  const [open, setOpen] = React.useState(null);
+  const rows = React.useMemo(() => (store.claims || []).filter(c => c && c.status === "sent" && window.ecApproveCheck(c, me, role).ok), [store.claims, me, role]);
+  if (store.loading) return React.createElement(LnApEmpty, {
+    th: "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026"
+  });
+  return React.createElement("div", {
+    style: LN_AP_WRAP
+  }, React.createElement(LnApCount, {
+    n: rows.length
+  }), rows.length === 0 ? React.createElement(LnApEmpty, {
+    th: "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A\u0E40\u0E1A\u0E34\u0E01\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34",
+    hint: "\u0E43\u0E1A\u0E08\u0E30\u0E21\u0E32\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E21\u0E35\u0E04\u0E19\u0E01\u0E14\u0E2A\u0E48\u0E07\u0E43\u0E1A\u0E40\u0E1A\u0E34\u0E01\u0E16\u0E36\u0E07\u0E04\u0E38\u0E13"
+  }) : rows.map(c => React.createElement(LnApCard, {
+    key: c.id,
+    kind: "ec",
+    title: window.ecKindOf(c.kind).th + " · " + (c.byName || ""),
+    sub: window.drShort(c.date) + (c.siteCode ? " · " + c.siteCode : "") + (c.receiptCount ? " · บิล " + c.receiptCount + " ใบ" : " · ไม่มีบิล"),
+    right: window.ecBaht(c.amount),
+    onClick: () => setOpen(c)
+  })), open && React.createElement(LnApprEcSheet, {
+    me: me,
+    role: role,
+    claim: open,
+    store: store,
+    onClose: () => setOpen(null)
+  }));
+}
+function LnApDrList({
   me,
   role,
   jobs,
   notify
 }) {
   const drAll = window.useDailyAll();
-  const ecStore = window.useEcClaims();
-  const otStore = window.useOtClaims();
-  const [kind, setKind] = React.useState("daily");
   const [open, setOpen] = React.useState(null);
   const jobById = React.useMemo(() => {
     const m = {};
@@ -920,7 +1082,7 @@ function LnApproveTab({
     });
     return m;
   }, [jobs]);
-  const drList = React.useMemo(() => {
+  const rows = React.useMemo(() => {
     const out = [];
     Object.keys(drAll.all || {}).forEach(jid => {
       const job = jobById[jid];
@@ -939,141 +1101,24 @@ function LnApproveTab({
     });
     return out.sort((a, b) => String(b.date).localeCompare(String(a.date)));
   }, [drAll.all, jobById, role, me]);
-  const ecList = React.useMemo(() => (ecStore.claims || []).filter(c => c && c.status === "sent" && window.ecApproveCheck(c, me, role).ok), [ecStore.claims, me, role]);
-  const otList = React.useMemo(() => (otStore.rows || []).filter(r => r && r.status === "sent" && window.tmOtApproveCheck(r, me, role).ok), [otStore.rows, me, role]);
-  const n = {
-    daily: drList.length,
-    ec: ecList.length,
-    ot: otList.length
-  };
-  const chips = LN_AP_KIND.map(k => ({
-    key: k.key,
-    th: k.th + (n[k.key] ? " " + n[k.key] : "")
-  }));
-  const loading = drAll.loading || ecStore.loading || otStore.loading;
-  const jumped = React.useRef(false);
-  React.useEffect(() => {
-    if (jumped.current || loading) return;
-    jumped.current = true;
-    const first = LN_AP_KIND.filter(k => n[k.key] > 0)[0];
-    if (first) setKind(first.key);
-  }, [loading, n.daily, n.ec, n.ot]);
-  const row = (key, title, sub, right, onClick) => {
-    const k = LN_AP_KIND_BY[kind];
-    return React.createElement("div", {
-      key: key,
-      onClick: onClick,
-      style: {
-        display: "flex",
-        gap: 11,
-        alignItems: "center",
-        padding: "13px 16px",
-        cursor: "pointer",
-        background: "var(--surface)",
-        borderBottom: "1px solid var(--border)"
-      }
-    }, React.createElement("div", {
-      style: {
-        flexShrink: 0,
-        width: 32,
-        height: 32,
-        borderRadius: 99,
-        display: "grid",
-        placeItems: "center",
-        background: k.color + "1F"
-      }
-    }, React.createElement(Icon, {
-      name: k.icon,
-      size: 16,
-      color: k.color
-    })), React.createElement("div", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, React.createElement("div", {
-      style: {
-        fontSize: 14,
-        fontWeight: 700,
-        color: "var(--text-1)"
-      }
-    }, title), React.createElement("div", {
-      style: {
-        marginTop: 3,
-        fontSize: 12,
-        color: "var(--text-3)"
-      }
-    }, sub)), right && React.createElement("div", {
-      style: {
-        flexShrink: 0,
-        fontFamily: "var(--mono)",
-        fontSize: 13.5,
-        fontWeight: 800,
-        color: "var(--text-1)"
-      }
-    }, right));
-  };
-  return React.createElement(React.Fragment, null, React.createElement("div", {
-    style: {
-      padding: "12px 16px",
-      background: "var(--surface)",
-      borderBottom: "1px solid var(--border)"
-    }
-  }, React.createElement(window.LnPick, {
-    items: chips,
-    value: kind,
-    onPick: setKind
-  }), React.createElement("div", {
-    style: {
-      marginTop: 8,
-      fontSize: 11.5,
-      color: "var(--text-3)"
-    }
-  }, "\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E23\u0E2D\u0E04\u0E38\u0E13\u0E15\u0E31\u0E14\u0E2A\u0E34\u0E19 \xB7 \u0E23\u0E27\u0E21 ", n.daily + n.ec + n.ot, " \u0E43\u0E1A")), loading ? React.createElement("div", {
-    style: {
-      padding: 40,
-      textAlign: "center",
-      color: "var(--text-3)",
-      fontSize: 13.5
-    }
-  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026") : kind === "daily" ? drList.length === 0 ? React.createElement("div", {
-    style: {
-      padding: 40,
-      textAlign: "center",
-      color: "var(--text-3)",
-      fontSize: 13.5,
-      lineHeight: 1.7
-    }
-  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34", React.createElement("br", null), React.createElement("span", {
-    style: {
-      fontSize: 12
-    }
-  }, "\u0E43\u0E1A\u0E08\u0E30\u0E21\u0E32\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E0A\u0E48\u0E32\u0E07\u0E01\u0E14\u0E2A\u0E48\u0E07\u0E43\u0E19\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E04\u0E38\u0E13\u0E40\u0E1B\u0E47\u0E19\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A")) : drList.map(x => row(x.job.id + "/" + x.date, x.job.code + " · " + (x.job.name || ""), window.drDateTH(x.date) + " · โดย " + (x.rec.byName || "—"), x.rec.pct != null ? x.rec.pct + "%" : "", () => setOpen({
+  if (drAll.loading) return React.createElement(LnApEmpty, {
+    th: "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026"
+  });
+  return React.createElement("div", {
+    style: LN_AP_WRAP
+  }, React.createElement(LnApCount, {
+    n: rows.length
+  }), rows.length === 0 ? React.createElement(LnApEmpty, {
+    th: "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34",
+    hint: "\u0E43\u0E1A\u0E08\u0E30\u0E21\u0E32\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E0A\u0E48\u0E32\u0E07\u0E01\u0E14\u0E2A\u0E48\u0E07\u0E43\u0E19\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E04\u0E38\u0E13\u0E40\u0E1B\u0E47\u0E19\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A"
+  }) : rows.map(x => React.createElement(LnApCard, {
+    key: x.job.id + "/" + x.date,
     kind: "daily",
-    job: x.job,
-    date: x.date,
-    rec: x.rec
-  }))) : kind === "ec" ? ecList.length === 0 ? React.createElement("div", {
-    style: {
-      padding: 40,
-      textAlign: "center",
-      color: "var(--text-3)",
-      fontSize: 13.5
-    }
-  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A\u0E40\u0E1A\u0E34\u0E01\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34") : ecList.map(c => row(c.id, window.ecKindOf(c.kind).th + " · " + (c.byName || ""), window.drShort(c.date) + (c.siteCode ? " · " + c.siteCode : "") + (c.receiptCount ? " · บิล " + c.receiptCount + " ใบ" : " · ไม่มีบิล"), window.ecBaht(c.amount), () => setOpen({
-    kind: "ec",
-    claim: c
-  }))) : otList.length === 0 ? React.createElement("div", {
-    style: {
-      padding: 40,
-      textAlign: "center",
-      color: "var(--text-3)",
-      fontSize: 13.5
-    }
-  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A\u0E02\u0E2D OT \u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34") : otList.map(r => row(r.id, (r.userName || "") + " · " + window.tmDur(r.mins), window.drShort(r.date) + " · " + (r.from || "") + "–" + (r.to || "") + (r.reason ? " · " + r.reason : ""), "", () => setOpen({
-    kind: "ot",
-    rec: r
-  }))), open && open.kind === "daily" && React.createElement(LnApprDrSheet, {
+    title: x.job.code + " · " + (x.job.name || ""),
+    sub: window.drDateTH(x.date) + " · โดย " + (x.rec.byName || "—"),
+    right: x.rec.pct != null ? x.rec.pct + "%" : "",
+    onClick: () => setOpen(x)
+  })), open && React.createElement(LnApprDrSheet, {
     me: me,
     role: role,
     job: open.job,
@@ -1081,25 +1126,18 @@ function LnApproveTab({
     rec: open.rec,
     notify: notify,
     onClose: () => setOpen(null)
-  }), open && open.kind === "ec" && React.createElement(LnApprEcSheet, {
-    me: me,
-    role: role,
-    claim: open.claim,
-    store: ecStore,
-    onClose: () => setOpen(null)
-  }), open && open.kind === "ot" && React.createElement(LnApprOtSheet, {
-    me: me,
-    role: role,
-    rec: open.rec,
-    store: otStore,
-    onClose: () => setOpen(null)
   }));
 }
 Object.assign(window, {
   LN_AP_KIND,
   LN_AP_KIND_BY,
   lnCanApproveAny,
-  LnApproveTab,
+  lnCanApprDaily,
+  LnApOtList,
+  LnApEcList,
+  LnApDrList,
+  LnApCard,
+  LnApEmpty,
   LnApprDrSheet,
   LnApprEcSheet,
   LnApprOtSheet,

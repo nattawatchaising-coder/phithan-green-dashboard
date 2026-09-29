@@ -313,7 +313,7 @@ function LnPhotoCap({ value, onSave }) {
   );
 }
 
-function LnDailyTab({ me, role, jobs, notify }) {
+function LnDailyTab({ me, role, jobs, allJobs, notify }) {
   const [jobId, setJobId] = React.useState(() => ((jobs || [])[0] || {}).id || "");
   const [date, setDate] = React.useState(window.drToday());
   /* งานบ้าน/งานโครงการ เขียนรายงานคนละแบบ (ขั้นงานคนละชุด — ดู drBlank)
@@ -321,19 +321,48 @@ function LnDailyTab({ me, role, jobs, notify }) {
   const [jobType, setJobType] = React.useState("all");
   const store = window.useDailyReports(jobId || null);
 
+  /* ── ใบรายงานที่รอ "ฉัน" เซ็นรับรอง อยู่ในหัวข้อนี้ ไม่ใช่แท็บแยก ──
+     สิทธิ์ผูกกับ job.eeId เป็นใบ ๆ ไป จึงเช็กจาก allJobs (ทุกงานที่คนนี้เห็น)
+     ไม่ใช่ jobs ที่ถูกกรองเหลือเฉพาะงานของตัวเองที่กำลังติดตั้งอยู่
+     รายการจริงอยู่ใน LnApDrList ซึ่ง mount เฉพาะตอนกดเข้ามา —
+     มันเปิดโหนด dailyReports ทั้งก้อน จึงไม่ควรทำงานตอนคนเข้ามาเขียนรายงานเฉย ๆ */
+  const canAppr = !!window.lnCanApprDaily && window.lnCanApprDaily(role, allJobs || jobs, me);
+  const [sub, setSub] = React.useState("write");
+  const tabs = canAppr && window.LnSub
+    ? <window.LnSub items={[{ key: "write", th: "เขียนรายงาน" }, { key: "appr", th: "รออนุมัติ" }]}
+        value={sub} onPick={setSub} />
+    : null;
+
   const show = React.useMemo(() => (jobs || [])
     .filter((j) => jobType === "all" || (j.type || "home") === jobType), [jobs, jobType]);
   const job = (jobs || []).find((j) => j.id === jobId) || null;
   const day = window.drDayState(store.byDate, date);
 
+  if (canAppr && sub === "appr") {
+    return (
+      <React.Fragment>
+        {tabs}
+        {window.LnApDrList
+          ? <window.LnApDrList me={me} role={role} jobs={allJobs || jobs} notify={notify} />
+          : <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>กำลังโหลด…</div>}
+      </React.Fragment>
+    );
+  }
+
   if (!window.can(role, "editJob")) {
-    return <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>
-      บัญชีนี้ยังไม่ได้เปิดสิทธิ์เขียนรายงานประจำวัน
-    </div>;
+    return (
+      <React.Fragment>
+        {tabs}
+        <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>
+          บัญชีนี้ยังไม่ได้เปิดสิทธิ์เขียนรายงานประจำวัน
+        </div>
+      </React.Fragment>
+    );
   }
 
   return (
-    <div style={{ padding: 18 }}>
+    <div style={{ padding: "0 18px 18px" }}>
+      {tabs && <div style={{ margin: "0 -4px" }}>{tabs}</div>}
       <div style={{ display: "grid", gap: 9 }}>
         <div style={{ display: "grid", gap: 6 }}>
           <span style={LN_DR_LABEL}>งาน</span>
@@ -376,7 +405,7 @@ function LnDailyTab({ me, role, jobs, notify }) {
         : <LnDailyForm me={me} role={role} job={job} date={date} store={store} notify={notify} />}
 
       <div style={{ marginTop: 16, fontSize: 11, color: "var(--text-3)", lineHeight: 1.7, textAlign: "center" }}>
-        คนอนุมัติเซ็นรับรองใบนี้ได้จากแท็บ “อนุมัติ” · การพิมพ์ใบ A4 ทำที่หน้าเว็บ
+        คนอนุมัติเซ็นรับรองใบนี้ได้จากหัวข้อ “รออนุมัติ” ด้านบน · การพิมพ์ใบ A4 ทำที่หน้าเว็บ
         <br />ใบที่ส่งจากที่นี่เป็นใบเดียวกับในระบบ ไม่ต้องกรอกซ้ำ
       </div>
     </div>

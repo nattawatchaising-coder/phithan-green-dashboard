@@ -3,34 +3,42 @@ const LN_TAB = [{
   th: "งาน",
   icon: "wrench"
 }, {
-  key: "fix",
-  th: "ซ่อม",
-  icon: "alert"
-}, {
   key: "time",
   th: "เวลา",
   icon: "clock"
 }, {
-  key: "daily",
-  th: "รายงาน",
-  icon: "pen"
-}, {
   key: "ec",
   th: "เบิก",
   icon: "wallet"
-}, {
-  key: "appr",
-  th: "อนุมัติ",
-  icon: "check"
-}, {
-  key: "bell",
-  th: "เตือน",
-  icon: "bell"
-}, {
-  key: "me",
-  th: "ฉัน",
-  icon: "user"
 }];
+const LN_JOB_SUB = [{
+  key: "list",
+  th: "งานติดตั้ง"
+}, {
+  key: "fix",
+  th: "งานซ่อม"
+}, {
+  key: "daily",
+  th: "รายงาน"
+}];
+const LN_CARD = {
+  background: "var(--surface)",
+  border: "1px solid var(--border)",
+  boxShadow: "var(--soft)",
+  borderRadius: 20
+};
+const LN_LIST_PAD = {
+  padding: "0 14px 6px"
+};
+const lnCardBtn = extra => Object.assign({}, LN_CARD, {
+  display: "block",
+  width: "100%",
+  textAlign: "left",
+  padding: "13px 15px",
+  marginBottom: 10,
+  cursor: "pointer",
+  fontFamily: "inherit"
+}, extra || {});
 const LN_NOTIF_KIND = {
   assign: {
     th: "งานติดตั้ง",
@@ -76,16 +84,29 @@ const LN_START = (() => {
   } catch (e) {
     t = "";
   }
-  if (t === "ot") return {
-    tab: "time",
+  const at = (tab, sub, extra) => Object.assign({
+    tab: tab,
+    sub: sub || "",
+    ot: false,
+    me: false
+  }, extra || {});
+  if (t === "ot") return at("time", "", {
     ot: true
-  };
-  return {
-    tab: LN_TAB.some(x => x.key === t) ? t : "jobs",
-    ot: false
-  };
+  });
+  if (t === "fix") return at("jobs", "fix");
+  if (t === "daily") return at("jobs", "daily");
+  if (t === "appr") return at("time", "appr");
+  if (t === "me") return at("jobs", "", {
+    me: true
+  });
+  if (t === "bell") return at("bell");
+  return at(LN_TAB.some(x => x.key === t) ? t : "jobs");
 })();
-function LnHead() {
+function LnHead({
+  me,
+  onMe
+}) {
+  const nm = String((me || {}).name || "").trim();
   return (React.createElement("div", {
       style: {
         position: "sticky",
@@ -103,15 +124,120 @@ function LnHead() {
       }
     }, window.BrandLockup ? React.createElement(window.BrandLockup, {
       size: 19
-    }) : React.createElement("b", null, "flash+solar")))
+    }) : React.createElement("b", null, "flash+solar"), me && React.createElement("button", {
+      onClick: onMe,
+      "aria-label": "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19",
+      style: {
+        marginLeft: "auto",
+        flexShrink: 0,
+        width: 34,
+        height: 34,
+        borderRadius: 99,
+        padding: 0,
+        border: "1px solid var(--border)",
+        boxShadow: "var(--soft)",
+        background: "var(--surface)",
+        color: "var(--primary-dark)",
+        fontFamily: "inherit",
+        fontSize: 14,
+        fontWeight: 800,
+        cursor: "pointer",
+        display: "grid",
+        placeItems: "center"
+      }
+    }, nm ? nm.slice(0, 1) : React.createElement(Icon, {
+      name: "user",
+      size: 16,
+      color: "var(--text-3)"
+    }))))
   );
 }
-const LN_TABBAR_H = 58,
+function LnMeSheet({
+  me,
+  onClose
+}) {
+  if (!me) return null;
+  return React.createElement("div", {
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 60,
+      background: "var(--bg)",
+      overflowY: "auto"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "15px 18px 11px",
+      paddingTop: "calc(15px + env(safe-area-inset-top, 0px))"
+    }
+  }, React.createElement("b", {
+    style: {
+      fontSize: 16,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19"), React.createElement("button", {
+    onClick: onClose,
+    style: {
+      marginLeft: "auto",
+      width: 32,
+      height: 32,
+      borderRadius: 99,
+      padding: 0,
+      border: "1px solid var(--border)",
+      boxShadow: "var(--soft)",
+      background: "var(--surface)",
+      color: "var(--text-2)",
+      fontFamily: "inherit",
+      fontSize: 16,
+      cursor: "pointer"
+    }
+  }, "\xD7")), React.createElement("div", {
+    style: {
+      padding: "0 18px 28px",
+      display: "grid",
+      gap: 14
+    }
+  }, window.VcCardBody ? React.createElement(window.VcCardBody, {
+    user: me
+  }) : React.createElement("div", {
+    style: Object.assign({
+      padding: 18,
+      textAlign: "center"
+    }, LN_CARD)
+  }, React.createElement("div", {
+    style: {
+      fontSize: 19,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, me.name), React.createElement("div", {
+    style: {
+      marginTop: 12,
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, "\u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49 ", me.username || "—")), window.LN_TEST && React.createElement("div", {
+    style: {
+      padding: 12,
+      borderRadius: 16,
+      background: "var(--tint-amber-bg)",
+      border: "1px solid var(--tint-amber-bd)",
+      color: "var(--tint-amber-tx)",
+      fontSize: 12.5,
+      fontWeight: 700,
+      textAlign: "center"
+    }
+  }, "\u0E42\u0E2B\u0E21\u0E14\u0E17\u0E14\u0E2A\u0E2D\u0E1A \u2014 \u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E17\u0E35\u0E48\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E08\u0E30\u0E44\u0E21\u0E48\u0E40\u0E02\u0E49\u0E32\u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E23\u0E34\u0E07")));
+}
+const LN_TABBAR_H = 64,
   LN_TABBAR_GAP = 10;
 function LnTabs({
   tab,
   setTab,
-  unread,
   tabs
 }) {
   const list = tabs && tabs.length ? tabs : LN_TAB;
@@ -132,58 +258,85 @@ function LnTabs({
     style: {
       display: "flex",
       padding: 5,
-      gap: 2
+      gap: 3
     }
   }, list.map(t => {
     const on = tab === t.key;
+    return (React.createElement("button", {
+        key: t.key,
+        onClick: () => setTab(t.key),
+        style: {
+          flex: 1,
+          position: "relative",
+          padding: "9px 0 10px",
+          border: "none",
+          cursor: "pointer",
+          borderRadius: 20,
+          background: on ? "var(--primary-soft)" : "transparent",
+          fontFamily: "inherit",
+          fontSize: 11.5,
+          fontWeight: 800,
+          color: on ? "var(--primary-dark)" : "var(--text-3)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 4
+        }
+      }, React.createElement(Icon, {
+        name: t.icon,
+        size: 21,
+        color: on ? "var(--primary-dark)" : "var(--text-3)"
+      }), t.th)
+    );
+  })));
+}
+function LnSub({
+  items,
+  value,
+  onPick
+}) {
+  const use = (items || []).filter(Boolean);
+  if (use.length < 2) return null;
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 4,
+      padding: 4,
+      margin: "0 14px 12px",
+      borderRadius: 18,
+      background: "var(--surface3)"
+    }
+  }, use.map(it => {
+    const on = value === it.key;
     return React.createElement("button", {
-      key: t.key,
-      onClick: () => setTab(t.key),
+      key: it.key,
+      onClick: () => onPick(it.key),
       style: {
         flex: 1,
-        position: "relative",
-        padding: "7px 0 8px",
+        minWidth: 0,
+        padding: "9px 4px",
+        borderRadius: 14,
         border: "none",
         cursor: "pointer",
-        borderRadius: 18,
-        background: on ? "var(--primary-soft)" : "transparent",
+        background: on ? "var(--surface)" : "transparent",
+        boxShadow: on ? "var(--soft)" : "none",
         fontFamily: "inherit",
-        fontSize: 10.5,
-        fontWeight: 700,
-        color: on ? "var(--primary-dark)" : "var(--text-3)",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 3
-      }
-    }, React.createElement("span", {
-      style: {
-        position: "relative",
-        lineHeight: 0
-      }
-    }, React.createElement(Icon, {
-      name: t.icon,
-      size: 18,
-      color: on ? "var(--primary-dark)" : "var(--text-3)"
-    }), t.key === "bell" && unread > 0 && React.createElement("span", {
-      style: {
-        position: "absolute",
-        top: -6,
-        right: -11,
-        minWidth: 16,
-        height: 16,
-        padding: "0 4px",
-        borderRadius: 99,
-        background: "#D93025",
-        color: "#fff",
-        fontSize: 10,
+        fontSize: 12.5,
         fontWeight: 800,
-        display: "inline-grid",
-        placeItems: "center"
+        whiteSpace: "nowrap",
+        color: on ? "var(--primary-dark)" : "var(--text-3)"
       }
-    }, unread)), t.th);
-  })));
+    }, it.th, it.n ? React.createElement("span", {
+      style: {
+        marginLeft: 5,
+        padding: "1px 6px",
+        borderRadius: 99,
+        background: on ? "var(--primary-soft)" : "var(--surface)",
+        fontSize: 11
+      }
+    }, it.n) : null);
+  }));
 }
 const LN_FAB = 52,
   LN_FAB_PAD = 12,
@@ -317,64 +470,55 @@ function LnJobRow({
   onOpen
 }) {
   const st = (window.SF.STAGES || []).find(s => s.key === job.stage) || {};
-  return React.createElement("button", {
-    onClick: () => onOpen(job),
-    style: {
-      display: "block",
-      width: "100%",
-      textAlign: "left",
-      padding: "13px 16px",
-      border: "none",
-      borderBottom: "1px solid var(--border)",
-      background: "var(--surface)",
-      cursor: "pointer",
-      fontFamily: "inherit"
-    }
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8
-    }
-  }, React.createElement("span", {
-    style: {
-      fontFamily: "var(--mono)",
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
-  }, job.code), React.createElement("span", {
-    style: {
-      padding: "2px 8px",
-      borderRadius: 99,
-      background: st.soft || "var(--surface3)",
-      color: st.fg || "var(--text-2)",
-      fontSize: 10.5,
-      fontWeight: 800
-    }
-  }, st.th || job.stage), job.delayed && React.createElement("span", {
-    style: {
-      padding: "2px 8px",
-      borderRadius: 99,
-      background: "var(--tint-red-bg)",
-      color: "var(--tint-red-tx)",
-      fontSize: 10.5,
-      fontWeight: 800
-    }
-  }, "\u0E25\u0E48\u0E32\u0E0A\u0E49\u0E32")), React.createElement("div", {
-    style: {
-      marginTop: 4,
-      fontSize: 14.5,
-      fontWeight: 700,
-      color: "var(--text-1)"
-    }
-  }, job.name || "—"), React.createElement("div", {
-    style: {
-      marginTop: 2,
-      fontSize: 12,
-      color: "var(--text-3)"
-    }
-  }, [job.province, job.kw ? job.kw + " kW" : "", job.brand].filter(Boolean).join(" · ")));
+  return (React.createElement("button", {
+      onClick: () => onOpen(job),
+      style: lnCardBtn()
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8
+      }
+    }, React.createElement("span", {
+      style: {
+        fontFamily: "var(--mono)",
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: "var(--text-3)"
+      }
+    }, job.code), React.createElement("span", {
+      style: {
+        padding: "2px 8px",
+        borderRadius: 99,
+        background: st.soft || "var(--surface3)",
+        color: st.fg || "var(--text-2)",
+        fontSize: 10.5,
+        fontWeight: 800
+      }
+    }, st.th || job.stage), job.delayed && React.createElement("span", {
+      style: {
+        padding: "2px 8px",
+        borderRadius: 99,
+        background: "var(--tint-red-bg)",
+        color: "var(--tint-red-tx)",
+        fontSize: 10.5,
+        fontWeight: 800
+      }
+    }, "\u0E25\u0E48\u0E32\u0E0A\u0E49\u0E32")), React.createElement("div", {
+      style: {
+        marginTop: 4,
+        fontSize: 14.5,
+        fontWeight: 700,
+        color: "var(--text-1)"
+      }
+    }, job.name || "—"), React.createElement("div", {
+      style: {
+        marginTop: 2,
+        fontSize: 12,
+        color: "var(--text-3)"
+      }
+    }, [job.province, job.kw ? job.kw + " kW" : "", job.brand].filter(Boolean).join(" · ")))
+  );
 }
 function LnJobFiles({
   jobId
@@ -1596,7 +1740,8 @@ function LnTimeTab({
   users,
   role,
   jobs,
-  startOt
+  startOt,
+  startSub
 }) {
   const wh = window.useWorkHours();
   const otStore = window.useOtClaims();
@@ -1606,6 +1751,9 @@ function LnTimeTab({
     setForm(false);
     setLimit(null);
   };
+  const canAppr = !!window.tmCanOtApprove && window.tmCanOtApprove(role);
+  const [sub, setSub] = React.useState(startSub === "appr" && canAppr ? "appr" : "mine");
+  const apprN = React.useMemo(() => !canAppr ? 0 : (otStore.rows || []).filter(r => r && r.status === "sent" && window.tmOtApproveCheck(r, me, role).ok).length, [canAppr, otStore.rows, me, role]);
   const cancelOt = r => {
     const next = window.tmOtMove(r, "cancelled", me, "");
     if (!next) return;
@@ -1619,7 +1767,29 @@ function LnTimeTab({
     }
   };
   const myOt = React.useMemo(() => (otStore.rows || []).filter(r => r && r.userId === (me || {}).id), [otStore.rows, me]);
-  return React.createElement(React.Fragment, null, window.tmCanAttend(role) ? React.createElement(LnClock, {
+  return React.createElement(React.Fragment, null, canAppr && React.createElement(LnSub, {
+    items: [{
+      key: "mine",
+      th: "ลงเวลาของฉัน"
+    }, {
+      key: "appr",
+      th: "รออนุมัติ",
+      n: apprN
+    }],
+    value: sub,
+    onPick: setSub
+  }), sub === "appr" && canAppr ? window.LnApOtList ? React.createElement(window.LnApOtList, {
+    me: me,
+    role: role,
+    store: otStore
+  }) : React.createElement("div", {
+    style: {
+      padding: 40,
+      textAlign: "center",
+      color: "var(--text-3)",
+      fontSize: 13.5
+    }
+  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026") : React.createElement(React.Fragment, null, window.tmCanAttend(role) ? React.createElement(LnClock, {
     me: me,
     cfg: wh.cfg,
     jobs: jobs,
@@ -1637,14 +1807,14 @@ function LnTimeTab({
     }
   }, "\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E1B\u0E34\u0E14\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32"), window.tmCanOt(role) && React.createElement("div", {
     style: {
-      padding: "0 18px 28px"
+      padding: "0 14px 28px"
     }
   }, React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
       gap: 9,
-      marginBottom: 8
+      margin: "0 4px 9px"
     }
   }, React.createElement("b", {
     style: {
@@ -1658,8 +1828,8 @@ function LnTimeTab({
     },
     style: {
       marginLeft: "auto",
-      padding: "8px 14px",
-      borderRadius: 13,
+      padding: "8px 15px",
+      borderRadius: 99,
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -1668,29 +1838,21 @@ function LnTimeTab({
       fontWeight: 800,
       cursor: "pointer"
     }
-  }, "+ \u0E02\u0E2D OT")), React.createElement("div", {
-    style: {
-      border: "1px solid var(--border)",
-      boxShadow: "var(--soft)",
-      borderRadius: 18,
-      overflow: "hidden",
-      background: "var(--surface)"
-    }
-  }, myOt.length === 0 ? React.createElement("div", {
-    style: {
+  }, "+ \u0E02\u0E2D OT")), myOt.length === 0 ? React.createElement("div", {
+    style: Object.assign({
       padding: 22,
       textAlign: "center",
       color: "var(--text-3)",
       fontSize: 12.5
-    }
+    }, LN_CARD)
   }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A\u0E02\u0E2D OT") : myOt.slice(0, 15).map(r => {
     const st = window.tmOtStatusOf(r.status);
     return React.createElement("div", {
       key: r.id,
-      style: {
-        padding: "11px 13px",
-        borderBottom: "1px solid var(--border)"
-      }
+      style: Object.assign({
+        padding: "12px 14px",
+        marginBottom: 10
+      }, LN_CARD)
     }, React.createElement("div", {
       style: {
         display: "flex",
@@ -1741,7 +1903,7 @@ function LnTimeTab({
     }, "\u201C", r.decidedNote, "\u201D"), window.tmOtOpen(r) && React.createElement("button", {
       onClick: () => cancelOt(r),
       style: {
-        marginTop: 7,
+        marginTop: 8,
         padding: "7px 13px",
         borderRadius: 12,
         border: "1px solid var(--border-strong)",
@@ -2095,9 +2257,7 @@ function LnFixTab({
   }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026");
   return React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
-      padding: "12px 16px",
-      background: "var(--surface)",
-      borderBottom: "1px solid var(--border)"
+      padding: "0 18px 12px"
     }
   }, React.createElement(LnPick, {
     items: chips,
@@ -2143,19 +2303,16 @@ function LnFixTab({
     style: {
       fontSize: 12
     }
-  }, "\u0E01\u0E14 \u201C\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A\u0E41\u0E08\u0E49\u0E07\u0E0B\u0E48\u0E2D\u0E21\u201D \u0E44\u0E14\u0E49\u0E40\u0E25\u0E22\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E40\u0E08\u0E2D\u0E02\u0E2D\u0E07\u0E40\u0E2A\u0E35\u0E22\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \xB7 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E2B\u0E49\u0E08\u0E30\u0E21\u0E32\u0E42\u0E1C\u0E25\u0E48\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E23\u0E30\u0E1A\u0E38\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A\u0E40\u0E1B\u0E47\u0E19\u0E04\u0E38\u0E13")) : list.map(t => {
+  }, "\u0E01\u0E14 \u201C\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A\u0E41\u0E08\u0E49\u0E07\u0E0B\u0E48\u0E2D\u0E21\u201D \u0E44\u0E14\u0E49\u0E40\u0E25\u0E22\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E40\u0E08\u0E2D\u0E02\u0E2D\u0E07\u0E40\u0E2A\u0E35\u0E22\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \xB7 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E2B\u0E49\u0E08\u0E30\u0E21\u0E32\u0E42\u0E1C\u0E25\u0E48\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E23\u0E30\u0E1A\u0E38\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A\u0E40\u0E1B\u0E47\u0E19\u0E04\u0E38\u0E13")) : React.createElement("div", {
+    style: LN_LIST_PAD
+  }, list.map(t => {
     const st = window.omTicketStatusOf(t.status);
     const sev = window.OM_SEVERITY_BY[t.severity] || {};
     const late = window.omTicketOverdue(t, today);
     return React.createElement("div", {
       key: t.id,
       onClick: () => setOpen(t),
-      style: {
-        padding: "13px 16px",
-        borderBottom: "1px solid var(--border)",
-        background: "var(--surface)",
-        cursor: "pointer"
-      }
+      style: lnCardBtn()
     }, React.createElement("div", {
       style: {
         display: "flex",
@@ -2199,7 +2356,7 @@ function LnFixTab({
         color: "var(--text-3)"
       }
     }, t.siteName || t.siteCode || "—", sev.th ? " · " + sev.th : "", t.apptDate ? " · นัด " + window.drShort(t.apptDate) : ""));
-  }), open && React.createElement(LnFixSheet, {
+  })), open && React.createElement(LnFixSheet, {
     t: open,
     role: role,
     onMove: move,
@@ -2435,6 +2592,8 @@ function LnApp() {
   const notif = window.useNotifStore();
   const roleCfg = window.useRoleConfig();
   const [tab, setTab] = React.useState(LN_START.tab);
+  const [jobSub, setJobSub] = React.useState(LN_JOB_SUB.some(x => x.key === LN_START.sub) ? LN_START.sub : "list");
+  const [meOpen, setMeOpen] = React.useState(!!LN_START.me);
   const [q, setQ] = React.useState("");
   const [open, setOpen] = React.useState(null);
   const [jobType, setJobType] = React.useState("all");
@@ -2464,8 +2623,6 @@ function LnApp() {
     return mine.filter(j => j.stage !== "done" && window.jobIsMine(j, me));
   }, [mine, me]);
   const siteWork = React.useMemo(() => work.filter(j => j.stage === "install"), [work]);
-  const canAppr = React.useMemo(() => me && window.lnCanApproveAny ? window.lnCanApproveAny(role, mine, me) : false, [role, mine, me]);
-  const tabs = React.useMemo(() => LN_TAB.filter(t => t.key !== "bell" && (t.key !== "appr" || canAppr)), [canAppr]);
   const myNotifs = React.useMemo(() => {
     if (!me) return [];
     const tid = me.techId;
@@ -2486,9 +2643,16 @@ function LnApp() {
       background: "var(--bg)",
       paddingBottom: "calc(" + (LN_TABBAR_H + LN_TABBAR_GAP * 2) + "px + env(safe-area-inset-bottom, 0px))"
     }
-  }, React.createElement(LnHead, null), tab === "jobs" && React.createElement(React.Fragment, null, React.createElement("div", {
+  }, React.createElement(LnHead, {
+    me: me,
+    onMe: () => setMeOpen(true)
+  }), tab === "jobs" && React.createElement(React.Fragment, null, React.createElement(LnSub, {
+    items: LN_JOB_SUB,
+    value: jobSub,
+    onPick: setJobSub
+  }), jobSub === "list" && React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
-      padding: "4px 18px 12px"
+      padding: "0 18px 12px"
     }
   }, React.createElement("input", {
     value: q,
@@ -2556,73 +2720,78 @@ function LnApp() {
       marginTop: 6,
       fontSize: 12
     }
-  }, "\u0E07\u0E32\u0E19\u0E08\u0E30\u0E02\u0E36\u0E49\u0E19\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u0E23\u0E30\u0E1A\u0E38\u0E04\u0E38\u0E13\u0E40\u0E1B\u0E47\u0E19\u0E0A\u0E48\u0E32\u0E07\u0E2B\u0E23\u0E37\u0E2D\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A\u0E43\u0E19\u0E43\u0E1A\u0E07\u0E32\u0E19")) : list.map(j => React.createElement(LnJobRow, {
+  }, "\u0E07\u0E32\u0E19\u0E08\u0E30\u0E02\u0E36\u0E49\u0E19\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u0E23\u0E30\u0E1A\u0E38\u0E04\u0E38\u0E13\u0E40\u0E1B\u0E47\u0E19\u0E0A\u0E48\u0E32\u0E07\u0E2B\u0E23\u0E37\u0E2D\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E0A\u0E2D\u0E1A\u0E43\u0E19\u0E43\u0E1A\u0E07\u0E32\u0E19")) : React.createElement("div", {
+    style: LN_LIST_PAD
+  }, list.map(j => React.createElement(LnJobRow, {
     key: j.id,
     job: j,
     onOpen: setOpen
-  }))), tab === "fix" && React.createElement(LnFixTab, {
+  })))), jobSub === "fix" && React.createElement(LnFixTab, {
     me: me,
     role: role
-  }), tab === "time" && React.createElement(LnTimeTab, {
+  }), jobSub === "daily" && React.createElement(window.LnDailyTab, {
+    me: me,
+    role: role,
+    jobs: siteWork,
+    allJobs: mine,
+    notify: notif.addNotif
+  })), tab === "time" && React.createElement(LnTimeTab, {
     me: me,
     users: auth.users,
     role: role,
     jobs: work,
-    startOt: LN_START.ot
-  }), tab === "daily" && React.createElement(window.LnDailyTab, {
-    me: me,
-    role: role,
-    jobs: siteWork,
-    notify: notif.addNotif
+    startOt: LN_START.ot,
+    startSub: LN_START.sub
   }), tab === "ec" && React.createElement(window.LnEcTab, {
     me: me,
     users: auth.users,
     role: role,
     jobs: work
-  }), tab === "appr" && (canAppr && window.LnApproveTab ? React.createElement(window.LnApproveTab, {
-    me: me,
-    role: role,
-    jobs: mine,
-    notify: notif.addNotif
-  }) : React.createElement("div", {
+  }), tab === "bell" && (myNotifs.length === 0 ? React.createElement("div", {
     style: {
       padding: 40,
       textAlign: "center",
       color: "var(--text-3)",
       fontSize: 13.5
     }
-  }, "\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E1B\u0E34\u0E14\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23")), tab === "bell" && (myNotifs.length === 0 ? React.createElement("div", {
-    style: {
-      padding: 40,
-      textAlign: "center",
-      color: "var(--text-3)",
-      fontSize: 13.5
-    }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E41\u0E08\u0E49\u0E07\u0E40\u0E15\u0E37\u0E2D\u0E19") : myNotifs.map(n => {
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E41\u0E08\u0E49\u0E07\u0E40\u0E15\u0E37\u0E2D\u0E19") : React.createElement("div", {
+    style: LN_LIST_PAD
+  }, myNotifs.map(n => {
     const k = lnNotifKind(n);
     return React.createElement("div", {
       key: n.id,
       onClick: () => {
         if (!n.read) notif.markRead(n.id);
         if (n.type === "om") {
-          setTab("fix");
+          setTab("jobs");
+          setJobSub("fix");
+          return;
+        }
+        if (n.type === "ot") {
+          setTab("time");
+          return;
+        }
+        if (n.type === "expense") {
+          setTab("ec");
           return;
         }
         const j = (store.jobs || []).find(x => x.id === n.jobId);
         if (j) {
           setOpen(j);
           setTab("jobs");
+          setJobSub("list");
         }
       },
-      style: {
+      style: Object.assign({
         display: "flex",
         gap: 11,
-        padding: "13px 16px",
-        cursor: "pointer",
-        borderBottom: "1px solid var(--border)",
-        borderLeft: "3px solid " + (n.read ? "transparent" : k.color),
-        background: n.read ? "var(--surface)" : k.color + "12"
-      }
+        padding: "13px 14px",
+        marginBottom: 10,
+        cursor: "pointer"
+      }, LN_CARD, {
+        background: n.read ? "var(--surface)" : k.color + "12",
+        border: "1px solid " + (n.read ? "var(--border)" : k.color + "33")
+      })
     }, React.createElement("div", {
       style: {
         flexShrink: 0,
@@ -2685,65 +2854,29 @@ function LnApp() {
         background: k.color
       }
     }))));
-  })), tab === "me" && React.createElement("div", {
-    style: {
-      padding: 18,
-      display: "flex",
-      flexDirection: "column",
-      gap: 14
-    }
-  }, window.VcCardBody ? React.createElement(window.VcCardBody, {
-    user: me
-  }) : React.createElement("div", {
-    style: {
-      background: "var(--surface)",
-      border: "1px solid var(--border)",
-      boxShadow: "var(--soft)",
-      borderRadius: 20,
-      padding: 18,
-      textAlign: "center"
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 19,
-      fontWeight: 800,
-      color: "var(--text-1)"
-    }
-  }, me.name), React.createElement("div", {
-    style: {
-      marginTop: 12,
-      fontSize: 12,
-      color: "var(--text-3)"
-    }
-  }, "\u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49 ", me.username || "—")), window.LN_TEST && React.createElement("div", {
-    style: {
-      marginTop: 14,
-      padding: 12,
-      borderRadius: 16,
-      background: "var(--tint-amber-bg)",
-      border: "1px solid var(--tint-amber-bd)",
-      color: "var(--tint-amber-tx)",
-      fontSize: 12.5,
-      fontWeight: 700,
-      textAlign: "center"
-    }
-  }, "\u0E42\u0E2B\u0E21\u0E14\u0E17\u0E14\u0E2A\u0E2D\u0E1A \u2014 \u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E17\u0E35\u0E48\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E08\u0E30\u0E44\u0E21\u0E48\u0E40\u0E02\u0E49\u0E32\u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E23\u0E34\u0E07")), React.createElement(LnJobSheet, {
+  }))), React.createElement(LnJobSheet, {
     job: open,
     techs: techStore.techs,
     onClose: () => setOpen(null)
+  }), meOpen && React.createElement(LnMeSheet, {
+    me: me,
+    onClose: () => setMeOpen(false)
   }), React.createElement(LnBellFab, {
     unread: unread,
     on: tab === "bell",
-    onClick: () => setTab("bell")
+    onClick: () => setTab(tab === "bell" ? "jobs" : "bell")
   }), React.createElement(LnTabs, {
     tab: tab,
     setTab: setTab,
-    unread: unread,
-    tabs: tabs
+    tabs: LN_TAB
   }));
 }
 Object.assign(window, {
   LN_NOTIF_KIND,
+  LN_JOB_SUB,
+  LN_CARD,
+  LN_LIST_PAD,
+  lnCardBtn,
   lnNotifKind,
   LnApp,
   LnJobRow,
@@ -2751,6 +2884,8 @@ Object.assign(window, {
   LnJobFiles,
   LnHead,
   LnTabs,
+  LnSub,
+  LnMeSheet,
   LnBellFab,
   LnClock,
   LnClockCal,

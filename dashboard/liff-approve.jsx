@@ -491,13 +491,121 @@ function LnApprOtSheet({ me, role, rec, store, onClose }) {
   );
 }
 
-/* ══════════════ แท็บอนุมัติ ══════════════ */
+/* ══════════════ กล่องขาเข้าของคนอนุมัติ ══════════════
 
-function LnApproveTab({ me, role, jobs, notify }) {
+   ไม่มีแท็บ "อนุมัติ" แล้ว — รายการรออนุมัติถูกแยกเป็นสามชิ้น
+   แล้วไปแขวนอยู่ในแท็บของเรื่องนั้นเอง (ดูคอมเมนต์ LN_TAB ใน liff-app)
+
+   ผลพลอยได้ที่สำคัญกว่าเรื่องความสวย: แท็บเดิม subscribe ทั้ง dailyReports ·
+   ecClaims · tmOt พร้อมกันเสมอ ทั้งที่คนส่วนใหญ่อนุมัติแค่เรื่องเดียว
+   ตอนนี้ใบ OT กับใบเบิกใช้ store ตัวเดียวกับที่แท็บนั้นเปิดอยู่แล้ว = ไม่มีโหนดเพิ่มเลย
+   เหลือแค่รายงานที่ยังต้องอ่าน dailyReports ทั้งโหนด และอ่านเฉพาะตอนกดเข้าไปดูจริง ๆ
+
+   ⚠ ยังไม่มีตรรกะสิทธิ์ชุดใหม่ในไฟล์นี้ — drCanApprove · ecApproveCheck · tmOtApproveCheck
+     คือชุดเดียวกับที่หน้าเดสก์ท็อปใช้ ห้ามเขียนเงื่อนไขเองที่นี่
+   ============================================================ */
+
+/* ใครเห็นหัวข้อ "รออนุมัติ" ในหัวข้อรายงานบ้าง
+   สิทธิ์รายงานผูกกับ job.eeId เป็นใบ ๆ ไป ตัดที่ระดับตำแหน่งไม่ได้ (ดู drCanApprove) */
+function lnCanApprDaily(role, jobs, me) {
+  if (window.hasRole(role, "admin")) return true;
+  const uid = (me || {}).id || "";
+  return !!uid && (jobs || []).some((j) => j && j.eeId === uid);
+}
+
+/* แถวหนึ่งใบ = การ์ดลอยหนึ่งใบ ไม่ใช่บรรทัดในตาราง
+   ใบที่รออนุมัติคือของที่ต้อง "หยิบขึ้นมาตัดสิน" ทีละใบ ทรงต้องบอกแบบนั้น */
+function LnApCard({ kind, title, sub, right, onClick }) {
+  const k = LN_AP_KIND_BY[kind] || LN_AP_KIND[0];
+  const card = window.LN_CARD || { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 20 };
+  return (
+    <div onClick={onClick}
+      style={Object.assign({ display: "flex", gap: 11, alignItems: "center", padding: "13px 14px",
+        marginBottom: 10, cursor: "pointer" }, card)}>
+      <div style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 99, display: "grid",
+        placeItems: "center", background: k.color + "1F" }}>
+        <Icon name={k.icon} size={16} color={k.color} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{title}</div>
+        <div style={{ marginTop: 3, fontSize: 12, color: "var(--text-3)" }}>{sub}</div>
+      </div>
+      {right && <div style={{ flexShrink: 0, fontFamily: "var(--mono)", fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{right}</div>}
+    </div>
+  );
+}
+
+const LN_AP_WRAP = { padding: "0 14px 24px" };
+function LnApEmpty({ th, hint }) {
+  return (
+    <div style={{ padding: "34px 24px", textAlign: "center", color: "var(--text-3)", fontSize: 13.5, lineHeight: 1.7 }}>
+      {th}
+      {hint && <div style={{ marginTop: 5, fontSize: 12 }}>{hint}</div>}
+    </div>
+  );
+}
+function LnApCount({ n }) {
+  return (
+    <div style={{ margin: "0 4px 9px", fontSize: 11.5, color: "var(--text-3)" }}>
+      เฉพาะใบที่รอคุณตัดสิน · {n} ใบ
+    </div>
+  );
+}
+
+/* ── ใบขอ OT ที่รออนุมัติ ── store มาจากแท็บเวลา ไม่เปิดโหนดเพิ่ม */
+function LnApOtList({ me, role, store }) {
+  const [open, setOpen] = React.useState(null);
+  const rows = React.useMemo(() => (store.rows || []).filter((r) =>
+    r && r.status === "sent" && window.tmOtApproveCheck(r, me, role).ok), [store.rows, me, role]);
+
+  if (store.loading) return <LnApEmpty th="กำลังโหลด…" />;
+  return (
+    <div style={LN_AP_WRAP}>
+      <LnApCount n={rows.length} />
+      {rows.length === 0
+        ? <LnApEmpty th="ไม่มีใบขอ OT รออนุมัติ" hint="ใบจะมาที่นี่เมื่อมีคนกดส่งใบขอ OT ถึงคุณ" />
+        : rows.map((r) => (
+            <LnApCard key={r.id} kind="ot"
+              title={(r.userName || "") + " · " + window.tmDur(r.mins)}
+              sub={window.drShort(r.date) + " · " + (r.from || "") + "–" + (r.to || "") + (r.reason ? " · " + r.reason : "")}
+              onClick={() => setOpen(r)} />
+          ))}
+      {open && <LnApprOtSheet me={me} role={role} rec={open} store={store} onClose={() => setOpen(null)} />}
+    </div>
+  );
+}
+
+/* ── ใบเบิกที่รออนุมัติ ── store มาจากแท็บเบิก */
+function LnApEcList({ me, role, store }) {
+  const [open, setOpen] = React.useState(null);
+  const rows = React.useMemo(() => (store.claims || []).filter((c) =>
+    c && c.status === "sent" && window.ecApproveCheck(c, me, role).ok), [store.claims, me, role]);
+
+  if (store.loading) return <LnApEmpty th="กำลังโหลด…" />;
+  return (
+    <div style={LN_AP_WRAP}>
+      <LnApCount n={rows.length} />
+      {rows.length === 0
+        ? <LnApEmpty th="ไม่มีใบเบิกรออนุมัติ" hint="ใบจะมาที่นี่เมื่อมีคนกดส่งใบเบิกถึงคุณ" />
+        : rows.map((c) => (
+            <LnApCard key={c.id} kind="ec"
+              title={window.ecKindOf(c.kind).th + " · " + (c.byName || "")}
+              sub={window.drShort(c.date) + (c.siteCode ? " · " + c.siteCode : "")
+                + (c.receiptCount ? " · บิล " + c.receiptCount + " ใบ" : " · ไม่มีบิล")}
+              right={window.ecBaht(c.amount)}
+              onClick={() => setOpen(c)} />
+          ))}
+      {open && <LnApprEcSheet me={me} role={role} claim={open} store={store} onClose={() => setOpen(null)} />}
+    </div>
+  );
+}
+
+/* ── รายงานประจำวันที่รออนุมัติ ──
+   ตัวเดียวในสามตัวที่ต้องเปิดโหนดของตัวเอง (dailyReports ทั้งก้อน)
+   จึงตั้งใจให้เป็นคอมโพเนนต์ลูกที่ mount เฉพาะตอนกดเข้าหัวข้อ "รออนุมัติ" จริง ๆ
+   ไม่ใช่ทุกครั้งที่เปิดหัวข้อรายงาน */
+function LnApDrList({ me, role, jobs, notify }) {
   const drAll = window.useDailyAll();
-  const ecStore = window.useEcClaims();
-  const otStore = window.useOtClaims();
-  const [kind, setKind] = React.useState("daily");
   const [open, setOpen] = React.useState(null);
 
   const jobById = React.useMemo(() => {
@@ -506,9 +614,9 @@ function LnApproveTab({ me, role, jobs, notify }) {
     return m;
   }, [jobs]);
 
-  /* ใบรายงานที่รอ "คนนี้" อนุมัติ — เดินทีละใบเพราะสิทธิ์ผูกกับวิศวกรของงานนั้น ๆ
+  /* เดินทีละใบเพราะสิทธิ์ผูกกับวิศวกรของงานนั้น ๆ
      งานที่ไม่อยู่ในขอบเขตที่เห็นได้ ไม่ต้องนับ เพราะกดเข้าไปก็เปิดใบไม่ได้อยู่ดี */
-  const drList = React.useMemo(() => {
+  const rows = React.useMemo(() => {
     const out = [];
     Object.keys(drAll.all || {}).forEach((jid) => {
       const job = jobById[jid];
@@ -524,100 +632,28 @@ function LnApproveTab({ me, role, jobs, notify }) {
     return out.sort((a, b) => String(b.date).localeCompare(String(a.date)));
   }, [drAll.all, jobById, role, me]);
 
-  const ecList = React.useMemo(() => (ecStore.claims || []).filter((c) =>
-    c && c.status === "sent" && window.ecApproveCheck(c, me, role).ok), [ecStore.claims, me, role]);
-
-  const otList = React.useMemo(() => (otStore.rows || []).filter((r) =>
-    r && r.status === "sent" && window.tmOtApproveCheck(r, me, role).ok), [otStore.rows, me, role]);
-
-  const n = { daily: drList.length, ec: ecList.length, ot: otList.length };
-  const chips = LN_AP_KIND.map((k) => ({ key: k.key, th: k.th + (n[k.key] ? " " + n[k.key] : "") }));
-  const loading = drAll.loading || ecStore.loading || otStore.loading;
-
-  /* เปิดมาให้ตรงกับหมวดที่มีของรออยู่จริง — หมวดว่างเปล่าเป็นหน้าแรกทุกครั้ง
-     ทำให้คนเข้าใจว่า "ไม่มีอะไรรอ" ทั้งที่อีกสองหมวดมีใบค้าง
-     ทำครั้งเดียวตอนโหลดเสร็จ ไม่งั้นมันจะดีดหมวดหนีตอนเพิ่งอนุมัติใบสุดท้ายไป */
-  const jumped = React.useRef(false);
-  React.useEffect(() => {
-    if (jumped.current || loading) return;
-    jumped.current = true;
-    const first = LN_AP_KIND.filter((k) => n[k.key] > 0)[0];
-    if (first) setKind(first.key);
-  }, [loading, n.daily, n.ec, n.ot]);
-
-  const row = (key, title, sub, right, onClick) => {
-    const k = LN_AP_KIND_BY[kind];
-    return (
-      <div key={key} onClick={onClick}
-        style={{ display: "flex", gap: 11, alignItems: "center", padding: "13px 16px", cursor: "pointer",
-          background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
-        <div style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 99, display: "grid",
-          placeItems: "center", background: k.color + "1F" }}>
-          <Icon name={k.icon} size={16} color={k.color} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{title}</div>
-          <div style={{ marginTop: 3, fontSize: 12, color: "var(--text-3)" }}>{sub}</div>
-        </div>
-        {right && <div style={{ flexShrink: 0, fontFamily: "var(--mono)", fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{right}</div>}
-      </div>
-    );
-  };
-
+  if (drAll.loading) return <LnApEmpty th="กำลังโหลด…" />;
   return (
-    <React.Fragment>
-      <div style={{ padding: "12px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
-        <window.LnPick items={chips} value={kind} onPick={setKind} />
-        <div style={{ marginTop: 8, fontSize: 11.5, color: "var(--text-3)" }}>
-          เฉพาะใบที่รอคุณตัดสิน · รวม {n.daily + n.ec + n.ot} ใบ
-        </div>
-      </div>
-
-      {loading
-        ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>กำลังโหลด…</div>
-        : kind === "daily"
-          ? (drList.length === 0
-              ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5, lineHeight: 1.7 }}>
-                  ไม่มีรายงานรออนุมัติ
-                  <br /><span style={{ fontSize: 12 }}>ใบจะมาที่นี่เมื่อช่างกดส่งในงานที่คุณเป็นวิศวกรผู้รับผิดชอบ</span>
-                </div>
-              : drList.map((x) => row(x.job.id + "/" + x.date,
-                  x.job.code + " · " + (x.job.name || ""),
-                  window.drDateTH(x.date) + " · โดย " + (x.rec.byName || "—"),
-                  x.rec.pct != null ? x.rec.pct + "%" : "",
-                  () => setOpen({ kind: "daily", job: x.job, date: x.date, rec: x.rec }))))
-          : kind === "ec"
-            ? (ecList.length === 0
-                ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>ไม่มีใบเบิกรออนุมัติ</div>
-                : ecList.map((c) => row(c.id,
-                    window.ecKindOf(c.kind).th + " · " + (c.byName || ""),
-                    window.drShort(c.date) + (c.siteCode ? " · " + c.siteCode : "")
-                      + (c.receiptCount ? " · บิล " + c.receiptCount + " ใบ" : " · ไม่มีบิล"),
-                    window.ecBaht(c.amount),
-                    () => setOpen({ kind: "ec", claim: c }))))
-            : (otList.length === 0
-                ? <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>ไม่มีใบขอ OT รออนุมัติ</div>
-                : otList.map((r) => row(r.id,
-                    (r.userName || "") + " · " + window.tmDur(r.mins),
-                    window.drShort(r.date) + " · " + (r.from || "") + "–" + (r.to || "") + (r.reason ? " · " + r.reason : ""),
-                    "",
-                    () => setOpen({ kind: "ot", rec: r }))))}
-
-      {open && open.kind === "daily" && (
-        <LnApprDrSheet me={me} role={role} job={open.job} date={open.date} rec={open.rec}
-          notify={notify} onClose={() => setOpen(null)} />
-      )}
-      {open && open.kind === "ec" && (
-        <LnApprEcSheet me={me} role={role} claim={open.claim} store={ecStore} onClose={() => setOpen(null)} />
-      )}
-      {open && open.kind === "ot" && (
-        <LnApprOtSheet me={me} role={role} rec={open.rec} store={otStore} onClose={() => setOpen(null)} />
-      )}
-    </React.Fragment>
+    <div style={LN_AP_WRAP}>
+      <LnApCount n={rows.length} />
+      {rows.length === 0
+        ? <LnApEmpty th="ไม่มีรายงานรออนุมัติ"
+            hint="ใบจะมาที่นี่เมื่อช่างกดส่งในงานที่คุณเป็นวิศวกรผู้รับผิดชอบ" />
+        : rows.map((x) => (
+            <LnApCard key={x.job.id + "/" + x.date} kind="daily"
+              title={x.job.code + " · " + (x.job.name || "")}
+              sub={window.drDateTH(x.date) + " · โดย " + (x.rec.byName || "—")}
+              right={x.rec.pct != null ? x.rec.pct + "%" : ""}
+              onClick={() => setOpen(x)} />
+          ))}
+      {open && <LnApprDrSheet me={me} role={role} job={open.job} date={open.date} rec={open.rec}
+        notify={notify} onClose={() => setOpen(null)} />}
+    </div>
   );
 }
 
 Object.assign(window, {
-  LN_AP_KIND, LN_AP_KIND_BY, lnCanApproveAny,
-  LnApproveTab, LnApprDrSheet, LnApprEcSheet, LnApprOtSheet, LnApDecide, LnApRows, LnApHead, LnApPdf,
+  LN_AP_KIND, LN_AP_KIND_BY, lnCanApproveAny, lnCanApprDaily,
+  LnApOtList, LnApEcList, LnApDrList, LnApCard, LnApEmpty,
+  LnApprDrSheet, LnApprEcSheet, LnApprOtSheet, LnApDecide, LnApRows, LnApHead, LnApPdf,
 });

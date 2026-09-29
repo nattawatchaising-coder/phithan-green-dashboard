@@ -571,30 +571,63 @@ function LnDailyTab({
   me,
   role,
   jobs,
+  allJobs,
   notify
 }) {
   const [jobId, setJobId] = React.useState(() => ((jobs || [])[0] || {}).id || "");
   const [date, setDate] = React.useState(window.drToday());
   const [jobType, setJobType] = React.useState("all");
   const store = window.useDailyReports(jobId || null);
+  const canAppr = !!window.lnCanApprDaily && window.lnCanApprDaily(role, allJobs || jobs, me);
+  const [sub, setSub] = React.useState("write");
+  const tabs = canAppr && window.LnSub ? React.createElement(window.LnSub, {
+    items: [{
+      key: "write",
+      th: "เขียนรายงาน"
+    }, {
+      key: "appr",
+      th: "รออนุมัติ"
+    }],
+    value: sub,
+    onPick: setSub
+  }) : null;
   const show = React.useMemo(() => (jobs || []).filter(j => jobType === "all" || (j.type || "home") === jobType), [jobs, jobType]);
   const job = (jobs || []).find(j => j.id === jobId) || null;
   const day = window.drDayState(store.byDate, date);
+  if (canAppr && sub === "appr") {
+    return React.createElement(React.Fragment, null, tabs, window.LnApDrList ? React.createElement(window.LnApDrList, {
+      me: me,
+      role: role,
+      jobs: allJobs || jobs,
+      notify: notify
+    }) : React.createElement("div", {
+      style: {
+        padding: 40,
+        textAlign: "center",
+        color: "var(--text-3)",
+        fontSize: 13.5
+      }
+    }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026"));
+  }
   if (!window.can(role, "editJob")) {
-    return React.createElement("div", {
+    return React.createElement(React.Fragment, null, tabs, React.createElement("div", {
       style: {
         padding: 34,
         textAlign: "center",
         color: "var(--text-3)",
         fontSize: 13.5
       }
-    }, "\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E1B\u0E34\u0E14\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E40\u0E02\u0E35\u0E22\u0E19\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E08\u0E33\u0E27\u0E31\u0E19");
+    }, "\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E1B\u0E34\u0E14\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E40\u0E02\u0E35\u0E22\u0E19\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E08\u0E33\u0E27\u0E31\u0E19"));
   }
   return React.createElement("div", {
     style: {
-      padding: 18
+      padding: "0 18px 18px"
     }
-  }, React.createElement("div", {
+  }, tabs && React.createElement("div", {
+    style: {
+      margin: "0 -4px"
+    }
+  }, tabs), React.createElement("div", {
     style: {
       display: "grid",
       gap: 9
@@ -686,7 +719,7 @@ function LnDailyTab({
       lineHeight: 1.7,
       textAlign: "center"
     }
-  }, "\u0E04\u0E19\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E40\u0E0B\u0E47\u0E19\u0E23\u0E31\u0E1A\u0E23\u0E2D\u0E07\u0E43\u0E1A\u0E19\u0E35\u0E49\u0E44\u0E14\u0E49\u0E08\u0E32\u0E01\u0E41\u0E17\u0E47\u0E1A \u201C\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u201D \xB7 \u0E01\u0E32\u0E23\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E43\u0E1A A4 \u0E17\u0E33\u0E17\u0E35\u0E48\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E27\u0E47\u0E1A", React.createElement("br", null), "\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2A\u0E48\u0E07\u0E08\u0E32\u0E01\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48\u0E40\u0E1B\u0E47\u0E19\u0E43\u0E1A\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E1A\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A \u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E01\u0E23\u0E2D\u0E01\u0E0B\u0E49\u0E33"));
+  }, "\u0E04\u0E19\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E40\u0E0B\u0E47\u0E19\u0E23\u0E31\u0E1A\u0E23\u0E2D\u0E07\u0E43\u0E1A\u0E19\u0E35\u0E49\u0E44\u0E14\u0E49\u0E08\u0E32\u0E01\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D \u201C\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u201D \u0E14\u0E49\u0E32\u0E19\u0E1A\u0E19 \xB7 \u0E01\u0E32\u0E23\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E43\u0E1A A4 \u0E17\u0E33\u0E17\u0E35\u0E48\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E27\u0E47\u0E1A", React.createElement("br", null), "\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2A\u0E48\u0E07\u0E08\u0E32\u0E01\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48\u0E40\u0E1B\u0E47\u0E19\u0E43\u0E1A\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E1A\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A \u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E01\u0E23\u0E2D\u0E01\u0E0B\u0E49\u0E33"));
 }
 Object.assign(window, {
   LnDailyTab,
