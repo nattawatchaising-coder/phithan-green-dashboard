@@ -121,7 +121,7 @@ async function vcDraw(user, avatarUrl) {
   x.restore();
   const nm = String(user.name || "").trim();
   x.fillStyle = B.ink || "#0F2B33";
-  vcFit(x, nm, 460, 700, 44, 24);
+  vcFit(x, nm, 460, 700, 38, 22);
   x.fillText(nm, 200, 242);
   const title = vcTitle(user);
   if (title) {
@@ -136,11 +136,11 @@ async function vcDraw(user, avatarUrl) {
   let ry = 360;
   rows.forEach(([lb, v]) => {
     x.fillStyle = B.muted || "#5B8A8A";
-    x.font = vcFont(600, 15);
+    x.font = vcFont(600, 19);
     x.fillText(lb, 56, ry);
     x.fillStyle = B.ink || "#0F2B33";
-    vcFit(x, v, 520, 600, 26, 15);
-    x.fillText(v, 148, ry + 2);
+    vcFit(x, v, 510, 600, 26, 15);
+    x.fillText(v, 158, ry + 2);
     ry += 54;
   });
   const qz = 186,
@@ -173,14 +173,14 @@ async function vcDraw(user, avatarUrl) {
   x.font = vcFont(600, 17);
   x.fillText(B.addrTH || "", 56, VC_H - 60);
   x.fillStyle = "rgba(255,255,255,.74)";
-  x.font = vcFont(400, 15);
+  x.font = vcFont(400, 17);
   x.fillText("เลขประจำตัวผู้เสียภาษี " + (B.taxId || ""), 56, VC_H - 34);
   x.textAlign = "right";
   x.fillStyle = "rgba(255,255,255,.94)";
   x.font = vcFont(600, 17);
   x.fillText("โทร " + (B.tel || ""), VC_W - 56, VC_H - 60);
   x.fillStyle = "rgba(255,255,255,.74)";
-  x.font = vcFont(400, 15);
+  x.font = vcFont(400, 17);
   x.fillText(B.email || "", VC_W - 56, VC_H - 34);
   x.textAlign = "left";
   return cv;
