@@ -1079,21 +1079,13 @@ function OmView({ jobs, users, role, currentUser, focus }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, minHeight: 0 }}>
-      {/* แยกงานบ้าน / งานโครงการ — กรองทั้งหน้า ตัวเลขบนไทล์เปลี่ยนตามที่เลือกด้วย */}
-      <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
-        {[["all", "ทั้งหมด", "var(--primary-dark)"], ["home", "งานบ้าน", OM_SITE_TYPE_BY.home.color],
-          ["project", "งานโครงการ", OM_SITE_TYPE_BY.project.color]].map(([k, th, c]) => (
-          <button key={k} onClick={() => pickKind(k)}
-            style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 99,
-              border: "1px solid " + (kind === k ? c : "var(--border-strong)"),
-              background: kind === k ? c + "16" : "var(--surface)", cursor: "pointer", fontFamily: "inherit",
-              fontSize: 12.5, fontWeight: 700, color: kind === k ? c : "var(--text-2)" }}>
-            {th}
-            <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 800,
-              color: kind === k ? c : "var(--text-3)" }}>{kindCount[k]}</span>
-          </button>
-        ))}
-      </div>
+      {/* แยกงานบ้าน / งานโครงการ — กรองทั้งหน้า ตัวเลขบนไทล์เปลี่ยนตามที่เลือกด้วย
+          ทรงเดียวกับตัวกรองบนหัวหน้าฐานข้อมูลงานกับหน้ายอดขาย — ตัวกรองชุดเดียวกันควรหน้าตาเดียวกันทั้งระบบ */}
+      <Segmented flat value={kind} onChange={pickKind}
+        options={[["all", "ทั้งหมด"], ["home", "งานบ้าน"], ["project", "งานโครงการ"]].map(([k, th]) => ({
+          value: k,
+          label: (<React.Fragment>{th}<span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 800, marginLeft: 6, opacity: .7 }}>{kindCount[k]}</span></React.Fragment>),
+        }))} />
 
       <OmStatRow id="om-head" title="สรุปภาพรวม">
         <OmStat label="ไซต์ในสัญญาบริการ" value={roll.total} color="var(--text-1)"

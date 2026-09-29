@@ -3925,31 +3925,23 @@ function SalesKpiView({
       background: "var(--border)",
       margin: "0 3px"
     }
-  }), [["all", "ทั้งหมด", "var(--primary-dark)"], ["home", TYPE_TH.home.th, TYPE_TH.home.color], ["project", TYPE_TH.project.th, TYPE_TH.project.color]].map(([k, label, c]) => React.createElement("button", {
-    key: k,
-    onClick: () => setKind(k),
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 7,
-      padding: "7px 14px",
-      borderRadius: 99,
-      border: "1px solid " + (kind === k ? c : "var(--border-strong)"),
-      background: kind === k ? c + "16" : "var(--surface)",
-      cursor: "pointer",
-      fontFamily: "inherit",
-      fontSize: 12.5,
-      fontWeight: 700,
-      color: kind === k ? c : "var(--text-2)"
-    }
-  }, label, React.createElement("span", {
-    style: {
-      fontFamily: "var(--mono)",
-      fontSize: 11.5,
-      fontWeight: 800,
-      color: kind === k ? c : "var(--text-3)"
-    }
-  }, kindCount[k])))), React.createElement("div", {
+  }), React.createElement(Segmented, {
+    flat: true,
+    value: kind,
+    onChange: setKind,
+    options: [["all", "ทั้งหมด"], ["home", TYPE_TH.home.th], ["project", TYPE_TH.project.th]].map(([k, label]) => ({
+      value: k,
+      label: React.createElement(React.Fragment, null, label, React.createElement("span", {
+        style: {
+          fontFamily: "var(--mono)",
+          fontSize: 11,
+          fontWeight: 800,
+          marginLeft: 6,
+          opacity: .7
+        }
+      }, kindCount[k]))
+    }))
+  })), React.createElement("div", {
     style: {
       display: "flex",
       gap: 11,

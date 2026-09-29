@@ -2347,19 +2347,15 @@ function SalesKpiView({ leads, quotes, appts, techs, currentUser, onMenuOpen, on
               background: month ? "var(--surface)" : "var(--primary)", color: month ? "var(--text-2)" : "#fff" }}>ทุกเดือน</button>
 
           {/* แยกงานบ้าน / งานโครงการ — กรองทั้งหน้า ตัวเลขในการ์ดสรุปเปลี่ยนตามที่เลือกด้วย
-              อยู่แถวเดียวกับตัวเลือกเดือน — สองอันคือตัวกรองของตารางเดียวกัน แยกสองแถวกินความสูงเปล่า ๆ */}
+              ใช้ Segmented flat ตัวเดียวกับตัวกรองบนหัวหน้าฐานข้อมูลงาน — ตัวกรองอย่างเดียวกันควรหน้าตาเดียวกันทั้งระบบ
+              สามชิปกลมทึบสามสีแย่งความสนใจกับการ์ดสรุปที่อยู่ใต้มันพอดี ทั้งที่มันเป็นแค่ตัวกรอง ไม่ใช่ข้อมูล
+              ตัวเลขยังอยู่ — คนดูหน้านี้ดูเพื่อรู้ว่ามีกี่ราย การเอาออกแปลว่าต้องกดทีละปุ่มเพื่อนับ */}
           <span style={{ width: 1, height: 22, background: "var(--border)", margin: "0 3px" }} />
-          {[["all", "ทั้งหมด", "var(--primary-dark)"], ["home", TYPE_TH.home.th, TYPE_TH.home.color],
-            ["project", TYPE_TH.project.th, TYPE_TH.project.color]].map(([k, label, c]) => (
-            <button key={k} onClick={() => setKind(k)}
-              style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 99,
-                border: "1px solid " + (kind === k ? c : "var(--border-strong)"),
-                background: kind === k ? c + "16" : "var(--surface)", cursor: "pointer", fontFamily: "inherit",
-                fontSize: 12.5, fontWeight: 700, color: kind === k ? c : "var(--text-2)" }}>
-              {label}
-              <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 800, color: kind === k ? c : "var(--text-3)" }}>{kindCount[k]}</span>
-            </button>
-          ))}
+          <Segmented flat value={kind} onChange={setKind}
+            options={[["all", "ทั้งหมด"], ["home", TYPE_TH.home.th], ["project", TYPE_TH.project.th]].map(([k, label]) => ({
+              value: k,
+              label: (<React.Fragment>{label}<span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 800, marginLeft: 6, opacity: .7 }}>{kindCount[k]}</span></React.Fragment>),
+            }))} />
         </div>
 
         <div style={{ display: "flex", gap: 11, flexWrap: "wrap", marginBottom: 16 }}>

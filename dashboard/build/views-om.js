@@ -2440,38 +2440,23 @@ function OmView({
       gap: 14,
       minHeight: 0
     }
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 7,
-      flexWrap: "wrap",
-      alignItems: "center"
-    }
-  }, [["all", "ทั้งหมด", "var(--primary-dark)"], ["home", "งานบ้าน", OM_SITE_TYPE_BY.home.color], ["project", "งานโครงการ", OM_SITE_TYPE_BY.project.color]].map(([k, th, c]) => React.createElement("button", {
-    key: k,
-    onClick: () => pickKind(k),
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 7,
-      padding: "7px 14px",
-      borderRadius: 99,
-      border: "1px solid " + (kind === k ? c : "var(--border-strong)"),
-      background: kind === k ? c + "16" : "var(--surface)",
-      cursor: "pointer",
-      fontFamily: "inherit",
-      fontSize: 12.5,
-      fontWeight: 700,
-      color: kind === k ? c : "var(--text-2)"
-    }
-  }, th, React.createElement("span", {
-    style: {
-      fontFamily: "var(--mono)",
-      fontSize: 11.5,
-      fontWeight: 800,
-      color: kind === k ? c : "var(--text-3)"
-    }
-  }, kindCount[k])))), React.createElement(OmStatRow, {
+  }, React.createElement(Segmented, {
+    flat: true,
+    value: kind,
+    onChange: pickKind,
+    options: [["all", "ทั้งหมด"], ["home", "งานบ้าน"], ["project", "งานโครงการ"]].map(([k, th]) => ({
+      value: k,
+      label: React.createElement(React.Fragment, null, th, React.createElement("span", {
+        style: {
+          fontFamily: "var(--mono)",
+          fontSize: 11,
+          fontWeight: 800,
+          marginLeft: 6,
+          opacity: .7
+        }
+      }, kindCount[k]))
+    }))
+  }), React.createElement(OmStatRow, {
     id: "om-head",
     title: "\u0E2A\u0E23\u0E38\u0E1B\u0E20\u0E32\u0E1E\u0E23\u0E27\u0E21"
   }, React.createElement(OmStat, {
