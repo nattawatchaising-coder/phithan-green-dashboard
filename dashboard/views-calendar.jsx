@@ -28,8 +28,13 @@ function calTasksOn(jobs, k) {
     if (k < s || k > e) return;                         // อยู่ในช่วงวันนัดติดตั้งไหม
     const cur = SF.STAGES.find((x) => x.key === j.stage) || { key: j.stage, th: j.stage, en: "", color: "#64748B" };
     const kind = s === e ? "single" : (k === s ? "start" : (k === e ? "end" : "mid"));
-    const late = j.stage !== "done" && k < SF.TODAY;    // เลยวันนัดติดตั้งแต่ยังไม่เสร็จ
-    out.push({ job: j, stage: cur, kind: kind, late: late });
+    /* ⚠ ล่าช้า = เลย "วันจบ" ของงานไปแล้วแต่ยังไม่เสร็จ — ไม่ใช่ "วันที่กำลังดูอยู่ผ่านมาแล้ว"
+       เดิมเทียบ k < TODAY ทำให้งานโครงการที่นัดยาวเป็นเดือนขึ้นแดงทุกวันที่ผ่านมาแล้ว
+       ทั้งที่ยังอยู่ในกำหนดและกำลังทำอยู่ปกติ — แดงที่ขึ้นทุกวันคือแดงที่ไม่มีใครอ่านอีกต่อไป */
+    const late = j.stage !== "done" && e < SF.TODAY;
+    /* วันที่ผ่านมาแล้วของงานที่ยังอยู่ในกำหนด = "ทำไปแล้ว" ไม่ใช่เรื่องต้องเตือน จึงเทาลง */
+    const past = k < SF.TODAY && !late;
+    out.push({ job: j, stage: cur, kind: kind, late: late, past: past });
   });
   return out;
 }
@@ -37,9 +42,10 @@ function calTasksOn(jobs, k) {
 function calGroupByJob(tasks) {
   const m = {}; const order = [];
   (tasks || []).forEach((t) => {
-    if (!m[t.job.id]) { m[t.job.id] = { job: t.job, stages: [], late: false }; order.push(t.job.id); }
+    if (!m[t.job.id]) { m[t.job.id] = { job: t.job, stages: [], late: false, past: true }; order.push(t.job.id); }
     m[t.job.id].stages.push(Object.assign({}, t.stage, { kind: t.kind }));
     if (t.late) m[t.job.id].late = true;
+    if (!t.past) m[t.job.id].past = false;
   });
   return order.map((id) => m[id]);
 }
@@ -131,11 +137,18 @@ function CalendarView({ jobs, onOpen, onAddOnDate, canAdd, onAdvance }) {
                   {tasks.slice(0, 4).map((t, k2) => {
                     const c = t.late ? "#EF4444" : t.stage.color;
                     const kindTxt = t.kind === "start" ? " · เริ่ม" : t.kind === "end" ? " · เสร็จ" : "";
+                    /* วันที่ทำไปแล้วเหลือแค่รอยจาง ๆ พอให้เห็นว่างานกินช่วงนี้อยู่
+                       สีเข้มเก็บไว้ให้วันนี้กับวันข้างหน้า ซึ่งเป็นวันที่ยังต้องตัดสินใจอะไรได้ */
+                    const sp = window.SF.installSpan ? window.SF.installSpan(t.job) : null;
+                    const dayTxt = sp && sp.multi ? " · วันที่ " + (Math.round((new Date(key + "T00:00:00") - new Date(sp.start + "T00:00:00")) / 86400000) + 1) + "/" + sp.total : "";
                     return (
-                      <span key={t.job.id + t.stage.key + k2} title={t.stage.th + kindTxt + " · " + t.job.name}
-                        style={{ display: "flex", alignItems: "center", gap: 4, background: c + "1f", borderRadius: 6, padding: "2px 5px", overflow: "hidden" }}>
-                        <span style={{ width: 7, height: 7, borderRadius: 99, background: c, flexShrink: 0 }} />
-                        <span style={{ fontSize: 9.5, fontWeight: 600, color: t.late ? "#EF4444" : "var(--text-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.job.name.replace("คุณ", "")}</span>
+                      <span key={t.job.id + t.stage.key + k2} title={t.stage.th + kindTxt + dayTxt + " · " + t.job.name}
+                        style={{ display: "flex", alignItems: "center", gap: 4, borderRadius: 6, padding: "2px 5px", overflow: "hidden",
+                          background: t.past ? "var(--surface3)" : c + "1f", opacity: t.past ? 0.75 : 1 }}>
+                        <span style={{ width: 7, height: 7, borderRadius: 99, flexShrink: 0,
+                          background: t.past ? "var(--text-3)" : c }} />
+                        <span style={{ fontSize: 9.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                          color: t.late ? "#EF4444" : (t.past ? "var(--text-3)" : "var(--text-2)") }}>{t.job.name.replace("คุณ", "")}</span>
                       </span>
                     );
                   })}
@@ -256,7 +269,8 @@ function MobileCalendar({ ym, cells, tasksOn, groupsOn, keyOf, todayKey, shift, 
               {tasks.length > 0 && (
                 <span style={{ display: "flex", gap: 2, alignItems: "center", justifyContent: "center", flexWrap: "wrap", maxWidth: "100%" }}>
                   {tasks.slice(0, 4).map((t, k) => (
-                    <span key={k} style={{ width: 6, height: 6, borderRadius: 2, background: t.late ? "#EF4444" : t.stage.color, transform: "rotate(45deg)" }} />
+                    <span key={k} style={{ width: 6, height: 6, borderRadius: 2, transform: "rotate(45deg)",
+                      background: t.late ? "#EF4444" : (t.past ? "var(--border-strong)" : t.stage.color) }} />
                   ))}
                 </span>
               )}

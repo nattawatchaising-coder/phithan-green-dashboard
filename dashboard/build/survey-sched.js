@@ -1738,7 +1738,9 @@ function JobTaskCard({
       color: "var(--text-3)",
       fontFamily: "var(--mono)"
     }
-  }, job.progressPct, "%")), (() => {
+  }, job.progressPct, "%")), window.InstallSpanBar && React.createElement(window.InstallSpanBar, {
+    job: job
+  }), (() => {
     const STAGES = SF.STAGES || [];
     const ci = Math.max(0, STAGES.findIndex(s => s.key === job.stage));
     const SHORT = {

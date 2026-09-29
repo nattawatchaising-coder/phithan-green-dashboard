@@ -322,6 +322,40 @@
     return e;
   }
 
+  /* ── ช่วงติดตั้ง: ทำมากี่วันแล้ว เหลืออีกกี่วัน ──
+     งานหลังคาบ้านจบในวันเดียว งานโครงการกินเวลาเป็นเดือน — ทั้งสองแบบใช้
+     stageDates.install ช่องเดียวกัน ต่างกันแค่ช่วงยาวแค่ไหน
+
+     ⚠ "ยังไม่เสร็จ" กับ "ล่าช้า" ไม่ใช่เรื่องเดียวกัน
+       งานที่นัดไว้ 24 ส.ค. – 30 ก.ย. ในวันที่ 10 ก.ย. คือ "กำลังทำอยู่ตามแผน"
+       ไม่ใช่ "เลยกำหนด" — ตัวที่ตัดสินคือวันจบ (end) ไม่ใช่วันที่กำลังดูอยู่
+       เทียบวันต่อวันแล้วงานยาวจะขึ้นแดงทุกวันที่ผ่านมาแล้ว ทั้งที่ยังอยู่ในกำหนด
+
+     นับวันชนวัน รวมทั้งวันเริ่มและวันจบ (24 ส.ค. ถึง 24 ส.ค. = 1 วัน)
+     คืน null เมื่อยังไม่ได้นัดวันติดตั้ง — ที่เรียกต้องเช็กก่อนใช้เสมอ */
+  function installSpan(j) {
+    const s0 = installDate(j);
+    if (!s0) return null;
+    const e0 = installEnd(j);
+    const DAY = 86400000;
+    const t0 = parseDateLocal(s0).getTime();
+    const t1 = parseDateLocal(e0).getTime();
+    const now = new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate()).getTime();
+    const total = Math.round((t1 - t0) / DAY) + 1;
+    const done = j && j.stage === "done";
+    /* phase: done(เสร็จแล้ว) · before(ยังไม่ถึงวัน) · running(อยู่ในช่วง) · over(เลยวันจบ) */
+    const phase = done ? "done" : (now < t0 ? "before" : (now <= t1 ? "running" : "over"));
+    const dayNo = Math.min(total, Math.max(1, Math.round((now - t0) / DAY) + 1));
+    return {
+      start: s0, end: e0, total: total, multi: total > 1, phase: phase,
+      dayNo: phase === "running" ? dayNo : (phase === "over" || done ? total : 0),
+      /* เหลืออีกกี่วันหลังจากวันนี้ — วันสุดท้ายคืน 0 ("วันสุดท้าย") ไม่ใช่ 1 */
+      left: phase === "running" ? Math.round((t1 - now) / DAY) : 0,
+      inDays: phase === "before" ? Math.round((t0 - now) / DAY) : 0,
+      overDays: phase === "over" ? Math.round((now - t1) / DAY) : 0,
+    };
+  }
+
   /* ── เฟสที่ใช้จริงของงาน ── ใบขออนุญาต > แบบสำรวจหน้างาน > ค่าที่กรอกไว้ตอนเปิดงาน
      ค่าที่กรอกตอนเปิดงาน (หรือตอนยังเป็นลูกค้า) เป็นแค่ค่าที่คาดไว้ ยังไม่มีใครไปดูมิเตอร์จริง
      พอไปสำรวจแล้วพบว่าเป็น 3 เฟส ของที่ถอดใน BOQ ต้องเปลี่ยนตาม ไม่ใช่ค้างที่ 1 เฟส
@@ -335,7 +369,7 @@
 
   window.SF = {
     STAGES, STAGE_INDEX, MATERIALS, MAT_STATUS, TECHS, TECH_BY_ID, BRANDS, TYPES,
-    SEED, JOBS, deriveJob, installDate, installEnd, phaseOf,
+    SEED, JOBS, deriveJob, installDate, installEnd, installSpan, phaseOf,
     // ใช้ local date string เพื่อหลีกเลี่ยง UTC offset (ไทย UTC+7 ทำให้ toISOString() ได้วันเมื่อวาน)
     TODAY: [TODAY.getFullYear(), String(TODAY.getMonth()+1).padStart(2,"0"), String(TODAY.getDate()).padStart(2,"0")].join("-"),
     PROVINCE_LATLNG: {

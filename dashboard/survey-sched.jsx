@@ -597,6 +597,10 @@ function JobTaskCard({ job, stages, day, dayEnd, onOpen, onAdvance }) {
         <Icon name="clock" size={13} color="var(--text-3)" />{dateStr}{list.length > 1 ? " · " + list.length + " งาน" : ""}
         {typeof job.progressPct === "number" && <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, color: "var(--text-3)", fontFamily: "var(--mono)" }}>{job.progressPct}%</span>}
       </div>
+      {/* งานที่ติดตั้งยาวหลายวัน — บอกว่าทำมากี่วันแล้วและเหลืออีกกี่วัน
+          ช่วงวันอย่างเดียวไม่พอ คนอ่านต้องนับเองทุกครั้งว่าวันนี้อยู่ตรงไหนของช่วง
+          (อ้างผ่าน window ตอนเรนเดอร์ จะได้ไม่ต้องผูกลำดับโหลดกับ views-board) */}
+      {window.InstallSpanBar && <window.InstallSpanBar job={job} />}
       {/* แถบสถานะ จุด+เส้น — บอกว่างานเดินมาถึงขั้นไหนแล้ว */}
       {(() => {
         const STAGES = SF.STAGES || [];

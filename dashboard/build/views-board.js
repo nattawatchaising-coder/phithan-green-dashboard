@@ -338,7 +338,9 @@ function KanbanCard({
         padding: "2px 7px",
         borderRadius: 99
       }
-    }, "\u0E15\u0E39\u0E49\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A")), React.createElement("div", {
+    }, "\u0E15\u0E39\u0E49\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A")), React.createElement(InstallSpanBar, {
+      job: job
+    }), React.createElement("div", {
       style: {
         display: "flex",
         justifyContent: "space-between",
@@ -406,6 +408,66 @@ function KanbanCard({
       job: job
     }))
   );
+}
+function InstallSpanBar({
+  job
+}) {
+  const sp = window.SF && window.SF.installSpan ? window.SF.installSpan(job) : null;
+  if (!sp || !sp.multi) return null;
+  const c = sp.phase === "done" ? "#10B981" : sp.phase === "over" ? "#EF4444" : sp.phase === "before" ? "var(--text-3)" : "var(--primary)";
+  const pct = sp.phase === "before" ? 0 : Math.max(4, Math.min(100, Math.round(sp.dayNo / sp.total * 100)));
+  const yr = sp.start.slice(0, 4) !== sp.end.slice(0, 4);
+  const right = sp.phase === "before" ? "อีก " + sp.inDays + " วันเริ่ม" : sp.phase === "done" ? "ติดตั้งเสร็จแล้ว" : sp.phase === "over" ? "เลยกำหนด " + sp.overDays + " วัน" : sp.left === 0 ? "วันสุดท้าย" : "เหลืออีก " + sp.left + " วัน";
+  return React.createElement("div", {
+    style: {
+      marginBottom: 11
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      gap: 6,
+      flexWrap: "wrap",
+      fontSize: 11,
+      marginBottom: 5
+    }
+  }, React.createElement("span", {
+    style: {
+      color: "var(--text-3)"
+    }
+  }, thDate(sp.start, yr), " \u2013 ", thDate(sp.end, yr), " ", React.createElement("span", {
+    style: {
+      color: "var(--border-strong)"
+    }
+  }, "\xB7"), " ", sp.total, " \u0E27\u0E31\u0E19"), React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      fontWeight: 800,
+      color: c,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, right)), React.createElement("div", {
+    style: {
+      height: 5,
+      borderRadius: 99,
+      background: "var(--surface3)",
+      overflow: "hidden"
+    }
+  }, React.createElement("div", {
+    style: {
+      width: pct + "%",
+      height: "100%",
+      borderRadius: 99,
+      background: c
+    }
+  })), sp.phase === "running" && React.createElement("div", {
+    style: {
+      marginTop: 4,
+      fontSize: 10.5,
+      color: "var(--text-3)",
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, "\u0E17\u0E33\u0E21\u0E32\u0E41\u0E25\u0E49\u0E27 ", sp.dayNo, " \u0E27\u0E31\u0E19 \u0E08\u0E32\u0E01 ", sp.total, " \u0E27\u0E31\u0E19"));
 }
 function DocChip({
   job,
@@ -1013,5 +1075,6 @@ Object.assign(window, {
   KanbanView,
   KanbanCard,
   KanbanMobile,
-  DocChip
+  DocChip,
+  InstallSpanBar
 });

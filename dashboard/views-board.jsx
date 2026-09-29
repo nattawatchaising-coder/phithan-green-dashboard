@@ -133,6 +133,7 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
           <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-2)", background: "var(--surface2)", padding: "2px 7px", borderRadius: 99 }}>ตู้ประกอบ</span>
         )}
       </div>
+      <InstallSpanBar job={job} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid var(--border)", gap: 8, flexWrap: "wrap" }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}>
           <TechAvatar techId={job.tech} size={24} />
@@ -148,6 +149,50 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
         </span>
       </div>
       {job.stage === "install" && <DailyReportButton job={job} />}
+    </div>
+  );
+}
+
+/* ── ช่วงติดตั้งที่กินหลายวัน ──
+   งานโครงการนัดไว้เป็นเดือน การ์ดเดิมขึ้นแค่ "24 ส.ค." ซึ่งเป็นวันเริ่ม
+   พอผ่านมาสามสัปดาห์ วันนั้นก็ไม่ได้ตอบคำถามที่คนดูบอร์ดถามจริง ๆ อีกต่อไป
+   ว่า "ทำมากี่วันแล้ว" กับ "เหลืออีกกี่วัน" — สองตัวนี้คือสิ่งที่แถบนี้บอก
+
+   ⚠ นี่คือ "วันตามปฏิทิน" ไม่ใช่ "วันทำงานจริง" — ไม่ได้หักเสาร์อาทิตย์หรือวันฝนตก
+     ความคืบหน้าเนื้องานจริงอยู่ที่รายงานประจำวัน ไม่ใช่ที่แถบนี้
+   งานวันเดียวไม่ขึ้นแถบนี้ — วันที่ท้ายการ์ดบอกครบอยู่แล้ว */
+function InstallSpanBar({ job }) {
+  const sp = window.SF && window.SF.installSpan ? window.SF.installSpan(job) : null;
+  if (!sp || !sp.multi) return null;
+
+  const c = sp.phase === "done" ? "#10B981"
+    : sp.phase === "over" ? "#EF4444"
+    : sp.phase === "before" ? "var(--text-3)" : "var(--primary)";
+  const pct = sp.phase === "before" ? 0
+    : Math.max(4, Math.min(100, Math.round((sp.dayNo / sp.total) * 100)));
+  const yr = sp.start.slice(0, 4) !== sp.end.slice(0, 4);
+  const right = sp.phase === "before" ? "อีก " + sp.inDays + " วันเริ่ม"
+    : sp.phase === "done" ? "ติดตั้งเสร็จแล้ว"
+    : sp.phase === "over" ? "เลยกำหนด " + sp.overDays + " วัน"
+    : sp.left === 0 ? "วันสุดท้าย" : "เหลืออีก " + sp.left + " วัน";
+
+  return (
+    <div style={{ marginBottom: 11 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap", fontSize: 11, marginBottom: 5 }}>
+        {/* ใส่ปีเมื่อช่วงข้ามปี — "24 ส.ค. – 24 ก.พ." อ่านแล้วเหมือนย้อนหลังหกเดือน */}
+        <span style={{ color: "var(--text-3)" }}>
+          {thDate(sp.start, yr)} – {thDate(sp.end, yr)} <span style={{ color: "var(--border-strong)" }}>·</span> {sp.total} วัน
+        </span>
+        <span style={{ marginLeft: "auto", fontWeight: 800, color: c, fontVariantNumeric: "tabular-nums" }}>{right}</span>
+      </div>
+      <div style={{ height: 5, borderRadius: 99, background: "var(--surface3)", overflow: "hidden" }}>
+        <div style={{ width: pct + "%", height: "100%", borderRadius: 99, background: c }} />
+      </div>
+      {sp.phase === "running" && (
+        <div style={{ marginTop: 4, fontSize: 10.5, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>
+          ทำมาแล้ว {sp.dayNo} วัน จาก {sp.total} วัน
+        </div>
+      )}
     </div>
   );
 }
@@ -332,4 +377,4 @@ function KanbanMobile({ jobs, onOpen }) {
   );
 }
 
-Object.assign(window, { KanbanView, KanbanCard, KanbanMobile, DocChip });
+Object.assign(window, { KanbanView, KanbanCard, KanbanMobile, DocChip, InstallSpanBar });

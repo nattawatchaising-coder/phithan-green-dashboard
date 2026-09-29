@@ -24,12 +24,14 @@ function calTasksOn(jobs, k) {
       color: "#64748B"
     };
     const kind = s === e ? "single" : k === s ? "start" : k === e ? "end" : "mid";
-    const late = j.stage !== "done" && k < SF.TODAY;
+    const late = j.stage !== "done" && e < SF.TODAY;
+    const past = k < SF.TODAY && !late;
     out.push({
       job: j,
       stage: cur,
       kind: kind,
-      late: late
+      late: late,
+      past: past
     });
   });
   return out;
@@ -42,7 +44,8 @@ function calGroupByJob(tasks) {
       m[t.job.id] = {
         job: t.job,
         stages: [],
-        late: false
+        late: false,
+        past: true
       };
       order.push(t.job.id);
     }
@@ -50,6 +53,7 @@ function calGroupByJob(tasks) {
       kind: t.kind
     }));
     if (t.late) m[t.job.id].late = true;
+    if (!t.past) m[t.job.id].past = false;
   });
   return order.map(id => m[id]);
 }
@@ -244,34 +248,37 @@ function CalendarView({
     }, tasks.slice(0, 4).map((t, k2) => {
       const c = t.late ? "#EF4444" : t.stage.color;
       const kindTxt = t.kind === "start" ? " · เริ่ม" : t.kind === "end" ? " · เสร็จ" : "";
+      const sp = window.SF.installSpan ? window.SF.installSpan(t.job) : null;
+      const dayTxt = sp && sp.multi ? " · วันที่ " + (Math.round((new Date(key + "T00:00:00") - new Date(sp.start + "T00:00:00")) / 86400000) + 1) + "/" + sp.total : "";
       return React.createElement("span", {
         key: t.job.id + t.stage.key + k2,
-        title: t.stage.th + kindTxt + " · " + t.job.name,
+        title: t.stage.th + kindTxt + dayTxt + " · " + t.job.name,
         style: {
           display: "flex",
           alignItems: "center",
           gap: 4,
-          background: c + "1f",
           borderRadius: 6,
           padding: "2px 5px",
-          overflow: "hidden"
+          overflow: "hidden",
+          background: t.past ? "var(--surface3)" : c + "1f",
+          opacity: t.past ? 0.75 : 1
         }
       }, React.createElement("span", {
         style: {
           width: 7,
           height: 7,
           borderRadius: 99,
-          background: c,
-          flexShrink: 0
+          flexShrink: 0,
+          background: t.past ? "var(--text-3)" : c
         }
       }), React.createElement("span", {
         style: {
           fontSize: 9.5,
           fontWeight: 600,
-          color: t.late ? "#EF4444" : "var(--text-2)",
           whiteSpace: "nowrap",
           overflow: "hidden",
-          textOverflow: "ellipsis"
+          textOverflow: "ellipsis",
+          color: t.late ? "#EF4444" : t.past ? "var(--text-3)" : "var(--text-2)"
         }
       }, t.job.name.replace("คุณ", "")));
     }), tasks.length > 4 && React.createElement("span", {
@@ -557,8 +564,8 @@ function MobileCalendar({
         width: 6,
         height: 6,
         borderRadius: 2,
-        background: t.late ? "#EF4444" : t.stage.color,
-        transform: "rotate(45deg)"
+        transform: "rotate(45deg)",
+        background: t.late ? "#EF4444" : t.past ? "var(--border-strong)" : t.stage.color
       }
     }))));
   })), React.createElement("div", {
