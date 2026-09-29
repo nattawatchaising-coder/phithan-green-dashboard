@@ -875,28 +875,6 @@ function App() {
       color: on ? "var(--primary-dark)" : "var(--text-3)"
     }), th);
   }));
-  const salesOverview = React.createElement(SalesOverview, {
-    leads: leadStore.leads,
-    quotes: quoteStore.quotes,
-    currentUser: auth.current,
-    jobs: jobs,
-    onOpenJob: openJob,
-    onOpenLead: l => {
-      setView("leads");
-      setLeadMode("list");
-      setLeadFocus(l.id);
-    },
-    onGoBoard: () => {
-      setView("leads");
-      setLeadMode("board");
-    },
-    onGoList: () => {
-      setView("leads");
-      setLeadMode("list");
-    },
-    onGoKpi: can(role, "price") ? () => setView("saleskpi") : null
-  });
-  const leadRole = (hasRole(role, "lead") || hasRole(role, "admin")) && can(role, "viewAll");
   const onSave = rec => {
     const prev = store.raw.find(r => r.id === rec.id);
     if (!prev && !rec.createdBy && auth.current) {
@@ -1225,7 +1203,7 @@ function App() {
       flexDirection: "column",
       minHeight: 0
     } : {}
-  }, view === "overview" && (salesOnly ? salesOverview : leadRole ? React.createElement(LeadOverview, {
+  }, view === "overview" && React.createElement(LeadOverview, {
     jobs: filtered,
     allJobs: scopedJobs,
     leads: leadStore.leads,
@@ -1246,15 +1224,7 @@ function App() {
     onGoSales: can(role, "leads") ? () => setView(can(role, "price") ? "saleskpi" : "leads") : null,
     onGoOm: can(role, "om") ? () => openOm(null) : null,
     omCount: can(role, "om") ? navBadges.om : null
-  }) : React.createElement(OverviewView, {
-    jobs: filtered,
-    schedule: myScheduleItems,
-    me: auth.current,
-    onOpen: openJob,
-    onStage: goStage,
-    onKpi: goKpi,
-    stock: stock
-  })), view === "board" && React.createElement(FlowBoardView, {
+  }), view === "board" && React.createElement(FlowBoardView, {
     jobs: filtered,
     leads: leadStore.leads,
     quotes: quoteStore.quotes,

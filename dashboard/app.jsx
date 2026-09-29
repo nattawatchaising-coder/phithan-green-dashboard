@@ -400,6 +400,8 @@ function App() {
 
   // ตารางงานของฉัน (วันนี้ + กำลังจะถึง) — นัดสำรวจ + งานติดตั้งของคนที่ล็อกอิน → โชว์บนหน้าภาพรวม
   // ยุบงานโปรเจคเดียวกันให้เหลือแถวเดียว (เก็บช่วงวัน start–end) · เอาแค่ 3 แถวแรก
+  // ตอนนี้ยังไม่มีใครใช้ — หน้าแรกเป็น LeadOverview หน้าเดียวซึ่งใช้ OvCalendar แทน
+  // เก็บไว้เพราะถ้าจะเอาแถบ "ตารางงานของฉัน" กลับขึ้นหน้าแรก ต่อเข้าไปได้เลยไม่ต้องเขียนใหม่
   const myScheduleItems = React.useMemo(() => {
     const all = window.buildMySchedItems ? window.buildMySchedItems(apptStore.appts, jobs, techId) : [];
     const today = window.SF.TODAY;
@@ -688,20 +690,14 @@ function App() {
     </div>
   );
 
-  /* ภาพรวมงานขาย — อยู่ที่เมนู "ภาพรวม" ของคนที่เป็นเซลล์อย่างเดียว
-     (ภาพรวมงานติดตั้งไม่มีแผงไหนเกี่ยวกับเขาเลย) — ไม่ทำซ้ำเป็นมุมในหน้างานขายอีกที่ */
-  const salesOverview = (
-    <SalesOverview leads={leadStore.leads} quotes={quoteStore.quotes} currentUser={auth.current}
-      jobs={jobs} onOpenJob={openJob}
-      onOpenLead={(l) => { setView("leads"); setLeadMode("list"); setLeadFocus(l.id); }}
-      onGoBoard={() => { setView("leads"); setLeadMode("board"); }}
-      onGoList={() => { setView("leads"); setLeadMode("list"); }}
-      onGoKpi={can(role, "price") ? () => setView("saleskpi") : null} />
-  );
+  /* SalesOverview ไม่ได้ใช้เป็นหน้าแรกของเซลล์แล้ว — หน้าแรกเป็นหน้าเดียวกันหมดทุกตำแหน่ง
+     ตัวคอมโพเนนต์ยังอยู่ที่ views-sales ถ้าจะเอากลับมาเป็นมุมหนึ่งของหน้า "งานขาย" ก็ทำได้ */
 
-  /* ภาพรวมของหัวหน้า/แอดมิน — คนที่ต้องตอบว่า "วันนี้ต้องไปดันงานไหน" ไม่ใช่ "งานของฉันมีอะไร"
-     ตำแหน่งอื่น (ช่าง/วิศวกร/เขียนแบบ/ขออนุญาต) ยังได้ภาพรวมเดิมที่เน้นตารางงานตัวเอง */
-  const leadRole = (hasRole(role, "lead") || hasRole(role, "admin")) && can(role, "viewAll");
+  /* หน้าแรกเป็นหน้าเดียวกันหมดทุกตำแหน่งตามที่สั่ง — LeadOverview
+     เมื่อก่อนแยกสามทาง (เซลล์ = SalesOverview · หัวหน้า/แอดมิน = LeadOverview · ที่เหลือ = OverviewView)
+     ตัวแปร leadRole กับ salesOverview ที่เคยคุมทางแยกถูกเอาออกแล้ว คืนได้ด้วยการกลับไปดู git
+     ข้อมูลยังถูกคัดตามสิทธิ์อยู่ — jobs ที่ส่งเข้าไปคือ filtered/scopedJobs ของคนนั้น
+     และปุ่มกระโดด (onGoPermit/onGoSales/onGoOm) ยังเป็น null เมื่อไม่มีสิทธิ์ */
 
   const onSave = (rec) => {
     const prev = store.raw.find((r) => r.id === rec.id);
@@ -927,17 +923,16 @@ function App() {
           onMenuOpen={() => setSidebarOpen(true)} />
 
         <div className="app-content" style={view === "board" ? { display: "flex", flexDirection: "column", minHeight: 0 } : {}}>
-          {view === "overview" && (salesOnly ? salesOverview
-            : leadRole ? (
-              <LeadOverview jobs={filtered} allJobs={scopedJobs} leads={leadStore.leads} quotes={quoteStore.quotes} stock={stock} techs={techStore.techs}
-                me={auth.current} onOpen={openJob} onStage={goStage} onKpi={goKpi}
-                onTech={(id) => { setTechFilter(id); setStageFilter(null); setQuickFilter(null); setView(listView()); }}
-                onGoPermit={can(role, "permit") ? () => setView("permit") : null}
-                onGoSales={can(role, "leads") ? () => setView(can(role, "price") ? "saleskpi" : "leads") : null}
-                onGoOm={can(role, "om") ? () => openOm(null) : null}
-                omCount={can(role, "om") ? navBadges.om : null} />
-            )
-            : <OverviewView jobs={filtered} schedule={myScheduleItems} me={auth.current} onOpen={openJob} onStage={goStage} onKpi={goKpi} stock={stock} />)}
+          {/* หน้าแรกหน้าเดียวสำหรับทุกตำแหน่ง — เลย์เอาต์เหมือนกันหมด ต่างกันแค่ข้อมูลที่แต่ละคนมีสิทธิ์เห็น */}
+          {view === "overview" && (
+            <LeadOverview jobs={filtered} allJobs={scopedJobs} leads={leadStore.leads} quotes={quoteStore.quotes} stock={stock} techs={techStore.techs}
+              me={auth.current} onOpen={openJob} onStage={goStage} onKpi={goKpi}
+              onTech={(id) => { setTechFilter(id); setStageFilter(null); setQuickFilter(null); setView(listView()); }}
+              onGoPermit={can(role, "permit") ? () => setView("permit") : null}
+              onGoSales={can(role, "leads") ? () => setView(can(role, "price") ? "saleskpi" : "leads") : null}
+              onGoOm={can(role, "om") ? () => openOm(null) : null}
+              omCount={can(role, "om") ? navBadges.om : null} />
+          )}
           {/* บอร์ดรวมทั้งวงจร — ขาย → หน้างาน → เอกสาร อยู่ผืนเดียว (ช่วงไหนไม่มีสิทธิ์ก็ไม่ขึ้น)
               ฝ่ายขออนุญาตอย่างเดียวยังได้บอร์ดขออนุญาตเต็มรูปแบบเหมือนเดิม เพราะเขาต้องใช้มุมรายการด้วย */}
           {view === "board" && (
