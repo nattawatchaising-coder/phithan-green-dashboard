@@ -129,8 +129,8 @@ async function vcDraw(user, avatarUrl) {
   x.fillStyle = B.muted || "#5B8A8A";
   vcFit(x, B.legal || "", hw, 600, 19, 13);
   x.fillText(B.legal || "", hx, 114);
-  vcFit(x, B.desc || "", hw, 400, 14, 11);
-  x.fillText(B.desc || "", hx, 137);
+  vcFit(x, B.desc || "", hw, 400, 17, 12);
+  x.fillText(B.desc || "", hx, 139);
 
   x.strokeStyle = "#E3ECE8"; x.lineWidth = 1;
   x.beginPath(); x.moveTo(56, 164); x.lineTo(944, 164); x.stroke();
@@ -159,13 +159,13 @@ async function vcDraw(user, avatarUrl) {
   /* 460 = จากขอบซ้ายของชื่อ (200) ถึงขอบซ้ายคิวอาร์ (700) หักช่องไฟไว้ 40 */
   const nm = String(user.name || "").trim();
   x.fillStyle = B.ink || "#0F2B33";
-  vcFit(x, nm, 460, 700, 38, 22);
-  x.fillText(nm, 200, 240);
+  vcFit(x, nm, 460, 700, 44, 24);
+  x.fillText(nm, 200, 242);
   const title = vcTitle(user);
   if (title) {
     x.fillStyle = head.color;
-    vcFit(x, title, 460, 600, 19, 13);
-    x.fillText(title, 200, 272);
+    vcFit(x, title, 460, 600, 23, 15);
+    x.fillText(title, 200, 278);
   }
 
   /* ── ช่องทางติดต่อ ──
@@ -175,14 +175,14 @@ async function vcDraw(user, avatarUrl) {
   if (user.phone) rows.push(["โทร", String(user.phone).trim()]);
   if (user.email) rows.push(["อีเมล", String(user.email).trim()]);
   if (!rows.length) rows.push(["โทร", B.tel || ""]);
-  let ry = 356;
+  let ry = 360;
   rows.forEach(([lb, v]) => {
-    x.fillStyle = B.muted || "#5B8A8A"; x.font = vcFont(600, 13);
+    x.fillStyle = B.muted || "#5B8A8A"; x.font = vcFont(600, 15);
     x.fillText(lb, 56, ry);
     x.fillStyle = B.ink || "#0F2B33";
-    vcFit(x, v, 530, 600, 21, 13);          /* 130 → 660 ชนคิวอาร์พอดี เหลือช่องไฟ 40 */
-    x.fillText(v, 130, ry + 2);
-    ry += 46;
+    vcFit(x, v, 520, 600, 26, 15);          /* 130 → 660 ชนคิวอาร์พอดี เหลือช่องไฟ 40 */
+    x.fillText(v, 148, ry + 2);
+    ry += 54;
   });
 
   /* ── คิวอาร์ ── */
@@ -201,7 +201,7 @@ async function vcDraw(user, avatarUrl) {
       }
     } catch (e) { /* ข้อมูลยาวเกินรุ่นใหญ่สุด — ปล่อยว่างไว้ ดีกว่าวาดคิวอาร์ที่อ่านไม่ออก */ }
   }
-  x.fillStyle = B.muted || "#5B8A8A"; x.font = vcFont(600, 13);
+  x.fillStyle = B.muted || "#5B8A8A"; x.font = vcFont(600, 15);
   x.textAlign = "center";
   x.fillText("สแกนเพื่อบันทึกลงรายชื่อ", qx + qz / 2, qy + qz + 26);
   x.textAlign = "left";
@@ -214,15 +214,15 @@ async function vcDraw(user, avatarUrl) {
   x.fillRect(0, VC_H - fh, VC_W, fh);
   /* ซ้ายคือตัวบริษัท (ที่อยู่ เลขภาษี) ขวาคือช่องทางติดต่อกลาง
      คนละเรื่อง คนละเวลาใช้ — ตั้งเบิกหยิบซ้าย ติดต่อหยิบขวา ไม่ต้องกวาดสายตาผ่านอีกสามบรรทัด */
-  x.fillStyle = "rgba(255,255,255,.94)"; x.font = vcFont(600, 13.5);
+  x.fillStyle = "rgba(255,255,255,.94)"; x.font = vcFont(600, 17);
   x.fillText(B.addrTH || "", 56, VC_H - 60);
-  x.fillStyle = "rgba(255,255,255,.74)"; x.font = vcFont(400, 12.5);
+  x.fillStyle = "rgba(255,255,255,.74)"; x.font = vcFont(400, 15);
   x.fillText("เลขประจำตัวผู้เสียภาษี " + (B.taxId || ""), 56, VC_H - 34);
 
   x.textAlign = "right";
-  x.fillStyle = "rgba(255,255,255,.94)"; x.font = vcFont(600, 13.5);
+  x.fillStyle = "rgba(255,255,255,.94)"; x.font = vcFont(600, 17);
   x.fillText("โทร " + (B.tel || ""), VC_W - 56, VC_H - 60);
-  x.fillStyle = "rgba(255,255,255,.74)"; x.font = vcFont(400, 12.5);
+  x.fillStyle = "rgba(255,255,255,.74)"; x.font = vcFont(400, 15);
   x.fillText(B.email || "", VC_W - 56, VC_H - 34);
   x.textAlign = "left";
 
