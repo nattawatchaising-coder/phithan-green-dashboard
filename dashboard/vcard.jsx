@@ -262,9 +262,9 @@ function vcSaveBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
-function VcCardModal({ user, onClose }) {
-  const bdClose = window.useBackdropClose(onClose);
-  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+/* เนื้อในของนามบัตร — แยกออกมาจากโมดัล เพราะหน้า ฉัน ของไลน์เอาไปวางติดหน้าเลย ไม่ได้เปิดเป็นชั้น
+   ทั้งสองที่ใช้ตัวนี้ตัวเดียวกัน — ปุ่มบันทึกรูป แชร์ และไฟล์ .vcf จึงแก้ที่เดียวได้ทั้งสองที่ */
+function VcCardBody({ user }) {
   const av = window.useUserAvatar((user || {}).id);
   const box = React.useRef(null);
   const cvRef = React.useRef(null);
@@ -315,6 +315,46 @@ function VcCardModal({ user, onClose }) {
   const empty = !user.phone && !user.email && !user.line;
 
   return (
+    <React.Fragment>
+      {/* กรอบรอบนามบัตรเป็นของหน้าจอ ไม่ได้ติดไปในไฟล์ — ไฟล์ที่ได้เป็นสี่เหลี่ยมเต็มใบ */}
+      <div ref={box} style={{ borderRadius: 12, overflow: "hidden", background: "#FFFFFF",
+        border: "1px solid var(--border)", minHeight: 120, boxShadow: "0 8px 26px rgba(8,20,14,.12)" }} />
+
+      {empty && (
+        <div style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "11px 13px", borderRadius: 11,
+          background: "#F59E0B14", border: "1px solid #F59E0B40" }}>
+          <Icon name="alert" size={15} color="#F59E0B" />
+          <span style={{ fontSize: 12.5, color: "var(--text-1)", lineHeight: 1.5 }}>
+            ยังไม่ได้กรอกเบอร์โทร อีเมล หรือไลน์ไอดี — นามบัตรจะขึ้นเบอร์บริษัทแทน
+            กรอกในหน้าโปรไฟล์แล้วกดบันทึก นามบัตรจะเปลี่ยนตามเอง
+          </span>
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button onClick={savePng} disabled={!ready}
+          style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 16px", borderRadius: 10, border: "none",
+            background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
+            cursor: ready ? "pointer" : "default", opacity: ready ? 1 : .5 }}>
+          <Icon name="image" size={14} color="#fff" /> บันทึกรูป
+        </button>
+        {canShare && <button onClick={share} disabled={!ready} style={thin}><Icon name="link" size={14} /> แชร์</button>}
+        <button onClick={saveVcf} style={thin}><Icon name="download" size={14} /> ไฟล์รายชื่อ (.vcf)</button>
+      </div>
+
+      <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.6 }}>
+        รูปส่งต่อทางไลน์หรืออีเมลได้เลย · ลูกค้าสแกนคิวอาร์แล้วชื่อกับเบอร์จะเข้ารายชื่อในเครื่องทันที
+        ไม่ต้องพิมพ์ตาม · ไฟล์ .vcf ไว้ส่งให้คนที่สแกนไม่ได้ เปิดแล้วบันทึกลงรายชื่อเหมือนกัน
+      </div>
+    </React.Fragment>
+  );
+}
+
+function VcCardModal({ user, onClose }) {
+  const bdClose = window.useBackdropClose(onClose);
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+
+  return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", zIndex: 130, display: "grid",
       placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18,
@@ -330,40 +370,11 @@ function VcCardModal({ user, onClose }) {
         </div>
 
         <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 14, overflowY: "auto" }}>
-          {/* กรอบรอบนามบัตรเป็นของหน้าจอ ไม่ได้ติดไปในไฟล์ — ไฟล์ที่ได้เป็นสี่เหลี่ยมเต็มใบ */}
-          <div ref={box} style={{ borderRadius: 12, overflow: "hidden", background: "#FFFFFF",
-            border: "1px solid var(--border)", minHeight: 120, boxShadow: "0 8px 26px rgba(8,20,14,.12)" }} />
-
-          {empty && (
-            <div style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "11px 13px", borderRadius: 11,
-              background: "#F59E0B14", border: "1px solid #F59E0B40" }}>
-              <Icon name="alert" size={15} color="#F59E0B" />
-              <span style={{ fontSize: 12.5, color: "var(--text-1)", lineHeight: 1.5 }}>
-                ยังไม่ได้กรอกเบอร์โทร อีเมล หรือไลน์ไอดี — นามบัตรจะขึ้นเบอร์บริษัทแทน
-                กรอกในหน้าโปรไฟล์แล้วกดบันทึก นามบัตรจะเปลี่ยนตามเอง
-              </span>
-            </div>
-          )}
-
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button onClick={savePng} disabled={!ready}
-              style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 16px", borderRadius: 10, border: "none",
-                background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
-                cursor: ready ? "pointer" : "default", opacity: ready ? 1 : .5 }}>
-              <Icon name="image" size={14} color="#fff" /> บันทึกรูป
-            </button>
-            {canShare && <button onClick={share} disabled={!ready} style={thin}><Icon name="link" size={14} /> แชร์</button>}
-            <button onClick={saveVcf} style={thin}><Icon name="download" size={14} /> ไฟล์รายชื่อ (.vcf)</button>
-          </div>
-
-          <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.6 }}>
-            รูปส่งต่อทางไลน์หรืออีเมลได้เลย · ลูกค้าสแกนคิวอาร์แล้วชื่อกับเบอร์จะเข้ารายชื่อในเครื่องทันที
-            ไม่ต้องพิมพ์ตาม · ไฟล์ .vcf ไว้ส่งให้คนที่สแกนไม่ได้ เปิดแล้วบันทึกลงรายชื่อเหมือนกัน
-          </div>
+          <VcCardBody user={user} />
         </div>
       </div>
     </div>
   );
 }
 
-Object.assign(window, { VcCardModal, vcText, vcDraw, VC_W, VC_H });
+Object.assign(window, { VcCardModal, VcCardBody, vcText, vcDraw, VC_W, VC_H });

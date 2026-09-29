@@ -1151,7 +1151,6 @@ function LnApp() {
   const [tab, setTab]   = React.useState(LN_START.tab);
   const [q, setQ]       = React.useState("");
   const [open, setOpen] = React.useState(null);
-  const [card, setCard] = React.useState(false);   /* นามบัตรอิเล็กทรอนิกส์ — หน้า ฉัน */
   const [jobType, setJobType] = React.useState("all");
   /* คนที่เห็นทั้งบริษัท (แอดมิน/หัวหน้า/ขาย) ตั้งต้นที่ "ของฉัน"
      เพราะเปิดในไลน์คือกำลังจะไปทำงาน ไม่ใช่กำลังนั่งตรวจงานคนอื่น
@@ -1327,37 +1326,18 @@ function LnApp() {
       )}
 
       {tab === "me" && (
-        <div style={{ padding: 18 }}>
-          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 18, textAlign: "center" }}>
-            <div style={{ fontSize: 19, fontWeight: 800, color: "var(--text-1)" }}>{me.name}</div>
-            <div style={{ marginTop: 6, display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap" }}>
-              {role.map((r) => {
-                const ri = window.ROLE_INFO[r] || {};
-                return <span key={r} style={{ padding: "3px 10px", borderRadius: 99, background: (ri.color || "#888") + "18",
-                  color: ri.color || "var(--text-2)", fontSize: 11.5, fontWeight: 700 }}>{ri.th || r}</span>;
-              })}
-            </div>
-            <div style={{ marginTop: 12, fontSize: 12, color: "var(--text-3)" }}>ชื่อผู้ใช้ {me.username || "—"}</div>
-          </div>
-
-          {/* นามบัตรอิเล็กทรอนิกส์ — ตัวเดียวกับในหน้าโปรไฟล์บนเว็บ
-              ที่นี่สำคัญกว่าด้วยซ้ำ — คนที่เปิดหน้านี้คือคนที่อยู่หน้างานและเปิดไลน์อยู่แล้ว ส่งต่อให้ลูกค้าได้ทันที */}
-          {window.VcCardModal && (
-            <button onClick={() => setCard(true)}
-              style={{ marginTop: 14, width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "12px 14px",
-                borderRadius: 14, textAlign: "left", border: "1px solid var(--border)", background: "var(--surface)",
-                cursor: "pointer", fontFamily: "inherit" }}>
-              <span style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: "grid", placeItems: "center",
-                background: "var(--primary-soft)" }}><window.Icon name="user" size={16} color="var(--primary-dark)" /></span>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>นามบัตรอิเล็กทรอนิกส์</span>
-                <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)", marginTop: 2 }}>
-                  ส่งให้ลูกค้าทางไลน์ · สแกนแล้วบันทึกลงรายชื่อในเครื่องได้เลย
-                </span>
-              </span>
-              <window.Icon name="chevronRight" size={15} color="var(--text-3)" />
-            </button>
-          )}
+        <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* นามบัตรวางติดหน้าเลย ไม่ต้องกดเข้าไปอีกชั้น — หน้านี้มีของอยู่อย่างเดียว
+              และของชิ้นนั้นคือสิ่งที่ต้องหยิบมาโชว์ให้ลูกค้าเดี๋ยวนั้นตอนยืนอยู่หน้างาน
+              การ์ดชื่อ/บทบาท/ชื่อผู้ใช้ตัวเดิมถูกตัดออก — นามบัตรบอกชื่อกับตำแหน่งไว้ครบแล้ว */}
+          {window.VcCardBody
+            ? <window.VcCardBody user={me} />
+            : (
+              <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 18, textAlign: "center" }}>
+                <div style={{ fontSize: 19, fontWeight: 800, color: "var(--text-1)" }}>{me.name}</div>
+                <div style={{ marginTop: 12, fontSize: 12, color: "var(--text-3)" }}>ชื่อผู้ใช้ {me.username || "—"}</div>
+              </div>
+            )}
 
           {window.LN_TEST && (
             <div style={{ marginTop: 14, padding: 12, borderRadius: 12, background: "var(--tint-amber-bg)",
@@ -1371,9 +1351,6 @@ function LnApp() {
 
       <LnJobSheet job={open} techs={techStore.techs} onClose={() => setOpen(null)} />
 
-      {card && window.VcCardModal && (
-        <window.VcCardModal user={me} onClose={() => setCard(false)} />
-      )}
     </div>
   );
 }

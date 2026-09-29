@@ -2058,7 +2058,6 @@ function LnApp() {
   const [tab, setTab] = React.useState(LN_START.tab);
   const [q, setQ] = React.useState("");
   const [open, setOpen] = React.useState(null);
-  const [card, setCard] = React.useState(false);
   const [jobType, setJobType] = React.useState("all");
   const [onlyMine, setOnlyMine] = React.useState(true);
   const me = auth.current;
@@ -2314,9 +2313,14 @@ function LnApp() {
     }))));
   })), tab === "me" && React.createElement("div", {
     style: {
-      padding: 18
+      padding: 18,
+      display: "flex",
+      flexDirection: "column",
+      gap: 14
     }
-  }, React.createElement("div", {
+  }, window.VcCardBody ? React.createElement(window.VcCardBody, {
+    user: me
+  }) : React.createElement("div", {
     style: {
       background: "var(--surface)",
       border: "1px solid var(--border)",
@@ -2332,85 +2336,11 @@ function LnApp() {
     }
   }, me.name), React.createElement("div", {
     style: {
-      marginTop: 6,
-      display: "flex",
-      gap: 6,
-      justifyContent: "center",
-      flexWrap: "wrap"
-    }
-  }, role.map(r => {
-    const ri = window.ROLE_INFO[r] || {};
-    return React.createElement("span", {
-      key: r,
-      style: {
-        padding: "3px 10px",
-        borderRadius: 99,
-        background: (ri.color || "#888") + "18",
-        color: ri.color || "var(--text-2)",
-        fontSize: 11.5,
-        fontWeight: 700
-      }
-    }, ri.th || r);
-  })), React.createElement("div", {
-    style: {
       marginTop: 12,
       fontSize: 12,
       color: "var(--text-3)"
     }
-  }, "\u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49 ", me.username || "—")), window.VcCardModal && React.createElement("button", {
-    onClick: () => setCard(true),
-    style: {
-      marginTop: 14,
-      width: "100%",
-      display: "flex",
-      alignItems: "center",
-      gap: 11,
-      padding: "12px 14px",
-      borderRadius: 14,
-      textAlign: "left",
-      border: "1px solid var(--border)",
-      background: "var(--surface)",
-      cursor: "pointer",
-      fontFamily: "inherit"
-    }
-  }, React.createElement("span", {
-    style: {
-      width: 34,
-      height: 34,
-      borderRadius: 10,
-      flexShrink: 0,
-      display: "grid",
-      placeItems: "center",
-      background: "var(--primary-soft)"
-    }
-  }, React.createElement(window.Icon, {
-    name: "user",
-    size: 16,
-    color: "var(--primary-dark)"
-  })), React.createElement("span", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, React.createElement("span", {
-    style: {
-      display: "block",
-      fontSize: 13.5,
-      fontWeight: 700,
-      color: "var(--text-1)"
-    }
-  }, "\u0E19\u0E32\u0E21\u0E1A\u0E31\u0E15\u0E23\u0E2D\u0E34\u0E40\u0E25\u0E47\u0E01\u0E17\u0E23\u0E2D\u0E19\u0E34\u0E01\u0E2A\u0E4C"), React.createElement("span", {
-    style: {
-      display: "block",
-      fontSize: 11.5,
-      color: "var(--text-3)",
-      marginTop: 2
-    }
-  }, "\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E49\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E17\u0E32\u0E07\u0E44\u0E25\u0E19\u0E4C \xB7 \u0E2A\u0E41\u0E01\u0E19\u0E41\u0E25\u0E49\u0E27\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E25\u0E07\u0E23\u0E32\u0E22\u0E0A\u0E37\u0E48\u0E2D\u0E43\u0E19\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22")), React.createElement(window.Icon, {
-    name: "chevronRight",
-    size: 15,
-    color: "var(--text-3)"
-  })), window.LN_TEST && React.createElement("div", {
+  }, "\u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49 ", me.username || "—")), window.LN_TEST && React.createElement("div", {
     style: {
       marginTop: 14,
       padding: 12,
@@ -2426,9 +2356,6 @@ function LnApp() {
     job: open,
     techs: techStore.techs,
     onClose: () => setOpen(null)
-  }), card && window.VcCardModal && React.createElement(window.VcCardModal, {
-    user: me,
-    onClose: () => setCard(false)
   }));
 }
 Object.assign(window, {
