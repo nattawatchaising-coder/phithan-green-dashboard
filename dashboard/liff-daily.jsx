@@ -15,7 +15,7 @@
 
 const LN_DR_MAX = 8;
 
-const LN_DR_FIELD = { width: "100%", padding: "12px 13px", borderRadius: 12, border: "1px solid var(--border-strong)",
+const LN_DR_FIELD = { width: "100%", padding: "12px 13px", borderRadius: 16, border: "1px solid var(--border-strong)",
   background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 16, outline: "none" };
 const LN_DR_LABEL = { fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" };
 
@@ -103,14 +103,14 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
   return (
     <div style={{ display: "grid", gap: 14, paddingTop: 14 }}>
       {locked && (
-        <div style={{ padding: "11px 13px", borderRadius: 12, fontSize: 12.5, fontWeight: 700, textAlign: "center",
+        <div style={{ padding: "11px 13px", borderRadius: 16, fontSize: 12.5, fontWeight: 700, textAlign: "center",
           background: window.drStatusOf(form.status).color + "1A", color: window.drStatusOf(form.status).color }}>
           {window.drStatusOf(form.status).th} — แก้ไขจากมือถือไม่ได้แล้ว
         </div>
       )}
 
       {window.drNoEe(job) && !locked && (
-        <div style={{ padding: "11px 13px", borderRadius: 12, fontSize: 12, lineHeight: 1.6,
+        <div style={{ padding: "11px 13px", borderRadius: 16, fontSize: 12, lineHeight: 1.6,
           background: "var(--tint-amber-bg)", color: "var(--tint-amber-tx)" }}>
           งานนี้ยังไม่ได้ระบุวิศวกรผู้รับผิดชอบ — ส่งใบไปแล้วจะไม่มีใครได้รับแจ้งเตือนให้มาอนุมัติ
         </div>
@@ -149,7 +149,7 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
           </span>
           {prev && <span style={{ fontSize: 11, color: "var(--text-3)" }}>เมื่อวาน {(+prev.pct || 0)}%</span>}
         </div>
-        <div style={{ border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", background: "var(--surface)" }}>
+        <div style={{ border: "1px solid var(--border)", boxShadow: "var(--soft)", borderRadius: 16, overflow: "hidden", background: "var(--surface)" }}>
           {(form.steps || []).map((r, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 11px",
               borderBottom: "1px solid var(--border)", background: r.head && form.mode === "project" && !r.no.includes(".")
@@ -158,7 +158,7 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
               <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: "var(--text-1)" }}>{r.th}</span>
               <input value={r.pct || ""} disabled={locked} inputMode="numeric" placeholder="0"
                 onChange={(e) => setStep(i, e.target.value)}
-                style={{ width: 58, padding: "7px 8px", borderRadius: 9, border: "1px solid var(--border-strong)",
+                style={{ width: 58, padding: "7px 8px", borderRadius: 12, border: "1px solid var(--border-strong)",
                   background: "var(--surface2)", color: "var(--text-1)", fontFamily: "var(--mono)", fontSize: 13,
                   textAlign: "right", outline: "none" }} />
               <span style={{ fontSize: 11, color: "var(--text-3)" }}>%</span>
@@ -202,7 +202,7 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
             <div key={p.id} style={{ display: "flex", gap: 9, alignItems: "flex-start" }}>
               <div style={{ position: "relative", flexShrink: 0 }}>
                 <img src={p.dataUrl} alt="" onClick={() => setZoom(p.dataUrl)}
-                  style={{ width: 84, height: 84, objectFit: "cover", borderRadius: 10, border: "1px solid var(--border)" }} />
+                  style={{ width: 84, height: 84, objectFit: "cover", borderRadius: 13, border: "1px solid var(--border)" }} />
                 {!locked && (
                   <button onClick={() => photos.remove(p.id)}
                     style={{ position: "absolute", top: -6, right: -6, width: 24, height: 24, borderRadius: 99, border: "none",
@@ -220,7 +220,7 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
             </div>
           ))}
           {!locked && !full && (
-            <label style={{ width: 84, height: 84, borderRadius: 10, border: "1px dashed var(--border-strong)",
+            <label style={{ width: 84, height: 84, borderRadius: 13, border: "1px dashed var(--border-strong)",
               display: "grid", placeItems: "center", cursor: "pointer" }}>
               <Icon name="camera" size={22} color="var(--text-3)" />
               <input type="file" accept="image/*" capture="environment" multiple onChange={onPick} style={{ display: "none" }} />
@@ -234,21 +234,21 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
       </div>
 
       {msg && (
-        <div style={{ padding: "11px 13px", borderRadius: 12, fontSize: 13, fontWeight: 700, textAlign: "center",
+        <div style={{ padding: "11px 13px", borderRadius: 16, fontSize: 13, fontWeight: 700, textAlign: "center",
           background: "var(--primary-soft)", color: "var(--primary-dark)" }}>{msg}</div>
       )}
 
       {!locked && (
         <div style={{ display: "grid", gap: 9 }}>
           <button onClick={send} disabled={busy || !(form.work || "").trim()}
-            style={{ width: "100%", padding: "16px 18px", borderRadius: 15, border: "none", fontFamily: "inherit",
+            style={{ width: "100%", padding: "16px 18px", borderRadius: 20, border: "none", fontFamily: "inherit",
               fontSize: 16, fontWeight: 800, cursor: "pointer",
               background: !busy && (form.work || "").trim() ? "var(--primary)" : "var(--surface3)",
               color: !busy && (form.work || "").trim() ? "#fff" : "var(--text-3)" }}>
             {busy ? "กำลังบันทึก…" : "เซ็นแล้วส่งให้อนุมัติ"}
           </button>
           <button onClick={saveDraft} disabled={busy}
-            style={{ width: "100%", padding: "13px 18px", borderRadius: 13, border: "1px solid var(--border-strong)",
+            style={{ width: "100%", padding: "13px 18px", borderRadius: 18, border: "1px solid var(--border-strong)",
               background: "var(--surface2)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 14,
               fontWeight: 700, cursor: "pointer" }}>
             เก็บเป็นร่างไว้ก่อน
@@ -262,8 +262,8 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
       )}
 
       {locked && sigs.signs.by && sigs.signs.by.img && (
-        <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 13px", borderRadius: 12,
-          border: "1px solid var(--border)", background: "var(--surface)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 13px", borderRadius: 16,
+          border: "1px solid var(--border)", boxShadow: "var(--soft)", background: "var(--surface)" }}>
           <img src={sigs.signs.by.img} alt="" style={{ height: 34, maxWidth: 130, objectFit: "contain" }} />
           <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>
             ผู้บันทึก {sigs.signs.by.name || ""}
@@ -308,7 +308,7 @@ function LnPhotoCap({ value, onSave }) {
       onFocus={() => setFocus(true)}
       onBlur={() => { setFocus(false); if ((value || "") !== v) onSave(v); }}
       placeholder="คำอธิบายรูปนี้ เช่น ติดตั้งรางเสร็จแถวที่ 1"
-      style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border-strong)",
+      style={{ width: "100%", padding: "10px 12px", borderRadius: 13, border: "1px solid var(--border-strong)",
         background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 16, outline: "none" }} />
   );
 }

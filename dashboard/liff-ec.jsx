@@ -13,7 +13,7 @@
    รูปละ ~120-200 KB · เก็บเป็น base64 ใน RTDB · ช่างจ่ายค่าเน็ต 4G เอง
    ============================================================ */
 
-const LN_EC_FIELD = { width: "100%", padding: "12px 13px", borderRadius: 12, border: "1px solid var(--border-strong)",
+const LN_EC_FIELD = { width: "100%", padding: "12px 13px", borderRadius: 16, border: "1px solid var(--border-strong)",
   background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 16, outline: "none" };
 
 /* ── ชิปเลือกหนึ่งอย่าง ── ปุ่มใหญ่กดง่ายกว่า select ตอนมือเปื้อนอยู่หน้างาน */
@@ -24,7 +24,7 @@ function LnChips({ list, value, onChange }) {
         const on = value === k.key;
         return (
           <button key={k.key} onClick={() => onChange(k.key)}
-            style={{ padding: "9px 13px", borderRadius: 11, cursor: "pointer", fontFamily: "inherit",
+            style={{ padding: "9px 13px", borderRadius: 14, cursor: "pointer", fontFamily: "inherit",
               fontSize: 13, fontWeight: 700, border: "1px solid " + (on ? k.color : "var(--border-strong)"),
               background: on ? k.color + "1A" : "var(--surface2)", color: on ? k.color : "var(--text-2)" }}>
             {k.th}
@@ -105,7 +105,7 @@ function LnEcForm({ me, users, role, jobs, store, claim, onClose }) {
 
       <div style={{ padding: 18, display: "grid", gap: 14 }}>
         {locked && (
-          <div style={{ padding: "11px 13px", borderRadius: 12, fontSize: 12.5, fontWeight: 700, textAlign: "center",
+          <div style={{ padding: "11px 13px", borderRadius: 16, fontSize: 12.5, fontWeight: 700, textAlign: "center",
             background: window.ecStatusOf(c.status).color + "1A", color: window.ecStatusOf(c.status).color }}>
             {window.ecStatusOf(c.status).th} — แก้ไขจากมือถือไม่ได้แล้ว
           </div>
@@ -178,7 +178,7 @@ function LnEcForm({ me, users, role, jobs, store, claim, onClose }) {
           ))}
           {!locked && (
             <button onClick={addRow}
-              style={{ padding: "10px 13px", borderRadius: 11, border: "1px dashed var(--border-strong)", background: "none",
+              style={{ padding: "10px 13px", borderRadius: 14, border: "1px dashed var(--border-strong)", background: "none",
                 color: "var(--text-2)", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
               + เพิ่มรายการ
             </button>
@@ -207,7 +207,7 @@ function LnEcForm({ me, users, role, jobs, store, claim, onClose }) {
                 {/* เปิดดูในหน้าเดียวกัน ไม่ใช่ window.open — WebView ของ LINE บล็อกแท็บใหม่ที่เป็น data: URL
                     ถ้าใช้ window.open ปุ่มจะกดแล้วเงียบ โดยไม่มี error ให้เห็น */}
                 <img src={s.dataUrl} alt="" onClick={() => setZoom(s.dataUrl)}
-                  style={{ width: 84, height: 84, objectFit: "cover", borderRadius: 10, border: "1px solid var(--border)" }} />
+                  style={{ width: 84, height: 84, objectFit: "cover", borderRadius: 13, border: "1px solid var(--border)" }} />
                 {!locked && (
                   <button onClick={() => rec.remove(s.id)}
                     style={{ position: "absolute", top: -6, right: -6, width: 24, height: 24, borderRadius: 99, border: "none",
@@ -216,7 +216,7 @@ function LnEcForm({ me, users, role, jobs, store, claim, onClose }) {
               </div>
             ))}
             {!locked && (
-              <label style={{ width: 84, height: 84, borderRadius: 10, border: "1px dashed var(--border-strong)",
+              <label style={{ width: 84, height: 84, borderRadius: 13, border: "1px dashed var(--border-strong)",
                 display: "grid", placeItems: "center", cursor: "pointer", color: "var(--text-3)" }}>
                 <Icon name="camera" size={22} color="var(--text-3)" />
                 <input type="file" accept="image/*" capture="environment" multiple onChange={onPick} style={{ display: "none" }} />
@@ -231,14 +231,14 @@ function LnEcForm({ me, users, role, jobs, store, claim, onClose }) {
         {!locked && (
           <div style={{ display: "grid", gap: 9, paddingTop: 3 }}>
             <button onClick={send} disabled={busy || total <= 0}
-              style={{ width: "100%", padding: "16px 18px", borderRadius: 15, border: "none", fontFamily: "inherit",
+              style={{ width: "100%", padding: "16px 18px", borderRadius: 20, border: "none", fontFamily: "inherit",
                 fontSize: 16, fontWeight: 800, cursor: "pointer",
                 background: !busy && total > 0 ? "var(--primary)" : "var(--surface3)",
                 color: !busy && total > 0 ? "#fff" : "var(--text-3)" }}>
               {busy ? "กำลังบันทึก…" : "ส่งขออนุมัติ"}
             </button>
             <button onClick={saveDraft} disabled={busy}
-              style={{ width: "100%", padding: "13px 18px", borderRadius: 13, border: "1px solid var(--border-strong)",
+              style={{ width: "100%", padding: "13px 18px", borderRadius: 18, border: "1px solid var(--border-strong)",
                 background: "var(--surface2)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 14,
                 fontWeight: 700, cursor: "pointer" }}>
               เก็บเป็นร่างไว้ก่อน
@@ -303,7 +303,7 @@ function LnEcTab({ me, users, role, jobs }) {
   return (
     <div style={{ padding: 18 }}>
       {owed > 0 && (
-        <div style={{ padding: "13px 15px", borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)",
+        <div style={{ padding: "13px 15px", borderRadius: 18, background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--soft)",
           display: "flex", alignItems: "baseline", gap: 8, marginBottom: 13 }}>
           <span style={{ fontSize: 12.5, color: "var(--text-3)", fontWeight: 700 }}>บริษัทติดเงินคุณอยู่</span>
           <span style={{ marginLeft: "auto", fontFamily: "var(--mono)", fontSize: 20, fontWeight: 800, color: "#EF4444" }}>
@@ -314,13 +314,13 @@ function LnEcTab({ me, users, role, jobs }) {
       )}
 
       <button onClick={() => setOpen(window.ecBlank(null, me, store.claims, users))}
-        style={{ width: "100%", padding: "15px 18px", borderRadius: 14, border: "none", background: "var(--primary)",
+        style={{ width: "100%", padding: "15px 18px", borderRadius: 18, border: "none", background: "var(--primary)",
           color: "#fff", fontFamily: "inherit", fontSize: 15.5, fontWeight: 800, cursor: "pointer" }}>
         + เปิดใบเบิกใหม่
       </button>
 
       <div style={{ marginTop: 16, fontSize: 12.5, fontWeight: 800, color: "var(--text-1)", marginBottom: 7 }}>ใบเบิกของฉัน</div>
-      <div style={{ border: "1px solid var(--border)", borderRadius: 13, overflow: "hidden", background: "var(--surface)" }}>
+      <div style={{ border: "1px solid var(--border)", boxShadow: "var(--soft)", borderRadius: 18, overflow: "hidden", background: "var(--surface)" }}>
         {mine.length === 0
           ? <div style={{ padding: 24, textAlign: "center", color: "var(--text-3)", fontSize: 12.5 }}>ยังไม่มีใบเบิก</div>
           : mine.slice(0, 25).map((c) => {

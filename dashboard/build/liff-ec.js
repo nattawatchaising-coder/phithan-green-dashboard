@@ -1,7 +1,7 @@
 const LN_EC_FIELD = {
   width: "100%",
   padding: "12px 13px",
-  borderRadius: 12,
+  borderRadius: 16,
   border: "1px solid var(--border-strong)",
   background: "var(--surface2)",
   color: "var(--text-1)",
@@ -27,7 +27,7 @@ function LnChips({
       onClick: () => onChange(k.key),
       style: {
         padding: "9px 13px",
-        borderRadius: 11,
+        borderRadius: 14,
         cursor: "pointer",
         fontFamily: "inherit",
         fontSize: 13,
@@ -171,7 +171,7 @@ function LnEcForm({
   }, locked && React.createElement("div", {
     style: {
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: 16,
       fontSize: 12.5,
       fontWeight: 700,
       textAlign: "center",
@@ -349,7 +349,7 @@ function LnEcForm({
     onClick: addRow,
     style: {
       padding: "10px 13px",
-      borderRadius: 11,
+      borderRadius: 14,
       border: "1px dashed var(--border-strong)",
       background: "none",
       color: "var(--text-2)",
@@ -436,7 +436,7 @@ function LnEcForm({
       width: 84,
       height: 84,
       objectFit: "cover",
-      borderRadius: 10,
+      borderRadius: 13,
       border: "1px solid var(--border)"
     }
   }), !locked && React.createElement("button", {
@@ -461,7 +461,7 @@ function LnEcForm({
     style: {
       width: 84,
       height: 84,
-      borderRadius: 10,
+      borderRadius: 13,
       border: "1px dashed var(--border-strong)",
       display: "grid",
       placeItems: "center",
@@ -499,7 +499,7 @@ function LnEcForm({
     style: {
       width: "100%",
       padding: "16px 18px",
-      borderRadius: 15,
+      borderRadius: 20,
       border: "none",
       fontFamily: "inherit",
       fontSize: 16,
@@ -514,7 +514,7 @@ function LnEcForm({
     style: {
       width: "100%",
       padding: "13px 18px",
-      borderRadius: 13,
+      borderRadius: 18,
       border: "1px solid var(--border-strong)",
       background: "var(--surface2)",
       color: "var(--text-2)",
@@ -600,9 +600,10 @@ function LnEcTab({
   }, owed > 0 && React.createElement("div", {
     style: {
       padding: "13px 15px",
-      borderRadius: 14,
+      borderRadius: 18,
       background: "var(--surface)",
       border: "1px solid var(--border)",
+      boxShadow: "var(--soft)",
       display: "flex",
       alignItems: "baseline",
       gap: 8,
@@ -632,7 +633,7 @@ function LnEcTab({
     style: {
       width: "100%",
       padding: "15px 18px",
-      borderRadius: 14,
+      borderRadius: 18,
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -652,7 +653,8 @@ function LnEcTab({
   }, "\u0E43\u0E1A\u0E40\u0E1A\u0E34\u0E01\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19"), React.createElement("div", {
     style: {
       border: "1px solid var(--border)",
-      borderRadius: 13,
+      boxShadow: "var(--soft)",
+      borderRadius: 18,
       overflow: "hidden",
       background: "var(--surface)"
     }

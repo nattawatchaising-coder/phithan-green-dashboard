@@ -2,7 +2,7 @@ const LN_DR_MAX = 8;
 const LN_DR_FIELD = {
   width: "100%",
   padding: "12px 13px",
-  borderRadius: 12,
+  borderRadius: 16,
   border: "1px solid var(--border-strong)",
   background: "var(--surface2)",
   color: "var(--text-1)",
@@ -113,7 +113,7 @@ function LnDailyForm({
   }, locked && React.createElement("div", {
     style: {
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: 16,
       fontSize: 12.5,
       fontWeight: 700,
       textAlign: "center",
@@ -123,7 +123,7 @@ function LnDailyForm({
   }, window.drStatusOf(form.status).th, " \u2014 \u0E41\u0E01\u0E49\u0E44\u0E02\u0E08\u0E32\u0E01\u0E21\u0E37\u0E2D\u0E16\u0E37\u0E2D\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E41\u0E25\u0E49\u0E27"), window.drNoEe(job) && !locked && React.createElement("div", {
     style: {
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: 16,
       fontSize: 12,
       lineHeight: 1.6,
       background: "var(--tint-amber-bg)",
@@ -218,7 +218,8 @@ function LnDailyForm({
   }, "\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E27\u0E32\u0E19 ", +prev.pct || 0, "%")), React.createElement("div", {
     style: {
       border: "1px solid var(--border)",
-      borderRadius: 12,
+      boxShadow: "var(--soft)",
+      borderRadius: 16,
       overflow: "hidden",
       background: "var(--surface)"
     }
@@ -255,7 +256,7 @@ function LnDailyForm({
     style: {
       width: 58,
       padding: "7px 8px",
-      borderRadius: 9,
+      borderRadius: 12,
       border: "1px solid var(--border-strong)",
       background: "var(--surface2)",
       color: "var(--text-1)",
@@ -365,7 +366,7 @@ function LnDailyForm({
       width: 84,
       height: 84,
       objectFit: "cover",
-      borderRadius: 10,
+      borderRadius: 13,
       border: "1px solid var(--border)"
     }
   }), !locked && React.createElement("button", {
@@ -404,7 +405,7 @@ function LnDailyForm({
     style: {
       width: 84,
       height: 84,
-      borderRadius: 10,
+      borderRadius: 13,
       border: "1px dashed var(--border-strong)",
       display: "grid",
       placeItems: "center",
@@ -432,7 +433,7 @@ function LnDailyForm({
   }, "\u0E04\u0E23\u0E1A ", LN_DR_MAX, " \u0E23\u0E39\u0E1B\u0E41\u0E25\u0E49\u0E27 \u2014 \u0E25\u0E1A\u0E23\u0E39\u0E1B\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E08\u0E33\u0E40\u0E1B\u0E47\u0E19\u0E2D\u0E2D\u0E01\u0E01\u0E48\u0E2D\u0E19\u0E16\u0E36\u0E07\u0E08\u0E30\u0E16\u0E48\u0E32\u0E22\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E44\u0E14\u0E49", React.createElement("br", null), "\u0E08\u0E33\u0E01\u0E31\u0E14\u0E44\u0E27\u0E49\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E43\u0E2B\u0E49\u0E43\u0E1A\u0E19\u0E35\u0E49\u0E40\u0E1B\u0E34\u0E14\u0E44\u0E14\u0E49\u0E40\u0E23\u0E47\u0E27\u0E1A\u0E19\u0E21\u0E37\u0E2D\u0E16\u0E37\u0E2D\u0E02\u0E2D\u0E07\u0E17\u0E38\u0E01\u0E04\u0E19\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E21\u0E32\u0E2D\u0E48\u0E32\u0E19")), msg && React.createElement("div", {
     style: {
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: 16,
       fontSize: 13,
       fontWeight: 700,
       textAlign: "center",
@@ -450,7 +451,7 @@ function LnDailyForm({
     style: {
       width: "100%",
       padding: "16px 18px",
-      borderRadius: 15,
+      borderRadius: 20,
       border: "none",
       fontFamily: "inherit",
       fontSize: 16,
@@ -465,7 +466,7 @@ function LnDailyForm({
     style: {
       width: "100%",
       padding: "13px 18px",
-      borderRadius: 13,
+      borderRadius: 18,
       border: "1px solid var(--border-strong)",
       background: "var(--surface2)",
       color: "var(--text-2)",
@@ -486,8 +487,9 @@ function LnDailyForm({
       alignItems: "center",
       gap: 11,
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: 16,
       border: "1px solid var(--border)",
+      boxShadow: "var(--soft)",
       background: "var(--surface)"
     }
   }, React.createElement("img", {
@@ -555,7 +557,7 @@ function LnPhotoCap({
     style: {
       width: "100%",
       padding: "10px 12px",
-      borderRadius: 10,
+      borderRadius: 13,
       border: "1px solid var(--border-strong)",
       background: "var(--surface2)",
       color: "var(--text-1)",

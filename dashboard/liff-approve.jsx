@@ -36,7 +36,7 @@ const LN_AP_SHEET = {
   position: "fixed", inset: 0, zIndex: 60, background: "var(--bg)", overflowY: "auto", overflowX: "hidden",
 };
 const LN_AP_NOTE = {
-  width: "100%", padding: "12px 13px", borderRadius: 12, border: "1px solid var(--border-strong)",
+  width: "100%", padding: "12px 13px", borderRadius: 16, border: "1px solid var(--border-strong)",
   background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 16,
   outline: "none", resize: "vertical", lineHeight: 1.6,
 };
@@ -46,7 +46,7 @@ function LnApRows({ rows }) {
   const use = (rows || []).filter((r) => r[1] != null && r[1] !== "");
   if (!use.length) return null;
   return (
-    <div style={{ border: "1px solid var(--border)", borderRadius: 13, overflow: "hidden" }}>
+    <div style={{ border: "1px solid var(--border)", boxShadow: "var(--soft)", borderRadius: 18, overflow: "hidden" }}>
       {use.map((r, i) => (
         <div key={r[0]} style={{ display: "flex", gap: 10, padding: "10px 13px",
           borderTop: i ? "1px solid var(--border)" : "none", background: i % 2 ? "var(--surface2)" : "var(--surface)" }}>
@@ -97,12 +97,12 @@ function LnApDecide({ okText, noText, hint, onOk, onNo, busy }) {
           placeholder="เช่น ยอดไม่ตรงบิล · ขอรูปหน้างานเพิ่ม · เวลาที่ขอไม่ตรงกับใบลงเวลา" style={LN_AP_NOTE} />
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => { setNoting(false); setNote(""); }}
-            style={{ flex: 1, padding: "13px 14px", borderRadius: 11, border: "1px solid var(--border-strong)",
+            style={{ flex: 1, padding: "13px 14px", borderRadius: 14, border: "1px solid var(--border-strong)",
               background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
             ย้อนกลับ
           </button>
           <button onClick={() => onNo(note.trim())} disabled={!note.trim() || busy}
-            style={{ flex: 2, padding: "13px 14px", borderRadius: 11, border: "none",
+            style={{ flex: 2, padding: "13px 14px", borderRadius: 14, border: "none",
               background: note.trim() ? "#EF4444" : "var(--border-strong)", color: "#fff",
               fontFamily: "inherit", fontSize: 13.5, fontWeight: 800, cursor: note.trim() ? "pointer" : "default" }}>
             {noText}
@@ -119,12 +119,12 @@ function LnApDecide({ okText, noText, hint, onOk, onNo, busy }) {
     <div style={{ marginTop: 14 }}>
       <div style={{ display: "flex", gap: 8 }}>
         <button onClick={() => setNoting(true)} disabled={busy}
-          style={{ flex: 1, padding: "14px 14px", borderRadius: 12, border: "1px solid #EF4444",
+          style={{ flex: 1, padding: "14px 14px", borderRadius: 16, border: "1px solid #EF4444",
             background: "var(--surface)", color: "#EF4444", fontFamily: "inherit", fontSize: 14, fontWeight: 800, cursor: "pointer" }}>
           {noText}
         </button>
         <button onClick={onOk} disabled={busy}
-          style={{ flex: 2, padding: "14px 14px", borderRadius: 12, border: "none", background: "#10B981",
+          style={{ flex: 2, padding: "14px 14px", borderRadius: 16, border: "none", background: "#10B981",
             color: "#fff", fontFamily: "inherit", fontSize: 14, fontWeight: 800, cursor: "pointer" }}>
           {busy ? "กำลังบันทึก…" : okText}
         </button>
@@ -218,7 +218,7 @@ function LnApprDrSheet({ me, role, job, date, rec, notify, onClose }) {
             {photos.photos.map((p) => (
               <div key={p.id} style={{ display: "flex", gap: 9, alignItems: "flex-start" }}>
                 <img src={p.dataUrl} alt="" onClick={() => setZoom(p.dataUrl)}
-                  style={{ width: 84, height: 84, objectFit: "cover", borderRadius: 10, border: "1px solid var(--border)", flexShrink: 0 }} />
+                  style={{ width: 84, height: 84, objectFit: "cover", borderRadius: 13, border: "1px solid var(--border)", flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0, fontSize: 12.5, lineHeight: 1.6,
                   color: p.cap ? "var(--text-1)" : "var(--text-3)" }}>
                   {p.cap || "ไม่ได้เขียนคำอธิบายไว้"}
@@ -229,8 +229,8 @@ function LnApprDrSheet({ me, role, job, date, rec, notify, onClose }) {
         )}
 
         {sigs.signs.by && sigs.signs.by.img && (
-          <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 13px", borderRadius: 12,
-            border: "1px solid var(--border)", background: "var(--surface)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 13px", borderRadius: 16,
+            border: "1px solid var(--border)", boxShadow: "var(--soft)", background: "var(--surface)" }}>
             <img src={sigs.signs.by.img} alt="" style={{ height: 34, maxWidth: 130, objectFit: "contain" }} />
             <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>
               ผู้บันทึก {sigs.signs.by.name || ""}
@@ -240,10 +240,10 @@ function LnApprDrSheet({ me, role, job, date, rec, notify, onClose }) {
         )}
 
         {msg
-          ? <div style={{ padding: "13px 15px", borderRadius: 12, background: "var(--primary-soft)",
+          ? <div style={{ padding: "13px 15px", borderRadius: 16, background: "var(--primary-soft)",
               color: "var(--primary-dark)", fontSize: 13.5, fontWeight: 700, textAlign: "center" }}>{msg}</div>
           : done
-            ? <div style={{ padding: "13px 15px", borderRadius: 12, background: "var(--surface2)",
+            ? <div style={{ padding: "13px 15px", borderRadius: 16, background: "var(--surface2)",
                 color: "var(--text-3)", fontSize: 12.5, textAlign: "center", lineHeight: 1.6 }}>
                 ใบนี้ไม่ได้อยู่ระหว่างรออนุมัติแล้ว — อาจมีคนอื่นตัดสินไปก่อน
               </div>
@@ -252,7 +252,7 @@ function LnApprDrSheet({ me, role, job, date, rec, notify, onClose }) {
                 onOk={approve} onNo={back} />}
 
         <button onClick={onClose}
-          style={{ width: "100%", padding: "13px 14px", borderRadius: 12, border: "1px solid var(--border-strong)",
+          style={{ width: "100%", padding: "13px 14px", borderRadius: 16, border: "1px solid var(--border-strong)",
             background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13.5,
             fontWeight: 700, cursor: "pointer", marginBottom: "calc(10px + env(safe-area-inset-bottom, 0px))" }}>
           {msg ? "กลับไปรายการ" : "ปิด"}
@@ -288,7 +288,7 @@ function LnApPdf({ shot }) {
   }, [shot.dataUrl]);
   return (
     <a href={url} target="_blank" rel="noopener"
-      style={{ width: 96, height: 96, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface2)",
+      style={{ width: 96, height: 96, borderRadius: 13, border: "1px solid var(--border)", background: "var(--surface2)",
         display: "grid", placeItems: "center", gap: 4, textDecoration: "none", color: "var(--text-2)",
         fontSize: 10.5, fontWeight: 700, textAlign: "center", padding: 6 }}>
       <Icon name="file" size={20} color="var(--text-3)" />
@@ -343,7 +343,7 @@ function LnApprEcSheet({ me, role, claim, store, onClose }) {
 
         {/* รายการย่อยในใบ — ยอดรวมอย่างเดียวไม่พอสำหรับตัดสิน ต้องเห็นว่าไปกับอะไรบ้าง */}
         {(cur.items || []).length > 0 && (
-          <div style={{ border: "1px solid var(--border)", borderRadius: 13, overflow: "hidden", background: "var(--surface)" }}>
+          <div style={{ border: "1px solid var(--border)", boxShadow: "var(--soft)", borderRadius: 18, overflow: "hidden", background: "var(--surface)" }}>
             {(cur.items || []).map((it, i) => (
               <div key={i} style={{ display: "flex", gap: 10, padding: "10px 13px",
                 borderTop: i ? "1px solid var(--border)" : "none" }}>
@@ -364,7 +364,7 @@ function LnApprEcSheet({ me, role, claim, store, onClose }) {
             บิลแนบ {rec.shots.length} ใบ
           </span>
           {rec.shots.length === 0
-            ? <div style={{ padding: "11px 13px", borderRadius: 11, background: "var(--tint-amber-bg)",
+            ? <div style={{ padding: "11px 13px", borderRadius: 14, background: "var(--tint-amber-bg)",
                 color: "var(--tint-amber-tx)", fontSize: 12, lineHeight: 1.6 }}>
                 ไม่มีบิลแนบมาด้วย — อนุมัติได้ แต่จะไม่มีเอกสารยืนยันยอดนี้ตอนปิดบัญชี
               </div>
@@ -374,27 +374,27 @@ function LnApprEcSheet({ me, role, claim, store, onClose }) {
                 {rec.shots.map((sh, i) => (window.ecReceiptKind(sh) === "pdf"
                   ? <LnApPdf key={i} shot={sh} />
                   : <img key={i} src={sh.dataUrl} alt="" onClick={() => setZoom(sh.dataUrl)}
-                      style={{ width: 96, height: 96, objectFit: "cover", borderRadius: 10, border: "1px solid var(--border)" }} />
+                      style={{ width: 96, height: 96, objectFit: "cover", borderRadius: 13, border: "1px solid var(--border)" }} />
                 ))}
               </div>}
         </div>
 
         {msg
-          ? <div style={{ padding: "13px 15px", borderRadius: 12, background: "var(--primary-soft)",
+          ? <div style={{ padding: "13px 15px", borderRadius: 16, background: "var(--primary-soft)",
               color: "var(--primary-dark)", fontSize: 13.5, fontWeight: 700, textAlign: "center" }}>{msg}</div>
           : done
-            ? <div style={{ padding: "13px 15px", borderRadius: 12, background: "var(--surface2)",
+            ? <div style={{ padding: "13px 15px", borderRadius: 16, background: "var(--surface2)",
                 color: "var(--text-3)", fontSize: 12.5, textAlign: "center", lineHeight: 1.6 }}>
                 ใบนี้ไม่ได้อยู่ระหว่างรออนุมัติแล้ว — อาจมีคนอื่นตัดสินไปก่อน
               </div>
             : !chk.ok
-              ? <div style={{ padding: "13px 15px", borderRadius: 12, background: "var(--tint-amber-bg)",
+              ? <div style={{ padding: "13px 15px", borderRadius: 16, background: "var(--tint-amber-bg)",
                   color: "var(--tint-amber-tx)", fontSize: 12.5, textAlign: "center", lineHeight: 1.6 }}>{chk.why}</div>
               : <LnApDecide okText="อนุมัติใบนี้" noText="ไม่อนุมัติ" busy={busy}
                   onOk={() => move("approved", "")} onNo={(note) => move("rejected", note)} />}
 
         <button onClick={onClose}
-          style={{ width: "100%", padding: "13px 14px", borderRadius: 12, border: "1px solid var(--border-strong)",
+          style={{ width: "100%", padding: "13px 14px", borderRadius: 16, border: "1px solid var(--border-strong)",
             background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13.5,
             fontWeight: 700, cursor: "pointer", marginBottom: "calc(10px + env(safe-area-inset-bottom, 0px))" }}>
           {msg ? "กลับไปรายการ" : "ปิด"}
@@ -460,28 +460,28 @@ function LnApprOtSheet({ me, role, rec, store, onClose }) {
 
         {/* ⚠ ตัวเลขในใบนี้คือสิ่งที่คนขอพิมพ์เอง ไม่ใช่เวลาที่ระบบจับได้
             เทียบกับใบลงเวลาของวันนั้นก่อนอนุมัติ — เขียนกำกับไว้ ไม่ใช่ให้เดาเอง */}
-        <div style={{ padding: "11px 13px", borderRadius: 11, background: "var(--surface2)",
+        <div style={{ padding: "11px 13px", borderRadius: 14, background: "var(--surface2)",
           color: "var(--text-3)", fontSize: 11.5, lineHeight: 1.7 }}>
           เวลาในใบนี้เป็นสิ่งที่ผู้ขอกรอกเอง ไม่ใช่เวลาที่ระบบจับได้
           <br />ถ้าไม่แน่ใจ เทียบกับแผ่นลงเวลาของวันนั้นบนเว็บก่อนอนุมัติ
         </div>
 
         {msg
-          ? <div style={{ padding: "13px 15px", borderRadius: 12, background: "var(--primary-soft)",
+          ? <div style={{ padding: "13px 15px", borderRadius: 16, background: "var(--primary-soft)",
               color: "var(--primary-dark)", fontSize: 13.5, fontWeight: 700, textAlign: "center" }}>{msg}</div>
           : done
-            ? <div style={{ padding: "13px 15px", borderRadius: 12, background: "var(--surface2)",
+            ? <div style={{ padding: "13px 15px", borderRadius: 16, background: "var(--surface2)",
                 color: "var(--text-3)", fontSize: 12.5, textAlign: "center", lineHeight: 1.6 }}>
                 ใบนี้ไม่ได้อยู่ระหว่างรออนุมัติแล้ว — อาจมีคนอื่นตัดสินไปก่อน
               </div>
             : !chk.ok
-              ? <div style={{ padding: "13px 15px", borderRadius: 12, background: "var(--tint-amber-bg)",
+              ? <div style={{ padding: "13px 15px", borderRadius: 16, background: "var(--tint-amber-bg)",
                   color: "var(--tint-amber-tx)", fontSize: 12.5, textAlign: "center", lineHeight: 1.6 }}>{chk.why}</div>
               : <LnApDecide okText="อนุมัติใบนี้" noText="ไม่อนุมัติ" busy={busy}
                   onOk={() => move("approved", "")} onNo={(note) => move("rejected", note)} />}
 
         <button onClick={onClose}
-          style={{ width: "100%", padding: "13px 14px", borderRadius: 12, border: "1px solid var(--border-strong)",
+          style={{ width: "100%", padding: "13px 14px", borderRadius: 16, border: "1px solid var(--border-strong)",
             background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13.5,
             fontWeight: 700, cursor: "pointer", marginBottom: "calc(10px + env(safe-area-inset-bottom, 0px))" }}>
           {msg ? "กลับไปรายการ" : "ปิด"}

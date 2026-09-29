@@ -86,27 +86,28 @@ const LN_START = (() => {
   };
 })();
 function LnHead() {
-  return React.createElement("div", {
-    style: {
-      position: "sticky",
-      top: 0,
-      zIndex: 20,
-      background: "var(--surface)",
-      borderBottom: "1px solid var(--border)",
-      paddingTop: "env(safe-area-inset-top, 0px)"
-    }
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      padding: "11px 16px 9px"
-    }
-  }, window.BrandLockup ? React.createElement(window.BrandLockup, {
-    size: 19
-  }) : React.createElement("b", null, "flash+solar")));
+  return (React.createElement("div", {
+      style: {
+        position: "sticky",
+        top: 0,
+        zIndex: 20,
+        background: "var(--bg)",
+        paddingTop: "env(safe-area-inset-top, 0px)"
+      }
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "15px 18px 11px"
+      }
+    }, window.BrandLockup ? React.createElement(window.BrandLockup, {
+      size: 19
+    }) : React.createElement("b", null, "flash+solar")))
+  );
 }
-const LN_TABBAR_H = 58;
+const LN_TABBAR_H = 58,
+  LN_TABBAR_GAP = 10;
 function LnTabs({
   tab,
   setTab,
@@ -117,18 +118,21 @@ function LnTabs({
   return React.createElement("div", {
     style: {
       position: "fixed",
-      left: 0,
-      right: 0,
-      bottom: 0,
       zIndex: 20,
       background: "var(--surface)",
-      borderTop: "1px solid var(--border)",
-      boxShadow: "0 -2px 14px rgba(8,20,14,.07)",
-      paddingBottom: "env(safe-area-inset-bottom, 0px)"
+      left: LN_TABBAR_GAP,
+      right: LN_TABBAR_GAP,
+      bottom: "calc(" + LN_TABBAR_GAP + "px + env(safe-area-inset-bottom, 0px))",
+      borderRadius: 26,
+      border: "1px solid var(--border)",
+      boxShadow: "var(--soft-lg)",
+      overflow: "hidden"
     }
   }, React.createElement("div", {
     style: {
-      display: "flex"
+      display: "flex",
+      padding: 5,
+      gap: 2
     }
   }, list.map(t => {
     const on = tab === t.key;
@@ -138,15 +142,15 @@ function LnTabs({
       style: {
         flex: 1,
         position: "relative",
-        padding: "8px 0 9px",
+        padding: "7px 0 8px",
         border: "none",
-        background: "none",
         cursor: "pointer",
+        borderRadius: 18,
+        background: on ? "var(--primary-soft)" : "transparent",
         fontFamily: "inherit",
         fontSize: 10.5,
         fontWeight: 700,
         color: on ? "var(--primary-dark)" : "var(--text-3)",
-        boxShadow: on ? "inset 0 2.5px 0 var(--primary)" : "none",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -441,7 +445,7 @@ function LnJobFiles({
       flex: 1,
       minWidth: 140,
       padding: "12px 14px",
-      borderRadius: 11,
+      borderRadius: 14,
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-1)",
@@ -461,7 +465,7 @@ function LnJobFiles({
     style: {
       marginTop: 10,
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: 16,
       background: "var(--surface2)",
       border: "1px solid var(--border)"
     }
@@ -486,7 +490,7 @@ function LnJobFiles({
       display: "block",
       marginTop: 9,
       padding: "12px 0",
-      borderRadius: 11,
+      borderRadius: 14,
       background: "var(--primary)",
       color: "#fff",
       fontWeight: 800,
@@ -528,7 +532,7 @@ function LnJobSheet({
       maxHeight: "88dvh",
       overflowY: "auto",
       background: "var(--surface)",
-      borderRadius: "18px 18px 0 0",
+      borderRadius: "26px 26px 0 0",
       padding: "16px 18px",
       paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))"
     }
@@ -566,7 +570,7 @@ function LnJobSheet({
       flex: 1,
       textAlign: "center",
       padding: "11px 0",
-      borderRadius: 11,
+      borderRadius: 14,
       background: "var(--primary)",
       color: "#fff",
       fontWeight: 700,
@@ -581,7 +585,7 @@ function LnJobSheet({
       flex: 1,
       textAlign: "center",
       padding: "11px 0",
-      borderRadius: 11,
+      borderRadius: 14,
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-1)",
@@ -620,7 +624,7 @@ function LnJobSheet({
       marginTop: 16,
       width: "100%",
       padding: "13px 0",
-      borderRadius: 12,
+      borderRadius: 16,
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -634,7 +638,7 @@ function LnJobSheet({
 const LN_BTN = {
   width: "100%",
   padding: "16px 18px",
-  borderRadius: 15,
+  borderRadius: 20,
   border: "none",
   fontFamily: "inherit",
   fontSize: 16,
@@ -644,7 +648,7 @@ const LN_BTN = {
 const LN_FIELD = {
   width: "100%",
   padding: "12px 13px",
-  borderRadius: 12,
+  borderRadius: 16,
   border: "1px solid var(--border-strong)",
   background: "var(--surface2)",
   color: "var(--text-1)",
@@ -719,9 +723,10 @@ function LnClock({
   }, React.createElement("div", {
     style: {
       padding: "18px 16px",
-      borderRadius: 17,
+      borderRadius: 22,
       background: "var(--surface)",
       border: "1px solid var(--border)",
+      boxShadow: "var(--soft)",
       textAlign: "center"
     }
   }, React.createElement("div", {
@@ -819,7 +824,7 @@ function LnClock({
     style: {
       marginTop: 12,
       padding: "13px 15px",
-      borderRadius: 14,
+      borderRadius: 18,
       background: "var(--tint-amber-bg)",
       border: "1px solid #F59E0B44"
     }
@@ -859,7 +864,7 @@ function LnClock({
       marginTop: 10,
       width: "100%",
       padding: "12px 14px",
-      borderRadius: 12,
+      borderRadius: 16,
       border: "none",
       background: "#F59E0B",
       color: "#fff",
@@ -902,7 +907,7 @@ function LnClock({
       justifyContent: "center",
       gap: 7,
       padding: "13px 10px",
-      borderRadius: 13,
+      borderRadius: 18,
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 14,
@@ -945,7 +950,7 @@ function LnClock({
     style: {
       flex: 1,
       padding: "8px 6px",
-      borderRadius: 10,
+      borderRadius: 13,
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 12.5,
@@ -998,7 +1003,7 @@ function LnClock({
     style: {
       marginTop: 11,
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: 16,
       fontSize: 13,
       fontWeight: 700,
       textAlign: "center",
@@ -1078,7 +1083,7 @@ function LnClockCal({
     height: 28,
     display: "grid",
     placeItems: "center",
-    borderRadius: 8,
+    borderRadius: 12,
     cursor: "pointer",
     border: "1px solid var(--border)",
     background: "var(--surface)",
@@ -1134,7 +1139,8 @@ function LnClockCal({
   })))), React.createElement("div", {
     style: {
       border: "1px solid var(--border)",
-      borderRadius: 13,
+      boxShadow: "var(--soft)",
+      borderRadius: 18,
       overflow: "hidden",
       background: "var(--surface)",
       padding: "12px 10px 10px"
@@ -1172,7 +1178,7 @@ function LnClockCal({
       style: {
         position: "relative",
         padding: "7px 0 13px",
-        borderRadius: 9,
+        borderRadius: 12,
         cursor: "pointer",
         border: isToday && !on ? "1px solid var(--primary)" : "1px solid transparent",
         background: on ? "var(--primary)" : "transparent",
@@ -1270,11 +1276,11 @@ function LnClockCal({
     style: {
       marginTop: 9,
       width: "100%",
-      padding: "9px 0",
-      borderRadius: 10,
+      padding: "10px 0",
+      borderRadius: 14,
       cursor: "pointer",
       border: "1px solid var(--border)",
-      background: "var(--surface)",
+      background: "var(--surface2)",
       fontFamily: "inherit",
       fontSize: 12.5,
       fontWeight: 800,
@@ -1456,7 +1462,7 @@ function LnOtForm({
   }))), locked && React.createElement("div", {
     style: {
       padding: "10px 13px",
-      borderRadius: 12,
+      borderRadius: 16,
       fontSize: 11.5,
       lineHeight: 1.7,
       background: inLimit ? "var(--surface2)" : "var(--tint-amber-bg)",
@@ -1465,9 +1471,10 @@ function LnOtForm({
   }, inLimit ? "ขอได้เฉพาะช่วงที่อยู่ที่ทำงานจริงวันนี้ — ลงเวลา " + limit.lo + " ถึง " + limit.hi : "ช่วงนี้อยู่นอกเวลาที่ลงไว้ (" + limit.lo + " – " + limit.hi + ") ขอไม่ได้"), React.createElement("div", {
     style: {
       padding: "12px 14px",
-      borderRadius: 13,
+      borderRadius: 18,
       background: "var(--surface)",
-      border: "1px solid var(--border)"
+      border: "1px solid var(--border)",
+      boxShadow: "var(--soft)"
     }
   }, React.createElement("div", {
     style: {
@@ -1652,7 +1659,7 @@ function LnTimeTab({
     style: {
       marginLeft: "auto",
       padding: "8px 14px",
-      borderRadius: 10,
+      borderRadius: 13,
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -1664,7 +1671,8 @@ function LnTimeTab({
   }, "+ \u0E02\u0E2D OT")), React.createElement("div", {
     style: {
       border: "1px solid var(--border)",
-      borderRadius: 13,
+      boxShadow: "var(--soft)",
+      borderRadius: 18,
       overflow: "hidden",
       background: "var(--surface)"
     }
@@ -1735,7 +1743,7 @@ function LnTimeTab({
       style: {
         marginTop: 7,
         padding: "7px 13px",
-        borderRadius: 9,
+        borderRadius: 12,
         border: "1px solid var(--border-strong)",
         background: "var(--surface)",
         color: "#EF4444",
@@ -1821,7 +1829,7 @@ function LnFixNew({
   const field = {
     width: "100%",
     padding: "12px 13px",
-    borderRadius: 12,
+    borderRadius: 16,
     border: "1px solid var(--border-strong)",
     background: "var(--surface2)",
     color: "var(--text-1)",
@@ -1852,7 +1860,7 @@ function LnFixNew({
       overflowY: "auto",
       overflowX: "hidden",
       background: "var(--surface)",
-      borderRadius: "18px 18px 0 0",
+      borderRadius: "26px 26px 0 0",
       padding: "16px 18px",
       paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))"
     }
@@ -1990,7 +1998,7 @@ function LnFixNew({
     style: {
       flex: 1,
       padding: "13px 14px",
-      borderRadius: 11,
+      borderRadius: 14,
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -2005,7 +2013,7 @@ function LnFixNew({
     style: {
       flex: 2,
       padding: "13px 14px",
-      borderRadius: 11,
+      borderRadius: 14,
       border: "none",
       background: ready ? "var(--primary)" : "var(--border-strong)",
       color: "#fff",
@@ -2238,7 +2246,7 @@ function LnFixSheet({
       overflowY: "auto",
       overflowX: "hidden",
       background: "var(--surface)",
-      borderRadius: "18px 18px 0 0",
+      borderRadius: "26px 26px 0 0",
       padding: "16px 18px",
       paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))"
     }
@@ -2282,7 +2290,8 @@ function LnFixSheet({
   }, t.title || "ไม่ได้ระบุอาการ"), React.createElement("div", {
     style: {
       border: "1px solid var(--border)",
-      borderRadius: 13,
+      boxShadow: "var(--soft)",
+      borderRadius: 18,
       overflow: "hidden"
     }
   }, rows.map((r, i) => React.createElement("div", {
@@ -2330,7 +2339,7 @@ function LnFixSheet({
     style: {
       width: "100%",
       padding: "12px 13px",
-      borderRadius: 12,
+      borderRadius: 16,
       border: "1px solid var(--border-strong)",
       background: "var(--surface2)",
       color: "var(--text-1)",
@@ -2349,7 +2358,7 @@ function LnFixSheet({
     style: {
       flex: 1,
       padding: "12px 14px",
-      borderRadius: 11,
+      borderRadius: 14,
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -2364,7 +2373,7 @@ function LnFixSheet({
     style: {
       flex: 2,
       padding: "12px 14px",
-      borderRadius: 11,
+      borderRadius: 14,
       border: "none",
       background: note.trim() ? "var(--primary)" : "var(--border-strong)",
       color: "#fff",
@@ -2393,7 +2402,7 @@ function LnFixSheet({
       flex: 1,
       minWidth: 120,
       padding: "12px 14px",
-      borderRadius: 11,
+      borderRadius: 14,
       border: "none",
       background: n.key === "closed" ? "var(--primary)" : n.color,
       color: "#fff",
@@ -2408,7 +2417,7 @@ function LnFixSheet({
       marginTop: 10,
       width: "100%",
       padding: "12px 14px",
-      borderRadius: 11,
+      borderRadius: 14,
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -2475,13 +2484,11 @@ function LnApp() {
     style: {
       minHeight: "100dvh",
       background: "var(--bg)",
-      paddingBottom: "calc(" + LN_TABBAR_H + "px + env(safe-area-inset-bottom, 0px))"
+      paddingBottom: "calc(" + (LN_TABBAR_H + LN_TABBAR_GAP * 2) + "px + env(safe-area-inset-bottom, 0px))"
     }
   }, React.createElement(LnHead, null), tab === "jobs" && React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
-      padding: "12px 16px",
-      background: "var(--surface)",
-      borderBottom: "1px solid var(--border)"
+      padding: "4px 18px 12px"
     }
   }, React.createElement("input", {
     value: q,
@@ -2492,10 +2499,11 @@ function LnApp() {
     placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32",
     style: {
       width: "100%",
-      padding: "11px 13px",
-      borderRadius: 11,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface2)",
+      padding: "13px 15px",
+      borderRadius: 18,
+      border: "1px solid var(--border)",
+      boxShadow: "var(--soft)",
+      background: "var(--surface)",
       color: "var(--text-1)",
       fontFamily: "inherit",
       fontSize: 15,
@@ -2690,7 +2698,8 @@ function LnApp() {
     style: {
       background: "var(--surface)",
       border: "1px solid var(--border)",
-      borderRadius: 16,
+      boxShadow: "var(--soft)",
+      borderRadius: 20,
       padding: 18,
       textAlign: "center"
     }
@@ -2710,7 +2719,7 @@ function LnApp() {
     style: {
       marginTop: 14,
       padding: 12,
-      borderRadius: 12,
+      borderRadius: 16,
       background: "var(--tint-amber-bg)",
       border: "1px solid var(--tint-amber-bd)",
       color: "var(--tint-amber-tx)",

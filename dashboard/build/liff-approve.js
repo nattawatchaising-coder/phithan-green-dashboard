@@ -35,7 +35,7 @@ const LN_AP_SHEET = {
 const LN_AP_NOTE = {
   width: "100%",
   padding: "12px 13px",
-  borderRadius: 12,
+  borderRadius: 16,
   border: "1px solid var(--border-strong)",
   background: "var(--surface2)",
   color: "var(--text-1)",
@@ -53,7 +53,8 @@ function LnApRows({
   return React.createElement("div", {
     style: {
       border: "1px solid var(--border)",
-      borderRadius: 13,
+      boxShadow: "var(--soft)",
+      borderRadius: 18,
       overflow: "hidden"
     }
   }, use.map((r, i) => React.createElement("div", {
@@ -202,7 +203,7 @@ function LnApDecide({
       style: {
         flex: 1,
         padding: "13px 14px",
-        borderRadius: 11,
+        borderRadius: 14,
         border: "1px solid var(--border-strong)",
         background: "var(--surface)",
         color: "var(--text-2)",
@@ -217,7 +218,7 @@ function LnApDecide({
       style: {
         flex: 2,
         padding: "13px 14px",
-        borderRadius: 11,
+        borderRadius: 14,
         border: "none",
         background: note.trim() ? "#EF4444" : "var(--border-strong)",
         color: "#fff",
@@ -249,7 +250,7 @@ function LnApDecide({
     style: {
       flex: 1,
       padding: "14px 14px",
-      borderRadius: 12,
+      borderRadius: 16,
       border: "1px solid #EF4444",
       background: "var(--surface)",
       color: "#EF4444",
@@ -264,7 +265,7 @@ function LnApDecide({
     style: {
       flex: 2,
       padding: "14px 14px",
-      borderRadius: 12,
+      borderRadius: 16,
       border: "none",
       background: "#10B981",
       color: "#fff",
@@ -409,7 +410,7 @@ function LnApprDrSheet({
       width: 84,
       height: 84,
       objectFit: "cover",
-      borderRadius: 10,
+      borderRadius: 13,
       border: "1px solid var(--border)",
       flexShrink: 0
     }
@@ -427,8 +428,9 @@ function LnApprDrSheet({
       alignItems: "center",
       gap: 11,
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: 16,
       border: "1px solid var(--border)",
+      boxShadow: "var(--soft)",
       background: "var(--surface)"
     }
   }, React.createElement("img", {
@@ -448,7 +450,7 @@ function LnApprDrSheet({
   }, "\u0E1C\u0E39\u0E49\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 ", sigs.signs.by.name || "", React.createElement("br", null), window.drDateTH(window.drSignDay(sigs.signs.by)), " ", window.drSignTime(sigs.signs.by))), msg ? React.createElement("div", {
     style: {
       padding: "13px 15px",
-      borderRadius: 12,
+      borderRadius: 16,
       background: "var(--primary-soft)",
       color: "var(--primary-dark)",
       fontSize: 13.5,
@@ -458,7 +460,7 @@ function LnApprDrSheet({
   }, msg) : done ? React.createElement("div", {
     style: {
       padding: "13px 15px",
-      borderRadius: 12,
+      borderRadius: 16,
       background: "var(--surface2)",
       color: "var(--text-3)",
       fontSize: 12.5,
@@ -477,7 +479,7 @@ function LnApprDrSheet({
     style: {
       width: "100%",
       padding: "13px 14px",
-      borderRadius: 12,
+      borderRadius: 16,
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -538,7 +540,7 @@ function LnApPdf({
     style: {
       width: 96,
       height: 96,
-      borderRadius: 10,
+      borderRadius: 13,
       border: "1px solid var(--border)",
       background: "var(--surface2)",
       display: "grid",
@@ -632,7 +634,8 @@ function LnApprEcSheet({
   }), (cur.items || []).length > 0 && React.createElement("div", {
     style: {
       border: "1px solid var(--border)",
-      borderRadius: 13,
+      boxShadow: "var(--soft)",
+      borderRadius: 18,
       overflow: "hidden",
       background: "var(--surface)"
     }
@@ -673,7 +676,7 @@ function LnApprEcSheet({
   }, "\u0E1A\u0E34\u0E25\u0E41\u0E19\u0E1A ", rec.shots.length, " \u0E43\u0E1A"), rec.shots.length === 0 ? React.createElement("div", {
     style: {
       padding: "11px 13px",
-      borderRadius: 11,
+      borderRadius: 14,
       background: "var(--tint-amber-bg)",
       color: "var(--tint-amber-tx)",
       fontSize: 12,
@@ -697,13 +700,13 @@ function LnApprEcSheet({
       width: 96,
       height: 96,
       objectFit: "cover",
-      borderRadius: 10,
+      borderRadius: 13,
       border: "1px solid var(--border)"
     }
   })))), msg ? React.createElement("div", {
     style: {
       padding: "13px 15px",
-      borderRadius: 12,
+      borderRadius: 16,
       background: "var(--primary-soft)",
       color: "var(--primary-dark)",
       fontSize: 13.5,
@@ -713,7 +716,7 @@ function LnApprEcSheet({
   }, msg) : done ? React.createElement("div", {
     style: {
       padding: "13px 15px",
-      borderRadius: 12,
+      borderRadius: 16,
       background: "var(--surface2)",
       color: "var(--text-3)",
       fontSize: 12.5,
@@ -723,7 +726,7 @@ function LnApprEcSheet({
   }, "\u0E43\u0E1A\u0E19\u0E35\u0E49\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E2D\u0E22\u0E39\u0E48\u0E23\u0E30\u0E2B\u0E27\u0E48\u0E32\u0E07\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27 \u2014 \u0E2D\u0E32\u0E08\u0E21\u0E35\u0E04\u0E19\u0E2D\u0E37\u0E48\u0E19\u0E15\u0E31\u0E14\u0E2A\u0E34\u0E19\u0E44\u0E1B\u0E01\u0E48\u0E2D\u0E19") : !chk.ok ? React.createElement("div", {
     style: {
       padding: "13px 15px",
-      borderRadius: 12,
+      borderRadius: 16,
       background: "var(--tint-amber-bg)",
       color: "var(--tint-amber-tx)",
       fontSize: 12.5,
@@ -741,7 +744,7 @@ function LnApprEcSheet({
     style: {
       width: "100%",
       padding: "13px 14px",
-      borderRadius: 12,
+      borderRadius: 16,
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -840,7 +843,7 @@ function LnApprOtSheet({
   }), React.createElement("div", {
     style: {
       padding: "11px 13px",
-      borderRadius: 11,
+      borderRadius: 14,
       background: "var(--surface2)",
       color: "var(--text-3)",
       fontSize: 11.5,
@@ -849,7 +852,7 @@ function LnApprOtSheet({
   }, "\u0E40\u0E27\u0E25\u0E32\u0E43\u0E19\u0E43\u0E1A\u0E19\u0E35\u0E49\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E34\u0E48\u0E07\u0E17\u0E35\u0E48\u0E1C\u0E39\u0E49\u0E02\u0E2D\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07 \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E31\u0E1A\u0E44\u0E14\u0E49", React.createElement("br", null), "\u0E16\u0E49\u0E32\u0E44\u0E21\u0E48\u0E41\u0E19\u0E48\u0E43\u0E08 \u0E40\u0E17\u0E35\u0E22\u0E1A\u0E01\u0E31\u0E1A\u0E41\u0E1C\u0E48\u0E19\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E02\u0E2D\u0E07\u0E27\u0E31\u0E19\u0E19\u0E31\u0E49\u0E19\u0E1A\u0E19\u0E40\u0E27\u0E47\u0E1A\u0E01\u0E48\u0E2D\u0E19\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34"), msg ? React.createElement("div", {
     style: {
       padding: "13px 15px",
-      borderRadius: 12,
+      borderRadius: 16,
       background: "var(--primary-soft)",
       color: "var(--primary-dark)",
       fontSize: 13.5,
@@ -859,7 +862,7 @@ function LnApprOtSheet({
   }, msg) : done ? React.createElement("div", {
     style: {
       padding: "13px 15px",
-      borderRadius: 12,
+      borderRadius: 16,
       background: "var(--surface2)",
       color: "var(--text-3)",
       fontSize: 12.5,
@@ -869,7 +872,7 @@ function LnApprOtSheet({
   }, "\u0E43\u0E1A\u0E19\u0E35\u0E49\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E2D\u0E22\u0E39\u0E48\u0E23\u0E30\u0E2B\u0E27\u0E48\u0E32\u0E07\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27 \u2014 \u0E2D\u0E32\u0E08\u0E21\u0E35\u0E04\u0E19\u0E2D\u0E37\u0E48\u0E19\u0E15\u0E31\u0E14\u0E2A\u0E34\u0E19\u0E44\u0E1B\u0E01\u0E48\u0E2D\u0E19") : !chk.ok ? React.createElement("div", {
     style: {
       padding: "13px 15px",
-      borderRadius: 12,
+      borderRadius: 16,
       background: "var(--tint-amber-bg)",
       color: "var(--tint-amber-tx)",
       fontSize: 12.5,
@@ -887,7 +890,7 @@ function LnApprOtSheet({
     style: {
       width: "100%",
       padding: "13px 14px",
-      borderRadius: 12,
+      borderRadius: 16,
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",

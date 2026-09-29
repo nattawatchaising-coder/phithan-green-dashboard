@@ -65,9 +65,11 @@ const LN_START = (() => {
    และแถบบนที่เตี้ยลงคืนพื้นที่ให้เนื้องานอีกหนึ่งแถว */
 function LnHead() {
   return (
-    <div style={{ position: "sticky", top: 0, zIndex: 20, background: "var(--surface)", borderBottom: "1px solid var(--border)",
+    /* ไม่มีพื้นขาวและไม่มีเส้นคั่น — แถบหัวกลืนไปกับพื้นหน้า ปล่อยให้การ์ดข้างล่างเป็นของที่ลอยอยู่ชิ้นเดียว
+       ยัง sticky อยู่ เพราะตราบริษัทคือที่ที่สายตากลับมาหาเวลาหลงว่าอยู่หน้าไหน */
+    <div style={{ position: "sticky", top: 0, zIndex: 20, background: "var(--bg)",
       paddingTop: "env(safe-area-inset-top, 0px)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 16px 9px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "15px 18px 11px" }}>
         {window.BrandLockup ? <window.BrandLockup size={19} /> : <b>flash+solar</b>}
       </div>
     </div>
@@ -77,23 +79,28 @@ function LnHead() {
 /* ── แถบแท็บล่างจอ ──
    fixed ไม่ใช่ sticky เพราะต้องติดขอบล่างตลอด ไม่ว่าเนื้อหาจะสั้นหรือยาว
    zIndex 20 ต่ำกว่าแผ่นซ้อนทุกใบ (60) — เปิดใบงานหรือชีตแล้วแถบนี้ต้องหลบไป ไม่ใช่ลอยทับ
-   ตัวหน้าเผื่อ paddingBottom ให้เท่ากับความสูงแถบ ไม่งั้นรายการแถวสุดท้ายจะโดนบัง */
-const LN_TABBAR_H = 58;
+   ตัวหน้าเผื่อ paddingBottom ให้เท่ากับความสูงแถบบวกระยะที่ลอยพ้นขอบ ไม่งั้นแถวสุดท้ายจะโดนบัง
+   ลอยพ้นขอบจอ 10px ทั้งสามด้าน — แถบที่แปะติดขอบทำให้หน้าจบแบบทื่อ ๆ
+   แบบลอยทำให้เห็นว่าเนื้อหายังเลื่อนต่อได้ข้างใต้ และเข้ากับการ์ดที่ลอยอยู่แล้วทั้งหน้า */
+const LN_TABBAR_H = 58, LN_TABBAR_GAP = 10;
 function LnTabs({ tab, setTab, unread, tabs }) {
   const list = tabs && tabs.length ? tabs : LN_TAB;
   return (
-    <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 20, background: "var(--surface)",
-      borderTop: "1px solid var(--border)", boxShadow: "0 -2px 14px rgba(8,20,14,.07)",
-      paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
-      <div style={{ display: "flex" }}>
+    <div style={{ position: "fixed", zIndex: 20, background: "var(--surface)",
+      left: LN_TABBAR_GAP, right: LN_TABBAR_GAP,
+      bottom: "calc(" + LN_TABBAR_GAP + "px + env(safe-area-inset-bottom, 0px))",
+      borderRadius: 26, border: "1px solid var(--border)", boxShadow: "var(--soft-lg)", overflow: "hidden" }}>
+      <div style={{ display: "flex", padding: 5, gap: 2 }}>
         {list.map((t) => {
           const on = tab === t.key;
           return (
             /* ไอคอนบน ตัวหนังสือล่าง — ห้าแท็บเรียงบรรทัดเดียวล้นจอ 360px ซึ่งเป็นจอที่ช่างใช้จริง */
             <button key={t.key} onClick={() => setTab(t.key)}
-              style={{ flex: 1, position: "relative", padding: "8px 0 9px", border: "none", background: "none", cursor: "pointer",
+              /* แท็บที่เลือกใช้ "แผ่นสีอ่อนรองอยู่" แทนขีดใต้ — ขีดบาง ๆ บนแถบที่มุมมนใหญ่จะดูเป็นเศษเส้น
+                 แผ่นรองอ่านออกจากหางตาได้ไกลกว่า และเข้ากับชิปกลม ๆ ที่ใช้อยู่ทั้งแอป */
+              style={{ flex: 1, position: "relative", padding: "7px 0 8px", border: "none", cursor: "pointer",
+                borderRadius: 18, background: on ? "var(--primary-soft)" : "transparent",
                 fontFamily: "inherit", fontSize: 10.5, fontWeight: 700, color: on ? "var(--primary-dark)" : "var(--text-3)",
-                boxShadow: on ? "inset 0 2.5px 0 var(--primary)" : "none",
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3 }}>
               <span style={{ position: "relative", lineHeight: 0 }}>
                 <Icon name={t.icon} size={18} color={on ? "var(--primary-dark)" : "var(--text-3)"} />
@@ -266,7 +273,7 @@ function LnJobFiles({ jobId }) {
         : <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {have.map((k) => (
               <button key={k.key} onClick={() => grab(k.key, k.th)} disabled={!!busy}
-                style={{ flex: 1, minWidth: 140, padding: "12px 14px", borderRadius: 11,
+                style={{ flex: 1, minWidth: 140, padding: "12px 14px", borderRadius: 14,
                   border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-1)",
                   fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: busy ? "default" : "pointer" }}>
                 {busy === k.key ? "กำลังโหลด…" : "เปิด" + k.th + " (PDF)"}
@@ -277,7 +284,7 @@ function LnJobFiles({ jobId }) {
       {err && <div style={{ marginTop: 9, fontSize: 12.5, color: "#EF4444", fontWeight: 700 }}>{err}</div>}
 
       {got && (
-        <div style={{ marginTop: 10, padding: "11px 13px", borderRadius: 12, background: "var(--surface2)",
+        <div style={{ marginTop: 10, padding: "11px 13px", borderRadius: 16, background: "var(--surface2)",
           border: "1px solid var(--border)" }}>
           <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", wordBreak: "break-all" }}>{got.name}</div>
           <div style={{ marginTop: 2, fontSize: 11.5, color: "var(--text-3)" }}>
@@ -286,7 +293,7 @@ function LnJobFiles({ jobId }) {
           {/* ลิงก์ที่ผู้ใช้กดเอง ไม่ใช่ window.open จากสคริปต์ —
               WebView ของแอป LINE บล็อกการเปิดหน้าต่างด้วยสคริปต์บ่อย แต่ปล่อยให้กดลิงก์ผ่าน */}
           <a href={got.url} target="_blank" rel="noopener noreferrer"
-            style={{ display: "block", marginTop: 9, padding: "12px 0", borderRadius: 11, background: "var(--primary)",
+            style={{ display: "block", marginTop: 9, padding: "12px 0", borderRadius: 14, background: "var(--primary)",
               color: "#fff", fontWeight: 800, fontSize: 13.5, textAlign: "center", textDecoration: "none" }}>
             เปิด{got.th}
           </a>
@@ -324,7 +331,7 @@ function LnJobSheet({ job, techs, onClose }) {
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(15,43,51,.42)", display: "flex", alignItems: "flex-end" }}>
       <div onClick={(e) => e.stopPropagation()}
         style={{ width: "100%", maxHeight: "88dvh", overflowY: "auto", background: "var(--surface)",
-          borderRadius: "18px 18px 0 0", padding: "16px 18px", paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))" }}>
+          borderRadius: "26px 26px 0 0", padding: "16px 18px", paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))" }}>
         <div style={{ width: 38, height: 4, borderRadius: 99, background: "var(--border-strong)", margin: "0 auto 14px" }} />
         <div style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 700, color: "var(--text-3)" }}>{job.code}</div>
         <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text-1)", marginBottom: 12 }}>{job.name || "—"}</div>
@@ -332,12 +339,12 @@ function LnJobSheet({ job, techs, onClose }) {
         <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
           {job.phone && (
             <a href={"tel:" + String(job.phone).replace(/[^0-9+]/g, "")}
-              style={{ flex: 1, textAlign: "center", padding: "11px 0", borderRadius: 11, background: "var(--primary)", color: "#fff",
+              style={{ flex: 1, textAlign: "center", padding: "11px 0", borderRadius: 14, background: "var(--primary)", color: "#fff",
                 fontWeight: 700, fontSize: 13.5, textDecoration: "none" }}>โทรหาลูกค้า</a>
           )}
           {job.map && (
             <a href={job.map} target="_blank" rel="noopener noreferrer"
-              style={{ flex: 1, textAlign: "center", padding: "11px 0", borderRadius: 11, border: "1px solid var(--border-strong)",
+              style={{ flex: 1, textAlign: "center", padding: "11px 0", borderRadius: 14, border: "1px solid var(--border-strong)",
                 background: "var(--surface)", color: "var(--text-1)", fontWeight: 700, fontSize: 13.5, textDecoration: "none" }}>เปิดแผนที่</a>
           )}
         </div>
@@ -352,7 +359,7 @@ function LnJobSheet({ job, techs, onClose }) {
         <LnJobFiles jobId={job.id} />
 
         <button onClick={onClose}
-          style={{ marginTop: 16, width: "100%", padding: "13px 0", borderRadius: 12, border: "1px solid var(--border-strong)",
+          style={{ marginTop: 16, width: "100%", padding: "13px 0", borderRadius: 16, border: "1px solid var(--border-strong)",
             background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>ปิด</button>
       </div>
     </div>
@@ -363,9 +370,9 @@ function LnJobSheet({ job, techs, onClose }) {
    ลงเวลา + ขอ OT (เฟส 2) — หน้าจอชุดแรกที่เขียนข้อมูลลงฐานจริงจากมือถือ
    ================================================================ */
 
-const LN_BTN = { width: "100%", padding: "16px 18px", borderRadius: 15, border: "none",
+const LN_BTN = { width: "100%", padding: "16px 18px", borderRadius: 20, border: "none",
   fontFamily: "inherit", fontSize: 16, fontWeight: 800, cursor: "pointer" };
-const LN_FIELD = { width: "100%", padding: "12px 13px", borderRadius: 12, border: "1px solid var(--border-strong)",
+const LN_FIELD = { width: "100%", padding: "12px 13px", borderRadius: 16, border: "1px solid var(--border-strong)",
   background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 16, outline: "none" };
 
 /* ── ปุ่มลงเวลา ──
@@ -437,8 +444,8 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
 
   return (
     <div style={{ padding: 18 }}>
-      <div style={{ padding: "18px 16px", borderRadius: 17, background: "var(--surface)",
-        border: "1px solid var(--border)", textAlign: "center" }}>
+      <div style={{ padding: "18px 16px", borderRadius: 22, background: "var(--surface)",
+        border: "1px solid var(--border)", boxShadow: "var(--soft)", textAlign: "center" }}>
         <div style={{ fontSize: 12.5, color: "var(--text-3)", fontWeight: 700 }}>{window.drDateTH(window.drToday())}</div>
         <div style={{ marginTop: 9, display: "flex", justifyContent: "center", gap: 26 }}>
           <div>
@@ -503,7 +510,7 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
           ระบบไม่เปิดใบให้เอง ตั้งใจ — ทำเกินนิดหน่อยแล้วไม่ขอเป็นเรื่องปกติ
           ถ้าเปิดใบให้อัตโนมัติ คนอนุมัติจะเจอใบสามสิบใบทุกเช้าและเลิกอ่านทั้งกอง */}
       {earned.mins > 0 && (
-        <div style={{ marginTop: 12, padding: "13px 15px", borderRadius: 14,
+        <div style={{ marginTop: 12, padding: "13px 15px", borderRadius: 18,
           background: "var(--tint-amber-bg)", border: "1px solid #F59E0B44" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
             <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--tint-amber-tx)" }}>ทำเกินเวลางานแล้ว</span>
@@ -518,7 +525,7 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
             /* ส่งช่วงเวลางานของวันนี้ไปด้วย — ฟอร์มต้องใช้ตัดส่วนที่ทับเวลางานปกติ
                และมีแต่ที่นี่ที่ถือใบลงเวลาอยู่ในมือ */
             <button onClick={() => onAskOt(Object.assign({}, earned, { win: win }))}
-              style={{ marginTop: 10, width: "100%", padding: "12px 14px", borderRadius: 12, border: "none",
+              style={{ marginTop: 10, width: "100%", padding: "12px 14px", borderRadius: 16, border: "none",
                 background: "#F59E0B", color: "#fff", fontFamily: "inherit", fontSize: 14, fontWeight: 800, cursor: "pointer" }}>
               ขอ OT ช่วงนี้
             </button>
@@ -538,7 +545,7 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
           {window.TM_PLACE.map((p) => (
             <button key={p.key} onClick={() => setPlace(p.key)}
               style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7,
-                padding: "13px 10px", borderRadius: 13, cursor: "pointer", fontFamily: "inherit",
+                padding: "13px 10px", borderRadius: 18, cursor: "pointer", fontFamily: "inherit",
                 fontSize: 14, fontWeight: 800,
                 border: "1px solid " + (place === p.key ? "var(--primary)" : "var(--border-strong)"),
                 background: place === p.key ? "var(--primary-soft)" : "var(--surface)",
@@ -563,7 +570,7 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
                 const cur = (jobs || []).find((x) => x.id === jobId);
                 if (cur && t.key !== "all" && cur.type !== t.key) setJobId("");
               }}
-                style={{ flex: 1, padding: "8px 6px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
+                style={{ flex: 1, padding: "8px 6px", borderRadius: 13, cursor: "pointer", fontFamily: "inherit",
                   fontSize: 12.5, fontWeight: 800,
                   border: "1px solid " + (jobType === t.key ? "var(--primary)" : "var(--border-strong)"),
                   background: jobType === t.key ? "var(--primary-soft)" : "var(--surface)",
@@ -611,7 +618,7 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
       )}
 
       {msg && (
-        <div style={{ marginTop: 11, padding: "11px 13px", borderRadius: 12, fontSize: 13, fontWeight: 700, textAlign: "center",
+        <div style={{ marginTop: 11, padding: "11px 13px", borderRadius: 16, fontSize: 13, fontWeight: 700, textAlign: "center",
           background: msg.bad ? "var(--tint-amber-bg)" : "var(--primary-soft)",
           color: msg.bad ? "var(--tint-amber-tx)" : "var(--primary-dark)" }}>{msg.text}</div>
       )}
@@ -692,7 +699,7 @@ function LnClockCal({ rows, cfg, ot, onAskOt }) {
   const rec = byDay[pick];
   const otg = otDay[pick];
   const navBtn = {
-    width: 28, height: 28, display: "grid", placeItems: "center", borderRadius: 8, cursor: "pointer",
+    width: 28, height: 28, display: "grid", placeItems: "center", borderRadius: 12, cursor: "pointer",
     border: "1px solid var(--border)", background: "var(--surface)", padding: 0,
   };
 
@@ -711,7 +718,7 @@ function LnClockCal({ rows, cfg, ot, onAskOt }) {
         </div>
       </div>
 
-      <div style={{ border: "1px solid var(--border)", borderRadius: 13, overflow: "hidden", background: "var(--surface)", padding: "12px 10px 10px" }}>
+      <div style={{ border: "1px solid var(--border)", boxShadow: "var(--soft)", borderRadius: 18, overflow: "hidden", background: "var(--surface)", padding: "12px 10px 10px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
           {["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((d) => (
             <span key={d} style={{ textAlign: "center", fontSize: 11, fontWeight: 700, color: "var(--text-3)", padding: "2px 0 6px" }}>{d}</span>
@@ -722,7 +729,7 @@ function LnClockCal({ rows, cfg, ot, onAskOt }) {
             const on = k === pick, isToday = k === today;
             return (
               <button key={k} onClick={() => setPick(k)}
-                style={{ position: "relative", padding: "7px 0 13px", borderRadius: 9, cursor: "pointer",
+                style={{ position: "relative", padding: "7px 0 13px", borderRadius: 12, cursor: "pointer",
                   border: isToday && !on ? "1px solid var(--primary)" : "1px solid transparent",
                   background: on ? "var(--primary)" : "transparent",
                   fontFamily: "inherit", fontSize: 12.5, fontWeight: on || isToday ? 800 : 600,
@@ -779,8 +786,8 @@ function LnClockCal({ rows, cfg, ot, onAskOt }) {
               แล้วเปลี่ยนวันในฟอร์มอีกที ซึ่งเป็นจังหวะที่คนกรอกวันผิดบ่อยที่สุด */}
           {onAskOt && (
             <button onClick={() => onAskOt({ date: pick })}
-              style={{ marginTop: 9, width: "100%", padding: "9px 0", borderRadius: 10, cursor: "pointer",
-                border: "1px solid var(--border)", background: "var(--surface)",
+              style={{ marginTop: 9, width: "100%", padding: "10px 0", borderRadius: 14, cursor: "pointer",
+                border: "1px solid var(--border)", background: "var(--surface2)",
                 fontFamily: "inherit", fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>
               + ขอ OT วันที่ {lnCalDateTH(pick)}
             </button>
@@ -887,7 +894,7 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
         {/* min/max ของ input[type=time] เป็นแค่คำแนะนำ เบราว์เซอร์ไม่ได้กันทุกตัว
             ตัวที่กันจริงคือ tmOtInLimit ที่ปิดปุ่มส่ง — บรรทัดนี้บอกว่าทำไมถึงกด */}
         {locked && (
-          <div style={{ padding: "10px 13px", borderRadius: 12, fontSize: 11.5, lineHeight: 1.7,
+          <div style={{ padding: "10px 13px", borderRadius: 16, fontSize: 11.5, lineHeight: 1.7,
             background: inLimit ? "var(--surface2)" : "var(--tint-amber-bg)",
             color: inLimit ? "var(--text-3)" : "var(--tint-amber-tx)" }}>
             {inLimit
@@ -896,7 +903,7 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
           </div>
         )}
 
-        <div style={{ padding: "12px 14px", borderRadius: 13, background: "var(--surface)", border: "1px solid var(--border)" }}>
+        <div style={{ padding: "12px 14px", borderRadius: 18, background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--soft)" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
             <span style={{ fontSize: 12, color: "var(--text-3)", fontWeight: 700 }}>นับเป็น OT</span>
             <span style={{ fontFamily: "var(--mono)", fontSize: 20, fontWeight: 800,
@@ -1003,12 +1010,12 @@ function LnTimeTab({ me, users, role, jobs, startOt }) {
           <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8 }}>
             <b style={{ fontSize: 13, color: "var(--text-1)" }}>ใบขอ OT ของฉัน</b>
             <button onClick={() => { setLimit(null); setForm(true); }}
-              style={{ marginLeft: "auto", padding: "8px 14px", borderRadius: 10, border: "none",
+              style={{ marginLeft: "auto", padding: "8px 14px", borderRadius: 13, border: "none",
                 background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 12.5,
                 fontWeight: 800, cursor: "pointer" }}>+ ขอ OT</button>
           </div>
 
-          <div style={{ border: "1px solid var(--border)", borderRadius: 13, overflow: "hidden", background: "var(--surface)" }}>
+          <div style={{ border: "1px solid var(--border)", boxShadow: "var(--soft)", borderRadius: 18, overflow: "hidden", background: "var(--surface)" }}>
             {myOt.length === 0
               ? <div style={{ padding: 22, textAlign: "center", color: "var(--text-3)", fontSize: 12.5 }}>ยังไม่มีใบขอ OT</div>
               : myOt.slice(0, 15).map((r) => {
@@ -1031,7 +1038,7 @@ function LnTimeTab({ me, users, role, jobs, startOt }) {
                           ยกเลิกไม่ใช่การลบ ใบยังอยู่ให้ตรวจย้อนหลังว่าเคยขอแล้วถอน */}
                       {window.tmOtOpen(r) && (
                         <button onClick={() => cancelOt(r)}
-                          style={{ marginTop: 7, padding: "7px 13px", borderRadius: 9,
+                          style={{ marginTop: 7, padding: "7px 13px", borderRadius: 12,
                             border: "1px solid var(--border-strong)", background: "var(--surface)",
                             color: "#EF4444", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                           ยกเลิกใบนี้
@@ -1112,7 +1119,7 @@ function LnFixNew({ me, tickets, onSave, onClose }) {
     onSave(rec);
   };
 
-  const field = { width: "100%", padding: "12px 13px", borderRadius: 12, border: "1px solid var(--border-strong)",
+  const field = { width: "100%", padding: "12px 13px", borderRadius: 16, border: "1px solid var(--border-strong)",
     background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 16, outline: "none" };
   const label = { fontSize: 11.5, fontWeight: 800, color: "var(--text-3)" };
 
@@ -1120,7 +1127,7 @@ function LnFixNew({ me, tickets, onSave, onClose }) {
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(15,43,51,.42)", display: "flex", alignItems: "flex-end" }}>
       <div onClick={(e) => e.stopPropagation()}
         style={{ width: "100%", maxHeight: "88dvh", overflowY: "auto", overflowX: "hidden", background: "var(--surface)",
-          borderRadius: "18px 18px 0 0", padding: "16px 18px", paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))" }}>
+          borderRadius: "26px 26px 0 0", padding: "16px 18px", paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))" }}>
         <div style={{ width: 38, height: 4, borderRadius: 99, background: "var(--border-strong)", margin: "0 auto 14px" }} />
         <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text-1)", marginBottom: 12 }}>เปิดใบแจ้งซ่อม</div>
 
@@ -1169,11 +1176,11 @@ function LnFixNew({ me, tickets, onSave, onClose }) {
 
         <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
           <button onClick={onClose}
-            style={{ flex: 1, padding: "13px 14px", borderRadius: 11, border: "1px solid var(--border-strong)",
+            style={{ flex: 1, padding: "13px 14px", borderRadius: 14, border: "1px solid var(--border-strong)",
               background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13.5,
               fontWeight: 700, cursor: "pointer" }}>ยกเลิก</button>
           <button onClick={submit} disabled={!ready}
-            style={{ flex: 2, padding: "13px 14px", borderRadius: 11, border: "none",
+            style={{ flex: 2, padding: "13px 14px", borderRadius: 14, border: "none",
               background: ready ? "var(--primary)" : "var(--border-strong)", color: "#fff",
               fontFamily: "inherit", fontSize: 13.5, fontWeight: 800, cursor: ready ? "pointer" : "default" }}>
             เปิดใบนี้
@@ -1327,7 +1334,7 @@ function LnFixSheet({ t, role, onMove, onClose }) {
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(15,43,51,.42)", display: "flex", alignItems: "flex-end" }}>
       <div onClick={(e) => e.stopPropagation()}
         style={{ width: "100%", maxHeight: "88dvh", overflowY: "auto", overflowX: "hidden", background: "var(--surface)",
-          borderRadius: "18px 18px 0 0", padding: "16px 18px", paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))" }}>
+          borderRadius: "26px 26px 0 0", padding: "16px 18px", paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))" }}>
         <div style={{ width: 38, height: 4, borderRadius: 99, background: "var(--border-strong)", margin: "0 auto 14px" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 700, color: "var(--text-3)" }}>{t.no || t.id}</span>
@@ -1335,7 +1342,7 @@ function LnFixSheet({ t, role, onMove, onClose }) {
         </div>
         <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text-1)", margin: "4px 0 12px" }}>{t.title || "ไม่ได้ระบุอาการ"}</div>
 
-        <div style={{ border: "1px solid var(--border)", borderRadius: 13, overflow: "hidden" }}>
+        <div style={{ border: "1px solid var(--border)", boxShadow: "var(--soft)", borderRadius: 18, overflow: "hidden" }}>
           {rows.map((r, i) => (
             <div key={r[0]} style={{ display: "flex", gap: 10, padding: "10px 13px",
               borderTop: i ? "1px solid var(--border)" : "none", background: i % 2 ? "var(--surface2)" : "var(--surface)" }}>
@@ -1352,16 +1359,16 @@ function LnFixSheet({ t, role, onMove, onClose }) {
             <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--text-3)" }}>แก้ไขอะไรไปบ้าง</span>
             <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3}
               placeholder="เช่น เปลี่ยนเบรกเกอร์ DC ตัวที่ไหม้ · รีเซ็ตอินเวอร์เตอร์แล้วจ่ายไฟปกติ"
-              style={{ width: "100%", padding: "12px 13px", borderRadius: 12, border: "1px solid var(--border-strong)",
+              style={{ width: "100%", padding: "12px 13px", borderRadius: 16, border: "1px solid var(--border-strong)",
                 background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 16,
                 outline: "none", resize: "vertical" }} />
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={() => setClosing(false)}
-                style={{ flex: 1, padding: "12px 14px", borderRadius: 11, border: "1px solid var(--border-strong)",
+                style={{ flex: 1, padding: "12px 14px", borderRadius: 14, border: "1px solid var(--border-strong)",
                   background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13.5,
                   fontWeight: 700, cursor: "pointer" }}>ย้อนกลับ</button>
               <button onClick={() => onMove(t, "closed", note.trim())} disabled={!note.trim()}
-                style={{ flex: 2, padding: "12px 14px", borderRadius: 11, border: "none",
+                style={{ flex: 2, padding: "12px 14px", borderRadius: 14, border: "none",
                   background: note.trim() ? "var(--primary)" : "var(--border-strong)", color: "#fff",
                   fontFamily: "inherit", fontSize: 13.5, fontWeight: 800, cursor: note.trim() ? "pointer" : "default" }}>
                 ปิดงานนี้
@@ -1375,7 +1382,7 @@ function LnFixSheet({ t, role, onMove, onClose }) {
           <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
             {nexts.map((n) => (
               <button key={n.key} onClick={() => (n.key === "closed" ? setClosing(true) : onMove(t, n.key))}
-                style={{ flex: 1, minWidth: 120, padding: "12px 14px", borderRadius: 11, border: "none",
+                style={{ flex: 1, minWidth: 120, padding: "12px 14px", borderRadius: 14, border: "none",
                   background: n.key === "closed" ? "var(--primary)" : n.color, color: "#fff",
                   fontFamily: "inherit", fontSize: 13.5, fontWeight: 800, cursor: "pointer" }}>
                 {n.th}
@@ -1385,7 +1392,7 @@ function LnFixSheet({ t, role, onMove, onClose }) {
         )}
 
         <button onClick={onClose}
-          style={{ marginTop: 10, width: "100%", padding: "12px 14px", borderRadius: 11,
+          style={{ marginTop: 10, width: "100%", padding: "12px 14px", borderRadius: 14,
             border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)",
             fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>ปิด</button>
       </div>
@@ -1479,17 +1486,20 @@ function LnApp() {
 
   return (
     <div style={{ minHeight: "100dvh", background: "var(--bg)",
-      paddingBottom: "calc(" + LN_TABBAR_H + "px + env(safe-area-inset-bottom, 0px))" }}>
+      paddingBottom: "calc(" + (LN_TABBAR_H + LN_TABBAR_GAP * 2) + "px + env(safe-area-inset-bottom, 0px))" }}>
       <LnHead />
 
       {tab === "jobs" && (
         <React.Fragment>
-          <div style={{ padding: "12px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
+          {/* ไม่มีพื้นขาวและเส้นคั่นแล้ว — แถบค้นหาเป็นส่วนหนึ่งของพื้นหน้า ช่องกรอกเป็นของชิ้นเดียวที่ลอย
+              เส้นคั่นเดิมมีไว้แยกแถบนี้ออกจากรายการ ซึ่งตอนนี้รายการเป็นการ์ดลอยอยู่แล้ว ไม่ต้องมีเส้นช่วย */}
+          <div style={{ padding: "4px 18px 12px" }}>
             <input value={q} onChange={(e) => setQ(e.target.value)}
               autoCapitalize="none" autoCorrect="off" spellCheck={false}
               placeholder="ค้นหา"
-              style={{ width: "100%", padding: "11px 13px", borderRadius: 11, border: "1px solid var(--border-strong)",
-                background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 15, outline: "none" }} />
+              style={{ width: "100%", padding: "13px 15px", borderRadius: 18, border: "1px solid var(--border)",
+                boxShadow: "var(--soft)",
+                background: "var(--surface)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 15, outline: "none" }} />
             {/* แยกงานติดตั้งตามประเภท — งานบ้านกับงานโครงการทำกันคนละแบบ
                 ของที่ต้องเตรียมและคนที่ต้องคุยด้วยคนละชุด ปนกันแล้วไล่หายาก */}
             <div style={{ marginTop: 9 }}>
@@ -1591,14 +1601,14 @@ function LnApp() {
           {window.VcCardBody
             ? <window.VcCardBody user={me} />
             : (
-              <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 18, textAlign: "center" }}>
+              <div style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--soft)", borderRadius: 20, padding: 18, textAlign: "center" }}>
                 <div style={{ fontSize: 19, fontWeight: 800, color: "var(--text-1)" }}>{me.name}</div>
                 <div style={{ marginTop: 12, fontSize: 12, color: "var(--text-3)" }}>ชื่อผู้ใช้ {me.username || "—"}</div>
               </div>
             )}
 
           {window.LN_TEST && (
-            <div style={{ marginTop: 14, padding: 12, borderRadius: 12, background: "var(--tint-amber-bg)",
+            <div style={{ marginTop: 14, padding: 12, borderRadius: 16, background: "var(--tint-amber-bg)",
               border: "1px solid var(--tint-amber-bd)", color: "var(--tint-amber-tx)", fontSize: 12.5, fontWeight: 700, textAlign: "center" }}>
               โหมดทดสอบ — ข้อมูลที่บันทึกจะไม่เข้าระบบจริง
             </div>
