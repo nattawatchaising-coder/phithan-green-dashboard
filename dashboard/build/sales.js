@@ -3538,14 +3538,17 @@ function SalesMonthPick({
     style: {
       width: "auto",
       height: 26,
-      padding: "0 10px",
+      padding: "0 6px",
       minWidth: 118,
       fontFamily: "inherit",
+      border: "none",
+      background: "none",
       fontSize: 12,
       fontWeight: 700,
       color: "var(--text-2)",
       display: "inline-flex",
       alignItems: "center",
+      justifyContent: "center",
       gap: 5
     }
   }, label, React.createElement(Icon, {
@@ -3572,7 +3575,7 @@ function SalesMonthPick({
       zIndex: 30,
       width: 248,
       background: "var(--surface)",
-      border: "1px solid var(--border-strong)",
+      border: "1px solid var(--border)",
       borderRadius: 14,
       padding: 11,
       boxShadow: "0 18px 44px rgba(8,20,14,.22)"
@@ -3591,8 +3594,8 @@ function SalesMonthPick({
       width: 26,
       height: 26,
       borderRadius: 8,
-      border: "1px solid var(--border)",
-      background: "var(--surface)",
+      border: "none",
+      background: "none",
       cursor: "pointer",
       display: "grid",
       placeItems: "center",
@@ -3616,8 +3619,8 @@ function SalesMonthPick({
       width: 26,
       height: 26,
       borderRadius: 8,
-      border: "1px solid var(--border)",
-      background: "var(--surface)",
+      border: "none",
+      background: "none",
       opacity: yr >= thisYr ? .4 : 1,
       cursor: yr >= thisYr ? "default" : "pointer",
       display: "grid",
@@ -3638,26 +3641,33 @@ function SalesMonthPick({
     const k = yr + "-" + sPad2(i + 1);
     const on = month === k,
       off = k > thisMonth;
-    return React.createElement("button", {
-      key: k,
-      disabled: off,
-      onClick: () => {
-        onPick(k);
-        setOpen(false);
-      },
-      style: {
-        padding: "7px 0",
-        borderRadius: 9,
-        fontFamily: "inherit",
-        fontSize: 12,
-        fontWeight: 700,
-        border: "1px solid " + (on ? "transparent" : "var(--border)"),
-        background: on ? "var(--primary)" : "var(--surface)",
-        color: on ? "#fff" : off ? "var(--text-3)" : "var(--text-2)",
-        opacity: off ? .35 : 1,
-        cursor: off ? "default" : "pointer"
-      }
-    }, TH_MONTHS[i]);
+    return (React.createElement("button", {
+        key: k,
+        disabled: off,
+        onClick: () => {
+          onPick(k);
+          setOpen(false);
+        },
+        onMouseEnter: e => {
+          if (!on && !off) e.currentTarget.style.background = "var(--surface3)";
+        },
+        onMouseLeave: e => {
+          if (!on) e.currentTarget.style.background = "none";
+        },
+        style: {
+          padding: "8px 0",
+          borderRadius: 9,
+          fontFamily: "inherit",
+          fontSize: 12,
+          fontWeight: 700,
+          border: "none",
+          background: on ? "var(--primary)" : "none",
+          color: on ? "#fff" : off ? "var(--text-3)" : "var(--text-2)",
+          opacity: off ? .35 : 1,
+          cursor: off ? "default" : "pointer"
+        }
+      }, TH_MONTHS[i])
+    );
   }))));
 }
 function SalesKpiView({

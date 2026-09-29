@@ -2154,10 +2154,11 @@ function SalesMonthPick({ month, thisMonth, onShift, onPick }) {
   return (
     <span className="ov-cal-nav" ref={wrapRef} style={{ position: "relative" }}>
       <button onClick={() => onShift(-1)} aria-label="เดือนก่อนหน้า"><Icon name="chevronLeft" size={15} color="var(--text-2)" /></button>
-      {/* .ov-cal-nav button บังคับ 24×24px ไว้สำหรับปุ่มลูกศร ช่องชื่อเดือนจึงต้องเขียนขนาดทับเอง */}
+      {/* .ov-cal-nav button บังคับ 24×24px มีกรอบไว้สำหรับปุ่มลูกศร ช่องชื่อเดือนจึงต้องล้มทั้งกรอบและพื้นทิ้ง
+         ชื่อเดือนคือหัวของแถบนี้ ไม่ใช่ปุ่มที่ต้องแข่งความสนใจกับลูกศรสองข้าง — ลูกศรเท่านั้นที่ควรดูเป็นปุ่ม */}
       <button onClick={() => setOpen((o) => !o)} aria-expanded={open ? "true" : "false"} aria-label="เลือกเดือนและปี"
-        style={{ width: "auto", height: 26, padding: "0 10px", minWidth: 118, fontFamily: "inherit",
-          fontSize: 12, fontWeight: 700, color: "var(--text-2)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+        style={{ width: "auto", height: 26, padding: "0 6px", minWidth: 118, fontFamily: "inherit", border: "none", background: "none",
+          fontSize: 12, fontWeight: 700, color: "var(--text-2)", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
         {label}
         <Icon name="chevronDown" size={12} color="var(--text-3)" />
       </button>
@@ -2167,16 +2168,16 @@ function SalesMonthPick({ month, thisMonth, onShift, onPick }) {
 
       {open && (
         <div style={{ position: "absolute", top: "calc(100% + 7px)", left: 0, zIndex: 30, width: 248,
-          background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 14,
+          background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14,
           padding: 11, boxShadow: "0 18px 44px rgba(8,20,14,.22)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 9 }}>
             <button onClick={() => setYr((v) => v - 1)} aria-label="ปีก่อนหน้า"
-              style={{ width: 26, height: 26, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)",
+              style={{ width: 26, height: 26, borderRadius: 8, border: "none", background: "none",
                 cursor: "pointer", display: "grid", placeItems: "center", padding: 0 }}>
               <Icon name="chevronLeft" size={14} color="var(--text-2)" /></button>
             <b style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)" }}>{yr + 543}</b>
             <button onClick={() => setYr((v) => Math.min(v + 1, thisYr))} disabled={yr >= thisYr} aria-label="ปีถัดไป"
-              style={{ width: 26, height: 26, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)",
+              style={{ width: 26, height: 26, borderRadius: 8, border: "none", background: "none",
                 opacity: yr >= thisYr ? .4 : 1, cursor: yr >= thisYr ? "default" : "pointer", display: "grid", placeItems: "center", padding: 0 }}>
               <Icon name="chevronRight" size={14} color="var(--text-2)" /></button>
           </div>
@@ -2185,10 +2186,13 @@ function SalesMonthPick({ month, thisMonth, onShift, onPick }) {
               const k = yr + "-" + sPad2(i + 1);
               const on = month === k, off = k > thisMonth;
               return (
+                /* ไม่มีกรอบรายตัว — สิบสองกรอบในกรอบเดียวกลายเป็นตารางทึบ
+                   เดือนที่เลือกอยู่เป็นปุ่มทึบตัวเดียว สิบสองตัวที่เหลือเป็นตัวหนังสือเฉย — จะมองเห็นที่เลือกได้ในสายตาเดียว */
                 <button key={k} disabled={off} onClick={() => { onPick(k); setOpen(false); }}
-                  style={{ padding: "7px 0", borderRadius: 9, fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-                    border: "1px solid " + (on ? "transparent" : "var(--border)"),
-                    background: on ? "var(--primary)" : "var(--surface)",
+                  onMouseEnter={(e) => { if (!on && !off) e.currentTarget.style.background = "var(--surface3)"; }}
+                  onMouseLeave={(e) => { if (!on) e.currentTarget.style.background = "none"; }}
+                  style={{ padding: "8px 0", borderRadius: 9, fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+                    border: "none", background: on ? "var(--primary)" : "none",
                     color: on ? "#fff" : (off ? "var(--text-3)" : "var(--text-2)"),
                     opacity: off ? .35 : 1, cursor: off ? "default" : "pointer" }}>
                   {/* ในตารางใช้ตัวย่อทั้งสิบสอง — ชื่อเต็มยาวไม่เท่ากัน ปนกันแล้วอ่านเหมือนตารางเสีย */}
