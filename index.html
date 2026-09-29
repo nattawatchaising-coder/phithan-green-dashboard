@@ -210,9 +210,14 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* ช่องค้นหาไม่มีเส้นขอบตอนอยู่เฉย ๆ เหมือนกัน — พื้นเทาอ่อนก็บอกว่าพิมพ์ได้อยู่แล้ว
    ขอบสีเขียวเก็บไว้เฉพาะตอนเคอร์เซอร์อยู่ในช่อง ซึ่งเป็นการบอกโฟกัส ไม่ใช่กรอบประจำที่ */
-.search-box { display: flex; align-items: center; gap: 8px; background: var(--surface2); border: 1px solid transparent;
-  border-radius: 12px; padding: 9px 13px; width: 280px; transition: border-color .15s, box-shadow .15s, background .15s; }
-.search-box:hover { background: var(--surface3); }
+/* ช่องค้นหา — หน้าตาเดียวกันทุกหน้า ทุกที่ที่มันไปโผล่ (หัวจอ · คลังสินค้า · ลิ้นชักงาน)
+   ขอบมนเต็มใบบนพื้นขาว มีเส้นกรอบบาง — ช่องค้นหาคือที่ที่คนพิมพ์ลงไป จึงต้องดูเป็นช่องว่าง
+   ไม่ใช่ก้อนเทาที่กลืนไปกับพื้นหลังแบบเดิม
+   row-reverse ย้ายแว่นขยายไปทางขวาโดยไม่ต้องแก้ JSX ทั้งสี่ที่ และลำดับแท็บยังเข้าช่องพิมพ์เหมือนเดิม */
+.search-box { display: flex; flex-direction: row-reverse; align-items: center; gap: 8px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 999px; padding: 9px 16px; width: 280px; transition: border-color .15s, box-shadow .15s, background .15s; }
+.search-box:hover { border-color: var(--border-strong); }
 .search-box:focus-within { background: var(--surface); border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
 .search-box input { border: none; background: none; outline: none; font-size: 13.5px; color: var(--text-1); width: 100%; }
 .search-box input::placeholder { color: var(--text-3); }
@@ -316,7 +321,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   .page-title { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
   .page-sub { display: none; }
   .header-actions { gap: 8px; flex: 1; justify-content: flex-end; }
-  .search-box { width: 0; min-width: 0; flex: 1; max-width: 200px; padding: 7px 10px; }
+  .search-box { width: 0; min-width: 0; flex: 1; max-width: 200px; padding: 7px 13px; }
   .btn-add span { display: none; }
   .btn-add { padding: 10px 12px; min-width: 38px; border-radius: 10px; }
   .header-filters { padding: 8px 0; gap: 6px; }
@@ -660,7 +665,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 }
 [data-theme="aurora"] .btn-add:hover { background: var(--primary-bright); box-shadow: none; transform: none; }
 [data-theme="aurora"] .search-box {
-  background: var(--surface2); border-color: transparent;
+  background: var(--surface2); border-color: var(--border);
 }
 [data-theme="aurora"] .search-box:focus-within {
   background: var(--surface2); border-color: var(--primary);
@@ -672,7 +677,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 /* โหมดมืด: ปุ่มบนหัวจอไม่มีกรอบเหมือนกัน พื้นตอนชี้แค่สว่างขึ้นหนึ่งขั้น */
 [data-theme="aurora"] .delay-toggle { background: transparent; border-color: transparent; box-shadow: none; }
 [data-theme="aurora"] .delay-toggle:hover { background: rgba(239,68,68,.20); color: #FCA5A5; }
-[data-theme="aurora"] .search-box:hover { background: var(--surface3); }
+[data-theme="aurora"] .search-box:hover { background: var(--surface2); border-color: var(--border-strong); }
 [data-theme="aurora"] .ghost-btn:hover,
 [data-theme="aurora"] .hamburger { background: var(--surface2); }
 [data-theme="aurora"] .hamburger:hover { background: var(--surface3); }
