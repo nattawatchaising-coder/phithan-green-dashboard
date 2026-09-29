@@ -136,9 +136,9 @@ const permitStageKey = j => j && j.permit && j.permit.status || "todo";
 const permitStageOf = key => (window.PERMIT_COLS || []).find(c => c.key === key) || PERMIT_TODO;
 const NAV_IN_BOARD = ["leads", "permit"];
 const HDR_SEARCH = {
-  board: "ค้นหา...",
-  table: "ค้นหา...",
-  billing: "ค้นหา รหัสงาน · ลูกค้า · เลขที่เอกสาร · เงื่อนไข"
+  board: "ค้นหา",
+  table: "ค้นหา",
+  billing: "ค้นหา"
 };
 const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm)).map(n => NAV_IN_BOARD.indexOf(n.key) !== -1 ? Object.assign({}, n, {
   hidden: true

@@ -754,7 +754,7 @@ function StockShopModal({
   }), React.createElement("input", {
     value: q,
     onChange: e => setQ(e.target.value),
-    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C / \u0E23\u0E2B\u0E31\u0E2A..."
+    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32"
   }))), React.createElement("div", {
     style: {
       display: "flex",

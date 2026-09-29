@@ -294,7 +294,7 @@ function StockShopModal({ stock, job, byName, onClose }) {
           {/* ── เบิกเพิ่มจากคลัง ── */}
           <SectionHead><Icon name="box" size={13} color="var(--text-2)" /> เบิกเพิ่มจากคลัง</SectionHead>
           <div style={{ display: "flex", gap: 8, padding: "2px 8px 8px", flexWrap: "wrap", alignItems: "center" }}>
-            <div className="search-box" style={{ flex: 1, minWidth: 160 }}><Icon name="search" size={15} color="var(--text-3)" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาอุปกรณ์ / รหัส..." /></div>
+            <div className="search-box" style={{ flex: 1, minWidth: 160 }}><Icon name="search" size={15} color="var(--text-3)" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา" /></div>
           </div>
           <div style={{ display: "flex", gap: 6, padding: "0 8px 6px", flexWrap: "wrap" }}>
             <CatChip active={cat === "all"} onClick={() => setCat("all")} label="ทุกหมวด" color="var(--text-2)" />

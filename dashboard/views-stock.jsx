@@ -269,8 +269,8 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
             <div className="search-box">
               <Icon name="search" size={16} color="var(--text-3)" />
               {isPrices
-                ? <input value={priceQ} onChange={(e) => setPriceQ(e.target.value)} placeholder="ค้นหาชื่อ / รหัส..." />
-                : <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหาอุปกรณ์ / รหัส / ที่จัดเก็บ..." />}
+                ? <input value={priceQ} onChange={(e) => setPriceQ(e.target.value)} placeholder="ค้นหา" />
+                : <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ค้นหา" />}
             </div>
             {isPrices ? (
               <button className="btn-add" onClick={() => setAddPriceOpen(true)}>
@@ -573,7 +573,7 @@ function MovesModal({ moves, items, jobs, onClose }) {
           </div>
           <div className="search-box" style={{ marginTop: 12 }}>
             <Icon name="search" size={15} color="var(--text-3)" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาอุปกรณ์ / เลขที่ / งาน / ผู้ทำรายการ..." />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา" />
           </div>
         </div>
         <div style={{ flex: 1, padding: 16, paddingBottom: isMobile ? "calc(16px + env(safe-area-inset-bottom,0px))" : 16, display: "flex", flexDirection: "column", gap: 8, overflowY: "auto" }}>
