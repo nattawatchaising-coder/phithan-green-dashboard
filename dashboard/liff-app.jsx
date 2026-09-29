@@ -1151,6 +1151,7 @@ function LnApp() {
   const [tab, setTab]   = React.useState(LN_START.tab);
   const [q, setQ]       = React.useState("");
   const [open, setOpen] = React.useState(null);
+  const [card, setCard] = React.useState(false);   /* นามบัตรอิเล็กทรอนิกส์ — หน้า ฉัน */
   const [jobType, setJobType] = React.useState("all");
   /* คนที่เห็นทั้งบริษัท (แอดมิน/หัวหน้า/ขาย) ตั้งต้นที่ "ของฉัน"
      เพราะเปิดในไลน์คือกำลังจะไปทำงาน ไม่ใช่กำลังนั่งตรวจงานคนอื่น
@@ -1339,6 +1340,25 @@ function LnApp() {
             <div style={{ marginTop: 12, fontSize: 12, color: "var(--text-3)" }}>ชื่อผู้ใช้ {me.username || "—"}</div>
           </div>
 
+          {/* นามบัตรอิเล็กทรอนิกส์ — ตัวเดียวกับในหน้าโปรไฟล์บนเว็บ
+              ที่นี่สำคัญกว่าด้วยซ้ำ — คนที่เปิดหน้านี้คือคนที่อยู่หน้างานและเปิดไลน์อยู่แล้ว ส่งต่อให้ลูกค้าได้ทันที */}
+          {window.VcCardModal && (
+            <button onClick={() => setCard(true)}
+              style={{ marginTop: 14, width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "12px 14px",
+                borderRadius: 14, textAlign: "left", border: "1px solid var(--border)", background: "var(--surface)",
+                cursor: "pointer", fontFamily: "inherit" }}>
+              <span style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: "grid", placeItems: "center",
+                background: "var(--primary-soft)" }}><window.Icon name="user" size={16} color="var(--primary-dark)" /></span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>นามบัตรอิเล็กทรอนิกส์</span>
+                <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)", marginTop: 2 }}>
+                  ส่งให้ลูกค้าทางไลน์ · สแกนแล้วบันทึกลงรายชื่อในเครื่องได้เลย
+                </span>
+              </span>
+              <window.Icon name="chevronRight" size={15} color="var(--text-3)" />
+            </button>
+          )}
+
           {window.LN_TEST && (
             <div style={{ marginTop: 14, padding: 12, borderRadius: 12, background: "var(--tint-amber-bg)",
               border: "1px solid var(--tint-amber-bd)", color: "var(--tint-amber-tx)", fontSize: 12.5, fontWeight: 700, textAlign: "center" }}>
@@ -1350,6 +1370,10 @@ function LnApp() {
       )}
 
       <LnJobSheet job={open} techs={techStore.techs} onClose={() => setOpen(null)} />
+
+      {card && window.VcCardModal && (
+        <window.VcCardModal user={me} onClose={() => setCard(false)} />
+      )}
     </div>
   );
 }
