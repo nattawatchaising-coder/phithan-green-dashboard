@@ -3782,11 +3782,6 @@ function SalesKpiView({
   const noOwner = React.useMemo(() => rows.filter(r => !r.owner && r.stage !== "won" && r.stage !== "lost").length, [rows]);
   const noEng = React.useMemo(() => rows.filter(r => !r.booked && r.stage !== "won" && r.stage !== "lost").length, [rows]);
   const thisMonth = sToday10().slice(0, 7);
-  const monthTh = m => {
-    if (!m) return "ทั้งหมด";
-    const [y, mm] = m.split("-");
-    return TH_MONTHS[+mm - 1] + " " + (+y + 543).toString().slice(-2);
-  };
   const shiftMonth = React.useCallback(n => setMonth(cur => {
     if (!cur) return thisMonth;
     const base = cur;
@@ -3875,8 +3870,7 @@ function SalesKpiView({
   }, text);
   return React.createElement(React.Fragment, null, React.createElement(window.SchedHeader, {
     title: "\u0E22\u0E2D\u0E14\u0E02\u0E32\u0E22",
-    onMenuOpen: onMenuOpen,
-    sub: monthTh(month) + " · ปิดการขาย " + tot.won + " ราย · ยอด ฿" + fmtBaht(Math.round(tot.sales)) + " · pipeline ฿" + fmtBaht(Math.round(tot.pipe))
+    onMenuOpen: onMenuOpen
   }), React.createElement("div", {
     className: "app-content"
   }, React.createElement("div", {

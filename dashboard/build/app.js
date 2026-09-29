@@ -103,7 +103,7 @@ const NAV = [{
   inSettings: true
 }];
 const PLAIN_SUB = {
-  om: "ทะเบียนไซต์ในสัญญาบริการ · ประกัน · รอบล้างแผง",
+  om: "",
   attend: "ลงเวลาเข้า-ออกรายวัน · ใบขอ OT · ตั้งค่าเวลาทำงาน",
   expense: "ใบเบิกเงินหน้างาน · คิวอนุมัติ · ยอดค้างจ่ายรายคน",
   billing: "งวดงานทุกงาน · วางบิล · รับมอบ · รับเงิน",
@@ -1178,8 +1178,8 @@ function App() {
   }) : React.createElement(React.Fragment, null, React.createElement(Header, {
     view: view,
     navList: navItems,
-    plain: permitPage || !!PLAIN_SUB[view],
-    subtitle: permitPage ? permitHead : PLAIN_SUB[view] || null,
+    plain: permitPage || PLAIN_SUB[view] !== undefined,
+    subtitle: permitPage ? permitHead : PLAIN_SUB[view] !== undefined ? PLAIN_SUB[view] : null,
     ownOnly: ownOnly,
     count: filtered.length,
     total: jobs.length,
@@ -2353,7 +2353,7 @@ function Header({
     }
   }, React.createElement("h1", {
     className: "page-title"
-  }, nav.th), React.createElement("p", {
+  }, nav.th), subtitle !== "" && React.createElement("p", {
     className: "page-sub"
   }, subtitle || React.createElement(React.Fragment, null, "\u0E41\u0E2A\u0E14\u0E07 ", React.createElement("strong", null, count), " \u0E08\u0E32\u0E01 ", total, " \u0E07\u0E32\u0E19", ownOnly && " · เฉพาะงานของคุณ"), stageFilter && React.createElement("span", null, " \xB7 \u0E01\u0E23\u0E2D\u0E07: ", stInfo(stageFilter).th, " ", React.createElement("button", {
     onClick: () => setStageFilter(null),

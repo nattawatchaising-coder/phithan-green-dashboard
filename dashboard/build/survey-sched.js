@@ -319,7 +319,7 @@ function SchedHeader({
     }
   }, React.createElement("h1", {
     className: "page-title"
-  }, title), React.createElement("p", {
+  }, title), sub && React.createElement("p", {
     className: "page-sub"
   }, sub)), !isMobile && React.createElement(window.HdrSlot, null), React.createElement("div", {
     className: "header-actions"

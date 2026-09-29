@@ -52,8 +52,10 @@ const NAV = [
 /* หน้าที่ไม่ได้ไล่รายการงาน — ตัวกรองประเภทงาน/ช่าง/ขั้นงาน และบรรทัด "แสดง n จาก n งาน"
    ไม่มีความหมายบนหน้าเหล่านี้ กดกรองไปก็ไม่มีอะไรบนจอเปลี่ยน ได้แต่กินที่หัว
    ใส่คำอธิบายหน้าแทน เพราะหัวหน้าที่ว่างเปล่าอ่านเหมือนหน้าโหลดค้าง */
+/* ค่าว่าง = หน้านี้ไม่มีบรรทัดรอง (ต่างจาก undefined ที่แปลว่าไม่ใช่หน้าเนื้อหาล้วน)
+   หน้าที่ตัวกรองขึ้นไปอยู่แถวชื่อหน้าแล้ว บรรทัดรองจะดันตัวกรองให้ห่างจากชื่อหน้าไปอีกหนึ่งแถว */
 const PLAIN_SUB = {
-  om: "ทะเบียนไซต์ในสัญญาบริการ · ประกัน · รอบล้างแผง",
+  om: "",
   attend: "ลงเวลาเข้า-ออกรายวัน · ใบขอ OT · ตั้งค่าเวลาทำงาน",
   expense: "ใบเบิกเงินหน้างาน · คิวอนุมัติ · ยอดค้างจ่ายรายคน",
   billing: "งวดงานทุกงาน · วางบิล · รับมอบ · รับเงิน",
@@ -907,8 +909,8 @@ function App() {
             onAdvance={(j) => store.advance(j.id)} />
         ) : (
         <React.Fragment>
-        <Header view={view} navList={navItems} plain={permitPage || !!PLAIN_SUB[view]}
-          subtitle={permitPage ? permitHead : PLAIN_SUB[view] || null} ownOnly={ownOnly} count={filtered.length} total={jobs.length}
+        <Header view={view} navList={navItems} plain={permitPage || PLAIN_SUB[view] !== undefined}
+          subtitle={permitPage ? permitHead : (PLAIN_SUB[view] !== undefined ? PLAIN_SUB[view] : null)} ownOnly={ownOnly} count={filtered.length} total={jobs.length}
           search={search} setSearch={setSearch}
           typeFilter={typeFilter} setTypeFilter={setTypeFilter}
           delayedOnly={delayedOnly} setDelayedOnly={setDelayedOnly}
@@ -1528,12 +1530,16 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
         </button>
         <div style={{ flex: isMobile ? 1 : "0 1 auto", minWidth: 0 }}>
           <h1 className="page-title">{nav.th}</h1>
+          {/* subtitle === "" คือ "หน้านี้ไม่เอาบรรทัดรอง" — ไม่ใช่ null เพราะ null แปลว่า "ใช้บรรทัดมาตรฐาน แสดง N จาก M งาน"
+              ไม่เรนเดอร์ <p> เปล่าทิ้งไว้ — มันกินความสูง 21px กับ margin อีก 4px ซึ่งคือสิ่งที่เราอยากเอาออกพอดี */}
+          {subtitle !== "" && (
           <p className="page-sub">
             {subtitle || <React.Fragment>แสดง <strong>{count}</strong> จาก {total} งาน{ownOnly && " · เฉพาะงานของคุณ"}</React.Fragment>}
             {stageFilter && <span> · กรอง: {stInfo(stageFilter).th} <button onClick={() => setStageFilter(null)} className="clear-chip">ล้าง ✕</button></span>}
             {quickFilter && <span> · กรอง: {QUICK_LABELS[quickFilter]} <button onClick={() => setQuickFilter(null)} className="clear-chip">ล้าง ✕</button></span>}
             {techFilter && <span> · ช่าง: {techName(techFilter)} <button onClick={() => setTechFilter(null)} className="clear-chip">ล้าง ✕</button></span>}
           </p>
+          )}
         </div>
         {/* หน้าที่ไม่มีแถบตัวกรองของหัวจอเอง (om · expense · …) วางช่องเสียบไว้แทน
             ตัวกรองของหน้าเหล่านั้นจะมาเสียบเองตอนเรนเดอร์ — ดิฟเปล่าไม่กินที่ */}

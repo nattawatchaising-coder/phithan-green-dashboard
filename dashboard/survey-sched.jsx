@@ -188,7 +188,7 @@ function SchedHeader({ icon, title, sub, onMenuOpen, right }) {
         {/* จอใหญ่ชื่อหน้ากินเท่าที่ตัวมันกว้าง ที่เหลือเป็นของแถบตัวกรอง — ท่าเดียวกับ Header ใน app.jsx */}
         <div style={{ flex: isMobile ? 1 : "0 1 auto", minWidth: 0 }}>
           <h1 className="page-title">{title}</h1>
-          <p className="page-sub">{sub}</p>
+          {sub && <p className="page-sub">{sub}</p>}
         </div>
         {!isMobile && <window.HdrSlot />}
         {/* ชุดเครื่องมือขวามือเดียวกันกับหัวจอหลัก — หน้าที่ใช้หัวจอตัวนี้เคยไม่มีเลย

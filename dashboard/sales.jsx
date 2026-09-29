@@ -2297,7 +2297,6 @@ function SalesKpiView({ leads, quotes, appts, techs, currentUser, onMenuOpen, on
   const noEng = React.useMemo(() => rows.filter((r) => !r.booked && r.stage !== "won" && r.stage !== "lost").length, [rows]);
 
   const thisMonth = sToday10().slice(0, 7);
-  const monthTh = (m) => { if (!m) return "ทั้งหมด"; const [y, mm] = m.split("-"); return TH_MONTHS[+mm - 1] + " " + (+y + 543).toString().slice(-2); };
   /* กดลูกศรตอนอยู่ที่ "ทั้งหมด" ให้เริ่มนับจากเดือนปัจจุบัน ไม่ใช่เงียบ
      เดินหน้าเกินเดือนนี้ไม่ได้ — ยอดขายของเดือนหน้ายังไม่เกิด หน้าว่างเปล่าไม่มีประโยชน์กับใคร */
   const shiftMonth = React.useCallback((n) => setMonth((cur) => {
@@ -2329,8 +2328,9 @@ function SalesKpiView({ leads, quotes, appts, techs, currentUser, onMenuOpen, on
 
   return (
     <React.Fragment>
-      <window.SchedHeader title="ยอดขาย" onMenuOpen={onMenuOpen}
-        sub={monthTh(month) + " · ปิดการขาย " + tot.won + " ราย · ยอด ฿" + fmtBaht(Math.round(tot.sales)) + " · pipeline ฿" + fmtBaht(Math.round(tot.pipe))} />
+      {/* ไม่มีบรรทัดรอง — เดือน ยอดปิด จำนวนราย และ pipeline อยู่ในการ์ดสรุปใต้หัวจอครบทุกตัวอยู่แล้ว
+          บรรทัดนี้จึงเป็นการพูดซ้ำด้วยตัวหนังสือเล็กกว่า และดันตัวกรองที่มาอยู่แถวเดียวกันให้ห่างจากชื่อหน้า */}
+      <window.SchedHeader title="ยอดขาย" onMenuOpen={onMenuOpen} />
       <div className="app-content">
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 16 }}>
           <SalesMonthPick month={month} thisMonth={thisMonth} onShift={shiftMonth} onPick={setMonth} />
