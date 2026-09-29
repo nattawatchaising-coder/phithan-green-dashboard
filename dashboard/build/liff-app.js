@@ -1032,10 +1032,10 @@ const lnCalDateTH = iso => {
   return +a[2] + " " + LN_MON_TH[+a[1] - 1] + " " + (+a[0] + 543);
 };
 function lnCalDots(k, rec, otg, today, cfg) {
-  const out = [];
-  if (rec && rec.in && rec.in.hm) out.push(rec.out && rec.out.hm ? "var(--primary)" : "#D97706");else if (k <= today && window.tmIsWorkday(k, cfg)) out.push("#DC2626");
-  if (otg && otg.rows.length) out.push("#2563EB");
-  return out;
+  if (otg && otg.rows.length) return ["#2563EB"];
+  if (rec && rec.in && rec.in.hm) return [rec.out && rec.out.hm ? "var(--primary)" : "#D97706"];
+  if (k <= today && window.tmIsWorkday(k, cfg)) return ["#DC2626"];
+  return [];
 }
 function LnClockCal({
   rows,
