@@ -1528,7 +1528,9 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
         <button className="hamburger" onClick={onMenuOpen} aria-label="เปิดเมนู">
           <Icon name="menu" size={18} color="var(--text-2)" />
         </button>
-        <div style={{ flex: isMobile ? 1 : "0 1 auto", minWidth: 0 }}>
+        {/* .header-top ตั้ง align-items:flex-start ไว้สำหรับก้อนชื่อหน้า+บรรทัดรองที่สูงกว่าของข้าง ๆ
+            หน้าที่ไม่มีบรรทัดรอง ชื่อหน้าสูง 26px แต่ชิปผู้ใช้สูง 40px — ชื่อหน้าเลยไปเกาะขอบบนคนเดียว ดูลอย */}
+        <div style={{ flex: isMobile ? 1 : "0 1 auto", minWidth: 0, alignSelf: subtitle === "" ? "center" : undefined }}>
           <h1 className="page-title">{nav.th}</h1>
           {/* subtitle === "" คือ "หน้านี้ไม่เอาบรรทัดรอง" — ไม่ใช่ null เพราะ null แปลว่า "ใช้บรรทัดมาตรฐาน แสดง N จาก M งาน"
               ไม่เรนเดอร์ <p> เปล่าทิ้งไว้ — มันกินความสูง 21px กับ margin อีก 4px ซึ่งคือสิ่งที่เราอยากเอาออกพอดี */}

@@ -186,7 +186,8 @@ function SchedHeader({ icon, title, sub, onMenuOpen, right }) {
       <div className="header-top">
         <button className="hamburger" onClick={onMenuOpen} aria-label="เปิดเมนู"><Icon name="menu" size={18} color="var(--text-2)" /></button>
         {/* จอใหญ่ชื่อหน้ากินเท่าที่ตัวมันกว้าง ที่เหลือเป็นของแถบตัวกรอง — ท่าเดียวกับ Header ใน app.jsx */}
-        <div style={{ flex: isMobile ? 1 : "0 1 auto", minWidth: 0 }}>
+        {/* ไม่มีบรรทัดรอง = กลุ่มนี้เตี้ยกว่าชิปผู้ใช้ข้าง ๆ ต้องจัดกึ่งกลางเอง ไม่งั้นชื่อหน้าจะลอยอยู่ขอบบน */}
+        <div style={{ flex: isMobile ? 1 : "0 1 auto", minWidth: 0, alignSelf: sub ? undefined : "center" }}>
           <h1 className="page-title">{title}</h1>
           {sub && <p className="page-sub">{sub}</p>}
         </div>

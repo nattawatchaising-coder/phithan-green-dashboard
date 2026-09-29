@@ -2349,7 +2349,8 @@ function Header({
   })), React.createElement("div", {
     style: {
       flex: isMobile ? 1 : "0 1 auto",
-      minWidth: 0
+      minWidth: 0,
+      alignSelf: subtitle === "" ? "center" : undefined
     }
   }, React.createElement("h1", {
     className: "page-title"

@@ -315,7 +315,8 @@ function SchedHeader({
   })), React.createElement("div", {
     style: {
       flex: isMobile ? 1 : "0 1 auto",
-      minWidth: 0
+      minWidth: 0,
+      alignSelf: sub ? undefined : "center"
     }
   }, React.createElement("h1", {
     className: "page-title"
