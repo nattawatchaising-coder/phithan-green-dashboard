@@ -124,16 +124,16 @@ async function vcDraw(user, avatarUrl) {
   const hw = 944 - hx;
   x.textBaseline = "alphabetic";
   x.fillStyle = B.ink || "#0F2B33";
-  vcFit(x, B.legalTH || "", hw, 700, 44, 26);
-  x.fillText(B.legalTH || "", hx, 80);
+  vcFit(x, B.legalTH || "", hw, 700, 58, 30);
+  x.fillText(B.legalTH || "", hx, 86);
   x.fillStyle = B.muted || "#5B8A8A";
-  vcFit(x, B.legal || "", hw, 600, 17, 12);
-  x.fillText(B.legal || "", hx, 108);
-  vcFit(x, B.desc || "", hw, 400, 13, 10);
-  x.fillText(B.desc || "", hx, 131);
+  vcFit(x, B.legal || "", hw, 600, 19, 13);
+  x.fillText(B.legal || "", hx, 114);
+  vcFit(x, B.desc || "", hw, 400, 14, 11);
+  x.fillText(B.desc || "", hx, 137);
 
   x.strokeStyle = "#E3ECE8"; x.lineWidth = 1;
-  x.beginPath(); x.moveTo(56, 158); x.lineTo(944, 158); x.stroke();
+  x.beginPath(); x.moveTo(56, 164); x.lineTo(944, 164); x.stroke();
 
   /* ── รูปและชื่อ ── */
   const rs = (window.userRoles ? window.userRoles(user) : []) || [];
