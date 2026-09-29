@@ -36,8 +36,10 @@ const NAV = [
      ยังอยู่ใน navForRole ตามปกติ เพราะ allowed ใช้ลิสต์นี้ตัดสินว่าหน้าไหนเข้าได้ —
      ถอดออกจาก NAV ตรง ๆ แล้วคนที่ค้างอยู่หน้านี้จะถูกเด้งออกตอนรีเฟรช */
   { key: "line",       th: "แจ้งเตือน LINE",  en: "LINE",          icon: "message",  perm: "manageUsers", inSettings: true },
-  /* คู่มือการใช้งาน — เนื้อหาล้วน ไม่แตะฐานข้อมูล เปิดค้างบนจอตอนสอนได้ */
-  { key: "guide",      th: "คู่มือการใช้งาน",  en: "Guide",         icon: "file",     foot: true },
+  /* คู่มือการใช้งาน — เนื้อหาล้วน ไม่แตะฐานข้อมูล เปิดค้างบนจอตอนสอนได้
+     inSettings — คนที่เปิดคู่มือคือคนที่เพิ่งมาหรือติดอยู่เรื่องเดียว ไม่ใช่หน้าที่เข้าทุกวัน
+     จึงไม่ควรกินแถวในแถบเมนูเท่ากับเมนูงานที่กดทุกวัน */
+  { key: "guide",      th: "คู่มือการใช้งาน",  en: "Guide",         icon: "file",     inSettings: true },
   /* "รายงานสรุป" ถอดออกจากเมนูแล้ว — โค้ดหน้ายังอยู่ที่ views-report.jsx ถ้าอยากได้คืนให้เติมแถวนี้กลับ
      { key: "report", th: "รายงานสรุป", en: "Report", icon: "file", perm: "viewAll" } */
 ];
@@ -849,7 +851,7 @@ function App() {
     <div className="app-root">
       {sidebarOpen && <div className="sidebar-overlay" onClick={closeSidebar} />}
       <Sidebar view={view} onNav={navTo} role={role} techId={techId} jobs={jobs} stock={stock} t={t} badges={navBadges}
-        open={sidebarOpen} onClose={closeSidebar} aurora={aurora} onToggleAurora={toggleAurora}
+        open={sidebarOpen} onClose={closeSidebar}
         collapsed={collapsed} onToggleCollapsed={toggleCollapsed}
         currentUser={auth.current} onLogout={auth.logout}
         canManageUsers={can(role, "manageUsers")} onManageUsers={() => { setUserMgr(true); closeSidebar(); }}
@@ -1136,7 +1138,7 @@ function App() {
   );
 }
 
-function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onClose, aurora, onToggleAurora, collapsed, onToggleCollapsed, currentUser, onLogout, canManageUsers, onManageUsers, onManageTechs, onMySign }) {
+function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onClose, collapsed, onToggleCollapsed, currentUser, onLogout, canManageUsers, onManageUsers, onManageTechs, onMySign }) {
   // Read media query synchronously every render — avoids stale state when
   // the preview or device loads at one size then displays at another.
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -1218,7 +1220,7 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onCl
         {/* ── ตั้งค่าและบัญชี ──
             เดิมเป็นห้าปุ่มเรียงกันท้ายแถบ (ผู้ใช้งาน · ทีมช่าง · แจ้งเตือน LINE · โหมดกราไฟต์ · ออกจากระบบ)
             ซึ่งกินพื้นที่เท่ากับเมนูงานจริงทั้งที่เป็นของที่กดเดือนละครั้ง — ยุบเป็นปุ่มเดียวที่กางขึ้น */}
-        <SidebarSettings icons={icons} view={view} onNav={onNav} aurora={aurora} onToggleAurora={onToggleAurora}
+        <SidebarSettings icons={icons} view={view} onNav={onNav}
           settingsNav={navForRole(role, techId).filter((n) => n.inSettings && !n.hidden)}
           canManageUsers={canManageUsers} onManageUsers={onManageUsers} onManageTechs={onManageTechs}
           onLogout={onLogout} />
@@ -1230,7 +1232,9 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onCl
 /* ── เมนู "ตั้งค่าและบัญชี" ท้ายแถบเมนู ──
    รวมของที่กดนาน ๆ ครั้งไว้ที่เดียว: หน้าตั้งค่าของแอดมิน · สกินจอ · ออกจากระบบ
    กางขึ้นเพราะปุ่มอยู่ล่างสุดของจอ กางลงจะตกขอบ */
-function SidebarSettings({ icons, view, onNav, aurora, onToggleAurora, settingsNav, canManageUsers, onManageUsers, onManageTechs, onLogout }) {
+/* สวิตช์สว่าง/มืดไม่อยู่ในเมนูนี้แล้ว — มันอยู่ที่ปุ่มพระจันทร์บนหัวจอที่เดียว
+   ของที่กดสลับไปมาวันละหลายหน ไม่ควรต้องกางเมนูสองชั้นก่อนถึง และสองที่ทำเรื่องเดียวกันคนละที่คือสองสวิตช์ */
+function SidebarSettings({ icons, view, onNav, settingsNav, canManageUsers, onManageUsers, onManageTechs, onLogout }) {
   const [open, setOpen] = React.useState(false);
   const wrapRef = React.useRef(null);
   React.useEffect(() => {
@@ -1285,8 +1289,6 @@ function SidebarSettings({ icons, view, onNav, aurora, onToggleAurora, settingsN
           {canManageUsers && onManageTechs && row("techs", "wrench", "ทีมช่าง", onManageTechs)}
           {(settingsNav || []).map((n) => row(n.key, n.icon, n.th, () => onNav(n.key), { active: view === n.key }))}
           {sep("s1")}
-          {row("aurora", "moon", "โหมดกราไฟต์", onToggleAurora, { dot: aurora })}
-          {sep("s2")}
           {row("logout", "history", "ออกจากระบบ", onLogout, { danger: true, flip: true })}
         </div>
       )}

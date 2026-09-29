@@ -100,7 +100,7 @@ const NAV = [{
   th: "คู่มือการใช้งาน",
   en: "Guide",
   icon: "file",
-  foot: true
+  inSettings: true
 }];
 const PLAIN_SUB = {
   om: "ทะเบียนไซต์ในสัญญาบริการ · ประกัน · รอบล้างแผง",
@@ -1068,8 +1068,6 @@ function App() {
     badges: navBadges,
     open: sidebarOpen,
     onClose: closeSidebar,
-    aurora: aurora,
-    onToggleAurora: toggleAurora,
     collapsed: collapsed,
     onToggleCollapsed: toggleCollapsed,
     currentUser: auth.current,
@@ -1673,8 +1671,6 @@ function Sidebar({
   badges,
   open,
   onClose,
-  aurora,
-  onToggleAurora,
   collapsed,
   onToggleCollapsed,
   currentUser,
@@ -1796,8 +1792,6 @@ function Sidebar({
     icons: icons,
     view: view,
     onNav: onNav,
-    aurora: aurora,
-    onToggleAurora: onToggleAurora,
     settingsNav: navForRole(role, techId).filter(n => n.inSettings && !n.hidden),
     canManageUsers: canManageUsers,
     onManageUsers: onManageUsers,
@@ -1809,8 +1803,6 @@ function SidebarSettings({
   icons,
   view,
   onNav,
-  aurora,
-  onToggleAurora,
   settingsNav,
   canManageUsers,
   onManageUsers,
@@ -1933,9 +1925,7 @@ function SidebarSettings({
     }
   }, canManageUsers && onManageUsers && row("users", "users", "จัดการผู้ใช้งาน", onManageUsers), canManageUsers && onManageTechs && row("techs", "wrench", "ทีมช่าง", onManageTechs), (settingsNav || []).map(n => row(n.key, n.icon, n.th, () => onNav(n.key), {
     active: view === n.key
-  })), sep("s1"), row("aurora", "moon", "โหมดกราไฟต์", onToggleAurora, {
-    dot: aurora
-  }), sep("s2"), row("logout", "history", "ออกจากระบบ", onLogout, {
+  })), sep("s1"), row("logout", "history", "ออกจากระบบ", onLogout, {
     danger: true,
     flip: true
   })));
