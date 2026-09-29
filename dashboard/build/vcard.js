@@ -67,11 +67,13 @@ async function vcDraw(user, avatarUrl) {
   bar.addColorStop(1, B.deep || "#0A4D68");
   x.fillStyle = bar;
   x.fillRect(0, 0, 12, VC_H);
+  const LOGO_H = 118,
+    TXT_TOP = 45,
+    TXT_BOT = 137;
   let hx = 56;
   if (logo) {
-    const h = 116,
-      w = Math.round(logo.width * (h / logo.height));
-    x.drawImage(logo, hx, 22, w, h);
+    const w = Math.round(logo.width * (LOGO_H / logo.height));
+    x.drawImage(logo, hx, (TXT_TOP + TXT_BOT) / 2 - LOGO_H / 2, w, LOGO_H);
     hx += w + 20;
   }
   const hw = 944 - hx;
@@ -137,10 +139,12 @@ async function vcDraw(user, avatarUrl) {
   rows.forEach(([lb, v]) => {
     x.fillStyle = B.muted || "#5B8A8A";
     x.font = vcFont(600, 22);
-    x.fillText(lb, 56, ry);
+    x.textAlign = "right";
+    x.fillText(lb, 112, ry);
+    x.textAlign = "left";
     x.fillStyle = B.ink || "#0F2B33";
-    vcFit(x, v, 530, 600, 26, 15);
-    x.fillText(v, 128, ry + 2);
+    vcFit(x, v, 534, 600, 26, 15);
+    x.fillText(v, 126, ry + 2);
     ry += 54;
   });
   const qz = 186,

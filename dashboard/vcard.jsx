@@ -114,10 +114,13 @@ async function vcDraw(user, avatarUrl) {
   /* ── หัวใบ: ตรากับชื่อบริษัท ──
      ชื่อไทยเป็นตัวหลัก ชื่ออังกฤษลงมาเป็นบรรทัดรอง — คนที่รับนามบัตรใบนี้อ่านไทย
      ชื่ออังกฤษยังต้องมี เผื่อเอกสารข้ามชาติกับการค้นหาชื่อบริษัท แต่ไม่ใช่ตัวที่ต้องอ่านก่อน */
+  /* ตรากึ่งกลางกับก้อนตัวหนังสือข้าง ๆ — คิดจากขอบบนของชื่อบริษัทถึงขอบล่างของคำโปรย
+     ไม่ปักค่า y ตายตัว — วันไหนขนาดตัวหนังสือเปลี่ยน ตราจะเลื่อนตามเอง ไม่ค้างอยู่ขอบบน */
+  const LOGO_H = 118, TXT_TOP = 45, TXT_BOT = 137;
   let hx = 56;
   if (logo) {
-    const h = 116, w = Math.round(logo.width * (h / logo.height));
-    x.drawImage(logo, hx, 22, w, h);
+    const w = Math.round(logo.width * (LOGO_H / logo.height));
+    x.drawImage(logo, hx, (TXT_TOP + TXT_BOT) / 2 - LOGO_H / 2, w, LOGO_H);
     hx += w + 20;
   }
   /* กว้างที่เหลือหลังตรา — คิดจาก hx จริง ไม่ใช่ค่าคงที่ ตราจะได้โตได้อีกโดยชื่อไม่ล้น */
@@ -178,10 +181,12 @@ async function vcDraw(user, avatarUrl) {
   let ry = 360;
   rows.forEach(([lb, v]) => {
     x.fillStyle = B.muted || "#5B8A8A"; x.font = vcFont(600, 22);
-    x.fillText(lb, 56, ry);
+    x.textAlign = "right";
+    x.fillText(lb, 112, ry);
+    x.textAlign = "left";
     x.fillStyle = B.ink || "#0F2B33";
-    vcFit(x, v, 530, 600, 26, 15);          /* 130 → 660 ชนคิวอาร์พอดี เหลือช่องไฟ 40 */
-    x.fillText(v, 128, ry + 2);
+    vcFit(x, v, 534, 600, 26, 15);          /* 130 → 660 ชนคิวอาร์พอดี เหลือช่องไฟ 40 */
+    x.fillText(v, 126, ry + 2);
     ry += 54;
   });
 
