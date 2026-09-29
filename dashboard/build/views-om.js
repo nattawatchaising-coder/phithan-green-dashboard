@@ -2630,32 +2630,20 @@ function OmView({
       flexWrap: "wrap"
     }
   }, React.createElement("div", {
+    className: "search-box",
     style: {
-      position: "relative",
       flex: 1,
-      minWidth: 180
-    }
-  }, React.createElement("span", {
-    style: {
-      position: "absolute",
-      left: 11,
-      top: "50%",
-      transform: "translateY(-50%)",
-      display: "grid",
-      placeItems: "center"
+      minWidth: 180,
+      width: "auto"
     }
   }, React.createElement(Icon, {
     name: "search",
     size: 15,
     color: "var(--text-3)"
-  })), React.createElement("input", {
+  }), React.createElement("input", {
     value: q,
     onChange: e => setQ(e.target.value),
-    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32\u0E0A\u0E37\u0E48\u0E2D\u0E44\u0E0B\u0E15\u0E4C \xB7 \u0E23\u0E2B\u0E31\u0E2A \xB7 \u0E08\u0E31\u0E07\u0E2B\u0E27\u0E31\u0E14 \xB7 \u0E40\u0E1A\u0E2D\u0E23\u0E4C\u0E42\u0E17\u0E23",
-    style: Object.assign({}, OM_INPUT, {
-      padding: "9px 12px 9px 34px",
-      fontSize: 13
-    })
+    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32"
   })), canWrite && React.createElement("button", {
     onClick: addExternal,
     style: {

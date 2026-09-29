@@ -2765,12 +2765,20 @@ function ExpenseView({
       fontWeight: 700,
       color: "var(--text-2)"
     }
-  }, "\u0E14\u0E39\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14")), React.createElement("input", {
+  }, "\u0E14\u0E39\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14")), React.createElement("div", {
+    className: "search-box",
+    style: {
+      width: "100%"
+    }
+  }, React.createElement(Icon, {
+    name: "search",
+    size: 15,
+    color: "var(--text-3)"
+  }), React.createElement("input", {
     value: q,
     onChange: e => setQ(e.target.value),
-    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32 \u0E40\u0E25\u0E02\u0E17\u0E35\u0E48\u0E43\u0E1A \xB7 \u0E0A\u0E37\u0E48\u0E2D\u0E04\u0E19 \xB7 \u0E23\u0E2B\u0E31\u0E2A\u0E07\u0E32\u0E19 \xB7 \u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38",
-    style: EC_INPUT
-  }), React.createElement("div", null, list.map(c => React.createElement(EcClaimRow, {
+    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32"
+  })), React.createElement("div", null, list.map(c => React.createElement(EcClaimRow, {
     key: c.id,
     claim: c,
     onOpen: setOpen,

@@ -2387,31 +2387,19 @@ function UserManager({
       boxShadow: tab === k ? "0 1px 3px rgba(8,20,14,.12)" : "none"
     }
   }, th))), tab === "users" ? React.createElement(React.Fragment, null, React.createElement("div", {
+    className: "search-box",
     style: {
-      position: "relative",
+      width: "100%",
       marginTop: 12
-    }
-  }, React.createElement("span", {
-    style: {
-      position: "absolute",
-      left: 12,
-      top: "50%",
-      transform: "translateY(-50%)",
-      display: "grid",
-      placeItems: "center"
     }
   }, React.createElement(Icon, {
     name: "search",
     size: 15,
     color: "var(--text-3)"
-  })), React.createElement("input", {
+  }), React.createElement("input", {
     value: q,
     onChange: e => setQ(e.target.value),
-    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32\u0E0A\u0E37\u0E48\u0E2D \u0E2B\u0E23\u0E37\u0E2D \u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u2026",
-    style: Object.assign({}, A_INPUT, {
-      paddingLeft: 36,
-      fontSize: 13.5
-    })
+    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32"
   })), React.createElement("div", {
     className: "cat-chip-row",
     style: {

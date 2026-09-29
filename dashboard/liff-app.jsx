@@ -1229,7 +1229,7 @@ function LnApp() {
           <div style={{ padding: "12px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
             <input value={q} onChange={(e) => setQ(e.target.value)}
               autoCapitalize="none" autoCorrect="off" spellCheck={false}
-              placeholder="ค้นหา ชื่อ · รหัสงาน · จังหวัด · เบอร์ · ที่อยู่"
+              placeholder="ค้นหา"
               style={{ width: "100%", padding: "11px 13px", borderRadius: 11, border: "1px solid var(--border-strong)",
                 background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 15, outline: "none" }} />
             {/* แยกงานติดตั้งตามประเภท — งานบ้านกับงานโครงการทำกันคนละแบบ

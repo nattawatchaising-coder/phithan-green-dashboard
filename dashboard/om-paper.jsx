@@ -794,12 +794,10 @@ function OmVisitList({ sites, visitStore, role, currentUser }) {
         <window.OmStat label="อนุมัติแล้ว" value={roll.approved} color="#10B981" on={filter === "approved"} onClick={() => tog("approved")} />
       </div>
 
-      <div style={{ position: "relative" }}>
-        <span style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", display: "grid", placeItems: "center" }}>
-          <Icon name="search" size={15} color="var(--text-3)" />
-        </span>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาเลขใบ · ชื่อไซต์ · เนื้องาน"
-          style={Object.assign({}, window.OM_INPUT, { padding: "9px 12px 9px 34px", fontSize: 13 })} />
+      {/* ช่องค้นหาใช้ .search-box ร่วมกับหัวจอและคลังสินค้า — ทรงเดียวกันทั้งระบบ แก้ที่เดียวจบ */}
+      <div className="search-box" style={{ width: "100%" }}>
+        <Icon name="search" size={15} color="var(--text-3)" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา" />
       </div>
 
       <div style={{ border: "1px solid var(--border)", borderRadius: 14, background: "var(--surface2)", overflow: "hidden" }}>

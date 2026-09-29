@@ -1400,8 +1400,11 @@ function AttendView({ jobs, users, role, currentUser }) {
 
       {(tab === "mine" || tab === "inbox" || tab === "all") && (
         <React.Fragment>
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา เลขที่ใบ · ชื่อ · รหัสงาน · เหตุผล"
-            style={Object.assign({}, TM_IN, { width: "100%", maxWidth: 420 })} />
+          {/* ช่องค้นหาใช้ .search-box ร่วมกับหัวจอและคลังสินค้า — ทรงเดียวกันทั้งระบบ แก้ที่เดียวจบ */}
+          <div className="search-box" style={{ width: "100%", maxWidth: 420 }}>
+            <Icon name="search" size={15} color="var(--text-3)" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา" />
+          </div>
           <div style={{ border: "1px solid var(--border)", borderRadius: 13, overflow: "hidden", background: "var(--surface)" }}>
             {list.length === 0
               ? <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>

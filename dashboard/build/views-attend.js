@@ -3113,15 +3113,21 @@ function AttendView({
   }), tab === "cfg" && React.createElement(TmWorkHours, {
     cfg: wh.cfg,
     onSave: wh.save
-  }), (tab === "mine" || tab === "inbox" || tab === "all") && React.createElement(React.Fragment, null, React.createElement("input", {
-    value: q,
-    onChange: e => setQ(e.target.value),
-    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32 \u0E40\u0E25\u0E02\u0E17\u0E35\u0E48\u0E43\u0E1A \xB7 \u0E0A\u0E37\u0E48\u0E2D \xB7 \u0E23\u0E2B\u0E31\u0E2A\u0E07\u0E32\u0E19 \xB7 \u0E40\u0E2B\u0E15\u0E38\u0E1C\u0E25",
-    style: Object.assign({}, TM_IN, {
+  }), (tab === "mine" || tab === "inbox" || tab === "all") && React.createElement(React.Fragment, null, React.createElement("div", {
+    className: "search-box",
+    style: {
       width: "100%",
       maxWidth: 420
-    })
-  }), React.createElement("div", {
+    }
+  }, React.createElement(Icon, {
+    name: "search",
+    size: 15,
+    color: "var(--text-3)"
+  }), React.createElement("input", {
+    value: q,
+    onChange: e => setQ(e.target.value),
+    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32"
+  })), React.createElement("div", {
     style: {
       border: "1px solid var(--border)",
       borderRadius: 13,

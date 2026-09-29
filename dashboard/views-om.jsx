@@ -1166,12 +1166,10 @@ function OmView({ jobs, users, role, currentUser, focus }) {
 
       {tab === "sites" && (
       <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
-        <div style={{ position: "relative", flex: 1, minWidth: 180 }}>
-          <span style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", display: "grid", placeItems: "center" }}>
-            <Icon name="search" size={15} color="var(--text-3)" />
-          </span>
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาชื่อไซต์ · รหัส · จังหวัด · เบอร์โทร"
-            style={Object.assign({}, OM_INPUT, { padding: "9px 12px 9px 34px", fontSize: 13 })} />
+        {/* ช่องค้นหาใช้ .search-box ร่วมกับหัวจอและคลังสินค้า — ทรงเดียวกันทั้งระบบ แก้ที่เดียวจบ */}
+        <div className="search-box" style={{ flex: 1, minWidth: 180, width: "auto" }}>
+          <Icon name="search" size={15} color="var(--text-3)" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา" />
         </div>
         {canWrite && (
           <button onClick={addExternal}

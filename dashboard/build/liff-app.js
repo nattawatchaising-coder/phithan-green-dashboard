@@ -2123,7 +2123,7 @@ function LnApp() {
     autoCapitalize: "none",
     autoCorrect: "off",
     spellCheck: false,
-    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32 \u0E0A\u0E37\u0E48\u0E2D \xB7 \u0E23\u0E2B\u0E31\u0E2A\u0E07\u0E32\u0E19 \xB7 \u0E08\u0E31\u0E07\u0E2B\u0E27\u0E31\u0E14 \xB7 \u0E40\u0E1A\u0E2D\u0E23\u0E4C \xB7 \u0E17\u0E35\u0E48\u0E2D\u0E22\u0E39\u0E48",
+    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32",
     style: {
       width: "100%",
       padding: "11px 13px",

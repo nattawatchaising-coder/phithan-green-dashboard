@@ -1394,8 +1394,11 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
                   fontWeight: 700, color: "var(--text-2)" }}>ดูทั้งหมด</button>
             </div>
           )}
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา เลขที่ใบ · ชื่อคน · รหัสงาน · หมายเหตุ"
-            style={EC_INPUT} />
+          {/* ช่องค้นหาใช้ .search-box ร่วมกับหัวจอและคลังสินค้า — ทรงเดียวกันทั้งระบบ แก้ที่เดียวจบ */}
+          <div className="search-box" style={{ width: "100%" }}>
+            <Icon name="search" size={15} color="var(--text-3)" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา" />
+          </div>
           <div>
             {list.map((c) => <EcClaimRow key={c.id} claim={c} onOpen={setOpen} gone={!!c.jobId && !jobById[c.jobId]}
               currentUser={currentUser} role={role} onDoc={markDoc} onRemove={store.remove} />)}

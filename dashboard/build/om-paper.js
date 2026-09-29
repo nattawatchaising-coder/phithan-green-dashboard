@@ -1633,30 +1633,18 @@ function OmVisitList({
     on: filter === "approved",
     onClick: () => tog("approved")
   })), React.createElement("div", {
+    className: "search-box",
     style: {
-      position: "relative"
-    }
-  }, React.createElement("span", {
-    style: {
-      position: "absolute",
-      left: 11,
-      top: "50%",
-      transform: "translateY(-50%)",
-      display: "grid",
-      placeItems: "center"
+      width: "100%"
     }
   }, React.createElement(Icon, {
     name: "search",
     size: 15,
     color: "var(--text-3)"
-  })), React.createElement("input", {
+  }), React.createElement("input", {
     value: q,
     onChange: e => setQ(e.target.value),
-    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32\u0E40\u0E25\u0E02\u0E43\u0E1A \xB7 \u0E0A\u0E37\u0E48\u0E2D\u0E44\u0E0B\u0E15\u0E4C \xB7 \u0E40\u0E19\u0E37\u0E49\u0E2D\u0E07\u0E32\u0E19",
-    style: Object.assign({}, window.OM_INPUT, {
-      padding: "9px 12px 9px 34px",
-      fontSize: 13
-    })
+    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32"
   })), React.createElement("div", {
     style: {
       border: "1px solid var(--border)",

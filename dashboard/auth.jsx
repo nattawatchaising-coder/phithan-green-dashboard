@@ -1067,10 +1067,10 @@ function UserManager({ authStore, onClose, roleCfg }) {
 
           {tab === "users" ? (
             <React.Fragment>
-              <div style={{ position: "relative", marginTop: 12 }}>
-                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", display: "grid", placeItems: "center" }}><Icon name="search" size={15} color="var(--text-3)" /></span>
-                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาชื่อ หรือ ชื่อผู้ใช้…"
-                  style={Object.assign({}, A_INPUT, { paddingLeft: 36, fontSize: 13.5 })} />
+              {/* ช่องค้นหาใช้ .search-box ร่วมกับหัวจอและคลังสินค้า — ทรงเดียวกันทั้งระบบ แก้ที่เดียวจบ */}
+              <div className="search-box" style={{ width: "100%", marginTop: 12 }}>
+                <Icon name="search" size={15} color="var(--text-3)" />
+                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา" />
               </div>
 
               <div className="cat-chip-row" style={{ display: "flex", gap: 6, marginTop: 11, paddingBottom: 13, overflowX: "auto" }}>
