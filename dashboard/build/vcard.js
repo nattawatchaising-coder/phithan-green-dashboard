@@ -150,21 +150,26 @@ async function vcDraw(user, avatarUrl) {
     x.fillText(v, 126, ry + 2);
     ry += 54;
   });
-  const qz = 186,
+  const qz = 210,
     qx = 706,
-    qy = 226;
+    qy = 214;
   if (window.qrcode) {
     try {
+      const f8 = window.qrcode.stringToBytesFuncs && window.qrcode.stringToBytesFuncs["UTF-8"];
+      if (f8) window.qrcode.stringToBytes = f8;
       const q = window.qrcode(0, "M");
       q.addData(vcText(user, false), "Byte");
       q.make();
-      const n = q.getModuleCount(),
-        m = qz / n;
+      const n = q.getModuleCount();
+      const md = Math.max(1, Math.floor(qz * VC_SCALE / n)) / VC_SCALE;
+      const qs = md * n,
+        q0 = Math.round(qx + (qz - qs) / 2),
+        q1 = Math.round(qy + (qz - qs) / 2);
       x.fillStyle = "#FFFFFF";
       x.fillRect(qx, qy, qz, qz);
       x.fillStyle = "#0F2B33";
       for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
-        if (q.isDark(i, j)) x.fillRect(qx + j * m, qy + i * m, m + 1, m + 1);
+        if (q.isDark(i, j)) x.fillRect(q0 + j * md, q1 + i * md, md, md);
       }
     } catch (e) {}
   }

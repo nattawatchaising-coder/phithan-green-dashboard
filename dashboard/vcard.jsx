@@ -197,18 +197,27 @@ async function vcDraw(user, avatarUrl) {
   });
 
   /* ── คิวอาร์ ── */
-  const qz = 186, qx = 706, qy = 226;
+  const qz = 210, qx = 706, qy = 214;
   if (window.qrcode) {
     try {
+      /* ต้องสั่ง UTF-8 เอง — ค่าตั้งต้นของ qrcode-generator คือ "default" ซึ่งตัดทุกตัวอักษรเหลือไบต์ต่ำ
+         ภาษาไทยจึงเพี้ยนเป็นเครื่องหมายมั่ว ๆ ตอนสแกน — คิวอาร์อ่านออกปกติ ไม่มี error ให้เห็น
+         ตั้งทุกครั้ง ไม่ตั้งครั้งเดียวตอนโหลด — สคริปต์อื่นที่ใช้ qrcode เหมือนกันจะได้ไม่โดนของเราเปลี่ยนค่าให้ */
+      const f8 = window.qrcode.stringToBytesFuncs && window.qrcode.stringToBytesFuncs["UTF-8"];
+      if (f8) window.qrcode.stringToBytes = f8;
       const q = window.qrcode(0, "M");            /* 0 = เลือกรุ่นให้พอดีเอง · M = ทนเปื้อนระดับกลาง */
       q.addData(vcText(user, false), "Byte");
       q.make();
-      const n = q.getModuleCount(), m = qz / n;
+      /* ขนาดโมดูลต้องลงตัวเป็นจำนวนเต็มของพิกเซลจริง ไม่ใช่ของพิกัดที่เราวาด
+         ถ้าหารไม่ลงตัว ขอบโมดูลจะตกขอบคนละที่ กล้องอ่านไม่ออก — ที่เคยบวกทีละพิกเซลแก้ได้ตอนคิวอาร์โปร่ง
+         พอภาษาไทยทำให้ข้อมูลยาวขึ้นสามเท่า โมดูลเล็กลง กลบกลายเป็นสิ่งที่สแกนไม่ได้ */
+      const n = q.getModuleCount();
+      const md = Math.max(1, Math.floor((qz * VC_SCALE) / n)) / VC_SCALE;   /* หนึ่งโมดูล = กี่พิกเซลจริง */
+      const qs = md * n, q0 = Math.round(qx + (qz - qs) / 2), q1 = Math.round(qy + (qz - qs) / 2);
       x.fillStyle = "#FFFFFF"; x.fillRect(qx, qy, qz, qz);
       x.fillStyle = "#0F2B33";
       for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
-        /* +1 ปัดขึ้นกันเส้นขาวบาง ๆ ระหว่างโมดูลตอน m ไม่ลงตัว ซึ่งทำให้กล้องอ่านพลาด */
-        if (q.isDark(i, j)) x.fillRect(qx + j * m, qy + i * m, m + 1, m + 1);
+        if (q.isDark(i, j)) x.fillRect(q0 + j * md, q1 + i * md, md, md);
       }
     } catch (e) { /* ข้อมูลยาวเกินรุ่นใหญ่สุด — ปล่อยว่างไว้ ดีกว่าวาดคิวอาร์ที่อ่านไม่ออก */ }
   }
