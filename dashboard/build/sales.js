@@ -3545,7 +3545,7 @@ function SalesKpiView({
         id: l.id,
         code: l.code || "",
         name: l.name || "(ยังไม่ได้ตั้งชื่อโครงการ)",
-        type: l.type === "project" ? "project" : "home",
+        type: l.type === "project" || l.type === "biz" ? "project" : "home",
         ownerId: l.ownerId || "",
         owner: l.ownerName || "",
         eng: eng && eng.name || "",

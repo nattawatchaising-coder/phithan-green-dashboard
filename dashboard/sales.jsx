@@ -2171,7 +2171,9 @@ function SalesKpiView({ leads, quotes, appts, techs, currentUser, onMenuOpen, on
       const eng = engOfLead[l.id];
       return {
         id: l.id, code: l.code || "", name: l.name || "(ยังไม่ได้ตั้งชื่อโครงการ)",
-        type: l.type === "project" ? "project" : "home",
+        /* ใบลูกค้าเก็บประเภทเป็น "biz" — ฟอร์มที่ views-survey เขียนคำนี้ลง ไม่ใช่ "project" อย่างฝั่งใบงาน
+           ต้องแปลงเหมือนที่ app.jsx:510 กับ TypeBadge ทำ ไม่งั้นโรงงานทุกใบจะตกเป็น "งานบ้าน" และตัวกรอง "งานโครงการ" จะว่างตลอด */
+        type: (l.type === "project" || l.type === "biz") ? "project" : "home",
         ownerId: l.ownerId || "", owner: l.ownerName || "",
         eng: (eng && eng.name) || "", booked: !!eng,
         stage: st, at: l.updatedAt || l.createdAt || "",
