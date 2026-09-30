@@ -14,30 +14,41 @@ const BQ_CSS = `
 .bq-head .x:hover{background:var(--surface2);color:var(--text-1)}
 
 .bq-body{flex:1;min-height:0;display:flex}
-.bq-rail{width:236px;flex-shrink:0;border-right:1px solid var(--border);background:var(--surface);
-  padding:14px 11px;display:flex;flex-direction:column;gap:3px;overflow-y:auto}
+.bq-rail{width:236px;flex-shrink:0;background:var(--surface);box-shadow:10px 0 18px -16px rgba(8,20,14,.35);
+  padding:14px 10px 18px;display:flex;flex-direction:column;gap:1px;overflow-y:auto;position:relative;z-index:1}
 .bq-main{flex:1;min-width:0;overflow-y:auto;padding:20px 22px 28px}
 .bq-wrap{max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
-.bq-eb{font-size:9.5px;font-weight:800;letter-spacing:.13em;color:var(--text-3);text-transform:uppercase;padding:0 8px 7px}
 
-/* แถวหัวข้อในแถบซ้าย — ทั้งแถวกดได้ · ค่าที่กรอกแล้วโชว์ตรงขวาเลย ไม่ต้องเปิดเข้าไปดู */
-.bq-nav{display:flex;gap:10px;align-items:center;padding:9px 10px;border-radius:11px;border:0;width:100%;
-  background:none;text-align:left;cursor:pointer;font-family:inherit;transition:background .14s;position:relative}
+/* แถบซ้าย — ออกแบบใหม่ให้กวาดตาได้ในพริบตา
+   · ความคืบหน้ารวมบนสุด (กรอกแล้วกี่หัวข้อ) · หัวข้อจัดเป็น 4 กลุ่มตามลำดับงานจริง
+   · แถวละบรรทัดเดียว: จุดสถานะ + ชื่อ — ไอคอนรายหัวข้อเดิมซ้ำกันไปมา (box/grid/power) ไม่ได้บอกอะไร จึงเอาออก
+   · รายละเอียดสั้น (meta) โชว์เฉพาะหัวข้อที่เปิดอยู่ ของที่เหลืออ่านจากจุดสถานะพอ */
+.bq-prog{padding:2px 8px 12px}
+.bq-prog .row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:7px}
+.bq-prog .k{font-size:11.5px;font-weight:700;color:var(--text-2)}
+.bq-prog .v{font-size:11.5px;font-weight:800;color:var(--primary-dark);font-family:var(--mono)}
+.bq-prog .bar{height:6px;border-radius:99px;background:var(--surface3);overflow:hidden}
+.bq-prog .bar>i{display:block;height:100%;border-radius:99px;background:var(--primary);transition:width .3s ease}
+.bq-grp{font-size:10.5px;font-weight:700;color:var(--text-3);padding:12px 10px 5px}
+.bq-nav{display:flex;gap:9px;align-items:flex-start;padding:8px 10px;border-radius:12px;border:0;width:100%;
+  background:none;text-align:left;cursor:pointer;font-family:inherit;transition:background .14s}
 .bq-nav:hover{background:var(--surface2)}
 .bq-nav[data-on="1"]{background:var(--primary-soft)}
-.bq-nav[data-on="1"]::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;
-  border-radius:0 3px 3px 0;background:var(--primary)}
-.bq-nav .ic{width:24px;height:24px;border-radius:8px;flex:0 0 auto;display:grid;place-items:center;
-  background:var(--surface3);color:var(--text-3)}
-.bq-nav[data-on="1"] .ic{background:var(--primary);color:#fff}
+.bq-nav .dot{width:16px;height:16px;border-radius:99px;flex:0 0 auto;display:grid;place-items:center;margin-top:1px;
+  box-shadow:inset 0 0 0 1.6px var(--surface3);color:#fff}
+.bq-nav .dot[data-st="ok"]{background:var(--primary);box-shadow:none}
+.bq-nav .dot[data-st="warn"]{background:#F59E0B;box-shadow:none;font-size:10px;font-weight:900;line-height:1}
 .bq-nav .tx{flex:1;min-width:0}
-.bq-nav .tt{display:block;font-size:12.5px;font-weight:700;color:var(--text-1);line-height:1.3;
+.bq-nav .tt{display:block;font-size:13px;font-weight:600;color:var(--text-2);line-height:1.35;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bq-nav[data-on="1"] .tt{color:var(--primary-dark)}
-.bq-nav .mt{display:block;font-size:10px;font-weight:600;color:var(--text-3);line-height:1.4;margin-top:1px;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bq-nav[data-on="1"] .tt{color:var(--primary-dark);font-weight:700}
+.bq-nav .mt{display:block;font-size:11px;font-weight:600;color:var(--text-3);line-height:1.4;margin-top:2px}
 .bq-nav .mt.warn{color:var(--tint-amber-tx)}
-.bq-nav .mt.ok{color:var(--primary-dark)}
+/* ปุ่มไปหัวข้อถัดไป ท้ายเนื้อหา — กรอกไล่ไปทีละหัวข้อได้โดยไม่ต้องกลับไปหาในแถบซ้าย */
+.bq-next{align-self:flex-end;display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:999px;border:0;
+  background:var(--surface);box-shadow:var(--shadow-sm);color:var(--primary-dark);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.bq-next:hover{background:var(--primary-soft)}
+.bq-next .k{color:var(--text-3);font-weight:600}
 
 /* การ์ดเนื้อหา */
 .bq-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px 20px 20px}
@@ -100,10 +111,10 @@ const BQ_CSS = `
   .bq-spec{grid-template-columns:repeat(2,minmax(0,1fr))}
   .bq-rail{width:100%;flex-direction:row;gap:5px;overflow-x:auto;padding:9px 11px;
     border-right:none;border-bottom:1px solid var(--border)}
-  .bq-rail>.bq-eb{display:none}
-  .bq-nav{width:auto;flex:0 0 auto;min-width:0;padding:7px 11px}
+  .bq-rail{box-shadow:0 10px 18px -16px rgba(8,20,14,.35)}
+  .bq-prog,.bq-grp{display:none}
+  .bq-nav{width:auto;flex:0 0 auto;min-width:0;padding:7px 11px;align-items:center}
   .bq-nav .mt{display:none}
-  .bq-nav[data-on="1"]::before{display:none}
   .bq-main{padding:13px 12px 22px}
   .bq-card{padding:14px 14px 16px;border-radius:14px}
   /* จอแคบ: ตัวเลขสรุปเลื่อนแนวนอนแถวบน · ปุ่มลงมาอยู่แถวล่างเต็มความกว้าง จะได้ไม่ทับกัน */
@@ -4309,13 +4320,15 @@ function BOQEditor({
     key: "info",
     icon: "sun",
     title: "ข้อมูลระบบ",
+    done: b.panels > 0,
     meta: b.panels + " แผง · " + result.meta.kw + " kW · " + (String(b.phase) === "3" ? "3 เฟส" : "1 เฟส")
   }, isHuawei ? {
     key: "hybrid",
     icon: "bolt",
     title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + (selInv2 ? " (2 ตัว)" : ""),
     meta: selInv2 ? selInv.model + " · " + result.meta.invCount + " ตัว + " + selInv2.model + " · " + inv2Count + " ตัว" : selInv.model,
-    tone: inv2PhaseBad ? "warn" : ""
+    tone: inv2PhaseBad ? "warn" : "",
+    done: true
   } : null, isStringInv && scfg ? {
     key: "dc",
     icon: "bolt",
@@ -4374,7 +4387,8 @@ function BOQEditor({
     key: "acc",
     icon: "box",
     title: "Accessories",
-    meta: (accList || []).length ? accList.length + " รายการ" : "ยังไม่เพิ่ม"
+    meta: (accList || []).length ? accList.length + " รายการ" : "ยังไม่เพิ่ม",
+    done: (accList || []).length > 0
   } : {
     key: "acc",
     icon: "box",
@@ -4407,6 +4421,29 @@ function BOQEditor({
     tone: pb.sell > 0 ? (pb.net > 0 ? pb.netProfit : pb.profit) > 0 ? "ok" : "warn" : ""
   }]).filter(Boolean);
   const itemCount = priced.groups.reduce((a, g) => a + g.items.length, 0);
+  const secState = x => x.tone === "warn" ? "warn" : x.tone === "ok" || x.done ? "ok" : "todo";
+  const BQ_GRP_OF = {
+    info: "sys",
+    hybrid: "sys",
+    dc: "sys",
+    layout: "sys",
+    wire: "run",
+    raceway: "run",
+    tray: "run",
+    labor: "cost",
+    permit: "cost",
+    removable: "cost",
+    price: "cost"
+  };
+  const BQ_GRPS = [["sys", "ออกแบบระบบ"], ["run", "เดินสาย"], ["equip", "อุปกรณ์ & งานหน้างาน"], ["cost", "ต้นทุน & ราคา"]];
+  const secDone = navSecs.filter(x => secState(x) === "ok").length;
+  const secIdx = navSecs.findIndex(x => x.key === openSec);
+  const nextSec = secIdx >= 0 ? navSecs[secIdx + 1] : null;
+  const goSec = k => {
+    setOpenSec(k);
+    const m = document.querySelector(".bq-main");
+    if (m) m.scrollTop = 0;
+  };
   return React.createElement("div", {
     className: "bq"
   }, React.createElement("style", null, BQ_CSS), React.createElement("div", {
@@ -4437,26 +4474,53 @@ function BOQEditor({
     className: "bq-body"
   }, React.createElement("div", {
     className: "bq-rail"
+  }, React.createElement("div", {
+    className: "bq-prog"
+  }, React.createElement("div", {
+    className: "row"
   }, React.createElement("span", {
-    className: "bq-eb"
-  }, "\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D"), navSecs.map(s => React.createElement("button", {
-    key: s.key,
-    className: "bq-nav",
-    "data-on": openSec === s.key ? "1" : "0",
-    onClick: () => setOpenSec(s.key)
-  }, React.createElement("span", {
-    className: "ic"
-  }, React.createElement(Icon, {
-    name: s.icon,
-    size: 13,
-    color: "currentColor"
-  })), React.createElement("span", {
-    className: "tx"
-  }, React.createElement("span", {
-    className: "tt"
-  }, s.title), React.createElement("span", {
-    className: "mt " + (s.tone || "")
-  }, s.meta))))), React.createElement("div", {
+    className: "k"
+  }, "\u0E01\u0E23\u0E2D\u0E01\u0E41\u0E25\u0E49\u0E27"), React.createElement("span", {
+    className: "v"
+  }, secDone, " / ", navSecs.length)), React.createElement("div", {
+    className: "bar"
+  }, React.createElement("i", {
+    style: {
+      width: (navSecs.length ? secDone / navSecs.length * 100 : 0) + "%"
+    }
+  }))), BQ_GRPS.map(([g, th]) => {
+    const list = navSecs.filter(x => (BQ_GRP_OF[x.key] || "equip") === g);
+    if (!list.length) return null;
+    return React.createElement(React.Fragment, {
+      key: g
+    }, React.createElement("span", {
+      className: "bq-grp"
+    }, th), list.map(x => {
+      const on = openSec === x.key,
+        st = secState(x);
+      return React.createElement("button", {
+        key: x.key,
+        className: "bq-nav",
+        "data-on": on ? "1" : "0",
+        onClick: () => goSec(x.key),
+        title: x.meta
+      }, React.createElement("span", {
+        className: "dot",
+        "data-st": st
+      }, st === "ok" ? React.createElement(Icon, {
+        name: "check",
+        size: 10,
+        color: "#fff",
+        sw: 3
+      }) : st === "warn" ? "!" : null), React.createElement("span", {
+        className: "tx"
+      }, React.createElement("span", {
+        className: "tt"
+      }, x.title), on && x.meta ? React.createElement("span", {
+        className: "mt " + (st === "warn" ? "warn" : "")
+      }, x.meta) : null));
+    }));
+  })), React.createElement("div", {
     className: "bq-main"
   }, React.createElement("div", {
     className: "bq-wrap"
@@ -8277,7 +8341,17 @@ function BOQEditor({
         fontWeight: 600
       }
     }, good ? "คิดจากราคา" + (pb.discount > 0 ? "หลังส่วนลด" : "ขาย") + " หักต้นทุนรวม (วัสดุ + ค่าแรงติดตั้ง + ค่าแรงผู้รับเหมา) · ตัวเลขนี้ยังไม่รวม VAT" : "ราคานี้ขายแล้วขาดทุน — ต้นทุนรวม ฿" + baht(pb.totalCost) + " สูงกว่าราคาที่ตั้งไว้"));
-  })())))), React.createElement("div", {
+  })()), nextSec && React.createElement("button", {
+    type: "button",
+    className: "bq-next",
+    onClick: () => goSec(nextSec.key)
+  }, React.createElement("span", {
+    className: "k"
+  }, "\u0E16\u0E31\u0E14\u0E44\u0E1B"), " ", nextSec.title, " ", React.createElement(Icon, {
+    name: "chevronRight",
+    size: 15,
+    color: "currentColor"
+  }))))), React.createElement("div", {
     className: "bq-foot"
   }, React.createElement("span", {
     className: "bq-kpis"
