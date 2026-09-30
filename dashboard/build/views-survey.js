@@ -2308,10 +2308,10 @@ function LeadDetail({
     style: {
       position: "sticky",
       bottom: 0,
-      background: "var(--bg)",
+      background: "var(--surface)",
       boxShadow: "0 -10px 18px -14px rgba(8,20,14,.45)",
-      padding: "14px 0",
-      marginTop: "auto",
+      padding: "12px 16px",
+      margin: "auto -16px 0",
       display: "flex",
       gap: 8,
       flexWrap: "wrap",
@@ -2440,21 +2440,26 @@ function LeadDrawer({
   });
   const TABS = [{
     k: "ov",
-    th: "ภาพรวม"
+    th: "ภาพรวม",
+    c: "#1B9B75"
   }, {
     k: "ct",
     th: isMobile ? "ติดต่อ" : "การติดต่อ",
+    c: "#0284C7",
     n: nContacts,
     alert: lateFollow
   }, {
     k: "qt",
     th: isMobile ? "ใบเสนอ" : "ใบเสนอราคา",
+    c: "#D97706",
     n: nQuotes
   }, {
     k: "sv",
-    th: isMobile ? "สำรวจ/ออกแบบ" : "สำรวจ & ออกแบบ",
+    th: isMobile ? "สำรวจ" : "สำรวจ & ออกแบบ",
+    c: "#7C3AED",
     n: sst.state === "skip" ? null : sst.pct ? sst.pct + "%" : null
   }];
+  const tabC = (TABS.find(t => t.k === tab) || TABS[0]).c;
   const ctx = {
     leadStore,
     jobs,
@@ -2508,7 +2513,8 @@ function LeadDrawer({
     "aria-selected": tab === t.k,
     className: "ld-tab" + (tab === t.k ? " on" : ""),
     style: {
-      zIndex: tab === t.k ? 10 : TABS.length - i
+      zIndex: tab === t.k ? 10 : TABS.length - i,
+      "--tc": t.c
     },
     onClick: () => setTab(t.k)
   }, t.th, t.n ? React.createElement("span", {
@@ -2533,7 +2539,8 @@ function LeadDrawer({
     style: {
       padding: "14px 16px",
       boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)",
-      background: "var(--surface)",
+      background: "color-mix(in srgb, " + tabC + " 13%, var(--surface))",
+      transition: "background .18s ease",
       display: "flex",
       alignItems: "center",
       gap: 10,

@@ -942,8 +942,9 @@ function LeadDetail({ l, ctx, tab }) {
       {/* แถบปุ่มล่าง — ค้างอยู่ก้นใบเหมือนใบงาน จะได้กดได้โดยไม่ต้องเลื่อนกลับลงมา */}
       {/* แยกแถบปุ่มออกจากเนื้อหาด้วยเงาฟุ้ง ไม่ใช่เส้นคาด — ชุดเดียวกับที่ถอดเส้นออกจากหัวแผง
           เส้นบอกได้แค่ว่าของสองชิ้นชนกันตรงไหน เงาบอกได้ว่าชิ้นไหนอยู่บน ซึ่งคือสิ่งที่แถบค้างต้องการบอก */}
-      <div style={{ position: "sticky", bottom: 0, background: "var(--bg)", boxShadow: "0 -10px 18px -14px rgba(8,20,14,.45)",
-        padding: "14px 0", marginTop: "auto", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+      {/* แถบเต็มกว้างขาวชนขอบใบ — เดิมเป็นพื้นเทาเท่าตัวใบ ดูเป็นกล่องเทาลอยค้างอยู่ก้นใบ */}
+      <div style={{ position: "sticky", bottom: 0, background: "var(--surface)", boxShadow: "0 -10px 18px -14px rgba(8,20,14,.45)",
+        padding: "12px 16px", margin: "auto -16px 0", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         {ask ? (
           <React.Fragment>
             <span style={{ flex: 1, minWidth: 140, fontSize: 12, fontWeight: 700, lineHeight: 1.5,
@@ -1016,11 +1017,14 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
   const lateFollow = window.sOverdue && window.sOverdue(lead.nextFollow) && stageKey(lead) !== "won" && stageKey(lead) !== "lost";
   const sst = window.surveyStatus({ survey: lead.survey });
   const TABS = [
-    { k: "ov", th: "ภาพรวม" },
-    { k: "ct", th: isMobile ? "ติดต่อ" : "การติดต่อ", n: nContacts, alert: lateFollow },
-    { k: "qt", th: isMobile ? "ใบเสนอ" : "ใบเสนอราคา", n: nQuotes },
-    { k: "sv", th: isMobile ? "สำรวจ/ออกแบบ" : "สำรวจ & ออกแบบ", n: sst.state === "skip" ? null : (sst.pct ? sst.pct + "%" : null) },
+    /* c = สีประจำแท็บ — แท็บที่เลือกกับหัวใบย้อมสีเดียวกัน กดแล้วทั้งแผ่นเปลี่ยนสีตาม รู้ทันทีว่าอยู่แฟ้มไหน */
+    { k: "ov", th: "ภาพรวม", c: "#1B9B75" },
+    { k: "ct", th: isMobile ? "ติดต่อ" : "การติดต่อ", c: "#0284C7", n: nContacts, alert: lateFollow },
+    { k: "qt", th: isMobile ? "ใบเสนอ" : "ใบเสนอราคา", c: "#D97706", n: nQuotes },
+    { k: "sv", th: isMobile ? "สำรวจ" : "สำรวจ & ออกแบบ", c: "#7C3AED", n: sst.state === "skip" ? null : (sst.pct ? sst.pct + "%" : null) },
   ];
+
+  const tabC = (TABS.find((t) => t.k === tab) || TABS[0]).c;
 
   const ctx = {
     leadStore, jobs, quotes, apptsOf, currentUser, stock, priceMap, canManage, canDesign, onSaveBoq,
@@ -1041,7 +1045,7 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
         <div className="ld-tabs" role="tablist">
           {TABS.map((t, i) => (
             <button key={t.k} role="tab" aria-selected={tab === t.k} className={"ld-tab" + (tab === t.k ? " on" : "")}
-              style={{ zIndex: tab === t.k ? 10 : TABS.length - i }} onClick={() => setTab(t.k)}>
+              style={{ zIndex: tab === t.k ? 10 : TABS.length - i, "--tc": t.c }} onClick={() => setTab(t.k)}>
               {t.th}
               {t.n ? <span className="ld-tab-n">{t.n}</span> : null}
               {t.alert ? <span className="ld-tab-dot" title="เลยวันติดตามแล้ว" /> : null}
@@ -1052,7 +1056,8 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
           flex: 1, minHeight: 0, position: "relative", zIndex: 11,
           display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
           {/* หัวลิ้นชัก — แยกจากเนื้อด้วยเงาฟุ้ง ชุดเดียวกับแถบปุ่มล่าง ไม่ใช้เส้นคาด */}
-          <div style={{ padding: "14px 16px", boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)", background: "var(--surface)",
+          <div style={{ padding: "14px 16px", boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)",
+            background: "color-mix(in srgb, " + tabC + " 13%, var(--surface))", transition: "background .18s ease",
             display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 14.5, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lead.name || "(ไม่ระบุชื่อ)"}</div>
